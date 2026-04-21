@@ -97,12 +97,18 @@ export async function GET(request: Request) {
     logger.warn('api.daily-brief', 'used_fallback', { tf });
   }
 
-  if (redis) {
+  // 캐시는 AI 생성 결과(또는 이와 동등한 품질)만 저장. data-fallback 은
+  // 일시적 AI 장애 때문에 생성된 저품질 snapshot 이므로 캐시했다가 이후 10분간
+  // fallback 브리프를 계속 서빙하는 악순환 방지 — 다음 요청이 AI 재시도하도록 패스스루.
+  const isAiQuality = brief.source !== 'data';
+  if (redis && isAiQuality) {
     await loggedRedisSet(redis, 'api.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 });
-  } else {
+  } else if (!redis && isAiQuality) {
     // No Redis — populate in-memory cache so subsequent non-force requests in the
     // same warm instance skip the costly HTTP-fallback + AI-call path.
     MEMORY_CACHE.set(tf, { brief, expiresAt: Date.now() + MEMORY_TTL_MS });
+  } else {
+    logger.info('api.daily-brief', 'skip_cache_fallback_source', { tf, source: brief.source });
   }
 
   logger.info('api.daily-brief', 'served', { tf, source: brief.source, durationMs: Date.now() - reqStart });

@@ -691,6 +691,8 @@
 | 296h | fg.asset.* `no_native_index` 단독이면 ok 승격 | ✅ live | 자산 카테고리(gold/defense/tech 등 10개)는 원지수 부재가 설계상 기본값. partial 오분류 방지 |
 | 296i | korea-flow 거래일 폴백 (최대 7일 역스캔) | ✅ live | 장 전/주말/공휴일에도 최근 trading day 데이터 반환 |
 | 296j | ownership-alerts in-memory cache (Redis-less 환경) | ✅ live | warm instance 내 2h TTL, EDGAR 10분 빈 윈도우에도 snapshot 유지 |
+| 296k | daily-brief MEMORY_CACHE fallback 저장 차단 | ✅ live | source==='data' 인 fallback brief 는 캐시하지 않아 다음 요청에 AI 재시도 (10min 저품질 연쇄 방지) |
+| 296l | daily-brief HTTP ctx: short-interest + news-cascade 추가 | ✅ live | Redis 없을 때 12 엔드포인트 병렬 fetch — 기존 10 → 12 (short/cascade 커버) |
 
 ---
 

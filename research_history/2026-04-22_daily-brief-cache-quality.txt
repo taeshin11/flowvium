@@ -1,0 +1,59 @@
+2026-04-22 — daily-brief 캐시 품질 가드 + HTTP ctx 2 엔드포인트 추가
+
+## 배경
+8172d08 배포 직후 verify-metrics: ok 55→65, degraded 13→3 (fg.asset 10개 재분류 반영).
+남은 degraded 3: ai.gemini(미설정), insider.13dg(EDGAR 빈 윈도우), insider.korea(KRX 0 rows).
+
+후속 debug 로 daily-brief 상태 체크:
+- `?force=1&debug=1` → source=GROQ-llama-3.3-70b, parsed=true (AI 정상)
+- `?force=0` (user-facing) → source=data (fallback brief 서빙)
+
+→ 문제: 하루 중 어느 시점에 GROQ TPD 소진 상태에서 daily-brief 호출되면,
+fallbackBrief 가 MEMORY_CACHE 에 저장되고 이후 10분간 AI 복구 후에도 저품질
+fallback 을 계속 서빙. **AI 일시 장애의 10분 연쇄.**
+
+## 수정 1: MEMORY_CACHE 품질 가드 (src/app/api/daily-brief/route.ts)
+```typescript
+const isAiQuality = brief.source !== 'data';
+if (redis && isAiQuality) redis.set(...)
+else if (!redis && isAiQuality) MEMORY_CACHE.set(tf, {brief, ...})
+else logger.info('skip_cache_fallback_source', {tf, source})
+```
+- source='data' 브리프는 캐시 금지 → 다음 요청이 다시 AI 시도.
+- Redis 있을 때도 동일 원칙 적용 (fallback 을 Redis 26h 캐시에 저장하면 더 심각).
+- 실패가 반복되면 매 요청이 AI 호출하지만, 품질 우선 판단.
+
+## 수정 2: HTTP ctx 커버리지 확장 (src/lib/daily-brief.ts)
+기존 Redis 경로는 `flowvium:short-interest:v1`, `flowvium:news-cascade:v1` 등
+모든 키 커버했지만 `gatherTabContextViaHttp` 는 10개 엔드포인트만 병렬 fetch.
+→ short / cascade 비어서 ctx.short=null, ctx.cascade=[].
+→ AI 프롬프트에서 short / cascade 섹션 누락되어 결과 품질 저하.
+
+추가:
+- `/api/short-interest` (timeout 12000ms) → ctx.short
+- `/api/news-cascade` (timeout 15000ms) → cascadeR.articles → ctx.cascade
+
+이로써 Promise.all 배열 10 → 12. 여전히 병렬이라 TTL 영향 최소 (가장 느린 것이 ceiling).
+
+## 검증
+- npx tsc --noEmit → EXIT:0
+- 배포 후 `?debug=1` 로 ctx.short=true, cascadeCount>0 확인 예정.
+
+## 남은 작업 (미처리)
+- KRX `totalTickers: 0` → Vercel IP 대역 차단 추정 (로컬선 정상). 대안: KIS/Kiwoom 유료 API 또는 proxy. 금회 이터레이션 범위 외.
+- EDGAR 13D/G 빈 윈도우 → getcurrent 10분 창 한계. 일일 archive 스캔 구현하면 해결 (복잡, 별도 이터레이션).
+
+## 성능 관찰
+verify-metrics 평균 durationMs:
+- 8172d08 배포 전: 212ms
+- 배포 후: 123ms → **~42% 단축** (fg.asset 분기 단순화 효과 추정)
+
+## 좀비
+- clean
+
+## 커밋/푸시
+1개 커밋:
+- src/app/api/daily-brief/route.ts (MEMORY_CACHE 가드)
+- src/lib/daily-brief.ts (HTTP ctx 2개 추가)
+- METRICS.md (#296k, #296l)
+- 본 로그

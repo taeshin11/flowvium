@@ -105,7 +105,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
 
   const [
     capital, fgAll, fedWatch, macro, heatmap, credit,
-    insiderR, ownerR, koreaR, nportR,
+    insiderR, ownerR, koreaR, nportR, shortR, cascadeR,
   ] = await Promise.all([
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/capital-flows', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/fear-greed', 12000),
@@ -117,6 +117,8 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     safeFetchJson<{ items?: unknown[] }>(baseUrl, '/api/ownership-alerts', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/korea-flow', 10000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/nport-holdings', 15000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/short-interest', 12000),
+    safeFetchJson<{ articles?: unknown[] }>(baseUrl, '/api/news-cascade', 15000),
   ]);
 
   ctx.capital = capital;
@@ -134,6 +136,8 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   if (ownerR?.items && Array.isArray(ownerR.items)) ctx.ownership = ownerR.items;
   ctx.korea = koreaR;
   ctx.nport = nportR;
+  ctx.short = shortR;
+  if (cascadeR?.articles && Array.isArray(cascadeR.articles)) ctx.cascade = cascadeR.articles;
 
   logger.info('daily-brief', 'http_context_gathered', {
     populated: {
@@ -142,6 +146,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
       heatmap: ctx.heatmap != null, credit: ctx.credit != null,
       insider: ctx.insider.length, ownership: ctx.ownership.length,
       korea: ctx.korea != null, nport: ctx.nport != null,
+      short: ctx.short != null, cascade: ctx.cascade.length,
     },
   });
   return ctx;
