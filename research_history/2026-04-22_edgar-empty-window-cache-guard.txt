@@ -1,0 +1,67 @@
+2026-04-22 — EDGAR getcurrent 10분 창 빈 응답 시 기존 캐시 보존 (ownership-alerts + insider-trades)
+
+## 배포 검증 (이전 iteration — batch redis.set 수정)
+- ok=53 deg=13 err=1 유지 (회귀 없음)
+- /api/daily-brief 200 OK (loggedRedisSet 통일 정상 동작)
+- /api/signals 200 OK
+- 배포 안정 확인
+
+## 근본 원인 진단 — insider.13dg "empty payload"가 지속되는 이유
+### 직접 프로브 재현 (올바른 User-Agent)
+```
+curl -A "FlowVium/1.0 taeshinkim11@gmail.com" \
+  "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=SC+13D&output=atom&count=40"
+→ 200 OK, title="Latest Filings - ... - No recent filings", entries=0
+
+4 (Form 4) → entries=40
+SC 13G → 0
+SC 13D/A → 0
+SC 13G/A → 0
+```
+
+### 원인
+EDGAR `getcurrent` RSS는 **최근 ~10분 동안** 접수된 filings만 반환.
+- Form 4 (대형주 임원 매매) 빈번 → 항상 40건 가능
+- SC 13D/G (5%+ 지분 변동) 희소 → 10분 무filings 구간 자주 발생
+
+기존 코드는 이 빈 응답(length=0)을 그대로 2h TTL Redis에 **덮어쓰기** → 기존 정상 스냅샷 지워짐 → UI에서 빈 리스트 2h간 노출.
+
+## 수정 (이번 iteration)
+### src/app/api/ownership-alerts/route.ts
+- alerts.length > 0 일 때만 loggedRedisSet 호출
+- length === 0 이고 redis에 기존 스냅샷이 있으면 그것을 반환 (`cached: true, note: "EDGAR getcurrent feed empty — returning prior snapshot"`)
+
+### src/app/api/insider-trades/route.ts
+- 동일 패턴 적용 (Form 4도 10분 창 empty 가능성 존재)
+- transactions.length === 0 방어적 처리
+
+### 왜 이게 옳은 해결
+- EDGAR API 제약(10분 창)은 우리가 변경 불가
+- 진정한 "5% 지분 크로싱"은 며칠 단위 이벤트 → 2h 캐시 내 빈 fetch는 거의 항상 일시적 empty window
+- 기존 스냅샷 preserve → 사용자 경험 훨씬 좋음 (UI에 최근 발견된 13D/G 계속 노출)
+- 신규 데이터 들어오면 즉시 덮어씀 (alerts.length > 0)
+
+## 대안 검토 (비채택)
+- EDGAR EFTS(full-text search) 사용 → 날짜 범위 쿼리 가능하지만 다른 API 스펙, 파싱 재작성 필요. 큰 변경. 향후 iteration.
+- 캐시 TTL 연장 (24h) → 스냅샷 프레시니스 하락. preserve 전략이 더 나음.
+- 첫 요청 시 EFTS, 그 이후 getcurrent → 복잡.
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 기존 cache-hit 경로는 동일 (변경 없음)
+- force=1 refresh 경로도 동일 (변경 없음)
+- 유일한 변화: 캐시 miss + fetch=0 시 기존 스냅샷 fallback
+
+## 좀비
+- clean
+
+## 배포 계획
+2개 라우트 파일 + 로그 커밋 → push → 배포. 배포 후 insider.13dg 상태는 환경 따라 다름:
+- 현재 Redis에 기존 스냅샷 없음 → 여전히 empty payload (하지만 다음 번 SC 13D/G filing 접수 시 비게 보존)
+- 차후 관측: 며칠 내 스냅샷 1회 확보 후 안정화 기대
+
+## 다음 iteration 후보
+- EDGAR EFTS로 13D/G ownership-alerts 전환 (가장 정확한 해결)
+- insider-trades에도 EFTS 하이브리드 (초기 워밍용)
+- daily-brief UPSTASH-less fallback (여전히 대형 변경)
+- Vercel cron 새 경로 추가 ownership-alerts warming 명시

@@ -44,7 +44,27 @@ export async function GET(req: Request) {
 
   const transactions = await fetchRecentForm4({ feedCount: 80, includeOther: false });
 
-  await loggedRedisSet(redis, 'api.insider-trades', CACHE_KEY, transactions, { ex: CACHE_TTL });
+  // Mirror ownership-alerts: EDGAR getcurrent RSS is a ~10-min window.
+  // Form 4 is usually busy but occasional quiet periods could wipe a good
+  // snapshot. Only overwrite when we have entries; on empty, keep prior cache.
+  if (transactions.length > 0) {
+    await loggedRedisSet(redis, 'api.insider-trades', CACHE_KEY, transactions, { ex: CACHE_TTL });
+  } else if (redis) {
+    logger.info('api.insider-trades', 'empty_fetch_preserving_prior');
+    try {
+      const prior = await redis.get<InsiderTransaction[]>(CACHE_KEY);
+      if (prior && Array.isArray(prior) && prior.length > 0) {
+        const priorFiltered = tickerFilter ? prior.filter(t => t.ticker === tickerFilter) : prior;
+        return NextResponse.json({
+          items: priorFiltered,
+          cached: true,
+          total: prior.length,
+          note: 'EDGAR getcurrent feed empty — returning prior snapshot',
+          durationMs: Date.now() - reqStart,
+        });
+      }
+    } catch (err) { logger.warn('api.insider-trades', 'prior_read_error', { error: err }); }
+  }
 
   const filtered = tickerFilter ? transactions.filter(t => t.ticker === tickerFilter) : transactions;
   logger.info('api.insider-trades', 'served', { total: transactions.length, filtered: filtered.length, forced: force, durationMs: Date.now() - reqStart });
