@@ -658,7 +658,18 @@
     "aiOutlook": "KI-Ausblick",
     "week1": "1W",
     "week4": "4W",
-    "week13": "13W"
+    "week13": "13W",
+    "viewDetails": "Details anzeigen",
+    "riskLabel": "Risiko",
+    "riskLow": "Niedrig",
+    "riskMedium": "Mittel",
+    "riskHigh": "Hoch",
+    "ageJustNow": "gerade eben",
+    "ageMin": "vor {n} Min.",
+    "ageHour": "vor {n} Std.",
+    "ageDay": "vor {n} T.",
+    "kpiFg": "F&G",
+    "kpiCutProb": "Senkung {pct}%"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

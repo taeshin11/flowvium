@@ -535,7 +535,19 @@
 
 ## 12. AI 리포트 (`/report`)
 
-홈의 AI 브리프와 동일한 지표 (#1~8). 타임프레임 1w/4w/13w 전환만 다름.
+홈의 AI 브리프와 동일한 지표 (#1~8). 타임프레임 1w/4w/13w 전환 + 실시간 KPI 스트립.
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 12-K1 | KPI: F&G (US) | 💾 cached | `/api/fear-greed` (CNN 4h) |
+| 12-K2 | KPI: SPY 1w 수익률 | 💾 cached | `/api/capital-flows` (Yahoo/Twelve 6h) |
+| 12-K3 | KPI: 10Y-2Y 스프레드 bp | 💾 cached | `/api/macro-indicators` (FRED) |
+| 12-K4 | KPI: VIX 1w 변화 | 💾 cached | `/api/capital-flows` (VIXY/VXX 폴백) |
+| 12-K5 | KPI: 다음 FOMC 인하 확률 | 💾 cached | `/api/fedwatch` (CME) |
+| 12-M1 | 메타: 소스 배지 (GROQ 70b/8b/Gemini/EXAONE/data) | ✅ live | daily-brief.source |
+| 12-M2 | 메타: 신선도 점 + humanized age | ✅ live | generatedAt diff |
+| 12-M3 | 메타: 리스크 레벨 pill (low/medium/high) | 💾 cached | daily-brief.riskLevel |
+| 12-D1~D4 | 섹션 카드 드릴다운 링크 (heatmap/intelligence/signals/insider) | 📋 static | next/link |
 
 ---
 

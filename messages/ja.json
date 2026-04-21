@@ -658,7 +658,18 @@
     "aiOutlook": "AI見通し",
     "week1": "1週",
     "week4": "4週",
-    "week13": "13週"
+    "week13": "13週",
+    "viewDetails": "詳細を表示",
+    "riskLabel": "リスク",
+    "riskLow": "低",
+    "riskMedium": "中",
+    "riskHigh": "高",
+    "ageJustNow": "たった今",
+    "ageMin": "{n}分前",
+    "ageHour": "{n}時間前",
+    "ageDay": "{n}日前",
+    "kpiFg": "F&G",
+    "kpiCutProb": "利下げ {pct}%"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

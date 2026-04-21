@@ -658,7 +658,18 @@
     "aiOutlook": "Triển vọng AI",
     "week1": "1T",
     "week4": "4T",
-    "week13": "13T"
+    "week13": "13T",
+    "viewDetails": "Xem chi tiết",
+    "riskLabel": "Rủi ro",
+    "riskLow": "Thấp",
+    "riskMedium": "Trung bình",
+    "riskHigh": "Cao",
+    "ageJustNow": "vừa xong",
+    "ageMin": "{n} phút trước",
+    "ageHour": "{n} giờ trước",
+    "ageDay": "{n} ngày trước",
+    "kpiFg": "F&G",
+    "kpiCutProb": "giảm {pct}%"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

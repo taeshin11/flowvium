@@ -1,0 +1,67 @@
+2026-04-22 — /report 페이지 전면 리팩터링 (사용자 "AI 보고서 탭 부실" 지적 대응)
+
+## 사용자 피드백
+1. "METRICS.md 323개 vs verify-metrics 67개 커버리지 큰 갭"
+   → static 40개 자동 검증 불가 (하드코딩), missing 55개 미구현
+   → 실제 커버리지는 67개 probe × 배열 = 100+
+2. "기업만 500개 넘는데 METRICS.md 323개?"
+   → companies.ts 117 기업 × ~35 필드 = ~4,100 raw 데이터 포인트
+   → METRICS.md 323 = 논리적 metric shape 단위 (per-ticker 미전개)
+   → 실제 전체 사이트 데이터 포인트 ~6,000-8,000
+3. "AI 보고서 탭 부실" ← 이번 iteration 핵심 대응 대상
+
+## 기존 /report 문제점 (193 lines)
+- 타임프레임 버튼 + 4섹션 카드 + outlook 1줄. 그게 전부.
+- 실시간 KPI 없음
+- 차트/시각화 전무
+- 소스 페이지 drilldown 없음
+- AI source / 신선도 뱃지 없음
+- 리스크 레벨 텍스트에만 묻힘
+
+## 수정 (이번 iteration, 340 lines)
+### src/components/pages/ReportPage.tsx
+1. **Live KPI 스트립** (상단): F&G / SPY 1w / 10Y-2Y / VIX / FOMC cut prob
+   - 5개 독립 useState, 병렬 fetch
+   - 각 pill 개별 loading/error — 하나 실패해도 다른 것 표시
+   - F&G 레벨별 색상 (tense/cautious/neutral/calm)
+2. **소스 + 신선도 배지**: GROQ 70b / 8b / Gemini / EXAONE / fallback 색상 구분
+   - `Date.now() - generatedAt` 휴먼라이즈 ("방금 전"/"3분 전"/"1시간 전"/"X일 전")
+   - 30s setInterval tick 로 자동 refresh
+   - Freshness dot (green <10min / yellow <1h / gray)
+3. **섹션 drilldown 링크**: 펼친 섹션 하단에 "자세히 보기 →" next/link
+   - market → /{locale}/heatmap
+   - capital → /{locale}/intelligence?tab=capital
+   - company → /{locale}/signals
+   - signals → /{locale}/insider
+4. **리스크 레벨 pill**: 상단 meta row 에 low(green)/medium(yellow)/high(red) 가시화
+5. 기존 구조 보존: TF selector, refresh, expand/collapse, 4섹션 그리드
+
+### messages/*.json (16 locales 전체)
+13개 신규 키 추가:
+- viewDetails, riskLabel, riskLow/Medium/High
+- ageJustNow, ageMin, ageHour, ageDay
+- kpiFg, kpiCutProb
+
+1차 en+ko (authoritative), 2차 14개 locale 번역 propagate (JSON 파싱 검증 완료).
+
+### FEATURES.md §13 + METRICS.md §12 업데이트
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- JSON 파싱 16 locale 전체 OK
+- 런타임 테스트: 배포 후 /report 접근 시 KPI 5개 pill + 신선도 + drilldown 정상 기대
+
+## verify-metrics 커버리지 확장 (이번 iteration 초반)
+- /api/signals 추가 (market.signals)
+- /api/latest-updates 추가 (market.latest)
+- 67 → 69 total
+
+## 좀비
+- clean
+
+## 커밋/푸시 계획
+전체 변경 1개 커밋으로 배포 (19 파일):
+- ReportPage.tsx
+- messages × 16
+- FEATURES.md + METRICS.md
+- 본 로그

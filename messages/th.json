@@ -658,7 +658,18 @@
     "aiOutlook": "มุมมอง AI",
     "week1": "1ส.",
     "week4": "4ส.",
-    "week13": "13ส."
+    "week13": "13ส.",
+    "viewDetails": "ดูรายละเอียด",
+    "riskLabel": "ความเสี่ยง",
+    "riskLow": "ต่ำ",
+    "riskMedium": "ปานกลาง",
+    "riskHigh": "สูง",
+    "ageJustNow": "เมื่อกี้",
+    "ageMin": "{n} น. ที่แล้ว",
+    "ageHour": "{n} ชม. ที่แล้ว",
+    "ageDay": "{n} ว. ที่แล้ว",
+    "kpiFg": "F&G",
+    "kpiCutProb": "ลด {pct}%"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

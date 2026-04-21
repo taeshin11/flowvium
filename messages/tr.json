@@ -658,7 +658,18 @@
     "aiOutlook": "AI Görünümü",
     "week1": "1H",
     "week4": "4H",
-    "week13": "13H"
+    "week13": "13H",
+    "viewDetails": "Ayrıntıları gör",
+    "riskLabel": "Risk",
+    "riskLow": "Düşük",
+    "riskMedium": "Orta",
+    "riskHigh": "Yüksek",
+    "ageJustNow": "az önce",
+    "ageMin": "{n}dk önce",
+    "ageHour": "{n}sa önce",
+    "ageDay": "{n}g önce",
+    "kpiFg": "F&G",
+    "kpiCutProb": "indirim {pct}%"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

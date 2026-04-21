@@ -658,7 +658,18 @@
     "aiOutlook": "AI展望",
     "week1": "1周",
     "week4": "4周",
-    "week13": "13周"
+    "week13": "13周",
+    "viewDetails": "查看详情",
+    "riskLabel": "风险",
+    "riskLow": "低",
+    "riskMedium": "中",
+    "riskHigh": "高",
+    "ageJustNow": "刚刚",
+    "ageMin": "{n}分钟前",
+    "ageHour": "{n}小时前",
+    "ageDay": "{n}天前",
+    "kpiFg": "F&G",
+    "kpiCutProb": "降息 {pct}%"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

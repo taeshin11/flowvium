@@ -511,20 +511,32 @@
 ## 13. AI 리포트 (`/report`)
 
 **파일**: `src/components/pages/ReportPage.tsx`  
-**데이터**: `/api/daily-brief`
+**데이터**: `/api/daily-brief` + 병렬 KPI (`/api/fear-greed`, `/api/capital-flows`, `/api/macro-indicators`, `/api/fedwatch`)
 
 ### 13-1. 타임프레임 셀렉터
 `1w` / `4w` / `13w`
 
-### 13-2. 섹션 카드 (2열, 접기/펼치기)
-| 섹션 | 아이콘 | 내용 |
-|------|--------|------|
-| Market | 📊 | 시장 트렌드 요약 + 불릿 |
-| Capital | 💰 | 자금흐름 인사이트 + 불릿 |
-| Company | 🏢 | 기업 이슈 + 불릿 |
-| Signals | 📡 | 트레이딩 신호 + 불릿 |
+### 13-2. 실시간 KPI 스트립 (5 pills, 각 독립 실패 허용)
+- F&G (US CNN score) — >70 red / >55 amber / >=45 gray / <45 blue
+- SPY 1w 수익률 — 양수 녹색, 음수 적색
+- 10Y-2Y 스프레드 (bp) — 역전 시 적색
+- VIX 1w 변화 — VIXY/VXX/^VIX 폴백
+- 다음 FOMC 금리 인하 확률 (probCut25+50+75)
 
-### 13-3. AI Outlook 바
+### 13-3. 메타 행 (소스 배지 + 신선도)
+- 소스 배지: GROQ 70b / GROQ 8b / Gemini / EXAONE / data (fallback) — 각 색상 구분
+- 신선도 점: 녹색(<10분) / 황색(<1h) / 회색(그 이후) + humanized age ("방금 전", "3분 전")
+- 리스크 레벨 pill: low=녹색 / medium=황색 / high=적색
+
+### 13-4. 섹션 카드 (2열, 접기/펼치기)
+| 섹션 | 아이콘 | 내용 | 드릴다운 링크 |
+|------|--------|------|--------------|
+| Market | 📊 | 시장 트렌드 요약 + 불릿 | → `/{locale}/heatmap` |
+| Capital | 💰 | 자금흐름 인사이트 + 불릿 | → `/{locale}/intelligence?tab=capital` |
+| Company | 🏢 | 기업 이슈 + 불릿 | → `/{locale}/signals` |
+| Signals | 📡 | 트레이딩 신호 + 불릿 | → `/{locale}/insider` |
+
+### 13-5. AI Outlook 바
 - "🔮 AI Outlook" + 아웃룩 텍스트
 
 ---

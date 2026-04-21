@@ -658,7 +658,18 @@
     "aiOutlook": "Прогноз ИИ",
     "week1": "1Н",
     "week4": "4Н",
-    "week13": "13Н"
+    "week13": "13Н",
+    "viewDetails": "Подробнее",
+    "riskLabel": "Риск",
+    "riskLow": "Низкий",
+    "riskMedium": "Средний",
+    "riskHigh": "Высокий",
+    "ageJustNow": "только что",
+    "ageMin": "{n} мин назад",
+    "ageHour": "{n} ч назад",
+    "ageDay": "{n} дн назад",
+    "kpiFg": "F&G",
+    "kpiCutProb": "снижение {pct}%"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

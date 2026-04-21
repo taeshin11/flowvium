@@ -658,7 +658,18 @@
     "aiOutlook": "توقعات الذكاء الاصطناعي",
     "week1": "1أ",
     "week4": "4أ",
-    "week13": "13أ"
+    "week13": "13أ",
+    "viewDetails": "عرض التفاصيل",
+    "riskLabel": "المخاطر",
+    "riskLow": "منخفض",
+    "riskMedium": "متوسط",
+    "riskHigh": "مرتفع",
+    "ageJustNow": "الآن",
+    "ageMin": "قبل {n} د",
+    "ageHour": "قبل {n} س",
+    "ageDay": "قبل {n} ي",
+    "kpiFg": "F&G",
+    "kpiCutProb": "خفض {pct}%"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

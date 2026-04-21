@@ -658,7 +658,18 @@
     "aiOutlook": "Perspectives IA",
     "week1": "1S",
     "week4": "4S",
-    "week13": "13S"
+    "week13": "13S",
+    "viewDetails": "Voir les détails",
+    "riskLabel": "Risque",
+    "riskLow": "Faible",
+    "riskMedium": "Moyen",
+    "riskHigh": "Élevé",
+    "ageJustNow": "à l’instant",
+    "ageMin": "il y a {n} min",
+    "ageHour": "il y a {n} h",
+    "ageDay": "il y a {n} j",
+    "kpiFg": "F&G",
+    "kpiCutProb": "baisse {pct}%"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

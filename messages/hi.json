@@ -658,7 +658,18 @@
     "aiOutlook": "AI दृष्टिकोण",
     "week1": "1सप्.",
     "week4": "4सप्.",
-    "week13": "13सप्."
+    "week13": "13सप्.",
+    "viewDetails": "विवरण देखें",
+    "riskLabel": "जोखिम",
+    "riskLow": "कम",
+    "riskMedium": "मध्यम",
+    "riskHigh": "उच्च",
+    "ageJustNow": "अभी",
+    "ageMin": "{n}मि पहले",
+    "ageHour": "{n}घं पहले",
+    "ageDay": "{n}दि पहले",
+    "kpiFg": "F&G",
+    "kpiCutProb": "कटौती {pct}%"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

@@ -658,7 +658,18 @@
     "aiOutlook": "AI Outlook",
     "week1": "1W",
     "week4": "4W",
-    "week13": "13W"
+    "week13": "13W",
+    "viewDetails": "View details",
+    "riskLabel": "Risk",
+    "riskLow": "Low",
+    "riskMedium": "Medium",
+    "riskHigh": "High",
+    "ageJustNow": "just now",
+    "ageMin": "{n}m ago",
+    "ageHour": "{n}h ago",
+    "ageDay": "{n}d ago",
+    "kpiFg": "F&G",
+    "kpiCutProb": "cut {pct}%"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

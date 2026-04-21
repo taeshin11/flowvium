@@ -658,7 +658,18 @@
     "aiOutlook": "Prospek AI",
     "week1": "1M",
     "week4": "4M",
-    "week13": "13M"
+    "week13": "13M",
+    "viewDetails": "Lihat detail",
+    "riskLabel": "Risiko",
+    "riskLow": "Rendah",
+    "riskMedium": "Sedang",
+    "riskHigh": "Tinggi",
+    "ageJustNow": "baru saja",
+    "ageMin": "{n}mnt lalu",
+    "ageHour": "{n}j lalu",
+    "ageDay": "{n}h lalu",
+    "kpiFg": "F&G",
+    "kpiCutProb": "potong {pct}%"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

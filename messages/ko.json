@@ -666,7 +666,18 @@
     "aiOutlook": "AI 전망",
     "week1": "1주",
     "week4": "4주",
-    "week13": "13주"
+    "week13": "13주",
+    "viewDetails": "자세히 보기",
+    "riskLabel": "리스크",
+    "riskLow": "낮음",
+    "riskMedium": "중립",
+    "riskHigh": "높음",
+    "ageJustNow": "방금 전",
+    "ageMin": "{n}분 전",
+    "ageHour": "{n}시간 전",
+    "ageDay": "{n}일 전",
+    "kpiFg": "F&G",
+    "kpiCutProb": "인하 {pct}%"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",
