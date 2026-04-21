@@ -286,21 +286,30 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
     });
   }
 
-  // 2. GROQ — 가벼운 /models 호출
+  // 2. GROQ — 실제 /chat/completions 호출 (quota 소진 감지 위해 /models 대신)
+  //    /models 는 무료 pings 이라 quota 소진 시에도 200 반환 → false-positive
+  //    chat/completions 은 quota 소진 시 429 즉시 반환. 1-token 요청이라 비용 무시 가능.
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (groqKey) {
     const t0 = Date.now();
     try {
-      const res = await fetch('https://api.groq.com/openai/v1/models', {
-        headers: { Authorization: `Bearer ${groqKey}` },
-        signal: AbortSignal.timeout(6000),
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: 'ok' }],
+          max_tokens: 1,
+          temperature: 0,
+        }),
+        signal: AbortSignal.timeout(8000),
       });
       items.push({
         key: 'ai.groq', label: 'GROQ llama-3.3-70b (클라우드 무료)', group: 'ai',
         status: res.ok ? 'ok' : res.status === 429 ? 'degraded' : 'error',
-        value: res.ok ? `${Date.now() - t0}ms` : `HTTP ${res.status}`,
+        value: res.ok ? `${Date.now() - t0}ms` : res.status === 429 ? 'quota exhausted' : `HTTP ${res.status}`,
         source: 'groq',
-        details: { durationMs: Date.now() - t0, status: res.status },
+        details: { durationMs: Date.now() - t0, status: res.status, probe: 'chat/completions' },
       });
     } catch (err) {
       items.push({
