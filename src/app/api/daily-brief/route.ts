@@ -64,11 +64,15 @@ export async function GET(request: Request) {
 
   const prompt = buildPrompt(tf, ctx);
   let brief = null;
+  let aiDiag: { source?: string; textLength?: number; textSample?: string; parsed?: boolean; error?: string } = {};
   try {
     const { text, source } = await callAI(prompt);
+    aiDiag = { source, textLength: text?.length ?? 0, textSample: (text ?? '').slice(0, 300), parsed: false };
     if (text) brief = parseAIResponse(text, tf, source);
-    if (!brief) logger.warn('api.daily-brief', 'ai_unparseable', { tf, source });
+    if (brief) aiDiag.parsed = true;
+    if (!brief) logger.warn('api.daily-brief', 'ai_unparseable', { tf, source, textLength: text?.length });
   } catch (err) {
+    aiDiag.error = err instanceof Error ? err.message : String(err);
     logger.error('api.daily-brief', 'ai_exception', { tf, error: err });
   }
 
@@ -82,7 +86,11 @@ export async function GET(request: Request) {
   }
 
   logger.info('api.daily-brief', 'served', { tf, source: brief.source, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ ...brief, cached: false, ...(debugInfo ? { debug: debugInfo } : {}) });
+  return NextResponse.json({
+    ...brief,
+    cached: false,
+    ...(debugInfo ? { debug: { ...debugInfo, ai: aiDiag } } : {}),
+  });
 }
 
 export async function DELETE(request: Request) {
