@@ -88,11 +88,11 @@ async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   }
 }
 
-/** GROQ 호출 — OpenAI-compatible API */
-async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
-  const key = process.env.GROQ_API_KEY?.trim();
-  if (!key) return null;
-
+/** GROQ 호출 — OpenAI-compatible API. 모델별 배수 다른 TPD 한도 활용:
+ *    llama-3.3-70b-versatile : 100k TPD / 12k TPM / 1k RPD  (고품질, 소량)
+ *    llama-3.1-8b-instant    : 500k TPD / 30k TPM / 14.4k RPD (저품질, 대량)
+ *  70b 가 429 TPD 반환하면 자동 8b 폴백 — 품질 약간 하락하지만 AI 동작 지속. */
+async function callGroqModel(key: string, model: string, prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<{ text: string | null; status: number | null; tpdExhausted: boolean }> {
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
   try {
@@ -102,13 +102,9 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
 
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
-        // llama-3.3-70b-versatile: 일일 14,400 req 무료. 128k 컨텍스트. 다국어 양호.
-        model: 'llama-3.3-70b-versatile',
+        model,
         messages,
         max_tokens: opts.maxTokens ?? 1600,
         temperature: opts.temperature ?? 0.7,
@@ -117,26 +113,47 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
-      // 429 = daily/minute quota 소진 → Gemini로 폴백하라는 신호. error 레벨.
+      const isTpd = res.status === 429 && errText.includes('tokens per day');
       if (res.status === 429) {
-        logger.error(tag, 'groq_quota_exhausted', { status: 429, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
+        logger.error(tag, 'groq_quota_exhausted', { model, status: 429, tpd: isTpd, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
       } else {
-        logger.warn(tag, 'groq_http_error', { status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
+        logger.warn(tag, 'groq_http_error', { model, status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
       }
-      diag?.push({ provider: 'groq', ok: false, status: res.status, error: errText.slice(0, 200), durationMs: Date.now() - t0 });
-      return null;
+      diag?.push({ provider: 'groq', ok: false, status: res.status, error: `[${model}] ${errText.slice(0, 200)}`, durationMs: Date.now() - t0 });
+      return { text: null, status: res.status, tpdExhausted: isTpd };
     }
     const data = await res.json();
     const text: string = data.choices?.[0]?.message?.content ?? '';
-    if (!text) { diag?.push({ provider: 'groq', ok: false, error: 'empty_text', status: 200, durationMs: Date.now() - t0 }); return null; }
-    logger.info(tag, 'groq_ok', { textLen: text.length, durationMs: Date.now() - t0 });
+    if (!text) {
+      diag?.push({ provider: 'groq', ok: false, error: `[${model}] empty_text`, status: 200, durationMs: Date.now() - t0 });
+      return { text: null, status: 200, tpdExhausted: false };
+    }
+    logger.info(tag, 'groq_ok', { model, textLen: text.length, durationMs: Date.now() - t0 });
     diag?.push({ provider: 'groq', ok: true, status: 200, durationMs: Date.now() - t0 });
-    return text;
+    return { text, status: 200, tpdExhausted: false };
   } catch (err) {
-    logger.warn(tag, 'groq_failed', { error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'groq', ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
-    return null;
+    logger.warn(tag, 'groq_failed', { model, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'groq', ok: false, error: `[${model}] ${err instanceof Error ? err.message : String(err)}`, durationMs: Date.now() - t0 });
+    return { text: null, status: null, tpdExhausted: false };
   }
+}
+
+async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
+  const key = process.env.GROQ_API_KEY?.trim();
+  if (!key) return null;
+
+  // 1차: 고품질 70b (TPD 100k)
+  const primary = await callGroqModel(key, 'llama-3.3-70b-versatile', prompt, opts, diag);
+  if (primary.text) return primary.text;
+
+  // 2차 폴백: 8b (TPD 500k) — 70b 가 TPD 소진 시에만
+  if (primary.tpdExhausted) {
+    const tag = opts.tag ?? 'ai';
+    logger.info(tag, 'groq_tpd_fallback_8b', { note: '70b TPD exhausted, retrying with llama-3.1-8b-instant' });
+    const fallback = await callGroqModel(key, 'llama-3.1-8b-instant', prompt, opts, diag);
+    if (fallback.text) return fallback.text;
+  }
+  return null;
 }
 
 /** Gemini 호출 — 최종 유료 폴백 */

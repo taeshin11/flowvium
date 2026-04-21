@@ -1,0 +1,44 @@
+2026-04-22 — GROQ 모델 tier fallback (70b TPD 소진 시 8b 자동 폴백)
+
+## 배경
+오늘 세션에서 GROQ llama-3.3-70b-versatile TPD 100k 소진 → daily-brief 포함 AI
+체인 전체가 fallback 분기로 떨어짐. Gemini 미설정이라 체인 완전 실패 상태 재현.
+
+GROQ 무료 티어 모델별 한도 비교:
+| 모델                      | TPD     | TPM    | RPD    | 품질 |
+|---------------------------|---------|--------|--------|------|
+| llama-3.3-70b-versatile   | 100,000 | 12,000 | 1,000  | 고   |
+| llama-3.1-8b-instant      | 500,000 | 30,000 | 14,400 | 저   |
+
+→ 70b 가 TPD 소진해도 **8b 는 여유 5배 이상**.
+
+## 수정 (src/lib/ai-providers.ts)
+### callGroqModel(key, model, prompt, opts, diag) 추출
+- 모델 파라미터화
+- 반환: { text, status, tpdExhausted } — TPD 소진 여부 명시 bool
+
+### callGroq() 재구성
+1. 70b 시도
+2. 응답이 `status:429 + body.includes('tokens per day')` → tpdExhausted=true
+3. tpdExhausted 인 경우에만 8b 재시도 (다른 에러는 전체 실패 처리 — 체인 Gemini 로 넘어감)
+4. 8b 성공 시 그 응답 반환
+
+## 효과
+- 70b TPD 소진 후에도 daily-brief / flow-analysis / news-cascade / translate 등
+  AI 생성 정상 동작 (8b 품질로)
+- 70b 재개는 UTC 00:00 리셋 후 자동 (callGroq 가 70b 부터 시도하므로 자연 복구)
+
+## 비용·품질 트레이드오프
+- 8b 는 70b 대비 다소 단순한 한국어 품질. JSON 구조 준수는 양쪽 모두 OK.
+- daily-brief 의 "추세 분석" 같은 맥락 이해는 70b > 8b. 하지만 완전 실패보다 훨씬 낫다.
+- 로그 `groq_tpd_fallback_8b` 로 추적 가능 → admin/logs 에서 8b 사용량 모니터 가능.
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 배포 후 /api/ai POST → 현재 TPD exhausted 상태지만 8b 로 응답 정상 기대
+
+## 누적 개선 (세션 총 18건)
+1-17 이전 로그 참조. 18번: 이번 GROQ 모델 tier fallback.
+
+## 좀비
+- clean
