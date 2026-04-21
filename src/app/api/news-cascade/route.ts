@@ -1,7 +1,7 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { callAI } from '@/lib/ai-providers';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RawNewsItem {
@@ -97,46 +97,19 @@ async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]>
   }
 }
 
-// ── AI cascade analysis ───────────────────────────────────────────────────────
-async function callAI(prompt: string): Promise<string> {
-  const vllmUrl = process.env.VLLM_URL?.trim();
-  if (vllmUrl) {
-    try {
-      const res = await fetch(`${vllmUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct',
-          messages: [
-            {
-              role: 'system',
-              content: '당신은 글로벌 금융 뉴스 분석 전문가입니다. 뉴스의 시장 파급 효과(cascade)를 JSON으로만 분석합니다.',
-            },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 600,
-          temperature: 0.5,
-        }),
-        signal: AbortSignal.timeout(25000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content ?? '';
-      }
-    } catch (e) { logger.warn('news-cascade', 'vllm_failed', { error: e }); }
-  }
+// ── AI cascade analysis — 통합 provider cascade (vLLM → GROQ → Gemini) ──────
+const CASCADE_SYSTEM_PROMPT = '당신은 글로벌 금융 뉴스 분석 전문가입니다. 뉴스의 시장 파급 효과(cascade)를 JSON으로만 분석합니다.';
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return '';
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (e) {
-    logger.error('news-cascade', 'gemini_failed', { error: e });
-    return '';
-  }
+async function callCascadeAI(prompt: string): Promise<string> {
+  const r = await callAI(prompt, {
+    systemPrompt: CASCADE_SYSTEM_PROMPT,
+    maxTokens: 600,
+    temperature: 0.5,
+    skipVllm: true, // JSON 구조 분석은 GROQ 70b가 EXAONE-2.4B보다 우수
+    timeoutMs: 18000,
+    tag: 'news-cascade',
+  });
+  return r.text;
 }
 
 function buildCascadePrompt(title: string): string {
@@ -240,7 +213,7 @@ export async function GET() {
       }
 
       if (!result) {
-        const raw = await callAI(buildCascadePrompt(item.title));
+        const raw = await callCascadeAI(buildCascadePrompt(item.title));
         result = parseCascade(raw || '', item);
         // Cache per-article for 24h
         if (redis && result) {

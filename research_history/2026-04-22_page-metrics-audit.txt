@@ -1,0 +1,88 @@
+2026-04-22 — 각 페이지 수치 전수 감사 (값/소스/갱신시각)
+
+## 감사 방법
+curl로 모든 /api/* 엔드포인트 직접 probe → JSON 파싱 → updatedAt/arrays/cached/source 추출
+probe 시각: 2026-04-21T18:35Z
+
+## 결과 요약
+
+### ✅ 최신 (< 10분)
+| endpoint | age | 데이터 | 소스 |
+|---|---|---|---|
+| /api/fear-greed | 1m | byCountry=10, byAsset=10 | composite/cnn |
+| /api/capital-flows | 4m | assets=15 | - |
+| /api/macro-indicators | 4m | indicators=9 | - |
+| /api/daily-brief | 1m | single brief | - |
+| /api/nport-holdings | 1m | funds=6, byTicker=31 | SEC N-PORT |
+| /api/market-heatmap | 0m | sectors=11, indices=4 (단일 국가) | - |
+| /api/signals | 4m | signals=56 | live (AV+13F) |
+| /api/credit-balance | 4m | countries=7 | - |
+| /api/market-caps | 0m | - | - |
+
+### ⚠️ 문제 발견
+
+1. **fedwatch: updatedAt=2026-04-16 → 5.8일 경과!**
+   - meetings=6 있지만 데이터 stale
+   - 원인: Fed 회의 결정 간격 때문일 가능성 (회의 없으면 안 바뀜)
+   - 확인 필요: /api/fedwatch가 적어도 매일 updatedAt을 갱신하는지
+
+2. **earnings: earnings=0**
+   - 원인: FINNHUB_KEY 미설정 → **사용자가 2026-04-22 제공, .env.local 추가 완료**
+   - 다음 빌드 후 재검증 필요
+
+3. **insider-trades: items=2** (시점에 따라 2~30+개 변동)
+   - 이전 probe: 30+ items
+   - 이번 probe: 2 items
+   - 원인: Redis 캐시 만료/갱신 타이밍 or SEC EDGAR fetch 타임아웃
+   - TODO: 캐시 워밍 cron 필요
+
+4. **ownership-alerts: items=0** (계속)
+   - fetchRecentOwnershipAlerts({minPercent:5}) 실제로 빈 결과 반환
+   - 13D/13G 5%+ 필터가 너무 엄격하거나 SEC 호출 실패
+   - TODO: lib/edgar-insider.ts 점검 필요
+
+5. **korea-flow: 모든 topBuy/Sell 배열 0**
+   - totalTickers=0 추정
+   - KRX API 연동 안 됨 또는 데이터 비어있음
+
+6. **signals: 56개 모두 filingDate=2026-02-14**
+   - institutional-signals.ts 정적 데이터 (56 entries)
+   - Redis에 13F 실데이터 없음 → fallback
+   - source="live"는 Alpha Vantage 뉴스갭 overlay를 갱신한 것, 13F는 여전히 정적
+
+7. **/api/news-gap, /api/osint**
+   - 이 경로는 **API가 아님** — `/[locale]/news-gap` / `/[locale]/osint` 페이지로 매핑
+   - api 디렉터리에 osint 폴더 있지만 라우팅 우선순위에서 페이지가 이김
+   - 확인 필요
+
+## 환경 변수 업데이트 (2026-04-22 사용자 제공)
+
+`.env.local`에 추가 완료:
+- GROQ_API_KEY (gsk_... 시작)
+- FINNHUB_KEY (d7js... 시작)
+
+**중요**: 이 값들은 로컬 dev용. Vercel 프로덕션에도 반영하려면:
+  Vercel Dashboard → flowvium → Settings → Environment Variables
+  또는: `vercel env add GROQ_API_KEY production` / `vercel env add FINNHUB_KEY production`
+  이후 재배포 필요.
+
+## 페이지별 수치 정합성 샘플 검증
+
+### Fear & Greed (홈)
+- byCountry: 10개 (US, Korea, Japan, China, Europe, UK, India, Brazil, Canada, Australia 추정)
+- byAsset: 10개 (gold, defense, tech, bonds, reits, energy, biotech, commodities, financials, crypto)
+- dataQuality "partial" — assets 10개 모두. degradedFactors는 country에만 채워짐 (asset에는 없음)
+- 점검 필요: asset의 degradedFactors 표기 추가?
+
+### Signals (매매 신호)
+- 56 signals, all filingDate=2026-02-14 (정적)
+- action 분포: accumulating=35, new_position=16, reducing=5
+- 소스 라벨 "live"인데 filingDate 전부 동일 → **UI에서 사용자 혼란 요지**
+- 개선안: source 구분을 "news-gap-overlay live" vs "13F-data static"으로 세분화
+
+## 다음 개선 포인트
+1. Vercel env vars 설정 (GROQ, FINNHUB) — 사용자 측
+2. fedwatch updatedAt 갱신 로직 점검
+3. ownership-alerts 빈 결과 원인 파악
+4. insider-trades 캐시 워밍 cron
+5. signals source label 세분화 (13F 정적 vs news-gap 라이브)

@@ -670,13 +670,13 @@
 |-----------|-------------|---------------|
 | `/api/daily-brief` | EXAONE vLLM → Gemini | 26h |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
-| `/api/news-cascade` | RSS 5개 피드 + AI (기사별 24h, 일별 목록 4h) | 4h |
+| `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ부터) | 기사별 24h / 목록 4h |
 | `/api/capital-flows` | Twelve Data → Yahoo → Stooq | 4h |
 | `/api/macro-indicators` | FRED CSV + FRED API | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
 | `/api/fear-greed` | CNN 방식 + Yahoo Finance | 4h |
 | `/api/credit-balance` | FRED + TWSE | 24h |
-| `/api/flow-analysis` | capital-flows + EXAONE/Gemini | 4h |
+| `/api/flow-analysis` | capital-flows + 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ 70b부터) | 4h |
 | `/api/insider-trades` | EDGAR Form 4 | 캐시 |
 | `/api/ownership-alerts` | EDGAR 13D/13G | 캐시 |
 | `/api/nport-holdings` | EDGAR N-PORT | 캐시 |

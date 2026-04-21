@@ -343,11 +343,11 @@ async function verifyEndpoint(base: string, path: string, key: string, label: st
 async function verifyInsiderStack(base: string): Promise<MetricItem[]> {
   return Promise.all([
     verifyEndpoint(base, '/api/insider-trades', 'insider.form4', 'Insider Form 4 매집', 'insider',
-      (d) => Array.isArray((d as { trades?: unknown[] })?.trades) && ((d as { trades: unknown[] }).trades.length > 0)),
+      (d) => Array.isArray((d as { items?: unknown[] })?.items) && ((d as { items: unknown[] }).items.length > 0)),
     verifyEndpoint(base, '/api/ownership-alerts', 'insider.13dg', 'Ownership 13D/13G', 'insider',
-      (d) => Array.isArray((d as { alerts?: unknown[] })?.alerts) && ((d as { alerts: unknown[] }).alerts.length > 0)),
+      (d) => Array.isArray((d as { items?: unknown[] })?.items) && ((d as { items: unknown[] }).items.length > 0)),
     verifyEndpoint(base, '/api/nport-holdings', 'insider.nport', 'N-PORT 뮤추얼펀드', 'insider',
-      (d) => Array.isArray((d as { holdings?: unknown[] })?.holdings)),
+      (d) => Array.isArray((d as { funds?: unknown[] })?.funds) && ((d as { funds: unknown[] }).funds.length > 0)),
     verifyEndpoint(base, '/api/korea-flow', 'insider.korea', '한국 수급 (KRX)', 'insider',
       (d) => ((d as { totalTickers?: number })?.totalTickers ?? 0) > 0),
   ]);
@@ -358,7 +358,7 @@ async function verifyMarketStack(base: string): Promise<MetricItem[]> {
     verifyEndpoint(base, '/api/short-interest', 'market.short', 'Short Interest', 'market',
       (d) => Array.isArray((d as { entries?: unknown[] })?.entries) && ((d as { entries: unknown[] }).entries.length > 0)),
     verifyEndpoint(base, '/api/market-heatmap', 'market.heatmap', '시장 히트맵', 'market',
-      (d) => Array.isArray((d as { countries?: unknown[] })?.countries) && ((d as { countries: unknown[] }).countries.length > 0)),
+      (d) => Array.isArray((d as { sectors?: unknown[] })?.sectors) && ((d as { sectors: unknown[] }).sectors.length > 0)),
     verifyEndpoint(base, '/api/market-caps', 'market.caps', '시가총액', 'market'),
     verifyEndpoint(base, '/api/news-cascade', 'market.news', '뉴스 캐스케이드', 'market',
       (d) => Array.isArray((d as { articles?: unknown[] })?.articles) && ((d as { articles: unknown[] }).articles.length > 0)),
@@ -366,11 +366,31 @@ async function verifyMarketStack(base: string): Promise<MetricItem[]> {
 }
 
 async function verifyEarnings(base: string): Promise<MetricItem[]> {
+  // 1) Check env var directly — avoids false-negatives from internal fetch
+  //    routing to older "Ready" deployments that may lack FINNHUB_KEY (alias
+  //    eventual consistency during redeploys).
+  const key = process.env.FINNHUB_KEY?.trim();
+  if (!key) {
+    return [{
+      key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
+      status: 'degraded', value: 'no API key',
+      details: { warning: 'FINNHUB_KEY 미설정 — 실적 캘린더를 표시하려면 Finnhub 무료 키 발급 필요 (60 req/min 무료)' },
+    }];
+  }
+
+  // 2) Env var set — verify the endpoint actually returns data.
   const r = await safeJson(base, '/api/earnings');
-  if (!r.ok) return [{ key: 'earnings.ALL', label: 'Earnings Calendar', group: 'earnings', status: 'error', lastError: r.error }];
+  if (!r.ok) return [{ key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings', status: 'error', lastError: r.error }];
   const d = r.data as { earnings: unknown[]; warning?: string; count?: number; error?: string };
+
+  // The endpoint may *claim* no key on a stale deployment routing mismatch —
+  // treat as 'degraded' with a hint rather than 'error', since we confirmed env.
   if (d.warning) {
-    return [{ key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings', status: 'degraded', value: 'no API key', details: { warning: d.warning } }];
+    return [{
+      key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
+      status: 'degraded', value: 'endpoint stale',
+      details: { hint: 'FINNHUB_KEY is set but /api/earnings reported missing — likely stale deployment routing.' },
+    }];
   }
   if (d.error) {
     return [{ key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings', status: 'error', lastError: d.error }];

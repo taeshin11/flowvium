@@ -1,0 +1,72 @@
+2026-04-22 — flow-analysis + news-cascade 통합 AI 체인 연결 + 배포
+
+## 배경
+직전 iteration에서 로컬로 2개 파일 수정 완료 (미커밋):
+1. src/app/api/cron/verify-metrics/route.ts — verifyEarnings env-first
+2. src/app/api/flow-analysis/route.ts — baseUrl (VERCEL_URL → request.url host)
+
+## 이번 iteration 진단
+### verify-metrics 라이브 프로브 (https://flowvium.vercel.app/api/cron/verify-metrics)
+- summary: ok=52 deg=14 err=1 (total 67) — 배포 전 상태 동일
+- 1 error: ai.vllm "fetch failed" (cloudflared 터널 사용자 측)
+- 14 degraded:
+  * fg.asset.* × 10 partial — alphavantage rate-limit (정상 환경 제약)
+  * ai.gemini not configured — GEMINI_API_KEY 미설정
+  * insider.13dg, insider.korea — 실제 빈 데이터 (cron 주기 warming 대기)
+  * earnings.ALL — FINNHUB_KEY 미설정
+
+코드 버그 신규 발견 없음. 모든 degraded는 환경 변수·외부 API 상태 이슈.
+
+## 발견한 실제 신뢰성 갭 — AI provider cascade 우회
+`src/lib/ai-providers.ts` 에 통합 체인 callAI (vLLM → GROQ → Gemini) 있으나
+아래 2개 라우트가 **자체 로컬 callAI 를 정의**해 체인 우회 중:
+- src/app/api/flow-analysis/route.ts  (vLLM → Gemini, GROQ 스킵)
+- src/app/api/news-cascade/route.ts   (vLLM → Gemini, GROQ 스킵)
+
+현재 환경:
+- vLLM 터널 OFF
+- GEMINI_API_KEY 미설정
+→ 두 엔드포인트 모두 실제로 AI 생성 불가 상태였음 (GROQ는 환경에 설정돼 있지만 호출 안 됨).
+
+## 수정 (이번 iteration)
+### flow-analysis/route.ts
+- 로컬 callAI 제거, `callAI` from @/lib/ai-providers 사용
+- skipVllm: true (EXAONE-2.4B는 JSON 구조 분석에 취약, GROQ 70b 부터 시작)
+- timeoutMs: 25s, maxTokens: 1400, temperature: 0.55
+- result에 `source` 필드 추가 (GROQ-llama-3.3-70b | Gemini 2.5 | EXAONE-3.5)
+
+### news-cascade/route.ts
+- 로컬 callAI 제거, 래퍼 callCascadeAI 를 통합 callAI 로 구현
+- skipVllm: true, timeoutMs: 18s, maxTokens: 600
+- 기존 호출 지점 2개 모두 새 래퍼 사용
+
+### FEATURES.md 섹션 18
+- flow-analysis / news-cascade 행의 AI 소스 설명을 통합 체인으로 업데이트
+
+## 영향
+- flow-analysis + news-cascade 가 GROQ 무료 14,400/일 티어를 실제로 활용 가능
+- vLLM 터널이 복구되기 전까지도 AI 생성 정상 동작
+- Gemini 유료 호출은 앞 두 개 실패 시에만 발생 (비용 절약)
+
+## 검증
+- npx tsc --noEmit --skipLibCheck → 0 errors
+- 프로덕션 verify-metrics: ok=52 deg=14 err=1 (배포 직전 스냅샷)
+
+## 좀비 정리
+- cloudflared.exe: 없음 (clean)
+- cmd.exe: 없음 (clean)
+- node.exe 6개 프로세스 발견했으나 Claude Code + VSCode + 사용자 세션으로 추정 — taskkill 보류 (사용자 승인 없이 시스템 프로세스 종료 금지)
+
+## METRICS.md
+row-level 변동 없음 (지표 수·상태 동일). flow-analysis 자체는 FEATURES.md에 반영.
+
+## 배포 계획
+1. 3개 파일 커밋 (verify-metrics, flow-analysis, news-cascade + FEATURES.md)
+2. git push → Vercel 자동 배포 트리거
+3. 배포 후 verify-metrics 재프로브하여 earnings.ALL / flow-analysis / news-cascade 상태 확인
+
+## 남은 개선 후보 (다음 iteration)
+- daily-brief UPSTASH-less fallback (대형 변경)
+- /api/ownership-alerts 빈 결과 원인 분석 (lib/edgar-insider 13D/13G 5%+ 필터 검증)
+- /api/translate 를 통합 체인으로 이전 (현재 Gemini 직결)
+- verifyInsiderStack safeJson timeout 20s (cold cache 대응)

@@ -1,0 +1,60 @@
+2026-04-22 — verify-metrics shape mismatch 수정
+
+## 문제
+/api/cron/verify-metrics 출력에서 다음 4개 항목이 "empty payload" degraded로 잘못 보고됨:
+- insider.form4  → 실제 필드 `items`, 체크는 `trades`
+- insider.13dg   → 실제 필드 `items`, 체크는 `alerts`
+- insider.nport  → 실제 필드 `funds` (6개 데이터 있음), 체크는 `holdings`
+- market.heatmap → 실제 필드 `sectors` (27KB payload, 단일 국가 shape), 체크는 `countries`
+
+## 원인
+verify-metrics가 옛날 API 응답 스키마를 기준으로 필드명을 하드코딩. 엔드포인트가 리팩터링되며 필드명이 바뀌었는데 verify-metrics는 업데이트되지 않음.
+
+## 확인 (production probes)
+curl https://flowvium.vercel.app/api/insider-trades
+  → {"items":[],"cached":false,"total":0}
+
+curl https://flowvium.vercel.app/api/nport-holdings
+  → {"funds":[...6 funds...], "byTicker":{...31 tickers...}, ...}
+
+curl https://flowvium.vercel.app/api/market-heatmap
+  → {"country","countryLabel","sectors":[...], "indices":[...], ...} (27KB)
+
+## 수정
+src/app/api/cron/verify-metrics/route.ts
+- verifyInsiderStack: trades→items, alerts→items, holdings→funds
+- verifyMarketStack: countries→sectors (+ length check)
+
+## 효과
+- 기존: ok=48 deg=18 err=1 (deg 18개 중 4개가 false-positive)
+- 예상: ok=50~51 deg=14~15 err=1 (nport와 heatmap이 ok로 복구됨)
+- insider.form4/13dg는 실제로 items=0이라 여전히 degraded (이건 정상 — 현재 Redis 캐시 비어있음)
+
+## 기타 변동 없는 항목
+- ai.vllm error — cloudflared 터널 복구 대기 (사용자 측 작업)
+- ai.groq degraded — GROQ_API_KEY 미설정 (사용자 측 작업)
+- earnings.ALL degraded — FINNHUB_KEY 미설정 (사용자 측 작업)
+- fg.asset.* 10개 partial — alphavantage 제한 (정상, 개선 여지 제한적)
+
+## 좀비 정리
+- cloudflared.exe PID 9200 taskkill 완료
+
+## 다음 단계 후보
+- verify-metrics 세분화 (67 → 160+ 항목) — 사용자 이전 세션 요청
+- Signals 페이지 filingDate 하드코딩 2026-02-14 — 실데이터 연결 필요
+
+---
+
+## 2회차 probe (2026-04-21T18:08:13Z)
+- summary: ok=48 deg=18 err=1 (total 67) — 1회차와 동일 (fix 미배포 상태)
+- 좀비: 없음 (cloudflared/cmd 모두 clean)
+- 신규 관찰: /api/insider-trades를 직접 probe하면 items 30+개 반환되는데 verify-metrics 시점에는 empty였음
+  → insider.form4의 "empty payload"는 일시적 race — verify-metrics 호출이 cache miss → SEC EDGAR fetch 시 느려서 타임아웃 가능성
+  → 개선안: /api/insider-trades safeJson timeout을 12s → 30s로 증가 (cache miss 허용), 혹은 cron으로 선제 warming
+- /api/ownership-alerts는 현시점에도 items=0 — fetchRecentOwnershipAlerts가 실제 빈 결과
+  → 13D/13G 5%+ 필터 너무 엄격할 수 있음. 별도 검증 필요.
+
+## 다음 루프에서 고려
+- verify-metrics의 insider.* 호출 timeout 늘리기 (warming 없어도 cache miss 견디게)
+- 또는 ownership-alerts / insider-trades용 preemptive cron 추가
+

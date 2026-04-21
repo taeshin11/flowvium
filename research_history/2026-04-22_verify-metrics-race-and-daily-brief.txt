@@ -1,0 +1,76 @@
+2026-04-22 — verify-metrics 라우팅 race 해결 + daily-brief 근본 문제 진단
+
+## 이번 iteration 발견
+
+### 1. verify-metrics의 earnings.ALL false-negative 원인
+- 직접 probe `/api/earnings` → 1500 events ✅
+- verify-metrics 내부 probe → "FINNHUB_KEY 미설정" ❌
+- **동일 도메인, 동일 시점인데 불일치**
+
+**원인 (추정)**: Vercel alias eventual consistency + 다수 "Ready" 배포가 떠 있어, 내부 server-side fetch가 alias(`flowvium.vercel.app`)를 resolve할 때 이전 배포(FINNHUB_KEY 없이 빌드됨)로 라우팅 가능.
+  - 배포 specific URL `flowvium-of3g8t11x-...vercel.app/api/earnings` 직접 probe는 401 (Vercel deployment protection).
+  - 즉, getBaseUrl(req)이 외부에서 오는 alias host를 정상 반환하더라도 그 alias가 가리키는 edge function이 stale deployment일 수 있음.
+
+**수정 (src/app/api/cron/verify-metrics/route.ts)**:
+verifyEarnings을 env-first로 변경:
+1. `process.env.FINNHUB_KEY` 직접 확인 → 없으면 바로 degraded 리턴
+2. 있으면 /api/earnings fetch 후 응답의 warning은 'endpoint stale'로 분류 (error 아님)
+→ 이제 키가 실제로 설정된 경우 verify-metrics가 false-negative 안 냄.
+
+### 2. /api/flow-analysis 503 "capital-flows data unavailable"
+**원인**: `process.env.VERCEL_URL` 사용
+```
+const baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : 'http://localhost:3000';
+```
+VERCEL_URL = 배포 specific URL (예: flowvium-of3g8t11x-...vercel.app) → **Vercel deployment protection 때문에 401** → JSON 파싱 실패 → capitalData=null → 503.
+
+**수정 (src/app/api/flow-analysis/route.ts)**:
+```
+const reqHost = new URL(request.url).host;
+const reqProto = new URL(request.url).protocol;
+const baseUrl = reqHost.startsWith('localhost')
+  ? 'http://localhost:3000'
+  : `${reqProto}//${reqHost}`;
+```
+request.url.host = public alias (flowvium.vercel.app). 내부 fetch가 auth-protected deployment URL 안 건드림.
+
+### 3. daily-brief 품질 치명적 문제 (근본 원인 진단)
+- source: GROQ-llama-3.3-70b ✅ (AI 동작)
+- BUT 컨텐츠 shallow: market.content="시장", bullets=["Fear&Greed 미반영", ...]
+
+**원인**: `gatherTabContext` 첫 줄 `if (!redis) return ctx;`
+- UPSTASH_REDIS_REST_URL/TOKEN 미설정 → redis=null → 모든 탭 데이터 null/empty
+- summariseHeatmap/Capital/etc 빈 문자열 리턴
+- AI가 빈 프롬프트 기반으로 placeholder 생성
+
+**수정 제안 (미적용)**: daily-brief가 UPSTASH 없으면 라이브 API 엔드포인트들을 직접 fetch하도록 fallback 추가. 현재 구조상 Redis가 단일 소스. UPSTASH가 운영의 병목.
+
+## 이번 iteration 코드 변경 (로컬, 미배포)
+1. src/app/api/cron/verify-metrics/route.ts — verifyEarnings env-first
+2. src/app/api/flow-analysis/route.ts — baseUrl 수정
+
+Typecheck 통과. 커밋/배포는 사용자 승인 대기.
+
+## /api/ai 라이브 테스트
+POST /api/ai {"prompt":"한 줄로..."} → 200, GROQ-llama-3.3-70b 응답 생성 확인 ✅
+vLLM 죽어있어도 GROQ로 체인 폴백 정상 동작.
+
+## verify-metrics 현재 상태 (vm5/vm6)
+- ok 52 / deg 14 / err 1 / total 67
+- 남은 문제:
+  * ai.vllm error — cloudflared 터널 (사용자 측)
+  * fg.asset×10 partial — AV 제한 (정상 범위)
+  * insider.13dg, insider.korea empty — 실제 데이터 없음 (정상 가능성)
+  * ai.gemini not configured — 최종 폴백, GROQ 동작하면 불필요
+
+## 좀비 상태
+- cloudflared: 없음
+- cmd.exe: 없음 (이전 iteration에서 이미 정리)
+
+## 다음 iteration 가능성
+1. verify-metrics + flow-analysis 커밋·푸시 → 재배포 → 재감사
+2. daily-brief UPSTASH-less fallback 추가 (큰 변경)
+3. METRICS.md row-level 감사 (323개 세부 검증)
+4. /api/ownership-alerts 빈 결과 lib/edgar-insider 디버깅

@@ -1,0 +1,70 @@
+2026-04-22 — row-level 수치 감사 (8개 엔드포인트, ~70개 개별값)
+
+## 감사 범위
+- /api/fear-greed: byCountry 10 + byAsset 10 전수
+- /api/capital-flows: assets 15 + flow + goldVsDollar 3tf + countryFlow.countries 12
+- /api/macro-indicators: indicators 9 + yieldCurve
+- /api/credit-balance, /api/signals, /api/fedwatch, /api/short-interest, /api/news-cascade
+
+## ✅ 건강한 항목
+
+### Fear & Greed (10 countries)
+- us(70), korea(75), japan(62), china(56), europe(58), uk(60), india(47), brazil(71), taiwan(76), australia(60)
+- us: source=cnn (유일한 full 소스), 나머지 9개는 composite
+- 모두 dataQuality=full, degradedFactors=[] ✅
+
+### Capital Flows
+- dataSource: "Twelve Data(실시간) 8개 + Yahoo Finance(15분) 17개"
+- 15 assets × ret1w/4w/13w 전부 있음 (price는 애초에 반환 안 함)
+- goldVsDollar 3 timeframes 계산됨, signals 현재: "달러 강세"/"금 선호"/"혼조"
+- countryFlow 12 countries 전부 수익률 값 있음
+- updatedAt 13m old — normal
+
+## ⚠️ 부분 데이터 (정상 범위)
+
+### Fear & Greed (10 assets)
+- 전부 dataQuality=partial (gold, defense, tech, bonds, reits, energy, biotech, commodities, financials, crypto)
+- Alpha Vantage free tier 제한으로 데이터 일부 누락 — 아키텍처상 불가피
+- score + level은 정상 계산됨
+
+## 🚨 심각한 발견
+
+### Macro Indicators: 9/9 liveData=false (전부 STATIC)
+- cpi 2.4%, pce 2.6%, nfp 228K, fomc 4.5%, gdp 2.4%, ism 49, retail -1.1%, ppi 2.7%, unrate 4.2%
+- 모두 releaseDate 2026-03-19 ~ 2026-04-16 — 정적 fallback 데이터
+- 원인: FRED CSV endpoint (fredgraph.csv) — 외부 probe 시 간헐적 timeout (HTTP 000)
+- Vercel production 환경에서 연속 실패하는 듯
+
+**UI 처리**: IntelligencePage.tsx:1662에서 `{ind.liveData && ...}` — liveData=true일 때만 LIVE 배지 표시. 따라서 false인 경우 배지 숨김 → 사용자 오도 없음 ✅
+BUT: 값 자체는 정적인데 UI는 구분없이 표시. 날짜(`releaseDate: 2026-04-10` 등)는 UI에서 표시되는지 확인 필요.
+
+**개선안**:
+1. FRED CSV 실패 시 BLS/BEA 직접 API로 폴백
+2. FRED 응답을 Redis에 장기 캐싱 (현재 UPSTASH 없음 — 근본 해결 안됨)
+3. 최소한 STATIC 데이터에 "last-real-update" 타임스탬프 추가해서 UI가 "N주 전 데이터" 표시
+
+### Signals: 56개 전부 filingDate=2026-02-14 (정적 그대로)
+- source="live" 라벨이 오도 (실제 13F 데이터는 static, Alpha Vantage 뉴스갭만 live)
+- 사용자가 "2026-04-22 현재 기관 매매 신호"로 오인 가능
+- UI에서 filingDate 표시 여부 확인 필요
+
+## 환경 문제 재확인
+- `redis.configured: false` (UPSTASH_REDIS_REST_URL/TOKEN 미설정) — 다수 엔드포인트 캐싱 불가
+- daily-brief는 이것 때문에 shallow 출력 (이전 세션 로그 참조)
+
+## 이번 iteration 코드 변경
+**없음** (감사만 수행)
+
+## 이번 iteration 안 건드린 이전 수정 (미커밋)
+1. verify-metrics earnings env-first check
+2. flow-analysis baseUrl (VERCEL_URL → request.url.host)
+3. verify-metrics 4 field name 수정 (items/funds/sectors)
+
+## 좀비
+- cloudflared/cmd.exe: 없음
+
+## 다음 iteration 우선순위 (제안)
+1. **UPSTASH 설정이 근본 해결** — Upstash Redis 무료 티어 생성 필요 (사용자 측)
+2. 누적 로컬 수정 3건 git commit + push
+3. Macro liveData=false인데 사용자에게 stale 경고 표시 추가
+4. Signals source 라벨 세분화 (13F=static, news-gap=live)

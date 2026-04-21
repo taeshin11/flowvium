@@ -2,14 +2,14 @@ import { logger, loggedRedisSet} from '@/lib/logger';
 /**
  * /api/flow-analysis
  *
- * EXAONE(우선) → Gemini(fallback) 로 국가별 자금흐름의 원인을 분석
- * 각 국가의 수익률 데이터를 받아 "왜 이렇게 움직였는가"를 설명
+ * 통합 AI 체인 (vLLM → GROQ → Gemini) 으로 국가별 자금흐름의 원인을 분석.
+ * 각 국가의 수익률 데이터를 받아 "왜 이렇게 움직였는가"를 설명.
  *
  * Cache: 4h Redis
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { callAI } from '@/lib/ai-providers';
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -23,53 +23,10 @@ function cacheKey(tf: string): string {
   return `flowvium:flow-analysis:v2:${tf}:${hour}`;
 }
 
-// ── EXAONE 우선 AI 호출 ──────────────────────────────────────────────────────
-async function callAI(prompt: string): Promise<string> {
-  // 1순위: vLLM (EXAONE)
-  const vllmUrl = process.env.VLLM_URL?.trim();
-  if (vllmUrl) {
-    try {
-      const res = await fetch(`${vllmUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct',
-          messages: [
-            {
-              role: 'system',
-              content: `당신은 글로벌 자금흐름 전문 애널리스트입니다.
+const FLOW_SYSTEM_PROMPT = `당신은 글로벌 자금흐름 전문 애널리스트입니다.
 각 국가별 시장 수익률 데이터를 보고, 그 흐름의 근본적인 원인을 분석하세요.
 원인 분석은 구체적이고 실질적이어야 합니다 (예: "관세 완화 기대", "반도체 수주 증가", "연준 인하 기대").
-반드시 JSON 형식으로만 응답하세요.`,
-            },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 1400,
-          temperature: 0.55,
-        }),
-        signal: AbortSignal.timeout(40000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content ?? '';
-        if (text.length > 50) return text;
-      }
-    } catch (e) { logger.warn('flow-analysis', 'vllm_failed', { error: e }); }
-  }
-
-  // 2순위: Gemini
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return '';
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (e) {
-    logger.error('flow-analysis', 'gemini_failed', { error: e });
-    return '';
-  }
-}
+반드시 JSON 형식으로만 응답하세요.`;
 
 // ── 프롬프트 빌더 ─────────────────────────────────────────────────────────────
 function buildPrompt(
@@ -135,10 +92,15 @@ export async function GET(request: Request) {
     } catch { /* non-fatal */ }
   }
 
-  // Fetch capital flows data
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
+  // Fetch capital flows data.
+  // NOTE: avoid `process.env.VERCEL_URL` — it returns the deployment-specific
+  // URL which is often Vercel-auth-protected for team deployments (401).
+  // Use the incoming request's host, which is the public alias.
+  const reqHost = new URL(request.url).host;
+  const reqProto = new URL(request.url).protocol;
+  const baseUrl = reqHost.startsWith('localhost')
+    ? 'http://localhost:3000'
+    : `${reqProto}//${reqHost}`;
 
   let capitalData: Record<string, unknown> | null = null;
   try {
@@ -189,7 +151,16 @@ export async function GET(request: Request) {
   const signal = (tf === '1w' ? gvd?.signal1w : tf === '4w' ? gvd?.signal4w : gvd?.signal13w) as string ?? '';
 
   const prompt = buildPrompt(tf, countries, rotations, topAssets, { goldRet, dollarRet, signal });
-  const raw = await callAI(prompt);
+  const aiResult = await callAI(prompt, {
+    systemPrompt: FLOW_SYSTEM_PROMPT,
+    maxTokens: 1400,
+    temperature: 0.55,
+    // EXAONE-2.4B는 JSON 구조 분석에 취약 — GROQ 70b 부터 시작
+    skipVllm: true,
+    timeoutMs: 25000,
+    tag: 'flow-analysis',
+  });
+  const raw = aiResult.text;
 
   let analysis: Record<string, unknown> | null = null;
   if (raw) {
@@ -202,6 +173,7 @@ export async function GET(request: Request) {
   const result = {
     analysis,
     tf,
+    source: aiResult.source,
     generatedAt: new Date().toISOString(),
     cached: false,
   };
