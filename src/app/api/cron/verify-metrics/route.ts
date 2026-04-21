@@ -138,23 +138,23 @@ async function verifyCapitalFlows(base: string): Promise<MetricItem[]> {
       status: 'error', lastError: r.error ?? `HTTP ${r.status}`,
     }];
   }
-  const data = r.data as { assets?: Array<{ ticker: string; name: string; returns?: Record<string, number | null> }>; dataSource?: string };
+  // 실제 스키마: { ticker, label, flag, ret1w, ret4w, ret13w } — 플랫 필드
+  const data = r.data as { assets?: Array<{ ticker: string; label?: string; ret1w?: number|null; ret4w?: number|null; ret13w?: number|null }>; dataSource?: string };
   const items: MetricItem[] = [];
   for (const a of data.assets ?? []) {
-    // 각 자산에 1w/4w/13w 중 하나라도 null이면 degraded, 전부 null이면 error
-    const returns = a.returns ?? {};
-    const vals = Object.values(returns);
+    const vals = [a.ret1w, a.ret4w, a.ret13w];
     const nulls = vals.filter((v) => v == null).length;
     const status: MetricItem['status'] =
-      vals.length === 0 || nulls === vals.length ? 'error' :
+      nulls === 3 ? 'error' :
       nulls > 0 ? 'degraded' : 'ok';
     items.push({
       key: `cf.${a.ticker}`,
-      label: `Capital Flow ${a.name ?? a.ticker}`,
+      label: `CF ${a.label ?? a.ticker}`,
       group: 'capital-flows',
       status,
+      value: a.ret4w != null ? `${a.ret4w}%(4w)` : null,
       source: data.dataSource,
-      details: { returns },
+      details: { ret1w: a.ret1w, ret4w: a.ret4w, ret13w: a.ret13w },
     });
   }
   return items;
@@ -202,13 +202,28 @@ async function verifyFedWatch(base: string): Promise<MetricItem[]> {
       status: 'error', lastError: r.error ?? `HTTP ${r.status}`,
     }];
   }
-  const data = r.data as { currentRate?: string; probabilities?: unknown[] };
-  return [{
-    key: 'fedwatch.current', label: 'FedWatch 현재금리·확률', group: 'fedwatch',
-    status: data.currentRate ? 'ok' : 'degraded',
-    value: data.currentRate ?? null,
-    details: { probabilityCount: Array.isArray(data.probabilities) ? data.probabilities.length : 0 },
-  }];
+  // 실제 스키마: currentRateMid/currentTargetLow/High + meetings[] + yearEndImpliedRate
+  const data = r.data as { currentRateMid?: string|number; meetings?: unknown[]; yearEndImpliedRate?: string|number };
+  const meetings = Array.isArray(data.meetings) ? data.meetings : [];
+  return [
+    {
+      key: 'fedwatch.current', label: 'FedWatch 현재기준금리', group: 'fedwatch',
+      status: data.currentRateMid != null ? 'ok' : 'error',
+      value: data.currentRateMid != null ? `${data.currentRateMid}%` : null,
+      source: 'CME FedWatch',
+    },
+    {
+      key: 'fedwatch.meetings', label: `FedWatch FOMC 확률(${meetings.length} meetings)`, group: 'fedwatch',
+      status: meetings.length > 0 ? 'ok' : 'degraded',
+      value: meetings.length,
+      source: 'CME FedWatch',
+    },
+    {
+      key: 'fedwatch.yearEnd', label: 'FedWatch 연말 예상금리', group: 'fedwatch',
+      status: data.yearEndImpliedRate != null ? 'ok' : 'degraded',
+      value: data.yearEndImpliedRate != null ? `${data.yearEndImpliedRate}%` : null,
+    },
+  ];
 }
 
 async function verifyCreditBalance(base: string): Promise<MetricItem[]> {
@@ -219,15 +234,20 @@ async function verifyCreditBalance(base: string): Promise<MetricItem[]> {
       status: 'error', lastError: r.error ?? `HTTP ${r.status}`,
     }];
   }
-  const data = r.data as { countries?: Array<{ id: string; name: string; balance?: number; gdpRatio?: number }> };
-  return (data.countries ?? []).map((c) => ({
-    key: `credit.${c.id}`,
-    label: `신용잔고 ${c.name ?? c.id}`,
-    group: 'credit',
-    status: (c.balance != null && c.gdpRatio != null ? 'ok' : c.balance != null || c.gdpRatio != null ? 'degraded' : 'error') as MetricItem['status'],
-    value: c.balance ?? null,
-    details: { gdpRatio: c.gdpRatio },
-  }));
+  // 실제 스키마: { id, country, currentBalance, gdpRatio, changeYoY, ... }
+  const data = r.data as { countries?: Array<{ id: string; country?: string; currentBalance?: number|null; gdpRatio?: number|null; changeYoY?: number|null }> };
+  return (data.countries ?? []).map((c) => {
+    const hasBalance = c.currentBalance != null;
+    const hasRatio = c.gdpRatio != null;
+    return {
+      key: `credit.${c.id}`,
+      label: `신용잔고 ${c.country ?? c.id}`,
+      group: 'credit',
+      status: (hasBalance && hasRatio ? 'ok' : hasBalance || hasRatio ? 'degraded' : 'error') as MetricItem['status'],
+      value: hasBalance ? `$${c.currentBalance}B` : null,
+      details: { gdpRatio: c.gdpRatio, changeYoY: c.changeYoY },
+    };
+  });
 }
 
 async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
