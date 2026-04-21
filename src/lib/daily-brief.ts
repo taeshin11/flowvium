@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from './logger';
+import { callAI as callAIProvider } from './ai-providers';
 import { institutionalSignals, type InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { allCompanies } from '@/data/companies';
@@ -142,58 +142,10 @@ export async function gatherTabContext(redis: Redis | null): Promise<TabContext>
 }
 
 // ── AI call ───────────────────────────────────────────────────────────────────
-// vLLM local model has max_model_len=1024 tokens total (prompt+output).
-// For Gemini we can send the full rich prompt.
+// 통합 cascade(vLLM → GROQ → Gemini)로 위임. 자세한 체인 설명은 ai-providers.ts 참조.
 export async function callAI(prompt: string): Promise<{ text: string; source: string }> {
-  const vllmUrl = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '');
-  if (vllmUrl) {
-    const t0 = Date.now();
-    logger.info('daily-brief', 'ai_call_start', { endpoint: `${vllmUrl}/v1/chat/completions` });
-    try {
-      const res = await fetch(`${vllmUrl}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct',
-          messages: [
-            { role: 'user', content: prompt.slice(0, 2800) }, // rough token cap
-          ],
-          max_tokens: 500,
-          temperature: 0.65,
-        }),
-        signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content ?? '';
-        if (text) {
-          logger.info('daily-brief', 'ai_call_ok', { status: res.status, durationMs: Date.now() - t0 });
-          return { text, source: 'EXAONE-3.5' };
-        }
-      }
-    } catch (err) {
-      logger.error('daily-brief', 'ai_call_failed', { error: err });
-    }
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    logger.warn('ai.gemini', 'no_key', { message: 'GEMINI_API_KEY not set and vLLM not available' });
-    return { text: '', source: 'fallback' };
-  }
-  const t1 = Date.now();
-  logger.info('ai.gemini', 'request_start', { promptLen: prompt.length, model: 'gemini-2.5-flash' });
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    logger.info('ai.gemini', 'response_ok', { textLen: text.length, durationMs: Date.now() - t1 });
-    return { text, source: 'Gemini 2.5' };
-  } catch (err) {
-    logger.error('ai.gemini', 'request_failed', { error: err, durationMs: Date.now() - t1 });
-    return { text: '', source: 'fallback' };
-  }
+  const { text, source } = await callAIProvider(prompt, { tag: 'daily-brief', maxTokens: 500, temperature: 0.65 });
+  return { text, source };
 }
 
 // ── Compact summarisers for each tab ─────────────────────────────────────────

@@ -92,9 +92,10 @@ export async function GET(req: Request) {
     unusualWhales: !!process.env.UNUSUAL_WHALES_KEY?.trim(),
     polygon: !!process.env.POLYGON_KEY?.trim(),
     twelveData: !!process.env.TWELVE_DATA_KEY?.trim(),
-    gemini: !!process.env.GEMINI_API_KEY?.trim(),
     alphaVantage: !!process.env.ALPHA_VANTAGE_KEY?.trim(),
     vllm: !!process.env.VLLM_URL?.trim(),
+    groq: !!process.env.GROQ_API_KEY?.trim(),
+    gemini: !!process.env.GEMINI_API_KEY?.trim(),
   };
 
   const body = {

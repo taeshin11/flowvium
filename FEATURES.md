@@ -696,5 +696,5 @@
 | 외부 fetch | 가능하면 `loggedFetch` 사용 (자동 REDACT + 타이밍) |
 | 로그 | `src/lib/logger.ts` — JSON stdout + Redis 적재 (warn/error, 최대 500건) |
 | i18n | next-intl, 16개 언어 (ko·en·ja·zh-CN·zh-TW·es·fr·de·pt·ru·ar·hi·id·th·tr·vi) |
-| AI 우선순위 | EXAONE vLLM (로컬) → Gemini 2.5 Flash (폴백) |
+| AI 우선순위 | EXAONE vLLM (로컬 무료) → **GROQ llama-3.3-70b (클라우드 무료 14,400건/일)** → Gemini 2.5 Flash (유료 폴백). 체인 구현: `src/lib/ai-providers.ts` |
 | 유료 API 잠금 | "월 $200 후원 목표 도달 시 오픈" 형식만 사용 |

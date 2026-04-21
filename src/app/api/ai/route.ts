@@ -1,5 +1,5 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { callAI } from '@/lib/ai-providers';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 
@@ -44,54 +44,27 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Try vLLM (local EXAONE) first, fallback to Gemini
-    const vllmUrl = process.env.VLLM_URL?.trim(); // e.g. http://localhost:8000/v1
-    let analysis = '';
-
-    if (vllmUrl) {
-      try {
-        const systemPrompt = `You are Flowvium AI, an expert macro and supply chain investment analyst.
+    // 2. 통합 cascade: vLLM → GROQ → Gemini (자세한 순서는 ai-providers.ts)
+    const systemPrompt = `You are Flowvium AI, an expert macro and supply chain investment analyst.
 You understand hidden structural forces: regulatory capture, Cantillon effect, dark pools, revolving door,
 military-industrial complex, sovereign wealth, crisis-as-wealth-transfer.
 Analysis type: ${type || 'general'}`;
-        const vllmRes = await fetch(`${vllmUrl}/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: prompt },
-            ],
-            max_tokens: 1600,
-            temperature: 0.7,
-          }),
-          signal: AbortSignal.timeout(30000),
-        });
-        if (vllmRes.ok) {
-          const vllmData = await vllmRes.json();
-          analysis = vllmData.choices?.[0]?.message?.content ?? '';
-        }
-      } catch { /* fallback to Gemini */ }
-    }
 
-    if (!analysis) {
-      // Fallback: Gemini API
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return NextResponse.json({
-          analysis: 'AI analysis is currently unavailable.',
-        });
-      }
-      const systemPrompt = `You are Flowvium AI, an expert supply chain investment analyst.
-Provide concise, actionable analysis about supply chain relationships, institutional flows,
-and investment implications. Be specific with data and patterns.
-Analysis type: ${type || 'general'}`;
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(systemPrompt + '\n\n' + prompt);
-      analysis = result.response.text();
+    const { text, source } = await callAI(prompt, {
+      systemPrompt,
+      maxTokens: 1600,
+      temperature: 0.7,
+      tag: 'api.ai',
+      timeoutMs: 30000,
+    });
+
+    if (!text) {
+      return NextResponse.json({
+        analysis: 'AI analysis is currently unavailable.',
+      });
     }
+    const analysis = text;
+    logger.info('api.ai', 'analysis_source', { source, ticker, type });
 
     // 3. Store result in Redis (non-fatal if fails)
     if (redis && ticker && type) {
