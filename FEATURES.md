@@ -688,7 +688,7 @@
 | `/api/market-caps` | Yahoo Finance | 캐시 |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
-| `/api/translate` | Gemini (번역) | 30일 |
+| `/api/translate` | 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ부터 — GEMINI 미설정 환경에서도 동작) | 30일 |
 | `/api/ai` | vLLM → Gemini | 7일 |
 | `/api/osint/social` | 정적 데이터 | 캐시 |
 | `/api/osint/crypto` | Blockchain.info / Etherscan | 캐시 |

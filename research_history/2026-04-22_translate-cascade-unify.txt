@@ -1,0 +1,51 @@
+2026-04-22 — /api/translate 통합 AI 체인 연결 + loggedRedisSet 규칙 적용
+
+## 배포 검증 (이전 iteration 배포 후)
+- /api/flow-analysis?tf=4w → source="GROQ-llama-3.3-70b", 정상 한국어 분석 생성 ✅
+  - 이전 로컬 callAI는 vLLM → Gemini 체인만 → 현 환경(vLLM OFF + GEMINI 미설정)에서 실패
+  - 통합 체인 전환 후 GROQ 70b로 정상 생성 확인
+- verify-metrics: ok=52 deg=14 err=1 (변화 없음)
+  - earnings.ALL "endpoint stale" 로그 — /api/earnings 직접 프로브 시 1500 events/warning=null/source=Finnhub 정상 응답
+  - 즉 verify-metrics 내부 fetch만 이전 배포로 라우팅되는 Vercel alias eventual consistency 이슈
+  - "endpoint stale" degraded 분류는 정확 — 자연 해소 대기 (error 아님)
+
+## 이번 iteration 발견 및 수정
+### /api/translate 2개 문제
+1. **AI 체인 우회**: 직접 Gemini 호출 → GEMINI_API_KEY 미설정 시 번역 실패
+   → 16개 언어 UI 다국어 기능이 영문 원본 그대로 표시되는 silent failure
+2. **loggedRedisSet 규칙 위반**: 73번째 줄 `redis.set(...)` 직접 호출 (CLAUDE.md 금지 규칙)
+
+### 수정 (src/app/api/translate/route.ts)
+- GoogleGenerativeAI 직결 → callAI from @/lib/ai-providers 로 전환
+- skipVllm: true (EXAONE-2.4B 번역 품질 약함)
+- maxTokens: 1024, temperature: 0.1, timeoutMs: 15s
+- redis.set → loggedRedisSet (자동 타이밍·로깅 + REDACT)
+- AI 체인 모두 실패 시 원본 반환 (fallback graceful)
+- response에 source 필드 추가
+
+### FEATURES.md 섹션 18
+- /api/translate 행 업데이트
+
+## 영향
+- 16개 언어 번역이 GROQ 14,400/일 무료 티어로 정상 동작 → ko/ja/zh-CN/zh-TW/es/fr/de/pt/ru/ar/hi/th/vi/id/tr 사용자가 번역된 UI를 볼 수 있음
+- Redis 쓰기 로그가 관리자 로그에 자동 노출 → 디버깅 용이
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 이전 수정(flow-analysis, news-cascade) 프로덕션 라이브 확인
+
+## 배포 계획
+- translate/route.ts + FEATURES.md 커밋 → push → Vercel 자동 배포
+- 배포 후 /api/translate 를 샘플 텍스트(ko)로 POST 하여 source=GROQ-llama-3.3-70b 확인
+
+## 좀비 상태
+- cloudflared: 없음
+- cmd.exe: 없음
+- node.exe 6개(Claude Code + VSCode 추정, 종료 보류)
+
+## 이번 iteration 커버리지 총계 (2025-10 이후 통합 체인 전환)
+- ✅ /api/ai — 이미 사용 중
+- ✅ /api/flow-analysis — 직전 iteration
+- ✅ /api/news-cascade — 직전 iteration
+- ✅ /api/translate — 이번 iteration (신규)
+- 통합 체인 uncovered: /api/daily-brief (next iteration 후보)

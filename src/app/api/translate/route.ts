@@ -1,6 +1,7 @@
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+import { callAI } from '@/lib/ai-providers';
 
 // ── Redis cache (30-day TTL for translations) ─────────────────────────────────
 const CACHE_TTL = 30 * 24 * 60 * 60;
@@ -43,41 +44,37 @@ export async function POST(request: NextRequest) {
       } catch { /* non-fatal */ }
     }
 
-    // 2. Translate via Gemini
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (!geminiKey) {
+    // 2. Translate via 통합 AI 체인 (vLLM → GROQ → Gemini)
+    //    GROQ의 llama-3.3-70b는 다국어 번역에도 충분 — GEMINI 미설정 시에도 정상 동작.
+    //    EXAONE 2.4B는 일반 번역엔 약해 skipVllm=true.
+    const langName = localeNames[targetLocale] ?? targetLocale;
+    const aiRes = await callAI(
+      `Translate the following text to ${langName}. Return ONLY the translated text, no explanations, no quotes.\n\n${text}`,
+      {
+        maxTokens: 1024,
+        temperature: 0.1,
+        skipVllm: true,
+        timeoutMs: 15000,
+        tag: 'translate',
+      },
+    );
+    const translated = aiRes.text.trim();
+
+    // AI 체인이 모두 실패하면 원본 반환 (UI는 영문 원문 표시)
+    if (!translated) {
       return NextResponse.json({ translated: text });
     }
 
-    const langName = localeNames[targetLocale] ?? targetLocale;
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(geminiKey);
-    // Use Flash for speed/cost; translation doesn't need reasoning
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{ text: `Translate the following text to ${langName}. Return ONLY the translated text, no explanations, no quotes.\n\n${text}` }],
-      }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
-    });
-
-    const translated = result.response.text().trim();
-
-    // 3. Store in Redis
+    // 3. Store in Redis (loggedRedisSet 사용 — CLAUDE.md 규칙)
     if (redis && translated) {
       try {
-        logger.info('translate', 'save_start', { key });
-        const t0 = Date.now();
-        await redis.set(key, translated, { ex: CACHE_TTL });
-        logger.info('translate', 'save_ok', { key, durationMs: Date.now() - t0 });
+        await loggedRedisSet(redis, 'api.translate', key, translated, { ex: CACHE_TTL });
       } catch (e) {
         logger.error('translate', 'save_failed', { key, error: e });
       }
     }
 
-    return NextResponse.json({ translated });
+    return NextResponse.json({ translated, source: aiRes.source });
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'error';
