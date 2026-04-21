@@ -410,6 +410,11 @@ async function verifyMarketStack(base: string): Promise<MetricItem[]> {
     verifyEndpoint(base, '/api/market-caps', 'market.caps', '시가총액', 'market'),
     verifyEndpoint(base, '/api/news-cascade', 'market.news', '뉴스 캐스케이드', 'market',
       (d) => Array.isArray((d as { articles?: unknown[] })?.articles) && ((d as { articles: unknown[] }).articles.length > 0)),
+    // 추가: 홈/시그널 페이지 핵심 집계 엔드포인트 (커버리지 갭 보완)
+    verifyEndpoint(base, '/api/signals', 'market.signals', '기관 신호 13F (live)', 'market',
+      (d) => Array.isArray((d as { signals?: unknown[] })?.signals) && ((d as { signals: unknown[] }).signals.length > 0)),
+    verifyEndpoint(base, '/api/latest-updates', 'market.latest', '홈 LiveFeed 집계', 'market',
+      (d) => Array.isArray((d as { items?: unknown[] })?.items) && ((d as { items: unknown[] }).items.length > 0)),
   ]);
 }
 
