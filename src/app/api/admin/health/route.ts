@@ -49,7 +49,7 @@ function buildTrackedKeys(): string[] {
     `flowvium:macro-indicators:v4:${kstDate}`,
     `flowvium:fedwatch:v1:${hour}`,
     `flowvium:credit-balance:v2:${kstDate}`,
-    'flowvium:latest-updates:v2',
+    'flowvium:latest-updates:v3',
   ];
 }
 export async function GET(req: Request) {

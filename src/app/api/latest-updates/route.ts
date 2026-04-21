@@ -1,16 +1,23 @@
-import { logger, loggedRedisSet} from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/latest-updates
  *
- * 모든 데이터 소스에서 최신 업데이트를 통합하여 피드로 반환.
+ * 모든 소스에서 최신 업데이트를 통합하여 시간순 피드로 반환.
+ *
+ * 이중 경로 (self-healing):
+ *   1. Redis에서 cached snapshot 읽기 (빠름)
+ *   2. 실패 시 내부 /api/* 엔드포인트 live fetch (느리지만 확실)
+ *
+ * 이렇게 하면 Vercel 환경변수 Redis 설정 누락 시에도 LiveFeed가 살아있음.
+ *
  * 소스:
- *   - Fear & Greed (Redis)
- *   - Capital Flows 상위 변동 자산 (Redis)
- *   - Macro Indicators 발표 (Redis — releaseDate 기준, beat/miss 우선)
- *   - FedWatch 금리 결정 확률 (Redis)
- *   - News Cascade 오늘 기사 (Redis)
- *   - Institutional Signals (정적 데이터)
- *   - News Gap 최근 기사 (정적 데이터)
+ *   - Fear & Greed (/api/fear-greed)
+ *   - Capital Flows 상위 변동 (/api/capital-flows)
+ *   - Macro Indicators (/api/macro-indicators)
+ *   - FedWatch (/api/fedwatch)
+ *   - News Cascade (/api/news-cascade 또는 Redis)
+ *   - Institutional Signals (정적 + Redis 13F)
+ *   - News Gap 기사
  *
  * Redis cache: 15분
  */
@@ -19,15 +26,7 @@ import { Redis } from '@upstash/redis';
 import { institutionalSignals, type InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 
-/** Redis EDGAR 13F 데이터 우선, 없으면 정적 fallback */
-async function getBaseSignals(redis: Redis | null): Promise<InstitutionalSignal[]> {
-  if (!redis) return institutionalSignals;
-  try {
-    const data = await redis.get('flowvium:13f-signals:v1');
-    if (Array.isArray(data) && data.length > 0) return data as InstitutionalSignal[];
-  } catch { /* non-fatal */ }
-  return institutionalSignals;
-}
+export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 15 * 60;
 
@@ -36,7 +35,8 @@ export interface UpdateItem {
   type: 'signal' | 'news' | 'flow' | 'market' | 'fear' | 'macro' | 'fed' | 'credit' | 'newsgap';
   headline: string;
   sub: string;
-  time: string;
+  time: string;       // 사람이 읽는 라벨 "2026/4/21 14:36:00" 등
+  sortTime: string;   // ISO 타임스탬프 (내부 정렬용)
   source: string;
   badge: string;
   badgeColor: string;
@@ -51,252 +51,283 @@ function createRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
-/** "MM/DD" 또는 "MM/DD HH:mm:ss" — 시각 정보 있을 때만 시간 포함 */
-function formatTime(dateStr: string): { label: string; withinDays: (n: number) => boolean } {
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return { label: '-', withinDays: () => false };
-
-  const now = new Date();
-  const diffDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
-  const yyyy = date.getFullYear();
-  const mm = date.getMonth() + 1;
-  const dd = date.getDate();
-  const hasTime = /T\d{2}:\d{2}/.test(dateStr) || (dateStr.includes(' ') && dateStr.includes(':'));
-  let label: string;
-  if (hasTime) {
-    const hh = date.getHours().toString().padStart(2, '0');
-    const min = date.getMinutes().toString().padStart(2, '0');
-    const sec = date.getSeconds().toString().padStart(2, '0');
-    label = `${yyyy}/${mm}/${dd} ${hh}:${min}:${sec}`;
-  } else {
-    label = `${yyyy}/${mm}/${dd}`;
-  }
-  return { label, withinDays: (n: number) => diffDays >= 0 && diffDays <= n };
+async function getBaseSignals(redis: Redis | null): Promise<InstitutionalSignal[]> {
+  if (!redis) return institutionalSignals;
+  try {
+    const data = await redis.get('flowvium:13f-signals:v1');
+    if (Array.isArray(data) && data.length > 0) return data as InstitutionalSignal[];
+  } catch { /* non-fatal */ }
+  return institutionalSignals;
 }
 
-// ── 1. Fear & Greed (US = SPY 티커, CNN + Yahoo 합산) ─────────────────────────
-async function getFearGreedItem(redis: Redis): Promise<UpdateItem | null> {
+function fmtTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '-';
+  const yyyy = d.getFullYear();
+  const mm = d.getMonth() + 1;
+  const dd = d.getDate();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+}
+
+function withinDays(iso: string, n: number): boolean {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return false;
+  const days = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+  return days >= 0 && days <= n;
+}
+
+async function safeJson<T = unknown>(url: string, timeoutMs = 8000): Promise<T | null> {
   try {
-    // US 공포탐욕은 SPY 티커 캐시 (useCNN=true)
-    const cached = await redis.get('flowvium:fg:v3:SPY') as Record<string, unknown> | null;
-    if (!cached || cached.score == null) return null;
-    const score = cached.score as number;
-    const level = cached.level as { label: string } | undefined;
-    const levelLabel = level?.label ?? (score >= 75 ? '극단적 탐욕' : score >= 55 ? '탐욕' : score >= 45 ? '중립' : score >= 25 ? '공포' : '극단적 공포');
-    const prev = cached.prevScore as number | undefined;
-    const change = prev != null ? score - prev : 0;
-    const changeStr = change > 0 ? ` (+${Math.round(change)})` : change < 0 ? ` (${Math.round(change)})` : '';
-    const { label: timeLabel } = formatTime(new Date().toISOString());
-    const direction: UpdateItem['direction'] = score >= 55 ? 'up' : score <= 45 ? 'down' : 'neutral';
-    const badgeColor = score >= 60 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
-    return {
-      id: 'fear-greed',
-      type: 'fear',
-      headline: `🇺🇸 공포탐욕지수 ${score}${changeStr} — ${levelLabel}`,
-      sub: 'RSI · 모멘텀 · 변동성 종합',
-      source: 'CNN + Yahoo Finance',
-      time: timeLabel,
-      badge: '시장심리',
-      badgeColor,
-      link: '/intelligence',
-      direction,
-    };
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { 'user-agent': 'flowvium-aggregator/1.0' },
+    });
+    if (!res.ok) return null;
+    return await res.json() as T;
   } catch { return null; }
 }
 
-// ── 2. Capital Flows 상위 변동 ────────────────────────────────────────────────
-async function getCapitalFlowItems(redis: Redis): Promise<UpdateItem[]> {
-  try {
-    // v5 키 (TWELVE_DATA_KEY 유무에 따라 다름), 이전 버전 fallback
-    let data: Record<string, unknown> | null = null;
-    for (const key of [
-      'flowvium:capital-flows:v5:yahoo',
-      'flowvium:capital-flows:v5:twelve',
-      'flowvium:capital-flows:v4:yahoo',
-      'flowvium:capital-flows:v4:twelve',
-      'flowvium:capital-flows:v2',
-    ]) {
-      const d = await redis.get(key) as Record<string, unknown> | null;
-      if (d?.assets) { data = d; break; }
-    }
-    if (!data) return [];
+// ── 1. Fear & Greed ──────────────────────────────────────────────────────────
+interface FGEntry { id: string; label: string; score: number; prevScore?: number; level?: string; source?: string; }
 
-    const { label: timeLabel, withinDays } = formatTime(data.updatedAt as string ?? '');
-    if (!withinDays(3)) return [];
-
-    const assets = data.assets as Array<{
-      label: string; flag?: string; ret1w: number; momentum: string;
-    }> | undefined;
-    if (!assets?.length) return [];
-
-    return [...assets]
-      .sort((a, b) => Math.abs(b.ret1w ?? 0) - Math.abs(a.ret1w ?? 0))
-      .slice(0, 3)
-      .map((a, i) => {
-        const isUp = (a.ret1w ?? 0) > 0;
-        const pct = (isUp ? '+' : '') + (a.ret1w ?? 0).toFixed(2) + '%';
-        return {
-          id: `flow-${i}`,
-          type: 'flow' as const,
-          headline: `${a.flag ?? ''} ${a.label} ${pct} (1주)`,
-          sub: `모멘텀: ${a.momentum ?? '-'}`,
-          source: 'Yahoo Finance',
-          time: timeLabel,
-          badge: '자금흐름',
-          badgeColor: isUp ? '#10b981' : '#ef4444',
-          link: '/intelligence',
-          direction: isUp ? 'up' as const : 'down' as const,
-        };
-      });
-  } catch { return []; }
+async function getFearGreedItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+  // Redis shortcut: US 단일 키만 직접 읽기 (v5 현재 버전)
+  if (redis) {
+    try {
+      const us = await redis.get<FGEntry>('flowvium:fg:v5:SPY');
+      if (us?.score != null) {
+        return [fgItemFromEntry(us, '🇺🇸')];
+      }
+    } catch { /* non-fatal */ }
+  }
+  // Fallback: full API fetch — US + 상위 변동 국가 3개 반환
+  const data = await safeJson<{ byCountry: FGEntry[]; byAsset: FGEntry[]; updatedAt: string }>(`${base}/api/fear-greed`);
+  if (!data?.byCountry?.length) return [];
+  const items: UpdateItem[] = [];
+  const us = data.byCountry.find(e => e.id === 'us');
+  if (us) items.push(fgItemFromEntry(us, '🇺🇸'));
+  // 공포탐욕 변화폭 큰 국가 2개 추가 (미국 제외, 5pt 이상 변화)
+  const topDelta = data.byCountry
+    .filter(e => e.id !== 'us' && e.prevScore != null && Math.abs((e.score ?? 0) - (e.prevScore ?? 0)) >= 5)
+    .sort((a, b) => Math.abs((b.score ?? 0) - (b.prevScore ?? 0)) - Math.abs((a.score ?? 0) - (a.prevScore ?? 0)))
+    .slice(0, 2);
+  for (const e of topDelta) items.push(fgItemFromEntry(e, ''));
+  return items;
 }
 
-// ── 3. Macro Indicators ────────────────────────────────────────────────────────
-async function getMacroItems(redis: Redis): Promise<UpdateItem[]> {
-  try {
-    const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-    // v4가 현재 쓰기 버전 (macro-indicators/route.ts). v3는 구 캐시 호환.
-    const data = (await redis.get(`flowvium:macro-indicators:v4:${kstDate}`) as Record<string, unknown> | null)
-              ?? (await redis.get(`flowvium:macro-indicators:v3:${kstDate}`) as Record<string, unknown> | null);
-    if (!data) return [];
+function fgItemFromEntry(e: FGEntry, flag: string): UpdateItem {
+  const score = e.score;
+  const prev = e.prevScore;
+  const change = prev != null ? score - prev : 0;
+  const changeStr = change > 0 ? ` (+${Math.round(change)})` : change < 0 ? ` (${Math.round(change)})` : '';
+  const levelLabel = score >= 75 ? '극단적 탐욕' : score >= 55 ? '탐욕' : score >= 45 ? '중립' : score >= 25 ? '공포' : '극단적 공포';
+  const now = new Date().toISOString();
+  const direction: UpdateItem['direction'] = score >= 55 ? 'up' : score <= 45 ? 'down' : 'neutral';
+  const badgeColor = score >= 60 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
+  return {
+    id: `fg-${e.id}`,
+    type: 'fear',
+    headline: `${flag} ${e.label} 공포탐욕 ${score}${changeStr} — ${levelLabel}`,
+    sub: e.source === 'cnn' ? 'CNN 공식 F&G Index' : 'RSI · SMA 모멘텀 · 변동성 블렌드',
+    source: e.source === 'cnn' ? 'CNN Fear & Greed' : 'FlowVium composite',
+    time: fmtTime(now),
+    sortTime: now,
+    badge: '시장심리',
+    badgeColor,
+    link: '/intelligence',
+    direction,
+  };
+}
 
-    const indicators = data.indicators as Array<{
-      id: string;
-      nameKo: string;
-      actual: number | null;
-      previous: number | null;
-      forecast: number | null;
-      unit: string;
-      releaseDate: string;
-      surprise: string;
-      rateImpactKo: string;
-      category: string;
-    }> | undefined;
-    if (!indicators?.length) return [];
+// ── 2. Capital Flows ──────────────────────────────────────────────────────────
+interface CFAsset { ticker: string; label: string; flag?: string; ret1w?: number; ret4w?: number; ret13w?: number; }
 
-    // Sort by releaseDate desc, prioritize beat/miss
-    const sorted = [...indicators]
-      .filter(ind => ind.actual !== null && ind.releaseDate)
-      .sort((a, b) => {
-        const aScore = a.surprise === 'beat' || a.surprise === 'miss' ? 1 : 0;
-        const bScore = b.surprise === 'beat' || b.surprise === 'miss' ? 1 : 0;
-        if (bScore !== aScore) return bScore - aScore;
-        return b.releaseDate.localeCompare(a.releaseDate);
-      })
-      .slice(0, 4);
+async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+  let assets: CFAsset[] = [];
+  let updatedAt = new Date().toISOString();
+  if (redis) {
+    try {
+      for (const key of ['flowvium:capital-flows:v5:yahoo', 'flowvium:capital-flows:v5:twelve']) {
+        const d = await redis.get<{ assets: CFAsset[]; updatedAt: string }>(key);
+        if (d?.assets?.length) { assets = d.assets; updatedAt = d.updatedAt ?? updatedAt; break; }
+      }
+    } catch { /* non-fatal */ }
+  }
+  if (!assets.length) {
+    const d = await safeJson<{ assets: CFAsset[]; updatedAt: string }>(`${base}/api/capital-flows`);
+    if (d?.assets?.length) { assets = d.assets; updatedAt = d.updatedAt ?? updatedAt; }
+  }
+  if (!assets.length) return [];
 
-    const items: UpdateItem[] = [];
-    for (const ind of sorted) {
-      const { label: timeLabel, withinDays } = formatTime(ind.releaseDate);
-      if (!withinDays(30)) continue; // macro data can be a month old
-      const changeStr = ind.previous != null && ind.actual != null
-        ? ` (전월 ${ind.previous}${ind.unit})`
-        : '';
+  return [...assets]
+    .filter(a => a.ret1w != null)
+    .sort((a, b) => Math.abs(b.ret1w ?? 0) - Math.abs(a.ret1w ?? 0))
+    .slice(0, 3)
+    .map((a, i) => {
+      const isUp = (a.ret1w ?? 0) > 0;
+      const pct = (isUp ? '+' : '') + (a.ret1w ?? 0).toFixed(2) + '%';
+      return {
+        id: `flow-${a.ticker}-${i}`,
+        type: 'flow' as const,
+        headline: `${a.flag ?? ''} ${a.label} ${pct} (1주)`,
+        sub: `${a.ret4w != null ? `4주 ${a.ret4w > 0 ? '+' : ''}${a.ret4w.toFixed(1)}%` : '자금흐름'}`,
+        source: 'Capital Flows',
+        time: fmtTime(updatedAt),
+        sortTime: updatedAt,
+        badge: '자금흐름',
+        badgeColor: isUp ? '#10b981' : '#ef4444',
+        link: '/intelligence',
+        direction: isUp ? 'up' as const : 'down' as const,
+      };
+    });
+}
+
+// ── 3. Macro Indicators ───────────────────────────────────────────────────────
+interface MacroInd { id: string; nameKo: string; actual: number | null; previous: number | null; forecast: number | null; unit: string; releaseDate: string; surprise: string; rateImpactKo: string; }
+
+async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+  let indicators: MacroInd[] = [];
+  if (redis) {
+    try {
+      const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+      const d = (await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v4:${kstDate}`))
+             ?? (await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v3:${kstDate}`));
+      if (d?.indicators?.length) indicators = d.indicators;
+    } catch { /* non-fatal */ }
+  }
+  if (!indicators.length) {
+    const d = await safeJson<{ indicators: MacroInd[] }>(`${base}/api/macro-indicators`);
+    if (d?.indicators?.length) indicators = d.indicators;
+  }
+  if (!indicators.length) return [];
+
+  return indicators
+    .filter(ind => ind.actual !== null && ind.releaseDate && withinDays(ind.releaseDate, 30))
+    .sort((a, b) => {
+      // beat/miss 우선, 그 다음 최신
+      const aBig = a.surprise === 'beat' || a.surprise === 'miss' ? 1 : 0;
+      const bBig = b.surprise === 'beat' || b.surprise === 'miss' ? 1 : 0;
+      if (bBig !== aBig) return bBig - aBig;
+      return b.releaseDate.localeCompare(a.releaseDate);
+    })
+    .slice(0, 4)
+    .map(ind => {
       const surpriseEmoji = ind.surprise === 'beat' ? ' ↑예상상회' : ind.surprise === 'miss' ? ' ↓예상하회' : '';
-      const direction: UpdateItem['direction'] =
-        ind.surprise === 'beat' ? 'up' :
-        ind.surprise === 'miss' ? 'down' : 'neutral';
-      const badgeColor =
-        ind.surprise === 'beat' ? '#10b981' :
-        ind.surprise === 'miss' ? '#ef4444' : '#6366f1';
-      items.push({
+      const direction: UpdateItem['direction'] = ind.surprise === 'beat' ? 'up' : ind.surprise === 'miss' ? 'down' : 'neutral';
+      const badgeColor = ind.surprise === 'beat' ? '#10b981' : ind.surprise === 'miss' ? '#ef4444' : '#6366f1';
+      const changeStr = ind.previous != null ? ` (전월 ${ind.previous}${ind.unit})` : '';
+      return {
         id: `macro-${ind.id}`,
-        type: 'macro',
+        type: 'macro' as const,
         headline: `${ind.nameKo} ${ind.actual}${ind.unit}${surpriseEmoji}`,
         sub: `${ind.rateImpactKo}${changeStr}`,
         source: 'FRED · US Bureau',
-        time: timeLabel,
+        time: fmtTime(ind.releaseDate),
+        sortTime: ind.releaseDate,
         badge: '거시경제',
         badgeColor,
         link: '/intelligence',
         direction,
-      });
-    }
-    return items;
-  } catch { return []; }
+      };
+    });
 }
 
-// ── 4. FedWatch 금리 결정 ──────────────────────────────────────────────────────
-async function getFedWatchItem(redis: Redis): Promise<UpdateItem | null> {
-  try {
-    const hour = new Date().toISOString().slice(0, 13);
-    const data = await redis.get(`flowvium:fedwatch:v1:${hour}`) as Record<string, unknown> | null;
-    if (!data) return null;
+// ── 4. FedWatch ───────────────────────────────────────────────────────────────
+interface FedData { currentRateMid?: number | string; meetings?: Array<{ date: string; label: string; probHold: number; probCut25: number; probHike25: number }>; updatedAt?: string; }
 
-    const meetings = data.meetings as Array<{
-      date: string; label: string;
-      probHold: number; probCut25: number; probHike25: number;
-    }> | undefined;
-    if (!meetings?.length) return null;
+async function getFedWatchItem(redis: Redis | null, base: string): Promise<UpdateItem | null> {
+  let data: FedData | null = null;
+  if (redis) {
+    try {
+      const hour = new Date().toISOString().slice(0, 13);
+      data = await redis.get<FedData>(`flowvium:fedwatch:v1:${hour}`);
+    } catch { /* non-fatal */ }
+  }
+  if (!data?.meetings?.length) {
+    data = await safeJson<FedData>(`${base}/api/fedwatch`);
+  }
+  if (!data?.meetings?.length) return null;
 
-    const next = meetings[0];
-    const cutProb = Math.round(next.probCut25 ?? 0);
-    const holdProb = Math.round(next.probHold ?? 0);
-    const { label: timeLabel } = formatTime(data.updatedAt as string ?? new Date().toISOString());
-
-    const direction: UpdateItem['direction'] = cutProb > 50 ? 'up' : holdProb > 50 ? 'neutral' : 'down';
-    return {
-      id: 'fedwatch',
-      type: 'fed',
-      headline: `FOMC ${next.label} — 동결 ${holdProb}% / 인하 ${cutProb}%`,
-      sub: `현재 기준금리 ${data.currentRateMid}%`,
-      source: 'CME FedWatch',
-      time: timeLabel,
-      badge: 'FedWatch',
-      badgeColor: cutProb > 50 ? '#10b981' : '#6366f1',
-      link: '/intelligence',
-      direction,
-    };
-  } catch { return null; }
+  const next = data.meetings[0];
+  const cutProb = Math.round(next.probCut25 ?? 0);
+  const holdProb = Math.round(next.probHold ?? 0);
+  const updatedAt = data.updatedAt ?? new Date().toISOString();
+  const direction: UpdateItem['direction'] = cutProb > 50 ? 'up' : holdProb > 50 ? 'neutral' : 'down';
+  return {
+    id: 'fedwatch',
+    type: 'fed',
+    headline: `FOMC ${next.label} — 동결 ${holdProb}% / 인하 ${cutProb}%`,
+    sub: `현재 기준금리 ${data.currentRateMid ?? '-'}%`,
+    source: 'CME FedWatch',
+    time: fmtTime(updatedAt),
+    sortTime: updatedAt,
+    badge: 'FedWatch',
+    badgeColor: cutProb > 50 ? '#10b981' : '#6366f1',
+    link: '/intelligence',
+    direction,
+  };
 }
 
-// ── 5. News Cascade 오늘 기사 ─────────────────────────────────────────────────
-async function getNewsCascadeItems(redis: Redis): Promise<UpdateItem[]> {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const ids = await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 6);
-    if (!ids?.length) return [];
-
-    const items: UpdateItem[] = [];
-    for (const id of ids) {
-      try {
-        const article = await redis.get(`flowvium:news-cascade:v1:article:${id}`) as Record<string, unknown> | null;
-        if (!article) continue;
-        const { label: timeLabel, withinDays } = formatTime(article.pubDate as string || today);
-        if (!withinDays(3)) continue;
-        const sentiment = article.sentiment as string;
-        const cascades = (article.cascades as Array<{ asset: string; direction: string }> | undefined) ?? [];
-        const cascadeStr = cascades.slice(0, 3).map(c => `${c.asset}${c.direction === 'positive' ? '↑' : c.direction === 'negative' ? '↓' : ''}`).join(' ');
-        items.push({
-          id: `news-${id}`,
-          type: 'news',
-          headline: (article.title as string).slice(0, 65),
-          sub: cascadeStr ? `연쇄반응: ${cascadeStr}` : '',
-          source: (article.source as string) || 'Reuters/CNBC',
-          time: timeLabel,
-          badge: sentiment === 'bullish' ? '호재' : sentiment === 'bearish' ? '악재' : '뉴스',
-          badgeColor: sentiment === 'bullish' ? '#10b981' : sentiment === 'bearish' ? '#ef4444' : '#6366f1',
-          link: '/cascade',
-          direction: sentiment === 'bullish' ? 'up' : sentiment === 'bearish' ? 'down' : 'neutral',
-        });
-      } catch { continue; }
-    }
-    return items;
-  } catch { return []; }
+// ── 5. News Cascade ──────────────────────────────────────────────────────────
+async function getNewsCascadeItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+  // Redis list 구조라 Redis 있을 때만 직접 읽기
+  if (redis) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const ids = await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 6);
+      if (ids?.length) {
+        const items: UpdateItem[] = [];
+        for (const id of ids) {
+          try {
+            const article = await redis.get<{ title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }>(`flowvium:news-cascade:v1:article:${id}`);
+            if (!article || !withinDays(article.pubDate, 3)) continue;
+            items.push(newsItemFrom(article, id));
+          } catch { continue; }
+        }
+        if (items.length) return items;
+      }
+    } catch { /* non-fatal */ }
+  }
+  // Fallback: /api/news-cascade가 articles 배열로 최근 기사 반환
+  const d = await safeJson<{ articles?: Array<{ id?: string; title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }> }>(`${base}/api/news-cascade`);
+  const arts = d?.articles ?? [];
+  return arts
+    .filter(a => a.pubDate && withinDays(a.pubDate, 3))
+    .slice(0, 5)
+    .map(a => newsItemFrom(a, a.id ?? a.title));
 }
 
-// ── 6. News Gap 최근 기사 (지분율·실적 포함) ─────────────────────────────────
+function newsItemFrom(article: { title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }, id: string): UpdateItem {
+  const cascades = article.cascades ?? [];
+  const cascadeStr = cascades.slice(0, 3).map(c => `${c.asset}${c.direction === 'positive' ? '↑' : c.direction === 'negative' ? '↓' : ''}`).join(' ');
+  return {
+    id: `news-${id}`,
+    type: 'news',
+    headline: (article.title ?? '').slice(0, 65),
+    sub: cascadeStr ? `연쇄반응: ${cascadeStr}` : (article.source ?? ''),
+    source: article.source || 'Reuters/CNBC',
+    time: fmtTime(article.pubDate),
+    sortTime: article.pubDate,
+    badge: article.sentiment === 'bullish' ? '호재' : article.sentiment === 'bearish' ? '악재' : '뉴스',
+    badgeColor: article.sentiment === 'bullish' ? '#10b981' : article.sentiment === 'bearish' ? '#ef4444' : '#6366f1',
+    link: '/cascade',
+    direction: article.sentiment === 'bullish' ? 'up' : article.sentiment === 'bearish' ? 'down' : 'neutral',
+  };
+}
+
+// ── 6. News Gap 정적 데이터 ───────────────────────────────────────────────────
 function getNewsGapItems(): UpdateItem[] {
   const items: UpdateItem[] = [];
   for (const entry of newsGapData) {
-    // Ownership changes (significant)
     const ownership = entry.ownershipData ?? [];
     for (const o of ownership.slice(0, 3)) {
       if (!o.prevPct || Math.abs(o.pctOfShares - o.prevPct) < 0.5) continue;
       const change = o.pctOfShares - o.prevPct;
       const isUp = change > 0;
       const changeStr = (isUp ? '+' : '') + change.toFixed(2) + '%p';
-      const { label: timeLabel } = formatTime(`${o.quarter.replace('Q1 ', '').replace('Q2 ', '').replace('Q3 ', '').replace('Q4 ', '')}-01-01`);
+      const sortTime = `${o.quarter.replace(/^Q\d\s+/, '')}-01-01`;
       items.push({
         id: `ownership-${entry.ticker}-${o.institution}`,
         type: 'newsgap',
@@ -304,25 +335,23 @@ function getNewsGapItems(): UpdateItem[] {
         sub: `${o.pctOfShares}% 보유 ($${o.valueM}M) · ${o.quarter}`,
         source: 'SEC EDGAR 13F',
         time: o.quarter,
+        sortTime,
         badge: '지분변화',
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/news-gap',
         direction: isUp ? 'up' : 'down',
       });
     }
-
-    // Recent articles with dates (NewsArticle has: title, date, source, url)
     for (const article of (entry.recentArticles ?? []).slice(0, 2)) {
-      if (!article.date) continue;
-      const { label: timeLabel, withinDays } = formatTime(article.date);
-      if (!withinDays(3)) continue;
+      if (!article.date || !withinDays(article.date, 7)) continue;
       items.push({
         id: `newsgap-${entry.ticker}-${article.url ?? article.title}`,
         type: 'newsgap',
         headline: `[${entry.ticker}] ${(article.title ?? '').slice(0, 55)}`,
         sub: article.source ?? '',
         source: article.source ?? 'Alpha Vantage',
-        time: timeLabel,
+        time: fmtTime(article.date),
+        sortTime: article.date,
         badge: '뉴스갭',
         badgeColor: '#8b5cf6',
         link: '/news-gap',
@@ -330,16 +359,15 @@ function getNewsGapItems(): UpdateItem[] {
       });
     }
   }
-  return items.slice(0, 10);
+  return items;
 }
 
-// ── 7. Institutional Signals (EDGAR 13F Redis 우선, 없으면 정적) ─────────────
+// ── 7. Institutional Signals (13F) ──────────────────────────────────────────
 function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
   return signals
     .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
-    .slice(0, 20)
-    .map((s) => {
-      const { label } = formatTime(s.filingDate);
+    .slice(0, 30)
+    .map(s => {
       const actionLabel = s.action === 'accumulating' ? '매집'
         : s.action === 'new_position' ? '신규 편입'
         : s.action === 'reducing' ? '비중 축소' : '전량 청산';
@@ -350,7 +378,8 @@ function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
         headline: `${s.institution} — ${s.companyName} ${actionLabel}`,
         sub: `${s.estimatedValue} · ${s.sector}`,
         source: 'SEC EDGAR 13F',
-        time: label,
+        time: s.filingDate,
+        sortTime: s.filingDate,
         badge: '기관',
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/signals',
@@ -359,10 +388,43 @@ function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
     });
 }
 
+// ── 혼합 정렬: 시간 desc, 단 한 타입이 연속 N개 넘지 못하게 분산 ─────────────
+// 피드 체감: 최신 정보가 위에 오되, 같은 카테고리만 줄줄이 나오지 않게 섞음.
+function interleaveByTimeWithTypeCap(items: UpdateItem[], maxConsecutive = 2, limit = 40): UpdateItem[] {
+  const sorted = [...items].sort((a, b) => b.sortTime.localeCompare(a.sortTime));
+  const out: UpdateItem[] = [];
+  const skipped: UpdateItem[] = [];
+  let lastType: string | null = null;
+  let lastTypeStreak = 0;
+
+  for (const it of sorted) {
+    if (it.type === lastType && lastTypeStreak >= maxConsecutive) {
+      skipped.push(it);
+      continue;
+    }
+    out.push(it);
+    if (it.type === lastType) lastTypeStreak++;
+    else { lastType = it.type; lastTypeStreak = 1; }
+    if (out.length >= limit) break;
+  }
+  // 한도 못 채웠으면 skipped를 뒤에 붙임
+  for (const it of skipped) {
+    if (out.length >= limit) break;
+    out.push(it);
+  }
+  return out;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
-export async function GET() {
+function getBaseUrl(req: Request): string {
+  const url = new URL(req.url);
+  return `${url.protocol}//${url.host}`;
+}
+
+export async function GET(req: Request) {
   const redis = createRedis();
-  const cacheKey = 'flowvium:latest-updates:v2';
+  const base = getBaseUrl(req);
+  const cacheKey = 'flowvium:latest-updates:v3';
 
   if (redis) {
     try {
@@ -371,51 +433,52 @@ export async function GET() {
     } catch { /* non-fatal */ }
   }
 
-  const [fearGreedItem, flowItems, macroItems, fedItem, newsItems] = await Promise.all([
-    redis ? getFearGreedItem(redis) : Promise.resolve(null),
-    redis ? getCapitalFlowItems(redis) : Promise.resolve([]),
-    redis ? getMacroItems(redis) : Promise.resolve([]),
-    redis ? getFedWatchItem(redis) : Promise.resolve(null),
-    redis ? getNewsCascadeItems(redis) : Promise.resolve([]),
+  const [fgItems, flowItems, macroItems, fedItem, newsItems] = await Promise.all([
+    getFearGreedItems(redis, base),
+    getCapitalFlowItems(redis, base),
+    getMacroItems(redis, base),
+    getFedWatchItem(redis, base),
+    getNewsCascadeItems(redis, base),
   ]);
 
   const newsGapItems = getNewsGapItems();
   const liveSignals = await getBaseSignals(redis);
   const signalItems = getSignalItems(liveSignals);
 
-  // Interleave: live first, then static
-  const items: UpdateItem[] = [
-    ...(fearGreedItem ? [fearGreedItem] : []),
-    ...(fedItem ? [fedItem] : []),
-    ...newsItems.slice(0, 3),
-    ...macroItems.slice(0, 3),
+  // 모든 아이템 한 풀에 던지고 시간 desc + 타입 연속 최대 2로 혼합
+  const all: UpdateItem[] = [
+    ...fgItems,
     ...flowItems,
-    ...newsGapItems.slice(0, 4),
-    ...signalItems.slice(0, 8),
-    ...newsItems.slice(3),
-    ...macroItems.slice(3),
-    ...newsGapItems.slice(4),
-    ...signalItems.slice(8),
+    ...macroItems,
+    ...(fedItem ? [fedItem] : []),
+    ...newsItems,
+    ...newsGapItems,
+    ...signalItems,
   ];
 
-  // Deduplicate
+  // Deduplicate by id
   const seen = new Set<string>();
-  const deduped = items.filter(item => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
+  const unique = all.filter(it => {
+    if (seen.has(it.id)) return false;
+    seen.add(it.id);
     return true;
   });
 
+  const items = interleaveByTimeWithTypeCap(unique, 2, 40);
+
   if (redis) {
     try {
-      logger.info('latest-updates', 'save_start', { key: cacheKey, ttl: CACHE_TTL });
-      const t0 = Date.now();
-      await loggedRedisSet(redis, 'api.latest-updates', cacheKey, deduped, { ex: CACHE_TTL });
-      logger.info('latest-updates', 'save_ok', { key: cacheKey, durationMs: Date.now() - t0 });
+      await loggedRedisSet(redis, 'api.latest-updates', cacheKey, items, { ex: CACHE_TTL });
     } catch (err) {
-      logger.error('latest-updates', 'save_failed', { key: cacheKey, error: err });
+      logger.error('latest-updates', 'save_failed', { key: cacheKey, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
-  return NextResponse.json({ items: deduped, cached: false });
+  logger.info('latest-updates', 'aggregated', {
+    redis: !!redis,
+    total: items.length,
+    byType: items.reduce((acc, it) => { acc[it.type] = (acc[it.type] ?? 0) + 1; return acc; }, {} as Record<string, number>),
+  });
+
+  return NextResponse.json({ items, cached: false });
 }
