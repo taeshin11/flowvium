@@ -12,13 +12,21 @@ function createRedis(): Redis | null {
 }
 
 // ── CNN Fear & Greed (US only) ─────────────────────────────────────────────────
+// CNN endpoint blocks minimal UA with HTTP 418 (since ~Q4 2025). Full browser
+// headers (UA + Referer + Origin + Accept-Language) are required to get 200.
 async function fetchCNNScore(): Promise<{ score: number; prevScore: number } | null> {
   const start = Date.now();
   try {
     const res = await fetch(
       'https://production.dataviz.cnn.io/index/fearandgreed/graphdata',
       {
-        headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://edition.cnn.com/' },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://edition.cnn.com/markets/fear-and-greed',
+          'Origin': 'https://edition.cnn.com',
+        },
         signal: AbortSignal.timeout(6000),
       }
     );
@@ -27,17 +35,29 @@ async function fetchCNNScore(): Promise<{ score: number; prevScore: number } | n
       return null;
     }
     const data = await res.json();
-    const score = Math.round(data?.fear_and_greed?.score ?? 0);
-    // Previous score: one week ago from historical data
-    const hist: Array<{ x: number; y: number }> =
-      data?.fear_and_greed_historical?.data ?? [];
-    const weekAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const weekAgoEntry = hist.find((d) => Math.abs(d.x - weekAgoMs) < 2 * 24 * 60 * 60 * 1000);
-    const prevScore = weekAgoEntry ? Math.round(weekAgoEntry.y) : score;
-    logger.info('fear-greed', 'cnn_ok', { score, durationMs: Date.now() - start });
+    // CNN publishes fractional score (e.g. 69.94) — round at read time.
+    const rawScore = data?.fear_and_greed?.score;
+    if (rawScore == null) {
+      logger.warn('fear-greed', 'cnn_score_missing', { durationMs: Date.now() - start });
+      return null;
+    }
+    const score = Math.round(rawScore);
+    // Previous score: prefer CNN's own previous_1_week field, fallback to historical scan.
+    let prevScore: number;
+    const prev1wk = data?.fear_and_greed?.previous_1_week;
+    if (typeof prev1wk === 'number') {
+      prevScore = Math.round(prev1wk);
+    } else {
+      const hist: Array<{ x: number; y: number }> =
+        data?.fear_and_greed_historical?.data ?? [];
+      const weekAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const weekAgoEntry = hist.find((d) => Math.abs(d.x - weekAgoMs) < 2 * 24 * 60 * 60 * 1000);
+      prevScore = weekAgoEntry ? Math.round(weekAgoEntry.y) : score;
+    }
+    logger.info('fear-greed', 'cnn_ok', { score, prevScore, durationMs: Date.now() - start });
     return { score, prevScore };
   } catch (err) {
-    logger.error('fear-greed', 'cnn_fetch_failed', { error: err });
+    logger.error('fear-greed', 'cnn_fetch_failed', { error: err instanceof Error ? err.message : String(err) });
     return null;
   }
 }
@@ -289,7 +309,8 @@ async function buildEntry(
   id: string, ticker: string, flag: string, label: string,
   redis: Redis | null, useCNN = false,
 ) {
-  const cacheKey = `flowvium:fg:v3:${ticker}`;
+  // v4: CNN 헤더 수정·source 필드 추가 (v3은 SPY 418 폴백 버그 포함)
+  const cacheKey = `flowvium:fg:v4:${ticker}`;
   if (redis) {
     try {
       const cached = await redis.get<object>(cacheKey);
@@ -299,12 +320,16 @@ async function buildEntry(
 
   let score: number, prevScore: number;
   let rsiScore = 50, momentumScore = 50, volScore = 50;
+  // source 필드: 'cnn' = CNN 공식 API, 'composite' = 3요소 자체계산 (RSI+SMA+Vol).
+  // useCNN=true 인데 'composite' 되면 CNN 차단 가능성 — admin/logs error 카운트로 잡힘.
+  let source: 'cnn' | 'composite' = 'composite';
 
   if (useCNN) {
     const cnn = await fetchCNNScore();
     if (cnn) {
       score = cnn.score;
       prevScore = cnn.prevScore;
+      source = 'cnn';
       // Still compute factors for breakdown display
       try {
         const prices = await fetchPrices(ticker);
@@ -312,6 +337,9 @@ async function buildEntry(
         rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
       } catch { /* use defaults */ }
     } else {
+      // CNN 기대했는데 실패 → 합성값으로 fallback. warn이 아닌 error로 찍어서
+      // /admin/logs 에러 카운트에 노출됨. 헤더 차단·타임아웃 회귀 조기 감지.
+      logger.error('fear-greed', 'cnn_expected_fallback_to_composite', { ticker });
       const prices = await fetchPrices(ticker);
       const f = compositeWithFactors(prices);
       score = f.score; prevScore = compositeScore(prices.slice(0, -7));
@@ -331,6 +359,8 @@ async function buildEntry(
     trend: delta > 2 ? 'up' : delta < -2 ? 'down' : 'neutral',
     driver: driverMap[ticker] ?? ticker,
     level: getLevel(score),
+    // 출처 투명성 — UI에 뱃지 표시 용도 ('CNN 공식' vs 'FlowVium 합성')
+    source,
     // Factor breakdown
     factors: {
       rsi: rsiScore,

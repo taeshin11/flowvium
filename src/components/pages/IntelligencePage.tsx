@@ -113,6 +113,8 @@ function FearGreedGauge({ score }: { score: number }) {
 interface FearGreedEntryExtended extends FearGreedEntry {
   factors?: { rsi: number; momentum: number; volatility: number };
   detail?: { factors: string[]; macro: string; risk: string } | null;
+  // 'cnn' = CNN 공식 API, 'composite' = FlowVium 3요소 자체계산
+  source?: 'cnn' | 'composite';
 }
 
 function FactorBar({ label, score, weight }: { label: string; score: number; weight: string }) {
@@ -145,11 +147,28 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
         onClick={() => hasDetail && setExpanded(e => !e)}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <span className="text-xl leading-none">{entry.flag}</span>
-            <span className="text-sm font-bold text-cf-text-primary leading-tight">{entry.label}</span>
+            <span className="text-sm font-bold text-cf-text-primary leading-tight truncate">{entry.label}</span>
+            {/* 출처 뱃지: CNN 공식 vs FlowVium 합성 — 같은 숫자라도 계산법 다름을 명시 */}
+            {entry.source === 'cnn' && (
+              <span
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 flex-shrink-0"
+                title="CNN 공식 Fear & Greed Index (edition.cnn.com/markets/fear-and-greed)"
+              >
+                CNN
+              </span>
+            )}
+            {entry.source === 'composite' && (
+              <span
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 flex-shrink-0"
+                title="FlowVium 합성 지수: RSI-14 × 40% + 125일 SMA 모멘텀 × 35% + 변동성 × 25%"
+              >
+                합성
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.bg} ${meta.color} ${meta.border}`}>
               {meta.ko}
             </span>

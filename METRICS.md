@@ -215,9 +215,10 @@
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
-| 98 | F&G (SPY) 게이지 | 💾 cached | CNN 방식 |
-| 99 | F&G 섹터별 | 💾 cached | CNN 방식 |
-| 100 | F&G 국가별 | 💾 cached | CNN 방식 | ⚠️ 구현 확인 필요 |
+| 98 | F&G (SPY) 게이지 | ✅ live | CNN 공식 API | 4h | CNN 차단 시 composite로 자동 폴백 + error 로깅 |
+| 99 | F&G 자산별 (Gold/Tech/Bonds 등) | 💾 cached | FlowVium 합성 | 4h | RSI×40+SMA125×35+Vol×25 |
+| 100 | F&G 국가별 (한/일/중/유/영/인/브/대/호) | 💾 cached | FlowVium 합성 | 4h | 국가 ETF 기반 composite (CNN 대응 없음) |
+| 100a | 출처 뱃지 (CNN/합성) | ✅ live | `source` 필드 | - | UI 투명성: 같은 숫자라도 계산법 구분 |
 
 ### 2-5. 탭: 신용잔고 (`credit`)
 
