@@ -224,7 +224,17 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
 // ── AI call ───────────────────────────────────────────────────────────────────
 // 통합 cascade(vLLM → GROQ → Gemini)로 위임. 자세한 체인 설명은 ai-providers.ts 참조.
 export async function callAI(prompt: string): Promise<{ text: string; source: string }> {
-  const { text, source } = await callAIProvider(prompt, { tag: 'daily-brief', maxTokens: 500, temperature: 0.65 });
+  // maxTokens 500 → 1800: 4-section JSON with bullets + outlook ≈ 1000-1400 tokens;
+  //   500이 truncation 을 일으켜 parseAIResponse 실패 → fallbackBrief 에 항상 떨어짐.
+  // skipVllm=true: EXAONE-2.4B는 max_model_len=1024로 긴 JSON 생성에 부적합.
+  //   vLLM 터널이 살아있어도 GROQ 70b가 이 용도에 훨씬 적합.
+  const { text, source } = await callAIProvider(prompt, {
+    tag: 'daily-brief',
+    maxTokens: 1800,
+    temperature: 0.55,
+    skipVllm: true,
+    timeoutMs: 30000,
+  });
   return { text, source };
 }
 

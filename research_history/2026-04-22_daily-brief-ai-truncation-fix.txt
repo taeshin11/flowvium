@@ -1,0 +1,54 @@
+2026-04-22 — daily-brief AI maxTokens 500→1800 (JSON truncation 해결)
+
+## 배포 검증 (이전 iterations)
+- 7c4b9e5 (label fix) + 83ea0f6 (GROQ chat probe) 모두 라이브
+- verify-metrics: ok=53 deg=13 err=1
+- ai.groq NEW: "ok 392ms probe:chat/completions" — 실제 chat 엔드포인트 건강
+- daily-brief capital bullets: "undefined" → "대만(+15.7%), 브라질(+10.8%), 한국(+9.8%)" ✅
+
+## 이번 iteration 진단
+GROQ /chat/completions 실제 호출 OK (392ms). 그런데 daily-brief는 여전히 source="data" (fallbackBrief).
+→ AI 호출 자체는 안 실패하는데 응답 parseAIResponse 에서 null 반환하는 것으로 추정.
+
+### 원인: maxTokens 500 truncation
+daily-brief 의 callAI:
+```ts
+await callAIProvider(prompt, { maxTokens: 500, temperature: 0.65 });
+```
+
+buildPrompt 템플릿이 생성하라는 출력:
+- 4개 section × {title + content + bullets[3]} + outlook + riskLevel
+- 예상 크기: 1000-1400 token (한국어 UTF-8 기준)
+- **500 max_tokens 로는 truncation 발생** → 잘린 JSON → JSON.parse 실패 → parseAIResponse null
+- → if (!brief) brief = fallbackBrief(tf, ctx) → source="data"
+
+### 수정 (src/lib/daily-brief.ts line 226)
+- maxTokens: 500 → 1800 (안전 마진)
+- temperature: 0.65 → 0.55 (구조화 출력 품질 개선)
+- skipVllm: true (EXAONE-2.4B max_model_len=1024 라 긴 JSON 부적합)
+- timeoutMs: 30000 (GROQ 70b 긴 출력은 5-15s 소요)
+
+## 영향
+- AI-생성 daily-brief 가 정상 동작 시 source="GROQ-llama-3.3-70b" 반환
+- 4개 섹션 bullets 모두 실제 분석으로 채워짐 (fallbackBrief 보다 풍부)
+- vLLM 호출 스킵 → 8s 타임아웃 대기 제거 (지연 감소)
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 배포 후 /api/daily-brief?force=1 → source 확인 + bullets 품질 비교
+
+## 좀비
+- clean
+
+## 누적 개선 정리 (이번 세션)
+1. flow-analysis + news-cascade 통합 AI 체인
+2. translate 통합 AI 체인 + loggedRedisSet
+3. verify-metrics earnings Finnhub 직통 프로브
+4. 10개 파일 redis.set → loggedRedisSet batch 리팩터
+5. EDGAR getcurrent 빈 응답 기존 스냅샷 보존
+6. blog-translate 통합 AI 체인
+7. daily-brief v4→v5 cache key
+8. daily-brief UPSTASH-less HTTP 폴백 (근본 원인 해결)
+9. daily-brief country.label 필드 수정
+10. verify-metrics GROQ /models → /chat/completions 프로브
+11. daily-brief AI maxTokens 500→1800 (이번)
