@@ -2,12 +2,19 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import {
   createRedis, cacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
-  gatherTabContext,
+  gatherTabContext, type DailyBrief,
   type Timeframe,
 } from '@/lib/daily-brief';
 
 // Increase Vercel function timeout — required on Pro plan (60s), no-op on Hobby (10s)
 export const maxDuration = 60;
+
+// Module-level in-memory cache for environments without Redis.
+// Persists across requests while the function instance stays warm (typical ~several minutes).
+// TTL 10 min — balances AI quota conservation with reasonable freshness.
+// Keyed by tf; value = {brief, expiresAt}.
+const MEMORY_CACHE: Map<Timeframe, { brief: DailyBrief; expiresAt: number }> = new Map();
+const MEMORY_TTL_MS = 10 * 60 * 1000;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -25,6 +32,15 @@ export async function GET(request: Request) {
         return NextResponse.json({ ...(cached as object), cached: true });
       }
     } catch (err) { logger.warn('api.daily-brief', 'cache_read_error', { tf, error: err }); }
+  }
+
+  // In-memory fallback cache (used when Redis unavailable — conserves GROQ TPD).
+  if (!redis && !force) {
+    const mem = MEMORY_CACHE.get(tf);
+    if (mem && mem.expiresAt > Date.now()) {
+      logger.info('api.daily-brief', 'memory_cache_hit', { tf, ageMs: Date.now() - (mem.expiresAt - MEMORY_TTL_MS) });
+      return NextResponse.json({ ...mem.brief, cached: true, cacheLayer: 'memory' });
+    }
   }
 
   // Pull live data from every tab (heatmap, short, capital, fg, fed, macro,
@@ -83,6 +99,10 @@ export async function GET(request: Request) {
 
   if (redis) {
     await loggedRedisSet(redis, 'api.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 });
+  } else {
+    // No Redis — populate in-memory cache so subsequent non-force requests in the
+    // same warm instance skip the costly HTTP-fallback + AI-call path.
+    MEMORY_CACHE.set(tf, { brief, expiresAt: Date.now() + MEMORY_TTL_MS });
   }
 
   logger.info('api.daily-brief', 'served', { tf, source: brief.source, durationMs: Date.now() - reqStart });
