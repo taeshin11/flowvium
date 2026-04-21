@@ -1,0 +1,65 @@
+2026-04-22 — daily-brief shallow output 근본 원인 발견·수정 (stale cache keys)
+
+## 배포 검증 (이전 iteration)
+- ok=53 deg=13 err=1 (변경 없음)
+- blog-translate / translate 리팩터 정상 반영 확인
+
+## 이번 iteration — daily-brief 품질 치명적 버그 발견
+### 증상
+```
+GET /api/daily-brief?tf=4w → source:"GROQ-llama-3.3-70b", cached:false
+  market.content = "시장"          ← 단어 한 개
+  capital.content = "자금"         ← 단어 한 개
+  bullets = undefined
+```
+
+GROQ 호출은 정상이었음. 따라서 AI 자체는 생성 성공. 문제는 **프롬프트가 비어있음**.
+
+### 조사
+gatherTabContext(redis) 에서 Redis 키 조회 5개를 대조:
+- daily-brief가 읽음 → 실제 write 키
+- `flowvium:capital-flows:v4:twelve` → 현행 `v5:twelve` ❌ (항상 null)
+- `flowvium:capital-flows:v4:yahoo`  → 현행 `v5:yahoo`  ❌ (항상 null)
+- `flowvium:capital-flows:v4:none`   → 현행 키 없음       ❌ (항상 null)
+- `flowvium:fg:v3:SPY`               → 현행 `v5:SPY`    ❌ (항상 null)
+- 나머지(heatmap:v5:US, fedwatch:v1, macro-indicators:v4, credit-balance:v2, insider-trades:v1, ...) 모두 매칭 ✓
+
+### 결과 영향
+- ctx.capital = null → summariseCapital 빈 문자열 반환
+- ctx.fearGreed = null → summariseFearGreed 빈 문자열
+- 2개 주요 데이터 소스가 프롬프트에서 빠짐 → AI가 문맥 없이 "시장","자금" 같은 placeholder 생성
+- 이게 얼마나 오래 지속됐는지는 git log 필요 (capital-flows v4→v5, fg v3→v5 마이그레이션 이후 줄곧)
+
+## 수정 (src/lib/daily-brief.ts)
+gatherTabContext Promise.all 내 키 업데이트:
+- `capital-flows:v4:twelve` → `capital-flows:v5:twelve` (현행)
+- `capital-flows:v4:yahoo`  → `capital-flows:v5:yahoo`  (현행)
+- `capital-flows:v4:none`   → `capital-flows:v4:twelve` (legacy v4 폴백)
+- `fg:v3:SPY`               → `fg:v5:SPY`               (현행)
+
+변수명 rename (명시적):
+- capFlows → capFlowsV5Twelve
+- capFlowsYahoo → capFlowsV5Yahoo
+- capFlowsNone → capFlowsV4Legacy
+
+ctx.capital 폴백 체인: v5 twelve > v5 yahoo > v4 twelve (legacy)
+
+## 배포 효과
+1. 기존 daily-brief 캐시 26h TTL → **next cron run이 force=1 로 재생성**
+   - cron schedule (KST): 07:55 / 15:55 / 21:25 → 다음 실행까지 최대 7~8시간
+2. 재생성 후 AI는 실제 capital-flows + fear-greed 데이터 기반 프롬프트 받음
+   - market/capital 섹션 분량 대폭 증가 예상 (placeholder → 실제 분석)
+   - bullets 실제 생성될 가능성 높음
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 현재 /api/daily-brief?tf=4w 는 캐시된 shallow 버전 반환 중 (정상)
+- 배포 + cron 재생성 후 샘플링 예정
+
+## 좀비
+- clean
+
+## 남은 개선 후보
+- daily-brief schema version 관리 시스템 (자동 키 migration)
+- daily-brief 캐시 bust + immediate force-regen 루트 (배포 직후 즉시 반영)
+- UPSTASH-less fallback (Redis 장애 시)

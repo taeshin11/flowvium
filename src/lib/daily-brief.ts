@@ -89,16 +89,18 @@ export async function gatherTabContext(redis: Redis | null): Promise<TabContext>
   const kst = kstDateStr();
 
   const [
-    heatmap, shortData, capFlows, capFlowsYahoo, capFlowsNone,
+    heatmap, shortData, capFlowsV5Twelve, capFlowsV5Yahoo, capFlowsV4Legacy,
     fg, fed, macroV4, macroV3, credit, cascadeIds, liveSignals,
     insider, ownership, options, korea, nport, blocks,
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v5:US:${hour}`),
     safeGet(redis, 'flowvium:short-interest:v1'),
+    // capital-flows 현행 스키마는 v5 (twelve/yahoo). v4 는 구형. 후자로 폴백.
+    safeGet(redis, 'flowvium:capital-flows:v5:twelve'),
+    safeGet(redis, 'flowvium:capital-flows:v5:yahoo'),
     safeGet(redis, 'flowvium:capital-flows:v4:twelve'),
-    safeGet(redis, 'flowvium:capital-flows:v4:yahoo'),
-    safeGet(redis, 'flowvium:capital-flows:v4:none'),
-    safeGet(redis, 'flowvium:fg:v3:SPY'),
+    // fear-greed 현행 스키마는 v5:SPY (v3 은 삭제됨)
+    safeGet(redis, 'flowvium:fg:v5:SPY'),
     safeGet(redis, `flowvium:fedwatch:v1:${hour}`),
     safeGet(redis, `flowvium:macro-indicators:v4:${kst}`),
     safeGet(redis, `flowvium:macro-indicators:v3:${kst}`),
@@ -118,7 +120,7 @@ export async function gatherTabContext(redis: Redis | null): Promise<TabContext>
 
   ctx.heatmap = heatmap;
   ctx.short = shortData;
-  ctx.capital = capFlows ?? capFlowsYahoo ?? capFlowsNone;
+  ctx.capital = capFlowsV5Twelve ?? capFlowsV5Yahoo ?? capFlowsV4Legacy;
   ctx.fearGreed = fg;
   ctx.fedWatch = fed;
   ctx.macro = macroV4 ?? macroV3;
