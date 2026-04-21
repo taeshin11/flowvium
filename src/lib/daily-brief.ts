@@ -74,7 +74,27 @@ async function safeGet<T = unknown>(redis: Redis, key: string): Promise<T | null
   try { return (await redis.get<T>(key)) ?? null; } catch { return null; }
 }
 
-export async function gatherTabContext(redis: Redis | null): Promise<TabContext> {
+/** HTTP fallback: fetch live from internal API endpoints when Redis is unavailable.
+ *  Parallel — each has its own timeout so slow endpoints don't block others.
+ *  Routes internally skip Redis writes (loggedRedisSet no-ops on null redis) and
+ *  compute fresh data. */
+async function safeFetchJson<T = unknown>(baseUrl: string, path: string, timeoutMs = 12000): Promise<T | null> {
+  try {
+    const res = await fetch(`${baseUrl}${path}`, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { 'user-agent': 'flowvium-daily-brief/1.0' },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch { return null; }
+}
+
+/** HTTP-based context gatherer — used when Redis is not configured.
+ *  Fetches live from each internal API endpoint in parallel. Slower than
+ *  Redis (each call ~100-500ms vs ~10ms Redis get) but ensures daily-brief
+ *  has real context even without UPSTASH env vars.
+ *  Each endpoint's own caching layer (if any) still applies. */
+async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   const ctx: TabContext = {
     heatmap: null, short: null, capital: null, fearGreed: null,
     fedWatch: null, macro: null, credit: null, cascade: [],
@@ -82,7 +102,65 @@ export async function gatherTabContext(redis: Redis | null): Promise<TabContext>
     insider: [], ownership: [], options: [], korea: null,
     nport: null, blocks: [],
   };
-  if (!redis) return ctx;
+
+  const [
+    capital, fgAll, fedWatch, macro, heatmap, credit,
+    insiderR, ownerR, koreaR, nportR,
+  ] = await Promise.all([
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/capital-flows', 15000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/fear-greed', 12000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/fedwatch', 10000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/macro-indicators', 10000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/market-heatmap?country=US', 15000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/credit-balance', 10000),
+    safeFetchJson<{ items?: unknown[] }>(baseUrl, '/api/insider-trades', 15000),
+    safeFetchJson<{ items?: unknown[] }>(baseUrl, '/api/ownership-alerts', 15000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/korea-flow', 10000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/nport-holdings', 15000),
+  ]);
+
+  ctx.capital = capital;
+  // /api/fear-greed returns { byCountry: [{id:'us', score, ...}], byAsset: [...] }
+  // Daily-brief summariseFearGreed wants entry with .score top-level → pass the US entry.
+  if (fgAll) {
+    const byCountry = (fgAll as { byCountry?: Array<Record<string, unknown>> }).byCountry ?? [];
+    ctx.fearGreed = byCountry.find(x => x.id === 'us') ?? byCountry[0] ?? null;
+  }
+  ctx.fedWatch = fedWatch;
+  ctx.macro = macro;
+  ctx.heatmap = heatmap;
+  ctx.credit = credit;
+  if (insiderR?.items && Array.isArray(insiderR.items)) ctx.insider = insiderR.items;
+  if (ownerR?.items && Array.isArray(ownerR.items)) ctx.ownership = ownerR.items;
+  ctx.korea = koreaR;
+  ctx.nport = nportR;
+
+  logger.info('daily-brief', 'http_context_gathered', {
+    populated: {
+      capital: ctx.capital != null, fearGreed: ctx.fearGreed != null,
+      fedWatch: ctx.fedWatch != null, macro: ctx.macro != null,
+      heatmap: ctx.heatmap != null, credit: ctx.credit != null,
+      insider: ctx.insider.length, ownership: ctx.ownership.length,
+      korea: ctx.korea != null, nport: ctx.nport != null,
+    },
+  });
+  return ctx;
+}
+
+export async function gatherTabContext(redis: Redis | null, baseUrl?: string): Promise<TabContext> {
+  const ctx: TabContext = {
+    heatmap: null, short: null, capital: null, fearGreed: null,
+    fedWatch: null, macro: null, credit: null, cascade: [],
+    signals: institutionalSignals,
+    insider: [], ownership: [], options: [], korea: null,
+    nport: null, blocks: [],
+  };
+  if (!redis) {
+    // UPSTASH 미설정 환경: 내부 API endpoint 로 HTTP fetch 폴백
+    if (baseUrl) return gatherTabContextViaHttp(baseUrl);
+    logger.warn('daily-brief', 'no_redis_no_baseUrl', { note: 'context will be empty' });
+    return ctx;
+  }
 
   const hour = new Date().toISOString().slice(0, 13);
   const today = new Date().toISOString().slice(0, 10);

@@ -30,8 +30,13 @@ export async function GET(request: Request) {
   // Pull live data from every tab (heatmap, short, capital, fg, fed, macro,
   // credit, cascade, 13F signals). Feeds both the AI prompt and the
   // data-driven fallback so every section of the report reflects the
-  // current site state.
-  const ctx = await gatherTabContext(redis);
+  // current site state. When Redis is not configured, falls back to
+  // HTTP fetches via the public alias.
+  const reqUrl = new URL(request.url);
+  const baseUrl = reqUrl.host.startsWith('localhost')
+    ? 'http://localhost:3000'
+    : `${reqUrl.protocol}//${reqUrl.host}`;
+  const ctx = await gatherTabContext(redis, baseUrl);
 
   // Debug mode — expose which ctx fields were populated to pinpoint
   // cache-key mismatches without needing Redis introspection.

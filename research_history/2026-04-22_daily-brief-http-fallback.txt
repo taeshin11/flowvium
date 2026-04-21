@@ -1,0 +1,77 @@
+2026-04-22 — daily-brief UPSTASH-less HTTP 폴백 구현 (근본 원인 완전 해결)
+
+## 진단 경로 (debug=1 probe로 확정)
+직전 iteration v4→v5 key 수정이 효과 없었음. 원인 분석 위해 /api/daily-brief?debug=1 임시 프로브 추가 → 응답:
+```
+"redisConfigured": false,
+"ctxPopulated": { heatmap: false, capital: false, fearGreed: false, ... signalsCount: 56 }
+```
+
+**결정적 발견**: createRedis() 가 Vercel 환경에서 null 반환 = UPSTASH_REDIS_REST_URL/TOKEN 미설정.
+- verify-metrics cache items 프로브: 0개 (createRedis null → verifyRedisCaches 스킵)
+- 즉 **프로젝트 전체 Redis 없이 운영 중**
+- 이는 이전 세션 2026-04-22_verify-metrics-race-and-daily-brief 로그에서도 언급됨 (UPSTASH 병목)
+
+### 왜 capital-flows, fear-greed는 정상 응답했는가?
+- Redis 없어도 route 내부에서 fresh compute → 반환 정상
+- 2회차 호출 빠른 응답은 Vercel Next.js fetch 캐시 / 함수 인스턴스 웜업 효과 (Redis 아님)
+
+### 왜 daily-brief는 shallow 했는가?
+gatherTabContext:
+```ts
+if (!redis) return ctx;   // ← empty ctx early return
+```
+→ 프롬프트 [CapitalFlows] n/a, [Fear&Greed] n/a ... → AI 가 "미제공" placeholder 생성
+
+## 수정 (이번 iteration)
+### 1. src/lib/daily-brief.ts — gatherTabContextViaHttp 도입
+- redis null 분기에서 baseUrl 로 내부 API 병렬 fetch
+- 10개 엔드포인트 병렬 호출: capital-flows, fear-greed, fedwatch, macro-indicators, market-heatmap?country=US, credit-balance, insider-trades, ownership-alerts, korea-flow, nport-holdings
+- 각 fetch 별도 timeout (10~15s), safeFetchJson 에러 null 처리
+- fear-greed 응답 구조(byCountry[]) → US entry 추출하여 summariseFearGreed 기대 shape 제공
+- 성공 시 logger.info 'http_context_gathered' + 필드별 populated 상태 기록
+
+### 2. src/app/api/daily-brief/route.ts
+- gatherTabContext(redis, baseUrl) 로 호출 변경
+- baseUrl = request.url host (localhost/production 자동 판별)
+
+### 3. src/app/api/cron/daily-brief/route.ts
+- baseUrl = NEXT_PUBLIC_SITE_URL 또는 flowvium.vercel.app 하드코딩
+- gatherTabContext(redis, baseUrl) 로 호출
+
+### 4. 기존 Redis 경로 유지
+- Redis 설정되면 기존 로직 (더 빠름, 이전 session v5 키 수정 유효) 그대로
+- HTTP 폴백은 Redis 없을 때만
+
+### 5. 디버그 probe 유지
+- /api/daily-brief?debug=1 은 그대로 유지 (트러블슈팅 가치)
+
+## 기대 효과
+배포 후 /api/daily-brief?force=1:
+- Before: shallow bullets ("미제공" × 3)
+- After: real bullets (capital-flows 자산↑/↓, fg score, fedwatch 확률, yield curve, 크레딧 balance 등 실제 수치)
+- AI outlook 문구도 구체적 시장 분석 기반으로 변화
+
+성능:
+- Redis 경로: 50-100ms (변화 없음)
+- HTTP 폴백: ~500ms-2s (10개 엔드포인트 병렬 중 최장 fetch 기준)
+- daily-brief 전체 timeout 60s 이내 충분
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 배포 후 debug=1 재프로브 예정 → ctxPopulated 값이 대부분 true 로 전환 확인
+
+## 좀비
+- clean
+
+## 배포 계획
+3개 파일 + 로그 커밋 → push → 배포
+배포 후:
+1. debug=1 로 ctx populated 확인
+2. force=1 로 실제 bullets 품질 확인
+3. 안정되면 debug probe 제거 or 유지 결정
+
+## 남은 개선 후보
+- 장기적으로 UPSTASH Redis 복원 → 성능·로깅 복구 (사용자 측)
+- 또는 다른 KV 스토어 (Vercel KV, Cloudflare KV) 이전
+- gatherTabContextViaHttp 에 short-interest, options-flow 추가 (현재 제외)
