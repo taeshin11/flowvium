@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tf = (searchParams.get('tf') as Timeframe) ?? '4w';
   const force = searchParams.get('force') === '1';
+  const debug = searchParams.get('debug') === '1';
 
   const reqStart = Date.now();
   const redis = createRedis();
@@ -31,6 +32,30 @@ export async function GET(request: Request) {
   // data-driven fallback so every section of the report reflects the
   // current site state.
   const ctx = await gatherTabContext(redis);
+
+  // Debug mode — expose which ctx fields were populated to pinpoint
+  // cache-key mismatches without needing Redis introspection.
+  // Remove after diagnosing stale-key issues.
+  const debugInfo = debug ? {
+    redisConfigured: !!redis,
+    ctxPopulated: {
+      heatmap: ctx.heatmap != null,
+      short: ctx.short != null,
+      capital: ctx.capital != null,
+      fearGreed: ctx.fearGreed != null,
+      fedWatch: ctx.fedWatch != null,
+      macro: ctx.macro != null,
+      credit: ctx.credit != null,
+      cascadeCount: Array.isArray(ctx.cascade) ? ctx.cascade.length : 0,
+      signalsCount: Array.isArray(ctx.signals) ? ctx.signals.length : 0,
+      insiderCount: Array.isArray(ctx.insider) ? ctx.insider.length : 0,
+      ownershipCount: Array.isArray(ctx.ownership) ? ctx.ownership.length : 0,
+      optionsCount: Array.isArray(ctx.options) ? ctx.options.length : 0,
+      korea: ctx.korea != null,
+      nport: ctx.nport != null,
+      blocksCount: Array.isArray(ctx.blocks) ? ctx.blocks.length : 0,
+    },
+  } : null;
 
   const prompt = buildPrompt(tf, ctx);
   let brief = null;
@@ -52,7 +77,7 @@ export async function GET(request: Request) {
   }
 
   logger.info('api.daily-brief', 'served', { tf, source: brief.source, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ ...brief, cached: false });
+  return NextResponse.json({ ...brief, cached: false, ...(debugInfo ? { debug: debugInfo } : {}) });
 }
 
 export async function DELETE(request: Request) {
