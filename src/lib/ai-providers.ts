@@ -28,6 +28,8 @@ export interface AICallResult {
   text: string;
   source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b' | 'Gemini 2.5' | 'fallback'
   durationMs: number;
+  /** Per-provider attempt outcome — populated when chain fully fails, to aid diagnosis. */
+  attempts?: Array<{ provider: 'vllm' | 'groq' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
 }
 
 export interface AICallOptions {
@@ -42,8 +44,10 @@ export interface AICallOptions {
   tag?: string;
 }
 
+type ProviderAttempt = { provider: 'vllm' | 'groq' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number };
+
 /** vLLM EXAONE 호출 */
-async function callVLLM(prompt: string, opts: AICallOptions): Promise<string | null> {
+async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const vllmUrl = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '');
   if (!vllmUrl) return null;
 
@@ -68,21 +72,24 @@ async function callVLLM(prompt: string, opts: AICallOptions): Promise<string | n
     });
     if (!res.ok) {
       logger.warn(tag, 'vllm_http_error', { status: res.status, durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'vllm', ok: false, status: res.status, durationMs: Date.now() - t0 });
       return null;
     }
     const data = await res.json();
     const text: string = data.choices?.[0]?.message?.content ?? '';
-    if (!text) return null;
+    if (!text) { diag?.push({ provider: 'vllm', ok: false, error: 'empty_text', durationMs: Date.now() - t0 }); return null; }
     logger.info(tag, 'vllm_ok', { textLen: text.length, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'vllm', ok: true, durationMs: Date.now() - t0 });
     return text;
   } catch (err) {
     logger.warn(tag, 'vllm_failed', { error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'vllm', ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
     return null;
   }
 }
 
 /** GROQ 호출 — OpenAI-compatible API */
-async function callGroq(prompt: string, opts: AICallOptions): Promise<string | null> {
+async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const key = process.env.GROQ_API_KEY?.trim();
   if (!key) return null;
 
@@ -116,21 +123,24 @@ async function callGroq(prompt: string, opts: AICallOptions): Promise<string | n
       } else {
         logger.warn(tag, 'groq_http_error', { status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
       }
+      diag?.push({ provider: 'groq', ok: false, status: res.status, error: errText.slice(0, 200), durationMs: Date.now() - t0 });
       return null;
     }
     const data = await res.json();
     const text: string = data.choices?.[0]?.message?.content ?? '';
-    if (!text) return null;
+    if (!text) { diag?.push({ provider: 'groq', ok: false, error: 'empty_text', status: 200, durationMs: Date.now() - t0 }); return null; }
     logger.info(tag, 'groq_ok', { textLen: text.length, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'groq', ok: true, status: 200, durationMs: Date.now() - t0 });
     return text;
   } catch (err) {
     logger.warn(tag, 'groq_failed', { error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'groq', ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
     return null;
   }
 }
 
 /** Gemini 호출 — 최종 유료 폴백 */
-async function callGemini(prompt: string, opts: AICallOptions): Promise<string | null> {
+async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
@@ -165,20 +175,22 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
   const preferGroq = process.env.AI_PREFER?.trim().toLowerCase() === 'groq';
   const skipVllm = opts.skipVllm || preferGroq;
 
+  const attempts: ProviderAttempt[] = [];
+
   // 1. vLLM (로컬, 가장 저비용)
   if (!skipVllm) {
-    const t = await callVLLM(prompt, opts);
+    const t = await callVLLM(prompt, opts, attempts);
     if (t) return { text: t, source: 'EXAONE-3.5', durationMs: Date.now() - start };
   }
 
   // 2. GROQ (무료 14,400/일)
-  const g = await callGroq(prompt, opts);
+  const g = await callGroq(prompt, opts, attempts);
   if (g) return { text: g, source: 'GROQ-llama-3.3-70b', durationMs: Date.now() - start };
 
   // 3. Gemini (유료 최종 폴백)
-  const gm = await callGemini(prompt, opts);
+  const gm = await callGemini(prompt, opts, attempts);
   if (gm) return { text: gm, source: 'Gemini 2.5', durationMs: Date.now() - start };
 
-  logger.error(opts.tag ?? 'ai', 'all_providers_failed', { durationMs: Date.now() - start });
-  return { text: '', source: 'fallback', durationMs: Date.now() - start };
+  logger.error(opts.tag ?? 'ai', 'all_providers_failed', { durationMs: Date.now() - start, attempts });
+  return { text: '', source: 'fallback', durationMs: Date.now() - start, attempts };
 }

@@ -64,13 +64,13 @@ export async function GET(request: Request) {
 
   const prompt = buildPrompt(tf, ctx);
   let brief = null;
-  let aiDiag: { source?: string; textLength?: number; textSample?: string; parsed?: boolean; error?: string } = {};
+  let aiDiag: { source?: string; textLength?: number; textSample?: string; parsed?: boolean; error?: string; attempts?: unknown } = {};
   try {
-    const { text, source } = await callAI(prompt);
-    aiDiag = { source, textLength: text?.length ?? 0, textSample: (text ?? '').slice(0, 300), parsed: false };
-    if (text) brief = parseAIResponse(text, tf, source);
+    const r = await callAI(prompt);
+    aiDiag = { source: r.source, textLength: r.text?.length ?? 0, textSample: (r.text ?? '').slice(0, 300), parsed: false, attempts: r.attempts };
+    if (r.text) brief = parseAIResponse(r.text, tf, r.source);
     if (brief) aiDiag.parsed = true;
-    if (!brief) logger.warn('api.daily-brief', 'ai_unparseable', { tf, source, textLength: text?.length });
+    if (!brief) logger.warn('api.daily-brief', 'ai_unparseable', { tf, source: r.source, textLength: r.text?.length });
   } catch (err) {
     aiDiag.error = err instanceof Error ? err.message : String(err);
     logger.error('api.daily-brief', 'ai_exception', { tf, error: err });
