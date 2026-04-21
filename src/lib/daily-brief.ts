@@ -265,8 +265,9 @@ function summariseCapital(data: unknown, tf: Timeframe): string {
   const cf = d.countryFlow as Record<string, unknown> | undefined;
   const countries = (cf?.countries as Array<Record<string, unknown>>) ?? [];
   const sortedC = [...countries].sort((a, b) => ((b[retKey] as number) ?? 0) - ((a[retKey] as number) ?? 0));
-  const topC = sortedC.slice(0, 2).map(c => `${c.country}+${((c[retKey] as number) ?? 0).toFixed(1)}%`);
-  const botC = sortedC.slice(-1).map(c => `${c.country}${((c[retKey] as number) ?? 0).toFixed(1)}%`);
+  // capital-flows schema uses `label` not `country` — fall back to both for safety
+  const topC = sortedC.slice(0, 2).map(c => `${c.label ?? c.country ?? c.id}+${((c[retKey] as number) ?? 0).toFixed(1)}%`);
+  const botC = sortedC.slice(-1).map(c => `${c.label ?? c.country ?? c.id}${((c[retKey] as number) ?? 0).toFixed(1)}%`);
 
   return `assets↑${topA.join(',')} ↓${botA.join(',')} | countries↑${topC.join(',')} ↓${botC.join(',')}`;
 }
@@ -575,8 +576,8 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const countries = (cf?.countries as Array<Record<string, unknown>>) ?? [];
     if (countries.length > 0) {
       const sorted = [...countries].sort((a, b) => ((b[retKey] as number) ?? 0) - ((a[retKey] as number) ?? 0));
-      capitalBullets.push(`유입: ${sorted.slice(0, 3).map(c => `${c.country}(+${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
-      capitalBullets.push(`유출: ${sorted.slice(-2).reverse().map(c => `${c.country}(${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
+      capitalBullets.push(`유입: ${sorted.slice(0, 3).map(c => `${c.label ?? c.country ?? c.id}(+${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
+      capitalBullets.push(`유출: ${sorted.slice(-2).reverse().map(c => `${c.label ?? c.country ?? c.id}(${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
     }
     const yc = macro?.yieldCurve as Record<string, unknown> | undefined;
     if (yc?.spread10y2y != null) {
