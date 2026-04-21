@@ -1,0 +1,741 @@
+# FlowVium — 수치·지표 체크리스트
+
+> **목적**: 사이트에 표시되는 모든 개별 수치·지표를 한 줄씩 분리하여 상태·소스·갱신주기·블룸버그 대응을 체크한다.
+> `FEATURES.md`는 기능 카탈로그(페이지/탭), 이 파일은 **데이터 포인트 레벨** 체크리스트.
+> **유지 의무**: 새 수치·지표 추가·수정·삭제 시 같은 커밋에 반영.
+
+## 상태 범례
+
+| 뱃지 | 의미 |
+|------|------|
+| ✅ live | 요청 시점 계산 또는 5분 이하 캐시 |
+| 💾 cached | Redis 캐시 (TTL 있음) — 대부분 4~26h |
+| 🔄 cron | Vercel 크론 주기 갱신 → Redis |
+| 📋 static | 하드코딩된 데이터 (업데이트 안 됨) |
+| ⛔ missing | 미구현, 블룸버그 갭 |
+| 🔒 locked | 유료 API 대기 ($200 후원 락) |
+| ⚠️ buggy | 현재 정상 작동 의심·개선 필요 |
+
+---
+
+## 목차
+
+1. [홈 (/)](#1-홈-)
+2. [인텔리전스 (/intelligence)](#2-인텔리전스-intelligence)
+3. [탐색기 (/explore)](#3-탐색기-explore)
+4. [기업 프로필 (/company/[ticker])](#4-기업-프로필-companyticker)
+5. [기관 신호 (/signals)](#5-기관-신호-signals)
+6. [뉴스 갭 (/news-gap)](#6-뉴스-갭-news-gap)
+7. [인사이더·수급 (/insider)](#7-인사이더수급-insider)
+8. [스크리너 (/screener)](#8-스크리너-screener)
+9. [숏 인터레스트 (/short)](#9-숏-인터레스트-short)
+10. [시장 히트맵 (/heatmap)](#10-시장-히트맵-heatmap)
+11. [캐스케이드 (/cascade)](#11-캐스케이드-cascade)
+12. [AI 리포트 (/report)](#12-ai-리포트-report)
+13. [비교 분석 (/compare)](#13-비교-분석-compare)
+14. [OSINT (/osint)](#14-osint-osint)
+15. [백엔드 헬스 (/admin/health)](#15-백엔드-헬스-adminhealth)
+16. [블룸버그 갭 (미구현)](#16-블룸버그-갭-미구현)
+
+---
+
+## 1. 홈 (`/`)
+
+### 1-1. AI 데일리 브리프 위젯
+
+| # | 지표 | 상태 | 소스 | 주기 | 비고 |
+|---|------|------|------|------|------|
+| 1 | Market 섹션 요약 텍스트 | 🔄 cron | vLLM→Gemini | 7h×3 | 1w/4w/13w 타임프레임별 |
+| 2 | Capital 섹션 요약 | 🔄 cron | vLLM→Gemini | 7h×3 | |
+| 3 | Company 섹션 요약 | 🔄 cron | vLLM→Gemini | 7h×3 | |
+| 4 | Signals 섹션 요약 | 🔄 cron | vLLM→Gemini | 7h×3 | |
+| 5 | 리스크 레벨 (Low/Med/High) | 🔄 cron | AI 판단 | 7h | |
+| 6 | AI Outlook 문구 | 🔄 cron | AI | 7h | |
+| 7 | 생성 타임스탬프 | ✅ live | metadata | - | |
+| 8 | 소스 · 캐시 여부 배지 | ✅ live | metadata | - | |
+
+### 1-2. 통계 바
+
+| # | 지표 | 상태 | 소스 | 비고 |
+|---|------|------|------|------|
+| 9 | "10,000+ 투자자" | 📋 static | 하드코딩 | 실제 유저 수 아님 |
+| 10 | "137+ 추적 기업" | 📋 static | 하드코딩 | `explore-data` 기준 검증 필요 |
+| 11 | "16개 섹터" | 📋 static | 하드코딩 | |
+| 12 | "$48B+ 흐름" | 📋 static | 하드코딩 | |
+
+### 1-3. 섹터 그리드 (5개)
+
+| # | 지표 | 상태 | 비고 |
+|---|------|------|------|
+| 13 | 섹터별 기업 수 | 📋 static | `explore-data`에서 집계 |
+
+### 1-4. 최신 기관 신호 Top 5
+
+| # | 지표 | 상태 | 소스 | 주기 |
+|---|------|------|------|------|
+| 14 | 티커 | 💾 cached | 13F | 7d |
+| 15 | 기관명 | 💾 cached | 13F | 7d |
+| 16 | 액션 아이콘 | 💾 cached | 13F | 7d |
+| 17 | 추정가치($) | 💾 cached | 13F | 7d |
+| 18 | 공시일 | 💾 cached | 13F | 7d |
+
+### 1-5. LiveFeed (최근 업데이트)
+
+| # | 지표 | 상태 | 소스 | 주기 |
+|---|------|------|------|------|
+| 19 | Fear & Greed 최신값 | 💾 cached | 4h | SPY 기준 |
+| 20 | Capital Flows 상위 유입 자산 | 💾 cached | Yahoo/Twelve | 4h |
+| 21 | Capital Flows 상위 유출 자산 | 💾 cached | Yahoo/Twelve | 4h |
+| 22 | Macro 업데이트 타임스탬프 | 💾 cached | FRED | 25h |
+
+---
+
+## 2. 인텔리전스 (`/intelligence`)
+
+### 2-1. 탭: 자금 흐름 (`capital`)
+
+**자산 클래스별 수익률** (1w/4w/13w)
+
+| # | 자산 | 상태 | 소스 |
+|---|------|------|------|
+| 23 | SPY (S&P 500) 1w/4w/13w 수익률 | 💾 cached | Twelve→Yahoo |
+| 24 | QQQ (Nasdaq) 1w/4w/13w | 💾 cached | Twelve→Yahoo |
+| 25 | IWM (Russell 2000) 1w/4w/13w | 💾 cached | Twelve→Yahoo |
+| 26 | EFA (개도국 제외 선진국) | 💾 cached | Twelve→Yahoo |
+| 27 | EEM (이머징 주식) | 💾 cached | Twelve→Yahoo |
+| 28 | TLT (장기국채) | 💾 cached | Twelve→Yahoo |
+| 29 | IEF (중기국채) | 💾 cached | Twelve→Yahoo |
+| 30 | LQD (투자등급회사채) | 💾 cached | Twelve→Yahoo |
+| 31 | HYG (하이일드) | 💾 cached | Twelve→Yahoo |
+| 32 | EMB (이머징 채권) | 💾 cached | Twelve→Yahoo |
+| 33 | TIP (물가연동채) | 💾 cached | Twelve→Yahoo |
+| 34 | GLD (금) | 💾 cached | Twelve→Yahoo |
+| 35 | SLV (은) | 💾 cached | Twelve→Yahoo |
+| 36 | USO (WTI 원유) | 💾 cached | Twelve→Yahoo |
+| 37 | DBC (원자재) | 💾 cached | Twelve→Yahoo |
+| 38 | UUP (달러) | 💾 cached | Twelve→Yahoo |
+| 39 | BTC (비트코인) | 💾 cached | Twelve→Yahoo |
+| 40 | ETH (이더리움) | 💾 cached | Twelve→Yahoo |
+| 41 | 플로우 강도: 상위 유입 5개 | 💾 cached | 자체계산 | |
+| 42 | 플로우 강도: 상위 유출 5개 | 💾 cached | 자체계산 | |
+| 43 | 그룹 평균 수익률 (equity/bonds/alts/commodities/currency) | 💾 cached | 자체계산 | |
+
+**국가별 ETF** (12개국)
+
+| # | 국가 | 상태 | 티커 |
+|---|------|------|------|
+| 44 | 🇺🇸 미국 | 💾 cached | SPY |
+| 45 | 🇨🇳 중국 | 💾 cached | MCHI |
+| 46 | 🇯🇵 일본 | 💾 cached | EWJ |
+| 47 | 🇰🇷 한국 | 💾 cached | EWY |
+| 48 | 🇹🇼 대만 | 💾 cached | EWT |
+| 49 | 🇮🇳 인도 | 💾 cached | INDA |
+| 50 | 🇧🇷 브라질 | 💾 cached | EWZ |
+| 51 | 🇩🇪 독일 | 💾 cached | EWG |
+| 52 | 🇬🇧 영국 | 💾 cached | EWU |
+| 53 | 🇫🇷 프랑스 | 💾 cached | EWQ |
+| 54 | 🇲🇽 멕시코 | 💾 cached | EWW |
+| 55 | 🇦🇺 호주 | 💾 cached | EWA |
+| 56 | 국가 로테이션 모멘텀 (accelerating/holding/fading) | 💾 cached | 자체계산 |
+| 57 | 국가 로테이션 상위 4쌍 확산폭 | 💾 cached | 자체계산 |
+
+**금 vs 달러 신호**
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 58 | 1w 금/달러 신호 | 💾 cached |
+| 59 | 4w 금/달러 신호 | 💾 cached |
+| 60 | 13w 금/달러 신호 | 💾 cached |
+
+**AI 자금흐름 분석**
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 61 | 국가별 유입 원인 | 🔄 cron |
+| 62 | 국가별 유출 원인 | 🔄 cron |
+| 63 | 국가별 리스크 | 🔄 cron |
+| 64 | mainTheme | 🔄 cron |
+| 65 | keyWatchpoints (여러 개) | 🔄 cron |
+
+### 2-2. 탭: 매크로 지표 (`macro`)
+
+**국채 수익률 곡선 (9 포인트)**
+
+| # | 만기 | 상태 | 소스 |
+|---|------|------|------|
+| 66 | 1M T-Bill | 💾 cached | FRED DGS1MO |
+| 67 | 3M T-Bill | 💾 cached | FRED DGS3MO |
+| 68 | 6M T-Bill | 💾 cached | FRED DGS6MO |
+| 69 | 1Y Note | 💾 cached | FRED DGS1 |
+| 70 | 2Y Note | 💾 cached | FRED DGS2 |
+| 71 | 5Y Note | 💾 cached | FRED DGS5 |
+| 72 | 10Y Note | 💾 cached | FRED DGS10 |
+| 73 | 20Y Bond | 💾 cached | FRED DGS20 |
+| 74 | 30Y Bond | 💾 cached | FRED DGS30 |
+| 75 | 10Y-2Y 스프레드 | 💾 cached | 자체계산 |
+| 76 | 역전 여부 | 💾 cached | 자체계산 |
+
+**Fed Watch**
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 77 | 현재 기준금리 | 💾 cached | CME |
+| 78 | 연말 예상금리 | 💾 cached | CME |
+| 79 | 다음 FOMC Hold 확률 | 💾 cached | CME |
+| 80 | 다음 FOMC Cut25 확률 | 💾 cached | CME |
+| 81 | 다음 FOMC Cut50 확률 | 💾 cached | CME |
+| 82 | 다음 FOMC Cut75 확률 | 💾 cached | CME |
+| 83 | 다음 FOMC Hike25 확률 | 💾 cached | CME |
+| 84 | 월별 확률 바 (향후 12개월) | 💾 cached | CME |
+
+**매크로 지표 카드 (9개)**
+
+| # | 지표 | 상태 | 필드 |
+|---|------|------|------|
+| 85 | CPI (실제·예상·이전·Surprise) | 💾 cached | 4필드 + 레이블 |
+| 86 | PCE Core | 💾 cached | 4필드 |
+| 87 | NFP (비농업 고용) | 💾 cached | 4필드 |
+| 88 | FOMC 결정 | 💾 cached | 4필드 |
+| 89 | GDP | 💾 cached | 4필드 |
+| 90 | ISM PMI | 💾 cached | 4필드 |
+| 91 | 소매판매 | 💾 cached | 4필드 |
+| 92 | PPI | 💾 cached | 4필드 |
+| 93 | 실업률 | 💾 cached | 4필드 |
+| 94 | 각 지표 매파/비둘기 영향 | 💾 cached | hawkish/dovish |
+| 95 | 각 지표 캐스케이드 체인 (3~5개 자산) | 💾 cached | 방향·강도·이유 |
+
+### 2-3. 탭: 머니 흐름 (`flows`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 96 | 스마트머니 유입 섹터 랭킹 | 💾 cached | 13F |
+| 97 | 스마트머니 이탈 섹터 랭킹 | 💾 cached | 13F |
+
+### 2-4. 탭: Fear & Greed (`fear-greed`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 98 | F&G (SPY) 게이지 | 💾 cached | CNN 방식 |
+| 99 | F&G 섹터별 | 💾 cached | CNN 방식 |
+| 100 | F&G 국가별 | 💾 cached | CNN 방식 | ⚠️ 구현 확인 필요 |
+
+### 2-5. 탭: 신용잔고 (`credit`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 101 | 미국 신용잔고 ($B) | 💾 cached | FRED BOGZ1FL663067003Q |
+| 102 | 미국 GDP 대비 % | 💾 cached | FRED |
+| 103 | 미국 YoY 변화 | 💾 cached | 자체계산 |
+| 104 | 한국 신용잔고 | 💾 cached | KOFIA/TWSE 추정 |
+| 105 | 일본 신용잔고 | 💾 cached | 추정 |
+| 106 | 대만 신용잔고 | 💾 cached | TWSE |
+| 107 | 글로벌 스냅샷 (총합) | 💾 cached | 자체계산 |
+| 108 | 국가별 장기 시계열 차트 | 💾 cached | FRED/외 |
+
+### 2-6. 탭: 매크로 테마 (`narratives`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 109 | 테마명·카테고리·설명 | 📋 static | `/data/macro-narratives` |
+
+### 2-7. 탭: 뉴스 캐스케이드 (`news`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 110 | RSS 헤드라인 (Yahoo/Reuters/CNBC/Bloomberg/MarketWatch) | 💾 cached | 5개 피드, 4h |
+| 111 | 기사별 감성 배지 | 💾 cached | AI 분석 |
+| 112 | 기사별 중요도 닷 | 💾 cached | AI 분석 |
+| 113 | 기사별 캐스케이드 자산 (↑↓) | 💾 cached | AI 분석 |
+| 114 | 기사별 전체 캐스케이드·강도·이유·타임프레임 | 💾 cached | AI |
+
+---
+
+## 3. 탐색기 (`/explore`)
+
+| # | 지표 | 상태 | 비고 |
+|---|------|------|------|
+| 115 | 137개 기업 노드 | 📋 static | `/data/explore-data` |
+| 116 | 기업 간 연관 엣지 (supplier/customer/partner/competitor) | 📋 static | |
+| 117 | 시가총액 | 📋 static | 하드코딩 (⚠️ Yahoo 라이브로 교체 가능) |
+| 118 | 섹터 분류 | 📋 static | |
+| 119 | 역할 배지 | 📋 static | |
+| 120 | 제품 매출 비중 | 📋 static | |
+| 121 | 매출 파이차트 | 📋 static | |
+| 122 | 연관 기업 Top 6 | 📋 static | |
+
+---
+
+## 4. 기업 프로필 (`/company/[ticker]`)
+
+### 4-1. 헤더
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 123 | 기업명·설명·역할 | 📋 static |
+| 124 | 번역 설명 (16개 언어) | 💾 cached | Gemini 번역, 30d |
+| 125 | ASCII 공급망 네트워크 뷰 | 📋 static |
+
+### 4-2. 제품 & 매출
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 126 | 제품별 매출 바 차트 | 📋 static |
+| 127 | 매출 도넛 파이 차트 | 📋 static |
+| 128 | 세그먼트 금액·비중 | 📋 static |
+| 129 | 세그먼트별 주요 고객 | 📋 static |
+
+### 4-3. R&D 파이프라인
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 130 | 프로젝트명·단계·설명 | 📋 static |
+| 131 | 목표일 | 📋 static |
+| 132 | 예산 | 📋 static |
+
+### 4-4. 공급망 관계
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 133 | Suppliers 카드 | 📋 static |
+| 134 | Customers 카드 | 📋 static |
+| 135 | Competitors 카드 | 📋 static |
+| 136 | Partners 카드 | 📋 static |
+
+### 4-5. 매크로·시장 맥락
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 137 | 섹터 페이즈 | 📋 static |
+| 138 | Tailwinds (↑ 녹색) | 📋 static |
+| 139 | Headwinds (↓ 빨강) | 📋 static |
+| 140 | 다음 촉매제 | 📋 static |
+
+### 4-6. 공급망 이슈
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 141 | 업데이트 카드 (영향도·유형) | 📋 static |
+
+### 4-7. 기관 신호 테이블
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 142 | 기관 액션·가치·분기·공시일 | 💾 cached | 13F |
+
+### 4-8. 기관 보유 현황 (13F)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 143 | 기관별 보유%·이전%·변화 | ✅ live | `flowvium:13f-ownership:v1` (방금 활성화) |
+| 144 | 기관별 주식수·가치 | ✅ live | 13F |
+| 145 | 총 기관 보유 합산 | ✅ live | 13F |
+
+### 4-9. AI 분석
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 146 | 공급망 투자 분석 텍스트 | 💾 cached | vLLM→Gemini, 7d, 온디맨드 |
+
+### 4-10. 사이드바
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 147 | 본사·설립연도·직원수·웹사이트 | 📋 static |
+| 148 | Gap Score | 💾 cached | Alpha Vantage |
+| 149 | IB 활동 점수 | 💾 cached | Alpha Vantage |
+| 150 | 미디어 커버리지 점수 | 💾 cached | Alpha Vantage |
+| 151 | 캐스케이드 포지션·딜레이 | 📋 static |
+
+### 4-11. 재무 심화 (XBRL) — **미배선**
+
+| # | 지표 | 상태 | 소스 | 비고 |
+|---|------|------|------|------|
+| 152 | 매출 시계열 (분기·연간) | ⛔ missing | `/api/company-financials` 존재, UI 미연결 | 🎯 다음 작업 |
+| 153 | 영업이익 시계열 | ⛔ missing | 상동 | |
+| 154 | 순이익 시계열 | ⛔ missing | 상동 | |
+| 155 | EPS 시계열 | ⛔ missing | 상동 | |
+| 156 | 총자산 | ⛔ missing | 상동 | |
+| 157 | 총부채 | ⛔ missing | 상동 | |
+| 158 | 자본 | ⛔ missing | 상동 | |
+| 159 | 영업현금흐름 | ⛔ missing | 상동 | |
+| 160 | 투자현금흐름 | ⛔ missing | 상동 | |
+| 161 | 재무현금흐름 | ⛔ missing | 상동 | |
+| 162 | R&D 비용 | ⛔ missing | XBRL `ResearchAndDevelopmentExpense` | |
+| 163 | CapEx | ⛔ missing | XBRL `PaymentsToAcquirePropertyPlantAndEquipment` | |
+| 164 | 자사주매입 | ⛔ missing | XBRL `PaymentsForRepurchaseOfCommonStock` | |
+| 165 | 배당금 | ⛔ missing | XBRL `PaymentsOfDividends` | |
+| 166 | ROE | ⛔ missing | 파생 | |
+| 167 | ROA | ⛔ missing | 파생 | |
+| 168 | 영업이익률 | ⛔ missing | 파생 | |
+| 169 | 부채비율 | ⛔ missing | 파생 | |
+| 170 | 분기별 Y/Y 성장률 | ⛔ missing | 파생 | |
+
+---
+
+## 5. 기관 신호 (`/signals`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 171 | 상태 배지 (Live/Cached/Static) | ✅ live | 자체 판단 |
+| 172 | 업데이트 시각·종목 수 | ✅ live | metadata |
+| 173 | 섹터별 활동 차트 (매집 vs 감소) | 💾 cached | 13F |
+| 174 | 상위 기관 랭킹 | 💾 cached | 13F |
+| 175 | 신호 테이블: 티커·기업·기관 | 💾 cached | 13F |
+| 176 | 신호 테이블: 액션·보유%·주식수 변화 | 💾 cached | 13F |
+| 177 | 신호 테이블: 가치·갭스코어·공시일 | 💾 cached | 13F |
+
+---
+
+## 6. 뉴스 갭 (`/news-gap`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 178 | 신선도 배지 (Live/Cached/Research) | ✅ live | 자체 판단 |
+| 179 | IB vs 미디어 산포도 (137개 종목) | 💾 cached | AV + 정적 |
+| 180 | 종목별 갭 스코어 | 💾 cached | AV |
+| 181 | 종목별 IB 활동 점수 | 💾 cached | AV |
+| 182 | 종목별 미디어 커버리지 점수 | 💾 cached | AV |
+| 183 | 뉴스 캐스케이드 기사 (2열) | 💾 cached | RSS |
+| 184 | 갭 카드 상세: 최근 기사 | 💾 cached | AV |
+| 185 | 갭 카드 상세: 기관 보유 | ✅ live | 13F (방금 활성화) |
+
+---
+
+## 7. 인사이더·수급 (`/insider`)
+
+### 7-1. 탭: 인사이더 (`insider`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 186 | 공시일 | 💾 cached | EDGAR Form 4 |
+| 187 | 티커 | 💾 cached | |
+| 188 | 내부자명·직책 | 💾 cached | |
+| 189 | 액션 (Buy↑녹 / Sell↓빨) | 💾 cached | |
+| 190 | 주식수·단가·가치 | 💾 cached | |
+| 191 | SEC 링크 | 💾 cached | |
+| 192 | 클러스터 배지 (3건+ 종목) | 💾 cached | 자체계산 |
+
+### 7-2. 탭: 대량 보유 (`ownership`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 193 | 공시일·티커·발행사 | 💾 cached | EDGAR 13D/13G |
+| 194 | 신고자·양식(13D/13G) | 💾 cached | |
+| 195 | 보유%·보유주식 | 💾 cached | |
+
+### 7-3. 탭: N-PORT (`nport`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 196 | 티커·총 가치·펀드 수 | 💾 cached | EDGAR N-PORT |
+| 197 | 상위 펀드 목록 + 가치 | 💾 cached | |
+
+### 7-4. 탭: 블록 트레이드 (`blocks`) 🔒
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 198 | 시간·티커·주식수·단가 | 🔒 locked | Polygon (API 키) |
+| 199 | 가치·거래소 | 🔒 locked | |
+
+### 7-5. 탭: 옵션 플로우 (`options`) 🔒
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 200 | 시간·티커·감성 | 🔒 locked | Unusual Whales |
+| 201 | 계약($Strike·만기) | 🔒 locked | |
+| 202 | 사이즈·프리미엄 | 🔒 locked | |
+
+### 7-6. 탭: 한국 수급 (`korea`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 203 | 거래일·총 종목 수 | 💾 cached | KRX |
+| 204 | 외국인 상위 순매수 | 💾 cached | KRX |
+| 205 | 외국인 상위 순매도 | 💾 cached | KRX |
+| 206 | 기관 상위 순매수 | 💾 cached | KRX |
+| 207 | 기관 상위 순매도 | 💾 cached | KRX |
+| 208 | 종목별 현재가·등락% | 💾 cached | KRX |
+| 209 | 순매수 금액(원) | 💾 cached | KRX |
+
+---
+
+## 8. 스크리너 (`/screener`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 210 | 프리셋: 숏 스퀴즈 후보 | 💾 cached | signals + short |
+| 211 | 프리셋: 기관 신규 편입 | 💾 cached | signals |
+| 212 | 프리셋: 기관 매집 중 | 💾 cached | signals |
+| 213 | 프리셋: 기관 비중 축소 | 💾 cached | signals |
+| 214 | 프리셋: 언더레이더 | 💾 cached | signals + news-gap |
+| 215 | 숏 Float % 슬라이더 | ✅ live | 사용자 입력 |
+| 216 | 결과 테이블: 스퀴즈 스코어(바) | 💾 cached | 자체계산 |
+| 217 | 결과 테이블: 뉴스갭(바) | 💾 cached | AV |
+| 218 | 결과 테이블: DTC (Days to Cover) | 💾 cached | Yahoo |
+
+---
+
+## 9. 숏 인터레스트 (`/short`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 219 | 추적 종목 수 | 💾 cached | 집계 |
+| 220 | 스퀴즈 위험 종목 수 (45+) | 💾 cached | 자체계산 |
+| 221 | 평균 Short Float % | 💾 cached | 자체계산 |
+| 222 | 최고 스퀴즈 스코어 + 티커 | 💾 cached | 자체계산 |
+| 223 | 종목별 Short % Float | 💾 cached | Yahoo |
+| 224 | 종목별 DTC | 💾 cached | Yahoo |
+| 225 | MoM 변화 | 💾 cached | 자체계산 |
+| 226 | 기관 액션 | 💾 cached | 13F |
+| 227 | 스퀴즈 스코어 (색상 바) | 💾 cached | 자체계산 |
+
+---
+
+## 10. 시장 히트맵 (`/heatmap`)
+
+### 10-1. 국가 탭 (7개)
+
+| # | 국가 | 상태 |
+|---|------|------|
+| 228 | 🇺🇸 S&P 500 종목 시가총액·등락 | 💾 cached | Yahoo |
+| 229 | 🇰🇷 Korea KOSPI 상위 | 💾 cached | Stooq/KRX |
+| 230 | 🇯🇵 Japan Nikkei 상위 | 💾 cached | Yahoo |
+| 231 | 🇨🇳 China CSI 상위 | 💾 cached | Yahoo |
+| 232 | 🇪🇺 EU 상위 | 💾 cached | Yahoo |
+| 233 | 🇮🇳 India NIFTY 상위 | 💾 cached | Yahoo |
+| 234 | 🇹🇼 Taiwan TAIEX 상위 | 💾 cached | Yahoo |
+
+### 10-2. 지수 바
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 235 | 국가별 대표 지수 4개 (심볼·종가·등락%) | 💾 cached | Yahoo |
+
+### 10-3. 트리맵
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 236 | 섹터별 종목 박스 (크기=시가총액) | 💾 cached | Yahoo |
+| 237 | 박스 색상 (등락%) | 💾 cached | Yahoo |
+
+---
+
+## 11. 캐스케이드 (`/cascade`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 238 | 섹터별 패턴 그룹 | 📋 static | `/data/cascades` |
+| 239 | 리더 기업·티커·섹터 | 📋 static |
+| 240 | 스텝 수·총 딜레이 | 📋 static |
+| 241 | 역사적 발생 횟수 | 📋 static |
+| 242 | 미니 플로우 (Top 5) | 📋 static |
+
+---
+
+## 12. AI 리포트 (`/report`)
+
+홈의 AI 브리프와 동일한 지표 (#1~8). 타임프레임 1w/4w/13w 전환만 다름.
+
+---
+
+## 13. 비교 분석 (`/compare`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 243 | 티커 셀렉터 (A vs B) | ✅ live | 사용자 입력 |
+| 244 | 퀵 요약: 시가총액·역할 | 📋 static |
+| 245 | 퀵 요약: 갭 스코어 (승자 강조) | 💾 cached | AV |
+| 246 | 퀵 요약: IB 활동 | 💾 cached | AV |
+| 247 | 매출 믹스 차트 (Top 5, 양사) | 📋 static |
+| 248 | 컬럼별 헤더·About·매출·신호·캐스케이드·관계사 | 📋 static + 💾 cached 혼합 |
+| 249 | 인기 비교 쌍 링크 | 📋 static |
+
+---
+
+## 14. OSINT (`/osint`)
+
+### 14-1. 탭: 소셜 (`social`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 250 | 인물 목록 (Fed Members + 공인) | 📋 static + API |
+| 251 | 발언 제목·요약 | 💾 cached |
+| 252 | 감성 배지 (Hawkish/Dovish/Bullish/Bearish/Neutral) | 💾 cached |
+| 253 | 영향도 배지 (HIGH/MEDIUM/LOW) | 💾 cached |
+| 254 | 캐스케이드 필 | 💾 cached |
+| 255 | 소스 아이콘 (X/Newspaper) + 날짜 | 💾 cached |
+
+### 14-2. 탭: 크립토 (`crypto`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 256 | 주목 지갑 5개 (잔고·TX·리스크) | 💾 cached | Blockchain.info/Etherscan |
+| 257 | 직접 분석: 잔고·총수신·총송신·TX 수 | ✅ live | on-demand |
+| 258 | 리스크 플래그 | ✅ live | 자체판단 |
+| 259 | 최근 TX 테이블 (해시·시간·금액·방향) | ✅ live | on-demand |
+
+### 14-3. 탭: 제재 (`sanctions`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 260 | 총 엔트리 수 | 💾 cached | OFAC SDN |
+| 261 | 그룹별 (Russia·Iran·DPRK·SDGT·Cyber·China) | 💾 cached | |
+| 262 | 엔트리 상세 (이름·유형·프로그램·비고) | 💾 cached | |
+
+### 14-4. 탭: 기업 (`corporate`)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 263 | 프리셋 쿼리 결과 (4개) | 💾 cached | OpenCorporates |
+| 264 | 직접 검색 결과 카드 | ✅ live | on-demand |
+
+### 14-5. 탭: 가이드 (`guide`)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 265 | 가이드 6개 카드 | 📋 static |
+
+---
+
+## 15. 백엔드 헬스 (`/admin/health`)
+
+### 15-1. Deploy
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 266 | 커밋 SHA | ✅ live |
+| 267 | 브랜치 | ✅ live |
+| 268 | 배포 ID | ✅ live |
+| 269 | 리전 | ✅ live |
+| 270 | env | ✅ live |
+| 271 | Node version | ✅ live |
+
+### 15-2. Paid APIs (설정 여부)
+
+| # | API | 상태 |
+|---|-----|------|
+| 272 | UnusualWhales | ✅ live |
+| 273 | Polygon | ✅ live |
+| 274 | TwelveData | ✅ live |
+| 275 | Gemini | ✅ live |
+| 276 | Alpha Vantage | ✅ live |
+| 277 | vLLM | ✅ live |
+
+### 15-3. 트래킹 캐시 키 (16개)
+
+| # | 캐시 키 | 상태 |
+|---|---------|------|
+| 278 | insider-trades:v1 | ✅ live |
+| 279 | ownership-alerts:v1 | ✅ live |
+| 280 | nport-holdings:v1 | ✅ live |
+| 281 | options-flow:v1 | ✅ live |
+| 282 | block-trades:v1 | ✅ live |
+| 283 | korea-flow:v1 | ✅ live |
+| 284 | short-interest:v1 | ✅ live |
+| 285 | market-caps:v1 | ✅ live |
+| 286 | fg:v3:SPY | ✅ live |
+| 287 | 13f-signals:v1 | ✅ live |
+| 288 | capital-flows:v5:yahoo | ✅ live |
+| 289 | capital-flows:v5:twelve | ✅ live |
+| 290 | macro-indicators:v4:$(date) | ✅ live |
+| 291 | fedwatch:v1:$(hour) | ✅ live |
+| 292 | credit-balance:v2:$(date) | ✅ live |
+| 293 | latest-updates:v2 | ✅ live |
+
+### 15-4. 로그 버퍼
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 294 | error count (최근 500건) | ✅ live |
+| 295 | warn count | ✅ live |
+| 296 | 버퍼 oldest 타임스탬프 | ✅ live |
+
+---
+
+## 16. 블룸버그 갭 (미구현)
+
+우선순위 순서.
+
+### 16-1. 기업 재무 심화 — 1순위
+
+`/api/company-financials/` 이미 존재, SEC XBRL 라이브러리 완비. UI 배선만 남음.
+→ 체크리스트 #152~170 참조 (19개 지표)
+
+### 16-2. 금리 커브 차트 — 2순위 (블룸버그 YCRV)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 297 | 실시간 수익률 곡선 (2Y→30Y) | ⛔ missing | FRED (무료) |
+| 298 | 어제 / 1주 전 / 1개월 전 곡선 오버레이 | ⛔ missing | FRED 시계열 |
+| 299 | 2s10s 스프레드 시계열 | ⛔ missing | FRED |
+| 300 | 3m10y 스프레드 시계열 | ⛔ missing | FRED |
+| 301 | TIPS 실질금리 곡선 | ⛔ missing | FRED |
+| 302 | Breakeven 인플레이션 곡선 | ⛔ missing | 파생 |
+
+### 16-3. 실적 캘린더 — 3순위 (블룸버그 EE)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 303 | 이번주 발표 예정 티커 | ⛔ missing | Finnhub (무료) |
+| 304 | EPS 컨센서스 | ⛔ missing | Finnhub |
+| 305 | 매출 컨센서스 | ⛔ missing | Finnhub |
+| 306 | 과거 Surprise 이력 | ⛔ missing | Finnhub |
+| 307 | 발표 후 주가 반응 (IV Crush 등) | ⛔ missing | 파생 |
+
+### 16-4. 워치리스트 + 알림 — 4순위
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 308 | 사용자 커스텀 종목 리스트 | ⛔ missing |
+| 309 | Discord 웹훅 알림 | ⛔ missing |
+| 310 | 알림 조건 (가격·거래량·신호) | ⛔ missing |
+
+### 16-5. 실시간 WebSocket — 5순위 (블룸버그 QM)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 311 | 실시간 주가 스트리밍 | ⛔ missing | 🔒 Polygon Starter |
+| 312 | 실시간 호가 스프레드 | ⛔ missing | |
+| 313 | 실시간 거래량 | ⛔ missing | |
+
+### 16-6. 기타 갭
+
+| # | 지표 | 상태 | 참고 블룸버그 |
+|---|------|------|--------------|
+| 314 | ETF 순유입 절대금액 | ⛔ missing | ETF.com |
+| 315 | 섹터별 ETF 순유입 | ⛔ missing | |
+| 316 | 원자재 커브 (컨탱고/백워데이션) | ⛔ missing | CL/GC 선물 |
+| 317 | VIX 선물 커브 | ⛔ missing | |
+| 318 | 변동성 곡면 (Vol Surface) | ⛔ missing | 🔒 |
+| 319 | IV Rank/Percentile | ⛔ missing | 🔒 |
+| 320 | 섹터별 P/E·P/B·배당수익률 | ⛔ missing | |
+| 321 | Smart Beta 팩터 (Quality·Momentum·Value) | ⛔ missing | |
+| 322 | 기업 뉴스 AI 요약 (종목별 전용) | ⛔ missing | |
+| 323 | 경제지표 컨센서스 캘린더 | ⛔ missing | 블룸버그 ECO |
+
+---
+
+## 요약 통계
+
+| 상태 | 개수 |
+|------|------|
+| ✅ live | ~35 |
+| 💾 cached | ~145 |
+| 🔄 cron | ~12 |
+| 📋 static | ~40 |
+| ⛔ missing | ~55 |
+| 🔒 locked | ~8 |
+| **총 추적 지표** | **323** |
+
+**live + cached + cron 활성**: ~192개 (59.4%)
+**미구현 갭**: ~63개 (19.5%)
+
+---
+
+## 유지 가이드
+
+- 새 지표 추가 시: 해당 섹션 하단에 다음 번호로 행 추가
+- 상태 변경 시: 상태 배지만 변경 (번호·소스는 유지)
+- 지표 제거 시: 해당 행 삭제 + 요약 통계 조정
+- `FEATURES.md`의 기능 섹션과 1:1 대응되도록 유지
+- 블룸버그 갭 해소 시: 16번 섹션에서 해당 행 제거 + 해당 페이지 섹션에 추가
