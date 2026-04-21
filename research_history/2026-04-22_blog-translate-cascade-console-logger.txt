@@ -1,0 +1,44 @@
+2026-04-22 — blog-translate 통합 AI 체인 연결 + translate console.error 로거 전환
+
+## 배포 검증 (이전 iteration — EDGAR empty-window guard)
+- ok=53 deg=13 err=1 (변경 없음)
+- /api/ownership-alerts?refresh=1 → items=0 (EDGAR quiet period, 정상 동작)
+- 새 guard는 **미래 quiet period에서** 효과 발휘 예정 (지금은 prior snapshot 자체가 empty이라 차이 없음)
+- 배포 안정 — 회귀 없음
+
+## 이번 iteration — Gemini 직결 잔존 2개 정리
+### 1. src/lib/blog-translate.ts
+`callGemini()` → `callBlogTranslateAI()` 로 교체
+- callAI from '@/lib/ai-providers' 사용 (vLLM → GROQ → Gemini)
+- skipVllm: true, maxTokens: 2048, temperature: 0.1, timeoutMs: 25s
+- GEMINI_API_KEY 없어도 블로그 번역 정상 동작 (GROQ 무료 티어)
+
+영향: 블로그 포스트 다국어 번역이 현 환경(GEMINI 미설정)에서도 동작.
+- 180일 Redis 영구 캐시 덕에 한번 번역되면 재호출 없음
+- 체인 활성화되어 첫 요청부터 번역 가능
+
+### 2. src/app/api/translate/route.ts 라인 85
+`console.error('translate error:', msg)` → `logger.error('api.translate', 'unhandled_error', { error: msg })`
+- Vercel 로그 포맷 일관화
+- admin/logs 에서 구조화 조회 가능
+
+## 남은 Gemini 직결
+- src/lib/ai-providers.ts — callGemini (체인 최종 폴백, 정상 용도)
+→ 프로덕션 전체에서 Gemini 직결은 이 한 군데만 유효
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 프로덕션 verify-metrics: 53/13/1 유지
+
+## 좀비
+- clean
+
+## 배포 계획
+- 2개 파일 커밋 → push → 배포
+- 배포 후 /blog/[locale]/... 접근 시 번역 렌더 확인 예정
+
+## 다음 iteration 후보
+- /api/daily-brief UPSTASH-less fallback (대형, 별도 플랜)
+- /api/cron/update-all warm 병렬 구조 재검토 (현재 이미 최적화됨)
+- Cache-Control 헤더 추가 (edge cache 활용) — 안전도 검토 후
+- stock-supply TOP_TICKERS 10개 fire&forget → Promise.allSettled로 관측 가능화 고려

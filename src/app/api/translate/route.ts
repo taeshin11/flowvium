@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (msg.includes('429') || msg.includes('quota')) {
       return NextResponse.json({ translated: '' });
     }
-    console.error('translate error:', msg);
+    logger.error('api.translate', 'unhandled_error', { error: msg });
     return NextResponse.json({ translated: '' });
   }
 }

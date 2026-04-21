@@ -11,6 +11,7 @@
 
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from './logger';
+import { callAI } from './ai-providers';
 
 const BLOG_CACHE_TTL = 180 * 24 * 60 * 60; // 180 days
 
@@ -50,25 +51,20 @@ function splitSections(content: string): string[] {
   return sections;
 }
 
-async function callGemini(text: string, langName: string): Promise<string> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey) return text;
-
-  const { GoogleGenerativeAI } = await import('@google/generative-ai');
-  const genAI = new GoogleGenerativeAI(geminiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-  const result = await model.generateContent({
-    contents: [{
-      role: 'user',
-      parts: [{
-        text: `Translate the following text to ${langName}. Preserve all markdown formatting (##, ###, numbered lists, etc). Return ONLY the translated text, no explanations.\n\n${text}`,
-      }],
-    }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
-  });
-
-  return result.response.text().trim() || text;
+async function callBlogTranslateAI(text: string, langName: string): Promise<string> {
+  // 통합 AI 체인 (vLLM → GROQ → Gemini). GROQ llama-3.3-70b는 다국어 번역에
+  // 충분하고 마크다운 구조도 잘 보존함. GEMINI_API_KEY 없어도 동작.
+  const r = await callAI(
+    `Translate the following text to ${langName}. Preserve all markdown formatting (##, ###, numbered lists, etc). Return ONLY the translated text, no explanations.\n\n${text}`,
+    {
+      maxTokens: 2048,
+      temperature: 0.1,
+      skipVllm: true,
+      timeoutMs: 25000,
+      tag: 'blog-translate',
+    },
+  );
+  return r.text.trim() || text;
 }
 
 async function translateSection(
@@ -89,13 +85,14 @@ async function translateSection(
     } catch { /* non-fatal */ }
   }
 
-  // 2. Call Gemini
+  // 2. Call AI cascade
   let translated = text;
   try {
-    translated = await callGemini(text, langName);
+    translated = await callBlogTranslateAI(text, langName);
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
     if (msg.includes('429') || msg.includes('quota')) return text;
+    logger.warn('lib.blog-translate', 'ai_call_failed', { key, error: msg });
     return text;
   }
 
