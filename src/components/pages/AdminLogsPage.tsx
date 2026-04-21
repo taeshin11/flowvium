@@ -47,18 +47,21 @@ interface MetricItem {
   key: string;
   label: string;
   group: string;
-  status: 'ok' | 'degraded' | 'error';
+  // 'skipped' = intentionally optional/unreachable (예: 로컬 vLLM 터널, 미설정 유료 Gemini 키).
+  // overallStatus 영향 없음. 회색으로 렌더.
+  status: 'ok' | 'degraded' | 'error' | 'skipped';
   value?: number | string | null;
   source?: string;
   details?: Record<string, unknown>;
   lastError?: string;
+  skipReason?: string;
 }
 
 interface MetricsSnapshot {
   checkedAt: string;
   durationMs: number;
   overallStatus: 'healthy' | 'degraded' | 'error';
-  summary: { ok: number; degraded: number; error: number; total: number };
+  summary: { ok: number; degraded: number; error: number; skipped?: number; total: number };
   items: MetricItem[];
 }
 
@@ -311,7 +314,7 @@ export default function AdminLogsPage() {
           <p className="text-[11px] text-cf-text-secondary">크론 스냅샷 없음 · "Verify now"로 즉시 실행 가능 (30분마다 자동 실행 예정)</p>
         ) : (
           <>
-            <div className="grid grid-cols-4 gap-2 mb-3 text-[10px]">
+            <div className="grid grid-cols-5 gap-2 mb-3 text-[10px]">
               <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-md p-2">
                 <p className="text-cf-text-secondary">정상</p>
                 <p className="font-mono text-base text-emerald-400">{metrics.summary.ok}</p>
@@ -323,6 +326,10 @@ export default function AdminLogsPage() {
               <div className="bg-red-500/5 border border-red-500/20 rounded-md p-2">
                 <p className="text-cf-text-secondary">Error</p>
                 <p className="font-mono text-base text-red-400">{metrics.summary.error}</p>
+              </div>
+              <div className="bg-white/5 border border-white/15 rounded-md p-2" title="의도적으로 비활성: optional cascade stage / 미설정 유료 키">
+                <p className="text-cf-text-secondary">Skipped</p>
+                <p className="font-mono text-base text-cf-text-secondary">{metrics.summary.skipped ?? 0}</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-md p-2">
                 <p className="text-cf-text-secondary">전체</p>
@@ -340,6 +347,7 @@ export default function AdminLogsPage() {
                 const groupItems = metrics.items.filter(i => i.group === g);
                 const nErr = groupItems.filter(i => i.status === 'error').length;
                 const nDeg = groupItems.filter(i => i.status === 'degraded').length;
+                const nSkip = groupItems.filter(i => i.status === 'skipped').length;
                 return (
                   <button
                     key={g}
@@ -349,6 +357,7 @@ export default function AdminLogsPage() {
                     {g} · {groupItems.length}
                     {nErr > 0 && <span className="ml-1 text-red-400">✕{nErr}</span>}
                     {nDeg > 0 && <span className="ml-1 text-amber-400">⚠{nDeg}</span>}
+                    {nSkip > 0 && <span className="ml-1 text-cf-text-secondary">◌{nSkip}</span>}
                   </button>
                 );
               })}
@@ -361,7 +370,7 @@ export default function AdminLogsPage() {
                 {metrics.items
                   .filter(i => !metricsGroupFilter || i.group === metricsGroupFilter)
                   .sort((a, b) => {
-                    const order = { error: 0, degraded: 1, ok: 2 } as const;
+                    const order = { error: 0, degraded: 1, ok: 2, skipped: 3 } as const;
                     return order[a.status] - order[b.status];
                   })
                   .map(item => (
@@ -370,9 +379,10 @@ export default function AdminLogsPage() {
                       className={`flex items-center justify-between gap-2 px-2 py-1 rounded border ${
                         item.status === 'error' ? 'bg-red-500/5 border-red-500/20' :
                         item.status === 'degraded' ? 'bg-amber-500/5 border-amber-500/20' :
+                        item.status === 'skipped' ? 'bg-white/5 border-white/15 opacity-60' :
                         'bg-emerald-500/5 border-emerald-500/10'
                       }`}
-                      title={item.lastError ?? item.details ? JSON.stringify(item.details) : ''}
+                      title={item.skipReason ?? item.lastError ?? (item.details ? JSON.stringify(item.details) : '')}
                     >
                       <span className="truncate text-cf-text-primary">{item.label}</span>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -385,9 +395,10 @@ export default function AdminLogsPage() {
                         <span className={
                           item.status === 'error' ? 'text-red-400' :
                           item.status === 'degraded' ? 'text-amber-400' :
+                          item.status === 'skipped' ? 'text-cf-text-secondary' :
                           'text-emerald-400'
                         }>
-                          {item.status === 'error' ? '✕' : item.status === 'degraded' ? '⚠' : '✓'}
+                          {item.status === 'error' ? '✕' : item.status === 'degraded' ? '⚠' : item.status === 'skipped' ? '◌' : '✓'}
                         </span>
                       </div>
                     </div>

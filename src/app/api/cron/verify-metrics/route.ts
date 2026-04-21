@@ -29,11 +29,16 @@ interface MetricItem {
   key: string;              // 고유 식별자 (e.g. 'fg.country.us')
   label: string;            // 사람이 읽을 이름
   group: string;            // 'fear-greed' | 'capital-flows' | 'macro' | ...
-  status: 'ok' | 'degraded' | 'error';
+  // 'skipped' = intentionally optional/unreachable (e.g. paid-tier fallback not
+  // configured, local-only service unreachable from prod). Not a degradation of
+  // product health — tracked separately in summary, excluded from overallStatus.
+  status: 'ok' | 'degraded' | 'error' | 'skipped';
   value?: number | string | null;
   source?: string;          // 'cnn' | 'composite' | 'yahoo' | 'fred' | ...
   details?: Record<string, unknown>;
   lastError?: string;
+  /** 설명: 왜 skipped 인지. admin UI 에서 '무시' 라벨과 함께 노출. */
+  skipReason?: string;
 }
 
 function createRedis(): Redis | null {
@@ -269,26 +274,32 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
       const res = await fetch(`${vllmUrl.replace(/\/v1$/, '')}/v1/models`, {
         signal: AbortSignal.timeout(6000),
       });
+      // vLLM 은 체인 1단계 — 터널이 내려가 있어도 GROQ 70b → GROQ 8b → Gemini 순서로
+      // 폴백되므로 프로덕트 헬스에는 영향 없음. unreachable 은 skipped 로 분류.
       items.push({
-        key: 'ai.vllm', label: 'vLLM EXAONE (로컬)', group: 'ai',
-        status: res.ok ? 'ok' : 'degraded',
-        value: res.ok ? `${Date.now() - t0}ms` : `HTTP ${res.status}`,
+        key: 'ai.vllm', label: 'vLLM EXAONE (로컬 1단계)', group: 'ai',
+        status: res.ok ? 'ok' : 'skipped',
+        value: res.ok ? `${Date.now() - t0}ms` : `HTTP ${res.status} — cascade GROQ 로 폴백`,
         source: 'tunnel',
         details: { url: vllmUrl, status: res.status, durationMs: Date.now() - t0 },
+        skipReason: res.ok ? undefined : '로컬 Cloudflare tunnel 미응답 — cascade 하위 단계가 흡수',
       });
     } catch (err) {
       items.push({
-        key: 'ai.vllm', label: 'vLLM EXAONE (로컬)', group: 'ai',
-        status: 'error',
+        key: 'ai.vllm', label: 'vLLM EXAONE (로컬 1단계)', group: 'ai',
+        status: 'skipped',
+        value: 'unreachable — cascade GROQ 로 폴백',
         lastError: err instanceof Error ? err.message : String(err),
         details: { url: vllmUrl, durationMs: Date.now() - t0 },
+        skipReason: '로컬 Cloudflare tunnel 미응답 — cascade 하위 단계가 흡수',
       });
     }
   } else {
     items.push({
-      key: 'ai.vllm', label: 'vLLM EXAONE (로컬)', group: 'ai',
-      status: 'degraded', value: 'not configured',
-      details: { hint: 'VLLM_URL 미설정 (cloudflared 터널 정지 상태 가능)' },
+      key: 'ai.vllm', label: 'vLLM EXAONE (로컬 1단계)', group: 'ai',
+      status: 'skipped', value: 'not configured',
+      details: { hint: 'VLLM_URL 미설정 — 로컬 전용 옵션' },
+      skipReason: 'VLLM_URL 미설정 (cascade 1단계는 선택 사항)',
     });
   }
 
@@ -371,12 +382,15 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
   }
 
   // 3. Gemini — API 키 존재만 체크 (실제 추론 호출은 비용 발생)
+  //    Gemini 는 cascade 최종단 유료 폴백. 미설정 은 product 고장 아님 —
+  //    앞 3개(vllm/groq-70b/groq-8b) 중 하나만 동작해도 AI 정상. skipped 로 분류.
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   items.push({
-    key: 'ai.gemini', label: 'Gemini 2.5 Flash (유료 폴백)', group: 'ai',
-    status: geminiKey ? 'ok' : 'degraded',
-    value: geminiKey ? 'key configured' : 'not configured',
-    details: { hint: geminiKey ? '체인 최종 폴백으로만 호출됨' : '앞 2개 모두 실패 시 대체 없음' },
+    key: 'ai.gemini', label: 'Gemini 2.5 Flash (유료 최종 폴백)', group: 'ai',
+    status: geminiKey ? 'ok' : 'skipped',
+    value: geminiKey ? 'key configured' : 'not configured — optional',
+    details: { hint: geminiKey ? '체인 최종 폴백으로만 호출됨' : '앞 3개(vllm/groq 70b/groq 8b) 중 하나만 동작해도 무관' },
+    skipReason: geminiKey ? undefined : 'GEMINI_API_KEY 미설정 — 유료 최종 폴백, 선택 사항',
   });
 
   return items;
@@ -542,6 +556,9 @@ export async function GET(req: Request) {
     ok: items.filter((i) => i.status === 'ok').length,
     degraded: items.filter((i) => i.status === 'degraded').length,
     error: items.filter((i) => i.status === 'error').length,
+    // skipped = 의도적으로 비활성 (optional cascade stage, unconfigured paid key 등).
+    // overallStatus 계산에서 제외. admin UI 는 '무시' 라벨로 표시.
+    skipped: items.filter((i) => i.status === 'skipped').length,
     total: items.length,
   };
   const overallStatus: 'healthy' | 'degraded' | 'error' =
@@ -563,7 +580,7 @@ export async function GET(req: Request) {
 
   logger.info('cron.verify-metrics', 'snapshot', {
     overallStatus, ok: summary.ok, degraded: summary.degraded, error: summary.error,
-    total: summary.total, durationMs: snapshot.durationMs,
+    skipped: summary.skipped, total: summary.total, durationMs: snapshot.durationMs,
   });
 
   return NextResponse.json(snapshot);

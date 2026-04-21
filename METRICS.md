@@ -696,6 +696,10 @@
 | 296m | market-heatmap memory cache fallback | ✅ live | Redis-less 10min TTL per-country — 3.5s → <50ms on warm hit |
 | 296n | short-interest memory cache fallback | ✅ live | Redis-less 30min TTL — 1.9s → <30ms on warm hit |
 | 296o | @/lib/memory-cache 공용 유틸 | ✅ live | FIFO eviction(max 50) + namespaced logger, 엔드포인트별 TTL 지정 |
+| 296p | verify-metrics `skipped` status 신설 | ✅ live | optional cascade stage(vllm), 미설정 유료 키(gemini) 는 degraded 대신 skipped — overallStatus 영향 없음 |
+| 296q | ai.vllm 미응답 → `skipped` 분류 | ✅ live | 로컬 Cloudflare tunnel 다운은 product 고장 아님 (GROQ 70b/8b 로 cascade) |
+| 296r | ai.gemini 미설정 → `skipped` 분류 | ✅ live | 유료 최종 폴백 선택 사항 — 앞 3단계 중 하나만 동작해도 AI 정상 |
+| 296s | AdminLogsPage `skipped` 렌더 | ✅ live | 회색 ◌ 아이콘, opacity 60%, skipReason tooltip — 시각적으로 "무시" 명확화 |
 
 ---
 

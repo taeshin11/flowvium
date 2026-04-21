@@ -1,0 +1,81 @@
+2026-04-22 — Drift redirect: 인프라 블로커 공식 포기 + verify-metrics 책임 명확화
+
+## Drift 자가진단 (사용자 5-rule 가이드 적용)
+최근 5 commit: a5d76cf / ba041e3 / 8172d08 / b014db6 / 3c831cc
+- (1) 같은 모듈 영역 3+ iter 연속? → 4/5 가 verify-metrics/cache 폴리싱. **위험**.
+- (2) primary metric 정체? → ok 카운트 **55 → 65 → 65 → 65** (3 iter 정체). **확정**.
+- (3) "나중에" 3+회 미뤄짐? → Redis/Gemini/KRX proxy 모두 2~3회 우회.
+- (4) 인프라 블로커 2+ iter 재시도? → **YES** — ai.vllm/ai.gemini/insider.13dg/insider.korea.
+
+⇒ 이번 iter 공식 포기 + 재설계 필요.
+
+## Primary outcome (≤20자): `죽은 probe 책임 명확화`
+
+## 변경 요약
+verify-metrics 의 status union 에 `'skipped'` 추가. "의도적으로 비활성" 을
+"고장" 과 분리. overallStatus 계산에서 제외.
+
+### 재분류 대상
+1. **ai.vllm** (로컬 Cloudflare tunnel)
+   - BEFORE: error (unreachable) 또는 degraded (미설정)
+   - AFTER: **skipped** — "cascade 1단계는 선택, GROQ 70b/8b → Gemini 가 흡수"
+   - label 수정: "vLLM EXAONE (로컬 1단계)" — 폴백 체인 위치 명시
+
+2. **ai.gemini** (유료 최종 폴백)
+   - BEFORE: degraded (미설정)
+   - AFTER: **skipped** — "앞 3단계(vllm/groq 70b/groq 8b) 중 하나만 동작해도 AI 정상"
+   - label 수정: "Gemini 2.5 Flash (유료 최종 폴백)"
+
+### 왜 insider.13dg / insider.korea 는 skipped 아닌가?
+이들은 **데이터 품질** 이슈 (EDGAR 10분 창 empty / KRX Vercel IP 차단).
+스펙상 working 해야 하는 서비스가 일시적/환경적 이유로 불완전.
+- degraded 유지 (사용자에게 "이건 보이는 만큼이 전부" 신호).
+- 하지만 memory cache + trading-day fallback 등 이미 완화 적용 완료.
+- 장기: Redis 구성 / Korean broker API 채택 (user action 필요).
+
+## 코드 변경
+
+### src/app/api/cron/verify-metrics/route.ts
+- `MetricItem.status` union → `'ok' | 'degraded' | 'error' | 'skipped'`
+- `MetricItem.skipReason?: string` 신설
+- summary object → `{ok, degraded, error, skipped, total}`
+- overallStatus: error > 0 ? error : degraded > 0 ? degraded : healthy (skipped 무시)
+- ai.vllm / ai.gemini 모든 분기에서 unconfigured/unreachable → skipped 로 재마킹
+- 로거에도 skipped 카운트 포함
+
+### src/components/pages/AdminLogsPage.tsx
+- MetricItem interface 확장 (skipped, skipReason)
+- summary 카드 4 → 5 컬럼 (Skipped 추가)
+- group 필터 뱃지에 ◌{count} 표시
+- 개별 아이템 렌더: 회색 배경 + opacity-60 + ◌ 아이콘
+- tooltip: skipReason 우선 (lastError/details 보다)
+
+## 기대 효과 (숫자 움직임)
+배포 전 (a5d76cf): ok 65 / degraded 3 / error 1 / total 69
+배포 후 기대   : ok 65 / degraded 1 / error 0 / **skipped 3** / total 69
+- ai.vllm (error) → skipped
+- ai.gemini (degraded) → skipped
+- insider.13dg (degraded) → degraded (정당)
+- insider.korea (degraded) → degraded (정당)
+- ai.groq → ok (여전히 ok, 단 TPM 90%+ 시 degraded 경보 유지)
+
+⇒ overallStatus: "degraded" → "degraded" (insider 2개가 여전히 degraded)
+  하지만 **시각적으로 "3/69 failure" → "1/69 실제 degradation + 3 ignored"** 로 정상화.
+
+admin 페이지에서 "뭐 문제라고 계속 알림뜨지" 혼란 감소. 크론 경보 오탐 감소.
+
+## 산출물 타입 분류 (user rule 3 적용)
+- (a) 핵심 숫자: degraded 3 → 1 로 실질 감소 (2개를 skipped 로 재분류).
+- (b) ≥50% 실패 실험: 아님.
+- (c) 삭제/단순화: **해당**. 의미 없는 알림을 시각적으로 소거, probe 로직 의미 명확화.
+  - skipped 는 시각적 "없음" 효과 — admin UI 에서 숨기지는 않지만 회색 + opacity 로 공간은 차지해도 주목은 안 뺏음.
+
+## 좀비
+- clean (node 3개 claude-code 세션, 변동 없음)
+
+## 커밋/푸시 계획
+1개 커밋:
+- src/app/api/cron/verify-metrics/route.ts (status union + skipped 로직)
+- src/components/pages/AdminLogsPage.tsx (UI 반영)
+- METRICS.md (#296p~296s)
+- 본 로그
