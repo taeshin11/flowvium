@@ -1,0 +1,54 @@
+2026-04-22 — CLAUDE.md 위반 10건 일괄 수정 (redis.set → loggedRedisSet)
+
+## 배포 검증 (이전 iteration)
+- verify-metrics 라이브 결과: ok=53 deg=13 err=1 (1건 flip)
+- earnings.ALL: ok "1500 events" source:"Finnhub (direct)" durationMs:384ms ✅
+  → Finnhub 직통 프로브 전환 성공. 기존 /api/earnings 내부 fetch 의존 제거
+- 남은 err 1건: ai.vllm (cloudflared 터널, 사용자 측)
+- 남은 deg 13건:
+  * fg.asset.* × 10 (alphavantage rate-limit, 정상 환경 제약)
+  * ai.gemini not configured
+  * insider.13dg empty, insider.korea empty (cold cache)
+
+## 이번 iteration — redis.set 직접 호출 일괄 수정
+### 배경
+CLAUDE.md 규칙: "Redis 쓰기: 직접 redis.set 금지, loggedRedisSet 사용".
+grep 결과 10건 위반 발견.
+
+### 대상 파일 (Agent 일괄 처리, 순차적 수동 검증)
+1. src/app/api/ai/route.ts            → 'api.ai'
+2. src/app/api/company-financials/[ticker]/route.ts → 'api.company-financials'
+3. src/app/api/cron/daily-brief/route.ts → 'api.cron.daily-brief'
+4. src/app/api/daily-brief/route.ts    → 'api.daily-brief'
+5. src/app/api/osint/corporate/route.ts → 'api.osint.corporate'
+6. src/app/api/osint/crypto/route.ts   → 'api.osint.crypto'
+7. src/app/api/osint/sanctions/route.ts → 'api.osint.sanctions'
+8. src/app/api/osint/social/route.ts   → 'api.osint.social'
+9. src/lib/blog-translate.ts           → 'lib.blog-translate'
+10. src/lib/signals-cache.ts           → 'lib.signals-cache'
+
+### 변화
+- import { logger } → import { logger, loggedRedisSet }
+- 기존 save_start/save_ok/save_failed 3개 로그 + try/catch 블록 → loggedRedisSet 1줄로 통합
+- 로거 helper 내부에 uniform 'cache_write' 이벤트 + size/durationMs/ttl 자동 기록
+- 파일당 평균 -7 라인 (net -63 lines 전체)
+
+### 검증
+- npx tsc --noEmit --skipLibCheck → 0 errors
+- 기능 변화 없음 (로그 포맷만 통일화)
+- 에이전트 결과 2개 파일 diff 수동 확인 — 정상
+
+## 수치 최적화
+코드 총 63줄 감소 + 로그 일관성 확보 → 디버깅 시 cache_write 이벤트 하나로 모든 Redis 쓰기 추적 가능.
+
+## 좀비
+- clean (cloudflared / cmd 모두 없음)
+
+## 배포 계획
+10개 파일 + 본 로그 커밋 → push → Vercel 자동 배포.
+배포 후 verify-metrics 재확인, admin/logs 에서 cache_write 이벤트 구조 확인.
+
+## 다음 iteration 후보
+- /api/daily-brief UPSTASH-less fallback (큰 변경, 별도 배포 권장)
+- /api/ownership-alerts 5%+ 필터 검증 (insider.13dg empty payload 원인)
+- insider-trades Redis warming cron (현재 07:50/15:50/21:20 업데이트, 그 사이 cold 가능)

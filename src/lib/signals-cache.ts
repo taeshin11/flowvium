@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis';
 import { type NewsArticle } from '@/lib/alpha-vantage';
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 
 export interface TickerNewsCache {
   score: number;
@@ -37,13 +37,10 @@ export async function getNewsGapCache(): Promise<Record<string, TickerNewsCache>
 export async function setNewsGapCache(
   data: Record<string, TickerNewsCache>
 ): Promise<void> {
-  try {
-    const redis = createRedis();
-    if (!redis) return;
-    await redis.set(KEY, data, { ex: TTL });
+  const redis = createRedis();
+  const ok = await loggedRedisSet(redis, 'lib.signals-cache', KEY, data, { ex: TTL });
+  if (ok) {
     logger.info('signals.cache', 'news_gap_saved', { tickers: Object.keys(data).length });
-  } catch (err) {
-    logger.error('signals.cache', 'set_news_gap_failed', { error: err });
   }
 }
 

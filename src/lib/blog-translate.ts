@@ -10,7 +10,7 @@
  */
 
 import { Redis } from '@upstash/redis';
-import { logger } from './logger';
+import { logger, loggedRedisSet } from './logger';
 
 const BLOG_CACHE_TTL = 180 * 24 * 60 * 60; // 180 days
 
@@ -101,14 +101,7 @@ async function translateSection(
 
   // 3. Store in Redis
   if (redis && translated && translated !== text) {
-    try {
-      logger.info('blog-translate', 'save_start', { key });
-      const t0 = Date.now();
-      await redis.set(key, translated, { ex: BLOG_CACHE_TTL });
-      logger.info('blog-translate', 'save_ok', { key, durationMs: Date.now() - t0 });
-    } catch (e) {
-      logger.error('blog-translate', 'save_failed', { key, error: e });
-    }
+    await loggedRedisSet(redis, 'lib.blog-translate', key, translated, { ex: BLOG_CACHE_TTL });
   }
 
   return translated;

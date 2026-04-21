@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/company-financials/[ticker]
  *
@@ -38,14 +38,7 @@ export async function GET(
   }
 
   if (redis) {
-    try {
-      logger.info('company-financials', 'save_start', { key: cacheKey });
-      const t0 = Date.now();
-      await redis.set(cacheKey, data, { ex: TTL });
-      logger.info('company-financials', 'save_ok', { key: cacheKey, durationMs: Date.now() - t0 });
-    } catch (e) {
-      logger.error('company-financials', 'save_failed', { key: cacheKey, error: e });
-    }
+    await loggedRedisSet(redis, 'api.company-financials', cacheKey, data, { ex: TTL });
   }
 
   return NextResponse.json({ ...data, cached: false });

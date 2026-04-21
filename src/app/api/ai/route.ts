@@ -68,11 +68,7 @@ Analysis type: ${type || 'general'}`;
 
     // 3. Store result in Redis (non-fatal if fails)
     if (redis && ticker && type) {
-      try {
-        await redis.set(cacheKey(ticker, type), analysis, { ex: CACHE_TTL });
-      } catch {
-        // ignore
-      }
+      await loggedRedisSet(redis, 'api.ai', cacheKey(ticker, type), analysis, { ex: CACHE_TTL });
     }
 
     return NextResponse.json({ analysis, cached: false });

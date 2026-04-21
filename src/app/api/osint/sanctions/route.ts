@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 
 const CACHE_TTL = 24 * 60 * 60; // 24 hours
 const OFAC_CSV_URL = 'https://www.treasury.gov/ofac/downloads/sdn.csv';
@@ -79,14 +79,7 @@ async function getSdnData(redis: Redis | null): Promise<SdnEntry[] | null> {
     const entries = parseSdnCsv(csv);
 
     if (redis && entries.length > 0) {
-      try {
-        logger.info('osint.sanctions', 'save_start', { key: cacheKey, itemCount: entries.length });
-        const t0 = Date.now();
-        await redis.set(cacheKey, entries, { ex: CACHE_TTL });
-        logger.info('osint.sanctions', 'save_ok', { key: cacheKey, durationMs: Date.now() - t0 });
-      } catch (e) {
-        logger.error('osint.sanctions', 'save_failed', { key: cacheKey, error: e });
-      }
+      await loggedRedisSet(redis, 'api.osint.sanctions', cacheKey, entries, { ex: CACHE_TTL });
     }
 
     return entries;

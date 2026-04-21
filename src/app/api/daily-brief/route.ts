@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import {
   createRedis, cacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
@@ -48,14 +48,7 @@ export async function GET(request: Request) {
   }
 
   if (redis) {
-    const t0 = Date.now();
-    logger.info('api.daily-brief', 'save_start', { key: cacheKey(tf), ttl: 26 * 60 * 60 });
-    try {
-      await redis.set(cacheKey(tf), brief, { ex: 26 * 60 * 60 });
-      logger.info('api.daily-brief', 'save_ok', { key: cacheKey(tf), durationMs: Date.now() - t0 });
-    } catch (err) {
-      logger.error('api.daily-brief', 'save_failed', { key: cacheKey(tf), error: err });
-    }
+    await loggedRedisSet(redis, 'api.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 });
   }
 
   logger.info('api.daily-brief', 'served', { tf, source: brief.source, durationMs: Date.now() - reqStart });

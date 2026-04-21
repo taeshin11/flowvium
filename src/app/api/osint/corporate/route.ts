@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 
 const CACHE_TTL = 60 * 60; // 1 hour
 
@@ -122,14 +122,7 @@ export async function GET(req: NextRequest) {
     };
 
     if (redis) {
-      try {
-        logger.info('osint.corporate', 'save_start', { key: cacheKey });
-        const t0 = Date.now();
-        await redis.set(cacheKey, result, { ex: CACHE_TTL });
-        logger.info('osint.corporate', 'save_ok', { key: cacheKey, durationMs: Date.now() - t0 });
-      } catch (e) {
-        logger.error('osint.corporate', 'save_failed', { key: cacheKey, error: e });
-      }
+      await loggedRedisSet(redis, 'api.osint.corporate', cacheKey, result, { ex: CACHE_TTL });
     }
 
     return NextResponse.json(result);

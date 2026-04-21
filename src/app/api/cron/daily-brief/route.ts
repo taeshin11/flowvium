@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * Vercel Cron — 21:00 UTC = 06:00 KST
  * Regenerates 1w / 4w / 13w daily briefs and stores in Redis.
@@ -39,14 +39,7 @@ export async function GET(req: NextRequest) {
       const { text, source } = await callAI(buildPrompt(tf, ctx));
       const brief = (text && parseAIResponse(text, tf, source)) ?? fallbackBrief(tf, ctx);
       if (redis) {
-        const t0 = Date.now();
-        logger.info('cron.daily-brief', 'save_start', { key: cacheKey(tf), ttl: 26 * 60 * 60 });
-        try {
-          await redis.set(cacheKey(tf), brief, { ex: 26 * 60 * 60 });
-          logger.info('cron.daily-brief', 'save_ok', { key: cacheKey(tf), durationMs: Date.now() - t0 });
-        } catch (saveErr) {
-          logger.error('cron.daily-brief', 'save_failed', { key: cacheKey(tf), error: saveErr });
-        }
+        await loggedRedisSet(redis, 'api.cron.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 });
       }
       results[tf] = `ok (${source})`;
     } catch (e) {
