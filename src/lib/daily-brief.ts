@@ -463,26 +463,35 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
   const nport = ctx ? summariseNPort(ctx.nport) : '';
   const blocks = ctx ? summariseBlocks(ctx.blocks) : '';
 
+  // 빈 섹션은 프롬프트에서 제외 — GROQ TPD 한도 소비 최소화 (100,000/일).
+  // "[Heatmap] n/a" 한 줄도 8-12 토큰 소비. 18개 탭 × 수십 건/일 축적시 상당량.
+  const sections: Array<[string, string]> = [
+    ['Heatmap', heatmap],
+    ['CapitalFlows', capital],
+    ['Fear&Greed', fg],
+    ['FedWatch', fed],
+    ['Macro', macro],
+    ['Credit', credit],
+    ['Cascade', cascade],
+    ['13F-Buys', buys],
+    ['13F-Cuts', cuts],
+    ['NewsGap-Stakes', stakes],
+    ['NewsGap-Top', gaps],
+    ['Supply', supply],
+    ['Form4-Insider', insider],
+    ['13D13G-Ownership', ownership],
+    ['OptionsFlow', optionsFlow],
+    ['Korea-Flow', korea],
+    ['NPort-Funds', nport],
+    ['Block-Trades', blocks],
+  ];
+  const body = sections
+    .filter(([, v]) => v && v.trim().length > 0)
+    .map(([k, v]) => `[${k}] ${v}`)
+    .join('\n');
   return `Flowvium ${tfLabel} 리포트용 실시간 탭 데이터입니다. 각 탭을 종합해 한국어 JSON만 반환하세요.
 
-[Heatmap] ${heatmap || 'n/a'}
-[CapitalFlows] ${capital || 'n/a'}
-[Fear&Greed] ${fg || 'n/a'}
-[FedWatch] ${fed || 'n/a'}
-[Macro] ${macro || 'n/a'}
-[Credit] ${credit || 'n/a'}
-[Cascade] ${cascade || 'n/a'}
-[13F-Buys] ${buys || 'n/a'}
-[13F-Cuts] ${cuts || 'n/a'}
-[NewsGap-Stakes] ${stakes || 'n/a'}
-[NewsGap-Top] ${gaps || 'n/a'}
-[Supply] ${supply || 'n/a'}
-[Form4-Insider] ${insider || 'n/a'}
-[13D13G-Ownership] ${ownership || 'n/a'}
-[OptionsFlow] ${optionsFlow || 'n/a'}
-[Korea-Flow] ${korea || 'n/a'}
-[NPort-Funds] ${nport || 'n/a'}
-[Block-Trades] ${blocks || 'n/a'}
+${body}
 
 출력 규칙: JSON만, 마크다운 금지, bullets는 각 25자 이내의 구체 수치 포함 문장.
 섹션 매핑:

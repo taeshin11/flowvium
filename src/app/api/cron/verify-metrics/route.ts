@@ -304,17 +304,21 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
         }),
         signal: AbortSignal.timeout(8000),
       });
-      // Parse rate-limit headers (GROQ 표준)
-      const tpdLimit = Number(res.headers.get('x-ratelimit-limit-tokens') ?? 0);
-      const tpdRem = Number(res.headers.get('x-ratelimit-remaining-tokens') ?? 0);
+      // Parse rate-limit headers. GROQ 실제 의미:
+      //   x-ratelimit-limit-tokens    = TPM (tokens per minute, 12,000)
+      //   x-ratelimit-limit-requests  = RPD (requests per day, 1,000)
+      //   TPD (tokens per day, 100,000) 는 헤더로 노출되지 않음 — 소진 시 429 응답 body 에만.
+      const tpmLimit = Number(res.headers.get('x-ratelimit-limit-tokens') ?? 0);
+      const tpmRem = Number(res.headers.get('x-ratelimit-remaining-tokens') ?? 0);
       const rpdLimit = Number(res.headers.get('x-ratelimit-limit-requests') ?? 0);
       const rpdRem = Number(res.headers.get('x-ratelimit-remaining-requests') ?? 0);
-      const tpdPctUsed = tpdLimit > 0 ? ((tpdLimit - tpdRem) / tpdLimit) * 100 : 0;
+      const tpmPctUsed = tpmLimit > 0 ? ((tpmLimit - tpmRem) / tpmLimit) * 100 : 0;
+      const rpdPctUsed = rpdLimit > 0 ? ((rpdLimit - rpdRem) / rpdLimit) * 100 : 0;
 
       // 판단:
-      //   429 → degraded (quota exhausted)
+      //   429 → degraded (quota exhausted — 응답 body 에 TPM/TPD 구분 있음)
       //   !res.ok(non-429) → error
-      //   tpdPctUsed >= 90 → degraded (near exhaustion, 경보)
+      //   TPM ≥ 90% 또는 RPD ≥ 90% → degraded (사전 경보)
       //   otherwise ok
       let status: MetricItem['status'];
       let value: string;
@@ -324,12 +328,15 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
       } else if (!res.ok) {
         status = 'error';
         value = `HTTP ${res.status}`;
-      } else if (tpdLimit > 0 && tpdPctUsed >= 90) {
+      } else if (rpdPctUsed >= 90) {
         status = 'degraded';
-        value = `TPD ${tpdPctUsed.toFixed(1)}% used (${tpdRem}/${tpdLimit} left)`;
+        value = `RPD ${rpdPctUsed.toFixed(0)}% used (${rpdRem}/${rpdLimit} reqs/day left)`;
+      } else if (tpmPctUsed >= 90) {
+        status = 'degraded';
+        value = `TPM ${tpmPctUsed.toFixed(0)}% used (${tpmRem}/${tpmLimit} tok/min left)`;
       } else {
         status = 'ok';
-        value = tpdLimit > 0 ? `${Date.now() - t0}ms (TPD ${tpdRem}/${tpdLimit})` : `${Date.now() - t0}ms`;
+        value = tpmLimit > 0 ? `${Date.now() - t0}ms (TPM ${tpmRem}/${tpmLimit}, RPD ${rpdRem}/${rpdLimit})` : `${Date.now() - t0}ms`;
       }
       items.push({
         key: 'ai.groq', label: 'GROQ llama-3.3-70b (클라우드 무료)', group: 'ai',
@@ -338,8 +345,9 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
           durationMs: Date.now() - t0,
           status: res.status,
           probe: 'chat/completions',
-          tpdLimit, tpdRemaining: tpdRem, tpdPctUsed: Math.round(tpdPctUsed * 10) / 10,
-          rpdLimit, rpdRemaining: rpdRem,
+          tpmLimit, tpmRemaining: tpmRem, tpmPctUsed: Math.round(tpmPctUsed * 10) / 10,
+          rpdLimit, rpdRemaining: rpdRem, rpdPctUsed: Math.round(rpdPctUsed * 10) / 10,
+          tpdNote: 'TPD (100k/day) not in headers — only visible via 429 response body',
         },
       });
     } catch (err) {
