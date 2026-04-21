@@ -41,7 +41,7 @@ function buildTrackedKeys(): string[] {
     'flowvium:korea-flow:v1',
     'flowvium:short-interest:v1',
     'flowvium:market-caps:v1',
-    'flowvium:fg:v4:SPY',
+    'flowvium:fg:v5:SPY',
     'flowvium:13f-signals:v1',
     // 추가 핵심 키 (이전엔 누락)
     'flowvium:capital-flows:v5:yahoo',

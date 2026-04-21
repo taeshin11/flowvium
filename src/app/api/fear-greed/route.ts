@@ -67,32 +67,63 @@ async function fetchCNNScore(): Promise<{ score: number; prevScore: number } | n
 }
 
 // ── Yahoo Finance price data ───────────────────────────────────────────────────
-// Yahoo도 CNN과 동일하게 최소 UA 요청을 점차 차단. 풀 브라우저 헤더로 방어.
-async function fetchPrices(ticker: string): Promise<number[]> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=180d`;
-  const t0 = Date.now();
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'Accept': 'application/json, text/plain, */*',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': 'https://finance.yahoo.com/',
-    },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!res.ok) {
-    // error 레벨: 이 ticker의 composite가 통째로 실패함을 의미. admin/logs 에러 카운트에 잡힘.
-    logger.error('fear-greed', 'yahoo_http_error', { ticker, status: res.status, durationMs: Date.now() - t0 });
-    throw new Error(`Yahoo HTTP ${res.status}`);
-  }
+// Vercel IP가 Yahoo에 블록되면 query1이 401/429로 실패 가능 — query2로 자동 폴백.
+// 두 도메인 모두 실패하면 throw (상위에서 error 로깅 + composite fallback).
+const YF_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://finance.yahoo.com/',
+};
+
+async function fetchPricesFromHost(host: 'query1' | 'query2', ticker: string): Promise<number[]> {
+  const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=180d`;
+  const res = await fetch(url, { headers: YF_HEADERS, signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`Yahoo ${host} HTTP ${res.status}`);
   const data = await res.json();
   const closes: number[] = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
-  const clean = closes.filter((v: number) => v != null && !isNaN(v));
+  return closes.filter((v: number) => v != null && !isNaN(v));
+}
+
+async function fetchPrices(ticker: string): Promise<number[]> {
+  const t0 = Date.now();
+  let clean: number[] = [];
+  let lastError: Error | null = null;
+  for (const host of ['query1', 'query2'] as const) {
+    try {
+      clean = await fetchPricesFromHost(host, ticker);
+      if (host === 'query2') {
+        // query1 실패 후 query2로 복구한 경우 — warn으로 기록 (Vercel IP 차단 징후)
+        logger.warn('fear-greed', 'yahoo_query1_failed_query2_ok', { ticker, durationMs: Date.now() - t0 });
+      }
+      break;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+  }
+  if (clean.length === 0) {
+    logger.error('fear-greed', 'yahoo_all_hosts_failed', { ticker, error: lastError?.message, durationMs: Date.now() - t0 });
+    throw lastError ?? new Error('Yahoo fetch failed');
+  }
   if (clean.length < 125) {
-    // SMA-125 계산에 필요한 최소 길이 미달 — 경고. degraded 라벨 붙을 예정.
     logger.warn('fear-greed', 'yahoo_insufficient_history', { ticker, length: clean.length });
   }
   return clean;
+}
+
+// ── 네이티브 지수 블렌딩 (방어적) ─────────────────────────────────────────────
+// 국가 ETF(미국 상장, USD)만 쓰면 FX 노이즈가 섞임. 가능하면 현지 원지수도
+// 함께 fetch해서 두 composite를 50/50 블렌드. 원지수 실패 시 ETF 단독.
+async function fetchNativePrices(nativeTicker: string | null, etfTicker: string): Promise<{ etf: number[]; native: number[] | null }> {
+  const etfP = await fetchPrices(etfTicker);
+  if (!nativeTicker) return { etf: etfP, native: null };
+  try {
+    const nativeP = await fetchPrices(nativeTicker);
+    return { etf: etfP, native: nativeP };
+  } catch (err) {
+    logger.warn('fear-greed', 'native_fetch_failed', { nativeTicker, error: err instanceof Error ? err.message : String(err) });
+    return { etf: etfP, native: null };
+  }
 }
 
 // ── CNN-style multi-factor score ──────────────────────────────────────────────
@@ -119,13 +150,15 @@ function rsi14(prices: number[]): Factor {
   return { value: Math.round(100 - 100 / (1 + ag / al)), ok: true };
 }
 
-// Factor 2: Price vs 125-day SMA momentum — 최소 125개 가격 필요
+// Factor 2: Price vs 125-day SMA momentum — 최소 125개 가격 필요.
+// 정규화 밴드 ±20% (±15% → ±20% 완화: 강세장에서 100 클리핑 빈도 감소).
+// 한국·대만·크립토 등이 SMA 대비 +30% 갈 때 차등 구분 가능.
 function smaMomentum(prices: number[]): Factor {
   if (prices.length < 125) return { value: 50, ok: false };
   const last = prices[prices.length - 1];
   const sma125 = prices.slice(-125).reduce((a, b) => a + b, 0) / 125;
   const pct = (last - sma125) / sma125;
-  return { value: Math.min(100, Math.max(0, Math.round(50 + (pct / 0.15) * 50))), ok: true };
+  return { value: Math.min(100, Math.max(0, Math.round(50 + (pct / 0.20) * 50))), ok: true };
 }
 
 // Factor 3: Volatility ratio — 최소 55개 가격 필요
@@ -194,17 +227,20 @@ function getLevel(score: number): string {
 }
 
 // ── Configs ───────────────────────────────────────────────────────────────────
-const COUNTRY_ETFS = [
-  { id: 'us',        ticker: 'SPY',  flag: '🇺🇸', label: 'United States', useCNN: true },
-  { id: 'korea',     ticker: 'EWY',  flag: '🇰🇷', label: '한국 (Korea)' },
-  { id: 'japan',     ticker: 'EWJ',  flag: '🇯🇵', label: '日本 (Japan)' },
-  { id: 'china',     ticker: 'FXI',  flag: '🇨🇳', label: '中国 (China)' },
-  { id: 'europe',    ticker: 'VGK',  flag: '🇪🇺', label: 'Europe (EU)' },
-  { id: 'uk',        ticker: 'EWU',  flag: '🇬🇧', label: 'United Kingdom' },
-  { id: 'india',     ticker: 'INDA', flag: '🇮🇳', label: 'भारत (India)' },
-  { id: 'brazil',    ticker: 'EWZ',  flag: '🇧🇷', label: 'Brasil' },
-  { id: 'taiwan',    ticker: 'EWT',  flag: '🇹🇼', label: '台灣 (Taiwan)' },
-  { id: 'australia', ticker: 'EWA',  flag: '🇦🇺', label: 'Australia' },
+// nativeTicker: 있으면 현지 원지수도 병렬 fetch → ETF composite와 50/50 블렌드.
+// 원지수 실패 시 ETF 단독 (dataQuality='partial'로 마킹).
+interface CountryETF { id: string; ticker: string; nativeTicker: string | null; flag: string; label: string; useCNN?: boolean; }
+const COUNTRY_ETFS: CountryETF[] = [
+  { id: 'us',        ticker: 'SPY',  nativeTicker: null,       flag: '🇺🇸', label: 'United States', useCNN: true },
+  { id: 'korea',     ticker: 'EWY',  nativeTicker: '^KS11',    flag: '🇰🇷', label: '한국 (Korea)' },        // KOSPI
+  { id: 'japan',     ticker: 'EWJ',  nativeTicker: '^N225',    flag: '🇯🇵', label: '日本 (Japan)' },        // Nikkei 225
+  { id: 'china',     ticker: 'FXI',  nativeTicker: '000300.SS', flag: '🇨🇳', label: '中国 (China)' },        // CSI 300
+  { id: 'europe',    ticker: 'VGK',  nativeTicker: '^STOXX50E', flag: '🇪🇺', label: 'Europe (EU)' },         // Euro Stoxx 50
+  { id: 'uk',        ticker: 'EWU',  nativeTicker: '^FTSE',    flag: '🇬🇧', label: 'United Kingdom' },      // FTSE 100
+  { id: 'india',     ticker: 'INDA', nativeTicker: '^BSESN',   flag: '🇮🇳', label: 'भारत (India)' },         // BSE Sensex
+  { id: 'brazil',    ticker: 'EWZ',  nativeTicker: '^BVSP',    flag: '🇧🇷', label: 'Brasil' },               // Bovespa
+  { id: 'taiwan',    ticker: 'EWT',  nativeTicker: '^TWII',    flag: '🇹🇼', label: '台灣 (Taiwan)' },        // TWSE Weighted
+  { id: 'australia', ticker: 'EWA',  nativeTicker: '^AXJO',    flag: '🇦🇺', label: 'Australia' },            // ASX 200
 ];
 
 const ASSET_ETFS = [
@@ -243,55 +279,56 @@ const driverMap: Record<string, string> = {
   BITO: 'BTC price · funding rates · dominance',
 };
 
-// 요소별 상세 설명 (심리에 영향 미친 요인)
+// 요소별 상세 설명 — 실제 계산에 사용하는 기초자산을 정직하게 표기.
+// ETF(USD)와 원지수(현지통화) 블렌드 = 더 균형잡힌 시그널.
 const detailMap: Record<string, { factors: string[]; macro: string; risk: string }> = {
   SPY:  {
-    factors: ['RSI-14: 추세 모멘텀 (최근 14일 상승/하락 강도)', '125일 SMA 대비 현재 가격 위치 (추세 강도)', '20일 변동성 vs 50일 평균 변동성 (공포 강도)'],
+    factors: ['SPY RSI-14: 추세 모멘텀 (14일 상승/하락 강도)', 'SPY 125일 SMA 대비 현재가 위치 (추세 강도)', 'SPY 20일 변동성 / 50일 평균 (공포 강도)'],
     macro: 'FOMC 동결 지속·CPI 하락·NFP 강세로 혼재된 신호. 관세 불확실성에도 Mag7 AI 투자 지속으로 탐욕 유지.',
     risk: '고용 강세로 Fed 인하 지연 시 밸류에이션 부담',
   },
   EWY:  {
-    factors: ['KOSPI 지수 RSI-14 모멘텀', 'KOSPI vs 125일 SMA 추세', 'KOSPI 20일 변동성 (원화 환율 변동 포함)'],
+    factors: ['EWY(iShares 한국, USD) + ^KS11(KOSPI, KRW) 블렌드 RSI-14', 'EWY + KOSPI 125일 SMA 대비 위치 (±20% 정규화)', 'EWY + KOSPI 20일/50일 변동성 비율'],
     macro: 'HBM·AI 반도체 수요로 삼성전자·SK하이닉스 급등. 원/달러 안정화, 외국인 순매수 전환. 수출 회복세.',
     risk: '미중 관세 확전 시 수출 타격, 반도체 사이클 정점 우려',
   },
   EWJ:  {
-    factors: ['닛케이225 RSI-14 모멘텀', '닛케이 vs 125일 SMA 추세', '엔화 변동성 (BOJ 금리 정책 민감)'],
+    factors: ['EWJ(iShares 일본, USD) + ^N225(닛케이 225, JPY) 블렌드 RSI-14', 'EWJ + 닛케이 125일 SMA 대비 위치', 'EWJ + 닛케이 20일/50일 변동성 비율'],
     macro: 'BOJ 추가 금리 인상 신호에 엔 강세 전환. 수출기업 실적 우려 반면 내수 소비 회복. 엔 캐리 청산 리스크.',
     risk: 'BOJ 긴축 가속 시 엔 캐리 청산 → 글로벌 위험자산 동반 하락',
   },
   FXI:  {
-    factors: ['CSI300 ETF RSI-14 모멘텀', 'CSI300 vs 125일 SMA 추세', 'FXI 변동성 (PBOC 정책 민감)'],
+    factors: ['FXI(iShares 중국, USD) + 000300.SS(CSI 300, CNY) 블렌드 RSI-14', 'FXI + CSI300 125일 SMA 대비 위치', 'FXI + CSI300 변동성 비율'],
     macro: 'PBOC AI·반도체 보조금 확대, 부동산 추가 부양책 기대. 그러나 미중 관세 140% 지속으로 수출 타격.',
     risk: '부동산 침체 지속, 미중 긴장 고조 시 외국인 자금 이탈',
   },
   VGK:  {
-    factors: ['Euro Stoxx ETF RSI-14', 'Euro Stoxx vs 125일 SMA', '유로존 변동성 (ECB 정책·관세 민감)'],
+    factors: ['VGK(Vanguard FTSE Europe, USD) + ^STOXX50E(유로스톡스 50) 블렌드 RSI-14', 'VGK + 유로스톡스 125일 SMA 대비', 'VGK + 유로스톡스 변동성 비율'],
     macro: 'ECB 금리 인하 사이클 진입. 유럽 방산 지출 급증. 미국 관세 보복 우려에도 독일 재정 확대 발표.',
     risk: '러-우 지속, 에너지 가격 재상승 시 스태그플레이션',
   },
   EWU:  {
-    factors: ['FTSE100 RSI-14', 'FTSE100 vs 125일 SMA', '영국 파운드 변동성'],
+    factors: ['EWU(iShares 영국, USD) + ^FTSE(FTSE 100, GBP) 블렌드 RSI-14', 'EWU + FTSE100 125일 SMA 대비', 'EWU + FTSE 변동성 비율'],
     macro: 'BOE 인하 사이클이나 UK 인플레 재점화 우려. 브렉시트 여파 지속. 에너지·원자재 섹터 비중으로 상대 방어.',
     risk: '스태그플레이션 재현 가능성, 경상수지 적자 지속',
   },
   INDA: {
-    factors: ['Nifty50 RSI-14', 'Nifty50 vs 125일 SMA', 'FII 유출입 변동성'],
+    factors: ['INDA(iShares 인도, USD) + ^BSESN(BSE Sensex, INR) 블렌드 RSI-14', 'INDA + Sensex 125일 SMA 대비', 'INDA + Sensex 변동성 비율'],
     macro: 'FII 순매수 전환, 인도 제조업 이전(중국+1) 수혜. Modi 정부 인프라 투자 지속. INR 안정.',
     risk: '고평가 밸류에이션, 원자재 수입 의존으로 달러 강세 취약',
   },
   EWZ:  {
-    factors: ['Bovespa RSI-14', 'Bovespa vs 125일 SMA', '헤알화 변동성'],
+    factors: ['EWZ(iShares 브라질, USD) + ^BVSP(Bovespa, BRL) 블렌드 RSI-14', 'EWZ + Bovespa 125일 SMA 대비', 'EWZ + Bovespa 변동성 비율'],
     macro: '상품 수출(철광석·대두) 가격 반등, Selic 고금리 유지. 재정 적자 우려에도 중국 수요 회복 기대.',
     risk: '재정 건전성 악화, 정치 불안, 달러 강세 시 헤알 급락',
   },
   EWT:  {
-    factors: ['TWSE RSI-14', 'TWSE vs 125일 SMA', 'TSMC·반도체 주가 변동성'],
+    factors: ['EWT(iShares 대만, USD) + ^TWII(TWSE 가중, TWD) 블렌드 RSI-14', 'EWT + TWII 125일 SMA 대비', 'EWT + TWII 변동성 비율 (TSMC 비중 높음)'],
     macro: 'TSMC AI 수혜 극대화, CoWoS 패키징 수요 폭발. 그러나 중국 군사훈련 재개 지정학 리스크.',
     risk: '양안 긴장 고조 시 외국인 자금 이탈 속도 빠름',
   },
   EWA:  {
-    factors: ['ASX200 RSI-14', 'ASX200 vs 125일 SMA', '철광석·LNG 가격 변동성'],
+    factors: ['EWA(iShares 호주, USD) + ^AXJO(ASX 200, AUD) 블렌드 RSI-14', 'EWA + ASX200 125일 SMA 대비', 'EWA + ASX200 변동성 비율'],
     macro: 'RBA 인하 기대, 중국 경기 부양으로 자원 수출 수혜. 부동산 시장 과열 우려 상존.',
     risk: '중국 성장 둔화 시 철광석 수출 직격, RBA 긴축 전환',
   },
@@ -347,12 +384,31 @@ const detailMap: Record<string, { factors: string[]; macro: string; risk: string
   },
 };
 
+/** ETF composite와 원지수 composite를 50/50 블렌드. 원지수 없으면 ETF 단독. */
+function blendComposite(etfRes: CompositeResult, nativeRes: CompositeResult | null): CompositeResult {
+  if (!nativeRes) {
+    return { ...etfRes, degradedFactors: [...etfRes.degradedFactors, 'no_native_index'], dataQuality: etfRes.dataQuality === 'full' ? 'partial' : etfRes.dataQuality };
+  }
+  const avg = (a: number, b: number) => Math.round((a + b) / 2);
+  const merged: CompositeResult = {
+    score: avg(etfRes.score, nativeRes.score),
+    rsiScore: avg(etfRes.rsiScore, nativeRes.rsiScore),
+    momentumScore: avg(etfRes.momentumScore, nativeRes.momentumScore),
+    volatilityScore: avg(etfRes.volatilityScore, nativeRes.volatilityScore),
+    dataQuality: etfRes.dataQuality === 'full' && nativeRes.dataQuality === 'full' ? 'full' :
+                 etfRes.dataQuality === 'insufficient' && nativeRes.dataQuality === 'insufficient' ? 'insufficient' :
+                 'partial',
+    degradedFactors: Array.from(new Set([...etfRes.degradedFactors, ...nativeRes.degradedFactors])),
+  };
+  return merged;
+}
+
 async function buildEntry(
-  id: string, ticker: string, flag: string, label: string,
+  id: string, ticker: string, nativeTicker: string | null, flag: string, label: string,
   redis: Redis | null, useCNN = false,
 ) {
-  // v4: CNN 헤더 수정·source 필드 추가 (v3은 SPY 418 폴백 버그 포함)
-  const cacheKey = `flowvium:fg:v4:${ticker}`;
+  // v5: ±20% 정규화 + 원지수 블렌딩 + query1/2 fallback (v4는 US만 CNN 정확, 나머지는 ETF 단독)
+  const cacheKey = `flowvium:fg:v5:${ticker}`;
   if (redis) {
     try {
       const cached = await redis.get<object>(cacheKey);
@@ -377,7 +433,7 @@ async function buildEntry(
         const f = compositeWithFactors(prices, ticker);
         rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
         dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
-      } catch { /* CNN 값이 메인이라 factor 누락은 덜 심각. dataQuality는 partial로 */
+      } catch {
         dataQuality = 'partial';
         degradedFactors = ['yahoo_factors'];
       }
@@ -390,11 +446,16 @@ async function buildEntry(
       dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
     }
   } else {
-    const prices = await fetchPrices(ticker);
-    const f = compositeWithFactors(prices, ticker);
-    score = f.score; prevScore = compositeScore(prices.slice(0, -7));
-    rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
-    dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
+    // ETF + 원지수 블렌딩
+    const { etf, native } = await fetchNativePrices(nativeTicker, ticker);
+    const etfComp = compositeWithFactors(etf, ticker);
+    const nativeComp = native ? compositeWithFactors(native, nativeTicker!) : null;
+    const blend = blendComposite(etfComp, nativeComp);
+    score = blend.score;
+    // 이전 스코어는 ETF의 1주 전 가격으로만 계산 (원지수 Yahoo 중복 호출 방지)
+    prevScore = compositeScore(etf.slice(0, -7));
+    rsiScore = blend.rsiScore; momentumScore = blend.momentumScore; volScore = blend.volatilityScore;
+    dataQuality = blend.dataQuality; degradedFactors = blend.degradedFactors;
   }
 
   const delta = score - prevScore;
@@ -427,13 +488,20 @@ export async function GET() {
 
   const [byCountry, byAsset] = await Promise.all([
     Promise.all(
-      COUNTRY_ETFS.map(({ id, ticker, flag, label, useCNN }) =>
-        buildEntry(id, ticker, flag, label, redis, useCNN ?? false).catch(() => null)
+      COUNTRY_ETFS.map(({ id, ticker, nativeTicker, flag, label, useCNN }) =>
+        buildEntry(id, ticker, nativeTicker, flag, label, redis, useCNN ?? false).catch((err) => {
+          logger.error('fear-greed', 'build_entry_failed', { id, ticker, error: err instanceof Error ? err.message : String(err) });
+          return null;
+        })
       )
     ),
     Promise.all(
       ASSET_ETFS.map(({ id, ticker, flag, label }) =>
-        buildEntry(id, ticker, flag, label, redis, false).catch(() => null)
+        // 자산 ETF는 네이티브 지수 매핑 없음 (ETF 단독 composite)
+        buildEntry(id, ticker, null, flag, label, redis, false).catch((err) => {
+          logger.error('fear-greed', 'build_entry_failed', { id, ticker, error: err instanceof Error ? err.message : String(err) });
+          return null;
+        })
       )
     ),
   ]);
