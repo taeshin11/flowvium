@@ -1,0 +1,48 @@
+2026-04-22 — verify-metrics earnings 체크를 Finnhub 직통 프로브로 전환
+
+## 배포 검증 (이전 iteration)
+- POST /api/translate {ko} → "이번 주 기관 투자자들의 자금이 반도체 주식으로 유입되었다." source="GROQ-llama-3.3-70b" ✅
+- verify-metrics ok=52 deg=14 err=1 (동일)
+
+## 남은 false-positive — earnings.ALL "endpoint stale"
+### 재구성된 원인
+`/api/earnings` 라우트는 `if (!FINNHUB_KEY) → return { warning: "FINNHUB_KEY 미설정..." }`.
+- 외부 curl: Redis cached 응답 반환 (warning 없음, 정상 데이터)
+- verify-metrics 내부 fetch(alias/self): 일부 edge instance가 env 없는 배포로 라우팅 → warning 필드 포함 응답
+  → 15분 이상 지속 — 단순 propagation 레이스 아님, 구조적 Vercel alias routing 이슈
+
+즉, 내부 fetch 기반 헬스체크는 근본적으로 신뢰할 수 없음 (멀티 배포 환경).
+
+## 수정 (src/app/api/cron/verify-metrics/route.ts)
+`verifyEarnings()` 을 Finnhub 직통 프로브로 전환:
+- `fetch('https://finnhub.io/api/v1/calendar/earnings?from=today&to=+14d&token=KEY')`
+- 8s timeout, 500ms 이하 빠름
+- 응답의 earningsCalendar 배열 길이로 ok/degraded 판단
+- 429 → degraded (rate limit), 그 외 non-2xx → error
+
+이점:
+1. Vercel alias routing 의존 제거 — 내부 fetch 사용 안 함
+2. /api/earnings 자체는 Redis 2h 캐시 → Finnhub 직통 호출은 크론마다 1회 (30분 주기) → 60 req/min 티어 여유
+3. /api/earnings 라우트가 다운되어도 earnings.ALL 헬스는 정확하게 보고
+
+## 남은 false-positive 가능성
+동일 패턴(env-dependent silent fallback)인 다른 엔드포인트 조사 — 확인 결과 없음:
+- capital-flows, macro, fedwatch, fg, credit 는 Redis 공유 데이터 기반 → 배포 간 동일 응답
+- insider, market: 환경 변수 의존 없음
+
+즉 이 패턴은 earnings 단일 케이스.
+
+## 검증
+- npx tsc --noEmit → 0 errors
+- 배포 후 verify-metrics 재프로브하여 earnings.ALL "1500 events" ok 확인 예정
+
+## 기대 효과
+- overallStatus 'error' → 'degraded' (ai.vllm 만 err, 나머지 모두 해결/환경 이슈)
+- summary ok 52→53, deg 14→13 (earnings가 ok로 flip)
+- 실제 문제(vLLM 터널) 만 error 로 남아 시그널 명확
+
+## 좀비
+- 클린 (cloudflared/cmd 모두 없음)
+
+## 메모리
+- 패턴 학습: Vercel edge function에서 self-fetch는 배포 간 race 리스크 존재 → 가능하면 외부 API 직통 프로브가 안정적

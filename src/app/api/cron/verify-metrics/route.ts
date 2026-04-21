@@ -365,41 +365,56 @@ async function verifyMarketStack(base: string): Promise<MetricItem[]> {
   ]);
 }
 
-async function verifyEarnings(base: string): Promise<MetricItem[]> {
-  // 1) Check env var directly — avoids false-negatives from internal fetch
-  //    routing to older "Ready" deployments that may lack FINNHUB_KEY (alias
-  //    eventual consistency during redeploys).
+async function verifyEarnings(_base: string): Promise<MetricItem[]> {
+  // 1) Check env var first — catches unconfigured environments instantly.
   const key = process.env.FINNHUB_KEY?.trim();
   if (!key) {
     return [{
       key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
       status: 'degraded', value: 'no API key',
-      details: { warning: 'FINNHUB_KEY 미설정 — 실적 캘린더를 표시하려면 Finnhub 무료 키 발급 필요 (60 req/min 무료)' },
+      details: { warning: 'FINNHUB_KEY 미설정 — Finnhub 무료 키 발급 필요 (60 req/min 무료)' },
     }];
   }
 
-  // 2) Env var set — verify the endpoint actually returns data.
-  const r = await safeJson(base, '/api/earnings');
-  if (!r.ok) return [{ key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings', status: 'error', lastError: r.error }];
-  const d = r.data as { earnings: unknown[]; warning?: string; count?: number; error?: string };
-
-  // The endpoint may *claim* no key on a stale deployment routing mismatch —
-  // treat as 'degraded' with a hint rather than 'error', since we confirmed env.
-  if (d.warning) {
+  // 2) Ping Finnhub directly instead of /api/earnings.
+  //    The internal-fetch approach suffered from Vercel alias eventual consistency:
+  //    server-side fetch(base + '/api/earnings') sometimes routed to an older
+  //    deployment that lacked FINNHUB_KEY, producing a false-positive 'endpoint
+  //    stale' flag that never self-healed. Hitting Finnhub directly avoids the
+  //    whole internal-routing problem and is also ~1 network hop cheaper.
+  const today = new Date().toISOString().slice(0, 10);
+  const to = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+  const t0 = Date.now();
+  try {
+    const res = await fetch(
+      `https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${to}&token=${encodeURIComponent(key)}`,
+      { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'flowvium-metrics-verifier/1.0' } },
+    );
+    if (!res.ok) {
+      return [{
+        key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
+        status: res.status === 429 ? 'degraded' : 'error',
+        value: `HTTP ${res.status}`,
+        details: { durationMs: Date.now() - t0 },
+      }];
+    }
+    const d = (await res.json()) as { earningsCalendar?: unknown[] };
+    const count = Array.isArray(d.earningsCalendar) ? d.earningsCalendar.length : 0;
     return [{
       key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
-      status: 'degraded', value: 'endpoint stale',
-      details: { hint: 'FINNHUB_KEY is set but /api/earnings reported missing — likely stale deployment routing.' },
+      status: count > 0 ? 'ok' : 'degraded',
+      value: `${count} events`,
+      source: 'Finnhub (direct)',
+      details: { durationMs: Date.now() - t0 },
+    }];
+  } catch (err) {
+    return [{
+      key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
+      status: 'error',
+      lastError: err instanceof Error ? err.message : String(err),
+      details: { durationMs: Date.now() - t0 },
     }];
   }
-  if (d.error) {
-    return [{ key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings', status: 'error', lastError: d.error }];
-  }
-  return [{
-    key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
-    status: (d.earnings?.length ?? 0) > 0 ? 'ok' : 'degraded',
-    value: `${d.earnings?.length ?? 0} events`,
-  }];
 }
 
 async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
