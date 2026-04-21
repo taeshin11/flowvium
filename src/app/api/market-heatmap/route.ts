@@ -7,14 +7,18 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  * live price changes (US only — non-US stocks use iShares intraday price).
  *
  * Redis cache: 15 minutes per country.
+ * Redis-less fallback: module-level memory cache (10min TTL) — keeps warm
+ * instance responses <50ms instead of 3+s upstream re-fetch every call.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { fetchStooqQuotes } from '@/lib/stooq';
 import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
+import { createMemoryCache } from '@/lib/memory-cache';
 
 const CACHE_TTL = 15 * 60;
+const MEMORY_CACHE = createMemoryCache<HeatmapData>('market-heatmap', 10 * 60_000);
 
 const INDICES_BY_COUNTRY: Record<string, Array<{ symbol: string; label: string }>> = {
   US: [
@@ -88,6 +92,10 @@ export async function GET(req: NextRequest) {
       const cached = await redis.get(cacheKey);
       if (cached) return NextResponse.json({ ...(cached as object), cached: true });
     } catch { /* non-fatal */ }
+  } else {
+    // Redis-less memory fallback — 10min per country
+    const mem = MEMORY_CACHE.get(country);
+    if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
   }
 
   // 1. Fetch ETF constituents (includes market cap weights)
@@ -180,6 +188,9 @@ export async function GET(req: NextRequest) {
     } catch (err) {
       logger.error('market-heatmap', 'save_failed', { key: cacheKey, error: err });
     }
+  } else if (stocks.length > 0) {
+    // Only cache non-empty to avoid pinning a failed upstream fetch
+    MEMORY_CACHE.set(country, data);
   }
 
   return NextResponse.json({ ...data, cached: false });

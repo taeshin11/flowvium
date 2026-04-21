@@ -680,6 +680,10 @@
 
 ### API 라우트 전체 목록
 
+Redis 미설정 환경에서는 `@/lib/memory-cache` 모듈 레벨 in-memory cache 가 warm
+function instance 내에서 폴백으로 작동 (daily-brief, market-heatmap, short-interest,
+ownership-alerts 적용).
+
 | 엔드포인트 | 데이터 소스 | Redis 캐시 TTL |
 |-----------|-------------|---------------|
 | `/api/daily-brief` | EXAONE vLLM → Gemini | 26h |

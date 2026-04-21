@@ -11,9 +11,14 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { fetchBatchShortData } from '@/lib/yahoo-finance';
 import { institutionalSignals } from '@/data/institutional-signals';
+import { createMemoryCache } from '@/lib/memory-cache';
 
 const CACHE_KEY = 'flowvium:short-interest:v1';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
+// Redis-less fallback — 30min TTL (short-interest changes twice daily but we
+// don't want stale data locked in for 4h on warm instances).
+const MEMORY_CACHE = createMemoryCache<unknown[]>('short-interest', 30 * 60_000);
+const MEM_KEY = 'entries';
 
 // Tracked tickers — ordered by interest (mid/small caps first)
 const TRACKED_TICKERS = [
@@ -89,6 +94,11 @@ export async function GET(req: Request) {
         return NextResponse.json({ entries: cached, cached: true });
       }
     } catch (err) { logger.warn('api.short-interest', 'cache_read_error', { error: err }); }
+  } else if (!redis && !forceRefresh) {
+    const mem = MEMORY_CACHE.get(MEM_KEY);
+    if (mem && Array.isArray(mem) && mem.length > 0) {
+      return NextResponse.json({ entries: mem, cached: true, cacheLayer: 'memory' });
+    }
   }
 
   // Deduplicate tickers
@@ -148,6 +158,7 @@ export async function GET(req: Request) {
   entries.sort((a, b) => b.squeezeScore - a.squeezeScore);
 
   await loggedRedisSet(redis, 'api.short-interest', CACHE_KEY, entries, { ex: CACHE_TTL });
+  if (!redis && entries.length > 0) MEMORY_CACHE.set(MEM_KEY, entries);
   logger.info('api.short-interest', 'served', {
     tickers: tickers.length,
     entries: entries.length,

@@ -1,0 +1,63 @@
+2026-04-22 — 공용 @/lib/memory-cache + market-heatmap/short-interest 적용 (Redis-less perf)
+
+## 배경
+ba041e3 배포 확인:
+- verify-metrics: ok 65/degraded 3/error 1/total 69, avg 111ms ← (1차 212ms → 2차 123ms → 111ms)
+- daily-brief?force=1: ctx.short=True, cascadeCount=8, source=GROQ-llama-3.3-70b (정상)
+
+13개 엔드포인트 병렬 probe 결과 응답시간:
+- 가장 느림: market-heatmap 3.5s, short-interest 1.9s, fear-greed 1.17s, market-caps 1.14s
+- 이들 모두 Upstash 없이 매 요청마다 상류 fetch — 캐시 미스 영구화
+
+## 공용 유틸 (src/lib/memory-cache.ts, 60 lines)
+```typescript
+export function createMemoryCache<T>(namespace: string, ttlMs: number): MemoryCache<T>
+```
+- Map 기반, FIFO eviction (MAX_ENTRIES=50), namespaced logger.
+- Interface: get/set/has/delete/size.
+- 각 라우트마다 Map 인스턴스 공유 없음 — per-route per-warm-instance scope.
+- 별도 import 한 줄로 채택 가능.
+
+## 적용 1: market-heatmap (src/app/api/market-heatmap/route.ts)
+- 기존: Redis 없으면 무조건 iShares CSV + Stooq/Yahoo fetch (3.5s).
+- 수정: Redis-less 분기에서 country별 10min TTL memory cache 조회.
+- write: stocks.length > 0 일 때만 저장 (빈 응답 pin 방지).
+- 기대 효과: 2회째부터 <50ms.
+
+## 적용 2: short-interest (src/app/api/short-interest/route.ts)
+- 기존: Redis 없으면 Yahoo batch fetch (1.9s for ~40 tickers).
+- 수정: 30min TTL (Yahoo 데이터는 일 2회 업데이트라 길게 잡아도 무해).
+- write: entries.length > 0 일 때만 저장.
+
+## 이미 이전 이터레이션에 적용
+- daily-brief (Redis-less MEMORY_CACHE 10min, source!=='data' 가드)
+- ownership-alerts (2h, prior-snapshot 보호)
+
+## 검증
+- npx tsc --noEmit → EXIT:0
+- 배포 후 2회 연속 요청 시 응답시간 급감 확인 예정:
+  - market-heatmap 3.5s → <100ms (warm 메모리 hit)
+  - short-interest 1.9s → <50ms
+
+## Redis 구성 권장
+진짜 해결은 Upstash env vars 설정. 메모리 캐시는 warm instance 한정,
+cold start 후엔 다시 상류 fetch 필요. 하지만 실측 Vercel instance 수명 5~10분
+⇒ 일반 사용자 트래픽(분 단위) 에선 90%+ hit rate 기대.
+
+## 남은 최적화 기회 (다음 이터레이션)
+- fear-greed (1.17s) → 동일 패턴 적용 가능. 다만 v5 캐시 키에 ticker별 서브캐시
+  이미 있어 이득이 작음. 스킵.
+- market-caps (1.14s) → 적용 여지 있음.
+- insider-trades (1.05s) → EDGAR Form 4 스크래핑이라 upstream 빠름. 패스.
+
+## 좀비
+- clean (이전 확인과 동일 — node 3개는 claude-code 세션)
+
+## 커밋/푸시 계획
+1개 커밋 (5 파일):
+- src/lib/memory-cache.ts (신규)
+- src/app/api/market-heatmap/route.ts
+- src/app/api/short-interest/route.ts
+- FEATURES.md (§18 intro 문구)
+- METRICS.md (#296m, #296n, #296o)
+- 본 로그

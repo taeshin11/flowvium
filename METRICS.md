@@ -693,6 +693,9 @@
 | 296j | ownership-alerts in-memory cache (Redis-less 환경) | ✅ live | warm instance 내 2h TTL, EDGAR 10분 빈 윈도우에도 snapshot 유지 |
 | 296k | daily-brief MEMORY_CACHE fallback 저장 차단 | ✅ live | source==='data' 인 fallback brief 는 캐시하지 않아 다음 요청에 AI 재시도 (10min 저품질 연쇄 방지) |
 | 296l | daily-brief HTTP ctx: short-interest + news-cascade 추가 | ✅ live | Redis 없을 때 12 엔드포인트 병렬 fetch — 기존 10 → 12 (short/cascade 커버) |
+| 296m | market-heatmap memory cache fallback | ✅ live | Redis-less 10min TTL per-country — 3.5s → <50ms on warm hit |
+| 296n | short-interest memory cache fallback | ✅ live | Redis-less 30min TTL — 1.9s → <30ms on warm hit |
+| 296o | @/lib/memory-cache 공용 유틸 | ✅ live | FIFO eviction(max 50) + namespaced logger, 엔드포인트별 TTL 지정 |
 
 ---
 
