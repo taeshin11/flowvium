@@ -67,25 +67,43 @@ async function fetchCNNScore(): Promise<{ score: number; prevScore: number } | n
 }
 
 // ── Yahoo Finance price data ───────────────────────────────────────────────────
+// Yahoo도 CNN과 동일하게 최소 UA 요청을 점차 차단. 풀 브라우저 헤더로 방어.
 async function fetchPrices(ticker: string): Promise<number[]> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=180d`;
+  const t0 = Date.now();
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0' },
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://finance.yahoo.com/',
+    },
     signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) {
-    logger.warn('fear-greed', 'yahoo_http_error', { ticker, status: res.status });
+    // error 레벨: 이 ticker의 composite가 통째로 실패함을 의미. admin/logs 에러 카운트에 잡힘.
+    logger.error('fear-greed', 'yahoo_http_error', { ticker, status: res.status, durationMs: Date.now() - t0 });
     throw new Error(`Yahoo HTTP ${res.status}`);
   }
   const data = await res.json();
   const closes: number[] = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
-  return closes.filter((v: number) => v != null && !isNaN(v));
+  const clean = closes.filter((v: number) => v != null && !isNaN(v));
+  if (clean.length < 125) {
+    // SMA-125 계산에 필요한 최소 길이 미달 — 경고. degraded 라벨 붙을 예정.
+    logger.warn('fear-greed', 'yahoo_insufficient_history', { ticker, length: clean.length });
+  }
+  return clean;
 }
 
 // ── CNN-style multi-factor score ──────────────────────────────────────────────
-// Factor 1: RSI-14 (momentum proxy, 0-100)
-function rsi14(prices: number[]): number {
-  if (prices.length < 15) return 50;
+// 각 factor 함수는 {value, ok} 반환. ok=false면 데이터 부족으로 중립값(50)
+// 폴백한 것이며 composite에 부분 가중치로 반영됨. buildEntry가 ok 개수로
+// dataQuality 라벨링.
+type Factor = { value: number; ok: boolean };
+
+// Factor 1: RSI-14 (momentum proxy, 0-100) — 최소 15개 가격 필요
+function rsi14(prices: number[]): Factor {
+  if (prices.length < 15) return { value: 50, ok: false };
   const changes = prices.slice(1).map((p, i) => p - prices[i]);
   let ag = 0, al = 0;
   for (let i = 0; i < 14; i++) {
@@ -97,53 +115,73 @@ function rsi14(prices: number[]): number {
     ag = (ag * 13 + Math.max(changes[i], 0)) / 14;
     al = (al * 13 + Math.max(-changes[i], 0)) / 14;
   }
-  if (al === 0) return 100;
-  return Math.round(100 - 100 / (1 + ag / al));
+  if (al === 0) return { value: 100, ok: true };
+  return { value: Math.round(100 - 100 / (1 + ag / al)), ok: true };
 }
 
-// Factor 2: Price vs 125-day SMA momentum (CNN uses this)
-// >0 = above SMA = greed, <0 = below SMA = fear → normalize to 0-100
-function smaMomentum(prices: number[]): number {
-  if (prices.length < 125) return 50;
+// Factor 2: Price vs 125-day SMA momentum — 최소 125개 가격 필요
+function smaMomentum(prices: number[]): Factor {
+  if (prices.length < 125) return { value: 50, ok: false };
   const last = prices[prices.length - 1];
   const sma125 = prices.slice(-125).reduce((a, b) => a + b, 0) / 125;
-  const pct = (last - sma125) / sma125; // e.g. +0.05 = 5% above SMA
-  // Normalize: ±15% range → 0-100
-  return Math.min(100, Math.max(0, Math.round(50 + (pct / 0.15) * 50)));
+  const pct = (last - sma125) / sma125;
+  return { value: Math.min(100, Math.max(0, Math.round(50 + (pct / 0.15) * 50))), ok: true };
 }
 
-// Factor 3: Volatility ratio (current 20d vol vs 50d avg vol)
-// Low vol = greed (high score), high vol = fear (low score)
-function volatilityScore(prices: number[]): number {
-  if (prices.length < 55) return 50;
+// Factor 3: Volatility ratio — 최소 55개 가격 필요
+function volatilityScore(prices: number[]): Factor {
+  if (prices.length < 55) return { value: 50, ok: false };
   const returns = prices.slice(1).map((p, i) => Math.log(p / prices[i]));
   const recent20 = returns.slice(-20);
   const avg50 = returns.slice(-50);
   const vol20 = Math.sqrt(recent20.reduce((s, r) => s + r * r, 0) / 20);
   const vol50 = Math.sqrt(avg50.reduce((s, r) => s + r * r, 0) / 50);
   const ratio = vol50 > 0 ? vol20 / vol50 : 1;
-  // ratio > 1 = elevated vol = fear; ratio < 1 = calm = greed
-  // ratio 2.0 → 0, ratio 0.5 → 100, ratio 1.0 → 50
-  return Math.min(100, Math.max(0, Math.round(50 * (2 - ratio))));
+  return { value: Math.min(100, Math.max(0, Math.round(50 * (2 - ratio)))), ok: true };
 }
 
-// Composite: weight factors like CNN (equal-ish weighting)
+// Composite: 한 번만 계산해서 단일 score 반환 (prevScore 7일 전 값 계산용)
 function compositeScore(prices: number[]): number {
-  const r = rsi14(prices);           // 40%
-  const m = smaMomentum(prices);     // 35%
-  const v = volatilityScore(prices); // 25%
+  const r = rsi14(prices).value;
+  const m = smaMomentum(prices).value;
+  const v = volatilityScore(prices).value;
   return Math.round(r * 0.40 + m * 0.35 + v * 0.25);
 }
 
-function compositeWithFactors(prices: number[]): { score: number; rsiScore: number; momentumScore: number; volatilityScore: number } {
+interface CompositeResult {
+  score: number;
+  rsiScore: number;
+  momentumScore: number;
+  volatilityScore: number;
+  dataQuality: 'full' | 'partial' | 'insufficient';
+  degradedFactors: string[];  // e.g. ['sma'] — UI에 노출
+}
+
+function compositeWithFactors(prices: number[], ticker: string): CompositeResult {
   const r = rsi14(prices);
   const m = smaMomentum(prices);
   const v = volatilityScore(prices);
+  const degraded: string[] = [];
+  if (!r.ok) degraded.push('rsi');
+  if (!m.ok) degraded.push('sma');
+  if (!v.ok) degraded.push('vol');
+
+  // 3개 모두 ok = full / 일부만 = partial / 전부 실패 = insufficient
+  const okCount = [r.ok, m.ok, v.ok].filter(Boolean).length;
+  const dataQuality: 'full' | 'partial' | 'insufficient' =
+    okCount === 3 ? 'full' : okCount === 0 ? 'insufficient' : 'partial';
+
+  if (dataQuality !== 'full') {
+    logger.warn('fear-greed', 'composite_degraded', { ticker, quality: dataQuality, degradedFactors: degraded, priceLen: prices.length });
+  }
+
   return {
-    score: Math.round(r * 0.40 + m * 0.35 + v * 0.25),
-    rsiScore: r,
-    momentumScore: m,
-    volatilityScore: v,
+    score: Math.round(r.value * 0.40 + m.value * 0.35 + v.value * 0.25),
+    rsiScore: r.value,
+    momentumScore: m.value,
+    volatilityScore: v.value,
+    dataQuality,
+    degradedFactors: degraded,
   };
 }
 
@@ -324,9 +362,9 @@ async function buildEntry(
 
   let score: number, prevScore: number;
   let rsiScore = 50, momentumScore = 50, volScore = 50;
-  // source 필드: 'cnn' = CNN 공식 API, 'composite' = 3요소 자체계산 (RSI+SMA+Vol).
-  // useCNN=true 인데 'composite' 되면 CNN 차단 가능성 — admin/logs error 카운트로 잡힘.
   let source: 'cnn' | 'composite' = 'composite';
+  let dataQuality: 'full' | 'partial' | 'insufficient' = 'full';
+  let degradedFactors: string[] = [];
 
   if (useCNN) {
     const cnn = await fetchCNNScore();
@@ -334,26 +372,29 @@ async function buildEntry(
       score = cnn.score;
       prevScore = cnn.prevScore;
       source = 'cnn';
-      // Still compute factors for breakdown display
       try {
         const prices = await fetchPrices(ticker);
-        const f = compositeWithFactors(prices);
+        const f = compositeWithFactors(prices, ticker);
         rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
-      } catch { /* use defaults */ }
+        dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
+      } catch { /* CNN 값이 메인이라 factor 누락은 덜 심각. dataQuality는 partial로 */
+        dataQuality = 'partial';
+        degradedFactors = ['yahoo_factors'];
+      }
     } else {
-      // CNN 기대했는데 실패 → 합성값으로 fallback. warn이 아닌 error로 찍어서
-      // /admin/logs 에러 카운트에 노출됨. 헤더 차단·타임아웃 회귀 조기 감지.
       logger.error('fear-greed', 'cnn_expected_fallback_to_composite', { ticker });
       const prices = await fetchPrices(ticker);
-      const f = compositeWithFactors(prices);
+      const f = compositeWithFactors(prices, ticker);
       score = f.score; prevScore = compositeScore(prices.slice(0, -7));
       rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
+      dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
     }
   } else {
     const prices = await fetchPrices(ticker);
-    const f = compositeWithFactors(prices);
+    const f = compositeWithFactors(prices, ticker);
     score = f.score; prevScore = compositeScore(prices.slice(0, -7));
     rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
+    dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
   }
 
   const delta = score - prevScore;
@@ -363,15 +404,15 @@ async function buildEntry(
     trend: delta > 2 ? 'up' : delta < -2 ? 'down' : 'neutral',
     driver: driverMap[ticker] ?? ticker,
     level: getLevel(score),
-    // 출처 투명성 — UI에 뱃지 표시 용도 ('CNN 공식' vs 'FlowVium 합성')
     source,
-    // Factor breakdown
+    // 데이터 품질 — UI가 'partial'/'insufficient' 시 경고 뱃지 노출
+    dataQuality,
+    degradedFactors,
     factors: {
       rsi: rsiScore,
       momentum: momentumScore,
       volatility: volScore,
     },
-    // Detailed context
     detail: detail ?? null,
   };
 

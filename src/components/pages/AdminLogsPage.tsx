@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, AlertCircle, Info, RefreshCw, Trash2, Lock, Server, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Info, RefreshCw, Trash2, Lock, Server, CheckCircle2, XCircle, Activity, PlayCircle } from 'lucide-react';
 
 interface LogEntry {
   t: string;
@@ -43,6 +43,25 @@ interface HealthPayload {
   checkDurationMs: number;
 }
 
+interface MetricItem {
+  key: string;
+  label: string;
+  group: string;
+  status: 'ok' | 'degraded' | 'error';
+  value?: number | string | null;
+  source?: string;
+  details?: Record<string, unknown>;
+  lastError?: string;
+}
+
+interface MetricsSnapshot {
+  checkedAt: string;
+  durationMs: number;
+  overallStatus: 'healthy' | 'degraded' | 'error';
+  summary: { ok: number; degraded: number; error: number; total: number };
+  items: MetricItem[];
+}
+
 const LEVEL_STYLES: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
   error: { bg: 'bg-red-500/10 border-red-500/30', text: 'text-red-400', icon: <AlertCircle className="w-3.5 h-3.5" /> },
   warn:  { bg: 'bg-amber-500/10 border-amber-500/30', text: 'text-amber-400', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
@@ -69,6 +88,9 @@ export default function AdminLogsPage() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [bySource, setBySource] = useState<Record<string, BySource>>({});
   const [health, setHealth] = useState<HealthPayload | null>(null);
+  const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
+  const [metricsGroupFilter, setMetricsGroupFilter] = useState<string>('');
+  const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [levelFilter, setLevelFilter] = useState<string>('');
@@ -87,9 +109,10 @@ export default function AdminLogsPage() {
       const params = new URLSearchParams({ limit: '500' });
       if (levelFilter) params.set('level', levelFilter);
       if (sourceFilter) params.set('source', sourceFilter);
-      const [logRes, healthRes] = await Promise.all([
+      const [logRes, healthRes, metricsRes] = await Promise.all([
         fetch(`/api/admin/logs?${params.toString()}`, { headers: { 'x-admin-secret': secret } }),
         fetch(`/api/admin/health`, { headers: { 'x-admin-secret': secret } }),
+        fetch(`/api/admin/metrics-health`, { headers: { 'x-admin-secret': secret } }),
       ]);
       if (logRes.status === 401) { setError('Unauthorized — check CRON_SECRET'); setEntries([]); return; }
       if (!logRes.ok) { setError(`HTTP ${logRes.status}`); return; }
@@ -97,6 +120,8 @@ export default function AdminLogsPage() {
       setEntries(data.entries ?? []);
       setBySource(data.bySource ?? {});
       if (healthRes.ok) setHealth(await healthRes.json());
+      if (metricsRes.ok) setMetrics(await metricsRes.json());
+      else if (metricsRes.status === 404) setMetrics(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fetch failed');
     } finally { setLoading(false); }
@@ -113,6 +138,23 @@ export default function AdminLogsPage() {
     if (!secret || !confirm('Clear all log entries?')) return;
     await fetch('/api/admin/logs', { method: 'DELETE', headers: { 'x-admin-secret': secret } });
     load();
+  };
+
+  const runVerifyNow = async () => {
+    if (!secret) return;
+    setVerifying(true);
+    try {
+      // 즉시 한 번 실행 (크론 주기 기다리지 않고) — 다음 30분 크론이 다시 갱신
+      const res = await fetch('/api/cron/verify-metrics', {
+        headers: { 'x-admin-secret': secret },
+      });
+      if (res.ok) setMetrics(await res.json());
+      else setError(`Verify failed: HTTP ${res.status}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Verify failed');
+    } finally {
+      setVerifying(false);
+    }
   };
 
   // ── Gate by secret ──────────────────────────────────────────────────────
@@ -247,6 +289,114 @@ export default function AdminLogsPage() {
           </details>
         </div>
       )}
+
+      {/* Metrics Status — 주기적 verify-metrics 크론이 기록한 개별 수치 헬스 */}
+      <div className="cf-card p-4 mb-4 bg-gradient-to-br from-blue-500/5 to-transparent border border-blue-500/20">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <p className="text-xs font-bold text-cf-text-primary flex items-center gap-2">
+            <Activity className={`w-4 h-4 ${metrics?.overallStatus === 'error' ? 'text-red-400' : metrics?.overallStatus === 'degraded' ? 'text-amber-400' : 'text-emerald-400'}`} />
+            Metrics Status {metrics && <span className="text-[10px] text-cf-text-secondary">· {fmtTime(metrics.checkedAt)} · {metrics.durationMs}ms</span>}
+          </p>
+          <button
+            onClick={runVerifyNow}
+            disabled={verifying}
+            className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 disabled:opacity-40"
+            title="크론 30분 기다리지 않고 즉시 재검증"
+          >
+            <PlayCircle className={`w-3 h-3 ${verifying ? 'animate-spin' : ''}`} />
+            {verifying ? 'Verifying…' : 'Verify now'}
+          </button>
+        </div>
+        {!metrics ? (
+          <p className="text-[11px] text-cf-text-secondary">크론 스냅샷 없음 · "Verify now"로 즉시 실행 가능 (30분마다 자동 실행 예정)</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-2 mb-3 text-[10px]">
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-md p-2">
+                <p className="text-cf-text-secondary">정상</p>
+                <p className="font-mono text-base text-emerald-400">{metrics.summary.ok}</p>
+              </div>
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-md p-2">
+                <p className="text-cf-text-secondary">Degraded</p>
+                <p className="font-mono text-base text-amber-400">{metrics.summary.degraded}</p>
+              </div>
+              <div className="bg-red-500/5 border border-red-500/20 rounded-md p-2">
+                <p className="text-cf-text-secondary">Error</p>
+                <p className="font-mono text-base text-red-400">{metrics.summary.error}</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-md p-2">
+                <p className="text-cf-text-secondary">전체</p>
+                <p className="font-mono text-base text-cf-text-primary">{metrics.summary.total}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              <button
+                onClick={() => setMetricsGroupFilter('')}
+                className={`text-[10px] px-2 py-0.5 rounded-md border ${metricsGroupFilter === '' ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : 'bg-white/5 border-white/10 text-cf-text-secondary'}`}
+              >
+                all
+              </button>
+              {Array.from(new Set(metrics.items.map(i => i.group))).map(g => {
+                const groupItems = metrics.items.filter(i => i.group === g);
+                const nErr = groupItems.filter(i => i.status === 'error').length;
+                const nDeg = groupItems.filter(i => i.status === 'degraded').length;
+                return (
+                  <button
+                    key={g}
+                    onClick={() => setMetricsGroupFilter(g)}
+                    className={`text-[10px] px-2 py-0.5 rounded-md border font-mono ${metricsGroupFilter === g ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : nErr > 0 ? 'bg-red-500/5 border-red-500/20 text-red-400' : nDeg > 0 ? 'bg-amber-500/5 border-amber-500/20 text-amber-400' : 'bg-white/5 border-white/10 text-cf-text-secondary'}`}
+                  >
+                    {g} · {groupItems.length}
+                    {nErr > 0 && <span className="ml-1 text-red-400">✕{nErr}</span>}
+                    {nDeg > 0 && <span className="ml-1 text-amber-400">⚠{nDeg}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <details className="text-[10px]" open={metrics.summary.error > 0 || metrics.summary.degraded > 0}>
+              <summary className="cursor-pointer text-cf-text-secondary hover:text-cf-text-primary">
+                개별 지표 ({metrics.items.filter(i => !metricsGroupFilter || i.group === metricsGroupFilter).length}개 표시)
+              </summary>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 max-h-96 overflow-y-auto">
+                {metrics.items
+                  .filter(i => !metricsGroupFilter || i.group === metricsGroupFilter)
+                  .sort((a, b) => {
+                    const order = { error: 0, degraded: 1, ok: 2 } as const;
+                    return order[a.status] - order[b.status];
+                  })
+                  .map(item => (
+                    <div
+                      key={item.key}
+                      className={`flex items-center justify-between gap-2 px-2 py-1 rounded border ${
+                        item.status === 'error' ? 'bg-red-500/5 border-red-500/20' :
+                        item.status === 'degraded' ? 'bg-amber-500/5 border-amber-500/20' :
+                        'bg-emerald-500/5 border-emerald-500/10'
+                      }`}
+                      title={item.lastError ?? item.details ? JSON.stringify(item.details) : ''}
+                    >
+                      <span className="truncate text-cf-text-primary">{item.label}</span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {item.value != null && (
+                          <span className="font-mono text-cf-text-secondary">{typeof item.value === 'number' ? Math.round(item.value) : String(item.value).slice(0, 20)}</span>
+                        )}
+                        {item.source && (
+                          <span className="text-[9px] text-cf-text-secondary/70 font-mono">{item.source}</span>
+                        )}
+                        <span className={
+                          item.status === 'error' ? 'text-red-400' :
+                          item.status === 'degraded' ? 'text-amber-400' :
+                          'text-emerald-400'
+                        }>
+                          {item.status === 'error' ? '✕' : item.status === 'degraded' ? '⚠' : '✓'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </details>
+          </>
+        )}
+      </div>
 
       {/* Source summary */}
       {sources.length > 0 && (

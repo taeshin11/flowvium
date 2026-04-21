@@ -651,6 +651,22 @@
 | 295 | warn count | ✅ live |
 | 296 | 버퍼 oldest 타임스탬프 | ✅ live |
 
+### 15-5. Metrics Status (신규 — 2026-04-21)
+
+30분 크론 `/api/cron/verify-metrics` 가 사이트 전체 수치를 순회 probe 해서
+개별 상태를 `flowvium:metrics-health:v1` 에 저장. `/admin/logs` 페이지 상단에
+색상 카드로 표시. "Verify now" 버튼으로 즉시 재검증 가능.
+
+| # | 지표 | 상태 | 비고 |
+|---|------|------|------|
+| 296a | 전체 수치 요약 (ok/degraded/error/total) | 🔄 cron | 30분 주기 |
+| 296b | 그룹별 드릴다운 (fear-greed · capital-flows · macro · fedwatch · credit · cache) | 🔄 cron | |
+| 296c | 개별 지표 상태 (~60+ 지표) | 🔄 cron | ✕ 먼저 정렬 |
+| 296d | 각 지표 value + source 표시 | 🔄 cron | tooltip에 details JSON |
+| 296e | 수동 즉시 검증 버튼 | ✅ live | /api/cron/verify-metrics 직접 호출 |
+| 296f | F&G dataQuality 필드 노출 (full/partial/insufficient) | ✅ live | #98~100 관련 |
+| 296g | F&G degradedFactors 필드 (rsi/sma/vol 부족 감지) | ✅ live | price<15 / <55 / <125 경고 |
+
 ---
 
 ## 16. 블룸버그 갭 (미구현)

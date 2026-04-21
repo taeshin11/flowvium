@@ -601,7 +601,7 @@
 ## 16. 어드민 로그 (`/admin/logs`)
 
 **파일**: `src/components/pages/AdminLogsPage.tsx`  
-**데이터**: `GET /api/admin/logs` (Redis `flowvium:log:recent`, 최대 500건) + `GET /api/admin/health`
+**데이터**: `GET /api/admin/logs` (Redis `flowvium:log:recent`, 최대 500건) + `GET /api/admin/health` + `GET /api/admin/metrics-health`
 
 - 구조화 로그 뷰어 (레벨별 색상: debug / info / warn / error)
 - 로그 전체 지우기 버튼 (`DELETE /api/admin/logs`)
@@ -610,9 +610,17 @@
   - 커밋 SHA / 브랜치 / 배포ID / 리전 / env
   - 유료 API 활성 상태 (UW / Polygon / TwelveData / Gemini / AV / vLLM)
   - **트래킹 캐시 키 16개** (populated/missing 카운트)
-    - 정적: insider-trades, ownership-alerts, nport-holdings, options-flow, block-trades, korea-flow, short-interest, market-caps, fg:v3:SPY, 13f-signals, latest-updates
+    - 정적: insider-trades, ownership-alerts, nport-holdings, options-flow, block-trades, korea-flow, short-interest, market-caps, fg:v4:SPY, 13f-signals, latest-updates
     - 동적(날짜/시간 변수): capital-flows:v5(yahoo/twelve), macro-indicators:v4, fedwatch:v1, credit-balance:v2
   - 로그 버퍼 상태 (error/warn 수)
+- **Metrics Status 카드** (신규) — 개별 수치별 주기 헬스
+  - 30분 크론 `/api/cron/verify-metrics` 가 저장한 스냅샷 표시
+  - 요약 4칸: 정상(ok) · Degraded · Error · 전체
+  - 그룹 필터 (fear-greed / capital-flows / macro / fedwatch / credit / cache)
+  - "Verify now" 버튼 — 크론 주기 기다리지 않고 즉시 재검증
+  - 개별 지표 카드 (error 먼저, degraded, ok 순 정렬)
+    - 각 행: 지표명 · 값 · 소스 · 상태 아이콘 (✕/⚠/✓)
+    - tooltip: lastError / details JSON
 
 ---
 
@@ -662,6 +670,9 @@
 | `/api/osint/corporate` | OpenCorporates | 캐시 |
 | `/api/collect` | Google Sheets Webhook | — |
 | `/api/admin/logs` | Redis `flowvium:log:recent` | — |
+| `/api/admin/health` | Redis probe + env 검사 | — |
+| `/api/admin/metrics-health` | Redis `flowvium:metrics-health:v1` | 2h |
+| `/api/cron/verify-metrics` | 자기 API 순회 probe → Redis 저장 | 2h |
 
 ---
 
@@ -673,6 +684,7 @@
 | `cron/update-signals` | 매일 02:00 UTC | EDGAR 13F 파싱 → Redis 저장 → Alpha Vantage 뉴스갭 갱신 → ISR revalidate |
 | `cron/update-credit-balance` | 스케줄 | FRED + TWSE 신용잔고 갱신 → ISR revalidate |
 | `cron/daily-brief` | 스케줄 | Redis bust → AI 브리프 재생성 |
+| `cron/verify-metrics` | 매 30분 | 5개 엔드포인트 + 14개 캐시 키 probe → 개별 수치 상태 스냅샷 저장 (F&G 국가별 · Capital Flows 자산별 · Macro 지표별 · FedWatch · Credit) |
 
 ---
 
