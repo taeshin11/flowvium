@@ -50,7 +50,7 @@ You understand hidden structural forces: regulatory capture, Cantillon effect, d
 military-industrial complex, sovereign wealth, crisis-as-wealth-transfer.
 Analysis type: ${type || 'general'}`;
 
-    const { text, source } = await callAI(prompt, {
+    const { text, source, attempts } = await callAI(prompt, {
       systemPrompt,
       maxTokens: 1600,
       temperature: 0.7,
@@ -59,9 +59,21 @@ Analysis type: ${type || 'general'}`;
     });
 
     if (!text) {
-      return NextResponse.json({
-        analysis: 'AI analysis is currently unavailable.',
-      });
+      // 체인 전체 실패 — attempts[] 에서 구체 원인 추출해 사용자에 명시
+      const groq = attempts?.find((a) => a.provider === 'groq');
+      let reason = 'AI analysis is currently unavailable.';
+      if (groq?.status === 429 && typeof groq.error === 'string') {
+        if (groq.error.includes('tokens per day')) {
+          reason = 'AI 일일 토큰 한도 소진 (GROQ 100k/일). UTC 00:00 리셋 예정.';
+        } else if (groq.error.includes('tokens per minute')) {
+          reason = 'AI 분당 토큰 한도 일시 초과. 1분 내 재시도 가능.';
+        } else {
+          reason = 'AI 요청 한도 초과.';
+        }
+      } else if (!attempts?.length) {
+        reason = 'No AI provider configured (VLLM_URL / GROQ_API_KEY / GEMINI_API_KEY 모두 미설정).';
+      }
+      return NextResponse.json({ analysis: reason, exhausted: true });
     }
     const analysis = text;
     logger.info('api.ai', 'analysis_source', { source, ticker, type });
