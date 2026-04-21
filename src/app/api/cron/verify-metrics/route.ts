@@ -113,10 +113,16 @@ async function verifyFearGreed(base: string): Promise<MetricItem[]> {
     const id = String(entry.id ?? '?');
     const score = typeof entry.score === 'number' ? entry.score : null;
     const quality = entry.dataQuality as string | undefined;
+    const degraded = (entry.degradedFactors as string[] | undefined) ?? [];
+    // 자산 카테고리(gold/tech/bonds/etc)는 fear-greed native 원지수가 존재하지 않는
+    // 것이 설계상 기본값이므로 'no_native_index' 단독은 degradation 이 아니라 정상.
+    // ETF composite 자체가 full 이면 ok 로 승격.
+    const onlyNoNative = degraded.length === 1 && degraded[0] === 'no_native_index';
+    const effectiveQuality = onlyNoNative ? 'full' : quality;
     const status: MetricItem['status'] =
       score == null ? 'error' :
-      quality === 'insufficient' ? 'error' :
-      quality === 'partial' ? 'degraded' :
+      effectiveQuality === 'insufficient' ? 'error' :
+      effectiveQuality === 'partial' ? 'degraded' :
       'ok';
     items.push({
       key: `fg.asset.${id}`,
@@ -124,7 +130,7 @@ async function verifyFearGreed(base: string): Promise<MetricItem[]> {
       group: 'fear-greed',
       status, value: score,
       source: entry.source as string | undefined,
-      details: { level: entry.level, dataQuality: quality },
+      details: { level: entry.level, dataQuality: quality, degradedFactors: degraded },
     });
   }
   return items;

@@ -42,21 +42,22 @@ const KRX_HEADERS = {
   'Accept': 'application/json, text/plain, */*',
 };
 
-/** Fetch today's (or latest trading day's) KRX investor-type trading data. */
-async function fetchKrxFlow(market: 'KOSPI' | 'KOSDAQ'): Promise<KoreaFlowEntry[]> {
-  const trdDd = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, '');
+/** Format a KST date (offset +9h from current) as YYYYMMDD, optionally with a day-offset. */
+function kstDateStr(daysAgo = 0): string {
+  const ts = Date.now() + 9 * 3600000 - daysAgo * 86400000;
+  return new Date(ts).toISOString().slice(0, 10).replace(/-/g, '');
+}
 
-  // KRX uses a two-step flow: POST form data to getJsonData.cmd
+async function fetchKrxFlowForDate(market: 'KOSPI' | 'KOSDAQ', trdDd: string): Promise<KoreaFlowEntry[]> {
   const body = new URLSearchParams({
     bld: 'dbms/MDC/STAT/standard/MDCSTAT02301',
     mktId: market === 'KOSPI' ? 'STK' : 'KSQ',
-    invstTpCd: '9000',  // all investor types
+    invstTpCd: '9000',
     trdDd,
     share: '1',
     money: '1',
     csvxls_isNo: 'false',
   });
-
   const start = Date.now();
   try {
     const res = await fetch('https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd', {
@@ -67,12 +68,12 @@ async function fetchKrxFlow(market: 'KOSPI' | 'KOSDAQ'): Promise<KoreaFlowEntry[
       signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) {
-      logger.warn('krx.flow', 'http_error', { market, status: res.status, durationMs: Date.now() - start });
+      logger.warn('krx.flow', 'http_error', { market, trdDd, status: res.status, durationMs: Date.now() - start });
       return [];
     }
     const json = await res.json();
     const rows = (json?.output ?? []) as Array<Record<string, string>>;
-    logger.info('krx.flow', 'fetched', { market, rows: rows.length, durationMs: Date.now() - start });
+    logger.info('krx.flow', 'fetched', { market, trdDd, rows: rows.length, durationMs: Date.now() - start });
     return rows.map(r => ({
       ticker: r.ISU_SRT_CD,
       name: r.ISU_ABBRV,
@@ -84,9 +85,24 @@ async function fetchKrxFlow(market: 'KOSPI' | 'KOSDAQ'): Promise<KoreaFlowEntry[
       changePct: Number((r.FLUC_RT ?? '0').replace(/,/g, '')) || null,
     })).filter(e => e.ticker && e.name);
   } catch (err) {
-    logger.error('krx.flow', 'fetch_exception', { market, error: err, durationMs: Date.now() - start });
+    logger.error('krx.flow', 'fetch_exception', { market, trdDd, error: err, durationMs: Date.now() - start });
     return [];
   }
+}
+
+/**
+ * Fetch KRX flow with trading-day fallback.
+ * 한국은 장 시작 전(09:00 KST 이전) / 주말 / 공휴일에 당일 데이터가 비어 있다.
+ * 최근 7거래일까지 역으로 스캔해서 첫 번째 non-empty 결과 사용.
+ * Returns {entries, trdDd} so caller knows which date produced the data.
+ */
+async function fetchKrxFlow(market: 'KOSPI' | 'KOSDAQ'): Promise<{ entries: KoreaFlowEntry[]; trdDd: string }> {
+  for (let daysAgo = 0; daysAgo <= 7; daysAgo++) {
+    const trdDd = kstDateStr(daysAgo);
+    const entries = await fetchKrxFlowForDate(market, trdDd);
+    if (entries.length > 0) return { entries, trdDd };
+  }
+  return { entries: [], trdDd: kstDateStr(0) };
 }
 
 export async function GET(req: Request) {
@@ -109,7 +125,10 @@ export async function GET(req: Request) {
     fetchKrxFlow('KOSDAQ'),
   ]);
 
-  const all = [...kospi, ...kosdaq];
+  const all = [...kospi.entries, ...kosdaq.entries];
+  // pick the more recent trdDd (numeric comparison on YYYYMMDD works)
+  const actualTradingDay = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
+  const tradingDayFmt = `${actualTradingDay.slice(0, 4)}-${actualTradingDay.slice(4, 6)}-${actualTradingDay.slice(6, 8)}`;
 
   // Top-N by absolute foreigner net buy
   const topForeignBuy = [...all]
@@ -131,7 +150,7 @@ export async function GET(req: Request) {
 
   const payload = {
     updatedAt: new Date().toISOString(),
-    tradingDay: new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10),
+    tradingDay: tradingDayFmt,
     topForeignBuy,
     topForeignSell,
     topInstBuy,

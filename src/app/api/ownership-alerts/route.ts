@@ -19,6 +19,12 @@ const CACHE_TTL = 2 * 60 * 60;
 
 export const maxDuration = 60;
 
+// Module-level fallback when Upstash env vars are unset. Persists across
+// requests while the function instance stays warm. Prevents quiet EDGAR
+// 10-min windows from wiping visible results for Redis-less environments.
+let MEMORY_CACHE: { alerts: OwnershipAlert[]; expiresAt: number } | null = null;
+const MEMORY_TTL_MS = 2 * 60 * 60 * 1000;
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -44,6 +50,14 @@ export async function GET(req: Request) {
     } catch (err) { logger.warn('api.ownership-alerts', 'cache_read_error', { error: err }); }
   }
 
+  // Memory cache fallback (Upstash 미설정 시).
+  if (!redis && !force && MEMORY_CACHE && MEMORY_CACHE.expiresAt > Date.now() && MEMORY_CACHE.alerts.length > 0) {
+    const cached = MEMORY_CACHE.alerts;
+    const filtered = tickerFilter ? cached.filter(a => a.ticker === tickerFilter) : cached;
+    logger.info('api.ownership-alerts', 'memory_cache_hit', { total: cached.length, filtered: filtered.length });
+    return NextResponse.json({ items: filtered, cached: true, cacheLayer: 'memory', total: cached.length });
+  }
+
   const alerts = await fetchRecentOwnershipAlerts({ minPercent: 5 });
 
   // EDGAR getcurrent RSS only surfaces filings from the last ~10 minutes.
@@ -53,6 +67,7 @@ export async function GET(req: Request) {
   // On empty fetch, fall back to whatever we cached last.
   if (alerts.length > 0) {
     await loggedRedisSet(redis, 'api.ownership-alerts', CACHE_KEY, alerts, { ex: CACHE_TTL });
+    if (!redis) MEMORY_CACHE = { alerts, expiresAt: Date.now() + MEMORY_TTL_MS };
   } else if (redis) {
     logger.info('api.ownership-alerts', 'empty_fetch_preserving_prior');
     try {
@@ -68,6 +83,19 @@ export async function GET(req: Request) {
         });
       }
     } catch (err) { logger.warn('api.ownership-alerts', 'prior_read_error', { error: err }); }
+  } else if (MEMORY_CACHE && MEMORY_CACHE.alerts.length > 0) {
+    // No Redis + empty fetch — use memory cache (expired or not, still preserves visible state)
+    const prior = MEMORY_CACHE.alerts;
+    const priorFiltered = tickerFilter ? prior.filter(a => a.ticker === tickerFilter) : prior;
+    logger.info('api.ownership-alerts', 'memory_cache_preserve', { total: prior.length });
+    return NextResponse.json({
+      items: priorFiltered,
+      cached: true,
+      cacheLayer: 'memory',
+      total: prior.length,
+      note: 'EDGAR empty window — returning prior in-memory snapshot',
+      durationMs: Date.now() - reqStart,
+    });
   }
 
   const filtered = tickerFilter ? alerts.filter(a => a.ticker === tickerFilter) : alerts;

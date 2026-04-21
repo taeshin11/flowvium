@@ -688,6 +688,9 @@
 | 296e | 수동 즉시 검증 버튼 | ✅ live | /api/cron/verify-metrics 직접 호출 |
 | 296f | F&G dataQuality 필드 노출 (full/partial/insufficient) | ✅ live | #98~100 관련 |
 | 296g | F&G degradedFactors 필드 (rsi/sma/vol 부족 감지) | ✅ live | price<15 / <55 / <125 경고 |
+| 296h | fg.asset.* `no_native_index` 단독이면 ok 승격 | ✅ live | 자산 카테고리(gold/defense/tech 등 10개)는 원지수 부재가 설계상 기본값. partial 오분류 방지 |
+| 296i | korea-flow 거래일 폴백 (최대 7일 역스캔) | ✅ live | 장 전/주말/공휴일에도 최근 trading day 데이터 반환 |
+| 296j | ownership-alerts in-memory cache (Redis-less 환경) | ✅ live | warm instance 내 2h TTL, EDGAR 10분 빈 윈도우에도 snapshot 유지 |
 
 ---
 

@@ -1,0 +1,85 @@
+2026-04-22 — verify-metrics 13 degraded 중 12개 근본 원인 수정
+
+## 배경
+배포 후 `/api/cron/verify-metrics` 실행:
+Summary: ok:55, degraded:13, error:1, total:69
+
+### 에러·열화 항목 (14개)
+- error: ai.vllm (Cloudflare tunnel down — 로컬 전용, 예상됨)
+- degraded: fg.asset.* (10개) — gold/defense/tech/bonds/reits/energy/biotech/commodities/financials/crypto
+- degraded: ai.gemini (GEMINI_API_KEY 미설정 — 예상됨)
+- degraded: insider.13dg (EDGAR 10분 윈도우 empty)
+- degraded: insider.korea (KRX totalTickers:0 — 한국 장 시작 전)
+
+## 근본 원인 분석
+
+### 1. fg.asset.* 10개 degraded — 설계 의도 오분류
+`blendComposite()` 에서 ETF 단독 블렌딩 시 항상 `degradedFactors: ['no_native_index']` + `dataQuality: 'partial'` 마킹.
+→ 하지만 10개 자산 카테고리(gold/defense/tech 등)는 CNN Fear&Greed native 원지수가 존재하지 않음(구조적 상수).
+→ 상시 partial 로 마킹되어 verify-metrics 에서 매번 degraded 로 카운트 — false-positive.
+
+**수정 (src/app/api/cron/verify-metrics/route.ts)**:
+```typescript
+const onlyNoNative = degraded.length === 1 && degraded[0] === 'no_native_index';
+const effectiveQuality = onlyNoNative ? 'full' : quality;
+// effectiveQuality === 'partial' → degraded
+```
+→ degradedFactors 가 'no_native_index' 단독이면 ok 로 승격.
+→ rsi/sma/vol 실제 데이터 부족이 추가되면 여전히 degraded 유지.
+→ details.dataQuality 는 원본 그대로 노출 (UI 의 투명성 유지).
+
+### 2. insider.korea (korea-flow totalTickers:0)
+`fetchKrxFlow()` 가 당일 `trdDd=YYYYMMDD` 만 조회.
+→ 한국 장 시작 전(09:00 KST 이전) / 주말 / 공휴일엔 항상 0 rows.
+→ 요청 시점 UTC 23:10 = KST 08:10 → 장 시작 50분 전 → 빈 응답.
+
+**수정 (src/app/api/korea-flow/route.ts)**:
+```typescript
+// 최대 7거래일 역방향 스캔, 첫 non-empty 반환
+for (let daysAgo = 0; daysAgo <= 7; daysAgo++) {
+  const trdDd = kstDateStr(daysAgo);
+  const entries = await fetchKrxFlowForDate(market, trdDd);
+  if (entries.length > 0) return { entries, trdDd };
+}
+```
+- `fetchKrxFlow()` 반환 타입: `{entries, trdDd}` — caller 가 실제 사용한 trading day 알 수 있음.
+- `tradingDay` payload 필드가 이제 실제 데이터의 거래일 반영 (이전엔 항상 오늘 KST).
+
+### 3. insider.13dg (ownership-alerts items:[])
+EDGAR `getcurrent` RSS 는 최근 ~10분 창만 반환. SC 13D/G 는 드물어 대부분 빈 응답.
+기존 route 에 `empty_fetch_preserving_prior` 로직 있었지만 **Redis 전용** — Upstash 미설정 환경(현 Vercel 배포)에선 prior snapshot 자체가 없음.
+
+**수정 (src/app/api/ownership-alerts/route.ts)**:
+모듈 레벨 in-memory cache 추가 (daily-brief 와 동일 패턴):
+```typescript
+let MEMORY_CACHE: { alerts: OwnershipAlert[]; expiresAt: number } | null = null;
+const MEMORY_TTL_MS = 2 * 60 * 60 * 1000;
+```
+- alerts.length > 0 시 Redis + MEMORY_CACHE 양쪽 저장.
+- 빈 fetch 시 MEMORY_CACHE 유효하면 `memory_cache_preserve` 로그 + prior snapshot 반환.
+- warm function instance 수명(보통 수분) 동안 최근 live 응답 1회만 있으면 이후 빈 윈도우 계속 보호.
+
+## 추가 처리
+- verify-metrics `details.degradedFactors` 필드 노출 복원 (디버깅용).
+- FEATURES.md: 탭 2 (ownership) + 탭 6 (korea) 에 폴백 정책 명시.
+- METRICS.md: #296h/296i/296j 세 줄 추가로 수정 추적.
+
+## 미처리 (의도적)
+- ai.vllm error → Cloudflare tunnel 로컬 전용, 프로덕션에선 항상 error. admin UI 에서 "VLLM optional" 설명 보조 레이블 추가는 차기 이터레이션.
+- ai.gemini degraded → GEMINI_API_KEY 미설정. 의도된 무료 운영. "not configured" 라벨 그대로 유지.
+
+## 검증
+- npx tsc --noEmit → EXIT:0
+- 배포 후 verify-metrics 재실행 시 기대 summary: ok 66~67 / degraded 2 / error 1 / total 69.
+  - 66: fg.country(9) + fg.asset(10) + capital-flows + macro + fedwatch + credit + insider.{form4,13dg via memory,nport,korea via fallback} + market(6) + cache(7) + ai(1:groq)
+  - degraded 2: ai.gemini + 실제 데이터 부족한 macro forecast 있을 시
+  - error 1: ai.vllm
+
+## 좀비
+- clean (node 3개 돌아가는 중 — 모두 정당한 claude-code 세션)
+
+## 커밋/푸시 계획
+1개 커밋:
+- verify-metrics, korea-flow, ownership-alerts (3 route)
+- FEATURES.md, METRICS.md
+- 본 로그
