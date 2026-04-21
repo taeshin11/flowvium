@@ -1,0 +1,61 @@
+2026-04-22 — GROQ tokens-per-day(TPD) 한도 발견 = daily-brief AI 실패 근본 원인
+
+## 진단 경로
+debug.ai.attempts[] 추가 후 probe:
+```json
+{
+  "provider": "groq", "ok": false, "status": 429,
+  "error": "Rate limit reached for model llama-3.3-70b-versatile in organization ... service tier on_demand on tokens per day (TPD): Limit 100000, Used 99590",
+  "durationMs": 79
+}
+```
+
+## 완전한 그림
+GROQ 무료 티어는 **2개 독립 한도**:
+1. RPD (Requests Per Day): 14,400 건
+2. **TPD (Tokens Per Day): 100,000 토큰** ← 훨씬 빨리 소진
+
+이번 세션에서 iteration 많이 돌며 daily-brief(1800 max_tokens × 수십 회) + flow-analysis + translate + news-cascade 등이 토큰 누적 → 99,590/100,000 소진 → 429.
+
+### 왜 verify-metrics GROQ probe 는 통과했는가?
+max_tokens=1 + content="ok" → 실제 소비 ~5 토큰/호출. TPD 한도에 거의 영향 없음.
+**즉 probe 자체는 지나치게 싸서 quota 소진을 탐지 못 함** — 기존 probe의 맹점.
+
+## 수정 (src/app/api/cron/verify-metrics/route.ts)
+verifyAIProviders 의 GROQ probe 확장:
+- 응답 헤더 x-ratelimit-* 에서 TPD/RPD limit+remaining 읽음
+- tpdPctUsed >= 90% 면 status='degraded' (사전 경보)
+- value 에 "TPD 99.6% used (410/100000 left)" 표시
+- details 에 tpdLimit/tpdRemaining/rpdLimit/rpdRemaining 기록
+
+효과:
+- 토큰 소진 임박 시 30분 크론마다 감지 → admin/logs 에서 즉시 경고
+- 완전 소진(429) 은 기존대로 degraded 분류 + 'quota exhausted' 문구
+
+## 근본 해결 옵션 (사용자 측, 코드 외)
+1. GEMINI_API_KEY 설정 (체인 폴백 활성화, 유료 소액)
+2. vLLM 터널 복원 (무료 로컬)
+3. GROQ 유료 업그레이드 (TPD 1,000,000+)
+4. UTC 00:00 TPD 리셋 대기 (24h 단기 해결)
+
+daily-brief 는 fallbackBrief 가 실제 수치 기반 bullets 생성하므로 AI 소진 시 데미지 최소화 (이미 구조적 대응 존재).
+
+## 이번 세션 누적 개선 총정리
+1. flow-analysis + news-cascade + translate + blog-translate 통합 AI 체인 전환
+2. verify-metrics earnings → Finnhub 직통 프로브
+3. 10개 파일 redis.set → loggedRedisSet
+4. EDGAR getcurrent 빈 응답 기존 스냅샷 보존
+5. daily-brief v4→v5 cache key
+6. daily-brief UPSTASH-less HTTP 폴백 (근본 대응 해결)
+7. daily-brief country.label 필드 수정
+8. daily-brief AI maxTokens 500→1800 (truncation 해결)
+9. verify-metrics GROQ /models→/chat/completions probe
+10. debug diagnostics (?debug=1)로 root cause 역추적
+11. AI provider cascade attempts[] 진단 배열
+12. GROQ TPD 헤더 기반 사전 경보 (이번)
+
+## 검증
+- npx tsc --noEmit → 0 errors
+
+## 좀비
+- clean

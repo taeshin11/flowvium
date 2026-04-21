@@ -287,8 +287,8 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
   }
 
   // 2. GROQ — 실제 /chat/completions 호출 (quota 소진 감지 위해 /models 대신)
-  //    /models 는 무료 pings 이라 quota 소진 시에도 200 반환 → false-positive
-  //    chat/completions 은 quota 소진 시 429 즉시 반환. 1-token 요청이라 비용 무시 가능.
+  //    GROQ 는 tokens-per-day (TPD) 100,000 한도가 있음 — 요청 수(14,400)보다 먼저 소진됨.
+  //    /chat/completions 응답 헤더의 x-ratelimit-* 을 읽어 남은 토큰 예측·경보.
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (groqKey) {
     const t0 = Date.now();
@@ -304,12 +304,43 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
         }),
         signal: AbortSignal.timeout(8000),
       });
+      // Parse rate-limit headers (GROQ 표준)
+      const tpdLimit = Number(res.headers.get('x-ratelimit-limit-tokens') ?? 0);
+      const tpdRem = Number(res.headers.get('x-ratelimit-remaining-tokens') ?? 0);
+      const rpdLimit = Number(res.headers.get('x-ratelimit-limit-requests') ?? 0);
+      const rpdRem = Number(res.headers.get('x-ratelimit-remaining-requests') ?? 0);
+      const tpdPctUsed = tpdLimit > 0 ? ((tpdLimit - tpdRem) / tpdLimit) * 100 : 0;
+
+      // 판단:
+      //   429 → degraded (quota exhausted)
+      //   !res.ok(non-429) → error
+      //   tpdPctUsed >= 90 → degraded (near exhaustion, 경보)
+      //   otherwise ok
+      let status: MetricItem['status'];
+      let value: string;
+      if (res.status === 429) {
+        status = 'degraded';
+        value = 'quota exhausted';
+      } else if (!res.ok) {
+        status = 'error';
+        value = `HTTP ${res.status}`;
+      } else if (tpdLimit > 0 && tpdPctUsed >= 90) {
+        status = 'degraded';
+        value = `TPD ${tpdPctUsed.toFixed(1)}% used (${tpdRem}/${tpdLimit} left)`;
+      } else {
+        status = 'ok';
+        value = tpdLimit > 0 ? `${Date.now() - t0}ms (TPD ${tpdRem}/${tpdLimit})` : `${Date.now() - t0}ms`;
+      }
       items.push({
         key: 'ai.groq', label: 'GROQ llama-3.3-70b (클라우드 무료)', group: 'ai',
-        status: res.ok ? 'ok' : res.status === 429 ? 'degraded' : 'error',
-        value: res.ok ? `${Date.now() - t0}ms` : res.status === 429 ? 'quota exhausted' : `HTTP ${res.status}`,
-        source: 'groq',
-        details: { durationMs: Date.now() - t0, status: res.status, probe: 'chat/completions' },
+        status, value, source: 'groq',
+        details: {
+          durationMs: Date.now() - t0,
+          status: res.status,
+          probe: 'chat/completions',
+          tpdLimit, tpdRemaining: tpdRem, tpdPctUsed: Math.round(tpdPctUsed * 10) / 10,
+          rpdLimit, rpdRemaining: rpdRem,
+        },
       });
     } catch (err) {
       items.push({
