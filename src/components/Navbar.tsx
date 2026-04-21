@@ -9,6 +9,7 @@ import { companyNamesI18n } from '@/data/company-names-i18n';
 
 const navLinks = [
   { href: '/report', key: 'report' },
+  { href: '/earnings', key: 'earnings' },
   { href: '/insider', key: 'insider' },
   { href: '/heatmap', key: 'heatmap' },
   { href: '/screener', key: 'screener' },

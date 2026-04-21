@@ -18,6 +18,7 @@
     "intelligence": "Intelligence",
     "osint": "Money Trail",
     "report": "AI Report",
+    "earnings": "Earnings",
     "companySearchShort": "Search companies...",
     "companySearchFull": "Company name or ticker (e.g. NVIDIA, NVDA)",
     "noResults": "No results",

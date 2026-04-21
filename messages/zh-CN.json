@@ -18,6 +18,7 @@
     "intelligence": "智能分析",
     "osint": "资金追踪",
     "report": "AI报告",
+    "earnings": "财报",
     "companySearchShort": "搜索公司...",
     "companySearchFull": "公司名称或股票代码（例：NVIDIA, NVDA）",
     "noResults": "无搜索结果",

@@ -651,7 +651,17 @@
 | 295 | warn count | ✅ live |
 | 296 | 버퍼 oldest 타임스탬프 | ✅ live |
 
-### 15-5. Metrics Status (신규 — 2026-04-21)
+### 15-5a. AI 체인 헬스 모니터링 (2026-04-22)
+
+`/api/cron/verify-metrics` 매 30분 cron이 AI 제공자를 순서대로 reachability probe.
+
+| # | 지표 | 상태 | 주기 | 비고 |
+|---|------|------|------|------|
+| 295a | vLLM EXAONE 로컬 reachability | 🔄 cron | 30m | `${VLLM_URL}/v1/models` ping. 터널 죽으면 즉시 error |
+| 295b | GROQ llama-3.3-70b reachability | 🔄 cron | 30m | `/v1/models` ping. 429 감지 (quota 소진) |
+| 295c | Gemini API 키 설정 | 🔄 cron | 30m | 비용 방지로 실제 추론 호출은 안 함 |
+
+### 15-5. Metrics Status (2026-04-21)
 
 30분 크론 `/api/cron/verify-metrics` 가 사이트 전체 수치를 순회 probe 해서
 개별 상태를 `flowvium:metrics-health:v1` 에 저장. `/admin/logs` 페이지 상단에
@@ -689,15 +699,17 @@
 | 301 | TIPS 실질금리 곡선 | ⛔ missing | FRED |
 | 302 | Breakeven 인플레이션 곡선 | ⛔ missing | 파생 |
 
-### 16-3. 실적 캘린더 — 3순위 (블룸버그 EE)
+### 16-3. 실적 캘린더 — ✅ 완료 (2026-04-22)
+
+Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대응.
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
-| 303 | 이번주 발표 예정 티커 | ⛔ missing | Finnhub (무료) |
-| 304 | EPS 컨센서스 | ⛔ missing | Finnhub |
-| 305 | 매출 컨센서스 | ⛔ missing | Finnhub |
-| 306 | 과거 Surprise 이력 | ⛔ missing | Finnhub |
-| 307 | 발표 후 주가 반응 (IV Crush 등) | ⛔ missing | 파생 |
+| 303 | 이번주 발표 예정 티커 | 💾 cached | Finnhub (2h) |
+| 304 | EPS 컨센서스 | 💾 cached | Finnhub |
+| 305 | 매출 컨센서스 | 💾 cached | Finnhub |
+| 306 | 과거 Surprise 이력 | 💾 cached | Finnhub (epsSurprise %) |
+| 307 | 발표 시간 (장전/장중/장후) | 💾 cached | Finnhub hour field |
 
 ### 16-4. 워치리스트 + 알림 — 4순위
 

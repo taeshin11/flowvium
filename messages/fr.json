@@ -18,6 +18,7 @@
     "intelligence": "Intelligence",
     "osint": "Pistage",
     "report": "Rapport IA",
+    "earnings": "Résultats",
     "companySearchShort": "Rechercher des entreprises...",
     "companySearchFull": "Nom ou ticker (ex: NVIDIA, NVDA)",
     "noResults": "Aucun résultat",

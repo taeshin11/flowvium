@@ -18,6 +18,7 @@
     "intelligence": "インテリジェンス",
     "osint": "資金追跡",
     "report": "AIレポート",
+    "earnings": "決算",
     "companySearchShort": "企業を検索...",
     "companySearchFull": "企業名またはティッカー検索 (例: NVIDIA, NVDA)",
     "noResults": "検索結果なし",

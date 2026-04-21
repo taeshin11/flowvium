@@ -43,6 +43,7 @@
 | 메뉴 레이블 | 경로 |
 |------------|------|
 | AI 리포트 | `/report` |
+| 실적 | `/earnings` |
 | 인사이더 | `/insider` |
 | 히트맵 | `/heatmap` |
 | 스크리너 | `/screener` |
@@ -482,6 +483,31 @@
 
 ---
 
+## 12b. 실적 캘린더 (`/earnings`) — 신규
+
+**파일**: `src/components/pages/EarningsPage.tsx`  
+**데이터**: `/api/earnings` (Finnhub 무료 티어 60 req/min)  
+**블룸버그 대응**: EE (Earnings Events)
+
+### 12b-1. 타임프레임 프리셋
+- 오늘 / 이번 주 / 2주 / 1개월
+
+### 12b-2. 요약 카드 (4열)
+- 전체 건수 · 발표 완료 · 예상 상회(Beat) · 예상 하회(Miss)
+
+### 12b-3. 필터
+- 티커 검색 (NVDA, TSLA 등)
+- 정렬: 날짜순 / Surprise 크기순
+
+### 12b-4. 결과 테이블
+- 컬럼: 날짜 · 시간(장전/장중/장후 뱃지) · 티커(→ CompanyPage 링크) · 분기
+- EPS 예상 / EPS 실제 / EPS Surprise %
+- 매출 예상 / 매출 실제 / 매출 Surprise %
+- Yahoo Finance 외부 링크
+- 색상 규칙: Beat(초록), Miss(빨강)
+
+---
+
 ## 13. AI 리포트 (`/report`)
 
 **파일**: `src/components/pages/ReportPage.tsx`  
@@ -673,6 +699,7 @@
 | `/api/admin/health` | Redis probe + env 검사 | — |
 | `/api/admin/metrics-health` | Redis `flowvium:metrics-health:v1` | 2h |
 | `/api/cron/verify-metrics` | 자기 API 순회 probe → Redis 저장 | 2h |
+| `/api/earnings` | Finnhub 실적 캘린더 (무료 티어 60 req/min) | 2h |
 
 ---
 

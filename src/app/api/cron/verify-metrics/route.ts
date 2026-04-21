@@ -250,6 +250,138 @@ async function verifyCreditBalance(base: string): Promise<MetricItem[]> {
   });
 }
 
+// ── AI 체인 헬스 (vLLM / GROQ / Gemini) ────────────────────────────────────
+// 중요: 환경변수 존재만 체크하지 말고, 실제 reachability를 ping.
+async function verifyAIProviders(): Promise<MetricItem[]> {
+  const items: MetricItem[] = [];
+
+  // 1. vLLM — VLLM_URL이 설정돼 있으면 /models 엔드포인트 ping
+  const vllmUrl = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '');
+  if (vllmUrl) {
+    const t0 = Date.now();
+    try {
+      const res = await fetch(`${vllmUrl.replace(/\/v1$/, '')}/v1/models`, {
+        signal: AbortSignal.timeout(6000),
+      });
+      items.push({
+        key: 'ai.vllm', label: 'vLLM EXAONE (로컬)', group: 'ai',
+        status: res.ok ? 'ok' : 'degraded',
+        value: res.ok ? `${Date.now() - t0}ms` : `HTTP ${res.status}`,
+        source: 'tunnel',
+        details: { url: vllmUrl, status: res.status, durationMs: Date.now() - t0 },
+      });
+    } catch (err) {
+      items.push({
+        key: 'ai.vllm', label: 'vLLM EXAONE (로컬)', group: 'ai',
+        status: 'error',
+        lastError: err instanceof Error ? err.message : String(err),
+        details: { url: vllmUrl, durationMs: Date.now() - t0 },
+      });
+    }
+  } else {
+    items.push({
+      key: 'ai.vllm', label: 'vLLM EXAONE (로컬)', group: 'ai',
+      status: 'degraded', value: 'not configured',
+      details: { hint: 'VLLM_URL 미설정 (cloudflared 터널 정지 상태 가능)' },
+    });
+  }
+
+  // 2. GROQ — 가벼운 /models 호출
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  if (groqKey) {
+    const t0 = Date.now();
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { Authorization: `Bearer ${groqKey}` },
+        signal: AbortSignal.timeout(6000),
+      });
+      items.push({
+        key: 'ai.groq', label: 'GROQ llama-3.3-70b (클라우드 무료)', group: 'ai',
+        status: res.ok ? 'ok' : res.status === 429 ? 'degraded' : 'error',
+        value: res.ok ? `${Date.now() - t0}ms` : `HTTP ${res.status}`,
+        source: 'groq',
+        details: { durationMs: Date.now() - t0, status: res.status },
+      });
+    } catch (err) {
+      items.push({
+        key: 'ai.groq', label: 'GROQ llama-3.3-70b (클라우드 무료)', group: 'ai',
+        status: 'error', lastError: err instanceof Error ? err.message : String(err),
+      });
+    }
+  } else {
+    items.push({
+      key: 'ai.groq', label: 'GROQ llama-3.3-70b (클라우드 무료)', group: 'ai',
+      status: 'degraded', value: 'not configured',
+      details: { hint: 'GROQ_API_KEY 미설정 — https://console.groq.com 무료 발급' },
+    });
+  }
+
+  // 3. Gemini — API 키 존재만 체크 (실제 추론 호출은 비용 발생)
+  const geminiKey = process.env.GEMINI_API_KEY?.trim();
+  items.push({
+    key: 'ai.gemini', label: 'Gemini 2.5 Flash (유료 폴백)', group: 'ai',
+    status: geminiKey ? 'ok' : 'degraded',
+    value: geminiKey ? 'key configured' : 'not configured',
+    details: { hint: geminiKey ? '체인 최종 폴백으로만 호출됨' : '앞 2개 모두 실패 시 대체 없음' },
+  });
+
+  return items;
+}
+
+// ── 추가 엔드포인트 커버리지 (각 탭의 주 데이터 소스) ──────────────────────
+async function verifyEndpoint(base: string, path: string, key: string, label: string, group: string, checkField?: (data: unknown) => boolean): Promise<MetricItem> {
+  const r = await safeJson(base, path);
+  if (!r.ok) {
+    return { key, label, group, status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+  }
+  if (checkField && !checkField(r.data)) {
+    return { key, label, group, status: 'degraded', value: 'empty payload' };
+  }
+  return { key, label, group, status: 'ok' };
+}
+
+async function verifyInsiderStack(base: string): Promise<MetricItem[]> {
+  return Promise.all([
+    verifyEndpoint(base, '/api/insider-trades', 'insider.form4', 'Insider Form 4 매집', 'insider',
+      (d) => Array.isArray((d as { trades?: unknown[] })?.trades) && ((d as { trades: unknown[] }).trades.length > 0)),
+    verifyEndpoint(base, '/api/ownership-alerts', 'insider.13dg', 'Ownership 13D/13G', 'insider',
+      (d) => Array.isArray((d as { alerts?: unknown[] })?.alerts) && ((d as { alerts: unknown[] }).alerts.length > 0)),
+    verifyEndpoint(base, '/api/nport-holdings', 'insider.nport', 'N-PORT 뮤추얼펀드', 'insider',
+      (d) => Array.isArray((d as { holdings?: unknown[] })?.holdings)),
+    verifyEndpoint(base, '/api/korea-flow', 'insider.korea', '한국 수급 (KRX)', 'insider',
+      (d) => ((d as { totalTickers?: number })?.totalTickers ?? 0) > 0),
+  ]);
+}
+
+async function verifyMarketStack(base: string): Promise<MetricItem[]> {
+  return Promise.all([
+    verifyEndpoint(base, '/api/short-interest', 'market.short', 'Short Interest', 'market',
+      (d) => Array.isArray((d as { entries?: unknown[] })?.entries) && ((d as { entries: unknown[] }).entries.length > 0)),
+    verifyEndpoint(base, '/api/market-heatmap', 'market.heatmap', '시장 히트맵', 'market',
+      (d) => Array.isArray((d as { countries?: unknown[] })?.countries) && ((d as { countries: unknown[] }).countries.length > 0)),
+    verifyEndpoint(base, '/api/market-caps', 'market.caps', '시가총액', 'market'),
+    verifyEndpoint(base, '/api/news-cascade', 'market.news', '뉴스 캐스케이드', 'market',
+      (d) => Array.isArray((d as { articles?: unknown[] })?.articles) && ((d as { articles: unknown[] }).articles.length > 0)),
+  ]);
+}
+
+async function verifyEarnings(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/earnings');
+  if (!r.ok) return [{ key: 'earnings.ALL', label: 'Earnings Calendar', group: 'earnings', status: 'error', lastError: r.error }];
+  const d = r.data as { earnings: unknown[]; warning?: string; count?: number; error?: string };
+  if (d.warning) {
+    return [{ key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings', status: 'degraded', value: 'no API key', details: { warning: d.warning } }];
+  }
+  if (d.error) {
+    return [{ key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings', status: 'error', lastError: d.error }];
+  }
+  return [{
+    key: 'earnings.ALL', label: 'Earnings Calendar (Finnhub)', group: 'earnings',
+    status: (d.earnings?.length ?? 0) > 0 ? 'ok' : 'degraded',
+    value: `${d.earnings?.length ?? 0} events`,
+  }];
+}
+
 async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
   // 각 주요 캐시 키 존재 여부
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
@@ -296,17 +428,21 @@ export async function GET(req: Request) {
   const base = getBaseUrl(req);
   const redis = createRedis();
 
-  // 모든 검증을 병렬 실행
-  const [fg, cf, macro, fw, credit, caches] = await Promise.all([
+  // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적)
+  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
     verifyFedWatch(base).catch((e): MetricItem[] => [{ key: 'fw.ERR', label: 'FW verify throw', group: 'fedwatch', status: 'error', lastError: String(e) }]),
     verifyCreditBalance(base).catch((e): MetricItem[] => [{ key: 'credit.ERR', label: 'Credit verify throw', group: 'credit', status: 'error', lastError: String(e) }]),
+    verifyAIProviders().catch((e): MetricItem[] => [{ key: 'ai.ERR', label: 'AI verify throw', group: 'ai', status: 'error', lastError: String(e) }]),
+    verifyInsiderStack(base).catch((e): MetricItem[] => [{ key: 'insider.ERR', label: 'Insider verify throw', group: 'insider', status: 'error', lastError: String(e) }]),
+    verifyMarketStack(base).catch((e): MetricItem[] => [{ key: 'market.ERR', label: 'Market verify throw', group: 'market', status: 'error', lastError: String(e) }]),
+    verifyEarnings(base).catch((e): MetricItem[] => [{ key: 'earnings.ERR', label: 'Earnings verify throw', group: 'earnings', status: 'error', lastError: String(e) }]),
     redis ? verifyRedisCaches(redis) : Promise.resolve([] as MetricItem[]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...caches];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,
