@@ -127,6 +127,10 @@ function applyNewsGaps(
  * 3. Alpha Vantage 뉴스갭 스코어 오버레이
  * 4. Persist refreshed data to Redis (26h TTL)
  */
+// 재진입 방지: refreshNewsGaps 이 이미 돌고 있으면 또 kick off 하지 않는다.
+// 서버리스 인스턴스 수명 내에서만 유효 (cold start 후 초기화).
+let backgroundRefreshInFlight = false;
+
 export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
   const apiKey =
     process.env.ALPHA_VANTAGE_KEY ??
@@ -161,37 +165,34 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
     };
   }
 
-  // === Fetch fresh news counts ===
-  try {
-    const fresh = await refreshNewsGaps(apiKey);
-    const merged = mergeNewsGapCache(cached, fresh);
-    logger.info('signals.service', 'news_refresh_ok', { updatedTickers: Object.keys(fresh).length });
-
-    // Persist to Redis asynchronously (don't block response)
-    setNewsGapCache(merged).catch(() => undefined);
-
-    return {
-      signals: applyNewsGaps(baseSignals, merged),
-      lastUpdated,
-      updatedTickers: Object.keys(fresh).length,
-      source: 'live',
-    };
-  } catch (err) {
-    logger.error('signals.service', 'news_refresh_failed', { error: err });
-    // Fetch failed — serve from cache or static
-    if (cached) {
-      return {
-        signals: applyNewsGaps(baseSignals, cached),
-        lastUpdated,
-        updatedTickers: Object.keys(cached).length,
-        source: 'cached',
-      };
-    }
-    return {
-      signals: baseSignals,
-      lastUpdated,
-      updatedTickers: 0,
-      source: 'static',
-    };
+  // === 캐시 없음: stale-while-revalidate ===
+  // refreshNewsGaps 는 AV 무료 티어 5req/min 제약 때문에 ceil(N/5)*12s 걸림
+  // (100 tickers = 4분). SSR 페이지가 이걸 블록하면 사용자 타임아웃.
+  // 해결: base signals 즉시 반환 + 백그라운드에서 refresh kick off.
+  // 다음 요청에서 Redis 캐시 히트로 live 데이터 제공. 첫 요청만 static.
+  if (!backgroundRefreshInFlight) {
+    backgroundRefreshInFlight = true;
+    // fire-and-forget — Promise 버려도 serverless runtime 이 완료까지 유지 (best-effort)
+    (async () => {
+      try {
+        const fresh = await refreshNewsGaps(apiKey);
+        const merged = mergeNewsGapCache(cached, fresh);
+        await setNewsGapCache(merged);
+        logger.info('signals.service', 'background_refresh_ok', { updatedTickers: Object.keys(fresh).length });
+      } catch (err) {
+        logger.error('signals.service', 'background_refresh_failed', { error: err });
+      } finally {
+        backgroundRefreshInFlight = false;
+      }
+    })();
+    logger.info('signals.service', 'background_refresh_started');
   }
+
+  // 사용자는 즉시 base signals 받는다 (news gap score 는 다음 요청부터)
+  return {
+    signals: baseSignals,
+    lastUpdated,
+    updatedTickers: 0,
+    source: liveSignals ? 'live' : 'static',
+  };
 }

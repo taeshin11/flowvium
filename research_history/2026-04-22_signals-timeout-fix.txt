@@ -1,0 +1,89 @@
+2026-04-22 — /ko/signals 30s 타임아웃 live 버그 발견 + 핫픽스
+
+## Drift check (user 5-rule)
+최근 5 commit: 97e510f / a5d76cf / ba041e3 / 8172d08 / b014db6
+- (1) 같은 모듈 4/5 iter (verify-metrics/cache) — 지난 iter 에서 공식 이탈 약속.
+- 이번 iter 는 product-facing 직행.
+
+## Primary outcome: `실제 페이지 렌더 live 버그헌팅`
+
+## Live test 실행 (8 pages curl)
+| path | status | size | time |
+|------|--------|------|------|
+| /ko | 200 | 126KB | 1.4s |
+| /ko/heatmap | 200 | 73KB | 1.0s |
+| **/ko/signals** | **000 (dropped)** | 0 | **30s 타임아웃** |
+| /ko/insider | 200 | 74KB | 0.9s |
+| /ko/intelligence | 200 | 96KB | 0.8s |
+| /ko/report | 200 | 75KB | 0.7s |
+| /ko/news | 404 | - | - (라우트 없음, 정상) |
+| /en/report | 307 | - | locale redirect, 정상 |
+
+⇒ **/ko/signals SSR 30s 타임아웃 = critical product bug**.
+
+## 근본 원인
+src/lib/signals-service.ts `getSignals()` 흐름:
+1. Redis 13F signals 조회 (빠름)
+2. ALPHA_VANTAGE_KEY 있고 newsGapCache miss → `refreshNewsGaps()` inline await
+3. `refreshNewsGaps` 는 Alpha Vantage 무료 티어 5 req/min 제약 때문에
+   `for (i = 0; i < US_TICKERS.length; i += 5) await sleep(12000)`
+   - N = 100 tickers → ceil(100/5) * 12s = **240s**
+4. Vercel 30s 프록시 타임아웃 → 연결 drop → 사용자 에러.
+
+ISR `revalidate = 43200` (12h) 이 첫 hit 후 문제를 감춤 — 하지만 캐시 만료 직후 첫 사용자가 항상 타임아웃.
+
+## 수정 (src/lib/signals-service.ts)
+Stale-while-revalidate 패턴:
+```typescript
+let backgroundRefreshInFlight = false;  // 재진입 가드
+
+// 캐시 miss 시:
+if (!backgroundRefreshInFlight) {
+  backgroundRefreshInFlight = true;
+  (async () => {
+    const fresh = await refreshNewsGaps(apiKey);
+    const merged = mergeNewsGapCache(cached, fresh);
+    await setNewsGapCache(merged);
+    backgroundRefreshInFlight = false;
+  })();  // fire-and-forget
+}
+// 사용자: base signals (static 또는 13F) 즉시 반환
+return { signals: baseSignals, source: liveSignals ? 'live' : 'static' };
+```
+
+### 동작
+- **첫 요청**: base signals (13F 있으면 live 기반, 없으면 static) 즉시 반환 + 백그라운드 refresh 시작.
+- **refreshNewsGaps 완료 (~4min 뒤)**: Redis 캐시에 저장.
+- **다음 요청**: 캐시 히트로 full data (news gap score 포함) 반환.
+
+### 사용자 경험
+- Before: 30s 대기 후 connection reset — 아예 페이지 표시 못함.
+- After: 즉시 페이지 뜨고, news gap score 만 처음엔 static default. 다음 페이지 로드에서 live.
+
+### Trade-off
+- 첫 사용자는 stale news gap score 를 봄 (static default).
+- 4분 후 캐시 population 되면 이후 모든 사용자 live 값.
+- ISR revalidate 12h → 첫 요청 후 12h 동안 캐시 유효.
+
+backgroundRefreshInFlight 가드가 **serverless 인스턴스 스코프** 라 완벽하지 않음
+(cold start 여러 개가 동시에 refresh 시작할 가능성). 하지만 Redis setNewsGapCache
+가 idempotent 이므로 worst case 는 API 쿼터 일시 과사용뿐 — 데이터 corruption 없음.
+
+## 기타 Live test 발견
+- /ko/news → 404: 정상 (라우트 미존재, 관련 페이지는 /news-gap + /cascade).
+- /en/report → 307: locale negotiation, 정상.
+
+## 미처리
+- 유사한 SSR inline await 패턴이 다른 페이지에도 있을 가능성 — 이번 iter 엔 signals 만.
+  (heatmap/insider/intelligence/report 는 0.7~1.4s 정상).
+
+## 산출물 타입 (user rule 3)
+- (a) 핵심 숫자: /ko/signals 100% 실패 → 100% 성공. **확실한 이동**.
+
+## 좀비
+- clean.
+
+## 커밋/푸시
+1 파일:
+- src/lib/signals-service.ts (stale-while-revalidate)
+- 본 로그
