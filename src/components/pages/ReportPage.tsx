@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
+import Sparkline from '@/components/Sparkline';
 
 type Timeframe = '1w' | '4w' | '13w';
 
@@ -104,6 +105,8 @@ export default function ReportPage() {
   const [curve,  setCurve]  = useState<KpiState<{ spread: number; inverted: boolean }>>({ loading: true, error: false, value: null });
   const [vix,    setVix]    = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
   const [fomc,   setFomc]   = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
+  // Sparkline data — SPY 30일 종가. Null-safe, 실패해도 pill 자체엔 영향 없음.
+  const [spySpark, setSpySpark] = useState<number[] | null>(null);
 
   const fetchBrief = useCallback(async (timeframe: Timeframe) => {
     setLoading(true);
@@ -169,7 +172,14 @@ export default function ReportPage() {
       setFomc({ loading: false, error: false, value: { label: m.label ?? m.date ?? '?', probCut } });
     }).catch(() => setFomc({ loading: false, error: true, value: null }));
 
-    await Promise.allSettled([pFg, pCap, pMacro, pFed]);
+    // SPY 30d sparkline — independent, non-blocking. 실패 시 그냥 표시 안함.
+    const pSpark = fetch('/api/price-history?ticker=SPY&days=30').then(r => r.json()).then(j => {
+      const pts: Array<{ close?: number }> = Array.isArray(j?.points) ? j.points : [];
+      const vals = pts.map(p => p?.close).filter((v): v is number => typeof v === 'number');
+      if (vals.length >= 2) setSpySpark(vals);
+    }).catch(() => { /* silent — sparkline 은 옵션 */ });
+
+    await Promise.allSettled([pFg, pCap, pMacro, pFed, pSpark]);
   }, []);
 
   useEffect(() => {
@@ -239,13 +249,14 @@ export default function ReportPage() {
             body={fg.value ? `${fg.value.score}` : '—'}
             cls={fg.value ? fgColor(fg.value.score) : ''}
           />
-          {/* SPY */}
+          {/* SPY — with 30d sparkline */}
           <Pill
             loading={spy.loading}
             error={spy.error}
             label="SPY 1w"
             body={spy.value ? `${spy.value.ret1w >= 0 ? '+' : ''}${spy.value.ret1w.toFixed(2)}%` : '—'}
             cls={spy.value ? (spy.value.ret1w >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200') : ''}
+            sparkline={spySpark}
           />
           {/* 10Y-2Y */}
           <Pill
@@ -386,7 +397,7 @@ export default function ReportPage() {
 }
 
 // ── Pill subcomponent ────────────────────────────────────────────────────────
-function Pill({ loading, error, label, body, cls }: { loading: boolean; error: boolean; label: string; body: string; cls: string }) {
+function Pill({ loading, error, label, body, cls, sparkline }: { loading: boolean; error: boolean; label: string; body: string; cls: string; sparkline?: number[] | null }) {
   const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium';
   if (loading) {
     return (
@@ -408,6 +419,9 @@ function Pill({ loading, error, label, body, cls }: { loading: boolean; error: b
     <span className={`${base} ${cls}`}>
       <span className="opacity-70">{label}</span>
       <span className="font-semibold">{body}</span>
+      {sparkline && sparkline.length >= 2 && (
+        <Sparkline values={sparkline} width={48} height={14} className="opacity-80 ml-0.5" />
+      )}
     </span>
   );
 }

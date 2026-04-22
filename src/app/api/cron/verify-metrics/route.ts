@@ -435,6 +435,8 @@ async function verifyMarketStack(base: string): Promise<MetricItem[]> {
       (d) => Array.isArray((d as { signals?: unknown[] })?.signals) && ((d as { signals: unknown[] }).signals.length > 0)),
     verifyEndpoint(base, '/api/latest-updates', 'market.latest', '홈 LiveFeed 집계', 'market',
       (d) => Array.isArray((d as { items?: unknown[] })?.items) && ((d as { items: unknown[] }).items.length > 0)),
+    verifyEndpoint(base, '/api/price-history?ticker=SPY&days=30', 'market.priceHistory', '가격 시계열 (SPY 30d)', 'market',
+      (d) => Array.isArray((d as { points?: unknown[] })?.points) && ((d as { points: unknown[] }).points.length >= 10)),
   ]);
 }
 

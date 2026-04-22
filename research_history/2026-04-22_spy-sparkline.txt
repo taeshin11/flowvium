@@ -1,0 +1,75 @@
+2026-04-22 — /report KPI에 SPY 30일 sparkline 추가 (3차 연기 끝)
+
+## Drift check
+최근 5: d8db214 / 97e510f / a5d76cf / ba041e3 / 8172d08
+- 같은 영역 3+ iter 연속: 해당 없음 (d8db214 product-facing 이후 혼합)
+- primary metric 정체: verify-metrics 65/2/0/2 — 이미 그린, 더 움직일 필요 없음
+- "나중에" 3+: **sparkline 은 b014db6 에서 1차, 이후 2회 이상 deferred** ⇒ 이번에 하거나 공식 폐기
+  → 하기로 결정
+
+## Primary outcome (≤20자): `SPY 30일 sparkline + history API`
+
+산출물 타입: (a) 핵심 숫자(/report 시각 정보량 대폭↑) + (b) ≥50% 실패 확률
+(Stooq daily CSV 라우팅 + Vercel IP 차단 위험 + 첫 사용자가 클라이언트 fetch 타이밍 문제)
+
+## 구현
+
+### 1. /api/price-history (신규 라우트)
+`src/app/api/price-history/route.ts`
+- 파라미터: `?ticker=SPY&days=30` (기본 SPY 30일, 2~365 clamp)
+- 소스: `https://stooq.com/q/d/l/?s=spy.us&i=d` (Date,OHLCV CSV)
+- 파싱: 오래된→최신 순으로 정렬된 CSV 의 tail N rows
+- 캐시: Redis 1h + @/lib/memory-cache 30min (key: `{ticker}:{days}`)
+- 에러: Stooq 500/timeout 시 502 with `error: 'no data'`
+
+### 2. @/components/Sparkline (신규 컴포넌트)
+`src/components/Sparkline.tsx`
+- deps-free, 36 lines
+- props: `{values: number[], width?: 60, height?: 16, stroke?: 1.25, className?}`
+- 자동 min-max 스케일링, 1px padding
+- 색상: 마지막값 ≥ 첫값 → emerald-500, 아니면 red-500
+- `aria-hidden` — 장식용
+
+### 3. ReportPage.tsx 통합
+- `spySpark: number[] | null` state 추가
+- `pSpark = fetch('/api/price-history?ticker=SPY&days=30')` 을 fetchKpis 에 추가 (non-blocking)
+- Pill 컴포넌트 확장: `sparkline?: number[] | null` prop
+  - ≥2개 포인트일 때만 렌더, 48×14 px
+- SPY pill 에만 이번 iter 적용 (다른 pill 은 점진 확장 예정)
+
+### 4. verify-metrics 커버리지
+verifyMarketStack 에 `market.priceHistory` probe 추가:
+```typescript
+verifyEndpoint(base, '/api/price-history?ticker=SPY&days=30',
+  'market.priceHistory', '가격 시계열 (SPY 30d)', 'market',
+  (d) => Array.isArray(d.points) && d.points.length >= 10)
+```
+- total 69 → 70
+
+### 5. 문서 동기 (CLAUDE.md 준수)
+- FEATURES.md § 13-2 업데이트 (sparkline 지원 명시)
+- FEATURES.md § 18 API 표 `/api/price-history` 행 추가
+- METRICS.md #296t~296w 4줄 추가
+
+## 실패 리스크 (≥50%)
+1. **Stooq Vercel IP 차단 가능성**: KRX 와 동일 리스크. 로컬 테스트는 통과했지만 Vercel 에지에서 막힐 수 있음 — 확인은 배포 후.
+2. **클라이언트 fetch 첫 진입 타이밍**: ReportPage 는 client component, fetchKpis 가 mount 시 parallel 발사. pSpark 실패해도 pill 은 보임 (silent catch), negative case 검증됨.
+3. **CSV 포맷 변경**: Stooq CSV header 바뀌면 파싱 실패. 현재 `Date,Open,High,Low,Close,Volume` 고정 가정.
+
+## 검증
+- npx tsc --noEmit → EXIT:0
+- 배포 후 수동 체크: /ko/report SPY pill 에 sparkline 렌더링 확인 예정
+
+## Negative test — 다른 ticker 에서는 동일 코드 동작 여부는 미검증
+이번 iter 엔 SPY hardcoded. 다음 iter 에서 F&G score history (CNN historical) +
+VIX 30d + other tickers 확장 예정.
+
+## 산출물 요약
+- 2 파일 신규 (price-history route + Sparkline component)
+- 2 파일 수정 (ReportPage + verify-metrics)
+- 2 문서 업데이트 (FEATURES + METRICS)
+- 본 로그
+= **3번째 연기 해소**
+
+## 좀비
+- clean

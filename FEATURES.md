@@ -520,10 +520,13 @@
 
 ### 13-2. 실시간 KPI 스트립 (5 pills, 각 독립 실패 허용)
 - F&G (US CNN score) — >70 red / >55 amber / >=45 gray / <45 blue
-- SPY 1w 수익률 — 양수 녹색, 음수 적색
+- **SPY 1w 수익률 + 30일 인라인 sparkline** — 양수 녹색, 음수 적색. 값+추세 동시 표시.
 - 10Y-2Y 스프레드 (bp) — 역전 시 적색
 - VIX 1w 변화 — VIXY/VXX/^VIX 폴백
 - 다음 FOMC 금리 인하 확률 (probCut25+50+75)
+
+**Sparkline 지원**: `@/components/Sparkline` — deps-free SVG polyline. 데이터 소스는
+`/api/price-history?ticker=X&days=N` (Stooq daily CSV, Redis 1h + memory 30min 캐시).
 
 ### 13-3. 메타 행 (소스 배지 + 신선도)
 - 소스 배지: GROQ 70b / GROQ 8b / Gemini / EXAONE / data (fallback) — 각 색상 구분
@@ -704,6 +707,7 @@ ownership-alerts 적용).
 | `/api/short-interest` | Yahoo Finance | 캐시 |
 | `/api/market-heatmap` | Yahoo Finance | 캐시 |
 | `/api/market-caps` | Yahoo Finance | 캐시 |
+| `/api/price-history?ticker=X&days=N` | Stooq daily CSV | 1h Redis + 30min memory |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
 | `/api/translate` | 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ부터 — GEMINI 미설정 환경에서도 동작) | 30일 |

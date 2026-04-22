@@ -700,6 +700,10 @@
 | 296q | ai.vllm 미응답 → `skipped` 분류 | ✅ live | 로컬 Cloudflare tunnel 다운은 product 고장 아님 (GROQ 70b/8b 로 cascade) |
 | 296r | ai.gemini 미설정 → `skipped` 분류 | ✅ live | 유료 최종 폴백 선택 사항 — 앞 3단계 중 하나만 동작해도 AI 정상 |
 | 296s | AdminLogsPage `skipped` 렌더 | ✅ live | 회색 ◌ 아이콘, opacity 60%, skipReason tooltip — 시각적으로 "무시" 명확화 |
+| 296t | /api/price-history (Stooq daily) | ✅ live | 가격 시계열 — ticker+days 파라미터, Redis 1h + memory 30min |
+| 296u | /report SPY 30일 sparkline | ✅ live | KPI pill 인라인 SVG polyline, 색상(상승 emerald/하락 red), 값+추세 동시 표시 |
+| 296v | @/components/Sparkline | ✅ live | deps-free 범용 컴포넌트 — values/width/height prop, 재사용 준비 완료 |
+| 296w | verify-metrics `market.priceHistory` probe | ✅ live | /api/price-history 반환 points ≥10 확인 |
 
 ---
 
