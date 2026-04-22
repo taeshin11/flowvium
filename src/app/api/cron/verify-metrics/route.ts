@@ -440,6 +440,98 @@ async function verifyMarketStack(base: string): Promise<MetricItem[]> {
   ]);
 }
 
+// ── Value accuracy probes ───────────────────────────────────────────────────
+// 외부 공식 소스를 직접 fetch 해서 우리 API 응답과 델타 비교.
+// "endpoint alive" 와 "value 정확" 은 다름 — Next.js fetch cache 등 여러 계층의
+// stale 이슈를 이 probe 로 catch. 2026-04-22 CNN F&G 2-point stale 실제 발생 후 신설.
+async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
+  const items: MetricItem[] = [];
+
+  // 1. CNN Fear & Greed US score — ±3 point 델타 허용 (CNN 은 fractional publish, 반올림 차이)
+  try {
+    const t0 = Date.now();
+    const [cnnRes, ourRes] = await Promise.all([
+      fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/json',
+          'Referer': 'https://edition.cnn.com/markets/fear-and-greed',
+          'Origin': 'https://edition.cnn.com',
+        },
+        signal: AbortSignal.timeout(6000),
+        cache: 'no-store',
+      }),
+      fetch(`${base}/api/fear-greed`, { signal: AbortSignal.timeout(6000), cache: 'no-store' }),
+    ]);
+    if (!cnnRes.ok || !ourRes.ok) throw new Error(`cnn=${cnnRes.status} ours=${ourRes.status}`);
+    const cnnData = await cnnRes.json();
+    const ourData = await ourRes.json();
+    const cnnScore = Math.round(cnnData?.fear_and_greed?.score ?? NaN);
+    const ourUs = (ourData?.byCountry as Array<{ id?: string; score?: number }> | undefined)?.find(x => x?.id === 'us');
+    const ourScore = ourUs?.score;
+    if (typeof cnnScore !== 'number' || isNaN(cnnScore) || typeof ourScore !== 'number') {
+      items.push({ key: 'accuracy.fg.us', label: 'CNN F&G US 값 대조', group: 'accuracy', status: 'error',
+        lastError: `cnn=${cnnScore} ours=${ourScore}` });
+    } else {
+      const delta = Math.abs(cnnScore - ourScore);
+      items.push({
+        key: 'accuracy.fg.us', label: 'CNN F&G US 값 대조', group: 'accuracy',
+        status: delta <= 3 ? 'ok' : delta <= 7 ? 'degraded' : 'error',
+        value: `ours ${ourScore} vs cnn ${cnnScore} (Δ${delta})`,
+        source: 'cnn-direct',
+        details: { cnnScore, ourScore, delta, durationMs: Date.now() - t0, tolerance: 3 },
+      });
+    }
+  } catch (err) {
+    items.push({ key: 'accuracy.fg.us', label: 'CNN F&G US 값 대조', group: 'accuracy', status: 'error',
+      lastError: err instanceof Error ? err.message : String(err) });
+  }
+
+  // 2. FRED 10Y-2Y Treasury spread — T10Y2Y series = 공식 spread value
+  try {
+    const t0 = Date.now();
+    const [fredRes, ourRes] = await Promise.all([
+      fetch('https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10Y2Y&cosd=' +
+        new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10), {
+        signal: AbortSignal.timeout(8000),
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        cache: 'no-store',
+      }),
+      fetch(`${base}/api/macro-indicators`, { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+    ]);
+    if (!fredRes.ok || !ourRes.ok) throw new Error(`fred=${fredRes.status} ours=${ourRes.status}`);
+    const csv = await fredRes.text();
+    const ourData = await ourRes.json();
+    // CSV: observation_date,T10Y2Y\n... — take last non-'.' value
+    const lines = csv.trim().split('\n').slice(1);
+    let fredSpread: number | null = null;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const val = lines[i].split(',')[1]?.trim();
+      if (val && val !== '.') { const n = parseFloat(val); if (!isNaN(n)) { fredSpread = n; break; } }
+    }
+    const ourSpread = ourData?.yieldCurve?.spread10y2y;
+    if (fredSpread == null || typeof ourSpread !== 'number') {
+      items.push({ key: 'accuracy.curve', label: 'FRED 10Y-2Y spread 대조', group: 'accuracy', status: 'error',
+        lastError: `fred=${fredSpread} ours=${ourSpread}` });
+    } else {
+      // Δ > 0.10 = 10bp off → degraded, > 0.25 = 25bp off → error
+      const delta = Math.abs(fredSpread - ourSpread);
+      items.push({
+        key: 'accuracy.curve', label: 'FRED 10Y-2Y spread 대조', group: 'accuracy',
+        status: delta <= 0.10 ? 'ok' : delta <= 0.25 ? 'degraded' : 'error',
+        value: `ours ${ourSpread.toFixed(2)} vs fred ${fredSpread.toFixed(2)} (Δ${delta.toFixed(2)})`,
+        source: 'fred-direct',
+        details: { fredSpread, ourSpread, delta, durationMs: Date.now() - t0, tolerance: 0.10 },
+      });
+    }
+  } catch (err) {
+    items.push({ key: 'accuracy.curve', label: 'FRED 10Y-2Y spread 대조', group: 'accuracy', status: 'error',
+      lastError: err instanceof Error ? err.message : String(err) });
+  }
+
+  return items;
+}
+
 async function verifyEarnings(_base: string): Promise<MetricItem[]> {
   // 1) Check env var first — catches unconfigured environments instantly.
   const key = process.env.FINNHUB_KEY?.trim();
@@ -538,8 +630,8 @@ export async function GET(req: Request) {
   const base = getBaseUrl(req);
   const redis = createRedis();
 
-  // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적)
-  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches] = await Promise.all([
+  // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적 + 값정합성)
+  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -550,9 +642,10 @@ export async function GET(req: Request) {
     verifyMarketStack(base).catch((e): MetricItem[] => [{ key: 'market.ERR', label: 'Market verify throw', group: 'market', status: 'error', lastError: String(e) }]),
     verifyEarnings(base).catch((e): MetricItem[] => [{ key: 'earnings.ERR', label: 'Earnings verify throw', group: 'earnings', status: 'error', lastError: String(e) }]),
     redis ? verifyRedisCaches(redis) : Promise.resolve([] as MetricItem[]),
+    verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,
