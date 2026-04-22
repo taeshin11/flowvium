@@ -1,9 +1,14 @@
 /**
  * /api/price-history?ticker=SPY&days=30
  *
- * Daily closing prices from Stooq (free CSV, no auth). Used by the /report
- * KPI pills to render inline sparklines — shows the 30-day trend behind
- * the single current value.
+ * Daily closing prices from Yahoo Finance v8 chart API (free, UA-gated).
+ * Previously tried Stooq daily CSV — as of 2026-04-22 Stooq now gates
+ * /q/d/l/ behind captcha-issued apikeys (free batch /q/l/ still works but
+ * only returns a single snapshot). Yahoo v8 chart supports 5d/1mo/3mo/6mo/1y
+ * ranges with no auth.
+ *
+ * Used by the /report KPI pills to render inline sparklines — shows the
+ * 30-day trend behind the single current value.
  *
  * Response: { ticker, points: [{date: 'YYYY-MM-DD', close: number}] }
  *
@@ -29,35 +34,51 @@ function createRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
-async function fetchStooqDaily(ticker: string, days: number): Promise<PricePoint[]> {
-  const sym = `${ticker.toLowerCase()}.us`;
-  const url = `https://stooq.com/q/d/l/?s=${sym}&i=d`;
+/**
+ * Fetch daily closes from Yahoo Finance v8 chart API.
+ * Reason for Yahoo over Stooq: Stooq /q/d/l/ (daily CSV) now requires apikey
+ * (2026-04-22 confirmed) — returns captcha page. Yahoo v8 chart is still free
+ * and UA-gated only. Vercel egress reachability confirmed separately.
+ */
+async function fetchYahooDaily(ticker: string, days: number): Promise<PricePoint[]> {
+  const rangeMap: Record<number, string> =
+    { 5: '5d', 30: '1mo', 90: '3mo', 180: '6mo', 365: '1y' };
+  // Pick the smallest range that comfortably covers `days`
+  const range = days <= 5 ? '5d' : days <= 30 ? '1mo' : days <= 90 ? '3mo' : days <= 180 ? '6mo' : '1y';
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}`;
   const start = Date.now();
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
+      // UA required — v8 rejects default Node fetch UA
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Flowvium/1.0)', Accept: 'application/json' },
+    });
     if (!res.ok) {
-      logger.warn('price-history', 'http_error', { ticker, status: res.status });
+      logger.warn('price-history', 'yahoo_http_error', { ticker, status: res.status, durationMs: Date.now() - start });
       return [];
     }
-    const csv = await res.text();
-    const lines = csv.trim().split('\n');
-    if (lines.length < 2) return [];
-    // Header: Date,Open,High,Low,Close,Volume
+    const json = (await res.json()) as {
+      chart?: { result?: Array<{ timestamp?: number[]; indicators?: { quote?: Array<{ close?: (number|null)[] }> } }> };
+    };
+    const result = json?.chart?.result?.[0];
+    const ts = result?.timestamp ?? [];
+    const closes = result?.indicators?.quote?.[0]?.close ?? [];
+    if (ts.length === 0 || closes.length === 0) return [];
+
     const rows: PricePoint[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      if (cols.length < 5) continue;
-      const date = cols[0];
-      const close = parseFloat(cols[4]);
-      if (!date || isNaN(close)) continue;
-      rows.push({ date, close });
+    for (let i = 0; i < ts.length; i++) {
+      const c = closes[i];
+      if (typeof c !== 'number' || isNaN(c)) continue;
+      // Yahoo timestamps are unix-seconds at regular-market close
+      const date = new Date(ts[i] * 1000).toISOString().slice(0, 10);
+      rows.push({ date, close: c });
     }
-    // Take last N days (CSV is oldest-first)
     const tail = rows.slice(-Math.max(2, Math.min(days, 365)));
-    logger.info('price-history', 'fetched', { ticker, count: tail.length, durationMs: Date.now() - start });
+    logger.info('price-history', 'yahoo_ok', { ticker, range, count: tail.length, available: String(Object.keys(rangeMap).length), durationMs: Date.now() - start });
     return tail;
   } catch (err) {
-    logger.error('price-history', 'fetch_exception', { ticker, error: err, durationMs: Date.now() - start });
+    logger.error('price-history', 'yahoo_exception', { ticker, error: err, durationMs: Date.now() - start });
     return [];
   }
 }
@@ -81,7 +102,7 @@ export async function GET(req: NextRequest) {
     if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
   }
 
-  const points = await fetchStooqDaily(ticker, days);
+  const points = await fetchYahooDaily(ticker, days);
   if (points.length === 0) {
     return NextResponse.json({ ticker, points: [], updatedAt: new Date().toISOString(), error: 'no data' }, { status: 502 });
   }
