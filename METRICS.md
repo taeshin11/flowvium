@@ -707,6 +707,7 @@
 | 296x | Yahoo v8 chart 소스 전환 (Stooq deprecated) | ✅ live | Stooq /q/d/l/ captcha화 → Yahoo v8 chart (UA-only gate). Vercel 도달성 실측 완료 |
 | 296y | VIX sparkline + 자동 1w% 계산 | ✅ live | ^VIX 30d 종가로 VIX pill 값+추세 동시 산출 (capital-flows 에 VIX 미존재 회피) |
 | 296z | ticker sanitizer `^`/`.` 허용 | ✅ live | 인덱스 심볼(^VIX, ^GSPC), 접미사 점(.TO) 지원 |
+| 297a | news-cascade 한자 혼입 가드 | ✅ live | GROQ 70b 한국어 응답에 중국어 Hanzi(U+4E00~9FFF) 12%+ 혼입 — 시스템 프롬프트 language lock + post-parse hasChineseLeak() 감지 시 title 로 대체 |
 
 ---
 

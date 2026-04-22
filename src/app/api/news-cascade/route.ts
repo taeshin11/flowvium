@@ -98,7 +98,19 @@ async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]>
 }
 
 // ── AI cascade analysis — 통합 provider cascade (vLLM → GROQ → Gemini) ──────
-const CASCADE_SYSTEM_PROMPT = '당신은 글로벌 금융 뉴스 분석 전문가입니다. 뉴스의 시장 파급 효과(cascade)를 JSON으로만 분석합니다.';
+// IMPORTANT: 언어 락 — GROQ 70b 는 한국어 프롬프트에서도 중국어 한자(繁/简體)를
+// 혼입하는 빈도가 12%+ 관찰됨 (예: '谈判停滞'). 시스템 프롬프트에 명시적 금지
+// + parse 후 post-process guard 두 단계로 차단.
+const CASCADE_SYSTEM_PROMPT = '당신은 글로벌 금융 뉴스 분석 전문가입니다. 뉴스의 시장 파급 효과(cascade)를 JSON으로만 분석합니다. 모든 텍스트 필드는 반드시 한글과 영문만 사용하세요 — 중국어 한자(漢字 Hanzi) 절대 금지. 한자 대신 한글로 풀어 쓰세요 (예: "谈判停滞" → "협상 교착", "财报" → "실적발표").';
+
+/**
+ * 중국어 한자 혼입 감지 — U+4E00~U+9FFF (CJK Unified Ideographs) 범위.
+ * 한글은 U+AC00~U+D7AF 이라 범위 안 겹침.
+ * true 반환 시 해당 텍스트는 품질 불량으로 간주, 상위 레이어에서 대체하거나 로깅.
+ */
+function hasChineseLeak(text: string): boolean {
+  return /[\u4e00-\u9fff]/.test(text);
+}
 
 async function callCascadeAI(prompt: string): Promise<string> {
   const r = await callAI(prompt, {
@@ -138,13 +150,30 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
   try {
     const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? [null, raw];
     const parsed = JSON.parse((jsonMatch[1] ?? raw).trim());
+
+    // 품질 가드: summary 에 한자 혼입이면 title 로 대체 (원문 영어가 한자 혼입보다 나음).
+    // cascades[].reason 도 동일 — 혼입된 reason 은 빈 문자열로 지워 UI에서 자동 비노출.
+    let summary: string = parsed.summary ?? item.title;
+    if (typeof summary === 'string' && hasChineseLeak(summary)) {
+      logger.warn('news-cascade', 'chinese_leak_summary', { link: item.link, sample: summary.slice(0, 80) });
+      summary = item.title;
+    }
+    const cascades = Array.isArray(parsed.cascades) ? parsed.cascades.map((c: Record<string, unknown>) => {
+      const reason = typeof c?.reason === 'string' ? c.reason : '';
+      if (reason && hasChineseLeak(reason)) {
+        logger.warn('news-cascade', 'chinese_leak_reason', { link: item.link });
+        return { ...c, reason: '' };
+      }
+      return c;
+    }) : [];
+
     return {
       ...item,
       id,
-      summary: parsed.summary ?? item.title,
+      summary,
       sentiment: parsed.sentiment ?? 'neutral',
       importance: parsed.importance ?? 'medium',
-      cascades: parsed.cascades ?? [],
+      cascades,
       analyzedAt: new Date().toISOString(),
     };
   } catch {
