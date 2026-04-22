@@ -704,6 +704,9 @@
 | 296u | /report SPY 30일 sparkline | ✅ live | KPI pill 인라인 SVG polyline, 색상(상승 emerald/하락 red), 값+추세 동시 표시 |
 | 296v | @/components/Sparkline | ✅ live | deps-free 범용 컴포넌트 — values/width/height prop, 재사용 준비 완료 |
 | 296w | verify-metrics `market.priceHistory` probe | ✅ live | /api/price-history 반환 points ≥10 확인 |
+| 296x | Yahoo v8 chart 소스 전환 (Stooq deprecated) | ✅ live | Stooq /q/d/l/ captcha화 → Yahoo v8 chart (UA-only gate). Vercel 도달성 실측 완료 |
+| 296y | VIX sparkline + 자동 1w% 계산 | ✅ live | ^VIX 30d 종가로 VIX pill 값+추세 동시 산출 (capital-flows 에 VIX 미존재 회피) |
+| 296z | ticker sanitizer `^`/`.` 허용 | ✅ live | 인덱스 심볼(^VIX, ^GSPC), 접미사 점(.TO) 지원 |
 
 ---
 

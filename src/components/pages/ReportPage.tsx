@@ -105,8 +105,9 @@ export default function ReportPage() {
   const [curve,  setCurve]  = useState<KpiState<{ spread: number; inverted: boolean }>>({ loading: true, error: false, value: null });
   const [vix,    setVix]    = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
   const [fomc,   setFomc]   = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
-  // Sparkline data — SPY 30일 종가. Null-safe, 실패해도 pill 자체엔 영향 없음.
+  // Sparkline data — 30일 종가. Null-safe, 실패해도 pill 자체엔 영향 없음.
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
+  const [vixSpark, setVixSpark] = useState<number[] | null>(null);
 
   const fetchBrief = useCallback(async (timeframe: Timeframe) => {
     setLoading(true);
@@ -172,14 +173,32 @@ export default function ReportPage() {
       setFomc({ loading: false, error: false, value: { label: m.label ?? m.date ?? '?', probCut } });
     }).catch(() => setFomc({ loading: false, error: true, value: null }));
 
-    // SPY 30d sparkline — independent, non-blocking. 실패 시 그냥 표시 안함.
-    const pSpark = fetch('/api/price-history?ticker=SPY&days=30').then(r => r.json()).then(j => {
-      const pts: Array<{ close?: number }> = Array.isArray(j?.points) ? j.points : [];
-      const vals = pts.map(p => p?.close).filter((v): v is number => typeof v === 'number');
-      if (vals.length >= 2) setSpySpark(vals);
-    }).catch(() => { /* silent — sparkline 은 옵션 */ });
+    // 30d sparklines — independent, non-blocking. 실패 시 해당 pill 만 sparkline 미표시.
+    const fetchSpark = async (ticker: string): Promise<number[] | null> => {
+      try {
+        const r = await fetch(`/api/price-history?ticker=${encodeURIComponent(ticker)}&days=30`);
+        const j = await r.json();
+        const pts: Array<{ close?: number }> = Array.isArray(j?.points) ? j.points : [];
+        const vals = pts.map(p => p?.close).filter((v): v is number => typeof v === 'number');
+        return vals.length >= 2 ? vals : null;
+      } catch { return null; }
+    };
+    const pSpark = fetchSpark('SPY').then(v => { if (v) setSpySpark(v); });
+    const pVixSpark = fetchSpark('^VIX').then(v => {
+      if (!v) return;
+      setVixSpark(v);
+      // ^VIX is an index — capital-flows doesn't include it, so VIX pill is
+      // usually in 'error' state. Use the fresh 30d series to compute a ~1w
+      // change (last vs ~5 trading days back) and populate the pill properly.
+      if (v.length >= 6) {
+        const last = v[v.length - 1];
+        const wkAgo = v[v.length - 6];
+        const ret1w = ((last - wkAgo) / wkAgo) * 100;
+        setVix({ loading: false, error: false, value: { ret1w } });
+      }
+    });
 
-    await Promise.allSettled([pFg, pCap, pMacro, pFed, pSpark]);
+    await Promise.allSettled([pFg, pCap, pMacro, pFed, pSpark, pVixSpark]);
   }, []);
 
   useEffect(() => {
@@ -266,13 +285,14 @@ export default function ReportPage() {
             body={curve.value ? `${(curve.value.spread * 100).toFixed(0)}bp` : '—'}
             cls={curve.value ? (curve.value.inverted ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
           />
-          {/* VIX */}
+          {/* VIX — with 30d sparkline (^VIX) */}
           <Pill
             loading={vix.loading}
             error={vix.error}
             label="VIX 1w"
             body={vix.value ? `${vix.value.ret1w >= 0 ? '+' : ''}${vix.value.ret1w.toFixed(1)}%` : '—'}
             cls={vix.value ? (vix.value.ret1w >= 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
+            sparkline={vixSpark}
           />
           {/* FOMC */}
           <Pill

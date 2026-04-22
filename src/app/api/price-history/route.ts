@@ -85,7 +85,8 @@ async function fetchYahooDaily(ticker: string, days: number): Promise<PricePoint
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const ticker = (url.searchParams.get('ticker') ?? 'SPY').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 8);
+  // Allow A-Z / 0-9 / '-' (BRK-B) / '.' (some feeds) / '^' (indices: ^VIX, ^GSPC).
+  const ticker = (url.searchParams.get('ticker') ?? 'SPY').toUpperCase().replace(/[^A-Z0-9.^-]/g, '').slice(0, 8);
   const days = Math.max(2, Math.min(parseInt(url.searchParams.get('days') ?? '30', 10) || 30, 365));
   if (!ticker) return NextResponse.json({ error: 'ticker required' }, { status: 400 });
 
