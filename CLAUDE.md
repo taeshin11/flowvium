@@ -54,3 +54,62 @@
 - 외부 fetch: 가능하면 `loggedFetch` 사용 (자동 REDACT + 타이밍)
 - 유료 API 탭 락 메시지: "사용자에게 API 키 입력 요구 금지" — "월 $200 후원 목표 도달 시 오픈" 형식만 사용
 - `research_history/YYYY-MM-DD_*.txt`에 모든 작업 마일스톤 기록
+
+---
+
+## 🔄 `/loop` 검증 프로토콜 (필수)
+
+`/loop` 실행 중 "verify-metrics / 값 정합성 검증 / live test" 류의 지시가 있으면
+**아래 5단계를 전부** 수행한다. 이 프로토콜 없이 "검증 완료" 라고 쓰면 안 된다.
+
+### 1. Drift check (기존 rule)
+- 최근 5 커밋 훑기 → 같은 영역 3+ iter 연속 / primary metric 3+ iter 정체 /
+  "나중에" 3+ deferred / 인프라 블로커 2+ retry-only 중 하나라도 해당되면 drift,
+  이번 iter 영역 이동 또는 공식 포기.
+
+### 2. Primary outcome 선언 (≤20자, 기존 rule)
+- "폴리싱", "리팩터", "미들웨어 추가" 처럼 cheap tactical 들리면 재고.
+
+### 3. ⚠️ 외부 실값 대조 (MANDATORY — 2026-04-22 CNN F&G stale 사건 이후 신설)
+
+"endpoint alive" 와 "value accurate" 는 다르다. 이번 iter 가 건드린 수치 또는
+primary outcome 영역의 **최소 1개 숫자를 외부 공식 소스와 직접 비교**한다:
+
+| 수치 유형 | 공식 소스 | 비교 방법 |
+|----------|----------|----------|
+| F&G 점수 | `https://production.dataviz.cnn.io/index/fearandgreed/graphdata` | `fear_and_greed.score` 반올림 vs 우리 US score |
+| FRED 지표 | `https://fred.stlouisfed.org/graph/fredgraph.csv?id={SERIES}` | 마지막 non-`.` 값 vs 우리 응답 |
+| 주가 | `https://query1.finance.yahoo.com/v8/finance/chart/{TICKER}` | 최근 close vs 우리 응답 |
+| CME FedWatch | `https://www.cmegroup.com/.../cme-fedwatch-tool.html` | 페이지 텍스트 grep vs 우리 응답 |
+
+**로그 필수 형태:**
+```
+[accuracy probe] metric=fg.us source=CNN direct_value=68 our_value=70 delta=2 tolerance=3 → OK/DEGRADED/ERROR
+```
+
+숫자 나란히 기록 없이 "값 정합성 OK" 라고 쓰면 규칙 위반. 자동화는
+`/api/cron/verify-metrics` 의 `group: 'accuracy'` 섹션이 대신하므로 매 iter
+그걸 먼저 fetch 해서 요약하고 시작해도 된다.
+
+### 4. UI 실제 렌더 확인 (user-facing outcome 일 때)
+
+curl API probe 만으로 "live test" 종료 금지. 사용자가 보는 형태로 검증:
+- `curl https://flowvium.vercel.app/{locale}/{page}` 로 HTML 수신
+- 관련 텍스트 grep (i18n 렌더, 데이터 주입 확인)
+- 차트/인터랙션은 **"미검증"** 으로 명시 (브라우저 없이 불가)
+
+### 5. 캐시 계층 감사 (새 fetch 추가 시 MANDATORY)
+
+Next.js 15 App Router 의 `fetch()` 기본값은 **`force-cache`** — 옵션 누락 시
+외부 응답이 module 수명 내내 stale 됨. 새 fetch 추가 또는 수정 시 반드시:
+
+- 실시간 값: `cache: 'no-store'` 명시
+- 의도된 캐시: `next: { revalidate: N }` 명시
+- 옵션 없이 bare `fetch()` 는 **리뷰 리젝트**
+
+감사 대상 3 계층:
+1. Redis (`@upstash/redis`)
+2. 모듈 메모리 (`@/lib/memory-cache`)
+3. **Next.js fetch layer** ← 맹점, 코드에 명시 안 됨
+
+### 6. 산출물 / Negative result / 빈 iter (기존 rule 3~5 유지)
