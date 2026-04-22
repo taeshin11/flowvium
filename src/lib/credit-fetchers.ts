@@ -37,7 +37,7 @@ export async function fetchUS(): Promise<LiveCreditData | null> {
     try {
       logger.info('credit.us', 'fred_api_start');
       const url = `https://api.stlouisfed.org/fred/series/observations?series_id=BOGZ1FL663067003Q&api_key=${apiKey}&file_type=json&sort_order=desc&limit=1`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers: COMMON_HEADERS });
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers: COMMON_HEADERS, cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         const obs = json.observations?.[0];
@@ -69,7 +69,7 @@ export async function fetchUS(): Promise<LiveCreditData | null> {
     logger.info('credit.us', 'fred_csv_start');
     const res = await fetch(
       'https://fred.stlouisfed.org/graph/fredgraph.csv?id=BOGZ1FL663067003Q&cosd=2024-01-01',
-      { signal: AbortSignal.timeout(20000), headers: COMMON_HEADERS }
+      { signal: AbortSignal.timeout(20000), headers: COMMON_HEADERS, cache: 'no-store' }
     );
     if (!res.ok) {
       logger.warn('credit.us', 'fred_csv_http_error', { status: res.status, durationMs: Date.now() - start });
@@ -118,7 +118,7 @@ export async function fetchTW(): Promise<LiveCreditData | null> {
       const yyyymmdd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
       const url = `https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date=${yyyymmdd}&selectType=MS&response=json`;
 
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers: COMMON_HEADERS });
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers: COMMON_HEADERS, cache: 'no-store' });
       if (!res.ok) { logger.warn('credit.tw', 'http_error', { status: res.status, date: yyyymmdd }); continue; }
       const json = await res.json();
       if (json.stat !== 'OK') { logger.warn('credit.tw', 'bad_stat', { stat: json.stat, date: yyyymmdd }); continue; }
@@ -192,7 +192,7 @@ export async function fetchKR(): Promise<LiveCreditData | null> {
     const startYm = `${startDate.getFullYear()}${String(startDate.getMonth() + 1).padStart(2, '0')}`;
 
     const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/901Y001/M/${startYm}/${endYm}/`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000), headers: COMMON_HEADERS });
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000), headers: COMMON_HEADERS, cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
     const rows = json.StatisticSearch?.row;
@@ -223,6 +223,7 @@ export async function fetchCN(): Promise<LiveCreditData | null> {
     const url = 'https://query.sse.com.cn/commonQuery.do?sqlId=COMMON_SSE_ZQPZ_RZRQ_MRGNSUM_SEARCH_L&isPagination=false';
     const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
       headers: {
         ...COMMON_HEADERS,
         'Referer': 'https://www.sse.com.cn/',

@@ -62,7 +62,7 @@ const COUNTRIES = [
 // ── Source 1: Twelve Data (real-time, 800 calls/day free) ─────────────────────
 async function fetchPricesTwelve(ticker: string, apiKey: string): Promise<number[]> {
   const url = `https://api.twelvedata.com/time_series?symbol=${ticker}&interval=1day&outputsize=120&apikey=${apiKey}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
   if (!res.ok) throw new Error(`Twelve HTTP ${res.status}`);
   const data = await res.json();
   if (data.status === 'error') throw new Error(data.message);
@@ -78,6 +78,7 @@ async function fetchPricesYahoo(ticker: string): Promise<number[]> {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0' },
     signal: AbortSignal.timeout(8000),
+    cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Yahoo HTTP ${res.status}`);
   const data = await res.json();
@@ -95,6 +96,7 @@ async function fetchPricesStooq(ticker: string): Promise<number[]> {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0' },
     signal: AbortSignal.timeout(10000),
+    cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Stooq HTTP ${res.status}`);
   const text = await res.text();

@@ -1,0 +1,95 @@
+2026-04-22 — 시스템적 값 정합성 버그: Next.js fetch 기본 force-cache 가 stale 값 서빙
+
+## 사용자 제보 (screenshot 2장)
+- CNN Fear & Greed 실값: **68** GREED (Apr 21 7:59 PM ET)
+- 우리 사이트 US: **70** (source: cnn 태그됨)
+- 델타 = 2. 사용자: "CNN꺼랑 완전 다르잖아"
+
+## 근본 원인
+`src/app/api/fear-greed/route.ts::fetchCNNScore()` 가 CNN endpoint 로 fetch 할 때
+**`cache: 'no-store'` 옵션 누락**. Next.js 15 App Router 의 **fetch 기본값은
+`force-cache`** — 응답이 module level 에서 indefinite cache 된다.
+
+⇒ 시간이 지나 CNN 실값이 업데이트되어도 우리 route 는 이전 응답을 계속 서빙.
+   우리 표시 **70 = CNN 의 previous_close (69.94, 전일 종가)** — score 필드 자리에
+   stale 이 끼어든 것처럼 보이지만 실은 fresh 응답 자체가 fetch-cache 된 것.
+
+CNN API 직접 probe 결과:
+```json
+{
+  "score": 67.57,               // 오늘 (반올림 68)
+  "previous_close": 69.94,      // 어제 (반올림 70) ← 우리가 표시하던 값
+  "previous_1_week": 49.11,
+  "timestamp": "2026-04-21T23:59:59+00:00"
+}
+```
+
+## 감사 (시스템 전반)
+같은 패턴 검색: 모든 src/app/api/*/route.ts + src/lib/*.ts 에서
+`await fetch(...)` 호출이 `cache: 'no-store'` 옵션 없이 사용된 건수.
+
+| 파일 | 전체 fetch | no-store 있음 | 누락 |
+|------|-----------|--------------|------|
+| api/fear-greed | 2 | 0 | **2** |
+| api/capital-flows | 3 | 0 | **3** |
+| api/macro-indicators | 2 | 0 | **2** |
+| api/fedwatch | 1 | 0 | **1** |
+| lib/credit-fetchers | 5 | 0 | **5** |
+| lib/ishares-holdings | 1 | 0 | **1** |
+| lib/yahoo-finance | 6 | 5 | 1 (의도된 seed) |
+| lib/stooq | 1 | 1 | 0 ✓ |
+| lib/polygon | 1 | 1 | 0 ✓ |
+| lib/alpha-vantage | 3 | 0 | `next: revalidate` 의도적 — 유지 |
+| lib/sec-financials | 2 | 0 | `next: revalidate` 의도적 — 유지 |
+| lib/edgar-13f | 4 | 0 | 분기별 filing — stale 허용 |
+
+**총 14 건** 일괄 수정 필요 (의도된 revalidate 제외).
+
+## 수정 (이번 커밋)
+### Value-display endpoint 우선순위 (사용자 가시 데이터)
+1. **api/fear-greed**: CNN + Yahoo prices fetch → no-store (2건)
+2. **api/capital-flows**: Twelve + Yahoo + Stooq fetch → no-store (3건)
+3. **api/macro-indicators**: FRED CSV + FRED API → no-store (2건)
+4. **api/fedwatch**: CME Group → no-store (1건)
+5. **lib/credit-fetchers**: FRED API/CSV + TWSE + BOK ECOS + SSE → no-store (5건)
+6. **lib/ishares-holdings**: iShares CSV → no-store (1건)
+
+총 **14건 수정**.
+
+### 의도적으로 유지
+- yahoo-finance getcrumb seed (cookie 수립은 1회 목적이라 fetch-cache 무관)
+- alpha-vantage `next: { revalidate: 43200/86400 }` (블로그 번역·뉴스 저장형, 의도된 12~24h 캐시)
+- sec-financials `next: { revalidate: 43200/86400 }` (분기 filing 은 자주 변하지 않음)
+- edgar-13f (분기 filing)
+
+## 왜 loop 가 이걸 못 잡았나? (사용자 질문 대응)
+**내 검증 루프의 근본 결함**:
+1. Endpoint 가 HTTP 200 + 스키마 정상 여부만 체크 → 내용 값은 pass-through.
+2. "실제 값 정합성" 은 **외부 실값 비교**가 필요 — CNN UI screenshot 대조,
+   FRED 공식 published 값 대조 등. 이걸 자동화하지 않고 구조만 probe 함.
+3. verify-metrics 의 `summary: "ok 65"` 는 "endpoint alive" 의미이지
+   "value 정확" 의미가 아님. 라벨이 기만적.
+4. 캐시 계층 감사는 Redis memory cache 둘만 봤고 **Next.js App Router 자체의
+   fetch cache** 가 있는지 한 번도 확인 안 함. 이 계층은 코드에 명시적으로
+   나타나지 않아서 맹점.
+
+## 향후 loop 에서 적용할 교훈
+1. 각 페이지에 "외부 실값 비교 URL" 메타데이터 추가 (CNN·FRED·CME 등 공식 페이지
+   URL) → cron 이 정기적으로 HTTP GET 해서 텍스트 grep 으로 값 추출 + 우리 API 응답과
+   델타 비교. 델타 > N% 시 degraded 로 마킹.
+2. verify-metrics summary 레이블을 "endpoint_health" + 신설 "value_accuracy"
+   두 가지로 분리.
+3. Next.js App Router 특유의 fetch cache 는 라우트 생성 시 lint rule 또는
+   code review checklist 에 추가.
+
+## 산출물 타입 (rule 3)
+- (a) 핵심 숫자 이동: 모든 value endpoint 의 실시간성 보장. 사용자가 보는 값이
+  현재 공식 값과 일치하게 됨 — 가장 기본적인 신뢰 복원.
+
+## 검증
+- npx tsc --noEmit → EXIT:0
+- 배포 후: /api/fear-greed?force-refresh=now (실제로는 URL 파라미터 없음)
+  직접 호출 시 CNN 실값 68 반환 기대. previous_close 70 과 분리 확인.
+
+## 좀비
+- clean

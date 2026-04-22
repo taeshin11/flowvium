@@ -158,6 +158,7 @@ async function fetchCMEImpliedRates(): Promise<Record<string, number> | null> {
           'Origin': 'https://www.cmegroup.com',
         },
         signal: AbortSignal.timeout(10000),
+        cache: 'no-store',
       }
     );
     if (!res.ok) return null;

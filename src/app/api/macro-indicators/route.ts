@@ -64,6 +64,7 @@ async function fetchFREDCsv(series: string, monthsBack: number = 15): Promise<Ar
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
     });
     if (!res.ok) {
       logger.warn('macro-indicators', 'fred_csv_http_error', { series, status: res.status });
@@ -170,6 +171,7 @@ async function fetchFredLatest(seriesId: string, apiKey: string): Promise<number
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Flowvium' },
       signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     const json = await res.json();

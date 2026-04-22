@@ -116,6 +116,7 @@ export async function fetchIShareHoldings(country: string): Promise<IShareHoldin
     const res = await fetch(cfg.url, {
       signal: AbortSignal.timeout(20000),
       headers: { 'User-Agent': 'Mozilla/5.0' },
+      cache: 'no-store',
     });
     if (!res.ok) {
       logger.warn('ishares', 'http_error', { country, etf: cfg.etfTicker, status: res.status, durationMs: Date.now() - start });

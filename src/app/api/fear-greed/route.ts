@@ -32,6 +32,10 @@ async function fetchCNNScore(): Promise<{ score: number; prevScore: number } | n
           'Origin': 'https://edition.cnn.com',
         },
         signal: AbortSignal.timeout(6000),
+        // CRITICAL: Next.js App Router 의 fetch 기본값은 force-cache — CNN 응답이
+        // 무기한 cache 되어 stale previous_close 가 score 자리로 표시되는 실제 버그
+        // 발생했음 (2026-04-22: 우리 표시 70 = CNN previous_close 69.94, 실 score 67.57).
+        cache: 'no-store',
       }
     );
     if (!res.ok) {
@@ -78,7 +82,9 @@ const YF_HEADERS = {
 
 async function fetchPricesFromHost(host: 'query1' | 'query2', ticker: string): Promise<number[]> {
   const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=180d`;
-  const res = await fetch(url, { headers: YF_HEADERS, signal: AbortSignal.timeout(8000) });
+  // cache: 'no-store' — Next.js App Router fetch 기본 force-cache 방지.
+  // 가격 시계열이 stale 되면 전체 composite 가 오래된 값 반환.
+  const res = await fetch(url, { headers: YF_HEADERS, signal: AbortSignal.timeout(8000), cache: 'no-store' });
   if (!res.ok) throw new Error(`Yahoo ${host} HTTP ${res.status}`);
   const data = await res.json();
   const closes: number[] = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
