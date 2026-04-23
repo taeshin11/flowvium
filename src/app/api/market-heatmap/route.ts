@@ -1,4 +1,5 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
+export const maxDuration = 60; // 200 tickers × batched Yahoo v8 fetch needs up to ~20s
 /**
  * /api/market-heatmap?country=US|KR|JP|CN|EU|IN|TW
  *
