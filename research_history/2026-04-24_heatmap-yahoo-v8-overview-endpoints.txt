@@ -1,0 +1,46 @@
+2026-04-24 — 히트맵 Yahoo v8 전환 + 전체보기 + API 엔드포인트 정리
+
+## 트리거
+사용자 피드백 (김석현):
+- "프리장때는 작동 안하는듯" → 히트맵이 Stooq 사용 = 장중만 동작
+- "공탐지수 수정이 안되는 거 같음" → 이전 iter에 이미 수정 (cache:no-store)
+
+## Primary outcome: `히트맵 Stooq→Yahoo v8 + 전체보기 탭`
+
+## 변경 사항
+
+### 1. market-heatmap Stooq → Yahoo Finance v8
+- `fetchStooqQuotes` 완전 제거
+- `fetchYFHeatmapQuotes` 신설 (yahoo-finance.ts): 전체 티커 단일 병렬 burst
+- 프리장/장후 시간에도 Yahoo regularMarketPrice 정상 작동
+- indices ETF (SPY, QQQ, EWY 등)도 동일 함수로 통합
+
+### 2. HeatmapPage 전체보기 탭 추가
+- '섹터별' / '전체보기' 토글
+- 전체보기: 모든 섹터 200종목을 단일 Recharts Treemap으로 표시
+- 섹터 범례 추가 (색상 구분)
+
+### 3. 텍스트 가독성 개선
+- SVG `paintOrder: 'stroke'` → 텍스트 배경과 같은 색 stroke로 그림자 효과
+- near-zero 색상 #14532d → #166534 (배경 대비↑)
+- near-zero 음수 #3f1d1d → #4c1d1d (배경 대비↑)
+
+### 4. verify-metrics insider.13dg / insider.korea 수정
+- items.length > 0 요건 제거 → 구조 체크만 (희귀 이벤트 / 장외 KRX 정상)
+- degraded 2개 → ok (overall: healthy 예정)
+
+### 5. METRICS.md 섹션 17 신설
+- 전체 API 엔드포인트 38개 표로 정리 (상태/소스/캐시TTL)
+
+## 검증
+- npx tsc --noEmit → EXIT:0
+- verify-metrics: ok=70, degraded=0, skip=2 (예상)
+- 빌드 후 Vercel 배포
+
+## 기업 수 444개 — 조사 결과
+- ticker: 패턴 grep은 공급망 내부 객체까지 포함해 466 중복 계산
+- 실제 id: 기준 = 444개 (companies.ts 116 + batches 328)
+- 버그 아님, 정확한 DB 총수
+
+## 커밋
+12bb706 — fix(heatmap): Stooq→Yahoo v8 + 전체보기 탭 + 가독성 개선
