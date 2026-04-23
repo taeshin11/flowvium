@@ -507,7 +507,7 @@ ${body}
 - outlook: 위 전체를 종합한 한 줄 전망(리스크 포함)
 - riskLevel: low|medium|high (Fear&Greed·yieldCurve 기반)
 
-{"market":{"title":"시장","bullets":["","",""]},"capital":{"title":"자금","bullets":["","",""]},"company":{"title":"종목","bullets":["","",""]},"signals":{"title":"신호","bullets":["","",""]},"outlook":"","riskLevel":"medium"}`;
+{"market":{"title":"시장","content":"한 줄 요약","bullets":["","",""]},"capital":{"title":"자금","content":"한 줄 요약","bullets":["","",""]},"company":{"title":"종목","content":"한 줄 요약","bullets":["","",""]},"signals":{"title":"신호","content":"한 줄 요약","bullets":["","",""]},"outlook":"","riskLevel":"medium"}`;
 }
 
 // ── Parse AI response ─────────────────────────────────────────────────────────
@@ -524,10 +524,11 @@ export function parseAIResponse(raw: string, tf: Timeframe, source = 'AI'): Dail
 
     const ensureSection = (s: unknown): BriefSection => {
       const sec = s as Record<string, unknown>;
+      const bulls = Array.isArray(sec?.bullets) ? (sec.bullets as unknown[]).map(String) : [];
       return {
         title: String(sec?.title ?? ''),
-        content: String(sec?.content ?? sec?.title ?? ''),
-        bullets: Array.isArray(sec?.bullets) ? sec.bullets.map(String) : [],
+        content: String(sec?.content ?? (bulls.length > 0 ? bulls.join(' · ') : sec?.title) ?? ''),
+        bullets: bulls,
       };
     };
 

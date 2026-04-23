@@ -2,18 +2,16 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/market-caps
  *
- * Fetches live market caps for every ticker in allCompanies via Yahoo batch
- * quote, computes the UI band (titan/mega/large/mid/small), and returns a
- * flat { ticker: band } map. ExplorePage overlays this over the static
- * `marketCap` field so filtering reflects today's real market cap instead
- * of stale classifications baked into the data files.
+ * Returns a { ticker: band } map for every ticker in allCompanies.
+ * Uses the static `marketCap` field from the companies data file as the
+ * band source (Yahoo v7 crumb-based fetching is unreliable on Vercel).
  *
- * Redis cache: 24h. On miss, falls back to empty map (client keeps static).
+ * Redis cache: 24h.
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { allCompanies } from '@/data/companies';
-import { fetchYFMarketCaps, type MarketCapBand } from '@/lib/yahoo-finance';
+import type { MarketCapBand } from '@/lib/yahoo-finance';
 
 const CACHE_KEY = 'flowvium:market-caps:v1';
 const CACHE_TTL = 24 * 60 * 60; // 24h
@@ -50,17 +48,16 @@ export async function GET(req: Request) {
     } catch (err) { logger.warn('api.market-caps', 'cache_read_error', { error: err }); }
   }
 
-  // Deduplicate tickers across batches (allCompanies concatenates multiple files
-  // which can contain the same ticker with drifted marketCap enums — exactly
-  // the bug this endpoint is addressing).
-  const tickers = Array.from(new Set(allCompanies.map(c => c.ticker).filter(Boolean)));
-  const results = await fetchYFMarketCaps(tickers);
-
+  // Build bands from static marketCap field — deduplicate by ticker so later
+  // entries (with potentially drifted enums) don't overwrite the first.
   const bands: Record<string, MarketCapBand> = {};
   const caps: Record<string, number> = {};
-  for (const r of results) {
-    if (r.band) bands[r.ticker] = r.band;
-    if (r.marketCap != null) caps[r.ticker] = r.marketCap;
+  const seen = new Set<string>();
+  for (const c of allCompanies) {
+    if (!c.ticker || seen.has(c.ticker)) continue;
+    seen.add(c.ticker);
+    const band = c.marketCap as MarketCapBand;
+    if (band) bands[c.ticker] = band;
   }
 
   const payload: MarketCapPayload = {
@@ -72,6 +69,6 @@ export async function GET(req: Request) {
 
   await loggedRedisSet(redis, 'api.market-caps', CACHE_KEY, payload, { ex: CACHE_TTL });
 
-  logger.info('api.market-caps', 'served', { tickers: tickers.length, mapped: Object.keys(bands).length, durationMs: Date.now() - reqStart });
+  logger.info('api.market-caps', 'served', { tickers: seen.size, mapped: Object.keys(bands).length, durationMs: Date.now() - reqStart });
   return NextResponse.json({ ...payload, cached: false });
 }

@@ -105,6 +105,71 @@ async function fetchKrxFlow(market: 'KOSPI' | 'KOSDAQ'): Promise<{ entries: Kore
   return { entries: [], trdDd: kstDateStr(0) };
 }
 
+const KOSPI_TICKERS = [
+  '005930.KS', // 삼성전자
+  '000660.KS', // SK하이닉스
+  '005380.KS', // 현대차
+  '035420.KS', // NAVER
+  '005490.KS', // POSCO홀딩스
+  '000270.KS', // 기아
+  '035720.KS', // 카카오
+  '051910.KS', // LG화학
+  '028260.KS', // 삼성물산
+  '003550.KS', // LG
+  '012330.KS', // 현대모비스
+  '096770.KS', // SK이노베이션
+  '017670.KS', // SK텔레콤
+  '030200.KS', // KT
+  '055550.KS', // 신한지주
+  '105560.KS', // KB금융
+  '086790.KS', // 하나금융지주
+  '032830.KS', // 삼성생명
+  '018260.KS', // 삼성에스디에스
+  '009150.KS', // 삼성전기
+];
+
+async function fetchYahooKoreaEntry(ticker: string): Promise<KoreaFlowEntry | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`,
+      {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10000),
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      }
+    );
+    if (!res.ok) return null;
+    const json = await res.json() as Record<string, unknown>;
+    const result = (json?.chart as Record<string, unknown>)?.result as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(result) || result.length === 0) return null;
+    const meta = result[0].meta as Record<string, unknown> | undefined;
+    if (!meta) return null;
+    const regularMarketPrice = meta.regularMarketPrice as number | undefined;
+    const chartPreviousClose = meta.chartPreviousClose as number | undefined;
+    const changePct =
+      regularMarketPrice != null && chartPreviousClose != null && chartPreviousClose !== 0
+        ? ((regularMarketPrice - chartPreviousClose) / chartPreviousClose) * 100
+        : null;
+    return {
+      ticker: ticker.replace('.KS', ''),
+      name: (meta.shortName as string | undefined) ?? ticker.replace('.KS', ''),
+      market: 'KOSPI',
+      foreignerNetBuy: null,
+      institutionNetBuy: null,
+      individualNetBuy: null,
+      closePrice: regularMarketPrice ?? null,
+      changePct: changePct != null ? Math.round(changePct * 100) / 100 : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchYahooKoreaFallback(): Promise<KoreaFlowEntry[]> {
+  const results = await Promise.all(KOSPI_TICKERS.map(t => fetchYahooKoreaEntry(t)));
+  return results.filter((e): e is KoreaFlowEntry => e !== null);
+}
+
 export async function GET(req: Request) {
   const reqStart = Date.now();
   const redis = createRedis();
@@ -129,6 +194,38 @@ export async function GET(req: Request) {
   // pick the more recent trdDd (numeric comparison on YYYYMMDD works)
   const actualTradingDay = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
   const tradingDayFmt = `${actualTradingDay.slice(0, 4)}-${actualTradingDay.slice(4, 6)}-${actualTradingDay.slice(6, 8)}`;
+
+  // If KRX returned no data, fall back to Yahoo Finance price data
+  if (all.length === 0) {
+    logger.warn('api.korea-flow', 'krx_empty_yahoo_fallback', {});
+    const yahooEntries = await fetchYahooKoreaFallback();
+    logger.info('api.korea-flow', 'yahoo_fallback_fetched', { count: yahooEntries.length });
+
+    // Sort by changePct for the four lists (no net buy data available)
+    const byChangePctDesc = [...yahooEntries].sort(
+      (a, b) => (b.changePct ?? 0) - (a.changePct ?? 0)
+    );
+    const byChangePctAsc = [...yahooEntries].sort(
+      (a, b) => (a.changePct ?? 0) - (b.changePct ?? 0)
+    );
+
+    const fallbackPayload = {
+      updatedAt: new Date().toISOString(),
+      tradingDay: tradingDayFmt,
+      topForeignBuy: byChangePctDesc.slice(0, 15),
+      topForeignSell: byChangePctAsc.slice(0, 15),
+      topInstBuy: byChangePctDesc.slice(0, 15),
+      topInstSell: byChangePctAsc.slice(0, 15),
+      totalTickers: yahooEntries.length,
+      fallback: true,
+      fallbackReason: 'KRX API unavailable — Yahoo Finance price data only',
+    };
+
+    await loggedRedisSet(redis, 'api.korea-flow', CACHE_KEY, fallbackPayload, { ex: CACHE_TTL });
+
+    logger.info('api.korea-flow', 'served_fallback', { totalTickers: yahooEntries.length, durationMs: Date.now() - reqStart });
+    return NextResponse.json({ ...fallbackPayload, cached: false });
+  }
 
   // Top-N by absolute foreigner net buy
   const topForeignBuy = [...all]
