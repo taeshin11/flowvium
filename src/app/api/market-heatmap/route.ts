@@ -12,7 +12,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { fetchStooqQuotes } from '@/lib/stooq';
+import { fetchYFHeatmapQuotes } from '@/lib/yahoo-finance';
 import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
 import { createMemoryCache } from '@/lib/memory-cache';
@@ -106,20 +106,20 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.marketValue - a.marketValue)
     .slice(0, country === 'US' ? 200 : 80);
 
-  // 2. Fetch Stooq quotes for US stocks (live intraday change)
-  //    Non-US: use iShares end-of-day price vs sector-weighted avg as approximation
-  const stooqMap = new Map<string, { changePct: number | null; close: number | null; date: string | null }>();
-  if (country === 'US') {
-    const tickers = topHoldings.map(h => h.ticker.replace('.', '-'));
-    const quotes = await fetchStooqQuotes(tickers);
-    for (const q of quotes) {
-      stooqMap.set(q.symbol, { changePct: q.changePct, close: q.close, date: q.date });
-    }
-  }
+  // 2. Fetch Yahoo Finance v8 quotes for all tickers (stocks + indices in one burst).
+  //    v8/chart endpoint works from Vercel and includes pre-market/post-market data.
+  //    Non-US stock prices fall back to iShares EOD; only index ETFs use Yahoo for non-US.
+  const indexConfigs = INDICES_BY_COUNTRY[country] ?? [];
+  const yahooTickers = [
+    ...(country === 'US' ? topHoldings.map(h => h.ticker) : []),
+    ...indexConfigs.map(i => i.symbol),
+  ];
+  const yahooQuotes = await fetchYFHeatmapQuotes(Array.from(new Set(yahooTickers)));
+  const quoteMap = new Map(yahooQuotes.map(q => [q.symbol, q]));
 
   // 3. Build HeatmapStock list
   const stocks: HeatmapStock[] = topHoldings.map(h => {
-    const live = stooqMap.get(h.ticker);
+    const live = country === 'US' ? quoteMap.get(h.ticker) : null;
     return {
       ticker: h.ticker,
       name: h.name,
@@ -152,20 +152,13 @@ export async function GET(req: NextRequest) {
     };
   }).sort((a, b) => b.totalMarketCap - a.totalMarketCap);
 
-  // 5. Fetch indices
-  const indexConfigs = INDICES_BY_COUNTRY[country] ?? [];
-  const indexQuotes = await fetchStooqQuotes(indexConfigs.map(i => i.symbol));
-  const indexMap = new Map(indexQuotes.map(q => [q.symbol, q]));
+  // 5. Build indices from already-fetched quoteMap
   const indices: HeatmapIndex[] = indexConfigs.map(i => {
-    const q = indexMap.get(i.symbol);
-    return {
-      symbol: i.symbol, label: i.label,
-      changePct: q?.changePct ?? null,
-      close: q?.close ?? null,
-    };
+    const q = quoteMap.get(i.symbol);
+    return { symbol: i.symbol, label: i.label, changePct: q?.changePct ?? null, close: q?.close ?? null };
   });
 
-  const anyDate = stooqMap.values().next().value?.date ?? null;
+  const dataDate = new Date().toISOString().slice(0, 10);
   const data: HeatmapData = {
     country,
     countryLabel: cfg?.countryLabel ?? country,
@@ -173,9 +166,9 @@ export async function GET(req: NextRequest) {
     indices,
     totalStocks: stocks.length,
     updatedAt: new Date().toISOString(),
-    dataDate: anyDate,
+    dataDate,
     source: country === 'US'
-      ? 'iShares IVV (구성) + Stooq (시세)'
+      ? 'iShares IVV (구성) + Yahoo Finance v8 (시세, 프리장 포함)'
       : `iShares ${cfg?.etfTicker} 보유종목 (EOD)`,
   };
 

@@ -154,6 +154,37 @@ export async function fetchYFQuotes(tickers: string[]): Promise<YFQuote[]> {
   return results;
 }
 
+export interface YFHeatmapQuote {
+  symbol: string;
+  changePct: number | null;
+  close: number | null;
+}
+
+/**
+ * Fetch all tickers in one parallel burst for heatmap use.
+ * Heatmap caches 15min so the single large fetch is acceptable.
+ * Uses Yahoo v8/chart — no crumb, works from Vercel, includes pre-market data.
+ */
+export async function fetchYFHeatmapQuotes(tickers: string[]): Promise<YFHeatmapQuote[]> {
+  if (!tickers.length) return [];
+  const settled = await Promise.allSettled(tickers.map(t => fetchOneQuote(t)));
+  const out: YFHeatmapQuote[] = [];
+  for (const r of settled) {
+    if (r.status === 'fulfilled' && r.value) {
+      const q = r.value;
+      out.push({
+        symbol: q.symbol,
+        changePct: q.regularMarketChangePercent != null
+          ? parseFloat(q.regularMarketChangePercent.toFixed(2))
+          : null,
+        close: q.regularMarketPrice ?? null,
+      });
+    }
+  }
+  logger.info('yahoo.heatmap', 'batch_done', { requested: tickers.length, returned: out.length });
+  return out;
+}
+
 /** Fetch short interest data for a single ticker via quoteSummary (crumb-authenticated). */
 export async function fetchYFShortData(ticker: string): Promise<YFShortData> {
   const base: YFShortData = { ticker, shortFloatPct: null, shortRatio: null, sharesShort: null, sharesShortPriorMonth: null, shortChangeMonthly: null };

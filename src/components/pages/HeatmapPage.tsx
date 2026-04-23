@@ -12,8 +12,8 @@ function pctColor(pct: number | null): string {
   if (pct >= 3)    return '#047857';
   if (pct >= 1.5)  return '#059669';
   if (pct >= 0.5)  return '#10b981';
-  if (pct >= 0)    return '#14532d';
-  if (pct > -0.5)  return '#3f1d1d';
+  if (pct >= 0)    return '#166534';  // was #14532d — slightly brighter for contrast
+  if (pct > -0.5)  return '#4c1d1d';  // was #3f1d1d — slightly brighter
   if (pct > -1.5)  return '#ef4444';
   if (pct > -3)    return '#dc2626';
   return '#991b1b';
@@ -40,28 +40,31 @@ function StockBox(props: BoxProps) {
   // Scale font size to box size
   const tickerFont = Math.min(Math.max(width / 5.5, 9), 32);
   const pctFont = Math.min(Math.max(width / 7.5, 8), 20);
-  const showText = width > 30 && height > 20;
-  const showPct = width > 45 && height > 38;
+  const showText = width > 28 && height > 18;
+  const showPct = width > 42 && height > 34;
   const showName = width > 85 && height > 60;
+
+  // SVG text-shadow via paint-order (stroke behind fill) for readability
+  const textProps = { paintOrder: 'stroke' as const, stroke: bg, strokeWidth: 3, strokeLinejoin: 'round' as const };
 
   return (
     <g>
-      <rect x={x} y={y} width={width} height={height} fill={bg} stroke="#0f172a" strokeWidth={1.5} />
+      <rect x={x} y={y} width={width} height={height} fill={bg} stroke="#0f172a" strokeWidth={1.5} rx={1} />
       {showText && ticker && (
         <text x={x + width / 2} y={y + height / 2 + (showPct ? -4 : 4)}
-              textAnchor="middle" fill={tc} fontSize={tickerFont} fontWeight={800}>
+              textAnchor="middle" fill={tc} fontSize={tickerFont} fontWeight={700} {...textProps}>
           {ticker}
         </text>
       )}
       {showPct && (
         <text x={x + width / 2} y={y + height / 2 + tickerFont / 2 + 4}
-              textAnchor="middle" fill={tc} fontSize={pctFont} fontWeight={600}>
+              textAnchor="middle" fill={tc} fontSize={pctFont} fontWeight={500} {...textProps}>
           {pctStr}
         </text>
       )}
       {showName && name && (
         <text x={x + width / 2} y={y + height - 6}
-              textAnchor="middle" fill={tc} fontSize={Math.min(pctFont * 0.7, 11)} opacity={0.75}>
+              textAnchor="middle" fill={tc} fontSize={Math.min(pctFont * 0.7, 11)} opacity={0.75} {...textProps}>
           {name.length > 20 ? name.slice(0, 18) + '…' : name}
         </text>
       )}
@@ -146,6 +149,7 @@ export default function HeatmapPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [country, setCountry] = useState<string>('US');
+  const [viewMode, setViewMode] = useState<'sectors' | 'overview'>('sectors');
 
   const load = async (force = false, ctry = country) => {
     if (force) setRefreshing(true);
@@ -218,19 +222,37 @@ export default function HeatmapPage() {
         </div>
       </div>
 
-      {/* Country tabs */}
-      <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
-        {COUNTRIES.map(c => (
+      {/* Country tabs + view mode toggle */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="flex gap-1 overflow-x-auto pb-1 flex-1">
+          {COUNTRIES.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCountry(c.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0
+                ${country === c.id ? 'bg-cf-accent text-white shadow-sm' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
+            >
+              <span className="text-base">{c.flag}</span>
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 flex-shrink-0">
           <button
-            key={c.id}
-            onClick={() => setCountry(c.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0
-              ${country === c.id ? 'bg-cf-accent text-white shadow-sm' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
+            onClick={() => setViewMode('sectors')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
+              ${viewMode === 'sectors' ? 'bg-white/15 text-white' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
           >
-            <span className="text-base">{c.flag}</span>
-            {c.label}
+            섹터별
           </button>
-        ))}
+          <button
+            onClick={() => setViewMode('overview')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
+              ${viewMode === 'overview' ? 'bg-white/15 text-white' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
+          >
+            전체보기
+          </button>
+        </div>
       </div>
 
       {/* Indices */}
@@ -251,10 +273,47 @@ export default function HeatmapPage() {
         ))}
       </div>
 
-      {/* Sector treemaps */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {data.sectors.map(s => <SectorBlock key={s.sector} sector={s} />)}
-      </div>
+      {/* Treemap view */}
+      {viewMode === 'overview' ? (
+        <div className="cf-card p-3" style={{ backgroundColor: '#0f172a', borderColor: '#1e293b' }}>
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <span className="text-sm font-bold text-white">전체 시장 ({data.totalStocks}종목)</span>
+            <div className="flex gap-2 flex-wrap">
+              {data.sectors.map(s => (
+                <span key={s.sector} className="inline-flex items-center gap-1 text-[10px] text-slate-400">
+                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: s.color }} />
+                  {s.sector}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div style={{ height: Math.min(700, Math.max(400, data.totalStocks * 3.2)) }}>
+            <ResponsiveContainer>
+              <Treemap
+                data={data.sectors.flatMap(s =>
+                  s.stocks.map(st => ({
+                    name: st.ticker,
+                    size: st.marketCap,
+                    ticker: st.ticker,
+                    changePct: st.changePct,
+                    fullName: st.name,
+                  }))
+                )}
+                dataKey="size"
+                aspectRatio={1.6}
+                stroke="#0f172a"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={<StockBox /> as any}
+                animationDuration={300}
+              />
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {data.sectors.map(s => <SectorBlock key={s.sector} sector={s} />)}
+        </div>
+      )}
 
       <p className="text-[10px] text-cf-text-secondary/40 mt-4">
         출처: {data.source}
