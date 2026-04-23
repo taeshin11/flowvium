@@ -81,22 +81,25 @@ function createRedis(): Redis | null {
 const SUPPORTED = ['US', 'KR', 'JP', 'CN', 'EU', 'IN', 'TW'];
 
 export async function GET(req: NextRequest) {
-  const rawCountry = (new URL(req.url).searchParams.get('country') ?? 'US').toUpperCase();
+  const url = new URL(req.url);
+  const rawCountry = (url.searchParams.get('country') ?? 'US').toUpperCase();
   const country = SUPPORTED.includes(rawCountry) ? rawCountry : 'US';
+  const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v5:${country}:${hour}`;
+  const cacheKey = `flowvium:heatmap:v6:${country}:${hour}`;  // v6: Yahoo v8 batched
   const redis = createRedis();
 
-  if (redis) {
-    try {
-      const cached = await redis.get(cacheKey);
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
-    } catch { /* non-fatal */ }
-  } else {
-    // Redis-less memory fallback — 10min per country
-    const mem = MEMORY_CACHE.get(country);
-    if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
+  if (!force) {
+    if (redis) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+      } catch { /* non-fatal */ }
+    } else {
+      const mem = MEMORY_CACHE.get(country);
+      if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
+    }
   }
 
   // 1. Fetch ETF constituents (includes market cap weights)
