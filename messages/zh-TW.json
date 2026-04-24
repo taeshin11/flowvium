@@ -175,7 +175,12 @@
     "macroHeadwinds": "{company}的風險因素",
     "macroSummary": "宏觀摘要",
     "relatedMacroThemes": "相關宏觀主题",
-    "viewAllThemes": "查看所有主题"
+    "viewAllThemes": "查看所有主题",
+    "latestNews": "最新新聞",
+    "newsAiSummary": "AI摘要",
+    "loadingNews": "載入新聞中...",
+    "noNews": "無法載入新聞",
+    "readMore": "閱讀更多"
   },
   "cascade": {
     "title": "連鎖影響視覺化",

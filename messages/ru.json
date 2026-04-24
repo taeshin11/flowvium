@@ -175,7 +175,12 @@
     "macroHeadwinds": "Факторы риска для {company}",
     "macroSummary": "Макросводка",
     "relatedMacroThemes": "Связанные макро-темы",
-    "viewAllThemes": "Все темы"
+    "viewAllThemes": "Все темы",
+    "latestNews": "Последние новости",
+    "newsAiSummary": "Резюме ИИ",
+    "loadingNews": "Загрузка новостей...",
+    "noNews": "Не удалось загрузить новости",
+    "readMore": "Читать далее"
   },
   "cascade": {
     "title": "Визуализатор каскада",

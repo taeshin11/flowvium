@@ -175,7 +175,12 @@
     "macroHeadwinds": "Risikofaktoren für {company}",
     "macroSummary": "Makrozusammenfassung",
     "relatedMacroThemes": "Verwandte Makro-Themen",
-    "viewAllThemes": "Alle Themen"
+    "viewAllThemes": "Alle Themen",
+    "latestNews": "Aktuelle Nachrichten",
+    "newsAiSummary": "KI-Zusammenfassung",
+    "loadingNews": "Nachrichten laden...",
+    "noNews": "Nachrichten können nicht geladen werden",
+    "readMore": "Mehr lesen"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",

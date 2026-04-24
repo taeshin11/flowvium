@@ -175,7 +175,12 @@
     "macroHeadwinds": "ปัจจัยเสี่ยงสำหรับ {company}",
     "macroSummary": "สรุปมหภาค",
     "relatedMacroThemes": "หัวข้อมหภาคที่เกี่ยวข้อง",
-    "viewAllThemes": "ดูหัวข้อทั้งหมด"
+    "viewAllThemes": "ดูหัวข้อทั้งหมด",
+    "latestNews": "ข่าวล่าสุด",
+    "newsAiSummary": "สรุปโดย AI",
+    "loadingNews": "กำลังโหลดข่าว...",
+    "noNews": "ไม่สามารถโหลดข่าวได้",
+    "readMore": "อ่านเพิ่มเติม"
   },
   "cascade": {
     "title": "เครื่องมือแสดงผลลูกโซ่",

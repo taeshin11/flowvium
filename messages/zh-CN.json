@@ -175,7 +175,12 @@
     "macroHeadwinds": "{company}的风险因素",
     "macroSummary": "宏观摘要",
     "relatedMacroThemes": "相关宏观主题",
-    "viewAllThemes": "查看所有主题"
+    "viewAllThemes": "查看所有主题",
+    "latestNews": "最新新闻",
+    "newsAiSummary": "AI摘要",
+    "loadingNews": "加载新闻中...",
+    "noNews": "无法加载新闻",
+    "readMore": "阅读更多"
   },
   "cascade": {
     "title": "连锁影响可视化",

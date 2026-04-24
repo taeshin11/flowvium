@@ -175,7 +175,12 @@
     "macroHeadwinds": "Fatores de risco para {company}",
     "macroSummary": "Resumo macro",
     "relatedMacroThemes": "Temas Macro Relacionados",
-    "viewAllThemes": "Ver Todos os Temas"
+    "viewAllThemes": "Ver Todos os Temas",
+    "latestNews": "Últimas notícias",
+    "newsAiSummary": "Resumo IA",
+    "loadingNews": "Carregando notícias...",
+    "noNews": "Não foi possível carregar as notícias",
+    "readMore": "Ler mais"
   },
   "cascade": {
     "title": "Visualizador de Cascata",

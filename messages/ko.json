@@ -183,7 +183,12 @@
     "macroHeadwinds": "{company} 리스크 요인",
     "macroSummary": "매크로 요약",
     "relatedMacroThemes": "연관 매크로 테마",
-    "viewAllThemes": "모든 테마 보기"
+    "viewAllThemes": "모든 테마 보기",
+    "latestNews": "최신 뉴스",
+    "newsAiSummary": "AI 요약",
+    "loadingNews": "뉴스 로딩 중...",
+    "noNews": "뉴스를 불러올 수 없습니다",
+    "readMore": "더 보기"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",

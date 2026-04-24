@@ -175,7 +175,12 @@
     "macroHeadwinds": "Headwinds for {company}",
     "macroSummary": "Macro Summary",
     "relatedMacroThemes": "Related Macro Themes",
-    "viewAllThemes": "View All Themes"
+    "viewAllThemes": "View All Themes",
+    "latestNews": "Latest News",
+    "newsAiSummary": "AI Summary",
+    "loadingNews": "Loading news...",
+    "noNews": "Could not load news",
+    "readMore": "Read more"
   },
   "cascade": {
     "title": "Cascade Visualizer",

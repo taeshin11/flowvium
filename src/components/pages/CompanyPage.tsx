@@ -176,6 +176,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [terminalView, setTerminalView] = useState(false);
 
+  interface CompanyNewsItem { title: string; description: string; link: string; pubDate: string; source: string; }
+  interface CompanyNewsData { news: CompanyNewsItem[]; summary: string | null; generatedAt: string; }
+  const [companyNews, setCompanyNews] = useState<CompanyNewsData | null>(null);
+  const [newsLoading, setNewsLoading] = useState(true);
+
   const company = useMemo(
     () => allCompanies.find((c) => c.ticker.toUpperCase() === ticker.toUpperCase()),
     [ticker]
@@ -218,12 +223,24 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
 
   useEffect(() => {
     if (!ticker) return;
-    let cancelled = false;
-    fetch(`/api/stock-price/${ticker.toUpperCase()}`)
+    const controller = new AbortController();
+    fetch(`/api/stock-price/${ticker.toUpperCase()}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (!cancelled && d?.price != null) setLivePrice(d); })
+      .then(d => { if (!controller.signal.aborted && d?.price != null) setLivePrice(d); })
       .catch(() => undefined);
-    return () => { cancelled = true; };
+    return () => controller.abort();
+  }, [ticker]);
+
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    setNewsLoading(true);
+    fetch(`/api/company-news?ticker=${ticker.toUpperCase()}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!controller.signal.aborted && d?.news?.length) setCompanyNews(d); })
+      .catch(() => undefined)
+      .finally(() => { if (!controller.signal.aborted) setNewsLoading(false); });
+    return () => controller.abort();
   }, [ticker]);
 
   // ── Live financials from SEC EDGAR XBRL 10-K filings (24h cache) ────────────
@@ -1021,6 +1038,47 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               </div>
             );
           })()}
+
+          {/* Latest News + AI Summary */}
+          <div className="cf-card p-6">
+            <h2 className="text-xl font-heading font-bold text-cf-text-primary flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-cf-accent" />
+              {t('latestNews')}
+            </h2>
+            {newsLoading ? (
+              <div className="flex items-center gap-2 text-cf-text-secondary py-4">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">{t('loadingNews')}</span>
+              </div>
+            ) : !companyNews ? (
+              <p className="text-sm text-cf-text-secondary">{t('noNews')}</p>
+            ) : (
+              <div className="space-y-4">
+                {companyNews.summary && (
+                  <div className="bg-cf-primary/5 border border-cf-primary/20 rounded-lg p-4">
+                    <p className="text-[10px] font-bold text-cf-primary uppercase tracking-wide mb-1.5">{t('newsAiSummary')}</p>
+                    <p className="text-sm text-cf-text-primary leading-relaxed">{companyNews.summary}</p>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {companyNews.news.slice(0, 5).map((item, i) => (
+                    <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
+                      className="block p-3 rounded-lg hover:bg-white/5 transition-colors group border border-transparent hover:border-white/10">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-cf-text-primary leading-snug group-hover:text-cf-primary transition-colors line-clamp-2">{item.title}</p>
+                          {item.description && (
+                            <p className="text-xs text-cf-text-secondary mt-0.5 line-clamp-1">{item.description}</p>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-cf-text-secondary/60 flex-shrink-0 whitespace-nowrap">{item.source}</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* AI Analysis */}
           <div className="cf-card p-6">

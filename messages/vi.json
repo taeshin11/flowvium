@@ -175,7 +175,12 @@
     "macroHeadwinds": "Rủi ro cho {company}",
     "macroSummary": "Tóm tắt vĩ mô",
     "relatedMacroThemes": "Chủ đề Vĩ mô Liên quan",
-    "viewAllThemes": "Xem Tất cả Chủ đề"
+    "viewAllThemes": "Xem Tất cả Chủ đề",
+    "latestNews": "Tin tức mới nhất",
+    "newsAiSummary": "Tóm tắt AI",
+    "loadingNews": "Đang tải tin tức...",
+    "noNews": "Không thể tải tin tức",
+    "readMore": "Đọc thêm"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",

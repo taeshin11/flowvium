@@ -175,7 +175,12 @@
     "macroHeadwinds": "Faktor risiko untuk {company}",
     "macroSummary": "Ringkasan makro",
     "relatedMacroThemes": "Tema Makro Terkait",
-    "viewAllThemes": "Lihat Semua Tema"
+    "viewAllThemes": "Lihat Semua Tema",
+    "latestNews": "Berita terkini",
+    "newsAiSummary": "Ringkasan AI",
+    "loadingNews": "Memuat berita...",
+    "noNews": "Tidak dapat memuat berita",
+    "readMore": "Baca selengkapnya"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",

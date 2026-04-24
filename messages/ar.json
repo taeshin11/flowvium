@@ -175,7 +175,12 @@
     "macroHeadwinds": "عوامل المخاطر لـ{company}",
     "macroSummary": "الملخص الكلي",
     "relatedMacroThemes": "المواضيع الكلية ذات الصلة",
-    "viewAllThemes": "عرض جميع المواضيع"
+    "viewAllThemes": "عرض جميع المواضيع",
+    "latestNews": "آخر الأخبار",
+    "newsAiSummary": "ملخص الذكاء الاصطناعي",
+    "loadingNews": "جارٍ تحميل الأخبار...",
+    "noNews": "تعذر تحميل الأخبار",
+    "readMore": "اقرأ المزيد"
   },
   "cascade": {
     "title": "مصوّر التأثير المتسلسل",

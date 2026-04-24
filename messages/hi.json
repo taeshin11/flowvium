@@ -175,7 +175,12 @@
     "macroHeadwinds": "{company} के लिए जोखिम कारक",
     "macroSummary": "व्यापक सारांश",
     "relatedMacroThemes": "संबंधित मैक्रो थीम",
-    "viewAllThemes": "सभी थीम देखें"
+    "viewAllThemes": "सभी थीम देखें",
+    "latestNews": "ताज़ा खबर",
+    "newsAiSummary": "AI सारांश",
+    "loadingNews": "समाचार लोड हो रहा है...",
+    "noNews": "समाचार लोड नहीं हो सका",
+    "readMore": "और पढ़ें"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",

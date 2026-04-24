@@ -175,7 +175,12 @@
     "macroHeadwinds": "{company} için risk faktörleri",
     "macroSummary": "Makro özet",
     "relatedMacroThemes": "İlgili Makro Temalar",
-    "viewAllThemes": "Tüm Temaları Gör"
+    "viewAllThemes": "Tüm Temaları Gör",
+    "latestNews": "Son haberler",
+    "newsAiSummary": "AI özeti",
+    "loadingNews": "Haberler yükleniyor...",
+    "noNews": "Haberler yüklenemedi",
+    "readMore": "Daha fazla oku"
   },
   "cascade": {
     "title": "Kaskad Görselleştirici",
