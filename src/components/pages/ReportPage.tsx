@@ -108,6 +108,7 @@ export default function ReportPage() {
   const [curve,  setCurve]  = useState<KpiState<{ spread: number; inverted: boolean }>>({ loading: true, error: false, value: null });
   const [vix,    setVix]    = useState<KpiState<{ ret1w: number; level: number | null }>>({ loading: true, error: false, value: null });
   const [fomc,   setFomc]   = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
+  const [hyOas,  setHyOas]  = useState<KpiState<{ value: number }>>({ loading: true, error: false, value: null });
   // Sparkline data — 30일 종가. Null-safe, 실패해도 pill 자체엔 영향 없음.
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
   const [vixSpark, setVixSpark] = useState<number[] | null>(null);
@@ -149,6 +150,7 @@ export default function ReportPage() {
     setCurve({ loading: true, error: false, value: null });
     setVix({ loading: true, error: false, value: null });
     setFomc({ loading: true, error: false, value: null });
+    setHyOas({ loading: true, error: false, value: null });
 
     const pFg = fetch('/api/fear-greed', { signal })
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
@@ -191,7 +193,19 @@ export default function ReportPage() {
         const spread = j?.yieldCurve?.spread10y2y;
         if (typeof spread !== 'number') throw new Error('no spread');
         if (!signal.aborted) setCurve({ loading: false, error: false, value: { spread, inverted: !!j.yieldCurve?.inverted } });
-      }).catch(() => { if (!signal.aborted) setCurve({ loading: false, error: true, value: null }); });
+        // HY OAS — surfaced from macro indicators
+        const hyInd = Array.isArray(j?.indicators) ? j.indicators.find((x: { id?: string }) => x?.id === 'hy_spread') : null;
+        const hyVal = typeof hyInd?.actual === 'number' ? hyInd.actual : null;
+        if (!signal.aborted) setHyOas(hyVal != null
+          ? { loading: false, error: false, value: { value: hyVal } }
+          : { loading: false, error: true, value: null }
+        );
+      }).catch(() => {
+        if (!signal.aborted) {
+          setCurve({ loading: false, error: true, value: null });
+          setHyOas({ loading: false, error: true, value: null });
+        }
+      });
 
     const pFed = fetch('/api/fedwatch', { signal })
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
@@ -326,6 +340,14 @@ export default function ReportPage() {
             label="10Y-2Y"
             body={curve.value ? `${(curve.value.spread * 100).toFixed(0)}bp` : '—'}
             cls={curve.value ? (curve.value.inverted ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
+          />
+          {/* HY OAS — credit stress signal */}
+          <Pill
+            loading={hyOas.loading}
+            error={hyOas.error}
+            label="HY OAS"
+            body={hyOas.value ? `${hyOas.value.value.toFixed(2)}%` : '—'}
+            cls={hyOas.value ? (hyOas.value.value > 5.0 ? 'bg-red-50 text-red-700 border-red-200' : hyOas.value.value > 4.0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200') : ''}
           />
           {/* VIX — level from volatility endpoint, change from price-history sparkline */}
           <Pill

@@ -1,0 +1,41 @@
+## Iter 60 — Report HY OAS pill 추가
+Date: 2026-04-24
+Primary outcome: Report HY OAS pill 추가 (13자 ✓)
+
+### Drift check
+- iter 57: fear-greed
+- iter 58: macro-indicators/route.ts + MacroIndicatorsTab.tsx
+- iter 59: MacroIndicatorsTab.tsx (2 consecutive macro tab)
+- iter 60: ReportPage.tsx (다른 파일/영역 → drift 없음 ✓)
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=hy_oas source=FRED_BAMLH0A0HYM2
+  direct_value=2.84% (2026-04-22, 이미 iter58에서 검증)
+  production: hy_spread=2.84 liveData=True → delta=0 → OK ✓
+  Report page pill: 2.84% 초록 (< 4.0% threshold) → OK ✓
+
+### 수정 사항
+
+#### 1. KPI 상태 추가 (ReportPage.tsx)
+- `const [hyOas, setHyOas] = useState<KpiState<{ value: number }>>({ loading: true, error: false, value: null })`
+- reset 블록에 `setHyOas({ loading: true, error: false, value: null })` 추가
+
+#### 2. pMacro fetch 확장
+- indicators 배열에서 `id === 'hy_spread'` 항목 추출
+- `setHyOas` 호출 (null이면 error=true)
+- catch 블록에 `setHyOas({ loading: false, error: true, value: null })` 추가
+
+#### 3. KPI strip에 HY OAS pill 추가
+- 10Y-2Y 다음, VIX 이전에 위치
+- 색상: > 5% 빨강, > 4% 황색, < 4% 초록
+- 기존 `/api/macro-indicators` fetch 재활용 (추가 network 요청 없음)
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 pMacro fetch 재활용)
+- 데이터: macro-indicators Redis daily cache (v6)
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- iter60: feat(report): HY OAS 신용 스트레스 pill — KPI strip 6번째
