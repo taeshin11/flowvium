@@ -1,0 +1,62 @@
+## Iter 49 — maxDuration 완성 + METRICS.md 정합성 + 부정적 실험 기록
+Date: 2026-04-24
+Primary outcome: 6개 라우트 maxDuration 추가 + METRICS.md 버전 동기화
+
+### Drift check
+- iter 47: chartPreviousClose bug sweep
+- iter 48: Redis 키 감사 + GROQ 토큰 최적화
+- iter 49: 인프라 완성 + 부정 실험 기록
+- 동일 모듈 3 iter 연속: 없음 ✓
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=GROQ.daily-brief source=debug ctx.korea=true ctx.short=true → FIXED (iter48 Redis 키 수정 효과 확인)
+- [accuracy probe] metric=verify-metrics summary=77/79 OK, 0 error → OK
+- daily-brief ctx.populated: heatmap✓ short✓ capital✓ fearGreed✓ fedWatch✓ macro✓ credit✓ cascade(8)✓ insider(19)✓ korea✓ → 모든 탭 데이터 정상 주입 확인
+
+### 부정적 실험 결과 (negative results)
+
+#### Korea 수급 데이터 대안 탐색 → 실패
+시도한 대안들:
+- Naver Finance polling API (`polling.finance.naver.com`): 가격 데이터만, 수급 없음
+- Naver Finance ETF API (`finance.naver.com/api/sise`): ETF 가격만, 개별주 수급 없음
+- Naver Finance JSON API: 404 or HTML error
+- Stooq KR 주식 (`.KO` suffix): N/D 반환 (데이터 없음)
+- Yahoo Finance: 이미 fallback으로 사용 중
+
+결론: KRX API가 유일한 무료 한국 주식 수급 소스. Vercel IP 차단으로 인해
+fallback 상태 유지. 해결책: 유료 데이터 제공업체 또는 별도 프록시 서버.
+→ 공식 포기 (2 iter 이상 "재시도만" — CLAUDE.md §1.4 해당)
+
+#### 섹터 ETF P/E 데이터 소스 탐색 → 실패
+시도한 소스들:
+- Yahoo Finance v10: Unauthorized (크럼 필요)
+- Yahoo Finance v7 quote: Unauthorized
+- SSGA ETF API: JSON 아님 (HTML)
+- Finnhub stock/metric: ETF P/E null (ETF 지원 안 함)
+
+결론: 섹터 ETF P/E는 ETF 제공사(SSGA)가 내부 계산값. 무료 API 소스 없음.
+→ 공식 포기. 현재 상태(null 표시) 유지.
+
+### 수정 사항
+
+#### maxDuration 6개 라우트 추가 (CRITICAL timeout fix)
+Vercel 10s 기본 타임아웃 > 라우트 실제 소요 시간:
+- flow-analysis: capital-flows(20s) + AI(30s) = 50s → maxDuration=60 추가
+- short-interest: FINRA + EDGAR + 13F 다단계 = 필요 → maxDuration=60 추가
+- ai: AI provider cascade 30s → maxDuration=60 추가
+- translate: AI 번역 15s → maxDuration=60 추가
+- earnings: Finnhub API 12s → maxDuration=60 추가
+- company-news: news + AI = 10s+ → maxDuration=60 추가
+
+#### METRICS.md 버전 키 동기화
+- korea-flow:v1 → v2 (iter47)
+- short-interest:v1 → v3 (iter46)
+- fg:v3:SPY → v5:SPY (실제 현행 버전)
+- latest-updates:v2 → v3 (실제 현행 버전)
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- 0156b08: fix(maxDuration): add 60s timeout to 6 AI/multi-fetch routes
+- 2081d9a: docs(METRICS): sync stale Redis key versions
