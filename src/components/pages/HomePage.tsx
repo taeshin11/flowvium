@@ -71,6 +71,7 @@ function MarketSnapshot() {
   const [fgScore, setFgScore] = useState<number | null>(null);
   const [fgHistory, setFgHistory] = useState<number[] | null>(null);
   const [riskSignal, setRiskSignal] = useState<'risk-on' | 'neutral' | 'risk-off' | null>(null);
+  const [regimeSignal, setRegimeSignal] = useState<'recession' | 'stagflation' | 'overheating' | 'goldilocks' | 'slowdown' | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchPills = useCallback(() => {
@@ -132,6 +133,17 @@ function MarketSnapshot() {
         const riskOn = (hy != null && hy < 3.5) && (ig != null && ig < 1.0) &&
                        !inverted && (umc != null && umc > 60);
         setRiskSignal(riskOff ? 'risk-off' : riskOn ? 'risk-on' : 'neutral');
+        const gdp = inds.find(x => x.id === 'gdp')?.actual ?? null;
+        const cpi = inds.find(x => x.id === 'cpi')?.actual ?? null;
+        if (gdp !== null && cpi !== null) {
+          setRegimeSignal(
+            gdp < 0        ? 'recession'   :
+            gdp < 1.5 && cpi > 2.5 ? 'stagflation'  :
+            gdp >= 1.5 && cpi > 2.5 ? 'overheating'  :
+            gdp >= 1.5 && cpi <= 2.5 ? 'goldilocks'   :
+            'slowdown'
+          );
+        }
       })
       .catch(() => {});
     return () => ctrl.abort();
@@ -189,6 +201,24 @@ function MarketSnapshot() {
                 'text-gray-600 bg-gray-100'
               }`}>
                 {riskSignal === 'risk-on' ? '🟢 Risk On' : riskSignal === 'risk-off' ? '🔴 Risk Off' : '⚪ Neutral'}
+              </span>
+            </div>
+          )}
+          {regimeSignal && (
+            <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">
+              <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">CYCLE</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                regimeSignal === 'recession'   ? 'text-purple-700 bg-purple-100' :
+                regimeSignal === 'stagflation' ? 'text-orange-700 bg-orange-100' :
+                regimeSignal === 'overheating' ? 'text-red-700 bg-red-100' :
+                regimeSignal === 'goldilocks'  ? 'text-green-700 bg-green-100' :
+                'text-yellow-700 bg-yellow-100'
+              }`}>
+                {regimeSignal === 'recession'   ? 'Recession'   :
+                 regimeSignal === 'stagflation' ? 'Stagflation' :
+                 regimeSignal === 'overheating' ? 'Overheating' :
+                 regimeSignal === 'goldilocks'  ? 'Goldilocks'  :
+                 'Slowdown'}
               </span>
             </div>
           )}

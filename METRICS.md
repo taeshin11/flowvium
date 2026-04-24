@@ -68,6 +68,7 @@
 | 239-S | DXY 달러인덱스 (DX-Y.NYB) | ✅ live | `/api/stock-price/DX-Y.NYB` | 60s 갱신 | 소수점 1자리, iter34 |
 | 239-T | Gold 선물 가격 (GC=F) | ✅ live | `/api/stock-price/GC=F` | 60s 갱신 | `$` 정수, iter34 |
 | 239-U | 매크로 리스크 신호 배지 | 💾 cached | `/api/macro-indicators` (mount 1회) | daily Redis | iter64, Risk On/Off/Neutral |
+| 239-V | 경제 국면 배지 (CYCLE) | 💾 cached | `/api/macro-indicators` (GDP+CPI 합성) | daily Redis | iter69, Stagflation/Goldilocks/Overheating/Slowdown/Recession |
 
 ### 1-2. 통계 바
 

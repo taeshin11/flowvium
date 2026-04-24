@@ -84,6 +84,7 @@
 - **US Fear & Greed 지수 pill** (F&G, `levelLabels` 색상) ← iter33
 - **F&G 30일 스파크라인** — F&G pill 옆 인라인 SVG 추세선 (44×14px) ← iter61
 - **매크로 리스크 신호 배지** — RISK: Risk On / Neutral / Risk Off (IG+HY+UMC+금리) ← iter64
+- **경제 국면 배지** — CYCLE: Stagflation / Goldilocks / Overheating / Slowdown / Recession (GDP+CPI) ← iter69
 - 마운트 시 `/api/stock-price` 7건 + `/api/fear-greed` 1건 + `/api/macro-indicators` 1건 병렬 fetch
 - 가격 로드 전 표시 안 함 (null guard)
 

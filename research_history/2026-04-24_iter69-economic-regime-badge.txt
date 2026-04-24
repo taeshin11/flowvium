@@ -1,0 +1,68 @@
+## Iter 69 — 경제 국면 배지 (CYCLE)
+Date: 2026-04-24
+Primary outcome: 경제 국면 배지 (Stagflation 등) (19자)
+
+### Drift check
+- iter65=capital-flows, iter66=macro-indicators, iter67=verify-metrics
+- iter68=macro-indicators+verify-metrics, iter69=HomePage.tsx
+  → HomePage 마지막 터치: iter64 (5 iter 전) — 드리프트 없음
+  → macro-indicators: iter66,68 (2회, 비연속) — drift 없음
+
+### Accuracy probe (§3)
+verify-metrics 실시간 결과 (iter68 이후):
+- [accuracy probe] metric=gdp.actual source=verify-metrics_prod
+  direct_value=0.5 our_value=0.5 delta=0 → OK
+- [accuracy probe] metric=cpi.actual source=verify-metrics_prod
+  direct_value=3.29 our_value=3.29 delta=0 → OK
+Regime computation: gdp=0.5 (<1.5), cpi=3.29 (>2.5) → Stagflation ✓
+
+### 구현 (`src/components/pages/HomePage.tsx`)
+
+#### 1. State 추가
+```typescript
+const [regimeSignal, setRegimeSignal] = useState<
+  'recession' | 'stagflation' | 'overheating' | 'goldilocks' | 'slowdown' | null
+>(null);
+```
+
+#### 2. 기존 macro-indicators useEffect에 로직 추가 (추가 fetch 없음)
+```typescript
+const gdp = inds.find(x => x.id === 'gdp')?.actual ?? null;
+const cpi = inds.find(x => x.id === 'cpi')?.actual ?? null;
+if (gdp !== null && cpi !== null) {
+  setRegimeSignal(
+    gdp < 0             ? 'recession'   :
+    gdp < 1.5 && cpi > 2.5 ? 'stagflation'  :
+    gdp >= 1.5 && cpi > 2.5 ? 'overheating'  :
+    gdp >= 1.5 && cpi <= 2.5 ? 'goldilocks'   :
+    'slowdown'
+  );
+}
+```
+
+#### 3. CYCLE 배지 JSX (Risk 배지 바로 뒤)
+- recession → purple
+- stagflation → orange
+- overheating → red
+- goldilocks → green
+- slowdown → yellow
+
+### 설계 근거
+- Risk 배지(iter64): 신용·금리 시장 꼬리 리스크 (Credit/Rate tail risk)
+- Cycle 배지(iter69): 성장·물가 경기 사이클 위치 (Growth/Inflation cycle)
+- 두 신호는 보완적: Neutral Risk + Stagflation = 크레딧 스트레스 없지만 경제 환경 어려움
+
+### §4 UI 렌더 확인
+- 클라이언트 사이드 렌더 (useEffect/useState) → SSR HTML에 불포함
+- curl/WebFetch로 확인 불가 → **미검증**
+- 단, Risk 배지(iter64)와 동일 패턴으로 배포 후 정상 작동 예상
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 macro-indicators 응답 재활용)
+- GDP/CPI 값: daily Redis cache → `cache: 'no-store'` 클라이언트 fetch → no-store ✓
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter69: feat(home): 경제 국면 배지 — GDP+CPI 기반 Stagflation/Goldilocks 등
