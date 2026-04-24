@@ -106,7 +106,7 @@ export async function GET(request: Request) {
 
   let capitalData: Record<string, unknown> | null = null;
   try {
-    const res = await fetch(`${baseUrl}/api/capital-flows`, { signal: AbortSignal.timeout(20000) });
+    const res = await fetch(`${baseUrl}/api/capital-flows`, { signal: AbortSignal.timeout(20000), cache: 'no-store' });
     if (res.ok) {
       capitalData = await res.json();
     } else {

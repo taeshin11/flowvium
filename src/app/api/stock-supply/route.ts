@@ -80,7 +80,7 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
     const cikFormatted = cik.replace('0', '').padStart(10, '0');
     const subRes = await fetch(
       `https://data.sec.gov/submissions/CIK${cikFormatted}.json`,
-      { headers: { 'User-Agent': EDGAR_UA }, signal: AbortSignal.timeout(8000) }
+      { headers: { 'User-Agent': EDGAR_UA }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
     );
     if (!subRes.ok) return [];
     const subData = await subRes.json();
@@ -111,6 +111,7 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
         const xmlRes = await fetch(xmlUrl, {
           headers: { 'User-Agent': EDGAR_UA },
           signal: AbortSignal.timeout(5000),
+          cache: 'no-store',
         });
         if (!xmlRes.ok) continue;
         const xml = await xmlRes.text();

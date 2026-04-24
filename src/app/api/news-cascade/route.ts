@@ -72,6 +72,7 @@ async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]>
     const res = await fetch(feedUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FlowviumBot/1.0)' },
       signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
     });
     if (!res.ok) {
       logger.warn('news-cascade', 'rss_http_error', { source, status: res.status });
