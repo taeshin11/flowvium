@@ -47,8 +47,8 @@ export interface FedWatchData {
   source: string;
 }
 
-// ── Static data (updated 2026-04-16) ─────────────────────────────────────────
-// Based on market consensus / Fed Funds futures pricing
+// ── Static data (updated 2026-04-24) ─────────────────────────────────────────
+// Based on Yahoo Finance ZQ Fed Funds Futures pricing (ZQK26-ZQZ26)
 const STATIC_DATA: FedWatchData = {
   currentTargetLow: 4.25,
   currentTargetHigh: 4.50,
@@ -58,57 +58,57 @@ const STATIC_DATA: FedWatchData = {
       date: '2026-05-07',
       label: 'May 7',
       current: 4.375,
-      targetLow: 4.25,
-      targetHigh: 4.50,
-      probHike: 0.5,
-      probHold: 82.3,
-      probCut25: 16.8,
-      probCut50: 0.4,
-      probCut75: 0,
-      impliedRate: 4.33,
-      cumulativeCuts: 0,
+      targetLow: 3.50,
+      targetHigh: 3.75,
+      probHike: 0,
+      probHold: 0,
+      probCut25: 0,
+      probCut50: 0,
+      probCut75: 100,
+      impliedRate: 3.645,
+      cumulativeCuts: 73,
     },
     {
       date: '2026-06-18',
       label: 'Jun 18',
       current: 4.375,
-      targetLow: 4.00,
-      targetHigh: 4.25,
-      probHike: 0.2,
-      probHold: 44.1,
-      probCut25: 48.3,
-      probCut50: 7.2,
-      probCut75: 0.2,
-      impliedRate: 4.19,
-      cumulativeCuts: 25,
+      targetLow: 3.50,
+      targetHigh: 3.75,
+      probHike: 0,
+      probHold: 45,
+      probCut25: 50,
+      probCut50: 5,
+      probCut75: 0,
+      impliedRate: 3.640,
+      cumulativeCuts: 74,
     },
     {
       date: '2026-07-30',
       label: 'Jul 30',
       current: 4.375,
-      targetLow: 3.75,
-      targetHigh: 4.00,
+      targetLow: 3.50,
+      targetHigh: 3.75,
       probHike: 0,
-      probHold: 28.6,
-      probCut25: 42.1,
-      probCut50: 26.8,
-      probCut75: 2.5,
-      impliedRate: 4.02,
-      cumulativeCuts: 50,
+      probHold: 50,
+      probCut25: 45,
+      probCut50: 5,
+      probCut75: 0,
+      impliedRate: 3.635,
+      cumulativeCuts: 74,
     },
     {
       date: '2026-09-17',
       label: 'Sep 17',
       current: 4.375,
-      targetLow: 3.50,
-      targetHigh: 3.75,
+      targetLow: 3.25,
+      targetHigh: 3.50,
       probHike: 0,
-      probHold: 18.2,
-      probCut25: 36.5,
-      probCut50: 33.1,
-      probCut75: 12.2,
-      impliedRate: 3.84,
-      cumulativeCuts: 75,
+      probHold: 40,
+      probCut25: 55,
+      probCut50: 5,
+      probCut75: 0,
+      impliedRate: 3.620,
+      cumulativeCuts: 76,
     },
     {
       date: '2026-10-29',
@@ -117,65 +117,82 @@ const STATIC_DATA: FedWatchData = {
       targetLow: 3.25,
       targetHigh: 3.50,
       probHike: 0,
-      probHold: 14.3,
-      probCut25: 32.0,
-      probCut50: 35.7,
-      probCut75: 18.0,
-      impliedRate: 3.68,
-      cumulativeCuts: 100,
+      probHold: 45,
+      probCut25: 50,
+      probCut50: 5,
+      probCut75: 0,
+      impliedRate: 3.615,
+      cumulativeCuts: 76,
     },
     {
       date: '2026-12-10',
       label: 'Dec 10',
       current: 4.375,
-      targetLow: 3.00,
-      targetHigh: 3.25,
+      targetLow: 3.25,
+      targetHigh: 3.50,
       probHike: 0,
-      probHold: 12.1,
-      probCut25: 28.4,
-      probCut50: 36.5,
-      probCut75: 23.0,
-      impliedRate: 3.52,
-      cumulativeCuts: 125,
+      probHold: 45,
+      probCut25: 50,
+      probCut50: 5,
+      probCut75: 0,
+      impliedRate: 3.610,
+      cumulativeCuts: 76,
     },
   ],
-  yearEndImpliedRate: 3.52,
-  totalImpliedCuts: 125,
-  updatedAt: '2026-04-16',
-  source: 'CME FedWatch 기반 시장 컨센서스',
+  yearEndImpliedRate: 3.610,
+  totalImpliedCuts: 76,
+  updatedAt: '2026-04-24',
+  source: 'Yahoo Finance ZQ Futures 기반 시장 컨센서스',
 };
 
-// ── CME live fetch (unofficial endpoint) ─────────────────────────────────────
-async function fetchCMEImpliedRates(): Promise<Record<string, number> | null> {
+// ── Yahoo Finance ZQ Futures live fetch ──────────────────────────────────────
+async function fetchYFImpliedRates(): Promise<Record<string, number> | null> {
+  const MONTH_MAP: Record<string, string> = {
+    'F': 'JAN', 'G': 'FEB', 'H': 'MAR', 'J': 'APR', 'K': 'MAY',
+    'M': 'JUN', 'N': 'JUL', 'Q': 'AUG', 'U': 'SEP', 'V': 'OCT',
+    'X': 'NOV', 'Z': 'DEC',
+  };
+  const CONTRACTS = ['ZQK26', 'ZQM26', 'ZQN26', 'ZQQ26', 'ZQU26', 'ZQV26', 'ZQZ26'];
   try {
-    const res = await fetch(
-      'https://www.cmegroup.com/CmeWS/mvc/ProductCalendar/V2/FF/FUTURE?type=AC&venue=G&pageSize=24&pageNum=0',
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*',
-          'Referer': 'https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html',
-          'Origin': 'https://www.cmegroup.com',
-        },
-        signal: AbortSignal.timeout(10000),
-        cache: 'no-store',
-      }
+    const results = await Promise.allSettled(
+      CONTRACTS.map(async (contract) => {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${contract}.CBT?interval=1d&range=5d`;
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(8000),
+          cache: 'no-store',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; Flowvium/1.0)',
+            'Accept': 'application/json',
+          },
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const closeArr = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+        const prices: number[] = Array.isArray(closeArr)
+          ? closeArr.filter((p: unknown) => typeof p === 'number')
+          : [];
+        const price = prices[prices.length - 1];
+        if (!price || price < 90) return null;
+        const monthCode = contract[2];
+        const yearSuffix = contract.slice(3);
+        const monthName = MONTH_MAP[monthCode];
+        if (!monthName) return null;
+        const impliedRate = parseFloat((100 - price).toFixed(4));
+        return {
+          key26: `${monthName}${yearSuffix}`,
+          keyFull: `${monthName}20${yearSuffix}`,
+          rate: impliedRate,
+        };
+      })
     );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const items: Array<Record<string, string>> = data?.items ?? data?.rows ?? [];
-    if (!items.length) return null;
-
-    // Map month label → implied rate (100 - settlePx)
     const rates: Record<string, number> = {};
-    for (const item of items) {
-      const price = parseFloat(item.settlePx ?? item.lastPx ?? item.last ?? '0');
-      const month = (item.month ?? item.expirationDate ?? '').toString().toUpperCase();
-      if (price > 90 && month) {
-        rates[month] = parseFloat((100 - price).toFixed(4));
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) {
+        rates[r.value.key26] = r.value.rate;
+        rates[r.value.keyFull] = r.value.rate;
       }
     }
-    return Object.keys(rates).length ? rates : null;
+    return Object.keys(rates).length >= 2 ? rates : null;
   } catch {
     return null;
   }
@@ -262,15 +279,15 @@ export async function GET() {
     } catch { /* non-fatal */ }
   }
 
-  // Try live CME data
-  const cmeRates = await fetchCMEImpliedRates();
+  // Try live Yahoo Finance ZQ Futures data
+  const cmeRates = await fetchYFImpliedRates();
   let meetings = STATIC_DATA.meetings;
   let source = STATIC_DATA.source;
   let liveData = false;
 
   if (cmeRates && Object.keys(cmeRates).length >= 3) {
     liveData = true;
-    source = 'CME Fed Funds Futures 실시간';
+    source = 'Yahoo Finance ZQ Futures 실시간';
     meetings = STATIC_DATA.meetings.map(m => {
       const live = computeMeetingProbs(m, cmeRates, STATIC_DATA.currentRateMid);
       return { ...m, ...live };
