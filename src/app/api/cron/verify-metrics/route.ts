@@ -191,13 +191,6 @@ async function verifyVolatility(base: string): Promise<MetricItem[]> {
   return items;
 }
 
-async function verifyCOT(base: string): Promise<MetricItem[]> {
-  const r = await safeJson(base, '/api/cot-positions');
-  if (!r.ok) return [{ key: 'cot.ALL', label: 'COT Positions API', group: 'cot', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
-  const data = r.data as { entries?: Array<{ id: string; label: string; netPctOI: number; sentiment: string }> };
-  const entries = data.entries ?? [];
-  return [{ key: 'cot.ALL', label: `COT Positions (${entries.length} markets)`, group: 'cot', status: entries.length >= 4 ? 'ok' : entries.length > 0 ? 'degraded' : 'error', value: entries.length > 0 ? `${entries.length} markets` : null }];
-}
 
 async function verifyCommodityCurve(base: string): Promise<MetricItem[]> {
   const r = await safeJson(base, '/api/commodity-curve');
@@ -255,37 +248,6 @@ async function verifyMacroIndicators(base: string): Promise<MetricItem[]> {
   return items;
 }
 
-async function verifyFedWatch(base: string): Promise<MetricItem[]> {
-  const r = await safeJson(base, '/api/fedwatch');
-  if (!r.ok) {
-    return [{
-      key: 'fedwatch.ALL', label: 'FedWatch', group: 'fedwatch',
-      status: 'error', lastError: r.error ?? `HTTP ${r.status}`,
-    }];
-  }
-  // 실제 스키마: currentRateMid/currentTargetLow/High + meetings[] + yearEndImpliedRate
-  const data = r.data as { currentRateMid?: string|number; meetings?: unknown[]; yearEndImpliedRate?: string|number };
-  const meetings = Array.isArray(data.meetings) ? data.meetings : [];
-  return [
-    {
-      key: 'fedwatch.current', label: 'FedWatch 현재기준금리', group: 'fedwatch',
-      status: data.currentRateMid != null ? 'ok' : 'error',
-      value: data.currentRateMid != null ? `${data.currentRateMid}%` : null,
-      source: 'CME FedWatch',
-    },
-    {
-      key: 'fedwatch.meetings', label: `FedWatch FOMC 확률(${meetings.length} meetings)`, group: 'fedwatch',
-      status: meetings.length > 0 ? 'ok' : 'degraded',
-      value: meetings.length,
-      source: 'CME FedWatch',
-    },
-    {
-      key: 'fedwatch.yearEnd', label: 'FedWatch 연말 예상금리', group: 'fedwatch',
-      status: data.yearEndImpliedRate != null ? 'ok' : 'degraded',
-      value: data.yearEndImpliedRate != null ? `${data.yearEndImpliedRate}%` : null,
-    },
-  ];
-}
 
 async function verifyCreditBalance(base: string): Promise<MetricItem[]> {
   const r = await safeJson(base, '/api/credit-balance');
@@ -467,28 +429,226 @@ async function verifyInsiderStack(base: string): Promise<MetricItem[]> {
       (d) => Array.isArray((d as { items?: unknown[] })?.items)),
     verifyEndpoint(base, '/api/nport-holdings', 'insider.nport', 'N-PORT 뮤추얼펀드', 'insider',
       (d) => Array.isArray((d as { funds?: unknown[] })?.funds) && ((d as { funds: unknown[] }).funds.length > 0)),
-    verifyEndpoint(base, '/api/korea-flow', 'insider.korea', '한국 수급 (KRX)', 'insider',
-      // KRX returns 0 rows outside trading hours / geo-block from Vercel US. Structure check only.
-      (d) => typeof (d as { totalTickers?: number })?.totalTickers === 'number'),
+    // korea-flow is now tracked per-item in verifyKoreaFlowDetailed — removed here to avoid duplicates
   ]);
 }
 
-async function verifyMarketStack(base: string): Promise<MetricItem[]> {
+async function verifyShortInterestDetailed(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/short-interest');
+  if (!r.ok) {
+    return [{ key: 'short.ALL', label: 'Short Interest API', group: 'short-interest', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as { entries?: Array<{ ticker: string; shortVolPct: number | null; squeezeScore: number; shortRatio: number | null; companyName?: string }> };
+  const entries = data.entries ?? [];
+  if (entries.length === 0) return [{ key: 'short.ALL', label: 'Short Interest (empty)', group: 'short-interest', status: 'error' }];
+
+  const items: MetricItem[] = [];
+  for (const e of entries) {
+    const hasVol = e.shortVolPct != null;
+    items.push({
+      key: `short.${e.ticker}`,
+      label: `${e.ticker} 공매도율`,
+      group: 'short-interest',
+      status: hasVol ? 'ok' : 'degraded',
+      value: hasVol ? `${e.shortVolPct}%` : null,
+      details: { squeezeScore: e.squeezeScore, shortRatio: e.shortRatio },
+    });
+  }
+  return items;
+}
+
+async function verifyMarketHeatmapDetailed(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/market-heatmap');
+  if (!r.ok) {
+    return [{ key: 'heatmap.ALL', label: 'Market Heatmap API', group: 'heatmap', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as { sectors?: Array<{ sector: string; avgChangePct: number | null; stocks?: unknown[] }> };
+  const sectors = data.sectors ?? [];
+  if (sectors.length === 0) return [{ key: 'heatmap.ALL', label: 'Market Heatmap (empty)', group: 'heatmap', status: 'error' }];
+
+  return sectors.map(s => ({
+    key: `heatmap.${s.sector.replace(/\s+/g, '_').toLowerCase()}`,
+    label: `Heatmap ${s.sector}`,
+    group: 'heatmap',
+    status: s.avgChangePct != null ? 'ok' as const : 'degraded' as const,
+    value: s.avgChangePct != null ? `${s.avgChangePct > 0 ? '+' : ''}${s.avgChangePct.toFixed(1)}%` : null,
+    details: { stocks: Array.isArray(s.stocks) ? s.stocks.length : 0 },
+  }));
+}
+
+async function verifyMarketCapsDetailed(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/market-caps');
+  if (!r.ok) {
+    return [{ key: 'caps.ALL', label: 'Market Caps API', group: 'market-caps', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as { caps?: Record<string, number>; bands?: Record<string, string> };
+  const caps = data.caps ?? {};
+  const tickers = Object.keys(caps);
+  if (tickers.length === 0) return [{ key: 'caps.ALL', label: 'Market Caps (empty)', group: 'market-caps', status: 'error' }];
+
+  return tickers.map(ticker => {
+    const capUsd = caps[ticker];
+    const capT = capUsd > 0 ? (capUsd / 1e12).toFixed(2) + 'T' : null;
+    return {
+      key: `caps.${ticker}`,
+      label: `${ticker} 시총`,
+      group: 'market-caps',
+      status: capUsd > 0 ? 'ok' as const : 'degraded' as const,
+      value: capT,
+    };
+  });
+}
+
+async function verifySectorPE(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/sector-pe');
+  if (!r.ok) {
+    return [{ key: 'sectorpe.ALL', label: 'Sector P/E API', group: 'sector-pe', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as { sectors?: Array<{ ticker: string; name: string; trailingPE: number | null; ytdReturn: number | null; changePct: number | null }> };
+  const sectors = data.sectors ?? [];
+  if (sectors.length === 0) return [{ key: 'sectorpe.ALL', label: 'Sector P/E (empty)', group: 'sector-pe', status: 'error' }];
+
+  return sectors.map(s => ({
+    key: `sectorpe.${s.ticker}`,
+    label: `${s.name} P/E`,
+    group: 'sector-pe',
+    status: (s.trailingPE != null || s.ytdReturn != null) ? 'ok' as const : 'degraded' as const,
+    value: s.trailingPE != null ? `PE=${s.trailingPE.toFixed(1)}` : s.ytdReturn != null ? `YTD=${s.ytdReturn > 0 ? '+' : ''}${s.ytdReturn.toFixed(1)}%` : null,
+    details: { trailingPE: s.trailingPE, ytdReturn: s.ytdReturn, changePct: s.changePct },
+  }));
+}
+
+async function verifyYieldCurvePoints(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/macro-indicators');
+  if (!r.ok) {
+    return [{ key: 'yc.ALL', label: 'Yield Curve API', group: 'yield-curve', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as { yieldCurve?: { points?: Array<{ label: string; value: number | null }>; spread10y2y?: number | null; inverted?: boolean } };
+  const points = data.yieldCurve?.points ?? [];
+  if (points.length === 0) return [{ key: 'yc.ALL', label: 'Yield Curve (empty)', group: 'yield-curve', status: 'error' }];
+
+  const items: MetricItem[] = points.map(p => ({
+    key: `yc.${p.label}`,
+    label: `금리 ${p.label}`,
+    group: 'yield-curve',
+    status: p.value != null ? 'ok' as const : 'degraded' as const,
+    value: p.value != null ? `${p.value.toFixed(2)}%` : null,
+  }));
+
+  const spread = data.yieldCurve?.spread10y2y;
+  items.push({
+    key: 'yc.spread10y2y',
+    label: '금리 10Y-2Y 스프레드',
+    group: 'yield-curve',
+    status: spread != null ? 'ok' : 'degraded',
+    value: spread != null ? `${spread.toFixed(2)}%` : null,
+    details: { inverted: data.yieldCurve?.inverted },
+  });
+  return items;
+}
+
+async function verifyFedWatchDetailed(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/fedwatch');
+  if (!r.ok) {
+    return [{ key: 'fw.ALL', label: 'FedWatch API', group: 'fedwatch', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as {
+    currentRateMid?: string | number;
+    meetings?: Array<{ date: string; holdPct?: number; hikePct?: number; cutPct?: number }>;
+    yearEndImpliedRate?: string | number;
+  };
+  const meetings = Array.isArray(data.meetings) ? data.meetings : [];
+  const items: MetricItem[] = [];
+
+  items.push({
+    key: 'fw.current', label: 'FedWatch 현재금리', group: 'fedwatch',
+    status: data.currentRateMid != null ? 'ok' : 'error',
+    value: data.currentRateMid != null ? `${data.currentRateMid}%` : null,
+    source: 'CME FedWatch',
+  });
+  items.push({
+    key: 'fw.yearEnd', label: 'FedWatch 연말 금리', group: 'fedwatch',
+    status: data.yearEndImpliedRate != null ? 'ok' : 'degraded',
+    value: data.yearEndImpliedRate != null ? `${data.yearEndImpliedRate}%` : null,
+  });
+
+  for (const m of meetings.slice(0, 6)) {
+    const dateKey = m.date?.replace(/-/g, '') ?? 'unk';
+    const dominant = m.holdPct != null && m.cutPct != null
+      ? (m.cutPct > m.holdPct ? `cut ${m.cutPct.toFixed(0)}%` : `hold ${m.holdPct.toFixed(0)}%`)
+      : null;
+    items.push({
+      key: `fw.meeting.${dateKey}`,
+      label: `FOMC ${m.date}`,
+      group: 'fedwatch',
+      status: dominant ? 'ok' : 'degraded',
+      value: dominant,
+      source: 'CME FedWatch',
+    });
+  }
+  return items;
+}
+
+async function verifyCOTDetailed(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/cot-positions');
+  if (!r.ok) return [{ key: 'cot.ALL', label: 'COT Positions API', group: 'cot', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  const data = r.data as { entries?: Array<{ id: string; label: string; netPctOI: number | null; sentiment: string; longPct?: number | null; shortPct?: number | null }> };
+  const entries = data.entries ?? [];
+  if (entries.length === 0) return [{ key: 'cot.ALL', label: 'COT (empty)', group: 'cot', status: 'error' }];
+
+  return entries.map(e => ({
+    key: `cot.${e.id}`,
+    label: `COT ${e.label}`,
+    group: 'cot',
+    status: e.netPctOI != null ? 'ok' as const : 'degraded' as const,
+    value: e.netPctOI != null ? `net ${e.netPctOI > 0 ? '+' : ''}${e.netPctOI.toFixed(1)}%` : null,
+    details: { sentiment: e.sentiment, longPct: e.longPct, shortPct: e.shortPct },
+  }));
+}
+
+async function verifyKoreaFlowDetailed(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/korea-flow');
+  if (!r.ok) return [{ key: 'kr.ALL', label: 'Korea Flow API', group: 'korea-flow', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  const data = r.data as { totalTickers?: number; foreignNet?: number | null; institutionNet?: number | null; retailNet?: number | null; items?: unknown[] };
+
+  const items: MetricItem[] = [];
+  items.push({
+    key: 'kr.foreign', label: '한국 외국인 순매수', group: 'korea-flow',
+    status: typeof data.foreignNet === 'number' ? 'ok' : (data.totalTickers != null ? 'degraded' : 'error'),
+    value: typeof data.foreignNet === 'number' ? `${(data.foreignNet / 1e8).toFixed(0)}억` : null,
+  });
+  items.push({
+    key: 'kr.institution', label: '한국 기관 순매수', group: 'korea-flow',
+    status: typeof data.institutionNet === 'number' ? 'ok' : 'degraded',
+    value: typeof data.institutionNet === 'number' ? `${(data.institutionNet / 1e8).toFixed(0)}억` : null,
+  });
+  items.push({
+    key: 'kr.retail', label: '한국 개인 순매수', group: 'korea-flow',
+    status: typeof data.retailNet === 'number' ? 'ok' : 'degraded',
+    value: typeof data.retailNet === 'number' ? `${(data.retailNet / 1e8).toFixed(0)}억` : null,
+  });
+  items.push({
+    key: 'kr.tickers', label: '한국 수급 종목수', group: 'korea-flow',
+    status: (data.totalTickers ?? 0) > 0 ? 'ok' : 'degraded',
+    value: data.totalTickers != null ? `${data.totalTickers}종목` : null,
+  });
+  return items;
+}
+
+async function verifyAdditionalEndpoints(base: string): Promise<MetricItem[]> {
   return Promise.all([
-    verifyEndpoint(base, '/api/short-interest', 'market.short', 'Short Interest', 'market',
-      (d) => Array.isArray((d as { entries?: unknown[] })?.entries) && ((d as { entries: unknown[] }).entries.length > 0)),
-    verifyEndpoint(base, '/api/market-heatmap', 'market.heatmap', '시장 히트맵', 'market',
-      (d) => Array.isArray((d as { sectors?: unknown[] })?.sectors) && ((d as { sectors: unknown[] }).sectors.length > 0)),
-    verifyEndpoint(base, '/api/market-caps', 'market.caps', '시가총액', 'market'),
     verifyEndpoint(base, '/api/news-cascade', 'market.news', '뉴스 캐스케이드', 'market',
       (d) => Array.isArray((d as { articles?: unknown[] })?.articles) && ((d as { articles: unknown[] }).articles.length > 0)),
-    // 추가: 홈/시그널 페이지 핵심 집계 엔드포인트 (커버리지 갭 보완)
-    verifyEndpoint(base, '/api/signals', 'market.signals', '기관 신호 13F (live)', 'market',
+    verifyEndpoint(base, '/api/signals', 'market.signals', '기관 신호 13F', 'market',
       (d) => Array.isArray((d as { signals?: unknown[] })?.signals) && ((d as { signals: unknown[] }).signals.length > 0)),
-    verifyEndpoint(base, '/api/latest-updates', 'market.latest', '홈 LiveFeed 집계', 'market',
+    verifyEndpoint(base, '/api/latest-updates', 'market.latest', '홈 LiveFeed', 'market',
       (d) => Array.isArray((d as { items?: unknown[] })?.items) && ((d as { items: unknown[] }).items.length > 0)),
-    verifyEndpoint(base, '/api/price-history?ticker=SPY&days=30', 'market.priceHistory', '가격 시계열 (SPY 30d)', 'market',
+    verifyEndpoint(base, '/api/price-history?ticker=SPY&days=30', 'market.priceHistory', 'SPY 가격 시계열', 'market',
       (d) => Array.isArray((d as { points?: unknown[] })?.points) && ((d as { points: unknown[] }).points.length >= 10)),
+    verifyEndpoint(base, '/api/block-trades', 'market.blockTrades', '대량거래', 'market',
+      (d) => Array.isArray((d as { trades?: unknown[] })?.trades)),
+    verifyEndpoint(base, '/api/options-flow', 'market.optionsFlow', '옵션 플로우', 'market',
+      (d) => Array.isArray((d as { flows?: unknown[] })?.flows)),
   ]);
 }
 
@@ -592,7 +752,7 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
     const [cpiCsv, ppiCsv, fomcUpperCsv, fomcLowerCsv, gdpCsv, ourRes] = await Promise.all([
       fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL&observation_start=${start14mo}`,
         { headers, signal: sig, cache: 'no-store' }),
-      fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=PPIACO&observation_start=${start14mo}`,
+      fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=WPSFD49207&observation_start=${start14mo}`,
         { headers, signal: sig, cache: 'no-store' }),
       fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&observation_start=${start3mo}`,
         { headers, signal: sig, cache: 'no-store' }),
@@ -806,12 +966,12 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:block-trades:v1', label: 'block-trades' },
     { key: 'flowvium:cot-positions:v2', label: 'cot-positions' },
     { key: 'flowvium:korea-flow:v3:1d', label: 'korea-flow' },
-    { key: 'flowvium:short-interest:v4', label: 'short-interest' },
+    { key: 'flowvium:short-interest:v5', label: 'short-interest' },
     { key: 'flowvium:market-caps:v2', label: 'market-caps' },
     { key: 'flowvium:13f-signals:v1', label: '13f-signals' },
     { key: 'flowvium:13f-ownership:v1', label: '13f-ownership' },
     { key: 'flowvium:latest-updates:v3', label: 'latest-updates' },
-    { key: `flowvium:macro-indicators:v6:${kstDate}`, label: `macro-indicators(${kstDate})` },
+    { key: `flowvium:macro-indicators:v10:${kstDate}`, label: `macro-indicators(${kstDate})` },
     { key: `flowvium:fedwatch:v1:${hour}`, label: `fedwatch(${hour}Z)` },
     { key: `flowvium:credit-balance:v2:${kstDate}`, label: `credit-balance(${kstDate})` },
   ];
@@ -841,25 +1001,31 @@ export async function GET(req: Request) {
   const base = getBaseUrl(req);
   const redis = createRedis();
 
-  // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적 + 값정합성 + 변동성)
-  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy, vol, comm, cot] = await Promise.all([
+  // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
-    verifyFedWatch(base).catch((e): MetricItem[] => [{ key: 'fw.ERR', label: 'FW verify throw', group: 'fedwatch', status: 'error', lastError: String(e) }]),
     verifyCreditBalance(base).catch((e): MetricItem[] => [{ key: 'credit.ERR', label: 'Credit verify throw', group: 'credit', status: 'error', lastError: String(e) }]),
     verifyAIProviders().catch((e): MetricItem[] => [{ key: 'ai.ERR', label: 'AI verify throw', group: 'ai', status: 'error', lastError: String(e) }]),
     verifyInsiderStack(base).catch((e): MetricItem[] => [{ key: 'insider.ERR', label: 'Insider verify throw', group: 'insider', status: 'error', lastError: String(e) }]),
-    verifyMarketStack(base).catch((e): MetricItem[] => [{ key: 'market.ERR', label: 'Market verify throw', group: 'market', status: 'error', lastError: String(e) }]),
+    verifyShortInterestDetailed(base).catch((e): MetricItem[] => [{ key: 'short.ERR', label: 'Short Interest verify throw', group: 'short-interest', status: 'error', lastError: String(e) }]),
+    verifyMarketHeatmapDetailed(base).catch((e): MetricItem[] => [{ key: 'heatmap.ERR', label: 'Heatmap verify throw', group: 'heatmap', status: 'error', lastError: String(e) }]),
+    verifyMarketCapsDetailed(base).catch((e): MetricItem[] => [{ key: 'caps.ERR', label: 'Market Caps verify throw', group: 'market-caps', status: 'error', lastError: String(e) }]),
+    verifySectorPE(base).catch((e): MetricItem[] => [{ key: 'sectorpe.ERR', label: 'Sector P/E verify throw', group: 'sector-pe', status: 'error', lastError: String(e) }]),
+    verifyYieldCurvePoints(base).catch((e): MetricItem[] => [{ key: 'yc.ERR', label: 'Yield Curve verify throw', group: 'yield-curve', status: 'error', lastError: String(e) }]),
+    verifyFedWatchDetailed(base).catch((e): MetricItem[] => [{ key: 'fw.ERR', label: 'FedWatch verify throw', group: 'fedwatch', status: 'error', lastError: String(e) }]),
+    verifyCOTDetailed(base).catch((e): MetricItem[] => [{ key: 'cot.ERR', label: 'COT verify throw', group: 'cot', status: 'error', lastError: String(e) }]),
+    verifyKoreaFlowDetailed(base).catch((e): MetricItem[] => [{ key: 'kr.ERR', label: 'Korea Flow verify throw', group: 'korea-flow', status: 'error', lastError: String(e) }]),
+    verifyAdditionalEndpoints(base).catch((e): MetricItem[] => [{ key: 'market.ERR', label: 'Additional endpoints verify throw', group: 'market', status: 'error', lastError: String(e) }]),
     verifyEarnings(base).catch((e): MetricItem[] => [{ key: 'earnings.ERR', label: 'Earnings verify throw', group: 'earnings', status: 'error', lastError: String(e) }]),
     redis ? verifyRedisCaches(redis) : Promise.resolve([] as MetricItem[]),
     verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
     verifyVolatility(base).catch((e): MetricItem[] => [{ key: 'vol.ERR', label: 'Volatility verify throw', group: 'volatility', status: 'error', lastError: String(e) }]),
     verifyCommodityCurve(base).catch((e): MetricItem[] => [{ key: 'comm.ERR', label: 'Commodity verify throw', group: 'commodity', status: 'error', lastError: String(e) }]),
-    verifyCOT(base).catch((e): MetricItem[] => [{ key: 'cot.ERR', label: 'COT verify throw', group: 'cot', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...cot];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,
