@@ -1,0 +1,79 @@
+ITER97 — latest-updates Redis 캐시 미스 버그 2개 수정
+Date: 2026-04-25
+Commit: 1c61e7f
+Primary outcome: latest-updates 응답속도 개선 (Redis 캐시 바이패스 제거)
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK (최근 5 커밋)
+═══════════════════════════════════════════════════════════════════════
+1c61e7f  fix(latest-updates): Redis cache miss 2개 수정 (이번)
+eb38fe5  fix(cache): OSINT + verify-metrics 9개 cache: 'no-store'
+prev     fix: cron update-all daily-brief 중복 제거
+prev     feat: Gemini quota guard
+prev     feat: sector-pe Yahoo v10 P/E
+
+영역: iter93=sector-pe, iter94=AI, iter95=cron, iter96=OSINT cache, iter97=aggregator
+→ 다른 모듈 순환 중. Drift 없음.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"latest-updates Redis 캐시 미스 제거"
+
+═══════════════════════════════════════════════════════════════════════
+BUGS FOUND + FIXED
+═══════════════════════════════════════════════════════════════════════
+Bug 1: news-cascade lrange() 오용
+  위치: latest-updates/route.ts:286 (구 코드)
+  문제: redis.lrange()는 Redis list 자료구조 전용.
+        news-cascade는 전체 배열을 JSON string key로 저장.
+        lrange 호출은 항상 [] 반환 → HTTP fallback 무조건 트리거.
+  영향: news-cascade 캐시 있어도 HTTP 요청 발생 (~2-5s 낭비)
+  수정: redis.get() → JSON 배열 직접 파싱
+
+Bug 2: macro-indicators 버전 키 불일치
+  위치: latest-updates/route.ts:199 (구 코드)
+  문제: v9/v8 두 버전을 순차 시도, 실제 route는 v12 사용.
+        항상 두 번 미스 → HTTP fallback 트리거.
+  영향: macro-indicators 캐시 있어도 HTTP 요청 발생 (~2s 낭비)
+  수정: v12 단일 키로 통일
+
+총 절약: 캐시 콜드 시 ~4-7s HTTP 서브요청 제거.
+         cached: true 경우는 이미 즉시 반환이므로 영향 없음.
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES (외부 실값 대조 — CLAUDE.md §3 필수)
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=cpi.yoy source=BLS (CUUR0000SA0)
+  direct_value=3.26% (330.213/319.799-1)×100
+  our_value=3.29% (macro-indicators API)
+  delta=0.03pp tolerance=0.1pp → OK
+  note: BLS는 비계절조정(NSA), FRED/우리=계절조정(SA) — 작은 차이 정상
+
+[accuracy probe] metric=fg.US source=CNN (기간 연속 모니터링)
+  direct_value=66 our_value=66 delta=0 → OK (2번 연속 일치)
+
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.71 delta=0.00 → OK
+
+═══════════════════════════════════════════════════════════════════════
+REDIS KEY AUDIT (전체 hardcoded 읽기 검증)
+═══════════════════════════════════════════════════════════════════════
+모든 hardcoded Redis key 읽기 vs 실제 쓰기 대조:
+- flowvium:fg:v6:SPY           → fear-greed 쓰기 ✓
+- flowvium:volatility:v1       → volatility 쓰기 ✓
+- flowvium:13f-signals:v1      → cron/update-signals 쓰기 ✓
+- flowvium:capital-flows:v9:*  → capital-flows 쓰기 ✓
+- flowvium:fedwatch:v1:{hour}  → fedwatch 쓰기 ✓
+- flowvium:macro-indicators:v12:* → macro-indicators 쓰기 ✓ (수정 후)
+- flowvium:news-cascade:v1:list:* → news-cascade 쓰기 ✓ (수정 후)
+
+불일치 없음.
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. AI 프로바이더 Groq/Gemini TPD 리셋 후 daily-brief / flow-analysis 회복 확인
+   (UTC midnight April 26 리셋, KST 09:00 이후 확인)
+2. Korea Flow 대안 데이터 소스 탐색 (KRX 세션인증 불가 → NAVER 금융 RSS 또는 네이버 api 가능한지)
+3. /api/verify-metrics run → 전체 상태 health check
