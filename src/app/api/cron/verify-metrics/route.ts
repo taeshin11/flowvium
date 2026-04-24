@@ -1007,6 +1007,71 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
   return items;
 }
 
+// ── 미커버 엔드포인트 추가 검증 (iter84) ────────────────────────────────────
+async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
+  return Promise.all([
+    // Daily Brief (AI market summary)
+    safeJson(base, '/api/daily-brief').then((r): MetricItem => {
+      if (!r.ok) return { key: 'brief.ALL', label: 'Daily Brief API', group: 'brief', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { market?: unknown; source?: string };
+      const hasContent = d.market != null;
+      const isAI = d.source && d.source !== 'data' && d.source !== 'fallback';
+      return {
+        key: 'brief.market', label: 'AI 마켓 브리프', group: 'brief',
+        status: hasContent ? (isAI ? 'ok' : 'degraded') : 'error',
+        value: hasContent ? (isAI ? `AI(${d.source})` : `fallback(${d.source})`) : null,
+        source: String(d.source ?? 'none'),
+      };
+    }),
+    // Flow Analysis (AI capital flow)
+    safeJson(base, '/api/flow-analysis').then((r): MetricItem => {
+      if (!r.ok) return { key: 'flow.analysis', label: 'Flow Analysis API', group: 'flow-analysis', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { analysis?: string; source?: string };
+      const hasContent = typeof d.analysis === 'string' && d.analysis.length > 20;
+      const isAI = d.source && d.source !== 'fallback';
+      return {
+        key: 'flow.analysis', label: 'AI 자금흐름 분석', group: 'flow-analysis',
+        status: hasContent ? (isAI ? 'ok' : 'degraded') : 'error',
+        value: hasContent ? `${d.analysis!.length}자` : null,
+        source: String(d.source ?? 'none'),
+      };
+    }),
+    // Yield Curve historical spread
+    safeJson(base, '/api/yield-curve').then((r): MetricItem => {
+      if (!r.ok) return { key: 'yc.hist', label: 'Yield Curve History API', group: 'yield-curve-hist', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { spread2s10s?: unknown[] };
+      const points = Array.isArray(d.spread2s10s) ? d.spread2s10s.length : 0;
+      return {
+        key: 'yc.hist', label: '금리커브 이력 (2s10s)', group: 'yield-curve-hist',
+        status: points >= 10 ? 'ok' : 'degraded',
+        value: points > 0 ? `${points}pts` : null,
+      };
+    }),
+    // Company News (sample NVDA)
+    safeJson(base, '/api/company-news?ticker=NVDA').then((r): MetricItem => {
+      if (!r.ok) return { key: 'news.company', label: 'Company News API', group: 'company-news', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { news?: unknown[]; source?: string };
+      const count = Array.isArray(d.news) ? d.news.length : 0;
+      return {
+        key: 'news.company', label: 'NVDA 기업뉴스', group: 'company-news',
+        status: count > 0 ? 'ok' : 'degraded',
+        value: count > 0 ? `${count}건` : null,
+        source: String(d.source ?? 'none'),
+      };
+    }),
+    // Stock Price (sample SPY)
+    safeJson(base, '/api/stock-price/SPY').then((r): MetricItem => {
+      if (!r.ok) return { key: 'stock.price', label: 'Stock Price API', group: 'stock-price', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { price?: number; ticker?: string };
+      return {
+        key: 'stock.price', label: 'SPY 주가', group: 'stock-price',
+        status: typeof d.price === 'number' && d.price > 0 ? 'ok' : 'degraded',
+        value: typeof d.price === 'number' ? `$${d.price.toFixed(2)}` : null,
+      };
+    }),
+  ]);
+}
+
 // ── 메인 핸들러 ──────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -1016,7 +1081,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
-  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm] = await Promise.all([
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, missing] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -1037,9 +1102,10 @@ export async function GET(req: Request) {
     verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
     verifyVolatility(base).catch((e): MetricItem[] => [{ key: 'vol.ERR', label: 'Volatility verify throw', group: 'volatility', status: 'error', lastError: String(e) }]),
     verifyCommodityCurve(base).catch((e): MetricItem[] => [{ key: 'comm.ERR', label: 'Commodity verify throw', group: 'commodity', status: 'error', lastError: String(e) }]),
+    verifyMissingEndpoints(base).catch((e): MetricItem[] => [{ key: 'missing.ERR', label: 'Missing endpoints verify throw', group: 'brief', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...missing];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,
