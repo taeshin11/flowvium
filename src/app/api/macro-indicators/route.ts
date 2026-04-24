@@ -192,17 +192,23 @@ async function fetchFredLatest(seriesId: string, apiKey: string): Promise<number
 
 async function fetchYieldCurve(): Promise<{ points: YieldPoint[]; inverted: boolean; spread10y2y: number | null }> {
   const empty = { points: DISPLAY_ORDER.map(l => ({ label: l, value: null })), inverted: false, spread10y2y: null };
-  const apiKey = process.env.FRED_API_KEY?.trim();
-  if (!apiKey) return empty;
 
   try {
     const labels = DISPLAY_ORDER;
-    const results = await Promise.all(
-      labels.map(l => fetchFredLatest(FRED_YIELD_SERIES[l], apiKey))
-    );
+    const apiKey = process.env.FRED_API_KEY?.trim();
 
-    const labelMap: Record<string, number | null> = {};
-    labels.forEach((l, i) => { labelMap[l] = results[i]; });
+    let labelMap: Record<string, number | null>;
+
+    if (apiKey) {
+      // Prefer FRED JSON API (faster, sorted desc)
+      const results = await Promise.all(labels.map(l => fetchFredLatest(FRED_YIELD_SERIES[l], apiKey)));
+      labelMap = Object.fromEntries(labels.map((l, i) => [l, results[i]]));
+    } else {
+      // Free fallback: FRED CSV (no API key required, slightly slower)
+      const results = await Promise.all(labels.map(l => fetchLatest(FRED_YIELD_SERIES[l])));
+      labelMap = Object.fromEntries(labels.map((l, i) => [l, results[i]?.value ?? null]));
+      logger.info('macro-indicators', 'yield_curve_csv_fallback', { message: 'FRED_API_KEY not set, using free CSV endpoint' });
+    }
 
     const points: YieldPoint[] = DISPLAY_ORDER.map(l => ({
       label: l,
