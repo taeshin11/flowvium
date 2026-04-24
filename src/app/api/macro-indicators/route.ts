@@ -28,7 +28,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v8:${kstDate()}`;
+  return `flowvium:macro-indicators:v9:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -461,7 +461,7 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   fomc: {
     id: 'fomc', name: 'FOMC Rate Decision', nameKo: 'FOMC 금리 결정',
-    category: 'monetary', actual: 3.625, forecast: 3.625, previous: 3.875, unit: '%',
+    category: 'monetary', actual: 3.75, forecast: 3.625, previous: 3.875, unit: '%',
     releaseDate: '2026-03-19', nextRelease: '2026-05-07', surprise: 'inline',
     rateImpact: 'neutral', rateImpactKo: '동결 (데이터 의존)',
     summary: '3월 FOMC 동결. 현재 기준금리 3.5~3.75% (중간값 3.625%). 다음 회의 2026-05-07.',
@@ -680,7 +680,7 @@ export async function GET() {
     const surprise = classify(midRate, base.forecast ?? 4.5, false);
     indicators.push({
       ...base,
-      actual: actualUpper,
+      actual: midRate,
       previous: base.previous,
       forecast: base.forecast,
       releaseDate: fomcUpper?.date ?? base.releaseDate,

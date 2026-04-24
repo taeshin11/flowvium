@@ -1,0 +1,81 @@
+## Iter 74 — FOMC actual 상한→중간값
+Date: 2026-04-25
+Primary outcome: FOMC actual 상한→중간값 (15자)
+
+### Drift check
+- iter71=cache-fixes, iter72=ReportPage, iter73=stock-supply, iter74=macro-indicators
+  → 모두 다른 영역. drift 없음 OK
+  → macro-indicators 마지막 터치: iter68 (6 iter 전) → drift 아님 OK
+
+### Accuracy probe (§3)
+- [accuracy probe] metric=fg.us source=CNN direct_value=67 our_value=67 delta=0 → OK
+- [accuracy probe] metric=curve source=FRED direct_value=0.51 our_value=0.51 delta=0 → OK
+- [accuracy probe] metric=cpi source=FRED direct_value=3.29 our_value=3.29 delta=0 → OK
+- [accuracy probe] metric=ppi source=FRED direct_value=6.03 our_value=6.03 delta=0 → OK
+- [accuracy probe] metric=fomc source=FRED direct_value=3.625 our_value=3.75 delta=0.125 tol=0.25 → OK (pre-fix)
+Overall pre-fix: 81 ok, 0 degraded, 0 error (fomc OK within tolerance but wrong value displayed)
+
+### 발견 경위
+verify-metrics probe: FRED fredMid=3.625 vs our fomc.actual=3.75, delta=0.125.
+Status=OK (within 0.25 tolerance) — 자동 감지 실패.
+직접 코드 리뷰로 발견:
+
+```typescript
+// macro-indicators/route.ts line 677-683 (BEFORE)
+const actualUpper = fomcUpper?.value ?? (base.actual ?? 4.5);  // base.actual=3.625 (midpoint으로 잘못 설정됨)
+const actualLower = fomcLower?.value ?? ((base.actual ?? 4.5) - 0.25);
+const midRate = parseFloat(((actualUpper + actualLower) / 2).toFixed(3));
+...
+actual: actualUpper,  // 3.75 (상한값) 노출 ← BUG
+```
+
+### 이중 버그 상세
+
+버그 1 (iter68에서 도입): STATIC.fomc.actual을 3.625 (중간값)으로 설정
+  → 코드가 base.actual을 상한 fallback으로 사용하므로
+  → FRED 불가 시 actualUpper=3.625, actualLower=3.375, midRate=3.5 (틀림)
+
+버그 2 (원래부터 존재): actual 필드에 midRate 대신 actualUpper를 할당
+  → FRED 정상 시: actual=3.75 (상한) 표시, 사용자가 3.625 대신 3.75 봄
+
+### 수정 내용
+
+#### 1. macro-indicators/route.ts
+- STATIC.fomc.actual: 3.625 → 3.75 (코드 의도에 맞게: upper bound fallback)
+- actual: actualUpper → actual: midRate
+- cacheKey: v8 → v9 (stale 캐시 무효화)
+
+#### 2. latest-updates/route.ts
+- macro 캐시 읽기: v8/v7 → v9/v8
+
+#### 3. admin/health/route.ts
+- macro 캐시 키: v8 → v9
+
+### 수정 후 동작
+FRED 정상 시:
+- actualUpper=3.75, actualLower=3.5, midRate=3.625
+- actual=midRate=3.625 ✓ (사용자에게 3.625% 표시)
+
+FRED 불가 시:
+- actualUpper=3.75 (base.actual), actualLower=3.5 (3.75-0.25), midRate=3.625
+- actual=midRate=3.625 ✓
+
+### 예상 영향
+- ReportPage FOMC pill: 3.75% → 3.625%
+- HomePage macro-indicators: 3.75% → 3.625%
+- verify-metrics accuracy.fomc: delta 0.125 → 0 (캐시 갱신 후)
+
+### §4 UI 렌더 확인
+- 서버사이드 렌더 없음 (클라이언트 fetch)
+- HTML grep 불가 → **미검증**
+- API 응답은 v9 캐시 미스 시 올바른 midRate 반환 예상
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음
+- v9 bump으로 stale v8 캐시 무효화 ✓
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter74: fix(macro-indicators): FOMC actual 상한→중간값 + STATIC fallback 복원 + v9

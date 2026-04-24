@@ -197,8 +197,8 @@ async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateI
     try {
       const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
       const [d1, d2] = await Promise.all([
+        redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v9:${kstDate}`),
         redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v8:${kstDate}`),
-        redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v7:${kstDate}`),
       ]);
       const d = d1?.indicators?.length ? d1 : (d2?.indicators?.length ? d2 : null);
       if (d?.indicators?.length) indicators = d.indicators;
