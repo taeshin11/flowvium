@@ -212,6 +212,20 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     return null;
   }, [company, ticker]);
 
+  // ── Live stock price (Yahoo Finance, 15min cache) ────────────────────────────
+  interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; marketState: string | null; }
+  const [livePrice, setLivePrice] = useState<LivePrice | null>(null);
+
+  useEffect(() => {
+    if (!ticker) return;
+    let cancelled = false;
+    fetch(`/api/stock-price/${ticker.toUpperCase()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled && d?.price != null) setLivePrice(d); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [ticker]);
+
   // ── Live financials from SEC EDGAR XBRL 10-K filings (24h cache) ────────────
   interface AnnualFin {
     fy: number; periodEnd: string;
@@ -348,6 +362,27 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-cf-text-secondary capitalize">
             {company.role}
           </span>
+          {livePrice?.price != null && (
+            <div className="flex items-center gap-2 ml-1">
+              <span className="text-2xl font-bold tabular-nums text-cf-text-primary">
+                {livePrice.currency === 'USD' ? '$' : ''}{livePrice.price.toFixed(2)}
+              </span>
+              {livePrice.changePct != null && (
+                <span className={`text-sm font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                  livePrice.changePct >= 0
+                    ? 'text-green-700 bg-green-50'
+                    : 'text-red-600 bg-red-50'
+                }`}>
+                  {livePrice.changePct >= 0 ? '+' : ''}{livePrice.changePct.toFixed(2)}%
+                </span>
+              )}
+              {livePrice.marketState && livePrice.marketState !== 'REGULAR' && (
+                <span className="text-[10px] text-cf-text-secondary/60 font-medium">
+                  {livePrice.marketState === 'PRE' ? '장전' : livePrice.marketState === 'POST' ? '장후' : livePrice.marketState}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <p className="text-cf-text-secondary leading-relaxed mb-4"><T text={company.description} /></p>
         <div className="flex items-center gap-3 flex-wrap">

@@ -236,6 +236,8 @@
 
 ### 5-1. 헤더
 - 기업명·티커·역할 배지·번역 설명
+- **실시간 주가·일간 변화%** (`/api/stock-price/[ticker]`, Yahoo Finance v8, 15min 캐시)
+  - 장전(PRE)/장후(POST) 마켓 상태 표시
 - 공유 버튼·비교 링크
 - **터미널 뷰 토글** (`SupplyChainMap` ASCII 네트워크)
 
