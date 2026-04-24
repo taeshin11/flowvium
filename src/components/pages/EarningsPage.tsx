@@ -7,6 +7,7 @@ import { Link } from '@/i18n/routing';
 interface EarningRow {
   date: string;
   symbol: string;
+  companyName: string | null;
   epsActual: number | null;
   epsEstimate: number | null;
   revenueActual: number | null;
@@ -64,7 +65,7 @@ const PRESETS = [
 ] as const;
 
 function dateFromOffset(offset: number): string {
-  const d = new Date(Date.now() + offset * 86400000);
+  const d = new Date(Date.now() + 9 * 3600000 + offset * 86400000); // KST UTC+9
   return d.toISOString().slice(0, 10);
 }
 
@@ -128,7 +129,7 @@ export default function EarningsPage() {
   const rows = useMemo(() => {
     if (!data?.earnings) return [];
     const q = search.trim().toUpperCase();
-    let filtered = q ? data.earnings.filter(e => e.symbol?.includes(q)) : data.earnings;
+    let filtered = q ? data.earnings.filter(e => e.symbol?.includes(q) || e.companyName?.toUpperCase().includes(q)) : data.earnings;
     if (majorOnly) filtered = filtered.filter(e => MAJOR_TICKERS.has(e.symbol?.toUpperCase() ?? ''));
     if (sortBy === 'surprise') {
       return [...filtered].sort((a, b) => Math.abs(b.epsSurprise ?? 0) - Math.abs(a.epsSurprise ?? 0));
@@ -179,7 +180,7 @@ export default function EarningsPage() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="티커 검색 (NVDA, TSLA…)"
+            placeholder="티커·기업명 검색 (NVDA, Apple…)"
             className="w-full pl-8 pr-3 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-cf-text-primary placeholder:text-cf-text-secondary"
           />
         </div>
@@ -251,6 +252,7 @@ export default function EarningsPage() {
                 <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">날짜</th>
                 <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">시간</th>
                 <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">티커</th>
+                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">기업명</th>
                 <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">분기</th>
                 <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">EPS 예상</th>
                 <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">EPS 실제</th>
@@ -263,10 +265,10 @@ export default function EarningsPage() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={11} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto text-cf-text-secondary" /></td></tr>
+                <tr><td colSpan={12} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto text-cf-text-secondary" /></td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={11} className="text-center py-8 text-cf-text-secondary text-sm">
+                <tr><td colSpan={12} className="text-center py-8 text-cf-text-secondary text-sm">
                   {data?.error ? `오류: ${data.error}` : '해당 기간 실적 발표 없음'}
                 </td></tr>
               )}
@@ -276,6 +278,9 @@ export default function EarningsPage() {
                   <td className="px-3 py-2"><SessionBadge session={r.session} /></td>
                   <td className="px-3 py-2">
                     <Link href={`/company/${r.symbol}`} className="font-mono text-xs font-bold text-cf-accent hover:underline">{r.symbol}</Link>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-cf-text-secondary max-w-[120px] truncate" title={r.companyName ?? ''}>
+                    {r.companyName ?? <span className="opacity-40">-</span>}
                   </td>
                   <td className="px-3 py-2 text-xs text-cf-text-secondary font-mono">Q{r.quarter} {r.year}</td>
                   <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-secondary">{fmtNum(r.epsEstimate)}</td>

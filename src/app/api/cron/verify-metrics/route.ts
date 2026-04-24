@@ -19,6 +19,7 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
+import { logMetrics } from '@/lib/metrics-db';
 
 export const dynamic = 'force-dynamic';
 
@@ -804,7 +805,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:options-flow:v1', label: 'options-flow' },
     { key: 'flowvium:block-trades:v1', label: 'block-trades' },
     { key: 'flowvium:cot-positions:v2', label: 'cot-positions' },
-    { key: 'flowvium:korea-flow:v2', label: 'korea-flow' },
+    { key: 'flowvium:korea-flow:v3:1d', label: 'korea-flow' },
     { key: 'flowvium:short-interest:v4', label: 'short-interest' },
     { key: 'flowvium:market-caps:v2', label: 'market-caps' },
     { key: 'flowvium:13f-signals:v1', label: '13f-signals' },
@@ -884,6 +885,7 @@ export async function GET(req: Request) {
 
   if (redis) {
     await loggedRedisSet(redis, 'cron.verify-metrics', SNAPSHOT_KEY, snapshot, { ex: SNAPSHOT_TTL });
+    await logMetrics(redis, items, snapshot.checkedAt);
   }
 
   logger.info('cron.verify-metrics', 'snapshot', {

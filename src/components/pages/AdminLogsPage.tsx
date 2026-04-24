@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, AlertCircle, Info, RefreshCw, Trash2, Lock, Server, CheckCircle2, XCircle, Activity, PlayCircle } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Info, RefreshCw, Trash2, Lock, Server, CheckCircle2, XCircle, Activity, PlayCircle, Database } from 'lucide-react';
 
 interface LogEntry {
   t: string;
@@ -57,6 +57,17 @@ interface MetricItem {
   skipReason?: string;
 }
 
+interface MetricRecord extends MetricItem {
+  updatedAt: string;
+}
+
+interface MetricsDbPayload {
+  metrics: MetricRecord[];
+  count: number;
+  byStatus: { ok: number; degraded: number; error: number; skipped: number };
+  fetchedAt: string;
+}
+
 interface MetricsSnapshot {
   checkedAt: string;
   durationMs: number;
@@ -71,6 +82,22 @@ const LEVEL_STYLES: Record<string, { bg: string; text: string; icon: React.React
   info:  { bg: 'bg-blue-500/10 border-blue-500/30', text: 'text-blue-400', icon: <Info className="w-3.5 h-3.5" /> },
   debug: { bg: 'bg-white/5 border-white/10', text: 'text-cf-text-secondary', icon: <Info className="w-3.5 h-3.5" /> },
 };
+
+function relTime(iso: string): string {
+  if (!iso) return '-';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return '방금';
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  return `${Math.floor(diff / 86400)}일 전`;
+}
+
+function stalenessColor(iso: string): string {
+  const h = (Date.now() - new Date(iso).getTime()) / 3600000;
+  if (h < 1) return 'text-emerald-400';
+  if (h < 4) return 'text-amber-400';
+  return 'text-red-400';
+}
 
 function fmtTime(iso: string): string {
   if (!iso) return '-';
@@ -93,6 +120,9 @@ export default function AdminLogsPage() {
   const [health, setHealth] = useState<HealthPayload | null>(null);
   const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
   const [metricsGroupFilter, setMetricsGroupFilter] = useState<string>('');
+  const [mdbData, setMdbData] = useState<MetricsDbPayload | null>(null);
+  const [mdbGroupFilter, setMdbGroupFilter] = useState<string>('');
+  const [mdbStatusFilter, setMdbStatusFilter] = useState<string>('');
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,10 +143,11 @@ export default function AdminLogsPage() {
       if (levelFilter) params.set('level', levelFilter);
       if (sourceFilter) params.set('source', sourceFilter);
       const headers = { 'x-admin-secret': secret };
-      const [logRes, healthRes, metricsRes] = await Promise.all([
+      const [logRes, healthRes, metricsRes, mdbRes] = await Promise.all([
         fetch(`/api/admin/logs?${params.toString()}`, { headers, signal }),
         fetch(`/api/admin/health`, { headers, signal }),
         fetch(`/api/admin/metrics-health`, { headers, signal }),
+        fetch(`/api/admin/metrics-db`, { headers, signal }),
       ]);
       if (signal?.aborted) return;
       if (logRes.status === 401) { setError('Unauthorized — check CRON_SECRET'); setEntries([]); return; }
@@ -127,6 +158,7 @@ export default function AdminLogsPage() {
       if (healthRes.ok) setHealth(await healthRes.json());
       if (metricsRes.ok) setMetrics(await metricsRes.json());
       else if (metricsRes.status === 404) setMetrics(null);
+      if (mdbRes.ok) setMdbData(await mdbRes.json());
     } catch (e) {
       if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : 'Fetch failed');
@@ -414,6 +446,104 @@ export default function AdminLogsPage() {
                   ))}
               </div>
             </details>
+          </>
+        )}
+      </div>
+
+      {/* Metrics DB — per-metric live values with timestamps */}
+      <div className="cf-card p-4 mb-4 bg-gradient-to-br from-violet-500/5 to-transparent border border-violet-500/20">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <p className="text-xs font-bold text-cf-text-primary flex items-center gap-2">
+            <Database className="w-4 h-4 text-violet-400" />
+            Metrics DB
+            {mdbData && (
+              <span className="text-[10px] text-cf-text-secondary">
+                · {mdbData.count}개 · 업데이트 {relTime(mdbData.fetchedAt)}
+              </span>
+            )}
+          </p>
+          {mdbData && (
+            <div className="flex gap-1 text-[10px]">
+              <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ {mdbData.byStatus.ok}</span>
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">⚠ {mdbData.byStatus.degraded}</span>
+              <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">✕ {mdbData.byStatus.error}</span>
+            </div>
+          )}
+        </div>
+        {!mdbData ? (
+          <p className="text-[11px] text-cf-text-secondary">
+            DB 비어 있음 · &quot;Verify now&quot;를 클릭하면 verify-metrics 크론이 실행되어 채워집니다
+          </p>
+        ) : (
+          <>
+            {/* Group + status filters */}
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              <button onClick={() => setMdbGroupFilter('')}
+                className={`text-[10px] px-2 py-0.5 rounded-md border ${mdbGroupFilter === '' ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : 'bg-white/5 border-white/10 text-cf-text-secondary'}`}>
+                all
+              </button>
+              {Array.from(new Set(mdbData.metrics.map(m => m.group))).map(g => {
+                const gItems = mdbData.metrics.filter(m => m.group === g);
+                const nErr = gItems.filter(m => m.status === 'error').length;
+                const nDeg = gItems.filter(m => m.status === 'degraded').length;
+                return (
+                  <button key={g} onClick={() => setMdbGroupFilter(g)}
+                    className={`text-[10px] px-2 py-0.5 rounded-md border font-mono ${mdbGroupFilter === g ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : nErr > 0 ? 'bg-red-500/5 border-red-500/20 text-red-400' : nDeg > 0 ? 'bg-amber-500/5 border-amber-500/20 text-amber-400' : 'bg-white/5 border-white/10 text-cf-text-secondary'}`}>
+                    {g} · {gItems.length}
+                    {nErr > 0 && <span className="ml-1 text-red-400">✕{nErr}</span>}
+                    {nDeg > 0 && <span className="ml-1 text-amber-400">⚠{nDeg}</span>}
+                  </button>
+                );
+              })}
+              <span className="ml-2 flex gap-1">
+                {['', 'ok', 'degraded', 'error'].map(s => (
+                  <button key={s} onClick={() => setMdbStatusFilter(s)}
+                    className={`text-[10px] px-2 py-0.5 rounded-md border ${mdbStatusFilter === s ? 'bg-white/15 border-white/30 text-cf-text-primary' : 'bg-white/5 border-white/10 text-cf-text-secondary'}`}>
+                    {s || 'all status'}
+                  </button>
+                ))}
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[10px]">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="text-left pb-1 text-cf-text-secondary font-semibold pr-3">레이블</th>
+                    <th className="text-left pb-1 text-cf-text-secondary font-semibold pr-3">값</th>
+                    <th className="text-left pb-1 text-cf-text-secondary font-semibold pr-3">소스</th>
+                    <th className="text-right pb-1 text-cf-text-secondary font-semibold pr-3">상태</th>
+                    <th className="text-right pb-1 text-cf-text-secondary font-semibold">업데이트</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mdbData.metrics
+                    .filter(m => (!mdbGroupFilter || m.group === mdbGroupFilter) && (!mdbStatusFilter || m.status === mdbStatusFilter))
+                    .sort((a, b) => {
+                      const order = { error: 0, degraded: 1, ok: 2, skipped: 3 } as const;
+                      return (order[a.status] ?? 4) - (order[b.status] ?? 4) || a.label.localeCompare(b.label);
+                    })
+                    .map(m => (
+                      <tr key={m.key} className="border-b border-white/5 hover:bg-white/[0.02]" title={m.lastError ?? m.skipReason ?? ''}>
+                        <td className="py-1 pr-3 text-cf-text-primary truncate max-w-[200px]">{m.label}</td>
+                        <td className="py-1 pr-3 font-mono text-cf-text-secondary truncate max-w-[160px]">
+                          {m.value != null ? String(m.value).slice(0, 30) : <span className="opacity-40">-</span>}
+                        </td>
+                        <td className="py-1 pr-3 font-mono text-cf-text-secondary/70 truncate max-w-[80px]">
+                          {m.source ?? <span className="opacity-40">-</span>}
+                        </td>
+                        <td className="py-1 pr-3 text-right">
+                          <span className={m.status === 'error' ? 'text-red-400' : m.status === 'degraded' ? 'text-amber-400' : m.status === 'skipped' ? 'text-cf-text-secondary' : 'text-emerald-400'}>
+                            {m.status === 'error' ? '✕' : m.status === 'degraded' ? '⚠' : m.status === 'skipped' ? '◌' : '✓'}
+                          </span>
+                        </td>
+                        <td className={`py-1 text-right font-mono ${stalenessColor(m.updatedAt)}`}>
+                          {relTime(m.updatedAt)}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>

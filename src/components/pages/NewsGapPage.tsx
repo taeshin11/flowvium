@@ -87,10 +87,40 @@ interface NewsGapPageProps {
   updatedTickers: number;
 }
 
+interface LiveNewsItem {
+  title: string;
+  description: string;
+  link: string;
+  pubDate: string;
+  source: string;
+}
+
+function fmtPubDate(pubDate: string): string {
+  try {
+    return new Date(pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return pubDate;
+  }
+}
+
 function GapCard({ entry }: { entry: NewsGapEntry }) {
   const [expanded, setExpanded] = useState(false);
   const [showSupply, setShowSupply] = useState(false);
+  const [liveNews, setLiveNews] = useState<LiveNewsItem[] | null>(null);
+  const [newsLoading, setNewsLoading] = useState(false);
   const t = useTranslations('newsGap');
+
+  useEffect(() => {
+    if (!expanded || liveNews !== null) return;
+    let cancelled = false;
+    setNewsLoading(true);
+    fetch(`/api/company-news?ticker=${encodeURIComponent(entry.ticker)}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled && d?.news) setLiveNews(d.news as LiveNewsItem[]); })
+      .catch(() => { /* fall back to static */ })
+      .finally(() => { if (!cancelled) setNewsLoading(false); });
+    return () => { cancelled = true; };
+  }, [expanded, entry.ticker, liveNews]);
   const sectorClass = sectorColors[entry.sector] ?? 'bg-gray-50 text-gray-700 border-gray-200';
 
   return (
@@ -197,8 +227,35 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
           <div>
             <h4 className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Newspaper className="w-3.5 h-3.5" /> 미디어 보도
+              {liveNews !== null && <span className="text-[9px] text-emerald-500 font-normal">실시간</span>}
+              {newsLoading && <RefreshCw className="w-3 h-3 animate-spin text-cf-text-secondary" />}
             </h4>
-            {entry.recentArticles.length === 0 ? (
+            {newsLoading && !liveNews ? (
+              <p className="text-xs text-cf-text-secondary italic">뉴스 로딩 중…</p>
+            ) : liveNews && liveNews.length > 0 ? (
+              <div className="space-y-2">
+                {liveNews.slice(0, 6).map((article, i) => (
+                  <div key={i} className="bg-white rounded-lg p-3 border border-cf-border/50">
+                    <a href={article.link || `https://news.google.com/search?q=${encodeURIComponent(entry.ticker)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-medium text-cf-text-primary hover:text-cf-primary flex items-start gap-1 leading-relaxed group">
+                      &quot;{article.title}&quot;
+                      <ExternalLink className="w-3 h-3 flex-shrink-0 mt-0.5 opacity-40 group-hover:opacity-100" />
+                    </a>
+                    <div className="flex items-center gap-1.5 mt-1.5 text-cf-text-muted text-xs">
+                      <Calendar className="w-3 h-3" />
+                      <span>{fmtPubDate(article.pubDate)}</span>
+                      {article.source && <><span className="text-gray-300">·</span><span className="font-medium">{article.source}</span></>}
+                    </div>
+                  </div>
+                ))}
+                <a href={`https://news.google.com/search?q=${encodeURIComponent(entry.companyName + ' ' + entry.ticker)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-cf-primary hover:underline mt-1">
+                  Google News에서 더 보기 <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ) : entry.recentArticles.length === 0 ? (
               <p className="text-xs text-cf-text-secondary italic">최근 30일 보도 없음 — 강한 침묵 신호</p>
             ) : (
               <div className="space-y-2">

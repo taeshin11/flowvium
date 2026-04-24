@@ -756,12 +756,13 @@
 ## 16. 어드민 로그 (`/admin/logs`)
 
 **파일**: `src/components/pages/AdminLogsPage.tsx`  
-**데이터**: `GET /api/admin/logs` (Redis `flowvium:log:recent`, 최대 500건) + `GET /api/admin/health` + `GET /api/admin/metrics-health`
+**데이터**: `GET /api/admin/logs` + `GET /api/admin/health` + `GET /api/admin/metrics-health` + `GET /api/admin/metrics-db`
 
 - 구조화 로그 뷰어 (레벨별 색상: debug / info / warn / error)
 - 로그 전체 지우기 버튼 (`DELETE /api/admin/logs`)
 - 수동 새로고침
 - **Deploy & Health 카드** (상단)
+- **Metrics DB 카드** — per-metric 최신값·업데이트 시각 테이블 (그룹·상태 필터, 상대 시각 표시, staleness 색상 코딩)
   - 커밋 SHA / 브랜치 / 배포ID / 리전 / env
   - 유료 API 활성 상태 (UW / Polygon / TwelveData / Gemini / AV / vLLM)
   - **트래킹 캐시 키 16개** (populated/missing 카운트)
@@ -833,8 +834,9 @@ ownership-alerts 적용).
 | `/api/admin/logs` | Redis `flowvium:log:recent` | — |
 | `/api/admin/health` | Redis probe + env 검사 | — |
 | `/api/admin/metrics-health` | Redis `flowvium:metrics-health:v1` | 2h |
-| `/api/cron/verify-metrics` | 자기 API 순회 probe → Redis 저장 | 2h |
-| `/api/earnings` | Finnhub 실적 캘린더 (무료 티어 60 req/min) | 2h |
+| `/api/admin/metrics-db` | Redis hash `flowvium:mdb:v1` — per-metric 최신값 DB | 72h |
+| `/api/cron/verify-metrics` | 자기 API 순회 probe → Redis 스냅샷 + metrics-db hash 갱신 | 2h |
+| `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
 
 ---
 
