@@ -148,6 +148,10 @@
   - 데이터: `/api/fedwatch` (CME)
   - 현재 기준금리 + 연말 예상금리
   - 월별 인상/동결/인하 확률 바 (Hold · Cut25 · Cut50 · Cut75 · Hike)
+- **섹터별 밸류에이션** (`SectorPESection`)
+  - 데이터: `/api/sector-pe` (Yahoo Finance v10 crumb, 24h Redis)
+  - 11개 SPDR 섹터 ETF (XLK/XLF/XLE/XLV/XLY/XLP/XLI/XLB/XLRE/XLU/XLC)
+  - Trailing P/E · 배당수익률 · YTD 수익률 테이블
 - **매크로 지표 카드** (9개, 접기/펼치기)
   - CPI · PCE(Core) · NFP · FOMC · GDP · ISM PMI · 소매판매 · PPI · 실업률
   - 실제치 / 예상치 / 이전치 / Surprise 배지 (beat/miss/inline/pending)
@@ -764,6 +768,7 @@ ownership-alerts 적용).
 | `/api/short-interest` | Yahoo Finance | 캐시 |
 | `/api/market-heatmap` | Yahoo Finance | 캐시 |
 | `/api/market-caps` | Yahoo Finance v7 (crumb) | 24h Redis; `?ticker=X` 단일 조회 지원; raw USD + band 반환 |
+| `/api/sector-pe` | Yahoo Finance v10 (crumb) | 24h Redis; 11개 SPDR 섹터 ETF; trailingPE + dividendYield + ytdReturn |
 | `/api/price-history?ticker=X&days=N` | Stooq daily CSV | 1h Redis + 30min memory |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |

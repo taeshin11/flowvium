@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, TrendingUp, Activity, GitMerge } from 'lucide-react';
+import { Loader2, TrendingUp, Activity, GitMerge, BarChart2 } from 'lucide-react';
 
 // ── FedWatch ──────────────────────────────────────────────────────────────────
 interface FomcMeeting {
@@ -244,6 +244,79 @@ function LaymanBox({ id }: { id: string }) {
   );
 }
 
+// ── Sector P/E ──────────────────────────────────────────────────────────────
+interface SectorPEEntry { ticker: string; name: string; trailingPE: number | null; dividendYield: number | null; ytdReturn: number | null; totalAssets: number | null; }
+
+function SectorPESection() {
+  const [data, setData] = useState<SectorPEEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/sector-pe', { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !controller.signal.aborted) setData(d.sectors ?? []); })
+      .catch(() => {})
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, []);
+
+  if (loading) return (
+    <div className="cf-card p-4 animate-pulse">
+      <div className="h-4 bg-gray-100 rounded w-40 mb-3" />
+      <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-3 bg-gray-50 rounded w-full" />)}</div>
+    </div>
+  );
+
+  if (!data.length) return null;
+
+  const sorted = [...data].sort((a, b) => (b.trailingPE ?? 0) - (a.trailingPE ?? 0));
+
+  return (
+    <div className="cf-card p-4">
+      <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+        <BarChart2 className="w-4 h-4 text-cf-primary" />
+        섹터별 밸류에이션 (P/E · 배당수익률 · YTD)
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-cf-border text-cf-text-secondary">
+              <th className="text-left py-1.5 pr-3 font-semibold">섹터 ETF</th>
+              <th className="text-right py-1.5 px-2 font-semibold">P/E</th>
+              <th className="text-right py-1.5 px-2 font-semibold">배당</th>
+              <th className="text-right py-1.5 pl-2 font-semibold">YTD</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(s => {
+              const ytd = s.ytdReturn != null ? s.ytdReturn * 100 : null;
+              return (
+                <tr key={s.ticker} className="border-b border-cf-border/40 hover:bg-gray-50/50 transition-colors">
+                  <td className="py-1.5 pr-3">
+                    <span className="font-mono font-bold text-cf-primary text-[11px]">{s.ticker}</span>
+                    <span className="text-cf-text-secondary ml-1.5">{s.name}</span>
+                  </td>
+                  <td className="text-right py-1.5 px-2 tabular-nums font-semibold text-cf-text-primary">
+                    {s.trailingPE != null ? s.trailingPE.toFixed(1) : '—'}
+                  </td>
+                  <td className="text-right py-1.5 px-2 tabular-nums text-emerald-700">
+                    {s.dividendYield != null ? `${(s.dividendYield * 100).toFixed(2)}%` : '—'}
+                  </td>
+                  <td className={`text-right py-1.5 pl-2 tabular-nums font-semibold ${ytd == null ? 'text-cf-text-secondary' : ytd >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                    {ytd != null ? `${ytd >= 0 ? '+' : ''}${ytd.toFixed(1)}%` : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-cf-text-secondary mt-2">출처: Yahoo Finance v10 · SPDR 섹터 ETF · 24h 캐시</p>
+    </div>
+  );
+}
+
 export default function MacroIndicatorsTab() {
   const [indicators, setIndicators] = useState<MacroIndicator[]>([]);
   const [yieldCurve, setYieldCurve] = useState<YieldCurve | null>(null);
@@ -326,6 +399,9 @@ export default function MacroIndicatorsTab() {
 
       {/* FedWatch */}
       <FedWatchSection />
+
+      {/* Sector P/E */}
+      <SectorPESection />
 
       {/* Indicators */}
       <div className="flex items-center gap-2 px-1">
