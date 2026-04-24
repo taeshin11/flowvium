@@ -67,6 +67,7 @@
 | 239-R | 10Y 국채금리 (^TNX) | ✅ live | `/api/stock-price/^TNX` | 60s 갱신 | `{price}%` 표시, iter34 |
 | 239-S | DXY 달러인덱스 (DX-Y.NYB) | ✅ live | `/api/stock-price/DX-Y.NYB` | 60s 갱신 | 소수점 1자리, iter34 |
 | 239-T | Gold 선물 가격 (GC=F) | ✅ live | `/api/stock-price/GC=F` | 60s 갱신 | `$` 정수, iter34 |
+| 239-U | 매크로 리스크 신호 배지 | 💾 cached | `/api/macro-indicators` (mount 1회) | daily Redis | iter64, Risk On/Off/Neutral |
 
 ### 1-2. 통계 바
 
@@ -170,6 +171,7 @@
 | 63 | 국가별 리스크 | 🔄 cron |
 | 64 | mainTheme | 🔄 cron |
 | 65 | keyWatchpoints (여러 개) | 🔄 cron |
+| 65a | 유입·유출 상위 행 인라인 스파크라인 (26일) | 💾 cached | Yahoo v7 batch | iter65 |
 
 ### 2-2. 탭: 매크로 지표 (`macro`)
 
@@ -228,6 +230,7 @@
 | 93c | IG 신용 스프레드 OAS (ICE BofA, 일별) | ✅ live | FRED BAMLC0A0CM, iter58 |
 | 93d | HY 신용 스프레드 OAS (ICE BofA, 일별) | ✅ live | FRED BAMLH0A0HYM2, iter58 |
 | 93e | 매크로 리스크 신호 (Risk-On/Neutral/Risk-Off) | ✅ live | IG+HY+UMC+금리 합성, iter59 |
+| 93f | 지표별 이전값 대비 δ·방향색 표시 (← prev) | 💾 cached | 카드 하단 delta, POSITIVE_DIR 기준 green/red | iter63 |
 | 94 | 각 지표 매파/비둘기 영향 | 💾 cached | hawkish/dovish |
 | 95 | 각 지표 캐스케이드 체인 (3~5개 자산) | 💾 cached | 방향·강도·이유 |
 

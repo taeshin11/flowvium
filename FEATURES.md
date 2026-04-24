@@ -83,7 +83,8 @@
 - **60초 자동 갱신** (`setInterval` + `AbortController` 클린업) ← iter32
 - **US Fear & Greed 지수 pill** (F&G, `levelLabels` 색상) ← iter33
 - **F&G 30일 스파크라인** — F&G pill 옆 인라인 SVG 추세선 (44×14px) ← iter61
-- 마운트 시 `/api/stock-price` 7건 + `/api/fear-greed` 1건 병렬 fetch
+- **매크로 리스크 신호 배지** — RISK: Risk On / Neutral / Risk Off (IG+HY+UMC+금리) ← iter64
+- 마운트 시 `/api/stock-price` 7건 + `/api/fear-greed` 1건 + `/api/macro-indicators` 1건 병렬 fetch
 - 가격 로드 전 표시 안 함 (null guard)
 
 ### 2-3. 통계 바
@@ -125,6 +126,7 @@
 - **자산 클래스별 수익률 테이블**
   - 컬럼: 자산명·플래그·1w·4w·13w 수익률
   - 그룹: equity / bonds / alts / commodities / currency
+  - **유입/유출 상위 행 인라인 스파크라인** (26일 가격 추이) ← iter65
 - **플로우 강도 패널** (`FlowIntensityPanel`)
   - 뷰 전환: `compare` (자산 비교) / `cascade` (로테이션)
   - 상위 유입 5개 자산 / 상위 유출 5개 자산
@@ -174,6 +176,7 @@
 - **매크로 지표 카드** (13개, 접기/펼치기) ← iter58: IG/HY OAS 신용 스프레드 추가
   - CPI · PCE(Core) · NFP · FOMC · GDP · ISM PMI · 소매판매 · PPI · 실업률 · 신규 실업수당 (주간) · 소비자심리지수 · IG OAS · HY OAS
   - 실제치 / 예상치 / 이전치 / Surprise 배지 (beat/miss/inline/pending)
+  - **이전값 대비 delta 표시** (색상: 인플레↑ 빨강, 고용↑ 초록 등 방향별) ← iter63
   - 매파(hawkish) / 비둘기(dovish) 영향 레이블
   - **캐스케이드 체인**: 자산별 방향·강도·이유 (3~5개 항목)
   - "쉬운 설명" 토글 (Laymen 모드)
