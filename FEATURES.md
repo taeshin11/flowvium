@@ -127,6 +127,10 @@
   - XLK/XLF/XLE/XLV/XLI/XLB/XLY/XLP/XLU/XLRE/XLC
   - 최강·최약 섹터 하이라이트 + 전체 ReturnBar 정렬 목록
 - **금 vs 달러 신호** (3개 타임프레임)
+- **원자재 선물 커브** (`/api/commodity-curve`)
+  - WTI 원유: 7개월 선물 커브 (CLx.NYM), 컨탱고/백워데이션 자동 판정
+  - Gold: 5개월 선물 커브 (GCx.CMX), slope % 표시
+  - 막대 차트로 커브 형태 시각화
 - **AI 자금흐름 분석 패널** (`FlowAnalysisPanel`)
   - EXAONE vLLM → Gemini 폴백
   - 국가별 유입/유출 원인·리스크 분석

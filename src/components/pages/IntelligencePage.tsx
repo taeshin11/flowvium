@@ -710,6 +710,8 @@ interface FactorReturn { id: string; label: string; flag: string; ticker: string
 interface SectorReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 type RotEntry = { from:string; to:string; magnitude:number; weeksAgo?:number; startDate?:string; momentum?:string };
 type CountryRotEntry = { from:string; fromFlag:string; to:string; toFlag:string; magnitude:number; momentum:'accelerating'|'holding'|'fading' };
+interface CurvePoint { ticker: string; label: string; price: number; }
+interface CommodityCurveData { id: 'oil'|'gold'; name: string; unit: string; curve: CurvePoint[]; structure: 'contango'|'backwardation'|'flat'; slope: number; updatedAt: string; }
 interface FlowData {
   assets: AssetReturn[];
   flow: {
@@ -957,13 +959,20 @@ function CapitalFlowsTab() {
   const [data, setData] = useState<FlowData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tf, setTf] = useState<Timeframe>('4w');
+  const [commCurves, setCommCurves] = useState<CommodityCurveData[] | null>(null);
 
   useEffect(() => {
-    fetch('/api/capital-flows')
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    const controller = new AbortController();
+    const { signal } = controller;
+    Promise.allSettled([
+      fetch('/api/capital-flows', { signal }).then(r => r.json()),
+      fetch('/api/commodity-curve', { signal }).then(r => r.json()),
+    ]).then(([flowRes, curveRes]) => {
+      if (signal.aborted) return;
+      if (flowRes.status === 'fulfilled') setData(flowRes.value);
+      if (curveRes.status === 'fulfilled') setCommCurves(curveRes.value.curves ?? null);
+    }).finally(() => { if (!signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   if (loading) return (
@@ -1206,6 +1215,59 @@ function CapitalFlowsTab() {
           </div>
         );
       })()}
+
+      {/* 원자재 선물 커브 (컨탱고/백워데이션) */}
+      {commCurves && commCurves.length > 0 && (
+        <div className="cf-card p-4">
+          <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+            <span>🛢️</span> 원자재 선물 커브 — 컨탱고 / 백워데이션
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {commCurves.map((c) => {
+              const structColor = c.structure === 'contango' ? 'text-blue-600 bg-blue-50 border-blue-200'
+                : c.structure === 'backwardation' ? 'text-orange-600 bg-orange-50 border-orange-200'
+                : 'text-gray-600 bg-gray-50 border-gray-200';
+              const structLabel = c.structure === 'contango' ? '컨탱고 (정상상승)' : c.structure === 'backwardation' ? '백워데이션 (공급부족)' : '플랫';
+              const maxP = Math.max(...c.curve.map(p => p.price));
+              const minP = Math.min(...c.curve.map(p => p.price));
+              const range = maxP - minP || 1;
+              return (
+                <div key={c.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cf-text-primary">{c.name}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${structColor}`}>
+                      {structLabel} {c.slope > 0 ? '+' : ''}{c.slope.toFixed(1)}%
+                    </span>
+                  </div>
+                  {c.curve.length > 0 && (
+                    <div className="flex items-end gap-1 h-12">
+                      {c.curve.map((pt) => {
+                        const h = ((pt.price - minP) / range * 36 + 12);
+                        const isFirst = pt === c.curve[0];
+                        return (
+                          <div key={pt.ticker} className="flex flex-col items-center flex-1 min-w-0">
+                            <div
+                              className={`w-full rounded-t-sm ${isFirst ? 'bg-cf-primary' : c.structure === 'contango' ? 'bg-blue-400' : 'bg-orange-400'}`}
+                              style={{ height: `${h}px` }}
+                              title={`${pt.label}: ${c.unit.startsWith('USD/bbl') ? '$' : '$'}${pt.price.toFixed(2)} ${c.unit}`}
+                            />
+                            <span className="text-[8px] text-cf-text-secondary mt-0.5 truncate w-full text-center leading-tight">{pt.label.replace(' 2', "'")}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-cf-text-secondary">
+                    {c.id === 'oil'
+                      ? (c.structure === 'backwardation' ? '⚠️ 공급 타이트 — 현물 프리미엄' : '📉 공급 여유 — 선도 프리미엄')
+                      : (c.structure === 'contango' ? '📈 금 보유 비용 정상 반영' : '⚠️ 금 현물 수요 급증 신호')}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 자산군별 성과 */}
       <div className="cf-card p-4">
