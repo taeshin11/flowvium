@@ -2,18 +2,18 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/short-interest
  *
- * Fetches short interest data from Yahoo Finance for all tracked tickers.
- * Combines with EDGAR 13F institutional action to compute a "squeeze score".
+ * Returns tracked tickers with EDGAR 13F institutional action and squeeze score.
+ * Yahoo Finance v10 crumb auth fails from Vercel IPs — shortFloatPct/Ratio always null.
+ * squeezeScore is based on instAction only.
  *
- * Redis cache: 4 hours (FINRA/YF data updates twice daily)
+ * Redis cache: 4 hours
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { fetchBatchShortData } from '@/lib/yahoo-finance';
 import { institutionalSignals } from '@/data/institutional-signals';
 import { createMemoryCache } from '@/lib/memory-cache';
 
-const CACHE_KEY = 'flowvium:short-interest:v1';
+const CACHE_KEY = 'flowvium:short-interest:v2';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 // Redis-less fallback — 30min TTL (short-interest changes twice daily but we
@@ -105,10 +105,6 @@ export async function GET(req: Request) {
   // Deduplicate tickers
   const tickers = Array.from(new Set(TRACKED_TICKERS));
 
-  // Fetch short data from Yahoo Finance
-  const shortData = await fetchBatchShortData(tickers, 150);
-  const shortMap = new Map(shortData.map(d => [d.ticker, d]));
-
   // Build latest institutional action per ticker from static + EDGAR data
   let liveSignals = institutionalSignals;
   if (redis) {
@@ -133,7 +129,6 @@ export async function GET(req: Request) {
   }
 
   const entries: ShortEntry[] = tickers.map(ticker => {
-    const short = shortMap.get(ticker);
     const instAction = instActionMap.get(ticker) ?? null;
     const sector = instSectorMap.get(ticker) ?? 'other';
     const companyName = instNameMap.get(ticker) ?? ticker;
@@ -142,16 +137,11 @@ export async function GET(req: Request) {
       ticker,
       companyName,
       sector,
-      shortFloatPct: short?.shortFloatPct ?? null,
-      shortRatio: short?.shortRatio ?? null,
-      shortChangeMonthly: short?.shortChangeMonthly ?? null,
+      shortFloatPct: null,
+      shortRatio: null,
+      shortChangeMonthly: null,
       instAction,
-      squeezeScore: calcSqueezeScore(
-        short?.shortFloatPct ?? null,
-        short?.shortRatio ?? null,
-        short?.shortChangeMonthly ?? null,
-        instAction,
-      ),
+      squeezeScore: calcSqueezeScore(null, null, null, instAction),
     };
   });
 
