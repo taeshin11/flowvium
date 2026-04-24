@@ -58,6 +58,7 @@ export default function WatchlistPage() {
     try {
       const res = await fetch(`/api/stock-price/${encodeURIComponent(ticker)}`, { signal });
       if (signal.aborted) return { ticker, price: null, change: null, changePct: null, currency: 'USD', marketState: null, updatedAt: new Date().toISOString() };
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.error) return { ...data, ticker, loading: false };
       return { ...data, loading: false };

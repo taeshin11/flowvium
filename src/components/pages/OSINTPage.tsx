@@ -114,6 +114,7 @@ function SocialTab() {
     setLoading(true); setError(null);
     try {
       const res = await fetch('/api/osint/social', signal ? { signal } : undefined);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (signal?.aborted) return;
       if (json.error) throw new Error(json.error);
@@ -281,6 +282,7 @@ function CryptoTab() {
       setWalletData(prev => ({ ...prev, [w.address]: 'loading' }));
       try {
         const res = await fetch(`/api/osint/crypto?address=${encodeURIComponent(w.address)}&chain=${w.chain}`, { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (signal.aborted) return;
         setWalletData(prev => ({ ...prev, [w.address]: data.error ? 'error' : data }));
@@ -297,6 +299,7 @@ function CryptoTab() {
     setSearching(true); setSearchError(null); setSearchResult(null);
     try {
       const res = await fetch(`/api/osint/crypto?address=${encodeURIComponent(address.trim())}&chain=${chainParam}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.error) setSearchError(data.error); else setSearchResult(data);
     } catch { setSearchError('네트워크 오류'); }
@@ -485,7 +488,7 @@ function SanctionsTab() {
     const controller = new AbortController();
     const { signal } = controller;
     fetch('/api/osint/sanctions?featured=true', { signal })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => {
         if (signal.aborted) return;
         if (d.error) throw new Error(d.error);
@@ -504,9 +507,10 @@ function SanctionsTab() {
     setSearching(true); setSearchResult(null);
     try {
       const res = await fetch(`/api/osint/sanctions?q=${encodeURIComponent(query.trim())}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
       setSearchResult(d.matches ?? []);
-    } catch { /* silent */ }
+    } catch { /* silent on search error — user can retry */ }
     finally { setSearching(false); }
   }, [query]);
 
@@ -657,10 +661,11 @@ function CorporateTab() {
       setLoadingKeys(prev => { const s = new Set<string>(Array.from(prev)); s.add(label); return s; });
       try {
         const res = await fetch(`/api/osint/corporate?q=${encodeURIComponent(label)}`, { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const d = await res.json();
         if (signal.aborted) return;
         setResults(prev => ({ ...prev, [label]: d }));
-      } catch { /* silent */ }
+      } catch { /* silent on abort or individual item error */ }
       finally {
         if (!signal.aborted) setLoadingKeys(prev => { const s = new Set<string>(Array.from(prev)); s.delete(label); return s; });
       }
@@ -673,6 +678,7 @@ function CorporateTab() {
     setSearching(true); setSearchResult(null);
     try {
       const res = await fetch(`/api/osint/corporate?q=${encodeURIComponent(query.trim())}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
       setSearchResult(d);
       setActive('__search__');

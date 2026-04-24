@@ -17,6 +17,8 @@ const CACHE_TTL = 30 * 60;
 
 export const maxDuration = 60;
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=120' };
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -37,7 +39,7 @@ export async function GET(req: Request) {
       if (cached) {
         const filtered = tickerFilter ? cached.filter(t => t.ticker === tickerFilter) : cached;
         logger.info('api.insider-trades', 'cache_hit', { total: cached.length, filtered: filtered.length, durationMs: Date.now() - reqStart });
-        return NextResponse.json({ items: filtered, cached: true, total: cached.length });
+        return NextResponse.json({ items: filtered, cached: true, total: cached.length }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.insider-trades', 'cache_read_error', { error: err }); }
   }
@@ -61,12 +63,12 @@ export async function GET(req: Request) {
           total: prior.length,
           note: 'EDGAR getcurrent feed empty — returning prior snapshot',
           durationMs: Date.now() - reqStart,
-        });
+        }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.insider-trades', 'prior_read_error', { error: err }); }
   }
 
   const filtered = tickerFilter ? transactions.filter(t => t.ticker === tickerFilter) : transactions;
   logger.info('api.insider-trades', 'served', { total: transactions.length, filtered: filtered.length, forced: force, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ items: filtered, cached: false, total: transactions.length });
+  return NextResponse.json({ items: filtered, cached: false, total: transactions.length }, { headers: CDN_HEADERS });
 }
