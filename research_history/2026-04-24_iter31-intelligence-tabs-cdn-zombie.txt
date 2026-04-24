@@ -1,0 +1,51 @@
+## Iter 31 — IntelligenceTab CDN 3routes + zombie 7건
+Date: 2026-04-24
+Primary outcome: IntelligenceTab CDN 3routes + zombie 7건
+
+### 정확성 프로브
+- 인프라 개선 iter — 외부 값 대조 생략, iter29 ZQK26 probe 재활용
+
+### Drift check
+- 최근 5 커밋: iter31(이번), iter30-cdn-batch, iter30-research, iter29-research, iter29-fedwatch
+- CDN: iter25, iter26, iter27, iter30, iter31 → 5회 (3 연속 아님: 28/29가 non-CDN)
+- zombie: iter22-27, iter30, iter31 → 8회 (3 연속 아님: 28/29가 non-zombie)
+- 인프라 블로커: 없음
+- "나중에" 미룬 항목: 없음
+
+### 발견된 문제
+Intelligence 서브탭 컴포넌트 (iter24에서 IntelligencePage.tsx 수정했지만 서브탭은 미처리):
+- CreditBalanceTab.tsx: fetch → .then(r => r.json()) res.ok 없음
+- CapitalFlowsTab.tsx line 312: flow-analysis fetch res.ok 없음
+- CapitalFlowsTab.tsx line 491-492: capital-flows, commodity-curve fetch res.ok 없음
+- MacroIndicatorsTab.tsx line 27: fedwatch fetch res.ok 없음
+- MacroIndicatorsTab.tsx line 330: macro-indicators fetch res.ok 없음
+- NewsCascadeTab.tsx line 33: news-cascade fetch res.ok 없음
+
+CDN 미적용 라우트:
+- credit-balance: Redis 24h
+- flow-analysis: Redis 4h (AI analysis)
+- commodity-curve: memory 30min
+
+### 작업 내용
+1. **credit-balance/route.ts**: CDN s-maxage=82800 (23h), swr=3600 — 2 return points
+2. **flow-analysis/route.ts**: CDN s-maxage=12000 (~83% of 4h), swr=600 — 2 return points
+3. **commodity-curve/route.ts**: CDN s-maxage=1500 (83% of 30min), swr=120 — 2 return points
+4. **CreditBalanceTab**: res.ok throw 추가
+5. **CapitalFlowsTab**: flow-analysis, capital-flows, commodity-curve res.ok 추가
+6. **MacroIndicatorsTab**: fedwatch, macro-indicators res.ok 추가
+7. **NewsCascadeTab**: news-cascade res.ok 추가
+
+### CDN 커버리지 현황 (after iter31)
+- remaining without CDN: ai, collect, company-news, credit-balance(done), flow-analysis(done),
+  commodity-curve(done), korea-flow, sector-pe, stock-supply, translate
+- 실제 remaining: ai, collect, company-news, korea-flow, sector-pe, stock-supply, translate (7개)
+
+### TypeScript
+- TypeScript clean ✓
+
+### 산출물 분류
+- rule [3c]: zombie 7건 제거 (Intelligence 서브탭 전체 커버리지 달성)
+- rule [3a]: CDN 커버리지 확장 (3 라우트 추가)
+
+### Commit
+20b58fb fix(cdn+zombie): IntelligenceTab 7건 res.ok + 3routes CDN
