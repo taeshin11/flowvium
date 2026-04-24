@@ -196,11 +196,7 @@ async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateI
   if (redis) {
     try {
       const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-      const [d1, d2] = await Promise.all([
-        redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v9:${kstDate}`),
-        redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v8:${kstDate}`),
-      ]);
-      const d = d1?.indicators?.length ? d1 : (d2?.indicators?.length ? d2 : null);
+      const d = await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v12:${kstDate}`);
       if (d?.indicators?.length) indicators = d.indicators;
     } catch { /* non-fatal */ }
   }
@@ -278,27 +274,25 @@ async function getFedWatchItem(redis: Redis | null, base: string): Promise<Updat
 }
 
 // ── 5. News Cascade ──────────────────────────────────────────────────────────
+type ArticleData = { id?: string; title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> };
+
 async function getNewsCascadeItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
-  // Redis list 구조라 Redis 있을 때만 직접 읽기
+  // Redis 직접 읽기: news-cascade는 전체 배열을 JSON key로 저장
+  // (lrange가 아닌 get — lrange는 Redis list 자료구조에만 작동)
   if (redis) {
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const ids = await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 6);
-      if (ids?.length) {
-        type ArticleData = { title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> };
-        const fetched = await Promise.allSettled(
-          ids.map(id => redis.get<ArticleData>(`flowvium:news-cascade:v1:article:${id}`).then(a => ({ id, a })))
-        );
-        const items: UpdateItem[] = fetched
-          .filter((r): r is PromiseFulfilledResult<{ id: string; a: ArticleData | null }> => r.status === 'fulfilled')
-          .filter(r => r.value.a != null && withinDays(r.value.a.pubDate, 3))
-          .map(r => newsItemFrom(r.value.a!, r.value.id));
-        if (items.length) return items;
+      const cached = await redis.get<ArticleData[]>(`flowvium:news-cascade:v1:list:${today}`);
+      if (Array.isArray(cached) && cached.length > 0) {
+        return cached
+          .filter(a => a.pubDate && withinDays(a.pubDate, 3))
+          .slice(0, 5)
+          .map(a => newsItemFrom(a, a.id ?? a.title));
       }
     } catch { /* non-fatal */ }
   }
   // Fallback: /api/news-cascade가 articles 배열로 최근 기사 반환
-  const d = await safeJson<{ articles?: Array<{ id?: string; title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }> }>(`${base}/api/news-cascade`);
+  const d = await safeJson<{ articles?: ArticleData[] }>(`${base}/api/news-cascade`);
   const arts = d?.articles ?? [];
   return arts
     .filter(a => a.pubDate && withinDays(a.pubDate, 3))
