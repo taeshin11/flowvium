@@ -6,7 +6,14 @@
     "src/app/api/ownership-alerts/route.ts": { "maxDuration": 60 },
     "src/app/api/nport-holdings/route.ts": { "maxDuration": 60 },
     "src/app/api/market-caps/route.ts": { "maxDuration": 60 },
-    "src/app/api/cron/verify-metrics/route.ts": { "maxDuration": 60 }
+    "src/app/api/cron/verify-metrics/route.ts": { "maxDuration": 60 },
+    "src/app/api/capital-flows/route.ts": { "maxDuration": 60 },
+    "src/app/api/korea-flow/route.ts": { "maxDuration": 60 },
+    "src/app/api/macro-indicators/route.ts": { "maxDuration": 60 },
+    "src/app/api/yield-curve/route.ts": { "maxDuration": 60 },
+    "src/app/api/fear-greed/route.ts": { "maxDuration": 60 },
+    "src/app/api/stock-supply/route.ts": { "maxDuration": 60 },
+    "src/app/api/volatility/route.ts": { "maxDuration": 60 }
   },
   "crons": [
     { "path": "/api/cron/update-all",     "schedule": "50 22 * * *" },

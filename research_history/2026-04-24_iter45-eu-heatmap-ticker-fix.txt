@@ -1,0 +1,52 @@
+## Iter 45 — EU 히트맵 9종목 누락 수정
+Date: 2026-04-24
+Primary outcome: EU 히트맵 79/80 복구 (98.75%)
+
+### Drift check
+- iter 41: sector-pe 502 fix (API)
+- iter 42: crumb zombie 삭제 (shared lib)
+- iter 43: stock-supply data quality (API + component)
+- iter 44: news-cascade AI quality (API)
+- iter 45: EU heatmap ticker fix (다른 영역 ✓)
+
+### 정확성 프로브
+- [accuracy probe] metric=eu-heatmap.coverage pre-fix matched=71/80 → DEGRADED (9 stocks missing)
+- [accuracy probe] metric=eu-heatmap.coverage post-fix matched=79/80 → OK (98.75%)
+- [accuracy probe] metric=fg.us source=CNN our_value=68 direct_value=67 Δ1 tolerance=3 → OK (stable)
+
+### 발견된 문제
+1. EU 히트맵 UK 주식 9개 누락:
+   - 원인: toYFSuffix() 에서 UK 티커에 trailing dot 처리 없음
+   - 예: "RR." → "RR..L" (double dot) → Yahoo 조회 실패
+   - 예: "INVE B" → "INVE B.ST" (space) → Yahoo 조회 실패
+
+2. iShares 원시 티커 형식 문제:
+   - UK LSE 관례: 종목코드에 trailing dot (예: "RR.", "BP.", "AZN.")
+   - 스웨덴/덴마크: 클래스 구분에 공백 사용 (예: "INVE B", "VOLV B")
+   - Yahoo Finance 요구: 공백 → 하이픈, trailing dot 제거 후 교환소 접미사
+
+### 수정 사항
+#### src/app/api/market-heatmap/route.ts
+toYFSuffix() 함수에서 EU 처리 로직 수정:
+```
+const clean = ticker.replace(/\.$/, '').replace(/\s+/g, '-');
+return `${clean}${suf}`;
+```
+- trailing dot 제거: /\.$/ → ''
+- 공백 하이픈 변환: /\s+/g → '-'
+- 캐시 키: v12 → v13
+
+#### docs(METRICS.md)
+- E13: EU heatmap 89/80 → 79/80 coverage 메모 추가
+- E12: short-interest Yahoo crumb → EDGAR 기반으로 소스 업데이트
+- E14: market-caps live fetch → static bands only
+- E6: news-cascade sequential → parallel
+- Row 320: sector-pe P/E null → YTD + price + changePct live
+- Row 123-M: market-cap live → static bands
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- c445e3e: fix(eu-heatmap): fix UK/SE ticker Yahoo symbol mapping (9 stocks missing)
+- 9f7669f: docs(metrics): update 6 stale entries (iter41-45 changes)

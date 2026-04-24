@@ -159,9 +159,9 @@
   - 현재 기준금리 + 연말 예상금리
   - 월별 인상/동결/인하 확률 바 (Hold · Cut25 · Cut50 · Cut75 · Hike)
 - **섹터별 밸류에이션** (`SectorPESection`)
-  - 데이터: `/api/sector-pe` (Yahoo Finance v10 crumb, 24h Redis)
+  - 데이터: `/api/sector-pe` (Yahoo Finance v8 no-auth, 4h Redis)
   - 11개 SPDR 섹터 ETF (XLK/XLF/XLE/XLV/XLY/XLP/XLI/XLB/XLRE/XLU/XLC)
-  - Trailing P/E · 배당수익률 · YTD 수익률 테이블
+  - 가격 · 등락률 · YTD 수익률 · 52주 고저 테이블 (P/E·배당 필드 null — crumb 불가)
 - **주요 매크로 이벤트 캘린더** (`EconCalendarSection`, iter35 신설)
   - `src/data/econ-calendar.ts` 정적 일정 (FOMC/GDP/NFP/CPI/PPI/PCE/PMI/Retail)
   - 오늘부터 10개 이벤트, 날짜별 그룹, D-N 카운트다운 chip
@@ -261,7 +261,7 @@
 - 기업명·티커·역할 배지·번역 설명
 - **실시간 주가·일간 변화%** (`/api/stock-price/[ticker]`, Yahoo Finance v8, 15min 캐시)
   - 장전(PRE)/장후(POST) 마켓 상태 표시
-- **실시간 시가총액** (`/api/market-caps?ticker=X`, Yahoo Finance v7 crumb, 24h 캐시)
+- **시가총액 band 분류** (`/api/market-caps?ticker=X`, 정적 band 분류, Yahoo v7 crumb 실패로 live 제거)
 - **90일 주가 추이 차트** (`/api/price-history?ticker=X&days=90`, Yahoo Finance v8, 1h 캐시)
   - 90일 수익률(%) + 미니 LineChart (recharts)
 - 공유 버튼·비교 링크
@@ -776,7 +776,7 @@ ownership-alerts 적용).
 |-----------|-------------|---------------|
 | `/api/daily-brief` | EXAONE vLLM → Gemini | 26h |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
-| `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ부터) | 기사별 24h / 목록 4h |
+| `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 70b 병렬 8개, skipVllm=true); 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 4h |
 | `/api/capital-flows` | Twelve Data → Yahoo → Stooq | 4h |
 | `/api/macro-indicators` | FRED CSV + FRED API | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
@@ -789,10 +789,10 @@ ownership-alerts 적용).
 | `/api/block-trades` | Polygon (API 키 필요) | 5분 |
 | `/api/options-flow` | Unusual Whales (API 키 필요) | 캐시 |
 | `/api/korea-flow` | KRX POST API | 캐시 |
-| `/api/short-interest` | Yahoo Finance | 캐시 |
-| `/api/market-heatmap` | Yahoo Finance | 캐시 |
-| `/api/market-caps` | Yahoo Finance v7 (crumb) | 24h Redis; `?ticker=X` 단일 조회 지원; raw USD + band 반환 |
-| `/api/sector-pe` | Yahoo Finance v10 (crumb) | 24h Redis; 11개 SPDR 섹터 ETF; trailingPE + dividendYield + ytdReturn |
+| `/api/short-interest` | EDGAR 13F 기관 포지션 신호 (shortFloat/Ratio null — Yahoo crumb 불가) | 캐시 |
+| `/api/market-heatmap` | iShares ETF CSV + Stooq(JP/EU) + Yahoo v8(KR/TW/IN/CN/EU-fallback) + CNBC(지수) | 15m Redis; EU 79/80 (98.75%) |
+| `/api/market-caps` | 정적 band 분류 (allCompanies) | band 분류만 반환; Yahoo v7 crumb 불가로 live USD 제거 |
+| `/api/sector-pe` | Yahoo Finance v8 (no auth) | 4h Redis; 11개 SPDR 섹터 ETF; price + changePct + ytdReturn + 52주 범위 |
 | `/api/price-history?ticker=X&days=N` | Stooq daily CSV | 1h Redis + 30min memory |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
