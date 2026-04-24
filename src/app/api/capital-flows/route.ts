@@ -138,6 +138,29 @@ async function fetchPricesStooq(ticker: string): Promise<number[]> {
   return prices;
 }
 
+// ── Source 2b: Yahoo Finance spark batch (up to 20 symbols per request) ──────
+// Returns a map of ticker → closes[]. Missing/failed tickers are omitted.
+async function fetchPricesBatchYahoo(tickers: string[]): Promise<Record<string, number[]>> {
+  if (tickers.length === 0) return {};
+  const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${tickers.join(',')}&range=6mo&interval=1d`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+    signal: AbortSignal.timeout(12000),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Yahoo spark HTTP ${res.status}`);
+  const data = await res.json();
+  const results: Array<{ symbol: string; response?: Array<{ indicators?: { quote?: Array<{ close?: (number | null)[] }> } }> }>
+    = data?.spark?.result ?? [];
+  const out: Record<string, number[]> = {};
+  for (const r of results) {
+    const closes = r.response?.[0]?.indicators?.quote?.[0]?.close ?? [];
+    const prices = closes.filter((v): v is number => v != null && !isNaN(v));
+    if (prices.length >= 20) out[r.symbol] = prices;
+  }
+  return out;
+}
+
 // ── Cascade: Twelve → Yahoo → Stooq ──────────────────────────────────────────
 async function fetchPrices(ticker: string, twelveKey: string | null): Promise<{ prices: number[]; source: string }> {
   if (twelveKey) {
@@ -151,6 +174,75 @@ async function fetchPrices(ticker: string, twelveKey: string | null): Promise<{ 
     logger.error('capital-flows', 'all_sources_failed', { ticker, error: e });
     return { prices: [], source: 'failed' };
   }
+}
+
+// ── Batch fetch: split tickers into ≤20 chunks, fetch in parallel ─────────────
+async function fetchAllPrices(
+  allTickers: string[],
+  twelveKey: string | null,
+): Promise<{ priceMap: Record<string, number[]>; sourceCount: Record<string, number> }> {
+  const priceMap: Record<string, number[]> = {};
+  const sourceCount: Record<string, number> = {};
+
+  if (twelveKey) {
+    // Twelve Data: individual fetches (no batch API)
+    await Promise.all(
+      allTickers.map(async (ticker) => {
+        const { prices, source } = await fetchPrices(ticker, twelveKey);
+        priceMap[ticker] = prices;
+        sourceCount[source] = (sourceCount[source] ?? 0) + 1;
+      })
+    );
+    return { priceMap, sourceCount };
+  }
+
+  // Yahoo batch: ≤20 per request, 3 parallel batches for ~41 tickers
+  const BATCH_SIZE = 20;
+  const batches: string[][] = [];
+  for (let i = 0; i < allTickers.length; i += BATCH_SIZE) {
+    batches.push(allTickers.slice(i, i + BATCH_SIZE));
+  }
+
+  const batchResults = await Promise.allSettled(
+    batches.map((batch) => fetchPricesBatchYahoo(batch))
+  );
+
+  const failed: string[] = [];
+  for (let i = 0; i < batchResults.length; i++) {
+    const r = batchResults[i];
+    if (r.status === 'fulfilled') {
+      const batchTickers = batches[i];
+      for (const ticker of batchTickers) {
+        if (r.value[ticker]) {
+          priceMap[ticker] = r.value[ticker];
+          sourceCount['yahoo'] = (sourceCount['yahoo'] ?? 0) + 1;
+        } else {
+          failed.push(ticker);
+        }
+      }
+    } else {
+      logger.warn('capital-flows', 'batch_failed', { batch: i, error: r.reason });
+      failed.push(...batches[i]);
+    }
+  }
+
+  // Individual fallback for any that weren't in batch results
+  if (failed.length > 0) {
+    await Promise.all(
+      failed.map(async (ticker) => {
+        try {
+          const prices = await fetchPricesStooq(ticker);
+          priceMap[ticker] = prices;
+          sourceCount['stooq'] = (sourceCount['stooq'] ?? 0) + 1;
+        } catch {
+          priceMap[ticker] = [];
+          sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1;
+        }
+      })
+    );
+  }
+
+  return { priceMap, sourceCount };
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
@@ -307,16 +399,8 @@ export async function GET() {
     ...FACTORS.map((f) => f.ticker),
     ...SECTORS.map((s) => s.ticker),
   ]));
-  const priceMap: Record<string, number[]> = {};
-  const sourceCount: Record<string, number> = {};
 
-  await Promise.all(
-    allTickers.map(async (ticker) => {
-      const { prices, source } = await fetchPrices(ticker, twelveKey);
-      priceMap[ticker] = prices;
-      sourceCount[source] = (sourceCount[source] ?? 0) + 1;
-    })
-  );
+  const { priceMap, sourceCount } = await fetchAllPrices(allTickers, twelveKey);
 
   // Describe which sources actually provided data
   const sourceSummary = Object.entries(sourceCount)

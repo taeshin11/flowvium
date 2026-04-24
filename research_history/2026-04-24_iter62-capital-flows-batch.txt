@@ -1,0 +1,54 @@
+## Iter 62 — capital-flows cold-start 8s→1s
+Date: 2026-04-24
+Primary outcome: capital-flows 8s→1s cold-start (13자 ✓)
+
+### Drift check
+- iter 59: MacroIndicatorsTab.tsx (macro)
+- iter 60: ReportPage.tsx (다른 영역)
+- iter 61: HomePage.tsx (다른 영역)
+- iter 62: capital-flows/route.ts (다른 영역 → drift 없음 ✓)
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=SPY.close source=Yahoo_v7_spark
+  direct_value=710.53 (v7 spark)
+  our_value=710.53 (v8 chart, 현재 production 소스와 동일)
+  delta=0 tolerance=0.01 → OK ✓
+- Yahoo v7 spark batch: 125 pts for SPY, matches v8 chart last close exactly
+
+### 문제 진단
+- 측정: cold start 8.6s (캐시 미스 시)
+- 원인: 44개 ticker를 Yahoo Finance에 개별 병렬 fetch
+  `Promise.all(allTickers.map(ticker => fetchPrices(ticker, null)))` → 44 HTTP requests
+- Yahoo rate-limiting: 동시 44개 요청 → 일부 지연 or 재시도
+
+### 해결 방법
+Yahoo Finance v7 spark batch API: 한 번에 최대 20개 ticker를 단일 HTTP request로 처리
+- 44개 ticker → 3 batch (20+20+4)로 분할
+- 3개 배치를 Promise.allSettled로 병렬 실행
+- 측정 결과: 3 배치 동시 실행 → 1.0s (vs 기존 8.6s, **8.6배 개선**)
+
+### 구현
+1. `fetchPricesBatchYahoo(tickers: string[]): Promise<Record<string, number[]>>` 추가
+   - `https://query1.finance.yahoo.com/v7/finance/spark?symbols=...&range=6mo&interval=1d`
+   - 결과 파싱: `spark.result[].response[0].indicators.quote[0].close`
+2. `fetchAllPrices(allTickers, twelveKey)` 함수 추가
+   - twelveKey 있으면 기존 개별 방식 유지 (Twelve Data 배치 API 없음)
+   - no-key시: BATCH_SIZE=20으로 분할 → Promise.allSettled
+   - 배치 실패/누락 ticker는 Stooq 개별 fallback
+3. GET 핸들러: `await fetchAllPrices(allTickers, twelveKey)` 1줄 교체
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch: `cache: 'no-store'` 명시 ✓
+- cacheKey v7 유지 (response shape 불변)
+- CACHE_TTL 4h 유지
+
+### TypeScript
+- TypeScript clean ✓
+
+### 성능 측정
+- Before: 8.6s cold start
+- After (3 parallel batches from local): 1.0s
+- Production 예상: <2s cold start
+
+### Commits
+- iter62: perf(capital-flows): Yahoo batch fetch 44→3 req — cold start 8s→1s
