@@ -175,13 +175,18 @@ export async function GET(request: Request) {
     } catch (e) { logger.warn('flow-analysis', 'ai_parse_failed', { tf, rawLength: raw.length, error: e }); }
   }
 
-  const result = {
+  const result: Record<string, unknown> = {
     analysis,
     tf,
     source: aiResult.source,
     generatedAt: new Date().toISOString(),
     cached: false,
+    durationMs: aiResult.durationMs,
   };
+  // Expose failure attempts when all providers fail — aids diagnosis without secrets
+  if (!analysis && aiResult.attempts?.length) {
+    result.attempts = aiResult.attempts;
+  }
 
   if (redis && analysis) {
     try {
