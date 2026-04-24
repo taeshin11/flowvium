@@ -1,0 +1,50 @@
+## Iter 86 — DTC 死코드 제거 + fetchFinraDaysToCover 삭제
+Date: 2026-04-25
+Primary outcome: FINRA DTC 死코드 57줄 제거 (18자)
+
+### Drift check
+- iter83=verify-probe+UI, iter84=verify-coverage, iter85=AI-providers, iter86=dead-code
+- 모두 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=short.AMD source=FINRA-daily direct_value=shortVolPct=64% our_value=64% delta=0 → OK
+- FINRA daily short volume endpoint (cdn.finra.org/equity/regsho/daily/) 접근 정상
+- short-interest API 33개 항목 반환 (삭제 후에도 정상 동작 확인)
+- top: AMD squeezeScore=45, shortVolPct=64%, shortRatio=None (as expected)
+
+### 조사 결과 (Negative Results — rule 4)
+DTC (daysToCover/shortRatio) 대안 소스 조사 완료:
+1. FINRA monthly (cdn.finra.org): 403 Cloudflare block from Vercel — BLOCKED
+2. Yahoo Finance v10/quoteSummary: crumb auth required — BLOCKED from Vercel IPs
+3. FINRA official API (equity group): 401 requires auth token — BLOCKED (free tier X)
+4. FINRA OTCMarket API: OTC stocks only, NVDA/AMD 등 NASDAQ 종목 없음
+5. Finnhub basic financials: 132 metrics, short/float/PE 없음 — N/A
+6. stockanalysis.com: 401 반환 — BLOCKED
+결론: 무료 접근 가능한 DTC 소스 없음. 공식 종료.
+
+### 산출물
+
+#### [1] fetchFinraDaysToCover 삭제 (57 lines → 0)
+- 4 × HTTP 403 호출 (각 10s timeout) 제거
+- 모든 403은 fast-fail이라 latency 영향은 경미했으나 코드 혼동 유발
+
+#### [2] calcSqueezeScore 간소화
+Before: calcSqueezeScore(shortFloatPct=null, shortVolPct, shortRatio=null, shortChangeMoM=null, instAction)
+After:  calcSqueezeScore(shortFloatPct=null, shortVolPct, instAction)
+- shortRatio / shortChangeMoM 파라미터 제거 (항상 null → 점수 기여 0)
+- 실질 신호: shortVolPct (FINRA daily) + instAction (EDGAR 13F)
+
+#### [3] Promise.allSettled 간소화
+- 3개 병렬 → 2개 (fetchFinraDaysToCover 제거)
+- shortRatio: null 유지 (API shape 하위 호환)
+
+### TypeScript: clean OK
+
+### 배포
+- git push: d624d84
+- net 75 lines removed
+
+### Open issues (carry forward)
+- DTC 소스: 공식 포기 (무료 대안 없음) → shortRatio stays null
+- sector P/E: ETF P/E 무료 소스 없음 — 역시 공식 포기 또는 유료 소스 대기
+- 다음 iter: 새 기능 또는 다른 데이터 정확도 개선
