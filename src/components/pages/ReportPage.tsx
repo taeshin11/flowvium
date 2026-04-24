@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import Sparkline from '@/components/Sparkline';
+import dynamic from 'next/dynamic';
+const YieldCurveCard = dynamic(() => import('@/components/YieldCurveCard'), { ssr: false });
 
 type Timeframe = '1w' | '4w' | '13w';
 
@@ -302,6 +304,11 @@ export default function ReportPage() {
             body={fomc.value ? t('kpiCutProb', { pct: fomc.value.probCut.toFixed(0) }) : '—'}
             cls={fomc.value ? 'bg-violet-50 text-violet-700 border-violet-200' : ''}
           />
+        </div>
+
+        {/* Yield Curve */}
+        <div className="mb-6">
+          <YieldCurveCard />
         </div>
 
         {/* Loading */}

@@ -1,0 +1,208 @@
+import { logger, loggedRedisSet } from '@/lib/logger';
+/**
+ * /api/yield-curve
+ *
+ * US Treasury yield curve + historical spread time series.
+ * Source: FRED free CSV (no API key required).
+ *
+ * Returns:
+ *   - today/weekAgo/monthAgo/quarterAgo curves (9 maturities)
+ *   - spread2s10s and spread3m10y daily series (last 180 days)
+ * Cache: Redis 1h | memory 30min
+ */
+import { NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis';
+import { createMemoryCache } from '@/lib/memory-cache';
+
+const CACHE_TTL = 60 * 60;  // 1h Redis
+const MEM_CACHE = createMemoryCache<YieldCurveData>('yield-curve', 30 * 60_000);
+
+function createRedis(): Redis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (!url || !token) return null;
+  return new Redis({ url, token });
+}
+
+const FRED_HEADERS = { 'User-Agent': 'Flowvium (taeshinkim11@gmail.com)', 'Accept': 'text/csv' };
+
+const SERIES: { label: string; id: string; years: number }[] = [
+  { label: '1M',  id: 'DGS1MO',  years: 1/12 },
+  { label: '3M',  id: 'DGS3MO',  years: 0.25 },
+  { label: '6M',  id: 'DGS6MO',  years: 0.5  },
+  { label: '1Y',  id: 'DGS1',    years: 1    },
+  { label: '2Y',  id: 'DGS2',    years: 2    },
+  { label: '5Y',  id: 'DGS5',    years: 5    },
+  { label: '10Y', id: 'DGS10',   years: 10   },
+  { label: '20Y', id: 'DGS20',   years: 20   },
+  { label: '30Y', id: 'DGS30',   years: 30   },
+];
+
+export interface YieldPoint {
+  label: string;
+  years: number;
+  value: number | null;
+}
+
+export interface SpreadPoint {
+  date: string;
+  value: number;
+}
+
+export interface YieldCurveData {
+  today: YieldPoint[];
+  weekAgo: YieldPoint[];
+  monthAgo: YieldPoint[];
+  quarterAgo: YieldPoint[];
+  spread2s10s: SpreadPoint[];
+  spread3m10y: SpreadPoint[];
+  spread2s10sCurrent: number | null;
+  spread3m10yCurrent: number | null;
+  inverted: boolean;
+  dataDate: string | null;
+  updatedAt: string;
+  cached: boolean;
+}
+
+function parseFredCsv(csv: string): Map<string, number> {
+  const map = new Map<string, number>();
+  const lines = csv.trim().split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(',');
+    if (parts.length < 2) continue;
+    const date = parts[0].trim();
+    const val = parts[1].trim();
+    if (val && val !== '.' && val !== 'NA') {
+      const n = parseFloat(val);
+      if (!isNaN(n)) map.set(date, n);
+    }
+  }
+  return map;
+}
+
+function closestValueOnOrBefore(map: Map<string, number>, targetDate: string, windowDays = 7): number | null {
+  const target = new Date(targetDate);
+  for (let d = 0; d <= windowDays; d++) {
+    const date = new Date(target);
+    date.setDate(date.getDate() - d);
+    const key = date.toISOString().slice(0, 10);
+    if (map.has(key)) return map.get(key)!;
+  }
+  return null;
+}
+
+async function fetchSeries(id: string, cosd: string, coed: string): Promise<Map<string, number>> {
+  try {
+    const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}&cosd=${cosd}&coed=${coed}`;
+    const res = await fetch(url, { headers: FRED_HEADERS, cache: 'no-store', signal: AbortSignal.timeout(12000) });
+    if (!res.ok) {
+      logger.warn('yield-curve', 'fred_http_error', { id, status: res.status });
+      return new Map();
+    }
+    return parseFredCsv(await res.text());
+  } catch (err) {
+    logger.error('yield-curve', 'fred_fetch_error', { id, error: err });
+    return new Map();
+  }
+}
+
+export async function GET() {
+  const cacheKey = 'flowvium:yield-curve:v1';
+  const redis = createRedis();
+
+  const mem = MEM_CACHE.get('us');
+  if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
+
+  if (redis) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+    } catch { /* non-fatal */ }
+  }
+
+  // Date window: last 200 days (covers ~130 trading days + some buffer)
+  const today = new Date();
+  const coed = today.toISOString().slice(0, 10);
+  const cosd = new Date(today.getTime() - 200 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const start = Date.now();
+  const maps = await Promise.all(SERIES.map(s => fetchSeries(s.id, cosd, coed)));
+  logger.info('yield-curve', 'fetched', { series: SERIES.length, durationMs: Date.now() - start });
+
+  const seriesMaps = Object.fromEntries(SERIES.map((s, i) => [s.label, maps[i]]));
+
+  // Latest trading date (most recent date with DGS10 data)
+  const dgs10Map = seriesMaps['10Y'];
+  const allDates = Array.from(dgs10Map.keys()).sort();
+  const latestDate = allDates[allDates.length - 1] ?? null;
+
+  const weekAgoDate = latestDate
+    ? new Date(new Date(latestDate).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    : null;
+  const monthAgoDate = latestDate
+    ? new Date(new Date(latestDate).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    : null;
+  const quarterAgoDate = latestDate
+    ? new Date(new Date(latestDate).getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    : null;
+
+  function buildCurve(refDate: string | null): YieldPoint[] {
+    return SERIES.map(s => ({
+      label: s.label,
+      years: s.years,
+      value: refDate ? closestValueOnOrBefore(seriesMaps[s.label], refDate) : null,
+    }));
+  }
+
+  const todayCurve = buildCurve(latestDate);
+  const weekAgoCurve = buildCurve(weekAgoDate);
+  const monthAgoCurve = buildCurve(monthAgoDate);
+  const quarterAgoCurve = buildCurve(quarterAgoDate);
+
+  // Build spread time series over all available dates
+  const dgs2Map = seriesMaps['2Y'];
+  const dgs3mMap = seriesMaps['3M'];
+  const spread2s10s: SpreadPoint[] = [];
+  const spread3m10y: SpreadPoint[] = [];
+
+  for (const date of allDates) {
+    const v10 = dgs10Map.get(date);
+    const v2 = dgs2Map.get(date);
+    const v3m = dgs3mMap.get(date);
+    if (v10 != null && v2 != null) spread2s10s.push({ date, value: parseFloat((v10 - v2).toFixed(3)) });
+    if (v10 != null && v3m != null) spread3m10y.push({ date, value: parseFloat((v10 - v3m).toFixed(3)) });
+  }
+
+  const last10y = latestDate ? dgs10Map.get(latestDate) ?? null : null;
+  const last2y  = latestDate ? closestValueOnOrBefore(dgs2Map, latestDate) : null;
+  const last3m  = latestDate ? closestValueOnOrBefore(dgs3mMap, latestDate) : null;
+  const sp2s10s = last10y != null && last2y != null ? parseFloat((last10y - last2y).toFixed(3)) : null;
+  const sp3m10y = last10y != null && last3m != null ? parseFloat((last10y - last3m).toFixed(3)) : null;
+
+  const data: YieldCurveData = {
+    today: todayCurve,
+    weekAgo: weekAgoCurve,
+    monthAgo: monthAgoCurve,
+    quarterAgo: quarterAgoCurve,
+    spread2s10s,
+    spread3m10y,
+    spread2s10sCurrent: sp2s10s,
+    spread3m10yCurrent: sp3m10y,
+    inverted: sp2s10s != null && sp2s10s < 0,
+    dataDate: latestDate,
+    updatedAt: new Date().toISOString(),
+    cached: false,
+  };
+
+  if (redis) {
+    try {
+      await loggedRedisSet(redis, 'api.yield-curve', cacheKey, data, { ex: CACHE_TTL });
+    } catch (err) {
+      logger.error('yield-curve', 'redis_save_error', { error: err });
+    }
+  } else {
+    MEM_CACHE.set('us', data);
+  }
+
+  return NextResponse.json(data);
+}
