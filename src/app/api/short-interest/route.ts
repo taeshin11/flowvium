@@ -57,17 +57,19 @@ export interface ShortEntry {
   squeezeScore: number;
 }
 
-/** Compute short squeeze score */
+/** Compute short squeeze score.
+ * shortFloatPct: always null (Yahoo v10 crumb blocked from Vercel)
+ * shortRatio (DTC): always null (FINRA monthly 403 from Vercel, no free alternative — iter86)
+ * shortChangeMoM: always null (requires bi-monthly FINRA + float data)
+ * Effective signal: shortVolPct (FINRA daily) + instAction (EDGAR 13F)
+ */
 function calcSqueezeScore(
   shortFloatPct: number | null,
   shortVolPct: number | null,
-  shortRatio: number | null,
-  shortChangeMoM: number | null,
   instAction: string | null,
 ): number {
   let score = 0;
 
-  // High short float % = most reliable squeeze fuel (bi-monthly FINRA data)
   if (shortFloatPct != null) {
     if (shortFloatPct > 30) score += 40;
     else if (shortFloatPct > 20) score += 30;
@@ -75,7 +77,6 @@ function calcSqueezeScore(
     else if (shortFloatPct > 5) score += 10;
   }
 
-  // Daily short volume ratio (FINRA) — noisier signal, lower weight
   // Normal range 40-55%; > 60% indicates unusual short-side pressure
   if (shortVolPct != null) {
     if (shortVolPct > 60) score += 25;
@@ -84,84 +85,10 @@ function calcSqueezeScore(
     else if (shortVolPct > 45) score += 3;
   }
 
-  // High days-to-cover = shorts trapped longer
-  if (shortRatio != null) {
-    if (shortRatio > 10) score += 25;
-    else if (shortRatio > 5) score += 15;
-    else if (shortRatio > 2) score += 8;
-  }
-
-  // MoM short interest increasing = building pressure
-  if (shortChangeMoM != null && shortChangeMoM > 10) score += 10;
-
-  // Institutional accumulation = opposing force
   if (instAction === 'accumulating') score += 20;
   if (instAction === 'new_position') score += 15;
 
   return Math.min(100, score);
-}
-
-/**
- * Fetch FINRA monthly short interest for DaysToCover.
- * NOTE: cdn.finra.org/equity/regsho/monthly/ returns 403 from Vercel IPs (Cloudflare block).
- * Function is kept for future use; currently always returns empty map.
- */
-async function fetchFinraDaysToCover(tickers: Set<string>): Promise<Map<string, number>> {
-  const map = new Map<string, number>();
-  const now = new Date();
-
-  for (let monthsBack = 1; monthsBack <= 4; monthsBack++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
-    const yyyymm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const url = `https://cdn.finra.org/equity/regsho/monthly/CNMSshort${yyyymm}.txt`;
-
-    try {
-      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
-      if (!res.ok) continue;
-
-      const text = await res.text();
-      const lines = text.trim().split('\n');
-      if (lines.length < 2) continue;
-
-      // Parse header dynamically to find column positions
-      const header = lines[0].toLowerCase().split('|').map(h => h.trim());
-      const symIdx = header.indexOf('symbol');
-      const dtcIdx = header.findIndex(h => h.includes('daystocove') || h === 'numberdaystocove');
-      const siIdx = header.findIndex(h => h.includes('shortinterest') || h.includes('totalshort'));
-
-      if (symIdx < 0 || dtcIdx < 0) {
-        logger.warn('api.short-interest', 'finra_monthly_header_miss', { cols: lines[0].slice(0, 120), yyyymm });
-        continue;
-      }
-
-      // Multiple rows per symbol (one per settlement date or market center) — use last row (most recent date)
-      const symDTC = new Map<string, { dtc: number; si: number }>();
-      for (const line of lines.slice(1)) {
-        if (!line.trim()) continue;
-        const parts = line.split('|');
-        const needed = Math.max(symIdx, dtcIdx, siIdx >= 0 ? siIdx : 0);
-        if (parts.length <= needed) continue;
-        const sym = parts[symIdx]?.trim();
-        if (!sym || !tickers.has(sym)) continue;
-        const dtc = parseFloat(parts[dtcIdx]);
-        if (isNaN(dtc) || dtc <= 0 || dtc > 500) continue;
-        const si = siIdx >= 0 ? parseFloat(parts[siIdx]) : 0;
-        symDTC.set(sym, { dtc, si: isNaN(si) ? 0 : si });
-      }
-
-      Array.from(symDTC.entries()).forEach(([sym, data]) => {
-        map.set(sym, parseFloat(data.dtc.toFixed(1)));
-      });
-
-      if (map.size > 0) {
-        logger.info('api.short-interest', 'finra_monthly_dtc_ok', { yyyymm, matched: map.size, of: tickers.size });
-        break;
-      }
-    } catch (e) {
-      logger.warn('api.short-interest', 'finra_monthly_dtc_error', { monthsBack, error: e });
-    }
-  }
-  return map;
 }
 
 /** Fetch FINRA consolidated short volume for given tickers (previous trading day) */
@@ -267,14 +194,13 @@ export async function GET(req: Request) {
   const tickers = Array.from(new Set(TRACKED_TICKERS));
   const tickerSet = new Set(tickers);
 
-  // Fetch FINRA daily short volume, FINRA monthly DTC, and Finnhub P/E in parallel
-  const [finraMap, dtcMap, peMap] = await Promise.allSettled([
+  // Fetch FINRA daily short volume and Finnhub P/E in parallel
+  // DTC (FINRA monthly): cdn.finra.org 403 from Vercel IPs; no free alternative found — iter86
+  const [finraMap, peMap] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
-    fetchFinraDaysToCover(tickerSet),
     fetchFinnhubPE(tickers),
   ]);
   const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
-  const daysToCoverMap = dtcMap.status === 'fulfilled' ? dtcMap.value : new Map<string, number>();
   const trailingPEMap = peMap.status === 'fulfilled' ? peMap.value : new Map<string, number>();
 
   // Build latest institutional action per ticker from static + EDGAR data
@@ -306,7 +232,6 @@ export async function GET(req: Request) {
     const companyName = instNameMap.get(ticker) ?? ticker;
 
     const shortVolPct = shortVolMap.get(ticker) ?? null;
-    const shortRatio = daysToCoverMap.get(ticker) ?? null;
     const trailingPE = trailingPEMap.get(ticker) ?? null;
     return {
       ticker,
@@ -314,11 +239,11 @@ export async function GET(req: Request) {
       sector,
       shortFloatPct: null,
       shortVolPct,
-      shortRatio,
+      shortRatio: null,
       shortChangeMonthly: null,
       instAction,
       trailingPE,
-      squeezeScore: calcSqueezeScore(null, shortVolPct, shortRatio, null, instAction),
+      squeezeScore: calcSqueezeScore(null, shortVolPct, instAction),
     };
   });
 
