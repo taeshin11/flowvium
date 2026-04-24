@@ -1,0 +1,78 @@
+ITER98 — flow-analysis stale fallback + verify-metrics probe fix
+Date: 2026-04-25
+Commit: 5fca455
+Primary outcome: flow.analysis AI 쿼터 소진 시 stale 서빙 (error → degraded)
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════════════
+iter95=cron, iter96=OSINT cache, iter97=latest-updates, iter98=flow-analysis
+→ 4개 iter 모두 다른 영역. Drift 없음.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"flow.analysis stale 서빙으로 error 방지"
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM IDENTIFIED
+═══════════════════════════════════════════════════════════════════════
+1. flow-analysis 4h TTL 문제:
+   - update-all 하루 3번 실행, 최대 공백 10.5h (21:20 KST ~ 07:50 KST)
+   - Groq+Gemini TPD 소진 시 AI 요청 실패 → `analysis: null` 반환
+   - 4h 캐시 만료 후 stale 없음 → error state
+   - 오늘 4/25: 두 AI 모두 TPD 소진 → 하루 내내 error
+
+2. verify-metrics probe 타입 오류:
+   - 코드: `typeof d.analysis === 'string'`
+   - 실제: `analysis`는 parsed JSON object (string 아님)
+   - → AI 정상 작동 시에도 probe가 항상 'error' 표시하는 잠재 버그
+
+═══════════════════════════════════════════════════════════════════════
+FIXES APPLIED
+═══════════════════════════════════════════════════════════════════════
+flow-analysis/route.ts:
+  - staleCacheKey() 추가: `flowvium:flow-analysis:v3:stale:{tf}`
+  - STALE_CACHE_TTL_S = 48h
+  - AI 성공 시: primary(4h) + stale(48h) 동시 저장
+  - AI 실패 + staleResult 있을 시: stale 서빙 (stale:true, staleFallback:true 플래그)
+  - stale 서빙 시 CDN_HEADERS 사용 (정상 캐시와 동일, stale도 유효 데이터)
+
+verify-metrics/route.ts:
+  - analysis 타입 체크 수정: object || string 모두 허용
+  - analysisSize: JSON.stringify(object).length 또는 string.length
+  - stale 결과: ok 대신 degraded (stale:true 플래그 감지)
+
+daily-brief: 26h TTL로 이미 충분히 resilient, 변경 불필요.
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=fg.US source=CNN
+  direct_value=66 our_value=66 delta=0 → OK (3번 연속 일치)
+
+[accuracy probe] metric=cpi.yoy source=BLS
+  direct_value=3.26% our_value=3.29% delta=0.03pp tolerance=0.1pp → OK
+
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.71 delta=0.00 → OK
+
+═══════════════════════════════════════════════════════════════════════
+SYSTEM HEALTH (4/25 현재)
+═══════════════════════════════════════════════════════════════════════
+verify-metrics: 184/189 OK
+  [skipped] ai.vllm        — 로컬 터널 다운 (정상, Vercel 접근 불가)
+  [skipped] kr.foreign     — KRX 세션 인증 불가 (공식 포기 4/25)
+  [skipped] kr.institution — 동상
+  [skipped] kr.retail      — 동상
+  [error]   flow.analysis  — Groq+Gemini TPD 소진 (UTC midnight 4/26 리셋 예정)
+
+UTC midnight 4/26 리셋 후: flow.analysis auto-recover 예상.
+stale fallback 배포 후 첫 AI 성공 시 stale key 저장 → 이후 오전 소진 시에도 degraded 유지.
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. 어드민 패널 (admin/logs) UX 개선
+2. 새로운 데이터 소스 탐색 (Korea Flow 대안 or 새 섹션)
+3. 성능 profiling: 느린 엔드포인트 실측 개선
