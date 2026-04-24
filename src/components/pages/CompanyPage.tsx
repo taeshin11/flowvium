@@ -220,6 +220,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   // ── Live stock price (Yahoo Finance, 15min cache) ────────────────────────────
   interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; marketState: string | null; }
   const [livePrice, setLivePrice] = useState<LivePrice | null>(null);
+  const [liveMarketCap, setLiveMarketCap] = useState<number | null>(null);
 
   useEffect(() => {
     if (!ticker) return;
@@ -227,6 +228,21 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     fetch(`/api/stock-price/${ticker.toUpperCase()}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (!controller.signal.aborted && d?.price != null) setLivePrice(d); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ticker]);
+
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    fetch(`/api/market-caps?ticker=${ticker.toUpperCase()}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!controller.signal.aborted) {
+          const cap = d?.caps?.[ticker.toUpperCase()] ?? null;
+          if (cap != null) setLiveMarketCap(cap);
+        }
+      })
       .catch(() => undefined);
     return () => controller.abort();
   }, [ticker]);
@@ -396,6 +412,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               {livePrice.marketState && livePrice.marketState !== 'REGULAR' && (
                 <span className="text-[10px] text-cf-text-secondary/60 font-medium">
                   {livePrice.marketState === 'PRE' ? '장전' : livePrice.marketState === 'POST' ? '장후' : livePrice.marketState}
+                </span>
+              )}
+              {liveMarketCap != null && (
+                <span className="text-xs text-cf-text-secondary font-medium ml-1">
+                  시총 {fmtUsd(liveMarketCap)}
                 </span>
               )}
             </div>

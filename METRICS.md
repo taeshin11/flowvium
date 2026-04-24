@@ -257,7 +257,7 @@
 |---|------|------|------|
 | 115 | 137개 기업 노드 | 📋 static | `/data/explore-data` |
 | 116 | 기업 간 연관 엣지 (supplier/customer/partner/competitor) | 📋 static | |
-| 117 | 시가총액 | 📋 static | 하드코딩 (⚠️ Yahoo 라이브로 교체 가능) |
+| 117 | 시가총액 (Explore 페이지 band 필터) | 💾 cached | Yahoo Finance v7 (crumb), 24h Redis |
 | 118 | 섹터 분류 | 📋 static | |
 | 119 | 역할 배지 | 📋 static | |
 | 120 | 제품 매출 비중 | 📋 static | |
@@ -274,6 +274,7 @@
 |---|------|------|------|
 | 123 | 기업명·설명·역할 | 📋 static | |
 | 123-P | 실시간 주가·일간 변화% | ✅ live | /api/stock-price Yahoo v8, 15min |
+| 123-M | 실시간 시가총액 (기업 프로필 헤더) | 💾 cached | /api/market-caps Yahoo v7, 24h |
 | 124 | 번역 설명 (16개 언어) | 💾 cached | Gemini 번역, 30d |
 | 125 | ASCII 공급망 네트워크 뷰 | 📋 static | |
 
@@ -646,7 +647,7 @@
 | 282 | block-trades:v1 | ✅ live |
 | 283 | korea-flow:v1 | ✅ live |
 | 284 | short-interest:v1 | ✅ live |
-| 285 | market-caps:v1 | ✅ live |
+| 285 | market-caps:v2 | ✅ live |
 | 286 | fg:v3:SPY | ✅ live |
 | 287 | 13f-signals:v1 | ✅ live |
 | 288 | capital-flows:v5:yahoo | ✅ live |

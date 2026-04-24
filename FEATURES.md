@@ -242,6 +242,7 @@
 - 기업명·티커·역할 배지·번역 설명
 - **실시간 주가·일간 변화%** (`/api/stock-price/[ticker]`, Yahoo Finance v8, 15min 캐시)
   - 장전(PRE)/장후(POST) 마켓 상태 표시
+- **실시간 시가총액** (`/api/market-caps?ticker=X`, Yahoo Finance v7 crumb, 24h 캐시)
 - 공유 버튼·비교 링크
 - **터미널 뷰 토글** (`SupplyChainMap` ASCII 네트워크)
 
@@ -762,7 +763,7 @@ ownership-alerts 적용).
 | `/api/korea-flow` | KRX POST API | 캐시 |
 | `/api/short-interest` | Yahoo Finance | 캐시 |
 | `/api/market-heatmap` | Yahoo Finance | 캐시 |
-| `/api/market-caps` | Yahoo Finance | 캐시 |
+| `/api/market-caps` | Yahoo Finance v7 (crumb) | 24h Redis; `?ticker=X` 단일 조회 지원; raw USD + band 반환 |
 | `/api/price-history?ticker=X&days=N` | Stooq daily CSV | 1h Redis + 30min memory |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
