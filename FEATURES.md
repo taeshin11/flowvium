@@ -849,7 +849,7 @@ ownership-alerts 적용).
 | `cron/update-signals` | 매일 02:00 UTC | EDGAR 13F 파싱 → Redis 저장 → Alpha Vantage 뉴스갭 갱신 → ISR revalidate |
 | `cron/update-credit-balance` | 스케줄 | FRED + TWSE 신용잔고 갱신 → ISR revalidate |
 | `cron/daily-brief` | 스케줄 | Redis bust → AI 브리프 재생성 |
-| `cron/verify-metrics` | 매 30분 | 250+ 지표 20개 검증 그룹 병렬 probe → per-ticker/sector/maturity 세부 커버리지 (F&G · Capital Flows · Macro · Short per-ticker 35개 · Heatmap 섹터 11개 · MarketCaps · SectorPE · YieldCurve 만기별 · FedWatch 회의별 · COT 상품별 · KoreaFlow · Additional · Earnings · Cache · Accuracy · Volatility · Commodity) ← iter80 확장 |
+| `cron/verify-metrics` | 매 30분 | 255+ 지표 21개 검증 그룹 병렬 probe → per-ticker/sector/maturity 세부 커버리지 (F&G · Capital Flows · Macro · Short per-ticker 35개 · Heatmap 섹터 11개 · MarketCaps · SectorPE · YieldCurve 만기별 · FedWatch 회의별 · COT 상품별 · KoreaFlow · Additional · Earnings · Cache · Accuracy · Volatility · Commodity · **Missing: Brief/FlowAnalysis/YC-hist/CompanyNews/StockPrice**) ← iter84 확장 |
 | `cron/send-alerts` | 매 4시간 | F&G 극단(≤25/≥75) + VIX 고공포(≥30)/주의(≥25) 시 Discord 웹훅 발송 · 24h 쿨다운 · `DISCORD_WEBHOOK_URL` 미설정 시 무음 스킵 |
 
 ---

@@ -734,8 +734,8 @@
 | # | 지표 | 상태 | 비고 |
 |---|------|------|------|
 | 296a | 전체 수치 요약 (ok/degraded/error/total) | 🔄 cron | 30분 주기 |
-| 296b | 그룹별 드릴다운 (fear-greed · capital-flows · macro · short-interest · heatmap · market-caps · sector-pe · yield-curve · fedwatch · cot · korea-flow · additional · earnings · cache · accuracy · volatility · commodity) | 🔄 cron | iter80 확장 |
-| 296c | 개별 지표 상태 (250+ 지표, 20개 그룹) | 🔄 cron | ✕ 먼저 정렬 ← iter80: 84→250+ 확장 |
+| 296b | 그룹별 드릴다운 (fear-greed · capital-flows · macro · short-interest · heatmap · market-caps · sector-pe · yield-curve · fedwatch · cot · korea-flow · additional · earnings · cache · accuracy · volatility · commodity · brief · flow-analysis · yield-curve-hist · company-news · stock-price) | 🔄 cron | iter84 +5그룹 |
+| 296c | 개별 지표 상태 (255+ 지표, 21개 그룹) | 🔄 cron | ✕ 먼저 정렬 ← iter84: 250→255+ 확장 |
 | 296d | 각 지표 value + source 표시 | 🔄 cron | tooltip에 details JSON |
 | 296e | 수동 즉시 검증 버튼 | ✅ live | /api/cron/verify-metrics 직접 호출 |
 | 296f | F&G dataQuality 필드 노출 (full/partial/insufficient) | ✅ live | #98~100 관련 |

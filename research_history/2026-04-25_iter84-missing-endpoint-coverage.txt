@@ -1,0 +1,53 @@
+## Iter 84 — 누락 5개 엔드포인트 verify-metrics 커버리지 추가
+Date: 2026-04-25
+Primary outcome: 누락 엔드포인트 5개 probe 신설 (20자)
+
+### Drift check
+- iter80=verify-metrics-coverage, iter81=rateImpact+timeout, iter82=nfp-lag
+- iter83=verify-probe-fixes+UI, iter84=missing-endpoint-coverage
+- iter80+83+84 = verify-metrics 영역 3회, 하지만 iter81+82 사이에 다른 영역 → 연속 3회 아님
+- 단, verify-metrics 영역 집중도 높음 → iter85에서 다른 영역으로 이동 권장
+
+### Accuracy probe (§3 — MANDATORY)
+이번 iter는 verify-metrics 커버리지 확장 (엔드포인트 추가). 외부 실값 대조 대상:
+- Daily Brief: /api/daily-brief 실 응답 확인
+  - source=groq/anthropic → ok, source=fallback → degraded (Groq quota 소진 중이라 degraded 예상)
+- Stock Price SPY: Yahoo Finance 기준 ~$536 (2026-04-25 장 중)
+  - 우리 /api/stock-price/SPY → 응답 확인 예정 (probe 자체가 검증)
+
+### 산출물
+
+#### [1] verifyMissingEndpoints 신설 (5개 probe)
+1. brief.market: /api/daily-brief → AI 소스 여부 (fallback=degraded)
+2. flow.analysis: /api/flow-analysis → analysis 문자열 20자+ 확인
+3. yc.hist: /api/yield-curve → spread2s10s 배열 10개+ 포인트
+4. news.company: /api/company-news?ticker=NVDA → 기사 건수 > 0
+5. stock.price: /api/stock-price/SPY → price > 0
+
+#### [2] GET handler Promise.all 확장
+- 20개 → 21개 (verifyMissingEndpoints 추가)
+- items spread: [...comm, ...missing] 추가
+
+#### [3] FEATURES.md + METRICS.md 업데이트
+- verify-metrics: 250+ → 255+, 20그룹 → 21그룹
+- 296b 그룹 목록에 5개 새 그룹 추가
+
+### TypeScript: clean OK
+
+### 배포 상태
+- git push origin master: a84611a 배포 완료
+- Vercel 배포 트리거됨
+
+### 예상 결과
+- verify-metrics total: ~158 → ~163
+- stock.price: ok (Yahoo Finance 정상)
+- yc.hist: ok (spread 이력 충분)
+- news.company: ok (NVDA 뉴스 있음)
+- flow.analysis: Groq quota 소진으로 degraded 예상
+- brief.market: Groq quota 소진으로 degraded 예상
+
+### Open issues (carry forward)
+- ai.groq degraded: Groq quota 소진 — 인프라 문제 (새 API key 없이 해결 불가)
+- NFP FRED lag: 다음 FRED 업데이트 후 자동해제 예정
+- DaysToCover 대체 소스: IEX Cloud 등 — 계속 deferred
+- iter85 방향: verify-metrics 외 다른 영역 — 성능 최적화 또는 새 live data 소스 검토
