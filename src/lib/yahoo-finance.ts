@@ -39,11 +39,18 @@ export async function fetchYFNonUSQuotes(
           );
           if (!res.ok) return null;
           const json = await res.json();
-          const meta = json?.chart?.result?.[0]?.meta;
+          const chartRes = json?.chart?.result?.[0];
+          const meta = chartRes?.meta;
           if (!meta) return null;
           const price = meta.regularMarketPrice as number | undefined;
-          const prevClose = meta.chartPreviousClose as number | undefined;
-          const changePct = price != null && prevClose && prevClose > 0
+          // chartPreviousClose = close before start of range (2+ days ago), not yesterday.
+          // Use validCloses[-2] for actual daily changePct; chartPreviousClose as last resort.
+          const allCloses: (number | null)[] = chartRes?.indicators?.quote?.[0]?.close ?? [];
+          const validCloses = allCloses.filter((c): c is number => c != null && !isNaN(c));
+          const prevClose = validCloses.length >= 2
+            ? validCloses[validCloses.length - 2]
+            : (meta.chartPreviousClose as number | undefined);
+          const changePct = price != null && prevClose != null && prevClose > 0
             ? ((price - prevClose) / prevClose) * 100
             : null;
           return { symbol: origTicker, changePct: changePct != null ? parseFloat(changePct.toFixed(2)) : null, close: price ?? null } as YFHeatmapQuote;
