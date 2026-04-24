@@ -24,6 +24,57 @@ const CURVE_COLORS = {
 
 const BEI_COLORS = { '5Y': '#f97316', '10Y': '#8b5cf6' };
 
+function interpretCurve(
+  spread2s10s: number | null,
+  spread3m10y: number | null,
+  bei5y: number | null,
+  bei10y: number | null,
+  spreadHistory: { value: number | null }[],
+): { level: 'danger' | 'caution' | 'neutral' | 'positive'; title: string; bullets: string[] } {
+  const bp2s10s = spread2s10s != null ? Math.round(spread2s10s * 100) : null;
+  const bp3m10y = spread3m10y != null ? Math.round(spread3m10y * 100) : null;
+
+  // Spread trend: compare last 5d avg vs 30d avg
+  const valid = spreadHistory.filter(d => d.value != null).map(d => d.value as number);
+  const trend5d  = valid.length >= 5  ? valid.slice(-5).reduce((a,b)=>a+b,0)/5  : null;
+  const trend30d = valid.length >= 30 ? valid.slice(-30).reduce((a,b)=>a+b,0)/30 : null;
+  const trendDesc = trend5d != null && trend30d != null
+    ? trend5d > trend30d + 0.002 ? '확대 중 ↑' : trend5d < trend30d - 0.002 ? '축소 중 ↓' : '횡보 →'
+    : null;
+
+  const beiSignal = bei5y != null && bei10y != null
+    ? bei5y > bei10y + 0.1 ? `단기 인플레(5Y ${bei5y.toFixed(2)}%) > 장기(10Y ${bei10y.toFixed(2)}%) — Fed가 결국 통제할 것이라는 시장 기대`
+    : bei10y > bei5y + 0.1 ? `장기 기대인플레(10Y ${bei10y.toFixed(2)}%) 단기 초과 — 인플레 고착화 경계`
+    : `5Y/10Y 기대인플레 균형 (${bei5y.toFixed(2)}% / ${bei10y.toFixed(2)}%)`
+    : null;
+
+  const bullets: string[] = [];
+  if (bp2s10s != null)  bullets.push(`2년-10년 스프레드 ${bp2s10s > 0 ? '+' : ''}${bp2s10s}bp${trendDesc ? ` (${trendDesc})` : ''}`);
+  if (bp3m10y != null)  bullets.push(`3개월-10년 스프레드 ${bp3m10y > 0 ? '+' : ''}${bp3m10y}bp`);
+  if (beiSignal)        bullets.push(beiSignal);
+
+  if (bp2s10s == null) return { level: 'neutral', title: '데이터 없음', bullets };
+
+  if (bp2s10s < -50) {
+    bullets.push('커브 깊은 역전 → 과거 사례 기준 6~18개월 내 경기침체 확률 높음');
+    return { level: 'danger', title: '⚠️ 심각한 역전 — 경기침체 선행 신호', bullets };
+  }
+  if (bp2s10s < 0) {
+    bullets.push('커브 역전 구간 — 은행 마진 압박, 대출 위축, 성장 둔화 경계');
+    return { level: 'caution', title: '⚡ 역전 구간 — 경기 둔화 주의', bullets };
+  }
+  if (bp2s10s < 30) {
+    bullets.push('스프레드 축소 → 성장 기대 약화 또는 Fed 인하 사이클 시작 직전 패턴');
+    return { level: 'caution', title: '⚡ 플랫 구간 — 전환기', bullets };
+  }
+  if (bp2s10s < 100) {
+    bullets.push('정상 기울기 유지 — 경기침체 신호 없음, 금융 여건 양호');
+    return { level: 'positive', title: '✅ 정상 커브 — 성장 기대 유효', bullets };
+  }
+  bullets.push('가파른 기울기 → 강한 성장 기대 또는 장기 재정 우려로 장기금리 급등');
+  return { level: 'positive', title: '📈 스티프닝 — 강한 성장 기대 또는 장기 리스크', bullets };
+}
+
 function SpreadBadge({ value, label }: { value: number | null; label: string }) {
   if (value == null) return null;
   const bp = Math.round(value * 100);
@@ -257,6 +308,26 @@ export default function YieldCurveCard() {
           </div>
         </div>
       )}
+
+      {/* Interpretation */}
+      {(() => {
+        const bei5yCur  = data.bei5y  != null && data.bei5y.length  > 0 ? data.bei5y[data.bei5y.length-1].value   : null;
+        const bei10yCur = data.bei10y != null && data.bei10y.length > 0 ? data.bei10y[data.bei10y.length-1].value : null;
+        const interp = interpretCurve(data.spread2s10sCurrent, data.spread3m10yCurrent, bei5yCur, bei10yCur, data.spread2s10s ?? []);
+        const borderColor = interp.level === 'danger' ? 'border-red-500/40 bg-red-500/5' : interp.level === 'caution' ? 'border-yellow-500/40 bg-yellow-500/5' : interp.level === 'positive' ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-white/10 bg-white/3';
+        return (
+          <div className={`rounded-xl border px-4 py-3 space-y-1.5 ${borderColor}`}>
+            <p className="text-[12px] font-bold text-cf-text-primary">{interp.title}</p>
+            <ul className="space-y-1">
+              {interp.bullets.map((b, i) => (
+                <li key={i} className="text-[11px] text-cf-text-secondary flex gap-1.5">
+                  <span className="opacity-40 mt-px">•</span><span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
 
       {/* Yield table */}
       <div className="grid grid-cols-3 sm:grid-cols-9 gap-1">

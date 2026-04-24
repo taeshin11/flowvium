@@ -15,9 +15,16 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
-const CACHE_KEY = 'flowvium:korea-flow:v2';
-const CACHE_TTL = 15 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=720, stale-while-revalidate=60' };
+
+// Per-period cache configuration
+const PERIOD_CONFIGS = {
+  '1d':  { tradingDays: 1,  ttl: 15 * 60,      sMaxAge: 720,   key: 'flowvium:korea-flow:v3:1d'  },
+  '1w':  { tradingDays: 5,  ttl: 30 * 60,      sMaxAge: 1800,  key: 'flowvium:korea-flow:v3:1w'  },
+  '4w':  { tradingDays: 20, ttl: 60 * 60,      sMaxAge: 3600,  key: 'flowvium:korea-flow:v3:4w'  },
+  '13w': { tradingDays: 65, ttl: 4 * 60 * 60,  sMaxAge: 14400, key: 'flowvium:korea-flow:v3:13w' },
+} as const;
+type KoreaPeriod = keyof typeof PERIOD_CONFIGS;
 
 export interface KoreaFlowEntry {
   ticker: string;          // 종목코드 (e.g., 005930)
@@ -47,6 +54,70 @@ const KRX_HEADERS = {
 function kstDateStr(daysAgo = 0): string {
   const ts = Date.now() + 9 * 3600000 - daysAgo * 86400000;
   return new Date(ts).toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+/** Last N non-weekend KST calendar days as YYYYMMDD strings, most recent first. */
+function getLastNTradingDays(n: number): string[] {
+  const days: string[] = [];
+  let offset = 0;
+  while (days.length < n && offset < n * 3) {
+    const ts = Date.now() + 9 * 3600000 - offset * 86400000;
+    const dow = new Date(ts).getDay();
+    if (dow !== 0 && dow !== 6) days.push(new Date(ts).toISOString().slice(0, 10).replace(/-/g, ''));
+    offset++;
+  }
+  return days;
+}
+
+/** Parallel-fetch multiple trading days, accumulate net buy/sell by ticker. */
+async function fetchKrxFlowAccumulated(
+  market: 'KOSPI' | 'KOSDAQ',
+  tradingDays: string[],
+): Promise<{ entries: KoreaFlowEntry[]; trdDd: string }> {
+  const results = await Promise.allSettled(tradingDays.map(d => fetchKrxFlowForDate(market, d)));
+
+  const nameMap = new Map<string, string>();
+  const acc = new Map<string, { fb: number; ib: number; indi: number }>();
+
+  // Accumulate all days
+  results.forEach((r) => {
+    if (r.status !== 'fulfilled') return;
+    for (const e of r.value) {
+      if (!nameMap.has(e.ticker)) nameMap.set(e.ticker, e.name);
+      const ex = acc.get(e.ticker);
+      if (ex) {
+        ex.fb   += e.foreignerNetBuy   ?? 0;
+        ex.ib   += e.institutionNetBuy ?? 0;
+        ex.indi += e.individualNetBuy  ?? 0;
+      } else {
+        acc.set(e.ticker, { fb: e.foreignerNetBuy ?? 0, ib: e.institutionNetBuy ?? 0, indi: e.individualNetBuy ?? 0 });
+      }
+    }
+  });
+
+  // Most recent successful day's price data
+  let mostRecent: KoreaFlowEntry[] = [];
+  let mostRecentDate = '';
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled' && r.value.length > 0 && tradingDays[i] > mostRecentDate) {
+      mostRecent = r.value;
+      mostRecentDate = tradingDays[i];
+    }
+  });
+  const priceMap = new Map(mostRecent.map(e => [e.ticker, { closePrice: e.closePrice, changePct: e.changePct }]));
+
+  const entries: KoreaFlowEntry[] = Array.from(acc.entries()).map(([ticker, sums]) => ({
+    ticker,
+    name: nameMap.get(ticker) ?? ticker,
+    market,
+    foreignerNetBuy:   sums.fb   || null,
+    institutionNetBuy: sums.ib   || null,
+    individualNetBuy:  sums.indi || null,
+    closePrice:  priceMap.get(ticker)?.closePrice ?? null,
+    changePct:   priceMap.get(ticker)?.changePct  ?? null,
+  })).filter(e => e.name !== e.ticker);
+
+  return { entries, trdDd: mostRecentDate || tradingDays[0] };
 }
 
 async function fetchKrxFlowForDate(market: 'KOSPI' | 'KOSDAQ', trdDd: string): Promise<KoreaFlowEntry[]> {
@@ -167,93 +238,71 @@ async function fetchYahooKoreaFallback(): Promise<KoreaFlowEntry[]> {
   return results.filter((e): e is KoreaFlowEntry => e !== null);
 }
 
+function buildPayload(all: KoreaFlowEntry[], trdDd: string, extra?: object) {
+  const tradingDayFmt = `${trdDd.slice(0, 4)}-${trdDd.slice(4, 6)}-${trdDd.slice(6, 8)}`;
+  const topForeignBuy  = [...all].filter(e => (e.foreignerNetBuy   ?? 0) > 0).sort((a,b) => (b.foreignerNetBuy   ?? 0) - (a.foreignerNetBuy   ?? 0)).slice(0, 15);
+  const topForeignSell = [...all].filter(e => (e.foreignerNetBuy   ?? 0) < 0).sort((a,b) => (a.foreignerNetBuy   ?? 0) - (b.foreignerNetBuy   ?? 0)).slice(0, 15);
+  const topInstBuy     = [...all].filter(e => (e.institutionNetBuy ?? 0) > 0).sort((a,b) => (b.institutionNetBuy ?? 0) - (a.institutionNetBuy ?? 0)).slice(0, 15);
+  const topInstSell    = [...all].filter(e => (e.institutionNetBuy ?? 0) < 0).sort((a,b) => (a.institutionNetBuy ?? 0) - (b.institutionNetBuy ?? 0)).slice(0, 15);
+  return { updatedAt: new Date().toISOString(), tradingDay: tradingDayFmt, topForeignBuy, topForeignSell, topInstBuy, topInstSell, totalTickers: all.length, ...extra };
+}
+
 export async function GET(req: Request) {
   const reqStart = Date.now();
   const redis = createRedis();
-  const force = new URL(req.url).searchParams.get('refresh') === '1';
+  const url = new URL(req.url);
+  const force = url.searchParams.get('refresh') === '1';
+  const rawPeriod = url.searchParams.get('period') ?? '1d';
+  const period: KoreaPeriod = (rawPeriod in PERIOD_CONFIGS ? rawPeriod : '1d') as KoreaPeriod;
+  const cfg = PERIOD_CONFIGS[period];
+  const cdnHeaders = { 'Cache-Control': `public, s-maxage=${cfg.sMaxAge}, stale-while-revalidate=60` };
 
   if (redis && !force) {
     try {
-      const cached = await redis.get(CACHE_KEY);
+      const cached = await redis.get(cfg.key);
       if (cached) {
-        logger.info('api.korea-flow', 'cache_hit');
-        return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+        logger.info('api.korea-flow', 'cache_hit', { period });
+        return NextResponse.json({ ...(cached as object), cached: true }, { headers: cdnHeaders });
       }
     } catch (err) { logger.warn('api.korea-flow', 'cache_read_error', { error: err }); }
   }
 
-  const [kospi, kosdaq] = await Promise.all([
-    fetchKrxFlow('KOSPI'),
-    fetchKrxFlow('KOSDAQ'),
-  ]);
+  let all: KoreaFlowEntry[];
+  let trdDd: string;
 
-  const all = [...kospi.entries, ...kosdaq.entries];
-  // pick the more recent trdDd (numeric comparison on YYYYMMDD works)
-  const actualTradingDay = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
-  const tradingDayFmt = `${actualTradingDay.slice(0, 4)}-${actualTradingDay.slice(4, 6)}-${actualTradingDay.slice(6, 8)}`;
+  if (period === '1d') {
+    // Single-day with fallback scan (original behaviour)
+    const [kospi, kosdaq] = await Promise.all([fetchKrxFlow('KOSPI'), fetchKrxFlow('KOSDAQ')]);
+    all = [...kospi.entries, ...kosdaq.entries];
+    trdDd = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
 
-  // If KRX returned no data, fall back to Yahoo Finance price data
-  if (all.length === 0) {
-    logger.warn('api.korea-flow', 'krx_empty_yahoo_fallback', {});
-    const yahooEntries = await fetchYahooKoreaFallback();
-    logger.info('api.korea-flow', 'yahoo_fallback_fetched', { count: yahooEntries.length });
-
-    // Sort by changePct for the four lists (no net buy data available)
-    const byChangePctDesc = [...yahooEntries].sort(
-      (a, b) => (b.changePct ?? 0) - (a.changePct ?? 0)
-    );
-    const byChangePctAsc = [...yahooEntries].sort(
-      (a, b) => (a.changePct ?? 0) - (b.changePct ?? 0)
-    );
-
-    const fallbackPayload = {
-      updatedAt: new Date().toISOString(),
-      tradingDay: tradingDayFmt,
-      topForeignBuy: byChangePctDesc.slice(0, 15),
-      topForeignSell: byChangePctAsc.slice(0, 15),
-      topInstBuy: byChangePctDesc.slice(0, 15),
-      topInstSell: byChangePctAsc.slice(0, 15),
-      totalTickers: yahooEntries.length,
-      fallback: true,
-      fallbackReason: 'KRX API unavailable — Yahoo Finance price data only',
-    };
-
-    await loggedRedisSet(redis, 'api.korea-flow', CACHE_KEY, fallbackPayload, { ex: CACHE_TTL });
-
-    logger.info('api.korea-flow', 'served_fallback', { totalTickers: yahooEntries.length, durationMs: Date.now() - reqStart });
-    return NextResponse.json({ ...fallbackPayload, cached: false }, { headers: CDN_HEADERS });
+    if (all.length === 0) {
+      const yahooEntries = await fetchYahooKoreaFallback();
+      logger.warn('api.korea-flow', 'krx_empty_yahoo_fallback', { period });
+      const byDesc = [...yahooEntries].sort((a,b) => (b.changePct ?? 0) - (a.changePct ?? 0));
+      const byAsc  = [...yahooEntries].sort((a,b) => (a.changePct ?? 0) - (b.changePct ?? 0));
+      const fp = { updatedAt: new Date().toISOString(), tradingDay: `${trdDd.slice(0,4)}-${trdDd.slice(4,6)}-${trdDd.slice(6,8)}`,
+        topForeignBuy: byDesc.slice(0,15), topForeignSell: byAsc.slice(0,15),
+        topInstBuy: byDesc.slice(0,15), topInstSell: byAsc.slice(0,15),
+        totalTickers: yahooEntries.length, fallback: true, period,
+        fallbackReason: 'KRX API unavailable — Yahoo Finance price data only' };
+      await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
+      return NextResponse.json({ ...fp, cached: false }, { headers: cdnHeaders });
+    }
+  } else {
+    // Multi-day accumulated
+    const tradingDays = getLastNTradingDays(cfg.tradingDays);
+    const [kospi, kosdaq] = await Promise.all([
+      fetchKrxFlowAccumulated('KOSPI',  tradingDays),
+      fetchKrxFlowAccumulated('KOSDAQ', tradingDays),
+    ]);
+    all = [...kospi.entries, ...kosdaq.entries];
+    trdDd = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
+    logger.info('api.korea-flow', 'accumulated', { period, days: tradingDays.length, tickers: all.length });
   }
 
-  // Top-N by absolute foreigner net buy
-  const topForeignBuy = [...all]
-    .filter(e => (e.foreignerNetBuy ?? 0) > 0)
-    .sort((a, b) => (b.foreignerNetBuy ?? 0) - (a.foreignerNetBuy ?? 0))
-    .slice(0, 15);
-  const topForeignSell = [...all]
-    .filter(e => (e.foreignerNetBuy ?? 0) < 0)
-    .sort((a, b) => (a.foreignerNetBuy ?? 0) - (b.foreignerNetBuy ?? 0))
-    .slice(0, 15);
-  const topInstBuy = [...all]
-    .filter(e => (e.institutionNetBuy ?? 0) > 0)
-    .sort((a, b) => (b.institutionNetBuy ?? 0) - (a.institutionNetBuy ?? 0))
-    .slice(0, 15);
-  const topInstSell = [...all]
-    .filter(e => (e.institutionNetBuy ?? 0) < 0)
-    .sort((a, b) => (a.institutionNetBuy ?? 0) - (b.institutionNetBuy ?? 0))
-    .slice(0, 15);
-
-  const payload = {
-    updatedAt: new Date().toISOString(),
-    tradingDay: tradingDayFmt,
-    topForeignBuy,
-    topForeignSell,
-    topInstBuy,
-    topInstSell,
-    totalTickers: all.length,
-  };
-
-  await loggedRedisSet(redis, 'api.korea-flow', CACHE_KEY, payload, { ex: CACHE_TTL });
-
-  logger.info('api.korea-flow', 'served', { totalTickers: all.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
+  const payload = buildPayload(all, trdDd, { period });
+  await loggedRedisSet(redis, 'api.korea-flow', cfg.key, payload, { ex: cfg.ttl });
+  logger.info('api.korea-flow', 'served', { period, totalTickers: all.length, durationMs: Date.now() - reqStart });
+  return NextResponse.json({ ...payload, cached: false }, { headers: cdnHeaders });
 }

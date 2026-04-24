@@ -79,6 +79,8 @@ export default function InsiderPage() {
   const [options, setOptions] = useState<OptionsFlowAlert[]>([]);
   const [optionsConfigured, setOptionsConfigured] = useState<boolean>(true);
   const [korea, setKorea] = useState<KoreaFlowPayload | null>(null);
+  const [koreaPeriod, setKoreaPeriod] = useState<'1d' | '1w' | '4w' | '13w'>('1d');
+  const [koreaLoading, setKoreaLoading] = useState(false);
   const [nportFunds, setNportFunds] = useState<NPortFundSnapshot[]>([]);
   const [nportByTicker, setNportByTicker] = useState<NPortTickerAggregate[]>([]);
   const [blocks, setBlocks] = useState<BlockTrade[]>([]);
@@ -134,6 +136,20 @@ export default function InsiderPage() {
     load();
     return () => abortRef.current?.abort();
   }, [load]);
+
+  const loadKorea = useCallback(async (period: '1d' | '1w' | '4w' | '13w') => {
+    setKoreaLoading(true);
+    try {
+      const res = await fetch(`/api/korea-flow?period=${period}`);
+      if (res.ok) setKorea(await res.json());
+    } finally {
+      setKoreaLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'korea' && koreaPeriod !== '1d') loadKorea(koreaPeriod);
+  }, [koreaPeriod, tab, loadKorea]);
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode; count: number }[] = [
     { id: 'insider',   label: t('tabInsider'),   icon: <Users className="w-4 h-4" />,         count: insider.length },
@@ -508,16 +524,33 @@ export default function InsiderPage() {
 
       {tab === 'korea' && korea && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-between">
+            <div className="flex items-center gap-1.5">
+              {(['1d', '1w', '4w', '13w'] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => { setKoreaPeriod(p); if (p !== koreaPeriod) loadKorea(p); }}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${koreaPeriod === p ? 'bg-cf-accent text-white' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
+                >
+                  {p === '1d' ? '당일' : p === '1w' ? '1주' : p === '4w' ? '4주' : '13주'}
+                </button>
+              ))}
+              {koreaLoading && <span className="text-[10px] text-cf-text-secondary animate-pulse">로딩 중...</span>}
+            </div>
             <span className="text-[11px] text-cf-text-secondary">
-              {t('koreaAsOf', { date: korea.tradingDay })} · {korea.totalTickers.toLocaleString()} {t('tickers')}
+              {korea.tradingDay} · {korea.totalTickers.toLocaleString()}종목
             </span>
-            {korea.fallback && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-cf-text-secondary border border-white/10">
-                가격 변동 데이터 (외인·기관 순매수 미제공)
-              </span>
-            )}
           </div>
+          {koreaPeriod !== '1d' && (
+            <div className="text-[10px] text-cf-text-secondary/60 px-1">
+              {koreaPeriod === '1w' ? '최근 5 거래일' : koreaPeriod === '4w' ? '최근 20 거래일' : '최근 65 거래일'} 외인·기관 순매수 누적
+            </div>
+          )}
+          {korea.fallback && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-cf-text-secondary border border-white/10">
+              가격 변동 데이터 (외인·기관 순매수 미제공)
+            </span>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <KoreaTable title={`🟢 ${t('foreignTopBuy')}`} rows={korea.topForeignBuy} field="foreignerNetBuy" positive fallback={korea.fallback} />
             <KoreaTable title={`🔴 ${t('foreignTopSell')}`} rows={korea.topForeignSell} field="foreignerNetBuy" fallback={korea.fallback} />

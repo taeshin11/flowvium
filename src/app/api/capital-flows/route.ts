@@ -35,9 +35,9 @@ const ASSETS = [
   { id: 'gold',        ticker: 'GLD',   label: '금',           group: 'alts',        flag: '🥇' },
   { id: 'silver',      ticker: 'SLV',   label: '은',           group: 'alts',        flag: '🪙' },
   { id: 'bitcoin',     ticker: 'BITO',  label: '비트코인',     group: 'alts',        flag: '₿' },
-  { id: 'oil',         ticker: 'USO',   label: '원유',         group: 'commodities', flag: '🛢️' },
-  { id: 'energy',      ticker: 'XLE',   label: '에너지',       group: 'commodities', flag: '⚡' },
-  { id: 'agri',        ticker: 'DBA',   label: '농산물',       group: 'commodities', flag: '🌾' },
+  { id: 'oil',         ticker: 'USO',   label: 'WTI 원유',     group: 'commodities', flag: '🛢️' },
+  { id: 'energy',      ticker: 'XLE',   label: '미 에너지주',  group: 'commodities', flag: '⚡' },
+  { id: 'agri',        ticker: 'DBA',   label: '곡물·농산물',  group: 'commodities', flag: '🌾' },
   { id: 'dollar',      ticker: 'UUP',   label: '달러',         group: 'currency',    flag: '💵' },
   { id: 'yen',         ticker: 'FXY',   label: '엔화',         group: 'currency',    flag: '💴' },
 ];
@@ -307,7 +307,7 @@ function estimateRotationStart(
 }
 
 const GROUP_LABELS: Record<string, string> = {
-  equity: '주식', bonds: '채권', alts: '금·비트코인·실물자산', commodities: '원유·에너지·농산물', currency: '통화',
+  equity: '주식', bonds: '채권', alts: '금·은·비트코인', commodities: 'WTI원유·에너지주·곡물', currency: '통화',
 };
 
 type RotationEntry = {
