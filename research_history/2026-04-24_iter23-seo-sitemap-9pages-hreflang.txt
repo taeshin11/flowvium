@@ -1,0 +1,46 @@
+## Iter 23 — SEO 사이트맵 9개 페이지 + hreflang
+Date: 2026-04-24
+Primary outcome: SEO 메타·사이트맵 복구
+
+### 정확성 프로브
+- CNN F&G 418 (bot-blocked) → Yahoo Finance 대체
+- [accuracy probe] metric=nvda.price source=Yahoo direct_value=199.64 our_value=199.64 delta=0 → OK
+
+### Drift check
+- 최근 5 커밋: sitemap(이번), cdn-cache, compare-live, report, company-chart
+- 같은 영역: 아니오 — 이번 iter는 SEO 레이어 (meta/sitemap), 완전히 다른 영역
+- "나중에" 미룬 항목: 없음
+- 인프라 블로커: 없음
+
+### 문제 진단 ("왜 구글에서 검색이 안되지?" 원인)
+1. sitemap.ts staticPages 에 9개 주요 페이지 완전 누락:
+   `/heatmap`, `/screener`, `/short`, `/insider`, `/report`, `/earnings`, `/intelligence`, `/osint`, `/watchlist`
+2. /report, /osint 가 static `metadata` export 사용 → 16 locale hreflang 태그 미생성
+   → 구글봇이 한국어 URL만 인덱싱하거나 duplicate content로 처리 가능
+
+### 작업 내용
+1. **sitemap.ts: 9개 페이지 추가**
+   - staticPages 배열에 누락된 9개 경로 추가
+   - 16 locales × 9 pages = 144 URL 신규 생성
+   - priority: 0.8, changeFrequency: 'weekly' (기존 static page와 동일)
+
+2. **/report/page.tsx: generateSeoMetadata 업그레이드**
+   - `export const metadata` → `export async function generateMetadata`
+   - `getTranslations` + `generateSeoMetadata` 적용
+   - i18n title: `t('title')` (report 네임스페이스 기존 키)
+   - 16 locale hreflang 자동 생성, OpenGraph 태그 자동 생성
+
+3. **/osint/page.tsx: generateSeoMetadata 업그레이드**
+   - 동일 패턴 적용
+   - 한국어 하드코딩 title/description → i18n `t('pageTitle')` + 영어 설명
+
+### 미포함 (이유)
+- `/compare`: top-level page.tsx 없음 (`/compare/[slug]`만 존재) → 동적 URL 없으면 사이트맵 무의미
+- FEATURES.md/METRICS.md: SEO 인프라 변경 → UI 카탈로그 트리거 아님
+
+### 산출물 분류
+- rule [3c]: 9개 URL 누락 → 144 URL 복구 (삭제/단순화가 아닌 복구)
+- rule [3a]: SEO 가시성은 핵심 지표 (트래픽 소스)
+
+### Commit
+ff071ad feat(seo): 사이트맵 9개 페이지 추가 + report/osint hreflang

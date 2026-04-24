@@ -1,0 +1,46 @@
+## Iter 26 — OSINTPage/WatchlistPage res.ok 7건 + insider-trades CDN
+Date: 2026-04-24
+Primary outcome: OSINTPage res.ok 6건 수정
+
+### 정확성 프로브
+- iter25 NVDA probe OK (동일 세션, 값 변경 없음)
+
+### Drift check
+- 최근 5 커밋: zombie(이번), cdn-4routes, zombie-report, seo-sitemap, cascade-live
+- CDN 헤더: iter21, iter22, iter25, iter26 — 4번이지만 각 iter마다 다른 파일
+- zombie/res.ok: iter22, iter24, iter26 — 3번이지만 각 iter마다 다른 컴포넌트
+- 같은 모듈 3 iter 연속: 아니오
+- 인프라 블로커: 없음
+
+### 발견된 문제 (iter24 explorer agent 출력 기반)
+OSINTPage.tsx (5건):
+1. social load: res.ok 없음
+2. sanctions load: res.ok 없음
+3. sanctions search: res.ok 없음 + `/* silent */` catch (유지, 사용자 재시도 가능)
+4. crypto wallet load: res.ok 없음 (AbortController는 있음)
+5. crypto manual search: res.ok 없음
+6. corporate load: res.ok 없음
+7. corporate search: res.ok 없음
+
+WatchlistPage.tsx:
+- stock-price fetch: res.ok 없음
+
+### 작업 내용
+1. **OSINTPage.tsx: res.ok 가드 7건 추가**
+   - social load, sanctions load, sanctions search, crypto wallet, crypto search, corporate load, corporate search
+   - 각 `.json()` 호출 전 `if (!res.ok) throw new Error(HTTP ${res.status})` 추가
+   - corporate 탭 silent catch 코멘트 명확화 ("silent on abort or individual item error")
+   - sanctions search silent catch 코멘트 명확화 ("silent on search error — user can retry")
+
+2. **WatchlistPage.tsx: res.ok 가드 1건**
+   - stock-price fetch 에 `if (!res.ok) throw new Error()` 추가
+
+3. **insider-trades/route.ts: CDN Cache-Control 추가**
+   - `s-maxage=1800, stale-while-revalidate=120` (Redis 30min = CDN 30min)
+   - 3개 return 포인트 모두 적용
+
+### 산출물 분류
+- rule [3c]: res.ok 없이 에러 응답을 정상 데이터로 처리하던 경로 제거
+
+### Commit
+efbf74c fix(zombie): OSINTPage res.ok 6건 + WatchlistPage + insider-trades CDN

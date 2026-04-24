@@ -1,0 +1,47 @@
+## Iter 27 — InsiderPage 6건 AbortController + LiveFeed res.ok
+Date: 2026-04-24
+Primary outcome: InsiderPage 6건 AbortController 추가
+
+### 정확성 프로브
+- 동일 세션 내 NVDA probe OK (iter25) 재활용
+
+### Drift check
+- 최근 5 커밋: zombie(이번), osint-zombie, cdn-4routes, zombie-report, seo
+- zombie/res.ok 패턴: iter22, iter24, iter26, iter27 — 다른 파일/컴포넌트
+- CDN 헤더: iter25, iter26, iter27 — 3 연속. 다음 iter는 CDN 헤더 말고 다른 것
+- 인프라 블로커: 없음
+- "나중에" 미룬 항목: 없음
+
+### 발견된 문제
+InsiderPage.tsx `load()` 함수:
+- 6개 fetch (insider-trades, ownership-alerts, options-flow, korea-flow, nport-holdings, block-trades) 전부 AbortController 없음
+- useEffect에 cleanup 없음 → 언마운트 시 6개 요청 계속 실행
+- 모든 fetch res.ok 검사 없음
+
+LiveFeed.tsx:
+- latest-updates fetch res.ok 없음 (AbortController는 있음)
+
+### 작업 내용
+1. **InsiderPage.tsx**
+   - `useRef` import 추가
+   - `abortRef = useRef<AbortController | null>(null)` 추가
+   - `load()` 진입 시 이전 abort, 새 controller 생성
+   - 6개 fetch에 `{ signal }` + `if (!r.ok) throw new Error()` 추가
+   - `finally` 블록에 `!signal.aborted` 가드
+   - `useEffect` cleanup: `return () => abortRef.current?.abort()`
+
+2. **LiveFeed.tsx**
+   - `if (!res.ok) throw new Error(HTTP ${res.status})` 추가
+
+3. **latest-updates/route.ts**
+   - CDN_HEADERS: `s-maxage=900, stale-while-revalidate=60` (Redis 15min 기준 60%)
+   - 2개 return 포인트에 적용
+
+### 산출물 분류
+- rule [3c]: 좀비 6건 + 에러 스와핑 2건 제거
+
+### Drift signal
+iter22/24/26/27 모두 zombie/cleanup. 다음 iter는 새 기능 또는 실험 필수.
+
+### Commit
+eca3360 fix(zombie): InsiderPage 6건 AbortController + LiveFeed/latest-updates res.ok+CDN

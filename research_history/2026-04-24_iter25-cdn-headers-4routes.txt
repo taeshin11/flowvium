@@ -1,0 +1,39 @@
+## Iter 25 — CDN 헤더 고빈도 라우트 4건
+Date: 2026-04-24
+Primary outcome: CDN헤더 고빈도 라우트 4건
+
+### 정확성 프로브
+- 이번 iter는 CDN 헤더 추가 (캐시 성능, 값 변경 없음)
+- prev iter NVDA probe OK 재활용 (동일 세션)
+
+### Drift check
+- 최근 5 커밋: cdn-cache-4(이번), zombie-report, seo-sitemap, cascade-live, screener-live
+- 같은 영역: zombie 2회(iter22,24) but 다른 파일 → drift 없음
+- "나중에" 미룬 항목: OSINTPage zombie (iter24 분석에서 발견, 다음 iter로)
+- 인프라 블로커: 없음
+
+### 문제 진단
+grep -rL "Cache-Control" 결과: 20+ 라우트 CDN 헤더 누락 중
+고빈도 라우트 선정 기준:
+- daily-brief: HomePage + ReportPage가 매 렌더 시 fetch
+- price-history: ReportPage sparkline (SPY + ^VIX 2건/렌더)
+- news-cascade: NewsGapPage 주 fetch
+- fedwatch: ReportPage FOMC KPI pill
+
+### 작업 내용
+| 라우트 | Redis TTL | CDN s-maxage | SWR |
+|--------|-----------|--------------|-----|
+| daily-brief | 26h | 600s (10min) | 60s |
+| price-history | 1h | 1800s (30min) | 120s |
+| news-cascade | 4h list | 3600s (1h) | 300s |
+| fedwatch | 4h | 14400s (4h) | 600s |
+
+- 각 라우트의 모든 GET return 포인트에 적용 (Redis hit, memory hit, fresh response)
+- DELETE 핸들러(daily-brief)에는 적용 안 함 (mutation endpoint)
+- price-history error 502 return에는 적용 안 함
+
+### 산출물 분류
+- rule [3a]: CDN edge 서빙으로 ReportPage/HomePage 응답시간 직접 개선
+
+### Commit
+2cf6004 perf(cdn-cache): daily-brief/price-history/news-cascade/fedwatch CDN 헤더

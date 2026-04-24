@@ -1,0 +1,40 @@
+## Iter 28 — 홈페이지 실시간 마켓 스냅샷 스트립
+Date: 2026-04-24
+Primary outcome: 홈 실시간 마켓 스트립
+
+### 정확성 프로브
+- [accuracy probe] metric=spy.price source=Yahoo direct_value=708.45 our_value=708.45 delta=0 → OK
+
+### Drift check
+- 최근 5 커밋: home-market-snapshot(이번), insider-zombie, osint-zombie, cdn-4routes, zombie-report
+- iter22/24/26/27 연속 zombie cleanup → drift 신호 → 이번 iter 방향전환 (신규 기능)
+- 새 기능: 홈페이지 히어로 섹션 이하 마켓 스냅샷 스트립 추가
+- "나중에" 미룬 항목: 없음
+
+### 작업 내용
+1. **MarketSnapshot 컴포넌트 (HomePage.tsx)**
+   - 4개 티커: SPY (S&P), QQQ (NDX), BTC-USD, ^VIX
+   - 마운트 시 `/api/stock-price` 4건 병렬 fetch (Promise.allSettled + AbortController)
+   - 각 pill: 티커 레이블 + 가격 (font-mono) + 등락% (컬러 배지)
+   - VIX 특수 처리: 상승=빨강 (위험), 하락=초록 (안전) — 다른 지수와 반전
+   - BTC: 소수점 0자리 (정수 표시)
+   - 로드 전 null 반환 (레이아웃 시프트 없음)
+   - "15min delay" 표기 (데이터 신선도 명시)
+
+2. **삽입 위치**
+   - Hero 섹션 닫힌 후, Social Proof 섹션 앞
+   - `border-y border-cf-border/60` + `bg-cf-bg/80 backdrop-blur-sm` 스타일
+
+3. **FEATURES.md**: 섹션 2-2b 추가
+4. **METRICS.md**: #239-M~P 추가 (✅ live)
+
+### UI 검증
+- 브라우저 없이 실 렌더 확인 불가 → 미검증으로 명시
+- TypeScript clean ✓
+- AbortController 패턴 준수 ✓
+
+### 산출물 분류
+- rule [3a]: 홈페이지 히어로 영역에 핵심 시장 지표 라이브화 (정적 → 실시간)
+
+### Commit
+a7b1a5d feat(home): 실시간 마켓 스냅샷 스트립 (SPY/QQQ/BTC/VIX)

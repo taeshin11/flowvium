@@ -1,0 +1,44 @@
+## Iter 24 — ReportPage KPI 좀비 6건 + HomePage/IntelligencePage res.ok
+Date: 2026-04-24
+Primary outcome: ReportPage 좀비 6건 제거
+
+### 정확성 프로브
+- CNN F&G 418 (bot-blocked) → Yahoo Finance 대체
+- [accuracy probe] metric=nvda.price source=Yahoo direct_value=199.64 our_value=199.64 delta=0 → OK (iter23에서 확인, 동일 세션)
+
+### Drift check
+- 최근 5 커밋: zombie(이번), seo-sitemap, cascade-live, screener-live, cdn-cache
+- 같은 영역: 아니오 — SEO(iter23), zombie(iter24) 다른 레이어
+- "나중에" 미룬 항목: 없음
+- 인프라 블로커: 없음
+
+### 발견된 좀비 (코드 탐색 에이전트 출력)
+HIGH:
+- ReportPage.tsx fetchKpis: 7개 fetch (fear-greed, capital-flows, macro-indicators, fedwatch, price-history×2, volatility) 전부 AbortController 없음
+- useEffect cleanup 없음 → 컴포넌트 언마운트 후에도 setState 호출
+
+MEDIUM:
+- HomePage.tsx daily-brief fetch: res.ok 없음, silent catch
+- IntelligencePage.tsx fear-greed, signals: res.ok 없음
+
+### 작업 내용
+1. **ReportPage.tsx: kpiAbortRef + 7개 fetch signal 전파**
+   - `kpiAbortRef = useRef<AbortController | null>(null)` 추가
+   - `fetchKpis` 진입 시 이전 controller abort, 새 controller 생성
+   - 7개 fetch 모두 `{ signal }` 전달
+   - `res.ok` 가드: 모든 fetch에 `if (!r.ok) throw new Error()` 추가
+   - `!signal.aborted` 가드: 모든 setState 앞에 추가
+   - `useEffect` cleanup: `return () => kpiAbortRef.current?.abort()` 추가
+
+2. **HomePage.tsx: res.ok 가드**
+   - daily-brief fetch에 `if (!r.ok) throw new Error()` 추가
+
+3. **IntelligencePage.tsx: res.ok 가드 2건**
+   - fear-greed fetch: res.ok 가드
+   - signals fetch: res.ok 가드
+
+### 산출물 분류
+- rule [3c]: 좀비 9건 제거 (ReportPage 7건 + 기타 2건)
+
+### Commit
+82d1251 fix(zombie): ReportPage KPI 6건 AbortController + res.ok 추가
