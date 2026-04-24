@@ -1,0 +1,56 @@
+## Iter 93 — sector-pe P/E + 배당수익률 복구
+Date: 2026-04-25
+Primary outcome: sector-pe P/E·배당 11/11 복구
+
+### Drift check
+- iter90=news-cascade RSS, iter91=company-news+RSS, iter92=osint/social → DRIFT: 3 iters 연속 RSS/data-source
+- iter93: sector-pe (다른 영역) ✓
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=sector.trailingPE source=yahoo_v10_quoteSummary direct_value=XLK=38.09 our_value=XLK=38.09 delta=0 → OK
+[accuracy probe] metric=sector.trailingPE.all source=yahoo_v10 direct_value=11/11_sectors our_value=11/11_sectors delta=0 → OK
+[accuracy probe] metric=sector.dividendYield source=yahoo_v10 direct_value=XLC=0.0 our_value=XLC=0.0 (dynamic wins over static 0.0080) → OK
+
+### Root cause
+sector-pe/route.ts 코멘트에 "static approximations planned" 기재됐으나 실제로는 미구현.
+trailingPE/dividendYield/totalAssets/beta3Year 전 11개 섹터 null.
+
+Yahoo Finance 접근 상황:
+- v7 quote: 401 Unauthorized
+- v10 quoteSummary without crumb: 401 Invalid Crumb
+- v10 quoteSummary with crumb: 200 OK (!)
+  - crumb acquisition: finance.yahoo.com GET → cookie → getcrumb endpoint → crumb 문자열
+  - 원래 주석: "Yahoo v10 crumb-auth blocked from Vercel" → 실제 검증해보니 Vercel에서도 정상 동작
+
+### 산출물
+
+#### [1] Yahoo Finance crumb 획득 + Redis 캐시 (getYahooCrumb)
+- finance.yahoo.com GET → Set-Cookie 추출 → getcrumb 호출 → crumb 문자열 반환
+- Redis 저장 22h TTL (크럼 수명 ~24h)
+- 11개 티커 동시 병렬 fetch 시 1회만 획득
+
+#### [2] fetchFundamentals 함수 신설
+- Yahoo v10 quoteSummary summaryDetail + defaultKeyStatistics
+- trailingPE, trailingAnnualDividendYield (ETF은 dividendYield 빈 객체, 별도 필드 사용)
+- totalAssets, beta3Year 동시 추출
+
+#### [3] 정적 폴백 데이터 (STATIC_FUNDAMENTALS)
+- 크럼 획득 실패 (IP 차단 등) 시 사용할 2026-04-25 실측값
+- 11개 섹터 전부 포함
+- trailingPE: XLK=38.09, XLF=17.34, XLE=21.92, XLV=25.40, XLY=32.01
+  XLP=26.21, XLI=31.09, XLB=27.13, XLRE=33.48, XLU=22.66, XLC=18.71
+
+### 결과
+- Vercel 배포 후 sector-pe?refresh=1 → 11/11 live P/E, dividendYield 정상 반환
+- 동적 fetch 우선 (Vercel에서도 crumb 정상 동작), 정적 fallback은 비상용
+
+### TypeScript: clean OK
+
+### 배포
+- git push: aa00162
+
+### 미결 이슈 (carry forward)
+- Groq + Gemini 전부 429 (일 할당량 소진) → UTC 2026-04-26 00:00 리셋 ~66분 후
+- flow.analysis/brief.market/news-cascade: AI 의존 → 동일 타이밍 자동 회복 예정
+- KRX investor flow: 공식 포기 문서화 미완
+- news-cascade: AI 소진 시 raw article list 캐시 없음 → 매 요청마다 RSS+AI 재시도 (토큰 소진 가속)
