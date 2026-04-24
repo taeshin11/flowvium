@@ -26,7 +26,8 @@
     "insider": "Canlı Akış",
     "heatmap": "Isı Haritası",
     "screener": "Tarayıcı",
-    "short": "Açığa Satış"
+    "short": "Açığa Satış",
+    "watchlist": "İzleme listesi"
   },
   "hero": {
     "title": "Gizli Tedarik Zinciri Risklerini Keşfedin",
@@ -758,6 +759,24 @@
     "source": "Kaynak",
     "cached": "Önbelleğek",
     "loading": "Yükleniyor...",
+    "retry": "Tekrar dene"
+  },
+  "watchlist": {
+    "title": "İzleme listesi",
+    "addPlaceholder": "Ticker girin (örn: AAPL, NVDA)",
+    "add": "Ekle",
+    "remove": "Kaldır",
+    "empty": "Henüz hisse yok",
+    "emptyDesc": "Canlı fiyatları takip etmek için ticker ekleyin",
+    "price": "Fiyat",
+    "change": "Değişim",
+    "market": "Piyasa",
+    "preMarket": "Piyasa öncesi",
+    "postMarket": "Piyasa sonrası",
+    "regular": "Normal",
+    "invalidTicker": "Geçersiz ticker",
+    "maxItems": "Maks. 30 ticker",
+    "refreshAll": "Hepsini yenile",
     "retry": "Tekrar dene"
   }
 }

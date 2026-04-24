@@ -26,7 +26,8 @@
     "insider": "リアルタイム資金",
     "heatmap": "ヒートマップ",
     "screener": "スクリーナー",
-    "short": "ショート"
+    "short": "ショート",
+    "watchlist": "ウォッチリスト"
   },
   "hero": {
     "title": "隠れたサプライチェーンリスクを発見",
@@ -758,6 +759,24 @@
     "source": "出典",
     "cached": "キャッシュ",
     "loading": "需給データ読込中...",
+    "retry": "再試行"
+  },
+  "watchlist": {
+    "title": "ウォッチリスト",
+    "addPlaceholder": "ティッカー入力 (例: AAPL, NVDA)",
+    "add": "追加",
+    "remove": "削除",
+    "empty": "銘柄がありません",
+    "emptyDesc": "上でティッカーを追加してリアルタイム価格を確認",
+    "price": "現在値",
+    "change": "変動",
+    "market": "市場",
+    "preMarket": "プレマーケット",
+    "postMarket": "時間外",
+    "regular": "通常取引",
+    "invalidTicker": "無効なティッカー",
+    "maxItems": "最大30銘柄まで",
+    "refreshAll": "全て更新",
     "retry": "再試行"
   }
 }

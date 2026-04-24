@@ -26,7 +26,8 @@
     "insider": "Dòng tiền trực tiếp",
     "heatmap": "Bản đồ nhiệt",
     "screener": "Bộ lọc",
-    "short": "Bán khống"
+    "short": "Bán khống",
+    "watchlist": "Danh sách theo dõi"
   },
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",
@@ -758,6 +759,24 @@
     "source": "Nguồn",
     "cached": "Cache",
     "loading": "Đang tải...",
+    "retry": "Thử lại"
+  },
+  "watchlist": {
+    "title": "Danh sách theo dõi",
+    "addPlaceholder": "Nhập mã (vd: AAPL, NVDA)",
+    "add": "Thêm",
+    "remove": "Xóa",
+    "empty": "Chưa có cổ phiếu",
+    "emptyDesc": "Thêm mã cổ phiếu ở trên để theo dõi giá",
+    "price": "Giá",
+    "change": "Thay đổi",
+    "market": "Thị trường",
+    "preMarket": "Trước giờ",
+    "postMarket": "Sau giờ",
+    "regular": "Bình thường",
+    "invalidTicker": "Mã không hợp lệ",
+    "maxItems": "Tối đa 30 mã",
+    "refreshAll": "Làm mới tất cả",
     "retry": "Thử lại"
   }
 }

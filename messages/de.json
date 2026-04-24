@@ -26,7 +26,8 @@
     "insider": "Echtzeit-Flow",
     "heatmap": "Heatmap",
     "screener": "Screener",
-    "short": "Short"
+    "short": "Short",
+    "watchlist": "Watchlist"
   },
   "hero": {
     "title": "Verborgene Lieferkettenrisiken aufdecken",
@@ -759,5 +760,23 @@
     "cached": "Cache",
     "loading": "Laden...",
     "retry": "Retry"
+  },
+  "watchlist": {
+    "title": "Watchlist",
+    "addPlaceholder": "Symbol eingeben (z.B. AAPL, NVDA)",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "empty": "Keine Aktien",
+    "emptyDesc": "Ticker oben hinzufügen für Live-Kurse",
+    "price": "Kurs",
+    "change": "Änderung",
+    "market": "Markt",
+    "preMarket": "Vormarkt",
+    "postMarket": "Nachmarkt",
+    "regular": "Regulär",
+    "invalidTicker": "Ungültiger Ticker",
+    "maxItems": "Max. 30 Ticker",
+    "refreshAll": "Alle aktualisieren",
+    "retry": "Wiederholen"
   }
 }

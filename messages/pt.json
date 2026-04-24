@@ -26,7 +26,8 @@
     "insider": "Fluxo ao vivo",
     "heatmap": "Mapa de calor",
     "screener": "Screener",
-    "short": "Short"
+    "short": "Short",
+    "watchlist": "Lista de observação"
   },
   "hero": {
     "title": "Descubra Riscos Ocultos na Cadeia de Suprimentos",
@@ -758,6 +759,24 @@
     "source": "Fonte",
     "cached": "Cache",
     "loading": "Carregando...",
+    "retry": "Tentar novamente"
+  },
+  "watchlist": {
+    "title": "Lista de observação",
+    "addPlaceholder": "Código (ex: AAPL, NVDA)",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "empty": "Sem ações",
+    "emptyDesc": "Adicione tickers acima para acompanhar preços ao vivo",
+    "price": "Preço",
+    "change": "Variação",
+    "market": "Mercado",
+    "preMarket": "Pré-mercado",
+    "postMarket": "Pós-mercado",
+    "regular": "Regular",
+    "invalidTicker": "Ticker inválido",
+    "maxItems": "Máx. 30 tickers",
+    "refreshAll": "Atualizar tudo",
     "retry": "Tentar novamente"
   }
 }

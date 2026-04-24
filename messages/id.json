@@ -26,7 +26,8 @@
     "insider": "Aliran Real-time",
     "heatmap": "Peta Panas",
     "screener": "Screener",
-    "short": "Short"
+    "short": "Short",
+    "watchlist": "Daftar pantau"
   },
   "hero": {
     "title": "Temukan Risiko Rantai Pasok Tersembunyi",
@@ -758,6 +759,24 @@
     "source": "Sumber",
     "cached": "Cache",
     "loading": "Memuat...",
+    "retry": "Coba lagi"
+  },
+  "watchlist": {
+    "title": "Daftar pantau",
+    "addPlaceholder": "Masukkan ticker (mis: AAPL, NVDA)",
+    "add": "Tambah",
+    "remove": "Hapus",
+    "empty": "Belum ada saham",
+    "emptyDesc": "Tambahkan ticker di atas untuk memantau harga",
+    "price": "Harga",
+    "change": "Perubahan",
+    "market": "Pasar",
+    "preMarket": "Pra-pasar",
+    "postMarket": "Pasca-pasar",
+    "regular": "Reguler",
+    "invalidTicker": "Ticker tidak valid",
+    "maxItems": "Maks. 30 ticker",
+    "refreshAll": "Perbarui semua",
     "retry": "Coba lagi"
   }
 }

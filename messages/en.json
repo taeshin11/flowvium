@@ -26,7 +26,8 @@
     "insider": "Real-time Flow",
     "heatmap": "Heatmap",
     "screener": "Screener",
-    "short": "Short"
+    "short": "Short",
+    "watchlist": "Watchlist"
   },
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
@@ -758,6 +759,24 @@
     "source": "Source",
     "cached": "Cached",
     "loading": "Loading supply data...",
+    "retry": "Retry"
+  },
+  "watchlist": {
+    "title": "Watchlist",
+    "addPlaceholder": "Enter ticker (e.g. AAPL, NVDA)",
+    "add": "Add",
+    "remove": "Remove",
+    "empty": "No stocks yet",
+    "emptyDesc": "Add tickers above to track live prices",
+    "price": "Price",
+    "change": "Change",
+    "market": "Market",
+    "preMarket": "Pre-market",
+    "postMarket": "After-hours",
+    "regular": "Regular",
+    "invalidTicker": "Invalid ticker",
+    "maxItems": "Up to 30 tickers allowed",
+    "refreshAll": "Refresh all",
     "retry": "Retry"
   }
 }

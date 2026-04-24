@@ -26,7 +26,8 @@
     "insider": "Flux en direct",
     "heatmap": "Carte thermique",
     "screener": "Screener",
-    "short": "Short"
+    "short": "Short",
+    "watchlist": "Liste de suivi"
   },
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",
@@ -758,6 +759,24 @@
     "source": "Source",
     "cached": "Cache",
     "loading": "Chargement...",
+    "retry": "Réessayer"
+  },
+  "watchlist": {
+    "title": "Liste de suivi",
+    "addPlaceholder": "Symbole (ex: AAPL, NVDA)",
+    "add": "Ajouter",
+    "remove": "Supprimer",
+    "empty": "Aucune action",
+    "emptyDesc": "Ajoutez des tickers ci-dessus pour suivre les prix",
+    "price": "Prix",
+    "change": "Variation",
+    "market": "Marché",
+    "preMarket": "Pré-marché",
+    "postMarket": "Après-bourse",
+    "regular": "Régulier",
+    "invalidTicker": "Ticker invalide",
+    "maxItems": "30 tickers max",
+    "refreshAll": "Tout actualiser",
     "retry": "Réessayer"
   }
 }

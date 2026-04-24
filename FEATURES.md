@@ -679,6 +679,19 @@
 
 ---
 
+## 15b. 관심 종목 (`/watchlist`) — 신규
+
+**파일**: `src/components/pages/WatchlistPage.tsx`  
+**데이터**: localStorage + `/api/stock-price/[ticker]` (Yahoo Finance v8, 15min cache)
+
+- 종목 추가/삭제 (최대 30개, localStorage 저장)
+- 실시간 주가·일간 변화율·변화금액 표시
+- 시장 상태 배지 (정규장·프리마켓·애프터마켓)
+- 5분 자동 갱신 + 수동 갱신 버튼
+- 16개 언어 i18n 지원
+
+---
+
 ## 16. 어드민 로그 (`/admin/logs`)
 
 **파일**: `src/components/pages/AdminLogsPage.tsx`  

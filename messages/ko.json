@@ -26,7 +26,8 @@
     "insider": "실시간 수급",
     "heatmap": "히트맵",
     "screener": "스크리너",
-    "short": "공매도"
+    "short": "공매도",
+    "watchlist": "관심 종목"
   },
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",
@@ -767,5 +768,23 @@
     "cached": "캐시됨",
     "loading": "수급 데이터 로딩 중...",
     "retry": "다시 시도"
+  },
+  "watchlist": {
+    "title": "관심 종목",
+    "addPlaceholder": "티커 입력 (예: AAPL, NVDA)",
+    "add": "추가",
+    "remove": "삭제",
+    "empty": "관심 종목이 없습니다",
+    "emptyDesc": "위에서 종목을 추가해 실시간 주가를 확인하세요",
+    "price": "현재가",
+    "change": "변동",
+    "market": "시장",
+    "preMarket": "프리마켓",
+    "postMarket": "애프터마켓",
+    "regular": "정규장",
+    "invalidTicker": "유효하지 않은 티커입니다",
+    "maxItems": "최대 30개까지 추가 가능",
+    "refreshAll": "모두 갱신",
+    "retry": "재시도"
   }
 }

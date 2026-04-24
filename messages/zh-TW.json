@@ -26,7 +26,8 @@
     "insider": "即時資金流",
     "heatmap": "熱力圖",
     "screener": "篩選器",
-    "short": "做空"
+    "short": "做空",
+    "watchlist": "自選股"
   },
   "hero": {
     "title": "發掘隱藏的供應鏈風險",
@@ -758,6 +759,24 @@
     "source": "來源",
     "cached": "已緩存",
     "loading": "載入供需數據中...",
+    "retry": "重試"
+  },
+  "watchlist": {
+    "title": "自選股",
+    "addPlaceholder": "輸入代碼 (如: AAPL, NVDA)",
+    "add": "新增",
+    "remove": "刪除",
+    "empty": "尚無自選股",
+    "emptyDesc": "在上方新增代碼查看即時價格",
+    "price": "現價",
+    "change": "漲跌",
+    "market": "市場",
+    "preMarket": "盤前",
+    "postMarket": "盤後",
+    "regular": "盤中",
+    "invalidTicker": "代碼無效",
+    "maxItems": "最多30檔",
+    "refreshAll": "全部刷新",
     "retry": "重試"
   }
 }

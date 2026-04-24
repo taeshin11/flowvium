@@ -26,7 +26,8 @@
     "insider": "实时资金流",
     "heatmap": "热力图",
     "screener": "筛选器",
-    "short": "做空"
+    "short": "做空",
+    "watchlist": "自选股"
   },
   "hero": {
     "title": "发现隐藏的供应链风险",
@@ -758,6 +759,24 @@
     "source": "来源",
     "cached": "已缓存",
     "loading": "加载供需数据中...",
+    "retry": "重试"
+  },
+  "watchlist": {
+    "title": "自选股",
+    "addPlaceholder": "输入代码 (如: AAPL, NVDA)",
+    "add": "添加",
+    "remove": "删除",
+    "empty": "暂无自选股",
+    "emptyDesc": "在上方添加代码查看实时价格",
+    "price": "现价",
+    "change": "涨跌",
+    "market": "市场",
+    "preMarket": "盘前",
+    "postMarket": "盘后",
+    "regular": "盘中",
+    "invalidTicker": "代码无效",
+    "maxItems": "最多30只",
+    "refreshAll": "全部刷新",
     "retry": "重试"
   }
 }

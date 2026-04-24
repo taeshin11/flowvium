@@ -26,7 +26,8 @@
     "insider": "Flow เรียลไทม์",
     "heatmap": "ฮีทแมป",
     "screener": "สกรีนเนอร์",
-    "short": "ชอร์ต"
+    "short": "ชอร์ต",
+    "watchlist": "รายการติดตาม"
   },
   "hero": {
     "title": "ค้นพบความเสี่ยงที่ซ่อนอยู่ในห่วงโซ่อุปทาน",
@@ -759,5 +760,23 @@
     "cached": "แคช",
     "loading": "กำลังโหลด...",
     "retry": "ลองใหม่"
+  },
+  "watchlist": {
+    "title": "รายการติดตาม",
+    "addPlaceholder": "ใส่ Ticker (เช่น AAPL, NVDA)",
+    "add": "เพิ่ม",
+    "remove": "ลบ",
+    "empty": "ยังไม่มีหุ้น",
+    "emptyDesc": "เพิ่ม Ticker ด้านบนเพื่อติดตามราคา",
+    "price": "ราคา",
+    "change": "เปลี่ยนแปลง",
+    "market": "ตลาด",
+    "preMarket": "ก่อนตลาด",
+    "postMarket": "หลังตลาด",
+    "regular": "ปกติ",
+    "invalidTicker": "Ticker ไม่ถูกต้อง",
+    "maxItems": "สูงสุด 30 ticker",
+    "refreshAll": "อัปเดตทั้งหมด",
+    "retry": "ลองอีกครั้ง"
   }
 }
