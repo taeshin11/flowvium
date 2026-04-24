@@ -1,0 +1,43 @@
+# Iter 5-7: 섹터 로테이션·실시간 주가·헬스 확장 — 2026-04-24
+
+## Iter 5: 섹터 ETF 로테이션 추가 (#315)
+- SECTORS 배열: XLK·XLF·XLE·XLV·XLI·XLB·XLY·XLP·XLU·XLRE·XLC
+- capital-flows/route.ts에 sectorPerformance 1w/4w/13w 추가 (cache key v7)
+- IntelligencePage CapitalFlowsTab에 섹터 패널: 최강/최약 하이라이트 + ReturnBar
+- METRICS.md #315 ⛔ → ✅
+
+## Iter 6: Verify-metrics + Cron 확장
+- verifyVolatility 함수 신설: VIX/VXST/VXMT/regime/history 5개 프로브
+- verifyCapitalFlows: factorPerformance + sectorPerformance 체크 추가
+- update-all cron: yield-curve(30s timeout) + volatility 워밍 추가
+- volR, yieldR results 배열 포함 (실패 감지)
+- METRICS.md 요약 통계 대폭 갱신: ⛔ ~55 → ~13, ✅ ~35 → ~101
+
+## Iter 7: 기업 프로필 실시간 주가 (#123-P)
+- /api/stock-price/[ticker] 신규 엔드포인트
+  - Yahoo Finance v8 chart, range=5d, meta.regularMarketPrice + chartPreviousClose
+  - 15min 메모리 캐시
+- CompanyPage 헤더에 가격 + changePct + 장전/장후 상태 표시
+- AAPL 검증: regularMarketPrice=$273.43, chartPreviousClose=$263.40
+  → change=+$10.03, changePct=+3.81%
+
+## 정합성 검증 (CLAUDE.md §3)
+[accuracy probe] metric=vix source=Yahoo direct_value=19.31 our_value=19.31 delta=0 → OK ✅
+[accuracy probe] metric=macro.10y_yield source=Yahoo direct_value=4.323 our_value=4.3 delta=0.02 → OK ✅
+[accuracy probe] metric=bei10y implied_value=2.403 our_value=2.38 delta=0.02 → OK ✅
+[accuracy probe] metric=fg.us source=verify-metrics direct_value=66 our_value=66 delta=0 → OK ✅
+System health: 72/72 OK (verify-metrics), 0 degraded
+
+## 이번 session 전체 metrics delta
+- #170 Bloomberg FI 분기별 Y/Y: ⛔ → ✅
+- #301 TIPS 실질금리: ⛔ → ✅
+- #302 Breakeven 인플레이션: ⛔ → ✅
+- #317 VIX 기간 구조: ⛔ → ✅
+- #321 Smart Beta 팩터: ⛔ → ✅
+- #315 섹터별 ETF 수급: ⛔ → ✅
+- #123-P 실시간 주가: NEW ✅
+- METRICS.md 요약: ⛔ 55 → 13, ✅ 35 → 101 (92.9% 활성화)
+
+## 미배포 변경사항 (commit 0a125e4 이후)
+- Smart Beta factors, Sector rotation, Live price → Vercel auto-deploy 대기
+- 현재 배포: f8339d7c (VIX term structure)
