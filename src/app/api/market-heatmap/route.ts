@@ -13,7 +13,7 @@ export const maxDuration = 60; // 200 tickers × batched Yahoo v8 fetch needs up
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { fetchCNBCQuotes } from '@/lib/yahoo-finance';
+import { fetchCNBCQuotes, fetchYFNonUSQuotes } from '@/lib/yahoo-finance';
 import { fetchStooqQuotes, fetchStooqNonUS } from '@/lib/stooq';
 import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
@@ -82,6 +82,24 @@ function createRedis(): Redis | null {
 
 const SUPPORTED = ['US', 'KR', 'JP', 'CN', 'EU', 'IN', 'TW'];
 
+const YF_SUFFIX: Record<string, string> = { KR: '.KS', JP: '.T', IN: '.NS', TW: '.TW' };
+const YF_EU: Record<string, string> = {
+  'Germany': '.DE', 'France': '.PA', 'United Kingdom': '.L',
+  'Netherlands': '.AS', 'Switzerland': '.SW', 'Spain': '.MC',
+  'Italy': '.MI', 'Sweden': '.ST', 'Denmark': '.CO',
+  'Norway': '.OL', 'Finland': '.HE', 'Belgium': '.BR',
+};
+
+function toYFSuffix(ticker: string, country: string, location?: string): string {
+  if (country === 'EU') {
+    const suf = location ? (YF_EU[location] ?? '') : '';
+    return suf ? `${ticker}${suf}` : ticker;
+  }
+  if (country === 'CN') return /^\d+$/.test(ticker) ? `${ticker}.HK` : ticker;
+  const suf = YF_SUFFIX[country];
+  return suf ? `${ticker}${suf}` : ticker;
+}
+
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -90,7 +108,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v11:${country}:${hour}`; // v11: Stooq for non-US (Yahoo rate-limited)
+  const cacheKey = `flowvium:heatmap:v12:${country}:${hour}`; // v12: Stooq(JP/EU)+Yahoo fallback(KR/TW/IN/CN)
   const redis = createRedis();
 
   if (!force) {
@@ -129,19 +147,33 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Stooq for non-US constituents (KR/JP/CN/EU/IN/TW)
-  // Stooq is reliable from Vercel (unlike Yahoo which rate-limits 80-req bursts)
+  // Non-US: Stooq first (reliable, covers JP + DE/NL), then Yahoo fallback (slow/reliable for KR/TW/IN/CN/EU-rest)
   const nonUSQuoteMap = new Map<string, { changePct: number | null; close: number | null }>();
   if (country !== 'US') {
+    // Pass 1: Stooq (covers JP fully, EU partially)
     const stooqQuotes = await fetchStooqNonUS(topHoldings, country);
     for (const q of stooqQuotes) {
       if (q.changePct != null || q.close != null) {
         nonUSQuoteMap.set(q.symbol, { changePct: q.changePct, close: q.close });
       }
     }
-    logger.info('market-heatmap', 'nonUS_stooq_done', {
-      country, requested: topHoldings.length, matched: nonUSQuoteMap.size,
-    });
+    logger.info('market-heatmap', 'stooq_pass', { country, matched: nonUSQuoteMap.size });
+
+    // Pass 2: Yahoo fallback for tickers still missing (KR/TW/IN/CN + EU remainder)
+    const missingHoldings = topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase()));
+    if (missingHoldings.length > 0) {
+      const yfSymMap = new Map(
+        missingHoldings.map(h => [toYFSuffix(h.ticker, country, h.location), h.ticker.toUpperCase()])
+      );
+      const yfQuotes = await fetchYFNonUSQuotes(yfSymMap);
+      for (const q of yfQuotes) {
+        if (q.changePct != null || q.close != null) {
+          nonUSQuoteMap.set(q.symbol, { changePct: q.changePct, close: q.close });
+        }
+      }
+      logger.info('market-heatmap', 'yahoo_fallback_pass', { country, requested: missingHoldings.length, matched: yfQuotes.length });
+    }
+    logger.info('market-heatmap', 'nonUS_total', { country, total: topHoldings.length, resolved: nonUSQuoteMap.size });
   }
 
   // CNBC for index ETFs — reliable from Vercel IPs (Yahoo v8 blocked by AWS range)

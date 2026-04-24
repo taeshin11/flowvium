@@ -200,6 +200,53 @@ export async function fetchYFHeatmapQuotes(tickers: string[]): Promise<YFHeatmap
 }
 
 /**
+ * Fetch non-US heatmap quotes via Yahoo v8/chart query1 only, with conservative
+ * concurrency (5 parallel, 250ms delay) — proven approach from korea-flow.
+ * Uses simple UA to avoid bot detection; symbol → ticker map for lookup normalization.
+ */
+export async function fetchYFNonUSQuotes(
+  symbolMap: Map<string, string>  // yahooSymbol (e.g. '005930.KS') → originalTicker
+): Promise<YFHeatmapQuote[]> {
+  if (!symbolMap.size) return [];
+  const entries = Array.from(symbolMap.entries());
+  const CONCURRENT = 5;
+  const DELAY_MS = 250;
+  const out: YFHeatmapQuote[] = [];
+
+  for (let i = 0; i < entries.length; i += CONCURRENT) {
+    const batch = entries.slice(i, i + CONCURRENT);
+    const settled = await Promise.allSettled(
+      batch.map(async ([yahoSym, origTicker]) => {
+        try {
+          const res = await fetch(
+            `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahoSym)}?interval=1d&range=2d`,
+            { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store', signal: AbortSignal.timeout(8000) }
+          );
+          if (!res.ok) return null;
+          const json = await res.json();
+          const meta = json?.chart?.result?.[0]?.meta;
+          if (!meta) return null;
+          const price = meta.regularMarketPrice as number | undefined;
+          const prevClose = meta.chartPreviousClose as number | undefined;
+          const changePct = price != null && prevClose && prevClose > 0
+            ? ((price - prevClose) / prevClose) * 100
+            : null;
+          return { symbol: origTicker, changePct: changePct != null ? parseFloat(changePct.toFixed(2)) : null, close: price ?? null } as YFHeatmapQuote;
+        } catch { return null; }
+      })
+    );
+    for (const r of settled) {
+      if (r.status === 'fulfilled' && r.value) out.push(r.value);
+    }
+    if (i + CONCURRENT < entries.length) {
+      await new Promise(res => setTimeout(res, DELAY_MS));
+    }
+  }
+  logger.info('yahoo.nonUS', 'batch_done', { requested: symbolMap.size, returned: out.length });
+  return out;
+}
+
+/**
  * Fetch quotes via CNBC public API — reliable from Vercel IPs where Yahoo is blocked.
  * symbols: pipe-delimited, e.g. "SPY|QQQ|IWM"
  */

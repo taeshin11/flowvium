@@ -1,0 +1,70 @@
+## Iter 36 — 비-US 히트맵 실시간 주가 + UX 개선
+Date: 2026-04-24
+Primary outcome: 히트맵 비-US 실시간 주가 (Stooq)
+
+### Drift check
+- 최근 5 커밋: ux fix (한글명/watchlist/히트맵), heatmap default overview, intelligence default capital, macro calendar, seo fix
+- 히트맵 영역 2 iter 연속 → 수용 (사용자 명시 요청)
+- 비-US 가격 2회 이상 미뤄짐 → 이번 iter 해결 의무
+
+### 사전 작업 (이전 iter 중 사용자 요청으로 처리)
+- 한국 수급 탭: KO_NAMES 룩업으로 영문→한글 종목명 (삼성전기, LG화학 등)
+- InsiderPage KoreaTable: 숫자코드 제거, fallback 배너 추가
+- HeatmapPage StockBox: 숫자 ticker → fullName 표시
+- Navbar + sitemap: watchlist 메뉴 완전 제거
+- 전체 push (38+ 로컬 커밋): 15c91f0
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=CNN direct_value=N/A (418 bot-block) our_value=N/A → N/A
+- [accuracy probe] metric=005930.KS source=Yahoo direct_value=219500 KRW (+0.92%) our_value=147.34 USD (iShares fallback, before fix) delta=incompatible → BUGGY → FIXED
+
+### 발견된 문제
+1. 히트맵 비-US 주가: market-heatmap v10에서 Yahoo v8 fetchYFHeatmapQuotes() 사용했으나
+   Vercel IP에서 80개 배치 요청 시 rate-limit → 0/80 반환
+   → 해결: Stooq fetchStooqNonUS() 사용 (KR=.kr, JP=.jp, TW=.tw, IN=.in, CN=.hk, EU=국가코드)
+   → cache key v10→v11
+
+2. 미사용 코드: toYahooTicker() + EU_SUFFIX 제거
+
+### 코드 변경
+#### src/lib/stooq.ts (리팩터)
+- fetchStooqRaw() internal helper 추가 (symbolMap 기반)
+- fetchStooqQuotes() → fetchStooqRaw() 위임
+- fetchStooqNonUS(holdings, country) 신규 export
+  - STOOQ_SUFFIX: KR=.kr, JP=.jp, IN=.in, TW=.tw
+  - STOOQ_EU: Germany=.de, France=.fr, UK=.uk, ...
+  - toStooqSymbol(): CN은 numeric→.hk, alpha→.us
+
+#### src/app/api/market-heatmap/route.ts
+- import Yahoo → import Stooq
+- nonUSQuoteMap 빌드: fetchStooqNonUS 사용
+- cache key v10→v11
+- source string 업데이트
+
+#### src/app/api/company-financials/[ticker]/route.ts
+- CDN_HEADERS 추가 (s-maxage=86400, stale-while-revalidate=3600)
+
+#### src/app/api/stock-supply/route.ts
+- CDN_HEADERS 추가 (s-maxage=10800, stale-while-revalidate=300)
+
+### 캐시 계층 감사
+- stooq.ts: `cache: 'no-store'` ✓
+- market-heatmap: Redis v11 + memory cache ✓
+- company-financials: CDN 헤더 신설 ✓
+
+### Negative result 기록
+- Yahoo v8 fetchYFHeatmapQuotes(80 KR tickers): Vercel IP에서 0/80 반환
+  → 단독 요청(korea-flow)은 작동하지만 배치 80개는 rate-limit
+  → Stooq로 전환 결정 (이미 US에서 검증된 소스)
+
+### TypeScript
+- TypeScript clean ✓
+
+### 후속 검증 필요
+- Stooq .kr/.jp/.tw 실제 데이터 유무 (배포 후 /api/market-heatmap?country=KR&refresh=1 체크)
+- Stooq .hk (중국 HK 주식) 커버리지 확인
+
+### Commits
+- 15c91f0: fix(ux): 한국 수급 한글명+watchlist 제거+히트맵 회사명 표시
+- d4b1e2b: feat(heatmap): 비-US 국가 Yahoo v8 실시간 주가 추가 [FAILED]
+- dc5b650: fix(heatmap): Yahoo→Stooq for non-US prices
