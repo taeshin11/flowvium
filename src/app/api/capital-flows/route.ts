@@ -41,6 +41,16 @@ const ASSETS = [
   { id: 'yen',         ticker: 'FXY',   label: '엔화',         group: 'currency',    flag: '💴' },
 ];
 
+// ── Smart Beta Factor ETFs ────────────────────────────────────────────────────
+const FACTORS = [
+  { id: 'momentum', ticker: 'MTUM', label: '모멘텀',       flag: '📈', desc: 'Momentum (MTUM)' },
+  { id: 'quality',  ticker: 'QUAL', label: '퀄리티',       flag: '⭐', desc: 'Quality (QUAL)' },
+  { id: 'value',    ticker: 'VLUE', label: '가치',         flag: '💎', desc: 'Value (VLUE)' },
+  { id: 'lowvol',   ticker: 'USMV', label: '저변동성',     flag: '🛡️', desc: 'Low Vol (USMV)' },
+  { id: 'growth',   ticker: 'IVW',  label: '성장',         flag: '🚀', desc: 'Growth (IVW)' },
+  { id: 'blend',    ticker: 'IVE',  label: '블렌드(가치)',  flag: '⚖️', desc: 'Value Blend (IVE)' },
+];
+
 // ── Country ETFs ──────────────────────────────────────────────────────────────
 const COUNTRIES = [
   { id: 'us',        ticker: 'SPY',  label: '미국',       flag: '🇺🇸' },
@@ -266,7 +276,7 @@ export async function GET() {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (실시간)' : 'Yahoo Finance (15분 지연)';
-  const cacheKey = `flowvium:capital-flows:v5:${twelveKey ? 'twelve' : 'yahoo'}`;
+  const cacheKey = `flowvium:capital-flows:v6:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   if (redis) {
     try {
@@ -278,6 +288,7 @@ export async function GET() {
   const allTickers = Array.from(new Set([
     ...ASSETS.map((a) => a.ticker),
     ...COUNTRIES.map((c) => c.ticker),
+    ...FACTORS.map((f) => f.ticker),
   ]));
   const priceMap: Record<string, number[]> = {};
   const sourceCount: Record<string, number> = {};
@@ -374,7 +385,18 @@ export async function GET() {
     rotations13w: buildCountryRotations('ret13w', 3.0),
   };
 
-  const response = { assets: results, flow, goldVsDollar, countryFlow, dataSource: sourceSummary || dataSource, updatedAt: new Date().toISOString() };
+  // ── Smart Beta factor performance ─────────────────────────────────────────
+  const factorPerformance = FACTORS.map(f => {
+    const prices = priceMap[f.ticker] ?? [];
+    return {
+      id: f.id, label: f.label, flag: f.flag, ticker: f.ticker, desc: f.desc,
+      ret1w:  pctReturn(prices, 5),
+      ret4w:  pctReturn(prices, 20),
+      ret13w: pctReturn(prices, 65),
+    };
+  }).filter(f => f.ret4w !== 0 || f.ret13w !== 0);
+
+  const response = { assets: results, flow, goldVsDollar, countryFlow, factorPerformance, dataSource: sourceSummary || dataSource, updatedAt: new Date().toISOString() };
 
   if (redis) {
     try {

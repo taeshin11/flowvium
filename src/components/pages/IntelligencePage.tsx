@@ -706,6 +706,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
 // ── Capital Flows Component ──────────────────────────────────────────────────
 interface AssetReturn { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 interface CountryReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
+interface FactorReturn { id: string; label: string; flag: string; ticker: string; desc: string; ret1w: number; ret4w: number; ret13w: number; }
 type RotEntry = { from:string; to:string; magnitude:number; weeksAgo?:number; startDate?:string; momentum?:string };
 type CountryRotEntry = { from:string; fromFlag:string; to:string; toFlag:string; magnitude:number; momentum:'accelerating'|'holding'|'fading' };
 interface FlowData {
@@ -724,6 +725,7 @@ interface FlowData {
     countries: CountryReturn[];
     rotations1w: CountryRotEntry[]; rotations4w: CountryRotEntry[]; rotations13w: CountryRotEntry[];
   };
+  factorPerformance?: FactorReturn[];
   dataSource?: string;
   updatedAt: string;
 }
@@ -1087,6 +1089,37 @@ function CapitalFlowsTab() {
                 );
               })}
           </div>
+        </div>
+      )}
+
+      {/* 스마트베타 팩터 성과 */}
+      {data.factorPerformance && data.factorPerformance.length > 0 && (
+        <div className="cf-card p-4">
+          <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+            <span>🧮</span> 스마트베타 팩터 성과 ({TF_LABELS[tf]} 기준)
+          </h3>
+          {(() => {
+            const sorted = [...data.factorPerformance].sort((a, b) => b[retKey] - a[retKey]);
+            const maxAbs = Math.max(...sorted.map(f => Math.abs(f[retKey])), 1);
+            return (
+              <div className="space-y-2">
+                {sorted.map((f) => {
+                  const val = f[retKey];
+                  return (
+                    <div key={f.id} className="flex items-center gap-3">
+                      <span className="text-base leading-none flex-shrink-0">{f.flag}</span>
+                      <span className="text-xs font-bold text-cf-text-primary w-16 flex-shrink-0">{f.label}</span>
+                      <span className="text-[10px] text-gray-400 font-mono w-10 flex-shrink-0">{f.ticker}</span>
+                      <ReturnBar val={val} max={maxAbs} />
+                    </div>
+                  );
+                })}
+                <p className="text-[10px] text-cf-text-secondary/60 pt-1">
+                  MTUM · QUAL · VLUE · USMV · IVW · IVE — iShares/MSCI 팩터 ETF 기반
+                </p>
+              </div>
+            );
+          })()}
         </div>
       )}
 

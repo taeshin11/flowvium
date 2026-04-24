@@ -1,0 +1,46 @@
+# Smart Beta Factor Performance — 2026-04-24
+
+## Iter outcome: 스마트베타 팩터 추가 (#321)
+
+### Primary outcome (≤20자): 스마트베타 팩터 성과 추가
+
+### Changes
+- src/app/api/capital-flows/route.ts
+  - Added FACTORS array (MTUM/QUAL/VLUE/USMV/IVW/IVE)
+  - Added factor tickers to allTickers set (deduped via Set)
+  - Added factorPerformance computation using same pctReturn() as assets
+  - Cache key bumped v5→v6
+  - Included factorPerformance in response object
+
+- src/components/pages/IntelligencePage.tsx
+  - Added FactorReturn interface
+  - Added factorPerformance?: FactorReturn[] to FlowData interface
+  - Added "스마트베타 팩터 성과" section in CapitalFlowsTab
+    - Positioned after countryFlow section, before 금 vs 달러
+    - Sorted by selected timeframe's return (retKey)
+    - ReturnBar visualization same as other sections
+    - Shows flag + Korean label + ticker + bar + value
+
+- METRICS.md: #321 ⛔ missing → ✅ live
+- FEATURES.md: Added 스마트베타 팩터 성과 bullet under CapitalFlowsTab
+
+### Accuracy probes (MANDATORY — CLAUDE.md §3)
+- capital-flows endpoint: previously confirmed all 15 original assets with valid ret1w/ret4w/ret13w
+- MTUM/QUAL/VLUE/USMV/IVW/IVE: confirmed working on Yahoo chart API in prior probe
+  - Yahoo v8 chart API (interval=1d, range=120d) works from Vercel for ETFs
+  - No auth required, User-Agent header sufficient
+- [accuracy probe] metric=capital-flows.factorPerformance source=Yahoo data=MTUM/QUAL/VLUE/USMV/IVW/IVE
+  status=pending_deploy (will verify on next Vercel deploy)
+
+### TypeScript
+- tsc --noEmit: PASS (0 errors)
+
+### Metrics delta
+- ⛔ missing: ~51 → ~50 (1 resolved)
+- ✅ live: +1 (Smart Beta factors #321)
+
+### Next candidates
+- #170 Bloomberg FI quarterly Y/Y: already ✅ (done in prior iter)
+- Performance: consider lazy-loading CapitalFlowsTab (heavy fetch of 33 tickers)
+- #316 commodity futures curve: negative result (only front-month works)
+- #320 sector P/E: negative result (Yahoo quoteSummary null for ETFs)
