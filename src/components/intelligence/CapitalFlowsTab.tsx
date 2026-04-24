@@ -7,6 +7,7 @@ import {
   Loader2, BarChart3, ArrowUpRight, ArrowDownRight, Globe,
   ArrowRight, GitMerge, Zap, RefreshCw,
 } from 'lucide-react';
+import Sparkline from '@/components/Sparkline';
 
 // ── Cascade rules ─────────────────────────────────────────────────────────────
 const CASCADE_RULES: Record<string, { up: string[]; down: string[] }> = {
@@ -28,7 +29,7 @@ const CASCADE_RULES: Record<string, { up: string[]; down: string[] }> = {
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface AssetReturn { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
+interface AssetReturn { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; sparkline?: number[]; }
 interface CountryReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 interface FactorReturn { id: string; label: string; flag: string; ticker: string; desc: string; ret1w: number; ret4w: number; ret13w: number; }
 interface SectorReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
@@ -152,11 +153,15 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                   {top4('ret4w', 'up').map(item => {
                     const trend = item.ret1w > item.ret4w ? '가속▲' : item.ret1w < 0 ? '반전⚡' : '유지→';
                     const trendColor = item.ret1w > item.ret4w ? 'text-green-600' : item.ret1w < 0 ? 'text-amber-600' : 'text-gray-400';
+                    const assetData = data?.assets?.find((a: AssetReturn) => a.id === item.id);
                     return (
                       <tr key={item.id} className="border-t border-cf-border/40">
                         <td className="py-1.5 flex items-center gap-1.5">
                           <span>{item.flag}</span>
                           <span className="font-medium text-cf-text-primary">{item.label}</span>
+                          {assetData?.sparkline && assetData.sparkline.length >= 5 && (
+                            <Sparkline values={assetData.sparkline} width={40} height={14} stroke={1} />
+                          )}
                         </td>
                         {TF_COLS.map(c => (
                           <td key={c.key} className={`text-right py-1.5 font-bold tabular-nums ${item[c.key] >= 0 ? 'text-green-600' : 'text-red-500'}`}>
@@ -189,11 +194,15 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                   {top4('ret4w', 'down').map(item => {
                     const trend = item.ret1w < item.ret4w ? '가속▼' : item.ret1w > 0 ? '반전⚡' : '유지→';
                     const trendColor = item.ret1w < item.ret4w ? 'text-red-600' : item.ret1w > 0 ? 'text-amber-600' : 'text-gray-400';
+                    const assetData = data?.assets?.find((a: AssetReturn) => a.id === item.id);
                     return (
                       <tr key={item.id} className="border-t border-cf-border/40">
                         <td className="py-1.5 flex items-center gap-1.5">
                           <span>{item.flag}</span>
                           <span className="font-medium text-cf-text-primary">{item.label}</span>
+                          {assetData?.sparkline && assetData.sparkline.length >= 5 && (
+                            <Sparkline values={assetData.sparkline} width={40} height={14} stroke={1} />
+                          )}
                         </td>
                         {TF_COLS.map(c => (
                           <td key={c.key} className={`text-right py-1.5 font-bold tabular-nums ${item[c.key] >= 0 ? 'text-green-600' : 'text-red-500'}`}>

@@ -315,7 +315,7 @@ type RotationEntry = {
   weeksAgo: number; startDate: string; momentum: 'accelerating' | 'holding' | 'fading';
 };
 
-type AssetResult = { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number; ret4w: number; ret13w: number };
+type AssetResult = { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; sparkline?: number[] };
 
 function buildRotations(
   results: AssetResult[],
@@ -384,7 +384,7 @@ export async function GET() {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (실시간)' : 'Yahoo Finance (15분 지연)';
-  const cacheKey = `flowvium:capital-flows:v7:${twelveKey ? 'twelve' : 'yahoo'}`;
+  const cacheKey = `flowvium:capital-flows:v8:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   if (redis) {
     try {
@@ -410,6 +410,7 @@ export async function GET() {
 
   const results = ASSETS.map((asset) => {
     const prices = priceMap[asset.ticker] ?? [];
+    const sparkline = prices.length >= 5 ? prices.slice(-26).map(p => parseFloat(p.toFixed(2))) : undefined;
     return {
       id: asset.id,
       label: asset.label,
@@ -419,6 +420,7 @@ export async function GET() {
       ret1w:  pctReturn(prices, 5),
       ret4w:  pctReturn(prices, 20),
       ret13w: pctReturn(prices, 65),
+      sparkline,
     };
   }).filter((r) => r.ret4w !== 0 || r.ret13w !== 0);
 

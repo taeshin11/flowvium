@@ -1,0 +1,47 @@
+## Iter 65 — capital flows 스파크라인
+Date: 2026-04-24
+Primary outcome: capital flows 스파크라인 (14자 OK)
+
+### Drift check
+- iter 62: capital-flows/route.ts (perf batch)
+- iter 63: MacroIndicatorsTab.tsx
+- iter 64: HomePage.tsx
+- iter 65: capital-flows/route.ts + CapitalFlowsTab.tsx
+  → iter 62 이후 2회 다른 파일 작업 후 복귀 → drift 없음 OK
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=capital-flows.sparkline source=Yahoo_v7_spark
+  SPY: 26pts last-26 slice
+  last=710.16 prev=708.45 first=659.80
+  trend=up (+50.36 from 26d ago)
+  delta=0 (batch fetch와 동일 데이터 소스) → OK
+
+### 구현
+
+#### 1. capital-flows/route.ts
+- `AssetResult` 타입에 `sparkline?: number[]` 추가
+- `results = ASSETS.map(...)` 내: `sparkline = prices.slice(-26).map(p => parseFloat(p.toFixed(2)))`
+- 캐시 키 v7 → v8 (스파크라인 포함된 새 캐시)
+
+#### 2. CapitalFlowsTab.tsx
+- `import Sparkline from '@/components/Sparkline'` 추가
+- `AssetReturn` 인터페이스에 `sparkline?: number[]` 추가
+- 수급 유입 테이블 rows에 스파크라인 추가:
+  ```tsx
+  const assetData = data?.assets?.find((a: AssetReturn) => a.id === item.id);
+  {assetData?.sparkline && assetData.sparkline.length >= 5 && (
+    <Sparkline values={assetData.sparkline} width={40} height={14} stroke={1} />
+  )}
+  ```
+- 수급 유출 테이블에도 동일하게 적용
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (priceMap 재활용)
+- 캐시 키 v8로 버전업 (v7 캐시에는 sparkline 없음)
+- CACHE_TTL 4h 유지
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter65: feat(capital-flows): 인라인 스파크라인 — 26일 가격 추이 시각화
