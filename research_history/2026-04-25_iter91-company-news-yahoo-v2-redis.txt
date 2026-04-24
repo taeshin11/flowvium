@@ -1,0 +1,59 @@
+## Iter 91 — company-news Yahoo RSS 교체 + Redis 캐시 신설 + news-cascade AI 캐시 가드
+Date: 2026-04-25
+Primary outcome: company-news 서비스 복구 (Yahoo RSS 404 → v1 JSON API)
+
+### Drift check
+- iter88=CDN-fallback, iter89=AI-quota, iter90=RSS-sources
+- iter91: company-news (다른 영역) ✓
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=company.news.NVDA source=yahoo_rss direct_value=HTTP200 our_value=HTTP404_→_no_news delta=service_dead → ERROR
+
+테스트 확인:
+- feeds.finance.yahoo.com/rss: 404 (deprecated endpoint)
+- query2.finance.yahoo.com/v1/finance/search: 200 OK, type=STORY 필터 후 8개 기사
+
+배포 후 검증:
+- AAPL: 8 articles [WSJ, Motley Fool, ...], pubDate=ISO format ✓
+- META: 8 articles, cached=False ✓
+- NVDA: 8 articles ✓
+
+### Root cause
+company-news/route.ts가 `feeds.finance.yahoo.com/rss` (404 deprecated)를 사용.
+Yahoo Finance RSS feed는 이미 서비스 종료됨. 모든 company-news 요청이 실패.
+
+### 산출물
+
+#### [1] Yahoo Finance v1 Search API 교체 (company-news/route.ts)
+Before: feeds.finance.yahoo.com/rss/2.0/headline?s={ticker} (404)
+After:  query2.finance.yahoo.com/v1/finance/search?q={ticker}&newsCount=8&quotesCount=0
+- JSON 응답: {news: [{uuid, title, publisher, link, providerPublishTime, type, ...}]}
+- type=STORY 필터로 VIDEO 제외
+- providerPublishTime (Unix ts) → ISO 8601 date
+
+#### [2] Redis 캐시 신설 (company-news/route.ts)
+Before: module-level createMemoryCache (인스턴스별, cold start 시 유실)
+After:  Redis flowvium:company-news:v2:{ticker} TTL 30m
+- 교차 인스턴스 캐시 공유 → 동일 ticker 중복 AI 호출 방지
+- 인스턴스 워밍 시마다 fresh AI 호출했던 문제 해결
+
+#### [3] news-cascade AI 캐시 가드 (news-cascade/route.ts)
+Before: sorted.length > 0이면 cascade 없어도 12h 캐시 (AI 복구 후에도 빈 cascade 서빙)
+After:  hasRealAnalysis = some(cascades.length > 0) 일 때만 캐시
+- Groq TPD 소진 상태에서 기사 목록 캐시 안 함
+- UTC midnight 이후 AI 복구 시 즉시 cascade 분석 반영
+
+### TypeScript: clean OK
+
+### 배포
+- git push: f734acd
+
+### 예상 효과
+- company-news: error(404) → ok (Yahoo Finance v1 JSON API 정상 응답)
+- news-cascade: AI 복구 후 mid-day에도 cascade 분석 즉시 반영
+- AI 토큰 절감: Redis 공유 캐시로 company-news AI 중복 호출 감소
+
+### 미결 이슈 (carry forward)
+- flow.analysis: error → UTC midnight (약 20분 후) Groq TPD 리셋 후 자동 회복
+- brief.market: degraded → 동일
+- kr.foreign/kr.institution/kr.retail: KRX 세션 인증 필요 → 공식 포기 고려
