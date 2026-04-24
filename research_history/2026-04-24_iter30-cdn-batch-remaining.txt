@@ -1,0 +1,54 @@
+## Iter 30 — InsiderPage CDN 완성 + zombie 3건
+Date: 2026-04-24
+Primary outcome: InsiderPage CDN 완성 + zombie 3건
+
+### 정확성 프로브
+- 이번 iter는 인프라/캐시 레이어 개선 — 외부 값 대조 대신 CDN 커버리지 감사
+- iter29 probed ZQK26=96.355 → 3.645% — 동일 세션이므로 재활용
+
+### Drift check
+- 최근 5 커밋: iter30(이번), iter29-research, iter29-fedwatch, iter28-market-snapshot, iter27-zombie
+- CDN iter25(4개), iter26(1개), iter27(1개) → iter28 신기능 → iter29 datasource → iter30 CDN 재개
+- 3 연속 CDN 아님 (iter27까지 후 2 iter 공백) — drift 아님
+- zombie cleanup: iter22-27 이후 공백 → 이번에 잔여 3건 처리
+
+### 발견된 문제
+CDN 미적용 라우트 (InsiderPage):
+- block-trades: Redis 5min — CDN 없음
+- options-flow: Redis 10min — CDN 없음
+- nport-holdings: Redis 6h — CDN 없음
+- ownership-alerts: Redis 2h + memory fallback — CDN 없음 (5개 return point)
+- earnings: Redis 2h — CDN 없음, Finnhub fetch cache 옵션 없음
+
+zombie (res.ok 없음):
+- EarningsPage.tsx: fetch().json() 직접 호출 (res.ok 검사 없음)
+- CompanyPage.tsx: AI POST fetch res.ok 없음
+- IntelligencePage.tsx: AI POST fetch res.ok 없음
+
+### 작업 내용
+1. **block-trades**: CDN_HEADERS = s-maxage=240 (80% of 5min)
+2. **options-flow**: CDN_HEADERS = s-maxage=480 (80% of 10min)
+3. **nport-holdings**: CDN_HEADERS = s-maxage=18000 (5h, 83% of 6h)
+4. **ownership-alerts**: CDN_HEADERS = s-maxage=6000 (~83% of 2h), 5개 return point 적용
+5. **earnings**: CDN_HEADERS = s-maxage=7200 (=Redis TTL), cache:'no-store' on Finnhub fetch
+6. **EarningsPage**: if (!res.ok) throw 추가
+7. **CompanyPage**: AI fetch res.ok throw 추가
+8. **IntelligencePage**: AI fetch res.ok throw 추가
+
+### CDN 커버리지 현황 (after iter30)
+- covered: capital-flows, daily-brief, fear-greed, fedwatch, insider-trades, latest-updates,
+  macro-indicators, market-caps, market-heatmap, news-cascade, price-history, sector-pe(이전),
+  short-interest, signals, volatility, yield-curve, block-trades, options-flow, nport-holdings,
+  ownership-alerts, earnings
+- remaining without CDN: ai, collect, commodity-curve, company-news, credit-balance,
+  flow-analysis, korea-flow, sector-pe, stock-supply, translate (10개)
+
+### TypeScript
+- TypeScript clean ✓
+
+### 산출물 분류
+- rule [3c]: 좀비 3건 제거 (EarningsPage, CompanyPage, IntelligencePage AI fetch)
+- rule [3a]: CDN 커버리지 확장 → Vercel Edge 캐시 히트율 향상
+
+### Commit
+a200f31 fix(cdn+zombie): InsiderPage 4routes CDN + earnings CDN + 3 res.ok
