@@ -1,0 +1,78 @@
+## Iter 80 — verify-metrics 전체 커버리지 확장 (84→250+)
+Date: 2026-04-25
+Primary outcome: 지표DB 커버리지 84→250+ (18자)
+
+### Drift check
+- iter77=ux-improvements, iter78=metrics-db+news+earnings, iter79=data-accuracy, iter80=verify-metrics
+  → 모두 다른 영역 → Drift 없음
+
+### 배경
+- 기존 verify-metrics: 84개 지표, 14개 그룹
+- METRICS.md에 정의된 ~323개 수치 vs 84개 검증 → 73% 사각지대
+- "모든 엔드포인트를 전부 db화 해야되" 사용자 지시
+
+### 산출물
+
+#### [1] verify-metrics 확장 — BIG FEATURE
+- 기존 84개 → 250+ 개 메트릭 커버리지
+- 새 detailed 검증 함수 9개 추가:
+
+  verifyShortInterestDetailed(base)
+  - 35개 티커별 shortVolPct (FINRA daily)
+  - shortRatio=null (FINRA monthly 403 차단 — skipped)
+  - squeezeScore (계산값)
+
+  verifyMarketHeatmapDetailed(base)
+  - 11개 섹터별 avgChangePct
+
+  verifyMarketCapsDetailed(base)
+  - 37개 티커별 marketCap 실값
+
+  verifySectorPE(base)
+  - 11개 섹터별 P/E + YTD 변동률
+
+  verifyYieldCurvePoints(base)
+  - 9개 만기별 수익률 (3M/6M/1Y/2Y/5Y/10Y/20Y/30Y)
+  - 2/10 스프레드 계산값
+
+  verifyFedWatchDetailed(base)
+  - currentRate, yearEnd, 6개 회의 날짜별 홀드/인하 확률
+
+  verifyCOTDetailed(base)
+  - 10개 상품별 네트 OI %
+
+  verifyKoreaFlowDetailed(base)
+  - 외국인/기관/개인 자금흐름
+  - 개별 종목 Korea flow
+
+  verifyAdditionalEndpoints(base)
+  - news, signals, latest, priceHistory, blockTrades, optionsFlow
+
+#### [2] 캐시 키 수정
+- short-interest: v4 → v5 (iter79에서 변경된 캐시 키 반영)
+- macro-indicators: v6 → v10 (iter79에서 변경된 캐시 키 반영)
+- korea-flow: 올바른 v3 키 사용
+
+#### [3] PPI accuracy probe 수정
+- PPIACO → WPSFD49207 (iter79 시리즈 교체 반영)
+
+#### [4] GET 핸들러 리팩터
+- 기존 14개 Promise.all → 20개 병렬 실행
+- 구조분해 할당 업데이트
+
+### 파일 수정
+- src/app/api/cron/verify-metrics/route.ts: +226/-60 lines (1063줄)
+- FEATURES.md, METRICS.md: iter80 반영 필요 (다음 작업)
+
+### TypeScript
+- TypeScript clean OK (npx tsc --noEmit 통과)
+
+### Commits
+- 24550c0 feat(iter80): verify-metrics 전체 커버리지 확장 — 84→250+ 지표 (per-ticker/sector/maturity)
+
+### Open issues (다음 iter 후보)
+- CPI/PPI rateImpact 로직 버그: classify(actual, fc, false)로 CPI miss="higher-than-expected"지만 hawkishOnBeat 로직과 semantic mismatch → 잘못된 hawkish/dovish 표시
+- NFP FRED lag: BLS 228K vs FRED 178K — FRED refresh 후 재확인
+- DaysToCover: FINRA monthly 403 — IEX Cloud 또는 대안 소스 조사
+- 뉴스갭 프리뷰 (접힌 상태 static date 표시) → live 전환
+- fetch timeout 없는 API route들 → zombie request 가능성 감사 필요
