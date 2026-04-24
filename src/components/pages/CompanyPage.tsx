@@ -297,11 +297,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
 
   useEffect(() => {
     if (!ticker) return;
-    let cancelled = false;
-    fetch(`/api/company-financials/${ticker.toUpperCase()}`)
+    const controller = new AbortController();
+    fetch(`/api/company-financials/${ticker.toUpperCase()}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!cancelled && data && data.revenueFormatted) {
+        if (!controller.signal.aborted && data && data.revenueFormatted) {
           setLiveFinancials({
             revenueFormatted: data.revenueFormatted,
             fiscalYear: data.fiscalYear,
@@ -314,7 +314,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
         }
       })
       .catch(() => undefined);
-    return () => { cancelled = true; };
+    return () => controller.abort();
   }, [ticker]);
 
   if (!company) {

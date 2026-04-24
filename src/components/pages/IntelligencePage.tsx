@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { macroNarratives, type MacroNarrative } from '@/data/macro-narratives';
+import type { InstitutionalSignal } from '@/data/institutional-signals';
 import {
   fearGreedByCountry,
   fearGreedByAsset,
@@ -498,6 +499,9 @@ export default function IntelligencePage() {
   const [fgData, setFgData] = useState<LiveFGData | null>(null);
   const [fgLoading, setFgLoading] = useState(false);
 
+  // Live 13F signals for flows tab
+  const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[] | null>(null);
+
   useEffect(() => {
     if (activeTab !== 'fear-greed' || fgData) return;
     const controller = new AbortController();
@@ -509,6 +513,39 @@ export default function IntelligencePage() {
       .finally(() => { if (!controller.signal.aborted) setFgLoading(false); });
     return () => controller.abort();
   }, [activeTab, fgData]);
+
+  useEffect(() => {
+    if (activeTab !== 'flows' || liveSignals !== null) return;
+    const controller = new AbortController();
+    fetch('/api/signals', { signal: controller.signal })
+      .then(r => r.json())
+      .then(d => { if (!controller.signal.aborted) setLiveSignals(d.signals ?? []); })
+      .catch(() => { if (!controller.signal.aborted) setLiveSignals([]); });
+    return () => controller.abort();
+  }, [activeTab, liveSignals]);
+
+  const liveSectorFlows = useMemo(() => {
+    if (!liveSignals?.length) return [];
+    const SECTOR_KO: Record<string, string> = {
+      'semiconductors': '반도체', 'ai-cloud': 'AI·클라우드', 'ev-battery': '전기차·배터리',
+      'defense': '방산', 'financials': '금융', 'materials': '소재', 'pharma-biotech': '바이오·제약',
+    };
+    const byS: Record<string, { buys: number; sells: number; tickers: Set<string> }> = {};
+    for (const s of liveSignals) {
+      if (!s.sector) continue;
+      if (!byS[s.sector]) byS[s.sector] = { buys: 0, sells: 0, tickers: new Set() };
+      if (s.action === 'accumulating' || s.action === 'new_position') byS[s.sector].buys++;
+      else byS[s.sector].sells++;
+      byS[s.sector].tickers.add(s.ticker);
+    }
+    return Object.entries(byS)
+      .map(([sector, d]) => ({
+        sector, ko: SECTOR_KO[sector] ?? sector,
+        buys: d.buys, sells: d.sells, net: d.buys - d.sells,
+        tickers: Array.from(d.tickers).slice(0, 4),
+      }))
+      .sort((a, b) => b.net - a.net);
+  }, [liveSignals]);
 
   const liveCountry = (fgData?.byCountry ?? fearGreedByCountry) as FearGreedEntryExtended[];
   const liveAsset = (fgData?.byAsset ?? fearGreedByAsset) as FearGreedEntryExtended[];
@@ -573,6 +610,52 @@ export default function IntelligencePage() {
         {/* Tab: 비밀 머니 흐름 */}
         {activeTab === 'flows' && (
           <div className="space-y-6">
+            {/* Live 13F sector pulse */}
+            {liveSectorFlows.length > 0 && (
+              <div>
+                <h2 className="text-base font-heading font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-cf-primary" />
+                  Live 13F 섹터 신호
+                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">실시간</span>
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {liveSectorFlows.map(f => (
+                    <div key={f.sector} className={`rounded-xl border p-3 flex items-center gap-3 ${f.net > 0 ? 'border-green-200 bg-green-50/40' : f.net < 0 ? 'border-red-200 bg-red-50/40' : 'border-gray-200 bg-gray-50/40'}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${f.net > 0 ? 'bg-green-100 text-green-700' : f.net < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {f.net > 0 ? '순매수' : f.net < 0 ? '순매도' : '중립'}
+                          </span>
+                          <span className="text-xs font-bold text-cf-text-primary truncate">{f.ko}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-cf-text-secondary">
+                          <span className="text-green-600">↑{f.buys}</span>
+                          <span className="text-red-600">↓{f.sells}</span>
+                          <span className="text-cf-text-secondary/60">|</span>
+                          {f.tickers.map(tk => (
+                            <Link key={tk} href={`/company/${tk}`} className="font-mono text-cf-primary hover:underline">{tk}</Link>
+                          ))}
+                        </div>
+                      </div>
+                      <div className={`text-lg font-black tabular-nums ${f.net > 0 ? 'text-green-600' : f.net < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                        {f.net > 0 ? '+' : ''}{f.net}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-cf-text-secondary mt-2">
+                  EDGAR 13F-HR 기반 · 매일 02:00 UTC 자동갱신 · 순신호 = 매수건 − 매도건
+                </p>
+              </div>
+            )}
+            {liveSignals === null && (
+              <div className="flex items-center gap-2 text-cf-text-secondary text-xs py-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                13F 신호 로딩중...
+              </div>
+            )}
+
+            {/* Editorial smart money context */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h2 className="text-base font-heading font-bold text-green-700 mb-3 flex items-center gap-2">
@@ -594,7 +677,7 @@ export default function IntelligencePage() {
               </div>
             </div>
             <p className="text-xs text-cf-text-secondary text-center">
-              데이터 소스: SEC 13F 공시 + 기관 포지션 변화 분석 · 매일 새벽 3시 자동 업데이트
+              테마 분석: SEC 13F 공시 + 시장 리서치 기반 에디토리얼 컨텍스트 (2026-04-16 기준)
             </p>
           </div>
         )}

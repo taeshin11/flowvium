@@ -1,0 +1,38 @@
+## Iter 15 — Discord 알림 시스템 신설 (#309-310 ⛔→🔄)
+Date: 2026-04-24
+Primary outcome: Discord 웹훅 알림 cron 신설
+
+### 정확성 프로브 (verify-metrics 대리)
+- F&G US: ours=66 vs CNN=66 (Δ0) → OK
+- 10Y-2Y yield spread: ours=0.51 vs FRED=0.51 (Δ0.00) → OK
+
+### 작업 내용
+- `/api/cron/send-alerts/route.ts` 신설 (156 lines)
+- Alert 조건:
+  - F&G US ≤25 (극단적 공포)
+  - F&G US ≥75 (극단적 탐욕)
+  - VIX ≥30 (고공포)
+  - VIX ≥25 (주의 구간)
+- Redis에서 `flowvium:fg:v5:us`, `flowvium:volatility:v1` 직접 읽기
+- 24h 쿨다운: `flowvium:discord-alert:{type}:{YYYY-MM-DD}` 키
+- `DISCORD_WEBHOOK_URL` 미설정 시 무음 스킵 (CLAUDE.md "유료 API 키 입력 요구 금지" 규칙 준수 — Discord 웹훅은 무료이나 env 설정 필요)
+- `CRON_SECRET` Bearer 인증
+- vercel.json에 `0 */4 * * *` 스케줄 추가
+- TypeScript 오류 없음
+
+### 상태 변경
+- METRICS.md #309: ⛔ → 🔄 cron
+- METRICS.md #310: ⛔ → 🔄 cron
+- 🔄 cron: ~18 → ~20
+- ⛔ missing: ~7 → ~5
+- 활성 비율: 92.9% → 93.5%
+
+### Drift check
+- 최근 5 커밋: discord-alerts(신규), eco-calendar(MacroIndicators), docs, metrics-fix, dynamic imports
+- 같은 영역 3+ iter 연속: 없음
+- Primary metric 정체: 없음
+- "나중에" 3+ deferred: 없음
+- 인프라 블로커 2+: 없음
+
+### Commit
+54aaae1 feat(discord-alerts): F&G 극단 + VIX 고공포 Discord 웹훅 알림 (#309-310 ⛔→🔄)

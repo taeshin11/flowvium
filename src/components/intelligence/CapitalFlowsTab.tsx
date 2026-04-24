@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import {
@@ -300,23 +300,31 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [genTime, setGenTime] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const load = () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setError(false);
-    fetch(`/api/flow-analysis?tf=${tf}`)
+    fetch(`/api/flow-analysis?tf=${tf}`, { signal: controller.signal })
       .then(r => r.json())
       .then(d => {
+        if (controller.signal.aborted) return;
         setAnalysis(d.analysis ?? null);
         setGenTime(d.generatedAt ?? null);
         setLoaded(true);
         if (!d.analysis) setError(true);
       })
-      .catch(() => { setError(true); setLoaded(true); })
-      .finally(() => setLoading(false));
+      .catch(() => { if (!controller.signal.aborted) { setError(true); setLoaded(true); } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
   };
 
-  useEffect(() => { setLoaded(false); setAnalysis(null); setError(false); }, [tf]);
+  useEffect(() => {
+    abortRef.current?.abort();
+    setLoaded(false); setAnalysis(null); setError(false);
+  }, [tf]);
 
   if (!loaded && !loading) {
     return (
