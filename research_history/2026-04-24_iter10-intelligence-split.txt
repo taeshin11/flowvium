@@ -1,0 +1,51 @@
+## FlowVium Loop Iter 10 — 2026-04-24
+
+### Drift Check
+- Last 5 commits: refactor(intelligence) / feat(verify-metrics) / fix(SYSTEM) / fix(news-cascade) / feat(report)
+- Areas: intelligence-page / health / fetch-cache / news / report → all different
+- No single area hit 3+ consecutive iters → CLEAN
+
+### Primary Outcome: IntelligencePage 탭 분리
+
+---
+
+### 7. IntelligencePage Bundle Split
+
+**규모**: 2668 → 691줄 (-74%), 4개 독립 파일 생성
+
+**새 파일:**
+| 파일 | 줄수 | 포함 내용 |
+|-----|------|----------|
+| `src/components/intelligence/CapitalFlowsTab.tsx` | 903 | FlowIntensityPanel, FlowAnalysisPanel, ReturnBar, 자금흐름 인터페이스 |
+| `src/components/intelligence/MacroIndicatorsTab.tsx` | 462 | FedWatchSection (AbortController 추가 완료), LaymanBox, 경제지표 |
+| `src/components/intelligence/CreditBalanceTab.tsx` | 417 | MiniSparkline, GdpRatioGauge, RISK_COLORS, 신용잔고 |
+| `src/components/intelligence/NewsCascadeTab.tsx` | 119 | 뉴스 Cascade 탭 |
+
+**기법**: `next/dynamic(() => import(...), { ssr: false })` — 클라이언트 컴포넌트 내에서도
+별도 청크 생성됨. 탭 미방문 시 해당 JS 미로드.
+
+**추가 정리:**
+- `scripts/add-watchlist-i18n.js`, `scripts/add-company-news-i18n.js` 삭제 (일회성 완료)
+- FedWatchSection: 기존 AbortController 없이 bare fetch → AbortController 추가 (zombie 방지)
+
+**Commit**: `a782634`
+
+---
+
+### Accuracy Probe (iter10)
+- 이번 iter는 렌더링/번들 최적화만 — 데이터 소스 변경 없음
+- SPY 외부 직접: $708.45 (Yahoo Finance)
+- [accuracy probe] metric=stock.SPY source=Yahoo direct_value=708.45 our_value=708.45 delta=0 → OK
+- TypeScript: 에러 0개 (tsc --noEmit clean)
+
+---
+
+### Rule [3c] 충족: 삭제/단순화
+- IntelligencePage.tsx 1,977줄 코드 이동 (탭별 관심사 분리)
+- 일회성 스크립트 2개 삭제
+- FedWatchSection zombie process 수정 (미감지 버그)
+
+### Remaining ⛔ (9 items)
+#309-310 Discord alerts, #311-313 Polygon realtime (🔒),
+#314 ETF absolute inflows, #318-319 Vol surface (🔒), #320 Sector P/E (Yahoo v10 blocked),
+#323 Economic consensus calendar (Bloomberg ECO)
