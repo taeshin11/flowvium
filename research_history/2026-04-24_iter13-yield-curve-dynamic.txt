@@ -1,0 +1,59 @@
+## FlowVium Loop Iter 13 — 2026-04-24
+
+### Drift Check
+- Last 5 commits: docs(iter12) / feat(sector-pe) / fix(zombie) / docs(iter11) / feat(market-caps)
+- Areas: research / sector-pe / zombie / research / market-caps → all different
+- No 3+ consecutive → CLEAN
+
+### Primary Outcome: FRED_API_KEY 없이 yield curve + next/dynamic 3건
+
+---
+
+### Accuracy Probe (iter13)
+- SPY Yahoo direct: $708.45 → FlowVium: $708.45 → delta=0 → OK
+- [accuracy probe] metric=stock.SPY source=Yahoo direct_value=708.45 our_value=708.45 delta=0 → OK
+
+---
+
+### 1. Yield Curve CSV Fallback
+
+**이슈**: macro-indicators의 `fetchYieldCurve()`가 FRED_API_KEY 없으면 즉시 empty 반환
+→ yield curve 섹션이 완전히 비어 표시
+
+**수정**: FRED API key 없을 때 `fetchLatest(DGS*)` (CSV 엔드포인트, 인증 불필요)로 fallback
+- `fetchFREDCsv`: 이미 CPI/PCE/PPI 등에서 auth 없이 사용 중 (검증됨)
+- DGS1MO / DGS3MO / DGS6MO / DGS1 / DGS2 / DGS5 / DGS10 / DGS20 / DGS30
+
+**결과**: FRED_API_KEY 없는 환경(개발/테스트)에서도 yield curve 데이터 표시
+**Commit**: `7099e15`
+
+---
+
+### 2. next/dynamic 3건 추가
+
+| 파일 | 컴포넌트 | 크기 | 트리거 |
+|-----|---------|------|--------|
+| CompanyPage.tsx | SupplyChainMap | 476줄 | "Terminal View" 버튼 클릭 |
+| NewsGapPage.tsx | StockSupplyModal | 443줄 | 수급 버튼 클릭 |
+| SignalsPage.tsx | StockSupplyModal | 443줄 | 수급 버튼 클릭 |
+
+3개 페이지의 초기 JS 번들에서 ~1300줄 분리.
+**Commit**: `b0426c7`
+
+---
+
+### 3. METRICS.md 요약 통계 보정
+
+- ⛔ missing: ~13 → ~8 (iter11-13에서 #314→🔒, #320→💾 전환 반영)
+
+**TypeScript**: 에러 0개 (tsc --noEmit clean)
+
+---
+
+### Rule [3c] 충족
+- Yield curve: "없으면 empty" → "CSV로 fallback" (실패 경로 제거)
+- next/dynamic: 조건부 렌더 컴포넌트 정적 import 제거
+
+### Remaining ⛔ (~8개)
+#309-310 Discord, #311-313 Polygon (🔒), #312-313 실시간 호가/거래량,
+#318-319 Vol surface (🔒), #323 Economic calendar (Bloomberg ECO)
