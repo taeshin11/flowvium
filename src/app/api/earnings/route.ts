@@ -10,7 +10,7 @@
  *
  * 환경변수: FINNHUB_KEY
  *
- * Redis cache: `flowvium:earnings:v1:{from}:{to}` — 2h
+ * Redis cache: `flowvium:earnings:v2:{from}:{to}` — 2h
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
@@ -59,13 +59,14 @@ function hourToSession(h: FinnhubEarning['hour']): EarningRow['session'] {
 }
 
 function enrichRow(e: FinnhubEarning): EarningRow {
+  // Guard: |estimate| < 0.01 produces misleading extreme % (e.g. INTC +3052% when estimate=$0.009)
   const epsSurprise =
-    e.epsActual != null && e.epsEstimate != null && e.epsEstimate !== 0
-      ? Math.round(((e.epsActual - e.epsEstimate) / Math.abs(e.epsEstimate)) * 1000) / 10
+    e.epsActual != null && e.epsEstimate != null && Math.abs(e.epsEstimate) >= 0.01
+      ? Math.max(-999, Math.min(999, Math.round(((e.epsActual - e.epsEstimate) / Math.abs(e.epsEstimate)) * 1000) / 10))
       : null;
   const revenueSurprise =
     e.revenueActual != null && e.revenueEstimate != null && e.revenueEstimate !== 0
-      ? Math.round(((e.revenueActual - e.revenueEstimate) / Math.abs(e.revenueEstimate)) * 1000) / 10
+      ? Math.max(-999, Math.min(999, Math.round(((e.revenueActual - e.revenueEstimate) / Math.abs(e.revenueEstimate)) * 1000) / 10))
       : null;
   return { ...e, epsSurprise, revenueSurprise, session: hourToSession(e.hour) };
 }
@@ -86,7 +87,7 @@ export async function GET(req: Request) {
 
   const key = process.env.FINNHUB_KEY?.trim();
   const redis = createRedis();
-  const cacheKey = `flowvium:earnings:v1:${from}:${to}`;
+  const cacheKey = `flowvium:earnings:v2:${from}:${to}`;
 
   if (redis) {
     try {
