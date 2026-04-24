@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v6:${country}:${hour}`;  // v6: Yahoo v8 batched
+  const cacheKey = `flowvium:heatmap:v7:${country}:${hour}`;  // v7: Stooq stocks + Yahoo v8 indices
   const redis = createRedis();
 
   if (!force) {
