@@ -16,6 +16,8 @@ import { Redis } from '@upstash/redis';
 import { institutionalSignals } from '@/data/institutional-signals';
 import { createMemoryCache } from '@/lib/memory-cache';
 
+export const maxDuration = 60;
+
 const CACHE_KEY = 'flowvium:short-interest:v3';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };

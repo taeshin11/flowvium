@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 
+export const maxDuration = 60;
+
 // ── Redis cache (30-day TTL for translations) ─────────────────────────────────
 const CACHE_TTL = 30 * 24 * 60 * 60;
 

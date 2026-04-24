@@ -17,6 +17,7 @@ import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const CACHE_TTL = 2 * 60 * 60; // 2h
 const ALLOWED_SPAN_DAYS = 30;

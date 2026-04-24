@@ -3,6 +3,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 import { callAI } from '@/lib/ai-providers';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 const mem = createMemoryCache<object>('company-news', CACHE_TTL_MS);

@@ -11,6 +11,8 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 
+export const maxDuration = 60;
+
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=12000, stale-while-revalidate=600' };
 
 function createRedis(): Redis | null {
