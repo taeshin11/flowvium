@@ -730,8 +730,8 @@
 | 298 | 1주/1개월/3개월 전 곡선 오버레이 | ✅ live | FRED 시계열 |
 | 299 | 2s10s 스프레드 시계열 (90일) | ✅ live | FRED 파생 |
 | 300 | 3m10y 스프레드 시계열 (90일) | ✅ live | FRED 파생 |
-| 301 | TIPS 실질금리 곡선 | ⛔ missing | FRED (다음 iter) |
-| 302 | Breakeven 인플레이션 곡선 | ⛔ missing | 파생 (다음 iter) |
+| 301 | TIPS 실질금리 곡선 (5Y~30Y, 5종) | ✅ live | FRED CSV (DFII5/7/10/20/30) |
+| 302 | Breakeven 인플레이션 (5Y/10Y 90일) | ✅ live | FRED CSV (T5YIE, T10YIE) |
 
 ### 16-3. 실적 캘린더 — ✅ 완료 (2026-04-22)
 

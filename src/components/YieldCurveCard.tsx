@@ -22,6 +22,8 @@ const CURVE_COLORS = {
   quarterAgo: '#8b5cf6',
 };
 
+const BEI_COLORS = { '5Y': '#f97316', '10Y': '#8b5cf6' };
+
 function SpreadBadge({ value, label }: { value: number | null; label: string }) {
   if (value == null) return null;
   const bp = Math.round(value * 100);
@@ -40,6 +42,7 @@ export default function YieldCurveCard() {
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(true);
   const [spreadView, setSpreadView] = useState<'2s10s' | '3m10y'>('2s10s');
+  const [curveView, setCurveView] = useState<'nominal' | 'tips'>('nominal');
 
   useEffect(() => {
     fetch('/api/yield-curve')
@@ -67,8 +70,21 @@ export default function YieldCurveCard() {
   }));
 
   const spreadData = spreadView === '2s10s' ? data.spread2s10s : data.spread3m10y;
-  // Show last 90 data points for the spread chart
   const spreadSlice = spreadData.slice(-90);
+
+  // TIPS: build nominal vs real overlay for matching maturities (5Y,10Y,20Y,30Y)
+  const TIPS_LABELS = ['5Y', '10Y', '20Y', '30Y'];
+  const tipsChartData = TIPS_LABELS.map(lbl => {
+    const nominal = data.today.find(p => p.label === lbl)?.value ?? null;
+    const real = (data.tipsToday ?? []).find(p => p.label === lbl)?.value ?? null;
+    return { label: lbl, nominal, real };
+  });
+
+  // BEI time series
+  const beiChartData = (data.bei10y ?? []).slice(-90).map(p => {
+    const b5 = (data.bei5y ?? []).find(b => b.date === p.date);
+    return { date: p.date, bei10y: p.value, bei5y: b5?.value ?? null };
+  });
 
   return (
     <div className="cf-card p-6 space-y-5">
@@ -90,16 +106,21 @@ export default function YieldCurveCard() {
       <div>
         <div className="flex items-center gap-3 mb-3 flex-wrap">
           <span className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider">수익률 곡선</span>
-          <label className="flex items-center gap-1.5 text-xs text-cf-text-secondary cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showHistory}
-              onChange={e => setShowHistory(e.target.checked)}
-              className="accent-cf-primary"
-            />
-            과거 비교
-          </label>
-          {showHistory && (
+          <div className="flex gap-1">
+            {(['nominal', 'tips'] as const).map(v => (
+              <button key={v} onClick={() => setCurveView(v)}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${curveView === v ? 'bg-cf-primary text-white' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}>
+                {v === 'nominal' ? '명목금리' : '실질(TIPS)'}
+              </button>
+            ))}
+          </div>
+          {curveView === 'nominal' && (
+            <label className="flex items-center gap-1.5 text-xs text-cf-text-secondary cursor-pointer">
+              <input type="checkbox" checked={showHistory} onChange={e => setShowHistory(e.target.checked)} className="accent-cf-primary" />
+              과거 비교
+            </label>
+          )}
+          {curveView === 'nominal' && showHistory && (
             <div className="flex flex-wrap gap-3 text-[11px]">
               {Object.entries(CURVE_COLORS).map(([k, c]) => (
                 <span key={k} className="flex items-center gap-1">
@@ -109,29 +130,42 @@ export default function YieldCurveCard() {
               ))}
             </div>
           )}
+          {curveView === 'tips' && (
+            <div className="flex flex-wrap gap-3 text-[11px]">
+              <span className="flex items-center gap-1">
+                <span className="w-5 h-1 rounded-full inline-block" style={{ backgroundColor: CURVE_COLORS.today }} />명목금리
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-5 h-1 rounded-full inline-block" style={{ backgroundColor: '#ef4444' }} />실질금리(TIPS)
+              </span>
+            </div>
+          )}
         </div>
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={curveData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis
-                domain={['auto', 'auto']}
-                tick={{ fontSize: 11 }}
-                tickFormatter={v => `${v}%`}
-                width={45}
-              />
-              <Tooltip
-                formatter={(v) => v != null ? `${(+v).toFixed(2)}%` : '-'}
-                contentStyle={{ fontSize: 12 }}
-              />
-              <Line dataKey="today" name="현재" stroke={CURVE_COLORS.today} strokeWidth={2.5} dot={false} connectNulls />
-              {showHistory && <>
-                <Line dataKey="weekAgo" name="1주 전" stroke={CURVE_COLORS.weekAgo} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
-                <Line dataKey="monthAgo" name="1개월 전" stroke={CURVE_COLORS.monthAgo} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
-                <Line dataKey="quarterAgo" name="3개월 전" stroke={CURVE_COLORS.quarterAgo} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
-              </>}
-            </LineChart>
+            {curveView === 'nominal' ? (
+              <LineChart data={curveData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} width={45} />
+                <Tooltip formatter={(v) => v != null ? `${(+v).toFixed(2)}%` : '-'} contentStyle={{ fontSize: 12 }} />
+                <Line dataKey="today" name="현재" stroke={CURVE_COLORS.today} strokeWidth={2.5} dot={false} connectNulls />
+                {showHistory && <>
+                  <Line dataKey="weekAgo" name="1주 전" stroke={CURVE_COLORS.weekAgo} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
+                  <Line dataKey="monthAgo" name="1개월 전" stroke={CURVE_COLORS.monthAgo} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
+                  <Line dataKey="quarterAgo" name="3개월 전" stroke={CURVE_COLORS.quarterAgo} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
+                </>}
+              </LineChart>
+            ) : (
+              <LineChart data={tipsChartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} width={45} />
+                <Tooltip formatter={(v) => v != null ? `${(+v).toFixed(2)}%` : '-'} contentStyle={{ fontSize: 12 }} />
+                <Line dataKey="nominal" name="명목금리" stroke={CURVE_COLORS.today} strokeWidth={2} strokeDasharray="4 2" dot={false} connectNulls />
+                <Line dataKey="real" name="실질금리(TIPS)" stroke="#ef4444" strokeWidth={2.5} dot={false} connectNulls />
+              </LineChart>
+            )}
           </ResponsiveContainer>
         </div>
       </div>
@@ -188,6 +222,39 @@ export default function YieldCurveCard() {
         </div>
       )}
 
+      {/* Breakeven Inflation section */}
+      {beiChartData.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <span className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider">기대 인플레이션 (Breakeven)</span>
+            <div className="flex gap-3 text-[11px]">
+              {(['5Y', '10Y'] as const).map(k => {
+                const cur = k === '5Y' ? data.bei5yCurrent : data.bei10yCurrent;
+                return (
+                  <span key={k} className="flex items-center gap-1">
+                    <span className="w-4 h-1 rounded-full inline-block" style={{ backgroundColor: BEI_COLORS[k] }} />
+                    <span>{k}:</span>
+                    <span className="font-bold text-cf-text-primary">{cur != null ? `${cur.toFixed(2)}%` : '-'}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          <div className="h-28">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={beiChartData} margin={{ top: 4, right: 5, bottom: 4, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} interval={Math.floor(beiChartData.length / 6)} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(+v).toFixed(1)}%`} width={40} domain={['auto', 'auto']} />
+                <Tooltip formatter={(v) => v != null ? `${(+v).toFixed(2)}%` : '-'} contentStyle={{ fontSize: 11 }} />
+                <Line dataKey="bei5y" name="5Y BEI" stroke={BEI_COLORS['5Y']} strokeWidth={1.5} dot={false} connectNulls />
+                <Line dataKey="bei10y" name="10Y BEI" stroke={BEI_COLORS['10Y']} strokeWidth={1.5} dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Yield table */}
       <div className="grid grid-cols-3 sm:grid-cols-9 gap-1">
         {data.today.map(pt => (
@@ -199,7 +266,7 @@ export default function YieldCurveCard() {
       </div>
 
       <p className="text-[10px] text-cf-text-secondary/50">
-        출처: FRED (Federal Reserve Bank of St. Louis) · 1h 캐시 · 미국 재무부 국채 수익률
+        출처: FRED (Federal Reserve Bank of St. Louis) · 1h 캐시 · 명목/TIPS 국채 수익률 · Breakeven = T5YIE/T10YIE
       </p>
     </div>
   );

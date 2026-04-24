@@ -38,6 +38,21 @@ const SERIES: { label: string; id: string; years: number }[] = [
   { label: '30Y', id: 'DGS30',   years: 30   },
 ];
 
+// TIPS real yield series (5 maturities, 5Y–30Y)
+const TIPS_SERIES: { label: string; id: string; years: number }[] = [
+  { label: '5Y',  id: 'DFII5',  years: 5  },
+  { label: '7Y',  id: 'DFII7',  years: 7  },
+  { label: '10Y', id: 'DFII10', years: 10 },
+  { label: '20Y', id: 'DFII20', years: 20 },
+  { label: '30Y', id: 'DFII30', years: 30 },
+];
+
+// Explicit FRED breakeven series (daily, 5Y and 10Y)
+const BEI_SERIES: { label: string; id: string }[] = [
+  { label: '5Y',  id: 'T5YIE'  },
+  { label: '10Y', id: 'T10YIE' },
+];
+
 export interface YieldPoint {
   label: string;
   years: number;
@@ -59,6 +74,13 @@ export interface YieldCurveData {
   spread2s10sCurrent: number | null;
   spread3m10yCurrent: number | null;
   inverted: boolean;
+  // TIPS real yield curve (latest date)
+  tipsToday: YieldPoint[];
+  // Breakeven inflation time series (90 days)
+  bei5y: SpreadPoint[];
+  bei10y: SpreadPoint[];
+  bei5yCurrent: number | null;
+  bei10yCurrent: number | null;
   dataDate: string | null;
   updatedAt: string;
   cached: boolean;
@@ -107,7 +129,7 @@ async function fetchSeries(id: string, cosd: string, coed: string): Promise<Map<
 }
 
 export async function GET() {
-  const cacheKey = 'flowvium:yield-curve:v1';
+  const cacheKey = 'flowvium:yield-curve:v2';
   const redis = createRedis();
 
   const mem = MEM_CACHE.get('us');
@@ -126,8 +148,12 @@ export async function GET() {
   const cosd = new Date(today.getTime() - 200 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const start = Date.now();
-  const maps = await Promise.all(SERIES.map(s => fetchSeries(s.id, cosd, coed)));
-  logger.info('yield-curve', 'fetched', { series: SERIES.length, durationMs: Date.now() - start });
+  const [maps, tipsMaps, beiMaps] = await Promise.all([
+    Promise.all(SERIES.map(s => fetchSeries(s.id, cosd, coed))),
+    Promise.all(TIPS_SERIES.map(s => fetchSeries(s.id, cosd, coed))),
+    Promise.all(BEI_SERIES.map(s => fetchSeries(s.id, cosd, coed))),
+  ]);
+  logger.info('yield-curve', 'fetched', { series: SERIES.length + TIPS_SERIES.length + BEI_SERIES.length, durationMs: Date.now() - start });
 
   const seriesMaps = Object.fromEntries(SERIES.map((s, i) => [s.label, maps[i]]));
 
@@ -179,6 +205,29 @@ export async function GET() {
   const sp2s10s = last10y != null && last2y != null ? parseFloat((last10y - last2y).toFixed(3)) : null;
   const sp3m10y = last10y != null && last3m != null ? parseFloat((last10y - last3m).toFixed(3)) : null;
 
+  // TIPS curve for latest date
+  const tipsMapsById = Object.fromEntries(TIPS_SERIES.map((s, i) => [s.label, tipsMaps[i]]));
+  const tipsToday: YieldPoint[] = TIPS_SERIES.map(s => ({
+    label: s.label,
+    years: s.years,
+    value: latestDate ? closestValueOnOrBefore(tipsMapsById[s.label], latestDate) : null,
+  }));
+
+  // Breakeven inflation time series (last 90 days)
+  const bei5yMap = beiMaps[0];
+  const bei10yMap = beiMaps[1];
+  const beiDates = Array.from(bei10yMap.keys()).sort();
+  const bei5ySlice = beiDates.slice(-90).flatMap(d => {
+    const v = bei5yMap.get(d);
+    return v != null ? [{ date: d, value: parseFloat(v.toFixed(3)) }] : [];
+  });
+  const bei10ySlice = beiDates.slice(-90).flatMap(d => {
+    const v = bei10yMap.get(d);
+    return v != null ? [{ date: d, value: parseFloat(v.toFixed(3)) }] : [];
+  });
+  const bei5yCurrent = latestDate ? closestValueOnOrBefore(bei5yMap, latestDate) : null;
+  const bei10yCurrent = latestDate ? closestValueOnOrBefore(bei10yMap, latestDate) : null;
+
   const data: YieldCurveData = {
     today: todayCurve,
     weekAgo: weekAgoCurve,
@@ -189,6 +238,11 @@ export async function GET() {
     spread2s10sCurrent: sp2s10s,
     spread3m10yCurrent: sp3m10y,
     inverted: sp2s10s != null && sp2s10s < 0,
+    tipsToday,
+    bei5y: bei5ySlice,
+    bei10y: bei10ySlice,
+    bei5yCurrent,
+    bei10yCurrent,
     dataDate: latestDate,
     updatedAt: new Date().toISOString(),
     cached: false,

@@ -241,6 +241,15 @@
 - **매출 세그먼트 테이블** (행 펼치기 지원)
   - 세그먼트명·금액·비중·바·주요 고객
 
+#### 재무 심화 (Bloomberg FI 갭 해소)
+**데이터**: `/api/company-financials/[ticker]` (SEC XBRL 무키, 1h 캐시)
+
+- KPI 그리드 8항목: 매출·영업이익·순이익·EPS / 영업이익률·ROE·ROA·부채비율
+- 5개년 매출+순이익 추이 BarChart
+- 대차대조표 (자산·부채·자기자본)
+- 현금흐름표 (영업·투자·재무)
+- 투자·주주환원 (R&D·CapEx·자사주·배당)
+
 #### R&D 파이프라인
 - 단계 배지 (Research / Development / Validation / Commercial)
 - 프로젝트명·설명·목표일·예산
@@ -543,6 +552,17 @@
 
 ### 13-5. AI Outlook 바
 - "🔮 AI Outlook" + 아웃룩 텍스트
+
+### 13-6. 미국 금리 커브 카드 (`YieldCurveCard`, 동적 로드)
+**파일**: `src/components/YieldCurveCard.tsx`  
+**데이터**: `/api/yield-curve` (FRED CSV 무키, 1h Redis 캐시)
+
+- 현재 · 1주 전 · 1개월 전 · 3개월 전 수익률 곡선 4선 오버레이 (과거 비교 토글)
+- 수익률 테이블 (1M~30Y, 9 만기)
+- 2s10s · 3m10y 스프레드 배지 (역전 시 빨간 경보)
+- 스프레드 시계열 Area 차트 (최근 90일) — 2s10s/3m10y 탭 전환
+- TIPS 실질금리 곡선 (5Y~30Y, 5 만기) — 탭 전환
+- Breakeven 인플레이션 (5Y, 10Y 일별 시계열 90일)
 
 ---
 
