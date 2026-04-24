@@ -1,0 +1,82 @@
+ITER99 — i18n explore.sectors 8개 번역 누락 수정 (15개 언어)
+Date: 2026-04-25
+Commit: 6d4b76e
+Primary outcome: 비한국어 사용자 섹터 필터 UI 복구 (15개 언어 × 8개 섹터)
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════════════
+iter96=OSINT cache, iter97=aggregator, iter98=flow-analysis, iter99=i18n
+→ 4개 iter 서로 다른 영역. Drift 없음.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"섹터 i18n 15개 언어 누락 복구"
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM
+═══════════════════════════════════════════════════════════════════════
+messages/ko.json에는 explore.sectors.{healthcare, industrials,
+communication-services, real-estate, materials, utilities,
+consumer-discretionary, it-software} 8개 키가 있음.
+
+다른 15개 언어 파일 전부 이 8개 키 누락.
+
+영향:
+- ExplorePage.tsx:456: t(`sectors.${s.id}`) → 키 없으면 raw ID 또는 빈 문자열 표시
+- CascadeDetailPage.tsx:111: 같은 패턴 사용
+- sectors.ts에 16개 sector 모두 정의되어 있음 (ko만 번역, 나머지 15개 미완)
+
+═══════════════════════════════════════════════════════════════════════
+FIX
+═══════════════════════════════════════════════════════════════════════
+Python 스크립트로 15개 언어 파일 일괄 업데이트:
+en / ja / zh-CN / zh-TW / es / fr / de / pt / ru / ar / hi / id / th / tr / vi
+
+각 언어별 적절한 금융 용어 번역 사용:
+- healthcare: GICS 표준 "Health Care" (en), "ヘルスケア" (ja), "医疗保健" (zh-CN) 등
+- consumer-discretionary: 주요 금융 용어 (Consumer Discretionary, 非必需消费品 등)
+- communication-services: 업계 표준 (Communication Services, コミュニケーション・サービス 등)
+
+검증: 16개 파일 전부 ko.json 732개 키와 완전 동기화 확인.
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=fg.US source=CNN
+  direct_value=66 our_value=66 delta=0 → OK
+
+[accuracy probe] metric=cpi.yoy source=BLS
+  direct_value=3.26% our_value=3.29% delta=0.03pp → OK
+
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.71 delta=0.00 → OK
+
+═══════════════════════════════════════════════════════════════════════
+ADDITIONAL FINDINGS (미수정)
+═══════════════════════════════════════════════════════════════════════
+CapitalFlowsTab.tsx에 다수 하드코딩 한국어 UI 문자열 발견:
+  "수급 강도 & Cascade 영향", "자산/국가", "방향성", "AI 자금흐름 원인 분석" 등
+  → CLAUDE.md 위반이나 대규모 리팩터 필요. 별도 iter에서 일괄 처리 권장.
+
+TypeScript: 0 오류 (전체 codebase)
+System health: 184/189 OK (미변화)
+
+═══════════════════════════════════════════════════════════════════════
+TOTAL PROGRESS (iter93~99)
+═══════════════════════════════════════════════════════════════════════
+iter93: sector-pe P/E live (Yahoo v10 crumb)
+iter94: Gemini quota guard + news-cascade tiered TTL
+iter95: update-all daily-brief 중복 5,400 tokens/day 절약
+iter96: OSINT + verify-metrics 9개 fetch cache 누락 수정
+iter97: latest-updates Redis key mismatch 2개 (lrange + v12)
+iter98: flow-analysis 48h stale fallback + probe type fix
+iter99: i18n sector 8×15=120개 번역 동기화
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. CapitalFlowsTab 하드코딩 한국어 → i18n 마이그레이션 (30+ 문자열)
+2. UTC midnight 리셋 후 flow.analysis auto-recover 확인 (KST 09:00~)
+3. Groq TPD 리셋 후 daily-brief 신규 생성 확인
