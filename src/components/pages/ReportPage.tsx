@@ -109,6 +109,7 @@ export default function ReportPage() {
   const [vix,    setVix]    = useState<KpiState<{ ret1w: number; level: number | null }>>({ loading: true, error: false, value: null });
   const [fomc,   setFomc]   = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
   const [hyOas,  setHyOas]  = useState<KpiState<{ value: number }>>({ loading: true, error: false, value: null });
+  const [cycle,  setCycle]  = useState<KpiState<{ label: string; cls: string }>>({ loading: true, error: false, value: null });
   // Sparkline data — 30일 종가. Null-safe, 실패해도 pill 자체엔 영향 없음.
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
   const [vixSpark, setVixSpark] = useState<number[] | null>(null);
@@ -200,10 +201,32 @@ export default function ReportPage() {
           ? { loading: false, error: false, value: { value: hyVal } }
           : { loading: false, error: true, value: null }
         );
+        // Economic cycle regime from GDP + CPI
+        const gdpInd = Array.isArray(j?.indicators) ? j.indicators.find((x: { id?: string }) => x?.id === 'gdp') : null;
+        const cpiInd = Array.isArray(j?.indicators) ? j.indicators.find((x: { id?: string }) => x?.id === 'cpi') : null;
+        const gdpVal: number | null = typeof gdpInd?.actual === 'number' ? gdpInd.actual : null;
+        const cpiVal: number | null = typeof cpiInd?.actual === 'number' ? cpiInd.actual : null;
+        if (!signal.aborted) {
+          if (gdpVal !== null && cpiVal !== null) {
+            const regime = gdpVal < 0 ? 'Recession' :
+              gdpVal < 1.5 && cpiVal > 2.5 ? 'Stagflation' :
+              gdpVal >= 1.5 && cpiVal > 2.5 ? 'Overheating' :
+              gdpVal >= 1.5 && cpiVal <= 2.5 ? 'Goldilocks' : 'Slowdown';
+            const cls = regime === 'Recession' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+              regime === 'Stagflation' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+              regime === 'Overheating' ? 'bg-red-50 text-red-700 border-red-200' :
+              regime === 'Goldilocks' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+              'bg-yellow-50 text-yellow-700 border-yellow-200';
+            setCycle({ loading: false, error: false, value: { label: regime, cls } });
+          } else {
+            setCycle({ loading: false, error: true, value: null });
+          }
+        }
       }).catch(() => {
         if (!signal.aborted) {
           setCurve({ loading: false, error: true, value: null });
           setHyOas({ loading: false, error: true, value: null });
+          setCycle({ loading: false, error: true, value: null });
         }
       });
 
@@ -369,6 +392,14 @@ export default function ReportPage() {
             label={`FOMC ${fomc.value?.label ?? ''}`}
             body={fomc.value ? t('kpiCutProb', { pct: fomc.value.probCut.toFixed(0) }) : '—'}
             cls={fomc.value ? 'bg-violet-50 text-violet-700 border-violet-200' : ''}
+          />
+          {/* Economic cycle regime */}
+          <Pill
+            loading={cycle.loading}
+            error={cycle.error}
+            label="CYCLE"
+            body={cycle.value?.label ?? '—'}
+            cls={cycle.value?.cls ?? ''}
           />
         </div>
 

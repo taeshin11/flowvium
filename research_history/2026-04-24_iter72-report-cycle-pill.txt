@@ -1,0 +1,67 @@
+## Iter 72 — report CYCLE pill 추가
+Date: 2026-04-24
+Primary outcome: report CYCLE pill 추가 (14자)
+
+### Drift check
+- iter69=HomePage, iter70=latest-updates, iter71=latest-updates+send-alerts+health
+- iter72=ReportPage.tsx
+  → ReportPage 마지막 터치: iter60 (12+ iter 전) → drift 없음 OK
+  → 직전 2 iter: cache 수정 작업 → 이번은 다른 컴포넌트 OK
+
+### Accuracy probe (§3)
+이전 iter들에서 확인된 값:
+- [accuracy probe] metric=gdp.actual source=prod_api direct_value=0.5 our_value=0.5 delta=0 → OK
+- [accuracy probe] metric=cpi.actual source=prod_api direct_value=3.29 our_value=3.29 delta=0 → OK
+Regime: gdp=0.5 + cpi=3.29 → Stagflation ✓
+
+### 구현 (`src/components/pages/ReportPage.tsx`)
+
+#### 1. State 추가
+```typescript
+const [cycle, setCycle] = useState<KpiState<{ label: string; cls: string }>>({
+  loading: true, error: false, value: null
+});
+```
+
+#### 2. pMacro.then()에 로직 추가 (추가 fetch 없음)
+```typescript
+const gdpInd = j?.indicators?.find((x) => x?.id === 'gdp');
+const cpiInd = j?.indicators?.find((x) => x?.id === 'cpi');
+const gdpVal = gdpInd?.actual ?? null;
+const cpiVal = cpiInd?.actual ?? null;
+if (gdpVal !== null && cpiVal !== null) {
+  const regime = gdpVal < 0 ? 'Recession' : ...
+  const cls = ... (color mapping)
+  setCycle({ loading: false, error: false, value: { label: regime, cls } });
+}
+```
+
+#### 3. JSX: FOMC pill 뒤에 CYCLE pill 추가
+```tsx
+<Pill loading={cycle.loading} error={cycle.error}
+  label="CYCLE" body={cycle.value?.label ?? '—'}
+  cls={cycle.value?.cls ?? ''} />
+```
+
+#### 에러 처리
+- macro-indicators fetch 실패 시 cycle도 error=true로 설정
+- GDP/CPI 값 없으면 error=true
+
+### 일관성
+- 홈 페이지(iter69)와 동일한 regime 분류 로직 사용
+- 홈: RISK + CYCLE 배지 (strip 형태)
+- 리포트: CYCLE pill (KPI strip 7번째)
+
+### §4 UI 렌더 확인
+- 클라이언트 사이드 렌더 → SSR HTML 미포함 → **미검증**
+- Pill 컴포넌트는 기존 6개 pill과 동일 패턴 → 정상 작동 예상
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 pMacro 재활용)
+- macro-indicators는 daily Redis (v8) → cache: 'no-store' 클라이언트 fetch ✓
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter72: feat(report): CYCLE 경제국면 pill — KPI strip 7번째 (GDP+CPI 합성)

@@ -594,6 +594,7 @@
 | 12-K4 | KPI: VIX 1w 변화 | 💾 cached | `/api/capital-flows` (VIXY/VXX 폴백) |
 | 12-K5 | KPI: 다음 FOMC 인하 확률 | 💾 cached | `/api/fedwatch` (CME) |
 | 12-K6 | KPI: HY OAS (신용 스트레스) | 💾 cached | `/api/macro-indicators` BAMLH0A0HYM2, iter60 |
+| 12-K7 | KPI: CYCLE 경제국면 배지 | 💾 cached | `/api/macro-indicators` GDP+CPI 합성 | iter72 |
 | 12-M1 | 메타: 소스 배지 (GROQ 70b/8b/Gemini/EXAONE/data) | ✅ live | daily-brief.source |
 | 12-M2 | 메타: 신선도 점 + humanized age | ✅ live | generatedAt diff |
 | 12-M3 | 메타: 리스크 레벨 pill (low/medium/high) | 💾 cached | daily-brief.riskLevel |

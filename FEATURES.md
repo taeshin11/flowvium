@@ -597,13 +597,14 @@
 ### 13-1. 타임프레임 셀렉터
 `1w` / `4w` / `13w`
 
-### 13-2. 실시간 KPI 스트립 (6 pills, 각 독립 실패 허용) ← iter60: HY OAS pill 추가
+### 13-2. 실시간 KPI 스트립 (7 pills, 각 독립 실패 허용) ← iter60: HY OAS, iter72: CYCLE
 - F&G (US CNN score) — >70 red / >55 amber / >=45 gray / <45 blue
 - **SPY 1w 수익률 + 30일 인라인 sparkline** — 양수 녹색, 음수 적색. 값+추세 동시 표시.
 - 10Y-2Y 스프레드 (bp) — 역전 시 적색
 - **HY OAS** (ICE BofA High Yield) — >5% 빨강 / >4% 황색 / <4% 초록 ← iter60
 - VIX 1w 변화 — VIXY/VXX/^VIX 폴백
 - 다음 FOMC 금리 인하 확률 (probCut25+50+75)
+- **CYCLE 경제국면** (GDP+CPI): Stagflation/Goldilocks/Overheating/Slowdown/Recession ← iter72
 
 **Sparkline 지원**: `@/components/Sparkline` — deps-free SVG polyline. 데이터 소스는
 `/api/price-history?ticker=X&days=N` (Stooq daily CSV, Redis 1h + memory 30min 캐시).
