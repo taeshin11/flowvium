@@ -1,0 +1,55 @@
+## Iter 38 — 좀비 코드 삭제 + marketCap 수정 + CIK_MAP 확장
+Date: 2026-04-24
+Primary outcome: 좀비 코드 삭제 + 실제 버그(marketCap=null) 수정
+
+### Drift check
+- iter 36: heatmap non-US prices
+- iter 37: InsiderPage tabs + Stooq skip (다른 영역 ✓)
+- iter 38: stock-supply 클린업 (다른 영역 ✓)
+- 히트맵 2+ iter 연속 → drift 해소 완료
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=verify-metrics our_value=67 (Δ0 vs CNN) → OK
+- [accuracy probe] metric=fred.yield_spread source=verify-metrics our_value=0.51 (Δ0.00) → OK
+- [accuracy probe] metric=NVDA.marketCap source=Yahoo v8 pre-fix=null → BUGGY → post-fix 배포 후 검증 필요
+
+### 발견된 좀비 코드
+1. `fetchYFHeatmapQuotes()` in yahoo-finance.ts:
+   - v12 이후 market-heatmap에서 import 없음
+   - 정의만 있고 호출 없음 → 삭제
+
+2. `getCompanyCik()` in stock-supply/route.ts:
+   - CIK_MAP 하드코딩으로 우회됨
+   - 실제 코드 경로에서 한 번도 호출 안 됨 → 삭제
+
+3. `fetchKeyStats()` in stock-supply/route.ts:
+   - Yahoo v7 endpoint: Vercel에서 401 반환 (auth 필요)
+   - 항상 null 반환 → 실질적으로 dead code → 삭제
+   - 삭제로 불필요한 6s timeout 회피
+
+### 버그 수정
+- fetchVolumeData() marketCap: `result.meta?.regularMarketPrice ? null : null` → 의도적으로 null
+  → 수정: `(result.meta?.marketCap as number | undefined) ?? null`
+  → Yahoo v8 meta에 marketCap 포함 (US large cap 대상)
+
+### 기타 수정
+- fetchVolumeData fetch(): `cache: 'no-store'` 누락 → Next.js 15 force-cache 버그 방지
+- Cache key: v2 → v3 (response structure 변경)
+
+### CIK_MAP 확장
+- 20 → 80+ 티커 확장
+- 신규 추가: QCOM, TXN, AMAT, KLAC, LRCX, MRVL, ORCL, CRM, ADBE, NOW, INTU, UBER, PLTR,
+  SNOW, SHOP, COIN, MS, BAC, WFC, C, SCHW, V, MA, PYPL, AXP, SPGI, MCO, BA, GE, CAT, DE,
+  HON, UPS, FDX, MMM, LLY, JNJ, PFE, MRK, ABBV, AMGN, GILD, REGN, BIIB, UNH, CVS,
+  XOM, CVX, COP, SLB, WMT, COST, HD, TGT, KO, PEP, PG, MCD, SBUX, NKE, T, VZ, CMCSA, DIS
+
+### 코드 크기 변화
+- 삭제: 95 lines (3개 함수 완전 제거)
+- 추가: 52 lines (CIK_MAP 확장)
+- Net: -43 lines
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- f9ba754: refactor(supply): delete zombie code + fix marketCap + expand CIK_MAP
