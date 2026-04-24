@@ -88,10 +88,10 @@ async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   }
 }
 
-// Module-level TPD guard — marks when Groq ALL models (70b+8b) are TPD-exhausted.
-// Resets at UTC midnight (Groq's TPD window). Serverless: per-instance only, but
-// prevents cascading retry storms within a warm instance's lifetime.
-let groqTpdExhaustedUntil = 0; // epoch ms; 0 = not exhausted
+// Module-level TPD guards — per-instance only, but prevents retry storms within a warm Lambda.
+// Groq resets at UTC midnight. Gemini free-tier quota resets at midnight Pacific (UTC+0 ≈ good enough).
+let groqTpdExhaustedUntil = 0;  // epoch ms; 0 = not exhausted
+let geminiQuotaExhaustedUntil = 0;
 
 /** GROQ 호출 — OpenAI-compatible API. 모델별 배수 다른 TPD 한도 활용:
  *    llama-3.3-70b-versatile : 100k TPD / 12k TPM / 1k RPD  (고품질, 소량)
@@ -186,6 +186,15 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
 
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
+
+  // Skip when quota is exhausted within this Lambda instance
+  if (geminiQuotaExhaustedUntil > Date.now()) {
+    const remainsMs = geminiQuotaExhaustedUntil - Date.now();
+    logger.info(tag, 'gemini_quota_skip', { remainsMs: Math.round(remainsMs / 1000) });
+    diag?.push({ provider: 'gemini', ok: false, error: `gemini_quota_exhausted — skipped (resets in ${Math.round(remainsMs / 60000)}m)`, durationMs: 0 });
+    return null;
+  }
+
   const timeoutMs = opts.timeoutMs ?? 30000;
   try {
     const fullPrompt = opts.systemPrompt ? `${opts.systemPrompt}\n\n${prompt}` : prompt;
@@ -209,7 +218,10 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
     const isQuota = msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED');
     const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
     if (isQuota) {
-      logger.error(tag, 'gemini_quota_exhausted', { error: msg.slice(0, 200), durationMs: Date.now() - t0 });
+      const now = new Date();
+      const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+      geminiQuotaExhaustedUntil = nextMidnight.getTime();
+      logger.error(tag, 'gemini_quota_exhausted', { error: msg.slice(0, 200), durationMs: Date.now() - t0, resetsAt: nextMidnight.toISOString() });
     } else {
       logger.warn(tag, 'gemini_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0, is503 });
     }

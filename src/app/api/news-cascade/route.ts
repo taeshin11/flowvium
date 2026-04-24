@@ -270,12 +270,14 @@ export async function GET() {
     return (imp[b.importance] ?? 2) - (imp[a.importance] ?? 2);
   });
 
-  // 5. Cache the full list — only when at least one article has real AI cascades.
-  // Without this guard, empty-cascade lists are locked in Redis until the daily key expires,
-  // preventing AI analysis from appearing when providers recover mid-day.
+  // 5. Cache the full list — tiered TTL based on whether AI analysis succeeded.
+  //    12h when analysis present (avoid re-burning AI tokens same day).
+  //    1h when no analysis (AI down) — prevents repeated RSS + failed-AI storms,
+  //    while allowing recovery within ~1h when providers come back online.
   const hasRealAnalysis = sorted.some(a => a.cascades.length > 0);
-  if (redis && sorted.length > 0 && hasRealAnalysis) {
-    await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: 12 * 60 * 60 })
+  if (redis && sorted.length > 0) {
+    const ttl = hasRealAnalysis ? 12 * 60 * 60 : 60 * 60;
+    await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: ttl });
   }
 
   return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });
