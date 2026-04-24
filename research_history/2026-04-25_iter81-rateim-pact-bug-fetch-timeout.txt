@@ -1,0 +1,64 @@
+## Iter 81 — rateImpact 로직 역전 버그 수정 + fetch zombie 감사
+Date: 2026-04-25
+Primary outcome: rateImpact버그수정+zombie방지 (18자)
+
+### Drift check
+- iter79=data-accuracy, iter80=verify-metrics, iter81=rateImpact+timeout → 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+
+#### [accuracy probe] 배포 전 production 상태 확인
+- curl https://flowvium.vercel.app/api/macro-indicators
+- 발견: CPI rateImpact=dovish (역전!), PPI rateImpact=dovish (역전!)
+- 발견: GDP rateImpact=hawkish (역전! GDP miss=약한경제=dovish여야 함)
+- 발견: UNRATE rateImpact=hawkish (역전! unemployment miss=높은실업=dovish여야 함)
+- 발견: PPI actual=6.03% (여전히 PPIACO — iter79 미배포)
+- 원인: iter78~79 커밋이 로컬에만 있었고 GitHub push 안 됨
+
+### 버그 분석: rateImpact() 함수 semantic 역전
+
+기존 코드:
+```
+const hawkishOnBeat = ['cpi', 'pce', 'nfp', 'ppi', 'retail', 'iclaims', 'umcsent'];
+const hawkishOnMiss = ['gdp', 'ism', 'unrate'];
+```
+
+오류 추적:
+- CPI: classify(actual=3.3, fc=2.5, higherIsBetter=false) → 'miss' (높은인플레=bad)
+  - hawkishOnBeat → surprise=miss → dovish (역전! CPI miss=높은인플레=매파여야 함)
+- GDP: classify(actual=0.5, fc=0.9, higherIsBetter=true) → 'miss' (낮은GDP=bad)
+  - hawkishOnMiss → surprise=miss → hawkish (역전! GDP miss=약한경제=비둘기여야 함)
+
+수정:
+```
+const hawkishOnBeat = ['nfp', 'retail', 'iclaims', 'umcsent', 'gdp', 'ism', 'unrate'];
+const hawkishOnMiss = ['cpi', 'pce', 'ppi'];
+```
+
+검증:
+- CPI miss (3.3% > 2.5%) → hawkishOnMiss → 매파적 (물가 상회 → 긴축 장기화) ✓
+- NFP beat (228K > 140K) → hawkishOnBeat → 매파적 (긴축 압력) ✓
+- GDP beat → hawkishOnBeat → 매파적 ✓
+- GDP miss → hawkishOnBeat → 비둘기파 ✓
+
+### fetch zombie 감사
+- 53개 AbortSignal.timeout 이미 있음
+- collect/route.ts: webhook fetch 타임아웃 없음 → AbortSignal.timeout(5000) 추가
+- 다른 모든 라우트: 이미 타임아웃 있음
+
+### 중요 발견: iter78~81 미배포
+- git log origin/master..HEAD: 9개 커밋 미푸시
+- git push origin master 실행 → Vercel 배포 트리거
+- 배포 완료 시 iter79 PPI WPSFD49207 fix, iter81 rateImpact fix 적용 예정
+
+### 산출물
+- macro-indicators/route.ts: hawkishOnBeat/hawkishOnMiss 교체, v11 캐시 키, Ko 텍스트 개선
+- collect/route.ts: webhook timeout 추가
+- git push origin master: 9개 커밋 배포
+
+### TypeScript: clean OK
+
+### Open issues
+- NFP: FRED 178K vs BLS 228K lag → iter82에서 dataNote 감지 로직 추가
+- UMCSENT: static=52.2 (April 예비) vs FRED=53.3 (March) — 차이 1.1점, 허용 범위
+- UNRATE: static=4.2 vs FRED=4.3 — 차이 0.1%p, 허용 범위

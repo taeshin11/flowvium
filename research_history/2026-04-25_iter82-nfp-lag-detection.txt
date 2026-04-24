@@ -1,0 +1,46 @@
+## Iter 82 — NFP FRED lag 감지 + dataNote 필드 신설
+Date: 2026-04-25
+Primary outcome: NFP FRED lag 자동감지 (14자)
+
+### Drift check
+- iter80=verify-metrics, iter81=rateImpact+timeout, iter82=nfp-lag → 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+
+#### [accuracy probe] FRED PAYEMS (NFP)
+- FRED: 2026-02-01=158459, 2026-03-01=158637
+- FRED MoM: 158637-158459=178K
+- BLS April 4 공식 발표: 228K (Feb 하향수정 반영)
+- delta: 50K (22.4% 괴리)
+- [accuracy probe] metric=nfp source=FRED direct_value=178K our_static=228K delta=50K → DEGRADED (FRED revision lag)
+- 임계값 15% 초과 → lag detection 발동 → static 228K 사용
+
+#### [accuracy probe] FRED UMCSENT
+- FRED: 2026-03-01=53.3 (March), April 미반영
+- Static: April 예비 52.2 (2026-04-11 발표)
+- delta: 1.1 (2.1%) → 임계값 15% 미만 → lag detection 발동 안 함
+
+#### [accuracy probe] FRED UNRATE
+- FRED: 2026-03-01=4.3%
+- Static: 4.2% (BLS April 3)
+- delta: 0.1%p → 허용 범위
+
+### 산출물
+
+#### [1] MacroIndicator.dataNote 필드 추가
+- interface: `dataNote?: string` 신설
+- 용도: FRED 지연, 전월 수정 지연, 데이터 품질 주석 표시
+
+#### [2] NFP FRED lag 감지 로직
+- 조건: |fredMoM - staticBLS| > |staticBLS| * 0.15 AND static.releaseDate < 60일 전
+- 발동 시: static 값 사용 + dataNote 설정
+- dataNote: "FRED PAYEMS 178K (전월 수정 반영 지연) — BLS 공식 발표 228K 사용 중"
+- liveData: false (lag 감지 시)
+- cache key v11→v12
+
+### TypeScript: clean OK
+
+### Open issues
+- dataNote를 UI에서 표시하는 컴포넌트 업데이트 필요 (MacroIndicatorsTab.tsx)
+- NFP FRED lag: 다음 FRED 업데이트 후 자동해제될 예정
+- verify-metrics: NFP accuracy probe 업데이트 (WPSFD49207처럼 lag 감지 반영)
