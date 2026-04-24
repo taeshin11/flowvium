@@ -670,17 +670,17 @@
 | 280 | nport-holdings:v1 | ✅ live |
 | 281 | options-flow:v1 | ✅ live |
 | 282 | block-trades:v1 | ✅ live |
-| 283 | korea-flow:v1 | ✅ live |
-| 284 | short-interest:v1 | ✅ live |
+| 283 | korea-flow:v2 | ✅ live |
+| 284 | short-interest:v3 | ✅ live |
 | 285 | market-caps:v2 | ✅ live |
-| 286 | fg:v3:SPY | ✅ live |
+| 286 | fg:v5:SPY | ✅ live |
 | 287 | 13f-signals:v1 | ✅ live |
 | 288 | capital-flows:v5:yahoo | ✅ live |
 | 289 | capital-flows:v5:twelve | ✅ live |
 | 290 | macro-indicators:v4:$(date) | ✅ live |
 | 291 | fedwatch:v1:$(hour) | ✅ live |
 | 292 | credit-balance:v2:$(date) | ✅ live |
-| 293 | latest-updates:v2 | ✅ live |
+| 293 | latest-updates:v3 | ✅ live |
 
 ### 15-4. 로그 버퍼
 
