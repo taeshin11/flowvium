@@ -496,8 +496,9 @@
 - 프리셋: 🔥 스퀴즈 후보 / 📊 숏 비율 높은 순
 
 ### 10-3. 스퀴즈 트래커 테이블
-- 컬럼: 티커·기업·섹터·**Short Vol % (FINRA)**·DTC·MoM 변화·기관 액션·스퀴즈 스코어(색상 바)
+- 컬럼: 티커·기업·섹터·**Short Vol % (FINRA)**·DTC·MoM 변화·**PER (TTM)**·기관 액션·스퀴즈 스코어(색상 바)
 - Short Vol % = FINRA 일별 ShortVolume / TotalVolume (Yahoo v10 crumb 불가로 대체)
+- **PER (TTM)** = Finnhub `peBasicExclExtraTTM` — 녹색(<15x) / 주황(>50x) / 기본색(그 외); null 허용
 - 스코어 색상: 🔴 위험(≥70) / 🟡 주의(45~70) / 🔵 보통(25~45) / ⚪ 낮음(<25)
 
 ---

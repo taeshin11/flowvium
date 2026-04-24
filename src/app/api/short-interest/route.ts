@@ -18,7 +18,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 export const maxDuration = 60;
 
-const CACHE_KEY = 'flowvium:short-interest:v3';
+const CACHE_KEY = 'flowvium:short-interest:v4';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 // Redis-less fallback — 30min TTL (short-interest changes twice daily but we
@@ -43,6 +43,7 @@ export interface ShortEntry {
   shortRatio: number | null;
   shortChangeMonthly: number | null;
   instAction: string | null;
+  trailingPE: number | null;         // Finnhub peBasicExclExtraTTM (TTM P/E)
   squeezeScore: number;
 }
 
@@ -131,6 +132,36 @@ async function fetchFinraShortVol(tickers: Set<string>): Promise<Map<string, num
   return map;
 }
 
+/** Fetch trailing P/E from Finnhub metric endpoint (one request per ticker) */
+async function fetchFinnhubPE(tickers: string[]): Promise<Map<string, number>> {
+  const key = process.env.FINNHUB_KEY?.trim();
+  if (!key) return new Map();
+
+  const map = new Map<string, number>();
+  const results = await Promise.allSettled(
+    tickers.map(ticker =>
+      fetch(
+        `https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(ticker)}&metric=all&token=${encodeURIComponent(key)}`,
+        { cache: 'no-store', signal: AbortSignal.timeout(8000) }
+      )
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+        .then((data: { metric?: Record<string, number | null> }) => ({
+          ticker,
+          pe: data?.metric?.peBasicExclExtraTTM ?? data?.metric?.peNormalizedAnnual ?? null,
+        }))
+    )
+  );
+
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value.pe != null && typeof r.value.pe === 'number' && r.value.pe > 0 && r.value.pe < 10000) {
+      map.set(r.value.ticker, parseFloat(r.value.pe.toFixed(1)));
+    }
+  }
+
+  logger.info('api.short-interest', 'finnhub_pe_ok', { fetched: map.size, of: tickers.length });
+  return map;
+}
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -163,11 +194,13 @@ export async function GET(req: Request) {
   const tickers = Array.from(new Set(TRACKED_TICKERS));
   const tickerSet = new Set(tickers);
 
-  // Fetch FINRA short volume data and institutional signals in parallel
-  const [finraMap] = await Promise.allSettled([
+  // Fetch FINRA short volume and Finnhub P/E in parallel
+  const [finraMap, peMap] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
+    fetchFinnhubPE(tickers),
   ]);
   const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
+  const trailingPEMap = peMap.status === 'fulfilled' ? peMap.value : new Map<string, number>();
 
   // Build latest institutional action per ticker from static + EDGAR data
   let liveSignals = institutionalSignals;
@@ -198,6 +231,7 @@ export async function GET(req: Request) {
     const companyName = instNameMap.get(ticker) ?? ticker;
 
     const shortVolPct = shortVolMap.get(ticker) ?? null;
+    const trailingPE = trailingPEMap.get(ticker) ?? null;
     return {
       ticker,
       companyName,
@@ -207,6 +241,7 @@ export async function GET(req: Request) {
       shortRatio: null,
       shortChangeMonthly: null,
       instAction,
+      trailingPE,
       squeezeScore: calcSqueezeScore(null, shortVolPct, null, null, instAction),
     };
   });

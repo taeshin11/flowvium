@@ -671,7 +671,7 @@
 | 281 | options-flow:v1 | ✅ live |
 | 282 | block-trades:v1 | ✅ live |
 | 283 | korea-flow:v2 | ✅ live |
-| 284 | short-interest:v3 | ✅ live |
+| 284 | short-interest:v4 | ✅ live |
 | 285 | market-caps:v2 | ✅ live |
 | 286 | fg:v5:SPY | ✅ live |
 | 287 | 13f-signals:v1 | ✅ live |
@@ -822,7 +822,7 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | E9 | `/api/ownership-alerts` | 13D/13G 대량보유 알림 | ✅ live | SEC EDGAR RSS | Redis 2h |
 | E10 | `/api/nport-holdings` | N-PORT 뮤추얼펀드 보유 | 💾 cached | SEC EDGAR | Redis 24h |
 | E11 | `/api/korea-flow` | 한국 외국인·기관 수급 (KRX) | ✅ live | KRX data.krx.co.kr | Redis 15min |
-| E12 | `/api/short-interest` | FINRA 일별 shortVolPct + EDGAR 13F squeezeScore | 💾 cached | FINRA CNMSshvol + EDGAR 13F | Redis 4h (v3) |
+| E12 | `/api/short-interest` | FINRA 일별 shortVolPct + EDGAR 13F squeezeScore + Finnhub P/E | 💾 cached | FINRA CNMSshvol + EDGAR 13F + Finnhub | Redis 4h (v4) |
 | E13 | `/api/market-heatmap` | 시장 트리맵 (7개국) — EU 79/80 (98%) | 💾 cached | iShares CSV + Stooq + Yahoo v8 | Redis 1h |
 | E14 | `/api/market-caps` | 시가총액 band 분류 (live caps 불가) | 📋 static | allCompanies 정적 bands | Redis 24h |
 | E15 | `/api/price-history` | 가격 시계열 (30d sparkline) | ✅ live | Yahoo Finance v8 chart | Redis 1h |

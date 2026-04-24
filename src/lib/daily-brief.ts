@@ -178,7 +178,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     insider, ownership, options, korea, nport, blocks,
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v5:US:${hour}`),
-    safeGet(redis, 'flowvium:short-interest:v3'),
+    safeGet(redis, 'flowvium:short-interest:v4'),
     // capital-flows 현행 스키마는 v5 (twelve/yahoo). v4 는 구형. 후자로 폴백.
     safeGet(redis, 'flowvium:capital-flows:v5:twelve'),
     safeGet(redis, 'flowvium:capital-flows:v5:yahoo'),

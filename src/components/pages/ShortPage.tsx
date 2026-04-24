@@ -22,7 +22,7 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; icon: React.
   exit:         { label: '청산', color: '#ef4444', icon: <Minus className="w-3 h-3" /> },
 };
 
-type SortKey = 'squeezeScore' | 'shortVolPct' | 'shortFloatPct' | 'shortRatio' | 'shortChangeMonthly' | 'ticker';
+type SortKey = 'squeezeScore' | 'shortVolPct' | 'shortFloatPct' | 'shortRatio' | 'shortChangeMonthly' | 'trailingPE' | 'ticker';
 
 function SqueezeBar({ score }: { score: number }) {
   const color = score >= 70 ? '#ef4444' : score >= 45 ? '#f59e0b' : score >= 25 ? '#6366f1' : '#64748b';
@@ -211,6 +211,7 @@ export default function ShortPage() {
               <SortTh label="Short Vol % (FINRA)" k="shortVolPct" />
               <SortTh label="Days to Cover" k="shortRatio" />
               <SortTh label="MoM 변화" k="shortChangeMonthly" />
+              <SortTh label="PER (TTM)" k="trailingPE" />
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관 액션</th>
               <SortTh label="스퀴즈 점수" k="squeezeScore" />
             </tr>
@@ -258,6 +259,13 @@ export default function ShortPage() {
                       </span>
                     ) : <span className="text-cf-text-secondary/40">-</span>}
                   </td>
+                  <td className="px-3 py-2.5 font-mono text-sm">
+                    {entry.trailingPE != null ? (
+                      <span className={entry.trailingPE > 50 ? 'text-amber-400' : entry.trailingPE < 15 ? 'text-green-400' : 'text-cf-text-primary'}>
+                        {entry.trailingPE.toFixed(1)}x
+                      </span>
+                    ) : <span className="text-cf-text-secondary/40">-</span>}
+                  </td>
                   <td className="px-3 py-2.5">
                     {actionCfg ? (
                       <span
@@ -290,7 +298,7 @@ export default function ShortPage() {
       </div>
 
       <p className="text-[10px] text-cf-text-secondary/40 mt-3">
-        출처: Yahoo Finance defaultKeyStatistics · SEC EDGAR 13F · 캐시 4시간
+        출처: FINRA 일별 공매도 · SEC EDGAR 13F · Finnhub P/E · 캐시 4시간
       </p>
     </div>
   );
