@@ -182,7 +182,7 @@ export async function GET(request: Request) {
 
   if (redis && analysis) {
     try {
-      await loggedRedisSet(redis, 'api.flow-analysis', cacheKey(tf), result, { ex: 4 * 60 * 60 });
+      await loggedRedisSet(redis, 'api.flow-analysis', cacheKey(tf), result, { ex: 12 * 60 * 60 });
       logger.info('flow-analysis', 'cache_saved', { tf });
     } catch (e) { logger.warn('flow-analysis', 'cache_write_error', { tf, error: e }); }
   }

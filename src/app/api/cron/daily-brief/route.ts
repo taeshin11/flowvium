@@ -12,7 +12,9 @@ import {
 
 export const maxDuration = 60;
 
-const TIMEFRAMES: Timeframe[] = ['1w', '4w', '13w'];
+// Only pre-generate 4w (most-viewed). 1w and 13w are lazy-generated on first request.
+// This saves 2/3 of cron GROQ token spend (~6k tokens/run saved).
+const TIMEFRAMES: Timeframe[] = ['4w'];
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');

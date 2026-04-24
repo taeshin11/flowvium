@@ -120,7 +120,7 @@ function hasChineseLeak(text: string): boolean {
 async function callCascadeAI(prompt: string): Promise<string> {
   const r = await callAI(prompt, {
     systemPrompt: CASCADE_SYSTEM_PROMPT,
-    maxTokens: 600,
+    maxTokens: 400,
     temperature: 0.5,
     skipVllm: true, // JSON 구조 분석은 GROQ 70b가 EXAONE-2.4B보다 우수
     timeoutMs: 18000,
@@ -270,7 +270,7 @@ export async function GET() {
 
   // 5. Cache the full list for 4h
   if (redis && sorted.length > 0) {
-    await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: 4 * 60 * 60 })
+    await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: 12 * 60 * 60 })
   }
 
   return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });
