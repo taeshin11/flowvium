@@ -47,6 +47,7 @@ interface SupplyData {
   ticker: string;
   companyName: string;
   price: number | null;
+  changePct: number | null;
   ret1w: number | null;
   ret1m: number | null;
   volumeRatio: number | null;
@@ -202,6 +203,11 @@ export default function StockSupplyModal({ ticker, onClose }: Props) {
             {data?.price && (
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-base font-bold">${fmt(data.price, 2)}</span>
+                {data.changePct != null && (
+                  <span className={`text-xs font-bold ${data.changePct >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {data.changePct >= 0 ? '+' : ''}{data.changePct.toFixed(2)}%
+                  </span>
+                )}
                 {data.ret1w != null && (
                   <span className={`text-xs font-bold ${data.ret1w >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                     {data.ret1w >= 0 ? '+' : ''}{fmt(data.ret1w)}% {t('week1')}
