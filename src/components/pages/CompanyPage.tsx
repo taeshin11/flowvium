@@ -24,6 +24,7 @@ import {
   CartesianGrid,
   LineChart,
   Line,
+  ComposedChart,
 } from 'recharts';
 import {
   ArrowLeft,
@@ -221,6 +222,10 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     buybacksUSD: number | null; dividendsUSD: number | null;
     operatingMarginPct: number | null; roePct: number | null; roaPct: number | null; debtRatioPct: number | null;
   }
+  interface QuarterlyFin {
+    label: string; fy: number; fp: string; periodEnd: string;
+    revenueUSD: number; yoyPct: number | null;
+  }
   const [liveFinancials, setLiveFinancials] = useState<{
     revenueFormatted: string;
     fiscalYear: number;
@@ -228,6 +233,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     source: string;
     annuals: AnnualFin[];
     latestAnnual: AnnualFin | null;
+    quarterlyRevenue: QuarterlyFin[];
   } | null>(null);
 
   function fmtUsd(v: number | null | undefined): string {
@@ -254,6 +260,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             source: data.source,
             annuals: data.annuals ?? [],
             latestAnnual: data.latestAnnual ?? null,
+            quarterlyRevenue: data.quarterlyRevenue ?? [],
           });
         }
       })
@@ -527,6 +534,30 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                         <Bar dataKey="rev" name="매출" fill="#4F8FBF" radius={[2, 2, 0, 0]} />
                         <Bar dataKey="net" name="순이익" fill="#5CB88A" radius={[2, 2, 0, 0]} />
                       </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Quarterly revenue Y/Y growth */}
+              {liveFinancials.quarterlyRevenue.length > 1 && (
+                <div className="mb-5">
+                  <p className="text-xs font-bold text-cf-text-secondary mb-2">분기 매출 추이 (Y/Y 성장률)</p>
+                  <div className="h-32">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={[...liveFinancials.quarterlyRevenue].reverse().map(q => ({
+                        quarter: q.label,
+                        rev: q.revenueUSD != null ? parseFloat((q.revenueUSD / 1e9).toFixed(1)) : null,
+                        yoy: q.yoyPct,
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="quarter" tick={{ fontSize: 9 }} />
+                        <YAxis yAxisId="left" tick={{ fontSize: 9 }} unit="B" width={32} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} unit="%" width={35} />
+                        <Tooltip formatter={(v, name) => name === 'Y/Y%' ? `${v}%` : `$${v}B`} />
+                        <Bar yAxisId="left" dataKey="rev" name="매출" fill="#4F8FBF" radius={[2, 2, 0, 0]} />
+                        <Line yAxisId="right" type="monotone" dataKey="yoy" name="Y/Y%" stroke="#E8A945" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                      </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                 </div>

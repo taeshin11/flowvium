@@ -37,6 +37,15 @@ export interface AnnualFinancials {
   debtRatioPct: number | null;
 }
 
+export interface QuarterlyRevenue {
+  label: string;       // "Q1 FY2025"
+  fy: number;
+  fp: string;          // Q1 | Q2 | Q3 | Q4
+  periodEnd: string;
+  revenueUSD: number;
+  yoyPct: number | null;
+}
+
 export interface LiveFinancials {
   ticker: string;
   cik: string;
@@ -51,6 +60,8 @@ export interface LiveFinancials {
   // Extended financials (last 5 FY)
   annuals: AnnualFinancials[];
   latestAnnual: AnnualFinancials | null;
+  // Quarterly revenue with Y/Y growth (last 8 quarters)
+  quarterlyRevenue: QuarterlyRevenue[];
 }
 
 type TickerMap = Record<string, { cik_str: number; ticker: string; title: string }>;
@@ -136,6 +147,51 @@ function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: numb
   return new Map(sorted);
 }
 
+/** Build quarterly revenue series (last 8 quarters) with Y/Y growth from 10-Q filings. */
+function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[]): QuarterlyRevenue[] {
+  // Collect all quarterly entries (10-K FY Q4 + 10-Q Q1/Q2/Q3)
+  const qMap = new Map<string, USDEntry>(); // key = `${fy}:${fp}`
+  for (const name of names) {
+    const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
+      ?.['us-gaap']?.[name]?.units?.USD;
+    if (!Array.isArray(entries)) continue;
+    // Include 10-Q filings (Q1/Q2/Q3) and 10-K for Q4 pattern
+    const qEntries = entries.filter(e =>
+      (e.form === '10-Q' && ['Q1', 'Q2', 'Q3'].includes(e.fp)) ||
+      (e.form === '10-K' && e.fp === 'FY')  // some 10-K include Q4 derived
+    );
+    for (const e of qEntries) {
+      const fp = e.fp === 'FY' ? 'Q4' : e.fp;
+      const key = `${e.fy}:${fp}`;
+      const existing = qMap.get(key);
+      if (!existing || e.end > existing.end) qMap.set(key, { ...e, fp });
+    }
+  }
+
+  // Sort descending by fy then quarter number
+  const fpOrder: Record<string, number> = { Q4: 4, Q3: 3, Q2: 2, Q1: 1 };
+  const sorted = Array.from(qMap.values()).sort((a, b) =>
+    b.fy !== a.fy ? b.fy - a.fy : (fpOrder[b.fp] ?? 0) - (fpOrder[a.fp] ?? 0)
+  ).slice(0, 8);
+
+  // Calculate Y/Y for each quarter
+  return sorted.map(e => {
+    const prevKey = `${e.fy - 1}:${e.fp}`;
+    const prev = qMap.get(prevKey);
+    const yoyPct = prev && prev.val > 0
+      ? parseFloat(((e.val - prev.val) / prev.val * 100).toFixed(1))
+      : null;
+    return {
+      label: `${e.fp} FY${e.fy}`,
+      fy: e.fy,
+      fp: e.fp,
+      periodEnd: e.end,
+      revenueUSD: e.val,
+      yoyPct,
+    };
+  });
+}
+
 /** Fetch latest fiscal-year financials for a given ticker (single XBRL call). */
 export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancials | null> {
   const start = Date.now();
@@ -169,6 +225,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     ];
     const revFYs = lastNFYEntries(facts, REV_CONCEPTS, 5);
     const latestRevEntry = bestFYEntry(facts, REV_CONCEPTS);
+    const quarterlyRevenue = buildQuarterlyRevenue(facts, REV_CONCEPTS);
 
     if (!latestRevEntry) {
       logger.warn('sec.financials', 'no_revenue_entry', { ticker, durationMs: Date.now() - start });
@@ -283,6 +340,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
       fetchedAt: new Date().toISOString(),
       annuals,
       latestAnnual,
+      quarterlyRevenue,
     };
   } catch (err) {
     logger.error('sec.financials', 'fetch_failed', { ticker, error: err, durationMs: Date.now() - start });
