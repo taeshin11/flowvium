@@ -1,0 +1,51 @@
+## Iter 83 — verify-metrics 탐지 오류 수정 + UI 레이블 정확화
+Date: 2026-04-25
+Primary outcome: verify-metrics 프로브 4건 수정 (19자)
+
+### Drift check
+- iter81=rateImpact, iter82=NFP-lag, iter83=verify-probe+UI → 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+
+#### 배포 확인 (iter79~82 배포 완료)
+- CPI: actual=3.29%, rateImpact=hawkish ✓ (iter81 fix 배포 완료)
+- PPI: actual=4.11% (WPSFD49207) ✓ (iter79 fix 배포 완료)
+- GDP: rateImpact=dovish ✓ (iter81 fix)
+- NFP: actual=178K, liveData=True (iter82 lag detection 미배포 상태)
+
+#### verify-metrics 분석 결과
+- ok: 114, degraded: 40, error: 1, total: 158
+- 발견된 오류들:
+  1. caps.ALL error: data.caps는 항상 {} — data.bands가 올바른 필드 (429개)
+  2. kr.foreign/institution/retail degraded: foreignNet/institutionNet 없음 — KRX 불가시 fallback mode
+  3. fw.meeting.* degraded: holdPct/cutPct 없음 — 실제 필드는 probHold/probCut25/50/75
+  4. market.blockTrades/optionsFlow degraded: trades/flows 없음 — 실제 필드는 items
+
+### 산출물
+
+#### [1] verify-metrics 탐지 오류 4건 수정
+- verifyMarketCapsDetailed: data.caps → data.bands, 0→429 tickers ok
+- verifyKoreaFlowDetailed: 필드명 수정 + KRX fallback=true시 skipped 처리 (degraded → skipped)
+- verifyFedWatchDetailed: holdPct/cutPct → probHold/probCut25+50+75 합산
+- verifyAdditionalEndpoints: blockTrades/optionsFlow의 trades/flows → items
+
+#### [2] MacroIndicatorsTab UI 개선
+- SURPRISE_BADGE: '예상 상회/하회' → '긍정/부정 서프라이즈'
+  (CPI miss=높은인플레인데 '예상 하회'로 표시되던 방향 혼동 해결)
+- dataNote: 앰버색 경고 박스로 표시 (FRED lag 등 데이터 품질 주석)
+- MacroIndicator 인터페이스: dataNote?: string 추가
+
+### 예상 개선 결과
+- 수정 후 verify-metrics: ok 증가 예상 (40 degraded + 1 error → 대부분 ok/skipped)
+  - caps.ALL: error → ok (1개)
+  - fw.meeting.*: degraded → ok (6개)
+  - kr.foreign/institution/retail: degraded → skipped (3개, KRX fallback 중)
+  - market.blockTrades/optionsFlow: degraded → ok (2개)
+  - short.*: 이미 실제 endpoint는 33개 정상, 스냅샷 stale 문제 (다음 cron 실행 시 자동 해소)
+
+### TypeScript: clean OK
+
+### Open issues
+- NFP iter82 lag detection: 배포 확인 후 검증 필요
+- short.* stale: 다음 30분 cron verify-metrics 실행 후 자동 해소 예상
+- ai.groq degraded: Groq quota 소진 — 인프라 문제
