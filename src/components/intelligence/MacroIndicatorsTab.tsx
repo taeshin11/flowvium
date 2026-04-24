@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Loader2, TrendingUp, Activity, GitMerge, BarChart2 } from 'lucide-react';
+import EconCalendarSection from './EconCalendarSection';
 
 // ── FedWatch ──────────────────────────────────────────────────────────────────
 interface FomcMeeting {
@@ -343,6 +344,8 @@ export default function MacroIndicatorsTab() {
 
   return (
     <div className="space-y-4">
+      <EconCalendarSection />
+
       <div className="cf-card p-4 bg-gradient-to-r from-slate-50 to-blue-50 border-blue-100">
         <div className="flex items-start gap-3">
           <div className="text-2xl leading-none">📊</div>

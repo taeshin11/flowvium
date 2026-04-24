@@ -1,0 +1,65 @@
+## Iter 35 — 매크로 이벤트 캘린더 신설
+Date: 2026-04-24
+Primary outcome: 매크로 이벤트 캘린더 추가
+
+### 정확성 프로브
+- [accuracy probe] metric=10y_yield source=Yahoo direct_value=4.323% our_value=4.323% delta=0 → OK
+- [accuracy probe] metric=fg.us source=CNN direct_value=N/A (418 bot-block) our_value=66 delta=N/A → N/A
+
+### Drift check
+- 최근 5 커밋: SEO fix, iter34(home macro), iter33(F&G), iter32(home auto-refresh), iter31(CDN+zombie)
+- iter32/33/34: 홈페이지 3연속 → DRIFT SIGNAL
+- iter35: IntelligencePage MacroTab으로 영역 이동 → drift 해소
+
+### 발견된 기회
+- 다음 FOMC Apr 29-30 (5일 후), Q1 GDP Apr 30, NFP May 1, March PCE Apr 30
+- MacroIndicatorsTab에 경제지표 발표 일정 표시 기능 없었음 (macro-indicators 카드에 nextRelease만 있음)
+- 트레이더에게 가장 필요한 정보: 언제 어떤 이벤트가 터지는가
+
+### 작업 내용
+
+#### 1. src/data/econ-calendar.ts 신설
+- `EconEvent` 인터페이스: date/time/title/titleKo/category/impact/note/noteKo
+- 2026 연간 주요 이벤트 36개 하드코딩:
+  - FOMC: 8회 (Apr29-30, Jun9-10, Jul28-29, Sep15-16, Oct27-28, Dec8-9)
+  - GDP: advance/2nd/3rd estimate + Q2 advance
+  - NFP: 5월~8월
+  - CPI: 5월~8월
+  - PPI: 5월~7월
+  - PCE: Apr~Jul
+  - ISM PMI: 3회
+  - Retail Sales: 5월~6월
+- `getUpcomingEvents(today, limit)`: 오늘 이후 n개 반환
+- `daysUntil(dateStr, today)`: 일수 계산
+
+#### 2. src/components/intelligence/EconCalendarSection.tsx 신설
+- 날짜별 그룹, 타임라인 레이아웃 (왼쪽 날짜 + border-l + 오른쪽 이벤트 목록)
+- DaysChip: 오늘/내일=강조색, 7일 이내=황색, 이후=회색
+- Impact 3단계: high(빨강)/medium(황색)/low(회색) dot + badge
+- 카테고리별 색상 (Fed=인디고, GDP=파랑, Jobs=초록, CPI=주황, ...)
+- noteKo: 주요 이벤트에 한국어 설명 (예: "시장 25bp 인하 예상")
+
+#### 3. MacroIndicatorsTab.tsx 수정
+- import EconCalendarSection 추가
+- `<EconCalendarSection />` 탭 최상단에 삽입 (기존 설명 카드 위)
+
+### 캐시 계층 감사
+- EconCalendarSection: 완전 클라이언트 사이드 정적 계산 → 캐시 불필요 ✓
+- 새 API 라우트 없음
+
+### TypeScript
+- TypeScript clean ✓
+- UI 검증: 브라우저 없이 확인 불가 → 미검증 명시
+- 날짜 계산은 클라이언트 로컬 시간 기준 (서버 SSR과 불일치 가능 → useMemo로 클라이언트 실행)
+
+### 산출물 분류
+- rule [3a]: IntelligencePage에 새 데이터 카테고리 추가 (이벤트 캘린더)
+- 전략적 가치: 다음 FOMC가 5일 후인데 이를 바로 볼 수 있음
+
+### SEO 문제 (사용자 인터럽트로 처리됨)
+- 원인 진단: canonical URL `/en` 오류, OG 이미지 404, 타이틀 중복, GSC 미등록
+- 코드 수정: seo.ts + sitemap.ts + opengraph-image.tsx (commit 82c7304)
+- 남은 작업: git push (37 커밋 미배포), GSC sitemap 제출
+
+### Commit
+(this iter commit)

@@ -162,9 +162,11 @@
   - 데이터: `/api/sector-pe` (Yahoo Finance v10 crumb, 24h Redis)
   - 11개 SPDR 섹터 ETF (XLK/XLF/XLE/XLV/XLY/XLP/XLI/XLB/XLRE/XLU/XLC)
   - Trailing P/E · 배당수익률 · YTD 수익률 테이블
-- **다가오는 경제지표 발표 캘린더**
-  - macro-indicators 내장 nextRelease 날짜 기반 (정적 일정, 정적 컨센서스)
-  - D-N 표시, 카테고리 색상 점, 컨센서스 forecast 표시
+- **주요 매크로 이벤트 캘린더** (`EconCalendarSection`, iter35 신설)
+  - `src/data/econ-calendar.ts` 정적 일정 (FOMC/GDP/NFP/CPI/PPI/PCE/PMI/Retail)
+  - 오늘부터 10개 이벤트, 날짜별 그룹, D-N 카운트다운 chip
+  - Impact 3단계 (high=빨강/medium=노랑/low=회색), 카테고리 색상 구분
+  - 출처: Fed · BLS · BEA 공식 발표 일정
 - **매크로 지표 카드** (9개, 접기/펼치기)
   - CPI · PCE(Core) · NFP · FOMC · GDP · ISM PMI · 소매판매 · PPI · 실업률
   - 실제치 / 예상치 / 이전치 / Surprise 배지 (beat/miss/inline/pending)
