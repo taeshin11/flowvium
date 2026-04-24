@@ -1,0 +1,63 @@
+## FlowVium Loop Iter 11 — 2026-04-24
+
+### Drift Check
+- Last 5 commits: feat(market-caps) / feat(intelligence-split) / feat(verify-metrics) / fix(SYSTEM) / fix(news-cascade)
+- Areas: market-caps / intelligence / health / fetch-cache / news → all different
+- No single area 3+ consecutive → CLEAN
+
+### Primary Outcome: 시가총액 static→live 전환
+
+---
+
+### Accuracy Probe (iter11 pre-work)
+- SPY 외부 직접: $708.45 (Yahoo Finance v8)
+- FlowVium /api/stock-price/SPY: $708.45
+- [accuracy probe] metric=stock.SPY source=Yahoo direct_value=708.45 our_value=708.45 delta=0 → OK
+
+---
+
+### 1. #314 ETF Flows — Official 포기 기록
+
+**근거**: 3차 시도 (iter11) 모두 실패
+- ETF.com: Cloudflare 차단
+- Yahoo Finance v8 chart: `sharesOutstanding` ETF에 미포함
+- Yahoo Finance v10 quoteSummary: crumb 필요 (배치 어렵)
+- VettaFi/SSGA: JS 렌더링 필요
+
+**결론**: 무료 서버사이드 소스 없음. Polygon.io($29/mo) 또는 ETF.com API($)만 가능.
+**상태**: #314 → 🔒 (free tier 불가, 유료 필요)
+
+---
+
+### 2. 시가총액 live 전환 (#117 + 새 #123-M)
+
+**변경 파일:**
+- `src/app/api/market-caps/route.ts`: v1→v2, fetchYFMarketCaps 사용, caps{} 채움, ?ticker= 파라미터 추가
+- `src/components/pages/CompanyPage.tsx`: liveMarketCap state 추가, /api/market-caps?ticker= fetch, 헤더에 시총 표시
+
+**영향:**
+- ExplorePage: 137개 기업 시가총액 band 실시간 (노드 크기·레이블)
+- ComparePage: 시가총액 비교 컬럼 실시간
+- HeatmapPage: 박스 크기 실시간
+- CompanyPage 헤더: 실시간 시총 달러 금액 표시 (신규)
+
+**METRICS.md 변경:**
+- #117 📋 static → 💾 cached (Yahoo v7, 24h)
+- #123-M 신설: 기업 프로필 헤더 시가총액 💾 cached
+- Redis key: market-caps:v1 → market-caps:v2
+
+**TypeScript**: 에러 0개 (tsc --noEmit clean)
+**Commit**: `4ea5881`
+
+---
+
+### Rule [3a] 충족
+- 시가총액 표시가 정적 문자열 → live Yahoo Finance 데이터로 전환
+- 137개 기업에 즉각 적용
+- CompanyPage 헤더에 실시간 시총 신규 표시
+
+### Remaining ⛔ / 🔒
+#309-310 Discord, #311-313 Polygon realtime (🔒),
+#314 ETF absolute inflows (🔒 공식 포기 — 무료 소스 없음),
+#318-319 Vol surface (🔒), #320 Sector P/E (Yahoo v10 blocked),
+#323 Economic consensus calendar (Bloomberg ECO)
