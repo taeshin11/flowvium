@@ -110,33 +110,37 @@ export interface YFShortData {
   shortChangeMonthly: number | null; // % change in short interest vs prior month
 }
 
-/** Fetch quote via v8/chart (v7 is now authorized-only). Runs per-ticker in parallel. */
+/** Fetch quote via v8/chart (v7 is now authorized-only). Runs per-ticker in parallel.
+ *  Tries query2 on failure — query1 is sometimes blocked from Vercel US IPs. */
 async function fetchOneQuote(ticker: string): Promise<YFQuote | null> {
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`;
-    const res = await fetch(url, { headers: YF_HEADERS, cache: 'no-store', signal: AbortSignal.timeout(10000) });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const result = json.chart?.result?.[0];
-    if (!result?.meta) return null;
-    const m = result.meta;
-    const price = m.regularMarketPrice ?? m.chartPreviousClose;
-    const prevClose = m.chartPreviousClose ?? m.previousClose ?? price;
-    const change = price != null && prevClose != null ? price - prevClose : undefined;
-    const changePct = price != null && prevClose && prevClose > 0
-      ? ((price - prevClose) / prevClose) * 100
-      : undefined;
-    return {
-      symbol: m.symbol ?? ticker,
-      shortName: m.shortName ?? m.symbol ?? ticker,
-      longName: m.longName,
-      regularMarketPrice: price,
-      regularMarketChange: change,
-      regularMarketChangePercent: changePct,
-      fiftyTwoWeekLow: m.fiftyTwoWeekLow,
-      fiftyTwoWeekHigh: m.fiftyTwoWeekHigh,
-    };
-  } catch { return null; }
+  for (const host of ['query2', 'query1']) {
+    try {
+      const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`;
+      const res = await fetch(url, { headers: YF_HEADERS, cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const result = json.chart?.result?.[0];
+      if (!result?.meta) continue;
+      const m = result.meta;
+      const price = m.regularMarketPrice ?? m.chartPreviousClose;
+      const prevClose = m.chartPreviousClose ?? m.previousClose ?? price;
+      const change = price != null && prevClose != null ? price - prevClose : undefined;
+      const changePct = price != null && prevClose && prevClose > 0
+        ? ((price - prevClose) / prevClose) * 100
+        : undefined;
+      return {
+        symbol: m.symbol ?? ticker,
+        shortName: m.shortName ?? m.symbol ?? ticker,
+        longName: m.longName,
+        regularMarketPrice: price,
+        regularMarketChange: change,
+        regularMarketChangePercent: changePct,
+        fiftyTwoWeekLow: m.fiftyTwoWeekLow,
+        fiftyTwoWeekHigh: m.fiftyTwoWeekHigh,
+      };
+    } catch { continue; }
+  }
+  return null;
 }
 
 /** Fetch quotes for multiple tickers (parallel, batched to respect rate limits). */
