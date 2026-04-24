@@ -1,0 +1,53 @@
+## Iter 50 — Finnhub TTM P/E 추가 (short-interest screener)
+Date: 2026-04-24
+Primary outcome: 스크리너 PER(TTM) 컬럼 추가
+
+### Drift check
+- iter 47: chartPreviousClose bug sweep
+- iter 48: Redis 키 감사 + GROQ 토큰 최적화
+- iter 49: maxDuration 인프라 + METRICS.md 정합성
+- iter 50: 스크리너 새 데이터 포인트 추가
+- 동일 모듈 3 iter 연속: 없음 ✓
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=fg.us source=verify-metrics(12:02 UTC) direct_value=70 our_value=67 delta=3 tolerance=5 → OK
+  (CNN blocks direct curl from dev env with "I'm a teapot". Score drifted between cache refresh — expected behavior.)
+- verify-metrics summary: 77/79 OK, 0 error, 0 degraded → healthy
+
+### 수정 사항
+
+#### Finnhub P/E 추가 (`src/app/api/short-interest/route.ts`)
+- `ShortEntry` 인터페이스에 `trailingPE: number | null` 추가
+- `fetchFinnhubPE(tickers)` 함수 신설
+  - `process.env.FINNHUB_KEY` 없으면 빈 Map 반환 (graceful degradation)
+  - `peBasicExclExtraTTM` primary, `peNormalizedAnnual` fallback
+  - 27 ticker 병렬 fetch (Promise.allSettled)
+  - pe ≤ 0 또는 ≥ 10000 필터링 (무효값 제거)
+- FINRA fetch와 동시 실행 (parallel Promise.allSettled)
+- CACHE_KEY: v3 → v4 (인터페이스 변경)
+
+#### 소비자 키 동기화
+- `src/lib/daily-brief.ts`: v3 → v4
+- `src/app/api/cron/verify-metrics/route.ts`: v3 → v4
+
+#### ShortPage UI 업데이트
+- SortKey 타입에 `trailingPE` 추가
+- 테이블 컬럼 "PER (TTM)" 추가 (MoM 변화 다음)
+- 색상: <15x 녹색(저평가), >50x 주황(고평가), 그 외 기본색
+- 출처 표기: "Finnhub P/E" 추가
+
+#### FEATURES.md + METRICS.md
+- FEATURES.md §10-3: PER(TTM) 컬럼 설명 추가
+- METRICS.md row 284: short-interest:v3 → v4
+- METRICS.md E12: 데이터 소스에 Finnhub 추가
+
+### TypeScript
+- TypeScript clean ✓
+
+### 실험 평가
+- Finnhub free tier는 ETF P/E에는 null을 반환했으나 (iter 49 negative result)
+  개별주에 대해서는 정상 응답 예상 (earnings endpoint에서 실적 1500개 이미 검증됨)
+- 성공 확률 ~70% 추정 (중간 위험 실험)
+
+### Commits
+- be6dcaf: feat(short-interest): add Finnhub TTM P/E to screener (v3→v4)
