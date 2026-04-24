@@ -1,0 +1,43 @@
+## Iter 40 — 52주 고저 정확도 수정 + cron cache no-store
+Date: 2026-04-24
+Primary outcome: 52주 고저 데이터 정확도 개선 (90일 → 실제 52주)
+
+### Drift check
+- iter 38: stock-supply 클린업
+- iter 39: cache 준수 + source string
+- iter 40: 52주 정확도 + cron cache (stock-supply 영역)
+- 다른 영역 2+ iter 교차 유지 ✓
+
+### 정확성 프로브
+- [accuracy probe] metric=NVDA.52wHigh source=Yahoo direct_value=212.19 our_value=max(90d)=unknown → pre-fix DEGRADED
+- [accuracy probe] metric=NVDA.52wLow source=Yahoo direct_value=104.08 our_value=min(90d)=unknown → pre-fix DEGRADED
+- post-fix: Yahoo v8 meta.fiftyTwoWeekHigh/Low 직접 사용 → ACCURATE
+
+### 발견된 문제
+1. fetchVolumeData() 52주 고저:
+   - `Math.max(...highs.filter(Boolean))` — 90d 데이터만 (252 거래일 = 1년 아님)
+   - Yahoo v8 meta에 `fiftyTwoWeekHigh`, `fiftyTwoWeekLow` 실제 52주 값 포함
+   - 수정: meta 값 우선, meta 없으면 90d fallback
+
+2. cron/update-all warm() 함수:
+   - cache 옵션 없음 → Next.js force-cache로 warm이 실제로 신선 데이터 안 가져올 수 있음
+   - 수정: `cache: 'no-store'` 추가
+
+3. cron/update-all fire-and-forget 호출 (stock-supply 프리웜, news-cascade):
+   - cache 옵션 없음 → 같은 문제
+   - 수정: `cache: 'no-store'` 추가
+
+### 코드 변경
+#### src/app/api/stock-supply/route.ts
+- fetchVolumeData(): 52주 고저 → meta.fiftyTwoWeekHigh/Low 우선
+- Cache key: v3 → v4
+
+#### src/app/api/cron/update-all/route.ts
+- warm() 함수: `cache: 'no-store'` 추가
+- fire-and-forget stock-supply, news-cascade: `cache: 'no-store'` 추가
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- bb829d0: fix(accuracy): 52w high/low from Yahoo meta + cron cache: no-store

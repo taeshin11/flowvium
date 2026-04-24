@@ -1,0 +1,61 @@
+## Iter 41 — sector-pe 502 → Yahoo v8 리팩터 + changePct 버그 수정
+Date: 2026-04-24
+Primary outcome: sector-pe 502 완전 제거
+
+### Drift check
+- iter 38: stock-supply 좀비 코드 삭제
+- iter 39: cache 준수 + source string
+- iter 40: 52주 고저 + cron cache
+- iter 41: sector-pe 502 fix (다른 영역 ✓)
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=CNN direct_value=67 our_value=67 Δ0 tolerance=3 → OK
+- [accuracy probe] metric=10Y-2Y spread source=FRED direct_value=0.51 our_value=0.51 Δ0.00 → OK
+- [accuracy probe] metric=XLK.ytdReturn source=Yahoo direct_value=7.997% our_value=7.997% → OK
+- [accuracy probe] metric=XLK.changePct source=Yahoo direct_value=-1.42% our_value=-1.42% (post-fix) → OK
+- verify-metrics 전체: 77/79 OK, 0 degraded, 0 error, 2 skipped (vLLM tunnel, Gemini 미설정)
+
+### 발견된 문제
+1. sector-pe 라우트: Yahoo v10 crumb auth 사용
+   - getCreds() → fc.yahoo.com → Vercel IP에서 401
+   - if (!creds) return 502 → 항상 502
+   - MacroIndicatorsTab, CapitalFlowsTab 모두 sector-pe 소비 → 두 탭 broken
+
+2. sector-pe changePct 계산 오류:
+   - meta.chartPreviousClose with range=ytd = Dec 31 close
+   - 결과: changePct ≈ ytdReturn (의미 없는 중복)
+   - XLK 예: changePct=8.24% (YTD), ytdReturn=7.997% (거의 동일)
+   - 수정: validCloses[length-2] 사용 → 전일 종가 → 올바른 일일 등락률
+   - 수정 후 XLK: -1.42% (Apr 22 → Apr 23 close)
+
+3. MacroIndicatorsTab SectorPESection:
+   - 로컬 인터페이스에 price, changePct, high52, low52 필드 누락
+   - P/E·배당 컬럼 항상 — 표시 (null 반환)
+   - sort by trailingPE → 의미 없음
+   - source note: "Yahoo Finance v10 · 24h 캐시" → 부정확
+
+### 코드 변경
+#### src/app/api/sector-pe/route.ts
+- 전체 재작성: Yahoo v10 crumb 플로우 완전 제거
+- fetchSectorEntry(): Yahoo v8 chart range=ytd 사용
+- ytdReturn: (lastClose - firstClose) / firstClose from closes array
+- changePct: validCloses[length-2] (전일 종가) 기준으로 수정
+- price: meta.regularMarketPrice
+- high52/low52: meta.fiftyTwoWeekHigh/Low
+- trailingPE/dividendYield/totalAssets/beta3Year: null (honest — auth 필요)
+- Cache TTL: 24h → 4h, key: v1 → v2 → v3
+
+#### src/components/intelligence/MacroIndicatorsTab.tsx
+- SectorPEEntry 인터페이스: price/changePct/high52/low52 추가
+- 컬럼: P/E·배당 → 가격·등락률 (live 데이터로 교체)
+- sort: trailingPE → ytdReturn
+- source note: "Yahoo Finance v8 · 4h 캐시"
+
+### TypeScript
+- TypeScript clean ✓ (모든 커밋)
+
+### Commits
+- af431cb: fix(sector-pe): replace crumb-auth 502 with Yahoo v8 ytd fetch
+- e63d5af: fix(sector-pe-ui): update SectorPESection for new API fields
+- fd261a7: fix(sector-pe): daily changePct from prev-day close not Dec31
+- 74f26d2: chore(sector-pe): bump cache key v2→v3
