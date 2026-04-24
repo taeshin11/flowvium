@@ -1,0 +1,76 @@
+## Iter 47 — chartPreviousClose 버그 전파 + cache: 'no-store' 감사
+Date: 2026-04-24
+Primary outcome: 홈페이지 주가 등락률 정확도 복구
+
+### Drift check
+- iter 41-46: 다양한 영역 (sector-pe/crumb/stock-supply/news-cascade/EU-heatmap/FINRA) ✓
+- iter 47: 동일 버그 클래스(chartPreviousClose) 전파 색출 + cache 감사 ✓
+
+### 정확성 프로브
+- [accuracy probe] metric=NVDA.changePct source=Yahoo direct_value=-1.41% api_before=-0.65% api_after=-1.41% → FIXED
+- [accuracy probe] metric=VXST source=Yahoo direct_value=10.84 our_value=10.84 Δ0 → OK
+- [accuracy probe] metric=VXMT source=Yahoo direct_value=16.32 our_value=16.32 Δ0 → OK
+- [accuracy probe] metric=VVIX source=Yahoo direct_value=98.57 our_value=98.57 Δ0 → OK
+- [accuracy probe] metric=unemployment source=FRED direct_value=4.3% our_value=4.3% Δ0 → OK
+- verify-metrics: 77/79 OK, 0 degraded
+
+### 발견된 문제
+
+#### 1. chartPreviousClose 버그 전파 (CRITICAL)
+- 원인: Yahoo v8 에서 `meta.previousClose` = null (항상)
+- `meta.chartPreviousClose` = range 시작 이전의 종가 (range-start close)
+- range=5d → chartPreviousClose = 5거래일 전 종가 (×)
+- range=2d → chartPreviousClose = 2거래일 전 종가 (×)
+- 올바른 값: `validCloses[length-2]` = 전일 종가 (✓)
+
+영향 범위:
+- stock-price/[ticker] (range=5d): NVDA +0.65% → 실제 -1.41% (3.06%p 오차!)
+  → 홈페이지 MarketSnapshot, CascadePage 모두 틀린 등락률 표시
+- fetchYFNonUSQuotes in yahoo-finance.ts (range=2d): 비미국 히트맵 종목 등락률 오류
+  → KR/TW/IN/CN/EU 히트맵 종목 색상 왜곡
+- korea-flow fallback (range=5d): +16%, +8.75% 는 일별이 아닌 5일 수익률
+  → 한국 주식 수급 페이지 등락률 오류
+
+이미 수정된 route들: sector-pe (iter41), stock-supply (iter43)
+
+#### 2. cache: 'no-store' 누락 (7개)
+- flow-analysis: 내부 /api/capital-flows 호출 → 스테일 자본흐름 데이터
+- stock-supply: EDGAR SEC.gov 2개 fetch
+- news-cascade: RSS 피드 5개
+- daily-brief.ts: 내부 API 호출 (macro-indicators 등)
+- edgar-13f.ts: SEC.gov 3개 fetch (submissions, index, XML)
+
+### 수정 사항
+
+#### chartPreviousClose 버그 수정
+- src/app/api/stock-price/[ticker]/route.ts
+  - `meta.previousClose ?? meta.chartPreviousClose` → `validCloses[length-2]`
+
+- src/lib/yahoo-finance.ts (fetchYFNonUSQuotes)
+  - `meta.chartPreviousClose` → `validCloses[-2]`, chartPreviousClose fallback for single-bar
+
+- src/app/api/korea-flow/route.ts (fetchYahooKoreaEntry)
+  - `chartPreviousClose` → `validCloses[-2]` + TypeScript fix
+  - Cache key v1 → v2
+
+#### cache: 'no-store' 추가 (7개 fetch)
+- src/app/api/flow-analysis/route.ts
+- src/app/api/stock-supply/route.ts (2개)
+- src/app/api/news-cascade/route.ts
+- src/lib/daily-brief.ts
+- src/lib/edgar-13f.ts (3개)
+
+### 측정 결과 (post-deploy)
+- NVDA: -0.65% (오류) → -1.41% (정확) — 2.06%p 보정
+- Korea fallback: 16.05% (5d) → 실 일별 수익률로 수정
+- 비미국 히트맵: 2일 수익률 → 일별 수익률로 수정
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- f84a154: fix(cache): add cache: 'no-store' to 4 bare fetch() calls (API routes)
+- 494b1f8: fix(cache): add cache: 'no-store' to daily-brief.ts + edgar-13f.ts
+- d9ccbb0: fix(korea-flow): daily changePct was 5-day return
+- e9e12cb: fix(stock-price): daily changePct was 5-day return (homescreen bug)
+- b7b6b46: fix(yahoo-finance): daily changePct in fetchYFNonUSQuotes
