@@ -447,6 +447,11 @@
 **파일**: `src/components/pages/ScreenerPage.tsx`  
 **데이터**: `/api/signals`, `/api/short-interest`
 
+### 9-0. Top Squeeze 실시간 가격 배너
+- 스퀴즈 점수 상위 5종목 카드 (로드 직후 자동 표시)
+- 각 카드: 티커·스퀴즈 점수·**실시간 가격·등락%** (Yahoo Finance `/api/stock-price`)
+- USD/KRW/EUR 통화 접두사 자동, 기업 상세 링크
+
 ### 9-1. 프리셋 버튼 (5개)
 1. 🔥 숏 스퀴즈 후보 (스퀴즈 ≥30 + 매집)
 2. 🏦 기관 신규 편입 (new_position)

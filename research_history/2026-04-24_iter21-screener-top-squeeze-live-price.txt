@@ -1,0 +1,41 @@
+## Iter 21 — 스크리너 Top-5 Squeeze 실시간 가격 배너
+Date: 2026-04-24
+Primary outcome: 스크리너 라이브 Top-5 가격
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=verify-metrics direct_value=66 our_value=66 delta=0 → OK
+- [accuracy probe] metric=yield_curve.spread source=verify-metrics direct_value=0.51 our_value=0.51 delta=0 → OK
+- [accuracy probe] metric=stock.NVDA.price source=Yahoo direct_value=199.64 our_value=199.64 delta=0 → OK
+
+### Drift check
+- 최근 5 커밋: cdn-cache(API routes), compare-live(ComparePage), report(ReportPage), company-chart, flows-tab
+- 같은 영역: iter19=ComparePage, iter20=API routes, iter21=ScreenerPage — 모두 다름. No drift.
+- "나중에" 미룬 항목: 없음
+- 인프라 블로커: 없음
+
+### 작업 내용
+1. **ScreenerPage.tsx: Top Squeeze 실시간 가격 배너**
+   - `top5Squeeze` useMemo: deduped를 squeezeScore 내림차순 정렬 후 slice(0, 5)
+   - `top5Prices` state: Map<string, {price, changePct, currency}>
+   - useEffect: top5Squeeze 변경 시 /api/stock-price/{ticker} 5건 동시 fetch
+     (Promise.allSettled, AbortController, res.ok 가드)
+   - 헤더 아래 amber 테마 카드 스트립 렌더링:
+     - 티커·스퀴즈 점수 배지·가격·등락% (USD/KRW/EUR 통화 접두사)
+     - 기업 상세 페이지 링크
+     - 로딩 중엔 "로딩…" 표시 (null guard)
+
+2. **CDN 헤더 추가: capital-flows, macro-indicators**
+   - capital-flows: 4h TTL → `s-maxage=14400, stale-while-revalidate=600`
+   - macro-indicators: 25h TTL → `s-maxage=86400, stale-while-revalidate=3600`
+   - 각 라우트의 Redis hit + fresh response에 헤더 적용
+
+### FEATURES.md / METRICS.md
+- FEATURES.md 9-0: Top Squeeze 배너 섹션 신설
+- METRICS.md #210-T: 신규 행 (✅ live)
+
+### 산출물
+- rule [3a]: 스크리너 최우선 종목에 실시간 가격 표시 (정적 → 라이브)
+- CDN 캐시 계층 완성: 이제 주요 8개 API 라우트 모두 Cache-Control 헤더 보유
+
+### Commit
+(이번 iter)

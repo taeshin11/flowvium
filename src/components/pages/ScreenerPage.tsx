@@ -84,6 +84,9 @@ export default function ScreenerPage() {
   const [shortData, setShortData] = useState<ShortEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  interface TopPrice { price: number | null; changePct: number | null; currency: string; }
+  const [top5Prices, setTop5Prices] = useState<Map<string, TopPrice>>(new Map());
+
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [minShort, setMinShort] = useState<number>(0);
@@ -162,6 +165,31 @@ export default function ScreenerPage() {
     });
   }, [deduped, activePreset, sectorFilter, actionFilter, minShort, maxShort, sortKey, sortDir]);
 
+  const top5Squeeze = useMemo(() =>
+    [...deduped].sort((a, b) => b.squeezeScore - a.squeezeScore).slice(0, 5),
+    [deduped]
+  );
+
+  useEffect(() => {
+    if (!top5Squeeze.length) return;
+    const controller = new AbortController();
+    Promise.allSettled(
+      top5Squeeze.map(row =>
+        fetch(`/api/stock-price/${row.ticker}`, { signal: controller.signal })
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(d => ({ ticker: row.ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
+      )
+    ).then(results => {
+      if (controller.signal.aborted) return;
+      const map = new Map<string, TopPrice>();
+      for (const r of results) {
+        if (r.status === 'fulfilled') map.set(r.value.ticker, r.value);
+      }
+      setTop5Prices(map);
+    });
+    return () => controller.abort();
+  }, [top5Squeeze]);
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('desc'); }
@@ -209,6 +237,50 @@ export default function ScreenerPage() {
           기관 13F 매집 · 공매도 데이터 기반 종목 필터링
         </p>
       </div>
+
+      {/* Top Squeeze Movers — live prices for top-5 squeeze candidates */}
+      {top5Squeeze.length > 0 && (
+        <div className="cf-card p-4 mb-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/10">
+          <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
+            🔥 Top Squeeze 후보 — 실시간 가격
+            <span className="font-normal text-cf-text-secondary">스퀴즈 점수 기준 상위 5종목</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {top5Squeeze.map(row => {
+              const lp = top5Prices.get(row.ticker);
+              const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
+              return (
+                <Link
+                  key={row.ticker}
+                  href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
+                  className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
+                    <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold tabular-nums">
+                      {row.squeezeScore}
+                    </span>
+                  </div>
+                  {lp?.price != null ? (
+                    <>
+                      <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
+                      {lp.changePct != null && (
+                        <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-cf-text-secondary/50">로딩…</p>
+                  )}
+                  <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
+                </Link>
+              );
+            })}
+          </div>
+          <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+        </div>
+      )}
 
       {/* Quick guide */}
       <div className="cf-card p-4 mb-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10">

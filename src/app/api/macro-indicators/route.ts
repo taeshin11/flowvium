@@ -13,6 +13,8 @@ import { logger, loggedRedisSet} from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -461,7 +463,7 @@ export async function GET() {
   if (redis) {
     try {
       const cached = await redis.get<object>(key);
-      if (cached) return NextResponse.json(cached);
+      if (cached) return NextResponse.json(cached, { headers: CDN_HEADERS });
     } catch (e) { logger.warn('macro-indicators', 'cache_read_error', { error: e }); }
   }
 
@@ -709,5 +711,5 @@ export async function GET() {
     } catch (e) { logger.warn('macro-indicators', 'cache_write_error', { error: e }); }
   }
 
-  return NextResponse.json(response);
+  return NextResponse.json(response, { headers: CDN_HEADERS });
 }

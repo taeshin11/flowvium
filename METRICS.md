@@ -467,6 +467,7 @@
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
+| 210-T | Top Squeeze 배너: 상위 5 실시간 가격·등락% | ✅ live | Yahoo Finance `/api/stock-price` |
 | 210 | 프리셋: 숏 스퀴즈 후보 | 💾 cached | signals + short |
 | 211 | 프리셋: 기관 신규 편입 | 💾 cached | signals |
 | 212 | 프리셋: 기관 매집 중 | 💾 cached | signals |

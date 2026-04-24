@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 
 const CACHE_TTL = 4 * 60 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -296,7 +297,7 @@ export async function GET() {
   if (redis) {
     try {
       const cached = await redis.get<object>(cacheKey);
-      if (cached) return NextResponse.json(cached);
+      if (cached) return NextResponse.json(cached, { headers: CDN_HEADERS });
     } catch (e) { logger.warn('capital-flows', 'cache_read_error', { error: e }); }
   }
 
@@ -432,5 +433,5 @@ export async function GET() {
     } catch (e) { logger.warn('capital-flows', 'cache_write_error', { error: e }); }
   }
 
-  return NextResponse.json(response);
+  return NextResponse.json(response, { headers: CDN_HEADERS });
 }
