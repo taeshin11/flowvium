@@ -39,6 +39,7 @@ async function warm(
     const res = await fetch(`${base}${path}`, {
       signal: AbortSignal.timeout(timeoutMs),
       headers: { 'x-cron-warm': '1' },
+      cache: 'no-store',
     });
     if (!res.ok) {
       logger.warn('cron.update-all', 'warm_http_error', { label, status: res.status, ms: Date.now() - start });
@@ -120,11 +121,12 @@ export async function GET(req: Request) {
   for (const ticker of TOP_TICKERS) {
     fetch(`${base}/api/stock-supply?ticker=${ticker}`, {
       signal: AbortSignal.timeout(15000),
+      cache: 'no-store',
     }).catch(() => {});
   }
 
   // ── 5단계: news-cascade (느림 — fire & forget) ─────────────────────────
-  fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
+  fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000), cache: 'no-store' }).catch(() => {});
 
   const results = [
     macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,

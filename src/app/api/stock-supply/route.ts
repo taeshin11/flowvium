@@ -192,9 +192,11 @@ async function fetchVolumeData(ticker: string) {
     const ret1m = current && m1Price ? ((current - m1Price) / m1Price) * 100 : 0;
     const ret3m = current && m3Price ? ((current - m3Price) / m3Price) * 100 : 0;
 
-    // 52-week high/low from 90d data (best we have)
-    const high52 = Math.max(...highs.filter(Boolean));
-    const low52 = Math.min(...lows.filter(Boolean));
+    // True 52-week high/low from Yahoo meta; fallback to 90d data if absent
+    const high52 = (result.meta?.fiftyTwoWeekHigh as number | undefined)
+      ?? (highs.filter(Boolean).length > 0 ? Math.max(...highs.filter(Boolean)) : null);
+    const low52 = (result.meta?.fiftyTwoWeekLow as number | undefined)
+      ?? (lows.filter(Boolean).length > 0 ? Math.min(...lows.filter(Boolean)) : null);
 
     // Volume ratios
     const recent5 = validVolumes.slice(-5);
@@ -227,7 +229,7 @@ export async function GET(request: Request) {
   if (!ticker) return NextResponse.json({ error: 'Missing ticker' }, { status: 400 });
 
   const redis = createRedis();
-  const cacheKey = `flowvium:stock-supply:v3:${ticker}`;
+  const cacheKey = `flowvium:stock-supply:v4:${ticker}`;
 
   if (redis) {
     try {

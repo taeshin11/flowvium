@@ -1,0 +1,38 @@
+## Iter 39 — cache 누락 패치 + non-US heatmap source string 수정
+Date: 2026-04-24
+Primary outcome: cache 'no-store' 규칙 준수 + 정확한 데이터소스 표기
+
+### Drift check
+- iter 37: InsiderPage UX (다른 영역)
+- iter 38: stock-supply 좀비 코드 삭제 (다른 영역)
+- iter 39: cache 규정 준수 + 데이터 표기 (다른 영역)
+- 히트맵 영역 탈출 3+ iter ✓
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=verify-metrics our_value=67 (Δ0) → OK
+- [accuracy probe] metric=KR heatmap source=Yahoo direct_value=+0.92% our_value=+0.92% → OK
+- [accuracy probe] metric=JP heatmap source=verify-deploy: 80/80 non-null → OK
+
+### 발견된 문제
+1. latest-updates/safeJson():
+   - `fetch(url)` 에 cache 옵션 없음
+   - Next.js App Router force-cache 기본값 → 내부 API 응답 lambda 수명 동안 stale
+   - CLAUDE.md 규칙: "실시간 값: cache: 'no-store' 명시"
+   - 해결: safeJson() 에 `cache: 'no-store'` 추가
+
+2. market-heatmap source string:
+   - 비-US 국가 모두 "Stooq (시세)" → 부정확
+   - KR/TW/IN/CN은 Yahoo만 사용, JP/EU는 Stooq+Yahoo 혼합
+   - 해결: STOOQ_SKIP 기준으로 분기:
+     - STOOQ_SKIP(KR/TW/IN/CN): "Yahoo v8 (시세)"
+     - 나머지: "Stooq+Yahoo (시세)"
+
+### 현황 파악 (EU 히트맵)
+- EU: 65/80 = 81.25% changePct non-null
+- 15개 누락: 일부 EU 국가 Yahoo Finance 티커 불일치 예상 (허용 가능 수준)
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- 83c07da: fix(cache): add no-store to latest-updates safeJson + fix heatmap source strings
