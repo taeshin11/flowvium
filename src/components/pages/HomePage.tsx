@@ -43,6 +43,7 @@ import { useRouter } from '@/i18n/routing';
 import { allCompanies } from '@/data/companies';
 import { companyNamesI18n } from '@/data/company-names-i18n';
 import { getLevel, levelLabels } from '@/data/fear-greed';
+import Sparkline from '@/components/Sparkline';
 
 const searchCompanies = allCompanies.map((c) => ({
   name: c.name,
@@ -68,6 +69,7 @@ const TICKER_CONFIG: Record<string, { label: string; decimals: number; prefix: s
 function MarketSnapshot() {
   const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
   const [fgScore, setFgScore] = useState<number | null>(null);
+  const [fgHistory, setFgHistory] = useState<number[] | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchPills = useCallback(() => {
@@ -82,7 +84,10 @@ function MarketSnapshot() {
       ),
       fetch('/api/fear-greed', { signal: controller.signal })
         .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then(d => ({ ticker: '__fg__', score: (d.byCountry?.find((c: { id: string }) => c.id === 'us') as { score?: number } | undefined)?.score ?? null })),
+        .then(d => {
+          const us = d.byCountry?.find((c: { id: string }) => c.id === 'us') as { score?: number; history?: Array<{score: number}> } | undefined;
+          return { ticker: '__fg__', score: us?.score ?? null, history: us?.history ?? null };
+        }),
     ]).then(results => {
       if (controller.signal.aborted) return;
       const map = new Map<string, SnapPill>();
@@ -91,6 +96,8 @@ function MarketSnapshot() {
         const val = r.value as { ticker: string; price?: number | null; changePct?: number | null; currency?: string; score?: number | null };
         if (val.ticker === '__fg__') {
           if (val.score != null) setFgScore(val.score);
+          const hist = (val as { history?: Array<{score: number}> }).history;
+          if (Array.isArray(hist) && hist.length >= 2) setFgHistory(hist.map(h => h.score));
         } else {
           map.set(val.ticker, { price: val.price ?? null, changePct: val.changePct ?? null, currency: val.currency ?? 'USD' });
         }
@@ -147,6 +154,7 @@ function MarketSnapshot() {
                 <span className={`text-xs font-mono font-semibold px-1 py-0.5 rounded ${meta.color} ${meta.bg}`}>
                   {fgScore}
                 </span>
+                {fgHistory && <Sparkline values={fgHistory} width={44} height={14} stroke={1} />}
               </div>
             );
           })()}

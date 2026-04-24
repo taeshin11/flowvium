@@ -1,0 +1,45 @@
+## Iter 61 — 홈 F&G 스파크라인
+Date: 2026-04-24
+Primary outcome: 홈 F&G 30일 스파크라인 (13자 ✓)
+
+### Drift check
+- iter 58: macro-indicators/route.ts + MacroIndicatorsTab.tsx
+- iter 59: MacroIndicatorsTab.tsx (2 consecutive macro tab)
+- iter 60: ReportPage.tsx (다른 파일/영역 → drift 없음 ✓)
+- iter 61: HomePage.tsx (다른 파일/영역 → drift 없음 ✓)
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=fg.us source=CNN
+  direct_value=67 (2026-04-24, score=67)
+  our_value=67 (history[-1].score=67, history_len=30)
+  delta=0 tolerance=3 → OK ✓
+
+### 수정 사항
+
+#### 1. HomePage.tsx — F&G 스파크라인 추가
+- `import Sparkline from '@/components/Sparkline'` 추가
+- `const [fgHistory, setFgHistory] = useState<number[] | null>(null)` 추가
+- F&G fetch에서 `history` 필드 추출:
+  ```typescript
+  const us = d.byCountry?.find((c: { id: string }) => c.id === 'us') as { score?: number; history?: Array<{score: number}> } | undefined;
+  return { ticker: '__fg__', score: us?.score ?? null, history: us?.history ?? null };
+  ```
+- results 처리 블록에서 hist 추출:
+  ```typescript
+  const hist = (val as { history?: Array<{score: number}> }).history;
+  if (Array.isArray(hist) && hist.length >= 2) setFgHistory(hist.map(h => h.score));
+  ```
+- F&G pill 옆 스파크라인 렌더:
+  ```tsx
+  {fgHistory && <Sparkline values={fgHistory} width={44} height={14} stroke={1} />}
+  ```
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 fear-greed fetch 재활용)
+- 데이터: fear-greed Redis 4h 캐시 (CNN history 포함 — iter57 추가)
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- iter61: feat(home): F&G 30일 스파크라인 — 홈 마켓 스냅샷 pill 옆

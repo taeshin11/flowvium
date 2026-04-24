@@ -82,6 +82,7 @@
 - 10Y: `{price}%` 형식 (suffix=%), DXY: 소수점 1자리, Gold: `$` 정수
 - **60초 자동 갱신** (`setInterval` + `AbortController` 클린업) ← iter32
 - **US Fear & Greed 지수 pill** (F&G, `levelLabels` 색상) ← iter33
+- **F&G 30일 스파크라인** — F&G pill 옆 인라인 SVG 추세선 (44×14px) ← iter61
 - 마운트 시 `/api/stock-price` 7건 + `/api/fear-greed` 1건 병렬 fetch
 - 가격 로드 전 표시 안 함 (null guard)
 
