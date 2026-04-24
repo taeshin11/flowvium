@@ -81,11 +81,11 @@ const KEY_FIGURES = [
 
 // Tested 2026-04-25: Yahoo Finance (404), Reuters (000), CNBC (403), MarketWatch → personal finance
 // Replaced with confirmed working sources matching news-cascade feeds
-const NEWS_RSS_FEEDS = [
-  'https://feeds.bloomberg.com/markets/news.rss',
-  'https://feeds.bloomberg.com/economics/news.rss',
-  'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
-  'https://seekingalpha.com/market_currents.xml',
+const NEWS_RSS_FEEDS: { url: string; source: string }[] = [
+  { url: 'https://feeds.bloomberg.com/markets/news.rss',     source: 'Bloomberg' },
+  { url: 'https://feeds.bloomberg.com/economics/news.rss',   source: 'Bloomberg Economics' },
+  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',   source: 'WSJ Markets' },
+  { url: 'https://seekingalpha.com/market_currents.xml',     source: 'Seeking Alpha' },
 ];
 
 interface RssItem { title: string; description: string; link: string; pubDate: string; source: string }
@@ -233,7 +233,7 @@ export async function GET() {
 
   // ── 2. News RSS (parallel) ────────────────────────────────────────────────────
   const newsResults = await Promise.allSettled(
-    NEWS_RSS_FEEDS.map((url, i) => fetchNewsRss(url, ['Yahoo Finance', 'Reuters', 'CNBC', 'MarketWatch'][i]))
+    NEWS_RSS_FEEDS.map(f => fetchNewsRss(f.url, f.source))
   );
   const allNewsItems: RssItem[] = newsResults.flatMap(r => r.status === 'fulfilled' ? r.value : []);
 
