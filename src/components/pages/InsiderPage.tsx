@@ -136,12 +136,12 @@ export default function InsiderPage() {
   }, [load]);
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode; count: number }[] = [
-    { id: 'insider',   label: t('tabInsider'),   icon: <Users className="w-4 h-4" />,          count: insider.length },
-    { id: 'ownership', label: t('tabOwnership'), icon: <AlertTriangle className="w-4 h-4" />,  count: ownership.length },
-    { id: 'nport',     label: t('tabNport'),     icon: <Building2 className="w-4 h-4" />,      count: nportFunds.length },
-    { id: 'blocks',    label: t('tabBlocks'),    icon: <DollarSign className="w-4 h-4" />,     count: blocks.length },
-    { id: 'options',   label: t('tabOptions'),   icon: <Zap className="w-4 h-4" />,             count: options.length },
-    { id: 'korea',     label: t('tabKorea'),     icon: <Globe className="w-4 h-4" />,           count: korea ? (korea.topForeignBuy.length + korea.topForeignSell.length) : 0 },
+    { id: 'insider',   label: t('tabInsider'),   icon: <Users className="w-4 h-4" />,         count: insider.length },
+    { id: 'korea',     label: t('tabKorea'),     icon: <Globe className="w-4 h-4" />,          count: korea ? (korea.topForeignBuy.length + korea.topForeignSell.length) : 0 },
+    { id: 'ownership', label: t('tabOwnership'), icon: <AlertTriangle className="w-4 h-4" />, count: ownership.length },
+    { id: 'nport',     label: t('tabNport'),     icon: <Building2 className="w-4 h-4" />,     count: nportFunds.length },
+    { id: 'options',   label: t('tabOptions'),   icon: <Zap className="w-4 h-4" />,            count: options.length },
+    { id: 'blocks',    label: t('tabBlocks'),    icon: <DollarSign className="w-4 h-4" />,    count: blocks.length },
   ];
 
   // ── Filter + cluster insider transactions by ticker ─────────────────────
@@ -513,8 +513,8 @@ export default function InsiderPage() {
               {t('koreaAsOf', { date: korea.tradingDay })} · {korea.totalTickers.toLocaleString()} {t('tickers')}
             </span>
             {korea.fallback && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                ⚠ KRX 수급 없음 — 가격 데이터만
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-cf-text-secondary border border-white/10">
+                가격 변동 데이터 (외인·기관 순매수 미제공)
               </span>
             )}
           </div>

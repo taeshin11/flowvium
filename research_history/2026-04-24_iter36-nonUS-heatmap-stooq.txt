@@ -64,7 +64,13 @@ Primary outcome: 히트맵 비-US 실시간 주가 (Stooq)
 - Stooq .kr/.jp/.tw 실제 데이터 유무 (배포 후 /api/market-heatmap?country=KR&refresh=1 체크)
 - Stooq .hk (중국 HK 주식) 커버리지 확인
 
+### 최종 검증 (배포 후)
+- [accuracy probe] metric=005930.KS.changePct source=Yahoo direct_value=+0.92% our_value=+0.92% delta=0 → OK
+- KR 히트맵: 80/80 종목 changePct non-null ✓ (v12 배포 확인: 2026-04-24T10:01:45Z)
+- Source string: "iShares EWY (구성) + Stooq (시세)" ← Yahoo fallback가 KR 전체 커버
+
 ### Commits
 - 15c91f0: fix(ux): 한국 수급 한글명+watchlist 제거+히트맵 회사명 표시
 - d4b1e2b: feat(heatmap): 비-US 국가 Yahoo v8 실시간 주가 추가 [FAILED]
 - dc5b650: fix(heatmap): Yahoo→Stooq for non-US prices
+- 0293acd: feat(heatmap): Stooq+Yahoo hybrid for non-US live prices (v12)

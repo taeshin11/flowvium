@@ -147,17 +147,21 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Non-US: Stooq first (reliable, covers JP + DE/NL), then Yahoo fallback (slow/reliable for KR/TW/IN/CN/EU-rest)
+  // Non-US: Stooq first (covers JP + EU-partial), then Yahoo fallback (KR/TW/IN/CN + EU remainder)
+  // KR/TW/IN/CN return N/D from Stooq — skip that round-trip and go straight to Yahoo.
+  const STOOQ_SKIP = new Set(['KR', 'TW', 'IN', 'CN']);
   const nonUSQuoteMap = new Map<string, { changePct: number | null; close: number | null }>();
   if (country !== 'US') {
-    // Pass 1: Stooq (covers JP fully, EU partially)
-    const stooqQuotes = await fetchStooqNonUS(topHoldings, country);
-    for (const q of stooqQuotes) {
-      if (q.changePct != null || q.close != null) {
-        nonUSQuoteMap.set(q.symbol, { changePct: q.changePct, close: q.close });
+    if (!STOOQ_SKIP.has(country)) {
+      // Pass 1: Stooq (covers JP fully, EU partially)
+      const stooqQuotes = await fetchStooqNonUS(topHoldings, country);
+      for (const q of stooqQuotes) {
+        if (q.changePct != null || q.close != null) {
+          nonUSQuoteMap.set(q.symbol, { changePct: q.changePct, close: q.close });
+        }
       }
+      logger.info('market-heatmap', 'stooq_pass', { country, matched: nonUSQuoteMap.size });
     }
-    logger.info('market-heatmap', 'stooq_pass', { country, matched: nonUSQuoteMap.size });
 
     // Pass 2: Yahoo fallback for tickers still missing (KR/TW/IN/CN + EU remainder)
     const missingHoldings = topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase()));

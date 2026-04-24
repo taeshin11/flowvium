@@ -1,0 +1,56 @@
+## Iter 37 — 비-US Stooq 스킵 최적화 + InsiderPage 탭 정렬
+Date: 2026-04-24
+Primary outcome: 비-US 응답 속도 개선 + 탭 UX 정리
+
+### Drift check
+- 최근 5 커밋: hybrid heatmap (v12), Stooq-only (v11), Yahoo 시도, UX+watchlist, heatmap overview
+- 히트맵 영역 2 iter 연속 → drift 신호 → 다른 영역으로 이동
+- "나중에" 미뤄진 항목: InsiderPage UX 개선 (사용자 "보기도 어렵고" 피드백) → 이번 iter 처리
+
+### 정확성 프로브
+- [accuracy probe] metric=005930.KS.changePct source=Yahoo direct_value=+0.92% our_value=+0.92% delta=0 → OK (iter36 배포 후 검증)
+- [accuracy probe] metric=fg.us source=CNN direct_value=N/A(418) our_value=67 (verify-metrics Δ0) → OK
+- [accuracy probe] metric=fred.yield_spread source=FRED direct_value=0.51 our_value=0.51 delta=0.00 → OK
+
+### 발견된 문제
+1. market-heatmap v12: KR/TW/IN/CN 요청 시 Stooq pass 불필요하게 실행
+   - Stooq는 KR(.kr), TW(.tw), IN(.in), CN(.hk) 모두 N/D 반환 (iter36에서 확인)
+   - 80개 ticker 배치 → 2-3 req × 1-2s each = 최대 6s 낭비
+   - Pass 1 결과: 0/80 matched (전부 Yahoo fallback으로 넘어감)
+   - 해결: STOOQ_SKIP = Set(['KR','TW','IN','CN']) → 해당 국가 Pass 1 건너뜀
+
+2. InsiderPage 탭 순서 불합리:
+   - 기존: insider → ownership → nport → blocks → options → korea
+   - options/blocks는 API 키 없어서 lock screen만 표시 (중간에 배치됨)
+   - korea 탭이 맨 마지막 → 잘 안 보임
+   - 해결: insider → korea → ownership → nport → options → blocks
+
+3. Korea 탭 fallback 배너 스타일:
+   - ⚠ amber 경고 색상 → 사용자에게 "오류"처럼 보임
+   - 실제로는 정상 동작 (KRX 차단은 알려진 제약, 가격 데이터는 정상)
+   - 해결: neutral 스타일 (white/5 배경, secondary 텍스트)
+
+### 코드 변경
+#### src/app/api/market-heatmap/route.ts
+- STOOQ_SKIP = new Set(['KR','TW','IN','CN']) 추가
+- country가 STOOQ_SKIP에 있으면 Pass 1(Stooq) 건너뛰고 바로 Pass 2(Yahoo)
+- KR/TW/IN/CN: 예상 응답 속도 개선 ~2-6s
+
+#### src/components/pages/InsiderPage.tsx
+- TABS 배열 재정렬: insider → korea → ownership → nport → options → blocks
+- Korea fallback 배너: amber 경고 → neutral 안내 스타일
+  - "⚠ KRX 수급 없음 — 가격 데이터만" → "가격 변동 데이터 (외인·기관 순매수 미제공)"
+
+### 캐시 계층 감사
+- market-heatmap: STOOQ_SKIP 분기는 캐시 히트 이후 코드 → 캐시 계층 영향 없음
+- Stooq fetch: cache: 'no-store' 유지 ✓
+
+### TypeScript
+- TypeScript clean ✓
+
+### 삭제/단순화 (rule 3c 충족)
+- 불필요한 Stooq 배치 요청 제거 (6s 낭비 → 0s)
+- InsiderPage에서 misleading 경고 배너 제거
+
+### Commits
+- TBD
