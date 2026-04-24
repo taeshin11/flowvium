@@ -38,7 +38,7 @@ const jsonLd = {
       url: BASE_URL,
       logo: {
         '@type': 'ImageObject',
-        url: `${BASE_URL}/og-default.png`,
+        url: `${BASE_URL}/opengraph-image`,
         width: 1200,
         height: 630,
       },

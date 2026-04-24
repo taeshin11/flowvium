@@ -17,21 +17,26 @@ export function generateSeoMetadata({
   path = '',
   locale = 'en',
   keywords = [],
-  image = '/og-default.png',
 }: {
   title: string;
   description?: string;
   path?: string;
   locale?: string;
   keywords?: string[];
-  image?: string;
 }): Metadata {
-  const url = `${BASE_URL}/${locale}${path}`;
-  const fullTitle = `${title} | ${SITE_NAME}`;
+  // opengraph-image.tsx generates the OG image dynamically per-locale
+  const ogImageUrl = `${BASE_URL}/${locale === 'en' ? '' : locale + '/'}opengraph-image`;
+  // localePrefix: 'as-needed' — default locale (en) has no /en/ prefix in URLs
+  const canonicalUrl = locale === 'en' ? `${BASE_URL}${path}` : `${BASE_URL}/${locale}${path}`;
+  // Avoid double site-name: "Flowvium — X | Flowvium" → "Flowvium — X"
+  const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
 
-  // Build hreflang map for all 16 locales + x-default
-  const languages: Record<string, string> = { 'x-default': `${BASE_URL}/en${path}` };
-  for (const loc of ALL_LOCALES) {
+  // Build hreflang — English uses root path (no /en/ prefix), others use /{locale}/
+  const languages: Record<string, string> = {
+    'x-default': `${BASE_URL}${path}`,
+    'en': `${BASE_URL}${path}`,
+  };
+  for (const loc of ALL_LOCALES.filter(l => l !== 'en')) {
     languages[loc] = `${BASE_URL}/${loc}${path}`;
   }
 
@@ -50,15 +55,15 @@ export function generateSeoMetadata({
     publisher: 'THE ELIOT K FINANCIAL',
     metadataBase: new URL(BASE_URL),
     alternates: {
-      canonical: url,
+      canonical: canonicalUrl,
       languages,
     },
     openGraph: {
       title: fullTitle,
       description,
-      url,
+      url: canonicalUrl,
       siteName: SITE_NAME,
-      images: [{ url: image, width: 1200, height: 630, alt: title }],
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
       locale,
       type: 'website',
     },
@@ -66,7 +71,7 @@ export function generateSeoMetadata({
       card: 'summary_large_image',
       title: fullTitle,
       description,
-      images: [image],
+      images: [ogImageUrl],
       creator: '@flowvium_app',
     },
     robots: {

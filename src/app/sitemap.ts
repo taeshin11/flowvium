@@ -15,10 +15,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/heatmap', '/screener', '/short', '/insider', '/report', '/earnings', '/intelligence', '/osint', '/watchlist',
   ];
 
+  // localePrefix: 'as-needed' — default locale (en) has no /en/ prefix
+  const localeBase = (locale: string, path: string) =>
+    locale === 'en' ? `${BASE_URL}${path}` : `${BASE_URL}/${locale}${path}`;
+
   for (const locale of locales) {
     for (const page of staticPages) {
       routes.push({
-        url: `${BASE_URL}/${locale}${page}`,
+        url: localeBase(locale, page),
         lastModified: new Date(),
         changeFrequency: page === '' ? 'daily' : 'weekly',
         priority: page === '' ? 1 : 0.8,
@@ -28,13 +32,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Sector pages
     for (const sector of sectors) {
       routes.push({
-        url: `${BASE_URL}/${locale}/explore/${sector.id}`,
+        url: localeBase(locale, `/explore/${sector.id}`),
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.7,
       });
       routes.push({
-        url: `${BASE_URL}/${locale}/cascade/${sector.id}`,
+        url: localeBase(locale, `/cascade/${sector.id}`),
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.7,
@@ -44,7 +48,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Company pages
     for (const company of allCompanies) {
       routes.push({
-        url: `${BASE_URL}/${locale}/company/${company.ticker}`,
+        url: localeBase(locale, `/company/${company.ticker}`),
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.6,
@@ -54,7 +58,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Blog pages
     for (const post of blogPosts) {
       routes.push({
-        url: `${BASE_URL}/${locale}/blog/${post.slug}`,
+        url: localeBase(locale, `/blog/${post.slug}`),
         lastModified: new Date(post.publishDate),
         changeFrequency: 'monthly',
         priority: 0.5,
