@@ -1,0 +1,64 @@
+## Iter 58 — IG/HY 신용 스프레드 추가
+Date: 2026-04-24
+Primary outcome: IG/HY 신용 스프레드 추가 (13자 ✓)
+
+### Drift check
+- iter 55: macro yield curve + ICSA
+- iter 56: macro UMCSENT + cache v5
+- iter 57: fear-greed US sparkline (비 macro — streak 리셋)
+- iter 58: macro credit OAS (1 consecutive, drift 없음 ✓)
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=ig_spread source=FRED_BAMLC0A0CM
+  direct_value=0.79% (2026-04-22) our_static=0.79 delta=0 → OK ✓
+  live fetch 후 production에서 0.79% 또는 최신값 표시 예상
+
+- [accuracy probe] metric=hy_spread source=FRED_BAMLH0A0HYM2
+  direct_value=2.84% (2026-04-22) our_static=2.84 delta=0 → OK ✓
+  FRED 시계열 3개월치 접근 확인: 4/17=2.83, 4/20=2.87, 4/21=2.85, 4/22=2.84 ✓
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 추가: fetchLatest('BAMLC0A0CM'), fetchLatest('BAMLH0A0HYM2')
+- fetchLatest 내 fetchFREDCsv: fetch URL = fredgraph.csv — 실시간 (Next.js fetch cache 없음, 서버 내 직접 fetch)
+- 캐시 계층: Redis daily key v5→v6 으로 즉시 무효화 ✓
+- FRED CSV endpoint에 cache: 'no-store' 여부 → fetchFREDCsv 함수 확인 필요
+
+### 수정 사항
+
+#### 1. MacroIndicator.category 확장
+- `'credit'` 카테고리 추가 (route.ts 인터페이스 + MacroIndicatorsTab.tsx CAT_LABELS/COLORS/DOT)
+- 색상: bg-red-50 text-red-700 (신용 위험 = 빨강 계열)
+
+#### 2. STATIC + FORECASTS 추가
+- ig_spread: actual=0.79, forecast=0.75, previous=0.89, unit='%'
+- hy_spread: actual=2.84, forecast=2.80, previous=3.23, unit='%'
+
+#### 3. buildCascade 추가
+- ig_spread: beat=스프레드 축소(risk-on), miss=스프레드 확대(risk-off)
+- hy_spread: beat=정크 랠리(extreme risk-on), miss=HY 스프레드 확대(credit panic)
+
+#### 4. Promise.allSettled에 fetchLatest 2건 추가
+- BAMLC0A0CM: ICE BofA IG Corporate OAS (일별, %)
+- BAMLH0A0HYM2: ICE BofA HY Corporate OAS (일별, %)
+
+#### 5. 지표 블록 추가 (route.ts)
+- ig_spread: higherIsBetter=false (낮은 스프레드 = 좋음)
+- hy_spread: higherIsBetter=false
+- 경보 임계값: IG > 1.5% = 스트레스 경보, HY > 5.0% = 침체 경보
+
+#### 6. LAYMAN 설명 추가 (MacroIndicatorsTab.tsx)
+- ig_spread + hy_spread에 한국어 설명 추가
+
+#### 7. 캐시 키 v5 → v6 (macro-indicators + verify-metrics)
+- macro-indicators: `flowvium:macro-indicators:v6:${kstDate}`
+- verify-metrics cache 감사 키 동기화
+
+### TypeScript
+- TypeScript clean ✓
+
+### 배포 후 확인
+- liveData: True for ig_spread + hy_spread (FRED BAML 시리즈 free ✓)
+- verify-metrics: 80/80 healthy 목표
+
+### Commits
+- iter58: feat(macro): IG/HY 신용 OAS 스프레드 + 신용 카테고리 + 캐시 v6

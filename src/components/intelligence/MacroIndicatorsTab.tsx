@@ -194,8 +194,8 @@ const RATE_BADGE: Record<string, { label: string; cls: string }> = {
 };
 const CASCADE_ICONS: Record<string, string> = { up: '▲', down: '▼', mixed: '↕' };
 const MAG_OPACITY: Record<string, string> = { strong: 'opacity-100', moderate: 'opacity-70', weak: 'opacity-40' };
-const CAT_LABELS: Record<string, string> = { inflation: '물가', employment: '고용', growth: '경기', monetary: '통화정책', trade: '무역' };
-const CAT_COLORS: Record<string, string> = { inflation: 'bg-orange-50 text-orange-700', employment: 'bg-green-50 text-green-700', growth: 'bg-blue-50 text-blue-700', monetary: 'bg-purple-50 text-purple-700', trade: 'bg-teal-50 text-teal-700' };
+const CAT_LABELS: Record<string, string> = { inflation: '물가', employment: '고용', growth: '경기', monetary: '통화정책', trade: '무역', credit: '신용' };
+const CAT_COLORS: Record<string, string> = { inflation: 'bg-orange-50 text-orange-700', employment: 'bg-green-50 text-green-700', growth: 'bg-blue-50 text-blue-700', monetary: 'bg-purple-50 text-purple-700', trade: 'bg-teal-50 text-teal-700', credit: 'bg-red-50 text-red-700' };
 
 interface YieldPoint { label: string; value: number | null; }
 interface YieldCurve { points: YieldPoint[]; inverted: boolean; spread10y2y: number | null; }
@@ -210,6 +210,8 @@ const LAYMAN: Record<string, { what: string; why: string; good: string; bad: str
   retail: { what: '미국 소비자들이 지난 한 달 동안 쇼핑에 얼마나 썼는지 집계한 지표예요. 미국 GDP의 70%가 소비예요.', why: '소비가 줄면 기업 매출 → 실적 → 주가에 직접 영향을 미쳐요.', good: '예상보다 높으면 → 소비 강세 → 리테일·소비재 주식 상승', bad: '예상보다 낮으면 → 소비 둔화 → 경기침체 우려' },
   ppi:    { what: '기업이 물건을 만들 때 드는 원재료·부품 비용이 얼마나 올랐는지 보여줘요. CPI보다 1~2개월 앞서서 나와요.', why: 'PPI가 오르면 → 기업이 가격 올림 → 나중에 CPI도 오를 수 있어요. CPI 예측 지표로 활용해요.', good: '예상보다 낮으면 → 원가 부담 완화 → 기업 마진 개선 기대', bad: '예상보다 높으면 → 향후 CPI 상승 예고 → 긴축 우려' },
   unrate: { what: '일하고 싶은데 일자리를 못 찾은 사람이 전체 노동자의 몇 %인지 보여줘요.', why: 'Fed의 두 가지 임무 중 하나가 "완전 고용"이에요. 실업률이 너무 낮으면 임금 인플레 우려.', good: '높아지면 → 경기 둔화 → Fed 인하 압박', bad: '너무 낮으면 → 임금 상승 → 인플레 → 금리 인상 위험' },
+  ig_spread: { what: '투자등급(IG) 회사채 금리에서 미국 국채 금리를 뺀 차이예요. 기업이 돈 빌릴 때 내야 하는 "위험 프리미엄"이에요.', why: '스프레드가 넓어질수록 신용 위기 가능성↑. 1.5% 넘으면 경보, 2%+면 위기 수준이에요.', good: '스프레드 축소(낮아짐) → 기업 자금 조달 용이 → 투자·고용 확대', bad: '스프레드 확대(높아짐) → 기업 대출 비용↑ → 투자 위축 → 주가 하락 선행 신호' },
+  hy_spread: { what: '고수익채(정크본드) 금리에서 미국 국채 금리를 뺀 차이예요. 신용 위험이 가장 높은 기업들의 "공포 지수"예요.', why: '5% 초과 = 경기침체 경보. 역사적으로 대공황급 위기 때 10%+까지 올랐어요.', good: '스프레드 축소 → 위험 선호 복귀 → 주식·하이일드 채권 동반 강세', bad: '5% 이상 → 신용 시장 패닉 → 기업 부도 증가 → 주식 급락 동반' },
 };
 
 function LaymanBox({ id }: { id: string }) {
@@ -427,7 +429,7 @@ export default function MacroIndicatorsTab() {
         if (!upcoming.length) return null;
         const CAT_DOT: Record<string, string> = {
           inflation: 'bg-orange-400', employment: 'bg-green-500',
-          growth: 'bg-blue-500', monetary: 'bg-purple-500', trade: 'bg-teal-500',
+          growth: 'bg-blue-500', monetary: 'bg-purple-500', trade: 'bg-teal-500', credit: 'bg-red-400',
         };
         return (
           <div className="cf-card p-4">

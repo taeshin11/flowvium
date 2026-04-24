@@ -5,7 +5,8 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  * Key macro indicators + cascade impact analysis
  *
  * Data sources:
- *   - FRED (free CSV endpoint) for CPI, PCE, PPI, NFP, GDP, Retail Sales, Unemployment, Yield Curve
+ *   - FRED (free CSV endpoint) for CPI, PCE, PPI, NFP, GDP, Retail Sales, Unemployment, Yield Curve,
+ *     IG/HY Credit OAS (BAMLC0A0CM / BAMLH0A0HYM2)
  *   - Static fallback for ISM, FOMC (no free FRED source)
  *
  * Cache: daily key (refreshes at midnight KST via cron)
@@ -27,7 +28,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v5:${kstDate()}`;
+  return `flowvium:macro-indicators:v6:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ export interface MacroIndicator {
   id: string;
   name: string;
   nameKo: string;
-  category: 'inflation' | 'employment' | 'growth' | 'monetary' | 'trade';
+  category: 'inflation' | 'employment' | 'growth' | 'monetary' | 'trade' | 'credit';
   actual: number | null;
   forecast: number | null;
   previous: number | null;
@@ -403,6 +404,31 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
         { asset: '금 (GLD)', direction: 'up', reason: '경기 불안 → 안전자산', magnitude: 'weak' },
       ],
     },
+    ig_spread: {
+      beat: [ // spread narrows (tighter) = credit calmer = risk-on
+        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '신용 리스크 완화 → 기업 조달 비용 ↓', magnitude: 'moderate' },
+        { asset: '투자등급 회사채', direction: 'up', reason: '스프레드 축소 → IG 채권 가격 상승', magnitude: 'moderate' },
+        { asset: '달러 (DXY)', direction: 'down', reason: '위험선호 복귀 → 안전자산 달러 매도', magnitude: 'weak' },
+      ],
+      miss: [ // spread widens = credit stress = risk-off
+        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '신용 위기 선행 신호 → 기업 차환 리스크', magnitude: 'strong' },
+        { asset: '미 국채 (TLT)', direction: 'up', reason: '안전자산 수요 → 금리 하락', magnitude: 'moderate' },
+        { asset: '금 (GLD)', direction: 'up', reason: '신용 스트레스 → 안전자산 헤지', magnitude: 'moderate' },
+      ],
+    },
+    hy_spread: {
+      beat: [ // HY spread narrows = junk rally = max risk-on
+        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '고수익채 랠리 = 극단적 위험선호 신호', magnitude: 'strong' },
+        { asset: '고수익 회사채 (HYG)', direction: 'up', reason: '스프레드 축소 → 하이일드 채권 상승', magnitude: 'strong' },
+        { asset: '원자재', direction: 'up', reason: '경기 낙관론 확산', magnitude: 'weak' },
+      ],
+      miss: [ // HY spread widens = credit crisis signal = extreme risk-off
+        { asset: '미국 주식 (S&P500)', direction: 'down', reason: 'HY 스프레드 500bp 접근 = 경기침체 경보', magnitude: 'strong' },
+        { asset: '미 국채 (TLT)', direction: 'up', reason: '극단적 안전자산 도피', magnitude: 'strong' },
+        { asset: '금 (GLD)', direction: 'up', reason: '신용 패닉 → 금 수요 급증', magnitude: 'strong' },
+        { asset: '달러 (DXY)', direction: 'up', reason: '리스크오프 달러 강세', magnitude: 'moderate' },
+      ],
+    },
   };
   const def = cascades[id];
   if (!def) return [];
@@ -489,6 +515,20 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
     rateImpact: 'dovish', rateImpactKo: '소비 심리 악화 → 비둘기파',
     summary: '4월 소비자심리 52.2 — 60선 하회. 관세 불확실성·인플레 우려 급등. 1978년래 최저 수준.',
   },
+  ig_spread: {
+    id: 'ig_spread', name: 'IG Credit OAS (ICE BofA)', nameKo: 'IG 신용 스프레드 (OAS)',
+    category: 'credit', actual: 0.79, forecast: 0.75, previous: 0.89, unit: '%',
+    releaseDate: '2026-04-22', nextRelease: '2026-04-23', surprise: 'miss',
+    rateImpact: 'neutral', rateImpactKo: '신용 위험 소폭 확대',
+    summary: 'IG OAS 0.79% — 역사 저점 대비 소폭 높음. 1.5% 이상 시 신용 스트레스 경보.',
+  },
+  hy_spread: {
+    id: 'hy_spread', name: 'HY Credit OAS (ICE BofA)', nameKo: 'HY 신용 스프레드 (OAS)',
+    category: 'credit', actual: 2.84, forecast: 2.80, previous: 3.23, unit: '%',
+    releaseDate: '2026-04-22', nextRelease: '2026-04-23', surprise: 'miss',
+    rateImpact: 'neutral', rateImpactKo: '하이일드 위험 소폭 확대',
+    summary: 'HY OAS 2.84% — 5% 이상 시 경기침체 경보. 현재 중립 구간.',
+  },
 };
 
 // ── FRED static forecasts (consensus at time of last update) ──────────────────
@@ -503,6 +543,8 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
   iclaims:  { forecast: 224,   nextRelease: '2026-05-01' },
   umcsent:  { forecast: 54.0,  nextRelease: '2026-05-09' },
+  ig_spread: { forecast: 0.75, nextRelease: '2026-04-25' },
+  hy_spread: { forecast: 2.80, nextRelease: '2026-04-25' },
 };
 
 // ── Main GET ──────────────────────────────────────────────────────────────────
@@ -530,6 +572,7 @@ export async function GET() {
     fredNFP, fredGDP, fredPPI, fredRetail, fredUnrate,
     fredISM, fredFOMCUpper, fredFOMCLower,
     yieldCurve, fredIClaims, fredUMCSENT,
+    fredIGSpread, fredHYSpread,
   ] = await Promise.allSettled([
     fetchYoY('CPIAUCSL'),
     fetchYoY('CPILFESL'),
@@ -540,12 +583,14 @@ export async function GET() {
     fetchYoY('PPIACO'),
     fetchMoMPct('RSAFS'),
     fetchLatest('UNRATE'),
-    fetchLatest('NAPM'),             // ISM Manufacturing PMI
+    fetchLatest('NAPM'),             // ISM Manufacturing PMI (NAPM series often unreachable; falls back to static)
     fetchLatest('DFEDTARU'),         // Fed funds upper bound
     fetchLatest('DFEDTARL'),         // Fed funds lower bound
     fetchYieldCurve(),
     fetchLatest('ICSA'),             // Initial Jobless Claims (weekly, in persons)
     fetchLatest('UMCSENT'),          // U of Michigan Consumer Sentiment (monthly)
+    fetchLatest('BAMLC0A0CM'),       // ICE BofA IG Corporate OAS (daily, %)
+    fetchLatest('BAMLH0A0HYM2'),     // ICE BofA HY Corporate OAS (daily, %)
   ]);
 
   // Build indicators from FRED data, fall back to static
@@ -803,6 +848,52 @@ export async function GET() {
         : base.summary,
       cascade: buildCascade('umcsent', surprise),
       liveData: liveVal != null,
+    });
+  }
+
+  // IG Credit OAS (ICE BofA US Corporate, daily, %)
+  const igData = get(fredIGSpread);
+  {
+    const base = STATIC.ig_spread;
+    const actual: number = igData != null ? parseFloat(igData.value.toFixed(2)) : (base.actual as number);
+    const fc = FORECASTS.ig_spread.forecast;
+    const surprise = classify(actual, fc, false); // lower OAS = better (credit looser)
+    const ri = rateImpact('ig_spread', surprise);
+    indicators.push({
+      ...base,
+      actual, previous: base.previous,
+      forecast: fc,
+      releaseDate: igData?.date ?? base.releaseDate,
+      nextRelease: FORECASTS.ig_spread.nextRelease,
+      surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
+      summary: igData != null
+        ? `IG OAS ${actual.toFixed(2)}% (${igData.date}). ${actual > 1.5 ? '1.5% 초과 — 신용 스트레스 경보.' : actual > 1.0 ? '경계 구간 진입.' : '정상 범위.'}`
+        : base.summary,
+      cascade: buildCascade('ig_spread', surprise),
+      liveData: igData != null,
+    });
+  }
+
+  // HY Credit OAS (ICE BofA US High Yield, daily, %)
+  const hyData = get(fredHYSpread);
+  {
+    const base = STATIC.hy_spread;
+    const actual: number = hyData != null ? parseFloat(hyData.value.toFixed(2)) : (base.actual as number);
+    const fc = FORECASTS.hy_spread.forecast;
+    const surprise = classify(actual, fc, false); // lower OAS = better
+    const ri = rateImpact('hy_spread', surprise);
+    indicators.push({
+      ...base,
+      actual, previous: base.previous,
+      forecast: fc,
+      releaseDate: hyData?.date ?? base.releaseDate,
+      nextRelease: FORECASTS.hy_spread.nextRelease,
+      surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
+      summary: hyData != null
+        ? `HY OAS ${actual.toFixed(2)}% (${hyData.date}). ${actual > 5.0 ? '5% 초과 — 경기침체 신호.' : actual > 4.0 ? '스트레스 경계 구간.' : '정상 범위.'}`
+        : base.summary,
+      cascade: buildCascade('hy_spread', surprise),
+      liveData: hyData != null,
     });
   }
 
