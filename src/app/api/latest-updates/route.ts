@@ -84,6 +84,7 @@ async function safeJson<T = unknown>(url: string, timeoutMs = 8000): Promise<T |
     const res = await fetch(url, {
       signal: AbortSignal.timeout(timeoutMs),
       headers: { 'user-agent': 'flowvium-aggregator/1.0' },
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     return await res.json() as T;

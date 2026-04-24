@@ -236,7 +236,9 @@ export async function GET(req: NextRequest) {
     dataDate,
     source: country === 'US'
       ? 'iShares IVV (구성) + Stooq (종목 시세) + Yahoo v8 (지수)'
-      : `iShares ${cfg?.etfTicker} (구성) + Stooq (시세)`,
+      : STOOQ_SKIP.has(country)
+        ? `iShares ${cfg?.etfTicker} (구성) + Yahoo v8 (시세)`
+        : `iShares ${cfg?.etfTicker} (구성) + Stooq+Yahoo (시세)`,
   };
 
   if (redis) {
