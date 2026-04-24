@@ -13,7 +13,7 @@ export const maxDuration = 60; // 200 tickers × batched Yahoo v8 fetch needs up
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { fetchYFHeatmapQuotes } from '@/lib/yahoo-finance';
+import { fetchCNBCQuotes } from '@/lib/yahoo-finance';
 import { fetchStooqQuotes } from '@/lib/stooq';
 import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v8:${country}:${hour}`;  // v8: query2 fallback for index ETFs
+  const cacheKey = `flowvium:heatmap:v9:${country}:${hour}`;  // v9: CNBC for index ETFs (Yahoo blocked on Vercel)
   const redis = createRedis();
 
   if (!force) {
@@ -127,9 +127,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Yahoo v8 for index ETFs only (small number, avoids rate-limit)
-  const indexYahooQuotes = await fetchYFHeatmapQuotes(indexConfigs.map(i => i.symbol));
-  const indexYahooMap = new Map(indexYahooQuotes.map(q => [q.symbol, q]));
+  // CNBC for index ETFs — reliable from Vercel IPs (Yahoo v8 blocked by AWS range)
+  const indexCNBCQuotes = await fetchCNBCQuotes(indexConfigs.map(i => i.symbol));
+  const indexYahooMap = new Map(indexCNBCQuotes.map(q => [q.symbol, q]));
 
   // 3. Build HeatmapStock list
   const stocks: HeatmapStock[] = topHoldings.map(h => {

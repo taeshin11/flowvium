@@ -199,6 +199,48 @@ export async function fetchYFHeatmapQuotes(tickers: string[]): Promise<YFHeatmap
   return out;
 }
 
+/**
+ * Fetch quotes via CNBC public API — reliable from Vercel IPs where Yahoo is blocked.
+ * symbols: pipe-delimited, e.g. "SPY|QQQ|IWM"
+ */
+export async function fetchCNBCQuotes(tickers: string[]): Promise<YFHeatmapQuote[]> {
+  if (!tickers.length) return [];
+  try {
+    const symbols = tickers.join('|');
+    const url = `https://quote.cnbc.com/quote-html-webservice/quote.htm?symbols=${encodeURIComponent(symbols)}&output=json`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Origin': 'https://www.cnbc.com',
+        'Referer': 'https://www.cnbc.com/markets/',
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      logger.warn('cnbc.quotes', 'http_error', { status: res.status, tickers });
+      return [];
+    }
+    const json = await res.json();
+    let quotes = json.QuickQuoteResult?.QuickQuote ?? [];
+    if (!Array.isArray(quotes)) quotes = [quotes];
+    const out: YFHeatmapQuote[] = [];
+    for (const q of quotes) {
+      const sym = q?.symbol;
+      const last = parseFloat(q?.last ?? '');
+      const pct = parseFloat(q?.change_pct ?? '');
+      if (sym && !isNaN(last)) {
+        out.push({ symbol: sym, close: last, changePct: !isNaN(pct) ? parseFloat(pct.toFixed(2)) : null });
+      }
+    }
+    logger.info('cnbc.quotes', 'done', { requested: tickers.length, returned: out.length });
+    return out;
+  } catch (err) {
+    logger.error('cnbc.quotes', 'fetch_error', { error: err, tickers });
+    return [];
+  }
+}
+
 /** Fetch short interest data for a single ticker via quoteSummary (crumb-authenticated). */
 export async function fetchYFShortData(ticker: string): Promise<YFShortData> {
   const base: YFShortData = { ticker, shortFloatPct: null, shortRatio: null, sharesShort: null, sharesShortPriorMonth: null, shortChangeMonthly: null };
