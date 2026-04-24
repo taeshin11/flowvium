@@ -1,0 +1,54 @@
+## Iter 29 — FedWatch Yahoo Finance 실시간 전환
+Date: 2026-04-24
+Primary outcome: FedWatch Yahoo Finance 실시간 전환
+
+### 정확성 프로브
+- [accuracy probe] metric=fedwatch.may source=Yahoo ZQK26.CBT direct_value=3.645 our_value(old_static)=4.33 delta=0.685 → DEGRADED (stale 8일)
+- [accuracy probe] metric=fedwatch.may source=Yahoo ZQK26.CBT direct_value=3.645 our_value(after_fix)=3.645 delta=0 → OK
+
+### Drift check
+- 최근 5 커밋: fedwatch-yahoo(이번), home-market-snapshot, insider-zombie, osint-zombie, cdn-4routes
+- zombie 패턴: iter22-27 연속 → iter28 신기능(market snapshot) → iter29 데이터소스 교체
+- CDN: iter25-27 3연속 → 이번은 CDN 아님
+- 인프라 블로커: CME 타임아웃을 iter25에서 "재시도"로 넘겼음 → 이번에 공식 해결
+- "나중에" 미룬 항목: CME→YF 전환 (iter25부터 defer됨) → 이번에 해결
+
+### 발견된 문제
+`src/app/api/fedwatch/route.ts`:
+- `fetchCMEImpliedRates()`: CME unofficial endpoint가 Vercel에서 timeout
+- 결과: liveData=false, updatedAt="2026-04-16" (8일 stale)
+- 사용자에게 May 7 FOMC probHold=82.3% 표시 (실제는 probCut75≈100%)
+- 실제 시장: ZQK26=96.355 → implied 3.645% → 73bp cut priced, 극적으로 다름
+
+### 작업 내용
+1. **fetchCMEImpliedRates() → fetchYFImpliedRates()**
+   - CONTRACTS: ZQK26, ZQM26, ZQN26, ZQQ26, ZQU26, ZQV26, ZQZ26 (`.CBT` 추가)
+   - Yahoo Finance v8 chart API (interval=1d, range=5d)
+   - AbortSignal.timeout(8000), cache: 'no-store'
+   - MONTH_MAP: F=JAN, G=FEB, H=MAR, J=APR, K=MAY, M=JUN, N=JUL, Q=AUG, U=SEP, V=OCT, X=NOV, Z=DEC
+   - price → impliedRate = 100 - price (Fed Funds convention)
+   - key26: "MAY26", keyFull: "MAY2026" — computeMeetingProbs() 키 포맷 호환
+   - 2개 이상 성공 시 rates 반환, 실패 시 null → static fallback
+
+2. **STATIC_DATA 업데이트 (2026-04-16 → 2026-04-24)**
+   - May 7: impliedRate 4.33 → 3.645, probHold 82.3 → 0, probCut75 0 → 100
+   - Jun-Dec: impliedRate 범위 3.61-3.64 반영
+   - yearEndImpliedRate: 3.52 → 3.610
+   - totalImpliedCuts: 125 → 76
+   - source: 'CME FedWatch 기반 시장 컨센서스' → 'Yahoo Finance ZQ Futures 기반 시장 컨센서스'
+
+3. **GET() 핸들러**
+   - fetchCMEImpliedRates() → fetchYFImpliedRates()
+   - source label: 'CME Fed Funds Futures 실시간' → 'Yahoo Finance ZQ Futures 실시간'
+
+### UI 검증
+- 브라우저 없이 실 렌더 확인 불가 → 미검증으로 명시
+- TypeScript clean ✓
+- Yahoo Finance endpoint 응답 확인 ✓ (ZQK26=96.355)
+
+### 산출물 분류
+- rule [3a]: 핵심 지표 FedWatch가 8일 stale → 실시간으로 전환
+- rule [3b]: CME→YF 전환이 완전히 동작할지 50%+ 불확실성 (Vercel 환경 Yahoo Finance 접근 여부)
+
+### Commit
+9b91408 fix(fedwatch): Yahoo Finance ZQ Futures로 실시간 전환 (CME 타임아웃 대체)
