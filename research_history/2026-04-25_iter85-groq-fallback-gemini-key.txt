@@ -1,0 +1,50 @@
+## Iter 85 — Groq 8b 폴백 강화 + Gemini AI 키 추가
+Date: 2026-04-25
+Primary outcome: Groq 429→8b 폴백 강화+Gemini키 (19자)
+
+### Drift check
+- iter80=verify-metrics, iter83=verify-probe+UI, iter84=verify-coverage (verify-metrics 3회 비연속)
+- iter85=AI-providers → 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=ai.groq source=Groq direct_value=200 our_value=200 delta=0 → OK
+- Groq 70b: HTTP 200, 998/1000 RPD remaining, 11963/12000 TPM remaining
+- 하루 전 배포된 verify-metrics가 'ai.groq degraded'를 감지했던 것은 일일 쿼터 소진 후 리셋 전
+- 현재는 리셋됨 (UTC 자정 기준 쿼터 리셋)
+
+### 산출물
+
+#### [1] ai-providers.ts: 8b 폴백 조건 강화
+Before: `if (primary.tpdExhausted)` — "tokens per day" 문자열이 에러 바디에 있을 때만
+After:  `if (primary.status === 429)` — 70b가 어떤 이유로든 429 반환 시 즉시 8b 시도
+
+이점:
+- TPD 초과 (100k/day): 기존과 동일하게 8b로 폴백
+- RPD 초과 (1k/day, 70b): 8b는 14.4k RPD → 70b RPD 소진 시에도 복구
+- TPM 초과 (12k/min, 70b): 8b는 30k TPM → 일시적 rate limit 시에도 복구
+
+#### [2] update-all/route.ts: news-cascade 침묵 실패 로깅
+Before: `.catch(() => {})` — 실패 완전히 무시
+After:  HTTP 오류 시 logger.warn, catch 시 logger.warn → /admin/logs 노출
+
+#### [3] Gemini API 키 등록
+- .env.local: GEMINI_API_KEY 추가 (개발 환경)
+- Vercel env add GEMINI_API_KEY production: 완료
+- 역할: vLLM → Groq 70b → Groq 8b → Gemini 2.5 Flash (최종 유료 폴백)
+- 이제 AI cascade 4단계 모두 활성화
+
+### AI 체인 현재 상태
+1. vLLM EXAONE (로컬): not configured (개발 환경 전용)
+2. Groq llama-3.3-70b (100k TPD, 1k RPD): ACTIVE
+3. Groq llama-3.1-8b (500k TPD, 14.4k RPD): ACTIVE (70b 429 시 폴백)
+4. Gemini 2.5 Flash (유료): ACTIVE (키 추가됨) ← iter85 신규
+
+### TypeScript: clean OK
+
+### 배포
+- git push origin master: af26455
+- Vercel 배포 트리거됨 (Gemini 키 포함)
+
+### Open issues (carry forward)
+- DaysToCover 대체 소스: IEX Cloud 등 — 계속 deferred
+- ai.groq verify-metrics: 다음 cron 실행 시 ok로 표시 예상 (쿼터 리셋됨)
