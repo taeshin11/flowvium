@@ -151,10 +151,12 @@ async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<U
   let updatedAt = new Date().toISOString();
   if (redis) {
     try {
-      for (const key of ['flowvium:capital-flows:v5:yahoo', 'flowvium:capital-flows:v5:twelve']) {
-        const d = await redis.get<{ assets: CFAsset[]; updatedAt: string }>(key);
-        if (d?.assets?.length) { assets = d.assets; updatedAt = d.updatedAt ?? updatedAt; break; }
-      }
+      const [d1, d2] = await Promise.all([
+        redis.get<{ assets: CFAsset[]; updatedAt: string }>('flowvium:capital-flows:v8:yahoo'),
+        redis.get<{ assets: CFAsset[]; updatedAt: string }>('flowvium:capital-flows:v8:twelve'),
+      ]);
+      const d = d1?.assets?.length ? d1 : (d2?.assets?.length ? d2 : null);
+      if (d?.assets?.length) { assets = d.assets; updatedAt = d.updatedAt ?? updatedAt; }
     } catch { /* non-fatal */ }
   }
   if (!assets.length) {
@@ -194,8 +196,11 @@ async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateI
   if (redis) {
     try {
       const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-      const d = (await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v4:${kstDate}`))
-             ?? (await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v3:${kstDate}`));
+      const [d1, d2] = await Promise.all([
+        redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v8:${kstDate}`),
+        redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v7:${kstDate}`),
+      ]);
+      const d = d1?.indicators?.length ? d1 : (d2?.indicators?.length ? d2 : null);
       if (d?.indicators?.length) indicators = d.indicators;
     } catch { /* non-fatal */ }
   }
@@ -280,14 +285,14 @@ async function getNewsCascadeItems(redis: Redis | null, base: string): Promise<U
       const today = new Date().toISOString().slice(0, 10);
       const ids = await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 6);
       if (ids?.length) {
-        const items: UpdateItem[] = [];
-        for (const id of ids) {
-          try {
-            const article = await redis.get<{ title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }>(`flowvium:news-cascade:v1:article:${id}`);
-            if (!article || !withinDays(article.pubDate, 3)) continue;
-            items.push(newsItemFrom(article, id));
-          } catch { continue; }
-        }
+        type ArticleData = { title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> };
+        const fetched = await Promise.allSettled(
+          ids.map(id => redis.get<ArticleData>(`flowvium:news-cascade:v1:article:${id}`).then(a => ({ id, a })))
+        );
+        const items: UpdateItem[] = fetched
+          .filter((r): r is PromiseFulfilledResult<{ id: string; a: ArticleData | null }> => r.status === 'fulfilled')
+          .filter(r => r.value.a != null && withinDays(r.value.a.pubDate, 3))
+          .map(r => newsItemFrom(r.value.a!, r.value.id));
         if (items.length) return items;
       }
     } catch { /* non-fatal */ }

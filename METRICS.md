@@ -699,9 +699,9 @@
 | 285 | market-caps:v2 | ✅ live |
 | 286 | fg:v5:SPY | ✅ live |
 | 287 | 13f-signals:v1 | ✅ live |
-| 288 | capital-flows:v5:yahoo | ✅ live |
-| 289 | capital-flows:v5:twelve | ✅ live |
-| 290 | macro-indicators:v4:$(date) | ✅ live |
+| 288 | capital-flows:v8:yahoo | ✅ live |
+| 289 | capital-flows:v8:twelve | ✅ live |
+| 290 | macro-indicators:v8:$(date) | ✅ live |
 | 291 | fedwatch:v1:$(hour) | ✅ live |
 | 292 | credit-balance:v2:$(date) | ✅ live |
 | 293 | latest-updates:v3 | ✅ live |

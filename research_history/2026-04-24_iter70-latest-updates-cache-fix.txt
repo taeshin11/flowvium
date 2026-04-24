@@ -1,0 +1,89 @@
+## Iter 70 — latest-updates 캐시 키 불일치 + 직렬화 수정
+Date: 2026-04-24
+Primary outcome: latest-updates 직렬 fetch → 병렬 + 캐시 v8 (19자)
+
+### Drift check
+- iter66=macro-indicators, iter67=verify-metrics, iter68=macro-indicators+verify-metrics
+- iter69=HomePage, iter70=latest-updates/route.ts
+  → 5 iter 모두 다른 파일 → drift 없음 OK
+
+### Accuracy probe (§3)
+verify-metrics 현재 상태 (배포 전 확인):
+- accuracy.fg.us=ok, accuracy.curve=ok, accuracy.cpi=ok, accuracy.ppi=ok, accuracy.fomc=ok
+- overall: 80 ok, 0 degraded, 0 error
+
+### 발견된 버그들 (Explore agent 스캔 + 직접 확인)
+
+#### Bug 1 (P0): capital-flows 캐시 키 불일치
+- latest-updates: `v5:yahoo`, `v5:twelve` (iter62에서 v5→v6, iter65에서 v7→v8)
+- capital-flows route: 현재 `v8:yahoo` / `v8:twelve`
+- 결과: Redis 항상 miss → HTTP fallback → +1~2s 지연
+
+#### Bug 2 (P0): macro-indicators 캐시 키 불일치
+- latest-updates: `v4:${kstDate}`, `v3:${kstDate}` (iter66~68에서 v8로)
+- macro-indicators route: 현재 `v8:${kstDate}`
+- 결과: 위와 동일, 항상 HTTP fallback
+
+#### Bug 3 (P1): 직렬 Redis 읽기
+- capital-flows: for loop에서 sequential await
+- macro-indicators: `await A ?? await B` (lazy eval = sequential)
+- news-cascade: for loop에서 sequential article fetch (7건)
+
+### 수정 (`src/app/api/latest-updates/route.ts`)
+
+#### capital-flows 수정
+Before:
+```typescript
+for (const key of ['flowvium:capital-flows:v5:yahoo', 'flowvium:capital-flows:v5:twelve']) {
+  const d = await redis.get<...>(key);
+  if (d?.assets?.length) { assets = d.assets; break; }
+}
+```
+After:
+```typescript
+const [d1, d2] = await Promise.all([
+  redis.get<...>('flowvium:capital-flows:v8:yahoo'),
+  redis.get<...>('flowvium:capital-flows:v8:twelve'),
+]);
+const d = d1?.assets?.length ? d1 : (d2?.assets?.length ? d2 : null);
+```
+효과: 2 sequential reads → 1 parallel pair (캐시 히트 시 2x 빠름)
+
+#### macro-indicators 수정
+Before:
+```typescript
+const d = (await redis.get<...>(`v4:${kstDate}`)) ?? (await redis.get<...>(`v3:${kstDate}`));
+```
+After:
+```typescript
+const [d1, d2] = await Promise.all([redis.get<...>(`v8:${kstDate}`), redis.get<...>(`v7:${kstDate}`)]);
+const d = d1?.indicators?.length ? d1 : (d2?.indicators?.length ? d2 : null);
+```
+
+#### news-cascade 수정
+Before:
+```typescript
+for (const id of ids) {
+  const article = await redis.get<...>(...);
+}
+```
+After:
+```typescript
+const fetched = await Promise.allSettled(ids.map(id => redis.get<...>(...).then(a => ({ id, a }))));
+```
+효과: 7 sequential → 1 parallel batch (Redis 7RTT → 1RTT 절감)
+
+#### METRICS.md 캐시 키 버전 업데이트
+- capital-flows:v5 → v8
+- macro-indicators:v4 → v8
+
+### 성능 영향 예측
+- latest-updates cold path (Redis miss): 변화 없음 (여전히 HTTP 순차)
+- latest-updates warm path (Redis hit 가능해짐): capital-flows v5→v8 키 수정으로 이제 Redis hit 가능
+- news-cascade 7건 병렬: 7×30ms → 30ms (170ms 절감)
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter70: fix(latest-updates): 캐시 키 v5/v4→v8 + 직렬 Redis → 병렬화
