@@ -21,6 +21,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 
 const CACHE_KEY = 'flowvium:nport-holdings:v1';
 const CACHE_TTL = 6 * 60 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=18000, stale-while-revalidate=600' };
 
 export const maxDuration = 60;
 
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
       const cached = await redis.get<{ funds: NPortFundSnapshot[]; byTicker: NPortTickerAggregate[]; updatedAt: string }>(CACHE_KEY);
       if (cached) {
         logger.info('api.nport-holdings', 'cache_hit', { funds: cached.funds.length, byTicker: cached.byTicker.length });
-        return NextResponse.json({ ...cached, cached: true });
+        return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.nport-holdings', 'cache_read_error', { error: err }); }
   }
@@ -51,5 +52,5 @@ export async function GET(req: Request) {
 
   await loggedRedisSet(redis, 'api.nport-holdings', CACHE_KEY, payload, { ex: CACHE_TTL });
   logger.info('api.nport-holdings', 'served', { funds: funds.length, byTicker: byTicker.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ ...payload, cached: false });
+  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
 }

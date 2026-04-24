@@ -415,6 +415,7 @@ Answer concisely (3–5 paragraphs). Be specific — name tickers, mechanisms, a
           type: 'macro_intelligence',
         }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setMessages((prev) => [...prev, { role: 'assistant', content: data.analysis }]);
     } catch {

@@ -16,6 +16,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 
 const CACHE_KEY = 'flowvium:ownership-alerts:v1';
 const CACHE_TTL = 2 * 60 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=6000, stale-while-revalidate=300' };
 
 export const maxDuration = 60;
 
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
       if (cached) {
         const filtered = tickerFilter ? cached.filter(a => a.ticker === tickerFilter) : cached;
         logger.info('api.ownership-alerts', 'cache_hit', { total: cached.length, filtered: filtered.length });
-        return NextResponse.json({ items: filtered, cached: true, total: cached.length });
+        return NextResponse.json({ items: filtered, cached: true, total: cached.length }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.ownership-alerts', 'cache_read_error', { error: err }); }
   }
@@ -55,7 +56,7 @@ export async function GET(req: Request) {
     const cached = MEMORY_CACHE.alerts;
     const filtered = tickerFilter ? cached.filter(a => a.ticker === tickerFilter) : cached;
     logger.info('api.ownership-alerts', 'memory_cache_hit', { total: cached.length, filtered: filtered.length });
-    return NextResponse.json({ items: filtered, cached: true, cacheLayer: 'memory', total: cached.length });
+    return NextResponse.json({ items: filtered, cached: true, cacheLayer: 'memory', total: cached.length }, { headers: CDN_HEADERS });
   }
 
   const alerts = await fetchRecentOwnershipAlerts({ minPercent: 5 });
@@ -80,7 +81,7 @@ export async function GET(req: Request) {
           total: prior.length,
           note: 'EDGAR getcurrent feed empty — returning prior snapshot',
           durationMs: Date.now() - reqStart,
-        });
+        }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.ownership-alerts', 'prior_read_error', { error: err }); }
   } else if (MEMORY_CACHE && MEMORY_CACHE.alerts.length > 0) {
@@ -95,10 +96,10 @@ export async function GET(req: Request) {
       total: prior.length,
       note: 'EDGAR empty window — returning prior in-memory snapshot',
       durationMs: Date.now() - reqStart,
-    });
+    }, { headers: CDN_HEADERS });
   }
 
   const filtered = tickerFilter ? alerts.filter(a => a.ticker === tickerFilter) : alerts;
   logger.info('api.ownership-alerts', 'served', { total: alerts.length, filtered: filtered.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ items: filtered, cached: false, total: alerts.length });
+  return NextResponse.json({ items: filtered, cached: false, total: alerts.length }, { headers: CDN_HEADERS });
 }

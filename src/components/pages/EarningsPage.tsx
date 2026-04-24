@@ -80,6 +80,7 @@ export default function EarningsPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/earnings?from=${range.from}&to=${range.to}`, signal ? { signal } : undefined);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (signal?.aborted) return;
       setData(json);

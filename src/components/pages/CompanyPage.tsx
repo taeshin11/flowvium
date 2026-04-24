@@ -376,6 +376,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           ticker: company.ticker,
         }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setAiAnalysis(data.analysis);
     } catch {

@@ -20,6 +20,7 @@ export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 2 * 60 * 60; // 2h
 const ALLOWED_SPAN_DAYS = 30;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=300' };
 
 interface FinnhubEarning {
   date: string;
@@ -89,7 +90,7 @@ export async function GET(req: Request) {
   if (redis) {
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -107,7 +108,7 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(
       `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${encodeURIComponent(key)}`,
-      { signal: AbortSignal.timeout(12000) }
+      { signal: AbortSignal.timeout(12000), cache: 'no-store' }
     );
     if (!res.ok) {
       logger.error('api.earnings', 'finnhub_http_error', { status: res.status, durationMs: Date.now() - t0 });
@@ -132,7 +133,7 @@ export async function GET(req: Request) {
     if (redis) {
       await loggedRedisSet(redis, 'api.earnings', cacheKey, payload, { ex: CACHE_TTL });
     }
-    return NextResponse.json(payload);
+    return NextResponse.json(payload, { headers: CDN_HEADERS });
   } catch (err) {
     logger.error('api.earnings', 'fetch_failed', { error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
     return NextResponse.json({ earnings: [], from, to, error: 'fetch failed', cached: false }, { status: 502 });

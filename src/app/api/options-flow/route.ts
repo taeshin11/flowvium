@@ -19,6 +19,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 
 const CACHE_KEY = 'flowvium:options-flow:v1';
 const CACHE_TTL = 10 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=480, stale-while-revalidate=60' };
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -42,7 +43,7 @@ export async function GET(req: Request) {
       const cached = await redis.get<OptionsFlowAlert[]>(CACHE_KEY);
       if (cached) {
         logger.info('api.options-flow', 'cache_hit', { total: cached.length });
-        return NextResponse.json({ items: cached, configured: true, cached: true, total: cached.length });
+        return NextResponse.json({ items: cached, configured: true, cached: true, total: cached.length }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.options-flow', 'cache_read_error', { error: err }); }
   }
@@ -50,5 +51,5 @@ export async function GET(req: Request) {
   const items = await fetchOptionsFlow(60);
   await loggedRedisSet(redis, 'api.options-flow', CACHE_KEY, items, { ex: CACHE_TTL });
   logger.info('api.options-flow', 'served', { total: items.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ items, configured: true, cached: false, total: items.length });
+  return NextResponse.json({ items, configured: true, cached: false, total: items.length }, { headers: CDN_HEADERS });
 }
