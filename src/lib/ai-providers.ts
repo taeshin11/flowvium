@@ -88,6 +88,11 @@ async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   }
 }
 
+// Module-level TPD guard — marks when Groq ALL models (70b+8b) are TPD-exhausted.
+// Resets at UTC midnight (Groq's TPD window). Serverless: per-instance only, but
+// prevents cascading retry storms within a warm instance's lifetime.
+let groqTpdExhaustedUntil = 0; // epoch ms; 0 = not exhausted
+
 /** GROQ 호출 — OpenAI-compatible API. 모델별 배수 다른 TPD 한도 활용:
  *    llama-3.3-70b-versatile : 100k TPD / 12k TPM / 1k RPD  (고품질, 소량)
  *    llama-3.1-8b-instant    : 500k TPD / 30k TPM / 14.4k RPD (저품질, 대량)
@@ -142,6 +147,16 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   const key = process.env.GROQ_API_KEY?.trim();
   if (!key) return null;
 
+  const tag = opts.tag ?? 'ai';
+
+  // Skip Groq entirely when both models are TPD-exhausted (resets at UTC midnight)
+  if (groqTpdExhaustedUntil > Date.now()) {
+    const remainsMs = groqTpdExhaustedUntil - Date.now();
+    logger.info(tag, 'groq_tpd_skip', { remainsMs: Math.round(remainsMs / 1000), note: 'both groq models TPD exhausted, skipping to Gemini' });
+    diag?.push({ provider: 'groq', ok: false, error: `both_tpd_exhausted — skipped (resets in ${Math.round(remainsMs / 60000)}m)`, durationMs: 0 });
+    return null;
+  }
+
   // 1차: 고품질 70b (TPD 100k)
   const primary = await callGroqModel(key, 'llama-3.3-70b-versatile', prompt, opts, diag);
   if (primary.text) return primary.text;
@@ -149,10 +164,17 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   // 2차 폴백: 8b (TPD 500k, RPD 14.4k) — 70b 가 어떤 이유로든 429 시 즉시 시도
   // 8b limits가 훨씬 크기 때문에 TPD뿐 아니라 RPD/TPM 한도 초과 때도 복구 가능.
   if (primary.status === 429) {
-    const tag = opts.tag ?? 'ai';
     logger.info(tag, 'groq_429_fallback_8b', { note: '70b 429, retrying with llama-3.1-8b-instant' });
     const fallback = await callGroqModel(key, 'llama-3.1-8b-instant', prompt, opts, diag);
     if (fallback.text) return fallback.text;
+
+    // If 8b is also TPD-exhausted → mark both exhausted until next UTC midnight
+    if (fallback.status === 429 && fallback.tpdExhausted) {
+      const now = new Date();
+      const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+      groqTpdExhaustedUntil = nextMidnight.getTime();
+      logger.error(tag, 'groq_all_tpd_exhausted', { note: 'both 70b+8b TPD exhausted', resetsAt: nextMidnight.toISOString() });
+    }
   }
   return null;
 }
@@ -164,22 +186,34 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
 
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
+  const timeoutMs = opts.timeoutMs ?? 30000;
   try {
     const fullPrompt = opts.systemPrompt ? `${opts.systemPrompt}\n\n${prompt}` : prompt;
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(fullPrompt);
+    // Promise.race gives Gemini a hard timeout (SDK has no native AbortSignal support in v0.24)
+    const result = await Promise.race([
+      model.generateContent(fullPrompt),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('gemini_timeout')), timeoutMs)),
+    ]);
     const text = result.response.text();
+    if (!text) {
+      diag?.push({ provider: 'gemini', ok: false, error: 'empty_text', durationMs: Date.now() - t0 });
+      return null;
+    }
     logger.info(tag, 'gemini_ok', { textLen: text.length, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'gemini', ok: true, durationMs: Date.now() - t0 });
     return text;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // 429 / quota 관련은 error 레벨 (두 공짜 옵션 모두 털린 후 유료까지 빠꾸이므로 심각)
-    if (msg.includes('429') || msg.includes('quota')) {
-      logger.error(tag, 'gemini_quota_exhausted', { error: msg, durationMs: Date.now() - t0 });
+    const isQuota = msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED');
+    const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
+    if (isQuota) {
+      logger.error(tag, 'gemini_quota_exhausted', { error: msg.slice(0, 200), durationMs: Date.now() - t0 });
     } else {
-      logger.error(tag, 'gemini_failed', { error: msg, durationMs: Date.now() - t0 });
+      logger.warn(tag, 'gemini_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0, is503 });
     }
+    diag?.push({ provider: 'gemini', ok: false, error: msg.slice(0, 200), durationMs: Date.now() - t0 });
     return null;
   }
 }
