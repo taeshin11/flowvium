@@ -1,0 +1,75 @@
+## Iter 48 — Redis 캐시 키 감사 + GROQ TPD 고갈 해결
+Date: 2026-04-24
+Primary outcome: 스테일 Redis 키 6개 수정 + GROQ 토큰 소비 최적화
+
+### Drift check
+- iter 45: EU heatmap ticker fix
+- iter 46: FINRA shortVol + maxDuration
+- iter 47: chartPreviousClose bug sweep + cache audit
+- iter 48: 의존성 감사 (Redis 키 정합성 + AI 토큰)
+- 동일 모듈 3 iter 연속: 없음 ✓
+- primary metric (verify-metrics) 77/79 → 77/79 동일하나 2 skipped = 의도적 (vLLM/Gemini 선택적)
+- "나중에" 3회 이상: 없음 ✓
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=XLK.price source=Yahoo direct_value=$155.84 our_value=$155.84 Δ0 → OK
+- [accuracy probe] metric=XLK.changePct source=Yahoo direct_value=-1.42% our_value=-1.42% Δ0 → OK
+- [accuracy probe] metric=FRED.UNRATE source=FRED direct_value=4.3% our_value=4.3% Δ0 → OK
+- [accuracy probe] metric=fg.us source=CNN (blocked locally) our_value=67 cnn_cached=67 Δ0 → OK (verify-metrics 대조)
+- verify-metrics: 77/79 OK, 0 degraded, 2 skipped (expected)
+
+### 발견된 문제
+
+#### 1. Redis 캐시 키 6개 stale mismatch (CRITICAL — silent data failure)
+캐시 키 버전이 bumped 됐지만 consumers가 업데이트 안 된 경우:
+
+| 파일 | 잘못된 키 | 올바른 키 |
+|------|-----------|-----------|
+| src/lib/daily-brief.ts | flowvium:korea-flow:v1 | v2 |
+| src/lib/daily-brief.ts | flowvium:short-interest:v1 | v3 |
+| src/app/api/cron/verify-metrics/route.ts | flowvium:korea-flow:v1 | v2 |
+| src/app/api/cron/verify-metrics/route.ts | flowvium:short-interest:v1 | v3 |
+| src/app/api/cron/verify-metrics/route.ts | flowvium:market-caps:v1 | v2 |
+| src/app/api/cron/send-alerts/route.ts | flowvium:fg:v5:us | flowvium:fg:v5:SPY |
+
+영향:
+- daily-brief의 Korea section + squeeze section이 항상 빈 데이터로 생성
+- verify-metrics의 cache health check가 korea-flow/short-interest/market-caps에 대해 항상 "error" 표시
+- send-alerts의 극단적 공포 경보가 F&G 읽기 실패로 영원히 발화 안 됨
+
+또한 summariseShort에서 shortFloatPct (all-null 삭제된 필드) → shortVolPct 수정.
+
+#### 2. GROQ TPD 고갈 — daily brief AI 생성 중단 (CRITICAL)
+조사 결과: 99,791/100,000 tokens used today
+- llama-3.3-70b: TPD (100k/day) 고갈
+- llama-3.1-8b fallback: TPM (6000/min) 스로틀
+
+주요 소비원 분석:
+- cron/daily-brief: 3 timeframes × 3 runs/day × ~3000 token = 27,000 tokens/day
+- news-cascade: 8 articles × 600 tokens × 4-6 runs/day = 19,200-28,800 tokens/day
+- flow-analysis: 1400 tokens × 3 timeframes × 4-6 runs/day = 16,800-25,200 tokens/day
+- 합계: ~63,000-81,000 tokens/day → 100k 초과 가능
+
+### 수정 사항
+
+#### Redis 캐시 키 수정 (6개)
+- src/lib/daily-brief.ts: korea-flow v1→v2, short-interest v1→v3, summariseShort shortFloatPct→shortVolPct
+- src/app/api/cron/verify-metrics/route.ts: korea-flow v1→v2, short-interest v1→v3, market-caps v1→v2
+- src/app/api/cron/send-alerts/route.ts: fg:v5:us → fg:v5:SPY
+
+#### GROQ 토큰 최적화
+- news-cascade maxTokens: 600 → 400 (−33%)
+- news-cascade list TTL: 4h → 12h (−50% 재분석 빈도)
+- flow-analysis cache: 4h → 12h (−50% AI 호출)
+- cron/daily-brief: 3 timeframes → 1 (4w만, −66%)
+
+예상 절감: ~40k tokens/day → 일일 100k 내에서 안정 운영 가능
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- dc9e28a: fix(daily-brief): sync stale Redis keys + shortVolPct field rename
+- 64532b4: fix(verify-metrics): sync stale Redis cache-key checks
+- 1295407: fix(send-alerts): F&G key fg:v5:us → fg:v5:SPY
+- b34369f: perf(groq): cut daily token spend to prevent TPD exhaustion
