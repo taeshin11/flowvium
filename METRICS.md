@@ -762,7 +762,8 @@
 | 297a | news-cascade 한자 혼입 가드 | ✅ live | GROQ 70b 한국어 응답에 중국어 Hanzi(U+4E00~9FFF) 12%+ 혼입 — 시스템 프롬프트 language lock + post-parse hasChineseLeak() 감지 시 title 로 대체 |
 | 297b | accuracy.cpi — FRED CPIAUCSL YoY 대조 | 🔄 cron | ±0.2pp 허용, 초과 시 degraded/error, iter67 |
 | 297c | accuracy.ppi — FRED PPIACO YoY 대조 | 🔄 cron | ±0.2pp 허용, iter67 |
-| 297d | accuracy.fomc — FRED DFEDTARU/L 금리 대조 | 🔄 cron | ±0.01pp 허용, iter67 |
+| 297d | accuracy.fomc — FRED DFEDTARU/L 금리 대조 | 🔄 cron | ±0.25pp 허용 (iter68 조정), iter67 |
+| 297e | accuracy.gdp — FRED A191RL1Q225SBEA QoQ SAAR 대조 | 🔄 cron | ±0.5pp 허용 (advance 수정 여지), 당해연도 미공개 시 skipped, iter76 |
 
 ---
 

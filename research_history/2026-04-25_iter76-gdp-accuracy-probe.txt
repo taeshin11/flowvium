@@ -1,0 +1,66 @@
+## Iter 76 — GDP 정확도 probe 추가
+Date: 2026-04-25
+Primary outcome: GDP 정확도 probe 추가 (15자)
+
+### Drift check
+- iter73=stock-supply, iter74=macro-indicators, iter75=market-caps, iter76=verify-metrics
+  → 모두 다른 파일/모듈 → drift 없음 OK
+
+### Accuracy probe (§3)
+- [accuracy probe] metric=fg.us source=CNN direct_value=66 our_value=66 delta=0 → OK
+- [accuracy probe] metric=curve source=FRED direct_value=0.51 our_value=0.51 delta=0 → OK
+- [accuracy probe] metric=cpi source=FRED direct_value=3.29 our_value=3.29 delta=0 → OK
+- [accuracy probe] metric=ppi source=FRED direct_value=6.03 our_value=6.03 delta=0 → OK
+- [accuracy probe] metric=fomc source=FRED direct_value=3.625 our_value=3.625 delta=0 → OK
+  (iter74 fix confirmed live: delta 0.125 → 0)
+Overall: 81 ok, 0 degraded, 0 error — PERFECT
+
+### 산출물 (§3a: 핵심 숫자 이동)
+verify-metrics 정확도 probe: 5개 → 6개 (GDP QoQ SAAR 추가)
+accuracy count: OK 81 → 82 (성공 시)
+
+### 구현 (`src/app/api/cron/verify-metrics/route.ts`)
+
+#### FRED 시리즈: A191RL1Q225SBEA
+- Real GDP, Percent Change from Preceding Period, Seasonally Adjusted Annual Rate
+- 분기별 데이터, advance 추정치는 해당 분기 종료 후 첫 달 말에 발표
+- Q1 2026: 0.5% (2026-04-24 BEA 발표, FRED 당일 갱신 예상)
+
+#### Promise.all에 gdpCsv 추가
+```typescript
+const start2y = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
+const [cpiCsv, ppiCsv, fomcUpperCsv, fomcLowerCsv, gdpCsv, ourRes] = await Promise.all([
+  ...existing 5 fetches...,
+  fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=A191RL1Q225SBEA&observation_start=${start2y}`,
+    { headers, signal: sig, cache: 'no-store' }),
+  fetch(`${base}/api/macro-indicators`, ...),
+]);
+```
+
+#### GDP probe 로직
+- FRED 최신 날짜 < expectedMinDate (현재 연도 1월 1일): skipped (당해연도 Q1 미공개)
+- FRED 데이터 정상: delta = |fredGdp - ourGdp|
+  - ≤0.5pp: OK (advance estimate 수정 여지 감안)
+  - ≤1.0pp: degraded
+  - >1.0pp: error
+
+#### 설계 결정
+- tolerance ±0.5: GDP advance → 1st revision → 3rd revision 최대 ~0.5pp 차이 흔함
+- date guard: expectedMinDate = `${new Date().getFullYear()}-01-01`
+  → FRED가 아직 Q1 데이터 없으면 skipped (false error 방지)
+  → 매년 1월 1일 이후 자동 갱신
+
+#### 위험 요소 평가
+- FRED WebFetch 403: User-Agent 없을 때 발생. verify-metrics는 'Mozilla/5.0' 명시 → OK
+- 공유 AbortSignal (10s): 6개 병렬 fetch. GDP CSV 소형 → 영향 최소
+- Q1 2026 FRED 미공개: date guard로 skipped 처리 → 안전
+
+### METRICS.md
+- 297d tolerance 정정: ±0.01pp → ±0.25pp (iter68에서 이미 수정됐으나 METRICS.md 미반영)
+- 297e 신규: accuracy.gdp — FRED GDP QoQ SAAR 대조
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter76: feat(verify-metrics): GDP QoQ SAAR probe 추가 — FRED A191RL1Q225SBEA 대조 (6번째 accuracy)

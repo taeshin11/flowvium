@@ -587,7 +587,8 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
     const start3mo  = new Date(Date.now() -  90 * 86400000).toISOString().slice(0, 10);
     const headers   = { 'User-Agent': 'Mozilla/5.0' };
     const sig       = AbortSignal.timeout(10000);
-    const [cpiCsv, ppiCsv, fomcUpperCsv, fomcLowerCsv, ourRes] = await Promise.all([
+    const start2y = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
+    const [cpiCsv, ppiCsv, fomcUpperCsv, fomcLowerCsv, gdpCsv, ourRes] = await Promise.all([
       fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL&observation_start=${start14mo}`,
         { headers, signal: sig, cache: 'no-store' }),
       fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=PPIACO&observation_start=${start14mo}`,
@@ -595,6 +596,8 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&observation_start=${start3mo}`,
         { headers, signal: sig, cache: 'no-store' }),
       fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARL&observation_start=${start3mo}`,
+        { headers, signal: sig, cache: 'no-store' }),
+      fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=A191RL1Q225SBEA&observation_start=${start2y}`,
         { headers, signal: sig, cache: 'no-store' }),
       fetch(`${base}/api/macro-indicators`, { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
     ]);
@@ -697,8 +700,39 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       items.push({ key: 'accuracy.fomc', label: 'FRED FOMC 금리 대조', group: 'accuracy', status: 'error',
         lastError: `fred-upper=${fomcUpperCsv.status} fred-lower=${fomcLowerCsv.status}` });
     }
+
+    // GDP QoQ SAAR probe — A191RL1Q225SBEA (quarterly, advance estimate subject to revision)
+    if (gdpCsv.ok) {
+      const rows = parseCsv(await gdpCsv.text());
+      const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
+      const fredGdp = lastRow?.value ?? null;
+      const fredDate = lastRow?.date ?? null;
+      const ourGdp = inds.find(x => x.id === 'gdp')?.actual ?? null;
+      // Skip if FRED hasn't published current-quarter data yet (date < start of current year)
+      const expectedMinDate = `${new Date().getFullYear()}-01-01`;
+      if (fredDate && fredDate < expectedMinDate) {
+        items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'skipped',
+          skipReason: `FRED 최신 데이터 ${fredDate} — 당해연도 Q1 미공개`,
+          details: { fredDate, fredGdp, ourGdp } });
+      } else if (fredGdp == null || ourGdp == null) {
+        items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'error',
+          lastError: `fred=${fredGdp} ours=${ourGdp}`, details: { durationMs } });
+      } else {
+        const delta = Math.abs(fredGdp - ourGdp);
+        items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy',
+          // ±0.5 tolerance: advance estimate subject to revision; also handles rounding diffs
+          status: delta <= 0.5 ? 'ok' : delta <= 1.0 ? 'degraded' : 'error',
+          value: `ours ${ourGdp} vs fred ${fredGdp} (Δ${delta.toFixed(2)})`,
+          source: 'fred-direct',
+          details: { fredDate, fredGdp, ourGdp, delta, durationMs, tolerance: 0.5 },
+        });
+      }
+    } else {
+      items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'error',
+        lastError: `fred HTTP ${gdpCsv.status}` });
+    }
   } catch (err) {
-    for (const key of ['accuracy.cpi', 'accuracy.ppi', 'accuracy.fomc']) {
+    for (const key of ['accuracy.cpi', 'accuracy.ppi', 'accuracy.fomc', 'accuracy.gdp']) {
       items.push({ key, label: key.replace('accuracy.', 'FRED ') + ' 대조', group: 'accuracy', status: 'error',
         lastError: err instanceof Error ? err.message : String(err) });
     }
