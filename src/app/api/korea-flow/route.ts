@@ -15,7 +15,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
-const CACHE_KEY = 'flowvium:korea-flow:v1';
+const CACHE_KEY = 'flowvium:korea-flow:v2';
 const CACHE_TTL = 15 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=720, stale-while-revalidate=60' };
 
@@ -136,10 +136,16 @@ async function fetchYahooKoreaEntry(ticker: string): Promise<KoreaFlowEntry | nu
     const meta = result[0].meta as Record<string, unknown> | undefined;
     if (!meta) return null;
     const regularMarketPrice = meta.regularMarketPrice as number | undefined;
-    const chartPreviousClose = meta.chartPreviousClose as number | undefined;
+    // chartPreviousClose with range=5d = 5-trading-day-ago close, NOT yesterday.
+    // Use second-to-last bar for actual daily changePct (same fix as sector-pe + stock-supply).
+    const indicators = result[0].indicators as Record<string, unknown> | undefined;
+    const quote = (indicators?.quote as Array<Record<string, unknown>> | undefined)?.[0] ?? {};
+    const closes: (number | null)[] = (quote?.close as (number | null)[] | undefined) ?? [];
+    const validCloses = closes.filter((c): c is number => c != null && !isNaN(c));
+    const prevDayClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : null;
     const changePct =
-      regularMarketPrice != null && chartPreviousClose != null && chartPreviousClose !== 0
-        ? ((regularMarketPrice - chartPreviousClose) / chartPreviousClose) * 100
+      regularMarketPrice != null && prevDayClose != null && prevDayClose > 0
+        ? ((regularMarketPrice - prevDayClose) / prevDayClose) * 100
         : null;
     return {
       ticker: code,
