@@ -481,22 +481,14 @@ async function verifyMarketCapsDetailed(base: string): Promise<MetricItem[]> {
   if (!r.ok) {
     return [{ key: 'caps.ALL', label: 'Market Caps API', group: 'market-caps', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
   }
-  const data = r.data as { caps?: Record<string, number>; bands?: Record<string, string> };
-  const caps = data.caps ?? {};
-  const tickers = Object.keys(caps);
-  if (tickers.length === 0) return [{ key: 'caps.ALL', label: 'Market Caps (empty)', group: 'market-caps', status: 'error' }];
+  // Bulk endpoint returns bands (static tiers) + caps:{} (live, only populated for ?ticker=X requests)
+  // Use bands as the coverage check — caps is intentionally empty for bulk responses
+  const data = r.data as { caps?: Record<string, number>; bands?: Record<string, string>; count?: number };
+  const bands = data.bands ?? {};
+  const bandCount = Object.keys(bands).length;
+  if (bandCount === 0) return [{ key: 'caps.ALL', label: 'Market Caps (empty)', group: 'market-caps', status: 'error' }];
 
-  return tickers.map(ticker => {
-    const capUsd = caps[ticker];
-    const capT = capUsd > 0 ? (capUsd / 1e12).toFixed(2) + 'T' : null;
-    return {
-      key: `caps.${ticker}`,
-      label: `${ticker} 시총`,
-      group: 'market-caps',
-      status: capUsd > 0 ? 'ok' as const : 'degraded' as const,
-      value: capT,
-    };
-  });
+  return [{ key: 'caps.ALL', label: 'Market Caps bands', group: 'market-caps', status: 'ok', value: `${bandCount} tickers` }];
 }
 
 async function verifySectorPE(base: string): Promise<MetricItem[]> {
@@ -554,7 +546,7 @@ async function verifyFedWatchDetailed(base: string): Promise<MetricItem[]> {
   }
   const data = r.data as {
     currentRateMid?: string | number;
-    meetings?: Array<{ date: string; holdPct?: number; hikePct?: number; cutPct?: number }>;
+    meetings?: Array<{ date: string; probHold?: number; probHike?: number; probCut25?: number; probCut50?: number; probCut75?: number; impliedRate?: number }>;
     yearEndImpliedRate?: string | number;
   };
   const meetings = Array.isArray(data.meetings) ? data.meetings : [];
@@ -574,8 +566,10 @@ async function verifyFedWatchDetailed(base: string): Promise<MetricItem[]> {
 
   for (const m of meetings.slice(0, 6)) {
     const dateKey = m.date?.replace(/-/g, '') ?? 'unk';
-    const dominant = m.holdPct != null && m.cutPct != null
-      ? (m.cutPct > m.holdPct ? `cut ${m.cutPct.toFixed(0)}%` : `hold ${m.holdPct.toFixed(0)}%`)
+    const totalCutPct = (m.probCut25 ?? 0) + (m.probCut50 ?? 0) + (m.probCut75 ?? 0);
+    const holdPct = m.probHold ?? 0;
+    const dominant = m.impliedRate != null
+      ? (totalCutPct > holdPct ? `cut ${totalCutPct.toFixed(0)}%` : `hold ${holdPct.toFixed(0)}%`)
       : null;
     items.push({
       key: `fw.meeting.${dateKey}`,
@@ -609,23 +603,43 @@ async function verifyCOTDetailed(base: string): Promise<MetricItem[]> {
 async function verifyKoreaFlowDetailed(base: string): Promise<MetricItem[]> {
   const r = await safeJson(base, '/api/korea-flow');
   if (!r.ok) return [{ key: 'kr.ALL', label: 'Korea Flow API', group: 'korea-flow', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
-  const data = r.data as { totalTickers?: number; foreignNet?: number | null; institutionNet?: number | null; retailNet?: number | null; items?: unknown[] };
+  // Korea flow returns: topForeignBuy/Sell, topInstBuy/Sell, totalTickers, fallback, fallbackReason
+  // foreignNet/institutionNet/retailNet only available when KRX API is accessible (not in fallback mode)
+  const data = r.data as {
+    totalTickers?: number;
+    fallback?: boolean;
+    fallbackReason?: string;
+    foreignNet?: number | null;
+    institutionNet?: number | null;
+    retailNet?: number | null;
+    topForeignBuy?: unknown[];
+    topInstBuy?: unknown[];
+  };
 
+  const isFallback = data.fallback === true;
   const items: MetricItem[] = [];
+
+  // foreignNet/institutionNet only exist when KRX API is live (not in fallback)
   items.push({
     key: 'kr.foreign', label: '한국 외국인 순매수', group: 'korea-flow',
-    status: typeof data.foreignNet === 'number' ? 'ok' : (data.totalTickers != null ? 'degraded' : 'error'),
+    status: typeof data.foreignNet === 'number' ? 'ok' :
+      (isFallback ? 'skipped' : 'degraded'),
     value: typeof data.foreignNet === 'number' ? `${(data.foreignNet / 1e8).toFixed(0)}억` : null,
+    skipReason: isFallback ? `KRX API 불가 — ${data.fallbackReason ?? 'fallback mode'}` : undefined,
   });
   items.push({
     key: 'kr.institution', label: '한국 기관 순매수', group: 'korea-flow',
-    status: typeof data.institutionNet === 'number' ? 'ok' : 'degraded',
+    status: typeof data.institutionNet === 'number' ? 'ok' :
+      (isFallback ? 'skipped' : 'degraded'),
     value: typeof data.institutionNet === 'number' ? `${(data.institutionNet / 1e8).toFixed(0)}억` : null,
+    skipReason: isFallback ? `KRX API 불가 — ${data.fallbackReason ?? 'fallback mode'}` : undefined,
   });
   items.push({
     key: 'kr.retail', label: '한국 개인 순매수', group: 'korea-flow',
-    status: typeof data.retailNet === 'number' ? 'ok' : 'degraded',
+    status: typeof data.retailNet === 'number' ? 'ok' :
+      (isFallback ? 'skipped' : 'degraded'),
     value: typeof data.retailNet === 'number' ? `${(data.retailNet / 1e8).toFixed(0)}억` : null,
+    skipReason: isFallback ? `KRX API 불가 — ${data.fallbackReason ?? 'fallback mode'}` : undefined,
   });
   items.push({
     key: 'kr.tickers', label: '한국 수급 종목수', group: 'korea-flow',
@@ -646,9 +660,9 @@ async function verifyAdditionalEndpoints(base: string): Promise<MetricItem[]> {
     verifyEndpoint(base, '/api/price-history?ticker=SPY&days=30', 'market.priceHistory', 'SPY 가격 시계열', 'market',
       (d) => Array.isArray((d as { points?: unknown[] })?.points) && ((d as { points: unknown[] }).points.length >= 10)),
     verifyEndpoint(base, '/api/block-trades', 'market.blockTrades', '대량거래', 'market',
-      (d) => Array.isArray((d as { trades?: unknown[] })?.trades)),
+      (d) => Array.isArray((d as { items?: unknown[] })?.items)),  // field is 'items' not 'trades'
     verifyEndpoint(base, '/api/options-flow', 'market.optionsFlow', '옵션 플로우', 'market',
-      (d) => Array.isArray((d as { flows?: unknown[] })?.flows)),
+      (d) => Array.isArray((d as { items?: unknown[] })?.items)),  // field is 'items' not 'flows'
   ]);
 }
 
