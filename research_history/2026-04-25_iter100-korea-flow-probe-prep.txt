@@ -1,0 +1,65 @@
+ITER100 — korea-flow buildPayload aggregate totals (probe prep)
+Date: 2026-04-25
+Commit: d9b26a0
+Primary outcome: "kr.* probe KRX 복구 시 즉시 ok"
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════════════
+iter97=latest-updates, iter98=flow-analysis, iter99=i18n, iter100=korea-flow
+→ 4개 iter 모두 다른 영역. Drift 없음.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"kr.* probe KRX 복구 시 즉시 ok"
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM
+═══════════════════════════════════════════════════════════════════════
+verify-metrics kr.foreign / kr.institution / kr.retail probe는
+응답 객체에 foreignNet / institutionNet / retailNet 키가 있어야
+'ok' 로 표시됨.
+
+기존 buildPayload() 는 topForeignBuy / topForeignSell 등 개별 종목
+리스트만 반환, 전체 합산값은 없었음.
+→ KRX API가 살아 돌아와도 probe가 계속 'degraded' 표시할 가능성.
+
+═══════════════════════════════════════════════════════════════════════
+FIX
+═══════════════════════════════════════════════════════════════════════
+buildPayload() 에 3개 집계값 추가:
+  const hasFlow = all.some(e => e.foreignerNetBuy != null);
+  const foreignNet  = hasFlow ? all.reduce((s, e) => s + (e.foreignerNetBuy   ?? 0), 0) : null;
+  const institutionNet = hasFlow ? all.reduce((s, e) => s + (e.institutionNetBuy ?? 0), 0) : null;
+  const retailNet   = hasFlow ? all.reduce((s, e) => s + (e.individualNetBuy  ?? 0), 0) : null;
+
+hasFlow guard: 데이터가 없으면 null 반환 (0과 구분).
+현재 KRX 차단 상태에서는 buildPayload 자체가 호출 안 되므로 영향 없음.
+KRX 복구 시 자동으로 probe 정상화.
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.71 delta=0.00 → OK
+
+[accuracy probe] metric=fg.US source=flowvium-cache
+  our_value=66 (CNN direct bot-blocked, cached value used) → OK (proxy)
+
+═══════════════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════════════
+verify-metrics: 184/189 OK
+  [skipped] ai.vllm        — 로컬 터널 다운
+  [skipped] kr.foreign     — KRX 세션 인증 불가 (공식 포기)
+  [skipped] kr.institution — 동상
+  [skipped] kr.retail      — 동상
+  [error]   flow.analysis  — AI TPD 소진 (UTC midnight 리셋 대기)
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. CapitalFlowsTab 하드코딩 한국어 30+ → i18n 마이그레이션
+2. 성능 프로파일링 (느린 엔드포인트 실측)
+3. Redis key audit — 다른 버전 mismatch 탐색
