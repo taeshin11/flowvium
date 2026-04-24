@@ -9,6 +9,7 @@ import { Redis } from '@upstash/redis';
 import { fetchLiveFinancials } from '@/lib/sec-financials';
 
 const TTL = 24 * 60 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -28,7 +29,7 @@ export async function GET(
   if (redis) {
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -41,5 +42,5 @@ export async function GET(
     await loggedRedisSet(redis, 'api.company-financials', cacheKey, data, { ex: TTL });
   }
 
-  return NextResponse.json({ ...data, cached: false });
+  return NextResponse.json({ ...data, cached: false }, { headers: CDN_HEADERS });
 }

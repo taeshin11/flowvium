@@ -13,8 +13,8 @@ export const maxDuration = 60; // 200 tickers × batched Yahoo v8 fetch needs up
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { fetchCNBCQuotes, fetchYFHeatmapQuotes } from '@/lib/yahoo-finance';
-import { fetchStooqQuotes } from '@/lib/stooq';
+import { fetchCNBCQuotes } from '@/lib/yahoo-finance';
+import { fetchStooqQuotes, fetchStooqNonUS } from '@/lib/stooq';
 import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
 import { createMemoryCache } from '@/lib/memory-cache';
@@ -82,29 +82,6 @@ function createRedis(): Redis | null {
 
 const SUPPORTED = ['US', 'KR', 'JP', 'CN', 'EU', 'IN', 'TW'];
 
-const EU_SUFFIX: Record<string, string> = {
-  'Germany': '.DE', 'France': '.PA', 'United Kingdom': '.L',
-  'Netherlands': '.AS', 'Switzerland': '.SW', 'Spain': '.MC',
-  'Italy': '.MI', 'Sweden': '.ST', 'Denmark': '.CO',
-  'Norway': '.OL', 'Finland': '.HE', 'Belgium': '.BR',
-  'Austria': '.VI', 'Portugal': '.LS', 'Ireland': '.IR',
-  'Luxembourg': '.LU',
-};
-
-function toYahooTicker(ticker: string, country: string, location?: string): string {
-  switch (country) {
-    case 'KR': return `${ticker}.KS`;
-    case 'JP': return `${ticker}.T`;
-    case 'IN': return `${ticker}.NS`;
-    case 'TW': return `${ticker}.TW`;
-    case 'CN': return /^\d+$/.test(ticker) ? `${ticker}.HK` : ticker;
-    case 'EU': {
-      const suf = location ? (EU_SUFFIX[location] ?? '') : '';
-      return suf ? `${ticker}${suf}` : ticker;
-    }
-    default: return ticker;
-  }
-}
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -113,7 +90,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v10:${country}:${hour}`; // v10: Yahoo v8 for non-US constituent prices
+  const cacheKey = `flowvium:heatmap:v11:${country}:${hour}`; // v11: Stooq for non-US (Yahoo rate-limited)
   const redis = createRedis();
 
   if (!force) {
@@ -152,24 +129,18 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Yahoo v8 for non-US constituents (KR/JP/CN/EU/IN/TW)
-  // Applies per-country exchange suffix to iShares tickers → Yahoo Finance symbols
+  // Stooq for non-US constituents (KR/JP/CN/EU/IN/TW)
+  // Stooq is reliable from Vercel (unlike Yahoo which rate-limits 80-req bursts)
   const nonUSQuoteMap = new Map<string, { changePct: number | null; close: number | null }>();
   if (country !== 'US') {
-    const yahooTickerOf = (h: { ticker: string; location: string }) =>
-      toYahooTicker(h.ticker, country, h.location);
-    const yahooTickers = topHoldings.map(yahooTickerOf);
-    const yahooQuotes = await fetchYFHeatmapQuotes(yahooTickers);
-    const yahooMap = new Map(yahooQuotes.map(q => [q.symbol, q]));
-    for (const h of topHoldings) {
-      const yt = yahooTickerOf(h);
-      const q = yahooMap.get(yt);
-      if (q?.changePct != null || q?.close != null) {
-        nonUSQuoteMap.set(h.ticker, { changePct: q.changePct, close: q.close });
+    const stooqQuotes = await fetchStooqNonUS(topHoldings, country);
+    for (const q of stooqQuotes) {
+      if (q.changePct != null || q.close != null) {
+        nonUSQuoteMap.set(q.symbol, { changePct: q.changePct, close: q.close });
       }
     }
-    logger.info('market-heatmap', 'nonUS_yahoo_done', {
-      country, requested: yahooTickers.length, matched: nonUSQuoteMap.size,
+    logger.info('market-heatmap', 'nonUS_stooq_done', {
+      country, requested: topHoldings.length, matched: nonUSQuoteMap.size,
     });
   }
 
@@ -229,7 +200,7 @@ export async function GET(req: NextRequest) {
     dataDate,
     source: country === 'US'
       ? 'iShares IVV (구성) + Stooq (종목 시세) + Yahoo v8 (지수)'
-      : `iShares ${cfg?.etfTicker} (구성) + Yahoo v8 (시세)`,
+      : `iShares ${cfg?.etfTicker} (구성) + Stooq (시세)`,
   };
 
   if (redis) {

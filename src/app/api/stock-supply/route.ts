@@ -4,6 +4,7 @@ import { newsGapData } from '@/data/news-gap';
 import { Redis } from '@upstash/redis';
 
 const CACHE_TTL = 3 * 60 * 60; // 3h
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=10800, stale-while-revalidate=300' };
 const EDGAR_UA = 'FlowVium/1.0 taeshinkim11@gmail.com';
 
 function createRedis(): Redis | null {
@@ -237,7 +238,7 @@ export async function GET(request: Request) {
   if (redis) {
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -326,5 +327,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CDN_HEADERS });
 }

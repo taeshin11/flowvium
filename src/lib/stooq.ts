@@ -5,7 +5,7 @@
 import { logger } from './logger';
 
 export interface StooqQuote {
-  symbol: string;
+  symbol: string;   // normalized: original ticker (uppercase, no suffix)
   date: string | null;
   time: string | null;
   open: number | null;
@@ -17,14 +17,11 @@ export interface StooqQuote {
   changePct: number | null;
 }
 
-/** Fetch up to ~40 symbols at once; Stooq supports batch queries separated by `+` */
-export async function fetchStooqQuotes(tickers: string[]): Promise<StooqQuote[]> {
-  if (!tickers.length) return [];
+/** Internal: fetch pre-formatted Stooq symbols. symbolMap: stooqSymbol → originalTicker */
+async function fetchStooqRaw(symbolMap: Map<string, string>): Promise<StooqQuote[]> {
+  const stooqSymbols = Array.from(symbolMap.keys());
+  if (!stooqSymbols.length) return [];
 
-  // Stooq uses lowercase + .us suffix for US stocks
-  const stooqSymbols = tickers.map(t => `${t.toLowerCase().replace('-', '-')}.us`);
-
-  // Split into batches of 40 to stay within URL limits
   const BATCH = 35;
   const out: StooqQuote[] = [];
 
@@ -45,11 +42,11 @@ export async function fetchStooqQuotes(tickers: string[]): Promise<StooqQuote[]>
       const lines = text.trim().split('\n');
       if (lines.length < 2) continue;
 
-      // Skip header
       for (let j = 1; j < lines.length; j++) {
         const cols = lines[j].split(',');
         if (cols.length < 8) continue;
-        const symbol = cols[0].replace(/\.us$/i, '').toUpperCase();
+        const stooqSym = cols[0].toLowerCase();
+        const originalTicker = symbolMap.get(stooqSym) ?? cols[0].toUpperCase();
         const date = cols[1] && cols[1] !== 'N/D' ? cols[1] : null;
         const time = cols[2] && cols[2] !== 'N/D' ? cols[2] : null;
         const open = parseFloat(cols[3]);
@@ -60,7 +57,7 @@ export async function fetchStooqQuotes(tickers: string[]): Promise<StooqQuote[]>
         const changePct = (open > 0 && !isNaN(close)) ? ((close - open) / open) * 100 : null;
 
         out.push({
-          symbol,
+          symbol: originalTicker,
           date,
           time,
           open: isNaN(open) ? null : open,
@@ -76,6 +73,47 @@ export async function fetchStooqQuotes(tickers: string[]): Promise<StooqQuote[]>
     }
   }
 
-  logger.info('stooq', 'fetched', { requested: tickers.length, returned: out.length });
+  logger.info('stooq', 'fetched', { requested: stooqSymbols.length, returned: out.length });
   return out;
+}
+
+/** Fetch US stock quotes; tickers are plain symbols (AAPL, BRK-B, etc.) */
+export async function fetchStooqQuotes(tickers: string[]): Promise<StooqQuote[]> {
+  if (!tickers.length) return [];
+  const symbolMap = new Map(tickers.map(t => [`${t.toLowerCase()}.us`, t.toUpperCase()]));
+  return fetchStooqRaw(symbolMap);
+}
+
+const STOOQ_SUFFIX: Record<string, string> = {
+  KR: '.kr', JP: '.jp', IN: '.in', TW: '.tw',
+};
+const STOOQ_EU: Record<string, string> = {
+  'Germany': '.de', 'France': '.fr', 'United Kingdom': '.uk',
+  'Netherlands': '.nl', 'Switzerland': '.ch', 'Spain': '.es',
+  'Italy': '.it', 'Sweden': '.se', 'Denmark': '.dk',
+  'Norway': '.no', 'Finland': '.fi', 'Belgium': '.be',
+  'Austria': '.at', 'Portugal': '.pt', 'Ireland': '.ie',
+};
+
+function toStooqSymbol(ticker: string, country: string, location?: string): string {
+  const t = ticker.toLowerCase();
+  if (country === 'EU') {
+    const suf = location ? (STOOQ_EU[location] ?? '') : '';
+    return suf ? `${t}${suf}` : t;
+  }
+  if (country === 'CN') return /^\d+$/.test(ticker) ? `${t}.hk` : `${t}.us`;
+  const suf = STOOQ_SUFFIX[country];
+  return suf ? `${t}${suf}` : t;
+}
+
+/** Fetch non-US stock quotes using Stooq's international exchange suffixes. */
+export async function fetchStooqNonUS(
+  holdings: Array<{ ticker: string; location: string }>,
+  country: string
+): Promise<StooqQuote[]> {
+  if (!holdings.length) return [];
+  const symbolMap = new Map(
+    holdings.map(h => [toStooqSymbol(h.ticker, country, h.location), h.ticker.toUpperCase()])
+  );
+  return fetchStooqRaw(symbolMap);
 }
