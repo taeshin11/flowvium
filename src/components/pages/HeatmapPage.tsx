@@ -149,7 +149,7 @@ export default function HeatmapPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [country, setCountry] = useState<string>('US');
-  const [viewMode, setViewMode] = useState<'sectors' | 'overview'>('sectors');
+  const [viewMode, setViewMode] = useState<'sectors' | 'overview'>('overview');
 
   const load = async (force = false, ctry = country, signal?: AbortSignal) => {
     if (force) setRefreshing(true);
