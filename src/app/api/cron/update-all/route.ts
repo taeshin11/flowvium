@@ -86,7 +86,7 @@ export async function GET(req: Request) {
     warm(base, '/api/volatility', 'volatility'),
     warm(base, '/api/fear-greed?force=1', 'fear-greed'),
     warm(base, '/api/credit-balance', 'credit-balance'),
-    warm(base, '/api/short-interest', 'short-interest', 45000),
+    warm(base, '/api/short-interest', 'short-interest', 10000),
     warm(base, '/api/market-caps', 'market-caps', 50000),
     warm(base, '/api/insider-trades', 'insider-trades', 55000),   // EDGAR Form 4 (~40 filings)
     warm(base, '/api/ownership-alerts', 'ownership-alerts', 55000), // EDGAR 13D/13G

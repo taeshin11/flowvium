@@ -200,11 +200,20 @@ async function fetchVolumeData(ticker: string) {
 
     // Volume ratios
     const recent5 = validVolumes.slice(-5);
+    const recent10 = validVolumes.slice(-10);
     const prev20 = validVolumes.slice(-25, -5);
     const avgRecent = recent5.reduce((a, b) => a + b, 0) / (recent5.length || 1);
+    const avgVol10d = recent10.reduce((a, b) => a + b, 0) / (recent10.length || 1);
     const avgPrev = prev20.reduce((a, b) => a + b, 0) / (prev20.length || 1);
     const volumeRatio = avgPrev > 0 ? avgRecent / avgPrev : 1;
     const avgVol3m = validVolumes.reduce((a, b) => a + b, 0) / (validVolumes.length || 1);
+
+    // Daily change: compare regularMarketPrice vs second-to-last close
+    const prevDayClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : null;
+    const price = (result.meta?.regularMarketPrice as number | undefined) ?? current;
+    const changePct = price != null && prevDayClose && prevDayClose > 0
+      ? parseFloat(((price - prevDayClose) / prevDayClose * 100).toFixed(2))
+      : null;
 
     // Daily volume (last 20 days)
     const dailyVolume = timestamps.slice(-20).map((ts, i) => ({
@@ -216,8 +225,8 @@ async function fetchVolumeData(ticker: string) {
     const marketCap = (result.meta?.marketCap as number | undefined) ?? null;
 
     return {
-      volumeRatio, avgRecent, avgVol3m,
-      ret1w, ret1m, ret3m, current,
+      volumeRatio, avgRecent, avgVol10d, avgVol3m,
+      ret1w, ret1m, ret3m, current, price, changePct,
       high52, low52, dailyVolume, marketCap,
     };
   } catch { return null; }
@@ -229,7 +238,7 @@ export async function GET(request: Request) {
   if (!ticker) return NextResponse.json({ error: 'Missing ticker' }, { status: 400 });
 
   const redis = createRedis();
-  const cacheKey = `flowvium:stock-supply:v4:${ticker}`;
+  const cacheKey = `flowvium:stock-supply:v5:${ticker}`;
 
   if (redis) {
     try {
@@ -284,14 +293,15 @@ export async function GET(request: Request) {
   const result = {
     ticker,
     companyName: staticEntry?.companyName ?? ticker,
-    price: volData?.current ?? null,
+    price: volData?.price ?? volData?.current ?? null,
+    changePct: volData?.changePct ?? null,
     ret1w: volData?.ret1w ?? null,
     ret1m: volData?.ret1m ?? null,
     ret3m: volData?.ret3m ?? null,
     high52: volData?.high52 ?? null,
     low52: volData?.low52 ?? null,
     volumeRatio: volData?.volumeRatio ?? null,
-    avgVol10d: null,
+    avgVol10d: volData?.avgVol10d ?? null,
     avgVol3m: volData?.avgVol3m ?? null,
     dailyVolume: volData?.dailyVolume ?? [],
     marketCap: volData?.marketCap ?? null,
