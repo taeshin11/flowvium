@@ -76,20 +76,26 @@ export default function EarningsPage() {
     return { from: dateFromOffset(p.from), to: dateFromOffset(p.to) };
   }, [preset]);
 
-  const load = async () => {
+  const load = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/earnings?from=${range.from}&to=${range.to}`);
+      const res = await fetch(`/api/earnings?from=${range.from}&to=${range.to}`, signal ? { signal } : undefined);
       const json = await res.json();
+      if (signal?.aborted) return;
       setData(json);
     } catch (err) {
+      if (signal?.aborted) return;
       setData({ earnings: [], from: range.from, to: range.to, error: err instanceof Error ? err.message : 'Fetch failed' });
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, [range.from, range.to]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [range.from, range.to]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rows = useMemo(() => {
     if (!data?.earnings) return [];
@@ -157,7 +163,7 @@ export default function EarningsPage() {
           <option value="surprise">Surprise 크기순</option>
         </select>
         <button
-          onClick={load}
+          onClick={() => load()}
           disabled={loading}
           className="text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 flex items-center gap-1.5 disabled:opacity-40"
         >

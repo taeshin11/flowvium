@@ -56,19 +56,26 @@ export default function ShortPage() {
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
 
-  const load = async (force = false) => {
+  const load = async (force = false, signal?: AbortSignal) => {
     if (force) setRefreshing(true);
     try {
-      const res = await fetch(`/api/short-interest${force ? '?refresh=1' : ''}`);
+      const res = await fetch(`/api/short-interest${force ? '?refresh=1' : ''}`, signal ? { signal } : undefined);
       const data = await res.json();
+      if (signal?.aborted) return;
       setEntries(data.entries ?? []);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(false, controller.signal);
+    return () => controller.abort();
+  }, []);
 
   const sectors = useMemo(() => ['all', ...Array.from(new Set(entries.map(e => e.sector)))], [entries]);
 

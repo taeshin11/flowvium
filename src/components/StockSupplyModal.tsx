@@ -159,22 +159,26 @@ export default function StockSupplyModal({ ticker, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'overview' | 'institutions' | 'insiders' | 'ownership'>('overview');
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/stock-supply?ticker=${ticker}`);
+      const res = await fetch(`/api/stock-supply?ticker=${ticker}`, signal ? { signal } : undefined);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (signal?.aborted) return;
       setData(await res.json());
     } catch (e) {
+      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : 'Failed');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [ticker]);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, [fetchData]);
 
   // Close on Escape
@@ -242,7 +246,7 @@ export default function StockSupplyModal({ ticker, onClose }: Props) {
           {error && (
             <div className="py-8 text-center">
               <p className="text-sm text-red-500 mb-2">{error}</p>
-              <button onClick={fetchData} className="text-xs text-violet-600 underline">{t('retry')}</button>
+              <button onClick={() => fetchData()} className="text-xs text-violet-600 underline">{t('retry')}</button>
             </div>
           )}
 

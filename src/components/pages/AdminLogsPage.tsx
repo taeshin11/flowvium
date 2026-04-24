@@ -104,7 +104,7 @@ export default function AdminLogsPage() {
     if (saved) setSecret(saved);
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     if (!secret) return;
     setLoading(true);
     setError(null);
@@ -112,11 +112,13 @@ export default function AdminLogsPage() {
       const params = new URLSearchParams({ limit: '500' });
       if (levelFilter) params.set('level', levelFilter);
       if (sourceFilter) params.set('source', sourceFilter);
+      const headers = { 'x-admin-secret': secret };
       const [logRes, healthRes, metricsRes] = await Promise.all([
-        fetch(`/api/admin/logs?${params.toString()}`, { headers: { 'x-admin-secret': secret } }),
-        fetch(`/api/admin/health`, { headers: { 'x-admin-secret': secret } }),
-        fetch(`/api/admin/metrics-health`, { headers: { 'x-admin-secret': secret } }),
+        fetch(`/api/admin/logs?${params.toString()}`, { headers, signal }),
+        fetch(`/api/admin/health`, { headers, signal }),
+        fetch(`/api/admin/metrics-health`, { headers, signal }),
       ]);
+      if (signal?.aborted) return;
       if (logRes.status === 401) { setError('Unauthorized — check CRON_SECRET'); setEntries([]); return; }
       if (!logRes.ok) { setError(`HTTP ${logRes.status}`); return; }
       const data = await logRes.json();
@@ -126,11 +128,18 @@ export default function AdminLogsPage() {
       if (metricsRes.ok) setMetrics(await metricsRes.json());
       else if (metricsRes.status === 404) setMetrics(null);
     } catch (e) {
+      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : 'Fetch failed');
-    } finally { setLoading(false); }
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
   }, [secret, levelFilter, sourceFilter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const saveSecret = () => {
     if (typeof window !== 'undefined') window.localStorage.setItem('flowvium_admin_secret', secretInput);
@@ -208,7 +217,7 @@ export default function AdminLogsPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={load}
+            onClick={() => load()}
             disabled={loading}
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-40"
           >

@@ -110,19 +110,27 @@ function SocialTab() {
     neutral: t('sentimentNeutral'),
   };
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/osint/social');
+      const res = await fetch('/api/osint/social', signal ? { signal } : undefined);
       const json = await res.json();
+      if (signal?.aborted) return;
       if (json.error) throw new Error(json.error);
       setData(json.entries ?? []);
     } catch (e) {
+      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : '로드 실패');
-    } finally { setLoading(false); }
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const baseData = fedOnly ? data.filter(e => e.isFed) : data;
   const people = ['all', ...Array.from(new Set<string>(baseData.map(e => e.tag)))];
@@ -134,7 +142,7 @@ function SocialTab() {
         <p className="text-xs text-cf-text-secondary">
           {t('socialDesc')}
         </p>
-        <button onClick={load} className="flex items-center gap-1 text-xs text-cf-primary hover:underline">
+        <button onClick={() => load()} className="flex items-center gap-1 text-xs text-cf-primary hover:underline">
           <RefreshCw className="w-3 h-3" /> {t('refresh')}
         </button>
       </div>
@@ -267,16 +275,21 @@ function CryptoTab() {
 
   // Auto-load notable wallets
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
     NOTABLE_WALLETS_DATA.forEach(async (w) => {
       setWalletData(prev => ({ ...prev, [w.address]: 'loading' }));
       try {
-        const res = await fetch(`/api/osint/crypto?address=${encodeURIComponent(w.address)}&chain=${w.chain}`);
+        const res = await fetch(`/api/osint/crypto?address=${encodeURIComponent(w.address)}&chain=${w.chain}`, { signal });
         const data = await res.json();
+        if (signal.aborted) return;
         setWalletData(prev => ({ ...prev, [w.address]: data.error ? 'error' : data }));
       } catch {
+        if (signal.aborted) return;
         setWalletData(prev => ({ ...prev, [w.address]: 'error' }));
       }
     });
+    return () => controller.abort();
   }, []);
 
   const search = useCallback(async () => {
@@ -469,17 +482,21 @@ function SanctionsTab() {
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/osint/sanctions?featured=true')
+    const controller = new AbortController();
+    const { signal } = controller;
+    fetch('/api/osint/sanctions?featured=true', { signal })
       .then(r => r.json())
       .then(d => {
+        if (signal.aborted) return;
         if (d.error) throw new Error(d.error);
         setGroups(d.groups ?? {});
         setTotal(d.totalEntries ?? 0);
         const keys = Object.keys(d.groups ?? {});
         if (keys.length) setActiveGroup(keys[0]);
       })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+      .catch(e => { if (!signal.aborted) setError(e.message); })
+      .finally(() => { if (!signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   const search = useCallback(async () => {
@@ -634,15 +651,21 @@ function CorporateTab() {
   const [active, setActive] = useState<string>(FEATURED_QUERIES[0].label);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
     FEATURED_QUERIES.forEach(async ({ label }) => {
       setLoadingKeys(prev => { const s = new Set<string>(Array.from(prev)); s.add(label); return s; });
       try {
-        const res = await fetch(`/api/osint/corporate?q=${encodeURIComponent(label)}`);
+        const res = await fetch(`/api/osint/corporate?q=${encodeURIComponent(label)}`, { signal });
         const d = await res.json();
+        if (signal.aborted) return;
         setResults(prev => ({ ...prev, [label]: d }));
       } catch { /* silent */ }
-      finally { setLoadingKeys(prev => { const s = new Set<string>(Array.from(prev)); s.delete(label); return s; }); }
+      finally {
+        if (!signal.aborted) setLoadingKeys(prev => { const s = new Set<string>(Array.from(prev)); s.delete(label); return s; });
+      }
     });
+    return () => controller.abort();
   }, []);
 
   const search = useCallback(async () => {

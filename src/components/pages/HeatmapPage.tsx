@@ -151,23 +151,30 @@ export default function HeatmapPage() {
   const [country, setCountry] = useState<string>('US');
   const [viewMode, setViewMode] = useState<'sectors' | 'overview'>('sectors');
 
-  const load = async (force = false, ctry = country) => {
+  const load = async (force = false, ctry = country, signal?: AbortSignal) => {
     if (force) setRefreshing(true);
     else setLoading(true);
     try {
-      const res = await fetch(`/api/market-heatmap?country=${ctry}`);
+      const res = await fetch(`/api/market-heatmap?country=${ctry}`, signal ? { signal } : undefined);
       const json = await res.json();
+      if (signal?.aborted) return;
       setData(json);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
-    load(false, country);
-    const iv = setInterval(() => load(false, country), 15 * 60 * 1000);
-    return () => clearInterval(iv);
+    const controller = new AbortController();
+    load(false, country, controller.signal);
+    const iv = setInterval(() => load(false, country, controller.signal), 15 * 60 * 1000);
+    return () => {
+      controller.abort();
+      clearInterval(iv);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [country]);
 

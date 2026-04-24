@@ -18,27 +18,34 @@ export default function LiveFeed() {
   const [error, setError] = useState(false);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
-  const fetchItems = useCallback(async (isManual = false) => {
+  const fetchItems = useCallback(async (isManual = false, signal?: AbortSignal) => {
     if (isManual) setRefreshing(true);
     try {
-      const res = await fetch('/api/latest-updates');
+      const res = await fetch('/api/latest-updates', signal ? { signal } : undefined);
       const data = await res.json();
+      if (signal?.aborted) return;
       setItems(data.items ?? []);
       setLastFetched(new Date());
       setError(false);
     } catch {
+      if (signal?.aborted) return;
       setError(true);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    fetchItems();
-    // Poll every 5 minutes
-    const interval = setInterval(() => fetchItems(), 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    fetchItems(false, controller.signal);
+    const interval = setInterval(() => fetchItems(false, controller.signal), 5 * 60 * 1000);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [fetchItems]);
 
   const timeAgo = lastFetched
