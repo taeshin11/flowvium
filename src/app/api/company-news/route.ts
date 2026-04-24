@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMemoryCache } from '@/lib/memory-cache';
+import { Redis } from '@upstash/redis';
+import { logger, loggedRedisSet } from '@/lib/logger';
 import { callAI } from '@/lib/ai-providers';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
-const mem = createMemoryCache<object>('company-news', CACHE_TTL_MS);
+const CACHE_TTL_S = 30 * 60; // 30 min
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1440, stale-while-revalidate=120' };
 
 export interface NewsItem {
@@ -17,21 +17,37 @@ export interface NewsItem {
   source: string;
 }
 
-function extractTagContent(xml: string, tag: string): string {
-  const match = xml.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
-  return (match?.[1] ?? match?.[2] ?? '').trim();
+function createRedis(): Redis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (!url || !token) return null;
+  return new Redis({ url, token });
 }
 
-function parseRssItems(xml: string, limit = 8): NewsItem[] {
-  const itemBlocks = xml.match(/<item>([\s\S]*?)<\/item>/gi) ?? [];
-  return itemBlocks.slice(0, limit).map((block) => {
-    const title = extractTagContent(block, 'title').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
-    const description = extractTagContent(block, 'description').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').slice(0, 200);
-    const link = extractTagContent(block, 'link');
-    const pubDate = extractTagContent(block, 'pubDate');
-    const sourceDomain = link.match(/https?:\/\/([^/]+)/)?.[1]?.replace(/^www\./, '') ?? 'Yahoo Finance';
-    return { title, description, link, pubDate, source: sourceDomain };
+function redisCacheKey(ticker: string): string {
+  return `flowvium:company-news:v2:${ticker}`;
+}
+
+// Yahoo Finance v1 search API — returns JSON news items, no auth required
+async function fetchYahooNews(ticker: string): Promise<NewsItem[]> {
+  const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(ticker)}&newsCount=8&quotesCount=0`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+    signal: AbortSignal.timeout(8000),
+    cache: 'no-store',
   });
+  if (!res.ok) throw new Error(`Yahoo Finance search HTTP ${res.status}`);
+  const data = await res.json() as { news?: Array<Record<string, unknown>> };
+  const items = (data.news ?? []).filter(n => n.type === 'STORY');
+  return items.slice(0, 8).map(n => ({
+    title: String(n.title ?? ''),
+    description: '',
+    link: String(n.link ?? ''),
+    pubDate: n.providerPublishTime
+      ? new Date(Number(n.providerPublishTime) * 1000).toISOString()
+      : new Date().toISOString(),
+    source: String(n.publisher ?? 'Yahoo Finance'),
+  })).filter(n => n.title);
 }
 
 export async function GET(req: NextRequest) {
@@ -40,46 +56,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid ticker' }, { status: 400 });
   }
 
-  const cacheKey = ticker;
-  const cached = mem.get(cacheKey);
-  if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
+  const redis = createRedis();
+  const cacheKey = redisCacheKey(ticker);
+
+  if (redis) {
+    try {
+      const hit = await redis.get(cacheKey);
+      if (hit) {
+        logger.info('api.company-news', 'cache_hit', { ticker });
+        return NextResponse.json({ ...(hit as object), cached: true }, { headers: CDN_HEADERS });
+      }
+    } catch (err) { logger.warn('api.company-news', 'cache_read_error', { ticker, error: err }); }
+  }
 
   try {
-    const rssUrl = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(ticker)}&region=US&lang=en-US`;
-    const rssRes = await fetch(rssUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml, application/xml, text/xml' },
-      signal: AbortSignal.timeout(8000),
-      cache: 'no-store',
-    });
-    if (!rssRes.ok) throw new Error(`RSS HTTP ${rssRes.status}`);
+    const news = await fetchYahooNews(ticker);
+    if (news.length === 0) throw new Error('No news items returned');
 
-    const xml = await rssRes.text();
-    const news = parseRssItems(xml, 8);
-    if (news.length === 0) throw new Error('No news items parsed');
-
-    // AI summary: feed top 5 headlines + descriptions to AI
     const newsContext = news.slice(0, 5).map((n, i) =>
-      `${i + 1}. [${n.source}] ${n.title}: ${n.description}`
+      `${i + 1}. [${n.source}] ${n.title}`
     ).join('\n');
 
     const prompt = `You are a concise financial analyst. Summarize the following recent news about ${ticker} in 2-3 sentences. Focus on: what's moving the stock, key risks or catalysts, and market sentiment. Be specific and factual. Respond in Korean.\n\nNews:\n${newsContext}`;
 
     let summary = '';
     try {
-      const result = await callAI(prompt, { maxTokens: 200, temperature: 0.3 });
+      const result = await callAI(prompt, { maxTokens: 200, temperature: 0.3, tag: 'company-news' });
       summary = result.text ?? '';
-      // Guard against Chinese character leak
-      if (/[一-鿿]/.test(summary) && !/[가-힣]/.test(summary)) {
-        summary = '';
-      }
+      if (/[一-鿿]/.test(summary) && !/[가-힣]/.test(summary)) summary = '';
     } catch {
       summary = '';
     }
 
     const result = { ticker, news, summary: summary || null, generatedAt: new Date().toISOString(), cached: false };
-    mem.set(cacheKey, result);
+    if (redis) {
+      await loggedRedisSet(redis, 'api.company-news', cacheKey, result, { ex: CACHE_TTL_S });
+    }
     return NextResponse.json(result, { headers: CDN_HEADERS });
   } catch (e) {
+    logger.error('api.company-news', 'fetch_failed', { ticker, error: e });
     return NextResponse.json({ error: 'Failed to fetch news', details: String(e) }, { status: 502 });
   }
 }

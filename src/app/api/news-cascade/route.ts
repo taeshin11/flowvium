@@ -270,8 +270,11 @@ export async function GET() {
     return (imp[b.importance] ?? 2) - (imp[a.importance] ?? 2);
   });
 
-  // 5. Cache the full list for 4h
-  if (redis && sorted.length > 0) {
+  // 5. Cache the full list — only when at least one article has real AI cascades.
+  // Without this guard, empty-cascade lists are locked in Redis until the daily key expires,
+  // preventing AI analysis from appearing when providers recover mid-day.
+  const hasRealAnalysis = sorted.some(a => a.cascades.length > 0);
+  if (redis && sorted.length > 0 && hasRealAnalysis) {
     await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: 12 * 60 * 60 })
   }
 
