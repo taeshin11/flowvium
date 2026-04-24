@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Users, AlertTriangle, Zap, Globe, Building2, DollarSign, Filter, X, Flame } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -86,19 +86,26 @@ export default function InsiderPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tickerFilter, setTickerFilter] = useState<string>('');
+  const abortRef = useRef<AbortController | null>(null);
 
   const load = useCallback(async (force = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
+
     if (force) setRefreshing(true); else setLoading(true);
     const q = force ? '?refresh=1' : '';
     try {
       const [iRes, oRes, xRes, kRes, nRes, bRes] = await Promise.allSettled([
-        fetch(`/api/insider-trades${q}`).then(r => r.json()),
-        fetch(`/api/ownership-alerts${q}`).then(r => r.json()),
-        fetch(`/api/options-flow${q}`).then(r => r.json()),
-        fetch(`/api/korea-flow${q}`).then(r => r.json()),
-        fetch(`/api/nport-holdings${q}`).then(r => r.json()),
-        fetch(`/api/block-trades${q}`).then(r => r.json()),
+        fetch(`/api/insider-trades${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetch(`/api/ownership-alerts${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetch(`/api/options-flow${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetch(`/api/korea-flow${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetch(`/api/nport-holdings${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetch(`/api/block-trades${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
       ]);
+      if (signal.aborted) return;
       if (iRes.status === 'fulfilled') setInsider(iRes.value.items ?? []);
       if (oRes.status === 'fulfilled') setOwnership(oRes.value.items ?? []);
       if (xRes.status === 'fulfilled') {
@@ -115,12 +122,17 @@ export default function InsiderPage() {
         setBlocksConfigured(bRes.value.configured !== false);
       }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    return () => abortRef.current?.abort();
+  }, [load]);
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode; count: number }[] = [
     { id: 'insider',   label: t('tabInsider'),   icon: <Users className="w-4 h-4" />,          count: insider.length },

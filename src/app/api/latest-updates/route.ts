@@ -29,6 +29,7 @@ import { newsGapData } from '@/data/news-gap';
 export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 15 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=60' };
 
 export interface UpdateItem {
   id: string;
@@ -429,7 +430,7 @@ export async function GET(req: Request) {
   if (redis) {
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return NextResponse.json({ items: cached, cached: true });
+      if (cached) return NextResponse.json({ items: cached, cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -480,5 +481,5 @@ export async function GET(req: Request) {
     byType: items.reduce((acc, it) => { acc[it.type] = (acc[it.type] ?? 0) + 1; return acc; }, {} as Record<string, number>),
   });
 
-  return NextResponse.json({ items, cached: false });
+  return NextResponse.json({ items, cached: false }, { headers: CDN_HEADERS });
 }

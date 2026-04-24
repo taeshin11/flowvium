@@ -22,6 +22,7 @@ export default function LiveFeed() {
     if (isManual) setRefreshing(true);
     try {
       const res = await fetch('/api/latest-updates', signal ? { signal } : undefined);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (signal?.aborted) return;
       setItems(data.items ?? []);
