@@ -347,29 +347,29 @@
 | 150 | 미디어 커버리지 점수 | 💾 cached | Alpha Vantage |
 | 151 | 캐스케이드 포지션·딜레이 | 📋 static |
 
-### 4-11. 재무 심화 (XBRL) — **미배선**
+### 4-11. 재무 심화 (XBRL) — ✅ 배선 완료 (2026-04-24)
 
 | # | 지표 | 상태 | 소스 | 비고 |
 |---|------|------|------|------|
-| 152 | 매출 시계열 (분기·연간) | ⛔ missing | `/api/company-financials` 존재, UI 미연결 | 🎯 다음 작업 |
-| 153 | 영업이익 시계열 | ⛔ missing | 상동 | |
-| 154 | 순이익 시계열 | ⛔ missing | 상동 | |
-| 155 | EPS 시계열 | ⛔ missing | 상동 | |
-| 156 | 총자산 | ⛔ missing | 상동 | |
-| 157 | 총부채 | ⛔ missing | 상동 | |
-| 158 | 자본 | ⛔ missing | 상동 | |
-| 159 | 영업현금흐름 | ⛔ missing | 상동 | |
-| 160 | 투자현금흐름 | ⛔ missing | 상동 | |
-| 161 | 재무현금흐름 | ⛔ missing | 상동 | |
-| 162 | R&D 비용 | ⛔ missing | XBRL `ResearchAndDevelopmentExpense` | |
-| 163 | CapEx | ⛔ missing | XBRL `PaymentsToAcquirePropertyPlantAndEquipment` | |
-| 164 | 자사주매입 | ⛔ missing | XBRL `PaymentsForRepurchaseOfCommonStock` | |
-| 165 | 배당금 | ⛔ missing | XBRL `PaymentsOfDividends` | |
-| 166 | ROE | ⛔ missing | 파생 | |
-| 167 | ROA | ⛔ missing | 파생 | |
-| 168 | 영업이익률 | ⛔ missing | 파생 | |
-| 169 | 부채비율 | ⛔ missing | 파생 | |
-| 170 | 분기별 Y/Y 성장률 | ⛔ missing | 파생 | |
+| 152 | 매출 시계열 (연간 5년) | ✅ live | SEC EDGAR XBRL 10-K | CompanyPage 재무 심화 카드 |
+| 153 | 영업이익 시계열 | ✅ live | SEC XBRL `OperatingIncomeLoss` | |
+| 154 | 순이익 시계열 | ✅ live | SEC XBRL `NetIncomeLoss` | |
+| 155 | EPS (희석, 최신 FY) | ✅ live | SEC XBRL `EarningsPerShareDiluted` | |
+| 156 | 총자산 | ✅ live | SEC XBRL `Assets` | |
+| 157 | 총부채 | ✅ live | SEC XBRL `Liabilities` | |
+| 158 | 자본 | ✅ live | SEC XBRL `StockholdersEquity` | |
+| 159 | 영업현금흐름 | ✅ live | SEC XBRL `NetCashProvided…Operating` | |
+| 160 | 투자현금흐름 | ✅ live | SEC XBRL `NetCashProvided…Investing` | |
+| 161 | 재무현금흐름 | ✅ live | SEC XBRL `NetCashProvided…Financing` | |
+| 162 | R&D 비용 | ✅ live | SEC XBRL `ResearchAndDevelopmentExpense` | |
+| 163 | CapEx | ✅ live | SEC XBRL `PaymentsToAcquirePropertyPlant…` | |
+| 164 | 자사주매입 | ✅ live | SEC XBRL `PaymentsForRepurchaseOfCommonStock` | |
+| 165 | 배당금 | ✅ live | SEC XBRL `PaymentsOfDividends` | |
+| 166 | ROE | ✅ live | 파생: 순이익/자본 | |
+| 167 | ROA | ✅ live | 파생: 순이익/총자산 | |
+| 168 | 영업이익률 | ✅ live | 파생: 영업이익/매출 | |
+| 169 | 부채비율 | ✅ live | 파생: 총부채/총자산 | |
+| 170 | 분기별 Y/Y 성장률 | ⛔ missing | 분기 시계열 미구현 | 다음 iter |
 
 ---
 
@@ -715,10 +715,10 @@
 
 우선순위 순서.
 
-### 16-1. 기업 재무 심화 — 1순위
+### 16-1. 기업 재무 심화 — ✅ 완료 (2026-04-24)
 
-`/api/company-financials/` 이미 존재, SEC XBRL 라이브러리 완비. UI 배선만 남음.
-→ 체크리스트 #152~170 참조 (19개 지표)
+`/api/company-financials/` + `CompanyPage` 재무 심화 카드. SEC XBRL 18/19 지표 live.
+→ 체크리스트 #152~169 ✅ live, #170 (분기 Y/Y) 다음 iter
 
 ### 16-2. 금리 커브 차트 — 2순위 (블룸버그 YCRV)
 
