@@ -28,7 +28,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v10:${kstDate()}`;
+  return `flowvium:macro-indicators:v11:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -249,8 +249,10 @@ function classify(actual: number | null, forecast: number, higherIsBetter: boole
 
 function rateImpact(id: string, surprise: string): { impact: 'hawkish' | 'dovish' | 'neutral'; ko: string } {
   if (surprise === 'inline' || surprise === 'pending') return { impact: 'neutral', ko: '중립' };
-  const hawkishOnBeat = ['cpi', 'pce', 'nfp', 'ppi', 'retail', 'iclaims', 'umcsent'];
-  const hawkishOnMiss = ['gdp', 'ism', 'unrate'];
+  // 'beat' = actual performed better than forecast (lower-is-better indicators: lower actual = beat)
+  // Inflation misses (CPI/PPI/PCE higher than expected) = hawkish; activity beats = hawkish
+  const hawkishOnBeat = ['nfp', 'retail', 'iclaims', 'umcsent', 'gdp', 'ism', 'unrate'];
+  const hawkishOnMiss = ['cpi', 'pce', 'ppi'];
   if (hawkishOnBeat.includes(id)) {
     return surprise === 'beat'
       ? { impact: 'hawkish', ko: '매파적 (긴축 압력)' }
@@ -258,8 +260,8 @@ function rateImpact(id: string, surprise: string): { impact: 'hawkish' | 'dovish
   }
   if (hawkishOnMiss.includes(id)) {
     return surprise === 'miss'
-      ? { impact: 'hawkish', ko: '매파적' }
-      : { impact: 'dovish', ko: '비둘기파' };
+      ? { impact: 'hawkish', ko: '매파적 (물가 상회 → 긴축 장기화)' }
+      : { impact: 'dovish', ko: '비둘기파 (물가 안정 → 인하 기대↑)' };
   }
   return { impact: 'neutral', ko: '중립' };
 }

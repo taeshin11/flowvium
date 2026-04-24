@@ -13,6 +13,7 @@ export async function POST(request: Request) {
         const res = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(5000),
           body: JSON.stringify({
             ...data,
             timestamp: new Date().toISOString(),
