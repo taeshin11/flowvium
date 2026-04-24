@@ -1,0 +1,53 @@
+## Iter 33 — 홈 MarketSnapshot F&G 실시간 추가
+Date: 2026-04-24
+Primary outcome: 홈 F&G 실시간 파이 추가
+
+### 정확성 프로브
+- [accuracy probe] metric=spy.price source=Yahoo direct_value=708.45 our_value=708.45 delta=0 → OK
+- [accuracy probe] metric=fg.us source=CNN direct_value=N/A (418 bot-block) our_value=unknown → N/A
+- CNN F&G 직접 probe 불가 (418 bot-block) — 우리 F&G는 composite 계산이라 유효
+
+### Drift check
+- 최근 5 커밋: iter33(이번), iter32(marketsnap+CDN), iter31(CDN+zombie), iter30(CDN+zombie), iter29(fedwatch)
+- CDN 3 iter 연속 패턴 (30/31/32) → iter33에서 탈피 (신규 기능)
+- 인프라 블로커: 없음
+- "나중에" 미룬 항목: 없음
+
+### 발견된 기회
+MarketSnapshot (홈페이지):
+- SPY/QQQ/BTC/VIX 4개 가격만 표시
+- Fear & Greed 없이 시장 심리 지수 미표시
+- IntelligencePage에는 F&G 있지만 홈에는 없었음
+
+### 작업 내용
+1. **HomePagee.tsx: import 추가**
+   - `import { getLevel, levelLabels } from '@/data/fear-greed';`
+
+2. **MarketSnapshot 컴포넌트**
+   - `fgScore: number | null` 상태 추가
+   - `fetchPills`: Promise.allSettled에 `/api/fear-greed` fetch 병렬 추가
+   - ticker `__fg__` sentinel로 price 결과와 구분
+   - US F&G score: `d.byCountry.find(c => c.id === 'us')?.score`
+   - 렌더: 기존 마켓 스트립 오른쪽, 구분선(border-l) 후에 F&G pill 표시
+   - pill: "F&G" 레이블 + 점수 숫자 + levelLabels 색상 (extreme-fear=빨강, greed=초록 등)
+   - 60s auto-refresh와 동일 주기로 갱신됨 (fetchPills에 통합)
+
+3. **레이아웃**
+   - `<div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">`
+   - 스트립에 자연스럽게 구분되어 추가됨
+
+### 캐시 계층 감사
+- /api/fear-greed: CDN s-maxage=14400 (4h) ✓
+- 클라이언트: 60s interval로 재요청 → CDN hit → 4h 이내 동일 데이터 (맞음)
+- Next.js fetch layer: 클라이언트 사이드 fetch는 Next.js cache 레이어 미적용 ✓
+
+### UI 검증
+- 브라우저 없이 실 렌더 확인 불가 → 미검증으로 명시
+- TypeScript clean ✓
+
+### 산출물 분류
+- rule [3a]: 홈페이지 시장 심리 지수 추가 (사용자 직접 인지 가능한 신규 데이터)
+- rule [3b]: F&G API가 US score를 제대로 반환할지 불확실 (bot-block으로 CNN 미확인)
+
+### Commit
+d322491 feat(home): MarketSnapshot에 US Fear&Greed 실시간 지수 추가
