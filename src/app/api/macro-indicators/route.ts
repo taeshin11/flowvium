@@ -28,7 +28,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v11:${kstDate()}`;
+  return `flowvium:macro-indicators:v12:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -56,6 +56,7 @@ export interface MacroIndicator {
   cascade: CascadeStep[];
   summary: string;
   liveData?: boolean;
+  dataNote?: string;
 }
 
 // ── FRED helpers ──────────────────────────────────────────────────────────────
@@ -648,11 +649,19 @@ export async function GET() {
     });
   }
 
-  // NFP
+  // NFP — FRED PAYEMS shows absolute levels; MoM change can lag BLS headline when
+  // BLS revises a prior month on the same release day (FRED incorporates revisions
+  // with a ~1-week lag). Detect by comparing FRED MoM vs static BLS headline.
   const nfpData = get(fredNFP);
   {
     const base = STATIC.nfp;
-    const actual = nfpData ? Math.round(nfpData.value) : base.actual;
+    const fredActual = nfpData ? Math.round(nfpData.value) : null;
+    const staticActual = base.actual;
+    // If FRED deviates from BLS static by > 15% AND static is recent (≤60 days), use static + note
+    const fredLag = fredActual !== null && staticActual !== null
+      && Math.abs(fredActual - staticActual) > Math.abs(staticActual) * 0.15
+      && (Date.now() - new Date(base.releaseDate).getTime()) < 60 * 24 * 60 * 60 * 1000;
+    const actual = fredLag ? staticActual : (fredActual ?? staticActual);
     const previous = nfpData ? Math.round(nfpData.previous) : base.previous;
     const fc = FORECASTS.nfp.forecast;
     const surprise = classify(actual, fc, true);
@@ -667,7 +676,8 @@ export async function GET() {
         ? `NFP ${actual.toLocaleString()}K (예상 ${fc}K). ${actual > fc ? '고용 강세 — 인하 시기 후퇴 가능성.' : '고용 둔화 — 인하 기대 강화.'}`
         : base.summary,
       cascade: buildCascade('nfp', surprise),
-      liveData: !!nfpData,
+      liveData: !!nfpData && !fredLag,
+      dataNote: fredLag ? `FRED PAYEMS ${fredActual}K (전월 수정 반영 지연) — BLS 공식 발표 ${staticActual}K 사용 중` : undefined,
     });
   }
 
