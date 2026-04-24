@@ -177,6 +177,7 @@
   - CPI · PCE(Core) · NFP · FOMC · GDP · ISM PMI · 소매판매 · PPI · 실업률 · 신규 실업수당 (주간) · 소비자심리지수 · IG OAS · HY OAS
   - 실제치 / 예상치 / 이전치 / Surprise 배지 (beat/miss/inline/pending)
   - **이전값 대비 delta 표시** (색상: 인플레↑ 빨강, 고용↑ 초록 등 방향별) ← iter63
+  - **FOMC·GDP static fallback 갱신** — fomc(4.5→3.75, forecast/previous 동기화), gdp Q1(0.5%) ← iter66
   - 매파(hawkish) / 비둘기(dovish) 영향 레이블
   - **캐스케이드 체인**: 자산별 방향·강도·이유 (3~5개 항목)
   - "쉬운 설명" 토글 (Laymen 모드)

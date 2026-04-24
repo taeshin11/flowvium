@@ -1,0 +1,77 @@
+## Iter 66 — FOMC·GDP static fallback 버그 수정
+Date: 2026-04-24
+Primary outcome: FOMC/GDP static 버그 수정 (18자)
+
+### Drift check
+- iter 62: capital-flows/route.ts (perf batch)
+- iter 63: MacroIndicatorsTab.tsx
+- iter 64: HomePage.tsx
+- iter 65: capital-flows/route.ts + CapitalFlowsTab.tsx
+- iter 66: macro-indicators/route.ts
+  → capital-flows 2회(62,65), 사이에 다른 파일 → drift 없음 OK
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=fomc.rate source=Vercel_production
+  direct_value=3.75 our_actual=3.75 liveData=true
+  static_fallback_was=4.5 static_forecast_was=4.5 → STATIC STALE
+  delta=0.75pp → FIXED
+
+- [accuracy probe] metric=gdp.q1 source=Vercel_production
+  direct_value=0.5 our_actual=0.5 liveData=true
+  static_fallback_was=2.4 (Q4) forecast_was=2.3 → STATIC STALE
+  delta=1.9pp, wrong quarter → FIXED
+
+### 문제 정의
+production API(`https://flowvium.vercel.app/api/macro-indicators`) 확인:
+  fomc.actual=3.75 (FRED live OK)
+  fomc.forecast=4.5 (← STATIC stale, 사용자에게 "예상 4.5 실제 3.75" 오해 야기)
+  fomc.previous=4.5 (← STATIC stale, 실제 이전값 ~4.0)
+  gdp.actual=0.5 (FRED live OK — Q1 2026 속보치)
+  gdp.forecast=2.3 (← FORECASTS stale Q4 기준)
+  gdp.previous=3.1 (← STATIC stale — Q3 2025 값, Q4=2.4 이어야 함)
+
+### 구현 (`src/app/api/macro-indicators/route.ts`)
+
+#### STATIC.fomc 수정
+  - actual: 4.5 → 3.75
+  - forecast: 4.5 → 3.75 (March hold expected)
+  - previous: 4.5 → 4.0
+  - rateImpactKo: '동결 (불확실성 유지)' → '동결 (데이터 의존)'
+  - summary: 현재 기준금리 3.75% 반영으로 교체
+
+#### STATIC.gdp 수정
+  - name: 'GDP Growth Rate (Q4)' → 'GDP Growth Rate (Q1 Advance)'
+  - nameKo: 'GDP 성장률' → 'GDP 성장률 (Q1)'
+  - actual: 2.4 → 0.5
+  - forecast: 2.3 → (사용 안 됨; FORECASTS.gdp.forecast 사용)
+  - previous: 3.1 → 2.4 (Q4 2025 확정치)
+  - releaseDate: '2026-03-27' → '2026-04-24'
+  - nextRelease: '2026-04-30' → '2026-05-29' (Q1 2차 추정)
+  - surprise: 'beat' → 'miss'
+  - rateImpact: 'hawkish' → 'dovish'
+  - rateImpactKo: '경기 강세 → 긴축 여력' → '경기 둔화 → 인하 기대↑'
+
+#### FORECASTS.gdp 수정
+  - forecast: 2.3 → 0.9 (Q1 2026 컨센서스 추정)
+  - nextRelease: '2026-04-30' → '2026-05-29'
+
+#### Cache key 버전 업
+  - v6 → v7 (forecast/previous 값 갱신 즉시 적용)
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 fetchFREDCsv 재활용)
+- 캐시 키 v7 버전업으로 stale v6 즉시 무효화
+- 다음 요청 시 FRED에서 fresh fetch → 새 STATIC/FORECASTS 반영 캐시 생성
+
+### TypeScript
+- TypeScript clean OK (no output)
+
+### 영향 범위
+1. FRED DOWN 시 fallback: 4.5% → 3.75% (사용자 혼동 제거)
+2. live 모드 forecast: 4.5 → 3.75 (surprise 계산 정상화)
+3. live 모드 previous: 4.5 → 4.0 (delta 표시 정상화 — iter63 연계)
+4. GDP live previous: 3.1 → 2.4 (Q4 2025 올바른 이전값)
+5. GDP forecast: 2.3 → 0.9 (Q1 2026 컨센서스 반영)
+
+### Commits
+- iter66: fix(macro-indicators): FOMC·GDP static fallback 갱신 — 3.75%·Q1 반영

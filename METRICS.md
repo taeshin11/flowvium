@@ -219,8 +219,8 @@
 | 85 | CPI (실제·예상·이전·Surprise) | 💾 cached | 4필드 + 레이블 |
 | 86 | PCE Core | 💾 cached | 4필드 |
 | 87 | NFP (비농업 고용) | 💾 cached | 4필드 |
-| 88 | FOMC 결정 | 💾 cached | 4필드 |
-| 89 | GDP | 💾 cached | 4필드 |
+| 88 | FOMC 결정 (actual=3.75%, forecast=3.75%, prev=4.0%) | 💾 cached | 4필드, iter66 static 갱신 |
+| 89 | GDP Q1 Advance (actual=0.5%, forecast=0.9%, prev=2.4%) | 💾 cached | 4필드, iter66 static 갱신 |
 | 90 | ISM PMI | 💾 cached | 4필드 |
 | 91 | 소매판매 | 💾 cached | 4필드 |
 | 92 | PPI | 💾 cached | 4필드 |

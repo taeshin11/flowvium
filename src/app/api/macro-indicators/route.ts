@@ -28,7 +28,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v6:${kstDate()}`;
+  return `flowvium:macro-indicators:v7:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -461,17 +461,17 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   fomc: {
     id: 'fomc', name: 'FOMC Rate Decision', nameKo: 'FOMC 금리 결정',
-    category: 'monetary', actual: 4.5, forecast: 4.5, previous: 4.5, unit: '%',
+    category: 'monetary', actual: 3.75, forecast: 3.75, previous: 4.0, unit: '%',
     releaseDate: '2026-03-19', nextRelease: '2026-05-07', surprise: 'inline',
-    rateImpact: 'neutral', rateImpactKo: '동결 (불확실성 유지)',
-    summary: '3월 FOMC 동결 결정. 점도표 연내 2회 인하 유지. Powell "데이터 의존" 강조.',
+    rateImpact: 'neutral', rateImpactKo: '동결 (데이터 의존)',
+    summary: '3월 FOMC 동결. 현재 기준금리 3.75%. 다음 회의 2026-05-07.',
   },
   gdp: {
-    id: 'gdp', name: 'GDP Growth Rate (Q4)', nameKo: 'GDP 성장률',
-    category: 'growth', actual: 2.4, forecast: 2.3, previous: 3.1, unit: '%QoQ SAAR',
-    releaseDate: '2026-03-27', nextRelease: '2026-04-30', surprise: 'beat',
-    rateImpact: 'hawkish', rateImpactKo: '경기 강세 → 긴축 여력',
-    summary: 'Q4 GDP 확정치 2.4%, 속보치 상회. 소비 지출·민간투자 견조.',
+    id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',
+    category: 'growth', actual: 0.5, forecast: 0.9, previous: 2.4, unit: '%QoQ SAAR',
+    releaseDate: '2026-04-24', nextRelease: '2026-05-29', surprise: 'miss',
+    rateImpact: 'dovish', rateImpactKo: '경기 둔화 → 인하 기대↑',
+    summary: 'Q1 2026 GDP 속보치 0.5%. 관세 충격·소비 위축으로 성장 급감.',
   },
   ism: {
     id: 'ism', name: 'ISM Manufacturing PMI', nameKo: 'ISM 제조업 PMI',
@@ -537,7 +537,7 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
   pce:    { forecast: 2.6,   nextRelease: '2026-04-30' },
   nfp:    { forecast: 140,   nextRelease: '2026-05-02' },
-  gdp:    { forecast: 2.3,   nextRelease: '2026-04-30' },
+  gdp:    { forecast: 0.9,   nextRelease: '2026-05-29' },
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
   retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
   unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
