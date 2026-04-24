@@ -1,0 +1,72 @@
+## Iter 51 — 스크리너 확장 + GROQ 토큰 근본 원인 수정
+Date: 2026-04-24
+Primary outcome: update-all 3x→1x daily brief (GROQ 18k 토큰/일 절감)
+
+### Drift check
+- iter 48: Redis 키 감사 + GROQ 토큰 최적화 (cron/daily-brief 1→4w)
+- iter 49: maxDuration 인프라
+- iter 50: Finnhub P/E screener
+- iter 51: GROQ 근본 원인 수정 + 스크리너 확장
+- 동일 모듈 3 iter 연속: 없음 ✓
+- GROQ TPD 고갈 → 2 iter 연속 부분 수정만 했는가? → NO: iter48 fix 부분적, iter51 근본 수정
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=verify-metrics source=production value=77/79 OK delta=0 → OK
+- 시스템 상태: 0 errors, 0 degraded
+- commodity-curve: 7 oil / 5 gold points (earlier false alarm — Python wrong field names)
+- yield-curve: 9 maturities, 136 spread points (same false alarm)
+- short-interest P/E (iter50): 26/28 tickers working (ALB/MRNA null — Finnhub no data)
+
+### 핵심 발견: GROQ 토큰 과소비의 실제 원인
+
+iter48에서 `cron/daily-brief`를 4w-only로 수정했으나, `update-all` cron이 여전히
+3 timeframes (1w+4w+13w)를 직접 warm하고 있었음:
+
+```typescript
+// 수정 전 update-all:
+const [brief1wR, brief4wR, brief13wR] = await Promise.all([
+  warm(base, '/api/daily-brief?tf=1w&force=1', 'daily-brief-1w', 20000),
+  warm(base, '/api/daily-brief?tf=4w&force=1', 'daily-brief-4w', 20000),
+  warm(base, '/api/daily-brief?tf=13w&force=1', 'daily-brief-13w', 20000),
+]);
+```
+
+- update-all 3×/일 × 3 brief = 9 GROQ calls/일 for daily-brief
+- cron/daily-brief 3×/일 → cache hit (실제 0 호출)
+- iter48 절감은 cron/daily-brief만 수정 → 효과 없었음!
+
+수정 후:
+- update-all: 4w만 1 call → 3 GROQ calls/일
+- 절감: ~6 calls × ~3,000 tokens = ~18,000 tokens/일
+
+### 수정 사항
+
+#### 1. update-all 3x→1x daily brief 재생성
+- `src/app/api/cron/update-all/route.ts`: 1w/13w warm call 제거
+- 4w만 생성, 1w/13w는 사용자 첫 요청 시 lazy-generate
+- GROQ daily-brief 호출: 9→3/일 절감
+
+#### 2. TRACKED_TICKERS 27→33 확장
+- `src/app/api/short-interest/route.ts`
+- 제거: NVDA 중복 (line 34 — Set으로 dedup되었지만 코드 노이즈)
+- 추가: AMD (반도체, inst signal), ARM (반도체, inst signal), PLTR (방산/AI, inst signal)
+- 추가: MSTR (비트코인 proxy, high vol), RIVN (EV, historically high short)
+- cache key 유지 (v4 — interface 변경 없음, TTL 만료 후 자동 갱신)
+
+### Negative results (오늘 탐색)
+- commodity-curve / yield-curve: 초기 진단 오류 (Python 필드명 불일치)
+  → 실제로 정상 작동 중
+- Yahoo v7 quote: 401 Unauthorized (v10과 동일하게 crumb 필요)
+  → sector ETF P/E 추가 경로 없음 확인
+
+### TypeScript
+- TypeScript clean ✓ (양쪽 모두)
+
+### 시스템 상태 요약
+- 모든 엔드포인트 정상 (77/79 verify-metrics ✓)
+- skipped: vLLM (로컬 서버 오프), Gemini (키 미설정) — 의도된 것
+- GROQ TPD: 오늘 22:00 KST 이후 리셋 확인, daily-brief 정상 생성
+
+### Commits
+- e146d3f: feat(screener): expand TRACKED_TICKERS 27→33, remove NVDA dup
+- d1db169: perf(cron): update-all daily-brief 3x→1x (1w/13w lazy)
