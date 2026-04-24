@@ -403,6 +403,56 @@ export default function MacroIndicatorsTab() {
       {/* Sector P/E */}
       <SectorPESection />
 
+      {/* Upcoming Releases Calendar */}
+      {indicators.length > 0 && (() => {
+        const now = new Date();
+        const upcoming = indicators
+          .filter(ind => ind.nextRelease)
+          .map(ind => {
+            const d = new Date(ind.nextRelease!);
+            const daysUntil = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+            return { ...ind, releaseDate: d, daysUntil };
+          })
+          .filter(ind => ind.daysUntil >= 0)
+          .sort((a, b) => a.daysUntil - b.daysUntil);
+        if (!upcoming.length) return null;
+        const CAT_DOT: Record<string, string> = {
+          inflation: 'bg-orange-400', employment: 'bg-green-500',
+          growth: 'bg-blue-500', monetary: 'bg-purple-500', trade: 'bg-teal-500',
+        };
+        return (
+          <div className="cf-card p-4">
+            <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-cf-primary" />
+              다가오는 경제지표 발표
+            </h3>
+            <div className="space-y-2">
+              {upcoming.map(ind => (
+                <div key={ind.id} className="flex items-center gap-3 text-xs">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${CAT_DOT[ind.category] ?? 'bg-gray-400'}`} />
+                  <div className="w-12 text-right flex-shrink-0">
+                    {ind.daysUntil === 0
+                      ? <span className="font-bold text-cf-primary">오늘</span>
+                      : ind.daysUntil === 1
+                        ? <span className="font-semibold text-amber-600">내일</span>
+                        : <span className="text-cf-text-secondary">{ind.daysUntil}일 후</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-cf-text-primary">{ind.nameKo}</span>
+                    {ind.forecast != null && (
+                      <span className="text-cf-text-secondary ml-2">컨센서스 {ind.forecast}{ind.unit.includes('%') ? '%' : ''} {ind.unit}</span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-cf-text-secondary flex-shrink-0">
+                    {ind.releaseDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Indicators */}
       <div className="flex items-center gap-2 px-1">
         <Activity className="w-4 h-4 text-cf-primary" />
