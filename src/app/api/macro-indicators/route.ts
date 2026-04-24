@@ -28,7 +28,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v9:${kstDate()}`;
+  return `flowvium:macro-indicators:v10:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -440,10 +440,10 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
 const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   cpi: {
     id: 'cpi', name: 'CPI (Consumer Price Index)', nameKo: '소비자 물가지수',
-    category: 'inflation', actual: 2.4, forecast: 2.5, previous: 2.8, unit: '%YoY',
+    category: 'inflation', actual: 3.3, forecast: 2.5, previous: 2.4, unit: '%YoY',
     releaseDate: '2026-04-10', nextRelease: '2026-05-13', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: '비둘기파 (인하 기대↑)',
-    summary: '3월 CPI 2.4%로 예상(2.5%)보다 낮게 발표. 에너지·중고차 하락 주도.',
+    rateImpact: 'hawkish', rateImpactKo: '매파적 (물가 가속 → 긴축 장기화)',
+    summary: '3월 CPI 3.3%YoY — 예상(2.5%) 크게 상회. 관세 충격으로 물가 재가속.',
   },
   pce: {
     id: 'pce', name: 'PCE Price Index (Core)', nameKo: '근원 개인소비지출 물가',
@@ -488,11 +488,11 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
     summary: '3월 소매판매 -1.1%로 예상(-1.3%) 소폭 상회. 소비 둔화 흐름.',
   },
   ppi: {
-    id: 'ppi', name: 'PPI (Producer Price Index)', nameKo: '생산자 물가지수',
-    category: 'inflation', actual: 2.7, forecast: 3.3, previous: 3.2, unit: '%YoY',
+    id: 'ppi', name: 'PPI (Producer Price Index)', nameKo: '생산자 물가지수 (최종수요)',
+    category: 'inflation', actual: 4.1, forecast: 3.3, previous: 1.6, unit: '%YoY',
     releaseDate: '2026-04-11', nextRelease: '2026-05-14', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: '비둘기파 (물가 압력 완화)',
-    summary: '3월 PPI 2.7%로 예상(3.3%) 크게 하회. 에너지·서비스 원가 하락.',
+    rateImpact: 'hawkish', rateImpactKo: '매파적 (원가 압력 확대)',
+    summary: '3월 PPI(최종수요) 4.1%YoY — 예상(3.3%) 상회. 관세 원가 전가 본격화.',
   },
   unrate: {
     id: 'unrate', name: 'Unemployment Rate', nameKo: '실업률',
@@ -580,7 +580,7 @@ export async function GET() {
     fetchYoY('PCEPILFE'),
     fetchMoMChange('PAYEMS'),
     fetchLatest('A191RL1Q225SBEA'),  // real GDP QoQ SAAR %
-    fetchYoY('PPIACO'),
+    fetchYoY('WPSFD49207'),  // PPI Final Demand (BLS headline) — replaced PPIACO (All Commodities, wrong series)
     fetchMoMPct('RSAFS'),
     fetchLatest('UNRATE'),
     fetchLatest('NAPM'),             // ISM Manufacturing PMI (NAPM series often unreachable; falls back to static)
@@ -775,7 +775,7 @@ export async function GET() {
       nextRelease: FORECASTS.ppi.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `PPI ${actual.toFixed(1)}%YoY (예상 ${fc}%). ${actual < fc ? 'CPI 안정 선행 신호.' : 'CPI 상승 압력 예고.'}`
+        ? `PPI(최종수요) ${actual.toFixed(1)}%YoY (예상 ${fc}%). ${actual < fc ? 'CPI 안정 선행 신호.' : 'CPI 상승 압력 예고.'}`
         : base.summary,
       cascade: buildCascade('ppi', surprise),
       liveData: !!ppiData,

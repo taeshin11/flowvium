@@ -702,7 +702,7 @@
 | 287 | 13f-signals:v1 | ✅ live |
 | 288 | capital-flows:v8:yahoo | ✅ live |
 | 289 | capital-flows:v8:twelve | ✅ live |
-| 290 | macro-indicators:v8:$(date) | ✅ live |
+| 290 | macro-indicators:v10:$(date) | ✅ live |
 | 291 | fedwatch:v1:$(hour) | ✅ live |
 | 292 | credit-balance:v2:$(date) | ✅ live |
 | 293 | latest-updates:v3 | ✅ live |
@@ -760,8 +760,8 @@
 | 296y | VIX sparkline + 자동 1w% 계산 | ✅ live | ^VIX 30d 종가로 VIX pill 값+추세 동시 산출 (capital-flows 에 VIX 미존재 회피) |
 | 296z | ticker sanitizer `^`/`.` 허용 | ✅ live | 인덱스 심볼(^VIX, ^GSPC), 접미사 점(.TO) 지원 |
 | 297a | news-cascade 한자 혼입 가드 | ✅ live | GROQ 70b 한국어 응답에 중국어 Hanzi(U+4E00~9FFF) 12%+ 혼입 — 시스템 프롬프트 language lock + post-parse hasChineseLeak() 감지 시 title 로 대체 |
-| 297b | accuracy.cpi — FRED CPIAUCSL YoY 대조 | 🔄 cron | ±0.2pp 허용, 초과 시 degraded/error, iter67 |
-| 297c | accuracy.ppi — FRED PPIACO YoY 대조 | 🔄 cron | ±0.2pp 허용, iter67 |
+| 297b | accuracy.cpi — FRED CPIAUCSL YoY 대조 | 🔄 cron | ±0.2pp 허용, 초과 시 degraded/error, iter67 (static 2.4%=Feb2026, live FRED=March2026 3.3% 정확) |
+| 297c | accuracy.ppi — FRED WPSFD49207(최종수요) YoY 대조 | 🔄 cron | ±0.2pp 허용, iter67→iter79 PPIACO→WPSFD49207 수정 |
 | 297d | accuracy.fomc — FRED DFEDTARU/L 금리 대조 | 🔄 cron | ±0.25pp 허용 (iter68 조정), iter67 |
 | 297e | accuracy.gdp — FRED A191RL1Q225SBEA QoQ SAAR 대조 | 🔄 cron | ±0.5pp 허용 (advance 수정 여지), 당해연도 미공개 시 skipped, iter76 |
 

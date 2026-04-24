@@ -179,6 +179,7 @@
   - 실제치 / 예상치 / 이전치 / Surprise 배지 (beat/miss/inline/pending)
   - **이전값 대비 delta 표시** (색상: 인플레↑ 빨강, 고용↑ 초록 등 방향별) ← iter63
   - **FOMC·GDP static fallback 갱신** — fomc(4.5→3.75, forecast/previous 동기화), gdp Q1(0.5%) ← iter66
+  - **CPI static 수정 + PPI 시리즈 교체** ← iter79: static CPI 2.4%→3.3%(Feb→Mar 혼동 수정), PPI PPIACO→WPSFD49207(BLS 최종수요 기준)
   - 매파(hawkish) / 비둘기(dovish) 영향 레이블
   - **캐스케이드 체인**: 자산별 방향·강도·이유 (3~5개 항목)
   - "쉬운 설명" 토글 (Laymen 모드)
@@ -817,7 +818,7 @@ ownership-alerts 적용).
 | `/api/block-trades` | Polygon (API 키 필요) | 5분 |
 | `/api/options-flow` | Unusual Whales (API 키 필요) | 캐시 |
 | `/api/korea-flow` | KRX POST API | 캐시 |
-| `/api/short-interest` | EDGAR 13F 기관 포지션 신호 (shortFloat/Ratio null — Yahoo crumb 불가) | 캐시 |
+| `/api/short-interest` | EDGAR 13F + FINRA 일간 공매도율; shortRatio(DTC): FINRA monthly 403(Cloudflare) → null 유지 | 캐시 |
 | `/api/market-heatmap` | iShares ETF CSV + Stooq(JP/EU) + Yahoo v8(KR/TW/IN/CN/EU-fallback) + CNBC(지수) | 15m Redis; EU 79/80 (98.75%) |
 | `/api/market-caps` | 정적 band 분류 (allCompanies) | band 분류만 반환; Yahoo v7 crumb 불가로 live USD 제거 |
 | `/api/sector-pe` | Yahoo Finance v8 (no auth) | 4h Redis; 11개 SPDR 섹터 ETF; price + changePct + ytdReturn + 52주 범위 |

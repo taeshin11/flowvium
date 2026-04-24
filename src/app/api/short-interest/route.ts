@@ -18,7 +18,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 export const maxDuration = 60;
 
-const CACHE_KEY = 'flowvium:short-interest:v4';
+const CACHE_KEY = 'flowvium:short-interest:v5';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 // Redis-less fallback — 30min TTL (short-interest changes twice daily but we
@@ -50,7 +50,7 @@ export interface ShortEntry {
   sector: string;
   shortFloatPct: number | null;      // null — Yahoo v10 crumb blocked from Vercel
   shortVolPct: number | null;        // FINRA daily: ShortVolume / TotalVolume × 100
-  shortRatio: number | null;
+  shortRatio: number | null;         // DaysToCover from FINRA monthly short interest file
   shortChangeMonthly: number | null;
   instAction: string | null;
   trailingPE: number | null;         // Finnhub peBasicExclExtraTTM (TTM P/E)
@@ -99,6 +99,69 @@ function calcSqueezeScore(
   if (instAction === 'new_position') score += 15;
 
   return Math.min(100, score);
+}
+
+/**
+ * Fetch FINRA monthly short interest for DaysToCover.
+ * NOTE: cdn.finra.org/equity/regsho/monthly/ returns 403 from Vercel IPs (Cloudflare block).
+ * Function is kept for future use; currently always returns empty map.
+ */
+async function fetchFinraDaysToCover(tickers: Set<string>): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  const now = new Date();
+
+  for (let monthsBack = 1; monthsBack <= 4; monthsBack++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+    const yyyymm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const url = `https://cdn.finra.org/equity/regsho/monthly/CNMSshort${yyyymm}.txt`;
+
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      if (!res.ok) continue;
+
+      const text = await res.text();
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) continue;
+
+      // Parse header dynamically to find column positions
+      const header = lines[0].toLowerCase().split('|').map(h => h.trim());
+      const symIdx = header.indexOf('symbol');
+      const dtcIdx = header.findIndex(h => h.includes('daystocove') || h === 'numberdaystocove');
+      const siIdx = header.findIndex(h => h.includes('shortinterest') || h.includes('totalshort'));
+
+      if (symIdx < 0 || dtcIdx < 0) {
+        logger.warn('api.short-interest', 'finra_monthly_header_miss', { cols: lines[0].slice(0, 120), yyyymm });
+        continue;
+      }
+
+      // Multiple rows per symbol (one per settlement date or market center) — use last row (most recent date)
+      const symDTC = new Map<string, { dtc: number; si: number }>();
+      for (const line of lines.slice(1)) {
+        if (!line.trim()) continue;
+        const parts = line.split('|');
+        const needed = Math.max(symIdx, dtcIdx, siIdx >= 0 ? siIdx : 0);
+        if (parts.length <= needed) continue;
+        const sym = parts[symIdx]?.trim();
+        if (!sym || !tickers.has(sym)) continue;
+        const dtc = parseFloat(parts[dtcIdx]);
+        if (isNaN(dtc) || dtc <= 0 || dtc > 500) continue;
+        const si = siIdx >= 0 ? parseFloat(parts[siIdx]) : 0;
+        symDTC.set(sym, { dtc, si: isNaN(si) ? 0 : si });
+      }
+
+      Array.from(symDTC.entries()).forEach(([sym, data]) => {
+        map.set(sym, parseFloat(data.dtc.toFixed(1)));
+      });
+
+      if (map.size > 0) {
+        logger.info('api.short-interest', 'finra_monthly_dtc_ok', { yyyymm, matched: map.size, of: tickers.size });
+        break;
+      }
+    } catch (e) {
+      logger.warn('api.short-interest', 'finra_monthly_dtc_error', { monthsBack, error: e });
+    }
+  }
+  return map;
 }
 
 /** Fetch FINRA consolidated short volume for given tickers (previous trading day) */
@@ -204,12 +267,14 @@ export async function GET(req: Request) {
   const tickers = Array.from(new Set(TRACKED_TICKERS));
   const tickerSet = new Set(tickers);
 
-  // Fetch FINRA short volume and Finnhub P/E in parallel
-  const [finraMap, peMap] = await Promise.allSettled([
+  // Fetch FINRA daily short volume, FINRA monthly DTC, and Finnhub P/E in parallel
+  const [finraMap, dtcMap, peMap] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
+    fetchFinraDaysToCover(tickerSet),
     fetchFinnhubPE(tickers),
   ]);
   const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
+  const daysToCoverMap = dtcMap.status === 'fulfilled' ? dtcMap.value : new Map<string, number>();
   const trailingPEMap = peMap.status === 'fulfilled' ? peMap.value : new Map<string, number>();
 
   // Build latest institutional action per ticker from static + EDGAR data
@@ -241,6 +306,7 @@ export async function GET(req: Request) {
     const companyName = instNameMap.get(ticker) ?? ticker;
 
     const shortVolPct = shortVolMap.get(ticker) ?? null;
+    const shortRatio = daysToCoverMap.get(ticker) ?? null;
     const trailingPE = trailingPEMap.get(ticker) ?? null;
     return {
       ticker,
@@ -248,11 +314,11 @@ export async function GET(req: Request) {
       sector,
       shortFloatPct: null,
       shortVolPct,
-      shortRatio: null,
+      shortRatio,
       shortChangeMonthly: null,
       instAction,
       trailingPE,
-      squeezeScore: calcSqueezeScore(null, shortVolPct, null, null, instAction),
+      squeezeScore: calcSqueezeScore(null, shortVolPct, shortRatio, null, instAction),
     };
   });
 

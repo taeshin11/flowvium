@@ -1,0 +1,93 @@
+## Iter 79 — CPI/PPI static 수정 + PPI 시리즈 교체 + DTC 조사
+Date: 2026-04-25
+Primary outcome: 지표 정확도 수정 (CPI/PPI) (18자)
+
+### Drift check
+- iter76=verify-metrics, iter77=capital-flows, iter78=metrics-db+news+earnings, iter79=data-accuracy
+  → CPI/NFP/DTC 3 iter 이상 미뤄진 항목 → **Drift 신호 확정 → 이번 iter 해결**
+  → 다른 영역 작업 유지 → drift OK
+
+### Accuracy probe (§3 — MANDATORY)
+
+#### [accuracy probe] metric=cpi.us source=FRED-CPIAUCNS
+- FRED CPIAUCNS March 2025=319.799, March 2026=330.213
+- YoY = (330.213-319.799)/319.799*100 = **3.26%**
+- FRED CPIAUCSL (SA): March 2025=319.785, March 2026=330.293 → YoY = **3.29%**
+- Static shows: 2.4%
+- **Root cause**: Static에서 2.4%는 February 2026 CPI였음
+  - Feb 2026 NSA: (326.785-319.082)/319.082*100 = **2.41%** ← 이게 static의 2.4%!
+  - static.releaseDate='2026-04-10' (March 발표일)이지만 actual=2.4% (Feb 수치) → 혼동
+- **SA vs NSA**: 3.29% vs 3.26% — 차이 0.03%, 시리즈 변경으로 해결 불가
+- **결론**: Live FRED March 2026 = 3.26-3.29% **정확**, static 업데이트 필요
+- [accuracy probe] metric=cpi source=FRED direct_value=3.26%(NSA)/3.29%(SA) our_static=2.4%(Feb) → **ROOT CAUSE FIXED: static→3.3%**
+
+#### [accuracy probe] metric=ppi.us source=FRED-PPIACO vs WPSFD49207
+- PPIACO (All Commodities): March 2025=258.525, March 2026=274.102 → YoY=**6.03%**
+- WPSFD49207 (Final Demand/BLS 헤드라인): March 2025=260.210, March 2026=270.905 → YoY=**4.11%**
+- Feb 2026 WPSFD49207: (267.142-262.897)/262.897*100 = **1.61%**
+- Static=2.7%
+- **Root cause**: PPIACO는 원자재 전체(All Commodities) — BLS 헤드라인 PPI(최종수요)가 아님
+- **결론**: PPIACO → WPSFD49207 교체. 4.11% vs static 2.7% 차이는 CPI와 유사하게 static이 Feb 기준이었을 가능성.
+- [accuracy probe] metric=ppi source=FRED PPIACO=6.03% WPSFD49207=4.11% our_static=2.7% → **SERIES SWITCHED to WPSFD49207 (BLS Final Demand)**
+
+#### [accuracy probe] metric=nfp source=FRED-PAYEMS
+- PAYEMS: Jan=158592, Feb=158459, Mar=158637
+- MoM: Mar-Feb = **178K**, Feb-Jan = **-133K** (음수! 이상함)
+- Static=228K (BLS April 4 press release)
+- **Root cause 분석**:
+  - BLS April 4 release: March NFP=228K 발표 + February 하향 수정
+  - 수정 전 Feb PAYEMS = X → 수정 후 = X-50K (추정)
+  - March level(158637) - 수정 전 Feb(158459) = 178K ← FRED는 수정 반영 지연
+  - March level(158637) - 수정 후 Feb(158409 추정) = 228K ← BLS 헤드라인
+- **결론**: FRED PAYEMS Feb 수치가 BLS April 4 수정을 아직 반영 안 함. 178K는 FRED 기준 정확, 228K는 BLS press release 기준.
+- [accuracy probe] metric=nfp source=FRED direct_value=178K our_value=178K delta=0 BUT static=228K delta=50K → DEGRADED (FRED revision lag)
+- **미해결**: 다음 iter에 FRED refresh 후 재확인 필요
+
+### [Negative Result] DaysToCover — FINRA monthly 403 (§4)
+- 시도: `https://cdn.finra.org/equity/regsho/monthly/CNMSshort{YYYYMM}.txt`
+- 결과: Cloudflare HTTP 403 Forbidden (Vercel IP 차단 — Yahoo v10과 동일 패턴)
+- User-Agent/Referer 변경 시도: 여전히 403
+- Yahoo v11 quoteSummary: HTTP 404 Not Found
+- Yahoo v6 quote shortRatio field: None 반환 (크럼 필요)
+- **결론**: 현재 무료/무인증 경로로 DaysToCover 취득 불가
+- shortRatio: null 유지, fetchFinraDaysToCover() 함수는 코드에 보존 (향후 소스 발견 시 활용)
+- 다음 iter 탐색: IEX Cloud free tier, Alpha Vantage premium, 또는 scraping
+
+### 산출물 (§3)
+
+#### [1] CPI static 수정 — BUG FIX
+- `macro-indicators/route.ts` STATIC.cpi 업데이트:
+  - actual: 2.4 → 3.3 (February 2026 수치 → March 2026 FRED 기준)
+  - previous: 2.8 → 2.4 (이전월 정확화)
+  - rateImpact: 'dovish' → 'hawkish' (물가 상승 = 긴축 압력)
+  - summary 업데이트: '3월 CPI 3.3%YoY — 예상(2.5%) 크게 상회. 관세 충격으로 물가 재가속.'
+
+#### [2] PPI 시리즈 교체 — BUG FIX
+- `macro-indicators/route.ts`:
+  - `fetchYoY('PPIACO')` → `fetchYoY('WPSFD49207')` (BLS 최종수요 PPI, 헤드라인 시리즈)
+  - STATIC.ppi 업데이트: actual 2.7→4.1, previous 3.2→1.6, summary 업데이트
+  - PPI 요약 텍스트 'PPI' → 'PPI(최종수요)' (시리즈 명확화)
+
+#### [3] 캐시 버스트
+- macro-indicators: v9 → v10 (잘못된 시리즈 캐시 강제 무효화)
+- short-interest: v4 → v5 (fetchFinraDaysToCover 추가 반영)
+
+#### [4] FINRA monthly DTC 함수 추가 (Negative result 코드 보존)
+- `short-interest/route.ts`: `fetchFinraDaysToCover()` 추가
+  - 403 차단 명시 주석 포함
+  - TypeScript Map iteration 수정 (Array.from() 사용)
+  - 항상 empty map 반환 → shortRatio 여전히 null
+
+### TypeScript
+- TypeScript clean OK
+- 수정한 파일: macro-indicators/route.ts, short-interest/route.ts, FEATURES.md, METRICS.md
+
+### Commits
+- (이번 iter 커밋)
+
+### Open issues (다음 iter 후보)
+- CPI/PPI rateImpact 로직 버그: classify(actual, fc, false)로 "miss"="higher than expected"지만 hawkishOnBeat에 CPI가 있어 miss→dovish로 잘못 표시됨 (semantic mismatch)
+- NFP FRED lag: BLS 228K vs FRED 178K — 다음 FRED refresh 후 수치 재확인
+- DaysToCover: IEX Cloud free tier 또는 대안 소스 조사
+- 뉴스갭 프리뷰 (접힌 상태 static date 표시) → live 전환
+- verify-metrics cron: WPSFD49207 시리즈로 PPI 검증 업데이트
