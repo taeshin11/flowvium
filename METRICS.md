@@ -239,6 +239,7 @@
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
 | 98 | F&G (SPY) 게이지 | ✅ live | CNN 공식 API | 4h | CNN 차단 시 composite로 자동 폴백 + error 로깅 |
+| 98a | F&G US 30일 스파클라인 | 💾 cached | CNN `fear_and_greed_historical` | 4h | 마지막 30 포인트, iter57 |
 | 99 | F&G 자산별 (Gold/Tech/Bonds 등) | 💾 cached | FlowVium 합성 | 4h | RSI×40+SMA125×35+Vol×25 |
 | 100 | F&G 국가별 (한/일/중/유/영/인/브/대/호) | 💾 cached | FlowVium 합성 | 4h | 국가 ETF 기반 composite (CNN 대응 없음) |
 | 100a | 출처 뱃지 (CNN/합성) | ✅ live | `source` 필드 | - | UI 투명성: 같은 숫자라도 계산법 구분 |

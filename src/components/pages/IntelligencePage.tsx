@@ -38,6 +38,7 @@ import {
   GitMerge,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Sparkline from '@/components/Sparkline';
 
 // ── Icon map for narratives ───────────────────────────────────────────────────
 const iconMap: Record<string, React.ReactNode> = {
@@ -117,6 +118,7 @@ interface FearGreedEntryExtended extends FearGreedEntry {
   detail?: { factors: string[]; macro: string; risk: string } | null;
   // 'cnn' = CNN 공식 API, 'composite' = FlowVium 3요소 자체계산
   source?: 'cnn' | 'composite';
+  history?: Array<{date: string; score: number}>;
 }
 
 function FactorBar({ label, score, weight }: { label: string; score: number; weight: string }) {
@@ -198,6 +200,12 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
             </div>
             <p className="text-[11px] text-cf-text-secondary leading-relaxed">{entry.driver}</p>
           </div>
+          {entry.history && entry.history.length >= 2 && (
+            <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+              <Sparkline values={entry.history.map(h => h.score)} width={56} height={18} />
+              <span className="text-[9px] text-cf-text-secondary leading-none">30d</span>
+            </div>
+          )}
         </div>
       </button>
 

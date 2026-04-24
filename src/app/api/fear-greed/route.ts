@@ -19,7 +19,7 @@ function createRedis(): Redis | null {
 // ── CNN Fear & Greed (US only) ─────────────────────────────────────────────────
 // CNN endpoint blocks minimal UA with HTTP 418 (since ~Q4 2025). Full browser
 // headers (UA + Referer + Origin + Accept-Language) are required to get 200.
-async function fetchCNNScore(): Promise<{ score: number; prevScore: number } | null> {
+async function fetchCNNScore(): Promise<{ score: number; prevScore: number; history: Array<{date: string; score: number}> } | null> {
   const start = Date.now();
   try {
     const res = await fetch(
@@ -51,20 +51,24 @@ async function fetchCNNScore(): Promise<{ score: number; prevScore: number } | n
       return null;
     }
     const score = Math.round(rawScore);
+    const fullHist: Array<{ x: number; y: number }> = data?.fear_and_greed_historical?.data ?? [];
     // Previous score: prefer CNN's own previous_1_week field, fallback to historical scan.
     let prevScore: number;
     const prev1wk = data?.fear_and_greed?.previous_1_week;
     if (typeof prev1wk === 'number') {
       prevScore = Math.round(prev1wk);
     } else {
-      const hist: Array<{ x: number; y: number }> =
-        data?.fear_and_greed_historical?.data ?? [];
       const weekAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const weekAgoEntry = hist.find((d) => Math.abs(d.x - weekAgoMs) < 2 * 24 * 60 * 60 * 1000);
+      const weekAgoEntry = fullHist.find((d) => Math.abs(d.x - weekAgoMs) < 2 * 24 * 60 * 60 * 1000);
       prevScore = weekAgoEntry ? Math.round(weekAgoEntry.y) : score;
     }
-    logger.info('fear-greed', 'cnn_ok', { score, prevScore, durationMs: Date.now() - start });
-    return { score, prevScore };
+    // Last 30 daily data points for sparkline — CNN timestamps are ms epoch
+    const history = fullHist.slice(-30).map((d) => ({
+      date: new Date(d.x).toISOString().slice(0, 10),
+      score: Math.round(d.y),
+    }));
+    logger.info('fear-greed', 'cnn_ok', { score, prevScore, histLen: history.length, durationMs: Date.now() - start });
+    return { score, prevScore, history };
   } catch (err) {
     logger.error('fear-greed', 'cnn_fetch_failed', { error: err instanceof Error ? err.message : String(err) });
     return null;
@@ -414,8 +418,8 @@ async function buildEntry(
   id: string, ticker: string, nativeTicker: string | null, flag: string, label: string,
   redis: Redis | null, useCNN = false,
 ) {
-  // v5: ±20% 정규화 + 원지수 블렌딩 + query1/2 fallback (v4는 US만 CNN 정확, 나머지는 ETF 단독)
-  const cacheKey = `flowvium:fg:v5:${ticker}`;
+  // v6: US CNN entry includes 30-day history for sparkline
+  const cacheKey = `flowvium:fg:v6:${ticker}`;
   if (redis) {
     try {
       const cached = await redis.get<object>(cacheKey);
@@ -424,6 +428,7 @@ async function buildEntry(
   }
 
   let score: number, prevScore: number;
+  let history: Array<{date: string; score: number}> | undefined;
   let rsiScore = 50, momentumScore = 50, volScore = 50;
   let source: 'cnn' | 'composite' = 'composite';
   let dataQuality: 'full' | 'partial' | 'insufficient' = 'full';
@@ -434,6 +439,7 @@ async function buildEntry(
     if (cnn) {
       score = cnn.score;
       prevScore = cnn.prevScore;
+      history = cnn.history;
       source = 'cnn';
       try {
         const prices = await fetchPrices(ticker);
@@ -482,6 +488,7 @@ async function buildEntry(
       volatility: volScore,
     },
     detail: detail ?? null,
+    ...(history ? { history } : {}),
   };
 
   if (redis) {

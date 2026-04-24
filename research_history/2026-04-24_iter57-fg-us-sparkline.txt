@@ -1,0 +1,52 @@
+## Iter 57 — F&G US 30일 스파클라인 추가
+Date: 2026-04-24
+Primary outcome: F&G US 스파클라인 추가 (15자 ✓)
+
+### Drift check
+- iter 53: CFTC COT (신규 데이터 소스)
+- iter 54: earnings filter + COT weekly Δ
+- iter 55: macro yield curve 수정 + ICSA
+- iter 56: macro UMCSENT + 캐시 v5
+- iter 57: fear-greed US 스파클라인 (비 macro 영역 ✓, drift 없음)
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=fg.us source=CNN_direct
+  direct_value=67 our_value=67 delta=0 tolerance=3 → OK
+  방법: curl CNN graphdata (브라우저 헤더) → score:67, prev_1wk:68
+  production: score=67, prevScore=68, source='cnn' → delta=0 → OK ✓
+  hist_len (CNN): 254개 포인트 → 마지막 30개 sparkline에 사용
+
+### 수정 사항
+
+#### 1. `fetchCNNScore()` 반환 타입 확장
+- `{ score, prevScore }` → `{ score, prevScore, history: Array<{date, score}> }`
+- CNN `fear_and_greed_historical.data` 마지막 30 포인트 슬라이스
+- timestamp(ms epoch) → ISO date string (YYYY-MM-DD) 변환
+- logger에 `histLen` 추가
+
+#### 2. `buildEntry()` history 전달
+- `let history: Array<...> | undefined` 선언
+- CNN 성공 시 `history = cnn.history` 할당
+- entry 객체에 `...(history ? { history } : {})` 전개
+
+#### 3. 캐시 키 v5 → v6
+- `flowvium:fg:v5:${ticker}` → `flowvium:fg:v6:${ticker}`
+- 데이터 구조 변경(history 신규 필드) → 즉시 무효화 필수
+- 전체 20 ticker 캐시 cold start (허용 비용)
+
+#### 4. IntelligencePage.tsx UI
+- `import Sparkline from '@/components/Sparkline'`
+- `FearGreedEntryExtended`에 `history?: Array<{date: string; score: number}>` 추가
+- `FearGreedCard`: score row 우측에 56×18 Sparkline 조건부 렌더
+  - `entry.history && entry.history.length >= 2` 조건
+  - 하단에 "30d" 레이블
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 CNN fetchCNNScore 내에서 이미 가져오던 데이터 활용)
+- `cache: 'no-store'` 기존에 이미 명시됨 ✓
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- iter57: feat(fear-greed): US F&G 30일 스파클라인 + 캐시 키 v6
