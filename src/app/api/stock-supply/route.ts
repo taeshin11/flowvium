@@ -99,13 +99,11 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
       }
     }
 
-    // Parse XML for each filing (limit to 6 to stay within timeout)
-    const txns: InsiderTx[] = [];
+    // Fetch all 6 Form 4 XMLs in parallel (sequential was ~5-8s; parallel ~1s)
     const cikNum = cik.replace(/^0+/, '');
-    for (const f of form4s.slice(0, 6)) {
-      try {
+    const xmlResults = await Promise.allSettled(
+      form4s.slice(0, 6).map(async (f) => {
         const folder = f.accNum.replace(/-/g, '');
-        // Get the actual XML doc name (strip xslF345X06/ prefix)
         const xmlDoc = f.doc.replace(/^xslF345X06\//, '');
         const xmlUrl = `https://www.sec.gov/Archives/edgar/data/${cikNum}/${folder}/${xmlDoc}`;
         const xmlRes = await fetch(xmlUrl, {
@@ -113,21 +111,19 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
           signal: AbortSignal.timeout(5000),
           cache: 'no-store',
         });
-        if (!xmlRes.ok) continue;
+        if (!xmlRes.ok) throw new Error(`HTTP ${xmlRes.status}`);
         const xml = await xmlRes.text();
 
-        // Parse reporting owner name
         const ownerMatch = xml.match(/<rptOwnerName>(.*?)<\/rptOwnerName>/);
         const ownerName = ownerMatch?.[1] ?? '';
 
-        // Parse relationship
         const isDirector = xml.includes('<isDirector>1</isDirector>');
         const isOfficer = xml.includes('<isOfficer>1</isOfficer>');
         const officerTitleMatch = xml.match(/<officerTitle>(.*?)<\/officerTitle>/);
         const relation = officerTitleMatch?.[1] || (isDirector ? 'Director' : isOfficer ? 'Officer' : 'Owner');
 
-        // Parse transactions
         const txBlocks = xml.match(/<nonDerivativeTransaction>([\s\S]*?)<\/nonDerivativeTransaction>/g) ?? [];
+        const fileTxns: InsiderTx[] = [];
         for (const block of txBlocks) {
           const dateMatch = block.match(/<transactionDate>[\s\S]*?<value>(.*?)<\/value>/);
           const sharesMatch = block.match(/<transactionShares>[\s\S]*?<value>(.*?)<\/value>/);
@@ -137,12 +133,11 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
           const shares = parseFloat(sharesMatch?.[1] ?? '0');
           const price = parseFloat(priceMatch?.[1] ?? '0');
           const code = codeMatch?.[1] ?? '';
-          // S = sale, P = purchase, F = tax withholding (sell), A = award
           const isBuy = code === 'P' || code === 'A';
           const isSell = code === 'S' || code === 'F';
           if (!isBuy && !isSell) continue;
 
-          txns.push({
+          fileTxns.push({
             name: ownerName,
             relation,
             date: dateMatch?.[1] ?? f.date,
@@ -151,11 +146,18 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
             price,
             transactionCode: code,
             isBuy,
-            text: isBuy ? `Purchase of ${shares.toLocaleString()} shares at $${price.toFixed(2)}` : `Sale of ${shares.toLocaleString()} shares at $${price.toFixed(2)}`,
+            text: isBuy
+              ? `Purchase of ${shares.toLocaleString()} shares at $${price.toFixed(2)}`
+              : `Sale of ${shares.toLocaleString()} shares at $${price.toFixed(2)}`,
           });
         }
-      } catch { continue; }
-    }
+        return fileTxns;
+      })
+    );
+
+    const txns = xmlResults
+      .filter((r): r is PromiseFulfilledResult<InsiderTx[]> => r.status === 'fulfilled')
+      .flatMap(r => r.value);
 
     return txns.sort((a, b) => b.date.localeCompare(a.date));
   } catch { return []; }

@@ -1,0 +1,91 @@
+## Iter 73 — stock-supply Form4 병렬화
+Date: 2026-04-24
+Primary outcome: stock-supply Form4 병렬화 (17자)
+
+### Drift check
+- iter69=HomePage, iter70=latest-updates, iter71=cache-keys, iter72=ReportPage
+- iter73=stock-supply/route.ts
+  → 모두 다른 파일/모듈 → drift 없음 OK
+  → no "나중에" 미뤄진 항목 3+ → OK
+  → no infra blocker 2+ retry-only → OK
+
+### Accuracy probe (§3)
+verify-metrics 결과 (all 5 ok):
+- [accuracy probe] metric=fg.us source=CNN direct_value=67 our_value=67 delta=0 tolerance=3 → OK
+- [accuracy probe] metric=curve source=FRED direct_value=0.51 our_value=0.51 delta=0 tolerance=0.1 → OK
+- [accuracy probe] metric=cpi source=FRED direct_value=3.29 our_value=3.29 delta=0 tolerance=0.2 → OK
+- [accuracy probe] metric=ppi source=FRED direct_value=6.03 our_value=6.03 delta=0 tolerance=0.2 → OK
+- [accuracy probe] metric=fomc source=FRED direct_value=3.625 our_value=3.75 delta=0.125 tolerance=0.25 → OK
+Overall: 5/5 ok, 0 degraded, 0 error
+
+### 발견 경위
+Explore agent scan: stock-supply/route.ts의 fetchInsiderTransactions 내 Form 4 XML fetch가
+6개 순차 await (~1s/건) → ~5-8s 총 소요.
+이미 Promise.allSettled가 volResult/insidersResult 병렬화에 쓰이지만,
+insiders 내부 루프는 여전히 sequential.
+
+### 구현 (`src/app/api/stock-supply/route.ts`)
+
+#### Before (lines 102-158): sequential for-loop
+```typescript
+const txns: InsiderTx[] = [];
+const cikNum = cik.replace(/^0+/, '');
+for (const f of form4s.slice(0, 6)) {
+  try {
+    // await fetch(xmlUrl, ...) — each ~1s
+    ...
+  } catch { continue; }
+}
+return txns.sort(...);
+```
+
+#### After: Promise.allSettled parallel fetch
+```typescript
+const cikNum = cik.replace(/^0+/, '');
+const xmlResults = await Promise.allSettled(
+  form4s.slice(0, 6).map(async (f) => {
+    const xmlRes = await fetch(xmlUrl, { signal: AbortSignal.timeout(5000), ... });
+    if (!xmlRes.ok) throw new Error(`HTTP ${xmlRes.status}`);
+    // parse XML → return fileTxns[]
+  })
+);
+const txns = xmlResults
+  .filter((r): r is PromiseFulfilledResult<InsiderTx[]> => r.status === 'fulfilled')
+  .flatMap(r => r.value);
+return txns.sort((a, b) => b.date.localeCompare(a.date));
+```
+
+#### 주요 변경 사항
+- sequential for-loop → Promise.allSettled map
+- continue (network error) → throw new Error() → Promise.allSettled handles
+- 각 filing의 fileTxns[] → flatMap으로 병합
+- 정렬 보존 (sort by date descending)
+- AbortSignal.timeout(5000) 유지 (per-request timeout)
+
+### 성능 영향
+| 케이스 | Before | After |
+|--------|--------|-------|
+| 6건 모두 성공 | ~5-8s | ~1s (slowest 1건) |
+| 1건 실패 | continue, 나머지 sequential | rejected 무시, 나머지 parallel |
+| 모두 실패 | ~6s timeout | ~5s timeout (concurrent) |
+
+### 조사한 다른 후보들
+- korea-flow/route.ts: sequential fallback은 "첫 번째 non-empty" stop 패턴
+  → 병렬화 시 normal trading day에 불필요한 7 추가 요청 → 최적화 불가
+- osint/social/route.ts: 이미 Promise.allSettled 사용 → 조치 불필요
+
+### §4 UI 렌더 확인
+- stock-supply는 API-only (StockSupplyModal에서 호출)
+- 출력 JSON 형식 동일 → 하위 호환 OK
+- 클라이언트 렌더는 **미검증** (브라우저 없이 불가)
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 fetch 리팩터)
+- 모든 fetch에 cache: 'no-store' 유지 ✓
+- 캐시 키 버전 bump 불필요 (출력 형식 동일)
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter73: perf(stock-supply): Form4 XML 직렬 fetch → Promise.allSettled 병렬화 (~5-8s→~1s)
