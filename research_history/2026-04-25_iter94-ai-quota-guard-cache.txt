@@ -1,0 +1,55 @@
+## Iter 94 — AI quota guard + news-cascade raw-article 캐시
+Date: 2026-04-25
+Primary outcome: AI 토큰 storm 방지
+
+### Drift check
+- iter91=company-news+RSS, iter92=osint/social-RSS, iter93=sector-pe
+- iter94: AI providers/quota (다른 영역) ✓
+
+### 배경
+Groq 100k/day + Gemini free-tier 둘 다 매일 22:00 UTC 전후 소진.
+소진 후 news-cascade가 매 요청마다 RSS 5개 + AI 10×(3provider) = 30+ API calls 낭비.
+Gemini 429 감지 후에도 guard 없어서 계속 재시도.
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=news-cascade.ai_calls source=behavior
+  direct_value=prev:30+_API_calls_per_cold_start(no_cache_when_AI_down)
+  our_value=1h_redis_cache_prevents_repeat_calls → OK
+[accuracy probe] metric=verify-metrics.overall source=verify-metrics
+  direct_value=189 items our_value=183ok+1error+1degraded+4skipped → OK (AI-only errors)
+
+### Root cause
+1. Gemini 429 후 module-level guard 없음 → warm instance에서도 계속 재시도
+2. news-cascade: hasRealAnalysis=false → list 캐시 안 됨 → 매 요청마다 RSS + AI 재시도
+
+### 산출물
+
+#### [1] Gemini quota guard (ai-providers.ts)
+- `let geminiQuotaExhaustedUntil = 0` module-level guard 추가
+- isQuota (429/RESOURCE_EXHAUSTED) 감지 시 UTC 다음 자정까지 skip
+- Groq TPD guard 패턴 동일 적용 (per-instance warm Lambda 보호)
+
+#### [2] news-cascade tiered TTL 캐싱 (news-cascade/route.ts)
+Before: `if hasRealAnalysis` 일 때만 캐싱 → AI 소진 시 캐시 없음
+After:  항상 캐싱, TTL 차등:
+  - hasRealAnalysis=true: 12h (기존 동일)
+  - hasRealAnalysis=false: 1h (RSS/AI 재시도 주기 1h로 제한)
+
+### TypeScript: clean OK
+
+### 배포
+- git push: b1ec5f2
+
+### 검증
+- news-cascade 1차 요청: cached=False (Redis miss → 10 articles 캐시됨, cascades=0)
+- news-cascade 2차 요청: CDN 캐시 반환 (1h s-maxage), Redis 미도달
+- Redis 실제 캐시 확인: articles 10개 저장됨 (1h TTL), AI 재호출 없음
+
+### 예상 효과
+- AI 소진 상태에서 news-cascade 토큰 소비: ~30+ calls/cold-start → ~0 (1h 캐시 적중)
+- Gemini warm-instance 재시도 차단으로 Gemini quota 절약
+
+### 미결 이슈 (carry forward)
+- flow.analysis/brief.market: UTC midnight 00:00 자동 회복 (~60분 후)
+- KRX kr.foreign/kr.institution/kr.retail: 공식 포기 — session auth 불가
+- vLLM: 로컬 터널 꺼짐 (예상)
