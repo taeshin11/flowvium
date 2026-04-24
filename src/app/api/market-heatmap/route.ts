@@ -93,7 +93,11 @@ const YF_EU: Record<string, string> = {
 function toYFSuffix(ticker: string, country: string, location?: string): string {
   if (country === 'EU') {
     const suf = location ? (YF_EU[location] ?? '') : '';
-    return suf ? `${ticker}${suf}` : ticker;
+    if (!suf) return ticker;
+    // Strip trailing dot (e.g. "RR." → "RR") and replace spaces with hyphens
+    // (e.g. "INVE B" → "INVE-B") before appending Yahoo suffix.
+    const clean = ticker.replace(/\.$/, '').replace(/\s+/g, '-');
+    return `${clean}${suf}`;
   }
   if (country === 'CN') return /^\d+$/.test(ticker) ? `${ticker}.HK` : ticker;
   const suf = YF_SUFFIX[country];
@@ -108,7 +112,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v12:${country}:${hour}`; // v12: Stooq(JP/EU)+Yahoo fallback(KR/TW/IN/CN)
+  const cacheKey = `flowvium:heatmap:v13:${country}:${hour}`; // v13: EU ticker fix (strip trailing dot + space→hyphen)
   const redis = createRedis();
 
   if (!force) {
