@@ -178,7 +178,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     insider, ownership, options, korea, nport, blocks,
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v5:US:${hour}`),
-    safeGet(redis, 'flowvium:short-interest:v1'),
+    safeGet(redis, 'flowvium:short-interest:v3'),
     // capital-flows 현행 스키마는 v5 (twelve/yahoo). v4 는 구형. 후자로 폴백.
     safeGet(redis, 'flowvium:capital-flows:v5:twelve'),
     safeGet(redis, 'flowvium:capital-flows:v5:yahoo'),
@@ -197,7 +197,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet<unknown[]>(redis, 'flowvium:insider-trades:v1'),
     safeGet<unknown[]>(redis, 'flowvium:ownership-alerts:v1'),
     safeGet<unknown[]>(redis, 'flowvium:options-flow:v1'),
-    safeGet(redis, 'flowvium:korea-flow:v1'),
+    safeGet(redis, 'flowvium:korea-flow:v2'),
     safeGet(redis, 'flowvium:nport-holdings:v1'),
     safeGet<unknown[]>(redis, 'flowvium:block-trades:v1'),
   ]);
@@ -262,10 +262,10 @@ function summariseShort(data: unknown): string {
   const arr = Array.isArray(d) ? d : d?.entries;
   if (!arr?.length) return '';
   const top = [...arr]
-    .filter(s => (s.squeezeScore as number) > 0 || (s.shortFloatPct as number | null) != null)
+    .filter(s => (s.squeezeScore as number) > 0 || (s.shortVolPct as number | null) != null)
     .sort((a, b) => ((b.squeezeScore as number) ?? 0) - ((a.squeezeScore as number) ?? 0))
     .slice(0, 4)
-    .map(s => `${s.ticker}(${s.squeezeScore ?? 0}점,short${(s.shortFloatPct as number | null) ?? '-'}%)`);
+    .map(s => `${s.ticker}(${s.squeezeScore ?? 0}점,shortVol${(s.shortVolPct as number | null) ?? '-'}%)`);
   return `squeeze:${top.join(',')}`;
 }
 
