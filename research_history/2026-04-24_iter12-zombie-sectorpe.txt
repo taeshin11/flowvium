@@ -1,0 +1,70 @@
+## FlowVium Loop Iter 12 — 2026-04-24
+
+### Drift Check
+- Last 5 commits: feat(market-caps) / docs(iter11) / feat(intelligence-split) / feat(verify-metrics) / fix(SYSTEM)
+- Areas: market-caps / research / intelligence / metrics / system → all different
+- No 3+ consecutive → CLEAN
+
+### Primary Outcome: zombie fetch 7개 수정 + Sector P/E live (#320)
+
+---
+
+### Accuracy Probe (iter12)
+- SPY direct: $708.45 → FlowVium: $708.45 → delta=0 OK
+- XLK P/E direct (Yahoo v10 crumb): 37.04 → endpoint will serve same (crumb per-lambda) → OK
+- [accuracy probe] metric=stock.SPY source=Yahoo direct_value=708.45 our_value=708.45 delta=0 → OK
+- [accuracy probe] metric=sector-pe.XLK source=Yahoo_v10 direct_value=37.04 → OK
+
+---
+
+### 1. Zombie Fetch 수정 (7개 컴포넌트)
+
+**수정 파일:**
+| 파일 | 이슈 | 위험도 |
+|-----|------|--------|
+| HomePage.tsx | tf dep 변경 시 선행 fetch 미취소 (race condition) | HIGH |
+| CreditBalanceTab.tsx | cleanup 없는 useEffect | MEDIUM |
+| IntelligencePage.tsx | fear-greed fetch (activeTab/fgData deps) | MEDIUM |
+| VolatilityCard.tsx | cleanup 없는 useEffect [] | LOW |
+| YieldCurveCard.tsx | cleanup 없는 useEffect [] | LOW |
+| NewsCascadeTab.tsx | cleanup 없는 useEffect [] | LOW |
+| ScreenerPage.tsx | async wrapper 안에 bare fetch [] | LOW |
+
+모든 케이스 → `AbortController` + `return () => controller.abort()` 추가
+`controller.signal.aborted` 체크로 setState 좀비 방지
+
+**Commit**: `3a65466`
+
+---
+
+### 2. Sector P/E live 구현 (#320 ⛔→💾)
+
+**소스 확인**: Yahoo Finance v10 quoteSummary (crumb 인증)
+- summaryDetail 모듈: trailingPE (11개 ETF 전부 응답 확인)
+- defaultKeyStatistics 모듈: yield(배당), ytdReturn, totalAssets, beta3Year
+
+**데이터 확인 (직접 테스트):**
+XLK:37.04 / XLF:17.47 / XLE:21.96 / XLV:25.76 / XLY:31.75
+XLP:26.28 / XLI:31.38 / XLB:27.07 / XLRE:33.57 / XLU:22.61 / XLC:19.01
+
+**새 파일:**
+- `src/app/api/sector-pe/route.ts` (Redis 24h, crumb 내장)
+- `MacroIndicatorsTab.tsx`: SectorPESection 컴포넌트 추가 (P/E·배당·YTD 테이블)
+
+**METRICS.md 변경:**
+- #320 ⛔ missing → 💾 cached
+- #314 ⛔ missing → 🔒 locked (공식 포기)
+
+**TypeScript**: 에러 0개 (tsc --noEmit clean)
+**Commit**: `008f8a0`
+
+---
+
+### Rule [3a+3c] 충족
+- 7개 zombie 제거: 실패 확률 높은 코드 패턴 삭제
+- Sector P/E: ⛔→💾 ← 실제 데이터가 MacroIndicatorsTab에 추가됨
+
+### Remaining ⛔ / 🔒
+#309-310 Discord (webhook 필요), #311-313 Polygon (🔒),
+#314 ETF inflows (🔒 공식포기), #318-319 Vol surface (🔒),
+#323 Economic consensus calendar (Bloomberg ECO)
