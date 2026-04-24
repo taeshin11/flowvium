@@ -1,0 +1,63 @@
+## Iter 53 — CFTC COT 투기세력 포지셔닝 신규 탭
+Date: 2026-04-24
+Primary outcome: CFTC COT 포지션 신규 기능
+
+### Drift check
+- iter 50: short-interest screener (Finnhub P/E)
+- iter 51: GROQ 근본 원인 + 스크리너 expand
+- iter 52: earnings bug fix
+- iter 53: 완전히 새로운 데이터 소스 (CFTC COT)
+- 동일 모듈 3 iter 연속: 없음 ✓
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=cot.sp500 source=CFTC_FinFutWk.txt(2026-04-14)
+  direct_value={oi:1959076, ncLong:137784, ncShort:831374, net:-693590, pct:-35.4%}
+  our_parser: indices[7,8,9] confirmed via % cross-check (7.0%, 42.4%)
+  delta=0 → OK
+
+### Negative result: KRX API 복구 시도
+- `data.krx.co.kr` → 403 Forbidden from Vercel US IPs (IP 차단)
+- `finance.naver.com` → Claude Code blocked
+- 결론: Vercel 서버에서 KRX 직접 접근 불가 → 공식 포기
+  Korea flows는 Yahoo Finance price fallback 유지 (foreignerNetBuy=null 상태)
+
+### 핵심 발견: CFTC COT 데이터 구조
+
+FinFutWk.txt 파일 (헤더 없음, comma-separated):
+- field[0]: Market name (quoted)
+- field[1]: YYMMDD (as-of date)
+- field[2]: YYYY-MM-DD (report date)
+- field[7]: Open Interest All
+- field[8]: NonComm Positions Long All ← 투기세력 롱
+- field[9]: NonComm Positions Short All ← 투기세력 숏
+
+E-MINI S&P 500 (2026-04-14 기준):
+- OI = 1,959,076 / NC Long = 137,784 / NC Short = 831,374
+- Net = -693,590 / netPctOI = -35.4% → BEARISH
+- 투기세력이 2026-04-14 기준 S&P 500에 대규모 순매도
+
+### 수정 사항
+
+#### 1. `/api/cot-positions` 신설
+- CFTC FinFutWk.txt 파싱 (7개 시장)
+- CSV 파서: 첫 필드 quoted 처리
+- 시장 목록: E-mini S&P 500 / Nasdaq-100 / 10Y T-Note / 2Y T-Note / EUR/USD / JPY / VIX
+- 심리 기준: netPctOI > +15% = bullish, < -15% = bearish
+- Redis 캐시 4h
+
+#### 2. Intelligence 페이지 `cot` 탭 추가
+- `src/components/intelligence/CotTab.tsx` 신설
+- `src/components/pages/IntelligencePage.tsx`: TABS 배열에 'cot' 추가
+- 16개 언어 i18n 추가 (scripts/add-cot-i18n.js)
+
+#### 3. 인프라
+- `update-all` cron: cotR warm 추가
+- `verify-metrics`: verifyCOT 함수 + cot cache key 체크
+- FEATURES.md §3: 탭 8 COT 포지션 섹션 신설
+- METRICS.md: §2-8 + E42 행 추가
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- 0aee8b8: feat(cot): add CFTC COT positioning tab — 7 futures markets, speculator net positioning
