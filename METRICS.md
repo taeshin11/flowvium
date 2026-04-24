@@ -185,7 +185,7 @@
 | 72 | 10Y Note | 💾 cached | FRED DGS10 |
 | 73 | 20Y Bond | 💾 cached | FRED DGS20 |
 | 74 | 30Y Bond | 💾 cached | FRED DGS30 |
-| 75 | 10Y-2Y 스프레드 | 💾 cached | 자체계산 |
+| 75 | 10Y-2Y 스프레드 | 💾 cached | 자체계산 (DGS2/DGS10) + T10Y2Y fallback |
 | 76 | 역전 여부 | 💾 cached | 자체계산 |
 
 **Fed Watch**
@@ -222,6 +222,7 @@
 | 91 | 소매판매 | 💾 cached | 4필드 |
 | 92 | PPI | 💾 cached | 4필드 |
 | 93 | 실업률 | 💾 cached | 4필드 |
+| 93a | 신규 실업수당 청구 (ICSA 주간, 천명) | 💾 cached | FRED ICSA series |
 | 94 | 각 지표 매파/비둘기 영향 | 💾 cached | hawkish/dovish |
 | 95 | 각 지표 캐스케이드 체인 (3~5개 자산) | 💾 cached | 방향·강도·이유 |
 

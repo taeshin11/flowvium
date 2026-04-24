@@ -219,7 +219,16 @@ async function fetchYieldCurve(): Promise<{ points: YieldPoint[]; inverted: bool
 
     const y2 = labelMap['2Y'] ?? null;
     const y10 = labelMap['10Y'] ?? null;
-    const spread10y2y = y2 !== null && y10 !== null ? parseFloat((y10 - y2).toFixed(2)) : null;
+    let spread10y2y = y2 !== null && y10 !== null ? parseFloat((y10 - y2).toFixed(2)) : null;
+
+    // Fallback: T10Y2Y is FRED's pre-computed 10Y-2Y spread — use when individual fetches fail
+    if (spread10y2y === null) {
+      const t10y2y = await fetchLatest('T10Y2Y');
+      if (t10y2y !== null) {
+        spread10y2y = parseFloat(t10y2y.value.toFixed(2));
+        logger.info('macro-indicators', 'yield_curve_t10y2y_fallback', { spread: spread10y2y });
+      }
+    }
 
     return { points, inverted: spread10y2y !== null && spread10y2y < 0, spread10y2y };
   } catch (err) {
@@ -239,7 +248,7 @@ function classify(actual: number | null, forecast: number, higherIsBetter: boole
 
 function rateImpact(id: string, surprise: string): { impact: 'hawkish' | 'dovish' | 'neutral'; ko: string } {
   if (surprise === 'inline' || surprise === 'pending') return { impact: 'neutral', ko: '중립' };
-  const hawkishOnBeat = ['cpi', 'pce', 'nfp', 'ppi', 'retail'];
+  const hawkishOnBeat = ['cpi', 'pce', 'nfp', 'ppi', 'retail', 'iclaims'];
   const hawkishOnMiss = ['gdp', 'ism', 'unrate'];
   if (hawkishOnBeat.includes(id)) {
     return surprise === 'beat'
@@ -369,6 +378,18 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
         { asset: '금 (GLD)', direction: 'up', reason: '경기 우려 → 안전자산', magnitude: 'weak' },
       ],
     },
+    iclaims: {
+      beat: [ // lower claims than expected = labor market resilient = hawkish
+        { asset: '미 국채 금리', direction: 'up', reason: '해고 감소 → 노동시장 견조 → Fed 긴축 여력', magnitude: 'moderate' },
+        { asset: '달러 (DXY)', direction: 'up', reason: '경제 강세 신호', magnitude: 'weak' },
+        { asset: '미국 주식 (S&P500)', direction: 'mixed', reason: '경기 호조 vs 금리 상승 상쇄', magnitude: 'weak' },
+      ],
+      miss: [ // higher claims than expected = layoffs rising = dovish
+        { asset: '미 국채 금리', direction: 'down', reason: '해고 증가 → 경기 둔화 → 인하 기대↑', magnitude: 'moderate' },
+        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '고용 악화 → 소비 위축 우려', magnitude: 'moderate' },
+        { asset: '금 (GLD)', direction: 'up', reason: '경기 불안 → 안전자산', magnitude: 'weak' },
+      ],
+    },
   };
   const def = cascades[id];
   if (!def) return [];
@@ -441,6 +462,13 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
     rateImpact: 'dovish', rateImpactKo: '비둘기파',
     summary: '실업률 4.2% — 고용시장 소폭 냉각 신호.',
   },
+  iclaims: {
+    id: 'iclaims', name: 'Initial Jobless Claims (Weekly)', nameKo: '신규 실업수당 청구 (주간)',
+    category: 'employment', actual: 222, forecast: 224, previous: 224, unit: '천명/주',
+    releaseDate: '2026-04-24', nextRelease: '2026-05-01', surprise: 'beat',
+    rateImpact: 'hawkish', rateImpactKo: '노동시장 견조 → 매파',
+    summary: '신규 실업수당 청구 222K — 예상(224K) 하회. 해고 증가 신호 없음.',
+  },
 };
 
 // ── FRED static forecasts (consensus at time of last update) ──────────────────
@@ -452,7 +480,8 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   gdp:    { forecast: 2.3,   nextRelease: '2026-04-30' },
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
   retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
-  unrate: { forecast: 4.1,   nextRelease: '2026-05-02' },
+  unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
+  iclaims:  { forecast: 224,   nextRelease: '2026-05-01' },
 };
 
 // ── Main GET ──────────────────────────────────────────────────────────────────
@@ -463,7 +492,14 @@ export async function GET() {
   if (redis) {
     try {
       const cached = await redis.get<object>(key);
-      if (cached) return NextResponse.json(cached, { headers: CDN_HEADERS });
+      if (cached) {
+        const cachedYc = (cached as Record<string, unknown>)?.yieldCurve as { spread10y2y?: number | null } | undefined;
+        if (cachedYc?.spread10y2y != null) {
+          return NextResponse.json(cached, { headers: CDN_HEADERS });
+        }
+        // spread is null in cache — bypass and refetch to pick up T10Y2Y fallback
+        logger.warn('macro-indicators', 'cache_null_spread_bypass', { key });
+      }
     } catch (e) { logger.warn('macro-indicators', 'cache_read_error', { error: e }); }
   }
 
@@ -472,7 +508,7 @@ export async function GET() {
     fredCPI, fredCoreCPI, fredPCE, fredCorePCE,
     fredNFP, fredGDP, fredPPI, fredRetail, fredUnrate,
     fredISM, fredFOMCUpper, fredFOMCLower,
-    yieldCurve,
+    yieldCurve, fredIClaims,
   ] = await Promise.allSettled([
     fetchYoY('CPIAUCSL'),
     fetchYoY('CPILFESL'),
@@ -487,6 +523,7 @@ export async function GET() {
     fetchLatest('DFEDTARU'),         // Fed funds upper bound
     fetchLatest('DFEDTARL'),         // Fed funds lower bound
     fetchYieldCurve(),
+    fetchLatest('ICSA'),             // Initial Jobless Claims (weekly, in persons)
   ]);
 
   // Build indicators from FRED data, fall back to static
@@ -698,6 +735,29 @@ export async function GET() {
         : base.summary,
       cascade: buildCascade('unrate', surprise),
       liveData: !!unrateData,
+    });
+  }
+
+  // Initial Jobless Claims — ICSA reports in raw persons; convert to thousands
+  const iclaimsRaw = get(fredIClaims);
+  {
+    const base = STATIC.iclaims;
+    const actualK: number | null = iclaimsRaw != null ? Math.round(iclaimsRaw.value / 1000) : null;
+    const fc = FORECASTS.iclaims.forecast;
+    const displayActual = actualK ?? base.actual;
+    const surprise = classify(displayActual, fc, false); // lower claims = beat
+    const ri = rateImpact('iclaims', surprise);
+    indicators.push({
+      ...base,
+      actual: displayActual, previous: base.previous, forecast: fc,
+      releaseDate: iclaimsRaw?.date ?? base.releaseDate,
+      nextRelease: FORECASTS.iclaims.nextRelease,
+      surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
+      summary: actualK != null
+        ? `신규 실업수당 ${actualK}K/주 (예상 ${fc}K). ${actualK < fc ? '해고 증가 신호 없음 — 노동시장 견조.' : '청구 증가 — 해고 압력 주시.'}`
+        : base.summary,
+      cascade: buildCascade('iclaims', surprise),
+      liveData: actualK != null,
     });
   }
 
