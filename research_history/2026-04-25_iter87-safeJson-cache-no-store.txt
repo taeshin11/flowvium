@@ -1,0 +1,37 @@
+## Iter 87 — verify-metrics safeJson cache: no-store 누락 버그 수정
+Date: 2026-04-25
+Primary outcome: verify-metrics CDN stale 버그 수정 (18자)
+
+### Drift check
+- iter84=verify-probe, iter85=AI-providers, iter86=dead-code, iter87=verify-cache
+- 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=verify.ok source=verify-metrics direct_value=ok=175 our_value=ok=175 delta=0 → OK
+- safeJson에 cache: 'no-store' 추가 전: ok=126, degraded=33, error=2
+- safeJson에 cache: 'no-store' 추가 후: ok=175, degraded=1, error=2
+
+### Root cause
+`verify-metrics/route.ts` → `safeJson()` 함수에 `cache: 'no-store'` 옵션 누락.
+Next.js App Router의 fetch() 기본값은 `force-cache`. Vercel CDN의 s-maxage 캐시된
+응답(특히 market-caps의 s-maxage=86400)을 probe가 그대로 받아 stale 값을 검증.
+대표 증상: caps.ALL bandCount=0 (시가총액 CDN stale) → 32개 항목 false degraded.
+
+### 산출물
+
+#### [1] verify-metrics safeJson에 cache: 'no-store' 추가
+```typescript
+const res = await fetch(`${base}${path}`, {
+  signal: AbortSignal.timeout(timeoutMs),
+  headers: { 'user-agent': 'flowvium-metrics-verifier/1.0' },
+  cache: 'no-store',  // ← 추가
+});
+```
+
+### 배포
+- git commit: 5c5700a
+- 결과: ok 126→175, degraded 33→1
+
+### Open issues (carry forward)
+- flow.analysis: error val=None — callAI fallback 반복 (조사 필요)
+- brief.market: degraded val=fallback(data) — AI fallback 반복

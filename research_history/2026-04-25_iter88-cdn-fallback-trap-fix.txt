@@ -1,0 +1,64 @@
+## Iter 88 — CDN fallback 캐싱 루프 차단 + flow-analysis 필드명 수정
+Date: 2026-04-25
+Primary outcome: flow/brief CDN fallback 루프 종료 (18자)
+
+### Drift check
+- iter86=dead-code, iter87=verify-cache, iter88=CDN-fallback-fix
+- 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=flow.analysis source=Groq direct_value=source:GROQ-llama-3.3-70b our_value=source:fallback delta=source_mismatch
+
+CDN cache bust 테스트:
+- curl ?tf=4w (CDN cached): source=fallback, analysis=null
+- curl ?tf=4w&_t=<timestamp> (CDN MISS, fresh): source=GROQ-llama-3.3-70b, analysis=valid JSON
+→ CDN이 이전 fallback 응답을 s-maxage=12000(3.33시간) 동안 캐싱,
+  이후 모든 요청이 stale fallback을 받는 루프 구조임을 확인
+
+### Root cause 분석
+1. flow-analysis endpoint: analysis=null(fallback) 응답에도 CDN_HEADERS (s-maxage=12000) 적용
+   → CDN이 fallback 캐싱 → 이후 3.33시간 모든 요청 fallback 반환
+   → background revalidation도 CDN을 통해 fallback 반환 → 무한루프
+
+2. 동일 패턴: daily-brief (s-maxage=600) — Redis에는 이미 비캐싱이지만 CDN에는 적용 안됨
+
+3. flow-analysis 필드명 불일치:
+   - capital-flows.countryFlow.countries: `label`(국가명) 필드인데 코드는 `country` 참조 → undefined
+   - capital-flows.countryFlow.rotationsXw: `magnitude`인데 코드는 `diff` 참조 → 0
+   - capital-flows.assets: `label`(자산명)인데 코드는 `name` 참조 → undefined
+   (Groq가 ticker에서 국가명 추론해서 응답은 그나마 정상이었지만 rotation diff 0 오류)
+
+### 산출물
+
+#### [1] flow-analysis: CDN fallback 캐싱 차단
+Before: 모든 응답에 CDN_HEADERS 적용 (s-maxage=12000)
+After:  analysis 있을 때만 CDN_HEADERS; 없을 때 Cache-Control: no-store
+
+```typescript
+const headers = analysis ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
+return NextResponse.json(result, { headers });
+```
+
+#### [2] flow-analysis: 필드명 수정
+- country: c.country → (c.label ?? c.id)
+- diff: r.diff → r.magnitude
+- name: a.name → (a.label ?? a.ticker)
+
+#### [3] daily-brief: CDN fallback 캐싱 차단
+Before: 모든 응답에 CDN_HEADERS 적용 (s-maxage=600)
+After:  AI quality 결과일 때만 CDN_HEADERS; 아니면 no-store
+
+```typescript
+const responseHeaders = isAiQuality ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
+```
+
+### TypeScript: clean OK
+
+### 예상 결과
+- flow.analysis: error → ok (CDN 캐시 만료 후 자연 회복)
+- brief.market: degraded → ok (다음 요청 시 AI 재시도)
+- flow-analysis 프롬프트 품질 향상 (국가명/자산명/rotation magnitude 올바르게 전달)
+
+### Open issues (carry forward)
+- verify-metrics의 나머지 degraded/error 항목 추가 확인 필요
+- daily-brief AI 실패 원인 추가 조사 (CDN 고친 후에도 지속되면)

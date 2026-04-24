@@ -125,28 +125,29 @@ export async function GET(request: Request) {
   const retKey = tf === '1w' ? 'ret1w' : tf === '4w' ? 'ret4w' : 'ret13w';
 
   // Extract country returns
+  // capital-flows uses 'label' for display name and 'id' for key — not 'country'
   const countryFlow = capitalData.countryFlow as Record<string, unknown> | undefined;
   const rawCountries = (countryFlow?.countries as Array<Record<string, unknown>>) ?? [];
   const countries = rawCountries.map(c => ({
-    country: c.country as string,
+    country: (c.label ?? c.id) as string,
     ticker: c.ticker as string,
     ret: (c[retKey] as number) ?? 0,
   })).sort((a, b) => b.ret - a.ret);
 
-  // Extract rotations
+  // Extract rotations — capital-flows uses 'magnitude', not 'diff'
   const rotKey = tf === '1w' ? 'rotations1w' : tf === '4w' ? 'rotations4w' : 'rotations13w';
   const rotations = ((countryFlow?.[rotKey] as Array<Record<string, unknown>>) ?? []).map(r => ({
     from: r.from as string,
     to: r.to as string,
-    diff: (r.diff as number) ?? 0,
+    diff: (r.magnitude as number) ?? 0,
   }));
 
-  // Extract top assets
+  // Extract top assets — capital-flows uses 'label', not 'name'
   const assets = (capitalData.assets as Array<Record<string, unknown>>) ?? [];
   const topAssets = [...assets]
     .sort((a, b) => Math.abs((b[retKey] as number) ?? 0) - Math.abs((a[retKey] as number) ?? 0))
     .slice(0, 8)
-    .map(a => ({ name: a.name as string, ticker: a.ticker as string, ret: (a[retKey] as number) ?? 0 }));
+    .map(a => ({ name: (a.label ?? a.ticker) as string, ticker: a.ticker as string, ret: (a[retKey] as number) ?? 0 }));
 
   // Gold vs dollar
   const gvd = capitalData.goldVsDollar as Record<string, unknown> | undefined;
@@ -189,5 +190,8 @@ export async function GET(request: Request) {
     } catch (e) { logger.warn('flow-analysis', 'cache_write_error', { tf, error: e }); }
   }
 
-  return NextResponse.json(result, { headers: CDN_HEADERS });
+  // Never let CDN cache a fallback — stale fallback traps subsequent requests in a loop
+  // (CDN keeps serving old fallback, background revalidation also returns fallback → loop)
+  const headers = analysis ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
+  return NextResponse.json(result, { headers });
 }

@@ -114,11 +114,13 @@ export async function GET(request: Request) {
   }
 
   logger.info('api.daily-brief', 'served', { tf, source: brief.source, durationMs: Date.now() - reqStart });
+  // Don't let CDN cache data-fallback — same stale-loop problem as flow-analysis
+  const responseHeaders = isAiQuality ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
   return NextResponse.json({
     ...brief,
     cached: false,
     ...(debugInfo ? { debug: { ...debugInfo, ai: aiDiag } } : {}),
-  }, { headers: CDN_HEADERS });
+  }, { headers: responseHeaders });
 }
 
 export async function DELETE(request: Request) {
