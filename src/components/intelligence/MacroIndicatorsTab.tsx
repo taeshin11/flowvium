@@ -194,6 +194,13 @@ const RATE_BADGE: Record<string, { label: string; cls: string }> = {
 };
 const CASCADE_ICONS: Record<string, string> = { up: '▲', down: '▼', mixed: '↕' };
 const MAG_OPACITY: Record<string, string> = { strong: 'opacity-100', moderate: 'opacity-70', weak: 'opacity-40' };
+// 'up' = higher value is improvement; 'down' = lower is improvement
+const POSITIVE_DIR: Record<string, 'up' | 'down'> = {
+  cpi: 'down', pce: 'down', ppi: 'down',
+  nfp: 'up', gdp: 'up', ism: 'up', retail: 'up', umcsent: 'up',
+  unrate: 'down', iclaims: 'down',
+  ig_spread: 'down', hy_spread: 'down',
+};
 
 // ── Macro Risk Signal ──────────────────────────────────────────────────────────
 // 신용(IG/HY OAS) + 소비 심리(UMCSENT) + 금리 곡선 → 3단계 종합 신호
@@ -563,6 +570,19 @@ export default function MacroIndicatorsTab() {
                           {ind.actual.toLocaleString()}
                         </div>
                         <div className="text-[10px] text-gray-400">{ind.unit} 실제</div>
+                        {ind.previous !== null && (() => {
+                          const delta = parseFloat((ind.actual - ind.previous).toFixed(2));
+                          const posDir = POSITIVE_DIR[ind.id];
+                          const improving = posDir ? (posDir === 'up' ? delta > 0 : delta < 0) : null;
+                          const cls = improving === null ? 'text-gray-400' : improving ? 'text-green-600' : 'text-red-500';
+                          const sign = delta >= 0 ? '+' : '';
+                          const fmt = (v: number) => Math.abs(v) >= 100 ? v.toLocaleString() : v.toFixed(2).replace(/\.?0+$/, '');
+                          return (
+                            <div className={`text-[10px] font-medium mt-0.5 ${cls}`}>
+                              {sign}{fmt(delta)} ← {fmt(ind.previous)}
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                     {ind.forecast !== null && (

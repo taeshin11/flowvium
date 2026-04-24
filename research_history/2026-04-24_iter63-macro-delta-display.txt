@@ -1,0 +1,69 @@
+## Iter 63 — macro 지표 이전값 델타 표시
+Date: 2026-04-24
+Primary outcome: macro 지표 이전값 델타 표시 (14자 ✓)
+
+### Drift check
+- iter 60: ReportPage.tsx
+- iter 61: HomePage.tsx
+- iter 62: capital-flows/route.ts (perf)
+- iter 63: MacroIndicatorsTab.tsx (다른 영역 → drift 없음 ✓)
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=cpi source=FRED_CPIAUCSL
+  direct_value=3.29% our_value=3.29% delta=0.00 tolerance=0.05 → OK ✓
+- [accuracy probe] metric=cpi.previous source=FRED_CPIAUCSL
+  direct_prev_yoy=2.43% our_prev=2.43% delta=0.00 → OK ✓
+
+### 문제 / 기회
+- MacroIndicatorsTab에 `previous` 데이터가 이미 있지만 UI에 표시 안 됨
+- 각 지표의 이전 발표값과의 비교 없이 현재값만 보여줘서 트렌드 파악 어려움
+- 특히 NFP: 실제값 178k, 이전값 -133k → +311k 반등이 현재 숨겨져 있음
+
+### 해결 방법
+`POSITIVE_DIR` 룩업 테이블로 각 지표의 "좋은 방향" 정의:
+- 인플레 (CPI/PPI/PCE): 하락이 좋음 → 상승 delta = 빨강
+- 고용 (NFP/UMCSENT): 상승이 좋음 → 상승 delta = 초록
+- 실업/초기 청구: 하락이 좋음
+- 신용 스프레드 (IG/HY): 하락이 좋음
+- FOMC: neutral (복잡, 색상 없음)
+
+### UI 변경
+MacroIndicatorsTab.tsx 내 실제값 표시 블록에 delta 행 추가:
+```tsx
+{ind.previous !== null && (() => {
+  const delta = parseFloat((ind.actual - ind.previous).toFixed(2));
+  const posDir = POSITIVE_DIR[ind.id];
+  const improving = posDir ? (posDir === 'up' ? delta > 0 : delta < 0) : null;
+  const cls = improving === null ? 'text-gray-400' : improving ? 'text-green-600' : 'text-red-500';
+  const sign = delta >= 0 ? '+' : '';
+  return (
+    <div className={`text-[10px] font-medium mt-0.5 ${cls}`}>
+      {sign}{fmt(delta)} ← {fmt(ind.previous)}
+    </div>
+  );
+})()}
+```
+
+### 데이터 확인
+- CPI: 3.29 ← 2.43 (+0.86 pp, 빨강 — 재가속)
+- PCE: 2.97 ← 3.05 (-0.08, 초록)
+- NFP: 178 ← -133 (+311, 초록 — 극적 반등!)
+- FOMC: 3.75 ← 4.5 (-0.75, 회색)
+- GDP: 0.5 ← 3.1 (-2.60, 빨강)
+- PPI: 6.03 ← 3.78 (+2.25, 빨강)
+- UNRATE: 4.3 ← 4.1 (+0.20, 빨강)
+- ICLAIMS: 214 ← 224 (-10, 초록)
+- UMCSENT: 56.6 ← 57.9 (-1.30, 빨강)
+- IG spread: 0.79 ← 0.89 (-0.10, 초록)
+- HY spread: 2.86 ← 3.23 (-0.37, 초록)
+
+### 변경 파일
+- `src/components/intelligence/MacroIndicatorsTab.tsx`
+  - `POSITIVE_DIR` 상수 추가 (10줄)
+  - 실제값 div에 delta 표시 (15줄)
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- iter63: feat(macro): 지표 이전값 delta 표시 — 트렌드 방향 색상 표시
