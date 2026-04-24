@@ -244,7 +244,15 @@ function buildPayload(all: KoreaFlowEntry[], trdDd: string, extra?: object) {
   const topForeignSell = [...all].filter(e => (e.foreignerNetBuy   ?? 0) < 0).sort((a,b) => (a.foreignerNetBuy   ?? 0) - (b.foreignerNetBuy   ?? 0)).slice(0, 15);
   const topInstBuy     = [...all].filter(e => (e.institutionNetBuy ?? 0) > 0).sort((a,b) => (b.institutionNetBuy ?? 0) - (a.institutionNetBuy ?? 0)).slice(0, 15);
   const topInstSell    = [...all].filter(e => (e.institutionNetBuy ?? 0) < 0).sort((a,b) => (a.institutionNetBuy ?? 0) - (b.institutionNetBuy ?? 0)).slice(0, 15);
-  return { updatedAt: new Date().toISOString(), tradingDay: tradingDayFmt, topForeignBuy, topForeignSell, topInstBuy, topInstSell, totalTickers: all.length, ...extra };
+  // Aggregate totals for verify-metrics probes (kr.foreign / kr.institution / kr.retail)
+  const hasFlow = all.some(e => e.foreignerNetBuy != null);
+  const foreignNet  = hasFlow ? all.reduce((s, e) => s + (e.foreignerNetBuy   ?? 0), 0) : null;
+  const institutionNet = hasFlow ? all.reduce((s, e) => s + (e.institutionNetBuy ?? 0), 0) : null;
+  const retailNet   = hasFlow ? all.reduce((s, e) => s + (e.individualNetBuy  ?? 0), 0) : null;
+  return { updatedAt: new Date().toISOString(), tradingDay: tradingDayFmt,
+    topForeignBuy, topForeignSell, topInstBuy, topInstSell, totalTickers: all.length,
+    foreignNet, institutionNet, retailNet,
+    ...extra };
 }
 
 export async function GET(req: Request) {
