@@ -1,0 +1,47 @@
+## Iter 44 — news-cascade 병렬 처리 + 캐시 품질
+Date: 2026-04-24
+Primary outcome: news-cascade cascade 품질 5/5 → OK
+
+### Drift check
+- iter 41: sector-pe 502 fix (API)
+- iter 42: crumb zombie 삭제 (shared lib)
+- iter 43: stock-supply data quality (API + component)
+- iter 44: news-cascade AI quality (다른 영역 ✓)
+
+### 정확성 프로브
+- [accuracy probe] metric=news-cascade.cascades pre-fix 1/5 articles with cascades → DEGRADED
+- [accuracy probe] metric=news-cascade.cascades post-fix 5/5 articles with cascades → OK
+- [accuracy probe] metric=fg.us source=CNN our_value=67 direct_value=67 Δ0 → OK (stable)
+- [accuracy probe] metric=10Y-2Y spread source=FRED Δ0.00 → OK (stable)
+
+### 발견된 문제
+1. news-cascade maxDuration 없음:
+   - Vercel 기본 timeout = 10s
+   - 8개 기사 순차 처리: 8 × 18s = 144s (이론상)
+   - 실제: 10s 후 Vercel kill → 1-2개 기사만 AI 분석 완료
+   - 나머지 기사: title-only fallback
+
+2. 0-cascade 결과 24h 캐시됨:
+   - 실패한 AI 분석 결과(cascades=[])가 articleKey(id)에 24h 캐시
+   - 다음 24h동안 재시도 없이 fallback 계속 서빙
+
+3. 순차 처리:
+   - for...of loop: 한 번에 1개 기사 처리
+   - 8개 × 평균 5s = ~40s 총 소요
+
+### 수정 사항
+1. maxDuration = 60 추가
+2. 순차 → 병렬: Promise.allSettled(articles.map(analyzeOne))
+   - 8개 동시 처리: 최대 10-15s 총 소요
+3. 캐시 품질 필터: cascades.length > 0 인 경우만 Redis 캐시
+   - fallback 결과는 캐시 안 함 → 다음 호출 시 재시도
+
+### 측정 결과 (post-deploy)
+- 기사 1/5 cascades → 5/5 cascades (5배 개선)
+- 모든 기사 한국어 AI 요약 정상
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- 3faeb93: fix(news-cascade): parallel AI analysis + skip caching fallbacks
