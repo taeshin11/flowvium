@@ -235,7 +235,7 @@
 - CFTC Commitments of Traders (COT) Legacy Futures-Only 보고서
 - 소스: `https://www.cftc.gov/dea/newcot/FinFutWk.txt` (매주 금요일 발표)
 - 7개 시장: E-mini S&P 500 · Nasdaq-100 · 10Y T-Note · 2Y T-Note · EUR/USD · JPY · VIX
-- 컬럼: 시장명 · 순포지션(롱−숏) · OI 대비 % · 방향 바 · 심리 배지(강세/중립/약세)
+- 컬럼: 시장명 · 순포지션(롱−숏) · OI 대비 % · 주간 변화(md 이상) · 방향 바 · 심리 배지(강세/중립/약세)
 - 심리 기준: netPctOI > +15% = 강세, < −15% = 약세
 - Redis 캐시 4h
 
@@ -568,6 +568,7 @@
 ### 12b-3. 필터
 - 티커 검색 (NVDA, TSLA 등)
 - 정렬: 날짜순 / Surprise 크기순
+- 주요 종목만 보기 토글 (S&P 100 + 주요 약 70개 티커 클라이언트 필터, 기본 off)
 
 ### 12b-4. 결과 테이블
 - 컬럼: 날짜 · 시간(장전/장중/장후 뱃지) · 티커(→ CompanyPage 링크) · 분기

@@ -590,6 +590,7 @@
     "cotNetPos": "Position nette",
     "cotNetPct": "% de l'OI",
     "cotBar": "Orientation",
+    "cotWeekly": "Var. hebdo",
     "cotSentiment": "Sentiment",
     "cotLegend": "Net non commercial = longs − shorts des spéculateurs. CFTC publie chaque vendredi."
   },

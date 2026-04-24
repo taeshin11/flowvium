@@ -590,6 +590,7 @@
     "cotNetPos": "สถานะสุทธิ",
     "cotNetPct": "% ของ OI",
     "cotBar": "ทิศทาง",
+    "cotWeekly": "เปลี่ยนรายสัปดาห์",
     "cotSentiment": "ความเชื่อมั่น",
     "cotLegend": "สุทธิ non-commercial = Long − Short ของนักเก็งกำไร CFTC เผยแพร่ทุกวันศุกร์"
   },

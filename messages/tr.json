@@ -590,6 +590,7 @@
     "cotNetPos": "Net pozisyon",
     "cotNetPct": "OI yüzdesi",
     "cotBar": "Yön",
+    "cotWeekly": "Haf. değ.",
     "cotSentiment": "Duygu",
     "cotLegend": "Ticari olmayan net = spekülatörlerin uzunları − kısaları. CFTC her Cuma yayınlar."
   },

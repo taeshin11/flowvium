@@ -590,6 +590,7 @@
     "cotNetPos": "Nettoposition",
     "cotNetPct": "% des OI",
     "cotBar": "Richtung",
+    "cotWeekly": "Wöch. Änd.",
     "cotSentiment": "Sentiment",
     "cotLegend": "Nicht-kommerziell netto = Longs − Shorts der Spekulanten. CFTC veröffentlicht wöchentlich freitags."
   },

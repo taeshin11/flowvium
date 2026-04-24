@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar, Loader2, RefreshCw, TrendingUp, TrendingDown, Clock, Sun, Moon, ExternalLink, Search } from 'lucide-react';
+import { Calendar, Loader2, RefreshCw, TrendingUp, TrendingDown, Clock, Sun, Moon, ExternalLink, Search, Star } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
 interface EarningRow {
@@ -29,6 +29,32 @@ interface EarningsResponse {
   error?: string;
   cached?: boolean;
 }
+
+// S&P 100 / 주요 글로벌 대형주 — 실적 캘린더 "주요 종목만" 필터 대상
+const MAJOR_TICKERS = new Set([
+  // Mag7
+  'AAPL','MSFT','NVDA','GOOGL','GOOG','AMZN','META','TSLA',
+  // Semiconductors
+  'INTC','AMD','AVGO','QCOM','MU','AMAT','LRCX','KLAC','TSM','ASML','ARM','MRVL','SMCI','MCHP',
+  // Finance
+  'JPM','BAC','WFC','GS','MS','BLK','V','MA','AXP','BX','C','SCHW',
+  // Healthcare
+  'JNJ','LLY','ABBV','MRK','PFE','UNH','AMGN','GILD','REGN','MRNA','BMY','CVS',
+  // Energy
+  'XOM','CVX','COP','SLB','EOG',
+  // Consumer / Retail
+  'COST','WMT','TGT','HD','SBUX','NKE','MCD','LOW','TJX',
+  // Industrials / Defense
+  'CAT','RTX','LMT','BA','GE','HON','NOC','LHX','KTOS',
+  // Tech / Software
+  'CRM','ORCL','ADBE','NFLX','NOW','SNOW','PLTR','PANW','INTU','IBM',
+  // Crypto / Alt
+  'COIN','MSTR','MARA',
+  // Telecom
+  'T','VZ','TMUS',
+  // Korea/global
+  'BABA','TSM','NIO',
+]);
 
 const PRESETS = [
   { id: 'today', label: '오늘', from: 0, to: 0 },
@@ -70,6 +96,7 @@ export default function EarningsPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'surprise'>('date');
+  const [majorOnly, setMajorOnly] = useState(false);
 
   const range = useMemo(() => {
     const p = PRESETS.find(x => x.id === preset) ?? PRESETS[2];
@@ -101,12 +128,13 @@ export default function EarningsPage() {
   const rows = useMemo(() => {
     if (!data?.earnings) return [];
     const q = search.trim().toUpperCase();
-    const filtered = q ? data.earnings.filter(e => e.symbol?.includes(q)) : data.earnings;
+    let filtered = q ? data.earnings.filter(e => e.symbol?.includes(q)) : data.earnings;
+    if (majorOnly) filtered = filtered.filter(e => MAJOR_TICKERS.has(e.symbol?.toUpperCase() ?? ''));
     if (sortBy === 'surprise') {
       return [...filtered].sort((a, b) => Math.abs(b.epsSurprise ?? 0) - Math.abs(a.epsSurprise ?? 0));
     }
     return filtered;
-  }, [data, search, sortBy]);
+  }, [data, search, sortBy, majorOnly]);
 
   const stats = useMemo(() => {
     const withActual = rows.filter(r => r.epsActual != null && r.epsEstimate != null);
@@ -163,6 +191,18 @@ export default function EarningsPage() {
           <option value="date">날짜순</option>
           <option value="surprise">Surprise 크기순</option>
         </select>
+        <button
+          onClick={() => setMajorOnly(v => !v)}
+          className={`text-xs px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
+            majorOnly
+              ? 'bg-cf-accent/20 border-cf-accent text-cf-accent font-semibold'
+              : 'bg-white/5 border-white/10 text-cf-text-secondary hover:bg-white/10'
+          }`}
+          title="S&P 100 + 주요 대형주만 표시"
+        >
+          <Star className="w-3.5 h-3.5" />
+          주요 종목
+        </button>
         <button
           onClick={() => load()}
           disabled={loading}

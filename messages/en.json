@@ -590,6 +590,7 @@
     "cotNetPos": "Net position",
     "cotNetPct": "% of OI",
     "cotBar": "Bias",
+    "cotWeekly": "Weekly Δ",
     "cotSentiment": "Sentiment",
     "cotLegend": "Non-commercial net = speculator (hedge funds, CTAs) longs minus shorts. CFTC publishes weekly on Fridays for positions as of the prior Tuesday."
   },

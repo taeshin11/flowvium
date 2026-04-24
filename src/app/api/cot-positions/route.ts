@@ -17,7 +17,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 
 export const maxDuration = 30;
 
-const CACHE_KEY = 'flowvium:cot-positions:v1';
+const CACHE_KEY = 'flowvium:cot-positions:v2';
 const CACHE_TTL = 4 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 const CFTC_URL = 'https://www.cftc.gov/dea/newcot/FinFutWk.txt';
@@ -31,6 +31,7 @@ export interface CotEntry {
   noncommShort: number;
   netPosition: number;    // noncommLong - noncommShort
   netPctOI: number;       // netPosition / openInterest * 100, rounded to 1dp
+  weeklyChange: number | null;  // change in net position vs prior week (field[38] - field[39])
   sentiment: 'bullish' | 'bearish' | 'neutral';
 }
 
@@ -97,6 +98,10 @@ function parseFile(text: string): CotEntry[] {
       const netPct = parseFloat((netPos / oi * 100).toFixed(1));
       // reportDate: field[2] in YYYY-MM-DD format
       const reportDate = f[2] ?? '';
+      // Weekly change in net position: Change_NC_Long(f[38]) - Change_NC_Short(f[39])
+      const chgLong = parseInt(f[38] ?? '', 10);
+      const chgShort = parseInt(f[39] ?? '', 10);
+      const weeklyChange = (!isNaN(chgLong) && !isNaN(chgShort)) ? chgLong - chgShort : null;
 
       found.set(tgt.id, {
         id: tgt.id,
@@ -107,6 +112,7 @@ function parseFile(text: string): CotEntry[] {
         noncommShort: ncShort,
         netPosition: netPos,
         netPctOI: netPct,
+        weeklyChange,
         sentiment: sentiment(netPct),
       });
     }

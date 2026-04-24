@@ -590,6 +590,7 @@
     "cotNetPos": "Posición neta",
     "cotNetPct": "% de OI",
     "cotBar": "Sesgo",
+    "cotWeekly": "Cambio sem.",
     "cotSentiment": "Sentimiento",
     "cotLegend": "Neto no comercial = longs − shorts de especuladores (hedge funds, CTAs). CFTC publica semanalmente los viernes."
   },

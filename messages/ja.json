@@ -590,6 +590,7 @@
     "cotNetPos": "ネットポジション",
     "cotNetPct": "OI比",
     "cotBar": "方向性",
+    "cotWeekly": "週間変化",
     "cotSentiment": "センチメント",
     "cotLegend": "非商業的ネット = 投機筋(ヘッジファンド等)のロング−ショート。CFTCが毎週金曜公表(前週火曜基準)。"
   },

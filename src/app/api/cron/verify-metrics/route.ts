@@ -645,7 +645,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:nport-holdings:v1', label: 'nport-holdings' },
     { key: 'flowvium:options-flow:v1', label: 'options-flow' },
     { key: 'flowvium:block-trades:v1', label: 'block-trades' },
-    { key: 'flowvium:cot-positions:v1', label: 'cot-positions' },
+    { key: 'flowvium:cot-positions:v2', label: 'cot-positions' },
     { key: 'flowvium:korea-flow:v2', label: 'korea-flow' },
     { key: 'flowvium:short-interest:v4', label: 'short-interest' },
     { key: 'flowvium:market-caps:v2', label: 'market-caps' },

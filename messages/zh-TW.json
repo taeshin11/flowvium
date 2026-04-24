@@ -590,6 +590,7 @@
     "cotNetPos": "淨部位",
     "cotNetPct": "OI佔比",
     "cotBar": "方向",
+    "cotWeekly": "週變化",
     "cotSentiment": "情緒",
     "cotLegend": "非商業淨部位 = 投機者（對沖基金等）多頭減空頭。CFTC每週五公布（上週二數據）。"
   },

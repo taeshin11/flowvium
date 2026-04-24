@@ -274,13 +274,13 @@
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
-| 114a | E-mini S&P 500 투기세력 순포지션 | 💾 cached | CFTC FinFutWk.txt (4h) |
-| 114b | Nasdaq-100 투기세력 순포지션 | 💾 cached | CFTC FinFutWk.txt |
-| 114c | 10Y T-Note 투기세력 순포지션 | 💾 cached | CFTC FinFutWk.txt |
-| 114d | 2Y T-Note 투기세력 순포지션 | 💾 cached | CFTC FinFutWk.txt |
-| 114e | EUR/USD 투기세력 순포지션 | 💾 cached | CFTC FinFutWk.txt |
-| 114f | JPY 투기세력 순포지션 | 💾 cached | CFTC FinFutWk.txt |
-| 114g | VIX 투기세력 순포지션 | 💾 cached | CFTC FinFutWk.txt |
+| 114a | E-mini S&P 500 투기세력 순포지션 + 주간 변화 | 💾 cached | CFTC FinFutWk.txt (4h) |
+| 114b | Nasdaq-100 투기세력 순포지션 + 주간 변화 | 💾 cached | CFTC FinFutWk.txt |
+| 114c | 10Y T-Note 투기세력 순포지션 + 주간 변화 | 💾 cached | CFTC FinFutWk.txt |
+| 114d | 2Y T-Note 투기세력 순포지션 + 주간 변화 | 💾 cached | CFTC FinFutWk.txt |
+| 114e | EUR/USD 투기세력 순포지션 + 주간 변화 | 💾 cached | CFTC FinFutWk.txt |
+| 114f | JPY 투기세력 순포지션 + 주간 변화 | 💾 cached | CFTC FinFutWk.txt |
+| 114g | VIX 투기세력 순포지션 + 주간 변화 | 💾 cached | CFTC FinFutWk.txt |
 
 ---
 

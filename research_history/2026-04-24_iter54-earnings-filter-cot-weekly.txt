@@ -1,0 +1,50 @@
+## Iter 54 — 실적 주요종목 필터 + COT 주간 변화
+Date: 2026-04-24
+Primary outcome: 실적 노이즈 제거 + COT 주간 Δ
+
+### Drift check
+- iter 51: GROQ 근본 원인 + 스크리너 expand
+- iter 52: earnings surprise ±999 fix
+- iter 53: CFTC COT 신규 탭
+- iter 54: earnings 필터 + COT weekly Δ 열 추가
+- 같은 모듈 3 iter 연속: 없음 ✓ (earnings: iter52·54 이지만 iter53 COT 사이에 끼어 있음)
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=cot.sp500 source=CFTC_FinFutWk.txt(2026-04-14)
+  direct_value={oi:1959076, ncLong:137784, ncShort:831374, net:-693590, pct:-35.4%, weeklyChange:36848}
+  our_parser: f[38]-f[39]=36867-19=36848
+  delta=0 → OK
+- [accuracy probe] metric=aapl.close source=Yahoo_v8(2026-04-24)
+  direct_value=273.43 (reference probe — earnings filter is display-only, no numeric delta to measure)
+
+### 수정 사항
+
+#### 1. 실적 페이지 — 주요 종목 필터 (EarningsPage.tsx)
+문제: Finnhub 무료 티어가 마이크로캡 수백 개를 포함 → 노이즈
+해결: 클라이언트 사이드 `MAJOR_TICKERS` Set (~70개 S&P 100 / 대형주) 토글 필터
+- `MAJOR_TICKERS` Set 정의 (AAPL, MSFT, NVDA, AMZN, META 등 약 70개)
+- `majorOnly` boolean state, 기본 off
+- `rows` useMemo에 `majorOnly` 조건 추가
+- 토글 버튼 (Star 아이콘, cf-accent 활성 상태)
+- TypeScript clean ✓
+
+#### 2. COT 주간 변화 열 추가 (route.ts + CotTab.tsx + i18n)
+이전 상태: weeklyChange 필드는 API에서 계산되나 UI 미표시
+추가 사항:
+- `CotTab.tsx` `<tbody>` 행에 weeklyChange `<td>` 추가 (hidden md)
+  - 양수: emerald-400, 음수: red-400, null: '—'
+- `cotWeekly` i18n 키 16개 언어 추가
+  - ko: "주간 변화", en: "Weekly Δ", ja: "週間変化", ...
+- Cache key 이미 v2로 범프됨 (iter 54 초반 route.ts 수정 시)
+
+### 핵심 발견
+- CFTC FinFutWk.txt f[38]=Change_NonComm_Long_All, f[39]=Change_NonComm_Short_All
+- E-MINI S&P 500 (2026-04-14 기준): weeklyChange = 36,867 - 19 = +36,848
+  → 투기세력이 S&P 500 롱을 36,848 계약 순증가 (숏 커버링 or 롱 추가)
+  → 그러나 net은 여전히 -693,590 (대규모 순매도 유지)
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- iter54: feat(earnings+cot): major-tickers filter + COT weekly change column

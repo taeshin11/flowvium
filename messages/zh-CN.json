@@ -590,6 +590,7 @@
     "cotNetPos": "净持仓",
     "cotNetPct": "OI占比",
     "cotBar": "方向",
+    "cotWeekly": "周变化",
     "cotSentiment": "情绪",
     "cotLegend": "非商业净持仓 = 投机者（对冲基金等）多头减空头。CFTC每周五发布（上周二数据）。"
   },

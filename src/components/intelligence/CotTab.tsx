@@ -107,6 +107,7 @@ export default function CotTab() {
               <th className="px-4 py-2.5 text-left font-medium text-cf-text-secondary">{t('cotMarket')}</th>
               <th className="px-4 py-2.5 text-right font-medium text-cf-text-secondary">{t('cotNetPos')}</th>
               <th className="px-4 py-2.5 text-right font-medium text-cf-text-secondary">{t('cotNetPct')}</th>
+              <th className="px-4 py-2.5 text-right font-medium text-cf-text-secondary hidden md:table-cell">{t('cotWeekly')}</th>
               <th className="px-4 py-2.5 text-center font-medium text-cf-text-secondary hidden sm:table-cell">{t('cotBar')}</th>
               <th className="px-4 py-2.5 text-center font-medium text-cf-text-secondary">{t('cotSentiment')}</th>
             </tr>
@@ -120,6 +121,9 @@ export default function CotTab() {
                 </td>
                 <td className={`px-4 py-3 text-right font-mono tabular-nums font-semibold ${e.netPctOI > 0 ? 'text-emerald-400' : e.netPctOI < 0 ? 'text-red-400' : 'text-cf-text-secondary'}`}>
                   {e.netPctOI > 0 ? '+' : ''}{e.netPctOI.toFixed(1)}%
+                </td>
+                <td className={`px-4 py-3 text-right font-mono tabular-nums hidden md:table-cell ${e.weeklyChange == null ? 'text-cf-text-secondary' : e.weeklyChange > 0 ? 'text-emerald-400' : e.weeklyChange < 0 ? 'text-red-400' : 'text-cf-text-secondary'}`}>
+                  {e.weeklyChange == null ? '—' : `${e.weeklyChange > 0 ? '+' : ''}${e.weeklyChange.toLocaleString()}`}
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
                   <div className="flex justify-center"><NetBar pct={e.netPctOI} /></div>

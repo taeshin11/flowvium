@@ -598,6 +598,7 @@
     "cotNetPos": "순포지션",
     "cotNetPct": "OI 대비",
     "cotBar": "방향",
+    "cotWeekly": "주간 변화",
     "cotSentiment": "심리",
     "cotLegend": "비상업적 순포지션 = 투기세력(헤지펀드 등) 롱−숏. CFTC 매주 금요일 발표(직전 화요일 기준)."
   },

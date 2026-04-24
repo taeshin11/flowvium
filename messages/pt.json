@@ -590,6 +590,7 @@
     "cotNetPos": "Posição líquida",
     "cotNetPct": "% do OI",
     "cotBar": "Viés",
+    "cotWeekly": "Var. sem.",
     "cotSentiment": "Sentimento",
     "cotLegend": "Líquido não comercial = longs − shorts de especuladores. CFTC publica semanalmente às sextas."
   },
