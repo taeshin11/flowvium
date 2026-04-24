@@ -53,17 +53,6 @@ async function warm(
   }
 }
 
-// Redis 캐시 강제 삭제 (daily-brief DELETE endpoint)
-async function bustDailyBriefCache(base: string, secret: string) {
-  try {
-    await fetch(`${base}/api/daily-brief`, {
-      method: 'DELETE',
-      headers: { 'x-cron-secret': secret },
-      signal: AbortSignal.timeout(5000),
-    });
-  } catch { /* non-fatal */ }
-}
-
 const TOP_TICKERS = ['NVDA', 'AAPL', 'MSFT', 'TSMC', 'AMZN', 'GOOGL', 'META', 'LMT', 'MU', 'ASML'];
 
 export async function GET(req: Request) {
@@ -110,11 +99,11 @@ export async function GET(req: Request) {
   // ── 2단계: capital-flows 의존 분석 ─────────────────────────────────────
   const flowR = await warm(base, '/api/flow-analysis?tf=4w', 'flow-analysis');
 
-  // ── 3단계: AI 리포트 캐시 삭제 후 4w만 재생성 ───────────────────────────
-  // 1w/13w는 사용자 첫 요청 시 lazy-generate (iter48 절감 정책 일관 적용).
-  // 3 timeframe → 1 timeframe: GROQ daily-brief 호출 9→3/일 절감.
-  if (cronSecret) await bustDailyBriefCache(base, cronSecret);
-  const brief4wR = await warm(base, '/api/daily-brief?tf=4w&force=1', 'daily-brief-4w', 20000);
+  // ── 3단계: daily-brief 캐시 확인 (재생성은 standalone daily-brief cron에 위임) ──
+  // 주의: update-all 이후 5분 후 dedicated daily-brief cron이 동일 timeframe을 재생성.
+  // 여기서 bust+force=1하면 토큰을 2배 소비 (→ 5,400 tokens/day 낭비).
+  // 캐시가 있으면 기존 응답 반환, 없으면 warm 트리거만 한다.
+  const brief4wR = await warm(base, '/api/daily-brief?tf=4w', 'daily-brief-4w', 20000);
 
   // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget) ─────────────────
   for (const ticker of TOP_TICKERS) {
