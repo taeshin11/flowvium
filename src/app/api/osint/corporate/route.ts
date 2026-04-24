@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
       {
         headers: { 'User-Agent': 'Mozilla/5.0' },
         signal: AbortSignal.timeout(10000),
+        cache: 'no-store',
       }
     );
 

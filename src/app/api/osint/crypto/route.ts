@@ -40,6 +40,7 @@ async function fetchBtc(address: string) {
     {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
     }
   );
   if (!res.ok) throw new Error(`blockchain.info HTTP ${res.status}`);
@@ -112,6 +113,7 @@ async function fetchEth(address: string) {
     {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
     }
   );
   if (!res.ok) throw new Error(`Ethplorer HTTP ${res.status}`);

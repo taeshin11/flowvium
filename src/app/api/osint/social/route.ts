@@ -111,6 +111,7 @@ async function fetchNitterRss(handle: string): Promise<RssItem[]> {
       const res = await fetch(`${base}/${handle}/rss`, {
         headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/rss+xml, application/xml' },
         signal: AbortSignal.timeout(6000),
+        cache: 'no-store',
       });
       if (!res.ok) continue;
       const xml = await res.text();
@@ -127,6 +128,7 @@ async function fetchNewsRss(url: string, sourceName: string): Promise<RssItem[]>
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/rss+xml, application/xml' },
       signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
     });
     if (!res.ok) return [];
     return parseRssXml(await res.text(), sourceName, 30);

@@ -72,6 +72,7 @@ async function getSdnData(redis: Redis | null): Promise<SdnEntry[] | null> {
     const res = await fetch(OFAC_CSV_URL, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       signal: AbortSignal.timeout(30000),
+      cache: 'no-store',
     });
     if (!res.ok) return null;
 

@@ -288,6 +288,7 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
     try {
       const res = await fetch(`${vllmUrl.replace(/\/v1$/, '')}/v1/models`, {
         signal: AbortSignal.timeout(6000),
+        cache: 'no-store',
       });
       // vLLM 은 체인 1단계 — 터널이 내려가 있어도 GROQ 70b → GROQ 8b → Gemini 순서로
       // 폴백되므로 프로덕트 헬스에는 영향 없음. unreachable 은 skipped 로 분류.
@@ -335,6 +336,7 @@ async function verifyAIProviders(): Promise<MetricItem[]> {
           temperature: 0,
         }),
         signal: AbortSignal.timeout(8000),
+        cache: 'no-store',
       });
       // Parse rate-limit headers. GROQ 실제 의미:
       //   x-ratelimit-limit-tokens    = TPM (tokens per minute, 12,000)
@@ -942,7 +944,7 @@ async function verifyEarnings(_base: string): Promise<MetricItem[]> {
   try {
     const res = await fetch(
       `https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${to}&token=${encodeURIComponent(key)}`,
-      { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'flowvium-metrics-verifier/1.0' } },
+      { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'flowvium-metrics-verifier/1.0' }, cache: 'no-store' },
     );
     if (!res.ok) {
       return [{
