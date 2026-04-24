@@ -1,0 +1,45 @@
+## Iter 59 — 매크로 리스크 신호 카드
+Date: 2026-04-24
+Primary outcome: 매크로 리스크 신호 카드 (12자 ✓)
+
+### Drift check
+- iter 56: macro UMCSENT + cache v5
+- iter 57: fear-greed sparkline (break)
+- iter 58: macro credit OAS (1 consecutive)
+- iter 59: macro risk signal (2 consecutive) — drift 없음 ✓
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=macro_risk_signal source=computed_from_live_values
+  IG=0.79% (<1.0%), HY=2.84% (<3.5%), UMCSENT=56.6 (<60 → 미충족), 금리 정상
+  → signal=NEUTRAL (UMCSENT 60 미달로 Risk-On 미충족) → OK ✓
+
+- Risk-Off 임계값: IG>1.5%, HY>5%, UMC<50, 금리역전+HY>4% — 현재 모두 미달
+- Risk-On 임계값: IG<1.0% ✓, HY<3.5% ✓, not inverted ✓, UMC>60 ✗ → NEUTRAL
+
+### 수정 사항
+
+#### 1. MacroRiskSignal 컴포넌트 추가 (MacroIndicatorsTab.tsx)
+- `indicators` + `yieldCurve` props 수신
+- IG OAS(< 1.0%), HY OAS(< 3.5%), UMCSENT(> 60), 금리 정상 → Risk-On (🟢)
+- IG > 1.5% OR HY > 5.0% OR UMC < 50 OR (역전+HY>4%) → Risk-Off (🔴)
+- 그 외 → Neutral (🟡)
+- 4개 데이터 포인트 pill 표시: IG/HY/UMC/금리곡선, 상태별 색상
+
+#### 2. 렌더 위치: 인트로 카드 → Risk Signal 카드 → 금리 곡선 → FedWatch
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 없음 (기존 /api/macro-indicators 데이터 재사용)
+- 클라이언트 사이드 계산 — 캐시 계층 없음 ✓
+
+### TypeScript
+- TypeScript clean ✓
+
+### 현재 신호 상태
+- IG OAS: 0.79% (정상 < 1.0%)
+- HY OAS: 2.84% (정상 < 3.5%)
+- UMCSENT: 56.6 (경계, < 60)
+- 금리 곡선: 정상 (+0.51%p)
+→ 🟡 중립 (Neutral)
+
+### Commits
+- iter59: feat(macro): 리스크 신호 카드 (IG+HY+UMC+금리 종합)

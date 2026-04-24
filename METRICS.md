@@ -226,6 +226,7 @@
 | 93b | 미시간대 소비자심리지수 (UMCSENT 월간) | 💾 cached | FRED UMCSENT series |
 | 93c | IG 신용 스프레드 OAS (ICE BofA, 일별) | ✅ live | FRED BAMLC0A0CM, iter58 |
 | 93d | HY 신용 스프레드 OAS (ICE BofA, 일별) | ✅ live | FRED BAMLH0A0HYM2, iter58 |
+| 93e | 매크로 리스크 신호 (Risk-On/Neutral/Risk-Off) | ✅ live | IG+HY+UMC+금리 합성, iter59 |
 | 94 | 각 지표 매파/비둘기 영향 | 💾 cached | hawkish/dovish |
 | 95 | 각 지표 캐스케이드 체인 (3~5개 자산) | 💾 cached | 방향·강도·이유 |
 

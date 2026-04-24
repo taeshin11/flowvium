@@ -194,6 +194,59 @@ const RATE_BADGE: Record<string, { label: string; cls: string }> = {
 };
 const CASCADE_ICONS: Record<string, string> = { up: '▲', down: '▼', mixed: '↕' };
 const MAG_OPACITY: Record<string, string> = { strong: 'opacity-100', moderate: 'opacity-70', weak: 'opacity-40' };
+
+// ── Macro Risk Signal ──────────────────────────────────────────────────────────
+// 신용(IG/HY OAS) + 소비 심리(UMCSENT) + 금리 곡선 → 3단계 종합 신호
+function MacroRiskSignal({ indicators, yieldCurve }: { indicators: MacroIndicator[]; yieldCurve: { inverted: boolean; spread10y2y: number | null } | null }) {
+  const ig = indicators.find(i => i.id === 'ig_spread')?.actual ?? null;
+  const hy = indicators.find(i => i.id === 'hy_spread')?.actual ?? null;
+  const umc = indicators.find(i => i.id === 'umcsent')?.actual ?? null;
+  const inverted = yieldCurve?.inverted ?? false;
+
+  if (ig === null && hy === null && umc === null) return null;
+
+  const riskOff = (hy != null && hy > 5.0) || (ig != null && ig > 1.5) ||
+                  (inverted && (hy != null && hy > 4.0)) || (umc != null && umc < 50);
+  const riskOn = (hy != null && hy < 3.5) && (ig != null && ig < 1.0) &&
+                 !inverted && (umc != null && umc > 60);
+  const signal = riskOff ? 'risk-off' : riskOn ? 'risk-on' : 'neutral';
+
+  const CFG = {
+    'risk-on':  { emoji: '🟢', label: '리스크 온 (Risk-On)',  desc: '신용 건전·소비 낙관·금리 정상화 → 위험자산 선호', bg: 'bg-green-50 border-green-200',  text: 'text-green-800' },
+    'neutral':  { emoji: '🟡', label: '중립 (Neutral)',        desc: '신용 안정이나 소비 심리 혼재 → 방향성 불명확',   bg: 'bg-yellow-50 border-yellow-200', text: 'text-yellow-800' },
+    'risk-off': { emoji: '🔴', label: '리스크 오프 (Risk-Off)', desc: '신용 스트레스·소비 위축·금리 역전 → 안전자산 선호', bg: 'bg-red-50 border-red-200',   text: 'text-red-800' },
+  } as const;
+
+  const cfg = CFG[signal];
+  const pills = [
+    { label: 'IG OAS', val: ig != null ? `${ig.toFixed(2)}%` : '?', ok: ig != null && ig < 1.0, warn: ig != null && ig > 1.5 },
+    { label: 'HY OAS', val: hy != null ? `${hy.toFixed(2)}%` : '?', ok: hy != null && hy < 3.5, warn: hy != null && hy > 5.0 },
+    { label: 'UMC',    val: umc != null ? umc.toFixed(1) : '?',       ok: umc != null && umc > 60, warn: umc != null && umc < 50 },
+    { label: '금리 곡선', val: inverted ? '역전 ⚠' : '정상',           ok: !inverted, warn: inverted },
+  ];
+
+  return (
+    <div className={`cf-card p-4 border ${cfg.bg}`}>
+      <div className="flex items-start gap-3">
+        <span className="text-2xl leading-none">{cfg.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className={`text-sm font-extrabold ${cfg.text}`}>{cfg.label}</span>
+            <span className="text-[10px] text-cf-text-secondary">신용·소비·금리 종합 신호</span>
+          </div>
+          <p className={`text-xs ${cfg.text} opacity-80 mb-2`}>{cfg.desc}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {pills.map(p => (
+              <span key={p.label} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.warn ? 'bg-red-100 text-red-700' : p.ok ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                {p.label} {p.val}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 const CAT_LABELS: Record<string, string> = { inflation: '물가', employment: '고용', growth: '경기', monetary: '통화정책', trade: '무역', credit: '신용' };
 const CAT_COLORS: Record<string, string> = { inflation: 'bg-orange-50 text-orange-700', employment: 'bg-green-50 text-green-700', growth: 'bg-blue-50 text-blue-700', monetary: 'bg-purple-50 text-purple-700', trade: 'bg-teal-50 text-teal-700', credit: 'bg-red-50 text-red-700' };
 
@@ -366,6 +419,11 @@ export default function MacroIndicatorsTab() {
           </div>
         </div>
       </div>
+
+      {/* Macro Risk Signal */}
+      {indicators.length > 0 && (
+        <MacroRiskSignal indicators={indicators} yieldCurve={yieldCurve} />
+      )}
 
       {/* Yield Curve */}
       {yieldCurve && (

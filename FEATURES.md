@@ -167,6 +167,9 @@
   - 오늘부터 10개 이벤트, 날짜별 그룹, D-N 카운트다운 chip
   - Impact 3단계 (high=빨강/medium=노랑/low=회색), 카테고리 색상 구분
   - 출처: Fed · BLS · BEA 공식 발표 일정
+- **매크로 리스크 신호 카드** (3단계: Risk-On / Neutral / Risk-Off) ← iter59
+  - IG OAS(< 1.0%) + HY OAS(< 3.5%) + UMCSENT(> 60) + 금리 정상 → Risk-On
+  - 어느 하나 위반 시 Neutral, 임계값 초과(IG>1.5%/HY>5%/UMC<50/금리역전) → Risk-Off
 - **매크로 지표 카드** (13개, 접기/펼치기) ← iter58: IG/HY OAS 신용 스프레드 추가
   - CPI · PCE(Core) · NFP · FOMC · GDP · ISM PMI · 소매판매 · PPI · 실업률 · 신규 실업수당 (주간) · 소비자심리지수 · IG OAS · HY OAS
   - 실제치 / 예상치 / 이전치 / Surprise 배지 (beat/miss/inline/pending)
