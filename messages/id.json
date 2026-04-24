@@ -76,7 +76,15 @@
       "pharma-biotech": "Farmasi / Bioteknologi",
       "consumer-defensive": "Konsumen Defensif",
       "financials": "Keuangan",
-      "energy": "Energi"
+      "energy": "Energi",
+      "healthcare": "Kesehatan",
+      "industrials": "Industri",
+      "communication-services": "Layanan Komunikasi",
+      "real-estate": "Properti",
+      "materials": "Material",
+      "utilities": "Utilitas",
+      "consumer-discretionary": "Konsumen Diskresioner",
+      "it-software": "IT / Perangkat Lunak"
     },
     "relationships": {
       "supplier": "Pemasok",

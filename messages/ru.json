@@ -76,7 +76,15 @@
       "pharma-biotech": "Фарма / Биотех",
       "consumer-defensive": "Потребительский сектор",
       "financials": "Финансы",
-      "energy": "Энергетика"
+      "energy": "Энергетика",
+      "healthcare": "Здравоохранение",
+      "industrials": "Промышленность",
+      "communication-services": "Коммуникационные услуги",
+      "real-estate": "Недвижимость",
+      "materials": "Материалы",
+      "utilities": "Коммунальные услуги",
+      "consumer-discretionary": "Потребительский сектор",
+      "it-software": "IT / ПО"
     },
     "relationships": {
       "supplier": "Поставщик",

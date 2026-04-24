@@ -76,7 +76,15 @@
       "pharma-biotech": "ยา / ไบโอเทค",
       "consumer-defensive": "สินค้าจำเป็น",
       "financials": "การเงิน",
-      "energy": "พลังงาน"
+      "energy": "พลังงาน",
+      "healthcare": "การดูแลสุขภาพ",
+      "industrials": "อุตสาหกรรม",
+      "communication-services": "บริการสื่อสาร",
+      "real-estate": "อสังหาริมทรัพย์",
+      "materials": "วัสดุ",
+      "utilities": "สาธารณูปโภค",
+      "consumer-discretionary": "สินค้าอุปโภคบริโภคตามดุลยพินิจ",
+      "it-software": "IT / ซอฟต์แวร์"
     },
     "relationships": {
       "supplier": "ผู้จัดหา",

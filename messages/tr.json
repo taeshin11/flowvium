@@ -76,7 +76,15 @@
       "pharma-biotech": "İlaç / Biyoteknoloji",
       "consumer-defensive": "Temel Tüketim",
       "financials": "Finans",
-      "energy": "Enerji"
+      "energy": "Enerji",
+      "healthcare": "Sağlık",
+      "industrials": "Sanayi",
+      "communication-services": "İletişim Hizmetleri",
+      "real-estate": "Gayrimenkul",
+      "materials": "Malzeme",
+      "utilities": "Kamu Hizmetleri",
+      "consumer-discretionary": "Tüketici İhtiyari",
+      "it-software": "IT / Yazılım"
     },
     "relationships": {
       "supplier": "Tedarikçi",

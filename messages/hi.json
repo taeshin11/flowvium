@@ -76,7 +76,15 @@
       "pharma-biotech": "फार्मा / बायोटेक",
       "consumer-defensive": "आवश्यक उपभोक्ता वस्तुएं",
       "financials": "वित्तीय",
-      "energy": "ऊर्जा"
+      "energy": "ऊर्जा",
+      "healthcare": "स्वास्थ्य सेवा",
+      "industrials": "औद्योगिक",
+      "communication-services": "संचार सेवाएं",
+      "real-estate": "रियल एस्टेट",
+      "materials": "सामग्री",
+      "utilities": "उपयोगिताएं",
+      "consumer-discretionary": "उपभोक्ता विवेकाधीन",
+      "it-software": "IT / सॉफ्टवेयर"
     },
     "relationships": {
       "supplier": "आपूर्तिकर्ता",

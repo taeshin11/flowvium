@@ -76,7 +76,15 @@
       "pharma-biotech": "الأدوية / التكنولوجيا الحيوية",
       "consumer-defensive": "السلع الاستهلاكية الأساسية",
       "financials": "القطاع المالي",
-      "energy": "الطاقة"
+      "energy": "الطاقة",
+      "healthcare": "الرعاية الصحية",
+      "industrials": "الصناعة",
+      "communication-services": "خدمات الاتصالات",
+      "real-estate": "العقارات",
+      "materials": "المواد",
+      "utilities": "المرافق",
+      "consumer-discretionary": "السلع الاستهلاكية الاختيارية",
+      "it-software": "IT / البرمجيات"
     },
     "relationships": {
       "supplier": "مورّد",

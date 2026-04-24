@@ -76,7 +76,15 @@
       "pharma-biotech": "医药 / 生物科技",
       "consumer-defensive": "必需消费品",
       "financials": "金融",
-      "energy": "能源"
+      "energy": "能源",
+      "healthcare": "医疗保健",
+      "industrials": "工业",
+      "communication-services": "通信服务",
+      "real-estate": "房地产",
+      "materials": "材料",
+      "utilities": "公用事业",
+      "consumer-discretionary": "非必需消费品",
+      "it-software": "IT / 软件"
     },
     "relationships": {
       "supplier": "供应商",

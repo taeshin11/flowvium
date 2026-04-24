@@ -76,7 +76,15 @@
       "pharma-biotech": "Dược phẩm / Công nghệ sinh học",
       "consumer-defensive": "Hàng tiêu dùng thiết yếu",
       "financials": "Tài chính",
-      "energy": "Năng lượng"
+      "energy": "Năng lượng",
+      "healthcare": "Chăm sóc sức khỏe",
+      "industrials": "Công nghiệp",
+      "communication-services": "Dịch vụ Truyền thông",
+      "real-estate": "Bất động sản",
+      "materials": "Vật liệu",
+      "utilities": "Dịch vụ công cộng",
+      "consumer-discretionary": "Tiêu dùng tùy ý",
+      "it-software": "IT / Phần mềm"
     },
     "relationships": {
       "supplier": "Nhà cung cấp",

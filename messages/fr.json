@@ -76,7 +76,15 @@
       "pharma-biotech": "Pharma / Biotech",
       "consumer-defensive": "Consommation défensive",
       "financials": "Finance",
-      "energy": "Énergie"
+      "energy": "Énergie",
+      "healthcare": "Santé",
+      "industrials": "Industrie",
+      "communication-services": "Services de Communication",
+      "real-estate": "Immobilier",
+      "materials": "Matériaux",
+      "utilities": "Services Publics",
+      "consumer-discretionary": "Consommation Discrétionnaire",
+      "it-software": "IT / Logiciel"
     },
     "relationships": {
       "supplier": "Fournisseur",
