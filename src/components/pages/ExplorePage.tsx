@@ -288,14 +288,14 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
   // Fetch live market-cap bands from Yahoo (cached 24h server-side).
   // Non-blocking: if the call fails the UI keeps static data as fallback.
   useEffect(() => {
-    let cancelled = false;
-    fetch('/api/market-caps')
+    const controller = new AbortController();
+    fetch('/api/market-caps', { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!cancelled && data?.bands) setLiveBands(data.bands as Record<string, string>);
+        if (!controller.signal.aborted && data?.bands) setLiveBands(data.bands as Record<string, string>);
       })
       .catch(() => { /* static fallback */ });
-    return () => { cancelled = true; };
+    return () => controller.abort();
   }, []);
 
   // Resolve a company's effective cap band — live data if present, else static.

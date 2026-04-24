@@ -250,6 +250,8 @@
 - **실시간 주가·일간 변화%** (`/api/stock-price/[ticker]`, Yahoo Finance v8, 15min 캐시)
   - 장전(PRE)/장후(POST) 마켓 상태 표시
 - **실시간 시가총액** (`/api/market-caps?ticker=X`, Yahoo Finance v7 crumb, 24h 캐시)
+- **90일 주가 추이 차트** (`/api/price-history?ticker=X&days=90`, Yahoo Finance v8, 1h 캐시)
+  - 90일 수익률(%) + 미니 LineChart (recharts)
 - 공유 버튼·비교 링크
 - **터미널 뷰 토글** (`SupplyChainMap` ASCII 네트워크)
 

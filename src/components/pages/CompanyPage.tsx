@@ -219,10 +219,12 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     return null;
   }, [company, ticker]);
 
-  // ── Live stock price (Yahoo Finance, 15min cache) ────────────────────────────
+  // ── Live stock price + 90-day history (Yahoo Finance) ─────────────────────
   interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; marketState: string | null; }
+  interface PricePoint { date: string; close: number }
   const [livePrice, setLivePrice] = useState<LivePrice | null>(null);
   const [liveMarketCap, setLiveMarketCap] = useState<number | null>(null);
+  const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
 
   useEffect(() => {
     if (!ticker) return;
@@ -313,6 +315,16 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           });
         }
       })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ticker]);
+
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    fetch(`/api/price-history?ticker=${ticker.toUpperCase()}&days=90`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!controller.signal.aborted && d?.points?.length) setPriceHistory(d.points); })
       .catch(() => undefined);
     return () => controller.abort();
   }, [ticker]);
@@ -446,6 +458,44 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           </button>
         </div>
       </div>
+
+      {/* 90-day stock price chart */}
+      {priceHistory.length > 1 && (() => {
+        const first = priceHistory[0].close;
+        const last = priceHistory[priceHistory.length - 1].close;
+        const pct90 = ((last - first) / first) * 100;
+        const isUp = pct90 >= 0;
+        const min = Math.min(...priceHistory.map(p => p.close));
+        const max = Math.max(...priceHistory.map(p => p.close));
+        const pad = (max - min) * 0.06;
+        return (
+          <div className="cf-card p-4 mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-cf-text-secondary">90일 주가 추이</span>
+              <span className={`text-xs font-bold tabular-nums ${isUp ? 'text-green-600' : 'text-red-600'}`}>
+                {isUp ? '+' : ''}{pct90.toFixed(2)}% <span className="font-normal text-cf-text-secondary">(90d)</span>
+              </span>
+            </div>
+            <div className="h-16">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={priceHistory} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                  <YAxis domain={[min - pad, max + pad]} hide />
+                  <Line
+                    type="monotone" dataKey="close" dot={false} strokeWidth={1.5}
+                    stroke={isUp ? '#16a34a' : '#dc2626'}
+                  />
+                  <Tooltip
+                    formatter={(v) => [`$${Number(v).toFixed(2)}`, '']}
+                    labelFormatter={(l) => String(l)}
+                    contentStyle={{ fontSize: '11px', padding: '4px 8px' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-[10px] text-cf-text-secondary mt-1">Yahoo Finance · 1h 캐시</p>
+          </div>
+        );
+      })()}
 
       {terminalView ? (
         <SupplyChainMap company={company} />

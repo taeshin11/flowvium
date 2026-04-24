@@ -275,6 +275,7 @@
 | 123 | 기업명·설명·역할 | 📋 static | |
 | 123-P | 실시간 주가·일간 변화% | ✅ live | /api/stock-price Yahoo v8, 15min |
 | 123-M | 실시간 시가총액 (기업 프로필 헤더) | 💾 cached | /api/market-caps Yahoo v7, 24h |
+| 123-C | 90일 주가 추이 차트 + 수익률 | 💾 cached | /api/price-history Yahoo v8, 1h |
 | 124 | 번역 설명 (16개 언어) | 💾 cached | Gemini 번역, 30d |
 | 125 | ASCII 공급망 네트워크 뷰 | 📋 static | |
 

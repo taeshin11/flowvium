@@ -1,0 +1,38 @@
+## Iter 16 — Live 13F 섹터 신호 + zombie fix 2건
+Date: 2026-04-24
+Primary outcome: 머니흐름 탭 live 13F 신호 추가
+
+### 정확성 프로브 (verify-metrics 대리)
+- F&G US: ours=66 vs CNN=66 (Δ0) → OK (캐시됨)
+- 10Y-2Y spread: ours=0.51 vs FRED=0.51 (Δ0.00) → OK
+- verify-metrics: 77 OK, 0 DEGRADED, 0 ERROR
+
+### Drift check
+- 최근 5 커밋: flows-tab(IntelligencePage), discord-alerts(cron), eco-calendar(MacroIndicators), docs, metrics
+- 같은 영역 3+ iter: IntelligencePage 첫 번째 수정 → OK
+- Primary metric 정체: 없음
+
+### 작업 내용
+1. **IntelligencePage.tsx 머니흐름 탭 live 13F 신호 그리드**
+   - /api/signals fetch (flows 탭 활성 시, 1회만)
+   - 섹터별 순매수(↑)/매도(↓)/순신호(net) 집계
+   - 7개 섹터: 반도체, AI·클라우드, 전기차·배터리, 방산, 금융, 소재, 바이오·제약
+   - 섹터당 상위 4 ticker 링크 (/company/{ticker})
+   - 실시간 배지 + "EDGAR 13F-HR 기반 · 매일 02:00 UTC 자동갱신" 출처 표기
+   - 오해 유발 "매일 새벽 3시 자동 업데이트" 텍스트 수정 → "에디토리얼 컨텍스트 (2026-04-16 기준)"
+
+2. **CompanyPage.tsx: company-financials zombie 수정**
+   - let cancelled = false → const controller = new AbortController()
+   - fetch() → fetch(url, { signal: controller.signal })
+
+3. **CapitalFlowsTab.tsx: FlowAnalysisPanel zombie 수정**
+   - abortRef = useRef<AbortController | null>(null) 추가
+   - load() 시 이전 요청 abort 후 새 controller 생성
+   - useEffect([tf]): abort + state reset
+
+### 산출물
+- rule [3a]: 핵심 숫자 이동 (sectors flows: 정적 → 실시간 EDGAR 기반)
+- rule [3c]: 오해 유발 텍스트 수정, 2 zombie 패턴 제거
+
+### Commit
+0946afe feat(flows-tab): Live 13F 섹터 신호 펄스 + zombie fetch 2건 제거
