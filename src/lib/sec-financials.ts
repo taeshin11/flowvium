@@ -147,37 +147,56 @@ function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: numb
   return new Map(sorted);
 }
 
-/** Build quarterly revenue series (last 8 quarters) with Y/Y growth from 10-Q filings. */
+/** Build quarterly revenue series (last 8 quarters) with Y/Y growth from 10-Q filings.
+ *
+ *  SEC XBRL 10-Q entries report year-to-date (YTD) cumulative revenue, not single-quarter.
+ *  True quarterly = YTD_Q - YTD_Q_prev  (e.g. Q2 = YTD_Q2 - YTD_Q1).
+ *  Q4 is derived: Annual (10-K FY) - YTD_Q3.
+ */
 function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[]): QuarterlyRevenue[] {
-  // Collect all quarterly entries (10-K FY Q4 + 10-Q Q1/Q2/Q3)
-  const qMap = new Map<string, USDEntry>(); // key = `${fy}:${fp}`
+  // key = `${fy}:${fp}` where fp ∈ Q1|Q2|Q3|FY
+  const ytdMap = new Map<string, USDEntry>();
+
   for (const name of names) {
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
       ?.['us-gaap']?.[name]?.units?.USD;
     if (!Array.isArray(entries)) continue;
-    // Include 10-Q filings (Q1/Q2/Q3) and 10-K for Q4 pattern
-    const qEntries = entries.filter(e =>
-      (e.form === '10-Q' && ['Q1', 'Q2', 'Q3'].includes(e.fp)) ||
-      (e.form === '10-K' && e.fp === 'FY')  // some 10-K include Q4 derived
-    );
-    for (const e of qEntries) {
-      const fp = e.fp === 'FY' ? 'Q4' : e.fp;
-      const key = `${e.fy}:${fp}`;
-      const existing = qMap.get(key);
-      if (!existing || e.end > existing.end) qMap.set(key, { ...e, fp });
+    for (const e of entries) {
+      const isQ = e.form === '10-Q' && ['Q1', 'Q2', 'Q3'].includes(e.fp);
+      const isFY = e.form === '10-K' && e.fp === 'FY';
+      if (!isQ && !isFY) continue;
+      const key = `${e.fy}:${e.fp}`;
+      const existing = ytdMap.get(key);
+      if (!existing || e.end > existing.end) ytdMap.set(key, e);
     }
   }
 
-  // Sort descending by fy then quarter number
-  const fpOrder: Record<string, number> = { Q4: 4, Q3: 3, Q2: 2, Q1: 1 };
-  const sorted = Array.from(qMap.values()).sort((a, b) =>
-    b.fy !== a.fy ? b.fy - a.fy : (fpOrder[b.fp] ?? 0) - (fpOrder[a.fp] ?? 0)
-  ).slice(0, 8);
+  // For each FY that has data, derive true quarterly values
+  const fySet = Array.from(new Set(Array.from(ytdMap.keys()).map(k => parseInt(k.split(':')[0]))));
 
-  // Calculate Y/Y for each quarter
+  // true quarterly map: key = `${fy}:Q1`|`Q2`|`Q3`|`Q4`
+  const trueMap = new Map<string, { val: number; end: string; fy: number; fp: string }>();
+
+  for (const fy of fySet) {
+    const q1 = ytdMap.get(`${fy}:Q1`);
+    const q2 = ytdMap.get(`${fy}:Q2`);
+    const q3 = ytdMap.get(`${fy}:Q3`);
+    const ann = ytdMap.get(`${fy}:FY`);
+    if (q1) trueMap.set(`${fy}:Q1`, { val: q1.val, end: q1.end, fy, fp: 'Q1' });
+    if (q2 && q1) trueMap.set(`${fy}:Q2`, { val: q2.val - q1.val, end: q2.end, fy, fp: 'Q2' });
+    if (q3 && q2) trueMap.set(`${fy}:Q3`, { val: q3.val - q2.val, end: q3.end, fy, fp: 'Q3' });
+    if (ann && q3) trueMap.set(`${fy}:Q4`, { val: ann.val - q3.val, end: ann.end, fy, fp: 'Q4' });
+  }
+
+  const fpOrder: Record<string, number> = { Q4: 4, Q3: 3, Q2: 2, Q1: 1 };
+  const sorted = Array.from(trueMap.values())
+    .filter(e => e.val > 0)
+    .sort((a, b) => b.fy !== a.fy ? b.fy - a.fy : (fpOrder[b.fp] ?? 0) - (fpOrder[a.fp] ?? 0))
+    .slice(0, 8);
+
   return sorted.map(e => {
     const prevKey = `${e.fy - 1}:${e.fp}`;
-    const prev = qMap.get(prevKey);
+    const prev = trueMap.get(prevKey);
     const yoyPct = prev && prev.val > 0
       ? parseFloat(((e.val - prev.val) / prev.val * 100).toFixed(1))
       : null;
