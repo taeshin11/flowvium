@@ -1,0 +1,57 @@
+## Iter 43 — stock-supply avgVol10d + changePct from 90d 데이터
+Date: 2026-04-24
+Primary outcome: stock-supply avgVol10d + changePct 복원
+
+### Drift check
+- iter 40: 52주 고저 + cron cache
+- iter 41: sector-pe 502 fix
+- iter 42: crumb 좀비 코드 삭제
+- iter 43: stock-supply data quality (다른 영역 ✓)
+
+### 정확성 프로브
+- [accuracy probe] metric=NVDA.changePct source=Yahoo direct_value=-1.41% our_value=-1.41% Δ0 → OK
+- [accuracy probe] metric=NVDA.avgVol10d source=Yahoo direct_value=138285770 our_value=138285770 Δ0 → OK
+- [accuracy probe] metric=fg.us source=CNN our_value=67 direct_value=67 Δ0 → OK (via verify-metrics)
+- verify-metrics: 77/79 OK, 0 degraded
+
+### 발견된 문제
+1. stock-supply avgVol10d: null
+   - fetchKeyStats 삭제 후 hardcode null
+   - 90d 데이터에서 충분히 계산 가능 (last 10 valid volumes)
+   - 수정: validVolumes.slice(-10) 평균으로 계산
+
+2. stock-supply changePct: null
+   - 일일 등락률 없음 → 모달에서 가격 옆 변화폭 미표시
+   - 동일 문제: chartPreviousClose with range=90d = 90일 전 종가 (사용 불가)
+   - 수정: validCloses[length-2] (전일 종가) → 일일 등락률 계산
+
+3. cron short-interest 타임아웃:
+   - 이전: 45s (fetchBatchShortData 대기)
+   - 현재: fetchBatchShortData 없음 → ~200ms면 충분
+   - 수정: 45s → 10s
+
+4. StockSupplyModal:
+   - changePct 필드 없음
+   - 수정: 인터페이스에 changePct 추가, 가격 옆에 등락 배지 렌더
+
+### 코드 변경
+#### src/app/api/stock-supply/route.ts
+- fetchVolumeData(): recent10 = validVolumes.slice(-10) → avgVol10d
+- fetchVolumeData(): prevDayClose = validCloses[length-2] → changePct
+- fetchVolumeData(): price = meta.regularMarketPrice ?? current
+- 응답: avgVol10d: volData.avgVol10d, changePct: volData.changePct
+- Cache key: v4 → v5
+
+#### src/app/api/cron/update-all/route.ts
+- short-interest timeout: 45s → 10s
+
+#### src/components/StockSupplyModal.tsx
+- interface: changePct: number | null 추가
+- UI: 가격 옆에 changePct 배지 추가
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- 3e75593: fix(stock-supply): add avgVol10d + changePct from 90d array
+- 904e7ad: feat(stock-supply-modal): show daily changePct badge next to price
