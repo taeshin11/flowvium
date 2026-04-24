@@ -1,0 +1,78 @@
+## FlowVium Loop Iter 9 — 2026-04-24 (continuation of iter8)
+
+### Drift Check
+- Last 5 commits: feat(company-news), feat(health)/cron, feat(watchlist), docs(research), feat(commodity-curve)
+- Areas: company page, health cron, watchlist (new page), commodity (new API)
+- No single area hit 3+ consecutive iters → CLEAN
+
+### Primary Outcomes: "watchlist #308 + company news #322"
+(Commodity curve #316 was the primary for previous sub-iteration)
+
+---
+
+### 4. Watchlist Page (#308)
+
+**Feature**: `/watchlist` — 관심 종목 실시간 주가 추적
+- `src/app/[locale]/watchlist/page.tsx` + `src/components/pages/WatchlistPage.tsx`
+- localStorage에 tickers 저장 (key: `flowvium_watchlist`, max 30)
+- `/api/stock-price/[ticker]` 연동 — 실시간 주가·일간 변화율·변화금액
+- 시장 상태 배지 (정규장/프리마켓/애프터마켓)
+- 5분 자동갱신 + AbortController 적용
+- Navbar에 링크 추가
+- 16개 언어 i18n: `scripts/add-watchlist-i18n.js` 로 일괄 추가
+- Commit: `a007453`
+
+### 5. Commodity Curve + Health Coverage (#316)
+
+**API**: `/api/commodity-curve`
+- Yahoo Finance v8 chart API로 WTI 7개월 + Gold 5개월 선물 가격 수집
+- slope % 계산 → structure 판정: contango/backwardation/flat (±0.5% threshold)
+- 30분 memory cache, dynamic route
+- CL=F=$96.57 (Jun26), CLN26=$91.27 (Jul26), CLQ26=$86.84 (Aug26) → BACKWARDATION
+- GC=F=$4696.60, GCQ26=$4732.80 → CONTANGO
+
+**UI**: IntelligencePage CapitalFlowsTab
+- 막대차트로 커브 형태 시각화 (구조별 색상: blue=contango, orange=backwardation)
+- structure 배지 + slope % 표시
+
+**Health**:
+- `verifyCommodityCurve()` → 2 probes (oil, gold) 추가
+- `update-all` stage-1에 `/api/commodity-curve` 20s timeout 워밍 추가
+- Commits: `7fad787`, `abf71f3`
+
+### 6. Company News AI Summary (#322)
+
+**API**: `/api/company-news?ticker={TICKER}`
+- Yahoo Finance RSS: `feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}`
+- Regex-based XML parser (외부 라이브러리 없이)
+- 상위 5개 뉴스 → EXAONE AI 한국어 2-3문장 요약 (temperature=0.3, max 200 tokens)
+- Chinese character guard: /[一-鿿]/ 탐지 시 summary 무효화
+- 30분 memory cache
+- 테스트: AAPL, NVDA RSS 모두 정상 반환 (5개 headline + description)
+
+**UI**: CompanyPage
+- "최신 뉴스" 섹션 — AI 분석 섹션 바로 위에 표시
+- AI 요약 (cf-primary/5 배경 강조), 5개 headline 링크 카드
+- 마운트 시 자동 fetch (AbortController 적용)
+- 16개 언어 i18n: latestNews, newsAiSummary, loadingNews, noNews, readMore
+- Commit: `91c7559`
+
+---
+
+### Accuracy Probe (iter9)
+- verify-metrics (pre-deploy): 70/70 OK → HEALTHY
+- Yahoo CL=F direct: $96.57 (backwardation confirmed)
+- Yahoo GC=F direct: $4696.60 (contango confirmed)
+- Yahoo RSS AAPL: 5+ headlines with dates, valid XML
+- Yahoo RSS NVDA: 5+ headlines confirmed
+
+---
+
+### Remaining ⛔ (9 items after this session)
+#309-310 Discord alerts, #311-313 Polygon realtime (🔒),
+#314 ETF absolute inflows, #318-319 Vol surface (🔒), #320 Sector P/E (Yahoo v10 blocked),
+#323 Economic consensus calendar (Bloomberg ECO)
+
+### Session Total Push
+12+ commits since session start, all pushed to origin/master.
+Vercel deploying: features available at flowvium.vercel.app after build.
