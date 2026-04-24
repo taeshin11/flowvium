@@ -1,0 +1,43 @@
+## Iter 92 — osint/social RSS 소스 수리 + 소스명 하드코딩 버그
+Date: 2026-04-25
+Primary outcome: osint/social 피드 교체 + 소스명 버그 수정
+
+### Drift check
+- iter90=news-cascade-RSS, iter91=company-news+news-cascade, iter92=osint/social
+- 모두 dead RSS feed 패턴 → 동일 버그 일괄 수정. 다음 iter부터 다른 영역.
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=osint.social.items source=rss direct_value=bloomberg=30_wsj=20 our_value=items=0_dead_feeds delta=all_feeds_dead → ERROR
+
+osint/social 피드 상태:
+- Yahoo Finance/Reuters/CNBC/MarketWatch: 동일한 404/000/403/redirect 문제
+- items=0 (뉴스 매칭 없음)
+
+### Root cause
+1. NEWS_RSS_FEEDS: news-cascade와 동일한 4개 dead feed
+2. 피드 교체 시 소스명 하드코딩 버그:
+   `fetchNewsRss(url, ['Yahoo Finance', 'Reuters', 'CNBC', 'MarketWatch'][i])`
+   → 새 Bloomberg/WSJ URL에도 여전히 "Yahoo Finance" 라벨 붙음
+
+### 산출물
+
+#### [1] NEWS_RSS_FEEDS 교체 + 타입 변경
+Before: string[] (URL만, 소스명 인덱스 매핑)
+After:  {url, source}[] (피드 정의에 소스명 포함)
+```
+Bloomberg Markets, Bloomberg Economics, WSJ Markets, SeekingAlpha
+```
+
+#### [2] 소스명 하드코딩 버그 수정
+Before: `fetchNewsRss(url, ['Yahoo Finance', 'Reuters', 'CNBC', 'MarketWatch'][i])`
+After:  `fetchNewsRss(f.url, f.source)`
+
+### TypeScript: clean OK
+
+### 배포
+- git push: 5252ccc (소스 구조 수정), 08ef7d4 (피드 교체)
+
+### 미결 이슈 (carry forward)
+- KRX investor flow: 세션 인증 필요, serverless에서 유지 불가 → 공식 포기 고려
+- flow.analysis/brief.market: UTC midnight (~56분 후) 자동 회복 예정
+- osint/social Nitter instances: 실제 트위터 데이터 접근 가능 여부 별도 확인 필요
