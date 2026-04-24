@@ -72,6 +72,9 @@ async function safeJson(base: string, path: string, timeoutMs = 12000): Promise<
     const res = await fetch(`${base}${path}`, {
       signal: AbortSignal.timeout(timeoutMs),
       headers: { 'user-agent': 'flowvium-metrics-verifier/1.0' },
+      // MANDATORY: bypass Vercel CDN + Next.js Data Cache — probes must see live state,
+      // not s-maxage-cached responses (causes caps.ALL bandCount=0 stale-cache bug, iter87)
+      cache: 'no-store',
     });
     if (!res.ok) return { ok: false, status: res.status };
     const data = await res.json();
