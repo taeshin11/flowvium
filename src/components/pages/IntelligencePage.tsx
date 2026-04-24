@@ -500,12 +500,14 @@ export default function IntelligencePage() {
 
   useEffect(() => {
     if (activeTab !== 'fear-greed' || fgData) return;
+    const controller = new AbortController();
     setFgLoading(true);
-    fetch('/api/fear-greed')
+    fetch('/api/fear-greed', { signal: controller.signal })
       .then((r) => r.json())
-      .then((d) => setFgData(d))
-      .catch(() => {/* fallback to static */})
-      .finally(() => setFgLoading(false));
+      .then((d) => { if (!controller.signal.aborted) setFgData(d); })
+      .catch(() => {})
+      .finally(() => { if (!controller.signal.aborted) setFgLoading(false); });
+    return () => controller.abort();
   }, [activeTab, fgData]);
 
   const liveCountry = (fgData?.byCountry ?? fearGreedByCountry) as FearGreedEntryExtended[];

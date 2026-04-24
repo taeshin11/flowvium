@@ -28,11 +28,13 @@ export default function NewsCascadeTab() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/news-cascade')
+    const controller = new AbortController();
+    fetch('/api/news-cascade', { signal: controller.signal })
       .then(r => r.json())
-      .then(d => setNews(Array.isArray(d) ? d : (d.articles ?? d.news ?? d.items ?? [])))
+      .then(d => { if (!controller.signal.aborted) setNews(Array.isArray(d) ? d : (d.articles ?? d.news ?? d.items ?? [])); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   if (loading) return (

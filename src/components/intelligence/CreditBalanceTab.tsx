@@ -84,15 +84,18 @@ export default function CreditBalanceTab() {
   const [showLayman, setShowLayman] = useState(false);
 
   useEffect(() => {
-    fetch('/api/credit-balance')
+    const controller = new AbortController();
+    fetch('/api/credit-balance', { signal: controller.signal })
       .then(r => r.json())
       .then(d => {
+        if (controller.signal.aborted) return;
         setCountries(d.countries ?? []);
         setUsLongHistory(d.usLongHistory ?? null);
         setGlobalSnapshot(d.globalSnapshot ?? null);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   if (loading) return (

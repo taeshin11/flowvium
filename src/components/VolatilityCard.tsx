@@ -28,10 +28,13 @@ export default function VolatilityCard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/volatility')
+    const controller = new AbortController();
+    fetch('/api/volatility', { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d); })
-      .finally(() => setLoading(false));
+      .then(d => { if (d && !controller.signal.aborted) setData(d); })
+      .catch(() => {})
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   if (loading) {

@@ -45,10 +45,13 @@ export default function YieldCurveCard() {
   const [curveView, setCurveView] = useState<'nominal' | 'tips'>('nominal');
 
   useEffect(() => {
-    fetch('/api/yield-curve')
+    const controller = new AbortController();
+    fetch('/api/yield-curve', { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d); })
-      .finally(() => setLoading(false));
+      .then(d => { if (d && !controller.signal.aborted) setData(d); })
+      .catch(() => {})
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   if (loading) {

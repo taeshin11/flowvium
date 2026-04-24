@@ -93,16 +93,18 @@ export default function ScreenerPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    const fetchAll = async () => {
-      const [sigRes, shortRes] = await Promise.allSettled([
-        fetch('/api/signals').then(r => r.json()),
-        fetch('/api/short-interest').then(r => r.json()),
-      ]);
+    const controller = new AbortController();
+    const { signal } = controller;
+    Promise.allSettled([
+      fetch('/api/signals', { signal }).then(r => r.json()),
+      fetch('/api/short-interest', { signal }).then(r => r.json()),
+    ]).then(([sigRes, shortRes]) => {
+      if (signal.aborted) return;
       if (sigRes.status === 'fulfilled') setSignals(sigRes.value.signals ?? []);
       if (shortRes.status === 'fulfilled') setShortData(shortRes.value.entries ?? []);
       setLoading(false);
-    };
-    fetchAll();
+    }).catch(() => { if (!signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   const shortMap = useMemo(() =>

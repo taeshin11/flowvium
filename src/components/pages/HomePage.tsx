@@ -254,13 +254,15 @@ function AIDailyBrief() {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setBrief(null);
-    fetch(`/api/daily-brief?tf=${tf}`)
+    fetch(`/api/daily-brief?tf=${tf}`, { signal: controller.signal })
       .then((r) => r.json())
-      .then((data: DailyBrief) => setBrief(data))
+      .then((data: DailyBrief) => { if (!controller.signal.aborted) setBrief(data); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, [tf]);
 
   const tfBtns: { key: Timeframe; label: string }[] = [
