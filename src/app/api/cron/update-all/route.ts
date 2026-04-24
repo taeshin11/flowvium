@@ -109,13 +109,11 @@ export async function GET(req: Request) {
   // ── 2단계: capital-flows 의존 분석 ─────────────────────────────────────
   const flowR = await warm(base, '/api/flow-analysis?tf=4w', 'flow-analysis');
 
-  // ── 3단계: AI 리포트 캐시 삭제 후 재생성 ────────────────────────────────
+  // ── 3단계: AI 리포트 캐시 삭제 후 4w만 재생성 ───────────────────────────
+  // 1w/13w는 사용자 첫 요청 시 lazy-generate (iter48 절감 정책 일관 적용).
+  // 3 timeframe → 1 timeframe: GROQ daily-brief 호출 9→3/일 절감.
   if (cronSecret) await bustDailyBriefCache(base, cronSecret);
-  const [brief1wR, brief4wR, brief13wR] = await Promise.all([
-    warm(base, '/api/daily-brief?tf=1w&force=1', 'daily-brief-1w', 20000),
-    warm(base, '/api/daily-brief?tf=4w&force=1', 'daily-brief-4w', 20000),
-    warm(base, '/api/daily-brief?tf=13w&force=1', 'daily-brief-13w', 20000),
-  ]);
+  const brief4wR = await warm(base, '/api/daily-brief?tf=4w&force=1', 'daily-brief-4w', 20000);
 
   // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget) ─────────────────
   for (const ticker of TOP_TICKERS) {
@@ -132,7 +130,7 @@ export async function GET(req: Request) {
     macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,
     insiderR, ownerR, optR, koreaR, nportR, blockR, volR,
     heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, latestR,
-    flowR, brief1wR, brief4wR, brief13wR,
+    flowR, brief4wR,
   ];
   const failedCount = results.filter(r => !r.ok).length;
 
