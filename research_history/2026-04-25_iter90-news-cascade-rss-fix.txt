@@ -1,0 +1,54 @@
+## Iter 90 — news-cascade RSS 소스 4개 교체 + GDP accuracy skip 수정
+Date: 2026-04-25
+Primary outcome: news-cascade 소스 다양화 (Yahoo→Bloomberg/WSJ)
+
+### Drift check
+- iter87=verify-cache, iter88=CDN-fallback-fix, iter89=AI-quota-fix
+- 3 iter 연속 AI/verify 영역 → Drift 신호 발동
+- iter90: 다른 영역(news-cascade/verify accuracy) 으로 이동 ✓
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=news.sources source=rss direct_value=bloomberg=30_wsj=20 our_value=yahoo_only=8 delta=22_articles_lost → DEGRADED
+
+RSS feed 직접 테스트 결과 (2026-04-25 22:17 UTC):
+- Yahoo Finance feeds.finance.yahoo.com: 404 (deprecated)
+- Reuters feeds.reuters.com: 000 (connection refused)
+- CNBC id/100003114: 403 (blocked)
+- Bloomberg feeds.bloomberg.com/markets: 200 OK ✓ (30 items)
+- MarketWatch topstories: 301 → personal finance content (not market)
+
+### Root cause
+5개 RSS 중 1개(Bloomberg)만 정상. 나머지 4개 모두 dead 또는 부적절.
+현재 8 기사(Yahoo Finance 캐시) = 1일 전 데이터. UTC midnight 이후 새 list key 생성 시 0 기사 반환 위험.
+
+### 산출물
+
+#### [1] RSS 피드 교체 (news-cascade/route.ts)
+Before: Yahoo Finance (404) / Reuters (000) / CNBC (403) / Bloomberg / MarketWatch (personal finance)
+After:  Bloomberg Markets / Bloomberg Economics / WSJ Markets / SeekingAlpha / Yahoo Finance (keep as backup)
+
+작동 확인:
+- Bloomberg Markets: 30 items ✓
+- Bloomberg Economics: 30 items ✓ (macro 전문)
+- WSJ Markets (feeds.a.dj.com): 20 items ✓
+- SeekingAlpha market_currents: 7 items ✓
+
+#### [2] 기사 한도 증가
+- dedup limit: 10 → 12
+- analyze limit: 8 → 10
+
+#### [3] accuracy.gdp skip 조건 수정 (verify-metrics/route.ts)
+Before: fredDate < `${year}-01-01` → Q4 2025 (2025-10-01) SKIPPED
+After:  fredDate < 1년 이전 → Q4 2025 OK (delta=0)
+예상: accuracy.gdp SKIPPED → OK (다음 verify-metrics 크론 실행 후)
+
+### 배포 결과
+- git push: 94cc1d6
+- 배포 후 확인: sources={Bloomberg:5, Bloomberg Economics:4, WSJ Markets:1}, articles=10
+- cached=False (list key 갱신됨)
+
+### 미결 이슈 (carry forward)
+- flow.analysis: error (Groq TPD 99,595/100k, Gemini free tier 소진) — UTC midnight 리셋 후 자동 회복
+- brief.market: degraded — 동일 이유, UTC midnight 후 회복
+- kr.foreign/kr.institution/kr.retail: KRX API 400 (POST body 인증 문제) → 다음 iter 조사
+- Bloomberg Markets 피드에 비금융 기사 혼입 (정치 기사 ~2-3개/30개)
