@@ -1,6 +1,6 @@
 /**
  * SEC EDGAR Financial Facts API — free, public, no auth required.
- * Fetches latest reported annual revenue (and other metrics) from official 10-K/10-Q filings.
+ * Fetches latest reported annual financials from official 10-K/10-Q filings.
  *
  *   Company Facts:  https://data.sec.gov/api/xbrl/companyfacts/CIK{10-digit}.json
  *   Ticker → CIK:   https://www.sec.gov/files/company_tickers.json
@@ -9,27 +9,52 @@
 import { logger } from './logger';
 
 const SEC_HEADERS = {
-  // SEC requires a descriptive User-Agent with contact info
   'User-Agent': 'Flowvium (taeshinkim11@gmail.com)',
   'Accept': 'application/json',
 };
+
+export interface AnnualFinancials {
+  fy: number;
+  periodEnd: string;
+  revenueUSD: number | null;
+  operatingIncomeUSD: number | null;
+  netIncomeUSD: number | null;
+  epsDiluted: number | null;
+  totalAssetsUSD: number | null;
+  totalLiabilitiesUSD: number | null;
+  equityUSD: number | null;
+  operatingCFUSD: number | null;
+  investingCFUSD: number | null;
+  financingCFUSD: number | null;
+  rdExpenseUSD: number | null;
+  capexUSD: number | null;
+  buybacksUSD: number | null;
+  dividendsUSD: number | null;
+  // Derived
+  operatingMarginPct: number | null;
+  roePct: number | null;
+  roaPct: number | null;
+  debtRatioPct: number | null;
+}
 
 export interface LiveFinancials {
   ticker: string;
   cik: string;
   companyName: string;
   fiscalYear: number;
-  fiscalPeriod: string;     // 'FY', 'Q1', etc.
-  periodEnd: string;        // 2025-12-31
-  revenueUSD: number;        // raw USD
-  revenueFormatted: string;  // "$10.06B"
+  fiscalPeriod: string;
+  periodEnd: string;
+  revenueUSD: number;
+  revenueFormatted: string;
   source: string;
   fetchedAt: string;
+  // Extended financials (last 5 FY)
+  annuals: AnnualFinancials[];
+  latestAnnual: AnnualFinancials | null;
 }
 
 type TickerMap = Record<string, { cik_str: number; ticker: string; title: string }>;
 
-/** In-memory ticker→CIK map (populated on first call). */
 let cachedTickerMap: Map<string, { cik: string; title: string }> | null = null;
 
 async function loadTickerMap(): Promise<Map<string, { cik: string; title: string }>> {
@@ -39,7 +64,7 @@ async function loadTickerMap(): Promise<Map<string, { cik: string; title: string
     const res = await fetch('https://www.sec.gov/files/company_tickers.json', {
       headers: SEC_HEADERS,
       signal: AbortSignal.timeout(15000),
-      next: { revalidate: 86400 }, // 24h
+      next: { revalidate: 86400 },
     });
     if (!res.ok) {
       logger.warn('sec.financials', 'ticker_map_http_error', { status: res.status, durationMs: Date.now() - start });
@@ -62,14 +87,56 @@ async function loadTickerMap(): Promise<Map<string, { cik: string; title: string
   }
 }
 
-function formatUsd(v: number): string {
-  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
-  if (v >= 1e9)  return `$${(v / 1e9).toFixed(2)}B`;
-  if (v >= 1e6)  return `$${(v / 1e6).toFixed(1)}M`;
-  return `$${v.toFixed(0)}`;
+export function formatUsd(v: number | null | undefined): string {
+  if (v == null) return '-';
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9)  return `${sign}$${(abs / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6)  return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+  return `${sign}$${abs.toFixed(0)}`;
 }
 
-/** Fetch latest fiscal-year revenue + related metrics for a given ticker. */
+interface USDEntry { val: number; fy: number; fp: string; form: string; end: string; filed: string; }
+
+/** Pick best entry for a concept across all possible GAAP names.
+ *  Collects latest FY 10-K entry from each candidate name and returns the most recent. */
+function bestFYEntry(facts: Record<string, unknown>, names: string[]): USDEntry | null {
+  let best: USDEntry | null = null;
+  for (const name of names) {
+    const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
+      ?.['us-gaap']?.[name]?.units?.USD;
+    if (!Array.isArray(entries) || !entries.length) continue;
+    const fyEntries = entries.filter(e => e.form === '10-K' && e.fp === 'FY');
+    if (!fyEntries.length) continue;
+    fyEntries.sort((a, b) => b.fy - a.fy || b.end.localeCompare(a.end));
+    const candidate = fyEntries[0];
+    if (!best || candidate.fy > best.fy || (candidate.fy === best.fy && candidate.end > best.end)) {
+      best = candidate;
+    }
+  }
+  return best;
+}
+
+/** Collect last N fiscal years of annual 10-K entries for a concept. */
+function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: number): Map<number, USDEntry> {
+  const byFY = new Map<number, USDEntry>();
+  for (const name of names) {
+    const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
+      ?.['us-gaap']?.[name]?.units?.USD;
+    if (!Array.isArray(entries)) continue;
+    const fyEntries = entries.filter(e => e.form === '10-K' && e.fp === 'FY');
+    for (const e of fyEntries) {
+      const existing = byFY.get(e.fy);
+      if (!existing || e.end > existing.end) byFY.set(e.fy, e);
+    }
+  }
+  // Return only the most recent N years
+  const sorted = Array.from(byFY.entries()).sort((a, b) => b[0] - a[0]).slice(0, n);
+  return new Map(sorted);
+}
+
+/** Fetch latest fiscal-year financials for a given ticker (single XBRL call). */
 export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancials | null> {
   const start = Date.now();
   try {
@@ -83,54 +150,139 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${rec.cik}.json`;
     const res = await fetch(url, {
       headers: SEC_HEADERS,
-      signal: AbortSignal.timeout(15000),
-      next: { revalidate: 43200 }, // 12h
+      signal: AbortSignal.timeout(20000),
+      next: { revalidate: 43200 },
     });
     if (!res.ok) {
       logger.warn('sec.financials', 'facts_http_error', { ticker, status: res.status, durationMs: Date.now() - start });
       return null;
     }
     const json = await res.json();
+    const facts = json.facts ?? {};
 
-    // Try common revenue GAAP concepts in order of preference
-    const CONCEPTS = [
+    // Revenue — pick most recent across all concept variants
+    const REV_CONCEPTS = [
       'Revenues',
       'RevenueFromContractWithCustomerExcludingAssessedTax',
       'SalesRevenueNet',
       'RevenueFromContractWithCustomerIncludingAssessedTax',
     ];
+    const revFYs = lastNFYEntries(facts, REV_CONCEPTS, 5);
+    const latestRevEntry = bestFYEntry(facts, REV_CONCEPTS);
 
-    interface USDEntry { val: number; fy: number; fp: string; form: string; end: string; filed: string; }
-    let bestEntry: USDEntry | null = null;
-
-    for (const concept of CONCEPTS) {
-      const entries: USDEntry[] = json.facts?.['us-gaap']?.[concept]?.units?.USD ?? [];
-      if (!entries?.length) continue;
-      // Filter 10-K full year (fp === 'FY'), take most recent
-      const fy = entries.filter(e => e.form === '10-K' && e.fp === 'FY');
-      if (!fy.length) continue;
-      fy.sort((a, b) => b.fy - a.fy || b.end.localeCompare(a.end));
-      bestEntry = fy[0];
-      if (bestEntry) break;
-    }
-
-    if (!bestEntry) {
+    if (!latestRevEntry) {
       logger.warn('sec.financials', 'no_revenue_entry', { ticker, durationMs: Date.now() - start });
       return null;
     }
 
-    logger.info('sec.financials', 'fetched', { ticker, fy: bestEntry.fy, revenue: bestEntry.val, durationMs: Date.now() - start });
+    // All other concepts — latest FY entry only (we'll align to revFYs below)
+    const opIncEntry = bestFYEntry(facts, ['OperatingIncomeLoss']);
+    const netIncEntry = bestFYEntry(facts, ['NetIncomeLoss']);
+    const epsEntry = bestFYEntry(facts, ['EarningsPerShareDiluted']);
+    const assetsEntry = bestFYEntry(facts, ['Assets']);
+    const liabEntry = bestFYEntry(facts, ['Liabilities']);
+    const equityEntry = bestFYEntry(facts, [
+      'StockholdersEquity',
+      'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
+    ]);
+    const opCFEntry = bestFYEntry(facts, ['NetCashProvidedByUsedInOperatingActivities']);
+    const invCFEntry = bestFYEntry(facts, ['NetCashProvidedByUsedInInvestingActivities']);
+    const finCFEntry = bestFYEntry(facts, ['NetCashProvidedByUsedInFinancingActivities']);
+    const rdEntry = bestFYEntry(facts, ['ResearchAndDevelopmentExpense']);
+    const capexEntry = bestFYEntry(facts, ['PaymentsToAcquirePropertyPlantAndEquipment']);
+    const buybackEntry = bestFYEntry(facts, ['PaymentsForRepurchaseOfCommonStock']);
+    const divEntry = bestFYEntry(facts, ['PaymentsOfDividends']);
+
+    // Build annual time series for last 5 years
+    const targetFYs = Array.from(revFYs.keys()).sort((a, b) => b - a);
+
+    const getValForFY = (concepts: string[], fy: number): number | null => {
+      for (const name of concepts) {
+        const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
+          ?.['us-gaap']?.[name]?.units?.USD;
+        if (!Array.isArray(entries)) continue;
+        const fyEntries = entries.filter(e => e.form === '10-K' && e.fp === 'FY' && e.fy === fy);
+        if (!fyEntries.length) continue;
+        fyEntries.sort((a, b) => b.end.localeCompare(a.end));
+        return fyEntries[0].val;
+      }
+      return null;
+    };
+
+    const annuals: AnnualFinancials[] = targetFYs.map(fy => {
+      const rev = getValForFY(REV_CONCEPTS, fy);
+      const opInc = getValForFY(['OperatingIncomeLoss'], fy);
+      const netInc = getValForFY(['NetIncomeLoss'], fy);
+      const equity = getValForFY(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], fy);
+      const assets = getValForFY(['Assets'], fy);
+      const liab = getValForFY(['Liabilities'], fy);
+      const periodEnd = revFYs.get(fy)?.end ?? '';
+
+      const opMargin = rev && opInc != null ? (opInc / rev) * 100 : null;
+      const roe = equity && equity > 0 && netInc != null ? (netInc / equity) * 100 : null;
+      const roa = assets && assets > 0 && netInc != null ? (netInc / assets) * 100 : null;
+      const debtRatio = assets && assets > 0 && liab != null ? (liab / assets) * 100 : null;
+
+      return {
+        fy,
+        periodEnd,
+        revenueUSD: rev,
+        operatingIncomeUSD: opInc,
+        netIncomeUSD: netInc,
+        epsDiluted: getValForFY(['EarningsPerShareDiluted'], fy),
+        totalAssetsUSD: assets,
+        totalLiabilitiesUSD: liab,
+        equityUSD: equity,
+        operatingCFUSD: getValForFY(['NetCashProvidedByUsedInOperatingActivities'], fy),
+        investingCFUSD: getValForFY(['NetCashProvidedByUsedInInvestingActivities'], fy),
+        financingCFUSD: getValForFY(['NetCashProvidedByUsedInFinancingActivities'], fy),
+        rdExpenseUSD: getValForFY(['ResearchAndDevelopmentExpense'], fy),
+        capexUSD: getValForFY(['PaymentsToAcquirePropertyPlantAndEquipment'], fy),
+        buybacksUSD: getValForFY(['PaymentsForRepurchaseOfCommonStock'], fy),
+        dividendsUSD: getValForFY(['PaymentsOfDividends'], fy),
+        operatingMarginPct: opMargin != null ? parseFloat(opMargin.toFixed(1)) : null,
+        roePct: roe != null ? parseFloat(roe.toFixed(1)) : null,
+        roaPct: roa != null ? parseFloat(roa.toFixed(1)) : null,
+        debtRatioPct: debtRatio != null ? parseFloat(debtRatio.toFixed(1)) : null,
+      };
+    });
+
+    const latestAnnual = annuals[0] ?? null;
+    const latestRev = latestRevEntry;
+
+    // Supplement missing latest-only fields from their own bestFYEntry if the annual build missed them
+    if (latestAnnual) {
+      if (latestAnnual.epsDiluted == null && epsEntry) latestAnnual.epsDiluted = epsEntry.val;
+      if (latestAnnual.operatingCFUSD == null && opCFEntry) latestAnnual.operatingCFUSD = opCFEntry.val;
+      if (latestAnnual.investingCFUSD == null && invCFEntry) latestAnnual.investingCFUSD = invCFEntry.val;
+      if (latestAnnual.financingCFUSD == null && finCFEntry) latestAnnual.financingCFUSD = finCFEntry.val;
+      if (latestAnnual.rdExpenseUSD == null && rdEntry) latestAnnual.rdExpenseUSD = rdEntry.val;
+      if (latestAnnual.capexUSD == null && capexEntry) latestAnnual.capexUSD = capexEntry.val;
+      if (latestAnnual.buybacksUSD == null && buybackEntry) latestAnnual.buybacksUSD = buybackEntry.val;
+      if (latestAnnual.dividendsUSD == null && divEntry) latestAnnual.dividendsUSD = divEntry.val;
+    }
+
+    logger.info('sec.financials', 'fetched', {
+      ticker,
+      fy: latestRev.fy,
+      revenue: latestRev.val,
+      annualYears: annuals.length,
+      durationMs: Date.now() - start,
+    });
+
     return {
       ticker: ticker.toUpperCase(),
       cik: rec.cik,
       companyName: rec.title,
-      fiscalYear: bestEntry.fy,
-      fiscalPeriod: bestEntry.fp,
-      periodEnd: bestEntry.end,
-      revenueUSD: bestEntry.val,
-      revenueFormatted: formatUsd(bestEntry.val),
+      fiscalYear: latestRev.fy,
+      fiscalPeriod: latestRev.fp,
+      periodEnd: latestRev.end,
+      revenueUSD: latestRev.val,
+      revenueFormatted: formatUsd(latestRev.val),
       source: 'SEC EDGAR XBRL 10-K',
       fetchedAt: new Date().toISOString(),
+      annuals,
+      latestAnnual,
     };
   } catch (err) {
     logger.error('sec.financials', 'fetch_failed', { ticker, error: err, durationMs: Date.now() - start });

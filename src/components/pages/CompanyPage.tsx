@@ -22,6 +22,8 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  LineChart,
+  Line,
 } from 'recharts';
 import {
   ArrowLeft,
@@ -210,12 +212,33 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [company, ticker]);
 
   // ── Live financials from SEC EDGAR XBRL 10-K filings (24h cache) ────────────
+  interface AnnualFin {
+    fy: number; periodEnd: string;
+    revenueUSD: number | null; operatingIncomeUSD: number | null; netIncomeUSD: number | null;
+    epsDiluted: number | null; totalAssetsUSD: number | null; totalLiabilitiesUSD: number | null;
+    equityUSD: number | null; operatingCFUSD: number | null; investingCFUSD: number | null;
+    financingCFUSD: number | null; rdExpenseUSD: number | null; capexUSD: number | null;
+    buybacksUSD: number | null; dividendsUSD: number | null;
+    operatingMarginPct: number | null; roePct: number | null; roaPct: number | null; debtRatioPct: number | null;
+  }
   const [liveFinancials, setLiveFinancials] = useState<{
     revenueFormatted: string;
     fiscalYear: number;
     periodEnd: string;
     source: string;
+    annuals: AnnualFin[];
+    latestAnnual: AnnualFin | null;
   } | null>(null);
+
+  function fmtUsd(v: number | null | undefined): string {
+    if (v == null) return '-';
+    const abs = Math.abs(v);
+    const sign = v < 0 ? '-' : '';
+    if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(2)}T`;
+    if (abs >= 1e9)  return `${sign}$${(abs / 1e9).toFixed(2)}B`;
+    if (abs >= 1e6)  return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+    return `${sign}$${abs.toFixed(0)}`;
+  }
 
   useEffect(() => {
     if (!ticker) return;
@@ -229,6 +252,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             fiscalYear: data.fiscalYear,
             periodEnd: data.periodEnd,
             source: data.source,
+            annuals: data.annuals ?? [],
+            latestAnnual: data.latestAnnual ?? null,
           });
         }
       })
@@ -450,6 +475,118 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               </div>
             </div>
           </div>
+
+          {/* ── 재무 심화 (SEC EDGAR XBRL) ── */}
+          {liveFinancials && liveFinancials.latestAnnual && (
+            <div className="cf-card p-6">
+              <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+                <h2 className="text-xl font-heading font-bold text-cf-text-primary flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                  재무 심화 — FY{liveFinancials.fiscalYear}
+                </h2>
+                <span className="text-[10px] text-emerald-600 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {liveFinancials.source} · {liveFinancials.periodEnd}
+                </span>
+              </div>
+
+              {/* Key metrics grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+                {[
+                  { label: '매출', val: fmtUsd(liveFinancials.latestAnnual.revenueUSD) },
+                  { label: '영업이익', val: fmtUsd(liveFinancials.latestAnnual.operatingIncomeUSD) },
+                  { label: '순이익', val: fmtUsd(liveFinancials.latestAnnual.netIncomeUSD) },
+                  { label: 'EPS (희석)', val: liveFinancials.latestAnnual.epsDiluted != null ? `$${liveFinancials.latestAnnual.epsDiluted.toFixed(2)}` : '-' },
+                  { label: '영업이익률', val: liveFinancials.latestAnnual.operatingMarginPct != null ? `${liveFinancials.latestAnnual.operatingMarginPct}%` : '-' },
+                  { label: 'ROE', val: liveFinancials.latestAnnual.roePct != null ? `${liveFinancials.latestAnnual.roePct}%` : '-' },
+                  { label: 'ROA', val: liveFinancials.latestAnnual.roaPct != null ? `${liveFinancials.latestAnnual.roaPct}%` : '-' },
+                  { label: '부채비율', val: liveFinancials.latestAnnual.debtRatioPct != null ? `${liveFinancials.latestAnnual.debtRatioPct}%` : '-' },
+                ].map(m => (
+                  <div key={m.label} className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-[10px] text-cf-text-secondary mb-0.5">{m.label}</p>
+                    <p className="text-sm font-bold text-cf-text-primary">{m.val}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Revenue trend chart */}
+              {liveFinancials.annuals.length > 1 && (
+                <div className="mb-5">
+                  <p className="text-xs font-bold text-cf-text-secondary mb-2">매출 추이 (연간)</p>
+                  <div className="h-36">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[...liveFinancials.annuals].reverse().map(a => ({
+                        fy: `FY${a.fy}`,
+                        rev: a.revenueUSD != null ? parseFloat((a.revenueUSD / 1e9).toFixed(1)) : null,
+                        net: a.netIncomeUSD != null ? parseFloat((a.netIncomeUSD / 1e9).toFixed(1)) : null,
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="fy" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} unit="B" />
+                        <Tooltip formatter={(v) => `$${v}B`} />
+                        <Bar dataKey="rev" name="매출" fill="#4F8FBF" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="net" name="순이익" fill="#5CB88A" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Balance sheet + Cash flows + Other */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">대차대조표</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { label: '총자산', val: fmtUsd(liveFinancials.latestAnnual.totalAssetsUSD) },
+                      { label: '총부채', val: fmtUsd(liveFinancials.latestAnnual.totalLiabilitiesUSD) },
+                      { label: '자본', val: fmtUsd(liveFinancials.latestAnnual.equityUSD) },
+                    ].map(m => (
+                      <div key={m.label} className="flex justify-between text-xs">
+                        <span className="text-cf-text-secondary">{m.label}</span>
+                        <span className="font-medium text-cf-text-primary">{m.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">현금흐름</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { label: '영업CF', val: fmtUsd(liveFinancials.latestAnnual.operatingCFUSD) },
+                      { label: '투자CF', val: fmtUsd(liveFinancials.latestAnnual.investingCFUSD) },
+                      { label: '재무CF', val: fmtUsd(liveFinancials.latestAnnual.financingCFUSD) },
+                    ].map(m => (
+                      <div key={m.label} className="flex justify-between text-xs">
+                        <span className="text-cf-text-secondary">{m.label}</span>
+                        <span className="font-medium text-cf-text-primary">{m.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">투자·주주환원</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { label: 'R&D', val: fmtUsd(liveFinancials.latestAnnual.rdExpenseUSD) },
+                      { label: 'CapEx', val: fmtUsd(liveFinancials.latestAnnual.capexUSD) },
+                      { label: '자사주', val: fmtUsd(liveFinancials.latestAnnual.buybacksUSD) },
+                      { label: '배당', val: fmtUsd(liveFinancials.latestAnnual.dividendsUSD) },
+                    ].map(m => (
+                      <div key={m.label} className="flex justify-between text-xs">
+                        <span className="text-cf-text-secondary">{m.label}</span>
+                        <span className="font-medium text-cf-text-primary">{m.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-cf-text-secondary/50 mt-4">
+                출처: SEC EDGAR XBRL 10-K · 24h 캐시 · 파생 지표 (ROE/ROA/마진/부채비율) 자체 계산
+              </p>
+            </div>
+          )}
 
           {/* R&D Pipeline */}
           {effectiveRdPipeline && effectiveRdPipeline.length > 0 && (

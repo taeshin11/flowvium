@@ -23,7 +23,7 @@ export async function GET(
 ) {
   const ticker = params.ticker.toUpperCase();
   const redis = createRedis();
-  const cacheKey = `flowvium:company-financials:v1:${ticker}`;
+  const cacheKey = `flowvium:company-financials:v2:${ticker}`;  // v2: pick most-recent-FY across all concepts
 
   if (redis) {
     try {
