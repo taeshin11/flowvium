@@ -146,10 +146,11 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   const primary = await callGroqModel(key, 'llama-3.3-70b-versatile', prompt, opts, diag);
   if (primary.text) return primary.text;
 
-  // 2차 폴백: 8b (TPD 500k) — 70b 가 TPD 소진 시에만
-  if (primary.tpdExhausted) {
+  // 2차 폴백: 8b (TPD 500k, RPD 14.4k) — 70b 가 어떤 이유로든 429 시 즉시 시도
+  // 8b limits가 훨씬 크기 때문에 TPD뿐 아니라 RPD/TPM 한도 초과 때도 복구 가능.
+  if (primary.status === 429) {
     const tag = opts.tag ?? 'ai';
-    logger.info(tag, 'groq_tpd_fallback_8b', { note: '70b TPD exhausted, retrying with llama-3.1-8b-instant' });
+    logger.info(tag, 'groq_429_fallback_8b', { note: '70b 429, retrying with llama-3.1-8b-instant' });
     const fallback = await callGroqModel(key, 'llama-3.1-8b-instant', prompt, opts, diag);
     if (fallback.text) return fallback.text;
   }

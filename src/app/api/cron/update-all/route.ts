@@ -125,7 +125,9 @@ export async function GET(req: Request) {
   }
 
   // ── 5단계: news-cascade (느림 — fire & forget) ─────────────────────────
-  fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000), cache: 'no-store' }).catch(() => {});
+  fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000), cache: 'no-store' })
+    .then(r => { if (!r.ok) logger.warn('cron.update-all', 'news_cascade_failed', { status: r.status }); })
+    .catch(e => logger.warn('cron.update-all', 'news_cascade_error', { error: e instanceof Error ? e.message : String(e) }));
 
   const results = [
     macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,
