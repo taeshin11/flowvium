@@ -1,0 +1,33 @@
+## Iter 17 — 기업 페이지 90일 주가 추이 차트 + zombie 1건
+Date: 2026-04-24
+Primary outcome: CompanyPage 주가 차트 추가
+
+### 정확성 프로브
+- verify-metrics 대리: 77 OK, 0 DEGRADED (이전 확인)
+
+### Drift check
+- 최근 5 커밋: company-chart(CompanyPage), flows-tab(IntelligencePage), discord-alerts, eco-calendar, docs
+- 같은 영역 3+ iter: 없음 (각 iter 다른 영역)
+
+### 작업 내용
+1. **CompanyPage.tsx: 90일 주가 추이 차트**
+   - /api/price-history?ticker={TICKER}&days=90 fetch (AbortController)
+   - priceHistory 상태 추가
+   - 헤더 아래 미니 LineChart (recharts, h-16)
+   - 90d 수익률 % 표시 (녹색/빨강)
+   - Yahoo Finance 1h 캐시 출처 표기
+
+2. **ExplorePage.tsx: 마지막 cancelled 패턴 → AbortController**
+   - let cancelled = false → const controller = new AbortController()
+   - 프로젝트 내 모든 cancelled 플래그 제거 완료
+
+### FEATURES.md / METRICS.md
+- FEATURES.md 5-1: 90일 주가 추이 차트 불릿 추가
+- METRICS.md #123-C: 신규 행 (💾 cached)
+
+### 산출물
+- rule [3a]: 핵심 숫자 이동 (기업 페이지에 가격 이력 차트 추가)
+- rule [3c]: 마지막 cancelled 패턴 제거
+
+### Commit
+a364051 feat(company-chart): 기업 페이지 90일 주가 추이 차트 + zombie 1건 제거

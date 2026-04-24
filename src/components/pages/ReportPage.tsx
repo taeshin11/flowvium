@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import Sparkline from '@/components/Sparkline';
@@ -112,19 +112,27 @@ export default function ReportPage() {
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
   const [vixSpark, setVixSpark] = useState<number[] | null>(null);
 
+  const briefAbortRef = useRef<AbortController | null>(null);
+
   const fetchBrief = useCallback(async (timeframe: Timeframe) => {
+    briefAbortRef.current?.abort();
+    const controller = new AbortController();
+    briefAbortRef.current = controller;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/daily-brief?tf=${timeframe}`);
+      const res = await fetch(`/api/daily-brief?tf=${timeframe}`, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      setData(json);
-      setExpanded({ market: true, capital: true, company: true, signals: true });
+      if (!controller.signal.aborted) {
+        setData(json);
+        setExpanded({ market: true, capital: true, company: true, signals: true });
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, []);
 
@@ -213,10 +221,8 @@ export default function ReportPage() {
     await Promise.allSettled([pFg, pCap, pMacro, pFed, pSpark, pVixSpark, pVol]);
   }, []);
 
-  useEffect(() => {
-    fetchBrief(tf);
-    fetchKpis();
-  }, [tf, fetchBrief, fetchKpis]);
+  useEffect(() => { fetchBrief(tf); }, [tf, fetchBrief]);
+  useEffect(() => { fetchKpis(); }, [fetchKpis]);
 
   // Tick every 30s so "age" text auto-refreshes
   useEffect(() => {
