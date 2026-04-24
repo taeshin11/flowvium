@@ -54,7 +54,7 @@ async function markSent(redis: Redis, type: string): Promise<void> {
 async function checkFGAlert(
   redis: Redis, webhookUrl: string
 ): Promise<AlertResult[]> {
-  const entry = await redis.get<FGEntry>('flowvium:fg:v5:us');
+  const entry = await redis.get<FGEntry>('flowvium:fg:v5:SPY');
   if (!entry) return [];
 
   const results: AlertResult[] = [];
