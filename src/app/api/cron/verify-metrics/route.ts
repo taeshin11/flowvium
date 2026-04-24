@@ -652,7 +652,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:13f-signals:v1', label: '13f-signals' },
     { key: 'flowvium:13f-ownership:v1', label: '13f-ownership' },
     { key: 'flowvium:latest-updates:v3', label: 'latest-updates' },
-    { key: `flowvium:macro-indicators:v4:${kstDate}`, label: `macro-indicators(${kstDate})` },
+    { key: `flowvium:macro-indicators:v5:${kstDate}`, label: `macro-indicators(${kstDate})` },
     { key: `flowvium:fedwatch:v1:${hour}`, label: `fedwatch(${hour}Z)` },
     { key: `flowvium:credit-balance:v2:${kstDate}`, label: `credit-balance(${kstDate})` },
   ];

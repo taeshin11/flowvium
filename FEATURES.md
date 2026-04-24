@@ -167,8 +167,8 @@
   - 오늘부터 10개 이벤트, 날짜별 그룹, D-N 카운트다운 chip
   - Impact 3단계 (high=빨강/medium=노랑/low=회색), 카테고리 색상 구분
   - 출처: Fed · BLS · BEA 공식 발표 일정
-- **매크로 지표 카드** (10개, 접기/펼치기)
-  - CPI · PCE(Core) · NFP · FOMC · GDP · ISM PMI · 소매판매 · PPI · 실업률 · 신규 실업수당 (주간)
+- **매크로 지표 카드** (11개, 접기/펼치기)
+  - CPI · PCE(Core) · NFP · FOMC · GDP · ISM PMI · 소매판매 · PPI · 실업률 · 신규 실업수당 (주간) · 소비자심리지수 (미시간대)
   - 실제치 / 예상치 / 이전치 / Surprise 배지 (beat/miss/inline/pending)
   - 매파(hawkish) / 비둘기(dovish) 영향 레이블
   - **캐스케이드 체인**: 자산별 방향·강도·이유 (3~5개 항목)

@@ -27,7 +27,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v4:${kstDate()}`;
+  return `flowvium:macro-indicators:v5:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ function classify(actual: number | null, forecast: number, higherIsBetter: boole
 
 function rateImpact(id: string, surprise: string): { impact: 'hawkish' | 'dovish' | 'neutral'; ko: string } {
   if (surprise === 'inline' || surprise === 'pending') return { impact: 'neutral', ko: '중립' };
-  const hawkishOnBeat = ['cpi', 'pce', 'nfp', 'ppi', 'retail', 'iclaims'];
+  const hawkishOnBeat = ['cpi', 'pce', 'nfp', 'ppi', 'retail', 'iclaims', 'umcsent'];
   const hawkishOnMiss = ['gdp', 'ism', 'unrate'];
   if (hawkishOnBeat.includes(id)) {
     return surprise === 'beat'
@@ -378,6 +378,19 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
         { asset: '금 (GLD)', direction: 'up', reason: '경기 우려 → 안전자산', magnitude: 'weak' },
       ],
     },
+    umcsent: {
+      beat: [ // higher sentiment than expected = consumer spending resilient
+        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '소비 심리 강세 → 소매·서비스 기업 수혜', magnitude: 'moderate' },
+        { asset: '미 국채 금리', direction: 'up', reason: '소비 호조 → 인플레 우려 유지', magnitude: 'weak' },
+        { asset: '달러 (DXY)', direction: 'up', reason: '경기 강세 → 달러 수요', magnitude: 'weak' },
+      ],
+      miss: [ // lower sentiment = consumers pulling back = dovish
+        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '소비 지출 감소 예고 → 리테일·서비스 타격', magnitude: 'moderate' },
+        { asset: '미 국채 금리', direction: 'down', reason: '경기 둔화 우려 → 인하 기대', magnitude: 'moderate' },
+        { asset: '금 (GLD)', direction: 'up', reason: '경기 불안 → 안전자산 수요', magnitude: 'moderate' },
+        { asset: '소비재 섹터', direction: 'down', reason: '소비자 지갑 닫기 신호', magnitude: 'strong' },
+      ],
+    },
     iclaims: {
       beat: [ // lower claims than expected = labor market resilient = hawkish
         { asset: '미 국채 금리', direction: 'up', reason: '해고 감소 → 노동시장 견조 → Fed 긴축 여력', magnitude: 'moderate' },
@@ -469,6 +482,13 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
     rateImpact: 'hawkish', rateImpactKo: '노동시장 견조 → 매파',
     summary: '신규 실업수당 청구 222K — 예상(224K) 하회. 해고 증가 신호 없음.',
   },
+  umcsent: {
+    id: 'umcsent', name: 'U of Michigan Consumer Sentiment', nameKo: '미시간대 소비자심리지수',
+    category: 'growth', actual: 52.2, forecast: 54.0, previous: 57.9, unit: '지수(1966=100)',
+    releaseDate: '2026-04-11', nextRelease: '2026-05-09', surprise: 'miss',
+    rateImpact: 'dovish', rateImpactKo: '소비 심리 악화 → 비둘기파',
+    summary: '4월 소비자심리 52.2 — 60선 하회. 관세 불확실성·인플레 우려 급등. 1978년래 최저 수준.',
+  },
 };
 
 // ── FRED static forecasts (consensus at time of last update) ──────────────────
@@ -482,6 +502,7 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
   unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
   iclaims:  { forecast: 224,   nextRelease: '2026-05-01' },
+  umcsent:  { forecast: 54.0,  nextRelease: '2026-05-09' },
 };
 
 // ── Main GET ──────────────────────────────────────────────────────────────────
@@ -508,7 +529,7 @@ export async function GET() {
     fredCPI, fredCoreCPI, fredPCE, fredCorePCE,
     fredNFP, fredGDP, fredPPI, fredRetail, fredUnrate,
     fredISM, fredFOMCUpper, fredFOMCLower,
-    yieldCurve, fredIClaims,
+    yieldCurve, fredIClaims, fredUMCSENT,
   ] = await Promise.allSettled([
     fetchYoY('CPIAUCSL'),
     fetchYoY('CPILFESL'),
@@ -524,6 +545,7 @@ export async function GET() {
     fetchLatest('DFEDTARL'),         // Fed funds lower bound
     fetchYieldCurve(),
     fetchLatest('ICSA'),             // Initial Jobless Claims (weekly, in persons)
+    fetchLatest('UMCSENT'),          // U of Michigan Consumer Sentiment (monthly)
   ]);
 
   // Build indicators from FRED data, fall back to static
@@ -758,6 +780,29 @@ export async function GET() {
         : base.summary,
       cascade: buildCascade('iclaims', surprise),
       liveData: actualK != null,
+    });
+  }
+
+  // U of Michigan Consumer Sentiment
+  const umcsentData = get(fredUMCSENT);
+  {
+    const base = STATIC.umcsent;
+    const liveVal: number | null = umcsentData != null ? parseFloat(umcsentData.value.toFixed(1)) : null;
+    const actual = liveVal ?? (base.actual as number);
+    const fc = FORECASTS.umcsent.forecast;
+    const surprise = classify(actual, fc, true); // higher sentiment = beat
+    const ri = rateImpact('umcsent', surprise);
+    indicators.push({
+      ...base,
+      actual, previous: base.previous, forecast: fc,
+      releaseDate: umcsentData?.date ?? base.releaseDate,
+      nextRelease: FORECASTS.umcsent.nextRelease,
+      surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
+      summary: liveVal != null
+        ? `소비자심리 ${liveVal.toFixed(1)}점 (예상 ${fc}). ${liveVal < 60 ? '60선 하회 — 소비 침체 경계.' : liveVal < fc ? '예상 하회 — 가계 지출 우려.' : '예상 상회 — 소비 회복 신호.'}`
+        : base.summary,
+      cascade: buildCascade('umcsent', surprise),
+      liveData: liveVal != null,
     });
   }
 

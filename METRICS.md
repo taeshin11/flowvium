@@ -223,6 +223,7 @@
 | 92 | PPI | 💾 cached | 4필드 |
 | 93 | 실업률 | 💾 cached | 4필드 |
 | 93a | 신규 실업수당 청구 (ICSA 주간, 천명) | 💾 cached | FRED ICSA series |
+| 93b | 미시간대 소비자심리지수 (UMCSENT 월간) | 💾 cached | FRED UMCSENT series |
 | 94 | 각 지표 매파/비둘기 영향 | 💾 cached | hawkish/dovish |
 | 95 | 각 지표 캐스케이드 체인 (3~5개 자산) | 💾 cached | 방향·강도·이유 |
 
