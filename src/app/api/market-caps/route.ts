@@ -3,8 +3,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * /api/market-caps
  *
  * Returns a { ticker: band } map for every ticker in allCompanies.
- * Fetches live market caps via Yahoo Finance v7 (crumb-authenticated).
- * Falls back to static `marketCap` field for tickers that fail.
+ * Uses static marketCap bands from allCompanies data.
+ * Yahoo Finance v7 crumb auth fails from Vercel IPs — live fetch removed.
  *
  * Optional ?ticker=AAPL param returns single-ticker data (still from cache).
  *
@@ -13,7 +13,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { allCompanies } from '@/data/companies';
-import { fetchYFMarketCaps, marketCapToBand, type MarketCapBand } from '@/lib/yahoo-finance';
+import { type MarketCapBand } from '@/lib/yahoo-finance';
 
 const CACHE_KEY = 'flowvium:market-caps:v2';
 const CACHE_TTL = 24 * 60 * 60; // 24h
@@ -58,49 +58,24 @@ export async function GET(req: Request) {
     } catch (err) { logger.warn('api.market-caps', 'cache_read_error', { error: err }); }
   }
 
-  // Build static fallback from companies data
-  const staticBands: Record<string, MarketCapBand> = {};
-  const allTickers: string[] = [];
+  const bands: Record<string, MarketCapBand> = {};
   const seen = new Set<string>();
   for (const c of allCompanies) {
     if (!c.ticker || seen.has(c.ticker)) continue;
     seen.add(c.ticker);
-    staticBands[c.ticker] = c.marketCap as MarketCapBand;
-    allTickers.push(c.ticker);
-  }
-
-  // Fetch live market caps from Yahoo Finance v7 (crumb-required)
-  const bands: Record<string, MarketCapBand> = { ...staticBands };
-  const caps: Record<string, number> = {};
-  let liveCount = 0;
-
-  try {
-    const liveData = await fetchYFMarketCaps(allTickers);
-    for (const item of liveData) {
-      if (item.marketCap != null && item.marketCap > 0) {
-        caps[item.ticker] = item.marketCap;
-        const liveBand = item.band ?? marketCapToBand(item.marketCap);
-        if (liveBand) {
-          bands[item.ticker] = liveBand;
-          liveCount++;
-        }
-      }
-    }
-    logger.info('api.market-caps', 'live_fetched', { total: allTickers.length, live: liveCount, durationMs: Date.now() - reqStart });
-  } catch (err) {
-    logger.warn('api.market-caps', 'live_fetch_failed_using_static', { error: err });
+    bands[c.ticker] = c.marketCap as MarketCapBand;
   }
 
   const payload: MarketCapPayload = {
     bands,
-    caps,
+    caps: {},
     updatedAt: new Date().toISOString(),
-    count: Object.keys(bands).length,
+    count: seen.size,
   };
 
   await loggedRedisSet(redis, 'api.market-caps', CACHE_KEY, payload, { ex: CACHE_TTL });
 
-  logger.info('api.market-caps', 'served', { tickers: seen.size, live: liveCount, durationMs: Date.now() - reqStart });
+  logger.info('api.market-caps', 'served', { tickers: seen.size, durationMs: Date.now() - reqStart });
 
   if (filterTicker) {
     const band = payload.bands[filterTicker] ?? null;
