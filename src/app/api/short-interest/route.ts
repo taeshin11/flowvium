@@ -26,12 +26,22 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-reva
 const MEMORY_CACHE = createMemoryCache<unknown[]>('short-interest', 30 * 60_000);
 const MEM_KEY = 'entries';
 
-// Tracked tickers — ordered by interest (mid/small caps first)
+// Tracked tickers — ordered by interest
 const TRACKED_TICKERS = [
-  'NVDA', 'TSM', 'ASML', 'MU', 'AMAT', 'LRCX', 'KLAC', 'SMCI', 'MRVL',
-  'TSLA', 'ALB', 'COIN', 'MRNA', 'REGN', 'LLY',
-  'KTOS', 'RTX', 'NOC', 'LHX', 'LMT',
-  'FCX', 'DELL', 'ORCL', 'MSFT', 'GOOGL', 'AAPL', 'AMZN', 'META', 'NVDA',
+  // Semiconductors
+  'NVDA', 'AMD', 'ARM', 'TSM', 'ASML', 'MU', 'AMAT', 'LRCX', 'KLAC', 'SMCI', 'MRVL',
+  // EV & Battery
+  'TSLA', 'ALB', 'RIVN',
+  // Crypto
+  'COIN', 'MSTR',
+  // Pharma/Biotech
+  'MRNA', 'REGN', 'LLY',
+  // Defense & AI
+  'KTOS', 'PLTR', 'RTX', 'NOC', 'LHX', 'LMT',
+  // Commodities
+  'FCX',
+  // Tech platforms
+  'DELL', 'ORCL', 'MSFT', 'GOOGL', 'AAPL', 'AMZN', 'META',
 ];
 
 export interface ShortEntry {

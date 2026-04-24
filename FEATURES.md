@@ -483,7 +483,8 @@
 ## 10. 숏 인터레스트 (`/short`)
 
 **파일**: `src/components/pages/ShortPage.tsx`  
-**데이터**: `/api/short-interest`
+**데이터**: `/api/short-interest`  
+**추적 종목 (33개)**: 반도체(NVDA/AMD/ARM/TSM/ASML/MU/AMAT/LRCX/KLAC/SMCI/MRVL), EV(TSLA/ALB/RIVN), 크립토(COIN/MSTR), 바이오(MRNA/REGN/LLY), 방산/AI(KTOS/PLTR/RTX/NOC/LHX/LMT), 원자재(FCX), 테크(DELL/ORCL/MSFT/GOOGL/AAPL/AMZN/META)
 
 ### 10-1. 요약 카드 (4열)
 - 추적 종목 수
