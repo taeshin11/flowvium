@@ -60,6 +60,7 @@ export default function ShortPage() {
     if (force) setRefreshing(true);
     try {
       const res = await fetch(`/api/short-interest${force ? '?refresh=1' : ''}`, signal ? { signal } : undefined);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (signal?.aborted) return;
       setEntries(data.entries ?? []);

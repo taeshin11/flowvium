@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { type NewsGapEntry, edgarTicker } from '@/data/news-gap';
@@ -453,17 +453,25 @@ function NewsCascadeSection() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const load = () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
-    fetch('/api/news-cascade')
-      .then((r) => r.json())
-      .then((d: { articles: NewsArticle[] }) => setArticles(d.articles ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetch('/api/news-cascade', { signal: controller.signal })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((d: { articles: NewsArticle[] }) => { if (!controller.signal.aborted) setArticles(d.articles ?? []); })
+      .catch(() => { /* abort is normal */ })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    return () => abortRef.current?.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sentimentColor = {
     bullish: 'text-emerald-600 bg-emerald-50 border-emerald-200',

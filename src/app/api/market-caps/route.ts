@@ -17,6 +17,7 @@ import { fetchYFMarketCaps, marketCapToBand, type MarketCapBand } from '@/lib/ya
 
 const CACHE_KEY = 'flowvium:market-caps:v2';
 const CACHE_TTL = 24 * 60 * 60; // 24h
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 
 export const maxDuration = 60;
 
@@ -50,9 +51,9 @@ export async function GET(req: Request) {
         if (filterTicker) {
           const band = cached.bands[filterTicker] ?? null;
           const cap = cached.caps[filterTicker] ?? null;
-          return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps: cap ? { [filterTicker]: cap } : {}, updatedAt: cached.updatedAt, count: 1, cached: true });
+          return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps: cap ? { [filterTicker]: cap } : {}, updatedAt: cached.updatedAt, count: 1, cached: true }, { headers: CDN_HEADERS });
         }
-        return NextResponse.json({ ...cached, cached: true });
+        return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.market-caps', 'cache_read_error', { error: err }); }
   }
@@ -104,7 +105,7 @@ export async function GET(req: Request) {
   if (filterTicker) {
     const band = payload.bands[filterTicker] ?? null;
     const cap = payload.caps[filterTicker] ?? null;
-    return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps: cap ? { [filterTicker]: cap } : {}, updatedAt: payload.updatedAt, count: 1, cached: false });
+    return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps: cap ? { [filterTicker]: cap } : {}, updatedAt: payload.updatedAt, count: 1, cached: false }, { headers: CDN_HEADERS });
   }
-  return NextResponse.json({ ...payload, cached: false });
+  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
 }

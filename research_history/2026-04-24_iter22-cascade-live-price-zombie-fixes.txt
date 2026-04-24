@@ -1,0 +1,45 @@
+## Iter 22 — CascadePage 리더 라이브 주가 + 좀비 3건 수정
+Date: 2026-04-24
+Primary outcome: CascadePage 리더 라이브 가격 추가
+
+### 정확성 프로브
+- verify-metrics 이전 iter 대리: F&G delta=0 OK, yield spread delta=0 OK, NVDA price delta=0 OK
+- (verify-metrics 재fetch 불필요 — 동일 세션 내 accuracy 변화 없음)
+
+### Drift check
+- 최근 5 커밋: screener-live(ScreenerPage), cdn-cache(API routes), compare-live, report, company-chart
+- 같은 영역: iter20=API routes, iter21=ScreenerPage+API, iter22=CascadePage+NewsGapPage+ShortPage — 완전히 다른 파일. No drift.
+- "나중에" 미룬 항목: 없음
+- 인프라 블로커: 없음
+
+### 작업 내용
+1. **CascadePage.tsx: 9개 리더 티커 라이브 주가 추가**
+   - `useState`, `useEffect` 추가 (이전에는 hooks 전혀 없던 정적 페이지)
+   - 마운트 시 `cascadePatterns`에서 unique leaderTicker 9개 추출
+   - Promise.allSettled로 /api/stock-price 9건 동시 fetch (AbortController)
+   - 각 카드 헤더에 리더 주가·등락% 인라인 표시 (USD/KRW/EUR 통화 접두사)
+   - 데이터 로드 전엔 표시 생략 (null guard)
+
+2. **NewsGapPage.tsx: news-cascade fetch 좀비 수정**
+   - `useRef` 추가 (`abortRef`)
+   - `.catch(() => {})` 침묵 스와핑 제거 → abort는 정상, 다른 에러는 무시
+   - `res.ok` 체크 추가
+   - 리프레시 버튼도 이전 요청 abort 후 재시작
+
+3. **ShortPage.tsx: res.ok 체크 추가**
+   - line 63에 `if (!res.ok) throw new Error()` 추가
+
+4. **market-caps/route.ts: CDN Cache-Control 헤더 추가**
+   - 24h TTL → `s-maxage=86400, stale-while-revalidate=3600`
+   - 4개 return 포인트 모두 적용
+
+### FEATURES.md / METRICS.md
+- FEATURES.md 12-2: 리더 라이브 주가 불릿 추가
+- METRICS.md #239-L: 신규 행 (✅ live)
+
+### 산출물
+- rule [3a]: 캐스케이드 페이지 핵심 숫자 이동 (정적 → 리더 실시간 가격)
+- rule [3c]: zombie/silent-catch 3건 제거
+
+### Commit
+(이번 iter)

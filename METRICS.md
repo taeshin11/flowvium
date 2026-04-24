@@ -530,6 +530,7 @@
 | # | 지표 | 상태 |
 |---|------|------|
 | 238 | 섹터별 패턴 그룹 | 📋 static | `/data/cascades` |
+| 239-L | 리더 기업 라이브 주가·등락% | ✅ live | Yahoo Finance `/api/stock-price` |
 | 239 | 리더 기업·티커·섹터 | 📋 static |
 | 240 | 스텝 수·총 딜레이 | 📋 static |
 | 241 | 역사적 발생 횟수 | 📋 static |

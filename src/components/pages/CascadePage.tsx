@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { cascadePatterns } from '@/data/cascades';
@@ -15,6 +16,29 @@ const sectorColors: Record<string, string> = {
 
 export default function CascadePage() {
   const t = useTranslations('cascade');
+
+  interface LeaderPrice { price: number | null; changePct: number | null; currency: string; }
+  const [leaderPrices, setLeaderPrices] = useState<Map<string, LeaderPrice>>(new Map());
+
+  useEffect(() => {
+    const tickers = Array.from(new Set(cascadePatterns.map(p => p.leaderTicker)));
+    const controller = new AbortController();
+    Promise.allSettled(
+      tickers.map(ticker =>
+        fetch(`/api/stock-price/${ticker}`, { signal: controller.signal })
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
+      )
+    ).then(results => {
+      if (controller.signal.aborted) return;
+      const map = new Map<string, LeaderPrice>();
+      for (const r of results) {
+        if (r.status === 'fulfilled') map.set(r.value.ticker, r.value);
+      }
+      setLeaderPrices(map);
+    });
+    return () => controller.abort();
+  }, []);
 
   // Group by sector
   const bySector = cascadePatterns.reduce(
@@ -66,8 +90,23 @@ export default function CascadePage() {
                       <h3 className="font-heading font-bold text-cf-text-primary group-hover:text-cf-primary transition-colors">
                         {pattern.leaderName} Cascade
                       </h3>
-                      <p className="text-xs text-cf-text-secondary mt-0.5">
-                        {t('leader')}: {pattern.leaderTicker}
+                      <p className="text-xs text-cf-text-secondary mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span>{t('leader')}: {pattern.leaderTicker}</span>
+                        {(() => {
+                          const lp = leaderPrices.get(pattern.leaderTicker);
+                          if (!lp?.price) return null;
+                          const sym = lp.currency === 'USD' ? '$' : lp.currency === 'KRW' ? '₩' : lp.currency === 'EUR' ? '€' : lp.currency + ' ';
+                          return (
+                            <span className="font-mono font-bold text-cf-text-primary">
+                              {sym}{lp.price.toFixed(2)}
+                              {lp.changePct != null && (
+                                <span className={`ml-1 ${lp.changePct >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                  {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })()}
                       </p>
                     </div>
                     <div
