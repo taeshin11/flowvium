@@ -1,0 +1,76 @@
+## Iter 78 — 지표DB 신설 + 뉴스실시간 + 기업명 + KST날짜
+Date: 2026-04-25
+Primary outcome: 지표DB 신설 + 뉴스실시간 (18자)
+
+### Drift check
+- iter74=macro-indicators, iter75=market-caps, iter76=verify-metrics, iter77=capital-flows+korea-flow+YieldCurveCard, iter78=metrics-db+news+earnings
+  → 모두 다른 영역 → drift 없음 OK
+
+### Accuracy probe (§3)
+- [accuracy probe] metric=fg.us source=CNN — verify-metrics 크론 결과 기반 (direct probe 수행 시 값 일치 확인 iter77 참조)
+- [accuracy probe] metric=earnings.date source=KST — dateFromOffset 수정 후 KST 기준 오늘 날짜 반환 확인 (UTC→KST +9h)
+- Note: metrics-db 신설로 향후 매 크론 실행 시 per-metric accuracy 자동 로깅
+
+### 산출물 (§3a: 핵심 숫자 이동)
+4개 주요 수정:
+
+#### [1] 지표 DB (metrics-db) 신설 — NEW FEATURE
+- `src/lib/metrics-db.ts` 신설
+  - `MetricRecord` 인터페이스: key, label, group, status, value, source, updatedAt
+  - `logMetrics(redis, items, checkedAt)`: Redis hash `flowvium:mdb:v1` hset 배치 기록
+  - `getAllMetrics(redis)`: hash 전체 읽기
+  - TTL: 72h (주말 gap 커버)
+- `/api/admin/metrics-db/route.ts` 신설
+  - x-admin-secret 보호
+  - byStatus 집계 포함 반환
+- `verify-metrics/route.ts` 확장
+  - import logMetrics 추가
+  - 스냅샷 Redis 저장 직후 `logMetrics(redis, items, snapshot.checkedAt)` 호출
+  - korea-flow 캐시키 v2 → v3:1d (iter77에서 변경된 실제 키로 수정)
+- `AdminLogsPage.tsx` 확장
+  - `MetricRecord` + `MetricsDbPayload` 인터페이스 추가
+  - `relTime(iso)` (방금/N분전/N시간전), `stalenessColor(iso)` (1h미만=green, 4h미만=amber, 초과=red) 헬퍼
+  - `/api/admin/metrics-db` 병렬 fetch 추가
+  - Metrics DB 섹션: 그룹 탭 + 상태 필터 + 테이블 (레이블/값/소스/상태/업데이트 시각)
+
+#### [2] 뉴스갭 실시간 뉴스 fetch — BUG FIX
+- 원인: `news-gap.ts` static `recentArticles` 가 Apr 1, 2026 하드코딩 → Alpha Vantage 캐시 없으면 폴백
+- 수정: `NewsGapPage.tsx` `GapCard`에 `liveNews` state 추가
+  - 카드 expand 시 `/api/company-news?ticker=` fetch (Yahoo Finance RSS, 30min 메모리 캐시)
+  - `fmtPubDate()`: RSS pubDate → "Apr 25, 2026" 형식 변환
+  - fetch 성공 시 liveNews 표시 + "실시간" 배지, 실패 시 static articles 폴백
+  - useEffect: expanded && liveNews===null 조건으로 중복 fetch 방지
+
+#### [3] 실적 캘린더 기업명 추가 — ENHANCEMENT
+- `earnings/route.ts`:
+  - `EarningRow.companyName: string | null` 필드 추가
+  - `COMPANY_NAMES` 하드코딩 맵: ~180개 티커 커버
+  - `resolveCompanyNames()`: 하드코딩맵 → Redis 캐시 → Finnhub profile2 (max 20/req, 7d Redis 캐시)
+  - `enrichRow(e, companyName)` 시그니처 변경
+- `EarningsPage.tsx`:
+  - `EarningRow.companyName` 필드 추가
+  - 기업명 컬럼 추가 (테이블 헤더 + 셀, max-w-120px truncate)
+  - 검색: symbol 뿐 아니라 companyName도 포함
+  - 검색 placeholder: "티커·기업명 검색 (NVDA, Apple…)"
+  - colSpan 11 → 12
+
+#### [4] 실적 캘린더 KST 날짜 버그 수정 — BUG FIX
+- `earnings/route.ts`: `const kstNow = new Date(Date.now() + 9 * 3600 * 1000)`
+  - `today = kstNow.toISOString().slice(0, 10)` (이전: UTC, 오전 9시 이전 어제 날짜)
+  - `defaultTo = new Date(kstNow.getTime() + 14 * 86400000).toISOString().slice(0, 10)`
+- `EarningsPage.tsx`:
+  - `dateFromOffset(offset)`: `Date.now() + 9 * 3600000 + offset * 86400000` (KST 기준)
+
+### TypeScript
+- TypeScript clean OK (COMPANY_NAMES 중복 키 제거 후)
+- 수정한 파일: metrics-db.ts, metrics-db/route.ts, verify-metrics/route.ts, AdminLogsPage.tsx, NewsGapPage.tsx, earnings/route.ts, EarningsPage.tsx
+
+### Commits
+- iter78: feat(iter78): 지표DB 신설 + 뉴스실시간 + 기업명 + KST 날짜 (38457fb)
+
+### Open issues (다음 iter 후보)
+- CPI 3.29% (FRED) vs BLS 공표 2.4% 불일치 — fetchYoY yearAgo 로직 또는 FRED 시리즈 확인
+- NFP FRED 178K vs BLS 228K 불일치 — FRED PAYEMS 레벨 데이터 계산 검증
+- Days to Cover: Yahoo v10 crumb 차단 → 대체 소스 필요
+- metrics-db: 현재 verify-metrics 크론 실행 시만 갱신 (30분 주기) → 개별 API 엔드포인트 instrument 검토
+- 뉴스갭 프리뷰 (카드 접힌 상태): 여전히 static articles 날짜 표시 → 프리뷰도 live로 전환 검토
