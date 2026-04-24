@@ -149,25 +149,44 @@ async function verifyCapitalFlows(base: string): Promise<MetricItem[]> {
       status: 'error', lastError: r.error ?? `HTTP ${r.status}`,
     }];
   }
-  // 실제 스키마: { ticker, label, flag, ret1w, ret4w, ret13w } — 플랫 필드
-  const data = r.data as { assets?: Array<{ ticker: string; label?: string; ret1w?: number|null; ret4w?: number|null; ret13w?: number|null }>; dataSource?: string };
+  type RetEntry = { ticker: string; label?: string; ret1w?: number|null; ret4w?: number|null; ret13w?: number|null };
+  const data = r.data as { assets?: RetEntry[]; factorPerformance?: RetEntry[]; sectorPerformance?: RetEntry[]; dataSource?: string };
   const items: MetricItem[] = [];
-  for (const a of data.assets ?? []) {
-    const vals = [a.ret1w, a.ret4w, a.ret13w];
-    const nulls = vals.filter((v) => v == null).length;
-    const status: MetricItem['status'] =
-      nulls === 3 ? 'error' :
-      nulls > 0 ? 'degraded' : 'ok';
-    items.push({
-      key: `cf.${a.ticker}`,
-      label: `CF ${a.label ?? a.ticker}`,
-      group: 'capital-flows',
-      status,
-      value: a.ret4w != null ? `${a.ret4w}%(4w)` : null,
-      source: data.dataSource,
-      details: { ret1w: a.ret1w, ret4w: a.ret4w, ret13w: a.ret13w },
-    });
+
+  const checkEntries = (entries: RetEntry[], prefix: string) => {
+    for (const a of entries) {
+      const vals = [a.ret1w, a.ret4w, a.ret13w];
+      const nulls = vals.filter((v) => v == null).length;
+      items.push({
+        key: `${prefix}.${a.ticker}`,
+        label: `CF ${a.label ?? a.ticker}`,
+        group: 'capital-flows',
+        status: nulls === 3 ? 'error' : nulls > 0 ? 'degraded' : 'ok',
+        value: a.ret4w != null ? `${a.ret4w}%(4w)` : null,
+        source: data.dataSource,
+        details: { ret1w: a.ret1w, ret4w: a.ret4w, ret13w: a.ret13w },
+      });
+    }
+  };
+
+  checkEntries(data.assets ?? [], 'cf');
+  checkEntries(data.factorPerformance ?? [], 'cf.factor');
+  checkEntries(data.sectorPerformance ?? [], 'cf.sector');
+  return items;
+}
+
+async function verifyVolatility(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/volatility');
+  if (!r.ok) {
+    return [{ key: 'vol.ALL', label: 'Volatility API', group: 'volatility', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
   }
+  const data = r.data as { vix?: number|null; vxst?: number|null; vxmt?: number|null; vvix?: number|null; regime?: string; history?: unknown[] };
+  const items: MetricItem[] = [];
+  items.push({ key: 'vol.vix',   label: 'VIX (30일)',   group: 'volatility', status: data.vix   != null ? 'ok' : 'error', value: data.vix   != null ? `${data.vix.toFixed(1)}`   : null });
+  items.push({ key: 'vol.vxst',  label: 'VXST (9일)',   group: 'volatility', status: data.vxst  != null ? 'ok' : 'degraded', value: data.vxst  != null ? `${data.vxst.toFixed(1)}`  : null });
+  items.push({ key: 'vol.vxmt',  label: 'VXMT (6개월)', group: 'volatility', status: data.vxmt  != null ? 'ok' : 'degraded', value: data.vxmt  != null ? `${data.vxmt.toFixed(1)}`  : null });
+  items.push({ key: 'vol.regime',label: 'VIX Regime',   group: 'volatility', status: data.regime ? 'ok' : 'degraded', value: data.regime ?? null });
+  items.push({ key: 'vol.hist',  label: 'VIX History',  group: 'volatility', status: Array.isArray(data.history) && data.history.length > 10 ? 'ok' : 'degraded', value: Array.isArray(data.history) ? `${data.history.length}일` : null });
   return items;
 }
 
@@ -632,8 +651,8 @@ export async function GET(req: Request) {
   const base = getBaseUrl(req);
   const redis = createRedis();
 
-  // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적 + 값정합성)
-  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy] = await Promise.all([
+  // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적 + 값정합성 + 변동성)
+  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy, vol] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -645,9 +664,10 @@ export async function GET(req: Request) {
     verifyEarnings(base).catch((e): MetricItem[] => [{ key: 'earnings.ERR', label: 'Earnings verify throw', group: 'earnings', status: 'error', lastError: String(e) }]),
     redis ? verifyRedisCaches(redis) : Promise.resolve([] as MetricItem[]),
     verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
+    verifyVolatility(base).catch((e): MetricItem[] => [{ key: 'vol.ERR', label: 'Volatility verify throw', group: 'volatility', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy, ...vol];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

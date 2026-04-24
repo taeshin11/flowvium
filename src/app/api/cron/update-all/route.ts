@@ -76,10 +76,11 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   // ── 1단계: 독립적인 데이터 소스 병렬 갱신 ────────────────────────────────
-  const [macroR, fedR, capitalR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR] = await Promise.all([
+  const [macroR, fedR, capitalR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/fedwatch', 'fedwatch'),
     warm(base, '/api/capital-flows', 'capital-flows'),
+    warm(base, '/api/volatility', 'volatility'),
     warm(base, '/api/fear-greed?force=1', 'fear-greed'),
     warm(base, '/api/credit-balance', 'credit-balance'),
     warm(base, '/api/short-interest', 'short-interest', 45000),
