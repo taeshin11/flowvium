@@ -493,7 +493,7 @@ interface LiveFGData {
 
 export default function IntelligencePage() {
   const t = useTranslations('intelligence');
-  const [activeTab, setActiveTab] = useState<Tab>('flows');
+  const [activeTab, setActiveTab] = useState<Tab>('capital');
   const [chatOpen, setChatOpen] = useState(false);
 
   // Live Fear & Greed data from API
