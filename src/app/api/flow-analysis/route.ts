@@ -28,7 +28,13 @@ function createRedis(): Redis | null {
 function cacheKey(tf: string): string {
   return `flowvium:flow-analysis:v3:${tf}`;
 }
-const CACHE_TTL_S = 4 * 60 * 60; // 4 hours
+// Stale fallback key: 48h TTL, only written on AI success.
+// Served when AI is exhausted and the primary 4h cache has expired.
+function staleCacheKey(tf: string): string {
+  return `flowvium:flow-analysis:v3:stale:${tf}`;
+}
+const CACHE_TTL_S = 4 * 60 * 60;        // 4 hours (primary)
+const STALE_CACHE_TTL_S = 48 * 60 * 60; // 48 hours (fallback)
 
 const FLOW_SYSTEM_PROMPT = `당신은 글로벌 자금흐름 전문 애널리스트입니다.
 각 국가별 시장 수익률 데이터를 보고, 그 흐름의 근본적인 원인을 분석하세요.
@@ -96,6 +102,14 @@ export async function GET(request: Request) {
     try {
       const cached = await redis.get(cacheKey(tf));
       if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+    } catch { /* non-fatal */ }
+  }
+
+  // Stale fallback guard: read it now so we can serve it if AI fails later in this request.
+  let staleResult: object | null = null;
+  if (redis) {
+    try {
+      staleResult = await redis.get<object>(staleCacheKey(tf));
     } catch { /* non-fatal */ }
   }
 
@@ -193,13 +207,20 @@ export async function GET(request: Request) {
 
   if (redis && analysis) {
     try {
-      await loggedRedisSet(redis, 'api.flow-analysis', cacheKey(tf), result, { ex: CACHE_TTL_S });
+      await Promise.all([
+        loggedRedisSet(redis, 'api.flow-analysis', cacheKey(tf), result, { ex: CACHE_TTL_S }),
+        loggedRedisSet(redis, 'api.flow-analysis', staleCacheKey(tf), result, { ex: STALE_CACHE_TTL_S }),
+      ]);
       logger.info('flow-analysis', 'cache_saved', { tf });
     } catch (e) { logger.warn('flow-analysis', 'cache_write_error', { tf, error: e }); }
   }
 
-  // Never let CDN cache a fallback — stale fallback traps subsequent requests in a loop
-  // (CDN keeps serving old fallback, background revalidation also returns fallback → loop)
+  // Never let CDN cache a failure — stale fallback traps subsequent requests in a loop.
+  // If AI failed but we have a previous stale result, serve it with a stale flag.
+  if (!analysis && staleResult) {
+    logger.warn('flow-analysis', 'serving_stale', { tf, source: (staleResult as Record<string, unknown>).source });
+    return NextResponse.json({ ...(staleResult as object), stale: true, staleFallback: true }, { headers: CDN_HEADERS });
+  }
   const headers = analysis ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
   return NextResponse.json(result, { headers });
 }

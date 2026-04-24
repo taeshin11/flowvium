@@ -1031,13 +1031,19 @@ async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
     // Flow Analysis (AI capital flow)
     safeJson(base, '/api/flow-analysis').then((r): MetricItem => {
       if (!r.ok) return { key: 'flow.analysis', label: 'Flow Analysis API', group: 'flow-analysis', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
-      const d = r.data as { analysis?: string; source?: string };
-      const hasContent = typeof d.analysis === 'string' && d.analysis.length > 20;
+      const d = r.data as { analysis?: unknown; source?: string; stale?: boolean; staleFallback?: boolean };
+      // analysis can be a parsed JSON object OR a string — check either
+      const hasContent = (typeof d.analysis === 'object' && d.analysis !== null) ||
+        (typeof d.analysis === 'string' && (d.analysis as string).length > 20);
+      const analysisSize = typeof d.analysis === 'object'
+        ? JSON.stringify(d.analysis).length
+        : (typeof d.analysis === 'string' ? (d.analysis as string).length : 0);
       const isAI = d.source && d.source !== 'fallback';
+      const isStale = d.stale === true || d.staleFallback === true;
       return {
         key: 'flow.analysis', label: 'AI 자금흐름 분석', group: 'flow-analysis',
-        status: hasContent ? (isAI ? 'ok' : 'degraded') : 'error',
-        value: hasContent ? `${d.analysis!.length}자` : null,
+        status: hasContent ? (isAI ? (isStale ? 'degraded' : 'ok') : 'degraded') : 'error',
+        value: hasContent ? `${analysisSize}자${isStale ? ' (stale)' : ''}` : null,
         source: String(d.source ?? 'none'),
       };
     }),
