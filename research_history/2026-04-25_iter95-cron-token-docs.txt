@@ -1,0 +1,46 @@
+## Iter 95 — cron 토큰 중복 제거 + METRICS.md 백로그 정리
+Date: 2026-04-25
+Primary outcome: daily-brief 이중 재생성 제거 (5,400 tokens/day 절감)
+
+### Drift check
+- iter92=RSS, iter93=sector-pe, iter94=AI-quota, iter95=cron/token-optimization
+- iter94+95 AI/quota 도메인 인접 → 경계. 다음 iter는 다른 영역 이동 필요.
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=cron.daily-brief.calls source=vercel.json
+  direct_value=update-all(3×/day)+daily-brief-cron(3×/day)=6_total
+  our_value=5_calls(bust+force 제거 후), daily-brief cron만 재생성
+  delta=3_bust+3_force → OK (waste 제거)
+
+### Root cause
+update-all (22:50/6:50/12:20 UTC) 에서 `bustDailyBriefCache` + `/api/daily-brief?tf=4w&force=1` 호출.
+5분 후 standalone `daily-brief` cron (22:55/6:55/12:25 UTC) 동일 regeneration.
+→ 1800 tokens × 3 run/day = 5,400 tokens/day 중복 소비.
+
+### 산출물
+
+#### [1] update-all daily-brief bust+force 제거
+- `bustDailyBriefCache` 함수 삭제 (사용처 없어짐)
+- `/api/daily-brief?tf=4w&force=1` → `/api/daily-brief?tf=4w` (캐시 있으면 서빙)
+- daily-brief 재생성은 standalone cron에 위임
+
+절감: 5,400 tokens/day (Groq 100k/day 한도 대비 5.4%)
+
+#### [2] METRICS.md 백로그 정리
+- E32 update-all: "1×/day" → "3×/day" 정정
+- E41 company-news: Yahoo RSS → Yahoo v1 JSON API (iter91 반영 지연)
+- 322번: 동일 갱신
+- E11 korea-flow: live → ⚠️ buggy (KRX 세션 인증 불가, 공식 포기)
+- 203-209번 KRX 지표: ⚠️ buggy + 공식 포기 날짜 2026-04-25
+- E35 sector-pe: 신규 추가 (Yahoo v8+v10 crumb, iter93)
+- 320b: trailingPE/dividendYield/totalAssets/beta3Year ✅ live
+- E6 news-cascade: TTL 12h/1h tiered + Bloomberg/WSJ/SA 소스 갱신
+
+### TypeScript: clean OK
+
+### 배포
+- git push: a48118c
+
+### 미결 이슈 (carry forward)
+- flow.analysis/brief.market: UTC midnight 자동 회복 (~40분 후)
+- 다음 iter: AI/cron 영역에서 벗어나야 함 (drift 경고)
