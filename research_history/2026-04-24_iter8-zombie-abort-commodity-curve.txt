@@ -1,0 +1,89 @@
+## FlowVium Loop Iter 8 — 2026-04-24
+
+### Drift Check
+- Last 5 commits: fix(zombie), feat(report)/VIX, fix(stock-price), feat(company)/price, fix(cron)
+- No single module area hit 3+ consecutive iters → CLEAN
+
+### Primary Outcome: "zombie 제거 + 원자재 커브 (#316)"
+
+---
+
+### 1. Zombie useEffect Fetch 수정 (7개 컴포넌트)
+**Problem**: React useEffect fetch 호출에 AbortController 없음 → 컴포넌트 언마운트 후 setState 호출 (memory leak)
+
+**Files fixed**:
+- `src/components/LiveFeed.tsx` — interval poll (5min) + initial fetch
+- `src/components/StockSupplyModal.tsx` — single fetch on open
+- `src/components/pages/AdminLogsPage.tsx` — 3x parallel fetch (logs/health/metrics)
+- `src/components/pages/EarningsPage.tsx` — range-dependent fetch
+- `src/components/pages/HeatmapPage.tsx` — interval poll (15min) + country switch
+- `src/components/pages/ShortPage.tsx` — initial fetch
+- `src/components/pages/OSINTPage.tsx` — 4개 useEffect (social, crypto wallets, sanctions, corporate)
+
+**Pattern applied**:
+```typescript
+useEffect(() => {
+  const controller = new AbortController();
+  load(false, controller.signal);
+  return () => controller.abort();
+}, []);
+
+const load = async (force = false, signal?: AbortSignal) => {
+  // ...
+  if (signal?.aborted) return; // guard before setState
+};
+```
+
+**onClick handlers** wrapped with `() => load()` to avoid MouseEvent as first arg TS error.
+
+**Commit**: `ee890e0`
+
+---
+
+### 2. 원자재 선물 커브 (#316) — 컨탱고/백워데이션 판정
+
+**Problem**: #316 was ⛔ missing. Yahoo Finance v10 quoteSummary returns 401, but v8 chart API works for futures tickers.
+
+**Validated futures data (2026-04-24)**:
+- CL=F (Jun 26): $96.57 — "Crude Oil Jun 26"
+- CLN26.NYM (Jul 26): $91.27 → backwardation $5.30/bbl over 1 month
+- CLQ26.NYM (Aug 26): $86.84 → continues backwardation
+- GC=F (Jun 26): $4,696.60 — "Gold Jun 26"
+- GCQ26.CMX (Aug 26): $4,732.80 → contango $36/oz over 2 months
+
+**New API**: `src/app/api/commodity-curve/route.ts`
+- Generates contract symbols dynamically from current month
+- WTI: 7 consecutive months (CLx.NYM), Gold: 5 major months (GCx.CMX, even months)
+- Computes slope % (front-to-back) and structure: contango/backwardation/flat (±0.5% threshold)
+- 30min memory cache
+
+**UI**: IntelligencePage CapitalFlowsTab — bar chart + structure badge for each commodity
+- CommodityCurveData interface added
+- Parallel fetch with capital-flows in same Promise.allSettled
+- All fetches now use AbortController (refactored during zombie fix)
+
+**METRICS**: #316 ⛔ → ✅ live, E40 added
+**FEATURES**: 원자재 선물 커브 section added
+
+**Commit**: `7fad787`
+
+---
+
+### 3. Vercel Deployment
+
+**Status**: Pushed 10 commits total (ee890e0..7fad787) after session had 9 unpushed commits.
+- Pre-push: Vercel running f8339d7c (no sector/factor/stock-price)
+- Post-push: Vercel building 7fad787
+
+**Accuracy probe**:
+- verify-metrics: 70 OK / 0 degraded / 0 error → HEALTHY
+- CL=F direct: $96.57, CLN26 $91.27, CLQ26 $86.84 → BACKWARDATION confirmed
+- GC=F direct: $4696.60, GCQ26 $4732.80 → CONTANGO confirmed
+- `/api/stock-price/SPY` was 404 (pre-push) → should resolve after deploy
+
+---
+
+### Remaining ⛔ (12 items)
+#308 Custom watchlist, #309-310 Discord alerts, #311-313 Polygon realtime,
+#314 ETF absolute inflows, #318-319 Vol surface (🔒),
+#320 Sector P/E (Yahoo v10 blocked), #322 Company news AI, #323 Consensus calendar
