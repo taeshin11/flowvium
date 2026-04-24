@@ -1,0 +1,46 @@
+## Iter 20 — CDN Cache-Control 헤더 추가 + res.ok 에러 수정
+Date: 2026-04-24
+Primary outcome: 6개 API 라우트 CDN 캐시 헤더화
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=verify-metrics direct_value=66 our_value=66 delta=0 → OK
+- [accuracy probe] metric=yield_curve.spread source=verify-metrics direct_value=0.51 our_value=0.51 delta=0 → OK
+- [accuracy probe] metric=stock.NVDA.price source=Yahoo direct_value=199.64 our_value=199.64 delta=0 → OK
+
+### Drift check
+- 최근 5 커밋: compare-live(ComparePage), company-chart(CompanyPage), flows-tab, discord-alerts, eco-calendar
+- 같은 영역 3+ iter: 없음
+- "나중에" 미룬 항목: 없음 (iter19에서 KRW 버그 해소)
+- 인프라 블로커: 없음
+
+### 작업 내용
+1. **CDN Cache-Control 헤더 추가 (6개 라우트)**
+   - `market-heatmap/route.ts`: 15분 TTL → `s-maxage=900, stale-while-revalidate=60`
+   - `short-interest/route.ts`: 4h TTL → `s-maxage=14400, stale-while-revalidate=600`
+   - `fear-greed/route.ts`: 4h TTL → `s-maxage=14400, stale-while-revalidate=600`
+   - `volatility/route.ts`: 30min TTL → `s-maxage=1800, stale-while-revalidate=60`
+   - `yield-curve/route.ts`: 1h TTL → `s-maxage=3600, stale-while-revalidate=120`
+   - `stock-price/[ticker]/route.ts`: 15min → `s-maxage=900, stale-while-revalidate=60`
+   - 각 라우트의 모든 return 포인트(Redis hit, memory hit, fresh) 에 헤더 적용
+   - 이전에는 Vercel CDN/브라우저가 매 요청을 오리진까지 통과 → Redis TTL 혜택 반감
+
+2. **HeatmapPage.tsx: res.ok + catch 블록 추가**
+   - 4xx/5xx 응답 시 `res.json()` 시도하던 버그 수정
+   - catch 블록 없어 unhandled promise rejection 가능했던 이슈 수정
+
+3. **ScreenerPage.tsx: res.ok 가드 추가**
+   - `/api/signals`, `/api/short-interest` fetch 체인에 `if (!r.ok) throw` 추가
+   - 서버 오류 시 JSON 파싱 실패 대신 명시적 에러 처리
+
+### 기술 배경
+Next.js `dynamic = 'force-dynamic'` 로 SSR 캐시는 비활성이지만
+HTTP Cache-Control 헤더는 Vercel Edge Network/CDN과 브라우저가 별도로 소비.
+Redis TTL=15min인데 CDN에 헤더가 없으면 엣지에서 캐시하지 않아 모든 요청이
+서버리스 함수까지 도달 → 콜드스타트 비용 + 레이턴시 낭비.
+
+### 산출물
+- rule [3c]: 6개 라우트에서 불필요 오리진 히트 제거 (CDN 계층 활성화)
+- rule [3c]: res.ok 버그 2건 제거
+
+### Commit
+(이번 iter)

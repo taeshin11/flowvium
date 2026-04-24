@@ -7,6 +7,7 @@ import { Redis } from '@upstash/redis';
 export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -516,5 +517,5 @@ export async function GET() {
     byCountry: byCountry.filter(Boolean),
     byAsset: byAsset.filter(Boolean),
     updatedAt: new Date().toISOString(),
-  });
+  }, { headers: CDN_HEADERS });
 }

@@ -156,9 +156,12 @@ export default function HeatmapPage() {
     else setLoading(true);
     try {
       const res = await fetch(`/api/market-heatmap?country=${ctry}`, signal ? { signal } : undefined);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (signal?.aborted) return;
       setData(json);
+    } catch {
+      // abort is expected on cleanup; other errors leave previous data visible
     } finally {
       if (!signal?.aborted) {
         setLoading(false);

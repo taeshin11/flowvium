@@ -15,6 +15,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 const CACHE_KEY = 'flowvium:short-interest:v1';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 // Redis-less fallback — 30min TTL (short-interest changes twice daily but we
 // don't want stale data locked in for 4h on warm instances).
 const MEMORY_CACHE = createMemoryCache<unknown[]>('short-interest', 30 * 60_000);
@@ -91,13 +92,13 @@ export async function GET(req: Request) {
       const cached = await redis.get(CACHE_KEY);
       if (cached) {
         logger.info('api.short-interest', 'cache_hit', { cachedEntries: Array.isArray(cached) ? cached.length : -1 });
-        return NextResponse.json({ entries: cached, cached: true });
+        return NextResponse.json({ entries: cached, cached: true }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.short-interest', 'cache_read_error', { error: err }); }
   } else if (!redis && !forceRefresh) {
     const mem = MEMORY_CACHE.get(MEM_KEY);
     if (mem && Array.isArray(mem) && mem.length > 0) {
-      return NextResponse.json({ entries: mem, cached: true, cacheLayer: 'memory' });
+      return NextResponse.json({ entries: mem, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
     }
   }
 
@@ -166,5 +167,5 @@ export async function GET(req: Request) {
     durationMs: Date.now() - reqStart,
   });
 
-  return NextResponse.json({ entries, cached: false });
+  return NextResponse.json({ entries, cached: false }, { headers: CDN_HEADERS });
 }

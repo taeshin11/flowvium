@@ -3,6 +3,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 min
 const mem = createMemoryCache<object>('stock-price', CACHE_TTL_MS);
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=60' };
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
   const sym = params.ticker.toUpperCase();
 
   const cached = mem.get(sym);
-  if (cached) return NextResponse.json({ ...cached, cached: true });
+  if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
 
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=5d`;
@@ -45,7 +46,7 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
     };
 
     mem.set(sym, result);
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: CDN_HEADERS });
   } catch (e) {
     return NextResponse.json(
       { error: 'Failed to fetch price', details: String(e) },

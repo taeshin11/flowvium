@@ -18,6 +18,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 const CACHE_TTL = 30 * 60;
 const MEM_CACHE = createMemoryCache<VolatilityData>('volatility', 15 * 60_000);
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=60' };
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -98,12 +99,12 @@ export async function GET() {
   const redis = createRedis();
 
   const mem = MEM_CACHE.get('global');
-  if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
+  if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
 
   if (redis) {
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -136,5 +137,5 @@ export async function GET() {
     MEM_CACHE.set('global', data);
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json(data, { headers: CDN_HEADERS });
 }

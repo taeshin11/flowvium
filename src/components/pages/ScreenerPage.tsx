@@ -96,8 +96,8 @@ export default function ScreenerPage() {
     const controller = new AbortController();
     const { signal } = controller;
     Promise.allSettled([
-      fetch('/api/signals', { signal }).then(r => r.json()),
-      fetch('/api/short-interest', { signal }).then(r => r.json()),
+      fetch('/api/signals', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch('/api/short-interest', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
     ]).then(([sigRes, shortRes]) => {
       if (signal.aborted) return;
       if (sigRes.status === 'fulfilled') setSignals(sigRes.value.signals ?? []);

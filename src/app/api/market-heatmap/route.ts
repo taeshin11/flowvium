@@ -21,6 +21,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 const CACHE_TTL = 15 * 60;
 const MEMORY_CACHE = createMemoryCache<HeatmapData>('market-heatmap', 10 * 60_000);
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=60' };
 
 const INDICES_BY_COUNTRY: Record<string, Array<{ symbol: string; label: string }>> = {
   US: [
@@ -95,11 +96,11 @@ export async function GET(req: NextRequest) {
     if (redis) {
       try {
         const cached = await redis.get(cacheKey);
-        if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+        if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
       } catch { /* non-fatal */ }
     } else {
       const mem = MEMORY_CACHE.get(country);
-      if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
+      if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
     }
   }
 
@@ -200,5 +201,5 @@ export async function GET(req: NextRequest) {
     MEMORY_CACHE.set(country, data);
   }
 
-  return NextResponse.json({ ...data, cached: false });
+  return NextResponse.json({ ...data, cached: false }, { headers: CDN_HEADERS });
 }
