@@ -553,7 +553,7 @@
 ### 13-5. AI Outlook 바
 - "🔮 AI Outlook" + 아웃룩 텍스트
 
-### 13-6. 미국 금리 커브 카드 (`YieldCurveCard`, 동적 로드)
+### 13-6. 금리 커브 + 변동성 카드 (2열 그리드, 동적 로드)
 **파일**: `src/components/YieldCurveCard.tsx`  
 **데이터**: `/api/yield-curve` (FRED CSV 무키, 1h Redis 캐시)
 
@@ -563,6 +563,12 @@
 - 스프레드 시계열 Area 차트 (최근 90일) — 2s10s/3m10y 탭 전환
 - TIPS 실질금리 곡선 (5Y~30Y, 5 만기) — 탭 전환
 - Breakeven 인플레이션 (5Y, 10Y 일별 시계열 90일)
+
+**`VolatilityCard`** — `/api/volatility` (Yahoo Finance chart, 30min 캐시)
+- VIX 기간 구조 바 차트: VXST(9일) / VIX(30일) / VXMT(6개월)
+- 콘탱고/백워데이션/험프형 레짐 배지
+- 90일 VIX 이력 Area 차트 (20/30 기준선)
+- VVIX (VIX의 변동성) 표시
 
 ---
 

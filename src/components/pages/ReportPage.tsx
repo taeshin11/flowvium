@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Sparkline from '@/components/Sparkline';
 import dynamic from 'next/dynamic';
 const YieldCurveCard = dynamic(() => import('@/components/YieldCurveCard'), { ssr: false });
+const VolatilityCard = dynamic(() => import('@/components/VolatilityCard'), { ssr: false });
 
 type Timeframe = '1w' | '4w' | '13w';
 
@@ -306,9 +307,10 @@ export default function ReportPage() {
           />
         </div>
 
-        {/* Yield Curve */}
-        <div className="mb-6">
+        {/* Yield Curve + Volatility (side-by-side on large screens) */}
+        <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <YieldCurveCard />
+          <VolatilityCard />
         </div>
 
         {/* Loading */}
