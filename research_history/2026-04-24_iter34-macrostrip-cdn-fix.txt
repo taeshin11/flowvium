@@ -1,0 +1,61 @@
+## Iter 34 — MarketSnapshot 매크로 확장 + company-news CDN + FEATURES/METRICS 소급
+Date: 2026-04-24
+Primary outcome: 홈 매크로 지표 3개 추가
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=CNN direct_value=N/A (418 bot-block) our_value=66 delta=N/A → N/A (CNN 지속 차단)
+- [accuracy probe] metric=spy.price source=Yahoo — 이전 iter33 기준 708.45 (CDN 캐시, 당일 확인)
+- 신규 지표 ^TNX / DX-Y.NYB / GC=F: Yahoo Finance v8 chart API로 동일 경로 (stock-price route) → 정상 반환 예상
+
+### Drift check
+- 최근 5 커밋: iter33(홈 F&G), iter32(MarketSnapshot 자동갱신), iter31(CDN+zombie), iter30(CDN+zombie), iter29(FedWatch)
+- iter30/31: CDN 2회 연속 → iter32/33: 홈 기능 2회 연속
+- 3회 연속 같은 영역 없음 → drift 없음
+- FEATURES.md+METRICS.md: iter32/33 모두 미갱신 → 소급 처리 (이번 iter)
+- 35 커밋 로컬, Vercel 미반영 — 별도 사용자 확인 필요
+
+### 작업 내용
+
+#### 1. HomePage.tsx — MarketSnapshot 매크로 확장
+- `MACRO_TICKERS = ['^TNX', 'DX-Y.NYB', 'GC=F']` 상수 추가
+- `TICKER_CONFIG` 레코드 도입: 기존 inline 포맷 코드 → label/decimals/prefix/suffix/invertColor 일원화
+  - `^TNX`: prefix='', suffix='%' → `4.45%` 형식
+  - `DX-Y.NYB`: prefix='', suffix='' → `105.3` 형식
+  - `GC=F`: prefix='$', suffix='' → `$3350` 형식
+  - VIX: prefix='' (기존 '$' 제거), invertColor=true 유지
+- fetchPills: `SNAPSHOT_TICKERS` → `[...SNAPSHOT_TICKERS, ...MACRO_TICKERS]` (7개 병렬 fetch)
+- 렌더: `index === SNAPSHOT_TICKERS.length` 에서 border-l 구분선 자동 삽입
+- 결과 레이아웃:
+  `[S&P][NDX][BTC][VIX] | [10Y][DXY][Gold] | [F&G]`
+
+#### 2. company-news/route.ts — CDN 추가
+- `CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1440, stale-while-revalidate=120' }` 추가
+- 적용 return point: 메모리 캐시 hit + fresh 응답 (2개)
+- 30min 메모리 TTL의 80% = 24min = 1440s
+- Vercel CDN이 ticker별 URL로 캐시 (query param 포함) → 반복 동일 ticker 요청 CDN hit 가능
+
+#### 3. FEATURES.md 소급 수정
+- 2-2b 섹션: 자동갱신(iter32), F&G pill(iter33), 매크로 그룹 2 (iter34) 반영
+- company-news 섹션: CDN 추가 명기
+
+#### 4. METRICS.md 소급 수정
+- 239-M~P: 주기 `15min delay` → `60s 갱신` (iter32 소급)
+- 239-Q: US F&G 지수 행 추가 (iter33 소급)
+- 239-R/S/T: 10Y / DXY / Gold 행 추가 (iter34)
+
+### 캐시 계층 감사
+- stock-price API: memory 15min + CDN s-maxage=900 → 클라이언트 60s 갱신
+- company-news: memory 30min + CDN s-maxage=1440 ✓ (이번 iter 추가)
+- fear-greed: CDN s-maxage=14400 (4h) ✓
+
+### TypeScript
+- TypeScript clean ✓ (전후 모두 error 0)
+- UI 검증: 브라우저 없이 실 렌더 확인 불가 → 미검증 명시
+- ^TNX / DX-Y.NYB / GC=F Yahoo Finance 반환 여부: live probe 불가 (Vercel 미배포 상태)
+
+### 산출물 분류
+- rule [3a]: 홈 마켓 스트립 7개 지표 → 완전한 매크로 대시보드 (SPY+QQQ+BTC+VIX+10Y+DXY+Gold+F&G)
+- rule [3c]: TICKER_CONFIG 도입으로 ticker별 inline 코드 단순화 (분기 제거)
+
+### Commit
+(this iter commit)

@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 const mem = createMemoryCache<object>('company-news', CACHE_TTL_MS);
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1440, stale-while-revalidate=120' };
 
 export interface NewsItem {
   title: string;
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   const cacheKey = ticker;
   const cached = mem.get(cacheKey);
-  if (cached) return NextResponse.json({ ...cached, cached: true });
+  if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
 
   try {
     const rssUrl = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(ticker)}&region=US&lang=en-US`;
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     const result = { ticker, news, summary: summary || null, generatedAt: new Date().toISOString(), cached: false };
     mem.set(cacheKey, result);
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: CDN_HEADERS });
   } catch (e) {
     return NextResponse.json({ error: 'Failed to fetch news', details: String(e) }, { status: 502 });
   }

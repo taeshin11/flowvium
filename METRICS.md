@@ -58,10 +58,14 @@
 
 | # | 지표 | 상태 | 소스 | 주기 | 비고 |
 |---|------|------|------|------|------|
-| 239-M | SPY 실시간 가격 + 등락% | ✅ live | `/api/stock-price/SPY` | 15min delay | MarketSnapshot |
-| 239-N | QQQ 실시간 가격 + 등락% | ✅ live | `/api/stock-price/QQQ` | 15min delay | |
-| 239-O | BTC-USD 실시간 가격 + 등락% | ✅ live | `/api/stock-price/BTC-USD` | 15min delay | |
-| 239-P | ^VIX 실시간 수준 + 등락% | ✅ live | `/api/stock-price/^VIX` | 15min delay | 컬러 반전 |
+| 239-M | SPY 실시간 가격 + 등락% | ✅ live | `/api/stock-price/SPY` | 60s 갱신 | MarketSnapshot |
+| 239-N | QQQ 실시간 가격 + 등락% | ✅ live | `/api/stock-price/QQQ` | 60s 갱신 | |
+| 239-O | BTC-USD 실시간 가격 + 등락% | ✅ live | `/api/stock-price/BTC-USD` | 60s 갱신 | |
+| 239-P | ^VIX 실시간 수준 + 등락% | ✅ live | `/api/stock-price/^VIX` | 60s 갱신 | 컬러 반전 |
+| 239-Q | US Fear & Greed 지수 | ✅ live | `/api/fear-greed` | 60s 갱신 | F&G pill, iter33 |
+| 239-R | 10Y 국채금리 (^TNX) | ✅ live | `/api/stock-price/^TNX` | 60s 갱신 | `{price}%` 표시, iter34 |
+| 239-S | DXY 달러인덱스 (DX-Y.NYB) | ✅ live | `/api/stock-price/DX-Y.NYB` | 60s 갱신 | 소수점 1자리, iter34 |
+| 239-T | Gold 선물 가격 (GC=F) | ✅ live | `/api/stock-price/GC=F` | 60s 갱신 | `$` 정수, iter34 |
 
 ### 1-2. 통계 바
 

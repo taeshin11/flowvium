@@ -76,9 +76,13 @@
 - 생성 메타데이터 (타임스탬프·소스·캐시 여부)
 
 ### 2-2b. 실시간 마켓 스냅샷 스트립 (`MarketSnapshot`)
-- SPY / QQQ / BTC-USD / ^VIX 실시간 가격 + 등락% (4 pill)
+- **그룹 1 (주식·변동성)**: SPY / QQQ / BTC-USD / ^VIX 실시간 가격 + 등락% (4 pill)
+- **그룹 2 (매크로)**: 10Y 국채금리(^TNX) / DXY 달러인덱스 / Gold(GC=F) (3 pill, iter34 추가)
 - VIX는 컬러 반전 (상승=위험 → 빨강, 하락=안전 → 초록)
-- 마운트 시 `/api/stock-price` 4건 병렬 fetch (AbortController)
+- 10Y: `{price}%` 형식 (suffix=%), DXY: 소수점 1자리, Gold: `$` 정수
+- **60초 자동 갱신** (`setInterval` + `AbortController` 클린업) ← iter32
+- **US Fear & Greed 지수 pill** (F&G, `levelLabels` 색상) ← iter33
+- 마운트 시 `/api/stock-price` 7건 + `/api/fear-greed` 1건 병렬 fetch
 - 가격 로드 전 표시 안 함 (null guard)
 
 ### 2-3. 통계 바
@@ -304,7 +308,7 @@
 #### 최신 뉴스 + AI 요약 (신규)
 - `/api/company-news?ticker=` — Yahoo Finance RSS 최신 8개 헤드라인
 - EXAONE AI가 상위 5개 뉴스를 한국어로 2-3문장 요약
-- 30분 메모리 캐시, 마운트 시 자동 로드
+- 30분 메모리 캐시 + CDN s-maxage=1440 (ticker별 URL 캐시), 마운트 시 자동 로드
 
 #### AI 분석
 - 온디맨드 생성 버튼

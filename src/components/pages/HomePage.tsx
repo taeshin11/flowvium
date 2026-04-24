@@ -50,10 +50,20 @@ const searchCompanies = allCompanies.map((c) => ({
   sector: c.sector,
 }));
 
-// Live market snapshot strip — SPY / QQQ / BTC / VIX
+// Live market snapshot strip — SPY / QQQ / BTC / VIX + macro row (10Y / DXY / Gold)
 interface SnapPill { price: number | null; changePct: number | null; currency: string; }
 const SNAPSHOT_TICKERS = ['SPY', 'QQQ', 'BTC-USD', '^VIX'];
+const MACRO_TICKERS = ['^TNX', 'DX-Y.NYB', 'GC=F'];
 const SNAPSHOT_REFRESH_MS = 60_000;
+const TICKER_CONFIG: Record<string, { label: string; decimals: number; prefix: string; suffix: string; invertColor?: boolean }> = {
+  'SPY':       { label: 'S&P',  decimals: 2, prefix: '$', suffix: '' },
+  'QQQ':       { label: 'NDX',  decimals: 2, prefix: '$', suffix: '' },
+  'BTC-USD':   { label: 'BTC',  decimals: 0, prefix: '$', suffix: '' },
+  '^VIX':      { label: 'VIX',  decimals: 2, prefix: '',  suffix: '', invertColor: true },
+  '^TNX':      { label: '10Y',  decimals: 2, prefix: '',  suffix: '%' },
+  'DX-Y.NYB':  { label: 'DXY',  decimals: 1, prefix: '',  suffix: '' },
+  'GC=F':      { label: 'Gold', decimals: 0, prefix: '$', suffix: '' },
+};
 
 function MarketSnapshot() {
   const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
@@ -65,7 +75,7 @@ function MarketSnapshot() {
     const controller = new AbortController();
     abortRef.current = controller;
     Promise.allSettled([
-      ...SNAPSHOT_TICKERS.map(ticker =>
+      ...[...SNAPSHOT_TICKERS, ...MACRO_TICKERS].map(ticker =>
         fetch(`/api/stock-price/${encodeURIComponent(ticker)}`, { signal: controller.signal })
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
@@ -100,28 +110,25 @@ function MarketSnapshot() {
 
   if (pills.size === 0) return null;
 
-  const LABELS: Record<string, string> = { 'SPY': 'S&P', 'QQQ': 'NDX', 'BTC-USD': 'BTC', '^VIX': 'VIX' };
-
   return (
     <div className="border-y border-cf-border/60 bg-cf-bg/80 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5">
         <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
-          {SNAPSHOT_TICKERS.map(ticker => {
+          {[...SNAPSHOT_TICKERS, ...MACRO_TICKERS].map((ticker, i) => {
             const p = pills.get(ticker);
             if (!p?.price) return null;
-            const sym = p.currency === 'USD' ? '$' : p.currency === 'KRW' ? '₩' : p.currency === 'EUR' ? '€' : '';
+            const cfg = TICKER_CONFIG[ticker];
             const up = (p.changePct ?? 0) >= 0;
-            const isVix = ticker === '^VIX';
-            const decimals = ticker === 'BTC-USD' ? 0 : 2;
+            const addSep = i === SNAPSHOT_TICKERS.length;
             return (
-              <div key={ticker} className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">{LABELS[ticker]}</span>
+              <div key={ticker} className={`flex items-center gap-1.5 flex-shrink-0${addSep ? ' border-l border-cf-border/40 pl-6' : ''}`}>
+                <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">{cfg?.label ?? ticker}</span>
                 <span className="text-sm font-mono font-bold text-cf-text-primary">
-                  {sym}{p.price.toFixed(decimals)}
+                  {cfg?.prefix ?? ''}{p.price.toFixed(cfg?.decimals ?? 2)}{cfg?.suffix ?? ''}
                 </span>
                 {p.changePct != null && (
                   <span className={`text-xs font-mono font-semibold px-1 py-0.5 rounded ${
-                    isVix
+                    cfg?.invertColor
                       ? (up ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50')
                       : (up ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50')
                   }`}>
