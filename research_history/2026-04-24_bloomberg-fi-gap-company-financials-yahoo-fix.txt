@@ -1,0 +1,43 @@
+== FlowVium Loop Iter — 2026-04-24 ==
+Primary outcome: Bloomberg FI 갭 해소 — 기업 재무 심화 UI 신설 (18/19 지표)
+
+=== Drift Check ===
+- 최근 7 커밋 중 4개 heatmap 영역 → drift 신호 감지
+- 이번 iter: heatmap 인덱스 fix 후 기업 재무 UI로 이동 (drift 탈출)
+
+=== Accuracy Probe ===
+[accuracy probe] metric=fg.us source=CNN(via Vercel verify-metrics) direct_value=70 our_value=70 delta=0 tolerance=3 → OK
+
+=== Commits This Iter ===
+1. fix(yahoo): query2 fallback when query1 blocked from Vercel (4bcb4ec)
+   - fetchOneQuote: for..of ['query2','query1'] — tries query2 first
+   - cache key v7→v8 to flush stale null-index cache
+   - Root cause: query1.finance.yahoo.com blocked from Vercel US IPs
+   - SPY/QQQ/IWM/DIA were all null; query2 returns same data
+
+2. feat(company-financials): 19 Bloomberg FI 지표 UI 신설 (ccdf81c)
+   - sec-financials.ts 완전 재작성:
+     * 단일 XBRL 호출로 19개 지표 파싱
+     * 핵심 버그 수정: 기업이 GAAP concept 변경 시 오래된 FY 반환
+       (AAPL: Revenues FY2018 → RevenueFromContractWithCustomer FY2025)
+       Fix: 각 concept 최신 FY를 수집 후 가장 최근 선택
+     * 연간 5개 시계열 반환 (revenue trend)
+     * 파생 지표: Op Margin%, ROE%, ROA%, Debt Ratio%
+   - CompanyPage.tsx: 재무 심화 카드 신설
+     * 8-metric KPI 그리드 (매출/영업이익/순이익/EPS/마진/ROE/ROA/부채비율)
+     * 매출+순이익 추이 BarChart (5년)
+     * 대차대조표 / 현금흐름 / 투자·주주환원 3열 패널
+   - cache key v1→v2
+
+3. docs(metrics): #152-169 ⛔ missing → ✅ live (26320ff)
+
+=== Metrics Impact ===
+- METRICS.md #152-169: 18개 ⛔ → ✅ live (Bloomberg FI 갭 18개 해소)
+- heatmap indices (SPY/QQQ/IWM/DIA): null → live (post-deploy)
+- AAPL revenue: FY2018 $265B → FY2025 $416B (버그 수정)
+- verify-metrics: 70/72 OK, 2 skipped (healthy)
+
+=== Remaining ===
+- #170 분기별 Y/Y 성장률: 미구현 (다음 iter)
+- 금리 커브 차트 (FRED): 다음 1순위
+- heatmap index fix 배포 후 검증 필요
