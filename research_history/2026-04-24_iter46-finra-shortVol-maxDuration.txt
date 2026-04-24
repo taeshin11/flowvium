@@ -1,0 +1,85 @@
+## Iter 46 — FINRA 공매도 실데이터 + maxDuration 7개 라우트
+Date: 2026-04-24
+Primary outcome: 공매도 null 데이터 → FINRA 실측값
+
+### Drift check
+- iter 41-45: sector-pe → crumb zombie → stock-supply → news-cascade → eu-heatmap
+- iter 46: 완전히 다른 영역 (short-interest + infra) ✓
+- FEATURES.md 부채 존재 → 이번 iter에서 청산 ✓
+
+### 정확성 프로브
+- [accuracy probe] metric=XLK.price source=Yahoo direct_value=$155.84 our_value=$155.84 Δ0 → OK
+- [accuracy probe] metric=XLK.changePct source=Yahoo direct_value=-1.42% our_value=-1.42% Δ0 → OK
+- [accuracy probe] metric=TSLA.shortVolPct source=FINRA direct_value=62.8% → 스퀴즈 위험 상단
+- verify-metrics: 77/79 OK, 0 degraded, 0 errors
+
+### FINRA 일별 공매도 비율 실측 (2026-04-23)
+| Ticker | ShortVol      | TotalVol       | shortVolPct |
+|--------|---------------|----------------|-------------|
+| NVDA   | 24,605,772    | 54,833,330     | 44.9%       |
+| AAPL   | 4,864,652     | 9,808,746      | 49.6%       |
+| MSFT   | 7,519,977     | 16,166,503     | 46.5%       |
+| COIN   | 1,922,793     | 4,182,104      | 46.0%       |
+| TSLA   | 28,960,498    | 46,132,925     | 62.8% ⚠️   |
+
+### 발견된 문제
+1. short-interest shortFloatPct/shortRatio: 항상 null
+   - 원인: Yahoo v10 crumb 인증이 Vercel IP에서 차단됨
+   - 기존 squeezeScore: instAction만으로 계산 (최대 35점)
+   - UI: 공매도 비율 컬럼 전부 "-" 표시
+
+2. FEATURES.md 5개 항목 stale (iter 41-45 변경 미반영):
+   - sector-pe, market-caps, short-interest, market-heatmap, news-cascade
+
+3. maxDuration 누락 라우트 7개:
+   - capital-flows (53개 티커 병렬 fetch, 8s timeout per ticker)
+   - korea-flow (KRX, 12s timeout)
+   - macro-indicators (FRED, 10s timeout)
+   - yield-curve (16 FRED series)
+   - fear-greed (CNN 6s timeout + fallback)
+   - stock-supply (Yahoo v8, 3개 fetch)
+   - volatility (CBOE 병렬 fetch)
+
+### 수정 사항
+
+#### vercel.json
+- maxDuration=60 추가: capital-flows, korea-flow, macro-indicators,
+  yield-curve, fear-greed, stock-supply, volatility
+
+#### FEATURES.md
+- sector-pe: Yahoo v10 crumb → Yahoo v8 no-auth, 24h → 4h Redis
+- market-caps: Yahoo v7 live → 정적 band 분류만
+- short-interest: Yahoo Finance → EDGAR 13F + FINRA
+- market-heatmap: EU 79/80 (98.75%) coverage 명시
+- news-cascade: 병렬 8개 처리 명시
+
+#### src/app/api/short-interest/route.ts
+- fetchFinraShortVol(): FINRA CDN 500KB 파일 파싱
+  - 최대 5 거래일 소급 (주말 건너뜀)
+  - ShortVolume / TotalVolume × 100 = shortVolPct
+  - ticker별 lookup (11K 행, ~50ms 파싱)
+- ShortEntry 인터페이스: shortVolPct 필드 추가
+- calcSqueezeScore(): shortVolPct 분기 추가
+  - > 60% → +25, > 55% → +15, > 50% → +8, > 45% → +3
+- Cache key v2 → v3
+
+#### src/components/pages/ShortPage.tsx
+- "Short % Float" → "Short Vol % (FINRA)" 컬럼
+- avgShort: shortFloatPct(null) → shortVolPct(실값)
+- 색상 임계값 조정 (> 60% = red, > 50% = amber)
+- 로딩 메시지: "Yahoo Finance" → "FINRA"
+
+#### src/components/pages/ScreenerPage.tsx
+- 동일 컬럼 변경 + shortVolPct 기반 필터
+
+### 측정 결과 (FINRA 2026-04-23 데이터)
+- TSLA shortVolPct=62.8% → squeezeScore +25 (위험 범위 진입 가능)
+- NVDA shortVolPct=44.9% → squeezeScore +3 (정상)
+- 모든 28 추적 종목에 실제 수치 표시 (이전: 전부 "-")
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- 29c7603: fix(vercel): add maxDuration=60 to 7 routes + FEATURES.md debt
+- f893ac5: feat(short-interest): FINRA daily short volume replaces all-null Yahoo crumb data
