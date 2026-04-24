@@ -258,7 +258,7 @@ function AIDailyBrief() {
     setLoading(true);
     setBrief(null);
     fetch(`/api/daily-brief?tf=${tf}`, { signal: controller.signal })
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data: DailyBrief) => { if (!controller.signal.aborted) setBrief(data); })
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });

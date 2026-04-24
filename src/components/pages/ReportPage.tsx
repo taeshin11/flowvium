@@ -113,6 +113,7 @@ export default function ReportPage() {
   const [vixSpark, setVixSpark] = useState<number[] | null>(null);
 
   const briefAbortRef = useRef<AbortController | null>(null);
+  const kpiAbortRef = useRef<AbortController | null>(null);
 
   const fetchBrief = useCallback(async (timeframe: Timeframe) => {
     briefAbortRef.current?.abort();
@@ -138,74 +139,94 @@ export default function ReportPage() {
 
   // KPI parallel fetcher — each pill fails independently
   const fetchKpis = useCallback(async () => {
+    kpiAbortRef.current?.abort();
+    const controller = new AbortController();
+    kpiAbortRef.current = controller;
+    const { signal } = controller;
+
     setFg({ loading: true, error: false, value: null });
     setSpy({ loading: true, error: false, value: null });
     setCurve({ loading: true, error: false, value: null });
     setVix({ loading: true, error: false, value: null });
     setFomc({ loading: true, error: false, value: null });
 
-    const pFg = fetch('/api/fear-greed').then(r => r.json()).then(j => {
-      const us = Array.isArray(j?.byCountry) ? j.byCountry.find((x: { id?: string }) => x?.id === 'us') : null;
-      const score = us?.score;
-      if (typeof score !== 'number') throw new Error('no us score');
-      setFg({ loading: false, error: false, value: { score } });
-    }).catch(() => setFg({ loading: false, error: true, value: null }));
+    const pFg = fetch('/api/fear-greed', { signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(j => {
+        const us = Array.isArray(j?.byCountry) ? j.byCountry.find((x: { id?: string }) => x?.id === 'us') : null;
+        const score = us?.score;
+        if (typeof score !== 'number') throw new Error('no us score');
+        if (!signal.aborted) setFg({ loading: false, error: false, value: { score } });
+      }).catch(() => { if (!signal.aborted) setFg({ loading: false, error: true, value: null }); });
 
-    const pCap = fetch('/api/capital-flows').then(r => r.json()).then(j => {
-      const assets: Array<{ ticker?: string; ret1w?: number }> = Array.isArray(j?.assets) ? j.assets : [];
-      const spyRow = assets.find(a => a?.ticker === 'SPY');
-      if (!spyRow || typeof spyRow.ret1w !== 'number') {
-        setSpy({ loading: false, error: true, value: null });
-      } else {
-        setSpy({ loading: false, error: false, value: { ret1w: spyRow.ret1w } });
-      }
-      // VIX — capital-flows doesn't list VIX directly, try VIXY/VXX/^VIX
-      const vixRow = assets.find(a => a?.ticker === 'VIXY' || a?.ticker === 'VXX' || a?.ticker === '^VIX');
-      if (!vixRow || typeof vixRow.ret1w !== 'number') {
-        setVix({ loading: false, error: true, value: null });
-      } else {
-        setVix({ loading: false, error: false, value: { ret1w: vixRow.ret1w, level: null } });
-      }
-    }).catch(() => {
-      setSpy({ loading: false, error: true, value: null });
-      setVix({ loading: false, error: true, value: null });
-    });
+    const pCap = fetch('/api/capital-flows', { signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(j => {
+        const assets: Array<{ ticker?: string; ret1w?: number }> = Array.isArray(j?.assets) ? j.assets : [];
+        const spyRow = assets.find(a => a?.ticker === 'SPY');
+        if (!signal.aborted) {
+          if (!spyRow || typeof spyRow.ret1w !== 'number') {
+            setSpy({ loading: false, error: true, value: null });
+          } else {
+            setSpy({ loading: false, error: false, value: { ret1w: spyRow.ret1w } });
+          }
+          // VIX — capital-flows doesn't list VIX directly, try VIXY/VXX/^VIX
+          const vixRow = assets.find(a => a?.ticker === 'VIXY' || a?.ticker === 'VXX' || a?.ticker === '^VIX');
+          if (!vixRow || typeof vixRow.ret1w !== 'number') {
+            setVix({ loading: false, error: true, value: null });
+          } else {
+            setVix({ loading: false, error: false, value: { ret1w: vixRow.ret1w, level: null } });
+          }
+        }
+      }).catch(() => {
+        if (!signal.aborted) {
+          setSpy({ loading: false, error: true, value: null });
+          setVix({ loading: false, error: true, value: null });
+        }
+      });
 
-    const pMacro = fetch('/api/macro-indicators').then(r => r.json()).then(j => {
-      const spread = j?.yieldCurve?.spread10y2y;
-      if (typeof spread !== 'number') throw new Error('no spread');
-      setCurve({ loading: false, error: false, value: { spread, inverted: !!j.yieldCurve?.inverted } });
-    }).catch(() => setCurve({ loading: false, error: true, value: null }));
+    const pMacro = fetch('/api/macro-indicators', { signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(j => {
+        const spread = j?.yieldCurve?.spread10y2y;
+        if (typeof spread !== 'number') throw new Error('no spread');
+        if (!signal.aborted) setCurve({ loading: false, error: false, value: { spread, inverted: !!j.yieldCurve?.inverted } });
+      }).catch(() => { if (!signal.aborted) setCurve({ loading: false, error: true, value: null }); });
 
-    const pFed = fetch('/api/fedwatch').then(r => r.json()).then(j => {
-      const m = Array.isArray(j?.meetings) ? j.meetings[0] : null;
-      if (!m) throw new Error('no meeting');
-      const probCut = (m.probCut25 ?? 0) + (m.probCut50 ?? 0) + (m.probCut75 ?? 0);
-      setFomc({ loading: false, error: false, value: { label: m.label ?? m.date ?? '?', probCut } });
-    }).catch(() => setFomc({ loading: false, error: true, value: null }));
+    const pFed = fetch('/api/fedwatch', { signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(j => {
+        const m = Array.isArray(j?.meetings) ? j.meetings[0] : null;
+        if (!m) throw new Error('no meeting');
+        const probCut = (m.probCut25 ?? 0) + (m.probCut50 ?? 0) + (m.probCut75 ?? 0);
+        if (!signal.aborted) setFomc({ loading: false, error: false, value: { label: m.label ?? m.date ?? '?', probCut } });
+      }).catch(() => { if (!signal.aborted) setFomc({ loading: false, error: true, value: null }); });
 
     // 30d sparklines — independent, non-blocking. 실패 시 해당 pill 만 sparkline 미표시.
     const fetchSpark = async (ticker: string): Promise<number[] | null> => {
       try {
-        const r = await fetch(`/api/price-history?ticker=${encodeURIComponent(ticker)}&days=30`);
+        const r = await fetch(`/api/price-history?ticker=${encodeURIComponent(ticker)}&days=30`, { signal });
+        if (!r.ok) return null;
         const j = await r.json();
         const pts: Array<{ close?: number }> = Array.isArray(j?.points) ? j.points : [];
         const vals = pts.map(p => p?.close).filter((v): v is number => typeof v === 'number');
         return vals.length >= 2 ? vals : null;
       } catch { return null; }
     };
-    const pSpark = fetchSpark('SPY').then(v => { if (v) setSpySpark(v); });
+    const pSpark = fetchSpark('SPY').then(v => { if (v && !signal.aborted) setSpySpark(v); });
     // Volatility endpoint — VIX current level + regime
-    const pVol = fetch('/api/volatility').then(r => r.json()).then(j => {
-      const level: number | null = typeof j?.vix === 'number' ? j.vix : null;
-      setVix(prev => ({
-        loading: false, error: level == null,
-        value: level != null ? { ret1w: prev.value?.ret1w ?? 0, level } : null,
-      }));
-    }).catch(() => { /* keep existing state */ });
+    const pVol = fetch('/api/volatility', { signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(j => {
+        const level: number | null = typeof j?.vix === 'number' ? j.vix : null;
+        if (!signal.aborted) setVix(prev => ({
+          loading: false, error: level == null,
+          value: level != null ? { ret1w: prev.value?.ret1w ?? 0, level } : null,
+        }));
+      }).catch(() => { /* keep existing vix state */ });
 
     const pVixSpark = fetchSpark('^VIX').then(v => {
-      if (!v) return;
+      if (!v || signal.aborted) return;
       setVixSpark(v);
       if (v.length >= 6) {
         const last = v[v.length - 1];
@@ -222,7 +243,10 @@ export default function ReportPage() {
   }, []);
 
   useEffect(() => { fetchBrief(tf); }, [tf, fetchBrief]);
-  useEffect(() => { fetchKpis(); }, [fetchKpis]);
+  useEffect(() => {
+    fetchKpis();
+    return () => kpiAbortRef.current?.abort();
+  }, [fetchKpis]);
 
   // Tick every 30s so "age" text auto-refreshes
   useEffect(() => {

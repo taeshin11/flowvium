@@ -507,7 +507,7 @@ export default function IntelligencePage() {
     const controller = new AbortController();
     setFgLoading(true);
     fetch('/api/fear-greed', { signal: controller.signal })
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => { if (!controller.signal.aborted) setFgData(d); })
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setFgLoading(false); });
@@ -518,7 +518,7 @@ export default function IntelligencePage() {
     if (activeTab !== 'flows' || liveSignals !== null) return;
     const controller = new AbortController();
     fetch('/api/signals', { signal: controller.signal })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(d => { if (!controller.signal.aborted) setLiveSignals(d.signals ?? []); })
       .catch(() => { if (!controller.signal.aborted) setLiveSignals([]); });
     return () => controller.abort();
