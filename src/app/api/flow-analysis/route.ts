@@ -22,10 +22,13 @@ function createRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
+// Time-independent key + 4h TTL (vs. hourly-rotating key).
+// Previously hourly key caused 24 Redis misses/day × 3k tokens = 72k tokens consumed by probes alone.
+// 4h TTL: ~6 regenerations/day, same freshness for a "4-week capital flows" analysis.
 function cacheKey(tf: string): string {
-  const hour = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
-  return `flowvium:flow-analysis:v2:${tf}:${hour}`;
+  return `flowvium:flow-analysis:v3:${tf}`;
 }
+const CACHE_TTL_S = 4 * 60 * 60; // 4 hours
 
 const FLOW_SYSTEM_PROMPT = `당신은 글로벌 자금흐름 전문 애널리스트입니다.
 각 국가별 시장 수익률 데이터를 보고, 그 흐름의 근본적인 원인을 분석하세요.
@@ -190,7 +193,7 @@ export async function GET(request: Request) {
 
   if (redis && analysis) {
     try {
-      await loggedRedisSet(redis, 'api.flow-analysis', cacheKey(tf), result, { ex: 12 * 60 * 60 });
+      await loggedRedisSet(redis, 'api.flow-analysis', cacheKey(tf), result, { ex: CACHE_TTL_S });
       logger.info('flow-analysis', 'cache_saved', { tf });
     } catch (e) { logger.warn('flow-analysis', 'cache_write_error', { tf, error: e }); }
   }
