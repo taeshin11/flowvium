@@ -148,7 +148,7 @@ export async function fetch13FFilings(cik: string): Promise<Filing13F[]> {
   const start = Date.now();
   const res = await fetch(
     `https://data.sec.gov/submissions/CIK${paddedCik}.json`,
-    { headers: { 'User-Agent': EDGAR_UA }, signal: AbortSignal.timeout(8000) }
+    { headers: { 'User-Agent': EDGAR_UA }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
   );
   if (!res.ok) {
     logger.warn('edgar.13f', 'submissions_http_error', { cik, status: res.status, durationMs: Date.now() - start });
@@ -184,6 +184,7 @@ async function findInfoTableFile(cik: string, accNum: string): Promise<string | 
     const res = await fetch(indexUrl, {
       headers: { 'User-Agent': EDGAR_UA },
       signal: AbortSignal.timeout(6000),
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -222,6 +223,7 @@ export async function parseInfoTable(
   const res = await fetch(xmlUrl, {
     headers: { 'User-Agent': EDGAR_UA },
     signal: AbortSignal.timeout(20000),
+    cache: 'no-store',
   });
   if (!res.ok) {
     logger.warn('edgar.13f', 'xml_http_error', { cik, accNum, status: res.status, durationMs: Date.now() - start });

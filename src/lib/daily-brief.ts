@@ -83,6 +83,7 @@ async function safeFetchJson<T = unknown>(baseUrl: string, path: string, timeout
     const res = await fetch(`${baseUrl}${path}`, {
       signal: AbortSignal.timeout(timeoutMs),
       headers: { 'user-agent': 'flowvium-daily-brief/1.0' },
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
