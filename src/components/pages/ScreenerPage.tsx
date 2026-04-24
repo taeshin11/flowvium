@@ -34,6 +34,7 @@ interface ScreenerRow {
   newsGapScore: number;
   // from short interest
   shortFloatPct: number | null;
+  shortVolPct: number | null;
   shortRatio: number | null;
   squeezeScore: number;
 }
@@ -47,7 +48,7 @@ const PRESETS = [
     filter: (r: ScreenerRow) => {
       const accumulating = r.action === 'accumulating' || r.action === 'new_position';
       if (!accumulating) return false;
-      if (r.shortFloatPct != null) return r.squeezeScore >= 30;
+      if (r.shortVolPct != null) return r.squeezeScore >= 30;
       return true; // short 데이터 없으면 일단 매집 중인 종목 표시
     },
   },
@@ -136,6 +137,7 @@ export default function ScreenerPage() {
         filingDate: sig.filingDate,
         newsGapScore: sig.newsGapScore,
         shortFloatPct: short?.shortFloatPct ?? null,
+        shortVolPct: short?.shortVolPct ?? null,
         shortRatio: short?.shortRatio ?? null,
         squeezeScore: short?.squeezeScore ?? 0,
       };
@@ -152,7 +154,7 @@ export default function ScreenerPage() {
     } else {
       if (sectorFilter !== 'all') rows = rows.filter(r => r.sector === sectorFilter);
       if (actionFilter !== 'all') rows = rows.filter(r => r.action === actionFilter);
-      rows = rows.filter(r => (r.shortFloatPct ?? 0) >= minShort && (r.shortFloatPct ?? 100) <= maxShort);
+      rows = rows.filter(r => (r.shortVolPct ?? 0) >= minShort && (r.shortVolPct ?? 100) <= maxShort);
     }
     return [...rows].sort((a, b) => {
       const va: unknown = a[sortKey];
@@ -344,7 +346,7 @@ export default function ScreenerPage() {
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-cf-text-secondary block mb-1">Short Float % 최소</label>
+            <label className="text-[10px] text-cf-text-secondary block mb-1">Short Vol % 최소 (FINRA)</label>
             <input
               type="number"
               min={0} max={100}
@@ -386,7 +388,7 @@ export default function ScreenerPage() {
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관</th>
               <SortTh label="액션" k="action" />
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">규모</th>
-              <SortTh label="Short %" k="shortFloatPct" />
+              <SortTh label="Short Vol %" k="shortVolPct" />
               <SortTh label="Days to Cover" k="shortRatio" />
               <SortTh label="스퀴즈" k="squeezeScore" />
               <SortTh label="뉴스갭" k="newsGapScore" />
@@ -431,9 +433,9 @@ export default function ScreenerPage() {
                   </td>
                   <td className="px-3 py-2.5 text-xs font-mono text-cf-text-secondary">{row.estimatedValue}</td>
                   <td className="px-3 py-2.5 font-mono text-sm">
-                    {row.shortFloatPct != null ? (
-                      <span className={row.shortFloatPct > 20 ? 'text-red-400' : row.shortFloatPct > 10 ? 'text-amber-400' : 'text-cf-text-primary'}>
-                        {row.shortFloatPct.toFixed(1)}%
+                    {row.shortVolPct != null ? (
+                      <span className={row.shortVolPct > 60 ? 'text-red-400' : row.shortVolPct > 50 ? 'text-amber-400' : 'text-cf-text-primary'}>
+                        {row.shortVolPct.toFixed(1)}%
                       </span>
                     ) : <span className="text-cf-text-secondary/40">-</span>}
                   </td>

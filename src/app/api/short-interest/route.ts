@@ -2,9 +2,12 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/short-interest
  *
- * Returns tracked tickers with EDGAR 13F institutional action and squeeze score.
- * Yahoo Finance v10 crumb auth fails from Vercel IPs — shortFloatPct/Ratio always null.
- * squeezeScore is based on instAction only.
+ * Returns tracked tickers with EDGAR 13F institutional action, FINRA daily short
+ * volume ratio (free, no auth), and squeeze score.
+ *
+ * shortVolPct = FINRA daily ShortVolume / TotalVolume × 100 (not the same as
+ * shortFloatPct which requires bi-monthly FINRA/SEC short interest reports + float
+ * data — those still null since Yahoo v10 crumb fails from Vercel IPs).
  *
  * Redis cache: 4 hours
  */
@@ -13,7 +16,7 @@ import { Redis } from '@upstash/redis';
 import { institutionalSignals } from '@/data/institutional-signals';
 import { createMemoryCache } from '@/lib/memory-cache';
 
-const CACHE_KEY = 'flowvium:short-interest:v2';
+const CACHE_KEY = 'flowvium:short-interest:v3';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 // Redis-less fallback — 30min TTL (short-interest changes twice daily but we
@@ -33,28 +36,39 @@ export interface ShortEntry {
   ticker: string;
   companyName: string;
   sector: string;
-  shortFloatPct: number | null;
+  shortFloatPct: number | null;      // null — Yahoo v10 crumb blocked from Vercel
+  shortVolPct: number | null;        // FINRA daily: ShortVolume / TotalVolume × 100
   shortRatio: number | null;
-  shortChangeMonthly: number | null; // MoM % change in shares short
-  instAction: string | null;        // 'accumulating' | 'reducing' | 'new_position' | 'exit' | null
-  squeezeScore: number;             // 0–100
+  shortChangeMonthly: number | null;
+  instAction: string | null;
+  squeezeScore: number;
 }
 
 /** Compute short squeeze score */
 function calcSqueezeScore(
   shortFloatPct: number | null,
+  shortVolPct: number | null,
   shortRatio: number | null,
   shortChangeMoM: number | null,
   instAction: string | null,
 ): number {
   let score = 0;
 
-  // High short float = more fuel for a squeeze
+  // High short float % = most reliable squeeze fuel (bi-monthly FINRA data)
   if (shortFloatPct != null) {
     if (shortFloatPct > 30) score += 40;
     else if (shortFloatPct > 20) score += 30;
     else if (shortFloatPct > 10) score += 20;
     else if (shortFloatPct > 5) score += 10;
+  }
+
+  // Daily short volume ratio (FINRA) — noisier signal, lower weight
+  // Normal range 40-55%; > 60% indicates unusual short-side pressure
+  if (shortVolPct != null) {
+    if (shortVolPct > 60) score += 25;
+    else if (shortVolPct > 55) score += 15;
+    else if (shortVolPct > 50) score += 8;
+    else if (shortVolPct > 45) score += 3;
   }
 
   // High days-to-cover = shorts trapped longer
@@ -72,6 +86,47 @@ function calcSqueezeScore(
   if (instAction === 'new_position') score += 15;
 
   return Math.min(100, score);
+}
+
+/** Fetch FINRA consolidated short volume for given tickers (previous trading day) */
+async function fetchFinraShortVol(tickers: Set<string>): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  const now = new Date();
+
+  for (let daysBack = 1; daysBack <= 5; daysBack++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - daysBack);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue; // skip weekends
+
+    const yyyymmdd = d.toISOString().slice(0, 10).replace(/-/g, '');
+    const url = `https://cdn.finra.org/equity/regsho/daily/CNMSshvol${yyyymmdd}.txt`;
+
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+
+      const text = await res.text();
+      for (const line of text.split('\n')) {
+        const parts = line.split('|');
+        if (parts.length < 5) continue;
+        const sym = parts[1];
+        if (!tickers.has(sym)) continue;
+        const shortVol = parseFloat(parts[2]);
+        const totalVol = parseFloat(parts[4]);
+        if (!isNaN(shortVol) && !isNaN(totalVol) && totalVol > 0) {
+          map.set(sym, parseFloat(((shortVol / totalVol) * 100).toFixed(1)));
+        }
+      }
+      if (map.size > 0) {
+        logger.info('api.short-interest', 'finra_ok', { date: yyyymmdd, matched: map.size, of: tickers.size });
+        break;
+      }
+    } catch (e) {
+      logger.warn('api.short-interest', 'finra_fetch_error', { daysBack, error: e });
+    }
+  }
+  return map;
 }
 
 function createRedis(): Redis | null {
@@ -104,6 +159,13 @@ export async function GET(req: Request) {
 
   // Deduplicate tickers
   const tickers = Array.from(new Set(TRACKED_TICKERS));
+  const tickerSet = new Set(tickers);
+
+  // Fetch FINRA short volume data and institutional signals in parallel
+  const [finraMap] = await Promise.allSettled([
+    fetchFinraShortVol(tickerSet),
+  ]);
+  const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
 
   // Build latest institutional action per ticker from static + EDGAR data
   let liveSignals = institutionalSignals;
@@ -133,15 +195,17 @@ export async function GET(req: Request) {
     const sector = instSectorMap.get(ticker) ?? 'other';
     const companyName = instNameMap.get(ticker) ?? ticker;
 
+    const shortVolPct = shortVolMap.get(ticker) ?? null;
     return {
       ticker,
       companyName,
       sector,
       shortFloatPct: null,
+      shortVolPct,
       shortRatio: null,
       shortChangeMonthly: null,
       instAction,
-      squeezeScore: calcSqueezeScore(null, null, null, instAction),
+      squeezeScore: calcSqueezeScore(null, shortVolPct, null, null, instAction),
     };
   });
 

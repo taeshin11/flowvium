@@ -22,7 +22,7 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; icon: React.
   exit:         { label: '청산', color: '#ef4444', icon: <Minus className="w-3 h-3" /> },
 };
 
-type SortKey = 'squeezeScore' | 'shortFloatPct' | 'shortRatio' | 'shortChangeMonthly' | 'ticker';
+type SortKey = 'squeezeScore' | 'shortVolPct' | 'shortFloatPct' | 'shortRatio' | 'shortChangeMonthly' | 'ticker';
 
 function SqueezeBar({ score }: { score: number }) {
   const color = score >= 70 ? '#ef4444' : score >= 45 ? '#f59e0b' : score >= 25 ? '#6366f1' : '#64748b';
@@ -95,9 +95,9 @@ export default function ShortPage() {
 
   const topSqueeze = useMemo(() => entries.filter(e => e.squeezeScore >= 45).length, [entries]);
   const avgShort = useMemo(() => {
-    const valid = entries.filter(e => e.shortFloatPct != null);
+    const valid = entries.filter(e => e.shortVolPct != null);
     if (!valid.length) return null;
-    return (valid.reduce((s, e) => s + (e.shortFloatPct ?? 0), 0) / valid.length).toFixed(1);
+    return (valid.reduce((s, e) => s + (e.shortVolPct ?? 0), 0) / valid.length).toFixed(1);
   }, [entries]);
 
   const handleSort = (key: SortKey) => {
@@ -122,7 +122,7 @@ export default function ShortPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px] gap-3 text-cf-text-secondary">
         <Loader2 className="w-5 h-5 animate-spin" />
-        <span>공매도 데이터 수신 중 (Yahoo Finance)...</span>
+        <span>공매도 데이터 수신 중 (FINRA)...</span>
       </div>
     );
   }
@@ -137,7 +137,7 @@ export default function ShortPage() {
             공매도 · 숏 스퀴즈
           </h1>
           <p className="text-sm text-cf-text-secondary mt-1">
-            Short Interest % of Float · Days to Cover · 기관 매집 충돌 분석
+            FINRA 일별 공매도 비율 · 기관 매집 충돌 분석
           </p>
         </div>
         <button
@@ -152,9 +152,9 @@ export default function ShortPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <StatCard label="추적 종목" value={`${entries.length}개`} sub="Yahoo Finance 기준" />
+        <StatCard label="추적 종목" value={`${entries.length}개`} sub="FINRA 기준" />
         <StatCard label="스퀴즈 위험 (주의+)" value={`${topSqueeze}개`} sub="점수 45점 이상" />
-        <StatCard label="평균 Short Float" value={avgShort ? `${avgShort}%` : '-'} sub="추적 종목 평균" />
+        <StatCard label="평균 Short Vol %" value={avgShort ? `${avgShort}%` : '-'} sub="FINRA 일별 공매도 비율" />
         <StatCard
           label="최고 스퀴즈 점수"
           value={sorted[0] ? `${sorted[0].squeezeScore}점` : '-'}
@@ -193,7 +193,7 @@ export default function ShortPage() {
           🔥 스퀴즈 후보 (매집 + 높은 숏)
         </button>
         <button
-          onClick={() => { setActionFilter('all'); setSortKey('shortFloatPct'); setSortDir('desc'); }}
+          onClick={() => { setActionFilter('all'); setSortKey('shortVolPct'); setSortDir('desc'); }}
           className="text-[10px] px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
         >
           📊 숏 비율 높은 순
@@ -208,7 +208,7 @@ export default function ShortPage() {
               <SortTh label="티커" k="ticker" />
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">섹터</th>
-              <SortTh label="Short % Float" k="shortFloatPct" />
+              <SortTh label="Short Vol % (FINRA)" k="shortVolPct" />
               <SortTh label="Days to Cover" k="shortRatio" />
               <SortTh label="MoM 변화" k="shortChangeMonthly" />
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관 액션</th>
@@ -238,9 +238,9 @@ export default function ShortPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
-                    {entry.shortFloatPct != null ? (
-                      <span className={`font-mono font-semibold text-sm ${entry.shortFloatPct > 20 ? 'text-red-400' : entry.shortFloatPct > 10 ? 'text-amber-400' : 'text-cf-text-primary'}`}>
-                        {entry.shortFloatPct.toFixed(1)}%
+                    {entry.shortVolPct != null ? (
+                      <span className={`font-mono font-semibold text-sm ${entry.shortVolPct > 60 ? 'text-red-400' : entry.shortVolPct > 50 ? 'text-amber-400' : 'text-cf-text-primary'}`}>
+                        {entry.shortVolPct.toFixed(1)}%
                       </span>
                     ) : <span className="text-cf-text-secondary/40">-</span>}
                   </td>
