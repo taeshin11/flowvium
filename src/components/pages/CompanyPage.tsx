@@ -54,7 +54,9 @@ import {
 } from 'lucide-react';
 import ShareButtons from '@/components/ShareButtons';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import SupplyChainMap from '@/components/SupplyChainMap';
+import dynamic from 'next/dynamic';
+
+const SupplyChainMap = dynamic(() => import('@/components/SupplyChainMap'), { ssr: false });
 import { useTranslatedText } from '@/hooks/useTranslatedText';
 
 function T({ text }: { text: string }) {

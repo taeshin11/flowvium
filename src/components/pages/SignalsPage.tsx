@@ -6,7 +6,8 @@ import { Link } from '@/i18n/routing';
 import { type InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { sectors } from '@/data/sectors';
-import StockSupplyModal from '@/components/StockSupplyModal';
+import dynamic from 'next/dynamic';
+const StockSupplyModal = dynamic(() => import('@/components/StockSupplyModal'), { ssr: false });
 import {
   BarChart,
   Bar,

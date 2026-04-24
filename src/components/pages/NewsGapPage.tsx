@@ -38,7 +38,9 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import ShareButtons from '@/components/ShareButtons';
-import StockSupplyModal from '@/components/StockSupplyModal';
+import dynamic from 'next/dynamic';
+
+const StockSupplyModal = dynamic(() => import('@/components/StockSupplyModal'), { ssr: false });
 
 function quarterToFilingDate(quarter: string): string {
   const parts = quarter.split(' ');
