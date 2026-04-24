@@ -301,13 +301,13 @@ function estimateRotationStart(
 
   const start = new Date();
   start.setDate(start.getDate() - weeksAgo * 7);
-  const startDate = `${start.getFullYear()}년 ${start.getMonth() + 1}월`;
+  const startDate = `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()}일`;
 
   return { weeksAgo, startDate, momentum };
 }
 
 const GROUP_LABELS: Record<string, string> = {
-  equity: '주식', bonds: '채권', alts: '금·비트코인·실물자산', commodities: '원자재', currency: '통화',
+  equity: '주식', bonds: '채권', alts: '금·비트코인·실물자산', commodities: '원유·에너지·농산물', currency: '통화',
 };
 
 type RotationEntry = {
@@ -384,7 +384,7 @@ export async function GET() {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (실시간)' : 'Yahoo Finance (15분 지연)';
-  const cacheKey = `flowvium:capital-flows:v8:${twelveKey ? 'twelve' : 'yahoo'}`;
+  const cacheKey = `flowvium:capital-flows:v9:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   if (redis) {
     try {
