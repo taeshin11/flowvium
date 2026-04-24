@@ -76,11 +76,12 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   // ── 1단계: 독립적인 데이터 소스 병렬 갱신 ────────────────────────────────
-  const [macroR, yieldR, fedR, capitalR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR] = await Promise.all([
+  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/yield-curve', 'yield-curve', 30000),       // 16 FRED series (TIPS + BEI)
     warm(base, '/api/fedwatch', 'fedwatch'),
     warm(base, '/api/capital-flows', 'capital-flows'),
+    warm(base, '/api/commodity-curve', 'commodity-curve', 20000), // WTI/Gold futures (12 Yahoo calls)
     warm(base, '/api/volatility', 'volatility'),
     warm(base, '/api/fear-greed?force=1', 'fear-greed'),
     warm(base, '/api/credit-balance', 'credit-balance'),
@@ -126,7 +127,7 @@ export async function GET(req: Request) {
   fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
 
   const results = [
-    macroR, yieldR, fedR, capitalR, fearGreedR, creditR, shortR, capsR,
+    macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,
     insiderR, ownerR, optR, koreaR, nportR, blockR, volR,
     heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, latestR,
     flowR, brief1wR, brief4wR, brief13wR,

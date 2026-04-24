@@ -190,6 +190,28 @@ async function verifyVolatility(base: string): Promise<MetricItem[]> {
   return items;
 }
 
+async function verifyCommodityCurve(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/commodity-curve');
+  if (!r.ok) {
+    return [{ key: 'comm.ALL', label: 'Commodity Curve API', group: 'commodity', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as { curves?: Array<{ id: string; name: string; curve?: Array<{ price: number }>; structure?: string; slope?: number }> };
+  const items: MetricItem[] = [];
+  for (const c of data.curves ?? []) {
+    const pts = c.curve?.length ?? 0;
+    items.push({
+      key: `comm.${c.id}`,
+      label: c.name,
+      group: 'commodity',
+      status: pts >= 3 ? 'ok' : pts > 0 ? 'degraded' : 'error',
+      value: c.structure ? `${c.structure} ${(c.slope ?? 0) > 0 ? '+' : ''}${(c.slope ?? 0).toFixed(1)}%` : null,
+      details: { points: pts, structure: c.structure, slope: c.slope },
+    });
+  }
+  if (items.length === 0) items.push({ key: 'comm.EMPTY', label: 'Commodity Curve (empty)', group: 'commodity', status: 'error' });
+  return items;
+}
+
 async function verifyMacroIndicators(base: string): Promise<MetricItem[]> {
   const r = await safeJson(base, '/api/macro-indicators');
   if (!r.ok) {
@@ -652,7 +674,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적 + 값정합성 + 변동성)
-  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy, vol] = await Promise.all([
+  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy, vol, comm] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -665,9 +687,10 @@ export async function GET(req: Request) {
     redis ? verifyRedisCaches(redis) : Promise.resolve([] as MetricItem[]),
     verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
     verifyVolatility(base).catch((e): MetricItem[] => [{ key: 'vol.ERR', label: 'Volatility verify throw', group: 'volatility', status: 'error', lastError: String(e) }]),
+    verifyCommodityCurve(base).catch((e): MetricItem[] => [{ key: 'comm.ERR', label: 'Commodity verify throw', group: 'commodity', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy, ...vol];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy, ...vol, ...comm];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,
