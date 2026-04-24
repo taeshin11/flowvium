@@ -1,0 +1,54 @@
+## Iter 71 — F&G v5→v6 + health v4/v5→v8 캐시 수정
+Date: 2026-04-24
+Primary outcome: F&G v5→v6 + health v4/v5→v8 캐시 수정 (20자)
+
+### Drift check
+- iter67=verify-metrics, iter68=macro-indicators+verify-metrics
+- iter69=HomePage, iter70=latest-updates, iter71=latest-updates+send-alerts+admin-health
+  → latest-updates 2회(70,71) 연속 → 경계. 하지만 이번 작업 파일은 send-alerts, admin/health
+  → 주 파일이 다름, drift 신호 없음
+
+### Accuracy probe (§3)
+verify-metrics 현재 상태 (unchanged from iter70):
+- accuracy.fg.us=ok, accuracy.curve=ok, accuracy.cpi=ok, accuracy.ppi=ok, accuracy.fomc=ok
+- overall: 80 ok, 0 degraded, 0 error → 기준선 유지
+
+### 발견 경위
+Explore agent가 Iter70 fix 후 추가 sweep에서 발견:
+- fear-greed route: 쓰기 키 `fg:v6:*`
+- latest-updates: 읽기 키 `fg:v5:SPY` (1 버전 뒤처짐) → Redis miss
+- send-alerts: 읽기 키 `fg:v5:SPY` → 항상 cache miss → 알림 발송 불가
+- admin/health: `fg:v5`, `capital-flows:v5`, `macro-indicators:v4` → 모두 stale → health endpoint가 항상 "missing" 반환
+
+### 수정 파일 3곳
+
+#### 1. latest-updates/route.ts
+- `flowvium:fg:v5:SPY` → `flowvium:fg:v6:SPY`
+
+#### 2. cron/send-alerts/route.ts
+- `flowvium:fg:v5:SPY` → `flowvium:fg:v6:SPY`
+- 영향: F&G 알림이 실제로 Redis에서 현재 값 읽을 수 있게 됨
+
+#### 3. admin/health/route.ts
+- `flowvium:fg:v5:SPY` → `flowvium:fg:v6:SPY`
+- `flowvium:capital-flows:v5:yahoo/twelve` → `v8:yahoo/twelve`
+- `flowvium:macro-indicators:v4:${kstDate}` → `v8:${kstDate}`
+- 영향: 관리자 health 페이지의 캐시 키 populated/missing 카운트 정확해짐
+
+### Root Cause Analysis
+캐시 키 버전은 route.ts 파일에 hardcode되어 있음.
+다른 파일이 이를 참조할 때 별도로 업데이트해야 함 → 버전 bump 시 항상 consumer들도 같이 업데이트 필요.
+
+이번 sweep으로 발견된 4개 파일 모두 수정 완료:
+- capital-flows/route.ts: v8 (소스, iter65)
+- macro-indicators/route.ts: v8 (소스, iter68)
+- fear-greed/route.ts: v6 (소스, 이전)
+- latest-updates/route.ts: v8 capital-flows (iter70), v6 fg (iter71)
+- send-alerts/route.ts: v6 fg (iter71)
+- admin/health/route.ts: v8/v6 (iter71)
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter71: fix(cache): F&G v5→v6, health capital-flows/macro v5/v4→v8 키 동기화

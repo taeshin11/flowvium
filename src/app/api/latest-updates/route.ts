@@ -95,10 +95,10 @@ async function safeJson<T = unknown>(url: string, timeoutMs = 8000): Promise<T |
 interface FGEntry { id: string; label: string; score: number; prevScore?: number; level?: string; source?: string; }
 
 async function getFearGreedItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
-  // Redis shortcut: US 단일 키만 직접 읽기 (v5 현재 버전)
+  // Redis shortcut: US 단일 키만 직접 읽기 (v6 현재 버전)
   if (redis) {
     try {
-      const us = await redis.get<FGEntry>('flowvium:fg:v5:SPY');
+      const us = await redis.get<FGEntry>('flowvium:fg:v6:SPY');
       if (us?.score != null) {
         return [fgItemFromEntry(us, '🇺🇸')];
       }
