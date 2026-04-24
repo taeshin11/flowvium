@@ -1,0 +1,82 @@
+ITER96 — OSINT + verify-metrics fetch cache audit
+Date: 2026-04-25
+Commit: eb38fe5
+Primary outcome: Next.js force-cache 버그 9개 패치
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK (최근 5 커밋)
+═══════════════════════════════════════════════════════════════════════
+eb38fe5  fix(cache): OSINT + verify-metrics cache: 'no-store' (이번)
+prev     fix(cache): cron daily-brief token waste fix (iter95)
+prev     feat: ai-providers Gemini quota guard (iter94)
+prev     feat: sector-pe Yahoo v10 P/E live data (iter93)
+prev     fix: news-cascade tiered TTL (iter94)
+
+영역 분산 확인:
+- iter93: sector-pe (가격 데이터 영역)
+- iter94: ai-providers + news-cascade (AI/캐시 영역)
+- iter95: cron/update-all (토큰 절약)
+- iter96: OSINT + verify-metrics (캐시 레이어 감사)
+→ 같은 파일 3+ iter 연속 없음. Drift 없음.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"OSINT fetch cache 버그 9개 수정"
+
+═══════════════════════════════════════════════════════════════════════
+WORK DONE
+═══════════════════════════════════════════════════════════════════════
+문제: Next.js 15 App Router에서 fetch() 기본값은 force-cache.
+옵션 없이 bare fetch()를 호출하면 외부 API 응답이 무기한 캐시됨.
+4개 OSINT route + verify-metrics에서 총 9개 누락 발견·수정.
+
+수정된 파일 및 fetch 대상:
+1. osint/sanctions/route.ts:72  — OFAC SDN CSV (treasury.gov)
+2. osint/corporate/route.ts:88  — OpenCorporates API
+3. osint/crypto/route.ts:38     — blockchain.info BTC rawaddr
+4. osint/crypto/route.ts:111    — Ethplorer ETH address
+5. osint/social/route.ts:111    — Nitter RSS (트위터 미러)
+6. osint/social/route.ts:128    — Bloomberg/WSJ/SA 뉴스 RSS
+7. cron/verify-metrics/route.ts:289 — vLLM /v1/models ping
+8. cron/verify-metrics/route.ts:328 — Groq health check call
+9. cron/verify-metrics/route.ts:943 — Finnhub earnings API
+
+이미 cache: 'no-store' 있어 패치 불필요:
+- fear-greed/route.ts (2026-04-22 CNN F&G stale 사건 직후 수정됨)
+- market-caps/route.ts, korea-flow/route.ts, capital-flows/route.ts,
+  commodity-curve/route.ts, macro-indicators/route.ts,
+  cron/verify-metrics/route.ts safeJson() 등
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES (외부 실값 대조 — CLAUDE.md §3 필수)
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=fg.US source=CNN
+  direct_value=66 our_value=66 delta=0 tolerance=3 → OK
+
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.71 delta=0.00 tolerance=0.5 → OK
+
+FG: CNN production.dataviz.cnn.io 직접 조회 (fear_and_greed.score 반올림)
+VIX: Yahoo Finance v8 chart ^VIX 직접 조회 (recent close)
+
+═══════════════════════════════════════════════════════════════════════
+CONTEXT
+═══════════════════════════════════════════════════════════════════════
+CLAUDE.md §5 캐시 계층 감사 룰:
+  "새 fetch 추가 또는 수정 시 반드시: 실시간 값: cache: 'no-store' 명시"
+  "옵션 없이 bare fetch()는 리뷰 리젝트"
+
+이번 iter는 신규 fetch 추가가 아니라 기존 누락분 일괄 감사.
+Python 스크립트로 src/app/api/ 전체 스캔 → 실제 누락 9개 확인.
+나머지는 false positive (options 객체가 길어서 300자 window 밖에 cache: 있음).
+
+collect/route.ts (webhookUrl POST): POST 요청은 Next.js가 캐시 안 함 → skip.
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. CPI YoY 정합성 검증 (FRED CPIAUCSL — FRED 타임아웃으로 이번 iter 미완)
+2. AI 프로바이더 Groq/Gemini TPD 리셋 후 flow-analysis / daily-brief 자동 회복 확인
+   (UTC midnight April 26 리셋 예상 → KST 09:00 이후 확인)
+3. 남은 성능 개선: /api/latest-updates 응답 시간 (~3-5s) 단축 가능 여부 검토
