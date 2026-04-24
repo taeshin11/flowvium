@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from '@/i18n/routing';
 import { allCompanies, type Company } from '@/data/companies';
 import { institutionalSignals } from '@/data/institutional-signals';
@@ -82,6 +82,17 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
   const isLeft = side === 'left';
   const accentColor = isLeft ? '#4F8FBF' : '#6CB4A8';
 
+  interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; }
+  const [livePrice, setLivePrice] = useState<LivePrice | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/stock-price/${company.ticker}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!controller.signal.aborted && d?.price != null) setLivePrice(d); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [company.ticker]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -102,6 +113,19 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
             {marketCapLabel[company.marketCap] || company.marketCap}
           </span>
         </div>
+        {livePrice?.price != null && (
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <span className="text-xl font-bold tabular-nums text-cf-text-primary">
+              {livePrice.currency === 'USD' ? '$' : livePrice.currency === 'KRW' ? '₩' : livePrice.currency === 'EUR' ? '€' : livePrice.currency + ' '}
+              {livePrice.price.toFixed(2)}
+            </span>
+            {livePrice.changePct != null && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full tabular-nums ${livePrice.changePct >= 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                {livePrice.changePct >= 0 ? '+' : ''}{livePrice.changePct.toFixed(2)}%
+              </span>
+            )}
+          </div>
+        )}
         <Link
           href={`/company/${company.ticker}`}
           className="inline-flex items-center gap-1 text-xs text-cf-primary mt-3 hover:underline"

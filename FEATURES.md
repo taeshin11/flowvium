@@ -615,6 +615,7 @@
 ### 14-4. 양사 병렬 컬럼 (`CompanyColumn`)
 각 컬럼:
 - 헤더 카드 (아바타·이름·섹터·역할·시가총액)
+- **라이브 주가·등락률** (Yahoo Finance `/api/stock-price`, USD/KRW/EUR/GBP/JPY 통화 접두사 자동)
 - About (설명·설립·직원수·본사)
 - 매출 바 (Top 5)
 - 뉴스 갭 신호 (갭·IB·미디어 점수 바)

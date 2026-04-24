@@ -1,0 +1,36 @@
+## Iter 18 — ReportPage zombie + KPI 이중호출 제거
+Date: 2026-04-24
+Primary outcome: ReportPage zombie·KPI 중복 제거
+
+### 정확성 프로브
+- verify-metrics 대리: F&G delta=0 OK, yield curve delta=0 OK
+
+### Drift check
+- 최근 5 커밋: company-chart(CompanyPage), flows-tab(IntelligencePage), discord-alerts, eco-calendar, docs
+- 같은 영역 3+ iter: 없음
+
+### 작업 내용
+1. **ReportPage.tsx: briefAbortRef 패턴 도입**
+   - `briefAbortRef = useRef<AbortController | null>(null)` 추가
+   - `fetchBrief` useCallback 내부에서 이전 요청 abort 후 새 controller 생성
+   - 타임프레임 전환 중 stale 응답이 나타나던 버그 제거
+
+2. **ReportPage.tsx: KPI 이중 호출 버그 수정**
+   - 기존: `useEffect(() => { fetchBrief(tf); fetchKpis(); }, [tf, fetchBrief, fetchKpis])`
+     → `tf` 변경마다 `fetchKpis()` 재호출 (불필요한 API 낭비)
+   - 수정: 두 useEffect로 분리
+     - `useEffect(() => { fetchBrief(tf); }, [tf, fetchBrief])` — tf 의존
+     - `useEffect(() => { fetchKpis(); }, [fetchKpis])` — 마운트 1회만
+
+3. **FlowAnalysisPanel: abortRef 패턴 (수동 트리거)**
+   - `abortRef = useRef<AbortController | null>(null)` 추가
+   - `load()` 호출마다 이전 요청 abort
+   - tf(타임프레임) 변경 시 useEffect에서도 abort
+   - 타임프레임 전환 시 이전 AI 분석 텍스트가 깜빡이던 현상 제거
+
+### 산출물
+- rule [3c]: 좀비 패턴 2건 제거 + 불필요 API 중복 호출 제거
+- KPI 재호출 0회/tf 전환 (기존 매 tf 전환마다 호출)
+
+### Commit
+(iter17 커밋 a364051에 포함 — history 파일만 누락되었다가 사후 기록)

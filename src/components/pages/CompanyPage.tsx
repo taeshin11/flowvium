@@ -485,7 +485,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                     stroke={isUp ? '#16a34a' : '#dc2626'}
                   />
                   <Tooltip
-                    formatter={(v) => [`$${Number(v).toFixed(2)}`, '']}
+                    formatter={(v) => {
+                      const cur = livePrice?.currency;
+                      const sym = cur === 'USD' ? '$' : cur === 'KRW' ? '₩' : cur === 'EUR' ? '€' : cur === 'GBP' ? '£' : cur === 'JPY' ? '¥' : cur ? cur + ' ' : '$';
+                      return [`${sym}${Number(v).toFixed(2)}`, ''];
+                    }}
                     labelFormatter={(l) => String(l)}
                     contentStyle={{ fontSize: '11px', padding: '4px 8px' }}
                   />

@@ -564,6 +564,7 @@
 | 246 | 퀵 요약: IB 활동 | 💾 cached | AV |
 | 247 | 매출 믹스 차트 (Top 5, 양사) | 📋 static |
 | 248 | 컬럼별 헤더·About·매출·신호·캐스케이드·관계사 | 📋 static + 💾 cached 혼합 |
+| 248-L | 컬럼별 라이브 주가·등락률 (각 ticker) | ✅ live | Yahoo Finance `/api/stock-price` |
 | 249 | 인기 비교 쌍 링크 | 📋 static |
 
 ---

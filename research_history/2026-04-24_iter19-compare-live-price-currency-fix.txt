@@ -1,0 +1,39 @@
+## Iter 19 — ComparePage 라이브 주가 + KRW/EUR 통화 접두사 수정
+Date: 2026-04-24
+Primary outcome: ComparePage 라이브 가격 추가
+
+### 정확성 프로브
+- [accuracy probe] metric=fg.us source=verify-metrics direct_value=66 our_value=66 delta=0 → OK
+- [accuracy probe] metric=yield_curve.spread source=verify-metrics direct_value=0.51 our_value=0.51 delta=0 → OK
+- [accuracy probe] metric=stock.NVDA.price source=Yahoo direct_value=199.64 our_value=199.64 delta=0 → OK
+
+### Drift check
+- 최근 5 커밋: company-chart(CompanyPage), flows-tab(IntelligencePage), discord-alerts, eco-calendar, docs
+- 같은 영역 3+ iter: 없음 (iter17 CompanyPage, iter18 ReportPage, iter19 ComparePage — 각각 다른 파일)
+- Primary metric 정체: 없음
+- "나중에" 미룬 항목: CompanyPage KRW 통화 버그 (iter17에서 발견, 이번에 수정)
+- 인프라 블로커 retry: 없음
+
+### 작업 내용
+1. **CompanyPage.tsx: 90일 차트 Tooltip 통화 접두사 수정**
+   - 기존: `$${Number(v).toFixed(2)}` — KRW/EUR/GBP/JPY 모두 $ 표시
+   - 수정: `livePrice?.currency` 참조
+     - USD → `$`, KRW → `₩`, EUR → `€`, GBP → `£`, JPY → `¥`
+     - 기타 → currency 코드 + 공백 (예: `HKD 199.64`)
+
+2. **ComparePage.tsx: CompanyColumn 라이브 주가 추가**
+   - `useEffect` + `useState` 추가 (React import에 useEffect 추가)
+   - 각 CompanyColumn 내부에서 `/api/stock-price/{ticker}` fetch (AbortController 패턴)
+   - 헤더 카드에 라이브 가격 + 등락률% 표시 (USD/KRW/EUR/GBP/JPY 통화 접두사 자동)
+   - 가격 로딩 중엔 표시 생략 (null guard)
+
+### FEATURES.md / METRICS.md
+- FEATURES.md 14-4: 라이브 주가·등락률 불릿 추가
+- METRICS.md #248-L: 신규 행 (✅ live)
+
+### 산출물
+- rule [3a]: 핵심 숫자 이동 (ComparisonPage에 라이브 가격 추가 — 정적 → 실시간)
+- rule [3c]: KRW 통화 버그 수정 (iter17에서 발견한 버그 해소)
+
+### Commit
+(이번 iter)
