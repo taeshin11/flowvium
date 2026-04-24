@@ -1,0 +1,75 @@
+## Iter 89 — Gemini fallback 강화 + Groq TPD guard + 캐시 최적화
+Date: 2026-04-25
+Primary outcome: Groq TPD 소진 → Gemini 즉시 폴백 (18자)
+
+### Drift check
+- iter87=verify-cache, iter88=CDN-fallback-fix, iter89=AI-quota-fix
+- 다른 영역 → Drift 없음
+
+### Accuracy probe (§3 — MANDATORY)
+[accuracy probe] metric=flow.analysis source=ai-providers direct_value=attempts=[groq:429,groq:429] our_value=source:fallback delta=gemini_not_tried → DEGRADED
+
+진단:
+- Groq 70b: TPD 소진 (Used 99,968 / 100,000)
+- Groq 8b: TPD 소진 (Used 499,448 / 500,000)
+- Gemini 2.5 Flash: 503 일시 과부하 + callGemini diag 누락으로 진단 불가
+- flow.analysis attempts 노출 후 원인 확인: 두 Groq 모두 TPD 소진, Gemini 실패 silent
+
+### Root cause 분석
+1. TPD 소진 원인: CDN fallback trap (pre-iter88) + hourly cache key
+   - flow.analysis가 fallback 반환 → Redis 캐시 비저장 → 매 30분 probe가 fresh Groq 호출
+   - 48회/일 × 3,000 tokens = 144,000 tokens/day (probe만으로)
+   - 전체 추정: 600k tokens/day → 70b(100k) + 8b(500k) 모두 소진
+
+2. Gemini 실패 원인:
+   - callGemini: timeout 없음 (Promise hang 위험)
+   - callGemini: diag 배열 미push → 실패 원인 불투명
+   - Gemini 503 'high demand' 발생 시 silent fail
+
+### 산출물
+
+#### [1] callGemini 개선 (ai-providers.ts)
+- Promise.race로 timeout 추가 (opts.timeoutMs 적용)
+- 성공/실패 모두 diag 배열에 push → attempts에 노출
+- 503 (UNAVAILABLE) 에러 구분 로깅 추가
+
+#### [2] Groq TPD guard 추가 (ai-providers.ts)
+```typescript
+let groqTpdExhaustedUntil = 0; // epoch ms
+
+// 8b도 TPD 429이면 다음 UTC midnight까지 Groq skip
+if (fallback.status === 429 && fallback.tpdExhausted) {
+    const nextMidnight = new Date(Date.UTC(...));
+    groqTpdExhaustedUntil = nextMidnight.getTime();
+}
+// 이후 호출은 Groq skip → 즉시 Gemini
+if (groqTpdExhaustedUntil > Date.now()) {
+    diag?.push({ ... 'both_tpd_exhausted — skipped' ...});
+    return null;
+}
+```
+
+#### [3] flow-analysis 캐시 최적화
+Before: hourly rotating key → 24 Redis miss/day × 3k tokens = 72k
+After:  time-independent key (v3) + 4h TTL
+예상: 6 regenerations/day × 3k = 18k tokens (72% 절감)
+
+### 예상 일일 토큰 소비량 (수정 후)
+- flow-analysis: 18k
+- daily-brief: 7.5k
+- news-cascade: 5.6k
+- company-news: 10k (user-driven)
+- 기타: 10k
+합계: ~51k/day → Groq 70b 100k 한도 내
+
+### TypeScript: clean OK
+
+### 배포
+- git push: 86dd2ed (Gemini+guard), 1d7a08c (cache)
+- Groq 쿼터 UTC midnight 리셋 후 정상화 예상 (~2시간 후)
+- Gemini 503 transient → gemini-2.5-flash 모델명 확인됨 (직접 테스트 OK)
+
+### Open issues (carry forward)
+- Groq TPD 소진 상태 중 Gemini 503 동시 발생 → 모든 AI 실패 (일시적)
+- UTC midnight 이후 flow.analysis + brief.market 정상화 예상
+- 새 토큰 예산(51k/day)으로 70b 100k 한도 준수 여부 내일 확인
