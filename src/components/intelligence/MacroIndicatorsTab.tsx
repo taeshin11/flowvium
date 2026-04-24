@@ -176,14 +176,15 @@ interface MacroIndicator {
   actual: number | null; forecast: number | null; previous: number | null; unit: string;
   releaseDate: string; nextRelease?: string;
   liveData?: boolean;
+  dataNote?: string;
   surprise: 'beat' | 'miss' | 'inline' | 'pending';
   rateImpact: 'hawkish' | 'dovish' | 'neutral';
   rateImpactKo: string; cascade: CascadeStep[]; summary: string;
 }
 
 const SURPRISE_BADGE: Record<string, { label: string; cls: string }> = {
-  beat:    { label: '예상 상회 ▲', cls: 'bg-red-50 text-red-700 border border-red-200' },
-  miss:    { label: '예상 하회 ▼', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
+  beat:    { label: '긍정 서프라이즈 ▲', cls: 'bg-red-50 text-red-700 border border-red-200' },
+  miss:    { label: '부정 서프라이즈 ▼', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
   inline:  { label: '예상 부합 →', cls: 'bg-gray-50 text-gray-600 border border-gray-200' },
   pending: { label: '발표 대기', cls: 'bg-amber-50 text-amber-600 border border-amber-200' },
 };
@@ -595,6 +596,11 @@ export default function MacroIndicatorsTab() {
                 </div>
 
                 <p className="text-xs text-cf-text-secondary mt-2 leading-relaxed">{ind.summary}</p>
+                {ind.dataNote && (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5 leading-relaxed">
+                    ⚠️ {ind.dataNote}
+                  </p>
+                )}
 
                 <div className="flex items-center gap-2 mt-3">
                   <button
