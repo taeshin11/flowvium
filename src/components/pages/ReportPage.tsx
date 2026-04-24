@@ -106,7 +106,7 @@ export default function ReportPage() {
   const [fg,     setFg]     = useState<KpiState<{ score: number }>>({ loading: true, error: false, value: null });
   const [spy,    setSpy]    = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
   const [curve,  setCurve]  = useState<KpiState<{ spread: number; inverted: boolean }>>({ loading: true, error: false, value: null });
-  const [vix,    setVix]    = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
+  const [vix,    setVix]    = useState<KpiState<{ ret1w: number; level: number | null }>>({ loading: true, error: false, value: null });
   const [fomc,   setFomc]   = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
   // Sparkline data — 30일 종가. Null-safe, 실패해도 pill 자체엔 영향 없음.
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
@@ -156,7 +156,7 @@ export default function ReportPage() {
       if (!vixRow || typeof vixRow.ret1w !== 'number') {
         setVix({ loading: false, error: true, value: null });
       } else {
-        setVix({ loading: false, error: false, value: { ret1w: vixRow.ret1w } });
+        setVix({ loading: false, error: false, value: { ret1w: vixRow.ret1w, level: null } });
       }
     }).catch(() => {
       setSpy({ loading: false, error: true, value: null });
@@ -187,21 +187,30 @@ export default function ReportPage() {
       } catch { return null; }
     };
     const pSpark = fetchSpark('SPY').then(v => { if (v) setSpySpark(v); });
+    // Volatility endpoint — VIX current level + regime
+    const pVol = fetch('/api/volatility').then(r => r.json()).then(j => {
+      const level: number | null = typeof j?.vix === 'number' ? j.vix : null;
+      setVix(prev => ({
+        loading: false, error: level == null,
+        value: level != null ? { ret1w: prev.value?.ret1w ?? 0, level } : null,
+      }));
+    }).catch(() => { /* keep existing state */ });
+
     const pVixSpark = fetchSpark('^VIX').then(v => {
       if (!v) return;
       setVixSpark(v);
-      // ^VIX is an index — capital-flows doesn't include it, so VIX pill is
-      // usually in 'error' state. Use the fresh 30d series to compute a ~1w
-      // change (last vs ~5 trading days back) and populate the pill properly.
       if (v.length >= 6) {
         const last = v[v.length - 1];
         const wkAgo = v[v.length - 6];
         const ret1w = ((last - wkAgo) / wkAgo) * 100;
-        setVix({ loading: false, error: false, value: { ret1w } });
+        setVix(prev => ({
+          loading: false, error: prev.error && prev.value == null,
+          value: prev.value ? { ...prev.value, ret1w } : { ret1w, level: null },
+        }));
       }
     });
 
-    await Promise.allSettled([pFg, pCap, pMacro, pFed, pSpark, pVixSpark]);
+    await Promise.allSettled([pFg, pCap, pMacro, pFed, pSpark, pVixSpark, pVol]);
   }, []);
 
   useEffect(() => {
@@ -288,13 +297,17 @@ export default function ReportPage() {
             body={curve.value ? `${(curve.value.spread * 100).toFixed(0)}bp` : '—'}
             cls={curve.value ? (curve.value.inverted ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
           />
-          {/* VIX — with 30d sparkline (^VIX) */}
+          {/* VIX — level from volatility endpoint, change from price-history sparkline */}
           <Pill
             loading={vix.loading}
             error={vix.error}
-            label="VIX 1w"
-            body={vix.value ? `${vix.value.ret1w >= 0 ? '+' : ''}${vix.value.ret1w.toFixed(1)}%` : '—'}
-            cls={vix.value ? (vix.value.ret1w >= 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
+            label="VIX"
+            body={vix.value?.level != null
+              ? `${vix.value.level.toFixed(1)}${vix.value.ret1w ? ` (${vix.value.ret1w >= 0 ? '+' : ''}${vix.value.ret1w.toFixed(1)}%)` : ''}`
+              : vix.value?.ret1w != null ? `${vix.value.ret1w >= 0 ? '+' : ''}${vix.value.ret1w.toFixed(1)}%` : '—'}
+            cls={vix.value?.level != null
+              ? (vix.value.level > 25 ? 'bg-red-50 text-red-700 border-red-200' : vix.value.level > 15 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+              : vix.value ? (vix.value.ret1w >= 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
             sparkline={vixSpark}
           />
           {/* FOMC */}
