@@ -6,9 +6,8 @@ const mem = createMemoryCache<object>('stock-price', CACHE_TTL_MS);
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_req: Request, { params }: { params: Promise<{ ticker: string }> }) {
-  const { ticker } = await params;
-  const sym = ticker.toUpperCase();
+export async function GET(_req: Request, { params }: { params: { ticker: string } }) {
+  const sym = params.ticker.toUpperCase();
 
   const cached = mem.get(sym);
   if (cached) return NextResponse.json({ ...cached, cached: true });
