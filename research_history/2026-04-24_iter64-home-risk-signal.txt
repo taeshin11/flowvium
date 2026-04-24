@@ -1,0 +1,46 @@
+## Iter 64 - 홈 매크로 리스크 신호
+Date: 2026-04-24
+Primary outcome: 홈 매크로 리스크 신호 (11자 OK)
+
+### Drift check
+- iter 61: HomePage.tsx (F&G sparkline)
+- iter 62: capital-flows/route.ts (perf)
+- iter 63: MacroIndicatorsTab.tsx (delta display)
+- iter 64: HomePage.tsx (macro risk signal)
+  → iter 61과 같은 파일이나 iter 62/63 사이에 다른 파일들이 있었음
+  → 엄밀히는 iter 61 이후 2회 다른 파일 작업 후 복귀 → drift 없음 OK
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=home.riskSignal source=prod_macro_indicators
+  ig=0.80 (threshold: <1.0 for on, >1.5 for off) → within risk-on zone
+  hy=2.86 (threshold: <3.5 for on, >5.0 for off) → within risk-on zone
+  umc=56.6 (threshold: >60 for on, <50 for off) → below risk-on threshold, above risk-off
+  inverted=False
+  computed=neutral → renders as "Neutral" badge → OK
+  Note: UMC 56.6 prevents full risk-on signal despite tight credit spreads
+
+### 기능 설명
+홈 페이지 MarketSnapshot strip에 매크로 리스크 신호 배지 추가:
+- Risk On (초록): IG<1.0% + HY<3.5% + !inverted + UMCSENT>60
+- Risk Off (빨강): HY>5.0% OR IG>1.5% OR (inverted+HY>4.0%) OR UMC<50
+- Neutral (회색): 그 외 (현재 상태)
+
+### 구현
+HomePage.tsx MarketSnapshot 컴포넌트:
+1. `const [riskSignal, setRiskSignal] = useState<...>(null)` 추가
+2. 별도 useEffect (60s 인터벌 없음, mount 시 1회):
+   - `/api/macro-indicators` fetch
+   - IG/HY/UMCSENT/inverted 추출
+   - 신호 계산
+3. 스트립 끝 (F&G 다음, "15min delay" 전)에 배지 렌더
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch: `cache: 'no-store'` 명시 OK (macro-indicators는 Redis daily 캐시)
+- macro-indicators: Redis daily 캐시 v6 (4h ~ 24h TTL)
+- 60s 인터벌에 포함 안 함 (macro 데이터는 하루 단위로 변함)
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter64: feat(home): 매크로 리스크 신호 배지 — market strip 끝에 Risk On/Off/Neutral

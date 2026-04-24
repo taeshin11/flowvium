@@ -70,6 +70,7 @@ function MarketSnapshot() {
   const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
   const [fgScore, setFgScore] = useState<number | null>(null);
   const [fgHistory, setFgHistory] = useState<number[] | null>(null);
+  const [riskSignal, setRiskSignal] = useState<'risk-on' | 'neutral' | 'risk-off' | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchPills = useCallback(() => {
@@ -115,6 +116,27 @@ function MarketSnapshot() {
     };
   }, [fetchPills]);
 
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/macro-indicators', { signal: ctrl.signal, cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => {
+        if (ctrl.signal.aborted) return;
+        const inds: Array<{ id: string; actual?: number | null }> = d.indicators ?? [];
+        const ig = inds.find(x => x.id === 'ig_spread')?.actual ?? null;
+        const hy = inds.find(x => x.id === 'hy_spread')?.actual ?? null;
+        const umc = inds.find(x => x.id === 'umcsent')?.actual ?? null;
+        const inverted = d.yieldCurve?.inverted ?? false;
+        const riskOff = (hy != null && hy > 5.0) || (ig != null && ig > 1.5) ||
+                        (inverted && hy != null && hy > 4.0) || (umc != null && umc < 50);
+        const riskOn = (hy != null && hy < 3.5) && (ig != null && ig < 1.0) &&
+                       !inverted && (umc != null && umc > 60);
+        setRiskSignal(riskOff ? 'risk-off' : riskOn ? 'risk-on' : 'neutral');
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
   if (pills.size === 0) return null;
 
   return (
@@ -158,6 +180,18 @@ function MarketSnapshot() {
               </div>
             );
           })()}
+          {riskSignal && (
+            <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">
+              <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">RISK</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                riskSignal === 'risk-on' ? 'text-green-700 bg-green-100' :
+                riskSignal === 'risk-off' ? 'text-red-700 bg-red-100' :
+                'text-gray-600 bg-gray-100'
+              }`}>
+                {riskSignal === 'risk-on' ? '🟢 Risk On' : riskSignal === 'risk-off' ? '🔴 Risk Off' : '⚪ Neutral'}
+              </span>
+            </div>
+          )}
           <span className="text-[10px] text-cf-text-secondary/60 ml-auto flex-shrink-0">15min delay</span>
         </div>
       </div>
