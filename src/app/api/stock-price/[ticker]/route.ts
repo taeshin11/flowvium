@@ -23,13 +23,18 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
     if (!res.ok) throw new Error(`Yahoo HTTP ${res.status}`);
 
     const data = await res.json();
-    const meta = data?.chart?.result?.[0]?.meta;
+    const chartResult = data?.chart?.result?.[0];
+    const meta = chartResult?.meta;
     if (!meta) throw new Error('No meta data');
 
     const price: number | null = meta.regularMarketPrice ?? null;
-    const prevClose: number | null = meta.previousClose ?? meta.chartPreviousClose ?? null;
+    // meta.previousClose is null in Yahoo v8; chartPreviousClose = start-of-range close (5 days ago).
+    // Use validCloses[length-2] for actual daily previous-day close.
+    const allCloses: (number | null)[] = chartResult?.indicators?.quote?.[0]?.close ?? [];
+    const validCloses = allCloses.filter((c): c is number => c != null && !isNaN(c));
+    const prevClose: number | null = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : null;
     const change = price != null && prevClose != null ? parseFloat((price - prevClose).toFixed(2)) : null;
-    const changePct = price != null && prevClose != null && prevClose !== 0
+    const changePct = price != null && prevClose != null && prevClose > 0
       ? parseFloat(((price - prevClose) / prevClose * 100).toFixed(2))
       : null;
 
