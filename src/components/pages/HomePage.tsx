@@ -49,6 +49,72 @@ const searchCompanies = allCompanies.map((c) => ({
   sector: c.sector,
 }));
 
+// Live market snapshot strip — SPY / QQQ / BTC / VIX
+interface SnapPill { price: number | null; changePct: number | null; currency: string; }
+function MarketSnapshot() {
+  const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
+  const TICKERS = ['SPY', 'QQQ', 'BTC-USD', '^VIX'];
+
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.allSettled(
+      TICKERS.map(ticker =>
+        fetch(`/api/stock-price/${encodeURIComponent(ticker)}`, { signal: controller.signal })
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
+      )
+    ).then(results => {
+      if (controller.signal.aborted) return;
+      const map = new Map<string, SnapPill>();
+      for (const r of results) {
+        if (r.status === 'fulfilled') map.set(r.value.ticker, { price: r.value.price, changePct: r.value.changePct, currency: r.value.currency });
+      }
+      setPills(map);
+    });
+    return () => controller.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (pills.size === 0) return null;
+
+  const LABELS: Record<string, string> = { 'SPY': 'S&P', 'QQQ': 'NDX', 'BTC-USD': 'BTC', '^VIX': 'VIX' };
+
+  return (
+    <div className="border-y border-cf-border/60 bg-cf-bg/80 backdrop-blur-sm">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5">
+        <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
+          {TICKERS.map(ticker => {
+            const p = pills.get(ticker);
+            if (!p?.price) return null;
+            const sym = p.currency === 'USD' ? '$' : p.currency === 'KRW' ? '₩' : p.currency === 'EUR' ? '€' : '';
+            const up = (p.changePct ?? 0) >= 0;
+            const isVix = ticker === '^VIX';
+            const decimals = ticker === 'BTC-USD' ? 0 : 2;
+            return (
+              <div key={ticker} className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">{LABELS[ticker]}</span>
+                <span className="text-sm font-mono font-bold text-cf-text-primary">
+                  {sym}{p.price.toFixed(decimals)}
+                </span>
+                {p.changePct != null && (
+                  <span className={`text-xs font-mono font-semibold px-1 py-0.5 rounded ${
+                    isVix
+                      ? (up ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50')
+                      : (up ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50')
+                  }`}>
+                    {up ? '+' : ''}{p.changePct.toFixed(2)}%
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          <span className="text-[10px] text-cf-text-secondary/60 ml-auto flex-shrink-0">15min delay</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HeroSearch() {
   const router = useRouter();
   const tHome = useTranslations('home');
@@ -690,6 +756,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Live market snapshot strip */}
+      <MarketSnapshot />
 
       {/* Social Proof */}
       <section

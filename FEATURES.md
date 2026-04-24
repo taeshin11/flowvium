@@ -75,6 +75,12 @@
 - 리스크 레벨 배지 (Low / Medium / High)
 - 생성 메타데이터 (타임스탬프·소스·캐시 여부)
 
+### 2-2b. 실시간 마켓 스냅샷 스트립 (`MarketSnapshot`)
+- SPY / QQQ / BTC-USD / ^VIX 실시간 가격 + 등락% (4 pill)
+- VIX는 컬러 반전 (상승=위험 → 빨강, 하락=안전 → 초록)
+- 마운트 시 `/api/stock-price` 4건 병렬 fetch (AbortController)
+- 가격 로드 전 표시 안 함 (null guard)
+
 ### 2-3. 통계 바
 - 10,000+ 투자자 · 137+ 추적 기업 · 16개 섹터 · $48B+ 흐름
 

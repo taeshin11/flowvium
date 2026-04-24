@@ -54,6 +54,15 @@
 | 7 | 생성 타임스탬프 | ✅ live | metadata | - | |
 | 8 | 소스 · 캐시 여부 배지 | ✅ live | metadata | - | |
 
+### 1-1b. 실시간 마켓 스냅샷 스트립
+
+| # | 지표 | 상태 | 소스 | 주기 | 비고 |
+|---|------|------|------|------|------|
+| 239-M | SPY 실시간 가격 + 등락% | ✅ live | `/api/stock-price/SPY` | 15min delay | MarketSnapshot |
+| 239-N | QQQ 실시간 가격 + 등락% | ✅ live | `/api/stock-price/QQQ` | 15min delay | |
+| 239-O | BTC-USD 실시간 가격 + 등락% | ✅ live | `/api/stock-price/BTC-USD` | 15min delay | |
+| 239-P | ^VIX 실시간 수준 + 등락% | ✅ live | `/api/stock-price/^VIX` | 15min delay | 컬러 반전 |
+
 ### 1-2. 통계 바
 
 | # | 지표 | 상태 | 소스 | 비고 |
