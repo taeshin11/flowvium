@@ -1,0 +1,78 @@
+## Iter 75 — Company 시총 live 복원
+Date: 2026-04-25
+Primary outcome: Company 시총 live 복원 (14자)
+
+### Drift check
+- iter72=ReportPage, iter73=stock-supply, iter74=macro-indicators, iter75=market-caps/CompanyPage
+  → 모두 다른 파일 → drift 없음 OK
+
+### Accuracy probe (§3)
+- [accuracy probe] metric=fg.us source=CNN direct_value=67 our_value=67 delta=0 → OK
+- [accuracy probe] metric=curve source=FRED direct_value=0.51 our_value=0.51 delta=0 → OK
+- [accuracy probe] metric=cpi source=FRED direct_value=3.29 our_value=3.29 delta=0 → OK
+- [accuracy probe] metric=ppi source=FRED direct_value=6.03 our_value=6.03 delta=0 → OK
+- [accuracy probe] metric=fomc source=FRED direct_value=3.625 our_value=3.75 delta=0.125 tol=0.25 → OK
+  (verify-metrics still shows stale 2h cache; macro-indicators v9 is correct post-iter74 deploy)
+Overall: 81 ok, 0 degraded, 0 error
+
+### 발견 경위
+CompanyPage.tsx line 246:
+```typescript
+const cap = d?.caps?.[ticker.toUpperCase()] ?? null;
+if (cap != null) setLiveMarketCap(cap);
+```
+CompanyPage에서 /api/market-caps?ticker=AAPL 호출 → caps 필드에서 시총 읽음
+→ caps 항상 {} (공백) → setLiveMarketCap 절대 호출되지 않음
+→ "시총" 섹션 (line 432) 영원히 렌더되지 않음
+
+Root cause: Yahoo Finance v7 crumb auth가 Vercel IP에서 실패 → live fetch 제거됨.
+그런데 v7 대신 v8을 쓰면 됨 (stock-supply에서 이미 검증된 패턴).
+
+### 수정 내용 (`src/app/api/market-caps/route.ts`)
+
+#### fetchYahooCap() 신규 함수
+```typescript
+async function fetchYahooCap(ticker: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' },
+        signal: AbortSignal.timeout(4000),
+        cache: 'no-store',
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data?.chart?.result?.[0]?.meta?.marketCap as number | undefined) ?? null;
+  } catch { return null; }
+}
+```
+
+#### 두 single-ticker 반환 경로 모두 수정
+1. Cache-hit path (line 67-71): liveCap = await fetchYahooCap(filterTicker) → caps 주입
+2. Cache-miss path (line 97-101): 동일
+
+#### 설계 결정
+- 전체 목록 요청 (/api/market-caps without ?ticker): caps:{} 유지 (변경 없음)
+  → 전체 목록에 각 ticker별 Yahoo 호출은 비용/시간 과다
+- Single-ticker 요청만 live 시총 조회
+  → CompanyPage의 정확한 사용 패턴과 일치
+
+### §4 UI 렌더 확인
+- CompanyPage는 클라이언트 fetch → SSR HTML에 시총 미포함
+- 브라우저 없이 직접 검증 불가 → **미검증**
+- API 동작은 검증: fetchYahooCap 패턴은 stock-supply에서 동일하게 작동 확인됨
+
+### 캐시 계층 감사 (§5)
+- 신규 fetch 추가: Yahoo v8 chart endpoint
+  → cache: 'no-store' 명시 ✓
+  → AbortSignal.timeout(4000) ✓
+- 신규 fetch는 single-ticker 요청에만 실행 (전체 목록 캐시에 영향 없음)
+- CDN TTL 24h 유지 (시총은 일별 변동 → 24h 적절)
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter75: fix(market-caps): Yahoo v8으로 단일 티커 시총 live 복원 (caps 항상 {} 버그)

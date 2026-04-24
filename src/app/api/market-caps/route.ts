@@ -5,8 +5,9 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Returns a { ticker: band } map for every ticker in allCompanies.
  * Uses static marketCap bands from allCompanies data.
  * Yahoo Finance v7 crumb auth fails from Vercel IPs — live fetch removed.
+ * Single-ticker ?ticker=AAPL requests fetch live marketCap via Yahoo v8 chart endpoint.
  *
- * Optional ?ticker=AAPL param returns single-ticker data (still from cache).
+ * Optional ?ticker=AAPL param returns single-ticker data with live market cap.
  *
  * Redis cache: 24h.
  */
@@ -36,6 +37,22 @@ function createRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
+async function fetchYahooCap(ticker: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' },
+        signal: AbortSignal.timeout(4000),
+        cache: 'no-store',
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data?.chart?.result?.[0]?.meta?.marketCap as number | undefined) ?? null;
+  } catch { return null; }
+}
+
 export async function GET(req: Request) {
   const redis = createRedis();
   const url = new URL(req.url);
@@ -50,8 +67,9 @@ export async function GET(req: Request) {
         logger.info('api.market-caps', 'cache_hit', { count: cached.count });
         if (filterTicker) {
           const band = cached.bands[filterTicker] ?? null;
-          const cap = cached.caps[filterTicker] ?? null;
-          return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps: cap ? { [filterTicker]: cap } : {}, updatedAt: cached.updatedAt, count: 1, cached: true }, { headers: CDN_HEADERS });
+          const liveCap = await fetchYahooCap(filterTicker);
+          const caps = liveCap != null ? { [filterTicker]: liveCap } : {};
+          return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps, updatedAt: cached.updatedAt, count: 1, cached: true }, { headers: CDN_HEADERS });
         }
         return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
       }
@@ -79,8 +97,9 @@ export async function GET(req: Request) {
 
   if (filterTicker) {
     const band = payload.bands[filterTicker] ?? null;
-    const cap = payload.caps[filterTicker] ?? null;
-    return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps: cap ? { [filterTicker]: cap } : {}, updatedAt: payload.updatedAt, count: 1, cached: false }, { headers: CDN_HEADERS });
+    const liveCap = await fetchYahooCap(filterTicker);
+    const caps = liveCap != null ? { [filterTicker]: liveCap } : {};
+    return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps, updatedAt: payload.updatedAt, count: 1, cached: false }, { headers: CDN_HEADERS });
   }
   return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
 }
