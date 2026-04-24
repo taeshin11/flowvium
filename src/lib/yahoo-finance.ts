@@ -165,41 +165,6 @@ export interface YFHeatmapQuote {
 }
 
 /**
- * Fetch heatmap quotes for many tickers via Yahoo v8/chart (no crumb).
- * Batched at 20 concurrent with 80ms pause between rounds to avoid rate-limiting.
- * Heatmap caches 15min, so the ~3s fetch time is acceptable.
- * Returns correct prev-close → current day change (including pre-market when available).
- */
-export async function fetchYFHeatmapQuotes(tickers: string[]): Promise<YFHeatmapQuote[]> {
-  if (!tickers.length) return [];
-  const CONCURRENT = 20;
-  const DELAY_MS = 80;
-  const out: YFHeatmapQuote[] = [];
-
-  for (let i = 0; i < tickers.length; i += CONCURRENT) {
-    const batch = tickers.slice(i, i + CONCURRENT);
-    const settled = await Promise.allSettled(batch.map(t => fetchOneQuote(t)));
-    for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) {
-        const q = r.value;
-        out.push({
-          symbol: q.symbol,
-          changePct: q.regularMarketChangePercent != null
-            ? parseFloat(q.regularMarketChangePercent.toFixed(2))
-            : null,
-          close: q.regularMarketPrice ?? null,
-        });
-      }
-    }
-    if (i + CONCURRENT < tickers.length) {
-      await new Promise(res => setTimeout(res, DELAY_MS));
-    }
-  }
-  logger.info('yahoo.heatmap', 'batch_done', { requested: tickers.length, returned: out.length });
-  return out;
-}
-
-/**
  * Fetch non-US heatmap quotes via Yahoo v8/chart query1 only, with conservative
  * concurrency (5 parallel, 250ms delay) — proven approach from korea-flow.
  * Uses simple UA to avoid bot detection; symbol → ticker map for lookup normalization.

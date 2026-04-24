@@ -14,21 +14,6 @@ function createRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
-// ── Ticker → CIK lookup via EDGAR ──────────────────────────────────────────
-async function getCompanyCik(ticker: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=10-K&hits.hits.total=1`,
-      { headers: { 'User-Agent': EDGAR_UA }, signal: AbortSignal.timeout(5000) }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const hit = data?.hits?.hits?.[0]?._source;
-    const cikEntry = (hit?.ciks as string[] | undefined)?.find((c: string) => c.length <= 10);
-    return cikEntry ?? null;
-  } catch { return null; }
-}
-
 // ── Fetch recent Form 4 filings from EDGAR ─────────────────────────────────
 interface InsiderTx {
   name: string;
@@ -46,13 +31,47 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
   try {
     // Map common tickers directly to avoid CIK lookup latency
     const CIK_MAP: Record<string, string> = {
+      // Semiconductors / Tech Hardware
       NVDA: '0001045810', AAPL: '0000320193', MSFT: '0000789019',
-      TSMC: '0000803649', AMZN: '0001018724', GOOGL: '0001652044',
-      META: '0001326801', TSLA: '0001318605', ASML: '0000937556',
-      MU: '0000723125', AMD: '0000002488', INTC: '0000050863',
-      LMT: '0000936468', RTX: '0000101829', NOC: '0001133421',
+      TSMC: '0000803649', ASML: '0000937556', AMD: '0000002488',
+      INTC: '0000050863', MU: '0000723125', AVGO: '0001730168',
+      ARM: '0001477294', QCOM: '0000804328', TXN: '0000097476',
+      AMAT: '0000006951', KLAC: '0000319201', LRCX: '0000707549',
+      MRVL: '0001058057', ON: '0001097864',
+      // Mega-cap Tech / Internet
+      AMZN: '0001018724', GOOGL: '0001652044', GOOG: '0001652044',
+      META: '0001326801', TSLA: '0001318605', NFLX: '0001065280',
+      ORCL: '0001341439', CRM: '0001108524', ADBE: '0000796343',
+      NOW: '0001373715', INTU: '0000896878', UBER: '0001543151',
+      PLTR: '0001321732', SNOW: '0001517396', SHOP: '0001594805',
+      COIN: '0001679788',
+      // Financials
       JPM: '0000019617', GS: '0000886982', BLK: '0001364742',
-      AVGO: '0001730168', ARM: '0001477294',
+      MS: '0000895421', BAC: '0000070858', WFC: '0000072971',
+      C: '0000831001', SCHW: '0000316888', V: '0001403161',
+      MA: '0001141391', PYPL: '0001633917', AXP: '0000004962',
+      SPGI: '0000064040', MCO: '0001059556',
+      // Defense / Industrials
+      LMT: '0000936468', RTX: '0000101829', NOC: '0001133421',
+      BA: '0000012927', GE: '0000040987', CAT: '0000018230',
+      DE: '0000315189', HON: '0000773840', UPS: '0001090727',
+      FDX: '0001048911', MMM: '0000066740',
+      // Healthcare / Pharma
+      LLY: '0000059478', JNJ: '0000200406', PFE: '0000078003',
+      MRK: '0000310158', ABBV: '0001551152', AMGN: '0000835887',
+      GILD: '0000882184', REGN: '0000872589', BIIB: '0000875320',
+      UNH: '0000731766', CVS: '0000064803',
+      // Energy
+      XOM: '0000034088', CVX: '0000093410', COP: '0001163165',
+      SLB: '0000087347',
+      // Consumer
+      WMT: '0000104169', COST: '0000909832', HD: '0000354950',
+      TGT: '0000027419', KO: '0000021344', PEP: '0000077476',
+      PG: '0000080424', MCD: '0000063754', SBUX: '0000829224',
+      NKE: '0000320187',
+      // Telecom / Media
+      T: '0000732717', VZ: '0000732712', CMCSA: '0001166691',
+      DIS: '0001001039',
     };
 
     const cik = CIK_MAP[ticker];
@@ -147,6 +166,7 @@ async function fetchVolumeData(ticker: string) {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=90d`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' },
+      cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
@@ -191,38 +211,12 @@ async function fetchVolumeData(ticker: string) {
       close: closes[closes.length - 20 + i] ?? 0,
     })).filter(d => d.volume > 0);
 
-    // Market cap from Yahoo meta
-    const marketCap = result.meta?.regularMarketPrice
-      ? null  // would need shares outstanding
-      : null;
+    const marketCap = (result.meta?.marketCap as number | undefined) ?? null;
 
     return {
       volumeRatio, avgRecent, avgVol3m,
       ret1w, ret1m, ret3m, current,
       high52, low52, dailyVolume, marketCap,
-    };
-  } catch { return null; }
-}
-
-// ── Yahoo Finance key stats (free v7 endpoint) ─────────────────────────────
-async function fetchKeyStats(ticker: string) {
-  try {
-    // v7 quote endpoint - doesn't require crumb
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${ticker}`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const q = data?.quoteResponse?.result?.[0];
-    if (!q) return null;
-    return {
-      marketCap: q.marketCap ?? null,
-      sharesOutstanding: q.sharesOutstanding ?? null,
-      shortRatio: q.shortRatio ?? null,
-      avgVol10d: q.averageDailyVolume10Day ?? null,
-      avgVol3m: q.averageDailyVolume3Month ?? null,
     };
   } catch { return null; }
 }
@@ -233,7 +227,7 @@ export async function GET(request: Request) {
   if (!ticker) return NextResponse.json({ error: 'Missing ticker' }, { status: 400 });
 
   const redis = createRedis();
-  const cacheKey = `flowvium:stock-supply:v2:${ticker}`;
+  const cacheKey = `flowvium:stock-supply:v3:${ticker}`;
 
   if (redis) {
     try {
@@ -246,15 +240,13 @@ export async function GET(request: Request) {
   const staticEntry = newsGapData.find(n => n.ticker === ticker);
   const ownership13F = staticEntry?.ownershipData ?? [];
 
-  // Fetch data in parallel (volume + insiders can run simultaneously)
-  const [volResult, statsResult, insidersResult] = await Promise.allSettled([
+  // Fetch data in parallel
+  const [volResult, insidersResult] = await Promise.allSettled([
     fetchVolumeData(ticker),
-    fetchKeyStats(ticker),
     fetchInsiderTransactions(ticker),
   ]);
 
   const volData = volResult.status === 'fulfilled' ? volResult.value : null;
-  const statsData = statsResult.status === 'fulfilled' ? statsResult.value : null;
   const insiderTransactions = insidersResult.status === 'fulfilled' ? insidersResult.value : [];
 
   // Supply pressure score (0=sell pressure, 100=buy pressure)
@@ -297,15 +289,15 @@ export async function GET(request: Request) {
     high52: volData?.high52 ?? null,
     low52: volData?.low52 ?? null,
     volumeRatio: volData?.volumeRatio ?? null,
-    avgVol10d: statsData?.avgVol10d ?? null,
-    avgVol3m: statsData?.avgVol3m ?? volData?.avgVol3m ?? null,
+    avgVol10d: null,
+    avgVol3m: volData?.avgVol3m ?? null,
     dailyVolume: volData?.dailyVolume ?? [],
-    marketCap: statsData?.marketCap ?? null,
-    sharesOutstanding: statsData?.sharesOutstanding ?? null,
-    instHeld: null as null,         // not available without crumb
-    insiderHeld: null as null,      // not available without crumb
-    shortPct: null as null,         // not available without crumb
-    shortRatio: statsData?.shortRatio ?? null,
+    marketCap: volData?.marketCap ?? null,
+    sharesOutstanding: null,
+    instHeld: null as null,
+    insiderHeld: null as null,
+    shortPct: null as null,
+    shortRatio: null,
     ownership13F,
     liveInstitutions: [],
     insiderTransactions,
