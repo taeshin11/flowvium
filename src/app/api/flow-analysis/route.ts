@@ -11,6 +11,8 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=12000, stale-while-revalidate=600' };
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -88,7 +90,7 @@ export async function GET(request: Request) {
   if (redis) {
     try {
       const cached = await redis.get(cacheKey(tf));
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -185,5 +187,5 @@ export async function GET(request: Request) {
     } catch (e) { logger.warn('flow-analysis', 'cache_write_error', { tf, error: e }); }
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CDN_HEADERS });
 }

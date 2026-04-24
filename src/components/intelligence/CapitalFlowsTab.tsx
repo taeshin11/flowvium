@@ -309,7 +309,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
     setLoading(true);
     setError(false);
     fetch(`/api/flow-analysis?tf=${tf}`, { signal: controller.signal })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => {
         if (controller.signal.aborted) return;
         setAnalysis(d.analysis ?? null);
@@ -488,8 +488,8 @@ export default function CapitalFlowsTab() {
     const controller = new AbortController();
     const { signal } = controller;
     Promise.allSettled([
-      fetch('/api/capital-flows', { signal }).then(r => r.json()),
-      fetch('/api/commodity-curve', { signal }).then(r => r.json()),
+      fetch('/api/capital-flows', { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch('/api/commodity-curve', { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
     ]).then(([flowRes, curveRes]) => {
       if (signal.aborted) return;
       if (flowRes.status === 'fulfilled') setData(flowRes.value);

@@ -3,6 +3,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 const mem = createMemoryCache<object>('commodity-curve', CACHE_TTL_MS);
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1500, stale-while-revalidate=120' };
 
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +67,7 @@ export interface CommodityCurve {
 export async function GET() {
   const cacheKey = 'curves';
   const cached = mem.get(cacheKey);
-  if (cached) return NextResponse.json({ ...cached, cached: true });
+  if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
 
   const now = new Date();
   const curMonth = now.getMonth();  // 0-indexed
@@ -108,5 +109,5 @@ export async function GET() {
     mem.set(cacheKey, result);
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CDN_HEADERS });
 }

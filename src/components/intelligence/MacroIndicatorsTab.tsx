@@ -24,7 +24,7 @@ function FedWatchSection() {
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/fedwatch', { signal: controller.signal })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => setData(d))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -327,7 +327,7 @@ export default function MacroIndicatorsTab() {
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/macro-indicators', { signal: controller.signal })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setIndicators(d.indicators ?? []); setYieldCurve(d.yieldCurve ?? null); })
       .catch(() => {})
       .finally(() => setLoading(false));

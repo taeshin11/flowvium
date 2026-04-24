@@ -20,6 +20,7 @@ import { Redis } from '@upstash/redis';
 import { fetchAllCreditData, type LiveCreditData } from '@/lib/credit-fetchers';
 
 const REDIS_KEY_LIVE = 'flowvium:credit-balance:live:v1';
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=82800, stale-while-revalidate=3600' };
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -457,7 +458,7 @@ export async function GET() {
   if (redis) {
     try {
       const cached = await redis.get<object>(cacheKey);
-      if (cached) return NextResponse.json({ ...cached, cached: true });
+      if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -502,5 +503,5 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json(response);
+  return NextResponse.json(response, { headers: CDN_HEADERS });
 }

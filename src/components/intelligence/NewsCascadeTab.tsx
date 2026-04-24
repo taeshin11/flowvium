@@ -30,7 +30,7 @@ export default function NewsCascadeTab() {
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/news-cascade', { signal: controller.signal })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { if (!controller.signal.aborted) setNews(Array.isArray(d) ? d : (d.articles ?? d.news ?? d.items ?? [])); })
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
