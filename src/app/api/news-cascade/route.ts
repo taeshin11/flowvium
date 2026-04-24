@@ -3,6 +3,8 @@ import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-providers';
 
+export const maxDuration = 60;
+
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -230,31 +232,34 @@ export async function GET() {
     return NextResponse.json({ articles: [], cached: false }, { headers: CDN_HEADERS });
   }
 
-  // 3. Analyze each article with AI (batch to avoid overload)
-  const analyzed: NewsWithCascade[] = [];
-  for (const item of deduped.slice(0, 8)) {
+  // 3. Analyze each article with AI — parallel (8 concurrent, each 10s timeout)
+  async function analyzeOne(item: RawNewsItem): Promise<NewsWithCascade | null> {
     try {
-      // Check per-article cache first
-      let result: NewsWithCascade | null = null;
       const id = hashUrl(item.link);
       if (redis) {
         try {
-          result = await redis.get<NewsWithCascade>(articleKey(id));
+          const cached = await redis.get<NewsWithCascade>(articleKey(id));
+          // Only use cached result if it has real AI analysis (cascades present)
+          if (cached && cached.cascades.length > 0) return cached;
         } catch { /* ignore */ }
       }
-
-      if (!result) {
-        const raw = await callCascadeAI(buildCascadePrompt(item.title));
-        result = parseCascade(raw || '', item);
-        // Cache per-article for 24h
-        if (redis && result) {
-          await loggedRedisSet(redis, 'api.news-cascade', articleKey(id), result, { ex: 24 * 60 * 60 })
-        }
+      const raw = await callCascadeAI(buildCascadePrompt(item.title));
+      const result = parseCascade(raw || '', item);
+      // Only cache if AI produced real cascades — avoid locking fallback for 24h
+      if (redis && result.cascades.length > 0) {
+        await loggedRedisSet(redis, 'api.news-cascade', articleKey(id), result, { ex: 24 * 60 * 60 });
       }
-
-      analyzed.push(result);
-    } catch (e) { logger.error('news-cascade', 'article_analysis_failed', { title: item.title, error: e }); }
+      return result;
+    } catch (e) {
+      logger.error('news-cascade', 'article_analysis_failed', { title: item.title, error: e });
+      return null;
+    }
   }
+
+  const settled = await Promise.allSettled(deduped.slice(0, 8).map(analyzeOne));
+  const analyzed: NewsWithCascade[] = settled
+    .map(r => r.status === 'fulfilled' ? r.value : null)
+    .filter((v): v is NewsWithCascade => v != null);
 
   // 4. Sort by importance then date
   const sorted = analyzed.sort((a, b) => {
