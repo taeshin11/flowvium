@@ -581,7 +581,17 @@
     "weakening": "▼ Weakening",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "cotTitle": "CFTC COT Positioning",
+    "cotSubtitle": "Non-commercial (speculator) net = Long − Short. Positive → bullish bias.",
+    "cotNoData": "Unable to load COT data",
+    "cotReportDate": "Report date",
+    "cotMarket": "Market",
+    "cotNetPos": "Net position",
+    "cotNetPct": "% of OI",
+    "cotBar": "Bias",
+    "cotSentiment": "Sentiment",
+    "cotLegend": "Non-commercial net = speculator (hedge funds, CTAs) longs minus shorts. CFTC publishes weekly on Fridays for positions as of the prior Tuesday."
   },
   "osint": {
     "pageCategory": "Global Intelligence Tracking",

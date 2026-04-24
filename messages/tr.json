@@ -581,7 +581,17 @@
     "weakening": "▼ Zayıflıyor",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Yenile"
+    "refresh": "Yenile",
+    "cotTitle": "CFTC COT Pozisyonlama",
+    "cotSubtitle": "Ticari olmayan net pozisyon = Uzun − Kısa. Pozitif → yükseliş eğilimi.",
+    "cotNoData": "COT verileri yüklenemedi",
+    "cotReportDate": "Rapor tarihi",
+    "cotMarket": "Piyasa",
+    "cotNetPos": "Net pozisyon",
+    "cotNetPct": "OI yüzdesi",
+    "cotBar": "Yön",
+    "cotSentiment": "Duygu",
+    "cotLegend": "Ticari olmayan net = spekülatörlerin uzunları − kısaları. CFTC her Cuma yayınlar."
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",

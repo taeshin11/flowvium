@@ -112,7 +112,7 @@
 ## 3. 인텔리전스 (`/intelligence`)
 
 **파일**: `src/components/pages/IntelligencePage.tsx`  
-**탭**: `capital` | `macro` | `flows` | `fear-greed` | `credit` | `narratives` | `news`
+**탭**: `capital` | `macro` | `flows` | `fear-greed` | `credit` | `narratives` | `news` | `cot`
 
 ---
 
@@ -227,6 +227,17 @@
   - 제목·소스·날짜·감성 배지(bullish/bearish/neutral)·중요도 닷
   - 캐스케이드 자산 필 (방향 화살표 ↑↓)
   - 펼치기: 전체 캐스케이드·강도·이유·타임프레임
+
+### 탭 8: CFTC COT 포지션 (`cot`)
+**컴포넌트**: `CotTab`  
+**데이터**: `/api/cot-positions`
+
+- CFTC Commitments of Traders (COT) Legacy Futures-Only 보고서
+- 소스: `https://www.cftc.gov/dea/newcot/FinFutWk.txt` (매주 금요일 발표)
+- 7개 시장: E-mini S&P 500 · Nasdaq-100 · 10Y T-Note · 2Y T-Note · EUR/USD · JPY · VIX
+- 컬럼: 시장명 · 순포지션(롱−숏) · OI 대비 % · 방향 바 · 심리 배지(강세/중립/약세)
+- 심리 기준: netPctOI > +15% = 강세, < −15% = 약세
+- Redis 캐시 4h
 
 ---
 

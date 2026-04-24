@@ -581,7 +581,17 @@
     "weakening": "▼ 弱化中",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "更新"
+    "refresh": "更新",
+    "cotTitle": "CFTC COTポジション",
+    "cotSubtitle": "非商業的(投機筋)ネットポジション = ロング − ショート。プラス → 強気バイアス。",
+    "cotNoData": "COTデータを読み込めませんでした",
+    "cotReportDate": "基準日",
+    "cotMarket": "市場",
+    "cotNetPos": "ネットポジション",
+    "cotNetPct": "OI比",
+    "cotBar": "方向性",
+    "cotSentiment": "センチメント",
+    "cotLegend": "非商業的ネット = 投機筋(ヘッジファンド等)のロング−ショート。CFTCが毎週金曜公表(前週火曜基準)。"
   },
   "osint": {
     "pageCategory": "グローバルインテリジェンス追跡",

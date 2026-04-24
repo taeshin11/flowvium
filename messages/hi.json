@@ -581,7 +581,17 @@
     "weakening": "▼ कमजोर हो रहा",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "रिफ्रेश"
+    "refresh": "रिफ्रेश",
+    "cotTitle": "CFTC COT पोजिशनिंग",
+    "cotSubtitle": "गैर-वाणिज्यिक शुद्ध = लॉन्ग − शॉर्ट। सकारात्मक → बुलिश पूर्वाग्रह।",
+    "cotNoData": "COT डेटा लोड नहीं हो सका",
+    "cotReportDate": "रिपोर्ट तिथि",
+    "cotMarket": "बाजार",
+    "cotNetPos": "शुद्ध स्थिति",
+    "cotNetPct": "OI का %",
+    "cotBar": "दिशा",
+    "cotSentiment": "भावना",
+    "cotLegend": "गैर-वाणिज्यिक शुद्ध = सट्टेबाजों के लॉन्ग − शॉर्ट। CFTC हर शुक्रवार प्रकाशित करता है।"
   },
   "osint": {
     "pageCategory": "वैश्विक इंटेलिजेंस ट्रैकिंग",

@@ -581,7 +581,17 @@
     "weakening": "▼ Đang suy yếu",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Làm mới"
+    "refresh": "Làm mới",
+    "cotTitle": "Vị thế CFTC COT",
+    "cotSubtitle": "Vị thế ròng phi thương mại = Long − Short. Dương → xu hướng tăng.",
+    "cotNoData": "Không thể tải dữ liệu COT",
+    "cotReportDate": "Ngày báo cáo",
+    "cotMarket": "Thị trường",
+    "cotNetPos": "Vị thế ròng",
+    "cotNetPct": "% của OI",
+    "cotBar": "Hướng",
+    "cotSentiment": "Tâm lý",
+    "cotLegend": "Ròng phi thương mại = long − short của nhà đầu cơ. CFTC công bố hàng tuần vào thứ Sáu."
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",

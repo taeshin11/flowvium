@@ -581,7 +581,17 @@
     "weakening": "▼ متراجع",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "تحديث"
+    "refresh": "تحديث",
+    "cotTitle": "مراكز CFTC COT",
+    "cotSubtitle": "صافي المركز غير التجاري = طويل − قصير. إيجابي → ميل صعودي.",
+    "cotNoData": "تعذر تحميل بيانات COT",
+    "cotReportDate": "تاريخ التقرير",
+    "cotMarket": "السوق",
+    "cotNetPos": "صافي المركز",
+    "cotNetPct": "% من OI",
+    "cotBar": "الاتجاه",
+    "cotSentiment": "المشاعر",
+    "cotLegend": "الصافي غير التجاري = عقود الشراء − عقود البيع للمضاربين. تنشر CFTC أسبوعياً كل جمعة."
   },
   "osint": {
     "pageCategory": "تتبع الاستخبارات العالمية",

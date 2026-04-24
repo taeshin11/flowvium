@@ -481,8 +481,9 @@ const CapitalFlowsTab = dynamic(() => import('@/components/intelligence/CapitalF
 const MacroIndicatorsTab = dynamic(() => import('@/components/intelligence/MacroIndicatorsTab'), { ssr: false });
 const CreditBalanceTab = dynamic(() => import('@/components/intelligence/CreditBalanceTab'), { ssr: false });
 const NewsCascadeTab = dynamic(() => import('@/components/intelligence/NewsCascadeTab'), { ssr: false });
+const CotTab = dynamic(() => import('@/components/intelligence/CotTab'), { ssr: false });
 // ── Main Page ─────────────────────────────────────────────────────────────────
-const TABS = ['capital', 'macro', 'flows', 'fear-greed', 'credit', 'narratives', 'news'] as const;
+const TABS = ['capital', 'macro', 'flows', 'fear-greed', 'credit', 'narratives', 'news', 'cot'] as const;
 type Tab = typeof TABS[number];
 
 interface LiveFGData {
@@ -559,6 +560,7 @@ export default function IntelligencePage() {
     'credit':      { label: '신용잔고',        icon: <TrendingDown className="w-4 h-4" /> },
     'narratives':  { label: '매크로 테마',     icon: <Brain className="w-4 h-4" /> },
     'news':        { label: '뉴스 Cascade',   icon: <Zap className="w-4 h-4" /> },
+    'cot':         { label: 'COT 포지션',     icon: <BarChart3 className="w-4 h-4" /> },
   };
 
   const inflows = moneyFlowSectors.filter(f => f.direction === 'inflow').sort((a, b) => b.magnitude - a.magnitude);
@@ -749,6 +751,9 @@ export default function IntelligencePage() {
 
         {/* Tab: 뉴스 Cascade */}
         {activeTab === 'news' && <NewsCascadeTab />}
+
+        {/* Tab: CFTC COT 포지션 */}
+        {activeTab === 'cot' && <CotTab />}
       </div>
 
       {/* Floating AI Chat Button */}

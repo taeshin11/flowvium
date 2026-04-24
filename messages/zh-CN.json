@@ -581,7 +581,17 @@
     "weakening": "▼ 减弱中",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "cotTitle": "CFTC COT持仓",
+    "cotSubtitle": "非商业（投机者）净持仓 = 多头 − 空头。正值 → 看多偏向。",
+    "cotNoData": "无法加载COT数据",
+    "cotReportDate": "报告日期",
+    "cotMarket": "市场",
+    "cotNetPos": "净持仓",
+    "cotNetPct": "OI占比",
+    "cotBar": "方向",
+    "cotSentiment": "情绪",
+    "cotLegend": "非商业净持仓 = 投机者（对冲基金等）多头减空头。CFTC每周五发布（上周二数据）。"
   },
   "osint": {
     "pageCategory": "全球情报追踪",

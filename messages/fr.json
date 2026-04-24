@@ -581,7 +581,17 @@
     "weakening": "▼ Affaiblissant",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Actualiser"
+    "refresh": "Actualiser",
+    "cotTitle": "Positionnement CFTC COT",
+    "cotSubtitle": "Position nette non commerciale = Long − Court. Positif → biais haussier.",
+    "cotNoData": "Impossible de charger les données COT",
+    "cotReportDate": "Date du rapport",
+    "cotMarket": "Marché",
+    "cotNetPos": "Position nette",
+    "cotNetPct": "% de l'OI",
+    "cotBar": "Orientation",
+    "cotSentiment": "Sentiment",
+    "cotLegend": "Net non commercial = longs − shorts des spéculateurs. CFTC publie chaque vendredi."
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",

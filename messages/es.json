@@ -581,7 +581,17 @@
     "weakening": "▼ Debilitando",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "cotTitle": "Posicionamiento CFTC COT",
+    "cotSubtitle": "Posición neta no comercial = Larga − Corta. Positivo → sesgo alcista.",
+    "cotNoData": "No se pueden cargar los datos COT",
+    "cotReportDate": "Fecha del informe",
+    "cotMarket": "Mercado",
+    "cotNetPos": "Posición neta",
+    "cotNetPct": "% de OI",
+    "cotBar": "Sesgo",
+    "cotSentiment": "Sentimiento",
+    "cotLegend": "Neto no comercial = longs − shorts de especuladores (hedge funds, CTAs). CFTC publica semanalmente los viernes."
   },
   "osint": {
     "pageCategory": "Seguimiento de Inteligencia Global",

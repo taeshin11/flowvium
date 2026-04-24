@@ -581,7 +581,17 @@
     "weakening": "▼ Enfraquecendo",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Atualizar"
+    "refresh": "Atualizar",
+    "cotTitle": "Posicionamento CFTC COT",
+    "cotSubtitle": "Posição líquida não comercial = Long − Short. Positivo → viés altista.",
+    "cotNoData": "Não foi possível carregar os dados COT",
+    "cotReportDate": "Data do relatório",
+    "cotMarket": "Mercado",
+    "cotNetPos": "Posição líquida",
+    "cotNetPct": "% do OI",
+    "cotBar": "Viés",
+    "cotSentiment": "Sentimento",
+    "cotLegend": "Líquido não comercial = longs − shorts de especuladores. CFTC publica semanalmente às sextas."
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",

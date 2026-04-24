@@ -77,7 +77,7 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   // ── 1단계: 독립적인 데이터 소스 병렬 갱신 ────────────────────────────────
-  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR] = await Promise.all([
+  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/yield-curve', 'yield-curve', 30000),       // 16 FRED series (TIPS + BEI)
     warm(base, '/api/fedwatch', 'fedwatch'),
@@ -94,6 +94,7 @@ export async function GET(req: Request) {
     warm(base, '/api/korea-flow', 'korea-flow', 20000),            // KRX 외인·기관
     warm(base, '/api/nport-holdings', 'nport-holdings', 55000),     // EDGAR N-PORT mutual funds
     warm(base, '/api/block-trades', 'block-trades', 30000),         // Polygon (no-op without key)
+    warm(base, '/api/cot-positions', 'cot-positions', 20000),       // CFTC weekly positioning
   ]);
 
   // ── 1-b: 히트맵 (국가별 x 시간별 키라 US만 워밍) + OSINT ───────────────
@@ -128,7 +129,7 @@ export async function GET(req: Request) {
 
   const results = [
     macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,
-    insiderR, ownerR, optR, koreaR, nportR, blockR, volR,
+    insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR,
     heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, latestR,
     flowR, brief4wR,
   ];

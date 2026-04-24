@@ -190,6 +190,14 @@ async function verifyVolatility(base: string): Promise<MetricItem[]> {
   return items;
 }
 
+async function verifyCOT(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/cot-positions');
+  if (!r.ok) return [{ key: 'cot.ALL', label: 'COT Positions API', group: 'cot', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  const data = r.data as { entries?: Array<{ id: string; label: string; netPctOI: number; sentiment: string }> };
+  const entries = data.entries ?? [];
+  return [{ key: 'cot.ALL', label: `COT Positions (${entries.length} markets)`, group: 'cot', status: entries.length >= 4 ? 'ok' : entries.length > 0 ? 'degraded' : 'error', value: entries.length > 0 ? `${entries.length} markets` : null }];
+}
+
 async function verifyCommodityCurve(base: string): Promise<MetricItem[]> {
   const r = await safeJson(base, '/api/commodity-curve');
   if (!r.ok) {
@@ -637,6 +645,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:nport-holdings:v1', label: 'nport-holdings' },
     { key: 'flowvium:options-flow:v1', label: 'options-flow' },
     { key: 'flowvium:block-trades:v1', label: 'block-trades' },
+    { key: 'flowvium:cot-positions:v1', label: 'cot-positions' },
     { key: 'flowvium:korea-flow:v2', label: 'korea-flow' },
     { key: 'flowvium:short-interest:v4', label: 'short-interest' },
     { key: 'flowvium:market-caps:v2', label: 'market-caps' },
@@ -674,7 +683,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: AI 체인 + 인사이더 + 시장 + 실적 + 값정합성 + 변동성)
-  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy, vol, comm] = await Promise.all([
+  const [fg, cf, macro, fw, credit, ai, insider, market, earnings, caches, accuracy, vol, comm, cot] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -688,9 +697,10 @@ export async function GET(req: Request) {
     verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
     verifyVolatility(base).catch((e): MetricItem[] => [{ key: 'vol.ERR', label: 'Volatility verify throw', group: 'volatility', status: 'error', lastError: String(e) }]),
     verifyCommodityCurve(base).catch((e): MetricItem[] => [{ key: 'comm.ERR', label: 'Commodity verify throw', group: 'commodity', status: 'error', lastError: String(e) }]),
+    verifyCOT(base).catch((e): MetricItem[] => [{ key: 'cot.ERR', label: 'COT verify throw', group: 'cot', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy, ...vol, ...comm];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...fw, ...credit, ...ai, ...insider, ...market, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...cot];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

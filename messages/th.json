@@ -581,7 +581,17 @@
     "weakening": "▼ กำลังอ่อนแอ",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "รีเฟรช"
+    "refresh": "รีเฟรช",
+    "cotTitle": "สถานะ CFTC COT",
+    "cotSubtitle": "สถานะสุทธิ non-commercial = Long − Short ค่าบวก → แนวโน้มขาขึ้น",
+    "cotNoData": "ไม่สามารถโหลดข้อมูล COT ได้",
+    "cotReportDate": "วันที่รายงาน",
+    "cotMarket": "ตลาด",
+    "cotNetPos": "สถานะสุทธิ",
+    "cotNetPct": "% ของ OI",
+    "cotBar": "ทิศทาง",
+    "cotSentiment": "ความเชื่อมั่น",
+    "cotLegend": "สุทธิ non-commercial = Long − Short ของนักเก็งกำไร CFTC เผยแพร่ทุกวันศุกร์"
   },
   "osint": {
     "pageCategory": "การติดตามข่าวกรองระดับโลก",

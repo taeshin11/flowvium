@@ -581,7 +581,17 @@
     "weakening": "▼ Abschwächend",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "cotTitle": "CFTC COT-Positionierung",
+    "cotSubtitle": "Nicht-kommerziell netto = Long − Short. Positiv → bullisches Bias.",
+    "cotNoData": "COT-Daten konnten nicht geladen werden",
+    "cotReportDate": "Berichtsdatum",
+    "cotMarket": "Markt",
+    "cotNetPos": "Nettoposition",
+    "cotNetPct": "% des OI",
+    "cotBar": "Richtung",
+    "cotSentiment": "Sentiment",
+    "cotLegend": "Nicht-kommerziell netto = Longs − Shorts der Spekulanten. CFTC veröffentlicht wöchentlich freitags."
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",

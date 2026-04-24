@@ -581,7 +581,17 @@
     "weakening": "▼ 減弱中",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "cotTitle": "CFTC COT部位",
+    "cotSubtitle": "非商業（投機者）淨部位 = 多頭 − 空頭。正值 → 看多偏向。",
+    "cotNoData": "無法載入COT資料",
+    "cotReportDate": "報告日期",
+    "cotMarket": "市場",
+    "cotNetPos": "淨部位",
+    "cotNetPct": "OI佔比",
+    "cotBar": "方向",
+    "cotSentiment": "情緒",
+    "cotLegend": "非商業淨部位 = 投機者（對沖基金等）多頭減空頭。CFTC每週五公布（上週二數據）。"
   },
   "osint": {
     "pageCategory": "全球情報追蹤",

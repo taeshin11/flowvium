@@ -589,7 +589,17 @@
     "weakening": "▼ 약화중",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "새로고침"
+    "refresh": "새로고침",
+    "cotTitle": "CFTC COT 포지션",
+    "cotSubtitle": "비상업적(투기세력) 순포지션 = 롱 − 숏. 양수 → 강세 편향.",
+    "cotNoData": "COT 데이터를 불러올 수 없습니다",
+    "cotReportDate": "기준일",
+    "cotMarket": "시장",
+    "cotNetPos": "순포지션",
+    "cotNetPct": "OI 대비",
+    "cotBar": "방향",
+    "cotSentiment": "심리",
+    "cotLegend": "비상업적 순포지션 = 투기세력(헤지펀드 등) 롱−숏. CFTC 매주 금요일 발표(직전 화요일 기준)."
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",

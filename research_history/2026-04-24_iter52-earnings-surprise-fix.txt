@@ -1,0 +1,40 @@
+## Iter 52 — earnings EPS surprise 이상값 수정
+Date: 2026-04-24
+Primary outcome: earnings surprise 이상값 수정
+
+### Drift check
+- iter 49: maxDuration 인프라
+- iter 50: Finnhub P/E screener
+- iter 51: GROQ 근본 원인 + 스크리너 확장
+- iter 52: earnings 버그 수정
+- 동일 모듈 3 iter 연속: 없음 ✓
+- primary metric 정체: 없음 ✓
+
+### Accuracy probe (MANDATORY §3)
+- [accuracy probe] metric=earnings.epsSurprise source=production(v1-cache)
+  extreme_values: IPST(-126787%), SNYR(-7158%), HCTI(-1126%), CERO(-1397%)
+  fix: |estimate|<0.01 → null, all others capped at ±999%
+  → FIXED in v2 (Redis v1 cache bypassed after deploy)
+
+### 근본 원인
+`enrichRow()` 함수에서 `epsEstimate !== 0` 만 체크 → near-zero estimate (~$0.009)가
+통과되어 극단적 % 생성:
+- INTC: estimate=$0.0092, actual=$0.29 → +3052.2%
+- IPST: estimate=-0.0408, actual=-51.77 → -126787.3%
+- SNYR: estimate=0.0102, actual=-0.72 → -7158.8%
+
+이 값들이 "Sort by Surprise" 시 상단에 나타나 사용자 오인 유발.
+
+### 수정 사항
+- `src/app/api/earnings/route.ts`
+  - `Math.abs(e.epsEstimate) >= 0.01` guard 추가 (< 0.01이면 null)
+  - `Math.max(-999, Math.min(999, ...))` cap 추가
+  - 동일 패턴을 revenueSurprise에도 적용
+  - cache key: v1 → v2 (stale 극단값 flush)
+- `METRICS.md` row 306, E16: v2 + 필터 조건 명시
+
+### TypeScript
+- TypeScript clean ✓
+
+### Commits
+- 7129f3f: fix(earnings): guard near-zero EPS estimates, cap surprise at ±999%

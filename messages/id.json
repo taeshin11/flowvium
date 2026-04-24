@@ -581,7 +581,17 @@
     "weakening": "▼ Melemah",
     "inflow": "▲ INFLOW",
     "outflow": "▼ OUTFLOW",
-    "refresh": "Muat ulang"
+    "refresh": "Muat ulang",
+    "cotTitle": "Posisi CFTC COT",
+    "cotSubtitle": "Posisi bersih non-komersial = Panjang − Pendek. Positif → bias bullish.",
+    "cotNoData": "Tidak dapat memuat data COT",
+    "cotReportDate": "Tanggal laporan",
+    "cotMarket": "Pasar",
+    "cotNetPos": "Posisi bersih",
+    "cotNetPct": "% dari OI",
+    "cotBar": "Arah",
+    "cotSentiment": "Sentimen",
+    "cotLegend": "Bersih non-komersial = panjang − pendek spekulan. CFTC menerbitkan setiap Jumat."
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",
