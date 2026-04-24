@@ -51,14 +51,19 @@ const searchCompanies = allCompanies.map((c) => ({
 
 // Live market snapshot strip — SPY / QQQ / BTC / VIX
 interface SnapPill { price: number | null; changePct: number | null; currency: string; }
+const SNAPSHOT_TICKERS = ['SPY', 'QQQ', 'BTC-USD', '^VIX'];
+const SNAPSHOT_REFRESH_MS = 60_000;
+
 function MarketSnapshot() {
   const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
-  const TICKERS = ['SPY', 'QQQ', 'BTC-USD', '^VIX'];
+  const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
+  const fetchPills = useCallback(() => {
+    abortRef.current?.abort();
     const controller = new AbortController();
+    abortRef.current = controller;
     Promise.allSettled(
-      TICKERS.map(ticker =>
+      SNAPSHOT_TICKERS.map(ticker =>
         fetch(`/api/stock-price/${encodeURIComponent(ticker)}`, { signal: controller.signal })
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
@@ -71,9 +76,16 @@ function MarketSnapshot() {
       }
       setPills(map);
     });
-    return () => controller.abort();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    fetchPills();
+    const iv = setInterval(fetchPills, SNAPSHOT_REFRESH_MS);
+    return () => {
+      clearInterval(iv);
+      abortRef.current?.abort();
+    };
+  }, [fetchPills]);
 
   if (pills.size === 0) return null;
 
@@ -83,7 +95,7 @@ function MarketSnapshot() {
     <div className="border-y border-cf-border/60 bg-cf-bg/80 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5">
         <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
-          {TICKERS.map(ticker => {
+          {SNAPSHOT_TICKERS.map(ticker => {
             const p = pills.get(ticker);
             if (!p?.price) return null;
             const sym = p.currency === 'USD' ? '$' : p.currency === 'KRW' ? '₩' : p.currency === 'EUR' ? '€' : '';

@@ -43,6 +43,7 @@ export interface SectorPEPayload {
 
 const CACHE_KEY = 'flowvium:sector-pe:v1';
 const CACHE_TTL = 24 * 60 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=82800, stale-while-revalidate=3600' };
 
 const YF_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -124,7 +125,7 @@ export async function GET(req: Request) {
       const cached = await redis.get<SectorPEPayload>(CACHE_KEY);
       if (cached) {
         logger.info('api.sector-pe', 'cache_hit', { count: cached.sectors.length });
-        return NextResponse.json({ ...cached, cached: true });
+        return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.sector-pe', 'cache_read_error', { error: err }); }
   }
@@ -145,5 +146,5 @@ export async function GET(req: Request) {
   await loggedRedisSet(redis, 'api.sector-pe', CACHE_KEY, payload, { ex: CACHE_TTL });
 
   logger.info('api.sector-pe', 'served', { count: sectors.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ ...payload, cached: false });
+  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
 }

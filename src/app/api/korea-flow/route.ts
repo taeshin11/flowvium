@@ -17,6 +17,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 
 const CACHE_KEY = 'flowvium:korea-flow:v1';
 const CACHE_TTL = 15 * 60;
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=720, stale-while-revalidate=60' };
 
 export interface KoreaFlowEntry {
   ticker: string;          // 종목코드 (e.g., 005930)
@@ -180,7 +181,7 @@ export async function GET(req: Request) {
       const cached = await redis.get(CACHE_KEY);
       if (cached) {
         logger.info('api.korea-flow', 'cache_hit');
-        return NextResponse.json({ ...(cached as object), cached: true });
+        return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.korea-flow', 'cache_read_error', { error: err }); }
   }
@@ -224,7 +225,7 @@ export async function GET(req: Request) {
     await loggedRedisSet(redis, 'api.korea-flow', CACHE_KEY, fallbackPayload, { ex: CACHE_TTL });
 
     logger.info('api.korea-flow', 'served_fallback', { totalTickers: yahooEntries.length, durationMs: Date.now() - reqStart });
-    return NextResponse.json({ ...fallbackPayload, cached: false });
+    return NextResponse.json({ ...fallbackPayload, cached: false }, { headers: CDN_HEADERS });
   }
 
   // Top-N by absolute foreigner net buy
@@ -258,5 +259,5 @@ export async function GET(req: Request) {
   await loggedRedisSet(redis, 'api.korea-flow', CACHE_KEY, payload, { ex: CACHE_TTL });
 
   logger.info('api.korea-flow', 'served', { totalTickers: all.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ ...payload, cached: false });
+  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
 }
