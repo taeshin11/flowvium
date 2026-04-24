@@ -80,9 +80,11 @@ async function fetchSectorEntry(ticker: string): Promise<SectorPEEntry> {
       : null;
 
     const price = (meta.regularMarketPrice as number | undefined) ?? lastClose ?? null;
-    const prevClose = meta.chartPreviousClose as number | undefined;
-    const changePct = price != null && prevClose && prevClose > 0
-      ? ((price - prevClose) / prevClose) * 100
+    // chartPreviousClose with range=ytd is Dec 31 close — not yesterday's close.
+    // Use second-to-last bar instead for a proper daily change.
+    const prevDayClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : null;
+    const changePct = price != null && prevDayClose && prevDayClose > 0
+      ? ((price - prevDayClose) / prevDayClose) * 100
       : null;
 
     return {
