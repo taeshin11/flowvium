@@ -886,11 +886,11 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       const fredGdp = lastRow?.value ?? null;
       const fredDate = lastRow?.date ?? null;
       const ourGdp = inds.find(x => x.id === 'gdp')?.actual ?? null;
-      // Skip if FRED hasn't published current-quarter data yet (date < start of current year)
-      const expectedMinDate = `${new Date().getFullYear()}-01-01`;
-      if (fredDate && fredDate < expectedMinDate) {
+      // Skip only if FRED data is older than 4 quarters (1 year) — Q4 of prior year is valid
+      const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      if (fredDate && fredDate < oneYearAgo) {
         items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'skipped',
-          skipReason: `FRED 최신 데이터 ${fredDate} — 당해연도 Q1 미공개`,
+          skipReason: `FRED 최신 데이터 ${fredDate} — 1년 이상 구형`,
           details: { fredDate, fredGdp, ourGdp } });
       } else if (fredGdp == null || ourGdp == null) {
         items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'error',

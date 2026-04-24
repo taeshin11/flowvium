@@ -59,12 +59,14 @@ function hashUrl(url: string): string {
 }
 
 // ── RSS feeds ─────────────────────────────────────────────────────────────────
+// Tested 2026-04-25: Yahoo Finance (404), Reuters (000), CNBC (403), MarketWatch → personal finance redirect
+// Replaced with confirmed working sources: Bloomberg sub-feeds + WSJ + SeekingAlpha
 const RSS_FEEDS = [
-  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance' },
-  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters' },
-  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', source: 'CNBC' },
   { url: 'https://feeds.bloomberg.com/markets/news.rss', source: 'Bloomberg' },
-  { url: 'https://feeds.marketwatch.com/marketwatch/topstories/', source: 'MarketWatch' },
+  { url: 'https://feeds.bloomberg.com/economics/news.rss', source: 'Bloomberg Economics' },
+  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets' },
+  { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha' },
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance' },
 ];
 
 async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]> {
@@ -217,7 +219,7 @@ export async function GET() {
     if (r.status === 'fulfilled') rawArticles.push(...r.value);
   }
 
-  // De-duplicate by title similarity (keep top 10 most recent)
+  // De-duplicate by title similarity (keep top 12 most recent)
   const seen = new Set<string>();
   const deduped: RawNewsItem[] = [];
   for (const a of rawArticles) {
@@ -226,7 +228,7 @@ export async function GET() {
       seen.add(key);
       deduped.push(a);
     }
-    if (deduped.length >= 10) break;
+    if (deduped.length >= 12) break;
   }
 
   if (deduped.length === 0) {
@@ -257,7 +259,7 @@ export async function GET() {
     }
   }
 
-  const settled = await Promise.allSettled(deduped.slice(0, 8).map(analyzeOne));
+  const settled = await Promise.allSettled(deduped.slice(0, 10).map(analyzeOne));
   const analyzed: NewsWithCascade[] = settled
     .map(r => r.status === 'fulfilled' ? r.value : null)
     .filter((v): v is NewsWithCascade => v != null);
