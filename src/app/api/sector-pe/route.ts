@@ -46,7 +46,7 @@ export interface SectorPEPayload {
   cached?: boolean;
 }
 
-const CACHE_KEY = 'flowvium:sector-pe:v2';
+const CACHE_KEY = 'flowvium:sector-pe:v3';
 const CACHE_TTL = 4 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
