@@ -42,6 +42,7 @@ import LiveFeed from '@/components/LiveFeed';
 import { useRouter } from '@/i18n/routing';
 import { allCompanies } from '@/data/companies';
 import { companyNamesI18n } from '@/data/company-names-i18n';
+import { getLevel, levelLabels } from '@/data/fear-greed';
 
 const searchCompanies = allCompanies.map((c) => ({
   name: c.name,
@@ -56,23 +57,33 @@ const SNAPSHOT_REFRESH_MS = 60_000;
 
 function MarketSnapshot() {
   const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
+  const [fgScore, setFgScore] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchPills = useCallback(() => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    Promise.allSettled(
-      SNAPSHOT_TICKERS.map(ticker =>
+    Promise.allSettled([
+      ...SNAPSHOT_TICKERS.map(ticker =>
         fetch(`/api/stock-price/${encodeURIComponent(ticker)}`, { signal: controller.signal })
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
-      )
-    ).then(results => {
+      ),
+      fetch('/api/fear-greed', { signal: controller.signal })
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(d => ({ ticker: '__fg__', score: (d.byCountry?.find((c: { id: string }) => c.id === 'us') as { score?: number } | undefined)?.score ?? null })),
+    ]).then(results => {
       if (controller.signal.aborted) return;
       const map = new Map<string, SnapPill>();
       for (const r of results) {
-        if (r.status === 'fulfilled') map.set(r.value.ticker, { price: r.value.price, changePct: r.value.changePct, currency: r.value.currency });
+        if (r.status !== 'fulfilled') continue;
+        const val = r.value as { ticker: string; price?: number | null; changePct?: number | null; currency?: string; score?: number | null };
+        if (val.ticker === '__fg__') {
+          if (val.score != null) setFgScore(val.score);
+        } else {
+          map.set(val.ticker, { price: val.price ?? null, changePct: val.changePct ?? null, currency: val.currency ?? 'USD' });
+        }
       }
       setPills(map);
     });
@@ -120,6 +131,18 @@ function MarketSnapshot() {
               </div>
             );
           })}
+          {fgScore != null && (() => {
+            const lvl = getLevel(fgScore);
+            const meta = levelLabels[lvl];
+            return (
+              <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">
+                <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">F&amp;G</span>
+                <span className={`text-xs font-mono font-semibold px-1 py-0.5 rounded ${meta.color} ${meta.bg}`}>
+                  {fgScore}
+                </span>
+              </div>
+            );
+          })()}
           <span className="text-[10px] text-cf-text-secondary/60 ml-auto flex-shrink-0">15min delay</span>
         </div>
       </div>
