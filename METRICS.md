@@ -758,6 +758,9 @@
 | 296y | VIX sparkline + 자동 1w% 계산 | ✅ live | ^VIX 30d 종가로 VIX pill 값+추세 동시 산출 (capital-flows 에 VIX 미존재 회피) |
 | 296z | ticker sanitizer `^`/`.` 허용 | ✅ live | 인덱스 심볼(^VIX, ^GSPC), 접미사 점(.TO) 지원 |
 | 297a | news-cascade 한자 혼입 가드 | ✅ live | GROQ 70b 한국어 응답에 중국어 Hanzi(U+4E00~9FFF) 12%+ 혼입 — 시스템 프롬프트 language lock + post-parse hasChineseLeak() 감지 시 title 로 대체 |
+| 297b | accuracy.cpi — FRED CPIAUCSL YoY 대조 | 🔄 cron | ±0.2pp 허용, 초과 시 degraded/error, iter67 |
+| 297c | accuracy.ppi — FRED PPIACO YoY 대조 | 🔄 cron | ±0.2pp 허용, iter67 |
+| 297d | accuracy.fomc — FRED DFEDTARU/L 금리 대조 | 🔄 cron | ±0.01pp 허용, iter67 |
 
 ---
 

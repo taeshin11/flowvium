@@ -580,6 +580,129 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       lastError: err instanceof Error ? err.message : String(err) });
   }
 
+  // 3. FRED CPI/PPI YoY + FOMC rate — 5 sources in 1 Promise.all, 3 MetricItems
+  try {
+    const t0 = Date.now();
+    const start14mo = new Date(Date.now() - 430 * 86400000).toISOString().slice(0, 10);
+    const start3mo  = new Date(Date.now() -  90 * 86400000).toISOString().slice(0, 10);
+    const headers   = { 'User-Agent': 'Mozilla/5.0' };
+    const sig       = AbortSignal.timeout(10000);
+    const [cpiCsv, ppiCsv, fomcUpperCsv, fomcLowerCsv, ourRes] = await Promise.all([
+      fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL&observation_start=${start14mo}`,
+        { headers, signal: sig, cache: 'no-store' }),
+      fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=PPIACO&observation_start=${start14mo}`,
+        { headers, signal: sig, cache: 'no-store' }),
+      fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&observation_start=${start3mo}`,
+        { headers, signal: sig, cache: 'no-store' }),
+      fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARL&observation_start=${start3mo}`,
+        { headers, signal: sig, cache: 'no-store' }),
+      fetch(`${base}/api/macro-indicators`, { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+    ]);
+
+    // Parse CSV into array of {date, value}
+    const parseCsv = (text: string): Array<{ date: string; value: number }> =>
+      text.trim().split('\n').slice(1).reduce<Array<{ date: string; value: number }>>((acc, line) => {
+        const [date, raw] = line.split(',');
+        if (raw?.trim() && raw.trim() !== '.') {
+          const v = parseFloat(raw.trim());
+          if (!isNaN(v)) acc.push({ date: date.trim(), value: v });
+        }
+        return acc;
+      }, []);
+
+    // YoY from monthly CPI/PPI index: (latest / value_12mo_ago - 1) * 100
+    const csvYoY = (rows: Array<{ date: string; value: number }>): number | null => {
+      if (rows.length < 12) return null;
+      const latest = rows[rows.length - 1].value;
+      const latestDate = new Date(rows[rows.length - 1].date);
+      const target12 = new Date(latestDate); target12.setFullYear(target12.getFullYear() - 1);
+      let best: { date: string; value: number } | null = null, bestDiff = Infinity;
+      for (const r of rows) {
+        const diff = Math.abs(new Date(r.date).getTime() - target12.getTime());
+        if (diff < bestDiff) { bestDiff = diff; best = r; }
+      }
+      if (!best) return null;
+      return parseFloat(((latest / best.value - 1) * 100).toFixed(2));
+    };
+
+    const ourData = ourRes.ok ? await ourRes.json() : null;
+    const inds: Array<{ id: string; actual?: number | null }> = ourData?.indicators ?? [];
+    const durationMs = Date.now() - t0;
+
+    // CPI probe
+    if (cpiCsv.ok) {
+      const fredYoY = csvYoY(parseCsv(await cpiCsv.text()));
+      const ourCpi = inds.find(x => x.id === 'cpi')?.actual ?? null;
+      if (fredYoY == null || ourCpi == null) {
+        items.push({ key: 'accuracy.cpi', label: 'FRED CPI YoY 대조', group: 'accuracy', status: 'error',
+          lastError: `fred=${fredYoY} ours=${ourCpi}`, details: { durationMs } });
+      } else {
+        const delta = Math.abs(fredYoY - ourCpi);
+        items.push({ key: 'accuracy.cpi', label: 'FRED CPI YoY 대조', group: 'accuracy',
+          status: delta <= 0.2 ? 'ok' : delta <= 0.5 ? 'degraded' : 'error',
+          value: `ours ${ourCpi} vs fred ${fredYoY} (Δ${delta.toFixed(2)})`,
+          source: 'fred-direct',
+          details: { fredYoY, ourCpi, delta, durationMs, tolerance: 0.2 },
+        });
+      }
+    } else {
+      items.push({ key: 'accuracy.cpi', label: 'FRED CPI YoY 대조', group: 'accuracy', status: 'error',
+        lastError: `fred HTTP ${cpiCsv.status}` });
+    }
+
+    // PPI probe
+    if (ppiCsv.ok) {
+      const fredYoY = csvYoY(parseCsv(await ppiCsv.text()));
+      const ourPpi = inds.find(x => x.id === 'ppi')?.actual ?? null;
+      if (fredYoY == null || ourPpi == null) {
+        items.push({ key: 'accuracy.ppi', label: 'FRED PPI YoY 대조', group: 'accuracy', status: 'error',
+          lastError: `fred=${fredYoY} ours=${ourPpi}` });
+      } else {
+        const delta = Math.abs(fredYoY - ourPpi);
+        items.push({ key: 'accuracy.ppi', label: 'FRED PPI YoY 대조', group: 'accuracy',
+          status: delta <= 0.2 ? 'ok' : delta <= 0.5 ? 'degraded' : 'error',
+          value: `ours ${ourPpi} vs fred ${fredYoY} (Δ${delta.toFixed(2)})`,
+          source: 'fred-direct',
+          details: { fredYoY, ourPpi, delta, tolerance: 0.2 },
+        });
+      }
+    } else {
+      items.push({ key: 'accuracy.ppi', label: 'FRED PPI YoY 대조', group: 'accuracy', status: 'error',
+        lastError: `fred HTTP ${ppiCsv.status}` });
+    }
+
+    // FOMC rate probe
+    if (fomcUpperCsv.ok && fomcLowerCsv.ok) {
+      const upperRows = parseCsv(await fomcUpperCsv.text());
+      const lowerRows = parseCsv(await fomcLowerCsv.text());
+      const fredUpper = upperRows[upperRows.length - 1]?.value ?? null;
+      const fredLower = lowerRows[lowerRows.length - 1]?.value ?? null;
+      const fredMid = fredUpper != null && fredLower != null
+        ? parseFloat(((fredUpper + fredLower) / 2).toFixed(3)) : null;
+      const ourFomc = inds.find(x => x.id === 'fomc')?.actual ?? null;
+      if (fredMid == null || ourFomc == null) {
+        items.push({ key: 'accuracy.fomc', label: 'FRED FOMC 금리 대조', group: 'accuracy', status: 'error',
+          lastError: `fred=${fredMid} ours=${ourFomc}` });
+      } else {
+        const delta = Math.abs(fredMid - ourFomc);
+        items.push({ key: 'accuracy.fomc', label: 'FRED FOMC 금리 대조', group: 'accuracy',
+          status: delta <= 0.01 ? 'ok' : delta <= 0.25 ? 'degraded' : 'error',
+          value: `ours ${ourFomc} vs fred ${fredMid} (Δ${delta.toFixed(3)})`,
+          source: 'fred-direct',
+          details: { fredUpper, fredLower, fredMid, ourFomc, delta, durationMs, tolerance: 0.01 },
+        });
+      }
+    } else {
+      items.push({ key: 'accuracy.fomc', label: 'FRED FOMC 금리 대조', group: 'accuracy', status: 'error',
+        lastError: `fred-upper=${fomcUpperCsv.status} fred-lower=${fomcLowerCsv.status}` });
+    }
+  } catch (err) {
+    for (const key of ['accuracy.cpi', 'accuracy.ppi', 'accuracy.fomc']) {
+      items.push({ key, label: key.replace('accuracy.', 'FRED ') + ' 대조', group: 'accuracy', status: 'error',
+        lastError: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
   return items;
 }
 

@@ -1,0 +1,49 @@
+## Iter 67 — verify-metrics 정확도 프로브 확장
+Date: 2026-04-24
+Primary outcome: verify-metrics 정확도 프로브 확장 (19자)
+
+### Drift check
+- iter 63: MacroIndicatorsTab.tsx
+- iter 64: HomePage.tsx
+- iter 65: capital-flows route + Tab
+- iter 66: macro-indicators/route.ts (static fix)
+- iter 67: verify-metrics/route.ts
+  → 5개 iter 모두 다른 파일 → drift 없음 OK
+
+### Accuracy probe (§3)
+- [accuracy probe] metric=verify-metrics.accuracy_group source=prod_api
+  이전: accuracy group = 2 probes (fg.us, curve)
+  이후: 5 probes (fg.us, curve, cpi, ppi, fomc)
+  - FOMC probe: ours=3.75 vs FRED DFEDTARU/L midpoint → Δ≈0 (same source) → 예상 OK
+  - CPI probe: CPIAUCSL YoY vs ours macro-indicators cpi.actual → Δ 예상 <0.1pp
+  - PPI probe: PPIACO YoY vs ours macro-indicators ppi.actual → Δ 예상 <0.1pp
+  (실측은 배포 후 cron 결과에서 확인)
+
+### 구현 (`src/app/api/cron/verify-metrics/route.ts`)
+
+#### verifyAccuracyStack 에 3번 probe 블록 추가
+
+**설계**
+- 5개 FRED/내부 소스를 1개 Promise.all 로 병렬 fetch (5→1 round trip 절약)
+  sources: CPIAUCSL, PPIACO, DFEDTARU, DFEDTARL, /api/macro-indicators
+- parseCsv / csvYoY 를 const 화살표 함수로 (strict mode function-in-block 금지)
+- CSV YoY 계산: latest / value_12mo_ago - 1) × 100, 14개월 range 사용
+- FOMC midRate = (DFEDTARU + DFEDTARL) / 2
+
+**3 MetricItems 생성**
+- accuracy.cpi: Δ ≤0.2pp → ok, ≤0.5 → degraded, >0.5 → error
+- accuracy.ppi: Δ ≤0.2pp → ok, ≤0.5 → degraded, >0.5 → error
+- accuracy.fomc: Δ ≤0.01pp → ok, ≤0.25 → degraded, >0.25 → error
+
+**에러 처리**: FRED 403/block 시 각 probe status='error', catch 시 3개 모두 error
+
+### 왜 이 iter가 의미있나 (§3 기준 c: 삭제/단순화 또는 a: 핵심 숫자 움직임)
+- 의도: accuracy group이 2→5 probes로 확장 → 모니터링 커버리지 +150%
+- FRED 403 (현재 클로드 직접 fetch 실패)이므로 실측값은 배포+cron 이후 admin 패널에서 확인
+- FRED 403은 클로드 IP 차단이지 Vercel Serverless Function IP 차단 아님 — 배포 환경에서 정상 동작 예상 (T10Y2Y probe가 현재 OK 상태임을 이전 iter에서 확인)
+
+### TypeScript
+- TypeScript clean OK
+
+### Commits
+- iter67: feat(verify-metrics): CPI/PPI/FOMC 정확도 프로브 3종 추가 (5→2 확장)
