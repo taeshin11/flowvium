@@ -245,8 +245,13 @@ function LaymanBox({ id }: { id: string }) {
   );
 }
 
-// ── Sector P/E ──────────────────────────────────────────────────────────────
-interface SectorPEEntry { ticker: string; name: string; trailingPE: number | null; dividendYield: number | null; ytdReturn: number | null; totalAssets: number | null; }
+// ── Sector ETF ──────────────────────────────────────────────────────────────
+interface SectorPEEntry {
+  ticker: string; name: string;
+  price: number | null; changePct: number | null;
+  ytdReturn: number | null; high52: number | null; low52: number | null;
+  trailingPE: number | null; dividendYield: number | null;
+}
 
 function SectorPESection() {
   const [data, setData] = useState<SectorPEEntry[]>([]);
@@ -271,27 +276,28 @@ function SectorPESection() {
 
   if (!data.length) return null;
 
-  const sorted = [...data].sort((a, b) => (b.trailingPE ?? 0) - (a.trailingPE ?? 0));
+  const sorted = [...data].sort((a, b) => (b.ytdReturn ?? -99) - (a.ytdReturn ?? -99));
 
   return (
     <div className="cf-card p-4">
       <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
         <BarChart2 className="w-4 h-4 text-cf-primary" />
-        섹터별 밸류에이션 (P/E · 배당수익률 · YTD)
+        섹터 ETF (가격 · 등락률 · YTD)
       </h3>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-cf-border text-cf-text-secondary">
               <th className="text-left py-1.5 pr-3 font-semibold">섹터 ETF</th>
-              <th className="text-right py-1.5 px-2 font-semibold">P/E</th>
-              <th className="text-right py-1.5 px-2 font-semibold">배당</th>
+              <th className="text-right py-1.5 px-2 font-semibold">가격</th>
+              <th className="text-right py-1.5 px-2 font-semibold">등락률</th>
               <th className="text-right py-1.5 pl-2 font-semibold">YTD</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map(s => {
               const ytd = s.ytdReturn != null ? s.ytdReturn * 100 : null;
+              const chg = s.changePct;
               return (
                 <tr key={s.ticker} className="border-b border-cf-border/40 hover:bg-gray-50/50 transition-colors">
                   <td className="py-1.5 pr-3">
@@ -299,10 +305,10 @@ function SectorPESection() {
                     <span className="text-cf-text-secondary ml-1.5">{s.name}</span>
                   </td>
                   <td className="text-right py-1.5 px-2 tabular-nums font-semibold text-cf-text-primary">
-                    {s.trailingPE != null ? s.trailingPE.toFixed(1) : '—'}
+                    {s.price != null ? `$${s.price.toFixed(2)}` : '—'}
                   </td>
-                  <td className="text-right py-1.5 px-2 tabular-nums text-emerald-700">
-                    {s.dividendYield != null ? `${(s.dividendYield * 100).toFixed(2)}%` : '—'}
+                  <td className={`text-right py-1.5 px-2 tabular-nums font-semibold ${chg == null ? 'text-cf-text-secondary' : chg >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                    {chg != null ? `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '—'}
                   </td>
                   <td className={`text-right py-1.5 pl-2 tabular-nums font-semibold ${ytd == null ? 'text-cf-text-secondary' : ytd >= 0 ? 'text-green-700' : 'text-red-600'}`}>
                     {ytd != null ? `${ytd >= 0 ? '+' : ''}${ytd.toFixed(1)}%` : '—'}
@@ -313,7 +319,7 @@ function SectorPESection() {
           </tbody>
         </table>
       </div>
-      <p className="text-[10px] text-cf-text-secondary mt-2">출처: Yahoo Finance v10 · SPDR 섹터 ETF · 24h 캐시</p>
+      <p className="text-[10px] text-cf-text-secondary mt-2">출처: Yahoo Finance v8 · SPDR 섹터 ETF · 4h 캐시</p>
     </div>
   );
 }
