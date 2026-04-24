@@ -79,11 +79,13 @@ const KEY_FIGURES = [
   { name: 'Mary Daly',         role: '샌프란시스코 Fed 총재', flag: '🇺🇸', tag: 'Daly',     twitter: null,              keywords: ['mary daly', 'san francisco fed'],               isFed: true, votingMember: false },
 ];
 
+// Tested 2026-04-25: Yahoo Finance (404), Reuters (000), CNBC (403), MarketWatch → personal finance
+// Replaced with confirmed working sources matching news-cascade feeds
 const NEWS_RSS_FEEDS = [
-  'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC&region=US&lang=en-US',
-  'https://feeds.reuters.com/reuters/businessNews',
-  'https://www.cnbc.com/id/100003114/device/rss/rss.html',
-  'https://feeds.marketwatch.com/marketwatch/topstories/',
+  'https://feeds.bloomberg.com/markets/news.rss',
+  'https://feeds.bloomberg.com/economics/news.rss',
+  'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
+  'https://seekingalpha.com/market_currents.xml',
 ];
 
 interface RssItem { title: string; description: string; link: string; pubDate: string; source: string }
