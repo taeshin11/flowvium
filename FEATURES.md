@@ -123,6 +123,9 @@
 - **스마트베타 팩터 성과** (6개 팩터 ETF)
   - MTUM(모멘텀) · QUAL(퀄리티) · VLUE(가치) · USMV(저변동성) · IVW(성장) · IVE(블렌드)
   - 1w/4w/13w 수익률 비교 + ReturnBar 시각화
+- **미국 섹터 로테이션** (11개 SPDR 섹터 ETF)
+  - XLK/XLF/XLE/XLV/XLI/XLB/XLY/XLP/XLU/XLRE/XLC
+  - 최강·최약 섹터 하이라이트 + 전체 ReturnBar 정렬 목록
 - **금 vs 달러 신호** (3개 타임프레임)
 - **AI 자금흐름 분석 패널** (`FlowAnalysisPanel`)
   - EXAONE vLLM → Gemini 폴백

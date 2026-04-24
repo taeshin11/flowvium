@@ -707,6 +707,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
 interface AssetReturn { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 interface CountryReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 interface FactorReturn { id: string; label: string; flag: string; ticker: string; desc: string; ret1w: number; ret4w: number; ret13w: number; }
+interface SectorReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 type RotEntry = { from:string; to:string; magnitude:number; weeksAgo?:number; startDate?:string; momentum?:string };
 type CountryRotEntry = { from:string; fromFlag:string; to:string; toFlag:string; magnitude:number; momentum:'accelerating'|'holding'|'fading' };
 interface FlowData {
@@ -726,6 +727,7 @@ interface FlowData {
     rotations1w: CountryRotEntry[]; rotations4w: CountryRotEntry[]; rotations13w: CountryRotEntry[];
   };
   factorPerformance?: FactorReturn[];
+  sectorPerformance?: SectorReturn[];
   dataSource?: string;
   updatedAt: string;
 }
@@ -1118,6 +1120,53 @@ function CapitalFlowsTab() {
                   MTUM · QUAL · VLUE · USMV · IVW · IVE — iShares/MSCI 팩터 ETF 기반
                 </p>
               </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* 미국 섹터 성과 */}
+      {data.sectorPerformance && data.sectorPerformance.length > 0 && (
+        <div className="cf-card p-4">
+          <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+            <span>🏭</span> 미국 섹터 로테이션 ({TF_LABELS[tf]} 기준)
+          </h3>
+          {(() => {
+            const sorted = [...data.sectorPerformance].sort((a, b) => b[retKey] - a[retKey]);
+            const maxAbs = Math.max(...sorted.map(s => Math.abs(s[retKey])), 1);
+            const best = sorted[0];
+            const worst = sorted[sorted.length - 1];
+            return (
+              <>
+                {(best && worst) && (
+                  <div className="flex gap-2 mb-3">
+                    <div className="flex-1 p-2 rounded-lg bg-green-50 border border-green-200 text-center">
+                      <div className="text-base">{best.flag}</div>
+                      <div className="text-xs font-bold text-green-700">{best.label}</div>
+                      <div className="text-sm font-extrabold text-green-600">+{best[retKey].toFixed(1)}%</div>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-400">→</div>
+                    <div className="flex-1 p-2 rounded-lg bg-red-50 border border-red-200 text-center">
+                      <div className="text-base">{worst.flag}</div>
+                      <div className="text-xs font-bold text-red-700">{worst.label}</div>
+                      <div className="text-sm font-extrabold text-red-500">{worst[retKey].toFixed(1)}%</div>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  {sorted.map((s) => (
+                    <div key={s.id} className="flex items-center gap-2">
+                      <span className="text-sm leading-none flex-shrink-0">{s.flag}</span>
+                      <span className="text-xs font-medium text-cf-text-primary w-16 flex-shrink-0 truncate">{s.label}</span>
+                      <span className="text-[10px] text-gray-400 font-mono w-10 flex-shrink-0">{s.ticker}</span>
+                      <ReturnBar val={s[retKey]} max={maxAbs} />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-cf-text-secondary/60 pt-1">
+                  SPDR Sector ETFs (XLK·XLF·XLE·XLV·XLI·XLB·XLY·XLP·XLU·XLRE·XLC)
+                </p>
+              </>
             );
           })()}
         </div>

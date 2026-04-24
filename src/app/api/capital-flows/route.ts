@@ -51,6 +51,21 @@ const FACTORS = [
   { id: 'blend',    ticker: 'IVE',  label: '블렌드(가치)',  flag: '⚖️', desc: 'Value Blend (IVE)' },
 ];
 
+// ── US Sector ETFs ───────────────────────────────────────────────────────────
+const SECTORS = [
+  { id: 'tech',        ticker: 'XLK',  label: '기술',         flag: '💻' },
+  { id: 'financials',  ticker: 'XLF',  label: '금융',         flag: '🏦' },
+  { id: 'energy',      ticker: 'XLE',  label: '에너지',       flag: '⚡' },
+  { id: 'healthcare',  ticker: 'XLV',  label: '헬스케어',     flag: '🏥' },
+  { id: 'industrials', ticker: 'XLI',  label: '산업재',       flag: '🏭' },
+  { id: 'materials',   ticker: 'XLB',  label: '소재',         flag: '⚗️' },
+  { id: 'consdisc',    ticker: 'XLY',  label: '임의소비재',   flag: '🛍️' },
+  { id: 'consstaples', ticker: 'XLP',  label: '필수소비재',   flag: '🛒' },
+  { id: 'utilities',   ticker: 'XLU',  label: '유틸리티',     flag: '💡' },
+  { id: 'realestate',  ticker: 'XLRE', label: '부동산',       flag: '🏠' },
+  { id: 'commsvc',     ticker: 'XLC',  label: '통신',         flag: '📡' },
+];
+
 // ── Country ETFs ──────────────────────────────────────────────────────────────
 const COUNTRIES = [
   { id: 'us',        ticker: 'SPY',  label: '미국',       flag: '🇺🇸' },
@@ -276,7 +291,7 @@ export async function GET() {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (실시간)' : 'Yahoo Finance (15분 지연)';
-  const cacheKey = `flowvium:capital-flows:v6:${twelveKey ? 'twelve' : 'yahoo'}`;
+  const cacheKey = `flowvium:capital-flows:v7:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   if (redis) {
     try {
@@ -289,6 +304,7 @@ export async function GET() {
     ...ASSETS.map((a) => a.ticker),
     ...COUNTRIES.map((c) => c.ticker),
     ...FACTORS.map((f) => f.ticker),
+    ...SECTORS.map((s) => s.ticker),
   ]));
   const priceMap: Record<string, number[]> = {};
   const sourceCount: Record<string, number> = {};
@@ -396,7 +412,18 @@ export async function GET() {
     };
   }).filter(f => f.ret4w !== 0 || f.ret13w !== 0);
 
-  const response = { assets: results, flow, goldVsDollar, countryFlow, factorPerformance, dataSource: sourceSummary || dataSource, updatedAt: new Date().toISOString() };
+  // ── US Sector performance ─────────────────────────────────────────────────
+  const sectorPerformance = SECTORS.map(s => {
+    const prices = priceMap[s.ticker] ?? [];
+    return {
+      id: s.id, label: s.label, flag: s.flag, ticker: s.ticker,
+      ret1w:  pctReturn(prices, 5),
+      ret4w:  pctReturn(prices, 20),
+      ret13w: pctReturn(prices, 65),
+    };
+  }).filter(s => s.ret4w !== 0 || s.ret13w !== 0);
+
+  const response = { assets: results, flow, goldVsDollar, countryFlow, factorPerformance, sectorPerformance, dataSource: sourceSummary || dataSource, updatedAt: new Date().toISOString() };
 
   if (redis) {
     try {
