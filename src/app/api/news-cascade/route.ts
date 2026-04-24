@@ -3,6 +3,8 @@ import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-providers';
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' };
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RawNewsItem {
   title: string;
@@ -198,7 +200,7 @@ export async function GET() {
     try {
       const cached = await redis.get<NewsWithCascade[]>(listKey());
       if (cached && cached.length > 0) {
-        return NextResponse.json({ articles: cached, cached: true });
+        return NextResponse.json({ articles: cached, cached: true }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
   }
@@ -225,7 +227,7 @@ export async function GET() {
   }
 
   if (deduped.length === 0) {
-    return NextResponse.json({ articles: [], cached: false });
+    return NextResponse.json({ articles: [], cached: false }, { headers: CDN_HEADERS });
   }
 
   // 3. Analyze each article with AI (batch to avoid overload)
@@ -265,5 +267,5 @@ export async function GET() {
     await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: 4 * 60 * 60 })
   }
 
-  return NextResponse.json({ articles: sorted, cached: false });
+  return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });
 }

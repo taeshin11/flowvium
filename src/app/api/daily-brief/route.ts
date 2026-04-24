@@ -9,6 +9,8 @@ import {
 // Increase Vercel function timeout — required on Pro plan (60s), no-op on Hobby (10s)
 export const maxDuration = 60;
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' };
+
 // Module-level in-memory cache for environments without Redis.
 // Persists across requests while the function instance stays warm (typical ~several minutes).
 // TTL 10 min — balances AI quota conservation with reasonable freshness.
@@ -29,7 +31,7 @@ export async function GET(request: Request) {
       const cached = await redis.get(cacheKey(tf));
       if (cached) {
         logger.info('api.daily-brief', 'cache_hit', { tf });
-        return NextResponse.json({ ...(cached as object), cached: true });
+        return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.daily-brief', 'cache_read_error', { tf, error: err }); }
   }
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
     const mem = MEMORY_CACHE.get(tf);
     if (mem && mem.expiresAt > Date.now()) {
       logger.info('api.daily-brief', 'memory_cache_hit', { tf, ageMs: Date.now() - (mem.expiresAt - MEMORY_TTL_MS) });
-      return NextResponse.json({ ...mem.brief, cached: true, cacheLayer: 'memory' });
+      return NextResponse.json({ ...mem.brief, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
     }
   }
 
@@ -116,7 +118,7 @@ export async function GET(request: Request) {
     ...brief,
     cached: false,
     ...(debugInfo ? { debug: { ...debugInfo, ai: aiDiag } } : {}),
-  });
+  }, { headers: CDN_HEADERS });
 }
 
 export async function DELETE(request: Request) {

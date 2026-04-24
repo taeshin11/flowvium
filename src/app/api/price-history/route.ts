@@ -21,6 +21,8 @@ import { createMemoryCache } from '@/lib/memory-cache';
 
 export const revalidate = 0;
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=120' };
+
 interface PricePoint { date: string; close: number }
 interface PriceHistoryPayload { ticker: string; points: PricePoint[]; updatedAt: string }
 
@@ -96,17 +98,18 @@ export async function GET(req: NextRequest) {
   if (redis) {
     try {
       const cached = await redis.get<PriceHistoryPayload>(cacheKey);
-      if (cached) return NextResponse.json({ ...cached, cached: true });
+      if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   } else {
     const mem = MEMORY_CACHE.get(`${ticker}:${days}`);
-    if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' });
+    if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
   }
 
   const points = await fetchYahooDaily(ticker, days);
   if (points.length === 0) {
     return NextResponse.json({ ticker, points: [], updatedAt: new Date().toISOString(), error: 'no data' }, { status: 502 });
   }
+
   const payload: PriceHistoryPayload = {
     ticker,
     points,
@@ -119,5 +122,5 @@ export async function GET(req: NextRequest) {
     MEMORY_CACHE.set(`${ticker}:${days}`, payload);
   }
 
-  return NextResponse.json({ ...payload, cached: false });
+  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
 }

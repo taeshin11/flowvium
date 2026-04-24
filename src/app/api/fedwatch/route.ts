@@ -251,12 +251,14 @@ function computeMeetingProbs(
   };
 }
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
+
 export async function GET() {
   const redis = createRedis();
   if (redis) {
     try {
       const cached = await redis.get(cacheKey());
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true });
+      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -298,5 +300,5 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CDN_HEADERS });
 }
