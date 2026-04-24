@@ -1,0 +1,28 @@
+## Iter 14 — 경제지표 캘린더 패널 (#323 ⛔→📋)
+Date: 2026-04-24
+Primary outcome: 경제캘린더 UI 추가
+
+### 작업 내용
+- MacroIndicatorsTab.tsx에 inline 경제지표 발표 캘린더 패널 추가
+- 기존 `indicators` state (이미 로드됨)의 `nextRelease` 필드를 활용한 클라이언트-사이드 집계
+- 새 API 없이 기존 데이터 재활용 → zero-cost feature
+- 정렬: 발표일 오름차순, D-N 카운트다운 표시
+- 발표 유형별 색상 점 (금리=빨강, 고용=파랑, 물가=노랑, 성장=녹색, 기타=회색)
+- "오늘"/"내일"/N일 후 한국어 라벨
+
+### 상태 변경
+- METRICS.md #323: ⛔ missing → 📋 static (nextRelease는 하드코딩, Bloomberg 실시간 아님)
+- FEATURES.md: MacroIndicators 탭에 캘린더 패널 불릿 추가
+- ⛔ missing 잔여: ~7개
+
+### 제약
+- nextRelease 날짜가 하드코딩 → 실제 발표일이 지나면 stale됨
+- 실제 경제캘린더 API (Bloomberg, Refinitiv) 없이는 자동 갱신 불가
+- 📋 static 배지가 이 상황을 정확히 표현함
+
+### 정확성 프로브 (verify-metrics 대리)
+- F&G US: 66 vs CNN 66 (Δ0) → OK
+- 10Y-2Y spread: 0.51 vs FRED 0.51 (Δ0.00) → OK
+
+### Commit
+42d8df8 feat(eco-calendar): 다가오는 경제지표 발표 캘린더 (#323 ⛔→📋)

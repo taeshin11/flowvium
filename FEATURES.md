@@ -799,6 +799,7 @@ ownership-alerts 적용).
 | `cron/update-credit-balance` | 스케줄 | FRED + TWSE 신용잔고 갱신 → ISR revalidate |
 | `cron/daily-brief` | 스케줄 | Redis bust → AI 브리프 재생성 |
 | `cron/verify-metrics` | 매 30분 | 5개 엔드포인트 + 14개 캐시 키 probe → 개별 수치 상태 스냅샷 저장 (F&G 국가별 · Capital Flows 자산별 · Macro 지표별 · FedWatch · Credit) |
+| `cron/send-alerts` | 매 4시간 | F&G 극단(≤25/≥75) + VIX 고공포(≥30)/주의(≥25) 시 Discord 웹훅 발송 · 24h 쿨다운 · `DISCORD_WEBHOOK_URL` 미설정 시 무음 스킵 |
 
 ---
 
