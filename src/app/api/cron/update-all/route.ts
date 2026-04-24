@@ -6,9 +6,9 @@ import { logger } from '@/lib/logger';
  *   07:50 KST / 15:50 KST / 21:20 KST
  *
  * 캐시 워밍 순서:
- *   1. macro-indicators (FRED)
+ *   1. macro-indicators (FRED) + yield-curve (FRED TIPS/BEI) + volatility (VIX)
  *   2. fedwatch (CME)
- *   3. capital-flows (Yahoo Finance)
+ *   3. capital-flows (Yahoo Finance — 44+ tickers)
  *   4. fear-greed (CNN + Yahoo — force=1로 강제 갱신)
  *   5. credit-balance
  *   6. flow-analysis (AI, capital-flows 이후)
@@ -76,8 +76,9 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   // ── 1단계: 독립적인 데이터 소스 병렬 갱신 ────────────────────────────────
-  const [macroR, fedR, capitalR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR] = await Promise.all([
+  const [macroR, yieldR, fedR, capitalR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
+    warm(base, '/api/yield-curve', 'yield-curve', 30000),       // 16 FRED series (TIPS + BEI)
     warm(base, '/api/fedwatch', 'fedwatch'),
     warm(base, '/api/capital-flows', 'capital-flows'),
     warm(base, '/api/volatility', 'volatility'),
@@ -125,8 +126,8 @@ export async function GET(req: Request) {
   fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
 
   const results = [
-    macroR, fedR, capitalR, fearGreedR, creditR, shortR, capsR,
-    insiderR, ownerR, optR, koreaR, nportR, blockR,
+    macroR, yieldR, fedR, capitalR, fearGreedR, creditR, shortR, capsR,
+    insiderR, ownerR, optR, koreaR, nportR, blockR, volR,
     heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, latestR,
     flowR, brief1wR, brief4wR, brief13wR,
   ];
