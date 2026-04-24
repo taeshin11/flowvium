@@ -106,30 +106,20 @@ async function fetchKrxFlow(market: 'KOSPI' | 'KOSDAQ'): Promise<{ entries: Kore
   return { entries: [], trdDd: kstDateStr(0) };
 }
 
-const KOSPI_TICKERS = [
-  '005930.KS', // 삼성전자
-  '000660.KS', // SK하이닉스
-  '005380.KS', // 현대차
-  '035420.KS', // NAVER
-  '005490.KS', // POSCO홀딩스
-  '000270.KS', // 기아
-  '035720.KS', // 카카오
-  '051910.KS', // LG화학
-  '028260.KS', // 삼성물산
-  '003550.KS', // LG
-  '012330.KS', // 현대모비스
-  '096770.KS', // SK이노베이션
-  '017670.KS', // SK텔레콤
-  '030200.KS', // KT
-  '055550.KS', // 신한지주
-  '105560.KS', // KB금융
-  '086790.KS', // 하나금융지주
-  '032830.KS', // 삼성생명
-  '018260.KS', // 삼성에스디에스
-  '009150.KS', // 삼성전기
-];
+const KO_NAMES: Record<string, string> = {
+  '005930': '삼성전자',   '000660': 'SK하이닉스',  '005380': '현대차',
+  '035420': 'NAVER',      '005490': 'POSCO홀딩스', '000270': '기아',
+  '035720': '카카오',     '051910': 'LG화학',       '028260': '삼성물산',
+  '003550': 'LG',         '012330': '현대모비스',   '096770': 'SK이노베이션',
+  '017670': 'SK텔레콤',   '030200': 'KT',           '055550': '신한지주',
+  '105560': 'KB금융',     '086790': '하나금융지주', '032830': '삼성생명',
+  '018260': '삼성에스디에스','009150': '삼성전기',
+};
+
+const KOSPI_TICKERS = Object.keys(KO_NAMES).map(c => `${c}.KS`);
 
 async function fetchYahooKoreaEntry(ticker: string): Promise<KoreaFlowEntry | null> {
+  const code = ticker.replace('.KS', '');
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`,
@@ -152,8 +142,8 @@ async function fetchYahooKoreaEntry(ticker: string): Promise<KoreaFlowEntry | nu
         ? ((regularMarketPrice - chartPreviousClose) / chartPreviousClose) * 100
         : null;
     return {
-      ticker: ticker.replace('.KS', ''),
-      name: (meta.shortName as string | undefined) ?? ticker.replace('.KS', ''),
+      ticker: code,
+      name: KO_NAMES[code] ?? (meta.shortName as string | undefined) ?? code,
       market: 'KOSPI',
       foreignerNetBuy: null,
       institutionNetBuy: null,

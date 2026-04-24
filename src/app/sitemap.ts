@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Static pages
   const staticPages = [
     '', '/explore', '/cascade', '/signals', '/news-gap', '/about', '/blog', '/how-to-use', '/privacy', '/terms',
-    '/heatmap', '/screener', '/short', '/insider', '/report', '/earnings', '/intelligence', '/osint', '/watchlist',
+    '/heatmap', '/screener', '/short', '/insider', '/report', '/earnings', '/intelligence', '/osint',
   ];
 
   // localePrefix: 'as-needed' — default locale (en) has no /en/ prefix

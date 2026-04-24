@@ -19,6 +19,7 @@ interface KoreaFlowPayload {
   topInstBuy: KoreaRow[];
   topInstSell: KoreaRow[];
   totalTickers: number;
+  fallback?: boolean;
 }
 interface KoreaRow {
   ticker: string;
@@ -507,14 +508,21 @@ export default function InsiderPage() {
 
       {tab === 'korea' && korea && (
         <div className="space-y-4">
-          <div className="text-[11px] text-cf-text-secondary">
-            {t('koreaAsOf', { date: korea.tradingDay })} · {korea.totalTickers.toLocaleString()} {t('tickers')}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] text-cf-text-secondary">
+              {t('koreaAsOf', { date: korea.tradingDay })} · {korea.totalTickers.toLocaleString()} {t('tickers')}
+            </span>
+            {korea.fallback && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                ⚠ KRX 수급 없음 — 가격 데이터만
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <KoreaTable title={`🟢 ${t('foreignTopBuy')}`} rows={korea.topForeignBuy} field="foreignerNetBuy" positive />
-            <KoreaTable title={`🔴 ${t('foreignTopSell')}`} rows={korea.topForeignSell} field="foreignerNetBuy" />
-            <KoreaTable title={`🟢 ${t('instTopBuy')}`} rows={korea.topInstBuy} field="institutionNetBuy" positive />
-            <KoreaTable title={`🔴 ${t('instTopSell')}`} rows={korea.topInstSell} field="institutionNetBuy" />
+            <KoreaTable title={`🟢 ${t('foreignTopBuy')}`} rows={korea.topForeignBuy} field="foreignerNetBuy" positive fallback={korea.fallback} />
+            <KoreaTable title={`🔴 ${t('foreignTopSell')}`} rows={korea.topForeignSell} field="foreignerNetBuy" fallback={korea.fallback} />
+            <KoreaTable title={`🟢 ${t('instTopBuy')}`} rows={korea.topInstBuy} field="institutionNetBuy" positive fallback={korea.fallback} />
+            <KoreaTable title={`🔴 ${t('instTopSell')}`} rows={korea.topInstSell} field="institutionNetBuy" fallback={korea.fallback} />
           </div>
         </div>
       )}
@@ -527,35 +535,41 @@ export default function InsiderPage() {
   );
 }
 
-function KoreaTable({ title, rows, field, positive }: {
+function KoreaTable({ title, rows, field, positive, fallback }: {
   title: string;
   rows: KoreaRow[];
   field: 'foreignerNetBuy' | 'institutionNetBuy';
   positive?: boolean;
+  fallback?: boolean;
 }) {
   return (
     <div className="cf-card overflow-hidden">
       <p className="text-xs font-bold text-cf-text-primary px-3 py-2 border-b border-white/5">{title}</p>
       <table className="w-full text-sm">
         <tbody>
-          {rows.slice(0, 10).map(r => (
+          {rows.slice(0, 10).map((r, i) => (
             <tr key={r.ticker} className="border-b border-white/5 last:border-0">
-              <td className="px-3 py-2 text-[11px] font-mono text-cf-text-secondary">{r.ticker}</td>
-              <td className="px-3 py-2 text-[11px] font-semibold text-cf-text-primary truncate max-w-[140px]">{r.name}</td>
-              <td className="px-3 py-2 text-[10px] text-cf-text-secondary">{r.market}</td>
-              <td className="px-3 py-2 font-mono text-xs text-right">
+              <td className="px-3 py-2 text-[11px] text-cf-text-secondary w-6 text-right">{i + 1}</td>
+              <td className="px-3 py-2">
+                <span className="text-[12px] font-semibold text-cf-text-primary">{r.name}</span>
+                <span className="ml-1.5 text-[9px] font-mono text-cf-text-secondary/50">{r.ticker}</span>
+              </td>
+              <td className="px-3 py-2 text-[9px] text-cf-text-secondary/60 hidden sm:table-cell">{r.market}</td>
+              <td className="px-3 py-2 font-mono text-xs text-right text-cf-text-secondary">
                 {r.closePrice != null ? r.closePrice.toLocaleString() : '-'}
               </td>
-              <td className={`px-3 py-2 font-mono text-xs text-right ${(r.changePct ?? 0) > 0 ? 'text-red-400' : (r.changePct ?? 0) < 0 ? 'text-blue-400' : 'text-cf-text-secondary'}`}>
+              <td className={`px-3 py-2 font-mono text-xs font-bold text-right ${(r.changePct ?? 0) > 0 ? 'text-red-400' : (r.changePct ?? 0) < 0 ? 'text-blue-400' : 'text-cf-text-secondary'}`}>
                 {r.changePct != null ? `${r.changePct > 0 ? '+' : ''}${r.changePct.toFixed(2)}%` : '-'}
               </td>
-              <td className={`px-3 py-2 font-mono text-xs font-bold text-right ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
-                {fmtKrw(r[field])}
-              </td>
+              {!fallback && (
+                <td className={`px-3 py-2 font-mono text-xs font-bold text-right ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {fmtKrw(r[field])}
+                </td>
+              )}
             </tr>
           ))}
           {rows.length === 0 && (
-            <tr><td colSpan={6} className="px-3 py-4 text-center text-[11px] text-cf-text-secondary">-</td></tr>
+            <tr><td colSpan={fallback ? 5 : 6} className="px-3 py-4 text-center text-[11px] text-cf-text-secondary">-</td></tr>
           )}
         </tbody>
       </table>

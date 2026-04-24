@@ -26,10 +26,10 @@ function textColor(pct: number | null): string {
 // ── Recharts Treemap content — one box per stock
 interface BoxProps {
   x?: number; y?: number; width?: number; height?: number;
-  ticker?: string; changePct?: number | null; name?: string;
+  ticker?: string; changePct?: number | null; name?: string; fullName?: string;
 }
 function StockBox(props: BoxProps) {
-  const { x = 0, y = 0, width = 0, height = 0, ticker, changePct, name } = props;
+  const { x = 0, y = 0, width = 0, height = 0, ticker, changePct, fullName } = props;
   if (width < 1 || height < 1) return null;
   const bg = pctColor(changePct ?? null);
   const tc = textColor(changePct ?? null);
@@ -37,12 +37,17 @@ function StockBox(props: BoxProps) {
     ? `${changePct > 0 ? '+' : ''}${changePct.toFixed(2)}%`
     : '-';
 
-  // Scale font size to box size
+  // Display: prefer fullName (company name) over ticker for non-US / numeric tickers
+  const isNumericTicker = ticker != null && /^\d+$/.test(ticker);
+  const displayLabel = isNumericTicker && fullName ? fullName : (ticker ?? '');
+  // Short version for large labels
+  const shortLabel = displayLabel.length > 12 ? displayLabel.slice(0, 11) + '…' : displayLabel;
+
   const tickerFont = Math.min(Math.max(width / 5.5, 9), 32);
   const pctFont = Math.min(Math.max(width / 7.5, 8), 20);
   const showText = width > 28 && height > 18;
   const showPct = width > 42 && height > 34;
-  const showName = width > 85 && height > 60;
+  const showCompany = width > 85 && height > 60 && fullName && !isNumericTicker;
 
   // SVG text-shadow via paint-order (stroke behind fill) for readability
   const textProps = { paintOrder: 'stroke' as const, stroke: bg, strokeWidth: 3, strokeLinejoin: 'round' as const };
@@ -50,10 +55,10 @@ function StockBox(props: BoxProps) {
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} fill={bg} stroke="#0f172a" strokeWidth={1.5} rx={1} />
-      {showText && ticker && (
+      {showText && (
         <text x={x + width / 2} y={y + height / 2 + (showPct ? -4 : 4)}
               textAnchor="middle" fill={tc} fontSize={tickerFont} fontWeight={700} {...textProps}>
-          {ticker}
+          {shortLabel}
         </text>
       )}
       {showPct && (
@@ -62,10 +67,10 @@ function StockBox(props: BoxProps) {
           {pctStr}
         </text>
       )}
-      {showName && name && (
+      {showCompany && (
         <text x={x + width / 2} y={y + height - 6}
               textAnchor="middle" fill={tc} fontSize={Math.min(pctFont * 0.7, 11)} opacity={0.75} {...textProps}>
-          {name.length > 20 ? name.slice(0, 18) + '…' : name}
+          {fullName!.length > 20 ? fullName!.slice(0, 18) + '…' : fullName}
         </text>
       )}
     </g>
