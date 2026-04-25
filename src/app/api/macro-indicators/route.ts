@@ -17,6 +17,12 @@ export const dynamic = 'force-dynamic';
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 
+// Module-level memory cache — without Redis, each request fires 17 parallel FRED calls.
+// 4h TTL: FRED data updates at most once daily; 4h is safe and conserves FRED rate limits.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let MACRO_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
+const MACRO_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -556,6 +562,12 @@ export async function GET() {
   const redis = createRedis();
   const key = cacheKey();
 
+  // Module-level memory cache hit (no-Redis path)
+  if (!redis && MACRO_MEMORY_CACHE && Date.now() < MACRO_MEMORY_CACHE.expiresAt) {
+    logger.info('macro-indicators', 'memory_cache_hit');
+    return NextResponse.json(MACRO_MEMORY_CACHE.data, { headers: CDN_HEADERS });
+  }
+
   if (redis) {
     try {
       const cached = await redis.get<object>(key);
@@ -918,6 +930,12 @@ export async function GET() {
       await loggedRedisSet(redis, 'api.macro-indicators', key, response, { ex: 25 * 60 * 60 });
       logger.info('macro-indicators', 'cache_saved', { indicators: indicators.length });
     } catch (e) { logger.warn('macro-indicators', 'cache_write_error', { error: e }); }
+  }
+
+  // Module-level memory cache write (no-Redis path)
+  if (!redis) {
+    MACRO_MEMORY_CACHE = { data: response, expiresAt: Date.now() + MACRO_MEMORY_TTL_MS };
+    logger.info('macro-indicators', 'memory_cache_written', { indicators: indicators.length });
   }
 
   return NextResponse.json(response, { headers: CDN_HEADERS });

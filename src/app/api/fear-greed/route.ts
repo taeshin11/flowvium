@@ -9,6 +9,11 @@ export const dynamic = 'force-dynamic';
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
+// Module-level memory cache — without Redis, every request fetches CNN + computes composite scores.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let FG_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
+const FG_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -500,6 +505,12 @@ async function buildEntry(
 export async function GET() {
   const redis = createRedis();
 
+  // Module-level memory cache hit (no-Redis path)
+  if (!redis && FG_MEMORY_CACHE && Date.now() < FG_MEMORY_CACHE.expiresAt) {
+    logger.info('fear-greed', 'memory_cache_hit');
+    return NextResponse.json(FG_MEMORY_CACHE.data, { headers: CDN_HEADERS });
+  }
+
   const [byCountry, byAsset] = await Promise.all([
     Promise.all(
       COUNTRY_ETFS.map(({ id, ticker, nativeTicker, flag, label, useCNN }) =>
@@ -520,9 +531,17 @@ export async function GET() {
     ),
   ]);
 
-  return NextResponse.json({
+  const response = {
     byCountry: byCountry.filter(Boolean),
     byAsset: byAsset.filter(Boolean),
     updatedAt: new Date().toISOString(),
-  }, { headers: CDN_HEADERS });
+  };
+
+  // Module-level memory cache write (no-Redis path)
+  if (!redis) {
+    FG_MEMORY_CACHE = { data: response, expiresAt: Date.now() + FG_MEMORY_TTL_MS };
+    logger.info('fear-greed', 'memory_cache_written', { countries: response.byCountry.length });
+  }
+
+  return NextResponse.json(response, { headers: CDN_HEADERS });
 }
