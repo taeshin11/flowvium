@@ -1007,7 +1007,13 @@
     "brDirector": "Pembelian Rutin Direktur",
     "brLargeOpenMarket": "Pembelian Pasar Terbuka Besar",
     "brOpenMarket": "Pembelian Pasar Terbuka",
-    "brInsider": "Pembelian Insider"
+    "brInsider": "Pembelian Insider",
+    "korPeriod1d": "Hari ini",
+    "korPeriod1w": "1M",
+    "korPeriod4w": "4M",
+    "korPeriod13w": "13M",
+    "korPeriodDesc": "Akumulasi pembelian bersih asing/inst. selama {days} hari perdagangan",
+    "koreaFallback": "Hanya data perubahan harga (pembelian bersih asing/inst. tidak tersedia)"
   },
   "supply": {
     "tab": {

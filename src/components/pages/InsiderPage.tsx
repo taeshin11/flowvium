@@ -556,23 +556,23 @@ export default function InsiderPage() {
                   onClick={() => { setKoreaPeriod(p); if (p !== koreaPeriod) loadKorea(p); }}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${koreaPeriod === p ? 'bg-cf-accent text-white' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
                 >
-                  {p === '1d' ? '당일' : p === '1w' ? '1주' : p === '4w' ? '4주' : '13주'}
+                  {p === '1d' ? t('korPeriod1d') : p === '1w' ? t('korPeriod1w') : p === '4w' ? t('korPeriod4w') : t('korPeriod13w')}
                 </button>
               ))}
-              {koreaLoading && <span className="text-[10px] text-cf-text-secondary animate-pulse">로딩 중...</span>}
+              {koreaLoading && <span className="text-[10px] text-cf-text-secondary animate-pulse">{t('loading')}</span>}
             </div>
             <span className="text-[11px] text-cf-text-secondary">
-              {korea.tradingDay} · {korea.totalTickers.toLocaleString()}종목
+              {korea.tradingDay} · {korea.totalTickers.toLocaleString()}{t('tickers')}
             </span>
           </div>
           {koreaPeriod !== '1d' && (
             <div className="text-[10px] text-cf-text-secondary/60 px-1">
-              {koreaPeriod === '1w' ? '최근 5 거래일' : koreaPeriod === '4w' ? '최근 20 거래일' : '최근 65 거래일'} 외인·기관 순매수 누적
+              {t('korPeriodDesc', { days: koreaPeriod === '1w' ? 5 : koreaPeriod === '4w' ? 20 : 65 })}
             </div>
           )}
           {korea.fallback && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-cf-text-secondary border border-white/10">
-              가격 변동 데이터 (외인·기관 순매수 미제공)
+              {t('koreaFallback')}
             </span>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -1007,7 +1007,13 @@
     "brDirector": "Yönetim Kurulu: Rutin Alım",
     "brLargeOpenMarket": "Büyük Açık Piyasa Alımı",
     "brOpenMarket": "Açık Piyasa Alımı",
-    "brInsider": "İçeriden Alım"
+    "brInsider": "İçeriden Alım",
+    "korPeriod1d": "Bugün",
+    "korPeriod1w": "1H",
+    "korPeriod4w": "4H",
+    "korPeriod13w": "13H",
+    "korPeriodDesc": "{days} işlem günü boyunca yabancı/kur. birikimli net alım",
+    "koreaFallback": "Yalnızca fiyat değişim verisi (yabancı/kur. net alım mevcut değil)"
   },
   "supply": {
     "tab": {

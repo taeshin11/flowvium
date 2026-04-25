@@ -1007,7 +1007,13 @@
     "brDirector": "Direktor: Routine-Kauf",
     "brLargeOpenMarket": "Großer Börsenkauf",
     "brOpenMarket": "Börsenkauf",
-    "brInsider": "Insider-Kauf"
+    "brInsider": "Insider-Kauf",
+    "korPeriod1d": "Heute",
+    "korPeriod1w": "1W",
+    "korPeriod4w": "4W",
+    "korPeriod13w": "13W",
+    "korPeriodDesc": "Kumulierter Nettokauf Ausland/Inst. über {days} Handelstage",
+    "koreaFallback": "Nur Kursveränderungsdaten (Ausland/Inst.-Nettokauf nicht verfügbar)"
   },
   "supply": {
     "tab": {

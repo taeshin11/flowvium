@@ -1007,7 +1007,13 @@
     "brDirector": "取締役通常買い",
     "brLargeOpenMarket": "大規模公開市場購入",
     "brOpenMarket": "公開市場購入",
-    "brInsider": "インサイダー購入"
+    "brInsider": "インサイダー購入",
+    "korPeriod1d": "当日",
+    "korPeriod1w": "1週",
+    "korPeriod4w": "4週",
+    "korPeriod13w": "13週",
+    "korPeriodDesc": "{days}営業日の外国人・機関投資家純買い累計",
+    "koreaFallback": "株価変動データのみ（外国人・機関純買い未提供）"
   },
   "supply": {
     "tab": {

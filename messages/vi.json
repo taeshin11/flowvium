@@ -1007,7 +1007,13 @@
     "brDirector": "Giám Đốc Mua Thường Xuyên",
     "brLargeOpenMarket": "Mua Lớn Trên Sàn",
     "brOpenMarket": "Mua Trên Sàn",
-    "brInsider": "Mua Nội Bộ"
+    "brInsider": "Mua Nội Bộ",
+    "korPeriod1d": "Hôm nay",
+    "korPeriod1w": "1T",
+    "korPeriod4w": "4T",
+    "korPeriod13w": "13T",
+    "korPeriodDesc": "Mua ròng tích lũy nước ngoài/tổ chức trong {days} ngày giao dịch",
+    "koreaFallback": "Chỉ dữ liệu biến động giá (mua ròng nước ngoài/tổ chức không có sẵn)"
   },
   "supply": {
     "tab": {

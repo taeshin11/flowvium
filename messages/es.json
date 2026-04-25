@@ -1007,7 +1007,13 @@
     "brDirector": "Compra Rutinaria Directivo",
     "brLargeOpenMarket": "Gran Compra en Mercado Abierto",
     "brOpenMarket": "Compra en Mercado Abierto",
-    "brInsider": "Compra Insider"
+    "brInsider": "Compra Insider",
+    "korPeriod1d": "Hoy",
+    "korPeriod1w": "1S",
+    "korPeriod4w": "4S",
+    "korPeriod13w": "13S",
+    "korPeriodDesc": "Compra neta acumulada extranjera/inst. en {days} días hábiles",
+    "koreaFallback": "Solo variación de precio (compra neta extranjera/inst. no disponible)"
   },
   "supply": {
     "tab": {

@@ -1007,7 +1007,13 @@
     "brDirector": "Director Routine Buy",
     "brLargeOpenMarket": "Large Open Market Purchase",
     "brOpenMarket": "Open Market Purchase",
-    "brInsider": "Insider Purchase"
+    "brInsider": "Insider Purchase",
+    "korPeriod1d": "Today",
+    "korPeriod1w": "1W",
+    "korPeriod4w": "4W",
+    "korPeriod13w": "13W",
+    "korPeriodDesc": "Cumulative foreign/inst net buy over {days} trading days",
+    "koreaFallback": "Price change data only (foreign/inst net buy unavailable)"
   },
   "supply": {
     "tab": {

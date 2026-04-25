@@ -1007,7 +1007,13 @@
     "brDirector": "董事例行买入",
     "brLargeOpenMarket": "大额公开市场购买",
     "brOpenMarket": "公开市场购买",
-    "brInsider": "内部人购买"
+    "brInsider": "内部人购买",
+    "korPeriod1d": "当日",
+    "korPeriod1w": "1周",
+    "korPeriod4w": "4周",
+    "korPeriod13w": "13周",
+    "korPeriodDesc": "{days}个交易日外资·机构净买入累计",
+    "koreaFallback": "仅价格变动数据（外资·机构净买入不可用）"
   },
   "supply": {
     "tab": {

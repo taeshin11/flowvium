@@ -1007,7 +1007,13 @@
     "brDirector": "شراء روتيني من مدير",
     "brLargeOpenMarket": "شراء ضخم في السوق المفتوح",
     "brOpenMarket": "شراء في السوق المفتوح",
-    "brInsider": "شراء من الداخل"
+    "brInsider": "شراء من الداخل",
+    "korPeriod1d": "اليوم",
+    "korPeriod1w": "1أ",
+    "korPeriod4w": "4أ",
+    "korPeriod13w": "13أ",
+    "korPeriodDesc": "صافي شراء أجنبي/مؤسسي متراكم خلال {days} يوم تداول",
+    "koreaFallback": "بيانات تغير السعر فقط (صافي الشراء الأجنبي/المؤسسي غير متاح)"
   },
   "supply": {
     "tab": {

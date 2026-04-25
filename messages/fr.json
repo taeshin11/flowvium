@@ -1007,7 +1007,13 @@
     "brDirector": "Achat Routinier Administrateur",
     "brLargeOpenMarket": "Gros Achat Marché Ouvert",
     "brOpenMarket": "Achat Marché Ouvert",
-    "brInsider": "Achat Initié"
+    "brInsider": "Achat Initié",
+    "korPeriod1d": "Auj.",
+    "korPeriod1w": "1S",
+    "korPeriod4w": "4S",
+    "korPeriod13w": "13S",
+    "korPeriodDesc": "Achat net cumulé étranger/inst. sur {days} jours ouvrables",
+    "koreaFallback": "Données de variation de prix uniquement (achat net étranger/inst. indisponible)"
   },
   "supply": {
     "tab": {

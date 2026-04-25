@@ -1007,7 +1007,13 @@
     "brDirector": "निदेशक नियमित खरीद",
     "brLargeOpenMarket": "बड़ी खुले बाजार की खरीद",
     "brOpenMarket": "खुले बाजार में खरीद",
-    "brInsider": "इनसाइडर खरीद"
+    "brInsider": "इनसाइडर खरीद",
+    "korPeriod1d": "आज",
+    "korPeriod1w": "1W",
+    "korPeriod4w": "4W",
+    "korPeriod13w": "13W",
+    "korPeriodDesc": "{days} कारोबारी दिनों में विदेशी/संस्थागत शुद्ध खरीद संचय",
+    "koreaFallback": "केवल मूल्य परिवर्तन डेटा (विदेशी/संस्थागत शुद्ध खरीद अनुपलब्ध)"
   },
   "supply": {
     "tab": {

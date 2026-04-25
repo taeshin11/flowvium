@@ -1007,7 +1007,13 @@
     "brDirector": "Compra Rotina Diretor",
     "brLargeOpenMarket": "Grande Compra no Mercado",
     "brOpenMarket": "Compra no Mercado Aberto",
-    "brInsider": "Compra Insider"
+    "brInsider": "Compra Insider",
+    "korPeriod1d": "Hoje",
+    "korPeriod1w": "1S",
+    "korPeriod4w": "4S",
+    "korPeriod13w": "13S",
+    "korPeriodDesc": "Compra líquida acumulada estrang./inst. em {days} dias úteis",
+    "koreaFallback": "Apenas variação de preço (compra líquida estrang./inst. indisponível)"
   },
   "supply": {
     "tab": {

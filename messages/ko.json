@@ -1007,7 +1007,13 @@
     "brDirector": "이사 루틴 매입",
     "brLargeOpenMarket": "대규모 장내 매수",
     "brOpenMarket": "장내 매수",
-    "brInsider": "내부자 매입"
+    "brInsider": "내부자 매입",
+    "korPeriod1d": "당일",
+    "korPeriod1w": "1주",
+    "korPeriod4w": "4주",
+    "korPeriod13w": "13주",
+    "korPeriodDesc": "{days}거래일 외인·기관 순매수 누적",
+    "koreaFallback": "가격 변동 데이터 (외인·기관 순매수 미제공)"
   },
   "supply": {
     "tab": {

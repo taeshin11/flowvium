@@ -1007,7 +1007,13 @@
     "brDirector": "董事例行買入",
     "brLargeOpenMarket": "大額公開市場購買",
     "brOpenMarket": "公開市場購買",
-    "brInsider": "內部人購買"
+    "brInsider": "內部人購買",
+    "korPeriod1d": "當日",
+    "korPeriod1w": "1週",
+    "korPeriod4w": "4週",
+    "korPeriod13w": "13週",
+    "korPeriodDesc": "{days}個交易日外資·法人淨買入累計",
+    "koreaFallback": "僅提供價格變動數據（外資·法人淨買入不可用）"
   },
   "supply": {
     "tab": {
