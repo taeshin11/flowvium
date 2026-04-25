@@ -472,9 +472,9 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   fomc: {
     id: 'fomc', name: 'FOMC Rate Decision', nameKo: 'FOMC 금리 결정',
     category: 'monetary', actual: 3.75, forecast: 3.625, previous: 3.875, unit: '%',
-    releaseDate: '2026-03-19', nextRelease: '2026-05-07', surprise: 'inline',
+    releaseDate: '2026-03-19', nextRelease: '2026-04-30', surprise: 'inline',
     rateImpact: 'neutral', rateImpactKo: 'neutral (data-dependent hold)',
-    summary: 'Mar FOMC hold. Current rate 3.5-3.75% (mid 3.625%). Next meeting 2026-05-07.',
+    summary: 'Mar FOMC hold. Current rate 3.5-3.75% (mid 3.625%). Next meeting 2026-04-30.',
   },
   gdp: {
     id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',

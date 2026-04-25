@@ -234,7 +234,7 @@ Key rules:
     {"sector": "Technology", "pct": 30, "stance": "overweight", "reason": "AI demand sustained + sector P/E 35x fair"}
   ],
   "riskEvents": [
-    {"date": "2026-05-07", "event": "FOMC Rate Decision", "impact": "high", "watchFor": "Hold confirmed → growth re-rating"}
+    {"date": "2026-04-30", "event": "FOMC Rate Decision + PCE", "impact": "high", "watchFor": "25bp cut ~52% probability, Powell guidance on future path"}
   ],
   "macroAnalysis": "Specific analysis based on yield curve spread, CPI, FOMC probabilities",
   "technicalAnalysis": "Analysis based on major index MA, RSI, VIX levels",
