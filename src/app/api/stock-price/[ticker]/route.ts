@@ -11,6 +11,28 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revali
 
 export const dynamic = 'force-dynamic';
 
+// Finnhub quote fallback — free tier 60 req/min, confirmed configured in Vercel
+async function fetchPriceFinnhub(sym: string): Promise<{ price: number; change: number | null; changePct: number | null; dayHigh: number | null; dayLow: number | null; prevClose: number | null } | null> {
+  const key = process.env.FINNHUB_KEY?.trim();
+  if (!key) return null;
+  const res = await fetch(
+    `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(key)}`,
+    { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
+  );
+  if (!res.ok) return null;
+  const d = await res.json() as { c?: number; d?: number; dp?: number; h?: number; l?: number; pc?: number; t?: number };
+  const price = d.c;
+  if (typeof price !== 'number' || price <= 0) return null;
+  return {
+    price: parseFloat(price.toFixed(2)),
+    change: typeof d.d === 'number' ? parseFloat(d.d.toFixed(2)) : null,
+    changePct: typeof d.dp === 'number' ? parseFloat(d.dp.toFixed(2)) : null,
+    dayHigh: typeof d.h === 'number' && d.h > 0 ? parseFloat(d.h.toFixed(2)) : null,
+    dayLow: typeof d.l === 'number' && d.l > 0 ? parseFloat(d.l.toFixed(2)) : null,
+    prevClose: typeof d.pc === 'number' && d.pc > 0 ? parseFloat(d.pc.toFixed(2)) : null,
+  };
+}
+
 // Twelve Data quote fallback — free tier 800 req/day, different IP path from Yahoo
 async function fetchPriceTwelve(sym: string): Promise<{ price: number; change: number | null; changePct: number | null; volume: number | null } | null> {
   const apiKey = process.env.TWELVE_DATA_KEY?.trim();
@@ -118,6 +140,24 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
         }
       } catch { /* non-fatal */ }
     }
+    // Finnhub fallback — confirmed configured in Vercel, 60 req/min free tier
+    try {
+      const fh = await fetchPriceFinnhub(sym);
+      if (fh) {
+        logger.info('stock-price', 'finnhub_fallback', { sym, price: fh.price });
+        const result = {
+          ticker: sym, price: fh.price, prevClose: fh.prevClose, change: fh.change, changePct: fh.changePct,
+          volume: null, dayHigh: fh.dayHigh, dayLow: fh.dayLow, week52High: null, week52Low: null,
+          currency: 'USD', marketState: null, updatedAt: new Date().toISOString(), cached: false, source: 'finnhub',
+        };
+        mem.set(sym, result);
+        if (redis) {
+          await loggedRedisSet(redis, 'stock-price', `flowvium:stock-price:v1:${sym}`, result, { ex: REDIS_TTL });
+          await loggedRedisSet(redis, 'stock-price', staleKey(sym), result, {});
+        }
+        return NextResponse.json(result, { headers: CDN_HEADERS });
+      }
+    } catch (fhe) { logger.warn('stock-price', 'finnhub_failed', { sym, error: String(fhe) }); }
     // Twelve Data fallback — different infrastructure, not Yahoo-blocked
     try {
       const td = await fetchPriceTwelve(sym);
