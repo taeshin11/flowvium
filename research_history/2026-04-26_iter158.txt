@@ -1,0 +1,48 @@
+== iter158 — 2026-04-26 ==
+
+PRIMARY OUTCOME: HomePage 가격 7→1 요청 최적화
+
+DRIFT CHECK:
+- iter155-157: latest-updates/update-all/admin-health/verify-metrics (3 연속 같은 파일 영역)
+- iter158: homepage 성능 최적화 (새 도메인) ← DRIFT 시그널에 응답
+
+ROOT CAUSE / GAP FOUND:
+
+HomePage.tsx의 fetchPills() 함수가 매 60초마다 7개의 개별 /api/stock-price/{ticker}
+요청을 Promise.allSettled로 발사하고 있었음.
+
+반면 /api/batch-prices 라우트가 이미 존재:
+- Yahoo Finance v7 batch 엔드포인트로 모든 티커를 1개의 HTTP 요청으로 처리
+- 5분 모듈 레벨 캐시 보유
+- 최대 120개 티커 지원
+
+currency 필드: SnapPill 인터페이스에 있으나 렌더링 JSX에서 실제로 사용되지 않음
+→ 'USD' 기본값으로 대체 safe
+
+FIX:
+
+HomePage.tsx fetchPills():
+- Before: 7개의 fetch('/api/stock-price/TICKER') + 1개 fear-greed = 8 requests/min
+- After:  1개의 fetch('/api/batch-prices?tickers=...') + 1개 fear-greed = 2 requests/min
+
+응답 처리:
+- val.ticker === '__batch__' 로 배치 응답 식별
+- val.prices Record에서 allTickers 순회하여 map에 추가
+
+IMPACT:
+- 클라이언트→서버 요청: 7 → 1 (85.7% 감소, per price tick)
+- 서버→Yahoo Finance: 7 → 1 on cache miss (Yahoo v7 batch)
+- Lambda 호출 횟수: 7 → 1 per minute (비용 절감)
+
+ACCURACY PROBE:
+[accuracy probe] metric=cpi source=FRED our_value=3.29 → consistent with iter155 delta=0 → OK
+[accuracy probe] metric=gdp source=FRED our_value=0.5 → consistent with iter155 delta=0 → OK
+[accuracy probe] metric=fomc source=FRED our_value=3.625 → consistent with iter155 delta=0 → OK
+FRED CPIAUCSL raw index: 330.293 (2026-03-01) → data is current
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/components/pages/HomePage.tsx (fetchPills 7→1 batch 최적화)
+
+COMMIT: 0443afb
