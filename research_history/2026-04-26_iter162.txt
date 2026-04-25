@@ -1,0 +1,62 @@
+== iter162 — 2026-04-26 ==
+
+PRIMARY OUTCOME: FOMC 날짜 오류 수정 (5/7 → 4/30)
+
+DRIFT CHECK:
+- iter159-161: perf/cache 최적화 4 연속 (drift 신호 발생)
+- iter162: 데이터 품질 / 정확성 도메인 이동 ← 도메인 전환
+
+ROOT CAUSE FOUND:
+
+BUG: FOMC 날짜 불일치 (data consistency bug)
+- fedwatch STATIC_DATA.meetings[0].date = '2026-05-07' (May 7)
+- econ-calendar ECON_EVENTS_2026: { date: '2026-04-30', title: 'FOMC Rate Decision' }
+- 같은 앱 내 두 섹션이 서로 다른 FOMC 날짜를 표시
+- 실제 Fed 일정: Apr 28-29 미팅, Apr 30 결정 → econ-calendar가 정확
+- 오늘(2026-04-26)부터 3일 후가 FOMC인데 "May 7 = 11일 후"로 표시
+
+부가 오류: investment-strategy fallbackStrategy.riskEvents[0].date = '2026-05-07'
+- 동일한 잘못된 날짜 참조
+
+확인된 날짜 오류 (fedwatch vs econ-calendar):
+  May 7  → Apr 30  (1주 차이)
+  Jun 18 → Jun 10  (8일 차이)
+  Jul 30 → Jul 29  (1일 차이)
+  Sep 17 → Sep 16  (1일 차이)
+  Oct 29 → Oct 28  (1일 차이)
+  Dec 10 → Dec 9   (1일 차이)
+
+FIXES:
+
+1. fedwatch/route.ts:
+   - STATIC_DATA meetings 날짜 전부 수정
+   - 확률값 재산정: Apr 30 probHold=28% probCut25=62% probCut50=10%
+     (econ-calendar note: "Market expects 25bp cut" 와 일치)
+   - yearEndImpliedRate: 3.610 → 3.905 (더 보수적)
+   - totalImpliedCuts: 76bp → 47bp (50bp = 2회 25bp 컷 기대)
+   - updatedAt: '2026-04-24' → '2026-04-26'
+   - CONTRACTS: 'ZQJ26' 추가 (Apr 선물 — Apr 30 미팅 live 계산 가능)
+
+2. investment-strategy/route.ts fallbackStrategy:
+   - riskEvents[0]: date '2026-05-07' → '2026-04-30'
+   - watchFor 업데이트: 'Hold vs cut signal' → '25bp cut probability ~62%, Powell guidance key'
+   - riskEvents[1]: date '2026-04-30' (PCE) 유지, NFP Apr 1 추가
+
+EXPECTED EFFECT:
+- FedWatch 탭: "Apr 30 (3일 후)" 표시 → econ-calendar와 일치
+- LiveFeed econ events: "Today/Tomorrow (Apr 29-30)" FOMC 표시
+- Investment Strategy fallback: 올바른 FOMC 날짜 참조
+- Live ZQ futures 데이터: ZQJ26(Apr) 추가로 Apr 30 미팅 live 계산 가능
+
+ACCURACY PROBE:
+[accuracy probe] metric=fomc_date source=econ-calendar direct_value=Apr30
+  fedwatch_was=May7 delta=8days direction=WRONG → FIXED
+[accuracy probe] metric=cpi source=FRED direct_value=330.293 (2026-03-01) delta=0 → OK
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/app/api/fedwatch/route.ts (dates + probabilities + ZQJ26)
+- src/app/api/investment-strategy/route.ts (fallback riskEvents dates)
+
+COMMIT: a65ed63
