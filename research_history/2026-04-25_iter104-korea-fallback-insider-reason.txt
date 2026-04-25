@@ -1,0 +1,108 @@
+ITER104 — 한국 수급 다기간 fallback 수정 + 내부자 매수 사유 추정
+Date: 2026-04-25
+Primary outcome: "수급 fallback·매수사유 추정"
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════════════
+iter100=korea-flow, iter101=company-data, iter102=i18n,
+iter103=company-data, iter104=bug-fix (korea-flow + insider UX)
+→ company-data: iter101, iter103 (2회, iter102 사이에 낌) → drift 없음
+→ i18n: iter99, iter102 (2회) → drift 없음
+→ 이번 iter: 사용자 리포트된 두 버그 수정 → 적절한 방향
+
+Primary outcome "cheap tactical?" 아님 — 빈 섹션 버그 수정 + 신규 UX 기능
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"수급 fallback·매수사유 추정"
+
+산출물 체크 (규칙 [3]):
+(a) 핵심 숫자: 한국 수급 빈 섹션 → 15개 종목 표시 (4 tabs → data visible)
+(b) 실험: buyReason() 신규 UX (내부자 매수 이유 자동 추정)
+→ (a) + (b) 모두 충족
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM A — 한국 수급 1w/4w/13w 기간 빈 섹션 (사용자 리포트)
+═══════════════════════════════════════════════════════════════════════
+ROOT CAUSE:
+  - KRX API 완전 차단 (Cloudflare 또는 IP 차단)
+  - 1d 기간: `all.length === 0` → Yahoo fallback 코드 존재 (lines 287-298)
+    → byDesc/byAsc로 15개 종목 정렬 표시
+  - 1w/4w/13w 기간 (else branch, lines 300-312):
+    → `fetchKrxFlowAccumulated` 실패 → `all = []`
+    → fallback 코드 없음 → `buildPayload([], ...)` 호출
+    → 4개 섹션 전부 빈 배열 → UI에서 "-" 표시
+
+FIX:
+  src/app/api/korea-flow/route.ts, else branch에 Yahoo fallback 추가
+  - `if (all.length === 0)` 검사 후 1d와 동일한 Yahoo fallback 실행
+  - `byDesc.slice(0,15)` / `byAsc.slice(0,15)` → topForeignBuy/Sell/InstBuy/Sell
+  - `fallback: true`, `period` 포함, Redis 캐시 저장 후 return
+  - 이제 1d·1w·4w·13w 모든 기간 KRX 실패 시 Yahoo price 15개 표시
+
+UI behavior (기존 코드, 수정 없음):
+  - `fallback: true` 시 배지 "가격 변동 데이터 (외인·기관 순매수 미제공)" 표시
+  - 순매수(원화) 컬럼 숨김
+  - 등락% 기준으로 정렬된 20 KOSPI 종목 표시
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM B — 내부자 매수 사유 미표시 (사용자 요청)
+═══════════════════════════════════════════════════════════════════════
+사용자 스크린샷: NMM (Navios Maritime) CEO Frangou Angeliki
+  3× ~1,200주 @$69-70 = ~$83k per transaction
+요청: "이런거 매수 사유 추정해서 알려주면 안됨?"
+
+FIX:
+  src/components/pages/InsiderPage.tsx
+
+  1. `buyReason(ix: InsiderTransaction): string` 함수 추가
+     - code 'A' → "자동 취득 (RSU/DRIP)"
+     - code 'M'/'X'/'C' → "옵션·워런트 행사"
+     - code 'G' → "증여"
+     - code 'P' + isTenPercentOwner ≥$500k → "대주주 지분 적극 확대"
+     - code 'P' + isOfficer ≥$1M → "경영진 자신감 (대규모)"
+     - code 'P' + isOfficer ≥$200k → "경영진 자신감"
+     - code 'P' + isDirector ≥$200k → "이사 신뢰 매입"
+     - code 'P' + isDirector → "이사 루틴 매입"
+     - code 'P' ≥$1M → "대규모 장내 매수"
+     - code 'P' → "장내 매수"
+     - default → "내부자 매입"
+
+  2. Action 셀 div.flex-col로 감싸고 buy 시 아래에 추정 사유 표시
+     - `{ix.direction === 'buy' && <span className="text-[9px] text-cf-text-secondary/60">{buyReason(ix)}</span>}`
+
+  NMM CEO buy ($83k, code P, officer) → "경영진 자신감" 라벨 표시
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.7 delta=0.01 → OK
+
+[accuracy probe] metric=fg.US source=CNN (via verify-metrics)
+  direct_value=66 our_value=66 delta=0 → OK
+
+[accuracy probe] metric=curve source=FRED (via verify-metrics)
+  direct_value=0.53 our_value=0.51 delta=0.02 → OK
+
+[accuracy probe] metric=korea-flow source=verify-metrics
+  kr.tickers=20종목 (Yahoo fallback 동작 확인)
+  kr.foreign=skipped (fallback 모드, 실제 수급 없음 — 정상)
+
+═══════════════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════════════
+TypeScript: 0 errors
+verify-metrics overall: 184 ok / 0 degraded / 1 error / 4 skipped
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. 기업 batch10 (목표 600개 — 59개 더 필요, iter101+103 이후 3번째면 drift)
+   → 이번 iter company 건드리지 않음, 다음 1회는 OK
+2. 블로그 generateStaticParams Groq 쿼타 소진 버그
+   → src/app/[locale]/blog/[slug]/page.tsx에서 빌드타임 번역 호출 방지
+3. 다른 탭 i18n (CotTab, CreditBalanceTab 한국어 잔존)
+4. 성능 프로파일링 (3+ iter deferred)

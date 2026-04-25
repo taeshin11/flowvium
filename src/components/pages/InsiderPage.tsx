@@ -69,6 +69,29 @@ function insiderRoleLabel(t: InsiderTransaction): string {
   return 'Insider';
 }
 
+function buyReason(ix: InsiderTransaction): string {
+  const val = ix.transactionValueUsd ?? 0;
+  const code = ix.transactionCode;
+  // Automatic acquisitions — RSU vest, DRIP, stock compensation plans
+  if (code === 'A') return '자동 취득 (RSU/DRIP)';
+  // Option/warrant/conversion exercises
+  if (code === 'M' || code === 'X' || code === 'C') return '옵션·워런트 행사';
+  // Gift — not a market signal
+  if (code === 'G') return '증여';
+  // Open-market purchase — primary buy signal; reason depends on role + size
+  if (code === 'P') {
+    if (ix.isTenPercentOwner && val >= 500_000) return '대주주 지분 적극 확대';
+    if (ix.isTenPercentOwner) return '대주주 지분 확대';
+    if (ix.isOfficer && val >= 1_000_000) return '경영진 자신감 (대규모)';
+    if (ix.isOfficer && val >= 200_000) return '경영진 자신감';
+    if (ix.isDirector && val >= 200_000) return '이사 신뢰 매입';
+    if (ix.isDirector) return '이사 루틴 매입';
+    if (val >= 1_000_000) return '대규모 장내 매수';
+    return '장내 매수';
+  }
+  return '내부자 매입';
+}
+
 export default function InsiderPage() {
   const t = useTranslations('insider');
   const [tab, setTab] = useState<Tab>('insider');
@@ -308,17 +331,22 @@ export default function InsiderPage() {
                   <td className="px-3 py-2.5 text-[11px] text-cf-text-primary max-w-[160px] truncate">{ix.insiderName}</td>
                   <td className="px-3 py-2.5 text-[10px] text-cf-text-secondary">{insiderRoleLabel(ix)}</td>
                   <td className="px-3 py-2.5">
-                    {ix.direction === 'buy' ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
-                        <TrendingUp className="w-3 h-3" /> {t('buy')}
-                      </span>
-                    ) : ix.direction === 'sell' ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">
-                        <TrendingDown className="w-3 h-3" /> {t('sell')}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-cf-text-secondary/50">{ix.transactionCode}</span>
-                    )}
+                    <div className="flex flex-col gap-0.5">
+                      {ix.direction === 'buy' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                          <TrendingUp className="w-3 h-3" /> {t('buy')}
+                        </span>
+                      ) : ix.direction === 'sell' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">
+                          <TrendingDown className="w-3 h-3" /> {t('sell')}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-cf-text-secondary/50">{ix.transactionCode}</span>
+                      )}
+                      {ix.direction === 'buy' && (
+                        <span className="text-[9px] text-cf-text-secondary/60 leading-tight">{buyReason(ix)}</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2.5 font-mono text-xs text-right">{ix.shares?.toLocaleString() ?? '-'}</td>
                   <td className="px-3 py-2.5 font-mono text-xs text-right">{ix.pricePerShare != null ? `$${ix.pricePerShare.toFixed(2)}` : '-'}</td>

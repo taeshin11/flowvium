@@ -307,6 +307,23 @@ export async function GET(req: Request) {
     all = [...kospi.entries, ...kosdaq.entries];
     trdDd = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
     logger.info('api.korea-flow', 'accumulated', { period, days: tradingDays.length, tickers: all.length });
+
+    if (all.length === 0) {
+      const yahooEntries = await fetchYahooKoreaFallback();
+      logger.warn('api.korea-flow', 'krx_empty_yahoo_fallback', { period });
+      const byDesc = [...yahooEntries].sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0));
+      const byAsc  = [...yahooEntries].sort((a, b) => (a.changePct ?? 0) - (b.changePct ?? 0));
+      const fp = {
+        updatedAt: new Date().toISOString(),
+        tradingDay: `${trdDd.slice(0, 4)}-${trdDd.slice(4, 6)}-${trdDd.slice(6, 8)}`,
+        topForeignBuy: byDesc.slice(0, 15), topForeignSell: byAsc.slice(0, 15),
+        topInstBuy: byDesc.slice(0, 15), topInstSell: byAsc.slice(0, 15),
+        totalTickers: yahooEntries.length, fallback: true, period,
+        fallbackReason: 'KRX API unavailable — Yahoo Finance price data only',
+      };
+      await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
+      return NextResponse.json({ ...fp, cached: false }, { headers: cdnHeaders });
+    }
   }
 
   const payload = buildPayload(all, trdDd, { period });
