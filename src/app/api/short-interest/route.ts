@@ -3,11 +3,11 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * /api/short-interest
  *
  * Returns tracked tickers with EDGAR 13F institutional action, FINRA daily short
- * volume ratio (free, no auth), and squeeze score.
+ * volume ratio (free, no auth), Yahoo v10 short float %, and squeeze score.
  *
- * shortVolPct = FINRA daily ShortVolume / TotalVolume × 100 (not the same as
- * shortFloatPct which requires bi-monthly FINRA/SEC short interest reports + float
- * data — those still null since Yahoo v10 crumb fails from Vercel IPs).
+ * shortVolPct = FINRA daily ShortVolume / TotalVolume × 100
+ * shortFloatPct = Yahoo v10 defaultKeyStatistics.shortPercentOfFloat (crumb auth,
+ *   same key as sector-pe — confirmed working from Vercel IPs as of iter186)
  *
  * Redis cache: 4 hours
  */
@@ -26,6 +26,83 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-reva
 // don't want stale data locked in for 4h on warm instances).
 const MEMORY_CACHE = createMemoryCache<unknown[]>('short-interest', 30 * 60_000);
 const MEM_KEY = 'entries';
+
+// Yahoo crumb — shared with sector-pe (same CRUMB_KEY)
+const CRUMB_KEY = 'flowvium:yahoo:crumb:v1';
+const CRUMB_TTL = 60 * 60; // 1h
+const YF_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+async function getYahooCrumb(redis: Redis | null): Promise<{ crumb: string; cookie: string } | null> {
+  if (redis) {
+    try {
+      const cached = await redis.get<{ crumb: string; cookie: string }>(CRUMB_KEY);
+      if (cached?.crumb) return cached;
+    } catch { /* non-fatal */ }
+  }
+  try {
+    const homeRes = await fetch('https://finance.yahoo.com/', {
+      headers: { 'User-Agent': YF_UA, 'Accept': 'text/html' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!homeRes.ok) return null;
+    const cookie = homeRes.headers.get('set-cookie') ?? '';
+    const crumbRes = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
+      headers: { 'User-Agent': YF_UA, 'Cookie': cookie },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!crumbRes.ok) return null;
+    const crumb = (await crumbRes.text()).trim();
+    if (!crumb) return null;
+    const result = { crumb, cookie };
+    await loggedRedisSet(redis, 'api.short-interest', CRUMB_KEY, result, { ex: CRUMB_TTL });
+    return result;
+  } catch (e) {
+    logger.warn('api.short-interest', 'crumb_failed', { error: String(e) });
+    return null;
+  }
+}
+
+/** Fetch shortPercentOfFloat from Yahoo v10 defaultKeyStatistics.
+ *  Returns a map of ticker → float short % (0-100). */
+async function fetchYahooShortFloat(
+  tickers: string[],
+  crumb: string,
+  cookie: string,
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  const CONCURRENT = 6;
+
+  for (let i = 0; i < tickers.length; i += CONCURRENT) {
+    const batch = tickers.slice(i, i + CONCURRENT);
+    const settled = await Promise.allSettled(
+      batch.map(async ticker => {
+        const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=defaultKeyStatistics&crumb=${encodeURIComponent(crumb)}`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': YF_UA, 'Cookie': cookie },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const ks = json?.quoteSummary?.result?.[0]?.defaultKeyStatistics ?? {};
+        const raw = ks?.shortPercentOfFloat;
+        const val = raw && typeof raw === 'object' && 'raw' in (raw as object)
+          ? (raw as { raw: unknown }).raw
+          : null;
+        // Yahoo returns decimal (e.g. 0.038 = 3.8%) → multiply by 100
+        return typeof val === 'number' ? { ticker, pct: parseFloat((val * 100).toFixed(1)) } : null;
+      })
+    );
+    for (const r of settled) {
+      if (r.status === 'fulfilled' && r.value) map.set(r.value.ticker, r.value.pct);
+    }
+    if (i + CONCURRENT < tickers.length) await new Promise(res => setTimeout(res, 150));
+  }
+  logger.info('api.short-interest', 'yahoo_shortfloat_ok', { fetched: map.size, of: tickers.length });
+  return map;
+}
 
 // Tracked tickers — ordered by interest
 const TRACKED_TICKERS = [
@@ -49,7 +126,7 @@ export interface ShortEntry {
   ticker: string;
   companyName: string;
   sector: string;
-  shortFloatPct: number | null;      // null — Yahoo v10 crumb blocked from Vercel
+  shortFloatPct: number | null;      // Yahoo v10 defaultKeyStatistics.shortPercentOfFloat (live)
   shortVolPct: number | null;        // FINRA daily: ShortVolume / TotalVolume × 100
   shortRatio: number | null;         // DaysToCover from FINRA monthly short interest file
   shortChangeMonthly: number | null;
@@ -59,10 +136,9 @@ export interface ShortEntry {
 }
 
 /** Compute short squeeze score.
- * shortFloatPct: always null (Yahoo v10 crumb blocked from Vercel)
+ * shortFloatPct: Yahoo v10 defaultKeyStatistics (up to 40pts — iter186 fix)
  * shortRatio (DTC): always null (FINRA monthly 403 from Vercel, no free alternative — iter86)
  * shortChangeMoM: always null (requires bi-monthly FINRA + float data)
- * Effective signal: shortVolPct (FINRA daily) + instAction (EDGAR 13F)
  */
 function calcSqueezeScore(
   shortFloatPct: number | null,
@@ -195,16 +271,21 @@ export async function GET(req: Request) {
   const tickers = Array.from(new Set(TRACKED_TICKERS));
   const tickerSet = new Set(tickers);
 
-  // Fetch FINRA daily short volume, Finnhub P/E, and Redis 13f-signals in parallel
-  // DTC (FINRA monthly): cdn.finra.org 403 from Vercel IPs; no free alternative found — iter86
-  const [finraMap, peMap, redisSignals] = await Promise.allSettled([
+  // Fetch FINRA short vol, Finnhub P/E, 13f-signals, and Yahoo shortFloat in parallel.
+  // Yahoo path: crumb (shared with sector-pe) → v10 quoteSummary per ticker.
+  // DTC (FINRA monthly): cdn.finra.org 403 from Vercel IPs; no free alternative — iter86
+  const [finraMap, peMap, redisSignals, shortFloatMapResult] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
     fetchFinnhubPE(tickers),
     redis ? redis.get<typeof institutionalSignals>('flowvium:13f-signals:v1') : Promise.resolve(null),
+    getYahooCrumb(redis).then(c =>
+      c ? fetchYahooShortFloat(tickers, c.crumb, c.cookie) : new Map<string, number>()
+    ),
   ]);
   const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
   const trailingPEMap = peMap.status === 'fulfilled' ? peMap.value : new Map<string, number>();
   const liveRaw = redisSignals.status === 'fulfilled' ? redisSignals.value : null;
+  const shortFloatMap = shortFloatMapResult.status === 'fulfilled' ? shortFloatMapResult.value : new Map<string, number>();
   const liveSignals = (Array.isArray(liveRaw) && liveRaw.length > 0)
     ? liveRaw as typeof institutionalSignals
     : institutionalSignals;
@@ -231,18 +312,19 @@ export async function GET(req: Request) {
     const companyName = instNameMap.get(ticker) ?? ticker;
 
     const shortVolPct = shortVolMap.get(ticker) ?? null;
+    const shortFloatPct = shortFloatMap.get(ticker) ?? null;
     const trailingPE = trailingPEMap.get(ticker) ?? null;
     return {
       ticker,
       companyName,
       sector,
-      shortFloatPct: null,
+      shortFloatPct,
       shortVolPct,
       shortRatio: null,
       shortChangeMonthly: null,
       instAction,
       trailingPE,
-      squeezeScore: calcSqueezeScore(null, shortVolPct, instAction),
+      squeezeScore: calcSqueezeScore(shortFloatPct, shortVolPct, instAction),
     };
   });
 

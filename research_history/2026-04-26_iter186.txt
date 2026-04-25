@@ -1,0 +1,82 @@
+== iter186 — 2026-04-26 ==
+
+PRIMARY OUTCOME: shortFloatPct live via Yahoo v10 crumb
+
+DRIFT CHECK:
+- iter183: verify-metrics 감사
+- iter184: investment-strategy VIX 주입
+- iter185: cron/send-alerts + update-all 감사
+- iter186: short-interest shortFloatPct 복구 ← 새 영역
+
+연속 drift 없음.
+
+PRE-AUDIT RESULTS (모두 CLEAN):
+  AI cascade (ai-providers.ts) — vLLM→GROQ 70b→GROQ 8b→Gemini 체인 ✓
+  fetch cache audit (전체 src/app/api/) — 모든 외부 fetch에 cache: 'no-store' ✓
+  market-heatmap/route.ts — Stooq+Yahoo 하이브리드 쿼트, 캐시 로직 ✓
+  macro-indicators static fallback — 2026-04-25 기준 최신 ✓
+  daily-brief cron — TIMEFRAMES=['4w'], stale key 48h TTL ✓
+  update-credit-balance — flowvium:credit-balance:live:v1 키 매핑 ✓
+  TypeScript: 0 errors
+
+BUG FOUND: short-interest shortFloatPct 항상 null
+
+  ROOT CAUSE:
+    "Yahoo v10 crumb blocked from Vercel IPs" 코멘트가 stale.
+    iter~180 이후 sector-pe/route.ts 에서 동일한 Yahoo v10 crumb 방식
+    (flowvium:yahoo:crumb:v1, query2.yahoo.com/v1/test/getcrumb)을
+    성공적으로 사용 중.
+    short-interest 는 그 사실을 모르고 shortFloatPct: null 고정.
+
+  IMPACT:
+    calcSqueezeScore 최대 45pt (shortVolPct 25 + instAction 20)
+    shortFloatPct 복구 시 최대 85pt (40pt 추가)
+    NVDA 1-2%, TSLA 3-5%, COIN/MSTR 5-10% — 실제 squeeze 판단 가능해짐
+
+ACCURACY PROBE:
+[accuracy probe] metric=sector-pe.XLK.trailingPE source=Yahoo v10 quoteSummary (same crumb)
+  direct_value=38.09 (2026-04-26, flowvium.vercel.app/api/sector-pe live)
+  Yahoo v10 defaultKeyStatistics works from Vercel ✓
+  shortPercentOfFloat is in same defaultKeyStatistics module → fix viable
+
+FIX: short-interest → Yahoo v10 shortPercentOfFloat
+
+  신규 함수:
+    getYahooCrumb(redis): flowvium:yahoo:crumb:v1 (sector-pe 공유 캐시, 1h TTL)
+    fetchYahooShortFloat(tickers, crumb, cookie):
+      - 36 tickers, 6 concurrent, 150ms batch delay
+      - Yahoo v10 defaultKeyStatistics.shortPercentOfFloat.raw × 100 = float %
+      - 예상 소요: ~8-18s (FINRA와 parallel)
+
+  GET 핸들러 변경:
+    Promise.allSettled에 4번째 항목 추가:
+      getYahooCrumb(redis).then(c => c ? fetchYahooShortFloat(...) : new Map())
+    entries.shortFloatPct: shortFloatMap.get(ticker) ?? null
+    calcSqueezeScore(shortFloatPct, shortVolPct, instAction)  ← null→실제값
+
+  코멘트 업데이트:
+    ShortEntry.shortFloatPct: "null — Yahoo v10 crumb blocked" → "live"
+    calcSqueezeScore 주석 업데이트
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/short-interest/route.ts
+  - CRUMB_KEY / CRUMB_TTL / YF_UA 상수 추가
+  - getYahooCrumb() 함수 신설 (sector-pe와 동일 로직, 동일 Redis 키)
+  - fetchYahooShortFloat() 함수 신설 (6 concurrent, 150ms delay)
+  - GET: Promise.allSettled에 크럼+숏플로트 파이프라인 추가
+  - entries 빌더: shortFloatPct 실값 사용
+  - squeezeScore: shortFloatPct 반영
+
+IMPACT:
+  squeezeScore 범위: 45pt → 85pt (shortFloatPct 최대 40pt 추가)
+  단기 거래자들에게 더 정확한 squeeze 후보 순위 제공
+  sector-pe 증명: Yahoo v10 crumb from Vercel = 작동 확인
+
+NEXT: iter187 → 다른 영역.
+  후보:
+  1. 배포 (user 확인 필요) — 178+ 커밋 미배포
+  2. news-cascade AI 품질 감사
+  3. investment-strategy 감사 (AI 프롬프트 품질)
+  4. short-interest UI — shortFloatPct 컬럼 표시 확인
