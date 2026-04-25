@@ -66,6 +66,11 @@ async function fetchCurrentPrice(symbol: string): Promise<number | null> {
 async function fetchVixFromCBOE(): Promise<{ current: number | null; history: VolPoint[] }> {
   try {
     const res = await fetch('https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/csv,text/plain,*/*',
+        'Referer': 'https://www.cboe.com/tradable_products/vix/',
+      },
       signal: AbortSignal.timeout(10000),
       cache: 'no-store',
     });
