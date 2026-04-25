@@ -121,8 +121,8 @@ const PRESETS = [
   {
     id: 'gap',
     label: '📰 언더레이더',
-    desc: '기관 매집 + 낮은 뉴스',
-    filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.newsGapScore < 30,
+    desc: '기관 매집 + 소수 기관만 추적 (≤2곳)',
+    filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.institutionCount <= 2,
   },
   {
     id: 'consensus',
@@ -634,10 +634,12 @@ export default function ScreenerPage() {
                         </div>
                       </td>
                       <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-mono">{row.newsGapScore}</span>
-                          <div className="w-10 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full rounded-full bg-purple-400" style={{ width: `${row.newsGapScore}%` }} /></div>
-                        </div>
+                        {row.newsGapScore === 50 ? <span className="text-cf-text-secondary/30 text-[10px]">—</span> : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-mono">{row.newsGapScore}</span>
+                            <div className="w-10 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full rounded-full bg-purple-400" style={{ width: `${row.newsGapScore}%` }} /></div>
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary font-mono whitespace-nowrap">{row.filingDate}</td>
                     </tr>
