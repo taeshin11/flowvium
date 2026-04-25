@@ -563,7 +563,11 @@
     "free": "Gratis",
     "share": "Bagikan",
     "copied": "Disalin!",
-    "home": "Beranda"
+    "home": "Beranda",
+    "refresh": "Segarkan",
+    "sourceLabel": "Sumber",
+    "asOf": "Per {time}",
+    "feedError": "Tidak dapat memuat pembaruan"
   },
   "footer": {
     "tagline": "Memetakan rantai pasok dunia, satu koneksi pada satu waktu.",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "The gap between high-yield (junk bond) yields and U.S. Treasuries — the \"fear gauge\" for the riskiest borrowers.",
     "lHyWhy": "Above 5% = recession warning. Historically peaked above 10% during major crises.",
     "lHyGood": "Spread narrowing → risk appetite returning → stocks & high-yield bonds rally together",
-    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge"
+    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge",
+    "volTitle": "Indeks Volatilitas",
+    "volCurrentVix": "VIX Saat Ini",
+    "volTermCurve": "Struktur Jangka VIX",
+    "volBarName": "VIX",
+    "volHistory": "Riwayat VIX (90h)",
+    "volBaseline": "Referensi: 20 (hati-hati), 30 (ketakutan)",
+    "volSource": "Sumber: CBOE · Yahoo Finance · Cache 30mnt · VXST=9h / VIX=30h / VXMT=6b",
+    "volTerm9d": "9h (VXST)",
+    "volTerm30d": "30h (VIX)",
+    "volTerm6m": "6b (VXMT)"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

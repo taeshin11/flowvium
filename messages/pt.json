@@ -563,7 +563,11 @@
     "free": "Gratuito",
     "share": "Compartilhar",
     "copied": "Copiado!",
-    "home": "Início"
+    "home": "Início",
+    "refresh": "Atualizar",
+    "sourceLabel": "Fonte",
+    "asOf": "Às {time}",
+    "feedError": "Não foi possível carregar atualizações"
   },
   "footer": {
     "tagline": "Mapeando as cadeias de suprimentos do mundo, uma conexão por vez.",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "The gap between high-yield (junk bond) yields and U.S. Treasuries — the \"fear gauge\" for the riskiest borrowers.",
     "lHyWhy": "Above 5% = recession warning. Historically peaked above 10% during major crises.",
     "lHyGood": "Spread narrowing → risk appetite returning → stocks & high-yield bonds rally together",
-    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge"
+    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge",
+    "volTitle": "Índice de Volatilidade",
+    "volCurrentVix": "VIX Atual",
+    "volTermCurve": "Estrutura a Prazo VIX",
+    "volBarName": "VIX",
+    "volHistory": "Histórico VIX (90d)",
+    "volBaseline": "Referência: 20 (atenção), 30 (medo)",
+    "volSource": "Fonte: CBOE · Yahoo Finance · Cache 30min · VXST=9d / VIX=30d / VXMT=6m",
+    "volTerm9d": "9d (VXST)",
+    "volTerm30d": "30d (VIX)",
+    "volTerm6m": "6m (VXMT)"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

@@ -563,7 +563,11 @@
     "free": "免费",
     "share": "分享",
     "copied": "已复制！",
-    "home": "首页"
+    "home": "首页",
+    "refresh": "刷新",
+    "sourceLabel": "来源",
+    "asOf": "{time} 更新",
+    "feedError": "无法加载更新数据"
   },
   "footer": {
     "tagline": "逐步绘制全球供应链版图。",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "高收益债（垃圾债）收益率与美国国债之差。信用风险最高企业的「恐慌指数」。",
     "lHyWhy": "超过5%=经济衰退警报。历史上大萧条级危机时曾超过10%。",
     "lHyGood": "价差收窄 → 风险偏好回归 → 股票和高收益债券同步走强",
-    "lHyBad": "5%以上 → 信用市场恐慌 → 企业违约增加 → 股市暴跌"
+    "lHyBad": "5%以上 → 信用市场恐慌 → 企业违约增加 → 股市暴跌",
+    "volTitle": "波动率指标",
+    "volCurrentVix": "VIX当前值",
+    "volTermCurve": "VIX期限结构",
+    "volBarName": "VIX指数",
+    "volHistory": "VIX走势（90天）",
+    "volBaseline": "参考: 20（注意）, 30（恐慌）",
+    "volSource": "来源: CBOE · Yahoo Finance · 30分钟缓存 · VXST=9天 / VIX=30天 / VXMT=6个月",
+    "volTerm9d": "9天 (VXST)",
+    "volTerm30d": "30天 (VIX)",
+    "volTerm6m": "6个月 (VXMT)"
   },
   "earnings": {
     "pageTitle": "财报日历",

@@ -563,7 +563,11 @@
     "free": "मुफ़्त",
     "share": "शेयर करें",
     "copied": "कॉपी हो गया!",
-    "home": "होम"
+    "home": "होम",
+    "refresh": "रीफ्रेश",
+    "sourceLabel": "स्रोत",
+    "asOf": "{time} पर",
+    "feedError": "अपडेट लोड नहीं हो सका"
   },
   "footer": {
     "tagline": "दुनिया की सप्लाई चेन को एक-एक कनेक्शन से मैप कर रहे हैं।",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "The gap between high-yield (junk bond) yields and U.S. Treasuries — the \"fear gauge\" for the riskiest borrowers.",
     "lHyWhy": "Above 5% = recession warning. Historically peaked above 10% during major crises.",
     "lHyGood": "Spread narrowing → risk appetite returning → stocks & high-yield bonds rally together",
-    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge"
+    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge",
+    "volTitle": "अस्थिरता सूचकांक",
+    "volCurrentVix": "VIX वर्तमान",
+    "volTermCurve": "VIX टर्म स्ट्रक्चर",
+    "volBarName": "VIX सूचकांक",
+    "volHistory": "VIX इतिहास (90 दिन)",
+    "volBaseline": "संदर्भ: 20 (सावधान), 30 (डर)",
+    "volSource": "स्रोत: CBOE · Yahoo Finance · 30मिनट कैश · VXST=9d / VIX=30d / VXMT=6m",
+    "volTerm9d": "9 दिन (VXST)",
+    "volTerm30d": "30 दिन (VIX)",
+    "volTerm6m": "6 माह (VXMT)"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

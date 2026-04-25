@@ -563,7 +563,11 @@
     "free": "ฟรี",
     "share": "แชร์",
     "copied": "คัดลอกแล้ว!",
-    "home": "หน้าแรก"
+    "home": "หน้าแรก",
+    "refresh": "รีเฟรช",
+    "sourceLabel": "แหล่งที่มา",
+    "asOf": "ณ {time}",
+    "feedError": "ไม่สามารถโหลดการอัปเดตได้"
   },
   "footer": {
     "tagline": "แมปห่วงโซ่อุปทานของโลก ทีละการเชื่อมต่อ",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "The gap between high-yield (junk bond) yields and U.S. Treasuries — the \"fear gauge\" for the riskiest borrowers.",
     "lHyWhy": "Above 5% = recession warning. Historically peaked above 10% during major crises.",
     "lHyGood": "Spread narrowing → risk appetite returning → stocks & high-yield bonds rally together",
-    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge"
+    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge",
+    "volTitle": "ดัชนีความผันผวน",
+    "volCurrentVix": "VIX ปัจจุบัน",
+    "volTermCurve": "โครงสร้างระยะ VIX",
+    "volBarName": "ดัชนี VIX",
+    "volHistory": "ประวัติ VIX (90 วัน)",
+    "volBaseline": "อ้างอิง: 20 (ระวัง), 30 (กลัว)",
+    "volSource": "แหล่งที่มา: CBOE · Yahoo Finance · แคช 30นาที · VXST=9ว / VIX=30ว / VXMT=6ด",
+    "volTerm9d": "9 วัน (VXST)",
+    "volTerm30d": "30 วัน (VIX)",
+    "volTerm6m": "6 เดือน (VXMT)"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

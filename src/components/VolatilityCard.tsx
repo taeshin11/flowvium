@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -17,13 +18,14 @@ import {
 import type { VolatilityData } from '@/app/api/volatility/route';
 
 const REGIME_COLOR = {
-  contango: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  backwardation: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-  humped: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  unknown: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200' },
+  contango:     { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  backwardation:{ bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200' },
+  humped:       { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' },
+  unknown:      { bg: 'bg-gray-50',    text: 'text-gray-500',    border: 'border-gray-200' },
 };
 
 export default function VolatilityCard() {
+  const t = useTranslations('macro');
   const [data, setData] = useState<VolatilityData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,9 +50,9 @@ export default function VolatilityCard() {
   if (!data) return null;
 
   const termData = [
-    { label: '9일 (VXST)', value: data.vxst, shortLabel: '9일' },
-    { label: '30일 (VIX)',  value: data.vix,  shortLabel: 'VIX' },
-    { label: '6개월 (VXMT)', value: data.vxmt, shortLabel: '6M' },
+    { label: t('volTerm9d'),  value: data.vxst, shortLabel: '9d' },
+    { label: t('volTerm30d'), value: data.vix,  shortLabel: 'VIX' },
+    { label: t('volTerm6m'),  value: data.vxmt, shortLabel: '6m' },
   ].filter(d => d.value != null);
 
   const regimeStyle = REGIME_COLOR[data.regime] ?? REGIME_COLOR.unknown;
@@ -58,10 +60,9 @@ export default function VolatilityCard() {
 
   return (
     <div className="cf-card p-6 space-y-5">
-      {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-heading font-bold text-cf-text-primary">변동성 지표</h2>
+          <h2 className="text-xl font-heading font-bold text-cf-text-primary">{t('volTitle')}</h2>
           <p className="text-xs text-cf-text-secondary mt-0.5">
             VIX Term Structure · CBOE · Yahoo Finance
           </p>
@@ -70,7 +71,7 @@ export default function VolatilityCard() {
           {data.vix != null && (
             <div className="text-center">
               <p className="text-2xl font-bold text-cf-text-primary">{data.vix.toFixed(1)}</p>
-              <p className="text-[10px] text-cf-text-secondary">VIX 현재값</p>
+              <p className="text-[10px] text-cf-text-secondary">{t('volCurrentVix')}</p>
             </div>
           )}
           {data.vvix != null && (
@@ -82,16 +83,14 @@ export default function VolatilityCard() {
         </div>
       </div>
 
-      {/* Regime badge */}
       <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${regimeStyle.bg} ${regimeStyle.text} ${regimeStyle.border}`}>
         <span className="font-bold uppercase tracking-wide">{data.regime}</span>
         <span className="opacity-80">{data.regimeKo}</span>
       </div>
 
-      {/* Term structure bar chart */}
       {termData.length > 0 && (
         <div>
-          <p className="text-xs font-bold text-cf-text-secondary mb-2 uppercase tracking-wider">만기별 변동성 커브</p>
+          <p className="text-xs font-bold text-cf-text-secondary mb-2 uppercase tracking-wider">{t('volTermCurve')}</p>
           <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={termData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
@@ -99,7 +98,7 @@ export default function VolatilityCard() {
                 <XAxis dataKey="shortLabel" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} width={35} domain={[0, 'auto']} />
                 <Tooltip formatter={(v) => v != null ? `${(+v).toFixed(1)}` : '-'} contentStyle={{ fontSize: 12 }} />
-                <Bar dataKey="value" name="VIX 지수" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="value" name={t('volBarName')} radius={[4, 4, 0, 0]}>
                   {termData.map((entry, i) => (
                     <Cell
                       key={i}
@@ -120,10 +119,9 @@ export default function VolatilityCard() {
         </div>
       )}
 
-      {/* 90-day VIX history */}
       {histSlice.length > 5 && (
         <div>
-          <p className="text-xs font-bold text-cf-text-secondary mb-2 uppercase tracking-wider">VIX 추이 (90일)</p>
+          <p className="text-xs font-bold text-cf-text-secondary mb-2 uppercase tracking-wider">{t('volHistory')}</p>
           <div className="h-28">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={histSlice} margin={{ top: 4, right: 5, bottom: 4, left: 0 }}>
@@ -137,13 +135,11 @@ export default function VolatilityCard() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-[10px] text-cf-text-secondary/60 mt-1">기준선: 20 (주의), 30 (공포)</p>
+          <p className="text-[10px] text-cf-text-secondary/60 mt-1">{t('volBaseline')}</p>
         </div>
       )}
 
-      <p className="text-[10px] text-cf-text-secondary/50">
-        출처: CBOE · Yahoo Finance · 30분 캐시 · VXST=9일 / VIX=30일 / VXMT=6개월
-      </p>
+      <p className="text-[10px] text-cf-text-secondary/50">{t('volSource')}</p>
     </div>
   );
 }

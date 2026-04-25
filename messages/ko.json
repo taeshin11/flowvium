@@ -508,7 +508,11 @@
     "free": "무료",
     "share": "공유",
     "copied": "복사됨!",
-    "home": "홈"
+    "home": "홈",
+    "refresh": "새로고침",
+    "sourceLabel": "출처",
+    "asOf": "{time} 기준",
+    "feedError": "업데이트 데이터를 불러올 수 없습니다"
   },
   "footer": {
     "tagline": "전 세계 공급망을 하나의 연결 고리씩 매핑합니다.",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "고수익채(정크본드) 금리에서 미국 국채 금리를 뺀 차이예요. 신용 위험이 가장 높은 기업들의 \"공포 지수\"예요.",
     "lHyWhy": "5% 초과 = 경기침체 경보. 역사적으로 대공황급 위기 때 10%+까지 올랐어요.",
     "lHyGood": "스프레드 축소 → 위험 선호 복귀 → 주식·하이일드 채권 동반 강세",
-    "lHyBad": "5% 이상 → 신용 시장 패닉 → 기업 부도 증가 → 주식 급락 동반"
+    "lHyBad": "5% 이상 → 신용 시장 패닉 → 기업 부도 증가 → 주식 급락 동반",
+    "volTitle": "변동성 지표",
+    "volCurrentVix": "VIX 현재값",
+    "volTermCurve": "만기별 변동성 커브",
+    "volBarName": "VIX 지수",
+    "volHistory": "VIX 추이 (90일)",
+    "volBaseline": "기준선: 20 (주의), 30 (공포)",
+    "volSource": "출처: CBOE · Yahoo Finance · 30분 캐시 · VXST=9일 / VIX=30일 / VXMT=6개월",
+    "volTerm9d": "9일 (VXST)",
+    "volTerm30d": "30일 (VIX)",
+    "volTerm6m": "6개월 (VXMT)"
   },
   "earnings": {
     "pageTitle": "실적 캘린더",

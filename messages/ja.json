@@ -508,7 +508,11 @@
     "free": "無料",
     "share": "共有",
     "copied": "コピーしました！",
-    "home": "ホーム"
+    "home": "ホーム",
+    "refresh": "更新",
+    "sourceLabel": "ソース",
+    "asOf": "{time} 時点",
+    "feedError": "データを取得できませんでした"
   },
   "footer": {
     "tagline": "世界のサプライチェーンを、一つのつながりから紐解きます。",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "ハイイールド債（ジャンク債）の利回りから米国債を引いた差。最もリスクの高い企業の「恐怖指数」。",
     "lHyWhy": "5%超=景気後退警告。歴史的に大恐慌級の危機では10%以上まで上昇。",
     "lHyGood": "スプレッド縮小 → リスク選好回帰 → 株・ハイイールド債が共に上昇",
-    "lHyBad": "5%以上 → 信用市場パニック → 企業倒産増加 → 株急落"
+    "lHyBad": "5%以上 → 信用市場パニック → 企業倒産増加 → 株急落",
+    "volTitle": "ボラティリティ指標",
+    "volCurrentVix": "VIX現在値",
+    "volTermCurve": "VIXタームストラクチャー",
+    "volBarName": "VIX指数",
+    "volHistory": "VIX推移（90日）",
+    "volBaseline": "参考: 20（注意）, 30（恐怖）",
+    "volSource": "出典: CBOE · Yahoo Finance · 30分キャッシュ · VXST=9日 / VIX=30日 / VXMT=6ヶ月",
+    "volTerm9d": "9日 (VXST)",
+    "volTerm30d": "30日 (VIX)",
+    "volTerm6m": "6ヶ月 (VXMT)"
   },
   "earnings": {
     "pageTitle": "決算カレンダー",

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Loader2, TrendingUp, Activity, GitMerge, BarChart2 } from 'lucide-react';
 import EconCalendarSection from './EconCalendarSection';
+import VolatilityCard from '@/components/VolatilityCard';
 
 // ── FedWatch ──────────────────────────────────────────────────────────────────
 interface FomcMeeting {
@@ -487,6 +488,9 @@ export default function MacroIndicatorsTab() {
           </div>
         </div>
       )}
+
+      {/* VIX Term Structure */}
+      <VolatilityCard />
 
       {/* FedWatch */}
       <FedWatchSection />

@@ -563,7 +563,11 @@
     "free": "Miễn phí",
     "share": "Chia sẻ",
     "copied": "Đã sao chép!",
-    "home": "Trang chủ"
+    "home": "Trang chủ",
+    "refresh": "Làm mới",
+    "sourceLabel": "Nguồn",
+    "asOf": "Lúc {time}",
+    "feedError": "Không thể tải cập nhật"
   },
   "footer": {
     "tagline": "Lập bản đồ chuỗi cung ứng toàn cầu, từng kết nối một.",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "The gap between high-yield (junk bond) yields and U.S. Treasuries — the \"fear gauge\" for the riskiest borrowers.",
     "lHyWhy": "Above 5% = recession warning. Historically peaked above 10% during major crises.",
     "lHyGood": "Spread narrowing → risk appetite returning → stocks & high-yield bonds rally together",
-    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge"
+    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge",
+    "volTitle": "Chỉ số Biến động",
+    "volCurrentVix": "VIX Hiện tại",
+    "volTermCurve": "Cấu trúc Kỳ hạn VIX",
+    "volBarName": "VIX",
+    "volHistory": "Lịch sử VIX (90 ngày)",
+    "volBaseline": "Tham chiếu: 20 (thận trọng), 30 (sợ hãi)",
+    "volSource": "Nguồn: CBOE · Yahoo Finance · Cache 30ph · VXST=9n / VIX=30n / VXMT=6th",
+    "volTerm9d": "9 ngày (VXST)",
+    "volTerm30d": "30 ngày (VIX)",
+    "volTerm6m": "6 tháng (VXMT)"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

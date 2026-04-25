@@ -563,7 +563,11 @@
     "free": "مجاني",
     "share": "مشاركة",
     "copied": "تم النسخ!",
-    "home": "الرئيسية"
+    "home": "الرئيسية",
+    "refresh": "تحديث",
+    "sourceLabel": "المصدر",
+    "asOf": "في {time}",
+    "feedError": "تعذر تحميل التحديثات"
   },
   "footer": {
     "tagline": "نرسم خريطة سلاسل التوريد العالمية، رابطاً تلو الآخر.",
@@ -1252,7 +1256,17 @@
     "lHyWhat": "The gap between high-yield (junk bond) yields and U.S. Treasuries — the \"fear gauge\" for the riskiest borrowers.",
     "lHyWhy": "Above 5% = recession warning. Historically peaked above 10% during major crises.",
     "lHyGood": "Spread narrowing → risk appetite returning → stocks & high-yield bonds rally together",
-    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge"
+    "lHyBad": "Above 5% → credit market panic → corporate defaults rise → stocks plunge",
+    "volTitle": "مؤشر التقلب",
+    "volCurrentVix": "VIX الحالي",
+    "volTermCurve": "هيكل آجال VIX",
+    "volBarName": "مؤشر VIX",
+    "volHistory": "تاريخ VIX (90 يوم)",
+    "volBaseline": "مرجع: 20 (تحذير)، 30 (خوف)",
+    "volSource": "المصدر: CBOE · Yahoo Finance · كاش 30 دقيقة · VXST=9أ / VIX=30أ / VXMT=6ش",
+    "volTerm9d": "9 أيام (VXST)",
+    "volTerm30d": "30 يوم (VIX)",
+    "volTerm6m": "6 أشهر (VXMT)"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",
