@@ -1,0 +1,108 @@
+ITER109 — MacroIndicatorsTab 완전 i18n (113 keys, 16 로케일)
+Date: 2026-04-25
+Primary outcome: "MacroIndicatorsTab i18n" (17자)
+
+═══════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════
+Recent commits: iter109(이번), iter108(locale bug+fetch audit), iter107(NewsCascade+EconCal i18n),
+iter106(batch10+insider i18n), iter105(CotTab/CB i18n)
+
+신호 검사:
+  (1) 같은 영역 3 iter 연속: i18n 작업 iter105~107 3회 연속 후 iter108에서 locale BUG로 전환
+      → iter109는 MacroIndicatorsTab (가장 큰 미완료 i18n 덩어리, 3회 이상 "나중에" 미룸)
+  (3) "나중에" 3+ deferred: MacroIndicatorsTab i18n이 iter105부터 4회 연속 후순위 → FORCED
+
+→ iter110에서 반드시 i18n 외 영역으로 전환 (강 drift 신호)
+
+No drift this iter (forced deferred item) ✅ — 단, NEXT iter 영역 전환 필수
+
+═══════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════
+"MacroIndicatorsTab i18n" (17자)
+
+산출물 체크 (규칙 [3]):
+(c) 삭제/단순화: SURPRISE_BADGE.label, RATE_BADGE.label, CAT_LABELS, LAYMAN 4개
+    모듈 상수에서 한국어 하드코딩 전부 제거 → t() 호출로 단순화
+
+═══════════════════════════════════════════════════════════════
+TASK — MacroIndicatorsTab i18n
+═══════════════════════════════════════════════════════════════
+배경: iter105부터 4회 연속 "다음에" 미뤄진 MacroIndicatorsTab의
+     68~113개 한국어 하드코딩 문자열. 가장 큰 단일 i18n 잔존 항목.
+
+작업:
+  1. scripts/add_macro_keys.py 작성
+     - 113개 key를 'macro' 네임스페이스로 messages/*.json 16파일에 일괄 추가
+     - ko/en/ja/zh-CN: 완전 번역
+     - zh-TW: 번체 중국어 완전 번역 (zh-CN에서 개별 override)
+     - ar/de/es/fr/hi/id/pt/ru/th/tr/vi: 영어 폴백 (추후 개선 가능)
+     - 실행 결과: 16 files × 113 keys = 1808 entries 추가
+
+  2. MacroIndicatorsTab.tsx 전면 재작성
+     - import: useLocale → useLocale + useTranslations
+     - FedWatchSection(): const t = useTranslations('macro') 추가
+       → 13개 한국어 → fwLoading/fwTitle/fwDesc/fwCurrentRate/fwYearEnd
+          fwBpCut/{n}/fwExpRate/fwHold/fwCutDominant/{pct}/fwHoldDominant/{pct}
+          fwMixed/fwFootnote/fwBasis/{date}
+     - MacroRiskSignal(): const t = useTranslations('macro') 추가
+       → 10개 → mrRiskOnLabel/Desc, mrNeutralLabel/Desc, mrRiskOffLabel/Desc
+          mrYieldCurve/mrInverted/mrNormal/mrSubtitle
+     - LaymanBox(): const t = useTranslations('macro') 추가
+       → LAYMAN 상수 완전 삭제 → LAYMAN_T Record를 함수 내부에서 t() 빌드
+       → lbWhat/lbWhy + 11 indicators × 4 fields = 46 key
+     - SectorPESection(): const t = useTranslations('macro') 추가
+       → spTitle/spColSector/spColPrice/spColChange/spFootnote
+     - MacroIndicatorsTab() 메인: const t = useTranslations('macro') 추가
+       → SURPRISE_BADGE/RATE_BADGE의 label 부분 삭제
+          → SURPRISE_LABEL/RATE_LABEL/CAT_LABELS_T를 컴포넌트 내부에서 t() 빌드
+       → 26개 미 문자열 전부 교체
+
+  3. 모듈 레벨 상수 정리
+     - 삭제: SURPRISE_BADGE (label 필드) → SURPRISE_BADGE_CLS로 cls만 유지
+     - 삭제: RATE_BADGE (label 필드) → RATE_BADGE_CLS로 cls만 유지
+     - 삭제: CAT_LABELS 상수 전체
+     - 삭제: LAYMAN 상수 전체 (113줄 → LaymanBox 내부 LAYMAN_T로 이동)
+     - 추가: LAYMAN_IDS Set (id 존재 여부 체크용)
+
+TypeScript: 0 errors ✅
+Commit: b06fc38
+
+═══════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════
+[accuracy probe] metric=SPY source=Yahoo
+  PowerShell Invoke-WebRequest: direct_value=713.94
+  Last known (iter107): 713.94 → delta=0 → OK (가격은 장중 변동, 참고용)
+
+[accuracy probe] metric=fg.us source=CNN
+  PowerShell: BLOCKED (418 anti-bot) — known Windows restriction
+  Last known (iter105): direct_value=66 our_value=66 delta=0 → OK
+  Note: 이번 iter는 UI 렌더링(i18n) 변경 — 데이터 파이프라인 무관
+
+Note: i18n 변경은 데이터 값이 아닌 표시 문자열만 수정.
+     값 정합성은 verify-metrics cron이 지속 모니터링 중.
+
+═══════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════
+TypeScript: 0 errors ✅
+MacroIndicatorsTab i18n: 완료 ✅ (113 keys, 16 locale)
+fetch() cache: CLEAN ✅ (iter108 감사 결과 유지)
+
+i18n 잔존 (주요 항목):
+  EarningsPage: Korean text 다수 (날짜 locale은 iter108에서 수정됨)
+  NewsGapPage: Korean text 다수 (날짜 locale은 iter108에서 수정됨)
+  기타 소규모 컴포넌트들
+
+═══════════════════════════════════════════════════════════════
+NEXT ITER 후보 (iter110 — i18n 외 영역 전환 필수)
+═══════════════════════════════════════════════════════════════
+drift 신호 발동: 다음 iter는 반드시 i18n 외 영역
+
+1. [권장] 성능 최적화: sector-pe, short-interest 등 sequential fetch 병렬화
+   → API 응답 시간 단축 = 사용자 체감 핵심 지표
+2. [권장] 새 기능: product 가치 개선 (대시보드 새 데이터 소스, UX 개선)
+3. 에러 탐색: 로그에서 실제 runtime error 또는 데이터 gap 찾기
+4. [마지막 순위] 기타 페이지 Korean text 정리 — 이미 4+ iter i18n했으므로 또 하면 안됨
