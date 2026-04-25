@@ -1,0 +1,46 @@
+== iter167 — 2026-04-26 ==
+
+PRIMARY OUTCOME: 비US 히트맵 사전 워밍 추가
+
+DRIFT CHECK:
+- iter164: fedwatch
+- iter165: daily-brief/news-cascade
+- iter166: macro-indicators credit spread
+- iter167: cron/update-all domain ← 새 도메인 (인프라)
+
+ROOT CAUSE FOUND:
+
+GAP: update-all 크론이 US 히트맵만 워밍
+- stage 1: `warm(base, '/api/market-heatmap?country=US', ...)`
+- KR, JP, CN, EU, IN, TW 히트맵은 워밍 안 됨
+- 한국/일본/중국/유럽 사용자가 히트맵 접근 시 항상 cold cache
+- market-heatmap TTL = 15분, 매 cold start = Yahoo/iShares ETF holdings 전체 fetch
+
+FIX:
+
+fire-and-forget concurrent batch를 stage 1 시작 전에 추가:
+  Promise.allSettled(['KR', 'JP', 'CN', 'EU'].map(country =>
+    warm(base, `/api/market-heatmap?country=${country}`, `heatmap-${country}`, 20000)
+  ))
+
+설계 결정:
+- fire & forget (stage 1과 동시 실행) → maxDuration(60s)에 영향 없음
+- stage 1 Promise.all에 추가하면 destructuring 28개 변수 → 복잡도↑
+- 실패 시 logger.warn으로 기록
+
+KR/JP/CN/EU 추가, IN/TW 제외 이유:
+- FlowVium 주요 타깃: 한국/일본/중국/유럽
+- IN/TW는 차후 추가 가능 (우선순위 낮음)
+
+ACCURACY PROBE:
+[accuracy probe] metric=update-all_coverage source=code_audit
+  before: 1 country (US only) after: 5 countries (US + KR/JP/CN/EU)
+  concurrent with stage 1: NO latency added → OK
+[accuracy probe] metric=hy_oas source=FRED direct_value=2.84 (iter166 확인) delta=0 → still OK
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/cron/update-all/route.ts (non-US heatmap fire & forget 추가)
+
+COMMIT: eafdef2
