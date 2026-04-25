@@ -81,6 +81,7 @@
 - VIX는 컬러 반전 (상승=위험 → 빨강, 하락=안전 → 초록)
 - 10Y: `{price}%` 형식 (suffix=%), DXY: 소수점 1자리, Gold: `$` 정수
 - **60초 자동 갱신** (`setInterval` + `AbortController` 클린업) ← iter32
+- **BREADTH 배지** — S&P 500 상위 50개 기준 상승/하락 종목 수 (advancers↑ / decliners↓), `/api/market-movers` 재활용 ← iter139
 - **US Fear & Greed 지수 pill** (F&G, `levelLabels` 색상) ← iter33
 - **F&G 30일 스파크라인** — F&G pill 옆 인라인 SVG 추세선 (44×14px) ← iter61
 - **매크로 리스크 신호 배지** — RISK: Risk On / Neutral / Risk Off (IG+HY+UMC+금리) ← iter64

@@ -73,6 +73,7 @@ function MarketSnapshot() {
   const [fgHistory, setFgHistory] = useState<number[] | null>(null);
   const [riskSignal, setRiskSignal] = useState<'risk-on' | 'neutral' | 'risk-off' | null>(null);
   const [regimeSignal, setRegimeSignal] = useState<'recession' | 'stagflation' | 'overheating' | 'goldilocks' | 'slowdown' | null>(null);
+  const [breadth, setBreadth] = useState<{ adv: number; dec: number; unc: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchPills = useCallback(() => {
@@ -150,6 +151,20 @@ function MarketSnapshot() {
     return () => ctrl.abort();
   }, []);
 
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/market-movers', { signal: ctrl.signal, cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d || ctrl.signal.aborted) return;
+        if (d.advancers != null && d.decliners != null) {
+          setBreadth({ adv: d.advancers, dec: d.decliners, unc: d.unchanged ?? 0 });
+        }
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
   if (pills.size === 0) return null;
 
   return (
@@ -220,6 +235,18 @@ function MarketSnapshot() {
                  regimeSignal === 'overheating' ? 'Overheating' :
                  regimeSignal === 'goldilocks'  ? 'Goldilocks'  :
                  'Slowdown'}
+              </span>
+            </div>
+          )}
+          {breadth && (
+            <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">
+              <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">BREADTH</span>
+              <span className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${
+                breadth.adv > breadth.dec ? 'text-green-700 bg-green-50' :
+                breadth.dec > breadth.adv ? 'text-red-700 bg-red-50' :
+                'text-gray-600 bg-gray-100'
+              }`}>
+                {breadth.adv}↑ {breadth.dec}↓
               </span>
             </div>
           )}

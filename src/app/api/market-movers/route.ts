@@ -38,6 +38,9 @@ export interface Mover {
 export interface MarketMoversResponse {
   gainers: Mover[];
   losers: Mover[];
+  advancers: number;
+  decliners: number;
+  unchanged: number;
   updatedAt: string;
   cached: boolean;
 }
@@ -68,7 +71,7 @@ export async function GET() {
     );
 
     if (!res.ok) {
-      return NextResponse.json({ gainers: [], losers: [], updatedAt: new Date().toISOString(), cached: false }, { headers: CDN_HEADERS });
+      return NextResponse.json({ gainers: [], losers: [], advancers: 0, decliners: 0, unchanged: 0, updatedAt: new Date().toISOString(), cached: false }, { headers: CDN_HEADERS });
     }
 
     const data = await res.json() as {
@@ -95,9 +98,13 @@ export async function GET() {
     movers.sort((a, b) => b.changePct - a.changePct);
     const gainers = movers.filter(m => m.changePct > 0).slice(0, 5);
     const losers = movers.filter(m => m.changePct < 0).slice(-5).reverse();
+    const advancers = movers.filter(m => m.changePct > 0).length;
+    const decliners = movers.filter(m => m.changePct < 0).length;
+    const unchanged = movers.length - advancers - decliners;
 
     const payload: MarketMoversResponse = {
-      gainers, losers, updatedAt: new Date().toISOString(), cached: false,
+      gainers, losers, advancers, decliners, unchanged,
+      updatedAt: new Date().toISOString(), cached: false,
     };
 
     if (redis) {
@@ -106,6 +113,6 @@ export async function GET() {
 
     return NextResponse.json(payload, { headers: CDN_HEADERS });
   } catch {
-    return NextResponse.json({ gainers: [], losers: [], updatedAt: new Date().toISOString(), cached: false }, { headers: CDN_HEADERS });
+    return NextResponse.json({ gainers: [], losers: [], advancers: 0, decliners: 0, unchanged: 0, updatedAt: new Date().toISOString(), cached: false }, { headers: CDN_HEADERS });
   }
 }

@@ -66,14 +66,14 @@ Analysis type: ${type || 'general'}`;
       let reason = 'AI analysis is currently unavailable.';
       if (groq?.status === 429 && typeof groq.error === 'string') {
         if (groq.error.includes('tokens per day')) {
-          reason = 'AI 일일 토큰 한도 소진 (GROQ 100k/일). UTC 00:00 리셋 예정.';
+          reason = 'AI daily token limit reached (GROQ 100k/day). Resets at UTC 00:00.';
         } else if (groq.error.includes('tokens per minute')) {
-          reason = 'AI 분당 토큰 한도 일시 초과. 1분 내 재시도 가능.';
+          reason = 'AI per-minute token limit temporarily exceeded. Retry in 1 minute.';
         } else {
-          reason = 'AI 요청 한도 초과.';
+          reason = 'AI request quota exceeded.';
         }
       } else if (!attempts?.length) {
-        reason = 'No AI provider configured (VLLM_URL / GROQ_API_KEY / GEMINI_API_KEY 모두 미설정).';
+        reason = 'No AI provider configured (VLLM_URL / GROQ_API_KEY / GEMINI_API_KEY all unset).';
       }
       return NextResponse.json({ analysis: reason, exhausted: true });
     }
