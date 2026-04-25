@@ -234,7 +234,8 @@
     "staticDataFinancials": "स्थैतिक डेटा (लाइव वित्तीय लोड हो रहे हैं…)",
     "volume": "वॉल्यूम",
     "dayRange": "दिन",
-    "week52Range": "52सप्ताह"
+    "week52Range": "52सप्ताह",
+    "relatedStocks": "संबंधित स्टॉक"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",

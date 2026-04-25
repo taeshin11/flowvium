@@ -234,7 +234,8 @@
     "staticDataFinancials": "بيانات ثابتة (تحميل البيانات المالية…)",
     "volume": "حجم",
     "dayRange": "يوم",
-    "week52Range": "52أسبوع"
+    "week52Range": "52أسبوع",
+    "relatedStocks": "أسهم مشابهة"
   },
   "cascade": {
     "title": "مصوّر التأثير المتسلسل",

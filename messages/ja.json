@@ -234,7 +234,8 @@
     "staticDataFinancials": "静的データ（リアルタイム財務ロード中…）",
     "volume": "出来高",
     "dayRange": "当日",
-    "week52Range": "52週"
+    "week52Range": "52週",
+    "relatedStocks": "関連銘柄"
   },
   "cascade": {
     "title": "カスケード・ビジュアライザー",

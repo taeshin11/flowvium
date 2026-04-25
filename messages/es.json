@@ -234,7 +234,8 @@
     "staticDataFinancials": "Datos estáticos (cargando finanzas en tiempo real…)",
     "volume": "Vol",
     "dayRange": "Día",
-    "week52Range": "52S"
+    "week52Range": "52S",
+    "relatedStocks": "Relacionadas"
   },
   "cascade": {
     "title": "Visualizador de Cascadas",

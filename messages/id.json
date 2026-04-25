@@ -234,7 +234,8 @@
     "staticDataFinancials": "Data statis (memuat keuangan langsung…)",
     "volume": "Vol",
     "dayRange": "Hari",
-    "week52Range": "52M"
+    "week52Range": "52M",
+    "relatedStocks": "Saham Terkait"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",

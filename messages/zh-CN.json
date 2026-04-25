@@ -234,7 +234,8 @@
     "staticDataFinancials": "静态数据（加载实时财务…）",
     "volume": "成交量",
     "dayRange": "当日",
-    "week52Range": "52周"
+    "week52Range": "52周",
+    "relatedStocks": "相关股票"
   },
   "cascade": {
     "title": "连锁影响可视化",

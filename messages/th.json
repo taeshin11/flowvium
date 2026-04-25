@@ -234,7 +234,8 @@
     "staticDataFinancials": "ข้อมูลคงที่ (กำลังโหลดข้อมูลการเงิน…)",
     "volume": "ปริมาณ",
     "dayRange": "วัน",
-    "week52Range": "52สัปดาห์"
+    "week52Range": "52สัปดาห์",
+    "relatedStocks": "หุ้นที่เกี่ยวข้อง"
   },
   "cascade": {
     "title": "เครื่องมือแสดงผลลูกโซ่",

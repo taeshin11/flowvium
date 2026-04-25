@@ -234,7 +234,8 @@
     "staticDataFinancials": "Static data (loading live financials…)",
     "volume": "Vol",
     "dayRange": "Day",
-    "week52Range": "52W"
+    "week52Range": "52W",
+    "relatedStocks": "Related Stocks"
   },
   "cascade": {
     "title": "Cascade Visualizer",

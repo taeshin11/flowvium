@@ -234,7 +234,8 @@
     "staticDataFinancials": "정적 데이터 (실시간 재무 로딩 중…)",
     "volume": "거래량",
     "dayRange": "당일",
-    "week52Range": "52주"
+    "week52Range": "52주",
+    "relatedStocks": "관련주"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",

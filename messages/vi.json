@@ -234,7 +234,8 @@
     "staticDataFinancials": "Dữ liệu tĩnh (đang tải tài chính trực tiếp…)",
     "volume": "KL",
     "dayRange": "Ngày",
-    "week52Range": "52T"
+    "week52Range": "52T",
+    "relatedStocks": "Cổ phiếu liên quan"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",

@@ -234,7 +234,8 @@
     "staticDataFinancials": "Statik veri (canlı finansal yükleniyor…)",
     "volume": "Hacim",
     "dayRange": "Gün",
-    "week52Range": "52H"
+    "week52Range": "52H",
+    "relatedStocks": "İlgili Hisseler"
   },
   "cascade": {
     "title": "Kaskad Görselleştirici",

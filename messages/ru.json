@@ -234,7 +234,8 @@
     "staticDataFinancials": "Статические данные (загрузка финансов…)",
     "volume": "Объём",
     "dayRange": "День",
-    "week52Range": "52Н"
+    "week52Range": "52Н",
+    "relatedStocks": "Похожие акции"
   },
   "cascade": {
     "title": "Визуализатор каскада",

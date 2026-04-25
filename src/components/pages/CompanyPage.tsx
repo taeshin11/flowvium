@@ -269,6 +269,19 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     return () => controller.abort();
   }, [ticker]);
 
+  // ── Yahoo recommended stocks ──────────────────────────────────────────────
+  interface RecEntry { symbol: string; score: number; price: number | null; changePct: number | null; }
+  const [recs, setRecs] = useState<RecEntry[]>([]);
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    fetch(`/api/company-recs/${ticker.toUpperCase()}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!controller.signal.aborted && d?.recs?.length) setRecs(d.recs); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ticker]);
+
   // ── Live financials from SEC EDGAR XBRL 10-K filings (24h cache) ────────────
   interface AnnualFin {
     fy: number; periodEnd: string;
@@ -1394,6 +1407,41 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   {t('viewFullCascade')}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Related Stocks */}
+          {recs.length > 0 && (
+            <div className="cf-card p-5">
+              <h3 className="text-base font-heading font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-cf-primary" />
+                {t('relatedStocks')}
+              </h3>
+              <div className="space-y-2">
+                {recs.map((rec) => (
+                  <Link
+                    key={rec.symbol}
+                    href={`/company/${rec.symbol}`}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors group"
+                  >
+                    <span className="text-sm font-mono font-bold text-cf-text-primary group-hover:text-cf-primary transition-colors">
+                      {rec.symbol}
+                    </span>
+                    <div className="flex items-center gap-2 text-right">
+                      {rec.price != null && (
+                        <span className="text-xs text-cf-text-primary font-medium">
+                          ${rec.price.toFixed(2)}
+                        </span>
+                      )}
+                      {rec.changePct != null && (
+                        <span className={`text-[11px] font-semibold ${rec.changePct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {rec.changePct >= 0 ? '+' : ''}{rec.changePct.toFixed(2)}%
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
               </div>
             </div>
           )}

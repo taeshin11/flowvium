@@ -234,7 +234,8 @@
     "staticDataFinancials": "Statische Daten (Echtzeitfinanzen werden geladen…)",
     "volume": "Vol",
     "dayRange": "Tag",
-    "week52Range": "52W"
+    "week52Range": "52W",
+    "relatedStocks": "Verwandte Aktien"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",
