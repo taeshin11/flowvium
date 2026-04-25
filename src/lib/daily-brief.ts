@@ -5,6 +5,7 @@ import { institutionalSignals, type InstitutionalSignal } from '@/data/instituti
 import { newsGapData } from '@/data/news-gap';
 import { allCompanies } from '@/data/companies';
 import { companySupplyChainUpdates } from '@/data/company-supply-chain-updates';
+import type { NewsWithCascade } from '@/app/api/news-cascade/route';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type Timeframe = '1w' | '4w' | '13w';
@@ -182,7 +183,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
 
   const [
     heatmap, shortData, capFlowsTwelve, capFlowsYahoo,
-    fg, fed, macro, credit, cascadeIds, liveSignals,
+    fg, fed, macro, credit, cascadeArticles, liveSignals,
     insider, ownership, options, korea, nport, blocks,
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v13:US:${hour}`),
@@ -193,10 +194,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet(redis, `flowvium:fedwatch:v2:${today}`),
     safeGet(redis, `flowvium:macro-indicators:v13:${kst}`),
     safeGet<Record<string, unknown>>(redis, `flowvium:credit-balance:v3:${today}`),
-    (async () => {
-      try { return await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 5); }
-      catch { return [] as string[]; }
-    })(),
+    safeGet<NewsWithCascade[]>(redis, `flowvium:news-cascade:v1:list:${today}`),
     safeGet<InstitutionalSignal[]>(redis, 'flowvium:13f-signals:v1'),
     safeGet<unknown[]>(redis, 'flowvium:insider-trades:v1'),
     safeGet<unknown[]>(redis, 'flowvium:ownership-alerts:v1'),
@@ -221,11 +219,8 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   ctx.nport = nport;
   if (Array.isArray(blocks)) ctx.blocks = blocks;
 
-  if (cascadeIds && cascadeIds.length > 0) {
-    const articles = await Promise.all(
-      cascadeIds.slice(0, 5).map(id => safeGet(redis, `flowvium:news-cascade:v1:article:${id}`))
-    );
-    ctx.cascade = articles.filter(Boolean);
+  if (Array.isArray(cascadeArticles) && cascadeArticles.length > 0) {
+    ctx.cascade = cascadeArticles.slice(0, 5);
   }
 
   return ctx;
