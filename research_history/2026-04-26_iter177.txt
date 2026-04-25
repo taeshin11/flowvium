@@ -1,0 +1,62 @@
+== iter177 — 2026-04-26 ==
+
+PRIMARY OUTCOME: daily-brief credit 필드 미스매치 수정
+
+DRIFT CHECK:
+- iter174: ai-providers.ts (다른 영역)
+- iter175: investment-strategy GDP (새 영역)
+- iter176: investment-strategy sector-pe (같은 파일)
+- iter177: daily-brief/lib (다른 영역 이동) ← drift 해소
+
+daily-brief.ts의 summariseCredit 감사 중 sector-pe와 같은 패턴의 silent field mismatch 추가 발견.
+
+ROOT CAUSE FOUND:
+
+daily-brief.ts summariseCredit() 필드 불일치.
+
+credit-balance 실제 응답:
+  { countries: CountryCreditData[], usLongHistory: [...], globalSnapshot: { totalBalance, globalGdpRatio, ... }, updatedAt }
+
+summariseCredit 기존 코드:
+  const latest = d.latestMonth as Record<...> | undefined;  ← 존재하지 않는 필드
+  if (!latest) return '';  ← 항상 return '' (early exit)
+  const m = latest.margin    ← never reached
+  const fc = latest.freeCredit  ← never reached
+  const mom = latest.marginMoM  ← never reached
+
+결과: AI daily-brief의 [Credit] 섹션 항상 빈 문자열 → 프롬프트에서 필터링됨.
+  (filter `v && v.trim().length > 0` 로 섹션 제외)
+
+FIX:
+  countries[] 에서 US 항목 추출 (currentBalance + changeYoY)
+  globalSnapshot 에서 totalBalance + globalGdpRatio 추출
+
+수정 후 AI 프롬프트:
+  [Credit] US margin=$893B(YoY+2.1%),global=$1294B(3.2%GDP)
+
+ADDITIONAL AUDIT:
+  summariseShort: ✓ Array || { entries: [] } 이중 처리 OK
+  summariseFed: ✓ currentRateMid + meetings[] 필드 일치
+  summariseMacro: ✓ indicators[] + yieldCurve.spread10y2y 필드 일치
+  summariseCapital: ✓ assets[] + countryFlow.countries[] 필드 일치
+  summariseNPort: ✓ byTicker[] 필드 일치
+  summariseCredit: ✗ → FIX APPLIED
+
+ACCURACY PROBE:
+[accuracy probe] metric=T10Y2Y source=FRED
+  direct_value=0.53 (2026-04-24) LIVE ✓
+  (daily-brief 변경은 필드 매핑 수정 — 외부 데이터 값 무영향)
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/lib/daily-brief.ts (summariseCredit: latestMonth → countries[us]+globalSnapshot)
+
+IMPACT:
+  iter176 sector-pe, iter177 credit-balance — 같은 패턴의 field mismatch 연속 발견.
+  daily-brief AI가 처음으로 실제 글로벌 신용 레버리지 데이터 포함.
+  이제 investment-strategy + daily-brief 두 AI 모두 훨씬 풍부한 컨텍스트 보유.
+
+PATTERN NOTE:
+  "X 응답 보고 Y 에서 읽을 때 필드명 검증 안 함" 패턴이 3회 확인 (sector-pe, credit-balance, GDP).
+  다음 iter: options-flow, block-trades, insider-trades 소비처 필드 검증.
