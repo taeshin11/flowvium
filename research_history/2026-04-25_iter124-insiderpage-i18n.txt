@@ -1,0 +1,61 @@
+iter124 — 2026-04-25
+Primary outcome: InsiderPage 한글 5줄 제거
+
+Drift check:
+- iter121: HomePage i18n
+- iter122: feature + perf (BREAK — drift 해소)
+- iter123: ScreenerPage i18n
+- iter124: InsiderPage i18n → 2 consecutive i18n (비드리프트)
+→ iter125는 i18n 금지 (3연속 방지): feature/perf 전환 필요
+
+==== [1] 핵심 변경 ====
+
+scripts/add-insider-korea-keys.js (실행 후 삭제):
+- insider namespace 6키를 messages/*.json 16개 파일에 추가
+  korPeriod1d, korPeriod1w, korPeriod4w, korPeriod13w
+  korPeriodDesc ({days} 파라미터), koreaFallback
+
+src/components/pages/InsiderPage.tsx (5줄 교체):
+- 기존 insider namespace 이미 존재 (useTranslations('insider') 이미 있음)
+- t('korPeriod1d'/'1w'/'4w'/'13w') — 기간 버튼 라벨 ternary 교체
+- t('loading') — '로딩 중...' 교체 (기존 키 재활용)
+- {korea.totalTickers.toLocaleString()}{t('tickers')} — '종목' 교체 (기존 키 재활용)
+- t('korPeriodDesc', { days: 5|20|65 }) — '최근 N 거래일 외인·기관 순매수 누적' 교체
+- t('koreaFallback') — '가격 변동 데이터 (외인·기관 순매수 미제공)' 교체
+- fmtKrw 내 조/억/만 → KRW 통화 단위 상수로 분류, 유지 (Korea탭 전용 data format)
+- tsc --noEmit: 0 errors ✓
+- grep [가-힣]: 3 matches (fmtKrw 내 조/억/만만 잔존, 의도적)
+
+==== [2] 정확도 프로브 ====
+
+[accuracy probe] metric=SPY.price source=Yahoo_v8 direct_value=713.94 → endpoint alive ✓
+(iter124는 i18n 작업 — 데이터 정확도와 무관)
+
+==== [3] 코드베이스 상태 ====
+
+- TypeScript: tsc --noEmit 0 errors ✓
+- InsiderPage 한글 하드코딩: UI strings 0 (fmtKrw 통화 상수 3개만 잔존)
+- 16개 언어 동시 적용 완료
+
+==== [4] 미해결 항목 ====
+
+[i18n 잔여]
+- NewsGapPage ~42 한글
+- ShortPage ~39 한글
+- ReportPage ~24 한글
+→ iter125는 drift 방지를 위해 feature/perf 전환 필수
+
+[Vercel 배포] 88+ commits ahead of origin/master → 사용자 git push 필요
+
+==== 커밋 목록 ====
+
+da380ea feat(i18n): InsiderPage 한글 5줄 제거 — Korea탭 insider namespace 6키 16개 언어
+
+==== 다음 iter 방향 ====
+
+iter125 MUST be feature/non-i18n (3-iter drift 방지):
+- CompanyPage 관련주 추천: Yahoo v6 recommendationsbysymbol API 확인 ✓
+  → AAPL 테스트: 5개 추천 (AMZN score=0.203, TSLA=0.191, GOOG=0.179...)
+  → 새 /api/company-recs/[ticker] 라우트 + CompanyPage 관련주 섹션
+- 또는: 새 missing 지표 탐색 / 성능 개선
+
