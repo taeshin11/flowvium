@@ -1,0 +1,85 @@
+== iter193 — 2026-04-26 ==
+
+PRIMARY OUTCOME: news-cascade AI 호출 수 10→7 + 캐시 품질 버그 수정
+
+DRIFT CHECK:
+- iter190: ai-providers (Claude Haiku + Redis TPD guard)
+- iter191: company-news + flow-analysis TTL
+- iter192: investment-strategy fallback + earnings route
+- iter193: news-cascade ← 완전 새 영역 ✓
+
+PRODUCTION PROBE (iter 시작 전):
+  news-cascade: count=10, cached=False → cold start
+  Article #1: 4 cascades (AI worked — Redis cached from prior run)
+  Articles #2-5: 0 cascades (AI failed — GROQ quota exhausted)
+  → 90% of articles have zero cascade analysis
+  → but list was being cached for 12h due to buggy threshold
+
+BUGS FOUND AND FIXED:
+
+BUG #1: news-cascade AI 호출 과다 (10개/cold start → 토큰 낭비)
+  ROOT CAUSE:
+    deduped.slice(0, 10).map(analyzeOne) — cold start마다 10개 병렬 AI 호출
+    각 호출 ~800 tokens (200 input + 600 output)
+    cold start 1회 = ~8,000 tokens. 12h 캐시 기준 2회/day = ~16,000 tokens/day
+  FIX:
+    deduped.slice(0, 10) → deduped.slice(0, 7) (-3 calls, -2,400 tokens/cold start)
+    dedup pool 12 → 9 (분석 7개 + 버퍼 2개)
+    comment "10 GROQ calls" → "7 GROQ calls" 2곳 업데이트
+
+BUG #2: 캐시 품질 버그 — 1/10 분석 성공 시에도 12h 캐시 (CRITICAL)
+  ROOT CAUSE:
+    hasRealAnalysis = sorted.some(a => a.cascades.length > 0)
+    → 10개 중 1개만 cascade 있어도 12h 캐시 트리거
+    → GROQ 소진 상황: 1/10 = 10% 품질로 12h 동안 사용자에게 서빙
+    → GROQ 쿼터 09:00 KST 리셋 이후에도 stale 캐시가 ~5시간 남아있는 경우 발생
+  FIX:
+    hasGoodCoverage = analyzedCount >= Math.ceil(sorted.length * 0.5)
+    → 분석 성공률 ≥50% 일 때만 12h 캐시
+    → 미달 시 1h 캐시 → 쿼터 리셋 후 자동 재분석
+    예: 1/7 = 14% → 1h 캐시 (리셋 후 복구)
+        4/7 = 57% → 12h 캐시 (정상)
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo Finance (2026-04-24 Friday close, 04-26 = Sunday 시장 휴장)
+  direct_value=18.71 (iter192에서 Yahoo 직접 확인, 주말 = 새 데이터 없음)
+  our_value=18.71 (flowvium.vercel.app/api/volatility, cached=False)
+  delta=0 → EXACT MATCH ✓
+
+[accuracy probe] metric=news-cascade.count source=flowvium.vercel.app live
+  direct_value=10 articles, cached=False (cold start 발생)
+  cascade_coverage=1/10=10% (GROQ quota still exhausted)
+  → iter193 quality-cache fix 이후: 1/7 < 50% → 1h TTL (기존 12h → 수정됨)
+
+SIDE FINDING:
+  Production /api/volatility에서 regimeKo 필드 확인 (mojibake + 한자 혼입).
+  Local codebase에 regimeKo 없음 → 195+ commits 미배포 상태의 old Vercel 코드.
+  Next deploy 시 자동 사라짐. 별도 수정 불필요.
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/news-cascade/route.ts
+  - NEWS_MEMORY_CACHE comment: "10 GROQ calls" → "7 GROQ calls"
+  - Dedup pool: >= 12 → >= 9 (7 analyzed + 2 buffer)
+  - Analysis comment: "8 concurrent" → "7 concurrent"
+  - deduped.slice(0, 10) → slice(0, 7)
+  - 캐시 품질 임계값: hasRealAnalysis (any > 0) → hasGoodCoverage (≥50%)
+  - memory cache write: hasRealAnalysis → hasGoodCoverage
+
+TOKEN SAVINGS:
+  Analysis calls: 10 → 7 = -30%
+  Per cold start: -3 calls × 800 tokens = -2,400 tokens
+  Per day (2 cold starts): -4,800 tokens
+  Combined with iter191 savings (380k/day): incremental but clean
+
+QUALITY IMPROVEMENT:
+  Before: 1/10 cascades → 12h stale cache (users see 90% empty analysis)
+  After: 1/7 cascades (14%) → 1h cache → auto-retry on GROQ reset
+  This is a user-facing quality fix once deployed.
+
+NEXT: iter194 → 후보:
+  1. 배포 (user action 필요: git push origin master)
+  2. 신규 기능: sector rotation signal (어떤 섹터로 자금 이동 중인지 실시간)
+  3. production bug audit: fear-greed response 구조 확인 (probe 시 키 구조 다름)
+  4. verify-metrics /api/cron/verify-metrics 실행 → 전체 정확도 스냅샷

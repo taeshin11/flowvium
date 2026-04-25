@@ -9,7 +9,7 @@ export const maxDuration = 60;
 // 2h CDN + 2h stale-while-revalidate aligned with NEWS_MEMORY_TTL_MS (2h).
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=7200' };
 
-// Module-level memory cache — without Redis, each request burns 10 GROQ calls (one per article).
+// Module-level memory cache — without Redis, each request burns 7 GROQ calls (one per article).
 // 2h TTL matches daily news cadence without burning the 100k TPD budget.
 // Type is forward-declared; actual interface is defined below.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -209,7 +209,7 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 export async function GET() {
   const redis = createRedis();
 
-  // 1a. Module-level memory cache hit (no-Redis path) — avoids 10 GROQ calls per request
+  // 1a. Module-level memory cache hit (no-Redis path) — avoids 7 GROQ calls per request
   if (!redis && NEWS_MEMORY_CACHE && Date.now() < NEWS_MEMORY_CACHE.expiresAt) {
     logger.info('api.news-cascade', 'memory_cache_hit', { articles: NEWS_MEMORY_CACHE.articles.length });
     return NextResponse.json({ articles: NEWS_MEMORY_CACHE.articles, cached: true }, { headers: CDN_HEADERS });
@@ -242,7 +242,7 @@ export async function GET() {
     return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
   });
 
-  // De-duplicate by title similarity (keep top 12 most recent)
+  // De-duplicate by title similarity (keep top 9 most recent)
   const seen = new Set<string>();
   const deduped: RawNewsItem[] = [];
   for (const a of rawArticles) {
@@ -251,14 +251,14 @@ export async function GET() {
       seen.add(key);
       deduped.push(a);
     }
-    if (deduped.length >= 12) break;
+    if (deduped.length >= 9) break;
   }
 
   if (deduped.length === 0) {
     return NextResponse.json({ articles: [], cached: false }, { headers: CDN_HEADERS });
   }
 
-  // 3. Analyze each article with AI — parallel (8 concurrent, each 10s timeout)
+  // 3. Analyze each article with AI — parallel (7 concurrent, each 10s timeout)
   async function analyzeOne(item: RawNewsItem): Promise<NewsWithCascade | null> {
     try {
       const id = hashUrl(item.link);
@@ -282,7 +282,7 @@ export async function GET() {
     }
   }
 
-  const settled = await Promise.allSettled(deduped.slice(0, 10).map(analyzeOne));
+  const settled = await Promise.allSettled(deduped.slice(0, 7).map(analyzeOne));
   const analyzed: NewsWithCascade[] = settled
     .map(r => r.status === 'fulfilled' ? r.value : null)
     .filter((v): v is NewsWithCascade => v != null);
@@ -293,19 +293,20 @@ export async function GET() {
     return (imp[b.importance] ?? 2) - (imp[a.importance] ?? 2);
   });
 
-  // 5. Cache the full list — tiered TTL based on whether AI analysis succeeded.
-  //    12h when analysis present (avoid re-burning AI tokens same day).
-  //    1h when no analysis (AI down) — prevents repeated RSS + failed-AI storms,
-  //    while allowing recovery within ~1h when providers come back online.
-  const hasRealAnalysis = sorted.some(a => a.cascades.length > 0);
+  // 5. Cache the full list — tiered TTL based on analysis coverage quality.
+  //    12h only when ≥50% of articles have real cascades (full daily cache).
+  //    1h otherwise — allows retry after GROQ quota resets at 09:00 KST.
+  //    A single article with cascades (10% coverage) must NOT lock stale results for 12h.
+  const analyzedCount = sorted.filter(a => a.cascades.length > 0).length;
+  const hasGoodCoverage = sorted.length > 0 && analyzedCount >= Math.ceil(sorted.length * 0.5);
   if (redis && sorted.length > 0) {
-    const ttl = hasRealAnalysis ? 12 * 60 * 60 : 60 * 60;
+    const ttl = hasGoodCoverage ? 12 * 60 * 60 : 60 * 60;
     await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: ttl });
   }
 
   // Module-level memory cache — write regardless of Redis availability.
-  // Only cache when real AI analysis present (don't lock fallback stubs for 2h).
-  if (!redis && sorted.length > 0 && hasRealAnalysis) {
+  // Only cache when analysis quality is good (don't lock fallback stubs for 2h).
+  if (!redis && sorted.length > 0 && hasGoodCoverage) {
     NEWS_MEMORY_CACHE = { articles: sorted, expiresAt: Date.now() + NEWS_MEMORY_TTL_MS };
     logger.info('api.news-cascade', 'memory_cache_written', { articles: sorted.length });
   }
