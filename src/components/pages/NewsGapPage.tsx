@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { type NewsGapEntry, edgarTicker } from '@/data/news-gap';
 import { sectorContextMap } from '@/data/sector-context';
@@ -659,6 +659,7 @@ export default function NewsGapPage({
   updatedTickers,
 }: NewsGapPageProps) {
   const t = useTranslations('newsGap');
+  const locale = useLocale();
   const [sortBy, setSortBy] = useState<'gap' | 'ib' | 'media'>('gap');
 
   const sorted = useMemo(() => {
@@ -707,11 +708,11 @@ export default function NewsGapPage({
           <ShareButtons title="News Gap Analyzer - The Silence IS the Signal | Flowvium" />
           {source === 'cached' ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium border border-blue-200">
-              <Database className="w-3.5 h-3.5" />실시간 데이터 ({updatedTickers}개 티커) · {new Date(lastUpdated).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <Database className="w-3.5 h-3.5" />실시간 데이터 ({updatedTickers}개 티커) · {new Date(lastUpdated).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           ) : source === 'live' ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold border border-green-200">
-              <Zap className="w-3.5 h-3.5" />방금 갱신 · {updatedTickers}개 티커 · {new Date(lastUpdated).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <Zap className="w-3.5 h-3.5" />방금 갱신 · {updatedTickers}개 티커 · {new Date(lastUpdated).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           ) : (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200" title="Alpha Vantage 뉴스·EDGAR 13F 데이터가 아직 수집되지 않아 리서치 기반 정적 데이터를 표시 중입니다. 다음 cron 실행(02:00 UTC)에 갱신 예정">

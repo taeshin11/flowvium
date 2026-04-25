@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { sectors } from '@/data/sectors';
 import { institutionalSignals } from '@/data/institutional-signals';
@@ -428,6 +428,7 @@ const RISK_CONFIG = {
 };
 
 function AIDailyBrief() {
+  const locale = useLocale();
   const [tf, setTf] = useState<Timeframe>('4w');
   const [brief, setBrief] = useState<DailyBrief | null>(null);
   const [loading, setLoading] = useState(true);
@@ -456,7 +457,7 @@ function AIDailyBrief() {
 
   const genTime = brief?.generatedAt
     ? new Date(new Date(brief.generatedAt).getTime() + 9 * 3600000)
-        .toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' }) + ' KST'
+        .toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' }) + ' KST'
     : null;
 
   return (

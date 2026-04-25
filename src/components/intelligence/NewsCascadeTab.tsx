@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { GitMerge, Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface CascadeEffectItem { asset: string; direction: 'positive' | 'negative' | 'neutral'; magnitude: 'high' | 'medium' | 'low'; reason: string; timeframe: string; }
 interface NewsWithCascadeItem { id: string; title: string; source: string; pubDate: string; summary: string; cascades: CascadeEffectItem[]; sentiment: 'bullish' | 'bearish' | 'neutral'; importance: 'high' | 'medium' | 'low'; }
@@ -25,6 +25,7 @@ const CASCADE_DIR_STYLE: Record<string, { icon: string; cls: string }> = {
 
 export default function NewsCascadeTab() {
   const t = useTranslations('intelligence');
+  const locale = useLocale();
   const [news, setNews] = useState<NewsWithCascadeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export default function NewsCascadeTab() {
                     <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${ss.cls}`}>{SENTIMENT_LABEL[item.sentiment] ?? SENTIMENT_LABEL.neutral}</span>
                       <span className="text-[10px] text-cf-text-secondary">{item.source}</span>
-                      <span className="text-[10px] text-gray-400">{new Date(item.pubDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="text-[10px] text-gray-400">{new Date(item.pubDate).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <h4 className="text-sm font-bold text-cf-text-primary leading-snug">{item.title}</h4>
                     {item.summary && <p className="text-xs text-cf-text-secondary mt-1 leading-relaxed">{item.summary}</p>}

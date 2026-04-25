@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLocale } from 'next-intl';
 import { Loader2, TrendingUp, Activity, GitMerge, BarChart2 } from 'lucide-react';
 import EconCalendarSection from './EconCalendarSection';
 
@@ -388,6 +389,7 @@ function SectorPESection() {
 }
 
 export default function MacroIndicatorsTab() {
+  const locale = useLocale();
   const [indicators, setIndicators] = useState<MacroIndicator[]>([]);
   const [yieldCurve, setYieldCurve] = useState<YieldCurve | null>(null);
   const [loading, setLoading] = useState(true);
@@ -521,7 +523,7 @@ export default function MacroIndicatorsTab() {
                     )}
                   </div>
                   <span className="text-[10px] text-cf-text-secondary flex-shrink-0">
-                    {ind.releaseDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                    {ind.releaseDate.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
               ))}

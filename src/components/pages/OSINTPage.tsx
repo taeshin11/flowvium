@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Search, AlertTriangle, ExternalLink, Shield, Globe, Bitcoin,
   Building2, BookOpen, Loader2, CheckCircle, XCircle,
@@ -96,6 +96,7 @@ function CascadeChain({ items }: { items: string[] }) {
 
 function SocialTab() {
   const t = useTranslations('osint');
+  const locale = useLocale();
   const [data, setData] = useState<SocialEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -239,7 +240,7 @@ function SocialTab() {
                 {entry.istweet ? `X · ${entry.source}` : entry.source}
               </span>
               <span>·</span>
-              <span>{new Date(entry.publishedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              <span>{new Date(entry.publishedAt).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
               <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </a>
@@ -267,6 +268,7 @@ interface CryptoResult {
 
 function CryptoTab() {
   const t = useTranslations('osint');
+  const locale = useLocale();
   const [walletData, setWalletData] = useState<Record<string, CryptoResult | 'loading' | 'error'>>({});
   const [address, setAddress] = useState('');
   const [chainParam, setChainParam] = useState<'auto' | 'eth' | 'btc'>('auto');
@@ -438,7 +440,7 @@ function CryptoTab() {
                           <a href={explorerTx(searchResult.chain, tx.hash)} target="_blank" rel="noopener noreferrer"
                             className="font-mono text-cf-primary hover:underline">{truncateHash(tx.hash)}</a>
                         </td>
-                        <td className="py-2 pr-3 text-cf-text-secondary">{new Date(tx.time).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td className="py-2 pr-3 text-cf-text-secondary">{new Date(tx.time).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                         <td className="py-2 pr-3 text-right font-mono">{fmt(tx.value)}</td>
                         <td className="py-2 text-center">
                           {tx.direction === 'in'

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Calendar } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { getUpcomingEvents, daysUntil, type EconEvent } from '@/data/econ-calendar';
 
 const IMPACT_STYLE: Record<EconEvent['impact'], { badge: string; dot: string }> = {
@@ -31,6 +31,7 @@ function DaysChip({ days, today, tomorrow, later }: { days: number; today: strin
 
 export default function EconCalendarSection() {
   const t = useTranslations('intelligence');
+  const locale = useLocale();
   const today = useMemo(() => new Date(), []);
   const events = useMemo(() => getUpcomingEvents(today, 10), [today]);
 
@@ -54,7 +55,7 @@ export default function EconCalendarSection() {
         {Object.entries(grouped).map(([date, evts]) => {
           const days = daysUntil(date, today);
           const d = new Date(date + 'T12:00:00');
-          const dateLabel = d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
+          const dateLabel = d.toLocaleDateString(locale, { month: 'short', day: 'numeric', weekday: 'short' });
 
           return (
             <div key={date} className="flex gap-3">

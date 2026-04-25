@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useLocale } from 'next-intl';
 import { Calendar, Loader2, RefreshCw, TrendingUp, TrendingDown, Clock, Sun, Moon, ExternalLink, Search, Star } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
@@ -92,6 +93,7 @@ function SurpriseBadge({ pct }: { pct: number | null }) {
 }
 
 export default function EarningsPage() {
+  const locale = useLocale();
   const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('twoweeks');
   const [data, setData] = useState<EarningsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -309,7 +311,7 @@ export default function EarningsPage() {
 
       {data?.updatedAt && (
         <p className="text-[10px] text-cf-text-secondary mt-3 text-right">
-          업데이트: {new Date(data.updatedAt).toLocaleString('ko-KR')} · 출처: Finnhub · {data.cached ? '캐시됨 (2h TTL)' : '실시간'}
+          업데이트: {new Date(data.updatedAt).toLocaleString(locale)} · 출처: Finnhub · {data.cached ? '캐시됨 (2h TTL)' : '실시간'}
         </p>
       )}
     </div>
