@@ -288,8 +288,10 @@ function estimateRotationStart(
     return rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0;
   };
 
-  // Scan back in 1-week steps (bounded by maxWeeks) to find start of divergence
-  let weeksAgo = 1;
+  // Scan back in 1-week steps (bounded by maxWeeks) to find start of divergence.
+  // Default to maxWeeks so a rotation that spans the full window reports the correct age,
+  // not "1 week ago" (the old off-by-direction bug).
+  let weeksAgo = maxWeeks;
   for (let w = maxWeeks; w >= 1; w--) {
     const toRet = avgGroupReturn(toTickers, w * 5, 5);
     const fromRet = avgGroupReturn(fromTickers, w * 5, 5);
@@ -297,7 +299,6 @@ function estimateRotationStart(
       weeksAgo = Math.min(w + 1, maxWeeks);
       break;
     }
-    weeksAgo = 1; // still going
   }
 
   // Momentum: compare 1w spread vs 4w average weekly spread
