@@ -1,0 +1,55 @@
+iter115 — 2026-04-25
+Primary outcome: fedwatch/insider/korea/credit 캐시 완성
+
+Drift check:
+- iter112~114: signals/screener 영역 3회 연속 → drift 신호 → iter115에서 API 라우트로 영역 이동
+
+==== 수정 내역 ====
+
+1. fedwatch/route.ts
+   - FEDWATCH_MEMORY_CACHE 추가 (4h TTL)
+   - liveData=true일 때만 캐시 저장 (static fallback 제외)
+   - 효과: 7개 Yahoo ZQ Futures 호출 절감 (warm instance 재사용 시)
+
+2. insider-trades/route.ts
+   - INSIDER_MEMORY_CACHE 추가 (30min TTL)
+   - force=1 시 캐시 우회 유지
+   - 효과: SEC EDGAR Form 4 RSS 호출 절감
+
+3. korea-flow/route.ts
+   - KOREA_MEMORY_CACHE Map<period, {data, expiresAt}> 추가
+   - period별 TTL: 1d=15min, 1w=30min, 4w=1h, 13w=4h
+   - 효과: KRX API or Yahoo 20개 fallback 호출 절감
+
+4. credit-balance/route.ts
+   - CREDIT_MEMORY_CACHE 추가 (24h TTL)
+   - 효과: fetchAllCreditData() 호출 절감 (static + live overlay)
+
+==== 완성 현황 ====
+모듈 레벨 캐시 보유 라우트 (총 11개):
+- daily-brief (4h) — GROQ AI
+- news-cascade (2h) — GROQ AI x10
+- flow-analysis (4h) — GROQ AI
+- investment-strategy (4h) — GROQ AI
+- capital-flows (15min) — Yahoo x41
+- macro-indicators (4h) — FRED x17
+- fear-greed (4h) — CNN + 계산
+- fedwatch (4h) — Yahoo ZQ x7
+- insider-trades (30min) — SEC EDGAR RSS
+- korea-flow (15min~4h) — KRX + Yahoo x20
+- credit-balance (24h) — FINRA/static
+기존 createMemoryCache 사용: yield-curve (30min), volatility (15min), market-heatmap (10min)
+
+==== 실험 (Negative Result) ====
+CME FedWatch 직접 API fetch 시도 → IP 차단 ("suspected web scraping activity")
+결론: Yahoo Finance ZQ Futures 방식이 유일한 실용 대안. 현재 정상 작동.
+
+==== 정확도 검증 ====
+- F&G US: 우리=66, CNN 직접=418(bot detection), history 2026-04-24=66 → OK
+- T10Y2Y: FRED direct=0.53(Apr24), our=0.51(Apr23), delta=0.02%, 1-day lag → OK (FRED 기준 정상)
+  - yield-curve 1일 지연: FRED 데이터 오후 ET 공개 기준 정상 지연
+- fedwatch: liveData=true, totalImpliedCuts=84bp, Yahoo ZQ 실시간 작동 확인
+- verify-metrics: 185/189 OK, 0 degraded, 4 skipped (KRX blocked)
+
+==== 빌드 ====
+✓ Compiled successfully (credit-balance 빌드 시 no-store fetch 경고는 정상)
