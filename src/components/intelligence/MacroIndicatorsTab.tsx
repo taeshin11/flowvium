@@ -173,14 +173,14 @@ function FedWatchSection() {
 // ── Macro Indicators Tab ──────────────────────────────────────────────────────
 interface CascadeStep { asset: string; direction: 'up' | 'down' | 'mixed'; reason: string; magnitude: 'strong' | 'moderate' | 'weak'; }
 interface MacroIndicator {
-  id: string; name: string; nameKo: string; category: string;
+  id: string; name: string; category: string;
   actual: number | null; forecast: number | null; previous: number | null; unit: string;
   releaseDate: string; nextRelease?: string;
   liveData?: boolean;
   dataNote?: string;
   surprise: 'beat' | 'miss' | 'inline' | 'pending';
   rateImpact: 'hawkish' | 'dovish' | 'neutral';
-  rateImpactKo: string; cascade: CascadeStep[]; summary: string;
+  cascade: CascadeStep[]; summary: string;
 }
 
 const SURPRISE_BADGE_CLS: Record<string, string> = {
@@ -533,7 +533,7 @@ export default function MacroIndicatorsTab() {
                         : <span className="text-cf-text-secondary">{t('miDaysLater', { days: ind.daysUntil })}</span>}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="font-semibold text-cf-text-primary">{ind.nameKo}</span>
+                    <span className="font-semibold text-cf-text-primary">{ind.name}</span>
                     {ind.forecast != null && (
                       <span className="text-cf-text-secondary ml-2">
                         {t('miConsensus', { value: ind.forecast, unit: ind.unit.includes('%') ? '%' : ` ${ind.unit}` })}
@@ -585,8 +585,7 @@ export default function MacroIndicatorsTab() {
                         </span>
                       )}
                     </div>
-                    <div className="font-bold text-cf-text-primary text-sm">{ind.nameKo}</div>
-                    <div className="text-xs text-cf-text-secondary">{ind.name}</div>
+                    <div className="font-bold text-cf-text-primary text-sm">{ind.name}</div>
                   </div>
                   <div className="flex items-end gap-3 flex-shrink-0 text-right">
                     {ind.actual !== null && (

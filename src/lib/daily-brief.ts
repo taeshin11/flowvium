@@ -310,7 +310,7 @@ function summariseMacro(data: unknown): string {
   const notable = inds
     .filter(i => i.actual != null && (i.surprise === 'beat' || i.surprise === 'miss'))
     .slice(0, 3)
-    .map(i => `${i.nameKo ?? i.id}=${i.actual}${i.unit ?? ''}(${i.surprise})`);
+    .map(i => `${i.name ?? i.id}=${i.actual}${i.unit ?? ''}(${i.surprise})`);
   const yc = d.yieldCurve as Record<string, unknown> | undefined;
   const spread = yc?.spread10y2y as number | undefined;
   const parts: string[] = [];
