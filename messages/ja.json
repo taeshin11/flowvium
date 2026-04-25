@@ -717,7 +717,25 @@
     "cbThPercentile": "歴史的位置",
     "cbThTrend": "トレンド",
     "cbThRisk": "リスク",
-    "cbFootnote": "データ: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · 単位: USD十億 (換算) · 四半期更新"
+    "cbFootnote": "データ: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · 単位: USD十億 (換算) · 四半期更新",
+    "ncSentimentBullish": "強気",
+    "ncSentimentBearish": "弱気",
+    "ncSentimentNeutral": "中立",
+    "ncLoading": "ニュース分析中...",
+    "ncEmpty": "ニュースCascadeデータを読み込めませんでした。後でもう一度お試しください。",
+    "ncTitle": "ニュース市場カスケード分析",
+    "ncDesc": "AIが主要ニュースを分析し、各資産・セクターへの連鎖的影響を予測します。🔴 重要度高 · 🟡 中 · ⚪ 低",
+    "ncCascadeExpand": "Cascade {count}件 表示",
+    "ncCascadeCollapse": "Cascade {count}件 閉じる",
+    "ncMagHigh": "強",
+    "ncMagMedium": "中",
+    "ncMagLow": "弱",
+    "ecToday": "今日",
+    "ecTomorrow": "明日",
+    "ecDaysLater": "{days}日後",
+    "ecTitle": "主要マクロイベントカレンダー",
+    "ecTimezone": "ET基準",
+    "ecFootnote": "出典: Federal Reserve · BLS · BEA公式発表日程 · 日程は変更される場合があります"
   },
   "osint": {
     "pageCategory": "グローバルインテリジェンス追跡",
@@ -866,7 +884,19 @@
     "clusters": "集中検出",
     "nportExplainer": "Form N-PORTは投資信託の月次保有開示です。13F(四半期)の3倍速く、60日以内開示のためFidelity・Vanguard・BlackRockが先月何を売買したかが分かります。追跡銘柄別集計。",
     "blocksLockedTitle": "💰 ブロック約定データは有料",
-    "blocksLockedBody": "Polygon.io Starter 月$29 (15分遅延) または Advanced 月$199 (リアルタイム)。フッターの月$200支援目標達成で有効化。無料プランでも他の6タブはライブ動作中です。"
+    "blocksLockedBody": "Polygon.io Starter 月$29 (15分遅延) または Advanced 月$199 (リアルタイム)。フッターの月$200支援目標達成で有効化。無料プランでも他の6タブはライブ動作中です。",
+    "brAutoAcquire": "自動取得 (RSU/DRIP)",
+    "brOptionExercise": "オプション行使",
+    "brGift": "贈与",
+    "brMajorShareholderBig": "大株主による積極的持分拡大",
+    "brMajorShareholder": "大株主持分拡大",
+    "brExecutiveBig": "経営陣の大型自社株買い",
+    "brExecutive": "経営陣の自信",
+    "brDirectorBig": "取締役による確信買い",
+    "brDirector": "取締役通常買い",
+    "brLargeOpenMarket": "大規模公開市場購入",
+    "brOpenMarket": "公開市場購入",
+    "brInsider": "インサイダー購入"
   },
   "supply": {
     "tab": {

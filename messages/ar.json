@@ -717,7 +717,25 @@
     "cbThPercentile": "تاريخي",
     "cbThTrend": "الاتجاه",
     "cbThRisk": "المخاطرة",
-    "cbFootnote": "البيانات: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · الوحدة: مليار دولار · تحديث ربع سنوي"
+    "cbFootnote": "البيانات: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · الوحدة: مليار دولار · تحديث ربع سنوي",
+    "ncSentimentBullish": "صعودي",
+    "ncSentimentBearish": "هبوطي",
+    "ncSentimentNeutral": "محايد",
+    "ncLoading": "جار تحليل الأخبار...",
+    "ncEmpty": "تعذر تحميل بيانات News Cascade. يرجى المحاولة لاحقاً.",
+    "ncTitle": "تحليل تأثير الأخبار على السوق (Cascade)",
+    "ncDesc": "يحلل الذكاء الاصطناعي الأخبار الرئيسية للتنبؤ بالتأثيرات المتسلسلة على الأصول والقطاعات. 🔴 أهمية عالية · 🟡 متوسط · ⚪ منخفض",
+    "ncCascadeExpand": "Cascade {count} عرض",
+    "ncCascadeCollapse": "Cascade {count} طي",
+    "ncMagHigh": "ع",
+    "ncMagMedium": "م",
+    "ncMagLow": "ض",
+    "ecToday": "اليوم",
+    "ecTomorrow": "غداً",
+    "ecDaysLater": "بعد {days}ي",
+    "ecTitle": "تقويم الأحداث الاقتصادية الكلية",
+    "ecTimezone": "ET",
+    "ecFootnote": "المصدر: Federal Reserve · BLS · BEA · قد تتغير التواريخ"
   },
   "osint": {
     "pageCategory": "تتبع الاستخبارات العالمية",
@@ -866,7 +884,19 @@
     "clusters": "مجموعات",
     "nportExplainer": "Form N-PORT هو الإفصاح الشهري عن محافظ صناديق الاستثمار — 3× أسرع من 13F (ربع سنوي) بتأخير 60 يوما.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "اقتناء تلقائي (RSU/DRIP)",
+    "brOptionExercise": "ممارسة خيار/ضمان",
+    "brGift": "هبة/تحويل",
+    "brMajorShareholderBig": "مساهم رئيسي يشتري بقوة",
+    "brMajorShareholder": "مساهم رئيسي يشتري",
+    "brExecutiveBig": "ثقة تنفيذية (كبيرة)",
+    "brExecutive": "ثقة تنفيذية",
+    "brDirectorBig": "شراء مقتنع من مدير",
+    "brDirector": "شراء روتيني من مدير",
+    "brLargeOpenMarket": "شراء ضخم في السوق المفتوح",
+    "brOpenMarket": "شراء في السوق المفتوح",
+    "brInsider": "شراء من الداخل"
   },
   "supply": {
     "tab": {

@@ -717,7 +717,25 @@
     "cbThPercentile": "Historical",
     "cbThTrend": "Trend",
     "cbThRisk": "Risk",
-    "cbFootnote": "Data: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unit: USD Billions (converted) · Quarterly update"
+    "cbFootnote": "Data: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unit: USD Billions (converted) · Quarterly update",
+    "ncSentimentBullish": "Bullish",
+    "ncSentimentBearish": "Bearish",
+    "ncSentimentNeutral": "Neutral",
+    "ncLoading": "Analyzing news...",
+    "ncEmpty": "Unable to load News Cascade data. Please try again later.",
+    "ncTitle": "News Market Cascade Analysis",
+    "ncDesc": "AI analyzes major news to predict cascading effects on assets & sectors. 🔴 High importance · 🟡 Medium · ⚪ Low",
+    "ncCascadeExpand": "Cascade {count} Show",
+    "ncCascadeCollapse": "Cascade {count} Hide",
+    "ncMagHigh": "H",
+    "ncMagMedium": "M",
+    "ncMagLow": "L",
+    "ecToday": "Today",
+    "ecTomorrow": "Tomorrow",
+    "ecDaysLater": "In {days}d",
+    "ecTitle": "Key Macro Events Calendar",
+    "ecTimezone": "ET",
+    "ecFootnote": "Source: Federal Reserve · BLS · BEA official schedule · Dates subject to change"
   },
   "osint": {
     "pageCategory": "Global Intelligence Tracking",
@@ -866,7 +884,19 @@
     "clusters": "Clusters",
     "nportExplainer": "Form N-PORT is the monthly holdings disclosure for mutual funds — 3× faster than 13F (quarterly) with a 60-day lag, so you see what Fidelity / Vanguard / BlackRock bought last month. Aggregated by tracked ticker.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Auto Acquire (RSU/DRIP)",
+    "brOptionExercise": "Option/Warrant Exercise",
+    "brGift": "Gift/Transfer",
+    "brMajorShareholderBig": "Major Shareholder Aggressive Buying",
+    "brMajorShareholder": "Major Shareholder Buying",
+    "brExecutiveBig": "Executive Confidence (Large)",
+    "brExecutive": "Executive Confidence",
+    "brDirectorBig": "Director Conviction Buy",
+    "brDirector": "Director Routine Buy",
+    "brLargeOpenMarket": "Large Open Market Purchase",
+    "brOpenMarket": "Open Market Purchase",
+    "brInsider": "Insider Purchase"
   },
   "supply": {
     "tab": {

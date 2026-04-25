@@ -717,7 +717,25 @@
     "cbThPercentile": "ऐतिहासिक",
     "cbThTrend": "प्रवृत्ति",
     "cbThRisk": "जोखिम",
-    "cbFootnote": "डेटा: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · इकाई: अरब USD · तिमाही अपडेट"
+    "cbFootnote": "डेटा: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · इकाई: अरब USD · तिमाही अपडेट",
+    "ncSentimentBullish": "बुलिश",
+    "ncSentimentBearish": "बियरिश",
+    "ncSentimentNeutral": "तटस्थ",
+    "ncLoading": "समाचार विश्लेषण जारी...",
+    "ncEmpty": "News Cascade डेटा लोड नहीं हो सका। कृपया बाद में पुनः प्रयास करें।",
+    "ncTitle": "समाचार बाज़ार कैस्केड विश्लेषण",
+    "ncDesc": "AI प्रमुख समाचारों का विश्लेषण करके संपत्तियों और क्षेत्रों पर कैस्केडिंग प्रभाव की भविष्यवाणी करता है। 🔴 उच्च · 🟡 मध्यम · ⚪ कम",
+    "ncCascadeExpand": "Cascade {count} देखें",
+    "ncCascadeCollapse": "Cascade {count} छुपाएं",
+    "ncMagHigh": "उ",
+    "ncMagMedium": "म",
+    "ncMagLow": "न",
+    "ecToday": "आज",
+    "ecTomorrow": "कल",
+    "ecDaysLater": "{days} दिन बाद",
+    "ecTitle": "प्रमुख मैक्रो इवेंट कैलेंडर",
+    "ecTimezone": "ET",
+    "ecFootnote": "स्रोत: Federal Reserve · BLS · BEA · तिथियां बदल सकती हैं"
   },
   "osint": {
     "pageCategory": "वैश्विक इंटेलिजेंस ट्रैकिंग",
@@ -866,7 +884,19 @@
     "clusters": "क्लस्टर",
     "nportExplainer": "Form N-PORT म्यूचुअल फंड के मासिक होल्डिंग्स का खुलासा है — 13F (तिमाही) से 3× तेज़, 60-दिन देरी।",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "स्वचालित अधिग्रहण (RSU/DRIP)",
+    "brOptionExercise": "विकल्प/वारंट अभ्यास",
+    "brGift": "उपहार/हस्तांतरण",
+    "brMajorShareholderBig": "प्रमुख शेयरधारक आक्रामक खरीद",
+    "brMajorShareholder": "प्रमुख शेयरधारक खरीद",
+    "brExecutiveBig": "कार्यपालक आत्मविश्वास (बड़ा)",
+    "brExecutive": "कार्यपालक आत्मविश्वास",
+    "brDirectorBig": "निदेशक विश्वास खरीद",
+    "brDirector": "निदेशक नियमित खरीद",
+    "brLargeOpenMarket": "बड़ी खुले बाजार की खरीद",
+    "brOpenMarket": "खुले बाजार में खरीद",
+    "brInsider": "इनसाइडर खरीद"
   },
   "supply": {
     "tab": {

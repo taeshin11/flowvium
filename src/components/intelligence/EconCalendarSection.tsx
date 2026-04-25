@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { Calendar } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getUpcomingEvents, daysUntil, type EconEvent } from '@/data/econ-calendar';
 
 const IMPACT_STYLE: Record<EconEvent['impact'], { badge: string; dot: string }> = {
@@ -21,14 +22,15 @@ const CATEGORY_COLOR: Record<string, string> = {
   Retail: 'text-purple-600',
 };
 
-function DaysChip({ days }: { days: number }) {
-  if (days === 0) return <span className="text-[11px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">오늘</span>;
-  if (days === 1) return <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">내일</span>;
-  if (days <= 7)  return <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{days}일 후</span>;
-  return <span className="text-[11px] text-cf-text-secondary bg-cf-bg px-1.5 py-0.5 rounded border border-cf-border">{days}일 후</span>;
+function DaysChip({ days, today, tomorrow, later }: { days: number; today: string; tomorrow: string; later: string }) {
+  if (days === 0) return <span className="text-[11px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">{today}</span>;
+  if (days === 1) return <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">{tomorrow}</span>;
+  if (days <= 7)  return <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{later}</span>;
+  return <span className="text-[11px] text-cf-text-secondary bg-cf-bg px-1.5 py-0.5 rounded border border-cf-border">{later}</span>;
 }
 
 export default function EconCalendarSection() {
+  const t = useTranslations('intelligence');
   const today = useMemo(() => new Date(), []);
   const events = useMemo(() => getUpcomingEvents(today, 10), [today]);
 
@@ -44,8 +46,8 @@ export default function EconCalendarSection() {
     <div className="cf-card p-4">
       <div className="flex items-center gap-2 mb-3">
         <Calendar className="w-4 h-4 text-cf-primary flex-shrink-0" />
-        <h3 className="text-sm font-bold text-cf-text-primary">주요 매크로 이벤트 캘린더</h3>
-        <span className="ml-auto text-[10px] text-cf-text-secondary">ET 기준</span>
+        <h3 className="text-sm font-bold text-cf-text-primary">{t('ecTitle')}</h3>
+        <span className="ml-auto text-[10px] text-cf-text-secondary">{t('ecTimezone')}</span>
       </div>
 
       <div className="space-y-3">
@@ -59,7 +61,7 @@ export default function EconCalendarSection() {
               {/* Date column */}
               <div className="flex-shrink-0 w-[72px] text-right pt-0.5">
                 <div className="text-xs text-cf-text-secondary leading-tight">{dateLabel}</div>
-                <div className="mt-0.5"><DaysChip days={days} /></div>
+                <div className="mt-0.5"><DaysChip days={days} today={t('ecToday')} tomorrow={t('ecTomorrow')} later={t('ecDaysLater', { days })} /></div>
               </div>
 
               {/* Events column */}
@@ -91,7 +93,7 @@ export default function EconCalendarSection() {
       </div>
 
       <p className="text-[10px] text-cf-text-secondary mt-3 pt-2 border-t border-cf-border/50">
-        출처: Federal Reserve · BLS · BEA 공식 발표 일정 · 날짜는 변경될 수 있습니다
+        {t('ecFootnote')}
       </p>
     </div>
   );

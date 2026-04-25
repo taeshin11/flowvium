@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { GitMerge, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface CascadeEffectItem { asset: string; direction: 'positive' | 'negative' | 'neutral'; magnitude: 'high' | 'medium' | 'low'; reason: string; timeframe: string; }
 interface NewsWithCascadeItem { id: string; title: string; source: string; pubDate: string; summary: string; cascades: CascadeEffectItem[]; sentiment: 'bullish' | 'bearish' | 'neutral'; importance: 'high' | 'medium' | 'low'; }
 
-const SENTIMENT_STYLE: Record<string, { label: string; cls: string }> = {
-  bullish:  { label: '강세', cls: 'bg-green-50 text-green-700 border-green-200' },
-  bearish:  { label: '약세', cls: 'bg-red-50 text-red-700 border-red-200' },
-  neutral:  { label: '중립', cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+const SENTIMENT_STYLE: Record<string, { cls: string }> = {
+  bullish:  { cls: 'bg-green-50 text-green-700 border-green-200' },
+  bearish:  { cls: 'bg-red-50 text-red-700 border-red-200' },
+  neutral:  { cls: 'bg-gray-50 text-gray-600 border-gray-200' },
 };
 const IMPORTANCE_STYLE: Record<string, { cls: string }> = {
   high:   { cls: 'border-l-4 border-l-red-400' },
@@ -23,9 +24,20 @@ const CASCADE_DIR_STYLE: Record<string, { icon: string; cls: string }> = {
 };
 
 export default function NewsCascadeTab() {
+  const t = useTranslations('intelligence');
   const [news, setNews] = useState<NewsWithCascadeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const SENTIMENT_LABEL: Record<string, string> = {
+    bullish: t('ncSentimentBullish'),
+    bearish: t('ncSentimentBearish'),
+    neutral: t('ncSentimentNeutral'),
+  };
+  const MAG_LABEL: Record<string, string> = {
+    high: t('ncMagHigh'),
+    medium: t('ncMagMedium'),
+    low: t('ncMagLow'),
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,13 +52,13 @@ export default function NewsCascadeTab() {
   if (loading) return (
     <div className="flex items-center justify-center gap-2 py-16 text-cf-text-secondary">
       <Loader2 className="w-5 h-5 animate-spin" />
-      <span className="text-sm">뉴스 분석 중...</span>
+      <span className="text-sm">{t('ncLoading')}</span>
     </div>
   );
 
   if (!news.length) return (
     <div className="cf-card p-8 text-center text-cf-text-secondary text-sm">
-      뉴스 Cascade 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
+      {t('ncEmpty')}
     </div>
   );
 
@@ -56,8 +68,8 @@ export default function NewsCascadeTab() {
         <div className="flex items-start gap-3">
           <div className="text-2xl leading-none">📡</div>
           <div>
-            <h3 className="text-sm font-bold text-cf-text-primary mb-1">뉴스 시장 파급 분석 (Cascade)</h3>
-            <p className="text-xs text-cf-text-secondary leading-relaxed">AI가 주요 뉴스를 분석해 각 자산·섹터에 미치는 연쇄 영향을 예측합니다. 🔴 중요도 높음 · 🟡 중간 · ⚪ 낮음</p>
+            <h3 className="text-sm font-bold text-cf-text-primary mb-1">{t('ncTitle')}</h3>
+            <p className="text-xs text-cf-text-secondary leading-relaxed">{t('ncDesc')}</p>
           </div>
         </div>
       </div>
@@ -72,7 +84,7 @@ export default function NewsCascadeTab() {
                 <div className="flex items-start gap-2 mb-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${ss.cls}`}>{ss.label}</span>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${ss.cls}`}>{SENTIMENT_LABEL[item.sentiment] ?? SENTIMENT_LABEL.neutral}</span>
                       <span className="text-[10px] text-cf-text-secondary">{item.source}</span>
                       <span className="text-[10px] text-gray-400">{new Date(item.pubDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
@@ -86,7 +98,7 @@ export default function NewsCascadeTab() {
                     className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${isOpen ? 'bg-cf-primary/10 border-cf-primary/30 text-cf-primary' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
                   >
                     <GitMerge className="w-3 h-3" />
-                    Cascade {item.cascades.length}개 {isOpen ? '접기' : '보기'}
+                    {isOpen ? t('ncCascadeCollapse', { count: item.cascades.length }) : t('ncCascadeExpand', { count: item.cascades.length })}
                   </button>
                 )}
               </div>
@@ -104,7 +116,7 @@ export default function NewsCascadeTab() {
                             <div className="text-gray-400 text-[10px]">{c.timeframe}</div>
                           </div>
                           <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${c.magnitude === 'high' ? 'bg-red-50 text-red-500' : c.magnitude === 'medium' ? 'bg-amber-50 text-amber-500' : 'bg-gray-50 text-gray-400'}`}>
-                            {c.magnitude === 'high' ? '강' : c.magnitude === 'medium' ? '중' : '약'}
+                            {MAG_LABEL[c.magnitude] ?? MAG_LABEL.low}
                           </span>
                         </div>
                       );

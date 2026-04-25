@@ -717,7 +717,25 @@
     "cbThPercentile": "历史位置",
     "cbThTrend": "趋势",
     "cbThRisk": "风险",
-    "cbFootnote": "数据: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · 单位: 十亿美元 (换算) · 季度更新"
+    "cbFootnote": "数据: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · 单位: 十亿美元 (换算) · 季度更新",
+    "ncSentimentBullish": "看涨",
+    "ncSentimentBearish": "看跌",
+    "ncSentimentNeutral": "中性",
+    "ncLoading": "新闻分析中...",
+    "ncEmpty": "无法加载新闻Cascade数据，请稍后重试。",
+    "ncTitle": "新闻市场连锁影响分析",
+    "ncDesc": "AI分析重要新闻，预测对各资产和板块的连锁影响。🔴 重要度高 · 🟡 中 · ⚪ 低",
+    "ncCascadeExpand": "Cascade {count}个 展开",
+    "ncCascadeCollapse": "Cascade {count}个 收起",
+    "ncMagHigh": "强",
+    "ncMagMedium": "中",
+    "ncMagLow": "弱",
+    "ecToday": "今天",
+    "ecTomorrow": "明天",
+    "ecDaysLater": "{days}天后",
+    "ecTitle": "主要宏观事件日历",
+    "ecTimezone": "美东时间",
+    "ecFootnote": "来源：Federal Reserve · BLS · BEA · 日期可能变更"
   },
   "osint": {
     "pageCategory": "全球情报追踪",
@@ -866,7 +884,19 @@
     "clusters": "集中检测",
     "nportExplainer": "Form N-PORT 是共同基金的月度持仓披露 — 比 13F(季度)快 3 倍,60 天内披露,可看到 Fidelity / Vanguard / BlackRock 上月买卖了什么。按追踪代码聚合。",
     "blocksLockedTitle": "💰 大宗交易数据属于付费",
-    "blocksLockedBody": "Polygon.io Starter 每月 $29 (15 分钟延迟) 或 Advanced 每月 $199 (实时)。页脚月 $200 捐赠目标达成后开放。免费级别下其他 6 个标签均已实时运行。"
+    "blocksLockedBody": "Polygon.io Starter 每月 $29 (15 分钟延迟) 或 Advanced 每月 $199 (实时)。页脚月 $200 捐赠目标达成后开放。免费级别下其他 6 个标签均已实时运行。",
+    "brAutoAcquire": "自动取得 (RSU/DRIP)",
+    "brOptionExercise": "期权/权证行使",
+    "brGift": "赠与/转让",
+    "brMajorShareholderBig": "大股东积极增持",
+    "brMajorShareholder": "大股东增持",
+    "brExecutiveBig": "高管大额增持",
+    "brExecutive": "高管看好",
+    "brDirectorBig": "董事信任买入",
+    "brDirector": "董事例行买入",
+    "brLargeOpenMarket": "大额公开市场购买",
+    "brOpenMarket": "公开市场购买",
+    "brInsider": "内部人购买"
   },
   "supply": {
     "tab": {

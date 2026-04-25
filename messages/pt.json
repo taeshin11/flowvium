@@ -717,7 +717,25 @@
     "cbThPercentile": "Histórico",
     "cbThTrend": "Tendência",
     "cbThRisk": "Risco",
-    "cbFootnote": "Dados: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unidade: Bil. USD (convertido) · Atualização trimestral"
+    "cbFootnote": "Dados: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unidade: Bil. USD (convertido) · Atualização trimestral",
+    "ncSentimentBullish": "Alta",
+    "ncSentimentBearish": "Baixa",
+    "ncSentimentNeutral": "Neutro",
+    "ncLoading": "Analisando notícias...",
+    "ncEmpty": "Não foi possível carregar dados do News Cascade. Tente novamente mais tarde.",
+    "ncTitle": "Análise em Cascata de Notícias do Mercado",
+    "ncDesc": "A IA analisa as principais notícias para prever efeitos em cascata em ativos e setores. 🔴 Alta importância · 🟡 Média · ⚪ Baixa",
+    "ncCascadeExpand": "Cascade {count} Ver",
+    "ncCascadeCollapse": "Cascade {count} Ocultar",
+    "ncMagHigh": "A",
+    "ncMagMedium": "M",
+    "ncMagLow": "B",
+    "ecToday": "Hoje",
+    "ecTomorrow": "Amanhã",
+    "ecDaysLater": "Em {days}d",
+    "ecTitle": "Calendário de Eventos Macro Principais",
+    "ecTimezone": "ET",
+    "ecFootnote": "Fonte: Federal Reserve · BLS · BEA · Datas sujeitas a alteração"
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",
@@ -866,7 +884,19 @@
     "clusters": "Clusters",
     "nportExplainer": "Form N-PORT é a divulgação mensal de carteira dos fundos mútuos — 3× mais rápido que 13F (trimestral), com atraso de 60 dias.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Aquisição Auto (RSU/DRIP)",
+    "brOptionExercise": "Exercício Opção/Warrant",
+    "brGift": "Doação/Transferência",
+    "brMajorShareholderBig": "Acionista Principal: Compra Agressiva",
+    "brMajorShareholder": "Acionista Principal: Compra",
+    "brExecutiveBig": "Confiança Exec. (Grande)",
+    "brExecutive": "Confiança Executiva",
+    "brDirectorBig": "Compra Diretor Convicto",
+    "brDirector": "Compra Rotina Diretor",
+    "brLargeOpenMarket": "Grande Compra no Mercado",
+    "brOpenMarket": "Compra no Mercado Aberto",
+    "brInsider": "Compra Insider"
   },
   "supply": {
     "tab": {

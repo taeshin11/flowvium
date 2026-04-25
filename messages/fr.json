@@ -717,7 +717,25 @@
     "cbThPercentile": "Historique",
     "cbThTrend": "Tendance",
     "cbThRisk": "Risque",
-    "cbFootnote": "Données: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unité: Milliards USD (converti) · Mise à jour trimestrielle"
+    "cbFootnote": "Données: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unité: Milliards USD (converti) · Mise à jour trimestrielle",
+    "ncSentimentBullish": "Haussier",
+    "ncSentimentBearish": "Baissier",
+    "ncSentimentNeutral": "Neutre",
+    "ncLoading": "Analyse des actualités...",
+    "ncEmpty": "Impossible de charger les données News Cascade. Veuillez réessayer plus tard.",
+    "ncTitle": "Analyse en Cascade des Actualités du Marché",
+    "ncDesc": "IA analyse les actualités majeures pour prédire les effets en cascade sur les actifs et secteurs. 🔴 Haute importance · 🟡 Moyenne · ⚪ Faible",
+    "ncCascadeExpand": "Cascade {count} Voir",
+    "ncCascadeCollapse": "Cascade {count} Réduire",
+    "ncMagHigh": "H",
+    "ncMagMedium": "M",
+    "ncMagLow": "F",
+    "ecToday": "Aujourd'hui",
+    "ecTomorrow": "Demain",
+    "ecDaysLater": "Dans {days}j",
+    "ecTitle": "Calendrier des Événements Macro Clés",
+    "ecTimezone": "ET",
+    "ecFootnote": "Source : Federal Reserve · BLS · BEA · Les dates peuvent changer"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",
@@ -866,7 +884,19 @@
     "clusters": "Clusters",
     "nportExplainer": "Form N-PORT est la divulgation mensuelle des positions des fonds mutuels — 3× plus rapide que 13F (trimestriel), délai de 60 jours : on voit ce que Fidelity / Vanguard / BlackRock ont acheté le mois dernier.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Acq. Auto (RSU/DRIP)",
+    "brOptionExercise": "Exercice Option/Warrant",
+    "brGift": "Don/Transfert",
+    "brMajorShareholderBig": "Grand Actionnaire Achat Agressif",
+    "brMajorShareholder": "Grand Actionnaire: Achat",
+    "brExecutiveBig": "Confiance Dirigeants (Gros)",
+    "brExecutive": "Confiance Dirigeants",
+    "brDirectorBig": "Achat Administrateur Convaincu",
+    "brDirector": "Achat Routinier Administrateur",
+    "brLargeOpenMarket": "Gros Achat Marché Ouvert",
+    "brOpenMarket": "Achat Marché Ouvert",
+    "brInsider": "Achat Initié"
   },
   "supply": {
     "tab": {

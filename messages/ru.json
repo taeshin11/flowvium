@@ -717,7 +717,25 @@
     "cbThPercentile": "Исторически",
     "cbThTrend": "Тренд",
     "cbThRisk": "Риск",
-    "cbFootnote": "Данные: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Единица: Млрд USD · Квартальное обновление"
+    "cbFootnote": "Данные: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Единица: Млрд USD · Квартальное обновление",
+    "ncSentimentBullish": "Бычий",
+    "ncSentimentBearish": "Медвежий",
+    "ncSentimentNeutral": "Нейтральный",
+    "ncLoading": "Анализ новостей...",
+    "ncEmpty": "Не удалось загрузить данные News Cascade. Попробуйте позже.",
+    "ncTitle": "Анализ каскадного влияния новостей на рынок",
+    "ncDesc": "ИИ анализирует ключевые новости для прогноза каскадных эффектов на активы и секторы. 🔴 Высокая важность · 🟡 Средняя · ⚪ Низкая",
+    "ncCascadeExpand": "Cascade {count} показать",
+    "ncCascadeCollapse": "Cascade {count} скрыть",
+    "ncMagHigh": "В",
+    "ncMagMedium": "С",
+    "ncMagLow": "Н",
+    "ecToday": "Сегодня",
+    "ecTomorrow": "Завтра",
+    "ecDaysLater": "Через {days}д",
+    "ecTitle": "Ключевые макроэкономические события",
+    "ecTimezone": "ET",
+    "ecFootnote": "Источник: Federal Reserve · BLS · BEA · Даты могут измениться"
   },
   "osint": {
     "pageCategory": "Глобальное отслеживание разведданных",
@@ -866,7 +884,19 @@
     "clusters": "Кластеры",
     "nportExplainer": "Form N-PORT — ежемесячное раскрытие портфелей паевых фондов — в 3 раза быстрее 13F (квартал) с задержкой 60 дней.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Автоматическое приобретение",
+    "brOptionExercise": "Исполнение опциона/варранта",
+    "brGift": "Дарение/Передача",
+    "brMajorShareholderBig": "Крупный акционер: активное наращивание",
+    "brMajorShareholder": "Крупный акционер: наращивание",
+    "brExecutiveBig": "Уверенность руководства (крупная)",
+    "brExecutive": "Уверенность руководства",
+    "brDirectorBig": "Директор: уверенная покупка",
+    "brDirector": "Директор: плановая покупка",
+    "brLargeOpenMarket": "Крупная биржевая покупка",
+    "brOpenMarket": "Биржевая покупка",
+    "brInsider": "Инсайдерская покупка"
   },
   "supply": {
     "tab": {

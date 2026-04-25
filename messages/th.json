@@ -717,7 +717,25 @@
     "cbThPercentile": "ประวัติศาสตร์",
     "cbThTrend": "แนวโน้ม",
     "cbThRisk": "ความเสี่ยง",
-    "cbFootnote": "ข้อมูล: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · หน่วย: พันล้าน USD · อัปเดตรายไตรมาส"
+    "cbFootnote": "ข้อมูล: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · หน่วย: พันล้าน USD · อัปเดตรายไตรมาส",
+    "ncSentimentBullish": "กระทิง",
+    "ncSentimentBearish": "หมี",
+    "ncSentimentNeutral": "เป็นกลาง",
+    "ncLoading": "กำลังวิเคราะห์ข่าว...",
+    "ncEmpty": "ไม่สามารถโหลดข้อมูล News Cascade ได้ กรุณาลองใหม่อีกครั้ง",
+    "ncTitle": "การวิเคราะห์ผลกระทบข่าวต่อตลาด",
+    "ncDesc": "AI วิเคราะห์ข่าวสำคัญเพื่อทำนายผลกระทบต่อเนื่องต่อสินทรัพย์และเซกเตอร์ 🔴 สำคัญมาก · 🟡 ปานกลาง · ⚪ น้อย",
+    "ncCascadeExpand": "Cascade {count} รายการ ดู",
+    "ncCascadeCollapse": "Cascade {count} รายการ ซ่อน",
+    "ncMagHigh": "ส",
+    "ncMagMedium": "ก",
+    "ncMagLow": "ต",
+    "ecToday": "วันนี้",
+    "ecTomorrow": "พรุ่งนี้",
+    "ecDaysLater": "อีก {days} วัน",
+    "ecTitle": "ปฏิทินเหตุการณ์เศรษฐกิจมหภาค",
+    "ecTimezone": "ET",
+    "ecFootnote": "แหล่งข้อมูล: Federal Reserve · BLS · BEA · วันที่อาจเปลี่ยนแปลงได้"
   },
   "osint": {
     "pageCategory": "การติดตามข่าวกรองระดับโลก",
@@ -866,7 +884,19 @@
     "clusters": "กลุ่ม",
     "nportExplainer": "Form N-PORT คือการเปิดเผยการถือครองรายเดือนของกองทุนรวม — เร็วกว่า 13F (รายไตรมาส) 3 เท่า ล่าช้า 60 วัน",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "ซื้ออัตโนมัติ (RSU/DRIP)",
+    "brOptionExercise": "ใช้สิทธิ์ออปชัน/วอร์แรนต์",
+    "brGift": "ของขวัญ/โอน",
+    "brMajorShareholderBig": "ผู้ถือหุ้นใหญ่ซื้อเพิ่มเชิงรุก",
+    "brMajorShareholder": "ผู้ถือหุ้นใหญ่ซื้อเพิ่ม",
+    "brExecutiveBig": "ความเชื่อมั่นผู้บริหาร (ใหญ่)",
+    "brExecutive": "ความเชื่อมั่นผู้บริหาร",
+    "brDirectorBig": "กรรมการซื้อด้วยความเชื่อมั่น",
+    "brDirector": "กรรมการซื้อตามปกติ",
+    "brLargeOpenMarket": "ซื้อในตลาดโปร่งใสขนาดใหญ่",
+    "brOpenMarket": "ซื้อในตลาดโปร่งใส",
+    "brInsider": "ซื้อโดยบุคคลภายใน"
   },
   "supply": {
     "tab": {

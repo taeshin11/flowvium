@@ -717,7 +717,25 @@
     "cbThPercentile": "Histórico",
     "cbThTrend": "Tendencia",
     "cbThRisk": "Riesgo",
-    "cbFootnote": "Datos: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unidad: Miles de mill. USD (convertido) · Actualización trimestral"
+    "cbFootnote": "Datos: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Unidad: Miles de mill. USD (convertido) · Actualización trimestral",
+    "ncSentimentBullish": "Alcista",
+    "ncSentimentBearish": "Bajista",
+    "ncSentimentNeutral": "Neutral",
+    "ncLoading": "Analizando noticias...",
+    "ncEmpty": "No se pudieron cargar los datos de News Cascade. Por favor, intente más tarde.",
+    "ncTitle": "Análisis de Cascada de Noticias del Mercado",
+    "ncDesc": "La IA analiza noticias importantes para predecir efectos en cascada en activos y sectores. 🔴 Alta importancia · 🟡 Media · ⚪ Baja",
+    "ncCascadeExpand": "Cascada {count} Ver",
+    "ncCascadeCollapse": "Cascada {count} Ocultar",
+    "ncMagHigh": "A",
+    "ncMagMedium": "M",
+    "ncMagLow": "B",
+    "ecToday": "Hoy",
+    "ecTomorrow": "Mañana",
+    "ecDaysLater": "En {days}d",
+    "ecTitle": "Calendario de Eventos Macro Clave",
+    "ecTimezone": "ET",
+    "ecFootnote": "Fuente: Federal Reserve · BLS · BEA · Las fechas pueden cambiar"
   },
   "osint": {
     "pageCategory": "Seguimiento de Inteligencia Global",
@@ -866,7 +884,19 @@
     "clusters": "Clústeres",
     "nportExplainer": "Form N-PORT es la divulgación mensual de tenencias de fondos mutuos — 3× más rápido que 13F (trimestral), con retraso de 60 días: ves qué compraron Fidelity / Vanguard / BlackRock el mes pasado.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Adq. Automática (RSU/DRIP)",
+    "brOptionExercise": "Ejercicio Opción/Warrant",
+    "brGift": "Donación/Transferencia",
+    "brMajorShareholderBig": "Gran Acc. Compra Agresiva",
+    "brMajorShareholder": "Gran Accionista: Compra",
+    "brExecutiveBig": "Confianza Directiva (Grande)",
+    "brExecutive": "Confianza Directiva",
+    "brDirectorBig": "Compra Directivo con Convicción",
+    "brDirector": "Compra Rutinaria Directivo",
+    "brLargeOpenMarket": "Gran Compra en Mercado Abierto",
+    "brOpenMarket": "Compra en Mercado Abierto",
+    "brInsider": "Compra Insider"
   },
   "supply": {
     "tab": {

@@ -717,7 +717,25 @@
     "cbThPercentile": "Lịch Sử",
     "cbThTrend": "Xu Hướng",
     "cbThRisk": "Rủi Ro",
-    "cbFootnote": "Dữ liệu: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Đơn vị: Tỷ USD · Cập nhật hàng quý"
+    "cbFootnote": "Dữ liệu: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Đơn vị: Tỷ USD · Cập nhật hàng quý",
+    "ncSentimentBullish": "Tăng",
+    "ncSentimentBearish": "Giảm",
+    "ncSentimentNeutral": "Trung lập",
+    "ncLoading": "Đang phân tích tin tức...",
+    "ncEmpty": "Không thể tải dữ liệu News Cascade. Vui lòng thử lại sau.",
+    "ncTitle": "Phân Tích Tác Động Tin Tức Theo Chuỗi",
+    "ncDesc": "AI phân tích tin tức quan trọng để dự đoán tác động dây chuyền lên tài sản và ngành. 🔴 Quan trọng cao · 🟡 Trung bình · ⚪ Thấp",
+    "ncCascadeExpand": "Cascade {count} Xem",
+    "ncCascadeCollapse": "Cascade {count} Ẩn",
+    "ncMagHigh": "C",
+    "ncMagMedium": "T",
+    "ncMagLow": "T",
+    "ecToday": "Hôm nay",
+    "ecTomorrow": "Ngày mai",
+    "ecDaysLater": "{days}ng nữa",
+    "ecTitle": "Lịch Sự Kiện Kinh Tế Vĩ Mô",
+    "ecTimezone": "ET",
+    "ecFootnote": "Nguồn: Federal Reserve · BLS · BEA · Ngày có thể thay đổi"
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",
@@ -866,7 +884,19 @@
     "clusters": "Cụm",
     "nportExplainer": "Form N-PORT là công bố danh mục hàng tháng của quỹ tương hỗ — nhanh hơn 13F (quý) 3 lần, trễ 60 ngày.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Mua Tự Động (RSU/DRIP)",
+    "brOptionExercise": "Thực Hiện Quyền Chọn/Chứng Quyền",
+    "brGift": "Tặng/Chuyển Nhượng",
+    "brMajorShareholderBig": "Cổ Đông Lớn Mua Mạnh",
+    "brMajorShareholder": "Cổ Đông Lớn Mua",
+    "brExecutiveBig": "Sự Tự Tin Lãnh Đạo (Lớn)",
+    "brExecutive": "Sự Tự Tin Lãnh Đạo",
+    "brDirectorBig": "Giám Đốc Mua Tin Tưởng",
+    "brDirector": "Giám Đốc Mua Thường Xuyên",
+    "brLargeOpenMarket": "Mua Lớn Trên Sàn",
+    "brOpenMarket": "Mua Trên Sàn",
+    "brInsider": "Mua Nội Bộ"
   },
   "supply": {
     "tab": {

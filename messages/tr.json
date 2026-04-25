@@ -717,7 +717,25 @@
     "cbThPercentile": "Tarihsel",
     "cbThTrend": "Eğilim",
     "cbThRisk": "Risk",
-    "cbFootnote": "Veriler: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Birim: Milyar USD · Üç aylık güncelleme"
+    "cbFootnote": "Veriler: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Birim: Milyar USD · Üç aylık güncelleme",
+    "ncSentimentBullish": "Yükselen",
+    "ncSentimentBearish": "Düşen",
+    "ncSentimentNeutral": "Nötr",
+    "ncLoading": "Haberler analiz ediliyor...",
+    "ncEmpty": "News Cascade verileri yüklenemedi. Lütfen daha sonra tekrar deneyin.",
+    "ncTitle": "Haber Piyasa Kaskad Analizi",
+    "ncDesc": "Yapay zeka, varlıklar ve sektörler üzerindeki kaskad etkilerini tahmin etmek için önemli haberleri analiz eder. 🔴 Yüksek önem · 🟡 Orta · ⚪ Düşük",
+    "ncCascadeExpand": "Cascade {count} Göster",
+    "ncCascadeCollapse": "Cascade {count} Gizle",
+    "ncMagHigh": "Y",
+    "ncMagMedium": "O",
+    "ncMagLow": "D",
+    "ecToday": "Bugün",
+    "ecTomorrow": "Yarın",
+    "ecDaysLater": "{days}g sonra",
+    "ecTitle": "Önemli Makro Etkinlikler Takvimi",
+    "ecTimezone": "ET",
+    "ecFootnote": "Kaynak: Federal Reserve · BLS · BEA · Tarihler değişebilir"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",
@@ -866,7 +884,19 @@
     "clusters": "Kümeler",
     "nportExplainer": "Form N-PORT yatırım fonlarının aylık holding açıklamasıdır — 13F'den (üç aylık) 3× daha hızlı, 60 gün gecikmeli.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Otomatik Edinim (RSU/DRIP)",
+    "brOptionExercise": "Opsiyon/Varant Kullanımı",
+    "brGift": "Hediye/Transfer",
+    "brMajorShareholderBig": "Ana Hissedar: Agresif Alım",
+    "brMajorShareholder": "Ana Hissedar: Alım",
+    "brExecutiveBig": "Yönetici Güveni (Büyük)",
+    "brExecutive": "Yönetici Güveni",
+    "brDirectorBig": "Yönetim Kurulu: İkna Alımı",
+    "brDirector": "Yönetim Kurulu: Rutin Alım",
+    "brLargeOpenMarket": "Büyük Açık Piyasa Alımı",
+    "brOpenMarket": "Açık Piyasa Alımı",
+    "brInsider": "İçeriden Alım"
   },
   "supply": {
     "tab": {

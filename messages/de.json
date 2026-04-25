@@ -717,7 +717,25 @@
     "cbThPercentile": "Historisch",
     "cbThTrend": "Trend",
     "cbThRisk": "Risiko",
-    "cbFootnote": "Daten: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Einheit: Mrd. USD (umgerechnet) · Quartalsupdate"
+    "cbFootnote": "Daten: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Einheit: Mrd. USD (umgerechnet) · Quartalsupdate",
+    "ncSentimentBullish": "Bullish",
+    "ncSentimentBearish": "Bearish",
+    "ncSentimentNeutral": "Neutral",
+    "ncLoading": "Nachrichten werden analysiert...",
+    "ncEmpty": "News-Cascade-Daten konnten nicht geladen werden. Bitte später erneut versuchen.",
+    "ncTitle": "Nachrichten-Markt-Kaskadenanalyse",
+    "ncDesc": "KI analysiert wichtige Nachrichten, um Kaskadeneffekte auf Vermögenswerte und Sektoren vorherzusagen. 🔴 Hoch · 🟡 Mittel · ⚪ Niedrig",
+    "ncCascadeExpand": "Kaskade {count} anzeigen",
+    "ncCascadeCollapse": "Kaskade {count} ausblenden",
+    "ncMagHigh": "H",
+    "ncMagMedium": "M",
+    "ncMagLow": "N",
+    "ecToday": "Heute",
+    "ecTomorrow": "Morgen",
+    "ecDaysLater": "In {days}T",
+    "ecTitle": "Wichtige Makroereignisse",
+    "ecTimezone": "ET",
+    "ecFootnote": "Quelle: Federal Reserve · BLS · BEA · Termine können sich ändern"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",
@@ -866,7 +884,19 @@
     "clusters": "Cluster",
     "nportExplainer": "Form N-PORT ist die monatliche Bestandsoffenlegung für Investmentfonds — 3× schneller als 13F (vierteljährlich) mit 60 Tagen Verzögerung.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Autom. Erwerb (RSU/DRIP)",
+    "brOptionExercise": "Options-/Warrant-Ausübung",
+    "brGift": "Schenkung/Transfer",
+    "brMajorShareholderBig": "Großaktionär: Aggressive Aufstockung",
+    "brMajorShareholder": "Großaktionär: Aufstockung",
+    "brExecutiveBig": "Führungskräfte-Vertrauen (Groß)",
+    "brExecutive": "Führungskräfte-Vertrauen",
+    "brDirectorBig": "Direktor: Überzeugter Kauf",
+    "brDirector": "Direktor: Routine-Kauf",
+    "brLargeOpenMarket": "Großer Börsenkauf",
+    "brOpenMarket": "Börsenkauf",
+    "brInsider": "Insider-Kauf"
   },
   "supply": {
     "tab": {

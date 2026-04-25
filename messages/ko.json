@@ -717,7 +717,25 @@
     "cbThPercentile": "역대위치",
     "cbThTrend": "추세",
     "cbThRisk": "리스크",
-    "cbFootnote": "데이터: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · 단위: USD Billions (환율 환산) · 분기별 업데이트"
+    "cbFootnote": "데이터: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · 단위: USD Billions (환율 환산) · 분기별 업데이트",
+    "ncSentimentBullish": "강세",
+    "ncSentimentBearish": "약세",
+    "ncSentimentNeutral": "중립",
+    "ncLoading": "뉴스 분석 중...",
+    "ncEmpty": "뉴스 Cascade 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.",
+    "ncTitle": "뉴스 시장 파급 분석 (Cascade)",
+    "ncDesc": "AI가 주요 뉴스를 분석해 각 자산·섹터에 미치는 연쇄 영향을 예측합니다. 🔴 중요도 높음 · 🟡 중간 · ⚪ 낮음",
+    "ncCascadeExpand": "Cascade {count}개 보기",
+    "ncCascadeCollapse": "Cascade {count}개 접기",
+    "ncMagHigh": "강",
+    "ncMagMedium": "중",
+    "ncMagLow": "약",
+    "ecToday": "오늘",
+    "ecTomorrow": "내일",
+    "ecDaysLater": "{days}일 후",
+    "ecTitle": "주요 매크로 이벤트 캘린더",
+    "ecTimezone": "ET 기준",
+    "ecFootnote": "출처: Federal Reserve · BLS · BEA 공식 발표 일정 · 날짜는 변경될 수 있습니다"
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",
@@ -866,7 +884,19 @@
     "clusters": "집중 감지",
     "nportExplainer": "Form N-PORT는 뮤추얼펀드가 월별로 공시하는 포지션입니다. 13F(분기)보다 3배 빠르고, 60일 이내 공시라 Fidelity·Vanguard·BlackRock이 지난달 얼마 사고 팔았는지 보입니다. 추적 종목별 집계.",
     "blocksLockedTitle": "💰 블록 체결 데이터는 유료",
-    "blocksLockedBody": "Polygon.io Starter 월 $29 (15분 지연) 또는 Advanced 월 $199 (실시간). 푸터 월 $200 후원 목표 도달 시 실시간 버전 오픈 예정. 무료 티어만으로도 나머지 6개 탭은 모두 실시간 동작 중입니다."
+    "blocksLockedBody": "Polygon.io Starter 월 $29 (15분 지연) 또는 Advanced 월 $199 (실시간). 푸터 월 $200 후원 목표 도달 시 실시간 버전 오픈 예정. 무료 티어만으로도 나머지 6개 탭은 모두 실시간 동작 중입니다.",
+    "brAutoAcquire": "자동 취득 (RSU/DRIP)",
+    "brOptionExercise": "옵션·워런트 행사",
+    "brGift": "증여",
+    "brMajorShareholderBig": "대주주 지분 적극 확대",
+    "brMajorShareholder": "대주주 지분 확대",
+    "brExecutiveBig": "경영진 자신감 (대규모)",
+    "brExecutive": "경영진 자신감",
+    "brDirectorBig": "이사 신뢰 매입",
+    "brDirector": "이사 루틴 매입",
+    "brLargeOpenMarket": "대규모 장내 매수",
+    "brOpenMarket": "장내 매수",
+    "brInsider": "내부자 매입"
   },
   "supply": {
     "tab": {

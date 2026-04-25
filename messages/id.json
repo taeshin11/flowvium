@@ -717,7 +717,25 @@
     "cbThPercentile": "Historis",
     "cbThTrend": "Tren",
     "cbThRisk": "Risiko",
-    "cbFootnote": "Data: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Satuan: Miliar USD · Pembaruan kuartalan"
+    "cbFootnote": "Data: FINRA, KRX, TSE, CSRC, ESMA, NSE/BSE · Satuan: Miliar USD · Pembaruan kuartalan",
+    "ncSentimentBullish": "Bullish",
+    "ncSentimentBearish": "Bearish",
+    "ncSentimentNeutral": "Netral",
+    "ncLoading": "Menganalisis berita...",
+    "ncEmpty": "Gagal memuat data News Cascade. Silakan coba lagi nanti.",
+    "ncTitle": "Analisis Kaskade Berita Pasar",
+    "ncDesc": "AI menganalisis berita utama untuk memprediksi efek berantai pada aset dan sektor. 🔴 Penting tinggi · 🟡 Sedang · ⚪ Rendah",
+    "ncCascadeExpand": "Cascade {count} Lihat",
+    "ncCascadeCollapse": "Cascade {count} Tutup",
+    "ncMagHigh": "T",
+    "ncMagMedium": "S",
+    "ncMagLow": "R",
+    "ecToday": "Hari ini",
+    "ecTomorrow": "Besok",
+    "ecDaysLater": "{days}h lagi",
+    "ecTitle": "Kalender Acara Makro Utama",
+    "ecTimezone": "ET",
+    "ecFootnote": "Sumber: Federal Reserve · BLS · BEA · Tanggal dapat berubah"
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",
@@ -866,7 +884,19 @@
     "clusters": "Kluster",
     "nportExplainer": "Form N-PORT adalah pengungkapan kepemilikan bulanan reksa dana — 3× lebih cepat dari 13F (triwulanan), tertunda 60 hari.",
     "blocksLockedTitle": "💰 Block trade data is paid",
-    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live."
+    "blocksLockedBody": "Polygon.io Starter $29/mo (15-min delayed) or Advanced $199/mo (realtime). Unlocks once the $200/mo donation goal in the footer is reached. Even on the free tier the other 6 tabs are live.",
+    "brAutoAcquire": "Akuisisi Otomatis (RSU/DRIP)",
+    "brOptionExercise": "Eksekusi Opsi/Waran",
+    "brGift": "Hadiah/Transfer",
+    "brMajorShareholderBig": "Pemegang Saham Utama Beli Agresif",
+    "brMajorShareholder": "Pemegang Saham Utama Beli",
+    "brExecutiveBig": "Kepercayaan Eksekutif (Besar)",
+    "brExecutive": "Kepercayaan Eksekutif",
+    "brDirectorBig": "Pembelian Direktur Penuh Keyakinan",
+    "brDirector": "Pembelian Rutin Direktur",
+    "brLargeOpenMarket": "Pembelian Pasar Terbuka Besar",
+    "brOpenMarket": "Pembelian Pasar Terbuka",
+    "brInsider": "Pembelian Insider"
   },
   "supply": {
     "tab": {
