@@ -46,7 +46,7 @@ function buildTrackedKeys(): string[] {
     // 추가 핵심 키 (이전엔 누락)
     'flowvium:capital-flows:v9:yahoo',
     'flowvium:capital-flows:v9:twelve',
-    `flowvium:macro-indicators:v9:${kstDate}`,
+    `flowvium:macro-indicators:v12:${kstDate}`,
     `flowvium:fedwatch:v1:${hour}`,
     `flowvium:credit-balance:v2:${kstDate}`,
     'flowvium:latest-updates:v3',
