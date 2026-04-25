@@ -22,17 +22,11 @@ export const INSTITUTIONS: Record<string, { cik: string; sector: string }> = {
   'BlackRock':                { cik: '1364742', sector: 'asset-management' },
   'Vanguard Group':           { cik: '102909',  sector: 'asset-management' },
   'State Street':             { cik: '93751',   sector: 'asset-management' },
-  'Goldman Sachs AM':         { cik: '886982',  sector: 'investment-bank' },
-  'JPMorgan AM':              { cik: '19617',   sector: 'investment-bank' },
-  'T. Rowe Price':            { cik: '1113169', sector: 'asset-management' },
-  'Capital Group':            { cik: '813672',  sector: 'asset-management' },
-  'Citadel Advisors':         { cik: '1423298', sector: 'hedge-fund' },
+  'Wellington Management':    { cik: '902219',  sector: 'asset-management' },
   'Viking Global Investors':  { cik: '1103804', sector: 'hedge-fund' },
   'Third Point LLC':          { cik: '1040273', sector: 'hedge-fund' },
   'Pershing Square Capital':  { cik: '1336528', sector: 'hedge-fund' },
-  'GIC Private Limited':      { cik: '1534992', sector: 'sovereign-wealth' },
-  'Temasek Holdings':         { cik: '1524894', sector: 'sovereign-wealth' },
-  'Wellington Management':    { cik: '101617',  sector: 'asset-management' },
+  'FMR (Fidelity)':           { cik: '315066',  sector: 'asset-management' },
 };
 
 // ── 추적 종목 CUSIP 매핑 ────────────────────────────────────────────────────────
@@ -175,25 +169,32 @@ export async function fetch13FFilings(cik: string): Promise<Filing13F[]> {
   return filings;
 }
 
-/** 제출 인덱스에서 informationtable XML 파일명 찾기 */
+/** 제출 인덱스에서 informationtable XML 파일명 찾기
+ *  SEC EDGAR는 {accNum}-index.json 미지원.
+ *  디렉터리 HTML 파싱으로 XML 탐색 후 informationtable 패턴 우선 반환.
+ */
 async function findInfoTableFile(cik: string, accNum: string): Promise<string | null> {
   const folder = accNum.replace(/-/g, '');
   const cikNum = cik.replace(/^0+/, '');
-  const indexUrl = `https://www.sec.gov/Archives/edgar/data/${cikNum}/${folder}/${accNum}-index.json`;
+  const dirUrl = `https://www.sec.gov/Archives/edgar/data/${cikNum}/${folder}/`;
+
   try {
-    const res = await fetch(indexUrl, {
+    const res = await fetch(dirUrl, {
       headers: { 'User-Agent': EDGAR_UA },
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(8000),
       cache: 'no-store',
     });
     if (!res.ok) return null;
-    const data = await res.json();
-    const files: Array<{ name: string; type: string }> = data?.directory?.item ?? [];
-    // informationtable.xml 또는 그 유사 파일 찾기
-    const xmlFile = files.find(
-      f => /information.?table/i.test(f.name) && f.name.endsWith('.xml')
-    ) ?? files.find(f => f.name.endsWith('.xml') && f.type !== 'GRAPHIC');
-    return xmlFile?.name ?? null;
+    const html = await res.text();
+    // Extract XML filenames from directory listing hrefs
+    const matches = Array.from(html.matchAll(/href="[^"]*\/([^/"]+\.xml)"/gi));
+    const xmlFiles = matches.map(m => m[1]).filter(Boolean);
+    // Prefer informationtable / infotable pattern
+    const infoTable = xmlFiles.find(f => /info.?table/i.test(f));
+    if (infoTable) return infoTable;
+    // Fall back: any XML that isn't the primary cover doc
+    const other = xmlFiles.find(f => !/primary.?doc/i.test(f) && !/xbrl/i.test(f));
+    return other ?? xmlFiles[0] ?? null;
   } catch (err) {
     logger.warn('edgar.13f', 'index_fetch_error', { cik, accNum, error: err });
     return null;

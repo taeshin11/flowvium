@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
   const start = Date.now();
   const redis = createRedis();
   const log: string[] = [];
+  log.push(`redis: ${redis ? 'connected' : 'null (check UPSTASH env vars)'}`);
 
   // ── 1단계: EDGAR 13F 파싱 (fire & forget — 결과 나오는 것만 저장) ──────────
   // 15개 기관을 병렬 처리. 실패해도 나머지는 계속.
