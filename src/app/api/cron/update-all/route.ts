@@ -66,39 +66,41 @@ export async function GET(req: Request) {
   const base = getBaseUrl();
   const startTime = Date.now();
 
-  // ── 1단계: 독립적인 데이터 소스 병렬 갱신 ────────────────────────────────
-  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR] = await Promise.all([
+  // ── 1단계: 모든 독립 소스 + heatmap/OSINT 완전 병렬 ─────────────────────
+  // heatmap·OSINT는 stage 1 데이터에 무의존 → 분리 필요 없음.
+  // latest-updates 만 제외 (macro/fear-greed/capital-flows Redis 워밍 완료 후 실행).
+  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR, heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
-    warm(base, '/api/yield-curve', 'yield-curve', 30000),       // 16 FRED series (TIPS + BEI)
+    warm(base, '/api/yield-curve', 'yield-curve', 30000),
     warm(base, '/api/fedwatch', 'fedwatch'),
     warm(base, '/api/capital-flows', 'capital-flows'),
-    warm(base, '/api/commodity-curve', 'commodity-curve', 20000), // WTI/Gold futures (12 Yahoo calls)
+    warm(base, '/api/commodity-curve', 'commodity-curve', 20000),
     warm(base, '/api/volatility', 'volatility'),
     warm(base, '/api/fear-greed?force=1', 'fear-greed'),
     warm(base, '/api/credit-balance', 'credit-balance'),
     warm(base, '/api/short-interest', 'short-interest', 10000),
     warm(base, '/api/market-caps', 'market-caps', 50000),
-    warm(base, '/api/insider-trades', 'insider-trades', 55000),   // EDGAR Form 4 (~40 filings)
-    warm(base, '/api/ownership-alerts', 'ownership-alerts', 55000), // EDGAR 13D/13G
-    warm(base, '/api/options-flow', 'options-flow', 15000),        // Unusual Whales (no-op without key)
-    warm(base, '/api/korea-flow', 'korea-flow', 20000),            // KRX 외인·기관
-    warm(base, '/api/nport-holdings', 'nport-holdings', 55000),     // EDGAR N-PORT mutual funds
-    warm(base, '/api/block-trades', 'block-trades', 30000),         // Polygon (no-op without key)
-    warm(base, '/api/cot-positions', 'cot-positions', 20000),       // CFTC weekly positioning
-  ]);
-
-  // ── 1-b: 히트맵 (국가별 x 시간별 키라 US만 워밍) + OSINT ───────────────
-  const [heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, latestR] = await Promise.all([
+    warm(base, '/api/insider-trades', 'insider-trades', 55000),
+    warm(base, '/api/ownership-alerts', 'ownership-alerts', 55000),
+    warm(base, '/api/options-flow', 'options-flow', 15000),
+    warm(base, '/api/korea-flow', 'korea-flow', 20000),
+    warm(base, '/api/nport-holdings', 'nport-holdings', 55000),
+    warm(base, '/api/block-trades', 'block-trades', 30000),
+    warm(base, '/api/cot-positions', 'cot-positions', 20000),
     warm(base, '/api/market-heatmap?country=US', 'market-heatmap', 45000),
     warm(base, '/api/osint/social',    'osint-social',    25000),
     warm(base, '/api/osint/sanctions', 'osint-sanctions', 25000),
     warm(base, '/api/osint/corporate', 'osint-corporate', 25000),
     warm(base, '/api/osint/crypto',    'osint-crypto',    25000),
-    warm(base, '/api/latest-updates',  'latest-updates',  15000),  // aggregates everything, warm last in stage 1
   ]);
 
-  // ── 2단계: capital-flows 의존 분석 ─────────────────────────────────────
-  const flowR = await warm(base, '/api/flow-analysis?tf=4w', 'flow-analysis');
+  // ── 2단계: capital-flows 의존 분석 + latest-updates 병렬 ─────────────
+  // flow-analysis: capital-flows Redis 완료 후 실행.
+  // latest-updates: macro/fear-greed/capital-flows 모두 완료 후 실행 — 둘은 서로 무의존.
+  const [flowR, latestR] = await Promise.all([
+    warm(base, '/api/flow-analysis?tf=4w', 'flow-analysis'),
+    warm(base, '/api/latest-updates',  'latest-updates',  15000),
+  ]);
 
   // ── 3단계: daily-brief 캐시 확인 (재생성은 standalone daily-brief cron에 위임) ──
   // 주의: update-all 이후 5분 후 dedicated daily-brief cron이 동일 timeframe을 재생성.

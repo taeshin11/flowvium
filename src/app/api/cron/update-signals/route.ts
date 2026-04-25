@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
 
   // 13F 캐시 무효화 (latest-updates 등이 다시 불러오게)
   if (redis) {
-    try { await redis.del('flowvium:latest-updates:v2'); } catch { /* non-fatal */ }
+    try { await redis.del('flowvium:latest-updates:v3'); } catch { /* non-fatal */ }
   }
 
   // ── 3단계: Alpha Vantage 뉴스갭 스코어 갱신 ───────────────────────────────
