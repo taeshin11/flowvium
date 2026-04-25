@@ -30,10 +30,10 @@ const KOREA_MEMORY_TTLS: Record<string, number> = {
 
 // Per-period cache configuration
 const PERIOD_CONFIGS = {
-  '1d':  { tradingDays: 1,  ttl: 15 * 60,      sMaxAge: 720,   key: 'flowvium:korea-flow:v3:1d'  },
-  '1w':  { tradingDays: 5,  ttl: 30 * 60,      sMaxAge: 1800,  key: 'flowvium:korea-flow:v3:1w'  },
-  '4w':  { tradingDays: 20, ttl: 60 * 60,      sMaxAge: 3600,  key: 'flowvium:korea-flow:v3:4w'  },
-  '13w': { tradingDays: 65, ttl: 4 * 60 * 60,  sMaxAge: 14400, key: 'flowvium:korea-flow:v3:13w' },
+  '1d':  { tradingDays: 1,  ttl: 15 * 60,      sMaxAge: 720,   key: 'flowvium:korea-flow:v4:1d'  },
+  '1w':  { tradingDays: 5,  ttl: 30 * 60,      sMaxAge: 1800,  key: 'flowvium:korea-flow:v4:1w'  },
+  '4w':  { tradingDays: 20, ttl: 60 * 60,      sMaxAge: 3600,  key: 'flowvium:korea-flow:v4:4w'  },
+  '13w': { tradingDays: 65, ttl: 4 * 60 * 60,  sMaxAge: 14400, key: 'flowvium:korea-flow:v4:13w' },
 } as const;
 type KoreaPeriod = keyof typeof PERIOD_CONFIGS;
 
@@ -119,7 +119,7 @@ async function fetchKrxFlowAccumulated(
 
   const entries: KoreaFlowEntry[] = Array.from(acc.entries()).map(([ticker, sums]) => ({
     ticker,
-    name: nameMap.get(ticker) ?? ticker,
+    name: EN_NAMES[ticker] ?? nameMap.get(ticker) ?? ticker,
     market,
     foreignerNetBuy:   sums.fb   || null,
     institutionNetBuy: sums.ib   || null,
@@ -159,7 +159,7 @@ async function fetchKrxFlowForDate(market: 'KOSPI' | 'KOSDAQ', trdDd: string): P
     logger.info('krx.flow', 'fetched', { market, trdDd, rows: rows.length, durationMs: Date.now() - start });
     return rows.map(r => ({
       ticker: r.ISU_SRT_CD,
-      name: r.ISU_ABBRV,
+      name: EN_NAMES[r.ISU_SRT_CD] ?? r.ISU_ABBRV,
       market,
       foreignerNetBuy: Number((r.FORN_NETBY_TRDVAL ?? '0').replace(/,/g, '')) || null,
       institutionNetBuy: Number((r.ORGN_NETBY_TRDVAL ?? '0').replace(/,/g, '')) || null,
@@ -188,17 +188,17 @@ async function fetchKrxFlow(market: 'KOSPI' | 'KOSDAQ'): Promise<{ entries: Kore
   return { entries: [], trdDd: kstDateStr(0) };
 }
 
-const KO_NAMES: Record<string, string> = {
-  '005930': '삼성전자',   '000660': 'SK하이닉스',  '005380': '현대차',
-  '035420': 'NAVER',      '005490': 'POSCO홀딩스', '000270': '기아',
-  '035720': '카카오',     '051910': 'LG화학',       '028260': '삼성물산',
-  '003550': 'LG',         '012330': '현대모비스',   '096770': 'SK이노베이션',
-  '017670': 'SK텔레콤',   '030200': 'KT',           '055550': '신한지주',
-  '105560': 'KB금융',     '086790': '하나금융지주', '032830': '삼성생명',
-  '018260': '삼성에스디에스','009150': '삼성전기',
+const EN_NAMES: Record<string, string> = {
+  '005930': 'Samsung Electronics', '000660': 'SK Hynix',          '005380': 'Hyundai Motor',
+  '035420': 'NAVER',               '005490': 'POSCO Holdings',     '000270': 'Kia',
+  '035720': 'Kakao',               '051910': 'LG Chem',            '028260': 'Samsung C&T',
+  '003550': 'LG',                  '012330': 'Hyundai Mobis',      '096770': 'SK Innovation',
+  '017670': 'SK Telecom',          '030200': 'KT',                 '055550': 'Shinhan Financial',
+  '105560': 'KB Financial',        '086790': 'Hana Financial',     '032830': 'Samsung Life',
+  '018260': 'Samsung SDS',         '009150': 'Samsung Electro-Mechanics',
 };
 
-const KOSPI_TICKERS = Object.keys(KO_NAMES).map(c => `${c}.KS`);
+const KOSPI_TICKERS = Object.keys(EN_NAMES).map(c => `${c}.KS`);
 
 async function fetchYahooKoreaEntry(ticker: string): Promise<KoreaFlowEntry | null> {
   const code = ticker.replace('.KS', '');
@@ -231,7 +231,7 @@ async function fetchYahooKoreaEntry(ticker: string): Promise<KoreaFlowEntry | nu
         : null;
     return {
       ticker: code,
-      name: KO_NAMES[code] ?? (meta.shortName as string | undefined) ?? code,
+      name: EN_NAMES[code] ?? (meta.shortName as string | undefined) ?? code,
       market: 'KOSPI',
       foreignerNetBuy: null,
       institutionNetBuy: null,

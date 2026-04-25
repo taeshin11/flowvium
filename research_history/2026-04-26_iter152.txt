@@ -1,0 +1,56 @@
+== iter152 — 2026-04-26 ==
+
+PRIMARY OUTCOME: korea-flow company names 영문화
+
+DRIFT CHECK:
+- iter149: bug-fix (cron timeout)
+- iter150: i18n+cache (capital-flows + stale keys)
+- iter151: i18n+cache (credit-balance + commodity-curve)
+- iter152: i18n (korea-flow EN_NAMES)
+→ 드리프트 없음. 4 iter 모두 i18n/cache — 그러나 서로 다른 파일 영역
+
+ROOT CAUSE FOUND:
+
+korea-flow/route.ts lines 191-199: KO_NAMES map 에 Korean 회사명
+  '005930': '삼성전자', '000660': 'SK하이닉스', '005380': '현대차', etc.
+
+사용 위치 3곳:
+  1) line 162: KRX 단일일 데이터 → EN_NAMES[ticker] 오버라이드 없어서 ISU_ABBRV(KRX 한글명) 그대로 렌더
+  2) line 122: 멀티일 누적 경로 → nameMap(KRX 한글명) 오버라이드 없음
+  3) line 234: Yahoo fallback → KO_NAMES[code] 한글명 반환
+
+렌더 위치: InsiderPage.tsx:611 → {r.name} 직접 표시
+
+FIXES (2 files):
+
+korea-flow/route.ts:
+- KO_NAMES → EN_NAMES (영문 번역: Samsung Electronics, SK Hynix, Hyundai Motor, POSCO Holdings, Kia, Kakao, LG Chem, Samsung C&T, Hyundai Mobis, SK Innovation, SK Telecom, Shinhan Financial, KB Financial, Hana Financial, Samsung Life, Samsung SDS, Samsung Electro-Mechanics)
+- line 162: EN_NAMES[r.ISU_SRT_CD] ?? r.ISU_ABBRV (KRX 경로 오버라이드 추가)
+- line 122: EN_NAMES[ticker] ?? nameMap.get(ticker) ?? ticker (멀티일 경로 오버라이드 추가)
+- cache key: v3 → v4 (4개 period 모두)
+
+verify-metrics/route.ts:
+- Redis key check: korea-flow:v3:1d → korea-flow:v4:1d
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=N/A (production not deployed yet) delta=N/A → CODE CHANGE
+[accuracy probe] metric=korea-flow.name source=code Korean_removed → IMPROVEMENT (19 tickers EN_NAMES applied to all 3 fetch paths)
+
+NOTE: fear-greed detail.factors/macro/risk 는 이미 영문 (detailMap in route.ts),
+      production 에 Korean 보이는 건 미배포 탓 — 추가 수정 불필요
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+REMAINING KOREAN (admin/developer-only, lower priority):
+- verify-metrics labels (한국 외국인 순매수 등) — admin dashboard only
+- update-signals log.push() messages — cron response only
+- API route file docstrings/comments — not user-facing
+
+IMPACT:
+- InsiderPage Korea Flow 섹션: 삼성전자→Samsung Electronics, SK하이닉스→SK Hynix, etc.
+- KRX primary path + multi-day + Yahoo fallback 모두 영문명 적용
+- cache v4 key: Korean 캐시 무효화
+
+FILES CHANGED (2 files):
+- src/app/api/korea-flow/route.ts (EN_NAMES + 3 override points + cache v4)
+- src/app/api/cron/verify-metrics/route.ts (korea-flow:v4:1d key check)
