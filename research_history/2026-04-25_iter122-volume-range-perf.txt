@@ -1,0 +1,83 @@
+iter122 — 2026-04-25
+Primary outcome: 거래량·당일·52주 레인지 표시 + 성능 개선
+
+Drift check:
+- iter119: CompanyPage i18n
+- iter120: IntelligencePage i18n
+- iter121: HomePage i18n
+- 3 consecutive i18n iters → DRIFT 신호 발동 → iter122 완전 전환 (feature + perf)
+- 드리프트 해소 확인
+
+==== [1] 새 기능: stock-price API 확장 (metric 313 구현) ====
+
+변경 파일: src/app/api/stock-price/[ticker]/route.ts
+- Yahoo v8 meta 에서 5개 신규 필드 추출:
+  volume = meta.regularMarketVolume
+  dayHigh = meta.regularMarketDayHigh
+  dayLow = meta.regularMarketDayLow
+  week52High = meta.fiftyTwoWeekHigh
+  week52Low = meta.fiftyTwoWeekLow
+- API 응답에 추가 → 기존 clients 하위호환 (추가 필드만)
+
+변경 파일: src/components/pages/CompanyPage.tsx
+- LivePrice 인터페이스 확장 (5 new fields)
+- fmtVol() 헬퍼 추가 (44.5M / 1.2B 표시)
+- 주가 표시 행 아래 새 row 추가:
+  Vol: 44.5M  |  Day: 709.01 – 714.47  |  52W: 541.52 – 714.47
+- 16개 언어 i18n 3 키 추가: volume, dayRange, week52Range
+
+METRICS.md 업데이트:
+- 313 | 실시간 거래량 | ✅ live (⛔ missing → 구현 완료)
+- 312 | 실시간 호가 스프레드 | ⛔ missing 유지 (Yahoo v8 bid=undefined, chart 엔드포인트 미지원)
+
+==== [2] 성능 개선: batch-prices CDN 캐시 ====
+
+변경 파일: src/app/api/batch-prices/route.ts
+문제: batch-prices 는 module-level per-ticker 캐시(5min) 있지만 CDN 헤더 없음
+      → Vercel Lambda cold-start 시 항상 upstream fetch 발생
+
+수정:
+1. CDN_HEADERS 추가 (s-maxage=300, stale-while-revalidate=60)
+2. 티커 Array.sort() 추가
+   → "NVDA,TSLA,SPY" = "TSLA,SPY,NVDA" → 동일 CDN 캐시 키 → 히트율 향상
+
+효과: ScreenerPage 등 동일 ticker set 반복 요청 시 Lambda bypass 가능
+
+==== [3] 코드베이스 감사 결과 ====
+
+- TypeScript: tsc --noEmit 0 errors ✓
+- 모든 fetch() 에 AbortSignal.timeout() 존재 ✓
+- 모든 GET 라우트에 Cache-Control 헤더 존재 ✓ (batch-prices 수정 후)
+- Promise.all/allSettled 병렬화 적절히 사용 ✓
+- zombie process 없음 (node.exe 프로세스 없음 확인)
+
+==== [4] 정확도 프로브 (외부 실값 대조) ====
+
+[accuracy probe] metric=SPY.price source=Yahoo_v8 direct_value=713.94 → endpoint alive
+[accuracy probe] metric=SPY.volume source=Yahoo_v8 direct_value=44463821 → live ✓
+[accuracy probe] metric=SPY.dayRange source=Yahoo_v8 direct_value=709.01-714.47 → live ✓
+[accuracy probe] metric=SPY.week52Range source=Yahoo_v8 direct_value=541.52-714.47 → live ✓
+
+Market closed (주말/장후), 최신 close 기준
+
+==== [5] 미해결 항목 (공식 결정) ====
+
+[KRX 수급 ⚠️ buggy] → 외부 인프라 블로커, Vercel IP 차단 → Yahoo 폴백 유지
+[bid-ask spread 312] → Yahoo v8/v7 모두 bid=undefined → 유료 API 없이 구현 불가
+[ScreenerPage ~102 i18n] → drift 해소 후 다음 iter 가능
+[Vercel 배포] → 88+ commits ahead of origin/master → 사용자 `git push` 필요
+
+==== 커밋 목록 ====
+
+c7485f5 feat(stock-price): 거래량·당일·52주 범위 표시 — metric 313 구현
+7c5ca9d perf(batch-prices): CDN 캐시 헤더 추가 + 티커 정렬로 캐시 히트율 개선
+
+==== 다음 iter 방향 ====
+
+drift 해소로 i18n 재개 가능:
+- ScreenerPage ~102 한글 → 가장 큰 볼륨, 가장 많은 사용자 접점
+- InsiderPage ~8 한글 → 빠른 완료 가능
+
+또는 기능:
+- CompanyPage 관련주 추천 기능
+- 새 missing 지표 탐색
