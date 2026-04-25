@@ -9,7 +9,7 @@ export const maxDuration = 60;
 // 2h CDN + 2h stale-while-revalidate aligned with NEWS_MEMORY_TTL_MS (2h).
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=7200' };
 
-// Module-level memory cache — without Redis, each request burns 7 GROQ calls (one per article).
+// Module-level memory cache — without Redis, each request burns 5 GROQ calls (one per article).
 // 2h TTL matches daily news cadence without burning the 100k TPD budget.
 // Type is forward-declared; actual interface is defined below.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -209,7 +209,7 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 export async function GET() {
   const redis = createRedis();
 
-  // 1a. Module-level memory cache hit (no-Redis path) — avoids 7 GROQ calls per request
+  // 1a. Module-level memory cache hit (no-Redis path) — avoids 5 GROQ calls per request
   if (!redis && NEWS_MEMORY_CACHE && Date.now() < NEWS_MEMORY_CACHE.expiresAt) {
     logger.info('api.news-cascade', 'memory_cache_hit', { articles: NEWS_MEMORY_CACHE.articles.length });
     return NextResponse.json({ articles: NEWS_MEMORY_CACHE.articles, cached: true }, { headers: CDN_HEADERS });
@@ -242,7 +242,7 @@ export async function GET() {
     return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
   });
 
-  // De-duplicate by title similarity (keep top 9 most recent)
+  // De-duplicate by title similarity (keep top 7 most recent)
   const seen = new Set<string>();
   const deduped: RawNewsItem[] = [];
   for (const a of rawArticles) {
@@ -251,14 +251,14 @@ export async function GET() {
       seen.add(key);
       deduped.push(a);
     }
-    if (deduped.length >= 9) break;
+    if (deduped.length >= 7) break;
   }
 
   if (deduped.length === 0) {
     return NextResponse.json({ articles: [], cached: false }, { headers: CDN_HEADERS });
   }
 
-  // 3. Analyze each article with AI — parallel (7 concurrent, each 10s timeout)
+  // 3. Analyze each article with AI — parallel (5 concurrent, each 10s timeout)
   async function analyzeOne(item: RawNewsItem): Promise<NewsWithCascade | null> {
     try {
       const id = hashUrl(item.link);
@@ -282,7 +282,7 @@ export async function GET() {
     }
   }
 
-  const settled = await Promise.allSettled(deduped.slice(0, 7).map(analyzeOne));
+  const settled = await Promise.allSettled(deduped.slice(0, 5).map(analyzeOne));
   const analyzed: NewsWithCascade[] = settled
     .map(r => r.status === 'fulfilled' ? r.value : null)
     .filter((v): v is NewsWithCascade => v != null);
