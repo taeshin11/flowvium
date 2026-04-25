@@ -1,0 +1,49 @@
+== iter155 — 2026-04-26 ==
+
+PRIMARY OUTCOME: admin/health + verify-metrics 캐시 키 버전 불일치 5종 수정
+
+DRIFT CHECK:
+- iter153: infra (static routes)
+- iter154: resilience (stale daily-brief fallback)
+- iter155: monitoring/ops (stale cache key versions) ← different domain, no drift
+
+ROOT CAUSE FOUND (BUG):
+
+5개 Redis 캐시 키가 admin/health와 verify-metrics에서 구버전으로 하드코딩됨.
+실제 캐시가 정상 저장되어 있어도 항상 "miss" 로 표시 → 운영자 오탐.
+
+Mismatches:
+1. korea-flow:v3:4w → v4:4w (iter152에서 EN_NAMES 영문화 시 v3→v4 bump)
+2. capital-flows:v10:yahoo → v11:yahoo
+3. capital-flows:v10:twelve → v11:twelve  (admin/health only)
+4. macro-indicators:v12:${kstDate} → v13:${kstDate}
+5. credit-balance:v2:${kstDate} → v3:${utcDate}
+   (+ date format fix: KST → UTC to match actual route's new Date().toISOString())
+
+IMPACT:
+- admin/health: Redis 캐시 상태 패널에서 5개 키가 항상 "exists: false" 표시
+- verify-metrics: cache.* group에서 항상 ERROR 표시 → 헬스체크 노이즈
+
+INVESTIGATION FINDINGS (before fix):
+- latest-updates: 프로덕션에서 0 items 반환 → 구버전 프로덕션 코드가 다른 키 버전 읽기 때문 (배포 필요)
+- EDGAR 13D/13G: 토요일에 0건 → 정상 (주말 SEC 미처리)
+- fetch() cache 감사: 모든 외부 GET fetch에 cache: 'no-store' 확인됨
+- verify-metrics 정확도 프로브: 6/6 OK (F&G Δ0, FRED 정확)
+
+ACCURACY PROBE (CLAUDE.md mandatory):
+[accuracy probe] metric=fg.us source=CNN direct_value=66 our_value=66 delta=0 tolerance=3 → OK
+[accuracy probe] metric=curve source=FRED direct_value=0.53 our_value=0.51 delta=0.02 → OK
+[accuracy probe] metric=cpi source=FRED direct_value=3.29 our_value=3.29 delta=0.00 → OK
+[accuracy probe] metric=ppi source=FRED direct_value=4.11 our_value=4.11 delta=0.00 → OK
+[accuracy probe] metric=fomc source=FRED direct_value=3.625 our_value=3.625 delta=0.000 → OK
+[accuracy probe] metric=gdp source=FRED direct_value=0.5 our_value=0.5 delta=0.00 → OK
+
+TYPESCRIPT: clean (0 errors)
+BUILD: not re-run (only admin route touched, no code path changes)
+
+FILES CHANGED (2 files):
+- src/app/api/admin/health/route.ts (5 version bumps + utcDate for credit-balance)
+- src/app/api/cron/verify-metrics/route.ts (macro v12→v13, credit v2→v3 + UTC date)
+
+NOTE: 130+ 커밋이 여전히 로컬에만 존재, 프로덕션 미반영.
+배포하면 위 모든 수정사항이 즉시 효과 발생.
