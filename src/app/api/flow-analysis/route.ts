@@ -283,6 +283,22 @@ export async function GET(request: Request) {
     logger.info('flow-analysis', 'static_fallback_served', { tf, countries: countries.length });
   }
 
+  // Final minimal fallback: prevents null analysis (error) when both AI and price data fail.
+  // Returns degraded (source=static-fallback) instead of error so UI can show a status.
+  if (!analysis) {
+    analysis = {
+      summary: 'AI capital flow analysis pending (GROQ quota exhausted — resets 09:00 KST). Price data unavailable.',
+      mainTheme: 'Data unavailable — AI analysis pending',
+      countries: [],
+      rotations: [],
+      keyWatchpoints: ['AI quota: exhausted (daily reset 09:00 KST)'],
+      _staticFallback: true,
+    };
+    result.analysis = analysis;
+    result.source = 'static-fallback';
+    logger.info('flow-analysis', 'minimal_fallback_served', { tf, reason: 'no_data_no_ai' });
+  }
+
   const headers = analysis ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
   return NextResponse.json(result, { headers });
 }
