@@ -116,11 +116,19 @@ async function fetchHistory(symbol: string, range = '3mo'): Promise<VolPoint[]> 
   } catch { return []; }
 }
 
-function detectRegime(vxst: number | null, vix: number | null, vxmt: number | null): VolatilityData['regime'] {
-  if (vxst == null || vix == null || vxmt == null) return 'unknown';
-  if (vxst < vix && vix < vxmt) return 'contango';       // normal upward slope
-  if (vxst > vix && vix > vxmt) return 'backwardation';  // stress inversion
-  return 'humped';                                         // non-monotonic
+function detectRegime(vxst: number | null, vix: number | null, vxmt: number | null): { regime: VolatilityData['regime']; estimated: boolean } {
+  if (vxst == null || vxmt == null) {
+    // VXST/VXMT unavailable — heuristic from VIX level only.
+    // Historical VIX term structure: below 25 is almost always contango; above 35 almost always backwardation.
+    if (vix == null) return { regime: 'unknown', estimated: false };
+    if (vix < 25) return { regime: 'contango', estimated: true };
+    if (vix >= 35) return { regime: 'backwardation', estimated: true };
+    return { regime: 'unknown', estimated: true }; // 25–35: genuinely ambiguous without term structure
+  }
+  if (vix == null) return { regime: 'unknown', estimated: false };
+  if (vxst < vix && vix < vxmt) return { regime: 'contango', estimated: false };
+  if (vxst > vix && vix > vxmt) return { regime: 'backwardation', estimated: false };
+  return { regime: 'humped', estimated: false };
 }
 
 const REGIME_LABEL: Record<VolatilityData['regime'], string> = {
@@ -128,6 +136,12 @@ const REGIME_LABEL: Record<VolatilityData['regime'], string> = {
   backwardation: 'Backwardation (stress — immediate shock)',
   humped: 'Humped (mixed — mid-term risk concentration)',
   unknown: 'No data',
+};
+const REGIME_LABEL_EST: Record<VolatilityData['regime'], string> = {
+  contango: 'Contango est. (VIX heuristic — VXST/VXMT unavailable)',
+  backwardation: 'Backwardation est. (VIX heuristic — VXST/VXMT unavailable)',
+  humped: 'Humped (mixed)',
+  unknown: 'No data (VIX 25–35, structure ambiguous)',
 };
 
 export async function GET() {
@@ -164,13 +178,13 @@ export async function GET() {
     if (cboe.current != null) logger.info('volatility', 'cboe_fallback', { vix: cboe.current, histLen: cboe.history.length });
   }
 
-  const regime = detectRegime(vxst, vixFinal, vxmt);
+  const { regime, estimated: regimeEstimated } = detectRegime(vxst, vixFinal, vxmt);
   const latestDate = histFinal.length ? histFinal[histFinal.length - 1].date : null;
 
   const data: VolatilityData = {
     vxst, vix: vixFinal, vxmt, vvix,
     regime,
-    regimeLabel: REGIME_LABEL[regime],
+    regimeLabel: regimeEstimated ? REGIME_LABEL_EST[regime] : REGIME_LABEL[regime],
     history: histFinal.slice(-90),
     dataDate: latestDate,
     updatedAt: new Date().toISOString(),
