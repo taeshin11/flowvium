@@ -1,0 +1,84 @@
+ITER111 — UX 버그 2건 수정 + 신용 스프레드 경보 신설
+Date: 2026-04-25
+Primary outcome: "UX버그+신용경보" (12자)
+
+═══════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════
+Recent commits: iter110(성능최적화), iter109(MacroIndicators i18n),
+iter108(locale bug+fetch audit), iter107(NewsCascade+EconCal i18n),
+iter106(batch10+insider i18n)
+
+→ iter107~109: i18n 3 iter → iter110 성능 전환 ✅
+→ iter111: UX버그+신규기능 → 영역 다변화 ✅
+
+No drift this iter ✅
+
+═══════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════
+"UX버그+신용경보" (10자)
+
+산출물 체크 (규칙 [3]):
+(a) 프로젝트 핵심 수치를 움직임:
+  - Discord 경보 커버리지 확장: F&G + VIX → F&G + VIX + 신용(HY+IG)
+(c) 삭제/단순화:
+  - pricesLoaded flag로 영구 로딩 상태 제거
+  - fetchError state로 에러 vs 빈 결과 구분
+
+═══════════════════════════════════════════════════════════════
+FIXES APPLIED
+═══════════════════════════════════════════════════════════════
+
+FIX 1 — ScreenerPage.tsx: 무한 로딩 버그 수정
+  문제: 개별 티커 가격 fetch 실패 시 pricesLoaded 가 set 되지 않아
+        "로딩…" 텍스트가 영구적으로 남는 버그
+  해결: pricesLoaded 상태 추가, Promise.allSettled 후 항상 true로 set
+        .catch()에서도 setPricesLoaded(true) 호출
+  결과: 가격 fetch 실패해도 "—" 표시 (무한 spinner 제거)
+  Commit: e6e6054
+
+FIX 2 — NewsGapPage.tsx: 에러 상태 vs 빈 결과 구분
+  문제: 네트워크 에러 vs 뉴스 없음을 구분 못해 항상 "no news" UI 표시
+  해결: fetchError state 추가, AbortError 제외한 catch에서 true 설정
+        fetchError=true 시 재시도 버튼 표시
+  결과: 사용자가 에러 발생 인지 + 재시도 가능
+  Commit: e6e6054
+
+FEATURE 1 — send-alerts/route.ts: 신용 스프레드 경보 신설
+  추가: checkCreditAlert() 함수 (HY OAS + IG OAS 모니터링)
+  조건 1: HY OAS > 5.0% → '🚨 고수익채 신용 스트레스' Discord 경보
+  조건 2: IG OAS > 1.5% → '⚠️ 투자등급채 신용 주의' Discord 경보
+  데이터: Redis flowvium:macro-indicators:v12:{kstDate} 에서 읽음
+          당일 없으면 전일 키 fallback
+  쿨다운: 24h/type 동일 패턴 (hy-stress, ig-caution)
+  GET 핸들러: Promise.allSettled 3-way 로 확장
+  Commit: fd3026c
+
+═══════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════
+[accuracy probe] metric=SPY source=Yahoo
+  curl + python3: direct_value=713.94
+  Note: ScreenerPage 로딩 버그 수정 — 가격 데이터 파이프라인 무관
+        (로딩 flag 로직만 수정, API 응답 변경 없음)
+
+[accuracy probe] metric=fg.us source=CNN
+  BLOCKED (418 anti-bot) — known Windows restriction
+  Note: send-alerts는 Redis 캐시값 기준으로 경보 → 별도 파이프라인
+
+═══════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════
+TypeScript: 0 errors ✅
+fetch() cache: CLEAN ✅
+zombie processes: 없음 ✅
+console.log 직접 사용: 없음 ✅
+
+═══════════════════════════════════════════════════════════════
+NEXT ITER 후보 (iter112)
+═══════════════════════════════════════════════════════════════
+1. [권장] 새 기능/product value — 신규 데이터 소스, 새 alert 유형, 새 탭
+2. EarningsPage 한국어 하드코딩 잔존 (낮은 우선순위 — i18n 연속 금지)
+3. vercel.json cron 스케줄 감사 — send-alerts 가 실제로 돌고 있는지 확인
+4. Vercel 배포 live 상태 점검 — 최근 배포 성공 여부
