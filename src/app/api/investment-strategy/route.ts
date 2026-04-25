@@ -166,9 +166,9 @@ async function getUpcomingEarnings(baseUrl: string): Promise<string> {
       cache: 'no-store',
     });
     if (!res.ok) return '';
-    const data = await res.json() as { upcoming?: Array<{ ticker: string; date: string; eps?: number | null }> };
-    const items = (data.upcoming ?? []).slice(0, 5);
-    return items.map(e => `${e.ticker} ${e.date}`).join(', ');
+    const data = await res.json() as { earnings?: Array<{ symbol: string; date: string; epsEstimate?: number | null }> };
+    const items = (data.earnings ?? []).slice(0, 5);
+    return items.map(e => `${e.symbol} ${e.date}`).join(', ');
   } catch { return ''; }
 }
 
@@ -315,12 +315,12 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   let institutional = '';
   try {
     const sigs = ctx.signals ?? [];
-    const buys = sigs.filter((s: { action?: string }) => s.action === 'buy' || s.action === 'increased').slice(0, 5).map((s: { ticker?: string; institution?: string; valueM?: number }) => `${s.ticker}(${s.institution} $${s.valueM}M)`);
+    const buys = sigs.filter((s: { action?: string }) => s.action === 'accumulating' || s.action === 'new_position').slice(0, 5).map((s: { ticker?: string; institution?: string; estimatedValue?: string }) => `${s.ticker}(${s.institution} ${s.estimatedValue ?? ''})`);
     if (buys.length) institutional = `13F buys: ${buys.join(', ')}`;
     const insider = (ctx.insider as Array<Record<string, unknown>>) ?? [];
     if (insider.length) {
-      const recent = insider.slice(0, 3).map((i: Record<string, unknown>) => `${i.ticker} ${i.insiderTitle ?? ''} ${i.transactionType}`);
-      institutional += ` | Insider: ${recent.join(', ')}`;
+      const recent = insider.filter((i: Record<string, unknown>) => i.direction === 'buy').slice(0, 3).map((i: Record<string, unknown>) => `${i.ticker ?? '?'} ${i.officerTitle ?? 'insider'} $${Math.round(((i.transactionValueUsd as number) ?? 0) / 1000)}K`);
+      if (recent.length) institutional += ` | Insider buys: ${recent.join(', ')}`;
     }
   } catch { /* ignore */ }
 
