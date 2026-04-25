@@ -836,7 +836,14 @@
     "tipHyOas": "하이일드 채권 위험 프리미엄. 5%↑=신용 위기, 4-5%=주의, 4%이하=안전. 높을수록 신용 스트레스.",
     "tipVix": "시장 공포지수. 20이하=안정, 20-25=보통, 25-30=주의, 30↑=극단적 공포 구간.",
     "tipFomc": "CME FedWatch 기준 다음 FOMC 회의 금리 인하 확률. 시장이 예측하는 연준 정책 방향.",
-    "tipCycle": "GDP 성장률과 CPI 물가 기반 경기 사이클. Goldilocks=최적, Stagflation=저성장+고물가, Overheating=과열, Recession=침체."
+    "tipCycle": "GDP 성장률과 CPI 물가 기반 경기 사이클. Goldilocks=최적, Stagflation=저성장+고물가, Overheating=과열, Recession=침체.",
+    "pageTitle": "AI 투자 전략 리포트",
+    "pageDesc": "모든 지표를 종합한 AI 기반 매수 전략 및 포트폴리오",
+    "portfolioTitle": "AI 추천 포트폴리오",
+    "sectorTitle": "섹터별 배분 전략",
+    "riskEventsTitle": "주요 리스크 이벤트",
+    "disclaimer": "본 리포트는 AI가 공개 데이터를 기반으로 생성한 참고용 자료입니다. 투자 결정의 책임은 본인에게 있으며, 투자 손실을 보장하지 않습니다.",
+    "error": "리포트 로딩 실패 — 잠시 후 다시 시도해주세요"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

@@ -591,30 +591,41 @@
 
 ---
 
-## 13. AI 리포트 (`/report`)
+## 13. AI 투자 전략 리포트 (`/report`) ← 전면 재설계
 
 **파일**: `src/components/pages/ReportPage.tsx`  
-**데이터**: `/api/daily-brief` + 병렬 KPI (`/api/fear-greed`, `/api/capital-flows`, `/api/macro-indicators`, `/api/fedwatch`)
+**데이터**: `/api/investment-strategy` (모든 탭 컨텍스트 종합 → GROQ/Gemini AI 포트폴리오 생성)
 
-### 13-1. 타임프레임 셀렉터
-`1w` / `4w` / `13w`
+### 13-1. 투자 스탠스 히어로
+- 매수우위(bullish) / 중립(neutral) / 관망·방어(bearish) 뱃지
+- 리스크 레벨 (low/medium/high)
+- AI 한 줄 투자 전략 (thesis)
 
-### 13-2. 실시간 KPI 스트립 (7 pills, 각 독립 실패 허용) ← iter60: HY OAS, iter72: CYCLE
-- F&G (US CNN score) — >70 red / >55 amber / >=45 gray / <45 blue
-- **SPY 1w 수익률 + 30일 인라인 sparkline** — 양수 녹색, 음수 적색. 값+추세 동시 표시.
-- 10Y-2Y 스프레드 (bp) — 역전 시 적색
-- **HY OAS** (ICE BofA High Yield) — >5% 빨강 / >4% 황색 / <4% 초록 ← iter60
-- VIX 1w 변화 — VIXY/VXX/^VIX 폴백
-- 다음 FOMC 금리 인하 확률 (probCut25+50+75)
-- **CYCLE 경제국면** (GDP+CPI): Stagflation/Goldilocks/Overheating/Slowdown/Recession ← iter72
+### 13-2. 3단 분석 카드
+- 거시경제 분석 (파란색)
+- 기술적 분석 (보라색)
+- 기본적 분석 (초록색)
 
-**Sparkline 지원**: `@/components/Sparkline` — deps-free SVG polyline. 데이터 소스는
-`/api/price-history?ticker=X&days=N` (Stooq daily CSV, Redis 1h + memory 30min 캐시).
+### 13-3. AI 추천 포트폴리오 (5~7종목)
+- 종목명, 섹터, 비중(%), 매수 근거
+- 클릭 확장: 진입 구간 / 손절가 / 목표가
+- 확신도 뱃지 (high/medium/low)
 
-### 13-3. 메타 행 (소스 배지 + 신선도)
-- 소스 배지: GROQ 70b / GROQ 8b / Gemini / EXAONE / data (fallback) — 각 색상 구분
-- 신선도 점: 녹색(<10분) / 황색(<1h) / 회색(그 이후) + humanized age ("방금 전", "3분 전")
-- 리스크 레벨 pill: low=녹색 / medium=황색 / high=적색
+### 13-4. 섹터 배분 전략
+- 섹터별 비중 바 차트
+- 비중확대/중립/비중축소 스탠스
+
+### 13-5. 주요 리스크 이벤트
+- 날짜, 이벤트명, 위험도, 주목 포인트
+
+### 13-6. KPI 스트립 (5 pills)
+- F&G / SPY 수익률(sparkline) / 10Y-2Y / VIX / FOMC
+- 각 pill 툴팁
+
+### 13-7. 메타 정보
+- AI 소스 배지 (GROQ/Gemini/Fallback)
+- 신선도 표시
+- 면책 고지
 
 ### 13-4. 섹션 카드 (2열, 접기/펼치기)
 | 섹션 | 아이콘 | 내용 | 드릴다운 링크 |
@@ -805,6 +816,7 @@ ownership-alerts 적용).
 | 엔드포인트 | 데이터 소스 | Redis 캐시 TTL |
 |-----------|-------------|---------------|
 | `/api/daily-brief` | EXAONE vLLM → Gemini | 26h |
+| `/api/investment-strategy` | 전 탭 컨텍스트 종합 → GROQ/Gemini | 4h |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
 | `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 70b 병렬 8개, skipVllm=true); 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 4h |
 | `/api/capital-flows` | Twelve Data → Yahoo → Stooq | 4h |

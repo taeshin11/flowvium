@@ -836,7 +836,14 @@
     "tipHyOas": "High-yield bond risk premium. >5%=credit stress, 4-5%=caution, <4%=safe. Higher = more credit risk.",
     "tipVix": "Market fear index. <20=calm, 20-25=normal, 25-30=caution, >30=extreme fear zone.",
     "tipFomc": "CME FedWatch probability of a rate cut at the next FOMC meeting. Market's bet on Fed policy.",
-    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction."
+    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction.",
+    "pageTitle": "KI-Investitionsstrategie-Bericht",
+    "pageDesc": "KI-gesteuerte Kaufstrategie und Portfolio mit allen Marktindikatoren",
+    "portfolioTitle": "KI-empfohlenes Portfolio",
+    "sectorTitle": "Sektorallokationsstrategie",
+    "riskEventsTitle": "Wesentliche Risikoereignisse",
+    "disclaimer": "Dieser Bericht ist KI-generiertes Referenzmaterial basierend auf öffentlichen Daten. Investitionsentscheidungen liegen in Ihrer alleinigen Verantwortung.",
+    "error": "Bericht konnte nicht geladen werden — bitte später erneut versuchen"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

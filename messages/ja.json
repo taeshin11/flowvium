@@ -836,7 +836,14 @@
     "tipHyOas": "ハイイールド債リスクプレミアム。5%超=信用危機、4-5%=注意、4%未満=安全。",
     "tipVix": "市場恐怖指数。20未満=安定、20-25=普通、25-30=注意、30超=極度の恐怖。",
     "tipFomc": "CME FedWatchによる次回FOMC会合での利下げ確率。",
-    "tipCycle": "GDP成長率とCPIに基づく景気サイクル。Goldilocks=最適、Stagflation=低成長+高インフレ。"
+    "tipCycle": "GDP成長率とCPIに基づく景気サイクル。Goldilocks=最適、Stagflation=低成長+高インフレ。",
+    "pageTitle": "AI投資戦略レポート",
+    "pageDesc": "すべての指標を統合したAIベースの買い戦略とポートフォリオ",
+    "portfolioTitle": "AIおすすめポートフォリオ",
+    "sectorTitle": "セクター別配分戦略",
+    "riskEventsTitle": "主要リスクイベント",
+    "disclaimer": "本レポートはAIが公開データをもとに生成した参考資料です。投資判断の責任はご自身にあり、投資損失を保証するものではありません。",
+    "error": "レポートの読み込みに失敗しました — しばらくしてから再試行してください"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

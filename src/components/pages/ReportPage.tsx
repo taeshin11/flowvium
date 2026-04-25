@@ -2,38 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import Link from 'next/link';
+import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, ChevronDown, ChevronUp, BarChart3, Target, Shield } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
-import dynamic from 'next/dynamic';
-const YieldCurveCard = dynamic(() => import('@/components/YieldCurveCard'), { ssr: false });
-const VolatilityCard = dynamic(() => import('@/components/VolatilityCard'), { ssr: false });
+import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 
-type Timeframe = '1w' | '4w' | '13w';
-
-interface Section {
-  title: string;
-  bullets: string[];
-}
-
-interface BriefData {
-  generatedAt: string;
-  timeframe: Timeframe;
-  market: Section;
-  capital: Section;
-  company: Section;
-  signals: Section;
-  outlook: string;
-  source: string;
-  riskLevel?: 'low' | 'medium' | 'high';
-}
-
-// ── KPI strip types ──────────────────────────────────────────────────────────
-interface KpiState<T> {
-  loading: boolean;
-  error: boolean;
-  value: T | null;
-}
-type SectionKey = 'market' | 'capital' | 'company' | 'signals';
+// ── KPI types ─────────────────────────────────────────────────────────────────
+interface KpiState<T> { loading: boolean; error: boolean; value: T | null; }
 
 type Tr = (k: string, vals?: Record<string, string | number | Date>) => string;
 
@@ -44,8 +18,7 @@ function humanAge(ms: number, t: Tr): string {
   if (m < 60) return t('ageMin', { n: m });
   const h = Math.floor(m / 60);
   if (h < 24) return t('ageHour', { n: h });
-  const d = Math.floor(h / 24);
-  return t('ageDay', { n: d });
+  return t('ageDay', { n: Math.floor(h / 24) });
 }
 
 function freshnessDot(ms: number): string {
@@ -54,534 +27,436 @@ function freshnessDot(ms: number): string {
   return 'bg-gray-400';
 }
 
-function sourceBadge(src: string | undefined): { label: string; cls: string } {
-  const s = (src || '').toLowerCase();
-  if (s.includes('70b')) return { label: 'GROQ 70b', cls: 'bg-violet-100 text-violet-700 border-violet-200' };
-  if (s.includes('8b')) return { label: 'GROQ 8b', cls: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+// ── Stance config ─────────────────────────────────────────────────────────────
+function stanceConfig(stance: string) {
+  if (stance === 'bullish') return { icon: <TrendingUp className="w-5 h-5" />, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', label: '매수 우위' };
+  if (stance === 'bearish') return { icon: <TrendingDown className="w-5 h-5" />, color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: '관망·방어' };
+  return { icon: <Minus className="w-5 h-5" />, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', label: '중립 유지' };
+}
+
+function riskConfig(level: string) {
+  if (level === 'high') return { color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: '높음' };
+  if (level === 'low') return { color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', label: '낮음' };
+  return { color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', label: '보통' };
+}
+
+function confidenceBadge(c: string) {
+  if (c === 'high') return 'bg-emerald-100 text-emerald-700';
+  if (c === 'low') return 'bg-gray-100 text-gray-500';
+  return 'bg-amber-100 text-amber-700';
+}
+
+function confidenceLabel(c: string) {
+  if (c === 'high') return '확신↑';
+  if (c === 'low') return '탐색';
+  return '중립';
+}
+
+function impactBadge(impact: string) {
+  if (impact === 'high') return 'bg-red-100 text-red-700';
+  if (impact === 'low') return 'bg-gray-100 text-gray-600';
+  return 'bg-amber-100 text-amber-700';
+}
+
+// ── KPI Pill ──────────────────────────────────────────────────────────────────
+function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
+  loading: boolean; error: boolean; label: string; body: string; cls: string;
+  sparkline?: number[] | null; tooltip?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <div
+        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-medium whitespace-nowrap select-none
+          ${loading ? 'bg-gray-50 border-gray-200 text-gray-400' : error ? 'bg-gray-50 border-gray-200 text-gray-400' : cls}
+          ${tooltip ? 'cursor-pointer' : ''}`}
+        onMouseEnter={() => tooltip && setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onClick={() => tooltip && setOpen(v => !v)}
+      >
+        {sparkline && sparkline.length > 3 && (
+          <span className="inline-block w-10 h-4 mr-0.5 flex-shrink-0">
+            <Sparkline values={sparkline} width={40} height={16} />
+          </span>
+        )}
+        <span className="text-[10px] font-normal opacity-70">{label}</span>
+        <span>{loading ? '…' : error ? '-' : body}</span>
+        {tooltip && <span className="text-[9px] opacity-50 ml-0.5">?</span>}
+      </div>
+      {open && tooltip && (
+        <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-lg border border-gray-200 bg-white shadow-lg p-2.5 text-xs text-gray-700 leading-relaxed pointer-events-none">
+          {tooltip}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Portfolio Card ────────────────────────────────────────────────────────────
+function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow">
+      <div
+        className="p-4 cursor-pointer"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {rank}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-gray-900">{item.ticker}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${confidenceBadge(item.confidence)}`}>
+                  {confidenceLabel(item.confidence)}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">{item.name} · {item.sector}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-bold text-violet-600 text-sm">{item.allocation}%</p>
+            <p className="text-[10px] text-gray-400">비중</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-600 mt-2 leading-relaxed">{item.rationale}</p>
+      </div>
+      {expanded && (
+        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-3 gap-3 text-center text-xs">
+          <div>
+            <p className="text-gray-400">진입 구간</p>
+            <p className="font-semibold text-gray-800 mt-0.5">{item.entryZone}</p>
+          </div>
+          <div>
+            <p className="text-gray-400">손절</p>
+            <p className="font-semibold text-red-600 mt-0.5">{item.stopLoss}</p>
+          </div>
+          <div>
+            <p className="text-gray-400">목표가</p>
+            <p className="font-semibold text-emerald-600 mt-0.5">{item.target}</p>
+          </div>
+        </div>
+      )}
+      <div className="px-4 pb-2 flex justify-end">
+        <button onClick={() => setExpanded(v => !v)} className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
+          {expanded ? <><ChevronUp className="w-3 h-3" />접기</> : <><ChevronDown className="w-3 h-3" />진입·손절·목표</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Sector Bar ────────────────────────────────────────────────────────────────
+function SectorBar({ item }: { item: SectorWeight }) {
+  const stanceColor = item.stance === 'overweight' ? 'bg-emerald-500' : item.stance === 'underweight' ? 'bg-red-400' : 'bg-gray-400';
+  const stanceTxt = item.stance === 'overweight' ? 'text-emerald-600' : item.stance === 'underweight' ? 'text-red-500' : 'text-gray-500';
+  const stanceLabel = item.stance === 'overweight' ? '비중확대' : item.stance === 'underweight' ? '비중축소' : '중립';
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-28 shrink-0">
+        <p className="text-xs font-medium text-gray-700 truncate">{item.sector}</p>
+        <p className={`text-[10px] ${stanceTxt}`}>{stanceLabel}</p>
+      </div>
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${stanceColor}`} style={{ width: `${Math.min(item.pct, 100)}%` }} />
+      </div>
+      <span className="text-xs font-bold text-gray-600 w-8 text-right shrink-0">{item.pct}%</span>
+      <p className="text-[10px] text-gray-400 hidden sm:block truncate max-w-[140px]">{item.reason}</p>
+    </div>
+  );
+}
+
+// ── Risk Event Row ────────────────────────────────────────────────────────────
+function RiskEventRow({ event }: { event: RiskEvent }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <div className="flex flex-col items-center shrink-0 pt-0.5">
+        <span className="text-[10px] font-bold text-gray-400">{event.date.slice(5)}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-sm font-medium text-gray-800">{event.event}</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${impactBadge(event.impact)}`}>
+            {event.impact === 'high' ? '고위험' : event.impact === 'medium' ? '주의' : '저위험'}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{event.watchFor}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Source badge ──────────────────────────────────────────────────────────────
+function sourceBadge(src: string): { label: string; cls: string } {
+  const s = src.toLowerCase();
+  if (s.includes('70b') || s.includes('groq')) return { label: 'GROQ 70b', cls: 'bg-violet-100 text-violet-700 border-violet-200' };
   if (s.includes('gemini')) return { label: 'Gemini', cls: 'bg-blue-100 text-blue-700 border-blue-200' };
-  if (s.includes('exaone') || s.includes('vllm')) return { label: 'EXAONE', cls: 'bg-teal-100 text-teal-700 border-teal-200' };
-  if (s.includes('fallback') || s.includes('data')) return { label: 'data', cls: 'bg-gray-100 text-gray-600 border-gray-200' };
+  if (s.includes('fallback') || s.includes('data')) return { label: 'Fallback', cls: 'bg-gray-100 text-gray-600 border-gray-200' };
   return { label: src || 'AI', cls: 'bg-gray-100 text-gray-600 border-gray-200' };
 }
 
-function fgColor(score: number): string {
-  if (score > 70) return 'bg-red-50 text-red-700 border-red-200';
-  if (score > 55) return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (score >= 45) return 'bg-gray-50 text-gray-700 border-gray-200';
-  return 'bg-blue-50 text-blue-700 border-blue-200';
-}
-
-function riskPill(level: 'low' | 'medium' | 'high' | undefined, t: Tr): { label: string; cls: string } | null {
-  if (!level) return null;
-  if (level === 'high') return { label: t('riskHigh'), cls: 'bg-red-100 text-red-700 border-red-200' };
-  if (level === 'low') return { label: t('riskLow'), cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  return { label: t('riskMedium'), cls: 'bg-amber-100 text-amber-700 border-amber-200' };
-}
-
+// ── Main component ────────────────────────────────────────────────────────────
 export default function ReportPage() {
   const t = useTranslations('report');
   const locale = useLocale();
+  void locale;
 
-  const TF_LABELS: Record<Timeframe, string> = {
-    '1w': t('week1'),
-    '4w': t('week4'),
-    '13w': t('week13'),
-  };
+  const [data, setData] = useState<InvestmentStrategy | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const abortRef = useRef<AbortController | null>(null);
 
-  const SECTION_CONFIG: Array<{ key: SectionKey; label: string; icon: string; color: string; href: string }> = [
-    { key: 'market',  label: t('sectionMarket'),  icon: '📊', color: 'bg-blue-50 border-blue-200',       href: `/${locale}/heatmap` },
-    { key: 'capital', label: t('sectionCapital'), icon: '💰', color: 'bg-emerald-50 border-emerald-200', href: `/${locale}/intelligence?tab=capital` },
-    { key: 'company', label: t('sectionCompany'), icon: '🏢', color: 'bg-violet-50 border-violet-200',   href: `/${locale}/signals` },
-    { key: 'signals', label: t('sectionSignals'), icon: '📡', color: 'bg-amber-50 border-amber-200',     href: `/${locale}/insider` },
-  ];
-
-  const [tf, setTf] = useState<Timeframe>('1w');
-  const [data, setData] = useState<BriefData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [nowTick, setNowTick] = useState<number>(Date.now());
-
-  // KPI strip state (each pill fails independently)
-  const [fg,     setFg]     = useState<KpiState<{ score: number }>>({ loading: true, error: false, value: null });
-  const [spy,    setSpy]    = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
-  const [curve,  setCurve]  = useState<KpiState<{ spread: number; inverted: boolean }>>({ loading: true, error: false, value: null });
-  const [vix,    setVix]    = useState<KpiState<{ ret1w: number; level: number | null }>>({ loading: true, error: false, value: null });
-  const [fomc,   setFomc]   = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
-  const [hyOas,  setHyOas]  = useState<KpiState<{ value: number }>>({ loading: true, error: false, value: null });
-  const [cycle,  setCycle]  = useState<KpiState<{ label: string; cls: string }>>({ loading: true, error: false, value: null });
-  // Sparkline data — 30일 종가. Null-safe, 실패해도 pill 자체엔 영향 없음.
+  // KPI strip
+  const [fg,    setFg]    = useState<KpiState<{ score: number }>>({ loading: true, error: false, value: null });
+  const [spy,   setSpy]   = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
+  const [curve, setCurve] = useState<KpiState<{ spread: number; inverted: boolean }>>({ loading: true, error: false, value: null });
+  const [vix,   setVix]   = useState<KpiState<{ level: number | null }>>({ loading: true, error: false, value: null });
+  const [fomc,  setFomc]  = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
-  const [vixSpark, setVixSpark] = useState<number[] | null>(null);
-
-  const briefAbortRef = useRef<AbortController | null>(null);
   const kpiAbortRef = useRef<AbortController | null>(null);
 
-  const fetchBrief = useCallback(async (timeframe: Timeframe) => {
-    briefAbortRef.current?.abort();
-    const controller = new AbortController();
-    briefAbortRef.current = controller;
-    setLoading(true);
-    setError(null);
+  const fetchStrategy = useCallback(async (force = false) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    if (force) setRefreshing(true);
+    else setLoading(true);
     try {
-      const res = await fetch(`/api/daily-brief?tf=${timeframe}`, { signal: controller.signal });
-      if (controller.signal.aborted) return;
+      const res = await fetch(`/api/investment-strategy${force ? '?force=1' : ''}`, { signal: ctrl.signal, cache: 'no-store' });
+      if (ctrl.signal.aborted) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (!controller.signal.aborted) {
-        setData(json);
-        setExpanded({ market: true, capital: true, company: true, signals: true });
-      }
-    } catch (e) {
-      if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Failed to load');
+      const json = await res.json() as InvestmentStrategy;
+      if (!ctrl.signal.aborted) setData(json);
+    } catch {
+      // leave previous data visible on refresh fail
     } finally {
-      if (!controller.signal.aborted) setLoading(false);
+      if (!ctrl.signal.aborted) { setLoading(false); setRefreshing(false); }
     }
   }, []);
 
-  // KPI parallel fetcher — each pill fails independently
   const fetchKpis = useCallback(async () => {
     kpiAbortRef.current?.abort();
-    const controller = new AbortController();
-    kpiAbortRef.current = controller;
-    const { signal } = controller;
+    const ctrl = new AbortController();
+    kpiAbortRef.current = ctrl;
+    const { signal } = ctrl;
 
     setFg({ loading: true, error: false, value: null });
     setSpy({ loading: true, error: false, value: null });
     setCurve({ loading: true, error: false, value: null });
     setVix({ loading: true, error: false, value: null });
     setFomc({ loading: true, error: false, value: null });
-    setHyOas({ loading: true, error: false, value: null });
 
-    const pFg = fetch('/api/fear-greed', { signal })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(j => {
-        const us = Array.isArray(j?.byCountry) ? j.byCountry.find((x: { id?: string }) => x?.id === 'us') : null;
-        const score = us?.score;
-        if (typeof score !== 'number') throw new Error('no us score');
-        if (!signal.aborted) setFg({ loading: false, error: false, value: { score } });
-      }).catch(() => { if (!signal.aborted) setFg({ loading: false, error: true, value: null }); });
+    void fetch('/api/fear-greed', { signal }).then(r => r.json()).then(j => {
+      const us = (j?.byCountry ?? []).find((x: { id?: string }) => x?.id === 'us');
+      if (!signal.aborted) setFg({ loading: false, error: !us, value: us ? { score: us.score } : null });
+    }).catch(() => { if (!signal.aborted) setFg({ loading: false, error: true, value: null }); });
 
-    const pCap = fetch('/api/capital-flows', { signal })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(j => {
-        const assets: Array<{ ticker?: string; ret1w?: number }> = Array.isArray(j?.assets) ? j.assets : [];
-        const spyRow = assets.find(a => a?.ticker === 'SPY');
-        if (!signal.aborted) {
-          if (!spyRow || typeof spyRow.ret1w !== 'number') {
-            setSpy({ loading: false, error: true, value: null });
-          } else {
-            setSpy({ loading: false, error: false, value: { ret1w: spyRow.ret1w } });
-          }
-          // VIX — capital-flows doesn't list VIX directly, try VIXY/VXX/^VIX
-          const vixRow = assets.find(a => a?.ticker === 'VIXY' || a?.ticker === 'VXX' || a?.ticker === '^VIX');
-          if (!vixRow || typeof vixRow.ret1w !== 'number') {
-            setVix({ loading: false, error: true, value: null });
-          } else {
-            setVix({ loading: false, error: false, value: { ret1w: vixRow.ret1w, level: null } });
-          }
-        }
-      }).catch(() => {
-        if (!signal.aborted) {
-          setSpy({ loading: false, error: true, value: null });
-          setVix({ loading: false, error: true, value: null });
-        }
-      });
+    void fetch('/api/capital-flows', { signal }).then(r => r.json()).then(j => {
+      const assets: Array<{ ticker?: string; ret1w?: number }> = j?.assets ?? [];
+      const spyRow = assets.find(a => a.ticker === 'SPY');
+      if (!signal.aborted) setSpy({ loading: false, error: !spyRow, value: spyRow ? { ret1w: spyRow.ret1w ?? 0 } : null });
+    }).catch(() => { if (!signal.aborted) setSpy({ loading: false, error: true, value: null }); });
 
-    const pMacro = fetch('/api/macro-indicators', { signal })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(j => {
-        const spread = j?.yieldCurve?.spread10y2y;
-        if (typeof spread !== 'number') throw new Error('no spread');
-        if (!signal.aborted) setCurve({ loading: false, error: false, value: { spread, inverted: !!j.yieldCurve?.inverted } });
-        // HY OAS — surfaced from macro indicators
-        const hyInd = Array.isArray(j?.indicators) ? j.indicators.find((x: { id?: string }) => x?.id === 'hy_spread') : null;
-        const hyVal = typeof hyInd?.actual === 'number' ? hyInd.actual : null;
-        if (!signal.aborted) setHyOas(hyVal != null
-          ? { loading: false, error: false, value: { value: hyVal } }
-          : { loading: false, error: true, value: null }
-        );
-        // Economic cycle regime from GDP + CPI
-        const gdpInd = Array.isArray(j?.indicators) ? j.indicators.find((x: { id?: string }) => x?.id === 'gdp') : null;
-        const cpiInd = Array.isArray(j?.indicators) ? j.indicators.find((x: { id?: string }) => x?.id === 'cpi') : null;
-        const gdpVal: number | null = typeof gdpInd?.actual === 'number' ? gdpInd.actual : null;
-        const cpiVal: number | null = typeof cpiInd?.actual === 'number' ? cpiInd.actual : null;
-        if (!signal.aborted) {
-          if (gdpVal !== null && cpiVal !== null) {
-            const regime = gdpVal < 0 ? 'Recession' :
-              gdpVal < 1.5 && cpiVal > 2.5 ? 'Stagflation' :
-              gdpVal >= 1.5 && cpiVal > 2.5 ? 'Overheating' :
-              gdpVal >= 1.5 && cpiVal <= 2.5 ? 'Goldilocks' : 'Slowdown';
-            const cls = regime === 'Recession' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-              regime === 'Stagflation' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-              regime === 'Overheating' ? 'bg-red-50 text-red-700 border-red-200' :
-              regime === 'Goldilocks' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-              'bg-yellow-50 text-yellow-700 border-yellow-200';
-            setCycle({ loading: false, error: false, value: { label: regime, cls } });
-          } else {
-            setCycle({ loading: false, error: true, value: null });
-          }
-        }
-      }).catch(() => {
-        if (!signal.aborted) {
-          setCurve({ loading: false, error: true, value: null });
-          setHyOas({ loading: false, error: true, value: null });
-          setCycle({ loading: false, error: true, value: null });
-        }
-      });
+    void fetch('/api/yield-curve', { signal }).then(r => r.json()).then(j => {
+      const sp = j?.spread ?? j?.spreadBp;
+      if (!signal.aborted) setCurve({ loading: false, error: sp == null, value: sp != null ? { spread: sp, inverted: sp < 0 } : null });
+    }).catch(() => { if (!signal.aborted) setCurve({ loading: false, error: true, value: null }); });
 
-    const pFed = fetch('/api/fedwatch', { signal })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(j => {
-        const m = Array.isArray(j?.meetings) ? j.meetings[0] : null;
-        if (!m) throw new Error('no meeting');
-        const probCut = (m.probCut25 ?? 0) + (m.probCut50 ?? 0) + (m.probCut75 ?? 0);
-        if (!signal.aborted) setFomc({ loading: false, error: false, value: { label: m.label ?? m.date ?? '?', probCut } });
-      }).catch(() => { if (!signal.aborted) setFomc({ loading: false, error: true, value: null }); });
+    void fetch('/api/volatility', { signal }).then(r => r.json()).then(j => {
+      const level = j?.vix30d ?? j?.vix ?? null;
+      if (!signal.aborted) setVix({ loading: false, error: level == null, value: { level } });
+    }).catch(() => { if (!signal.aborted) setVix({ loading: false, error: true, value: null }); });
 
-    // 30d sparklines — independent, non-blocking. 실패 시 해당 pill 만 sparkline 미표시.
-    const fetchSpark = async (ticker: string): Promise<number[] | null> => {
-      try {
-        const r = await fetch(`/api/price-history?ticker=${encodeURIComponent(ticker)}&days=30`, { signal });
-        if (!r.ok) return null;
-        const j = await r.json();
-        const pts: Array<{ close?: number }> = Array.isArray(j?.points) ? j.points : [];
-        const vals = pts.map(p => p?.close).filter((v): v is number => typeof v === 'number');
-        return vals.length >= 2 ? vals : null;
-      } catch { return null; }
-    };
-    const pSpark = fetchSpark('SPY').then(v => { if (v && !signal.aborted) setSpySpark(v); });
-    // Volatility endpoint — VIX current level + regime
-    const pVol = fetch('/api/volatility', { signal })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(j => {
-        const level: number | null = typeof j?.vix === 'number' ? j.vix : null;
-        if (!signal.aborted) setVix(prev => ({
-          loading: false, error: level == null,
-          value: level != null ? { ret1w: prev.value?.ret1w ?? 0, level } : null,
-        }));
-      }).catch(() => { /* keep existing vix state */ });
+    void fetch('/api/fedwatch', { signal }).then(r => r.json()).then(j => {
+      const next = (j?.meetings ?? [])[0];
+      if (!signal.aborted) setFomc({ loading: false, error: !next, value: next ? { label: next.label, probCut: next.probCut25 ?? 0 } : null });
+    }).catch(() => { if (!signal.aborted) setFomc({ loading: false, error: true, value: null }); });
 
-    const pVixSpark = fetchSpark('^VIX').then(v => {
-      if (!v || signal.aborted) return;
-      setVixSpark(v);
-      if (v.length >= 6) {
-        const last = v[v.length - 1];
-        const wkAgo = v[v.length - 6];
-        const ret1w = ((last - wkAgo) / wkAgo) * 100;
-        setVix(prev => ({
-          loading: false, error: prev.error && prev.value == null,
-          value: prev.value ? { ...prev.value, ret1w } : { ret1w, level: null },
-        }));
-      }
-    });
-
-    await Promise.allSettled([pFg, pCap, pMacro, pFed, pSpark, pVixSpark, pVol]);
+    void fetch('/api/price-history?ticker=SPY&days=30', { signal }).then(r => r.json()).then(j => {
+      const closes = (j?.prices ?? []).map((p: { close?: number }) => p.close).filter(Boolean);
+      if (!signal.aborted && closes.length > 3) setSpySpark(closes);
+    }).catch(() => {});
   }, []);
 
-  useEffect(() => { fetchBrief(tf); }, [tf, fetchBrief]);
   useEffect(() => {
+    fetchStrategy();
     fetchKpis();
-    return () => kpiAbortRef.current?.abort();
-  }, [fetchKpis]);
+    const iv = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => {
+      clearInterval(iv);
+      abortRef.current?.abort();
+      kpiAbortRef.current?.abort();
+    };
+  }, [fetchStrategy, fetchKpis]);
 
-  // Tick every 30s so "age" text auto-refreshes
-  useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 30 * 1000);
-    return () => clearInterval(id);
-  }, []);
+  const ageMs = data ? nowTick - new Date(data.generatedAt).getTime() : 0;
+  const sb = data ? sourceBadge(data.source) : null;
 
-  const toggleSection = (key: string) => {
-    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-5xl">
+        <div className="flex flex-col items-center gap-4 text-gray-400 py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+          <p className="text-sm">AI가 모든 데이터를 분석하고 있습니다...</p>
+          <p className="text-xs text-gray-300">거시경제 · 기관 포지션 · 기술적 지표 종합 중</p>
+        </div>
+      </div>
+    );
+  }
 
-  const ageMs = data ? Math.max(0, nowTick - new Date(data.generatedAt).getTime()) : 0;
-  const srcBadge = data ? sourceBadge(data.source) : null;
-  const risk = data ? riskPill(data.riskLevel, t) : null;
+  const stance = data ? stanceConfig(data.stance) : null;
+  const risk = data ? riskConfig(data.riskLevel) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">{t('title')}</h1>
-            <p className="text-xs text-gray-500 mt-0.5">{t('subtitle')}</p>
-          </div>
+    <div className="container mx-auto px-4 py-6 max-w-5xl">
+
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{t('pageTitle')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('pageDesc')}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {sb && (
+            <span className={`text-[10px] px-2 py-1 rounded border font-medium ${sb.cls}`}>{sb.label}</span>
+          )}
+          {data && (
+            <span className="flex items-center gap-1 text-[10px] text-gray-400">
+              <span className={`w-1.5 h-1.5 rounded-full ${freshnessDot(ageMs)}`} />
+              {humanAge(ageMs, t)}
+            </span>
+          )}
           <button
-            onClick={() => { fetchBrief(tf); fetchKpis(); }}
-            disabled={loading}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-40 bg-white"
+            onClick={() => fetchStrategy(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-40"
           >
-            <span className={loading ? 'animate-spin inline-block' : ''}>↻</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             {t('refresh')}
           </button>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Timeframe selector */}
-        <div className="flex gap-2 mb-6">
-          {(Object.keys(TF_LABELS) as Timeframe[]).map(key => (
-            <button
-              key={key}
-              onClick={() => setTf(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                tf === key
-                  ? 'bg-violet-600 text-white shadow-md'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-violet-300 hover:text-violet-600'
-              }`}
-            >
-              {TF_LABELS[key]}
-            </button>
-          ))}
-        </div>
-
-        {/* KPI strip */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {/* F&G */}
-          <Pill
-            loading={fg.loading}
-            error={fg.error}
-            label={t('kpiFg')}
-            body={fg.value ? `${fg.value.score}` : '—'}
-            cls={fg.value ? fgColor(fg.value.score) : ''}
-            tooltip={t('tipFg')}
-          />
-          {/* SPY — with 30d sparkline */}
-          <Pill
-            loading={spy.loading}
-            error={spy.error}
-            label="SPY 1w"
-            body={spy.value ? `${spy.value.ret1w >= 0 ? '+' : ''}${spy.value.ret1w.toFixed(2)}%` : '—'}
-            cls={spy.value ? (spy.value.ret1w >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200') : ''}
-            sparkline={spySpark}
-            tooltip={t('tipSpy')}
-          />
-          {/* 10Y-2Y */}
-          <Pill
-            loading={curve.loading}
-            error={curve.error}
-            label="10Y-2Y"
-            body={curve.value ? `${(curve.value.spread * 100).toFixed(0)}bp` : '—'}
-            cls={curve.value ? (curve.value.inverted ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
-            tooltip={t('tipCurve')}
-          />
-          {/* HY OAS — credit stress signal */}
-          <Pill
-            loading={hyOas.loading}
-            error={hyOas.error}
-            label="HY OAS"
-            body={hyOas.value ? `${hyOas.value.value.toFixed(2)}%` : '—'}
-            cls={hyOas.value ? (hyOas.value.value > 5.0 ? 'bg-red-50 text-red-700 border-red-200' : hyOas.value.value > 4.0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200') : ''}
-            tooltip={t('tipHyOas')}
-          />
-          {/* VIX — level from volatility endpoint, change from price-history sparkline */}
-          <Pill
-            loading={vix.loading}
-            error={vix.error}
-            label="VIX"
-            body={vix.value?.level != null
-              ? `${vix.value.level.toFixed(1)}${vix.value.ret1w ? ` (${vix.value.ret1w >= 0 ? '+' : ''}${vix.value.ret1w.toFixed(1)}%)` : ''}`
-              : vix.value?.ret1w != null ? `${vix.value.ret1w >= 0 ? '+' : ''}${vix.value.ret1w.toFixed(1)}%` : '—'}
-            cls={vix.value?.level != null
-              ? (vix.value.level > 25 ? 'bg-red-50 text-red-700 border-red-200' : vix.value.level > 15 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
-              : vix.value ? (vix.value.ret1w >= 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
-            sparkline={vixSpark}
-            tooltip={t('tipVix')}
-          />
-          {/* FOMC */}
-          <Pill
-            loading={fomc.loading}
-            error={fomc.error}
-            label={`FOMC ${fomc.value?.label ?? ''}`}
-            body={fomc.value ? t('kpiCutProb', { pct: fomc.value.probCut.toFixed(0) }) : '—'}
-            cls={fomc.value ? 'bg-violet-50 text-violet-700 border-violet-200' : ''}
-            tooltip={t('tipFomc')}
-          />
-          {/* Economic cycle regime */}
-          <Pill
-            loading={cycle.loading}
-            error={cycle.error}
-            label="CYCLE"
-            body={cycle.value?.label ?? '—'}
-            cls={cycle.value?.cls ?? ''}
-            tooltip={t('tipCycle')}
-          />
-        </div>
-
-        {/* Yield Curve + Volatility (side-by-side on large screens) */}
-        <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <YieldCurveCard />
-          <VolatilityCard />
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-10 h-10 border-2 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
-            <p className="text-sm text-gray-500">{t('loading')}</p>
-          </div>
-        )}
-
-        {/* Error */}
-        {!loading && error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-            <p className="text-red-600 text-sm">{error}</p>
-            <button
-              onClick={() => fetchBrief(tf)}
-              className="mt-3 text-xs text-red-500 hover:text-red-700 underline"
-            >
-              {t('retry')}
-            </button>
-          </div>
-        )}
-
-        {/* Content */}
-        {!loading && data && (
-          <>
-            {/* Meta row */}
-            <div className="flex items-center flex-wrap gap-2 mb-6 text-xs text-gray-500">
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${srcBadge?.cls ?? ''}`}>
-                <span className="font-medium">{srcBadge?.label}</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${freshnessDot(ageMs)}`} />
-                <span>{humanAge(ageMs, t)}</span>
-              </span>
-              <span className="text-gray-300">·</span>
-              <span>{new Date(data.generatedAt).toLocaleString()}</span>
-              {risk && (
-                <>
-                  <span className="text-gray-300">·</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-medium ${risk.cls}`}>
-                    {t('riskLabel')}: {risk.label}
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* Section grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {SECTION_CONFIG.map(({ key, label, icon, color, href }) => {
-                const section = data[key] as Section | undefined;
-                if (!section) return null;
-                const isOpen = expanded[key];
-                return (
-                  <div
-                    key={key}
-                    className={`rounded-xl border ${color} p-5 transition-all hover:shadow-md`}
-                  >
-                    <div
-                      className="flex items-center justify-between mb-3 cursor-pointer"
-                      onClick={() => toggleSection(key)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{icon}</span>
-                        <span className="text-sm font-semibold text-gray-800">{label}</span>
-                      </div>
-                      <span className="text-gray-400 text-sm transition-transform inline-block" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-                    </div>
-                    <p className="text-sm text-gray-600 font-medium mb-2 cursor-pointer" onClick={() => toggleSection(key)}>{section.title}</p>
-                    {isOpen && section.bullets && section.bullets.length > 0 && (
-                      <>
-                        <ul className="space-y-2 mt-3 border-t border-gray-200 pt-3">
-                          {section.bullets.map((b, i) => (
-                            <li key={i} className="flex gap-2 text-sm text-gray-700">
-                              <span className="text-gray-400 mt-0.5 shrink-0">•</span>
-                              <span>{b}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="mt-3 pt-2 border-t border-gray-100">
-                          <Link
-                            href={href}
-                            className="text-xs text-violet-600 hover:text-violet-800 hover:underline inline-flex items-center gap-1"
-                          >
-                            {t('viewDetails')} <span>→</span>
-                          </Link>
-                        </div>
-                      </>
-                    )}
-                    {!isOpen && (
-                      <p className="text-xs text-gray-400 mt-1 cursor-pointer" onClick={() => toggleSection(key)}>{t('collapse')}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Outlook bar */}
-            {data.outlook && (
-              <div className="rounded-xl border border-violet-200 bg-violet-50 p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm">🔮</span>
-                  <span className="text-sm font-semibold text-violet-700">{t('aiOutlook')}</span>
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed">{data.outlook}</p>
-              </div>
-            )}
-          </>
-        )}
+      {/* ── KPI Strip ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        <Pill loading={fg.loading} error={fg.error} label="F&G" cls={`${fg.value && fg.value.score > 70 ? 'bg-red-50 text-red-700 border-red-200' : fg.value && fg.value.score >= 45 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}
+          body={fg.value ? `${fg.value.score}` : '-'} tooltip={t('tipFg')} />
+        <Pill loading={spy.loading} error={spy.error} label="SPY" cls={`${spy.value && spy.value.ret1w >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}
+          body={spy.value ? `${spy.value.ret1w > 0 ? '+' : ''}${spy.value.ret1w.toFixed(2)}%` : '-'} sparkline={spySpark} tooltip={t('tipSpy')} />
+        <Pill loading={curve.loading} error={curve.error} label="10Y-2Y" cls={`${curve.value && curve.value.inverted ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+          body={curve.value ? `${curve.value.spread > 0 ? '+' : ''}${curve.value.spread}bp` : '-'} tooltip={t('tipCurve')} />
+        <Pill loading={vix.loading} error={vix.error} label="VIX" cls={`${vix.value && (vix.value.level ?? 0) > 25 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
+          body={vix.value?.level != null ? `${vix.value.level.toFixed(1)}` : '-'} tooltip={t('tipVix')} />
+        <Pill loading={fomc.loading} error={fomc.error} label="FOMC" cls="bg-violet-50 text-violet-700 border-violet-200"
+          body={fomc.value ? `${fomc.value.label} ${fomc.value.probCut}%` : '-'} tooltip={t('tipFomc')} />
       </div>
-    </div>
-  );
-}
 
-// ── Pill subcomponent ────────────────────────────────────────────────────────
-function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
-  loading: boolean; error: boolean; label: string; body: string; cls: string;
-  sparkline?: number[] | null; tooltip?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium';
-  const wrapper = 'relative inline-flex';
-  const tip = tooltip ? (
-    <div
-      role="tooltip"
-      className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl bg-gray-900 text-white text-[11px] leading-relaxed px-3 py-2 shadow-xl z-50 pointer-events-none transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0'}`}
-    >
-      {tooltip}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-    </div>
-  ) : null;
+      {/* ── No data fallback ──────────────────────────────────────────────── */}
+      {!data && (
+        <div className="text-center py-12 text-gray-400">
+          <AlertTriangle className="w-8 h-8 mx-auto mb-3 text-amber-400" />
+          <p>{t('error')}</p>
+        </div>
+      )}
 
-  if (loading) {
-    return (
-      <span className={wrapper}>
-        <span className={`${base} bg-gray-50 text-gray-400 border-gray-200`}>
-          <span className="w-3 h-3 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin inline-block" />
-          <span>{label}</span>
-        </span>
-      </span>
-    );
-  }
-  if (error) {
-    return (
-      <span className={wrapper}>
-        <span className={`${base} bg-gray-50 text-gray-400 border-gray-200`}>
-          <span className="opacity-60">{label}</span>
-          <span className="font-semibold">—</span>
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span
-      className={`${wrapper} cursor-help`}
-      onMouseEnter={() => tooltip && setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onClick={() => tooltip && setOpen(v => !v)}
-    >
-      {tip}
-      <span className={`${base} ${cls}`}>
-        <span className="opacity-70">{label}</span>
-        <span className="font-semibold">{body}</span>
-        {sparkline && sparkline.length >= 2 && (
-          <Sparkline values={sparkline} width={48} height={14} className="opacity-80 ml-0.5" />
-        )}
-        {tooltip && <span className="opacity-40 text-[9px] ml-0.5">?</span>}
-      </span>
-    </span>
+      {data && (
+        <>
+          {/* ── Investment Stance Hero ─────────────────────────────────────── */}
+          <div className={`rounded-2xl border p-5 mb-5 ${stance!.bg}`}>
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <div className={`flex items-center gap-2 font-bold text-lg ${stance!.color}`}>
+                {stance!.icon}
+                <span>{stance!.label}</span>
+              </div>
+              <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${risk!.bg} ${risk!.color}`}>
+                리스크 {risk!.label}
+              </span>
+              {data.cached && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">캐시됨</span>}
+            </div>
+            <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
+          </div>
+
+          {/* ── 3-col analysis ────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <BarChart3 className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-bold text-blue-700">거시경제</span>
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{data.macroAnalysis}</p>
+            </div>
+            <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target className="w-4 h-4 text-violet-600" />
+                <span className="text-xs font-bold text-violet-700">기술적 분석</span>
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{data.technicalAnalysis}</p>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Shield className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-bold text-emerald-700">기본적 분석</span>
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{data.fundamentalAnalysis}</p>
+            </div>
+          </div>
+
+          {/* ── Portfolio ─────────────────────────────────────────────────── */}
+          {data.portfolio.length > 0 && (
+            <div className="mb-5">
+              <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-violet-500" />
+                {t('portfolioTitle')}
+                <span className="text-xs text-gray-400 font-normal">(클릭하면 진입·손절·목표가 표시)</span>
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {data.portfolio.map((item, i) => (
+                  <PortfolioCard key={item.ticker} item={item} rank={i + 1} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Sector Allocation ─────────────────────────────────────────── */}
+          {data.sectorAllocation.length > 0 && (
+            <div className="mb-5 rounded-xl border border-gray-200 bg-white p-4">
+              <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-gray-500" />
+                {t('sectorTitle')}
+              </h2>
+              <div className="space-y-3">
+                {data.sectorAllocation.map(item => (
+                  <SectorBar key={item.sector} item={item} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Risk Events ───────────────────────────────────────────────── */}
+          {data.riskEvents.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                {t('riskEventsTitle')}
+              </h2>
+              <div>
+                {data.riskEvents.map((ev, i) => (
+                  <RiskEventRow key={i} event={ev} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Disclaimer ────────────────────────────────────────────────── */}
+          <p className="text-[10px] text-gray-400 mt-4 leading-relaxed">
+            {t('disclaimer')}
+          </p>
+        </>
+      )}
+    </div>
   );
 }

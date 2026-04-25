@@ -836,7 +836,14 @@
     "tipHyOas": "High-yield bond risk premium. >5%=credit stress, 4-5%=caution, <4%=safe. Higher = more credit risk.",
     "tipVix": "Market fear index. <20=calm, 20-25=normal, 25-30=caution, >30=extreme fear zone.",
     "tipFomc": "CME FedWatch probability of a rate cut at the next FOMC meeting. Market's bet on Fed policy.",
-    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction."
+    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction.",
+    "pageTitle": "Отчёт об инвестиционной стратегии ИИ",
+    "pageDesc": "Стратегия покупки на основе ИИ с учётом всех рыночных индикаторов",
+    "portfolioTitle": "Портфель, рекомендованный ИИ",
+    "sectorTitle": "Стратегия секторного распределения",
+    "riskEventsTitle": "Ключевые рисковые события",
+    "disclaimer": "Этот отчёт — справочный материал, созданный ИИ на основе публичных данных. Ответственность за инвестиционные решения лежит на вас.",
+    "error": "Не удалось загрузить отчёт — повторите попытку позже"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

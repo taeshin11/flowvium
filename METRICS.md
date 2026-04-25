@@ -583,23 +583,32 @@
 
 ---
 
-## 12. AI 리포트 (`/report`)
+## 12. AI 투자 전략 리포트 (`/report`) ← 전면 재설계
 
-홈의 AI 브리프와 동일한 지표 (#1~8). 타임프레임 1w/4w/13w 전환 + 실시간 KPI 스트립.
+모든 탭 데이터 → AI 종합 → 실제 투자 전략 & 포트폴리오 생성. `/api/investment-strategy` (4h 캐시).
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
+| 12-S1 | 투자 스탠스 (bullish/neutral/bearish) | 💾 cached | `/api/investment-strategy` (GROQ/Gemini) |
+| 12-S2 | AI 투자 thesis (한 줄 전략) | 💾 cached | AI 생성 |
+| 12-S3 | 거시경제 분석 텍스트 | 💾 cached | AI 생성 |
+| 12-S4 | 기술적 분석 텍스트 | 💾 cached | AI 생성 |
+| 12-S5 | 기본적 분석 텍스트 | 💾 cached | AI 생성 |
+| 12-P1 | AI 추천 포트폴리오 (5~7종목, 비중%) | 💾 cached | AI 생성 |
+| 12-P2 | 종목별 진입 구간 | 💾 cached | AI 생성 |
+| 12-P3 | 종목별 손절가 | 💾 cached | AI 생성 |
+| 12-P4 | 종목별 목표가 | 💾 cached | AI 생성 |
+| 12-P5 | 종목별 확신도 (high/medium/low) | 💾 cached | AI 생성 |
+| 12-A1 | 섹터 배분 (비중확대/중립/비중축소) | 💾 cached | AI 생성 |
+| 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
 | 12-K1 | KPI: F&G (US) | 💾 cached | `/api/fear-greed` (CNN 4h) |
-| 12-K2 | KPI: SPY 1w 수익률 | 💾 cached | `/api/capital-flows` (Yahoo/Twelve 6h) |
-| 12-K3 | KPI: 10Y-2Y 스프레드 bp | 💾 cached | `/api/macro-indicators` (FRED) |
-| 12-K4 | KPI: VIX 1w 변화 | 💾 cached | `/api/capital-flows` (VIXY/VXX 폴백) |
-| 12-K5 | KPI: 다음 FOMC 인하 확률 | 💾 cached | `/api/fedwatch` (CME) |
-| 12-K6 | KPI: HY OAS (신용 스트레스) | 💾 cached | `/api/macro-indicators` BAMLH0A0HYM2, iter60 |
-| 12-K7 | KPI: CYCLE 경제국면 배지 | 💾 cached | `/api/macro-indicators` GDP+CPI 합성 | iter72 |
-| 12-M1 | 메타: 소스 배지 (GROQ 70b/8b/Gemini/EXAONE/data) | ✅ live | daily-brief.source |
+| 12-K2 | KPI: SPY 1w 수익률 + sparkline | 💾 cached | `/api/capital-flows` |
+| 12-K3 | KPI: 10Y-2Y 스프레드 bp | 💾 cached | `/api/yield-curve` |
+| 12-K4 | KPI: VIX 레벨 | 💾 cached | `/api/volatility` |
+| 12-K5 | KPI: 다음 FOMC 인하 확률 | 💾 cached | `/api/fedwatch` |
+| 12-M1 | 메타: 소스 배지 (GROQ/Gemini/Fallback) | ✅ live | investment-strategy.source |
 | 12-M2 | 메타: 신선도 점 + humanized age | ✅ live | generatedAt diff |
-| 12-M3 | 메타: 리스크 레벨 pill (low/medium/high) | 💾 cached | daily-brief.riskLevel |
-| 12-D1~D4 | 섹션 카드 드릴다운 링크 (heatmap/intelligence/signals/insider) | 📋 static | next/link |
+| 12-M3 | 리스크 레벨 (low/medium/high) | 💾 cached | AI 판단 |
 
 ---
 

@@ -836,7 +836,14 @@
     "tipHyOas": "High-yield bond risk premium. >5%=credit stress, 4-5%=caution, <4%=safe. Higher = more credit risk.",
     "tipVix": "Market fear index. <20=calm, 20-25=normal, 25-30=caution, >30=extreme fear zone.",
     "tipFomc": "CME FedWatch probability of a rate cut at the next FOMC meeting. Market's bet on Fed policy.",
-    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction."
+    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction.",
+    "pageTitle": "AI निवेश रणनीति रिपोर्ट",
+    "pageDesc": "सभी बाजार संकेतकों को जोड़ने वाली AI-संचालित खरीद रणनीति",
+    "portfolioTitle": "AI-अनुशंसित पोर्टफोलियो",
+    "sectorTitle": "क्षेत्र आवंटन रणनीति",
+    "riskEventsTitle": "मुख्य जोखिम घटनाएं",
+    "disclaimer": "यह रिपोर्ट सार्वजनिक डेटा पर आधारित AI-जनित संदर्भ सामग्री है। निवेश निर्णय की जिम्मेदारी केवल आपकी है।",
+    "error": "रिपोर्ट लोड करने में विफल — कृपया बाद में पुनः प्रयास करें"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

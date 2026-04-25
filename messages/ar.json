@@ -836,7 +836,14 @@
     "tipHyOas": "High-yield bond risk premium. >5%=credit stress, 4-5%=caution, <4%=safe. Higher = more credit risk.",
     "tipVix": "Market fear index. <20=calm, 20-25=normal, 25-30=caution, >30=extreme fear zone.",
     "tipFomc": "CME FedWatch probability of a rate cut at the next FOMC meeting. Market's bet on Fed policy.",
-    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction."
+    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction.",
+    "pageTitle": "تقرير استراتيجية الاستثمار بالذكاء الاصطناعي",
+    "pageDesc": "استراتيجية شراء مدعومة بالذكاء الاصطناعي تجمع جميع مؤشرات السوق",
+    "portfolioTitle": "المحفظة الموصى بها من قِبل الذكاء الاصطناعي",
+    "sectorTitle": "استراتيجية تخصيص القطاعات",
+    "riskEventsTitle": "أحداث المخاطر الرئيسية",
+    "disclaimer": "هذا التقرير مادة مرجعية تم إنشاؤها بالذكاء الاصطناعي استناداً إلى البيانات العامة. قرارات الاستثمار هي مسؤوليتك الكاملة.",
+    "error": "فشل تحميل التقرير — يرجى المحاولة مرة أخرى لاحقاً"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

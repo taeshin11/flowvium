@@ -836,7 +836,14 @@
     "tipHyOas": "高收益債券風險溢價。>5%=信用危機，4-5%=注意，<4%=安全。",
     "tipVix": "市場恐慌指數。<20=平靜，25-30=注意，>30=極度恐慌。",
     "tipFomc": "CME FedWatch下次FOMC降息機率。",
-    "tipCycle": "基於GDP與CPI的景氣循環。Goldilocks=理想，Stagflation=停滯性通膨。"
+    "tipCycle": "基於GDP與CPI的景氣循環。Goldilocks=理想，Stagflation=停滯性通膨。",
+    "pageTitle": "AI投資策略報告",
+    "pageDesc": "結合所有市場指標的AI驅動買入策略和投資組合",
+    "portfolioTitle": "AI推薦投資組合",
+    "sectorTitle": "行業配置策略",
+    "riskEventsTitle": "主要風險事件",
+    "disclaimer": "本報告是AI基於公開數據生成的參考資料。投資決策由您負責，不保證投資回報。",
+    "error": "載入報告失敗 — 請稍後再試"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

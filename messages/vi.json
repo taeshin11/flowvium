@@ -836,7 +836,14 @@
     "tipHyOas": "High-yield bond risk premium. >5%=credit stress, 4-5%=caution, <4%=safe. Higher = more credit risk.",
     "tipVix": "Market fear index. <20=calm, 20-25=normal, 25-30=caution, >30=extreme fear zone.",
     "tipFomc": "CME FedWatch probability of a rate cut at the next FOMC meeting. Market's bet on Fed policy.",
-    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction."
+    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction.",
+    "pageTitle": "Báo cáo chiến lược đầu tư AI",
+    "pageDesc": "Chiến lược mua do AI điều khiển kết hợp tất cả các chỉ báo thị trường",
+    "portfolioTitle": "Danh mục được AI khuyến nghị",
+    "sectorTitle": "Chiến lược phân bổ theo ngành",
+    "riskEventsTitle": "Sự kiện rủi ro chính",
+    "disclaimer": "Báo cáo này là tài liệu tham khảo do AI tạo ra dựa trên dữ liệu công khai. Quyết định đầu tư hoàn toàn thuộc trách nhiệm của bạn.",
+    "error": "Không tải được báo cáo — vui lòng thử lại sau"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",
