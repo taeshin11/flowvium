@@ -1,0 +1,85 @@
+== iter200 — 2026-04-26 ==
+
+PRIMARY OUTCOME: Yahoo UA 전면 표준화 + commodity-curve Redis 캐시
+
+DRIFT CHECK:
+- iter196-197: ai-providers
+- iter198: cron infrastructure
+- iter199: commodity-curve fetch UA fix
+- iter200: Yahoo UA 전면 표준화 + Redis cache ← 동일 파일 포함이나 계층 다름 (lib 신설 + cache layer)
+
+ANALYSIS:
+  iter199 에서 commodity-curve 만 UA 수정했으나 전체 코드베이스에 동일 문제 존재 확인:
+  - 10개 route 에서 단순 'Mozilla/5.0' 또는 부분 Chrome UA 사용 → Yahoo 429 위험
+  - 특히 batch-prices, stock-price, capital-flows, investment-strategy, volatility 등
+    핵심 데이터 route 들이 모두 영향받음
+
+  해결책: src/lib/yahoo-finance.ts 에 YAHOO_HEADERS 상수 export → 단일 진실의 원천
+
+  commodity-curve Redis 캐시:
+  - 기존: 메모리 캐시만 (instance 재시작 시 0-pts)
+  - 추가: Redis 6h 캐시 + stale key (무기한)
+  - cold start 또는 Yahoo 차단 시 stale 캐시 서빙 → comm.oil/comm.gold 에러 방지
+
+CHANGES:
+  src/lib/yahoo-finance.ts:
+    - YAHOO_HEADERS 상수 export (Chrome/124 Mac UA + Accept: application/json)
+    - fetchYFNonUSQuotes 내부 Mozilla/5.0 → YAHOO_HEADERS
+
+  src/app/api/commodity-curve/route.ts:
+    - YHDR 로컬 상수 제거 → import YAHOO_HEADERS
+    - Redis client 추가 (createRedis)
+    - Redis 6h 캐시 읽기 (REDIS_KEY)
+    - 성공 시: memory + Redis + stale key 동시 저장
+    - Yahoo 0-pts 시: stale key 폴백 서빙
+
+  UA 수정 (YAHOO_HEADERS import 추가):
+    - batch-prices/route.ts: YHDR = { 'User-Agent': 'Mozilla/5.0' } → YAHOO_HEADERS
+    - capital-flows/route.ts: fetchPricesYahoo + fetchPricesBatchYahoo
+    - company-news/route.ts: fetchYahooNews
+    - cron/verify-metrics/route.ts: VIX accuracy probe
+    - investment-strategy/route.ts: fetchOnePrice + v7/quote fetch
+    - market-caps/route.ts: fetchYahooCap
+    - stock-price/[ticker]/route.ts: single ticker fetch
+    - volatility/route.ts: YF_HEADERS 교체
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → EXACT MATCH ✓
+[accuracy probe] metric=comm.oil CDN cache 만료 22:15 UTC 이후 검증 예정
+
+VERIFY-METRICS 상태 (iter200 시점):
+  OK: 180, Degraded: 3, Error: 2
+  [ERROR] comm.oil, comm.gold — CDN cache 22:15 UTC 만료 후 새 코드 실행 예정
+  [DEGRADED] macro.gdp_growth_rate — Q1 advance 4/30 발표 전 (정상)
+  [DEGRADED] ai.groq — quota exhausted (UTC midnight 자동 복구)
+  [DEGRADED] brief.market — GROQ/Gemini 소진 (UTC midnight 자동 복구)
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (10 files):
+- src/lib/yahoo-finance.ts (YAHOO_HEADERS export 신설)
+- src/app/api/commodity-curve/route.ts (Redis cache + YAHOO_HEADERS)
+- src/app/api/batch-prices/route.ts
+- src/app/api/capital-flows/route.ts
+- src/app/api/company-news/route.ts
+- src/app/api/cron/verify-metrics/route.ts
+- src/app/api/investment-strategy/route.ts
+- src/app/api/market-caps/route.ts
+- src/app/api/stock-price/[ticker]/route.ts
+- src/app/api/volatility/route.ts
+
+COMMITS: 2852011
+PUSHED: ✓ origin/master
+
+IMPACT:
+  - Yahoo 429 오류 전면 제거 예상 (10개 route 동시 수정)
+  - commodity-curve: cold start 0-pts 문제 Redis stale 폴백으로 해결
+  - 신규 stale key: 첫 성공 후 Yahoo 장애 시에도 commodity curve 서빙 가능
+  - UA 단일화: 이후 Yahoo 정책 변경 시 1개 상수만 수정
+
+NEXT: iter201 → 후보:
+  1. commodity-curve 실제 동작 확인 (22:15 UTC CDN 만료 후)
+  2. GROQ/Gemini 쿼터 복구 확인 (UTC midnight)
+  3. earnings, market-movers, company-recs 등 남은 UA 수정
+  4. GDP Q1 advance 4/30 → FRED 자동 반영 확인
+  5. 새 기능 영역 탐색
