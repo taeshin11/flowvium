@@ -1,0 +1,52 @@
+== iter163 — 2026-04-26 ==
+
+PRIMARY OUTCOME: iter161 회귀 버그 수정 (fedwatch v1 key orphan)
+
+DRIFT CHECK:
+- iter160-161: perf/cache (다른 라우트)
+- iter162: FOMC 날짜 수정 (fedwatch)
+- iter163: fedwatch v1→v2 key ref 수정 (downstream consumers) ← 도메인 유지지만 회귀 수정
+
+ROOT CAUSE FOUND:
+
+REGRESSION from iter161: fedwatch 키 v1 hourly → v2 daily 변경 시
+downstream consumer 두 곳이 여전히 v1 hourly 키를 읽고 있었음:
+
+1. src/app/api/latest-updates/route.ts:249
+   - `redis.get(\`flowvium:fedwatch:v1:${hour}\`)` — v1 hourly (STALE)
+   - → LiveFeed FedWatch 아이템이 항상 HTTP fallback으로 넘어감
+   - → 15분 캐시가 있어도 fedwatch 부분은 매번 새 HTTP fetch
+
+2. src/lib/daily-brief.ts:193
+   - `safeGet(redis, \`flowvium:fedwatch:v1:${hour}\`)` — v1 hourly (STALE)
+   - → daily-brief/investment-strategy의 gatherTabContext에서 fed 데이터 항상 cache miss
+   - → AI 프롬프트 빌드 시 fedwatch 데이터 없이 fallback
+
+영향: iter161에서 바꾼 키가 실제로 읽히지 않아 pre-warm 효과 없었음
+(Redis에 v2 키 저장됨, 하지만 코드는 v1 키를 읽으니 항상 miss → fallback HTTP)
+
+FIXES:
+
+1. latest-updates/route.ts getFedWatchItem():
+   `const hour = ...slice(0, 13)` + `flowvium:fedwatch:v1:${hour}`
+   → `const utcDate = ...slice(0, 10)` + `flowvium:fedwatch:v2:${utcDate}`
+
+2. lib/daily-brief.ts gatherTabContext():
+   `safeGet(redis, \`flowvium:fedwatch:v1:${hour}\`)`
+   → `safeGet(redis, \`flowvium:fedwatch:v2:${today}\`)`
+
+SCAN RESULT:
+- grep -rn "fedwatch:v1" src/ → 0 matches (모두 정리됨)
+- grep -rn "fedwatch:v2" src/ → 4 matches (fedwatch/route.ts, latest-updates, daily-brief, admin/health, verify-metrics)
+
+ACCURACY PROBE:
+[accuracy probe] metric=cpi source=FRED direct_value=330.293 (2026-03-01) delta=0 → OK
+[accuracy probe] metric=fedwatch_key source=code_audit v1_refs=0 v2_refs_correct=YES → FIXED
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/app/api/latest-updates/route.ts (fedwatch key v1→v2)
+- src/lib/daily-brief.ts (fedwatch key v1→v2)
+
+COMMIT: c9c099a
