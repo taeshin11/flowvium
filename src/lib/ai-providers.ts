@@ -15,17 +15,19 @@
  *   GEMINI_API_KEY     — 선택. 앞 전부 실패 시 최종 폴백.
  *   AI_PREFER          — 선택. 'groq' 명시 시 vLLM 건너뛰고 GROQ부터.
  *
- * Redis cross-instance TPD guard (2026-04-26):
+ * Redis cross-instance quota guard (2026-04-26):
  *   GROQ TPD 429 → Redis key 'flowvium:groq:tpd_exhausted_v1' TTL=seconds_until_midnight
- *   모든 Lambda 인스턴스가 이 키 체크 → TPD 소진 시 GROQ 호출 0회 → Gemini 직행.
- *   기존 module-level guard(groqTpdExhaustedUntil)는 warm instance 전용 보조 수단으로 유지.
+ *   Gemini 429 → Redis key 'flowvium:gemini:quota_exhausted_v1' TTL=seconds_until_midnight
+ *   모든 Lambda 인스턴스가 이 키 체크 → 소진 시 해당 provider 호출 0회.
+ *   기존 module-level guard는 warm instance 전용 보조 수단으로 유지.
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Redis } from '@upstash/redis';
 import { logger } from './logger';
 
-// ── Redis lazy init for cross-instance TPD guard ─────────────────────────────
+// ── Redis lazy init for cross-instance quota guards ──────────────────────────
 const GROQ_TPD_KEY = 'flowvium:groq:tpd_exhausted_v1';
+const GEMINI_QUOTA_KEY = 'flowvium:gemini:quota_exhausted_v1';
 let _redis: Redis | null | undefined = undefined; // undefined = not yet initialised
 
 function getGuardRedis(): Redis | null {
@@ -221,13 +223,26 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
 
-  // Skip when quota is exhausted within this Lambda instance
+  // Skip when quota is exhausted — two-layer guard (module + Redis cross-instance)
   if (geminiQuotaExhaustedUntil > Date.now()) {
     const remainsMs = geminiQuotaExhaustedUntil - Date.now();
-    logger.info(tag, 'gemini_quota_skip', { remainsMs: Math.round(remainsMs / 1000) });
+    logger.info(tag, 'gemini_quota_skip', { layer: 'module', remainsMs: Math.round(remainsMs / 1000) });
     diag?.push({ provider: 'gemini', ok: false, error: `gemini_quota_exhausted — skipped (resets in ${Math.round(remainsMs / 60000)}m)`, durationMs: 0 });
     return null;
   }
+  try {
+    const guardRedis = getGuardRedis();
+    if (guardRedis) {
+      const ex = await guardRedis.exists(GEMINI_QUOTA_KEY);
+      if (ex) {
+        const ttl = secondsUntilUtcMidnight();
+        geminiQuotaExhaustedUntil = Date.now() + ttl * 1000; // sync module guard
+        logger.info(tag, 'gemini_quota_skip', { layer: 'redis', note: 'cross-instance guard active' });
+        diag?.push({ provider: 'gemini', ok: false, error: `gemini_quota_exhausted — skipped (resets in ${Math.round(ttl / 60)}m)`, durationMs: 1 });
+        return null;
+      }
+    }
+  } catch { /* non-fatal */ }
 
   const timeoutMs = opts.timeoutMs ?? 30000;
   try {
@@ -252,10 +267,14 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
     const isQuota = msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED');
     const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
     if (isQuota) {
-      const now = new Date();
-      const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-      geminiQuotaExhaustedUntil = nextMidnight.getTime();
-      logger.error(tag, 'gemini_quota_exhausted', { error: msg.slice(0, 200), durationMs: Date.now() - t0, resetsAt: nextMidnight.toISOString() });
+      const ttl = secondsUntilUtcMidnight();
+      const resetsAt = new Date(Date.now() + ttl * 1000).toISOString();
+      geminiQuotaExhaustedUntil = Date.now() + ttl * 1000;
+      logger.error(tag, 'gemini_quota_exhausted', { error: msg.slice(0, 200), durationMs: Date.now() - t0, resetsAt });
+      try {
+        const guardRedis = getGuardRedis();
+        if (guardRedis) await guardRedis.set(GEMINI_QUOTA_KEY, resetsAt, { ex: ttl });
+      } catch { /* non-fatal */ }
     } else {
       logger.warn(tag, 'gemini_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0, is503 });
     }
