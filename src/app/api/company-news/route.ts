@@ -6,7 +6,8 @@ import { callAI } from '@/lib/ai-providers';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const CACHE_TTL_S = 30 * 60; // 30 min
+const CACHE_TTL_S = 2 * 60 * 60;        // 2h primary (news summary doesn't need 30min refresh)
+const STALE_CACHE_TTL_S = 48 * 60 * 60; // 48h stale (served when AI quota exhausted)
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1440, stale-while-revalidate=120' };
 
 export interface NewsItem {
@@ -26,6 +27,9 @@ function createRedis(): Redis | null {
 
 function redisCacheKey(ticker: string): string {
   return `flowvium:company-news:v3:${ticker}`;
+}
+function staleRedisCacheKey(ticker: string): string {
+  return `flowvium:company-news:v3:stale:${ticker}`;
 }
 
 // Yahoo Finance v1 search API — returns JSON news items, no auth required
@@ -58,14 +62,20 @@ export async function GET(req: NextRequest) {
 
   const redis = createRedis();
   const cacheKey = redisCacheKey(ticker);
+  const staleCacheKey = staleRedisCacheKey(ticker);
 
+  let staleResult: object | null = null;
   if (redis) {
     try {
-      const hit = await redis.get(cacheKey);
-      if (hit) {
+      const [freshResult, staleRead] = await Promise.allSettled([
+        redis.get(cacheKey),
+        redis.get<object>(staleCacheKey),
+      ]);
+      if (freshResult.status === 'fulfilled' && freshResult.value) {
         logger.info('api.company-news', 'cache_hit', { ticker });
-        return NextResponse.json({ ...(hit as object), cached: true }, { headers: CDN_HEADERS });
+        return NextResponse.json({ ...(freshResult.value as object), cached: true }, { headers: CDN_HEADERS });
       }
+      if (staleRead.status === 'fulfilled') staleResult = staleRead.value;
     } catch (err) { logger.warn('api.company-news', 'cache_read_error', { ticker, error: err }); }
   }
 
@@ -89,8 +99,19 @@ export async function GET(req: NextRequest) {
     }
 
     const result = { ticker, news, summary: summary || null, generatedAt: new Date().toISOString(), cached: false };
+
+    // If AI failed (quota exhausted) but we have a stale result, serve it
+    if (!summary && staleResult) {
+      logger.warn('api.company-news', 'serving_stale', { ticker });
+      return NextResponse.json({ ...(staleResult as object), stale: true, cached: true }, { headers: CDN_HEADERS });
+    }
+
     if (redis) {
-      await loggedRedisSet(redis, 'api.company-news', cacheKey, result, { ex: CACHE_TTL_S });
+      const writes = [loggedRedisSet(redis, 'api.company-news', cacheKey, result, { ex: CACHE_TTL_S })];
+      if (summary) {
+        writes.push(loggedRedisSet(redis, 'api.company-news', staleCacheKey, result, { ex: STALE_CACHE_TTL_S }));
+      }
+      await Promise.allSettled(writes);
     }
     return NextResponse.json(result, { headers: CDN_HEADERS });
   } catch (e) {

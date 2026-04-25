@@ -19,7 +19,7 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=12000, stale-while-reva
 // Module-level memory cache — without Redis, every request calls GROQ → 100k TPD exhausted by midday.
 // 4h TTL matches the primary Redis TTL; keyed by tf.
 const FLOW_MEMORY_CACHE = new Map<string, { result: Record<string, unknown>; expiresAt: number }>();
-const FLOW_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
+const FLOW_MEMORY_TTL_MS = 8 * 60 * 60 * 1000;
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -28,9 +28,9 @@ function createRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
-// Time-independent key + 4h TTL (vs. hourly-rotating key).
+// Time-independent key + 8h TTL (vs. hourly-rotating key).
 // Previously hourly key caused 24 Redis misses/day × 3k tokens = 72k tokens consumed by probes alone.
-// 4h TTL: ~6 regenerations/day, same freshness for a "4-week capital flows" analysis.
+// 8h TTL: ~3 regenerations/day, same freshness for a "4-week capital flows" analysis.
 // v4: prompt switched to English (iter141) — stale v3 cache would serve Korean responses
 function cacheKey(tf: string): string {
   return `flowvium:flow-analysis:v4:${tf}`;
@@ -40,7 +40,7 @@ function cacheKey(tf: string): string {
 function staleCacheKey(tf: string): string {
   return `flowvium:flow-analysis:v4:stale:${tf}`;
 }
-const CACHE_TTL_S = 4 * 60 * 60;        // 4 hours (primary)
+const CACHE_TTL_S = 8 * 60 * 60;        // 8 hours (capital flows change daily, not hourly)
 const STALE_CACHE_TTL_S = 48 * 60 * 60; // 48 hours (fallback)
 
 const FLOW_SYSTEM_PROMPT = `You are a global capital flows analyst.
