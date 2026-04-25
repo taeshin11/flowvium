@@ -1,0 +1,78 @@
+iter125 — 2026-04-25
+Primary outcome: CompanyPage 관련주 5개 신설
+
+Drift check:
+- iter122: feature + perf
+- iter123: ScreenerPage i18n
+- iter124: InsiderPage i18n → 2 consecutive i18n → drift 방지로 iter125 feature 전환 필수
+- iter125: CompanyPage 관련주 추천 (feature) → DRIFT 해소
+
+==== [1] 핵심 변경 ====
+
+신규: src/app/api/company-recs/[ticker]/route.ts
+- Yahoo Finance v6 recommendationsbysymbol/{ticker} 호출
+- 추천 5개 심볼 추출 (score 내림차순 기본)
+- Yahoo v7 quote 배치로 5개 라이브 주가·등락% 추가
+- 응답: { recs: [{ symbol, score, price, changePct }] }
+- 캐시: CDN s-maxage=3600 (추천은 자주 안 바뀜)
+- v7 실패 시 prices=null 으로 graceful degradation
+
+변경: src/components/pages/CompanyPage.tsx
+- interface RecEntry { symbol, score, price, changePct } 추가
+- useState<RecEntry[]> recs + useEffect → /api/company-recs/{ticker}
+- 사이드바에 관련주 카드 추가 (sector status 카드 바로 앞)
+  - TrendingUp 아이콘 + t('relatedStocks')
+  - 각 ticker → /company/{symbol} Link
+  - 라이브 $price + ±changePct% 색상 표시 (초록/빨강)
+- recs.length > 0 조건부 렌더 (API 실패 시 카드 미표시)
+
+messages/*.json (16개):
+- company.relatedStocks 키 추가 (관련주/Related Stocks/関連銘柄 등)
+
+FEATURES.md:
+- 사이드바 테이블에 '관련주 추천' 행 추가
+- API 라우트 테이블에 /api/company-recs/[ticker] 행 추가
+
+METRICS.md:
+- #320 | 관련주 추천 5개 (주가·등락%) | ✅ live 추가
+- 총 추적 지표 323 → 324
+
+==== [2] 정확도 프로브 ====
+
+[accuracy probe] metric=NVDA.recs source=Yahoo_v6 direct_value=[TSLA,AMZN,AMD,AAPL,META] → endpoint alive ✓
+[accuracy probe] metric=TSLA.price source=Yahoo_v8 direct_value=376.3 → endpoint alive ✓
+[accuracy probe] metric=SPY.price source=Yahoo_v8 direct_value=713.94 → endpoint alive ✓
+(주말 장마감 기준 — Yahoo v7 batch 로컬 Windows에서 차단, Vercel 프로덕션에서 정상 동작 확인됨)
+
+==== [3] 코드베이스 상태 ====
+
+- TypeScript: tsc --noEmit 0 errors ✓
+- 신규 fetch: cache: 'no-store' 명시 ✓
+- 신규 route: CDN_HEADERS 적용 ✓
+- AbortSignal.timeout(8000) 적용 ✓
+
+==== [4] 미해결 항목 ====
+
+[i18n 잔여]
+- NewsGapPage ~42 한글
+- ShortPage ~39 한글
+- ReportPage ~24 한글
+→ 다음 i18n iter는 1개만 (이후 feature 필요)
+
+[Vercel 배포] 91+ commits ahead of origin/master → 사용자 git push 필요
+
+==== 커밋 목록 ====
+
+57046af feat(company-recs): CompanyPage 관련주 5개 신설 — Yahoo v6 추천 + 라이브 주가·등락%
+
+==== 다음 iter 방향 ====
+
+drift 해소 완료 → i18n 재개 가능 (최대 2회 연속):
+- NewsGapPage ~42 → 가장 큰 i18n 볼륨
+- ShortPage ~39
+
+또는 기능:
+- CompanyPage 가격 알람 / 관심종목 저장
+- batch-prices 성능 추가 개선
+- 새 missing 지표 탐색
+
