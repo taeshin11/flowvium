@@ -38,12 +38,23 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
       ? parseFloat(((price - prevClose) / prevClose * 100).toFixed(2))
       : null;
 
+    const volume: number | null = typeof meta.regularMarketVolume === 'number' ? meta.regularMarketVolume : null;
+    const dayHigh: number | null = meta.regularMarketDayHigh ?? null;
+    const dayLow: number | null = meta.regularMarketDayLow ?? null;
+    const week52High: number | null = meta.fiftyTwoWeekHigh ?? null;
+    const week52Low: number | null = meta.fiftyTwoWeekLow ?? null;
+
     const result = {
       ticker: sym,
       price,
       prevClose,
       change,
       changePct,
+      volume,
+      dayHigh,
+      dayLow,
+      week52High,
+      week52Low,
       currency: meta.currency ?? 'USD',
       marketState: meta.marketState ?? null,
       updatedAt: new Date().toISOString(),

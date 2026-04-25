@@ -231,7 +231,10 @@
     "ownershipTotalValue": "合计市值",
     "ownershipBasis": "SEC EDGAR 13F-HR基准 · 45天延迟披露",
     "sharesUnit": "{n}M股",
-    "staticDataFinancials": "静态数据（加载实时财务…）"
+    "staticDataFinancials": "静态数据（加载实时财务…）",
+    "volume": "成交量",
+    "dayRange": "当日",
+    "week52Range": "52周"
   },
   "cascade": {
     "title": "连锁影响可视化",

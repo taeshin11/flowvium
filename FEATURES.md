@@ -281,8 +281,9 @@
 
 ### 5-1. 헤더
 - 기업명·티커·역할 배지·번역 설명
-- **실시간 주가·일간 변화%** (`/api/stock-price/[ticker]`, Yahoo Finance v8, 15min 캐시)
+- **실시간 주가·일간 변화%·거래량·당일/52주 범위** (`/api/stock-price/[ticker]`, Yahoo Finance v8, 15min 캐시)
   - 장전(PRE)/장후(POST) 마켓 상태 표시
+  - 거래량(Vol), 당일 범위(Day), 52주 범위(52W) 표시 (iter122)
 - **시가총액 band 분류** (`/api/market-caps?ticker=X`, 정적 band 분류, Yahoo v7 crumb 실패로 live 제거)
 - **90일 주가 추이 차트** (`/api/price-history?ticker=X&days=90`, Yahoo Finance v8, 1h 캐시)
   - 90일 수익률(%) + 미니 LineChart (recharts)

@@ -231,7 +231,10 @@
     "ownershipTotalValue": "合計評価額",
     "ownershipBasis": "SEC EDGAR 13F-HR基準 · 45日遅延開示",
     "sharesUnit": "{n}M株",
-    "staticDataFinancials": "静的データ（リアルタイム財務ロード中…）"
+    "staticDataFinancials": "静的データ（リアルタイム財務ロード中…）",
+    "volume": "出来高",
+    "dayRange": "当日",
+    "week52Range": "52週"
   },
   "cascade": {
     "title": "カスケード・ビジュアライザー",

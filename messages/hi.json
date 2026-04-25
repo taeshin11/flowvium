@@ -231,7 +231,10 @@
     "ownershipTotalValue": "कुल मूल्य",
     "ownershipBasis": "SEC EDGAR 13F-HR के आधार पर · 45-दिन की देरी",
     "sharesUnit": "{n}M शेयर",
-    "staticDataFinancials": "स्थैतिक डेटा (लाइव वित्तीय लोड हो रहे हैं…)"
+    "staticDataFinancials": "स्थैतिक डेटा (लाइव वित्तीय लोड हो रहे हैं…)",
+    "volume": "वॉल्यूम",
+    "dayRange": "दिन",
+    "week52Range": "52सप्ताह"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",

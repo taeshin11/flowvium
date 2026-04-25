@@ -231,7 +231,10 @@
     "ownershipTotalValue": "إجمالي القيمة",
     "ownershipBasis": "استناداً إلى SEC EDGAR 13F-HR · تأخير 45 يوماً",
     "sharesUnit": "{n}M سهم",
-    "staticDataFinancials": "بيانات ثابتة (تحميل البيانات المالية…)"
+    "staticDataFinancials": "بيانات ثابتة (تحميل البيانات المالية…)",
+    "volume": "حجم",
+    "dayRange": "يوم",
+    "week52Range": "52أسبوع"
   },
   "cascade": {
     "title": "مصوّر التأثير المتسلسل",

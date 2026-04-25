@@ -231,7 +231,10 @@
     "ownershipTotalValue": "Total value",
     "ownershipBasis": "Based on SEC EDGAR 13F-HR · 45-day reporting delay",
     "sharesUnit": "{n}M shares",
-    "staticDataFinancials": "Static data (loading live financials…)"
+    "staticDataFinancials": "Static data (loading live financials…)",
+    "volume": "Vol",
+    "dayRange": "Day",
+    "week52Range": "52W"
   },
   "cascade": {
     "title": "Cascade Visualizer",

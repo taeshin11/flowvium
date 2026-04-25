@@ -231,7 +231,10 @@
     "ownershipTotalValue": "Gesamtwert",
     "ownershipBasis": "Basierend auf SEC EDGAR 13F-HR · 45 Tage Berichtsverzögerung",
     "sharesUnit": "{n}M Aktien",
-    "staticDataFinancials": "Statische Daten (Echtzeitfinanzen werden geladen…)"
+    "staticDataFinancials": "Statische Daten (Echtzeitfinanzen werden geladen…)",
+    "volume": "Vol",
+    "dayRange": "Tag",
+    "week52Range": "52W"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",

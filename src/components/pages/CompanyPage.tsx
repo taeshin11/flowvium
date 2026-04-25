@@ -220,7 +220,13 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [company, ticker]);
 
   // ── Live stock price + 90-day history (Yahoo Finance) ─────────────────────
-  interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; marketState: string | null; }
+  interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; marketState: string | null; volume: number | null; dayHigh: number | null; dayLow: number | null; week52High: number | null; week52Low: number | null; }
+  function fmtVol(v: number): string {
+    if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+    if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+    return String(v);
+  }
   interface PricePoint { date: string; close: number }
   const [livePrice, setLivePrice] = useState<LivePrice | null>(null);
   const [liveMarketCap, setLiveMarketCap] = useState<number | null>(null);
@@ -411,28 +417,43 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             {company.role}
           </span>
           {livePrice?.price != null && (
-            <div className="flex items-center gap-2 ml-1">
-              <span className="text-2xl font-bold tabular-nums text-cf-text-primary">
-                {livePrice.currency === 'USD' ? '$' : ''}{livePrice.price.toFixed(2)}
-              </span>
-              {livePrice.changePct != null && (
-                <span className={`text-sm font-bold px-2 py-0.5 rounded-full tabular-nums ${
-                  livePrice.changePct >= 0
-                    ? 'text-green-700 bg-green-50'
-                    : 'text-red-600 bg-red-50'
-                }`}>
-                  {livePrice.changePct >= 0 ? '+' : ''}{livePrice.changePct.toFixed(2)}%
+            <div className="ml-1">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold tabular-nums text-cf-text-primary">
+                  {livePrice.currency === 'USD' ? '$' : ''}{livePrice.price.toFixed(2)}
                 </span>
-              )}
-              {livePrice.marketState && livePrice.marketState !== 'REGULAR' && (
-                <span className="text-[10px] text-cf-text-secondary/60 font-medium">
-                  {livePrice.marketState === 'PRE' ? t('preMarket') : livePrice.marketState === 'POST' ? t('postMarket') : livePrice.marketState}
-                </span>
-              )}
-              {liveMarketCap != null && (
-                <span className="text-xs text-cf-text-secondary font-medium ml-1">
-                  {t('marketCap', { val: fmtUsd(liveMarketCap) })}
-                </span>
+                {livePrice.changePct != null && (
+                  <span className={`text-sm font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                    livePrice.changePct >= 0
+                      ? 'text-green-700 bg-green-50'
+                      : 'text-red-600 bg-red-50'
+                  }`}>
+                    {livePrice.changePct >= 0 ? '+' : ''}{livePrice.changePct.toFixed(2)}%
+                  </span>
+                )}
+                {livePrice.marketState && livePrice.marketState !== 'REGULAR' && (
+                  <span className="text-[10px] text-cf-text-secondary/60 font-medium">
+                    {livePrice.marketState === 'PRE' ? t('preMarket') : livePrice.marketState === 'POST' ? t('postMarket') : livePrice.marketState}
+                  </span>
+                )}
+                {liveMarketCap != null && (
+                  <span className="text-xs text-cf-text-secondary font-medium ml-1">
+                    {t('marketCap', { val: fmtUsd(liveMarketCap) })}
+                  </span>
+                )}
+              </div>
+              {(livePrice.volume != null || livePrice.dayHigh != null) && (
+                <div className="flex items-center gap-3 mt-0.5 text-[11px] text-cf-text-secondary font-mono">
+                  {livePrice.volume != null && (
+                    <span>{t('volume')}: {fmtVol(livePrice.volume)}</span>
+                  )}
+                  {livePrice.dayHigh != null && livePrice.dayLow != null && (
+                    <span>{t('dayRange')}: {livePrice.dayLow.toFixed(2)} – {livePrice.dayHigh.toFixed(2)}</span>
+                  )}
+                  {livePrice.week52High != null && livePrice.week52Low != null && (
+                    <span>{t('week52Range')}: {livePrice.week52Low.toFixed(2)} – {livePrice.week52High.toFixed(2)}</span>
+                  )}
+                </div>
               )}
             </div>
           )}

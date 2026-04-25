@@ -231,7 +231,10 @@
     "ownershipTotalValue": "Total nilai",
     "ownershipBasis": "Berdasarkan SEC EDGAR 13F-HR · keterlambatan 45 hari",
     "sharesUnit": "{n}M saham",
-    "staticDataFinancials": "Data statis (memuat keuangan langsung…)"
+    "staticDataFinancials": "Data statis (memuat keuangan langsung…)",
+    "volume": "Vol",
+    "dayRange": "Hari",
+    "week52Range": "52M"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",

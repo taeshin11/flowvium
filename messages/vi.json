@@ -231,7 +231,10 @@
     "ownershipTotalValue": "Tổng giá trị",
     "ownershipBasis": "Dựa trên SEC EDGAR 13F-HR · trễ 45 ngày",
     "sharesUnit": "{n}M cổ phiếu",
-    "staticDataFinancials": "Dữ liệu tĩnh (đang tải tài chính trực tiếp…)"
+    "staticDataFinancials": "Dữ liệu tĩnh (đang tải tài chính trực tiếp…)",
+    "volume": "KL",
+    "dayRange": "Ngày",
+    "week52Range": "52T"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",

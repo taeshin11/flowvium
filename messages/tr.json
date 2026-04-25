@@ -231,7 +231,10 @@
     "ownershipTotalValue": "Toplam değer",
     "ownershipBasis": "SEC EDGAR 13F-HR bazlı · 45 günlük raporlama gecikmesi",
     "sharesUnit": "{n}M hisse",
-    "staticDataFinancials": "Statik veri (canlı finansal yükleniyor…)"
+    "staticDataFinancials": "Statik veri (canlı finansal yükleniyor…)",
+    "volume": "Hacim",
+    "dayRange": "Gün",
+    "week52Range": "52H"
   },
   "cascade": {
     "title": "Kaskad Görselleştirici",

@@ -231,7 +231,10 @@
     "ownershipTotalValue": "합계 평가액",
     "ownershipBasis": "SEC EDGAR 13F-HR 기준 · 45일 지연 공시",
     "sharesUnit": "{n}M주",
-    "staticDataFinancials": "정적 데이터 (실시간 재무 로딩 중…)"
+    "staticDataFinancials": "정적 데이터 (실시간 재무 로딩 중…)",
+    "volume": "거래량",
+    "dayRange": "당일",
+    "week52Range": "52주"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",

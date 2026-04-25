@@ -231,7 +231,10 @@
     "ownershipTotalValue": "Суммарная стоимость",
     "ownershipBasis": "На основе SEC EDGAR 13F-HR · задержка 45 дней",
     "sharesUnit": "{n}M акций",
-    "staticDataFinancials": "Статические данные (загрузка финансов…)"
+    "staticDataFinancials": "Статические данные (загрузка финансов…)",
+    "volume": "Объём",
+    "dayRange": "День",
+    "week52Range": "52Н"
   },
   "cascade": {
     "title": "Визуализатор каскада",

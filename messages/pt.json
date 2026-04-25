@@ -231,7 +231,10 @@
     "ownershipTotalValue": "Valor total",
     "ownershipBasis": "Baseado em SEC EDGAR 13F-HR · atraso de 45 dias",
     "sharesUnit": "{n}M ações",
-    "staticDataFinancials": "Dados estáticos (carregando finanças em tempo real…)"
+    "staticDataFinancials": "Dados estáticos (carregando finanças em tempo real…)",
+    "volume": "Vol",
+    "dayRange": "Dia",
+    "week52Range": "52S"
   },
   "cascade": {
     "title": "Visualizador de Cascata",
