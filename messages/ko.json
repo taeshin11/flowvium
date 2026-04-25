@@ -235,7 +235,16 @@
     "volume": "거래량",
     "dayRange": "당일",
     "week52Range": "52주",
-    "relatedStocks": "관련주"
+    "relatedStocks": "관련주",
+    "analystConsensus": "애널리스트 컨센서스",
+    "analystTarget": "목표 주가 (평균)",
+    "analystUpside": "상승 여력",
+    "analystRange": "저가 — 고가",
+    "analystRatings": "투자 의견",
+    "analystCount": "명",
+    "analystBuy": "매수",
+    "analystHold": "중립",
+    "analystSell": "매도"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "유효하지 않은 티커입니다",
     "maxItems": "최대 30개까지 추가 가능",
     "refreshAll": "모두 갱신",
-    "retry": "재시도"
+    "retry": "재시도",
+    "autoRefresh": "5분 자동 갱신"
   },
   "macro": {
     "fwLoading": "FedWatch 로딩중...",

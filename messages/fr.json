@@ -235,7 +235,16 @@
     "volume": "Vol",
     "dayRange": "Jour",
     "week52Range": "52S",
-    "relatedStocks": "Actions liées"
+    "relatedStocks": "Actions liées",
+    "analystConsensus": "Consensus Analystes",
+    "analystTarget": "Objectif de cours (moy.)",
+    "analystUpside": "Potentiel haussier",
+    "analystRange": "Bas — Haut",
+    "analystRatings": "Recommandations",
+    "analystCount": "analystes",
+    "analystBuy": "Achat",
+    "analystHold": "Conserver",
+    "analystSell": "Vente"
   },
   "cascade": {
     "title": "Visualiseur de cascades",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "Ticker invalide",
     "maxItems": "30 tickers max",
     "refreshAll": "Tout actualiser",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "autoRefresh": "Actualisation auto 5 min"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

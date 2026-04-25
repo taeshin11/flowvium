@@ -235,7 +235,16 @@
     "volume": "Hacim",
     "dayRange": "Gün",
     "week52Range": "52H",
-    "relatedStocks": "İlgili Hisseler"
+    "relatedStocks": "İlgili Hisseler",
+    "analystConsensus": "Analist Konsensüsü",
+    "analystTarget": "Hedef Fiyat (ort.)",
+    "analystUpside": "Yükseliş potansiyeli",
+    "analystRange": "Düşük — Yüksek",
+    "analystRatings": "Derecelendirmeler",
+    "analystCount": "analist",
+    "analystBuy": "Al",
+    "analystHold": "Tut",
+    "analystSell": "Sat"
   },
   "cascade": {
     "title": "Kaskad Görselleştirici",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "Geçersiz ticker",
     "maxItems": "Maks. 30 ticker",
     "refreshAll": "Hepsini yenile",
-    "retry": "Tekrar dene"
+    "retry": "Tekrar dene",
+    "autoRefresh": "5 dakikada bir otomatik güncelleme"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

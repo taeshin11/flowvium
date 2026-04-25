@@ -235,7 +235,16 @@
     "volume": "KL",
     "dayRange": "Ngày",
     "week52Range": "52T",
-    "relatedStocks": "Cổ phiếu liên quan"
+    "relatedStocks": "Cổ phiếu liên quan",
+    "analystConsensus": "Đồng thuận Phân tích",
+    "analystTarget": "Giá mục tiêu (tb)",
+    "analystUpside": "Tiềm năng tăng",
+    "analystRange": "Thấp — Cao",
+    "analystRatings": "Đánh giá",
+    "analystCount": "phân tích viên",
+    "analystBuy": "Mua",
+    "analystHold": "Giữ",
+    "analystSell": "Bán"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "Mã không hợp lệ",
     "maxItems": "Tối đa 30 mã",
     "refreshAll": "Làm mới tất cả",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "autoRefresh": "Tự động cập nhật 5 phút"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

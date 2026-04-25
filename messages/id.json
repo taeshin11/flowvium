@@ -235,7 +235,16 @@
     "volume": "Vol",
     "dayRange": "Hari",
     "week52Range": "52M",
-    "relatedStocks": "Saham Terkait"
+    "relatedStocks": "Saham Terkait",
+    "analystConsensus": "Konsensus Analis",
+    "analystTarget": "Target Harga (rata-rata)",
+    "analystUpside": "Potensi naik",
+    "analystRange": "Rendah — Tinggi",
+    "analystRatings": "Penilaian",
+    "analystCount": "analis",
+    "analystBuy": "Beli",
+    "analystHold": "Tahan",
+    "analystSell": "Jual"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "Ticker tidak valid",
     "maxItems": "Maks. 30 ticker",
     "refreshAll": "Perbarui semua",
-    "retry": "Coba lagi"
+    "retry": "Coba lagi",
+    "autoRefresh": "Perbarui otomatis 5 menit"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

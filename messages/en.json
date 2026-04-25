@@ -235,7 +235,16 @@
     "volume": "Vol",
     "dayRange": "Day",
     "week52Range": "52W",
-    "relatedStocks": "Related Stocks"
+    "relatedStocks": "Related Stocks",
+    "analystConsensus": "Analyst Consensus",
+    "analystTarget": "Price Target (avg)",
+    "analystUpside": "Upside",
+    "analystRange": "Low — High",
+    "analystRatings": "Ratings",
+    "analystCount": "analysts",
+    "analystBuy": "Buy",
+    "analystHold": "Hold",
+    "analystSell": "Sell"
   },
   "cascade": {
     "title": "Cascade Visualizer",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "Invalid ticker",
     "maxItems": "Up to 30 tickers allowed",
     "refreshAll": "Refresh all",
-    "retry": "Retry"
+    "retry": "Retry",
+    "autoRefresh": "5-min auto-refresh"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

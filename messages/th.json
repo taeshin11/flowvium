@@ -235,7 +235,16 @@
     "volume": "ปริมาณ",
     "dayRange": "วัน",
     "week52Range": "52สัปดาห์",
-    "relatedStocks": "หุ้นที่เกี่ยวข้อง"
+    "relatedStocks": "หุ้นที่เกี่ยวข้อง",
+    "analystConsensus": "ฉันทามติของนักวิเคราะห์",
+    "analystTarget": "ราคาเป้าหมาย (เฉลี่ย)",
+    "analystUpside": "โอกาสขึ้น",
+    "analystRange": "ต่ำ — สูง",
+    "analystRatings": "การให้คะแนน",
+    "analystCount": "นักวิเคราะห์",
+    "analystBuy": "ซื้อ",
+    "analystHold": "ถือ",
+    "analystSell": "ขาย"
   },
   "cascade": {
     "title": "เครื่องมือแสดงผลลูกโซ่",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "Ticker ไม่ถูกต้อง",
     "maxItems": "สูงสุด 30 ticker",
     "refreshAll": "อัปเดตทั้งหมด",
-    "retry": "ลองอีกครั้ง"
+    "retry": "ลองอีกครั้ง",
+    "autoRefresh": "อัปเดตอัตโนมัติ 5 นาที"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

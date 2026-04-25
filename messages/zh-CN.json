@@ -235,7 +235,16 @@
     "volume": "成交量",
     "dayRange": "当日",
     "week52Range": "52周",
-    "relatedStocks": "相关股票"
+    "relatedStocks": "相关股票",
+    "analystConsensus": "分析师评级",
+    "analystTarget": "目标价（均值）",
+    "analystUpside": "上行空间",
+    "analystRange": "低—高",
+    "analystRatings": "投资评级",
+    "analystCount": "位分析师",
+    "analystBuy": "买入",
+    "analystHold": "持有",
+    "analystSell": "卖出"
   },
   "cascade": {
     "title": "连锁影响可视化",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "代码无效",
     "maxItems": "最多30只",
     "refreshAll": "全部刷新",
-    "retry": "重试"
+    "retry": "重试",
+    "autoRefresh": "每5分钟自动刷新"
   },
   "macro": {
     "fwLoading": "加载 FedWatch 中...",

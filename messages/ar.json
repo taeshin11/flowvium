@@ -235,7 +235,16 @@
     "volume": "حجم",
     "dayRange": "يوم",
     "week52Range": "52أسبوع",
-    "relatedStocks": "أسهم مشابهة"
+    "relatedStocks": "أسهم مشابهة",
+    "analystConsensus": "إجماع المحللين",
+    "analystTarget": "السعر المستهدف (متوسط)",
+    "analystUpside": "إمكانية الارتفاع",
+    "analystRange": "منخفض — مرتفع",
+    "analystRatings": "تقييمات",
+    "analystCount": "محللين",
+    "analystBuy": "شراء",
+    "analystHold": "احتفاظ",
+    "analystSell": "بيع"
   },
   "cascade": {
     "title": "مصوّر التأثير المتسلسل",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "رمز غير صالح",
     "maxItems": "حد أقصى 30 رمزاً",
     "refreshAll": "تحديث الكل",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "autoRefresh": "تحديث تلقائي كل 5 دقائق"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

@@ -235,7 +235,16 @@
     "volume": "成交量",
     "dayRange": "當日",
     "week52Range": "52週",
-    "relatedStocks": "相關股票"
+    "relatedStocks": "相關股票",
+    "analystConsensus": "分析師評級",
+    "analystTarget": "目標價（均值）",
+    "analystUpside": "上漲空間",
+    "analystRange": "低—高",
+    "analystRatings": "投資評級",
+    "analystCount": "位分析師",
+    "analystBuy": "買進",
+    "analystHold": "持有",
+    "analystSell": "賣出"
   },
   "cascade": {
     "title": "連鎖影響視覺化",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "代碼無效",
     "maxItems": "最多30檔",
     "refreshAll": "全部刷新",
-    "retry": "重試"
+    "retry": "重試",
+    "autoRefresh": "每5分鐘自動刷新"
   },
   "macro": {
     "fwLoading": "載入 FedWatch 中...",

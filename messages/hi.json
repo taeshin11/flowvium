@@ -235,7 +235,16 @@
     "volume": "वॉल्यूम",
     "dayRange": "दिन",
     "week52Range": "52सप्ताह",
-    "relatedStocks": "संबंधित स्टॉक"
+    "relatedStocks": "संबंधित स्टॉक",
+    "analystConsensus": "विश्लेषक सहमति",
+    "analystTarget": "लक्ष्य मूल्य (औसत)",
+    "analystUpside": "ऊपरी संभावना",
+    "analystRange": "न्यूनतम — अधिकतम",
+    "analystRatings": "रेटिंग",
+    "analystCount": "विश्लेषक",
+    "analystBuy": "खरीदें",
+    "analystHold": "होल्ड",
+    "analystSell": "बेचें"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",
@@ -1093,7 +1102,8 @@
     "invalidTicker": "अमान्य टिकर",
     "maxItems": "अधिकतम 30 टिकर",
     "refreshAll": "सब अपडेट करें",
-    "retry": "पुनः प्रयास"
+    "retry": "पुनः प्रयास",
+    "autoRefresh": "5 मिनट स्वचालित अपडेट"
   },
   "macro": {
     "fwLoading": "Loading FedWatch...",

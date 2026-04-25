@@ -51,6 +51,7 @@ import {
   ChevronUp,
   Users2,
   Brain,
+  Target,
 } from 'lucide-react';
 import ShareButtons from '@/components/ShareButtons';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -344,6 +345,29 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     fetch(`/api/price-history?ticker=${ticker.toUpperCase()}&days=90`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (!controller.signal.aborted && d?.points?.length) setPriceHistory(d.points); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ticker]);
+
+  // ── Analyst price targets + recommendation breakdown (Finnhub) ─────────────
+  interface AnalystData {
+    targetHigh: number | null; targetLow: number | null;
+    targetMean: number | null; targetMedian: number | null;
+    lastUpdated: string | null;
+    strongBuy: number; buy: number; hold: number; sell: number; strongSell: number;
+    totalAnalysts: number; period: string | null;
+  }
+  const [analystData, setAnalystData] = useState<AnalystData | null>(null);
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    fetch(`/api/analyst-target/${ticker.toUpperCase()}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!controller.signal.aborted && d && (d.targetMean != null || d.totalAnalysts > 0)) {
+          setAnalystData(d);
+        }
+      })
       .catch(() => undefined);
     return () => controller.abort();
   }, [ticker]);
@@ -1443,6 +1467,84 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   </Link>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Analyst Consensus */}
+          {analystData && (analystData.targetMean != null || analystData.totalAnalysts > 0) && (
+            <div className="cf-card p-5">
+              <h3 className="text-base font-heading font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+                <Target className="w-4 h-4 text-cf-primary" />
+                {t('analystConsensus')}
+              </h3>
+              {analystData.targetMean != null && (
+                <div className="mb-3">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className="text-xs text-cf-text-secondary">{t('analystTarget')}</span>
+                    <span className="text-lg font-extrabold text-cf-text-primary">
+                      ${analystData.targetMean.toFixed(2)}
+                    </span>
+                  </div>
+                  {livePrice?.price != null && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-cf-text-secondary">{t('analystUpside')}</span>
+                      {(() => {
+                        const upside = ((analystData.targetMean! - livePrice.price) / livePrice.price) * 100;
+                        return (
+                          <span className={`font-semibold ${upside >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {upside >= 0 ? '+' : ''}{upside.toFixed(1)}%
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  {analystData.targetLow != null && analystData.targetHigh != null && (
+                    <div className="flex items-center justify-between text-xs text-cf-text-secondary mt-1">
+                      <span>${analystData.targetLow.toFixed(0)} — ${analystData.targetHigh.toFixed(0)}</span>
+                      <span className="opacity-60">{t('analystRange')}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {analystData.totalAnalysts > 0 && (
+                <div>
+                  <div className="flex items-center justify-between text-xs text-cf-text-secondary mb-1.5">
+                    <span>{t('analystRatings')}</span>
+                    <span>{analystData.totalAnalysts} {t('analystCount')}</span>
+                  </div>
+                  <div className="flex h-2 rounded-full overflow-hidden gap-px">
+                    {analystData.strongBuy + analystData.buy > 0 && (
+                      <div
+                        className="bg-green-500"
+                        style={{ width: `${((analystData.strongBuy + analystData.buy) / analystData.totalAnalysts) * 100}%` }}
+                        title={`Buy: ${analystData.strongBuy + analystData.buy}`}
+                      />
+                    )}
+                    {analystData.hold > 0 && (
+                      <div
+                        className="bg-amber-400"
+                        style={{ width: `${(analystData.hold / analystData.totalAnalysts) * 100}%` }}
+                        title={`Hold: ${analystData.hold}`}
+                      />
+                    )}
+                    {analystData.sell + analystData.strongSell > 0 && (
+                      <div
+                        className="bg-red-500"
+                        style={{ width: `${((analystData.sell + analystData.strongSell) / analystData.totalAnalysts) * 100}%` }}
+                        title={`Sell: ${analystData.sell + analystData.strongSell}`}
+                      />
+                    )}
+                  </div>
+                  <div className="flex justify-between text-[10px] text-cf-text-secondary mt-1">
+                    <span className="text-green-400">{t('analystBuy')} {analystData.strongBuy + analystData.buy}</span>
+                    <span className="text-amber-400">{t('analystHold')} {analystData.hold}</span>
+                    <span className="text-red-400">{t('analystSell')} {analystData.sell + analystData.strongSell}</span>
+                  </div>
+                </div>
+              )}
+              {analystData.period && (
+                <p className="text-[10px] text-cf-text-secondary/40 mt-2">Finnhub · {analystData.period}</p>
+              )}
             </div>
           )}
 

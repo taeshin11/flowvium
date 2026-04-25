@@ -350,6 +350,7 @@
 | 뉴스 갭 스코어 | Gap Score · IB 활동 점수 · 미디어 커버리지 점수 |
 | 캐스케이드 포지션 | 역할(leader/follower/mid/small) · 다음 티어까지 딜레이 |
 | 관련주 추천 | Yahoo v6 추천 5개 · 라이브 주가·등락% · CompanyPage 링크 (`/api/company-recs/[ticker]`) |
+| 애널리스트 컨센서스 | 평균·고·저 목표가 · 상승여력 % · Buy/Hold/Sell 분포 바 · 총 애널리스트 수 (`/api/analyst-target/[ticker]`) |
 | 섹터 현황 | 섹터명·페이즈·핵심 데이터·테마·촉매제 |
 
 ---
@@ -848,6 +849,7 @@ ownership-alerts 적용).
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
 | `/api/company-recs/[ticker]` | Yahoo Finance v6 recommendationsbysymbol + v7 quote | 1h CDN |
+| `/api/analyst-target/[ticker]` | Finnhub price-target + recommendation | 24h CDN |
 | `/api/translate` | 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ부터 — GEMINI 미설정 환경에서도 동작) | 30일 |
 | `/api/ai` | vLLM → Gemini | 7일 |
 | `/api/osint/social` | 정적 데이터 | 캐시 |

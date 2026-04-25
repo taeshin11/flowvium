@@ -275,7 +275,7 @@ export default function WatchlistPage() {
       )}
 
       <p className="text-[10px] text-cf-text-secondary/40 mt-4 text-center">
-        Yahoo Finance · {t('maxItems')} · 5분 자동 갱신
+        Yahoo Finance · {t('maxItems')} · {t('autoRefresh')}
       </p>
     </div>
   );
