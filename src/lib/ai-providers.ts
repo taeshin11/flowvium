@@ -26,7 +26,7 @@ import { logger } from './logger';
 
 export interface AICallResult {
   text: string;
-  source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b' | 'Gemini 2.5' | 'fallback'
+  source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b-versatile' | 'GROQ-llama-3.1-8b-instant' | 'gemini-2.0-flash' | 'fallback'
   durationMs: number;
   /** Per-provider attempt outcome — populated when chain fully fails, to aid diagnosis. */
   attempts?: Array<{ provider: 'vllm' | 'groq' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
@@ -143,7 +143,7 @@ async function callGroqModel(key: string, model: string, prompt: string, opts: A
   }
 }
 
-async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
+async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<{ text: string; model: string } | null> {
   const key = process.env.GROQ_API_KEY?.trim();
   if (!key) return null;
 
@@ -159,14 +159,14 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
 
   // 1차: 고품질 70b (TPD 100k)
   const primary = await callGroqModel(key, 'llama-3.3-70b-versatile', prompt, opts, diag);
-  if (primary.text) return primary.text;
+  if (primary.text) return { text: primary.text, model: 'llama-3.3-70b-versatile' };
 
   // 2차 폴백: 8b (TPD 500k, RPD 14.4k) — 70b 가 어떤 이유로든 429 시 즉시 시도
   // 8b limits가 훨씬 크기 때문에 TPD뿐 아니라 RPD/TPM 한도 초과 때도 복구 가능.
   if (primary.status === 429) {
     logger.info(tag, 'groq_429_fallback_8b', { note: '70b 429, retrying with llama-3.1-8b-instant' });
     const fallback = await callGroqModel(key, 'llama-3.1-8b-instant', prompt, opts, diag);
-    if (fallback.text) return fallback.text;
+    if (fallback.text) return { text: fallback.text, model: 'llama-3.1-8b-instant' };
 
     // If 8b is also TPD-exhausted → mark both exhausted until next UTC midnight
     if (fallback.status === 429 && fallback.tpdExhausted) {
@@ -249,11 +249,11 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
 
   // 2. GROQ (무료 14,400/일)
   const g = await callGroq(prompt, opts, attempts);
-  if (g) return { text: g, source: 'GROQ-llama-3.3-70b', durationMs: Date.now() - start };
+  if (g) return { text: g.text, source: `GROQ-${g.model}`, durationMs: Date.now() - start };
 
   // 3. Gemini (유료 최종 폴백)
   const gm = await callGemini(prompt, opts, attempts);
-  if (gm) return { text: gm, source: 'Gemini 2.5', durationMs: Date.now() - start };
+  if (gm) return { text: gm, source: 'gemini-2.0-flash', durationMs: Date.now() - start };
 
   logger.error(opts.tag ?? 'ai', 'all_providers_failed', { durationMs: Date.now() - start, attempts });
   return { text: '', source: 'fallback', durationMs: Date.now() - start, attempts };
