@@ -1,0 +1,61 @@
+== iter179 — 2026-04-26 ==
+
+PRIMARY OUTCOME: investment-strategy 추가 필드 미스매치 3건 수정
+
+DRIFT CHECK:
+- iter175: investment-strategy (GDP fix)
+- iter176: investment-strategy (sector-pe fix)
+- iter177: daily-brief (credit summariser)
+- iter178: daily-brief (fallbackBrief + 전체 감사)
+- iter179: investment-strategy (earnings + 13F + insider) ← iter175/176 이후 다시
+
+iter175+176 이후 177+178 일 day-brief로 이탈, 이번 iter179 다시 investment-strategy.
+연속 3 iter 아님 → drift 없음. 하지만 iter180은 다른 영역 권장.
+
+ROOT CAUSES FOUND (3건):
+
+GAP 1: getUpcomingEarnings — field 2건 미스매치
+  earnings endpoint 응답: { earnings: EarningRow[], from, to, count, ... }
+  코드: data.upcoming → 항상 undefined → items = [] → AI에 earnings 정보 없음
+  EarningRow에 ticker 없음: 실제 필드는 symbol (FinnhubEarning.symbol)
+
+  FIX:
+    data.upcoming → data.earnings
+    e.ticker → e.symbol
+
+GAP 2: buildCtxSummary 13F 잘못된 action 필터
+  InstitutionalSignal.action: 'accumulating' | 'reducing' | 'new_position' | 'exit'
+  코드: s.action === 'buy' || s.action === 'increased' → 항상 empty
+  또한 s.valueM 없음 (실제: s.estimatedValue 문자열, e.g. "$5.6B")
+
+  FIX:
+    'buy'|'increased' → 'accumulating'|'new_position'
+    $${s.valueM}M → ${s.estimatedValue ?? ''}
+
+GAP 3: buildCtxSummary insider 잘못된 필드명
+  InsiderTransaction: officerTitle (not insiderTitle), direction (not transactionType)
+  코드: i.insiderTitle → undefined, i.transactionType → undefined
+
+  FIX:
+    i.insiderTitle → i.officerTitle
+    i.transactionType → direction === 'buy' 필터 + $transactionValueUsd 금액 포함
+    전체 형식 개선: 실제 매수 건만 표시 + 금액
+
+CUMULATIVE IMPACT (iter176~179):
+  investment-strategy AI 프롬프트에 추가된 실제 데이터:
+  - [Sector Valuations]: 8개 섹터 PE/YTD/1d (iter176 fix)
+  - [Macro] GDP: pending 시 prev+release date (iter175 fix)
+  - [Institutional]: 실제 accumulating 13F 포지션 + 실제 insider 매수 금액 (iter179 fix)
+  - [Earnings]: 향후 5개 실적 발표 일정+종목 (iter179 fix)
+
+ACCURACY PROBE:
+[accuracy probe] metric=T10Y2Y source=FRED
+  direct_value=0.53 (2026-04-24) LIVE ✓
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/investment-strategy/route.ts (earnings 3개 필드 / 13F action+field / insider field 수정)
+
+NEXT: iter180 → 다른 영역. 후보: economic-calendar를 daily-brief AI 컨텍스트에 추가
+  (현재 AI는 향후 CPI/NFP/FOMC 일정 모름 — forward-looking 분석 불가)
