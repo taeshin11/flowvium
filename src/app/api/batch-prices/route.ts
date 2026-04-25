@@ -8,6 +8,22 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=300, stale-while-revali
 interface PriceEntry { price: number | null; change: number | null; changePct: number | null; marketState: string | null; }
 type PriceMap = Record<string, PriceEntry>;
 
+async function fetchFinnhubPrice(sym: string, key: string): Promise<PriceEntry> {
+  const res = await fetch(
+    `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(key)}`,
+    { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000), cache: 'no-store' },
+  );
+  if (!res.ok) throw new Error(`Finnhub ${res.status}`);
+  const d = await res.json() as { c?: number; d?: number; dp?: number };
+  if (!d.c || d.c <= 0) throw new Error('no price');
+  return {
+    price: parseFloat(d.c.toFixed(2)),
+    change: typeof d.d === 'number' ? parseFloat(d.d.toFixed(2)) : null,
+    changePct: typeof d.dp === 'number' ? parseFloat(d.dp.toFixed(2)) : null,
+    marketState: null,
+  };
+}
+
 const TICKER_CACHE = new Map<string, { entry: PriceEntry; expiresAt: number }>();
 const TTL = 5 * 60 * 1000;
 const YHDR = YAHOO_HEADERS;
@@ -76,17 +92,40 @@ export async function GET(req: Request) {
 
     if (!v7Ok) {
       const expiresAt = now + TTL;
-      await Promise.allSettled(
-        missing.map(async ticker => {
-          try {
-            const entry = await fetchV8(ticker);
-            prices[ticker] = entry;
-            TICKER_CACHE.set(ticker, { entry, expiresAt });
-          } catch {
-            prices[ticker] = { price: null, change: null, changePct: null, marketState: null };
-          }
-        })
+      // Try Yahoo v8 per-ticker in parallel
+      const v8Results = await Promise.allSettled(
+        missing.map(async ticker => ({ ticker, entry: await fetchV8(ticker) }))
       );
+      const v8Failed: string[] = [];
+      for (const r of v8Results) {
+        if (r.status === 'fulfilled') {
+          prices[r.value.ticker] = r.value.entry;
+          TICKER_CACHE.set(r.value.ticker, { entry: r.value.entry, expiresAt });
+        } else {
+          v8Failed.push(missing[v8Results.indexOf(r)]);
+        }
+      }
+      // Finnhub fallback for tickers still missing (max 30 — free tier 60 req/min)
+      const fhKey = process.env.FINNHUB_KEY?.trim();
+      if (fhKey && v8Failed.length) {
+        const toFetch = v8Failed.slice(0, 30);
+        const fhResults = await Promise.allSettled(
+          toFetch.map(async ticker => ({ ticker, entry: await fetchFinnhubPrice(ticker, fhKey) }))
+        );
+        for (const r of fhResults) {
+          if (r.status === 'fulfilled') {
+            prices[r.value.ticker] = r.value.entry;
+            TICKER_CACHE.set(r.value.ticker, { entry: r.value.entry, expiresAt });
+          } else {
+            const t = toFetch[fhResults.indexOf(r)];
+            prices[t] = { price: null, change: null, changePct: null, marketState: null };
+          }
+        }
+      } else {
+        for (const t of v8Failed) {
+          prices[t] = { price: null, change: null, changePct: null, marketState: null };
+        }
+      }
     }
   }
 
