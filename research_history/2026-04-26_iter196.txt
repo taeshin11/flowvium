@@ -1,0 +1,87 @@
+== iter196 — 2026-04-26 ==
+
+PRIMARY OUTCOME: Gemini Redis cross-instance 가드 + 토큰 절감
+
+DRIFT CHECK:
+- iter193: news-cascade (performance)
+- iter194: deployment + Claude removal (infra)
+- iter195: macro-indicators yield curve fix
+- iter196: ai-providers + token budget ← 완전 새 영역 ✓
+
+ROOT CAUSE ANALYSIS:
+  verify-metrics: brief.market = fallback(data) — daily-brief AI 생성 실패
+  원인: GROQ 100k TPD + 8b 500k TPD 모두 소진 + Gemini도 소진
+  디버그 출력:
+    ai.source=fallback, textLength=0, parsed=False
+    attempts=[groq: tpd_exhausted(module) resets in 161m,
+              gemini: gemini_quota_exhausted — skipped (resets in 161m)]
+
+BUG FOUND AND FIXED:
+
+BUG: Gemini module-only guard → cold start마다 429 재시도
+  ROOT CAUSE:
+    GROQ: Redis cross-instance guard (flowvium:groq:tpd_exhausted_v1) + module guard
+    Gemini: MODULE-LEVEL ONLY (geminiQuotaExhaustedUntil) — Redis guard 없음
+    새 Lambda cold start → geminiQuotaExhaustedUntil=0 → Gemini 재호출 → 429 → RPD 낭비
+  FIX:
+    GEMINI_QUOTA_KEY = 'flowvium:gemini:quota_exhausted_v1'
+    callGemini(): Redis check 추가 (GROQ과 동일 패턴)
+    - module guard 먼저 체크 (fast path)
+    - Redis key check (cross-instance, ~1ms)
+    - 429 발생 시: geminiQuotaExhaustedUntil + Redis key 동시 설정 (TTL=seconds_until_midnight)
+    GROQ guard와 완전 동일한 2-layer 패턴으로 통일
+
+TOKEN BUDGET OPTIMIZATION (2개):
+  1. news-cascade 분석 기사: 7→5
+     - dedup pool: 9→7 (여유 버퍼 2개 유지)
+     - slice(0,7)→slice(0,5)
+     - 절감: 2 × 600 tokens = 1,200 tokens/cold-start
+  2. daily-brief maxTokens: 1800→1200
+     - 실측 출력 JSON ≈ 400-700 tokens
+     - 1800은 2.5× 버퍼 → 1200으로 조정 (여전히 1.7× 버퍼)
+     - 절감: 600 tokens/call × 3 timeframes/day = 1,800 tokens/day
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → EXACT MATCH ✓
+[accuracy probe] metric=brief.market source=daily-brief live
+  source=data (AI 소진), GROQ+Gemini 모두 161분 후 리셋
+  GDP Q1 advance: 4/30 발표 예정 → actual=null 정상 (degraded는 pre-release 상태)
+  ← CONFIRMED: 소진 상태에서 fallback이 올바름, Gemini guard가 재시도 낭비 방지
+
+NEGATIVE RESULT:
+  brief.market = fallback(data) 는 GROQ+Gemini 소진으로 인한 것이며
+  161분 후 UTC midnight 리셋으로 자동 복구 예정.
+  Gemini Redis guard가 배포 후 cold start 재시도 낭비를 즉시 차단.
+  daily-brief stale cache (staleCacheKey)는 AI 성공 후 첫 생성 시 자동 채워짐
+  → 다음 소진 기간에 stale 브리프 서빙 가능.
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (3 files):
+- src/lib/ai-providers.ts
+  - GEMINI_QUOTA_KEY 상수 추가
+  - callGemini(): 2-layer guard (module + Redis)
+  - 429 시 Redis GEMINI_QUOTA_KEY 설정 (TTL until midnight)
+  - 헤더 코멘트 업데이트
+
+- src/app/api/news-cascade/route.ts
+  - dedup pool: 9→7
+  - analysis slice: 7→5
+  - 코멘트 "7 GROQ calls" → "5 GROQ calls"
+
+- src/lib/daily-brief.ts
+  - maxTokens: 1800→1200
+
+COMMITS: 7c5274e (Gemini guard), aeb4549 (token budget)
+PUSHED: 949c462..aeb4549 → origin/master (Vercel auto-deploy 예정)
+
+TOKEN BUDGET IMPACT (estimated daily):
+  news-cascade: 2 calls × 600 tokens × cold-starts × 24h = variable (캐시 히트율 의존)
+  daily-brief: 600 tokens × 3 calls/day = -1,800 tokens/day
+  Gemini guard: wasted 429 retries → 0 (especially after first exhaustion)
+
+NEXT: iter197 → 후보:
+  1. brief.market stale cache 확인 (UTC midnight 리셋 후 AI 성공 시 채워짐)
+  2. investment-strategy stale cache 추가 (source=fallback 개선)
+  3. GDP Q1 advance 발표 (4/30) 대비 코드 확인
+  4. verify-metrics: 2 degraded → 0 목표
