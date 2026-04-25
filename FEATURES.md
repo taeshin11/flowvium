@@ -173,7 +173,7 @@
   - Gold: 5개월 선물 커브 (GCx.CMX), slope % 표시
   - 막대 차트로 커브 형태 시각화
 - **AI 자금흐름 분석 패널** (`FlowAnalysisPanel`)
-  - EXAONE vLLM → Gemini 폴백
+  - EXAONE vLLM → GROQ → Claude Haiku → Gemini 폴백
   - 국가별 유입/유출 원인·리스크 분석
   - 핵심 테마(mainTheme) + 주목 포인트(keyWatchpoints)
 
@@ -631,7 +631,7 @@
 ## 13. AI 투자 전략 리포트 (`/report`) ← 전면 재설계
 
 **파일**: `src/components/pages/ReportPage.tsx`  
-**데이터**: `/api/investment-strategy` (모든 탭 컨텍스트 종합 → GROQ/Gemini AI 포트폴리오 생성)
+**데이터**: `/api/investment-strategy` (모든 탭 컨텍스트 종합 → GROQ/Claude Haiku/Gemini AI 포트폴리오 생성)
 
 ### 13-1. 투자 스탠스 히어로
 - 매수우위(bullish) / 중립(neutral) / 관망·방어(bearish) 뱃지
@@ -660,7 +660,7 @@
 - 각 pill 툴팁
 
 ### 13-7. 메타 정보
-- AI 소스 배지 (GROQ/Gemini/Fallback)
+- AI 소스 배지 (GROQ/Claude Haiku/Gemini/Fallback)
 - 신선도 표시
 - 면책 고지
 
@@ -852,8 +852,8 @@ ownership-alerts 적용).
 
 | 엔드포인트 | 데이터 소스 | Redis 캐시 TTL |
 |-----------|-------------|---------------|
-| `/api/daily-brief` | EXAONE vLLM → Gemini | 26h |
-| `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Gemini (v5 키: 일별 1회 갱신) | 12h Redis / 4h mem |
+| `/api/daily-brief` | EXAONE vLLM → GROQ → Claude Haiku → Gemini | 26h |
+| `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Claude Haiku/Gemini (v5 키: 일별 1회 갱신) | 12h Redis / 4h mem |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
 | `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 70b 병렬 8개, skipVllm=true); 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 4h |
 | `/api/capital-flows` | Twelve Data → Yahoo → Stooq | 4h |
@@ -917,5 +917,5 @@ ownership-alerts 적용).
 | 외부 fetch | 가능하면 `loggedFetch` 사용 (자동 REDACT + 타이밍) |
 | 로그 | `src/lib/logger.ts` — JSON stdout + Redis 적재 (warn/error, 최대 500건) |
 | i18n | next-intl, 16개 언어 (ko·en·ja·zh-CN·zh-TW·es·fr·de·pt·ru·ar·hi·id·th·tr·vi) |
-| AI 우선순위 | EXAONE vLLM (로컬 무료) → **GROQ llama-3.3-70b (클라우드 무료 14,400건/일)** → Gemini 2.5 Flash (유료 폴백). 체인 구현: `src/lib/ai-providers.ts` |
+| AI 우선순위 | EXAONE vLLM (로컬 무료) → **GROQ llama-3.3-70b** → GROQ 8b → **Claude Haiku 4.5** (ANTHROPIC_API_KEY 설정 시, ~$0.003/call) → Gemini 2.0 Flash (유료 최종 폴백). Redis cross-instance TPD guard로 GROQ 소진 즉시 Claude로 전환. 체인: `src/lib/ai-providers.ts` |
 | 유료 API 잠금 | "월 $200 후원 목표 도달 시 오픈" 형식만 사용 |

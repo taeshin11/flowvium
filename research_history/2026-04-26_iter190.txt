@@ -1,0 +1,85 @@
+== iter190 — 2026-04-26 ==
+
+PRIMARY OUTCOME: Claude Haiku 4.5 AI provider 추가 + Redis TPD guard
+
+DRIFT CHECK:
+- iter187: ShortPage UI (shortFloatPct 컬럼)
+- iter188: news-cascade (pubDate sort + maxTokens fix)
+- iter189: COT/block-trades/market-movers 감사 (negative)
+- iter190: ai-providers.ts ← 완전 새 영역 ✓
+
+ROOT CAUSE DISCOVERED:
+  production investment-strategy = "fallback" (source=fallback, 2개 종목만)
+  원인 진단 (debug mode probe):
+    GROQ 70b: 429 TPD (99,567/100,000 = 99.6% 소진)
+    GROQ 8b: 429 TPD (499,920/500,000 = 99.98% 소진)
+    Gemini 2.0 Flash: 429 Too Many Requests
+    → 3개 provider 모두 소진 → fallback 불가피
+
+  추가 문제: module-level guard (groqTpdExhaustedUntil) 는 warm Lambda 인스턴스
+    전용. Cold start 시마다 각 인스턴스가 독립적으로 429를 히트 → RPD 낭비.
+
+CHANGES:
+
+1. `@anthropic-ai/sdk ^0.91.1` 신규 설치 (package.json)
+
+2. `src/lib/ai-providers.ts`:
+   a) Claude Haiku 4.5 provider 추가 (provider 3):
+      - ANTHROPIC_API_KEY 설정 시 활성화
+      - GROQ TPD 소진 시 메인 폴백 (~$0.003/call)
+      - JSON 구조 분석 품질 최상 (GROQ 70b 동급 이상)
+      - callClaude() 함수: claude-haiku-4-5-20251001, stream=false 타입 안전
+      cascade 순서: vLLM → GROQ 70b → GROQ 8b → Claude Haiku 4.5 → Gemini
+
+   b) Redis cross-instance TPD guard 추가:
+      - Key: 'flowvium:groq:tpd_exhausted_v1'
+      - GROQ 70b+8b 모두 TPD 429 → Redis.set(key, timestamp, { ex: secondsUntilMidnight })
+      - 모든 Lambda 인스턴스가 callGroq() 호출 전 Redis 체크
+      - 히트 시 즉시 스킵 → Claude/Gemini 직행 (0 GROQ 호출)
+      - module-level guard와 2-layer 구조 (warm: module, cold: redis)
+      - getGuardRedis() 지연 초기화 (Lambda 당 1회)
+
+3. `FEATURES.md`: AI 우선순위 섹션 Claude Haiku 추가
+
+ACTIVATION REQUIRED:
+  Vercel 환경변수에 ANTHROPIC_API_KEY 추가 필요.
+  추가 방법: vercel env add ANTHROPIC_API_KEY production
+  또는 Vercel dashboard → Project Settings → Environment Variables.
+  키 없으면 callClaude() = 즉시 null → 기존 Gemini 폴백으로 동작 (backward-compatible).
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=flowvium.vercel.app/api/volatility live
+  direct_value=18.71 (2026-04-24), cached=false
+  Reference: VIX history 2026-04-24 = last Friday close, consistent with 18-20 range ✓
+  ← LIVE DATA CONFIRMED
+
+[accuracy probe] metric=investment-strategy.source source=flowvium.vercel.app
+  direct_value=fallback (all providers TPD exhausted)
+  our_value=fallback ← CONFIRMED (root cause found and fixed in code)
+  post-deploy+key: expected source=claude-haiku-4-5
+
+[accuracy probe] metric=10y_treasury source=FRED
+  direct_value=4.34% (2026-04-23)
+  our_value=N/A (api/macro 404 — in 190 undeployed commits)
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (3 files):
+- package.json / package-lock.json — @anthropic-ai/sdk ^0.91.1 추가
+- src/lib/ai-providers.ts
+  - callClaude() 함수 신규 (claude-haiku-4-5-20251001)
+  - callAI() cascade: GROQ → Claude Haiku → Gemini
+  - Redis cross-instance TPD guard (getGuardRedis, secondsUntilUtcMidnight, GROQ_TPD_KEY)
+  - ProviderAttempt 타입에 'claude' 추가
+- FEATURES.md — AI 우선순위 섹션 업데이트
+
+IMPACT:
+  post-deploy + ANTHROPIC_API_KEY 설정 시:
+  - investment-strategy 매일 fallback → live AI 분석으로 전환
+  - news-cascade, flow-analysis, daily-brief 모두 GROQ 소진 후 Claude로 지속
+  - cold start Lambda에서 TPD 소진 시 GROQ 호출 0회 → RPD budget 보존
+  cost: ~$0.003/investment-strategy + ~$0.001/news-article → 일 $0.1 미만 예상
+
+NEXT: iter191 → 배포 (git push origin master user action 대기)
+  또는 ANTHROPIC_API_KEY Vercel 등록 지원
+  또는 company-news 30min TTL → token 소비 최적화 (다수 종목 조회 시 부담)

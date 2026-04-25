@@ -17,6 +17,7 @@
     "scrape:gap": "tsx scripts/scrapers/news-gap-calc.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "@clerk/nextjs": "^7.2.1",
     "@google/generative-ai": "^0.24.1",
     "@types/d3": "^7.4.3",
