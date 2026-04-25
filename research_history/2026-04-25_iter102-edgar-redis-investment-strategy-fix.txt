@@ -1,0 +1,44 @@
+## iter102 — EDGAR 13F 파서 수정 + Investment Strategy 개선
+Date: 2026-04-25
+Commits: b59a654, 336fac9
+
+### Primary Outcome
+EDGAR 13F 데이터 0 → 1,598 signals, Investment Strategy 실시간 가격 주입
+
+### Root Cause Findings
+
+#### 1. EDGAR 13F 파서 실패 원인
+- 기존 코드: `{accNum}-index.json` URL로 파일 인덱스 탐색
+- 실제: SEC EDGAR가 이 URL 형식을 지원하지 않음 (404 반환)
+- 수정: 디렉터리 HTML 파싱 (`/info.?table/i` regex) → XML 파일명 탐색
+- 결과: Berkshire(28) + BlackRock(872) + Vanguard(211) + State Street(34) + Wellington(250) + FMR(199) + Pershing Square(4) = 1,598 signals
+
+#### 2. Institution CIK 오류 수정
+- 제거: Goldman(886982=그룹사), JPMorgan(19617=없음), T.Rowe Price(1113169=지주사),
+  Capital Group(813672=Cadence Design), Citadel(1423298=DFJ Athena), GIC(1534992=식당업체),
+  Temasek(1524894=헤지펀드), Wellington(101617=없음)
+- 추가: Wellington Management Group (902219 ✓), FMR/Fidelity (315066 ✓)
+
+#### 3. Investment Strategy API 개선
+- getLivePrices(): CANDIDATE_TICKERS 19종목 Yahoo v8 실시간 가격 병렬 fetch
+- 프롬프트에 현재가 주입 → entryZone/stopLoss/target이 실제 가격 기반
+- Stale cache: AI quota 소진 시 최대 7일 보관 이전 결과 서빙
+- 캐시 TTL: 4h → 12h (일일 GROQ 토큰 60% 절약)
+- maxDuration: 60 → 90초 (Gemini fallback 시간 확보)
+- Gemini model: gemini-2.5-flash → gemini-2.0-flash (속도 개선)
+
+#### 4. Redis 미설정 문제 발견 (CRITICAL)
+- Vercel env vars에 UPSTASH_REDIS_REST_URL/TOKEN이 없음
+- 전체 캐싱 레이어 무효 → GROQ TPD 100k/일 소진 가속화
+- EDGAR signals Redis 저장 불가 → 항상 static fallback (56개 hardcoded signals)
+- 사용자에게 Upstash Redis 설정 요청 필요
+
+### Current State
+- EDGAR 파서: 수정 완료, 1,598 signals 파싱 성공 (저장은 Redis 필요)
+- Investment Strategy: 실시간 가격 주입 준비 완료 (GROQ TPD 리셋 후 동작)
+- AI quota: GROQ 99,992/100,000 소진, KST 09:00에 리셋
+
+### Next Steps
+1. 사용자가 Upstash Redis 설정 시 자동으로 모든 캐싱 활성화
+2. GROQ TPD 리셋 후 Investment Strategy AI 정상 동작 확인
+3. T. Rowe Price Associates, Goldman Sachs AM 올바른 CIK 추가 (추후)
