@@ -943,10 +943,40 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       fetch(`${base}/api/volatility`, { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
     ]);
     if (!ourRes.ok) throw new Error(`ours=${ourRes.status}`);
-    // If Yahoo rate-limits Vercel IPs, mark degraded (not inaccurate) — avoid false error
+    // Yahoo rate-limited — fall back to CBOE CSV as comparison source.
+    // Our VIX data now comes from CBOE when Yahoo is blocked, so CBOE is the valid ground truth.
     if (!yahooRes.ok) {
-      items.push({ key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy', status: 'degraded',
-        lastError: `yahoo_rate_limited=${yahooRes.status}` });
+      try {
+        const cboeVixRes = await fetch('https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv', {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/csv,text/plain,*/*',
+            'Referer': 'https://www.cboe.com/tradable_products/vix/',
+          },
+          signal: AbortSignal.timeout(8000),
+          cache: 'no-store',
+        });
+        if (cboeVixRes.ok) {
+          const csvText = await cboeVixRes.text();
+          const csvLines = csvText.trim().split('\n');
+          const cboeVix = parseFloat(csvLines[csvLines.length - 1]?.split(',')[4] ?? '');
+          const ourData = await ourRes.json();
+          const ourVix: number | null = (ourData as { vix?: number | null })?.vix ?? null;
+          if (!isNaN(cboeVix) && ourVix != null) {
+            const delta = Math.abs(cboeVix - ourVix);
+            items.push({
+              key: 'accuracy.vix', label: 'CBOE VIX 대조 (Yahoo blocked)', group: 'accuracy',
+              status: delta <= 1.0 ? 'ok' : delta <= 2.0 ? 'degraded' : 'error',
+              value: `ours ${ourVix.toFixed(2)} vs cboe ${cboeVix.toFixed(2)} (Δ${delta.toFixed(2)})`,
+              source: 'cboe-direct',
+              details: { cboeVix, ourVix, delta, durationMs: Date.now() - t0, tolerance: 1.0, yahooBlocked: true },
+            });
+            return items;
+          }
+        }
+      } catch { /* CBOE also failed — fall through to degraded */ }
+      items.push({ key: 'accuracy.vix', label: 'VIX 대조 불가', group: 'accuracy', status: 'degraded',
+        lastError: `yahoo=${yahooRes.status} cboe_also_failed` });
       return items;
     }
     const yahooData = await yahooRes.json();
