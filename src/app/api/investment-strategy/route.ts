@@ -354,9 +354,9 @@ function fallbackStrategy(): InvestmentStrategy {
       { sector: 'Cash', pct: 10, stance: 'neutral', reason: 'Risk management buffer' },
     ],
     riskEvents: [
-      { date: '2026-05-07', event: 'FOMC Rate Decision', impact: 'high', watchFor: 'Hold vs cut signal' },
-      { date: '2026-04-30', event: 'PCE Inflation', impact: 'high', watchFor: 'Below 3% sustained' },
-      { date: '2026-05-02', event: 'NFP Employment', impact: 'medium', watchFor: 'Labor market cooling' },
+      { date: '2026-04-30', event: 'FOMC Rate Decision + PCE', impact: 'high', watchFor: '25bp cut probability ~62%, Powell guidance key' },
+      { date: '2026-05-01', event: 'April NFP Employment', impact: 'high', watchFor: 'Labor market cooling → more cuts' },
+      { date: '2026-06-10', event: 'FOMC + May CPI', impact: 'high', watchFor: 'Second cut or hold decision' },
     ],
     macroAnalysis: 'AI analysis unavailable. Check yield curve, CPI, FOMC data directly.',
     technicalAnalysis: 'AI analysis unavailable. Monitor SPY 200-day MA support.',
