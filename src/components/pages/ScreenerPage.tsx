@@ -48,9 +48,11 @@ interface ScreenerRow {
   shortVolPct: number | null;
   shortRatio: number | null;
   squeezeScore: number;
-  bullishCount: number;   // # institutions accumulating/buying this ticker
-  bearishCount: number;   // # institutions reducing/exiting this ticker
-  institutionCount: number; // total institutions tracking this ticker
+  bullishCount: number;       // # institutions accumulating/buying this ticker
+  bearishCount: number;       // # institutions reducing/exiting this ticker
+  institutionCount: number;   // total institutions tracking this ticker
+  nportValue: number | null;  // N-PORT monthly mutual fund holdings (USD)
+  nportFundCount: number | null; // # funds holding via N-PORT
 }
 
 // ── Form 4 insider trade row ──────────────────────────────────────────────────
@@ -126,6 +128,12 @@ const PRESETS = [
     desc: '2개 이상 기관 동시 매집',
     filter: (r: ScreenerRow) => r.bullishCount >= 2,
   },
+  {
+    id: 'nport-dual',
+    label: '🔱 N-PORT 이중 매집',
+    desc: '13F 매집 + N-PORT 펀드 보유',
+    filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.nportValue != null,
+  },
 ];
 
 type SortKey = keyof ScreenerRow;
@@ -164,6 +172,9 @@ export default function ScreenerPage() {
   const [shortData, setShortData] = useState<ShortEntry[]>([]);
   const [loading13F, setLoading13F] = useState(true);
 
+  // N-PORT fund holdings (monthly, cross-reference with 13F)
+  const [nportMap, setNportMap] = useState<Map<string, { value: number; fundCount: number }>>(new Map());
+
   // Insider (Form 4) data
   const [insiderTrades, setInsiderTrades] = useState<InsiderTrade[]>([]);
   const [loadingInsider, setLoadingInsider] = useState(false);
@@ -193,6 +204,22 @@ export default function ScreenerPage() {
       setLoading13F(false);
     }).catch(() => { if (!ctrl.signal.aborted) setLoading13F(false); });
     return () => ctrl.abort();
+  }, []);
+
+  // ── Load N-PORT holdings (lazy, once) ────────────────────────────────────
+  useEffect(() => {
+    fetch('/api/nport-holdings')
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(d => {
+        const map = new Map<string, { value: number; fundCount: number }>();
+        for (const entry of (d.byTicker ?? [])) {
+          if (entry.ticker && entry.totalValueUsd > 0) {
+            map.set(entry.ticker, { value: entry.totalValueUsd, fundCount: entry.funds?.length ?? 0 });
+          }
+        }
+        setNportMap(map);
+      })
+      .catch(() => {/* non-fatal */});
   }, []);
 
   // ── Load insider trades on demand (1w/4w) ────────────────────────────────
@@ -232,6 +259,7 @@ export default function ScreenerPage() {
     return Array.from(byTicker.values()).map(sig => {
       const short = shortMap.get(sig.ticker);
       const consensus = consensusMap.get(sig.ticker) ?? { bullish: 0, bearish: 0, instSet: new Set() };
+      const nport = nportMap.get(sig.ticker) ?? null;
       return {
         ticker: sig.ticker, companyName: sig.companyName, sector: sig.sector,
         institution: sig.institution, action: sig.action, estimatedValue: sig.estimatedValue,
@@ -240,9 +268,11 @@ export default function ScreenerPage() {
         shortRatio: short?.shortRatio ?? null, squeezeScore: short?.squeezeScore ?? 0,
         bullishCount: consensus.bullish, bearishCount: consensus.bearish,
         institutionCount: consensus.instSet.size,
+        nportValue: nport?.value ?? null,
+        nportFundCount: nport?.fundCount ?? null,
       };
     });
-  }, [signals, shortMap]);
+  }, [signals, shortMap, nportMap]);
 
   const sectors = useMemo(() => ['all', ...Array.from(new Set(deduped.map(r => r.sector)))], [deduped]);
 
@@ -528,6 +558,7 @@ export default function ScreenerPage() {
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">섹터</th>
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관</th>
                   <SortTh label="합의" k="bullishCount" />
+                  <SortTh label="N-PORT" k="nportValue" />
                   <SortTh label="액션" k="action" />
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">규모</th>
                   <SortTh label="Short Vol %" k="shortVolPct" />
@@ -556,6 +587,13 @@ export default function ScreenerPage() {
                             {row.bearishCount > 0 && <span className="text-red-400 font-bold">▼{row.bearishCount}</span>}
                           </div>
                         )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {row.nportValue != null ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-mono whitespace-nowrap" title={`${row.nportFundCount}개 펀드`}>
+                            {fmtUsd(row.nportValue)}
+                          </span>
+                        ) : <span className="text-cf-text-secondary/30 text-[10px]">—</span>}
                       </td>
                       <td className="px-3 py-2.5">
                         {actionCfg && <span className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded" style={{ color: actionCfg.color, backgroundColor: actionCfg.bg }}>{actionCfg.icon}{actionCfg.label}</span>}
