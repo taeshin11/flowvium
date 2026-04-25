@@ -1,7 +1,7 @@
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import {
-  createRedis, cacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
+  createRedis, cacheKey, staleCacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
   gatherTabContext, type DailyBrief,
   type Timeframe,
 } from '@/lib/daily-brief';
@@ -47,6 +47,16 @@ export async function GET(request: Request) {
       logger.info('api.daily-brief', 'memory_cache_hit', { tf, ageMs: Date.now() - (mem.expiresAt - MEMORY_TTL_MS) });
       return NextResponse.json({ ...mem.brief, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
     }
+  }
+
+  // Stale AI brief — checked before gathering context so the 6h gap between
+  // midnight-KST key rotation and 06:00 KST cron run serves yesterday's AI
+  // brief rather than the data fallback. Only used when force=0.
+  let staleAiBrief: DailyBrief | null = null;
+  if (redis && !force) {
+    try {
+      staleAiBrief = await redis.get<DailyBrief>(staleCacheKey(tf));
+    } catch { /* non-fatal */ }
   }
 
   // Pull live data from every tab (heatmap, short, capital, fg, fed, macro,
@@ -99,16 +109,28 @@ export async function GET(request: Request) {
   }
 
   if (!brief) {
-    brief = fallbackBrief(tf, ctx);
-    logger.warn('api.daily-brief', 'used_fallback', { tf });
+    // Prefer yesterday's AI brief (stale) over the data-driven fallback.
+    // The stale brief is still AI-quality context; data-fallback is lower quality.
+    if (staleAiBrief) {
+      brief = { ...staleAiBrief, cached: true, source: `stale(${staleAiBrief.source ?? 'ai'})` } as DailyBrief;
+      logger.info('api.daily-brief', 'used_stale_ai', { tf, origSource: staleAiBrief.source });
+    } else {
+      brief = fallbackBrief(tf, ctx);
+      logger.warn('api.daily-brief', 'used_fallback', { tf });
+    }
   }
 
   // 캐시는 AI 생성 결과(또는 이와 동등한 품질)만 저장. data-fallback 은
   // 일시적 AI 장애 때문에 생성된 저품질 snapshot 이므로 캐시했다가 이후 10분간
   // fallback 브리프를 계속 서빙하는 악순환 방지 — 다음 요청이 AI 재시도하도록 패스스루.
+  const isFreshAi = brief.source !== 'data' && !brief.source?.startsWith('stale(');
   const isAiQuality = brief.source !== 'data';
-  if (redis && isAiQuality) {
-    await loggedRedisSet(redis, 'api.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 });
+  if (redis && isFreshAi) {
+    // Write both primary (date-keyed) and stale (date-free) keys.
+    await Promise.allSettled([
+      loggedRedisSet(redis, 'api.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 }),
+      loggedRedisSet(redis, 'api.daily-brief', staleCacheKey(tf), brief, { ex: 48 * 60 * 60 }),
+    ]);
   } else if (!redis && isAiQuality) {
     // No Redis — populate in-memory cache so subsequent non-force requests in the
     // same warm instance skip the costly HTTP-fallback + AI-call path.

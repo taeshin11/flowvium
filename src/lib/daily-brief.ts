@@ -46,6 +46,14 @@ export function cacheKey(tf: Timeframe): string {
   return `flowvium:daily-brief:v5:${kstDateStr()}:${tf}`;
 }
 
+// Date-free stale fallback key — persists across the midnight-KST cache rotation.
+// Written on every AI-quality generation (48h TTL). Read when primary key misses
+// and AI is unavailable, so users never see the data-fallback during the 6h gap
+// between midnight KST (key rotates) and 06:00 KST (cron regenerates).
+export function staleCacheKey(tf: Timeframe): string {
+  return `flowvium:daily-brief:v5:stale:${tf}`;
+}
+
 // ── Per-tab data aggregator ───────────────────────────────────────────────────
 /**
  * Pulls live data from every tab's Redis cache so the AI report reflects the

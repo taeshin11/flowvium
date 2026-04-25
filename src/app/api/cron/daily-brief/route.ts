@@ -5,7 +5,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  */
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  createRedis, cacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
+  createRedis, cacheKey, staleCacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
   gatherTabContext,
   type Timeframe,
 } from '@/lib/daily-brief';
@@ -43,9 +43,15 @@ export async function GET(req: NextRequest) {
         } catch { /* ignore */ }
       }
       const { text, source } = await callAI(buildPrompt(tf, ctx));
-      const brief = (text && parseAIResponse(text, tf, source)) ?? fallbackBrief(tf, ctx);
+      const brief = (text ? parseAIResponse(text, tf, source) : null) ?? fallbackBrief(tf, ctx);
+      const isAiQuality = brief.source !== 'data';
       if (redis) {
-        await loggedRedisSet(redis, 'api.cron.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 });
+        const writes = [loggedRedisSet(redis, 'api.cron.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 })];
+        if (isAiQuality) {
+          // Keep stale key fresh so midnight-KST key rotation gap never serves data fallback.
+          writes.push(loggedRedisSet(redis, 'api.cron.daily-brief', staleCacheKey(tf), brief, { ex: 48 * 60 * 60 }));
+        }
+        await Promise.allSettled(writes);
       }
       results[tf] = `ok (${source})`;
     } catch (e) {
