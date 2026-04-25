@@ -25,6 +25,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { institutionalSignals, type InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
+import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -446,6 +447,36 @@ function interleaveByTimeWithTypeCap(items: UpdateItem[], maxConsecutive = 2, li
   return out;
 }
 
+// ── 9. Upcoming Economic Calendar Events ─────────────────────────────────────
+function getEconCalendarItems(): UpdateItem[] {
+  const today = new Date();
+  const upcoming = getUpcomingEvents(today, 10)
+    .filter(e => e.impact === 'high' || e.impact === 'medium')
+    .slice(0, 4);
+
+  return upcoming.map(e => {
+    const days = daysUntil(e.date, today);
+    const urgency = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days}d`;
+    const type = e.category === 'Fed' ? 'fed' as const : 'macro' as const;
+    const badgeColor = e.impact === 'high'
+      ? (days <= 1 ? '#ef4444' : '#f59e0b')
+      : '#6366f1';
+    return {
+      id: `econ-${e.date}-${e.title.slice(0, 20)}`,
+      type,
+      headline: `${urgency} — ${e.title}`,
+      sub: e.note ?? e.category,
+      source: 'Economic Calendar',
+      time: e.time ?? e.date,
+      sortTime: e.date + 'T00:00:00.000Z',
+      badge: e.impact === 'high' ? '🔴 High Impact' : '🟡 Medium',
+      badgeColor,
+      link: '/intelligence',
+      direction: 'neutral' as const,
+    };
+  });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 function getBaseUrl(req: Request): string {
   const url = new URL(req.url);
@@ -474,6 +505,7 @@ export async function GET(req: Request) {
   ]);
 
   const newsGapItems = getNewsGapItems();
+  const econItems = getEconCalendarItems();
   const liveSignals = await getBaseSignals(redis);
   const signalItems = getSignalItems(liveSignals);
 
@@ -487,6 +519,7 @@ export async function GET(req: Request) {
     ...newsGapItems,
     ...signalItems,
     ...moverItems,
+    ...econItems,
   ];
 
   // Deduplicate by id

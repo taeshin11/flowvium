@@ -72,7 +72,7 @@ export async function GET(req: Request) {
   // 타임아웃 설계: stage 1(30s) + stage 2(25s) < maxDuration(60s).
   // EDGAR 3종(insider/ownership/nport): 30s — 그 이상이면 EDGAR 장애이므로 조기 포기.
   // market-caps/heatmap: Yahoo Finance — 25s/20s 충분.
-  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR, heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR] = await Promise.all([
+  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR, heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, sectorR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/yield-curve', 'yield-curve', 30000),
     warm(base, '/api/fedwatch', 'fedwatch'),
@@ -96,6 +96,7 @@ export async function GET(req: Request) {
     warm(base, '/api/osint/corporate', 'osint-corporate', 20000),
     warm(base, '/api/osint/crypto',    'osint-crypto',    20000),
     warm(base, '/api/market-movers',   'market-movers',   15000),
+    warm(base, '/api/sector-pe',       'sector-pe',       25000),
   ]);
 
   // ── 2단계: capital-flows 의존 분석 + latest-updates 병렬 ─────────────
@@ -129,7 +130,7 @@ export async function GET(req: Request) {
   const results = [
     macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,
     insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR,
-    heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, latestR,
+    heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, sectorR, latestR,
     flowR,
   ];
   const failedCount = results.filter(r => !r.ok).length;
