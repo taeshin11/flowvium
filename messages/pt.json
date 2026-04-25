@@ -874,7 +874,12 @@
     "narrativesDesc": "8 forças estruturais que dominam o mercado — entenda-as antes de chegarem às notícias.",
     "weeksAgoDays": "Iniciado há {n}d",
     "weeksAgoWeeks": "Iniciado há {n}sem",
-    "weeksAgoMonths": "Iniciado há {n}m"
+    "weeksAgoMonths": "Iniciado há {n}m",
+    "ecLive": "AO VIVO",
+    "ecStatic": "Estático",
+    "ecLoading": "Carregando calendário econômico...",
+    "ecRefresh": "Atualizar",
+    "ecFootnoteLive": "Fonte: Finnhub · Cache 4h · Exibe real vs estimado para eventos divulgados"
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",

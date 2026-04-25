@@ -874,7 +874,12 @@
     "narrativesDesc": "市場を支配する8つの構造的な力 — ニュースになる前に理解してください。",
     "weeksAgoDays": "{n}日前開始",
     "weeksAgoWeeks": "{n}週間前開始",
-    "weeksAgoMonths": "{n}ヶ月前開始"
+    "weeksAgoMonths": "{n}ヶ月前開始",
+    "ecLive": "LIVE",
+    "ecStatic": "静的",
+    "ecLoading": "経済カレンダー読み込み中...",
+    "ecRefresh": "更新",
+    "ecFootnoteLive": "出典: Finnhub · 4hキャッシュ · 発表済み指標に実績値/予想値を表示"
   },
   "osint": {
     "pageCategory": "グローバルインテリジェンス追跡",

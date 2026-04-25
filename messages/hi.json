@@ -874,7 +874,12 @@
     "narrativesDesc": "8 संरचनात्मक शक्तियाँ जो बाज़ार पर हावी हैं — समाचार बनने से पहले उन्हें समझें।",
     "weeksAgoDays": "{n} दिन पहले",
     "weeksAgoWeeks": "{n} सप्ताह पहले",
-    "weeksAgoMonths": "{n} महीने पहले"
+    "weeksAgoMonths": "{n} महीने पहले",
+    "ecLive": "लाइव",
+    "ecStatic": "स्थिर",
+    "ecLoading": "आर्थिक कैलेंडर लोड हो रहा है...",
+    "ecRefresh": "रीफ्रेश",
+    "ecFootnoteLive": "स्रोत: Finnhub · 4घंटे कैश · जारी इवेंट के लिए वास्तविक बनाम अनुमान दिखाता है"
   },
   "osint": {
     "pageCategory": "वैश्विक इंटेलिजेंस ट्रैकिंग",

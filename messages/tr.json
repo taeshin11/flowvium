@@ -874,7 +874,12 @@
     "narrativesDesc": "Piyasaya hâkim olan 8 yapısal güç — haberlere taşınmadan önce anlayın.",
     "weeksAgoDays": "{n} gün önce",
     "weeksAgoWeeks": "{n} hafta önce",
-    "weeksAgoMonths": "{n} ay önce"
+    "weeksAgoMonths": "{n} ay önce",
+    "ecLive": "CANLI",
+    "ecStatic": "Statik",
+    "ecLoading": "Ekonomik takvim yükleniyor...",
+    "ecRefresh": "Yenile",
+    "ecFootnoteLive": "Kaynak: Finnhub · 4s önbellek · Yayımlanan olaylar için gerçek vs tahmin gösterir"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",

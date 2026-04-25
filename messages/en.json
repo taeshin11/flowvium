@@ -874,7 +874,12 @@
     "narrativesDesc": "8 structural forces dominating the market — understand them before they make the news.",
     "weeksAgoDays": "Started {n}d ago",
     "weeksAgoWeeks": "Started {n}w ago",
-    "weeksAgoMonths": "Started {n}mo ago"
+    "weeksAgoMonths": "Started {n}mo ago",
+    "ecLive": "LIVE",
+    "ecStatic": "Static",
+    "ecLoading": "Loading economic calendar…",
+    "ecRefresh": "Refresh",
+    "ecFootnoteLive": "Source: Finnhub · 4h cache · Shows actual vs estimate for released events"
   },
   "osint": {
     "pageCategory": "Global Intelligence Tracking",

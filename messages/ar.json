@@ -874,7 +874,12 @@
     "narrativesDesc": "8 قوى هيكلية تهيمن على السوق — افهمها قبل أن تصبح أخباراً.",
     "weeksAgoDays": "بدأ منذ {n} يوم",
     "weeksAgoWeeks": "بدأ منذ {n} أسبوع",
-    "weeksAgoMonths": "بدأ منذ {n} شهر"
+    "weeksAgoMonths": "بدأ منذ {n} شهر",
+    "ecLive": "مباشر",
+    "ecStatic": "ثابت",
+    "ecLoading": "جار تحميل التقويم الاقتصادي...",
+    "ecRefresh": "تحديث",
+    "ecFootnoteLive": "المصدر: Finnhub · تخزين مؤقت 4 ساعات · يعرض الفعلي مقابل المتوقع للأحداث المنشورة"
   },
   "osint": {
     "pageCategory": "تتبع الاستخبارات العالمية",

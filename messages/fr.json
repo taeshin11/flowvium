@@ -874,7 +874,12 @@
     "narrativesDesc": "8 forces structurelles qui dominent le marché — comprenez-les avant qu'elles ne fassent l'actualité.",
     "weeksAgoDays": "Commencé il y a {n}j",
     "weeksAgoWeeks": "Commencé il y a {n}sem",
-    "weeksAgoMonths": "Commencé il y a {n}m"
+    "weeksAgoMonths": "Commencé il y a {n}m",
+    "ecLive": "EN DIRECT",
+    "ecStatic": "Statique",
+    "ecLoading": "Chargement du calendrier économique...",
+    "ecRefresh": "Actualiser",
+    "ecFootnoteLive": "Source: Finnhub · Cache 4h · Affiche réel vs estimé pour les événements publiés"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",

@@ -874,7 +874,12 @@
     "narrativesDesc": "主导市场的8大结构性力量 — 在成为新闻之前了解它们。",
     "weeksAgoDays": "{n}天前开始",
     "weeksAgoWeeks": "{n}周前开始",
-    "weeksAgoMonths": "{n}月前开始"
+    "weeksAgoMonths": "{n}月前开始",
+    "ecLive": "LIVE",
+    "ecStatic": "静态",
+    "ecLoading": "加载经济日历中...",
+    "ecRefresh": "刷新",
+    "ecFootnoteLive": "来源: Finnhub · 4小时缓存 · 已发布指标显示实际值与预期值"
   },
   "osint": {
     "pageCategory": "全球情报追踪",

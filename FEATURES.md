@@ -166,11 +166,12 @@
   - 데이터: `/api/sector-pe` (Yahoo Finance v8 no-auth, 4h Redis)
   - 11개 SPDR 섹터 ETF (XLK/XLF/XLE/XLV/XLY/XLP/XLI/XLB/XLRE/XLU/XLC)
   - 가격 · 등락률 · YTD 수익률 · 52주 고저 테이블 (P/E·배당 필드 null — crumb 불가)
-- **주요 매크로 이벤트 캘린더** (`EconCalendarSection`, iter35 신설)
-  - `src/data/econ-calendar.ts` 정적 일정 (FOMC/GDP/NFP/CPI/PPI/PCE/PMI/Retail)
-  - 오늘부터 10개 이벤트, 날짜별 그룹, D-N 카운트다운 chip
-  - Impact 3단계 (high=빨강/medium=노랑/low=회색), 카테고리 색상 구분
-  - 출처: Fed · BLS · BEA 공식 발표 일정
+- **주요 매크로 이벤트 캘린더** (`EconCalendarSection`, iter35 신설 → iter131 live 업그레이드)
+  - **Live 데이터**: `/api/economic-calendar` (Finnhub `/calendar/economic`, Redis 4h) — 실제값·예상치·이전값 표시
+  - 정적 fallback: `src/data/econ-calendar.ts` (FOMC/GDP/NFP/CPI/PPI/PCE/PMI/Retail)
+  - LIVE/Static 배지 구분, 새로고침 버튼
+  - 오늘부터 14일 범위, high/medium impact 필터, 날짜별 그룹, D-N 카운트다운 chip
+  - Impact 3단계 (high=빨강/medium=노랑/low=회색), 발표시간 ET 표시
 - **매크로 리스크 신호 카드** (3단계: Risk-On / Neutral / Risk-Off) ← iter59
   - IG OAS(< 1.0%) + HY OAS(< 3.5%) + UMCSENT(> 60) + 금리 정상 → Risk-On
   - 어느 하나 위반 시 Neutral, 임계값 초과(IG>1.5%/HY>5%/UMC<50/금리역전) → Risk-Off
@@ -863,6 +864,7 @@ ownership-alerts 적용).
 | `/api/admin/metrics-db` | Redis hash `flowvium:mdb:v1` — per-metric 최신값 DB | 72h |
 | `/api/cron/verify-metrics` | 자기 API 순회 probe → Redis 스냅샷 + metrics-db hash 갱신 | 2h |
 | `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
+| `/api/economic-calendar` | Finnhub 경제 캘린더 (실제값·예상치·이전값 포함, 정적 fallback) | 4h |
 
 ---
 

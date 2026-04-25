@@ -874,7 +874,12 @@
     "narrativesDesc": "8 kekuatan struktural yang mendominasi pasar — pahami sebelum menjadi berita.",
     "weeksAgoDays": "{n} hari lalu",
     "weeksAgoWeeks": "{n} minggu lalu",
-    "weeksAgoMonths": "{n} bulan lalu"
+    "weeksAgoMonths": "{n} bulan lalu",
+    "ecLive": "LANGSUNG",
+    "ecStatic": "Statis",
+    "ecLoading": "Memuat kalender ekonomi...",
+    "ecRefresh": "Segarkan",
+    "ecFootnoteLive": "Sumber: Finnhub · Cache 4j · Menampilkan aktual vs estimasi untuk acara yang dirilis"
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",

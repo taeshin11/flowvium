@@ -874,7 +874,12 @@
     "narrativesDesc": "主導市場的8大結構性力量 — 在成為新聞之前了解它們。",
     "weeksAgoDays": "{n}天前開始",
     "weeksAgoWeeks": "{n}週前開始",
-    "weeksAgoMonths": "{n}個月前開始"
+    "weeksAgoMonths": "{n}個月前開始",
+    "ecLive": "LIVE",
+    "ecStatic": "靜態",
+    "ecLoading": "載入經濟日曆中...",
+    "ecRefresh": "重新整理",
+    "ecFootnoteLive": "來源: Finnhub · 4小時快取 · 已發布指標顯示實際值與預期值"
   },
   "osint": {
     "pageCategory": "全球情報追蹤",

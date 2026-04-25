@@ -874,7 +874,12 @@
     "narrativesDesc": "8 strukturelle Kräfte, die den Markt dominieren — verstehen Sie sie, bevor sie in den Nachrichten auftauchen.",
     "weeksAgoDays": "Vor {n} Tagen",
     "weeksAgoWeeks": "Vor {n} Wochen",
-    "weeksAgoMonths": "Vor {n} Monaten"
+    "weeksAgoMonths": "Vor {n} Monaten",
+    "ecLive": "LIVE",
+    "ecStatic": "Statisch",
+    "ecLoading": "Wirtschaftskalender wird geladen...",
+    "ecRefresh": "Aktualisieren",
+    "ecFootnoteLive": "Quelle: Finnhub · 4h-Cache · Zeigt Ist-Wert vs. Schätzung für veröffentlichte Ereignisse"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",

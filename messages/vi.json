@@ -874,7 +874,12 @@
     "narrativesDesc": "8 lực lượng cấu trúc thống trị thị trường — hiểu chúng trước khi chúng lên báo.",
     "weeksAgoDays": "{n} ngày trước",
     "weeksAgoWeeks": "{n} tuần trước",
-    "weeksAgoMonths": "{n} tháng trước"
+    "weeksAgoMonths": "{n} tháng trước",
+    "ecLive": "TRỰC TIẾP",
+    "ecStatic": "Tĩnh",
+    "ecLoading": "Đang tải lịch kinh tế...",
+    "ecRefresh": "Làm mới",
+    "ecFootnoteLive": "Nguồn: Finnhub · Bộ nhớ đệm 4h · Hiển thị thực tế vs ước tính cho các sự kiện đã công bố"
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",

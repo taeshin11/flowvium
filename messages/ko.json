@@ -874,7 +874,12 @@
     "narrativesDesc": "시장을 지배하는 8가지 구조적 힘 — 뉴스에 나오기 전에 이해하세요.",
     "weeksAgoDays": "{n}일 전 시작",
     "weeksAgoWeeks": "{n}주 전 시작",
-    "weeksAgoMonths": "{n}개월 전 시작"
+    "weeksAgoMonths": "{n}개월 전 시작",
+    "ecLive": "LIVE",
+    "ecStatic": "정적",
+    "ecLoading": "경제 캘린더 불러오는 중...",
+    "ecRefresh": "새로고침",
+    "ecFootnoteLive": "출처: Finnhub · 4h 캐시 · 발표된 지표에 실제값/예상치 포함"
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",
