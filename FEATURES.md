@@ -490,7 +490,10 @@
 
 ### 9-1. 13w 뷰 (13F 기관 포지션)
 - Top Squeeze/신규 편입/언더레이더 카드 (5종목씩)
-- 프리셋 버튼 5개 + 수동 필터 + 테이블
+- 프리셋 버튼 7개 + 수동 필터 + 테이블
+  - 🔥 스퀴즈 후보 / 🟢 기관 신규 편입 / 📈 기관 매집 중 / 📉 기관 비중 축소 / 🕵️ 언더레이더
+  - 🔮 다수 기관 합의 (9개 기관 중 매집 기관 ≥2개) ← **iter114 추가**
+  - 🔱 N-PORT 이중 매집 (13F 매집 + N-PORT 뮤추얼펀드 보유 교차) ← **iter116 추가**
 
 ### 9-2. 1w/4w 뷰 (Form 4 내부자 거래)
 - 💰 대규모 내부자 매수 배너 (기간 내 총 매수금액 top5)
@@ -499,7 +502,9 @@
 - 내부자 거래 테이블: 티커·기업·내부자·직책·매수금액·건수·거래일
 
 ### 9-3. 결과 테이블 (컬럼 정렬 지원)
-- 컬럼: 티커·기업·섹터·기관·액션·사이즈·숏%·DTC·스퀴즈 스코어(바)·뉴스갭(바)·공시일
+- 컬럼: 티커·기업·섹터·기관·액션·사이즈·숏%·DTC·스퀴즈 스코어(바)·뉴스갭(바)·공시일·**합의**·**N-PORT**
+  - **합의** (iter113): 9개 추적 기관 중 매집/감소 기관 수 뱃지 (초록=매집 수, 빨강=감소 수)
+  - **N-PORT** (iter116): 뮤추얼펀드·ETF 월간 보유 총액 (cyan 배지, hover=펀드 수 툴팁)
 - 결과 카운트 표시
 
 ---
@@ -837,6 +842,7 @@ ownership-alerts 적용).
 | `/api/market-caps` | 정적 band 분류 (allCompanies) | band 분류만 반환; Yahoo v7 crumb 불가로 live USD 제거 |
 | `/api/sector-pe` | Yahoo Finance v8 (no auth) | 4h Redis; 11개 SPDR 섹터 ETF; price + changePct + ytdReturn + 52주 범위 |
 | `/api/price-history?ticker=X&days=N` | Stooq daily CSV | 1h Redis + 30min memory |
+| `/api/batch-prices?tickers=A,B,...` | Yahoo Finance v7 quote (최대 120 티커) | 5분 메모리 (티커별) ← iter117 |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
 | `/api/translate` | 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ부터 — GEMINI 미설정 환경에서도 동작) | 30일 |

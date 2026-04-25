@@ -48,11 +48,13 @@ interface ScreenerRow {
   shortVolPct: number | null;
   shortRatio: number | null;
   squeezeScore: number;
-  bullishCount: number;       // # institutions accumulating/buying this ticker
-  bearishCount: number;       // # institutions reducing/exiting this ticker
-  institutionCount: number;   // total institutions tracking this ticker
-  nportValue: number | null;  // N-PORT monthly mutual fund holdings (USD)
-  nportFundCount: number | null; // # funds holding via N-PORT
+  bullishCount: number;
+  bearishCount: number;
+  institutionCount: number;
+  nportValue: number | null;
+  nportFundCount: number | null;
+  price: number | null;
+  changePct: number | null;
 }
 
 // ── Form 4 insider trade row ──────────────────────────────────────────────────
@@ -180,7 +182,7 @@ export default function ScreenerPage() {
   const [loadingInsider, setLoadingInsider] = useState(false);
   const [insiderLoaded, setInsiderLoaded] = useState(false);
 
-  const [top5Prices, setTop5Prices] = useState<Map<string, TopPrice>>(new Map());
+  const [priceMap, setPriceMap] = useState<Map<string, TopPrice>>(new Map());
   const [pricesLoaded, setPricesLoaded] = useState(false);
 
   // 13F filters
@@ -260,6 +262,7 @@ export default function ScreenerPage() {
       const short = shortMap.get(sig.ticker);
       const consensus = consensusMap.get(sig.ticker) ?? { bullish: 0, bearish: 0, instSet: new Set() };
       const nport = nportMap.get(sig.ticker) ?? null;
+      const lp = priceMap.get(sig.ticker) ?? null;
       return {
         ticker: sig.ticker, companyName: sig.companyName, sector: sig.sector,
         institution: sig.institution, action: sig.action, estimatedValue: sig.estimatedValue,
@@ -270,9 +273,11 @@ export default function ScreenerPage() {
         institutionCount: consensus.instSet.size,
         nportValue: nport?.value ?? null,
         nportFundCount: nport?.fundCount ?? null,
+        price: lp?.price ?? null,
+        changePct: lp?.changePct ?? null,
       };
     });
-  }, [signals, shortMap, nportMap]);
+  }, [signals, shortMap, nportMap, priceMap]);
 
   const sectors = useMemo(() => ['all', ...Array.from(new Set(deduped.map(r => r.sector)))], [deduped]);
 
@@ -329,29 +334,26 @@ export default function ScreenerPage() {
   const topCsuite = useMemo(() => insiderRows.filter(r => r.isCsuite).slice(0, 5), [insiderRows]);
   const topClustered = useMemo(() => [...insiderRows].sort((a, b) => b.tradeCount - a.tradeCount).slice(0, 5), [insiderRows]);
 
-  // ── Prices ────────────────────────────────────────────────────────────────
+  // ── Prices — single batch call covers all visible rows + top5 cards ─────────
   useEffect(() => {
-    const tickers13F = [...top5Squeeze, ...top5NewPosition, ...top5Underradar].map(r => r.ticker);
-    const tickersInsider = [...topInsiderBuys, ...topCsuite, ...topClustered].map(r => r.ticker);
-    const allTickers = Array.from(new Set(tf === '13w' ? tickers13F : tickersInsider));
+    const allTickers = Array.from(new Set(deduped.map(r => r.ticker)));
     if (!allTickers.length) return;
     const ctrl = new AbortController();
     setPricesLoaded(false);
-    Promise.allSettled(
-      allTickers.map(ticker =>
-        fetch(`/api/stock-price/${ticker}`, { signal: ctrl.signal })
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
-      )
-    ).then(results => {
-      if (ctrl.signal.aborted) return;
-      const map = new Map<string, TopPrice>();
-      for (const r of results) if (r.status === 'fulfilled') map.set(r.value.ticker, r.value);
-      setTop5Prices(map);
-      setPricesLoaded(true);
-    }).catch(() => { if (!ctrl.signal.aborted) setPricesLoaded(true); });
+    fetch(`/api/batch-prices?tickers=${allTickers.join(',')}`, { signal: ctrl.signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((d: { prices: Record<string, { price: number | null; changePct: number | null; change: number | null }> }) => {
+        if (ctrl.signal.aborted) return;
+        const map = new Map<string, TopPrice>();
+        for (const [ticker, entry] of Object.entries(d.prices ?? {})) {
+          map.set(ticker, { price: entry.price, changePct: entry.changePct, currency: 'USD' });
+        }
+        setPriceMap(map);
+        setPricesLoaded(true);
+      })
+      .catch(() => { if (!ctrl.signal.aborted) setPricesLoaded(true); });
     return () => ctrl.abort();
-  }, [top5Squeeze, top5NewPosition, top5Underradar, topInsiderBuys, topCsuite, topClustered, tf]);
+  }, [deduped]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -367,7 +369,7 @@ export default function ScreenerPage() {
 
   // ── Price card helper ─────────────────────────────────────────────────────
   const PriceCard = ({ ticker, badge, badgeCls, sub }: { ticker: string; badge: string; badgeCls: string; sub?: string }) => {
-    const lp = top5Prices.get(ticker);
+    const lp = priceMap.get(ticker);
     const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : '$';
     return (
       <Link href={`/company/${ticker}` as Parameters<typeof Link>[0]['href']}
@@ -559,6 +561,8 @@ export default function ScreenerPage() {
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관</th>
                   <SortTh label="합의" k="bullishCount" />
                   <SortTh label="N-PORT" k="nportValue" />
+                  <SortTh label="가격" k="price" />
+                  <SortTh label="등락%" k="changePct" />
                   <SortTh label="액션" k="action" />
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">규모</th>
                   <SortTh label="Short Vol %" k="shortVolPct" />
@@ -594,6 +598,18 @@ export default function ScreenerPage() {
                             {fmtUsd(row.nportValue)}
                           </span>
                         ) : <span className="text-cf-text-secondary/30 text-[10px]">—</span>}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-xs tabular-nums">
+                        {row.price != null
+                          ? <span className="text-cf-text-primary">${row.price < 1000 ? row.price.toFixed(2) : row.price.toFixed(0)}</span>
+                          : <span className="text-cf-text-secondary/30 animate-pulse text-[10px]">···</span>}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-xs tabular-nums">
+                        {row.changePct != null
+                          ? <span className={row.changePct >= 0 ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
+                              {row.changePct >= 0 ? '+' : ''}{row.changePct.toFixed(2)}%
+                            </span>
+                          : <span className="text-cf-text-secondary/30 animate-pulse text-[10px]">···</span>}
                       </td>
                       <td className="px-3 py-2.5">
                         {actionCfg && <span className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded" style={{ color: actionCfg.color, backgroundColor: actionCfg.bg }}>{actionCfg.icon}{actionCfg.label}</span>}

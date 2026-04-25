@@ -521,7 +521,13 @@
 | 212 | 프리셋: 기관 매집 중 | 💾 cached | signals |
 | 213 | 프리셋: 기관 비중 축소 | 💾 cached | signals |
 | 214 | 프리셋: 언더레이더 | 💾 cached | signals + news-gap |
+| 214-A | 프리셋: 🔮 다수 기관 합의 (bullishCount ≥ 2) | 💾 cached | 13F 9개 기관 교차 ← iter114 |
+| 214-B | 프리셋: 🔱 N-PORT 이중 매집 (13F+N-PORT 교차) | 💾 cached | 13F + EDGAR N-PORT ← iter116 |
 | 215 | 숏 Float % 슬라이더 | ✅ live | 사용자 입력 |
+| 215-A | 결과 테이블: 합의 컬럼 (매집/감소 기관 수) | 💾 cached | 13F 9개 기관 bullishCount/bearishCount ← iter113 |
+| 215-B | 결과 테이블: N-PORT 컬럼 (뮤추얼펀드 보유 총액) | 💾 cached | `/api/nport-holdings` byTicker ← iter116 |
+| 215-C | 결과 테이블: 가격 컬럼 (현재가, 정렬 가능) | ✅ live | `/api/batch-prices` Yahoo v7 ← iter117 |
+| 215-D | 결과 테이블: 등락% 컬럼 (일간 등락, 정렬 가능) | ✅ live | `/api/batch-prices` Yahoo v7 ← iter117 |
 | 216 | 결과 테이블: 스퀴즈 스코어(바) | 💾 cached | 자체계산 |
 | 217 | 결과 테이블: 뉴스갭(바) | 💾 cached | AV |
 | 218 | 결과 테이블: DTC (Days to Cover) | 💾 cached | Yahoo |
