@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Calendar, Loader2, RefreshCw, TrendingUp, TrendingDown, Clock, Sun, Moon, ExternalLink, Search, Star } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
@@ -59,10 +59,10 @@ const MAJOR_TICKERS = new Set([
 ]);
 
 const PRESETS = [
-  { id: 'today', label: '오늘', from: 0, to: 0 },
-  { id: 'week', label: '이번 주', from: 0, to: 7 },
-  { id: 'twoweeks', label: '2주', from: 0, to: 14 },
-  { id: 'month', label: '1개월', from: 0, to: 30 },
+  { id: 'today', from: 0, to: 0 },
+  { id: 'week', from: 0, to: 7 },
+  { id: 'twoweeks', from: 0, to: 14 },
+  { id: 'month', from: 0, to: 30 },
 ] as const;
 
 function dateFromOffset(offset: number): string {
@@ -71,9 +71,10 @@ function dateFromOffset(offset: number): string {
 }
 
 function SessionBadge({ session }: { session: EarningRow['session'] }) {
-  if (session === 'pre') return <span title="Before Market Open" className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/30 inline-flex items-center gap-1"><Sun className="w-3 h-3" />장전</span>;
-  if (session === 'after') return <span title="After Market Close" className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 border border-indigo-500/30 inline-flex items-center gap-1"><Moon className="w-3 h-3" />장후</span>;
-  if (session === 'during') return <span title="During Market Hours" className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 inline-flex items-center gap-1"><Clock className="w-3 h-3" />장중</span>;
+  const t = useTranslations('earnings');
+  if (session === 'pre') return <span title="Before Market Open" className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/30 inline-flex items-center gap-1"><Sun className="w-3 h-3" />{t('sessionPre')}</span>;
+  if (session === 'after') return <span title="After Market Close" className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 border border-indigo-500/30 inline-flex items-center gap-1"><Moon className="w-3 h-3" />{t('sessionAfter')}</span>;
+  if (session === 'during') return <span title="During Market Hours" className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 inline-flex items-center gap-1"><Clock className="w-3 h-3" />{t('sessionDuring')}</span>;
   return <span className="text-[10px] text-gray-400">-</span>;
 }
 
@@ -94,12 +95,20 @@ function SurpriseBadge({ pct }: { pct: number | null }) {
 
 export default function EarningsPage() {
   const locale = useLocale();
+  const t = useTranslations('earnings');
   const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('twoweeks');
   const [data, setData] = useState<EarningsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'surprise'>('date');
   const [majorOnly, setMajorOnly] = useState(false);
+
+  const PRESET_LABELS: Record<string, string> = {
+    today: t('presetToday'),
+    week: t('presetWeek'),
+    twoweeks: t('presetTwoweeks'),
+    month: t('presetMonth'),
+  };
 
   const range = useMemo(() => {
     const p = PRESETS.find(x => x.id === preset) ?? PRESETS[2];
@@ -152,10 +161,10 @@ export default function EarningsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-cf-text-primary flex items-center gap-2">
           <Calendar className="w-6 h-6 text-cf-accent" />
-          실적 캘린더
+          {t('pageTitle')}
         </h1>
         <p className="text-sm text-cf-text-secondary mt-1">
-          블룸버그 EE 대응 · Finnhub 무료 데이터 · EPS·매출 컨센서스 vs 실제 surprise
+          {t('pageDesc')}
         </p>
       </div>
 
@@ -172,7 +181,7 @@ export default function EarningsPage() {
                   : 'bg-white/5 border-white/10 text-cf-text-secondary hover:bg-white/10'
               }`}
             >
-              {p.label}
+              {PRESET_LABELS[p.id]}
             </button>
           ))}
         </div>
@@ -182,7 +191,7 @@ export default function EarningsPage() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="티커·기업명 검색 (NVDA, Apple…)"
+            placeholder={t('searchPlaceholder')}
             className="w-full pl-8 pr-3 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-cf-text-primary placeholder:text-cf-text-secondary"
           />
         </div>
@@ -191,8 +200,8 @@ export default function EarningsPage() {
           onChange={e => setSortBy(e.target.value as typeof sortBy)}
           className="text-xs px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-cf-text-primary"
         >
-          <option value="date">날짜순</option>
-          <option value="surprise">Surprise 크기순</option>
+          <option value="date">{t('sortDate')}</option>
+          <option value="surprise">{t('sortSurprise')}</option>
         </select>
         <button
           onClick={() => setMajorOnly(v => !v)}
@@ -201,10 +210,10 @@ export default function EarningsPage() {
               ? 'bg-cf-accent/20 border-cf-accent text-cf-accent font-semibold'
               : 'bg-white/5 border-white/10 text-cf-text-secondary hover:bg-white/10'
           }`}
-          title="S&P 100 + 주요 대형주만 표시"
+          title={t('filterMajorTitle')}
         >
           <Star className="w-3.5 h-3.5" />
-          주요 종목
+          {t('filterMajor')}
         </button>
         <button
           onClick={() => load()}
@@ -212,7 +221,7 @@ export default function EarningsPage() {
           className="text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 flex items-center gap-1.5 disabled:opacity-40"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          새로고침
+          {t('refresh')}
         </button>
       </div>
 
@@ -220,19 +229,19 @@ export default function EarningsPage() {
       {data && !data.warning && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <div className="cf-card p-3">
-            <p className="text-[10px] text-cf-text-secondary">전체 건수</p>
+            <p className="text-[10px] text-cf-text-secondary">{t('statTotal')}</p>
             <p className="text-lg font-bold text-cf-text-primary">{stats.total.toLocaleString()}</p>
           </div>
           <div className="cf-card p-3">
-            <p className="text-[10px] text-cf-text-secondary">발표 완료</p>
+            <p className="text-[10px] text-cf-text-secondary">{t('statReported')}</p>
             <p className="text-lg font-bold text-cf-text-primary">{stats.reported.toLocaleString()}</p>
           </div>
           <div className="cf-card p-3 border-emerald-500/30">
-            <p className="text-[10px] text-cf-text-secondary">예상 상회 (Beat)</p>
+            <p className="text-[10px] text-cf-text-secondary">{t('statBeat')}</p>
             <p className="text-lg font-bold text-emerald-600">{stats.beats.toLocaleString()}</p>
           </div>
           <div className="cf-card p-3 border-red-500/30">
-            <p className="text-[10px] text-cf-text-secondary">예상 하회 (Miss)</p>
+            <p className="text-[10px] text-cf-text-secondary">{t('statMiss')}</p>
             <p className="text-lg font-bold text-red-500">{stats.misses.toLocaleString()}</p>
           </div>
         </div>
@@ -251,18 +260,18 @@ export default function EarningsPage() {
           <table className="w-full text-sm">
             <thead className="bg-white/5 border-b border-white/10 sticky top-0">
               <tr>
-                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">날짜</th>
-                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">시간</th>
-                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">티커</th>
-                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">기업명</th>
-                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">분기</th>
-                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">EPS 예상</th>
-                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">EPS 실제</th>
-                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">EPS Surprise</th>
-                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">매출 예상</th>
-                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">매출 실제</th>
-                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">매출 Surprise</th>
-                <th className="text-center px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">링크</th>
+                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colDate')}</th>
+                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colTime')}</th>
+                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colTicker')}</th>
+                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colCompany')}</th>
+                <th className="text-left px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colQuarter')}</th>
+                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colEpsEst')}</th>
+                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colEpsAct')}</th>
+                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colEpsSurprise')}</th>
+                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colRevEst')}</th>
+                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colRevAct')}</th>
+                <th className="text-right px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colRevSurprise')}</th>
+                <th className="text-center px-3 py-2 text-[11px] font-semibold text-cf-text-secondary">{t('colLink')}</th>
               </tr>
             </thead>
             <tbody>
@@ -271,7 +280,7 @@ export default function EarningsPage() {
               )}
               {!loading && rows.length === 0 && (
                 <tr><td colSpan={12} className="text-center py-8 text-cf-text-secondary text-sm">
-                  {data?.error ? `오류: ${data.error}` : '해당 기간 실적 발표 없음'}
+                  {data?.error ? t('emptyError', { error: data.error }) : t('emptyNone')}
                 </td></tr>
               )}
               {!loading && rows.map((r, i) => (
@@ -311,7 +320,10 @@ export default function EarningsPage() {
 
       {data?.updatedAt && (
         <p className="text-[10px] text-cf-text-secondary mt-3 text-right">
-          업데이트: {new Date(data.updatedAt).toLocaleString(locale)} · 출처: Finnhub · {data.cached ? '캐시됨 (2h TTL)' : '실시간'}
+          {t('updatedAt', {
+            date: new Date(data.updatedAt).toLocaleString(locale),
+            cache: data.cached ? t('cacheHit') : t('cacheNo'),
+          })}
         </p>
       )}
     </div>
