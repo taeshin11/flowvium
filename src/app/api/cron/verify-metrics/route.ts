@@ -1069,6 +1069,38 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
 }
 
 // ── 미커버 엔드포인트 추가 검증 (iter84) ────────────────────────────────────
+async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/investment-strategy', 20000);
+  if (!r.ok) {
+    return [{ key: 'strategy.ALL', label: 'Investment Strategy API', group: 'strategy',
+      status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const d = r.data as {
+    stance?: string; thesis?: string; source?: string;
+    portfolio?: Array<{ ticker?: string; allocation?: number }>;
+    riskLevel?: string;
+  };
+  const portfolioLen = Array.isArray(d.portfolio) ? d.portfolio.length : 0;
+  const hasValidPortfolio = portfolioLen >= 5 &&
+    (d.portfolio ?? []).every(p => p.ticker && typeof p.allocation === 'number' && p.allocation > 0);
+  const allocSum = hasValidPortfolio
+    ? (d.portfolio ?? []).reduce((s, p) => s + (p.allocation ?? 0), 0) : 0;
+  const isAI = d.source && d.source !== 'fallback' && d.source !== 'data';
+  const isValid = d.stance && ['bullish', 'neutral', 'bearish'].includes(d.stance) &&
+    d.thesis && hasValidPortfolio;
+
+  return [{
+    key: 'strategy.portfolio',
+    label: 'Investment Strategy Portfolio',
+    group: 'strategy',
+    status: !isValid ? 'error' : isAI ? 'ok' : 'degraded',
+    value: isValid ? `${d.stance} ${portfolioLen}pos alloc=${allocSum.toFixed(0)}%` : null,
+    source: d.source,
+    details: { portfolioLen, allocSum: Math.round(allocSum), stance: d.stance, isAI, riskLevel: d.riskLevel },
+    ...(isValid ? {} : { lastError: `stance=${d.stance} portfolio=${portfolioLen} valid=${hasValidPortfolio}` }),
+  }];
+}
+
 async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
   return Promise.all([
     // Daily Brief (AI market summary)
@@ -1148,7 +1180,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
-  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, missing] = await Promise.all([
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, strategy, missing] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -1169,10 +1201,11 @@ export async function GET(req: Request) {
     verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
     verifyVolatility(base).catch((e): MetricItem[] => [{ key: 'vol.ERR', label: 'Volatility verify throw', group: 'volatility', status: 'error', lastError: String(e) }]),
     verifyCommodityCurve(base).catch((e): MetricItem[] => [{ key: 'comm.ERR', label: 'Commodity verify throw', group: 'commodity', status: 'error', lastError: String(e) }]),
+    verifyInvestmentStrategy(base).catch((e): MetricItem[] => [{ key: 'strategy.ERR', label: 'Strategy verify throw', group: 'strategy', status: 'error', lastError: String(e) }]),
     verifyMissingEndpoints(base).catch((e): MetricItem[] => [{ key: 'missing.ERR', label: 'Missing endpoints verify throw', group: 'brief', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...missing];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...strategy, ...missing];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

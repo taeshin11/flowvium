@@ -28,9 +28,14 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+const GraphLoadingFallback = (): React.ReactElement => {
+  const t = useTranslations('explore');
+  return <div className="flex items-center justify-center h-[500px]">{t('loadingGraph')}</div>;
+};
+
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center h-[500px]">Loading graph...</div>,
+  loading: GraphLoadingFallback,
 });
 
 const sectorColorMap: Record<string, string> = {

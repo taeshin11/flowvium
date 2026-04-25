@@ -420,21 +420,46 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
     const parsed = JSON.parse(jsonMatch[0]) as Partial<InvestmentStrategy>;
-    if (!parsed.stance || !parsed.thesis || !Array.isArray(parsed.portfolio)) return null;
+
+    // Stance must be a valid enum value
+    if (!parsed.stance || !['bullish', 'neutral', 'bearish'].includes(parsed.stance)) return null;
+    if (typeof parsed.thesis !== 'string' || !parsed.thesis) return null;
+
+    // Portfolio: minimum 5 positions, each must have ticker + positive allocation
+    if (!Array.isArray(parsed.portfolio)) return null;
+    const portfolio = (parsed.portfolio as Partial<PortfolioItem>[]).filter(
+      (p): p is PortfolioItem =>
+        typeof p?.ticker === 'string' && p.ticker.length > 0 &&
+        typeof p?.allocation === 'number' && p.allocation > 0
+    );
+    if (portfolio.length < 5) {
+      logger.warn('investment-strategy', 'portfolio_invalid', { count: portfolio.length, raw: raw.slice(0, 200) });
+      return null;
+    }
+
+    // Allocation sum: warn but don't reject (AI rounding can cause slight deviation)
+    const allocSum = portfolio.reduce((s, p) => s + p.allocation, 0);
+    if (Math.abs(allocSum - 100) > 15) {
+      logger.warn('investment-strategy', 'allocation_sum_off', { sum: allocSum });
+    }
+
     return {
       stance: parsed.stance,
-      thesis: parsed.thesis,
-      portfolio: parsed.portfolio ?? [],
-      sectorAllocation: parsed.sectorAllocation ?? [],
-      riskEvents: parsed.riskEvents ?? [],
-      macroAnalysis: parsed.macroAnalysis ?? '',
-      technicalAnalysis: parsed.technicalAnalysis ?? '',
-      fundamentalAnalysis: parsed.fundamentalAnalysis ?? '',
-      riskLevel: parsed.riskLevel ?? 'medium',
+      thesis: parsed.thesis.slice(0, 150),
+      portfolio,
+      sectorAllocation: Array.isArray(parsed.sectorAllocation) ? parsed.sectorAllocation : [],
+      riskEvents: Array.isArray(parsed.riskEvents) ? parsed.riskEvents : [],
+      macroAnalysis: typeof parsed.macroAnalysis === 'string' ? parsed.macroAnalysis : '',
+      technicalAnalysis: typeof parsed.technicalAnalysis === 'string' ? parsed.technicalAnalysis : '',
+      fundamentalAnalysis: typeof parsed.fundamentalAnalysis === 'string' ? parsed.fundamentalAnalysis : '',
+      riskLevel: parsed.riskLevel && ['low', 'medium', 'high'].includes(parsed.riskLevel) ? parsed.riskLevel : 'medium',
       generatedAt: new Date().toISOString(),
       source,
     };
-  } catch { return null; }
+  } catch (e) {
+    logger.warn('investment-strategy', 'parse_exception', { error: String(e) });
+    return null;
+  }
 }
 
 // ── GET handler ───────────────────────────────────────────────────────────────
