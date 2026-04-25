@@ -77,6 +77,7 @@ export interface TabContext {
   korea: unknown | null;          // KRX foreign/institutional real-time
   nport: unknown | null;          // Form N-PORT mutual fund monthly holdings
   blocks: unknown[];              // Polygon block trades (requires key)
+  econCal: unknown | null;        // Economic calendar (upcoming high-impact events)
 }
 
 async function safeGet<T = unknown>(redis: Redis, key: string): Promise<T | null> {
@@ -110,12 +111,12 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,
-    nport: null, blocks: [],
+    nport: null, blocks: [], econCal: null,
   };
 
   const [
     capital, fgAll, fedWatch, macro, heatmap, credit,
-    insiderR, ownerR, koreaR, nportR, shortR, cascadeR,
+    insiderR, ownerR, koreaR, nportR, shortR, cascadeR, econCalR,
   ] = await Promise.all([
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/capital-flows', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/fear-greed', 12000),
@@ -129,6 +130,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/nport-holdings', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/short-interest', 12000),
     safeFetchJson<{ articles?: unknown[] }>(baseUrl, '/api/news-cascade', 15000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/economic-calendar?country=US', 8000),
   ]);
 
   ctx.capital = capital;
@@ -148,6 +150,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   ctx.nport = nportR;
   ctx.short = shortR;
   if (cascadeR?.articles && Array.isArray(cascadeR.articles)) ctx.cascade = cascadeR.articles;
+  ctx.econCal = econCalR;
 
   logger.info('daily-brief', 'http_context_gathered', {
     populated: {
@@ -157,6 +160,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
       insider: ctx.insider.length, ownership: ctx.ownership.length,
       korea: ctx.korea != null, nport: ctx.nport != null,
       short: ctx.short != null, cascade: ctx.cascade.length,
+      econCal: ctx.econCal != null,
     },
   });
   return ctx;
@@ -168,7 +172,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,
-    nport: null, blocks: [],
+    nport: null, blocks: [], econCal: null,
   };
   if (!redis) {
     // UPSTASH 미설정 환경: 내부 API endpoint 로 HTTP fetch 폴백
@@ -184,7 +188,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   const [
     heatmap, shortData, capFlowsTwelve, capFlowsYahoo,
     fg, fed, macro, credit, cascadeArticles, liveSignals,
-    insider, ownership, options, korea, nport, blocks,
+    insider, ownership, options, korea, nport, blocks, econCal,
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v13:US:${hour}`),
     safeGet(redis, 'flowvium:short-interest:v5'),
@@ -202,6 +206,8 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet(redis, 'flowvium:korea-flow:v4:4w'),
     safeGet(redis, 'flowvium:nport-holdings:v1'),
     safeGet<unknown[]>(redis, 'flowvium:block-trades:v1'),
+    // econ-cal has date-range dependent key; fetch via HTTP (hits its own Redis cache)
+    baseUrl ? safeFetchJson<Record<string, unknown>>(baseUrl, '/api/economic-calendar?country=US', 8000) : Promise.resolve(null),
   ]);
 
   ctx.heatmap = heatmap;
@@ -218,6 +224,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   ctx.korea = korea;
   ctx.nport = nport;
   if (Array.isArray(blocks)) ctx.blocks = blocks;
+  ctx.econCal = econCal;
 
   if (Array.isArray(cascadeArticles) && cascadeArticles.length > 0) {
     ctx.cascade = cascadeArticles.slice(0, 5);
@@ -458,6 +465,24 @@ function summariseBlocks(items: unknown[]): string {
     .join(', ');
 }
 
+function summariseEconCal(data: unknown): string {
+  const d = data as Record<string, unknown> | null;
+  if (!d) return '';
+  const events = (d.events as Array<Record<string, unknown>>) ?? [];
+  // Only high-impact upcoming events within the next 14 days
+  const today = new Date().toISOString().slice(0, 10);
+  const relevant = events
+    .filter(e => e.impact === 'high' && (e.date as string) >= today)
+    .slice(0, 5);
+  if (!relevant.length) return '';
+  return relevant.map(e => {
+    const est = e.estimate != null ? `est${e.estimate}${e.unit ?? ''}` : null;
+    const prev = e.prev != null ? `prev${e.prev}${e.unit ?? ''}` : null;
+    const parts = [e.event as string, est, prev].filter(Boolean).join(' ');
+    return `${e.date}:${parts}`;
+  }).join(' | ');
+}
+
 function summariseSupply(): string {
   return Object.entries(companySupplyChainUpdates)
     .flatMap(([tk, ups]) => ups.filter(u => u.impact === 'high').slice(0, 1).map(u => `${tk}:${u.type}`))
@@ -486,6 +511,7 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
   const korea = ctx ? summariseKorea(ctx.korea) : '';
   const nport = ctx ? summariseNPort(ctx.nport) : '';
   const blocks = ctx ? summariseBlocks(ctx.blocks) : '';
+  const econCal = ctx ? summariseEconCal(ctx.econCal) : '';
 
   // 빈 섹션은 프롬프트에서 제외 — GROQ TPD 한도 소비 최소화 (100,000/일).
   // "[Heatmap] n/a" 한 줄도 8-12 토큰 소비. 18개 탭 × 수십 건/일 축적시 상당량.
@@ -508,6 +534,7 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
     ['Korea-Flow', korea],
     ['NPort-Funds', nport],
     ['Block-Trades', blocks],
+    ['EconCalendar', econCal],
   ];
   const body = sections
     .filter(([, v]) => v && v.trim().length > 0)
