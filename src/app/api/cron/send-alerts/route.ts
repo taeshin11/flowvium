@@ -7,6 +7,8 @@ export const maxDuration = 30;
 // ── Types (mirrors fear-greed/route.ts entry shape) ─────────────────────────
 interface FGEntry { score: number; level: string; trend: string; label: string; flag: string; }
 interface VolData { vix: number | null; regime: string; }
+interface MacroIndicator { id: string; actual: number | null; }
+interface MacroData { indicators: MacroIndicator[] }
 
 interface AlertResult {
   type: string;
@@ -161,6 +163,73 @@ async function checkVIXAlert(
   return results;
 }
 
+// ── Credit Spread Alert (IG OAS / HY OAS) ────────────────────────────────────
+async function checkCreditAlert(
+  redis: Redis, webhookUrl: string
+): Promise<AlertResult[]> {
+  // macro-indicators uses a KST-date key; try today and yesterday as fallback
+  const kst = (daysAgo = 0) => {
+    const ts = Date.now() + 9 * 3600000 - daysAgo * 86400000;
+    return new Date(ts).toISOString().slice(0, 10);
+  };
+  let macro: MacroData | null = await redis.get<MacroData>(`flowvium:macro-indicators:v12:${kst(0)}`);
+  if (!macro) macro = await redis.get<MacroData>(`flowvium:macro-indicators:v12:${kst(1)}`);
+  if (!macro?.indicators?.length) return [];
+
+  const ig = macro.indicators.find(i => i.id === 'ig_spread')?.actual ?? null;
+  const hy = macro.indicators.find(i => i.id === 'hy_spread')?.actual ?? null;
+  if (ig === null && hy === null) return [];
+
+  const results: AlertResult[] = [];
+
+  // HY > 5% = recession warning
+  if (hy !== null && hy > 5.0) {
+    const type = 'hy-stress';
+    if (!(await isCooledDown(redis, type))) {
+      const sent = await sendDiscord(webhookUrl, [{
+        title: '🚨 고수익채 신용 스트레스 — HY OAS > 5%',
+        description: `정크본드 스프레드가 경기침체 경보 구간(**≥5.0%**)을 돌파했습니다. 신용 시장 패닉 신호.`,
+        color: 0xC0392B,
+        fields: [
+          { name: 'HY OAS', value: `**${hy.toFixed(2)}%**`, inline: true },
+          { name: 'IG OAS', value: ig !== null ? `${ig.toFixed(2)}%` : '—', inline: true },
+          { name: '해석', value: '기업 부도 위험 상승 → 주식 선행 하락 신호', inline: false },
+        ],
+        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        timestamp: new Date().toISOString(),
+      }]);
+      if (sent) await markSent(redis, type);
+      results.push({ type, sent, detail: `hy=${hy.toFixed(2)}` });
+    } else {
+      results.push({ type, sent: false, cooldown: true });
+    }
+  }
+
+  // IG > 1.5% = credit warning
+  if (ig !== null && ig > 1.5) {
+    const type = 'ig-caution';
+    if (!(await isCooledDown(redis, type))) {
+      const sent = await sendDiscord(webhookUrl, [{
+        title: '⚠️ 투자등급채 신용 주의 — IG OAS > 1.5%',
+        description: `투자등급 스프레드가 주의 구간(**≥1.5%**)에 도달했습니다.`,
+        color: 0xE67E22,
+        fields: [
+          { name: 'IG OAS', value: `**${ig.toFixed(2)}%**`, inline: true },
+          { name: 'HY OAS', value: hy !== null ? `${hy.toFixed(2)}%` : '—', inline: true },
+        ],
+        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        timestamp: new Date().toISOString(),
+      }]);
+      if (sent) await markSent(redis, type);
+      results.push({ type, sent, detail: `ig=${ig.toFixed(2)}` });
+    } else {
+      results.push({ type, sent: false, cooldown: true });
+    }
+  }
+
+  return results;
+}
+
 // ── GET handler ──────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -180,14 +249,16 @@ export async function GET(req: NextRequest) {
   }
 
   const start = Date.now();
-  const [fgResults, vixResults] = await Promise.allSettled([
+  const [fgResults, vixResults, creditResults] = await Promise.allSettled([
     checkFGAlert(redis, webhookUrl),
     checkVIXAlert(redis, webhookUrl),
+    checkCreditAlert(redis, webhookUrl),
   ]);
 
   const alerts = [
     ...(fgResults.status === 'fulfilled' ? fgResults.value : []),
     ...(vixResults.status === 'fulfilled' ? vixResults.value : []),
+    ...(creditResults.status === 'fulfilled' ? creditResults.value : []),
   ];
 
   const sent = alerts.filter(a => a.sent).length;
