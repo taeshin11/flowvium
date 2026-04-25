@@ -69,6 +69,9 @@ export async function GET(req: Request) {
   // ── 1단계: 모든 독립 소스 + heatmap/OSINT 완전 병렬 ─────────────────────
   // heatmap·OSINT는 stage 1 데이터에 무의존 → 분리 필요 없음.
   // latest-updates 만 제외 (macro/fear-greed/capital-flows Redis 워밍 완료 후 실행).
+  // 타임아웃 설계: stage 1(30s) + stage 2(25s) < maxDuration(60s).
+  // EDGAR 3종(insider/ownership/nport): 30s — 그 이상이면 EDGAR 장애이므로 조기 포기.
+  // market-caps/heatmap: Yahoo Finance — 25s/20s 충분.
   const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR, heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/yield-curve', 'yield-curve', 30000),
@@ -79,19 +82,19 @@ export async function GET(req: Request) {
     warm(base, '/api/fear-greed?force=1', 'fear-greed'),
     warm(base, '/api/credit-balance', 'credit-balance'),
     warm(base, '/api/short-interest', 'short-interest', 10000),
-    warm(base, '/api/market-caps', 'market-caps', 50000),
-    warm(base, '/api/insider-trades', 'insider-trades', 55000),
-    warm(base, '/api/ownership-alerts', 'ownership-alerts', 55000),
+    warm(base, '/api/market-caps', 'market-caps', 25000),
+    warm(base, '/api/insider-trades', 'insider-trades', 30000),
+    warm(base, '/api/ownership-alerts', 'ownership-alerts', 30000),
     warm(base, '/api/options-flow', 'options-flow', 15000),
     warm(base, '/api/korea-flow', 'korea-flow', 20000),
-    warm(base, '/api/nport-holdings', 'nport-holdings', 55000),
-    warm(base, '/api/block-trades', 'block-trades', 30000),
+    warm(base, '/api/nport-holdings', 'nport-holdings', 30000),
+    warm(base, '/api/block-trades', 'block-trades', 25000),
     warm(base, '/api/cot-positions', 'cot-positions', 20000),
-    warm(base, '/api/market-heatmap?country=US', 'market-heatmap', 45000),
-    warm(base, '/api/osint/social',    'osint-social',    25000),
-    warm(base, '/api/osint/sanctions', 'osint-sanctions', 25000),
-    warm(base, '/api/osint/corporate', 'osint-corporate', 25000),
-    warm(base, '/api/osint/crypto',    'osint-crypto',    25000),
+    warm(base, '/api/market-heatmap?country=US', 'market-heatmap', 20000),
+    warm(base, '/api/osint/social',    'osint-social',    20000),
+    warm(base, '/api/osint/sanctions', 'osint-sanctions', 20000),
+    warm(base, '/api/osint/corporate', 'osint-corporate', 20000),
+    warm(base, '/api/osint/crypto',    'osint-crypto',    20000),
   ]);
 
   // ── 2단계: capital-flows 의존 분석 + latest-updates 병렬 ─────────────
@@ -102,11 +105,12 @@ export async function GET(req: Request) {
     warm(base, '/api/latest-updates',  'latest-updates',  15000),
   ]);
 
-  // ── 3단계: daily-brief 캐시 확인 (재생성은 standalone daily-brief cron에 위임) ──
-  // 주의: update-all 이후 5분 후 dedicated daily-brief cron이 동일 timeframe을 재생성.
-  // 여기서 bust+force=1하면 토큰을 2배 소비 (→ 5,400 tokens/day 낭비).
-  // 캐시가 있으면 기존 응답 반환, 없으면 warm 트리거만 한다.
-  const brief4wR = await warm(base, '/api/daily-brief?tf=4w', 'daily-brief-4w', 20000);
+  // ── 3단계: daily-brief — fire & forget (dedicated cron이 5분 후 재생성) ──
+  // await 하면 stage 1(30s) + stage 2(25s) + stage 3(20s) = 75s → maxDuration(60s) 초과.
+  // daily-brief는 자체 cron으로 관리되므로 update-all에서 결과를 기다릴 필요 없음.
+  fetch(`${base}/api/daily-brief?tf=4w`, { signal: AbortSignal.timeout(20000), cache: 'no-store' })
+    .then(r => { if (!r.ok) logger.warn('cron.update-all', 'daily_brief_warm_failed', { status: r.status }); })
+    .catch(e => logger.warn('cron.update-all', 'daily_brief_warm_error', { error: e instanceof Error ? e.message : String(e) }));
 
   // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget, 병렬) ──────────────
   Promise.allSettled(TOP_TICKERS.map(ticker =>
@@ -125,7 +129,7 @@ export async function GET(req: Request) {
     macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,
     insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR,
     heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, latestR,
-    flowR, brief4wR,
+    flowR,
   ];
   const failedCount = results.filter(r => !r.ok).length;
 
