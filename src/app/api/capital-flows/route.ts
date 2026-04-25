@@ -18,6 +18,13 @@ import { Redis } from '@upstash/redis';
 const CACHE_TTL = 4 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
+// Module-level memory cache — this route makes ~41 Yahoo API calls on every miss.
+// Without Redis, downstream routes (flow-analysis, daily-brief) each trigger a full refetch.
+// 15-min TTL matches Yahoo Finance's own delay granularity.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let CAPITAL_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
+const CAPITAL_MEMORY_TTL_MS = 15 * 60 * 1000;
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -387,6 +394,12 @@ export async function GET() {
   const dataSource = twelveKey ? 'Twelve Data (실시간)' : 'Yahoo Finance (15분 지연)';
   const cacheKey = `flowvium:capital-flows:v9:${twelveKey ? 'twelve' : 'yahoo'}`;
 
+  // Module-level memory cache — saves ~41 Yahoo calls per warm-instance hit
+  if (!redis && CAPITAL_MEMORY_CACHE && Date.now() < CAPITAL_MEMORY_CACHE.expiresAt) {
+    logger.info('capital-flows', 'memory_cache_hit');
+    return NextResponse.json(CAPITAL_MEMORY_CACHE.data, { headers: CDN_HEADERS });
+  }
+
   if (redis) {
     try {
       const cached = await redis.get<object>(cacheKey);
@@ -518,6 +531,12 @@ export async function GET() {
       await loggedRedisSet(redis, 'api.capital-flows', cacheKey, response, { ex: CACHE_TTL });
       logger.info('capital-flows', 'cache_saved', { assets: results.length, failedTickers: sourceCount['failed'] ?? 0 });
     } catch (e) { logger.warn('capital-flows', 'cache_write_error', { error: e }); }
+  }
+
+  // Module-level memory cache write (no-Redis path)
+  if (!redis) {
+    CAPITAL_MEMORY_CACHE = { data: response, expiresAt: Date.now() + CAPITAL_MEMORY_TTL_MS };
+    logger.info('capital-flows', 'memory_cache_written', { assets: results.length });
   }
 
   return NextResponse.json(response, { headers: CDN_HEADERS });
