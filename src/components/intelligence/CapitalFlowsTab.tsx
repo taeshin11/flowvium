@@ -9,23 +9,23 @@ import {
 } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
 
-// ── Cascade rules ─────────────────────────────────────────────────────────────
+// ── Cascade rules — keyed by asset/country ID (not Korean label) ───────────────
 const CASCADE_RULES: Record<string, { up: string[]; down: string[] }> = {
-  '미국':   { up: ['기술주(QQQ)', 'S&P500(SPY)', '달러(UUP)'], down: ['EM주식', '채권(TLT)'] },
-  '한국':   { up: ['반도체(SOXX)', 'HBM·AI메모리', 'KOSPI'], down: ['엔화(FXY)'] },
-  '중국':   { up: ['원자재(DJP)', '구리', '철광석', 'EM ETF'], down: ['달러(UUP)', '미국 제조주'] },
-  '인도':   { up: ['IT서비스주', 'EM채권', '인프라·시멘트'], down: [] },
-  '대만':   { up: ['반도체(SOXX)', 'TSMC 공급망', 'AI가속기'], down: [] },
-  '유럽':   { up: ['방산(ITA)', '유로화', '명품·소비주'], down: ['에너지주(XLE)'] },
-  '일본':   { up: ['자동차·수출주', '닛케이'], down: ['엔화 캐리청산 리스크'] },
-  '브라질': { up: ['철광석', '대두·농산물(DBA)', '원유'], down: [] },
-  '금':     { up: ['은(SLV)', '귀금속 채굴주', '인플레 헤지'], down: ['달러(UUP)', '단기채(SHY)'] },
-  '미 장기채': { up: ['부동산(VNQ)', '배당주', '유틸리티'], down: ['달러', '은행주(XLF)'] },
-  '비트코인': { up: ['암호화폐 관련주', '위험선호', '기술주'], down: ['금', '채권'] },
-  '원유':   { up: ['에너지주(XLE)', '산유국 통화', '인플레'], down: ['항공·해운주', '소비재'] },
-  '미국 테크': { up: ['AI 인프라', 'Mag7', '데이터센터REIT'], down: ['전통금융', '에너지'] },
-  '달러':   { up: ['단기채(SHY)', '미국채'], down: ['금', 'EM주식', '원자재'] },
-  '에너지': { up: ['원유', '가스', '배당주'], down: ['항공·물류', '소비재'] },
+  'us':          { up: ['Tech(QQQ)', 'S&P500(SPY)', 'USD(UUP)'],       down: ['EM Equities', 'Bonds(TLT)'] },
+  'korea':       { up: ['Semis(SOXX)', 'HBM·AI Memory', 'KOSPI'],      down: ['JPY(FXY)'] },
+  'china':       { up: ['Commodities(DJP)', 'Copper', 'Iron Ore', 'EM ETF'], down: ['USD(UUP)', 'US Manufacturing'] },
+  'india':       { up: ['IT Services', 'EM Bonds', 'Infrastructure'],  down: [] },
+  'taiwan':      { up: ['Semis(SOXX)', 'TSMC Supply Chain', 'AI Chips'], down: [] },
+  'europe':      { up: ['Defense(ITA)', 'EUR', 'Luxury·Consumer'],     down: ['Energy(XLE)'] },
+  'japan':       { up: ['Auto·Exporters', 'Nikkei'],                   down: ['JPY Carry Unwind Risk'] },
+  'brazil':      { up: ['Iron Ore', 'Agri(DBA)', 'Oil'],               down: [] },
+  'gold':        { up: ['Silver(SLV)', 'Gold Miners', 'Inflation Hedge'], down: ['USD(UUP)', 'Short Bonds(SHY)'] },
+  'us-bonds-lt': { up: ['REITs(VNQ)', 'Dividend Stocks', 'Utilities'], down: ['USD', 'Banks(XLF)'] },
+  'bitcoin':     { up: ['Crypto Stocks', 'Risk-On', 'Tech'],           down: ['Gold', 'Bonds'] },
+  'oil':         { up: ['Energy(XLE)', 'Petro Currencies', 'Inflation'], down: ['Airlines·Shipping', 'Consumer'] },
+  'us-tech':     { up: ['AI Infra', 'Mag7', 'Data Center REITs'],      down: ['Traditional Finance', 'Energy'] },
+  'dollar':      { up: ['Short Bonds(SHY)', 'US Treasuries'],          down: ['Gold', 'EM Equities', 'Commodities'] },
+  'energy':      { up: ['Oil', 'Gas', 'Dividend Stocks'],              down: ['Airlines·Logistics', 'Consumer'] },
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ interface FlowData {
   updatedAt: string;
 }
 
-const GROUP_LABELS: Record<string, string> = { equity: '주식', bonds: '채권', alts: '대안자산', commodities: '원자재', currency: '통화' };
+const GROUP_KEY: Record<string, string> = { equity: 'cfGroupEquity', bonds: 'cfGroupBonds', alts: 'cfGroupAlts', commodities: 'cfGroupCommodities', currency: 'cfGroupCurrency' };
 const GROUP_COLORS: Record<string, string> = { equity: 'bg-blue-500', bonds: 'bg-amber-500', alts: 'bg-yellow-400', commodities: 'bg-orange-500', currency: 'bg-purple-500' };
 const GROUP_LIGHT: Record<string, string> = { equity: 'bg-blue-50 text-blue-700 border-blue-200', bonds: 'bg-amber-50 text-amber-700 border-amber-200', alts: 'bg-yellow-50 text-yellow-700 border-yellow-200', commodities: 'bg-orange-50 text-orange-700 border-orange-200', currency: 'bg-purple-50 text-purple-700 border-purple-200' };
 
@@ -82,11 +82,12 @@ function ReturnBar({ val, max }: { val: number; max: number }) {
 }
 
 type Timeframe = '1w' | '4w' | '13w';
-const TF_LABELS: Record<Timeframe, string> = { '1w': '1주', '4w': '4주', '13w': '3개월' };
+const TF_I18N_KEY: Record<Timeframe, string> = { '1w': 'cfTf1w', '4w': 'cfTf4w', '13w': 'cfTf13w' };
 const TF_RET_KEY: Record<Timeframe, 'ret1w' | 'ret4w' | 'ret13w'> = { '1w': 'ret1w', '4w': 'ret4w', '13w': 'ret13w' };
 
 // ── Flow Intensity Panel ──────────────────────────────────────────────────────
 function FlowIntensityPanel({ data }: { data: FlowData }) {
+  const t = useTranslations('intelligence');
   const [activeView, setActiveView] = useState<'compare' | 'cascade'>('compare');
 
   const allItems = [
@@ -101,16 +102,16 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
 
   const topInflowItems = [...allItems].sort((a, b) => b.ret4w - a.ret4w).slice(0, 5);
   const cascadeChains = topInflowItems
-    .filter(item => CASCADE_RULES[item.label])
+    .filter(item => CASCADE_RULES[item.id])
     .map(item => {
-      const rule = CASCADE_RULES[item.label]!;
+      const rule = CASCADE_RULES[item.id]!;
       return { item, up: rule.up, down: rule.down };
     });
 
   const TF_COLS: Array<{ key: 'ret1w' | 'ret4w' | 'ret13w'; label: string; color: string }> = [
-    { key: 'ret1w',  label: '1주',  color: 'bg-blue-400' },
-    { key: 'ret4w',  label: '4주',  color: 'bg-cf-primary' },
-    { key: 'ret13w', label: '13주', color: 'bg-purple-500' },
+    { key: 'ret1w',  label: t('cfTf1w'),  color: 'bg-blue-400' },
+    { key: 'ret4w',  label: t('cfTf4w'),  color: 'bg-cf-primary' },
+    { key: 'ret13w', label: t('cfTf13w'), color: 'bg-purple-500' },
   ];
 
   return (
@@ -119,16 +120,16 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-cf-primary" />
-            <span className="text-sm font-bold text-cf-text-primary">수급 강도 & Cascade 영향</span>
+            <span className="text-sm font-bold text-cf-text-primary">{t('cfIntensityTitle')}</span>
           </div>
           <div className="flex gap-1 p-0.5 bg-gray-100 rounded-lg">
             <button onClick={() => setActiveView('compare')}
               className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeView === 'compare' ? 'bg-white text-cf-primary shadow-sm' : 'text-cf-text-secondary'}`}>
-              1w·4w·13w 비교
+              {t('cfIntensityCompare')}
             </button>
             <button onClick={() => setActiveView('cascade')}
               className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeView === 'cascade' ? 'bg-white text-cf-primary shadow-sm' : 'text-cf-text-secondary'}`}>
-              Cascade 연쇄
+              {t('cfIntensityCascade')}
             </button>
           </div>
         </div>
@@ -138,20 +139,20 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
         <div className="p-4 space-y-4">
           <div>
             <p className="text-xs font-bold text-green-700 mb-2 flex items-center gap-1.5">
-              <ArrowUpRight className="w-3.5 h-3.5" /> 수급 유입 상위 (기간별)
+              <ArrowUpRight className="w-3.5 h-3.5" /> {t('cfInflows')}
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-cf-text-secondary">
-                    <th className="text-left pb-1.5 font-medium">자산/국가</th>
+                    <th className="text-left pb-1.5 font-medium">{t('cfColAssetCountry')}</th>
                     {TF_COLS.map(c => <th key={c.key} className="text-right pb-1.5 font-medium w-14">{c.label}</th>)}
-                    <th className="text-right pb-1.5 font-medium w-16">방향성</th>
+                    <th className="text-right pb-1.5 font-medium w-16">{t('cfColDirection')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {top4('ret4w', 'up').map(item => {
-                    const trend = item.ret1w > item.ret4w ? '가속▲' : item.ret1w < 0 ? '반전⚡' : '유지→';
+                    const trend = item.ret1w > item.ret4w ? t('cfTrendAccelerating') : item.ret1w < 0 ? t('cfTrendReversing') : t('cfTrendHolding');
                     const trendColor = item.ret1w > item.ret4w ? 'text-green-600' : item.ret1w < 0 ? 'text-amber-600' : 'text-gray-400';
                     const assetData = data?.assets?.find((a: AssetReturn) => a.id === item.id);
                     return (
@@ -179,20 +180,20 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
 
           <div>
             <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1.5">
-              <ArrowDownRight className="w-3.5 h-3.5" /> 수급 유출 상위 (기간별)
+              <ArrowDownRight className="w-3.5 h-3.5" /> {t('cfOutflows')}
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-cf-text-secondary">
-                    <th className="text-left pb-1.5 font-medium">자산/국가</th>
+                    <th className="text-left pb-1.5 font-medium">{t('cfColAssetCountry')}</th>
                     {TF_COLS.map(c => <th key={c.key} className="text-right pb-1.5 font-medium w-14">{c.label}</th>)}
-                    <th className="text-right pb-1.5 font-medium w-16">방향성</th>
+                    <th className="text-right pb-1.5 font-medium w-16">{t('cfColDirection')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {top4('ret4w', 'down').map(item => {
-                    const trend = item.ret1w < item.ret4w ? '가속▼' : item.ret1w > 0 ? '반전⚡' : '유지→';
+                    const trend = item.ret1w < item.ret4w ? t('cfTrendDecelerating') : item.ret1w > 0 ? t('cfTrendReversing') : t('cfTrendHolding');
                     const trendColor = item.ret1w < item.ret4w ? 'text-red-600' : item.ret1w > 0 ? 'text-amber-600' : 'text-gray-400';
                     const assetData = data?.assets?.find((a: AssetReturn) => a.id === item.id);
                     return (
@@ -221,7 +222,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
           {divergent.length > 0 && (
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
               <p className="text-[10px] font-bold text-amber-700 mb-2 flex items-center gap-1">
-                ⚡ 추세 전환 감지 — 1주 vs 13주 방향 불일치
+                {t('cfDivergenceAlert')}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {divergent.slice(0, 6).map(item => (
@@ -245,7 +246,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
 
       {activeView === 'cascade' && (
         <div className="p-4 space-y-3">
-          <p className="text-[11px] text-cf-text-secondary">4주 기준 상위 유입 자산/국가의 연쇄 영향</p>
+          <p className="text-[11px] text-cf-text-secondary">{t('cfCascadeDesc')}</p>
           {cascadeChains.length > 0 ? cascadeChains.map(({ item, up, down }) => (
             <div key={item.id} className="rounded-xl border border-cf-border overflow-hidden">
               <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border-b border-green-100">
@@ -261,7 +262,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
               <div className="px-3 py-2 flex gap-4">
                 {up.length > 0 && (
                   <div className="flex-1">
-                    <p className="text-[9px] font-bold text-green-600 uppercase tracking-wide mb-1">수혜 ↑</p>
+                    <p className="text-[9px] font-bold text-green-600 uppercase tracking-wide mb-1">{t('cfBenefiting')}</p>
                     <div className="space-y-0.5">
                       {up.map(u => (
                         <div key={u} className="text-[11px] text-green-700 bg-green-50 rounded px-1.5 py-0.5">{u}</div>
@@ -271,7 +272,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                 )}
                 {down.length > 0 && (
                   <div className="flex-1">
-                    <p className="text-[9px] font-bold text-red-500 uppercase tracking-wide mb-1">피해 ↓</p>
+                    <p className="text-[9px] font-bold text-red-500 uppercase tracking-wide mb-1">{t('cfHarmed')}</p>
                     <div className="space-y-0.5">
                       {down.map(d => (
                         <div key={d} className="text-[11px] text-red-600 bg-red-50 rounded px-1.5 py-0.5">{d}</div>
@@ -282,7 +283,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
               </div>
             </div>
           )) : (
-            <p className="text-xs text-cf-text-secondary text-center py-4">Cascade 데이터 없음</p>
+            <p className="text-xs text-cf-text-secondary text-center py-4">{t('cfCascadeNoData')}</p>
           )}
         </div>
       )}
@@ -342,8 +343,8 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-cf-primary/10 flex items-center justify-center text-base flex-shrink-0">🤖</div>
             <div>
-              <p className="text-sm font-bold text-cf-text-primary">AI 자금흐름 원인 분석</p>
-              <p className="text-xs text-cf-text-secondary">EXAONE이 각 국가의 자금흐름 원인과 로테이션 이유를 분석합니다</p>
+              <p className="text-sm font-bold text-cf-text-primary">{t('cfAiTitle')}</p>
+              <p className="text-xs text-cf-text-secondary">{t('cfAiSubtitle')}</p>
             </div>
           </div>
           <button
@@ -351,7 +352,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
             className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-cf-primary text-white rounded-xl text-xs font-bold hover:bg-cf-primary/90 transition-colors shadow-sm"
           >
             <Zap className="w-3.5 h-3.5" />
-            원인 분석 시작
+            {t('cfAiStart')}
           </button>
         </div>
       </div>
@@ -362,16 +363,16 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
     <div className="cf-card p-6 flex items-center justify-center gap-3 text-cf-text-secondary">
       <Loader2 className="w-5 h-5 animate-spin text-cf-primary" />
       <div>
-        <p className="text-sm font-medium">EXAONE이 자금흐름 원인 분석 중...</p>
-        <p className="text-xs text-cf-text-secondary/70 mt-0.5">국가별 ETF 수익률과 글로벌 이벤트 데이터를 분석하고 있어요</p>
+        <p className="text-sm font-medium">{t('cfAiAnalyzing')}</p>
+        <p className="text-xs text-cf-text-secondary/70 mt-0.5">{t('cfAiAnalyzingDesc')}</p>
       </div>
     </div>
   );
 
   if (error || !analysis) return (
     <div className="cf-card p-4 text-center">
-      <p className="text-xs text-cf-text-secondary mb-2">분석을 불러오지 못했습니다. AI 서버 연결을 확인해주세요.</p>
-      <button onClick={load} className="text-xs text-cf-primary hover:underline">다시 시도</button>
+      <p className="text-xs text-cf-text-secondary mb-2">{t('cfAiLoadError')}</p>
+      <button onClick={load} className="text-xs text-cf-primary hover:underline">{t('cfAiRetry')}</button>
     </div>
   );
 
@@ -383,12 +384,12 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
             <div className="w-7 h-7 rounded-lg bg-cf-primary/10 flex items-center justify-center text-sm flex-shrink-0">🤖</div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-cf-text-primary">AI 자금흐름 원인 분석</span>
+                <span className="text-sm font-bold text-cf-text-primary">{t('cfAiTitle')}</span>
                 <span className="text-[10px] bg-cf-primary/10 text-cf-primary px-2 py-0.5 rounded-full font-semibold">EXAONE</span>
               </div>
               {genTime && (
                 <p className="text-[10px] text-cf-text-secondary mt-0.5">
-                  {new Date(genTime).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 생성 · 4시간 캐시
+                  {new Date(genTime).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} {t('cfAiCacheInfo')}
                 </p>
               )}
             </div>
@@ -400,21 +401,21 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
         {analysis.mainTheme && (
           <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
             <span className="text-amber-500">⚡</span>
-            <span className="text-xs font-bold text-amber-700">현재 핵심 테마: {analysis.mainTheme}</span>
+            <span className="text-xs font-bold text-amber-700">{t('cfAiTheme')}: {analysis.mainTheme}</span>
           </div>
         )}
       </div>
 
       <div className="p-4 space-y-4">
         <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
-          <p className="text-xs font-bold text-blue-700 mb-1">📋 전체 요약</p>
+          <p className="text-xs font-bold text-blue-700 mb-1">{t('cfAiSummary')}</p>
           <p className="text-xs text-blue-700 leading-relaxed">{analysis.summary}</p>
         </div>
 
         {analysis.countries && analysis.countries.length > 0 && (
           <div>
             <p className="text-xs font-bold text-cf-text-primary mb-2 flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-cf-primary" /> 국가별 원인 분석
+              <Globe className="w-3.5 h-3.5 text-cf-primary" /> {t('cfAiByCountry')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {analysis.countries.map((c, i) => (
@@ -450,7 +451,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
         {analysis.rotations && analysis.rotations.length > 0 && (
           <div>
             <p className="text-xs font-bold text-cf-text-primary mb-2 flex items-center gap-1.5">
-              <ArrowRight className="w-3.5 h-3.5 text-cf-primary" /> 로테이션 원인
+              <ArrowRight className="w-3.5 h-3.5 text-cf-primary" /> {t('cfAiRotation')}
             </p>
             <div className="space-y-1.5">
               {analysis.rotations.map((r, i) => (
@@ -469,7 +470,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
 
         {analysis.keyWatchpoints && analysis.keyWatchpoints.length > 0 && (
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <p className="text-xs font-bold text-slate-700 mb-2">👀 지금 주목해야 할 포인트</p>
+            <p className="text-xs font-bold text-slate-700 mb-2">{t('cfAiWatchpoints')}</p>
             <ul className="space-y-1">
               {analysis.keyWatchpoints.map((pt, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
@@ -510,10 +511,10 @@ export default function CapitalFlowsTab() {
   if (loading) return (
     <div className="flex items-center justify-center gap-2 py-16 text-cf-text-secondary">
       <Loader2 className="w-5 h-5 animate-spin" />
-      <span className="text-sm">글로벌 자금흐름 분석 중...</span>
+      <span className="text-sm">{t('cfLoading')}</span>
     </div>
   );
-  if (!data) return <p className="text-center text-cf-text-secondary py-8 text-sm">데이터를 불러올 수 없습니다</p>;
+  if (!data) return <p className="text-center text-cf-text-secondary py-8 text-sm">{t('cfLoadError')}</p>;
 
   const retKey = TF_RET_KEY[tf];
   const maxAbs = Math.max(...data.assets.map((a) => Math.abs(a[retKey])), 1);
@@ -523,12 +524,12 @@ export default function CapitalFlowsTab() {
     <div className="space-y-6">
       {/* Timeframe toggle */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-cf-text-secondary font-medium">기준:</span>
+        <span className="text-xs text-cf-text-secondary font-medium">{t('cfPeriod')}:</span>
         <div className="flex gap-1 p-0.5 bg-gray-100 rounded-lg">
-          {(['1w', '4w', '13w'] as Timeframe[]).map((t) => (
-            <button key={t} onClick={() => setTf(t)}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${tf === t ? 'bg-white text-cf-primary shadow-sm' : 'text-cf-text-secondary hover:text-cf-text-primary'}`}>
-              {TF_LABELS[t]}
+          {(['1w', '4w', '13w'] as Timeframe[]).map((tfKey) => (
+            <button key={tfKey} onClick={() => setTf(tfKey)}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${tf === tfKey ? 'bg-white text-cf-primary shadow-sm' : 'text-cf-text-secondary hover:text-cf-text-primary'}`}>
+              {t(TF_I18N_KEY[tfKey])}
             </button>
           ))}
         </div>
@@ -540,7 +541,7 @@ export default function CapitalFlowsTab() {
         <div className="cf-card p-4">
           <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
             <GitMerge className="w-4 h-4 text-cf-primary" />
-            자금 로테이션 ({TF_LABELS[tf]} 기준)
+            {t('cfRotationTitle', { tf: t(TF_I18N_KEY[tf]) })}
           </h3>
           <div className="space-y-3">
             {activeRotations.map((r, i) => {
@@ -560,7 +561,7 @@ export default function CapitalFlowsTab() {
                   <div className="flex items-center gap-2 flex-wrap">
                     {r.startDate && (
                       <span className="text-[11px] text-cf-text-secondary flex items-center gap-1">
-                        🕐 {r.weeksAgo === 1 ? '이번 주 시작' : `${r.weeksAgo}주 전 시작`} ({r.startDate})
+                        🕐 {r.weeksAgo === 1 ? t('cfThisWeek') : t('cfWeeksAgo', { n: r.weeksAgo ?? 0 })} ({r.startDate})
                       </span>
                     )}
                     {r.momentum && (
@@ -581,7 +582,7 @@ export default function CapitalFlowsTab() {
         <div className="cf-card p-4">
           <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
             <Globe className="w-4 h-4 text-cf-primary" />
-            국가별 시장 자금 흐름 ({TF_LABELS[tf]} 기준)
+            {t('cfCountryTitle', { tf: t(TF_I18N_KEY[tf]) })}
           </h3>
 
           {(() => {
@@ -637,7 +638,7 @@ export default function CapitalFlowsTab() {
       {data.factorPerformance && data.factorPerformance.length > 0 && (
         <div className="cf-card p-4">
           <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
-            <span>🧮</span> 스마트베타 팩터 성과 ({TF_LABELS[tf]} 기준)
+            <span>🧮</span> {t('cfFactorTitle', { tf: t(TF_I18N_KEY[tf]) })}
           </h3>
           {(() => {
             const sorted = [...data.factorPerformance].sort((a, b) => b[retKey] - a[retKey]);
@@ -653,7 +654,7 @@ export default function CapitalFlowsTab() {
                   </div>
                 ))}
                 <p className="text-[10px] text-cf-text-secondary/60 pt-1">
-                  MTUM · QUAL · VLUE · USMV · IVW · IVE — iShares/MSCI 팩터 ETF 기반
+                  MTUM · QUAL · VLUE · USMV · IVW · IVE — {t('cfFactorNote')}
                 </p>
               </div>
             );
@@ -665,7 +666,7 @@ export default function CapitalFlowsTab() {
       {data.sectorPerformance && data.sectorPerformance.length > 0 && (
         <div className="cf-card p-4">
           <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
-            <span>🏭</span> 미국 섹터 로테이션 ({TF_LABELS[tf]} 기준)
+            <span>🏭</span> {t('cfSectorTitle', { tf: t(TF_I18N_KEY[tf]) })}
           </h3>
           {(() => {
             const sorted = [...data.sectorPerformance].sort((a, b) => b[retKey] - a[retKey]);
@@ -717,7 +718,7 @@ export default function CapitalFlowsTab() {
         return (
           <div className="cf-card p-4">
             <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
-              <span>⚖️</span> 금 vs 달러 ({TF_LABELS[tf]} 기준)
+              <span>⚖️</span> {t('cfGoldDollarTitle', { tf: t(TF_I18N_KEY[tf]) })}
             </h3>
             <div className="flex gap-4 mb-3">
               <div className="flex-1 text-center p-3 rounded-lg bg-yellow-50 border border-yellow-200">
@@ -725,7 +726,7 @@ export default function CapitalFlowsTab() {
                 <div className={`text-xl font-extrabold ${goldRet >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                   {goldRet > 0 ? '+' : ''}{goldRet.toFixed(1)}%
                 </div>
-                <div className="text-[11px] text-gray-500">금 ({TF_LABELS[tf]})</div>
+                <div className="text-[11px] text-gray-500">{t('cfGoldTfLabel', { tf: t(TF_I18N_KEY[tf]) })}</div>
               </div>
               <div className="flex items-center text-gray-400 font-bold">vs</div>
               <div className="flex-1 text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
@@ -733,7 +734,7 @@ export default function CapitalFlowsTab() {
                 <div className={`text-xl font-extrabold ${dollarRet >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                   {dollarRet > 0 ? '+' : ''}{dollarRet.toFixed(1)}%
                 </div>
-                <div className="text-[11px] text-gray-500">달러 ({TF_LABELS[tf]})</div>
+                <div className="text-[11px] text-gray-500">{t('cfDollarTfLabel', { tf: t(TF_I18N_KEY[tf]) })}</div>
               </div>
             </div>
             <div className="text-center text-xs font-semibold text-cf-primary bg-cf-primary/5 rounded-lg py-2 px-3">
@@ -747,14 +748,14 @@ export default function CapitalFlowsTab() {
       {commCurves && commCurves.length > 0 && (
         <div className="cf-card p-4">
           <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
-            <span>🛢️</span> 원자재 선물 커브 — 컨탱고 / 백워데이션
+            <span>🛢️</span> {t('cfCurveTitle')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {commCurves.map((c) => {
               const structColor = c.structure === 'contango' ? 'text-blue-600 bg-blue-50 border-blue-200'
                 : c.structure === 'backwardation' ? 'text-orange-600 bg-orange-50 border-orange-200'
                 : 'text-gray-600 bg-gray-50 border-gray-200';
-              const structLabel = c.structure === 'contango' ? '컨탱고 (정상상승)' : c.structure === 'backwardation' ? '백워데이션 (공급부족)' : '플랫';
+              const structLabel = c.structure === 'contango' ? t('cfContango') : c.structure === 'backwardation' ? t('cfBackwardation') : t('cfFlat');
               const maxP = Math.max(...c.curve.map(p => p.price));
               const minP = Math.min(...c.curve.map(p => p.price));
               const range = maxP - minP || 1;
@@ -786,8 +787,8 @@ export default function CapitalFlowsTab() {
                   )}
                   <div className="text-[10px] text-cf-text-secondary">
                     {c.id === 'oil'
-                      ? (c.structure === 'backwardation' ? '⚠️ 공급 타이트 — 현물 프리미엄' : '📉 공급 여유 — 선도 프리미엄')
-                      : (c.structure === 'contango' ? '📈 금 보유 비용 정상 반영' : '⚠️ 금 현물 수요 급증 신호')}
+                      ? (c.structure === 'backwardation' ? t('cfOilBackwardation') : t('cfOilContango'))
+                      : (c.structure === 'contango' ? t('cfGoldContango') : t('cfGoldBackwardation'))}
                   </div>
                 </div>
               );
@@ -800,7 +801,7 @@ export default function CapitalFlowsTab() {
       <div className="cf-card p-4">
         <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-cf-primary" />
-          자산군별 {TF_LABELS[tf]} 수익률 (자금 유입 방향)
+          {t('cfAssetReturnTitle', { tf: t(TF_I18N_KEY[tf]) })}
         </h3>
         {(() => {
           const groupPerf: Record<string, number[]> = {};
@@ -817,7 +818,7 @@ export default function CapitalFlowsTab() {
               {groupAvgTf.map((g) => (
                 <div key={g.group} className="flex items-center gap-3 py-2 border-b border-cf-border last:border-0">
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${GROUP_LIGHT[g.group] ?? 'bg-gray-100 text-gray-600 border-gray-200'} w-20 text-center flex-shrink-0`}>
-                    {GROUP_LABELS[g.group] ?? g.group}
+                    {t(GROUP_KEY[g.group] ?? 'cfGroupEquity')}
                   </span>
                   <ReturnBar val={g.avg} max={maxG} />
                 </div>
@@ -836,7 +837,7 @@ export default function CapitalFlowsTab() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="cf-card p-4">
               <h3 className="text-sm font-bold text-green-700 mb-3 flex items-center gap-2">
-                <ArrowUpRight className="w-4 h-4" /> 자금 유입 TOP 5 ({TF_LABELS[tf]})
+                <ArrowUpRight className="w-4 h-4" /> {t('cfTopInflow', { tf: t(TF_I18N_KEY[tf]) })}
               </h3>
               <div className="space-y-2">
                 {topIn.map((a, i) => (
@@ -851,7 +852,7 @@ export default function CapitalFlowsTab() {
             </div>
             <div className="cf-card p-4">
               <h3 className="text-sm font-bold text-red-600 mb-3 flex items-center gap-2">
-                <ArrowDownRight className="w-4 h-4" /> 자금 이탈 TOP 5 ({TF_LABELS[tf]})
+                <ArrowDownRight className="w-4 h-4" /> {t('cfTopOutflow', { tf: t(TF_I18N_KEY[tf]) })}
               </h3>
               <div className="space-y-2">
                 {topOut.map((a, i) => (
@@ -870,15 +871,15 @@ export default function CapitalFlowsTab() {
 
       {/* 전체 테이블 */}
       <div className="cf-card p-4">
-        <h3 className="text-sm font-bold text-cf-text-primary mb-3">전체 자산 수익률</h3>
+        <h3 className="text-sm font-bold text-cf-text-primary mb-3">{t('cfAllAssets')}</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-cf-border text-cf-text-secondary">
-                <th className="text-left pb-2 font-medium">자산</th>
-                <th className="text-right pb-2 font-medium">1주</th>
-                <th className="text-right pb-2 font-medium">4주</th>
-                <th className="text-right pb-2 font-medium">13주</th>
+                <th className="text-left pb-2 font-medium">{t('cfColAsset')}</th>
+                <th className="text-right pb-2 font-medium">{t('cfTf1w')}</th>
+                <th className="text-right pb-2 font-medium">{t('cfTf4w')}</th>
+                <th className="text-right pb-2 font-medium">{t('cfTf13w')}</th>
               </tr>
             </thead>
             <tbody>
@@ -912,8 +913,8 @@ export default function CapitalFlowsTab() {
       <FlowAnalysisPanel tf={tf} />
 
       <p className="text-xs text-cf-text-secondary text-center">
-        Yahoo Finance (15분 지연) · ETF 기반 자산군별 수익률 분석 · 4시간 캐시
-        {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 업데이트`}
+        {t('cfFootnote')}
+        {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} ${t('cfUpdated')}`}
       </p>
     </div>
   );
