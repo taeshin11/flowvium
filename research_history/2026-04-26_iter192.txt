@@ -1,0 +1,91 @@
+== iter192 — 2026-04-26 ==
+
+PRIMARY OUTCOME: investment-strategy fallback 버그 수정 + Yahoo earnings 폴백
+
+DRIFT CHECK:
+- iter189: COT/block-trades audit
+- iter190: ai-providers (Claude Haiku + Redis TPD guard)
+- iter191: company-news + flow-analysis TTL
+- iter192: investment-strategy fallback + earnings route ← 완전 새 영역 ✓
+
+DRIFT SIGNAL RESOLUTION (공식):
+  배포(git push) 5+ iter 연기 = user-only action. 공식 포기. 코드 개선 계속.
+
+BUGS FOUND AND FIXED:
+
+BUG #1: investment-strategy fallback 하드코딩 날짜 (production에서 현재 사용자가 보는 버그)
+  ROOT CAUSE:
+    fallbackStrategy()의 riskEvents에 '2026-04-30', '2026-05-01', '2026-06-10' 하드코딩
+    GROQ 소진 → stale cache 없음 → fallback이 production에서 직접 표시됨
+    오늘(04-26) 기준 4일 후 이벤트라 아직 유효하나, 05-01 이후엔 모두 과거 날짜
+  FIX:
+    d(offsetDays) 헬퍼: `new Date(Date.now() + offsetDays * 86400000)`
+    riskEvents: 하드코딩 날짜 → d(7), d(14), d(21) 상대 날짜로 교체
+    thesis: 'Data loading — please retry in a moment' → 'AI quota reset pending — diversified ETF allocation'
+    portfolio: 2개 (SPY, QQQ) → 5개 (SPY, QQQ, GLD, TLT, CASH) — 더 현실적인 포트폴리오
+    sectorAllocation: Energy 업데이트 (geopolitical premium fading 반영)
+    macroAnalysis/technical/fundamental: "09:00 KST 쿼터 리셋" 안내 추가
+
+BUG #2: earnings API FINNHUB_KEY 미설정 시 빈 배열 + warning 반환
+  DISCOVERY: production probe → source: Finnhub, count: 1500 (FINNHUB_KEY 설정됨)
+  의미: 이 버그는 production에 미존재. 방어적 추가.
+  FIX:
+    Yahoo Finance v7 batch fallback (earningsTimestampStart/End 파싱)
+    major 50 tickers 한 번의 HTTP call로 조회
+    Redis cache: flowvium:earnings:yahoo:v1:{from}:{to} — 6h TTL
+    경고 메시지 → 실제 데이터 (날짜 + 기업명, estimate 없음)
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo Finance live
+  direct_value=18.71 (Yahoo Finance 2026-04-24 close)
+  our_value=18.71 (flowvium.vercel.app/api/volatility, cached=False)
+  delta=0 → EXACT MATCH ✓
+
+[accuracy probe] metric=fear-greed.us source=flowvium.vercel.app live
+  our_value=66 (level: greed, cached=None)
+  CNN direct blocked (418 bot protection) → proxy confirmation:
+  VIX 18.71 (moderate fear) + market recovery context → 66 greed 범위 내 합리적
+  ← PLAUSIBLE (CNN 직접 비교 불가, VIX 기반 간접 검증)
+
+[accuracy probe] metric=earnings.count source=flowvium.vercel.app live
+  direct_value=1500 (Finnhub, from=2026-04-26, to=2026-05-10, 14일)
+  source=Finnhub (FINNHUB_KEY 설정 확인), cached=False
+  ← LIVE DATA CONFIRMED
+
+[accuracy probe] metric=macro-indicators.indicators source=flowvium.vercel.app live
+  direct_value=13 indicators, status=ok, cached=None
+  ← API ALIVE
+
+NEGATIVE RESULT:
+  earnings Yahoo fallback은 production에서 사용되지 않음 (FINNHUB_KEY 이미 설정).
+  Yahoo Finance v7 로컬 환경에서 401 Unauthorized (IP 차단) → Vercel에서 동작 확인 불가.
+  production에서 FINNHUB_KEY 제거 시나리오 대비 방어 코드로 남겨둠.
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/app/api/earnings/route.ts
+  - YAHOO_EARNINGS_TICKERS, YHDR 추가 (50 tickers, v7 batch)
+  - estimateQuarter() 헬퍼 추가
+  - fetchYahooEarnings() 함수 추가 (earningsTimestampStart 파싱)
+  - if (!key) 블록: 빈 배열 반환 → Yahoo fallback + Redis 6h 캐시
+  - 주석 업데이트
+
+- src/app/api/investment-strategy/route.ts
+  - fallbackStrategy() 전면 개선:
+    - portfolio: 2 → 5 positions (SPY/QQQ/GLD/TLT/CASH)
+    - riskEvents: 하드코딩 날짜 → 상대날짜 d(7/14/21)
+    - thesis: 명확한 "AI quota reset pending" 메시지
+    - analysis fields: KST 쿼터 리셋 시간 안내
+
+IMPACT:
+  현재 production에서 사용자가 보는 fallback이 즉시 개선됨 (배포 후):
+  - "Data loading" → 명확한 상태 안내
+  - 2개 ETF → 5개 분산 포트폴리오
+  - 하드코딩 날짜 → 항상 "미래" 이벤트 표시
+
+NEXT: iter193 → 후보:
+  1. 배포 (user action 필요)
+  2. news-cascade 10→5 기사 분석 (3,000 tokens/day 절약)
+  3. 신규 기능 탐색
+  4. 다른 production 버그 감사
