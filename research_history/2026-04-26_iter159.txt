@@ -1,0 +1,54 @@
+== iter159 — 2026-04-26 ==
+
+PRIMARY OUTCOME: LiveFeed 콘텐츠 편향 수정
+
+DRIFT CHECK:
+- iter156-157: latest-updates feed additions (2 iters)
+- iter158: homepage perf (different domain)
+- iter159: latest-updates bug fix (different from iter156-157 domain of additions) ← OK
+
+ROOT CAUSES FOUND (2 bugs):
+
+BUG 1: newsgap 0 items
+- 소유권 필터: `if (!o.prevPct || ...)` → ownershipData의 모든 항목이 prevPct 없음
+  → !o.prevPct = true → 모든 소유권 항목 건너뜀
+- 기사 필터: withinDays(article.date, 7) → 정적 데이터의 최신 기사가 Apr 11 = 15일 전
+  → 7일 필터에서 모두 걸러짐
+
+BUG 2: signal 타입 피드 지배 (24/40 = 60%)
+- getSignalItems()가 최대 30개 신호를 반환
+- interleaveByTimeWithTypeCap(maxConsecutive=2)로 분산되지만 총 40개 한도 중 24개 차지
+- 동적 콘텐츠(뉴스·F&G·플로우·매크로) 표시 기회 감소
+
+FIXES:
+
+1. getNewsGapItems() 수정:
+   - 소유권 필터: !o.prevPct 조건 제거 → action !== 'maintained' 기준으로 변경
+   - prevPct 있으면 변화량 표시, 없으면 "(new)"/"(increased)" 텍스트 표시
+   - 소유권 슬라이스: 3→2 (per entry)
+   - 기사 필터: 7일 → 30일
+
+2. getSignalItems() 수정:
+   - slice(0, 30) → slice(0, 10)
+   - 피드에서 신호 비율: 60% → ~25%
+
+3. FEATURES.md 역추적 갱신:
+   - 섹션 2-9 신설: 라이브 업데이트 피드 완전 문서화
+   - iter158 batch-prices 설명 업데이트
+
+EXPECTED EFFECT:
+- newsgap 타입: 0개 → ~25개 (각 기업에서 action !== 'maintained' 소유권 + 30일 기사)
+- signal 타입: 24→10개 할당
+- 피드 다양성: 더 균형 잡힌 타입 분포
+
+ACCURACY PROBE:
+[accuracy probe] 이번 iter는 피드 필터 로직 변경 — 외부 실값 프로브 없음
+이전 이터의 연속 OK 결과로 대체 (iter158 기준: CPI/GDP/FOMC 모두 delta=0)
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/app/api/latest-updates/route.ts (newsgap fix + signal cap)
+- FEATURES.md (섹션 2-9 추가 + iter158 catchup)
+
+COMMIT: 3a374bd
