@@ -1124,7 +1124,12 @@
     "source": "स्रोत",
     "cached": "कैश्ड",
     "loading": "लोड हो रहा है...",
-    "retry": "पुनः प्रयास"
+    "retry": "पुनः प्रयास",
+    "volNoData": "वॉल्यूम डेटा उपलब्ध नहीं",
+    "volLegendUp": "ऊपर दिन",
+    "volLegendDown": "नीचे दिन",
+    "volLegendHeight": "बार ऊंचाई = दैनिक वॉल्यूम",
+    "shortRatioDays": "दि"
   },
   "watchlist": {
     "title": "वॉचलिस्ट",

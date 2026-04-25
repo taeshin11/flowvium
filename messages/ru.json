@@ -1124,7 +1124,12 @@
     "source": "Источник",
     "cached": "Кэш",
     "loading": "Загрузка...",
-    "retry": "Повтор"
+    "retry": "Повтор",
+    "volNoData": "Данные об объёме недоступны",
+    "volLegendUp": "Рост",
+    "volLegendDown": "Снижение",
+    "volLegendHeight": "высота = объём за день",
+    "shortRatioDays": "д"
   },
   "watchlist": {
     "title": "Список наблюдения",

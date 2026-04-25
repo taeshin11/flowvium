@@ -1124,7 +1124,12 @@
     "source": "出典",
     "cached": "キャッシュ",
     "loading": "需給データ読込中...",
-    "retry": "再試行"
+    "retry": "再試行",
+    "volNoData": "出来高データを取得できませんでした",
+    "volLegendUp": "上昇日",
+    "volLegendDown": "下落日",
+    "volLegendHeight": "バーの高さ = 当日出来高",
+    "shortRatioDays": "日"
   },
   "watchlist": {
     "title": "ウォッチリスト",

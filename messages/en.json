@@ -1124,7 +1124,12 @@
     "source": "Source",
     "cached": "Cached",
     "loading": "Loading supply data...",
-    "retry": "Retry"
+    "retry": "Retry",
+    "volNoData": "No volume data available",
+    "volLegendUp": "Up day",
+    "volLegendDown": "Down day",
+    "volLegendHeight": "bar height = daily volume",
+    "shortRatioDays": "d"
   },
   "watchlist": {
     "title": "Watchlist",

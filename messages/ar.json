@@ -1124,7 +1124,12 @@
     "source": "المصدر",
     "cached": "مخزن",
     "loading": "جارٍ التحميل...",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "volNoData": "لا تتوفر بيانات الحجم",
+    "volLegendUp": "يوم صاعد",
+    "volLegendDown": "يوم هابط",
+    "volLegendHeight": "الارتفاع = حجم اليوم",
+    "shortRatioDays": "ي"
   },
   "watchlist": {
     "title": "قائمة المتابعة",

@@ -1124,7 +1124,12 @@
     "source": "Nguồn",
     "cached": "Cache",
     "loading": "Đang tải...",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "volNoData": "Không có dữ liệu khối lượng",
+    "volLegendUp": "Ngày tăng",
+    "volLegendDown": "Ngày giảm",
+    "volLegendHeight": "chiều cao = khối lượng ngày",
+    "shortRatioDays": "ng"
   },
   "watchlist": {
     "title": "Danh sách theo dõi",

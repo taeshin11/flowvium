@@ -1124,7 +1124,12 @@
     "source": "Sumber",
     "cached": "Cache",
     "loading": "Memuat...",
-    "retry": "Coba lagi"
+    "retry": "Coba lagi",
+    "volNoData": "Tidak ada data volume yang tersedia",
+    "volLegendUp": "Hari naik",
+    "volLegendDown": "Hari turun",
+    "volLegendHeight": "tinggi = volume harian",
+    "shortRatioDays": "h"
   },
   "watchlist": {
     "title": "Daftar pantau",

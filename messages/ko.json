@@ -1124,7 +1124,12 @@
     "source": "출체",
     "cached": "캐시됨",
     "loading": "수급 데이터 로딩 중...",
-    "retry": "다시 시도"
+    "retry": "다시 시도",
+    "volNoData": "거래량 데이터를 불러올 수 없습니다",
+    "volLegendUp": "전일 대비 상승일",
+    "volLegendDown": "하락일",
+    "volLegendHeight": "막대 높이 = 해당일 거래량",
+    "shortRatioDays": "일"
   },
   "watchlist": {
     "title": "관심 종목",

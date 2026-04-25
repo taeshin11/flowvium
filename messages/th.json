@@ -1124,7 +1124,12 @@
     "source": "แหล่ง",
     "cached": "แคช",
     "loading": "กำลังโหลด...",
-    "retry": "ลองใหม่"
+    "retry": "ลองใหม่",
+    "volNoData": "ไม่มีข้อมูลปริมาณการซื้อขาย",
+    "volLegendUp": "วันขึ้น",
+    "volLegendDown": "วันลง",
+    "volLegendHeight": "ความสูง = ปริมาณรายวัน",
+    "shortRatioDays": "ว"
   },
   "watchlist": {
     "title": "รายการติดตาม",

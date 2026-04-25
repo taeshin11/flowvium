@@ -1124,7 +1124,12 @@
     "source": "Fuente",
     "cached": "Caché",
     "loading": "Cargando...",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "volNoData": "Sin datos de volumen disponibles",
+    "volLegendUp": "Día alcista",
+    "volLegendDown": "Día bajista",
+    "volLegendHeight": "altura = volumen diario",
+    "shortRatioDays": "d"
   },
   "watchlist": {
     "title": "Lista de seguimiento",

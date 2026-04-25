@@ -1124,7 +1124,12 @@
     "source": "Quelle",
     "cached": "Cache",
     "loading": "Laden...",
-    "retry": "Retry"
+    "retry": "Retry",
+    "volNoData": "Keine Volumendaten verfügbar",
+    "volLegendUp": "Steigtag",
+    "volLegendDown": "Falltag",
+    "volLegendHeight": "Balkenhöhe = Tagesvolumen",
+    "shortRatioDays": "T"
   },
   "watchlist": {
     "title": "Watchlist",

@@ -108,10 +108,11 @@ function ScoreGauge({ score, label }: { score: number; label: string }) {
 }
 
 function VolumeBar({ daily }: { daily: DailyVolume[] }) {
+  const t = useTranslations('supply');
   if (!daily.length) return null;
   const volumes = daily.map(d => d.volume).filter(v => v > 0);
   if (!volumes.length) {
-    return <p className="text-[10px] text-gray-400 italic py-4">거래량 데이터를 불러올 수 없습니다</p>;
+    return <p className="text-[10px] text-gray-400 italic py-4">{t('volNoData')}</p>;
   }
   const maxVol = Math.max(...volumes);
   const minVol = Math.min(...volumes);
@@ -141,8 +142,8 @@ function VolumeBar({ daily }: { daily: DailyVolume[] }) {
         })}
       </div>
       <p className="text-[10px] text-gray-400 leading-snug">
-        <span className="inline-block w-2 h-2 rounded bg-green-400 mr-1" />전일 대비 상승일 ·
-        <span className="inline-block w-2 h-2 rounded bg-red-400 mx-1" />하락일 · 막대 높이 = 해당일 거래량
+        <span className="inline-block w-2 h-2 rounded bg-green-400 mr-1" />{t('volLegendUp')} ·
+        <span className="inline-block w-2 h-2 rounded bg-red-400 mx-1" />{t('volLegendDown')} · {t('volLegendHeight')}
       </p>
     </div>
   );
@@ -277,7 +278,7 @@ export default function StockSupplyModal({ ticker, onClose }: Props) {
                       </div>
                       <div className="rounded-xl bg-gray-50 p-3">
                         <p className="text-[10px] text-gray-400 font-medium mb-1">{t('shortRatio')}</p>
-                        <p className="text-base font-bold">{data.shortRatio != null ? `${fmt(data.shortRatio)}일` : '—'}</p>
+                        <p className="text-base font-bold">{data.shortRatio != null ? `${fmt(data.shortRatio)}${t('shortRatioDays')}` : '—'}</p>
                       </div>
                       <div className="rounded-xl bg-gray-50 p-3">
                         <p className="text-[10px] text-gray-400 font-medium mb-1">{t('volumeRatio')}</p>

@@ -1124,7 +1124,12 @@
     "source": "來源",
     "cached": "已緩存",
     "loading": "載入供需數據中...",
-    "retry": "重試"
+    "retry": "重試",
+    "volNoData": "無法取得成交量資料",
+    "volLegendUp": "上漲日",
+    "volLegendDown": "下跌日",
+    "volLegendHeight": "柱高 = 當日成交量",
+    "shortRatioDays": "天"
   },
   "watchlist": {
     "title": "自選股",

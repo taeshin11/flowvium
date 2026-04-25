@@ -1124,7 +1124,12 @@
     "source": "Kaynak",
     "cached": "Önbelleğek",
     "loading": "Yükleniyor...",
-    "retry": "Tekrar dene"
+    "retry": "Tekrar dene",
+    "volNoData": "Hacim verisi mevcut değil",
+    "volLegendUp": "Yükselen gün",
+    "volLegendDown": "Düşen gün",
+    "volLegendHeight": "yükseklik = günlük hacim",
+    "shortRatioDays": "g"
   },
   "watchlist": {
     "title": "İzleme listesi",
