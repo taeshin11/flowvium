@@ -309,7 +309,7 @@ export default function ScreenerPage() {
                   );
                 })}
               </div>
-              <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+              <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: SEC 13F Q4 2025 기준 (제출 2026-02-14)</p>
             </div>
           )}
 
@@ -348,7 +348,7 @@ export default function ScreenerPage() {
                   );
                 })}
               </div>
-              <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+              <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: SEC 13F Q4 2025 기준 (제출 2026-02-14)</p>
             </div>
           )}
 
@@ -388,7 +388,7 @@ export default function ScreenerPage() {
                   );
                 })}
               </div>
-              <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+              <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: SEC 13F Q4 2025 기준 (제출 2026-02-14)</p>
             </div>
           )}
         </div>
@@ -597,7 +597,7 @@ export default function ScreenerPage() {
       </div>
 
       <p className="text-[10px] text-cf-text-secondary/40 mt-3">
-        출처: SEC EDGAR 13F · Yahoo Finance Short Interest · 캐시 4시간
+        출처: SEC EDGAR 13F (Q4 2025 기준, 제출 2026-02-14) · Yahoo Finance 주가 (15분 캐시) · FINRA 공매도 비율 (일별) · 스크리너 캐시 4시간
       </p>
     </div>
   );
