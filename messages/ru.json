@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "Золото (хедж от USD)",
     "cfSignalDollarPreferred": "Сила доллара",
     "cfSignalMixed": "Смешанно",
-    "poweredByGemini": "Работает на Gemini 2.5"
+    "poweredByGemini": "Работает на Gemini 2.5",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "Глобальное отслеживание разведданных",

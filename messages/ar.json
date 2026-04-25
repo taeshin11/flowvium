@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "الذهب مفضل (تحوط USD)",
     "cfSignalDollarPreferred": "قوة الدولار",
     "cfSignalMixed": "مختلط",
-    "poweredByGemini": "مدعوم بـ Gemini 2.5"
+    "poweredByGemini": "مدعوم بـ Gemini 2.5",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "تتبع الاستخبارات العالمية",

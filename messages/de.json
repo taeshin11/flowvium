@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "Gold bevorzugt (USD-Absicherung)",
     "cfSignalDollarPreferred": "Dollar-Stärke",
     "cfSignalMixed": "Gemischt",
-    "poweredByGemini": "Unterstützt von Gemini 2.5"
+    "poweredByGemini": "Unterstützt von Gemini 2.5",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",

@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "黃金偏好（美元避險）",
     "cfSignalDollarPreferred": "美元強勢（避險資產）",
     "cfSignalMixed": "混合",
-    "poweredByGemini": "由 Gemini 2.5 提供支援"
+    "poweredByGemini": "由 Gemini 2.5 提供支援",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "全球情報追蹤",

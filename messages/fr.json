@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "Or privilégié (couverture USD)",
     "cfSignalDollarPreferred": "Force du dollar",
     "cfSignalMixed": "Mixte",
-    "poweredByGemini": "Propulsé par Gemini 2.5"
+    "poweredByGemini": "Propulsé par Gemini 2.5",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",

@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "Emas disukai (lindung USD)",
     "cfSignalDollarPreferred": "Kekuatan dolar",
     "cfSignalMixed": "Campuran",
-    "poweredByGemini": "Didukung Gemini 2.5"
+    "poweredByGemini": "Didukung Gemini 2.5",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",

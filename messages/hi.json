@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "सोना पसंदीदा (USD हेज)",
     "cfSignalDollarPreferred": "डॉलर की ताकत",
     "cfSignalMixed": "मिश्रित",
-    "poweredByGemini": "Gemini 2.5 द्वारा संचालित"
+    "poweredByGemini": "Gemini 2.5 द्वारा संचालित",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "वैश्विक इंटेलिजेंस ट्रैकिंग",

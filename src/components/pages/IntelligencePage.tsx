@@ -773,7 +773,7 @@ export default function IntelligencePage() {
             <div className="flex items-center justify-between px-4 py-3 bg-cf-primary text-white">
               <div className="flex items-center gap-2">
                 <Brain className="w-4 h-4" />
-                <span className="text-sm font-semibold">Flowvium AI</span>
+                <span className="text-sm font-semibold">{t('flowviumAi')}</span>
               </div>
               <button onClick={() => setChatOpen(false)} className="text-white/70 hover:text-white text-lg leading-none">×</button>
             </div>

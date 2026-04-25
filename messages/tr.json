@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "Altın tercihli (USD koruması)",
     "cfSignalDollarPreferred": "Dolar güçlü",
     "cfSignalMixed": "Karışık",
-    "poweredByGemini": "Gemini 2.5 ile çalışır"
+    "poweredByGemini": "Gemini 2.5 ile çalışır",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",

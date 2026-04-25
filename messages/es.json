@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "Oro preferido (cobertura USD)",
     "cfSignalDollarPreferred": "Fortaleza del dólar",
     "cfSignalMixed": "Mixto",
-    "poweredByGemini": "Desarrollado por Gemini 2.5"
+    "poweredByGemini": "Desarrollado por Gemini 2.5",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "Seguimiento de Inteligencia Global",

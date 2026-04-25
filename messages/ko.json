@@ -949,7 +949,8 @@
     "cfSignalGoldPreferred": "금 선호 (달러 약세 헷지)",
     "cfSignalDollarPreferred": "달러 강세 (안전자산 달러로)",
     "cfSignalMixed": "혼조",
-    "poweredByGemini": "Gemini 2.5 기반"
+    "poweredByGemini": "Gemini 2.5 기반",
+    "flowviumAi": "Flowvium AI"
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",
