@@ -1,0 +1,70 @@
+== iter164 — 2026-04-26 ==
+
+PRIMARY OUTCOME: 연준 금리 오류 수정 (4.375 → 3.625%)
+
+DRIFT CHECK:
+- iter161: fedwatch 캐시 키 (perf)
+- iter162: FOMC 날짜 수정 (fedwatch 데이터)
+- iter163: fedwatch v1 key ref 회귀 수정
+- iter164: fedwatch 현재 금리 오류 수정 ← 4 연속 fedwatch 인접
+
+NOTE: Drift 신호 발생 (fedwatch 도메인 4 연속).
+그러나 iter164의 버그가 매우 심각하여 즉시 수정이 필요했음.
+다음 iter부터는 반드시 다른 도메인으로 이동.
+
+ROOT CAUSE FOUND:
+
+BUG: fedwatch vs macro-indicators 현재 금리 불일치
+- fedwatch STATIC_DATA.currentTargetLow = 4.25, currentTargetHigh = 4.50 (WRONG)
+- macro-indicators STATIC.fomc.actual = 3.75 (upper bound, range 3.5-3.75%)
+- 두 데이터 소스가 완전히 다른 현재 금리를 표시
+- 올바른 값: 3.50-3.75% (mid 3.625%), 2026-03-19 FOMC 결정 이후 (FRED DFEDTARU=3.75)
+
+부가 오류: macro-indicators STATIC.fomc.nextRelease = '2026-05-07' (여전히 틀린 날짜)
+- iter162에서 fedwatch는 수정했지만 macro-indicators는 누락
+- investment-strategy AI prompt template에도 '2026-05-07' 예시 남아있었음
+
+영향:
+- fedwatch 탭: 잘못된 현재 금리 4.375% 표시 (실제: 3.625%)
+- investment-strategy: AI가 4.375% 기준으로 분석 (틀린 기반)
+- macro-indicators: "Next meeting 2026-05-07" 텍스트 (틀린 날짜)
+- LiveFeed FedWatch 아이템: 잘못된 금리 기준 컨텍스트
+
+FIXES:
+
+1. fedwatch/route.ts STATIC_DATA:
+   - currentTargetLow: 4.25 → 3.50
+   - currentTargetHigh: 4.50 → 3.75
+   - currentRateMid: 4.375 → 3.625
+   - 모든 meeting.current: 4.375 → 3.625
+   - Apr 30 meeting targetLow/High: 3.25/3.50 (25bp cut 시)
+   - Apr 30 meeting probabilities: probHold=38%, probCut25=52%, probCut50=10%
+   - yearEndImpliedRate: 3.905 → 3.285 (현재 3.625에서 2회 정도 추가 인하)
+   - totalImpliedCuts: 47bp → 34bp (3.625 기준)
+
+2. macro-indicators/route.ts STATIC.fomc:
+   - nextRelease: '2026-05-07' → '2026-04-30'
+   - summary: "Next meeting 2026-05-07" → "Next meeting 2026-04-30"
+
+3. investment-strategy/route.ts buildInvestmentPrompt():
+   - AI 프롬프트 예시 날짜: "2026-05-07" → "2026-04-30"
+   - watchFor 업데이트: "Hold confirmed → growth re-rating" → "25bp cut ~52% probability..."
+
+SCAN RESULT:
+- grep -rn "2026-05-07" src/ → 1 match (fedwatch.ts 인터페이스 주석, 코드 아님)
+- 모든 실질적 FOMC 날짜 참조 수정 완료
+
+ACCURACY PROBE:
+[accuracy probe] metric=fomc_rate source=macro-indicators STATIC
+  direct_value=3.75 (upper) = range 3.50-3.75%, mid=3.625
+  fedwatch_was=4.375 delta=75bp direction=WRONG → FIXED
+[accuracy probe] metric=cpi source=FRED direct_value=330.293 (2026-03-01) delta=0 → OK
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (3 files):
+- src/app/api/fedwatch/route.ts (current rate + probabilities 재산정)
+- src/app/api/macro-indicators/route.ts (fomc.nextRelease + summary 수정)
+- src/app/api/investment-strategy/route.ts (AI prompt 예시 날짜 수정)
+
+COMMIT: 8c80b18
