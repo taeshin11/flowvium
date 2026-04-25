@@ -509,6 +509,7 @@ function NewsCascadeSection() {
   const t = useTranslations('newsGap');
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -517,10 +518,11 @@ function NewsCascadeSection() {
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
+    setFetchError(false);
     fetch('/api/news-cascade', { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d: { articles: NewsArticle[] }) => { if (!controller.signal.aborted) setArticles(d.articles ?? []); })
-      .catch(() => { /* abort is normal */ })
+      .catch((e) => { if (!controller.signal.aborted && e?.name !== 'AbortError') setFetchError(true); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
   };
 
@@ -574,9 +576,19 @@ function NewsCascadeSection() {
         </div>
       )}
 
-      {!loading && articles.length === 0 && (
-        <div className="cf-card p-6 text-center text-cf-text-secondary text-sm">
-          뉴스를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+      {!loading && (fetchError || articles.length === 0) && (
+        <div className="cf-card p-6 text-center space-y-3">
+          <p className="text-cf-text-secondary text-sm">
+            {fetchError ? '뉴스를 불러오는 중 오류가 발생했습니다.' : '현재 표시할 뉴스가 없습니다.'}
+          </p>
+          {fetchError && (
+            <button
+              onClick={load}
+              className="text-xs font-semibold px-4 py-2 rounded-lg bg-cf-primary/10 text-cf-primary border border-cf-primary/20 hover:bg-cf-primary/20 transition-colors"
+            >
+              다시 시도
+            </button>
+          )}
         </div>
       )}
 

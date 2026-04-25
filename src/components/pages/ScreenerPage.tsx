@@ -87,6 +87,7 @@ export default function ScreenerPage() {
 
   interface TopPrice { price: number | null; changePct: number | null; currency: string; }
   const [top5Prices, setTop5Prices] = useState<Map<string, TopPrice>>(new Map());
+  const [pricesLoaded, setPricesLoaded] = useState(false);
 
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
@@ -188,7 +189,8 @@ export default function ScreenerPage() {
         if (r.status === 'fulfilled') map.set(r.value.ticker, r.value);
       }
       setTop5Prices(map);
-    });
+      setPricesLoaded(true);
+    }).catch(() => { if (!controller.signal.aborted) setPricesLoaded(true); });
     return () => controller.abort();
   }, [top5Squeeze]);
 
@@ -272,8 +274,10 @@ export default function ScreenerPage() {
                         </p>
                       )}
                     </>
+                  ) : pricesLoaded ? (
+                    <p className="text-xs text-cf-text-secondary/50">—</p>
                   ) : (
-                    <p className="text-xs text-cf-text-secondary/50">로딩…</p>
+                    <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>
                   )}
                   <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
                 </Link>
