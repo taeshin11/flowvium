@@ -1,0 +1,48 @@
+iter117 — 2026-04-25
+Primary outcome: 라이브 가격+등락% 스크리너 통합
+
+Drift check:
+- iter114~116: screener/API routes/N-PORT 영역 이동 → 연속 drift 없음
+- "나중에" deferred: FEATURES.md + METRICS.md 4iter 연속 미뤄짐 → 이번에 청산 (drift 신호 #3)
+
+==== 수정 내역 ====
+
+1. src/app/api/batch-prices/route.ts (신설)
+   - Yahoo v7 batch quote (1 call, 120 티커까지) 우선 시도
+   - v7 실패(401) 시 v8 per-ticker parallel 폴백
+   - 클라이언트 N 요청 → 서버 1 요청 (per-ticker 5분 메모리 캐시)
+
+2. src/components/pages/ScreenerPage.tsx
+   - ScreenerRow에 price: number | null, changePct: number | null 추가
+   - top5Prices → priceMap (전체 deduped 커버)
+   - N 개별 /api/stock-price/[ticker] 호출 → 단일 /api/batch-prices 호출
+   - deduped useMemo: priceMap 의존성 추가 + price/changePct 합류
+   - 테이블 헤더: "가격", "등락%" 컬럼 추가 (sortable)
+   - 테이블 셀: 가격($xxx.xx), 등락%(green/red, 정렬 가능)
+   - 로딩 중 "···" pulse placeholder
+
+3. FEATURES.md + METRICS.md
+   - iter113 합의 컬럼, iter114 🔮 프리셋, iter116 N-PORT 컬럼/🔱 프리셋 역추적 반영
+   - batch-prices API 행 추가
+   - 가격/등락% 컬럼 지표 추가 (215-C, 215-D)
+
+==== 성능 개선 ====
+이전: 클라이언트에서 N개 병렬 fetch("/api/stock-price/NVDA") 등 개별 HTTP 요청
+이후: 클라이언트 1개 fetch("/api/batch-prices?tickers=NVDA,AAPL,...") → 서버에서 일괄 처리
+클라이언트-서버 왕복: N → 1
+브라우저 HTTP 연결 수: N → 1
+
+==== 실험 결과 ====
+Yahoo Finance v7/finance/quote: 로컬 IP에서 401 차단 확인
+→ Vercel IP에서 v7 성공 시 1 call로 전체 배치; 실패 시 v8 parallel 자동 폴백
+→ 어느 쪽이든 클라이언트는 1 요청만 하면 됨
+
+==== 정확도 검증 ====
+[accuracy probe] metric=NVDA.price source=Yahoo_v8 direct_value=$208.27 changePct=+4.32% → OK
+build: ✓ Compiled successfully
+FEATURES.md + METRICS.md: iter113~116 4iter 부채 전량 청산
+
+==== 다음 우선 과제 ====
+- Redis 설정 (사용자 직접 필요) — 크로스 인스턴스 캐시 근본 해결
+- 스크리너 등락% 기반 필터/프리셋 추가 (예: 오늘 상승 + 기관 매집)
+- verify-metrics Vercel 직접 확인 (로컬에서 unreachable)
