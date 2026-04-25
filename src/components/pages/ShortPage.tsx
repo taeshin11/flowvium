@@ -1,32 +1,22 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, RefreshCw, Loader2, ArrowUpDown, ExternalLink } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import type { ShortEntry } from '@/app/api/short-interest/route';
 
-const SECTOR_LABELS: Record<string, string> = {
-  semiconductors: '반도체',
-  'ai-cloud': 'AI·클라우드',
-  'ev-battery': 'EV·배터리',
-  defense: '방산',
-  'pharma-biotech': '바이오',
-  commodities: '원자재',
-  other: '기타',
-};
-
-const ACTION_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  accumulating: { label: '매집', color: '#10b981', icon: <TrendingUp className="w-3 h-3" /> },
-  new_position: { label: '신규', color: '#3b82f6', icon: <TrendingUp className="w-3 h-3" /> },
-  reducing:     { label: '축소', color: '#f59e0b', icon: <TrendingDown className="w-3 h-3" /> },
-  exit:         { label: '청산', color: '#ef4444', icon: <Minus className="w-3 h-3" /> },
+const ACTION_CONFIG: Record<string, { color: string; icon: React.ReactNode }> = {
+  accumulating: { color: '#10b981', icon: <TrendingUp className="w-3 h-3" /> },
+  new_position: { color: '#3b82f6', icon: <TrendingUp className="w-3 h-3" /> },
+  reducing:     { color: '#f59e0b', icon: <TrendingDown className="w-3 h-3" /> },
+  exit:         { color: '#ef4444', icon: <Minus className="w-3 h-3" /> },
 };
 
 type SortKey = 'squeezeScore' | 'shortVolPct' | 'shortFloatPct' | 'shortRatio' | 'shortChangeMonthly' | 'trailingPE' | 'ticker';
 
-function SqueezeBar({ score }: { score: number }) {
+function SqueezeBar({ score, label }: { score: number; label: string }) {
   const color = score >= 70 ? '#ef4444' : score >= 45 ? '#f59e0b' : score >= 25 ? '#6366f1' : '#64748b';
-  const label = score >= 70 ? '위험' : score >= 45 ? '주의' : score >= 25 ? '보통' : '낮음';
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden min-w-[60px]">
@@ -48,6 +38,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 }
 
 export default function ShortPage() {
+  const t = useTranslations('short');
   const [entries, setEntries] = useState<ShortEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,6 +46,26 @@ export default function ShortPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
+
+  const sectorLabels: Record<string, string> = {
+    semiconductors: t('sectorSemiconductors'),
+    'ai-cloud': t('sectorAiCloud'),
+    'ev-battery': t('sectorEvBattery'),
+    defense: t('sectorDefense'),
+    'pharma-biotech': t('sectorPharmaBiotech'),
+    commodities: t('sectorCommodities'),
+    other: t('sectorOther'),
+  };
+
+  const actionLabels: Record<string, string> = {
+    accumulating: t('actionAccumulating'),
+    new_position: t('actionNew'),
+    reducing: t('actionReducing'),
+    exit: t('actionExit'),
+  };
+
+  const squeezeLabel = (score: number) =>
+    score >= 70 ? t('sqzDanger') : score >= 45 ? t('sqzCaution') : score >= 25 ? t('sqzNormal') : t('sqzLow');
 
   const load = async (force = false, signal?: AbortSignal) => {
     if (force) setRefreshing(true);
@@ -122,7 +133,7 @@ export default function ShortPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px] gap-3 text-cf-text-secondary">
         <Loader2 className="w-5 h-5 animate-spin" />
-        <span>공매도 데이터 수신 중 (FINRA)...</span>
+        <span>{t('loadingData')}</span>
       </div>
     );
   }
@@ -134,10 +145,10 @@ export default function ShortPage() {
         <div>
           <h1 className="text-2xl font-bold text-cf-text-primary flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-amber-400" />
-            공매도 · 숏 스퀴즈
+            {t('title')}
           </h1>
           <p className="text-sm text-cf-text-secondary mt-1">
-            FINRA 일별 공매도 비율 · 기관 매집 충돌 분석
+            {t('subtitle')}
           </p>
         </div>
         <button
@@ -146,18 +157,18 @@ export default function ShortPage() {
           className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-40"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-          새로고침
+          {t('refresh')}
         </button>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <StatCard label="추적 종목" value={`${entries.length}개`} sub="FINRA 기준" />
-        <StatCard label="스퀴즈 위험 (주의+)" value={`${topSqueeze}개`} sub="점수 45점 이상" />
-        <StatCard label="평균 Short Vol %" value={avgShort ? `${avgShort}%` : '-'} sub="FINRA 일별 공매도 비율" />
+        <StatCard label={t('statTracked')} value={`${entries.length}`} sub={t('statTrackedSub')} />
+        <StatCard label={t('statSqueezeRisk')} value={`${topSqueeze}`} sub={t('statSqueezeRiskSub')} />
+        <StatCard label={t('statAvgShortVol')} value={avgShort ? `${avgShort}%` : '-'} sub={t('statAvgShortVolSub')} />
         <StatCard
-          label="최고 스퀴즈 점수"
-          value={sorted[0] ? `${sorted[0].squeezeScore}점` : '-'}
+          label={t('statTopScore')}
+          value={sorted[0] ? t('statTopScoreValue', { score: sorted[0].squeezeScore }) : '-'}
           sub={sorted[0]?.ticker ?? ''}
         />
       </div>
@@ -169,9 +180,9 @@ export default function ShortPage() {
           onChange={e => setSectorFilter(e.target.value)}
           className="text-xs bg-cf-card border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary"
         >
-          <option value="all">전체 섹터</option>
+          <option value="all">{t('filterAllSectors')}</option>
           {sectors.filter(s => s !== 'all').map(s => (
-            <option key={s} value={s}>{SECTOR_LABELS[s] ?? s}</option>
+            <option key={s} value={s}>{sectorLabels[s] ?? s}</option>
           ))}
         </select>
         <select
@@ -179,24 +190,24 @@ export default function ShortPage() {
           onChange={e => setActionFilter(e.target.value)}
           className="text-xs bg-cf-card border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary"
         >
-          <option value="all">전체 기관 액션</option>
-          <option value="accumulating">매집</option>
-          <option value="new_position">신규 편입</option>
-          <option value="reducing">비중 축소</option>
-          <option value="exit">청산</option>
+          <option value="all">{t('filterAllActions')}</option>
+          <option value="accumulating">{t('actionAccumulating')}</option>
+          <option value="new_position">{t('actionNew')}</option>
+          <option value="reducing">{t('actionReducing')}</option>
+          <option value="exit">{t('actionExit')}</option>
         </select>
         {/* Preset filters */}
         <button
           onClick={() => { setActionFilter('accumulating'); setSortKey('squeezeScore'); setSortDir('desc'); }}
           className="text-[10px] px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-colors"
         >
-          🔥 스퀴즈 후보 (매집 + 높은 숏)
+          {t('presetSqueeze')}
         </button>
         <button
           onClick={() => { setActionFilter('all'); setSortKey('shortVolPct'); setSortDir('desc'); }}
           className="text-[10px] px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
         >
-          📊 숏 비율 높은 순
+          {t('presetHighShort')}
         </button>
       </div>
 
@@ -205,20 +216,21 @@ export default function ShortPage() {
         <table className="w-full text-sm">
           <thead className="border-b border-white/5">
             <tr>
-              <SortTh label="티커" k="ticker" />
-              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
-              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">섹터</th>
+              <SortTh label={t('colTicker')} k="ticker" />
+              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colCompany')}</th>
+              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colSector')}</th>
               <SortTh label="Short Vol % (FINRA)" k="shortVolPct" />
               <SortTh label="Days to Cover" k="shortRatio" />
-              <SortTh label="MoM 변화" k="shortChangeMonthly" />
+              <SortTh label={t('colMom')} k="shortChangeMonthly" />
               <SortTh label="PER (TTM)" k="trailingPE" />
-              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관 액션</th>
-              <SortTh label="스퀴즈 점수" k="squeezeScore" />
+              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colInstAction')}</th>
+              <SortTh label={t('colSqueezeScore')} k="squeezeScore" />
             </tr>
           </thead>
           <tbody>
             {sorted.map(entry => {
               const actionCfg = entry.instAction ? ACTION_CONFIG[entry.instAction] : null;
+              const actionLabel = entry.instAction ? (actionLabels[entry.instAction] ?? entry.instAction) : null;
               return (
                 <tr key={entry.ticker} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                   <td className="px-3 py-2.5">
@@ -235,7 +247,7 @@ export default function ShortPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">
-                      {SECTOR_LABELS[entry.sector] ?? entry.sector}
+                      {sectorLabels[entry.sector] ?? entry.sector}
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
@@ -248,7 +260,7 @@ export default function ShortPage() {
                   <td className="px-3 py-2.5 font-mono text-sm">
                     {entry.shortRatio != null ? (
                       <span className={entry.shortRatio > 5 ? 'text-amber-400' : 'text-cf-text-primary'}>
-                        {entry.shortRatio.toFixed(1)}일
+                        {entry.shortRatio.toFixed(1)}{t('daysUnit')}
                       </span>
                     ) : <span className="text-cf-text-secondary/40">-</span>}
                   </td>
@@ -267,21 +279,21 @@ export default function ShortPage() {
                     ) : <span className="text-cf-text-secondary/40">-</span>}
                   </td>
                   <td className="px-3 py-2.5">
-                    {actionCfg ? (
+                    {actionCfg && actionLabel ? (
                       <span
                         className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded"
                         style={{ color: actionCfg.color, backgroundColor: actionCfg.color + '20' }}
                       >
                         {actionCfg.icon}
-                        {actionCfg.label}
+                        {actionLabel}
                       </span>
-                    ) : <span className="text-cf-text-secondary/40 text-[10px]">데이터 없음</span>}
+                    ) : <span className="text-cf-text-secondary/40 text-[10px]">{t('noData')}</span>}
                   </td>
                   <td className="px-3 py-2.5 min-w-[120px]">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm w-8 text-right">{entry.squeezeScore}</span>
                       <div className="flex-1">
-                        <SqueezeBar score={entry.squeezeScore} />
+                        <SqueezeBar score={entry.squeezeScore} label={squeezeLabel(entry.squeezeScore)} />
                       </div>
                     </div>
                   </td>
@@ -292,13 +304,13 @@ export default function ShortPage() {
         </table>
         {sorted.length === 0 && (
           <div className="text-center py-12 text-cf-text-secondary text-sm">
-            조건에 맞는 종목이 없습니다
+            {t('noResults')}
           </div>
         )}
       </div>
 
       <p className="text-[10px] text-cf-text-secondary/40 mt-3">
-        출처: FINRA 일별 공매도 · SEC EDGAR 13F · Finnhub P/E · 캐시 4시간
+        {t('sourceNote')}
       </p>
     </div>
   );
