@@ -1,0 +1,91 @@
+ITER110 — 성능 최적화 5건 (fetch 병렬화 + O(n²) 제거 + 정적 상수 이동)
+Date: 2026-04-25
+Primary outcome: "5건 성능 최적화" (12자)
+
+═══════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════
+Recent commits: iter109(MacroIndicatorsTab i18n), iter108(locale bug+fetch audit),
+iter107(NewsCascade+EconCal i18n), iter106(batch10+insider i18n), iter105(CotTab/CB i18n)
+
+→ iter109까지 i18n 4+ iter → iter110은 반드시 영역 전환
+→ 성능 최적화로 전환 ✅ (drift 해소)
+
+No drift this iter ✅
+
+═══════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════
+"5건 성능 최적화" (12자)
+
+산출물 체크 (규칙 [3]):
+(c) 삭제/단순화:
+  - MiniGraph 내부 nodes/links/nodeMap 상수 → 모듈 레벨로 이동 (렌더마다 재생성 제거)
+  - topSignals 컴포넌트 내 filter().slice() → 모듈 상수 TOP_SIGNALS
+  - triple reduce → single for loop (3 pass → 1 pass)
+
+═══════════════════════════════════════════════════════════════
+OPTIMIZATIONS APPLIED
+═══════════════════════════════════════════════════════════════
+
+FIX 1 — short-interest/route.ts: O(n²) liveSignals.find() 제거
+  문제: 500+ 신호 루프 내에서 각 iteration마다 liveSignals.find() 재탐색 → O(n²)
+  해결: instFilingDateMap 추가 → O(1) 날짜 비교로 대체 → O(n)
+  예상 절감: 50~200ms (신호 데이터 크기에 따라)
+  Commit: 63da7dc
+
+FIX 2 — short-interest/route.ts: Redis 13f-signals 순차 → 병렬
+  문제: FINRA+Finnhub 병렬 fetch 완료 후 Redis 순차 읽기
+  해결: Promise.allSettled에 Redis 읽기 합류 (3개 동시 실행)
+  예상 절감: Redis RTT ~50ms 중첩
+  Commit: 63da7dc
+
+FIX 3 — flow-analysis/route.ts: 순차 Redis 2회 → 병렬
+  문제: 캐시 miss 경로에서 fresh+stale Redis 키를 순차 읽기 (~300ms+300ms)
+  해결: Promise.allSettled([fresh, stale]) 병렬 읽기
+  예상 절감: 200~300ms (miss 경로)
+  Commit: 63da7dc
+
+FIX 4 — market-heatmap/route.ts: triple reduce → single loop
+  문제: 11개 섹터 × (filter + reduce×2) = 33 array pass
+  해결: 섹터별 단일 for loop에서 totalMC + weightedSum + weightedDenom 동시 계산
+  예상 절감: 5~20ms (배열 크기 작음)
+  Commit: 63da7dc
+
+FIX 5 — cron/update-all/route.ts: N+1 stock-supply → Promise.allSettled
+  문제: TOP_TICKERS 10개를 for 루프에서 순차 fetch (fire-and-forget이지만 불필요한 순차)
+  해결: Promise.allSettled(TOP_TICKERS.map(...)) 병렬 실행
+  예상 절감: 크론 총 실행 시간 단축 (10 × EDGAR RTT 중첩)
+  Commit: 5e0441b
+
+FIX 6 — HomePage.tsx: 정적 데이터 모듈 레벨로 이동
+  - MINI_NODES, MINI_LINKS, MINI_NODE_MAP → 모듈 상수 (렌더마다 재생성 제거)
+  - TOP_SIGNALS → 모듈 상수 (institutionalSignals filter+slice 최초 1회만)
+  - HeroSearch filtered → useMemo([query]) (activeIndex 변경 시 602개 재필터 방지)
+  Commit: 5e0441b
+
+═══════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════
+[accuracy probe] metric=SPY source=Yahoo
+  PowerShell Invoke-WebRequest: direct_value=713.94
+  Note: 이번 iter는 logic 최적화 — 데이터 값 변경 없음
+
+[accuracy probe] metric=fg.us source=CNN
+  BLOCKED (418 anti-bot) — known Windows restriction
+  Note: 성능 최적화 iter, 데이터 파이프라인 무관
+
+═══════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════
+TypeScript: 0 errors ✅
+fetch() cache: CLEAN ✅
+zombie processes: 없음 (node/next 프로세스 0개) ✅
+console.log 직접 사용: 없음 (logger.ts 통해서만) ✅
+
+═══════════════════════════════════════════════════════════════
+NEXT ITER 후보 (iter111)
+═══════════════════════════════════════════════════════════════
+1. [권장] 새 기능/product value: 실제 사용자에게 가치 있는 새 데이터 소스 또는 기능
+2. 에러 탐색: runtime 에러 / 데이터 gap 발견 및 수정
+3. 기타 i18n 잔존 (EarningsPage, NewsGapPage) — 단, i18n 연속 금지이므로 낮은 우선순위
