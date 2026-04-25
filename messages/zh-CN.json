@@ -113,7 +113,7 @@
     "news": "新闻与事件",
     "filings": "SEC 文件",
     "headquarters": "总部",
-    "marketCap": "市值",
+    "marketCap": "市值 {val}",
     "revenue": "营收",
     "employees": "员工人数",
     "sector": "行业",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "跟踪机构合计持股比例",
     "ownershipTotalValue": "合计市值",
     "ownershipBasis": "SEC EDGAR 13F-HR基准 · 45天延迟披露",
-    "sharesUnit": "{n}M股"
+    "sharesUnit": "{n}M股",
+    "staticDataFinancials": "静态数据（加载实时财务…）"
   },
   "cascade": {
     "title": "连锁影响可视化",

@@ -113,7 +113,7 @@
     "news": "Noticias y Eventos",
     "filings": "Reportes SEC",
     "headquarters": "Sede Central",
-    "marketCap": "Capitalización de Mercado",
+    "marketCap": "Cap. Mkt {val}",
     "revenue": "Ingresos",
     "employees": "Empleados",
     "sector": "Sector",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Participación total rastreada",
     "ownershipTotalValue": "Valor total",
     "ownershipBasis": "Basado en SEC EDGAR 13F-HR · retraso de 45 días",
-    "sharesUnit": "{n}M acciones"
+    "sharesUnit": "{n}M acciones",
+    "staticDataFinancials": "Datos estáticos (cargando finanzas en tiempo real…)"
   },
   "cascade": {
     "title": "Visualizador de Cascadas",

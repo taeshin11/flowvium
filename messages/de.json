@@ -113,7 +113,7 @@
     "news": "Nachrichten & Ereignisse",
     "filings": "SEC-Berichte",
     "headquarters": "Hauptsitz",
-    "marketCap": "Marktkapitalisierung",
+    "marketCap": "Marktkapitalisierung {val}",
     "revenue": "Umsatz",
     "employees": "Mitarbeiter",
     "sector": "Sektor",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Gesamte verfolgte Beteiligung",
     "ownershipTotalValue": "Gesamtwert",
     "ownershipBasis": "Basierend auf SEC EDGAR 13F-HR · 45 Tage Berichtsverzögerung",
-    "sharesUnit": "{n}M Aktien"
+    "sharesUnit": "{n}M Aktien",
+    "staticDataFinancials": "Statische Daten (Echtzeitfinanzen werden geladen…)"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",

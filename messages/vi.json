@@ -113,7 +113,7 @@
     "news": "Tin tức & Sự kiện",
     "filings": "Hồ sơ SEC",
     "headquarters": "Trụ sở chính",
-    "marketCap": "Vốn hóa thị trường",
+    "marketCap": "Vốn hóa {val}",
     "revenue": "Doanh thu",
     "employees": "Nhân viên",
     "sector": "Ngành",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Tổng sở hữu được theo dõi",
     "ownershipTotalValue": "Tổng giá trị",
     "ownershipBasis": "Dựa trên SEC EDGAR 13F-HR · trễ 45 ngày",
-    "sharesUnit": "{n}M cổ phiếu"
+    "sharesUnit": "{n}M cổ phiếu",
+    "staticDataFinancials": "Dữ liệu tĩnh (đang tải tài chính trực tiếp…)"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",

@@ -113,7 +113,7 @@
     "news": "新聞與事件",
     "filings": "SEC 文件",
     "headquarters": "總部",
-    "marketCap": "市值",
+    "marketCap": "市值 {val}",
     "revenue": "營收",
     "employees": "員工人數",
     "sector": "產業",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "追蹤機構合計持股比例",
     "ownershipTotalValue": "合計市值",
     "ownershipBasis": "SEC EDGAR 13F-HR基準 · 45天延遲披露",
-    "sharesUnit": "{n}M股"
+    "sharesUnit": "{n}M股",
+    "staticDataFinancials": "靜態數據（加載即時財務…）"
   },
   "cascade": {
     "title": "連鎖影響視覺化",

@@ -113,7 +113,7 @@
     "news": "الأخبار والأحداث",
     "filings": "إيداعات SEC",
     "headquarters": "المقر الرئيسي",
-    "marketCap": "القيمة السوقية",
+    "marketCap": "القيمة السوقية {val}",
     "revenue": "الإيرادات",
     "employees": "الموظفون",
     "sector": "القطاع",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "إجمالي الملكية المتتبعة",
     "ownershipTotalValue": "إجمالي القيمة",
     "ownershipBasis": "استناداً إلى SEC EDGAR 13F-HR · تأخير 45 يوماً",
-    "sharesUnit": "{n}M سهم"
+    "sharesUnit": "{n}M سهم",
+    "staticDataFinancials": "بيانات ثابتة (تحميل البيانات المالية…)"
   },
   "cascade": {
     "title": "مصوّر التأثير المتسلسل",

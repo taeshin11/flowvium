@@ -113,7 +113,7 @@
     "news": "समाचार एवं घटनाएँ",
     "filings": "SEC फाइलिंग",
     "headquarters": "मुख्यालय",
-    "marketCap": "बाज़ार पूँजीकरण",
+    "marketCap": "मार्केट कैप {val}",
     "revenue": "राजस्व",
     "employees": "कर्मचारी",
     "sector": "सेक्टर",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "कुल ट्रैक स्वामित्व",
     "ownershipTotalValue": "कुल मूल्य",
     "ownershipBasis": "SEC EDGAR 13F-HR के आधार पर · 45-दिन की देरी",
-    "sharesUnit": "{n}M शेयर"
+    "sharesUnit": "{n}M शेयर",
+    "staticDataFinancials": "स्थैतिक डेटा (लाइव वित्तीय लोड हो रहे हैं…)"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",

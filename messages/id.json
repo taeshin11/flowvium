@@ -113,7 +113,7 @@
     "news": "Berita & Peristiwa",
     "filings": "Pengajuan SEC",
     "headquarters": "Kantor Pusat",
-    "marketCap": "Kapitalisasi Pasar",
+    "marketCap": "Kap. Pasar {val}",
     "revenue": "Pendapatan",
     "employees": "Karyawan",
     "sector": "Sektor",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Total kepemilikan terlacak",
     "ownershipTotalValue": "Total nilai",
     "ownershipBasis": "Berdasarkan SEC EDGAR 13F-HR · keterlambatan 45 hari",
-    "sharesUnit": "{n}M saham"
+    "sharesUnit": "{n}M saham",
+    "staticDataFinancials": "Data statis (memuat keuangan langsung…)"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",

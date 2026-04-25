@@ -113,7 +113,7 @@
     "news": "ข่าวสารและเหตุการณ์",
     "filings": "เอกสาร SEC",
     "headquarters": "สำนักงานใหญ่",
-    "marketCap": "มูลค่าตลาด",
+    "marketCap": "มูลค่าตลาด {val}",
     "revenue": "รายได้",
     "employees": "พนักงาน",
     "sector": "ภาคอุตสาหกรรม",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "การถือหุ้นรวมที่ติดตาม",
     "ownershipTotalValue": "มูลค่ารวม",
     "ownershipBasis": "อ้างอิง SEC EDGAR 13F-HR · ล่าช้า 45 วัน",
-    "sharesUnit": "{n}M หุ้น"
+    "sharesUnit": "{n}M หุ้น",
+    "staticDataFinancials": "ข้อมูลคงที่ (กำลังโหลดข้อมูลการเงิน…)"
   },
   "cascade": {
     "title": "เครื่องมือแสดงผลลูกโซ่",

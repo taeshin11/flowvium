@@ -431,7 +431,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               )}
               {liveMarketCap != null && (
                 <span className="text-xs text-cf-text-secondary font-medium ml-1">
-                  시총 {fmtUsd(liveMarketCap)}
+                  {t('marketCap', { val: fmtUsd(liveMarketCap) })}
                 </span>
               )}
             </div>
@@ -547,7 +547,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                     FY{liveFinancials.fiscalYear} · {liveFinancials.periodEnd} · {liveFinancials.source}
                   </p>
                 ) : (
-                  <p className="text-[10px] text-cf-text-secondary/60 mb-3">정적 데이터 (실시간 재무 로딩 중…)</p>
+                  <p className="text-[10px] text-cf-text-secondary/60 mb-3">{t('staticDataFinancials')}</p>
                 )}
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">

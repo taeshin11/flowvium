@@ -113,7 +113,7 @@
     "news": "Actualités et événements",
     "filings": "Rapports SEC",
     "headquarters": "Siège social",
-    "marketCap": "Capitalisation boursière",
+    "marketCap": "Cap. Boursière {val}",
     "revenue": "Chiffre d'affaires",
     "employees": "Effectifs",
     "sector": "Secteur",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Détention totale suivie",
     "ownershipTotalValue": "Valeur totale",
     "ownershipBasis": "Basé sur SEC EDGAR 13F-HR · délai de 45 jours",
-    "sharesUnit": "{n}M actions"
+    "sharesUnit": "{n}M actions",
+    "staticDataFinancials": "Données statiques (chargement des finances en temps réel…)"
   },
   "cascade": {
     "title": "Visualiseur de cascades",

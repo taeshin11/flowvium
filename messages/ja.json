@@ -113,7 +113,7 @@
     "news": "ニュース・イベント",
     "filings": "SEC提出書類",
     "headquarters": "本社所在地",
-    "marketCap": "時価総額",
+    "marketCap": "時価総額 {val}",
     "revenue": "売上高",
     "employees": "従業員数",
     "sector": "セクター",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "追跡機関合計保有比率",
     "ownershipTotalValue": "合計評価額",
     "ownershipBasis": "SEC EDGAR 13F-HR基準 · 45日遅延開示",
-    "sharesUnit": "{n}M株"
+    "sharesUnit": "{n}M株",
+    "staticDataFinancials": "静的データ（リアルタイム財務ロード中…）"
   },
   "cascade": {
     "title": "カスケード・ビジュアライザー",

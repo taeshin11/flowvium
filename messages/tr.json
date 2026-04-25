@@ -113,7 +113,7 @@
     "news": "Haberler ve Olaylar",
     "filings": "SEC Dosyalamaları",
     "headquarters": "Merkez",
-    "marketCap": "Piyasa Değeri",
+    "marketCap": "Piyasa Değeri {val}",
     "revenue": "Gelir",
     "employees": "Çalışanlar",
     "sector": "Sektör",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Toplam takip edilen sahiplik",
     "ownershipTotalValue": "Toplam değer",
     "ownershipBasis": "SEC EDGAR 13F-HR bazlı · 45 günlük raporlama gecikmesi",
-    "sharesUnit": "{n}M hisse"
+    "sharesUnit": "{n}M hisse",
+    "staticDataFinancials": "Statik veri (canlı finansal yükleniyor…)"
   },
   "cascade": {
     "title": "Kaskad Görselleştirici",

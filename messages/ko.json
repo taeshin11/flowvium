@@ -113,7 +113,7 @@
     "news": "뉴스 및 이벤트",
     "filings": "SEC 공시",
     "headquarters": "본사",
-    "marketCap": "시가총액",
+    "marketCap": "시총 {val}",
     "revenue": "매출",
     "employees": "직원 수",
     "sector": "섹터",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "추적 기관 합계 지분율",
     "ownershipTotalValue": "합계 평가액",
     "ownershipBasis": "SEC EDGAR 13F-HR 기준 · 45일 지연 공시",
-    "sharesUnit": "{n}M주"
+    "sharesUnit": "{n}M주",
+    "staticDataFinancials": "정적 데이터 (실시간 재무 로딩 중…)"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",

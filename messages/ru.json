@@ -113,7 +113,7 @@
     "news": "Новости и события",
     "filings": "Отчёты SEC",
     "headquarters": "Штаб-квартира",
-    "marketCap": "Рыночная капитализация",
+    "marketCap": "Капитализация {val}",
     "revenue": "Выручка",
     "employees": "Сотрудники",
     "sector": "Сектор",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Суммарное отслеживаемое владение",
     "ownershipTotalValue": "Суммарная стоимость",
     "ownershipBasis": "На основе SEC EDGAR 13F-HR · задержка 45 дней",
-    "sharesUnit": "{n}M акций"
+    "sharesUnit": "{n}M акций",
+    "staticDataFinancials": "Статические данные (загрузка финансов…)"
   },
   "cascade": {
     "title": "Визуализатор каскада",

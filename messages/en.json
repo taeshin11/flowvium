@@ -113,7 +113,7 @@
     "news": "News & Events",
     "filings": "SEC Filings",
     "headquarters": "Headquarters",
-    "marketCap": "Market Cap",
+    "marketCap": "MCap {val}",
     "revenue": "Revenue",
     "employees": "Employees",
     "sector": "Sector",
@@ -230,7 +230,8 @@
     "ownershipTotalPct": "Total tracked ownership",
     "ownershipTotalValue": "Total value",
     "ownershipBasis": "Based on SEC EDGAR 13F-HR · 45-day reporting delay",
-    "sharesUnit": "{n}M shares"
+    "sharesUnit": "{n}M shares",
+    "staticDataFinancials": "Static data (loading live financials…)"
   },
   "cascade": {
     "title": "Cascade Visualizer",
