@@ -1,0 +1,116 @@
+ITER113 — EDGAR namespace fix + CUSIP 확장 + static signals 3,141개
+Date: 2026-04-25
+Commits: 6ec0bbe, 52f8c77, a322b1d, 2a5e780, 5622b9f, 1dfc860
+
+═══════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════
+Recent commits: iter112(수익률곡선경보+수익실적i18n), iter111(UX+신용경보),
+iter110(성능최적화), iter109(MacroIndicators i18n), iter108(locale+fetch)
+
+Drift signal #4 (인프라 블로커 2+ iter retry-only):
+  → Redis 없음이 여러 iter 미뤄짐
+  → 이번에 Redis 없이도 동작하는 대안 해결 ✅ (공식 포기 아닌 우회 해결)
+
+No drift this iter (영역 변경: EDGAR data pipeline) ✅
+
+═══════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════
+"signals 56→3,141 Redis없이" (16자)
+
+산출물 체크 (규칙 [3]):
+(a) 핵심 수치 이동:
+  - institutionalSignals static fallback: 56 → 3,141 (+5,500%)
+  - 추적 종목: 36 → 72 tickers (+100%)
+  - CUSIP 맵: 43 → 82 entries (+91%)
+  - Viking Global: 0 → 24 positions ✓
+  - Third Point LLC: 0 → 6 positions ✓
+
+═══════════════════════════════════════════════════════════════
+BUGS FOUND AND FIXED
+═══════════════════════════════════════════════════════════════
+
+BUG 1 — formatValue 1000x 오류 (CRITICAL)
+  문제: SEC 13F XML <value> 필드는 원시 달러 (예: 5585842446 = $5.5B)
+        기존 코드: val = valueThousands * 1000 → 1000x 과대표시 ("$5585.8B")
+  수정: formatValue(valueDollars) — val = valueDollars 직접 사용
+  수정: ownershipMap valueM: / 1000 → / 1_000_000 (M 단위 정확화)
+  검증: Berkshire GOOGL 17.8M shares = $5.6B (Yahoo에서 $313/share 확인) ✓
+  Commit: 52f8c77
+
+BUG 2 — CUSIP 14040H105: BRK → COF (CRITICAL)
+  문제: Capital One Financial CUSIP이 Berkshire B로 잘못 매핑
+  수정: 14040H105 → 'COF', 084670702 → 'BRK' (Berkshire B 실제 CUSIP)
+  영향: BRK, COF 신호 혼용 방지
+  Commit: 5622b9f
+
+BUG 3 — ns1: namespace prefix 미처리 (Viking/Third Point 0 signals 원인)
+  문제: Viking Global, Third Point 13F XML이 <ns1:infoTable> 형식 사용
+        기존 regex: /<infoTable>/i → 0개 매치
+  수정: /(?:<[a-z0-9]*:)?infoTable>/gi — namespace prefix 선택적 허용
+  동일 패턴을 cusip, nameOfIssuer, value, sshPrnamt에도 적용
+  결과: Viking(0→24), Third Point(0→6) positions
+  Commit: 5622b9f
+
+BUG 4 — 21개 API 라우트 force-dynamic 누락
+  문제: cache: 'no-store' fetch가 있는 라우트들이 빌드타임 정적 렌더 시도
+        "Dynamic server usage: no-store fetch" 에러 로그 발생
+  수정: 21개 라우트에 export const dynamic = 'force-dynamic' 추가
+  Commit: 2a5e780
+
+═══════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════
+[accuracy probe] metric=yc.spread10y2y source=FRED/T10Y2Y
+  direct_value=0.53% (2026-04-24)
+  our_value=0.51% (our API)
+  delta=0.02% tolerance=0.1% → OK
+
+[accuracy probe] metric=SPY source=Yahoo
+  direct_value=$713.94 (regularMarketPrice)
+  Note: capital-flows API 검증 — ret1w=0.54%, ret4w=10.68% (plausible)
+
+[accuracy probe] metric=signals.count source=EDGAR cron
+  direct_value=3,141 (cron live parse)
+  static_value=3,141 (updated)
+  delta=0 → OK ✓
+
+═══════════════════════════════════════════════════════════════
+VERIFY-METRICS HEALTH
+═══════════════════════════════════════════════════════════════
+총 189개 체크: OK 182, DEGRADED 2, ERROR 1
+  [DEGRADED] ai.groq: quota exhausted (TPD 소진, KST 09:00 리셋)
+  [DEGRADED] brief.market: fallback(data) (Redis null + GROQ 소진)
+  [ERROR] flow.analysis: None (Redis null + GROQ 소진 → empty analysis)
+  → 3개 모두 Redis null + AI quota 소진의 downstream 효과
+  → Redis 설정 시 자동 해결 예상
+
+═══════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════
+TypeScript: 0 errors ✅
+fetch() cache: CLEAN ✅ (force-dynamic 21개 추가로 개선)
+zombie processes: 없음 ✅
+
+Signals API:
+  Before: source=static, 56 hardcoded records (outdated 2025 data)
+  After:  source=static, 3,141 EDGAR records (Q4 2025 실데이터, Redis 없이)
+  Tickers: 36 → 72 종목
+  Institutions: 7 → 9 (Viking + Third Point 신규 추가)
+
+CUSIP 맵: 43 → 82개
+  신규: BA, ABBV, JNJ, PFE, UNH, COF, PNC, SCHW, BAC, C, MS, WFC, ICE, GM,
+        BABA, PG, WMT, HD, MCD, DIS, ROST, DKNG, TMUS, T, VZ, XOM, COP, APD,
+        SHW, COST, SPGI, FTV, NEE, PYPL, ADBE, TSM(variant2)
+  수정: 14040H105 BRK→COF, 084670702 BRK(신규)
+
+═══════════════════════════════════════════════════════════════
+NEXT ITER 후보 (iter114)
+═══════════════════════════════════════════════════════════════
+1. [권장] AI quota 소진 대응 — flow.analysis / daily-brief fallback 개선
+   현재 빈 analysis 반환 → 최소한 시장 요약 제공
+2. [고위험] Vercel Blob으로 Redis 우회 구현
+   — BLOB_READ_WRITE_TOKEN 필요 (user action 1회)
+3. 새 기능 — 72 ticker 커버리지를 활용한 새 view 추가
+4. Short-interest null 필드 개선 (FINRA API 에러 처리)
