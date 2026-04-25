@@ -1,0 +1,89 @@
+== iter185 — 2026-04-26 ==
+
+PRIMARY OUTCOME: send-alerts 크론 감사 + oalert 스팸 버그 수정
+
+DRIFT CHECK:
+- iter182: flow-analysis 감사
+- iter183: verify-metrics 감사
+- iter184: investment-strategy VIX 주입
+- iter185: cron/send-alerts + update-all 감사 ← 새 영역
+
+연속 drift 없음. cron 감사는 처음 진입.
+
+AUDIT SCOPE:
+  send-alerts/route.ts (331 lines) — 전체 감사
+  update-all/route.ts (전체 감사)
+  update-signals/route.ts (전체 감사)
+  vercel.json cron 스케줄 확인
+
+CRON SCHEDULE (vercel.json):
+  /api/cron/update-all      : 07:50 KST, 15:50 KST, 21:20 KST (3x/day)
+  /api/cron/daily-brief     : 07:55 KST, 15:55 KST, 21:25 KST (3x/day)
+  /api/cron/update-signals  : 11:00 KST (daily)
+  /api/cron/update-credit-balance: 12:30 KST (daily)
+  /api/cron/verify-metrics  : every 30 minutes
+  /api/cron/send-alerts     : every 4 hours
+
+AUDIT RESULTS:
+
+send-alerts:
+  ✓ checkFGAlert: flowvium:fg:v6:SPY → score/level/trend 필드 ✓
+  ✓ checkVIXAlert: flowvium:volatility:v1 → vix/regime 필드 ✓
+  ✓ checkCreditAlert: macro-indicators v13 → ig_spread/hy_spread ✓
+  ✗ checkYieldCurveAlert: yc-normalized 오경보 ← BUG FOUND
+
+update-all:
+  ✗ stage1 변수명 불일치 (fearGreedR→volatility, 6-16번 위치) ← 기능 문제 없음
+  ✓ 24개 endpoint 병렬 워밍 전체 확인
+  ✓ fire & forget 패턴: daily-brief, investment-strategy, news-cascade, stock-supply ✓
+  ✓ investment-strategy AbortSignal.timeout(50000) — 독립 함수 인보케이션으로 문제 없음
+
+update-signals:
+  ✓ EDGAR 13F-HR 파싱 → InstitutionalSignal[] + OwnershipRecord ✓
+  ✓ flowvium:13f-signals:v1 / flowvium:13f-ownership:v1 (7일 TTL) ✓
+  ✓ action: new_position/accumulating/reducing/exit 필드 ✓ (iter179 수정값과 일치)
+
+BUG FOUND #1: yc-normalized 매일 오경보
+
+  ROOT CAUSE:
+    checkYieldCurveAlert: `!yc.inverted && spread >= 0.05` 조건이 항상 true인 경우
+    (현재 10Y-2Y = +0.53%, curve NEVER inverted)
+    → 매일 "Yield Curve Normalization" Discord 알림 발송 (1회/일 cooldown 적용)
+
+  FIX: YC_INVERSION_FLAG (flowvium:discord-alert:yc-inversion-active, 90d TTL)
+    - yc-inverted 발송 시 → flag set
+    - yc-normalized: wasInverted=false이면 skip + 로그에 'no prior inversion recorded' 기록
+    - yc-normalized 발송 시 → flag del
+
+FIXED #2: update-all 변수명 불일치
+  Position 6-16 전체 변수명 실제 내용과 일치하도록 수정:
+  fearGreedR→volR, creditR→fearGreedR, shortR→creditR, capsR→shortR,
+  insiderR→capsR, ownerR→insiderR, optR→ownerR, koreaR→optR,
+  nportR→koreaR, blockR→nportR, volR→blockR (재정렬)
+  results 배열도 동기화.
+
+ACCURACY PROBE:
+[accuracy probe] metric=T10Y2Y source=FRED
+  direct_value=0.53 (2026-04-24) LIVE ✓
+  → spread 양수 확인, yc-normalized 오경보 fix 타당성 검증
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/app/api/cron/send-alerts/route.ts
+  - YC_INVERSION_FLAG 상수 신설
+  - checkYieldCurveAlert: inversion flag set/check/del 로직 추가
+- src/app/api/cron/update-all/route.ts
+  - stage1 변수명 수정 (6-16번 위치 재정렬)
+  - results 배열 동기화
+
+IMPACT:
+  Discord 알림 품질 개선: 매일 "Yield Curve Normalization" 오경보 중단
+  update-all 코드 가독성 개선 (기능 동일)
+
+NEXT: iter186 → 다른 영역.
+  후보:
+  1. 배포 (user 확인 필요) — 177+ 커밋 미배포
+  2. macro-indicators 정적 fallback 데이터 최신화 (2026-04 기준)
+  3. daily-brief cron 내부 감사 (update-all의 fire & forget)
+  4. update-credit-balance 감사
