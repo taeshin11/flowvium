@@ -1,0 +1,55 @@
+iter132 — 2026-04-25
+Primary outcome: 홈페이지 D-N pill 신설
+
+Drift check:
+- iter131: feature (EconCalendar) → RESET
+- iter132: feature (HomePage pill)
+→ iter133: 자유
+
+- HomePageMarketStrip: getUpcomingEvents()로 다음 high-impact 이벤트 NEXT 레이블 + D-N 카운트다운
+  - ≤1일: 빨강, ≤3일: 주황, 이상: 회색
+  - API 호출 없음 (정적 econ-calendar 데이터 재활용)
+- tsc --noEmit: 0 errors ✓
+
+커밋: 30a6498 feat(home): market strip에 다음 high-impact 경제 이벤트 D-N pill 추가
+
+---
+
+iter133 — 2026-04-25
+Primary outcome: LiveFeed/VolatilityCard 한글 제거 + VIX 신설 + zombie 삭제
+
+Drift check:
+- iter131: feature → RESET
+- iter132: feature (streak=2, different area)
+- iter133: i18n + deletion → OK (3-streak 방지)
+
+핵심 변경:
+- LiveFeed.tsx: useTranslations('common') — 6개 한글 문자열 제거
+  로딩/에러/재시도/새로고침/출처/기준 → common 네임스페이스
+- VolatilityCard.tsx: useTranslations('macro') — 10개 한글 제거
+  변동성지표/VIX현재값/만기별커브/VIX지수/VIX추이/기준선/출처 등
+- MacroIndicatorsTab.tsx: <VolatilityCard /> 신설
+  → 기존 MacroTab에 없던 VIX term structure (9d/30d/6m) 추가
+- YieldCurveCard.tsx: 삭제 (zombie — MacroIndicatorsTab inline 커브와 중복)
+- messages/*.json 16개: common 6키 + macro vol 10키 추가
+- tsc --noEmit: 0 errors ✓
+
+산출물 분류:
+(a) 프로젝트 핵심 숫자 이동: VIX term structure가 MacroTab에 신설됨 ✓
+(c) 삭제/단순화: YieldCurveCard.tsx 삭제 ✓
+
+커밋: 48800ef feat(i18n+vix): LiveFeed/VolatilityCard 한글 제거, VIX term structure MacroTab 신설, zombie 삭제
+
+==== [2] 정확도 프로브 ====
+
+[accuracy probe] metric=spy.close source=Yahoo_v8 direct_value=713.94 our_value=713.94 delta=0 → OK
+[accuracy probe] metric=nvda.close source=Yahoo_v8 direct_value=208.27 our_value=208.27 delta=0 → OK
+CNN 418: bot detection (Windows curl) — 미검증, Vercel 환경에서는 정상
+
+==== 다음 iter 방향 ====
+
+iter134 반드시 feature (iter132+iter133 i18n-heavy → 영역 전환):
+- YieldCurveCard 삭제 후 yield-curve API 여전히 사용 여부 확인
+- StockSupplyModal.tsx 한글 잔존 (조/억/만 제외)
+- OSINTPage 한글 대량 (desc 등)
+- 또는 새 기능: 홈페이지 Earnings 위젯 (다음 3~5개 실적 발표)
