@@ -1,0 +1,69 @@
+== iter154 — 2026-04-26 ==
+
+PRIMARY OUTCOME: daily-brief stale AI fallback (AI quota 소진 시 data fallback 방지)
+
+DRIFT CHECK:
+- iter149: infra (timeout)
+- iter150~152: i18n (3 consecutive → drift triggered at 153)
+- iter153: infra (static routes)
+- iter154: data quality/resilience (stale brief fallback) ← new domain, no drift
+
+ROOT CAUSE FOUND (BUG):
+
+daily-brief primary cache key is date-keyed: flowvium:daily-brief:v5:${kstDate}:${tf}
+- Cron runs at 21:00 UTC = 06:00 KST
+- KST midnight (15:00 UTC): date rotates → cache key changes to tomorrow's date
+- Next 6 hours (15:00–21:00 UTC): all requests miss cache → call AI fresh
+- When GROQ+Gemini quota exhausted → falls back to data-driven brief (garbled text)
+
+IMPACT:
+- Every night (midnight KST → 06:00 KST = 6h window), cold-start Lambdas
+  hit AI quota limits and serve garbled Korean data-fallback to users
+- verify-metrics shows brief.market: degraded when this occurs
+- Confirmed from production debug: GROQ "both_tpd_exhausted" + Gemini "quota_exhausted"
+
+FIX:
+Added staleCacheKey(tf) = flowvium:daily-brief:v5:stale:${tf} (date-free, 48h TTL)
+
+Changes to 3 files:
+- src/lib/daily-brief.ts: export staleCacheKey() function
+- src/app/api/daily-brief/route.ts:
+    1. Pre-fetch staleAiBrief from Redis (before AI call)
+    2. When AI fails: use staleAiBrief if available (preferred over data fallback)
+    3. When AI succeeds: write BOTH primary key AND stale key (48h TTL)
+    4. source field becomes 'stale(GROQ-llama-3.3-70b)' for stale responses
+- src/app/api/cron/daily-brief/route.ts:
+    1. After AI success: also write staleCacheKey (48h TTL)
+
+ACCURACY PROBE:
+[accuracy probe] metric=fg.us source=CNN direct_value=66 our_value=66 delta=0 → OK
+[accuracy probe] metric=curve source=FRED direct_value=0.53 our_value=0.51 delta=0.02 → OK (within 0.05 tolerance)
+[accuracy probe] metric=cpi source=FRED direct_value=3.29 our_value=3.29 delta=0.00 → OK
+[accuracy probe] metric=ppi source=FRED direct_value=4.11 our_value=4.11 delta=0.00 → OK
+[accuracy probe] metric=fomc source=FRED direct_value=3.625 our_value=3.625 delta=0.000 → OK
+[accuracy probe] metric=gdp source=FRED direct_value=0.5 our_value=0.5 delta=0.00 → OK
+
+VERIFY-METRICS STATE (pre-fix, production old code):
+- 184 OK / 1 degraded (brief.market) / 4 skipped (weekend + vLLM)
+- brief.market: degraded (source=data, fallback) — OLD CODE in production
+- After this fix (when deployed): brief.market will be OK even during quota exhaustion
+
+VERIFY-METRICS STATE (fresh check):
+- accuracy: 6/6 OK
+- brief: 1/1 OK (quota reset at UTC midnight, GROQ working again)
+- kr.foreign/institution/retail: SKIPPED (weekend, expected)
+- ai.vllm: SKIPPED (no VLLM_URL, expected)
+
+OTHER FINDINGS:
+- EDGAR returns "No recent filings" on weekends → ownershipCount=0 is correct, not a bug
+- All API routes confirmed ƒ(Dynamic) — no new static regression
+- TypeScript: 0 errors
+- Build: clean
+
+TYPESCRIPT: clean (0 errors)
+BUILD: clean (npx next build)
+
+FILES CHANGED (3 files):
+- src/lib/daily-brief.ts (added staleCacheKey export)
+- src/app/api/daily-brief/route.ts (stale read + write + fallback logic)
+- src/app/api/cron/daily-brief/route.ts (stale write after AI success)
