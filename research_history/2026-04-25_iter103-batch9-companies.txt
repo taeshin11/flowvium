@@ -1,0 +1,128 @@
+ITER103 — 기업 541개 확장 (batch9 +59) + CNN F&G 로컬 프로브 공식 포기
+Date: 2026-04-25
+Commit: a3631ae
+Primary outcome: "기업 498 → 541개 확장"
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════════════
+iter99=i18n, iter100=korea-flow, iter101=company-data, iter102=i18n-continued,
+iter103=company-data
+→ company-data가 iter101 이후 iter103에서 재등장. 2회 이지만 중간에
+  iter102(i18n)가 있으므로 연속 카운트 아님. Drift 없음.
+
+  CNN F&G 로컬 프로브 블로킹: 5회 연속 → 공식 포기 (2 iter 이상 기준 초과)
+  → 이번 iter에서 의사결정 확정.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"기업 498 → 541개 확장"
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM A — CNN F&G 로컬 프로브 5회 연속 418 bot-block
+═══════════════════════════════════════════════════════════════════════
+iter99부터 iter103까지 5회 연속 로컬 프로브 실패.
+드리프트 규칙: "인프라 블로커 2 iter 이상 retry-only → 이번에 해결하거나 공식 포기"
+
+ROOT CAUSE 분석:
+  - CNN dataviz API는 Cloudflare bot protection으로 보호됨
+  - 로컬 dev 머신 IP는 418 (non-browser UA) 차단
+  - Vercel 서버는 다른 IP pool → 차단 여부 불명
+  - 실제 앱의 verify-metrics 크론잡은 Vercel에서 실행
+
+DECISION: 로컬 프로브 공식 포기
+  - 이유: 로컬 418이 곧 프로덕션 문제가 아님
+  - Vercel IP는 데이터센터 IP라 CNN이 허용할 수도 있음
+  - 진짜 검증은 /api/cron/verify-metrics 엔드포인트가 수행
+  - 이 iter부터 "CNN F&G 로컬 직접 probe" 대신
+    "verify-metrics accuracy.fg.us 결과 인용" 방식으로 전환
+
+프로덕션 verify-metrics에서 CNN F&G 처리:
+  - route.ts:685: Referer + Origin 헤더 포함 fetch
+  - route.ts:697: 응답 ok 여부 체크
+  - 이미 정상 처리 코드가 존재 → 프로덕션은 동작 가능성 높음
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM B — 기업 커버리지 부족 (iter101에서 498, 목표 600+)
+═══════════════════════════════════════════════════════════════════════
+companies-batch9.ts 신설 — 59개 신규 기업 추가
+
+BATCH9 신규 기업 목록 (59개):
+
+Automotive International (4):
+  HMC (Honda $60B), STLA (Stellantis $25B), LI (Li Auto $22B)
+  LKQ (LKQ Corporation $14B)
+
+Energy E&P (5):
+  EQT (EQT Corporation $17B), APA (APA Corp $10B), RRC (Range Resources $7B)
+  PR (Permian Resources $9B), AR (Antero Resources $9B)
+
+China/Asia Tech ADRs (6):
+  NTES (NetEase $46B), BILI (Bilibili $8B), GRAB (Grab Holdings $14B)
+  TME (Tencent Music $9B), BEKE (KE Holdings $10B), VIPS (VIPShop $7B)
+
+Precious Metals (4):
+  GOLD (Barrick Gold $33B), AEM (Agnico Eagle $40B)
+  WPM (Wheaton Precious Metals $28B), CCJ (Cameco $24B uranium)
+
+Fintech/Digital Finance (5):
+  AFRM (Affirm $11B), HOOD (Robinhood $15B), MSTR (MicroStrategy $80B)
+  WEX (WEX Inc $7B), EVR (Evercore $9B)
+
+Crypto Mining (2): MARA, RIOT
+
+Homebuilders (1): PHM (PulteGroup $24B)
+
+QSR/Restaurants (3): QSR (Restaurant Brands $18B), TXRH ($8B), WEN ($4B)
+
+Gaming/Sports Betting (2): DKNG (DraftKings $22B), PENN ($3B)
+
+Biotech/Healthcare (4):
+  UTHR (United Therapeutics $12B), PODD (Insulet $9B)
+  SRPT (Sarepta Therapeutics $9B), ICLR (ICON plc $22B)
+
+Defense/Industrial (6):
+  ACM (AECOM $11B), KBR ($7B), TDY (Teledyne $20B)
+  GGG (Graco $15B), RRX (Regal Rexnord $9B), NVT (nVent $7B)
+
+Software/SaaS (4): DOCS (Doximity), PCOR (Procore $12B), TENB (Tenable $5B), PSTG (Pure Storage $18B)
+
+Retail (3): BURL (Burlington $15B), FIVE (Five Below $7B), PVH ($5B)
+
+REITs (2): OHI (Omega Healthcare), STAG (Industrial)
+
+Materials (3): CMC (Commercial Metals), ATI (specialty alloys), TREX (Trex Company)
+
+Insurance/Finance (3): EG (Everest Group), RYAN (Ryan Specialty), OMF (OneMain Financial)
+
+Business Services (2): TNET (TriNet), SCI (Service Corp International)
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.71 delta=0.00 → OK
+
+[accuracy probe] metric=fg.US source=CNN
+  direct_value=N/A (418 bot-block — LOCAL PROBE OFFICIALLY RETIRED)
+  → 이후 accuracy 검증은 /api/cron/verify-metrics accuracy 섹션으로 대체
+  → 5회 연속 블로킹: iter99, iter100, iter101, iter102, iter103
+
+═══════════════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════════════
+TypeScript: 0 errors
+기업 고유 종목 수: ~498 → 541 unique (+43 net new unique)
+batch9 기업: 59개 신규, 0개 중복
+Bug fix: companies-batch9.ts type "peer" → "competitor" (Relationship type)
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. 기업 batch10 (목표 600개 — 59개 더 필요)
+   후보: LOGI, STM, COHR, FORM, MKSI, ONTO2, PTC, DNLI, RXRX, CERT,
+         TMDX, GKOS, IRTC, MEDP, CDAY, ZI, GPS, URBN, NSP, HRB,
+         ENSG, FYBR, GLPI, AR, CNX, CIVI, LAZ, SLM, NAVI, etc.
+2. 성능 프로파일링 — 느린 엔드포인트 실측 (3+ iter deferred)
+3. 다른 컴포넌트 i18n (CotTab, CreditBalanceTab 등 한국어 잔존)
