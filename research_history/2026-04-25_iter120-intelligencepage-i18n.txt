@@ -1,0 +1,64 @@
+iter120 — 2026-04-25
+Primary outcome: IntelligencePage i18n 완성
+
+Drift check:
+- iter119: CompanyPage 영역
+- iter120: IntelligencePage 영역 (정상 이동)
+- 드리프트 신호 없음
+
+==== 발견된 문제 ====
+
+[QUALITY] IntelligencePage 한글 하드코딩 (CLAUDE.md 위반)
+  - 영향 범위: 15개 비한국어 언어 × ~35개 문자열 = ~525개 잘못된 텍스트 표시
+  - 영역: 탭 레이블, 섹터명, flows탭 전체, fear-greed탭 전체, narratives탭
+
+영향받은 구역:
+  1. tabConfig (탭 레이블 7개): 자금 흐름 지도, 매크로 지표, 머니 흐름, 신용잔고, 매크로 테마, 뉴스 Cascade, COT 포지션
+  2. SECTOR_KO mapping (섹터명 7개): 반도체, AI·클라우드, EV·배터리, 방산, 금융주, 소재·산업재, 제약·바이오
+  3. FearGreedCard 서브컴포넌트 (6개): 합성 배지, 심리 구성 요소, 극단공포/탐욕 스케일, 측정 요인, 현재 심리 배경, 주요 리스크
+  4. flows 탭 (8개): 섹터 신호 헤더, 실시간 배지, 순매수/순매도/중립, EDGAR 출처, 로딩 텍스트, 스마트머니 유입/이탈, 에디토리얼 컨텍스트
+  5. fear-greed 탭 (7개): 로딩 텍스트, 국가별/자산별 F&G 헤더, 업데이트 시간, 방법론 텍스트, 스케일 설명
+  6. narratives 탭 (1개): 섹션 설명
+
+==== 수정 내용 ====
+
+1. 신규 i18n 키 39개 정의 (en.json + ko.json 직접 Edit 후 Node.js 스크립트 2개로 나머지 14개 언어 일괄 적용)
+   - 1차 스크립트 (29개): tabCapital, tabMacro, tabFlows, tabCredit, tabNarratives, tabNews, tabCot,
+     sectorSemiconductors, sectorAiCloud, sectorEvBattery, sectorDefense, sectorFinancials, sectorMaterials, sectorPharmaBiotech,
+     netBuy, netSell, neutralSignal, liveLabel, sectorSignalsTitle, sectorSignalsSource, loadingSignals,
+     smartMoneyInflow, smartMoneyOutflow, editorialContext, loadingMarketData, fgByCountryTitle, fgUpdatedLabel,
+     fgMethodologyLabel, staticDataLabel
+   - 2차 스크립트 (10개): compositeLabel, factorBreakdown, fgScaleHint, measureFactors, sentimentBackground,
+     keyRisks, fgScaleLabel, fgByAssetTitle, fgByAssetDesc, narrativesDesc
+
+2. IntelligencePage.tsx: 35개 하드코딩 한글 → t() 호출 교체
+   - toLocaleTimeString('ko-KR', ...) → toLocaleTimeString(undefined, ...) (locale 고정 버그 수정)
+   - FearGreedCard 내 useTranslations('intelligence') 이미 존재 → 그대로 활용
+
+==== 잔여 미해결 항목 ====
+
+1. weeksAgo() 함수 (lines 258-262): 날짜 포맷이 Korean 하드코딩
+   - "N일 전 시작", "N주 전 시작", "N개월 전 시작" 형식
+   - pure 함수라 t() 접근 없음 → t를 인자로 받는 리팩터 필요
+   - 우선도 낮음 (NarrativeCard에서만 사용, 탭 접근 빈도 낮음)
+
+2. title 속성 tooltip (line 161): "CNN 공식 Fear & Greed Index..." — 한국어 포함
+   - HTML title 속성, hover 시만 노출
+   - 영향 매우 낮음, 차후 처리
+
+==== 검증 ====
+
+[accuracy probe] metric=NVDA.price source=Yahoo_v8
+  curl "https://query1.finance.yahoo.com/v8/finance/chart/NVDA" — 정상 응답 확인
+  (Vercel 78+ commits 뒤처짐 → live prod 프로브 불가)
+build: ✓ Compiled successfully (tsc --noEmit clean, 0 errors)
+Korean hardcoded strings: 0개 user-visible JSX (weeksAgo/title 속성만 잔류)
+16개 언어 파일 모두 업데이트 확인
+
+==== 다음 우선 과제 ====
+
+- HomePage risk level 레이블 i18n (낮음/보통/높음) — 사용자 접점 높음
+- InsiderPage period labels / KRX 섹션 i18n
+- weeksAgo() 함수 i18n 리팩터
+- Vercel 배포 (78+ commits ahead)
+- Redis 설정 → newsGapScore 실값 복구 (인프라 블로커 2+ iter 대기 중 → 다음 iter에서 공식 결정)
