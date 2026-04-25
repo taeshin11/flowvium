@@ -40,6 +40,23 @@ function contractSymbols(prefix: string, exchange: string, startMonth: number, s
   return results;
 }
 
+// gold-api.com: free, no auth, cloud-IP accessible. Returns XAU spot in USD/troy oz.
+async function fetchGoldSpotGoldAPI(): Promise<number | null> {
+  try {
+    const res = await fetch('https://api.gold-api.com/price/XAU', {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { price?: number; currency?: string };
+    if (data.currency !== 'USD') return null;
+    const price = data.price;
+    if (typeof price !== 'number' || price <= 0) return null;
+    return parseFloat(price.toFixed(2));
+  } catch { return null; }
+}
+
 // FRED WTI crude spot price — not Yahoo, not IP-blocked from Vercel cloud IPs.
 // Series DCOILWTICO: EIA spot, 1-day lag, free no auth.
 async function fetchOilSpotFRED(): Promise<number | null> {
@@ -157,6 +174,15 @@ export async function GET() {
     if (fredSpot !== null) {
       logger.info('commodity-curve', 'fred_oil_fallback', { spot: fredSpot });
       oilCurve.curve = [{ ticker: 'FRED:DCOILWTICO', label: 'Spot', price: fredSpot }];
+    }
+  }
+
+  // gold-api.com spot fallback — if Yahoo GC futures all blocked (Vercel IP rate-limited)
+  if (goldCurve.curve.length === 0) {
+    const goldSpot = await fetchGoldSpotGoldAPI();
+    if (goldSpot !== null) {
+      logger.info('commodity-curve', 'goldapi_gold_fallback', { spot: goldSpot });
+      goldCurve.curve = [{ ticker: 'GOLDAPI:XAU', label: 'Spot', price: goldSpot }];
     }
   }
 

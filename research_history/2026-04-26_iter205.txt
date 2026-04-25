@@ -1,0 +1,48 @@
+== iter205 — 2026-04-26 ==
+
+PRIMARY OUTCOME: accuracy.vix CBOE 프로브 전환
+
+DRIFT CHECK:
+- iter199-204: Yahoo/cache/data-source + invest-strategy 영역
+- iter205: verify-metrics accuracy probe 전환 (CBOE 소스)
+  ※ iter204-205 연속 verify-metrics 접촉 → 다음 iter206은 다른 영역 필수
+
+PROBLEM:
+  accuracy.vix degraded: Yahoo 429 차단으로 VIX 외부 비교 불가
+  → "endpoint alive" ≠ "value accurate" 검증 불가 상태
+
+CHANGES:
+  src/app/api/cron/verify-metrics/route.ts:
+    - verifyAccuracyStack() VIX 블록 수정
+    - Yahoo 429 시 CBOE CSV 직접 fetch (browser UA 포함)
+    - CBOE 최신 행 마지막 컬럼(CLOSE) 파싱 → cboeVix
+    - delta ≤ 1.0 → ok, ≤ 2.0 → degraded, 초과 → error
+    - 소스: 'cboe-direct', yahooBlocked: true 메타데이터 기록
+
+ACCURACY PROBE (실측):
+  [accuracy probe] metric=accuracy.vix source=CBOE direct_value=18.71 our_value=18.71 delta=0 tolerance=1.0 → OK
+
+VERIFY-METRICS (iter205 완료 후):
+  OK=144 (+1), Degraded=8 (-1), Error=2, Total=159
+  - accuracy.vix: degraded → ok ✓ (CBOE 18.71, Δ0.00)
+  [DEGRADED] macro.gdp_growth_rate_(q1_advance) — GDP 4월 30일 발표
+  [DEGRADED] vol.vxst, vol.vxmt — CBOE AccessDenied, 대체 소스 없음
+  [DEGRADED] comm.oil — FRED 1pt (futures curve 부재)
+  [DEGRADED] strategy.portfolio — AI 소진 (UTC midnight 복구)
+  [DEGRADED] brief.market, news.company, stock.price — AI/Yahoo 소진
+  [ERROR] comm.gold — 모든 소스 실패
+  [ERROR] flow.analysis — AI 소진
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/cron/verify-metrics/route.ts
+
+COMMITS: 55b99de
+PUSHED: ✓ origin/master
+
+NEXT: iter206
+  1. comm.gold error → 해결 시도 (CoinCap/World Bank 등 무료 소스)
+  2. flow.analysis, strategy.portfolio — UTC midnight 후 자동 복구 확인
+  3. 비 data-source 영역 (frontend/performance/i18n) 탐색 (drift 방지)
+  4. 2026-04-30 GDP Q1 advance 발표 예상 → macro.gdp 자동 복구 예정
