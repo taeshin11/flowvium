@@ -1,0 +1,31 @@
+## iter100 — AI 투자 전략 리포트 전면 재설계
+Date: 2026-04-25
+Commit: a55a1cb
+
+### Primary Outcome
+AI 리포트 → 실제 매수 전략+포트폴리오 리포트 전환
+
+### Changes
+1. **NEW: /api/investment-strategy** (src/app/api/investment-strategy/route.ts)
+   - gatherTabContext() 재활용 (daily-brief lib의 전 탭 컨텍스트)
+   - sector-pe + earnings API 추가 병렬 조회
+   - GROQ/Gemini callAI() → 구조화 JSON 파싱
+   - InvestmentStrategy 타입: stance, thesis, portfolio(5~7), sectorAllocation, riskEvents, macroAnalysis, technicalAnalysis, fundamentalAnalysis
+   - Redis 4h 캐시
+
+2. **REDESIGN: ReportPage.tsx**
+   - daily-brief 기반 타임프레임 리포트 제거
+   - 새 UI: 스탠스 히어로 → 3단 분석(거시/기술/기본) → AI 포트폴리오 → 섹터 배분 → 리스크 이벤트
+   - PortfolioCard: 클릭 확장으로 진입구간/손절/목표가 표시
+   - SectorBar: 비중확대/중립/비중축소 색상 바
+   - KPI strip 유지 (F&G, SPY, 10Y-2Y, VIX, FOMC) - 각 독립 실패 허용
+
+3. **i18n**: 16개 언어 × 7개 키 = 112개 추가 (pageTitle, pageDesc, portfolioTitle, sectorTitle, riskEventsTitle, disclaimer, error)
+
+### Verification
+- TypeScript: 0 errors
+- API live test: stance=bullish, 5 tickers (NVDA/ADBE/PYPL/CRWD/VRTX), source=GROQ-llama-3.3-70b
+- Deployed: flowvium.vercel.app
+
+### User Request
+"이거는 AI 투자 전략 리포트로 바꾸고 진짜로 모든 엔드포인트를 조합해서 가장 수익률이 높을 매수전략과 포트폴리오를 짜줘. 기본적 분석, 기술적 분석, 거시경제, 여러 지표들 다 고려해야되고 조심해야 할 이벤트도 고려"
