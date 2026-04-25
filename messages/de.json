@@ -244,7 +244,10 @@
     "analystCount": "Analysten",
     "analystBuy": "Kaufen",
     "analystHold": "Halten",
-    "analystSell": "Verkaufen"
+    "analystSell": "Verkaufen",
+    "standardView": "Standardansicht",
+    "terminalView": "Terminalansicht",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",

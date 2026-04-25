@@ -244,7 +244,10 @@
     "analystCount": "位分析师",
     "analystBuy": "买入",
     "analystHold": "持有",
-    "analystSell": "卖出"
+    "analystSell": "卖出",
+    "standardView": "标准视图",
+    "terminalView": "终端视图",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "连锁影响可视化",

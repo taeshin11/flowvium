@@ -244,7 +244,10 @@
     "analystCount": "विश्लेषक",
     "analystBuy": "खरीदें",
     "analystHold": "होल्ड",
-    "analystSell": "बेचें"
+    "analystSell": "बेचें",
+    "standardView": "मानक दृश्य",
+    "terminalView": "टर्मिनल दृश्य",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",

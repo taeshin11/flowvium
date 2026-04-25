@@ -244,7 +244,10 @@
     "analystCount": "phân tích viên",
     "analystBuy": "Mua",
     "analystHold": "Giữ",
-    "analystSell": "Bán"
+    "analystSell": "Bán",
+    "standardView": "Chế độ xem chuẩn",
+    "terminalView": "Chế độ xem terminal",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",

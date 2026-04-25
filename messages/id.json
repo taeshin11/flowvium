@@ -244,7 +244,10 @@
     "analystCount": "analis",
     "analystBuy": "Beli",
     "analystHold": "Tahan",
-    "analystSell": "Jual"
+    "analystSell": "Jual",
+    "standardView": "Tampilan standar",
+    "terminalView": "Tampilan terminal",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",

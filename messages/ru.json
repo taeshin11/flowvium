@@ -244,7 +244,10 @@
     "analystCount": "аналитиков",
     "analystBuy": "Покупать",
     "analystHold": "Держать",
-    "analystSell": "Продавать"
+    "analystSell": "Продавать",
+    "standardView": "Стандартный вид",
+    "terminalView": "Терминальный вид",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "Визуализатор каскада",

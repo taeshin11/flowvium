@@ -244,7 +244,10 @@
     "analystCount": "analist",
     "analystBuy": "Al",
     "analystHold": "Tut",
-    "analystSell": "Sat"
+    "analystSell": "Sat",
+    "standardView": "Standart görünüm",
+    "terminalView": "Terminal görünümü",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "Kaskad Görselleştirici",

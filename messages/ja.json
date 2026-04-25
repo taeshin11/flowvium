@@ -244,7 +244,10 @@
     "analystCount": "人",
     "analystBuy": "買い",
     "analystHold": "中立",
-    "analystSell": "売り"
+    "analystSell": "売り",
+    "standardView": "標準表示",
+    "terminalView": "端末表示",
+    "finnhubPeriod": "Finnhub · {period}"
   },
   "cascade": {
     "title": "カスケード・ビジュアライザー",

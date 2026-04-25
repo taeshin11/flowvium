@@ -513,7 +513,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             }`}
           >
             <span className="text-[10px]">▣</span>
-            {terminalView ? 'Standard View' : 'Terminal View'}
+            {terminalView ? t('standardView') : t('terminalView')}
           </button>
         </div>
       </div>
@@ -1543,7 +1543,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 </div>
               )}
               {analystData.period && (
-                <p className="text-[10px] text-cf-text-secondary/40 mt-2">Finnhub · {analystData.period}</p>
+                <p className="text-[10px] text-cf-text-secondary/40 mt-2">{t('finnhubPeriod', { period: analystData.period })}</p>
               )}
             </div>
           )}
