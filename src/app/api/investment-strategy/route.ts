@@ -152,9 +152,10 @@ async function getSectorSummary(baseUrl: string): Promise<string> {
     if (!res.ok) return '';
     const data = await res.json() as { sectors?: Array<{ ticker: string; name: string; trailingPE: number | null; ytdReturn: number | null; changePct: number | null }> };
     const entries = data.sectors ?? [];
-    return entries.slice(0, 8).map(e =>
-      `${e.ticker}(${e.name}) P/E=${e.trailingPE?.toFixed(1) ?? 'N/A'} YTD=${e.ytdReturn?.toFixed(1) ?? 'N/A'}% 1d=${e.changePct?.toFixed(2) ?? 'N/A'}%`
-    ).join(', ');
+    return entries.slice(0, 8).map(e => {
+      const ytd = e.ytdReturn != null ? (e.ytdReturn * 100).toFixed(1) : 'N/A';
+      return `${e.ticker}(${e.name}) P/E=${e.trailingPE?.toFixed(1) ?? 'N/A'} YTD=${ytd}% 1d=${e.changePct?.toFixed(2) ?? 'N/A'}%`;
+    }).join(', ');
   } catch { return ''; }
 }
 
