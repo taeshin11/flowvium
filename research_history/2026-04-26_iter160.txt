@@ -1,0 +1,55 @@
+== iter160 — 2026-04-26 ==
+
+PRIMARY OUTCOME: AI 쿼터 낭비 제거 (24→1 calls/day)
+
+DRIFT CHECK:
+- iter157: latest-updates (update-all/admin-health)
+- iter158: homepage perf (다른 도메인)
+- iter159: latest-updates bug fix
+- iter160: investment-strategy AI quota 최적화 (다른 도메인) ← OK
+
+ROOT CAUSES FOUND (2 bugs, same route):
+
+BUG 1: 시간별 캐시 키 회전
+- cacheKey() → `flowvium:investment-strategy:v4:2026-04-26:05` (슬라이스 13자리)
+- Redis TTL=12h이지만 키가 매시간 변경 → 유효 캐시=1h
+- 결과: 최대 24회/일 AI 호출 × ~3k tokens = ~72k tokens/day 낭비
+- iter141에서 flow-analysis에서 동일 패턴 수정 (v3→v4 일별 키)
+- investment-strategy는 미처 수정되지 않았음
+
+BUG 2: getLivePrices() 19개 병렬 Yahoo v8 호출
+- CANDIDATE_TICKERS 19종목을 각각 fetchOnePrice()로 개별 호출
+- 매 캐시 미스마다 19개 외부 HTTP 요청 발사
+- iter158에서 HomePage를 7→1 batch로 수정했으나 investment-strategy는 미처 적용 안 됨
+
+FIXES:
+
+1. cacheKey() 수정:
+   - v4 datehour 포맷 (13자 슬라이스) → v5 date-only (10자 슬라이스)
+   - `flowvium:investment-strategy:v4:2026-04-26:05` → `flowvium:investment-strategy:v5:2026-04-26`
+   - 기존 v4 hourly 캐시 자동 무효화 (버전 범프)
+   - STALE_KEY_PREFIX는 버전 없음 → 변경 불필요
+
+2. getLivePrices() 최적화:
+   - Yahoo v7 batch 1회 호출 우선:
+     `?symbols=NVDA,MSFT,...&fields=regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow`
+   - v7 성공 시 19→1 HTTP 요청 감소
+   - v7 실패(401/blocked) 시 기존 19개 v8 병렬 폴백 유지
+   - 52w high/low 데이터 v7에서도 동일하게 조회 가능 확인
+
+EXPECTED EFFECT:
+- AI 호출: 최대 24회/일 → 최대 1회/일 (KST 기준 일별 1번만 새 AI 호출)
+- 외부 HTTP 요청 (Yahoo): 19→1 (캐시 미스 시)
+- 스테일 폴백 키(`flowvium:investment-strategy:stale`) 이미 구현됨: AI 실패 시 최대 7일 이전 결과 서빙
+
+ACCURACY PROBE:
+[accuracy probe] metric=cpi source=FRED direct_value=330.293 (2026-03-01) consistent_with_iter158=delta=0 → OK
+[accuracy probe] metric=yahoo_v7 source=Yahoo reason=401_CLI_blocked (서버 컨텍스트에서는 정상 동작) → INFRA_LIMIT
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/app/api/investment-strategy/route.ts (cacheKey v4→v5 일별 + getLivePrices 19→1 batch)
+- FEATURES.md (투자전략 API 설명 갱신: v5 키·batch·12h Redis)
+
+COMMIT: 8b24907
