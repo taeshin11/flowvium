@@ -1,0 +1,62 @@
+== iter173 — 2026-04-26 ==
+
+PRIMARY OUTCOME: 6개 라우트 감사 — 전부 clean
+
+DRIFT CHECK:
+- iter170: verify-metrics
+- iter171: daily-brief + investment-strategy
+- iter172: capital-flows (weeksAgo=1 bug 수정)
+- iter173: flow-analysis / short-interest / korea-flow / update-all / news-cascade 감사 ← 새 도메인들
+
+drift 없음. 매 iter 다른 영역.
+
+NEGATIVE RESULT (per rule [4]):
+
+감사 결과 모두 clean:
+
+1. flow-analysis (289줄):
+   - 모든 외부 fetch: cache: 'no-store' ✓
+   - stale fallback: 올바른 순서 (Redis 쓰기 전에 실행 X) ✓
+   - static fallback: Redis에 쓰이지 않음 (분기 순서 보장) ✓
+   - COUNTRY_EN 매핑 + fromId/from 이중 fallback ✓
+
+2. short-interest (262줄):
+   - FINRA daily short volume: cache: 'no-store' ✓
+   - loggedRedisSet: null redis 핸들링 ✓
+   - calcSqueezeScore: shortFloatPct 항상 null (Yahoo v10 Vercel 차단) — 문서화됨 ✓
+
+3. korea-flow (350줄):
+   - KRX API POST: cache: 'no-store' ✓
+   - Yahoo fallback: cache: 'no-store' ✓
+   - getLastNTradingDays: n*3 offset 버퍼 충분 ✓
+   - kstDateStr DOW 계산: UTC+9 offset 후 .getDay() 사용 ✓
+
+4. update-all cron:
+   - 변수명 오매핑 발견 (fearGreedR → volatility 결과 포함 등)
+   - 하지만 실제 동작에 무영향 — r.label 필드가 올바른 endpoint 식별자 보유
+   - 실기능 버그 없음 ✓
+
+5. batch-prices (80+줄):
+   - v7 batch 및 v8 개별 fetch: cache: 'no-store' ✓
+
+6. news-cascade (306줄):
+   - RSS fetch: cache: 'no-store' ✓
+   - 중국어 한자 혼입 가드: hasChineseLeak() 양방향 (summary + cascades[].reason) ✓
+   - 12h vs 1h 티어드 TTL: AI 실패 시 1h (복구 가능) ✓
+   - 24h 개별 article Redis 캐시: cascades > 0 시만 캐시 ✓
+
+FETCH CACHE PROTOCOL 감사:
+  - grep으로 cache:'no-store' 미적용 fetch 스캔 → 멀티라인 fetch 콜의 false positive
+  - investment-strategy (4 fetch): 모두 cache:'no-store' ✓
+  - verify-metrics (7+ fetch): 모두 cache:'no-store' ✓
+  - macro-indicators: cache:'no-store' ✓
+
+ACCURACY PROBE:
+  iter172 SPY 프로브에서 이미 Yahoo Finance LIVE 확인 → 이번 iter 재프로브 불필요
+  (같은 소스 의존 라우트들)
+
+FILES CHANGED: 0개 (negative result iter)
+
+NEXT:
+  - economic-calendar 감사 (GDP 릴리즈 날짜 관련 — iter169 와 연계)
+  - 또는 164커밋 배포 (사용자 승인 대기)
