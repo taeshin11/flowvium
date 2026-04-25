@@ -88,6 +88,15 @@
 - 마운트 시 `/api/stock-price` 7건 + `/api/fear-greed` 1건 + `/api/macro-indicators` 1건 병렬 fetch
 - 가격 로드 전 표시 안 함 (null guard)
 
+### 2-2c. 다음 실적 발표 스트립 (`UpcomingEarningsStrip`) ← iter134
+- `/api/earnings` 호출, 향후 7일 미발표 실적 chip 최대 10개 가로 스크롤
+- Pre / After / During 배지 표시; 클릭 → `/company/{ticker}`
+
+### 2-2d. Top Movers 위젯 (`TopMoversWidget`) ← iter136
+- `/api/market-movers` 호출, S&P 500 상위 50개 당일 급등·급락 Top 5 각
+- Gainers (녹색) · Losers (빨간) 2열, 각 ticker → `/company/{ticker}` 링크
+- Redis 15분 캐시 (flowvium:market-movers:v1)
+
 ### 2-3. 통계 바
 - 10,000+ 투자자 · 137+ 추적 기업 · 16개 섹터 · $48B+ 흐름
 
@@ -865,6 +874,7 @@ ownership-alerts 적용).
 | `/api/cron/verify-metrics` | 자기 API 순회 probe → Redis 스냅샷 + metrics-db hash 갱신 | 2h |
 | `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
 | `/api/economic-calendar` | Finnhub 경제 캘린더 (실제값·예상치·이전값 포함, 정적 fallback) | 4h |
+| `/api/market-movers` | Yahoo Finance v7 batch — S&P 500 상위 50개 당일 급등·급락 Top 5 각 | 15m |
 
 ---
 

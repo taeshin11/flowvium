@@ -499,7 +499,10 @@
     "latestUpdates": "Dernières Mises à Jour",
     "realtime": "Temps Réel",
     "earningsStrip": "Résultats à venir",
-    "earningsNoData": "Aucun résultat cette semaine"
+    "earningsNoData": "Aucun résultat cette semaine",
+    "moversTitle": "Mouvements du Jour",
+    "moversGainers": "Hausses",
+    "moversLosers": "Baisses"
   },
   "feedback": {
     "title": "Envoyer des commentaires",

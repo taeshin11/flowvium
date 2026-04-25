@@ -499,7 +499,10 @@
     "latestUpdates": "Последние Обновления",
     "realtime": "Реальное время",
     "earningsStrip": "Предстоящие отчёты",
-    "earningsNoData": "Нет отчётов на этой неделе"
+    "earningsNoData": "Нет отчётов на этой неделе",
+    "moversTitle": "Движения Дня",
+    "moversGainers": "Рост",
+    "moversLosers": "Падение"
   },
   "feedback": {
     "title": "Отправить отзыв",

@@ -499,7 +499,10 @@
     "latestUpdates": "อัปเดตล่าสุด",
     "realtime": "เรียลไทม์",
     "earningsStrip": "ผลประกอบการที่กำลังจะมา",
-    "earningsNoData": "ไม่มีผลประกอบการสัปดาห์นี้"
+    "earningsNoData": "ไม่มีผลประกอบการสัปดาห์นี้",
+    "moversTitle": "ความเคลื่อนไหววันนี้",
+    "moversGainers": "ขึ้น",
+    "moversLosers": "ลง"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",

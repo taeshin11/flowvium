@@ -499,7 +499,10 @@
     "latestUpdates": "最新更新",
     "realtime": "实时",
     "earningsStrip": "即将公布业绩",
-    "earningsNoData": "本周没有业绩公布"
+    "earningsNoData": "本周没有业绩公布",
+    "moversTitle": "今日涨跌榜",
+    "moversGainers": "涨幅榜",
+    "moversLosers": "跌幅榜"
   },
   "feedback": {
     "title": "发送反馈",

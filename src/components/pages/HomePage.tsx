@@ -844,6 +844,68 @@ function UpcomingEarningsStrip() {
   );
 }
 
+interface HomeMover { ticker: string; price: number; changePct: number; change: number; }
+
+function TopMoversWidget() {
+  const tHome = useTranslations('home');
+  const [gainers, setGainers] = useState<HomeMover[]>([]);
+  const [losers, setLosers] = useState<HomeMover[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/market-movers', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        setGainers(d.gainers ?? []);
+        setLosers(d.losers ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  if (!loaded || (gainers.length === 0 && losers.length === 0)) return null;
+
+  const MoverRow = ({ m, up }: { m: HomeMover; up: boolean }) => (
+    <Link
+      href={`/company/${m.ticker}`}
+      className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-cf-primary/5 transition-colors group"
+    >
+      <span className="text-[11px] font-mono font-bold text-cf-primary group-hover:underline w-14 shrink-0">{m.ticker}</span>
+      <span className="text-[11px] font-mono text-cf-text-secondary ml-auto">${m.price.toFixed(2)}</span>
+      <span className={`text-[11px] font-mono font-bold ml-2 px-1.5 py-px rounded ${up ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
+        {up ? '+' : ''}{m.changePct.toFixed(2)}%
+      </span>
+    </Link>
+  );
+
+  return (
+    <div className="border-b border-cf-border/60 bg-cf-bg/80">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-start gap-6">
+          <span className="text-[10px] font-semibold text-cf-text-secondary uppercase tracking-wide flex-shrink-0 pt-1.5">
+            {tHome('moversTitle')}
+          </span>
+          <div className="flex gap-4 flex-1 min-w-0">
+            {gainers.length > 0 && (
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-bold text-green-600 uppercase tracking-wider mb-1 px-2.5">{tHome('moversGainers')}</p>
+                {gainers.map(m => <MoverRow key={m.ticker} m={m} up={true} />)}
+              </div>
+            )}
+            {losers.length > 0 && (
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-bold text-red-600 uppercase tracking-wider mb-1 px-2.5">{tHome('moversLosers')}</p>
+                {losers.map(m => <MoverRow key={m.ticker} m={m} up={false} />)}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const t = useTranslations('hero');
   const tHome = useTranslations('home');
@@ -985,6 +1047,8 @@ export default function HomePage() {
       <MarketSnapshot />
       {/* Upcoming earnings strip */}
       <UpcomingEarningsStrip />
+      {/* Top movers widget */}
+      <TopMoversWidget />
 
       {/* Social Proof */}
       <section

@@ -656,7 +656,10 @@
     "latestUpdates": "最新アップデート",
     "realtime": "リアルタイム",
     "earningsStrip": "決算発表予定",
-    "earningsNoData": "今週の決算発表はありません"
+    "earningsNoData": "今週の決算発表はありません",
+    "moversTitle": "本日の急騰・急落",
+    "moversGainers": "急騰",
+    "moversLosers": "急落"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",

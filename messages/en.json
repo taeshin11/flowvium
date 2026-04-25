@@ -499,7 +499,10 @@
     "latestUpdates": "Latest Updates",
     "realtime": "Realtime",
     "earningsStrip": "Upcoming Earnings",
-    "earningsNoData": "No earnings this week"
+    "earningsNoData": "No earnings this week",
+    "moversTitle": "Today's Movers",
+    "moversGainers": "Gainers",
+    "moversLosers": "Losers"
   },
   "feedback": {
     "title": "Send Feedback",

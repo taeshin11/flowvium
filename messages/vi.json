@@ -499,7 +499,10 @@
     "latestUpdates": "Cập nhật mới nhất",
     "realtime": "Thời gian thực",
     "earningsStrip": "Thu nhập sắp tới",
-    "earningsNoData": "Không có thu nhập tuần này"
+    "earningsNoData": "Không có thu nhập tuần này",
+    "moversTitle": "Biến động Hôm nay",
+    "moversGainers": "Tăng",
+    "moversLosers": "Giảm"
   },
   "feedback": {
     "title": "Gửi phản hồi",

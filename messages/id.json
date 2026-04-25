@@ -499,7 +499,10 @@
     "latestUpdates": "Pembaruan Terbaru",
     "realtime": "Realtime",
     "earningsStrip": "Penghasilan Mendatang",
-    "earningsNoData": "Tidak ada laporan minggu ini"
+    "earningsNoData": "Tidak ada laporan minggu ini",
+    "moversTitle": "Pergerakan Hari Ini",
+    "moversGainers": "Naik",
+    "moversLosers": "Turun"
   },
   "feedback": {
     "title": "Kirim Masukan",

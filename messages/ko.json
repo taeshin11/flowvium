@@ -656,7 +656,10 @@
     "latestUpdates": "최신 업데이트",
     "realtime": "실시간",
     "earningsStrip": "다가오는 실적 발표",
-    "earningsNoData": "이번 주 실적 발표 없음"
+    "earningsNoData": "이번 주 실적 발표 없음",
+    "moversTitle": "오늘의 급등·급락",
+    "moversGainers": "급등",
+    "moversLosers": "급락"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",

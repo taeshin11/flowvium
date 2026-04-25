@@ -499,7 +499,10 @@
     "latestUpdates": "नवीनतम अपडेट",
     "realtime": "रियल-टाइम",
     "earningsStrip": "आगामी आय",
-    "earningsNoData": "इस सप्ताह कोई आय नहीं"
+    "earningsNoData": "इस सप्ताह कोई आय नहीं",
+    "moversTitle": "आज के मूवर्स",
+    "moversGainers": "बढ़त",
+    "moversLosers": "गिरावट"
   },
   "feedback": {
     "title": "फ़ीडबैक भेजें",

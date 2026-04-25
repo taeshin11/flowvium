@@ -499,7 +499,10 @@
     "latestUpdates": "آخر التحديثات",
     "realtime": "الوقت الفعلي",
     "earningsStrip": "الأرباح القادمة",
-    "earningsNoData": "لا توجد نتائج هذا الأسبوع"
+    "earningsNoData": "لا توجد نتائج هذا الأسبوع",
+    "moversTitle": "تحركات اليوم",
+    "moversGainers": "الرابحون",
+    "moversLosers": "الخاسرون"
   },
   "feedback": {
     "title": "إرسال ملاحظات",

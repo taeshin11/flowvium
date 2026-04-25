@@ -499,7 +499,10 @@
     "latestUpdates": "Son Güncellemeler",
     "realtime": "Gerçek Zamanlı",
     "earningsStrip": "Yaklaşan Kazançlar",
-    "earningsNoData": "Bu hafta kazanç yok"
+    "earningsNoData": "Bu hafta kazanç yok",
+    "moversTitle": "Günün Hareketleri",
+    "moversGainers": "Yükselenler",
+    "moversLosers": "Düşenler"
   },
   "feedback": {
     "title": "Geri Bildirim Gönder",
