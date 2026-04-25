@@ -8,12 +8,13 @@ export async function generateMetadata({
 }: {
   params: { locale: string };
 }): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'seo' });
   return generateSeoMetadata({
-    title: '공매도 · 숏 스퀴즈 — Flowvium',
-    description: 'Short Interest % of Float, Days to Cover, 기관 매집 충돌 분석으로 숏 스퀴즈 후보 종목을 발굴합니다.',
+    title: t('shortTitle'),
+    description: t('shortDescription'),
     path: '/short',
     locale: params.locale,
-    keywords: ['short interest', 'short squeeze', '공매도', 'days to cover', 'FINRA', 'SEC'],
+    keywords: ['short interest', 'short squeeze', 'days to cover', 'FINRA', 'SEC'],
   });
 }
 

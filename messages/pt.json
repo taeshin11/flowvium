@@ -627,7 +627,19 @@
     "newsGapTitle": "Analisador de Lacunas Informativas — Flowvium",
     "newsGapDescription": "Descubra eventos materiais da cadeia de suprimentos com cobertura midiática insuficiente. Encontre alfa em histórias sub-reportadas.",
     "aboutTitle": "Sobre o Flowvium — Inteligência de Cadeia de Suprimentos pela THE ELIOT K FINANCIAL",
-    "aboutDescription": "Conheça a missão do Flowvium de democratizar a inteligência de cadeia de suprimentos e tornar transparentes as redes de comércio global."
+    "aboutDescription": "Conheça a missão do Flowvium de democratizar a inteligência de cadeia de suprimentos e tornar transparentes as redes de comércio global.",
+    "earningsTitle": "Calendário de Resultados — Flowvium",
+    "earningsDescription": "Próximas publicações de resultados esta semana e este mês. EPS e consenso de receita vs surpresa real de um vistaço.",
+    "heatmapTitle": "Mapa de Calor do Mercado — Flowvium",
+    "heatmapDescription": "Mapa de calor de desempenho em tempo real para ETFs setoriais do S&P 500 e ações rastreadas.",
+    "insiderTitle": "Negociações Insider · Fluxo — Flowvium",
+    "insiderDescription": "Negociações insider SEC Form 4 + fluxo incomum de opções. Acompanhe o dinheiro inteligente em tempo real.",
+    "screenerTitle": "Filtro de Ações — Flowvium",
+    "screenerDescription": "Filtro baseado em acumulação institucional e dados de posições vendidas. Identifique candidatos a short squeeze.",
+    "shortTitle": "Posição Vendida · Short Squeeze — Flowvium",
+    "shortDescription": "Analise Short Interest % of Float, Days to Cover e conflitos institucionais para identificar candidatos a short squeeze.",
+    "watchlistTitle": "Lista de Acompanhamento — Flowvium",
+    "watchlistDescription": "Adicione ações à sua lista de acompanhamento e monitore preços em tempo real e variações diárias de um vistaço."
   },
   "pro": {
     "upgradeTitle": "Desbloqueie o Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "Estático",
     "ecLoading": "Carregando calendário econômico...",
     "ecRefresh": "Atualizar",
-    "ecFootnoteLive": "Fonte: Finnhub · Cache 4h · Exibe real vs estimado para eventos divulgados"
+    "ecFootnoteLive": "Fonte: Finnhub · Cache 4h · Exibe real vs estimado para eventos divulgados",
+    "cnnBadgeTooltip": "Índice CNN Fear & Greed oficial (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",

@@ -627,7 +627,19 @@
     "newsGapTitle": "Penganalisis Kesenjangan Berita — Flowvium",
     "newsGapDescription": "Temukan peristiwa rantai pasok material yang kurang mendapat liputan media. Temukan alpha dalam cerita yang kurang dilaporkan.",
     "aboutTitle": "Tentang Flowvium — Intelijen Rantai Pasok oleh THE ELIOT K FINANCIAL",
-    "aboutDescription": "Pelajari misi Flowvium untuk mendemokratisasi intelijen rantai pasok dan menjadikan jaringan perdagangan global transparan."
+    "aboutDescription": "Pelajari misi Flowvium untuk mendemokratisasi intelijen rantai pasok dan menjadikan jaringan perdagangan global transparan.",
+    "earningsTitle": "Kalender Laporan Keuangan — Flowvium",
+    "earningsDescription": "Rilis laporan keuangan mendatang minggu dan bulan ini. EPS dan konsensus pendapatan vs kejutan aktual sekilas.",
+    "heatmapTitle": "Peta Panas Pasar — Flowvium",
+    "heatmapDescription": "Peta panas kinerja real-time untuk ETF sektoral S&P 500 dan saham yang dipantau.",
+    "insiderTitle": "Perdagangan Insider · Aliran Dana — Flowvium",
+    "insiderDescription": "Perdagangan insider SEC Form 4 + aliran opsi tidak biasa. Lacak smart money secara real-time.",
+    "screenerTitle": "Pemindai Saham — Flowvium",
+    "screenerDescription": "Pemindai berbasis akumulasi institusional dan data posisi pendek. Filter kandidat short squeeze.",
+    "shortTitle": "Posisi Pendek · Short Squeeze — Flowvium",
+    "shortDescription": "Analisis Short Interest % of Float, Days to Cover, dan konflik institusional untuk mengidentifikasi kandidat short squeeze.",
+    "watchlistTitle": "Daftar Pantau — Flowvium",
+    "watchlistDescription": "Tambahkan saham ke daftar pantau Anda dan pantau harga real-time serta perubahan harian sekilas."
   },
   "pro": {
     "upgradeTitle": "Buka Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "Statis",
     "ecLoading": "Memuat kalender ekonomi...",
     "ecRefresh": "Segarkan",
-    "ecFootnoteLive": "Sumber: Finnhub · Cache 4j · Menampilkan aktual vs estimasi untuk acara yang dirilis"
+    "ecFootnoteLive": "Sumber: Finnhub · Cache 4j · Menampilkan aktual vs estimasi untuk acara yang dirilis",
+    "cnnBadgeTooltip": "Indeks CNN Fear & Greed resmi (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",

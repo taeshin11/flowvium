@@ -1,5 +1,6 @@
 import HeatmapPage from '@/components/pages/HeatmapPage';
 import { generateSeoMetadata } from '@/lib/seo';
+import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({
@@ -7,12 +8,13 @@ export async function generateMetadata({
 }: {
   params: { locale: string };
 }): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'seo' });
   return generateSeoMetadata({
-    title: '시장 히트맵 — Flowvium',
-    description: 'S&P 500 섹터 ETF와 추적 종목의 실시간 등락률 히트맵. 시장 흐름을 한눈에 파악합니다.',
+    title: t('heatmapTitle'),
+    description: t('heatmapDescription'),
     path: '/heatmap',
     locale: params.locale,
-    keywords: ['market heatmap', '시장 히트맵', 'sector ETF', 'stock heatmap', 'S&P 500'],
+    keywords: ['market heatmap', 'sector ETF', 'stock heatmap', 'S&P 500'],
   });
 }
 

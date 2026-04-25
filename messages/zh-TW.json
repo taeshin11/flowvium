@@ -627,7 +627,19 @@
     "newsGapTitle": "新聞盲區分析器 — Flowvium",
     "newsGapDescription": "發現尚未獲得充分媒體報導的重大供應鏈事件。從報導不足的領域中尋找阿爾法。",
     "aboutTitle": "關於 Flowvium — THE ELIOT K FINANCIAL 旗下供應鏈情報平台",
-    "aboutDescription": "瞭解 Flowvium 致力於供應鏈情報民主化、讓全球貿易網路透明化的使命。"
+    "aboutDescription": "瞭解 Flowvium 致力於供應鏈情報民主化、讓全球貿易網路透明化的使命。",
+    "earningsTitle": "財報行事曆 — Flowvium",
+    "earningsDescription": "本週和本月即將發布的財報。EPS和營收共識對比實際驚喜一覽無遺。",
+    "heatmapTitle": "市場熱力圖 — Flowvium",
+    "heatmapDescription": "標普500板塊ETF和追蹤股票的即時漲跌熱力圖。直觀呈現市場資金流向。",
+    "insiderTitle": "內線交易 · 資金流向 — Flowvium",
+    "insiderDescription": "SEC Form 4內線交易 + 選擇權異常流向。即時追蹤聰明錢動向。",
+    "screenerTitle": "選股工具 — Flowvium",
+    "screenerDescription": "基於機構買進積累和做空數據的選股工具。篩選軋空候選股和機構新進入股票。",
+    "shortTitle": "放空 · 軋空 — Flowvium",
+    "shortDescription": "透過空頭利率占流通股比例、回補天數和機構買進衝突分析發掘軋空候選股。",
+    "watchlistTitle": "自選股 — Flowvium",
+    "watchlistDescription": "新增股票至自選股，一目了然地監控即時股價和日漲跌幅。"
   },
   "pro": {
     "upgradeTitle": "解鎖 Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "靜態",
     "ecLoading": "載入經濟日曆中...",
     "ecRefresh": "重新整理",
-    "ecFootnoteLive": "來源: Finnhub · 4小時快取 · 已發布指標顯示實際值與預期值"
+    "ecFootnoteLive": "來源: Finnhub · 4小時快取 · 已發布指標顯示實際值與預期值",
+    "cnnBadgeTooltip": "CNN官方恐懼與貪婪指數 (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "全球情報追蹤",

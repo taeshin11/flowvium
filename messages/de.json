@@ -627,7 +627,19 @@
     "newsGapTitle": "Nachrichtenlücken-Analysator — Flowvium",
     "newsGapDescription": "Entdecken Sie wesentliche Lieferkettenereignisse, die keine ausreichende Medienberichterstattung erhalten haben. Finden Sie Alpha in unterberichteten Geschichten.",
     "aboutTitle": "Über Flowvium — Lieferketten-Intelligence von THE ELIOT K FINANCIAL",
-    "aboutDescription": "Erfahren Sie mehr über Flowviums Mission, Lieferketten-Intelligence zu demokratisieren und globale Handelsnetzwerke transparent zu machen."
+    "aboutDescription": "Erfahren Sie mehr über Flowviums Mission, Lieferketten-Intelligence zu demokratisieren und globale Handelsnetzwerke transparent zu machen.",
+    "earningsTitle": "Ergebniskalender — Flowvium",
+    "earningsDescription": "Bevorstehende Ergebnisveröffentlichungen diese Woche und diesen Monat. EPS und Umsatzkonsens vs. tatsächliche Überraschung auf einen Blick.",
+    "heatmapTitle": "Markt-Heatmap — Flowvium",
+    "heatmapDescription": "Echtzeit-Performance-Heatmap für S&P 500 Sektor-ETFs und verfolgte Aktien. Marktströme sofort visualisieren.",
+    "insiderTitle": "Insider-Handel · Geldfluss — Flowvium",
+    "insiderDescription": "SEC Form 4 Insider-Handel + ungewöhnlicher Optionsfluss. Verfolgen Sie Smart Money in Echtzeit.",
+    "screenerTitle": "Aktienscreener — Flowvium",
+    "screenerDescription": "Institutionelle Akkumulation + Leerverkaufsdaten-Screener. Filtern Sie nach Short-Squeeze-Kandidaten.",
+    "shortTitle": "Leerverkauf · Short Squeeze — Flowvium",
+    "shortDescription": "Analysieren Sie Short Interest % of Float, Days to Cover und institutionelle Konflikte, um Short-Squeeze-Kandidaten zu identifizieren.",
+    "watchlistTitle": "Watchlist — Flowvium",
+    "watchlistDescription": "Fügen Sie Aktien zu Ihrer Watchlist hinzu und überwachen Sie Echtzeitkurse und tägliche Veränderungen auf einen Blick."
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro freischalten",
@@ -888,7 +900,8 @@
     "ecStatic": "Statisch",
     "ecLoading": "Wirtschaftskalender wird geladen...",
     "ecRefresh": "Aktualisieren",
-    "ecFootnoteLive": "Quelle: Finnhub · 4h-Cache · Zeigt Ist-Wert vs. Schätzung für veröffentlichte Ereignisse"
+    "ecFootnoteLive": "Quelle: Finnhub · 4h-Cache · Zeigt Ist-Wert vs. Schätzung für veröffentlichte Ereignisse",
+    "cnnBadgeTooltip": "Offizieller CNN Fear & Greed Index (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",

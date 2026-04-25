@@ -627,7 +627,19 @@
     "newsGapTitle": "Haber Boşluğu Analiz Aracı — Flowvium",
     "newsGapDescription": "Yeterli medya ilgisi görmemiş önemli tedarik zinciri olaylarını keşfedin. Yetersiz haberlerden alfa bulun.",
     "aboutTitle": "Flowvium Hakkında — THE ELIOT K FINANCIAL Tedarik Zinciri İstihbaratı",
-    "aboutDescription": "Flowvium'un tedarik zinciri istihbaratını demokratikleştirme ve küresel ticaret ağlarını şeffaflaştırma misyonunu öğrenin."
+    "aboutDescription": "Flowvium'un tedarik zinciri istihbaratını demokratikleştirme ve küresel ticaret ağlarını şeffaflaştırma misyonunu öğrenin.",
+    "earningsTitle": "Kazanç Takvimi — Flowvium",
+    "earningsDescription": "Bu hafta ve ay içinde açıklanacak bilanço sonuçları. EPS ve gelir konsensüsü vs gerçek sürpriz tek bakışta.",
+    "heatmapTitle": "Piyasa Isı Haritası — Flowvium",
+    "heatmapDescription": "S&P 500 sektör ETF'leri ve takip edilen hisseler için gerçek zamanlı performans ısı haritası.",
+    "insiderTitle": "İçeriden Alım Satım · Akış — Flowvium",
+    "insiderDescription": "SEC Form 4 içeriden alım satım + olağandışı opsiyon akışı. Akıllı parayı gerçek zamanlı takip edin.",
+    "screenerTitle": "Hisse Tarayıcı — Flowvium",
+    "screenerDescription": "Kurumsal birikim + açığa satış verilerine dayalı hisse tarayıcı. Short squeeze adaylarını filtreleyin.",
+    "shortTitle": "Açığa Satış · Short Squeeze — Flowvium",
+    "shortDescription": "Short Squeeze adaylarını belirlemek için Short Interest % of Float, Days to Cover ve kurumsal çatışma analizi.",
+    "watchlistTitle": "İzleme Listesi — Flowvium",
+    "watchlistDescription": "Hisseleri izleme listenize ekleyin ve gerçek zamanlı fiyatları ve günlük değişimleri tek bakışta izleyin."
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro'yu Açın",
@@ -888,7 +900,8 @@
     "ecStatic": "Statik",
     "ecLoading": "Ekonomik takvim yükleniyor...",
     "ecRefresh": "Yenile",
-    "ecFootnoteLive": "Kaynak: Finnhub · 4s önbellek · Yayımlanan olaylar için gerçek vs tahmin gösterir"
+    "ecFootnoteLive": "Kaynak: Finnhub · 4s önbellek · Yayımlanan olaylar için gerçek vs tahmin gösterir",
+    "cnnBadgeTooltip": "CNN resmi Fear & Greed Endeksi (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",

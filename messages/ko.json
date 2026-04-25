@@ -558,7 +558,19 @@
     "newsGapTitle": "뉴스 갭 분석기 — Flowvium",
     "newsGapDescription": "충분한 미디어 보도를 받지 못한 중대한 공급망 이벤트를 발견합니다. 과소 보도된 이슈에서 알파를 찾으세요.",
     "aboutTitle": "소개 — THE ELIOT K FINANCIAL의 공급망 인텔리전스, Flowvium",
-    "aboutDescription": "공급망 인텔리전스를 민주화하고 글로벌 무역 네트워크를 투명하게 만들기 위한 Flowvium의 미션을 알아보세요."
+    "aboutDescription": "공급망 인텔리전스를 민주화하고 글로벌 무역 네트워크를 투명하게 만들기 위한 Flowvium의 미션을 알아보세요.",
+    "earningsTitle": "실적 캘린더 — Flowvium",
+    "earningsDescription": "이번 주·이번 달 실적 발표 예정 종목. EPS·매출 컨센서스 vs 실제 surprise를 한눈에.",
+    "heatmapTitle": "시장 히트맵 — Flowvium",
+    "heatmapDescription": "S&P 500 섹터 ETF와 추적 종목의 실시간 등락률 히트맵. 시장 흐름을 한눈에 파악합니다.",
+    "insiderTitle": "내부자 매매 · 수급 — Flowvium",
+    "insiderDescription": "SEC Form 4 내부자 매매 + 옵션 unusual flow. 스마트머니 자금 추적.",
+    "screenerTitle": "종목 스크리너 — Flowvium",
+    "screenerDescription": "기관 매집 + 공매도 데이터 기반 종목 스크리너. 숏 스퀴즈 후보 종목을 필터링합니다.",
+    "shortTitle": "공매도 · 숏 스퀴즈 — Flowvium",
+    "shortDescription": "Short Interest % of Float, Days to Cover, 기관 매집 충돌 분석으로 숏 스퀴즈 후보 종목을 발굴합니다.",
+    "watchlistTitle": "관심 종목 — Flowvium",
+    "watchlistDescription": "관심 종목을 추가하고 실시간 주가와 일간 변동률을 한 눈에 확인하세요."
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro 이용하기",
@@ -888,7 +900,8 @@
     "ecStatic": "정적",
     "ecLoading": "경제 캘린더 불러오는 중...",
     "ecRefresh": "새로고침",
-    "ecFootnoteLive": "출처: Finnhub · 4h 캐시 · 발표된 지표에 실제값/예상치 포함"
+    "ecFootnoteLive": "출처: Finnhub · 4h 캐시 · 발표된 지표에 실제값/예상치 포함",
+    "cnnBadgeTooltip": "CNN 공식 Fear & Greed Index (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",

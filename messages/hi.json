@@ -627,7 +627,19 @@
     "newsGapTitle": "न्यूज़ गैप विश्लेषक — Flowvium",
     "newsGapDescription": "पर्याप्त मीडिया कवरेज नहीं मिली महत्वपूर्ण सप्लाई चेन घटनाएँ खोजें। कम रिपोर्ट की गई खबरों में अल्फ़ा खोजें।",
     "aboutTitle": "हमारे बारे में — THE ELIOT K FINANCIAL द्वारा सप्लाई चेन इंटेलिजेंस, Flowvium",
-    "aboutDescription": "सप्लाई चेन इंटेलिजेंस को लोकतांत्रिक बनाने और वैश्विक व्यापार नेटवर्क को पारदर्शी बनाने के Flowvium के मिशन के बारे में जानें।"
+    "aboutDescription": "सप्लाई चेन इंटेलिजेंस को लोकतांत्रिक बनाने और वैश्विक व्यापार नेटवर्क को पारदर्शी बनाने के Flowvium के मिशन के बारे में जानें।",
+    "earningsTitle": "अर्निंग्स कैलेंडर — Flowvium",
+    "earningsDescription": "इस सप्ताह और महीने में आने वाली अर्निंग्स रिलीज़। EPS और राजस्व कंसेंसस बनाम वास्तविक सरप्राइज एक नज़र में।",
+    "heatmapTitle": "मार्केट हीटमैप — Flowvium",
+    "heatmapDescription": "S&P 500 सेक्टर ETF और ट्रैक किए गए शेयरों के लिए रियल-टाइम परफॉर्मेंस हीटमैप।",
+    "insiderTitle": "इनसाइडर ट्रेडिंग · फ्लो — Flowvium",
+    "insiderDescription": "SEC Form 4 इनसाइडर ट्रेड + असामान्य ऑप्शन फ्लो। स्मार्ट मनी को रियल-टाइम में ट्रैक करें।",
+    "screenerTitle": "स्टॉक स्क्रीनर — Flowvium",
+    "screenerDescription": "इंस्टीट्यूशनल संग्रह + शॉर्ट डेटा आधारित स्टॉक स्क्रीनर। शॉर्ट स्क्वीज़ उम्मीदवारों को फ़िल्टर करें।",
+    "shortTitle": "शॉर्ट इंटरेस्ट · शॉर्ट स्क्वीज़ — Flowvium",
+    "shortDescription": "शॉर्ट स्क्वीज़ उम्मीदवारों की पहचान के लिए Short Interest % of Float, Days to Cover और इंस्टीट्यूशनल संघर्ष विश्लेषण।",
+    "watchlistTitle": "वॉचलिस्ट — Flowvium",
+    "watchlistDescription": "अपनी वॉचलिस्ट में शेयर जोड़ें और रियल-टाइम कीमतों और दैनिक परिवर्तनों को एक नज़र में मॉनिटर करें।"
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro अनलॉक करें",
@@ -888,7 +900,8 @@
     "ecStatic": "स्थिर",
     "ecLoading": "आर्थिक कैलेंडर लोड हो रहा है...",
     "ecRefresh": "रीफ्रेश",
-    "ecFootnoteLive": "स्रोत: Finnhub · 4घंटे कैश · जारी इवेंट के लिए वास्तविक बनाम अनुमान दिखाता है"
+    "ecFootnoteLive": "स्रोत: Finnhub · 4घंटे कैश · जारी इवेंट के लिए वास्तविक बनाम अनुमान दिखाता है",
+    "cnnBadgeTooltip": "CNN आधिकारिक Fear & Greed Index (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "वैश्विक इंटेलिजेंस ट्रैकिंग",

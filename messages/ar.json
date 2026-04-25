@@ -627,7 +627,19 @@
     "newsGapTitle": "محلل الفجوات الإخبارية — Flowvium",
     "newsGapDescription": "اكتشف أحداث سلسلة التوريد الجوهرية التي لم تحظَ بتغطية إعلامية كافية. اعثر على فرص في القصص غير المُبلّغ عنها.",
     "aboutTitle": "من نحن — ذكاء سلسلة التوريد بواسطة THE ELIOT K FINANCIAL، Flowvium",
-    "aboutDescription": "تعرّف على مهمة Flowvium في إتاحة ذكاء سلسلة التوريد للجميع وجعل شبكات التجارة العالمية شفافة."
+    "aboutDescription": "تعرّف على مهمة Flowvium في إتاحة ذكاء سلسلة التوريد للجميع وجعل شبكات التجارة العالمية شفافة.",
+    "earningsTitle": "تقويم الأرباح — Flowvium",
+    "earningsDescription": "إعلانات الأرباح القادمة هذا الأسبوع والشهر. EPS وإجماع الإيرادات مقابل المفاجأة الفعلية في لمحة.",
+    "heatmapTitle": "خريطة حرارة السوق — Flowvium",
+    "heatmapDescription": "خريطة حرارة الأداء في الوقت الفعلي لصناديق ETF القطاعية S&P 500 والأسهم المتابَعة.",
+    "insiderTitle": "تداولات الداخليين · تدفق الأموال — Flowvium",
+    "insiderDescription": "تداولات الداخليين SEC Form 4 + تدفق الخيارات غير المعتاد. تتبع الأموال الذكية في الوقت الفعلي.",
+    "screenerTitle": "فاحص الأسهم — Flowvium",
+    "screenerDescription": "فاحص مبني على تراكم المؤسسات وبيانات البيع على المكشوف. تصفية المرشحين للضغط القصير.",
+    "shortTitle": "البيع على المكشوف — Flowvium",
+    "shortDescription": "تحليل نسبة البيع على المكشوف وأيام التغطية والتعارض المؤسسي لتحديد مرشحي الضغط القصير.",
+    "watchlistTitle": "قائمة المراقبة — Flowvium",
+    "watchlistDescription": "أضف الأسهم إلى قائمة مراقبتك وراقب الأسعار في الوقت الفعلي والتغيرات اليومية."
   },
   "pro": {
     "upgradeTitle": "افتح Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "ثابت",
     "ecLoading": "جار تحميل التقويم الاقتصادي...",
     "ecRefresh": "تحديث",
-    "ecFootnoteLive": "المصدر: Finnhub · تخزين مؤقت 4 ساعات · يعرض الفعلي مقابل المتوقع للأحداث المنشورة"
+    "ecFootnoteLive": "المصدر: Finnhub · تخزين مؤقت 4 ساعات · يعرض الفعلي مقابل المتوقع للأحداث المنشورة",
+    "cnnBadgeTooltip": "مؤشر CNN الرسمي للخوف والجشع (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "تتبع الاستخبارات العالمية",

@@ -627,7 +627,19 @@
     "newsGapTitle": "News Gap Analyzer — Flowvium",
     "newsGapDescription": "Discover material supply chain events that haven't received adequate media coverage. Find alpha in underreported stories.",
     "aboutTitle": "About Flowvium — Supply Chain Intelligence by THE ELIOT K FINANCIAL",
-    "aboutDescription": "Learn about Flowvium's mission to democratize supply chain intelligence and make global trade networks transparent."
+    "aboutDescription": "Learn about Flowvium's mission to democratize supply chain intelligence and make global trade networks transparent.",
+    "earningsTitle": "Earnings Calendar — Flowvium",
+    "earningsDescription": "Upcoming earnings releases this week and month. EPS & revenue consensus vs actual surprise at a glance.",
+    "heatmapTitle": "Market Heatmap — Flowvium",
+    "heatmapDescription": "Real-time performance heatmap for S&P 500 sector ETFs and tracked stocks. Visualize market flows instantly.",
+    "insiderTitle": "Insider Trading & Flow — Flowvium",
+    "insiderDescription": "SEC Form 4 insider trades + options unusual flow. Track smart money in real time.",
+    "screenerTitle": "Stock Screener — Flowvium",
+    "screenerDescription": "Institutional accumulation + short data screener. Filter for short squeeze candidates and new institutional entries.",
+    "shortTitle": "Short Interest & Short Squeeze — Flowvium",
+    "shortDescription": "Short Interest % of Float, Days to Cover, and institutional conflict analysis to identify short squeeze candidates.",
+    "watchlistTitle": "Watchlist — Flowvium",
+    "watchlistDescription": "Add tickers to your watchlist and monitor real-time prices and daily changes at a glance."
   },
   "pro": {
     "upgradeTitle": "Unlock Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "Static",
     "ecLoading": "Loading economic calendar…",
     "ecRefresh": "Refresh",
-    "ecFootnoteLive": "Source: Finnhub · 4h cache · Shows actual vs estimate for released events"
+    "ecFootnoteLive": "Source: Finnhub · 4h cache · Shows actual vs estimate for released events",
+    "cnnBadgeTooltip": "CNN official Fear & Greed Index (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "Global Intelligence Tracking",

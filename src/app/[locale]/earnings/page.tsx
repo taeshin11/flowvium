@@ -1,5 +1,6 @@
 import EarningsPage from '@/components/pages/EarningsPage';
 import { generateSeoMetadata } from '@/lib/seo';
+import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({
@@ -7,12 +8,13 @@ export async function generateMetadata({
 }: {
   params: { locale: string };
 }): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'seo' });
   return generateSeoMetadata({
-    title: '실적 캘린더 — Flowvium',
-    description: '이번 주·이번 달 실적 발표 예정 종목. EPS·매출 컨센서스 vs 실제 surprise를 한눈에.',
+    title: t('earningsTitle'),
+    description: t('earningsDescription'),
     path: '/earnings',
     locale: params.locale,
-    keywords: ['earnings calendar', '실적 캘린더', 'EPS', 'consensus', 'Finnhub'],
+    keywords: ['earnings calendar', 'EPS', 'consensus', 'Finnhub', 'earnings surprise'],
   });
 }
 

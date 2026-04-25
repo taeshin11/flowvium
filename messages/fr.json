@@ -627,7 +627,19 @@
     "newsGapTitle": "Analyseur d'écart médiatique — Flowvium",
     "newsGapDescription": "Découvrez les événements significatifs de la chaîne d'approvisionnement n'ayant pas reçu une couverture médiatique adéquate. Trouvez de l'alpha dans les histoires sous-médiatisées.",
     "aboutTitle": "À propos de Flowvium — Intelligence de la chaîne d'approvisionnement par THE ELIOT K FINANCIAL",
-    "aboutDescription": "Découvrez la mission de Flowvium : démocratiser l'intelligence de la chaîne d'approvisionnement et rendre les réseaux de commerce mondial transparents."
+    "aboutDescription": "Découvrez la mission de Flowvium : démocratiser l'intelligence de la chaîne d'approvisionnement et rendre les réseaux de commerce mondial transparents.",
+    "earningsTitle": "Calendrier des Résultats — Flowvium",
+    "earningsDescription": "Publications de résultats à venir cette semaine et ce mois-ci. Consensus EPS et revenus vs surprise réelle en un coup d'œil.",
+    "heatmapTitle": "Carte de Chaleur du Marché — Flowvium",
+    "heatmapDescription": "Carte de chaleur des performances en temps réel pour les ETFs sectoriels S&P 500 et les actions suivies.",
+    "insiderTitle": "Transactions Initiées · Flux — Flowvium",
+    "insiderDescription": "Transactions initiées SEC Form 4 + flux d'options inhabituel. Suivez l'argent intelligent en temps réel.",
+    "screenerTitle": "Filtre d'Actions — Flowvium",
+    "screenerDescription": "Filtre basé sur l'accumulation institutionnelle et les données de vente à découvert. Identifiez les candidats au short squeeze.",
+    "shortTitle": "Vente à Découvert · Short Squeeze — Flowvium",
+    "shortDescription": "Analysez Short Interest % of Float, Days to Cover et les conflits institutionnels pour identifier les candidats au short squeeze.",
+    "watchlistTitle": "Liste de Suivi — Flowvium",
+    "watchlistDescription": "Ajoutez des actions à votre liste de suivi et surveillez les prix en temps réel et les variations journalières."
   },
   "pro": {
     "upgradeTitle": "Débloquez Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "Statique",
     "ecLoading": "Chargement du calendrier économique...",
     "ecRefresh": "Actualiser",
-    "ecFootnoteLive": "Source: Finnhub · Cache 4h · Affiche réel vs estimé pour les événements publiés"
+    "ecFootnoteLive": "Source: Finnhub · Cache 4h · Affiche réel vs estimé pour les événements publiés",
+    "cnnBadgeTooltip": "Indice CNN Fear & Greed officiel (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",

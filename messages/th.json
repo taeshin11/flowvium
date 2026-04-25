@@ -627,7 +627,19 @@
     "newsGapTitle": "เครื่องมือวิเคราะห์ช่องว่างข่าว — Flowvium",
     "newsGapDescription": "ค้นพบเหตุการณ์สำคัญในห่วงโซ่อุปทานที่ไม่ได้รับการรายงานอย่างเพียงพอ ค้นหาโอกาสจากเรื่องราวที่ถูกมองข้าม",
     "aboutTitle": "เกี่ยวกับ Flowvium — ข่าวกรองห่วงโซ่อุปทานโดย THE ELIOT K FINANCIAL",
-    "aboutDescription": "เรียนรู้เกี่ยวกับภารกิจของ Flowvium ในการทำให้ข่าวกรองห่วงโซ่อุปทานเข้าถึงได้ทั่วถึงและสร้างความโปร่งใสให้เครือข่ายการค้าโลก"
+    "aboutDescription": "เรียนรู้เกี่ยวกับภารกิจของ Flowvium ในการทำให้ข่าวกรองห่วงโซ่อุปทานเข้าถึงได้ทั่วถึงและสร้างความโปร่งใสให้เครือข่ายการค้าโลก",
+    "earningsTitle": "ปฏิทินผลประกอบการ — Flowvium",
+    "earningsDescription": "การประกาศผลประกอบการที่กำลังจะมาถึงสัปดาห์นี้และเดือนนี้ EPS และคอนเซ็นซัสรายได้เทียบกับผลจริงในมุมเดียว",
+    "heatmapTitle": "แผนที่ความร้อนตลาด — Flowvium",
+    "heatmapDescription": "แผนที่ความร้อนประสิทธิภาพแบบเรียลไทม์สำหรับ ETF ภาคส่วน S&P 500 และหุ้นที่ติดตาม",
+    "insiderTitle": "การซื้อขายผู้ในรู้ · กระแสเงิน — Flowvium",
+    "insiderDescription": "การซื้อขายผู้ในรู้ SEC Form 4 + กระแสออปชั่นผิดปกติ ติดตาม smart money แบบเรียลไทม์",
+    "screenerTitle": "ตัวกรองหุ้น — Flowvium",
+    "screenerDescription": "ตัวกรองตามการสะสมของสถาบันและข้อมูล short sell กรองผู้สมัคร short squeeze",
+    "shortTitle": "ชอร์ตเซล · Short Squeeze — Flowvium",
+    "shortDescription": "วิเคราะห์ Short Interest % of Float, Days to Cover และความขัดแย้งของสถาบันเพื่อระบุผู้สมัคร short squeeze",
+    "watchlistTitle": "รายการเฝ้าดู — Flowvium",
+    "watchlistDescription": "เพิ่มหุ้นในรายการเฝ้าดูและติดตามราคาแบบเรียลไทม์และการเปลี่ยนแปลงรายวันในมุมเดียว"
   },
   "pro": {
     "upgradeTitle": "ปลดล็อก Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "คงที่",
     "ecLoading": "กำลังโหลดปฏิทินเศรษฐกิจ...",
     "ecRefresh": "รีเฟรช",
-    "ecFootnoteLive": "แหล่งที่มา: Finnhub · แคช 4ชม · แสดงค่าจริงเทียบกับการประมาณสำหรับเหตุการณ์ที่เผยแพร่แล้ว"
+    "ecFootnoteLive": "แหล่งที่มา: Finnhub · แคช 4ชม · แสดงค่าจริงเทียบกับการประมาณสำหรับเหตุการณ์ที่เผยแพร่แล้ว",
+    "cnnBadgeTooltip": "CNN Fear & Greed Index อย่างเป็นทางการ (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "การติดตามข่าวกรองระดับโลก",

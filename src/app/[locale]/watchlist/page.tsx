@@ -1,14 +1,16 @@
 import WatchlistPage from '@/components/pages/WatchlistPage';
 import { generateSeoMetadata } from '@/lib/seo';
+import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'seo' });
   return generateSeoMetadata({
-    title: '관심 종목 — Flowvium',
-    description: '관심 종목을 추가하고 실시간 주가와 일간 변동률을 한 눈에 확인하세요.',
+    title: t('watchlistTitle'),
+    description: t('watchlistDescription'),
     path: '/watchlist',
     locale: params.locale,
-    keywords: ['watchlist', '관심 종목', 'live stock price', '실시간 주가'],
+    keywords: ['watchlist', 'live stock price', 'portfolio tracker'],
   });
 }
 

@@ -627,7 +627,19 @@
     "newsGapTitle": "Phân tích khoảng trống tin tức — Flowvium",
     "newsGapDescription": "Khám phá các sự kiện chuỗi cung ứng quan trọng chưa được truyền thông đưa tin đầy đủ. Tìm alpha từ những câu chuyện bị bỏ lỡ.",
     "aboutTitle": "Giới thiệu — Thông tin chuỗi cung ứng bởi THE ELIOT K FINANCIAL, Flowvium",
-    "aboutDescription": "Tìm hiểu sứ mệnh của Flowvium trong việc phổ cập thông tin chuỗi cung ứng và minh bạch hóa mạng lưới thương mại toàn cầu."
+    "aboutDescription": "Tìm hiểu sứ mệnh của Flowvium trong việc phổ cập thông tin chuỗi cung ứng và minh bạch hóa mạng lưới thương mại toàn cầu.",
+    "earningsTitle": "Lịch Kết Quả Kinh Doanh — Flowvium",
+    "earningsDescription": "Các báo cáo kết quả sắp tới trong tuần và tháng này. EPS và đồng thuận doanh thu so với bất ngờ thực tế trong nháy mắt.",
+    "heatmapTitle": "Bản Đồ Nhiệt Thị Trường — Flowvium",
+    "heatmapDescription": "Bản đồ nhiệt hiệu suất thời gian thực cho các ETF ngành S&P 500 và cổ phiếu được theo dõi.",
+    "insiderTitle": "Giao Dịch Nội Bộ · Dòng Tiền — Flowvium",
+    "insiderDescription": "Giao dịch nội bộ SEC Form 4 + dòng quyền chọn bất thường. Theo dõi smart money theo thời gian thực.",
+    "screenerTitle": "Bộ Lọc Cổ Phiếu — Flowvium",
+    "screenerDescription": "Bộ lọc dựa trên tích lũy tổ chức và dữ liệu bán khống. Lọc ứng viên short squeeze.",
+    "shortTitle": "Bán Khống · Short Squeeze — Flowvium",
+    "shortDescription": "Phân tích Short Interest % of Float, Days to Cover và xung đột tổ chức để xác định ứng viên short squeeze.",
+    "watchlistTitle": "Danh Sách Theo Dõi — Flowvium",
+    "watchlistDescription": "Thêm cổ phiếu vào danh sách theo dõi và giám sát giá thời gian thực và thay đổi hàng ngày trong nháy mắt."
   },
   "pro": {
     "upgradeTitle": "Mở khóa Flowvium Pro",
@@ -888,7 +900,8 @@
     "ecStatic": "Tĩnh",
     "ecLoading": "Đang tải lịch kinh tế...",
     "ecRefresh": "Làm mới",
-    "ecFootnoteLive": "Nguồn: Finnhub · Bộ nhớ đệm 4h · Hiển thị thực tế vs ước tính cho các sự kiện đã công bố"
+    "ecFootnoteLive": "Nguồn: Finnhub · Bộ nhớ đệm 4h · Hiển thị thực tế vs ước tính cho các sự kiện đã công bố",
+    "cnnBadgeTooltip": "Chỉ số CNN Fear & Greed chính thức (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",

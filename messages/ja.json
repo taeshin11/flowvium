@@ -558,7 +558,19 @@
     "newsGapTitle": "ニュースギャップ・アナライザー — Flowvium",
     "newsGapDescription": "十分なメディア報道を受けていない重要なサプライチェーンイベントを発見。報道不足の情報からアルファを見つけましょう。",
     "aboutTitle": "概要 — THE ELIOT K FINANCIALによるサプライチェーン・インテリジェンス、Flowvium",
-    "aboutDescription": "サプライチェーン・インテリジェンスの民主化とグローバル貿易ネットワークの透明化というFlowviumのミッションについて。"
+    "aboutDescription": "サプライチェーン・インテリジェンスの民主化とグローバル貿易ネットワークの透明化というFlowviumのミッションについて。",
+    "earningsTitle": "決算カレンダー — Flowvium",
+    "earningsDescription": "今週・今月の決算発表予定銘柄。EPS・売上コンセンサスvs実際のサプライズを一目で確認。",
+    "heatmapTitle": "市場ヒートマップ — Flowvium",
+    "heatmapDescription": "S&P500セクターETFと追跡銘柄のリアルタイム騰落率ヒートマップ。市場の流れを一目で把握。",
+    "insiderTitle": "インサイダー売買・資金フロー — Flowvium",
+    "insiderDescription": "SEC Form 4インサイダー売買＋オプション異常フロー。スマートマネーをリアルタイムで追跡。",
+    "screenerTitle": "銘柄スクリーナー — Flowvium",
+    "screenerDescription": "機関投資家買い集め＋空売りデータ基盤の銘柄スクリーナー。ショートスクイーズ候補銘柄をフィルタリング。",
+    "shortTitle": "空売り・ショートスクイーズ — Flowvium",
+    "shortDescription": "Short Interest % of Float、Days to Cover、機関投資家買い集め衝突分析でショートスクイーズ候補を発掘。",
+    "watchlistTitle": "ウォッチリスト — Flowvium",
+    "watchlistDescription": "ウォッチリストに銘柄を追加し、リアルタイム株価と日次変動率を一目で確認。"
   },
   "pro": {
     "upgradeTitle": "Flowvium Proを利用する",
@@ -888,7 +900,8 @@
     "ecStatic": "静的",
     "ecLoading": "経済カレンダー読み込み中...",
     "ecRefresh": "更新",
-    "ecFootnoteLive": "出典: Finnhub · 4hキャッシュ · 発表済み指標に実績値/予想値を表示"
+    "ecFootnoteLive": "出典: Finnhub · 4hキャッシュ · 発表済み指標に実績値/予想値を表示",
+    "cnnBadgeTooltip": "CNN公式 Fear & Greed Index (edition.cnn.com/markets/fear-and-greed)"
   },
   "osint": {
     "pageCategory": "グローバルインテリジェンス追跡",

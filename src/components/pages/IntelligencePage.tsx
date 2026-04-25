@@ -158,7 +158,7 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
             {entry.source === 'cnn' && (
               <span
                 className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 flex-shrink-0"
-                title="CNN 공식 Fear & Greed Index (edition.cnn.com/markets/fear-and-greed)"
+                title={t('cnnBadgeTooltip')}
               >
                 CNN
               </span>
