@@ -27,11 +27,16 @@ function contractSymbols(prefix: string, exchange: string, startMonth: number, s
   return results;
 }
 
+const YHDR = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'application/json',
+};
+
 async function fetchPrice(ticker: string): Promise<{ ticker: string; price: number; label: string } | null> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+      headers: YHDR,
       signal: AbortSignal.timeout(6000),
       cache: 'no-store',
     });
