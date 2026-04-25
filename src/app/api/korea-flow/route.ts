@@ -18,6 +18,16 @@ export const dynamic = 'force-dynamic';
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=720, stale-while-revalidate=60' };
 
+// Module-level cache per period — without Redis hits KRX API (or 20 Yahoo calls as fallback) every request
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const KOREA_MEMORY_CACHE = new Map<string, { data: any; expiresAt: number }>();
+const KOREA_MEMORY_TTLS: Record<string, number> = {
+  '1d': 15 * 60 * 1000,
+  '1w': 30 * 60 * 1000,
+  '4w': 60 * 60 * 1000,
+  '13w': 4 * 60 * 60 * 1000,
+};
+
 // Per-period cache configuration
 const PERIOD_CONFIGS = {
   '1d':  { tradingDays: 1,  ttl: 15 * 60,      sMaxAge: 720,   key: 'flowvium:korea-flow:v3:1d'  },
@@ -266,6 +276,11 @@ export async function GET(req: Request) {
   const cfg = PERIOD_CONFIGS[period];
   const cdnHeaders = { 'Cache-Control': `public, s-maxage=${cfg.sMaxAge}, stale-while-revalidate=60` };
 
+  const memEntry = KOREA_MEMORY_CACHE.get(period);
+  if (!redis && !force && memEntry && Date.now() < memEntry.expiresAt) {
+    return NextResponse.json({ ...memEntry.data, cached: true }, { headers: cdnHeaders });
+  }
+
   if (redis && !force) {
     try {
       const cached = await redis.get(cfg.key);
@@ -329,6 +344,7 @@ export async function GET(req: Request) {
 
   const payload = buildPayload(all, trdDd, { period });
   await loggedRedisSet(redis, 'api.korea-flow', cfg.key, payload, { ex: cfg.ttl });
+  if (!redis) KOREA_MEMORY_CACHE.set(period, { data: payload, expiresAt: Date.now() + (KOREA_MEMORY_TTLS[period] ?? 15 * 60 * 1000) });
   logger.info('api.korea-flow', 'served', { period, totalTickers: all.length, durationMs: Date.now() - reqStart });
   return NextResponse.json({ ...payload, cached: false }, { headers: cdnHeaders });
 }

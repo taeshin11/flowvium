@@ -22,6 +22,11 @@ import { fetchAllCreditData, type LiveCreditData } from '@/lib/credit-fetchers';
 const REDIS_KEY_LIVE = 'flowvium:credit-balance:live:v1';
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=82800, stale-while-revalidate=3600' };
 
+// 24h module-level cache — data is static, without Redis fetchAllCreditData hits on every cold start
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let CREDIT_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
+const CREDIT_MEMORY_TTL_MS = 24 * 60 * 60 * 1000;
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -455,6 +460,10 @@ export async function GET() {
   const redis = createRedis();
   const cacheKey = `flowvium:credit-balance:v2:${new Date().toISOString().slice(0, 10)}`;
 
+  if (!redis && CREDIT_MEMORY_CACHE && Date.now() < CREDIT_MEMORY_CACHE.expiresAt) {
+    return NextResponse.json({ ...CREDIT_MEMORY_CACHE.data, cached: true }, { headers: CDN_HEADERS });
+  }
+
   if (redis) {
     try {
       const cached = await redis.get<object>(cacheKey);
@@ -501,6 +510,8 @@ export async function GET() {
     } catch (err) {
       logger.error('credit-balance', 'save_failed', { key: cacheKey, error: err });
     }
+  } else {
+    CREDIT_MEMORY_CACHE = { data: response, expiresAt: Date.now() + CREDIT_MEMORY_TTL_MS };
   }
 
   return NextResponse.json(response, { headers: CDN_HEADERS });

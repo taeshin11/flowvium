@@ -271,8 +271,18 @@ function computeMeetingProbs(
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
+// 4h module-level cache — without Redis each request fires 7 Yahoo ZQ futures calls
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let FEDWATCH_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
+const FEDWATCH_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
+
 export async function GET() {
   const redis = createRedis();
+
+  if (!redis && FEDWATCH_MEMORY_CACHE && Date.now() < FEDWATCH_MEMORY_CACHE.expiresAt) {
+    return NextResponse.json({ ...FEDWATCH_MEMORY_CACHE.data, cached: true }, { headers: CDN_HEADERS });
+  }
+
   if (redis) {
     try {
       const cached = await redis.get(cacheKey());
@@ -316,6 +326,8 @@ export async function GET() {
     } catch (err) {
       logger.error('fedwatch', 'save_failed', { key, error: err });
     }
+  } else if (liveData) {
+    FEDWATCH_MEMORY_CACHE = { data: result, expiresAt: Date.now() + FEDWATCH_MEMORY_TTL_MS };
   }
 
   return NextResponse.json(result, { headers: CDN_HEADERS });

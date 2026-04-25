@@ -19,6 +19,11 @@ export const maxDuration = 60;
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=120' };
 
+// 30-min module-level cache — without Redis each request parses SEC EDGAR RSS
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let INSIDER_MEMORY_CACHE: { items: any[]; expiresAt: number } | null = null;
+const INSIDER_MEMORY_TTL_MS = 30 * 60 * 1000;
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -32,6 +37,11 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const force = url.searchParams.get('refresh') === '1';
   const tickerFilter = url.searchParams.get('ticker')?.toUpperCase();
+
+  if (!redis && !force && INSIDER_MEMORY_CACHE && Date.now() < INSIDER_MEMORY_CACHE.expiresAt) {
+    const items = tickerFilter ? INSIDER_MEMORY_CACHE.items.filter(t => t.ticker === tickerFilter) : INSIDER_MEMORY_CACHE.items;
+    return NextResponse.json({ items, cached: true, total: INSIDER_MEMORY_CACHE.items.length }, { headers: CDN_HEADERS });
+  }
 
   if (redis && !force) {
     try {
@@ -51,6 +61,7 @@ export async function GET(req: Request) {
   // snapshot. Only overwrite when we have entries; on empty, keep prior cache.
   if (transactions.length > 0) {
     await loggedRedisSet(redis, 'api.insider-trades', CACHE_KEY, transactions, { ex: CACHE_TTL });
+    if (!redis) INSIDER_MEMORY_CACHE = { items: transactions, expiresAt: Date.now() + INSIDER_MEMORY_TTL_MS };
   } else if (redis) {
     logger.info('api.insider-trades', 'empty_fetch_preserving_prior');
     try {
