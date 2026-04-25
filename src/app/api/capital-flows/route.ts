@@ -33,62 +33,62 @@ function createRedis(): Redis | null {
 }
 
 const ASSETS = [
-  { id: 'us-stocks',   ticker: 'SPY',   label: '미국 주식',    group: 'equity',      flag: '🇺🇸' },
-  { id: 'em-stocks',   ticker: 'EEM',   label: '이머징마켓 주식', group: 'equity',   flag: '🌏' },
-  { id: 'eu-stocks',   ticker: 'VGK',   label: '유럽 주식',    group: 'equity',      flag: '🇪🇺' },
-  { id: 'us-tech',     ticker: 'QQQ',   label: '미국 테크',    group: 'equity',      flag: '💻' },
-  { id: 'us-bonds-lt', ticker: 'TLT',   label: '미 장기채',    group: 'bonds',       flag: '📊' },
-  { id: 'us-bonds-st', ticker: 'SHY',   label: '미 단기채',    group: 'bonds',       flag: '📋' },
-  { id: 'hy-bonds',    ticker: 'HYG',   label: '하이일드채',   group: 'bonds',       flag: '📈' },
-  { id: 'gold',        ticker: 'GLD',   label: '금',           group: 'alts',        flag: '🥇' },
-  { id: 'silver',      ticker: 'SLV',   label: '은',           group: 'alts',        flag: '🪙' },
-  { id: 'bitcoin',     ticker: 'BITO',  label: '비트코인',     group: 'alts',        flag: '₿' },
-  { id: 'oil',         ticker: 'USO',   label: 'WTI 원유',     group: 'commodities', flag: '🛢️' },
-  { id: 'energy',      ticker: 'XLE',   label: '미 에너지주',  group: 'commodities', flag: '⚡' },
-  { id: 'agri',        ticker: 'DBA',   label: '곡물·농산물',  group: 'commodities', flag: '🌾' },
-  { id: 'dollar',      ticker: 'UUP',   label: '달러',         group: 'currency',    flag: '💵' },
-  { id: 'yen',         ticker: 'FXY',   label: '엔화',         group: 'currency',    flag: '💴' },
+  { id: 'us-stocks',   ticker: 'SPY',   label: 'US Equities',   group: 'equity',      flag: '🇺🇸' },
+  { id: 'em-stocks',   ticker: 'EEM',   label: 'EM Equities',   group: 'equity',      flag: '🌏' },
+  { id: 'eu-stocks',   ticker: 'VGK',   label: 'EU Equities',   group: 'equity',      flag: '🇪🇺' },
+  { id: 'us-tech',     ticker: 'QQQ',   label: 'US Tech',       group: 'equity',      flag: '💻' },
+  { id: 'us-bonds-lt', ticker: 'TLT',   label: 'US LT Bonds',   group: 'bonds',       flag: '📊' },
+  { id: 'us-bonds-st', ticker: 'SHY',   label: 'US ST Bonds',   group: 'bonds',       flag: '📋' },
+  { id: 'hy-bonds',    ticker: 'HYG',   label: 'High Yield',    group: 'bonds',       flag: '📈' },
+  { id: 'gold',        ticker: 'GLD',   label: 'Gold',          group: 'alts',        flag: '🥇' },
+  { id: 'silver',      ticker: 'SLV',   label: 'Silver',        group: 'alts',        flag: '🪙' },
+  { id: 'bitcoin',     ticker: 'BITO',  label: 'Bitcoin',       group: 'alts',        flag: '₿' },
+  { id: 'oil',         ticker: 'USO',   label: 'WTI Oil',       group: 'commodities', flag: '🛢️' },
+  { id: 'energy',      ticker: 'XLE',   label: 'US Energy',     group: 'commodities', flag: '⚡' },
+  { id: 'agri',        ticker: 'DBA',   label: 'Agriculture',   group: 'commodities', flag: '🌾' },
+  { id: 'dollar',      ticker: 'UUP',   label: 'USD',           group: 'currency',    flag: '💵' },
+  { id: 'yen',         ticker: 'FXY',   label: 'JPY',           group: 'currency',    flag: '💴' },
 ];
 
 // ── Smart Beta Factor ETFs ────────────────────────────────────────────────────
 const FACTORS = [
-  { id: 'momentum', ticker: 'MTUM', label: '모멘텀',       flag: '📈', desc: 'Momentum (MTUM)' },
-  { id: 'quality',  ticker: 'QUAL', label: '퀄리티',       flag: '⭐', desc: 'Quality (QUAL)' },
-  { id: 'value',    ticker: 'VLUE', label: '가치',         flag: '💎', desc: 'Value (VLUE)' },
-  { id: 'lowvol',   ticker: 'USMV', label: '저변동성',     flag: '🛡️', desc: 'Low Vol (USMV)' },
-  { id: 'growth',   ticker: 'IVW',  label: '성장',         flag: '🚀', desc: 'Growth (IVW)' },
-  { id: 'blend',    ticker: 'IVE',  label: '블렌드(가치)',  flag: '⚖️', desc: 'Value Blend (IVE)' },
+  { id: 'momentum', ticker: 'MTUM', label: 'Momentum',    flag: '📈', desc: 'Momentum (MTUM)' },
+  { id: 'quality',  ticker: 'QUAL', label: 'Quality',     flag: '⭐', desc: 'Quality (QUAL)' },
+  { id: 'value',    ticker: 'VLUE', label: 'Value',       flag: '💎', desc: 'Value (VLUE)' },
+  { id: 'lowvol',   ticker: 'USMV', label: 'Low Vol',     flag: '🛡️', desc: 'Low Vol (USMV)' },
+  { id: 'growth',   ticker: 'IVW',  label: 'Growth',      flag: '🚀', desc: 'Growth (IVW)' },
+  { id: 'blend',    ticker: 'IVE',  label: 'Value Blend', flag: '⚖️', desc: 'Value Blend (IVE)' },
 ];
 
 // ── US Sector ETFs ───────────────────────────────────────────────────────────
 const SECTORS = [
-  { id: 'tech',        ticker: 'XLK',  label: '기술',         flag: '💻' },
-  { id: 'financials',  ticker: 'XLF',  label: '금융',         flag: '🏦' },
-  { id: 'energy',      ticker: 'XLE',  label: '에너지',       flag: '⚡' },
-  { id: 'healthcare',  ticker: 'XLV',  label: '헬스케어',     flag: '🏥' },
-  { id: 'industrials', ticker: 'XLI',  label: '산업재',       flag: '🏭' },
-  { id: 'materials',   ticker: 'XLB',  label: '소재',         flag: '⚗️' },
-  { id: 'consdisc',    ticker: 'XLY',  label: '임의소비재',   flag: '🛍️' },
-  { id: 'consstaples', ticker: 'XLP',  label: '필수소비재',   flag: '🛒' },
-  { id: 'utilities',   ticker: 'XLU',  label: '유틸리티',     flag: '💡' },
-  { id: 'realestate',  ticker: 'XLRE', label: '부동산',       flag: '🏠' },
-  { id: 'commsvc',     ticker: 'XLC',  label: '통신',         flag: '📡' },
+  { id: 'tech',        ticker: 'XLK',  label: 'Tech',          flag: '💻' },
+  { id: 'financials',  ticker: 'XLF',  label: 'Financials',    flag: '🏦' },
+  { id: 'energy',      ticker: 'XLE',  label: 'Energy',        flag: '⚡' },
+  { id: 'healthcare',  ticker: 'XLV',  label: 'Healthcare',    flag: '🏥' },
+  { id: 'industrials', ticker: 'XLI',  label: 'Industrials',   flag: '🏭' },
+  { id: 'materials',   ticker: 'XLB',  label: 'Materials',     flag: '⚗️' },
+  { id: 'consdisc',    ticker: 'XLY',  label: 'Cons. Disc.',   flag: '🛍️' },
+  { id: 'consstaples', ticker: 'XLP',  label: 'Cons. Staples', flag: '🛒' },
+  { id: 'utilities',   ticker: 'XLU',  label: 'Utilities',     flag: '💡' },
+  { id: 'realestate',  ticker: 'XLRE', label: 'Real Estate',   flag: '🏠' },
+  { id: 'commsvc',     ticker: 'XLC',  label: 'Comm. Svcs',    flag: '📡' },
 ];
 
 // ── Country ETFs ──────────────────────────────────────────────────────────────
 const COUNTRIES = [
-  { id: 'us',        ticker: 'SPY',  label: '미국',       flag: '🇺🇸' },
-  { id: 'korea',     ticker: 'EWY',  label: '한국',       flag: '🇰🇷' },
-  { id: 'japan',     ticker: 'EWJ',  label: '일본',       flag: '🇯🇵' },
-  { id: 'china',     ticker: 'FXI',  label: '중국',       flag: '🇨🇳' },
-  { id: 'europe',    ticker: 'VGK',  label: '유럽',       flag: '🇪🇺' },
-  { id: 'uk',        ticker: 'EWU',  label: '영국',       flag: '🇬🇧' },
-  { id: 'india',     ticker: 'INDA', label: '인도',       flag: '🇮🇳' },
-  { id: 'brazil',    ticker: 'EWZ',  label: '브라질',     flag: '🇧🇷' },
-  { id: 'taiwan',    ticker: 'EWT',  label: '대만',       flag: '🇹🇼' },
-  { id: 'australia', ticker: 'EWA',  label: '호주',       flag: '🇦🇺' },
-  { id: 'germany',   ticker: 'EWG',  label: '독일',       flag: '🇩🇪' },
-  { id: 'mexico',    ticker: 'EWW',  label: '멕시코',     flag: '🇲🇽' },
+  { id: 'us',        ticker: 'SPY',  label: 'US',          flag: '🇺🇸' },
+  { id: 'korea',     ticker: 'EWY',  label: 'Korea',       flag: '🇰🇷' },
+  { id: 'japan',     ticker: 'EWJ',  label: 'Japan',       flag: '🇯🇵' },
+  { id: 'china',     ticker: 'FXI',  label: 'China',       flag: '🇨🇳' },
+  { id: 'europe',    ticker: 'VGK',  label: 'Europe',      flag: '🇪🇺' },
+  { id: 'uk',        ticker: 'EWU',  label: 'UK',          flag: '🇬🇧' },
+  { id: 'india',     ticker: 'INDA', label: 'India',       flag: '🇮🇳' },
+  { id: 'brazil',    ticker: 'EWZ',  label: 'Brazil',      flag: '🇧🇷' },
+  { id: 'taiwan',    ticker: 'EWT',  label: 'Taiwan',      flag: '🇹🇼' },
+  { id: 'australia', ticker: 'EWA',  label: 'Australia',   flag: '🇦🇺' },
+  { id: 'germany',   ticker: 'EWG',  label: 'Germany',     flag: '🇩🇪' },
+  { id: 'mexico',    ticker: 'EWW',  label: 'Mexico',      flag: '🇲🇽' },
 ];
 
 // ── Data fetchers ─────────────────────────────────────────────────────────────
@@ -391,7 +391,7 @@ export async function GET() {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (realtime)' : 'Yahoo Finance (15min delay)';
-  const cacheKey = `flowvium:capital-flows:v10:${twelveKey ? 'twelve' : 'yahoo'}`;
+  const cacheKey = `flowvium:capital-flows:v11:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   // Module-level memory cache — saves ~41 Yahoo calls per warm-instance hit
   if (!redis && CAPITAL_MEMORY_CACHE && Date.now() < CAPITAL_MEMORY_CACHE.expiresAt) {

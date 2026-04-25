@@ -179,11 +179,11 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v13:US:${hour}`),
     safeGet(redis, 'flowvium:short-interest:v5'),
-    safeGet(redis, 'flowvium:capital-flows:v10:twelve'),
-    safeGet(redis, 'flowvium:capital-flows:v10:yahoo'),
+    safeGet(redis, 'flowvium:capital-flows:v11:twelve'),
+    safeGet(redis, 'flowvium:capital-flows:v11:yahoo'),
     safeGet(redis, 'flowvium:fg:v6:SPY'),
     safeGet(redis, `flowvium:fedwatch:v1:${hour}`),
-    safeGet(redis, `flowvium:macro-indicators:v12:${kst}`),
+    safeGet(redis, `flowvium:macro-indicators:v13:${kst}`),
     safeGet<Record<string, unknown>>(redis, `flowvium:credit-balance:v2:${today}`),
     (async () => {
       try { return await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 5); }
