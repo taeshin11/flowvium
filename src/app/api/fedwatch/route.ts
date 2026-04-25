@@ -18,8 +18,8 @@ function createRedis(): Redis | null {
 }
 
 function cacheKey(): string {
-  const hour = new Date().toISOString().slice(0, 13);
-  return `flowvium:fedwatch:v1:${hour}`;
+  const utcDate = new Date().toISOString().slice(0, 10);
+  return `flowvium:fedwatch:v2:${utcDate}`;
 }
 
 export interface FomcMeeting {

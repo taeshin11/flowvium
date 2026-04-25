@@ -34,7 +34,6 @@ function checkAuth(req: Request): boolean {
 function buildTrackedKeys(): string[] {
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   const utcDate = new Date().toISOString().slice(0, 10);
-  const hour = new Date().toISOString().slice(0, 13);
   return [
     'flowvium:insider-trades:v1',
     'flowvium:ownership-alerts:v1',
@@ -49,7 +48,7 @@ function buildTrackedKeys(): string[] {
     'flowvium:capital-flows:v11:yahoo',
     'flowvium:capital-flows:v11:twelve',
     `flowvium:macro-indicators:v13:${kstDate}`,
-    `flowvium:fedwatch:v1:${hour}`,
+    `flowvium:fedwatch:v2:${utcDate}`,
     `flowvium:credit-balance:v3:${utcDate}`,
     'flowvium:latest-updates:v3',
     'flowvium:market-movers:v1',

@@ -114,7 +114,12 @@ export async function GET(req: Request) {
     .then(r => { if (!r.ok) logger.warn('cron.update-all', 'daily_brief_warm_failed', { status: r.status }); })
     .catch(e => logger.warn('cron.update-all', 'daily_brief_warm_error', { error: e instanceof Error ? e.message : String(e) }));
 
-  // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget, 병렬) ──────────────
+  // ── 4단계: investment-strategy + 수급동향 주요 티커 pre-warm (fire & forget) ───
+  fetch(`${base}/api/investment-strategy`, { signal: AbortSignal.timeout(50000), cache: 'no-store' })
+    .then(r => { if (!r.ok) logger.warn('cron.update-all', 'investment_strategy_warm_failed', { status: r.status }); })
+    .catch(e => logger.warn('cron.update-all', 'investment_strategy_warm_error', { error: e instanceof Error ? e.message : String(e) }));
+
+  // ── 수급동향 주요 티커 pre-warm (fire & forget, 병렬) ──────────────
   Promise.allSettled(TOP_TICKERS.map(ticker =>
     fetch(`${base}/api/stock-supply?ticker=${ticker}`, {
       signal: AbortSignal.timeout(15000),

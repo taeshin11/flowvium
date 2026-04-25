@@ -977,7 +977,6 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
   // 각 주요 캐시 키 존재 여부
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   const utcDate = new Date().toISOString().slice(0, 10);
-  const hour = new Date().toISOString().slice(0, 13);
   const keys: Array<{ key: string; label: string }> = [
     { key: 'flowvium:insider-trades:v1', label: 'insider-trades' },
     { key: 'flowvium:ownership-alerts:v1', label: 'ownership-alerts' },
@@ -992,7 +991,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:13f-ownership:v1', label: '13f-ownership' },
     { key: 'flowvium:latest-updates:v3', label: 'latest-updates' },
     { key: `flowvium:macro-indicators:v13:${kstDate}`, label: `macro-indicators(${kstDate})` },
-    { key: `flowvium:fedwatch:v1:${hour}`, label: `fedwatch(${hour}Z)` },
+    { key: `flowvium:fedwatch:v2:${utcDate}`, label: `fedwatch(${utcDate})` },
     { key: `flowvium:credit-balance:v3:${utcDate}`, label: `credit-balance(${utcDate})` },
     { key: 'flowvium:market-movers:v1', label: 'market-movers' },
     { key: 'flowvium:sector-pe:v3', label: 'sector-pe' },
