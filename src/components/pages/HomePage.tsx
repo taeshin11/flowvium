@@ -44,6 +44,7 @@ import { allCompanies } from '@/data/companies';
 import { companyNamesI18n } from '@/data/company-names-i18n';
 import { getLevel, levelLabels } from '@/data/fear-greed';
 import Sparkline from '@/components/Sparkline';
+import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
 
 const searchCompanies = allCompanies.map((c) => ({
   name: c.name,
@@ -222,6 +223,23 @@ function MarketSnapshot() {
               </span>
             </div>
           )}
+          {(() => {
+            const today = new Date();
+            const next = getUpcomingEvents(today, 1).find(e => e.impact === 'high');
+            if (!next) return null;
+            const days = daysUntil(next.date, today);
+            const urgentCls = days <= 1 ? 'text-red-700 bg-red-50 border-red-200' :
+                              days <= 3 ? 'text-orange-700 bg-orange-50 border-orange-200' :
+                                          'text-slate-600 bg-slate-50 border-slate-200';
+            return (
+              <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">
+                <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">NEXT</span>
+                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${urgentCls}`}>
+                  {next.category} D-{days}
+                </span>
+              </div>
+            );
+          })()}
           <span className="text-[10px] text-cf-text-secondary/60 ml-auto flex-shrink-0">15min delay</span>
         </div>
       </div>
