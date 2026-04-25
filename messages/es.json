@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} actualizados",
     "staticData": "Datos estáticos",
     "clickToExpand": "Clic para expandir ↓",
-    "allInstitutions": "Todas las Instituciones"
+    "allInstitutions": "Todas las Instituciones",
+    "supplyDemand": "Flujo",
+    "supplyDemandTitle": "Ver flujo"
   },
   "newsGap": {
     "title": "Analizador de Brecha Informativa",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Miedo Extremo, 100 = Codicia Extrema",
     "fgByAssetTitle": "Fear & Greed por Activo",
     "fgByAssetDesc": "Índice de sentimiento de mercado por sector y clase de activo",
-    "narrativesDesc": "8 fuerzas estructurales que dominan el mercado — entiéndalas antes de que salgan en las noticias."
+    "narrativesDesc": "8 fuerzas estructurales que dominan el mercado — entiéndalas antes de que salgan en las noticias.",
+    "weeksAgoDays": "Iniciado hace {n}d",
+    "weeksAgoWeeks": "Iniciado hace {n}sem",
+    "weeksAgoMonths": "Iniciado hace {n}m"
   },
   "osint": {
     "pageCategory": "Seguimiento de Inteligencia Global",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

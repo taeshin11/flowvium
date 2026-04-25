@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} अपडेट",
     "staticData": "स्थिर डेटा",
     "clickToExpand": "विस्तार के लिए क्लिक करें ↓",
-    "allInstitutions": "सभी संस्थान"
+    "allInstitutions": "सभी संस्थान",
+    "supplyDemand": "प्रवाह",
+    "supplyDemandTitle": "प्रवाह देखें"
   },
   "newsGap": {
     "title": "न्यूज़ गैप विश्लेषक",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = अत्यधिक डर, 100 = अत्यधिक लालच",
     "fgByAssetTitle": "संपत्ति के अनुसार Fear & Greed",
     "fgByAssetDesc": "क्षेत्र और संपत्ति वर्ग के अनुसार बाजार भावना सूचकांक",
-    "narrativesDesc": "8 संरचनात्मक शक्तियाँ जो बाज़ार पर हावी हैं — समाचार बनने से पहले उन्हें समझें।"
+    "narrativesDesc": "8 संरचनात्मक शक्तियाँ जो बाज़ार पर हावी हैं — समाचार बनने से पहले उन्हें समझें।",
+    "weeksAgoDays": "{n} दिन पहले",
+    "weeksAgoWeeks": "{n} सप्ताह पहले",
+    "weeksAgoMonths": "{n} महीने पहले"
   },
   "osint": {
     "pageCategory": "वैश्विक इंटेलिजेंस ट्रैकिंग",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} aktualisiert",
     "staticData": "Statische Daten",
     "clickToExpand": "Zum Aufklappen klicken ↓",
-    "allInstitutions": "Alle Institutionen"
+    "allInstitutions": "Alle Institutionen",
+    "supplyDemand": "Fluss",
+    "supplyDemandTitle": "Fluss anzeigen"
   },
   "newsGap": {
     "title": "Nachrichtenlücken-Analysator",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Extreme Angst, 100 = Extreme Gier",
     "fgByAssetTitle": "Fear & Greed nach Vermögen",
     "fgByAssetDesc": "Marktsentimentindex nach Sektor und Anlageklasse",
-    "narrativesDesc": "8 strukturelle Kräfte, die den Markt dominieren — verstehen Sie sie, bevor sie in den Nachrichten auftauchen."
+    "narrativesDesc": "8 strukturelle Kräfte, die den Markt dominieren — verstehen Sie sie, bevor sie in den Nachrichten auftauchen.",
+    "weeksAgoDays": "Vor {n} Tagen",
+    "weeksAgoWeeks": "Vor {n} Wochen",
+    "weeksAgoMonths": "Vor {n} Monaten"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

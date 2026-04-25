@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} đã cập nhật",
     "staticData": "Dữ liệu tĩnh",
     "clickToExpand": "Nhấp để mở rộng ↓",
-    "allInstitutions": "Tất cả tổ chức"
+    "allInstitutions": "Tất cả tổ chức",
+    "supplyDemand": "Dòng chảy",
+    "supplyDemandTitle": "Xem dòng chảy"
   },
   "newsGap": {
     "title": "Phân tích khoảng trống tin tức",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Sợ hãi cực độ, 100 = Tham lam cực độ",
     "fgByAssetTitle": "Fear & Greed theo tài sản",
     "fgByAssetDesc": "Chỉ số tâm lý thị trường theo ngành và loại tài sản",
-    "narrativesDesc": "8 lực lượng cấu trúc thống trị thị trường — hiểu chúng trước khi chúng lên báo."
+    "narrativesDesc": "8 lực lượng cấu trúc thống trị thị trường — hiểu chúng trước khi chúng lên báo.",
+    "weeksAgoDays": "{n} ngày trước",
+    "weeksAgoWeeks": "{n} tuần trước",
+    "weeksAgoMonths": "{n} tháng trước"
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

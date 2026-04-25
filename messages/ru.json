@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} обновлено",
     "staticData": "Статичные данные",
     "clickToExpand": "Нажмите для раскрытия ↓",
-    "allInstitutions": "Все Учреждения"
+    "allInstitutions": "Все Учреждения",
+    "supplyDemand": "Поток",
+    "supplyDemandTitle": "Просмотр потока"
   },
   "newsGap": {
     "title": "Анализатор информационных пробелов",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Крайний страх, 100 = Крайняя жадность",
     "fgByAssetTitle": "Fear & Greed по активу",
     "fgByAssetDesc": "Индекс рыночного настроения по секторам и классам активов",
-    "narrativesDesc": "8 структурных сил, доминирующих на рынке — поймите их до того, как они попадут в новости."
+    "narrativesDesc": "8 структурных сил, доминирующих на рынке — поймите их до того, как они попадут в новости.",
+    "weeksAgoDays": "{n} д. назад",
+    "weeksAgoWeeks": "{n} нед. назад",
+    "weeksAgoMonths": "{n} мес. назад"
   },
   "osint": {
     "pageCategory": "Глобальное отслеживание разведданных",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

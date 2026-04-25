@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} 已更新",
     "staticData": "靜態資料",
     "clickToExpand": "點擊展開 ↓",
-    "allInstitutions": "所有機構"
+    "allInstitutions": "所有機構",
+    "supplyDemand": "供需",
+    "supplyDemandTitle": "查看供需"
   },
   "newsGap": {
     "title": "新聞盲區分析器",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = 極度恐懼, 100 = 極度貪婪",
     "fgByAssetTitle": "按資產Fear & Greed",
     "fgByAssetDesc": "按板塊和資產類別的市場情緒指數",
-    "narrativesDesc": "主導市場的8大結構性力量 — 在成為新聞之前了解它們。"
+    "narrativesDesc": "主導市場的8大結構性力量 — 在成為新聞之前了解它們。",
+    "weeksAgoDays": "{n}天前開始",
+    "weeksAgoWeeks": "{n}週前開始",
+    "weeksAgoMonths": "{n}個月前開始"
   },
   "osint": {
     "pageCategory": "全球情報追蹤",
@@ -1302,7 +1307,8 @@
     "cCN": "中國",
     "cEU": "歐洲",
     "cIN": "印度",
-    "cTW": "台灣"
+    "cTW": "台灣",
+    "stockUnit": "支"
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

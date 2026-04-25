@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} atualizados",
     "staticData": "Dados estáticos",
     "clickToExpand": "Clique para expandir ↓",
-    "allInstitutions": "Todas as Instituições"
+    "allInstitutions": "Todas as Instituições",
+    "supplyDemand": "Fluxo",
+    "supplyDemandTitle": "Ver fluxo"
   },
   "newsGap": {
     "title": "Analisador de Lacunas Informativas",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Medo Extremo, 100 = Ganância Extrema",
     "fgByAssetTitle": "Fear & Greed por Ativo",
     "fgByAssetDesc": "Índice de sentimento do mercado por setor e classe de ativo",
-    "narrativesDesc": "8 forças estruturais que dominam o mercado — entenda-as antes de chegarem às notícias."
+    "narrativesDesc": "8 forças estruturais que dominam o mercado — entenda-as antes de chegarem às notícias.",
+    "weeksAgoDays": "Iniciado há {n}d",
+    "weeksAgoWeeks": "Iniciado há {n}sem",
+    "weeksAgoMonths": "Iniciado há {n}m"
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

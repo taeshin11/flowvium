@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} güncellendi",
     "staticData": "Statik veri",
     "clickToExpand": "Genişletmek için tıklayın ↓",
-    "allInstitutions": "Tüm Kurumlar"
+    "allInstitutions": "Tüm Kurumlar",
+    "supplyDemand": "Akış",
+    "supplyDemandTitle": "Akışı gör"
   },
   "newsGap": {
     "title": "Haber Boşluğu Analiz Aracı",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Aşırı Korku, 100 = Aşırı Açgözlülük",
     "fgByAssetTitle": "Varlığa Göre Fear & Greed",
     "fgByAssetDesc": "Sektör ve varlık sınıfına göre piyasa duygu endeksi",
-    "narrativesDesc": "Piyasaya hâkim olan 8 yapısal güç — haberlere taşınmadan önce anlayın."
+    "narrativesDesc": "Piyasaya hâkim olan 8 yapısal güç — haberlere taşınmadan önce anlayın.",
+    "weeksAgoDays": "{n} gün önce",
+    "weeksAgoWeeks": "{n} hafta önce",
+    "weeksAgoMonths": "{n} ay önce"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

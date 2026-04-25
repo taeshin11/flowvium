@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} 업데이트됨",
     "staticData": "정적 데이터",
     "clickToExpand": "클릭하여 펼치기 ↓",
-    "allInstitutions": "전체 기관"
+    "allInstitutions": "전체 기관",
+    "supplyDemand": "수급",
+    "supplyDemandTitle": "수급동향 보기"
   },
   "newsGap": {
     "title": "뉴스 갭 분석기",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = 극단적 공포, 100 = 극단적 탐욕",
     "fgByAssetTitle": "자산별 Fear & Greed",
     "fgByAssetDesc": "섹터 및 자산 클래스별 시장 심리 지수",
-    "narrativesDesc": "시장을 지배하는 8가지 구조적 힘 — 뉴스에 나오기 전에 이해하세요."
+    "narrativesDesc": "시장을 지배하는 8가지 구조적 힘 — 뉴스에 나오기 전에 이해하세요.",
+    "weeksAgoDays": "{n}일 전 시작",
+    "weeksAgoWeeks": "{n}주 전 시작",
+    "weeksAgoMonths": "{n}개월 전 시작"
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",
@@ -1302,7 +1307,8 @@
     "cCN": "중국",
     "cEU": "유럽",
     "cIN": "인도",
-    "cTW": "대만"
+    "cTW": "대만",
+    "stockUnit": "종목"
   },
   "screener": {
     "tf1w": "1주 (내부자 Form 4)",

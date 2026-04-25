@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} diperbarui",
     "staticData": "Data statis",
     "clickToExpand": "Klik untuk perluas ↓",
-    "allInstitutions": "Semua Institusi"
+    "allInstitutions": "Semua Institusi",
+    "supplyDemand": "Aliran",
+    "supplyDemandTitle": "Lihat aliran"
   },
   "newsGap": {
     "title": "Penganalisis Kesenjangan Berita",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Ketakutan Ekstrem, 100 = Keserakahan Ekstrem",
     "fgByAssetTitle": "Fear & Greed per Aset",
     "fgByAssetDesc": "Indeks sentimen pasar berdasarkan sektor dan kelas aset",
-    "narrativesDesc": "8 kekuatan struktural yang mendominasi pasar — pahami sebelum menjadi berita."
+    "narrativesDesc": "8 kekuatan struktural yang mendominasi pasar — pahami sebelum menjadi berita.",
+    "weeksAgoDays": "{n} hari lalu",
+    "weeksAgoWeeks": "{n} minggu lalu",
+    "weeksAgoMonths": "{n} bulan lalu"
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} 更新済み",
     "staticData": "静的データ",
     "clickToExpand": "クリックして展開 ↓",
-    "allInstitutions": "全機関"
+    "allInstitutions": "全機関",
+    "supplyDemand": "需給",
+    "supplyDemandTitle": "需給動向を見る"
   },
   "newsGap": {
     "title": "ニュースギャップ・アナライザー",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = 極端な恐怖, 100 = 極端な欲望",
     "fgByAssetTitle": "資産別 Fear & Greed",
     "fgByAssetDesc": "セクター・資産クラス別市場心理指数",
-    "narrativesDesc": "市場を支配する8つの構造的な力 — ニュースになる前に理解してください。"
+    "narrativesDesc": "市場を支配する8つの構造的な力 — ニュースになる前に理解してください。",
+    "weeksAgoDays": "{n}日前開始",
+    "weeksAgoWeeks": "{n}週間前開始",
+    "weeksAgoMonths": "{n}ヶ月前開始"
   },
   "osint": {
     "pageCategory": "グローバルインテリジェンス追跡",
@@ -1302,7 +1307,8 @@
     "cCN": "中国",
     "cEU": "欧州",
     "cIN": "インド",
-    "cTW": "台湾"
+    "cTW": "台湾",
+    "stockUnit": "銘柄"
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} mis à jour",
     "staticData": "Données statiques",
     "clickToExpand": "Cliquer pour développer ↓",
-    "allInstitutions": "Toutes les Institutions"
+    "allInstitutions": "Toutes les Institutions",
+    "supplyDemand": "Flux",
+    "supplyDemandTitle": "Voir le flux"
   },
   "newsGap": {
     "title": "Analyseur d'écart médiatique",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = Peur Extrême, 100 = Avidité Extrême",
     "fgByAssetTitle": "Fear & Greed par Actif",
     "fgByAssetDesc": "Indice de sentiment du marché par secteur et classe d'actif",
-    "narrativesDesc": "8 forces structurelles qui dominent le marché — comprenez-les avant qu'elles ne fassent l'actualité."
+    "narrativesDesc": "8 forces structurelles qui dominent le marché — comprenez-les avant qu'elles ne fassent l'actualité.",
+    "weeksAgoDays": "Commencé il y a {n}j",
+    "weeksAgoWeeks": "Commencé il y a {n}sem",
+    "weeksAgoMonths": "Commencé il y a {n}m"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

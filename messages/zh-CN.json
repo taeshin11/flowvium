@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} 已更新",
     "staticData": "静态数据",
     "clickToExpand": "点击展开 ↓",
-    "allInstitutions": "所有机构"
+    "allInstitutions": "所有机构",
+    "supplyDemand": "供需",
+    "supplyDemandTitle": "查看供需"
   },
   "newsGap": {
     "title": "新闻盲区分析器",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = 极度恐惧, 100 = 极度贪婪",
     "fgByAssetTitle": "按资产Fear & Greed",
     "fgByAssetDesc": "按板块和资产类别的市场情绪指数",
-    "narrativesDesc": "主导市场的8大结构性力量 — 在成为新闻之前了解它们。"
+    "narrativesDesc": "主导市场的8大结构性力量 — 在成为新闻之前了解它们。",
+    "weeksAgoDays": "{n}天前开始",
+    "weeksAgoWeeks": "{n}周前开始",
+    "weeksAgoMonths": "{n}月前开始"
   },
   "osint": {
     "pageCategory": "全球情报追踪",
@@ -1302,7 +1307,8 @@
     "cCN": "中国",
     "cEU": "欧洲",
     "cIN": "印度",
-    "cTW": "台湾"
+    "cTW": "台湾",
+    "stockUnit": "只"
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

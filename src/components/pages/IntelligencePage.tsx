@@ -251,15 +251,14 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
 }
 
 // ── Money Flow ────────────────────────────────────────────────────────────────
-function weeksAgo(dateStr: string): string {
+type IntelTr = (k: string, vals?: Record<string, string | number>) => string;
+function weeksAgo(dateStr: string, t: IntelTr): string {
   const start = new Date(dateStr);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  const dateLabel = `${start.getFullYear()}년 ${start.getMonth() + 1}월`;
-  if (diffDays < 7) return `${diffDays}일 전 시작 (${dateLabel})`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전 시작 (${dateLabel})`;
-  const months = Math.floor(diffDays / 30);
-  return `${months}개월 전 시작 (${dateLabel})`;
+  if (diffDays < 7) return t('weeksAgoDays', { n: diffDays });
+  if (diffDays < 30) return t('weeksAgoWeeks', { n: Math.floor(diffDays / 7) });
+  return t('weeksAgoMonths', { n: Math.floor(diffDays / 30) });
 }
 
 const signalBadgeCls: Record<string, string> = {
@@ -288,7 +287,7 @@ function MoneyFlowRow({ flow }: { flow: MoneyFlowSector }) {
           {/* Timing row */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] text-cf-text-secondary flex items-center gap-1">
-              🕐 {weeksAgo(flow.sinceDate)}
+              🕐 {weeksAgo(flow.sinceDate, t)}
             </span>
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${sigCls}`}>
               {signalLabel}

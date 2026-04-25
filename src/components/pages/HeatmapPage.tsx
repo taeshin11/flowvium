@@ -80,6 +80,7 @@ function StockBox(props: BoxProps) {
 
 // ── Sector block: internal treemap of its constituent stocks
 function SectorBlock({ sector }: { sector: HeatmapSector }) {
+  const t = useTranslations('heatmap');
   const avgColor = pctColor(sector.avgChangePct);
   const treeData = sector.stocks.map(s => ({
     name: s.ticker,
@@ -95,7 +96,7 @@ function SectorBlock({ sector }: { sector: HeatmapSector }) {
         <div className="flex items-center gap-2">
           <div className="w-1 h-5 rounded-full" style={{ backgroundColor: sector.color }} />
           <h3 className="text-sm font-bold text-white">{sector.sector}</h3>
-          <span className="text-[10px] text-slate-500">({sector.stocks.length}종목)</span>
+          <span className="text-[10px] text-slate-500">({sector.stocks.length}{t('stockUnit')})</span>
         </div>
         {sector.avgChangePct != null && (
           <span

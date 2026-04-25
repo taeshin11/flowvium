@@ -376,10 +376,10 @@ export default function SignalsPage({
                       <button
                         onClick={() => setSupplyTicker(sig.ticker)}
                         className="flex items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 px-2 py-1 rounded-lg transition-colors"
-                        title="수급동향 보기"
+                        title={t('supplyDemandTitle')}
                       >
                         <BarChart2 className="w-3 h-3" />
-                        수급
+                        {t('supplyDemand')}
                       </button>
                     </td>
                   </tr>

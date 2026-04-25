@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} อัปเดตแล้ว",
     "staticData": "ข้อมูลคงที่",
     "clickToExpand": "คลิกเพื่อขยาย ↓",
-    "allInstitutions": "สถาบันทั้งหมด"
+    "allInstitutions": "สถาบันทั้งหมด",
+    "supplyDemand": "กระแส",
+    "supplyDemandTitle": "ดูกระแส"
   },
   "newsGap": {
     "title": "เครื่องมือวิเคราะห์ช่องว่างข่าว",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = กลัวสุดขีด, 100 = โลภสุดขีด",
     "fgByAssetTitle": "Fear & Greed ตามสินทรัพย์",
     "fgByAssetDesc": "ดัชนีความรู้สึกตลาดตามภาคส่วนและประเภทสินทรัพย์",
-    "narrativesDesc": "8 พลังโครงสร้างที่ครอบงำตลาด — เข้าใจก่อนที่จะกลายเป็นข่าว"
+    "narrativesDesc": "8 พลังโครงสร้างที่ครอบงำตลาด — เข้าใจก่อนที่จะกลายเป็นข่าว",
+    "weeksAgoDays": "{n} วันที่แล้ว",
+    "weeksAgoWeeks": "{n} สัปดาห์ที่แล้ว",
+    "weeksAgoMonths": "{n} เดือนที่แล้ว"
   },
   "osint": {
     "pageCategory": "การติดตามข่าวกรองระดับโลก",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

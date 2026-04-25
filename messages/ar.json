@@ -356,7 +356,9 @@
     "liveRefreshed": "Live — {count} محدث",
     "staticData": "بيانات ثابتة",
     "clickToExpand": "انقر للتوسيع ↓",
-    "allInstitutions": "جميع المؤسسات"
+    "allInstitutions": "جميع المؤسسات",
+    "supplyDemand": "تدفق",
+    "supplyDemandTitle": "عرض تدفق"
   },
   "newsGap": {
     "title": "محلل الفجوات الإخبارية",
@@ -869,7 +871,10 @@
     "fgScaleLabel": "0 = خوف شديد, 100 = جشع شديد",
     "fgByAssetTitle": "Fear & Greed حسب الأصل",
     "fgByAssetDesc": "مؤشر معنويات السوق حسب القطاع وفئة الأصول",
-    "narrativesDesc": "8 قوى هيكلية تهيمن على السوق — افهمها قبل أن تصبح أخباراً."
+    "narrativesDesc": "8 قوى هيكلية تهيمن على السوق — افهمها قبل أن تصبح أخباراً.",
+    "weeksAgoDays": "بدأ منذ {n} يوم",
+    "weeksAgoWeeks": "بدأ منذ {n} أسبوع",
+    "weeksAgoMonths": "بدأ منذ {n} شهر"
   },
   "osint": {
     "pageCategory": "تتبع الاستخبارات العالمية",
@@ -1302,7 +1307,8 @@
     "cCN": "China",
     "cEU": "Europe",
     "cIN": "India",
-    "cTW": "Taiwan"
+    "cTW": "Taiwan",
+    "stockUnit": ""
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",
