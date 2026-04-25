@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from '@/i18n/routing';
 import { Loader2, ArrowUpDown, ExternalLink, Filter, X, TrendingUp, TrendingDown, Plus, LogOut } from 'lucide-react';
@@ -8,33 +9,15 @@ import type { ShortEntry } from '@/app/api/short-interest/route';
 
 type Timeframe = '1w' | '4w' | '13w';
 
-const TF_LABELS: Record<Timeframe, string> = {
-  '1w': '1주 (내부자 Form 4)',
-  '4w': '4주 (내부자 Form 4)',
-  '13w': '13주 (기관 13F)',
-};
-
 const TF_DAYS: Record<'1w' | '4w', number> = { '1w': 7, '4w': 28 };
 
-const SECTOR_LABELS: Record<string, string> = {
-  semiconductors: '반도체',
-  'ai-cloud': 'AI·클라우드',
-  'ev-battery': 'EV·배터리',
-  defense: '방산',
-  'pharma-biotech': '바이오',
-  commodities: '원자재',
-  financials: 'financials',
-  other: '기타',
+const ACTION_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
+  accumulating: { color: '#10b981', bg: '#10b98120', icon: <TrendingUp className="w-3 h-3" /> },
+  new_position: { color: '#3b82f6', bg: '#3b82f620', icon: <Plus className="w-3 h-3" /> },
+  reducing:     { color: '#f59e0b', bg: '#f59e0b20', icon: <TrendingDown className="w-3 h-3" /> },
+  exit:         { color: '#ef4444', bg: '#ef444420', icon: <LogOut className="w-3 h-3" /> },
 };
 
-const ACTION_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  accumulating: { label: '매집',      color: '#10b981', bg: '#10b98120', icon: <TrendingUp className="w-3 h-3" /> },
-  new_position: { label: '신규',      color: '#3b82f6', bg: '#3b82f620', icon: <Plus className="w-3 h-3" /> },
-  reducing:     { label: '비중 축소', color: '#f59e0b', bg: '#f59e0b20', icon: <TrendingDown className="w-3 h-3" /> },
-  exit:         { label: '청산',      color: '#ef4444', bg: '#ef444420', icon: <LogOut className="w-3 h-3" /> },
-};
-
-// ── 13F row type ──────────────────────────────────────────────────────────────
 interface ScreenerRow {
   ticker: string;
   companyName: string;
@@ -57,7 +40,6 @@ interface ScreenerRow {
   changePct: number | null;
 }
 
-// ── Form 4 insider trade row ──────────────────────────────────────────────────
 interface InsiderTrade {
   id: string;
   ticker: string;
@@ -75,7 +57,6 @@ interface InsiderTrade {
   filedAt: string;
 }
 
-// Aggregated insider row per ticker
 interface InsiderRow {
   ticker: string;
   issuerName: string;
@@ -87,12 +68,9 @@ interface InsiderRow {
   tradeCount: number;
 }
 
-// ── 13F presets ───────────────────────────────────────────────────────────────
-const PRESETS = [
+const PRESETS: { id: string; filter: (r: ScreenerRow) => boolean }[] = [
   {
     id: 'squeeze',
-    label: '🔥 숏 스퀴즈 후보',
-    desc: '기관 매집 + 공매도',
     filter: (r: ScreenerRow) => {
       const accumulating = r.action === 'accumulating' || r.action === 'new_position';
       if (!accumulating) return false;
@@ -100,47 +78,16 @@ const PRESETS = [
       return true;
     },
   },
-  {
-    id: 'inst',
-    label: '🏦 기관 신규 편입',
-    desc: '이번 분기 신규 편입',
-    filter: (r: ScreenerRow) => r.action === 'new_position',
-  },
-  {
-    id: 'accumulate',
-    label: '📈 기관 매집 중',
-    desc: '비중 확대 중인 종목',
-    filter: (r: ScreenerRow) => r.action === 'accumulating' || r.action === 'new_position',
-  },
-  {
-    id: 'reduce',
-    label: '📉 기관 비중 축소',
-    desc: '매도·청산 중인 종목',
-    filter: (r: ScreenerRow) => r.action === 'reducing' || r.action === 'exit',
-  },
-  {
-    id: 'gap',
-    label: '📰 언더레이더',
-    desc: '기관 매집 + 소수 기관만 추적 (≤2곳)',
-    filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.institutionCount <= 2,
-  },
-  {
-    id: 'consensus',
-    label: '🤝 다수 기관 합의',
-    desc: '2개 이상 기관 동시 매집',
-    filter: (r: ScreenerRow) => r.bullishCount >= 2,
-  },
-  {
-    id: 'nport-dual',
-    label: '🔱 N-PORT 이중 매집',
-    desc: '13F 매집 + N-PORT 펀드 보유',
-    filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.nportValue != null,
-  },
+  { id: 'inst',       filter: (r: ScreenerRow) => r.action === 'new_position' },
+  { id: 'accumulate', filter: (r: ScreenerRow) => r.action === 'accumulating' || r.action === 'new_position' },
+  { id: 'reduce',     filter: (r: ScreenerRow) => r.action === 'reducing' || r.action === 'exit' },
+  { id: 'gap',        filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.institutionCount <= 2 },
+  { id: 'consensus',  filter: (r: ScreenerRow) => r.bullishCount >= 2 },
+  { id: 'nport-dual', filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.nportValue != null },
 ];
 
 type SortKey = keyof ScreenerRow;
 
-// ── Price state ───────────────────────────────────────────────────────────────
 interface TopPrice { price: number | null; changePct: number | null; currency: string; }
 
 function parseVal(v: string): number {
@@ -161,23 +108,21 @@ function fmtUsd(v: number): string {
 
 function isCsuiteTitle(title: string | null): boolean {
   if (!title) return false;
-  const t = title.toUpperCase();
-  return t.includes('CEO') || t.includes('CFO') || t.includes('COO') || t.includes('CTO') ||
-    t.includes('PRESIDENT') || t.includes('CHAIRMAN') || t.includes('DIRECTOR');
+  const upper = title.toUpperCase();
+  return upper.includes('CEO') || upper.includes('CFO') || upper.includes('COO') || upper.includes('CTO') ||
+    upper.includes('PRESIDENT') || upper.includes('CHAIRMAN') || upper.includes('DIRECTOR');
 }
 
 export default function ScreenerPage() {
+  const t = useTranslations('screener');
   const [tf, setTf] = useState<Timeframe>('13w');
 
-  // 13F data
   const [signals, setSignals] = useState<InstitutionalSignal[]>([]);
   const [shortData, setShortData] = useState<ShortEntry[]>([]);
   const [loading13F, setLoading13F] = useState(true);
 
-  // N-PORT fund holdings (monthly, cross-reference with 13F)
   const [nportMap, setNportMap] = useState<Map<string, { value: number; fundCount: number }>>(new Map());
 
-  // Insider (Form 4) data
   const [insiderTrades, setInsiderTrades] = useState<InsiderTrade[]>([]);
   const [loadingInsider, setLoadingInsider] = useState(false);
   const [insiderLoaded, setInsiderLoaded] = useState(false);
@@ -185,7 +130,6 @@ export default function ScreenerPage() {
   const [priceMap, setPriceMap] = useState<Map<string, TopPrice>>(new Map());
   const [pricesLoaded, setPricesLoaded] = useState(false);
 
-  // 13F filters
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [minShort, setMinShort] = useState<number>(0);
@@ -193,7 +137,34 @@ export default function ScreenerPage() {
   const [sortKey, setSortKey] = useState<SortKey>('filingDate');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  // ── Load 13F + short ──────────────────────────────────────────────────────
+  const tfLabels: Record<Timeframe, string> = {
+    '1w': t('tf1w'), '4w': t('tf4w'), '13w': t('tf13w'),
+  };
+  const sectorLabels: Record<string, string> = {
+    semiconductors: t('sectorSemiconductors'),
+    'ai-cloud': t('sectorAiCloud'),
+    'ev-battery': t('sectorEvBattery'),
+    defense: t('sectorDefense'),
+    'pharma-biotech': t('sectorPharmaBiotech'),
+    commodities: t('sectorCommodities'),
+    other: t('sectorOther'),
+  };
+  const actionLabels: Record<string, string> = {
+    accumulating: t('actionAccumulating'),
+    new_position: t('actionNew'),
+    reducing: t('actionReducing'),
+    exit: t('actionExit'),
+  };
+  const presetMeta = [
+    { id: 'squeeze',    label: t('presetSqueezeLabel'),    desc: t('presetSqueezeDesc')    },
+    { id: 'inst',       label: t('presetInstLabel'),       desc: t('presetInstDesc')       },
+    { id: 'accumulate', label: t('presetAccumulateLabel'), desc: t('presetAccumulateDesc') },
+    { id: 'reduce',     label: t('presetReduceLabel'),     desc: t('presetReduceDesc')     },
+    { id: 'gap',        label: t('presetGapLabel'),        desc: t('presetGapDesc')        },
+    { id: 'consensus',  label: t('presetConsensusLabel'),  desc: t('presetConsensusDesc')  },
+    { id: 'nport-dual', label: t('presetNportLabel'),      desc: t('presetNportDesc')      },
+  ];
+
   useEffect(() => {
     const ctrl = new AbortController();
     Promise.allSettled([
@@ -208,23 +179,20 @@ export default function ScreenerPage() {
     return () => ctrl.abort();
   }, []);
 
-  // ── Load N-PORT holdings (lazy, once) ────────────────────────────────────
   useEffect(() => {
     fetch('/api/nport-holdings')
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(d => {
         const map = new Map<string, { value: number; fundCount: number }>();
         for (const entry of (d.byTicker ?? [])) {
-          if (entry.ticker && entry.totalValueUsd > 0) {
+          if (entry.ticker && entry.totalValueUsd > 0)
             map.set(entry.ticker, { value: entry.totalValueUsd, fundCount: entry.funds?.length ?? 0 });
-          }
         }
         setNportMap(map);
       })
       .catch(() => {/* non-fatal */});
   }, []);
 
-  // ── Load insider trades on demand (1w/4w) ────────────────────────────────
   useEffect(() => {
     if (tf === '13w') return;
     if (insiderLoaded) return;
@@ -242,12 +210,10 @@ export default function ScreenerPage() {
     return () => ctrl.abort();
   }, [tf, insiderLoaded]);
 
-  // ── 13F processing ────────────────────────────────────────────────────────
   const shortMap = useMemo(() => new Map(shortData.map(s => [s.ticker, s])), [shortData]);
 
   const deduped: ScreenerRow[] = useMemo(() => {
     const byTicker = new Map<string, InstitutionalSignal>();
-    // Consensus: count bullish/bearish per ticker across all institutions
     const consensusMap = new Map<string, { bullish: number; bearish: number; instSet: Set<string> }>();
     for (const sig of signals) {
       const existing = byTicker.get(sig.ticker);
@@ -271,16 +237,12 @@ export default function ScreenerPage() {
         shortRatio: short?.shortRatio ?? null, squeezeScore: short?.squeezeScore ?? 0,
         bullishCount: consensus.bullish, bearishCount: consensus.bearish,
         institutionCount: consensus.instSet.size,
-        nportValue: nport?.value ?? null,
-        nportFundCount: nport?.fundCount ?? null,
-        price: lp?.price ?? null,
-        changePct: lp?.changePct ?? null,
+        nportValue: nport?.value ?? null, nportFundCount: nport?.fundCount ?? null,
+        price: lp?.price ?? null, changePct: lp?.changePct ?? null,
       };
     });
   }, [signals, shortMap, nportMap, priceMap]);
 
-  // Stable ticker list derived from signals only — NOT priceMap — to avoid circular fetch loop.
-  // deduped depends on priceMap, so using deduped as fetch dep would re-trigger on every price update.
   const tickerKey = useMemo(
     () => Array.from(new Set(signals.map(s => s.ticker))).sort().join(','),
     [signals],
@@ -311,24 +273,21 @@ export default function ScreenerPage() {
   const top5NewPosition = useMemo(() => [...deduped].filter(r => r.action === 'new_position').sort((a, b) => parseVal(b.estimatedValue) - parseVal(a.estimatedValue)).slice(0, 5), [deduped]);
   const top5Underradar = useMemo(() => [...deduped].filter(r => (r.action === 'accumulating' || r.action === 'new_position') && r.newsGapScore < 30).sort((a, b) => (a.newsGapScore ?? 100) - (b.newsGapScore ?? 100)).slice(0, 5), [deduped]);
 
-  // ── Insider processing ────────────────────────────────────────────────────
   const insiderRows = useMemo((): InsiderRow[] => {
     if (tf === '13w') return [];
     const days = TF_DAYS[tf];
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const buys = insiderTrades.filter(t => t.direction === 'buy' && t.transactionDate >= cutoff && (t.transactionValueUsd ?? 0) > 0);
-
+    const buys = insiderTrades.filter(trade => trade.direction === 'buy' && trade.transactionDate >= cutoff && (trade.transactionValueUsd ?? 0) > 0);
     const byTicker = new Map<string, InsiderTrade[]>();
-    for (const t of buys) {
-      const arr = byTicker.get(t.ticker) ?? [];
-      arr.push(t);
-      byTicker.set(t.ticker, arr);
+    for (const trade of buys) {
+      const arr = byTicker.get(trade.ticker) ?? [];
+      arr.push(trade);
+      byTicker.set(trade.ticker, arr);
     }
-
     return Array.from(byTicker.entries()).map(([ticker, trades]) => {
-      const totalValueUsd = trades.reduce((s, t) => s + (t.transactionValueUsd ?? 0), 0);
+      const totalValueUsd = trades.reduce((s, trade) => s + (trade.transactionValueUsd ?? 0), 0);
       const topTrade = [...trades].sort((a, b) => (b.transactionValueUsd ?? 0) - (a.transactionValueUsd ?? 0))[0];
-      const isCsuite = trades.some(t => isCsuiteTitle(t.officerTitle));
+      const isCsuite = trades.some(trade => isCsuiteTitle(trade.officerTitle));
       return {
         ticker, issuerName: topTrade.issuerName, totalValueUsd, trades,
         topBuyer: topTrade.insiderName, topTitle: topTrade.officerTitle,
@@ -341,7 +300,6 @@ export default function ScreenerPage() {
   const topCsuite = useMemo(() => insiderRows.filter(r => r.isCsuite).slice(0, 5), [insiderRows]);
   const topClustered = useMemo(() => [...insiderRows].sort((a, b) => b.tradeCount - a.tradeCount).slice(0, 5), [insiderRows]);
 
-  // ── Prices — single batch call; deps on tickerKey (signals-derived), NOT deduped ──
   useEffect(() => {
     const allTickers = tickerKey.split(',').filter(Boolean);
     if (!allTickers.length) return;
@@ -352,9 +310,8 @@ export default function ScreenerPage() {
       .then((d: { prices: Record<string, { price: number | null; changePct: number | null; change: number | null }> }) => {
         if (ctrl.signal.aborted) return;
         const map = new Map<string, TopPrice>();
-        for (const [ticker, entry] of Object.entries(d.prices ?? {})) {
+        for (const [ticker, entry] of Object.entries(d.prices ?? {}))
           map.set(ticker, { price: entry.price, changePct: entry.changePct, currency: 'USD' });
-        }
         setPriceMap(map);
         setPricesLoaded(true);
       })
@@ -374,10 +331,9 @@ export default function ScreenerPage() {
     </th>
   );
 
-  // ── Price card helper ─────────────────────────────────────────────────────
   const PriceCard = ({ ticker, badge, badgeCls, sub }: { ticker: string; badge: string; badgeCls: string; sub?: string }) => {
     const lp = priceMap.get(ticker);
-    const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : '$';
+    const sym = lp?.currency === 'KRW' ? '₩' : '$';
     return (
       <Link href={`/company/${ticker}` as Parameters<typeof Link>[0]['href']}
         className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
@@ -402,44 +358,35 @@ export default function ScreenerPage() {
   };
 
   const loading = tf === '13w' ? loading13F : loadingInsider;
-  const dataDate13F = 'SEC 13F Q4 2025 기준 (제출 2026-02-14)';
-  const dataDateInsider = `Form 4 · 최근 ${tf === '1w' ? '7일' : '28일'} · D+2 시차`;
+  const dataDate13F = t('dataDate13F');
+  const insiderDays = tf === '1w' ? 7 : 28;
+  const dataDateInsider = t('dataDateInsider', { days: insiderDays });
 
   if (loading && tf === '13w' && signals.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px] gap-3 text-cf-text-secondary">
         <Loader2 className="w-5 h-5 animate-spin" />
-        <span>데이터 로딩 중...</span>
+        <span>{t('loading')}</span>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-cf-text-primary flex items-center gap-2">
           <Filter className="w-6 h-6 text-cf-accent" />
-          스크리너
+          {t('title')}
         </h1>
-        <p className="text-sm text-cf-text-secondary mt-1">
-          기관·내부자 매매 데이터 기반 종목 필터링
-        </p>
+        <p className="text-sm text-cf-text-secondary mt-1">{t('subtitle')}</p>
       </div>
 
-      {/* ── Timeframe selector ─────────────────────────────────────────────── */}
+      {/* Timeframe selector */}
       <div className="flex items-center gap-1 mb-5 bg-white/5 rounded-xl p-1 w-fit">
-        {(['1w', '4w', '13w'] as Timeframe[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTf(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tf === t
-                ? 'bg-cf-accent text-white shadow-sm'
-                : 'text-cf-text-secondary hover:text-cf-text-primary'
-            }`}
-          >
-            {t}
+        {(['1w', '4w', '13w'] as Timeframe[]).map(tfOpt => (
+          <button key={tfOpt} onClick={() => setTf(tfOpt)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tf === tfOpt ? 'bg-cf-accent text-white shadow-sm' : 'text-cf-text-secondary hover:text-cf-text-primary'}`}>
+            {tfLabels[tfOpt]}
           </button>
         ))}
       </div>
@@ -449,17 +396,15 @@ export default function ScreenerPage() {
         <span className="text-lg shrink-0">{tf === '13w' ? '🏦' : '👤'}</span>
         <div>
           <p className="font-semibold text-cf-text-primary">
-            {tf === '13w' ? '13F 기관 포지션 — 분기 기준' : `Form 4 내부자 거래 — 최근 ${tf === '1w' ? '7일' : '28일'}`}
+            {tf === '13w' ? t('data13fTitle') : t('dataInsiderTitle', { days: insiderDays })}
           </p>
           <p className="text-cf-text-secondary mt-0.5">
-            {tf === '13w'
-              ? 'Q4 2025 (2025년 10~12월) 기관 포지션 · 제출 2026-02-14 · 약 2달+ 시차'
-              : 'CEO·CFO·임원이 SEC에 의무 신고하는 자사주 매매 · 거래 후 2영업일 내 공시'}
+            {tf === '13w' ? t('data13fDesc') : t('dataInsiderDesc')}
           </p>
         </div>
       </div>
 
-      {/* ── 13w view ───────────────────────────────────────────────────────── */}
+      {/* ── 13w view ─────────────────────────────────────────────────────── */}
       {tf === '13w' && (
         <>
           {(top5Squeeze.length > 0 || top5NewPosition.length > 0 || top5Underradar.length > 0) && (
@@ -467,37 +412,37 @@ export default function ScreenerPage() {
               {top5Squeeze.length > 0 && (
                 <div className="cf-card p-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/10">
                   <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
-                    🔥 Top Squeeze 후보 — 실시간 가격
-                    <span className="font-normal text-cf-text-secondary">스퀴즈 점수 기준 상위 5종목</span>
+                    {t('topSqueezeTitle')}
+                    <span className="font-normal text-cf-text-secondary">{t('topSqueezeSubtitle')}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {top5Squeeze.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={String(row.squeezeScore)} badgeCls="bg-amber-500/20 text-amber-300" sub={SECTOR_LABELS[row.sector] ?? row.sector} />)}
+                    {top5Squeeze.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={String(row.squeezeScore)} badgeCls="bg-amber-500/20 text-amber-300" sub={sectorLabels[row.sector] ?? row.sector} />)}
                   </div>
-                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: {dataDate13F}</p>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('instPosition', { date: dataDate13F })}</p>
                 </div>
               )}
               {top5NewPosition.length > 0 && (
                 <div className="cf-card p-4 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10">
                   <p className="text-[10px] font-bold text-blue-400 mb-3 flex items-center gap-1.5">
-                    🏦 기관 신규 편입 — 실시간 가격
-                    <span className="font-normal text-cf-text-secondary">최대 추정금액 기준 상위 5종목</span>
+                    {t('topNewInstTitle')}
+                    <span className="font-normal text-cf-text-secondary">{t('topNewInstSubtitle')}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {top5NewPosition.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={row.estimatedValue} badgeCls="bg-blue-500/20 text-blue-300" sub={SECTOR_LABELS[row.sector] ?? row.sector} />)}
+                    {top5NewPosition.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={row.estimatedValue} badgeCls="bg-blue-500/20 text-blue-300" sub={sectorLabels[row.sector] ?? row.sector} />)}
                   </div>
-                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: {dataDate13F}</p>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('instPosition', { date: dataDate13F })}</p>
                 </div>
               )}
               {top5Underradar.length > 0 && (
                 <div className="cf-card p-4 bg-gradient-to-r from-purple-500/5 to-violet-500/5 border border-purple-500/10">
                   <p className="text-[10px] font-bold text-purple-400 mb-3 flex items-center gap-1.5">
-                    📰 언더레이더 — 실시간 가격
-                    <span className="font-normal text-cf-text-secondary">뉴스 커버리지 최저 기준 상위 5종목</span>
+                    {t('topUnderradarTitle')}
+                    <span className="font-normal text-cf-text-secondary">{t('topUnderradarSubtitle')}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {top5Underradar.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={`뉴스 ${row.newsGapScore}`} badgeCls="bg-purple-500/20 text-purple-300" sub={SECTOR_LABELS[row.sector] ?? row.sector} />)}
+                    {top5Underradar.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={t('newsScore', { score: row.newsGapScore })} badgeCls="bg-purple-500/20 text-purple-300" sub={sectorLabels[row.sector] ?? row.sector} />)}
                   </div>
-                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: {dataDate13F}</p>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('instPosition', { date: dataDate13F })}</p>
                 </div>
               )}
             </div>
@@ -505,17 +450,17 @@ export default function ScreenerPage() {
 
           {/* Quick guide */}
           <div className="cf-card p-4 mb-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10">
-            <p className="text-xs font-bold text-cf-text-primary mb-2">📖 어떻게 보는 건가요?</p>
+            <p className="text-xs font-bold text-cf-text-primary mb-2">{t('howToReadTitle')}</p>
             <ul className="text-[11px] text-cf-text-secondary space-y-1.5 leading-relaxed">
-              <li>• <b className="text-amber-400">🔥 숏 스퀴즈 후보</b> = 기관은 매집하는데 공매도 세력도 많은 종목 → 숏 세력이 손절하며 주가 급등 가능성</li>
-              <li>• <b className="text-blue-400">🏦 기관 신규 편입</b> = 이번 분기에 대형 기관이 <em>새로</em> 담은 종목 → 기관이 왜 샀는지 리서치 대상</li>
-              <li>• <b className="text-purple-400">📰 언더레이더</b> = 기관은 사는데 뉴스 커버리지 낮은 종목 → 시장에 소외된 기회</li>
+              <li>• {t('howToReadSqueeze')}</li>
+              <li>• {t('howToReadInst')}</li>
+              <li>• {t('howToReadUnder')}</li>
             </ul>
           </div>
 
           {/* Preset buttons */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {PRESETS.map(p => (
+            {presetMeta.map(p => (
               <button key={p.id} onClick={() => setActivePreset(activePreset === p.id ? null : p.id)}
                 className={`text-xs px-3 py-2 rounded-xl border transition-all ${activePreset === p.id ? 'bg-cf-accent/20 border-cf-accent text-cf-accent' : 'border-white/10 text-cf-text-secondary hover:border-white/20'}`}>
                 <span className="font-semibold">{p.label}</span>
@@ -527,60 +472,65 @@ export default function ScreenerPage() {
           {!activePreset && (
             <div className="cf-card p-4 mb-4 flex flex-wrap gap-3 items-end">
               <div>
-                <label className="text-[10px] text-cf-text-secondary block mb-1">섹터</label>
+                <label className="text-[10px] text-cf-text-secondary block mb-1">{t('filterSector')}</label>
                 <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)} className="text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary">
-                  <option value="all">전체</option>
-                  {sectors.filter(s => s !== 'all').map(s => <option key={s} value={s}>{SECTOR_LABELS[s] ?? s}</option>)}
+                  <option value="all">{t('filterAll')}</option>
+                  {sectors.filter(s => s !== 'all').map(s => <option key={s} value={s}>{sectorLabels[s] ?? s}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-cf-text-secondary block mb-1">기관 액션</label>
+                <label className="text-[10px] text-cf-text-secondary block mb-1">{t('filterAction')}</label>
                 <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} className="text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary">
-                  <option value="all">전체</option>
-                  <option value="accumulating">매집</option>
-                  <option value="new_position">신규 편입</option>
-                  <option value="reducing">비중 축소</option>
-                  <option value="exit">청산</option>
+                  <option value="all">{t('filterAll')}</option>
+                  <option value="accumulating">{t('actionAccumulating')}</option>
+                  <option value="new_position">{t('actionNew')}</option>
+                  <option value="reducing">{t('actionReducing')}</option>
+                  <option value="exit">{t('actionExit')}</option>
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-cf-text-secondary block mb-1">Short Vol % 최소</label>
+                <label className="text-[10px] text-cf-text-secondary block mb-1">{t('filterMinShort')}</label>
                 <input type="number" min={0} max={100} value={minShort} onChange={e => setMinShort(+e.target.value)} className="text-xs w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-cf-text-primary" />
               </div>
               <button onClick={clearFilters} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-white/10 text-cf-text-secondary hover:bg-white/5 transition-colors">
-                <X className="w-3 h-3" /> 초기화
+                <X className="w-3 h-3" /> {t('filterReset')}
               </button>
             </div>
           )}
 
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-cf-text-secondary">{filtered.length}개 결과</span>
-            {activePreset && <button onClick={() => setActivePreset(null)} className="flex items-center gap-1 text-xs text-cf-text-secondary hover:text-cf-text-primary transition-colors"><X className="w-3 h-3" /> 프리셋 해제</button>}
+            <span className="text-xs text-cf-text-secondary">{t('resultsCount', { n: filtered.length })}</span>
+            {activePreset && (
+              <button onClick={() => setActivePreset(null)} className="flex items-center gap-1 text-xs text-cf-text-secondary hover:text-cf-text-primary transition-colors">
+                <X className="w-3 h-3" /> {t('clearPreset')}
+              </button>
+            )}
           </div>
 
           <div className="cf-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-white/5">
                 <tr>
-                  <SortTh label="티커" k="ticker" />
-                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
-                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">섹터</th>
-                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관</th>
-                  <SortTh label="합의" k="bullishCount" />
+                  <SortTh label={t('colTicker')} k="ticker" />
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colCompany')}</th>
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colSector')}</th>
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colInstitution')}</th>
+                  <SortTh label={t('colConsensus')} k="bullishCount" />
                   <SortTh label="N-PORT" k="nportValue" />
-                  <SortTh label="가격" k="price" />
-                  <SortTh label="등락%" k="changePct" />
-                  <SortTh label="액션" k="action" />
-                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">규모</th>
+                  <SortTh label={t('colPrice')} k="price" />
+                  <SortTh label={t('colChange')} k="changePct" />
+                  <SortTh label={t('colAction')} k="action" />
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colSize')}</th>
                   <SortTh label="Short Vol %" k="shortVolPct" />
-                  <SortTh label="스퀴즈" k="squeezeScore" />
-                  <SortTh label="뉴스갭" k="newsGapScore" />
-                  <SortTh label="파일링일" k="filingDate" />
+                  <SortTh label={t('colSqueeze')} k="squeezeScore" />
+                  <SortTh label={t('colNewsGap')} k="newsGapScore" />
+                  <SortTh label={t('colFilingDate')} k="filingDate" />
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(row => {
                   const actionCfg = ACTION_CONFIG[row.action];
+                  const actionLabel = actionLabels[row.action];
                   return (
                     <tr key={`${row.ticker}-${row.institution}`} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                       <td className="px-3 py-2.5">
@@ -589,7 +539,7 @@ export default function ScreenerPage() {
                         </Link>
                       </td>
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.companyName}</td>
-                      <td className="px-3 py-2.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">{SECTOR_LABELS[row.sector] ?? row.sector}</span></td>
+                      <td className="px-3 py-2.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">{sectorLabels[row.sector] ?? row.sector}</span></td>
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[140px] truncate">{row.institution}</td>
                       <td className="px-3 py-2.5">
                         {(row.bullishCount > 0 || row.bearishCount > 0) && (
@@ -601,7 +551,8 @@ export default function ScreenerPage() {
                       </td>
                       <td className="px-3 py-2.5">
                         {row.nportValue != null ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-mono whitespace-nowrap" title={`${row.nportFundCount}개 펀드`}>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-mono whitespace-nowrap"
+                            title={row.nportFundCount != null ? t('nportFunds', { n: row.nportFundCount }) : undefined}>
                             {fmtUsd(row.nportValue)}
                           </span>
                         ) : <span className="text-cf-text-secondary/30 text-[10px]">—</span>}
@@ -619,11 +570,17 @@ export default function ScreenerPage() {
                           : <span className="text-cf-text-secondary/30 animate-pulse text-[10px]">···</span>}
                       </td>
                       <td className="px-3 py-2.5">
-                        {actionCfg && <span className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded" style={{ color: actionCfg.color, backgroundColor: actionCfg.bg }}>{actionCfg.icon}{actionCfg.label}</span>}
+                        {actionCfg && actionLabel && (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded" style={{ color: actionCfg.color, backgroundColor: actionCfg.bg }}>
+                            {actionCfg.icon}{actionLabel}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-xs font-mono text-cf-text-secondary">{row.estimatedValue}</td>
                       <td className="px-3 py-2.5 font-mono text-sm">
-                        {row.shortVolPct != null ? <span className={row.shortVolPct > 60 ? 'text-red-400' : row.shortVolPct > 50 ? 'text-amber-400' : 'text-cf-text-primary'}>{row.shortVolPct.toFixed(1)}%</span> : <span className="text-cf-text-secondary/40">-</span>}
+                        {row.shortVolPct != null
+                          ? <span className={row.shortVolPct > 60 ? 'text-red-400' : row.shortVolPct > 50 ? 'text-amber-400' : 'text-cf-text-primary'}>{row.shortVolPct.toFixed(1)}%</span>
+                          : <span className="text-cf-text-secondary/40">-</span>}
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5">
@@ -647,86 +604,87 @@ export default function ScreenerPage() {
                 })}
               </tbody>
             </table>
-            {filtered.length === 0 && <div className="text-center py-12 text-cf-text-secondary text-sm">조건에 맞는 종목이 없습니다</div>}
+            {filtered.length === 0 && <div className="text-center py-12 text-cf-text-secondary text-sm">{t('noResults')}</div>}
           </div>
-          <p className="text-[10px] text-cf-text-secondary/40 mt-3">출처: {dataDate13F} · Yahoo Finance 주가 (15분 캐시) · FINRA 공매도 비율 (일별) · 캐시 4시간</p>
+          <p className="text-[10px] text-cf-text-secondary/40 mt-3">{t('sourceNote13f', { date: dataDate13F })}</p>
         </>
       )}
 
-      {/* ── 1w / 4w insider view ───────────────────────────────────────────── */}
+      {/* ── 1w / 4w insider view ─────────────────────────────────────────── */}
       {tf !== '13w' && (
         <>
           {loadingInsider && insiderRows.length === 0 && (
             <div className="flex items-center justify-center py-12 gap-3 text-cf-text-secondary">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Form 4 거래 내역 로딩 중...</span>
+              <span>{t('loadingInsider')}</span>
             </div>
           )}
 
           {!loadingInsider && insiderRows.length === 0 && (
             <div className="text-center py-12 text-cf-text-secondary text-sm">
-              최근 {tf === '1w' ? '7일' : '28일'} 내 내부자 매수 거래 없음
+              {t('noInsiderBuys', { days: insiderDays })}
             </div>
           )}
 
           {insiderRows.length > 0 && (
             <>
               <div className="space-y-3 mb-5">
-                {/* 💰 대규모 내부자 매수 */}
                 {topInsiderBuys.length > 0 && (
                   <div className="cf-card p-4 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/10">
                     <p className="text-[10px] font-bold text-emerald-400 mb-3 flex items-center gap-1.5">
-                      💰 대규모 내부자 매수 — 실시간 가격
-                      <span className="font-normal text-cf-text-secondary">기간 내 총 매수금액 상위 5종목</span>
+                      {t('topInsiderTitle')}
+                      <span className="font-normal text-cf-text-secondary">{t('topInsiderSubtitle')}</span>
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {topInsiderBuys.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={fmtUsd(row.totalValueUsd)} badgeCls="bg-emerald-500/20 text-emerald-300" sub={row.issuerName.slice(0, 18)} />)}
                     </div>
-                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 내부자 거래: {dataDateInsider}</p>
+                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('insiderTrades', { date: dataDateInsider })}</p>
                   </div>
                 )}
 
-                {/* 👑 C-Suite 매수 */}
                 {topCsuite.length > 0 && (
                   <div className="cf-card p-4 bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-500/10">
                     <p className="text-[10px] font-bold text-violet-400 mb-3 flex items-center gap-1.5">
-                      👑 C-Suite 매수 — CEO·CFO·임원
-                      <span className="font-normal text-cf-text-secondary">최고위 임원 직접 매수 종목</span>
+                      {t('topCsuiteTitle')}
+                      <span className="font-normal text-cf-text-secondary">{t('topCsuiteSubtitle')}</span>
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {topCsuite.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={row.topTitle?.slice(0, 10) ?? 'C-Suite'} badgeCls="bg-violet-500/20 text-violet-300" sub={row.topBuyer.split(' ').slice(-1)[0]} />)}
                     </div>
-                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 내부자 거래: {dataDateInsider}</p>
+                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('insiderTrades', { date: dataDateInsider })}</p>
                   </div>
                 )}
 
-                {/* 🔁 집중 매수 */}
                 {topClustered.filter(r => r.tradeCount >= 2).length > 0 && (
                   <div className="cf-card p-4 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 border border-amber-500/10">
                     <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
-                      🔁 집중 매수 — 여러 내부자 동시 매수
-                      <span className="font-normal text-cf-text-secondary">복수 내부자가 같은 종목 매수</span>
+                      {t('topClusteredTitle')}
+                      <span className="font-normal text-cf-text-secondary">{t('topClusteredSubtitle')}</span>
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {topClustered.filter(r => r.tradeCount >= 2).slice(0, 5).map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={`${row.tradeCount}건`} badgeCls="bg-amber-500/20 text-amber-300" sub={`총 ${fmtUsd(row.totalValueUsd)}`} />)}
+                      {topClustered.filter(r => r.tradeCount >= 2).slice(0, 5).map(row => (
+                        <PriceCard key={row.ticker} ticker={row.ticker}
+                          badge={t('tradeCount', { n: row.tradeCount })}
+                          badgeCls="bg-amber-500/20 text-amber-300"
+                          sub={t('totalAmount', { amount: fmtUsd(row.totalValueUsd) })} />
+                      ))}
                     </div>
-                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 내부자 거래: {dataDateInsider}</p>
+                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('insiderTrades', { date: dataDateInsider })}</p>
                   </div>
                 )}
               </div>
 
-              {/* Insider table */}
               <div className="cf-card overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b border-white/5">
                     <tr>
-                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">티커</th>
-                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
-                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">내부자</th>
-                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">직책</th>
-                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">매수금액</th>
-                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">거래수</th>
-                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">최근 거래일</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colTicker')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colCompany')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colInsider')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colTitle')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colBuyAmount')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colTradeCount')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colRecentDate')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -748,7 +706,9 @@ export default function ScreenerPage() {
                         </td>
                         <td className="px-3 py-2.5 font-mono text-sm font-bold text-emerald-400">{fmtUsd(row.totalValueUsd)}</td>
                         <td className="px-3 py-2.5">
-                          <span className={`text-xs font-bold ${row.tradeCount >= 3 ? 'text-amber-400' : 'text-cf-text-primary'}`}>{row.tradeCount}건</span>
+                          <span className={`text-xs font-bold ${row.tradeCount >= 3 ? 'text-amber-400' : 'text-cf-text-primary'}`}>
+                            {t('tradeCount', { n: row.tradeCount })}
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary font-mono">
                           {row.trades.sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))[0].transactionDate}
@@ -757,9 +717,9 @@ export default function ScreenerPage() {
                     ))}
                   </tbody>
                 </table>
-                {insiderRows.length === 0 && <div className="text-center py-12 text-cf-text-secondary text-sm">해당 기간 내 내부자 매수 없음</div>}
+                {insiderRows.length === 0 && <div className="text-center py-12 text-cf-text-secondary text-sm">{t('noInsiderBuysInPeriod')}</div>}
               </div>
-              <p className="text-[10px] text-cf-text-secondary/40 mt-3">출처: {dataDateInsider} · Yahoo Finance 주가 (15분 캐시)</p>
+              <p className="text-[10px] text-cf-text-secondary/40 mt-3">{t('sourceNoteInsider', { date: dataDateInsider })}</p>
             </>
           )}
         </>
