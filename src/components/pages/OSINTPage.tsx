@@ -122,7 +122,7 @@ function SocialTab() {
       setData(json.entries ?? []);
     } catch (e) {
       if (signal?.aborted) return;
-      setError(e instanceof Error ? e.message : '로드 실패');
+      setError(e instanceof Error ? e.message : t('loadError'));
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -304,7 +304,7 @@ function CryptoTab() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.error) setSearchError(data.error); else setSearchResult(data);
-    } catch { setSearchError('네트워크 오류'); }
+    } catch { setSearchError(t('networkError')); }
     finally { setSearching(false); }
   }, [address, chainParam]);
 
@@ -346,7 +346,7 @@ function CryptoTab() {
                     <Loader2 className="w-3 h-3 animate-spin" /> {t('loadingChain')}
                   </div>
                 )}
-                {d === 'error' && <p className="text-xs text-red-500">조회 실패</p>}
+                {d === 'error' && <p className="text-xs text-red-500">{t('queryFailed')}</p>}
                 {result && (
                   <div className="grid grid-cols-3 gap-2">
                     {[
@@ -713,7 +713,7 @@ function CorporateTab() {
       {isLoading && <LoadingCard msg={t('loadingCorporate')} />}
       {!isLoading && activeResult && (
         <div className="space-y-3">
-          <p className="text-xs text-cf-text-secondary">{t('resultsCount').replace('{count}', String(activeResult.total?.toLocaleString() ?? 0))} · 상위 5건 표시</p>
+          <p className="text-xs text-cf-text-secondary">{t('resultsCount').replace('{count}', String(activeResult.total?.toLocaleString() ?? 0))} · {t('topFiveShown')}</p>
           {activeResult.companies?.length === 0 && (
             <div className="text-center py-8 text-cf-text-secondary text-sm">{t('noResults')}</div>
           )}
@@ -780,18 +780,19 @@ function CorporateTab() {
 
 // ── Tab: Guide ────────────────────────────────────────────────────────────────
 function GuideTab() {
+  const t = useTranslations('osint');
   const methods = [
-    { icon: <MessageSquare className="w-5 h-5 text-sky-500" />, title: '주요 인물 발언 추적', desc: '트럼프·파월·머스크 등 시장 영향력 있는 인물의 최근 발언을 뉴스 피드에서 자동 수집합니다. 발언 성격(매파/비둘기파/강세/약세)을 AI가 자동 분류합니다.', links: [{ label: 'X.com (Twitter)', url: 'https://x.com' }] },
-    { icon: <Bitcoin className="w-5 h-5 text-amber-500" />, title: '블록체인 자금 추적', desc: '주목할 지갑(사토시, 바이낸스, Vitalik 등)의 실시간 잔고와 거래를 자동으로 표시합니다. 특정 지갑 분석도 직접 입력해 추적 가능합니다.', links: [{ label: 'Etherscan', url: 'https://etherscan.io' }, { label: 'Blockchain.com', url: 'https://www.blockchain.com/explorer' }] },
-    { icon: <Shield className="w-5 h-5 text-red-500" />, title: 'OFAC 제재 명단', desc: '미 재무부 OFAC의 SDN(특별지정국민) 명단 전체를 매일 갱신합니다. 러시아·이란·북한·중국·테러 프로그램별로 분류해 자동 표시됩니다.', links: [{ label: 'OFAC 공식', url: 'https://sanctionssearch.ofac.treas.gov' }] },
-    { icon: <Building2 className="w-5 h-5 text-blue-500" />, title: '기업 구조 추적', desc: '주목할 기업(Gazprom, Huawei 등)의 글로벌 법인 등록 현황을 자동으로 표시합니다. 조세피난처 등록 법인, 쉘컴퍼니 구조 파악에 활용합니다.', links: [{ label: 'ICIJ Offshore Leaks', url: 'https://offshoreleaks.icij.org' }, { label: 'OpenCorporates', url: 'https://opencorporates.com' }] },
-    { icon: <Globe className="w-5 h-5 text-green-500" />, title: '실물자산 추적', desc: '부동산·요트·전용기 소유자는 공개 등기/항적 데이터로 확인 가능합니다.', links: [{ label: 'Flightradar24', url: 'https://www.flightradar24.com' }, { label: 'MarineTraffic', url: 'https://www.marinetraffic.com' }] },
-    { icon: <BookOpen className="w-5 h-5 text-purple-500" />, title: '공개 기록 활용', desc: 'SEC EDGAR(미국 공시), PACER(연방법원 기록), 각국 기업등기소를 통해 법적·재무 관계를 파악합니다.', links: [{ label: 'SEC EDGAR', url: 'https://www.sec.gov/edgar' }, { label: 'OpenSanctions', url: 'https://www.opensanctions.org' }] },
+    { icon: <MessageSquare className="w-5 h-5 text-sky-500" />, title: t('guideMethod1Title'), desc: t('guideMethod1Desc'), links: [{ label: 'X.com (Twitter)', url: 'https://x.com' }] },
+    { icon: <Bitcoin className="w-5 h-5 text-amber-500" />, title: t('guideMethod2Title'), desc: t('guideMethod2Desc'), links: [{ label: 'Etherscan', url: 'https://etherscan.io' }, { label: 'Blockchain.com', url: 'https://www.blockchain.com/explorer' }] },
+    { icon: <Shield className="w-5 h-5 text-red-500" />, title: t('guideMethod3Title'), desc: t('guideMethod3Desc'), links: [{ label: 'OFAC', url: 'https://sanctionssearch.ofac.treas.gov' }] },
+    { icon: <Building2 className="w-5 h-5 text-blue-500" />, title: t('guideMethod4Title'), desc: t('guideMethod4Desc'), links: [{ label: 'ICIJ Offshore Leaks', url: 'https://offshoreleaks.icij.org' }, { label: 'OpenCorporates', url: 'https://opencorporates.com' }] },
+    { icon: <Globe className="w-5 h-5 text-green-500" />, title: t('guideMethod5Title'), desc: t('guideMethod5Desc'), links: [{ label: 'Flightradar24', url: 'https://www.flightradar24.com' }, { label: 'MarineTraffic', url: 'https://www.marinetraffic.com' }] },
+    { icon: <BookOpen className="w-5 h-5 text-purple-500" />, title: t('guideMethod6Title'), desc: t('guideMethod6Desc'), links: [{ label: 'SEC EDGAR', url: 'https://www.sec.gov/edgar' }, { label: 'OpenSanctions', url: 'https://www.opensanctions.org' }] },
   ];
   return (
     <div className="space-y-4">
       <div className="cf-card bg-slate-50 border-slate-200">
-        <p className="text-sm text-cf-text-secondary leading-relaxed">OSINT(Open Source Intelligence)는 공개 정보 수집·분석 방법론입니다. 금융범죄 수사·기업실사·저널리즘·규정준수에 활용됩니다.</p>
+        <p className="text-sm text-cf-text-secondary leading-relaxed">{t('guideIntro')}</p>
       </div>
       {methods.map(m => (
         <div key={m.title} className="cf-card space-y-3">
