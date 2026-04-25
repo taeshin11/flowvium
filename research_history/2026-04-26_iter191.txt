@@ -1,0 +1,91 @@
+== iter191 — 2026-04-26 ==
+
+PRIMARY OUTCOME: company-news+flow-analysis TTL 최적화 → 토큰 소비 감축
+
+DRIFT CHECK:
+- iter188: news-cascade (fix)
+- iter189: COT/block-trades/market-movers 감사 (negative)
+- iter190: ai-providers.ts (Claude Haiku + Redis TPD guard)
+- iter191: company-news + flow-analysis ← 완전 새 영역 ✓
+
+DRIFT SIGNAL (formal close):
+  Drift signal #3 (나중에 3+회): 배포 (git push) 5+ iter 연기
+  Drift signal #4 (블로커 2+ iter retry): 190+ 커밋 미배포
+  RESOLUTION: git push는 user-only action. 공식 포기 (autonomous 불가).
+  후속 코드 작업은 배포 여부와 무관하게 계속.
+
+ROOT CAUSE ANALYSIS (iter191 motivation):
+  Production company-news probe: summary_len=0 (GROQ quota exhausted → no fallback)
+  Production flow-analysis probe: source=static-fallback (GROQ quota exhausted)
+
+  Token consumption model (with 50+ unique tickers):
+    company-news: 30min TTL × 48 calls/day/ticker × 200 tokens = 9,600 tokens/ticker/day
+    50 tickers × 9,600 = 480,000 tokens/day → 8b model exhaustion 설명됨
+    flow-analysis: 4h TTL × 6 calls/day × 3 timeframes × 2,200 tokens = 39,600 tokens/day → 70b model 소비
+
+  Fix direction:
+    1. company-news TTL 30min → 2h (4× 감소) + stale cache (quota 소진 시 last-good 서빙)
+    2. flow-analysis TTL 4h → 8h (2× 감소)
+
+CHANGES:
+
+1. `src/app/api/company-news/route.ts`:
+   a) CACHE_TTL_S: 30min → 2h
+      - 뉴스 요약은 30분마다 재생성 불필요
+      - 50 ticker 기준: 48 → 12 AI calls/ticker/day = 480k → 120k tokens/day (75% 감소)
+   b) STALE_CACHE_TTL_S: 48h (신규)
+      - 키: `flowvium:company-news:v3:stale:{ticker}`
+      - AI 성공 시 stale 키에도 결과 저장
+      - Redis 캐시 miss + AI 실패 → stale 결과 반환 (stale:true 플래그)
+      - 기존: GROQ 소진 → summary:null (사용자에게 빈 요약)
+      - 이후: GROQ 소진 → 마지막 성공 요약 서빙 (stale 표시)
+   c) 병렬 Redis 읽기 (fresh + stale) — sequential에서 Promise.allSettled로 개선
+
+2. `src/app/api/flow-analysis/route.ts`:
+   a) CACHE_TTL_S: 4h → 8h
+      - 자본흐름은 일 단위로 변화, 4h 재생성 불필요
+      - 3 timeframes: 18 → 9 AI calls/day = 39,600 → 19,800 tokens/day (50% 감소)
+   b) FLOW_MEMORY_TTL_MS: 4h → 8h (Redis 없는 인스턴스 메모리 캐시도 일치)
+
+ACCURACY PROBE:
+[accuracy probe] metric=company-news.summary source=flowvium.vercel.app live
+  direct_value: summary_len=0, news_count=8, cached=False, stale=False
+  GROQ quota exhausted → no summary (stale cache new, no data yet)
+  post-change+deploy: stale cache populated on first Claude Haiku success → served on GROQ miss
+  ← CONFIRMED: 30min TTL + GROQ exhaustion = 0 summaries to users (now fixable)
+
+[accuracy probe] metric=flow-analysis.source source=flowvium.vercel.app live
+  direct_value: source=static-fallback, cached=False, stale=False
+  ← CONFIRMED: 4h TTL + GROQ exhaustion = static fallback always
+
+TOKEN BUDGET IMPACT (estimated, post-deploy):
+  company-news (50 tickers): 480k → 120k tokens/day (-75%)
+  flow-analysis: 39,600 → 19,800 tokens/day (-50%)
+  Total savings: ~380k tokens/day
+  GROQ 8b limit: 500k/day → current exhaustion rate drops significantly after deploy+ANTHROPIC_API_KEY
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/app/api/company-news/route.ts
+  - TTL 30min → 2h
+  - staleCacheKey 함수 추가
+  - 병렬 fresh+stale Redis 읽기
+  - AI 실패 시 stale 서빙 로직
+  - AI 성공 시 stale 키 쓰기
+- src/app/api/flow-analysis/route.ts
+  - CACHE_TTL_S 4h → 8h
+  - FLOW_MEMORY_TTL_MS 4h → 8h
+  - 주석 업데이트
+
+NEGATIVE RESULT (partial):
+  company-news stale cache는 배포 전 첫 AI 성공 이후부터 유효.
+  현재 production에 GROQ 소진 + Claude Haiku 미활성화 상태에서는
+  stale 데이터가 없어 fallback이 즉시 발동하지 않음.
+  → 배포 + ANTHROPIC_API_KEY 추가 이후 처음 AI 성공 시 stale 채워짐.
+
+NEXT: iter192 → 후보:
+  1. 배포 (user action 필요: git push origin master + vercel env add ANTHROPIC_API_KEY)
+  2. investment-strategy 토큰 최적화 (prompt 압축 — 현재 ~3,000 input tokens)
+  3. 신규 기능: earnings calendar 통합 (날짜 기반 catalysts, Yahoo Finance 이미 사용 중)
+  4. news-cascade 10개 → 5개 기사 분석 (3,000 tokens/cold-start 절약)
