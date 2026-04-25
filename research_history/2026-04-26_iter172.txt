@@ -1,0 +1,64 @@
+== iter172 — 2026-04-26 ==
+
+PRIMARY OUTCOME: capital-flows 버그 탐지·수정
+
+DRIFT CHECK:
+- iter169: macro-indicators (GDP vintage)
+- iter170: verify-metrics (GDP pending)
+- iter171: daily-brief + investment-strategy (cascade 품질)
+- iter172: capital-flows (rotation start bug) ← 새 모듈
+
+drift 없음. 모두 다른 모듈 영역.
+
+ROOT CAUSE FOUND:
+
+GAP: estimateRotationStart() 의 weeksAgo=1 in-loop 재할당 버그
+
+capital-flows/route.ts line 300 (기존):
+  let weeksAgo = 1;
+  for (let w = maxWeeks; w >= 1; w--) {
+    ...
+    if (toRet - fromRet < 0.5) {
+      weeksAgo = Math.min(w + 1, maxWeeks);
+      break;
+    }
+    weeksAgo = 1; // still going  ← BUG
+  }
+
+이 로직의 문제:
+  - 로테이션 spread >= 0.5 가 maxWeeks 전체에 걸쳐 지속되면 (예: 주식 bull run)
+  - 루프가 break 없이 끝나면서 weeksAgo = 1 (마지막 iter w=1 에서 설정됨)
+  - UI: "로테이션 시작: 1주 전" → 3개월 묵은 rotation 도 "1주 전" 으로 표시
+  - 실제로는 maxWeeks 전부터 진행 중인데 오보
+
+예시 시나리오 (주식/채권 로테이션, maxWeeks=5 for 4w timeframe):
+  - w=5,4,3,2,1 모두 spread >= 0.5 → 루프 no-break
+  - 기존: weeksAgo=1 → 시작일 = 오늘-7일 (WRONG)
+  - 수정: weeksAgo=5 → 시작일 = 오늘-35일 (CORRECT)
+
+FIX:
+  let weeksAgo = maxWeeks;  // default: rotation spans full window
+  for (let w = maxWeeks; w >= 1; w--) {
+    ...
+    if (toRet - fromRet < 0.5) {
+      weeksAgo = Math.min(w + 1, maxWeeks);
+      break;
+    }
+    // no in-loop reset
+  }
+
+영향 범위:
+  - buildRotations() 를 통해 rotations1w/4w/13w 의 모든 weeksAgo, startDate 에 영향
+  - 현재 시장 환경(주식 강세)에서 거의 모든 rotation 이 이 버그에 걸림
+
+ACCURACY PROBE:
+[accuracy probe] metric=capital-flows.SPY.ret1w source=Yahoo
+  direct_value=(713.94-710.14)/710.14*100=0.54%
+  our pctReturn(prices,5) formula: identical → OK
+  Yahoo source: LIVE ✓
+  cache: 'no-store' on all 4 fetch functions: CONFIRMED ✓
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/capital-flows/route.ts (estimateRotationStart: weeksAgo init + remove in-loop reset)
