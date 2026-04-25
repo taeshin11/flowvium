@@ -17,9 +17,8 @@ let STRATEGY_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const STRATEGY_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
 
 function cacheKey(): string {
-  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const datehour = kst.toISOString().slice(0, 13).replace('T', ':');
-  return `flowvium:investment-strategy:v4:${datehour}`;
+  const kstDate = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return `flowvium:investment-strategy:v5:${kstDate}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -105,6 +104,32 @@ const CANDIDATE_TICKERS = [
 ];
 
 async function getLivePrices(): Promise<Map<string, LivePrice>> {
+  try {
+    const fields = 'regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow';
+    const res = await fetch(
+      `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(CANDIDATE_TICKERS.join(','))}&fields=${fields}`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const quotes = (data?.quoteResponse?.result ?? []) as Array<Record<string, unknown>>;
+      if (quotes.length > 0) {
+        const map = new Map<string, LivePrice>();
+        for (const q of quotes) {
+          const price = q.regularMarketPrice as number | undefined;
+          if (price == null) continue;
+          const changePct = q.regularMarketChangePercent as number | undefined;
+          map.set(q.symbol as string, {
+            price: Math.round(price * 100) / 100,
+            change1d: Math.round((changePct ?? 0) * 10) / 10,
+            high52w: (q.fiftyTwoWeekHigh as number | undefined) ?? price * 1.3,
+            low52w: (q.fiftyTwoWeekLow as number | undefined) ?? price * 0.7,
+          });
+        }
+        return map;
+      }
+    }
+  } catch { /* fall through to v8 */ }
   const results = await Promise.all(CANDIDATE_TICKERS.map(fetchOnePrice));
   return new Map(results.filter((r): r is [string, LivePrice] => r[1] !== null));
 }

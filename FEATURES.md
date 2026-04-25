@@ -853,7 +853,7 @@ ownership-alerts 적용).
 | 엔드포인트 | 데이터 소스 | Redis 캐시 TTL |
 |-----------|-------------|---------------|
 | `/api/daily-brief` | EXAONE vLLM → Gemini | 26h |
-| `/api/investment-strategy` | 전 탭 컨텍스트 종합 → GROQ/Gemini | 4h |
+| `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Gemini (v5 키: 일별 1회 갱신) | 12h Redis / 4h mem |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
 | `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 70b 병렬 8개, skipVllm=true); 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 4h |
 | `/api/capital-flows` | Twelve Data → Yahoo → Stooq | 4h |
