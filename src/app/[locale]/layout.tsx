@@ -12,18 +12,23 @@ export async function generateMetadata({
   params: { locale: string };
 }): Promise<Metadata> {
   const t = await getTranslations({ locale: params.locale, namespace: 'seo' });
-  return generateSeoMetadata({
-    title: t('homeTitle'),
-    description: t('homeDescription'),
-    locale: params.locale,
-    keywords: [
-      'supply chain',
-      'institutional buying',
-      'cascade trading',
-      '13F filings',
-      'mid-cap stocks',
-    ],
-  });
+  return {
+    ...generateSeoMetadata({
+      title: t('homeTitle'),
+      description: t('homeDescription'),
+      locale: params.locale,
+      keywords: [
+        'supply chain',
+        'institutional buying',
+        'cascade trading',
+        '13F filings',
+        'mid-cap stocks',
+      ],
+    }),
+    verification: {
+      google: 'WddgcbVJsL2BGHNAje5m6DK56IcR0Mw5UOqozI2Xtrc',
+    },
+  };
 }
 
 const BASE_URL = 'https://flowvium.vercel.app';
