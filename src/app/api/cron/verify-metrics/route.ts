@@ -942,13 +942,19 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       }),
       fetch(`${base}/api/volatility`, { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
     ]);
-    if (!yahooRes.ok || !ourRes.ok) throw new Error(`yahoo=${yahooRes.status} ours=${ourRes.status}`);
+    if (!ourRes.ok) throw new Error(`ours=${ourRes.status}`);
+    // If Yahoo rate-limits Vercel IPs, mark degraded (not inaccurate) — avoid false error
+    if (!yahooRes.ok) {
+      items.push({ key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy', status: 'degraded',
+        lastError: `yahoo_rate_limited=${yahooRes.status}` });
+      return items;
+    }
     const yahooData = await yahooRes.json();
     const ourData = await ourRes.json();
     const yahooVix: number | null = yahooData?.chart?.result?.[0]?.meta?.regularMarketPrice ?? null;
     const ourVix: number | null = (ourData as { vix?: number | null })?.vix ?? null;
     if (yahooVix == null || ourVix == null) {
-      items.push({ key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy', status: 'error',
+      items.push({ key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy', status: 'degraded',
         lastError: `yahoo=${yahooVix} ours=${ourVix}` });
     } else {
       const delta = Math.abs(yahooVix - ourVix);
