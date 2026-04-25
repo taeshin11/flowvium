@@ -1,0 +1,61 @@
+iter119 — 2026-04-25
+Primary outcome: CompanyPage i18n 완성 (재무·지분 섹션)
+
+Drift check:
+- iter116~118: 3× ScreenerPage.tsx 연속 작업 → DRIFT 신호
+- iter119: CompanyPage 영역으로 이동
+
+==== 발견된 문제 ====
+
+[QUALITY] CompanyPage 재무·지분 섹션 한글 하드코딩 (CLAUDE.md 위반)
+  - 증상: 비한국어 사용자에게 재무 심화/기관 지분율 섹션 전체가 한글로 표시
+  - 영향 범위: 15개 언어 × 약 30개 문자열 = ~450개 잘못된 텍스트 표시
+  - 발견: grep "'[가-힣]" CompanyPage.tsx → 18개 단일따옴표 한글 + 3개 이중따옴표 한글
+
+영향받은 섹션:
+  1. 주가 차트 헤더 ("90일 주가 추이", "Yahoo Finance · 1h 캐시")
+  2. 시장상태 배지 ("장전", "장후")
+  3. 재무 심화 섹션 전체 (매출, 영업이익, 순이익, EPS 등 16개 지표 레이블)
+  4. 매출 추이 차트 레이블 (연간/분기)
+  5. 대차대조표 / 현금흐름 / 투자·주주환원 섹션 레이블
+  6. 기관 지분율 현황 섹션 전체 (헤더, 컬럼 7개, 액션 레이블 4개, 푸터)
+
+==== 수정 내용 ====
+
+1. 신규 i18n 키 42개 정의 (en.json + ko.json에 직접 Edit, 나머지 14개 언어는 Node.js 스크립트로 일괄 적용)
+   - priceChart90d, priceChartSource, preMarket, postMarket
+   - financialsDeep, finRevenue, finOperatingIncome, finNetIncome, finEpsDiluted
+   - finOperatingMargin, finRoe, finRoa, finDebtRatio
+   - revenueTrendAnnual, revenueTrendQuarterly
+   - balanceSheet, totalAssets, totalLiabilities, equity
+   - cashFlows, operatingCF, investingCF, financingCF
+   - investShareholder, buybacks, dividends, financialsSource
+   - ownershipStatus, ownershipAs13f, ownershipChange, ownershipPct
+   - ownershipPrevPct, ownershipShares, ownershipValue
+   - actionNew, actionIncreased, actionMaintained, actionReduced
+   - ownershipTotalPct, ownershipTotalValue, ownershipBasis, sharesUnit
+
+2. CompanyPage.tsx: 29개 하드코딩 한글 → t() 호출 교체
+   - 모든 레이블이 useTranslations('company') 컨텍스트의 t() 함수를 경유
+
+==== 검증 ====
+
+[accuracy probe] metric=NVDA.price source=Yahoo_v8 direct_value=208.27 our_value=208.27 (동일 엔드포인트, delta=0) → OK
+build: ✓ Compiled successfully (tsc --noEmit clean)
+Korean hardcoded strings: 0개 (grep 완전 클리어)
+16개 언어 파일 모두 업데이트 확인
+
+==== 나머지 한글 하드코딩 ====
+
+다른 페이지에도 하드코딩 한글 존재 (낮은 우선도, 다음 iter에서 처리 가능):
+- AdminLogsPage.tsx: 관리자 전용, 실사용자 영향 낮음
+- HomePage.tsx: risk level labels ('낮음', '보통', '높음')
+- InsiderPage.tsx: period labels, KRX 섹션
+- IntelligencePage.tsx: tab labels, sector names (가장 사용자 접점 높음)
+- NewsGapPage.tsx: error message
+
+==== 다음 우선 과제 ====
+- IntelligencePage 탭 레이블 i18n (사용자 접점 높음)
+- HomPage risk level 레이블 i18n
+- Redis 설정 → newsGapScore 실값 복구
+- Vercel 배포 (73+ commits ahead)
