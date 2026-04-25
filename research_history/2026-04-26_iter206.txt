@@ -1,0 +1,74 @@
+== iter206 — 2026-04-26 ==
+
+PRIMARY OUTCOME: Error=0 달성 (comm.gold + flow.analysis 복구)
+
+DRIFT CHECK:
+- iter203-205: data-source/verify-metrics 영역
+- iter203: 인프라 블로커 (comm.gold) 2+ iter retry-only → FIX OR ABANDON 적용
+- iter206: comm.gold 신규 소스 도전 + performance + dead code 삭제 ✓
+
+PROBLEM:
+  1. comm.gold: error — Yahoo GC.CMX 선물 Yahoo IP 차단, FRED gold 타임아웃
+  2. flow.analysis: error — AI 소진 + countries=0 시 static fallback 미작동
+  3. polygon.ts: 27 ticker 순차 배치 루프 (~6s)
+  4. alpha-vantage.ts: deprecated fetchNewsCount() dead code
+
+CHANGES:
+  src/app/api/commodity-curve/route.ts:
+    - fetchGoldSpotGoldAPI() 신설:
+      URL: https://api.gold-api.com/price/XAU (free, no auth, cloud-IP accessible)
+      currency===USD 검증, price>0 검증
+    - goldCurve.curve.length===0 → fetchGoldSpotGoldAPI() 호출
+    - goldCurve.curve = [{ticker:'GOLDAPI:XAU', label:'Spot', price:N}]
+    → comm.gold: error → degraded ✓
+
+  src/app/api/flow-analysis/route.ts:
+    - 최종 fallback 신설: analysis===null 시 minimal 구조 반환
+    - source='static-fallback', countries:[], keyWatchpoints에 "AI quota: exhausted" 명시
+    - flow.analysis: error → degraded (AI 소진 중에도) ✓
+    - ※ GROQ quota 리셋으로 flow.analysis ok 도달
+
+  src/lib/polygon.ts:
+    - fetchBlockTradesForTickers(): 순차 배치 → Promise.all(batches) 전환
+    - 27 tickers / BATCH=5 = 6라운드 순차 → 1라운드 병렬
+    - 이론적 ~6x 단축 (5 req × 6 rounds × ~1s → 5 req × 1 round × ~1s)
+
+  src/lib/alpha-vantage.ts:
+    - deprecated fetchNewsCount() 삭제 (dead code, callers=0)
+
+ACCURACY PROBE:
+  [accuracy probe] metric=comm.gold source=gold-api.com direct_value=4710.80 our_value=4710.80 delta=0 tolerance=2.0 → OK
+  (단: 4710.80 USD/oz = 2026-04-25 spot, 검증일 기준 최신값)
+
+NEGATIVE RESULT:
+  flow.analysis minimal fallback → GROQ 리셋으로 실제 작동 확인 불가 (이미 ok)
+  polygonKey 미설정 환경에서 block-trades 성능 개선 측정 불가
+
+VERIFY-METRICS (iter206 완료):
+  OK=145 (+2 vs iter205), Degraded=9, Error=0 (최초 0 달성!), Total=159
+  - comm.gold: error → degraded ✓ (GOLDAPI:XAU Spot $4710.80)
+  - flow.analysis: error → ok ✓ (GROQ 리셋 + fallback 안전망 추가)
+  - ai.groq: degraded → ok ✓ (GROQ quota 리셋)
+  [DEGRADED 유지] vol.vxst, vol.vxmt — CBOE AccessDenied (공식 포기)
+  [DEGRADED 유지] comm.oil — FRED 1pt (futures curve 불가)
+  [DEGRADED 유지] macro.gdp — 2026-04-30 발표 예정
+  [DEGRADED 유지] strategy.portfolio — AI fallback (GROQ 재소진?)
+  [DEGRADED 유지] brief.market, news.company, stock.price — Yahoo IP 차단
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (4 files):
+- src/app/api/commodity-curve/route.ts (gold-api.com 폴백)
+- src/app/api/flow-analysis/route.ts (minimal fallback)
+- src/lib/polygon.ts (병렬화)
+- src/lib/alpha-vantage.ts (dead code 삭제)
+
+COMMITS: d52bd87 (gold fallback), 0592cdc (flow minimal fallback), 175c5e9 (perf+cleanup)
+PUSHED: ✓ origin/master
+
+NEXT: iter207
+  1. news.company, stock.price degraded → 소스 확인 (Yahoo vs AI)
+  2. comm.oil: FRED 1pt → 추가 소스 탐색 (EIA API 무료 티어?)
+  3. brief.market degraded → fallback 품질 개선?
+  4. 비 data-source 영역 강제 전환 (drift 누적)
+  5. 2026-04-30 GDP Q1 advance 발표 예정
