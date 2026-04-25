@@ -829,7 +829,14 @@
     "ageHour": "{n}小时前",
     "ageDay": "{n}天前",
     "kpiFg": "F&G",
-    "kpiCutProb": "降息 {pct}%"
+    "kpiCutProb": "降息 {pct}%",
+    "tipFg": "恐惧贪婪指数 (0-100). ≤25=极度恐惧, ≥75=极度贪婪. 用作逆向投资信号。",
+    "tipSpy": "S&P 500 ETF近1周收益率。美国大盘股市场短期方向。",
+    "tipCurve": "10年-2年国债收益率利差(bp). 负值(倒挂)历史上是衰退领先指标。正值=正常。",
+    "tipHyOas": "高收益债券风险溢价。>5%=信用危机，4-5%=注意，<4%=安全。",
+    "tipVix": "市场恐惧指数。<20=平静，20-25=普通，25-30=注意，>30=极度恐惧。",
+    "tipFomc": "CME FedWatch下次FOMC会议降息概率。",
+    "tipCycle": "基于GDP增长和CPI的经济周期。Goldilocks=理想，Stagflation=低增长+高通胀。"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

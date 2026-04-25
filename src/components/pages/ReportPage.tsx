@@ -346,6 +346,7 @@ export default function ReportPage() {
             label={t('kpiFg')}
             body={fg.value ? `${fg.value.score}` : '—'}
             cls={fg.value ? fgColor(fg.value.score) : ''}
+            tooltip={t('tipFg')}
           />
           {/* SPY — with 30d sparkline */}
           <Pill
@@ -355,6 +356,7 @@ export default function ReportPage() {
             body={spy.value ? `${spy.value.ret1w >= 0 ? '+' : ''}${spy.value.ret1w.toFixed(2)}%` : '—'}
             cls={spy.value ? (spy.value.ret1w >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200') : ''}
             sparkline={spySpark}
+            tooltip={t('tipSpy')}
           />
           {/* 10Y-2Y */}
           <Pill
@@ -363,6 +365,7 @@ export default function ReportPage() {
             label="10Y-2Y"
             body={curve.value ? `${(curve.value.spread * 100).toFixed(0)}bp` : '—'}
             cls={curve.value ? (curve.value.inverted ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
+            tooltip={t('tipCurve')}
           />
           {/* HY OAS — credit stress signal */}
           <Pill
@@ -371,6 +374,7 @@ export default function ReportPage() {
             label="HY OAS"
             body={hyOas.value ? `${hyOas.value.value.toFixed(2)}%` : '—'}
             cls={hyOas.value ? (hyOas.value.value > 5.0 ? 'bg-red-50 text-red-700 border-red-200' : hyOas.value.value > 4.0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200') : ''}
+            tooltip={t('tipHyOas')}
           />
           {/* VIX — level from volatility endpoint, change from price-history sparkline */}
           <Pill
@@ -384,6 +388,7 @@ export default function ReportPage() {
               ? (vix.value.level > 25 ? 'bg-red-50 text-red-700 border-red-200' : vix.value.level > 15 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
               : vix.value ? (vix.value.ret1w >= 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200') : ''}
             sparkline={vixSpark}
+            tooltip={t('tipVix')}
           />
           {/* FOMC */}
           <Pill
@@ -392,6 +397,7 @@ export default function ReportPage() {
             label={`FOMC ${fomc.value?.label ?? ''}`}
             body={fomc.value ? t('kpiCutProb', { pct: fomc.value.probCut.toFixed(0) }) : '—'}
             cls={fomc.value ? 'bg-violet-50 text-violet-700 border-violet-200' : ''}
+            tooltip={t('tipFomc')}
           />
           {/* Economic cycle regime */}
           <Pill
@@ -400,6 +406,7 @@ export default function ReportPage() {
             label="CYCLE"
             body={cycle.value?.label ?? '—'}
             cls={cycle.value?.cls ?? ''}
+            tooltip={t('tipCycle')}
           />
         </div>
 
@@ -522,31 +529,59 @@ export default function ReportPage() {
 }
 
 // ── Pill subcomponent ────────────────────────────────────────────────────────
-function Pill({ loading, error, label, body, cls, sparkline }: { loading: boolean; error: boolean; label: string; body: string; cls: string; sparkline?: number[] | null }) {
+function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
+  loading: boolean; error: boolean; label: string; body: string; cls: string;
+  sparkline?: number[] | null; tooltip?: string;
+}) {
+  const [open, setOpen] = useState(false);
   const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium';
+  const wrapper = 'relative inline-flex';
+  const tip = tooltip ? (
+    <div
+      role="tooltip"
+      className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl bg-gray-900 text-white text-[11px] leading-relaxed px-3 py-2 shadow-xl z-50 pointer-events-none transition-opacity duration-150 ${open ? 'opacity-100' : 'opacity-0'}`}
+    >
+      {tooltip}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+    </div>
+  ) : null;
+
   if (loading) {
     return (
-      <span className={`${base} bg-gray-50 text-gray-400 border-gray-200`}>
-        <span className="w-3 h-3 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin inline-block" />
-        <span>{label}</span>
+      <span className={wrapper}>
+        <span className={`${base} bg-gray-50 text-gray-400 border-gray-200`}>
+          <span className="w-3 h-3 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin inline-block" />
+          <span>{label}</span>
+        </span>
       </span>
     );
   }
   if (error) {
     return (
-      <span className={`${base} bg-gray-50 text-gray-400 border-gray-200`}>
-        <span className="opacity-60">{label}</span>
-        <span className="font-semibold">—</span>
+      <span className={wrapper}>
+        <span className={`${base} bg-gray-50 text-gray-400 border-gray-200`}>
+          <span className="opacity-60">{label}</span>
+          <span className="font-semibold">—</span>
+        </span>
       </span>
     );
   }
   return (
-    <span className={`${base} ${cls}`}>
-      <span className="opacity-70">{label}</span>
-      <span className="font-semibold">{body}</span>
-      {sparkline && sparkline.length >= 2 && (
-        <Sparkline values={sparkline} width={48} height={14} className="opacity-80 ml-0.5" />
-      )}
+    <span
+      className={`${wrapper} cursor-help`}
+      onMouseEnter={() => tooltip && setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onClick={() => tooltip && setOpen(v => !v)}
+    >
+      {tip}
+      <span className={`${base} ${cls}`}>
+        <span className="opacity-70">{label}</span>
+        <span className="font-semibold">{body}</span>
+        {sparkline && sparkline.length >= 2 && (
+          <Sparkline values={sparkline} width={48} height={14} className="opacity-80 ml-0.5" />
+        )}
+        {tooltip && <span className="opacity-40 text-[9px] ml-0.5">?</span>}
+      </span>
     </span>
   );
 }

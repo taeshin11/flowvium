@@ -829,7 +829,14 @@
     "ageHour": "{n}小時前",
     "ageDay": "{n}天前",
     "kpiFg": "F&G",
-    "kpiCutProb": "降息 {pct}%"
+    "kpiCutProb": "降息 {pct}%",
+    "tipFg": "恐懼貪婪指數 (0-100). ≤25=極度恐懼, ≥75=極度貪婪. 逆向投資信號。",
+    "tipSpy": "S&P 500 ETF近1週漲幅。美國大型股市場短期方向。",
+    "tipCurve": "10年-2年公債利差(bp). 負值(倒掛)為衰退領先指標。正值=正常。",
+    "tipHyOas": "高收益債券風險溢價。>5%=信用危機，4-5%=注意，<4%=安全。",
+    "tipVix": "市場恐慌指數。<20=平靜，25-30=注意，>30=極度恐慌。",
+    "tipFomc": "CME FedWatch下次FOMC降息機率。",
+    "tipCycle": "基於GDP與CPI的景氣循環。Goldilocks=理想，Stagflation=停滯性通膨。"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

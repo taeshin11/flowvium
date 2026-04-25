@@ -829,7 +829,14 @@
     "ageHour": "قبل {n} س",
     "ageDay": "قبل {n} ي",
     "kpiFg": "F&G",
-    "kpiCutProb": "خفض {pct}%"
+    "kpiCutProb": "خفض {pct}%",
+    "tipFg": "Fear & Greed Index (0-100). ≤25=extreme fear, ≥75=extreme greed. Contrarian signal for market sentiment.",
+    "tipSpy": "S&P 500 ETF 1-week return. Short-term direction of the US large-cap market.",
+    "tipCurve": "10Y minus 2Y Treasury yield spread (bp). Negative (inverted) historically signals recession. Positive=normal.",
+    "tipHyOas": "High-yield bond risk premium. >5%=credit stress, 4-5%=caution, <4%=safe. Higher = more credit risk.",
+    "tipVix": "Market fear index. <20=calm, 20-25=normal, 25-30=caution, >30=extreme fear zone.",
+    "tipFomc": "CME FedWatch probability of a rate cut at the next FOMC meeting. Market's bet on Fed policy.",
+    "tipCycle": "Business cycle based on GDP growth & CPI. Goldilocks=ideal, Stagflation=low growth+high inflation, Overheating=hot, Recession=contraction."
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",
