@@ -1,0 +1,115 @@
+ITER107 — NewsCascadeTab·EconCalendarSection i18n 완료
+Date: 2026-04-25
+Primary outcome: "뉴스Cascade+EconCal i18n"
+
+═══════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════
+Recent commits: iter106(companies+insider i18n), iter105(CotTab/CB i18n+perf),
+iter104(bug fix), iter103(batch9), iter102(CapitalFlows i18n)
+
+i18n 작업 연속성: iter102 → (iter103 non-i18n) → (iter104 non-i18n) → iter105 → iter106
+  → 3 iter 연속 아님 (iter103, iter104 개입) → drift 없음 ✅
+
+deferred 3+ items: NewsCascadeTab/EconCal은 iter106 log의 NEXT ITER #1/#2
+  → 첫 번째 공식 등장, 3회 이상 deferred 아님 ✅
+
+infra blockers: Yahoo Finance/CNN F&G from shell = 알려진 차단
+  → iter103 이후 확인, 해결법 없음 (Vercel에서는 정상) → 공식 포기 수용 ✅
+
+No drift signals detected.
+
+═══════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════
+"뉴스Cascade+EconCal i18n" (12자)
+
+산출물 체크 (규칙 [3]):
+(a) 핵심 숫자 변경: i18n 한국어 잔존 -16 strings (NewsCascadeTab 10개 + EconCal 6개)
+(c) 삭제: SENTIMENT_STYLE에서 label 필드 제거 (모듈 레벨 하드코딩 완전 제거)
+
+═══════════════════════════════════════════════════════════════
+TASK A — NewsCascadeTab i18n (10 strings)
+═══════════════════════════════════════════════════════════════
+Before: SENTIMENT_STYLE 모듈 레벨 상수에 label: '강세'/'약세'/'중립' 하드코딩
+        loading: '뉴스 분석 중...'
+        empty: '뉴스 Cascade 데이터를 불러올 수 없습니다...'
+        title: '뉴스 시장 파급 분석 (Cascade)'
+        desc: 'AI가 주요 뉴스를 분석해...'
+        cascade button: 'Cascade N개 보기/접기'
+        magnitude: '강'/'중'/'약'
+
+After:
+  - SENTIMENT_STYLE: label 필드 제거 (cls only)
+  - useTranslations('intelligence') 추가
+  - SENTIMENT_LABEL, MAG_LABEL const maps (inside component, t() 사용)
+  - 모든 10개 → t(key) 교체
+
+신규 i18n 키: ncSentimentBullish/Bearish/Neutral, ncLoading, ncEmpty,
+              ncTitle, ncDesc, ncCascadeExpand, ncCascadeCollapse,
+              ncMagHigh/Medium/Low (12개)
+
+TypeScript: 0 errors
+Commit: 4d20d60
+
+═══════════════════════════════════════════════════════════════
+TASK B — EconCalendarSection i18n (6 strings)
+═══════════════════════════════════════════════════════════════
+Before: DaysChip 모듈 레벨 컴포넌트에 '오늘'/'내일'/'{days}일 후' 하드코딩
+        title: '주요 매크로 이벤트 캘린더'
+        timezone: 'ET 기준'
+        footnote: '출처: Federal Reserve · BLS · BEA...'
+
+After:
+  - DaysChip 시그니처 변경: { days } → { days, today, tomorrow, later }
+  - EconCalendarSection에 useTranslations('intelligence') 추가
+  - DaysChip에 t() 결과 prop으로 전달
+  - 모든 6개 → t(key) 교체
+
+신규 i18n 키: ecToday, ecTomorrow, ecDaysLater ({days} ICU param),
+              ecTitle, ecTimezone, ecFootnote (6개)
+
+TypeScript: 0 errors
+
+═══════════════════════════════════════════════════════════════
+i18n 키 통계
+═══════════════════════════════════════════════════════════════
+신규 키: 18개 × 16 locales = 288 key-value pairs
+messages/*.json 모두 업데이트 (scripts/add_nc_ec_keys.py 사용)
+
+═══════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════
+[accuracy probe] metric=SPY source=Yahoo
+  Shell fetch: BLOCKED (known Windows network restriction)
+  Last known (iter106): direct_value=713.94 → 알려진 차단, Vercel에서 정상
+
+[accuracy probe] metric=fg.us source=CNN
+  Shell fetch: BLOCKED (known)
+  Last known (iter105): direct_value=66 our_value=66 delta=0 → OK
+
+Note: 이번 iter는 i18n (static text) 변경 — live metric 값 변화 없음
+      값 정합성은 verify-metrics cron 자동화가 담당 (last: 184 ok)
+
+═══════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════
+TypeScript: 0 errors
+allCompanies: 602 unique ✅
+
+i18n 한국어 잔존 (주요 탭):
+  NewsCascadeTab: 0 ✅ (완료)
+  EconCalendarSection: 0 ✅ (완료)
+  MacroIndicatorsTab: ~68개 (대형 작업)
+  기타: LiveFeed, AdminLogsPage, CompanyPage, EarningsPage,
+        HeatmapPage, HomePage, IntelligencePage, NewsGapPage,
+        OSINTPage, ReportPage, ScreenerPage, ShortPage,
+        SignalsPage, WatchlistPage, StockSupplyModal
+
+═══════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════
+1. MacroIndicatorsTab i18n (68개) — 대형 작업, 단독 iter 필요
+2. 기타 페이지 Korean scan → 빠른 항목 처리
+3. 성능: bare fetch() 감사 (cache: 'no-store' 누락 여부)
+4. 에러 탐색 (zombie process 없음 확인됨 — wlanext.exe만 있었음)
