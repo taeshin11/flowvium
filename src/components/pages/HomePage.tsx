@@ -36,7 +36,7 @@ import {
   X,
   Radar,
 } from 'lucide-react';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import EmailCTA from '@/components/EmailCTA';
 import LiveFeed from '@/components/LiveFeed';
 import { useRouter } from '@/i18n/routing';
@@ -237,15 +237,15 @@ function HeroSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const filtered = query.trim().length > 0
-    ? searchCompanies.filter((c) => {
-        const q = query.toLowerCase();
-        if (c.name.toLowerCase().includes(q) || c.ticker.toLowerCase().includes(q)) return true;
-        const loc = companyNamesI18n[c.ticker];
-        if (loc?.some((n) => n.toLowerCase().includes(q))) return true;
-        return false;
-      }).slice(0, 8)
-    : [];
+  const filtered = useMemo(() => {
+    if (query.trim().length === 0) return [];
+    const q = query.toLowerCase();
+    return searchCompanies.filter((c) => {
+      if (c.name.toLowerCase().includes(q) || c.ticker.toLowerCase().includes(q)) return true;
+      const loc = companyNamesI18n[c.ticker];
+      return loc?.some((n) => n.toLowerCase().includes(q)) ?? false;
+    }).slice(0, 8);
+  }, [query]);
 
   const handleSelect = useCallback((ticker: string) => {
     setQuery('');
@@ -598,6 +598,28 @@ const CASCADE_STEPS = [
   ['AMD', 'GOOGL'],           // step 2
   ['SMCI', 'ASML'],           // step 3
 ];
+const MINI_NODES = [
+  { id: 'NVDA', x: 200, y: 115, r: 28, color: '#4F8FBF', label: 'NVDA' },
+  { id: 'TSM',  x: 82,  y: 78,  r: 22, color: '#6366f1', label: 'TSM'  },
+  { id: 'MSFT', x: 318, y: 60,  r: 26, color: '#3b82f6', label: 'MSFT' },
+  { id: 'AMD',  x: 118, y: 195, r: 18, color: '#6366f1', label: 'AMD'  },
+  { id: 'SMCI', x: 300, y: 188, r: 14, color: '#6366f1', label: 'SMCI' },
+  { id: 'GOOGL',x: 372, y: 142, r: 24, color: '#3b82f6', label: 'GOOGL'},
+  { id: 'ASML', x: 50,  y: 168, r: 16, color: '#8b5cf6', label: 'ASML' },
+];
+const MINI_LINKS = [
+  { from: 'TSM',  to: 'NVDA' },
+  { from: 'NVDA', to: 'MSFT' },
+  { from: 'TSM',  to: 'AMD'  },
+  { from: 'NVDA', to: 'SMCI' },
+  { from: 'NVDA', to: 'GOOGL'},
+  { from: 'ASML', to: 'TSM'  },
+  { from: 'AMD',  to: 'MSFT' },
+];
+const MINI_NODE_MAP = Object.fromEntries(MINI_NODES.map((n) => [n.id, n]));
+const TOP_SIGNALS = institutionalSignals
+  .filter((s) => s.action === 'accumulating' || s.action === 'new_position')
+  .slice(0, 5);
 const STEP_MS = 500;
 const HOLD_MS = 1200;
 const FADE_MS = 800;
@@ -634,26 +656,6 @@ function MiniGraph() {
 
   if (!mounted) return <div className="w-full h-64 bg-cf-border/30 rounded-xl animate-pulse" />;
 
-  const nodes = [
-    { id: 'NVDA', x: 200, y: 115, r: 28, color: '#4F8FBF', label: 'NVDA' },
-    { id: 'TSM',  x: 82,  y: 78,  r: 22, color: '#6366f1', label: 'TSM'  },
-    { id: 'MSFT', x: 318, y: 60,  r: 26, color: '#3b82f6', label: 'MSFT' },
-    { id: 'AMD',  x: 118, y: 195, r: 18, color: '#6366f1', label: 'AMD'  },
-    { id: 'SMCI', x: 300, y: 188, r: 14, color: '#6366f1', label: 'SMCI' },
-    { id: 'GOOGL',x: 372, y: 142, r: 24, color: '#3b82f6', label: 'GOOGL'},
-    { id: 'ASML', x: 50,  y: 168, r: 16, color: '#8b5cf6', label: 'ASML' },
-  ];
-  const links = [
-    { from: 'TSM',  to: 'NVDA' },
-    { from: 'NVDA', to: 'MSFT' },
-    { from: 'TSM',  to: 'AMD'  },
-    { from: 'NVDA', to: 'SMCI' },
-    { from: 'NVDA', to: 'GOOGL'},
-    { from: 'ASML', to: 'TSM'  },
-    { from: 'AMD',  to: 'MSFT' },
-  ];
-  const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
-
   // Which nodes are "lit" (all steps up to and including activeStep)
   const litIds = new Set<string>(
     activeStep >= 0
@@ -683,9 +685,9 @@ function MiniGraph() {
       </defs>
 
       {/* Links */}
-      {links.map((l, i) => {
-        const from = nodeMap[l.from];
-        const to   = nodeMap[l.to];
+      {MINI_LINKS.map((l, i) => {
+        const from = MINI_NODE_MAP[l.from];
+        const to   = MINI_NODE_MAP[l.to];
         const active = isLinkActive(l.from, l.to);
         return (
           <line
@@ -701,7 +703,7 @@ function MiniGraph() {
       })}
 
       {/* Nodes */}
-      {nodes.map((n) => {
+      {MINI_NODES.map((n) => {
         const lit = litIds.has(n.id);
         return (
           <g key={n.id} style={{ transition: 'all 0.4s ease' }}>
@@ -767,10 +769,7 @@ export default function HomePage() {
   const features = useInView();
   const howItWorks = useInView();
 
-  // Get the 5 most recent/interesting signals
-  const topSignals = institutionalSignals
-    .filter((s) => s.action === 'accumulating' || s.action === 'new_position')
-    .slice(0, 5);
+  const topSignals = TOP_SIGNALS;
 
   return (
     <div>

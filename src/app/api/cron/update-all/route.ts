@@ -105,13 +105,13 @@ export async function GET(req: Request) {
   // 캐시가 있으면 기존 응답 반환, 없으면 warm 트리거만 한다.
   const brief4wR = await warm(base, '/api/daily-brief?tf=4w', 'daily-brief-4w', 20000);
 
-  // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget) ─────────────────
-  for (const ticker of TOP_TICKERS) {
+  // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget, 병렬) ──────────────
+  Promise.allSettled(TOP_TICKERS.map(ticker =>
     fetch(`${base}/api/stock-supply?ticker=${ticker}`, {
       signal: AbortSignal.timeout(15000),
       cache: 'no-store',
-    }).catch(() => {});
-  }
+    })
+  )).catch(() => {});
 
   // ── 5단계: news-cascade (느림 — fire & forget) ─────────────────────────
   fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000), cache: 'no-store' })
