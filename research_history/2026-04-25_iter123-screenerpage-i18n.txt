@@ -1,0 +1,63 @@
+iter123 — 2026-04-25
+Primary outcome: ScreenerPage 한글 102개 제거
+
+Drift check:
+- iter120: IntelligencePage i18n
+- iter121: HomePage i18n
+- iter122: feature + perf (drift 해소)
+- iter123: ScreenerPage i18n → i18n 연속 2iter (비드리프트)
+
+==== [1] 핵심 변경 ====
+
+scripts/add-screener-keys.js (실행 후 삭제):
+- screener namespace 72키를 messages/*.json 16개 파일에 추가
+- tf라벨 3, 섹터라벨 7, 액션라벨 4, 프리셋라벨+desc 14, JSX 44
+- 파라미터화 키: {days}, {n}, {score}, {amount}, {date} 등
+
+src/components/pages/ScreenerPage.tsx (769→~380 실질 라인):
+- import { useTranslations } from 'next-intl' 추가
+- TF_LABELS 모듈 상수 제거 (→ tfLabels computed inside component)
+- SECTOR_LABELS 한글 제거 (→ sectorLabels computed inside component)
+- ACTION_CONFIG.label 한글 제거 (→ actionLabels computed inside component)
+- PRESETS.label/desc 제거 (→ presetMeta computed inside component)
+- isCsuiteTitle() 내 `const t` → `const upper` (명확성)
+- 라인 432 map var t → tfOpt (useTranslations t와 충돌 방지)
+- 인사이더 처리 loop var t → trade (충돌 방지)
+- 모든 ~102 한글 JSX string → t() 호출 대체
+- tsc --noEmit: 0 errors ✓
+- grep [가-힣]: 0 matches ✓
+
+==== [2] 정확도 프로브 ====
+
+[accuracy probe] metric=SPY.price source=Yahoo_v8 direct_value=713.94 → endpoint alive ✓
+(iter123은 i18n 작업 — 데이터 정확도와 무관, 상위 레이어 렌더링 로직 변경)
+
+==== [3] 코드베이스 상태 ====
+
+- TypeScript: tsc --noEmit 0 errors ✓
+- 한글 하드코딩: grep [가-힣] ScreenerPage.tsx → 0 matches ✓
+- 16개 언어 동시 적용 완료
+
+==== [4] 미해결 항목 ====
+
+[i18n 잔여]
+- NewsGapPage ~42 한글
+- ShortPage ~39 한글
+- ReportPage ~24 한글
+- InsiderPage ~8 한글
+
+[Vercel 배포] 86+ commits ahead of origin/master → 사용자 git push 필요
+
+==== 커밋 목록 ====
+
+6d5c8dc feat(i18n): ScreenerPage 한글 102개 제거 — screener namespace 72키 16개 언어
+
+==== 다음 iter 방향 ====
+
+i18n 잔여 (3회 이상 누적 전):
+- InsiderPage ~8 → 가장 빠른 완료
+- NewsGapPage ~42 또는 ShortPage ~39
+
+또는 drift 방지 기능 전환:
+- CompanyPage 관련주 추천
+- 새 missing 지표 탐색
