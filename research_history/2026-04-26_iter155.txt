@@ -47,3 +47,10 @@ FILES CHANGED (2 files):
 
 NOTE: 130+ 커밋이 여전히 로컬에만 존재, 프로덕션 미반영.
 배포하면 위 모든 수정사항이 즉시 효과 발생.
+
+ADDITIONAL FIXES (same iter, follow-up sweep):
+- latest-updates/route.ts: capital-flows:v10 → v11 (Redis miss on every request)
+- daily-brief.ts: korea-flow:v3 → v4 (AI context always missing Korea Redis data)
+- send-alerts/route.ts: macro-indicators:v12 → v13 (macro alerts never fired)
+
+COMMIT: acef936 (3 more files, same pattern)
