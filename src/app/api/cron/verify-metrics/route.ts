@@ -510,7 +510,7 @@ async function verifySectorPE(base: string): Promise<MetricItem[]> {
     label: `${s.name} P/E`,
     group: 'sector-pe',
     status: (s.trailingPE != null || s.ytdReturn != null) ? 'ok' as const : 'degraded' as const,
-    value: s.trailingPE != null ? `PE=${s.trailingPE.toFixed(1)}` : s.ytdReturn != null ? `YTD=${s.ytdReturn > 0 ? '+' : ''}${s.ytdReturn.toFixed(1)}%` : null,
+    value: s.trailingPE != null ? `PE=${s.trailingPE.toFixed(1)}` : s.ytdReturn != null ? `YTD=${s.ytdReturn > 0 ? '+' : ''}${(s.ytdReturn * 100).toFixed(1)}%` : null,
     details: { trailingPE: s.trailingPE, ytdReturn: s.ytdReturn, changePct: s.changePct },
   }));
 }
@@ -926,6 +926,43 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       items.push({ key, label: key.replace('accuracy.', 'FRED ') + ' 대조', group: 'accuracy', status: 'error',
         lastError: err instanceof Error ? err.message : String(err) });
     }
+  }
+
+  // 4. VIX — Yahoo Finance v8 직접 대조 (stale Redis cache 감지용)
+  //    volatility route 는 Redis 30min 캐시 — cache: 'no-store' 빠뜨리면 stale 발생 가능.
+  //    ±1 point tolerance (Yahoo 실시간 vs 30분 캐시 최대 드리프트 기준).
+  try {
+    const t0 = Date.now();
+    const [yahooRes, ourRes] = await Promise.all([
+      fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=5d', {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000),
+        cache: 'no-store',
+      }),
+      fetch(`${base}/api/volatility`, { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+    ]);
+    if (!yahooRes.ok || !ourRes.ok) throw new Error(`yahoo=${yahooRes.status} ours=${ourRes.status}`);
+    const yahooData = await yahooRes.json();
+    const ourData = await ourRes.json();
+    const yahooVix: number | null = yahooData?.chart?.result?.[0]?.meta?.regularMarketPrice ?? null;
+    const ourVix: number | null = (ourData as { vix?: number | null })?.vix ?? null;
+    if (yahooVix == null || ourVix == null) {
+      items.push({ key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy', status: 'error',
+        lastError: `yahoo=${yahooVix} ours=${ourVix}` });
+    } else {
+      const delta = Math.abs(yahooVix - ourVix);
+      items.push({
+        key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy',
+        // ±1pt tolerance: 30min Redis cache drift; ±2pt = degraded but still functional
+        status: delta <= 1.0 ? 'ok' : delta <= 2.0 ? 'degraded' : 'error',
+        value: `ours ${ourVix.toFixed(2)} vs yahoo ${yahooVix.toFixed(2)} (Δ${delta.toFixed(2)})`,
+        source: 'yahoo-direct',
+        details: { yahooVix, ourVix, delta, durationMs: Date.now() - t0, tolerance: 1.0 },
+      });
+    }
+  } catch (err) {
+    items.push({ key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy', status: 'error',
+      lastError: err instanceof Error ? err.message : String(err) });
   }
 
   return items;
