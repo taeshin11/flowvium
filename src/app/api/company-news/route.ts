@@ -116,7 +116,10 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json(result, { headers: CDN_HEADERS });
   } catch (e) {
-    logger.error('api.company-news', 'fetch_failed', { ticker, error: e });
-    return NextResponse.json({ error: 'Failed to fetch news', details: String(e) }, { status: 502 });
+    logger.warn('api.company-news', 'fetch_failed', { ticker, error: String(e) });
+    if (staleResult) {
+      return NextResponse.json({ ...(staleResult as object), stale: true, cached: true }, { headers: CDN_HEADERS });
+    }
+    return NextResponse.json({ ticker, news: [], summary: null, error: 'unavailable', cached: false }, { headers: CDN_HEADERS });
   }
 }

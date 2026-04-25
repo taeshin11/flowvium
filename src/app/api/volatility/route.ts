@@ -19,6 +19,7 @@ import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 30 * 60;
+const STALE_KEY = 'flowvium:volatility:stale';
 const MEM_CACHE = createMemoryCache<VolatilityData>('volatility', 15 * 60_000);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=60' };
 
@@ -130,10 +131,26 @@ export async function GET() {
     cached: false,
   };
 
+  const hasData = data.vix != null;
   if (redis) {
-    try { await loggedRedisSet(redis, 'api.volatility', cacheKey, data, { ex: CACHE_TTL }); } catch { /* non-fatal */ }
+    try {
+      await loggedRedisSet(redis, 'api.volatility', cacheKey, data, { ex: CACHE_TTL });
+      if (hasData) await loggedRedisSet(redis, 'api.volatility', STALE_KEY, data, {});
+    } catch { /* non-fatal */ }
   } else {
     MEM_CACHE.set('global', data);
+  }
+
+  // Serve stale if all fetches returned null (Yahoo blocked)
+  if (!hasData && redis) {
+    try {
+      const stale = await redis.get(STALE_KEY);
+      if (stale) {
+        logger.info('api.volatility', 'stale_fallback', { note: 'Yahoo returned null, serving stale' });
+        MEM_CACHE.set('global', stale as VolatilityData);
+        return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+      }
+    } catch { /* non-fatal */ }
   }
 
   return NextResponse.json(data, { headers: CDN_HEADERS });

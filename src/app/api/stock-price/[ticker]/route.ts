@@ -1,18 +1,34 @@
 import { NextResponse } from 'next/server';
 import { createMemoryCache } from '@/lib/memory-cache';
+import { Redis } from '@upstash/redis';
+import { logger, loggedRedisSet } from '@/lib/logger';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 min
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 min memory
+const REDIS_TTL = 60 * 60;            // 1h Redis
 const mem = createMemoryCache<object>('stock-price', CACHE_TTL_MS);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=60' };
 
 export const dynamic = 'force-dynamic';
+
+function createRedis(): Redis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (!url || !token) return null;
+  return new Redis({ url, token });
+}
+
+function staleKey(sym: string): string {
+  return `flowvium:stock-price:stale:${sym}`;
+}
 
 export async function GET(_req: Request, { params }: { params: { ticker: string } }) {
   const sym = params.ticker.toUpperCase();
 
   const cached = mem.get(sym);
   if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
+
+  const redis = createRedis();
 
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=5d`;
@@ -29,8 +45,6 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
     if (!meta) throw new Error('No meta data');
 
     const price: number | null = meta.regularMarketPrice ?? null;
-    // meta.previousClose is null in Yahoo v8; chartPreviousClose = start-of-range close (5 days ago).
-    // Use validCloses[length-2] for actual daily previous-day close.
     const allCloses: (number | null)[] = chartResult?.indicators?.quote?.[0]?.close ?? [];
     const validCloses = allCloses.filter((c): c is number => c != null && !isNaN(c));
     const prevClose: number | null = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : null;
@@ -63,11 +77,27 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
     };
 
     mem.set(sym, result);
+    if (redis) {
+      await loggedRedisSet(redis, 'stock-price', `flowvium:stock-price:v1:${sym}`, result, { ex: REDIS_TTL });
+      await loggedRedisSet(redis, 'stock-price', staleKey(sym), result, {});
+    }
     return NextResponse.json(result, { headers: CDN_HEADERS });
   } catch (e) {
+    // Yahoo blocked or unreachable — try stale cache before returning error
+    if (redis) {
+      try {
+        const stale = await redis.get(staleKey(sym));
+        if (stale) {
+          logger.info('stock-price', 'stale_fallback', { sym, error: String(e) });
+          mem.set(sym, stale as object);
+          return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+        }
+      } catch { /* non-fatal */ }
+    }
+    logger.warn('stock-price', 'fetch_failed', { sym, error: String(e) });
     return NextResponse.json(
-      { error: 'Failed to fetch price', details: String(e) },
-      { status: 502 }
+      { ticker: sym, price: null, change: null, changePct: null, error: 'unavailable', cached: false },
+      { status: 200, headers: CDN_HEADERS }
     );
   }
 }
