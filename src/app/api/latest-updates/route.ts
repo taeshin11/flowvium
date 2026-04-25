@@ -324,16 +324,21 @@ function getNewsGapItems(): UpdateItem[] {
   const items: UpdateItem[] = [];
   for (const entry of newsGapData) {
     const ownership = entry.ownershipData ?? [];
-    for (const o of ownership.slice(0, 3)) {
-      if (!o.prevPct || Math.abs(o.pctOfShares - o.prevPct) < 0.5) continue;
-      const change = o.pctOfShares - o.prevPct;
-      const isUp = change > 0;
-      const changeStr = (isUp ? '+' : '') + change.toFixed(2) + '%p';
+    for (const o of ownership.slice(0, 2)) {
+      // prevPct is optional in static data — show 'new'/'increased'/'reduced' regardless
+      const isNoteworthy = o.action !== 'maintained';
+      if (!isNoteworthy) continue;
+      const hasDelta = o.prevPct != null && Math.abs(o.pctOfShares - o.prevPct) >= 0.5;
+      const change = hasDelta ? o.pctOfShares - (o.prevPct as number) : null;
+      const isUp = o.action === 'new' || o.action === 'increased';
+      const changeStr = change != null
+        ? ` ${change > 0 ? '+' : ''}${change.toFixed(2)}%p`
+        : ` (${o.action})`;
       const sortTime = `${o.quarter.replace(/^Q\d\s+/, '')}-01-01`;
       items.push({
         id: `ownership-${entry.ticker}-${o.institution}`,
         type: 'newsgap',
-        headline: `${o.institution} — ${entry.companyName} stake ${changeStr}`,
+        headline: `${o.institution} — ${entry.companyName}${changeStr}`,
         sub: `${o.pctOfShares}% held ($${o.valueM}M) · ${o.quarter}`,
         source: 'SEC EDGAR 13F',
         time: o.quarter,
@@ -345,7 +350,8 @@ function getNewsGapItems(): UpdateItem[] {
       });
     }
     for (const article of (entry.recentArticles ?? []).slice(0, 2)) {
-      if (!article.date || !withinDays(article.date, 7)) continue;
+      // Relax from 7→30 days — static articles updated quarterly, 7-day window too tight
+      if (!article.date || !withinDays(article.date, 30)) continue;
       items.push({
         id: `newsgap-${entry.ticker}-${article.url ?? article.title}`,
         type: 'newsgap',
@@ -398,7 +404,7 @@ async function getMarketMoverItems(redis: Redis | null): Promise<UpdateItem[]> {
 function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
   return signals
     .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
-    .slice(0, 30)
+    .slice(0, 10)
     .map(s => {
       const actionLabel = s.action === 'accumulating' ? 'Accumulating'
         : s.action === 'new_position' ? 'New Position'

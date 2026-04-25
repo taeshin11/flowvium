@@ -86,7 +86,7 @@
 - **F&G 30일 스파크라인** — F&G pill 옆 인라인 SVG 추세선 (44×14px) ← iter61
 - **매크로 리스크 신호 배지** — RISK: Risk On / Neutral / Risk Off (IG+HY+UMC+금리) ← iter64
 - **경제 국면 배지** — CYCLE: Stagflation / Goldilocks / Overheating / Slowdown / Recession (GDP+CPI) ← iter69
-- 마운트 시 `/api/stock-price` 7건 + `/api/fear-greed` 1건 + `/api/macro-indicators` 1건 병렬 fetch
+- 마운트 시 `/api/batch-prices?tickers=...` 1건 + `/api/fear-greed` 1건 + `/api/macro-indicators` 1건 병렬 fetch (iter158: 7개 개별→1개 배치 최적화)
 - 가격 로드 전 표시 안 함 (null guard)
 
 ### 2-2c. 다음 실적 발표 스트립 (`UpcomingEarningsStrip`) ← iter134
@@ -119,6 +119,23 @@
 - 순차 점등 + 연결선 애니메이션
 
 ### 2-8. 이메일 CTA + 법적 고지
+
+### 2-9. 라이브 업데이트 피드 (`/api/latest-updates`, iter155+)
+
+**API**: `GET /api/latest-updates` — 여러 소스 통합, Redis 15분 캐시  
+**타입**: `fear` · `flow` · `macro` · `fed` · `news` · `newsgap` · `signal` · `market` · `newsgap`
+
+- **Fear & Greed** (최대 3개): US + 전일 대비 5pt↑↓ 국가 상위 2개
+- **Capital Flows** (최대 3개): 1W 등락 상위 자산
+- **Macro Indicators** (최대 4개): beat/miss 우선 정렬, 30일 이내 릴리즈
+- **FedWatch** (1개): 다음 FOMC 회의 확률
+- **News Cascade** (최대 5개): 오늘+3일 내 AI 분석 기사
+- **News Gap / 기관 보유** (최대 2개/기업): new/increased/reduced action (iter159 버그수정)
+- **Institutional Signals** (최대 10개): 최신 13F (iter159: 30→10 상한 축소)
+- **Market Movers** (최대 6개): Redis `market-movers:v1` — S&P 500 상위 3 gainers + 3 losers (iter156)
+- **Economic Calendar** (최대 4개): 정적 캘린더 high/medium 이벤트, "Today/Tomorrow/In Nd" 긴급 라벨 (iter157)
+- 혼합 정렬: `sortTime` desc + 동일 타입 연속 최대 2개 제한 (`interleaveByTimeWithTypeCap`)
+- update-all stage 1에서 사전 워밍 (market-movers·sector-pe 포함, iter156·157)
 
 ---
 
