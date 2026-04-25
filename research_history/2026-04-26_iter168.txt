@@ -1,0 +1,63 @@
+== iter168 — 2026-04-26 ==
+
+PRIMARY OUTCOME: investment-strategy AI에 credit spread 컨텍스트 추가
+
+DRIFT CHECK:
+- iter165: daily-brief/news-cascade (lrange)
+- iter166: macro-indicators (nextRelease)
+- iter167: update-all cron (heatmap warm)
+- iter168: investment-strategy AI quality ← 새 도메인
+
+ROOT CAUSE FOUND:
+
+GAP: buildCtxSummary가 macro-indicators에서 CPI/GDP만 추출하고
+     IG/HY OAS(신용 스프레드)는 무시
+
+이전 코드:
+  const cpi = inds.find(i => i.id === 'cpi');
+  const gdp = inds.find(i => i.id === 'gdp');
+  const parts = [..., `CPI=${cpi.actual}%`, `GDP=${gdp.actual}%`];
+
+결과: AI 프롬프트 [Macro] 섹션에 신용 리스크 정보 없음
+- IG OAS: 0.79% (above 1.5% = credit stress alert)
+- HY OAS: 2.84% (above 5% = recession signal)
+
+iter166에서 IG/HY OAS nextRelease를 동적 계산으로 개선했지만,
+investment-strategy AI는 이 데이터를 전혀 받지 못하고 있었음.
+
+FIX:
+
+buildCtxSummary의 macro 섹션에 ig_spread / hy_spread 추가:
+  const ig = inds.find(i => i.id === 'ig_spread');
+  const hy = inds.find(i => i.id === 'hy_spread');
+  if (ig?.actual != null) parts.push(`IG_OAS=${ig.actual}%`);
+  if (hy?.actual != null) parts.push(`HY_OAS=${hy.actual}%`);
+
+결과: AI 프롬프트 [Macro] 섹션에:
+  YieldCurve=normal(XXbp) CPI=X.X% GDP=X.X% IG_OAS=0.79% HY_OAS=2.84%
+  → 신용 리스크 정보 포함된 분석 가능
+
+보완: macroAnalysis 프롬프트 예시에도 "credit spreads (IG/HY OAS)" 추가
+  → AI가 이 데이터를 macroAnalysis 섹션에 활용하도록 유도
+
+참고: daily-brief.ts summariseMacro는 별도 로직으로 이 문제 없음.
+      buildCtxSummary는 investment-strategy 전용 함수.
+
+NOTE: iter165(news cascade fix) + iter166(IG/HY OAS data quality) +
+      iter168(AI context)이 연결됨:
+      165: 뉴스 컨텍스트 → AI에 도달
+      166: 신용 스프레드 데이터 품질 개선
+      168: 신용 스프레드 → AI에 도달
+
+ACCURACY PROBE:
+[accuracy probe] metric=ig_oas source=FRED (iter166 확인) direct_value≈0.79 delta≈0 → OK
+[accuracy probe] metric=hy_oas source=FRED (iter166 확인) direct_value=2.84 delta=0 → OK
+[accuracy probe] metric=investment_strategy_credit_context source=code_audit
+  before=absent after=IG_OAS + HY_OAS in [Macro] section → ADDED
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/investment-strategy/route.ts (buildCtxSummary + macroAnalysis hint)
+
+COMMIT: e558257
