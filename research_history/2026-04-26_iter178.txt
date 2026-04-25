@@ -1,0 +1,60 @@
+== iter178 — 2026-04-26 ==
+
+PRIMARY OUTCOME: daily-brief 전체 summariser 감사 완료
+
+DRIFT CHECK:
+- iter175: investment-strategy GDP (다른 영역)
+- iter176: investment-strategy sector-pe
+- iter177: daily-brief credit summariser
+- iter178: daily-brief 전체 summariser 감사 ← 같은 lib 파일 2번째
+
+주의: iter177+178 연속 daily-brief.ts. iter179는 다른 영역으로.
+
+ROOT CAUSE FOUND (추가 버그):
+
+fallbackBrief에도 credit 동일 mismatch 존재.
+summariseCredit 수정(iter177)과 같은 latestMonth→countries[us] 패턴.
+fallbackBrief lines 631-637 수정 완료.
+
+FULL SUMMARISER AUDIT RESULT:
+
+✓ summariseHeatmap: d.sectors → HeatmapSector.sector+avgChangePct 일치
+✓ summariseShort: Array || { entries: [] } 이중 처리 — Redis(array) + HTTP({ entries:[] }) 모두 처리
+✓ summariseCapital: d.assets + d.countryFlow.countries → ret1w/4w/13w + label 일치
+✓ summariseFearGreed: d.score + d.prevScore → fg:v6:SPY entry 일치
+✓ summariseFed: d.currentRateMid + d.meetings[] → FedWatchData 일치
+✓ summariseMacro: d.indicators[] + d.yieldCurve.spread10y2y → macro response 일치
+✓ summariseCascade: article.sentiment + article.summary + article.cascades[] 일치
+✓ summariseSignals: InstitutionalSignal.action/institution/ticker 일치
+✓ summariseInsider: t.direction/transactionValueUsd/ticker/insiderName/officerTitle → InsiderTransaction 일치
+✓ summariseOwnership: a.ticker/filerName/formType/percentOwned → OwnershipAlert 일치
+✓ summariseOptionsFlow: o.ticker/sentiment/premiumUsd → OptionsFlowAlert 일치
+✓ summariseKorea: k.topForeignBuy[].name+foreignerNetBuy → korea-flow response 일치
+✓ summariseNPort: p.byTicker[] → nport-holdings response 일치
+✓ summariseBlocks: b.ticker/size/price → BlockTrade 일치
+✗ summariseCredit (iter177 수정) → 완료
+✗ fallbackBrief credit (이번 iter 수정) → 완료
+
+FILES CHANGED (1 file):
+- src/lib/daily-brief.ts (fallbackBrief: credit latestMonth→countries[us])
+
+ACCURACY PROBE:
+[accuracy probe] metric=T10Y2Y source=FRED
+  direct_value=0.53 (2026-04-24) LIVE ✓
+  (field mapping 수정만 — 외부 데이터 값 무영향)
+
+TYPESCRIPT: clean (0 errors)
+
+PATTERN SUMMARY (iter176~178):
+  3개 연속 field mismatch 발견:
+  1. investment-strategy: data.entries → data.sectors (sector-pe)
+  2. daily-brief summariseCredit: d.latestMonth → d.countries[us]+globalSnapshot
+  3. daily-brief fallbackBrief: credit 동일 패턴
+
+  공통 원인: 응답 스키마 변경(또는 초기 잘못된 가정)이 소비처에 반영 안 됨.
+  이제 모든 daily-brief summariser 감사 완료 → 남은 silent bug 없음.
+
+NEXT: iter179 → 다른 영역. 후보:
+  - economic-calendar (iter169 GDP pending 연계)
+  - market-heatmap / korea-flow 별도 소비처 감사
+  - 성능: Redis cache hit rate / vercel.json 타이밍 최적화
