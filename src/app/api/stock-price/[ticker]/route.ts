@@ -11,6 +11,30 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revali
 
 export const dynamic = 'force-dynamic';
 
+// Twelve Data quote fallback — free tier 800 req/day, different IP path from Yahoo
+async function fetchPriceTwelve(sym: string): Promise<{ price: number; change: number | null; changePct: number | null; volume: number | null } | null> {
+  const apiKey = process.env.TWELVE_DATA_KEY?.trim();
+  if (!apiKey) return null;
+  const res = await fetch(
+    `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(sym)}&apikey=${encodeURIComponent(apiKey)}`,
+    { signal: AbortSignal.timeout(8000), cache: 'no-store' }
+  );
+  if (!res.ok) return null;
+  const d = await res.json() as { close?: string; change?: string; percent_change?: string; volume?: string; status?: string };
+  if (d.status === 'error') return null;
+  const price = parseFloat(d.close ?? '');
+  if (isNaN(price) || price <= 0) return null;
+  const change = parseFloat(d.change ?? '');
+  const changePct = parseFloat(d.percent_change ?? '');
+  const volume = parseFloat(d.volume ?? '');
+  return {
+    price: parseFloat(price.toFixed(2)),
+    change: isNaN(change) ? null : parseFloat(change.toFixed(2)),
+    changePct: isNaN(changePct) ? null : parseFloat(changePct.toFixed(2)),
+    volume: isNaN(volume) ? null : Math.round(volume),
+  };
+}
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -94,6 +118,24 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
         }
       } catch { /* non-fatal */ }
     }
+    // Twelve Data fallback — different infrastructure, not Yahoo-blocked
+    try {
+      const td = await fetchPriceTwelve(sym);
+      if (td) {
+        logger.info('stock-price', 'twelve_fallback', { sym, price: td.price });
+        const result = {
+          ticker: sym, price: td.price, prevClose: null, change: td.change, changePct: td.changePct,
+          volume: td.volume, dayHigh: null, dayLow: null, week52High: null, week52Low: null,
+          currency: 'USD', marketState: null, updatedAt: new Date().toISOString(), cached: false, source: 'twelve',
+        };
+        mem.set(sym, result);
+        if (redis) {
+          await loggedRedisSet(redis, 'stock-price', `flowvium:stock-price:v1:${sym}`, result, { ex: REDIS_TTL });
+          await loggedRedisSet(redis, 'stock-price', staleKey(sym), result, {});
+        }
+        return NextResponse.json(result, { headers: CDN_HEADERS });
+      }
+    } catch (te) { logger.warn('stock-price', 'twelve_failed', { sym, error: String(te) }); }
     logger.warn('stock-price', 'fetch_failed', { sym, error: String(e) });
     return NextResponse.json(
       { ticker: sym, price: null, change: null, changePct: null, error: 'unavailable', cached: false },
