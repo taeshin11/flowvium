@@ -1,0 +1,42 @@
+iter118 — 2026-04-25
+Primary outcome: 심각한 버그 3개 발견·수정
+
+Drift check:
+- iter115~117: API routes / N-PORT / screener 영역 순환 → iter118은 버그 수정 영역으로 이동
+- 새 영역: 전사 버그 발굴 (screener + watchlist + signals)
+
+==== 발견된 버그 ====
+
+1. [CRITICAL] ScreenerPage 무한 fetch 루프 (iter117 도입 버그)
+   - deduped useMemo → priceMap 의존
+   - price fetch useEffect → deduped 의존
+   - 결과: 가격 도착 시마다 무한 재요청 루프
+   - 수정: tickerKey(signals 전용 memo)로 fetch dep 분리
+   - 영향: 가격 로딩 후 계속 API 호출하다 rate limit 도달
+
+2. [QUALITY] newsGapScore: 50 (전체 3141개 신호 = 100% 기본값)
+   - Redis 없으면 AV 결과 저장 불가 → 항상 기본값 50 반환
+   - "언더레이더" 프리셋: newsGapScore < 30 조건 → 항상 결과 0개
+   - 수정: institutionCount<=2 기반으로 교체 (외부 API 불필요)
+   - 테이블: newsGapScore===50 시 "—" 표시
+
+3. [PERFORMANCE] WatchlistPage + CascadePage N 개별 요청
+   - refreshAll(): N 개별 fetchPrice() 호출
+   - CascadePage: Promise.allSettled(N개 stock-price fetch)
+   - 수정: batch-prices 마이그레이션, marketState 필드도 추가
+
+==== 수정 파일 ====
+- ScreenerPage.tsx: tickerKey memo, 언더레이더 preset, newsGapScore 표시
+- WatchlistPage.tsx: refreshAll → batch-prices 1회 호출
+- CascadePage.tsx: Promise.allSettled N개 → batch-prices 1회 호출
+- batch-prices/route.ts: marketState 필드 추가
+
+==== 정확도 검증 ====
+[accuracy probe] metric=NVDA.price source=Yahoo_v8 direct_value=$208.27 → OK
+build: ✓ Compiled successfully
+언더레이더 프리셋: institutionCount<=2 기반 → 실제 결과 반환 가능
+
+==== 다음 우선 과제 ====
+- Redis 설정 → newsGapScore 실값 복구 가능
+- 언더레이더 preset의 institutionCount 임계값 조정 필요 시
+- 다른 페이지 버그 탐색
