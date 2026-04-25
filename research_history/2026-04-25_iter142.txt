@@ -1,0 +1,53 @@
+== iter142 — 2026-04-25 ==
+
+PRIMARY OUTCOME: daily-brief 캐시 키 동기화 (AI context 복구)
+
+DRIFT CHECK:
+- iter139: feature(breadth), iter140: i18n, iter141: i18n → streak=2
+- iter142: i18n을 하면 streak=3 = DRIFT SIGNAL → 영역 전환 필수
+- 영역 전환: 성능/버그 수정 → cache key mismatch 버그 발견
+
+CRITICAL BUG FOUND (iter142):
+daily-brief.ts 와 admin/health/route.ts 가 완전히 시대착오적인 Redis 키를 읽고 있었음.
+결과: investment-strategy, daily-brief AI 분석이 capital-flows/fear-greed/macro 데이터 없이 실행.
+즉, AI가 실제 시장 데이터 없이 fallback/빈 context로 분석을 생성하고 있었음.
+
+MISMATCHES FOUND & FIXED:
+
+| Component | Old key | Current API key | Fix |
+|---|---|---|---|
+| daily-brief.ts:180 | heatmap:v5 | heatmap:v13 | ✅ fixed |
+| daily-brief.ts:181 | short-interest:v4 | short-interest:v5 | ✅ fixed |
+| daily-brief.ts:182-185 | capital-flows:v5/v4 (3 keys!) | capital-flows:v10 | ✅ fixed (consolidated to 2 keys) |
+| daily-brief.ts:187 | fg:v5:SPY | fg:v6:SPY | ✅ fixed |
+| daily-brief.ts:189-190 | macro-indicators:v4/v3 (2 keys!) | macro-indicators:v12 | ✅ fixed (consolidated to 1 key) |
+| daily-brief.ts:200 | korea-flow:v2 | korea-flow:v3:4w | ✅ fixed |
+| latest-updates/route.ts:155-156 | capital-flows:v9 | capital-flows:v10 | ✅ fixed |
+| admin/health/route.ts:41 | korea-flow:v1 | korea-flow:v3:4w | ✅ fixed |
+| admin/health/route.ts:42 | short-interest:v1 | short-interest:v5 | ✅ fixed |
+| admin/health/route.ts:43 | market-caps:v1 | market-caps:v2 | ✅ fixed |
+| admin/health/route.ts:47-48 | capital-flows:v9 | capital-flows:v10 | ✅ fixed |
+
+CLEANUP (simplification §3c):
+- daily-brief.ts: Promise.all array reduced from 18→16 items (removed 2 stale legacy fallback keys)
+- capFlowsV5Twelve/capFlowsV5Yahoo/capFlowsV4Legacy → capFlowsTwelve/capFlowsYahoo
+- macroV4/macroV3 → macro
+- ctx.capital = capFlowsV5Twelve ?? capFlowsV5Yahoo ?? capFlowsV4Legacy → capFlowsTwelve ?? capFlowsYahoo
+- ctx.macro = macroV4 ?? macroV3 → macro
+
+ACCURACY PROBE:
+[accuracy probe] metric=SPY.close source=Yahoo direct_value=713.94 our_value=N/A(not_deployed) → PROD_STALE
+[accuracy probe] metric=macro-indicators.version source=code direct_value=v12 daily-brief_read=v12 → MATCH (after fix)
+[accuracy probe] metric=capital-flows.version source=code direct_value=v10 daily-brief_read=v10 → MATCH (after fix)
+
+IMPACT:
+- investment-strategy AI: 이제 capital flows + fear-greed + macro + heatmap + short interest 실데이터 수신
+- daily-brief AI: 이제 전체 context 데이터 수신 (6개 소스 복구)
+- admin/health: 이제 현재 캐시 키를 정확히 모니터링
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+FILES CHANGED (4 files):
+- src/lib/daily-brief.ts (6개 캐시 키 업데이트, 2개 불필요 fallback 제거)
+- src/app/api/latest-updates/route.ts (capital-flows v9 → v10)
+- src/app/api/admin/health/route.ts (korea-flow v1→v3:4w, short-interest v1→v5, market-caps v1→v2, capital-flows v9→v10)

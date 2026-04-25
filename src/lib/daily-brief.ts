@@ -173,21 +173,17 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   const kst = kstDateStr();
 
   const [
-    heatmap, shortData, capFlowsV5Twelve, capFlowsV5Yahoo, capFlowsV4Legacy,
-    fg, fed, macroV4, macroV3, credit, cascadeIds, liveSignals,
+    heatmap, shortData, capFlowsTwelve, capFlowsYahoo,
+    fg, fed, macro, credit, cascadeIds, liveSignals,
     insider, ownership, options, korea, nport, blocks,
   ] = await Promise.all([
-    safeGet(redis, `flowvium:heatmap:v5:US:${hour}`),
-    safeGet(redis, 'flowvium:short-interest:v4'),
-    // capital-flows 현행 스키마는 v5 (twelve/yahoo). v4 는 구형. 후자로 폴백.
-    safeGet(redis, 'flowvium:capital-flows:v5:twelve'),
-    safeGet(redis, 'flowvium:capital-flows:v5:yahoo'),
-    safeGet(redis, 'flowvium:capital-flows:v4:twelve'),
-    // fear-greed 현행 스키마는 v5:SPY (v3 은 삭제됨)
-    safeGet(redis, 'flowvium:fg:v5:SPY'),
+    safeGet(redis, `flowvium:heatmap:v13:US:${hour}`),
+    safeGet(redis, 'flowvium:short-interest:v5'),
+    safeGet(redis, 'flowvium:capital-flows:v10:twelve'),
+    safeGet(redis, 'flowvium:capital-flows:v10:yahoo'),
+    safeGet(redis, 'flowvium:fg:v6:SPY'),
     safeGet(redis, `flowvium:fedwatch:v1:${hour}`),
-    safeGet(redis, `flowvium:macro-indicators:v4:${kst}`),
-    safeGet(redis, `flowvium:macro-indicators:v3:${kst}`),
+    safeGet(redis, `flowvium:macro-indicators:v12:${kst}`),
     safeGet<Record<string, unknown>>(redis, `flowvium:credit-balance:v2:${today}`),
     (async () => {
       try { return await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 5); }
@@ -197,17 +193,17 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet<unknown[]>(redis, 'flowvium:insider-trades:v1'),
     safeGet<unknown[]>(redis, 'flowvium:ownership-alerts:v1'),
     safeGet<unknown[]>(redis, 'flowvium:options-flow:v1'),
-    safeGet(redis, 'flowvium:korea-flow:v2'),
+    safeGet(redis, 'flowvium:korea-flow:v3:4w'),
     safeGet(redis, 'flowvium:nport-holdings:v1'),
     safeGet<unknown[]>(redis, 'flowvium:block-trades:v1'),
   ]);
 
   ctx.heatmap = heatmap;
   ctx.short = shortData;
-  ctx.capital = capFlowsV5Twelve ?? capFlowsV5Yahoo ?? capFlowsV4Legacy;
+  ctx.capital = capFlowsTwelve ?? capFlowsYahoo;
   ctx.fearGreed = fg;
   ctx.fedWatch = fed;
-  ctx.macro = macroV4 ?? macroV3;
+  ctx.macro = macro;
   ctx.credit = credit;
   if (Array.isArray(liveSignals) && liveSignals.length > 0) ctx.signals = liveSignals;
   if (Array.isArray(insider)) ctx.insider = insider;

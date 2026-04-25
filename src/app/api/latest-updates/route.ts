@@ -152,8 +152,8 @@ async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<U
   if (redis) {
     try {
       const [d1, d2] = await Promise.all([
-        redis.get<{ assets: CFAsset[]; updatedAt: string }>('flowvium:capital-flows:v9:yahoo'),
-        redis.get<{ assets: CFAsset[]; updatedAt: string }>('flowvium:capital-flows:v9:twelve'),
+        redis.get<{ assets: CFAsset[]; updatedAt: string }>('flowvium:capital-flows:v10:yahoo'),
+        redis.get<{ assets: CFAsset[]; updatedAt: string }>('flowvium:capital-flows:v10:twelve'),
       ]);
       const d = d1?.assets?.length ? d1 : (d2?.assets?.length ? d2 : null);
       if (d?.assets?.length) { assets = d.assets; updatedAt = d.updatedAt ?? updatedAt; }
