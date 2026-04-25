@@ -80,12 +80,14 @@ function MarketSnapshot() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    const allTickers = [...SNAPSHOT_TICKERS, ...MACRO_TICKERS];
     Promise.allSettled([
-      ...[...SNAPSHOT_TICKERS, ...MACRO_TICKERS].map(ticker =>
-        fetch(`/api/stock-price/${encodeURIComponent(ticker)}`, { signal: controller.signal })
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
-      ),
+      // 7 individual stock-price calls → 1 batch call (Yahoo v7 batch under the hood)
+      fetch(`/api/batch-prices?tickers=${allTickers.join(',')}`, { signal: controller.signal, cache: 'no-store' })
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then((d: { prices: Record<string, { price: number | null; changePct: number | null }> }) => ({
+          ticker: '__batch__', prices: d.prices,
+        })),
       fetch('/api/fear-greed', { signal: controller.signal })
         .then(r => { if (!r.ok) throw new Error(); return r.json(); })
         .then(d => {
@@ -97,13 +99,18 @@ function MarketSnapshot() {
       const map = new Map<string, SnapPill>();
       for (const r of results) {
         if (r.status !== 'fulfilled') continue;
-        const val = r.value as { ticker: string; price?: number | null; changePct?: number | null; currency?: string; score?: number | null };
+        const val = r.value as { ticker: string; prices?: Record<string, { price: number | null; changePct: number | null }>; price?: number | null; changePct?: number | null; score?: number | null };
         if (val.ticker === '__fg__') {
           if (val.score != null) setFgScore(val.score);
           const hist = (val as { history?: Array<{score: number}> }).history;
           if (Array.isArray(hist) && hist.length >= 2) setFgHistory(hist.map(h => h.score));
-        } else {
-          map.set(val.ticker, { price: val.price ?? null, changePct: val.changePct ?? null, currency: val.currency ?? 'USD' });
+        } else if (val.ticker === '__batch__' && val.prices) {
+          for (const t of allTickers) {
+            const entry = val.prices[t];
+            if (entry?.price != null) {
+              map.set(t, { price: entry.price, changePct: entry.changePct ?? null, currency: 'USD' });
+            }
+          }
         }
       }
       setPills(map);
