@@ -120,6 +120,12 @@ const PRESETS = [
     desc: '기관 매집 + 낮은 뉴스',
     filter: (r: ScreenerRow) => (r.action === 'accumulating' || r.action === 'new_position') && r.newsGapScore < 30,
   },
+  {
+    id: 'consensus',
+    label: '🤝 다수 기관 합의',
+    desc: '2개 이상 기관 동시 매집',
+    filter: (r: ScreenerRow) => r.bullishCount >= 2,
+  },
 ];
 
 type SortKey = keyof ScreenerRow;

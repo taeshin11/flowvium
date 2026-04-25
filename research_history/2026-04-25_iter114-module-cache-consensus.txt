@@ -1,0 +1,64 @@
+iter114 — 2026-04-25
+Primary outcome: GROQ TPD 소진 차단 + 합의 프리셋
+
+==== 문제 진단 ====
+Redis 미연결 상태에서 매 요청마다 외부 API + AI 호출 발생:
+- daily-brief: GROQ 호출 → 100k TPD 자정 전 소진
+- news-cascade: GROQ 10회 호출/요청 → 캐시 없음
+- flow-analysis, investment-strategy, macro-indicators: 모두 동일 패턴
+- capital-flows: Yahoo Finance 41개 병렬 호출/요청
+
+==== 수정 내역 ====
+
+1. daily-brief/route.ts
+   - MEMORY_TTL_MS: 10분 → 4시간
+   - CDN: s-maxage=600 → s-maxage=14400, stale-while-revalidate=28800
+
+2. news-cascade/route.ts (캐시 완전 누락 → 신설)
+   - NEWS_MEMORY_CACHE 모듈 레벨 변수 추가 (TTL 2h)
+   - CDN: s-maxage=3600 → s-maxage=7200, stale-while-revalidate=7200
+   - 실제 AI 분석 결과만 캐시 (static fallback 제외)
+
+3. flow-analysis/route.ts
+   - FLOW_MEMORY_CACHE Map<timeframe, {result, expiresAt}> 추가 (TTL 4h)
+   - static fallback은 캐시 저장 제외
+
+4. investment-strategy/route.ts
+   - STRATEGY_MEMORY_CACHE 추가 (TTL 4h)
+
+5. capital-flows/route.ts
+   - CAPITAL_MEMORY_CACHE 추가 (TTL 15분)
+   - 효과: warm instance 재사용 시 Yahoo 41회 → 0회
+
+6. macro-indicators/route.ts
+   - MACRO_MEMORY_CACHE 추가 (TTL 4h)
+   - 효과: FRED 17개 병렬 호출 절감
+
+7. fear-greed/route.ts
+   - FG_MEMORY_CACHE 추가 (TTL 4h)
+
+==== SignalsPage.tsx 성능 개선 ====
+- DOM 97% 절감: 3,141개 전체 렌더 → 100개/페이지 pagination
+- O(n²) → O(1): newsGapMap 사전 빌드 (useMemo)
+- institutionFilter 상태 추가 + 기관 카드 클릭 필터
+- 의존성 배열 버그 수정: institutionFilter 누락 → 추가
+
+==== ScreenerPage.tsx 개선 ====
+- ScreenerRow에 bullishCount, bearishCount, institutionCount 필드 추가
+- deduped useMemo에서 3,141 시그널 전체 집계하여 ticker별 consensus 계산
+- "합의" 컬럼 추가 (▲N / ▼N 형식)
+- PRESETS에 '🤝 다수 기관 합의' 추가 (bullishCount >= 2)
+
+==== i18n ====
+- 16개 언어 파일에 allInstitutions 키 추가
+
+==== 정확도 검증 (외부 실값 대조) ====
+- FRED T10Y2Y: direct=0.53%, our=0.51%, delta=0.02% → OK
+- CNN F&G: direct=66, our=66, delta=0 → OK
+- USO 13w: direct=80.19%, our=80.53% → OK
+- verify-metrics: 185/189 OK, 0 degraded, 4 skipped (vllm offline / KRX blocked)
+
+==== 남은 과제 ====
+- Redis 설정: Upstash Redis 생성 + UPSTASH_REDIS_REST_URL/TOKEN Vercel env 추가 필요 (사용자 직접)
+- 추가 캐시 후보: fedwatch, credit-balance, insider-trades, korea-flow
+- cold start 문제는 Redis 없이는 근본 해결 불가 (Lambda 인스턴스 간 공유 불가)
