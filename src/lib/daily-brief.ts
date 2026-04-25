@@ -201,7 +201,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet<unknown[]>(redis, 'flowvium:insider-trades:v1'),
     safeGet<unknown[]>(redis, 'flowvium:ownership-alerts:v1'),
     safeGet<unknown[]>(redis, 'flowvium:options-flow:v1'),
-    safeGet(redis, 'flowvium:korea-flow:v3:4w'),
+    safeGet(redis, 'flowvium:korea-flow:v4:4w'),
     safeGet(redis, 'flowvium:nport-holdings:v1'),
     safeGet<unknown[]>(redis, 'flowvium:block-trades:v1'),
   ]);
