@@ -1,0 +1,61 @@
+== iter161 — 2026-04-26 ==
+
+PRIMARY OUTCOME: Redis 키 오염 제거 + 전략 캐시 예열
+
+DRIFT CHECK:
+- iter158: HomePage batch 최적화 (perf 도메인)
+- iter159: latest-updates bug fix
+- iter160: investment-strategy AI quota 최적화 (perf 도메인)
+- iter161: fedwatch 키 정리 + update-all 예열 추가 (다른 경로) ← OK
+
+ROOT CAUSES FOUND:
+
+BUG 1: fedwatch 시간별 키 회전
+- cacheKey() → `flowvium:fedwatch:v1:${hour}` (hourly)
+- 4h Redis TTL인데 매시간 새 키 생성 → 동시에 최대 4개 valid 키 존재
+- 오전 8시~밤 12시까지 24개 orphan 키/일
+- fedwatch는 정적 데이터 기반 (Yahoo ZQ futures 라이브 오버레이)이므로 일별 1회 캐시로 충분
+- admin/health.ts line 52, verify-metrics.ts line 995에서 동시에 hourly 키 참조 → 함께 수정
+
+BUG 2: investment-strategy 예열 없음
+- update-all cron (3회/일)이 investment-strategy를 warmup하지 않음
+- 매일 첫 번째 사용자가 45s AI 호출 대기
+- iter160에서 일별 키로 변경했으므로 첫 요청만 AI 호출 → pre-warm이 더 중요해짐
+
+FIXES:
+
+1. fedwatch/route.ts cacheKey():
+   - v1 hourly → v2 date-only: `flowvium:fedwatch:v2:${utcDate}`
+   - 일별 1개 키 (TTL=4h) → 하루 내 모든 요청이 동일 키 히트
+
+2. admin/health/route.ts:
+   - tracked key: `flowvium:fedwatch:v1:${hour}` → `flowvium:fedwatch:v2:${utcDate}`
+   - `hour` 변수 제거 (이제 미사용)
+
+3. verify-metrics/route.ts:
+   - key: `flowvium:fedwatch:v1:${hour}` → `flowvium:fedwatch:v2:${utcDate}`
+   - `hour` 변수 제거 (이제 미사용)
+
+4. update-all/route.ts:
+   - stage 4에 investment-strategy fire-and-forget 추가
+   - `fetch('.../api/investment-strategy', AbortSignal.timeout(50000))`
+   - update-all 이후 daily-brief 직전에 실행 → 매일 3회 예열
+
+EXPECTED EFFECT:
+- fedwatch: 24개 orphan Redis 키/일 → 0개 (저장 공간 정리)
+- investment-strategy: 첫 번째 사용자 45s 대기 → ~0s (예열로 캐시됨)
+- health/verify-metrics: fedwatch 키 존재 확인이 정확해짐
+
+ACCURACY PROBE:
+[accuracy probe] metric=cpi source=FRED direct_value=330.293 (2026-03-01) → iter158 delta=0 → OK
+[accuracy probe] metric=fedwatch.yahoo_zq 변경 없음 (캐시 키 변경만) → value integrity unchanged
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (4 files):
+- src/app/api/fedwatch/route.ts (v1 hourly → v2 daily)
+- src/app/api/admin/health/route.ts (key ref + hour 변수 제거)
+- src/app/api/cron/verify-metrics/route.ts (key ref + hour 변수 제거)
+- src/app/api/cron/update-all/route.ts (investment-strategy pre-warm 추가)
+
+COMMIT: 3b91f5a
