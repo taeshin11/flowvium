@@ -52,6 +52,7 @@ function buildTrackedKeys(): string[] {
     `flowvium:fedwatch:v1:${hour}`,
     `flowvium:credit-balance:v3:${utcDate}`,
     'flowvium:latest-updates:v3',
+    'flowvium:market-movers:v1',
   ];
 }
 export async function GET(req: Request) {

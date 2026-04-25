@@ -363,7 +363,37 @@ function getNewsGapItems(): UpdateItem[] {
   return items;
 }
 
-// ── 7. Institutional Signals (13F) ──────────────────────────────────────────
+// ── 7. Market Movers (S&P 500 top gainers/losers) ────────────────────────────
+interface MoverEntry { ticker: string; price: number; changePct: number; change: number; }
+interface MoversCache { gainers: MoverEntry[]; losers: MoverEntry[]; updatedAt: string; }
+
+async function getMarketMoverItems(redis: Redis | null): Promise<UpdateItem[]> {
+  if (!redis) return [];
+  try {
+    const data = await redis.get<MoversCache>('flowvium:market-movers:v1');
+    if (!data?.gainers?.length && !data?.losers?.length) return [];
+    const updatedAt = data.updatedAt ?? new Date().toISOString();
+    const toItem = (m: MoverEntry, side: 'gain' | 'loss'): UpdateItem => ({
+      id: `mover-${m.ticker}`,
+      type: 'market' as const,
+      headline: `${m.ticker} ${m.changePct > 0 ? '+' : ''}${m.changePct.toFixed(2)}% — $${m.price}`,
+      sub: `${side === 'gain' ? '📈 Top Gainer' : '📉 Top Loser'} · $${m.change > 0 ? '+' : ''}${m.change.toFixed(2)}`,
+      source: 'Yahoo Finance',
+      time: fmtTime(updatedAt),
+      sortTime: updatedAt,
+      badge: side === 'gain' ? 'Gainer' : 'Loser',
+      badgeColor: side === 'gain' ? '#10b981' : '#ef4444',
+      link: '/intelligence',
+      direction: side === 'gain' ? 'up' as const : 'down' as const,
+    });
+    return [
+      ...data.gainers.slice(0, 3).map(m => toItem(m, 'gain')),
+      ...data.losers.slice(0, 3).map(m => toItem(m, 'loss')),
+    ];
+  } catch { return []; }
+}
+
+// ── 8. Institutional Signals (13F) ──────────────────────────────────────────
 function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
   return signals
     .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
@@ -434,12 +464,13 @@ export async function GET(req: Request) {
     } catch { /* non-fatal */ }
   }
 
-  const [fgItems, flowItems, macroItems, fedItem, newsItems] = await Promise.all([
+  const [fgItems, flowItems, macroItems, fedItem, newsItems, moverItems] = await Promise.all([
     getFearGreedItems(redis, base),
     getCapitalFlowItems(redis, base),
     getMacroItems(redis, base),
     getFedWatchItem(redis, base),
     getNewsCascadeItems(redis, base),
+    getMarketMoverItems(redis),
   ]);
 
   const newsGapItems = getNewsGapItems();
@@ -455,6 +486,7 @@ export async function GET(req: Request) {
     ...newsItems,
     ...newsGapItems,
     ...signalItems,
+    ...moverItems,
   ];
 
   // Deduplicate by id

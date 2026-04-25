@@ -994,6 +994,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: `flowvium:macro-indicators:v13:${kstDate}`, label: `macro-indicators(${kstDate})` },
     { key: `flowvium:fedwatch:v1:${hour}`, label: `fedwatch(${hour}Z)` },
     { key: `flowvium:credit-balance:v3:${utcDate}`, label: `credit-balance(${utcDate})` },
+    { key: 'flowvium:market-movers:v1', label: 'market-movers' },
   ];
   const items: MetricItem[] = await Promise.all(keys.map(async ({ key, label }) => {
     try {
