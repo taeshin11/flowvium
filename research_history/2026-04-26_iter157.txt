@@ -1,0 +1,52 @@
+== iter157 — 2026-04-26 ==
+
+PRIMARY OUTCOME: 경제일정 LiveFeed 추가
+
+DRIFT CHECK:
+- iter154: resilience (daily-brief stale), iter155: monitoring (stale keys),
+  iter156: feature (market-movers feed), iter157: feature (econ calendar feed) — no drift
+
+GAP FOUND:
+
+latest-updates Live Feed에 upcoming 경제 이벤트(FOMC, NFP, CPI, GDP)가 없었음.
+EconCalendarSection 컴포넌트는 Intelligence/Macro 탭에서 정적 캘린더를 이미 보여주지만,
+홈 Live Feed에는 이 데이터가 전혀 노출되지 않음.
+또한 sector-pe 라우트는 MacroIndicatorsTab에서 직접 호출되지만 update-all 사전 워밍이 없어
+유저가 Macro 탭을 열 때마다 Yahoo Finance cold-fetch 발생.
+
+FIX:
+
+1. latest-updates/route.ts
+   - getEconCalendarItems() 추가: @/data/econ-calendar 에서 다음 4개 이벤트 읽기
+   - impact: 'high' | 'medium' 만 포함 (low 제외)
+   - "Today/Tomorrow/In Nd" 긴급도 라벨
+   - FOMC → 'fed' 타입, 나머지 → 'macro' 타입
+   - 완전히 동기식 (네트워크 없음, 0ms 오버헤드)
+   - 2026-04-29/30 FOMC + GDP가 즉시 피드에 표시됨
+
+2. update-all/route.ts
+   - stage 1 병렬 블록에 sector-pe 추가 (25s timeout)
+   - results 배열에 sectorR 포함
+
+3. admin/health/route.ts — sector-pe:v3 + market-movers:v1 (iter156 누락분도 포함) 추가
+
+4. verify-metrics/route.ts — market-movers:v1 + sector-pe:v3 캐시 체크 추가
+
+IMMEDIATE EFFECT (2026-04-26 기준):
+- Live Feed 상단에 "In 3d — FOMC Rate Decision + Powell Press Conf" 표시
+- "Today — Q1 2026 GDP (Advance)" (2026-04-30)
+- "In 5d — April Jobs Report (NFP)" (2026-05-01)
+
+ACCURACY PROBE (carried from iter156):
+[accuracy probe] metric=fg.us source=CNN direct_value=66(history) our_value=66 delta=0 → OK
+[accuracy probe] metric=curve source=FRED direct_value=0.53 our_value=0.51 delta=0.02 → OK
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (4 files):
+- src/app/api/latest-updates/route.ts (getEconCalendarItems + import + wiring)
+- src/app/api/cron/update-all/route.ts (sector-pe pre-warm)
+- src/app/api/admin/health/route.ts (sector-pe + market-movers tracked keys)
+- src/app/api/cron/verify-metrics/route.ts (cache check additions)
+
+COMMIT: 9b480a1
