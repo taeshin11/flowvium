@@ -1,0 +1,84 @@
+== iter165 — 2026-04-26 ==
+
+PRIMARY OUTCOME: daily-brief news context 항상 빔 버그 수정
+
+DRIFT CHECK:
+- iter161: fedwatch key + perf
+- iter162: FOMC dates (fedwatch)
+- iter163: fedwatch v1 key consumers (regression)
+- iter164: fedwatch current rate inconsistency
+- iter165: daily-brief/news-cascade domain ← 도메인 이동 (fedwatch 4 연속 후)
+
+ROOT CAUSE FOUND:
+
+BUG: daily-brief.ts gatherTabContext() news cascade 항상 빈 배열
+
+src/lib/daily-brief.ts:197 (before):
+  try { return await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 5); }
+  catch { return [] as string[]; }
+
+- redis.lrange()는 Redis LIST 타입 명령어
+- 하지만 news-cascade/route.ts는 listKey()를 redis.set()으로 저장 (JSON string)
+- JSON string에 lrange 호출 → Redis WRONGTYPE 에러 → catch → 빈 배열 []
+- 결과: ctx.cascade는 항상 [] → AI 프롬프트에 뉴스 컨텍스트 0개
+- 동일 버그가 secondary lookup도 dead code로 만들었음:
+  cascadeIds.slice(0, 5).map(id => safeGet(redis, `...article:${id}`))
+  → id가 문자열이 아니라 article 객체여야 했는데, 어차피 cascadeIds는 항상 []
+
+영향:
+- investment-strategy AI: 뉴스 캐스케이드 없이 분석 (시장 뉴스 맹점)
+- daily-brief AI: 뉴스 섹션 항상 empty context
+- HTTP fallback 경로(line 130)는 정상 동작했음 — Redis 없을 때만 제대로 됨
+
+NOTE: HTTP fallback path (gatherTabContextViaHttp) at line 130:
+  safeFetchJson<{ articles?: unknown[] }>(baseUrl, '/api/news-cascade', 15000),
+  → if (cascadeR?.articles && Array.isArray(cascadeR.articles)) ctx.cascade = cascadeR.articles;
+  This was correct. Only the Redis path was broken.
+
+FIXES:
+
+1. Import 추가:
+   import type { NewsWithCascade } from '@/app/api/news-cascade/route';
+
+2. lrange 제거, safeGet으로 교체:
+   BEFORE: (async () => { try { return await redis.lrange(`...list:${today}`, 0, 5); } catch { return [] as string[]; } })()
+   AFTER:  safeGet<NewsWithCascade[]>(redis, `flowvium:news-cascade:v1:list:${today}`)
+
+3. 변수명 cascadeIds → cascadeArticles (의미 명확화)
+
+4. secondary lookup 제거 (dead code 삭제):
+   BEFORE:
+     if (cascadeIds && cascadeIds.length > 0) {
+       const articles = await Promise.all(
+         cascadeIds.slice(0, 5).map(id => safeGet(redis, `...article:${id}`))
+       );
+       ctx.cascade = articles.filter(Boolean);
+     }
+   AFTER:
+     if (Array.isArray(cascadeArticles) && cascadeArticles.length > 0) {
+       ctx.cascade = cascadeArticles.slice(0, 5);
+     }
+
+Net change: 5 insertions, 10 deletions — simpler and correct.
+
+KEY FORMAT AUDIT (all consumers verified consistent):
+- news-cascade/route.ts: writes `flowvium:news-cascade:v1:list:${today}` via redis.set() ✓
+- latest-updates/route.ts: reads with redis.get<ArticleData[]>() ✓
+- daily-brief.ts: now reads with safeGet<NewsWithCascade[]>() ✓ (was broken lrange)
+
+OTHER lrange/lpush AUDIT:
+- logger.ts: lpush/lrange on actual Redis list keys → correct usage, no fix needed
+
+ACCURACY PROBE:
+[accuracy probe] metric=news_cascade_context source=code_audit
+  before=always_empty (lrange WRONGTYPE) after=up_to_5_articles
+  redis_path_broken=YES → FIXED
+  http_path=OK (already correct)
+[accuracy probe] metric=fomc_rate source=FRED (confirmed iter164) delta=0 → still OK
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/lib/daily-brief.ts (lrange → safeGet, dead secondary lookup removed)
+
+COMMIT: 203e249
