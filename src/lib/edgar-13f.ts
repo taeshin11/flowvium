@@ -118,7 +118,7 @@ export interface Position13F {
   cusip: string;
   ticker: string;
   companyName: string;
-  valueThousands: number;   // 달러 단위 (x1000)
+  valueThousands: number;   // 원시 달러 단위 (SEC 13F XML <value> 필드 — 수천 단위 아님)
   shares: number;
 }
 
@@ -332,12 +332,11 @@ export function determineAction(
   return 'accumulating'; // maintained → show as accumulating
 }
 
-/** 값 포맷 "$1.2B" / "$340M" */
-export function formatValue(valueThousands: number): string {
-  const val = valueThousands * 1000;
-  if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
-  if (val >= 1e6) return `$${(val / 1e6).toFixed(0)}M`;
-  return `$${(val / 1e3).toFixed(0)}K`;
+/** 값 포맷 "$1.2B" / "$340M" — SEC 13F <value>는 원시 달러 단위 */
+export function formatValue(valueDollars: number): string {
+  if (valueDollars >= 1e9) return `$${(valueDollars / 1e9).toFixed(1)}B`;
+  if (valueDollars >= 1e6) return `$${(valueDollars / 1e6).toFixed(0)}M`;
+  return `$${(valueDollars / 1e3).toFixed(0)}K`;
 }
 
 /** sharesChanged 계산 */

@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
       if (!ownershipMap[ticker]) ownershipMap[ticker] = [];
       ownershipMap[ticker].push({
         institution: institutionEntries[i][0],
-        valueM: Math.round(pos.valueThousands / 1000),
+        valueM: Math.round(pos.valueThousands / 1_000_000),
         pctOfShares: 0,  // 실제 발행주식수 없이 계산 불가 — 0으로 저장
         prevPct: prev ? 0 : undefined,
         sharesM: +(pos.shares / 1_000_000).toFixed(2),
