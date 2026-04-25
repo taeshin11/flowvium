@@ -27,29 +27,23 @@ function freshnessDot(ms: number): string {
   return 'bg-gray-400';
 }
 
-// ── Stance config ─────────────────────────────────────────────────────────────
+// ── Stance config — no label (computed in component with t()) ─────────────────
 function stanceConfig(stance: string) {
-  if (stance === 'bullish') return { icon: <TrendingUp className="w-5 h-5" />, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', label: '매수 우위' };
-  if (stance === 'bearish') return { icon: <TrendingDown className="w-5 h-5" />, color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: '관망·방어' };
-  return { icon: <Minus className="w-5 h-5" />, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', label: '중립 유지' };
+  if (stance === 'bullish') return { icon: <TrendingUp className="w-5 h-5" />, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' };
+  if (stance === 'bearish') return { icon: <TrendingDown className="w-5 h-5" />, color: 'text-red-600', bg: 'bg-red-50 border-red-200' };
+  return { icon: <Minus className="w-5 h-5" />, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' };
 }
 
 function riskConfig(level: string) {
-  if (level === 'high') return { color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: '높음' };
-  if (level === 'low') return { color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', label: '낮음' };
-  return { color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', label: '보통' };
+  if (level === 'high') return { color: 'text-red-600', bg: 'bg-red-50 border-red-200' };
+  if (level === 'low') return { color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' };
+  return { color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' };
 }
 
 function confidenceBadge(c: string) {
   if (c === 'high') return 'bg-emerald-100 text-emerald-700';
   if (c === 'low') return 'bg-gray-100 text-gray-500';
   return 'bg-amber-100 text-amber-700';
-}
-
-function confidenceLabel(c: string) {
-  if (c === 'high') return '확신↑';
-  if (c === 'low') return '탐색';
-  return '중립';
 }
 
 function impactBadge(impact: string) {
@@ -94,7 +88,9 @@ function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
 
 // ── Portfolio Card ────────────────────────────────────────────────────────────
 function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
+  const t = useTranslations('report');
   const [expanded, setExpanded] = useState(false);
+  const confidenceLabel = item.confidence === 'high' ? t('confidenceHigh') : item.confidence === 'low' ? t('confidenceLow') : t('confidenceMedium');
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow">
       <div
@@ -110,7 +106,7 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
               <div className="flex items-center gap-2">
                 <span className="font-bold text-gray-900">{item.ticker}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${confidenceBadge(item.confidence)}`}>
-                  {confidenceLabel(item.confidence)}
+                  {confidenceLabel}
                 </span>
               </div>
               <p className="text-xs text-gray-500">{item.name} · {item.sector}</p>
@@ -118,7 +114,7 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           </div>
           <div className="text-right">
             <p className="font-bold text-violet-600 text-sm">{item.allocation}%</p>
-            <p className="text-[10px] text-gray-400">비중</p>
+            <p className="text-[10px] text-gray-400">{t('allocWeight')}</p>
           </div>
         </div>
         <p className="text-xs text-gray-600 mt-2 leading-relaxed">{item.rationale}</p>
@@ -126,22 +122,22 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
       {expanded && (
         <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-3 gap-3 text-center text-xs">
           <div>
-            <p className="text-gray-400">진입 구간</p>
+            <p className="text-gray-400">{t('entryZone')}</p>
             <p className="font-semibold text-gray-800 mt-0.5">{item.entryZone}</p>
           </div>
           <div>
-            <p className="text-gray-400">손절</p>
+            <p className="text-gray-400">{t('stopLoss')}</p>
             <p className="font-semibold text-red-600 mt-0.5">{item.stopLoss}</p>
           </div>
           <div>
-            <p className="text-gray-400">목표가</p>
+            <p className="text-gray-400">{t('targetPrice')}</p>
             <p className="font-semibold text-emerald-600 mt-0.5">{item.target}</p>
           </div>
         </div>
       )}
       <div className="px-4 pb-2 flex justify-end">
         <button onClick={() => setExpanded(v => !v)} className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
-          {expanded ? <><ChevronUp className="w-3 h-3" />접기</> : <><ChevronDown className="w-3 h-3" />진입·손절·목표</>}
+          {expanded ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('expand')}</>}
         </button>
       </div>
     </div>
@@ -150,9 +146,10 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
 
 // ── Sector Bar ────────────────────────────────────────────────────────────────
 function SectorBar({ item }: { item: SectorWeight }) {
+  const t = useTranslations('report');
   const stanceColor = item.stance === 'overweight' ? 'bg-emerald-500' : item.stance === 'underweight' ? 'bg-red-400' : 'bg-gray-400';
   const stanceTxt = item.stance === 'overweight' ? 'text-emerald-600' : item.stance === 'underweight' ? 'text-red-500' : 'text-gray-500';
-  const stanceLabel = item.stance === 'overweight' ? '비중확대' : item.stance === 'underweight' ? '비중축소' : '중립';
+  const stanceLabel = item.stance === 'overweight' ? t('sectorOverweight') : item.stance === 'underweight' ? t('sectorUnderweight') : t('sectorNeutral');
   return (
     <div className="flex items-center gap-3">
       <div className="w-28 shrink-0">
@@ -170,6 +167,8 @@ function SectorBar({ item }: { item: SectorWeight }) {
 
 // ── Risk Event Row ────────────────────────────────────────────────────────────
 function RiskEventRow({ event }: { event: RiskEvent }) {
+  const t = useTranslations('report');
+  const impactLabel = event.impact === 'high' ? t('impactHigh') : event.impact === 'medium' ? t('impactMedium') : t('impactLow');
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
       <div className="flex flex-col items-center shrink-0 pt-0.5">
@@ -179,7 +178,7 @@ function RiskEventRow({ event }: { event: RiskEvent }) {
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm font-medium text-gray-800">{event.event}</span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${impactBadge(event.impact)}`}>
-            {event.impact === 'high' ? '고위험' : event.impact === 'medium' ? '주의' : '저위험'}
+            {impactLabel}
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{event.watchFor}</p>
@@ -301,15 +300,17 @@ export default function ReportPage() {
       <div className="container mx-auto px-4 py-12 max-w-5xl">
         <div className="flex flex-col items-center gap-4 text-gray-400 py-20">
           <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
-          <p className="text-sm">AI가 모든 데이터를 분석하고 있습니다...</p>
-          <p className="text-xs text-gray-300">거시경제 · 기관 포지션 · 기술적 지표 종합 중</p>
+          <p className="text-sm">{t('loadingDetail')}</p>
+          <p className="text-xs text-gray-300">{t('loadingDesc')}</p>
         </div>
       </div>
     );
   }
 
-  const stance = data ? stanceConfig(data.stance) : null;
-  const risk = data ? riskConfig(data.riskLevel) : null;
+  const stanceCfg = data ? stanceConfig(data.stance) : null;
+  const riskCfg = data ? riskConfig(data.riskLevel) : null;
+  const stanceLabel = data ? (data.stance === 'bullish' ? t('stanceBullish') : data.stance === 'bearish' ? t('stanceBearish') : t('stanceNeutral')) : '';
+  const riskLevelLabel = data ? (data.riskLevel === 'high' ? t('riskHigh') : data.riskLevel === 'low' ? t('riskLow') : t('riskMedium')) : '';
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
@@ -366,16 +367,16 @@ export default function ReportPage() {
       {data && (
         <>
           {/* ── Investment Stance Hero ─────────────────────────────────────── */}
-          <div className={`rounded-2xl border p-5 mb-5 ${stance!.bg}`}>
+          <div className={`rounded-2xl border p-5 mb-5 ${stanceCfg!.bg}`}>
             <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <div className={`flex items-center gap-2 font-bold text-lg ${stance!.color}`}>
-                {stance!.icon}
-                <span>{stance!.label}</span>
+              <div className={`flex items-center gap-2 font-bold text-lg ${stanceCfg!.color}`}>
+                {stanceCfg!.icon}
+                <span>{stanceLabel}</span>
               </div>
-              <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${risk!.bg} ${risk!.color}`}>
-                리스크 {risk!.label}
+              <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${riskCfg!.bg} ${riskCfg!.color}`}>
+                {t('riskLabel')} {riskLevelLabel}
               </span>
-              {data.cached && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">캐시됨</span>}
+              {data.cached && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{t('cached')}</span>}
             </div>
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
           </div>
@@ -385,21 +386,21 @@ export default function ReportPage() {
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <BarChart3 className="w-4 h-4 text-blue-600" />
-                <span className="text-xs font-bold text-blue-700">거시경제</span>
+                <span className="text-xs font-bold text-blue-700">{t('analysisMacro')}</span>
               </div>
               <p className="text-sm text-gray-700 leading-relaxed">{data.macroAnalysis}</p>
             </div>
             <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <Target className="w-4 h-4 text-violet-600" />
-                <span className="text-xs font-bold text-violet-700">기술적 분석</span>
+                <span className="text-xs font-bold text-violet-700">{t('analysisTechnical')}</span>
               </div>
               <p className="text-sm text-gray-700 leading-relaxed">{data.technicalAnalysis}</p>
             </div>
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <Shield className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs font-bold text-emerald-700">기본적 분석</span>
+                <span className="text-xs font-bold text-emerald-700">{t('analysisFundamental')}</span>
               </div>
               <p className="text-sm text-gray-700 leading-relaxed">{data.fundamentalAnalysis}</p>
             </div>
@@ -411,7 +412,7 @@ export default function ReportPage() {
               <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-violet-500" />
                 {t('portfolioTitle')}
-                <span className="text-xs text-gray-400 font-normal">(클릭하면 진입·손절·목표가 표시)</span>
+                <span className="text-xs text-gray-400 font-normal">{t('clickToExpand')}</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {data.portfolio.map((item, i) => (
