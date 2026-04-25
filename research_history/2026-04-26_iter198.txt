@@ -1,0 +1,71 @@
+== iter198 — 2026-04-26 ==
+
+PRIMARY OUTCOME: investment-strategy cron pre-generate 추가
+
+DRIFT CHECK:
+- iter196: ai-providers (Gemini guard)
+- iter197: ai-providers (preferSmallModel)
+- iter198: cron + vercel.json ← 완전 새 영역 ✓
+
+ANALYSIS:
+  투자 전략 (investment-strategy) source=fallback 문제 근본 원인:
+  - AI 한 번도 성공한 적 없어 stale key가 Redis에 없음
+  - stale key가 있으면 AI 실패 시에도 stale 서빙 가능
+  - cron pre-generate = stale key 강제 생성 보장
+
+  daily-brief briefing도 여전히 source=data (GROQ TPM + Gemini 실패 중):
+    groq 70b: "Rate limit re..." (TPM or RPD limit)
+    groq 8b: "Rate limit reach..." (TPM limit)
+    gemini: "Error fetching from https://gene..." (네트워크/429)
+  → iter196-197 fixes가 내일부터 효과 발휘 예정 (quota 리셋 후)
+
+CHANGES:
+  src/app/api/cron/investment-strategy/route.ts (신규):
+    - Vercel Cron 라우트
+    - CRON_SECRET 인증
+    - baseUrl/api/investment-strategy?force=1 호출
+    - isAi 결과 로깅
+
+  vercel.json:
+    - functions: cron/investment-strategy maxDuration=90
+    - crons: 23:00 · 07:00 · 12:30 UTC (daily-brief 5분 후)
+
+  FEATURES.md:
+    - daily-brief: Claude Haiku 제거 반영 (GROQ → Gemini)
+    - investment-strategy: Claude Haiku 제거 반영
+    - news-cascade: 병렬 8개 → 5개 반영
+    - cron/investment-strategy 행 추가
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → EXACT MATCH ✓
+[accuracy probe] metric=investment-strategy.source live
+  value=fallback (AI 전체 소진, 161분 후 리셋 예정)
+  ← cron 배포 후 첫 23:00 UTC run에서 stale cache 채워질 예정
+
+VERIFY-METRICS 상태:
+  OK: 183, Degraded: 2, Error: 0
+  [DEGRADED] macro.gdp_growth_rate_(q1_advance) — Q1 advance 4/30 발표 전 (정상)
+  [DEGRADED] brief.market — AI 소진 (내일 자동 복구)
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (3 files):
+- src/app/api/cron/investment-strategy/route.ts (신규)
+- vercel.json (+cron entries)
+- FEATURES.md (Claude Haiku 제거 + cron 행)
+
+COMMITS: c41e457
+PUSHED: 예정 (다음 git push)
+
+IMPACT:
+  다음 23:00 UTC (07:00 KST) 크론 실행 시:
+  - investment-strategy fresh 생성 시도
+  - AI 성공 → Redis cache + stale key 갱신
+  - AI 실패 → error 로그 (기존 대비 동일)
+  - AI 성공 후 → 이후 AI 소진 기간에 stale 서빙 가능
+
+NEXT: iter199 → 후보:
+  1. 크론 배포 확인 (내일 아침 23:00 UTC 결과)
+  2. brief.market 복구 확인 (UTC midnight reset 후)
+  3. 신규 기능 탐색
+  4. verify-metrics 2 degraded → 0 (GDP release 4/30 후 자동)
