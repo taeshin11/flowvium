@@ -1,5 +1,5 @@
 /**
- * AI Provider Cascade — vLLM → GROQ → Claude Haiku → Gemini
+ * AI Provider Cascade — vLLM → GROQ → Gemini
  *
  * 모든 AI 호출 지점에서 `callAI()` 를 사용하면 자동으로 체인 폴백.
  *
@@ -7,23 +7,19 @@
  *   1. **vLLM** (로컬 무료): EXAONE + cloudflared 터널. 8s 타임아웃 시 즉시 폴백.
  *   2. **GROQ** (무료 티어): llama-3.3-70b → llama-3.1-8b. TPD 100k/500k.
  *      TPD 소진 시 Redis key로 cross-instance guard → 즉시 다음 provider.
- *   3. **Claude Haiku 4.5** (유료, ~$0.003/호출): ANTHROPIC_API_KEY 설정 시 사용.
- *      GROQ TPD 소진 시 메인 fallback. JSON 구조 품질 최상.
- *   4. **Gemini 2.0 Flash** (유료 최종 폴백): GEMINI_API_KEY 없으면 스킵.
+ *   3. **Gemini 2.0 Flash** (유료 최종 폴백): GEMINI_API_KEY 없으면 스킵.
  *
  * 환경변수:
  *   VLLM_URL           — 선택. e.g. http://localhost:8000/v1 또는 https://tunnel.../v1
  *   GROQ_API_KEY       — 설정 시 vLLM 실패 후 호출. 없으면 스킵.
- *   ANTHROPIC_API_KEY  — 선택. GROQ 소진 시 Claude Haiku 4.5 사용.
  *   GEMINI_API_KEY     — 선택. 앞 전부 실패 시 최종 폴백.
  *   AI_PREFER          — 선택. 'groq' 명시 시 vLLM 건너뛰고 GROQ부터.
  *
  * Redis cross-instance TPD guard (2026-04-26):
  *   GROQ TPD 429 → Redis key 'flowvium:groq:tpd_exhausted_v1' TTL=seconds_until_midnight
- *   모든 Lambda 인스턴스가 이 키 체크 → TPD 소진 시 GROQ 호출 0회 → Claude/Gemini 직행.
+ *   모든 Lambda 인스턴스가 이 키 체크 → TPD 소진 시 GROQ 호출 0회 → Gemini 직행.
  *   기존 module-level guard(groqTpdExhaustedUntil)는 warm instance 전용 보조 수단으로 유지.
  */
-import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Redis } from '@upstash/redis';
 import { logger } from './logger';
@@ -48,10 +44,10 @@ function secondsUntilUtcMidnight(): number {
 
 export interface AICallResult {
   text: string;
-  source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b-versatile' | 'GROQ-llama-3.1-8b-instant' | 'claude-haiku-4-5' | 'gemini-2.0-flash' | 'fallback'
+  source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b-versatile' | 'GROQ-llama-3.1-8b-instant' | 'gemini-2.0-flash' | 'fallback'
   durationMs: number;
   /** Per-provider attempt outcome — populated when chain fully fails, to aid diagnosis. */
-  attempts?: Array<{ provider: 'vllm' | 'groq' | 'claude' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
+  attempts?: Array<{ provider: 'vllm' | 'groq' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
 }
 
 export interface AICallOptions {
@@ -66,7 +62,7 @@ export interface AICallOptions {
   tag?: string;
 }
 
-type ProviderAttempt = { provider: 'vllm' | 'groq' | 'claude' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number };
+type ProviderAttempt = { provider: 'vllm' | 'groq' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number };
 
 /** vLLM EXAONE 호출 */
 async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
@@ -217,46 +213,6 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   return null;
 }
 
-/** Claude Haiku 4.5 — GROQ TPD 소진 시 주 유료 폴백. JSON 품질 최상, 비용 ~$0.003/call. */
-async function callClaude(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) return null;
-
-  const t0 = Date.now();
-  const tag = opts.tag ?? 'ai';
-  try {
-    const client = new Anthropic({ apiKey });
-    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-      { role: 'user', content: prompt },
-    ];
-    const createParams = {
-      model: 'claude-haiku-4-5-20251001' as const,
-      max_tokens: opts.maxTokens ?? 1600,
-      temperature: opts.temperature ?? 0.7,
-      stream: false as const,
-      messages,
-      ...(opts.systemPrompt ? { system: opts.systemPrompt } : {}),
-    };
-    const response = await Promise.race([
-      client.messages.create(createParams),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('claude_timeout')), opts.timeoutMs ?? 30000)),
-    ]);
-    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-    if (!text) {
-      diag?.push({ provider: 'claude', ok: false, error: 'empty_text', durationMs: Date.now() - t0 });
-      return null;
-    }
-    logger.info(tag, 'claude_ok', { textLen: text.length, durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'claude', ok: true, status: 200, durationMs: Date.now() - t0 });
-    return text;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.warn(tag, 'claude_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'claude', ok: false, error: msg.slice(0, 200), durationMs: Date.now() - t0 });
-    return null;
-  }
-}
-
 /** Gemini 호출 — 최종 유료 폴백 */
 async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -309,7 +265,7 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
 }
 
 /**
- * 통합 AI 호출. vLLM → GROQ → Claude Haiku 4.5 → Gemini 체인을 순차 시도.
+ * 통합 AI 호출. vLLM → GROQ → Gemini 체인을 순차 시도.
  * 모두 실패하면 { text: '', source: 'fallback' } 반환.
  */
 export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<AICallResult> {
@@ -329,11 +285,7 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
   const g = await callGroq(prompt, opts, attempts);
   if (g) return { text: g.text, source: `GROQ-${g.model}`, durationMs: Date.now() - start };
 
-  // 3. Claude Haiku 4.5 (유료 — GROQ 소진 시 메인 폴백, ~$0.003/call)
-  const cl = await callClaude(prompt, opts, attempts);
-  if (cl) return { text: cl, source: 'claude-haiku-4-5', durationMs: Date.now() - start };
-
-  // 4. Gemini 2.0 Flash (유료 최종 폴백)
+  // 3. Gemini 2.0 Flash (유료 최종 폴백)
   const gm = await callGemini(prompt, opts, attempts);
   if (gm) return { text: gm, source: 'gemini-2.0-flash', durationMs: Date.now() - start };
 
