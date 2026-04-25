@@ -9,14 +9,16 @@ import {
 // Increase Vercel function timeout — required on Pro plan (60s), no-op on Hobby (10s)
 export const maxDuration = 60;
 
-const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' };
+// 4h CDN cache + 8h stale-while-revalidate — AI responses are expensive; serve stale rather than
+// burning tokens on every cold Lambda start. Vercel edge serves this without hitting Lambda at all.
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=28800' };
 
 // Module-level in-memory cache for environments without Redis.
 // Persists across requests while the function instance stays warm (typical ~several minutes).
-// TTL 10 min — balances AI quota conservation with reasonable freshness.
+// 4h TTL — without Redis every request calls GROQ, exhausting 100k TPD by midday.
 // Keyed by tf; value = {brief, expiresAt}.
 const MEMORY_CACHE: Map<Timeframe, { brief: DailyBrief; expiresAt: number }> = new Map();
-const MEMORY_TTL_MS = 10 * 60 * 1000;
+const MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

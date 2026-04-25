@@ -6,7 +6,15 @@ export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
 
-const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' };
+// 2h CDN + 2h stale-while-revalidate aligned with NEWS_MEMORY_TTL_MS (2h).
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=7200' };
+
+// Module-level memory cache — without Redis, each request burns 10 GROQ calls (one per article).
+// 2h TTL matches daily news cadence without burning the 100k TPD budget.
+// Type is forward-declared; actual interface is defined below.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let NEWS_MEMORY_CACHE: { articles: any[]; expiresAt: number } | null = null;
+const NEWS_MEMORY_TTL_MS = 2 * 60 * 60 * 1000;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RawNewsItem {
@@ -201,7 +209,13 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 export async function GET() {
   const redis = createRedis();
 
-  // 1. Try to load today's cached list
+  // 1a. Module-level memory cache hit (no-Redis path) — avoids 10 GROQ calls per request
+  if (!redis && NEWS_MEMORY_CACHE && Date.now() < NEWS_MEMORY_CACHE.expiresAt) {
+    logger.info('api.news-cascade', 'memory_cache_hit', { articles: NEWS_MEMORY_CACHE.articles.length });
+    return NextResponse.json({ articles: NEWS_MEMORY_CACHE.articles, cached: true }, { headers: CDN_HEADERS });
+  }
+
+  // 1b. Try to load today's cached list from Redis
   if (redis) {
     try {
       const cached = await redis.get<NewsWithCascade[]>(listKey());
@@ -279,6 +293,13 @@ export async function GET() {
   if (redis && sorted.length > 0) {
     const ttl = hasRealAnalysis ? 12 * 60 * 60 : 60 * 60;
     await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: ttl });
+  }
+
+  // Module-level memory cache — write regardless of Redis availability.
+  // Only cache when real AI analysis present (don't lock fallback stubs for 2h).
+  if (!redis && sorted.length > 0 && hasRealAnalysis) {
+    NEWS_MEMORY_CACHE = { articles: sorted, expiresAt: Date.now() + NEWS_MEMORY_TTL_MS };
+    logger.info('api.news-cascade', 'memory_cache_written', { articles: sorted.length });
   }
 
   return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });

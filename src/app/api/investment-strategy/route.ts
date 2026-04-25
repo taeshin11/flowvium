@@ -11,6 +11,11 @@ const CACHE_TTL = 12 * 60 * 60; // 12h Redis
 const STALE_KEY_PREFIX = 'flowvium:investment-strategy:stale'; // last known good result
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=43200, stale-while-revalidate=1800' };
 
+// Module-level memory cache — without Redis every request triggers a heavy AI call.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let STRATEGY_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
+const STRATEGY_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
+
 function cacheKey(): string {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const datehour = kst.toISOString().slice(0, 13).replace('T', ':');
@@ -364,6 +369,12 @@ export async function GET(request: Request) {
   const redis = createRedis();
   const key = cacheKey();
 
+  // Module-level memory cache hit (no-Redis path)
+  if (!redis && !force && STRATEGY_MEMORY_CACHE && Date.now() < STRATEGY_MEMORY_CACHE.expiresAt) {
+    logger.info('api.investment-strategy', 'memory_cache_hit');
+    return NextResponse.json({ ...STRATEGY_MEMORY_CACHE.data, cached: true }, { headers: CDN_HEADERS });
+  }
+
   if (redis && !force) {
     try {
       const cached = await redis.get(key);
@@ -441,6 +452,12 @@ export async function GET(request: Request) {
         loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 }), // 7d
       ]);
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
+  }
+
+  // Module-level memory cache write (no-Redis path)
+  if (!redis) {
+    STRATEGY_MEMORY_CACHE = { data: strategy, expiresAt: Date.now() + STRATEGY_MEMORY_TTL_MS };
+    logger.info('api.investment-strategy', 'memory_cache_written');
   }
 
   return NextResponse.json(strategy, { headers: CDN_HEADERS });

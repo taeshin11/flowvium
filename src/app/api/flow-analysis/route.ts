@@ -16,6 +16,11 @@ export const maxDuration = 60;
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=12000, stale-while-revalidate=600' };
 
+// Module-level memory cache — without Redis, every request calls GROQ → 100k TPD exhausted by midday.
+// 4h TTL matches the primary Redis TTL; keyed by tf.
+const FLOW_MEMORY_CACHE = new Map<string, { result: Record<string, unknown>; expiresAt: number }>();
+const FLOW_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -99,6 +104,15 @@ export async function GET(request: Request) {
   const tf = searchParams.get('tf') ?? '4w';
 
   const redis = createRedis();
+
+  // Module-level memory cache hit (no-Redis path)
+  if (!redis) {
+    const mem = FLOW_MEMORY_CACHE.get(tf);
+    if (mem && Date.now() < mem.expiresAt) {
+      logger.info('flow-analysis', 'memory_cache_hit', { tf });
+      return NextResponse.json({ ...mem.result, cached: true }, { headers: CDN_HEADERS });
+    }
+  }
 
   // Fetch fresh cache and stale fallback in parallel — saves one sequential Redis round-trip
   let staleResult: object | null = null;
@@ -215,6 +229,12 @@ export async function GET(request: Request) {
       ]);
       logger.info('flow-analysis', 'cache_saved', { tf });
     } catch (e) { logger.warn('flow-analysis', 'cache_write_error', { tf, error: e }); }
+  }
+
+  // Module-level memory cache write (no-Redis path) — only cache real AI analysis, not static fallback
+  if (!redis && analysis && !(analysis as Record<string, unknown>)._staticFallback) {
+    FLOW_MEMORY_CACHE.set(tf, { result, expiresAt: Date.now() + FLOW_MEMORY_TTL_MS });
+    logger.info('flow-analysis', 'memory_cache_written', { tf });
   }
 
   // Never let CDN cache a failure — stale fallback traps subsequent requests in a loop.
