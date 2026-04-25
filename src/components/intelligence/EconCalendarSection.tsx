@@ -98,8 +98,8 @@ export default function EconCalendarSection() {
       date: e.date,
       time: e.time ?? null,
       impact: e.impact as 'high' | 'medium' | 'low',
-      title: e.titleKo,
-      note: e.noteKo ?? null,
+      title: e.title,
+      note: e.note ?? null,
     }));
   }, [useLive, liveData, staticEvents]);
 

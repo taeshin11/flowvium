@@ -281,7 +281,6 @@ function MoneyFlowRow({ flow }: { flow: MoneyFlowSector }) {
               {isInflow ? t('inflow') : t('outflow')}
             </span>
             <span className="text-sm font-bold text-cf-text-primary">{flow.sector}</span>
-            <span className="text-xs text-cf-text-secondary">({flow.sectorKo})</span>
           </div>
           <p className="text-xs text-cf-text-secondary leading-relaxed mb-2">{flow.reason}</p>
           {/* Timing row */}
@@ -341,7 +340,6 @@ function NarrativeCard({ n, t }: { n: MacroNarrative; t: ReturnType<typeof useTr
             </span>
           </div>
           <h3 className="text-base font-heading font-bold text-cf-text-primary leading-tight">{n.title}</h3>
-          <p className="text-xs text-cf-text-secondary mt-0.5">{n.titleKo}</p>
         </div>
       </div>
       <p className="text-sm text-cf-text-secondary leading-relaxed mb-3">{n.summary}</p>
