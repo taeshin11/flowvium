@@ -19,7 +19,7 @@ const STRATEGY_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
 function cacheKey(): string {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const datehour = kst.toISOString().slice(0, 13).replace('T', ':');
-  return `flowvium:investment-strategy:v3:${datehour}`;
+  return `flowvium:investment-strategy:v4:${datehour}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ async function getLivePrices(): Promise<Map<string, LivePrice>> {
 function pricesSection(prices: Map<string, LivePrice>): string {
   if (prices.size === 0) return '';
   const lines = Array.from(prices.entries()).map(([t, p]) =>
-    `${t}: 현재가 $${p.price} (전일비 ${p.change1d > 0 ? '+' : ''}${p.change1d}%, 52w고 $${p.high52w}, 52w저 $${p.low52w})`
+    `${t}: $${p.price} (1d ${p.change1d > 0 ? '+' : ''}${p.change1d}%, 52wH $${p.high52w}, 52wL $${p.low52w})`
   );
   return lines.join('\n');
 }
@@ -235,20 +235,23 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   try {
     const m = ctx.macro as Record<string, unknown> | null;
     if (m) {
-      const yc = (m.yieldCurve as Record<string, unknown> | undefined);
-      const cpi = m.cpi as Record<string, unknown> | undefined;
-      const gdp = m.gdp as Record<string, unknown> | undefined;
-      macro = `YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${yc?.spread ?? '?'}bp) CPI=${cpi?.value ?? '?'}% GDP=${gdp?.value ?? '?'}%`;
+      const yc = m.yieldCurve as Record<string, unknown> | undefined;
+      const inds = (m.indicators as Array<Record<string, unknown>>) ?? [];
+      const cpi = inds.find(i => i.id === 'cpi');
+      const gdp = inds.find(i => i.id === 'gdp');
+      const spread = yc?.spread10y2y as number | undefined;
+      const parts = [`YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${spread != null ? spread.toFixed(0) : '?'}bp)`];
+      if (cpi?.actual != null) parts.push(`CPI=${cpi.actual}%`);
+      if (gdp?.actual != null) parts.push(`GDP=${gdp.actual}%`);
+      macro = parts.join(' ');
     }
   } catch { /* ignore */ }
 
-  // Sentiment
+  // Sentiment — ctx.fearGreed is the US entry directly (score, level, label top-level)
   let sentiment = '';
   try {
     const fg = ctx.fearGreed as Record<string, unknown> | null;
-    const byCountry = (fg?.byCountry as Array<{ id?: string; score?: number; label?: string }>) ?? [];
-    const us = byCountry.find(x => x.id === 'us');
-    if (us) sentiment = `F&G(US)=${us.score}(${us.label})`;
+    if (fg?.score != null) sentiment = `F&G(US)=${Math.round(fg.score as number)}(${fg.level ?? fg.label ?? ''})`;
     const fed = ctx.fedWatch as Record<string, unknown> | null;
     const meetings = (fed?.meetings as Array<Record<string, unknown>>) ?? [];
     if (meetings.length) {
@@ -267,8 +270,9 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
       .slice(0, 5)
       .map(a => `${a.ticker}:${a.ret1w?.toFixed(1)}%`);
     if (top.length) flows = `Weekly top: ${top.join(', ')}`;
-    const countries = (cap?.countries as Array<{ name?: string; ret1w?: number }>) ?? [];
-    const topCtry = countries.sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0)).slice(0, 3).map(c => `${c.name}:${c.ret1w?.toFixed(1)}%`);
+    const cf = cap?.countryFlow as Record<string, unknown> | undefined;
+    const countries = (cf?.countries as Array<{ name?: string; label?: string; ret1w?: number }>) ?? [];
+    const topCtry = countries.sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0)).slice(0, 3).map(c => `${c.name ?? c.label}:${c.ret1w?.toFixed(1)}%`);
     if (topCtry.length) flows += ` | Countries: ${topCtry.join(', ')}`;
   } catch { /* ignore */ }
 

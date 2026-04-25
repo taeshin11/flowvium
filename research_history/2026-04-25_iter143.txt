@@ -1,0 +1,52 @@
+== iter143 — 2026-04-25 ==
+
+PRIMARY OUTCOME: investment-strategy 컨텍스트 추출 버그 4종 수정
+
+DRIFT CHECK:
+- iter140: i18n, iter141: i18n, iter142: bug-fix → 최근 3 iter 다양 (i18n×2 + bug-fix)
+- iter143: bug-fix → streak reset
+- No drift signal.
+
+CRITICAL BUGS FOUND (iter143):
+
+buildCtxSummary() in investment-strategy/route.ts 가 잘못된 필드 경로를 읽어
+AI에게 macro/sentiment/capital flows 데이터를 전달하지 못하고 있었음.
+
+BUGS:
+| Category | Wrong | Correct | Effect |
+|---|---|---|---|
+| Macro CPI/GDP | m.cpi / m.gdp (undefined) | m.indicators[].find('cpi') | AI got CPI=?% GDP=?% |
+| Macro YieldCurve | yc?.spread | yc?.spread10y2y | Spread always '?' |
+| FearGreed | ctx.fearGreed.byCountry[].find('us') | ctx.fearGreed.score directly | Empty sentiment string |
+| Capital Flows countries | cap?.countries (undefined) | cap?.countryFlow?.countries | No country data |
+
+ROOT CAUSE: macro-indicators API returns { indicators: [...], yieldCurve: { spread10y2y } }.
+The reader was expecting { cpi, gdp } as direct properties (wrong shape).
+ctx.fearGreed is stored per-ticker as { id, score, level, ... } (not byCountry wrapper).
+capital-flows response nests countries under { countryFlow: { countries: [...] } }.
+
+FIX in buildCtxSummary():
+- Macro: Read m.indicators array, find id='cpi'/.actual and id='gdp'/.actual
+- YieldCurve: yc.spread → yc.spread10y2y
+- FearGreed: fg.byCountry search → fg.score directly
+- Capital flows: cap.countries → cap.countryFlow.countries
+
+BONUS FIX:
+- pricesSection(): Korean labels '현재가'/'전일비'/'52w고'/'52w저' → English '$price'/'1d chg'/'52wH'/'52wL'
+
+CACHE KEY: investment-strategy v3 → v4 (context values will now have real data)
+
+IMPACT:
+- Investment-strategy AI: now receives real CPI%, GDP%, yield spread, F&G score,
+  country capital flow ranking — all previously blank
+- AI price context: English labels instead of Korean
+
+ACCURACY PROBE:
+[accuracy probe] metric=SPY.close source=Yahoo direct_value=713.94 our_value=N/A(not_deployed) → PROD_STALE
+[accuracy probe] metric=fg.us source=CNN direct_value=CNN_BLOCKED(local_env) → SKIP
+[accuracy probe] metric=investment-strategy.context source=code fix=4_data_extraction_bugs → IMPROVEMENT
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+FILES CHANGED (1 file):
+- src/app/api/investment-strategy/route.ts (4 extraction bugs, Korean→English, cache v4)
