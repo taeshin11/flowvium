@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Komunikasi",
     "cfSignalGoldPreferred": "Emas disukai (lindung USD)",
     "cfSignalDollarPreferred": "Kekuatan dolar",
-    "cfSignalMixed": "Campuran"
+    "cfSignalMixed": "Campuran",
+    "poweredByGemini": "Didukung Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",

@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Kommunikation",
     "cfSignalGoldPreferred": "Gold bevorzugt (USD-Absicherung)",
     "cfSignalDollarPreferred": "Dollar-Stärke",
-    "cfSignalMixed": "Gemischt"
+    "cfSignalMixed": "Gemischt",
+    "poweredByGemini": "Unterstützt von Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",

@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Communication",
     "cfSignalGoldPreferred": "Gold preferred (USD hedge)",
     "cfSignalDollarPreferred": "Dollar strength (safe haven)",
-    "cfSignalMixed": "Mixed"
+    "cfSignalMixed": "Mixed",
+    "poweredByGemini": "Powered by Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Global Intelligence Tracking",

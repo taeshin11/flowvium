@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Comunicaciones",
     "cfSignalGoldPreferred": "Oro preferido (cobertura USD)",
     "cfSignalDollarPreferred": "Fortaleza del dólar",
-    "cfSignalMixed": "Mixto"
+    "cfSignalMixed": "Mixto",
+    "poweredByGemini": "Desarrollado por Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Seguimiento de Inteligencia Global",

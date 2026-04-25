@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Comunicação",
     "cfSignalGoldPreferred": "Ouro preferido (hedge USD)",
     "cfSignalDollarPreferred": "Força do dólar",
-    "cfSignalMixed": "Misto"
+    "cfSignalMixed": "Misto",
+    "poweredByGemini": "Desenvolvido com Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",

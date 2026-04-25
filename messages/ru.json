@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Телекоммуникации",
     "cfSignalGoldPreferred": "Золото (хедж от USD)",
     "cfSignalDollarPreferred": "Сила доллара",
-    "cfSignalMixed": "Смешанно"
+    "cfSignalMixed": "Смешанно",
+    "poweredByGemini": "Работает на Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Глобальное отслеживание разведданных",

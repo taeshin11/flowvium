@@ -948,7 +948,8 @@
     "cfSecCommsvc": "การสื่อสาร",
     "cfSignalGoldPreferred": "ทองคำได้รับความนิยม (ป้องกัน USD)",
     "cfSignalDollarPreferred": "ดอลลาร์แข็งค่า",
-    "cfSignalMixed": "ผสม"
+    "cfSignalMixed": "ผสม",
+    "poweredByGemini": "ขับเคลื่อนโดย Gemini 2.5"
   },
   "osint": {
     "pageCategory": "การติดตามข่าวกรองระดับโลก",

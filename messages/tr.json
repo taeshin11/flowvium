@@ -948,7 +948,8 @@
     "cfSecCommsvc": "İletişim",
     "cfSignalGoldPreferred": "Altın tercihli (USD koruması)",
     "cfSignalDollarPreferred": "Dolar güçlü",
-    "cfSignalMixed": "Karışık"
+    "cfSignalMixed": "Karışık",
+    "poweredByGemini": "Gemini 2.5 ile çalışır"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",

@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Communication",
     "cfSignalGoldPreferred": "Or privilégié (couverture USD)",
     "cfSignalDollarPreferred": "Force du dollar",
-    "cfSignalMixed": "Mixte"
+    "cfSignalMixed": "Mixte",
+    "poweredByGemini": "Propulsé par Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",

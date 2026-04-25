@@ -439,7 +439,7 @@ Answer concisely (3–5 paragraphs). Be specific — name tickers, mechanisms, a
       <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 flex items-center gap-3">
         <Brain className="w-5 h-5 text-amber-400" />
         <span className="text-white font-heading font-bold">{t('askQuestion')}</span>
-        <span className="ml-auto text-xs text-slate-400">Powered by Gemini 2.5</span>
+        <span className="ml-auto text-xs text-slate-400">{t('poweredByGemini')}</span>
       </div>
       <div className="p-4 space-y-4 min-h-[100px] max-h-[360px] overflow-y-auto">
         {messages.length === 0 && (

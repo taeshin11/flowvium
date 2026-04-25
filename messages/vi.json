@@ -948,7 +948,8 @@
     "cfSecCommsvc": "Truyền thông",
     "cfSignalGoldPreferred": "Vàng ưu tiên (phòng USD)",
     "cfSignalDollarPreferred": "Đồng đô la mạnh",
-    "cfSignalMixed": "Hỗn hợp"
+    "cfSignalMixed": "Hỗn hợp",
+    "poweredByGemini": "Được hỗ trợ bởi Gemini 2.5"
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",
