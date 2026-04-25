@@ -426,7 +426,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               )}
               {livePrice.marketState && livePrice.marketState !== 'REGULAR' && (
                 <span className="text-[10px] text-cf-text-secondary/60 font-medium">
-                  {livePrice.marketState === 'PRE' ? '장전' : livePrice.marketState === 'POST' ? '장후' : livePrice.marketState}
+                  {livePrice.marketState === 'PRE' ? t('preMarket') : livePrice.marketState === 'POST' ? t('postMarket') : livePrice.marketState}
                 </span>
               )}
               {liveMarketCap != null && (
@@ -472,7 +472,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
         return (
           <div className="cf-card p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-cf-text-secondary">90일 주가 추이</span>
+              <span className="text-xs font-bold text-cf-text-secondary">{t('priceChart90d')}</span>
               <span className={`text-xs font-bold tabular-nums ${isUp ? 'text-green-600' : 'text-red-600'}`}>
                 {isUp ? '+' : ''}{pct90.toFixed(2)}% <span className="font-normal text-cf-text-secondary">(90d)</span>
               </span>
@@ -497,7 +497,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-[10px] text-cf-text-secondary mt-1">Yahoo Finance · 1h 캐시</p>
+            <p className="text-[10px] text-cf-text-secondary mt-1">{t('priceChartSource')}</p>
           </div>
         );
       })()}
@@ -619,7 +619,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
                 <h2 className="text-xl font-heading font-bold text-cf-text-primary flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-emerald-500" />
-                  재무 심화 — FY{liveFinancials.fiscalYear}
+                  {t('financialsDeep')} — FY{liveFinancials.fiscalYear}
                 </h2>
                 <span className="text-[10px] text-emerald-600 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -630,14 +630,14 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               {/* Key metrics grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
                 {[
-                  { label: '매출', val: fmtUsd(liveFinancials.latestAnnual.revenueUSD) },
-                  { label: '영업이익', val: fmtUsd(liveFinancials.latestAnnual.operatingIncomeUSD) },
-                  { label: '순이익', val: fmtUsd(liveFinancials.latestAnnual.netIncomeUSD) },
-                  { label: 'EPS (희석)', val: liveFinancials.latestAnnual.epsDiluted != null ? `$${liveFinancials.latestAnnual.epsDiluted.toFixed(2)}` : '-' },
-                  { label: '영업이익률', val: liveFinancials.latestAnnual.operatingMarginPct != null ? `${liveFinancials.latestAnnual.operatingMarginPct}%` : '-' },
-                  { label: 'ROE', val: liveFinancials.latestAnnual.roePct != null ? `${liveFinancials.latestAnnual.roePct}%` : '-' },
-                  { label: 'ROA', val: liveFinancials.latestAnnual.roaPct != null ? `${liveFinancials.latestAnnual.roaPct}%` : '-' },
-                  { label: '부채비율', val: liveFinancials.latestAnnual.debtRatioPct != null ? `${liveFinancials.latestAnnual.debtRatioPct}%` : '-' },
+                  { label: t('finRevenue'), val: fmtUsd(liveFinancials.latestAnnual.revenueUSD) },
+                  { label: t('finOperatingIncome'), val: fmtUsd(liveFinancials.latestAnnual.operatingIncomeUSD) },
+                  { label: t('finNetIncome'), val: fmtUsd(liveFinancials.latestAnnual.netIncomeUSD) },
+                  { label: t('finEpsDiluted'), val: liveFinancials.latestAnnual.epsDiluted != null ? `$${liveFinancials.latestAnnual.epsDiluted.toFixed(2)}` : '-' },
+                  { label: t('finOperatingMargin'), val: liveFinancials.latestAnnual.operatingMarginPct != null ? `${liveFinancials.latestAnnual.operatingMarginPct}%` : '-' },
+                  { label: t('finRoe'), val: liveFinancials.latestAnnual.roePct != null ? `${liveFinancials.latestAnnual.roePct}%` : '-' },
+                  { label: t('finRoa'), val: liveFinancials.latestAnnual.roaPct != null ? `${liveFinancials.latestAnnual.roaPct}%` : '-' },
+                  { label: t('finDebtRatio'), val: liveFinancials.latestAnnual.debtRatioPct != null ? `${liveFinancials.latestAnnual.debtRatioPct}%` : '-' },
                 ].map(m => (
                   <div key={m.label} className="bg-gray-50 rounded-lg p-3">
                     <p className="text-[10px] text-cf-text-secondary mb-0.5">{m.label}</p>
@@ -649,7 +649,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               {/* Revenue trend chart */}
               {liveFinancials.annuals.length > 1 && (
                 <div className="mb-5">
-                  <p className="text-xs font-bold text-cf-text-secondary mb-2">매출 추이 (연간)</p>
+                  <p className="text-xs font-bold text-cf-text-secondary mb-2">{t('revenueTrendAnnual')}</p>
                   <div className="h-36">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={[...liveFinancials.annuals].reverse().map(a => ({
@@ -661,8 +661,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                         <XAxis dataKey="fy" tick={{ fontSize: 10 }} />
                         <YAxis tick={{ fontSize: 10 }} unit="B" />
                         <Tooltip formatter={(v) => `$${v}B`} />
-                        <Bar dataKey="rev" name="매출" fill="#4F8FBF" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="net" name="순이익" fill="#5CB88A" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="rev" name={t('finRevenue')} fill="#4F8FBF" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="net" name={t('finNetIncome')} fill="#5CB88A" radius={[2, 2, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -672,7 +672,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               {/* Quarterly revenue Y/Y growth */}
               {liveFinancials.quarterlyRevenue.length > 1 && (
                 <div className="mb-5">
-                  <p className="text-xs font-bold text-cf-text-secondary mb-2">분기 매출 추이 (Y/Y 성장률)</p>
+                  <p className="text-xs font-bold text-cf-text-secondary mb-2">{t('revenueTrendQuarterly')}</p>
                   <div className="h-32">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={[...liveFinancials.quarterlyRevenue].reverse().map(q => ({
@@ -685,7 +685,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                         <YAxis yAxisId="left" tick={{ fontSize: 9 }} unit="B" width={32} />
                         <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} unit="%" width={35} />
                         <Tooltip formatter={(v, name) => name === 'Y/Y%' ? `${v}%` : `$${v}B`} />
-                        <Bar yAxisId="left" dataKey="rev" name="매출" fill="#4F8FBF" radius={[2, 2, 0, 0]} />
+                        <Bar yAxisId="left" dataKey="rev" name={t('finRevenue')} fill="#4F8FBF" radius={[2, 2, 0, 0]} />
                         <Line yAxisId="right" type="monotone" dataKey="yoy" name="Y/Y%" stroke="#E8A945" strokeWidth={2} dot={{ r: 3 }} connectNulls />
                       </ComposedChart>
                     </ResponsiveContainer>
@@ -696,12 +696,12 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               {/* Balance sheet + Cash flows + Other */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">대차대조표</p>
+                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">{t('balanceSheet')}</p>
                   <div className="space-y-1.5">
                     {[
-                      { label: '총자산', val: fmtUsd(liveFinancials.latestAnnual.totalAssetsUSD) },
-                      { label: '총부채', val: fmtUsd(liveFinancials.latestAnnual.totalLiabilitiesUSD) },
-                      { label: '자본', val: fmtUsd(liveFinancials.latestAnnual.equityUSD) },
+                      { label: t('totalAssets'), val: fmtUsd(liveFinancials.latestAnnual.totalAssetsUSD) },
+                      { label: t('totalLiabilities'), val: fmtUsd(liveFinancials.latestAnnual.totalLiabilitiesUSD) },
+                      { label: t('equity'), val: fmtUsd(liveFinancials.latestAnnual.equityUSD) },
                     ].map(m => (
                       <div key={m.label} className="flex justify-between text-xs">
                         <span className="text-cf-text-secondary">{m.label}</span>
@@ -711,12 +711,12 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">현금흐름</p>
+                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">{t('cashFlows')}</p>
                   <div className="space-y-1.5">
                     {[
-                      { label: '영업CF', val: fmtUsd(liveFinancials.latestAnnual.operatingCFUSD) },
-                      { label: '투자CF', val: fmtUsd(liveFinancials.latestAnnual.investingCFUSD) },
-                      { label: '재무CF', val: fmtUsd(liveFinancials.latestAnnual.financingCFUSD) },
+                      { label: t('operatingCF'), val: fmtUsd(liveFinancials.latestAnnual.operatingCFUSD) },
+                      { label: t('investingCF'), val: fmtUsd(liveFinancials.latestAnnual.investingCFUSD) },
+                      { label: t('financingCF'), val: fmtUsd(liveFinancials.latestAnnual.financingCFUSD) },
                     ].map(m => (
                       <div key={m.label} className="flex justify-between text-xs">
                         <span className="text-cf-text-secondary">{m.label}</span>
@@ -726,13 +726,13 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">투자·주주환원</p>
+                  <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-2">{t('investShareholder')}</p>
                   <div className="space-y-1.5">
                     {[
                       { label: 'R&D', val: fmtUsd(liveFinancials.latestAnnual.rdExpenseUSD) },
                       { label: 'CapEx', val: fmtUsd(liveFinancials.latestAnnual.capexUSD) },
-                      { label: '자사주', val: fmtUsd(liveFinancials.latestAnnual.buybacksUSD) },
-                      { label: '배당', val: fmtUsd(liveFinancials.latestAnnual.dividendsUSD) },
+                      { label: t('buybacks'), val: fmtUsd(liveFinancials.latestAnnual.buybacksUSD) },
+                      { label: t('dividends'), val: fmtUsd(liveFinancials.latestAnnual.dividendsUSD) },
                     ].map(m => (
                       <div key={m.label} className="flex justify-between text-xs">
                         <span className="text-cf-text-secondary">{m.label}</span>
@@ -743,9 +743,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 </div>
               </div>
 
-              <p className="text-[10px] text-cf-text-secondary/50 mt-4">
-                출처: SEC EDGAR XBRL 10-K · 24h 캐시 · 파생 지표 (ROE/ROA/마진/부채비율) 자체 계산
-              </p>
+              <p className="text-[10px] text-cf-text-secondary/50 mt-4">{t('financialsSource')}</p>
             </div>
           )}
 
@@ -1029,28 +1027,28 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               reduced: 'bg-red-50 text-red-600 border border-red-200',
             };
             const actionLabel: Record<string, string> = {
-              new: '신규 매수',
-              increased: '지분 증가',
-              maintained: '유지',
-              reduced: '지분 축소',
+              new: t('actionNew'),
+              increased: t('actionIncreased'),
+              maintained: t('actionMaintained'),
+              reduced: t('actionReduced'),
             };
             return (
               <div className="cf-card p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <Users2 className="w-5 h-5 text-cf-primary" />
-                  <h2 className="text-xl font-heading font-bold text-cf-text-primary">기관 지분율 현황</h2>
-                  <span className="text-xs text-cf-text-secondary ml-1">13F 기준 · {owned[0]?.quarter}</span>
+                  <h2 className="text-xl font-heading font-bold text-cf-text-primary">{t('ownershipStatus')}</h2>
+                  <span className="text-xs text-cf-text-secondary ml-1">{t('ownershipAs13f')} · {owned[0]?.quarter}</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-cf-border bg-gray-50">
-                        <th className="text-left py-2 px-3 text-cf-text-secondary font-medium text-xs">기관</th>
-                        <th className="text-center py-2 px-3 text-cf-text-secondary font-medium text-xs">변화</th>
-                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">지분율</th>
-                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">전분기</th>
-                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">보유주식</th>
-                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">평가액</th>
+                        <th className="text-left py-2 px-3 text-cf-text-secondary font-medium text-xs">{t('institution')}</th>
+                        <th className="text-center py-2 px-3 text-cf-text-secondary font-medium text-xs">{t('ownershipChange')}</th>
+                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">{t('ownershipPct')}</th>
+                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">{t('ownershipPrevPct')}</th>
+                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">{t('ownershipShares')}</th>
+                        <th className="text-right py-2 px-3 text-cf-text-secondary font-medium text-xs">{t('ownershipValue')}</th>
                         <th className="text-center py-2 px-3 text-cf-text-secondary font-medium text-xs">SEC</th>
                       </tr>
                     </thead>
@@ -1083,7 +1081,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                               ) : <span className="text-gray-300">—</span>}
                             </td>
                             <td className="py-2.5 px-3 text-right text-xs tabular-nums text-cf-text-secondary">
-                              {o.sharesM !== undefined ? `${o.sharesM.toFixed(1)}M주` : '—'}
+                              {o.sharesM !== undefined ? t('sharesUnit', { n: o.sharesM.toFixed(1) }) : '—'}
                             </td>
                             <td className="py-2.5 px-3 text-right text-xs font-medium text-cf-text-primary">
                               ${o.valueM.toLocaleString()}M
@@ -1107,9 +1105,9 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   const totalVal = owned.reduce((s, o) => s + o.valueM, 0);
                   return (
                     <div className="mt-3 pt-3 border-t border-cf-border flex items-center gap-4 flex-wrap text-xs text-cf-text-secondary">
-                      <span>추적 기관 합계 지분율: <span className="font-bold text-cf-text-primary">{total.toFixed(2)}%</span></span>
-                      <span>합계 평가액: <span className="font-bold text-cf-text-primary">${totalVal.toLocaleString()}M</span></span>
-                      <span className="ml-auto">SEC EDGAR 13F-HR 기준 · 45일 지연 공시</span>
+                      <span>{t('ownershipTotalPct')}: <span className="font-bold text-cf-text-primary">{total.toFixed(2)}%</span></span>
+                      <span>{t('ownershipTotalValue')}: <span className="font-bold text-cf-text-primary">${totalVal.toLocaleString()}M</span></span>
+                      <span className="ml-auto">{t('ownershipBasis')}</span>
                     </div>
                   );
                 })()}
