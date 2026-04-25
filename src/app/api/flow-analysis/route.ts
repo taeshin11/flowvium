@@ -223,6 +223,39 @@ export async function GET(request: Request) {
     logger.warn('flow-analysis', 'serving_stale', { tf, source: (staleResult as Record<string, unknown>).source });
     return NextResponse.json({ ...(staleResult as object), stale: true, staleFallback: true }, { headers: CDN_HEADERS });
   }
+
+  // Static fallback: AI quota 소진 시 capital flows 데이터로 기계적 요약 생성
+  // analysis가 없어도 사용자가 수치 기반 요약을 볼 수 있도록
+  if (!analysis && countries.length > 0) {
+    const sorted = [...countries].sort((a, b) => b.ret - a.ret);
+    const tfLabel = tf === '1w' ? '1주' : tf === '4w' ? '4주' : '13주';
+    analysis = {
+      summary: `${tfLabel} 기간 자금흐름 기계적 요약 (AI 분석 대기 중). 상위: ${sorted.slice(0, 3).map(c => `${c.country} ${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`).join(', ')}.`,
+      mainTheme: `데이터 요약 (AI 쿼터 소진 — KST 09:00 리셋)`,
+      countries: sorted.map(c => ({
+        country: c.country,
+        ret: `${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`,
+        direction: c.ret >= 0 ? 'inflow' : 'outflow',
+        causes: ['수익률 데이터 기반 표시 — AI 원인 분석 불가'],
+        risk: '',
+      })),
+      rotations: rotations.slice(0, 3).map(r => ({
+        from: r.from,
+        to: r.to,
+        reason: `수익률 차이 ${r.diff >= 0 ? '+' : ''}${r.diff.toFixed(1)}%p`,
+      })),
+      keyWatchpoints: [
+        `강세 시장: ${sorted.slice(0, 3).map(c => c.country).join(', ')}`,
+        `약세 시장: ${sorted.slice(-3).reverse().map(c => c.country).join(', ')}`,
+        `금 ${goldRet >= 0 ? '+' : ''}${goldRet.toFixed(1)}% / 달러 ${dollarRet >= 0 ? '+' : ''}${dollarRet.toFixed(1)}%`,
+      ],
+      _staticFallback: true,
+    };
+    result.analysis = analysis;
+    result.source = 'static-fallback';
+    logger.info('flow-analysis', 'static_fallback_served', { tf, countries: countries.length });
+  }
+
   const headers = analysis ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
   return NextResponse.json(result, { headers });
 }
