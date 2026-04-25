@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
  *   07:50 KST / 15:50 KST / 21:20 KST
  *
  * 캐시 워밍 순서:
+ *   0. non-US heatmap (KR/JP/CN/EU — fire & forget, concurrent with stage 1)
  *   1. macro-indicators (FRED) + yield-curve (FRED TIPS/BEI) + volatility (VIX)
  *   2. fedwatch (CME)
  *   3. capital-flows (Yahoo Finance — 44+ tickers)
@@ -65,6 +66,16 @@ export async function GET(req: Request) {
 
   const base = getBaseUrl();
   const startTime = Date.now();
+
+  // Non-US heatmaps: fire & forget concurrently with stage 1 — Korean/Japanese/Chinese/EU users get pre-warmed cache.
+  Promise.allSettled(['KR', 'JP', 'CN', 'EU'].map(country =>
+    warm(base, `/api/market-heatmap?country=${country}`, `heatmap-${country}`, 20000)
+  )).then(results => {
+    for (const r of results) {
+      if (r.status === 'fulfilled' && !r.value.ok)
+        logger.warn('cron.update-all', 'warm_failed', { label: r.value.label, status: r.value.status, durationMs: r.value.ms });
+    }
+  }).catch(() => {});
 
   // ── 1단계: 모든 독립 소스 + heatmap/OSINT 완전 병렬 ─────────────────────
   // heatmap·OSINT는 stage 1 데이터에 무의존 → 분리 필요 없음.
