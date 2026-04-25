@@ -1,0 +1,62 @@
+== iter151 — 2026-04-26 ==
+
+PRIMARY OUTCOME: credit-balance 전체 영문화 + commodity-curve 라벨 수정
+
+DRIFT CHECK:
+- iter148: i18n (EconCalendar/IntelligencePage)
+- iter149: bug-fix (cron timeout)
+- iter150: i18n+cache (capital-flows + stale keys)
+- iter151: i18n+cache (credit-balance + commodity-curve)
+→ 드리프트 없음 (149 bug-fix로 중단된 상태)
+
+ROOT CAUSE FOUND:
+
+1. credit-balance/route.ts STATIC DATA (7개국)
+   모든 country/riskReason/laymanSummary/source 필드 Korean
+   → CreditBalanceTab.tsx에서 직접 렌더 (country, riskReason, laymanSummary 모두 표시됨)
+
+2. commodity-curve/route.ts lines 104-105
+   buildCurve 호출 시 Korean 이름 전달: '원유 (WTI)', '금 (COMEX)'
+   → CapitalFlowsTab.tsx pt.label로 렌더
+
+3. credit-balance cache key v2 → daily-brief.ts도 v2 읽음
+   새 v3 key 필요
+
+FIXES (4 files):
+
+credit-balance/route.ts:
+- country: 미국→US, 한국→Korea, 일본→Japan, 중국→China, 유럽(EU)→Europe(EU), 대만→Taiwan, 인도→India, 미국GDP비율→US GDP Ratio (Historical)
+- riskReason: 8개 Korean→English
+- laymanSummary: 8개 Korean→English
+- source: KRX/TSE/CSRC Korean→English
+- cache key: v2→v3
+
+commodity-curve/route.ts:
+- '원유 (WTI)' → 'WTI Crude Oil'
+- '금 (COMEX)' → 'Gold (COMEX)'
+
+update-credit-balance/route.ts:
+- bust key: v2→v3
+
+daily-brief.ts:
+- credit-balance Redis key: v2→v3
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → OK
+[accuracy probe] metric=credit-balance.country source=code Korean_removed → IMPROVEMENT
+[accuracy probe] metric=commodity-curve.name source=code Korean_removed → IMPROVEMENT
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- CreditBalanceTab: 국가명/리스크분석/초보자설명 모두 English 표시
+- CapitalFlowsTab 커브 차트: WTI Crude Oil / Gold (COMEX) English 표시
+- credit-balance: Korean 캐시 무효화, English v3 응답 제공
+
+FILES CHANGED (4 files):
+- src/app/api/credit-balance/route.ts (7개국 전체 + cache v3)
+- src/app/api/commodity-curve/route.ts (curve names)
+- src/app/api/cron/update-credit-balance/route.ts (bust v3)
+- src/lib/daily-brief.ts (credit-balance v3)
+
+COMMIT: 846cd0a

@@ -1,0 +1,85 @@
+== iter145 — 2026-04-25 ==
+
+PRIMARY OUTCOME: 잔여 Korean API/컴포넌트 전면 영문화 (5개 파일)
+
+DRIFT CHECK:
+- iter142: bug-fix(cache keys), iter143: bug-fix(data extraction), iter144: i18n(daily-brief)
+- iter145: i18n → 마지막 3 iter: bug-fix, bug-fix, i18n → No drift signal
+
+ROOT CAUSE FOUND:
+iter141 영문화 이후 5개 파일에 한국어 사용자 노출 문자열 잔존:
+- company-news/route.ts: AI 프롬프트 "Respond in Korean" → 모든 회사 뉴스 AI 요약 한국어
+- latest-updates/route.ts: headline/sub/badge 32개 한국어 (거시경제, 자금흐름, 시장심리 등)
+- macro-indicators/route.ts: STATIC summary 13개 + 동적 summary 11개 + cascade asset/reason 70개+ + rateImpactKo + Korean units
+- volatility/route.ts: REGIME_KO (콘탱고/백워데이션 등) → VolatilityCard.tsx 에 직접 렌더
+- VolatilityCard.tsx: data.regimeKo 참조
+
+FIXES (5 files, 170 lines changed):
+
+company-news/route.ts:
+- Line 80: "Respond in Korean." → "Respond in English."
+- Line 86: Chinese-only guard → CJK+Korean guard (prevent non-English responses)
+- Cache key: v2 → v3
+
+latest-updates/route.ts:
+- MacroInd interface: add name/rateImpact English fields
+- macro-indicators cache key ref: v12 → v13
+- '극단적 탐욕'/'탐욕'/'중립'/'공포'/'극단적 공포' → 'Extreme Greed'/etc.
+- '공포탐욕' → 'F&G'
+- 'CNN 공식 F&G Index' → 'CNN Official F&G Index'
+- 'RSI · SMA 모멘텀 · 변동성 블렌드' → English
+- '시장심리' → 'Sentiment'
+- '(1주)'/'4주' → '(1W)'/'4W', '자금흐름' → 'capital flow'/'Capital Flow'
+- '자금흐름' badge → 'Capital Flow'
+- '동결 X% / 인하 X%' → 'Hold X% / Cut X%'
+- '현재 기준금리' → 'Current rate'
+- '연쇄반응:' → 'Cascade:'
+- '호재'/'악재'/'뉴스' → 'Bullish'/'Bearish'/'News'
+- '지분 X%p'/'보유' → 'stake'/'held'
+- '지분변화' → 'Holdings'
+- '뉴스갭' → 'News Gap'
+- '매집'/'신규 편입'/'비중 축소'/'전량 청산' → English
+- '기관' → 'Institutional'
+- ind.nameKo → ind.name, ind.rateImpactKo → ind.rateImpact, '거시경제' → 'Macro'
+- '↑예상상회'/'↓예상하회' → '↑beat'/'↓miss', '전월' → 'prev'
+
+volatility/route.ts + VolatilityCard.tsx:
+- REGIME_KO → REGIME_LABEL (English values)
+- regimeKo field → regimeLabel (interface + response + component)
+
+macro-indicators/route.ts (cache key v12 → v13):
+- rateImpact() function: all 비둘기파/매파 → English
+- STATIC data: 13개 summary 전부 영문화
+- STATIC data: 모든 rateImpactKo → English
+- Korean units: '천명' → 'K', '지수' → 'index', '천명/주' → 'K/wk', '지수(1966=100)' → 'index'
+- Dynamic summaries: CPI/PCE/NFP/FOMC/GDP/ISM/Retail/PPI/Unrate/IClaims/UMCSent/IG/HY → English
+- buildCascade(): 70개 asset/reason 한국어 → English
+  '미 국채 금리'→'US Treasury Yields', '달러 (DXY)'→'USD (DXY)', '미국 주식 (S&P500)'→'US Equities (S&P500)'
+  '금 (GLD)'→'Gold (GLD)', 'EM 주식/통화'→'EM Stocks/FX', '원자재'→'Commodities'
+  '투자등급 회사채'→'IG Corporate Bonds', '고수익 회사채 (HYG)'→'HY Corporate Bonds (HYG)'
+  '소비재 섹터'→'Consumer Discretionary', '미 국채 (TLT)'→'US Treasuries (TLT)'
+  All reason strings → English
+
+ACCURACY PROBE:
+[accuracy probe] metric=CNN.fg source=CNN direct_value=CNN_BLOCKED(local_env) → SKIP
+[accuracy probe] metric=company-news.prompt source=code Korean_prompt_removed → IMPROVEMENT
+[accuracy probe] metric=macro-indicators.cascade source=code Korean_asset_reason_removed → IMPROVEMENT
+[accuracy probe] metric=latest-updates.badges source=code Korean_badges_removed → IMPROVEMENT
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- company-news AI 요약: 영어로 생성 (기존 한국어 고정)
+- latest-updates 피드: 모든 badge/headline/sub 영어 (거시경제→Macro, 자금흐름→Capital Flow 등)
+- volatility 레짐: Contango/Backwardation/Humped (기존 한국어)
+- macro-indicators: 모든 summary/rateImpactKo/unit 영어
+- macro cascade: 70개 asset/reason 영어 (UI에서 직접 렌더됨)
+
+FILES CHANGED (5 files):
+- src/app/api/company-news/route.ts (prompt English, guard update, cache v3)
+- src/app/api/latest-updates/route.ts (32개 Korean strings, interface, v13 key)
+- src/app/api/macro-indicators/route.ts (summary/cascade/units/rateImpactKo 전체, cache v13)
+- src/app/api/volatility/route.ts (REGIME_KO→REGIME_LABEL English, regimeKo→regimeLabel)
+- src/components/VolatilityCard.tsx (regimeKo→regimeLabel)
+
+COMMIT: addc275

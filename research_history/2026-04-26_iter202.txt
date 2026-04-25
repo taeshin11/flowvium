@@ -1,0 +1,33 @@
+== iter202 — 2026-04-26 ==
+
+PRIMARY OUTCOME: capital-flows stale key
+
+DRIFT CHECK:
+- iter199: commodity-curve UA
+- iter200: Yahoo UA 표준화 + Redis cache
+- iter201: Yahoo IP 차단 stale 폴백
+- iter202: capital-flows stale key ← drift 경계 (3회 연속 Yahoo/cache)
+
+PROBLEM:
+  capital-flows가 Yahoo IP 차단으로 0 asset 반환 시
+  - verify-metrics의 cf.* 42개 아이템이 error가 아닌 "사라짐"
+  - 183 OK → 141 OK (42개 증발, error count는 안 올라감)
+  - flow.analysis cascade도 실패 (country=[])
+
+CHANGES:
+  src/app/api/capital-flows/route.ts:
+    - STALE_KEY_PREFIX = 'flowvium:capital-flows:stale' 추가
+    - Redis read: fresh + stale 동시 읽기 (Promise.allSettled)
+    - hasData = results.length > 0 → true시 stale key 저장
+    - !hasData && staleResult → stale 서빙
+
+NEGATIVE RESULT:
+  Stooq 폴백 코드 (fetchPricesStooq) — 이번 iter에서 dead code 확인
+  (iter203으로 삭제 이관)
+
+VERIFY-METRICS (iter202 완료 후):
+  OK: 141, Degraded: 8, Error: 4
+  - vol.vix, comm.oil, comm.gold, flow.analysis: error
+
+COMMITS: 9675ed9
+PUSHED: ✓ origin/master

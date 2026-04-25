@@ -1,0 +1,58 @@
+== iter149 — 2026-04-25 ==
+
+PRIMARY OUTCOME: update-all cron 60s 이내 완료 보장
+
+DRIFT CHECK:
+- iter146: bug-fix (cron stale key + 병렬화)
+- iter147: i18n (MacroIndicatorsTab)
+- iter148: i18n (EconCalendar/IntelligencePage)
+- iter149: bug-fix (cron timeout) → i18n 2연속 중단 (drift 신호 회피)
+→ 드리프트 없음
+
+ROOT CAUSE:
+update-all/route.ts maxDuration=60 vs 최악 케이스 100s 불일치:
+- Stage 1 parallel: max timeout 55s (insider-trades/ownership-alerts/nport-holdings)
+- Stage 2 parallel: flow-analysis 25s (sequential after stage 1)
+- Stage 3 awaited: daily-brief 20s (sequential after stage 2)
+- 최악 합계: 55+25+20=100s > maxDuration=60 → 함수 강제 종료 위험
+
+에이전트 scan에서 credit-balance 키 불일치 오탐 발견 (agent false positive):
+- REDIS_KEY_LIVE = credit-balance:live:v1 (raw live data)
+- cacheKey = credit-balance:v2:${date} (computed API response)
+- cron busts v2:${date} → 정상 (두 키는 다른 용도)
+
+FIXES:
+update-all/route.ts 타임아웃 재조정:
+- insider-trades: 55000→30000 (EDGAR 30s 초과는 장애, 조기 포기)
+- ownership-alerts: 55000→30000 (EDGAR, 동일 이유)
+- nport-holdings: 55000→30000 (EDGAR, 동일 이유)
+- market-caps: 50000→25000 (Yahoo Finance 다수 티커, 25s 충분)
+- market-heatmap: 45000→20000 (Yahoo Finance ETF, 20s 충분)
+- osint 4종: 25000→20000 (응답 빠름)
+- daily-brief stage 3: await 제거 → fire-and-forget
+  (전용 cron이 5분 후 재생성 — update-all 결과 집계 불필요)
+
+최악 케이스:
+- Before: 55+25+20=100s > maxDuration=60 (장애)
+- After: 30+25+0=55s < maxDuration=60 (안전)
+정상 케이스: ~10+5+0=~15s (실질 변화 없음)
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → OK
+(코드 변경이 cron 로직만 — 데이터 값에 영향 없음)
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- update-all cron의 maxDuration=60 초과 위험 완전 제거
+- EDGAR 장애 시 조기 타임아웃 (55s→30s) → 빠른 실패
+- daily-brief warm 실패해도 cron JSON 응답에 포함 안 됨 (로그만 기록)
+
+FILES CHANGED (1 file):
+- src/app/api/cron/update-all/route.ts (타임아웃 7개 조정, daily-brief fire-and-forget)
+
+COMMIT: b0e33d8
+
+AGENT SCAN FALSE POSITIVE 기록:
+- credit-balance v2/live 키 불일치 → 실제론 정상 (두 키 용도 다름)
+- signals/route.ts ISR → 의도적 설계 (13F 분기 데이터, cron이 revalidatePath 처리)

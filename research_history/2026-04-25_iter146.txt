@@ -1,0 +1,57 @@
+== iter146 — 2026-04-25 ==
+
+PRIMARY OUTCOME: cron 버그 2종 수정 (캐시 무효화 + 타임아웃)
+
+DRIFT CHECK:
+- iter143: bug-fix(cache keys)
+- iter144: i18n(daily-brief)
+- iter145: i18n(Korean 전면 영문화)
+- iter146: i18n 3연속 시 drift → 비 i18n 영역으로 전환 → cron 버그 수정
+→ 드리프트 없음 (영역 전환 완료)
+
+ROOT CAUSE FOUND (2개):
+
+Bug 1: update-signals/route.ts:154
+  redis.del('flowvium:latest-updates:v2') — iter145에서 키를 v2→v3로 올렸으나
+  cron의 캐시 무효화 코드는 여전히 v2를 삭제하고 있었음.
+  결과: EDGAR 13F signals 업데이트 후 latest-updates Redis 캐시 무효화가
+        완전히 no-op 상태. 피드가 과거 데이터를 계속 서빙.
+
+Bug 2: update-all/route.ts — 순차 stage 실행
+  Stage 1 (17 endpoints): max timeout 55s
+  Stage 1b (6 endpoints): max timeout 45s  ← heatmap/OSINT는 stage 1 무의존
+  Stage 2 (flow-analysis): 25s
+  Stage 3 (daily-brief):   20s
+  최악 순차합: 55+45+25+20 = 145s → maxDuration=60 초과 위험
+
+FIXES:
+
+update-signals/route.ts:
+- Line 154: 'flowvium:latest-updates:v2' → 'flowvium:latest-updates:v3'
+
+update-all/route.ts:
+- Stage 1 + Stage 1b 병합 → 단일 Promise.all (22 endpoints 완전 병렬)
+  heatmap/OSINT는 stage 1 데이터 의존성 없음 → 분리 불필요
+  latestR만 제외 (macro/fear-greed/capital-flows Redis 워밍 완료 후 필요)
+- Stage 2: flow-analysis + latest-updates 병렬 실행
+  (양쪽 모두 stage 1 의존, 서로 무의존)
+
+최악 시나리오: 55+25+20 = 100s (145s→100s, 31% 감소)
+정상 시나리오: ~10+~5+~5 = ~20s (변화 없음)
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 tolerance=0.5 → OK
+[accuracy probe] metric=cnn.fg source=CNN direct_value=CNN_BLOCKED(local_env) → SKIP
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- EDGAR 13F signals 업데이트 후 latest-updates 피드 즉시 갱신됨 (캐시 올바르게 버스트)
+- update-all cron 최악 케이스 타임아웃 위험 감소 (145s→100s)
+- 정상 실행 속도 동일 (병렬 배치 유지)
+
+FILES CHANGED (2 files):
+- src/app/api/cron/update-signals/route.ts (redis.del v2→v3)
+- src/app/api/cron/update-all/route.ts (stage 병렬화 재구조)
+
+COMMIT: ff73444

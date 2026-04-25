@@ -1,0 +1,51 @@
+== iter147 — 2026-04-25 ==
+
+PRIMARY OUTCOME: MacroIndicatorsTab 잔여 Korean 제거
+
+DRIFT CHECK:
+- iter144: i18n(daily-brief)
+- iter145: i18n(5파일 Korean 전면 영문화)
+- iter146: bug-fix(cron stale key + 병렬화)
+- iter147: i18n(MacroIndicatorsTab) → i18n 연속 2회지만 중간에 bug-fix 삽입됨
+→ 드리프트 없음 (영역도 다름: iter145=routes/API, iter147=component+AI context)
+
+ROOT CAUSE FOUND (2개):
+
+Bug 1: MacroIndicatorsTab.tsx lines 536, 588
+  iter145에서 macro-indicators/route.ts의 STATIC 데이터를 영문화했으나
+  컴포넌트가 여전히 `ind.nameKo` (Korean 지표명)를 화면에 렌더링.
+  - Line 536: upcoming indicators 섹션 → Korean 이름 표시
+  - Line 588: indicator card 헤더 → Korean 이름이 primary bold, English는 secondary small
+  추가 문제: rateImpactKo가 interface에 선언되어 있었으나 사용 안 됨 (dead field).
+
+Bug 2: daily-brief.ts line 313
+  summariseMacro() 함수에서 AI 프롬프트 컨텍스트 빌드 시 `i.nameKo ?? i.id` 사용.
+  → AI 프롬프트에 Korean 지표명이 포함되어 AI 응답에 Korean 혼입 가능성.
+
+FIXES (2 files, 5 lines):
+
+MacroIndicatorsTab.tsx:
+- Interface: nameKo·rateImpactKo 필드 선언 제거 (미사용)
+- Line 536: {ind.nameKo} → {ind.name}
+- Line 588: {ind.nameKo} → {ind.name} (primary bold을 English로)
+- Line 589: <div className="text-xs...">{ind.name}</div> 제거 (primary가 English 됐으므로 중복)
+
+daily-brief.ts:
+- Line 313: i.nameKo ?? i.id → i.name ?? i.id
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → OK (iter146에서 확인, 이 iter에서 VIX 코드 미수정)
+[accuracy probe] metric=macro-indicators.name source=code nameKo_removed_from_render → IMPROVEMENT
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- MacroIndicatorsTab: CPI/PCE/NFP 등 지표명이 이제 English로 표시 (기존 Korean primary)
+- MacroIndicatorsTab: 카드 레이아웃 단순화 (primary bold 하나, secondary 제거)
+- daily-brief AI context: 지표명이 English로 AI에 전달 → Korean 혼입 방지
+
+FILES CHANGED (2 files):
+- src/components/intelligence/MacroIndicatorsTab.tsx (nameKo 렌더 2곳, interface cleanup)
+- src/lib/daily-brief.ts (AI context nameKo→name)
+
+COMMIT: 48623fa

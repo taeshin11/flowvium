@@ -1,0 +1,59 @@
+== iter150 — 2026-04-26 ==
+
+PRIMARY OUTCOME: capital-flows 라벨 영문화 + 스테일 캐시 키 2종 수정
+
+DRIFT CHECK:
+- iter147: i18n (MacroIndicatorsTab)
+- iter148: i18n (EconCalendar/IntelligencePage)
+- iter149: bug-fix (cron timeout)
+- iter150: i18n+bug-fix (capital-flows + stale keys)
+→ 드리프트 없음 (147-148 i18n, 149 bug-fix로 중단, 150 복합)
+
+ROOT CAUSE FOUND (3종):
+
+1. capital-flows/route.ts ASSETS/FACTORS/SECTORS/COUNTRIES
+   42개 label 필드 전부 Korean → AI 프롬프트 컨텍스트에 한국어 자산명 주입:
+   - flow-analysis/route.ts:190: `a.label ?? a.ticker` → AI top assets 컨텍스트
+   - daily-brief.ts:281: `c.label ?? c.country ?? c.id` → AI country 컨텍스트
+   CapitalFlowsTab.tsx는 ITEM_LABEL_KEY i18n 사용 → UI에는 직접 노출 안 됨
+   하지만 AI 응답 품질 저하 가능성
+
+2. daily-brief.ts:182-183 — capital-flows:v10 읽기
+   capital-flows cache key: v10 (현재, iter150에서 v11로 올림)
+   → 이전 iter150 이후 v11로 교체됨, daily-brief도 동기화 필요
+
+3. daily-brief.ts:186 — macro-indicators:v12:${kst} 읽기
+   macro-indicators cache key: iter145에서 v12→v13으로 올림
+   → daily-brief은 v12 스테일 키를 계속 읽고 있었음 → 매번 Redis miss
+   → 항상 live API fallback으로 강제 (느림, Redis 효율 저하)
+
+FIXES (2 files, 48 lines):
+
+capital-flows/route.ts:
+- ASSETS 15개 label: Korean → English (US Equities, EM Equities, EU Equities...)
+- FACTORS 6개 label: Korean → English (Momentum, Quality, Value...)
+- SECTORS 11개 label: Korean → English (Tech, Financials, Energy...)
+- COUNTRIES 12개 label: Korean → English (US, Korea, Japan, China...)
+- cache key: v10 → v11
+
+daily-brief.ts:
+- capital-flows Redis key: v10 → v11 (lines 182-183)
+- macro-indicators Redis key: v12 → v13 (line 186)
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → OK
+[accuracy probe] metric=capital-flows.label source=code Korean_removed → IMPROVEMENT
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- flow-analysis AI: 자산명이 이제 English로 AI에 전달 (기존 Korean)
+- daily-brief AI: 국가명이 이제 English로 AI에 전달 (기존 Korean)
+- daily-brief: macro-indicators Redis cache hit 가능 (기존 매번 miss → live fallback)
+- capital-flows: v10 Korean 캐시 무효화 → v11 English 응답 제공
+
+FILES CHANGED (2 files):
+- src/app/api/capital-flows/route.ts (42 labels + cache key v11)
+- src/lib/daily-brief.ts (v10→v11, v12→v13)
+
+COMMIT: 0722368

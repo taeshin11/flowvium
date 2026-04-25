@@ -1,0 +1,62 @@
+== iter148 — 2026-04-25 ==
+
+PRIMARY OUTCOME: EconCalendar/IntelligencePage Korean 렌더 3곳 제거
+
+DRIFT CHECK:
+- iter145: i18n (API routes)
+- iter146: bug-fix (cron)
+- iter147: i18n (MacroIndicatorsTab)
+- iter148: i18n (EconCalendarSection + IntelligencePage)
+→ 최근 3: i18n, bug-fix, i18n, i18n — i18n 연속 2회(147+148), bug-fix 삽입으로 3연속 아님
+→ 드리프트 없음
+
+ROOT CAUSE FOUND (3곳):
+
+1. EconCalendarSection.tsx:101-102 (static fallback)
+   Live path(liveToRow): 이미 English (e.event, 영문 note 포맷)
+   Static fallback path: e.titleKo / e.noteKo 사용 → Korean 이벤트명 표시
+   (econ-calendar.ts 데이터: title=English, titleKo=Korean 둘 다 있음)
+
+2. IntelligencePage.tsx:284 (CapitalFlowCard)
+   {flow.sector} (English, primary) 다음에 ({flow.sectorKo}) (Korean, 괄호)
+   → Korean 괄호 레이블 불필요
+
+3. IntelligencePage.tsx:344 (NarrativeCard)
+   {n.title} (English heading) 바로 아래 {n.titleKo} (Korean 부제목)
+   → Korean 부제목 불필요
+
+FIXES (2 files, 4 lines 제거):
+
+EconCalendarSection.tsx:
+- Line 101: e.titleKo → e.title
+- Line 102: e.noteKo ?? null → e.note ?? null
+
+IntelligencePage.tsx:
+- Line 284: <span>({flow.sectorKo})</span> 제거
+- Line 344: <p>{n.titleKo}</p> 제거
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → OK (same iter148 코드 미수정)
+이 iter는 UI 렌더링만 변경, 데이터 값에 영향 없음.
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- 경제 캘린더(static fallback): FOMC/CPI/NFP 등 이벤트명 English 표시
+- Capital Flows 카드: 섹터명 English만 표시 (Korean 괄호 제거)
+- Narrative 카드: English 제목만 표시 (Korean 부제목 제거, 레이아웃 단순화)
+
+FILES CHANGED (2 files):
+- src/components/intelligence/EconCalendarSection.tsx (titleKo→title, noteKo→note)
+- src/components/intelligence/IntelligencePage.tsx (sectorKo span 제거, titleKo p 제거)
+
+COMMIT: be6b5bd
+
+CUMULATIVE i18n 상태 (iter148 기준):
+- API routes: 100% English (iter145 완료)
+- MacroIndicatorsTab: nameKo 제거 (iter147 완료)
+- EconCalendarSection: titleKo/noteKo 제거 (iter148 완료)
+- IntelligencePage: sectorKo/titleKo 제거 (iter148 완료)
+- AdminLogsPage: Korean admin 레이블 (미수정, admin-only)
+- InsiderPage: 조/억/만 KRW 포맷 (의도적, Korean Won 표기)
+- data files: titleKo/sectorKo 필드 데이터에 존재하나 렌더 없음 (future locale support용)
