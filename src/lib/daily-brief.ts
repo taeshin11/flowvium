@@ -629,11 +629,12 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
       capitalBullets.push(`10Y-2Y spread: ${spread.toFixed(0)}bp${yc.inverted ? ' ⚠️ inverted' : ''}`);
     }
     const credit = ctx?.credit as Record<string, unknown> | null | undefined;
-    const latest = credit?.latestMonth as Record<string, unknown> | undefined;
-    if (latest) {
-      const m = latest.margin as number | undefined;
-      const mom = latest.marginMoM as number | undefined;
-      if (m != null) capitalBullets.push(`NYSE margin: $${m.toFixed(0)}B${mom != null ? ` (MoM ${mom > 0 ? '+' : ''}${mom.toFixed(1)}%)` : ''}`);
+    const creditCountries = (credit?.countries as Array<Record<string, unknown>>) ?? [];
+    const usCredit = creditCountries.find(c => c.id === 'us');
+    if (usCredit?.currentBalance != null) {
+      const bal = usCredit.currentBalance as number;
+      const yoy = usCredit.changeYoY as number | undefined;
+      capitalBullets.push(`NYSE margin: $${bal.toFixed(0)}B${yoy != null ? ` (YoY ${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%)` : ''}`);
     }
   } catch { /* ignore */ }
   if (capitalBullets.length === 0) capitalBullets.push(`${tfLabel} capital flows loading`);
