@@ -1,0 +1,69 @@
+== iter189 — 2026-04-26 ==
+
+PRIMARY OUTCOME: COT/block-trades/market-movers 감사 (negative result)
+
+DRIFT CHECK:
+- iter186: short-interest (data)
+- iter187: ShortPage (UI)
+- iter188: news-cascade (fix)
+- iter189: cot-positions + block-trades + market-movers ← 완전 새 영역 ✓
+
+배포 공식 선언 (반복): 190 커밋 미배포 — git push origin master user action 필요.
+이 iter에서도 불가. User 응답 대기.
+
+AUDIT SCOPE:
+  cot-positions/route.ts (174 lines) — 전체 감사
+  block-trades/route.ts (59 lines) — 전체 감사
+  market-movers/route.ts (118 lines) — 전체 감사
+
+AUDIT RESULTS: 모두 CLEAN
+
+  cot-positions:
+    ✓ CFTC FinFutWk.txt 파싱 로직 ✓
+    ✓ field indices f[0]/f[2]/f[7]/f[8]/f[9]/f[38]/f[39] 사용
+    ✓ cache: 'no-store' ✓, 4h Redis TTL ✓
+    ✓ sentiment threshold ±15% ✓
+    ✓ NaN-safe 파싱 ✓
+
+  block-trades:
+    ✓ POLYGON_KEY 없으면 {configured: false} 반환 ✓
+    ✓ 구조적으로 완전히 올바름
+    - API 키 없으므로 functional 테스트 불가
+
+  market-movers:
+    ✓ Yahoo Finance v7 batch (/v7/finance/quote?symbols=...) ✓
+    ✓ cache: 'no-store' ✓, 15min TTL ✓
+    ✓ losers 계산: 정렬 후 slice(-5).reverse() → 최대 음수 first ✓
+    ✓ advancers/decliners/unchanged 카운트 ✓
+
+ACCURACY PROBE:
+[accuracy probe] metric=cot-positions.sp500 source=CFTC FinFutWk.txt live
+  direct_value: entries=7 (all 7 targets found), reportDate=2026-04-21
+  sp500 net=-718,629 netPct=-36.6% → bearish (speculators net short S&P500) ✓
+  ← LIVE DATA CONFIRMED
+
+[accuracy probe] metric=market-movers source=flowvium.vercel.app
+  direct_value: HTTP 404 — route not deployed (in 190 undeployed commits)
+  ← NOT DEPLOYED (expected, deployment pending user action)
+
+NEGATIVE RESULT SUMMARY:
+  세 라우트 모두 코드 레벨에서 정상. market-movers만 미배포 문제.
+  버그 없음 → 이 iter 산출물 없음.
+
+DIRECTION RATIONALE (산출물 없는 iter):
+  190 커밋 미배포 = 가장 큰 블로커.
+  market-movers 404, shortFloatPct 컬럼 없음, news-cascade 수정 미적용 등
+  iter186-188 작업이 모두 user에게 비표시.
+  코드 레벨 감사는 포화 상태 — 새 버그가 없음.
+  다음 iter는 새 기능 추가보다 "다른 접근"이 필요:
+    1. 배포 (user 확인 시 즉시 실행 가능)
+    2. 기존 기능 데이터 품질 개선 (FRED 라이브 데이터 확인)
+    3. AI 프롬프트 품질 직접 측정 (output 품질 수치화)
+
+FILES CHANGED (1 file):
+- research_history/2026-04-26_iter189.txt (this file)
+
+NEXT: iter190 → 새 방향 필요.
+  배포 user action 대기 중.
+  배포 안 된다면: investment-strategy AI output 품질 직접 측정 or
+  새 기능 (earnings calendar 통합 등).
