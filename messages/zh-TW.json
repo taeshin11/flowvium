@@ -1102,5 +1102,27 @@
     "updatedAt": "更新時間: {date} · 來源: Finnhub · {cache}",
     "cacheHit": "快取 (2h TTL)",
     "cacheNo": "即時"
+  },
+  "heatmap": {
+    "pageTitle": "市場熱力圖",
+    "pageDesc": "方塊大小 = 市值 · 顏色 = 漲跌幅 · {count}支股票",
+    "loading": "正在載入市場資料...",
+    "error": "無法載入資料",
+    "statsUp": "▲ {count}支上漲",
+    "statsDown": "▼ {count}支下跌",
+    "refresh": "重新整理",
+    "viewSectors": "依板塊",
+    "viewOverview": "總覽",
+    "colorSpectrum": "顏色範圍:",
+    "totalMarket": "全部市場 ({count}支)",
+    "sourceBase": "來源: {source}",
+    "sourceDate": "{date} 交易日",
+    "sourceCache": "15分鐘快取",
+    "cKR": "韓國",
+    "cJP": "日本",
+    "cCN": "中國",
+    "cEU": "歐洲",
+    "cIN": "印度",
+    "cTW": "台灣"
   }
 }

@@ -1102,5 +1102,27 @@
     "updatedAt": "업데이트: {date} · 출처: Finnhub · {cache}",
     "cacheHit": "캐시됨 (2h TTL)",
     "cacheNo": "실시간"
+  },
+  "heatmap": {
+    "pageTitle": "시장 히트맵",
+    "pageDesc": "박스 크기 = 시가총액 · 색상 = 등락률 · {count}개 종목",
+    "loading": "시장 데이터 수신 중...",
+    "error": "데이터를 불러올 수 없습니다",
+    "statsUp": "▲ {count}종목",
+    "statsDown": "▼ {count}종목",
+    "refresh": "갱신",
+    "viewSectors": "섹터별",
+    "viewOverview": "전체보기",
+    "colorSpectrum": "색상 스펙트럼:",
+    "totalMarket": "전체 시장 ({count}종목)",
+    "sourceBase": "출처: {source}",
+    "sourceDate": "{date} 세션",
+    "sourceCache": "15분 캐시",
+    "cKR": "한국",
+    "cJP": "일본",
+    "cCN": "중국",
+    "cEU": "유럽",
+    "cIN": "인도",
+    "cTW": "대만"
   }
 }

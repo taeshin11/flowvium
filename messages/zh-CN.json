@@ -1102,5 +1102,27 @@
     "updatedAt": "更新时间: {date} · 来源: Finnhub · {cache}",
     "cacheHit": "缓存 (2h TTL)",
     "cacheNo": "实时"
+  },
+  "heatmap": {
+    "pageTitle": "市场热力图",
+    "pageDesc": "方块大小 = 市值 · 颜色 = 涨跌幅 · {count}只股票",
+    "loading": "正在加载市场数据...",
+    "error": "无法加载数据",
+    "statsUp": "▲ {count}只上涨",
+    "statsDown": "▼ {count}只下跌",
+    "refresh": "刷新",
+    "viewSectors": "按板块",
+    "viewOverview": "全览",
+    "colorSpectrum": "颜色范围:",
+    "totalMarket": "全部市场 ({count}只)",
+    "sourceBase": "来源: {source}",
+    "sourceDate": "{date} 交易日",
+    "sourceCache": "15分钟缓存",
+    "cKR": "韩国",
+    "cJP": "日本",
+    "cCN": "中国",
+    "cEU": "欧洲",
+    "cIN": "印度",
+    "cTW": "台湾"
   }
 }

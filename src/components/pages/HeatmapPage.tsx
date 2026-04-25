@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { Treemap, ResponsiveContainer } from 'recharts';
 import { Link } from '@/i18n/routing';
@@ -139,22 +140,23 @@ function IndexBar({ label, changePct, close }: { label: string; changePct: numbe
   );
 }
 
-const COUNTRIES = [
-  { id: 'US', flag: '🇺🇸', label: 'S&P 500' },
-  { id: 'KR', flag: '🇰🇷', label: '한국' },
-  { id: 'JP', flag: '🇯🇵', label: '일본' },
-  { id: 'CN', flag: '🇨🇳', label: '중국' },
-  { id: 'EU', flag: '🇪🇺', label: '유럽' },
-  { id: 'IN', flag: '🇮🇳', label: '인도' },
-  { id: 'TW', flag: '🇹🇼', label: '대만' },
-];
+const COUNTRY_FLAGS: Record<string, string> = {
+  US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵', CN: '🇨🇳', EU: '🇪🇺', IN: '🇮🇳', TW: '🇹🇼',
+};
+const COUNTRY_IDS = ['US', 'KR', 'JP', 'CN', 'EU', 'IN', 'TW'] as const;
 
 export default function HeatmapPage() {
+  const t = useTranslations('heatmap');
   const [data, setData] = useState<HeatmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [country, setCountry] = useState<string>('US');
   const [viewMode, setViewMode] = useState<'sectors' | 'overview'>('overview');
+
+  const COUNTRY_LABELS: Record<string, string> = {
+    US: 'S&P 500', KR: t('cKR'), JP: t('cJP'), CN: t('cCN'),
+    EU: t('cEU'), IN: t('cIN'), TW: t('cTW'),
+  };
 
   const load = async (force = false, ctry = country, signal?: AbortSignal) => {
     if (force) setRefreshing(true);
@@ -200,7 +202,7 @@ export default function HeatmapPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px] gap-3 text-cf-text-secondary">
         <Loader2 className="w-5 h-5 animate-spin" />
-        <span>시장 데이터 수신 중...</span>
+        <span>{t('loading')}</span>
       </div>
     );
   }
@@ -208,7 +210,7 @@ export default function HeatmapPage() {
   if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-cf-text-secondary">
-        데이터를 불러올 수 없습니다
+        {t('error')}
       </div>
     );
   }
@@ -218,21 +220,21 @@ export default function HeatmapPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-cf-text-primary">시장 히트맵</h1>
+          <h1 className="text-2xl font-bold text-cf-text-primary">{t('pageTitle')}</h1>
           <p className="text-sm text-cf-text-secondary mt-1">
-            박스 크기 = 시가총액 · 색상 = 등락률 · {data?.totalStocks ?? 0}개 종목
+            {t('pageDesc', { count: data?.totalStocks ?? 0 })}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-green-500">▲ {stats.up}종목</span>
-          <span className="text-xs text-red-500">▼ {stats.down}종목</span>
+          <span className="text-xs text-green-500">{t('statsUp', { count: stats.up })}</span>
+          <span className="text-xs text-red-500">{t('statsDown', { count: stats.down })}</span>
           <button
             onClick={() => load(true)}
             disabled={refreshing}
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            갱신
+            {t('refresh')}
           </button>
         </div>
       </div>
@@ -240,15 +242,15 @@ export default function HeatmapPage() {
       {/* Country tabs + view mode toggle */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="flex gap-1 overflow-x-auto pb-1 flex-1">
-          {COUNTRIES.map(c => (
+          {COUNTRY_IDS.map(id => (
             <button
-              key={c.id}
-              onClick={() => setCountry(c.id)}
+              key={id}
+              onClick={() => setCountry(id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0
-                ${country === c.id ? 'bg-cf-accent text-white shadow-sm' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
+                ${country === id ? 'bg-cf-accent text-white shadow-sm' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
             >
-              <span className="text-base">{c.flag}</span>
-              {c.label}
+              <span className="text-base">{COUNTRY_FLAGS[id]}</span>
+              {COUNTRY_LABELS[id]}
             </button>
           ))}
         </div>
@@ -258,14 +260,14 @@ export default function HeatmapPage() {
             className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
               ${viewMode === 'sectors' ? 'bg-white/15 text-white' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
           >
-            섹터별
+            {t('viewSectors')}
           </button>
           <button
             onClick={() => setViewMode('overview')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
               ${viewMode === 'overview' ? 'bg-white/15 text-white' : 'bg-white/5 text-cf-text-secondary hover:bg-white/10'}`}
           >
-            전체보기
+            {t('viewOverview')}
           </button>
         </div>
       </div>
@@ -279,7 +281,7 @@ export default function HeatmapPage() {
 
       {/* Legend */}
       <div className="flex items-center gap-2 mb-4 text-[10px] text-cf-text-secondary flex-wrap">
-        <span>색상 스펙트럼:</span>
+        <span>{t('colorSpectrum')}</span>
         {[-3, -1.5, -0.5, 0, 0.5, 1.5, 3].map(v => (
           <span key={v} className="inline-flex items-center gap-1">
             <span className="w-4 h-3 rounded-sm" style={{ backgroundColor: pctColor(v) }} />
@@ -292,7 +294,7 @@ export default function HeatmapPage() {
       {viewMode === 'overview' ? (
         <div className="cf-card p-3" style={{ backgroundColor: '#0f172a', borderColor: '#1e293b' }}>
           <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <span className="text-sm font-bold text-white">전체 시장 ({data.totalStocks}종목)</span>
+            <span className="text-sm font-bold text-white">{t('totalMarket', { count: data.totalStocks })}</span>
             <div className="flex gap-2 flex-wrap">
               {data.sectors.map(s => (
                 <span key={s.sector} className="inline-flex items-center gap-1 text-[10px] text-slate-400">
@@ -331,9 +333,9 @@ export default function HeatmapPage() {
       )}
 
       <p className="text-[10px] text-cf-text-secondary/40 mt-4">
-        출처: {data.source}
-        {data.dataDate ? ` · ${data.dataDate} 세션` : ''}
-        {' · 15분 캐시'}
+        {t('sourceBase', { source: data.source })}
+        {data.dataDate ? ` · ${t('sourceDate', { date: data.dataDate })}` : ''}
+        {` · ${t('sourceCache')}`}
       </p>
     </div>
   );

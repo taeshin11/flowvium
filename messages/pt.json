@@ -1102,5 +1102,27 @@
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
     "cacheNo": "Live"
+  },
+  "heatmap": {
+    "pageTitle": "Market Heatmap",
+    "pageDesc": "Box size = Market cap · Color = % change · {count} stocks",
+    "loading": "Loading market data...",
+    "error": "Could not load data",
+    "statsUp": "▲ {count} up",
+    "statsDown": "▼ {count} down",
+    "refresh": "Refresh",
+    "viewSectors": "By Sector",
+    "viewOverview": "Overview",
+    "colorSpectrum": "Color scale:",
+    "totalMarket": "All Market ({count} stocks)",
+    "sourceBase": "Source: {source}",
+    "sourceDate": "{date} session",
+    "sourceCache": "15min cache",
+    "cKR": "Korea",
+    "cJP": "Japan",
+    "cCN": "China",
+    "cEU": "Europe",
+    "cIN": "India",
+    "cTW": "Taiwan"
   }
 }

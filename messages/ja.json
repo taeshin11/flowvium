@@ -1102,5 +1102,27 @@
     "updatedAt": "更新: {date} · ソース: Finnhub · {cache}",
     "cacheHit": "キャッシュ (2h TTL)",
     "cacheNo": "リアルタイム"
+  },
+  "heatmap": {
+    "pageTitle": "市場ヒートマップ",
+    "pageDesc": "ボックスサイズ = 時価総額 · 色 = 騰落率 · {count}銘柄",
+    "loading": "市場データを取得中...",
+    "error": "データを読み込めません",
+    "statsUp": "▲ {count}銘柄",
+    "statsDown": "▼ {count}銘柄",
+    "refresh": "更新",
+    "viewSectors": "セクター別",
+    "viewOverview": "全体表示",
+    "colorSpectrum": "カラースケール:",
+    "totalMarket": "全市場 ({count}銘柄)",
+    "sourceBase": "出典: {source}",
+    "sourceDate": "{date}セッション",
+    "sourceCache": "15分キャッシュ",
+    "cKR": "韓国",
+    "cJP": "日本",
+    "cCN": "中国",
+    "cEU": "欧州",
+    "cIN": "インド",
+    "cTW": "台湾"
   }
 }
