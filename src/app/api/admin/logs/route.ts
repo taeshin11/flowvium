@@ -13,6 +13,8 @@
 import { NextResponse } from 'next/server';
 import { getRecentLogs, clearLogs, type LogLevel } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 function checkAuth(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return true; // open access when no secret configured (dev)

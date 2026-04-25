@@ -10,6 +10,8 @@ import {
   type Timeframe,
 } from '@/lib/daily-brief';
 
+export const dynamic = 'force-dynamic';
+
 export const maxDuration = 60;
 
 // Only pre-generate 4w (most-viewed). 1w and 13w are lazy-generated on first request.

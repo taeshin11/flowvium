@@ -12,6 +12,8 @@ import { Redis } from '@upstash/redis';
 import { fetchRecentForm4, type InsiderTransaction } from '@/lib/edgar-insider';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const CACHE_KEY = 'flowvium:insider-trades:v1';
 const CACHE_TTL = 30 * 60;
 

@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { fetchLiveFinancials } from '@/lib/sec-financials';
 
+export const dynamic = 'force-dynamic';
+
 const TTL = 24 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 

@@ -16,6 +16,8 @@ import type { InstitutionalSignal } from '@/data/institutional-signals';
 import type { OwnershipRecord } from '@/data/news-gap';
 import { newsGapData } from '@/data/news-gap';
 
+export const dynamic = 'force-dynamic';
+
 export const maxDuration = 60;
 
 const SUPPORTED_LOCALES = ['en', 'ko', 'ja', 'zh', 'es', 'pt', 'de', 'fr'];

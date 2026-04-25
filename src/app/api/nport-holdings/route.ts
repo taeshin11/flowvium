@@ -19,6 +19,8 @@ import { Redis } from '@upstash/redis';
 import { fetchRecentNPORT, aggregateByTicker, type NPortFundSnapshot, type NPortTickerAggregate } from '@/lib/edgar-nport';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const CACHE_KEY = 'flowvium:nport-holdings:v1';
 const CACHE_TTL = 6 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=18000, stale-while-revalidate=600' };

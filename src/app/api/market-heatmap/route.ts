@@ -19,6 +19,8 @@ import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
 import { createMemoryCache } from '@/lib/memory-cache';
 
+export const dynamic = 'force-dynamic';
+
 const CACHE_TTL = 15 * 60;
 const MEMORY_CACHE = createMemoryCache<HeatmapData>('market-heatmap', 10 * 60_000);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=60' };

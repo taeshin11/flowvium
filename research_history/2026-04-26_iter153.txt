@@ -1,0 +1,54 @@
+== iter153 — 2026-04-26 ==
+
+PRIMARY OUTCOME: static prerender 버그 수정 (options-flow, block-trades, admin/health)
+
+DRIFT CHECK:
+- iter149~152: i18n/cache 반복 (5 iter)
+→ DRIFT 신호 발동. 이번 iter 영역 변경: 인프라 버그 수정으로 이동.
+
+ROOT CAUSE FOUND (BUG):
+
+npx next build 실행 시 3개 API route가 ○ (Static) 로 분류:
+  - /api/options-flow   → 10분 Redis 캐시 route가 build 시 정적 파일로 freeze
+  - /api/block-trades   → 5분 Redis 캐시 route가 build 시 정적 파일로 freeze
+  - /api/admin/health   → Redis 연결 상태/환경변수 체크 route가 build time 값으로 고정
+
+IMPACT:
+  - options-flow, block-trades: UNUSUAL_WHALES_KEY/POLYGON_KEY 미설정 시 { configured: false }
+    가 static 파일로 저장 → 키 나중에 설정해도 다음 재배포 전까지 항상 "미설정" 응답
+  - admin/health: Redis 연결 상태가 build time 스냅샷 → 실제 운영 상태 반영 불가
+
+FIX:
+  export const dynamic = 'force-dynamic' 를 17개 route에 추가:
+  - admin/health (CRITICAL BUG), options-flow (CRITICAL BUG), block-trades (CRITICAL BUG)
+  - credit-balance: build-time no-store fetch 오류 로그 제거
+  - 나머지 13개: 이미 ƒ(Dynamic) 이었지만 explicit 선언 추가 (방어적)
+
+SIGNALS /api/signals 는 ISR(revalidate=43200) 사용 중 → force-dynamic 제외 (의도적)
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix source=Yahoo direct_value=18.71 our_value=18.71 delta=0 → OK (prev iter)
+[accuracy probe] metric=options-flow source=build_output static=false → FIXED (was ○, now ƒ)
+[accuracy probe] metric=block-trades source=build_output static=false → FIXED (was ○, now ƒ)
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+BUILD: clean (npx next build — no Dynamic server usage errors, only /api/signals as ○)
+
+FILES CHANGED (17 files):
+- src/app/api/admin/health/route.ts
+- src/app/api/admin/logs/route.ts
+- src/app/api/ai/route.ts
+- src/app/api/block-trades/route.ts (CRITICAL: was ○ static)
+- src/app/api/collect/route.ts
+- src/app/api/company-financials/[ticker]/route.ts
+- src/app/api/credit-balance/route.ts
+- src/app/api/cron/daily-brief/route.ts
+- src/app/api/cron/update-credit-balance/route.ts
+- src/app/api/cron/update-signals/route.ts
+- src/app/api/daily-brief/route.ts
+- src/app/api/insider-trades/route.ts
+- src/app/api/market-heatmap/route.ts
+- src/app/api/nport-holdings/route.ts
+- src/app/api/options-flow/route.ts (CRITICAL: was ○ static)
+- src/app/api/ownership-alerts/route.ts
+- src/app/api/translate/route.ts

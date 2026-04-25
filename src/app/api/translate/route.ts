@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 
+export const dynamic = 'force-dynamic';
+
 export const maxDuration = 60;
 
 // ── Redis cache (30-day TTL for translations) ─────────────────────────────────

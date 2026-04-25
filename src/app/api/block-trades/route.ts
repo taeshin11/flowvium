@@ -12,6 +12,8 @@ import { Redis } from '@upstash/redis';
 import { fetchBlockTradesForTickers, polygonKey, type BlockTrade } from '@/lib/polygon';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const CACHE_KEY = 'flowvium:block-trades:v1';
 const CACHE_TTL = 5 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=240, stale-while-revalidate=60' };

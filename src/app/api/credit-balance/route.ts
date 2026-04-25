@@ -19,6 +19,8 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { fetchAllCreditData, type LiveCreditData } from '@/lib/credit-fetchers';
 
+export const dynamic = 'force-dynamic';
+
 const REDIS_KEY_LIVE = 'flowvium:credit-balance:live:v1';
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=82800, stale-while-revalidate=3600' };
 

@@ -17,6 +17,8 @@ import { Redis } from '@upstash/redis';
 import { fetchOptionsFlow, unusualWhalesKey, type OptionsFlowAlert } from '@/lib/unusual-whales';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const CACHE_KEY = 'flowvium:options-flow:v1';
 const CACHE_TTL = 10 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=480, stale-while-revalidate=60' };

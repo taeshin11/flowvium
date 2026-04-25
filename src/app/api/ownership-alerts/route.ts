@@ -14,6 +14,8 @@ import { Redis } from '@upstash/redis';
 import { fetchRecentOwnershipAlerts, type OwnershipAlert } from '@/lib/edgar-insider';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const CACHE_KEY = 'flowvium:ownership-alerts:v1';
 const CACHE_TTL = 2 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=6000, stale-while-revalidate=300' };

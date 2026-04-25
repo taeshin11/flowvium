@@ -20,6 +20,8 @@ import { Redis } from '@upstash/redis';
 import { revalidatePath } from 'next/cache';
 import { fetchAllCreditData } from '@/lib/credit-fetchers';
 
+export const dynamic = 'force-dynamic';
+
 export const maxDuration = 60;
 
 const REDIS_KEY_LIVE = 'flowvium:credit-balance:live:v1';

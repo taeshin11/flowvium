@@ -6,6 +6,8 @@ import {
   type Timeframe,
 } from '@/lib/daily-brief';
 
+export const dynamic = 'force-dynamic';
+
 // Increase Vercel function timeout — required on Pro plan (60s), no-op on Hobby (10s)
 export const maxDuration = 60;
 
