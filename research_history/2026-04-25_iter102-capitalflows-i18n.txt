@@ -1,0 +1,93 @@
+ITER102 — CapitalFlowsTab 한국어 하드코딩 완전 제거 (16개 언어 i18n)
+Date: 2026-04-25
+Commit: 9fee2d3
+Primary outcome: "CapitalFlowsTab i18n 완료"
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════════════
+iter98=flow-analysis, iter99=i18n(infrastructure), iter100=korea-flow,
+iter101=company-data+redis-keys, iter102=capitalflows-i18n
+→ iter102는 3회 이상 deferred된 항목 처리 (drift 신호 해소).
+   다른 영역들과 겹치지 않음.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"CapitalFlowsTab i18n 완료"
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM — CapitalFlowsTab 30+ 하드코딩 한국어 문자열
+═══════════════════════════════════════════════════════════════════════
+CLAUDE.md 규칙: "모든 UI 문자열은 messages/*.json에 넣고 하드코딩 금지"
+CapitalFlowsTab.tsx(920줄)에 30개 이상의 한국어 문자열이 하드코딩.
+3회 이상 "나중에"로 deferred → drift 신호 → 이번 iter에서 강제 처리.
+
+발견된 추가 버그:
+1. TF_LABELS 미정의 참조 (TF_I18N_KEY로 이미 교체됐는데 미사용 참조 남음)
+2. GROUP_LABELS 미정의 참조 (GROUP_KEY로 이미 교체됐는데 미사용 참조 남음)
+   → 두 변수가 사라진 상태에서 JSX에서 사용 시 런타임 오류 발생 가능
+3. CASCADE_RULES 키 버그 (이전 iter에서 이미 수정)
+4. 한국어 locale 하드코딩 toLocaleTimeString('ko-KR') → undefined로 변경
+
+═══════════════════════════════════════════════════════════════════════
+FIX
+═══════════════════════════════════════════════════════════════════════
+1. scripts/update-cf-titles-i18n.mjs 신설
+   - 16개 언어 파일에 {tf} 파라미터 포함 타이틀 키 업데이트
+   - cfRotationTitle, cfCountryTitle, cfFactorTitle, cfSectorTitle,
+     cfGoldDollarTitle, cfAssetReturnTitle, cfTopInflow, cfTopOutflow,
+     cfGoldTfLabel, cfDollarTfLabel — 10개 키 × 16 파일 = 160 updates
+
+2. scripts/add-cf-i18n.mjs (이전 iter에서 이미 생성)
+   - 기본 cf* 키 60개 × 16 파일
+
+3. CapitalFlowsTab.tsx — 전체 교체 목록:
+   - 자금 로테이션 ({TF_LABELS[tf]} 기준) → t('cfRotationTitle', {tf:…})
+   - 이번 주 시작 / {n}주 전 시작 → t('cfThisWeek') / t('cfWeeksAgo', {n:…})
+   - 국가별 시장 자금 흐름 → t('cfCountryTitle', {tf:…})
+   - 스마트베타 팩터 성과 → t('cfFactorTitle', {tf:…})
+   - iShares/MSCI 팩터 ETF 기반 → t('cfFactorNote')
+   - 미국 섹터 로테이션 → t('cfSectorTitle', {tf:…})
+   - 금 vs 달러 → t('cfGoldDollarTitle', {tf:…})
+   - 금 ({TF_LABELS[tf]}) / 달러 ({TF_LABELS[tf]}) → t('cfGoldTfLabel') / t('cfDollarTfLabel')
+   - 원자재 선물 커브 — 컨탱고 / 백워데이션 → t('cfCurveTitle')
+   - 컨탱고/백워데이션/플랫 labels → t('cfContango') / t('cfBackwardation') / t('cfFlat')
+   - 공급 타이트/여유 signals → t('cfOilBackwardation') / t('cfOilContango') / t('cfGoldContango') / t('cfGoldBackwardation')
+   - 자산군별 수익률 → t('cfAssetReturnTitle', {tf:…})
+   - GROUP_LABELS → t(GROUP_KEY[g.group])
+   - 자금 유입 TOP 5 / 자금 이탈 TOP 5 → t('cfTopInflow') / t('cfTopOutflow')
+   - 전체 자산 수익률 → t('cfAllAssets')
+   - 자산 / 1주 / 4주 / 13주 thead → t('cfColAsset') / t('cfTf1w') / t('cfTf4w') / t('cfTf13w')
+   - Yahoo Finance footnote → t('cfFootnote') + t('cfUpdated')
+   - 'ko-KR' locale 하드코딩 → undefined (시스템 locale 사용)
+
+4. TypeScript bug fix:
+   - r.weeksAgo가 number|undefined인데 t() 파라미터로 넘길 때 undefined 허용 안 됨
+   → t('cfWeeksAgo', { n: r.weeksAgo ?? 0 })로 수정
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 → 변동 없음 (iter101과 동일 — 장 마감 후 동일 close)
+
+[accuracy probe] metric=fg.US source=CNN
+  direct_value=N/A (HTTP 418 bot-block 5연속) → proxy only
+  NOTE: CNN 418 이번 iter에서도 재확인. 공식 포기 수준 검토 필요.
+
+═══════════════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════════════
+TypeScript: 0 errors (전체 codebase)
+i18n 키 추가: 16개 언어 × 70개 키 (기존 60개 + 이번 10개)
+하드코딩 한국어: CapitalFlowsTab.tsx 0개 (완전 제거)
+Drift 신호 해소: CapitalFlowsTab i18n 3+ deferred → 완료
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. 기업 데이터 batch9 추가 (목표: 600개+ — GRAB, NTES, BILI, LI, HMC, etc.)
+2. CNN F&G 공식 포기 + 대체 소스 (alternative F&G provider) 탐색
+3. 성능 프로파일링 — 느린 엔드포인트 실측 (3회 이상 미뤄진 항목)
+4. 홈페이지 / 대시보드 핵심 지표 렌더링 속도 개선
