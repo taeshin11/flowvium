@@ -269,7 +269,13 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
       const hy = inds.find(i => i.id === 'hy_spread');
       const parts = [`YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${spread != null ? spread.toFixed(0) : '?'}bp)`];
       if (cpi?.actual != null) parts.push(`CPI=${cpi.actual}%`);
-      if (gdp?.actual != null) parts.push(`GDP=${gdp.actual}%`);
+      if (gdp?.actual != null) {
+        parts.push(`GDP=${gdp.actual}%`);
+      } else if (gdp?.previous != null) {
+        // Q1 2026 pending — show Q4 previous + upcoming release date for AI context
+        const rel = gdp.releaseDate as string | undefined;
+        parts.push(`GDP(prev Q4)=${gdp.previous}%${rel ? `→release ${rel}` : '→pending'}`);
+      }
       if (ig?.actual != null) parts.push(`IG_OAS=${ig.actual}%`);
       if (hy?.actual != null) parts.push(`HY_OAS=${hy.actual}%`);
       macro = parts.join(' ');
