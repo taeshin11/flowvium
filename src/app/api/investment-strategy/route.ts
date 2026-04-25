@@ -236,7 +236,7 @@ Key rules:
   "riskEvents": [
     {"date": "2026-04-30", "event": "FOMC Rate Decision + PCE", "impact": "high", "watchFor": "25bp cut ~52% probability, Powell guidance on future path"}
   ],
-  "macroAnalysis": "Specific analysis based on yield curve spread, CPI, FOMC probabilities",
+  "macroAnalysis": "Specific analysis based on yield curve spread, CPI, credit spreads (IG/HY OAS), FOMC probabilities",
   "technicalAnalysis": "Analysis based on major index MA, RSI, VIX levels",
   "fundamentalAnalysis": "Analysis based on sector P/E, EPS growth rate, FCF yield",
   "riskLevel": "low|medium|high"
@@ -265,9 +265,13 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
       const cpi = inds.find(i => i.id === 'cpi');
       const gdp = inds.find(i => i.id === 'gdp');
       const spread = yc?.spread10y2y as number | undefined;
+      const ig = inds.find(i => i.id === 'ig_spread');
+      const hy = inds.find(i => i.id === 'hy_spread');
       const parts = [`YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${spread != null ? spread.toFixed(0) : '?'}bp)`];
       if (cpi?.actual != null) parts.push(`CPI=${cpi.actual}%`);
       if (gdp?.actual != null) parts.push(`GDP=${gdp.actual}%`);
+      if (ig?.actual != null) parts.push(`IG_OAS=${ig.actual}%`);
+      if (hy?.actual != null) parts.push(`HY_OAS=${hy.actual}%`);
       macro = parts.join(' ');
     }
   } catch { /* ignore */ }
