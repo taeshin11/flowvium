@@ -38,6 +38,14 @@ function cacheKey(): string {
   return `flowvium:macro-indicators:v13:${kstDate()}`;
 }
 
+// Next business day after a given ISO date string (or today if none given)
+function nextBizDay(afterIso?: string): string {
+  const d = afterIso ? new Date(afterIso) : new Date();
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface CascadeStep {
   asset: string;
@@ -528,14 +536,14 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   ig_spread: {
     id: 'ig_spread', name: 'IG Credit OAS (ICE BofA)', nameKo: 'IG 신용 스프레드 (OAS)',
     category: 'credit', actual: 0.79, forecast: 0.75, previous: 0.89, unit: '%',
-    releaseDate: '2026-04-22', nextRelease: '2026-04-23', surprise: 'miss',
+    releaseDate: '2026-04-25', nextRelease: '2026-04-28', surprise: 'miss',
     rateImpact: 'neutral', rateImpactKo: 'neutral (credit risk slightly elevated)',
     summary: 'IG OAS 0.79% — slightly above historical lows. Above 1.5% = credit stress alert.',
   },
   hy_spread: {
     id: 'hy_spread', name: 'HY Credit OAS (ICE BofA)', nameKo: 'HY 신용 스프레드 (OAS)',
     category: 'credit', actual: 2.84, forecast: 2.80, previous: 3.23, unit: '%',
-    releaseDate: '2026-04-22', nextRelease: '2026-04-23', surprise: 'miss',
+    releaseDate: '2026-04-25', nextRelease: '2026-04-28', surprise: 'miss',
     rateImpact: 'neutral', rateImpactKo: 'neutral (HY risk slightly elevated)',
     summary: 'HY OAS 2.84% — above 5% = recession alert. Currently neutral.',
   },
@@ -553,8 +561,8 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
   iclaims:  { forecast: 224,   nextRelease: '2026-05-01' },
   umcsent:  { forecast: 54.0,  nextRelease: '2026-05-09' },
-  ig_spread: { forecast: 0.75, nextRelease: '2026-04-25' },
-  hy_spread: { forecast: 2.80, nextRelease: '2026-04-25' },
+  ig_spread: { forecast: 0.75, nextRelease: '' },  // daily series — computed dynamically via nextBizDay()
+  hy_spread: { forecast: 2.80, nextRelease: '' },  // daily series — computed dynamically via nextBizDay()
 };
 
 // ── Main GET ──────────────────────────────────────────────────────────────────
@@ -889,7 +897,7 @@ export async function GET() {
       actual, previous: base.previous,
       forecast: fc,
       releaseDate: igData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.ig_spread.nextRelease,
+      nextRelease: nextBizDay(igData?.date ?? base.releaseDate),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: igData != null
         ? `IG OAS ${actual.toFixed(2)}% (${igData.date}). ${actual > 1.5 ? 'Above 1.5% — credit stress alert.' : actual > 1.0 ? 'Entering caution zone.' : 'Normal range.'}`
@@ -912,7 +920,7 @@ export async function GET() {
       actual, previous: base.previous,
       forecast: fc,
       releaseDate: hyData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.hy_spread.nextRelease,
+      nextRelease: nextBizDay(hyData?.date ?? base.releaseDate),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: hyData != null
         ? `HY OAS ${actual.toFixed(2)}% (${hyData.date}). ${actual > 5.0 ? 'Above 5% — recession signal.' : actual > 4.0 ? 'Entering stress zone.' : 'Normal range.'}`
