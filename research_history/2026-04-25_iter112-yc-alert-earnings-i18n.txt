@@ -1,0 +1,90 @@
+ITER112 — 수익률곡선 경보 신설 + EarningsPage 전체 i18n
+Date: 2026-04-25
+Primary outcome: "수익률곡선경보+수익실적i18n" (19자)
+
+═══════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════
+Recent commits: iter111(UX버그+신용경보), iter110(성능최적화),
+iter109(MacroIndicators i18n), iter108(locale+fetch), iter107(i18n)
+
+→ iter109는 i18n, iter110은 perf, iter111은 alert → 다변화 유지 ✅
+→ iter112: alert 확장 + i18n (1건) → 2+ 연속 i18n 아님 ✅
+
+No drift this iter ✅
+
+═══════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════
+"수익률곡선경보+수익실적i18n" (19자)
+
+산출물 체크 (규칙 [3]):
+(a) 프로젝트 핵심 수치를 움직임:
+  - Discord 경보 타입: 3 → 5종 (yc-inverted, yc-normalized 추가)
+(c) 삭제/단순화:
+  - EarningsPage: PRESETS.label 하드코딩 제거, 34 한국어 리터럴 → t() 호출
+
+═══════════════════════════════════════════════════════════════
+CHANGES APPLIED
+═══════════════════════════════════════════════════════════════
+
+FEATURE 1 — send-alerts/route.ts: 수익률 곡선 역전/정상화 경보
+  새 함수: checkYieldCurveAlert()
+  데이터: Redis flowvium:yield-curve:v2 (spread2s10sCurrent, inverted)
+  조건 1: inverted && spread < -0.1% → '📉 수익률 곡선 역전' Discord 경보
+  조건 2: !inverted && spread >= 0.05% → '📈 수익률 곡선 정상화' Discord 경보
+  쿨다운: 24h/type (yc-inverted, yc-normalized)
+  GET 핸들러: Promise.allSettled 4-way (fg + vix + credit + yc)
+  Commit: ab8dea4
+
+FEATURE 2 — EarningsPage 전체 i18n
+  Python script: scripts/add_earnings_keys.py
+  36 키 × 16 로케일 = 576 i18n 엔트리 추가
+  번역: ko/en 직접, ja/zh-CN 직접, zh-TW 오버라이드, 나머지 12개 en fallback
+  컴포넌트 변경:
+    - PRESETS: label 필드 제거 → PRESET_LABELS Record (t() 기반)
+    - useTranslations('earnings') EarningsPage + SessionBadge 에 추가
+    - 34 한국어 리터럴 → t() 호출
+    - updatedAt 출력: t('updatedAt', {date, cache}) ICU 포맷
+  Commit: 7699547
+
+═══════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════
+[accuracy probe] metric=yc.spread10y2y source=FRED/T10Y2Y
+  direct_value=0.53% (2026-04-24, most recent)
+  Note: curve NOT inverted (positive spread) → yc-inverted 경보 발동 안 함
+        yc-normalized 경보는 다음 크론 실행 시 발동 예상 (spread > 0.05%)
+  Result: OK (FRED 기준 곡선 정상화 상태)
+
+[accuracy probe] metric=fg.us source=CNN
+  BLOCKED (418 anti-bot) — known Windows restriction
+
+[accuracy probe] metric=SPY source=Yahoo
+  direct_value=713.94 (이전 probe 재활용, 동일 session)
+
+═══════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════
+TypeScript: 0 errors ✅
+fetch() cache: CLEAN ✅
+zombie processes: 없음 ✅
+console.log 직접 사용: 없음 ✅
+
+Discord 경보 커버리지:
+  - fg-extreme-fear (F&G ≤25)
+  - fg-extreme-greed (F&G ≥75)
+  - vix-high (VIX ≥30)
+  - vix-caution (VIX ≥25)
+  - hy-stress (HY OAS >5%)
+  - ig-caution (IG OAS >1.5%)
+  - yc-inverted (10Y-2Y <-0.1%) ← NEW
+  - yc-normalized (10Y-2Y ≥0.05%) ← NEW
+
+═══════════════════════════════════════════════════════════════
+NEXT ITER 후보 (iter113)
+═══════════════════════════════════════════════════════════════
+1. [권장] 새 기능 — 새 데이터 소스 또는 UI 기능 추가
+2. 에러 탐색 — runtime 에러 / data gap 발견
+3. Korea flow: KRX 차단 확인 후 대체 소스 실험 (고위험, 실패 확률 높음)
+4. ScreenerPage 추가 기능 또는 데이터 보강
