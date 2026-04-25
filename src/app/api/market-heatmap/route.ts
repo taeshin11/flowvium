@@ -209,11 +209,12 @@ export async function GET(req: NextRequest) {
   }
 
   const sectors: HeatmapSector[] = Object.entries(bySector).map(([name, ss]) => {
-    const valid = ss.filter(x => x.changePct != null);
-    const totalMC = ss.reduce((s, x) => s + x.marketCap, 0);
-    const weighted = valid.length
-      ? valid.reduce((s, x) => s + (x.changePct! * x.marketCap), 0) / valid.reduce((s, x) => s + x.marketCap, 0)
-      : null;
+    let totalMC = 0, weightedSum = 0, weightedDenom = 0;
+    for (const x of ss) {
+      totalMC += x.marketCap;
+      if (x.changePct != null) { weightedSum += x.changePct * x.marketCap; weightedDenom += x.marketCap; }
+    }
+    const weighted = weightedDenom > 0 ? weightedSum / weightedDenom : null;
     return {
       sector: name,
       color: SECTOR_COLORS[name] ?? '#64748b',

@@ -98,18 +98,19 @@ export async function GET(request: Request) {
   const tf = searchParams.get('tf') ?? '4w';
 
   const redis = createRedis();
-  if (redis) {
-    try {
-      const cached = await redis.get(cacheKey(tf));
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
-    } catch { /* non-fatal */ }
-  }
 
-  // Stale fallback guard: read it now so we can serve it if AI fails later in this request.
+  // Fetch fresh cache and stale fallback in parallel — saves one sequential Redis round-trip
   let staleResult: object | null = null;
   if (redis) {
     try {
-      staleResult = await redis.get<object>(staleCacheKey(tf));
+      const [freshResult, staleRead] = await Promise.allSettled([
+        redis.get(cacheKey(tf)),
+        redis.get<object>(staleCacheKey(tf)),
+      ]);
+      if (freshResult.status === 'fulfilled' && freshResult.value) {
+        return NextResponse.json({ ...(freshResult.value as object), cached: true }, { headers: CDN_HEADERS });
+      }
+      if (staleRead.status === 'fulfilled') staleResult = staleRead.value;
     } catch { /* non-fatal */ }
   }
 

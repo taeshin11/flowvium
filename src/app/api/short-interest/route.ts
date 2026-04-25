@@ -194,35 +194,33 @@ export async function GET(req: Request) {
   const tickers = Array.from(new Set(TRACKED_TICKERS));
   const tickerSet = new Set(tickers);
 
-  // Fetch FINRA daily short volume and Finnhub P/E in parallel
+  // Fetch FINRA daily short volume, Finnhub P/E, and Redis 13f-signals in parallel
   // DTC (FINRA monthly): cdn.finra.org 403 from Vercel IPs; no free alternative found — iter86
-  const [finraMap, peMap] = await Promise.allSettled([
+  const [finraMap, peMap, redisSignals] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
     fetchFinnhubPE(tickers),
+    redis ? redis.get<typeof institutionalSignals>('flowvium:13f-signals:v1') : Promise.resolve(null),
   ]);
   const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
   const trailingPEMap = peMap.status === 'fulfilled' ? peMap.value : new Map<string, number>();
+  const liveRaw = redisSignals.status === 'fulfilled' ? redisSignals.value : null;
+  const liveSignals = (Array.isArray(liveRaw) && liveRaw.length > 0)
+    ? liveRaw as typeof institutionalSignals
+    : institutionalSignals;
 
-  // Build latest institutional action per ticker from static + EDGAR data
-  let liveSignals = institutionalSignals;
-  if (redis) {
-    try {
-      const live = await redis.get('flowvium:13f-signals:v1');
-      if (Array.isArray(live) && live.length > 0) liveSignals = live as typeof institutionalSignals;
-    } catch { /* use static */ }
-  }
-
-  // Latest action per ticker (most recent filing date)
+  // Latest action per ticker (most recent filing date) — O(n) single pass
   const instActionMap = new Map<string, string>();
   const instSectorMap = new Map<string, string>();
   const instNameMap = new Map<string, string>();
+  const instFilingDateMap = new Map<string, string>();
 
   for (const sig of liveSignals) {
-    const existing = instActionMap.get(sig.ticker);
-    if (!existing || sig.filingDate > (liveSignals.find(s => s.ticker === sig.ticker && s.action === existing)?.filingDate ?? '')) {
+    const existingDate = instFilingDateMap.get(sig.ticker) ?? '';
+    if (sig.filingDate > existingDate) {
       instActionMap.set(sig.ticker, sig.action);
       instSectorMap.set(sig.ticker, sig.sector);
       instNameMap.set(sig.ticker, sig.companyName);
+      instFilingDateMap.set(sig.ticker, sig.filingDate);
     }
   }
 
