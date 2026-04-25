@@ -508,10 +508,13 @@
 
 ---
 
-## 8. 스크리너 (`/screener`)
+## 8. 스크리너 (`/screener`) ← 타임프레임 1w/4w/13w 추가
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
+| 210-TF | **타임프레임 셀렉터 (1w/4w/13w)** | ✅ live | 사용자 선택 |
+| 210-src | **데이터 소스 설명 배너** (분기/시차 명시) | ✅ live | 정적 표시 |
+| **13w (기관 13F 뷰)** | | | |
 | 210-T | Top Squeeze 배너: 상위 5 실시간 가격·등락% | ✅ live | Yahoo Finance `/api/stock-price` |
 | 210 | 프리셋: 숏 스퀴즈 후보 | 💾 cached | signals + short |
 | 211 | 프리셋: 기관 신규 편입 | 💾 cached | signals |
@@ -522,6 +525,12 @@
 | 216 | 결과 테이블: 스퀴즈 스코어(바) | 💾 cached | 자체계산 |
 | 217 | 결과 테이블: 뉴스갭(바) | 💾 cached | AV |
 | 218 | 결과 테이블: DTC (Days to Cover) | 💾 cached | Yahoo |
+| **1w/4w (Form 4 내부자 뷰)** | | | |
+| 210-I1 | 대규모 내부자 매수 배너 (총 매수금액 top5) | ✅ live | `/api/insider-trades` (D+2) |
+| 210-I2 | C-Suite 매수 배너 (CEO/CFO/임원 매수 top5) | ✅ live | `/api/insider-trades` |
+| 210-I3 | 집중 매수 배너 (복수 내부자 동시 매수) | ✅ live | `/api/insider-trades` |
+| 210-I4 | 내부자 테이블: 티커·기업·내부자·직책·매수금액·건수·거래일 | ✅ live | `/api/insider-trades` |
+| 210-I5 | 기간 필터: 1w=최근7일, 4w=최근28일 | ✅ live | transactionDate 기준 |
 
 ---
 

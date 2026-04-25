@@ -1,0 +1,31 @@
+## iter101 — 스크리너 타임프레임 1w/4w/13w 분할
+Date: 2026-04-25
+Commit: (pending)
+
+### Primary Outcome
+스크리너 타임프레임 전환 — 13F(분기)·Form4(1w/4w) 다중 데이터소스
+
+### Background
+User asked "이게 언제부터 기준이지?" → 13F는 Q4 2025 (2.5개월 시차) 확인
+이어서 "1주 4주 13주로 분할가능?" → 실현 가능성 검토 후 구현 승인
+
+### Changes (ScreenerPage.tsx)
+1. **타임프레임 셀렉터** (1w/4w/13w 탭) 추가
+2. **데이터 소스 배너**: 13w = "Q4 2025 기준, 제출 2026-02-14, 2달+ 시차" / 1w/4w = "Form 4, 최근 N일, D+2 시차"
+3. **1w/4w 뷰**: /api/insider-trades에서 Form 4 매수 거래 조회
+   - 기간 필터: transactionDate >= cutoff
+   - 집계: ticker별 totalValueUsd, tradeCount, topBuyer, isCsuite
+   - 3개 카드: 💰 대규모 매수 / 👑 C-Suite 매수 / 🔁 집중 매수
+   - 테이블: 티커·기업·내부자·직책·매수금액·건수·거래일
+4. **13w 뷰**: 기존 동작 유지 (13F 기관 포지션)
+5. 13F 데이터 출처 표기 모든 카드에 명시 (Q4 2025, 2026-02-14)
+6. METRICS.md + FEATURES.md 업데이트
+
+### User Note
+"수정하면서 전부 metrics.md에 기록을 하고 db에도 기록해야됨"
+→ METRICS.md 항목 210-TF~210-I5 추가 완료
+→ "db에도 기록" = research_history 로그 (이 파일)
+
+### Verification
+- TypeScript: 0 errors
+- Insider trades API: 52개 항목, direction: "buy" 확인

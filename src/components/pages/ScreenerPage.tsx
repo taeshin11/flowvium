@@ -6,6 +6,16 @@ import { Loader2, ArrowUpDown, ExternalLink, Filter, X, TrendingUp, TrendingDown
 import type { InstitutionalSignal } from '@/data/institutional-signals';
 import type { ShortEntry } from '@/app/api/short-interest/route';
 
+type Timeframe = '1w' | '4w' | '13w';
+
+const TF_LABELS: Record<Timeframe, string> = {
+  '1w': '1주 (내부자 Form 4)',
+  '4w': '4주 (내부자 Form 4)',
+  '13w': '13주 (기관 13F)',
+};
+
+const TF_DAYS: Record<'1w' | '4w', number> = { '1w': 7, '4w': 28 };
+
 const SECTOR_LABELS: Record<string, string> = {
   semiconductors: '반도체',
   'ai-cloud': 'AI·클라우드',
@@ -13,16 +23,18 @@ const SECTOR_LABELS: Record<string, string> = {
   defense: '방산',
   'pharma-biotech': '바이오',
   commodities: '원자재',
+  financials: 'financials',
   other: '기타',
 };
 
 const ACTION_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  accumulating: { label: '매집',   color: '#10b981', bg: '#10b98120', icon: <TrendingUp className="w-3 h-3" /> },
-  new_position: { label: '신규',   color: '#3b82f6', bg: '#3b82f620', icon: <Plus className="w-3 h-3" /> },
+  accumulating: { label: '매집',      color: '#10b981', bg: '#10b98120', icon: <TrendingUp className="w-3 h-3" /> },
+  new_position: { label: '신규',      color: '#3b82f6', bg: '#3b82f620', icon: <Plus className="w-3 h-3" /> },
   reducing:     { label: '비중 축소', color: '#f59e0b', bg: '#f59e0b20', icon: <TrendingDown className="w-3 h-3" /> },
-  exit:         { label: '청산',   color: '#ef4444', bg: '#ef444420', icon: <LogOut className="w-3 h-3" /> },
+  exit:         { label: '청산',      color: '#ef4444', bg: '#ef444420', icon: <LogOut className="w-3 h-3" /> },
 };
 
+// ── 13F row type ──────────────────────────────────────────────────────────────
 interface ScreenerRow {
   ticker: string;
   companyName: string;
@@ -32,24 +44,53 @@ interface ScreenerRow {
   estimatedValue: string;
   filingDate: string;
   newsGapScore: number;
-  // from short interest
   shortFloatPct: number | null;
   shortVolPct: number | null;
   shortRatio: number | null;
   squeezeScore: number;
 }
 
+// ── Form 4 insider trade row ──────────────────────────────────────────────────
+interface InsiderTrade {
+  id: string;
+  ticker: string;
+  issuerName: string;
+  insiderName: string;
+  officerTitle: string | null;
+  isDirector: boolean;
+  isOfficer: boolean;
+  direction: 'buy' | 'sell';
+  transactionCode: string;
+  shares: number;
+  pricePerShare: number | null;
+  transactionValueUsd: number | null;
+  transactionDate: string;
+  filedAt: string;
+}
+
+// Aggregated insider row per ticker
+interface InsiderRow {
+  ticker: string;
+  issuerName: string;
+  totalValueUsd: number;
+  trades: InsiderTrade[];
+  topBuyer: string;
+  topTitle: string | null;
+  isCsuite: boolean;
+  tradeCount: number;
+}
+
+// ── 13F presets ───────────────────────────────────────────────────────────────
 const PRESETS = [
   {
     id: 'squeeze',
     label: '🔥 숏 스퀴즈 후보',
     desc: '기관 매집 + 공매도',
-    // If short data is available, require squeezeScore >= 30; else fall back to accumulation-only
     filter: (r: ScreenerRow) => {
       const accumulating = r.action === 'accumulating' || r.action === 'new_position';
       if (!accumulating) return false;
       if (r.shortVolPct != null) return r.squeezeScore >= 30;
-      return true; // short 데이터 없으면 일단 매집 중인 종목 표시
+      return true;
     },
   },
   {
@@ -80,67 +121,106 @@ const PRESETS = [
 
 type SortKey = keyof ScreenerRow;
 
+// ── Price state ───────────────────────────────────────────────────────────────
+interface TopPrice { price: number | null; changePct: number | null; currency: string; }
+
+function parseVal(v: string): number {
+  if (!v) return 0;
+  const n = parseFloat(v.replace(/[$,]/g, ''));
+  if (v.endsWith('B')) return n * 1e9;
+  if (v.endsWith('M')) return n * 1e6;
+  if (v.endsWith('K')) return n * 1e3;
+  return n || 0;
+}
+
+function fmtUsd(v: number): string {
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${v.toFixed(0)}`;
+}
+
+function isCsuiteTitle(title: string | null): boolean {
+  if (!title) return false;
+  const t = title.toUpperCase();
+  return t.includes('CEO') || t.includes('CFO') || t.includes('COO') || t.includes('CTO') ||
+    t.includes('PRESIDENT') || t.includes('CHAIRMAN') || t.includes('DIRECTOR');
+}
+
 export default function ScreenerPage() {
+  const [tf, setTf] = useState<Timeframe>('13w');
+
+  // 13F data
   const [signals, setSignals] = useState<InstitutionalSignal[]>([]);
   const [shortData, setShortData] = useState<ShortEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading13F, setLoading13F] = useState(true);
 
-  interface TopPrice { price: number | null; changePct: number | null; currency: string; }
+  // Insider (Form 4) data
+  const [insiderTrades, setInsiderTrades] = useState<InsiderTrade[]>([]);
+  const [loadingInsider, setLoadingInsider] = useState(false);
+  const [insiderLoaded, setInsiderLoaded] = useState(false);
+
   const [top5Prices, setTop5Prices] = useState<Map<string, TopPrice>>(new Map());
   const [pricesLoaded, setPricesLoaded] = useState(false);
 
+  // 13F filters
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [minShort, setMinShort] = useState<number>(0);
-  const [maxShort, setMaxShort] = useState<number>(100);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('filingDate');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+  // ── Load 13F + short ──────────────────────────────────────────────────────
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
+    const ctrl = new AbortController();
     Promise.allSettled([
-      fetch('/api/signals', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
-      fetch('/api/short-interest', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch('/api/signals', { signal: ctrl.signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch('/api/short-interest', { signal: ctrl.signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
     ]).then(([sigRes, shortRes]) => {
-      if (signal.aborted) return;
+      if (ctrl.signal.aborted) return;
       if (sigRes.status === 'fulfilled') setSignals(sigRes.value.signals ?? []);
       if (shortRes.status === 'fulfilled') setShortData(shortRes.value.entries ?? []);
-      setLoading(false);
-    }).catch(() => { if (!signal.aborted) setLoading(false); });
-    return () => controller.abort();
+      setLoading13F(false);
+    }).catch(() => { if (!ctrl.signal.aborted) setLoading13F(false); });
+    return () => ctrl.abort();
   }, []);
 
-  const shortMap = useMemo(() =>
-    new Map(shortData.map(s => [s.ticker, s])),
-    [shortData]
-  );
+  // ── Load insider trades on demand (1w/4w) ────────────────────────────────
+  useEffect(() => {
+    if (tf === '13w') return;
+    if (insiderLoaded) return;
+    setLoadingInsider(true);
+    const ctrl = new AbortController();
+    fetch('/api/insider-trades', { signal: ctrl.signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(d => {
+        if (ctrl.signal.aborted) return;
+        setInsiderTrades((d.items ?? []) as InsiderTrade[]);
+        setInsiderLoaded(true);
+        setLoadingInsider(false);
+      })
+      .catch(() => { if (!ctrl.signal.aborted) { setInsiderLoaded(true); setLoadingInsider(false); } });
+    return () => ctrl.abort();
+  }, [tf, insiderLoaded]);
 
-  // Deduplicate by ticker (keep most recent signal per ticker)
+  // ── 13F processing ────────────────────────────────────────────────────────
+  const shortMap = useMemo(() => new Map(shortData.map(s => [s.ticker, s])), [shortData]);
+
   const deduped: ScreenerRow[] = useMemo(() => {
     const byTicker = new Map<string, InstitutionalSignal>();
     for (const sig of signals) {
       const existing = byTicker.get(sig.ticker);
-      if (!existing || sig.filingDate > existing.filingDate) {
-        byTicker.set(sig.ticker, sig);
-      }
+      if (!existing || sig.filingDate > existing.filingDate) byTicker.set(sig.ticker, sig);
     }
     return Array.from(byTicker.values()).map(sig => {
       const short = shortMap.get(sig.ticker);
       return {
-        ticker: sig.ticker,
-        companyName: sig.companyName,
-        sector: sig.sector,
-        institution: sig.institution,
-        action: sig.action,
-        estimatedValue: sig.estimatedValue,
-        filingDate: sig.filingDate,
-        newsGapScore: sig.newsGapScore,
-        shortFloatPct: short?.shortFloatPct ?? null,
-        shortVolPct: short?.shortVolPct ?? null,
-        shortRatio: short?.shortRatio ?? null,
-        squeezeScore: short?.squeezeScore ?? 0,
+        ticker: sig.ticker, companyName: sig.companyName, sector: sig.sector,
+        institution: sig.institution, action: sig.action, estimatedValue: sig.estimatedValue,
+        filingDate: sig.filingDate, newsGapScore: sig.newsGapScore,
+        shortFloatPct: short?.shortFloatPct ?? null, shortVolPct: short?.shortVolPct ?? null,
+        shortRatio: short?.shortRatio ?? null, squeezeScore: short?.squeezeScore ?? 0,
       };
     });
   }, [signals, shortMap]);
@@ -155,102 +235,119 @@ export default function ScreenerPage() {
     } else {
       if (sectorFilter !== 'all') rows = rows.filter(r => r.sector === sectorFilter);
       if (actionFilter !== 'all') rows = rows.filter(r => r.action === actionFilter);
-      rows = rows.filter(r => (r.shortVolPct ?? 0) >= minShort && (r.shortVolPct ?? 100) <= maxShort);
+      rows = rows.filter(r => (r.shortVolPct ?? 0) >= minShort);
     }
     return [...rows].sort((a, b) => {
-      const va: unknown = a[sortKey];
-      const vb: unknown = b[sortKey];
+      const va: unknown = a[sortKey], vb: unknown = b[sortKey];
       if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
+      if (va == null) return 1; if (vb == null) return -1;
       if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb as string) : (vb as string).localeCompare(va);
       return sortDir === 'asc' ? (va as number) - (vb as number) : (vb as number) - (va as number);
     });
-  }, [deduped, activePreset, sectorFilter, actionFilter, minShort, maxShort, sortKey, sortDir]);
+  }, [deduped, activePreset, sectorFilter, actionFilter, minShort, sortKey, sortDir]);
 
-  const top5Squeeze = useMemo(() =>
-    [...deduped].sort((a, b) => b.squeezeScore - a.squeezeScore).slice(0, 5),
-    [deduped]
-  );
+  const top5Squeeze = useMemo(() => [...deduped].sort((a, b) => b.squeezeScore - a.squeezeScore).slice(0, 5), [deduped]);
+  const top5NewPosition = useMemo(() => [...deduped].filter(r => r.action === 'new_position').sort((a, b) => parseVal(b.estimatedValue) - parseVal(a.estimatedValue)).slice(0, 5), [deduped]);
+  const top5Underradar = useMemo(() => [...deduped].filter(r => (r.action === 'accumulating' || r.action === 'new_position') && r.newsGapScore < 30).sort((a, b) => (a.newsGapScore ?? 100) - (b.newsGapScore ?? 100)).slice(0, 5), [deduped]);
 
-  const parseVal = (v: string): number => {
-    if (!v) return 0;
-    const n = parseFloat(v.replace(/[$,]/g, ''));
-    if (v.endsWith('B')) return n * 1e9;
-    if (v.endsWith('M')) return n * 1e6;
-    if (v.endsWith('K')) return n * 1e3;
-    return n || 0;
-  };
+  // ── Insider processing ────────────────────────────────────────────────────
+  const insiderRows = useMemo((): InsiderRow[] => {
+    if (tf === '13w') return [];
+    const days = TF_DAYS[tf];
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const buys = insiderTrades.filter(t => t.direction === 'buy' && t.transactionDate >= cutoff && (t.transactionValueUsd ?? 0) > 0);
 
-  const top5NewPosition = useMemo(() =>
-    [...deduped]
-      .filter(r => r.action === 'new_position')
-      .sort((a, b) => parseVal(b.estimatedValue) - parseVal(a.estimatedValue))
-      .slice(0, 5),
-    [deduped]
-  );
+    const byTicker = new Map<string, InsiderTrade[]>();
+    for (const t of buys) {
+      const arr = byTicker.get(t.ticker) ?? [];
+      arr.push(t);
+      byTicker.set(t.ticker, arr);
+    }
 
-  const top5Underradar = useMemo(() =>
-    [...deduped]
-      .filter(r => (r.action === 'accumulating' || r.action === 'new_position') && r.newsGapScore < 30)
-      .sort((a, b) => (a.newsGapScore ?? 100) - (b.newsGapScore ?? 100))
-      .slice(0, 5),
-    [deduped]
-  );
+    return Array.from(byTicker.entries()).map(([ticker, trades]) => {
+      const totalValueUsd = trades.reduce((s, t) => s + (t.transactionValueUsd ?? 0), 0);
+      const topTrade = [...trades].sort((a, b) => (b.transactionValueUsd ?? 0) - (a.transactionValueUsd ?? 0))[0];
+      const isCsuite = trades.some(t => isCsuiteTitle(t.officerTitle));
+      return {
+        ticker, issuerName: topTrade.issuerName, totalValueUsd, trades,
+        topBuyer: topTrade.insiderName, topTitle: topTrade.officerTitle,
+        isCsuite, tradeCount: trades.length,
+      };
+    }).sort((a, b) => b.totalValueUsd - a.totalValueUsd);
+  }, [insiderTrades, tf]);
 
+  const topInsiderBuys = useMemo(() => insiderRows.slice(0, 5), [insiderRows]);
+  const topCsuite = useMemo(() => insiderRows.filter(r => r.isCsuite).slice(0, 5), [insiderRows]);
+  const topClustered = useMemo(() => [...insiderRows].sort((a, b) => b.tradeCount - a.tradeCount).slice(0, 5), [insiderRows]);
+
+  // ── Prices ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const allTickers = Array.from(new Set([
-      ...top5Squeeze.map(r => r.ticker),
-      ...top5NewPosition.map(r => r.ticker),
-      ...top5Underradar.map(r => r.ticker),
-    ]));
+    const tickers13F = [...top5Squeeze, ...top5NewPosition, ...top5Underradar].map(r => r.ticker);
+    const tickersInsider = [...topInsiderBuys, ...topCsuite, ...topClustered].map(r => r.ticker);
+    const allTickers = Array.from(new Set(tf === '13w' ? tickers13F : tickersInsider));
     if (!allTickers.length) return;
-    const controller = new AbortController();
+    const ctrl = new AbortController();
+    setPricesLoaded(false);
     Promise.allSettled(
       allTickers.map(ticker =>
-        fetch(`/api/stock-price/${ticker}`, { signal: controller.signal })
+        fetch(`/api/stock-price/${ticker}`, { signal: ctrl.signal })
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
       )
     ).then(results => {
-      if (controller.signal.aborted) return;
+      if (ctrl.signal.aborted) return;
       const map = new Map<string, TopPrice>();
-      for (const r of results) {
-        if (r.status === 'fulfilled') map.set(r.value.ticker, r.value);
-      }
+      for (const r of results) if (r.status === 'fulfilled') map.set(r.value.ticker, r.value);
       setTop5Prices(map);
       setPricesLoaded(true);
-    }).catch(() => { if (!controller.signal.aborted) setPricesLoaded(true); });
-    return () => controller.abort();
-  }, [top5Squeeze, top5NewPosition, top5Underradar]);
+    }).catch(() => { if (!ctrl.signal.aborted) setPricesLoaded(true); });
+    return () => ctrl.abort();
+  }, [top5Squeeze, top5NewPosition, top5Underradar, topInsiderBuys, topCsuite, topClustered, tf]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('desc'); }
   };
-
-  const clearFilters = () => {
-    setSectorFilter('all');
-    setActionFilter('all');
-    setMinShort(0);
-    setMaxShort(100);
-    setActivePreset(null);
-  };
+  const clearFilters = () => { setSectorFilter('all'); setActionFilter('all'); setMinShort(0); setActivePreset(null); };
 
   const SortTh = ({ label, k }: { label: string; k: SortKey }) => (
-    <th
-      className="px-3 py-2 text-left text-[10px] text-cf-text-secondary cursor-pointer hover:text-cf-text-primary select-none whitespace-nowrap"
-      onClick={() => handleSort(k)}
-    >
-      <div className="flex items-center gap-1">
-        {label}
-        <ArrowUpDown className="w-2.5 h-2.5 opacity-40" />
-        {sortKey === k && <span className="opacity-70">{sortDir === 'desc' ? '↓' : '↑'}</span>}
-      </div>
+    <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary cursor-pointer hover:text-cf-text-primary select-none whitespace-nowrap" onClick={() => handleSort(k)}>
+      <div className="flex items-center gap-1">{label}<ArrowUpDown className="w-2.5 h-2.5 opacity-40" />{sortKey === k && <span className="opacity-70">{sortDir === 'desc' ? '↓' : '↑'}</span>}</div>
     </th>
   );
 
-  if (loading) {
+  // ── Price card helper ─────────────────────────────────────────────────────
+  const PriceCard = ({ ticker, badge, badgeCls, sub }: { ticker: string; badge: string; badgeCls: string; sub?: string }) => {
+    const lp = top5Prices.get(ticker);
+    const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : '$';
+    return (
+      <Link href={`/company/${ticker}` as Parameters<typeof Link>[0]['href']}
+        className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-mono font-bold text-xs text-cf-primary">{ticker}</span>
+          <span className={`text-[9px] px-1 py-0.5 rounded font-bold tabular-nums ${badgeCls}`}>{badge}</span>
+        </div>
+        {lp?.price != null ? (
+          <>
+            <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
+            {lp.changePct != null && (
+              <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
+              </p>
+            )}
+          </>
+        ) : pricesLoaded ? <p className="text-xs text-cf-text-secondary/50">—</p>
+          : <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>}
+        {sub && <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{sub}</p>}
+      </Link>
+    );
+  };
+
+  const loading = tf === '13w' ? loading13F : loadingInsider;
+  const dataDate13F = 'SEC 13F Q4 2025 기준 (제출 2026-02-14)';
+  const dataDateInsider = `Form 4 · 최근 ${tf === '1w' ? '7일' : '28일'} · D+2 시차`;
+
+  if (loading && tf === '13w' && signals.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px] gap-3 text-cf-text-secondary">
         <Loader2 className="w-5 h-5 animate-spin" />
@@ -268,337 +365,314 @@ export default function ScreenerPage() {
           스크리너
         </h1>
         <p className="text-sm text-cf-text-secondary mt-1">
-          기관 13F 매집 · 공매도 데이터 기반 종목 필터링
+          기관·내부자 매매 데이터 기반 종목 필터링
         </p>
       </div>
 
-      {/* Top cards: squeeze / new position / underradar */}
-      {(top5Squeeze.length > 0 || top5NewPosition.length > 0 || top5Underradar.length > 0) && (
-        <div className="space-y-3 mb-4">
-          {/* 🔥 Top Squeeze */}
-          {top5Squeeze.length > 0 && (
-            <div className="cf-card p-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/10">
-              <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
-                🔥 Top Squeeze 후보 — 실시간 가격
-                <span className="font-normal text-cf-text-secondary">스퀴즈 점수 기준 상위 5종목</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {top5Squeeze.map(row => {
-                  const lp = top5Prices.get(row.ticker);
-                  const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
-                  return (
-                    <Link key={row.ticker} href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
-                      className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
-                        <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold tabular-nums">{row.squeezeScore}</span>
-                      </div>
-                      {lp?.price != null ? (
-                        <>
-                          <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
-                          {lp.changePct != null && (
-                            <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
-                            </p>
-                          )}
-                        </>
-                      ) : pricesLoaded ? <p className="text-xs text-cf-text-secondary/50">—</p>
-                        : <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>}
-                      <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
-                    </Link>
-                  );
-                })}
-              </div>
-              <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: SEC 13F Q4 2025 기준 (제출 2026-02-14)</p>
-            </div>
-          )}
-
-          {/* 🏦 기관 신규 편입 */}
-          {top5NewPosition.length > 0 && (
-            <div className="cf-card p-4 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10">
-              <p className="text-[10px] font-bold text-blue-400 mb-3 flex items-center gap-1.5">
-                🏦 기관 신규 편입 — 실시간 가격
-                <span className="font-normal text-cf-text-secondary">최대 추정금액 기준 상위 5종목</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {top5NewPosition.map(row => {
-                  const lp = top5Prices.get(row.ticker);
-                  const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
-                  const val = row.estimatedValue || null;
-                  return (
-                    <Link key={row.ticker} href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
-                      className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
-                        {val && <span className="text-[9px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold tabular-nums">{val}</span>}
-                      </div>
-                      {lp?.price != null ? (
-                        <>
-                          <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
-                          {lp.changePct != null && (
-                            <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
-                            </p>
-                          )}
-                        </>
-                      ) : pricesLoaded ? <p className="text-xs text-cf-text-secondary/50">—</p>
-                        : <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>}
-                      <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
-                    </Link>
-                  );
-                })}
-              </div>
-              <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: SEC 13F Q4 2025 기준 (제출 2026-02-14)</p>
-            </div>
-          )}
-
-          {/* 📰 언더레이더 */}
-          {top5Underradar.length > 0 && (
-            <div className="cf-card p-4 bg-gradient-to-r from-purple-500/5 to-violet-500/5 border border-purple-500/10">
-              <p className="text-[10px] font-bold text-purple-400 mb-3 flex items-center gap-1.5">
-                📰 언더레이더 — 실시간 가격
-                <span className="font-normal text-cf-text-secondary">뉴스 커버리지 최저 기준 상위 5종목</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {top5Underradar.map(row => {
-                  const lp = top5Prices.get(row.ticker);
-                  const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
-                  return (
-                    <Link key={row.ticker} href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
-                      className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
-                        <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold tabular-nums">
-                          뉴스 {row.newsGapScore}
-                        </span>
-                      </div>
-                      {lp?.price != null ? (
-                        <>
-                          <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
-                          {lp.changePct != null && (
-                            <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
-                            </p>
-                          )}
-                        </>
-                      ) : pricesLoaded ? <p className="text-xs text-cf-text-secondary/50">—</p>
-                        : <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>}
-                      <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
-                    </Link>
-                  );
-                })}
-              </div>
-              <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: SEC 13F Q4 2025 기준 (제출 2026-02-14)</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Quick guide */}
-      <div className="cf-card p-4 mb-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10">
-        <p className="text-xs font-bold text-cf-text-primary mb-2">📖 어떻게 보는 건가요?</p>
-        <ul className="text-[11px] text-cf-text-secondary space-y-1.5 leading-relaxed">
-          <li>• <b className="text-cf-text-primary">프리셋 버튼</b>을 누르면 목적별로 종목이 필터링됩니다 — 복잡한 필터 설정 없이 한 번에 확인 가능</li>
-          <li>• <b className="text-amber-400">🔥 숏 스퀴즈 후보</b> = 기관은 매집하는데 공매도 세력도 많은 종목 → 숏 세력이 손절하며 주가 급등 가능성</li>
-          <li>• <b className="text-blue-400">🏦 기관 신규 편입</b> = 이번 분기에 대형 기관이 <em>새로</em> 담은 종목 → 기관이 왜 샀는지 리서치 대상</li>
-          <li>• <b className="text-purple-400">📰 언더레이더</b> = 기관은 사는데 뉴스 커버리지 낮은 종목 → 시장에 소외된 기회</li>
-          <li>• <b className="text-cf-text-primary">스퀴즈 점수</b>: 공매도 비율 + Days to Cover + 기관 매집을 종합한 0~100 점수 (70↑ 위험/주의)</li>
-          <li>• 티커 클릭 → 해당 기업 상세 페이지 이동 (지분 변화, 섹터 연결, AI 분석)</li>
-        </ul>
-      </div>
-
-      {/* Preset buttons */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {PRESETS.map(p => (
+      {/* ── Timeframe selector ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-1 mb-5 bg-white/5 rounded-xl p-1 w-fit">
+        {(['1w', '4w', '13w'] as Timeframe[]).map(t => (
           <button
-            key={p.id}
-            onClick={() => setActivePreset(activePreset === p.id ? null : p.id)}
-            className={`text-xs px-3 py-2 rounded-xl border transition-all ${
-              activePreset === p.id
-                ? 'bg-cf-accent/20 border-cf-accent text-cf-accent'
-                : 'border-white/10 text-cf-text-secondary hover:border-white/20'
+            key={t}
+            onClick={() => setTf(t)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              tf === t
+                ? 'bg-cf-accent text-white shadow-sm'
+                : 'text-cf-text-secondary hover:text-cf-text-primary'
             }`}
           >
-            <span className="font-semibold">{p.label}</span>
-            <span className="text-[10px] opacity-70 ml-1.5 hidden sm:inline">{p.desc}</span>
+            {t}
           </button>
         ))}
       </div>
 
-      {/* Manual filters */}
-      {!activePreset && (
-        <div className="cf-card p-4 mb-4 flex flex-wrap gap-3 items-end">
-          <div>
-            <label className="text-[10px] text-cf-text-secondary block mb-1">섹터</label>
-            <select
-              value={sectorFilter}
-              onChange={e => setSectorFilter(e.target.value)}
-              className="text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary"
-            >
-              <option value="all">전체</option>
-              {sectors.filter(s => s !== 'all').map(s => (
-                <option key={s} value={s}>{SECTOR_LABELS[s] ?? s}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] text-cf-text-secondary block mb-1">기관 액션</label>
-            <select
-              value={actionFilter}
-              onChange={e => setActionFilter(e.target.value)}
-              className="text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary"
-            >
-              <option value="all">전체</option>
-              <option value="accumulating">매집</option>
-              <option value="new_position">신규 편입</option>
-              <option value="reducing">비중 축소</option>
-              <option value="exit">청산</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] text-cf-text-secondary block mb-1">Short Vol % 최소 (FINRA)</label>
-            <input
-              type="number"
-              min={0} max={100}
-              value={minShort}
-              onChange={e => setMinShort(+e.target.value)}
-              className="text-xs w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-cf-text-primary"
-            />
-          </div>
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-white/10 text-cf-text-secondary hover:bg-white/5 transition-colors"
-          >
-            <X className="w-3 h-3" /> 초기화
-          </button>
+      {/* Data source description */}
+      <div className={`cf-card px-4 py-3 mb-5 text-xs flex items-start gap-2 ${tf === '13w' ? 'border-blue-500/20 bg-blue-500/5' : 'border-emerald-500/20 bg-emerald-500/5'}`}>
+        <span className="text-lg shrink-0">{tf === '13w' ? '🏦' : '👤'}</span>
+        <div>
+          <p className="font-semibold text-cf-text-primary">
+            {tf === '13w' ? '13F 기관 포지션 — 분기 기준' : `Form 4 내부자 거래 — 최근 ${tf === '1w' ? '7일' : '28일'}`}
+          </p>
+          <p className="text-cf-text-secondary mt-0.5">
+            {tf === '13w'
+              ? 'Q4 2025 (2025년 10~12월) 기관 포지션 · 제출 2026-02-14 · 약 2달+ 시차'
+              : 'CEO·CFO·임원이 SEC에 의무 신고하는 자사주 매매 · 거래 후 2영업일 내 공시'}
+          </p>
         </div>
+      </div>
+
+      {/* ── 13w view ───────────────────────────────────────────────────────── */}
+      {tf === '13w' && (
+        <>
+          {(top5Squeeze.length > 0 || top5NewPosition.length > 0 || top5Underradar.length > 0) && (
+            <div className="space-y-3 mb-4">
+              {top5Squeeze.length > 0 && (
+                <div className="cf-card p-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/10">
+                  <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
+                    🔥 Top Squeeze 후보 — 실시간 가격
+                    <span className="font-normal text-cf-text-secondary">스퀴즈 점수 기준 상위 5종목</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {top5Squeeze.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={String(row.squeezeScore)} badgeCls="bg-amber-500/20 text-amber-300" sub={SECTOR_LABELS[row.sector] ?? row.sector} />)}
+                  </div>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: {dataDate13F}</p>
+                </div>
+              )}
+              {top5NewPosition.length > 0 && (
+                <div className="cf-card p-4 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10">
+                  <p className="text-[10px] font-bold text-blue-400 mb-3 flex items-center gap-1.5">
+                    🏦 기관 신규 편입 — 실시간 가격
+                    <span className="font-normal text-cf-text-secondary">최대 추정금액 기준 상위 5종목</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {top5NewPosition.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={row.estimatedValue} badgeCls="bg-blue-500/20 text-blue-300" sub={SECTOR_LABELS[row.sector] ?? row.sector} />)}
+                  </div>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: {dataDate13F}</p>
+                </div>
+              )}
+              {top5Underradar.length > 0 && (
+                <div className="cf-card p-4 bg-gradient-to-r from-purple-500/5 to-violet-500/5 border border-purple-500/10">
+                  <p className="text-[10px] font-bold text-purple-400 mb-3 flex items-center gap-1.5">
+                    📰 언더레이더 — 실시간 가격
+                    <span className="font-normal text-cf-text-secondary">뉴스 커버리지 최저 기준 상위 5종목</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {top5Underradar.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={`뉴스 ${row.newsGapScore}`} badgeCls="bg-purple-500/20 text-purple-300" sub={SECTOR_LABELS[row.sector] ?? row.sector} />)}
+                  </div>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 기관 포지션: {dataDate13F}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick guide */}
+          <div className="cf-card p-4 mb-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10">
+            <p className="text-xs font-bold text-cf-text-primary mb-2">📖 어떻게 보는 건가요?</p>
+            <ul className="text-[11px] text-cf-text-secondary space-y-1.5 leading-relaxed">
+              <li>• <b className="text-amber-400">🔥 숏 스퀴즈 후보</b> = 기관은 매집하는데 공매도 세력도 많은 종목 → 숏 세력이 손절하며 주가 급등 가능성</li>
+              <li>• <b className="text-blue-400">🏦 기관 신규 편입</b> = 이번 분기에 대형 기관이 <em>새로</em> 담은 종목 → 기관이 왜 샀는지 리서치 대상</li>
+              <li>• <b className="text-purple-400">📰 언더레이더</b> = 기관은 사는데 뉴스 커버리지 낮은 종목 → 시장에 소외된 기회</li>
+            </ul>
+          </div>
+
+          {/* Preset buttons */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {PRESETS.map(p => (
+              <button key={p.id} onClick={() => setActivePreset(activePreset === p.id ? null : p.id)}
+                className={`text-xs px-3 py-2 rounded-xl border transition-all ${activePreset === p.id ? 'bg-cf-accent/20 border-cf-accent text-cf-accent' : 'border-white/10 text-cf-text-secondary hover:border-white/20'}`}>
+                <span className="font-semibold">{p.label}</span>
+                <span className="text-[10px] opacity-70 ml-1.5 hidden sm:inline">{p.desc}</span>
+              </button>
+            ))}
+          </div>
+
+          {!activePreset && (
+            <div className="cf-card p-4 mb-4 flex flex-wrap gap-3 items-end">
+              <div>
+                <label className="text-[10px] text-cf-text-secondary block mb-1">섹터</label>
+                <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)} className="text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary">
+                  <option value="all">전체</option>
+                  {sectors.filter(s => s !== 'all').map(s => <option key={s} value={s}>{SECTOR_LABELS[s] ?? s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-cf-text-secondary block mb-1">기관 액션</label>
+                <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} className="text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary">
+                  <option value="all">전체</option>
+                  <option value="accumulating">매집</option>
+                  <option value="new_position">신규 편입</option>
+                  <option value="reducing">비중 축소</option>
+                  <option value="exit">청산</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-cf-text-secondary block mb-1">Short Vol % 최소</label>
+                <input type="number" min={0} max={100} value={minShort} onChange={e => setMinShort(+e.target.value)} className="text-xs w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-cf-text-primary" />
+              </div>
+              <button onClick={clearFilters} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-white/10 text-cf-text-secondary hover:bg-white/5 transition-colors">
+                <X className="w-3 h-3" /> 초기화
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-cf-text-secondary">{filtered.length}개 결과</span>
+            {activePreset && <button onClick={() => setActivePreset(null)} className="flex items-center gap-1 text-xs text-cf-text-secondary hover:text-cf-text-primary transition-colors"><X className="w-3 h-3" /> 프리셋 해제</button>}
+          </div>
+
+          <div className="cf-card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-white/5">
+                <tr>
+                  <SortTh label="티커" k="ticker" />
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">섹터</th>
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관</th>
+                  <SortTh label="액션" k="action" />
+                  <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">규모</th>
+                  <SortTh label="Short Vol %" k="shortVolPct" />
+                  <SortTh label="스퀴즈" k="squeezeScore" />
+                  <SortTh label="뉴스갭" k="newsGapScore" />
+                  <SortTh label="파일링일" k="filingDate" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(row => {
+                  const actionCfg = ACTION_CONFIG[row.action];
+                  return (
+                    <tr key={`${row.ticker}-${row.institution}`} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                      <td className="px-3 py-2.5">
+                        <Link href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']} className="font-bold text-cf-accent hover:underline flex items-center gap-1">
+                          {row.ticker}<ExternalLink className="w-3 h-3 opacity-40" />
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.companyName}</td>
+                      <td className="px-3 py-2.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">{SECTOR_LABELS[row.sector] ?? row.sector}</span></td>
+                      <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[140px] truncate">{row.institution}</td>
+                      <td className="px-3 py-2.5">
+                        {actionCfg && <span className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded" style={{ color: actionCfg.color, backgroundColor: actionCfg.bg }}>{actionCfg.icon}{actionCfg.label}</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs font-mono text-cf-text-secondary">{row.estimatedValue}</td>
+                      <td className="px-3 py-2.5 font-mono text-sm">
+                        {row.shortVolPct != null ? <span className={row.shortVolPct > 60 ? 'text-red-400' : row.shortVolPct > 50 ? 'text-amber-400' : 'text-cf-text-primary'}>{row.shortVolPct.toFixed(1)}%</span> : <span className="text-cf-text-secondary/40">-</span>}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold">{row.squeezeScore}</span>
+                          <div className="w-12 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${row.squeezeScore}%`, backgroundColor: row.squeezeScore >= 70 ? '#ef4444' : row.squeezeScore >= 45 ? '#f59e0b' : '#6366f1' }} />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-mono">{row.newsGapScore}</span>
+                          <div className="w-10 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full rounded-full bg-purple-400" style={{ width: `${row.newsGapScore}%` }} /></div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary font-mono whitespace-nowrap">{row.filingDate}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filtered.length === 0 && <div className="text-center py-12 text-cf-text-secondary text-sm">조건에 맞는 종목이 없습니다</div>}
+          </div>
+          <p className="text-[10px] text-cf-text-secondary/40 mt-3">출처: {dataDate13F} · Yahoo Finance 주가 (15분 캐시) · FINRA 공매도 비율 (일별) · 캐시 4시간</p>
+        </>
       )}
 
-      {/* Result count */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-cf-text-secondary">{filtered.length}개 결과</span>
-        {activePreset && (
-          <button
-            onClick={() => setActivePreset(null)}
-            className="flex items-center gap-1 text-xs text-cf-text-secondary hover:text-cf-text-primary transition-colors"
-          >
-            <X className="w-3 h-3" /> 프리셋 해제
-          </button>
-        )}
-      </div>
+      {/* ── 1w / 4w insider view ───────────────────────────────────────────── */}
+      {tf !== '13w' && (
+        <>
+          {loadingInsider && insiderRows.length === 0 && (
+            <div className="flex items-center justify-center py-12 gap-3 text-cf-text-secondary">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Form 4 거래 내역 로딩 중...</span>
+            </div>
+          )}
 
-      {/* Table */}
-      <div className="cf-card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="border-b border-white/5">
-            <tr>
-              <SortTh label="티커" k="ticker" />
-              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
-              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">섹터</th>
-              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관</th>
-              <SortTh label="액션" k="action" />
-              <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">규모</th>
-              <SortTh label="Short Vol %" k="shortVolPct" />
-              <SortTh label="Days to Cover" k="shortRatio" />
-              <SortTh label="스퀴즈" k="squeezeScore" />
-              <SortTh label="뉴스갭" k="newsGapScore" />
-              <SortTh label="파일링일" k="filingDate" />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(row => {
-              const actionCfg = ACTION_CONFIG[row.action];
-              return (
-                <tr key={`${row.ticker}-${row.institution}`} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                  <td className="px-3 py-2.5">
-                    <Link
-                      href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
-                      className="font-bold text-cf-accent hover:underline flex items-center gap-1"
-                    >
-                      {row.ticker}
-                      <ExternalLink className="w-3 h-3 opacity-40" />
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">
-                    {row.companyName}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">
-                      {SECTOR_LABELS[row.sector] ?? row.sector}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[140px] truncate">
-                    {row.institution}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {actionCfg && (
-                      <span
-                        className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded"
-                        style={{ color: actionCfg.color, backgroundColor: actionCfg.bg }}
-                      >
-                        {actionCfg.icon}
-                        {actionCfg.label}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs font-mono text-cf-text-secondary">{row.estimatedValue}</td>
-                  <td className="px-3 py-2.5 font-mono text-sm">
-                    {row.shortVolPct != null ? (
-                      <span className={row.shortVolPct > 60 ? 'text-red-400' : row.shortVolPct > 50 ? 'text-amber-400' : 'text-cf-text-primary'}>
-                        {row.shortVolPct.toFixed(1)}%
-                      </span>
-                    ) : <span className="text-cf-text-secondary/40">-</span>}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-sm">
-                    {row.shortRatio != null ? (
-                      <span className={row.shortRatio > 5 ? 'text-amber-400' : 'text-cf-text-primary'}>
-                        {row.shortRatio.toFixed(1)}일
-                      </span>
-                    ) : <span className="text-cf-text-secondary/40">-</span>}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold">{row.squeezeScore}</span>
-                      <div className="w-12 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${row.squeezeScore}%`,
-                            backgroundColor: row.squeezeScore >= 70 ? '#ef4444' : row.squeezeScore >= 45 ? '#f59e0b' : '#6366f1',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-mono">{row.newsGapScore}</span>
-                      <div className="w-10 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-purple-400"
-                          style={{ width: `${row.newsGapScore}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary font-mono whitespace-nowrap">
-                    {row.filingDate}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-cf-text-secondary text-sm">
-            조건에 맞는 종목이 없습니다
-          </div>
-        )}
-      </div>
+          {!loadingInsider && insiderRows.length === 0 && (
+            <div className="text-center py-12 text-cf-text-secondary text-sm">
+              최근 {tf === '1w' ? '7일' : '28일'} 내 내부자 매수 거래 없음
+            </div>
+          )}
 
-      <p className="text-[10px] text-cf-text-secondary/40 mt-3">
-        출처: SEC EDGAR 13F (Q4 2025 기준, 제출 2026-02-14) · Yahoo Finance 주가 (15분 캐시) · FINRA 공매도 비율 (일별) · 스크리너 캐시 4시간
-      </p>
+          {insiderRows.length > 0 && (
+            <>
+              <div className="space-y-3 mb-5">
+                {/* 💰 대규모 내부자 매수 */}
+                {topInsiderBuys.length > 0 && (
+                  <div className="cf-card p-4 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/10">
+                    <p className="text-[10px] font-bold text-emerald-400 mb-3 flex items-center gap-1.5">
+                      💰 대규모 내부자 매수 — 실시간 가격
+                      <span className="font-normal text-cf-text-secondary">기간 내 총 매수금액 상위 5종목</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {topInsiderBuys.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={fmtUsd(row.totalValueUsd)} badgeCls="bg-emerald-500/20 text-emerald-300" sub={row.issuerName.slice(0, 18)} />)}
+                    </div>
+                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 내부자 거래: {dataDateInsider}</p>
+                  </div>
+                )}
+
+                {/* 👑 C-Suite 매수 */}
+                {topCsuite.length > 0 && (
+                  <div className="cf-card p-4 bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-500/10">
+                    <p className="text-[10px] font-bold text-violet-400 mb-3 flex items-center gap-1.5">
+                      👑 C-Suite 매수 — CEO·CFO·임원
+                      <span className="font-normal text-cf-text-secondary">최고위 임원 직접 매수 종목</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {topCsuite.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={row.topTitle?.slice(0, 10) ?? 'C-Suite'} badgeCls="bg-violet-500/20 text-violet-300" sub={row.topBuyer.split(' ').slice(-1)[0]} />)}
+                    </div>
+                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 내부자 거래: {dataDateInsider}</p>
+                  </div>
+                )}
+
+                {/* 🔁 집중 매수 */}
+                {topClustered.filter(r => r.tradeCount >= 2).length > 0 && (
+                  <div className="cf-card p-4 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 border border-amber-500/10">
+                    <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
+                      🔁 집중 매수 — 여러 내부자 동시 매수
+                      <span className="font-normal text-cf-text-secondary">복수 내부자가 같은 종목 매수</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {topClustered.filter(r => r.tradeCount >= 2).slice(0, 5).map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={`${row.tradeCount}건`} badgeCls="bg-amber-500/20 text-amber-300" sub={`총 ${fmtUsd(row.totalValueUsd)}`} />)}
+                    </div>
+                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">주가: Yahoo Finance · 15분 캐시 &nbsp;|&nbsp; 내부자 거래: {dataDateInsider}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Insider table */}
+              <div className="cf-card overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-white/5">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">티커</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">내부자</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">직책</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">매수금액</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">거래수</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">최근 거래일</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {insiderRows.slice(0, 50).map(row => (
+                      <tr key={row.ticker} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                        <td className="px-3 py-2.5">
+                          <Link href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']} className="font-bold text-cf-accent hover:underline flex items-center gap-1">
+                            {row.ticker}<ExternalLink className="w-3 h-3 opacity-40" />
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.issuerName}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[120px] truncate">{row.topBuyer}</td>
+                        <td className="px-3 py-2.5">
+                          {row.topTitle && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${row.isCsuite ? 'bg-violet-500/20 text-violet-300' : 'bg-white/5 text-cf-text-secondary'}`}>
+                              {row.topTitle.slice(0, 15)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-sm font-bold text-emerald-400">{fmtUsd(row.totalValueUsd)}</td>
+                        <td className="px-3 py-2.5">
+                          <span className={`text-xs font-bold ${row.tradeCount >= 3 ? 'text-amber-400' : 'text-cf-text-primary'}`}>{row.tradeCount}건</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary font-mono">
+                          {row.trades.sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))[0].transactionDate}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {insiderRows.length === 0 && <div className="text-center py-12 text-cf-text-secondary text-sm">해당 기간 내 내부자 매수 없음</div>}
+              </div>
+              <p className="text-[10px] text-cf-text-secondary/40 mt-3">출처: {dataDateInsider} · Yahoo Finance 주가 (15분 캐시)</p>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
