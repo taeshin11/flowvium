@@ -9,6 +9,33 @@ import {
 } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
 
+// ── i18n key maps — stable IDs → translation key ─────────────────────────────
+const ASSET_LABEL_KEY: Record<string, string> = {
+  'us-stocks': 'cfLblUsStocks', 'em-stocks': 'cfLblEmStocks', 'eu-stocks': 'cfLblEuStocks',
+  'us-tech': 'cfLblUsTech', 'us-bonds-lt': 'cfLblUsBondsLt', 'us-bonds-st': 'cfLblUsBondsSt',
+  'hy-bonds': 'cfLblHyBonds', 'gold': 'cfLblGold', 'silver': 'cfLblSilver', 'bitcoin': 'cfLblBitcoin',
+  'oil': 'cfLblOil', 'energy': 'cfLblEnergy', 'agri': 'cfLblAgri', 'dollar': 'cfLblDollar', 'yen': 'cfLblYen',
+};
+const COUNTRY_LABEL_KEY: Record<string, string> = {
+  'us': 'cfCtryUs', 'korea': 'cfCtryKorea', 'japan': 'cfCtryJapan', 'china': 'cfCtryChina',
+  'europe': 'cfCtryEurope', 'uk': 'cfCtryUk', 'india': 'cfCtryIndia', 'brazil': 'cfCtryBrazil',
+  'taiwan': 'cfCtryTaiwan', 'australia': 'cfCtryAustralia', 'germany': 'cfCtryGermany', 'mexico': 'cfCtryMexico',
+};
+const FACTOR_LABEL_KEY: Record<string, string> = {
+  'momentum': 'cfFtrMomentum', 'quality': 'cfFtrQuality', 'value': 'cfFtrValue',
+  'lowvol': 'cfFtrLowvol', 'growth': 'cfFtrGrowth', 'blend': 'cfFtrBlend',
+};
+const SECTOR_LABEL_KEY: Record<string, string> = {
+  'tech': 'cfSecTech', 'financials': 'cfSecFinancials', 'energy': 'cfSecEnergy',
+  'healthcare': 'cfSecHealthcare', 'industrials': 'cfSecIndustrials', 'materials': 'cfSecMaterials',
+  'consdisc': 'cfSecConsdisc', 'consstaples': 'cfSecConsstaples', 'utilities': 'cfSecUtilities',
+  'realestate': 'cfSecRealestate', 'commsvc': 'cfSecCommsvc',
+};
+const ITEM_LABEL_KEY: Record<string, string> = { ...ASSET_LABEL_KEY, ...COUNTRY_LABEL_KEY };
+const CF_SIGNAL_KEY: Record<string, string> = {
+  gold_preferred: 'cfSignalGoldPreferred', dollar_preferred: 'cfSignalDollarPreferred', mixed: 'cfSignalMixed',
+};
+
 // ── Cascade rules — keyed by asset/country ID (not Korean label) ───────────────
 const CASCADE_RULES: Record<string, { up: string[]; down: string[] }> = {
   'us':          { up: ['Tech(QQQ)', 'S&P500(SPY)', 'USD(UUP)'],       down: ['EM Equities', 'Bonds(TLT)'] },
@@ -34,7 +61,7 @@ interface CountryReturn { id: string; label: string; flag: string; ticker: strin
 interface FactorReturn { id: string; label: string; flag: string; ticker: string; desc: string; ret1w: number; ret4w: number; ret13w: number; }
 interface SectorReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 type RotEntry = { from:string; to:string; magnitude:number; weeksAgo?:number; startDate?:string; momentum?:string };
-type CountryRotEntry = { from:string; fromFlag:string; to:string; toFlag:string; magnitude:number; momentum:'accelerating'|'holding'|'fading' };
+type CountryRotEntry = { from:string; fromFlag:string; fromId?:string; to:string; toFlag:string; toId?:string; magnitude:number; momentum:'accelerating'|'holding'|'fading' };
 interface CurvePoint { ticker: string; label: string; price: number; }
 interface CommodityCurveData { id: 'oil'|'gold'; name: string; unit: string; curve: CurvePoint[]; structure: 'contango'|'backwardation'|'flat'; slope: number; updatedAt: string; }
 interface FlowData {
@@ -159,7 +186,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                       <tr key={item.id} className="border-t border-cf-border/40">
                         <td className="py-1.5 flex items-center gap-1.5">
                           <span>{item.flag}</span>
-                          <span className="font-medium text-cf-text-primary">{item.label}</span>
+                          <span className="font-medium text-cf-text-primary">{t(ITEM_LABEL_KEY[item.id] ?? 'cfLblUsStocks')}</span>
                           {assetData?.sparkline && assetData.sparkline.length >= 5 && (
                             <Sparkline values={assetData.sparkline} width={40} height={14} stroke={1} />
                           )}
@@ -200,7 +227,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                       <tr key={item.id} className="border-t border-cf-border/40">
                         <td className="py-1.5 flex items-center gap-1.5">
                           <span>{item.flag}</span>
-                          <span className="font-medium text-cf-text-primary">{item.label}</span>
+                          <span className="font-medium text-cf-text-primary">{t(ITEM_LABEL_KEY[item.id] ?? 'cfLblUsStocks')}</span>
                           {assetData?.sparkline && assetData.sparkline.length >= 5 && (
                             <Sparkline values={assetData.sparkline} width={40} height={14} stroke={1} />
                           )}
@@ -228,7 +255,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                 {divergent.slice(0, 6).map(item => (
                   <div key={item.id} className="flex items-center gap-1.5 bg-white border border-amber-200 rounded-lg px-2 py-1">
                     <span className="text-sm leading-none">{item.flag}</span>
-                    <span className="text-[10px] font-bold text-cf-text-primary">{item.label}</span>
+                    <span className="text-[10px] font-bold text-cf-text-primary">{t(ITEM_LABEL_KEY[item.id] ?? 'cfLblUsStocks')}</span>
                     <span className={`text-[10px] font-bold ${item.ret1w >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                       1w {item.ret1w > 0 ? '+' : ''}{item.ret1w.toFixed(1)}%
                     </span>
@@ -251,7 +278,7 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
             <div key={item.id} className="rounded-xl border border-cf-border overflow-hidden">
               <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border-b border-green-100">
                 <span className="text-base leading-none">{item.flag}</span>
-                <span className="text-xs font-bold text-green-700">{item.label}</span>
+                <span className="text-xs font-bold text-green-700">{t(ITEM_LABEL_KEY[item.id] ?? 'cfLblUsStocks')}</span>
                 <span className="text-xs font-bold text-green-600 ml-auto tabular-nums">
                   4w {item.ret4w > 0 ? '+' : ''}{item.ret4w.toFixed(1)}%
                 </span>
@@ -553,15 +580,15 @@ export default function CapitalFlowsTab() {
               return (
                 <div key={i} className="p-3 rounded-lg bg-cf-bg border border-cf-border space-y-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-red-500 bg-red-50 px-2.5 py-1 rounded-full">{r.from}</span>
+                    <span className="text-xs font-bold text-red-500 bg-red-50 px-2.5 py-1 rounded-full">{t(GROUP_KEY[r.from] ?? 'cfGroupEquity')}</span>
                     <ArrowRight className="w-4 h-4 text-cf-primary flex-shrink-0" />
-                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">{r.to}</span>
+                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">{t(GROUP_KEY[r.to] ?? 'cfGroupEquity')}</span>
                     <span className="ml-auto text-sm font-extrabold text-cf-primary">+{r.magnitude}%p</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {r.startDate && (
                       <span className="text-[11px] text-cf-text-secondary flex items-center gap-1">
-                        🕐 {r.weeksAgo === 1 ? t('cfThisWeek') : t('cfWeeksAgo', { n: r.weeksAgo ?? 0 })} ({r.startDate})
+                        🕐 {r.weeksAgo === 1 ? t('cfThisWeek') : t('cfWeeksAgo', { n: r.weeksAgo ?? 0 })} ({new Date(r.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})
                       </span>
                     )}
                     {r.momentum && (
@@ -598,10 +625,10 @@ export default function CapitalFlowsTab() {
                   return (
                     <div key={i} className="flex items-center gap-2 p-2.5 rounded-lg bg-cf-bg border border-cf-border">
                       <span className="text-base leading-none flex-shrink-0">{r.fromFlag}</span>
-                      <span className="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{r.from}</span>
+                      <span className="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{r.fromId ? t(COUNTRY_LABEL_KEY[r.fromId] ?? 'cfCtryUs') : r.from}</span>
                       <ArrowRight className="w-3.5 h-3.5 text-cf-primary flex-shrink-0" />
                       <span className="text-base leading-none flex-shrink-0">{r.toFlag}</span>
-                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{r.to}</span>
+                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{r.toId ? t(COUNTRY_LABEL_KEY[r.toId] ?? 'cfCtryUs') : r.to}</span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ml-1 ${mb.cls}`}>{mb.label}</span>
                       <span className="ml-auto text-sm font-extrabold text-cf-primary">+{r.magnitude}%p</span>
                     </div>
@@ -621,7 +648,7 @@ export default function CapitalFlowsTab() {
                   <div key={c.id} className={`rounded-lg border p-2.5 ${positive ? 'border-green-200 bg-green-50/40' : 'border-red-200 bg-red-50/40'}`}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className="text-base leading-none">{c.flag}</span>
-                      <span className="text-xs font-bold text-cf-text-primary">{c.label}</span>
+                      <span className="text-xs font-bold text-cf-text-primary">{t(COUNTRY_LABEL_KEY[c.id] ?? 'cfCtryUs')}</span>
                     </div>
                     <div className={`text-base font-extrabold tabular-nums ${positive ? 'text-green-600' : 'text-red-500'}`}>
                       {val > 0 ? '+' : ''}{val.toFixed(1)}%
@@ -648,7 +675,7 @@ export default function CapitalFlowsTab() {
                 {sorted.map((f) => (
                   <div key={f.id} className="flex items-center gap-3">
                     <span className="text-base leading-none flex-shrink-0">{f.flag}</span>
-                    <span className="text-xs font-bold text-cf-text-primary w-16 flex-shrink-0">{f.label}</span>
+                    <span className="text-xs font-bold text-cf-text-primary w-16 flex-shrink-0">{t(FACTOR_LABEL_KEY[f.id] ?? 'cfFtrMomentum')}</span>
                     <span className="text-[10px] text-gray-400 font-mono w-10 flex-shrink-0">{f.ticker}</span>
                     <ReturnBar val={f[retKey]} max={maxAbs2} />
                   </div>
@@ -679,13 +706,13 @@ export default function CapitalFlowsTab() {
                   <div className="flex gap-2 mb-3">
                     <div className="flex-1 p-2 rounded-lg bg-green-50 border border-green-200 text-center">
                       <div className="text-base">{best.flag}</div>
-                      <div className="text-xs font-bold text-green-700">{best.label}</div>
+                      <div className="text-xs font-bold text-green-700">{t(SECTOR_LABEL_KEY[best.id] ?? 'cfSecTech')}</div>
                       <div className="text-sm font-extrabold text-green-600">+{best[retKey].toFixed(1)}%</div>
                     </div>
                     <div className="flex items-center text-xs text-gray-400">→</div>
                     <div className="flex-1 p-2 rounded-lg bg-red-50 border border-red-200 text-center">
                       <div className="text-base">{worst.flag}</div>
-                      <div className="text-xs font-bold text-red-700">{worst.label}</div>
+                      <div className="text-xs font-bold text-red-700">{t(SECTOR_LABEL_KEY[worst.id] ?? 'cfSecTech')}</div>
                       <div className="text-sm font-extrabold text-red-500">{worst[retKey].toFixed(1)}%</div>
                     </div>
                   </div>
@@ -694,7 +721,7 @@ export default function CapitalFlowsTab() {
                   {sorted.map((s) => (
                     <div key={s.id} className="flex items-center gap-2">
                       <span className="text-sm leading-none flex-shrink-0">{s.flag}</span>
-                      <span className="text-xs font-medium text-cf-text-primary w-16 flex-shrink-0 truncate">{s.label}</span>
+                      <span className="text-xs font-medium text-cf-text-primary w-16 flex-shrink-0 truncate">{t(SECTOR_LABEL_KEY[s.id] ?? 'cfSecTech')}</span>
                       <span className="text-[10px] text-gray-400 font-mono w-10 flex-shrink-0">{s.ticker}</span>
                       <ReturnBar val={s[retKey]} max={maxAbs2} />
                     </div>
@@ -738,7 +765,7 @@ export default function CapitalFlowsTab() {
               </div>
             </div>
             <div className="text-center text-xs font-semibold text-cf-primary bg-cf-primary/5 rounded-lg py-2 px-3">
-              📌 {signal}
+              📌 {t(CF_SIGNAL_KEY[signal] ?? 'cfSignalMixed')}
             </div>
           </div>
         );
@@ -844,7 +871,7 @@ export default function CapitalFlowsTab() {
                   <div key={a.id} className="flex items-center gap-2">
                     <span className="text-xs text-gray-400 w-4 flex-shrink-0">{i + 1}</span>
                     <span className="text-base leading-none flex-shrink-0">{a.flag}</span>
-                    <span className="text-xs font-medium text-cf-text-primary truncate flex-1">{a.label}</span>
+                    <span className="text-xs font-medium text-cf-text-primary truncate flex-1">{t(ASSET_LABEL_KEY[a.id] ?? 'cfLblUsStocks')}</span>
                     <span className="text-xs font-bold text-green-600 flex-shrink-0">+{a[retKey].toFixed(1)}%</span>
                   </div>
                 ))}
@@ -859,7 +886,7 @@ export default function CapitalFlowsTab() {
                   <div key={a.id} className="flex items-center gap-2">
                     <span className="text-xs text-gray-400 w-4 flex-shrink-0">{i + 1}</span>
                     <span className="text-base leading-none flex-shrink-0">{a.flag}</span>
-                    <span className="text-xs font-medium text-cf-text-primary truncate flex-1">{a.label}</span>
+                    <span className="text-xs font-medium text-cf-text-primary truncate flex-1">{t(ASSET_LABEL_KEY[a.id] ?? 'cfLblUsStocks')}</span>
                     <span className="text-xs font-bold text-red-500 flex-shrink-0">{a[retKey].toFixed(1)}%</span>
                   </div>
                 ))}
@@ -887,7 +914,7 @@ export default function CapitalFlowsTab() {
                 <tr key={a.id} className="border-b border-cf-border/50 last:border-0">
                   <td className="py-2 flex items-center gap-1.5">
                     <span>{a.flag}</span>
-                    <span className="font-medium text-cf-text-primary">{a.label}</span>
+                    <span className="font-medium text-cf-text-primary">{t(ASSET_LABEL_KEY[a.id] ?? 'cfLblUsStocks')}</span>
                     <span className="text-gray-400 font-mono">{a.ticker}</span>
                   </td>
                   <td className={`py-2 text-right font-bold tabular-nums ${a.ret1w >= 0 ? 'text-green-600' : 'text-red-500'}`}>

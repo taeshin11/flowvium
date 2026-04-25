@@ -309,14 +309,13 @@ function estimateRotationStart(
 
   const start = new Date();
   start.setDate(start.getDate() - weeksAgo * 7);
-  const startDate = `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()}일`;
+  const startDate = start.toISOString().split('T')[0];
 
   return { weeksAgo, startDate, momentum };
 }
 
-const GROUP_LABELS: Record<string, string> = {
-  equity: '주식', bonds: '채권', alts: '금·은·비트코인', commodities: 'WTI원유·에너지주·곡물', currency: '통화',
-};
+// Group IDs are returned to client; client resolves labels via i18n
+// Removed GROUP_LABELS (was Korean-only; replaced with stable group IDs)
 
 type RotationEntry = {
   from: string; to: string; magnitude: number;
@@ -350,8 +349,8 @@ function buildRotations(
       if (spread > minSpread) {
         const timing = estimateRotationStart(priceMap, groupAvg[i].group, groupAvg[j].group, ASSETS, maxWeeks);
         rotations.push({
-          from: GROUP_LABELS[groupAvg[j].group] ?? groupAvg[j].group,
-          to: GROUP_LABELS[groupAvg[i].group] ?? groupAvg[i].group,
+          from: groupAvg[j].group,
+          to: groupAvg[i].group,
           magnitude: parseFloat(spread.toFixed(1)),
           ...timing,
         });
@@ -391,8 +390,8 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
 export async function GET() {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
-  const dataSource = twelveKey ? 'Twelve Data (실시간)' : 'Yahoo Finance (15분 지연)';
-  const cacheKey = `flowvium:capital-flows:v9:${twelveKey ? 'twelve' : 'yahoo'}`;
+  const dataSource = twelveKey ? 'Twelve Data (realtime)' : 'Yahoo Finance (15min delay)';
+  const cacheKey = `flowvium:capital-flows:v10:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   // Module-level memory cache — saves ~41 Yahoo calls per warm-instance hit
   if (!redis && CAPITAL_MEMORY_CACHE && Date.now() < CAPITAL_MEMORY_CACHE.expiresAt) {
@@ -419,7 +418,7 @@ export async function GET() {
   // Describe which sources actually provided data
   const sourceSummary = Object.entries(sourceCount)
     .filter(([s]) => s !== 'failed')
-    .map(([s, n]) => ({ twelve: 'Twelve Data(실시간)', yahoo: 'Yahoo Finance(15분)', stooq: 'Stooq(종가)' }[s] ?? s) + ` ${n}개`)
+    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance', stooq: 'Stooq' }[s] ?? s) + ` ×${n}`)
     .join(' + ');
 
   const results = ASSETS.map((asset) => {
@@ -443,8 +442,8 @@ export async function GET() {
   const gldPrices = priceMap['GLD'] ?? [];
   const uupPrices = priceMap['UUP'] ?? [];
 
-  function goldSignal(g: number, d: number) {
-    return g > d + 2 ? '금 선호 (달러 약세 헷지)' : d > g + 2 ? '달러 강세 (안전자산 달러로)' : '혼조';
+  function goldSignal(g: number, d: number): string {
+    return g > d + 2 ? 'gold_preferred' : d > g + 2 ? 'dollar_preferred' : 'mixed';
   }
 
   const goldVsDollar = {
@@ -476,7 +475,7 @@ export async function GET() {
   // Build country rotation (top 3 pairs per timeframe)
   function buildCountryRotations(retKey: 'ret1w' | 'ret4w' | 'ret13w', minSpread: number) {
     const sorted = [...countryResults].sort((a, b) => b[retKey] - a[retKey]);
-    const pairs: { from: string; fromFlag: string; to: string; toFlag: string; magnitude: number; momentum: 'accelerating' | 'holding' | 'fading' }[] = [];
+    const pairs: { from: string; fromFlag: string; fromId: string; to: string; toFlag: string; toId: string; magnitude: number; momentum: 'accelerating' | 'holding' | 'fading' }[] = [];
     for (let i = 0; i < Math.min(sorted.length, 4); i++) {
       for (let j = sorted.length - 1; j >= Math.max(0, sorted.length - 4); j--) {
         if (i >= j) continue;
@@ -488,7 +487,7 @@ export async function GET() {
           const momentum: 'accelerating' | 'holding' | 'fading' =
             spread1w > spread4wPerWeek * 1.3 ? 'accelerating' :
             spread1w < spread4wPerWeek * 0.4 ? 'fading' : 'holding';
-          pairs.push({ from: sorted[j].label, fromFlag: sorted[j].flag, to: sorted[i].label, toFlag: sorted[i].flag, magnitude: spread, momentum });
+          pairs.push({ from: sorted[j].label, fromFlag: sorted[j].flag, fromId: sorted[j].id, to: sorted[i].label, toFlag: sorted[i].flag, toId: sorted[i].id, magnitude: spread, momentum });
         }
       }
     }
