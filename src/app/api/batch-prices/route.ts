@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' };
+
 interface PriceEntry { price: number | null; change: number | null; changePct: number | null; marketState: string | null; }
 type PriceMap = Record<string, PriceEntry>;
 
@@ -32,7 +34,7 @@ export async function GET(req: Request) {
   const param = url.searchParams.get('tickers') ?? '';
   const tickers = Array.from(new Set(
     param.split(',').map(t => t.trim().toUpperCase()).filter(t => /^[A-Z0-9.\-]{1,10}$/.test(t))
-  )).slice(0, 120);
+  )).sort().slice(0, 120);
 
   if (!tickers.length) return NextResponse.json({ prices: {} });
 
@@ -87,5 +89,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ prices });
+  return NextResponse.json({ prices }, { headers: CDN_HEADERS });
 }
