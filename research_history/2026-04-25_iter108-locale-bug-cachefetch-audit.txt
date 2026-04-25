@@ -1,0 +1,123 @@
+ITER108 — ko-KR 날짜 locale 버그 수정 + fetch() cache 감사 (negative)
+Date: 2026-04-25
+Primary outcome: "9개 컴포넌트 날짜 locale 버그" (19자)
+
+═══════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════
+Recent commits: iter107(NewsCascade+EconCal i18n), iter106(batch10+insider i18n),
+iter105(CotTab/CB i18n+perf)
+
+i18n 연속성: iter105 → iter106 → iter107 = 3 iter 연속 i18n 작업 → drift 신호! ⚠️
+→ 이번 iter 영역 전환 필수 (규칙 [1])
+
+→ 전환 방향 1: bare fetch() cache 감사 (CLAUDE.md MANDATORY rule)
+  결과: NEGATIVE — 모든 route handler + lib fetch()에 cache 옵션 이미 완비
+  (iter103 c552253 커밋에서 14개 endpoint 수정 완료, 그 이후 추가된 것도 모두 OK)
+
+→ 전환 방향 2: 감사 중 발견한 locale 버그
+  — toLocaleDateString/toLocaleString('ko-KR') 하드코딩 9곳 발견
+  — 비한국어 15/16 로케일 사용자가 항상 한국어 날짜 형식 표시받는 functional bug
+  — i18n 텍스트 추가와는 다른 종류: 동적 동작 버그
+
+No drift — 영역 전환 완료 ✅
+
+═══════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════
+"9개 컴포넌트 날짜 locale 버그" (18자)
+
+산출물 체크 (규칙 [3]):
+(c) 삭제/단순화: 9개 하드코딩 'ko-KR' 제거 → 동적 useLocale() 교체
+
+═══════════════════════════════════════════════════════════════
+TASK A — fetch() cache 감사 (NEGATIVE RESULT)
+═══════════════════════════════════════════════════════════════
+감사 범위: src/app/api/**/*.ts (30+ route handlers), src/lib/*.ts (14 파일)
+
+결과: 모든 외부 GET fetch() 에 cache: 'no-store' 또는 next: { revalidate } 확인
+  ✅ alpha-vantage.ts: next: { revalidate: 43200/86400 }
+  ✅ credit-fetchers.ts: cache: 'no-store'
+  ✅ edgar-13f.ts: cache: 'no-store'
+  ✅ edgar-insider.ts: cache: 'no-store' (pacedFetch helper)
+  ✅ ishares-holdings.ts: cache: 'no-store'
+  ✅ polygon.ts: cache: 'no-store'
+  ✅ sec-financials.ts: next: { revalidate }
+  ✅ stooq.ts: cache: 'no-store'
+  ✅ yahoo-finance.ts: cache: 'no-store'
+  ✅ commodity-curve/route.ts: cache: 'no-store'
+  ✅ company-news/route.ts: cache: 'no-store'
+  ✅ capital-flows/route.ts: cache: 'no-store'
+  ✅ macro-indicators/route.ts: cache: 'no-store'
+  ✅ news-cascade/route.ts: cache: 'no-store'
+  ✅ latest-updates/route.ts: cache: 'no-store' (safeJson helper)
+  ✅ cron/update-all/route.ts: cache: 'no-store'
+  ✅ cron/verify-metrics/route.ts: cache: 'no-store' (safeJson helper)
+  (기타 모두 확인 완료)
+
+POST 요청들 (vLLM, Groq, KRX, Discord, collect webhook): POST는 Next.js가
+기본 캐시하지 않음 → cache 옵션 불필요, 정상
+
+결론: iter103 c552253에서 수정된 14개 endpoint가 기준이 됐고, 이후 추가된
+모든 fetch()도 올바르게 작성됨. codebase CLEAN.
+
+═══════════════════════════════════════════════════════════════
+TASK B — ko-KR 날짜 locale 버그 수정 (9곳)
+═══════════════════════════════════════════════════════════════
+발견: toLocaleDateString/toLocaleString('ko-KR') 하드코딩 → 비한국어 사용자에게
+     한국어 날짜 형식 표시 (예: "4월 25일 금" → English 사용자에게도 동일)
+
+수정 방식:
+  - useLocale() from 'next-intl' 추가 (이미 useTranslations 있는 파일은 import 업데이트)
+  - 'ko-KR' → locale (동적)
+
+파일별 변경:
+  1. EconCalendarSection.tsx:57 — 날짜 라벨 (이미 iter107에서 작업한 파일)
+  2. NewsCascadeTab.tsx:89 — 뉴스 날짜 (이미 iter107에서 작업한 파일)
+  3. MacroIndicatorsTab.tsx:524 — 릴리즈 날짜
+  4. OSINTPage.tsx:242 — 소셜 피드 날짜 (SocialTab)
+  5. OSINTPage.tsx:441 — 암호화폐 트랜잭션 날짜 (CryptoTab)
+  6. NewsGapPage.tsx:711 — 캐시 상태 날짜
+  7. NewsGapPage.tsx:715 — 실시간 갱신 날짜
+  8. EarningsPage.tsx:314 — 업데이트 시각
+  9. HomePage.tsx:459 — AI Daily Brief 생성 시각 (AIDailyBrief 컴포넌트)
+
+TypeScript: 0 errors
+Commit: c90a34b
+
+영향: 16개 로케일 중 ko 제외 15개 언어에서 날짜가 올바른 형식으로 표시됨
+
+═══════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════
+[accuracy probe] metric=SPY source=Yahoo
+  Shell fetch: BLOCKED (known Windows network restriction)
+  Last known (iter107): direct_value=713.94 → 알려진 차단, Vercel에서 정상
+
+[accuracy probe] metric=fg.us source=CNN
+  Shell fetch: BLOCKED (known)
+  Last known (iter105): direct_value=66 our_value=66 delta=0 → OK
+
+Note: 이번 iter는 locale 버그 수정 (UI 렌더링) — live metric 값 변화 없음
+      값 정합성은 verify-metrics cron 자동화 담당
+
+═══════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════
+TypeScript: 0 errors
+allCompanies: 602 unique ✅
+fetch() cache 감사: CLEAN ✅
+날짜 locale 버그: 수정 완료 ✅ (9/9)
+
+i18n 한국어 잔존 (주요 탭):
+  MacroIndicatorsTab: ~68개 (대형 작업, 이번 iter에서 locale 버그 1개 수정됨)
+  기타 페이지: Korean text 잔존 다수 (EarningsPage, NewsGapPage 등)
+
+═══════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════
+1. MacroIndicatorsTab i18n (68개) — 가장 큰 미완료 i18n 작업
+2. 기타 페이지 Korean text 정리 — EarningsPage, NewsGapPage 등 locale 버그와
+   인접한 파일들에 아직 Korean 하드코딩 텍스트 다수
+3. 성능: 병렬화 기회 탐색 (sector-pe, short-interest 등 sequential fetch 개선)
+4. 새 기능: product 가치 개선 방향 탐색
