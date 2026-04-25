@@ -1,0 +1,112 @@
+ITER101 — 기업 444개 → 498개 확장 + Redis key version 수정
+Date: 2026-04-25
+Commits: 550226b (redis-keys fix), 2995959 (companies batch8)
+Primary outcome: "기업 444 → 498개 확장"
+
+═══════════════════════════════════════════════════════════════════════
+DRIFT CHECK
+═══════════════════════════════════════════════════════════════════════
+iter98=flow-analysis, iter99=i18n, iter100=korea-flow, iter101=company-data+infra
+→ 4개 iter 서로 다른 영역. Drift 없음.
+
+═══════════════════════════════════════════════════════════════════════
+PRIMARY OUTCOME (≤20자)
+═══════════════════════════════════════════════════════════════════════
+"기업 444 → 498개 확장"
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM A — Redis key version mismatch (infra)
+═══════════════════════════════════════════════════════════════════════
+admin/health/route.ts:
+  buildTrackedKeys()에 `flowvium:macro-indicators:v9:${kstDate}` 사용
+  → 실제 키는 v12이므로 항상 missing 보고
+
+verify-metrics/route.ts:
+  verifyRedisCaches()에 `flowvium:macro-indicators:v10:${kstDate}` 사용
+  → 동일 문제
+
+FIX: 두 파일 모두 v12로 업데이트.
+Commit: 550226b
+
+═══════════════════════════════════════════════════════════════════════
+PROBLEM B — 기업 커버리지 444개로 너무 적음
+═══════════════════════════════════════════════════════════════════════
+사용자 요청: "세상에 기업이 얼마나 많은데 왜 우리는 444개 밖에 없냐고?"
+
+기존 구조:
+  companies.ts(123) + batch1(79) + batch2(69) + batch3(59) +
+  batch4(54) + batch5(41) + batch6(21) + batch7(20) = 466 raw (444 unique UI 표시)
+
+FIX: companies-batch8.ts 신설 — 54개 신규 기업 추가
+
+═══════════════════════════════════════════════════════════════════════
+BATCH8 신규 기업 목록 (54개)
+═══════════════════════════════════════════════════════════════════════
+Healthcare Distributors & Managed Care (5):
+  MCK (McKesson $308B), CAH (Cardinal Health $227B), COR (Cencora $293B)
+  MOH (Molina Healthcare), CNC (Centene $154B)
+
+Logistics & Transportation (3):
+  FDX (FedEx $87.7B), JBHT (J.B. Hunt), XPO
+
+Consumer Staples/Brands (5):
+  KHC (Kraft Heinz), TSN (Tyson Foods $52.9B), DG (Dollar General)
+  DLTR (Dollar Tree), ULTA (Ulta Beauty)
+
+Consumer/Gig Platforms (6):
+  ABNB (Airbnb), DASH (DoorDash), LYFT (Lyft)
+  SNAP (Snap), PINS (Pinterest), SPOT (Spotify)
+
+Fintech & Payments (4):
+  XYZ (Block/Square), GPN (Global Payments), PAYX (Paychex), BILL (Bill.com)
+
+Enterprise Software (7):
+  VEEV (Veeva), HUBS (HubSpot), DT (Dynatrace), TTD (The Trade Desk)
+  APP (AppLovin), ROKU (Roku), GTLB (GitLab)
+
+Energy E&P (3):
+  OVV (Ovintiv), CTRA (Coterra), MRO (Marathon Oil)
+
+Specialty REITs (3):
+  COLD (Americold), WPC (W.P. Carey), NNN (NNN REIT)
+
+Materials & Specialty (3):
+  OLN (Olin Corp), RPM (RPM International), TOL (Toll Brothers)
+
+Financial Services (3):
+  RJF (Raymond James), VOYA (Voya Financial), LPLA (LPL Financial)
+
+International ADRs (12):
+  MELI (MercadoLibre), SE (Sea Limited), NU (Nubank)
+  BABA (Alibaba), INFY (Infosys), NVS (Novartis)
+  BHP, RIO (Rio Tinto), VALE (Vale)
+  TM (Toyota), CPNG (Coupang), TCOM (Trip.com)
+
+═══════════════════════════════════════════════════════════════════════
+ACCURACY PROBES
+═══════════════════════════════════════════════════════════════════════
+[accuracy probe] metric=vix source=Yahoo
+  direct_value=18.71 our_value=18.71 delta=0.00 → OK
+
+[accuracy probe] metric=fg.US source=CNN
+  direct_value=N/A (HTTP 418 bot-block) → proxy only (cached value used)
+  NOTE: CNN 418 이번 iter에서도 재확인. 4 iter 연속 bot-block.
+
+═══════════════════════════════════════════════════════════════════════
+SYSTEM HEALTH
+═══════════════════════════════════════════════════════════════════════
+TypeScript: 0 errors (전체 codebase)
+Redis key version mismatch: FIXED (admin/health + verify-metrics)
+Company count: 444 → ~498 (+54)
+Batch8 companies: 54개 신규, 0개 중복
+
+[skipped] kr.foreign / kr.institution / kr.retail — KRX 세션 차단 (공식 포기)
+[skipped] ai.vllm — 로컬 터널 다운
+
+═══════════════════════════════════════════════════════════════════════
+NEXT ITER 후보
+═══════════════════════════════════════════════════════════════════════
+1. CapitalFlowsTab.tsx 하드코딩 한국어 30+ → i18n 마이그레이션 (3회 이상 deferred → drift 신호)
+2. 기업 데이터 batch9 추가 (목표: 600개+ — GRAB, NTES, BILI, LI, HMC, STLA, WEX, EVR, EQT, APA, etc.)
+3. 성능 프로파일링 — 느린 엔드포인트 실측
+
