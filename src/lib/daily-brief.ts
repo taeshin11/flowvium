@@ -43,7 +43,7 @@ export function kstDateStr(): string {
 }
 
 export function cacheKey(tf: Timeframe): string {
-  return `flowvium:daily-brief:v4:${kstDateStr()}:${tf}`;
+  return `flowvium:daily-brief:v5:${kstDateStr()}:${tf}`;
 }
 
 // ── Per-tab data aggregator ───────────────────────────────────────────────────
@@ -261,7 +261,7 @@ function summariseShort(data: unknown): string {
     .filter(s => (s.squeezeScore as number) > 0 || (s.shortVolPct as number | null) != null)
     .sort((a, b) => ((b.squeezeScore as number) ?? 0) - ((a.squeezeScore as number) ?? 0))
     .slice(0, 4)
-    .map(s => `${s.ticker}(${s.squeezeScore ?? 0}점,shortVol${(s.shortVolPct as number | null) ?? '-'}%)`);
+    .map(s => `${s.ticker}(${s.squeezeScore ?? 0}pts,shortVol${(s.shortVolPct as number | null) ?? '-'}%)`);
   return `squeeze:${top.join(',')}`;
 }
 
@@ -360,14 +360,14 @@ function summariseNewsGap(): { stakes: string; gaps: string } {
     .sort((a, b) => b.valueM - a.valueM)
     .slice(0, 3)
     .map(s => {
-      const chg = s.prevPct !== undefined ? `${s.prevPct.toFixed(1)}→${s.pctOfShares.toFixed(1)}%` : `신규${s.pctOfShares.toFixed(1)}%`;
+      const chg = s.prevPct !== undefined ? `${s.prevPct.toFixed(1)}→${s.pctOfShares.toFixed(1)}%` : `new${s.pctOfShares.toFixed(1)}%`;
       return `${s.ticker}:${s.institution.slice(0, 12)}(${chg},$${s.valueM}M)`;
     })
     .join(', ');
   const gaps = [...newsGapData]
     .sort((a, b) => b.gapScore - a.gapScore)
     .slice(0, 3)
-    .map(n => `${n.ticker}(갭${n.gapScore})`)
+    .map(n => `${n.ticker}(gap${n.gapScore})`)
     .join(', ');
   return { stakes, gaps };
 }
@@ -413,10 +413,10 @@ function summariseKorea(korea: unknown): string {
   const topFB = (k.topForeignBuy as Array<Record<string, unknown>>) ?? [];
   const topFS = (k.topForeignSell as Array<Record<string, unknown>>) ?? [];
   const topIB = (k.topInstBuy as Array<Record<string, unknown>>) ?? [];
-  const fbStr = topFB.slice(0, 2).map(r => `${r.name}(+${Math.round(((r.foreignerNetBuy as number) ?? 0) / 1e8)}억)`).join(',');
-  const fsStr = topFS.slice(0, 2).map(r => `${r.name}(${Math.round(((r.foreignerNetBuy as number) ?? 0) / 1e8)}억)`).join(',');
-  const ibStr = topIB.slice(0, 2).map(r => `${r.name}(+${Math.round(((r.institutionNetBuy as number) ?? 0) / 1e8)}억)`).join(',');
-  return `외인매수:${fbStr} / 외인매도:${fsStr} / 기관매수:${ibStr}`;
+  const fbStr = topFB.slice(0, 2).map(r => `${r.name}(+${Math.round(((r.foreignerNetBuy as number) ?? 0) / 1e8)}B)`).join(',');
+  const fsStr = topFS.slice(0, 2).map(r => `${r.name}(${Math.round(((r.foreignerNetBuy as number) ?? 0) / 1e8)}B)`).join(',');
+  const ibStr = topIB.slice(0, 2).map(r => `${r.name}(+${Math.round(((r.institutionNetBuy as number) ?? 0) / 1e8)}B)`).join(',');
+  return `ForeignBuy:${fbStr} / ForeignSell:${fsStr} / InstBuy:${ibStr}`;
 }
 
 function summariseNPort(nport: unknown): string {
@@ -424,7 +424,7 @@ function summariseNPort(nport: unknown): string {
   if (!p) return '';
   const byTicker = (p.byTicker as Array<Record<string, unknown>>) ?? [];
   return byTicker.slice(0, 4)
-    .map(a => `${a.ticker}:${(a.funds as unknown[])?.length ?? 0}펀드/$${Math.round((a.totalValueUsd as number) / 1e6)}M`)
+    .map(a => `${a.ticker}:${(a.funds as unknown[])?.length ?? 0}funds/$${Math.round((a.totalValueUsd as number) / 1e6)}M`)
     .join(', ');
 }
 
@@ -432,7 +432,7 @@ function summariseBlocks(items: unknown[]): string {
   const arr = items as Array<Record<string, unknown>>;
   if (!arr?.length) return '';
   return arr.slice(0, 3)
-    .map(b => `${b.ticker}(${(b.size as number)?.toLocaleString()}주@$${(b.price as number)?.toFixed(2)})`)
+    .map(b => `${b.ticker}(${(b.size as number)?.toLocaleString()}sh@$${(b.price as number)?.toFixed(2)})`)
     .join(', ');
 }
 
@@ -445,7 +445,7 @@ function summariseSupply(): string {
 
 // ── Build rich prompt covering every tab ─────────────────────────────────────
 export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
-  const tfLabel = tf === '1w' ? '1주' : tf === '4w' ? '4주' : '13주';
+  const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
   const signals = ctx?.signals ?? institutionalSignals;
   const { buys, cuts } = summariseSignals(signals);
   const { stakes, gaps } = summariseNewsGap();
@@ -491,20 +491,20 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
     .filter(([, v]) => v && v.trim().length > 0)
     .map(([k, v]) => `[${k}] ${v}`)
     .join('\n');
-  return `Flowvium ${tfLabel} 리포트용 실시간 탭 데이터입니다. 각 탭을 종합해 한국어 JSON만 반환하세요.
+  return `Flowvium ${tfLabel} report — live tab data below. Synthesize all tabs and return English JSON only.
 
 ${body}
 
-출력 규칙: JSON만, 마크다운 금지, bullets는 각 25자 이내의 구체 수치 포함 문장.
-섹션 매핑:
-- market: Heatmap+CapitalFlows+Fear&Greed+FedWatch에서 시장 전반
-- capital: CapitalFlows countries+Macro+Credit+Korea-Flow에서 자금 이동·거시
-- company: 13F-Buys+Form4-Insider(CEO 매수 강조)+13D13G+OptionsFlow+Short에서 주목 종목
-- signals: Form4 대형 매수/매도+13D13G 5%돌파+Cascade+Supply에서 강한 실시간 구조 신호
-- outlook: 위 전체를 종합한 한 줄 전망(리스크 포함)
-- riskLevel: low|medium|high (Fear&Greed·yieldCurve 기반)
+Output rules: JSON only, no markdown, bullets must contain specific numbers/tickers (max 30 chars each).
+Section mapping:
+- market: Heatmap+CapitalFlows+Fear&Greed+FedWatch → broad market summary
+- capital: CapitalFlows countries+Macro+Credit+Korea-Flow → capital movements & macro
+- company: 13F-Buys+Form4-Insider(highlight CEO buys)+13D13G+OptionsFlow+Short → stocks to watch
+- signals: Form4 large buy/sell+13D13G 5% crossings+Cascade+Supply → strong real-time signals
+- outlook: one-line synthesis of everything above (include risk)
+- riskLevel: low|medium|high (based on Fear&Greed·yieldCurve)
 
-{"market":{"title":"시장","content":"한 줄 요약","bullets":["","",""]},"capital":{"title":"자금","content":"한 줄 요약","bullets":["","",""]},"company":{"title":"종목","content":"한 줄 요약","bullets":["","",""]},"signals":{"title":"신호","content":"한 줄 요약","bullets":["","",""]},"outlook":"","riskLevel":"medium"}`;
+{"market":{"title":"Market","content":"one-line summary","bullets":["","",""]},"capital":{"title":"Capital","content":"one-line summary","bullets":["","",""]},"company":{"title":"Stocks","content":"one-line summary","bullets":["","",""]},"signals":{"title":"Signals","content":"one-line summary","bullets":["","",""]},"outlook":"","riskLevel":"medium"}`;
 }
 
 // ── Parse AI response ─────────────────────────────────────────────────────────
@@ -551,7 +551,7 @@ export function parseAIResponse(raw: string, tf: Timeframe, source = 'AI'): Dail
 
 /** Data-driven brief — used when AI is unavailable. Now pulls every tab. */
 export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
-  const tfLabel = tf === '1w' ? '1주' : tf === '4w' ? '4주' : '13주';
+  const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
   const retKey = tf === '1w' ? 'ret1w' : tf === '4w' ? 'ret4w' : 'ret13w';
   const capital = ctx?.capital as Record<string, unknown> | null | undefined;
   const macro = ctx?.macro as Record<string, unknown> | null | undefined;
@@ -568,28 +568,28 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
         .sort((a, b) => (b.avgChangePct as number) - (a.avgChangePct as number));
       const top = sorted.slice(0, 2).map(s => `${s.sector} +${(s.avgChangePct as number).toFixed(1)}%`);
       const bot = sorted.slice(-1).map(s => `${s.sector} ${(s.avgChangePct as number).toFixed(1)}%`);
-      if (top.length) marketBullets.push(`섹터 상승: ${top.join(', ')}`);
-      if (bot.length) marketBullets.push(`섹터 하락: ${bot.join(', ')}`);
+      if (top.length) marketBullets.push(`Sectors up: ${top.join(', ')}`);
+      if (bot.length) marketBullets.push(`Sectors down: ${bot.join(', ')}`);
     }
     const assets = (capital?.assets as Array<Record<string, unknown>>) ?? [];
     if (assets.length > 0) {
       const sorted = [...assets].sort((a, b) => ((b[retKey] as number) ?? 0) - ((a[retKey] as number) ?? 0));
-      marketBullets.push(`자산 상위: ${sorted.slice(0, 3).map(a => `${a.ticker} +${((a[retKey] as number) ?? 0).toFixed(1)}%`).join(', ')}`);
+      marketBullets.push(`Top assets: ${sorted.slice(0, 3).map(a => `${a.ticker} +${((a[retKey] as number) ?? 0).toFixed(1)}%`).join(', ')}`);
     }
     const fg = ctx?.fearGreed as Record<string, unknown> | null | undefined;
     if (fg?.score != null) {
       const val = fg.score as number;
-      const label = val >= 75 ? '극도 탐욕' : val >= 55 ? '탐욕' : val >= 45 ? '중립' : val >= 25 ? '공포' : '극도 공포';
-      marketBullets.push(`공포탐욕: ${Math.round(val)} (${label})`);
+      const label = val >= 75 ? 'Extreme Greed' : val >= 55 ? 'Greed' : val >= 45 ? 'Neutral' : val >= 25 ? 'Fear' : 'Extreme Fear';
+      marketBullets.push(`F&G: ${Math.round(val)} (${label})`);
     }
     const fed = ctx?.fedWatch as Record<string, unknown> | null | undefined;
     const meetings = fed?.meetings as Array<Record<string, unknown>> | undefined;
     if (meetings?.length) {
       const next = meetings[0];
-      marketBullets.push(`FOMC ${next.label as string}: 인하 ${Math.round((next.probCut25 as number) ?? 0)}%`);
+      marketBullets.push(`FOMC ${next.label as string}: cut ${Math.round((next.probCut25 as number) ?? 0)}%`);
     }
   } catch { /* ignore */ }
-  if (marketBullets.length === 0) marketBullets.push(`${tfLabel} 시장 데이터 집계 중`);
+  if (marketBullets.length === 0) marketBullets.push(`${tfLabel} market data loading`);
 
   // ── Capital: countries + yield + credit ──────────────────────────────────
   const capitalBullets: string[] = [];
@@ -598,23 +598,23 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const countries = (cf?.countries as Array<Record<string, unknown>>) ?? [];
     if (countries.length > 0) {
       const sorted = [...countries].sort((a, b) => ((b[retKey] as number) ?? 0) - ((a[retKey] as number) ?? 0));
-      capitalBullets.push(`유입: ${sorted.slice(0, 3).map(c => `${c.label ?? c.country ?? c.id}(+${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
-      capitalBullets.push(`유출: ${sorted.slice(-2).reverse().map(c => `${c.label ?? c.country ?? c.id}(${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
+      capitalBullets.push(`Inflow: ${sorted.slice(0, 3).map(c => `${c.label ?? c.country ?? c.id}(+${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
+      capitalBullets.push(`Outflow: ${sorted.slice(-2).reverse().map(c => `${c.label ?? c.country ?? c.id}(${((c[retKey] as number) ?? 0).toFixed(1)}%)`).join(', ')}`);
     }
     const yc = macro?.yieldCurve as Record<string, unknown> | undefined;
     if (yc?.spread10y2y != null) {
       const spread = yc.spread10y2y as number;
-      capitalBullets.push(`10Y-2Y 스프레드: ${spread.toFixed(0)}bp${yc.inverted ? ' ⚠️ 역전' : ''}`);
+      capitalBullets.push(`10Y-2Y spread: ${spread.toFixed(0)}bp${yc.inverted ? ' ⚠️ inverted' : ''}`);
     }
     const credit = ctx?.credit as Record<string, unknown> | null | undefined;
     const latest = credit?.latestMonth as Record<string, unknown> | undefined;
     if (latest) {
       const m = latest.margin as number | undefined;
       const mom = latest.marginMoM as number | undefined;
-      if (m != null) capitalBullets.push(`NYSE 마진: $${m.toFixed(0)}B${mom != null ? ` (MoM ${mom > 0 ? '+' : ''}${mom.toFixed(1)}%)` : ''}`);
+      if (m != null) capitalBullets.push(`NYSE margin: $${m.toFixed(0)}B${mom != null ? ` (MoM ${mom > 0 ? '+' : ''}${mom.toFixed(1)}%)` : ''}`);
     }
   } catch { /* ignore */ }
-  if (capitalBullets.length === 0) capitalBullets.push(`${tfLabel} 자금 흐름 집계 중`);
+  if (capitalBullets.length === 0) capitalBullets.push(`${tfLabel} capital flows loading`);
 
   // ── Company: 13F + insider (real-time) + squeeze + newsgap ──────────────
   const companyBullets: string[] = [];
@@ -630,7 +630,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const topInsider = insider
       .filter(t => t.direction === 'buy' && (t.transactionValueUsd as number ?? 0) > 100_000)
       .slice(0, 2)
-      .map(t => `${t.ticker ?? t.issuerName} 내부자(${t.officerTitle ?? '임원'}) $${Math.round((t.transactionValueUsd as number) / 1000)}K 매수`);
+      .map(t => `${t.ticker ?? t.issuerName} insider(${t.officerTitle ?? 'Officer'}) $${Math.round((t.transactionValueUsd as number) / 1000)}K buy`);
     if (topInsider.length) companyBullets.push(...topInsider);
 
     const shortArr = Array.isArray(ctx?.short) ? ctx!.short as Array<Record<string, unknown>>
@@ -638,10 +638,10 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const squeeze = shortArr
       .filter(s => (s.squeezeScore as number) >= 30)
       .slice(0, 1)
-      .map(s => `${s.ticker} 스퀴즈 ${s.squeezeScore}점`);
+      .map(s => `${s.ticker} squeeze ${s.squeezeScore}pts`);
     if (squeeze.length) companyBullets.push(...squeeze);
   } catch { /* ignore */ }
-  if (companyBullets.length === 0) companyBullets.push(`13F+Form4 매집 분석 중`);
+  if (companyBullets.length === 0) companyBullets.push(`13F+Form4 accumulation loading`);
 
   // ── Signals: real-time 5% crossings + options flow + cascade ────────────
   const signalBullets: string[] = [];
@@ -658,7 +658,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const options = (ctx?.options ?? []) as Array<Record<string, unknown>>;
     if (options.length) {
       const top = [...options].sort((a, b) => ((b.premiumUsd as number) ?? 0) - ((a.premiumUsd as number) ?? 0))[0];
-      if (top) signalBullets.push(`옵션 sweep: ${top.ticker} ${top.sentiment} $${Math.round((top.premiumUsd as number) / 1000)}K`);
+      if (top) signalBullets.push(`Options sweep: ${top.ticker} ${top.sentiment} $${Math.round((top.premiumUsd as number) / 1000)}K`);
     }
 
     // Korea flow top foreign buy
@@ -666,7 +666,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const topFB = (korea?.topForeignBuy as Array<Record<string, unknown>>) ?? [];
     if (topFB.length > 0) {
       const t = topFB[0];
-      signalBullets.push(`🇰🇷 외인 ${t.name}: +${Math.round(((t.foreignerNetBuy as number) ?? 0) / 1e8)}억`);
+      signalBullets.push(`🇰🇷 Foreign ${t.name}: +${Math.round(((t.foreignerNetBuy as number) ?? 0) / 1e8)}B KRW`);
     }
 
     // Cascade headline
@@ -674,7 +674,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     if (arr?.length) {
       const top = arr[0];
       const sent = top.sentiment as string;
-      signalBullets.push(`Cascade: ${sent === 'bullish' ? '호재' : sent === 'bearish' ? '악재' : '뉴스'} — ${(top.title as string).slice(0, 40)}`);
+      signalBullets.push(`Cascade: ${sent === 'bullish' ? 'Bullish' : sent === 'bearish' ? 'Bearish' : 'News'} — ${(top.title as string).slice(0, 40)}`);
     }
   } catch { /* ignore */ }
   if (signalBullets.length === 0) {
@@ -684,7 +684,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
       .sort((a, b) => b.valueM - a.valueM)
       .slice(0, 2)
       .map(s => `${s.ticker}: ${s.institution} (${s.quarter})`);
-    signalBullets.push(...(stakeChanges.length ? stakeChanges : ['실시간 신호 수집 중']));
+    signalBullets.push(...(stakeChanges.length ? stakeChanges : ['Live signals loading']));
   }
 
   // ── Risk ─────────────────────────────────────────────────────────────────
@@ -701,11 +701,11 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
   } catch { /* ignore */ }
 
   return {
-    market: { title: '글로벌 시장', content: `${tfLabel} 시장 종합`, bullets: marketBullets },
-    capital: { title: '자금 흐름 & 거시', content: `${tfLabel} 자금·거시`, bullets: capitalBullets },
-    company: { title: '주목 종목', content: `${tfLabel} 매집·스퀴즈`, bullets: companyBullets },
-    signals: { title: '구조 신호', content: `${tfLabel} 지분·Cascade·Supply`, bullets: signalBullets },
-    outlook: `${tfLabel} 전 탭(Heatmap·CapitalFlows·13F+Form4·13D/G·옵션flow·한국수급·NewsGap·Short·Macro·Cascade) 종합. 리스크 ${riskLevel === 'high' ? '높음(공포·역전)' : riskLevel === 'low' ? '낮음(탐욕 과열)' : '중립'}.`,
+    market: { title: 'Market', content: `${tfLabel} market overview`, bullets: marketBullets },
+    capital: { title: 'Capital', content: `${tfLabel} flows & macro`, bullets: capitalBullets },
+    company: { title: 'Stocks', content: `${tfLabel} accumulation & squeeze`, bullets: companyBullets },
+    signals: { title: 'Signals', content: `${tfLabel} positions · Cascade · Supply`, bullets: signalBullets },
+    outlook: `${tfLabel} synthesis across Heatmap·CapitalFlows·13F+Form4·13D/G·OptionsFlow·KoreaFlow·NewsGap·Short·Macro·Cascade. Risk ${riskLevel === 'high' ? 'high (fear/inverted)' : riskLevel === 'low' ? 'low (greed/overheated)' : 'neutral'}.`,
     riskLevel,
     generatedAt: new Date().toISOString(),
     tf,

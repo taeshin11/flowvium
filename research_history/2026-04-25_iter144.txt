@@ -1,0 +1,65 @@
+== iter144 — 2026-04-25 ==
+
+PRIMARY OUTCOME: daily-brief 프롬프트 전면 영문화 (iter141 누락분)
+
+DRIFT CHECK:
+- iter141: i18n, iter142: bug-fix, iter143: bug-fix → 서로 다른 영역, drift 없음
+- iter144: i18n (daily-brief 누락분) → 새 영역
+- No drift signal.
+
+ROOT CAUSE:
+iter141에서 4개 AI 라우트 영문화 시 daily-brief.ts의 buildPrompt()와 fallbackBrief() 누락.
+buildPrompt() 가 `한국어 JSON만 반환하세요` 로 AI에게 명시적으로 한국어를 요청하고 있었음.
+일일 브리프가 앱의 핵심 기능(홈 화면)임에도 16개 locale 전원 한국어로 표시.
+
+BUGS FIXED:
+
+buildPrompt() in src/lib/daily-brief.ts:
+- tfLabel: '1주'/'4주'/'13주' → '1W'/'4W'/'13W'
+- 프롬프트: "각 탭을 종합해 한국어 JSON만 반환하세요" → "Synthesize all tabs and return English JSON only"
+- 섹션 설명 전체 Korean → English
+- JSON 템플릿 타이틀: "시장"/"자금"/"종목"/"신호" → "Market"/"Capital"/"Stocks"/"Signals"
+
+fallbackBrief() — 18개 Korean 문자열 → English:
+- '섹터 상승/하락' → 'Sectors up/down'
+- '자산 상위' → 'Top assets'
+- '극도 탐욕/탐욕/중립/공포/극도 공포' → 'Extreme Greed/Greed/Neutral/Fear/Extreme Fear'
+- '공포탐욕' → 'F&G'
+- 'FOMC ... 인하' → 'FOMC ... cut'
+- '시장 데이터 집계 중' → '{tf}W market data loading'
+- '유입/유출' → 'Inflow/Outflow'
+- '10Y-2Y 스프레드 ... 역전' → '10Y-2Y spread ... inverted'
+- 'NYSE 마진' → 'NYSE margin'
+- '자금 흐름 집계 중' → 'capital flows loading'
+- '내부자(임원) $...K 매수' → 'insider(Officer) $...K buy'
+- '스퀴즈 ...점' → 'squeeze ...pts'
+- '13F+Form4 매집 분석 중' → '13F+Form4 accumulation loading'
+- '옵션 sweep' → 'Options sweep'
+- '🇰🇷 외인 ...' → '🇰🇷 Foreign ...'
+- '호재/악재/뉴스' → 'Bullish/Bearish/News'
+- '실시간 신호 수집 중' → 'Live signals loading'
+- 섹션 타이틀/내용: '글로벌 시장'/'자금 흐름 & 거시'/'주목 종목'/'구조 신호' → English
+- outlook: '전 탭 종합. 리스크 높음/낮음/중립' → English
+
+Summarise helper functions — additional Korean:
+- summariseShort: '점' → 'pts'
+- summariseNewsGap: '신규' → 'new', '갭' → 'gap'
+- summariseKorea: '외인매수/외인매도/기관매수', '억' → English
+- summariseNPort: '펀드' → 'funds'
+- summariseBlocks: '주@' → 'sh@'
+
+CACHE KEY: daily-brief v4 → v5 (cached Korean responses will not be served)
+
+ACCURACY PROBE:
+[accuracy probe] metric=SPY.close source=Yahoo direct_value=713.94 our_value=N/A(not_deployed) → PROD_STALE
+[accuracy probe] metric=daily-brief.prompt source=code Korean_prompt_removed → IMPROVEMENT
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- 16개 locale 일일 브리프: 영어 분석 텍스트 수신 (기존 한국어 고정)
+- 홈 화면 AI 섹션(Market/Capital/Stocks/Signals/Outlook) 전부 영어로 표시
+- Fallback 브리프(AI 장애 시)도 영어로 표시
+
+FILES CHANGED (1 file):
+- src/lib/daily-brief.ts (buildPrompt, fallbackBrief, 6개 summarise 함수 영문화, cache v5)
