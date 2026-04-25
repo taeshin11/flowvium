@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
 
     let summary = '';
     try {
-      const result = await callAI(prompt, { maxTokens: 200, temperature: 0.3, tag: 'company-news' });
+      const result = await callAI(prompt, { maxTokens: 200, temperature: 0.3, tag: 'company-news', preferSmallModel: true });
       summary = result.text ?? '';
       if (/[一-鿿぀-ゟ゠-ヿ가-힣]/.test(summary)) summary = '';
     } catch {

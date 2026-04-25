@@ -58,6 +58,9 @@ export interface AICallOptions {
   temperature?: number;
   /** vLLM 전용 — EXAONE이 한국어 짧은 요약일 때만 빛을 발함. 긴 글로벌 분석은 GROQ부터 시도 권장. */
   skipVllm?: boolean;
+  /** true 시 GROQ 70b 건너뛰고 8b-instant 직행. 단순 요약(company-news 등) 전용.
+   *  70b TPD 100k를 daily-brief·investment-strategy 등 고품질 라우트용으로 보존. */
+  preferSmallModel?: boolean;
   /** Timeout (ms) per provider. 기본 15s. */
   timeoutMs?: number;
   /** 요청 식별자. 로그 추적용. */
@@ -189,6 +192,24 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
       }
     }
   } catch { /* non-fatal */ }
+
+  // preferSmallModel=true → 8b 직행 (70b TPD 100k 보존)
+  if (opts.preferSmallModel) {
+    logger.info(tag, 'groq_prefer_8b', { note: 'skipping 70b per preferSmallModel' });
+    const small = await callGroqModel(key, 'llama-3.1-8b-instant', prompt, opts, diag);
+    if (small.text) return { text: small.text, model: 'llama-3.1-8b-instant' };
+    if (small.status === 429 && small.tpdExhausted) {
+      const ttl = secondsUntilUtcMidnight();
+      const nextMidnight = new Date(Date.now() + ttl * 1000).toISOString();
+      groqTpdExhaustedUntil = Date.now() + ttl * 1000;
+      logger.error(tag, 'groq_all_tpd_exhausted', { resetsAt: nextMidnight, ttlS: ttl, note: '8b-only path' });
+      try {
+        const guardRedis = getGuardRedis();
+        if (guardRedis) await guardRedis.set(GROQ_TPD_KEY, nextMidnight, { ex: ttl });
+      } catch { /* non-fatal */ }
+    }
+    return null;
+  }
 
   // 1차: 고품질 70b (TPD 100k)
   const primary = await callGroqModel(key, 'llama-3.3-70b-versatile', prompt, opts, diag);
