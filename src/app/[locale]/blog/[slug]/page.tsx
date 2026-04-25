@@ -6,12 +6,10 @@ import { getTranslations } from 'next-intl/server';
 import { translateBlogPost } from '@/lib/blog-translate';
 import BlogArticleClient from './BlogArticleClient';
 
-const locales = ['en', 'ko', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr', 'pt', 'hi', 'ar', 'vi', 'th', 'id', 'ru', 'tr'];
-
+// Only pre-render English at build time — other locales are translated on-demand via Redis cache.
+// Pre-rendering all 16 locales × N posts at build time exhausts Groq's 100k TPD free tier.
 export function generateStaticParams() {
-  return locales.flatMap((locale) =>
-    blogPosts.map((post) => ({ locale, slug: post.slug }))
-  );
+  return blogPosts.map((post) => ({ locale: 'en', slug: post.slug }));
 }
 
 export async function generateMetadata({

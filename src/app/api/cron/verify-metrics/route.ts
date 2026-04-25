@@ -1028,8 +1028,8 @@ async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
         source: String(d.source ?? 'none'),
       };
     }),
-    // Flow Analysis (AI capital flow)
-    safeJson(base, '/api/flow-analysis').then((r): MetricItem => {
+    // Flow Analysis (AI capital flow) — Gemini call can take 20-25s; extend timeout
+    safeJson(base, '/api/flow-analysis', 30000).then((r): MetricItem => {
       if (!r.ok) return { key: 'flow.analysis', label: 'Flow Analysis API', group: 'flow-analysis', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
       const d = r.data as { analysis?: unknown; source?: string; stale?: boolean; staleFallback?: boolean };
       // analysis can be a parsed JSON object OR a string — check either
