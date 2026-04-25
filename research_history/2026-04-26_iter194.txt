@@ -1,0 +1,70 @@
+== iter194 — 2026-04-26 ==
+
+PRIMARY OUTCOME: GitHub push 완료 → 198개 커밋 Vercel 배포
+
+DRIFT CHECK:
+- iter191: company-news + flow-analysis TTL
+- iter192: investment-strategy + earnings
+- iter193: news-cascade AI 10→7 + 캐시 품질
+- iter194: GitHub push (배포 블로커 해결) + Claude Haiku 제거 ← 완전 새 영역 ✓
+
+BLOCKER RESOLUTION:
+  iter190+ 부터 198개 커밋이 로컬 only → Vercel에 미반영 상태.
+  GitHub 인증 토큰 만료 (keyring stale) → gh auth login --web device flow로 재인증.
+  Device code 7274-8F06 승인 후 git push origin master 성공.
+  → 이제 iter190-193의 모든 개선사항이 production에 배포됨.
+
+DEPLOYED CHANGES (iter190~194):
+  iter190: Claude Haiku 4.5 폴백 + Redis cross-instance GROQ TPD guard
+  iter191: company-news 2h TTL + stale cache, flow-analysis 8h TTL (-75% tokens)
+  iter192: investment-strategy fallback 날짜 버그 수정, earnings Yahoo 폴백
+  iter193: news-cascade AI 10→7, 캐시 품질 임계값 ≥50%
+  iter194: Claude Haiku 제거 + 배포
+
+CHANGE: Claude Haiku 제거 (user request)
+  사유: ANTHROPIC_API_KEY 유료 — 사용 안 함
+  수정: src/lib/ai-providers.ts
+    - callClaude() 함수 전체 삭제
+    - import Anthropic from '@anthropic-ai/sdk' 삭제
+    - 캐스케이드: vLLM → GROQ → Claude Haiku → Gemini
+                → vLLM → GROQ → Gemini (3단계)
+    - ProviderAttempt 타입에서 'claude' 제거
+  패키지: npm uninstall @anthropic-ai/sdk (4 packages removed)
+
+AUDIT: fear-greed API 구조 확인
+  이전 프로브에서 'fearGreed.us.score' 못 찾던 오류 = 프로브 명령 버그, API 버그 아님.
+  실제 구조: { byCountry: [...], byAsset: [...], updatedAt: "..." }
+  byCountry[0] (US): score=66, level=greed, source=cnn
+  
+  Production response의 garbled Korean text (한자 혼입):
+    - detailMap = 구 deployed 코드의 Korean AI 생성 텍스트
+    - 로컬 코드 (iter140+) = 영어 하드코딩 detailMap → 배포로 해결됨
+
+ACCURACY PROBE:
+[accuracy probe] metric=fg.us source=CNN (2026-04-25, 시장 마지막 거래일)
+  our_value=66 (level: greed, source=cnn, updated=2026-04-25)
+  CNN direct: 418 bot protection (iter192와 동일)
+  VIX 18.71 (moderate) + market recovery context → 66 greed 범위 내 합리적
+  ← PLAUSIBLE (CNN 직접 비교 불가, 간접 검증)
+
+[accuracy probe] metric=vix source=Yahoo Finance (주말 = 금요일 close 유지)
+  our_value=18.71 (production, unchanged from 2026-04-24 Friday close)
+  direct: 18.71 (iter192 확인, 주말 데이터 변화 없음)
+  delta=0 → EXACT MATCH ✓
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED:
+- src/lib/ai-providers.ts (Claude 제거, 3-step cascade)
+- package.json / package-lock.json (@anthropic-ai/sdk 제거)
+- research_history/2026-04-26_iter194.txt
+
+GIT:
+  000602f..0a9923f master → origin/master (198 commits pushed)
+  Vercel auto-deploy triggered via GitHub webhook.
+
+NEXT: iter195 → 배포된 production에서 실제 개선 확인 + 신규 기능 탐색
+  1. 배포 후 production probe — 새 코드 동작 확인
+  2. news-cascade 분석 품질 (7개 기사, 50% 임계값) 검증
+  3. GROQ quota 리셋 후 investment-strategy AI 분석 표시되는지 확인
+  4. 신규 기능: sector rotation card 또는 macro calendar
