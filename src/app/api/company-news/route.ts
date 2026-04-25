@@ -33,6 +33,27 @@ function staleRedisCacheKey(ticker: string): string {
   return `flowvium:company-news:v3:stale:${ticker}`;
 }
 
+// Finnhub company news — requires FINNHUB_KEY, free tier 60 req/min
+async function fetchFinnhubNews(ticker: string): Promise<NewsItem[]> {
+  const key = process.env.FINNHUB_KEY?.trim();
+  if (!key) return [];
+  const to = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const res = await fetch(
+    `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(ticker)}&from=${from}&to=${to}&token=${encodeURIComponent(key)}`,
+    { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
+  );
+  if (!res.ok) throw new Error(`Finnhub news HTTP ${res.status}`);
+  const data = await res.json() as Array<{ headline?: string; url?: string; datetime?: number; source?: string; summary?: string }>;
+  return data.slice(0, 8).map(n => ({
+    title: String(n.headline ?? ''),
+    description: String(n.summary ?? '').slice(0, 200),
+    link: String(n.url ?? ''),
+    pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : new Date().toISOString(),
+    source: String(n.source ?? 'Finnhub'),
+  })).filter(n => n.title && n.link);
+}
+
 // Yahoo Finance v1 search API — returns JSON news items, no auth required
 async function fetchYahooNews(ticker: string): Promise<NewsItem[]> {
   const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(ticker)}&newsCount=8&quotesCount=0`;
@@ -116,7 +137,16 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json(result, { headers: CDN_HEADERS });
   } catch (e) {
-    logger.warn('api.company-news', 'fetch_failed', { ticker, error: String(e) });
+    logger.warn('api.company-news', 'yahoo_failed', { ticker, error: String(e) });
+    // Finnhub fallback — different IP path, free tier, not Yahoo
+    try {
+      const finnhubNews = await fetchFinnhubNews(ticker);
+      if (finnhubNews.length > 0) {
+        logger.info('api.company-news', 'finnhub_fallback', { ticker, count: finnhubNews.length });
+        const result = { ticker, news: finnhubNews, summary: null, source: 'finnhub', generatedAt: new Date().toISOString(), cached: false };
+        return NextResponse.json(result, { headers: CDN_HEADERS });
+      }
+    } catch (fe) { logger.warn('api.company-news', 'finnhub_failed', { ticker, error: String(fe) }); }
     if (staleResult) {
       return NextResponse.json({ ...(staleResult as object), stale: true, cached: true }, { headers: CDN_HEADERS });
     }
