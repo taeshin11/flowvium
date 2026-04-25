@@ -48,6 +48,9 @@ interface ScreenerRow {
   shortVolPct: number | null;
   shortRatio: number | null;
   squeezeScore: number;
+  bullishCount: number;   // # institutions accumulating/buying this ticker
+  bearishCount: number;   // # institutions reducing/exiting this ticker
+  institutionCount: number; // total institutions tracking this ticker
 }
 
 // ── Form 4 insider trade row ──────────────────────────────────────────────────
@@ -209,18 +212,28 @@ export default function ScreenerPage() {
 
   const deduped: ScreenerRow[] = useMemo(() => {
     const byTicker = new Map<string, InstitutionalSignal>();
+    // Consensus: count bullish/bearish per ticker across all institutions
+    const consensusMap = new Map<string, { bullish: number; bearish: number; instSet: Set<string> }>();
     for (const sig of signals) {
       const existing = byTicker.get(sig.ticker);
       if (!existing || sig.filingDate > existing.filingDate) byTicker.set(sig.ticker, sig);
+      const c = consensusMap.get(sig.ticker) ?? { bullish: 0, bearish: 0, instSet: new Set() };
+      if (sig.action === 'accumulating' || sig.action === 'new_position') c.bullish++;
+      else if (sig.action === 'reducing' || sig.action === 'exit') c.bearish++;
+      c.instSet.add(sig.institution);
+      consensusMap.set(sig.ticker, c);
     }
     return Array.from(byTicker.values()).map(sig => {
       const short = shortMap.get(sig.ticker);
+      const consensus = consensusMap.get(sig.ticker) ?? { bullish: 0, bearish: 0, instSet: new Set() };
       return {
         ticker: sig.ticker, companyName: sig.companyName, sector: sig.sector,
         institution: sig.institution, action: sig.action, estimatedValue: sig.estimatedValue,
         filingDate: sig.filingDate, newsGapScore: sig.newsGapScore,
         shortFloatPct: short?.shortFloatPct ?? null, shortVolPct: short?.shortVolPct ?? null,
         shortRatio: short?.shortRatio ?? null, squeezeScore: short?.squeezeScore ?? 0,
+        bullishCount: consensus.bullish, bearishCount: consensus.bearish,
+        institutionCount: consensus.instSet.size,
       };
     });
   }, [signals, shortMap]);
@@ -508,6 +521,7 @@ export default function ScreenerPage() {
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기업</th>
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">섹터</th>
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">기관</th>
+                  <SortTh label="합의" k="bullishCount" />
                   <SortTh label="액션" k="action" />
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">규모</th>
                   <SortTh label="Short Vol %" k="shortVolPct" />
@@ -529,6 +543,14 @@ export default function ScreenerPage() {
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.companyName}</td>
                       <td className="px-3 py-2.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">{SECTOR_LABELS[row.sector] ?? row.sector}</span></td>
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[140px] truncate">{row.institution}</td>
+                      <td className="px-3 py-2.5">
+                        {(row.bullishCount > 0 || row.bearishCount > 0) && (
+                          <div className="flex items-center gap-1 text-[10px]">
+                            {row.bullishCount > 0 && <span className="text-green-400 font-bold">▲{row.bullishCount}</span>}
+                            {row.bearishCount > 0 && <span className="text-red-400 font-bold">▼{row.bearishCount}</span>}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-3 py-2.5">
                         {actionCfg && <span className="flex items-center gap-1 text-[10px] font-semibold w-fit px-1.5 py-0.5 rounded" style={{ color: actionCfg.color, backgroundColor: actionCfg.bg }}>{actionCfg.icon}{actionCfg.label}</span>}
                       </td>
