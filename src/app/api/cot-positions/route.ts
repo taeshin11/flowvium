@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
+export const dynamic = 'force-dynamic';
 
 export const maxDuration = 30;
 

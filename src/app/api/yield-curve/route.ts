@@ -13,6 +13,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createMemoryCache } from '@/lib/memory-cache';
+export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 60 * 60;  // 1h Redis
 const MEM_CACHE = createMemoryCache<YieldCurveData>('yield-curve', 30 * 60_000);

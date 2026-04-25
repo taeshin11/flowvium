@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider } from '@/lib/ai-providers';
+export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
 

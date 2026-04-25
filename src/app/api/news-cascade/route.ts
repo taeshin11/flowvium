@@ -2,6 +2,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-providers';
+export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
 

@@ -12,6 +12,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  *   - Redis 4h cache
  */
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { Redis } from '@upstash/redis';
 
 const CACHE_TTL = 4 * 60 * 60;

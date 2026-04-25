@@ -17,6 +17,7 @@ import { logger } from '@/lib/logger';
  *   9. stock-supply 주요 티커 pre-warm
  */
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
 

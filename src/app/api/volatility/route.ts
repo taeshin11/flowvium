@@ -15,6 +15,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createMemoryCache } from '@/lib/memory-cache';
+export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 30 * 60;
 const MEM_CACHE = createMemoryCache<VolatilityData>('volatility', 15 * 60_000);

@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { institutionalSignals } from '@/data/institutional-signals';
 import { createMemoryCache } from '@/lib/memory-cache';
+export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
 

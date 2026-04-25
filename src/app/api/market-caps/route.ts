@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { allCompanies } from '@/data/companies';
 import { type MarketCapBand } from '@/lib/yahoo-finance';
+export const dynamic = 'force-dynamic';
 
 const CACHE_KEY = 'flowvium:market-caps:v2';
 const CACHE_TTL = 24 * 60 * 60; // 24h

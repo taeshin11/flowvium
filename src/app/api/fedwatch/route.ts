@@ -8,6 +8,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+export const dynamic = 'force-dynamic';
 
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();

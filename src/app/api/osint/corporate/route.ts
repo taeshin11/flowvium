@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
+export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 60 * 60; // 1 hour
 

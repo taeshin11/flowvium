@@ -13,6 +13,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+export const dynamic = 'force-dynamic';
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 
