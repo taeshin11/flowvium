@@ -596,7 +596,18 @@
     "aiReport": "AI 리포트",
     "fundTracking": "자금 추적",
     "companySearchLabel": "기업 직접 검색 — {count}개 기업",
-    "companySearchPlaceholder": "티커 또는 기업명 입력 (NVDA, Apple...)"
+    "companySearchPlaceholder": "티커 또는 기업명 입력 (NVDA, Apple...)",
+    "riskLow": "낮음",
+    "riskMedium": "보통",
+    "riskHigh": "높음",
+    "tf1w": "1주",
+    "tf4w": "4주",
+    "tf13w": "13주",
+    "riskLabel": "리스크 {level}",
+    "generatedAt": "{time} 생성",
+    "aiOutlook": "AI 전망",
+    "latestUpdates": "최신 업데이트",
+    "realtime": "실시간"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",

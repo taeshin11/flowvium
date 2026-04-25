@@ -443,7 +443,18 @@
     "aiReport": "Báo Cáo AI",
     "fundTracking": "Theo Dõi Quỹ",
     "companySearchLabel": "Tìm kiếm trực tiếp công ty — {count} công ty",
-    "companySearchPlaceholder": "Nhập mã cổ phiếu hoặc tên công ty (NVDA, Apple...)"
+    "companySearchPlaceholder": "Nhập mã cổ phiếu hoặc tên công ty (NVDA, Apple...)",
+    "riskLow": "Thấp",
+    "riskMedium": "Trung bình",
+    "riskHigh": "Cao",
+    "tf1w": "1T",
+    "tf4w": "4T",
+    "tf13w": "13T",
+    "riskLabel": "Rủi ro {level}",
+    "generatedAt": "Tạo lúc {time}",
+    "aiOutlook": "Triển vọng AI",
+    "latestUpdates": "Cập nhật mới nhất",
+    "realtime": "Thời gian thực"
   },
   "feedback": {
     "title": "Gửi phản hồi",

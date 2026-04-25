@@ -443,7 +443,18 @@
     "aiReport": "KI-Bericht",
     "fundTracking": "Fondsverfolgung",
     "companySearchLabel": "Direkte Unternehmenssuche — {count} Unternehmen",
-    "companySearchPlaceholder": "Ticker oder Unternehmensname (NVDA, Apple...)"
+    "companySearchPlaceholder": "Ticker oder Unternehmensname (NVDA, Apple...)",
+    "riskLow": "Niedrig",
+    "riskMedium": "Mittel",
+    "riskHigh": "Hoch",
+    "tf1w": "1W",
+    "tf4w": "4W",
+    "tf13w": "13W",
+    "riskLabel": "Risiko {level}",
+    "generatedAt": "Generiert {time}",
+    "aiOutlook": "KI-Ausblick",
+    "latestUpdates": "Neueste Updates",
+    "realtime": "Echtzeit"
   },
   "feedback": {
     "title": "Feedback senden",

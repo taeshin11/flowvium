@@ -443,7 +443,18 @@
     "aiReport": "تقرير الذكاء الاصطناعي",
     "fundTracking": "تتبع الصناديق",
     "companySearchLabel": "البحث المباشر عن الشركات — {count} شركة",
-    "companySearchPlaceholder": "أدخل الرمز أو اسم الشركة (NVDA, Apple...)"
+    "companySearchPlaceholder": "أدخل الرمز أو اسم الشركة (NVDA, Apple...)",
+    "riskLow": "منخفض",
+    "riskMedium": "متوسط",
+    "riskHigh": "مرتفع",
+    "tf1w": "1أ",
+    "tf4w": "4أ",
+    "tf13w": "13أ",
+    "riskLabel": "مخاطر {level}",
+    "generatedAt": "تم الإنشاء {time}",
+    "aiOutlook": "توقعات AI",
+    "latestUpdates": "آخر التحديثات",
+    "realtime": "الوقت الفعلي"
   },
   "feedback": {
     "title": "إرسال ملاحظات",

@@ -443,7 +443,18 @@
     "aiReport": "รายงาน AI",
     "fundTracking": "ติดตามกองทุน",
     "companySearchLabel": "ค้นหาบริษัทโดยตรง — {count} บริษัท",
-    "companySearchPlaceholder": "ป้อนชื่อย่อหรือชื่อบริษัท (NVDA, Apple...)"
+    "companySearchPlaceholder": "ป้อนชื่อย่อหรือชื่อบริษัท (NVDA, Apple...)",
+    "riskLow": "ต่ำ",
+    "riskMedium": "กลาง",
+    "riskHigh": "สูง",
+    "tf1w": "1ส",
+    "tf4w": "4ส",
+    "tf13w": "13ส",
+    "riskLabel": "ความเสี่ยง {level}",
+    "generatedAt": "สร้าง {time}",
+    "aiOutlook": "ทิศทาง AI",
+    "latestUpdates": "อัปเดตล่าสุด",
+    "realtime": "เรียลไทม์"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",

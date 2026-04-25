@@ -443,7 +443,18 @@
     "aiReport": "AI रिपोर्ट",
     "fundTracking": "फंड ट्रैकिंग",
     "companySearchLabel": "सीधी कंपनी खोज — {count} कंपनियां",
-    "companySearchPlaceholder": "टिकर या कंपनी का नाम दर्ज करें (NVDA, Apple...)"
+    "companySearchPlaceholder": "टिकर या कंपनी का नाम दर्ज करें (NVDA, Apple...)",
+    "riskLow": "कम",
+    "riskMedium": "मध्यम",
+    "riskHigh": "उच्च",
+    "tf1w": "1स",
+    "tf4w": "4स",
+    "tf13w": "13स",
+    "riskLabel": "जोखिम {level}",
+    "generatedAt": "{time} को बनाया",
+    "aiOutlook": "AI दृष्टिकोण",
+    "latestUpdates": "नवीनतम अपडेट",
+    "realtime": "रियल-टाइम"
   },
   "feedback": {
     "title": "फ़ीडबैक भेजें",

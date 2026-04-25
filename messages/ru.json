@@ -443,7 +443,18 @@
     "aiReport": "Отчёт ИИ",
     "fundTracking": "Отслеживание Фондов",
     "companySearchLabel": "Прямой поиск компаний — {count} компаний",
-    "companySearchPlaceholder": "Введите тикер или название компании (NVDA, Apple...)"
+    "companySearchPlaceholder": "Введите тикер или название компании (NVDA, Apple...)",
+    "riskLow": "Низкий",
+    "riskMedium": "Средний",
+    "riskHigh": "Высокий",
+    "tf1w": "1Н",
+    "tf4w": "4Н",
+    "tf13w": "13Н",
+    "riskLabel": "Риск {level}",
+    "generatedAt": "Создано {time}",
+    "aiOutlook": "Прогноз ИИ",
+    "latestUpdates": "Последние Обновления",
+    "realtime": "Реальное время"
   },
   "feedback": {
     "title": "Отправить отзыв",

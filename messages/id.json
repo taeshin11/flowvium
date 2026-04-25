@@ -443,7 +443,18 @@
     "aiReport": "Laporan AI",
     "fundTracking": "Pelacakan Dana",
     "companySearchLabel": "Pencarian perusahaan langsung — {count} perusahaan",
-    "companySearchPlaceholder": "Masukkan ticker atau nama perusahaan (NVDA, Apple...)"
+    "companySearchPlaceholder": "Masukkan ticker atau nama perusahaan (NVDA, Apple...)",
+    "riskLow": "Rendah",
+    "riskMedium": "Sedang",
+    "riskHigh": "Tinggi",
+    "tf1w": "1M",
+    "tf4w": "4M",
+    "tf13w": "13M",
+    "riskLabel": "Risiko {level}",
+    "generatedAt": "Dibuat {time}",
+    "aiOutlook": "Prospek AI",
+    "latestUpdates": "Pembaruan Terbaru",
+    "realtime": "Realtime"
   },
   "feedback": {
     "title": "Kirim Masukan",

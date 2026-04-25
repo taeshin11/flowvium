@@ -443,7 +443,18 @@
     "aiReport": "AI Raporu",
     "fundTracking": "Fon Takibi",
     "companySearchLabel": "Doğrudan şirket arama — {count} şirket",
-    "companySearchPlaceholder": "Hisse kodu veya şirket adı girin (NVDA, Apple...)"
+    "companySearchPlaceholder": "Hisse kodu veya şirket adı girin (NVDA, Apple...)",
+    "riskLow": "Düşük",
+    "riskMedium": "Orta",
+    "riskHigh": "Yüksek",
+    "tf1w": "1H",
+    "tf4w": "4H",
+    "tf13w": "13H",
+    "riskLabel": "Risk {level}",
+    "generatedAt": "{time} oluşturuldu",
+    "aiOutlook": "AI Görünümü",
+    "latestUpdates": "Son Güncellemeler",
+    "realtime": "Gerçek Zamanlı"
   },
   "feedback": {
     "title": "Geri Bildirim Gönder",

@@ -443,7 +443,18 @@
     "aiReport": "Informe IA",
     "fundTracking": "Rastreo de Fondos",
     "companySearchLabel": "Búsqueda directa de empresas — {count} empresas",
-    "companySearchPlaceholder": "Ticker o nombre de empresa (NVDA, Apple...)"
+    "companySearchPlaceholder": "Ticker o nombre de empresa (NVDA, Apple...)",
+    "riskLow": "Bajo",
+    "riskMedium": "Medio",
+    "riskHigh": "Alto",
+    "tf1w": "1S",
+    "tf4w": "4S",
+    "tf13w": "13S",
+    "riskLabel": "Riesgo {level}",
+    "generatedAt": "Generado {time}",
+    "aiOutlook": "Perspectiva IA",
+    "latestUpdates": "Últimas Actualizaciones",
+    "realtime": "Tiempo Real"
   },
   "feedback": {
     "title": "Enviar Comentarios",

@@ -443,7 +443,18 @@
     "aiReport": "AI报告",
     "fundTracking": "资金追踪",
     "companySearchLabel": "直接搜索公司 — {count}家公司",
-    "companySearchPlaceholder": "输入代码或公司名称 (NVDA, Apple...)"
+    "companySearchPlaceholder": "输入代码或公司名称 (NVDA, Apple...)",
+    "riskLow": "低",
+    "riskMedium": "中",
+    "riskHigh": "高",
+    "tf1w": "1周",
+    "tf4w": "4周",
+    "tf13w": "13周",
+    "riskLabel": "风险 {level}",
+    "generatedAt": "{time} 生成",
+    "aiOutlook": "AI 展望",
+    "latestUpdates": "最新更新",
+    "realtime": "实时"
   },
   "feedback": {
     "title": "发送反馈",

@@ -596,7 +596,18 @@
     "aiReport": "AIレポート",
     "fundTracking": "資金追跡",
     "companySearchLabel": "企業直接検索 — {count}社",
-    "companySearchPlaceholder": "ティッカーまたは企業名を入力 (NVDA, Apple...)"
+    "companySearchPlaceholder": "ティッカーまたは企業名を入力 (NVDA, Apple...)",
+    "riskLow": "低",
+    "riskMedium": "中",
+    "riskHigh": "高",
+    "tf1w": "1週",
+    "tf4w": "4週",
+    "tf13w": "13週",
+    "riskLabel": "リスク {level}",
+    "generatedAt": "{time} 生成",
+    "aiOutlook": "AI 見通し",
+    "latestUpdates": "最新アップデート",
+    "realtime": "リアルタイム"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",

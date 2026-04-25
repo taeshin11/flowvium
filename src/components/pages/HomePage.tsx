@@ -421,14 +421,15 @@ const SECTION_META = [
   },
 ];
 
-const RISK_CONFIG = {
-  low:    { label: '낮음', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' },
-  medium: { label: '보통', color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/30' },
-  high:   { label: '높음', color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/30' },
+const RISK_STYLE = {
+  low:    { color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' },
+  medium: { color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/30' },
+  high:   { color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/30' },
 };
 
 function AIDailyBrief() {
   const locale = useLocale();
+  const tHome = useTranslations('home');
   const [tf, setTf] = useState<Timeframe>('4w');
   const [brief, setBrief] = useState<DailyBrief | null>(null);
   const [loading, setLoading] = useState(true);
@@ -447,13 +448,13 @@ function AIDailyBrief() {
   }, [tf]);
 
   const tfBtns: { key: Timeframe; label: string }[] = [
-    { key: '1w', label: '1주' },
-    { key: '4w', label: '4주' },
-    { key: '13w', label: '13주' },
+    { key: '1w', label: tHome('tf1w') },
+    { key: '4w', label: tHome('tf4w') },
+    { key: '13w', label: tHome('tf13w') },
   ];
 
   const riskKey = (brief?.riskLevel ?? 'medium') as 'low' | 'medium' | 'high';
-  const risk = RISK_CONFIG[riskKey];
+  const risk = RISK_STYLE[riskKey];
 
   const genTime = brief?.generatedAt
     ? new Date(new Date(brief.generatedAt).getTime() + 9 * 3600000)
@@ -484,13 +485,13 @@ function AIDailyBrief() {
             {/* Risk badge */}
             {brief && (
               <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${risk.bg} ${risk.color}`}>
-                리스크 {risk.label}
+                {tHome('riskLabel', { level: tHome(`risk${riskKey.charAt(0).toUpperCase() + riskKey.slice(1)}` as 'riskLow' | 'riskMedium' | 'riskHigh') })}
               </span>
             )}
 
             {/* Generation time */}
             {genTime && (
-              <span className="hidden sm:inline text-[11px] text-slate-500">{genTime} 생성</span>
+              <span className="hidden sm:inline text-[11px] text-slate-500">{tHome('generatedAt', { time: genTime })}</span>
             )}
           </div>
 
@@ -578,7 +579,7 @@ function AIDailyBrief() {
             <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-xl bg-white/3 border border-white/8">
               <span className="text-amber-400 text-sm mt-0.5">⚡</span>
               <div>
-                <span className="text-[11px] font-bold text-amber-400 mr-2">AI 전망</span>
+                <span className="text-[11px] font-bold text-amber-400 mr-2">{tHome('aiOutlook')}</span>
                 <span className="text-[11px] text-slate-400">{brief.outlook}</span>
               </div>
               {genTime && (
@@ -882,11 +883,11 @@ export default function HomePage() {
             <div className="cf-card p-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs text-cf-text-secondary font-medium uppercase tracking-wider">
-                  최신 업데이트
+                  {tHome('latestUpdates')}
                 </p>
                 <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  실시간
+                  {tHome('realtime')}
                 </span>
               </div>
               <LiveFeed />
