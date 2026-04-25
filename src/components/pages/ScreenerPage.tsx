@@ -173,14 +173,44 @@ export default function ScreenerPage() {
     [deduped]
   );
 
+  const parseVal = (v: string): number => {
+    if (!v) return 0;
+    const n = parseFloat(v.replace(/[$,]/g, ''));
+    if (v.endsWith('B')) return n * 1e9;
+    if (v.endsWith('M')) return n * 1e6;
+    if (v.endsWith('K')) return n * 1e3;
+    return n || 0;
+  };
+
+  const top5NewPosition = useMemo(() =>
+    [...deduped]
+      .filter(r => r.action === 'new_position')
+      .sort((a, b) => parseVal(b.estimatedValue) - parseVal(a.estimatedValue))
+      .slice(0, 5),
+    [deduped]
+  );
+
+  const top5Underradar = useMemo(() =>
+    [...deduped]
+      .filter(r => (r.action === 'accumulating' || r.action === 'new_position') && r.newsGapScore < 30)
+      .sort((a, b) => (a.newsGapScore ?? 100) - (b.newsGapScore ?? 100))
+      .slice(0, 5),
+    [deduped]
+  );
+
   useEffect(() => {
-    if (!top5Squeeze.length) return;
+    const allTickers = Array.from(new Set([
+      ...top5Squeeze.map(r => r.ticker),
+      ...top5NewPosition.map(r => r.ticker),
+      ...top5Underradar.map(r => r.ticker),
+    ]));
+    if (!allTickers.length) return;
     const controller = new AbortController();
     Promise.allSettled(
-      top5Squeeze.map(row =>
-        fetch(`/api/stock-price/${row.ticker}`, { signal: controller.signal })
+      allTickers.map(ticker =>
+        fetch(`/api/stock-price/${ticker}`, { signal: controller.signal })
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(d => ({ ticker: row.ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
+          .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
       )
     ).then(results => {
       if (controller.signal.aborted) return;
@@ -192,7 +222,7 @@ export default function ScreenerPage() {
       setPricesLoaded(true);
     }).catch(() => { if (!controller.signal.aborted) setPricesLoaded(true); });
     return () => controller.abort();
-  }, [top5Squeeze]);
+  }, [top5Squeeze, top5NewPosition, top5Underradar]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -242,49 +272,125 @@ export default function ScreenerPage() {
         </p>
       </div>
 
-      {/* Top Squeeze Movers — live prices for top-5 squeeze candidates */}
-      {top5Squeeze.length > 0 && (
-        <div className="cf-card p-4 mb-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/10">
-          <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
-            🔥 Top Squeeze 후보 — 실시간 가격
-            <span className="font-normal text-cf-text-secondary">스퀴즈 점수 기준 상위 5종목</span>
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {top5Squeeze.map(row => {
-              const lp = top5Prices.get(row.ticker);
-              const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
-              return (
-                <Link
-                  key={row.ticker}
-                  href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
-                  className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
-                    <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold tabular-nums">
-                      {row.squeezeScore}
-                    </span>
-                  </div>
-                  {lp?.price != null ? (
-                    <>
-                      <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
-                      {lp.changePct != null && (
-                        <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
-                        </p>
-                      )}
-                    </>
-                  ) : pricesLoaded ? (
-                    <p className="text-xs text-cf-text-secondary/50">—</p>
-                  ) : (
-                    <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>
-                  )}
-                  <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
-                </Link>
-              );
-            })}
-          </div>
-          <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+      {/* Top cards: squeeze / new position / underradar */}
+      {(top5Squeeze.length > 0 || top5NewPosition.length > 0 || top5Underradar.length > 0) && (
+        <div className="space-y-3 mb-4">
+          {/* 🔥 Top Squeeze */}
+          {top5Squeeze.length > 0 && (
+            <div className="cf-card p-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/10">
+              <p className="text-[10px] font-bold text-amber-400 mb-3 flex items-center gap-1.5">
+                🔥 Top Squeeze 후보 — 실시간 가격
+                <span className="font-normal text-cf-text-secondary">스퀴즈 점수 기준 상위 5종목</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {top5Squeeze.map(row => {
+                  const lp = top5Prices.get(row.ticker);
+                  const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
+                  return (
+                    <Link key={row.ticker} href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
+                      className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold tabular-nums">{row.squeezeScore}</span>
+                      </div>
+                      {lp?.price != null ? (
+                        <>
+                          <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
+                          {lp.changePct != null && (
+                            <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
+                            </p>
+                          )}
+                        </>
+                      ) : pricesLoaded ? <p className="text-xs text-cf-text-secondary/50">—</p>
+                        : <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>}
+                      <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
+                    </Link>
+                  );
+                })}
+              </div>
+              <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+            </div>
+          )}
+
+          {/* 🏦 기관 신규 편입 */}
+          {top5NewPosition.length > 0 && (
+            <div className="cf-card p-4 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10">
+              <p className="text-[10px] font-bold text-blue-400 mb-3 flex items-center gap-1.5">
+                🏦 기관 신규 편입 — 실시간 가격
+                <span className="font-normal text-cf-text-secondary">최대 추정금액 기준 상위 5종목</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {top5NewPosition.map(row => {
+                  const lp = top5Prices.get(row.ticker);
+                  const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
+                  const val = row.estimatedValue || null;
+                  return (
+                    <Link key={row.ticker} href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
+                      className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
+                        {val && <span className="text-[9px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold tabular-nums">{val}</span>}
+                      </div>
+                      {lp?.price != null ? (
+                        <>
+                          <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
+                          {lp.changePct != null && (
+                            <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
+                            </p>
+                          )}
+                        </>
+                      ) : pricesLoaded ? <p className="text-xs text-cf-text-secondary/50">—</p>
+                        : <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>}
+                      <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
+                    </Link>
+                  );
+                })}
+              </div>
+              <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+            </div>
+          )}
+
+          {/* 📰 언더레이더 */}
+          {top5Underradar.length > 0 && (
+            <div className="cf-card p-4 bg-gradient-to-r from-purple-500/5 to-violet-500/5 border border-purple-500/10">
+              <p className="text-[10px] font-bold text-purple-400 mb-3 flex items-center gap-1.5">
+                📰 언더레이더 — 실시간 가격
+                <span className="font-normal text-cf-text-secondary">뉴스 커버리지 최저 기준 상위 5종목</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {top5Underradar.map(row => {
+                  const lp = top5Prices.get(row.ticker);
+                  const sym = lp?.currency === 'USD' ? '$' : lp?.currency === 'KRW' ? '₩' : lp?.currency === 'EUR' ? '€' : lp?.currency ? lp.currency + ' ' : '$';
+                  return (
+                    <Link key={row.ticker} href={`/company/${row.ticker}` as Parameters<typeof Link>[0]['href']}
+                      className="flex-1 min-w-[110px] max-w-[160px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono font-bold text-xs text-cf-primary">{row.ticker}</span>
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold tabular-nums">
+                          뉴스 {row.newsGapScore}
+                        </span>
+                      </div>
+                      {lp?.price != null ? (
+                        <>
+                          <p className="text-sm font-bold text-cf-text-primary tabular-nums">{sym}{lp.price.toFixed(2)}</p>
+                          {lp.changePct != null && (
+                            <p className={`text-xs font-semibold tabular-nums ${lp.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {lp.changePct >= 0 ? '+' : ''}{lp.changePct.toFixed(2)}%
+                            </p>
+                          )}
+                        </>
+                      ) : pricesLoaded ? <p className="text-xs text-cf-text-secondary/50">—</p>
+                        : <p className="text-xs text-cf-text-secondary/50 animate-pulse">···</p>}
+                      <p className="text-[9px] text-cf-text-secondary/60 mt-1 truncate">{SECTOR_LABELS[row.sector] ?? row.sector}</p>
+                    </Link>
+                  );
+                })}
+              </div>
+              <p className="text-[9px] text-cf-text-secondary/40 mt-2">Yahoo Finance · 15분 캐시</p>
+            </div>
+          )}
         </div>
       )}
 
