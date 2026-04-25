@@ -1,0 +1,84 @@
+== iter169 — 2026-04-26 ==
+
+PRIMARY OUTCOME: GDP vintage 필터 + pending state
+
+DRIFT CHECK:
+- iter165: daily-brief/news-cascade (lrange)
+- iter166: macro-indicators credit spread
+- iter167: update-all cron (heatmap warm)
+- iter168: investment-strategy AI quality
+- iter169: macro-indicators GDP 분기 데이터 정확성 ← 새 문제 (data accuracy)
+
+각 iter 도메인이 달라서 drift 없음.
+
+ROOT CAUSE FOUND:
+
+BUG: GDP 블록이 FRED 분기 데이터를 잘못 사용
+
+FRED A191RL1Q225SBEA 응답:
+  2025-04-01, 3.8   (Q2 2025)
+  2025-07-01, 4.4   (Q3 2025)
+  2025-10-01, 0.5   (Q4 2025 ← 가장 최신)
+
+Q1 2026 GDP Advance는 2026-04-30 BEA 릴리즈 예정 — FRED 미반영.
+
+기존 코드:
+  const gdpData = get(fredGDP);
+  const actual = gdpData ? parseFloat(...) : base.actual;  // Q4 2025 값 사용
+  releaseDate: gdpData?.date ?? base.releaseDate,           // '2025-10-01' = Q4분기 시작일!
+
+문제 3가지:
+  1. gdpData가 null이 아님 (Q4 2025 데이터 있음)
+     → actual = 0.5 (Q4 2025), label = "Q1 2026 Advance" ← 분기 mismatch
+  2. releaseDate = '2025-10-01' (분기 시작일, BEA 릴리즈 날짜 아님)
+     → 사용자 표시: "Released: Oct 1, 2025" ← 완전히 틀림
+  3. STATIC.gdp.actual = 0.5 (미발표 Q1 2026 값을 pre-populate한 추정치)
+     → confirmed 값처럼 보임
+
+STATIC.gdp.releaseDate = '2026-04-24' vs econ-calendar '2026-04-30' 불일치도 있었음.
+(BEA Advance는 월말 목요일 08:30 ET → 2026-04-30 목요일이 정확)
+
+FIX:
+
+1. GDP 분기 vintage 필터 추가:
+   const gdpLive = gdpData?.date && gdpData.date >= '2026-01-01' ? gdpData : null;
+   // FRED 분기 날짜 = 분기 시작일 (2025-10-01 = Q4 2025)
+   // 2026-01-01 이상만 Q1 2026으로 인정
+
+2. gdpData 대신 gdpLive 사용:
+   const actual = gdpLive ? parseFloat(gdpLive.value.toFixed(1)) : base.actual;
+   liveData: !!gdpLive,
+
+3. releaseDate: gdpData?.date → base.releaseDate (항상 STATIC 사용)
+   이유: FRED 날짜 = 분기 시작일, BEA 릴리즈 날짜 아님
+
+4. STATIC.gdp 업데이트:
+   actual: null  (미발표)
+   releaseDate: '2026-04-30'  ('2026-04-24' → BEA 정확한 날짜)
+   surprise: 'pending'
+   rateImpact: 'neutral'
+   rateImpactKo: 'neutral (pending)'
+   previous: 0.5  (Q4 2025 FRED 실측값; 기존 2.4는 틀림)
+   summary: 'Q1 2026 GDP Advance — releasing 2026-04-30. Consensus est. 0.9% QoQ SAAR.'
+
+5. FORECASTS.gdp.nextRelease: '2026-05-29' → '2026-04-30'
+   (2nd estimate 날짜가 아닌 advance 날짜 — advance 미발표 상태이므로)
+
+결과:
+  - 사용자 표시: "GDP — Pending — Next Release: Apr 30, 2026" ✓
+  - 2026-04-30 FRED 업데이트 후: gdpLive 활성화 → 실제 값 표시 ✓
+  - releaseDate 자동 관리: base.releaseDate = '2026-04-30' 이므로 릴리즈 후에도 정확 ✓
+
+ACCURACY PROBE:
+[accuracy probe] metric=gdp_q1_2026 source=FRED direct_value=none
+  FRED_latest=Q4_2025 (2025-10-01, 0.5%)  Q1_2026=unreleased
+  vintage_filter: '2025-10-01' < '2026-01-01' → gdpLive=null → actual=null
+  our_value=null (pending)  release_date=2026-04-30 → CORRECT ✓
+[accuracy probe] metric=gdp_previous source=FRED
+  FRED Q4_2025=0.5  STATIC.previous_before=2.4  STATIC.previous_after=0.5 → FIXED ✓
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/macro-indicators/route.ts
+  (GDP vintage filter, STATIC.gdp null-actual, releaseDate '2026-04-30', previous 0.5)

@@ -486,10 +486,10 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   gdp: {
     id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',
-    category: 'growth', actual: 0.5, forecast: 0.9, previous: 2.4, unit: '%QoQ SAAR',
-    releaseDate: '2026-04-24', nextRelease: '2026-05-29', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: 'dovish (growth slowdown → rate cut expectations↑)',
-    summary: 'Q1 2026 GDP advance 0.5%. Tariff shock + consumer slowdown cut growth.',
+    category: 'growth', actual: null, forecast: 0.9, previous: 0.5, unit: '%QoQ SAAR',
+    releaseDate: '2026-04-30', nextRelease: '2026-04-30', surprise: 'pending',
+    rateImpact: 'neutral', rateImpactKo: 'neutral (pending)',
+    summary: 'Q1 2026 GDP Advance — releasing 2026-04-30. Consensus est. 0.9% QoQ SAAR.',
   },
   ism: {
     id: 'ism', name: 'ISM Manufacturing PMI', nameKo: 'ISM 제조업 PMI',
@@ -555,7 +555,7 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
   pce:    { forecast: 2.6,   nextRelease: '2026-04-30' },
   nfp:    { forecast: 140,   nextRelease: '2026-05-02' },
-  gdp:    { forecast: 0.9,   nextRelease: '2026-05-29' },
+  gdp:    { forecast: 0.9,   nextRelease: '2026-04-30' },  // advance release; update to '2026-05-29' after Apr-30
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
   retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
   unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
@@ -728,23 +728,27 @@ export async function GET() {
 
   // GDP
   const gdpData = get(fredGDP);
+  // FRED quarterly observation date = quarter-start (e.g. 2025-10-01 = Q4 2025).
+  // Only accept Q1 2026 or later to avoid labeling Q4 2025 as "Q1 Advance".
+  // Never use gdpData.date as releaseDate — it's the quarter start, not the BEA press-release date.
+  const gdpLive = gdpData?.date && gdpData.date >= '2026-01-01' ? gdpData : null;
   {
     const base = STATIC.gdp;
-    const actual = gdpData ? parseFloat(gdpData.value.toFixed(1)) : base.actual;
+    const actual = gdpLive ? parseFloat(gdpLive.value.toFixed(1)) : base.actual;
     const fc = FORECASTS.gdp.forecast;
     const surprise = classify(actual, fc, true);
     const ri = rateImpact('gdp', surprise);
     indicators.push({
       ...base,
       actual, previous: base.previous, forecast: fc,
-      releaseDate: gdpData?.date ?? base.releaseDate,
+      releaseDate: base.releaseDate,
       nextRelease: FORECASTS.gdp.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `GDP ${actual}% QoQ SAAR (est. ${fc}%). ${actual > 2 ? 'Growth solid.' : actual > 0 ? 'Growth slowing.' : 'Negative growth warning.'}`
         : base.summary,
       cascade: buildCascade('gdp', surprise),
-      liveData: !!gdpData,
+      liveData: !!gdpLive,
     });
   }
 
