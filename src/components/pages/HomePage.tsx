@@ -762,6 +762,7 @@ export default function HomePage() {
   const t = useTranslations('hero');
   const tHome = useTranslations('home');
   const tCommon = useTranslations('common');
+  const tNav = useTranslations('nav');
 
   const socialProof = useInView();
   const featuredSectors = useInView();
@@ -852,6 +853,29 @@ export default function HomePage() {
                   <Search className="w-4 h-4" />
                   {tHome('fundTracking')}
                 </Link>
+              </div>
+              {/* Secondary nav — all remaining pages */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {([
+                  { href: '/earnings', label: tNav('earnings'), icon: <BarChart3 className="w-3.5 h-3.5" /> },
+                  { href: '/insider',  label: tNav('insider'),  icon: <TrendingUp className="w-3.5 h-3.5" /> },
+                  { href: '/heatmap',  label: tNav('heatmap'),  icon: <Layers className="w-3.5 h-3.5" /> },
+                  { href: '/screener', label: tNav('screener'), icon: <Radar className="w-3.5 h-3.5" /> },
+                  { href: '/short',    label: tNav('short'),    icon: <TrendingDown className="w-3.5 h-3.5" /> },
+                  { href: '/cascade',  label: tNav('cascade'),  icon: <Network className="w-3.5 h-3.5" /> },
+                ] as { href: string; label: string; icon: React.ReactNode }[]).map(item => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg
+                               border border-cf-border/60 text-cf-text-secondary
+                               hover:bg-cf-primary/5 hover:border-cf-primary/30 hover:text-cf-primary
+                               transition-colors"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                ))}
               </div>
               <HeroSearch />
             </div>
