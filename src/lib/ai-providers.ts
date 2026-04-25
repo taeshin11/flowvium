@@ -194,19 +194,14 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   } catch { /* non-fatal */ }
 
   // preferSmallModel=true → 8b 직행 (70b TPD 100k 보존)
+  // 주의: 8b 소진이 70b까지 차단하지 않도록 글로벌 guard는 설정 안 함.
   if (opts.preferSmallModel) {
     logger.info(tag, 'groq_prefer_8b', { note: 'skipping 70b per preferSmallModel' });
     const small = await callGroqModel(key, 'llama-3.1-8b-instant', prompt, opts, diag);
     if (small.text) return { text: small.text, model: 'llama-3.1-8b-instant' };
+    // 8b 소진 → 이 경로에서는 글로벌 GROQ guard 설정 안 함 (70b는 별도 quota)
     if (small.status === 429 && small.tpdExhausted) {
-      const ttl = secondsUntilUtcMidnight();
-      const nextMidnight = new Date(Date.now() + ttl * 1000).toISOString();
-      groqTpdExhaustedUntil = Date.now() + ttl * 1000;
-      logger.error(tag, 'groq_all_tpd_exhausted', { resetsAt: nextMidnight, ttlS: ttl, note: '8b-only path' });
-      try {
-        const guardRedis = getGuardRedis();
-        if (guardRedis) await guardRedis.set(GROQ_TPD_KEY, nextMidnight, { ex: ttl });
-      } catch { /* non-fatal */ }
+      logger.warn(tag, 'groq_8b_tpd_exhausted', { note: 'preferSmallModel path; 70b still available' });
     }
     return null;
   }
