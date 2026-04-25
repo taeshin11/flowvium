@@ -245,8 +245,8 @@ async function getFedWatchItem(redis: Redis | null, base: string): Promise<Updat
   let data: FedData | null = null;
   if (redis) {
     try {
-      const hour = new Date().toISOString().slice(0, 13);
-      data = await redis.get<FedData>(`flowvium:fedwatch:v1:${hour}`);
+      const utcDate = new Date().toISOString().slice(0, 10);
+      data = await redis.get<FedData>(`flowvium:fedwatch:v2:${utcDate}`);
     } catch { /* non-fatal */ }
   }
   if (!data?.meetings?.length) {
