@@ -69,27 +69,23 @@ function insiderRoleLabel(t: InsiderTransaction): string {
   return 'Insider';
 }
 
-function buyReason(ix: InsiderTransaction): string {
+function buyReason(ix: InsiderTransaction, t: ReturnType<typeof useTranslations<'insider'>>): string {
   const val = ix.transactionValueUsd ?? 0;
   const code = ix.transactionCode;
-  // Automatic acquisitions — RSU vest, DRIP, stock compensation plans
-  if (code === 'A') return '자동 취득 (RSU/DRIP)';
-  // Option/warrant/conversion exercises
-  if (code === 'M' || code === 'X' || code === 'C') return '옵션·워런트 행사';
-  // Gift — not a market signal
-  if (code === 'G') return '증여';
-  // Open-market purchase — primary buy signal; reason depends on role + size
+  if (code === 'A') return t('brAutoAcquire');
+  if (code === 'M' || code === 'X' || code === 'C') return t('brOptionExercise');
+  if (code === 'G') return t('brGift');
   if (code === 'P') {
-    if (ix.isTenPercentOwner && val >= 500_000) return '대주주 지분 적극 확대';
-    if (ix.isTenPercentOwner) return '대주주 지분 확대';
-    if (ix.isOfficer && val >= 1_000_000) return '경영진 자신감 (대규모)';
-    if (ix.isOfficer && val >= 200_000) return '경영진 자신감';
-    if (ix.isDirector && val >= 200_000) return '이사 신뢰 매입';
-    if (ix.isDirector) return '이사 루틴 매입';
-    if (val >= 1_000_000) return '대규모 장내 매수';
-    return '장내 매수';
+    if (ix.isTenPercentOwner && val >= 500_000) return t('brMajorShareholderBig');
+    if (ix.isTenPercentOwner) return t('brMajorShareholder');
+    if (ix.isOfficer && val >= 1_000_000) return t('brExecutiveBig');
+    if (ix.isOfficer && val >= 200_000) return t('brExecutive');
+    if (ix.isDirector && val >= 200_000) return t('brDirectorBig');
+    if (ix.isDirector) return t('brDirector');
+    if (val >= 1_000_000) return t('brLargeOpenMarket');
+    return t('brOpenMarket');
   }
-  return '내부자 매입';
+  return t('brInsider');
 }
 
 export default function InsiderPage() {
@@ -344,7 +340,7 @@ export default function InsiderPage() {
                         <span className="text-[10px] text-cf-text-secondary/50">{ix.transactionCode}</span>
                       )}
                       {ix.direction === 'buy' && (
-                        <span className="text-[9px] text-cf-text-secondary/60 leading-tight">{buyReason(ix)}</span>
+                        <span className="text-[9px] text-cf-text-secondary/60 leading-tight">{buyReason(ix, t)}</span>
                       )}
                     </div>
                   </td>
