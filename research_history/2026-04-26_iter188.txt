@@ -1,0 +1,66 @@
+== iter188 — 2026-04-26 ==
+
+PRIMARY OUTCOME: news-cascade 2 버그 수정
+
+DRIFT CHECK:
+- iter185: send-alerts/update-all (cron)
+- iter186: short-interest/route.ts (data)
+- iter187: ShortPage.tsx (UI) ← short-interest 연관 2회
+- iter188: news-cascade ← 완전 새 영역 (영역 전환 ✓)
+
+⚠️ 배포 drift 공식 선언:
+  배포 iter183~187 = 5회 "나중에" → user action (git push) 필요.
+  코드 레벨에서 할 수 있는 것 없음. User 준비 시 'git push origin master'.
+
+BUGS FOUND (news-cascade/route.ts):
+
+BUG #1: 기사 pubDate 미정렬 — 최신 뉴스 누락 가능
+  ROOT CAUSE:
+    RSS_FEEDS = [Bloomberg, Bloomberg Eco, WSJ, SeekingAlpha, Yahoo]
+    rawArticles 순서 = 피드 응답 순서 + 피드 내 순서
+    dedup + break at 12 = Bloomberg 앞 12개로 cut → WSJ/SA 최신 뉴스 밀림
+    comment "most recent" 명시됐으나 실제 sort 없었음
+  FIX:
+    rawArticles.sort() by new Date(pubDate).getTime() desc
+    NaN-safe: isNaN 처리 (pubDate 포맷 오류 시 0 처리)
+    이제 Bloomberg/Eco/WSJ/SA/Yahoo 통틀어 가장 최신 12개 선택
+
+BUG #2: maxTokens 400 → JSON 잘림 → cascades: []
+  ROOT CAUSE:
+    5 cascade items JSON = ~550-600 tokens
+    maxTokens: 400 → 3-4번째 item에서 JSON truncation
+    → JSON.parse() 실패 → catch block → cascades: [], summary: title
+    사용자에게 "뉴스 영향 없음"으로 표시 (silent quality degradation)
+  EVIDENCE:
+    live probe: "EU Leaders Convene in Cyprus Amid Iran War" cascades=0
+    (지정학적 뉴스 → 최소 3-5 cascades 있어야 정상)
+  FIX:
+    maxTokens: 400 → 600
+    코멘트: "5 cascade items × ~100 tokens + envelope ≈ 550"
+
+ACCURACY PROBE:
+[accuracy probe] metric=news-cascade.articles source=flowvium.vercel.app live
+  direct_value=10 articles, cached=False
+  "EU Leaders Convene in Cyprus Amid Iran War" cascades=0 → maxTokens 400 truncation ✓
+  "Bloomberg This Weekend 04/25/2026" cascades=0 → newsletter, no specific news → expected
+  "Finland Gets Debt Warning" cascades=4 → 정상 동작 확인
+  fix post-deploy: EU Leaders 류 기사에 cascades 3-5 표시 예상
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/news-cascade/route.ts
+  - rawArticles.sort() by pubDate desc 추가 (dedup 전)
+  - maxTokens: 400 → 600
+
+IMPACT:
+  최신 뉴스 우선 노출 (Bloomberg 피드 순서 → pubDate 기준)
+  cascade 분석 품질 향상 (truncation 제거 → JSON 완성도 개선)
+  "EU Leaders" 류 지정학 뉴스에 시장 영향 cascade 표시 기대
+
+NEXT: iter189 → 다른 영역.
+  후보:
+  1. 배포 (user 확인 필요) — 180+ 커밋 미배포
+  2. investment-strategy AI 프롬프트 품질 감사
+  3. flow-analysis 재감사 (iter182에서 감사했으나 VIX 등 신규 추가됨)
+  4. COT positions / block-trades / market-movers 감사 (최근 추가된 엔드포인트)

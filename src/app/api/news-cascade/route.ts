@@ -131,7 +131,7 @@ function hasChineseLeak(text: string): boolean {
 async function callCascadeAI(prompt: string): Promise<string> {
   const r = await callAI(prompt, {
     systemPrompt: CASCADE_SYSTEM_PROMPT,
-    maxTokens: 400,
+    maxTokens: 600, // 5 cascade items × ~100 tokens + envelope ≈ 550; 400 caused JSON truncation
     temperature: 0.5,
     skipVllm: true, // JSON 구조 분석은 GROQ 70b가 EXAONE-2.4B보다 우수
     timeoutMs: 18000,
@@ -233,6 +233,14 @@ export async function GET() {
   for (const r of results) {
     if (r.status === 'fulfilled') rawArticles.push(...r.value);
   }
+
+  // Sort by pubDate descending so later feeds (WSJ, SA) don't get dropped in favour
+  // of older Bloomberg articles just because Bloomberg was listed first.
+  rawArticles.sort((a, b) => {
+    const ta = new Date(a.pubDate).getTime();
+    const tb = new Date(b.pubDate).getTime();
+    return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+  });
 
   // De-duplicate by title similarity (keep top 12 most recent)
   const seen = new Set<string>();
