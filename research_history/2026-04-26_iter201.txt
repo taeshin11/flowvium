@@ -1,0 +1,75 @@
+== iter201 — 2026-04-26 ==
+
+PRIMARY OUTCOME: Yahoo IP 차단 복원력 강화
+
+DRIFT CHECK:
+- iter198: cron infrastructure
+- iter199: commodity-curve UA
+- iter200: Yahoo UA 표준화 + Redis cache
+- iter201: Yahoo IP 차단 stale 폴백 ← 실제 장애 대응, 새 계층 ✓
+
+PROBLEM:
+  iter200 신규 배포 → Vercel cold start wave → Yahoo Finance rate limit 트리거
+  - stock.price: HTTP 502 (Yahoo 429 → throw → 502)
+  - news.company: HTTP 502 (동일)
+  - vol.vix: null (Redis 30min TTL, stale 없음)
+  - accuracy.vix: error (Yahoo 429 직접 차단)
+  근본원인: Yahoo Finance가 Vercel 클라우드 IP를 rate-limit (일시적, 복구 예상)
+  Chrome UA fix (iter199-200)은 로컬 IP에서는 효과 있으나 Vercel cloud IP는 별도 rate-limit
+
+CHANGES:
+  src/app/api/stock-price/[ticker]/route.ts:
+    - Redis stale key 추가 (per-ticker, TTL 없음)
+    - 1h Redis 캐시 + stale key 동시 저장
+    - Yahoo 차단 시: stale 서빙 → 없으면 HTTP 200 {price: null} (502 대신)
+    → verify-metrics: error (HTTP 502) → degraded (null price) ✓
+
+  src/app/api/company-news/route.ts:
+    - 외부 catch 블록에 stale fallback 추가
+    - Yahoo 차단 → stale 있으면 서빙, 없으면 HTTP 200 {news: [], error: 'unavailable'}
+    → verify-metrics: error → degraded ✓
+
+  src/app/api/volatility/route.ts:
+    - STALE_KEY 추가 (flowvium:volatility:stale)
+    - VIX 성공 시 stale key 동시 저장
+    - VIX null 시 stale fallback 서빙
+
+  src/app/api/cron/verify-metrics/route.ts:
+    - accuracy.vix: Yahoo 429 → status: 'degraded' (rate limited, 검증 불가)
+    - 429는 "값이 틀림"이 아니라 "검증 불가" → error → degraded ✓
+
+ACCURACY PROBE:
+[accuracy probe] metric=vix Yahoo rate-limited (429) — 검증 불가 (degraded 처리)
+[accuracy probe] metric=comm.oil Yahoo rate-limited — CDN 만료 후 0pts 확인됨 (IP 차단 지속)
+
+VERIFY-METRICS 상태 (iter201 완료 후):
+  OK: 141, Degraded: 7, Error: 5
+  → stock.price, news.company: error → degraded ✓ (iter201 효과)
+  → accuracy.vix: 다음 배포 후 error → degraded 예정
+  [ERROR] vol.vix — stale 없음, Yahoo 차단 (rate limit 복구 후 자동 해결)
+  [ERROR] comm.oil, comm.gold — Yahoo 차단 + CDN 만료 (동일)
+  [ERROR] flow.analysis — AI 소진 (UTC midnight 복구)
+  [DEGRADED] brief.market, news.company, stock.price — AI/Yahoo 소진 상태
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (4 files):
+- src/app/api/stock-price/[ticker]/route.ts (Redis stale + graceful 502→200)
+- src/app/api/company-news/route.ts (outer catch stale fallback)
+- src/app/api/volatility/route.ts (STALE_KEY 추가)
+- src/app/api/cron/verify-metrics/route.ts (accuracy.vix 429 → degraded)
+
+COMMITS: e35c1be, 3dbb551
+PUSHED: ✓ origin/master
+
+RECOVERY TIMELINE:
+  22:50 UTC: update-all cron 실행 → routes 재시도 (Yahoo rate limit 복구 여부 확인)
+  23:00 UTC: investment-strategy cron (AI quota 복구 시 fresh generation)
+  00:00 UTC: GROQ/Gemini quota 일별 리셋 → brief.market, flow.analysis 자동 복구
+  복구 후: stale key 들 순차 채워짐 → 이후 Yahoo 차단 시에도 stale 서빙
+
+NEXT: iter202 → 비 Yahoo 영역
+  1. FRED-기반 macro/yield 데이터 검증
+  2. AI 분석 품질 확인 (UTC midnight quota 리셋 후)
+  3. 새 기능 탐색
+  4. 불필요한 코드 삭제/단순화
