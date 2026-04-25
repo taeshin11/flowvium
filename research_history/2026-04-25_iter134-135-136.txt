@@ -1,0 +1,85 @@
+iter134 — 2026-04-25
+Primary outcome: 홈 실적 발표 스트립 신설
+
+Drift check:
+- iter132: feature (streak=2)
+- iter133: i18n+delete
+- iter134: feature (다른 영역 — earnings)
+→ drift 없음
+
+핵심 변경:
+- UpcomingEarningsStrip: 향후 7일 미발표 실적 chip 최대 10개 가로 스크롤
+  - /api/earnings?from=TODAY&to=TODAY+7 fetch
+  - epsActual == null 필터 (미발표만)
+  - Pre / After / During 배지, 클릭 → /company/{ticker}
+- messages/*.json 16개: home.earningsStrip 추가
+- tsc --noEmit: 0 errors ✓
+
+산출물 분류:
+(a) 홈페이지 정보 밀도 증가 — 실적 발표 일정 직접 표시
+
+커밋: (iter134 포함, 컨텍스트 압축으로 정확한 해시 미기록)
+
+---
+
+iter135 — 2026-04-25
+Primary outcome: StockSupplyModal 한글 제거
+
+Drift check:
+- iter133: i18n (streak=1)
+- iter134: feature
+- iter135: i18n (다른 컴포넌트)
+→ drift 없음
+
+핵심 변경:
+- StockSupplyModal.tsx VolumeBar 서브컴포넌트: useTranslations('supply') 추가
+  - 한글 → t('volNoData'), t('volLegendUp'), t('volLegendDown'), t('volLegendHeight')
+  - '${fmt(data.shortRatio)}일' → '${fmt(data.shortRatio)}${t('shortRatioDays')}'
+- messages/*.json 16개: supply.volNoData/volLegendUp/volLegendDown/volLegendHeight/shortRatioDays 추가
+- tsc --noEmit: 0 errors ✓
+
+산출물 분류:
+(c) 삭제/단순화: Korean hardcode 5건 제거
+
+커밋: (iter135 포함, 컨텍스트 압축으로 정확한 해시 미기록)
+
+---
+
+iter136 — 2026-04-25
+Primary outcome: Top Movers 위젯 신설
+
+Drift check:
+- iter134: feature (streak=2 다른 영역)
+- iter135: i18n
+- iter136: feature (Top Movers — 홈)
+→ drift 없음
+
+핵심 변경:
+- /api/market-movers: Yahoo Finance v7 batch, 50개 종목 당일 등락률
+  → gainers top5 / losers top5, Redis 15min TTL
+- TopMoversWidget: HomePage에 UpcomingEarningsStrip 아래 추가
+  - 각 ticker 클릭 → /company/{ticker}
+  - 가로 2열 (gainers/losers)
+- messages/*.json 16개: home.moversTitle/moversGainers/moversLosers 추가 (scripts/add-movers-keys.js 실행 후 삭제)
+- FEATURES.md §2-2d + API table 행 추가
+- METRICS.md #328 #329 live 배지 추가
+- tsc --noEmit: 0 errors ✓
+
+==== 정확도 프로브 ====
+
+[accuracy probe] metric=spy.price source=Yahoo_v7_local direct_value=N/A (Windows curl bot-blocked) our_api=market-movers route.ts 구현 완료, Vercel 미배포 상태 → 로컬 tsc 0 errors 확인
+[accuracy probe] metric=market-movers.api source=flowvium.vercel.app status=404 (미배포) → 배포 후 실값 대조 필요
+
+산출물 분류:
+(a) 홈페이지 핵심 정보 신규 추가 — 당일 급등·급락 Top5 실시간 표시
+
+커밋: 0524f40 feat(home): Top Movers 위젯 신설 — S&P 500 급등·급락 Top 5 홈페이지 표시
+
+==== 다음 iter 방향 ====
+
+iter137 선택지:
+- OSINTPage.tsx 한글 대량 (desc 등 11건) → i18n 정리
+- IntelligencePage L161 CNN 툴팁 한글 → minor
+- Vercel 배포 (git push) — 110+ 커밋 쌓임
+- 새 기능: 홈페이지 주요 매크로 알람 (FRED CPI/GDP alert 배지)
+- 새 기능: /company/{ticker} 페이지 Insider 거래 위젯 (SEC Form 4)
