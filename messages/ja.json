@@ -654,7 +654,9 @@
     "generatedAt": "{time} 生成",
     "aiOutlook": "AI 見通し",
     "latestUpdates": "最新アップデート",
-    "realtime": "リアルタイム"
+    "realtime": "リアルタイム",
+    "earningsStrip": "決算発表予定",
+    "earningsNoData": "今週の決算発表はありません"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",

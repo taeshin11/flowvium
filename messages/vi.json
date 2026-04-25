@@ -497,7 +497,9 @@
     "generatedAt": "Tạo lúc {time}",
     "aiOutlook": "Triển vọng AI",
     "latestUpdates": "Cập nhật mới nhất",
-    "realtime": "Thời gian thực"
+    "realtime": "Thời gian thực",
+    "earningsStrip": "Thu nhập sắp tới",
+    "earningsNoData": "Không có thu nhập tuần này"
   },
   "feedback": {
     "title": "Gửi phản hồi",

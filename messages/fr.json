@@ -497,7 +497,9 @@
     "generatedAt": "Généré {time}",
     "aiOutlook": "Perspectives IA",
     "latestUpdates": "Dernières Mises à Jour",
-    "realtime": "Temps Réel"
+    "realtime": "Temps Réel",
+    "earningsStrip": "Résultats à venir",
+    "earningsNoData": "Aucun résultat cette semaine"
   },
   "feedback": {
     "title": "Envoyer des commentaires",

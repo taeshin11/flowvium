@@ -497,7 +497,9 @@
     "generatedAt": "สร้าง {time}",
     "aiOutlook": "ทิศทาง AI",
     "latestUpdates": "อัปเดตล่าสุด",
-    "realtime": "เรียลไทม์"
+    "realtime": "เรียลไทม์",
+    "earningsStrip": "ผลประกอบการที่กำลังจะมา",
+    "earningsNoData": "ไม่มีผลประกอบการสัปดาห์นี้"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",

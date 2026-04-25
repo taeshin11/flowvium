@@ -497,7 +497,9 @@
     "generatedAt": "{time} को बनाया",
     "aiOutlook": "AI दृष्टिकोण",
     "latestUpdates": "नवीनतम अपडेट",
-    "realtime": "रियल-टाइम"
+    "realtime": "रियल-टाइम",
+    "earningsStrip": "आगामी आय",
+    "earningsNoData": "इस सप्ताह कोई आय नहीं"
   },
   "feedback": {
     "title": "फ़ीडबैक भेजें",

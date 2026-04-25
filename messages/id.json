@@ -497,7 +497,9 @@
     "generatedAt": "Dibuat {time}",
     "aiOutlook": "Prospek AI",
     "latestUpdates": "Pembaruan Terbaru",
-    "realtime": "Realtime"
+    "realtime": "Realtime",
+    "earningsStrip": "Penghasilan Mendatang",
+    "earningsNoData": "Tidak ada laporan minggu ini"
   },
   "feedback": {
     "title": "Kirim Masukan",

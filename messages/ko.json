@@ -654,7 +654,9 @@
     "generatedAt": "{time} 생성",
     "aiOutlook": "AI 전망",
     "latestUpdates": "최신 업데이트",
-    "realtime": "실시간"
+    "realtime": "실시간",
+    "earningsStrip": "다가오는 실적 발표",
+    "earningsNoData": "이번 주 실적 발표 없음"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",

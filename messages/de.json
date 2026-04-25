@@ -497,7 +497,9 @@
     "generatedAt": "Generiert {time}",
     "aiOutlook": "KI-Ausblick",
     "latestUpdates": "Neueste Updates",
-    "realtime": "Echtzeit"
+    "realtime": "Echtzeit",
+    "earningsStrip": "Bevorstehende Ergebnisse",
+    "earningsNoData": "Keine Ergebnisse diese Woche"
   },
   "feedback": {
     "title": "Feedback senden",

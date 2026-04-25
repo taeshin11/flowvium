@@ -497,7 +497,9 @@
     "generatedAt": "تم الإنشاء {time}",
     "aiOutlook": "توقعات AI",
     "latestUpdates": "آخر التحديثات",
-    "realtime": "الوقت الفعلي"
+    "realtime": "الوقت الفعلي",
+    "earningsStrip": "الأرباح القادمة",
+    "earningsNoData": "لا توجد نتائج هذا الأسبوع"
   },
   "feedback": {
     "title": "إرسال ملاحظات",

@@ -497,7 +497,9 @@
     "generatedAt": "{time} 生成",
     "aiOutlook": "AI 展望",
     "latestUpdates": "最新更新",
-    "realtime": "即時"
+    "realtime": "即時",
+    "earningsStrip": "即將公布業績",
+    "earningsNoData": "本週沒有業績公布"
   },
   "feedback": {
     "title": "傳送意見回饋",

@@ -497,7 +497,9 @@
     "generatedAt": "{time} oluşturuldu",
     "aiOutlook": "AI Görünümü",
     "latestUpdates": "Son Güncellemeler",
-    "realtime": "Gerçek Zamanlı"
+    "realtime": "Gerçek Zamanlı",
+    "earningsStrip": "Yaklaşan Kazançlar",
+    "earningsNoData": "Bu hafta kazanç yok"
   },
   "feedback": {
     "title": "Geri Bildirim Gönder",

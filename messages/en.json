@@ -497,7 +497,9 @@
     "generatedAt": "Generated {time}",
     "aiOutlook": "AI Outlook",
     "latestUpdates": "Latest Updates",
-    "realtime": "Realtime"
+    "realtime": "Realtime",
+    "earningsStrip": "Upcoming Earnings",
+    "earningsNoData": "No earnings this week"
   },
   "feedback": {
     "title": "Send Feedback",

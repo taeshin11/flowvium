@@ -777,6 +777,73 @@ function MiniGraph() {
   );
 }
 
+// ── Upcoming Earnings Strip ───────────────────────────────────────────────────
+interface EarningChip { symbol: string; date: string; session: 'pre' | 'after' | 'during' | null; companyName: string | null; }
+
+function UpcomingEarningsStrip() {
+  const tHome = useTranslations('home');
+  const tEarnings = useTranslations('earnings');
+  const [chips, setChips] = useState<EarningChip[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const today = new Date();
+    const from = today.toISOString().slice(0, 10);
+    const to = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+    fetch(`/api/earnings?from=${from}&to=${to}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.earnings) return;
+        const upcoming: EarningChip[] = (d.earnings as Array<{
+          symbol: string; date: string; session: 'pre' | 'after' | 'during' | null;
+          epsActual: number | null; companyName: string | null;
+        }>)
+          .filter(e => e.epsActual == null)
+          .slice(0, 10)
+          .map(e => ({ symbol: e.symbol, date: e.date, session: e.session, companyName: e.companyName }));
+        setChips(upcoming);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  if (!loaded || chips.length === 0) return null;
+
+  return (
+    <div className="border-b border-cf-border/60 bg-cf-bg/80">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2">
+        <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+          <span className="text-[10px] font-semibold text-cf-text-secondary uppercase tracking-wide flex-shrink-0">
+            {tHome('earningsStrip')}
+          </span>
+          <div className="flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {chips.map(c => {
+              const date = new Date(c.date + 'T12:00:00');
+              const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+              const sessionLabel = c.session === 'pre' ? tEarnings('sessionPre') :
+                                   c.session === 'after' ? tEarnings('sessionAfter') :
+                                   c.session === 'during' ? tEarnings('sessionDuring') : '';
+              return (
+                <Link
+                  key={c.symbol}
+                  href={`/company/${c.symbol}`}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-cf-border/60 bg-white/40 hover:bg-cf-primary/5 hover:border-cf-primary/30 transition-colors group"
+                >
+                  <span className="text-[11px] font-mono font-bold text-cf-primary group-hover:underline">{c.symbol}</span>
+                  <span className="text-[10px] text-cf-text-secondary">{dateStr}</span>
+                  {sessionLabel && (
+                    <span className="text-[9px] font-bold px-1 py-px rounded bg-slate-100 text-slate-500">{sessionLabel}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const t = useTranslations('hero');
   const tHome = useTranslations('home');
@@ -916,6 +983,8 @@ export default function HomePage() {
 
       {/* Live market snapshot strip */}
       <MarketSnapshot />
+      {/* Upcoming earnings strip */}
+      <UpcomingEarningsStrip />
 
       {/* Social Proof */}
       <section
