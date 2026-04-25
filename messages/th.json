@@ -1543,12 +1543,13 @@
     "colTicker": "Ticker",
     "colCompany": "บริษัท",
     "colSector": "เซกเตอร์",
+    "colShortFloat": "Short Float %",
     "colMom": "เปลี่ยนแปลง MoM",
     "colInstAction": "การดำเนินการสถาบัน",
     "colSqueezeScore": "คะแนน Squeeze",
     "daysUnit": "วัน",
     "noData": "ไม่มีข้อมูล",
     "noResults": "ไม่มีผลลัพธ์ตามตัวกรอง",
-    "sourceNote": "แหล่งที่มา: FINRA รายวัน · SEC EDGAR 13F · Finnhub P/E · แคช 4ชม."
+    "sourceNote": "แหล่งที่มา: FINRA รายวัน · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · แคช 4ชม."
   }
 }

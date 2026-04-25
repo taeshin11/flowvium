@@ -1543,12 +1543,13 @@
     "colTicker": "代號",
     "colCompany": "公司",
     "colSector": "板塊",
+    "colShortFloat": "放空浮動比",
     "colMom": "MoM變化",
     "colInstAction": "機構動作",
     "colSqueezeScore": "軋空分數",
     "daysUnit": "天",
     "noData": "無數據",
     "noResults": "無符合條件的標的",
-    "sourceNote": "來源: FINRA日度放空 · SEC EDGAR 13F · Finnhub P/E · 快取4小時"
+    "sourceNote": "來源: FINRA日度放空 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 快取4小時"
   }
 }

@@ -1543,12 +1543,13 @@
     "colTicker": "티커",
     "colCompany": "기업",
     "colSector": "섹터",
+    "colShortFloat": "공매도 유통비율",
     "colMom": "MoM 변화",
     "colInstAction": "기관 액션",
     "colSqueezeScore": "스퀴즈 점수",
     "daysUnit": "일",
     "noData": "데이터 없음",
     "noResults": "조건에 맞는 종목이 없습니다",
-    "sourceNote": "출처: FINRA 일별 공매도 · SEC EDGAR 13F · Finnhub P/E · 캐시 4시간"
+    "sourceNote": "출처: FINRA 일별 공매도 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 캐시 4시간"
   }
 }

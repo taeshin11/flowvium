@@ -1543,12 +1543,13 @@
     "colTicker": "Тикер",
     "colCompany": "Компания",
     "colSector": "Сектор",
+    "colShortFloat": "% Float в шорт",
     "colMom": "Изм. MoM",
     "colInstAction": "Действие инст.",
     "colSqueezeScore": "Счёт сквиза",
     "daysUnit": "д",
     "noData": "Нет данных",
     "noResults": "Нет результатов для текущих фильтров",
-    "sourceNote": "Источник: FINRA ежедн. шорт · SEC EDGAR 13F · Finnhub P/E · Кэш 4ч"
+    "sourceNote": "Источник: FINRA ежедн. шорт · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Кэш 4ч"
   }
 }

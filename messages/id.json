@@ -1543,12 +1543,13 @@
     "colTicker": "Ticker",
     "colCompany": "Perusahaan",
     "colSector": "Sektor",
+    "colShortFloat": "Short Float %",
     "colMom": "Perubahan MoM",
     "colInstAction": "Aksi inst.",
     "colSqueezeScore": "Skor squeeze",
     "daysUnit": "h",
     "noData": "Tidak ada data",
     "noResults": "Tidak ada hasil untuk filter saat ini",
-    "sourceNote": "Sumber: FINRA vol. short harian · SEC EDGAR 13F · Finnhub P/E · Cache 4j"
+    "sourceNote": "Sumber: FINRA vol. short harian · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4j"
   }
 }

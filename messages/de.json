@@ -1543,12 +1543,13 @@
     "colTicker": "Ticker",
     "colCompany": "Unternehmen",
     "colSector": "Sektor",
+    "colShortFloat": "Short Float %",
     "colMom": "MoM-Änderung",
     "colInstAction": "Inst.-Aktion",
     "colSqueezeScore": "Squeeze-Score",
     "daysUnit": "T",
     "noData": "Keine Daten",
     "noResults": "Keine Ergebnisse für die aktuellen Filter",
-    "sourceNote": "Quelle: FINRA tägl. Leerverkauf · SEC EDGAR 13F · Finnhub P/E · Cache 4Std."
+    "sourceNote": "Quelle: FINRA tägl. Leerverkauf · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4Std."
   }
 }

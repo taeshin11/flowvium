@@ -220,6 +220,7 @@ export default function ShortPage() {
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colCompany')}</th>
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colSector')}</th>
               <SortTh label="Short Vol % (FINRA)" k="shortVolPct" />
+              <SortTh label={t('colShortFloat')} k="shortFloatPct" />
               <SortTh label="Days to Cover" k="shortRatio" />
               <SortTh label={t('colMom')} k="shortChangeMonthly" />
               <SortTh label="PER (TTM)" k="trailingPE" />
@@ -254,6 +255,13 @@ export default function ShortPage() {
                     {entry.shortVolPct != null ? (
                       <span className={`font-mono font-semibold text-sm ${entry.shortVolPct > 60 ? 'text-red-400' : entry.shortVolPct > 50 ? 'text-amber-400' : 'text-cf-text-primary'}`}>
                         {entry.shortVolPct.toFixed(1)}%
+                      </span>
+                    ) : <span className="text-cf-text-secondary/40">-</span>}
+                  </td>
+                  <td className="px-3 py-2.5 font-mono text-sm">
+                    {entry.shortFloatPct != null ? (
+                      <span className={entry.shortFloatPct > 20 ? 'text-red-400' : entry.shortFloatPct > 10 ? 'text-amber-400' : 'text-cf-text-primary'}>
+                        {entry.shortFloatPct.toFixed(1)}%
                       </span>
                     ) : <span className="text-cf-text-secondary/40">-</span>}
                   </td>

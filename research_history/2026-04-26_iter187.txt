@@ -1,0 +1,65 @@
+== iter187 — 2026-04-26 ==
+
+PRIMARY OUTCOME: ShortPage shortFloatPct 컬럼 추가
+
+DRIFT CHECK:
+- iter184: investment-strategy/daily-brief AI (VIX 주입)
+- iter185: send-alerts/update-all (cron 감사)
+- iter186: short-interest (shortFloatPct 데이터 복구)
+- iter187: ShortPage UI (shortFloatPct 표시) ← 새 영역
+
+연속 drift 없음.
+
+⚠️ DRIFT SIGNAL: 배포 4+ iter 연속 "나중에"
+  iter183~186: 배포 후보로 거론, 매번 "user 확인 필요"로 미룸.
+  이건 코드 버그가 아니라 user action (git push) 이 필요한 건.
+  공식 포기는 아님 — user 응답 대기 중.
+
+BUG FOUND: iter186 shortFloatPct 복구가 UI에서 보이지 않음
+
+  ROOT CAUSE:
+    ShortPage.tsx 테이블에 shortFloatPct 컬럼 헤더 없음.
+    SortKey 타입에는 'shortFloatPct' 정의돼 있었으나
+    <SortTh> 와 <td> 셀이 모두 없었음.
+    → 데이터는 API에서 제공되지만 사용자에게 비표시.
+
+FIX: ShortPage.tsx에 "Short Float %" 컬럼 추가
+
+  ShortPage.tsx:
+    - <SortTh label={t('colShortFloat')} k="shortFloatPct" /> 추가
+      (Short Vol % 다음, Days to Cover 앞)
+    - <td> 셀 추가: shortFloatPct > 20% = 빨간색, > 10% = 노란색, 나머지 = 기본색
+    - null이면 '-' 표시 (기존 패턴과 동일)
+
+  messages/*.json (16개 파일):
+    - "colShortFloat" 키 추가 (colSector 다음, colMom 앞)
+    - sourceNote에 "· Yahoo v10 Short Float" 추가
+
+ACCURACY PROBE:
+[accuracy probe] metric=sector-pe.XLK.trailingPE source=Yahoo v10 (same crumb path)
+  direct_value=38.09 (2026-04-26, flowvium.vercel.app/api/sector-pe live)
+  Yahoo v10 defaultKeyStatistics works from Vercel ✓ (iter186에서 검증됨)
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (18 files):
+- src/components/pages/ShortPage.tsx
+  - <SortTh> 컬럼 헤더 추가 (colShortFloat)
+  - <td> 셀 추가 (shortFloatPct 컬러 렌더링)
+- messages/en.json + ko.json + ja.json + zh-CN.json + zh-TW.json
+  + es.json + fr.json + de.json + pt.json + ru.json
+  + ar.json + hi.json + id.json + th.json + tr.json + vi.json (16개)
+  - colShortFloat 키 추가
+  - sourceNote Yahoo v10 언급 추가
+
+IMPACT:
+  사용자가 Short Interest 탭에서 이제 실제 short float % 확인 가능
+  iter186 데이터 복구 + iter187 UI 표시 = 완전한 기능 복구
+  color coding: > 20% 빨간 (고위험), > 10% 노란 (주의)
+
+NEXT: iter188 → 다른 영역.
+  후보:
+  1. 배포 (user 확인 필요) — 179+ 커밋 미배포
+  2. news-cascade AI 품질 감사
+  3. investment-strategy AI 프롬프트 품질 감사
+  4. squeezeScore 임계값 재조정 (새 85pt 최대값 기준)

@@ -1543,12 +1543,13 @@
     "colTicker": "Ticker",
     "colCompany": "Şirket",
     "colSector": "Sektör",
+    "colShortFloat": "Açık Faiz Oranı %",
     "colMom": "MoM Değişim",
     "colInstAction": "Kurumsal eylem",
     "colSqueezeScore": "Squeeze skoru",
     "daysUnit": "g",
     "noData": "Veri yok",
     "noResults": "Mevcut filtrelerle eşleşen sonuç yok",
-    "sourceNote": "Kaynak: FINRA günlük açığa satış · SEC EDGAR 13F · Finnhub P/E · Önbellek 4s"
+    "sourceNote": "Kaynak: FINRA günlük açığa satış · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Önbellek 4s"
   }
 }

@@ -1543,12 +1543,13 @@
     "colTicker": "टिकर",
     "colCompany": "कंपनी",
     "colSector": "सेक्टर",
+    "colShortFloat": "शॉर्ट फ्लोट %",
     "colMom": "MoM बदलाव",
     "colInstAction": "संस्थागत एक्शन",
     "colSqueezeScore": "स्क्वीज़ स्कोर",
     "daysUnit": "दिन",
     "noData": "डेटा नहीं",
     "noResults": "फ़िल्टर से कोई परिणाम नहीं",
-    "sourceNote": "स्रोत: FINRA दैनिक शॉर्ट · SEC EDGAR 13F · Finnhub P/E · कैश 4घं"
+    "sourceNote": "स्रोत: FINRA दैनिक शॉर्ट · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · कैश 4घं"
   }
 }

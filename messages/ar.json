@@ -1543,12 +1543,13 @@
     "colTicker": "الرمز",
     "colCompany": "الشركة",
     "colSector": "القطاع",
+    "colShortFloat": "نسبة البيع على المكشوف",
     "colMom": "تغيير MoM",
     "colInstAction": "إجراء مؤسسي",
     "colSqueezeScore": "نقاط الضغط",
     "daysUnit": "يوم",
     "noData": "لا توجد بيانات",
     "noResults": "لا توجد نتائج للفلاتر الحالية",
-    "sourceNote": "المصدر: FINRA يومي · SEC EDGAR 13F · Finnhub P/E · ذاكرة تخزين 4س"
+    "sourceNote": "المصدر: FINRA يومي · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · ذاكرة تخزين 4س"
   }
 }

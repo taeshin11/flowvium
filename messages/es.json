@@ -1543,12 +1543,13 @@
     "colTicker": "Ticker",
     "colCompany": "Empresa",
     "colSector": "Sector",
+    "colShortFloat": "% Float Corto",
     "colMom": "Cambio MoM",
     "colInstAction": "Acción inst.",
     "colSqueezeScore": "Puntuación squeeze",
     "daysUnit": "d",
     "noData": "Sin datos",
     "noResults": "Ningún resultado coincide con los filtros",
-    "sourceNote": "Fuente: FINRA vol. corto diario · SEC EDGAR 13F · Finnhub P/E · Caché 4h"
+    "sourceNote": "Fuente: FINRA vol. corto diario · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Caché 4h"
   }
 }

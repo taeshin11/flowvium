@@ -1543,12 +1543,13 @@
     "colTicker": "Ticker",
     "colCompany": "Công ty",
     "colSector": "Ngành",
+    "colShortFloat": "Tỷ lệ Short Float %",
     "colMom": "Thay đổi MoM",
     "colInstAction": "Hành động tổ chức",
     "colSqueezeScore": "Điểm squeeze",
     "daysUnit": "ng",
     "noData": "Không có dữ liệu",
     "noResults": "Không có kết quả cho bộ lọc hiện tại",
-    "sourceNote": "Nguồn: FINRA hàng ngày · SEC EDGAR 13F · Finnhub P/E · Cache 4h"
+    "sourceNote": "Nguồn: FINRA hàng ngày · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4h"
   }
 }

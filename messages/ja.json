@@ -1543,12 +1543,13 @@
     "colTicker": "ティッカー",
     "colCompany": "企業",
     "colSector": "セクター",
+    "colShortFloat": "空売り比率",
     "colMom": "MoM変化",
     "colInstAction": "機関アクション",
     "colSqueezeScore": "スクイーズスコア",
     "daysUnit": "日",
     "noData": "データなし",
     "noResults": "条件に合う銘柄がありません",
-    "sourceNote": "出典: FINRA日次空売り · SEC EDGAR 13F · Finnhub P/E · キャッシュ4時間"
+    "sourceNote": "出典: FINRA日次空売り · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · キャッシュ4時間"
   }
 }
