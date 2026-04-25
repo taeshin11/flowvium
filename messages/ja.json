@@ -1553,5 +1553,23 @@
     "noData": "データなし",
     "noResults": "条件に合う銘柄がありません",
     "sourceNote": "出典: FINRA日次空売り · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · キャッシュ4時間"
+  },
+  "compare": {
+    "title": "企業比較",
+    "searchPlaceholder": "ティッカーまたは企業名を検索",
+    "about": "概要",
+    "founded": "設立",
+    "employees": "従業員数",
+    "revenue": "売上",
+    "revenueMix": "売上構成比較",
+    "fullProfile": "詳細プロフィール",
+    "newsGapSignal": "ニュースギャップシグナル",
+    "mediaCoverageScore": "メディアカバレッジスコア",
+    "institutionalSignals": "機関投資家シグナル",
+    "ibActivityScore": "IB活動スコア",
+    "cascadePatterns": "カスケードパターン",
+    "keyRelationships": "主要な関係",
+    "popularComparisons": "人気の比較",
+    "enterTwoTickers": "上記に2つのティッカーを入力して企業を比較してください。"
   }
 }

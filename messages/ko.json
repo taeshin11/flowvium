@@ -1553,5 +1553,23 @@
     "noData": "데이터 없음",
     "noResults": "조건에 맞는 종목이 없습니다",
     "sourceNote": "출처: FINRA 일별 공매도 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 캐시 4시간"
+  },
+  "compare": {
+    "title": "기업 비교",
+    "searchPlaceholder": "티커 또는 기업명 검색",
+    "about": "소개",
+    "founded": "설립",
+    "employees": "직원 수",
+    "revenue": "매출",
+    "revenueMix": "매출 구성 비교",
+    "fullProfile": "전체 프로필",
+    "newsGapSignal": "뉴스 갭 신호",
+    "mediaCoverageScore": "미디어 커버리지 점수",
+    "institutionalSignals": "기관 신호",
+    "ibActivityScore": "IB 활동 점수",
+    "cascadePatterns": "캐스케이드 패턴",
+    "keyRelationships": "핵심 관계",
+    "popularComparisons": "인기 비교",
+    "enterTwoTickers": "위에 두 개의 티커를 입력하여 기업을 비교하세요."
   }
 }

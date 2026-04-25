@@ -1553,5 +1553,23 @@
     "noData": "Không có dữ liệu",
     "noResults": "Không có kết quả cho bộ lọc hiện tại",
     "sourceNote": "Nguồn: FINRA hàng ngày · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4h"
+  },
+  "compare": {
+    "title": "So sánh công ty",
+    "searchPlaceholder": "Tìm mã cổ phiếu hoặc tên",
+    "about": "Giới thiệu",
+    "founded": "Thành lập",
+    "employees": "Nhân viên",
+    "revenue": "Doanh thu",
+    "revenueMix": "So sánh cơ cấu doanh thu",
+    "fullProfile": "Hồ sơ đầy đủ",
+    "newsGapSignal": "Tín hiệu khoảng cách tin tức",
+    "mediaCoverageScore": "Điểm phủ sóng truyền thông",
+    "institutionalSignals": "Tín hiệu tổ chức",
+    "ibActivityScore": "Điểm hoạt động IB",
+    "cascadePatterns": "Mẫu tầng",
+    "keyRelationships": "Mối quan hệ chính",
+    "popularComparisons": "So sánh phổ biến",
+    "enterTwoTickers": "Nhập hai mã cổ phiếu ở trên để so sánh các công ty."
   }
 }

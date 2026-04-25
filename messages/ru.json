@@ -1553,5 +1553,23 @@
     "noData": "Нет данных",
     "noResults": "Нет результатов для текущих фильтров",
     "sourceNote": "Источник: FINRA ежедн. шорт · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Кэш 4ч"
+  },
+  "compare": {
+    "title": "Сравнение компаний",
+    "searchPlaceholder": "Поиск тикера или названия",
+    "about": "О компании",
+    "founded": "Основана",
+    "employees": "Сотрудники",
+    "revenue": "Выручка",
+    "revenueMix": "Сравнение структуры выручки",
+    "fullProfile": "Полный профиль",
+    "newsGapSignal": "Сигнал разрыва новостей",
+    "mediaCoverageScore": "Оценка медиаохвата",
+    "institutionalSignals": "Институциональные сигналы",
+    "ibActivityScore": "Оценка активности IB",
+    "cascadePatterns": "Каскадные паттерны",
+    "keyRelationships": "Ключевые связи",
+    "popularComparisons": "Популярные сравнения",
+    "enterTwoTickers": "Введите два тикера выше, чтобы сравнить компании."
   }
 }

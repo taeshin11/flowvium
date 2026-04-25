@@ -1553,5 +1553,23 @@
     "noData": "डेटा नहीं",
     "noResults": "फ़िल्टर से कोई परिणाम नहीं",
     "sourceNote": "स्रोत: FINRA दैनिक शॉर्ट · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · कैश 4घं"
+  },
+  "compare": {
+    "title": "कंपनी तुलनाकर्ता",
+    "searchPlaceholder": "टिकर या नाम खोजें",
+    "about": "के बारे में",
+    "founded": "स्थापित",
+    "employees": "कर्मचारी",
+    "revenue": "राजस्व",
+    "revenueMix": "राजस्व मिश्रण तुलना",
+    "fullProfile": "पूरी प्रोफ़ाइल",
+    "newsGapSignal": "न्यूज़ गैप सिग्नल",
+    "mediaCoverageScore": "मीडिया कवरेज स्कोर",
+    "institutionalSignals": "संस्थागत संकेत",
+    "ibActivityScore": "IB गतिविधि स्कोर",
+    "cascadePatterns": "कैस्केड पैटर्न",
+    "keyRelationships": "प्रमुख संबंध",
+    "popularComparisons": "लोकप्रिय तुलनाएं",
+    "enterTwoTickers": "कंपनियों की तुलना करने के लिए ऊपर दो टिकर दर्ज करें।"
   }
 }

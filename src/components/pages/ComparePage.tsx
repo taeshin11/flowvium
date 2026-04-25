@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { allCompanies, type Company } from '@/data/companies';
 import { institutionalSignals } from '@/data/institutional-signals';
@@ -73,6 +74,7 @@ function ScoreBar({ value, max = 100, color }: { value: number; max?: number; co
 }
 
 function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'right' }) {
+  const t = useTranslations('compare');
   const signals = institutionalSignals.filter((s) => s.ticker === company.ticker).slice(0, 3);
   const ngEntry = newsGapData.find((e) => e.ticker === company.ticker);
   const cascades = cascadePatterns.filter((c) =>
@@ -130,26 +132,26 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
           href={`/company/${company.ticker}`}
           className="inline-flex items-center gap-1 text-xs text-cf-primary mt-3 hover:underline"
         >
-          Full profile <ChevronRight className="w-3 h-3" />
+          {t('fullProfile')} <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
 
       {/* Description */}
       <div className="cf-card p-5">
-        <h3 className="text-sm font-semibold text-cf-text-primary mb-2">About</h3>
+        <h3 className="text-sm font-semibold text-cf-text-primary mb-2">{t('about')}</h3>
         <p className="text-xs text-cf-text-secondary leading-relaxed line-clamp-5">{company.description}</p>
         <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
           <div className="flex items-start gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-cf-text-secondary mt-0.5 shrink-0" />
             <div>
-              <p className="text-cf-text-secondary">Founded</p>
+              <p className="text-cf-text-secondary">{t('founded')}</p>
               <p className="font-medium text-cf-text-primary">{company.founded}</p>
             </div>
           </div>
           <div className="flex items-start gap-1.5">
             <Users className="w-3.5 h-3.5 text-cf-text-secondary mt-0.5 shrink-0" />
             <div>
-              <p className="text-cf-text-secondary">Employees</p>
+              <p className="text-cf-text-secondary">{t('employees')}</p>
               <p className="font-medium text-cf-text-primary">{company.employees}</p>
             </div>
           </div>
@@ -165,7 +167,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
 
       {/* Revenue Segments */}
       <div className="cf-card p-5">
-        <h3 className="text-sm font-semibold text-cf-text-primary mb-1">Revenue</h3>
+        <h3 className="text-sm font-semibold text-cf-text-primary mb-1">{t('revenue')}</h3>
         <p className="text-lg font-bold text-cf-text-primary mb-4">{company.revenue.total}</p>
         <div className="space-y-2">
           {company.revenue.segments.slice(0, 5).map((seg) => (
@@ -182,7 +184,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
 
       {/* News Gap */}
       <div className="cf-card p-5">
-        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">News Gap Signal</h3>
+        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">{t('newsGapSignal')}</h3>
         {ngEntry ? (
           <div className="space-y-3">
             <div>
@@ -194,14 +196,14 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-cf-text-secondary">IB Activity Score</span>
+                <span className="text-cf-text-secondary">{t('ibActivityScore')}</span>
                 <span className="font-bold" style={{ color: accentColor }}>{ngEntry.ibActivityScore}</span>
               </div>
               <ScoreBar value={ngEntry.ibActivityScore} color={accentColor} />
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-cf-text-secondary">Media Coverage Score</span>
+                <span className="text-cf-text-secondary">{t('mediaCoverageScore')}</span>
                 <span className="font-bold text-cf-text-primary">{ngEntry.mediaScore}</span>
               </div>
               <ScoreBar value={ngEntry.mediaScore} color="#94a3b8" />
@@ -217,7 +219,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
 
       {/* Institutional Signals */}
       <div className="cf-card p-5">
-        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">Institutional Signals</h3>
+        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">{t('institutionalSignals')}</h3>
         {signals.length > 0 ? (
           <div className="space-y-3">
             {signals.map((sig) => (
@@ -241,7 +243,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
 
       {/* Cascade Appearances */}
       <div className="cf-card p-5">
-        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">Cascade Patterns</h3>
+        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">{t('cascadePatterns')}</h3>
         {cascades.length > 0 ? (
           <div className="space-y-2">
             {cascades.slice(0, 3).map((c) => {
@@ -268,7 +270,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
 
       {/* Supply Chain Relationships */}
       <div className="cf-card p-5">
-        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">Key Relationships</h3>
+        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">{t('keyRelationships')}</h3>
         <div className="space-y-2">
           {company.relationships.slice(0, 5).map((rel, i) => {
             const related = allCompanies.find((c) => c.id === rel.targetId);
@@ -348,6 +350,7 @@ function TickerSearch({
 }
 
 export default function ComparePage({ slug }: { slug: string }) {
+  const t = useTranslations('compare');
   // Parse slug: "nvda-vs-amd" → ['NVDA', 'AMD']
   const parts = slug.toUpperCase().split('-VS-');
   const initialTicker1 = parts[0] || 'NVDA';
@@ -387,7 +390,7 @@ export default function ComparePage({ slug }: { slug: string }) {
         <div className="flex items-center gap-2 mb-2">
           <GitCompare className="w-6 h-6 text-cf-primary" />
           <h1 className="text-2xl md:text-3xl font-heading font-bold text-cf-text-primary">
-            Company Comparator
+            {t('title')}
           </h1>
         </div>
         <p className="text-cf-text-secondary">
@@ -403,7 +406,7 @@ export default function ComparePage({ slug }: { slug: string }) {
             <TickerSearch
               value={ticker1}
               onChange={setTicker1}
-              placeholder="Search ticker or name…"
+              placeholder={t('searchPlaceholder')}
             />
           </div>
           <div className="flex items-center justify-center">
@@ -420,7 +423,7 @@ export default function ComparePage({ slug }: { slug: string }) {
             <TickerSearch
               value={ticker2}
               onChange={setTicker2}
-              placeholder="Search ticker or name…"
+              placeholder={t('searchPlaceholder')}
             />
           </div>
         </div>
@@ -501,7 +504,7 @@ export default function ComparePage({ slug }: { slug: string }) {
         <div className="cf-card p-5 mb-8">
           <h2 className="text-base font-heading font-bold text-cf-text-primary mb-4 flex items-center gap-2">
             <Zap className="w-4 h-4 text-cf-primary" />
-            Revenue Mix Comparison
+            {t('revenueMix')}
           </h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={revenueChartData} margin={{ top: 4, right: 8, bottom: 40, left: 0 }}>
@@ -541,7 +544,7 @@ export default function ComparePage({ slug }: { slug: string }) {
       ) : (
         <div className="cf-card p-12 text-center">
           <GitCompare className="w-12 h-12 text-cf-text-secondary mx-auto mb-4" />
-          <p className="text-cf-text-secondary">Enter two tickers above to compare companies.</p>
+          <p className="text-cf-text-secondary">{t('enterTwoTickers')}</p>
           <p className="text-xs text-cf-text-secondary mt-2">
             Try: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX
           </p>
@@ -550,7 +553,7 @@ export default function ComparePage({ slug }: { slug: string }) {
 
       {/* Popular comparisons */}
       <div className="mt-10 cf-card p-5">
-        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">Popular Comparisons</h3>
+        <h3 className="text-sm font-semibold text-cf-text-primary mb-3">{t('popularComparisons')}</h3>
         <div className="flex flex-wrap gap-2">
           {[
             ['NVDA', 'AMD'],

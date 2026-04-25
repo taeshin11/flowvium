@@ -1553,5 +1553,23 @@
     "noData": "Tidak ada data",
     "noResults": "Tidak ada hasil untuk filter saat ini",
     "sourceNote": "Sumber: FINRA vol. short harian · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4j"
+  },
+  "compare": {
+    "title": "Pembanding Perusahaan",
+    "searchPlaceholder": "Cari ticker atau nama",
+    "about": "Tentang",
+    "founded": "Didirikan",
+    "employees": "Karyawan",
+    "revenue": "Pendapatan",
+    "revenueMix": "Perbandingan bauran pendapatan",
+    "fullProfile": "Profil lengkap",
+    "newsGapSignal": "Sinyal kesenjangan berita",
+    "mediaCoverageScore": "Skor liputan media",
+    "institutionalSignals": "Sinyal institusional",
+    "ibActivityScore": "Skor aktivitas IB",
+    "cascadePatterns": "Pola kaskade",
+    "keyRelationships": "Hubungan kunci",
+    "popularComparisons": "Perbandingan populer",
+    "enterTwoTickers": "Masukkan dua ticker di atas untuk membandingkan perusahaan."
   }
 }

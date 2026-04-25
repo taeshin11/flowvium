@@ -1553,5 +1553,23 @@
     "noData": "لا توجد بيانات",
     "noResults": "لا توجد نتائج للفلاتر الحالية",
     "sourceNote": "المصدر: FINRA يومي · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · ذاكرة تخزين 4س"
+  },
+  "compare": {
+    "title": "مقارنة الشركات",
+    "searchPlaceholder": "البحث برمز السهم أو الاسم",
+    "about": "عن الشركة",
+    "founded": "تأسست",
+    "employees": "الموظفون",
+    "revenue": "الإيرادات",
+    "revenueMix": "مقارنة مزيج الإيرادات",
+    "fullProfile": "الملف الكامل",
+    "newsGapSignal": "إشارة فجوة الأخبار",
+    "mediaCoverageScore": "درجة التغطية الإعلامية",
+    "institutionalSignals": "الإشارات المؤسسية",
+    "ibActivityScore": "درجة نشاط IB",
+    "cascadePatterns": "أنماط التتالي",
+    "keyRelationships": "العلاقات الرئيسية",
+    "popularComparisons": "المقارنات الشائعة",
+    "enterTwoTickers": "أدخل رمزين للسهم أعلاه لمقارنة الشركات."
   }
 }

@@ -1553,5 +1553,23 @@
     "noData": "無數據",
     "noResults": "無符合條件的標的",
     "sourceNote": "來源: FINRA日度放空 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 快取4小時"
+  },
+  "compare": {
+    "title": "公司比較",
+    "searchPlaceholder": "搜尋股票代碼或公司名稱",
+    "about": "簡介",
+    "founded": "成立時間",
+    "employees": "員工人數",
+    "revenue": "營收",
+    "revenueMix": "營收結構比較",
+    "fullProfile": "完整資料",
+    "newsGapSignal": "新聞缺口信號",
+    "mediaCoverageScore": "媒體覆蓋評分",
+    "institutionalSignals": "機構信號",
+    "ibActivityScore": "IB活動評分",
+    "cascadePatterns": "級聯模式",
+    "keyRelationships": "關鍵關係",
+    "popularComparisons": "熱門比較",
+    "enterTwoTickers": "在上方輸入兩個股票代碼來比較公司。"
   }
 }

@@ -1553,5 +1553,23 @@
     "noData": "Keine Daten",
     "noResults": "Keine Ergebnisse für die aktuellen Filter",
     "sourceNote": "Quelle: FINRA tägl. Leerverkauf · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4Std."
+  },
+  "compare": {
+    "title": "Unternehmensvergleich",
+    "searchPlaceholder": "Ticker oder Name suchen",
+    "about": "Über",
+    "founded": "Gegründet",
+    "employees": "Mitarbeiter",
+    "revenue": "Umsatz",
+    "revenueMix": "Umsatzmix-Vergleich",
+    "fullProfile": "Vollständiges Profil",
+    "newsGapSignal": "News-Gap-Signal",
+    "mediaCoverageScore": "Medienabdeckungswert",
+    "institutionalSignals": "Institutionelle Signale",
+    "ibActivityScore": "IB-Aktivitätswert",
+    "cascadePatterns": "Kaskadenmuster",
+    "keyRelationships": "Schlüsselbeziehungen",
+    "popularComparisons": "Beliebte Vergleiche",
+    "enterTwoTickers": "Geben Sie oben zwei Ticker ein, um Unternehmen zu vergleichen."
   }
 }

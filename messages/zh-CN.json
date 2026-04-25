@@ -1553,5 +1553,23 @@
     "noData": "无数据",
     "noResults": "无符合条件的标的",
     "sourceNote": "来源: FINRA日度做空 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 缓存4小时"
+  },
+  "compare": {
+    "title": "公司比较",
+    "searchPlaceholder": "搜索股票代码或公司名称",
+    "about": "简介",
+    "founded": "成立时间",
+    "employees": "员工人数",
+    "revenue": "营收",
+    "revenueMix": "营收结构比较",
+    "fullProfile": "完整资料",
+    "newsGapSignal": "新闻缺口信号",
+    "mediaCoverageScore": "媒体覆盖评分",
+    "institutionalSignals": "机构信号",
+    "ibActivityScore": "IB活动评分",
+    "cascadePatterns": "级联模式",
+    "keyRelationships": "关键关系",
+    "popularComparisons": "热门比较",
+    "enterTwoTickers": "在上方输入两个股票代码来比较公司。"
   }
 }

@@ -1553,5 +1553,23 @@
     "noData": "Sem dados",
     "noResults": "Nenhum resultado corresponde aos filtros",
     "sourceNote": "Fonte: FINRA vol. curto diário · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4h"
+  },
+  "compare": {
+    "title": "Comparador de Empresas",
+    "searchPlaceholder": "Pesquisar ticker ou nome",
+    "about": "Sobre",
+    "founded": "Fundação",
+    "employees": "Funcionários",
+    "revenue": "Receita",
+    "revenueMix": "Comparação de mix de receita",
+    "fullProfile": "Perfil completo",
+    "newsGapSignal": "Sinal de lacuna de notícias",
+    "mediaCoverageScore": "Pontuação de cobertura de mídia",
+    "institutionalSignals": "Sinais institucionais",
+    "ibActivityScore": "Pontuação de atividade IB",
+    "cascadePatterns": "Padrões em cascata",
+    "keyRelationships": "Relacionamentos principais",
+    "popularComparisons": "Comparações populares",
+    "enterTwoTickers": "Insira dois tickers acima para comparar empresas."
   }
 }

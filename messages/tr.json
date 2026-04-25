@@ -1553,5 +1553,23 @@
     "noData": "Veri yok",
     "noResults": "Mevcut filtrelerle eşleşen sonuç yok",
     "sourceNote": "Kaynak: FINRA günlük açığa satış · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Önbellek 4s"
+  },
+  "compare": {
+    "title": "Şirket Karşılaştırıcı",
+    "searchPlaceholder": "Hisse kodu veya ad ara",
+    "about": "Hakkında",
+    "founded": "Kuruluş",
+    "employees": "Çalışanlar",
+    "revenue": "Gelir",
+    "revenueMix": "Gelir karışımı karşılaştırması",
+    "fullProfile": "Tam profil",
+    "newsGapSignal": "Haber açığı sinyali",
+    "mediaCoverageScore": "Medya kapsama puanı",
+    "institutionalSignals": "Kurumsal sinyaller",
+    "ibActivityScore": "IB aktivite puanı",
+    "cascadePatterns": "Kaskad örüntüleri",
+    "keyRelationships": "Temel ilişkiler",
+    "popularComparisons": "Popüler karşılaştırmalar",
+    "enterTwoTickers": "Şirketleri karşılaştırmak için yukarıya iki hisse kodu girin."
   }
 }

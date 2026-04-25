@@ -1553,5 +1553,23 @@
     "noData": "ไม่มีข้อมูล",
     "noResults": "ไม่มีผลลัพธ์ตามตัวกรอง",
     "sourceNote": "แหล่งที่มา: FINRA รายวัน · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · แคช 4ชม."
+  },
+  "compare": {
+    "title": "เครื่องมือเปรียบเทียบบริษัท",
+    "searchPlaceholder": "ค้นหาสัญลักษณ์หรือชื่อ",
+    "about": "เกี่ยวกับ",
+    "founded": "ก่อตั้ง",
+    "employees": "พนักงาน",
+    "revenue": "รายได้",
+    "revenueMix": "การเปรียบเทียบส่วนผสมรายได้",
+    "fullProfile": "โปรไฟล์เต็ม",
+    "newsGapSignal": "สัญญาณช่องว่างข่าว",
+    "mediaCoverageScore": "คะแนนการรายงานข่าว",
+    "institutionalSignals": "สัญญาณสถาบัน",
+    "ibActivityScore": "คะแนนกิจกรรม IB",
+    "cascadePatterns": "รูปแบบน้ำตก",
+    "keyRelationships": "ความสัมพันธ์หลัก",
+    "popularComparisons": "การเปรียบเทียบยอดนิยม",
+    "enterTwoTickers": "ป้อนสัญลักษณ์สองตัวด้านบนเพื่อเปรียบเทียบบริษัท"
   }
 }
