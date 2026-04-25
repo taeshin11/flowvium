@@ -1,0 +1,66 @@
+== iter204 — 2026-04-26 ==
+
+PRIMARY OUTCOME: 투자전략 검증 강화
+
+DRIFT CHECK:
+- iter199-203: 5회 연속 Yahoo/cache/데이터소스 영역 → STRONG drift
+- iter204: investment-strategy + verify-metrics + ExplorePage (완전 다른 영역) ✓
+
+PROBLEM:
+  1. parseStrategy: AI가 잘못된 JSON 반환 시 무음 실패 (silent null)
+     - stance 유효성 검사 없음
+     - portfolio 최소 5개 검사 없음
+     - allocation 합계 검사 없음
+     - 예외 catch 시 에러 로그 없음
+  2. verify-metrics: investment-strategy 엔드포인트 미커버
+  3. ExplorePage: dynamic import loading 콜백 하드코딩 ("Loading graph...")
+
+CHANGES:
+  src/app/api/investment-strategy/route.ts:
+    - parseStrategy 유효성 검사 추가:
+      - stance: ['bullish','neutral','bearish'] 외 거부
+      - portfolio: 필터 후 min 5개, ticker + allocation>0 필수
+      - allocation 합계 ±15% 이상 경고 로그
+      - thesis 최대 150자 truncate
+      - 예외 catch 에러 로그 (silent fail 제거)
+
+  src/app/api/cron/verify-metrics/route.ts:
+    - verifyInvestmentStrategy() 신설:
+      - /api/investment-strategy 호출
+      - stance, portfolio (5개+, 유효성), allocation 합계 검사
+      - AI 생성 시 ok, fallback 시 degraded, 파싱 실패 시 error
+      - Promise.all에 추가 → strategy.portfolio 항목 추가
+
+  src/components/pages/ExplorePage.tsx:
+    - GraphLoadingFallback 컴포넌트 신설 (useTranslations 사용)
+    - dynamic import loading 콜백: 하드코딩 → t('explore.loadingGraph')
+    - explore.loadingGraph 키는 이미 messages/*.json에 존재함
+
+ACCURACY PROBE:
+  [accuracy probe] metric=strategy.portfolio portfolio_len=5 alloc_sum=100 valid=True source=fallback → OK
+  [accuracy probe] metric=vix source=CBOE direct_value=18.71 our_value=18.71 delta=0 tolerance=1.0 → OK
+
+VERIFY-METRICS 예상 (iter204 완료 후):
+  현재 캐시 서빙 중 (2h TTL) → 즉시 확인 불가
+  deploy 후: strategy.portfolio degraded (fallback, AI 소진)
+  UTC midnight quota 리셋 후: strategy.portfolio ok
+
+NEGATIVE RESULT:
+  CBOE VXST/VXMT CSV: AccessDenied (VIX만 공개, VXST/VXMT 비공개)
+  metals.live gold API: 로컬 불가 (Vercel에서도 불명확)
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (3 files):
+- src/app/api/investment-strategy/route.ts
+- src/app/api/cron/verify-metrics/route.ts
+- src/components/pages/ExplorePage.tsx
+
+COMMITS: f24281f
+PUSHED: ✓ origin/master
+
+NEXT: iter205
+  1. accuracy.vix 프로브 → CBOE CSV 비교 소스로 전환 (Yahoo 429 시 CBOE 사용)
+     degraded → ok 전환 예상
+  2. free gold API 탐색 (metals.live 실패, 다른 소스 필요)
+  3. UTC midnight 후: brief.market, flow.analysis, strategy.portfolio 자동 복구 확인

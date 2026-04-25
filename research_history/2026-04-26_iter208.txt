@@ -1,0 +1,43 @@
+ITER 208 — 2026-04-26
+Primary outcome: stock-price Twelve Data 폴백 + CompanyPage/ComparePage i18n 완성
+
+=== DRIFT CHECK ===
+최근 5 커밋: Yahoo blocked fallback 연속 작업 (iter205-208)
+→ iter207에서 i18n으로 방향 전환, iter208은 혼합 (fallback + i18n)
+drift signal 없음 — 각 iter 별 다른 모듈
+
+=== PRIMARY OUTCOME (≤20자) ===
+stock-price Twelve Data 폴백
+
+=== CHANGES ===
+
+1. src/app/api/stock-price/[ticker]/route.ts
+   - fetchPriceTwelve() 함수 추가 (Twelve Data API 폴백)
+   - catch block에 Twelve Data fallback: Yahoo → stale Redis → Twelve Data → error
+   - 주의: TWELVE_DATA_KEY가 Vercel에 미설정 → 실제로는 작동 안 함 (후에 iter209에서 Finnhub으로 교체)
+
+2. src/components/pages/CompanyPage.tsx
+   - 'Standard View' / 'Terminal View' → t('standardView') / t('terminalView')
+   - 'Finnhub · {period}' → t('finnhubPeriod', { period })
+   - 16개 언어 messages/*.json 업데이트
+
+3. src/components/pages/ComparePage.tsx
+   - companyA, companyB, noNewsGapData → t() 키로 변환
+   - 모든 하드코딩 영어 문자열 → i18n 키 완성
+   - 16개 언어 messages/*.json compare namespace 업데이트
+
+=== ACCURACY PROBES ===
+[accuracy probe] metric=fg.us source=CNN direct_value=66 our_value=66 delta=0 → OK (via verify-metrics)
+stock.price: Twelve Data key not in Vercel → endpoint returns error (발견됨)
+
+=== ISSUES FOUND ===
+- TWELVE_DATA_KEY가 Vercel에 없음 → Finnhub 폴백으로 교체 필요 (iter209에서 해결)
+- stock.price degraded 지속 (val=None)
+
+=== COMMITS ===
+7381b97 feat(stock-price): Twelve Data fallback
+3e7145a i18n(company): standardView/terminalView/finnhubPeriod
+ba01f47 i18n(compare): 16개 언어 compare 네임스페이스 완성
+
+=== METRICS AFTER ===
+OK: 146, DEGRADED: 8, ERROR: 0
