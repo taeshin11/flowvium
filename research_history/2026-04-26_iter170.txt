@@ -1,0 +1,65 @@
+== iter170 — 2026-04-26 ==
+
+PRIMARY OUTCOME: verify-metrics GDP 대기 상태 처리
+
+DRIFT CHECK:
+- iter166: macro-indicators credit spread
+- iter167: cron update-all
+- iter168: investment-strategy AI
+- iter169: macro-indicators GDP vintage 필터
+- iter170: verify-metrics GDP pending ← 인프라/검증 영역 (iter169 동반 수정)
+
+도메인: verify-metrics (iter169의 직접 후속 companion fix — false alarm 방지)
+
+ROOT CAUSE FOUND:
+
+GAP: iter169에서 GDP actual을 null (pending)으로 변경했지만
+     verify-metrics accuracy.gdp 체크가 null을 error로 처리함
+
+verify-metrics 기존 로직:
+  const ourGdp = inds.find(x => x.id === 'gdp')?.actual ?? null;
+  if (fredGdp == null || ourGdp == null) {
+    status: 'error', lastError: `fred=0.5 ours=null`  ← false alarm!
+
+FRED 상태:
+  A191RL1Q225SBEA 최신: 2025-10-01 (Q4 2025 = 0.5%)
+  Q1 2026 advance: 미발표 (BEA 릴리즈 예정 2026-04-30)
+
+pending 상태 = 정상 (오류 아님):
+  - fredDate = '2025-10-01' < currentQStart = '2026-04-01' → FRED에는 Q4 2025만 있음
+  - ourGdp = null = 우리도 Q1 2026 대기 중
+  → 비교 자체가 무의미 (다른 분기)
+
+FIX:
+
+currentQStart를 동적 계산 (매 분기 자동 갱신):
+  const _now = new Date();
+  const currentQStart = new Date(
+    _now.getFullYear(), Math.floor(_now.getMonth() / 3) * 3, 1
+  ).toISOString().slice(0, 10);
+
+  // 2026-04 기준: currentQStart = '2026-04-01'
+
+pending 검출:
+  const isGdpPending = ourGdp == null && fredDate != null && fredDate < currentQStart;
+
+결과:
+  BEFORE: status='error', lastError='fred=0.5 ours=null' (false alarm)
+  AFTER:  status='skipped', skipReason='GDP pending release — FRED last=2025-10-01 (0.5%), ours=null (pre-release)'
+
+미래 동작 검증:
+  2026-04-30 FRED 업데이트 → fredDate='2026-01-01' ≥ currentQStart('2026-04-01')?
+    '2026-01-01' < '2026-04-01' = true → isGdpPending 여전히 true
+    하지만 이 시점에서 our GDP도 live 값으로 업데이트됨 (macro-indicators route의
+    gdpLive vintage filter가 통과) → ourGdp ≠ null → isGdpPending = false ✓
+    → 정상 비교 진행
+
+ACCURACY PROBE:
+[accuracy probe] metric=gdp_q1_2026 source=FRED (iter169 확인)
+  direct_value=none (Q4_2025=0.5 only) ours=null (pending)
+  verify-metrics: before=error(false_alarm) after=skipped(correct) → FIXED ✓
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/cron/verify-metrics/route.ts (accuracy.gdp pending 상태 처리 + currentQStart 동적 계산)

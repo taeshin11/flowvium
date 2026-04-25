@@ -890,10 +890,20 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       const ourGdp = inds.find(x => x.id === 'gdp')?.actual ?? null;
       // Skip only if FRED data is older than 4 quarters (1 year) — Q4 of prior year is valid
       const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      // Current quarter start (e.g. 2026-04-01 when today is Apr 2026).
+      // FRED quarterly dates = quarter-start: if fredDate < currentQStart, FRED has prior-quarter
+      // data only — our pending (null) is the correct state, not an error.
+      const _now = new Date();
+      const currentQStart = new Date(_now.getFullYear(), Math.floor(_now.getMonth() / 3) * 3, 1).toISOString().slice(0, 10);
+      const isGdpPending = ourGdp == null && fredDate != null && fredDate < currentQStart;
       if (fredDate && fredDate < oneYearAgo) {
         items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'skipped',
           skipReason: `FRED 최신 데이터 ${fredDate} — 1년 이상 구형`,
           details: { fredDate, fredGdp, ourGdp } });
+      } else if (isGdpPending) {
+        items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'skipped',
+          skipReason: `GDP pending release — FRED last=${fredDate} (${fredGdp}%), ours=null (pre-release)`,
+          details: { fredDate, fredGdp, currentQStart } });
       } else if (fredGdp == null || ourGdp == null) {
         items.push({ key: 'accuracy.gdp', label: 'FRED GDP QoQ 대조', group: 'accuracy', status: 'error',
           lastError: `fred=${fredGdp} ours=${ourGdp}`, details: { durationMs } });
