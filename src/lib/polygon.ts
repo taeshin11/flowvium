@@ -79,10 +79,13 @@ export async function fetchBlockTrades(ticker: string, minShares = 10_000, maxPa
 export async function fetchBlockTradesForTickers(tickers: string[], minShares = 10_000): Promise<BlockTrade[]> {
   if (!polygonKey() || !tickers.length) return [];
   const BATCH = 5;
+  const batches: string[][] = [];
+  for (let i = 0; i < tickers.length; i += BATCH) batches.push(tickers.slice(i, i + BATCH));
+  const batchResults = await Promise.all(
+    batches.map(batch => Promise.allSettled(batch.map(t => fetchBlockTrades(t, minShares, 1))))
+  );
   const out: BlockTrade[] = [];
-  for (let i = 0; i < tickers.length; i += BATCH) {
-    const slice = tickers.slice(i, i + BATCH);
-    const results = await Promise.allSettled(slice.map(t => fetchBlockTrades(t, minShares, 1)));
+  for (const results of batchResults) {
     for (const r of results) {
       if (r.status === 'fulfilled') out.push(...r.value);
     }

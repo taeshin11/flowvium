@@ -134,14 +134,6 @@ export async function fetchNewsData(
   }
 }
 
-/** @deprecated Use fetchNewsData instead */
-export async function fetchNewsCount(
-  ticker: string,
-  apiKey: string
-): Promise<number | null> {
-  const result = await fetchNewsData(ticker, apiKey);
-  return result?.count ?? null;
-}
 
 /**
  * Convert raw article count → news gap score (0–100).
