@@ -17,6 +17,7 @@ export const dynamic = 'force-dynamic';
 import { Redis } from '@upstash/redis';
 
 const CACHE_TTL = 4 * 60 * 60;
+const STALE_KEY_PREFIX = 'flowvium:capital-flows:stale';
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
 // Module-level memory cache — this route makes ~41 Yahoo API calls on every miss.
@@ -401,10 +402,17 @@ export async function GET() {
     return NextResponse.json(CAPITAL_MEMORY_CACHE.data, { headers: CDN_HEADERS });
   }
 
+  let staleResult: object | null = null;
   if (redis) {
     try {
-      const cached = await redis.get<object>(cacheKey);
-      if (cached) return NextResponse.json(cached, { headers: CDN_HEADERS });
+      const [fresh, stale] = await Promise.allSettled([
+        redis.get<object>(cacheKey),
+        redis.get<object>(`${STALE_KEY_PREFIX}:${twelveKey ? 'twelve' : 'yahoo'}`),
+      ]);
+      if (fresh.status === 'fulfilled' && fresh.value) {
+        return NextResponse.json(fresh.value, { headers: CDN_HEADERS });
+      }
+      if (stale.status === 'fulfilled') staleResult = stale.value;
     } catch (e) { logger.warn('capital-flows', 'cache_read_error', { error: e }); }
   }
 
@@ -527,11 +535,20 @@ export async function GET() {
 
   const response = { assets: results, flow, goldVsDollar, countryFlow, factorPerformance, sectorPerformance, dataSource: sourceSummary || dataSource, updatedAt: new Date().toISOString() };
 
+  const hasData = results.length > 0;
   if (redis) {
     try {
+      const staleKey = `${STALE_KEY_PREFIX}:${twelveKey ? 'twelve' : 'yahoo'}`;
       await loggedRedisSet(redis, 'api.capital-flows', cacheKey, response, { ex: CACHE_TTL });
+      if (hasData) await loggedRedisSet(redis, 'api.capital-flows', staleKey, response, {});
       logger.info('capital-flows', 'cache_saved', { assets: results.length, failedTickers: sourceCount['failed'] ?? 0 });
     } catch (e) { logger.warn('capital-flows', 'cache_write_error', { error: e }); }
+  }
+
+  // All price sources failed — serve stale cache to preserve flow-analysis downstream
+  if (!hasData && staleResult) {
+    logger.info('capital-flows', 'stale_fallback', { note: 'All price sources failed, serving stale' });
+    return NextResponse.json({ ...(staleResult as object), stale: true }, { headers: CDN_HEADERS });
   }
 
   // Module-level memory cache write (no-Redis path)
