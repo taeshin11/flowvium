@@ -329,11 +329,20 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     if (squeeze.length) shorts = squeeze.join(', ');
   } catch { /* ignore */ }
 
-  // News
+  // News — include AI summary + top cascade asset impacts for richer context
   let news = '';
   try {
     const cascadeArr = (ctx.cascade as Array<Record<string, unknown>>) ?? [];
-    const topNews = cascadeArr.slice(0, 3).map(n => `${n.sentiment === 'bullish' ? 'bullish' : n.sentiment === 'bearish' ? 'bearish' : 'neutral'}:${(n.title as string)?.slice(0, 40)}`);
+    const topNews = cascadeArr.slice(0, 3).map(n => {
+      const sent = n.sentiment === 'bullish' ? '↑' : n.sentiment === 'bearish' ? '↓' : '·';
+      const text = ((n.summary as string) || (n.title as string) || '').slice(0, 50);
+      const impacts = ((n.cascades as Array<Record<string, unknown>>) ?? [])
+        .filter(c => (c.magnitude === 'high' || c.magnitude === 'medium') && c.direction !== 'neutral')
+        .slice(0, 2)
+        .map(c => `${c.asset}${c.direction === 'positive' ? '↑' : '↓'}`)
+        .join(',');
+      return impacts ? `${sent}${text}(${impacts})` : `${sent}${text}`;
+    });
     if (topNews.length) news = topNews.join(' | ');
   } catch { /* ignore */ }
 

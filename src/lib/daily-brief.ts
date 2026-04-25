@@ -337,9 +337,18 @@ function summariseCascade(articles: unknown[]): string {
   const arr = articles as Array<Record<string, unknown>>;
   if (!arr?.length) return '';
   return arr.slice(0, 3).map(a => {
-    const title = (a.title as string ?? '').slice(0, 40);
     const sent = a.sentiment as string;
-    return `${sent === 'bullish' ? '↑' : sent === 'bearish' ? '↓' : '·'}${title}`;
+    const arrow = sent === 'bullish' ? '↑' : sent === 'bearish' ? '↓' : '·';
+    // Prefer AI-generated summary (more informative) over raw title
+    const text = ((a.summary as string) || (a.title as string) || '').slice(0, 50);
+    // Append top 2 cascade effects so the brief AI knows which assets are impacted
+    const cascades = (a.cascades as Array<Record<string, unknown>> | undefined) ?? [];
+    const impacts = cascades
+      .filter(c => (c.magnitude === 'high' || c.magnitude === 'medium') && c.direction !== 'neutral')
+      .slice(0, 2)
+      .map(c => `${c.asset}${c.direction === 'positive' ? '↑' : '↓'}`)
+      .join(',');
+    return impacts ? `${arrow}${text}(${impacts})` : `${arrow}${text}`;
   }).join(' | ');
 }
 

@@ -1,0 +1,63 @@
+== iter171 — 2026-04-26 ==
+
+PRIMARY OUTCOME: Cascade 컨텍스트 풍부화
+
+DRIFT CHECK:
+- iter166: macro-indicators
+- iter167: cron update-all
+- iter168: investment-strategy (credit spreads)
+- iter169: macro-indicators (GDP vintage)
+- iter170: verify-metrics (GDP pending)
+- iter171: daily-brief + investment-strategy (AI 컨텍스트 품질) ← 새 도메인 (AI quality)
+
+drift 없음. 두 파일 모두 AI prompt 품질 개선 같은 방향.
+
+ROOT CAUSE FOUND:
+
+GAP: summariseCascade (daily-brief) + buildCtxSummary news 섹션 (investment-strategy)이
+     news-cascade AI가 생성한 summary/cascades 필드를 무시
+
+기존 동작:
+  daily-brief [Cascade]:     ↑Bloomberg: 'Fed Chair signals rate cu...' | ↓WSJ: 'Tariff...'
+  investment-strategy [News]: bullish:Bloomberg headline text here limit 40 | bearish:WSJ
+
+이 방식의 문제:
+  - news-cascade가 각 기사에 대해 이미 AI 분석 완료
+    (summary 1-2문장, cascades 배열: asset + direction + magnitude)
+  - 위 필드들을 daily-brief, investment-strategy 모두 버리고 title만 전달
+  - AI는 어떤 자산이 영향받는지 모르고 분석
+
+새 동작:
+  daily-brief [Cascade]:
+    ↑Fed Chair signals rate cuts H2 2026, markets rally(S&P500↑,Gold↑) |
+    ↓Trade tensions escalate between US-China(USD↑,EM↓) | ·Q1 earnings season begins
+
+  investment-strategy [News Cascade]:
+    ↑Fed Chair signals rate cuts...(S&P500↑,Gold↑) |
+    ↓Trade tensions...(USD↑,EM↓) | ·Q1 earnings...
+
+FIX (동일 패턴, 두 파일):
+  1. summary 필드 우선 (없으면 title 폴백), 50자 제한
+  2. cascades 배열에서 high/medium magnitude + non-neutral direction 필터
+  3. 상위 2개 asset + direction arrow 추가 (Gold↑,TLT↑)
+  4. 임팩트 있으면 `arrow${text}(${impacts})`, 없으면 `arrow${text}`
+
+연결:
+  iter165: news-cascade 데이터가 AI에 도달 (lrange → get 수정)
+  iter168: 신용 스프레드 → AI에 도달
+  iter171: cascade 데이터 품질 (title만 → summary + asset impacts)
+
+  3 iter 연계로 AI 분석 컨텍스트가 실질적으로 개선됨.
+
+ACCURACY PROBE:
+[accuracy probe] metric=cascade_context source=code_audit
+  daily-brief before: title-only (40 chars) after: summary(50)+asset_impacts → ENRICHED ✓
+  investment-strategy before: sentiment:title(40) after: arrow+summary(50)+impacts → ENRICHED ✓
+  NewsWithCascade.summary field exists in route.ts type: CONFIRMED ✓
+  NewsWithCascade.cascades[].magnitude/direction/asset: CONFIRMED ✓
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (2 files):
+- src/lib/daily-brief.ts (summariseCascade: title+sent → summary+asset_impacts)
+- src/app/api/investment-strategy/route.ts (news 섹션: sentiment:title → summary+impacts)
