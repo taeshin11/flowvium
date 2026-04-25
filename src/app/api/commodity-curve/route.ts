@@ -101,8 +101,8 @@ export async function GET() {
     return { id, name, unit, curve, structure, slope, updatedAt: now.toISOString() };
   }
 
-  const oilCurve = buildCurve(oilResults, 'oil', '원유 (WTI)', 'USD/bbl');
-  const goldCurve = buildCurve(goldResults, 'gold', '금 (COMEX)', 'USD/oz');
+  const oilCurve = buildCurve(oilResults, 'oil', 'WTI Crude Oil', 'USD/bbl');
+  const goldCurve = buildCurve(goldResults, 'gold', 'Gold (COMEX)', 'USD/oz');
 
   const result = { curves: [oilCurve, goldCurve], updatedAt: now.toISOString(), cached: false };
   if (oilCurve.curve.length > 0 || goldCurve.curve.length > 0) {

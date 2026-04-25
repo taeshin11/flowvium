@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
   // Invalidate cached credit balance response
   if (redis) {
     const today = new Date().toISOString().slice(0, 10);
-    const bustKey = `flowvium:credit-balance:v2:${today}`;
+    const bustKey = `flowvium:credit-balance:v3:${today}`;
     try {
       // Wildcard delete — date-based keys
       logger.info('cron.update-credit-balance', 'cache_bust_start', { key: bustKey });

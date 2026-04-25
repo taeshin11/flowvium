@@ -125,7 +125,7 @@ function dynamicLastUpdated(countryId: string): string {
 const DATA: CountryCreditData[] = [
   {
     id: 'us',
-    country: '미국',
+    country: 'US',
     flag: '🇺🇸',
     currentBalance: 893,      // ~$893B FINRA margin debt (2026 Jan, published Feb 2026)
     currentBalanceLocal: '$893B',
@@ -155,15 +155,15 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2009',
     histPercentile: 78,
     riskLevel: 'high',
-    riskReason: '2021년 역대 최고(936B) 대비 95% 수준 근접. GDP 비율 3.17% — 역대 최고권 진입 경계.',
+    riskReason: 'Near 95% of 2021 ATH ($936B). GDP ratio 3.17% — approaching record territory.',
     source: 'FINRA Margin Statistics',
     sourceUrl: 'https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics',
     lastUpdated: '2026-01',
-    laymanSummary: '미국 투자자들이 주식을 사기 위해 증권사에서 빌린 돈. 많이 빌릴수록 시장이 과열됐다는 신호예요.',
+    laymanSummary: 'Money US investors borrowed from brokers to buy stocks. High margin debt signals market overheating.',
   },
   {
     id: 'kr',
-    country: '한국',
+    country: 'Korea',
     flag: '🇰🇷',
     currentBalance: 13.8,     // ~20.0조원 → ~$13.8B at 1450 KRW/USD
     currentBalanceLocal: '₩20.0조',
@@ -192,15 +192,15 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2014',
     histPercentile: 45,
     riskLevel: 'medium',
-    riskReason: '2021년 역대 최고(₩36조) 대비 56% 수준으로 지속 감소. 경기 침체 우려로 레버리지 축소 중.',
-    source: 'KRX 신용거래융자 통계',
+    riskReason: '56% below 2021 ATH (₩36T) and falling. Leverage declining on recession concerns.',
+    source: 'KRX Margin Loan Statistics',
     sourceUrl: 'https://data.krx.co.kr',
     lastUpdated: '2026-03',
-    laymanSummary: '코스피·코스닥 투자자들이 증권사에서 빌려서 주식 산 돈의 총합이에요. 줄고 있어서 과열은 아니지만 개인 비중이 높아요.',
+    laymanSummary: 'Total margin debt in KOSPI/KOSDAQ markets. Declining — not overheated, but retail investor share is high.',
   },
   {
     id: 'jp',
-    country: '일본',
+    country: 'Japan',
     flag: '🇯🇵',
     currentBalance: 36.5,     // ~¥5.5조 → ~$36B at 152 JPY/USD
     currentBalanceLocal: '¥5.5조',
@@ -229,15 +229,15 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2009',
     histPercentile: 60,
     riskLevel: 'medium',
-    riskReason: '닛케이 변동성 확대 속 신용잔고 완만 증가 중. 엔화 약세로 달러 기준 변동 큼.',
-    source: 'TSE (도쿄증권거래소)',
+    riskReason: 'Steady rise amid Nikkei volatility. USD balance swings significantly with JPY weakness.',
+    source: 'TSE (Tokyo Stock Exchange)',
     sourceUrl: 'https://www.jpx.co.jp/markets/statistics-equities/margin/index.html',
     lastUpdated: '2026-03',
-    laymanSummary: '일본 주식시장 투자자들의 신용 레버리지. 2024년 닛케이 최고점 이후 레버리지도 높은 수준 유지 중이에요.',
+    laymanSummary: 'Leverage in Japan\'s equity market. Remains elevated following the 2024 Nikkei peak.',
   },
   {
     id: 'cn',
-    country: '중국',
+    country: 'China',
     flag: '🇨🇳',
     currentBalance: 210,      // ~¥1.52조 위안 → ~$210B at 7.25 CNY/USD
     currentBalanceLocal: '¥1.52조위안',
@@ -266,15 +266,15 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2013',
     histPercentile: 52,
     riskLevel: 'medium',
-    riskReason: '정책 부양책 지속으로 신용잔고 완만 증가. 2015년 버블(380B) 대비 55% 수준이나 미·중 무역 긴장 변수.',
-    source: 'CSRC 융자융권 잔고',
+    riskReason: 'Gradual rise on policy stimulus. At 55% of 2015 bubble ($380B); US-China trade tension is a wildcard.',
+    source: 'CSRC Margin Financing Balance',
     sourceUrl: 'http://www.csrc.gov.cn',
     lastUpdated: '2026-03',
-    laymanSummary: '중국 주식시장 신용거래 잔고. 정부 부양책으로 꾸준히 늘고 있어요. 2015년 버블 때의 절반 수준이에요.',
+    laymanSummary: 'China margin balance. Rising steadily on government stimulus — about half the 2015 bubble peak.',
   },
   {
     id: 'eu',
-    country: '유럽 (EU)',
+    country: 'Europe (EU)',
     flag: '🇪🇺',
     currentBalance: 124,
     currentBalanceLocal: '€113B',
@@ -303,15 +303,15 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2012',
     histPercentile: 65,
     riskLevel: 'medium',
-    riskReason: '유럽 증시 반등에 따라 신용잔고 소폭 증가. GDP 대비 0.66%로 여전히 낮은 수준.',
+    riskReason: 'Slight rise with EU equity rally. Still low at 0.66% of GDP.',
     source: 'ESMA Market Data',
     sourceUrl: 'https://www.esma.europa.eu',
     lastUpdated: '2026-Q1',
-    laymanSummary: '유럽 주요국 증시 신용잔고 합산 추정치. 미국·중국 대비 레버리지 낮고 안정적이에요.',
+    laymanSummary: 'Aggregate margin estimate across major EU markets. Low leverage and stable vs US/China.',
   },
   {
     id: 'tw',
-    country: '대만',
+    country: 'Taiwan',
     flag: '🇹🇼',
     currentBalance: 17.2,     // ~NT$550B → ~$17.2B at 32 TWD/USD (감소)
     currentBalanceLocal: 'NT$550B',
@@ -340,15 +340,15 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2008',
     histPercentile: 88,
     riskLevel: 'high',
-    riskReason: '2025년 역대 최고 이후 미·중 무역 마찰로 TSMC 조정, 신용잔고도 감소 전환. 여전히 역사적 고점 수준.',
-    source: 'TWSE 信用交易統計',
+    riskReason: 'Declined from 2025 ATH as US-China trade friction hit TSMC. Still near historical highs.',
+    source: 'TWSE Margin Trading Statistics',
     sourceUrl: 'https://www.twse.com.tw',
     lastUpdated: '2026-03',
-    laymanSummary: 'TSMC와 AI 반도체 붐 이후 무역 마찰로 조정 중. 그래도 역사적으로 높은 레버리지 수준이에요.',
+    laymanSummary: 'Pulling back after TSMC/AI semiconductor boom amid trade friction. Still historically elevated leverage.',
   },
   {
     id: 'in',
-    country: '인도',
+    country: 'India',
     flag: '🇮🇳',
     currentBalance: 31.2,     // ~₹2.62조 → ~$31.2B at 84 INR/USD
     currentBalanceLocal: '₹2.62조',
@@ -377,15 +377,15 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2013',
     histPercentile: 99,
     riskLevel: 'high',
-    riskReason: '⚠ 역대 최고 갱신 지속! 신흥 중산층 소매 투자자 급증으로 신용잔고 가파른 상승 중.',
+    riskReason: '⚠ ATH again! Rapid leverage growth driven by surging retail investors from growing middle class.',
     source: 'NSE/BSE Margin Data',
     sourceUrl: 'https://www.nseindia.com',
     lastUpdated: '2026-03',
-    laymanSummary: '인도 개인 투자자들이 급증하면서 신용거래도 역대 최고 수준이에요. 성장하는 시장이지만 레버리지 위험도 함께 증가 중.',
+    laymanSummary: 'Record margin debt as India\'s retail investor base explodes. Fast-growing market but leverage risk rising.',
   },
   {
     id: 'us_gdp_sectors',
-    country: '미국 GDP 비율 추이',
+    country: 'US GDP Ratio (Historical)',
     flag: '🇺🇸',
     currentBalance: 893,
     currentBalanceLocal: '$893B',
@@ -414,11 +414,11 @@ const DATA: CountryCreditData[] = [
     troughPeriod: '2002',
     histPercentile: 78,
     riskLevel: 'high',
-    riskReason: '닷컴버블·금융위기 전 레벨(2.6~2.7%) 상회 중. GDP 비율 3.17%로 위험 구간 진입.',
+    riskReason: 'Above dot-com/GFC pre-peak levels (2.6–2.7%). GDP ratio 3.17% entering danger zone.',
     source: 'FINRA / World Bank',
     sourceUrl: 'https://www.finra.org',
     lastUpdated: '2026-01',
-    laymanSummary: '장기 역사 관점: 닷컴 버블, 금융위기 때와 현재 수준 비교.',
+    laymanSummary: 'Long-term perspective: comparing current levels with dot-com bubble and GFC peaks.',
   },
 ];
 
@@ -458,7 +458,7 @@ function buildGlobalSnapshot(countries: CountryCreditData[]) {
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET() {
   const redis = createRedis();
-  const cacheKey = `flowvium:credit-balance:v2:${new Date().toISOString().slice(0, 10)}`;
+  const cacheKey = `flowvium:credit-balance:v3:${new Date().toISOString().slice(0, 10)}`;
 
   if (!redis && CREDIT_MEMORY_CACHE && Date.now() < CREDIT_MEMORY_CACHE.expiresAt) {
     return NextResponse.json({ ...CREDIT_MEMORY_CACHE.data, cached: true }, { headers: CDN_HEADERS });

@@ -184,7 +184,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet(redis, 'flowvium:fg:v6:SPY'),
     safeGet(redis, `flowvium:fedwatch:v1:${hour}`),
     safeGet(redis, `flowvium:macro-indicators:v13:${kst}`),
-    safeGet<Record<string, unknown>>(redis, `flowvium:credit-balance:v2:${today}`),
+    safeGet<Record<string, unknown>>(redis, `flowvium:credit-balance:v3:${today}`),
     (async () => {
       try { return await redis.lrange(`flowvium:news-cascade:v1:list:${today}`, 0, 5); }
       catch { return [] as string[]; }
