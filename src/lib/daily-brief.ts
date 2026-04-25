@@ -325,12 +325,22 @@ function summariseMacro(data: unknown): string {
 function summariseCredit(data: unknown): string {
   const d = data as Record<string, unknown> | null;
   if (!d) return '';
-  const latest = d.latestMonth as Record<string, unknown> | undefined;
-  if (!latest) return '';
-  const m = latest.margin as number | undefined;
-  const fc = latest.freeCredit as number | undefined;
-  const mom = latest.marginMoM as number | undefined;
-  return `margin=$${m?.toFixed(0)}B${mom != null ? `(MoM ${mom > 0 ? '+' : ''}${mom.toFixed(1)}%)` : ''},freeCredit=$${fc?.toFixed(0)}B`;
+  const countries = (d.countries as Array<Record<string, unknown>>) ?? [];
+  const us = countries.find(c => c.id === 'us');
+  const gs = d.globalSnapshot as Record<string, unknown> | undefined;
+  if (!us && !gs) return '';
+  const parts: string[] = [];
+  if (us) {
+    const bal = us.currentBalance as number | undefined;
+    const yoy = us.changeYoY as number | undefined;
+    if (bal != null) parts.push(`US margin=$${bal.toFixed(0)}B${yoy != null ? `(YoY${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%)` : ''}`);
+  }
+  if (gs) {
+    const total = gs.totalBalance as number | undefined;
+    const ratio = gs.globalGdpRatio as number | undefined;
+    if (total != null) parts.push(`global=$${total.toFixed(0)}B${ratio != null ? `(${ratio.toFixed(1)}%GDP)` : ''}`);
+  }
+  return parts.join(',');
 }
 
 function summariseCascade(articles: unknown[]): string {
