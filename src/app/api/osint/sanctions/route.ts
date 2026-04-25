@@ -178,7 +178,7 @@ export async function GET(req: NextRequest) {
       total: 0,
       source: 'OFAC SDN',
       updatedAt: new Date().toISOString(),
-      error: 'OFAC 데이터를 불러올 수 없습니다',
+      error: 'Failed to load OFAC data',
     });
   }
 

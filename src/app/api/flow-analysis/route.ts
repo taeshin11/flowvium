@@ -31,21 +31,28 @@ function createRedis(): Redis | null {
 // Time-independent key + 4h TTL (vs. hourly-rotating key).
 // Previously hourly key caused 24 Redis misses/day × 3k tokens = 72k tokens consumed by probes alone.
 // 4h TTL: ~6 regenerations/day, same freshness for a "4-week capital flows" analysis.
+// v4: prompt switched to English (iter141) — stale v3 cache would serve Korean responses
 function cacheKey(tf: string): string {
-  return `flowvium:flow-analysis:v3:${tf}`;
+  return `flowvium:flow-analysis:v4:${tf}`;
 }
 // Stale fallback key: 48h TTL, only written on AI success.
 // Served when AI is exhausted and the primary 4h cache has expired.
 function staleCacheKey(tf: string): string {
-  return `flowvium:flow-analysis:v3:stale:${tf}`;
+  return `flowvium:flow-analysis:v4:stale:${tf}`;
 }
 const CACHE_TTL_S = 4 * 60 * 60;        // 4 hours (primary)
 const STALE_CACHE_TTL_S = 48 * 60 * 60; // 48 hours (fallback)
 
-const FLOW_SYSTEM_PROMPT = `당신은 글로벌 자금흐름 전문 애널리스트입니다.
-각 국가별 시장 수익률 데이터를 보고, 그 흐름의 근본적인 원인을 분석하세요.
-원인 분석은 구체적이고 실질적이어야 합니다 (예: "관세 완화 기대", "반도체 수주 증가", "연준 인하 기대").
-반드시 JSON 형식으로만 응답하세요.`;
+const FLOW_SYSTEM_PROMPT = `You are a global capital flows analyst.
+Analyze market return data by country and identify the fundamental drivers of those flows.
+Be specific and substantive (e.g., "tariff relief expectations", "semiconductor demand surge", "Fed rate cut bets").
+Respond in JSON format only.`;
+
+const COUNTRY_EN: Record<string, string> = {
+  'us': 'US', 'korea': 'Korea', 'japan': 'Japan', 'china': 'China',
+  'europe': 'Europe', 'uk': 'UK', 'india': 'India', 'brazil': 'Brazil',
+  'taiwan': 'Taiwan', 'australia': 'Australia', 'germany': 'Germany', 'mexico': 'Mexico',
+};
 
 // ── 프롬프트 빌더 ─────────────────────────────────────────────────────────────
 function buildPrompt(
@@ -55,46 +62,46 @@ function buildPrompt(
   topAssets: Array<{ name: string; ticker: string; ret: number }>,
   gvd: { goldRet: number; dollarRet: number; signal: string },
 ) {
-  const tfLabel = tf === '1w' ? '1주' : tf === '4w' ? '4주' : '13주';
+  const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
   const cList = countries.map(c => `${c.country}(${c.ticker}): ${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`).join(', ');
   const rList = rotations.slice(0, 5).map(r => `${r.from}→${r.to}(+${r.diff.toFixed(1)}%p)`).join(', ');
   const aList = topAssets.slice(0, 8).map(a => `${a.ticker}: ${a.ret >= 0 ? '+' : ''}${a.ret.toFixed(1)}%`).join(', ');
 
-  return `${tfLabel} 기간 글로벌 자금흐름 원인 분석
+  return `${tfLabel} Global Capital Flows Analysis
 
-=== 국가별 ETF 수익률 ===
+=== Country ETF Returns ===
 ${cList}
 
-=== 주요 국가간 로테이션 ===
+=== Key Country Rotations ===
 ${rList}
 
-=== 주요 자산 수익률 ===
+=== Top Asset Returns ===
 ${aList}
 
-=== 금/달러 ===
-금: ${gvd.goldRet >= 0 ? '+' : ''}${gvd.goldRet.toFixed(1)}%, 달러: ${gvd.dollarRet >= 0 ? '+' : ''}${gvd.dollarRet.toFixed(1)}%, 신호: ${gvd.signal}
+=== Gold / Dollar ===
+Gold: ${gvd.goldRet >= 0 ? '+' : ''}${gvd.goldRet.toFixed(1)}%, Dollar: ${gvd.dollarRet >= 0 ? '+' : ''}${gvd.dollarRet.toFixed(1)}%, Signal: ${gvd.signal}
 
-각 국가/자산의 흐름 원인을 분석하세요. 아래 JSON 형식으로만 응답하세요:
+Analyze the drivers of capital flows for each country/asset. Respond in the following JSON format only:
 {
-  "summary": "전체 자금흐름 핵심 요약 (2-3문장)",
-  "mainTheme": "현재 시장을 지배하는 핵심 테마 1가지 (10단어 이내)",
+  "summary": "Key summary of overall capital flows (2-3 sentences)",
+  "mainTheme": "Single dominant market theme (max 10 words)",
   "countries": [
     {
-      "country": "국가명",
+      "country": "country name",
       "ret": "+X.X%",
-      "direction": "inflow 또는 outflow",
-      "causes": ["원인1 (구체적)", "원인2"],
-      "risk": "단기 리스크 1가지"
+      "direction": "inflow or outflow",
+      "causes": ["cause1 (specific)", "cause2"],
+      "risk": "single short-term risk"
     }
   ],
   "rotations": [
     {
-      "from": "출발국가",
-      "to": "도착국가",
-      "reason": "이 로테이션의 핵심 원인 (1문장)"
+      "from": "source country",
+      "to": "destination country",
+      "reason": "core reason for this rotation (1 sentence)"
     }
   ],
-  "keyWatchpoints": ["주목해야 할 포인트 1", "포인트 2", "포인트 3"]
+  "keyWatchpoints": ["key watchpoint 1", "watchpoint 2", "watchpoint 3"]
 }`;
 }
 
@@ -162,7 +169,7 @@ export async function GET(request: Request) {
   const countryFlow = capitalData.countryFlow as Record<string, unknown> | undefined;
   const rawCountries = (countryFlow?.countries as Array<Record<string, unknown>>) ?? [];
   const countries = rawCountries.map(c => ({
-    country: (c.label ?? c.id) as string,
+    country: COUNTRY_EN[(c.id as string) ?? ''] ?? (c.id as string) ?? 'Unknown',
     ticker: c.ticker as string,
     ret: (c[retKey] as number) ?? 0,
   })).sort((a, b) => b.ret - a.ret);
@@ -170,8 +177,8 @@ export async function GET(request: Request) {
   // Extract rotations — capital-flows uses 'magnitude', not 'diff'
   const rotKey = tf === '1w' ? 'rotations1w' : tf === '4w' ? 'rotations4w' : 'rotations13w';
   const rotations = ((countryFlow?.[rotKey] as Array<Record<string, unknown>>) ?? []).map(r => ({
-    from: r.from as string,
-    to: r.to as string,
+    from: COUNTRY_EN[(r.fromId as string) ?? ''] ?? COUNTRY_EN[(r.from as string) ?? ''] ?? (r.from as string),
+    to: COUNTRY_EN[(r.toId as string) ?? ''] ?? COUNTRY_EN[(r.to as string) ?? ''] ?? (r.to as string),
     diff: (r.magnitude as number) ?? 0,
   }));
 
@@ -248,26 +255,26 @@ export async function GET(request: Request) {
   // analysis가 없어도 사용자가 수치 기반 요약을 볼 수 있도록
   if (!analysis && countries.length > 0) {
     const sorted = [...countries].sort((a, b) => b.ret - a.ret);
-    const tfLabel = tf === '1w' ? '1주' : tf === '4w' ? '4주' : '13주';
+    const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
     analysis = {
-      summary: `${tfLabel} 기간 자금흐름 기계적 요약 (AI 분석 대기 중). 상위: ${sorted.slice(0, 3).map(c => `${c.country} ${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`).join(', ')}.`,
-      mainTheme: `데이터 요약 (AI 쿼터 소진 — KST 09:00 리셋)`,
+      summary: `${tfLabel} capital flows mechanical summary (AI analysis pending). Leaders: ${sorted.slice(0, 3).map(c => `${c.country} ${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`).join(', ')}.`,
+      mainTheme: `Data summary (AI quota exhausted — resets 09:00 KST)`,
       countries: sorted.map(c => ({
         country: c.country,
         ret: `${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`,
         direction: c.ret >= 0 ? 'inflow' : 'outflow',
-        causes: ['수익률 데이터 기반 표시 — AI 원인 분석 불가'],
+        causes: ['Return data only — AI analysis unavailable'],
         risk: '',
       })),
       rotations: rotations.slice(0, 3).map(r => ({
         from: r.from,
         to: r.to,
-        reason: `수익률 차이 ${r.diff >= 0 ? '+' : ''}${r.diff.toFixed(1)}%p`,
+        reason: `Return spread ${r.diff >= 0 ? '+' : ''}${r.diff.toFixed(1)}%p`,
       })),
       keyWatchpoints: [
-        `강세 시장: ${sorted.slice(0, 3).map(c => c.country).join(', ')}`,
-        `약세 시장: ${sorted.slice(-3).reverse().map(c => c.country).join(', ')}`,
-        `금 ${goldRet >= 0 ? '+' : ''}${goldRet.toFixed(1)}% / 달러 ${dollarRet >= 0 ? '+' : ''}${dollarRet.toFixed(1)}%`,
+        `Bull markets: ${sorted.slice(0, 3).map(c => c.country).join(', ')}`,
+        `Bear markets: ${sorted.slice(-3).reverse().map(c => c.country).join(', ')}`,
+        `Gold ${goldRet >= 0 ? '+' : ''}${goldRet.toFixed(1)}% / Dollar ${dollarRet >= 0 ? '+' : ''}${dollarRet.toFixed(1)}%`,
       ],
       _staticFallback: true,
     };

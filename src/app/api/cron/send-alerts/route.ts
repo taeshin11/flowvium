@@ -68,13 +68,13 @@ async function checkFGAlert(
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '🚨 극단적 공포 경보 — Fear & Greed',
-        description: `미국 시장 F&G 지수가 **극단적 공포** 구간에 진입했습니다.`,
+        title: '🚨 Extreme Fear Alert — Fear & Greed',
+        description: `US market F&G index has entered **Extreme Fear** territory.`,
         color: 0xE74C3C,
         fields: [
-          { name: '현재 점수', value: `**${entry.score}** / 100`, inline: true },
-          { name: '레벨', value: '🔴 Extreme Fear', inline: true },
-          { name: '트렌드', value: entry.trend === 'down' ? '↓ 하락' : entry.trend === 'up' ? '↑ 상승' : '→ 중립', inline: true },
+          { name: 'Score', value: `**${entry.score}** / 100`, inline: true },
+          { name: 'Level', value: '🔴 Extreme Fear', inline: true },
+          { name: 'Trend', value: entry.trend === 'down' ? '↓ Falling' : entry.trend === 'up' ? '↑ Rising' : '→ Neutral', inline: true },
         ],
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
@@ -91,13 +91,13 @@ async function checkFGAlert(
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '🚀 극단적 탐욕 경보 — Fear & Greed',
-        description: `미국 시장 F&G 지수가 **극단적 탐욕** 구간에 진입했습니다.`,
+        title: '🚀 Extreme Greed Alert — Fear & Greed',
+        description: `US market F&G index has entered **Extreme Greed** territory.`,
         color: 0xF39C12,
         fields: [
-          { name: '현재 점수', value: `**${entry.score}** / 100`, inline: true },
-          { name: '레벨', value: '🟠 Extreme Greed', inline: true },
-          { name: '트렌드', value: entry.trend === 'up' ? '↑ 상승' : entry.trend === 'down' ? '↓ 하락' : '→ 중립', inline: true },
+          { name: 'Score', value: `**${entry.score}** / 100`, inline: true },
+          { name: 'Level', value: '🟠 Extreme Greed', inline: true },
+          { name: 'Trend', value: entry.trend === 'up' ? '↑ Rising' : entry.trend === 'down' ? '↓ Falling' : '→ Neutral', inline: true },
         ],
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
@@ -125,12 +125,12 @@ async function checkVIXAlert(
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '⚡ VIX 고공포 경보',
-        description: `VIX 지수가 고공포 구간 **(≥30)** 에 진입했습니다. 시장 변동성이 급격히 높아졌습니다.`,
+        title: '⚡ VIX Extreme Fear',
+        description: `VIX has entered extreme fear territory **(≥30)**. Market volatility has spiked sharply.`,
         color: 0x9B59B6,
         fields: [
           { name: 'VIX', value: `**${vol.vix.toFixed(2)}**`, inline: true },
-          { name: '레짐', value: vol.regime === 'backwardation' ? '역전 (Backwardation)' : vol.regime === 'contango' ? 'Contango' : vol.regime, inline: true },
+          { name: 'Regime', value: vol.regime === 'backwardation' ? 'Backwardation' : vol.regime === 'contango' ? 'Contango' : vol.regime, inline: true },
         ],
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
@@ -145,12 +145,12 @@ async function checkVIXAlert(
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '⚠️ VIX 주의 구간',
-        description: `VIX 지수가 주의 구간 **(≥25)** 에 도달했습니다.`,
+        title: '⚠️ VIX Caution Zone',
+        description: `VIX has reached the caution zone **(≥25)**.`,
         color: 0xE67E22,
         fields: [
           { name: 'VIX', value: `**${vol.vix.toFixed(2)}**`, inline: true },
-          { name: '레짐', value: vol.regime, inline: true },
+          { name: 'Regime', value: vol.regime, inline: true },
         ],
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
@@ -189,13 +189,13 @@ async function checkCreditAlert(
     const type = 'hy-stress';
     if (!(await isCooledDown(redis, type))) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '🚨 고수익채 신용 스트레스 — HY OAS > 5%',
-        description: `정크본드 스프레드가 경기침체 경보 구간(**≥5.0%**)을 돌파했습니다. 신용 시장 패닉 신호.`,
+        title: '🚨 High-Yield Credit Stress — HY OAS > 5%',
+        description: `Junk bond spread has broken into recession warning territory (**≥5.0%**). Credit market panic signal.`,
         color: 0xC0392B,
         fields: [
           { name: 'HY OAS', value: `**${hy.toFixed(2)}%**`, inline: true },
           { name: 'IG OAS', value: ig !== null ? `${ig.toFixed(2)}%` : '—', inline: true },
-          { name: '해석', value: '기업 부도 위험 상승 → 주식 선행 하락 신호', inline: false },
+          { name: 'Context', value: 'Rising corporate default risk → leading equities lower', inline: false },
         ],
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
@@ -212,8 +212,8 @@ async function checkCreditAlert(
     const type = 'ig-caution';
     if (!(await isCooledDown(redis, type))) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '⚠️ 투자등급채 신용 주의 — IG OAS > 1.5%',
-        description: `투자등급 스프레드가 주의 구간(**≥1.5%**)에 도달했습니다.`,
+        title: '⚠️ Investment-Grade Credit Warning — IG OAS > 1.5%',
+        description: `Investment-grade spread has reached the caution zone (**≥1.5%**).`,
         color: 0xE67E22,
         fields: [
           { name: 'IG OAS', value: `**${ig.toFixed(2)}%**`, inline: true },
@@ -247,13 +247,13 @@ async function checkYieldCurveAlert(
     const type = 'yc-inverted';
     if (!(await isCooledDown(redis, type))) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '📉 수익률 곡선 역전 — Yield Curve Inversion',
-        description: `미국 10Y-2Y 국채 스프레드가 **역전** 상태입니다. 역사적으로 경기침체 선행 지표로 해석됩니다.`,
+        title: '📉 Yield Curve Inversion',
+        description: `US 10Y-2Y Treasury spread is **inverted**. Historically interpreted as a leading indicator of recession.`,
         color: 0xE74C3C,
         fields: [
-          { name: '10Y-2Y 스프레드', value: `**${spread.toFixed(2)}%**`, inline: true },
-          { name: '신호', value: '🔴 역전 (Inverted)', inline: true },
-          { name: '해석', value: '과거 12~18개월 후 침체 가능성 — 단독 지표로 과신 금지', inline: false },
+          { name: '10Y-2Y Spread', value: `**${spread.toFixed(2)}%**`, inline: true },
+          { name: 'Signal', value: '🔴 Inverted', inline: true },
+          { name: 'Context', value: 'Historically followed by recession 12-18mo later — do not over-rely on single indicator', inline: false },
         ],
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
@@ -270,13 +270,13 @@ async function checkYieldCurveAlert(
     const type = 'yc-normalized';
     if (!(await isCooledDown(redis, type))) {
       const sent = await sendDiscord(webhookUrl, [{
-        title: '📈 수익률 곡선 정상화 — Yield Curve Normalization',
-        description: `미국 10Y-2Y 국채 스프레드가 **정상** 구간으로 복귀했습니다.`,
+        title: '📈 Yield Curve Normalization',
+        description: `US 10Y-2Y Treasury spread has returned to **positive** territory.`,
         color: 0x27AE60,
         fields: [
-          { name: '10Y-2Y 스프레드', value: `**+${spread.toFixed(2)}%**`, inline: true },
-          { name: '신호', value: '🟢 정상화 (Normal)', inline: true },
-          { name: '해석', value: '역전 해소 → 단기 유동성 압박 완화 신호', inline: false },
+          { name: '10Y-2Y Spread', value: `**+${spread.toFixed(2)}%**`, inline: true },
+          { name: 'Signal', value: '🟢 Normal', inline: true },
+          { name: 'Context', value: 'Inversion resolved → short-term liquidity pressure easing signal', inline: false },
         ],
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),

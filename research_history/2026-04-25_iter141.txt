@@ -1,0 +1,85 @@
+== iter141 — 2026-04-25 ==
+
+PRIMARY OUTCOME: AI/API 응답 전면 영문화 (15개 locale 한국어 노출 버그 제거)
+
+DRIFT CHECK:
+- iter138: i18n, iter139: feature(breadth)[streak reset], iter140: i18n(streak=1) → iter141: i18n(streak=2, 허용)
+- No drift signal detected.
+
+WORK DONE:
+1. flow-analysis/route.ts — AI prompt 영문화
+   - FLOW_SYSTEM_PROMPT: Korean → English
+   - buildPrompt(): 섹션 헤더, JSON 스펙 설명 전체 영문화 (tfLabel '1주'→'1W' 등)
+   - COUNTRY_EN map 추가 (id → English name, 12개 국가)
+   - countries extraction: c.label(Korean) → COUNTRY_EN[c.id] (English)
+   - rotations extraction: r.from/to(Korean labels) → COUNTRY_EN[r.fromId] (English)
+   - static fallback 문자열 전체 영문화 (6개 Korean string → English)
+   - cache key v3 → v4 (prompt 변경으로 stale Korean 캐시 방지)
+
+2. investment-strategy/route.ts — AI prompt + context + fallback 영문화
+   - buildInvestmentPrompt(): 전체 Korean prompt → English
+   - buildCtxSummary(): '수익률곡선=역전'→'YieldCurve=inverted', '인하확률'→'cut_prob', '주간 수익 상위'→'Weekly top', '국가'→'Countries', '13F 매수'→'13F buys', '내부자'→'Insider', '스퀴즈점'→'squeeze=', '호재/악재/뉴스'→'bullish/bearish/neutral'
+   - fallbackStrategy(): 모든 Korean 문자열 → English (thesis, rationale, reason, riskEvents, macroAnalysis, technicalAnalysis, fundamentalAnalysis)
+   - cache key v2 → v3
+
+3. fear-greed/route.ts — detailMap 20개 자산 × 3 필드 영문화
+   - SPY, EWY, EWJ, FXI, VGK, EWU, INDA, EWZ, EWT, EWA, GLD, QQQ, TLT, ITA, XLE, IBB, DJP, VNQ, XLF, BITO
+   - factors[]: Korean 설명 → English
+   - macro: Korean 분석 텍스트 → English
+   - risk: Korean 리스크 설명 → English
+   - 총 60개 Korean 문자열 → English
+
+4. news-cascade/route.ts — AI prompt 영문화
+   - CASCADE_SYSTEM_PROMPT: Korean → English (anti-Chinese-char guard 유지)
+   - buildCascadePrompt(): 모든 Korean 레이블 → English
+   - timeframe: '단기(1-3일)|중기(1-4주)|장기(1-3달)' → 'short-term(1-3d)|medium-term(1-4w)|long-term(1-3m)'
+
+5. cron/send-alerts/route.ts — Discord 알림 메시지 영문화
+   - FG Extreme Fear/Greed: title + description + field names → English
+   - VIX High/Caution: title + description + '레짐'→'Regime' → English
+   - HY Stress: title + description + '해석'→'Context' → English
+   - IG Caution: title + description → English
+   - Yield Curve Inversion/Normalization: title + description + all field names → English
+
+6. osint/corporate, osint/crypto, osint/sanctions — API 에러 메시지 영문화
+   - '검색어를 입력하세요' → 'Search query is required'
+   - 'OpenCorporates 접속 불가...' → 'OpenCorporates unavailable...'
+   - '주소를 입력하세요' → 'Address is required'
+   - '유효하지 않은 ETH/BTC 주소입니다' → 'Invalid ETH/BTC address'
+   - '주소 형식을 인식할 수 없습니다...' → 'Unrecognized address format...'
+   - '데이터를 불러오지 못했습니다' → 'Failed to load data'
+   - 'OFAC 데이터를 불러올 수 없습니다' → 'Failed to load OFAC data'
+
+7. AdminLogsPage.tsx — relTime() 함수 영문화
+   - '방금' → 'just now'
+   - '분 전' → 'm ago'
+   - '시간 전' → 'h ago'
+   - '일 전' → 'd ago'
+
+8. CapitalFlowsTab.tsx — allItems에서 미사용 .label 필드 제거 (§3c 단순화)
+   - iter140에서 label→t(KEY_MAP[id]) 로 전환 후 .label 프로퍼티가 allItems에만 남아있었음
+   - 데드코드 제거
+
+ACCURACY PROBE:
+[accuracy probe] metric=SPY.close source=Yahoo direct_value=713.94 our_value=N/A(not_deployed) delta=N/A → PROD_STALE(113+ commits behind)
+[accuracy probe] metric=fg.us source=CNN direct_value=CNN_BLOCKED(local_env) → SKIP
+
+TYPESCRIPT: clean (0 errors after tsc --noEmit)
+
+IMPACT:
+- 15개 비한국어 locale 사용자: flow-analysis, investment-strategy, news-cascade AI 분석이 Korean 대신 English로 표시
+- fear-greed detailMap: 20개 자산 분석 텍스트 Korean → English (모든 locale)
+- Discord 알림: 운영자 모니터링 메시지 Korean → English
+- OSINT 에러: API 에러 응답 Korean → English
+
+FILES CHANGED (10 files):
+- src/app/api/flow-analysis/route.ts (prompt English, COUNTRY_EN map, cache v4)
+- src/app/api/investment-strategy/route.ts (prompt English, context English, fallback English, cache v3)
+- src/app/api/fear-greed/route.ts (detailMap 20 assets × 3 fields English)
+- src/app/api/news-cascade/route.ts (CASCADE_SYSTEM_PROMPT + buildCascadePrompt English)
+- src/app/api/cron/send-alerts/route.ts (all Discord message fields English)
+- src/app/api/osint/corporate/route.ts (error messages English)
+- src/app/api/osint/crypto/route.ts (error messages English)
+- src/app/api/osint/sanctions/route.ts (error message English)
+- src/components/intelligence/CapitalFlowsTab.tsx (remove unused .label from allItems)
+- src/components/pages/AdminLogsPage.tsx (relTime English)

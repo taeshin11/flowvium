@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
   const chainParam = searchParams.get('chain') ?? 'auto';
 
   if (!address) {
-    return NextResponse.json({ error: '주소를 입력하세요' }, { status: 400 });
+    return NextResponse.json({ error: 'Address is required' }, { status: 400 });
   }
 
   let chain: 'eth' | 'btc';
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
     const detected = detectChain(address);
     if (!detected) {
       return NextResponse.json(
-        { error: '주소 형식을 인식할 수 없습니다 (ETH: 0x..., BTC: 1.../3.../bc1...)' },
+        { error: 'Unrecognized address format (ETH: 0x..., BTC: 1.../3.../bc1...)' },
         { status: 400 }
       );
     }
@@ -185,14 +185,14 @@ export async function GET(req: NextRequest) {
 
   // Validate address format
   if (chain === 'eth' && !/^0x[0-9a-fA-F]{40}$/.test(address)) {
-    return NextResponse.json({ error: '유효하지 않은 ETH 주소입니다' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid ETH address' }, { status: 400 });
   }
   if (
     chain === 'btc' &&
     !/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address) &&
     !/^bc1[a-z0-9]{6,87}$/.test(address)
   ) {
-    return NextResponse.json({ error: '유효하지 않은 BTC 주소입니다' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid BTC address' }, { status: 400 });
   }
 
   const cacheKey = `flowvium:osint:crypto:v1:${chain}:${address}`;
@@ -214,7 +214,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : '알 수 없는 오류';
-    return NextResponse.json({ error: `데이터를 불러오지 못했습니다: ${message}` }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: `Failed to load data: ${message}` }, { status: 500 });
   }
 }

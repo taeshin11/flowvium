@@ -117,7 +117,7 @@ async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]>
 // IMPORTANT: 언어 락 — GROQ 70b 는 한국어 프롬프트에서도 중국어 한자(繁/简體)를
 // 혼입하는 빈도가 12%+ 관찰됨 (예: '谈判停滞'). 시스템 프롬프트에 명시적 금지
 // + parse 후 post-process guard 두 단계로 차단.
-const CASCADE_SYSTEM_PROMPT = '당신은 글로벌 금융 뉴스 분석 전문가입니다. 뉴스의 시장 파급 효과(cascade)를 JSON으로만 분석합니다. 모든 텍스트 필드는 반드시 한글과 영문만 사용하세요 — 중국어 한자(漢字 Hanzi) 절대 금지. 한자 대신 한글로 풀어 쓰세요 (예: "谈判停滞" → "협상 교착", "财报" → "실적발표").';
+const CASCADE_SYSTEM_PROMPT = 'You are a global financial news analyst. Analyze the market cascade effects of news in JSON format only. Use English exclusively — do NOT use Chinese characters (Hanzi) or any non-Latin script in text fields.';
 
 /**
  * 중국어 한자 혼입 감지 — U+4E00~U+9FFF (CJK Unified Ideographs) 범위.
@@ -141,24 +141,24 @@ async function callCascadeAI(prompt: string): Promise<string> {
 }
 
 function buildCascadePrompt(title: string): string {
-  return `뉴스 헤드라인: "${title}"
+  return `News headline: "${title}"
 
-이 뉴스가 금융 시장에 미치는 파급 효과를 분석하세요. 아래 JSON 형식으로만 답하세요:
+Analyze the cascade effects of this news on financial markets. Respond in the following JSON format only:
 {
-  "summary": "2문장 이내 핵심 내용 요약",
+  "summary": "Key summary in 1-2 sentences",
   "sentiment": "bullish|bearish|neutral",
   "importance": "high|medium|low",
   "cascades": [
     {
-      "asset": "자산명 (예: S&P500, 금, 달러, 반도체, 채권)",
+      "asset": "asset name (e.g. S&P500, Gold, Dollar, Semiconductors, Bonds)",
       "direction": "positive|negative|neutral",
       "magnitude": "high|medium|low",
-      "reason": "영향 이유 (1문장)",
-      "timeframe": "단기(1-3일)|중기(1-4주)|장기(1-3달)"
+      "reason": "reason for the impact (1 sentence)",
+      "timeframe": "short-term(1-3d)|medium-term(1-4w)|long-term(1-3m)"
     }
   ]
 }
-cascades는 3-5개 항목으로 작성하세요.`;
+Include 3-5 cascade items.`;
 }
 
 function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {

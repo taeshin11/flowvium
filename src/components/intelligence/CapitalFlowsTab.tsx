@@ -118,8 +118,8 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
   const [activeView, setActiveView] = useState<'compare' | 'cascade'>('compare');
 
   const allItems = [
-    ...data.assets.map(a => ({ id: a.id, label: a.label, flag: a.flag, type: 'asset' as const, ret1w: a.ret1w, ret4w: a.ret4w, ret13w: a.ret13w })),
-    ...data.countryFlow.countries.map(c => ({ id: c.id, label: c.label, flag: c.flag, type: 'country' as const, ret1w: c.ret1w, ret4w: c.ret4w, ret13w: c.ret13w })),
+    ...data.assets.map(a => ({ id: a.id, flag: a.flag, type: 'asset' as const, ret1w: a.ret1w, ret4w: a.ret4w, ret13w: a.ret13w })),
+    ...data.countryFlow.countries.map(c => ({ id: c.id, flag: c.flag, type: 'country' as const, ret1w: c.ret1w, ret4w: c.ret4w, ret13w: c.ret13w })),
   ];
 
   const top4 = (key: 'ret1w' | 'ret4w' | 'ret13w', dir: 'up' | 'down') =>

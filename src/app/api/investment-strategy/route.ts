@@ -19,7 +19,7 @@ const STRATEGY_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
 function cacheKey(): string {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const datehour = kst.toISOString().slice(0, 13).replace('T', ':');
-  return `flowvium:investment-strategy:v2:${datehour}`;
+  return `flowvium:investment-strategy:v3:${datehour}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -152,72 +152,72 @@ function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe
   const today = new Date().toISOString().slice(0, 10);
   const priceData = pricesSection(prices);
 
-  return `당신은 퀀트 전략가 겸 포트폴리오 매니저입니다. 오늘(${today}) 실시간 데이터를 바탕으로 향후 4주 최적 투자 전략을 제시하세요.
+  return `You are a quantitative strategist and portfolio manager. Based on real-time data as of ${today}, provide the optimal investment strategy for the next 4 weeks.
 
-[실시간 주가 — entryZone/stopLoss/target 계산 시 이 가격 기준으로 작성 필수]
-${priceData || '데이터 없음'}
+[Live Prices — use these as the basis for entryZone/stopLoss/target calculations]
+${priceData || 'No data'}
 
-[거시경제]
+[Macro]
 ${ctx.macro}
 
-[시장 심리]
+[Market Sentiment]
 ${ctx.sentiment}
 
-[자금 흐름]
+[Capital Flows]
 ${ctx.flows}
 
-[기관 포지션]
+[Institutional Positions]
 ${ctx.institutional}
 
-[섹터 밸류에이션]
-${sectorPe || '데이터 없음'}
+[Sector Valuations]
+${sectorPe || 'No data'}
 
-[쇼트 스퀴즈 후보]
+[Short Squeeze Candidates]
 ${ctx.shorts}
 
-[실적 발표 예정]
-${earnings || '없음'}
+[Upcoming Earnings]
+${earnings || 'None'}
 
-[뉴스 캐스케이드]
+[News Cascade]
 ${ctx.news}
 
-위 데이터를 종합해 아래 JSON 형식으로만 응답하세요. 마크다운 없이 순수 JSON만.
+Synthesize the above data and respond in the following JSON format only. Pure JSON, no markdown.
 
-중요 규칙:
-1. portfolio는 반드시 정확히 5개 또는 6개 종목 (4개 이하 금지)
-2. entryZone/stopLoss/target은 위 [실시간 주가] 현재가 기준 실제 달러 범위 (예: 현재가 $850이면 entryZone "$840-855")
-3. rationale은 구체적 수치·이유 포함, 반복 문구 금지
-4. allocation 합계 = 100
+Key rules:
+1. portfolio must have exactly 5 or 6 positions (minimum 5)
+2. entryZone/stopLoss/target must be actual dollar ranges based on the live prices above (e.g., if current price is $850, entryZone "$840-855")
+3. rationale must include specific numbers/reasons, no repetitive phrases
+4. allocation must sum to 100
 
 {
   "stance": "bullish|neutral|bearish",
-  "thesis": "한 줄 투자 전략 (50자 이내, 구체적 섹터/이벤트 언급)",
+  "thesis": "one-line strategy (specific sector/event, max 50 chars)",
   "portfolio": [
     {
       "ticker": "NVDA",
-      "name": "엔비디아",
-      "sector": "기술",
-      "rationale": "AI 가속기 수요 25% QoQ 성장, P/E 35x로 섹터 평균 대비 저평가",
+      "name": "NVIDIA",
+      "sector": "Technology",
+      "rationale": "AI accelerator demand +25% QoQ, P/E 35x below sector average",
       "allocation": 20,
-      "entryZone": "$현재가기준범위",
-      "stopLoss": "$현재가-7%",
-      "target": "$현재가+15%",
+      "entryZone": "$price-based range",
+      "stopLoss": "$price-7%",
+      "target": "$price+15%",
       "confidence": "high"
     }
   ],
   "sectorAllocation": [
-    {"sector": "Technology", "pct": 30, "stance": "overweight", "reason": "AI 수요 지속 + 섹터 P/E 35x 적정"}
+    {"sector": "Technology", "pct": 30, "stance": "overweight", "reason": "AI demand sustained + sector P/E 35x fair"}
   ],
   "riskEvents": [
-    {"date": "2026-05-07", "event": "FOMC 금리 결정", "impact": "high", "watchFor": "동결 확인 시 성장주 재평가"}
+    {"date": "2026-05-07", "event": "FOMC Rate Decision", "impact": "high", "watchFor": "Hold confirmed → growth re-rating"}
   ],
-  "macroAnalysis": "수익률곡선 역전폭·CPI·FOMC 확률 기반 구체적 분석",
-  "technicalAnalysis": "주요 지수 MA·RSI·VIX 레벨 기반 분석",
-  "fundamentalAnalysis": "섹터 P/E·EPS 성장률·FCF yield 기반 분석",
+  "macroAnalysis": "Specific analysis based on yield curve spread, CPI, FOMC probabilities",
+  "technicalAnalysis": "Analysis based on major index MA, RSI, VIX levels",
+  "fundamentalAnalysis": "Analysis based on sector P/E, EPS growth rate, FCF yield",
   "riskLevel": "low|medium|high"
 }
 
-portfolio 5~6개, sectorAllocation 5~7개, riskEvents 3~5개. 각 항목 구체적 수치 필수.`;
+portfolio 5-6 items, sectorAllocation 5-7 items, riskEvents 3-5 items. Specific numbers required for each.`;
 }
 
 interface CtxSummary {
@@ -238,7 +238,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
       const yc = (m.yieldCurve as Record<string, unknown> | undefined);
       const cpi = m.cpi as Record<string, unknown> | undefined;
       const gdp = m.gdp as Record<string, unknown> | undefined;
-      macro = `수익률곡선=${yc?.inverted ? '역전' : '정상'}(${yc?.spread ?? '?'}bp) CPI=${cpi?.value ?? '?'}% GDP=${gdp?.value ?? '?'}%`;
+      macro = `YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${yc?.spread ?? '?'}bp) CPI=${cpi?.value ?? '?'}% GDP=${gdp?.value ?? '?'}%`;
     }
   } catch { /* ignore */ }
 
@@ -253,7 +253,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     const meetings = (fed?.meetings as Array<Record<string, unknown>>) ?? [];
     if (meetings.length) {
       const next = meetings[0];
-      sentiment += ` FOMC ${next.label} 인하확률=${next.probCut25}%`;
+      sentiment += ` FOMC ${next.label} cut_prob=${next.probCut25}%`;
     }
   } catch { /* ignore */ }
 
@@ -266,10 +266,10 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
       .sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0))
       .slice(0, 5)
       .map(a => `${a.ticker}:${a.ret1w?.toFixed(1)}%`);
-    if (top.length) flows = `주간 수익 상위: ${top.join(', ')}`;
+    if (top.length) flows = `Weekly top: ${top.join(', ')}`;
     const countries = (cap?.countries as Array<{ name?: string; ret1w?: number }>) ?? [];
     const topCtry = countries.sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0)).slice(0, 3).map(c => `${c.name}:${c.ret1w?.toFixed(1)}%`);
-    if (topCtry.length) flows += ` | 국가: ${topCtry.join(', ')}`;
+    if (topCtry.length) flows += ` | Countries: ${topCtry.join(', ')}`;
   } catch { /* ignore */ }
 
   // Institutional
@@ -277,11 +277,11 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   try {
     const sigs = ctx.signals ?? [];
     const buys = sigs.filter((s: { action?: string }) => s.action === 'buy' || s.action === 'increased').slice(0, 5).map((s: { ticker?: string; institution?: string; valueM?: number }) => `${s.ticker}(${s.institution} $${s.valueM}M)`);
-    if (buys.length) institutional = `13F 매수: ${buys.join(', ')}`;
+    if (buys.length) institutional = `13F buys: ${buys.join(', ')}`;
     const insider = (ctx.insider as Array<Record<string, unknown>>) ?? [];
     if (insider.length) {
       const recent = insider.slice(0, 3).map((i: Record<string, unknown>) => `${i.ticker} ${i.insiderTitle ?? ''} ${i.transactionType}`);
-      institutional += ` | 내부자: ${recent.join(', ')}`;
+      institutional += ` | Insider: ${recent.join(', ')}`;
     }
   } catch { /* ignore */ }
 
@@ -292,7 +292,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     const arr = Array.isArray(shortData) ? shortData as Array<Record<string, unknown>>
       : (shortData?.entries as Array<Record<string, unknown>>) ?? [];
     const squeeze = arr.filter(s => (s.squeezeScore as number) >= 25).slice(0, 3)
-      .map(s => `${s.ticker}(스퀴즈${s.squeezeScore}점)`);
+      .map(s => `${s.ticker}(squeeze=${s.squeezeScore})`);
     if (squeeze.length) shorts = squeeze.join(', ');
   } catch { /* ignore */ }
 
@@ -300,7 +300,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   let news = '';
   try {
     const cascadeArr = (ctx.cascade as Array<Record<string, unknown>>) ?? [];
-    const topNews = cascadeArr.slice(0, 3).map(n => `${n.sentiment === 'bullish' ? '호재' : n.sentiment === 'bearish' ? '악재' : '뉴스'}:${(n.title as string)?.slice(0, 40)}`);
+    const topNews = cascadeArr.slice(0, 3).map(n => `${n.sentiment === 'bullish' ? 'bullish' : n.sentiment === 'bearish' ? 'bearish' : 'neutral'}:${(n.title as string)?.slice(0, 40)}`);
     if (topNews.length) news = topNews.join(' | ');
   } catch { /* ignore */ }
 
@@ -311,27 +311,27 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
 function fallbackStrategy(): InvestmentStrategy {
   return {
     stance: 'neutral',
-    thesis: '데이터 수집 중 — 잠시 후 다시 시도해주세요',
+    thesis: 'Data loading — please retry in a moment',
     portfolio: [
-      { ticker: 'SPY', name: 'S&P 500 ETF', sector: 'Diversified', rationale: '분산 ETF로 기본 포지션 유지', allocation: 30, entryZone: '현재가 ±1%', stopLoss: '-5%', target: '+8%', confidence: 'medium' },
-      { ticker: 'QQQ', name: 'Nasdaq 100 ETF', sector: 'Technology', rationale: '기술섹터 분산 접근', allocation: 20, entryZone: '현재가 ±1%', stopLoss: '-7%', target: '+12%', confidence: 'medium' },
+      { ticker: 'SPY', name: 'S&P 500 ETF', sector: 'Diversified', rationale: 'Diversified ETF core position', allocation: 30, entryZone: 'market ±1%', stopLoss: '-5%', target: '+8%', confidence: 'medium' },
+      { ticker: 'QQQ', name: 'Nasdaq 100 ETF', sector: 'Technology', rationale: 'Tech sector diversified exposure', allocation: 20, entryZone: 'market ±1%', stopLoss: '-7%', target: '+12%', confidence: 'medium' },
     ],
     sectorAllocation: [
-      { sector: 'Technology', pct: 25, stance: 'overweight', reason: 'AI 테마 지속' },
-      { sector: 'Financials', pct: 20, stance: 'neutral', reason: '금리 환경 안정' },
-      { sector: 'Health Care', pct: 15, stance: 'neutral', reason: '방어적 배분' },
-      { sector: 'Energy', pct: 15, stance: 'neutral', reason: '지정학 리스크 헤지' },
-      { sector: 'Consumer Disc.', pct: 15, stance: 'underweight', reason: '소비 둔화 우려' },
-      { sector: 'Cash', pct: 10, stance: 'neutral', reason: '리스크 관리 현금' },
+      { sector: 'Technology', pct: 25, stance: 'overweight', reason: 'AI theme sustained' },
+      { sector: 'Financials', pct: 20, stance: 'neutral', reason: 'Stable rate environment' },
+      { sector: 'Health Care', pct: 15, stance: 'neutral', reason: 'Defensive allocation' },
+      { sector: 'Energy', pct: 15, stance: 'neutral', reason: 'Geopolitical risk hedge' },
+      { sector: 'Consumer Disc.', pct: 15, stance: 'underweight', reason: 'Consumer slowdown risk' },
+      { sector: 'Cash', pct: 10, stance: 'neutral', reason: 'Risk management buffer' },
     ],
     riskEvents: [
-      { date: '2026-05-07', event: 'FOMC 금리 결정', impact: 'high', watchFor: '동결 vs 인하 시그널 확인' },
-      { date: '2026-04-30', event: 'PCE 물가 발표', impact: 'high', watchFor: '3% 이하 유지 여부' },
-      { date: '2026-05-02', event: 'NFP 고용 보고서', impact: 'medium', watchFor: '고용 냉각 신호' },
+      { date: '2026-05-07', event: 'FOMC Rate Decision', impact: 'high', watchFor: 'Hold vs cut signal' },
+      { date: '2026-04-30', event: 'PCE Inflation', impact: 'high', watchFor: 'Below 3% sustained' },
+      { date: '2026-05-02', event: 'NFP Employment', impact: 'medium', watchFor: 'Labor market cooling' },
     ],
-    macroAnalysis: 'AI 분석 일시 불가. 수익률 곡선·CPI·FOMC 데이터 직접 확인 권장.',
-    technicalAnalysis: 'AI 분석 일시 불가. SPY 200일 이동평균선 지지 여부 확인 권장.',
-    fundamentalAnalysis: 'AI 분석 일시 불가. 섹터 P/E와 EPS 성장률 비교 권장.',
+    macroAnalysis: 'AI analysis unavailable. Check yield curve, CPI, FOMC data directly.',
+    technicalAnalysis: 'AI analysis unavailable. Monitor SPY 200-day MA support.',
+    fundamentalAnalysis: 'AI analysis unavailable. Compare sector P/E vs EPS growth.',
     riskLevel: 'medium',
     generatedAt: new Date().toISOString(),
     source: 'fallback',

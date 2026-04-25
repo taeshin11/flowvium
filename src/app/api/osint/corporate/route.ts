@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q')?.trim() ?? '';
 
   if (!q) {
-    return NextResponse.json({ error: '검색어를 입력하세요' }, { status: 400 });
+    return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
   }
 
   const encodedQuery = encodeURIComponent(q);
@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
       companies: [],
       total: 0,
       source: 'OpenCorporates',
-      error: 'OpenCorporates 접속 불가 — 기업명을 직접 검색하거나 외부 링크를 이용하세요',
+      error: 'OpenCorporates unavailable — search the company name directly or use an external link',
     });
   }
 }
