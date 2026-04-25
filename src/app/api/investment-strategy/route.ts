@@ -173,8 +173,25 @@ async function getUpcomingEarnings(baseUrl: string): Promise<string> {
   } catch { return ''; }
 }
 
+// ── VIX / volatility regime helper ───────────────────────────────────────────
+async function getVixContext(baseUrl: string): Promise<string> {
+  try {
+    const res = await fetch(`${baseUrl}/api/volatility`, {
+      signal: AbortSignal.timeout(6000),
+      cache: 'no-store',
+    });
+    if (!res.ok) return '';
+    const data = await res.json() as { vix?: number | null; regime?: string | null; regimeLabel?: string | null };
+    if (data.vix == null) return '';
+    const parts = [`VIX=${data.vix.toFixed(2)}`];
+    if (data.regime) parts.push(`regime=${data.regime}`);
+    if (data.regimeLabel) parts.push(`(${data.regimeLabel})`);
+    return parts.join(' ');
+  } catch { return ''; }
+}
+
 // ── AI prompt ────────────────────────────────────────────────────────────────
-function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string, prices: Map<string, LivePrice>): string {
+function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string, prices: Map<string, LivePrice>, vix: string): string {
   const today = new Date().toISOString().slice(0, 10);
   const priceData = pricesSection(prices);
 
@@ -188,6 +205,9 @@ ${ctx.macro}
 
 [Market Sentiment]
 ${ctx.sentiment}
+
+[Volatility]
+${vix || 'No data'}
 
 [Capital Flows]
 ${ctx.flows}
@@ -440,15 +460,16 @@ export async function GET(request: Request) {
     : `${reqUrl.protocol}//${reqUrl.host}`;
 
   // Gather all context in parallel (including live prices)
-  const [ctx, sectorPe, earnings, livePrices] = await Promise.all([
+  const [ctx, sectorPe, earnings, livePrices, vixCtx] = await Promise.all([
     gatherTabContext(redis, baseUrl),
     getSectorSummary(baseUrl),
     getUpcomingEarnings(baseUrl),
     getLivePrices(),
+    getVixContext(baseUrl),
   ]);
 
   const ctxSummary = buildCtxSummary(ctx);
-  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices);
+  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx);
 
   const aiResult = await callAIProvider(prompt, {
     tag: 'investment-strategy',
