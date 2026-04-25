@@ -1,0 +1,70 @@
+== iter207 — 2026-04-26 ==
+
+PRIMARY OUTCOME: i18n 컴플라이언스 + 뉴스 폴백 (ComparePage/IntelligencePage)
+
+DRIFT CHECK:
+- iter203-206: 5 iter 연속 backend/data-source 영역 → DRIFT 신호
+- iter207: 프론트엔드 i18n + Finnhub 뉴스 폴백 (영역 이동) ✓
+
+PROBLEM:
+  1. news.company degraded: Yahoo IP 차단, Finnhub 폴백 없음
+  2. IntelligencePage: "Powered by Gemini 2.5", "Flowvium AI" 하드코딩 (CLAUDE.md 위반)
+  3. ComparePage: useTranslations 전혀 없음, 15개 하드코딩 문자열
+
+CHANGES:
+  src/app/api/company-news/route.ts:
+    - fetchFinnhubNews() 신설: FINNHUB_KEY로 Finnhub company-news API 호출
+    - Yahoo 실패 catch → Finnhub 시도 → stale → empty 순서
+    → news.company: degraded → ok ✓ (Finnhub 폴백 Vercel 작동 확인)
+
+  src/components/pages/IntelligencePage.tsx:
+    - "Powered by Gemini 2.5" → t('poweredByGemini') (16개 언어)
+    - "Flowvium AI" → t('flowviumAi') (16개 언어)
+
+  src/components/pages/ComparePage.tsx:
+    - useTranslations('compare') 추가 (CompanyColumn + main component)
+    - compare 네임스페이스 신설: 16 keys × 16 locales = 256 번역
+    - title, searchPlaceholder, about, founded, employees, revenue, revenueMix,
+      fullProfile, newsGapSignal, mediaCoverageScore, institutionalSignals,
+      ibActivityScore, cascadePatterns, keyRelationships, popularComparisons,
+      enterTwoTickers 하드코딩 제거
+
+  messages/*.json (16 files):
+    - intelligence.poweredByGemini, intelligence.flowviumAi 추가
+    - compare 네임스페이스 16 keys 추가
+
+ACCURACY PROBE:
+  [accuracy probe] metric=comm.gold source=gold-api.com direct_value=4710.80 our_value=4710.80 delta=0 → OK
+  (iter206 probe 유지, iter207 자체 수치 변경 없음)
+
+VERIFY-METRICS (iter207 완료):
+  OK=147 (+2 vs iter206), Degraded=7 (-2), Error=0, Total=159
+  - news.company: degraded → ok ✓ (Finnhub 폴백)
+  - stock.price: degraded → ok ✓ (stale Redis SPY 캐시 복구)
+  [DEGRADED 유지] vol.vxst, vol.vxmt, comm.oil, comm.gold, strategy.portfolio, brief.market
+  [DEGRADED] macro.gdp — 2026-04-30 발표 예정
+
+NEGATIVE RESULT:
+  stock.price OK = stale Redis 캐시 서빙 (direct call시 price=null)
+  → Yahoo 차단 해결 아님, 캐시 만료시 degraded 재발 가능
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (20 files):
+- src/app/api/company-news/route.ts
+- src/components/pages/IntelligencePage.tsx
+- src/components/pages/ComparePage.tsx
+- messages/en.json, ko.json, ja.json, zh-CN.json, zh-TW.json,
+  es.json, fr.json, de.json, pt.json, ru.json, ar.json, hi.json,
+  id.json, th.json, tr.json, vi.json (16 files)
+
+COMMITS: 9a26ca9 (Finnhub), d293756 (IntelligencePage Gemini i18n),
+         5fc52d6 (IntelligencePage AI i18n), b3f3b90 (ComparePage i18n)
+PUSHED: ✓ origin/master
+
+NEXT: iter208
+  1. stock.price 영구 폴백 확보 (FRED SP500 → SPY 근사치 또는 Twelve Data)
+  2. brief.market degraded → AI 복구 확인 (stale Redis 26h 만료 후)
+  3. 2026-04-30 GDP Q1 advance → macro.gdp 자동 복구 예정
+  4. 기타 하드코딩 문자열 스캔 (CompanyPage 포함)
+  5. 성능: 번들 크기, TTFB 측정
