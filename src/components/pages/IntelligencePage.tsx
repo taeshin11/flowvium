@@ -166,9 +166,9 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
             {entry.source === 'composite' && (
               <span
                 className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 flex-shrink-0"
-                title="FlowVium 합성 지수: RSI-14 × 40% + 125일 SMA 모멘텀 × 35% + 변동성 × 25%"
+                title="FlowVium composite index: RSI-14 × 40% + 125d SMA momentum × 35% + volatility × 25%"
               >
-                합성
+                {t('compositeLabel')}
               </span>
             )}
           </div>
@@ -215,11 +215,11 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
           {/* Factor breakdown */}
           {entry.factors && (
             <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wide mb-1.5">📊 심리 구성 요소</p>
+              <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wide mb-1.5">📊 {t('factorBreakdown')}</p>
               <FactorBar label={t('rsiMomentum')} score={entry.factors.rsi} weight="40%" />
               <FactorBar label={t('trendStrength')} score={entry.factors.momentum} weight="35%" />
               <FactorBar label={t('volatility')} score={entry.factors.volatility} weight="25%" />
-              <p className="text-[9px] text-gray-400 mt-1">0=극단공포 · 50=중립 · 100=극단탐욕</p>
+              <p className="text-[9px] text-gray-400 mt-1">{t('fgScaleHint')}</p>
             </div>
           )}
 
@@ -227,7 +227,7 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
           {entry.detail && (
             <>
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wide">🔍 측정 요인</p>
+                <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wide">🔍 {t('measureFactors')}</p>
                 {entry.detail.factors.map((f, i) => (
                   <p key={i} className="text-[11px] text-cf-text-secondary leading-relaxed flex gap-1.5">
                     <span className="text-gray-400 flex-shrink-0">•</span>{f}
@@ -235,11 +235,11 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
                 ))}
               </div>
               <div className="rounded-lg bg-blue-50 border border-blue-100 p-2.5">
-                <p className="text-[10px] font-bold text-blue-700 mb-1">📈 현재 심리 배경</p>
+                <p className="text-[10px] font-bold text-blue-700 mb-1">📈 {t('sentimentBackground')}</p>
                 <p className="text-[11px] text-blue-700 leading-relaxed">{entry.detail.macro}</p>
               </div>
               <div className="rounded-lg bg-red-50 border border-red-100 p-2.5">
-                <p className="text-[10px] font-bold text-red-600 mb-1">⚠ 주요 리스크</p>
+                <p className="text-[10px] font-bold text-red-600 mb-1">⚠ {t('keyRisks')}</p>
                 <p className="text-[11px] text-red-600 leading-relaxed">{entry.detail.risk}</p>
               </div>
             </>
@@ -537,8 +537,13 @@ export default function IntelligencePage() {
   const liveSectorFlows = useMemo(() => {
     if (!liveSignals?.length) return [];
     const SECTOR_KO: Record<string, string> = {
-      'semiconductors': '반도체', 'ai-cloud': 'AI·클라우드', 'ev-battery': '전기차·배터리',
-      'defense': '방산', 'financials': '금융', 'materials': '소재', 'pharma-biotech': '바이오·제약',
+      'semiconductors': t('sectorSemiconductors'),
+      'ai-cloud': t('sectorAiCloud'),
+      'ev-battery': t('sectorEvBattery'),
+      'defense': t('sectorDefense'),
+      'financials': t('sectorFinancials'),
+      'materials': t('sectorMaterials'),
+      'pharma-biotech': t('sectorPharmaBiotech'),
     };
     const byS: Record<string, { buys: number; sells: number; tickers: Set<string> }> = {};
     for (const s of liveSignals) {
@@ -561,14 +566,14 @@ export default function IntelligencePage() {
   const liveAsset = (fgData?.byAsset ?? fearGreedByAsset) as FearGreedEntryExtended[];
 
   const tabConfig: Record<Tab, { label: string; icon: React.ReactNode }> = {
-    'capital':     { label: '자금 흐름 지도',  icon: <GitMerge className="w-4 h-4" /> },
-    'macro':       { label: '매크로 지표',     icon: <TrendingUp className="w-4 h-4" /> },
-    'flows':       { label: '머니 흐름',       icon: <Activity className="w-4 h-4" /> },
-    'fear-greed':  { label: 'Fear & Greed',   icon: <BarChart3 className="w-4 h-4" /> },
-    'credit':      { label: '신용잔고',        icon: <TrendingDown className="w-4 h-4" /> },
-    'narratives':  { label: '매크로 테마',     icon: <Brain className="w-4 h-4" /> },
-    'news':        { label: '뉴스 Cascade',   icon: <Zap className="w-4 h-4" /> },
-    'cot':         { label: 'COT 포지션',     icon: <BarChart3 className="w-4 h-4" /> },
+    'capital':     { label: t('tabCapital'),    icon: <GitMerge className="w-4 h-4" /> },
+    'macro':       { label: t('tabMacro'),      icon: <TrendingUp className="w-4 h-4" /> },
+    'flows':       { label: t('tabFlows'),      icon: <Activity className="w-4 h-4" /> },
+    'fear-greed':  { label: 'Fear & Greed',    icon: <BarChart3 className="w-4 h-4" /> },
+    'credit':      { label: t('tabCredit'),     icon: <TrendingDown className="w-4 h-4" /> },
+    'narratives':  { label: t('tabNarratives'), icon: <Brain className="w-4 h-4" /> },
+    'news':        { label: t('tabNews'),       icon: <Zap className="w-4 h-4" /> },
+    'cot':         { label: t('tabCot'),        icon: <BarChart3 className="w-4 h-4" /> },
   };
 
   const inflows = moneyFlowSectors.filter(f => f.direction === 'inflow').sort((a, b) => b.magnitude - a.magnitude);
@@ -626,8 +631,8 @@ export default function IntelligencePage() {
               <div>
                 <h2 className="text-base font-heading font-bold text-cf-text-primary mb-3 flex items-center gap-2">
                   <Activity className="w-4 h-4 text-cf-primary" />
-                  Live 13F 섹터 신호
-                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">실시간</span>
+                  {t('sectorSignalsTitle')}
+                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">{t('liveLabel')}</span>
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {liveSectorFlows.map(f => (
@@ -635,7 +640,7 @@ export default function IntelligencePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${f.net > 0 ? 'bg-green-100 text-green-700' : f.net < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                            {f.net > 0 ? '순매수' : f.net < 0 ? '순매도' : '중립'}
+                            {f.net > 0 ? t('netBuy') : f.net < 0 ? t('netSell') : t('neutralSignal')}
                           </span>
                           <span className="text-xs font-bold text-cf-text-primary truncate">{f.ko}</span>
                         </div>
@@ -655,14 +660,14 @@ export default function IntelligencePage() {
                   ))}
                 </div>
                 <p className="text-[10px] text-cf-text-secondary mt-2">
-                  EDGAR 13F-HR 기반 · 매일 02:00 UTC 자동갱신 · 순신호 = 매수건 − 매도건
+                  {t('sectorSignalsSource')}
                 </p>
               </div>
             )}
             {liveSignals === null && (
               <div className="flex items-center gap-2 text-cf-text-secondary text-xs py-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                13F 신호 로딩중...
+                {t('loadingSignals')}
               </div>
             )}
 
@@ -671,7 +676,7 @@ export default function IntelligencePage() {
               <div>
                 <h2 className="text-base font-heading font-bold text-green-700 mb-3 flex items-center gap-2">
                   <ArrowUpRight className="w-4 h-4" />
-                  스마트 머니 유입 섹터
+                  {t('smartMoneyInflow')}
                 </h2>
                 <div className="space-y-3">
                   {inflows.map((f) => <MoneyFlowRow key={f.sector} flow={f} />)}
@@ -680,7 +685,7 @@ export default function IntelligencePage() {
               <div>
                 <h2 className="text-base font-heading font-bold text-red-700 mb-3 flex items-center gap-2">
                   <ArrowDownRight className="w-4 h-4" />
-                  스마트 머니 이탈 섹터
+                  {t('smartMoneyOutflow')}
                 </h2>
                 <div className="space-y-3">
                   {outflows.map((f) => <MoneyFlowRow key={f.sector} flow={f} />)}
@@ -688,7 +693,7 @@ export default function IntelligencePage() {
               </div>
             </div>
             <p className="text-xs text-cf-text-secondary text-center">
-              테마 분석: SEC 13F 공시 + 시장 리서치 기반 에디토리얼 컨텍스트 (2026-04-16 기준)
+              {t('editorialContext')}
             </p>
           </div>
         )}
@@ -699,7 +704,7 @@ export default function IntelligencePage() {
             {fgLoading && (
               <div className="flex items-center justify-center gap-2 py-8 text-cf-text-secondary">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">실시간 시장 데이터 로딩중...</span>
+                <span className="text-sm">{t('loadingMarketData')}</span>
               </div>
             )}
             {!fgLoading && (
@@ -708,17 +713,17 @@ export default function IntelligencePage() {
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-heading font-bold text-cf-text-primary flex items-center gap-2">
                       <Globe className="w-5 h-5 text-cf-primary" />
-                      국가별 Fear & Greed
+                      {t('fgByCountryTitle')}
                     </h2>
                     {fgData?.updatedAt && (
                       <span className="text-[11px] text-cf-text-secondary">
-                        {new Date(fgData.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 업데이트
+                        {new Date(fgData.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} {t('fgUpdatedLabel')}
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-cf-text-secondary mb-4">
-                    {fgData ? 'CNN F&G 원리 (RSI · 125일 모멘텀 · 변동성) · Yahoo Finance (15분 지연)' : '정적 데이터'}
-                    {' '}· 0 = 극단적 공포, 100 = 극단적 탐욕
+                    {fgData ? t('fgMethodologyLabel') : t('staticDataLabel')}
+                    {' '}· {t('fgScaleLabel')}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {liveCountry.map((e) => <FearGreedCard key={e.id} entry={e} />)}
@@ -728,9 +733,9 @@ export default function IntelligencePage() {
                 <div>
                   <h2 className="text-lg font-heading font-bold text-cf-text-primary mb-1 flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-cf-primary" />
-                    자산별 Fear & Greed
+                    {t('fgByAssetTitle')}
                   </h2>
-                  <p className="text-xs text-cf-text-secondary mb-4">섹터 및 자산 클래스별 시장 심리 지수</p>
+                  <p className="text-xs text-cf-text-secondary mb-4">{t('fgByAssetDesc')}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {liveAsset.map((e) => <FearGreedCard key={e.id} entry={e} />)}
                   </div>
@@ -747,7 +752,7 @@ export default function IntelligencePage() {
         {activeTab === 'narratives' && (
           <div>
             <p className="text-sm text-cf-text-secondary mb-6">
-              시장을 지배하는 8가지 구조적 힘 — 뉴스에 나오기 전에 이해하세요.
+              {t('narrativesDesc')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {macroNarratives.map((n) => (
