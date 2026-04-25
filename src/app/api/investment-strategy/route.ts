@@ -150,8 +150,8 @@ async function getSectorSummary(baseUrl: string): Promise<string> {
       cache: 'no-store',
     });
     if (!res.ok) return '';
-    const data = await res.json() as { entries?: Array<{ ticker: string; name: string; trailingPE: number | null; ytdReturn: number | null; changePct: number | null }> };
-    const entries = data.entries ?? [];
+    const data = await res.json() as { sectors?: Array<{ ticker: string; name: string; trailingPE: number | null; ytdReturn: number | null; changePct: number | null }> };
+    const entries = data.sectors ?? [];
     return entries.slice(0, 8).map(e =>
       `${e.ticker}(${e.name}) P/E=${e.trailingPE?.toFixed(1) ?? 'N/A'} YTD=${e.ytdReturn?.toFixed(1) ?? 'N/A'}% 1d=${e.changePct?.toFixed(2) ?? 'N/A'}%`
     ).join(', ');
