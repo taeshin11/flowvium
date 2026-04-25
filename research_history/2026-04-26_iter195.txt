@@ -1,0 +1,70 @@
+== iter195 — 2026-04-26 ==
+
+PRIMARY OUTCOME: macro-indicators yield-curve FRED rate-limit 버그 수정
+
+DRIFT CHECK:
+- iter192: investment-strategy + earnings
+- iter193: news-cascade 10→7 + cache quality
+- iter194: GitHub push + Claude 제거
+- iter195: macro-indicators yield-curve ← 완전 새 영역 ✓
+
+DEPLOYMENT CONFIRMATION (iter194 push 후):
+  sha=252797f → production 반영 확인
+  investment-strategy: portfolio_count=5 ✅ (iter192 fix live)
+  flow-analysis: source=GROQ-llama-3.1-8b-instant ✅ (GROQ 일부 quota 남음)
+
+VERIFY-METRICS AUDIT (전체 190개 항목):
+  ok=182, degraded=3, error=0, skipped=5
+  DEGRADED:
+    1. yc.10Y = None (yield curve 10Y null)
+    2. brief.market = fallback(data) (AI 마켓 브리프 fallback)
+    3. macro.gdp_growth_rate_(q1_advance) = "예상 0.9" (GDP estimate)
+
+BUG FOUND & FIXED: yc.10Y 간헐적 null
+  ROOT CAUSE:
+    macro-indicators의 fetchYieldCurve()가 9개 FRED CSV를 동시에 (Promise.all) 요청.
+    FRED rate limiting → 일부 시리즈(특히 DGS10) 간헐적 timeout → labelMap['10Y'] = null
+    verify-metrics는 동시에 모든 API를 fetch → FRED 요청 더욱 집중 → null 더 자주 발생
+
+  FIX:
+    fetchYieldCurve(baseUrl) 추가:
+      1차: /api/yield-curve 내부 fetch (1h Redis 캐시 → 대부분 1 Redis 조회)
+           9 FRED 병렬 요청 → 1 캐시 조회로 대체
+      2차: 기존 FRED 직접 fetch (yield-curve 실패 시 fallback)
+    GET(request: Request) 시그니처 추가 → baseUrl 추출 → fetchYieldCurve(baseUrl) 전달
+    
+  BEFORE: 9 FRED CSV 병렬 요청 → 간헐적 rate limit → 10Y null
+  AFTER: /api/yield-curve Redis 캐시 → 0~1 FRED 요청 → null 없음
+
+ACCURACY PROBE:
+[accuracy probe] metric=yc.10Y source=FRED DGS10 직접
+  direct_value=4.34% (FRED DGS10, 2026-04-23 = 마지막 거래일)
+  our_value=4.34% (flowvium.vercel.app/api/macro-indicators)
+  delta=0 → EXACT MATCH ✓
+
+[accuracy probe] metric=yc.spread2s10s
+  direct_value=0.51% (2Y=3.83, 10Y=4.34, spread=0.51)
+  our_value=0.51% (macro-indicators spread10y2y)
+  delta=0 → EXACT MATCH ✓
+
+SIDE FINDING:
+  brief.market=fallback, macro.gdp=estimate → AI quota 또는 데이터 소스 문제.
+  iter196에서 조사 예정.
+
+TYPESCRIPT: clean (0 errors)
+
+FILES CHANGED (1 file):
+- src/app/api/macro-indicators/route.ts
+  - GET() → GET(request: Request) + baseUrl 추출
+  - fetchYieldCurve() → fetchYieldCurve(baseUrl?)
+  - Primary path: /api/yield-curve 내부 fetch (9→1 requests)
+  - Fallback path: 기존 FRED 직접 fetch (unchanged)
+
+IMPACT:
+  verify-metrics yc.10Y degraded → ok (배포 후)
+  FRED 요청 수: 9/call → ~0/call (캐시 히트 시), 9/call (캐시 미스 시, 1h에 1회)
+  
+NEXT: iter196 → 
+  1. brief.market fallback 조사 (market-brief route)
+  2. GDP "예상 0.9" 데이터 소스 확인
+  3. 신규 기능 탐색

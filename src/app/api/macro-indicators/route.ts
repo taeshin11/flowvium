@@ -209,9 +209,34 @@ async function fetchFredLatest(seriesId: string, apiKey: string): Promise<number
   }
 }
 
-async function fetchYieldCurve(): Promise<{ points: YieldPoint[]; inverted: boolean; spread10y2y: number | null }> {
+async function fetchYieldCurve(baseUrl?: string): Promise<{ points: YieldPoint[]; inverted: boolean; spread10y2y: number | null }> {
   const empty = { points: DISPLAY_ORDER.map(l => ({ label: l, value: null })), inverted: false, spread10y2y: null };
 
+  // Primary: reuse /api/yield-curve (1h Redis cache) — eliminates 9 parallel FRED requests
+  // that intermittently return null due to rate limiting.
+  if (baseUrl) {
+    try {
+      const res = await fetch(`${baseUrl}/api/yield-curve`, {
+        signal: AbortSignal.timeout(8000),
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json() as { today?: Array<{ label: string; value: number | null }>; spread2s10sCurrent?: number | null; inverted?: boolean };
+        const today = data.today ?? [];
+        if (today.length > 0) {
+          const labelMap = Object.fromEntries(today.map(p => [p.label, p.value]));
+          const points = DISPLAY_ORDER.map(l => ({ label: l, value: (labelMap[l] ?? null) as number | null }));
+          const spread10y2y = data.spread2s10sCurrent ?? null;
+          logger.info('macro-indicators', 'yield_curve_via_api', { points: points.filter(p => p.value != null).length });
+          return { points, inverted: data.inverted ?? (spread10y2y !== null && spread10y2y < 0), spread10y2y };
+        }
+      }
+    } catch (e) {
+      logger.warn('macro-indicators', 'yield_curve_api_fallback', { error: e });
+    }
+  }
+
+  // Fallback: direct FRED fetch (9 parallel requests — may intermittently rate-limit)
   try {
     const labels = DISPLAY_ORDER;
     const apiKey = process.env.FRED_API_KEY?.trim();
@@ -219,26 +244,19 @@ async function fetchYieldCurve(): Promise<{ points: YieldPoint[]; inverted: bool
     let labelMap: Record<string, number | null>;
 
     if (apiKey) {
-      // Prefer FRED JSON API (faster, sorted desc)
       const results = await Promise.all(labels.map(l => fetchFredLatest(FRED_YIELD_SERIES[l], apiKey)));
       labelMap = Object.fromEntries(labels.map((l, i) => [l, results[i]]));
     } else {
-      // Free fallback: FRED CSV (no API key required, slightly slower)
       const results = await Promise.all(labels.map(l => fetchLatest(FRED_YIELD_SERIES[l])));
       labelMap = Object.fromEntries(labels.map((l, i) => [l, results[i]?.value ?? null]));
       logger.info('macro-indicators', 'yield_curve_csv_fallback', { message: 'FRED_API_KEY not set, using free CSV endpoint' });
     }
 
-    const points: YieldPoint[] = DISPLAY_ORDER.map(l => ({
-      label: l,
-      value: labelMap[l] ?? null,
-    }));
-
+    const points: YieldPoint[] = DISPLAY_ORDER.map(l => ({ label: l, value: labelMap[l] ?? null }));
     const y2 = labelMap['2Y'] ?? null;
     const y10 = labelMap['10Y'] ?? null;
     let spread10y2y = y2 !== null && y10 !== null ? parseFloat((y10 - y2).toFixed(2)) : null;
 
-    // Fallback: T10Y2Y is FRED's pre-computed 10Y-2Y spread — use when individual fetches fail
     if (spread10y2y === null) {
       const t10y2y = await fetchLatest('T10Y2Y');
       if (t10y2y !== null) {
@@ -566,9 +584,12 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
 };
 
 // ── Main GET ──────────────────────────────────────────────────────────────────
-export async function GET() {
+export async function GET(request: Request) {
   const redis = createRedis();
   const key = cacheKey();
+  const reqHost = new URL(request.url).host;
+  const reqProto = new URL(request.url).protocol;
+  const baseUrl = reqHost.startsWith('localhost') ? 'http://localhost:3000' : `${reqProto}//${reqHost}`;
 
   // Module-level memory cache hit (no-Redis path)
   if (!redis && MACRO_MEMORY_CACHE && Date.now() < MACRO_MEMORY_CACHE.expiresAt) {
@@ -610,7 +631,7 @@ export async function GET() {
     fetchLatest('NAPM'),             // ISM Manufacturing PMI (NAPM series often unreachable; falls back to static)
     fetchLatest('DFEDTARU'),         // Fed funds upper bound
     fetchLatest('DFEDTARL'),         // Fed funds lower bound
-    fetchYieldCurve(),
+    fetchYieldCurve(baseUrl),
     fetchLatest('ICSA'),             // Initial Jobless Claims (weekly, in persons)
     fetchLatest('UMCSENT'),          // U of Michigan Consumer Sentiment (monthly)
     fetchLatest('BAMLC0A0CM'),       // ICE BofA IG Corporate OAS (daily, %)
