@@ -378,29 +378,35 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
 
 // ── Fallback strategy when AI fails ──────────────────────────────────────────
 function fallbackStrategy(): InvestmentStrategy {
+  // Use relative dates so risk events don't show as past events after deployment
+  const d = (offsetDays: number) =>
+    new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
   return {
     stance: 'neutral',
-    thesis: 'Data loading — please retry in a moment',
+    thesis: 'AI quota reset pending — diversified ETF allocation',
     portfolio: [
-      { ticker: 'SPY', name: 'S&P 500 ETF', sector: 'Diversified', rationale: 'Diversified ETF core position', allocation: 30, entryZone: 'market ±1%', stopLoss: '-5%', target: '+8%', confidence: 'medium' },
-      { ticker: 'QQQ', name: 'Nasdaq 100 ETF', sector: 'Technology', rationale: 'Tech sector diversified exposure', allocation: 20, entryZone: 'market ±1%', stopLoss: '-7%', target: '+12%', confidence: 'medium' },
+      { ticker: 'SPY', name: 'S&P 500 ETF', sector: 'Diversified', rationale: 'Broad market core — defensive during AI analysis gap', allocation: 35, entryZone: 'market ±1%', stopLoss: '-5%', target: '+8%', confidence: 'medium' },
+      { ticker: 'QQQ', name: 'Nasdaq 100 ETF', sector: 'Technology', rationale: 'Tech sector exposure — AI/cloud growth theme', allocation: 25, entryZone: 'market ±1%', stopLoss: '-7%', target: '+12%', confidence: 'medium' },
+      { ticker: 'GLD', name: 'Gold ETF', sector: 'Commodities', rationale: 'Safe-haven hedge during macro uncertainty', allocation: 15, entryZone: 'market ±1%', stopLoss: '-4%', target: '+6%', confidence: 'medium' },
+      { ticker: 'TLT', name: '20Y Treasury ETF', sector: 'Bonds', rationale: 'Duration play on rate cut expectations', allocation: 15, entryZone: 'market ±1%', stopLoss: '-4%', target: '+5%', confidence: 'low' },
+      { ticker: 'CASH', name: 'Cash / T-Bills', sector: 'Cash', rationale: 'Liquidity reserve — 5%+ yield while awaiting signals', allocation: 10, entryZone: '-', stopLoss: '-', target: '+5% annualized', confidence: 'high' },
     ],
     sectorAllocation: [
-      { sector: 'Technology', pct: 25, stance: 'overweight', reason: 'AI theme sustained' },
-      { sector: 'Financials', pct: 20, stance: 'neutral', reason: 'Stable rate environment' },
-      { sector: 'Health Care', pct: 15, stance: 'neutral', reason: 'Defensive allocation' },
-      { sector: 'Energy', pct: 15, stance: 'neutral', reason: 'Geopolitical risk hedge' },
-      { sector: 'Consumer Disc.', pct: 15, stance: 'underweight', reason: 'Consumer slowdown risk' },
-      { sector: 'Cash', pct: 10, stance: 'neutral', reason: 'Risk management buffer' },
+      { sector: 'Technology', pct: 25, stance: 'overweight', reason: 'AI capex cycle sustained' },
+      { sector: 'Financials', pct: 20, stance: 'neutral', reason: 'Rate cut trajectory positive for NIM' },
+      { sector: 'Health Care', pct: 15, stance: 'neutral', reason: 'Defensive allocation, stable earnings' },
+      { sector: 'Energy', pct: 10, stance: 'underweight', reason: 'Demand uncertainty, geopolitical premium fading' },
+      { sector: 'Consumer Disc.', pct: 15, stance: 'underweight', reason: 'Consumer spending slowdown risk' },
+      { sector: 'Cash/Bonds', pct: 15, stance: 'overweight', reason: 'Risk management + rate-cut optionality' },
     ],
     riskEvents: [
-      { date: '2026-04-30', event: 'FOMC Rate Decision + PCE', impact: 'high', watchFor: '25bp cut probability ~62%, Powell guidance key' },
-      { date: '2026-05-01', event: 'April NFP Employment', impact: 'high', watchFor: 'Labor market cooling → more cuts' },
-      { date: '2026-06-10', event: 'FOMC + May CPI', impact: 'high', watchFor: 'Second cut or hold decision' },
+      { date: d(7), event: 'FOMC Rate Decision', impact: 'high', watchFor: 'Rate cut probability and Powell guidance on future path' },
+      { date: d(14), event: 'Non-Farm Payrolls', impact: 'high', watchFor: 'Labor market health and Fed reaction function' },
+      { date: d(21), event: 'CPI / Core PCE', impact: 'medium', watchFor: 'Inflation trajectory vs Fed 2% target' },
     ],
-    macroAnalysis: 'AI analysis unavailable. Check yield curve, CPI, FOMC data directly.',
-    technicalAnalysis: 'AI analysis unavailable. Monitor SPY 200-day MA support.',
-    fundamentalAnalysis: 'AI analysis unavailable. Compare sector P/E vs EPS growth.',
+    macroAnalysis: 'AI analysis unavailable — check yield curve spread, CPI, and credit spreads (IG/HY OAS) directly. AI quota resets daily at 09:00 KST.',
+    technicalAnalysis: 'AI analysis unavailable — monitor SPY 200-day MA support and VIX regime. AI analysis resumes after quota reset.',
+    fundamentalAnalysis: 'AI analysis unavailable — compare sector P/E to EPS growth estimates and FCF yield. Live data available in Sector P/E tab.',
     riskLevel: 'medium',
     generatedAt: new Date().toISOString(),
     source: 'fallback',

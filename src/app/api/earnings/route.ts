@@ -1,16 +1,15 @@
 /**
  * /api/earnings
  *
- * Finnhub 실적 캘린더 (무료 티어 60 req/min).
- * 블룸버그 EE (Earnings Events) 함수 대응.
+ * Primary: Finnhub 실적 캘린더 (무료 티어 60 req/min, FINNHUB_KEY 필요).
+ * Fallback: Yahoo Finance v7 batch quote (키 불필요, major 50 tickers, 날짜만).
  *
  * 쿼리:
  *   ?from=YYYY-MM-DD  (기본: 오늘)
  *   ?to=YYYY-MM-DD    (기본: 오늘+14일)
  *
- * 환경변수: FINNHUB_KEY
- *
- * Redis cache: `flowvium:earnings:v2:{from}:{to}` — 2h
+ * Redis cache: `flowvium:earnings:v2:{from}:{to}` — 2h (Finnhub)
+ *              `flowvium:earnings:yahoo:v1:{from}:{to}` — 6h (Yahoo fallback)
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
@@ -114,6 +113,73 @@ const COMPANY_NAMES: Record<string, string> = {
   ZBRA: 'Zebra Tech', ZTS: 'Zoetis',
 };
 
+const YHDR = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
+// Same 50-ticker universe as market-movers
+const YAHOO_EARNINGS_TICKERS = [
+  'AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','BRK-B','AVGO','JPM',
+  'LLY','UNH','V','XOM','MA','JNJ','PG','COST','HD','ABBV',
+  'BAC','MRK','CRM','ORCL','CVX','AMD','NFLX','ADBE','NOW','KO',
+  'PEP','TMO','WMT','WFC','GS','BX','QCOM','ISRG','TXN','DHR',
+  'MS','RTX','AMGN','CAT','INTU','PLTR','PANW','AMAT','INTC','COIN',
+];
+
+function estimateQuarter(dateStr: string): number {
+  const month = new Date(dateStr).getUTCMonth() + 1; // 1-12
+  return Math.ceil(month / 3);
+}
+
+async function fetchYahooEarnings(from: string, to: string): Promise<EarningRow[]> {
+  const fromTs = Math.floor(new Date(from).getTime() / 1000);
+  const toTs = Math.floor(new Date(to + 'T23:59:59Z').getTime() / 1000);
+
+  // No &fields= filter: get full quote response which includes earningsTimestampStart/End
+  const res = await fetch(
+    `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${YAHOO_EARNINGS_TICKERS.join(',')}`,
+    { headers: YHDR, signal: AbortSignal.timeout(12000), cache: 'no-store' },
+  );
+  if (!res.ok) throw new Error(`Yahoo quote HTTP ${res.status}`);
+
+  const data = await res.json() as {
+    quoteResponse?: {
+      result?: Array<{
+        symbol?: string;
+        earningsTimestampStart?: number | null;
+        earningsTimestampEnd?: number | null;
+        earningsTimestamp?: number | null;
+      }>;
+    };
+  };
+
+  const quotes = data?.quoteResponse?.result ?? [];
+  const rows: EarningRow[] = [];
+
+  for (const q of quotes) {
+    if (!q.symbol) continue;
+    // Use earningsTimestampStart if available, fall back to earningsTimestamp
+    const ts = q.earningsTimestampStart ?? q.earningsTimestamp;
+    if (ts == null || ts < fromTs || ts > toTs) continue;
+
+    const dateStr = new Date(ts * 1000).toISOString().slice(0, 10);
+    rows.push({
+      date: dateStr,
+      symbol: q.symbol,
+      companyName: COMPANY_NAMES[q.symbol] ?? null,
+      epsActual: null,
+      epsEstimate: null,
+      revenueActual: null,
+      revenueEstimate: null,
+      hour: null,
+      quarter: estimateQuarter(dateStr),
+      year: new Date(ts * 1000).getUTCFullYear(),
+      epsSurprise: null,
+      revenueSurprise: null,
+      session: null,
+    });
+  }
+
+  return rows.sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function createRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -215,13 +281,38 @@ export async function GET(req: Request) {
   }
 
   if (!key) {
-    logger.warn('api.earnings', 'no_finnhub_key');
-    return NextResponse.json({
-      earnings: [],
-      from, to,
-      warning: 'FINNHUB_KEY 미설정 — 실적 캘린더를 표시하려면 Finnhub 무료 키 발급 필요 (60 req/min 무료)',
-      cached: false,
-    });
+    // Yahoo Finance fallback — no API key needed, major 50 tickers, dates only
+    const yahooCacheKey = `flowvium:earnings:yahoo:v1:${from}:${to}`;
+    if (redis) {
+      try {
+        const cached = await redis.get(yahooCacheKey);
+        if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+      } catch { /* non-fatal */ }
+    }
+    try {
+      logger.info('api.earnings', 'yahoo_fallback', { from, to });
+      const yahooRows = await fetchYahooEarnings(from, to);
+      const payload = {
+        earnings: yahooRows,
+        from, to,
+        count: yahooRows.length,
+        updatedAt: new Date().toISOString(),
+        source: 'Yahoo Finance (top 50 tickers, dates only — add FINNHUB_KEY for full calendar)',
+        cached: false,
+      };
+      if (redis) {
+        await loggedRedisSet(redis, 'api.earnings', yahooCacheKey, payload, { ex: 6 * 3600 });
+      }
+      return NextResponse.json(payload, { headers: CDN_HEADERS });
+    } catch (err) {
+      logger.error('api.earnings', 'yahoo_fallback_failed', { error: String(err) });
+      return NextResponse.json({
+        earnings: [],
+        from, to,
+        warning: 'FINNHUB_KEY 미설정 — Finnhub 무료 키 없이는 주요 50개 종목 날짜만 제공됩니다. 현재 Yahoo Finance 응답 오류.',
+        cached: false,
+      });
+    }
   }
 
   const t0 = Date.now();
