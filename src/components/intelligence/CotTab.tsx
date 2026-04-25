@@ -14,20 +14,25 @@ interface CotResponse {
   error?: string;
 }
 
-function SentimentBadge({ s }: { s: CotEntry['sentiment'] }) {
+function SentimentBadge({ s, bullish, bearish, neutral }: {
+  s: CotEntry['sentiment'];
+  bullish: string;
+  bearish: string;
+  neutral: string;
+}) {
   if (s === 'bullish') return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">
-      <TrendingUp className="w-3 h-3" /> 강세
+      <TrendingUp className="w-3 h-3" /> {bullish}
     </span>
   );
   if (s === 'bearish') return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400">
-      <TrendingDown className="w-3 h-3" /> 약세
+      <TrendingDown className="w-3 h-3" /> {bearish}
     </span>
   );
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-cf-text-secondary">
-      <Minus className="w-3 h-3" /> 중립
+      <Minus className="w-3 h-3" /> {neutral}
     </span>
   );
 }
@@ -128,7 +133,7 @@ export default function CotTab() {
                 <td className="px-4 py-3 hidden sm:table-cell">
                   <div className="flex justify-center"><NetBar pct={e.netPctOI} /></div>
                 </td>
-                <td className="px-4 py-3 text-center"><SentimentBadge s={e.sentiment} /></td>
+                <td className="px-4 py-3 text-center"><SentimentBadge s={e.sentiment} bullish={t('cotBullish')} bearish={t('cotBearish')} neutral={t('cotNeutral')} /></td>
               </tr>
             ))}
           </tbody>
