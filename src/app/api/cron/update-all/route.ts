@@ -83,7 +83,7 @@ export async function GET(req: Request) {
   // 타임아웃 설계: stage 1(30s) + stage 2(25s) < maxDuration(60s).
   // EDGAR 3종(insider/ownership/nport): 30s — 그 이상이면 EDGAR 장애이므로 조기 포기.
   // market-caps/heatmap: Yahoo Finance — 25s/20s 충분.
-  const [macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR, heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, sectorR] = await Promise.all([
+  const [macroR, yieldR, fedR, capitalR, commCurveR, volR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, cotR, heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, sectorR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/yield-curve', 'yield-curve', 30000),
     warm(base, '/api/fedwatch', 'fedwatch'),
@@ -144,8 +144,8 @@ export async function GET(req: Request) {
     .catch(e => logger.warn('cron.update-all', 'news_cascade_error', { error: e instanceof Error ? e.message : String(e) }));
 
   const results = [
-    macroR, yieldR, fedR, capitalR, commCurveR, fearGreedR, creditR, shortR, capsR,
-    insiderR, ownerR, optR, koreaR, nportR, blockR, volR, cotR,
+    macroR, yieldR, fedR, capitalR, commCurveR, volR, fearGreedR, creditR, shortR, capsR,
+    insiderR, ownerR, optR, koreaR, nportR, blockR, cotR,
     heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, sectorR, latestR,
     flowR,
   ];

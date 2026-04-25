@@ -232,6 +232,11 @@ async function checkCreditAlert(
   return results;
 }
 
+// Persistent inversion flag — survives across days (90d TTL).
+// Set when yc-inverted fires; cleared when yc-normalized fires.
+// Prevents yc-normalized from spamming when curve was never inverted.
+const YC_INVERSION_FLAG = 'flowvium:discord-alert:yc-inversion-active';
+
 // ── Yield Curve Alert (10Y-2Y spread) ────────────────────────────────────────
 async function checkYieldCurveAlert(
   redis: Redis, webhookUrl: string
@@ -258,17 +263,24 @@ async function checkYieldCurveAlert(
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
       }]);
-      if (sent) await markSent(redis, type);
+      if (sent) {
+        await markSent(redis, type);
+        // Mark that an inversion is active so normalization alert can fire later
+        await redis.set(YC_INVERSION_FLAG, '1', { ex: 90 * 24 * 60 * 60 });
+      }
       results.push({ type, sent, detail: `spread=${spread.toFixed(2)}` });
     } else {
       results.push({ type, sent: false, cooldown: true });
     }
   }
 
-  // Normalization alert: spread turned positive (≥ 0.05%)
+  // Normalization alert: spread turned positive (≥ 0.05%) — only fire if we
+  // previously recorded an inversion. Prevents daily false-positives when the
+  // curve was never inverted (yc-normalized would otherwise fire every day).
   if (!yc.inverted && spread >= 0.05) {
     const type = 'yc-normalized';
-    if (!(await isCooledDown(redis, type))) {
+    const wasInverted = await redis.get(YC_INVERSION_FLAG);
+    if (wasInverted && !(await isCooledDown(redis, type))) {
       const sent = await sendDiscord(webhookUrl, [{
         title: '📈 Yield Curve Normalization',
         description: `US 10Y-2Y Treasury spread has returned to **positive** territory.`,
@@ -281,8 +293,13 @@ async function checkYieldCurveAlert(
         footer: { text: 'FlowVium · flowvium.vercel.app' },
         timestamp: new Date().toISOString(),
       }]);
-      if (sent) await markSent(redis, type);
+      if (sent) {
+        await markSent(redis, type);
+        await redis.del(YC_INVERSION_FLAG);
+      }
       results.push({ type, sent, detail: `spread=${spread.toFixed(2)}` });
+    } else if (!wasInverted) {
+      results.push({ type: 'yc-normalized', sent: false, detail: 'no prior inversion recorded — skipped' });
     } else {
       results.push({ type, sent: false, cooldown: true });
     }
