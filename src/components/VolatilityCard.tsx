@@ -85,7 +85,7 @@ export default function VolatilityCard() {
 
       <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${regimeStyle.bg} ${regimeStyle.text} ${regimeStyle.border}`}>
         <span className="font-bold uppercase tracking-wide">{data.regime}</span>
-        <span className="opacity-80">{data.regimeKo}</span>
+        <span className="opacity-80">{data.regimeLabel}</span>
       </div>
 
       {termData.length > 0 && (

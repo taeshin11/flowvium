@@ -124,19 +124,19 @@ function fgItemFromEntry(e: FGEntry, flag: string): UpdateItem {
   const prev = e.prevScore;
   const change = prev != null ? score - prev : 0;
   const changeStr = change > 0 ? ` (+${Math.round(change)})` : change < 0 ? ` (${Math.round(change)})` : '';
-  const levelLabel = score >= 75 ? '극단적 탐욕' : score >= 55 ? '탐욕' : score >= 45 ? '중립' : score >= 25 ? '공포' : '극단적 공포';
+  const levelLabel = score >= 75 ? 'Extreme Greed' : score >= 55 ? 'Greed' : score >= 45 ? 'Neutral' : score >= 25 ? 'Fear' : 'Extreme Fear';
   const now = new Date().toISOString();
   const direction: UpdateItem['direction'] = score >= 55 ? 'up' : score <= 45 ? 'down' : 'neutral';
   const badgeColor = score >= 60 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
   return {
     id: `fg-${e.id}`,
     type: 'fear',
-    headline: `${flag} ${e.label} 공포탐욕 ${score}${changeStr} — ${levelLabel}`,
-    sub: e.source === 'cnn' ? 'CNN 공식 F&G Index' : 'RSI · SMA 모멘텀 · 변동성 블렌드',
+    headline: `${flag} ${e.label} F&G ${score}${changeStr} — ${levelLabel}`,
+    sub: e.source === 'cnn' ? 'CNN Official F&G Index' : 'RSI · SMA Momentum · Volatility blend',
     source: e.source === 'cnn' ? 'CNN Fear & Greed' : 'FlowVium composite',
     time: fmtTime(now),
     sortTime: now,
-    badge: '시장심리',
+    badge: 'Sentiment',
     badgeColor,
     link: '/intelligence',
     direction,
@@ -175,12 +175,12 @@ async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<U
       return {
         id: `flow-${a.ticker}-${i}`,
         type: 'flow' as const,
-        headline: `${a.flag ?? ''} ${a.label} ${pct} (1주)`,
-        sub: `${a.ret4w != null ? `4주 ${a.ret4w > 0 ? '+' : ''}${a.ret4w.toFixed(1)}%` : '자금흐름'}`,
+        headline: `${a.flag ?? ''} ${a.label} ${pct} (1W)`,
+        sub: `${a.ret4w != null ? `4W ${a.ret4w > 0 ? '+' : ''}${a.ret4w.toFixed(1)}%` : 'capital flow'}`,
         source: 'Capital Flows',
         time: fmtTime(updatedAt),
         sortTime: updatedAt,
-        badge: '자금흐름',
+        badge: 'Capital Flow',
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/intelligence',
         direction: isUp ? 'up' as const : 'down' as const,
@@ -189,14 +189,14 @@ async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<U
 }
 
 // ── 3. Macro Indicators ───────────────────────────────────────────────────────
-interface MacroInd { id: string; nameKo: string; actual: number | null; previous: number | null; forecast: number | null; unit: string; releaseDate: string; surprise: string; rateImpactKo: string; }
+interface MacroInd { id: string; name: string; nameKo: string; actual: number | null; previous: number | null; forecast: number | null; unit: string; releaseDate: string; surprise: string; rateImpact: string; rateImpactKo: string; }
 
 async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
   let indicators: MacroInd[] = [];
   if (redis) {
     try {
       const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-      const d = await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v12:${kstDate}`);
+      const d = await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v13:${kstDate}`);
       if (d?.indicators?.length) indicators = d.indicators;
     } catch { /* non-fatal */ }
   }
@@ -217,19 +217,19 @@ async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateI
     })
     .slice(0, 4)
     .map(ind => {
-      const surpriseEmoji = ind.surprise === 'beat' ? ' ↑예상상회' : ind.surprise === 'miss' ? ' ↓예상하회' : '';
+      const surpriseEmoji = ind.surprise === 'beat' ? ' ↑beat' : ind.surprise === 'miss' ? ' ↓miss' : '';
       const direction: UpdateItem['direction'] = ind.surprise === 'beat' ? 'up' : ind.surprise === 'miss' ? 'down' : 'neutral';
       const badgeColor = ind.surprise === 'beat' ? '#10b981' : ind.surprise === 'miss' ? '#ef4444' : '#6366f1';
-      const changeStr = ind.previous != null ? ` (전월 ${ind.previous}${ind.unit})` : '';
+      const changeStr = ind.previous != null ? ` (prev ${ind.previous}${ind.unit})` : '';
       return {
         id: `macro-${ind.id}`,
         type: 'macro' as const,
-        headline: `${ind.nameKo} ${ind.actual}${ind.unit}${surpriseEmoji}`,
-        sub: `${ind.rateImpactKo}${changeStr}`,
+        headline: `${ind.name ?? ind.nameKo} ${ind.actual}${ind.unit}${surpriseEmoji}`,
+        sub: `${ind.rateImpact ?? ind.rateImpactKo}${changeStr}`,
         source: 'FRED · US Bureau',
         time: fmtTime(ind.releaseDate),
         sortTime: ind.releaseDate,
-        badge: '거시경제',
+        badge: 'Macro',
         badgeColor,
         link: '/intelligence',
         direction,
@@ -261,8 +261,8 @@ async function getFedWatchItem(redis: Redis | null, base: string): Promise<Updat
   return {
     id: 'fedwatch',
     type: 'fed',
-    headline: `FOMC ${next.label} — 동결 ${holdProb}% / 인하 ${cutProb}%`,
-    sub: `현재 기준금리 ${data.currentRateMid ?? '-'}%`,
+    headline: `FOMC ${next.label} — Hold ${holdProb}% / Cut ${cutProb}%`,
+    sub: `Current rate ${data.currentRateMid ?? '-'}%`,
     source: 'CME FedWatch',
     time: fmtTime(updatedAt),
     sortTime: updatedAt,
@@ -307,11 +307,11 @@ function newsItemFrom(article: { title: string; pubDate: string; source: string;
     id: `news-${id}`,
     type: 'news',
     headline: (article.title ?? '').slice(0, 65),
-    sub: cascadeStr ? `연쇄반응: ${cascadeStr}` : (article.source ?? ''),
+    sub: cascadeStr ? `Cascade: ${cascadeStr}` : (article.source ?? ''),
     source: article.source || 'Reuters/CNBC',
     time: fmtTime(article.pubDate),
     sortTime: article.pubDate,
-    badge: article.sentiment === 'bullish' ? '호재' : article.sentiment === 'bearish' ? '악재' : '뉴스',
+    badge: article.sentiment === 'bullish' ? 'Bullish' : article.sentiment === 'bearish' ? 'Bearish' : 'News',
     badgeColor: article.sentiment === 'bullish' ? '#10b981' : article.sentiment === 'bearish' ? '#ef4444' : '#6366f1',
     link: '/cascade',
     direction: article.sentiment === 'bullish' ? 'up' : article.sentiment === 'bearish' ? 'down' : 'neutral',
@@ -332,12 +332,12 @@ function getNewsGapItems(): UpdateItem[] {
       items.push({
         id: `ownership-${entry.ticker}-${o.institution}`,
         type: 'newsgap',
-        headline: `${o.institution} — ${entry.companyName} 지분 ${changeStr}`,
-        sub: `${o.pctOfShares}% 보유 ($${o.valueM}M) · ${o.quarter}`,
+        headline: `${o.institution} — ${entry.companyName} stake ${changeStr}`,
+        sub: `${o.pctOfShares}% held ($${o.valueM}M) · ${o.quarter}`,
         source: 'SEC EDGAR 13F',
         time: o.quarter,
         sortTime,
-        badge: '지분변화',
+        badge: 'Holdings',
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/news-gap',
         direction: isUp ? 'up' : 'down',
@@ -353,7 +353,7 @@ function getNewsGapItems(): UpdateItem[] {
         source: article.source ?? 'Alpha Vantage',
         time: fmtTime(article.date),
         sortTime: article.date,
-        badge: '뉴스갭',
+        badge: 'News Gap',
         badgeColor: '#8b5cf6',
         link: '/news-gap',
         direction: 'neutral',
@@ -369,9 +369,9 @@ function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
     .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
     .slice(0, 30)
     .map(s => {
-      const actionLabel = s.action === 'accumulating' ? '매집'
-        : s.action === 'new_position' ? '신규 편입'
-        : s.action === 'reducing' ? '비중 축소' : '전량 청산';
+      const actionLabel = s.action === 'accumulating' ? 'Accumulating'
+        : s.action === 'new_position' ? 'New Position'
+        : s.action === 'reducing' ? 'Reducing' : 'Full Exit';
       const isUp = s.action === 'accumulating' || s.action === 'new_position';
       return {
         id: `signal-${s.id}`,
@@ -381,7 +381,7 @@ function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
         source: 'SEC EDGAR 13F',
         time: s.filingDate,
         sortTime: s.filingDate,
-        badge: '기관',
+        badge: 'Institutional',
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/signals',
         direction: isUp ? 'up' as const : 'down' as const,

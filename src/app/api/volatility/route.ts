@@ -38,7 +38,7 @@ export interface VolatilityData {
   vvix: number | null;   // Vol of VIX
   // Regime
   regime: 'contango' | 'backwardation' | 'humped' | 'unknown';
-  regimeKo: string;
+  regimeLabel: string;
   // 90-day VIX history
   history: VolPoint[];
   dataDate: string | null;
@@ -88,11 +88,11 @@ function detectRegime(vxst: number | null, vix: number | null, vxmt: number | nu
   return 'humped';                                         // non-monotonic
 }
 
-const REGIME_KO: Record<VolatilityData['regime'], string> = {
-  contango: '콘탱고 (정상 — 장기 불확실성 > 단기)',
-  backwardation: '백워데이션 (스트레스 — 즉각 충격)',
-  humped: '험프형 (혼조 — 중기 리스크 집중)',
-  unknown: '데이터 없음',
+const REGIME_LABEL: Record<VolatilityData['regime'], string> = {
+  contango: 'Contango (normal — long-term uncertainty > short-term)',
+  backwardation: 'Backwardation (stress — immediate shock)',
+  humped: 'Humped (mixed — mid-term risk concentration)',
+  unknown: 'No data',
 };
 
 export async function GET() {
@@ -125,7 +125,7 @@ export async function GET() {
   const data: VolatilityData = {
     vxst, vix, vxmt, vvix,
     regime,
-    regimeKo: REGIME_KO[regime],
+    regimeLabel: REGIME_LABEL[regime],
     history: history.slice(-90),
     dataDate: latestDate,
     updatedAt: new Date().toISOString(),

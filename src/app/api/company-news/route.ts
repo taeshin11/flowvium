@@ -25,7 +25,7 @@ function createRedis(): Redis | null {
 }
 
 function redisCacheKey(ticker: string): string {
-  return `flowvium:company-news:v2:${ticker}`;
+  return `flowvium:company-news:v3:${ticker}`;
 }
 
 // Yahoo Finance v1 search API — returns JSON news items, no auth required
@@ -77,13 +77,13 @@ export async function GET(req: NextRequest) {
       `${i + 1}. [${n.source}] ${n.title}`
     ).join('\n');
 
-    const prompt = `You are a concise financial analyst. Summarize the following recent news about ${ticker} in 2-3 sentences. Focus on: what's moving the stock, key risks or catalysts, and market sentiment. Be specific and factual. Respond in Korean.\n\nNews:\n${newsContext}`;
+    const prompt = `You are a concise financial analyst. Summarize the following recent news about ${ticker} in 2-3 sentences. Focus on: what's moving the stock, key risks or catalysts, and market sentiment. Be specific and factual. Respond in English.\n\nNews:\n${newsContext}`;
 
     let summary = '';
     try {
       const result = await callAI(prompt, { maxTokens: 200, temperature: 0.3, tag: 'company-news' });
       summary = result.text ?? '';
-      if (/[一-鿿]/.test(summary) && !/[가-힣]/.test(summary)) summary = '';
+      if (/[一-鿿぀-ゟ゠-ヿ가-힣]/.test(summary)) summary = '';
     } catch {
       summary = '';
     }

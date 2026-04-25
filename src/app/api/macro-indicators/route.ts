@@ -35,7 +35,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v12:${kstDate()}`;
+  return `flowvium:macro-indicators:v13:${kstDate()}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -256,22 +256,22 @@ function classify(actual: number | null, forecast: number, higherIsBetter: boole
 }
 
 function rateImpact(id: string, surprise: string): { impact: 'hawkish' | 'dovish' | 'neutral'; ko: string } {
-  if (surprise === 'inline' || surprise === 'pending') return { impact: 'neutral', ko: '중립' };
+  if (surprise === 'inline' || surprise === 'pending') return { impact: 'neutral', ko: 'neutral' };
   // 'beat' = actual performed better than forecast (lower-is-better indicators: lower actual = beat)
   // Inflation misses (CPI/PPI/PCE higher than expected) = hawkish; activity beats = hawkish
   const hawkishOnBeat = ['nfp', 'retail', 'iclaims', 'umcsent', 'gdp', 'ism', 'unrate'];
   const hawkishOnMiss = ['cpi', 'pce', 'ppi'];
   if (hawkishOnBeat.includes(id)) {
     return surprise === 'beat'
-      ? { impact: 'hawkish', ko: '매파적 (긴축 압력)' }
-      : { impact: 'dovish', ko: '비둘기파 (인하 기대↑)' };
+      ? { impact: 'hawkish', ko: 'hawkish (tightening pressure)' }
+      : { impact: 'dovish', ko: 'dovish (rate cut expectations↑)' };
   }
   if (hawkishOnMiss.includes(id)) {
     return surprise === 'miss'
-      ? { impact: 'hawkish', ko: '매파적 (물가 상회 → 긴축 장기화)' }
-      : { impact: 'dovish', ko: '비둘기파 (물가 안정 → 인하 기대↑)' };
+      ? { impact: 'hawkish', ko: 'hawkish (inflation above target → prolonged tightening)' }
+      : { impact: 'dovish', ko: 'dovish (inflation cooling → rate cut expectations↑)' };
   }
-  return { impact: 'neutral', ko: '중립' };
+  return { impact: 'neutral', ko: 'neutral' };
 }
 
 // ── Cascade logic ─────────────────────────────────────────────────────────────
@@ -280,163 +280,163 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
   const cascades: Record<string, { beat: CascadeStep[]; miss: CascadeStep[] }> = {
     cpi: {
       beat: [
-        { asset: '미 국채 금리', direction: 'up', reason: 'Fed 긴축 기대↑ → 채권 매도', magnitude: 'strong' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '금리 상승 → 달러 강세', magnitude: 'strong' },
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '할인율 상승 → 밸류에이션 압박', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'down', reason: '실질금리 상승 → 금 비용 증가', magnitude: 'moderate' },
-        { asset: 'EM 주식/통화', direction: 'down', reason: '달러 강세 → 자본 이탈', magnitude: 'strong' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'hawkish Fed expectations↑ → bond sell-off', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'rising rates → USD strength', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'higher discount rate → valuation pressure', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'down', reason: 'real rates↑ → gold carry cost rises', magnitude: 'moderate' },
+        { asset: 'EM Stocks/FX', direction: 'down', reason: 'USD strength → capital outflows', magnitude: 'strong' },
       ],
       miss: [
-        { asset: '미 국채 금리', direction: 'down', reason: 'Fed 완화 기대↑ → 채권 매수', magnitude: 'strong' },
-        { asset: '달러 (DXY)', direction: 'down', reason: '금리 하락 기대 → 달러 약세', magnitude: 'moderate' },
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '할인율 하락 → 밸류에이션 개선', magnitude: 'strong' },
-        { asset: '금 (GLD)', direction: 'up', reason: '실질금리 하락 → 금 매력↑', magnitude: 'strong' },
-        { asset: 'EM 주식/통화', direction: 'up', reason: '달러 약세 → 자본 유입', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'dovish Fed expectations↑ → bond rally', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'down', reason: 'rate cut expectations → USD weakness', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'lower discount rate → valuation improvement', magnitude: 'strong' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'real rates↓ → gold attractiveness↑', magnitude: 'strong' },
+        { asset: 'EM Stocks/FX', direction: 'up', reason: 'USD weakness → capital inflows', magnitude: 'moderate' },
       ],
     },
     pce: {
       beat: [
-        { asset: '미 국채 금리', direction: 'up', reason: 'Fed 선호 지표 상회 → 긴축 강화', magnitude: 'strong' },
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '금리 인하 시기 후퇴', magnitude: 'strong' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '매파적 Fed 입장 강화', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'Fed preferred gauge above est. → tightening reinforced', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'rate cut timeline pushed back', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'hawkish Fed stance reinforced', magnitude: 'moderate' },
       ],
       miss: [
-        { asset: '미 국채 금리', direction: 'down', reason: 'Fed 목표 근접 → 인하 기대↑', magnitude: 'strong' },
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '금리 인하 시기 앞당김', magnitude: 'strong' },
-        { asset: '금 (GLD)', direction: 'up', reason: '실질금리 하락', magnitude: 'moderate' },
-        { asset: 'EM 주식', direction: 'up', reason: '달러 약세 전망', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'approaching Fed 2% target → cut expectations↑', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'rate cut timeline pulled forward', magnitude: 'strong' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'real rates falling', magnitude: 'moderate' },
+        { asset: 'EM Stocks', direction: 'up', reason: 'USD weakness outlook', magnitude: 'moderate' },
       ],
     },
     nfp: {
       beat: [
-        { asset: '미 국채 금리', direction: 'up', reason: '고용 강세 → Fed 긴축 여력', magnitude: 'strong' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '경제 강세 → 달러 수요', magnitude: 'moderate' },
-        { asset: '미국 주식 (S&P500)', direction: 'mixed', reason: '성장 호조 vs 금리 상승 충돌', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'strong jobs → Fed tightening room', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'economic strength → USD demand', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'mixed', reason: 'strong growth vs rising rates conflict', magnitude: 'weak' },
       ],
       miss: [
-        { asset: '미 국채 금리', direction: 'down', reason: '경기 우려 → 안전자산 매수', magnitude: 'strong' },
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '경기 침체 우려', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '경기 불확실성 → 안전자산', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'recession fear → safe-haven buying', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'recession risk', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'uncertainty → safe-haven demand', magnitude: 'moderate' },
       ],
     },
     gdp: {
       beat: [
-        { asset: '미 국채 금리', direction: 'up', reason: '성장 호조 → 긴축 여지', magnitude: 'moderate' },
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '기업 실적 기대 강화', magnitude: 'moderate' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '경제 강세 → 자본 유입', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'strong growth → tightening room', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'corporate earnings expectations strengthened', magnitude: 'moderate' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'economic strength → capital inflows', magnitude: 'moderate' },
       ],
       miss: [
-        { asset: '미 국채 금리', direction: 'down', reason: '침체 우려 → 인하 기대', magnitude: 'moderate' },
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '기업 실적 하향 우려', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '경기 불안 → 안전자산', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'recession fear → rate cut expectations', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'corporate earnings downgrade risk', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'economic uncertainty → safe-haven demand', magnitude: 'moderate' },
       ],
     },
     ppi: {
       beat: [
-        { asset: '미 국채 금리', direction: 'up', reason: 'PPI 상승 → CPI 선행 → 긴축 예고', magnitude: 'moderate' },
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '기업 원가 부담 + 긴축 우려', magnitude: 'moderate' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '물가 압력 → 금리 유지', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'PPI rise → leads CPI → tightening signal', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'cost pressure + tightening concerns', magnitude: 'moderate' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'inflation pressure → rates held', magnitude: 'weak' },
       ],
       miss: [
-        { asset: '미 국채 금리', direction: 'down', reason: 'PPI 하락 → CPI 안정 기대', magnitude: 'moderate' },
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '원가 부담 완화 → 마진 개선', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '인하 기대 → 실질금리 하락', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'PPI falling → CPI stabilization expected', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'cost relief → margin improvement', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'cut expectations → real rates falling', magnitude: 'weak' },
       ],
     },
     retail: {
       beat: [
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '소비 강세 → 리테일·소비재 수혜', magnitude: 'moderate' },
-        { asset: '미 국채 금리', direction: 'up', reason: '소비 호조 → 인플레 우려', magnitude: 'weak' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'strong consumer → retail/consumer discretionary benefit', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'consumer strength → inflation concerns', magnitude: 'weak' },
       ],
       miss: [
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '소비 둔화 → 성장 우려', magnitude: 'moderate' },
-        { asset: '미 국채 금리', direction: 'down', reason: '경기 둔화 → 인하 기대', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '안전자산 수요', magnitude: 'weak' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'consumer slowdown → growth concern', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'economic slowdown → rate cut expectations', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'safe-haven demand', magnitude: 'weak' },
       ],
     },
     ism: {
       beat: [
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '제조업 확장 → 경기 강세', magnitude: 'moderate' },
-        { asset: '원자재', direction: 'up', reason: '산업 수요 확대', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'manufacturing expansion → economic strength', magnitude: 'moderate' },
+        { asset: 'Commodities', direction: 'up', reason: 'industrial demand expanding', magnitude: 'moderate' },
       ],
       miss: [
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '제조업 수축 신호', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '경기 우려 → 안전자산', magnitude: 'weak' },
-        { asset: '미 국채 금리', direction: 'down', reason: '경기 약화 → 완화 기대', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'manufacturing contraction signal', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'economic concern → safe-haven demand', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'weakening economy → easing expectations', magnitude: 'moderate' },
       ],
     },
     fomc: {
       beat: [
-        { asset: '미 국채 금리', direction: 'up', reason: '예상보다 매파 → 즉각 금리 반영', magnitude: 'strong' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '금리 차이 확대', magnitude: 'strong' },
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '유동성 축소 우려', magnitude: 'strong' },
-        { asset: '금 (GLD)', direction: 'down', reason: '실질금리 급등', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'more hawkish than expected → immediate rate repricing', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'interest rate differential widening', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'liquidity reduction concerns', magnitude: 'strong' },
+        { asset: 'Gold (GLD)', direction: 'down', reason: 'real rates surging', magnitude: 'moderate' },
       ],
       miss: [
-        { asset: '미 국채 금리', direction: 'down', reason: '완화적 발언 → 채권 랠리', magnitude: 'strong' },
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '유동성 기대 + 멀티플 확장', magnitude: 'strong' },
-        { asset: '금 (GLD)', direction: 'up', reason: '실질금리 하락', magnitude: 'strong' },
-        { asset: 'EM 주식', direction: 'up', reason: '달러 약세 + 자본 유입', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'dovish language → bond rally', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'liquidity expectations + multiple expansion', magnitude: 'strong' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'real rates falling', magnitude: 'strong' },
+        { asset: 'EM Stocks', direction: 'up', reason: 'USD weakness + capital inflows', magnitude: 'moderate' },
       ],
     },
     unrate: {
       beat: [ // lower unemployment = beat for employment, hawkish
-        { asset: '미 국채 금리', direction: 'up', reason: '고용 강세 → 임금 인플레 우려', magnitude: 'moderate' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '경제 활력 → 달러 수요', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'strong jobs → wage inflation concern', magnitude: 'moderate' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'economic vitality → USD demand', magnitude: 'weak' },
       ],
       miss: [
-        { asset: '미 국채 금리', direction: 'down', reason: '고용 약화 → 인하 기대', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '경기 우려 → 안전자산', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'weakening jobs → rate cut expectations', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'economic concern → safe-haven demand', magnitude: 'weak' },
       ],
     },
     umcsent: {
       beat: [ // higher sentiment than expected = consumer spending resilient
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '소비 심리 강세 → 소매·서비스 기업 수혜', magnitude: 'moderate' },
-        { asset: '미 국채 금리', direction: 'up', reason: '소비 호조 → 인플레 우려 유지', magnitude: 'weak' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '경기 강세 → 달러 수요', magnitude: 'weak' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'strong consumer sentiment → retail/services benefit', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'consumer strength → inflation concern sustained', magnitude: 'weak' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'economic strength → USD demand', magnitude: 'weak' },
       ],
       miss: [ // lower sentiment = consumers pulling back = dovish
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '소비 지출 감소 예고 → 리테일·서비스 타격', magnitude: 'moderate' },
-        { asset: '미 국채 금리', direction: 'down', reason: '경기 둔화 우려 → 인하 기대', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '경기 불안 → 안전자산 수요', magnitude: 'moderate' },
-        { asset: '소비재 섹터', direction: 'down', reason: '소비자 지갑 닫기 신호', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'consumer spending decline forecast → retail/services hurt', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'economic slowdown fear → rate cut expectations', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'economic uncertainty → safe-haven demand', magnitude: 'moderate' },
+        { asset: 'Consumer Discretionary', direction: 'down', reason: 'wallet-closing signal', magnitude: 'strong' },
       ],
     },
     iclaims: {
       beat: [ // lower claims than expected = labor market resilient = hawkish
-        { asset: '미 국채 금리', direction: 'up', reason: '해고 감소 → 노동시장 견조 → Fed 긴축 여력', magnitude: 'moderate' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '경제 강세 신호', magnitude: 'weak' },
-        { asset: '미국 주식 (S&P500)', direction: 'mixed', reason: '경기 호조 vs 금리 상승 상쇄', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'fewer layoffs → labor resilience → Fed tightening room', magnitude: 'moderate' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'economic strength signal', magnitude: 'weak' },
+        { asset: 'US Equities (S&P500)', direction: 'mixed', reason: 'strong economy vs rising rates offset', magnitude: 'weak' },
       ],
       miss: [ // higher claims than expected = layoffs rising = dovish
-        { asset: '미 국채 금리', direction: 'down', reason: '해고 증가 → 경기 둔화 → 인하 기대↑', magnitude: 'moderate' },
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '고용 악화 → 소비 위축 우려', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '경기 불안 → 안전자산', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'layoffs rising → economic slowdown → cut expectations↑', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'deteriorating jobs → consumer spending concern', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'economic uncertainty → safe-haven demand', magnitude: 'weak' },
       ],
     },
     ig_spread: {
       beat: [ // spread narrows (tighter) = credit calmer = risk-on
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '신용 리스크 완화 → 기업 조달 비용 ↓', magnitude: 'moderate' },
-        { asset: '투자등급 회사채', direction: 'up', reason: '스프레드 축소 → IG 채권 가격 상승', magnitude: 'moderate' },
-        { asset: '달러 (DXY)', direction: 'down', reason: '위험선호 복귀 → 안전자산 달러 매도', magnitude: 'weak' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'credit risk easing → corporate financing cost ↓', magnitude: 'moderate' },
+        { asset: 'IG Corporate Bonds', direction: 'up', reason: 'spread tightening → IG bond price rise', magnitude: 'moderate' },
+        { asset: 'USD (DXY)', direction: 'down', reason: 'risk-on return → safe-haven USD selling', magnitude: 'weak' },
       ],
       miss: [ // spread widens = credit stress = risk-off
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: '신용 위기 선행 신호 → 기업 차환 리스크', magnitude: 'strong' },
-        { asset: '미 국채 (TLT)', direction: 'up', reason: '안전자산 수요 → 금리 하락', magnitude: 'moderate' },
-        { asset: '금 (GLD)', direction: 'up', reason: '신용 스트레스 → 안전자산 헤지', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'credit stress leading indicator → corporate refinancing risk', magnitude: 'strong' },
+        { asset: 'US Treasuries (TLT)', direction: 'up', reason: 'safe-haven demand → yields fall', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'credit stress → safe-haven hedge', magnitude: 'moderate' },
       ],
     },
     hy_spread: {
       beat: [ // HY spread narrows = junk rally = max risk-on
-        { asset: '미국 주식 (S&P500)', direction: 'up', reason: '고수익채 랠리 = 극단적 위험선호 신호', magnitude: 'strong' },
-        { asset: '고수익 회사채 (HYG)', direction: 'up', reason: '스프레드 축소 → 하이일드 채권 상승', magnitude: 'strong' },
-        { asset: '원자재', direction: 'up', reason: '경기 낙관론 확산', magnitude: 'weak' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'HY rally = extreme risk-on signal', magnitude: 'strong' },
+        { asset: 'HY Corporate Bonds (HYG)', direction: 'up', reason: 'spread tightening → high yield bond price rise', magnitude: 'strong' },
+        { asset: 'Commodities', direction: 'up', reason: 'economic optimism spreading', magnitude: 'weak' },
       ],
       miss: [ // HY spread widens = credit crisis signal = extreme risk-off
-        { asset: '미국 주식 (S&P500)', direction: 'down', reason: 'HY 스프레드 500bp 접근 = 경기침체 경보', magnitude: 'strong' },
-        { asset: '미 국채 (TLT)', direction: 'up', reason: '극단적 안전자산 도피', magnitude: 'strong' },
-        { asset: '금 (GLD)', direction: 'up', reason: '신용 패닉 → 금 수요 급증', magnitude: 'strong' },
-        { asset: '달러 (DXY)', direction: 'up', reason: '리스크오프 달러 강세', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'HY spread approaching 500bp = recession warning', magnitude: 'strong' },
+        { asset: 'US Treasuries (TLT)', direction: 'up', reason: 'extreme safe-haven flight', magnitude: 'strong' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'credit panic → gold demand surging', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'risk-off USD strength', magnitude: 'moderate' },
       ],
     },
   };
@@ -452,92 +452,92 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
     id: 'cpi', name: 'CPI (Consumer Price Index)', nameKo: '소비자 물가지수',
     category: 'inflation', actual: 3.3, forecast: 2.5, previous: 2.4, unit: '%YoY',
     releaseDate: '2026-04-10', nextRelease: '2026-05-13', surprise: 'miss',
-    rateImpact: 'hawkish', rateImpactKo: '매파적 (물가 가속 → 긴축 장기화)',
-    summary: '3월 CPI 3.3%YoY — 예상(2.5%) 크게 상회. 관세 충격으로 물가 재가속.',
+    rateImpact: 'hawkish', rateImpactKo: 'hawkish (inflation accelerating → prolonged tightening)',
+    summary: 'Mar CPI 3.3%YoY — above est. 2.5%. Tariff shock re-accelerating inflation.',
   },
   pce: {
     id: 'pce', name: 'PCE Price Index (Core)', nameKo: '근원 개인소비지출 물가',
     category: 'inflation', actual: 2.6, forecast: 2.6, previous: 2.7, unit: '%YoY',
     releaseDate: '2026-03-28', nextRelease: '2026-04-30', surprise: 'inline',
-    rateImpact: 'neutral', rateImpactKo: '중립',
-    summary: 'Fed 선호 인플레 지표 예상치 부합. 2.6%로 목표 2%에 아직 거리 있음.',
+    rateImpact: 'neutral', rateImpactKo: 'neutral',
+    summary: 'Fed preferred inflation gauge in line. 2.6%, still above 2% target.',
   },
   nfp: {
     id: 'nfp', name: 'Non-Farm Payrolls', nameKo: '비농업 고용지수',
-    category: 'employment', actual: 228, forecast: 140, previous: 117, unit: '천명',
+    category: 'employment', actual: 228, forecast: 140, previous: 117, unit: 'K',
     releaseDate: '2026-04-04', nextRelease: '2026-05-02', surprise: 'beat',
-    rateImpact: 'hawkish', rateImpactKo: '매파적 (긴축 여력 유지)',
-    summary: '3월 NFP 228K로 예상(140K) 대폭 상회. 노동시장 강세로 6월 인하 전망 약화.',
+    rateImpact: 'hawkish', rateImpactKo: 'hawkish (labor strength → tightening room)',
+    summary: 'Mar NFP 228K beat est. 140K. Strong labor market delays Jun rate cut.',
   },
   fomc: {
     id: 'fomc', name: 'FOMC Rate Decision', nameKo: 'FOMC 금리 결정',
     category: 'monetary', actual: 3.75, forecast: 3.625, previous: 3.875, unit: '%',
     releaseDate: '2026-03-19', nextRelease: '2026-05-07', surprise: 'inline',
-    rateImpact: 'neutral', rateImpactKo: '동결 (데이터 의존)',
-    summary: '3월 FOMC 동결. 현재 기준금리 3.5~3.75% (중간값 3.625%). 다음 회의 2026-05-07.',
+    rateImpact: 'neutral', rateImpactKo: 'neutral (data-dependent hold)',
+    summary: 'Mar FOMC hold. Current rate 3.5-3.75% (mid 3.625%). Next meeting 2026-05-07.',
   },
   gdp: {
     id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',
     category: 'growth', actual: 0.5, forecast: 0.9, previous: 2.4, unit: '%QoQ SAAR',
     releaseDate: '2026-04-24', nextRelease: '2026-05-29', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: '경기 둔화 → 인하 기대↑',
-    summary: 'Q1 2026 GDP 속보치 0.5%. 관세 충격·소비 위축으로 성장 급감.',
+    rateImpact: 'dovish', rateImpactKo: 'dovish (growth slowdown → rate cut expectations↑)',
+    summary: 'Q1 2026 GDP advance 0.5%. Tariff shock + consumer slowdown cut growth.',
   },
   ism: {
     id: 'ism', name: 'ISM Manufacturing PMI', nameKo: 'ISM 제조업 PMI',
-    category: 'growth', actual: 49.0, forecast: 49.5, previous: 50.3, unit: '지수',
+    category: 'growth', actual: 49.0, forecast: 49.5, previous: 50.3, unit: 'index',
     releaseDate: '2026-04-01', nextRelease: '2026-05-01', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: '경기 둔화 → 인하 기대',
-    summary: '4월 ISM 제조 49.0으로 50 기준선 하회. 관세 불확실성 영향.',
+    rateImpact: 'dovish', rateImpactKo: 'dovish (manufacturing contraction → rate cut expectations)',
+    summary: 'Apr ISM Mfg 49.0, below 50 threshold. Tariff uncertainty weighing.',
   },
   retail: {
     id: 'retail', name: 'Retail Sales', nameKo: '소매 판매',
     category: 'growth', actual: -1.1, forecast: -1.3, previous: 0.7, unit: '%MoM',
     releaseDate: '2026-04-16', nextRelease: '2026-05-15', surprise: 'beat',
-    rateImpact: 'neutral', rateImpactKo: '예상보다 양호',
-    summary: '3월 소매판매 -1.1%로 예상(-1.3%) 소폭 상회. 소비 둔화 흐름.',
+    rateImpact: 'neutral', rateImpactKo: 'neutral (better than expected)',
+    summary: 'Mar Retail Sales -1.1% vs est. -1.3%. Consumer spending slowing.',
   },
   ppi: {
     id: 'ppi', name: 'PPI (Producer Price Index)', nameKo: '생산자 물가지수 (최종수요)',
     category: 'inflation', actual: 4.1, forecast: 3.3, previous: 1.6, unit: '%YoY',
     releaseDate: '2026-04-11', nextRelease: '2026-05-14', surprise: 'miss',
-    rateImpact: 'hawkish', rateImpactKo: '매파적 (원가 압력 확대)',
-    summary: '3월 PPI(최종수요) 4.1%YoY — 예상(3.3%) 상회. 관세 원가 전가 본격화.',
+    rateImpact: 'hawkish', rateImpactKo: 'hawkish (cost pressure widening)',
+    summary: 'Mar PPI (final demand) 4.1%YoY — above est. 3.3%. Tariff cost pass-through accelerating.',
   },
   unrate: {
     id: 'unrate', name: 'Unemployment Rate', nameKo: '실업률',
     category: 'employment', actual: 4.2, forecast: 4.1, previous: 4.1, unit: '%',
     releaseDate: '2026-04-04', nextRelease: '2026-05-02', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: '비둘기파',
-    summary: '실업률 4.2% — 고용시장 소폭 냉각 신호.',
+    rateImpact: 'dovish', rateImpactKo: 'dovish (labor market cooling)',
+    summary: 'Unemployment 4.2% — slight labor market cooling signal.',
   },
   iclaims: {
     id: 'iclaims', name: 'Initial Jobless Claims (Weekly)', nameKo: '신규 실업수당 청구 (주간)',
-    category: 'employment', actual: 222, forecast: 224, previous: 224, unit: '천명/주',
+    category: 'employment', actual: 222, forecast: 224, previous: 224, unit: 'K/wk',
     releaseDate: '2026-04-24', nextRelease: '2026-05-01', surprise: 'beat',
-    rateImpact: 'hawkish', rateImpactKo: '노동시장 견조 → 매파',
-    summary: '신규 실업수당 청구 222K — 예상(224K) 하회. 해고 증가 신호 없음.',
+    rateImpact: 'hawkish', rateImpactKo: 'hawkish (labor resilience)',
+    summary: 'Initial claims 222K — below est. 224K. No layoff surge signal.',
   },
   umcsent: {
     id: 'umcsent', name: 'U of Michigan Consumer Sentiment', nameKo: '미시간대 소비자심리지수',
-    category: 'growth', actual: 52.2, forecast: 54.0, previous: 57.9, unit: '지수(1966=100)',
+    category: 'growth', actual: 52.2, forecast: 54.0, previous: 57.9, unit: 'index',
     releaseDate: '2026-04-11', nextRelease: '2026-05-09', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: '소비 심리 악화 → 비둘기파',
-    summary: '4월 소비자심리 52.2 — 60선 하회. 관세 불확실성·인플레 우려 급등. 1978년래 최저 수준.',
+    rateImpact: 'dovish', rateImpactKo: 'dovish (consumer sentiment deteriorating)',
+    summary: 'Apr consumer sentiment 52.2 — below 60. Tariff uncertainty + inflation fears surging. Lowest since 1978.',
   },
   ig_spread: {
     id: 'ig_spread', name: 'IG Credit OAS (ICE BofA)', nameKo: 'IG 신용 스프레드 (OAS)',
     category: 'credit', actual: 0.79, forecast: 0.75, previous: 0.89, unit: '%',
     releaseDate: '2026-04-22', nextRelease: '2026-04-23', surprise: 'miss',
-    rateImpact: 'neutral', rateImpactKo: '신용 위험 소폭 확대',
-    summary: 'IG OAS 0.79% — 역사 저점 대비 소폭 높음. 1.5% 이상 시 신용 스트레스 경보.',
+    rateImpact: 'neutral', rateImpactKo: 'neutral (credit risk slightly elevated)',
+    summary: 'IG OAS 0.79% — slightly above historical lows. Above 1.5% = credit stress alert.',
   },
   hy_spread: {
     id: 'hy_spread', name: 'HY Credit OAS (ICE BofA)', nameKo: 'HY 신용 스프레드 (OAS)',
     category: 'credit', actual: 2.84, forecast: 2.80, previous: 3.23, unit: '%',
     releaseDate: '2026-04-22', nextRelease: '2026-04-23', surprise: 'miss',
-    rateImpact: 'neutral', rateImpactKo: '하이일드 위험 소폭 확대',
-    summary: 'HY OAS 2.84% — 5% 이상 시 경기침체 경보. 현재 중립 구간.',
+    rateImpact: 'neutral', rateImpactKo: 'neutral (HY risk slightly elevated)',
+    summary: 'HY OAS 2.84% — above 5% = recession alert. Currently neutral.',
   },
 };
 
@@ -632,7 +632,7 @@ export async function GET() {
       nextRelease: FORECASTS.cpi.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `CPI ${actual.toFixed(1)}%YoY (예상 ${fc}%, 이전 ${previous?.toFixed(1) ?? '?'}%). ${actual < fc ? '예상 하회 — 인하 기대 강화.' : actual > fc ? '예상 상회 — 긴축 압력.' : '예상 부합.'}`
+        ? `CPI ${actual.toFixed(1)}%YoY (est. ${fc}%, prev ${previous?.toFixed(1) ?? '?'}%). ${actual < fc ? 'Below est. — rate cut expectations strengthened.' : actual > fc ? 'Above est. — tightening pressure.' : 'In line.'}`
         : base.summary,
       cascade: buildCascade('cpi', surprise),
       liveData: !!cpiData,
@@ -655,7 +655,7 @@ export async function GET() {
       nextRelease: FORECASTS.pce.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `근원 PCE ${actual.toFixed(1)}%YoY (예상 ${fc}%). Fed 목표 2%${actual > 2.5 ? '에 아직 거리 있음' : '에 근접 중'}.`
+        ? `Core PCE ${actual.toFixed(1)}%YoY (est. ${fc}%). ${actual > 2.5 ? 'Still above Fed 2% target.' : 'Approaching Fed 2% target.'}`
         : base.summary,
       cascade: buildCascade('pce', surprise),
       liveData: !!pceData,
@@ -686,7 +686,7 @@ export async function GET() {
       nextRelease: FORECASTS.nfp.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `NFP ${actual.toLocaleString()}K (예상 ${fc}K). ${actual > fc ? '고용 강세 — 인하 시기 후퇴 가능성.' : '고용 둔화 — 인하 기대 강화.'}`
+        ? `NFP ${actual.toLocaleString()}K (est. ${fc}K). ${actual > fc ? 'Strong jobs — rate cut timing delayed.' : 'Jobs slowing — rate cut expectations strengthened.'}`
         : base.summary,
       cascade: buildCascade('nfp', surprise),
       liveData: !!nfpData && !fredLag,
@@ -711,7 +711,7 @@ export async function GET() {
       releaseDate: fomcUpper?.date ?? base.releaseDate,
       surprise, rateImpact: base.rateImpact, rateImpactKo: base.rateImpactKo,
       summary: fomcUpper
-        ? `현재 기준금리 ${actualLower}~${actualUpper}% (목표 중간값 ${midRate}%). 다음 FOMC: ${base.nextRelease}.`
+        ? `Current rate ${actualLower}~${actualUpper}% (mid ${midRate}%). Next FOMC: ${base.nextRelease}.`
         : base.summary,
       cascade: buildCascade('fomc', surprise),
       liveData: !!fomcUpper,
@@ -733,7 +733,7 @@ export async function GET() {
       nextRelease: FORECASTS.gdp.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `GDP ${actual}% QoQ SAAR (예상 ${fc}%). ${actual > 2 ? '성장세 견조.' : actual > 0 ? '성장 둔화 중.' : '마이너스 성장 경고.'}`
+        ? `GDP ${actual}% QoQ SAAR (est. ${fc}%). ${actual > 2 ? 'Growth solid.' : actual > 0 ? 'Growth slowing.' : 'Negative growth warning.'}`
         : base.summary,
       cascade: buildCascade('gdp', surprise),
       liveData: !!gdpData,
@@ -754,7 +754,7 @@ export async function GET() {
       releaseDate: ismData?.date ?? base.releaseDate,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `ISM PMI ${actual} (예상 ${fc}). ${actual >= 50 ? '제조업 확장 국면.' : '제조업 수축 — 경기 둔화 우려.'}`
+        ? `ISM PMI ${actual} (est. ${fc}). ${actual >= 50 ? 'Manufacturing expanding.' : 'Manufacturing contracting — economic slowdown risk.'}`
         : base.summary,
       cascade: buildCascade('ism', surprise),
       liveData: !!ismData,
@@ -777,7 +777,7 @@ export async function GET() {
       nextRelease: FORECASTS.retail.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `소매판매 ${actual > 0 ? '+' : ''}${actual}%MoM (예상 ${fc > 0 ? '+' : ''}${fc}%). ${actual > 0 ? '소비 회복 신호.' : '소비 위축 흐름.'}`
+        ? `Retail Sales ${actual > 0 ? '+' : ''}${actual}%MoM (est. ${fc > 0 ? '+' : ''}${fc}%). ${actual > 0 ? 'Consumer recovery signal.' : 'Consumer spending contracting.'}`
         : base.summary,
       cascade: buildCascade('retail', surprise),
       liveData: !!retailData,
@@ -800,7 +800,7 @@ export async function GET() {
       nextRelease: FORECASTS.ppi.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `PPI(최종수요) ${actual.toFixed(1)}%YoY (예상 ${fc}%). ${actual < fc ? 'CPI 안정 선행 신호.' : 'CPI 상승 압력 예고.'}`
+        ? `PPI (final demand) ${actual.toFixed(1)}%YoY (est. ${fc}%). ${actual < fc ? 'Leading signal of CPI stabilization.' : 'Leading signal of CPI upside pressure.'}`
         : base.summary,
       cascade: buildCascade('ppi', surprise),
       liveData: !!ppiData,
@@ -823,7 +823,7 @@ export async function GET() {
       nextRelease: FORECASTS.unrate.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
-        ? `실업률 ${actual}% (예상 ${fc}%, 이전 ${base.previous}%). ${actual > fc ? '고용시장 냉각 — 인하 압력.' : '고용 견조 유지.'}`
+        ? `Unemployment ${actual}% (est. ${fc}%, prev ${base.previous}%). ${actual > fc ? 'Labor market cooling — rate cut pressure.' : 'Labor market holding firm.'}`
         : base.summary,
       cascade: buildCascade('unrate', surprise),
       liveData: !!unrateData,
@@ -846,7 +846,7 @@ export async function GET() {
       nextRelease: FORECASTS.iclaims.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actualK != null
-        ? `신규 실업수당 ${actualK}K/주 (예상 ${fc}K). ${actualK < fc ? '해고 증가 신호 없음 — 노동시장 견조.' : '청구 증가 — 해고 압력 주시.'}`
+        ? `Initial claims ${actualK}K/wk (est. ${fc}K). ${actualK < fc ? 'No layoff surge — labor market resilient.' : 'Claims rising — watch for layoff pressure.'}`
         : base.summary,
       cascade: buildCascade('iclaims', surprise),
       liveData: actualK != null,
@@ -869,7 +869,7 @@ export async function GET() {
       nextRelease: FORECASTS.umcsent.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: liveVal != null
-        ? `소비자심리 ${liveVal.toFixed(1)}점 (예상 ${fc}). ${liveVal < 60 ? '60선 하회 — 소비 침체 경계.' : liveVal < fc ? '예상 하회 — 가계 지출 우려.' : '예상 상회 — 소비 회복 신호.'}`
+        ? `Consumer sentiment ${liveVal.toFixed(1)} (est. ${fc}). ${liveVal < 60 ? 'Below 60 — consumer spending slowdown risk.' : liveVal < fc ? 'Below est. — household spending concern.' : 'Above est. — consumer recovery signal.'}`
         : base.summary,
       cascade: buildCascade('umcsent', surprise),
       liveData: liveVal != null,
@@ -892,7 +892,7 @@ export async function GET() {
       nextRelease: FORECASTS.ig_spread.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: igData != null
-        ? `IG OAS ${actual.toFixed(2)}% (${igData.date}). ${actual > 1.5 ? '1.5% 초과 — 신용 스트레스 경보.' : actual > 1.0 ? '경계 구간 진입.' : '정상 범위.'}`
+        ? `IG OAS ${actual.toFixed(2)}% (${igData.date}). ${actual > 1.5 ? 'Above 1.5% — credit stress alert.' : actual > 1.0 ? 'Entering caution zone.' : 'Normal range.'}`
         : base.summary,
       cascade: buildCascade('ig_spread', surprise),
       liveData: igData != null,
@@ -915,7 +915,7 @@ export async function GET() {
       nextRelease: FORECASTS.hy_spread.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: hyData != null
-        ? `HY OAS ${actual.toFixed(2)}% (${hyData.date}). ${actual > 5.0 ? '5% 초과 — 경기침체 신호.' : actual > 4.0 ? '스트레스 경계 구간.' : '정상 범위.'}`
+        ? `HY OAS ${actual.toFixed(2)}% (${hyData.date}). ${actual > 5.0 ? 'Above 5% — recession signal.' : actual > 4.0 ? 'Entering stress zone.' : 'Normal range.'}`
         : base.summary,
       cascade: buildCascade('hy_spread', surprise),
       liveData: hyData != null,
