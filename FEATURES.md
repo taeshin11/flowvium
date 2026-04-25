@@ -852,10 +852,10 @@ ownership-alerts 적용).
 
 | 엔드포인트 | 데이터 소스 | Redis 캐시 TTL |
 |-----------|-------------|---------------|
-| `/api/daily-brief` | EXAONE vLLM → GROQ → Claude Haiku → Gemini | 26h |
-| `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Claude Haiku/Gemini (v5 키: 일별 1회 갱신) | 12h Redis / 4h mem |
+| `/api/daily-brief` | EXAONE vLLM → GROQ → Gemini | 26h |
+| `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Gemini (v5 키: 일별 1회 갱신) | 12h Redis / 4h mem |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
-| `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 70b 병렬 8개, skipVllm=true); 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 4h |
+| `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 70b 병렬 5개, skipVllm=true); 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 1h~12h |
 | `/api/capital-flows` | Twelve Data → Yahoo → Stooq | 4h |
 | `/api/macro-indicators` | FRED CSV + FRED API | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
@@ -904,6 +904,7 @@ ownership-alerts 적용).
 | `cron/update-signals` | 매일 02:00 UTC | EDGAR 13F 파싱 → Redis 저장 → Alpha Vantage 뉴스갭 갱신 → ISR revalidate |
 | `cron/update-credit-balance` | 스케줄 | FRED + TWSE 신용잔고 갱신 → ISR revalidate |
 | `cron/daily-brief` | 스케줄 | Redis bust → AI 브리프 재생성 |
+| `cron/investment-strategy` | 23:00 · 07:00 · 12:30 UTC | force=1 재생성 → stale cache 갱신 |
 | `cron/verify-metrics` | 매 30분 | 255+ 지표 21개 검증 그룹 병렬 probe → per-ticker/sector/maturity 세부 커버리지 (F&G · Capital Flows · Macro · Short per-ticker 35개 · Heatmap 섹터 11개 · MarketCaps · SectorPE · YieldCurve 만기별 · FedWatch 회의별 · COT 상품별 · KoreaFlow · Additional · Earnings · Cache · Accuracy · Volatility · Commodity · **Missing: Brief/FlowAnalysis/YC-hist/CompanyNews/StockPrice**) ← iter84 확장 |
 | `cron/send-alerts` | 매 4시간 | F&G 극단(≤25/≥75) + VIX 고공포(≥30)/주의(≥25) 시 Discord 웹훅 발송 · 24h 쿨다운 · `DISCORD_WEBHOOK_URL` 미설정 시 무음 스킵 |
 
