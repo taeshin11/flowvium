@@ -33,6 +33,7 @@ function checkAuth(req: Request): boolean {
  *  오늘자/이번시간 키를 동적으로 계산. */
 function buildTrackedKeys(): string[] {
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  const utcDate = new Date().toISOString().slice(0, 10);
   const hour = new Date().toISOString().slice(0, 13);
   return [
     'flowvium:insider-trades:v1',
@@ -40,16 +41,16 @@ function buildTrackedKeys(): string[] {
     'flowvium:nport-holdings:v1',
     'flowvium:options-flow:v1',
     'flowvium:block-trades:v1',
-    'flowvium:korea-flow:v3:4w',
+    'flowvium:korea-flow:v4:4w',
     'flowvium:short-interest:v5',
     'flowvium:market-caps:v2',
     'flowvium:fg:v6:SPY',
     'flowvium:13f-signals:v1',
-    'flowvium:capital-flows:v10:yahoo',
-    'flowvium:capital-flows:v10:twelve',
-    `flowvium:macro-indicators:v12:${kstDate}`,
+    'flowvium:capital-flows:v11:yahoo',
+    'flowvium:capital-flows:v11:twelve',
+    `flowvium:macro-indicators:v13:${kstDate}`,
     `flowvium:fedwatch:v1:${hour}`,
-    `flowvium:credit-balance:v2:${kstDate}`,
+    `flowvium:credit-balance:v3:${utcDate}`,
     'flowvium:latest-updates:v3',
   ];
 }
