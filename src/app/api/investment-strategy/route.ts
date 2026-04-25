@@ -1,16 +1,14 @@
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import {
-  createRedis,
-  gatherTabContext,
-  callAI,
-} from '@/lib/daily-brief';
+import { createRedis, gatherTabContext } from '@/lib/daily-brief';
+import { callAI as callAIProvider } from '@/lib/ai-providers';
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 
-const CACHE_TTL = 4 * 60 * 60; // 4h Redis
-const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
+const CACHE_TTL = 12 * 60 * 60; // 12h Redis
+const STALE_KEY_PREFIX = 'flowvium:investment-strategy:stale'; // last known good result
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=43200, stale-while-revalidate=1800' };
 
 function cacheKey(): string {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
@@ -60,6 +58,59 @@ export interface InvestmentStrategy {
   cached?: boolean;
 }
 
+// ── Live price fetcher ────────────────────────────────────────────────────────
+interface LivePrice {
+  price: number;
+  change1d: number;
+  high52w: number;
+  low52w: number;
+}
+
+async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' },
+        signal: AbortSignal.timeout(4000),
+        cache: 'no-store',
+      }
+    );
+    if (!res.ok) return [ticker, null];
+    const data = await res.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta) return [ticker, null];
+    const price = meta.regularMarketPrice as number;
+    const prev = meta.previousClose as number;
+    const change1d = prev ? ((price - prev) / prev) * 100 : 0;
+    return [ticker, {
+      price: Math.round(price * 100) / 100,
+      change1d: Math.round(change1d * 10) / 10,
+      high52w: meta.fiftyTwoWeekHigh ?? price * 1.3,
+      low52w: meta.fiftyTwoWeekLow ?? price * 0.7,
+    }];
+  } catch { return [ticker, null]; }
+}
+
+const CANDIDATE_TICKERS = [
+  'NVDA', 'MSFT', 'AAPL', 'META', 'GOOGL', 'AMZN', 'TSLA',
+  'KLAC', 'AMD', 'JPM', 'V', 'UNH', 'XOM',
+  'SPY', 'QQQ', 'GLD', 'TLT', 'USO', 'IWM',
+];
+
+async function getLivePrices(): Promise<Map<string, LivePrice>> {
+  const results = await Promise.all(CANDIDATE_TICKERS.map(fetchOnePrice));
+  return new Map(results.filter((r): r is [string, LivePrice] => r[1] !== null));
+}
+
+function pricesSection(prices: Map<string, LivePrice>): string {
+  if (prices.size === 0) return '';
+  const lines = Array.from(prices.entries()).map(([t, p]) =>
+    `${t}: 현재가 $${p.price} (전일비 ${p.change1d > 0 ? '+' : ''}${p.change1d}%, 52w고 $${p.high52w}, 52w저 $${p.low52w})`
+  );
+  return lines.join('\n');
+}
+
 // ── Sector PE summary helper ──────────────────────────────────────────────────
 async function getSectorSummary(baseUrl: string): Promise<string> {
   try {
@@ -91,10 +142,14 @@ async function getUpcomingEarnings(baseUrl: string): Promise<string> {
 }
 
 // ── AI prompt ────────────────────────────────────────────────────────────────
-function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string): string {
+function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string, prices: Map<string, LivePrice>): string {
   const today = new Date().toISOString().slice(0, 10);
+  const priceData = pricesSection(prices);
 
   return `당신은 퀀트 전략가 겸 포트폴리오 매니저입니다. 오늘(${today}) 실시간 데이터를 바탕으로 향후 4주 최적 투자 전략을 제시하세요.
+
+[실시간 주가 — entryZone/stopLoss/target 계산 시 이 가격 기준으로 작성 필수]
+${priceData || '데이터 없음'}
 
 [거시경제]
 ${ctx.macro}
@@ -120,36 +175,43 @@ ${earnings || '없음'}
 [뉴스 캐스케이드]
 ${ctx.news}
 
-위 데이터를 종합해 아래 JSON 형식으로만 응답하세요. 마크다운, 설명 없이 JSON만:
+위 데이터를 종합해 아래 JSON 형식으로만 응답하세요. 마크다운 없이 순수 JSON만.
+
+중요 규칙:
+1. portfolio는 반드시 정확히 5개 또는 6개 종목 (4개 이하 금지)
+2. entryZone/stopLoss/target은 위 [실시간 주가] 현재가 기준 실제 달러 범위 (예: 현재가 $850이면 entryZone "$840-855")
+3. rationale은 구체적 수치·이유 포함, 반복 문구 금지
+4. allocation 합계 = 100
+
 {
   "stance": "bullish|neutral|bearish",
-  "thesis": "한 줄 투자 전략 (50자 이내)",
+  "thesis": "한 줄 투자 전략 (50자 이내, 구체적 섹터/이벤트 언급)",
   "portfolio": [
     {
       "ticker": "NVDA",
       "name": "엔비디아",
       "sector": "기술",
-      "rationale": "매수 근거 구체적으로 (60자 이내)",
+      "rationale": "AI 가속기 수요 25% QoQ 성장, P/E 35x로 섹터 평균 대비 저평가",
       "allocation": 20,
-      "entryZone": "$850-870",
-      "stopLoss": "$820",
-      "target": "$950",
+      "entryZone": "$현재가기준범위",
+      "stopLoss": "$현재가-7%",
+      "target": "$현재가+15%",
       "confidence": "high"
     }
   ],
   "sectorAllocation": [
-    {"sector": "Technology", "pct": 30, "stance": "overweight", "reason": "AI 수요 지속 (30자 이내)"}
+    {"sector": "Technology", "pct": 30, "stance": "overweight", "reason": "AI 수요 지속 + 섹터 P/E 35x 적정"}
   ],
   "riskEvents": [
-    {"date": "2026-05-07", "event": "FOMC 결정", "impact": "high", "watchFor": "금리 동결 확인 (40자 이내)"}
+    {"date": "2026-05-07", "event": "FOMC 금리 결정", "impact": "high", "watchFor": "동결 확인 시 성장주 재평가"}
   ],
-  "macroAnalysis": "거시경제 종합 분석 (100자 이내)",
-  "technicalAnalysis": "기술적 분석 (100자 이내)",
-  "fundamentalAnalysis": "기본적 분석 (100자 이내)",
+  "macroAnalysis": "수익률곡선 역전폭·CPI·FOMC 확률 기반 구체적 분석",
+  "technicalAnalysis": "주요 지수 MA·RSI·VIX 레벨 기반 분석",
+  "fundamentalAnalysis": "섹터 P/E·EPS 성장률·FCF yield 기반 분석",
   "riskLevel": "low|medium|high"
 }
 
-portfolio는 5~7개, sectorAllocation은 5~7개, riskEvents는 3~5개. 구체적 수치 포함 필수.`;
+portfolio 5~6개, sectorAllocation 5~7개, riskEvents 3~5개. 각 항목 구체적 수치 필수.`;
 }
 
 interface CtxSummary {
@@ -316,27 +378,67 @@ export async function GET(request: Request) {
     ? 'http://localhost:3000'
     : `${reqUrl.protocol}//${reqUrl.host}`;
 
-  // Gather all context in parallel
-  const [ctx, sectorPe, earnings] = await Promise.all([
+  // Gather all context in parallel (including live prices)
+  const [ctx, sectorPe, earnings, livePrices] = await Promise.all([
     gatherTabContext(redis, baseUrl),
     getSectorSummary(baseUrl),
     getUpcomingEarnings(baseUrl),
+    getLivePrices(),
   ]);
 
   const ctxSummary = buildCtxSummary(ctx);
-  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings);
+  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices);
 
-  const aiResult = await callAI(prompt);
+  const aiResult = await callAIProvider(prompt, {
+    tag: 'investment-strategy',
+    skipVllm: true,
+    maxTokens: 2000,
+    temperature: 0.55,
+    timeoutMs: 45000,
+  });
   let strategy = parseStrategy(aiResult.text, aiResult.source);
 
   if (!strategy) {
-    logger.warn('api.investment-strategy', 'parse_failed', { raw: aiResult.text.slice(0, 200) });
+    logger.warn('api.investment-strategy', 'parse_failed', {
+      raw: aiResult.text.slice(0, 500),
+      source: aiResult.source,
+      attempts: JSON.stringify(aiResult.attempts ?? []).slice(0, 300),
+    });
+
+    // Try last known good result before serving generic fallback
+    if (redis) {
+      try {
+        const stale = await redis.get(STALE_KEY_PREFIX);
+        if (stale) {
+          logger.info('api.investment-strategy', 'stale_cache_served');
+          const isDebug = searchParams.get('debug') === '1';
+          return NextResponse.json({
+            ...(stale as object),
+            cached: true,
+            stale: true,
+            ...(isDebug ? { _debug: { raw: aiResult.text.slice(0, 1000), source: aiResult.source, attempts: aiResult.attempts } } : {}),
+          }, { headers: CDN_HEADERS });
+        }
+      } catch { /* ignore */ }
+    }
+
     strategy = fallbackStrategy();
+    const isDebug = searchParams.get('debug') === '1';
+    if (isDebug) {
+      return NextResponse.json({
+        ...strategy,
+        _debug: { raw: aiResult.text.slice(0, 1000), source: aiResult.source, attempts: aiResult.attempts },
+      }, { headers: CDN_HEADERS });
+    }
   }
 
   if (redis) {
     try {
-      await loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: CACHE_TTL });
+      // Write to current key + stale key (no expiry on stale — keeps last good result indefinitely)
+      await Promise.all([
+        loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: CACHE_TTL }),
+        loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 }), // 7d
+      ]);
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
   }
 
