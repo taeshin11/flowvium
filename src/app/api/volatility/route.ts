@@ -61,6 +61,37 @@ async function fetchCurrentPrice(symbol: string): Promise<number | null> {
   } catch { return null; }
 }
 
+// CBOE CDN is not subject to Yahoo Finance IP rate-limits on Vercel cloud IPs.
+// CSV format: DATE(MM/DD/YYYY),OPEN,HIGH,LOW,CLOSE — updated daily after market close.
+async function fetchVixFromCBOE(): Promise<{ current: number | null; history: VolPoint[] }> {
+  try {
+    const res = await fetch('https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv', {
+      signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
+    });
+    if (!res.ok) return { current: null, history: [] };
+    const text = await res.text();
+    const lines = text.trim().split('\n').slice(1); // skip DATE,OPEN,HIGH,LOW,CLOSE header
+    const recent = lines.slice(-90);
+    const history: VolPoint[] = [];
+    for (const line of recent) {
+      const parts = line.split(',');
+      if (parts.length < 5) continue;
+      const dateStr = parts[0].trim();
+      const close = parseFloat(parts[4]);
+      if (isNaN(close) || !dateStr) continue;
+      const [mm, dd, yyyy] = dateStr.split('/');
+      if (!mm || !dd || !yyyy) continue;
+      history.push({
+        date: `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`,
+        value: parseFloat(close.toFixed(2)),
+      });
+    }
+    const current = history.length > 0 ? history[history.length - 1].value : null;
+    return { current, history };
+  } catch { return { current: null, history: [] }; }
+}
+
 async function fetchHistory(symbol: string, range = '3mo'): Promise<VolPoint[]> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`;
@@ -118,14 +149,24 @@ export async function GET() {
   ]);
   logger.info('volatility', 'fetched', { durationMs: Date.now() - start });
 
-  const regime = detectRegime(vxst, vix, vxmt);
-  const latestDate = history.length ? history[history.length - 1].date : null;
+  // CBOE CDN fallback — activates when Vercel IP is Yahoo rate-limited
+  let vixFinal = vix;
+  let histFinal = history;
+  if (vixFinal == null || histFinal.length < 10) {
+    const cboe = await fetchVixFromCBOE();
+    if (cboe.current != null) vixFinal = cboe.current;
+    if (cboe.history.length >= 10) histFinal = cboe.history;
+    if (cboe.current != null) logger.info('volatility', 'cboe_fallback', { vix: cboe.current, histLen: cboe.history.length });
+  }
+
+  const regime = detectRegime(vxst, vixFinal, vxmt);
+  const latestDate = histFinal.length ? histFinal[histFinal.length - 1].date : null;
 
   const data: VolatilityData = {
-    vxst, vix, vxmt, vvix,
+    vxst, vix: vixFinal, vxmt, vvix,
     regime,
     regimeLabel: REGIME_LABEL[regime],
-    history: history.slice(-90),
+    history: histFinal.slice(-90),
     dataDate: latestDate,
     updatedAt: new Date().toISOString(),
     cached: false,

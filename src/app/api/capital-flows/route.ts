@@ -124,30 +124,6 @@ async function fetchPricesYahoo(ticker: string): Promise<number[]> {
   return prices;
 }
 
-// ── Source 3: Stooq (no key, no rate limit, secondary fallback) ───────────────
-async function fetchPricesStooq(ticker: string): Promise<number[]> {
-  // Stooq uses symbol format like "SPY.US" for US ETFs
-  const sym = ticker.includes('.') ? ticker : `${ticker}.US`;
-  const url = `https://stooq.com/q/d/l/?s=${sym.toLowerCase()}&i=d`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0' },
-    signal: AbortSignal.timeout(10000),
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`Stooq HTTP ${res.status}`);
-  const text = await res.text();
-  const lines = text.trim().split('\n').slice(1); // skip header
-  const prices = lines
-    .slice(-120) // last 120 trading days
-    .map((line) => {
-      const cols = line.split(',');
-      return parseFloat(cols[4] ?? ''); // Close is column 5
-    })
-    .filter((v) => !isNaN(v));
-  if (prices.length < 20) throw new Error('Stooq: insufficient data');
-  return prices;
-}
-
 // ── Source 2b: Yahoo Finance spark batch (up to 20 symbols per request) ──────
 // Returns a map of ticker → closes[]. Missing/failed tickers are omitted.
 async function fetchPricesBatchYahoo(tickers: string[]): Promise<Record<string, number[]>> {
@@ -171,15 +147,13 @@ async function fetchPricesBatchYahoo(tickers: string[]): Promise<Record<string, 
   return out;
 }
 
-// ── Cascade: Twelve → Yahoo → Stooq ──────────────────────────────────────────
+// ── Cascade: Twelve → Yahoo ───────────────────────────────────────────────────
 async function fetchPrices(ticker: string, twelveKey: string | null): Promise<{ prices: number[]; source: string }> {
   if (twelveKey) {
     try { return { prices: await fetchPricesTwelve(ticker, twelveKey), source: 'twelve' }; }
     catch (e) { logger.warn('capital-flows', 'twelve_failed', { ticker, error: e }); }
   }
   try { return { prices: await fetchPricesYahoo(ticker), source: 'yahoo' }; }
-  catch (e) { logger.warn('capital-flows', 'yahoo_failed', { ticker, error: e }); }
-  try { return { prices: await fetchPricesStooq(ticker), source: 'stooq' }; }
   catch (e) {
     logger.error('capital-flows', 'all_sources_failed', { ticker, error: e });
     return { prices: [], source: 'failed' };
@@ -236,20 +210,11 @@ async function fetchAllPrices(
     }
   }
 
-  // Individual fallback for any that weren't in batch results
-  if (failed.length > 0) {
-    await Promise.all(
-      failed.map(async (ticker) => {
-        try {
-          const prices = await fetchPricesStooq(ticker);
-          priceMap[ticker] = prices;
-          sourceCount['stooq'] = (sourceCount['stooq'] ?? 0) + 1;
-        } catch {
-          priceMap[ticker] = [];
-          sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1;
-        }
-      })
-    );
+  // Mark batch-failed tickers as empty (no additional fallback — Yahoo batch failure
+  // from cloud IPs means individual Yahoo calls would also fail from same IP)
+  for (const ticker of failed) {
+    priceMap[ticker] = [];
+    sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1;
   }
 
   return { priceMap, sourceCount };
@@ -428,7 +393,7 @@ export async function GET() {
   // Describe which sources actually provided data
   const sourceSummary = Object.entries(sourceCount)
     .filter(([s]) => s !== 'failed')
-    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance', stooq: 'Stooq' }[s] ?? s) + ` ×${n}`)
+    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance' }[s] ?? s) + ` ×${n}`)
     .join(' + ');
 
   const results = ASSETS.map((asset) => {

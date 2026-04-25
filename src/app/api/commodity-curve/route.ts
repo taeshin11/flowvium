@@ -40,6 +40,29 @@ function contractSymbols(prefix: string, exchange: string, startMonth: number, s
   return results;
 }
 
+// FRED WTI crude spot price — not Yahoo, not IP-blocked from Vercel cloud IPs.
+// Series DCOILWTICO: EIA spot, 1-day lag, free no auth.
+async function fetchOilSpotFRED(): Promise<number | null> {
+  try {
+    const startDate = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const res = await fetch(
+      `https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO&cosd=${startDate}`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
+    );
+    if (!res.ok) return null;
+    const text = await res.text();
+    const lines = text.trim().split('\n').slice(1);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const val = lines[i].split(',')[1]?.trim();
+      if (val && val !== '.') {
+        const n = parseFloat(val);
+        if (!isNaN(n) && n > 0) return parseFloat(n.toFixed(2));
+      }
+    }
+    return null;
+  } catch { return null; }
+}
+
 async function fetchPrice(ticker: string): Promise<{ ticker: string; price: number; label: string } | null> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;
@@ -127,6 +150,15 @@ export async function GET() {
 
   const oilCurve = buildCurve(oilResults, 'oil', 'WTI Crude Oil', 'USD/bbl');
   const goldCurve = buildCurve(goldResults, 'gold', 'Gold (COMEX)', 'USD/oz');
+
+  // FRED WTI spot fallback — if Yahoo returned 0 futures prices (Vercel IP rate-limited)
+  if (oilCurve.curve.length === 0) {
+    const fredSpot = await fetchOilSpotFRED();
+    if (fredSpot !== null) {
+      logger.info('commodity-curve', 'fred_oil_fallback', { spot: fredSpot });
+      oilCurve.curve = [{ ticker: 'FRED:DCOILWTICO', label: 'Spot', price: fredSpot }];
+    }
+  }
 
   const result = { curves: [oilCurve, goldCurve], updatedAt: now.toISOString(), cached: false };
   const hasData = oilCurve.curve.length > 0 || goldCurve.curve.length > 0;
