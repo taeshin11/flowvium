@@ -1573,6 +1573,9 @@
     "cascadePatterns": "Pola kaskade",
     "keyRelationships": "Hubungan kunci",
     "popularComparisons": "Perbandingan populer",
-    "enterTwoTickers": "Masukkan dua ticker di atas untuk membandingkan perusahaan."
+    "enterTwoTickers": "Masukkan dua ticker di atas untuk membandingkan perusahaan.",
+    "companyA": "Perusahaan A",
+    "companyB": "Perusahaan B",
+    "noNewsGapData": "Tidak ada data kesenjangan berita untuk ticker ini."
   }
 }

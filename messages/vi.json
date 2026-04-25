@@ -1573,6 +1573,9 @@
     "cascadePatterns": "Mẫu tầng",
     "keyRelationships": "Mối quan hệ chính",
     "popularComparisons": "So sánh phổ biến",
-    "enterTwoTickers": "Nhập hai mã cổ phiếu ở trên để so sánh các công ty."
+    "enterTwoTickers": "Nhập hai mã cổ phiếu ở trên để so sánh các công ty.",
+    "companyA": "Công ty A",
+    "companyB": "Công ty B",
+    "noNewsGapData": "Không có dữ liệu khoảng cách tin tức cho ticker này."
   }
 }

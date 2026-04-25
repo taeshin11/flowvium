@@ -1573,6 +1573,9 @@
     "cascadePatterns": "कैस्केड पैटर्न",
     "keyRelationships": "प्रमुख संबंध",
     "popularComparisons": "लोकप्रिय तुलनाएं",
-    "enterTwoTickers": "कंपनियों की तुलना करने के लिए ऊपर दो टिकर दर्ज करें।"
+    "enterTwoTickers": "कंपनियों की तुलना करने के लिए ऊपर दो टिकर दर्ज करें।",
+    "companyA": "कंपनी A",
+    "companyB": "कंपनी B",
+    "noNewsGapData": "इस टिकर के लिए कोई न्यूज़ गैप डेटा नहीं है।"
   }
 }

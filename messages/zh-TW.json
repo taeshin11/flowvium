@@ -1573,6 +1573,9 @@
     "cascadePatterns": "級聯模式",
     "keyRelationships": "關鍵關係",
     "popularComparisons": "熱門比較",
-    "enterTwoTickers": "在上方輸入兩個股票代碼來比較公司。"
+    "enterTwoTickers": "在上方輸入兩個股票代碼來比較公司。",
+    "companyA": "公司 A",
+    "companyB": "公司 B",
+    "noNewsGapData": "此股票代碼沒有新聞缺口數據。"
   }
 }

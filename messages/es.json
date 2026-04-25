@@ -1573,6 +1573,9 @@
     "cascadePatterns": "Patrones en cascada",
     "keyRelationships": "Relaciones clave",
     "popularComparisons": "Comparaciones populares",
-    "enterTwoTickers": "Introduce dos tickers arriba para comparar empresas."
+    "enterTwoTickers": "Introduce dos tickers arriba para comparar empresas.",
+    "companyA": "Empresa A",
+    "companyB": "Empresa B",
+    "noNewsGapData": "No hay datos de brecha de noticias para este ticker."
   }
 }

@@ -1573,6 +1573,9 @@
     "cascadePatterns": "カスケードパターン",
     "keyRelationships": "主要な関係",
     "popularComparisons": "人気の比較",
-    "enterTwoTickers": "上記に2つのティッカーを入力して企業を比較してください。"
+    "enterTwoTickers": "上記に2つのティッカーを入力して企業を比較してください。",
+    "companyA": "企業 A",
+    "companyB": "企業 B",
+    "noNewsGapData": "このティッカーのニュースギャップデータはありません。"
   }
 }

@@ -1573,6 +1573,9 @@
     "cascadePatterns": "أنماط التتالي",
     "keyRelationships": "العلاقات الرئيسية",
     "popularComparisons": "المقارنات الشائعة",
-    "enterTwoTickers": "أدخل رمزين للسهم أعلاه لمقارنة الشركات."
+    "enterTwoTickers": "أدخل رمزين للسهم أعلاه لمقارنة الشركات.",
+    "companyA": "الشركة A",
+    "companyB": "الشركة B",
+    "noNewsGapData": "لا توجد بيانات فجوة الأخبار لهذا الرمز."
   }
 }

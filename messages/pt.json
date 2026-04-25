@@ -1573,6 +1573,9 @@
     "cascadePatterns": "Padrões em cascata",
     "keyRelationships": "Relacionamentos principais",
     "popularComparisons": "Comparações populares",
-    "enterTwoTickers": "Insira dois tickers acima para comparar empresas."
+    "enterTwoTickers": "Insira dois tickers acima para comparar empresas.",
+    "companyA": "Empresa A",
+    "companyB": "Empresa B",
+    "noNewsGapData": "Sem dados de lacuna de notícias para este ticker."
   }
 }

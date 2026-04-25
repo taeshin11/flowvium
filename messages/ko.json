@@ -1573,6 +1573,9 @@
     "cascadePatterns": "캐스케이드 패턴",
     "keyRelationships": "핵심 관계",
     "popularComparisons": "인기 비교",
-    "enterTwoTickers": "위에 두 개의 티커를 입력하여 기업을 비교하세요."
+    "enterTwoTickers": "위에 두 개의 티커를 입력하여 기업을 비교하세요.",
+    "companyA": "회사 A",
+    "companyB": "회사 B",
+    "noNewsGapData": "이 티커에 대한 뉴스 갭 데이터가 없습니다."
   }
 }

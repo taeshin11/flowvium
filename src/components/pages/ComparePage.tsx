@@ -213,7 +213,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
             </p>
           </div>
         ) : (
-          <p className="text-xs text-cf-text-secondary">No news gap data tracked for this ticker.</p>
+          <p className="text-xs text-cf-text-secondary">{t('noNewsGapData')}</p>
         )}
       </div>
 
@@ -402,7 +402,7 @@ export default function ComparePage({ slug }: { slug: string }) {
       <div className="cf-card p-5 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
           <div>
-            <label className="block text-xs font-medium text-cf-text-secondary mb-1.5">Company A</label>
+            <label className="block text-xs font-medium text-cf-text-secondary mb-1.5">{t('companyA')}</label>
             <TickerSearch
               value={ticker1}
               onChange={setTicker1}
@@ -419,7 +419,7 @@ export default function ComparePage({ slug }: { slug: string }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-cf-text-secondary mb-1.5">Company B</label>
+            <label className="block text-xs font-medium text-cf-text-secondary mb-1.5">{t('companyB')}</label>
             <TickerSearch
               value={ticker2}
               onChange={setTicker2}

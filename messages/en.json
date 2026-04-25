@@ -1573,6 +1573,9 @@
     "cascadePatterns": "Cascade Patterns",
     "keyRelationships": "Key Relationships",
     "popularComparisons": "Popular Comparisons",
-    "enterTwoTickers": "Enter two tickers above to compare companies."
+    "enterTwoTickers": "Enter two tickers above to compare companies.",
+    "companyA": "Company A",
+    "companyB": "Company B",
+    "noNewsGapData": "No news gap data tracked for this ticker."
   }
 }

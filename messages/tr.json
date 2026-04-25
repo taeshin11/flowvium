@@ -1573,6 +1573,9 @@
     "cascadePatterns": "Kaskad örüntüleri",
     "keyRelationships": "Temel ilişkiler",
     "popularComparisons": "Popüler karşılaştırmalar",
-    "enterTwoTickers": "Şirketleri karşılaştırmak için yukarıya iki hisse kodu girin."
+    "enterTwoTickers": "Şirketleri karşılaştırmak için yukarıya iki hisse kodu girin.",
+    "companyA": "Şirket A",
+    "companyB": "Şirket B",
+    "noNewsGapData": "Bu ticker için haber açığı verisi bulunmuyor."
   }
 }
