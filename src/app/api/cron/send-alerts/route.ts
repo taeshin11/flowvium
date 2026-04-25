@@ -9,6 +9,7 @@ interface FGEntry { score: number; level: string; trend: string; label: string; 
 interface VolData { vix: number | null; regime: string; }
 interface MacroIndicator { id: string; actual: number | null; }
 interface MacroData { indicators: MacroIndicator[] }
+interface YCData { spread2s10sCurrent: number | null; inverted: boolean; }
 
 interface AlertResult {
   type: string;
@@ -230,6 +231,65 @@ async function checkCreditAlert(
   return results;
 }
 
+// ── Yield Curve Alert (10Y-2Y spread) ────────────────────────────────────────
+async function checkYieldCurveAlert(
+  redis: Redis, webhookUrl: string
+): Promise<AlertResult[]> {
+  const yc = await redis.get<YCData>('flowvium:yield-curve:v2');
+  if (!yc || yc.spread2s10sCurrent === null) return [];
+
+  const spread = yc.spread2s10sCurrent;
+  const results: AlertResult[] = [];
+
+  // Inversion alert: spread clearly negative (< -0.1%)
+  if (yc.inverted && spread < -0.1) {
+    const type = 'yc-inverted';
+    if (!(await isCooledDown(redis, type))) {
+      const sent = await sendDiscord(webhookUrl, [{
+        title: '📉 수익률 곡선 역전 — Yield Curve Inversion',
+        description: `미국 10Y-2Y 국채 스프레드가 **역전** 상태입니다. 역사적으로 경기침체 선행 지표로 해석됩니다.`,
+        color: 0xE74C3C,
+        fields: [
+          { name: '10Y-2Y 스프레드', value: `**${spread.toFixed(2)}%**`, inline: true },
+          { name: '신호', value: '🔴 역전 (Inverted)', inline: true },
+          { name: '해석', value: '과거 12~18개월 후 침체 가능성 — 단독 지표로 과신 금지', inline: false },
+        ],
+        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        timestamp: new Date().toISOString(),
+      }]);
+      if (sent) await markSent(redis, type);
+      results.push({ type, sent, detail: `spread=${spread.toFixed(2)}` });
+    } else {
+      results.push({ type, sent: false, cooldown: true });
+    }
+  }
+
+  // Normalization alert: spread turned positive (≥ 0.05%)
+  if (!yc.inverted && spread >= 0.05) {
+    const type = 'yc-normalized';
+    if (!(await isCooledDown(redis, type))) {
+      const sent = await sendDiscord(webhookUrl, [{
+        title: '📈 수익률 곡선 정상화 — Yield Curve Normalization',
+        description: `미국 10Y-2Y 국채 스프레드가 **정상** 구간으로 복귀했습니다.`,
+        color: 0x27AE60,
+        fields: [
+          { name: '10Y-2Y 스프레드', value: `**+${spread.toFixed(2)}%**`, inline: true },
+          { name: '신호', value: '🟢 정상화 (Normal)', inline: true },
+          { name: '해석', value: '역전 해소 → 단기 유동성 압박 완화 신호', inline: false },
+        ],
+        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        timestamp: new Date().toISOString(),
+      }]);
+      if (sent) await markSent(redis, type);
+      results.push({ type, sent, detail: `spread=${spread.toFixed(2)}` });
+    } else {
+      results.push({ type, sent: false, cooldown: true });
+    }
+  }
+
+  return results;
+}
+
 // ── GET handler ──────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -249,16 +309,18 @@ export async function GET(req: NextRequest) {
   }
 
   const start = Date.now();
-  const [fgResults, vixResults, creditResults] = await Promise.allSettled([
+  const [fgResults, vixResults, creditResults, ycResults] = await Promise.allSettled([
     checkFGAlert(redis, webhookUrl),
     checkVIXAlert(redis, webhookUrl),
     checkCreditAlert(redis, webhookUrl),
+    checkYieldCurveAlert(redis, webhookUrl),
   ]);
 
   const alerts = [
     ...(fgResults.status === 'fulfilled' ? fgResults.value : []),
     ...(vixResults.status === 'fulfilled' ? vixResults.value : []),
     ...(creditResults.status === 'fulfilled' ? creditResults.value : []),
+    ...(ycResults.status === 'fulfilled' ? ycResults.value : []),
   ];
 
   const sent = alerts.filter(a => a.sent).length;
