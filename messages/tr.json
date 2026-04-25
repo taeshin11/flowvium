@@ -299,7 +299,8 @@
     "ownershipPct": "% Sahiplik",
     "liveRefreshed": "Live — {count} güncellendi",
     "staticData": "Statik veri",
-    "clickToExpand": "Genişletmek için tıklayın ↓"
+    "clickToExpand": "Genişletmek için tıklayın ↓",
+    "allInstitutions": "Tüm Kurumlar"
   },
   "newsGap": {
     "title": "Haber Boşluğu Analiz Aracı",

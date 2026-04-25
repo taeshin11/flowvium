@@ -299,7 +299,8 @@
     "ownershipPct": "保有比率",
     "liveRefreshed": "Live — {count} 更新済み",
     "staticData": "静的データ",
-    "clickToExpand": "クリックして展開 ↓"
+    "clickToExpand": "クリックして展開 ↓",
+    "allInstitutions": "全機関"
   },
   "newsGap": {
     "title": "ニュースギャップ・アナライザー",

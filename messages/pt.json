@@ -299,7 +299,8 @@
     "ownershipPct": "% Participação",
     "liveRefreshed": "Live — {count} atualizados",
     "staticData": "Dados estáticos",
-    "clickToExpand": "Clique para expandir ↓"
+    "clickToExpand": "Clique para expandir ↓",
+    "allInstitutions": "Todas as Instituições"
   },
   "newsGap": {
     "title": "Analisador de Lacunas Informativas",

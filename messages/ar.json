@@ -299,7 +299,8 @@
     "ownershipPct": "% الملكية",
     "liveRefreshed": "Live — {count} محدث",
     "staticData": "بيانات ثابتة",
-    "clickToExpand": "انقر للتوسيع ↓"
+    "clickToExpand": "انقر للتوسيع ↓",
+    "allInstitutions": "جميع المؤسسات"
   },
   "newsGap": {
     "title": "محلل الفجوات الإخبارية",

@@ -299,7 +299,8 @@
     "ownershipPct": "% Participación",
     "liveRefreshed": "Live — {count} actualizados",
     "staticData": "Datos estáticos",
-    "clickToExpand": "Clic para expandir ↓"
+    "clickToExpand": "Clic para expandir ↓",
+    "allInstitutions": "Todas las Instituciones"
   },
   "newsGap": {
     "title": "Analizador de Brecha Informativa",

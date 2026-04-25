@@ -299,7 +299,8 @@
     "ownershipPct": "Beteiligung %",
     "liveRefreshed": "Live — {count} aktualisiert",
     "staticData": "Statische Daten",
-    "clickToExpand": "Zum Aufklappen klicken ↓"
+    "clickToExpand": "Zum Aufklappen klicken ↓",
+    "allInstitutions": "Alle Institutionen"
   },
   "newsGap": {
     "title": "Nachrichtenlücken-Analysator",

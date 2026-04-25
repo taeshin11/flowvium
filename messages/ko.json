@@ -299,7 +299,8 @@
     "ownershipPct": "지분율",
     "liveRefreshed": "Live — {count} 업데이트됨",
     "staticData": "정적 데이터",
-    "clickToExpand": "클릭하여 펼치기 ↓"
+    "clickToExpand": "클릭하여 펼치기 ↓",
+    "allInstitutions": "전체 기관"
   },
   "newsGap": {
     "title": "뉴스 갭 분석기",

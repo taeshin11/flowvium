@@ -72,8 +72,17 @@ export default function SignalsPage({
   const t = useTranslations('signals');
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
+  const [institutionFilter, setInstitutionFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortKey>('date');
   const [supplyTicker, setSupplyTicker] = useState<string | null>(null);
+
+  const institutions = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const s of initialSignals) {
+      map[s.institution] = (map[s.institution] || 0) + 1;
+    }
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [initialSignals]);
 
   const filtered = useMemo(() => {
     let result = [...initialSignals];
@@ -82,6 +91,9 @@ export default function SignalsPage({
     }
     if (actionFilter !== 'all') {
       result = result.filter((s) => s.action === actionFilter);
+    }
+    if (institutionFilter !== 'all') {
+      result = result.filter((s) => s.institution === institutionFilter);
     }
 
     result.sort((a, b) => {
@@ -117,16 +129,7 @@ export default function SignalsPage({
     }));
   }, []);
 
-  // Top institutions
-  const topInstitutions = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const s of initialSignals) {
-      map[s.institution] = (map[s.institution] || 0) + 1;
-    }
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
-  }, []);
+  const topInstitutions = institutions.slice(0, 8);
 
   return (
     <>
@@ -202,6 +205,19 @@ export default function SignalsPage({
             <option value="exit">{t('actions.exit')}</option>
           </select>
 
+          <select
+            value={institutionFilter}
+            onChange={(e) => setInstitutionFilter(e.target.value)}
+            className="cf-input w-auto text-sm py-1.5"
+          >
+            <option value="all">{t('allInstitutions')}</option>
+            {institutions.map(([name, count]) => (
+              <option key={name} value={name}>
+                {name} ({count})
+              </option>
+            ))}
+          </select>
+
           <div className="flex items-center gap-2 ml-auto">
             <ArrowUpDown className="w-4 h-4 text-cf-text-secondary" />
             <select
@@ -246,7 +262,8 @@ export default function SignalsPage({
             {topInstitutions.map(([name, count], i) => (
               <div
                 key={name}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                onClick={() => setInstitutionFilter(institutionFilter === name ? 'all' : name)}
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${institutionFilter === name ? 'bg-cf-primary/10 border border-cf-primary/30' : 'bg-gray-50 hover:bg-gray-100'}`}
               >
                 <div className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-cf-primary/10 text-cf-primary text-xs font-bold flex items-center justify-center">

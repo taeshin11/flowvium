@@ -299,7 +299,8 @@
     "ownershipPct": "% Sở hữu",
     "liveRefreshed": "Live — {count} đã cập nhật",
     "staticData": "Dữ liệu tĩnh",
-    "clickToExpand": "Nhấp để mở rộng ↓"
+    "clickToExpand": "Nhấp để mở rộng ↓",
+    "allInstitutions": "Tất cả tổ chức"
   },
   "newsGap": {
     "title": "Phân tích khoảng trống tin tức",

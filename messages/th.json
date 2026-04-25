@@ -299,7 +299,8 @@
     "ownershipPct": "% การถือหุ้น",
     "liveRefreshed": "Live — {count} อัปเดตแล้ว",
     "staticData": "ข้อมูลคงที่",
-    "clickToExpand": "คลิกเพื่อขยาย ↓"
+    "clickToExpand": "คลิกเพื่อขยาย ↓",
+    "allInstitutions": "สถาบันทั้งหมด"
   },
   "newsGap": {
     "title": "เครื่องมือวิเคราะห์ช่องว่างข่าว",

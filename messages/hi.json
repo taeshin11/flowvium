@@ -299,7 +299,8 @@
     "ownershipPct": "स्वामित्व %",
     "liveRefreshed": "Live — {count} अपडेट",
     "staticData": "स्थिर डेटा",
-    "clickToExpand": "विस्तार के लिए क्लिक करें ↓"
+    "clickToExpand": "विस्तार के लिए क्लिक करें ↓",
+    "allInstitutions": "सभी संस्थान"
   },
   "newsGap": {
     "title": "न्यूज़ गैप विश्लेषक",

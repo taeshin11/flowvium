@@ -299,7 +299,8 @@
     "ownershipPct": "持股比例",
     "liveRefreshed": "Live — {count} 已更新",
     "staticData": "靜態資料",
-    "clickToExpand": "點擊展開 ↓"
+    "clickToExpand": "點擊展開 ↓",
+    "allInstitutions": "所有機構"
   },
   "newsGap": {
     "title": "新聞盲區分析器",

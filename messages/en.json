@@ -299,7 +299,8 @@
     "ownershipPct": "Ownership %",
     "liveRefreshed": "Live — {count} updated",
     "staticData": "Static data",
-    "clickToExpand": "Click to expand ↓"
+    "clickToExpand": "Click to expand ↓",
+    "allInstitutions": "All Institutions"
   },
   "newsGap": {
     "title": "News Gap Analyzer",

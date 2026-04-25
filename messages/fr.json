@@ -299,7 +299,8 @@
     "ownershipPct": "% Participation",
     "liveRefreshed": "Live — {count} mis à jour",
     "staticData": "Données statiques",
-    "clickToExpand": "Cliquer pour développer ↓"
+    "clickToExpand": "Cliquer pour développer ↓",
+    "allInstitutions": "Toutes les Institutions"
   },
   "newsGap": {
     "title": "Analyseur d'écart médiatique",

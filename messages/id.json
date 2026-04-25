@@ -299,7 +299,8 @@
     "ownershipPct": "% Kepemilikan",
     "liveRefreshed": "Live — {count} diperbarui",
     "staticData": "Data statis",
-    "clickToExpand": "Klik untuk perluas ↓"
+    "clickToExpand": "Klik untuk perluas ↓",
+    "allInstitutions": "Semua Institusi"
   },
   "newsGap": {
     "title": "Penganalisis Kesenjangan Berita",

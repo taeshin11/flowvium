@@ -299,7 +299,8 @@
     "ownershipPct": "% Владения",
     "liveRefreshed": "Live — {count} обновлено",
     "staticData": "Статичные данные",
-    "clickToExpand": "Нажмите для раскрытия ↓"
+    "clickToExpand": "Нажмите для раскрытия ↓",
+    "allInstitutions": "Все Учреждения"
   },
   "newsGap": {
     "title": "Анализатор информационных пробелов",
