@@ -166,6 +166,8 @@ export async function GET(req: NextRequest) {
     revalidatePath(`/${locale}/news-gap`);
   }
 
+  const exportData = req.nextUrl.searchParams.get('export') === '1';
+
   return NextResponse.json({
     ok: true,
     edgarSignals: signals.length,
@@ -174,5 +176,6 @@ export async function GET(req: NextRequest) {
     durationMs: Date.now() - start,
     timestamp: now,
     log,
+    ...(exportData ? { signals, ownershipMap } : {}),
   });
 }
