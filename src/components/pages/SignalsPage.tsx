@@ -74,7 +74,10 @@ export default function SignalsPage({
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [institutionFilter, setInstitutionFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortKey>('date');
+  const [page, setPage] = useState(0);
   const [supplyTicker, setSupplyTicker] = useState<string | null>(null);
+
+  const PAGE_SIZE = 100;
 
   const institutions = useMemo(() => {
     const map: Record<string, number> = {};
@@ -108,7 +111,20 @@ export default function SignalsPage({
     });
 
     return result;
-  }, [sectorFilter, actionFilter, sortBy]);
+  }, [sectorFilter, actionFilter, institutionFilter, sortBy]);
+
+  // Pre-computed lookup map for newsGapData — avoids O(n²) in table render
+  const newsGapMap = useMemo(() => {
+    const map: Record<string, typeof newsGapData[number]> = {};
+    for (const entry of newsGapData) map[entry.ticker] = entry;
+    return map;
+  }, []);
+
+  // Reset to page 0 when filters/sort change
+  const pagedSignals = useMemo(() => {
+    return filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  }, [filtered, page]);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
   // Sector breakdown for bar chart
   const sectorBreakdown = useMemo(() => {
@@ -182,7 +198,7 @@ export default function SignalsPage({
 
           <select
             value={sectorFilter}
-            onChange={(e) => setSectorFilter(e.target.value)}
+            onChange={(e) => { setSectorFilter(e.target.value); setPage(0); }}
             className="cf-input w-auto text-sm py-1.5"
           >
             <option value="all">{t('allSectors')}</option>
@@ -195,7 +211,7 @@ export default function SignalsPage({
 
           <select
             value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
+            onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
             className="cf-input w-auto text-sm py-1.5"
           >
             <option value="all">{t('allActions')}</option>
@@ -207,7 +223,7 @@ export default function SignalsPage({
 
           <select
             value={institutionFilter}
-            onChange={(e) => setInstitutionFilter(e.target.value)}
+            onChange={(e) => { setInstitutionFilter(e.target.value); setPage(0); }}
             className="cf-input w-auto text-sm py-1.5"
           >
             <option value="all">{t('allInstitutions')}</option>
@@ -222,7 +238,7 @@ export default function SignalsPage({
             <ArrowUpDown className="w-4 h-4 text-cf-text-secondary" />
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              onChange={(e) => { setSortBy(e.target.value as SortKey); setPage(0); }}
               className="cf-input w-auto text-sm py-1.5"
             >
               <option value="date">{t('sortByDate')}</option>
@@ -300,10 +316,10 @@ export default function SignalsPage({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((sig) => {
+              {pagedSignals.map((sig) => {
                 const action = actionColors[sig.action];
-                // 지분율 데이터 매칭
-                const ownerEntry = newsGapData.find(n => n.ticker === sig.ticker);
+                // 지분율 데이터 매칭 — O(1) lookup via pre-built map
+                const ownerEntry = newsGapMap[sig.ticker];
                 const ownerRecord = ownerEntry?.ownershipData?.find(
                   o => o.institution.toLowerCase().includes(sig.institution.toLowerCase().split(' ')[0])
                 ) ?? ownerEntry?.ownershipData?.[0];
@@ -375,6 +391,32 @@ export default function SignalsPage({
         {filtered.length === 0 && (
           <div className="py-12 text-center text-cf-text-secondary">
             {t('noSignalsMatch')}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 px-2">
+            <span className="text-sm text-cf-text-secondary">
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} / {filtered.length}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-3 py-1.5 text-sm rounded-lg border border-cf-border disabled:opacity-40 hover:bg-gray-50 transition-colors"
+              >
+                ←
+              </button>
+              <span className="text-sm text-cf-text-secondary">{page + 1} / {totalPages}</span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="px-3 py-1.5 text-sm rounded-lg border border-cf-border disabled:opacity-40 hover:bg-gray-50 transition-colors"
+              >
+                →
+              </button>
+            </div>
           </div>
         )}
       </div>
