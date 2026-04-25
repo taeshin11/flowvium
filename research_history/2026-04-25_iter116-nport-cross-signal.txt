@@ -1,0 +1,37 @@
+iter116 — 2026-04-25
+Primary outcome: N-PORT × 13F 교차 신호 (이중 매집)
+
+Drift check:
+- iter114~115: API 라우트 캐시 영역 → iter116은 신규 데이터 교차 기능으로 영역 이동
+
+==== 수정 내역 ====
+
+1. ScreenerPage.tsx
+   - ScreenerRow 인터페이스에 nportValue, nportFundCount 필드 추가
+   - /api/nport-holdings 자동 fetch + Map<ticker, {value, fundCount}> 빌드
+   - deduped useMemo에 nportMap 교차 조인 추가
+   - 테이블 헤더에 'N-PORT' 컬럼 추가 (sortable)
+   - 테이블 셀: 펀드 보유 총액 cyan 배지 표시 (hover시 펀드 수 툴팁)
+   - PRESETS에 '🔱 N-PORT 이중 매집' 추가
+     → 조건: 13F 매집/신규 + N-PORT 월간 펀드 보유 확인된 종목
+
+==== 데이터 특성 ====
+- 13F: 헤지펀드/대형기관 분기 포지션 (45-60일 지연)
+- N-PORT: 뮤추얼펀드/ETF 월간 보유 (30-45일 지연)
+- 교차: 두 데이터가 겹치는 종목 = 기관 + 공모펀드 동시 매집 = 시장 전체 합의
+
+예시: NVDA N-PORT $18.9B (Fidelity Select Semiconductors 24% NAV)
+→ 13F 매집 + N-PORT 고노출 = 매우 강한 합의 신호
+
+==== 실험 결과 ====
+CME FedWatch 직접 API 차단 확인 → Yahoo ZQ Futures 방식 계속 유지 (iter115에서 확인)
+
+==== 정확도 검증 ====
+- 빌드: ✓ Compiled successfully
+- verify-metrics: 185/189 OK (4 skipped: KRX blocked)
+- N-PORT byTicker: 69개 ticker, NVDA=$18.9B 실값 확인
+
+==== 다음 우선 과제 ====
+- N-PORT guide 텍스트 screener 설명에 추가 (선택)
+- Redis 설정 (사용자 직접 필요)
+- 뉴스 캐스케이드/AI 라우트 GROQ quota: 캐시로 완화됨, 근본 해결은 Redis
