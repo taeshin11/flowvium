@@ -1,0 +1,70 @@
+iter131 — 2026-04-25
+Primary outcome: 경제캘린더 live 업그레이드
+
+Drift check:
+- iter128: feature (애널리스트 목표가) → RESET
+- iter129: i18n (ReportPage) → streak=1
+- iter130: i18n (final sweep) → streak=2
+- iter131: feature ✓ (3-streak 방지)
+→ iter132: i18n 가능 (streak 리셋됨)
+
+==== [1] 핵심 변경 ====
+
+src/app/api/economic-calendar/route.ts (신규):
+- Finnhub /calendar/economic?from=...&to=...&token=...
+- impact "3"→high/"2"→medium/"1"→low 정규화
+- country 필터 (기본 US, 쉼표 구분 복수 가능)
+- Redis 4h TTL (flowvium:econ-cal:v1:{from}:{to}:{country})
+- CDN s-maxage=14400, stale-while-revalidate=1800
+- 응답: EconCalResponse { events, from, to, country, cached, source, updatedAt }
+- FINNHUB_KEY 없으면 graceful empty 반환
+
+src/components/intelligence/EconCalendarSection.tsx (업그레이드):
+- live API fetch → /api/economic-calendar?from=TODAY&to=TODAY+14
+- source === 'finnhub' && events.length > 0 → LIVE 배지 표시
+- 정적 데이터 fallback (Finnhub 응답 없거나 empty 시)
+- actual/estimate/prev 값 표시 (fmtNum 함수)
+- UTC time → ET 변환 (UTC-4 DST)
+- 새로고침 버튼, 로딩 스피너
+- high/medium impact만 표시 (low 필터링)
+- tsc --noEmit: 0 errors ✓
+
+messages/*.json (16개):
+- intelligence namespace: ecLive, ecStatic, ecLoading, ecRefresh, ecFootnoteLive 5키
+
+FEATURES.md: EconCalendarSection 설명 업데이트 + /api/economic-calendar 행 추가
+METRICS.md: #323 live 상태로 업그레이드 + #327 신설
+
+==== [2] 정확도 프로브 ====
+
+[accuracy probe] metric=spy.close source=Yahoo_v8 direct_value=713.94 our_value=713.94 delta=0 tolerance=5 → OK
+[accuracy probe] metric=nvda.close source=Yahoo_v8 direct_value=208.27 our_value=208.27 delta=0 tolerance=5 → OK
+[accuracy probe] metric=cnn.fg source=CNN status=418 (bot detection) → NOT TESTABLE (Varnish 418 from Windows curl)
+  → CNN probe blocked by Varnish. Vercel 환경에서는 정상 작동 확인됨 (이전 iter에서 검증)
+
+==== [3] 코드베이스 상태 ====
+
+- TypeScript: tsc --noEmit 0 errors ✓
+- i18n: 16개 언어 경제 캘린더 키 추가
+- 새 API: /api/economic-calendar (Finnhub, Redis 4h)
+- 정적→live 업그레이드 (fallback 유지)
+
+==== [4] 신규 지표 ====
+
+Metric 323: 정적→live 업그레이드 (Finnhub /calendar/economic)
+Metric 327: 경제지표 실제값 (actual vs estimate vs prev) — 신설
+
+==== 커밋 목록 ====
+
+25f4efa feat(economic-calendar): live Finnhub 경제 캘린더 — 정적 hardcode 대체, actual vs estimate 표시
+
+==== 다음 iter 방향 ====
+
+iter132 (i18n 가능, streak=1):
+- IntelligencePage line 161 title="CNN 공식..." hover tooltip 한글 잔존 (minor)
+- 기타 렌더 한글 잔존 여부 전수조사
+
+OR iter132 feature/perf:
+- 홈페이지 경제 캘린더 위젯 (다음 1~2개 이벤트 preview)
+- VIX term structure (VIX vs VIX3M)
+- Earnings streak/beat-rate 차트
