@@ -1,4 +1,5 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 /**
  * /api/capital-flows
  *
@@ -110,7 +111,7 @@ async function fetchPricesTwelve(ticker: string, apiKey: string): Promise<number
 async function fetchPricesYahoo(ticker: string): Promise<number[]> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=120d`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0' },
+    headers: YAHOO_HEADERS,
     signal: AbortSignal.timeout(8000),
     cache: 'no-store',
   });
@@ -152,7 +153,7 @@ async function fetchPricesBatchYahoo(tickers: string[]): Promise<Record<string, 
   if (tickers.length === 0) return {};
   const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${tickers.join(',')}&range=6mo&interval=1d`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0' },
+    headers: YAHOO_HEADERS,
     signal: AbortSignal.timeout(12000),
     cache: 'no-store',
   });

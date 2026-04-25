@@ -1,9 +1,22 @@
 import { NextResponse } from 'next/server';
 import { createMemoryCache } from '@/lib/memory-cache';
+import { Redis } from '@upstash/redis';
+import { logger, loggedRedisSet } from '@/lib/logger';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min memory
+const REDIS_TTL = 6 * 60 * 60;       // 6h Redis
+const STALE_KEY = 'flowvium:commodity-curve:stale';
+const REDIS_KEY = 'flowvium:commodity-curve:v1';
 const mem = createMemoryCache<object>('commodity-curve', CACHE_TTL_MS);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1500, stale-while-revalidate=120' };
+
+function createRedis(): Redis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (!url || !token) return null;
+  return new Redis({ url, token });
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -27,16 +40,11 @@ function contractSymbols(prefix: string, exchange: string, startMonth: number, s
   return results;
 }
 
-const YHDR = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept': 'application/json',
-};
-
 async function fetchPrice(ticker: string): Promise<{ ticker: string; price: number; label: string } | null> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;
     const res = await fetch(url, {
-      headers: YHDR,
+      headers: YAHOO_HEADERS,
       signal: AbortSignal.timeout(6000),
       cache: 'no-store',
     });
@@ -74,6 +82,17 @@ export async function GET() {
   const cached = mem.get(cacheKey);
   if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
 
+  const redis = createRedis();
+  if (redis) {
+    try {
+      const rCached = await redis.get(REDIS_KEY);
+      if (rCached) {
+        mem.set(cacheKey, rCached as object);
+        return NextResponse.json({ ...(rCached as object), cached: true }, { headers: CDN_HEADERS });
+      }
+    } catch (e) { logger.warn('commodity-curve', 'redis_read_error', { error: e }); }
+  }
+
   const now = new Date();
   const curMonth = now.getMonth();  // 0-indexed
   const curYear = now.getFullYear();
@@ -110,8 +129,22 @@ export async function GET() {
   const goldCurve = buildCurve(goldResults, 'gold', 'Gold (COMEX)', 'USD/oz');
 
   const result = { curves: [oilCurve, goldCurve], updatedAt: now.toISOString(), cached: false };
-  if (oilCurve.curve.length > 0 || goldCurve.curve.length > 0) {
+  const hasData = oilCurve.curve.length > 0 || goldCurve.curve.length > 0;
+  if (hasData) {
     mem.set(cacheKey, result);
+    if (redis) {
+      await loggedRedisSet(redis, 'commodity-curve', REDIS_KEY, result, { ex: REDIS_TTL });
+      await loggedRedisSet(redis, 'commodity-curve', STALE_KEY, result, {});
+    }
+  } else if (redis) {
+    // Yahoo returned no data — try stale fallback
+    try {
+      const stale = await redis.get(STALE_KEY);
+      if (stale) {
+        logger.info('commodity-curve', 'stale_fallback', { note: 'Yahoo returned 0 pts, serving stale' });
+        return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+      }
+    } catch (e) { logger.warn('commodity-curve', 'stale_read_error', { error: e }); }
   }
 
   return NextResponse.json(result, { headers: CDN_HEADERS });

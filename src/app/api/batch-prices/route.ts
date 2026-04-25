@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ type PriceMap = Record<string, PriceEntry>;
 
 const TICKER_CACHE = new Map<string, { entry: PriceEntry; expiresAt: number }>();
 const TTL = 5 * 60 * 1000;
-const YHDR = { 'User-Agent': 'Mozilla/5.0' };
+const YHDR = YAHOO_HEADERS;
 
 async function fetchV8(ticker: string): Promise<PriceEntry> {
   const res = await fetch(

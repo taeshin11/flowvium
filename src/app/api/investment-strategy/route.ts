@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider } from '@/lib/ai-providers';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -76,7 +77,7 @@ async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
       {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' },
+        headers: YAHOO_HEADERS,
         signal: AbortSignal.timeout(4000),
         cache: 'no-store',
       }
@@ -108,7 +109,7 @@ async function getLivePrices(): Promise<Map<string, LivePrice>> {
     const fields = 'regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow';
     const res = await fetch(
       `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(CANDIDATE_TICKERS.join(','))}&fields=${fields}`,
-      { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
+      { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(8000), cache: 'no-store' }
     );
     if (res.ok) {
       const data = await res.json();

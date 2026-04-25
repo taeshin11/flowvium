@@ -20,6 +20,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { logMetrics } from '@/lib/metrics-db';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
 export const dynamic = 'force-dynamic';
 
@@ -935,7 +936,7 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
     const t0 = Date.now();
     const [yahooRes, ourRes] = await Promise.all([
       fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=5d', {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', Accept: 'application/json' },
+        headers: YAHOO_HEADERS,
         signal: AbortSignal.timeout(8000),
         cache: 'no-store',
       }),

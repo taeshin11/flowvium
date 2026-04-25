@@ -8,6 +8,11 @@
  */
 import { logger } from './logger';
 
+export const YAHOO_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'application/json',
+};
+
 export interface YFHeatmapQuote {
   symbol: string;
   changePct: number | null;
@@ -35,7 +40,7 @@ export async function fetchYFNonUSQuotes(
         try {
           const res = await fetch(
             `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahoSym)}?interval=1d&range=2d`,
-            { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store', signal: AbortSignal.timeout(8000) }
+            { headers: YAHOO_HEADERS, cache: 'no-store', signal: AbortSignal.timeout(8000) }
           );
           if (!res.ok) return null;
           const json = await res.json();

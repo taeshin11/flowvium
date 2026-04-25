@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { callAI } from '@/lib/ai-providers';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -36,7 +37,7 @@ function staleRedisCacheKey(ticker: string): string {
 async function fetchYahooNews(ticker: string): Promise<NewsItem[]> {
   const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(ticker)}&newsCount=8&quotesCount=0`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0' },
+    headers: YAHOO_HEADERS,
     signal: AbortSignal.timeout(8000),
     cache: 'no-store',
   });

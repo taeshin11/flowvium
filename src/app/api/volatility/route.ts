@@ -1,4 +1,5 @@
 import { logger, loggedRedisSet } from '@/lib/logger';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 /**
  * /api/volatility
  *
@@ -46,10 +47,7 @@ export interface VolatilityData {
   cached: boolean;
 }
 
-const YF_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-  'Accept': 'application/json',
-};
+const YF_HEADERS = YAHOO_HEADERS;
 
 async function fetchCurrentPrice(symbol: string): Promise<number | null> {
   try {

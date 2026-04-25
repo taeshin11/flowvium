@@ -14,7 +14,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { allCompanies } from '@/data/companies';
-import { type MarketCapBand } from '@/lib/yahoo-finance';
+import { type MarketCapBand, YAHOO_HEADERS } from '@/lib/yahoo-finance';
 export const dynamic = 'force-dynamic';
 
 const CACHE_KEY = 'flowvium:market-caps:v2';
@@ -43,7 +43,7 @@ async function fetchYahooCap(ticker: string): Promise<number | null> {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
       {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)' },
+        headers: YAHOO_HEADERS,
         signal: AbortSignal.timeout(4000),
         cache: 'no-store',
       }

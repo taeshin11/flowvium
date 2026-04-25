@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createMemoryCache } from '@/lib/memory-cache';
+import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 min
 const mem = createMemoryCache<object>('stock-price', CACHE_TTL_MS);
@@ -16,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=5d`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+      headers: YAHOO_HEADERS,
       signal: AbortSignal.timeout(8000),
       cache: 'no-store',
     });
