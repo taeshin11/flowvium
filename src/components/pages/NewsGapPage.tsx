@@ -147,7 +147,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
         <div className="lg:col-span-4 space-y-2.5">
           <div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-cf-text-secondary flex items-center gap-1"><TrendingUp className="w-3 h-3" /> 기관 활동</span>
+              <span className="text-cf-text-secondary flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {t('ibActivity')}</span>
               <span className="font-bold text-cf-primary">{entry.ibActivityScore}</span>
             </div>
             <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -156,7 +156,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
           </div>
           <div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-cf-text-secondary flex items-center gap-1"><Newspaper className="w-3 h-3" /> 미디어 보도</span>
+              <span className="text-cf-text-secondary flex items-center gap-1"><Newspaper className="w-3 h-3" /> {t('mediaCoverage')}</span>
               <span className="font-bold text-cf-text-primary">{entry.mediaScore}</span>
             </div>
             <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -165,7 +165,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
           </div>
           <div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-cf-text-secondary flex items-center gap-1 font-bold"><Eye className="w-3 h-3" /> 갭 점수</span>
+              <span className="text-cf-text-secondary flex items-center gap-1 font-bold"><Eye className="w-3 h-3" /> {t('gapScore')}</span>
               <span className={`font-bold text-lg ${entry.gapScore >= 70 ? 'text-cf-accent' : entry.gapScore >= 40 ? 'text-cf-primary' : 'text-cf-success'}`}>
                 {entry.gapScore}
               </span>
@@ -177,7 +177,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
         {/* Preview: top article + top IB action */}
         <div className="lg:col-span-4 grid grid-cols-2 gap-3 text-xs">
           <div>
-            <p className="font-bold text-cf-text-secondary uppercase tracking-wider mb-1.5">미디어 보도</p>
+            <p className="font-bold text-cf-text-secondary uppercase tracking-wider mb-1.5">{t('mediaCoverage')}</p>
             {entry.recentArticles[0] ? (
               <div>
                 <p className="text-cf-text-secondary leading-relaxed mb-1">
@@ -192,11 +192,11 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
                 </span>
               </div>
             ) : (
-              <p className="text-cf-text-secondary italic">최소 보도</p>
+              <p className="text-cf-text-secondary italic">{t('minimalCoverage')}</p>
             )}
           </div>
           <div>
-            <p className="font-bold text-cf-primary uppercase tracking-wider mb-1.5">기관 행동</p>
+            <p className="font-bold text-cf-primary uppercase tracking-wider mb-1.5">{t('ibActions')}</p>
             <p className="text-cf-text-primary leading-relaxed">{entry.ibActions[0]}</p>
           </div>
         </div>
@@ -208,7 +208,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
             className="flex items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 px-2.5 py-1 rounded-lg transition-colors border border-violet-200"
           >
             <BarChart2 className="w-3 h-3" />
-            수급
+            {t('supply')}
           </button>
           <button
             onClick={() => setExpanded((v) => !v)}
@@ -226,12 +226,12 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
           {/* 미디어 보도 전체 */}
           <div>
             <h4 className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <Newspaper className="w-3.5 h-3.5" /> 미디어 보도
-              {liveNews !== null && <span className="text-[9px] text-emerald-500 font-normal">실시간</span>}
+              <Newspaper className="w-3.5 h-3.5" /> {t('mediaCoverage')}
+              {liveNews !== null && <span className="text-[9px] text-emerald-500 font-normal">{t('realtimeBadge')}</span>}
               {newsLoading && <RefreshCw className="w-3 h-3 animate-spin text-cf-text-secondary" />}
             </h4>
             {newsLoading && !liveNews ? (
-              <p className="text-xs text-cf-text-secondary italic">뉴스 로딩 중…</p>
+              <p className="text-xs text-cf-text-secondary italic">{t('newsLoading')}</p>
             ) : liveNews && liveNews.length > 0 ? (
               <div className="space-y-2">
                 {liveNews.slice(0, 6).map((article, i) => (
@@ -252,11 +252,11 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
                 <a href={`https://news.google.com/search?q=${encodeURIComponent(entry.companyName + ' ' + entry.ticker)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-cf-primary hover:underline mt-1">
-                  Google News에서 더 보기 <ExternalLink className="w-3 h-3" />
+                  {t('viewMoreGoogleNews')} <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             ) : entry.recentArticles.length === 0 ? (
-              <p className="text-xs text-cf-text-secondary italic">최근 30일 보도 없음 — 강한 침묵 신호</p>
+              <p className="text-xs text-cf-text-secondary italic">{t('noNewsIn30Days')}</p>
             ) : (
               <div className="space-y-2">
                 {entry.recentArticles.map((article, i) => {
@@ -279,7 +279,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
                 <a href={`https://news.google.com/search?q=${encodeURIComponent(entry.companyName + ' ' + entry.ticker)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-cf-primary hover:underline mt-1">
-                  Google News에서 더 보기 <ExternalLink className="w-3 h-3" />
+                  {t('viewMoreGoogleNews')} <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             )}
@@ -321,7 +321,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
                             </span>
                           )}
                           {o.action === 'new' && (
-                            <span className="ml-1 text-[10px] text-blue-600">↑신규</span>
+                            <span className="ml-1 text-[10px] text-blue-600">↑{t('actionNew')}</span>
                           )}
                         </td>
                         <td className="py-2 px-3 text-center">
@@ -352,7 +352,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
             </div>
             <a href={edgarTicker(entry.ticker)} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs text-cf-text-secondary hover:text-cf-primary mt-2">
-              EDGAR에서 {entry.ticker} 관련 전체 13F 보기 <ExternalLink className="w-3 h-3" />
+              {t('viewAll13F', { ticker: entry.ticker })} <ExternalLink className="w-3 h-3" />
             </a>
           </div>
 
@@ -375,19 +375,19 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
               <p className="text-xs font-bold text-cf-text-primary mb-2">{t('signalStrength')}</p>
               <div className="space-y-1.5 text-xs text-cf-text-secondary">
                 <div className="flex justify-between">
-                  <span>기관 활동 수준</span>
+                  <span>{t('ibActivity')}</span>
                   <span className={`font-bold ${entry.ibActivityLevel === 'high' ? 'text-cf-primary' : 'text-cf-text-secondary'}`}>
                     {entry.ibActivityLevel === 'high' ? t('activityHigh') : entry.ibActivityLevel === 'medium' ? t('activityMedium') : t('activityLow')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>미디어 커버리지</span>
+                  <span>{t('mediaCoverage')}</span>
                   <span className={`font-bold ${entry.mediaScore <= 20 ? 'text-cf-accent' : 'text-cf-text-secondary'}`}>
                     {entry.mediaScore <= 20 ? t('coverageMinimal') : entry.mediaScore <= 50 ? t('activityLow') : t('activityMedium')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>갭 점수</span>
+                  <span>{t('gapScore')}</span>
                   <span className={`font-bold text-sm ${entry.gapScore >= 70 ? 'text-cf-accent' : 'text-cf-primary'}`}>
                     {entry.gapScore} / 100
                   </span>
@@ -405,23 +405,23 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
             <div className="bg-white rounded-xl border border-cf-border/60 p-4">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                  <BarChart2 className="w-3.5 h-3.5" /> 섹터 현황 — {sc.name}
+                  <BarChart2 className="w-3.5 h-3.5" /> {t('sectorStatus', { name: sc.name })}
                 </h4>
                 <a href={sc.googleNewsUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-cf-primary hover:underline">
-                  <Globe className="w-3 h-3" /> 섹터 뉴스
+                  <Globe className="w-3 h-3" /> {t('sectorNews')}
                 </a>
               </div>
 
               {/* Phase */}
               <div className="bg-cf-primary/5 rounded-lg px-3 py-2 mb-3 text-xs font-medium text-cf-primary">
-                현재 국면: {sc.phase}
+                {t('sectorCurrentPhase', { phase: sc.phase })}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Key data */}
                 <div>
-                  <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">핵심 지표</p>
+                  <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">{t('keyMetrics')}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {sc.keyData.map((kd, i) => (
                       <div key={i} className="bg-gray-50 rounded-lg p-2 border border-cf-border/30">
@@ -439,7 +439,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
 
                 {/* Themes */}
                 <div>
-                  <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">핵심 테마</p>
+                  <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">{t('keyThemes')}</p>
                   <ul className="space-y-1">
                     {sc.themes.map((theme, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-xs text-cf-text-secondary leading-relaxed">
@@ -453,7 +453,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
                 {/* ETFs + Catalysts */}
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">관련 ETF</p>
+                    <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">{t('relatedEtf')}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {sc.etfs.map((etf) => (
                         <span key={etf} className="px-2 py-0.5 rounded-full bg-cf-primary/10 text-cf-primary text-xs font-mono font-bold">
@@ -463,7 +463,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">다음 주요 이벤트</p>
+                    <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider mb-2">{t('nextEvents')}</p>
                     <ul className="space-y-1">
                       {sc.nextCatalysts.map((cat, i) => (
                         <li key={i} className="flex items-start gap-1.5 text-xs text-cf-text-secondary leading-relaxed">
@@ -553,7 +553,7 @@ function NewsCascadeSection() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-amber-500" />
-          <h2 className="text-lg font-heading font-bold text-cf-text-primary">실시간 뉴스 Cascade 분석</h2>
+          <h2 className="text-lg font-heading font-bold text-cf-text-primary">{t('cascadeTitle')}</h2>
           <span className="text-xs text-cf-text-secondary bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
             AI (EXAONE)
           </span>
@@ -579,14 +579,14 @@ function NewsCascadeSection() {
       {!loading && (fetchError || articles.length === 0) && (
         <div className="cf-card p-6 text-center space-y-3">
           <p className="text-cf-text-secondary text-sm">
-            {fetchError ? '뉴스를 불러오는 중 오류가 발생했습니다.' : '현재 표시할 뉴스가 없습니다.'}
+            {fetchError ? t('fetchErrorMsg') : t('noNews')}
           </p>
           {fetchError && (
             <button
               onClick={load}
               className="text-xs font-semibold px-4 py-2 rounded-lg bg-cf-primary/10 text-cf-primary border border-cf-primary/20 hover:bg-cf-primary/20 transition-colors"
             >
-              다시 시도
+              {t('retryBtn')}
             </button>
           )}
         </div>
@@ -647,7 +647,7 @@ function NewsCascadeSection() {
                       </div>
                       <div className="flex-1">
                         <span className={`text-[10px] font-bold mr-1 ${magColor[c.magnitude]}`}>
-                          [{c.magnitude === 'high' ? '강' : c.magnitude === 'medium' ? '중' : '약'}]
+                          [{c.magnitude === 'high' ? t('magHigh') : c.magnitude === 'medium' ? t('magMedium') : t('magLow')}]
                         </span>
                         <span className="text-cf-text-secondary">{c.reason}</span>
                         <span className="ml-1 text-[10px] text-cf-text-muted">({c.timeframe})</span>
@@ -720,15 +720,15 @@ export default function NewsGapPage({
           <ShareButtons title="News Gap Analyzer - The Silence IS the Signal | Flowvium" />
           {source === 'cached' ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium border border-blue-200">
-              <Database className="w-3.5 h-3.5" />실시간 데이터 ({updatedTickers}개 티커) · {new Date(lastUpdated).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <Database className="w-3.5 h-3.5" />{t('realtimeData', { n: updatedTickers })} · {new Date(lastUpdated).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           ) : source === 'live' ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold border border-green-200">
-              <Zap className="w-3.5 h-3.5" />방금 갱신 · {updatedTickers}개 티커 · {new Date(lastUpdated).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <Zap className="w-3.5 h-3.5" />{t('justUpdated', { n: updatedTickers })} · {new Date(lastUpdated).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200" title="Alpha Vantage 뉴스·EDGAR 13F 데이터가 아직 수집되지 않아 리서치 기반 정적 데이터를 표시 중입니다. 다음 cron 실행(02:00 UTC)에 갱신 예정">
-              <Database className="w-3.5 h-3.5" />리서치 기준 데이터 (2026-Q1) · 자동 갱신 대기 중
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200" title={t('staticDataTooltip')}>
+              <Database className="w-3.5 h-3.5" />{t('staticDataPending')}
             </div>
           )}
         </div>
@@ -736,10 +736,8 @@ export default function NewsGapPage({
 
         {/* Data freshness explainer */}
         <div className="max-w-2xl mx-auto mt-4 text-[11px] text-cf-text-muted bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-          <span className="font-semibold text-cf-text-secondary">데이터 갱신 주기:</span>
-          {' '}기관 지분(EDGAR 13F) — 매일 02:00 UTC 크론 ·{' '}
-          미디어 커버리지(Alpha Vantage) — 매일 25개 티커 배치 ·{' '}
-          정적 기준 데이터는 2026-Q1 리서치 기반
+          <span className="font-semibold text-cf-text-secondary">{t('dataScheduleLabel')}</span>
+          {' '}{t('dataScheduleDetail')}
         </div>
       </div>
 
