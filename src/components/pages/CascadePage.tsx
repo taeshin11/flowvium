@@ -22,21 +22,19 @@ export default function CascadePage() {
 
   useEffect(() => {
     const tickers = Array.from(new Set(cascadePatterns.map(p => p.leaderTicker)));
+    if (!tickers.length) return;
     const controller = new AbortController();
-    Promise.allSettled(
-      tickers.map(ticker =>
-        fetch(`/api/stock-price/${ticker}`, { signal: controller.signal })
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(d => ({ ticker, price: d.price as number | null, changePct: d.changePct as number | null, currency: d.currency as string }))
-      )
-    ).then(results => {
-      if (controller.signal.aborted) return;
-      const map = new Map<string, LeaderPrice>();
-      for (const r of results) {
-        if (r.status === 'fulfilled') map.set(r.value.ticker, r.value);
-      }
-      setLeaderPrices(map);
-    });
+    fetch(`/api/batch-prices?tickers=${tickers.join(',')}`, { signal: controller.signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((d: { prices: Record<string, { price: number | null; changePct: number | null }> }) => {
+        if (controller.signal.aborted) return;
+        const map = new Map<string, LeaderPrice>();
+        for (const [ticker, entry] of Object.entries(d.prices ?? {})) {
+          map.set(ticker, { price: entry.price, changePct: entry.changePct, currency: 'USD' });
+        }
+        setLeaderPrices(map);
+      })
+      .catch(() => {});
     return () => controller.abort();
   }, []);
 

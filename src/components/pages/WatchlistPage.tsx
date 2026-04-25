@@ -54,7 +54,7 @@ export default function WatchlistPage() {
     setTickers(loadTickers());
   }, []);
 
-  const fetchPrice = async (ticker: string, signal: AbortSignal): Promise<PriceData> => {
+  const fetchSingle = async (ticker: string, signal: AbortSignal): Promise<PriceData> => {
     try {
       const res = await fetch(`/api/stock-price/${encodeURIComponent(ticker)}`, { signal });
       if (signal.aborted) return { ticker, price: null, change: null, changePct: null, currency: 'USD', marketState: null, updatedAt: new Date().toISOString() };
@@ -75,22 +75,38 @@ export default function WatchlistPage() {
     abortRef.current = controller;
     setRefreshing(true);
 
-    // Mark all as loading
     setPrices(prev => {
       const next = { ...prev };
       for (const t of tickerList) next[t] = { ...(prev[t] ?? {}), ticker: t, loading: true, price: prev[t]?.price ?? null, change: prev[t]?.change ?? null, changePct: prev[t]?.changePct ?? null, currency: 'USD', marketState: null, updatedAt: prev[t]?.updatedAt ?? '' };
       return next;
     });
 
-    const results = await Promise.all(tickerList.map(tk => fetchPrice(tk, controller.signal)));
-    if (controller.signal.aborted) return;
-
-    setPrices(prev => {
-      const next = { ...prev };
-      for (const r of results) next[r.ticker] = r;
-      return next;
-    });
-    setRefreshing(false);
+    try {
+      const res = await fetch(`/api/batch-prices?tickers=${tickerList.join(',')}`, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const d = res.ok ? await res.json() : { prices: {} };
+      const now = new Date().toISOString();
+      setPrices(prev => {
+        const next = { ...prev };
+        for (const tk of tickerList) {
+          const entry = d.prices?.[tk];
+          next[tk] = entry
+            ? { ticker: tk, price: entry.price, change: entry.change, changePct: entry.changePct, currency: 'USD', marketState: entry.marketState ?? null, updatedAt: now, loading: false }
+            : { ticker: tk, price: null, change: null, changePct: null, currency: 'USD', marketState: null, updatedAt: now, loading: false, error: 'not found' };
+        }
+        return next;
+      });
+    } catch {
+      if (!controller.signal.aborted) {
+        const now = new Date().toISOString();
+        setPrices(prev => {
+          const next = { ...prev };
+          for (const tk of tickerList) next[tk] = { ...prev[tk], ticker: tk, loading: false, updatedAt: now };
+          return next;
+        });
+      }
+    }
+    if (!controller.signal.aborted) setRefreshing(false);
   };
 
   // Auto-fetch on mount + interval
@@ -125,7 +141,7 @@ export default function WatchlistPage() {
 
     // Fetch price for the new ticker
     const controller = new AbortController();
-    const data = await fetchPrice(sym, controller.signal);
+    const data = await fetchSingle(sym, controller.signal);
     if (data.error && !data.price) {
       setAddError(t('invalidTicker'));
       // Remove it

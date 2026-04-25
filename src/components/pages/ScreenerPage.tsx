@@ -279,6 +279,13 @@ export default function ScreenerPage() {
     });
   }, [signals, shortMap, nportMap, priceMap]);
 
+  // Stable ticker list derived from signals only — NOT priceMap — to avoid circular fetch loop.
+  // deduped depends on priceMap, so using deduped as fetch dep would re-trigger on every price update.
+  const tickerKey = useMemo(
+    () => Array.from(new Set(signals.map(s => s.ticker))).sort().join(','),
+    [signals],
+  );
+
   const sectors = useMemo(() => ['all', ...Array.from(new Set(deduped.map(r => r.sector)))], [deduped]);
 
   const filtered = useMemo(() => {
@@ -334,9 +341,9 @@ export default function ScreenerPage() {
   const topCsuite = useMemo(() => insiderRows.filter(r => r.isCsuite).slice(0, 5), [insiderRows]);
   const topClustered = useMemo(() => [...insiderRows].sort((a, b) => b.tradeCount - a.tradeCount).slice(0, 5), [insiderRows]);
 
-  // ── Prices — single batch call covers all visible rows + top5 cards ─────────
+  // ── Prices — single batch call; deps on tickerKey (signals-derived), NOT deduped ──
   useEffect(() => {
-    const allTickers = Array.from(new Set(deduped.map(r => r.ticker)));
+    const allTickers = tickerKey.split(',').filter(Boolean);
     if (!allTickers.length) return;
     const ctrl = new AbortController();
     setPricesLoaded(false);
@@ -353,7 +360,7 @@ export default function ScreenerPage() {
       })
       .catch(() => { if (!ctrl.signal.aborted) setPricesLoaded(true); });
     return () => ctrl.abort();
-  }, [deduped]);
+  }, [tickerKey]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');

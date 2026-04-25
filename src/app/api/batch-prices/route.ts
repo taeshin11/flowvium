@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-interface PriceEntry { price: number | null; change: number | null; changePct: number | null; }
+interface PriceEntry { price: number | null; change: number | null; changePct: number | null; marketState: string | null; }
 type PriceMap = Record<string, PriceEntry>;
 
 const TICKER_CACHE = new Map<string, { entry: PriceEntry; expiresAt: number }>();
@@ -24,7 +24,7 @@ async function fetchV8(ticker: string): Promise<PriceEntry> {
   const change = price != null && prev != null ? parseFloat((price - prev).toFixed(2)) : null;
   const changePct = price != null && prev != null && prev > 0
     ? parseFloat(((price - prev) / prev * 100).toFixed(2)) : null;
-  return { price, change, changePct };
+  return { price, change, changePct, marketState: meta?.marketState ?? null };
 }
 
 export async function GET(req: Request) {
@@ -62,6 +62,7 @@ export async function GET(req: Request) {
             price: q.regularMarketPrice ?? null,
             change: q.regularMarketChange ?? null,
             changePct: q.regularMarketChangePercent ?? null,
+            marketState: q.marketState ?? null,
           };
           prices[q.symbol] = entry;
           TICKER_CACHE.set(q.symbol, { entry, expiresAt });
@@ -79,7 +80,7 @@ export async function GET(req: Request) {
             prices[ticker] = entry;
             TICKER_CACHE.set(ticker, { entry, expiresAt });
           } catch {
-            prices[ticker] = { price: null, change: null, changePct: null };
+            prices[ticker] = { price: null, change: null, changePct: null, marketState: null };
           }
         })
       );
