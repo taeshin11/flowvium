@@ -1124,7 +1124,11 @@
     "actionBuy": "Kaufen",
     "actionWatch": "Beobachten",
     "buyNow": "Jetzt kaufen",
-    "dataAsOf": "Daten vom:"
+    "dataAsOf": "Daten vom:",
+    "priceExpensive": "+{pct}% überteuert",
+    "priceEntry": "Einstiegszone",
+    "priceCheap": "{pct}% Rabatt",
+    "expandStopLoss": "Stop-Loss"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "Kein Insider-Kauf in diesem Zeitraum",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
+    "topInsiderSqueezeSubtitle": "Insider-Kauf + Short-Interest"
   },
   "short": {
     "title": "Leerverkäufe · Short Squeeze",

@@ -1124,7 +1124,11 @@
     "actionBuy": "खरीदें",
     "actionWatch": "देखें",
     "buyNow": "अभी खरीदें",
-    "dataAsOf": "डेटा तक:"
+    "dataAsOf": "डेटा तक:",
+    "priceExpensive": "+{pct}% महंगा",
+    "priceEntry": "प्रवेश क्षेत्र",
+    "priceCheap": "{pct}% छूट",
+    "expandStopLoss": "स्टॉप लॉस"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "इस अवधि में कोई इनसाइडर खरीद नहीं",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
+    "topInsiderSqueezeSubtitle": "इनसाइडर + शॉर्ट इंटरेस्ट"
   },
   "short": {
     "title": "शॉर्ट सेलिंग · स्क्वीज़",

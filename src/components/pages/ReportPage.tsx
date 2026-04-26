@@ -46,6 +46,37 @@ function confidenceBadge(c: string) {
   return 'bg-amber-100 text-amber-700';
 }
 
+function parseEntryZone(zone: string): { lower: number | null; upper: number | null } {
+  const rangeMatch = zone.match(/\$?([\d,]+(?:\.\d+)?)\s*[-–]\s*\$?([\d,]+(?:\.\d+)?)/);
+  if (rangeMatch) {
+    return {
+      lower: parseFloat(rangeMatch[1].replace(',', '')),
+      upper: parseFloat(rangeMatch[2].replace(',', '')),
+    };
+  }
+  const single = zone.match(/\$?([\d,]+(?:\.\d+)?)/);
+  if (single) {
+    const v = parseFloat(single[1].replace(',', ''));
+    return { lower: v * 0.98, upper: v * 1.02 };
+  }
+  return { lower: null, upper: null };
+}
+
+function safetyBadge(currentPrice: number | undefined, entryZone: string, t: Tr): { label: string; cls: string } | null {
+  if (!currentPrice) return null;
+  const { lower, upper } = parseEntryZone(entryZone);
+  if (!upper) return null;
+  if (currentPrice > upper * 1.03) {
+    const overPct = Math.round((currentPrice - upper) / upper * 100);
+    return { label: t('priceExpensive', { pct: overPct }), cls: 'bg-red-50 text-red-600 border border-red-200' };
+  }
+  if (!lower || currentPrice >= lower * 0.97) {
+    return { label: t('priceEntry'), cls: 'bg-amber-50 text-amber-700 border border-amber-200' };
+  }
+  const discPct = Math.round((lower - currentPrice) / lower * 100);
+  return { label: t('priceCheap', { pct: discPct }), cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200' };
+}
+
 function impactBadge(impact: string) {
   if (impact === 'high') return 'bg-red-100 text-red-700';
   if (impact === 'low') return 'bg-gray-100 text-gray-600';
@@ -91,12 +122,10 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
   const t = useTranslations('report');
   const [expanded, setExpanded] = useState(false);
   const confidenceLabel = item.confidence === 'high' ? t('confidenceHigh') : item.confidence === 'low' ? t('confidenceLow') : t('confidenceMedium');
+  const badge = safetyBadge(item.currentPrice, item.entryZone, t as Tr);
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow">
-      <div
-        className="p-4 cursor-pointer"
-        onClick={() => setExpanded(v => !v)}
-      >
+      <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
@@ -124,26 +153,34 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           </div>
         </div>
         <p className="text-xs text-gray-600 mt-2 leading-relaxed">{item.rationale}</p>
+
+        {/* Entry zone + target — always visible */}
+        <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-gray-400">{t('entryZone')}</span>
+            <span className="font-semibold text-gray-800 font-mono">{item.entryZone}</span>
+          </div>
+          <span className="text-gray-200">·</span>
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-gray-400">{t('targetPrice')}</span>
+            <span className="font-semibold text-emerald-600 font-mono">{item.target}</span>
+          </div>
+          {badge && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${badge.cls}`}>{badge.label}</span>
+          )}
+        </div>
       </div>
+
+      {/* Expanded: stop loss only */}
       {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-3 gap-3 text-center text-xs">
-          <div>
-            <p className="text-gray-400">{t('entryZone')}</p>
-            <p className="font-semibold text-gray-800 mt-0.5">{item.entryZone}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">{t('stopLoss')}</p>
-            <p className="font-semibold text-red-600 mt-0.5">{item.stopLoss}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">{t('targetPrice')}</p>
-            <p className="font-semibold text-emerald-600 mt-0.5">{item.target}</p>
-          </div>
+        <div className="border-t border-gray-100 bg-gray-50 px-4 py-2.5 flex items-center gap-2 text-xs">
+          <span className="text-gray-400">{t('stopLoss')}</span>
+          <span className="font-semibold text-red-600 font-mono">{item.stopLoss}</span>
         </div>
       )}
       <div className="px-4 pb-2 flex justify-end">
         <button onClick={() => setExpanded(v => !v)} className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
-          {expanded ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('expand')}</>}
+          {expanded ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('expandStopLoss')}</>}
         </button>
       </div>
     </div>
@@ -445,7 +482,6 @@ export default function ReportPage() {
               <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-violet-500" />
                 {t('portfolioTitle')}
-                <span className="text-xs text-gray-400 font-normal">{t('clickToExpand')}</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {data.portfolio.map((item, i) => (

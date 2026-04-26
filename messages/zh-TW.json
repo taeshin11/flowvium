@@ -1124,7 +1124,11 @@
     "actionBuy": "買入",
     "actionWatch": "觀望",
     "buyNow": "立即買入推薦",
-    "dataAsOf": "數據截至:"
+    "dataAsOf": "數據截至:",
+    "priceExpensive": "+{pct}%高估",
+    "priceEntry": "進場區間",
+    "priceCheap": "{pct}%折價",
+    "expandStopLoss": "查看停損"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "該期間無內部人買入",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 軋空候選 — 內部人買進",
+    "topInsiderSqueezeSubtitle": "內部人買進+空頭興趣"
   },
   "short": {
     "title": "放空 · 軋空",

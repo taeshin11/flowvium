@@ -1124,7 +1124,11 @@
     "actionBuy": "买入",
     "actionWatch": "观望",
     "buyNow": "立即买入推荐",
-    "dataAsOf": "数据截至:"
+    "dataAsOf": "数据截至:",
+    "priceExpensive": "+{pct}%高估",
+    "priceEntry": "进场区间",
+    "priceCheap": "{pct}%折价",
+    "expandStopLoss": "查看止损"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "该期间无内部人买入",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 轧空候选 — 内部人买入",
+    "topInsiderSqueezeSubtitle": "内部人买入+空头兴趣"
   },
   "short": {
     "title": "做空 · 空头逼仓",

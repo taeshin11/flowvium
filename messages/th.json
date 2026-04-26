@@ -1124,7 +1124,11 @@
     "actionBuy": "ซื้อ",
     "actionWatch": "จับตา",
     "buyNow": "ซื้อตอนนี้",
-    "dataAsOf": "ข้อมูล ณ:"
+    "dataAsOf": "ข้อมูล ณ:",
+    "priceExpensive": "+{pct}% แพง",
+    "priceEntry": "โซนเข้าซื้อ",
+    "priceCheap": "{pct}% ถูก",
+    "expandStopLoss": "จุดตัดขาดทุน"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "ไม่มีการซื้อของคนในในช่วงเวลานี้",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
+    "topInsiderSqueezeSubtitle": "ซื้อวงใน + ชอร์ต"
   },
   "short": {
     "title": "Short Selling · Short Squeeze",

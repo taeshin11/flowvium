@@ -1124,7 +1124,11 @@
     "actionBuy": "شراء",
     "actionWatch": "مراقبة",
     "buyNow": "اشتر الآن",
-    "dataAsOf": "البيانات اعتبارًا من:"
+    "dataAsOf": "البيانات اعتبارًا من:",
+    "priceExpensive": "+{pct}% مرتفع",
+    "priceEntry": "منطقة دخول",
+    "priceCheap": "{pct}% خصم",
+    "expandStopLoss": "وقف خسارة"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "لا مشتريات داخلية في هذه الفترة",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Squeeze — Form 4",
+    "topInsiderSqueezeSubtitle": "شراء داخلي + اهتمام قصير"
   },
   "short": {
     "title": "البيع على المكشوف · ضغط الشورت",

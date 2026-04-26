@@ -1124,7 +1124,11 @@
     "actionBuy": "매수",
     "actionWatch": "관망",
     "buyNow": "지금 매수 추천",
-    "dataAsOf": "데이터 기준:"
+    "dataAsOf": "데이터 기준:",
+    "priceExpensive": "+{pct}% 고가 주의",
+    "priceEntry": "진입 구간",
+    "priceCheap": "{pct}% 매수 기회",
+    "expandStopLoss": "손절가 보기"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "해당 기간 내 내부자 매수 없음",
     "sourceNoteInsider": "출처: {date} · Yahoo Finance 주가 (15분 캐시)",
     "dataDate13F": "SEC 13F Q4 2025 기준 (제출 2026-02-14)",
-    "dataDateInsider": "Form 4 · 최근 {days}일 · D+2 시차"
+    "dataDateInsider": "Form 4 · 최근 {days}일 · D+2 시차",
+    "topInsiderSqueezeTitle": "🔥 Top Squeeze 후보 — Form 4 기반",
+    "topInsiderSqueezeSubtitle": "내부자 매수 + 숏 인터레스트 결합"
   },
   "short": {
     "title": "공매도 · 숏 스퀴즈",

@@ -1124,7 +1124,11 @@
     "actionBuy": "Купить",
     "actionWatch": "Следить",
     "buyNow": "Купить сейчас",
-    "dataAsOf": "Данные на:"
+    "dataAsOf": "Данные на:",
+    "priceExpensive": "+{pct}% дорого",
+    "priceEntry": "Зона входа",
+    "priceCheap": "{pct}% дешевле",
+    "expandStopLoss": "Стоп-лосс"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "Нет инсайдерских покупок за период",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Топ Сквиз — Form 4",
+    "topInsiderSqueezeSubtitle": "Инсайдеры + шорт интерес"
   },
   "short": {
     "title": "Короткие позиции · Short Squeeze",

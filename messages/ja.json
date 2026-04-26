@@ -1124,7 +1124,11 @@
     "actionBuy": "買い",
     "actionWatch": "注目",
     "buyNow": "今すぐ買い推奨",
-    "dataAsOf": "データ基準日:"
+    "dataAsOf": "データ基準日:",
+    "priceExpensive": "+{pct}%割高",
+    "priceEntry": "エントリー圏",
+    "priceCheap": "{pct}%割安",
+    "expandStopLoss": "損切り確認"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "この期間のインサイダー買いなし",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Squeeze候補 — Form 4",
+    "topInsiderSqueezeSubtitle": "インサイダー買い×空売り"
   },
   "short": {
     "title": "空売り · ショートスクイーズ",

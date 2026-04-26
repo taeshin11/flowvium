@@ -1124,7 +1124,11 @@
     "actionBuy": "Beli",
     "actionWatch": "Pantau",
     "buyNow": "Beli Sekarang",
-    "dataAsOf": "Data per:"
+    "dataAsOf": "Data per:",
+    "priceExpensive": "+{pct}% mahal",
+    "priceEntry": "Zona masuk",
+    "priceCheap": "{pct}% diskon",
+    "expandStopLoss": "Stop loss"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "Tidak ada pembelian insider dalam periode ini",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
+    "topInsiderSqueezeSubtitle": "Insider + minat short"
   },
   "short": {
     "title": "Short Selling · Short Squeeze",

@@ -300,6 +300,49 @@ export default function ScreenerPage() {
   const topCsuite = useMemo(() => insiderRows.filter(r => r.isCsuite).slice(0, 5), [insiderRows]);
   const topClustered = useMemo(() => [...insiderRows].sort((a, b) => b.tradeCount - a.tradeCount).slice(0, 5), [insiderRows]);
 
+  // Squeeze candidates for 1W/4W: cross insider buy signal with short data
+  const insiderSqueezeRows = useMemo(() => {
+    if (tf === '13w') return [];
+    return insiderRows
+      .map(row => {
+        const short = shortMap.get(row.ticker);
+        if (!short) return null;
+        const insiderBonus = row.isCsuite ? 20 : row.tradeCount >= 3 ? 15 : 10;
+        const adjScore = Math.min(100, (short.squeezeScore ?? 0) + insiderBonus);
+        return { ...row, squeezeScore: adjScore, shortVolPct: short.shortVolPct };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null && r.squeezeScore >= 20)
+      .sort((a, b) => b.squeezeScore - a.squeezeScore)
+      .slice(0, 5);
+  }, [insiderRows, shortMap, tf]);
+
+  // Fetch prices for insider tickers (separate from 13F tickers)
+  const insiderTickerKey = useMemo(
+    () => insiderRows.map(r => r.ticker).sort().join(','),
+    [insiderRows],
+  );
+
+  useEffect(() => {
+    if (tf === '13w') return;
+    const tickers = insiderTickerKey.split(',').filter(Boolean);
+    if (!tickers.length) return;
+    const ctrl = new AbortController();
+    fetch(`/api/batch-prices?tickers=${tickers.join(',')}`, { signal: ctrl.signal })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((d: { prices: Record<string, { price: number | null; changePct: number | null }> }) => {
+        if (ctrl.signal.aborted) return;
+        setPriceMap(prev => {
+          const map = new Map(prev);
+          for (const [ticker, entry] of Object.entries(d.prices ?? {}))
+            map.set(ticker, { price: entry.price, changePct: entry.changePct, currency: 'USD' });
+          return map;
+        });
+        setPricesLoaded(true);
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [insiderTickerKey, tf]);
+
   useEffect(() => {
     const allTickers = tickerKey.split(',').filter(Boolean);
     if (!allTickers.length) return;
@@ -667,6 +710,24 @@ export default function ScreenerPage() {
                           badge={t('tradeCount', { n: row.tradeCount })}
                           badgeCls="bg-amber-500/20 text-amber-300"
                           sub={t('totalAmount', { amount: fmtUsd(row.totalValueUsd) })} />
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('insiderTrades', { date: dataDateInsider })}</p>
+                  </div>
+                )}
+
+                {insiderSqueezeRows.length > 0 && (
+                  <div className="cf-card p-4 bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-500/10">
+                    <p className="text-[10px] font-bold text-orange-400 mb-3 flex items-center gap-1.5">
+                      {t('topInsiderSqueezeTitle')}
+                      <span className="font-normal text-cf-text-secondary">{t('topInsiderSqueezeSubtitle')}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {insiderSqueezeRows.map(row => (
+                        <PriceCard key={row.ticker} ticker={row.ticker}
+                          badge={String(row.squeezeScore)}
+                          badgeCls="bg-orange-500/20 text-orange-300"
+                          sub={row.shortVolPct != null ? `Short ${row.shortVolPct.toFixed(0)}%` : row.issuerName.slice(0, 14)} />
                       ))}
                     </div>
                     <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('insiderTrades', { date: dataDateInsider })}</p>

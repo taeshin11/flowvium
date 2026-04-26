@@ -35,6 +35,7 @@ export interface PortfolioItem {
   target: string;
   confidence: 'high' | 'medium' | 'low';
   action?: 'buy' | 'hold' | 'watch';
+  currentPrice?: number;
 }
 
 export interface SectorWeight {
@@ -820,6 +821,17 @@ export async function GET(request: Request) {
   }
 
   if (strategy && !strategy.dataAsOf) strategy = { ...strategy, dataAsOf };
+
+  // Inject current live prices into portfolio items for safety-margin display in the UI
+  if (strategy) {
+    strategy = {
+      ...strategy,
+      portfolio: strategy.portfolio.map(p => ({
+        ...p,
+        currentPrice: livePrices.get(p.ticker)?.price,
+      })),
+    };
+  }
 
   const isFallback = strategy.source === 'fallback';
   if (redis) {

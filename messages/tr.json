@@ -1124,7 +1124,11 @@
     "actionBuy": "Al",
     "actionWatch": "İzle",
     "buyNow": "Şimdi Al",
-    "dataAsOf": "Veri tarihi:"
+    "dataAsOf": "Veri tarihi:",
+    "priceExpensive": "+{pct}% pahalı",
+    "priceEntry": "Giriş bölgesi",
+    "priceCheap": "{pct}% iskonto",
+    "expandStopLoss": "Stop-Loss"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "Bu dönemde içeriden alım yok",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
+    "topInsiderSqueezeSubtitle": "Insider + kısa pozisyon"
   },
   "short": {
     "title": "Açığa Satış · Short Squeeze",

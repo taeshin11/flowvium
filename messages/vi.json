@@ -1124,7 +1124,11 @@
     "actionBuy": "Mua",
     "actionWatch": "Theo dõi",
     "buyNow": "Mua ngay",
-    "dataAsOf": "Dữ liệu tính đến:"
+    "dataAsOf": "Dữ liệu tính đến:",
+    "priceExpensive": "+{pct}% đắt",
+    "priceEntry": "Vùng vào lệnh",
+    "priceCheap": "{pct}% chiết khấu",
+    "expandStopLoss": "Cắt lỗ"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",
@@ -1533,7 +1537,9 @@
     "noInsiderBuysInPeriod": "Không có giao dịch mua nội bộ trong kỳ này",
     "sourceNoteInsider": "Source: {date} · Price: Yahoo Finance (15min cache)",
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
-    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag"
+    "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
+    "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
+    "topInsiderSqueezeSubtitle": "Mua nội bộ + short interest"
   },
   "short": {
     "title": "Bán khống · Short Squeeze",
