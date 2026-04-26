@@ -6,7 +6,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Module-level memory cache (4h) prevents SEC re-fetch on every cold start.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { fetchLiveFinancials, type LiveFinancials } from '@/lib/sec-financials';
 import { createMemoryCache } from '@/lib/memory-cache';
 
@@ -16,13 +17,6 @@ export const maxDuration = 60;
 const TTL = 24 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 const MEMORY_CACHE = createMemoryCache<LiveFinancials>('company-financials', 4 * 60 * 60_000);
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export async function GET(
   _req: NextRequest,

@@ -12,7 +12,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Redis cache: 24h.
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { allCompanies } from '@/data/companies';
 import { type MarketCapBand, YAHOO_HEADERS } from '@/lib/yahoo-finance';
 export const dynamic = 'force-dynamic';
@@ -29,13 +30,6 @@ export interface MarketCapPayload {
   updatedAt: string;
   count: number;
   cached?: boolean;
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 async function fetchYahooCap(ticker: string): Promise<number | null> {

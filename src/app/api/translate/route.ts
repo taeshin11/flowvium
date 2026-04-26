@@ -1,6 +1,7 @@
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 
 export const dynamic = 'force-dynamic';
@@ -9,13 +10,6 @@ export const maxDuration = 60;
 
 // ── Redis cache (30-day TTL for translations) ─────────────────────────────────
 const CACHE_TTL = 30 * 24 * 60 * 60;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 function cacheKey(locale: string, text: string): string {
   // Use first 100 chars as key discriminator

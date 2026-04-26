@@ -12,7 +12,8 @@ export const maxDuration = 60; // 200 tickers × batched Yahoo v8 fetch needs up
  * instance responses <50ms instead of 3+s upstream re-fetch every call.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { fetchCNBCQuotes, fetchYFNonUSQuotes } from '@/lib/yahoo-finance';
 import { fetchStooqQuotes, fetchStooqNonUS } from '@/lib/stooq';
 import { fetchNaverKRQuotes, fetchTWSEQuotes } from '@/lib/naver-finance';
@@ -75,13 +76,6 @@ export interface HeatmapData {
   updatedAt: string;
   dataDate: string | null;
   source: string;
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 const SUPPORTED = ['US', 'KR', 'JP', 'CN', 'EU', 'IN', 'TW'];

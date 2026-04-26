@@ -10,7 +10,8 @@
  * for any single name).
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { fetchRecentOwnershipAlerts, type OwnershipAlert } from '@/lib/edgar-insider';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
@@ -27,13 +28,6 @@ export const maxDuration = 60;
 // 10-min windows from wiping visible results for Redis-less environments.
 let MEMORY_CACHE: { alerts: OwnershipAlert[]; expiresAt: number } | null = null;
 const MEMORY_TTL_MS = 2 * 60 * 60 * 1000;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export async function GET(req: Request) {
   const redis = createRedis();

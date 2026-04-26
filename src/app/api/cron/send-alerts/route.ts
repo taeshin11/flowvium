@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
@@ -17,13 +18,6 @@ interface AlertResult {
   sent: boolean;
   cooldown?: boolean;
   detail?: string;
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 // ── Discord webhook ──────────────────────────────────────────────────────────

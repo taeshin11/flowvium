@@ -11,7 +11,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Cache: Redis 1h | memory 30min
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -19,13 +20,6 @@ export const maxDuration = 60;
 const CACHE_TTL = 60 * 60;  // 1h Redis
 const MEM_CACHE = createMemoryCache<YieldCurveData>('yield-curve', 30 * 60_000);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=120' };
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 const FRED_HEADERS = { 'User-Agent': 'Flowvium (taeshinkim11@gmail.com)', 'Accept': 'text/csv' };
 

@@ -14,7 +14,8 @@ import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
  * Cache: Redis 30min | memory 15min
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -23,13 +24,6 @@ const CACHE_TTL = 30 * 60;
 const STALE_KEY = 'flowvium:volatility:stale';
 const MEM_CACHE = createMemoryCache<VolatilityData>('volatility', 15 * 60_000);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=60' };
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export interface VolPoint { date: string; value: number }
 

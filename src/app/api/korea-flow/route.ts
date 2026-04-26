@@ -12,7 +12,8 @@
  * Redis 15분 캐시.
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -47,13 +48,6 @@ export interface KoreaFlowEntry {
   individualNetBuy: number | null;   // 개인 순매수 (KRW)
   closePrice: number | null;
   changePct: number | null;
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 const KRX_HEADERS = {

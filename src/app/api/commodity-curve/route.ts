@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createMemoryCache } from '@/lib/memory-cache';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
@@ -10,13 +11,6 @@ const STALE_KEY = 'flowvium:commodity-curve:stale';
 const REDIS_KEY = 'flowvium:commodity-curve:v1';
 const mem = createMemoryCache<object>('commodity-curve', CACHE_TTL_MS);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=1500, stale-while-revalidate=120' };
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;

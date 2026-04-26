@@ -1,5 +1,6 @@
 import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-providers';
 export const dynamic = 'force-dynamic';
@@ -39,14 +40,6 @@ export interface NewsWithCascade extends RawNewsItem {
   sentiment: 'bullish' | 'bearish' | 'neutral';
   importance: 'high' | 'medium' | 'low';
   analyzedAt: string;
-}
-
-// ── Redis ─────────────────────────────────────────────────────────────────────
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 // Cache key: per-article (by URL hash) + list key

@@ -7,17 +7,11 @@
  * Protection: x-admin-secret (CRON_SECRET)
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { getAllMetrics } from '@/lib/metrics-db';
 
 export const dynamic = 'force-dynamic';
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 function checkAuth(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();

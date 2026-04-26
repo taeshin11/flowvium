@@ -12,7 +12,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Redis cache: 4 hours
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { institutionalSignals } from '@/data/institutional-signals';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
@@ -259,13 +260,6 @@ async function fetchFinnhubPE(tickers: string[]): Promise<Map<string, number>> {
 
   logger.info('api.short-interest', 'finnhub_pe_ok', { fetched: map.size, of: tickers.length });
   return map;
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 export async function GET(req: Request) {

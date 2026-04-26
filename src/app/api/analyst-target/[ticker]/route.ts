@@ -12,7 +12,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Redis cache: 24h (consensus changes slowly)
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,13 +36,6 @@ export interface AnalystData {
   totalAnalysts: number;
   period: string | null;
   recommendationMean?: number;
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 const EMPTY: AnalystData = {

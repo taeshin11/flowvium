@@ -9,7 +9,8 @@
  * Cache: Redis 1h + module memory 30min.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
@@ -26,13 +27,6 @@ const CACHE_TTL = 60 * 60;
 const MEMORY_CACHE = createMemoryCache<PriceHistoryPayload>('price-history', 30 * 60_000);
 
 const NASDAQ_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 async function fetchYahooDaily(ticker: string, days: number): Promise<PricePoint[]> {
   const range = days <= 5 ? '5d' : days <= 30 ? '1mo' : days <= 90 ? '3mo' : days <= 180 ? '6mo' : '1y';

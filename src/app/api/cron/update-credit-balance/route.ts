@@ -16,7 +16,8 @@ import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
  * Missing entries fall back to static data in /api/credit-balance.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { revalidatePath } from 'next/cache';
 import { fetchAllCreditData } from '@/lib/credit-fetchers';
 
@@ -26,13 +27,6 @@ export const maxDuration = 60;
 
 const REDIS_KEY_LIVE = 'flowvium:credit-balance:live:v1';
 const TTL = 48 * 60 * 60; // 48 hours — refreshed daily by cron
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');

@@ -22,7 +22,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Redis cache: 15분
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { institutionalSignals, type InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
@@ -45,13 +46,6 @@ export interface UpdateItem {
   badgeColor: string;
   link?: string;
   direction?: 'up' | 'down' | 'neutral';
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 async function getBaseSignals(redis: Redis | null): Promise<InstitutionalSignal[]> {

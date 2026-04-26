@@ -1,6 +1,7 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 
 // 엣지 CDN 캐시 우회 — 실제 캐시는 Redis(4h)로 관리. 엣지 캐시가 stale 응답을
 // 홀딩하면 v4 bump 같은 긴급 픽스가 즉시 반영되지 않음.
@@ -14,13 +15,6 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-reva
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let FG_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const FG_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 // ── CNN Fear & Greed (US only) ─────────────────────────────────────────────────
 // CNN endpoint blocks minimal UA with HTTP 418 (since ~Q4 2025). Full browser

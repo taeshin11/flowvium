@@ -15,7 +15,8 @@
  * a daily snapshot rather than minute-by-minute.
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { fetchRecentNPORT, aggregateByTicker, type NPortFundSnapshot, type NPortTickerAggregate } from '@/lib/edgar-nport';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
@@ -26,13 +27,6 @@ const CACHE_TTL = 6 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=18000, stale-while-revalidate=600' };
 
 export const maxDuration = 60;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export async function GET(req: Request) {
   const redis = createRedis();

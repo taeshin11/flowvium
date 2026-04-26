@@ -8,7 +8,8 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  * Cache: 4h Redis
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 export const dynamic = 'force-dynamic';
 
@@ -20,13 +21,6 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=12000, stale-while-reva
 // 4h TTL matches the primary Redis TTL; keyed by tf.
 const FLOW_MEMORY_CACHE = new Map<string, { result: Record<string, unknown>; expiresAt: number }>();
 const FLOW_MEMORY_TTL_MS = 8 * 60 * 60 * 1000;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 // Time-independent key + 8h TTL (vs. hourly-rotating key).
 // Previously hourly key caused 24 Redis misses/day × 3k tokens = 72k tokens consumed by probes alone.

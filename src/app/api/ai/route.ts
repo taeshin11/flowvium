@@ -1,6 +1,7 @@
 import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 import { callAI } from '@/lib/ai-providers';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -9,13 +10,6 @@ export const maxDuration = 60;
 
 // ── Redis cache (7-day TTL) ───────────────────────────────────────────────────
 const CACHE_TTL = 7 * 24 * 60 * 60; // seconds
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 function cacheKey(ticker: string, type: string): string {
   return `flowvium:ai:v1:${type}:${ticker.toUpperCase()}`;

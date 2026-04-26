@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 24 * 60 * 60; // 24 hours
 const OFAC_CSV_URL = 'https://www.treasury.gov/ofac/downloads/sdn.csv';
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 // ── CSV parsing ───────────────────────────────────────────────────────────────
 // OFAC SDN format: "ent_num","SDN_Name","SDN_Type","Program","Title","Callsign","Vess_type","Tonnage","GRT","Vess_flag","Vess_owner","Remarks"

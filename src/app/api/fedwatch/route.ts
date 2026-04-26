@@ -7,16 +7,10 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  * Cache: 4h Redis
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 function cacheKey(): string {
   const utcDate = new Date().toISOString().slice(0, 10);

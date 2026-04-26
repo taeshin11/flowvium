@@ -10,17 +10,11 @@
  * Protected by CRON_SECRET via x-admin-secret header (same as /api/admin/logs).
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { getRecentLogs, logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 function checkAuth(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createMemoryCache } from '@/lib/memory-cache';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
@@ -55,13 +56,6 @@ async function fetchPriceTwelve(sym: string): Promise<{ price: number; change: n
     changePct: isNaN(changePct) ? null : parseFloat(changePct.toFixed(2)),
     volume: isNaN(volume) ? null : Math.round(volume),
   };
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 function staleKey(sym: string): string {

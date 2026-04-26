@@ -16,7 +16,8 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  */
 
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { fetchAllCreditData, type LiveCreditData } from '@/lib/credit-fetchers';
 
 export const dynamic = 'force-dynamic';
@@ -28,13 +29,6 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=82800, stale-while-reva
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let CREDIT_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const CREDIT_MEMORY_TTL_MS = 24 * 60 * 60 * 1000;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface CreditHistPoint {

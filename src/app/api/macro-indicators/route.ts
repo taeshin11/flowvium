@@ -12,7 +12,8 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  * Cache: daily key (refreshes at midnight KST via cron)
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -23,13 +24,6 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-reva
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let MACRO_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const MACRO_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 function kstDate(): string {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);

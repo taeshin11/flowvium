@@ -8,7 +8,8 @@
  * Redis cache 5 min (tape is intraday).
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { fetchBlockTradesForTickers, polygonKey, type BlockTrade } from '@/lib/polygon';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
@@ -24,13 +25,6 @@ const TRACKED_TICKERS = [
   'SMCI', 'COIN', 'MU', 'AVGO', 'ASML', 'KLAC', 'LRCX', 'AMAT',
   'LMT', 'RTX', 'NOC', 'LLY', 'LHX', 'MRNA', 'REGN', 'FCX', 'ALB', 'KTOS',
 ];
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export async function GET(req: Request) {
   const reqStart = Date.now();

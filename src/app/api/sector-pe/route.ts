@@ -9,7 +9,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Redis cache: 4h.
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -70,13 +71,6 @@ const STATIC_FUNDAMENTALS: Record<string, { trailingPE: number; dividendYield: n
   XLU:  { trailingPE: 22.66, dividendYield: 0.0423, totalAssets: 24418902016, beta3Year: 0.67 },
   XLC:  { trailingPE: 18.71, dividendYield: 0.0080, totalAssets: 24108154880, beta3Year: 0.92 },
 };
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 // Acquire Yahoo Finance crumb: fetch homepage cookie then getcrumb endpoint.
 // Crumb persists ~24h; stored in Redis to avoid per-request overhead.

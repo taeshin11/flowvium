@@ -1,20 +1,13 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { newsGapData } from '@/data/news-gap';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const CACHE_TTL = 3 * 60 * 60; // 3h
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=10800, stale-while-revalidate=300' };
 const EDGAR_UA = 'FlowVium/1.0 taeshinkim11@gmail.com';
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 // ── Fetch recent Form 4 filings from EDGAR ─────────────────────────────────
 interface InsiderTx {

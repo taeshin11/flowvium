@@ -15,7 +15,8 @@ import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 
 const CACHE_TTL = 4 * 60 * 60;
 const STALE_KEY_PREFIX = 'flowvium:capital-flows:stale';
@@ -27,13 +28,6 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-reva
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let CAPITAL_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const CAPITAL_MEMORY_TTL_MS = 15 * 60 * 1000;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 const ASSETS = [
   { id: 'us-stocks',   ticker: 'SPY',   label: 'US Equities',   group: 'equity',      flag: '🇺🇸' },

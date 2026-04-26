@@ -17,7 +17,8 @@
  *   }
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { logMetrics } from '@/lib/metrics-db';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
@@ -41,13 +42,6 @@ interface MetricItem {
   lastError?: string;
   /** 설명: 왜 skipped 인지. admin UI 에서 '무시' 라벨과 함께 노출. */
   skipReason?: string;
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 function checkAuth(req: Request): boolean {

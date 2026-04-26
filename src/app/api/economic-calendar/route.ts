@@ -11,7 +11,8 @@
  * Redis: flowvium:econ-cal:v2:{from}:{to}:{country} — 4h TTL
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -96,13 +97,6 @@ function mapImpact(raw: string | number | null): EconCalEvent['impact'] {
   if (n >= 3) return 'high';
   if (n === 2) return 'medium';
   return 'low';
-}
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 export async function GET(req: Request) {

@@ -13,7 +13,8 @@
  * Redis cache: 10 minutes (flow data updates continuously intraday).
  */
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import { fetchOptionsFlow, unusualWhalesKey, type OptionsFlowAlert } from '@/lib/unusual-whales';
 import { logger, loggedRedisSet } from '@/lib/logger';
 
@@ -22,13 +23,6 @@ export const dynamic = 'force-dynamic';
 const CACHE_KEY = 'flowvium:options-flow:v1';
 const CACHE_TTL = 10 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=480, stale-while-revalidate=60' };
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 export async function GET(req: Request) {
   const reqStart = Date.now();

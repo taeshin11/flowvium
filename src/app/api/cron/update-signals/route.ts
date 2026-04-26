@@ -2,7 +2,8 @@ import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
 import { getSignals } from '@/lib/signals-service';
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { createRedis } from '@/lib/redis';
+import type { Redis } from '@upstash/redis';
 import {
   INSTITUTIONS,
   fetchInstitutionHoldings,
@@ -25,13 +26,6 @@ const REDIS_KEY_SIGNALS  = 'flowvium:13f-signals:v1';
 const REDIS_KEY_OWNERSHIP = 'flowvium:13f-ownership:v1';
 const SIGNAL_TTL  = 7 * 24 * 60 * 60;  // 7일 (13F는 분기별)
 const OWNERSHIP_TTL = 7 * 24 * 60 * 60;
-
-function createRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
 
 /**
  * Vercel Cron handler — runs daily at 02:00 UTC (see vercel.json).
