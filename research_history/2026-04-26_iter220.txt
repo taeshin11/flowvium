@@ -1,0 +1,80 @@
+ITER220 — 2026-04-26
+Primary outcome: 4개 데이터 정확도 버그 수정 — 장기 null 필드 복구
+
+=== DRIFT CHECK ===
+Recent 5 commits: 80c840f (iter219 log), 8003dc2 (econ-cal), 0d721e3 (analyst-target), 0536aff (flow-analysis), 1195490 (company-recs)
+영역 분산: docs, API accuracy fix, API fallback — 연속 동일 영역 없음. NO DRIFT.
+
+=== PRIMARY OUTCOME ===
+4 data accuracy 버그 수정 (economic-calendar, analyst-target, price-history, short-interest)
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=cpi source=FRED direct_value=3.32% our_value=3.29% delta=0.03% → OK
+[accuracy probe] metric=commodity.wti source=FRED direct_value=91.06 our_value=91.06 delta=0 → OK
+[accuracy probe] metric=yield.10Y source=FRED direct_value=4.34 our_value=4.34 delta=0 → OK
+[accuracy probe] metric=fg.us via verify-metrics=66 (source=cnn) → OK
+verify-metrics: 183/191 ok, 3 degraded (GDP Q1 advance/AI quota/brief - expected), 0 error
+
+=== FIXES DONE ===
+
+1. economic-calendar: mapImpact string→enum 버그
+   - 증상: ALL events impact='low', high-impact 이벤트 컴포넌트에서 필터링으로 숨겨짐
+   - 원인: mapImpact가 Finnhub 응답 문자열('high','medium','low')을 parseInt→NaN으로 처리
+   - 수정: 문자열 직접 비교 우선 처리
+   - 결과: 15 high-impact + 44 medium US 이벤트 EconCalendarSection에서 정상 표시
+   - Vercel 배포 후 확인: 170 total, 15 high, 44 medium ✓
+   - commit 8003dc2
+
+2. analyst-target/[ticker]: Finviz HTML scrape
+   - 증상: targetMean/High/Low 모두 null
+   - 원인: Finnhub /stock/price-target은 유료 플랜 전용
+   - 수정: Finviz quote.ashx HTML에서 Target Price + Recom 값 regex 추출
+   - 결과: AAPL targetMean=301.62, recommendationMean=1.89, strongBuy=14, buy=23 ✓
+   - Vercel 배포 후 확인: 모든 필드 정상 ✓
+   - commit 0d721e3
+
+3. price-history: Nasdaq historical API 폴백
+   - 증상: 모든 ticker에서 0 entries (Yahoo v8 차단)
+   - 원인: Yahoo Finance v8 chart Vercel IP 차단
+   - 수정: fetchNasdaqDaily 추가 — stocks/etf assetclass 자동 시도, 날짜 역순 처리
+   - 결과: AAPL 20 rows, SPY(etf) 20+ rows, sortOrder DESC + reverse()로 chronological order 보장
+   - 영향: CompanyPage 90일 차트, ReportPage SPY 30일 sparkline 복구
+   - commit 7d17c90
+
+4. short-interest: shortRatio 항상 null (iter86 이후 첫 수정)
+   - 증상: shortRatio (DTC) = null for all 33 entries
+   - 원인 이력: FINRA monthly 파일 cdn.finra.org 403 (iter86 이후)
+   - 해결책: Yahoo v10 defaultKeyStatistics.shortRatio 사용
+     - 이미 shortFloatPct를 위해 같은 endpoint 사용 중 → 추가 요청 비용 없음
+     - fetchYahooShortFloat → fetchYahooShortData로 리팩터, floatMap + ratioMap 동시 반환
+   - 결과: Vercel 배포 후 KLAC shortRatio 등 확인 예정 (캐시 4h)
+   - commit cfc9f84
+
+=== ENDPOINTS AUDITED (no issues found) ===
+- sector-pe: 11 sectors, trailingPE data present (PE=38.09 XLK) ✓
+- volatility: VIX=18.71, regime=contango ✓
+- commodity-curve: WTI $91.06 = FRED ✓
+- yield-curve: 10Y 4.34% = FRED ✓
+- macro-indicators: 13/13, 1 null (GDP Q1 Advance 미발표 — expected)
+- capital-flows: 12 countries, 15 assets ✓
+- company-news: 8 items, Finnhub ✓
+- news-cascade: 5 articles, sentiment present ✓
+- market-heatmap: 200 stocks, 1 null changePct (BRKB dash issue — minor)
+- batch-prices: works (correct param: ?tickers=, not ?symbols=)
+- insider-trades: 52 total (0 AAPL = no recent filings — expected)
+- korea-flow: fallback=true (weekend, expected)
+- nport-holdings: working (Fidelity fund data)
+- market-caps: working (bands dict, 600 entries)
+- signals: working (13F Berkshire data)
+
+=== REMAINING ISSUES ===
+- AI 전체 소진 → midnight UTC 2026-04-27 reset
+- short-interest shortChangeMonthly: still null (no free bi-monthly data source)
+- BRKB changePct null in market-heatmap (ticker dash issue)
+- Redis/OpenRouter 미설정
+
+=== COMMITS ===
+8003dc2 fix(economic-calendar): mapImpact string→enum 버그 — 15개 high-impact US 이벤트 누락 수정
+0d721e3 fix(analyst-target): Finnhub price-target (paid) → Finviz HTML scrape + recommendationMean field
+7d17c90 fix(price-history): Yahoo v8 차단 → Nasdaq historical API 폴백 (stocks + etf)
+cfc9f84 fix(short-interest): shortRatio 항상 null → Yahoo v10 defaultKeyStatistics 추출 (iter86 이후 첫 수정)
