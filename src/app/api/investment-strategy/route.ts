@@ -567,11 +567,26 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
 
   const riskLevel: 'low' | 'medium' | 'high' = vix > 28 || fgScore < 25 || igSpread > 1.5 ? 'high' : vix < 18 && fgScore > 55 ? 'low' : 'medium';
 
+  // Build data-populated analysis text (replaces generic "AI unavailable" from base)
+  const cpiInd = inds.find((i: Record<string, unknown>) => i.id === 'cpi');
+  const gdpInd = inds.find((i: Record<string, unknown>) => i.id === 'gdp');
+  const spreadStr = spread != null ? `${Math.round(spread * 100)}bp` : '?bp';
+  const ycStr = `YieldCurve=${inverted ? 'inverted' : 'normal'}(${spreadStr})`;
+  const cpiStr = cpiInd?.actual != null ? `CPI=${(cpiInd.actual as number).toFixed(1)}%YoY` : '';
+  const gdpStr = gdpInd?.actual != null
+    ? `GDP=${(gdpInd.actual as number).toFixed(1)}%`
+    : gdpInd?.previous != null ? `GDP(Q4)=${(gdpInd.previous as number).toFixed(1)}%→Q1 pending` : '';
+  const macroParts = [ycStr, cpiStr, gdpStr, `IG_OAS=${igSpread.toFixed(2)}%`, `HY_OAS=${hySpread.toFixed(2)}%`, `F&G=${Math.round(fgScore)}(${fgLabel})`].filter(Boolean);
+  const macroAnalysis = macroParts.join(' · ');
+  const technicalAnalysis = `VIX=${vix.toFixed(1)}(${vixLabel})${inverted ? ' · curve inverted — recession signal active' : ' · curve normal — no recession signal'}`;
+
   return {
     ...base,
     stance: riskLevel === 'high' ? 'bearish' : riskLevel === 'low' ? 'bullish' : 'neutral',
     thesis,
     riskLevel,
+    macroAnalysis,
+    technicalAnalysis,
     portfolio: [
       { ...base.portfolio[0], allocation: spy },
       { ...base.portfolio[1], allocation: qqq },
