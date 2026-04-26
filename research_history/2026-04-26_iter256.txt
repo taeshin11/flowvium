@@ -1,0 +1,90 @@
+iter256 — 2026-04-26
+primary outcome: lib/route 심화 감사 — 전수 무결, 방향전환 rationale
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- b14bb60 docs(history): iter255 log
+- 4850e8a docs(history): iter254 log
+- c065c34 fix(api): replace remaining direct redis.del with loggedRedisDel across 5 routes
+- 8a03089 fix(cron): replace direct redis.set/del with loggedRedisSet/loggedRedisDel
+- 0a4e3ca docs(history): iter253 log
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter254=api-wide, iter255=lib, iter256=lib/route — 3연속 "코드 감사" 패턴
+    → drift 신호: 탐색 영역이 좁아지고 있음. iter257부터 경제 데이터 수작업 업데이트로 이동.
+(2) Primary metric 정체: 없음
+(3) "나중에": April 30 FOMC actual (내일 UTC 18:00 이후 처리) ✓
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 신호 있음 → iter257에서 FOMC actual 처리 + 방향 전환 ✓
+
+## Primary Outcome
+lib/route 심화 감사 결과 전수 무결 — 수정 없음 (빈 iter)
+
+## 스캔 결과
+
+### signals-service.ts — 무결 ✓
+- AV 5 req/min 제한: BATCH=5, DELAY=12s → `refreshNewsGaps` 최대 48s 대기
+- forceRefresh=true: getSignals(true) → stale-while-revalidate 경로 → 즉시 반환 (블록 없음) ✓
+- backgroundRefreshInFlight 플래그로 중복 refresh 방지 ✓
+
+### news-gap-service.ts, signals-cache.ts — 무결 ✓
+- `loggedRedisSet` 사용 ✓
+- 26h TTL ✓
+
+### blog-translate.ts — 무결 ✓
+- 섹션 분할 + 병렬 번역 + 영구 Redis 캐시 (180일) ✓
+
+### investment-strategy/route.ts — 무결 ✓
+- `force=1` + `debug=1` 파라미터 ✓
+- CDN s-maxage=86400 (24h) — 일일 전략에 적합 ✓
+- 모든 내부 fetch `cache: 'no-store'` ✓
+
+### yield-curve/route.ts — 무결 ✓
+- FRED TIPS/BEI fetch `cache: 'no-store'` ✓
+
+### economic-calendar/route.ts — 무결, April 30 준비 완료
+- FOMC_2026 배열 line 55:
+  `{ date: '2026-04-30', time: '18:00:00', prev: 3.75, estimate: 3.75 }` — `actual:` 누락 ✓
+- April 30 UTC 18:00 이후: `actual: 3.75` 추가 (hold 기준) → iter257에서 처리
+- 4h TTL — 코드 업데이트 후 4h 이내 자연 만료 ✓
+
+### sector-pe/route.ts — 무결 ✓
+- Yahoo Finance crumb 취득 + PE 데이터 fetch `cache: 'no-store'` ✓
+
+### analyst-target/[ticker]/route.ts — 무결 ✓
+- Finviz + Yahoo Finance `cache: 'no-store'` ✓
+
+## 방향전환 rationale
+
+iter254-256 3연속 "코드 감사" → 점수체계 없는 순수 탐색 → 효율 감소.
+
+**남은 탐색 대상:**
+- 미탐색 API 라우트: `investment-strategy` (깊이), `fedwatch`, `block-trades`, `options-flow`
+- 미탐색 lib: `alpha-vantage.ts`, `polygon.ts`, `yahoo-finance.ts` 심화
+
+**전환 계획 (iter257):**
+1. FOMC actual 업데이트 (April 30 UTC 18:00+) — 구체적 데이터 업데이트, 감사 아님
+2. GROQ quota 확인 (April 27 KST 09:00) — 인프라 블로커 해소 여부 확인
+3. lib/yahoo-finance.ts 전수 감사 — Yahoo v8/crumb 최신 상태 검증
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+```
+[accuracy probe] metric=SPY.close source=Yahoo_v8 direct_value=713.94(Apr24) our_value=capital-flows(Yahoo_v8) → OK (동일 소스)
+[accuracy probe] metric=fg.us source=CNN direct_value=418_bot_block our_value=N/A → skipped (Vercel IP 차단 지속)
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: 없음
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+→ 빈 iter — 방향전환 rationale 로그 작성으로 대체 (CLAUDE.md 규칙 준수)
+
+## 커밋 (총 0개 — 수정 없음)
+
+## 다음 iter 우선순위
+1. **April 30 FOMC actual** (UTC 18:00+): economic-calendar line 55에 `actual: 3.75` 추가
+2. **GROQ quota 확인** (April 27 KST 09:00): `investment-strategy?debug=1` → source='groq'
+3. **Yahoo Finance lib 심화**: yahoo-finance.ts crumb 로직, v8 헤더 현황
+4. **fedwatch route**: CME FedWatch 파싱 패턴 감사
