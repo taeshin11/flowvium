@@ -19,6 +19,7 @@ function createRedis(): Redis | null {
 }
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 // Futures month codes: index 0=Jan, 1=Feb, ...
 const MONTH_CODES = ['F','G','H','J','K','M','N','Q','U','V','X','Z'];

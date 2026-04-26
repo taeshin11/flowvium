@@ -5,6 +5,7 @@ import { Redis } from '@upstash/redis';
 // 엣지 CDN 캐시 우회 — 실제 캐시는 Redis(4h)로 관리. 엣지 캐시가 stale 응답을
 // 홀딩하면 v4 bump 같은 긴급 픽스가 즉시 반영되지 않음.
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };

@@ -14,6 +14,7 @@ import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
  */
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 import { Redis } from '@upstash/redis';
 
 const CACHE_TTL = 4 * 60 * 60;
