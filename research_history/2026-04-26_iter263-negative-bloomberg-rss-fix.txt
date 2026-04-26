@@ -1,0 +1,37 @@
+iter263 — Negative results + Bloomberg RSS feed fix
+
+=== Negative Results (탐색 결과) ===
+
+[capital-flows Twelve throttling — FALSE ALARM]
+- allTickers는 이미 Set으로 중복 제거됨
+- Twelve 실패 시 Yahoo batch fallback 자동처리
+- 실제 문제 아님 → 방향 전환
+
+[yield-curve → daily-brief cascade — ALREADY IMPLEMENTED]
+- daily-brief.ts L351/740/854에서 macro.yieldCurve 이미 읽음
+- 중복 구현 불필요 → 방향 전환
+
+=== 선택한 방향: Bloomberg RSS 교체 ===
+
+[Bloomberg RSS 상태 — 2026-04-26 로컬 테스트]
+- feeds.bloomberg.com/markets/news.rss: HTTP 200 but 2 items only
+- feeds.bloomberg.com/economics/news.rss: HTTP 200 but 2 items only
+- Vercel IP에서는 0~2 items (차단 또는 구독 제한 추정)
+
+[대체 소스 테스트 결과]
+- WSJ Markets (feeds.a.dj.com): 200, 20 items ✅
+- SeekingAlpha: 200, 7 items ✅
+- Yahoo Finance RSS: 200, 20 items ✅
+- MarketWatch Top Stories (mw_topstories): 200, 10 items ✅
+- Investing.com news.rss: 200, 10 items ✅
+- FT RSS: 403 blocked ❌
+- Reuters: 000 connection failed ❌
+- AP Business: 000 connection failed ❌
+- Barron's: 503 ❌
+
+[변경]
+Bloomberg Markets + Bloomberg Economics → MarketWatch Top Stories + Investing.com
+총 피드: 5개 유지, 아이템 공급: ~4 → ~20 개 추가
+
+[커밋]
+fix(news-cascade): replace sparse Bloomberg feeds with MarketWatch + Investing.com

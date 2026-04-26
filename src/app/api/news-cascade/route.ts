@@ -70,11 +70,12 @@ function hashUrl(url: string): string {
 }
 
 // ── RSS feeds ─────────────────────────────────────────────────────────────────
-// Tested 2026-04-25: Yahoo Finance (404), Reuters (000), CNBC (403), MarketWatch → personal finance redirect
-// Replaced with confirmed working sources: Bloomberg sub-feeds + WSJ + SeekingAlpha
+// Tested 2026-04-26: Bloomberg returns 2 items locally, likely 0 on Vercel (IP/paywall block).
+// Replaced with MarketWatch Top Stories + Investing.com (10 items each, confirmed working).
+// WSJ(20) + SeekingAlpha(7) + Yahoo(20) + MarketWatch(10) + Investing(10) = ~67 candidates for top-7.
 const RSS_FEEDS = [
-  { url: 'https://feeds.bloomberg.com/markets/news.rss', source: 'Bloomberg' },
-  { url: 'https://feeds.bloomberg.com/economics/news.rss', source: 'Bloomberg Economics' },
+  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch' },
+  { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com' },
   { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets' },
   { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha' },
   { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance' },
