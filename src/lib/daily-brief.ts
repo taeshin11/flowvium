@@ -79,6 +79,7 @@ export interface TabContext {
   blocks: unknown[];              // Polygon block trades (requires key)
   econCal: unknown | null;        // Economic calendar (upcoming high-impact events)
   volatility: unknown | null;     // VIX + regime (flowvium:volatility:v1, 30min TTL)
+  cot: unknown | null;            // CFTC COT speculator net positioning (weekly)
 }
 
 async function safeGet<T = unknown>(redis: Redis, key: string): Promise<T | null> {
@@ -112,12 +113,12 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,
-    nport: null, blocks: [], econCal: null, volatility: null,
+    nport: null, blocks: [], econCal: null, volatility: null, cot: null,
   };
 
   const [
     capital, fgAll, fedWatch, macro, heatmap, credit,
-    insiderR, ownerR, koreaR, nportR, shortR, cascadeR, econCalR, volatilityR,
+    insiderR, ownerR, koreaR, nportR, shortR, cascadeR, econCalR, volatilityR, cotR,
   ] = await Promise.all([
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/capital-flows', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/fear-greed', 12000),
@@ -133,6 +134,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     safeFetchJson<{ articles?: unknown[] }>(baseUrl, '/api/news-cascade', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/economic-calendar?country=US', 8000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/volatility', 8000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/cot-positions', 10000),
   ]);
 
   ctx.capital = capital;
@@ -154,6 +156,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   if (cascadeR?.articles && Array.isArray(cascadeR.articles)) ctx.cascade = cascadeR.articles;
   ctx.econCal = econCalR;
   ctx.volatility = volatilityR;
+  ctx.cot = cotR;
 
   logger.info('daily-brief', 'http_context_gathered', {
     populated: {
@@ -164,6 +167,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
       korea: ctx.korea != null, nport: ctx.nport != null,
       short: ctx.short != null, cascade: ctx.cascade.length,
       econCal: ctx.econCal != null, volatility: ctx.volatility != null,
+      cot: ctx.cot != null,
     },
   });
   return ctx;
@@ -175,7 +179,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,
-    nport: null, blocks: [], econCal: null, volatility: null,
+    nport: null, blocks: [], econCal: null, volatility: null, cot: null,
   };
   if (!redis) {
     // UPSTASH 미설정 환경: 내부 API endpoint 로 HTTP fetch 폴백
@@ -191,7 +195,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   const [
     heatmap, shortData, capFlowsTwelve, capFlowsYahoo,
     fg, fed, macro, credit, cascadeArticles, liveSignals,
-    insider, ownership, options, korea, nport, blocks, econCal, volatility,
+    insider, ownership, options, korea, nport, blocks, econCal, volatility, cot,
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v13:US:${hour}`),
     safeGet(redis, 'flowvium:short-interest:v5'),
@@ -213,6 +217,8 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     baseUrl ? safeFetchJson<Record<string, unknown>>(baseUrl, '/api/economic-calendar?country=US', 8000) : Promise.resolve(null),
     // volatility: 30min Redis TTL key — fetch from Redis directly
     safeGet(redis, 'flowvium:volatility:v1'),
+    // COT: 4h Redis TTL — CFTC data published weekly on Fridays
+    safeGet(redis, 'flowvium:cot-positions:v2'),
   ]);
 
   ctx.heatmap = heatmap;
@@ -231,6 +237,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   if (Array.isArray(blocks)) ctx.blocks = blocks;
   ctx.econCal = econCal;
   ctx.volatility = volatility;
+  ctx.cot = cot;
 
   if (Array.isArray(cascadeArticles) && cascadeArticles.length > 0) {
     ctx.cascade = cascadeArticles.slice(0, 5);
@@ -481,6 +488,21 @@ function summariseBlocks(items: unknown[]): string {
     .join(', ');
 }
 
+function summariseCot(data: unknown): string {
+  const d = data as { entries?: Array<Record<string, unknown>> } | null;
+  if (!d?.entries?.length) return '';
+  const entries = d.entries as Array<Record<string, unknown>>;
+  return entries
+    .slice(0, 5)
+    .map(e => {
+      const net = e.netPosition as number;
+      const wk = e.weeklyChange as number | null;
+      const wkStr = wk != null ? `(${wk > 0 ? '+' : ''}${Math.round(wk / 1000)}k wk)` : '';
+      return `${e.id}:${e.sentiment}${net > 0 ? '+' : ''}${Math.round(net / 1000)}k${wkStr}`;
+    })
+    .join(', ');
+}
+
 function summariseEconCal(data: unknown): string {
   const d = data as Record<string, unknown> | null;
   if (!d) return '';
@@ -539,6 +561,7 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
   const blocks = ctx ? summariseBlocks(ctx.blocks) : '';
   const econCal = ctx ? summariseEconCal(ctx.econCal) : '';
   const volatility = ctx ? summariseVolatility(ctx.volatility) : '';
+  const cot = ctx ? summariseCot(ctx.cot) : '';
 
   // 빈 섹션은 프롬프트에서 제외 — GROQ TPD 한도 소비 최소화 (100,000/일).
   // "[Heatmap] n/a" 한 줄도 8-12 토큰 소비. 18개 탭 × 수십 건/일 축적시 상당량.
@@ -563,6 +586,7 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
     ['NPort-Funds', nport],
     ['Block-Trades', blocks],
     ['EconCalendar', econCal],
+    ['COT-Positions', cot],
   ];
   const body = sections
     .filter(([, v]) => v && v.trim().length > 0)
@@ -577,7 +601,7 @@ Section mapping:
 - market: Heatmap+CapitalFlows+Fear&Greed+FedWatch → broad market summary
 - capital: CapitalFlows countries+Macro+Credit+Korea-Flow → capital movements & macro
 - company: 13F-Buys+Form4-Insider(highlight CEO buys)+13D13G+OptionsFlow+Short → stocks to watch
-- signals: Form4 large buy/sell+13D13G 5% crossings+Cascade+Supply → strong real-time signals
+- signals: COT-Positions+Form4 large buy/sell+13D13G 5% crossings+Cascade+Supply → strong real-time signals
 - outlook: one-line synthesis of everything above (include risk)
 - riskLevel: low|medium|high (based on Fear&Greed·yieldCurve)
 

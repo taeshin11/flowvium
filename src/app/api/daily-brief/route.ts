@@ -98,6 +98,7 @@ export async function GET(request: Request) {
       korea: ctx.korea != null,
       nport: ctx.nport != null,
       blocksCount: Array.isArray(ctx.blocks) ? ctx.blocks.length : 0,
+      cot: ctx.cot != null,
     },
   } : null;
 
