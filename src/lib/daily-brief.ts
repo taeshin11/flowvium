@@ -660,6 +660,12 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
       const label = val >= 75 ? 'Extreme Greed' : val >= 55 ? 'Greed' : val >= 45 ? 'Neutral' : val >= 25 ? 'Fear' : 'Extreme Fear';
       marketBullets.push(`F&G: ${Math.round(val)} (${label})`);
     }
+    const vol = ctx?.volatility as Record<string, unknown> | null | undefined;
+    if (vol?.vix != null) {
+      const vix = vol.vix as number;
+      const regime = vix > 30 ? 'high' : vix > 20 ? 'elevated' : 'low';
+      marketBullets.push(`VIX: ${vix.toFixed(1)} (${regime})`);
+    }
     const fed = ctx?.fedWatch as Record<string, unknown> | null | undefined;
     const meetings = fed?.meetings as Array<Record<string, unknown>> | undefined;
     if (meetings?.length) {
