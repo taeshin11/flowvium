@@ -52,7 +52,7 @@ export interface FedWatchData {
 // ── Static data (updated 2026-04-26) ─────────────────────────────────────────
 // Current rate: 3.50-3.75% (mid 3.625%) after Mar 19 meeting (FRED DFEDTARU=3.75)
 // Macro-indicators STATIC confirms range 3.5-3.75 from March 19 FOMC decision.
-// FOMC dates: Apr 30, Jun 17, Jul 29, Sep 16, Oct 28, Dec 9 (official Fed calendar)
+// FOMC dates: Apr 29, Jun 17, Jul 29, Sep 16, Oct 28, Dec 9 (official Fed calendar)
 // Probabilities calibrated to 2026-04-26 ZQ futures (no cuts priced through mid-2026).
 // targetLow/targetHigh = expected target after each meeting (hold-dominant → current range).
 // ZQ futures imply only 10bp total cuts by Dec 9; first likely cut at Sep/Oct 50th percentile.
@@ -62,8 +62,8 @@ const STATIC_DATA: FedWatchData = {
   currentRateMid: 3.625,
   meetings: [
     {
-      date: '2026-04-30',
-      label: 'Apr 30',
+      date: '2026-04-29',
+      label: 'Apr 29',
       current: 3.625,
       targetLow: 3.50,
       targetHigh: 3.75,
