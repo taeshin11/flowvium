@@ -29,8 +29,8 @@ import { Redis } from '@upstash/redis';
 import { logger } from './logger';
 
 // ── Redis lazy init for cross-instance quota guards ──────────────────────────
-const GROQ_TPD_KEY = 'flowvium:groq:tpd_exhausted_v1';
-const GEMINI_QUOTA_KEY = 'flowvium:gemini:quota_exhausted_v1';
+const GROQ_TPD_KEY = 'flowvium:groq:tpd_exhausted_v2'; // v2: bust stale guard from Apr 26
+const GEMINI_QUOTA_KEY = 'flowvium:gemini:quota_exhausted_v2';
 let _redis: Redis | null | undefined = undefined; // undefined = not yet initialised
 
 function getGuardRedis(): Redis | null {
