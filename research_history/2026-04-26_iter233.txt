@@ -1,0 +1,79 @@
+ITER233 — 2026-04-26
+Primary outcome: AI 할당량 소진 근본원인 제거
+
+=== DRIFT CHECK ===
+Recent 5 commits: iter231(daily-brief), iter232(investment-strategy x2), iter233(quota fix)
+- iter230=daily-brief, iter231=daily-brief, iter232=investment-strategy (2 commits)
+- iter233는 quota 인프라 — drift 임계값 미달. 모듈별 분산 OK.
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=vol.vix source=Yahoo direct_value=18.71 our_value=18.7 delta=0.01 tolerance=0.1 → OK
+[accuracy probe] metric=yield.spread2s10s source=FRED-T10Y2Y direct_value=0.53(Apr24) our_value=0.51(Apr23) delta=0.02 tolerance=0.05 → OK
+
+=== ROOT CAUSE FOUND ===
+
+verify-metrics 가 GROQ 할당량을 소진시키고 있었음:
+- 실행 빈도: */30 * * * * = 48회/일
+- 매 실행 시 호출: /api/investment-strategy + /api/daily-brief + /api/company-news?ticker=NVDA
+- 각 호출 시 캐시 없으면 AI 호출 → 3회 × 48 = 144 AI 호출/일
+- GROQ 70b TPD: 100k / 144 calls × 3400 tokens = 489k tokens 필요 → 즉시 소진
+- GROQ 8b TPD: 500k / 144 calls × 600 tokens = 86k tokens → 비교적 여유
+
+=== FIXES APPLIED ===
+
+1. probe=1 파라미터 신설 (investment-strategy + daily-brief)
+   - 캐시 있으면 캐시 반환
+   - 캐시 없으면 data-fallback 즉시 반환 (AI 호출 없음)
+   - verify-metrics는 구조적 유효성만 검증하므로 AI 결과 불필요
+
+2. verify-metrics → probe=1 적용
+   - /api/investment-strategy?probe=1
+   - /api/daily-brief?probe=1
+   - AI 호출 0회/30min → 144 AI calls/day 절감
+
+3. update-all에서 daily-brief + investment-strategy 중복 pre-warm 제거
+   - 둘 다 5-10분 후 전용 cron 보유 → pre-warm 불필요
+   - Redis 없는 환경에서는 중복 AI 호출 6회/일 절감
+   - news-cascade는 update-all에서만 trigger되므로 유지
+
+=== iter232 완료 (이전 컨텍스트에서 시작) ===
+
+macroAnalysis/technicalAnalysis 필드 data-driven 화:
+- macroAnalysis: "YieldCurve=normal(51bp) · CPI=3.3%YoY · GDP(Q4)=0.5%→Q1 pending · IG_OAS=0.80% · HY_OAS=2.86% · F&G=66(greed)"
+- technicalAnalysis: "VIX=18.7(low-vol) · curve normal — no recession signal"
+- 기존 "AI analysis unavailable — check yield curve..." 제네릭 텍스트 대체
+
+=== EXPECTED IMPACT ===
+
+Before fix:
+- GROQ 70b: 100k TPD 조기 소진 (08:00 UTC 이전)
+- GROQ 8b: 500k TPD 조기 소진
+- Gemini: 429 quota exhausted
+- → strategy.portfolio + brief.market: degraded (isAI: False)
+
+After fix (quota reset 09:00 KST):
+- verify-metrics: AI 호출 없음 → quota 절감 144 calls/day
+- update-all: 중복 6 calls/day 절감
+- 실제 cron (daily-brief × 3, investment-strategy × 3) = 6 AI calls/day만 사용
+- → GROQ 70b: 6 × 3400 = 20k tokens/day (100k 한도의 20% 사용)
+- → strategy.portfolio + brief.market: ok (isAI: True) 예상
+
+=== VERIFY-METRICS STATE (pre-fix, from current deploy) ===
+ok=184, degraded=2 (strategy.portfolio + brief.market), error=0, skipped=5, total=191
+Expected after quota reset: ok=186, degraded=0
+
+=== COMMITS ===
+feat(investment-strategy): data-populated macroAnalysis + technicalAnalysis in fallback
+fix(quota): eliminate verify-metrics AI calls + remove redundant pre-warm in update-all
+
+=== REMAINING ISSUES ===
+- strategy.portfolio / brief.market: GROQ 할당량 재설정(09:00 KST) 전까지 degraded 유지
+- sector-pe trailingPE: static from 2026-04-25 (Yahoo v10 crumb blocked)
+- Redis/OpenRouter: 미설정
+- EU heatmap: 45% ceiling (공식 포기)
+- KRX flow API: blocked from Vercel (공식 포기)
+- FOMC/GDP/PCE: April 30 releases — system READY
+
+=== NEXT ITER SIGNAL ===
+iter233는 인프라/quota — iter234는 product quality 권장
+옵션: (a) April 30 GDP auto-update 검증, (b) sector-pe 대안 PE 소스, (c) investment-strategy 품질 향상
