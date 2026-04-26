@@ -212,6 +212,39 @@ const KEYWORD_RULES: KeywordRule[] = [
       { asset: 'S&P500', direction: 'negative', magnitude: 'medium', reason: 'Risk-off sentiment pressures equities', timeframe: 'short-term(1-3d)' },
     ],
   },
+  {
+    pattern: /\b(ipo|initial public offering|listing|float|spac|direct listing|capital raise)\b/i,
+    sentiment: 'bullish', importance: 'medium',
+    cascades: [
+      { asset: 'Equities', direction: 'positive', magnitude: 'low', reason: 'Active IPO market signals investor risk appetite', timeframe: 'medium-term(1-4w)' },
+      { asset: 'Investment Banks', direction: 'positive', magnitude: 'medium', reason: 'Fee revenue from equity issuance boosts IB earnings', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
+  {
+    pattern: /\b(silver|slv|sil|xag|platinum|palladium|precious metal)\b/i,
+    sentiment: 'neutral', importance: 'medium',
+    cascades: [
+      { asset: 'Silver', direction: 'neutral', magnitude: 'medium', reason: 'Industrial and monetary demand drive silver price', timeframe: 'short-term(1-3d)' },
+      { asset: 'Gold', direction: 'neutral', magnitude: 'low', reason: 'Precious metals often move together in risk-off/on swings', timeframe: 'short-term(1-3d)' },
+    ],
+  },
+  {
+    pattern: /\b(jobs|employment|payroll|unemployment|nfp|labor|wages|hiring|layoff)\b/i,
+    sentiment: 'neutral', importance: 'high',
+    cascades: [
+      { asset: 'S&P500', direction: 'neutral', magnitude: 'medium', reason: 'Labor data influences Fed rate path expectations', timeframe: 'short-term(1-3d)' },
+      { asset: 'Bonds', direction: 'neutral', magnitude: 'medium', reason: 'Employment strength shapes Treasury yield direction', timeframe: 'short-term(1-3d)' },
+      { asset: 'Dollar', direction: 'positive', magnitude: 'low', reason: 'Strong jobs data supports hawkish Fed bias', timeframe: 'short-term(1-3d)' },
+    ],
+  },
+  {
+    pattern: /\b(crypto|bitcoin|ethereum|btc|eth|blockchain|defi|stablecoin|coinbase)\b/i,
+    sentiment: 'neutral', importance: 'medium',
+    cascades: [
+      { asset: 'Bitcoin', direction: 'neutral', magnitude: 'high', reason: 'Crypto markets react directly to regulatory and adoption news', timeframe: 'short-term(1-3d)' },
+      { asset: 'Technology', direction: 'positive', magnitude: 'low', reason: 'Crypto adoption signals risk-on sentiment in tech', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
 ];
 
 function keywordFallbackCascade(title: string): Pick<NewsWithCascade, 'summary' | 'sentiment' | 'importance' | 'cascades'> | null {
