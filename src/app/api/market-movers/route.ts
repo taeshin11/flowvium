@@ -55,15 +55,10 @@ function createRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
-// Determine assetclass for Nasdaq API — BRK-B and others use 'stocks'
-function nasdasClass(ticker: string): string {
-  return 'stocks';
-}
-
 async function fetchQuoteNasdaq(ticker: string): Promise<Mover | null> {
   const to = new Date().toISOString().slice(0, 10);
   const from = new Date(Date.now() - 14 * 86400 * 1000).toISOString().slice(0, 10);
-  const assetclass = nasdasClass(ticker);
+  const assetclass = 'stocks';
   const url = `https://api.nasdaq.com/api/quote/${encodeURIComponent(ticker)}/historical?assetclass=${assetclass}&fromdate=${from}&todate=${to}&limit=5&sortColumn=date&sortOrder=DESC&type=Historical`;
   try {
     const res = await fetch(url, {

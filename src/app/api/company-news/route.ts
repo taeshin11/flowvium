@@ -150,6 +150,9 @@ export async function GET(req: NextRequest) {
       if (finnhubNews.length > 0) {
         logger.info('api.company-news', 'finnhub_fallback', { ticker, count: finnhubNews.length });
         const result = { ticker, news: finnhubNews, summary: null, source: 'finnhub', generatedAt: new Date().toISOString(), cached: false };
+        if (redis) {
+          await loggedRedisSet(redis, 'api.company-news', cacheKey, result, { ex: 30 * 60 });
+        }
         return NextResponse.json(result, { headers: CDN_HEADERS });
       }
     } catch (fe) { logger.warn('api.company-news', 'finnhub_failed', { ticker, error: String(fe) }); }
