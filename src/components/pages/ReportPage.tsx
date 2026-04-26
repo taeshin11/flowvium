@@ -268,7 +268,9 @@ export default function ReportPage() {
     }).catch(() => { if (!signal.aborted) setSpy({ loading: false, error: true, value: null }); });
 
     void fetch('/api/yield-curve', { signal }).then(r => r.json()).then(j => {
-      const sp = j?.spread ?? j?.spreadBp;
+      const raw = j?.spread2s10sCurrent ?? j?.spread ?? j?.spreadBp;
+      // spread2s10sCurrent is in % (e.g. 0.51 = 51bp); legacy spreadBp already in bp
+      const sp = raw != null ? (j?.spread2s10sCurrent != null ? Math.round(raw * 100) : raw) : null;
       if (!signal.aborted) setCurve({ loading: false, error: sp == null, value: sp != null ? { spread: sp, inverted: sp < 0 } : null });
     }).catch(() => { if (!signal.aborted) setCurve({ loading: false, error: true, value: null }); });
 
