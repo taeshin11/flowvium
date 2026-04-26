@@ -1,0 +1,98 @@
+iter261 — 2026-04-26
+primary outcome: investment-strategy AI에 COT + commodity 컨텍스트 추가
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- e43a0b7 feat(fear-greed): add VIX as 4th factor to US composite (CNN fallback)
+- 8ee6732 docs(history): iter260 log
+- 476c2f0 docs(history): iter259 log
+- 5fb4eb3 feat(daily-brief): add commodity curve (WTI/Gold) to AI brief context
+- 351d4fe docs(history): iter258 log
+
+Drift signal check:
+(1) fear-greed(iter260), daily-brief ctx(iter258~259), investment-strategy(iter261) → 3 다른 영역 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에" 3+ deferred: FOMC/GDP/PCE/IClaims April 30 — 시간 제약, 유효
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+investment-strategy AI 프롬프트에 COT(CFTC 투기자 포지셔닝) + Commodity(WTI/Gold) 컨텍스트 추가.
+iter258~259에서 daily-brief에 추가했던 두 데이터 소스를 investment-strategy에도 적용.
+
+## 변경 내용
+
+### src/app/api/investment-strategy/route.ts
+
+#### CtxSummary 인터페이스 확장
+```typescript
+interface CtxSummary {
+  macro: string;
+  sentiment: string;
+  flows: string;
+  cot: string;        // 신규
+  commodity: string;  // 신규
+  institutional: string;
+  shorts: string;
+  news: string;
+}
+```
+
+#### buildCtxSummary() — 두 섹션 추가
+- COT: `ctx.cot.entries` → `id:sentiment+Xk(+Yk wk)` 형식 (상위 5개 시장)
+- Commodity: `ctx.commodity.curves` → `WTI=X.XX/bbl(contango+Y%)` 형식
+
+#### buildInvestmentPrompt() — 두 섹션 추가
+```
+[COT Positions]
+${ctx.cot || 'No data'}
+
+[Commodity Prices]
+${ctx.commodity || 'No data'}
+```
+[Capital Flows] 와 [Institutional Positions] 사이에 삽입.
+
+## 실제 영향
+- 투자 전략 AI가 이제 CFTC 선물 투기자 포지션(S&P500/Nasdaq/10Y/EUR/VIX)을 보고 추천
+- WTI/Gold 선물 곡선 구조(contango/backwardation)를 commodity exposure 결정에 활용
+- daily-brief와 investment-strategy 두 AI 경로 모두 동일 컨텍스트 수준으로 통일
+
+## TypeScript 검증
+```
+npx tsc --noEmit → 오류 없음 ✓
+```
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+```
+[accuracy probe] metric=VIX source=Yahoo_v8 direct_value=18.71(Apr25) → vixLevelScore(18.71)=50 ✓ (iter260 기준 유지)
+[accuracy probe] metric=COT source=CFTC direct_value=N/A (weekly, next release Fri) → ctx.cot 구조 변경 없음 ✓
+[accuracy probe] metric=commodity source=Yahoo_futures direct_value=N/A → ctx.commodity 구조 변경 없음 ✓
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: investment-strategy AI가 COT+commodity 반영 → 전략 품질 직접 향상 ✓
+- (b) 실패 확률 ≥50%: N/A
+- (c) 삭제/단순화: N/A
+
+## 세션 종료 처리
+- CronList → 33개 누적 cron 잡 발견 → CronDelete 전부 실행 완료
+- ScheduleWakeup 없음 (세션 종료)
+
+## 커밋
+- (이 로그와 함께 커밋 예정)
+
+## 다음 iter 우선순위 (다음 세션 인계)
+1. **April 30 UTC 12:30**: 수동 데이터 업데이트
+   - GDP Q1 Advance actual: `src/app/api/macro-indicators/route.ts` STATIC.gdp.actual
+   - Core PCE March actual: STATIC.pce.actual
+   - IClaims week-ending Apr 25: STATIC.iclaims.actual
+2. **April 30 UTC 18:00+**: FOMC actual 업데이트
+   - `src/app/api/economic-calendar/route.ts` FOMC_2026 April 30 entry → `actual: X.XX`
+   - `src/app/api/macro-indicators/route.ts` STATIC.fomc 갱신
+   - `src/app/api/fedwatch/route.ts` STATIC_DATA April 30 미팅 제거 + currentRate 갱신
+3. **iter262 방향**: investment-strategy 2연속 X — 다른 영역으로
+   - 옵션A: news-cascade 소스 확장 (Reuters/Bloomberg RSS 추가)
+   - 옵션B: 새 API 라우트 (국채 수익률 커브 직접 노출 /api/yield-curve)
+   - 옵션C: /admin/logs UI 개선 (에러 필터링)

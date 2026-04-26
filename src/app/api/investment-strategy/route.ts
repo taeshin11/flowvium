@@ -249,6 +249,12 @@ ${vix || 'No data'}
 [Capital Flows]
 ${ctx.flows}
 
+[COT Positions]
+${ctx.cot || 'No data'}
+
+[Commodity Prices]
+${ctx.commodity || 'No data'}
+
 [Institutional Positions]
 ${ctx.institutional}
 
@@ -282,6 +288,8 @@ interface CtxSummary {
   macro: string;
   sentiment: string;
   flows: string;
+  cot: string;
+  commodity: string;
   institutional: string;
   shorts: string;
   news: string;
@@ -358,6 +366,41 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     }
   } catch { /* ignore */ }
 
+  // COT positions
+  let cot = '';
+  try {
+    const d = ctx.cot as { entries?: Array<Record<string, unknown>> } | null;
+    if (d?.entries?.length) {
+      cot = d.entries.slice(0, 5).map(e => {
+        const net = e.netPosition as number;
+        const wk = e.weeklyChange as number | null;
+        const wkStr = wk != null ? `(${wk > 0 ? '+' : ''}${Math.round(wk / 1000)}k wk)` : '';
+        return `${e.id}:${e.sentiment}${net > 0 ? '+' : ''}${Math.round(net / 1000)}k${wkStr}`;
+      }).join(', ');
+    }
+  } catch { /* ignore */ }
+
+  // Commodity curve
+  let commodity = '';
+  try {
+    const d = ctx.commodity as { curves?: Array<Record<string, unknown>> } | null;
+    if (d?.curves?.length) {
+      commodity = d.curves
+        .filter(c => Array.isArray(c.curve) && (c.curve as unknown[]).length > 0)
+        .map(c => {
+          const front = (c.curve as Array<{ price: number }>)[0]?.price;
+          if (!front) return null;
+          const struct = c.structure as string;
+          const slope = c.slope as number;
+          const slopeStr = Math.abs(slope) > 0.1 ? `${slope > 0 ? '+' : ''}${slope.toFixed(1)}%` : '';
+          const name = c.id === 'oil' ? 'WTI' : 'Gold';
+          const unit = (c.unit as string) ?? '';
+          return `${name}=${front.toFixed(front >= 1000 ? 0 : 2)}${unit.includes('oz') ? '/oz' : '/bbl'}(${struct}${slopeStr})`;
+        })
+        .filter(Boolean).join(', ');
+    }
+  } catch { /* ignore */ }
+
   // Shorts
   let shorts = '';
   try {
@@ -386,7 +429,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     if (topNews.length) news = topNews.join(' | ');
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, institutional, shorts, news };
+  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news };
 }
 
 // ── Event calendar for fallback risk events — mirrors macro-indicators FOMC_DATES_2026 / RELEASE_SCHEDULE ─
