@@ -448,10 +448,12 @@ function summariseKorea(korea: unknown): string {
   const topFB = (k.topForeignBuy as Array<Record<string, unknown>>) ?? [];
   const topFS = (k.topForeignSell as Array<Record<string, unknown>>) ?? [];
   const topIB = (k.topInstBuy as Array<Record<string, unknown>>) ?? [];
-  const fbStr = topFB.slice(0, 2).map(r => `${r.name}(+${Math.round(((r.foreignerNetBuy as number) ?? 0) / 1e8)}B)`).join(',');
-  const fsStr = topFS.slice(0, 2).map(r => `${r.name}(${Math.round(((r.foreignerNetBuy as number) ?? 0) / 1e8)}B)`).join(',');
-  const ibStr = topIB.slice(0, 2).map(r => `${r.name}(+${Math.round(((r.institutionNetBuy as number) ?? 0) / 1e8)}B)`).join(',');
-  return `ForeignBuy:${fbStr} / ForeignSell:${fsStr} / InstBuy:${ibStr}`;
+  const fmt = (v: unknown) => v != null ? `${Math.round((v as number) / 1e8)}억` : null;
+  const fbStr = topFB.slice(0, 2).map(r => { const v = fmt(r.foreignerNetBuy); return v ? `${r.name}(+${v})` : null; }).filter(Boolean).join(',');
+  const fsStr = topFS.slice(0, 2).map(r => { const v = fmt(r.foreignerNetBuy); return v ? `${r.name}(${v})` : null; }).filter(Boolean).join(',');
+  const ibStr = topIB.slice(0, 2).map(r => { const v = fmt(r.institutionNetBuy); return v ? `${r.name}(+${v})` : null; }).filter(Boolean).join(',');
+  if (!fbStr && !fsStr && !ibStr) return '';
+  return `ForeignBuy:${fbStr || 'N/A'} / ForeignSell:${fsStr || 'N/A'} / InstBuy:${ibStr || 'N/A'}`;
 }
 
 function summariseNPort(nport: unknown): string {
@@ -735,7 +737,13 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const topFB = (korea?.topForeignBuy as Array<Record<string, unknown>>) ?? [];
     if (topFB.length > 0) {
       const t = topFB[0];
-      signalBullets.push(`🇰🇷 Foreign ${t.name}: +${Math.round(((t.foreignerNetBuy as number) ?? 0) / 1e8)}B KRW`);
+      const fbv = t.foreignerNetBuy as number | null;
+      if (fbv != null) {
+        signalBullets.push(`🇰🇷 Foreign ${t.name}: +${Math.round(fbv / 1e8)}억 KRW`);
+      } else if ((t.changePct as number | null) != null) {
+        const chg = t.changePct as number;
+        signalBullets.push(`🇰🇷 KOSPI ${t.name}: ${chg > 0 ? '+' : ''}${chg.toFixed(1)}%`);
+      }
     }
 
     // Cascade headline
