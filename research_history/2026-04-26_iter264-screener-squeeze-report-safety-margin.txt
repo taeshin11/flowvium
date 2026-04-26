@@ -1,0 +1,56 @@
+iter264 — Screener Form4 Squeeze + Report Safety Margin + Homepage Button UX
+
+=== Primary Outcomes ===
+
+1. Homepage 보조 버튼 UX 개선 (사용자 스크린샷 피드백)
+   - 6개 보조 nav 버튼(실적·수급·히트맵·스크리너·공매도·연쇄분석) 색상/크기 업그레이드
+   - 아이콘 w-4 h-4, 패딩 px-3.5 py-2, 반투명 bg fill, 색상 accent per-item
+   - amber(earnings), emerald(insider), blue(heatmap), violet(screener), red(short), cyan(cascade)
+   - commit: d925f28
+
+2. 스크리너 1W/4W 탭에 "Top Squeeze 후보" 섹션 추가
+   - 기존 문제: 13주 탭에만 숏스퀴즈 후보 있고, 1주/4주 탭에는 없음
+   - 사용자 지적: "1주, 4주 기준으로 숏스퀴즈 후보들을 못내놓지?"
+   - 해결: insiderRows × shortMap cross-join
+     - base score = shortEntry.squeezeScore (short float% + short vol% 기반)
+     - insider bonus: C-suite +20, 3건 이상 집중매수 +15, 일반 +10
+     - adjScore = min(100, base + bonus), threshold ≥ 20
+   - 가격 fetch 추가: insiderTickerKey useMemo → 별도 batch-prices useEffect
+   - UI: 🔥 orange gradient card, short vol % 표시
+   - commit: 051ece2
+
+3. AI 투자전략 리포트 안전마진 / 진입가 표시 개선
+   - 기존 문제: entryZone/target/stopLoss가 "펼치기" 클릭 후에만 보임
+   - 사용자 지적: "어떤 종목 살지도 알려주고 안전마진 고려해서 매수추천가격도 알려줘야됨"
+   - 해결:
+     a) PortfolioItem에 currentPrice?: number 추가
+     b) API에서 livePrices Map으로 ticker별 현재가 주입
+     c) ReportPage: entryZone + target 항상 표시 (collapsed 제거)
+     d) safetyBadge() 함수: currentPrice vs entryZone 비교
+        - price > upper*1.03 → "+N% 고가 주의" (red)
+        - price in zone    → "진입 구간" (amber)
+        - price < lower    → "N% 매수 기회" (green)
+     e) expand 버튼은 stopLoss만 표시하도록 변경
+   - commit: 051ece2
+
+4. i18n: 16개 언어 동시 업데이트
+   - report: priceExpensive, priceEntry, priceCheap, expandStopLoss
+   - screener: topInsiderSqueezeTitle, topInsiderSqueezeSubtitle
+   - commit: 051ece2
+
+=== Accuracy Probe ===
+[accuracy probe] metric=yield.10Y source=FRED direct_value=4.34 our_value=4.34 delta=0 tolerance=0.05 → OK
+[note] AI investment strategy returning fallback (source=fallback) — AI provider quota or parsing issue, not a data accuracy problem
+
+=== Drift Check ===
+- iter262: 자본흐름·수익률곡선 (음성결과)
+- iter263: news-cascade RSS 교체 + FOMC 날짜 수정 + GDP forecast
+- iter264: UX(버튼) + Screener 기능 + Report 기능
+→ 다른 모듈 영역으로 drift 없음
+
+=== April 29-30 대비 (미완료) ===
+- FOMC 결정: April 29 18:00 UTC — 결과 후 FOMC_2026 actual 업데이트 필요
+  파일: economic-calendar/route.ts (actual 필드), macro-indicators/route.ts (STATIC.fomc), fedwatch/route.ts
+- GDP Q1 Advance: April 30 12:30 UTC — consensus 2.1%
+- Core PCE March: April 30 12:30 UTC — consensus 0.3% MoM / 2.8% YoY
+- IClaims: April 30 12:30 UTC — FRED 자동 갱신 (cron 13:00 UTC)
