@@ -654,6 +654,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const force = searchParams.get('force') === '1';
   const locale = searchParams.get('locale') ?? 'en';
+  // probe=1: return cached or data-fallback immediately without AI — used by verify-metrics
+  const probe = searchParams.get('probe') === '1';
 
   const redis = createRedis();
   const key = cacheKey();
@@ -672,6 +674,13 @@ export async function GET(request: Request) {
         return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
       }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_read_error', { error: e }); }
+  }
+
+  // probe mode: no cache found → return data-driven fallback without calling AI
+  if (probe) {
+    const ctx = await gatherTabContext(redis, `${new URL(request.url).protocol}//${new URL(request.url).host}`);
+    const strategy = dataFallbackStrategy(ctx, locale);
+    return NextResponse.json(strategy, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } });
   }
 
   const reqUrl = new URL(request.url);

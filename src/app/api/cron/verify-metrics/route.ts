@@ -1112,7 +1112,9 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
 
 // ── 미커버 엔드포인트 추가 검증 (iter84) ────────────────────────────────────
 async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
-  const r = await safeJson(base, '/api/investment-strategy', 20000);
+  // probe=1 returns cached or data-fallback without triggering AI — prevents verify-metrics
+  // from burning GROQ quota every 30 min. Structural validity is the same either way.
+  const r = await safeJson(base, '/api/investment-strategy?probe=1', 20000);
   if (!r.ok) {
     return [{ key: 'strategy.ALL', label: 'Investment Strategy API', group: 'strategy',
       status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
@@ -1145,8 +1147,8 @@ async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
 
 async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
   return Promise.all([
-    // Daily Brief (AI market summary)
-    safeJson(base, '/api/daily-brief').then((r): MetricItem => {
+    // Daily Brief — probe=1 avoids AI call, checks structural validity only
+    safeJson(base, '/api/daily-brief?probe=1').then((r): MetricItem => {
       if (!r.ok) return { key: 'brief.ALL', label: 'Daily Brief API', group: 'brief', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
       const d = r.data as { market?: unknown; source?: string };
       const hasContent = d.market != null;

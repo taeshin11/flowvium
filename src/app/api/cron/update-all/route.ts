@@ -118,17 +118,10 @@ export async function GET(req: Request) {
     warm(base, '/api/latest-updates',  'latest-updates',  15000),
   ]);
 
-  // ── 3단계: daily-brief — fire & forget (dedicated cron이 5분 후 재생성) ──
-  // await 하면 stage 1(30s) + stage 2(25s) + stage 3(20s) = 75s → maxDuration(60s) 초과.
-  // daily-brief는 자체 cron으로 관리되므로 update-all에서 결과를 기다릴 필요 없음.
-  fetch(`${base}/api/daily-brief?tf=4w`, { signal: AbortSignal.timeout(20000), cache: 'no-store' })
-    .then(r => { if (!r.ok) logger.warn('cron.update-all', 'daily_brief_warm_failed', { status: r.status }); })
-    .catch(e => logger.warn('cron.update-all', 'daily_brief_warm_error', { error: e instanceof Error ? e.message : String(e) }));
+  // daily-brief and investment-strategy each have dedicated crons 5-10 min after update-all.
+  // Removed pre-warm calls here to avoid double AI quota consumption without Redis deduplication.
 
-  // ── 4단계: investment-strategy + 수급동향 주요 티커 pre-warm (fire & forget) ───
-  fetch(`${base}/api/investment-strategy`, { signal: AbortSignal.timeout(50000), cache: 'no-store' })
-    .then(r => { if (!r.ok) logger.warn('cron.update-all', 'investment_strategy_warm_failed', { status: r.status }); })
-    .catch(e => logger.warn('cron.update-all', 'investment_strategy_warm_error', { error: e instanceof Error ? e.message : String(e) }));
+  // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget) ──────────────────
 
   // ── 수급동향 주요 티커 pre-warm (fire & forget, 병렬) ──────────────
   Promise.allSettled(TOP_TICKERS.map(ticker =>

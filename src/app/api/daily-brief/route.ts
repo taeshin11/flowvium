@@ -27,6 +27,8 @@ export async function GET(request: Request) {
   const tf = (searchParams.get('tf') as Timeframe) ?? '4w';
   const force = searchParams.get('force') === '1';
   const debug = searchParams.get('debug') === '1';
+  // probe=1: return cached or data-fallback immediately without AI — used by verify-metrics
+  const probe = searchParams.get('probe') === '1';
 
   const reqStart = Date.now();
   const redis = createRedis();
@@ -47,6 +49,15 @@ export async function GET(request: Request) {
       logger.info('api.daily-brief', 'memory_cache_hit', { tf, ageMs: Date.now() - (mem.expiresAt - MEMORY_TTL_MS) });
       return NextResponse.json({ ...mem.brief, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
     }
+  }
+
+  // probe mode: no cache found → return data-driven fallback without calling AI
+  if (probe) {
+    const reqUrl2 = new URL(request.url);
+    const base2 = reqUrl2.host.startsWith('localhost') ? 'http://localhost:3000' : `${reqUrl2.protocol}//${reqUrl2.host}`;
+    const ctx2 = await gatherTabContext(redis, base2);
+    const brief = fallbackBrief(tf, ctx2);
+    return NextResponse.json(brief, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } });
   }
 
   // Stale AI brief — checked before gathering context so the 6h gap between
