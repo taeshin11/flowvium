@@ -1,0 +1,86 @@
+iter217 — 2026-04-26
+PRIMARY OUTCOME: Nasdaq keyless 폴백 확보 (14자)
+CATEGORY: (a) 핵심 숫자를 움직임 — capital-flows 0 assets → 15 assets 복구
+
+=== DRIFT CHECK ===
+최근 5 커밋:
+  9e05aa2  flow-analysis stale fallback
+  52a6f43  flow-analysis 503 제거
+  e1309c7  capital-flows: Yahoo v8 throttled 폴백
+  2d0020f  capital-flows: universal stale key
+  6a2571a  docs: capital-flows Finnhub
+
+capital-flows + flow-analysis 영역 연속 작업. 그러나 실제 장애 해결 중으로
+drift가 아닌 점진적 해결 경로로 판단. iter217에서 capital-flows 최종 해결.
+
+=== ACCURACY PROBE ===
+[accuracy probe] metric=vix source=CBOE
+  direct_value=18.71 (2026-04-24 close)
+  our_value=18.71 (from /api/volatility)
+  delta=0 tolerance=0.5 → OK
+
+[accuracy probe] metric=capital-flows.SPY.ret1w source=Nasdaq
+  direct_call=Nasdaq API live: SPY rows=78
+  our_value=1.65% (after Nasdaq fallback)
+  verification=dataSource="Nasdaq ×41" confirmed → OK
+
+=== FINDINGS ===
+
+1. 발견: Yahoo Finance v8 individual도 Vercel IP에서 차단됨
+   - 이전 가정: v7 spark batch만 차단, v8 individual은 동작
+   - 실제: throttled Yahoo v8 (5-concur, 350ms delay) 배포 후에도
+     assets_count=0 확인 → v8도 Vercel IP range 전체 차단
+   - yahoo-finance.ts 주석에 이미 "v7/v10 crumb auth fails from Vercel IPs"
+     기록 있었으나 v8도 포함됨을 확인
+
+2. 발견: Nasdaq public API 동작 확인
+   - URL: https://api.nasdaq.com/api/quote/{ticker}/historical
+   - 로컬 테스트: SPY/QQQ/GLD/EEM/EWJ 모두 78행
+   - Vercel 배포 후 테스트: Nasdaq ×41 (41개 전체 성공)
+   - 인증 불필요, User-Agent 헤더만 필요
+
+=== CHANGES ===
+
+commit e1309c7 (Yahoo v8 throttled — deployed, verified not working):
+  - fetchAllPrices에 throttled Yahoo v8 fallback 추가
+  - 5-concurrent, 350ms delay
+  - 결과: Vercel에서도 동작 안함 확인 (assets_count=0)
+
+commit 4519f2c (Nasdaq fallback — deployed, verified working):
+  파일: src/app/api/capital-flows/route.ts
+
+  추가된 함수:
+    fetchPricesNasdaq(ticker):
+      - https://api.nasdaq.com/api/quote/{ticker}/historical
+      - fromdate=6months ago, limit=120, sortOrder=ASC
+      - rows → close 파싱 (CSV처럼 문자열 float 변환)
+      - 20행 미만 시 throw
+
+  fetchAllPrices 변경:
+    throttled Yahoo v8 → Nasdaq (5-concurrent, 200ms delay)
+
+  sourceSummary 추가:
+    { ..., nasdaq: 'Nasdaq', ... }
+
+  Vercel 실측:
+    - 요청: GET /api/capital-flows -H "x-vercel-force-dynamic: 1"
+    - 응답: assets_count=15, dataSource="Nasdaq ×41"
+    - SPY: ret1w=1.65%, ret4w=0.26%, ret13w=0.66% with sparkline 26점
+
+=== CDN 이슈 ===
+s-maxage=14400 (4h)로 CDN에 empty 결과가 캐시되어 있음 (~01:57 UTC).
+캐시 만료: ~05:57 UTC → 이후 첫 요청에 Nasdaq 결과 자동 저장됨.
+x-vercel-force-dynamic: 1 헤더로 CDN 우회 확인.
+
+=== 주요 지표 현황 ===
+- fear-greed US: score=66, source=cnn, level=greed ✓
+- news-cascade: 5 articles ✓
+- volatility: VIX=18.71 ✓
+- macro-indicators: ✓
+- capital-flows: Nasdaq ×41 (CDN cache 만료 후 정상화) ✓
+
+=== NEXT ACTIONS ===
+1. Redis Vercel 환경변수 미설정 → 사용자 액션 필요
+   (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN)
+2. GROQ 쿼터 복구: 2026-04-27 00:00 UTC 자동
+3. FINNHUB_KEY: vercel env add FINNHUB_KEY production (선택적)
