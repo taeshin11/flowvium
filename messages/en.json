@@ -1102,7 +1102,11 @@
     "analysisFundamental": "Fundamental",
     "loadingDetail": "AI is analyzing all data...",
     "loadingDesc": "Synthesizing macro · institutional · technical",
-    "cached": "Cached"
+    "cached": "Cached",
+    "actionBuy": "Buy",
+    "actionWatch": "Watch",
+    "buyNow": "Buy Now",
+    "dataAsOf": "Data as of"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

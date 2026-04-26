@@ -1102,7 +1102,11 @@
     "analysisFundamental": "Fondamental",
     "loadingDetail": "L'IA analyse toutes les données...",
     "loadingDesc": "Synthèse macro · institutionnel · technique",
-    "cached": "En cache"
+    "cached": "En cache",
+    "actionBuy": "Acheter",
+    "actionWatch": "Surveiller",
+    "buyNow": "Acheter maintenant",
+    "dataAsOf": "Données au:"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

@@ -103,8 +103,14 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
               {rank}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-gray-900">{item.ticker}</span>
+                {item.action === 'buy' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-500 text-white">{t('actionBuy')}</span>
+                )}
+                {item.action === 'watch' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-700">{t('actionWatch')}</span>
+                )}
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${confidenceBadge(item.confidence)}`}>
                   {confidenceLabel}
                 </span>
@@ -200,7 +206,6 @@ function sourceBadge(src: string): { label: string; cls: string } {
 export default function ReportPage() {
   const t = useTranslations('report');
   const locale = useLocale();
-  void locale;
 
   const [data, setData] = useState<InvestmentStrategy | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,7 +229,10 @@ export default function ReportPage() {
     if (force) setRefreshing(true);
     else setLoading(true);
     try {
-      const res = await fetch(`/api/investment-strategy${force ? '?force=1' : ''}`, { signal: ctrl.signal, cache: 'no-store' });
+      const params = new URLSearchParams();
+      if (force) params.set('force', '1');
+      params.set('locale', locale);
+      const res = await fetch(`/api/investment-strategy?${params}`, { signal: ctrl.signal, cache: 'no-store' });
       if (ctrl.signal.aborted) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json() as InvestmentStrategy;
@@ -234,7 +242,7 @@ export default function ReportPage() {
     } finally {
       if (!ctrl.signal.aborted) { setLoading(false); setRefreshing(false); }
     }
-  }, []);
+  }, [locale]);
 
   const fetchKpis = useCallback(async () => {
     kpiAbortRef.current?.abort();
@@ -378,8 +386,31 @@ export default function ReportPage() {
               </span>
               {data.cached && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{t('cached')}</span>}
             </div>
+            {data.dataAsOf && (
+              <p className="text-[10px] text-gray-400 mt-0.5 mb-1.5">
+                {t('dataAsOf')} {new Date(data.dataAsOf).toLocaleString()}
+              </p>
+            )}
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
           </div>
+
+          {/* ── Buy Recommendations strip ─────────────────────────────────── */}
+          {data.portfolio.some(p => p.action === 'buy') && (
+            <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3 flex-wrap">
+              <span className="text-xs font-bold text-emerald-700 shrink-0">{t('buyNow')}</span>
+              {data.portfolio.filter(p => p.action === 'buy').map(p => (
+                <span key={p.ticker} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-600 text-white px-2.5 py-1 rounded-full">
+                  {p.ticker}
+                  <span className="font-normal opacity-80 text-[10px]">{p.allocation}%</span>
+                </span>
+              ))}
+              {data.dataAsOf && (
+                <span className="ml-auto text-[10px] text-emerald-600 opacity-70 shrink-0">
+                  {t('dataAsOf')} {new Date(data.dataAsOf).toLocaleString()}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* ── 3-col analysis ────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">

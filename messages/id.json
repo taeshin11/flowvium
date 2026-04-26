@@ -1102,7 +1102,11 @@
     "analysisFundamental": "Fundamental",
     "loadingDetail": "AI sedang menganalisis semua data...",
     "loadingDesc": "Mensintesis makro · institusional · teknikal",
-    "cached": "Tersimpan"
+    "cached": "Tersimpan",
+    "actionBuy": "Beli",
+    "actionWatch": "Pantau",
+    "buyNow": "Beli Sekarang",
+    "dataAsOf": "Data per:"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

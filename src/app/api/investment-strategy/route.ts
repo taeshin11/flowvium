@@ -33,6 +33,7 @@ export interface PortfolioItem {
   stopLoss: string;
   target: string;
   confidence: 'high' | 'medium' | 'low';
+  action?: 'buy' | 'hold' | 'watch';
 }
 
 export interface SectorWeight {
@@ -60,6 +61,7 @@ export interface InvestmentStrategy {
   fundamentalAnalysis: string;
   riskLevel: 'low' | 'medium' | 'high';
   generatedAt: string;
+  dataAsOf?: string;
   source: string;
   cached?: boolean;
 }
@@ -192,11 +194,19 @@ async function getVixContext(baseUrl: string): Promise<string> {
 }
 
 // ── AI prompt ────────────────────────────────────────────────────────────────
-function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string, prices: Map<string, LivePrice>, vix: string): string {
+const LOCALE_LANG: Record<string, string> = {
+  ko: 'Korean', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
+  es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', ru: 'Russian',
+  ar: 'Arabic', hi: 'Hindi', id: 'Indonesian', th: 'Thai', tr: 'Turkish', vi: 'Vietnamese',
+};
+
+function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string, prices: Map<string, LivePrice>, vix: string, locale = 'en'): string {
   const today = new Date().toISOString().slice(0, 10);
   const priceData = pricesSection(prices);
+  const lang = LOCALE_LANG[locale];
+  const langInstruction = lang ? `\nIMPORTANT: Write ALL text fields (thesis, rationale, macroAnalysis, technicalAnalysis, fundamentalAnalysis, sectorAllocation.reason, riskEvents.event, riskEvents.watchFor) in ${lang}. Keep ticker symbols and numbers in English/digits.\n` : '';
 
-  return `You are a quantitative strategist and portfolio manager. Based on real-time data as of ${today}, provide the optimal investment strategy for the next 4 weeks.
+  return `You are a quantitative strategist and portfolio manager. Based on real-time data as of ${today}, provide the optimal investment strategy for the next 4 weeks.${langInstruction}
 
 [Live Prices — use these as the basis for entryZone/stopLoss/target calculations]
 ${priceData || 'No data'}
@@ -235,6 +245,7 @@ Key rules:
 2. entryZone/stopLoss/target must be actual dollar ranges based on the live prices above (e.g., if current price is $850, entryZone "$840-855")
 3. rationale must include specific numbers/reasons, no repetitive phrases
 4. allocation must sum to 100
+5. action must be "buy" (actively accumulate now), "hold" (keep if owned), or "watch" (wait for better entry)
 
 {
   "stance": "bullish|neutral|bearish",
@@ -249,7 +260,8 @@ Key rules:
       "entryZone": "$price-based range",
       "stopLoss": "$price-7%",
       "target": "$price+15%",
-      "confidence": "high"
+      "confidence": "high",
+      "action": "buy|hold|watch"
     }
   ],
   "sectorAllocation": [
@@ -378,38 +390,117 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
 }
 
 // ── Fallback strategy when AI fails ──────────────────────────────────────────
-function fallbackStrategy(): InvestmentStrategy {
-  // Use relative dates so risk events don't show as past events after deployment
+function fallbackStrategy(locale = 'en'): InvestmentStrategy {
   const d = (offsetDays: number) =>
     new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
+  const isKo = locale === 'ko';
+  const isJa = locale === 'ja';
+  const isZh = locale === 'zh-CN' || locale === 'zh-TW';
+
+  const txt = {
+    thesis: isKo ? 'AI 분석 대기 중 — 분산 ETF 배분'
+           : isJa ? 'AI分析待機中 — 分散ETF配分'
+           : isZh ? 'AI分析等待中 — 分散ETF配置'
+           : 'AI quota reset pending — diversified ETF allocation',
+    spyRationale: isKo ? '광의 시장 코어 — AI 분석 공백 중 방어적 포지션'
+                : isJa ? '広義市場コア — AI分析空白中の防御的ポジション'
+                : isZh ? '广义市场核心 — AI分析空白期间防御性持仓'
+                : 'Broad market core — defensive during AI analysis gap',
+    qqqRationale: isKo ? '기술 섹터 익스포저 — AI/클라우드 성장 테마'
+                : isJa ? 'テクノロジーセクターエクスポージャー — AI/クラウド成長テーマ'
+                : isZh ? '科技板块敞口 — AI/云计算成长主题'
+                : 'Tech sector exposure — AI/cloud growth theme',
+    gldRationale: isKo ? '매크로 불확실성 시 안전자산 헤지'
+                : isJa ? 'マクロ不確実性時の安全資産ヘッジ'
+                : isZh ? '宏观不确定性时的避险资产对冲'
+                : 'Safe-haven hedge during macro uncertainty',
+    tltRationale: isKo ? '금리 인하 기대를 활용한 듀레이션 전략'
+                : isJa ? '利下げ期待を活用したデュレーション戦略'
+                : isZh ? '利用降息预期的久期策略'
+                : 'Duration play on rate cut expectations',
+    cashRationale: isKo ? '유동성 예비금 — 시그널 대기 중 연 5%+ 수익'
+                 : isJa ? '流動性準備金 — シグナル待機中、年率5%+リターン'
+                 : isZh ? '流动性储备 — 等待信号期间年收益5%+'
+                 : 'Liquidity reserve — 5%+ yield while awaiting signals',
+    techReason: isKo ? 'AI 자본지출 사이클 지속'
+              : isJa ? 'AI設備投資サイクル継続'
+              : isZh ? 'AI资本支出周期持续'
+              : 'AI capex cycle sustained',
+    finReason: isKo ? '금리 인하 경로가 순이자마진에 긍정적'
+             : isJa ? '利下げ経路が純金利マージンにプラス'
+             : isZh ? '降息路径对净息差有利'
+             : 'Rate cut trajectory positive for NIM',
+    hcReason: isKo ? '방어적 배분, 안정적 수익'
+            : isJa ? '防御的配分、安定した収益'
+            : isZh ? '防御性配置，稳定收益'
+            : 'Defensive allocation, stable earnings',
+    energyReason: isKo ? '수요 불확실성, 지정학적 프리미엄 소멸'
+                : isJa ? '需要不確実性、地政学的プレミアム消滅'
+                : isZh ? '需求不确定性，地缘溢价消退'
+                : 'Demand uncertainty, geopolitical premium fading',
+    consumerReason: isKo ? '소비 지출 둔화 리스크'
+                  : isJa ? '消費支出鈍化リスク'
+                  : isZh ? '消费支出放缓风险'
+                  : 'Consumer spending slowdown risk',
+    bondReason: isKo ? '리스크 관리 + 금리 인하 옵션성'
+              : isJa ? 'リスク管理 + 利下げオプション性'
+              : isZh ? '风险管理 + 降息期权性'
+              : 'Risk management + rate-cut optionality',
+    fomcWatch: isKo ? '금리 인하 확률 및 파월 의장의 향후 경로 발언'
+             : isJa ? '利下げ確率とパウエル議長の今後の方針発言'
+             : isZh ? '降息概率及鲍威尔对未来路径的指引'
+             : 'Rate cut probability and Powell guidance on future path',
+    nfpWatch: isKo ? '고용시장 건전성과 연준 반응 함수'
+            : isJa ? '雇用市場の健全性とFRBの反応関数'
+            : isZh ? '就业市场健康状况与美联储反应函数'
+            : 'Labor market health and Fed reaction function',
+    cpiWatch: isKo ? '인플레이션 경로 대 연준 2% 목표'
+            : isJa ? 'インフレ経路 対 FRB 2%目標'
+            : isZh ? '通胀路径与美联储2%目标对比'
+            : 'Inflation trajectory vs Fed 2% target',
+    macroAnalysis: isKo ? 'AI 분석 불가 — 수익률 곡선 스프레드, CPI, 신용 스프레드(IG/HY OAS)를 직접 확인하세요. AI 할당량은 매일 09:00 KST 재설정됩니다.'
+                 : isJa ? 'AI分析不可 — イールドカーブスプレッド、CPI、クレジットスプレッド(IG/HY OAS)を直接確認してください。AIクォータは毎日09:00 KSTにリセットされます。'
+                 : isZh ? 'AI分析不可用 — 请直接查看收益率曲线利差、CPI和信用利差(IG/HY OAS)。AI配额每天09:00 KST重置。'
+                 : 'AI analysis unavailable — check yield curve spread, CPI, and credit spreads (IG/HY OAS) directly. AI quota resets daily at 09:00 KST.',
+    technicalAnalysis: isKo ? 'AI 분석 불가 — SPY 200일 이동평균 지지선과 VIX 레짐을 모니터링하세요. AI 분석은 할당량 재설정 후 재개됩니다.'
+                     : isJa ? 'AI分析不可 — SPY 200日移動平均サポートとVIXレジームを監視してください。AI分析はクォータリセット後に再開されます。'
+                     : isZh ? 'AI分析不可用 — 请监控SPY 200日均线支撑和VIX机制。AI分析将在配额重置后恢复。'
+                     : 'AI analysis unavailable — monitor SPY 200-day MA support and VIX regime. AI analysis resumes after quota reset.',
+    fundamentalAnalysis: isKo ? 'AI 분석 불가 — 섹터 P/E를 EPS 성장 전망치 및 FCF 수익률과 비교하세요. 라이브 데이터는 섹터 P/E 탭에서 확인 가능합니다.'
+                        : isJa ? 'AI分析不可 — セクターP/EをEPS成長率予測とFCFイールドと比較してください。ライブデータはセクターP/Eタブで確認できます。'
+                        : isZh ? 'AI分析不可用 — 请将板块市盈率与EPS增长预测和FCF收益率进行比较。实时数据可在板块市盈率标签页查看。'
+                        : 'AI analysis unavailable — compare sector P/E to EPS growth estimates and FCF yield. Live data available in Sector P/E tab.',
+  };
+
   return {
     stance: 'neutral',
-    thesis: 'AI quota reset pending — diversified ETF allocation',
+    thesis: txt.thesis,
     portfolio: [
-      { ticker: 'SPY', name: 'S&P 500 ETF', sector: 'Diversified', rationale: 'Broad market core — defensive during AI analysis gap', allocation: 35, entryZone: 'market ±1%', stopLoss: '-5%', target: '+8%', confidence: 'medium' },
-      { ticker: 'QQQ', name: 'Nasdaq 100 ETF', sector: 'Technology', rationale: 'Tech sector exposure — AI/cloud growth theme', allocation: 25, entryZone: 'market ±1%', stopLoss: '-7%', target: '+12%', confidence: 'medium' },
-      { ticker: 'GLD', name: 'Gold ETF', sector: 'Commodities', rationale: 'Safe-haven hedge during macro uncertainty', allocation: 15, entryZone: 'market ±1%', stopLoss: '-4%', target: '+6%', confidence: 'medium' },
-      { ticker: 'TLT', name: '20Y Treasury ETF', sector: 'Bonds', rationale: 'Duration play on rate cut expectations', allocation: 15, entryZone: 'market ±1%', stopLoss: '-4%', target: '+5%', confidence: 'low' },
-      { ticker: 'CASH', name: 'Cash / T-Bills', sector: 'Cash', rationale: 'Liquidity reserve — 5%+ yield while awaiting signals', allocation: 10, entryZone: '-', stopLoss: '-', target: '+5% annualized', confidence: 'high' },
+      { ticker: 'SPY', name: 'S&P 500 ETF', sector: isKo ? '분산형' : 'Diversified', rationale: txt.spyRationale, allocation: 35, entryZone: 'market ±1%', stopLoss: '-5%', target: '+8%', confidence: 'medium', action: 'hold' as const },
+      { ticker: 'QQQ', name: 'Nasdaq 100 ETF', sector: isKo ? '기술' : 'Technology', rationale: txt.qqqRationale, allocation: 25, entryZone: 'market ±1%', stopLoss: '-7%', target: '+12%', confidence: 'medium', action: 'hold' as const },
+      { ticker: 'GLD', name: 'Gold ETF', sector: isKo ? '원자재' : 'Commodities', rationale: txt.gldRationale, allocation: 15, entryZone: 'market ±1%', stopLoss: '-4%', target: '+6%', confidence: 'medium', action: 'hold' as const },
+      { ticker: 'TLT', name: '20Y Treasury ETF', sector: isKo ? '채권' : 'Bonds', rationale: txt.tltRationale, allocation: 15, entryZone: 'market ±1%', stopLoss: '-4%', target: '+5%', confidence: 'low', action: 'watch' as const },
+      { ticker: 'CASH', name: isKo ? '현금/T-Bill' : 'Cash / T-Bills', sector: isKo ? '현금' : 'Cash', rationale: txt.cashRationale, allocation: 10, entryZone: '-', stopLoss: '-', target: isKo ? '+5% (연환산)' : '+5% annualized', confidence: 'high', action: 'hold' as const },
     ],
     sectorAllocation: [
-      { sector: 'Technology', pct: 25, stance: 'overweight', reason: 'AI capex cycle sustained' },
-      { sector: 'Financials', pct: 20, stance: 'neutral', reason: 'Rate cut trajectory positive for NIM' },
-      { sector: 'Health Care', pct: 15, stance: 'neutral', reason: 'Defensive allocation, stable earnings' },
-      { sector: 'Energy', pct: 10, stance: 'underweight', reason: 'Demand uncertainty, geopolitical premium fading' },
-      { sector: 'Consumer Disc.', pct: 15, stance: 'underweight', reason: 'Consumer spending slowdown risk' },
-      { sector: 'Cash/Bonds', pct: 15, stance: 'overweight', reason: 'Risk management + rate-cut optionality' },
+      { sector: isKo ? '기술' : 'Technology', pct: 25, stance: 'overweight', reason: txt.techReason },
+      { sector: isKo ? '금융' : 'Financials', pct: 20, stance: 'neutral', reason: txt.finReason },
+      { sector: isKo ? '헬스케어' : 'Health Care', pct: 15, stance: 'neutral', reason: txt.hcReason },
+      { sector: isKo ? '에너지' : 'Energy', pct: 10, stance: 'underweight', reason: txt.energyReason },
+      { sector: isKo ? '경기소비재' : 'Consumer Disc.', pct: 15, stance: 'underweight', reason: txt.consumerReason },
+      { sector: isKo ? '현금/채권' : 'Cash/Bonds', pct: 15, stance: 'overweight', reason: txt.bondReason },
     ],
     riskEvents: [
-      { date: d(7), event: 'FOMC Rate Decision', impact: 'high', watchFor: 'Rate cut probability and Powell guidance on future path' },
-      { date: d(14), event: 'Non-Farm Payrolls', impact: 'high', watchFor: 'Labor market health and Fed reaction function' },
-      { date: d(21), event: 'CPI / Core PCE', impact: 'medium', watchFor: 'Inflation trajectory vs Fed 2% target' },
+      { date: d(7), event: isKo ? 'FOMC 금리 결정' : isJa ? 'FOMC金利決定' : 'FOMC Rate Decision', impact: 'high', watchFor: txt.fomcWatch },
+      { date: d(14), event: isKo ? '비농업 고용지수' : isJa ? '非農業部門雇用者数' : 'Non-Farm Payrolls', impact: 'high', watchFor: txt.nfpWatch },
+      { date: d(21), event: isKo ? 'CPI / 근원 PCE' : isJa ? 'CPI / コアPCE' : 'CPI / Core PCE', impact: 'medium', watchFor: txt.cpiWatch },
     ],
-    macroAnalysis: 'AI analysis unavailable — check yield curve spread, CPI, and credit spreads (IG/HY OAS) directly. AI quota resets daily at 09:00 KST.',
-    technicalAnalysis: 'AI analysis unavailable — monitor SPY 200-day MA support and VIX regime. AI analysis resumes after quota reset.',
-    fundamentalAnalysis: 'AI analysis unavailable — compare sector P/E to EPS growth estimates and FCF yield. Live data available in Sector P/E tab.',
+    macroAnalysis: txt.macroAnalysis,
+    technicalAnalysis: txt.technicalAnalysis,
+    fundamentalAnalysis: txt.fundamentalAnalysis,
     riskLevel: 'medium',
     generatedAt: new Date().toISOString(),
+    dataAsOf: new Date().toISOString(),
     source: 'fallback',
   };
 }
@@ -427,11 +518,15 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
 
     // Portfolio: minimum 5 positions, each must have ticker + positive allocation
     if (!Array.isArray(parsed.portfolio)) return null;
-    const portfolio = (parsed.portfolio as Partial<PortfolioItem>[]).filter(
-      (p): p is PortfolioItem =>
+    const portfolio = (parsed.portfolio as Partial<PortfolioItem>[])
+      .filter((p): p is PortfolioItem =>
         typeof p?.ticker === 'string' && p.ticker.length > 0 &&
         typeof p?.allocation === 'number' && p.allocation > 0
-    );
+      )
+      .map(p => ({
+        ...p,
+        action: (['buy', 'hold', 'watch'] as const).includes(p.action as never) ? p.action : undefined,
+      }));
     if (portfolio.length < 5) {
       logger.warn('investment-strategy', 'portfolio_invalid', { count: portfolio.length, raw: raw.slice(0, 200) });
       return null;
@@ -466,6 +561,7 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const force = searchParams.get('force') === '1';
+  const locale = searchParams.get('locale') ?? 'en';
 
   const redis = createRedis();
   const key = cacheKey();
@@ -500,8 +596,9 @@ export async function GET(request: Request) {
     getVixContext(baseUrl),
   ]);
 
+  const dataAsOf = new Date().toISOString();
   const ctxSummary = buildCtxSummary(ctx);
-  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx);
+  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx, locale);
 
   const aiResult = await callAIProvider(prompt, {
     tag: 'investment-strategy',
@@ -536,7 +633,7 @@ export async function GET(request: Request) {
       } catch { /* ignore */ }
     }
 
-    strategy = fallbackStrategy();
+    strategy = fallbackStrategy(locale);
     const isDebug = searchParams.get('debug') === '1';
     if (isDebug) {
       return NextResponse.json({
@@ -545,6 +642,8 @@ export async function GET(request: Request) {
       }, { headers: CDN_HEADERS });
     }
   }
+
+  if (strategy && !strategy.dataAsOf) strategy = { ...strategy, dataAsOf };
 
   if (redis) {
     try {

@@ -1102,7 +1102,11 @@
     "analysisFundamental": "Cơ bản",
     "loadingDetail": "AI đang phân tích tất cả dữ liệu...",
     "loadingDesc": "Tổng hợp vĩ mô · tổ chức · kỹ thuật",
-    "cached": "Đã cache"
+    "cached": "Đã cache",
+    "actionBuy": "Mua",
+    "actionWatch": "Theo dõi",
+    "buyNow": "Mua ngay",
+    "dataAsOf": "Dữ liệu tính đến:"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

@@ -1102,7 +1102,11 @@
     "analysisFundamental": "मौलिक",
     "loadingDetail": "AI सभी डेटा का विश्लेषण कर रहा है...",
     "loadingDesc": "मैक्रो · संस्थागत · तकनीकी संश्लेषण",
-    "cached": "कैश्ड"
+    "cached": "कैश्ड",
+    "actionBuy": "खरीदें",
+    "actionWatch": "देखें",
+    "buyNow": "अभी खरीदें",
+    "dataAsOf": "डेटा तक:"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

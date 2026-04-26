@@ -981,22 +981,22 @@ export default function HomePage() {
               <p className="text-lg md:text-xl text-cf-text-secondary mb-8 max-w-lg">
                 {t('description')}
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Link href="/explore" className="cf-btn-primary text-base px-8 py-3.5 gap-2 shadow-lg shadow-cf-primary/25 hover:shadow-xl hover:shadow-cf-primary/30 transition-all">
+              <div className="grid grid-cols-2 gap-3">
+                <Link href="/explore" className="cf-btn-primary w-full justify-center text-sm px-4 py-3.5 gap-2 shadow-lg shadow-cf-primary/25 hover:shadow-xl hover:shadow-cf-primary/30 transition-all">
                   {tHome('exploreSupplyChains')}
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-4 h-4 flex-shrink-0" />
                 </Link>
-                <Link href="/signals" className="cf-btn-secondary text-base px-8 py-3.5">
+                <Link href="/signals" className="cf-btn-secondary w-full justify-center text-sm px-4 py-3.5">
                   {tHome('viewSignals')}
                 </Link>
                 <Link
                   href="/intelligence"
-                  className="inline-flex items-center gap-2 text-base px-6 py-3.5 rounded-xl font-semibold
+                  className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-slate-900 text-amber-400 border border-slate-700
                              hover:bg-slate-800 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10
                              transition-all duration-200"
                 >
-                  <span className="relative flex h-2 w-2">
+                  <span className="relative flex h-2 w-2 flex-shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
                   </span>
@@ -1004,22 +1004,22 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/news-gap"
-                  className="inline-flex items-center gap-2 text-base px-6 py-3.5 rounded-xl font-semibold
+                  className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-emerald-600 text-white border border-emerald-500
                              hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20
                              transition-all duration-200"
                 >
-                  <Radar className="w-4 h-4" />
+                  <Radar className="w-4 h-4 flex-shrink-0" />
                   {tHome('newsGapScan')}
                 </Link>
                 <Link
                   href="/report"
-                  className="inline-flex items-center gap-2 text-base px-6 py-3.5 rounded-xl font-semibold
+                  className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-violet-600 text-white border border-violet-500
                              hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-500/20
                              transition-all duration-200"
                 >
-                  <span className="relative flex h-2 w-2">
+                  <span className="relative flex h-2 w-2 flex-shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
                   </span>
@@ -1027,12 +1027,12 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/osint"
-                  className="inline-flex items-center gap-2 text-base px-6 py-3.5 rounded-xl font-semibold
+                  className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-cyan-600 text-white border border-cyan-500
                              hover:bg-cyan-700 hover:shadow-lg hover:shadow-cyan-500/20
                              transition-all duration-200"
                 >
-                  <Search className="w-4 h-4" />
+                  <Search className="w-4 h-4 flex-shrink-0" />
                   {tHome('fundTracking')}
                 </Link>
               </div>

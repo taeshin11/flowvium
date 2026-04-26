@@ -1102,7 +1102,11 @@
     "analysisFundamental": "Fundamental",
     "loadingDetail": "KI analysiert alle Daten...",
     "loadingDesc": "Synthese Makro · institutionell · technisch",
-    "cached": "Gecacht"
+    "cached": "Gecacht",
+    "actionBuy": "Kaufen",
+    "actionWatch": "Beobachten",
+    "buyNow": "Jetzt kaufen",
+    "dataAsOf": "Daten vom:"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

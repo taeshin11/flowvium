@@ -1102,7 +1102,11 @@
     "analysisFundamental": "Fundamental",
     "loadingDetail": "A IA está analisando todos os dados...",
     "loadingDesc": "Sintetizando macro · institucional · técnico",
-    "cached": "Em cache"
+    "cached": "Em cache",
+    "actionBuy": "Comprar",
+    "actionWatch": "Observar",
+    "buyNow": "Comprar agora",
+    "dataAsOf": "Dados em:"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

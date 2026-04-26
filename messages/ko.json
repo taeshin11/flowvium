@@ -1102,7 +1102,11 @@
     "analysisFundamental": "기본적 분석",
     "loadingDetail": "AI가 모든 데이터를 분석하고 있습니다...",
     "loadingDesc": "거시경제 · 기관 포지션 · 기술적 지표 종합 중",
-    "cached": "캐시됨"
+    "cached": "캐시됨",
+    "actionBuy": "매수",
+    "actionWatch": "관망",
+    "buyNow": "지금 매수 추천",
+    "dataAsOf": "데이터 기준:"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

@@ -1102,7 +1102,11 @@
     "analysisFundamental": "ファンダメンタル",
     "loadingDetail": "AIが全データを分析中...",
     "loadingDesc": "マクロ・機関・テクニカル総合中",
-    "cached": "キャッシュ済"
+    "cached": "キャッシュ済",
+    "actionBuy": "買い",
+    "actionWatch": "注目",
+    "buyNow": "今すぐ買い推奨",
+    "dataAsOf": "データ基準日:"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

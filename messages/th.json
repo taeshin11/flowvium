@@ -1102,7 +1102,11 @@
     "analysisFundamental": "ปัจจัยพื้นฐาน",
     "loadingDetail": "AI กำลังวิเคราะห์ข้อมูลทั้งหมด...",
     "loadingDesc": "รวมมหภาค · สถาบัน · เทคนิค",
-    "cached": "แคช"
+    "cached": "แคช",
+    "actionBuy": "ซื้อ",
+    "actionWatch": "จับตา",
+    "buyNow": "ซื้อตอนนี้",
+    "dataAsOf": "ข้อมูล ณ:"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

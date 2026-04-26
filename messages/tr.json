@@ -1102,7 +1102,11 @@
     "analysisFundamental": "Temel",
     "loadingDetail": "Yapay zeka tüm verileri analiz ediyor...",
     "loadingDesc": "Makro · kurumsal · teknik sentez",
-    "cached": "Önbellekte"
+    "cached": "Önbellekte",
+    "actionBuy": "Al",
+    "actionWatch": "İzle",
+    "buyNow": "Şimdi Al",
+    "dataAsOf": "Veri tarihi:"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

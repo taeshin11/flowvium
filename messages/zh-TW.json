@@ -1102,7 +1102,11 @@
     "analysisFundamental": "基本面分析",
     "loadingDetail": "AI正在分析所有資料...",
     "loadingDesc": "綜合總體·機構·技術指標",
-    "cached": "已快取"
+    "cached": "已快取",
+    "actionBuy": "買入",
+    "actionWatch": "觀望",
+    "buyNow": "立即買入推薦",
+    "dataAsOf": "數據截至:"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

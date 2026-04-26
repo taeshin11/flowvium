@@ -1102,7 +1102,11 @@
     "analysisFundamental": "基本面分析",
     "loadingDetail": "AI正在分析所有数据...",
     "loadingDesc": "综合宏观·机构·技术指标",
-    "cached": "已缓存"
+    "cached": "已缓存",
+    "actionBuy": "买入",
+    "actionWatch": "观望",
+    "buyNow": "立即买入推荐",
+    "dataAsOf": "数据截至:"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",
