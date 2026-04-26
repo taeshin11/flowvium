@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "Şirketleri karşılaştırmak için yukarıya iki hisse kodu girin.",
     "companyA": "Şirket A",
     "companyB": "Şirket B",
-    "noNewsGapData": "Bu ticker için haber açığı verisi bulunmuyor."
+    "noNewsGapData": "Bu ticker için haber açığı verisi bulunmuyor.",
+    "headquarters": "Genel Merkez",
+    "gapScoreLabel": "Boşluk Puanı (sessizlik = sinyal)",
+    "ibActivityLabel": "IB Faaliyeti",
+    "noSignals": "Bu hisse için 13F sinyali kaydedilmemiş.",
+    "roleLabel": "Rol",
+    "noCascades": "Takip edilen hiçbir kaskad deseninde yer almıyor.",
+    "subtitle": "Tedarik zinciri konumu, kurumsal sinyaller ve haber boşluğu puanlarının yan yana analizi.",
+    "marketCapTier": "Piyasa Değeri Seviyesi",
+    "chainRole": "Zincir Rolü",
+    "gapScore": "Boşluk Puanı",
+    "ibActivity": "IB Faaliyeti",
+    "gapScoreTooltip": "Yüksek = daha fazla medya sessizliği = daha güçlü sinyal",
+    "notFound": "{ticker} veritabanında bulunamadı.",
+    "tryExample": "Deneyin: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "Titan ($1T+)",
+    "mcMega": "Mega ($100B+)",
+    "mcLarge": "Büyük ($10B+)",
+    "mcMid": "Orta ($1B+)",
+    "mcSmall": "Küçük (<$1B)"
   }
 }

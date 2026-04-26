@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "上記に2つのティッカーを入力して企業を比較してください。",
     "companyA": "企業 A",
     "companyB": "企業 B",
-    "noNewsGapData": "このティッカーのニュースギャップデータはありません。"
+    "noNewsGapData": "このティッカーのニュースギャップデータはありません。",
+    "headquarters": "本社",
+    "gapScoreLabel": "ギャップスコア（沈黙＝シグナル）",
+    "ibActivityLabel": "IB活動",
+    "noSignals": "このティッカーの13Fシグナルは記録されていません。",
+    "roleLabel": "役割",
+    "noCascades": "追跡中のカスケードパターンには登録されていません。",
+    "subtitle": "サプライチェーンポジション、機関投資家シグナル、ニュースギャップスコアの並列比較。",
+    "marketCapTier": "時価総額区分",
+    "chainRole": "チェーン役割",
+    "gapScore": "ギャップスコア",
+    "ibActivity": "IB活動",
+    "gapScoreTooltip": "高いほど=メディア沈黙多い=より強いシグナル",
+    "notFound": "{ticker}はデータベースに見つかりません。",
+    "tryExample": "おすすめ: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "タイタン ($1T+)",
+    "mcMega": "メガ ($100B+)",
+    "mcLarge": "大型 ($10B+)",
+    "mcMid": "中型 ($1B+)",
+    "mcSmall": "小型 ($1B未満)"
   }
 }

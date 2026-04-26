@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "Nhập hai mã cổ phiếu ở trên để so sánh các công ty.",
     "companyA": "Công ty A",
     "companyB": "Công ty B",
-    "noNewsGapData": "Không có dữ liệu khoảng cách tin tức cho ticker này."
+    "noNewsGapData": "Không có dữ liệu khoảng cách tin tức cho ticker này.",
+    "headquarters": "Trụ sở chính",
+    "gapScoreLabel": "Điểm khoảng cách (im lặng = tín hiệu)",
+    "ibActivityLabel": "Hoạt động IB",
+    "noSignals": "Không có tín hiệu 13F nào được ghi nhận cho mã này.",
+    "roleLabel": "Vai trò",
+    "noCascades": "Không xuất hiện trong bất kỳ mô hình cascade nào được theo dõi.",
+    "subtitle": "Phân tích song song về vị trí chuỗi cung ứng, tín hiệu tổ chức và điểm khoảng cách tin tức.",
+    "marketCapTier": "Mức vốn hóa thị trường",
+    "chainRole": "Vai trò trong chuỗi",
+    "gapScore": "Điểm khoảng cách",
+    "ibActivity": "Hoạt động IB",
+    "gapScoreTooltip": "Cao hơn = im lặng truyền thông nhiều hơn = tín hiệu mạnh hơn",
+    "notFound": "Không tìm thấy {ticker} trong cơ sở dữ liệu.",
+    "tryExample": "Thử: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "Titan ($1T+)",
+    "mcMega": "Mega ($100B+)",
+    "mcLarge": "Lớn ($10B+)",
+    "mcMid": "Trung bình ($1B+)",
+    "mcSmall": "Nhỏ (<$1B)"
   }
 }

@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "ป้อนสัญลักษณ์สองตัวด้านบนเพื่อเปรียบเทียบบริษัท",
     "companyA": "บริษัท A",
     "companyB": "บริษัท B",
-    "noNewsGapData": "ไม่มีข้อมูลช่องว่างข่าวสำหรับสัญลักษณ์นี้"
+    "noNewsGapData": "ไม่มีข้อมูลช่องว่างข่าวสำหรับสัญลักษณ์นี้",
+    "headquarters": "สำนักงานใหญ่",
+    "gapScoreLabel": "คะแนนช่องว่าง (ความเงียบ = สัญญาณ)",
+    "ibActivityLabel": "กิจกรรม IB",
+    "noSignals": "ไม่มีสัญญาณ 13F บันทึกสำหรับหุ้นนี้",
+    "roleLabel": "บทบาท",
+    "noCascades": "ไม่ได้รวมอยู่ในรูปแบบ cascade ที่ติดตาม",
+    "subtitle": "วิเคราะห์เปรียบเทียบตำแหน่งในห่วงโซ่อุปทาน สัญญาณสถาบัน และคะแนนช่องว่างข่าว",
+    "marketCapTier": "ระดับมูลค่าตลาด",
+    "chainRole": "บทบาทในห่วงโซ่",
+    "gapScore": "คะแนนช่องว่าง",
+    "ibActivity": "กิจกรรม IB",
+    "gapScoreTooltip": "สูงกว่า = สื่อเงียบมากกว่า = สัญญาณแรงกว่า",
+    "notFound": "ไม่พบ {ticker} ในฐานข้อมูล",
+    "tryExample": "ลอง: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "ไทแทน ($1T+)",
+    "mcMega": "เมกะ ($100B+)",
+    "mcLarge": "ใหญ่ ($10B+)",
+    "mcMid": "กลาง ($1B+)",
+    "mcSmall": "เล็ก (<$1B)"
   }
 }

@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "أدخل رمزين للسهم أعلاه لمقارنة الشركات.",
     "companyA": "الشركة A",
     "companyB": "الشركة B",
-    "noNewsGapData": "لا توجد بيانات فجوة الأخبار لهذا الرمز."
+    "noNewsGapData": "لا توجد بيانات فجوة الأخبار لهذا الرمز.",
+    "headquarters": "المقر الرئيسي",
+    "gapScoreLabel": "نقاط الفجوة (الصمت = إشارة)",
+    "ibActivityLabel": "نشاط IB",
+    "noSignals": "لا توجد إشارات 13F مسجلة لهذا الرمز.",
+    "roleLabel": "الدور",
+    "noCascades": "غير مدرج في أي نمط شلال يتم تتبعه.",
+    "subtitle": "تحليل جنبًا إلى جنب لموقع سلسلة التوريد والإشارات المؤسسية ودرجات الفجوة الإخبارية.",
+    "marketCapTier": "مستوى القيمة السوقية",
+    "chainRole": "دور السلسلة",
+    "gapScore": "نقاط الفجوة",
+    "ibActivity": "نشاط IB",
+    "gapScoreTooltip": "أعلى = مزيد من الصمت الإعلامي = إشارة أقوى",
+    "notFound": "لم يتم العثور على {ticker} في قاعدة البيانات.",
+    "tryExample": "جرب: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "تيتان ($1T+)",
+    "mcMega": "ميغا ($100B+)",
+    "mcLarge": "كبير ($10B+)",
+    "mcMid": "متوسط ($1B+)",
+    "mcSmall": "صغير (<$1B)"
   }
 }

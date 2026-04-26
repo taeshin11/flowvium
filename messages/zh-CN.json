@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "在上方输入两个股票代码来比较公司。",
     "companyA": "公司 A",
     "companyB": "公司 B",
-    "noNewsGapData": "此股票代码没有新闻缺口数据。"
+    "noNewsGapData": "此股票代码没有新闻缺口数据。",
+    "headquarters": "总部",
+    "gapScoreLabel": "间隙评分（沉默=信号）",
+    "ibActivityLabel": "IB活动",
+    "noSignals": "此代码没有13F信号记录。",
+    "roleLabel": "角色",
+    "noCascades": "未出现在任何追踪的级联模式中。",
+    "subtitle": "并排比较供应链位置、机构信号和新闻间隙评分。",
+    "marketCapTier": "市值区间",
+    "chainRole": "链条角色",
+    "gapScore": "间隙评分",
+    "ibActivity": "IB活动",
+    "gapScoreTooltip": "越高=媒体沉默越多=信号越强",
+    "notFound": "在数据库中找不到{ticker}。",
+    "tryExample": "推荐: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "巨型 ($1T+)",
+    "mcMega": "超大型 ($100B+)",
+    "mcLarge": "大型 ($10B+)",
+    "mcMid": "中型 ($1B+)",
+    "mcSmall": "小型 ($1B以下)"
   }
 }

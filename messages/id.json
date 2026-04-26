@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "Masukkan dua ticker di atas untuk membandingkan perusahaan.",
     "companyA": "Perusahaan A",
     "companyB": "Perusahaan B",
-    "noNewsGapData": "Tidak ada data kesenjangan berita untuk ticker ini."
+    "noNewsGapData": "Tidak ada data kesenjangan berita untuk ticker ini.",
+    "headquarters": "Kantor Pusat",
+    "gapScoreLabel": "Skor Kesenjangan (diam = sinyal)",
+    "ibActivityLabel": "Aktivitas IB",
+    "noSignals": "Tidak ada sinyal 13F yang tercatat untuk ticker ini.",
+    "roleLabel": "Peran",
+    "noCascades": "Tidak terdapat dalam pola kaskade yang dilacak.",
+    "subtitle": "Analisis berdampingan posisi rantai pasokan, sinyal institusional, dan skor kesenjangan berita.",
+    "marketCapTier": "Tingkat Kapitalisasi Pasar",
+    "chainRole": "Peran Rantai",
+    "gapScore": "Skor Kesenjangan",
+    "ibActivity": "Aktivitas IB",
+    "gapScoreTooltip": "Lebih tinggi = lebih banyak keheningan media = sinyal lebih kuat",
+    "notFound": "{ticker} tidak ditemukan di database.",
+    "tryExample": "Coba: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "Titan ($1T+)",
+    "mcMega": "Mega ($100B+)",
+    "mcLarge": "Besar ($10B+)",
+    "mcMid": "Menengah ($1B+)",
+    "mcSmall": "Kecil (<$1B)"
   }
 }

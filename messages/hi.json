@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "कंपनियों की तुलना करने के लिए ऊपर दो टिकर दर्ज करें।",
     "companyA": "कंपनी A",
     "companyB": "कंपनी B",
-    "noNewsGapData": "इस टिकर के लिए कोई न्यूज़ गैप डेटा नहीं है।"
+    "noNewsGapData": "इस टिकर के लिए कोई न्यूज़ गैप डेटा नहीं है।",
+    "headquarters": "मुख्यालय",
+    "gapScoreLabel": "गैप स्कोर (मौन = संकेत)",
+    "ibActivityLabel": "IB गतिविधि",
+    "noSignals": "इस टिकर के लिए कोई 13F सिग्नल दर्ज नहीं है।",
+    "roleLabel": "भूमिका",
+    "noCascades": "किसी भी ट्रैक किए गए कैस्केड पैटर्न में शामिल नहीं है।",
+    "subtitle": "सप्लाई चेन स्थिति, संस्थागत संकेत और समाचार गैप स्कोर का साथ-साथ विश्लेषण।",
+    "marketCapTier": "बाजार पूंजीकरण स्तर",
+    "chainRole": "चेन भूमिका",
+    "gapScore": "गैप स्कोर",
+    "ibActivity": "IB गतिविधि",
+    "gapScoreTooltip": "अधिक = अधिक मीडिया चुप्पी = मजबूत संकेत",
+    "notFound": "{ticker} डेटाबेस में नहीं मिला।",
+    "tryExample": "कोशिश करें: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "टाइटन ($1T+)",
+    "mcMega": "मेगा ($100B+)",
+    "mcLarge": "बड़ा ($10B+)",
+    "mcMid": "मध्यम ($1B+)",
+    "mcSmall": "छोटा (<$1B)"
   }
 }

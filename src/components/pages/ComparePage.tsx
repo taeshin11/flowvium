@@ -36,13 +36,6 @@ import {
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 const marketCapOrder = { titan: 5, mega: 4, large: 3, mid: 2, small: 1 };
-const marketCapLabel: Record<string, string> = {
-  titan: 'Titan ($1T+)',
-  mega: 'Mega ($100B+)',
-  large: 'Large ($10B+)',
-  mid: 'Mid ($1B+)',
-  small: 'Small (<$1B)',
-};
 const roleColors: Record<string, string> = {
   leader: 'text-blue-700 bg-blue-100',
   intermediary: 'text-purple-700 bg-purple-100',
@@ -75,6 +68,7 @@ function ScoreBar({ value, max = 100, color }: { value: number; max?: number; co
 
 function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'right' }) {
   const t = useTranslations('compare');
+  const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   const signals = institutionalSignals.filter((s) => s.ticker === company.ticker).slice(0, 3);
   const ngEntry = newsGapData.find((e) => e.ticker === company.ticker);
   const cascades = cascadePatterns.filter((c) =>
@@ -112,7 +106,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
             {company.role}
           </span>
           <span className="text-xs font-medium px-2 py-1 rounded-full text-gray-600 bg-gray-100">
-            {marketCapLabel[company.marketCap] || company.marketCap}
+            {mcLabel[company.marketCap] || company.marketCap}
           </span>
         </div>
         {livePrice?.price != null && (
@@ -158,7 +152,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
           <div className="flex items-start gap-1.5 col-span-2">
             <Building2 className="w-3.5 h-3.5 text-cf-text-secondary mt-0.5 shrink-0" />
             <div>
-              <p className="text-cf-text-secondary">HQ</p>
+              <p className="text-cf-text-secondary">{t('headquarters')}</p>
               <p className="font-medium text-cf-text-primary">{company.headquarters}</p>
             </div>
           </div>
@@ -189,7 +183,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
           <div className="space-y-3">
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-cf-text-secondary">Gap Score (silence = signal)</span>
+                <span className="text-cf-text-secondary">{t('gapScoreLabel')}</span>
                 <span className="font-bold" style={{ color: accentColor }}>{ngEntry.gapScore}</span>
               </div>
               <ScoreBar value={ngEntry.gapScore} color={accentColor} />
@@ -209,7 +203,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
               <ScoreBar value={ngEntry.mediaScore} color="#94a3b8" />
             </div>
             <p className="text-xs text-cf-text-secondary mt-2">
-              IB Activity: <span className={`font-medium ${ngEntry.ibActivityLevel === 'high' ? 'text-green-600' : ngEntry.ibActivityLevel === 'medium' ? 'text-yellow-600' : 'text-gray-500'}`}>{ngEntry.ibActivityLevel.toUpperCase()}</span>
+              {t('ibActivityLabel')}: <span className={`font-medium ${ngEntry.ibActivityLevel === 'high' ? 'text-green-600' : ngEntry.ibActivityLevel === 'medium' ? 'text-yellow-600' : 'text-gray-500'}`}>{ngEntry.ibActivityLevel.toUpperCase()}</span>
             </p>
           </div>
         ) : (
@@ -237,7 +231,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
             ))}
           </div>
         ) : (
-          <p className="text-xs text-cf-text-secondary">No 13F signals on record for this ticker.</p>
+          <p className="text-xs text-cf-text-secondary">{t('noSignals')}</p>
         )}
       </div>
 
@@ -256,7 +250,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
                 >
                   <p className="font-medium text-cf-text-primary truncate">{c.sectorName}</p>
                   <p className="text-cf-text-secondary mt-0.5">
-                    Role: <span className="font-medium">{step?.role.replace('_', ' ')}</span>
+                    {t('roleLabel')}: <span className="font-medium">{step?.role.replace('_', ' ')}</span>
                     {step?.typicalDelay && <span className="ml-2">· {step.typicalDelay}</span>}
                   </p>
                 </Link>
@@ -264,7 +258,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
             })}
           </div>
         ) : (
-          <p className="text-xs text-cf-text-secondary">Not featured in any tracked cascade patterns.</p>
+          <p className="text-xs text-cf-text-secondary">{t('noCascades')}</p>
         )}
       </div>
 
@@ -351,6 +345,7 @@ function TickerSearch({
 
 export default function ComparePage({ slug }: { slug: string }) {
   const t = useTranslations('compare');
+  const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   // Parse slug: "nvda-vs-amd" → ['NVDA', 'AMD']
   const parts = slug.toUpperCase().split('-VS-');
   const initialTicker1 = parts[0] || 'NVDA';
@@ -393,9 +388,7 @@ export default function ComparePage({ slug }: { slug: string }) {
             {t('title')}
           </h1>
         </div>
-        <p className="text-cf-text-secondary">
-          Side-by-side analysis of supply chain position, institutional signals, and news gap scores.
-        </p>
+        <p className="text-cf-text-secondary">{t('subtitle')}</p>
       </div>
 
       {/* Ticker Selector */}
@@ -430,8 +423,8 @@ export default function ComparePage({ slug }: { slug: string }) {
         {(!company1 || !company2) && (
           <div className="mt-3 flex items-center gap-2 text-sm text-amber-600">
             <AlertCircle className="w-4 h-4" />
-            {!company1 && <span>{ticker1} not found in database. </span>}
-            {!company2 && <span>{ticker2} not found in database.</span>}
+            {!company1 && <span>{t('notFound', { ticker: ticker1 })} </span>}
+            {!company2 && <span>{t('notFound', { ticker: ticker2 })}</span>}
           </div>
         )}
       </div>
@@ -442,20 +435,20 @@ export default function ComparePage({ slug }: { slug: string }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm">
             {[
               {
-                label: 'Market Cap Tier',
-                v1: marketCapLabel[company1.marketCap]?.split(' ')[0],
-                v2: marketCapLabel[company2.marketCap]?.split(' ')[0],
+                label: t('marketCapTier'),
+                v1: mcLabel[company1.marketCap]?.split(' ')[0],
+                v2: mcLabel[company2.marketCap]?.split(' ')[0],
                 winner:
                   (marketCapOrder[company1.marketCap] || 0) > (marketCapOrder[company2.marketCap] || 0) ? 'left' : 'right',
               },
               {
-                label: 'Chain Role',
+                label: t('chainRole'),
                 v1: company1.role,
                 v2: company2.role,
                 winner: null,
               },
               {
-                label: 'Gap Score',
+                label: t('gapScore'),
                 v1: ngEntry1 ? String(ngEntry1.gapScore) : 'N/A',
                 v2: ngEntry2 ? String(ngEntry2.gapScore) : 'N/A',
                 winner:
@@ -464,10 +457,10 @@ export default function ComparePage({ slug }: { slug: string }) {
                       ? 'left'
                       : 'right'
                     : null,
-                tooltip: 'Higher = more media silence = stronger signal',
+                tooltip: t('gapScoreTooltip'),
               },
               {
-                label: 'IB Activity',
+                label: t('ibActivity'),
                 v1: ngEntry1 ? String(ngEntry1.ibActivityScore) : 'N/A',
                 v2: ngEntry2 ? String(ngEntry2.ibActivityScore) : 'N/A',
                 winner:
@@ -545,9 +538,7 @@ export default function ComparePage({ slug }: { slug: string }) {
         <div className="cf-card p-12 text-center">
           <GitCompare className="w-12 h-12 text-cf-text-secondary mx-auto mb-4" />
           <p className="text-cf-text-secondary">{t('enterTwoTickers')}</p>
-          <p className="text-xs text-cf-text-secondary mt-2">
-            Try: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX
-          </p>
+          <p className="text-xs text-cf-text-secondary mt-2">{t('tryExample')}</p>
         </div>
       )}
 

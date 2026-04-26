@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "Insira dois tickers acima para comparar empresas.",
     "companyA": "Empresa A",
     "companyB": "Empresa B",
-    "noNewsGapData": "Sem dados de lacuna de notícias para este ticker."
+    "noNewsGapData": "Sem dados de lacuna de notícias para este ticker.",
+    "headquarters": "Sede",
+    "gapScoreLabel": "Pontuação de lacuna (silêncio = sinal)",
+    "ibActivityLabel": "Atividade IB",
+    "noSignals": "Nenhum sinal 13F registrado para este ticker.",
+    "roleLabel": "Função",
+    "noCascades": "Não aparece em nenhum padrão de cascata rastreado.",
+    "subtitle": "Análise lado a lado de posição na cadeia de suprimentos, sinais institucionais e pontuações de lacuna de notícias.",
+    "marketCapTier": "Nível de capitalização",
+    "chainRole": "Função na cadeia",
+    "gapScore": "Pontuação de lacuna",
+    "ibActivity": "Atividade IB",
+    "gapScoreTooltip": "Maior = mais silêncio midiático = sinal mais forte",
+    "notFound": "{ticker} não encontrado no banco de dados.",
+    "tryExample": "Tente: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "Titã ($1T+)",
+    "mcMega": "Mega ($100B+)",
+    "mcLarge": "Grande ($10B+)",
+    "mcMid": "Médio ($1B+)",
+    "mcSmall": "Pequeno (<$1B)"
   }
 }

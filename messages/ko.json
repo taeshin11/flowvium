@@ -1589,6 +1589,25 @@
     "enterTwoTickers": "위에 두 개의 티커를 입력하여 기업을 비교하세요.",
     "companyA": "회사 A",
     "companyB": "회사 B",
-    "noNewsGapData": "이 티커에 대한 뉴스 갭 데이터가 없습니다."
+    "noNewsGapData": "이 티커에 대한 뉴스 갭 데이터가 없습니다.",
+    "headquarters": "본사",
+    "gapScoreLabel": "갭 스코어 (침묵 = 시그널)",
+    "ibActivityLabel": "IB 활동",
+    "noSignals": "이 종목에 등록된 13F 신호가 없습니다.",
+    "roleLabel": "역할",
+    "noCascades": "추적된 캐스케이드 패턴에 포함되지 않은 종목입니다.",
+    "subtitle": "공급망 포지션, 기관 신호, 뉴스 갭 스코어를 나란히 비교합니다.",
+    "marketCapTier": "시가총액 구간",
+    "chainRole": "체인 역할",
+    "gapScore": "갭 스코어",
+    "ibActivity": "IB 활동",
+    "gapScoreTooltip": "높을수록 미디어 침묵 = 더 강한 시그널",
+    "notFound": "{ticker}를 데이터베이스에서 찾을 수 없습니다.",
+    "tryExample": "추천: NVDA vs AMD, TSLA vs RIVN, V vs MA, ALB vs FCX",
+    "mcTitan": "타이탄 ($1T+)",
+    "mcMega": "메가 ($100B+)",
+    "mcLarge": "대형 ($10B+)",
+    "mcMid": "중형 ($1B+)",
+    "mcSmall": "소형 ($1B 미만)"
   }
 }
