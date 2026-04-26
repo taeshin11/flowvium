@@ -676,11 +676,9 @@ export async function GET(request: Request) {
     } catch (e) { logger.warn('api.investment-strategy', 'cache_read_error', { error: e }); }
   }
 
-  // probe mode: no cache found → return data-driven fallback without calling AI
+  // probe mode: no cache found → return minimal static fallback (no AI, no heavy context fetch)
   if (probe) {
-    const ctx = await gatherTabContext(redis, `${new URL(request.url).protocol}//${new URL(request.url).host}`);
-    const strategy = dataFallbackStrategy(ctx, locale);
-    return NextResponse.json(strategy, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } });
+    return NextResponse.json(fallbackStrategy(locale), { headers: { 'Cache-Control': 'no-store' } });
   }
 
   const reqUrl = new URL(request.url);

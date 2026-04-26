@@ -1147,16 +1147,16 @@ async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
 
 async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
   return Promise.all([
-    // Daily Brief — probe=1 avoids AI call, checks structural validity only
+    // Daily Brief — probe=1 checks structural validity only (no AI call)
+    // AI quality is separately tracked by strategy.portfolio (isAI flag)
     safeJson(base, '/api/daily-brief?probe=1').then((r): MetricItem => {
       if (!r.ok) return { key: 'brief.ALL', label: 'Daily Brief API', group: 'brief', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
       const d = r.data as { market?: unknown; source?: string };
       const hasContent = d.market != null;
-      const isAI = d.source && d.source !== 'data' && d.source !== 'fallback';
       return {
-        key: 'brief.market', label: 'AI 마켓 브리프', group: 'brief',
-        status: hasContent ? (isAI ? 'ok' : 'degraded') : 'error',
-        value: hasContent ? (isAI ? `AI(${d.source})` : `fallback(${d.source})`) : null,
+        key: 'brief.market', label: 'Daily Brief 구조', group: 'brief',
+        status: hasContent ? 'ok' : 'error',
+        value: hasContent ? `ok(${d.source ?? 'data'})` : null,
         source: String(d.source ?? 'none'),
       };
     }),

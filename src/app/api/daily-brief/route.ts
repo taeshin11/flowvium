@@ -51,13 +51,9 @@ export async function GET(request: Request) {
     }
   }
 
-  // probe mode: no cache found → return data-driven fallback without calling AI
+  // probe mode: no cache found → return minimal static fallback (no AI, no heavy context fetch)
   if (probe) {
-    const reqUrl2 = new URL(request.url);
-    const base2 = reqUrl2.host.startsWith('localhost') ? 'http://localhost:3000' : `${reqUrl2.protocol}//${reqUrl2.host}`;
-    const ctx2 = await gatherTabContext(redis, base2);
-    const brief = fallbackBrief(tf, ctx2);
-    return NextResponse.json(brief, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } });
+    return NextResponse.json(fallbackBrief(tf), { headers: { 'Cache-Control': 'no-store' } });
   }
 
   // Stale AI brief — checked before gathering context so the 6h gap between
