@@ -59,25 +59,44 @@ async function fetchGoldSpotGoldAPI(): Promise<number | null> {
 
 // FRED WTI crude spot price — not Yahoo, not IP-blocked from Vercel cloud IPs.
 // Series DCOILWTICO: EIA spot, 1-day lag, free no auth.
-async function fetchOilSpotFRED(): Promise<number | null> {
+async function fetchFREDSeries(series: string, days = 14): Promise<{ latest: number; prev: number | null } | null> {
   try {
-    const startDate = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const startDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
     const res = await fetch(
-      `https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO&cosd=${startDate}`,
+      `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${series}&cosd=${startDate}`,
       { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
     );
     if (!res.ok) return null;
     const text = await res.text();
     const lines = text.trim().split('\n').slice(1);
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const val = lines[i].split(',')[1]?.trim();
+    const values: number[] = [];
+    for (const line of lines) {
+      const val = line.split(',')[1]?.trim();
       if (val && val !== '.') {
         const n = parseFloat(val);
-        if (!isNaN(n) && n > 0) return parseFloat(n.toFixed(2));
+        if (!isNaN(n) && n > 0) values.push(n);
       }
     }
-    return null;
+    if (!values.length) return null;
+    return { latest: parseFloat(values[values.length - 1].toFixed(2)), prev: values.length >= 2 ? parseFloat(values[values.length - 2].toFixed(2)) : null };
   } catch { return null; }
+}
+
+async function fetchOilSpotFRED(): Promise<number | null> {
+  const r = await fetchFREDSeries('DCOILWTICO');
+  return r?.latest ?? null;
+}
+
+// Build carry-model forward curve from spot price and risk-free rate.
+// F(T) = Spot * exp((r + storage) * T/12) — theoretically correct, labeled as 'model'
+function buildCarryCurve(spotPrice: number, riskFreeAnnual: number, storageAnnual: number, months: number, label: string): CurvePoint[] {
+  const carry = riskFreeAnnual + storageAnnual; // e.g. 0.043 + 0.06 = 0.103 per year
+  const points: CurvePoint[] = [{ ticker: label, label: 'Spot', price: spotPrice }];
+  for (let m = 1; m <= months; m++) {
+    const fwd = parseFloat((spotPrice * Math.exp(carry * m / 12)).toFixed(2));
+    points.push({ ticker: `${label}:M+${m}`, label: `M+${m}`, price: fwd });
+  }
+  return points;
 }
 
 async function fetchPrice(ticker: string): Promise<{ ticker: string; price: number; label: string } | null> {
@@ -115,6 +134,7 @@ export interface CommodityCurve {
   structure: 'contango' | 'backwardation' | 'flat';
   slope: number; // % change front-to-back (positive=contango)
   updatedAt: string;
+  synthetic?: boolean; // true when curve is carry-model derived (no live futures)
 }
 
 export async function GET() {
@@ -168,21 +188,42 @@ export async function GET() {
   const oilCurve = buildCurve(oilResults, 'oil', 'WTI Crude Oil', 'USD/bbl');
   const goldCurve = buildCurve(goldResults, 'gold', 'Gold (COMEX)', 'USD/oz');
 
-  // FRED WTI spot fallback — if Yahoo returned 0 futures prices (Vercel IP rate-limited)
+  // Fetch FRED T-bill rate for carry model (DTB3: 3-month T-bill secondary market rate)
+  const tbillData = await fetchFREDSeries('DTB3', 30);
+  const riskFreeAnnual = tbillData ? tbillData.latest / 100 : 0.043; // fallback ~4.3%
+
+  // FRED WTI spot + carry-model curve fallback (Yahoo blocked from Vercel IPs)
   if (oilCurve.curve.length === 0) {
     const fredSpot = await fetchOilSpotFRED();
     if (fredSpot !== null) {
-      logger.info('commodity-curve', 'fred_oil_fallback', { spot: fredSpot });
-      oilCurve.curve = [{ ticker: 'FRED:DCOILWTICO', label: 'Spot', price: fredSpot }];
+      logger.info('commodity-curve', 'fred_oil_carry_curve', { spot: fredSpot, riskFree: riskFreeAnnual });
+      // WTI storage cost ~6%/yr (pipeline + tank fees); carry model gives realistic contango
+      const carryCurve = buildCarryCurve(fredSpot, riskFreeAnnual, 0.06, 5, 'FRED:DCOILWTICO');
+      oilCurve.curve = carryCurve;
+      // Recompute structure from synthetic curve
+      if (carryCurve.length >= 2) {
+        const slopeVal = parseFloat(((carryCurve[carryCurve.length - 1].price - carryCurve[0].price) / carryCurve[0].price * 100).toFixed(2));
+        oilCurve.slope = slopeVal;
+        oilCurve.structure = slopeVal > 0.5 ? 'contango' : slopeVal < -0.5 ? 'backwardation' : 'flat';
+      }
+      oilCurve.synthetic = true;
     }
   }
 
-  // gold-api.com spot fallback — if Yahoo GC futures all blocked (Vercel IP rate-limited)
+  // gold-api.com spot + carry-model curve fallback (Yahoo GC futures blocked)
   if (goldCurve.curve.length === 0) {
     const goldSpot = await fetchGoldSpotGoldAPI();
     if (goldSpot !== null) {
-      logger.info('commodity-curve', 'goldapi_gold_fallback', { spot: goldSpot });
-      goldCurve.curve = [{ ticker: 'GOLDAPI:XAU', label: 'Spot', price: goldSpot }];
+      logger.info('commodity-curve', 'goldapi_gold_carry_curve', { spot: goldSpot, riskFree: riskFreeAnnual });
+      // Gold storage cost ~0.2%/yr (secure vault); carry model for gold
+      const carryCurve = buildCarryCurve(goldSpot, riskFreeAnnual, 0.002, 5, 'GOLDAPI:XAU');
+      goldCurve.curve = carryCurve;
+      if (carryCurve.length >= 2) {
+        const slopeVal = parseFloat(((carryCurve[carryCurve.length - 1].price - carryCurve[0].price) / carryCurve[0].price * 100).toFixed(2));
+        goldCurve.slope = slopeVal;
+        goldCurve.structure = slopeVal > 0.5 ? 'contango' : slopeVal < -0.5 ? 'backwardation' : 'flat';
+      }
+      goldCurve.synthetic = true;
     }
   }
 
