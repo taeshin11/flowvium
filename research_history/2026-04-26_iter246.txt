@@ -1,0 +1,102 @@
+iter246 — 2026-04-26
+primary outcome: market-caps/korea-flow/earnings 스캔 (무결) + verify-metrics 186/191 ✓
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- b3eb5e0 docs(history): iter245 log
+- a3e33fa docs(history): iter244 log
+- fda673a fix(company-financials): bank quarterly revenue fix
+- e9ef612 docs(history): iter243 log
+- c4b7bad fix(cron-update-all): TSM ticker fix
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter243=short/cron, iter244=company-financials, iter245=multi-route scan, iter246=scan 계속 — scan 2 iter 연속이나 아직 1회 경계 미초과 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에" 3회 이상: April 30 events (scheduled, 3일 뒤→내일) ✓ 내일 실제 처리 예정
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+market-caps / korea-flow / earnings 스캔 + verify-metrics 전수 확인
+
+## 스캔 결과
+
+### market-caps/route.ts — 무결 ✓
+- `allCompanies` 배열에서 정적 marketCapBand 계산 (band: mega/large/mid/small)
+- 개별 티커 요청 시 Yahoo v8 live 가격 × sharesOutstanding
+- Redis 24h TTL + module MEMORY_CACHE 4h
+- Band 분류 임계값: mega>200B, large 10-200B, mid 2-10B, small<2B (합리적)
+
+### korea-flow/route.ts — 무결 ✓
+- KRX API → KOSPI/KOSDAQ 외국인·기관 순매수 (4기간: 1d/1w/4w/13w)
+- KRX 실패 시 Yahoo ^KS11 / ^KQ11 fallback
+- Redis 30min TTL + module cache 30min
+- `parseKoreanNumber`: 천/만 단위 Korean number parse ✓
+
+### earnings/route.ts — 무결 ✓
+- Finnhub primary `/calendar/earnings` → Yahoo v7 `finance/earnings` fallback
+- `resolveCompanyNames`: Finnhub company info → Yahoo search → static `KNOWN_NAMES` 3단계 fallback
+- Redis 4h TTL; 분기별 earnings calendar 커버 ✓
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+verify-metrics 전수 probe 결과 (2026-04-26):
+
+```
+[accuracy probe] metric=fg.us.score      source=CNN          our_value=66  direct_value=66  delta=0  → OK
+[accuracy probe] metric=yield.spread2s10s source=FRED        our_value=0.51 direct_value=0.53 delta=0.02 → OK (within 0.05 tolerance)
+[accuracy probe] metric=cpi.yoy          source=FRED CPIAUCSL our_value=3.29 direct_value=3.29 delta=0.00 → OK
+[accuracy probe] metric=ppi.yoy          source=FRED PPIACO   our_value=4.11 direct_value=4.11 delta=0.00 → OK
+[accuracy probe] metric=fomc.rate.mid    source=FRED DFEDTARMD our_value=3.625 direct_value=3.625 delta=0.00 → OK
+```
+
+전체 상태: 186 ok / 0 degraded / 0 error / 5 skipped (scheduled GROQ, expected)
+
+## 스캔 커버리지 현황 (iter241~246 누적)
+
+완료(무결):
+- macro-indicators, economic-calendar, yield-curve, signals/signals-service
+- edgar-13f, capital-flows, flow-analysis (partial)
+- short-interest, cot-positions, batch-prices, cron/update-all
+- company-financials (버그 수정 포함)
+- market-caps, korea-flow, earnings
+
+미탐색:
+- credit-spreads, volatility, commodity-curve, sector-pe
+- analyst-target, fedwatch, investment-strategy (복잡 cascade)
+- stock-supply (Form 4 SEC parsing)
+
+## 방향전환 rationale
+
+iter245~246 연속 스캔으로 신규 버그 없음. 탐색 coverage 충분히 넓어짐.
+**내일(April 30) CRITICAL 이벤트가 최우선**:
+- UTC 12:30: BEA GDP Q1 advance → FRED A191RL1Q225SBEA
+- UTC 12:30: PCE March → FRED PCEPILFE
+- UTC 18:00: FOMC 결정 (97% hold → 3.75 유지)
+
+다음 iter247 방향:
+1. April 30 UTC 12:30 이후 → GDP/PCE 실값 fetch → macro-indicators STATIC 업데이트
+2. April 30 UTC 18:00 이후 → FOMC actual → economic-calendar Apr 30 업데이트
+3. 또는: 미탐색 영역 탐색 (credit-spreads, volatility 등) + GROQ quota 재확인
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: N/A (버그 없음 확인)
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+**빈 iter 처리:** CLAUDE.md §5 — 산출물 없이 끝난 iter → 방향전환 rationale 기록 ✓
+코드 변경 없음. History log만 커밋.
+
+## 커밋
+없음 (무결 스캔 → 코드 변경 없음 → log 기록만)
+
+## 다음 iter 우선순위
+1. **GROQ quota 확인** (April 27 KST 09:00 = UTC 00:00):
+   - investment-strategy?debug=1 → source='groq' 확인
+2. **April 30 CRITICAL** (내일 UTC 12:30 + 18:00):
+   - GDP Q1 advance: FRED A191RL1Q225SBEA → macro-indicators STATIC.gdp.actual
+   - PCE March: FRED PCEPILFE → FORECASTS.pce.actual
+   - FOMC: economic-calendar Apr 30 actual, fedwatch 재조정
+3. 미탐색 영역: credit-spreads, volatility, commodity-curve
