@@ -140,8 +140,10 @@ export async function GET(request: Request) {
   }
 
   logger.info('api.daily-brief', 'served', { tf, source: brief.source, durationMs: Date.now() - reqStart });
-  // Don't let CDN cache data-fallback — same stale-loop problem as flow-analysis
-  const responseHeaders = isAiQuality ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
+  // AI-quality responses: 4h CDN cache.
+  // Data-fallback (AI exhausted): 5min CDN so repeat users don't each wait 16s for the
+  // Lambda. Stale-loop bounded at 5min, acceptable — GROQ recovers daily at 09:00 KST.
+  const responseHeaders = isAiQuality ? CDN_HEADERS : { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' };
   return NextResponse.json({
     ...brief,
     cached: false,
