@@ -507,6 +507,25 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-10-29', // Q3 Advance
     '2027-01-29', // Q4 Advance
   ],
+  // NFP / Unemployment Rate: first Friday of each month (BLS Employment Situation)
+  nfp: [
+    '2026-05-01', // April 2026
+    '2026-06-05', // May 2026
+    '2026-07-03', // June 2026
+    '2026-08-07', // July 2026
+    '2026-09-04', // August 2026
+    '2026-10-02', // September 2026
+    '2026-11-06', // October 2026
+    '2026-12-04', // November 2026
+  ],
+  // Initial Jobless Claims: every Thursday
+  iclaims: [
+    '2026-04-30', // week ending Apr 25
+    '2026-05-07', '2026-05-14', '2026-05-21', '2026-05-28',
+    '2026-06-04', '2026-06-11', '2026-06-18', '2026-06-25',
+    '2026-07-02', '2026-07-09', '2026-07-16', '2026-07-23', '2026-07-30',
+    '2026-08-06', '2026-08-13', '2026-08-20', '2026-08-27',
+  ],
 };
 function nextScheduledRelease(series: string, fallback: string): string {
   const today = new Date().toISOString().slice(0, 10);
@@ -616,12 +635,12 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
 const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
   pce:    { forecast: 2.6,   nextRelease: '2026-04-30' },
-  nfp:    { forecast: 140,   nextRelease: '2026-05-02' },
+  nfp:    { forecast: 140,   nextRelease: '2026-05-01' },  // auto-advance via RELEASE_SCHEDULE.nfp
   gdp:    { forecast: 2.1,   nextRelease: '2026-04-30' },  // fallback only — auto-advance via RELEASE_SCHEDULE
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
   retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
-  unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
-  iclaims:  { forecast: 224,   nextRelease: '2026-05-01' },
+  unrate:   { forecast: 4.1,   nextRelease: '2026-05-01' },  // same day as NFP
+  iclaims:  { forecast: 224,   nextRelease: '2026-04-30' },  // auto-advance via RELEASE_SCHEDULE.iclaims
   umcsent:  { forecast: 54.0,  nextRelease: '2026-05-09' },
   ig_spread: { forecast: 0.75, nextRelease: '' },  // daily series — computed dynamically via nextBizDay()
   hy_spread: { forecast: 2.80, nextRelease: '' },  // daily series — computed dynamically via nextBizDay()
@@ -759,7 +778,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous, forecast: fc,
       releaseDate: nfpData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.nfp.nextRelease,
+      nextRelease: nextScheduledRelease('nfp', FORECASTS.nfp.nextRelease),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `NFP ${actual.toLocaleString()}K (est. ${fc}K). ${actual > fc ? 'Strong jobs — rate cut timing delayed.' : 'Jobs slowing — rate cut expectations strengthened.'}`
@@ -902,7 +921,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous: base.previous, forecast: fc,
       releaseDate: unrateData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.unrate.nextRelease,
+      nextRelease: nextScheduledRelease('nfp', FORECASTS.unrate.nextRelease),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `Unemployment ${actual}% (est. ${fc}%, prev ${base.previous}%). ${actual > fc ? 'Labor market cooling — rate cut pressure.' : 'Labor market holding firm.'}`
@@ -929,7 +948,7 @@ export async function GET(request: Request) {
       ...base,
       actual: displayActual, previous: base.previous, forecast: fc,
       releaseDate: iclaimsRaw && !iclaimsStale ? iclaimsRaw.date : base.releaseDate,
-      nextRelease: FORECASTS.iclaims.nextRelease,
+      nextRelease: nextScheduledRelease('iclaims', FORECASTS.iclaims.nextRelease),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actualK != null
         ? `Initial claims ${actualK}K/wk (est. ${fc}K). ${actualK < fc ? 'No layoff surge — labor market resilient.' : 'Claims rising — watch for layoff pressure.'}`
