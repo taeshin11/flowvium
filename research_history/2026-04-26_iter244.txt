@@ -1,0 +1,133 @@
+iter244 — 2026-04-26
+primary outcome: 은행 분기 매출 복구 (JPM/WFC FY2014→FY2025)
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- e9ef612 docs(history): iter243 log
+- c4b7bad fix(cron-update-all): TSM ticker fix
+- 0478987 fix(short-interest): Yahoo crumb cookie fix
+- e3e8ca5 docs(history): iter242 log
+- 5f5eda2 fix(economic-calendar): FOMC actual values
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter241=macro, iter242=economic-cal, iter243=short-interest/cron, iter244=company-financials — 다른 영역 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에" 3회 이상: April 30 events (scheduled) ✓
+(4) 인프라 블로커: GROQ quota — 공식 abandon 상태 유지 ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+은행 분기 매출 복구 (JPM/WFC FY2014→FY2025)
+
+## 탐색 스캔 결과
+
+- `company-financials/[ticker]/route.ts` — clean (단, cache key v4→v5 범프 필요 발견 → 수정)
+- `sec-financials.ts` — 두 가지 버그 발견 및 수정 ✓
+
+## 발견된 버그
+
+### Bug 1: 은행권 분기 매출 XBRL 개념명 불일치 (CRITICAL)
+
+**문제:**
+`buildQuarterlyRevenue()` 가 `REV_CONCEPTS` 목록에서 10-Q 항목을 찾아 분기별 YTD 값을 조립.
+JPM, WFC 등 주요 은행들은 최근 10-Q에서 `Revenues` 대신 `RevenuesNetOfInterestExpense`를 사용.
+이 개념이 REV_CONCEPTS에 없었기 때문에:
+- JPM: 10-Q `Revenues` 항목이 2014년까지만 존재 → FY2014 분기 데이터 반환
+- WFC: 10-Q `Revenues` 항목이 2019년까지만 존재 → FY2019 분기/연간 데이터 반환
+
+**은행별 개념명 비교:**
+| 은행 | 10-K | 10-Q (최근) |
+|------|------|-------------|
+| BAC | Revenues | Revenues (수정 불필요) |
+| JPM | Revenues = RevenuesNetOfInterestExpense | RevenuesNetOfInterestExpense |
+| WFC | RevenuesNetOfInterestExpense | RevenuesNetOfInterestExpense |
+| C | Revenues (추정) | Revenues (추정) |
+
+**수정 (commit fda673a):**
+```typescript
+// BEFORE: REV_CONCEPTS에 Revenues/RFCCWEAT/SalesRevenueNet/RFCCWIAT만 존재
+// AFTER: RevenuesNetOfInterestExpense 추가
+const REV_CONCEPTS = [
+  'Revenues',
+  'RevenueFromContractWithCustomerExcludingAssessedTax',
+  'SalesRevenueNet',
+  'RevenueFromContractWithCustomerIncludingAssessedTax',
+  'RevenuesNetOfInterestExpense',  // banks (JPM, BAC, C, WFC etc.)
+];
+```
+
+### Bug 2: YTD vs 단일분기 값 중복 시 잘못된 선택 (MEDIUM)
+
+**문제:**
+SEC XBRL는 같은 10-Q 파일에 YTD context와 기간(period) context를 모두 포함 가능.
+예: JPM Q3 2025 = `end=2025-09-30, fp=Q3` 항목이 두 개:
+- YTD context: $136.6B (1월~9월)
+- 단일 분기 context: $46.4B (7월~9월)
+
+기존 dedup 로직: `if (!existing || e.end > existing.end)` → 동일 end 시 첫 번째 값 보존
+→ 반복 순서에 따라 단일분기 값($46.4B)이 YTD 값을 덮어쓸 수 있음
+
+YTD를 단일분기로 오인하면:
+- Q4 = Annual - $46.4B = $136B (비정상 대형 값)
+- 또는 Q3 = $46.4B - YTD_Q2($90.2B) = -$43.8B → filter(val>0)로 걸러지나 Q4도 오염
+
+**수정 (commit fda673a):**
+```typescript
+// BEFORE:
+if (!existing || e.end > existing.end) ytdMap.set(key, e);
+
+// AFTER: 동일 end 시 더 큰 값 선택 (YTD > 단일분기 항상 성립)
+if (!existing || e.end > existing.end || (e.end === existing.end && e.val > existing.val)) {
+  ytdMap.set(key, e);
+}
+```
+
+**검증:**
+- Q3 YTD: $136.6B vs 단일: $46.4B → 136.6 > 46.4 → 올바른 YTD 선택 ✓
+- Q2 YTD: $90.2B vs 단일: $44.9B → 90.2 > 44.9 → 올바른 YTD 선택 ✓
+
+### Cache key 범프
+
+`flowvium:company-financials:v4:*` → `v5:*`
+이유: v4 캐시에 JPM(FY2014), WFC(FY2019) 잘못된 분기 데이터 저장됨.
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+SEC EDGAR XBRL API에서 직접 조회한 값 vs 우리 파싱 결과 비교:
+
+```
+[accuracy probe] metric=jpm.fy2025.revenue source=SEC_EDGAR_XBRL direct_value=182.4B our_value=182.45B delta=0.05B tolerance=0.1B → OK
+[accuracy probe] metric=wfc.fy2025.revenue source=SEC_EDGAR_XBRL direct_value=83.7B  our_value=83.70B delta=0.00B → OK
+```
+
+**분기 합산 검증:**
+- JPM FY2025: Q1($45.3B) + Q2($44.9B) + Q3($46.4B) + Q4($45.8B) = $182.4B ✓
+- WFC FY2025: Q1($20.1B) + Q2($20.8B) + Q3($21.4B) + Q4($21.3B) = $83.6B ≈ $83.7B ✓
+
+**라이브 테스트:**
+- `/api/company-financials/JPM`: 수정 전 Q4 FY2014(stale) → 수정 후 Q4 FY2025($45.8B) ✓
+- `/api/company-financials/WFC`: 수정 전 FY2019 annual(stale) → 수정 후 FY2025 $83.70B ✓
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: JPM/WFC 분기 매출 FY2014/2019 → FY2025 복구 ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- fda673a: fix(company-financials): bank quarterly revenue (RevenuesNetOfInterestExpense + YTD dedup)
+
+## 다음 iter 우선순위
+1. **April 30 CRITICAL** (UTC 12:30 + 18:00):
+   - UTC 12:30 BEA GDP Q1 advance → macro-indicators STATIC.gdp.actual 업데이트
+   - UTC 12:30 PCE March → FORECASTS.pce.forecast → actual
+   - UTC 18:00 FOMC 결정 (97% hold) → economic-calendar Apr 30 actual, fedwatch 재조정
+
+2. **GROQ quota 확인** (April 27 KST 09:00):
+   - investment-strategy?debug=1 → source='groq' 확인
+
+3. **다음 탐색 영역**:
+   - verify-metrics 미커버 엔드포인트 추가
+   - edgar-13f.ts 스캔 (아직 탐색 안 됨)
+
