@@ -374,30 +374,35 @@ function getNewsGapItems(): UpdateItem[] {
 interface MoverEntry { ticker: string; price: number; changePct: number; change: number; }
 interface MoversCache { gainers: MoverEntry[]; losers: MoverEntry[]; updatedAt: string; }
 
-async function getMarketMoverItems(redis: Redis | null): Promise<UpdateItem[]> {
-  if (!redis) return [];
-  try {
-    const data = await redis.get<MoversCache>('flowvium:market-movers:v1');
-    if (!data?.gainers?.length && !data?.losers?.length) return [];
-    const updatedAt = data.updatedAt ?? new Date().toISOString();
-    const toItem = (m: MoverEntry, side: 'gain' | 'loss'): UpdateItem => ({
-      id: `mover-${m.ticker}`,
-      type: 'market' as const,
-      headline: `${m.ticker} ${m.changePct > 0 ? '+' : ''}${m.changePct.toFixed(2)}% — $${m.price}`,
-      sub: `${side === 'gain' ? '📈 Top Gainer' : '📉 Top Loser'} · $${m.change > 0 ? '+' : ''}${m.change.toFixed(2)}`,
-      source: 'Yahoo Finance',
-      time: fmtTime(updatedAt),
-      sortTime: updatedAt,
-      badge: side === 'gain' ? 'Gainer' : 'Loser',
-      badgeColor: side === 'gain' ? '#10b981' : '#ef4444',
-      link: '/intelligence',
-      direction: side === 'gain' ? 'up' as const : 'down' as const,
-    });
-    return [
-      ...data.gainers.slice(0, 3).map(m => toItem(m, 'gain')),
-      ...data.losers.slice(0, 3).map(m => toItem(m, 'loss')),
-    ];
-  } catch { return []; }
+async function getMarketMoverItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+  let data: MoversCache | null = null;
+  if (redis) {
+    try {
+      data = await redis.get<MoversCache>('flowvium:market-movers:v1');
+    } catch { /* non-fatal */ }
+  }
+  if (!data?.gainers?.length && !data?.losers?.length) {
+    data = await safeJson<MoversCache>(`${base}/api/market-movers`, 15000);
+  }
+  if (!data?.gainers?.length && !data?.losers?.length) return [];
+  const updatedAt = data.updatedAt ?? new Date().toISOString();
+  const toItem = (m: MoverEntry, side: 'gain' | 'loss'): UpdateItem => ({
+    id: `mover-${m.ticker}`,
+    type: 'market' as const,
+    headline: `${m.ticker} ${m.changePct > 0 ? '+' : ''}${m.changePct.toFixed(2)}% — $${m.price}`,
+    sub: `${side === 'gain' ? '📈 Top Gainer' : '📉 Top Loser'} · $${m.change > 0 ? '+' : ''}${m.change.toFixed(2)}`,
+    source: 'Nasdaq',
+    time: fmtTime(updatedAt),
+    sortTime: updatedAt,
+    badge: side === 'gain' ? 'Gainer' : 'Loser',
+    badgeColor: side === 'gain' ? '#10b981' : '#ef4444',
+    link: '/intelligence',
+    direction: side === 'gain' ? 'up' as const : 'down' as const,
+  });
+  return [
+    ...(data.gainers ?? []).slice(0, 3).map(m => toItem(m, 'gain')),
+    ...(data.losers ?? []).slice(0, 3).map(m => toItem(m, 'loss')),
+  ];
 }
 
 // ── 8. Institutional Signals (13F) ──────────────────────────────────────────
@@ -507,7 +512,7 @@ export async function GET(req: Request) {
     getMacroItems(redis, base),
     getFedWatchItem(redis, base),
     getNewsCascadeItems(redis, base),
-    getMarketMoverItems(redis),
+    getMarketMoverItems(redis, base),
   ]);
 
   const newsGapItems = getNewsGapItems();

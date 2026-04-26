@@ -75,7 +75,10 @@ type ProviderAttempt = { provider: 'vllm' | 'groq' | 'qwen' | 'gemini'; ok: bool
 /** vLLM EXAONE 호출 */
 async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const vllmUrl = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '');
-  if (!vllmUrl) return null;
+  if (!vllmUrl) {
+    diag?.push({ provider: 'vllm', ok: false, error: 'VLLM_URL not configured', durationMs: 0 });
+    return null;
+  }
 
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
@@ -171,7 +174,10 @@ async function callGroqModel(key: string, model: string, prompt: string, opts: A
 
 async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<{ text: string; model: string } | null> {
   const key = process.env.GROQ_API_KEY?.trim();
-  if (!key) return null;
+  if (!key) {
+    diag?.push({ provider: 'groq', ok: false, error: 'GROQ_API_KEY not configured', durationMs: 0 });
+    return null;
+  }
 
   const tag = opts.tag ?? 'ai';
 
@@ -291,7 +297,10 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
 /** Gemini 호출 — 최종 유료 폴백 */
 async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    diag?.push({ provider: 'gemini', ok: false, error: 'GEMINI_API_KEY not configured', durationMs: 0 });
+    return null;
+  }
 
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
