@@ -29,7 +29,7 @@ const MEM_KEY = 'entries';
 
 // Yahoo crumb — shared with sector-pe (same CRUMB_KEY)
 const CRUMB_KEY = 'flowvium:yahoo:crumb:v1';
-const CRUMB_TTL = 60 * 60; // 1h
+const CRUMB_TTL = 22 * 60 * 60; // match sector-pe — crumbs last ~24h
 const YF_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
 async function getYahooCrumb(redis: Redis | null): Promise<{ crumb: string; cookie: string } | null> {
@@ -46,7 +46,15 @@ async function getYahooCrumb(redis: Redis | null): Promise<{ crumb: string; cook
       signal: AbortSignal.timeout(8000),
     });
     if (!homeRes.ok) return null;
-    const cookie = homeRes.headers.get('set-cookie') ?? '';
+    // Use getSetCookie() (same as sector-pe) to correctly parse multiple Set-Cookie headers.
+    // headers.get('set-cookie') returns a comma-concatenated string of full Set-Cookie values
+    // (including Path=, Domain=, etc.) which is invalid as a Cookie request header.
+    const rawCookies = homeRes.headers.getSetCookie?.() ?? [];
+    const cookie = rawCookies
+      .map(c => c.split(';')[0])
+      .filter(c => c.startsWith('A1=') || c.startsWith('A3=') || c.startsWith('A1S='))
+      .join('; ');
+    if (!cookie) return null;
     const crumbRes = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
       headers: { 'User-Agent': YF_UA, 'Cookie': cookie },
       cache: 'no-store',
@@ -54,7 +62,7 @@ async function getYahooCrumb(redis: Redis | null): Promise<{ crumb: string; cook
     });
     if (!crumbRes.ok) return null;
     const crumb = (await crumbRes.text()).trim();
-    if (!crumb) return null;
+    if (!crumb || crumb.startsWith('{')) return null;
     const result = { crumb, cookie };
     await loggedRedisSet(redis, 'api.short-interest', CRUMB_KEY, result, { ex: CRUMB_TTL });
     return result;
