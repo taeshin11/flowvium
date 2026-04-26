@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "Dollar strength (safe haven)",
     "cfSignalMixed": "Mixed",
     "poweredByGemini": "Powered by Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "carry model"
   },
   "osint": {
     "pageCategory": "Global Intelligence Tracking",

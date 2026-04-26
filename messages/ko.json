@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "달러 강세 (안전자산 달러로)",
     "cfSignalMixed": "혼조",
     "poweredByGemini": "Gemini 2.5 기반",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "carry모델"
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",

@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "美元强势（避险资产）",
     "cfSignalMixed": "混合",
     "poweredByGemini": "由 Gemini 2.5 提供支持",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "期货模型"
   },
   "osint": {
     "pageCategory": "全球情报追踪",

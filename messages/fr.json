@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "Force du dollar",
     "cfSignalMixed": "Mixte",
     "poweredByGemini": "Propulsé par Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "modèle"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",

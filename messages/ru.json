@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "Сила доллара",
     "cfSignalMixed": "Смешанно",
     "poweredByGemini": "Работает на Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "модель"
   },
   "osint": {
     "pageCategory": "Глобальное отслеживание разведданных",

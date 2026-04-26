@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "ドル強勢（安全資産へ）",
     "cfSignalMixed": "混在",
     "poweredByGemini": "Gemini 2.5 搭載",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "キャリーモデル"
   },
   "osint": {
     "pageCategory": "グローバルインテリジェンス追跡",

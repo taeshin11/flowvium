@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "Força do dólar",
     "cfSignalMixed": "Misto",
     "poweredByGemini": "Desenvolvido com Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "modelo"
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",

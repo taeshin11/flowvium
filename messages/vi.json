@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "Đồng đô la mạnh",
     "cfSignalMixed": "Hỗn hợp",
     "poweredByGemini": "Được hỗ trợ bởi Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "mô hình"
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",

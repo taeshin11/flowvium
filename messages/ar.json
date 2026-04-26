@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "قوة الدولار",
     "cfSignalMixed": "مختلط",
     "poweredByGemini": "مدعوم بـ Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "نموذج"
   },
   "osint": {
     "pageCategory": "تتبع الاستخبارات العالمية",

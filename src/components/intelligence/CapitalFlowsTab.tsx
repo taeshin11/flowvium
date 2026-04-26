@@ -63,7 +63,7 @@ interface SectorReturn { id: string; label: string; flag: string; ticker: string
 type RotEntry = { from:string; to:string; magnitude:number; weeksAgo?:number; startDate?:string; momentum?:string };
 type CountryRotEntry = { from:string; fromFlag:string; fromId?:string; to:string; toFlag:string; toId?:string; magnitude:number; momentum:'accelerating'|'holding'|'fading' };
 interface CurvePoint { ticker: string; label: string; price: number; }
-interface CommodityCurveData { id: 'oil'|'gold'; name: string; unit: string; curve: CurvePoint[]; structure: 'contango'|'backwardation'|'flat'; slope: number; updatedAt: string; }
+interface CommodityCurveData { id: 'oil'|'gold'; name: string; unit: string; curve: CurvePoint[]; structure: 'contango'|'backwardation'|'flat'; slope: number; updatedAt: string; synthetic?: boolean; }
 interface FlowData {
   assets: AssetReturn[];
   flow: {
@@ -790,9 +790,12 @@ export default function CapitalFlowsTab() {
                 <div key={c.id} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-cf-text-primary">{c.name}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${structColor}`}>
-                      {structLabel} {c.slope > 0 ? '+' : ''}{c.slope.toFixed(1)}%
-                    </span>
+                    <div className="flex items-center gap-1">
+                      {c.synthetic && <span className="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.5 rounded">{t('cfModelCurve')}</span>}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${structColor}`}>
+                        {structLabel} {c.slope > 0 ? '+' : ''}{c.slope.toFixed(1)}%
+                      </span>
+                    </div>
                   </div>
                   {c.curve.length > 0 && (
                     <div className="flex items-end gap-1 h-12">

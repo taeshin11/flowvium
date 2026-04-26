@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "Dollar-Stärke",
     "cfSignalMixed": "Gemischt",
     "poweredByGemini": "Unterstützt von Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "Modell"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",

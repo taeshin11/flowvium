@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "Dolar güçlü",
     "cfSignalMixed": "Karışık",
     "poweredByGemini": "Gemini 2.5 ile çalışır",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "model"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",

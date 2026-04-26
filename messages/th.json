@@ -953,7 +953,8 @@
     "cfSignalDollarPreferred": "ดอลลาร์แข็งค่า",
     "cfSignalMixed": "ผสม",
     "poweredByGemini": "ขับเคลื่อนโดย Gemini 2.5",
-    "flowviumAi": "Flowvium AI"
+    "flowviumAi": "Flowvium AI",
+    "cfModelCurve": "โมเดล"
   },
   "osint": {
     "pageCategory": "การติดตามข่าวกรองระดับโลก",
