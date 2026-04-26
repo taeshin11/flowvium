@@ -50,6 +50,8 @@ function createRedis(): Redis | null {
 }
 
 // Cache key: per-article (by URL hash) + list key
+const LOCK_KEY = 'flowvium:news-cascade:v1:generating';
+const LOCK_TTL = 90; // seconds — covers worst-case RSS + 5 AI calls
 function listKey(): string {
   const today = new Date().toISOString().slice(0, 10);
   return `flowvium:news-cascade:v1:list:${today}`;
@@ -226,6 +228,29 @@ export async function GET() {
     } catch { /* non-fatal */ }
   }
 
+  // 1c. Distributed lock — prevent thundering herd at midnight UTC (9 AM KST).
+  //     Multiple CDN edge nodes simultaneously miss the 2h cache → all trigger AI
+  //     analysis for the same 5 articles. One lock holder runs the full pipeline;
+  //     others wait 4s and re-check the list cache (by then it should be written).
+  let ownLock = false;
+  if (redis) {
+    try {
+      const acquired = await redis.set(LOCK_KEY, '1', { nx: true, ex: LOCK_TTL });
+      if (!acquired) {
+        await new Promise(r => setTimeout(r, 4000));
+        try {
+          const fresh = await redis.get<NewsWithCascade[]>(listKey());
+          if (fresh && fresh.length > 0) {
+            return NextResponse.json({ articles: fresh, cached: true }, { headers: CDN_HEADERS });
+          }
+        } catch { /* ignore */ }
+        // Lock holder may have crashed — proceed anyway so users aren't stuck
+      } else {
+        ownLock = true;
+      }
+    } catch { /* non-fatal — proceed without lock */ }
+  }
+
   // 2. Fetch all RSS feeds in parallel
   const rawArticles: RawNewsItem[] = [];
   const results = await Promise.allSettled(
@@ -310,6 +335,11 @@ export async function GET() {
   if (!redis && sorted.length > 0 && hasGoodCoverage) {
     NEWS_MEMORY_CACHE = { articles: sorted, expiresAt: Date.now() + NEWS_MEMORY_TTL_MS };
     logger.info('api.news-cascade', 'memory_cache_written', { articles: sorted.length });
+  }
+
+  // Release distributed lock (held only when we were the winning Lambda)
+  if (redis && ownLock) {
+    try { await redis.del(LOCK_KEY); } catch { /* non-fatal */ }
   }
 
   return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });
