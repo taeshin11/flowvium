@@ -169,18 +169,40 @@ async function fetchAllPrices(
   const sourceCount: Record<string, number> = {};
 
   if (twelveKey) {
-    // Twelve Data: individual fetches (no batch API)
+    // Twelve Data: individual fetches (no batch endpoint)
     await Promise.all(
       allTickers.map(async (ticker) => {
-        const { prices, source } = await fetchPrices(ticker, twelveKey);
-        priceMap[ticker] = prices;
-        sourceCount[source] = (sourceCount[source] ?? 0) + 1;
+        try {
+          priceMap[ticker] = await fetchPricesTwelve(ticker, twelveKey);
+          sourceCount['twelve'] = (sourceCount['twelve'] ?? 0) + 1;
+        } catch (e) {
+          logger.warn('capital-flows', 'twelve_failed', { ticker, error: e });
+          // leave priceMap[ticker] undefined — checked below
+        }
       })
     );
-    return { priceMap, sourceCount };
+
+    const twelveSuccess = sourceCount['twelve'] ?? 0;
+    if (twelveSuccess > allTickers.length / 2) {
+      // Twelve Data mostly succeeded — fill missing slots with individual Yahoo
+      const failed = allTickers.filter(t => !(priceMap[t]?.length > 0));
+      await Promise.all(failed.map(async t => {
+        try { priceMap[t] = await fetchPricesYahoo(t); sourceCount['yahoo'] = (sourceCount['yahoo'] ?? 0) + 1; }
+        catch { priceMap[t] = []; sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1; }
+      }));
+      return { priceMap, sourceCount };
+    }
+
+    // Twelve Data mostly failed (rate-limit / key exhausted) — fall through to Yahoo batch.
+    // 41 concurrent individual Yahoo calls would trigger rate-block; batch is safer.
+    logger.warn('capital-flows', 'twelve_mass_failure_batch_fallback', { success: twelveSuccess, total: allTickers.length });
+    // Reset priceMap for Yahoo batch re-population
+    for (const t of allTickers) delete priceMap[t];
+    sourceCount['twelve'] = 0;
   }
 
-  // Yahoo batch: ≤20 per request, 3 parallel batches for ~41 tickers
+  // Yahoo v7 spark batch: ≤20 per request, 3 parallel batches for ~41 tickers
+  // (runs when no twelve key OR when twelve data mass-failed)
   const BATCH_SIZE = 20;
   const batches: string[][] = [];
   for (let i = 0; i < allTickers.length; i += BATCH_SIZE) {
