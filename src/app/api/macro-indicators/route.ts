@@ -570,10 +570,10 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   gdp: {
     id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',
-    category: 'growth', actual: null, forecast: 2.1, previous: 0.5, unit: '%QoQ SAAR',
+    category: 'growth', actual: null, forecast: 1.2, previous: 0.5, unit: '%QoQ SAAR',
     releaseDate: '2026-04-30', nextRelease: '2026-04-30', surprise: 'pending',
     rateImpact: 'neutral', rateImpactKo: 'neutral (pending)',
-    summary: 'Q1 2026 GDP Advance — releasing 2026-04-30. Consensus est. 2.1% QoQ SAAR (Finnhub).',
+    summary: 'Q1 2026 GDP Advance — releasing 2026-04-30. Atlanta Fed GDPNow 1.2% QoQ SAAR (2026-04-26).',
   },
   ism: {
     id: 'ism', name: 'ISM Manufacturing PMI', nameKo: 'ISM 제조업 PMI',
@@ -637,9 +637,9 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
 // FRED gives actual values; we keep forecasts as static consensus
 const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
-  pce:    { forecast: 2.6,   nextRelease: '2026-04-30' },  // consensus at Feb release (Mar 28); update to ~3.0 after Apr 30 March PCE drops
+  pce:    { forecast: 2.8,   nextRelease: '2026-04-30' },  // March PCE consensus (updated 2026-04-26 — Feb came in 3.0% vs 2.6 est)
   nfp:    { forecast: 140,   nextRelease: '2026-05-01' },  // auto-advance via RELEASE_SCHEDULE.nfp
-  gdp:    { forecast: 2.1,   nextRelease: '2026-04-30' },  // fallback only — auto-advance via RELEASE_SCHEDULE
+  gdp:    { forecast: 1.2,   nextRelease: '2026-04-30' },  // Atlanta Fed GDPNow 1.241% as of 2026-04-26
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
   retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
   unrate:   { forecast: 4.1,   nextRelease: '2026-05-01' },  // same day as NFP
