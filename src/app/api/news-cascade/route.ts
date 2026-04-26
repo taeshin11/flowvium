@@ -115,6 +115,120 @@ async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]>
   }
 }
 
+// ── Keyword-based fallback cascade — AI 소진 시 0-cascade 방지 ──────────────
+// Deterministic rule-based fallback when AI providers are unavailable.
+// Covers the most common financial news topics with pre-defined cascade templates.
+// Only fires when AI returns empty text; AI analysis always takes precedence.
+interface KeywordRule {
+  pattern: RegExp;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  importance: 'high' | 'medium' | 'low';
+  cascades: CascadeEffect[];
+}
+
+const KEYWORD_RULES: KeywordRule[] = [
+  {
+    pattern: /\b(fed|fomc|federal reserve|powell|rate cut|rate hike|interest rate|monetary policy|dovish|hawkish)\b/i,
+    sentiment: 'neutral', importance: 'high',
+    cascades: [
+      { asset: 'S&P500', direction: 'positive', magnitude: 'medium', reason: 'Rate trajectory shapes equity discount rates', timeframe: 'medium-term(1-4w)' },
+      { asset: 'Bonds', direction: 'positive', magnitude: 'high', reason: 'Fed signals directly move Treasury yields', timeframe: 'short-term(1-3d)' },
+      { asset: 'Dollar', direction: 'neutral', magnitude: 'medium', reason: 'Rate differential shifts USD positioning', timeframe: 'short-term(1-3d)' },
+    ],
+  },
+  {
+    pattern: /\b(inflation|cpi|pce|consumer price|price index|deflation|disinflation)\b/i,
+    sentiment: 'neutral', importance: 'high',
+    cascades: [
+      { asset: 'Bonds', direction: 'negative', magnitude: 'medium', reason: 'Higher inflation erodes fixed income real returns', timeframe: 'short-term(1-3d)' },
+      { asset: 'Gold', direction: 'positive', magnitude: 'medium', reason: 'Gold serves as inflation hedge', timeframe: 'medium-term(1-4w)' },
+      { asset: 'Commodities', direction: 'positive', magnitude: 'low', reason: 'Commodity prices often rise with inflation', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
+  {
+    pattern: /\b(gdp|economic growth|recession|contraction|output|gross domestic)\b/i,
+    sentiment: 'neutral', importance: 'high',
+    cascades: [
+      { asset: 'S&P500', direction: 'neutral', magnitude: 'medium', reason: 'GDP data shapes earnings outlook and Fed policy', timeframe: 'medium-term(1-4w)' },
+      { asset: 'Dollar', direction: 'positive', magnitude: 'low', reason: 'Strong growth supports currency demand', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
+  {
+    pattern: /\b(oil|crude|opec|wti|brent|petroleum|energy supply|natural gas)\b/i,
+    sentiment: 'neutral', importance: 'medium',
+    cascades: [
+      { asset: 'Oil', direction: 'neutral', magnitude: 'high', reason: 'Supply/demand balance directly sets crude prices', timeframe: 'short-term(1-3d)' },
+      { asset: 'Energy Sector', direction: 'positive', magnitude: 'medium', reason: 'Oil price moves flow through to E&P earnings', timeframe: 'short-term(1-3d)' },
+      { asset: 'S&P500', direction: 'negative', magnitude: 'low', reason: 'Higher energy costs compress non-energy margins', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
+  {
+    pattern: /\b(earnings|profit|revenue|beat|miss|guidance|eps|quarterly result)\b/i,
+    sentiment: 'neutral', importance: 'medium',
+    cascades: [
+      { asset: 'S&P500', direction: 'neutral', magnitude: 'medium', reason: 'Aggregate earnings revisions shift index valuations', timeframe: 'short-term(1-3d)' },
+      { asset: 'Volatility (VIX)', direction: 'negative', magnitude: 'low', reason: 'Earnings clarity reduces uncertainty premium', timeframe: 'short-term(1-3d)' },
+    ],
+  },
+  {
+    pattern: /\b(tariff|trade war|trade deal|sanctions|export|import|trade deficit|protectionism)\b/i,
+    sentiment: 'bearish', importance: 'high',
+    cascades: [
+      { asset: 'S&P500', direction: 'negative', magnitude: 'medium', reason: 'Trade barriers raise input costs and disrupt supply chains', timeframe: 'medium-term(1-4w)' },
+      { asset: 'Dollar', direction: 'positive', magnitude: 'low', reason: 'Safe-haven demand on trade uncertainty', timeframe: 'short-term(1-3d)' },
+      { asset: 'Emerging Markets', direction: 'negative', magnitude: 'medium', reason: 'Trade-sensitive economies face export headwinds', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
+  {
+    pattern: /\b(gold|xau|precious metal|safe.?haven|refuge)\b/i,
+    sentiment: 'bullish', importance: 'medium',
+    cascades: [
+      { asset: 'Gold', direction: 'positive', magnitude: 'medium', reason: 'Safe-haven demand drives gold higher', timeframe: 'short-term(1-3d)' },
+      { asset: 'Dollar', direction: 'negative', magnitude: 'low', reason: 'Gold and dollar inversely correlated', timeframe: 'short-term(1-3d)' },
+    ],
+  },
+  {
+    pattern: /\b(bank|banking|credit|loan|lending|default|delinquency|deposit|svb|jpmorgan|bank of america|citigroup)\b/i,
+    sentiment: 'neutral', importance: 'medium',
+    cascades: [
+      { asset: 'Financials', direction: 'neutral', magnitude: 'medium', reason: 'Banking sector fundamentals affect financial stocks directly', timeframe: 'short-term(1-3d)' },
+      { asset: 'Credit Spreads', direction: 'positive', magnitude: 'low', reason: 'Bank stress signals credit market risk appetite', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
+  {
+    pattern: /\b(tech|technology|ai|semiconductor|chip|nvidia|microsoft|apple|alphabet|meta|amazon)\b/i,
+    sentiment: 'neutral', importance: 'medium',
+    cascades: [
+      { asset: 'Technology', direction: 'neutral', magnitude: 'medium', reason: 'Mega-cap tech drives index-level volatility', timeframe: 'short-term(1-3d)' },
+      { asset: 'Semiconductors', direction: 'neutral', magnitude: 'medium', reason: 'Chip demand cycle affects sector broadly', timeframe: 'medium-term(1-4w)' },
+    ],
+  },
+  {
+    pattern: /\b(geopolitic|war|conflict|ukraine|russia|china|taiwan|middle east|israel|iran|military)\b/i,
+    sentiment: 'bearish', importance: 'high',
+    cascades: [
+      { asset: 'Gold', direction: 'positive', magnitude: 'high', reason: 'Geopolitical risk premium boosts safe-haven demand', timeframe: 'short-term(1-3d)' },
+      { asset: 'Oil', direction: 'positive', magnitude: 'medium', reason: 'Supply disruption risk priced into crude', timeframe: 'short-term(1-3d)' },
+      { asset: 'S&P500', direction: 'negative', magnitude: 'medium', reason: 'Risk-off sentiment pressures equities', timeframe: 'short-term(1-3d)' },
+    ],
+  },
+];
+
+function keywordFallbackCascade(title: string): Pick<NewsWithCascade, 'summary' | 'sentiment' | 'importance' | 'cascades'> | null {
+  const t = title.toLowerCase();
+  for (const rule of KEYWORD_RULES) {
+    if (rule.pattern.test(t)) {
+      return {
+        summary: title,
+        sentiment: rule.sentiment,
+        importance: rule.importance,
+        cascades: rule.cascades,
+      };
+    }
+  }
+  return null;
+}
+
 // ── AI cascade analysis — 통합 provider cascade (vLLM → GROQ → Gemini) ──────
 // IMPORTANT: 언어 락 — GROQ 70b 는 한국어 프롬프트에서도 중국어 한자(繁/简體)를
 // 혼입하는 빈도가 12%+ 관찰됨 (예: '谈判停滞'). 시스템 프롬프트에 명시적 금지
@@ -296,9 +410,20 @@ export async function GET() {
         } catch { /* ignore */ }
       }
       const raw = await callCascadeAI(buildCascadePrompt(item.title));
-      const result = parseCascade(raw || '', item);
-      // Only cache if AI produced real cascades — avoid locking fallback for 24h
-      if (redis && result.cascades.length > 0) {
+      let result = parseCascade(raw || '', item);
+
+      // Keyword fallback: if AI returned no cascades, use rule-based analysis.
+      // Keeps cascade coverage high during AI quota exhaustion — better than zero.
+      if (result.cascades.length === 0) {
+        const kb = keywordFallbackCascade(item.title);
+        if (kb) {
+          result = { ...result, ...kb, analyzedAt: new Date().toISOString() };
+          logger.info('api.news-cascade', 'keyword_fallback_used', { title: item.title.slice(0, 60) });
+        }
+      }
+
+      // Only cache AI-quality results — avoid locking keyword fallback for 24h
+      if (redis && raw && result.cascades.length > 0) {
         await loggedRedisSet(redis, 'api.news-cascade', articleKey(id), result, { ex: 24 * 60 * 60 });
       }
       return result;
