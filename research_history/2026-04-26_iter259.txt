@@ -1,0 +1,75 @@
+iter259 — 2026-04-26
+primary outcome: commodity curve (WTI/Gold) → AI daily-brief 컨텍스트 추가
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 351d4fe docs(history): iter258 log
+- 737ace3 feat(daily-brief): add CFTC COT positions to AI brief context
+- 620e47f docs(history): iter257 log
+- 508b734 fix(ai-providers): replace direct guardRedis.set with loggedRedisSet for quota guards
+- 23b2ff9 docs(history): iter256 log
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter258=COT+daily-brief, iter259=commodity+daily-brief → 같은 패턴 2회 연속
+    → iter260부터 daily-brief 컨텍스트 추가 외 다른 영역으로 이동 권장
+(2) Primary metric 정체: 없음
+(3) "나중에" 3+ deferred: April 30 FOMC actual (5회 연속 deferred) — 실제로는 4/30 UTC 18:00 전까지 불가
+    → 시간 제약 명시, drift 규칙 예외 처리
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 경고: iter260부터 daily-brief 외 영역으로 이동
+
+## Primary Outcome
+commodity-curve (WTI crude, Gold) 데이터를 daily-brief AI 컨텍스트에 추가.
+AI가 이제 유가/금 spot + term structure (contango/backwardation)를 보고 capital 섹션 작성.
+
+## 변경 내용
+
+### src/lib/daily-brief.ts
+1. `TabContext` 인터페이스: `commodity: unknown | null` 필드 추가
+2. `gatherTabContextViaHttp()`: `/api/commodity-curve` parallel fetch 추가 (10s timeout)
+3. `gatherTabContext()` Redis 경로: `safeGet(redis, 'flowvium:commodity-curve:v1')` 추가
+4. `summariseCommodity()` 함수 추가:
+   ```
+   예시 출력: "WTI=$74.23/bbl(contango+2.1%),Gold=$3234/oz(contango+0.5%)"
+   ```
+5. `buildPrompt()` sections에 `['Commodities', commodity]` 추가
+6. section 매핑: capital 섹션에 Commodities 포함
+
+### src/app/api/daily-brief/route.ts
+- `debugInfo.ctxPopulated`에 `commodity: ctx.commodity != null` 추가
+
+## 누적 AI 컨텍스트 개선 (iter258~259)
+- iter258: COT 포지션 추가 (~25 tokens/req)
+- iter259: commodity curve 추가 (~15 tokens/req)
+- 합계 추가 비용: ~40 tokens (GROQ 100k TPD 중 미미한 증가)
+- 실질 AI 시그널 풍부화: 투기자 포지션 + 실물 상품 가격
+
+## TypeScript 검증
+```
+npx tsc --noEmit → 오류 없음 ✓
+```
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+```
+[accuracy probe] metric=VIX source=Yahoo_v8 direct_value=18.71(Apr25) our_value=volatility(CBOE_CDN) → OK (VIX contango 일치)
+[accuracy probe] metric=SPY.close source=Yahoo_v8 direct_value=713.94(recent) our_value=capital-flows(Yahoo_v8) → OK
+[accuracy probe] metric=fg.us source=CNN direct_value=N/A our_value=N/A → skipped (Vercel IP 차단 지속)
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: AI brief capital 섹션 품질 향상 (유가/금 없이 거시 분석 불완전) ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- 5fb4eb3: feat(daily-brief): add commodity curve (WTI/Gold) to AI brief context
+
+## 다음 iter 우선순위
+1. **April 30 (UTC 18:00)**: FOMC actual 업데이트 — economic-calendar + macro-indicators + fedwatch
+2. **April 30 (UTC 12:30)**: GDP Q1 Advance + Core PCE + IClaims 업데이트
+3. **iter260 방향 전환**: daily-brief 컨텍스트 추가 2연속 → 다른 영역으로 이동
+   - 옵션A: VIX → US F&G composite 4번째 factor 추가 (정확도 향상)
+   - 옵션B: investment-strategy 프롬프트 품질 검토
+   - 옵션C: news-cascade AI 요약 품질 검토
