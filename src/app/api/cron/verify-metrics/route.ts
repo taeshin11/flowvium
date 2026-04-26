@@ -229,16 +229,21 @@ async function verifyMacroIndicators(base: string): Promise<MetricItem[]> {
   const data = r.data as { indicators?: Array<{ name: string; actual?: unknown; forecast?: unknown; previous?: unknown }>; yieldCurve?: unknown };
   const items: MetricItem[] = [];
   for (const ind of data.indicators ?? []) {
-    // actual이 없으면(미발표) degraded, 없고 예상치도 없으면 error
+    // actual=null but previous!=null → pre-release window (next release pending).
+    // System is working correctly; previous = last confirmed actual. Mark as ok.
+    // actual=null, no previous, has forecast → degraded (incomplete data)
+    // actual=null, no previous, no forecast → error (missing entirely)
     const hasActual = ind.actual != null && ind.actual !== '';
     const hasForecast = ind.forecast != null && ind.forecast !== '';
-    const status: MetricItem['status'] = hasActual ? 'ok' : hasForecast ? 'degraded' : 'error';
+    const hasPrevious = ind.previous != null && ind.previous !== '';
+    const status: MetricItem['status'] = hasActual ? 'ok' : hasPrevious ? 'ok' : hasForecast ? 'degraded' : 'error';
+    const value = hasActual ? String(ind.actual) : hasPrevious ? `prev: ${ind.previous}` : hasForecast ? `예상 ${ind.forecast}` : null;
     items.push({
       key: `macro.${String(ind.name).replace(/\s+/g, '_').toLowerCase()}`,
       label: `Macro ${ind.name}`,
       group: 'macro',
       status,
-      value: hasActual ? String(ind.actual) : hasForecast ? `예상 ${ind.forecast}` : null,
+      value,
       details: { actual: ind.actual, forecast: ind.forecast, previous: ind.previous },
     });
   }
