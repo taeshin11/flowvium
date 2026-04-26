@@ -307,33 +307,35 @@ function rateImpact(id: string, surprise: string): { impact: 'hawkish' | 'dovish
 function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pending'): CascadeStep[] {
   if (surprise === 'pending' || surprise === 'inline') return [];
   const cascades: Record<string, { beat: CascadeStep[]; miss: CascadeStep[] }> = {
+    // beat = actual < forecast (lower inflation = dovish); miss = actual > forecast (higher inflation = hawkish)
     cpi: {
       beat: [
-        { asset: 'US Treasury Yields', direction: 'up', reason: 'hawkish Fed expectations↑ → bond sell-off', magnitude: 'strong' },
-        { asset: 'USD (DXY)', direction: 'up', reason: 'rising rates → USD strength', magnitude: 'strong' },
-        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'higher discount rate → valuation pressure', magnitude: 'moderate' },
-        { asset: 'Gold (GLD)', direction: 'down', reason: 'real rates↑ → gold carry cost rises', magnitude: 'moderate' },
-        { asset: 'EM Stocks/FX', direction: 'down', reason: 'USD strength → capital outflows', magnitude: 'strong' },
-      ],
-      miss: [
-        { asset: 'US Treasury Yields', direction: 'down', reason: 'dovish Fed expectations↑ → bond rally', magnitude: 'strong' },
-        { asset: 'USD (DXY)', direction: 'down', reason: 'rate cut expectations → USD weakness', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'CPI below est. → rate cut expectations↑ → bond rally', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'down', reason: 'dovish Fed pivot expectations → USD weakness', magnitude: 'moderate' },
         { asset: 'US Equities (S&P500)', direction: 'up', reason: 'lower discount rate → valuation improvement', magnitude: 'strong' },
         { asset: 'Gold (GLD)', direction: 'up', reason: 'real rates↓ → gold attractiveness↑', magnitude: 'strong' },
-        { asset: 'EM Stocks/FX', direction: 'up', reason: 'USD weakness → capital inflows', magnitude: 'moderate' },
-      ],
-    },
-    pce: {
-      beat: [
-        { asset: 'US Treasury Yields', direction: 'up', reason: 'Fed preferred gauge above est. → tightening reinforced', magnitude: 'strong' },
-        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'rate cut timeline pushed back', magnitude: 'strong' },
-        { asset: 'USD (DXY)', direction: 'up', reason: 'hawkish Fed stance reinforced', magnitude: 'moderate' },
+        { asset: 'EM Stocks/FX', direction: 'up', reason: 'USD weakness → EM capital inflows', magnitude: 'moderate' },
       ],
       miss: [
-        { asset: 'US Treasury Yields', direction: 'down', reason: 'approaching Fed 2% target → cut expectations↑', magnitude: 'strong' },
-        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'rate cut timeline pulled forward', magnitude: 'strong' },
-        { asset: 'Gold (GLD)', direction: 'up', reason: 'real rates falling', magnitude: 'moderate' },
-        { asset: 'EM Stocks', direction: 'up', reason: 'USD weakness outlook', magnitude: 'moderate' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'CPI above est. → prolonged tightening → bond sell-off', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'higher-for-longer rates → USD strength', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'higher discount rate → valuation pressure', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'down', reason: 'real rates↑ → gold opportunity cost rises', magnitude: 'moderate' },
+        { asset: 'EM Stocks/FX', direction: 'down', reason: 'USD strength → capital outflows from EM', magnitude: 'strong' },
+      ],
+    },
+    // beat = actual < forecast (lower PCE = dovish); miss = actual > forecast (higher PCE = hawkish)
+    pce: {
+      beat: [
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'Fed preferred gauge below est. → cut timeline pulled forward', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'rate cut expectations → multiple expansion', magnitude: 'strong' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'real rates falling → gold attractiveness↑', magnitude: 'moderate' },
+        { asset: 'EM Stocks', direction: 'up', reason: 'USD weakness outlook → EM inflows', magnitude: 'moderate' },
+      ],
+      miss: [
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'PCE above est. → Fed tightening reinforced', magnitude: 'strong' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'rate cut timeline pushed back → de-rating', magnitude: 'strong' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'hawkish Fed stance reinforced → USD bid', magnitude: 'moderate' },
       ],
     },
     nfp: {
@@ -360,16 +362,17 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
         { asset: 'Gold (GLD)', direction: 'up', reason: 'economic uncertainty → safe-haven demand', magnitude: 'moderate' },
       ],
     },
+    // beat = actual < forecast (lower PPI = dovish leading signal); miss = actual > forecast (higher PPI = hawkish)
     ppi: {
       beat: [
-        { asset: 'US Treasury Yields', direction: 'up', reason: 'PPI rise → leads CPI → tightening signal', magnitude: 'moderate' },
-        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'cost pressure + tightening concerns', magnitude: 'moderate' },
-        { asset: 'USD (DXY)', direction: 'up', reason: 'inflation pressure → rates held', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'down', reason: 'PPI below est. → CPI disinflation expected → cut expectations↑', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'cost relief → margin improvement + easing outlook', magnitude: 'moderate' },
+        { asset: 'Gold (GLD)', direction: 'up', reason: 'real rate cut expectations → gold attractiveness↑', magnitude: 'weak' },
       ],
       miss: [
-        { asset: 'US Treasury Yields', direction: 'down', reason: 'PPI falling → CPI stabilization expected', magnitude: 'moderate' },
-        { asset: 'US Equities (S&P500)', direction: 'up', reason: 'cost relief → margin improvement', magnitude: 'moderate' },
-        { asset: 'Gold (GLD)', direction: 'up', reason: 'cut expectations → real rates falling', magnitude: 'weak' },
+        { asset: 'US Treasury Yields', direction: 'up', reason: 'PPI above est. → leads CPI upside → tightening signal', magnitude: 'moderate' },
+        { asset: 'US Equities (S&P500)', direction: 'down', reason: 'input cost pressure + prolonged tightening concerns', magnitude: 'moderate' },
+        { asset: 'USD (DXY)', direction: 'up', reason: 'inflation pipeline building → rates-held USD bid', magnitude: 'weak' },
       ],
     },
     retail: {
