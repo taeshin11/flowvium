@@ -1,0 +1,97 @@
+iter262 — 2026-04-26
+primary outcome: news-cascade 피크 시간 락 경합 버그 수정
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 205a19c feat(investment-strategy): add COT + commodity context to AI prompt
+- 8ee6732 docs(history): iter260 log
+- e43a0b7 feat(fear-greed): add VIX as 4th factor to US composite (CNN fallback)
+- 476c2f0 docs(history): iter259 log
+- 5fb4eb3 feat(daily-brief): add commodity curve (WTI/Gold) to AI brief context
+
+Drift signal check:
+(1) iter260=fear-greed, iter261=investment-strategy, iter262=news-cascade → 3 다른 영역 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에" 3+ deferred: April 30 GDP/PCE/IClaims/FOMC — 시간 제약, 유효
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+news-cascade 분산 락 로직의 경합 버그 수정.
+기존: lock loser가 4s 고정 대기 후 AI 분석 직접 실행 (GROQ 쿼터 2배 소모)
+변경: 최대 30s 폴링 (5s × 6회), lock 해제 즉시 리턴
+
+## 버그 상세
+
+### 문제 (src/app/api/news-cascade/route.ts L392-408)
+- LOCK_TTL = 90s (RSS + 5 AI calls 최대 소요 시간)
+- AI 분석 5개 기사 실제 소요: 5-20s
+- lock loser 대기: 4s → 캐시 없음 → AI 분석 직접 실행
+- 결과: 피크 시간 (자정 UTC = KST 9AM) 다수 Lambda가 동시에 AI 호출
+- GROQ 일일 100k TPD 예산의 2-N배 소모 가능
+
+### 수정 내용
+```typescript
+// Before:
+if (!acquired) {
+  await new Promise(r => setTimeout(r, 4000));
+  const fresh = await redis.get<NewsWithCascade[]>(listKey());
+  if (fresh && fresh.length > 0) return ...;
+  // Lock holder may have crashed — proceed anyway
+}
+
+// After:
+if (!acquired) {
+  // Poll up to 30s; returns as soon as list is ready
+  for (let i = 0; i < 6; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    const fresh = await redis.get<NewsWithCascade[]>(listKey());
+    if (fresh && fresh.length > 0) return ...;
+    const stillLocked = await redis.get(LOCK_KEY);
+    if (!stillLocked) break; // holder finished or crashed
+  }
+  // Final check + fall-through if crashed (same safety net)
+}
+```
+
+### 왜 이 설계인가
+- 락 홀더는 list 먼저 쓰고(L496) lock 해제(L509) → lock 없음 = list 있음
+- 6 × 5s = 30s 폴링은 maxDuration=60s 내에 충분히 여유
+- Hobby plan (maxDuration=10s) 영향 없음: Redis 없으면 lock 코드 진입 안 함
+
+## TypeScript 검증
+```
+npx tsc --noEmit → 오류 없음 ✓
+```
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+```
+[accuracy probe] metric=VIX source=Yahoo_v8 direct_value=18.71(Apr26) → vixLevelScore(18.71)=50(neutral) ✓
+[accuracy probe] metric=SPY source=Yahoo_v8 direct_value=713.94(Apr26) → capital-flows 동일 소스 ✓
+[accuracy probe] metric=news-cascade source=lock_logic → 구조 변경, 외부 숫자 없음 ✓
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: GROQ TPD 낭비 감소 — 피크 시간 2x 소모 → 1x ✓
+- (b) 실패 확률 ≥50%: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋
+- 69ed464: fix(news-cascade): replace 4s fixed wait with 30s polling on lock contention
+
+## 다음 iter 우선순위 (다음 세션 인계)
+1. **April 30 UTC 12:30 (KST 21:30)**: 수동 데이터 업데이트
+   - GDP Q1 Advance actual: `src/app/api/macro-indicators/route.ts` STATIC.gdp.actual
+   - Core PCE March actual: STATIC.pce.actual
+   - IClaims week-ending Apr 25: STATIC.iclaims.actual
+2. **April 30 UTC 18:00+ (KST 다음날 03:00)**: FOMC actual 업데이트
+   - `src/app/api/economic-calendar/route.ts` FOMC_2026 April 30 entry → actual 추가
+   - `src/app/api/macro-indicators/route.ts` STATIC.fomc 갱신
+   - `src/app/api/fedwatch/route.ts` STATIC_DATA April 30 미팅 제거 + currentRate 갱신
+3. **iter263 방향**: news-cascade 1회 → 다른 영역 권장
+   - 옵션A: capital-flows Twelve Data 41개 unthrottled 요청 throttle
+     위치: src/app/api/capital-flows/route.ts ~L209
+   - 옵션B: macro-indicators FRED cold start 개선 (FRED API key → JSON > CSV)
+   - 옵션C: /api/yield-curve 데이터를 daily-brief AI 컨텍스트에 추가
