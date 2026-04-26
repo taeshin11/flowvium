@@ -173,7 +173,7 @@
   - Gold: 5개월 선물 커브 (GCx.CMX), slope % 표시
   - 막대 차트로 커브 형태 시각화
 - **AI 자금흐름 분석 패널** (`FlowAnalysisPanel`)
-  - EXAONE vLLM → GROQ → Claude Haiku → Gemini 폴백
+  - EXAONE vLLM → GROQ → Qwen 2.5 72B → Claude Haiku → Gemini 폴백
   - 국가별 유입/유출 원인·리스크 분석
   - 핵심 테마(mainTheme) + 주목 포인트(keyWatchpoints)
 
@@ -853,15 +853,15 @@ ownership-alerts 적용).
 | 엔드포인트 | 데이터 소스 | Redis 캐시 TTL |
 |-----------|-------------|---------------|
 | `/api/daily-brief` | EXAONE vLLM → GROQ → Gemini | 26h |
-| `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Gemini (v5 키: 일별 1회 갱신) | 12h Redis / 4h mem |
+| `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Qwen/Gemini (v6 키: 일별 1회 갱신; 폴백 5min 캐시) | 12h Redis / 4h mem |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
-| `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 70b 병렬 5개, skipVllm=true); 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 1h~12h |
+| `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 8b, skipVllm=true, preferSmallModel); Redis 분산 락(90s) 썬더링 허드 차단; 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 1h~12h |
 | `/api/capital-flows` | Twelve Data → Yahoo → Stooq | 4h |
 | `/api/macro-indicators` | FRED CSV + FRED API | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
 | `/api/fear-greed` | CNN 방식 + Yahoo Finance | 4h |
 | `/api/credit-balance` | FRED + TWSE | 24h |
-| `/api/flow-analysis` | capital-flows + 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ 70b부터) | 4h |
+| `/api/flow-analysis` | capital-flows + 통합 AI 체인 (vLLM → GROQ → Qwen → Gemini, skipVllm=true로 GROQ 70b부터) | 4h |
 | `/api/insider-trades` | EDGAR Form 4 | 캐시 |
 | `/api/ownership-alerts` | EDGAR 13D/13G | 캐시 |
 | `/api/nport-holdings` | EDGAR N-PORT | 캐시 |
@@ -878,7 +878,7 @@ ownership-alerts 적용).
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
 | `/api/company-recs/[ticker]` | Yahoo Finance v6 recommendationsbysymbol + v7 quote | 1h CDN |
 | `/api/analyst-target/[ticker]` | Finnhub price-target + recommendation | 24h CDN |
-| `/api/translate` | 통합 AI 체인 (vLLM → GROQ → Gemini, skipVllm=true로 GROQ부터 — GEMINI 미설정 환경에서도 동작) | 30일 |
+| `/api/translate` | 통합 AI 체인 (vLLM → GROQ 8b → Qwen → Gemini, skipVllm=true, preferSmallModel=true) | 30일 |
 | `/api/ai` | vLLM → Gemini | 7일 |
 | `/api/osint/social` | 정적 데이터 | 캐시 |
 | `/api/osint/crypto` | Blockchain.info / Etherscan | 캐시 |
@@ -918,5 +918,5 @@ ownership-alerts 적용).
 | 외부 fetch | 가능하면 `loggedFetch` 사용 (자동 REDACT + 타이밍) |
 | 로그 | `src/lib/logger.ts` — JSON stdout + Redis 적재 (warn/error, 최대 500건) |
 | i18n | next-intl, 16개 언어 (ko·en·ja·zh-CN·zh-TW·es·fr·de·pt·ru·ar·hi·id·th·tr·vi) |
-| AI 우선순위 | EXAONE vLLM (로컬 무료) → **GROQ llama-3.3-70b** → GROQ 8b → **Claude Haiku 4.5** (ANTHROPIC_API_KEY 설정 시, ~$0.003/call) → Gemini 2.0 Flash (유료 최종 폴백). Redis cross-instance TPD guard로 GROQ 소진 즉시 Claude로 전환. 체인: `src/lib/ai-providers.ts` |
+| AI 우선순위 | EXAONE vLLM (로컬 무료) → **GROQ llama-3.3-70b** → GROQ 8b → **Qwen 2.5 72B** (OpenRouter free, OPENROUTER_API_KEY 설정 시) → Gemini 2.0 Flash (유료 최종 폴백). Redis TPD guard로 GROQ 소진 즉시 Qwen/Gemini로 전환. 체인: `src/lib/ai-providers.ts` |
 | 유료 API 잠금 | "월 $200 후원 목표 도달 시 오픈" 형식만 사용 |
