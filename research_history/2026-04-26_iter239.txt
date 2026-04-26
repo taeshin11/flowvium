@@ -1,0 +1,126 @@
+iter239 — 2026-04-26
+primary outcome: economic-calendar FOMC 예측값 오류 수정
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 5391b98 docs(history): iter238 log
+- 3efab71 fix(macro-indicators): cascade inversion fix (CPI/PCE/PPI)
+- c752eeb docs(history): iter237 log
+- 616ec4b fix(fedwatch): Jun 17 date + static probabilities
+- c85c251 docs(history): iter236 log
+
+Drift signal check:
+(1) macro-indicators 3+ iter: iter236+237+238 = 3회 → DRIFT. iter239는 다른 영역 ✓ (경제 캘린더 + batch-prices)
+(2) investment-strategy: 2회 → 유지 (터치 없음) ✓
+(3) Primary metric 정체: 186/186 OK → 없음
+(4) 인프라 블로커: GROQ guard KST 09:00 April 27 자동 해제 예정
+
+→ Drift 해소: macro-indicators 외 영역 이동 ✓
+
+## Primary Outcome
+economic-calendar FOMC 예측값 오류 수정
+
+## 발견된 버그
+
+### Bug 1: economic-calendar FOMC 예측값이 pre-tariff 시장 기대 반영 (stale)
+
+**문제:**
+`FOMC_2026` 배열의 Jun-Dec 추정값이 관세 쇼크 이전 시장 기대 반영:
+```
+기존: Jun 17 estimate=3.50 (25bp 인하 예상)
+기존: Jul 29 prev=3.50, estimate=3.50 (Jun 인하 후 동결)
+기존: Sep 16 prev=3.50, estimate=3.25 (또 인하)
+```
+
+**실제 ZQ futures 시장 (2026-04-26 기준, FedWatch 데이터):**
+- Apr 30: 97% hold → 동결 ✓ (이미 정확)
+- Jun 17: 90% hold → **예상 동결** (기존 estimate=3.50 cut = 오류)
+- Jul 29: 80% hold → **예상 동결**
+- Sep 16: 68% hold, 32% cut → 첫 인하 가능 시점
+
+**수정 (commit 971a899):**
+```
+Jun 17: estimate 3.50 → 3.75 (90% hold)
+Jul 29: prev 3.50 → 3.75, estimate 3.50 → 3.75 (80% hold)
+Sep 16: prev 3.50 → 3.75, estimate 3.25 → 3.50 (첫 인하 32%)
+Oct 28: prev 3.25 → 3.50 (cascade fix)
+Dec 9:  prev 3.25 → 3.50 (cascade fix), estimate 3.00 → 3.25
+```
+
+**사용자 영향:**
+economic-calendar의 FOMC 항목에서 "예상치"가 이제 현재 시장 합의 반영
+(Jun 17에 인하를 기대했던 구시대적 수치 제거)
+
+### Bug 2: batch-prices marketState 누락 (Yahoo v7 fields 파라미터)
+
+**문제:**
+`/api/batch-prices` Yahoo v7 쿼리가:
+```
+?fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent
+```
+`marketState` 미포함 → v7 응답에서 항상 null
+
+**수정 (commit 971a899):**
+```
+?fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,marketState
+```
+
+**사용자 영향:**
+WatchlistPage에서 PRE/POST/REGULAR 마켓 상태 뱃지가 이제 v7 배치 경로에서도 표시
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=fomc   source=FRED  direct_value=3.75  our_value=3.75  delta=0.00 → OK (DFEDTARU Apr 25)
+[accuracy probe] metric=curve  source=FRED  direct_value=0.53  our_value=0.51  delta=0.02 → OK (1-day lag, T10Y2Y Apr 24)
+[accuracy probe] metric=cpi    source=FRED  direct_value=3.29  our_value=3.29  delta=0.00 → OK
+[accuracy probe] metric=pce    source=FRED  direct_value=2.97  our_value=2.97  delta=0.00 → OK
+[accuracy probe] metric=wti    source=FRED  direct_value=91.06 our_value=91.06 delta=0.00 → OK (DCOILWTICO Apr 20)
+```
+
+## 전체 탐색 결과 (버그 없음)
+
+조사한 엔드포인트들:
+- `/api/company-news` — field names 일치 ✓
+- `/api/capital-flows` — sectorPerformance fields 일치 ✓
+- `/api/heatmap` (= market-heatmap) — sectors/stocks fields 일치 ✓
+- `/api/fear-greed` — byCountry 접근 올바름 ✓
+- `/api/sector-pe` — sectors 키 접근 올바름 ✓
+- `/api/cot-positions` — 2026-04-21 report, 7 entries ✓
+- `/api/commodity-curve` — WTI Spot 91.06 = FRED 일치 ✓
+- `/api/daily-brief` — 구조 정상 ✓
+- `/api/news-cascade` — articles/cascades 필드 올바름 ✓
+- `/api/block-trades` — configured=false (Polygon key 미설정, 예상된 동작) ✓
+- `/api/osint/social` — cascade (singular) 필드 올바름 ✓
+- ReportPage zombie scan: setInterval cleanup 정상 ✓
+
+## GROQ quota 상태
+- 현재: fallback (UTC 자정 자동 해제 예정)
+- probe=1 fix (iter234)로 재고갈 방지
+
+## 전체 엔드포인트 상태
+verify-metrics: ok=186 degraded=0 error=0 skipped=5
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: FOMC 예측값 오류 수정 (Jun 17 estimate 3.50→3.75) ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- 971a899: fix(calendar+batch-prices): FOMC estimates + marketState field
+
+## 다음 iter 우선순위
+1. **April 30 (목요일) CRITICAL**: GDP Q1 advance + PCE March + FOMC decision
+   - UTC 12:30: BEA GDP/PCE 발표
+   - UTC 18:00: FOMC 결정 (hold 97% 예상)
+   - macro-indicators STATIC.gdp.actual 업데이트 (null → 실제값)
+   - FORECASTS.pce.forecast 2.6 → 3.0 (March PCE 컨센서스)
+   - economic-calendar의 Apr 30 FOMC actual 업데이트 (3.75, hold)
+   - 13:00 UTC cron warm이 Redis bypass하여 즉시 반영 예정 (iter236 fix)
+
+2. **GROQ quota 복구**: KST 09:00 April 27 이후 investment-strategy source=groq 확인
+
+3. **drift 유지**: macro-indicators 아닌 영역 계속 탐색
+   - economic-calendar 소스 교체 (Finnhub 무료 → tradingeconomics 개선 가능성 탐색)
+   - news-gap scoring 품질 개선
