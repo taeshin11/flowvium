@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
         maxTokens: 1024,
         temperature: 0.1,
         skipVllm: true,
+        preferSmallModel: true, // 8b preserves 70b quota for strategy/daily-brief
         timeoutMs: 15000,
         tag: 'translate',
       },
