@@ -376,7 +376,7 @@ function NarrativeCard({ n, t }: { n: MacroNarrative; t: ReturnType<typeof useTr
 // ── AI Chat ───────────────────────────────────────────────────────────────────
 interface Message { role: 'user' | 'assistant'; content: string; }
 
-function AiChat({ t }: { t: ReturnType<typeof useTranslations<'intelligence'>> }) {
+function AiChat({ t, flowSectors }: { t: ReturnType<typeof useTranslations<'intelligence'>>; flowSectors?: MoneyFlowSector[] }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -399,7 +399,7 @@ function AiChat({ t }: { t: ReturnType<typeof useTranslations<'intelligence'>> }
       const narrativeContext = macroNarratives
         .map((n) => `${n.title}: ${n.summary}`)
         .join('\n');
-      const flowContext = moneyFlowSectors
+      const flowContext = (flowSectors ?? moneyFlowSectors)
         .map((f) => `${f.direction === 'inflow' ? 'INFLOW' : 'OUTFLOW'} — ${f.sector}: ${f.reason}`)
         .join('\n');
       const res = await fetch('/api/ai', {
@@ -833,7 +833,7 @@ export default function IntelligencePage() {
               </div>
               <button onClick={() => setChatOpen(false)} className="text-white/70 hover:text-white text-lg leading-none">×</button>
             </div>
-            <AiChat t={t} />
+            <AiChat t={t} flowSectors={activeSectorFlows} />
           </div>
         )}
         <button
