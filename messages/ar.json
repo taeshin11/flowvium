@@ -103,7 +103,12 @@
     },
     "loadingGraph": "جارٍ تحميل الرسم البياني...",
     "noCompaniesMatch": "لا توجد شركات مطابقة للفلاتر",
-    "companiesCount": "{count} شركة"
+    "companiesCount": "{count} شركة",
+    "mcTitan": "تيتان ($1T+)",
+    "mcMega": "ميغا ($200B+)",
+    "mcLarge": "كبير ($10B+)",
+    "mcMid": "متوسط ($2B–$10B)",
+    "mcSmall": "صغير (<$2B)"
   },
   "company": {
     "overview": "نظرة عامة",

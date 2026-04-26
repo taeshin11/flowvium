@@ -103,7 +103,12 @@
     },
     "loadingGraph": "ग्राफ़ लोड हो रहा है...",
     "noCompaniesMatch": "कोई कंपनी फ़िल्टर से मेल नहीं खाती",
-    "companiesCount": "{count} कंपनियाँ"
+    "companiesCount": "{count} कंपनियाँ",
+    "mcTitan": "टाइटन ($1T+)",
+    "mcMega": "मेगा ($200B+)",
+    "mcLarge": "बड़ा ($10B+)",
+    "mcMid": "मध्यम ($2B–$10B)",
+    "mcSmall": "छोटा (<$2B)"
   },
   "company": {
     "overview": "अवलोकन",

@@ -103,7 +103,12 @@
     },
     "loadingGraph": "Загрузка графика...",
     "noCompaniesMatch": "Нет компаний, соответствующих фильтрам",
-    "companiesCount": "{count} компаний"
+    "companiesCount": "{count} компаний",
+    "mcTitan": "Титан ($1T+)",
+    "mcMega": "Мега ($200B+)",
+    "mcLarge": "Крупный ($10B+)",
+    "mcMid": "Средний ($2B–$10B)",
+    "mcSmall": "Малый (<$2B)"
   },
   "company": {
     "overview": "Обзор",

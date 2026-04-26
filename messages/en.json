@@ -103,7 +103,12 @@
     },
     "loadingGraph": "Loading graph...",
     "noCompaniesMatch": "No companies match your filters",
-    "companiesCount": "{count} Companies"
+    "companiesCount": "{count} Companies",
+    "mcTitan": "Titan ($1T+)",
+    "mcMega": "Mega ($200B+)",
+    "mcLarge": "Large ($10B+)",
+    "mcMid": "Mid ($2B–$10B)",
+    "mcSmall": "Small (<$2B)"
   },
   "company": {
     "overview": "Overview",

@@ -103,7 +103,12 @@
     },
     "loadingGraph": "Đang tải biểu đồ...",
     "noCompaniesMatch": "Không có công ty nào phù hợp",
-    "companiesCount": "{count} công ty"
+    "companiesCount": "{count} công ty",
+    "mcTitan": "Titan ($1T+)",
+    "mcMega": "Mega ($200B+)",
+    "mcLarge": "Lớn ($10B+)",
+    "mcMid": "Trung bình ($2B–$10B)",
+    "mcSmall": "Nhỏ (<$2B)"
   },
   "company": {
     "overview": "Tổng quan",

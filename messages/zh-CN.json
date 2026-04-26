@@ -103,7 +103,12 @@
     },
     "loadingGraph": "加载关系图中...",
     "noCompaniesMatch": "没有符合筛选条件的企业",
-    "companiesCount": "{count} 家企业"
+    "companiesCount": "{count} 家企业",
+    "mcTitan": "巨型 ($1T+)",
+    "mcMega": "超大型 ($200B+)",
+    "mcLarge": "大型 ($10B+)",
+    "mcMid": "中型 ($2B–$100B)",
+    "mcSmall": "小型 ($2B以下)"
   },
   "company": {
     "overview": "概览",

@@ -103,7 +103,12 @@
     },
     "loadingGraph": "グラフを読み込み中...",
     "noCompaniesMatch": "フィルターに一致する企業がありません",
-    "companiesCount": "{count}社"
+    "companiesCount": "{count}社",
+    "mcTitan": "タイタン ($1T+)",
+    "mcMega": "メガ ($200B+)",
+    "mcLarge": "大型 ($10B+)",
+    "mcMid": "中型 ($2B–$10B)",
+    "mcSmall": "小型 ($2B未満)"
   },
   "company": {
     "overview": "概要",

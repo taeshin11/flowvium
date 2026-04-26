@@ -61,13 +61,6 @@ const marketCapSizes: Record<string, number> = {
   small: 6,
 };
 
-const marketCapLabels: Record<string, string> = {
-  titan: 'Titan ($1T+)',
-  mega: 'Mega ($200B+)',
-  large: 'Large ($10B+)',
-  mid: 'Mid ($2B–$10B)',
-  small: 'Small (<$2B)',
-};
 
 function getRoleSize(role: string): number {
   if (role === 'leader') return 12;
@@ -84,6 +77,7 @@ interface SidePanelProps {
 
 function SidePanel({ company, onClose, liveBand }: SidePanelProps) {
   const t = useTranslations('explore');
+  const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   const translatedDescription = useTranslatedText(company.description);
   const pieData = company.revenue.segments.map((s) => ({
     name: s.name,
@@ -136,7 +130,7 @@ function SidePanel({ company, onClose, liveBand }: SidePanelProps) {
           <div className="flex items-center gap-2 text-sm">
             <DollarSign className="w-4 h-4 text-cf-text-secondary" />
             <span className="text-cf-text-secondary">{t('sidePanel.cap')}:</span>
-            <span className="font-medium">{marketCapLabels[liveBand ?? company.marketCap] ?? (liveBand ?? company.marketCap)}</span>
+            <span className="font-medium">{mcLabel[liveBand ?? company.marketCap] ?? (liveBand ?? company.marketCap)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Building2 className="w-4 h-4 text-cf-text-secondary" />
@@ -278,6 +272,7 @@ interface ExplorePageProps {
 
 export default function ExplorePage({ initialSector }: ExplorePageProps) {
   const t = useTranslations('explore');
+  const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   const [selectedSector, setSelectedSector] = useState<string>(initialSector || 'all');
   const [selectedCap, setSelectedCap] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -475,7 +470,7 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
                   : 'bg-white text-cf-text-secondary hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              {cap === 'all' ? t('sectors.all') : cap === 'titan' ? 'Titan ($1T+)' : cap === 'mega' ? 'Mega ($200B+)' : cap === 'large' ? 'Large ($10B+)' : cap === 'mid' ? 'Mid ($2B-$10B)' : 'Small (<$2B)'}
+              {cap === 'all' ? t('sectors.all') : mcLabel[cap] ?? cap}
             </button>
           ))}
         </div>
@@ -636,7 +631,7 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
                   {c.name}
                 </p>
                 <p className="text-xs text-cf-text-secondary">
-                  {c.ticker} &middot; {marketCapLabels[capFor(c)] ?? capFor(c)}
+                  {c.ticker} &middot; {mcLabel[capFor(c)] ?? capFor(c)}
                 </p>
               </div>
             </Link>

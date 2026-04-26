@@ -103,7 +103,12 @@
     },
     "loadingGraph": "그래프 로딩 중...",
     "noCompaniesMatch": "필터 조건에 맞는 기업이 없습니다",
-    "companiesCount": "{count}개 기업"
+    "companiesCount": "{count}개 기업",
+    "mcTitan": "타이탄 ($1T+)",
+    "mcMega": "메가 ($200B+)",
+    "mcLarge": "대형 ($10B+)",
+    "mcMid": "중형 ($2B–$10B)",
+    "mcSmall": "소형 ($2B 미만)"
   },
   "company": {
     "overview": "개요",

@@ -103,7 +103,12 @@
     },
     "loadingGraph": "Memuat grafik...",
     "noCompaniesMatch": "Tidak ada perusahaan yang cocok",
-    "companiesCount": "{count} perusahaan"
+    "companiesCount": "{count} perusahaan",
+    "mcTitan": "Titan ($1T+)",
+    "mcMega": "Mega ($200B+)",
+    "mcLarge": "Besar ($10B+)",
+    "mcMid": "Menengah ($2B–$10B)",
+    "mcSmall": "Kecil (<$2B)"
   },
   "company": {
     "overview": "Ringkasan",

@@ -103,7 +103,12 @@
     },
     "loadingGraph": "กำลังโหลดกราฟ...",
     "noCompaniesMatch": "ไม่มีบริษัทตรงกับตัวกรอง",
-    "companiesCount": "{count} บริษัท"
+    "companiesCount": "{count} บริษัท",
+    "mcTitan": "ไทแทน ($1T+)",
+    "mcMega": "เมกะ ($200B+)",
+    "mcLarge": "ใหญ่ ($10B+)",
+    "mcMid": "กลาง ($2B–$10B)",
+    "mcSmall": "เล็ก (<$2B)"
   },
   "company": {
     "overview": "ภาพรวม",

@@ -103,7 +103,12 @@
     },
     "loadingGraph": "Grafik yükleniyor...",
     "noCompaniesMatch": "Filtrelere uyan şirket yok",
-    "companiesCount": "{count} şirket"
+    "companiesCount": "{count} şirket",
+    "mcTitan": "Titan ($1T+)",
+    "mcMega": "Mega ($200B+)",
+    "mcLarge": "Büyük ($10B+)",
+    "mcMid": "Orta ($2B–$10B)",
+    "mcSmall": "Küçük (<$2B)"
   },
   "company": {
     "overview": "Genel Bakış",

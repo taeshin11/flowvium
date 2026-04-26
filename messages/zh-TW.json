@@ -103,7 +103,12 @@
     },
     "loadingGraph": "載入關係圖中...",
     "noCompaniesMatch": "沒有符合篩選條件的企業",
-    "companiesCount": "{count} 家企業"
+    "companiesCount": "{count} 家企業",
+    "mcTitan": "巨型 ($1T+)",
+    "mcMega": "超大型 ($200B+)",
+    "mcLarge": "大型 ($10B+)",
+    "mcMid": "中型 ($2B–$100B)",
+    "mcSmall": "小型 ($2B以下)"
   },
   "company": {
     "overview": "總覽",
