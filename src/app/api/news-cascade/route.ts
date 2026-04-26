@@ -85,7 +85,9 @@ const RSS_FEEDS = [
 
 // Minimum financial keyword signal required for requireFinancial feeds.
 // Broad enough to keep macro/policy/sector news; tight enough to drop royalty/sports.
-const FINANCIAL_SIGNAL = /\b(stock|market|rate|bond|yield|fed|fomc|earnings|gdp|inflation|cpi|pce|dollar|usd|euro|yen|equity|index|s&p|nasdaq|dow|trade|tariff|oil|gold|crypto|bitcoin|bank|economy|economic|invest|etf|fund|sector|tech|growth|recession|debt|deficit|treasury|fiscal|monetary|interest|employment|jobs|payroll|retail|sales|profit|revenue|quarter|analyst|forecast|outlook|fed|powell|ecb|boe|boj|imf|world bank|china|europe|emerging|hedge|risk|volatility|vix|ipo|merger|acquisition|dividend|buyback|short|long|bull|bear|rally|sell-off|correction|commodity|copper|aluminum|energy|supply|demand|manufacturing|pmi|ism|claims|unemployment|consumer|sentiment|housing|mortgage|credit|spread|oas|liquidity|hedge fund|private equity|capital|allocation|portfolio|rebalance)\b/i;
+// No trailing \b so plural/compound forms match (bonds→bond, stocks→stock, rates→rate).
+// False positives from prefix matches (stocking→stock) are acceptable in this pre-filter.
+const FINANCIAL_SIGNAL = /\b(stock|market|rate|bond|yield|fed|fomc|earning|gdp|inflation|cpi|pce|dollar|usd|euro|yen|equity|index|s&p|nasdaq|dow|trade|tariff|oil|gold|crypto|bitcoin|bank|econom|invest|etf|fund|sector|tech|growth|recession|debt|deficit|treasur|fiscal|monetar|interest|employment|jobs|payroll|retail|sales|profit|revenue|quarter|analyst|forecast|outlook|powell|ecb|boe|boj|imf|world bank|china|europe|emerging|hedge|risk|volatilit|vix|ipo|merger|acquisition|dividend|buyback|short|long|bull|bear|rally|sell-off|correction|commodit|copper|aluminum|energy|supply|demand|manufactur|pmi|ism|claims|unemploy|consumer|sentiment|housing|mortgage|credit|spread|oas|liquidit|capital|portfolio)/i;
 
 async function fetchRSS(feedUrl: string, source: string, requireFinancial = false): Promise<RawNewsItem[]> {
   try {
