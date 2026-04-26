@@ -1,0 +1,44 @@
+iter263 — news-cascade quality + FOMC date corrections + admin UX
+
+=== Primary Outcomes ===
+
+1. Bloomberg RSS 교체 (news-cascade quality↑)
+   - Bloomberg feeds: HTTP 200 but 2 items only (paywall/IP throttle)
+   - 교체: MarketWatch Top Stories (10 items) + Investing.com (10 items)
+   - 결과: ~67개 후보에서 top-7 선택 (기존 ~20개)
+   - commit: bd3fe68
+
+2. 비금융 기사 사전 필터 추가
+   - MarketWatch/Investing.com은 royalty visits, sports 등 혼입
+   - requireFinancial=true 피드: FINANCIAL_SIGNAL 정규식 미매칭 시 제외
+   - 10개 테스트 케이스 전부 PASS (금융 6개 ✓, 비금융 4개 차단 ✓)
+   - commits: 25f5045, 21a0f0f
+
+3. FOMC 날짜 수정 (April 30 → April 29)
+   - Fed 2026 April 회의: April 28-29, 결정 April 29 18:00 UTC
+   - 수정 파일: economic-calendar/route.ts, macro-indicators/route.ts, fedwatch/route.ts
+   - Finnhub 이미 April 29 표시 → ±1일 guard가 injection 막고 있었으나
+     nextFomcDate() / label 표시는 오류였음
+   - commits: 5da9af5, 9be3e46
+
+4. GDP Q1 Advance 예측치 수정 (1.2% → 2.1%)
+   - GDPNow 1.2% vs Wall Street 컨센서스 2.1% (Finnhub est=2.1)
+   - Surprise 분류를 컨센서스 기준으로 수행해야 정확
+   - commit: c95f45d
+
+5. Admin Logs 에러 퀵 필터 (UX)
+   - Health 패널의 error/warn 카운트 → 클릭 시 레벨 필터 토글
+   - "✕ Errors" / "⚠ Warnings" 원클릭 버튼 추가
+   - commit: 6fa040a
+
+=== Accuracy Probe ===
+[accuracy probe] metric=yield.10Y source=FRED direct_value=4.34 our_value=4.34 delta=0 tolerance=0.05 → OK
+[note] CNN F&G direct probe blocked (418 "I'm a teapot") — bot detection active
+
+=== April 29-30 대비 ===
+- FOMC 결정: April 29 18:00 UTC — 97% hold, no cut priced
+  → 결과 후 economic-calendar FOMC_2026 actual 추가, macro-indicators STATIC.fomc 업데이트
+- GDP Q1 Advance: April 30 12:30 UTC — consensus 2.1%, GDPNow 1.2%
+- Core PCE March: April 30 12:30 UTC — consensus 0.3% MoM / ~2.8% YoY
+- IClaims: April 30 12:30 UTC — forecast 224K
+  → FRED 자동 갱신 (cron warm 13:00 UTC 필요)
