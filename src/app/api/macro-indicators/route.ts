@@ -104,11 +104,13 @@ async function fetchFREDCsv(series: string, monthsBack: number = 15): Promise<Ar
   }
 }
 
-// Latest value
-async function fetchLatest(series: string): Promise<{ value: number; date: string } | null> {
-  const rows = await fetchFREDCsv(series, 3);
+// Latest value — returns last row plus optional previous row value
+async function fetchLatest(series: string, monthsBack: number = 3): Promise<{ value: number; date: string; previous?: number } | null> {
+  const rows = await fetchFREDCsv(series, monthsBack);
+  if (!rows.length) return null;
   const last = rows[rows.length - 1];
-  return last ?? null;
+  const prev = rows.length >= 2 ? rows[rows.length - 2] : null;
+  return { ...last, previous: prev?.value };
 }
 
 // YoY % change (index-based series like CPI, PCE, PPI)
@@ -633,8 +635,11 @@ export async function GET(request: Request) {
   const reqProto = new URL(request.url).protocol;
   const baseUrl = reqHost.startsWith('localhost') ? 'http://localhost:3000' : `${reqProto}//${reqHost}`;
 
+  // Cron warm calls (x-cron-warm: 1) always bypass memory cache to ensure fresh FRED data on release days.
+  const isCronWarm = request.headers.get('x-cron-warm') === '1';
+
   // Module-level memory cache hit (no-Redis path)
-  if (!redis && MACRO_MEMORY_CACHE && Date.now() < MACRO_MEMORY_CACHE.expiresAt) {
+  if (!isCronWarm && !redis && MACRO_MEMORY_CACHE && Date.now() < MACRO_MEMORY_CACHE.expiresAt) {
     logger.info('macro-indicators', 'memory_cache_hit');
     return NextResponse.json(MACRO_MEMORY_CACHE.data, { headers: CDN_HEADERS });
   }
@@ -666,7 +671,7 @@ export async function GET(request: Request) {
     fetchYoY('PCEPI'),
     fetchYoY('PCEPILFE'),
     fetchMoMChange('PAYEMS'),
-    fetchLatest('A191RL1Q225SBEA'),  // real GDP QoQ SAAR %
+    fetchLatest('A191RL1Q225SBEA', 6),  // 6-month window: FRED Q1 date=2026-01-01 falls before default 3-month start
     fetchYoY('WPSFD49207'),  // PPI Final Demand (BLS headline) — replaced PPIACO (All Commodities, wrong series)
     fetchMoMPct('RSAFS'),
     fetchLatest('UNRATE'),
@@ -793,9 +798,10 @@ export async function GET(request: Request) {
   // GDP
   const gdpData = get(fredGDP);
   // FRED quarterly observation date = quarter-start (e.g. 2025-10-01 = Q4 2025).
-  // Only accept Q1 2026 or later to avoid labeling Q4 2025 as "Q1 Advance".
+  // Reject pre-current-year quarters to avoid labeling Q4 2025 as "Q1 Advance".
   // Never use gdpData.date as releaseDate — it's the quarter start, not the BEA press-release date.
-  const gdpLive = gdpData?.date && gdpData.date >= '2026-01-01' ? gdpData : null;
+  const gdpYearCutoff = `${new Date().getFullYear()}-01-01`;
+  const gdpLive = gdpData?.date && gdpData.date >= gdpYearCutoff ? gdpData : null;
   {
     const base = STATIC.gdp;
     const actual = gdpLive ? parseFloat(gdpLive.value.toFixed(1)) : base.actual;
@@ -804,7 +810,7 @@ export async function GET(request: Request) {
     const ri = rateImpact('gdp', surprise);
     indicators.push({
       ...base,
-      actual, previous: base.previous, forecast: fc,
+      actual, previous: gdpLive?.previous != null ? parseFloat(gdpLive.previous.toFixed(1)) : base.previous, forecast: fc,
       releaseDate: base.releaseDate,
       nextRelease: nextScheduledRelease('gdp', FORECASTS.gdp.nextRelease),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
