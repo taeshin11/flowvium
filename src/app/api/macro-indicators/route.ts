@@ -546,10 +546,10 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   pce: {
     id: 'pce', name: 'PCE Price Index (Core)', nameKo: '근원 개인소비지출 물가',
-    category: 'inflation', actual: 2.6, forecast: 2.6, previous: 2.7, unit: '%YoY',
-    releaseDate: '2026-03-28', nextRelease: '2026-04-30', surprise: 'inline',
-    rateImpact: 'neutral', rateImpactKo: 'neutral',
-    summary: 'Fed preferred inflation gauge in line. 2.6%, still above 2% target.',
+    category: 'inflation', actual: 3.0, forecast: 2.6, previous: 3.1, unit: '%YoY',
+    releaseDate: '2026-03-28', nextRelease: '2026-04-30', surprise: 'miss',
+    rateImpact: 'hawkish', rateImpactKo: 'hawkish (core inflation above forecast → prolonged tightening)',
+    summary: 'Core PCE 3.0%YoY (est. 2.6%). Above Fed 2% target; tariff-driven re-acceleration.',
   },
   nfp: {
     id: 'nfp', name: 'Non-Farm Payrolls', nameKo: '비농업 고용지수',
@@ -634,7 +634,7 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
 // FRED gives actual values; we keep forecasts as static consensus
 const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
-  pce:    { forecast: 2.6,   nextRelease: '2026-04-30' },
+  pce:    { forecast: 3.0,   nextRelease: '2026-04-30' },
   nfp:    { forecast: 140,   nextRelease: '2026-05-01' },  // auto-advance via RELEASE_SCHEDULE.nfp
   gdp:    { forecast: 2.1,   nextRelease: '2026-04-30' },  // fallback only — auto-advance via RELEASE_SCHEDULE
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
@@ -654,7 +654,8 @@ export async function GET(request: Request) {
   const reqProto = new URL(request.url).protocol;
   const baseUrl = reqHost.startsWith('localhost') ? 'http://localhost:3000' : `${reqProto}//${reqHost}`;
 
-  // Cron warm calls (x-cron-warm: 1) always bypass memory cache to ensure fresh FRED data on release days.
+  // Cron warm calls (x-cron-warm: 1) bypass both memory cache AND Redis — ensures fresh FRED data
+  // on release days (e.g. GDP Q1 advance at 12:30 UTC April 30 picked up by 13:00 UTC cron warm).
   const isCronWarm = request.headers.get('x-cron-warm') === '1';
 
   // Module-level memory cache hit (no-Redis path)
@@ -663,7 +664,7 @@ export async function GET(request: Request) {
     return NextResponse.json(MACRO_MEMORY_CACHE.data, { headers: CDN_HEADERS });
   }
 
-  if (redis) {
+  if (redis && !isCronWarm) {
     try {
       const cached = await redis.get<object>(key);
       if (cached) {
