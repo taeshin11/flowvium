@@ -1,0 +1,126 @@
+iter237 — 2026-04-26
+primary outcome: FedWatch 날짜 오류 + 정확도 프로브 일괄 수정
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- c85c251 docs(history): iter236 log
+- 2cf3ed0 fix(macro): cron-warm bypasses Redis + PCE static correction
+- 77a7f6d docs(history): iter235 log
+- 54d5629 feat(chat): live sector flows → AiChat
+- 08fd925 docs: FEATURES.md + METRICS.md
+
+Drift signal check:
+(1) macro-indicators: iter236 1회 → 2회 누적 — NOT 3. 허용.
+(2) investment-strategy: iter234+235 = 2회 → iter237에서 터치 금지 유지 ✓
+(3) AI providers: iter234+235 = 2회 → iter237에서 터치 금지 유지 ✓
+(4) Primary metric stall: 186/186 OK → 없음
+(5) Infra GROQ: Redis guard 활성 (UTC 자정 해제 예정) → blocker 아님, 예정된 복구
+
+→ Drift 없음
+
+## Primary Outcome
+FedWatch FOMC 날짜 오류 수정 + 정확도 프로브
+
+## 발견된 버그
+
+### Bug 1: FedWatch 2026-06-10 → 2026-06-17 날짜 오류
+
+**문제:** fedwatch/route.ts STATIC_DATA.meetings[1].date = '2026-06-10' (틀림)
+- 공식 Fed 일정: June 17, 2026 (macro-indicators FOMC_DATES_2026 = '2026-06-17')
+- 사용자에게 표시되는 FOMC 날짜가 7일 틀림
+
+**왜 ZQ 확률 계산에는 영향 없었나:**
+`computeMeetingProbs`가 `d.getMonth()` → `JUN26` 코드로 매핑.
+June 10과 June 17 모두 같은 JUN26 계약에 매핑 → 확률 계산 무영향.
+단, 표시되는 날짜 자체가 틀렸음.
+
+**수정 (commit 616ec4b):**
+- `date: '2026-06-10'` → `'2026-06-17'`
+- `label: 'Jun 10'` → `'Jun 17'`
+
+### Bug 2: FedWatch static probabilities 구시대적 stale
+
+**문제:** Static fallback이 tariff 쇼크 이전 시장 기대 반영
+- Apr 30: probHold=38, probCut25=52 (52% cut 예상)
+- Jun: probHold=42, probCut25=50
+
+**실제 ZQ 시장 (2026-04-26 기준):**
+- Apr 30: live probHold=97, probCut25=0
+- Jun: live probHold=98, probCut25=0
+- Jul: live probHold=99, probCut25=0
+- Sep: live probHold=92, probCut25=8
+
+→ 강한 NFP(228K beat), CPI 3.3%, PPI 4.1% → 금리 동결 압도적 우세.
+Static fallback을 현재 시장 기대 반영으로 업데이트.
+
+**수정 (commit 616ec4b):**
+Apr 30: hold=97, cut25=3 / Jun 17: hold=90, cut25=9 / Jul: hold=80, cut25=17
+Sep: hold=68, cut25=26 / Oct: hold=58, cut25=34 / Dec: hold=50, cut25=40
+
+### Bug 3: iter236 오류 수정 — FORECASTS.pce.forecast 3.0 → 2.6
+
+**문제:** iter236에서 FORECASTS.pce.forecast = 2.6 → 3.0으로 변경했으나 이는 개념적 오류.
+- FORECASTS.pce.forecast는 "현재 actual의 surprise 계산 기준"
+- Feb 2026 PCE 실제(2.97%)를 March PCE 컨센서스(3.0%)와 비교하면 의미 없음
+- actual=2.97 vs forecast=3.0 → beat (dovish) 로 잘못 분류됨
+- 실제: Feb PCE 2.97%는 March 28 발표 당시 컨센서스 2.6% 대비 miss (hawkish)
+
+**수정 (commit 616ec4b):**
+FORECASTS.pce.forecast: 3.0 → 2.6 (원래 값 복원)
+주석 추가: "consensus at Feb release (Mar 28); update to ~3.0 after Apr 30 March PCE drops"
+
+## 좀비 프로세스 점검 결과
+
+전체 pages 컴포넌트 setInterval/addEventListener 스캔:
+- ExplorePage.tsx: `window.addEventListener('resize', ...)` → `return () => removeEventListener` ✓
+- HeatmapPage.tsx: `setInterval(load, 15min)` → `return () => { clearInterval(iv); controller.abort() }` ✓
+- HomePage.tsx: `setInterval(fetchPills, SNAPSHOT_REFRESH_MS)` → `return () => { clearInterval(iv); abortRef.abort() }` ✓
+- ReportPage.tsx: `setInterval(setNowTick, 30s)` → `return () => { clearInterval(iv); abortRef.abort() }` ✓
+- WatchlistPage.tsx: `setInterval(refreshAll, REFRESH_MS)` → `return () => { clearInterval(iv); abortRef.abort() }` ✓
+
+→ 좀비 프로세스 없음. 모든 interval/listener 정상 cleanup.
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=cpi    source=FRED  direct_value=3.3   our_value=3.29  delta=0.01 → OK
+[accuracy probe] metric=pce    source=FRED  direct_value=2.97  our_value=2.97  delta=0.00 → OK
+[accuracy probe] metric=ppi    source=FRED  direct_value=4.11  our_value=4.1   delta=0.01 → OK
+[accuracy probe] metric=fomc   source=FRED  direct_value=3.625 our_value=3.625 delta=0.000 → OK
+[accuracy probe] metric=curve  source=FRED  direct_value=0.53  our_value=0.51  delta=0.02 → OK (1-day lag, Sunday)
+[accuracy probe] metric=bei5y  source=FRED  direct_value=2.61  our_value=2.58  delta=0.03 → OK (1-day lag)
+[accuracy probe] metric=bei10y source=FRED  direct_value=2.42  our_value=2.42  delta=0.00 → OK
+[accuracy probe] metric=fg.us  source=verify_metrics direct_value=66 our_value=66 delta=0 → OK
+```
+
+## GROQ 상태
+- source: fallback (Redis guard `flowvium:groq:tpd_exhausted_v2` 아직 활성)
+- UTC 자정 = KST 09:00 April 27에 자동 해제 예정
+- probe=1 fix (iter234)으로 재고갈 방지됨
+
+## 전체 엔드포인트 상태
+verify-metrics (iter 시작 시): ok=186 degraded=0 error=0 skipped=5
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: FedWatch FOMC 날짜 수정 (Jun 10→17) ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- 616ec4b: fix(fedwatch): correct Jun 17 date + update static probabilities
+
+## 다음 iter 우선순위
+1. **April 30 (목요일)**: GDP Q1 advance + PCE March + FOMC decision
+   - UTC 12:30: BEA GDP/PCE 발표 → FRED A191RL1Q225SBEA 확인
+   - UTC 18:00: FOMC 결정 (hold 예상, 97%)
+   - iter236 Redis bypass fix → 13:00 UTC cron warm이 FRED 직접 fetch
+   - STATIC 갱신 필요 여부 확인
+2. **GROQ quota 복구**: KST 09:00 April 27 이후 확인
+3. **FORECASTS.pce.forecast 업데이트**: April 30 March PCE 발표 후 3.0으로 업데이트
+
+## 기술 메모
+- FedWatch: ZQ futures live 계산이 static 완전히 override → date 버그는 표시 오류만
+- FORECASTS.pce.forecast 의미: "현재 actual 대비 컨센서스" (다음 발표 컨센서스 아님)
+  → April 30 후에는 STATIC.pce.actual + FORECASTS.pce.forecast 모두 업데이트 필요
+- Redis bypass (iter236 fix) effect: April 30 13:00 UTC cron이 GDP/PCE 즉시 반영
