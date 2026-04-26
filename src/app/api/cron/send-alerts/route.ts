@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 30;
@@ -50,7 +50,7 @@ async function isCooledDown(redis: Redis, type: string): Promise<boolean> {
 }
 
 async function markSent(redis: Redis, type: string): Promise<void> {
-  await redis.set(cooldownKey(type), '1', { ex: 24 * 60 * 60 });
+  await loggedRedisSet(redis, 'cron.send-alerts', cooldownKey(type), '1', { ex: 24 * 60 * 60 });
 }
 
 // ── Alert conditions ─────────────────────────────────────────────────────────
@@ -266,7 +266,7 @@ async function checkYieldCurveAlert(
       if (sent) {
         await markSent(redis, type);
         // Mark that an inversion is active so normalization alert can fire later
-        await redis.set(YC_INVERSION_FLAG, '1', { ex: 90 * 24 * 60 * 60 });
+        await loggedRedisSet(redis, 'cron.send-alerts', YC_INVERSION_FLAG, '1', { ex: 90 * 24 * 60 * 60 });
       }
       results.push({ type, sent, detail: `spread=${spread.toFixed(2)}` });
     } else {
@@ -295,7 +295,7 @@ async function checkYieldCurveAlert(
       }]);
       if (sent) {
         await markSent(redis, type);
-        await redis.del(YC_INVERSION_FLAG);
+        await loggedRedisDel(redis, 'cron.send-alerts', [YC_INVERSION_FLAG]);
       }
       results.push({ type, sent, detail: `spread=${spread.toFixed(2)}` });
     } else if (!wasInverted) {

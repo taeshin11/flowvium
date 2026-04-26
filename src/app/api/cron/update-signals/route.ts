@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet} from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
 import { getSignals } from '@/lib/signals-service';
 import { NextRequest, NextResponse } from 'next/server';
@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
 
   // 13F 캐시 무효화 (latest-updates 등이 다시 불러오게)
   if (redis) {
-    try { await redis.del('flowvium:latest-updates:v3'); } catch { /* non-fatal */ }
+    await loggedRedisDel(redis, 'cron.update-signals', ['flowvium:latest-updates:v3']);
   }
 
   // ── 3단계: Alpha Vantage 뉴스갭 스코어 갱신 ───────────────────────────────
