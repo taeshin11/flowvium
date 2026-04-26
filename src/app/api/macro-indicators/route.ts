@@ -634,7 +634,7 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
 // FRED gives actual values; we keep forecasts as static consensus
 const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
-  pce:    { forecast: 3.0,   nextRelease: '2026-04-30' },
+  pce:    { forecast: 2.6,   nextRelease: '2026-04-30' },  // consensus at Feb release (Mar 28); update to ~3.0 after Apr 30 March PCE drops
   nfp:    { forecast: 140,   nextRelease: '2026-05-01' },  // auto-advance via RELEASE_SCHEDULE.nfp
   gdp:    { forecast: 2.1,   nextRelease: '2026-04-30' },  // fallback only — auto-advance via RELEASE_SCHEDULE
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
