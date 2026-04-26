@@ -1,0 +1,36 @@
+iter266 — createRedis 49중복 제거 + AI 전략 fallback 상태 확인
+
+=== Drift Check ===
+- iter264: UX(버튼) + Screener + Report (프론트엔드)
+- iter265: 보안/버그 P0~P2 7건 수정 (API 라우트)
+- iter266: 코드 단순화 (lib 통합) — 영역 이동, drift 없음
+- "나중에" deferred: createRedis 중복(iter265), FOMC Apr29 actual(iter263~265 3회) → 이번 iter에서 createRedis 처리
+
+=== Primary Outcome ===
+"createRedis 싱글톤 통합 -360줄" — commit eefb3ad
+
+=== 성과 ===
+
+1. AI 전략 fallback 상태 확인 (양성 결과)
+   - 현재 production 정상 작동: source=GROQ-llama-3.3-70b-versatile
+   - stance=bullish, NVDA/AAPL/GOOGL 실제 종목 반환 + currentPrice 주입 확인
+   - iter264 fallback은 GROQ 일시 quota 소진이었음, 코드 버그 아님
+   - 결론: 추가 수정 불필요
+
+2. createRedis 49중복 → 싱글톤 통합 (규칙 3c: 삭제/단순화)
+   - 신규: src/lib/redis.ts (module-level singleton with undefined-guard)
+   - 44개 API 라우트 로컬 function createRedis() 제거
+   - daily-brief.ts: 로컬 정의 제거, @/lib/redis re-export 유지 (investment-strategy backward compat)
+   - 8개 파일에서 Redis 타입 직접 사용 → import type { Redis } from '@upstash/redis' 추가
+   - 총 -360줄 코드 제거, 47개 파일 변경
+   - 빌드 통과, Vercel 배포 완료
+
+=== Accuracy Probe ===
+[accuracy probe] metric=yield.10Y source=FRED direct_value=4.34 our_value=4.34 delta=0.00 tolerance=0.05 → OK
+news-cascade: 5 articles 정상
+macro-indicators: 정상 응답
+
+=== 잔여 Deferred ===
+- FOMC April 29 actual: April 29 18:00 UTC — 오늘 저녁 결과 후 3개 파일 업데이트 필요
+  파일: economic-calendar/route.ts, macro-indicators/route.ts, fedwatch/route.ts
+- GDP Q1 Advance / Core PCE: April 30 12:30 UTC
