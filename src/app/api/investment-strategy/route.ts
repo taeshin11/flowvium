@@ -505,6 +505,83 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
   };
 }
 
+// ── Data-driven fallback: adjusts base allocations using real-time signals ────
+function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>, locale = 'en'): InvestmentStrategy {
+  const base = fallbackStrategy(locale);
+
+  // Extract signals from context
+  const fg = ctx.fearGreed as Record<string, unknown> | null;
+  const fgScore: number = (fg?.score as number) ?? 50;
+  const macro = ctx.macro as Record<string, unknown> | null;
+  const yc = macro?.yieldCurve as Record<string, unknown> | undefined;
+  const inverted = (yc?.inverted as boolean) ?? false;
+  const spread = (yc?.spread10y2y as number) ?? null;
+  const inds = (macro?.indicators as Array<Record<string, unknown>>) ?? [];
+  const igSpread = (inds.find(i => i.id === 'ig_spread')?.actual as number) ?? 0.8;
+  const hySpread = (inds.find(i => i.id === 'hy_spread')?.actual as number) ?? 3.0;
+  const vol = ctx.volatility as Record<string, unknown> | null;
+  const vix: number = (vol?.vix as number) ?? 18;
+
+  // Base allocations (sum = 100)
+  let spy = 35, qqq = 25, gld = 15, tlt = 15, cash = 10;
+
+  // Adjustments: risk-off signals → reduce equity, increase defensive
+  if (vix > 30 || igSpread > 1.5 || hySpread > 5.5) {
+    spy -= 10; qqq -= 5; gld += 5; cash += 10;
+  } else if (vix > 22 || igSpread > 1.2) {
+    spy -= 5; qqq -= 5; gld += 5; cash += 5;
+  }
+  if (inverted) {
+    tlt -= 10; cash += 10; // Inverted curve = bond duration risk
+  }
+  if (fgScore > 75) {
+    spy -= 5; gld += 5; // Extreme greed = take some off the table
+  } else if (fgScore < 25) {
+    spy += 5; cash -= 5; // Extreme fear = buying opportunity
+  }
+
+  // Clamp each to [5, 55] then normalize to 100
+  const clamp = (v: number) => Math.max(5, Math.min(55, v));
+  spy = clamp(spy); qqq = clamp(qqq); gld = clamp(gld); tlt = clamp(tlt); cash = clamp(cash);
+  const total = spy + qqq + gld + tlt + cash;
+  const norm = 100 / total;
+  spy = Math.round(spy * norm);
+  qqq = Math.round(qqq * norm);
+  gld = Math.round(gld * norm);
+  tlt = Math.round(tlt * norm);
+  cash = 100 - spy - qqq - gld - tlt;
+
+  // Build data-driven thesis
+  const isKo = locale === 'ko';
+  const isJa = locale === 'ja';
+  const isZh = locale === 'zh-CN' || locale === 'zh-TW';
+  const vixLabel = vix > 30 ? (isKo ? '고변동성' : 'high-vol') : vix > 22 ? (isKo ? '변동성 상승' : 'elevated-vol') : (isKo ? '저변동성' : 'low-vol');
+  const fgLabel = fgScore > 75 ? (isKo ? '탐욕 과잉' : 'extreme greed') : fgScore > 55 ? (isKo ? '탐욕' : 'greed') : fgScore > 45 ? (isKo ? '중립' : 'neutral') : fgScore > 25 ? (isKo ? '공포' : 'fear') : (isKo ? '극단적 공포' : 'extreme fear');
+  const ycLabel = inverted ? (isKo ? '수익률 곡선 역전' : 'curve inverted') : (spread != null ? (isKo ? `스프레드 ${Math.round(spread * 100)}bp` : `spread ${Math.round(spread * 100)}bp`) : '');
+  const conditions = [vixLabel, fgLabel, ycLabel].filter(Boolean).join(' · ');
+
+  const thesis = isKo ? `데이터 기반 배분 — ${conditions}`
+    : isJa ? `データ駆動配分 — ${conditions}`
+    : isZh ? `数据驱动配置 — ${conditions}`
+    : `Data-driven allocation — ${conditions}`;
+
+  const riskLevel: 'low' | 'medium' | 'high' = vix > 28 || fgScore < 25 || igSpread > 1.5 ? 'high' : vix < 18 && fgScore > 55 ? 'low' : 'medium';
+
+  return {
+    ...base,
+    stance: riskLevel === 'high' ? 'bearish' : riskLevel === 'low' ? 'bullish' : 'neutral',
+    thesis,
+    riskLevel,
+    portfolio: [
+      { ...base.portfolio[0], allocation: spy },
+      { ...base.portfolio[1], allocation: qqq },
+      { ...base.portfolio[2], allocation: gld },
+      { ...base.portfolio[3], allocation: tlt },
+      { ...base.portfolio[4], allocation: cash },
+    ],
+  };
+}
+
 // ── Parse AI response ─────────────────────────────────────────────────────────
 function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
   try {
@@ -633,7 +710,7 @@ export async function GET(request: Request) {
       } catch { /* ignore */ }
     }
 
-    strategy = fallbackStrategy(locale);
+    strategy = dataFallbackStrategy(ctx, locale);
     const isDebug = searchParams.get('debug') === '1';
     if (isDebug) {
       return NextResponse.json({
