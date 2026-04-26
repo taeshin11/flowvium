@@ -700,7 +700,13 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       }),
       fetch(`${base}/api/fear-greed`, { signal: AbortSignal.timeout(6000), cache: 'no-store' }),
     ]);
-    if (!cnnRes.ok || !ourRes.ok) throw new Error(`cnn=${cnnRes.status} ours=${ourRes.status}`);
+    if (!cnnRes.ok) {
+      // CNN blocks Vercel IPs with 418/403 — skip rather than error (value may still be correct)
+      items.push({ key: 'accuracy.fg.us', label: 'CNN F&G US 값 대조', group: 'accuracy',
+        status: 'skipped', value: `CNN ${cnnRes.status} (Vercel IP blocked)` });
+    } else if (!ourRes.ok) {
+      throw new Error(`ours=${ourRes.status}`);
+    } else {
     const cnnData = await cnnRes.json();
     const ourData = await ourRes.json();
     const cnnScore = Math.round(cnnData?.fear_and_greed?.score ?? NaN);
@@ -719,6 +725,7 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
         details: { cnnScore, ourScore, delta, durationMs: Date.now() - t0, tolerance: 3 },
       });
     }
+    } // end else (cnnRes.ok)
   } catch (err) {
     items.push({ key: 'accuracy.fg.us', label: 'CNN F&G US 값 대조', group: 'accuracy', status: 'error',
       lastError: err instanceof Error ? err.message : String(err) });
