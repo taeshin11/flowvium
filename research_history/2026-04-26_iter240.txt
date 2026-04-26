@@ -1,0 +1,122 @@
+iter240 — 2026-04-26
+primary outcome: analyst-target targetHigh/Low + fedwatch cascade fix
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- ca54a9b docs(history): iter239 log
+- 971a899 fix(calendar+batch-prices): FOMC estimates + marketState field
+- 5391b98 docs(history): iter238 log
+- 3efab71 fix(macro-indicators): cascade inversion fix (CPI/PCE/PPI)
+- c752eeb docs(history): iter237 log
+
+Drift signal check:
+(1) macro-indicators: iter236+237+238 = 3회 → iter239 broke streak ✓, iter240 다른 영역 ✓
+(2) investment-strategy: 터치 없음 ✓
+(3) Primary metric 정체: 없음
+(4) 인프라 블로커: GROQ guard KST 09:00 April 27 자동 해제 예정
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+analyst-target targetHigh/Low 활성화 + fedwatch targetRange cascade 수정
+
+## 발견된 버그
+
+### Bug 1: analyst-target targetHigh/Low/targetMedian 항상 null
+
+**문제:**
+`/api/analyst-target/[ticker]` 의 `targetHigh`, `targetLow`, `targetMedian` 필드가
+코드 레벨에서 `null`로 하드코딩 — Finviz 스크레이퍼는 mean만 제공.
+
+**근본 원인:**
+Finnhub 무료 티어는 price target range 미제공. Finviz도 mean만 표시.
+Yahoo Finance v10 `quoteSummary?modules=financialData` 에 `targetHighPrice`,
+`targetLowPrice`, `targetMeanPrice`, `targetMedianPrice` 필드 존재하나
+crumb 인증 필요.
+
+**해결책:**
+sector-pe 라우트가 Redis에 crumb 캐시 (`flowvium:yahoo:crumb:v1`, 22h TTL) 저장.
+analyst-target이 해당 Redis key를 읽어 v10 quoteSummary 호출 — crumb 취득 로직
+중복 없음. crumb 미존재 시 Finviz mean으로 graceful fallback.
+
+**수정 (commit b64c2c1):**
+- `CRUMB_REDIS_KEY = 'flowvium:yahoo:crumb:v1'` 참조 추가
+- sector-pe와 동일한 `rawGet()` 함수로 `targetHighPrice`/`targetLowPrice`/
+  `targetMeanPrice`/`targetMedianPrice` 추출
+- v10 mean이 있으면 Finviz scrape보다 v10 우선
+- cacheKey v1 → v2 (null → 실값 캐시 stale 방지)
+
+**사용자 영향:**
+sector-pe가 최근 실행되었다면 (24h 내):
+- AAPL 예시: targetHigh=221, targetLow=169, targetMedian=207 (실제값)
+- CompanyPage 주가 목표 위젯에 전체 범위 표시 가능
+
+### Bug 2: fedwatch targetLow/targetHigh 전기 시대 cascade 잔류
+
+**문제:**
+`/api/fedwatch` STATIC_DATA의 `targetLow/targetHigh` 값:
+```
+Jul 29: targetLow=3.25, targetHigh=3.50 (기존)  ← 80% hold인데 cut 범위 표시
+Sep 16: targetLow=3.25, targetHigh=3.50 (기존)  ← 68% hold인데 cut 범위 표시
+Oct 28: targetLow=3.00, targetHigh=3.25 (기존)  ← 58% hold인데 2-cut 범위 표시
+Dec 9:  targetLow=3.00, targetHigh=3.25 (기존)  ← Dec 9 전에 2회 인하 가정
+```
+
+**근본 원인:**
+iter239에서 `probHold/probCut25` 확률값을 2026-04-26 ZQ futures 기준으로 업데이트했으나
+`targetLow/targetHigh`는 pre-tariff 시대 (공격적 인하 가정) 값 그대로.
+
+**UI 영향:**
+MacroIndicatorsTab FedWatch 섹션에서 "Hold 80%" 뱃지 옆에 "→ 3.25-3.50%" 화살표
+동시 표시 → 서로 모순되는 정보.
+
+**수정 (commit b64c2c1):**
+```
+Jul 29: targetLow=3.50, targetHigh=3.75  // 80% hold → expected = current range
+Sep 16: targetLow=3.50, targetHigh=3.75  // 68% hold dominant — cut possible (32%) not priced
+Oct 28: targetLow=3.50, targetHigh=3.75  // 58% hold still dominant
+Dec 9:  targetLow=3.25, targetHigh=3.50  // 50/50 → first 25bp cut by year-end signaled
+```
+
+**논리적 일관성:**
+- impliedRate 3.525 (ZQ futures) → 총 10bp cut 반영
+- 10bp = 0.4 cuts — 전체 일정에서 25bp 완전 인하 전혀 미반영
+- Dec 9만 3.25-3.50 표시: "year-end first cut" 시그널로 유지
+
+## 탐색 중 clean 확인 (false alarm 없음)
+
+- `/api/yield-curve` — FRED TIPS/BEI 포함 전체 구조 정상 ✓
+- `/api/fedwatch` — probabilities 정상 (prob값은 iter239에서 이미 수정) ✓
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=fomc.upper   source=FRED  direct_value=3.75  our_value=3.75  delta=0.00 → OK (DFEDTARU Apr 25)
+[accuracy probe] metric=curve.T10Y2Y source=FRED  direct_value=0.53  our_value=0.51  delta=0.02 → OK (1-day lag, Apr 24)
+```
+
+## 전체 엔드포인트 상태
+변경 전 verify-metrics: ok=186 degraded=0 error=0 (iter239 기준)
+analyst-target/fedwatch 는 정적+캐시 — verify 스코어 변화 없음 예상
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: analyst-target targetHigh/Low 활성화 (null→실값, crumb 있을 때) ✓
+- (b) 실패 확률 ≥50% 실험: Yahoo v10 crumb piggyback — Vercel IP 차단 가능성 있음 (sector-pe crumb 캐시에 의존, 실패 시 graceful fallback) ✓
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- b64c2c1: fix(analyst-target+fedwatch): Yahoo v10 targets + fedwatch targetLow/High cascade
+
+## 다음 iter 우선순위
+1. **April 30 (목요일) CRITICAL**: GDP Q1 advance + PCE March + FOMC decision
+   - UTC 12:30: BEA GDP/PCE 발표 (FRED GDPC1, PCEPI)
+   - UTC 18:00: FOMC 결정 (97% hold → 3.75% 유지 예상)
+   - macro-indicators STATIC.gdp.actual 업데이트 (null → 실제값)
+   - FORECASTS.pce.forecast 2.6 → March PCE 컨센서스 (~3.0)
+   - economic-calendar Apr 30 FOMC actual 업데이트 (3.75, hold)
+   - fedwatch Apr 30 actual 반영 후 probabilites 재조정
+
+2. **GROQ quota 복구**: KST 09:00 April 27 이후 investment-strategy?debug=1 확인
+
+3. **미탐색 영역**: company-financials/[ticker], korea-flow, investment-strategy 구조 점검
