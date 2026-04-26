@@ -420,14 +420,18 @@ export async function GET() {
   let staleResult: object | null = null;
   if (redis) {
     try {
-      const [fresh, stale] = await Promise.allSettled([
+      // Stale key is source-agnostic so Twelve→Yahoo source switch doesn't lose fallback
+      const [fresh, staleSrc, staleUniversal] = await Promise.allSettled([
         redis.get<object>(cacheKey),
         redis.get<object>(`${STALE_KEY_PREFIX}:${twelveKey ? 'twelve' : 'yahoo'}`),
+        redis.get<object>(`${STALE_KEY_PREFIX}:any`),
       ]);
       if (fresh.status === 'fulfilled' && fresh.value) {
         return NextResponse.json(fresh.value, { headers: CDN_HEADERS });
       }
-      if (stale.status === 'fulfilled') staleResult = stale.value;
+      staleResult = (staleSrc.status === 'fulfilled' && staleSrc.value)
+        ? staleSrc.value
+        : (staleUniversal.status === 'fulfilled' ? staleUniversal.value : null);
     } catch (e) { logger.warn('capital-flows', 'cache_read_error', { error: e }); }
   }
 
@@ -556,7 +560,13 @@ export async function GET() {
     try {
       const staleKey = `${STALE_KEY_PREFIX}:${twelveKey ? 'twelve' : 'yahoo'}`;
       await loggedRedisSet(redis, 'api.capital-flows', cacheKey, response, { ex: CACHE_TTL });
-      if (hasData) await loggedRedisSet(redis, 'api.capital-flows', staleKey, response, {});
+      if (hasData) {
+        // Write source-specific and universal stale keys — universal survives source changes
+        await Promise.all([
+          loggedRedisSet(redis, 'api.capital-flows', staleKey, response, {}),
+          loggedRedisSet(redis, 'api.capital-flows', `${STALE_KEY_PREFIX}:any`, response, {}),
+        ]);
+      }
       logger.info('capital-flows', 'cache_saved', { assets: results.length, failedTickers: sourceCount['failed'] ?? 0 });
     } catch (e) { logger.warn('capital-flows', 'cache_write_error', { error: e }); }
   }
