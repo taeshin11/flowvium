@@ -54,6 +54,8 @@ export interface FedWatchData {
 // Macro-indicators STATIC confirms range 3.5-3.75 from March 19 FOMC decision.
 // FOMC dates: Apr 30, Jun 17, Jul 29, Sep 16, Oct 28, Dec 9 (official Fed calendar)
 // Probabilities calibrated to 2026-04-26 ZQ futures (no cuts priced through mid-2026).
+// targetLow/targetHigh = expected target after each meeting (hold-dominant → current range).
+// ZQ futures imply only 10bp total cuts by Dec 9; first likely cut at Sep/Oct 50th percentile.
 const STATIC_DATA: FedWatchData = {
   currentTargetLow: 3.50,
   currentTargetHigh: 3.75,
@@ -91,8 +93,8 @@ const STATIC_DATA: FedWatchData = {
       date: '2026-07-29',
       label: 'Jul 29',
       current: 3.625,
-      targetLow: 3.25,
-      targetHigh: 3.50,
+      targetLow: 3.50,   // 80% hold → expected range = current
+      targetHigh: 3.75,
       probHike: 0,
       probHold: 80,
       probCut25: 17,
@@ -105,8 +107,8 @@ const STATIC_DATA: FedWatchData = {
       date: '2026-09-16',
       label: 'Sep 16',
       current: 3.625,
-      targetLow: 3.25,
-      targetHigh: 3.50,
+      targetLow: 3.50,   // 68% hold dominant — first cut possible (32%) but not expected
+      targetHigh: 3.75,
       probHike: 0,
       probHold: 68,
       probCut25: 26,
@@ -119,8 +121,8 @@ const STATIC_DATA: FedWatchData = {
       date: '2026-10-28',
       label: 'Oct 28',
       current: 3.625,
-      targetLow: 3.00,
-      targetHigh: 3.25,
+      targetLow: 3.50,   // 58% hold still dominant
+      targetHigh: 3.75,
       probHike: 0,
       probHold: 58,
       probCut25: 34,
@@ -133,8 +135,8 @@ const STATIC_DATA: FedWatchData = {
       date: '2026-12-09',
       label: 'Dec 9',
       current: 3.625,
-      targetLow: 3.00,
-      targetHigh: 3.25,
+      targetLow: 3.25,   // 50/50 cut/hold — first 25bp cut likely by year-end
+      targetHigh: 3.50,
       probHike: 0,
       probHold: 50,
       probCut25: 40,
