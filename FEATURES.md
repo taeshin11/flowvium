@@ -856,7 +856,7 @@ ownership-alerts 적용).
 | `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Qwen/Gemini (v6 키: 일별 1회 갱신; 폴백 5min 캐시) | 12h Redis / 4h mem |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
 | `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 8b, skipVllm=true, preferSmallModel); Redis 분산 락(90s) 썬더링 허드 차단; 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 1h~12h |
-| `/api/capital-flows` | Twelve Data → Yahoo v7 spark batch → Finnhub candle (FINNHUB_KEY) | 4h |
+| `/api/capital-flows` | Twelve Data → Yahoo v7 spark batch → Nasdaq public API (5-concur/200ms) → Finnhub (FINNHUB_KEY) | 4h |
 | `/api/macro-indicators` | FRED CSV + FRED API | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
 | `/api/fear-greed` | CNN 방식 + Yahoo Finance | 4h |

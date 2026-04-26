@@ -114,24 +114,24 @@
 
 | # | 자산 | 상태 | 소스 |
 |---|------|------|------|
-| 23 | SPY (S&P 500) 1w/4w/13w 수익률 | 💾 cached | Twelve→Yahoo |
-| 24 | QQQ (Nasdaq) 1w/4w/13w | 💾 cached | Twelve→Yahoo |
-| 25 | IWM (Russell 2000) 1w/4w/13w | 💾 cached | Twelve→Yahoo |
-| 26 | EFA (개도국 제외 선진국) | 💾 cached | Twelve→Yahoo |
-| 27 | EEM (이머징 주식) | 💾 cached | Twelve→Yahoo |
-| 28 | TLT (장기국채) | 💾 cached | Twelve→Yahoo |
-| 29 | IEF (중기국채) | 💾 cached | Twelve→Yahoo |
-| 30 | LQD (투자등급회사채) | 💾 cached | Twelve→Yahoo |
-| 31 | HYG (하이일드) | 💾 cached | Twelve→Yahoo |
-| 32 | EMB (이머징 채권) | 💾 cached | Twelve→Yahoo |
-| 33 | TIP (물가연동채) | 💾 cached | Twelve→Yahoo |
-| 34 | GLD (금) | 💾 cached | Twelve→Yahoo |
-| 35 | SLV (은) | 💾 cached | Twelve→Yahoo |
-| 36 | USO (WTI 원유) | 💾 cached | Twelve→Yahoo |
-| 37 | DBC (원자재) | 💾 cached | Twelve→Yahoo |
-| 38 | UUP (달러) | 💾 cached | Twelve→Yahoo |
-| 39 | BTC (비트코인) | 💾 cached | Twelve→Yahoo |
-| 40 | ETH (이더리움) | 💾 cached | Twelve→Yahoo |
+| 23 | SPY (S&P 500) 1w/4w/13w 수익률 | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 24 | QQQ (Nasdaq) 1w/4w/13w | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 25 | IWM (Russell 2000) 1w/4w/13w | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 26 | EFA (개도국 제외 선진국) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 27 | EEM (이머징 주식) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 28 | TLT (장기국채) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 29 | IEF (중기국채) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 30 | LQD (투자등급회사채) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 31 | HYG (하이일드) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 32 | EMB (이머징 채권) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 33 | TIP (물가연동채) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 34 | GLD (금) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 35 | SLV (은) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 36 | USO (WTI 원유) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 37 | DBC (원자재) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 38 | UUP (달러) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 39 | BTC (비트코인) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
+| 40 | ETH (이더리움) | 💾 cached | Twelve→Yahoo→Nasdaq→Finnhub |
 | 41 | 플로우 강도: 상위 유입 5개 | 💾 cached | 자체계산 | |
 | 42 | 플로우 강도: 상위 유출 5개 | 💾 cached | 자체계산 | |
 | 43 | 그룹 평균 수익률 (equity/bonds/alts/commodities/currency) | 💾 cached | 자체계산 | |
