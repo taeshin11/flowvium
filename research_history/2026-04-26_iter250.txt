@@ -1,0 +1,102 @@
+iter250 — 2026-04-26
+primary outcome: ai-providers GROQ cascade 개선 (70b 500/503 시 8b 폴백 추가)
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 9b9e549 docs(history): iter249 log
+- 01f7c2a fix(company-news): cache Finnhub fallback results + remove dead nasdasClass
+- 3b25e4d docs(history): iter248 log
+- 09633d4 fix(stock-supply): TSM ticker key in CIK_MAP (was TSMC)
+- 465e1fb docs(history): iter247 log
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter248=stock-supply, iter249=routes+company-news, iter250=ai-providers lib — 다른 영역 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에" 3회 이상: April 30 (scheduled, 내일) ✓
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 (April 27 KST 09:00 리셋 예정) ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+ai-providers.ts GROQ cascade 개선: 70b HTTP 오류 시 8b 폴백 경로 확장
+
+## ai-providers.ts 심화 분석
+
+### 1. 전체 cascade 설계 — 무결 ✓
+- vLLM (EXAONE 2.4B, 8s timeout) → GROQ → Qwen (OpenRouter free) → Gemini
+- 모듈 레벨 + Redis 크로스 인스턴스 TPD guard ✓
+- `preferSmallModel=true`: 8b 직행 (70b 100k TPD 보존) ✓
+- `AI_PREFER=groq`: vLLM 건너뛰기 ✓
+
+### 2. 발견된 버그: 70b non-429 HTTP 오류 시 8b 폴백 스킵 (MEDIUM)
+
+**문제:**
+기존 코드: `if (primary.status === 429)` → 8b 폴백 조건이 429 전용.
+70b가 500/503 (일시적 서버 오류) 반환 시 8b 시도 없이 Qwen으로 escalation.
+실제 케이스:
+- GROQ 서버 일시 과부하 → 70b 503 반환 → 8b는 정상인데 Qwen 호출 → OpenRouter 지연
+- 70b 특정 엔드포인트 500 → 8b는 별도 리소스풀 → 8b 정상 가능성 있음
+
+**수정 (commit b454929):**
+```typescript
+// BEFORE:
+if (primary.status === 429) {
+  logger.info(tag, 'groq_429_fallback_8b', ...)
+
+// AFTER:
+if (primary.status !== null && primary.status !== 200) {
+  logger.info(tag, 'groq_http_fallback_8b', { note: `70b status=${primary.status}, ...` })
+```
+
+**주의: 타임아웃 시 스킵 유지** (`status === null` = 네트워크 오류/타임아웃):
+- 70b timeout = 20s → 8b도 동일 GROQ 네트워크 문제일 가능성 → 스킵 ✓
+- HTTP status 반환 = 서버 응답 있음 → 8b 별도 리소스풀 가능 → 시도 ✓
+
+### 3. TPD Redis guard 정확도 개선 (MEDIUM)
+
+**문제:**
+기존: `if (fallback.status === 429 && fallback.tpdExhausted)` → 70b가 500이어도 8b TPD 소진 시 글로벌 GROQ guard 쓰기.
+→ 70b 일시 과부하(500) + 8b TPD 소진 케이스에서 70b를 잘못 차단.
+
+**수정 (commit b454929):**
+```typescript
+// BEFORE:
+if (fallback.status === 429 && fallback.tpdExhausted)
+
+// AFTER:
+if (fallback.status === 429 && fallback.tpdExhausted && primary.tpdExhausted)
+```
+양쪽 모두 TPD 소진일 때만 Redis guard 쓰기 → guard 오염 방지 ✓
+
+### 4. 기타 검토 항목 — 무결 ✓
+- `secondsUntilUtcMidnight()`: `Math.max(60, ...)` — 최소 60s TTL ✓
+- `getGuardRedis()`: 모듈 레벨 lazy init, 재사용 ✓
+- Gemini `Promise.race` timeout: Lambda 수명 내 타이머 leak (비함수형 범위 — 무해) ✓
+- `isTpd` 감지: `errText.includes('tokens per day')` — GROQ 공식 메시지 ✓
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+FRED 직접 fetch (2026-04-26):
+```
+[accuracy probe] metric=yield.dgs10 source=FRED_DGS10 direct_value=4.34%(Apr23) our_value=yield-curve_FRED_fetch → OK (동일 소스)
+[accuracy probe] metric=yield.dgs2 source=FRED_DGS2 direct_value=3.83%(Apr23) our_value=yield-curve_FRED_fetch → OK (동일 소스)
+[accuracy probe] metric=yield.spread2s10s source=FRED_direct direct_value=0.51%(4.34-3.83) our_value=0.51 delta=0.00 → OK (iter246 확인값 일치)
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: GROQ 70b 500/503 시 8b 폴백 → AI 서비스 가용성 향상 ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- b454929: fix(ai-providers): GROQ 70b cascade to 8b on any HTTP error, not just 429
+
+## 다음 iter 우선순위
+1. **April 30 FOMC actual** (내일 UTC 18:00 이후):
+   - economic-calendar/route.ts: `'2026-04-30'` FOMC 항목에 `actual: 3.75` 추가
+   - fedwatch 재확인 (ZQ futures 자동 반영 예상)
+2. **GROQ quota 확인** (April 27 KST 09:00 = UTC April 27 00:00):
+   - investment-strategy?debug=1 → source='groq' 확인
+3. **lib 레이어 계속**: memory-cache.ts, logger.ts 감사
+4. **방향 전환 고려**: April 30 대비 경제지표 캐시 만료 검증
