@@ -193,8 +193,9 @@ export async function GET() {
   const tbillData = await fetchFREDSeries('DTB3', 30);
   const riskFreeAnnual = tbillData ? tbillData.latest / 100 : 0.043; // fallback ~4.3%
 
-  // FRED WTI spot + carry-model curve fallback (Yahoo blocked from Vercel IPs)
-  if (oilCurve.curve.length === 0) {
+  // FRED WTI spot + carry-model curve fallback (Yahoo blocked or returning partial data)
+  // Fewer than 3 real futures points means Yahoo is unreliable; carry model gives better coverage
+  if (oilCurve.curve.length < 3) {
     const fredSpot = await fetchOilSpotFRED();
     if (fredSpot !== null) {
       logger.info('commodity-curve', 'fred_oil_carry_curve', { spot: fredSpot, riskFree: riskFreeAnnual });
