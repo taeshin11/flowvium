@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { fetchCNBCQuotes, fetchYFNonUSQuotes } from '@/lib/yahoo-finance';
 import { fetchStooqQuotes, fetchStooqNonUS } from '@/lib/stooq';
-import { fetchNaverKRQuotes } from '@/lib/naver-finance';
+import { fetchNaverKRQuotes, fetchTWSEQuotes } from '@/lib/naver-finance';
 import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
 import { createMemoryCache } from '@/lib/memory-cache';
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v15:${country}:${hour}`; // v15: KR Naver Finance fallback (Yahoo Vercel-blocked)
+  const cacheKey = `flowvium:heatmap:v16:${country}:${hour}`; // v16: KR Naver + TW TWSE/TPEX (Yahoo Vercel-blocked)
   const redis = createRedis();
 
   if (!force) {
@@ -185,7 +185,9 @@ export async function GET(req: NextRequest) {
       logger.info('market-heatmap', 'stooq_pass', { country, matched: nonUSQuoteMap.size });
     }
 
-    // Pass 1.5: Naver Finance for KR (Stooq N/D, Yahoo v8 Vercel-blocked)
+    // Pass 1.5: Country-specific source for Stooq-N/D + Yahoo-blocked countries
+    // KR: Naver Finance (batch polling API, no auth, free)
+    // TW: TWSE + TPEX open API (full-day report, no auth, free)
     if (country === 'KR') {
       const krMissing = topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase())).map(h => h.ticker);
       if (krMissing.length > 0) {
@@ -196,6 +198,17 @@ export async function GET(req: NextRequest) {
           }
         }
         logger.info('market-heatmap', 'naver_kr_pass', { requested: krMissing.length, matched: naverQuotes.filter(q => q.changePct != null).length });
+      }
+    } else if (country === 'TW') {
+      const twMissing = topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase())).map(h => h.ticker);
+      if (twMissing.length > 0) {
+        const twseQuotes = await fetchTWSEQuotes(twMissing);
+        for (const q of twseQuotes) {
+          if (q.changePct != null || q.close != null) {
+            nonUSQuoteMap.set(q.symbol.toUpperCase(), { changePct: q.changePct, close: q.close });
+          }
+        }
+        logger.info('market-heatmap', 'twse_tw_pass', { requested: twMissing.length, matched: twseQuotes.filter(q => q.changePct != null).length });
       }
     }
 
@@ -275,7 +288,9 @@ export async function GET(req: NextRequest) {
       ? 'iShares IVV (구성) + Stooq (종목 시세) + Yahoo v8 (지수)'
       : country === 'KR'
         ? `iShares ${cfg?.etfTicker} (구성) + Naver Finance (시세)`
-        : STOOQ_SKIP.has(country)
+        : country === 'TW'
+          ? `iShares ${cfg?.etfTicker} (구성) + TWSE+TPEX (시세)`
+          : STOOQ_SKIP.has(country)
           ? `iShares ${cfg?.etfTicker} (구성) + Yahoo v8 (시세)`
           : `iShares ${cfg?.etfTicker} (구성) + Stooq+Yahoo (시세)`,
   };
