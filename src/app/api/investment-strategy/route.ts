@@ -300,7 +300,8 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
       const spread = yc?.spread10y2y as number | undefined;
       const ig = inds.find(i => i.id === 'ig_spread');
       const hy = inds.find(i => i.id === 'hy_spread');
-      const parts = [`YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${spread != null ? spread.toFixed(0) : '?'}bp)`];
+      // spread10y2y is in % (e.g. 0.51 = 51bp); multiply by 100 for basis point display
+      const parts = [`YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${spread != null ? Math.round(spread * 100) : '?'}bp)`];
       if (cpi?.actual != null) parts.push(`CPI=${cpi.actual}%`);
       if (gdp?.actual != null) {
         parts.push(`GDP=${gdp.actual}%`);

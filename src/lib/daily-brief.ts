@@ -671,7 +671,8 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const yc = macro?.yieldCurve as Record<string, unknown> | undefined;
     if (yc?.spread10y2y != null) {
       const spread = yc.spread10y2y as number;
-      capitalBullets.push(`10Y-2Y spread: ${spread.toFixed(0)}bp${yc.inverted ? ' ⚠️ inverted' : ''}`);
+      // spread10y2y is in % (e.g. 0.51 = 51bp); multiply by 100 for basis point display
+      capitalBullets.push(`10Y-2Y spread: ${Math.round(spread * 100)}bp${yc.inverted ? ' inverted' : ''}`);
     }
     const credit = ctx?.credit as Record<string, unknown> | null | undefined;
     const creditCountries = (credit?.countries as Array<Record<string, unknown>>) ?? [];
