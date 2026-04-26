@@ -1,0 +1,99 @@
+iter252 — 2026-04-26
+primary outcome: OSINT 중국 제재 탭 CMIC 키 버그 수정
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 5018ae7 docs(history): iter251 log
+- 7918beb fix(fear-greed): force=1 parameter now bypasses Redis cache
+- 886ccb5 docs(history): iter250 log
+- b454929 fix(ai-providers): GROQ 70b cascade to 8b on any HTTP error, not just 429
+- 9b9e549 docs(history): iter249 log
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter249=routes(company-news/market-movers), iter250=lib(ai-providers), iter251=route(fear-greed), iter252=osint — 다른 영역 순환 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에" 3회 이상: April 30 FOMC actual (내일 UTC 18:00), GROQ quota (April 27 KST 09:00) ✓
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+OSINT 중국 제재 탭 CMIC 키 버그 수정
+
+## 스캔 결과
+
+### cot-positions/route.ts — 무결 ✓
+- CFTC FinFutWk.txt field indices 라이브 fetch로 검증:
+  f[7]=OI(255128), f[8]=NC_Long(100907), f[9]=NC_Short(45590) — offset by 7 ✓
+- force bypass: `refresh=1` (다른 라우트의 `force=1`과 다름, 의도적 설계) ✓
+
+### latest-updates/route.ts — 무결 ✓
+- capital-flows 키 dual-read 패턴:
+  `flowvium:capital-flows:v11:yahoo` AND `flowvium:capital-flows:v11:twelve` 모두 읽음
+  capital-flows 라우트는 `v11:${twelveKey ? 'twelve' : 'yahoo'}` 중 하나만 씀
+  → latest-updates가 양쪽 커버 → 정상 설계 ✓
+
+### flow-analysis/route.ts — 무결 ✓
+- capital-flows 내부 fetch: `cache: 'no-store'` 명시 ✓
+- 3계층 캐시: Redis(8h primary) → Redis stale(48h) → 메모리(8h) ✓
+- 정적 fallback: AI 실패 + countries 데이터 있을 때 기계적 요약 ✓
+- static fallback 시 `Cache-Control: no-store` → CDN stale 루프 방지 ✓
+- `skipVllm: true` — EXAONE 2.4B JSON 분석 취약 → GROQ 70b부터 시작 ✓
+
+### osint/social/route.ts — 무결 ✓
+- Nitter RSS + Bloomberg/WSJ/SeekingAlpha 뉴스 RSS 혼합
+- 1h granule 캐시 키 + 30min Redis TTL ✓
+- `cache: 'no-store'` on all external fetch ✓
+
+### osint/sanctions/route.ts — 수정 (버그 발견)
+**발견된 버그 (MEDIUM):**
+```typescript
+// 수정 전:
+const FEATURED_PROGRAMS = [
+  ...
+  { key: 'CHINA', label: '중국 제재', color: 'blue' },
+];
+```
+
+OFAC SDN 중국 관련 실제 프로그램 코드:
+- `CMIC` (중국 군사 기업)
+- `NS-CMIC` (중국 국가안보 관련)
+
+필터: `entries.filter(e => e.program.toUpperCase().includes(prog.key))`
+→ `'CMIC'.includes('CHINA')` = false
+→ `'NS-CMIC'.includes('CHINA')` = false
+→ 중국 제재 탭 **항상 0건 반환** (UI에서 China 섹션 자체가 사라짐)
+
+**수정 (commit abc819d):**
+```typescript
+// 수정 후:
+{ key: 'CMIC', label: '중국 제재', color: 'blue' },
+```
+`'CMIC'.includes('CMIC')` = true ✓
+`'NS-CMIC'.includes('CMIC')` = true ✓ (NS-CMIC도 포함)
+
+→ 중국 군사 기업 + 국가안보 관련 제재 대상이 OSINT 탭에 표시됨
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=SPY.close source=Yahoo_v8 direct_value=713.94(Apr24) our_value=fear-greed_composite(SPY_prices) → OK (동일 소스 Yahoo v8 사용)
+[accuracy probe] metric=fg.us source=CNN direct_value=418_bot_block our_value=N/A → bot_block (CNN 의도적 차단, iter251 이후 지속 — force=1 수정으로 4h TTL 내 캐시된 값 정확성 이슈는 해소)
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: OSINT 중국 제재 탭 복구 → 수백 개 중국 군사/안보 관련 제재 대상 표시 재개 ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- abc819d: fix(osint-sanctions): CMIC key for China featured group (was 'CHINA', never matched OFAC codes)
+
+## 다음 iter 우선순위
+1. **April 30 FOMC actual** (내일 UTC 18:00 이후):
+   - economic-calendar/route.ts: FOMC_2026 배열 `'2026-04-30'` 항목에 `actual: 3.75` 추가
+2. **GROQ quota 확인** (April 27 KST 09:00 = UTC April 27 00:00):
+   - investment-strategy?debug=1 → source='groq' 확인
+3. **미탐색 라우트**: osint/corporate, osint/crypto, translate, collect, admin/*
+4. **lib 레이어**: memory-cache.ts, logger.ts 감사
