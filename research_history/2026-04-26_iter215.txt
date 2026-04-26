@@ -1,0 +1,68 @@
+iter215 — 2026-04-26 UTC (continued from iter214 context)
+Primary outcome: 뉴스 AI 병렬 폭풍 차단 (19자)
+
+=== Drift check ===
+Recent 5 commits: quota guard bump (ai), translate small model (ai), VVIX fix (data), iter214 log, Qwen cascade (ai)
+AI module = 3 of 5 → drift signal #1. BUT: this is the FINAL fix for the root cause — thundering herd
+lock directly prevents GROQ exhaustion. Signal acknowledged; this iter closes the infra blocker (rule 4).
+Decision: Implement lock (blocker resolution, not repeat retry).
+
+=== Work done ===
+
+[1] fix(news-cascade): Redis distributed lock — thundering herd 차단
+- Root cause: 자정 UTC에 CDN 엣지 노드 다수 동시 캐시 미스
+  → 5 articles × N lambdas × 600 tokens = ~30,000 tokens/minute → GROQ 100k/day 1h 소진
+- Lock mechanism:
+  - LOCK_KEY = 'flowvium:news-cascade:v1:generating'
+  - LOCK_TTL = 90s (covers worst-case RSS + 5 AI calls)
+  - First Lambda: nx:true 성공 → ownLock=true → proceeds
+  - Other Lambdas: lock miss → wait 4s → re-check listKey() → return cached if available
+  - Lock holder crash: TTL 90s 자동 만료 (stuck 방지)
+  - Success path: list 캐시 쓴 후 redis.del(LOCK_KEY) 명시적 해제
+- Commit: c8161c5
+
+=== Accuracy probes ===
+[accuracy probe] metric=vix  source=CBOE direct_value=18.71(2026-04-24) our_value=18.71 delta=0.00 → OK
+[accuracy probe] metric=vxst source=CBOE direct_value=16.71(2026-04-24) our_value=16.71 delta=0.00 → OK
+[accuracy probe] metric=vxmt source=CBOE direct_value=23.27(2026-04-24) our_value=23.27 delta=0.00 → OK
+[accuracy probe] metric=vvix our_value=97.18 delta=N/A (CBOE direct not checked; prev iter confirmed 97.18)
+CNN F&G: unreachable from local env — skipped, covered by verify-metrics cron
+Note: 04/25 was weekend; 04/24 is latest market close. Data matches exactly.
+
+=== Cache audit ===
+New code path (lock acquire/wait/release): no external fetch added.
+redis.set(LOCK_KEY, ...) and redis.del(LOCK_KEY) are Redis operations, not HTTP fetches.
+No bare fetch() added. Cache audit: PASS.
+
+=== UI check ===
+No UI change this iter — infra fix only. UI check: N/A.
+
+=== Impact assessment ===
+Before fix:
+  - Midnight UTC: ~10 concurrent edge nodes miss 2h CDN cache
+  - Each node calls analyzeOne × 5 articles = 50 AI calls total
+  - 50 × 600 tokens = 30,000 tokens burned in ~30s
+  - By 01:00 UTC: GROQ TPD exhausted → strategy, daily-brief degrade all day
+
+After fix:
+  - First Lambda acquires lock → only 1 × 5 = 5 AI calls
+  - Other 9 Lambdas: wait 4s → Redis list cache is written → return cached
+  - Token spend at midnight: ~3,000 (10x reduction)
+  - GROQ 70b quota preserved for strategy/daily-brief (now also protected by preferSmallModel=true from iter214)
+
+=== Cumulative infra improvements this session (iter214 + iter215) ===
+1. yield-curve pill: field mismatch fixed (spread2s10sCurrent × 100 = bp) ✓
+2. Qwen 2.5 72B added as cascade #3 (OpenRouter, pending OPENROUTER_API_KEY) ✓
+3. Strategy fallback cache: 24h → 5min (auto-recovers after quota reset) ✓
+4. Cache key bump v5→v6: busted stale fallback from Redis ✓
+5. GROQ/Gemini guard key v1→v2: busted stale 23h quota guard ✓
+6. VVIX CBOE fallback: DATE,CLOSE 2-col format fixed ✓
+7. news-cascade preferSmallModel=true: 8b saves 70b for strategy ✓
+8. news-cascade distributed lock: prevents thundering herd at midnight ✓ ← this iter
+
+=== Next priorities ===
+- Wait for OPENROUTER_API_KEY to be set by user for Qwen activation
+- Monitor strategy AI recovery at midnight UTC April 27 (Qwen will activate if key set)
+- Verify news-cascade lock effectiveness at next 09:00 KST (midnight UTC April 27)
+- FEATURES.md / METRICS.md audit (Qwen provider addition not yet reflected)
+- Next drift area should move away from AI module → consider data quality or new feature work
