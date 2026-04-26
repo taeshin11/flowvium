@@ -473,7 +473,7 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
 }
 
 // ── Static fallback data ──────────────────────────────────────────────────────
-// Used when FRED is unavailable; all values as of 2026-04-16
+// Used when FRED is unavailable; all values as of 2026-04-26
 const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   cpi: {
     id: 'cpi', name: 'CPI (Consumer Price Index)', nameKo: '소비자 물가지수',
@@ -519,10 +519,10 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   retail: {
     id: 'retail', name: 'Retail Sales', nameKo: '소매 판매',
-    category: 'growth', actual: -1.1, forecast: -1.3, previous: 0.7, unit: '%MoM',
+    category: 'growth', actual: 1.7, forecast: -1.3, previous: 0.7, unit: '%MoM',
     releaseDate: '2026-04-16', nextRelease: '2026-05-15', surprise: 'beat',
     rateImpact: 'neutral', rateImpactKo: 'neutral (better than expected)',
-    summary: 'Mar Retail Sales -1.1% vs est. -1.3%. Consumer spending slowing.',
+    summary: 'Mar Retail Sales +1.7% (FRED RSAFS revised) vs advance est. -1.3%.',
   },
   ppi: {
     id: 'ppi', name: 'PPI (Producer Price Index)', nameKo: '생산자 물가지수 (최종수요)',
@@ -533,10 +533,10 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   unrate: {
     id: 'unrate', name: 'Unemployment Rate', nameKo: '실업률',
-    category: 'employment', actual: 4.2, forecast: 4.1, previous: 4.1, unit: '%',
+    category: 'employment', actual: 4.3, forecast: 4.1, previous: 4.1, unit: '%',
     releaseDate: '2026-04-04', nextRelease: '2026-05-02', surprise: 'miss',
     rateImpact: 'dovish', rateImpactKo: 'dovish (labor market cooling)',
-    summary: 'Unemployment 4.2% — slight labor market cooling signal.',
+    summary: 'Unemployment 4.3% — labor market cooling, above est. 4.1%.',
   },
   iclaims: {
     id: 'iclaims', name: 'Initial Jobless Claims (Weekly)', nameKo: '신규 실업수당 청구 (주간)',
@@ -705,7 +705,7 @@ export async function GET(request: Request) {
       && Math.abs(fredActual - staticActual) > Math.abs(staticActual) * 0.15
       && (Date.now() - new Date(base.releaseDate).getTime()) < 60 * 24 * 60 * 60 * 1000;
     const actual = fredLag ? staticActual : (fredActual ?? staticActual);
-    const previous = nfpData ? Math.round(nfpData.previous) : base.previous;
+    const previous = (!nfpData || fredLag) ? base.previous : Math.round(nfpData.previous);
     const fc = FORECASTS.nfp.forecast;
     const surprise = classify(actual, fc, true);
     const ri = rateImpact('nfp', surprise);
@@ -865,10 +865,14 @@ export async function GET(request: Request) {
   }
 
   // Initial Jobless Claims — ICSA reports in raw persons; convert to thousands
+  // FRED ICSA uses week-ending dates; static.releaseDate is the BLS Thursday release (5 days after week-end).
+  // If FRED week-ending date < (releaseDate - 5 days), FRED hasn't updated to the latest BLS release.
   const iclaimsRaw = get(fredIClaims);
   {
     const base = STATIC.iclaims;
-    const actualK: number | null = iclaimsRaw != null ? Math.round(iclaimsRaw.value / 1000) : null;
+    const iclaimsWeekEnd = new Date(new Date(base.releaseDate).getTime() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const iclaimsStale = iclaimsRaw?.date != null && iclaimsRaw.date < iclaimsWeekEnd;
+    const actualK: number | null = (!iclaimsRaw || iclaimsStale) ? null : Math.round(iclaimsRaw.value / 1000);
     const fc = FORECASTS.iclaims.forecast;
     const displayActual = actualK ?? base.actual;
     const surprise = classify(displayActual, fc, false); // lower claims = beat
@@ -876,7 +880,7 @@ export async function GET(request: Request) {
     indicators.push({
       ...base,
       actual: displayActual, previous: base.previous, forecast: fc,
-      releaseDate: iclaimsRaw?.date ?? base.releaseDate,
+      releaseDate: iclaimsRaw && !iclaimsStale ? iclaimsRaw.date : base.releaseDate,
       nextRelease: FORECASTS.iclaims.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actualK != null
@@ -884,14 +888,18 @@ export async function GET(request: Request) {
         : base.summary,
       cascade: buildCascade('iclaims', surprise),
       liveData: actualK != null,
+      dataNote: iclaimsStale ? `FRED ${iclaimsRaw?.date} 기준 (주간 갱신 지연) — BLS ${base.releaseDate} 공식 발표 사용 중` : undefined,
     });
   }
 
   // U of Michigan Consumer Sentiment
+  // FRED UMCSENT carries month-start dates; preliminary releases reach FRED days after BLS publication.
+  // If FRED month < static's release month, static has the more current reading.
   const umcsentData = get(fredUMCSENT);
   {
     const base = STATIC.umcsent;
-    const liveVal: number | null = umcsentData != null ? parseFloat(umcsentData.value.toFixed(1)) : null;
+    const fredMonthStale = umcsentData?.date != null && umcsentData.date.slice(0, 7) < base.releaseDate.slice(0, 7);
+    const liveVal: number | null = (!umcsentData || fredMonthStale) ? null : parseFloat(umcsentData.value.toFixed(1));
     const actual = liveVal ?? (base.actual as number);
     const fc = FORECASTS.umcsent.forecast;
     const surprise = classify(actual, fc, true); // higher sentiment = beat
@@ -899,7 +907,7 @@ export async function GET(request: Request) {
     indicators.push({
       ...base,
       actual, previous: base.previous, forecast: fc,
-      releaseDate: umcsentData?.date ?? base.releaseDate,
+      releaseDate: umcsentData && !fredMonthStale ? umcsentData.date : base.releaseDate,
       nextRelease: FORECASTS.umcsent.nextRelease,
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: liveVal != null
@@ -907,6 +915,7 @@ export async function GET(request: Request) {
         : base.summary,
       cascade: buildCascade('umcsent', surprise),
       liveData: liveVal != null,
+      dataNote: fredMonthStale ? `FRED ${umcsentData?.date?.slice(0, 7)} 기준 (예비치 갱신 지연) — ${base.releaseDate} 공식 예비치 사용 중` : undefined,
     });
   }
 
