@@ -483,6 +483,36 @@ function nextFomcDate(): string {
   return FOMC_DATES_2026.find(d => d > today) ?? '2027-01-28';
 }
 
+// ── BEA/BLS release schedule — auto-advance nextRelease after each date passes ─
+// Prevents stale "next release" dates without manual updates after each report.
+const RELEASE_SCHEDULE: Record<string, string[]> = {
+  pce: [
+    '2026-04-30', // March Core PCE
+    '2026-05-30', // April Core PCE
+    '2026-06-26', // May Core PCE
+    '2026-07-31', // June Core PCE
+    '2026-08-28', // July Core PCE
+    '2026-09-30', // August Core PCE
+    '2026-10-30', // September Core PCE
+    '2026-11-25', // October Core PCE
+    '2026-12-23', // November Core PCE
+  ],
+  gdp: [
+    '2026-04-30', // Q1 Advance
+    '2026-05-29', // Q1 Second
+    '2026-06-25', // Q1 Third
+    '2026-07-30', // Q2 Advance
+    '2026-10-29', // Q3 Advance
+    '2027-01-29', // Q4 Advance
+  ],
+};
+function nextScheduledRelease(series: string, fallback: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const dates = RELEASE_SCHEDULE[series];
+  if (!dates) return fallback;
+  return dates.find(d => d > today) ?? fallback;
+}
+
 // ── Static fallback data ──────────────────────────────────────────────────────
 // Used when FRED is unavailable; all values as of 2026-04-26
 const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
@@ -516,10 +546,10 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   },
   gdp: {
     id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',
-    category: 'growth', actual: null, forecast: 0.9, previous: 0.5, unit: '%QoQ SAAR',
+    category: 'growth', actual: null, forecast: 2.1, previous: 0.5, unit: '%QoQ SAAR',
     releaseDate: '2026-04-30', nextRelease: '2026-04-30', surprise: 'pending',
     rateImpact: 'neutral', rateImpactKo: 'neutral (pending)',
-    summary: 'Q1 2026 GDP Advance — releasing 2026-04-30. Consensus est. 0.9% QoQ SAAR.',
+    summary: 'Q1 2026 GDP Advance — releasing 2026-04-30. Consensus est. 2.1% QoQ SAAR (Finnhub).',
   },
   ism: {
     id: 'ism', name: 'ISM Manufacturing PMI', nameKo: 'ISM 제조업 PMI',
@@ -585,7 +615,7 @@ const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
   cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
   pce:    { forecast: 2.6,   nextRelease: '2026-04-30' },
   nfp:    { forecast: 140,   nextRelease: '2026-05-02' },
-  gdp:    { forecast: 0.9,   nextRelease: '2026-04-30' },  // advance release; update to '2026-05-29' after Apr-30
+  gdp:    { forecast: 2.1,   nextRelease: '2026-04-30' },  // fallback only — auto-advance via RELEASE_SCHEDULE
   ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
   retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
   unrate:   { forecast: 4.1,   nextRelease: '2026-05-02' },
@@ -693,7 +723,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous, forecast: fc,
       releaseDate: pceData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.pce.nextRelease,
+      nextRelease: nextScheduledRelease('pce', FORECASTS.pce.nextRelease),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `Core PCE ${actual.toFixed(1)}%YoY (est. ${fc}%). ${actual > 2.5 ? 'Still above Fed 2% target.' : 'Approaching Fed 2% target.'}`
@@ -776,7 +806,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous: base.previous, forecast: fc,
       releaseDate: base.releaseDate,
-      nextRelease: FORECASTS.gdp.nextRelease,
+      nextRelease: nextScheduledRelease('gdp', FORECASTS.gdp.nextRelease),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `GDP ${actual}% QoQ SAAR (est. ${fc}%). ${actual > 2 ? 'Growth solid.' : actual > 0 ? 'Growth slowing.' : 'Negative growth warning.'}`
