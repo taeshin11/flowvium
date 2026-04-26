@@ -42,6 +42,40 @@ export interface EconCalResponse {
   updatedAt: string;
 }
 
+// FOMC decision dates 2026 — Finnhub free tier doesn't include FOMC rate decisions.
+// These are injected as fixed high-impact events so the calendar is never missing
+// the most market-moving event of the year.
+const FOMC_2026: Array<{ date: string; time: string; prev: number; estimate: number }> = [
+  { date: '2026-01-29', time: '19:00:00', prev: 4.25, estimate: 4.25 },
+  { date: '2026-03-19', time: '18:00:00', prev: 4.25, estimate: 4.00 },
+  { date: '2026-04-30', time: '18:00:00', prev: 3.75, estimate: 3.75 },
+  { date: '2026-06-17', time: '18:00:00', prev: 3.75, estimate: 3.50 },
+  { date: '2026-07-29', time: '18:00:00', prev: 3.50, estimate: 3.50 },
+  { date: '2026-09-16', time: '18:00:00', prev: 3.50, estimate: 3.25 },
+  { date: '2026-10-28', time: '18:00:00', prev: 3.25, estimate: 3.25 },
+  { date: '2026-12-09', time: '19:00:00', prev: 3.25, estimate: 3.00 },
+];
+
+function injectFomcEvents(events: EconCalEvent[], from: string, to: string): EconCalEvent[] {
+  const fomc = FOMC_2026
+    .filter(f => f.date >= from && f.date <= to)
+    .map(f => ({
+      date: f.date,
+      time: f.time,
+      country: 'US',
+      event: 'FOMC Rate Decision (Fed Funds Target)',
+      impact: 'high' as const,
+      actual: null,
+      estimate: f.estimate,
+      prev: f.prev,
+      unit: '%',
+    }));
+  if (!fomc.length) return events;
+  // Deduplicate: Finnhub occasionally includes Fed Funds Rate
+  const merged = [...events.filter(e => !e.event.toLowerCase().includes('fed funds')), ...fomc];
+  return merged.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''));
+}
+
 function mapImpact(raw: string | number | null): EconCalEvent['impact'] {
   if (raw === 'high' || raw === 3) return 'high';
   if (raw === 'medium' || raw === 2) return 'medium';
@@ -90,7 +124,7 @@ export async function GET(req: Request) {
   if (!apiKey) {
     logger.warn('api.economic-calendar', 'no_finnhub_key');
     const empty: EconCalResponse = {
-      events: [], from, to, country, cached: false, source: 'empty',
+      events: injectFomcEvents([], from, to), from, to, country, cached: false, source: 'empty',
       updatedAt: new Date().toISOString(),
     };
     return NextResponse.json(empty, { headers: CDN_HEADERS });
@@ -149,7 +183,7 @@ export async function GET(req: Request) {
       .sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''));
 
     const payload: EconCalResponse = {
-      events, from, to, country, cached: false, source: 'finnhub',
+      events: injectFomcEvents(events, from, to), from, to, country, cached: false, source: 'finnhub',
       updatedAt: new Date().toISOString(),
     };
 
