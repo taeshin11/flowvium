@@ -237,7 +237,10 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
 /** Qwen 2.5 72B via OpenRouter — GROQ 소진 후 2차 폴백 */
 async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (!apiKey) return null;
+  if (!apiKey) {
+    diag?.push({ provider: 'qwen', ok: false, error: 'OPENROUTER_API_KEY not configured', durationMs: 0 });
+    return null;
+  }
 
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';

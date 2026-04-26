@@ -98,7 +98,9 @@ export async function GET(req: Request) {
     alphaVantage: !!process.env.ALPHA_VANTAGE_KEY?.trim(),
     vllm: !!process.env.VLLM_URL?.trim(),
     groq: !!process.env.GROQ_API_KEY?.trim(),
+    openrouter: !!process.env.OPENROUTER_API_KEY?.trim(),
     gemini: !!process.env.GEMINI_API_KEY?.trim(),
+    finnhub: !!process.env.FINNHUB_KEY?.trim(),
   };
 
   const body = {
