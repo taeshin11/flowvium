@@ -219,14 +219,16 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   const primary = await callGroqModel(key, 'llama-3.3-70b-versatile', prompt, opts, diag);
   if (primary.text) return { text: primary.text, model: 'llama-3.3-70b-versatile' };
 
-  // 2차 폴백: 8b (TPD 500k, RPD 14.4k) — 70b 가 어떤 이유로든 429 시 즉시 시도
-  if (primary.status === 429) {
-    logger.info(tag, 'groq_429_fallback_8b', { note: '70b 429, retrying with llama-3.1-8b-instant' });
+  // 2차 폴백: 8b (TPD 500k, RPD 14.4k) — 70b HTTP 오류(429/500/503) 시 즉시 시도.
+  // status === null = 네트워크 타임아웃 → 8b도 같은 이유로 느릴 것이므로 스킵.
+  if (primary.status !== null && primary.status !== 200) {
+    logger.info(tag, 'groq_http_fallback_8b', { note: `70b status=${primary.status}, retrying with llama-3.1-8b-instant` });
     const fallback = await callGroqModel(key, 'llama-3.1-8b-instant', prompt, opts, diag);
     if (fallback.text) return { text: fallback.text, model: 'llama-3.1-8b-instant' };
 
     // Both TPD-exhausted → write Redis guard + sync module guard
-    if (fallback.status === 429 && fallback.tpdExhausted) {
+    // Only when 70b was ALSO TPD-exhausted (not just a transient 500/503)
+    if (fallback.status === 429 && fallback.tpdExhausted && primary.tpdExhausted) {
       const ttl = secondsUntilUtcMidnight();
       const nextMidnight = new Date(Date.now() + ttl * 1000).toISOString();
       groqTpdExhaustedUntil = Date.now() + ttl * 1000;
