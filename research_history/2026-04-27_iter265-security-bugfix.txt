@@ -1,0 +1,60 @@
+iter265 — Security & Bug Fixes (P0~P2 7건)
+
+=== Drift Check ===
+- iter262: 자본흐름·수익률곡선 (음성결과)
+- iter263: news-cascade RSS 교체 + FOMC 날짜 수정 + GDP forecast
+- iter264: UX(버튼) + Screener 기능 + Report 기능
+→ iter265: 보안/버그 수정 — 다른 영역 이동, drift 없음
+
+=== Primary Outcome ===
+"보안·버그 P0~P2 7건 수정" — commit 31b7ebb
+
+=== 수정 내역 ===
+
+1. [P0 CRITICAL] fedwatch 확률 합산 >100% 버그
+   - 파일: src/app/api/fedwatch/route.ts:244-259
+   - 원인: 1-cut/2-cut 시나리오에서 p0+p1 > 100 발생 시 p2=max(0,...)로만 클램핑
+     → 합계 최대 127%까지 발생
+   - 수정: probCut25 먼저 확정, probHold가 초과 시 축소 후 p2=100-hold-cut25
+   - 검증: 6개 회의 전부 sum=100 확인 (Apr29=100, Jun17=100, Jul29=100, Sep16=100)
+
+2. [P1 HIGH] economic-calendar FOMC all-or-nothing 스킵 버그
+   - 파일: src/app/api/economic-calendar/route.ts:77-88
+   - 원인: hasFedRateEvent 하나로 범위 내 모든 FOMC 주입 차단
+   - 수정: 개별 날짜 기준 coveredDates Set으로 날짜별 독립 필터
+   - 검증: Apr27-May20 범위에서 Apr29 FOMC 1건 정상 표시
+
+3. [P1 HIGH] investment-strategy force=1 무인증 AI 할당량 소진 위험
+   - 파일: src/app/api/investment-strategy/route.ts:733
+   - 수정: CRON_SECRET 설정 시 Bearer 토큰 검증 필수
+   - CRON_SECRET 미설정 시 dev 환경 허용 (하위 호환)
+
+4. [P1 HIGH] macro-indicators x-cron-warm 무인증 FRED 남용 위험
+   - 파일: src/app/api/macro-indicators/route.ts:662
+   - 수정: CRON_SECRET Bearer 토큰 인증 후에만 cron warm 허용
+
+5. [P2 MEDIUM] stock-supply ticker 파라미터 미검증 (Redis 키 오염)
+   - 파일: src/app/api/stock-supply/route.ts:242
+   - 수정: /[^A-Z0-9.\-^]/g sanitize + 길이 10 제한
+
+6. [P2 MEDIUM] stock-supply CIK .replace('0','') 첫 문자만 제거 버그
+   - 파일: src/app/api/stock-supply/route.ts:82
+   - 수정: .replace(/^0+/, '') 정규식으로 전체 선행 0 제거
+
+7. [P2 MEDIUM] news-cascade 락 대기 30s→20s + 타임아웃 시 빈 배열 반환
+   - 파일: src/app/api/news-cascade/route.ts:412
+   - 원인: 대기 6×5s=30s + AI 파이프라인 ~40s = 70s > maxDuration=60s
+   - 수정: 대기 4×5s=20s로 축소, 타임아웃 시 빈 배열 반환 (강제 종료 방지)
+
+8. [P2 MEDIUM] ReportPage KPI fetch r.ok 미체크 (보너스)
+   - 파일: src/components/pages/ReportPage.tsx:296-327
+   - 수정: 6개 fetch 패턴 전부 if (!r.ok) throw new Error(`HTTP ${r.status}`) 추가
+
+=== Accuracy Probe ===
+[accuracy probe] metric=yield.10Y source=FRED direct_value=4.34 our_value=4.34 delta=0.00 tolerance=0.05 → OK
+
+=== Pending (April 29-30) ===
+- FOMC 결정: April 29 18:00 UTC — 실제 결과 후 파일 업데이트 필요
+  파일: economic-calendar/route.ts (actual 필드), macro-indicators/route.ts (STATIC.fomc), fedwatch/route.ts
+- GDP Q1 Advance: April 30 12:30 UTC — consensus 2.1%
+- Core PCE March: April 30 12:30 UTC — consensus 0.3% MoM / 2.8% YoY
