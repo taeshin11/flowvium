@@ -99,6 +99,7 @@ export async function GET(request: Request) {
       nport: ctx.nport != null,
       blocksCount: Array.isArray(ctx.blocks) ? ctx.blocks.length : 0,
       cot: ctx.cot != null,
+      commodity: ctx.commodity != null,
     },
   } : null;
 

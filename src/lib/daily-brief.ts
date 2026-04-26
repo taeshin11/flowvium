@@ -80,6 +80,7 @@ export interface TabContext {
   econCal: unknown | null;        // Economic calendar (upcoming high-impact events)
   volatility: unknown | null;     // VIX + regime (flowvium:volatility:v1, 30min TTL)
   cot: unknown | null;            // CFTC COT speculator net positioning (weekly)
+  commodity: unknown | null;      // Oil/Gold futures curve + spot prices (6h Redis TTL)
 }
 
 async function safeGet<T = unknown>(redis: Redis, key: string): Promise<T | null> {
@@ -113,12 +114,12 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,
-    nport: null, blocks: [], econCal: null, volatility: null, cot: null,
+    nport: null, blocks: [], econCal: null, volatility: null, cot: null, commodity: null,
   };
 
   const [
     capital, fgAll, fedWatch, macro, heatmap, credit,
-    insiderR, ownerR, koreaR, nportR, shortR, cascadeR, econCalR, volatilityR, cotR,
+    insiderR, ownerR, koreaR, nportR, shortR, cascadeR, econCalR, volatilityR, cotR, commodityR,
   ] = await Promise.all([
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/capital-flows', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/fear-greed', 12000),
@@ -135,6 +136,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/economic-calendar?country=US', 8000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/volatility', 8000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/cot-positions', 10000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/commodity-curve', 10000),
   ]);
 
   ctx.capital = capital;
@@ -157,6 +159,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   ctx.econCal = econCalR;
   ctx.volatility = volatilityR;
   ctx.cot = cotR;
+  ctx.commodity = commodityR;
 
   logger.info('daily-brief', 'http_context_gathered', {
     populated: {
@@ -167,7 +170,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
       korea: ctx.korea != null, nport: ctx.nport != null,
       short: ctx.short != null, cascade: ctx.cascade.length,
       econCal: ctx.econCal != null, volatility: ctx.volatility != null,
-      cot: ctx.cot != null,
+      cot: ctx.cot != null, commodity: ctx.commodity != null,
     },
   });
   return ctx;
@@ -179,7 +182,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,
-    nport: null, blocks: [], econCal: null, volatility: null, cot: null,
+    nport: null, blocks: [], econCal: null, volatility: null, cot: null, commodity: null,
   };
   if (!redis) {
     // UPSTASH 미설정 환경: 내부 API endpoint 로 HTTP fetch 폴백
@@ -195,7 +198,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   const [
     heatmap, shortData, capFlowsTwelve, capFlowsYahoo,
     fg, fed, macro, credit, cascadeArticles, liveSignals,
-    insider, ownership, options, korea, nport, blocks, econCal, volatility, cot,
+    insider, ownership, options, korea, nport, blocks, econCal, volatility, cot, commodity,
   ] = await Promise.all([
     safeGet(redis, `flowvium:heatmap:v13:US:${hour}`),
     safeGet(redis, 'flowvium:short-interest:v5'),
@@ -219,6 +222,8 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet(redis, 'flowvium:volatility:v1'),
     // COT: 4h Redis TTL — CFTC data published weekly on Fridays
     safeGet(redis, 'flowvium:cot-positions:v2'),
+    // Commodity curve: 6h Redis TTL — WTI/Gold futures term structure
+    safeGet(redis, 'flowvium:commodity-curve:v1'),
   ]);
 
   ctx.heatmap = heatmap;
@@ -238,6 +243,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   ctx.econCal = econCal;
   ctx.volatility = volatility;
   ctx.cot = cot;
+  ctx.commodity = commodity;
 
   if (Array.isArray(cascadeArticles) && cascadeArticles.length > 0) {
     ctx.cascade = cascadeArticles.slice(0, 5);
@@ -488,6 +494,26 @@ function summariseBlocks(items: unknown[]): string {
     .join(', ');
 }
 
+function summariseCommodity(data: unknown): string {
+  const d = data as { curves?: Array<Record<string, unknown>> } | null;
+  if (!d?.curves?.length) return '';
+  const curves = d.curves as Array<Record<string, unknown>>;
+  return curves
+    .filter(c => Array.isArray(c.curve) && (c.curve as unknown[]).length > 0)
+    .map(c => {
+      const front = (c.curve as Array<{ price: number }>)[0]?.price;
+      if (!front) return null;
+      const unit = (c.unit as string) ?? '';
+      const struct = c.structure as string;
+      const slope = c.slope as number;
+      const slopeStr = Math.abs(slope) > 0.1 ? `${slope > 0 ? '+' : ''}${slope.toFixed(1)}%` : '';
+      const name = c.id === 'oil' ? 'WTI' : 'Gold';
+      return `${name}=$${front.toFixed(front >= 1000 ? 0 : 2)}${unit.includes('oz') ? '/oz' : '/bbl'}(${struct}${slopeStr})`;
+    })
+    .filter(Boolean)
+    .join(', ');
+}
+
 function summariseCot(data: unknown): string {
   const d = data as { entries?: Array<Record<string, unknown>> } | null;
   if (!d?.entries?.length) return '';
@@ -562,6 +588,7 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
   const econCal = ctx ? summariseEconCal(ctx.econCal) : '';
   const volatility = ctx ? summariseVolatility(ctx.volatility) : '';
   const cot = ctx ? summariseCot(ctx.cot) : '';
+  const commodity = ctx ? summariseCommodity(ctx.commodity) : '';
 
   // 빈 섹션은 프롬프트에서 제외 — GROQ TPD 한도 소비 최소화 (100,000/일).
   // "[Heatmap] n/a" 한 줄도 8-12 토큰 소비. 18개 탭 × 수십 건/일 축적시 상당량.
@@ -587,6 +614,7 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
     ['Block-Trades', blocks],
     ['EconCalendar', econCal],
     ['COT-Positions', cot],
+    ['Commodities', commodity],
   ];
   const body = sections
     .filter(([, v]) => v && v.trim().length > 0)
@@ -599,7 +627,7 @@ ${body}
 Output rules: JSON only, no markdown, bullets must contain specific numbers/tickers (max 30 chars each).
 Section mapping:
 - market: Heatmap+CapitalFlows+Fear&Greed+FedWatch → broad market summary
-- capital: CapitalFlows countries+Macro+Credit+Korea-Flow → capital movements & macro
+- capital: CapitalFlows countries+Macro+Credit+Korea-Flow+Commodities → capital movements & macro
 - company: 13F-Buys+Form4-Insider(highlight CEO buys)+13D13G+OptionsFlow+Short → stocks to watch
 - signals: COT-Positions+Form4 large buy/sell+13D13G 5% crossings+Cascade+Supply → strong real-time signals
 - outlook: one-line synthesis of everything above (include risk)
