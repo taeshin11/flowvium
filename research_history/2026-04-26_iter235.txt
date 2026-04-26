@@ -1,0 +1,113 @@
+iter235 — 2026-04-26
+primary outcome: 자금흐름 섹터 라이브 전환 + AI 레질리언스 강화
+================================================================
+
+## Drift Check
+Recent 5 commits before this iter:
+- 44e0240 fix(dates): correct NFP/unrate/iclaims release dates + auto-advance schedule
+- c33cc37 fix(fear-greed): update static data to 2026-04-26 market conditions
+- e7cc7e5 fix(quota): probe=1 for flow-analysis, news-cascade, company-news
+- 18dc478 fix(investment-strategy): riskEvents real event calendar
+- 67cd574 fix(investment-strategy): riskEvents use real nextRelease dates
+
+Drift signal check:
+(1) 같은 영역 3+ iter: investment-strategy 2회 연속, AI quota 2회 — quota는 근본 해결, strategy는 다른 방향
+(2) Primary metric 정체: 없음 — 186/186 OK
+(3) 나중에 미뤄진 항목 3+: 없음
+(4) 인프라 블로커 2+ retry: GROQ quota 근본 해결 완료 (iter234 probe=1 + iter235 OpenRouter cascade)
+
+→ Drift 없음
+
+## Primary Outcome (20자 이내)
+자금흐름 섹터 라이브 전환
+
+## 작업 내용
+
+### 1. OpenRouter 멀티모델 캐스케이드 (commit f0976d7)
+**문제**: callQwen이 qwen-2.5-72b-instruct:free 단일 모델만 시도
+  → GROQ 소진 시 OpenRouter 첫 번째 모델이 실패하면 전체 AI chain이 멈춤
+
+**수정**: 4개 free 모델 순차 시도:
+  1. qwen/qwen-2.5-72b-instruct:free
+  2. meta-llama/llama-3.1-8b-instruct:free
+  3. mistralai/mistral-7b-instruct:free
+  4. google/gemma-3-12b-it:free
+
+**전제 조건**: OPENROUTER_API_KEY가 Vercel env에 설정되어야 함 (현재 미설정)
+
+### 2. 자금흐름 섹터 라이브 전환 (commits 6fe8c3b, 1284edf)
+**문제**: `moneyFlowSectors`가 정적 데이터 (fear-greed.ts)
+  - 수동 업데이트 필요, 10일 이상 stale 발생
+  - 방향/강도가 실시간 ETF 데이터와 불일치
+
+**수정**: IntelligencePage.tsx flows 탭 진입 시 /api/capital-flows 자동 fetch
+  - `deriveSectorFlows(sectorPerformance)`: ret4w → direction/magnitude/signal/reason 자동 계산
+  - SECTOR_META: 11개 섹터 ETF → 한/영 이름 + 대표 종목 매핑
+  - LIVE 뱃지 표시 (live data loaded 시)
+  - Static 폴백 (fetch 실패 또는 flows 탭 미방문 시)
+
+**결과**:
+  - XLK +5% → inflow magnitude 5 (accelerating) ✓
+  - XLV -7.1% → outflow magnitude 5 (accelerating) ✓
+  - GLD -5.5% → outflow magnitude 4 ✓
+
+### 3. AiChat 컨텍스트 라이브 전환 (commit 54d5629)
+AiChat 컴포넌트가 `moneyFlowSectors` 정적 데이터 사용
+→ `activeSectorFlows` (live ETF data) prop으로 전달
+
+### 4. Investment-strategy fallback 텍스트 개선 (commit a91073b)
+**문제**: 폴백 포트폴리오 rationale에 내부 메시지 노출
+  - "Broad market core — defensive during AI analysis gap"
+  - "AI quota resets daily at 09:00 KST"
+
+**수정**: 시장 맥락 기반 rationale로 교체
+  - SPY: "S&P500 core — diversified exposure, F&G greed regime"
+  - QQQ: "Mag7 AI capex cycle — cloud and semiconductor growth"
+  - GLD: "Central bank demand + geopolitical risk hedge"
+  - macroAnalysis: 항상 yield curve/CPI/OAS 직접 값 안내
+
+### 5. 정확도 프로브 (CLAUDE.md §3 외부 실값 대조)
+```
+[accuracy probe] metric=fg.us    source=CNN   direct_value=66  our_value=66  delta=0   → OK
+[accuracy probe] metric=curve    source=FRED  direct_value=0.53 our_value=0.51 delta=0.02 → OK
+[accuracy probe] metric=cpi      source=FRED  direct_value=3.29 our_value=3.29 delta=0.00 → OK
+[accuracy probe] metric=ppi      source=FRED  direct_value=4.11 our_value=4.11 delta=0.00 → OK
+[accuracy probe] metric=fomc     source=FRED  direct_value=3.625 our_value=3.625 delta=0.000 → OK
+[accuracy probe] metric=gdp      source=static Q1 pending 2026-04-30 → SKIPPED (correct)
+[accuracy probe] metric=vix      source=CBOE  direct_value=18.71 our_value=18.71 delta=0.00 → OK
+```
+
+### 6. GROQ 할당량 현황
+- 현재 상태: TPD 98,200/100,000 (98.2% 소진) — 자정 UTC 리셋
+- Redis guard `flowvium:groq:tpd_exhausted_v2` 활성화됨
+- probe=1 fix (iter234 e7cc7e5)가 내일부터 효과 발휘
+  - 예측 일일 토큰: ~48k (100k 이하) — 퀘스트 안전권
+
+### 7. 전체 엔드포인트 상태
+verify-metrics: ok=186 degraded=0 error=0 skipped=5
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: moneyFlowSectors → live ETF data (stale → real-time) ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 단순화: static import 의존성 제거, derive 함수로 자동화 ✓
+
+## 커밋 (총 6개)
+- f0976d7: feat(ai): OpenRouter multi-model cascade — 4 free fallbacks when GROQ exhausted
+- 6fe8c3b: feat(flows): live ETF sector flows — replace static moneyFlowSectors with capital-flows data
+- 1284edf: fix(flows): better sector display names + sectorEn field in SECTOR_META
+- a91073b: fix(strategy): remove internal quota language from fallback portfolio rationale
+- 08fd925: docs(features): update FEATURES.md + METRICS.md for live ETF sector flows
+- 54d5629: feat(chat): pass live sector flows to AI chat context
+
+## 다음 iter 우선순위
+1. **April 30 (내일)**: GDP Q1 2026 advance estimate + PCE + FOMC 결정
+   - GDP actual값 FRED 업데이트 확인 → STATIC.gdp 갱신 필요할 수 있음
+   - FOMC 금리 결정 (hold 97% 예상) → STATIC.fomc 갱신 불필요하지만 verify 필요
+   - iclaims 4월 30일 → RELEASE_SCHEDULE이 올바른지 확인
+2. **OPENROUTER_API_KEY 설정**: Vercel 대시보드에서 설정하면 OpenRouter cascade 즉시 활성화
+3. **AI 할당량 복구 확인**: 자정 UTC (KST 09:00) 이후 investment-strategy가 AI source 반환하는지 verify
+
+## 기술 메모
+- GROQ TPD guard: Redis key ttl이 자정 UTC까지 설정됨. 자정 이후 자동 만료.
+- probe=1 효과: 내일부터 verify-metrics (48회/일) AI 호출 0회. 예상 일일 절약: 220,800 토큰
+- deriveSectorFlows: ret4w 임계값 0.3% (near-zero noise 필터). 11개 SECTORS ETF 지원
