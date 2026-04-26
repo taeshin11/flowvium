@@ -331,7 +331,7 @@ function summariseMacro(data: unknown): string {
   const spread = yc?.spread10y2y as number | undefined;
   const parts: string[] = [];
   if (notable.length) parts.push(notable.join(','));
-  if (spread != null) parts.push(`10y2y=${spread.toFixed(0)}bp${yc?.inverted ? '(inv)' : ''}`);
+  if (spread != null) parts.push(`10y2y=${Math.round(spread * 100)}bp${yc?.inverted ? '(inv)' : ''}`);
   return parts.join(' | ');
 }
 
