@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { fetchCNBCQuotes, fetchYFNonUSQuotes } from '@/lib/yahoo-finance';
 import { fetchStooqQuotes, fetchStooqNonUS } from '@/lib/stooq';
+import { fetchNaverKRQuotes } from '@/lib/naver-finance';
 import { fetchIShareHoldings, ISHARES_ETFS } from '@/lib/ishares-holdings';
 import { SECTOR_COLORS } from '@/data/heatmap-stocks';
 import { createMemoryCache } from '@/lib/memory-cache';
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v14:${country}:${hour}`; // v14: BRK.B dot→dash normalization fix
+  const cacheKey = `flowvium:heatmap:v15:${country}:${hour}`; // v15: KR Naver Finance fallback (Yahoo Vercel-blocked)
   const redis = createRedis();
 
   if (!force) {
@@ -167,8 +168,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Non-US: Stooq first (covers JP + EU-partial), then Yahoo fallback (KR/TW/IN/CN + EU remainder)
-  // KR/TW/IN/CN return N/D from Stooq — skip that round-trip and go straight to Yahoo.
+  // Non-US: Stooq first (covers JP + EU-partial), then country-specific source, then Yahoo fallback
+  // KR/TW/IN/CN return N/D from Stooq — skip that round-trip.
+  // KR: Naver Finance (accessible from Vercel, no auth, batch-capable) instead of Yahoo v8 (blocked)
   const STOOQ_SKIP = new Set(['KR', 'TW', 'IN', 'CN']);
   const nonUSQuoteMap = new Map<string, { changePct: number | null; close: number | null }>();
   if (country !== 'US') {
@@ -183,7 +185,21 @@ export async function GET(req: NextRequest) {
       logger.info('market-heatmap', 'stooq_pass', { country, matched: nonUSQuoteMap.size });
     }
 
-    // Pass 2: Yahoo fallback for tickers still missing (KR/TW/IN/CN + EU remainder)
+    // Pass 1.5: Naver Finance for KR (Stooq N/D, Yahoo v8 Vercel-blocked)
+    if (country === 'KR') {
+      const krMissing = topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase())).map(h => h.ticker);
+      if (krMissing.length > 0) {
+        const naverQuotes = await fetchNaverKRQuotes(krMissing);
+        for (const q of naverQuotes) {
+          if (q.changePct != null || q.close != null) {
+            nonUSQuoteMap.set(q.symbol.toUpperCase(), { changePct: q.changePct, close: q.close });
+          }
+        }
+        logger.info('market-heatmap', 'naver_kr_pass', { requested: krMissing.length, matched: naverQuotes.filter(q => q.changePct != null).length });
+      }
+    }
+
+    // Pass 2: Yahoo fallback for tickers still missing (TW/IN/CN + EU remainder; KR after Naver)
     const missingHoldings = topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase()));
     if (missingHoldings.length > 0) {
       const yfSymMap = new Map(
@@ -257,9 +273,11 @@ export async function GET(req: NextRequest) {
     dataDate,
     source: country === 'US'
       ? 'iShares IVV (구성) + Stooq (종목 시세) + Yahoo v8 (지수)'
-      : STOOQ_SKIP.has(country)
-        ? `iShares ${cfg?.etfTicker} (구성) + Yahoo v8 (시세)`
-        : `iShares ${cfg?.etfTicker} (구성) + Stooq+Yahoo (시세)`,
+      : country === 'KR'
+        ? `iShares ${cfg?.etfTicker} (구성) + Naver Finance (시세)`
+        : STOOQ_SKIP.has(country)
+          ? `iShares ${cfg?.etfTicker} (구성) + Yahoo v8 (시세)`
+          : `iShares ${cfg?.etfTicker} (구성) + Stooq+Yahoo (시세)`,
   };
 
   if (redis) {
