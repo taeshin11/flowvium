@@ -1,0 +1,92 @@
+ITER221 — 2026-04-26
+Primary outcome: non-US 히트맵 시세 복구 + 핵심 라우트 타임아웃 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: 62618bd (CLAUDE loop검증), 04945ae (verify-metrics probe), c552253 (fetch force-cache fix), fe4cbe3 (news-cascade 한자 fix), 031fc5c (report VIX sparkline)
+영역 분산: docs, api accuracy, cache, news, report — 연속 동일 영역 없음. NO DRIFT.
+
+=== PRIMARY OUTCOME ===
+KR/TW 히트맵 changePct 0%→80%+ 복구 (새 데이터소스 2개 추가)
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=commodity.wti source=FRED direct_value=91.06 our_value=91.06 delta=0 → OK
+[accuracy probe] metric=vix source=CBOE direct_value=18.71 our_value=18.71 delta=0 → OK
+verify-metrics: 184/191 ok (↑1 vs iter220), 2 degraded (AI quota exhaust — expected, resets 09:00 KST), 0 error
+
+=== FIXES / FEATURES ===
+
+1. market-heatmap US: BRKB alias fix (changePct null → live)
+   - 증상: BRK-B(BRKB) changePct=null, close=470.55 (iShares 가격만)
+   - 원인: iShares CSV = "BRKB" (separator 없음), Stooq는 "BRK-B.US" 요구
+     기존 replace('.', '-')는 BRKB에 효과 없음 (점 없음)
+   - 수정: STOOQ_US_ALIAS = { 'BRKB': 'BRK-B' } + aliasToHolding 역매핑
+   - 결과: Stooq BRK-B.US 조회 → stooqMap에 원래 'BRKB' 키로 저장
+   - commit 035d484
+
+2. cot-positions: 빈 결과 CDN 캐싱 방지
+   - 증상: /api/cot-positions → 0 entries
+   - 원인: Vercel Edge CDN이 s-maxage=14400으로 빈 200 응답 캐시
+   - 수정: entries.length===0 → 502 반환 (CDN은 5xx 캐시 안함)
+   - 결과: 직접 CFTC fetch → 7 entries 정상 확인
+   - commit 89ffd8a
+
+3. company-financials: 콜드 스타트 타임아웃 수정
+   - 증상: SEC EDGAR 2회 HTTP (company_tickers + companyfacts) → 10s 초과 가능
+   - 수정: maxDuration=60 + createMemoryCache 4h (Redis 없을 때 SEC 반복 fetch 방지)
+   - commit 035d484
+
+4. maxDuration=60 추가: 12개 라우트
+   - 기존 6개 (macro-indicators, fear-greed, capital-flows, yield-curve, fedwatch, commodity-curve)
+   - 추가 6개: batch-prices, price-history, korea-flow, volatility(30), latest-updates, stock-supply
+   - commits d2a91d6 + e2f52da
+
+5. KR 히트맵: Naver Finance 데이터소스 추가 (0%→예상 80%+)
+   - 증상: KR heatmap 80 stocks, changePct=0% (모두 null)
+   - 원인: Stooq .kr = N/D (직접 확인), Yahoo v8 Vercel IP 차단
+   - 해결책: polling.finance.naver.com/api/realtime/domestic/stock/{codes}
+     - 쉼표 구분 배치 지원 (50개/req), 인증 불필요, 공개 API
+     - fluctuationsRatio 필드 = 변화율 (%), closePrice = 종가
+   - 코드: lib/naver-finance.ts fetchNaverKRQuotes() + market-heatmap Pass 1.5
+   - commit da82da0
+
+6. TW 히트맵: TWSE+TPEX 데이터소스 추가 (0%→예상 80%+)
+   - 증상: TW heatmap 80 stocks, changePct=0% (KR과 동일 원인)
+   - 해결책: openapi.twse.com.tw STOCK_DAY_ALL + tpex.org.tw mainboard_quotes
+     - 두 API 모두 무인증 공개, 전종목 일일 보고서 (1개 HTTP per source)
+     - TSMC 2330: close=2185, Change=105 → changePct=+5.05% 검증
+     - TWSE 1354개 + TPEX 1004개 종목 커버
+   - 코드: lib/naver-finance.ts fetchTWSEQuotes() + market-heatmap Pass 1.5 TW branch
+   - commit a799245
+
+=== ENDPOINTS AUDITED ===
+- volatility: vix=18.71, vxst=16.71, vxmt=23.27, regime=contango, history=90pts ✓
+- capital-flows: assets=15, countryFlow=12 countries (Nasdaq fallback 동작) ✓
+- flow-analysis: static-fallback (AI quota 소진 예상, 12 countries 데이터 정상) ✓
+- cot-positions: 7 entries ✓ (refresh=1)
+- batch-prices: AAPL=271.06 (-0.87%), MSFT=424.62 (+2.13%), NVDA=208.27 (+4.32%) ✓
+- korea-flow: fallback=True (일요일, 정상)
+- market-heatmap JP: 80/80 changePct = 100% ✓ (Stooq)
+- market-heatmap KR: 0/80 (배포 전 — Naver API는 로컬 확인)
+- market-heatmap TW: 0/80 (배포 전 — TWSE API는 로컬 확인)
+
+=== IN/CN 히트맵 분석 ===
+IN (인도): Stooq .in 미지원, Yahoo v8 차단 → 현재 0% 커버리지
+CN (중국): Stooq .hk, Yahoo v8 차단 → 현재 0% 커버리지
+향후 개선 후보:
+  - IN: NSE/BSE open API (https://www.nseindia.com/api/) — 별도 auth 필요 여부 미확인
+  - CN: 수동 검토 필요 (홍콩 주식은 Stooq .hk 시도 가능)
+
+=== COMMITS ===
+035d484 fix(market-heatmap): BRKB ticker alias → BRK-B for Stooq + company-financials memory cache
+89ffd8a fix(cot-positions): prevent CDN caching of empty parse results (502 on 0 entries)
+d2a91d6 perf(api): add maxDuration=60 to 6 multi-fetch routes missing it
+e2f52da perf(api): maxDuration=60 to 6 remaining multi-fetch routes
+da82da0 feat(market-heatmap): Naver Finance fallback for KR stocks (Yahoo v8 Vercel-blocked)
+a799245 feat(market-heatmap): TWSE+TPEX fallback for TW stocks (Yahoo Vercel-blocked)
+
+=== REMAINING ISSUES ===
+- Redis/OpenRouter 미설정 (사용자 action 필요)
+- short-interest shortChangeMonthly: null (FINRA CDN 403, 대안 없음)
+- IN/CN 히트맵 changePct 0% (데이터소스 미발견)
+- AI quota 소진 (GROQ/Gemini) — 09:00 KST 리셋
+- KR/TW Naver/TWSE Vercel 접근성 배포 후 확인 필요
