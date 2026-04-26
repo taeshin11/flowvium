@@ -247,10 +247,41 @@ async function fetchAllPrices(
     }
   }
 
-  // Finnhub fallback for tickers that still have no data (Yahoo batch blocked)
-  if (finnhubKey && failed.length > 0) {
-    logger.warn('capital-flows', 'yahoo_batch_failed_finnhub_fallback', { failed: failed.length });
-    await Promise.all(failed.map(async (ticker) => {
+  // Throttled Yahoo v8 fallback — 5 concurrent / 350ms delay.
+  // Same pattern as fetchYFNonUSQuotes which works on Vercel IPs when v7 batch is blocked.
+  let stillFailed = [...failed];
+  if (stillFailed.length > 0) {
+    const CONCURRENT = 5;
+    const DELAY_MS = 350;
+    for (let i = 0; i < stillFailed.length; i += CONCURRENT) {
+      const batch = stillFailed.slice(i, i + CONCURRENT);
+      const settled = await Promise.allSettled(
+        batch.map(async (ticker) => {
+          try { return { ticker, prices: await fetchPricesYahoo(ticker) }; }
+          catch { return null; }
+        })
+      );
+      for (const r of settled) {
+        if (r.status === 'fulfilled' && r.value) {
+          priceMap[r.value.ticker] = r.value.prices;
+          sourceCount['yahoo_v8'] = (sourceCount['yahoo_v8'] ?? 0) + 1;
+        }
+      }
+      if (i + CONCURRENT < stillFailed.length) {
+        await new Promise(res => setTimeout(res, DELAY_MS));
+      }
+    }
+    const prevFailCount = stillFailed.length;
+    stillFailed = stillFailed.filter(t => !(priceMap[t]?.length > 0));
+    if (stillFailed.length < prevFailCount) {
+      logger.info('capital-flows', 'throttled_yahoo_recovered', { recovered: prevFailCount - stillFailed.length, remaining: stillFailed.length });
+    }
+  }
+
+  // Finnhub fallback for tickers still missing after throttled Yahoo v8
+  if (finnhubKey && stillFailed.length > 0) {
+    logger.warn('capital-flows', 'yahoo_batch_failed_finnhub_fallback', { failed: stillFailed.length });
+    await Promise.all(stillFailed.map(async (ticker) => {
       try {
         priceMap[ticker] = await fetchPricesFinnhub(ticker, finnhubKey);
         sourceCount['finnhub'] = (sourceCount['finnhub'] ?? 0) + 1;
@@ -260,7 +291,7 @@ async function fetchAllPrices(
       }
     }));
   } else {
-    for (const ticker of failed) {
+    for (const ticker of stillFailed) {
       priceMap[ticker] = [];
       sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1;
     }
@@ -448,7 +479,7 @@ export async function GET() {
   const sourceSummary = Object.entries(sourceCount)
     .filter(([s]) => s !== 'failed')
     .filter(([, n]) => (n as number) > 0)
-    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance', finnhub: 'Finnhub' }[s] ?? s) + ` ×${n}`)
+    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance', yahoo_v8: 'Yahoo v8(throttled)', finnhub: 'Finnhub' }[s] ?? s) + ` ×${n}`)
     .join(' + ');
 
   const results = ASSETS.map((asset) => {
