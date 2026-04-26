@@ -693,6 +693,19 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
       const yoy = usCredit.changeYoY as number | undefined;
       capitalBullets.push(`NYSE margin: $${bal.toFixed(0)}B${yoy != null ? ` (YoY ${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%)` : ''}`);
     }
+    // Credit spreads from macro indicators
+    const macroInds = (macro?.indicators as Array<Record<string, unknown>>) ?? [];
+    const igInd = macroInds.find(i => i.id === 'ig_spread');
+    const hyInd = macroInds.find(i => i.id === 'hy_spread');
+    if (igInd?.actual != null && hyInd?.actual != null) {
+      capitalBullets.push(`IG OAS: ${(igInd.actual as number).toFixed(2)}% | HY OAS: ${(hyInd.actual as number).toFixed(2)}%`);
+    }
+    // Key macro: CPI
+    const cpiInd = macroInds.find(i => i.id === 'cpi');
+    if (cpiInd?.actual != null) {
+      const surprise = cpiInd.surprise as string | undefined;
+      capitalBullets.push(`CPI: ${(cpiInd.actual as number).toFixed(1)}%YoY${surprise === 'beat' || surprise === 'miss' ? ` (${surprise})` : ''}`);
+    }
   } catch { /* ignore */ }
   if (capitalBullets.length === 0) capitalBullets.push(`${tfLabel} capital flows loading`);
 
