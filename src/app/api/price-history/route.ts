@@ -13,6 +13,7 @@ import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export const revalidate = 0;
 

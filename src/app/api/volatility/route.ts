@@ -17,6 +17,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 const CACHE_TTL = 30 * 60;
 const STALE_KEY = 'flowvium:volatility:stale';

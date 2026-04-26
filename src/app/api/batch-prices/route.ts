@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' };
 

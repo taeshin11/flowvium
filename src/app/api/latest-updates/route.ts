@@ -28,6 +28,7 @@ import { newsGapData } from '@/data/news-gap';
 import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const CACHE_TTL = 15 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=60' };

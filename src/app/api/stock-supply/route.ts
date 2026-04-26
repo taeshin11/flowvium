@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { newsGapData } from '@/data/news-gap';
 import { Redis } from '@upstash/redis';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const CACHE_TTL = 3 * 60 * 60; // 3h
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=10800, stale-while-revalidate=300' };

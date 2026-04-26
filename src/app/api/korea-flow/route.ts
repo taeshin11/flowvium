@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=720, stale-while-revalidate=60' };
 
