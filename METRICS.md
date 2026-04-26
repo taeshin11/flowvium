@@ -792,6 +792,10 @@
 | 297c | accuracy.ppi — FRED WPSFD49207(최종수요) YoY 대조 | 🔄 cron | ±0.2pp 허용, iter67→iter79 PPIACO→WPSFD49207 수정 |
 | 297d | accuracy.fomc — FRED DFEDTARU/L 금리 대조 | 🔄 cron | ±0.25pp 허용 (iter68 조정), iter67 |
 | 297e | accuracy.gdp — FRED A191RL1Q225SBEA QoQ SAAR 대조 | 🔄 cron | ±0.5pp 허용 (advance 수정 여지), 당해연도 미공개 시 skipped, iter76 |
+| 297f | daily-brief fallback: IG/HY OAS 신용 스프레드 표시 | ✅ live | AI 없을 때 capital 섹션에 IG OAS / HY OAS 실값 추가 (iter231) |
+| 297g | daily-brief fallback: VIX + regime 표시 | ✅ live | AI 없을 때 market 섹션에 VIX 수치 + low/elevated/high regime 레이블 (iter231) |
+| 297h | daily-brief fallback: CPI YoY 표시 | ✅ live | AI 없을 때 capital 섹션에 CPI%YoY + miss/beat 서프라이즈 (iter231) |
+| 297i | daily-brief 섹터명 한국어→영문 변환 | ✅ live | SECTOR_EN 역매핑으로 정보기술→Tech 등 11개 섹터 영문 표기 (전 언어 버전 정상화, iter231) |
 
 ---
 
