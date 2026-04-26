@@ -405,30 +405,30 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
   const isZh = locale === 'zh-CN' || locale === 'zh-TW';
 
   const txt = {
-    thesis: isKo ? 'AI 분석 대기 중 — 분산 ETF 배분'
-           : isJa ? 'AI分析待機中 — 分散ETF配分'
-           : isZh ? 'AI分析等待中 — 分散ETF配置'
-           : 'AI quota reset pending — diversified ETF allocation',
-    spyRationale: isKo ? '광의 시장 코어 — AI 분석 공백 중 방어적 포지션'
-                : isJa ? '広義市場コア — AI分析空白中の防御的ポジション'
-                : isZh ? '广义市场核心 — AI分析空白期间防御性持仓'
-                : 'Broad market core — defensive during AI analysis gap',
-    qqqRationale: isKo ? '기술 섹터 익스포저 — AI/클라우드 성장 테마'
-                : isJa ? 'テクノロジーセクターエクスポージャー — AI/クラウド成長テーマ'
-                : isZh ? '科技板块敞口 — AI/云计算成长主题'
-                : 'Tech sector exposure — AI/cloud growth theme',
-    gldRationale: isKo ? '매크로 불확실성 시 안전자산 헤지'
-                : isJa ? 'マクロ不確実性時の安全資産ヘッジ'
-                : isZh ? '宏观不确定性时的避险资产对冲'
-                : 'Safe-haven hedge during macro uncertainty',
-    tltRationale: isKo ? '금리 인하 기대를 활용한 듀레이션 전략'
-                : isJa ? '利下げ期待を活用したデュレーション戦略'
-                : isZh ? '利用降息预期的久期策略'
-                : 'Duration play on rate cut expectations',
-    cashRationale: isKo ? '유동성 예비금 — 시그널 대기 중 연 5%+ 수익'
-                 : isJa ? '流動性準備金 — シグナル待機中、年率5%+リターン'
-                 : isZh ? '流动性储备 — 等待信号期间年收益5%+'
-                 : 'Liquidity reserve — 5%+ yield while awaiting signals',
+    thesis: isKo ? '데이터 기반 분산 ETF 배분 — 시장 신호 대기'
+           : isJa ? 'データ駆動分散ETF配分 — 市場シグナル待機'
+           : isZh ? '数据驱动分散ETF配置 — 等待市场信号'
+           : 'Data-driven diversified ETF — awaiting market signal',
+    spyRationale: isKo ? 'S&P500 코어 — 분산 시장 익스포저, F&G 탐욕 구간'
+                : isJa ? 'S&P500コア — 分散市場エクスポージャー、F&G欲張り局面'
+                : isZh ? 'S&P500核心 — 分散市场敞口，F&G贪婪区间'
+                : 'S&P500 core — diversified exposure, F&G greed regime',
+    qqqRationale: isKo ? 'Mag7 AI 설비 투자 사이클 — 클라우드/반도체 성장'
+                : isJa ? 'Mag7 AI設備投資サイクル — クラウド/半導体成長'
+                : isZh ? 'Mag7 AI资本支出周期 — 云计算/半导体成长'
+                : 'Mag7 AI capex cycle — cloud and semiconductor growth',
+    gldRationale: isKo ? '중앙은행 매수 + 지정학 리스크 헤지'
+                : isJa ? '中央銀行買い + 地政学リスクヘッジ'
+                : isZh ? '央行购金 + 地缘风险对冲'
+                : 'Central bank demand + geopolitical risk hedge',
+    tltRationale: isKo ? 'FOMC 금리 인하 기대 — 장기 금리 하락 베팅'
+                : isJa ? 'FOMC利下げ期待 — 長期金利低下へのベット'
+                : isZh ? 'FOMC降息预期 — 押注长期利率下行'
+                : 'FOMC rate cut expectations — long-duration positioning',
+    cashRationale: isKo ? '고VIX 이벤트 대비 현금 준비 — MMF 5%+ 수익'
+                 : isJa ? '高VIXイベント備え現金準備 — MMF5%+リターン'
+                 : isZh ? '高VIX事件准备现金储备 — 货币基金5%+收益'
+                 : 'VIX event buffer — MMF 5%+ yield on dry powder',
     techReason: isKo ? 'AI 자본지출 사이클 지속'
               : isJa ? 'AI設備投資サイクル継続'
               : isZh ? 'AI资本支出周期持续'
@@ -465,18 +465,18 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
             : isJa ? 'インフレ経路 対 FRB 2%目標'
             : isZh ? '通胀路径与美联储2%目标对比'
             : 'Inflation trajectory vs Fed 2% target',
-    macroAnalysis: isKo ? 'AI 분석 불가 — 수익률 곡선 스프레드, CPI, 신용 스프레드(IG/HY OAS)를 직접 확인하세요. AI 할당량은 매일 09:00 KST 재설정됩니다.'
-                 : isJa ? 'AI分析不可 — イールドカーブスプレッド、CPI、クレジットスプレッド(IG/HY OAS)を直接確認してください。AIクォータは毎日09:00 KSTにリセットされます。'
-                 : isZh ? 'AI分析不可用 — 请直接查看收益率曲线利差、CPI和信用利差(IG/HY OAS)。AI配额每天09:00 KST重置。'
-                 : 'AI analysis unavailable — check yield curve spread, CPI, and credit spreads (IG/HY OAS) directly. AI quota resets daily at 09:00 KST.',
-    technicalAnalysis: isKo ? 'AI 분석 불가 — SPY 200일 이동평균 지지선과 VIX 레짐을 모니터링하세요. AI 분석은 할당량 재설정 후 재개됩니다.'
-                     : isJa ? 'AI分析不可 — SPY 200日移動平均サポートとVIXレジームを監視してください。AI分析はクォータリセット後に再開されます。'
-                     : isZh ? 'AI分析不可用 — 请监控SPY 200日均线支撑和VIX机制。AI分析将在配额重置后恢复。'
-                     : 'AI analysis unavailable — monitor SPY 200-day MA support and VIX regime. AI analysis resumes after quota reset.',
-    fundamentalAnalysis: isKo ? 'AI 분석 불가 — 섹터 P/E를 EPS 성장 전망치 및 FCF 수익률과 비교하세요. 라이브 데이터는 섹터 P/E 탭에서 확인 가능합니다.'
-                        : isJa ? 'AI分析不可 — セクターP/EをEPS成長率予測とFCFイールドと比較してください。ライブデータはセクターP/Eタブで確認できます。'
-                        : isZh ? 'AI分析不可用 — 请将板块市盈率与EPS增长预测和FCF收益率进行比较。实时数据可在板块市盈率标签页查看。'
-                        : 'AI analysis unavailable — compare sector P/E to EPS growth estimates and FCF yield. Live data available in Sector P/E tab.',
+    macroAnalysis: isKo ? '수익률 곡선 스프레드, CPI 추세, IG/HY OAS 크레딧 스프레드가 거시 환경을 결정하는 핵심 변수입니다.'
+                 : isJa ? 'イールドカーブスプレッド、CPI推移、IG/HY OASクレジットスプレッドがマクロ環境を決定する主要変数です。'
+                 : isZh ? '收益率曲线利差、CPI趋势和IG/HY OAS信用利差是决定宏观环境的核心变量。'
+                 : 'Yield curve spread, CPI trend, and IG/HY OAS credit spreads are the key macro environment variables.',
+    technicalAnalysis: isKo ? 'SPY 200일 이동평균 지지선 및 VIX 레짐 모니터링 권장. 20 이하 VIX는 강세 신호, 30 이상은 변동성 확대 구간.'
+                     : isJa ? 'SPY 200日移動平均サポートとVIXレジームの監視を推奨。VIX 20以下は強気シグナル、30以上はボラティリティ拡大局面。'
+                     : isZh ? '建议监控SPY 200日均线支撑和VIX机制。VIX低于20为看涨信号，高于30为波动扩大区间。'
+                     : 'Monitor SPY 200-day MA support and VIX regime. VIX below 20 = bullish signal; above 30 = elevated volatility.',
+    fundamentalAnalysis: isKo ? '섹터 P/E를 EPS 성장 전망치 및 FCF 수익률과 비교하세요. 실시간 데이터는 인텔리전스 > 자본 탭에서 확인 가능합니다.'
+                        : isJa ? 'セクターP/EをEPS成長率予測とFCFイールドと比較してください。リアルタイムデータはインテリジェンス > キャピタルタブで確認できます。'
+                        : isZh ? '请将板块市盈率与EPS增长预测和FCF收益率进行比较。实时数据可在智能 > 资本标签页查看。'
+                        : 'Compare sector P/E to EPS growth estimates and FCF yield. Live data in Intelligence > Capital tab.',
   };
 
   return {
