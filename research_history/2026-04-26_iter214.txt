@@ -1,0 +1,49 @@
+iter214 — 2026-04-26 UTC 01:00
+Primary outcome: AI전략 항상 live 유지 (19자)
+
+=== Drift check ===
+Recent 5 commits: 10Y-2Y fix, 3× i18n (home/compare/explore), CBOE volatility fallback
+i18n = 3 of 5 → drift signal #1 (same area). BUT: infrastructure blocker (AI fallback) ≥2 iter → MUST resolve (signal #4).
+Decision: Address AI fallback blocker this iter.
+
+=== Work done ===
+
+[1] fix(report): 10Y-2Y pill — field name mismatch
+- yield-curve API returns spread2s10sCurrent (not spread/spreadBp)
+- Code was reading j?.spread ?? j?.spreadBp → both null → showed "-"
+- Fix: read spread2s10sCurrent and multiply × 100 to convert % → bp
+- Current value: 51bp (2026-04-24 data) — confirmed live
+- Commit: 5024e63
+
+[2] feat(ai): Qwen cascade + fix fallback caching + preserve 70b quota
+- Root cause of strategy fallback loop: GROQ 70b+8b exhausted within 1h of reset
+  (module-level guard set for 23h); Gemini also exhausted
+- Bug: fallbackStrategy() was cached in Redis for 24h → all requests served stale fallback all day
+- Fix A: fallbacks now cached 5min (not 24h) — retries happen frequently after quota reset
+- Fix B: cache key bumped v5→v6 to bust current stale Redis entry (April 26)
+- Fix C: Qwen 2.5 72B (via OpenRouter) added as cascade #3 between GROQ and Gemini
+  (activated by OPENROUTER_API_KEY env var)
+- Fix D: news-cascade now uses preferSmallModel=true → 8b instead of 70b
+  (preserves 70b quota for strategy/daily-brief)
+- Commit: 69c9545
+
+=== Accuracy probes ===
+[accuracy probe] metric=vix  source=CBOE direct_value=18.71(2026-04-24) our_value=18.71 delta=0.00 → OK
+[accuracy probe] metric=vxst source=CBOE direct_value=16.71(2026-04-24) our_value=16.71 delta=0.00 → OK
+[accuracy probe] metric=vxmt source=CBOE direct_value=23.27(2026-04-24) our_value=23.27 delta=0.00 → OK
+CNN F&G: unreachable from local env (IP restricted) — skipped, covered by verify-metrics cron
+VIX regime: contango confirmed (VXST 16.71 < VIX 18.71 < VXMT 23.27) ✓
+
+=== UI check ===
+/api/yield-curve spread2s10sCurrent=0.51 → pill shows +51bp (calculation verified)
+/api/capital-flows SPY ret1w=0.54 → pill shows +0.54% (API confirmed live)
+Pill rendering: 미검증 (client-side hydration, browser 없이 불가)
+
+=== verify-metrics ===
+OK: 159, DEGRADED: 3 (macro.gdp=April30, strategy.portfolio=fallback, brief.market=fallback)
+strategy/brief degraded: GROQ+Gemini both exhausted; fix deployed — will recover at quota reset
+
+=== Next priorities ===
+- Wait for OPENROUTER_API_KEY to be set by user for Qwen activation
+- Monitor verify-metrics for strategy recovery after midnight UTC April 27
+- Next drift check: if i18n still 3+ iters → move to data/feature work
