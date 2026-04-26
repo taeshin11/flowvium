@@ -1016,23 +1016,24 @@ export default function HomePage() {
               {/* Secondary nav — all remaining pages */}
               <div className="flex flex-wrap gap-2 mt-2">
                 {([
-                  { href: '/earnings', label: tNav('earnings'), icon: <BarChart3 className="w-3.5 h-3.5" /> },
-                  { href: '/insider',  label: tNav('insider'),  icon: <TrendingUp className="w-3.5 h-3.5" /> },
-                  { href: '/heatmap',  label: tNav('heatmap'),  icon: <Layers className="w-3.5 h-3.5" /> },
-                  { href: '/screener', label: tNav('screener'), icon: <Radar className="w-3.5 h-3.5" /> },
-                  { href: '/short',    label: tNav('short'),    icon: <TrendingDown className="w-3.5 h-3.5" /> },
-                  { href: '/cascade',  label: tNav('cascade'),  icon: <Network className="w-3.5 h-3.5" /> },
-                ] as { href: string; label: string; icon: React.ReactNode }[]).map(item => (
+                  { href: '/earnings', label: tNav('earnings'), icon: <BarChart3 className="w-4 h-4" />, color: 'text-amber-600 dark:text-amber-400' },
+                  { href: '/insider',  label: tNav('insider'),  icon: <TrendingUp className="w-4 h-4" />, color: 'text-emerald-600 dark:text-emerald-400' },
+                  { href: '/heatmap',  label: tNav('heatmap'),  icon: <Layers className="w-4 h-4" />, color: 'text-blue-600 dark:text-blue-400' },
+                  { href: '/screener', label: tNav('screener'), icon: <Radar className="w-4 h-4" />, color: 'text-violet-600 dark:text-violet-400' },
+                  { href: '/short',    label: tNav('short'),    icon: <TrendingDown className="w-4 h-4" />, color: 'text-red-600 dark:text-red-400' },
+                  { href: '/cascade',  label: tNav('cascade'),  icon: <Network className="w-4 h-4" />, color: 'text-cyan-600 dark:text-cyan-400' },
+                ] as { href: string; label: string; icon: React.ReactNode; color: string }[]).map(item => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg
-                               border border-cf-border/60 text-cf-text-secondary
-                               hover:bg-cf-primary/5 hover:border-cf-primary/30 hover:text-cf-primary
-                               transition-colors"
+                    className={`inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 rounded-lg
+                               bg-white/70 dark:bg-white/[0.06] border border-cf-border
+                               text-cf-text-primary hover:border-cf-primary/40 hover:bg-white
+                               dark:hover:bg-white/10 hover:shadow-sm
+                               transition-all duration-150 ${item.color}`}
                   >
                     {item.icon}
-                    {item.label}
+                    <span className="text-cf-text-primary">{item.label}</span>
                   </Link>
                 ))}
               </div>
