@@ -484,18 +484,18 @@ Answer concisely (3–5 paragraphs). Be specific — name tickers, mechanisms, a
 // ── Live sector flow derivation from capital-flows ETF data ──────────────────
 interface SectorReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
 
-const SECTOR_META: Record<string, { sectorKo: string; movers: string[] }> = {
-  XLK:  { sectorKo: 'AI 테크',       movers: ['NVDA', 'MSFT', 'META'] },
-  XLF:  { sectorKo: '금융',           movers: ['JPM', 'BAC', 'GS'] },
-  XLE:  { sectorKo: '에너지 (원유)',   movers: ['XOM', 'CVX', 'SLB'] },
-  XLV:  { sectorKo: '헬스케어',       movers: ['UNH', 'LLY', 'ABBV'] },
-  XLI:  { sectorKo: '산업재',         movers: ['CAT', 'GE', 'HON'] },
-  XLB:  { sectorKo: '소재',           movers: ['FCX', 'NEM', 'ALB'] },
-  XLY:  { sectorKo: '경기소비재',     movers: ['AMZN', 'TSLA', 'MCD'] },
-  XLP:  { sectorKo: '필수소비재',     movers: ['PG', 'KO', 'WMT'] },
-  XLU:  { sectorKo: '유틸리티',       movers: ['NEE', 'DUK', 'SO'] },
-  XLRE: { sectorKo: '부동산 (리츠)',  movers: ['AMT', 'PLD', 'SPG'] },
-  XLC:  { sectorKo: '통신 서비스',    movers: ['GOOGL', 'META', 'NFLX'] },
+const SECTOR_META: Record<string, { sectorEn: string; sectorKo: string; movers: string[] }> = {
+  XLK:  { sectorEn: 'Technology (AI)',   sectorKo: 'AI 테크',       movers: ['NVDA', 'MSFT', 'META'] },
+  XLF:  { sectorEn: 'Financials',        sectorKo: '금융',           movers: ['JPM', 'BAC', 'GS'] },
+  XLE:  { sectorEn: 'Energy (Oil/Gas)',  sectorKo: '에너지 (원유)',   movers: ['XOM', 'CVX', 'SLB'] },
+  XLV:  { sectorEn: 'Healthcare/Pharma', sectorKo: '헬스케어',       movers: ['UNH', 'LLY', 'ABBV'] },
+  XLI:  { sectorEn: 'Industrials',       sectorKo: '산업재',         movers: ['CAT', 'GE', 'HON'] },
+  XLB:  { sectorEn: 'Materials',         sectorKo: '소재',           movers: ['FCX', 'NEM', 'ALB'] },
+  XLY:  { sectorEn: 'Consumer Disc.',    sectorKo: '경기소비재',     movers: ['AMZN', 'TSLA', 'MCD'] },
+  XLP:  { sectorEn: 'Consumer Staples',  sectorKo: '필수소비재',     movers: ['PG', 'KO', 'WMT'] },
+  XLU:  { sectorEn: 'Utilities',         sectorKo: '유틸리티',       movers: ['NEE', 'DUK', 'SO'] },
+  XLRE: { sectorEn: 'Real Estate (REIT)',sectorKo: '부동산 (리츠)',  movers: ['AMT', 'PLD', 'SPG'] },
+  XLC:  { sectorEn: 'Comm. Services',    sectorKo: '통신 서비스',    movers: ['GOOGL', 'META', 'NFLX'] },
 };
 
 function deriveSectorFlows(sectors: SectorReturn[]): MoneyFlowSector[] {
@@ -513,7 +513,7 @@ function deriveSectorFlows(sectors: SectorReturn[]): MoneyFlowSector[] {
           : (s.ret1w < -(absRet * 0.25) ? 'accelerating' : s.ret1w > 0 ? 'fading' : 'holding');
       const sign = (n: number) => (n >= 0 ? '+' : '');
       return {
-        sector: s.label,
+        sector: meta.sectorEn,
         sectorKo: meta.sectorKo,
         direction,
         magnitude,
