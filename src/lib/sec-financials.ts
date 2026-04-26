@@ -167,7 +167,11 @@ function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[]):
       if (!isQ && !isFY) continue;
       const key = `${e.fy}:${e.fp}`;
       const existing = ytdMap.get(key);
-      if (!existing || e.end > existing.end) ytdMap.set(key, e);
+      // Prefer later end date; when equal (same fy:fp:end), prefer larger value so
+      // we pick the YTD cumulative entry over the single-quarter entry.
+      if (!existing || e.end > existing.end || (e.end === existing.end && e.val > existing.val)) {
+        ytdMap.set(key, e);
+      }
     }
   }
 
@@ -235,12 +239,15 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     const json = await res.json();
     const facts = json.facts ?? {};
 
-    // Revenue — pick most recent across all concept variants
+    // Revenue — pick most recent across all concept variants.
+    // RevenuesNetOfInterestExpense covers banks (JPM, BAC, C, WFC) which don't
+    // report under the standard Revenues concept for 10-Q quarterly filings.
     const REV_CONCEPTS = [
       'Revenues',
       'RevenueFromContractWithCustomerExcludingAssessedTax',
       'SalesRevenueNet',
       'RevenueFromContractWithCustomerIncludingAssessedTax',
+      'RevenuesNetOfInterestExpense',
     ];
     const revFYs = lastNFYEntries(facts, REV_CONCEPTS, 5);
     const latestRevEntry = bestFYEntry(facts, REV_CONCEPTS);

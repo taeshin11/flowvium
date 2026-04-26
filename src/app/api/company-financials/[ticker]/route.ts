@@ -30,7 +30,7 @@ export async function GET(
 ) {
   const ticker = params.ticker.toUpperCase();
   const redis = createRedis();
-  const cacheKey = `flowvium:company-financials:v4:${ticker}`;  // v4: quarterly YTD→true-quarter fix
+  const cacheKey = `flowvium:company-financials:v5:${ticker}`;  // v5: bank quarterly revenue (RevenuesNetOfInterestExpense)
 
   if (redis) {
     try {
