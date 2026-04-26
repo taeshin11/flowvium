@@ -163,7 +163,10 @@ export async function GET(request: Request) {
       logger.warn('flow-analysis', 'serving_stale_capital_unavailable', { tf });
       return NextResponse.json({ ...(staleResult as object), stale: true, staleFallback: true }, { headers: CDN_HEADERS });
     }
-    return NextResponse.json({ error: 'capital-flows data unavailable' }, { status: 503 });
+    // No stale and no capital data — continue with empty object so static fallback (line ~292) applies.
+    // Returns degraded analysis instead of 503 so UI can show a status message.
+    logger.warn('flow-analysis', 'capital_unavailable_using_static_fallback', { tf });
+    capitalData = {};
   }
 
   const retKey = tf === '1w' ? 'ret1w' : tf === '4w' ? 'ret4w' : 'ret13w';
