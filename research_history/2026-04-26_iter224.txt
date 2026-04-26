@@ -1,0 +1,63 @@
+ITER224 — 2026-04-26
+Primary outcome: EU 히트맵 UK trailing-dot 버그 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: iter223-docs, fix(verify-metrics), iter222-docs, feat(heatmap-CN/IN), iter221-docs
+heatmap: iter221/222 = 2연속 + iter224 = 3번째 → drift 경계.
+단, iter223=verify-metrics(비-heatmap), iter224=heatmap-EU bug fix (2연속 아님, 간격 있음).
+EU 40% 블로커를 공식 해결 또는 포기로 마무리 → drift rule 4 (인프라 블로커 공식 포기) 이행.
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+Stooq UK ticker (direct): curl https://stooq.com/q/d/l/?s=hsba.uk&i=d
+→ 마지막 줄: Date,Open,High,Low,Close,Volume 확인 (현지 테스트, Vercel 접근성 별도)
+probe 결과: 로컬에서 hsba.uk → 정상 CSV 응답 확인
+[accuracy probe] metric=heatmap.EU.UK source=Stooq direct_value=hsba.uk_accessible our_value=N/A(pre-deploy) → PENDING Vercel deploy
+
+=== FIXES ===
+
+1. toStooqSymbol 트레일링 도트 버그 수정 (src/lib/stooq.ts:100-103)
+   - 버그: t = ticker.toLowerCase() → 'RR.' → t='rr.' → return `${t}${suf}` = 'rr..uk' (이중 점)
+   - Stooq은 'rr..uk' = N/D (404), 'rr.uk' = 정상 응답
+   - 유사 케이스: BT.A → 'bt.a.uk' (올바름), RR. → 'rr..uk' (버그)
+   - 수정 내용:
+     OLD: const clean 없음 → `${t}${suf}` 직접 반환
+     NEW: const clean = t.replace(/\.$/, '').replace(/\s+/g, '-');
+           return suf ? `${clean}${suf}` : clean;
+   - 참고: route.ts toYFSuffix 함수는 이미 동일 처리 포함 → stooq.ts에 맞춤 적용
+   - 예상 효과: RR., IMB. 등 UK 트레일링 도트 ticker → Stooq 정상 호출
+
+2. EU FR/CH/ES 공식 negative result 확정
+   - 테스트 내역:
+     TTE.fr, MC.fr, OR.fr → N/D
+     NESN.ch, ROG.ch, NOVN.ch → N/D
+     SAN.es, IBE.es, BBVA.es → N/D
+     .pa, .mc, .sw, .vx → 모두 N/D
+   - 대안 조사:
+     Euronext API: 하드 20행 한계, 페이지네이션 미동작 → 비실용
+     CNBC EU: 응답 없음
+     SIX Swiss: API 필드명 미확인
+     Yahoo Finance: Vercel IP 블록
+     Alpha Vantage / Twelve Data: API 키 필요 (미설정)
+   - 공식 포기: FR/CH/ES Stooq 경로 없음, 유료 API 키 없이 Vercel에서 접근 불가
+   - 현실적 EU 커버리지 상한: DE+UK+NL+SE+DK+NO+FI+BE+AT+PT+IE = ~40-50% (FR/CH/ES 제외 시)
+
+=== EU 히트맵 커버리지 분석 (post-fix 예상) ===
+- DE (.de): ✅ Stooq 작동
+- UK (.uk): ✅ Stooq 작동 (trailing-dot fix로 RR. 등 개선)
+- NL (.nl): ✅ Stooq 작동
+- FR (.fr): ❌ Stooq N/D — 유료 API 없으면 불가
+- CH (.ch): ❌ Stooq N/D — SIX 직접 API 미검증
+- ES (.es): ❌ Stooq N/D — BME 접근 불가
+- 기타: SE/DK/NO/FI/BE/AT/PT/IE — 테스트 미완, Stooq 가능성 있음
+
+이전 40% (32/80) → trailing-dot fix로 UK 일부 종목 복구 예상 (+5~10%)
+
+=== COMMITS ===
+fix(stooq): EU toStooqSymbol trailing-dot + spaces 버그 수정 (rr..uk → rr.uk)
+
+=== REMAINING ISSUES ===
+- EU FR/CH/ES 히트맵: 공식 포기 (유료 API 없이 Vercel 접근 불가)
+- EU 기타 (SE/DK/NO 등) Stooq 가능성 미검증 → iter225 타겟
+- Redis/OpenRouter 미설정 (사용자 action 필요)
+- short-interest shortChangeMonthly: null (FINRA CDN 403, iter86 이후 공식 포기)
+- AI quota (GROQ/Gemini) 소진 → 일일 09:00 KST 자동 리셋

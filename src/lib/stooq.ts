@@ -99,7 +99,8 @@ function toStooqSymbol(ticker: string, country: string, location?: string): stri
   const t = ticker.toLowerCase();
   if (country === 'EU') {
     const suf = location ? (STOOQ_EU[location] ?? '') : '';
-    return suf ? `${t}${suf}` : t;
+    const clean = t.replace(/\.$/, '').replace(/\s+/g, '-');
+    return suf ? `${clean}${suf}` : clean;
   }
   if (country === 'CN') return /^\d+$/.test(ticker) ? `${t}.hk` : `${t}.us`;
   const suf = STOOQ_SUFFIX[country];
