@@ -422,11 +422,11 @@ function blendComposite(etfRes: CompositeResult, nativeRes: CompositeResult | nu
 
 async function buildEntry(
   id: string, ticker: string, nativeTicker: string | null, flag: string, label: string,
-  redis: Redis | null, useCNN = false,
+  redis: Redis | null, useCNN = false, force = false,
 ) {
   // v6: US CNN entry includes 30-day history for sparkline
   const cacheKey = `flowvium:fg:v6:${ticker}`;
-  if (redis) {
+  if (redis && !force) {
     try {
       const cached = await redis.get<object>(cacheKey);
       if (cached) return cached;
@@ -505,11 +505,13 @@ async function buildEntry(
   return entry;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const force = searchParams.get('force') === '1';
   const redis = createRedis();
 
   // Module-level memory cache hit (no-Redis path)
-  if (!redis && FG_MEMORY_CACHE && Date.now() < FG_MEMORY_CACHE.expiresAt) {
+  if (!redis && !force && FG_MEMORY_CACHE && Date.now() < FG_MEMORY_CACHE.expiresAt) {
     logger.info('fear-greed', 'memory_cache_hit');
     return NextResponse.json(FG_MEMORY_CACHE.data, { headers: CDN_HEADERS });
   }
@@ -517,7 +519,7 @@ export async function GET() {
   const [byCountry, byAsset] = await Promise.all([
     Promise.all(
       COUNTRY_ETFS.map(({ id, ticker, nativeTicker, flag, label, useCNN }) =>
-        buildEntry(id, ticker, nativeTicker, flag, label, redis, useCNN ?? false).catch((err) => {
+        buildEntry(id, ticker, nativeTicker, flag, label, redis, useCNN ?? false, force).catch((err) => {
           logger.error('fear-greed', 'build_entry_failed', { id, ticker, error: err instanceof Error ? err.message : String(err) });
           return null;
         })
@@ -526,7 +528,7 @@ export async function GET() {
     Promise.all(
       ASSET_ETFS.map(({ id, ticker, flag, label }) =>
         // 자산 ETF는 네이티브 지수 매핑 없음 (ETF 단독 composite)
-        buildEntry(id, ticker, null, flag, label, redis, false).catch((err) => {
+        buildEntry(id, ticker, null, flag, label, redis, false, force).catch((err) => {
           logger.error('fear-greed', 'build_entry_failed', { id, ticker, error: err instanceof Error ? err.message : String(err) });
           return null;
         })
