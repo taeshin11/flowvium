@@ -159,6 +159,10 @@ export async function GET(request: Request) {
   }
 
   if (!capitalData) {
+    if (staleResult) {
+      logger.warn('flow-analysis', 'serving_stale_capital_unavailable', { tf });
+      return NextResponse.json({ ...(staleResult as object), stale: true, staleFallback: true }, { headers: CDN_HEADERS });
+    }
     return NextResponse.json({ error: 'capital-flows data unavailable' }, { status: 503 });
   }
 
