@@ -35,7 +35,7 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
     const CIK_MAP: Record<string, string> = {
       // Semiconductors / Tech Hardware
       NVDA: '0001045810', AAPL: '0000320193', MSFT: '0000789019',
-      TSMC: '0000803649', ASML: '0000937556', AMD: '0000002488',
+      TSM: '0000803649', ASML: '0000937556', AMD: '0000002488',
       INTC: '0000050863', MU: '0000723125', AVGO: '0001730168',
       ARM: '0001477294', QCOM: '0000804328', TXN: '0000097476',
       AMAT: '0000006951', KLAC: '0000319201', LRCX: '0000707549',
