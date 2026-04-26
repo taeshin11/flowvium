@@ -302,10 +302,19 @@ export default function AdminLogsPage() {
               <p className="text-cf-text-secondary">Log buffer</p>
               <p className="font-mono text-xs text-cf-text-primary">{health.logs.bufferCount}</p>
               {(health.logs.errorCount > 0 || health.logs.warnCount > 0) && (
-                <p className="text-[10px]">
-                  {health.logs.errorCount > 0 && <span className="text-red-400">✕{health.logs.errorCount}</span>}
-                  {health.logs.errorCount > 0 && health.logs.warnCount > 0 && ' '}
-                  {health.logs.warnCount > 0 && <span className="text-amber-400">⚠{health.logs.warnCount}</span>}
+                <p className="text-[10px] flex gap-1">
+                  {health.logs.errorCount > 0 && (
+                    <button onClick={() => setLevelFilter(levelFilter === 'error' ? '' : 'error')}
+                      className={`px-1.5 py-0.5 rounded border transition-colors ${levelFilter === 'error' ? 'bg-red-500/20 border-red-500/40 text-red-300' : 'border-red-500/20 text-red-400 hover:bg-red-500/10'}`}>
+                      ✕{health.logs.errorCount}
+                    </button>
+                  )}
+                  {health.logs.warnCount > 0 && (
+                    <button onClick={() => setLevelFilter(levelFilter === 'warn' ? '' : 'warn')}
+                      className={`px-1.5 py-0.5 rounded border transition-colors ${levelFilter === 'warn' ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'border-amber-500/20 text-amber-400 hover:bg-amber-500/10'}`}>
+                      ⚠{health.logs.warnCount}
+                    </button>
+                  )}
                 </p>
               )}
             </div>
@@ -578,6 +587,14 @@ export default function AdminLogsPage() {
           <option value="warn">Warnings only</option>
           <option value="info">Info only</option>
         </select>
+        <button onClick={() => setLevelFilter(levelFilter === 'error' ? '' : 'error')}
+          className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors ${levelFilter === 'error' ? 'bg-red-500/20 border-red-500/40 text-red-300 font-semibold' : 'border-red-500/20 text-red-400 hover:bg-red-500/10'}`}>
+          ✕ Errors
+        </button>
+        <button onClick={() => setLevelFilter(levelFilter === 'warn' ? '' : 'warn')}
+          className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors ${levelFilter === 'warn' ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-semibold' : 'border-amber-500/20 text-amber-400 hover:bg-amber-500/10'}`}>
+          ⚠ Warnings
+        </button>
         <input
           value={sourceFilter}
           onChange={e => setSourceFilter(e.target.value)}
