@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v13:${country}:${hour}`; // v13: EU ticker fix (strip trailing dot + space→hyphen)
+  const cacheKey = `flowvium:heatmap:v14:${country}:${hour}`; // v14: BRK.B dot→dash normalization fix
   const redis = createRedis();
 
   if (!force) {
@@ -144,12 +144,26 @@ export async function GET(req: NextRequest) {
   const indexConfigs = INDICES_BY_COUNTRY[country] ?? [];
 
   // Stooq for US equity constituents
+  // iShares CSV uses "BRKB" but Stooq expects "BRK-B"; add other aliases here as needed
+  const STOOQ_US_ALIAS: Record<string, string> = { 'BRKB': 'BRK-B' };
   const stooqMap = new Map<string, { changePct: number | null; close: number | null }>();
   if (country === 'US') {
-    const stooqTickers = topHoldings.map(h => h.ticker.replace('.', '-'));
+    // holdingTicker → stooqTicker (apply alias then dot→dash)
+    const aliasToHolding = new Map<string, string>(
+      topHoldings.map(h => {
+        const aliased = STOOQ_US_ALIAS[h.ticker] ?? h.ticker;
+        return [aliased.replace(/\./g, '-'), h.ticker];
+      })
+    );
+    const stooqTickers = topHoldings.map(h => {
+      const aliased = STOOQ_US_ALIAS[h.ticker] ?? h.ticker;
+      return aliased.replace(/\./g, '-');
+    });
     const stooqQuotes = await fetchStooqQuotes(stooqTickers);
     for (const q of stooqQuotes) {
-      stooqMap.set(q.symbol, { changePct: q.changePct, close: q.close });
+      // Map back to original holding ticker so lookup by h.ticker works
+      const holdingTicker = aliasToHolding.get(q.symbol) ?? q.symbol;
+      stooqMap.set(holdingTicker, { changePct: q.changePct, close: q.close });
     }
   }
 
