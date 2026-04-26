@@ -1,0 +1,100 @@
+ITER225 — 2026-04-26
+Primary outcome: macro FRED stale 데이터 3종 버그 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: fix(stooq)-EU trailing-dot, docs(iter223), fix(verify-metrics)-GDP, docs(iter222), feat(heatmap-CN/IN)
+- iter223=verify-metrics, iter224=stooq/heatmap, iter225=macro-indicators → no 3-consecutive streak
+- No drift signals triggered
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=macro.nfp.previous source=FRED/PAYEMS direct_value=117 our_value=-133 delta=250 → BUG (fredLag path used FRED previous)
+[accuracy probe] metric=macro.umcsent source=FRED direct_value=53.3(March) our_value=52.2(April) FRED_stale=1mo_behind → static more current
+[accuracy probe] metric=macro.iclaims source=FRED direct_value=214(Apr18wk) our_value=222(Apr19wk) FRED_stale=1wk_behind → BUG
+[accuracy probe] metric=macro.retail source=FRED RSAFS direct_value=+1.7%MoM our_value=1.7%(live) → OK (static -1.1 stale, now updated)
+[accuracy probe] metric=macro.unrate source=FRED direct_value=4.3 our_value=4.3(live) → OK (static 4.2 stale, now updated)
+
+=== BUG INVESTIGATION: FRED vs Static discrepancies ===
+
+FRED PAYEMS (NFP) data check:
+- Dec 2025: 158,432 → Jan 2026: 158,592 → Feb 2026: 158,459 → Mar 2026: 158,637
+- FRED MoM March = 158,637 - 158,459 = +178K (vs BLS official 228K → fredLag=true)
+- FRED MoM Feb = 158,459 - 158,592 = -133K ← SHOWN AS 'previous' WHEN FREDLAG=TRUE (BUG)
+- Fix: when fredLag=true, use base.previous (=117K) for previous field
+
+FRED RSAFS (Retail Sales) data check:
+- Jan 2026: 734,503 → Feb 2026: 739,772 → Mar 2026: 752,063
+- FRED MoM March = (752,063 - 739,772) / 739,772 * 100 = +1.66% → API shows 1.7%
+- Static had -1.1% (BLS advance release Apr 16). FRED shows +1.7% (revised data).
+- Result: FRED +1.7% is correct revised data. Static was stale advance estimate.
+- Action: Updated static.retail.actual from -1.1 to 1.7.
+
+FRED UMCSENT (Consumer Sentiment) data check:
+- Latest FRED observation: 2026-03-01 = 53.3 (March 2026)
+- Static has April preliminary: actual=52.2 released 2026-04-11 (April 11)
+- FRED hasn't incorporated April preliminary (lags BLS by days-weeks for UMCSENT)
+- Fix: add month staleness check. If FRED month < static.releaseDate month → use static.
+
+FRED ICSA (Initial Claims) data check:
+- FRED date: 2026-04-18 → 214K (week ending Apr 18)
+- Static: releaseDate=2026-04-24, actual=222K (week ending Apr 19, BLS Thursday release)
+- FRED week-ending date (2026-04-18) < (releaseDate - 5 days = 2026-04-19) → stale
+- Fix: add week staleness detection using (releaseDate - 5 days) as threshold.
+
+FRED UNRATE data check:
+- FRED March 2026 = 4.3% (static had 4.2%)
+- FRED live is used (liveData=True), static is fallback only
+- Updated static.unrate.actual from 4.2 to 4.3.
+
+=== EU HEATMAP — NEGATIVE RESULT ===
+Experiment: Try correct exchange-specific Stooq suffixes (.mi Italy, .st Sweden, .co Denmark)
+Result: All N/D from Stooq batch endpoint.
+- ENI.MI, ISP.MI, ENEL.MI → N/D
+- VOLV-B.ST, ATCO-A.ST → N/D
+- NOVO-B.CO, MAERSK-B.CO → N/D
+Historical endpoint: requires API key for all IT/SE/DK stocks.
+Conclusion: Stooq batch endpoint is blocked for IT/SE/DK — not a suffix format issue.
+EU coverage remains at 45% (36/80). FR/CH/ES/IT/SE/DK/FI/BE all confirmed N/D.
+
+=== FIXES ===
+
+1. NFP previous field bug (route.ts line 708)
+   - OLD: `const previous = nfpData ? Math.round(nfpData.previous) : base.previous;`
+   - NEW: `const previous = (!nfpData || fredLag) ? base.previous : Math.round(nfpData.previous);`
+   - Effect: API now shows previous=117K (BLS official) instead of -133K (FRED seasonal adj)
+
+2. iclaims FRED week staleness detection
+   - When FRED's week-ending date < (static.releaseDate - 5 days), fall back to static
+   - Effect: shows 222K (Apr 19 week) instead of 214K (Apr 18 week)
+   - iclaimsWeekEnd = new Date(releaseDate) - 5 days = 2026-04-19
+
+3. umcsent FRED month staleness detection
+   - When FRED month < static.releaseDate month, fall back to static
+   - Effect: shows 52.2 (April preliminary) instead of 53.3 (March FRED data)
+
+4. Static data updates
+   - retail.actual: -1.1 → 1.7 (FRED RSAFS March revised data confirmed)
+   - unrate.actual: 4.2 → 4.3 (FRED UNRATE March confirmed)
+   - comment header: "as of 2026-04-16" → "as of 2026-04-26"
+
+5. FOMC auto-calendar (prevent Apr-30 nextRelease staleness)
+   - Added FOMC_DATES_2026 constant + nextFomcDate() helper
+   - FOMC section uses nextFomcDate() instead of hardcoded static.nextRelease
+   - After Apr-30 FOMC meeting, auto-advances to Jun-17 without manual update needed
+
+=== VERIFY-METRICS SUMMARY (post-fix) ===
+- Total: 191, ok: 184, degraded: 2 (GROQ quota × 2 — auto-reset daily), error: 0, skipped: 5
+- Skipped: ai.vllm (CloudFlare), kr.foreign/institution/retail (KRX auth), accuracy.gdp (Apr-30 pending)
+- The 184→185 potential improvement (iclaims/umcsent fix) depends on verify-metrics accuracy probe thresholds
+
+=== COMMITS ===
+fix(macro-indicators): FRED stale-data bugs — NFP previous -133→117, iclaims/umcsent week/month staleness detection
+feat(macro-indicators): auto FOMC next-meeting calendar — prevent Apr-30 nextRelease staleness
+
+=== REMAINING ISSUES ===
+- EU heatmap: FR/CH/ES/IT/SE/DK/FI/BE all N/D — 45% ceiling confirmed, no free alternative
+- Redis/OpenRouter: 미설정 (사용자 action 필요)
+- short-interest shortChangeMonthly: null (FINRA CDN 403, iter86 이후 공식 포기)
+- AI quota (GROQ/Gemini): 소진 → 일일 09:00 KST 자동 리셋
+- FOMC Apr-30 + GDP Apr-30 + Core PCE Apr-30: 3 major releases 4일 후
+  FRED auto-update 예정, FOMC nextRelease는 이제 calendar 자동 처리
+- FORECASTS 업데이트 필요 (Apr-30 이후): retail/pce/gdp forecast for next period
