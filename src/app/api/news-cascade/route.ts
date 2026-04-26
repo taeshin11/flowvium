@@ -133,7 +133,8 @@ async function callCascadeAI(prompt: string): Promise<string> {
     systemPrompt: CASCADE_SYSTEM_PROMPT,
     maxTokens: 600, // 5 cascade items × ~100 tokens + envelope ≈ 550; 400 caused JSON truncation
     temperature: 0.5,
-    skipVllm: true, // JSON 구조 분석은 GROQ 70b가 EXAONE-2.4B보다 우수
+    skipVllm: true,
+    preferSmallModel: true, // 8b preserves 70b quota for strategy/daily-brief
     timeoutMs: 18000,
     tag: 'news-cascade',
   });

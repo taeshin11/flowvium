@@ -20,7 +20,7 @@ const STRATEGY_MEMORY_TTL_MS = 23 * 60 * 60 * 1000; // 23h — survive most of t
 
 function cacheKey(): string {
   const kstDate = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  return `flowvium:investment-strategy:v5:${kstDate}`;
+  return `flowvium:investment-strategy:v6:${kstDate}`; // v6: don't cache fallbacks for 24h
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -619,20 +619,26 @@ export async function GET(request: Request) {
 
   if (strategy && !strategy.dataAsOf) strategy = { ...strategy, dataAsOf };
 
+  const isFallback = strategy.source === 'fallback';
   if (redis) {
     try {
-      // Write to current key + stale key (no expiry on stale — keeps last good result indefinitely)
-      await Promise.all([
-        loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: CACHE_TTL }),
-        loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 }), // 7d
-      ]);
+      if (isFallback) {
+        // Cache fallbacks briefly so retries happen after AI quota resets, not 24h later
+        await loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: 5 * 60 }); // 5min
+      } else {
+        await Promise.all([
+          loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: CACHE_TTL }),
+          loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 }),
+        ]);
+      }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
   }
 
   // Module-level memory cache write (no-Redis path)
   if (!redis) {
-    STRATEGY_MEMORY_CACHE = { data: strategy, expiresAt: Date.now() + STRATEGY_MEMORY_TTL_MS };
-    logger.info('api.investment-strategy', 'memory_cache_written');
+    const memTtl = isFallback ? 5 * 60_000 : STRATEGY_MEMORY_TTL_MS;
+    STRATEGY_MEMORY_CACHE = { data: strategy, expiresAt: Date.now() + memTtl };
+    logger.info('api.investment-strategy', 'memory_cache_written', { isFallback });
   }
 
   return NextResponse.json(strategy, { headers: CDN_HEADERS });

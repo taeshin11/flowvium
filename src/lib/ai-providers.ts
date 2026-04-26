@@ -1,5 +1,5 @@
 /**
- * AI Provider Cascade — vLLM → GROQ → Gemini
+ * AI Provider Cascade — vLLM → GROQ → Qwen → Gemini
  *
  * 모든 AI 호출 지점에서 `callAI()` 를 사용하면 자동으로 체인 폴백.
  *
@@ -7,13 +7,16 @@
  *   1. **vLLM** (로컬 무료): EXAONE + cloudflared 터널. 8s 타임아웃 시 즉시 폴백.
  *   2. **GROQ** (무료 티어): llama-3.3-70b → llama-3.1-8b. TPD 100k/500k.
  *      TPD 소진 시 Redis key로 cross-instance guard → 즉시 다음 provider.
- *   3. **Gemini 2.0 Flash** (유료 최종 폴백): GEMINI_API_KEY 없으면 스킵.
+ *   3. **Qwen 2.5 72B** (OpenRouter — OPENROUTER_API_KEY): qwen/qwen-2.5-72b-instruct:free.
+ *      OPENROUTER_API_KEY 없으면 스킵. 200 RPD free tier.
+ *   4. **Gemini 2.0 Flash** (최종 폴백): GEMINI_API_KEY 없으면 스킵.
  *
  * 환경변수:
- *   VLLM_URL           — 선택. e.g. http://localhost:8000/v1 또는 https://tunnel.../v1
- *   GROQ_API_KEY       — 설정 시 vLLM 실패 후 호출. 없으면 스킵.
- *   GEMINI_API_KEY     — 선택. 앞 전부 실패 시 최종 폴백.
- *   AI_PREFER          — 선택. 'groq' 명시 시 vLLM 건너뛰고 GROQ부터.
+ *   VLLM_URL            — 선택. e.g. http://localhost:8000/v1 또는 https://tunnel.../v1
+ *   GROQ_API_KEY        — 설정 시 vLLM 실패 후 호출. 없으면 스킵.
+ *   OPENROUTER_API_KEY  — 선택. GROQ 소진 시 Qwen 2.5 72B 호출.
+ *   GEMINI_API_KEY      — 선택. 앞 전부 실패 시 최종 폴백.
+ *   AI_PREFER           — 선택. 'groq' 명시 시 vLLM 건너뛰고 GROQ부터.
  *
  * Redis cross-instance quota guard (2026-04-26):
  *   GROQ TPD 429 → Redis key 'flowvium:groq:tpd_exhausted_v1' TTL=seconds_until_midnight
@@ -231,6 +234,57 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   return null;
 }
 
+/** Qwen 2.5 72B via OpenRouter — GROQ 소진 후 2차 폴백 */
+async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (!apiKey) return null;
+
+  const t0 = Date.now();
+  const tag = opts.tag ?? 'ai';
+  try {
+    const messages: Array<{ role: string; content: string }> = [];
+    if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
+    messages.push({ role: 'user', content: prompt });
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://flowvium.vercel.app',
+        'X-Title': 'FlowVium',
+      },
+      body: JSON.stringify({
+        model: 'qwen/qwen-2.5-72b-instruct:free',
+        messages,
+        max_tokens: opts.maxTokens ?? 1600,
+        temperature: opts.temperature ?? 0.7,
+      }),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      logger.warn(tag, 'qwen_http_error', { status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'gemini', ok: false, status: res.status, error: `[qwen] ${errText.slice(0, 200)}`, durationMs: Date.now() - t0 });
+      return null;
+    }
+    const data = await res.json();
+    const text: string = data.choices?.[0]?.message?.content ?? '';
+    if (!text) {
+      diag?.push({ provider: 'gemini', ok: false, error: '[qwen] empty_text', durationMs: Date.now() - t0 });
+      return null;
+    }
+    logger.info(tag, 'qwen_ok', { textLen: text.length, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'gemini', ok: true, durationMs: Date.now() - t0 });
+    return text;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(tag, 'qwen_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'gemini', ok: false, error: `[qwen] ${msg.slice(0, 200)}`, durationMs: Date.now() - t0 });
+    return null;
+  }
+}
+
 /** Gemini 호출 — 최종 유료 폴백 */
 async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -300,7 +354,7 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
 }
 
 /**
- * 통합 AI 호출. vLLM → GROQ → Gemini 체인을 순차 시도.
+ * 통합 AI 호출. vLLM → GROQ → Qwen → Gemini 체인을 순차 시도.
  * 모두 실패하면 { text: '', source: 'fallback' } 반환.
  */
 export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<AICallResult> {
@@ -320,7 +374,11 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
   const g = await callGroq(prompt, opts, attempts);
   if (g) return { text: g.text, source: `GROQ-${g.model}`, durationMs: Date.now() - start };
 
-  // 3. Gemini 2.0 Flash (유료 최종 폴백)
+  // 3. Qwen 2.5 72B via OpenRouter (GROQ 소진 시 2차 폴백)
+  const qw = await callQwen(prompt, opts, attempts);
+  if (qw) return { text: qw, source: 'qwen-2.5-72b', durationMs: Date.now() - start };
+
+  // 4. Gemini 2.0 Flash (최종 폴백)
   const gm = await callGemini(prompt, opts, attempts);
   if (gm) return { text: gm, source: 'gemini-2.0-flash', durationMs: Date.now() - start };
 
