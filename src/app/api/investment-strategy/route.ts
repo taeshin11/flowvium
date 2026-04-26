@@ -389,10 +389,17 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   return { macro, sentiment, flows, institutional, shorts, news };
 }
 
+// ── Event calendar for fallback risk events — mirrors macro-indicators FOMC_DATES_2026 / RELEASE_SCHEDULE ─
+const FALLBACK_FOMC_DATES = ['2026-04-30','2026-06-17','2026-07-29','2026-09-16','2026-10-28','2026-12-09'];
+const FALLBACK_NFP_DATES  = ['2026-05-08','2026-06-05','2026-07-02','2026-08-07','2026-09-04','2026-10-02'];
+const FALLBACK_CPI_DATES  = ['2026-05-13','2026-06-10','2026-07-15','2026-08-12','2026-09-10','2026-10-14'];
+function nextEventDate(dates: string[]): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return dates.find(d => d > today) ?? dates[dates.length - 1];
+}
+
 // ── Fallback strategy when AI fails ──────────────────────────────────────────
 function fallbackStrategy(locale = 'en'): InvestmentStrategy {
-  const d = (offsetDays: number) =>
-    new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
   const isKo = locale === 'ko';
   const isJa = locale === 'ja';
   const isZh = locale === 'zh-CN' || locale === 'zh-TW';
@@ -491,9 +498,9 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
       { sector: isKo ? '현금/채권' : 'Cash/Bonds', pct: 15, stance: 'overweight', reason: txt.bondReason },
     ],
     riskEvents: [
-      { date: d(7), event: isKo ? 'FOMC 금리 결정' : isJa ? 'FOMC金利決定' : 'FOMC Rate Decision', impact: 'high', watchFor: txt.fomcWatch },
-      { date: d(14), event: isKo ? '비농업 고용지수' : isJa ? '非農業部門雇用者数' : 'Non-Farm Payrolls', impact: 'high', watchFor: txt.nfpWatch },
-      { date: d(21), event: isKo ? 'CPI / 근원 PCE' : isJa ? 'CPI / コアPCE' : 'CPI / Core PCE', impact: 'medium', watchFor: txt.cpiWatch },
+      { date: nextEventDate(FALLBACK_FOMC_DATES), event: isKo ? 'FOMC 금리 결정' : isJa ? 'FOMC金利決定' : 'FOMC Rate Decision', impact: 'high', watchFor: txt.fomcWatch },
+      { date: nextEventDate(FALLBACK_NFP_DATES),  event: isKo ? '비농업 고용지수' : isJa ? '非農業部門雇用者数' : 'Non-Farm Payrolls', impact: 'high', watchFor: txt.nfpWatch },
+      { date: nextEventDate(FALLBACK_CPI_DATES),  event: isKo ? 'CPI / 근원 PCE' : isJa ? 'CPI / コアPCE' : 'CPI / Core PCE', impact: 'medium', watchFor: txt.cpiWatch },
     ],
     macroAnalysis: txt.macroAnalysis,
     technicalAnalysis: txt.technicalAnalysis,
