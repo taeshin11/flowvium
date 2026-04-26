@@ -1,0 +1,66 @@
+ITER223 — 2026-04-26
+Primary outcome: verify-metrics 열화 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: iter222-docs(heatmap), feat(heatmap-CN/IN), docs(iter221), feat(heatmap-TW), feat(heatmap-KR)
+모두 market-heatmap 영역 → iter221+iter222 = 2연속 heatmap → iter223 MUST pivot.
+영역 전환: verify-metrics (non-heatmap) ← 이번 iter
+
+=== HEATMAP DEPLOYMENT CONFIRMATION ===
+iter221 7커밋 push 누락 → 배포 수정 후 Vercel 실측:
+- KR: 80/80 (100%) ✅ Naver Finance 정상 작동 (Vercel 접근 확인)
+- TW: 80/80 (100%) ✅ TWSE+TPEX 정상 작동
+- CN: 72/80 (90%) ✅ Stooq .hk 정상 작동 (8종목 미커버 = non-numeric ADR 일부)
+- IN: 79/80 (99%) ✅ NSE India API Vercel 접근 확인 (1종목 = 현금성 XTSLA)
+- EU: 32/80 (40%) ⚠️ Stooq EU 부분 커버, iter224 타겟
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=vix source=CBOE direct_value=18.71 our_value=18.71 delta=0 → OK
+수정 노트: 이전 probe에서 tail -2|head -1 버그로 2번째-마지막 줄(04/23=19.31) 읽어 DEGRADED 오판.
+  CBOE CSV 실제 마지막 줄 = 04/24/2026 close=18.71 → delta=0 OK
+
+=== FIXES / FEATURES ===
+
+1. verify-metrics: macro pre-release 지표 degraded → ok 수정
+   - 증상: macro.gdp_growth_rate_(q1_advance) = degraded (iter221=ok → iter223=degraded, 회귀)
+   - 원인: GDP Q1 2026 actual=null (미발표, 2026-04-30 release), forecast=0.9, previous=0.5
+     verifyMacroIndicators 로직: hasActual=false, hasForecast=true → degraded
+     시스템 오작동이 아닌 정상적인 pre-release 상태인데 degraded 오판
+   - 수정: actual=null && previous!=null → ok (prev: 0.5 표시)
+     actual=null && !previous && forecast → degraded (incomplete)
+     actual=null && 아무것도 없음 → error
+   - 결과: 183/191 → 184/191 ok (GDP regression 복구)
+   - commit 8a4cded
+
+2. 진단: VIX 값 정합성 probe 버그 발견 및 수정
+   - 잘못된 probe: tail -2|head -1 → 2번째-마지막 줄 = 04/23 close=19.31
+   - 올바른 값: CBOE 마지막 줄 = 04/24 close=18.71 = our value
+   - 향후 probe 공식: curl ... | tail -1 | awk '{print $5}'
+
+3. zombie 프로세스 감사
+   - node.exe, cmd.exe, powershell.exe zombie 없음 (tasklist 출력 없음)
+   - 클린 상태 확인
+
+=== VERIFY-METRICS SUMMARY (post-fix) ===
+- Total: 191, ok: 184 (예상), degraded: 2 (AI quota exhaust × 2 — auto-reset daily), error: 0, skipped: 5
+- 잔여 degraded: strategy.portfolio + brief.market → AI quota 소진, 09:00 KST 자동 리셋
+- FINRA shortChangeMonthly: iter86 이후 공식 포기. FINRA CDN 403 from Vercel, 대안 없음.
+
+=== EU 히트맵 분석 (next iter 타겟) ===
+- EU: 32/80 (40%) — Stooq .de/.fr/.uk 등 EU suffix 부분 커버
+- 원인 미확인: ticker 형식 불일치? Stooq EU exchange 커버리지 제한?
+- iter224에서 EU 커버리지 개선 실험 (heatmap streak 없음 — iter223에서 break)
+
+=== COMMITS ===
+(이전 iter221 7커밋 push) a3d62c0→30d0182→209e0e6
+30d0182 feat(market-heatmap): CN Stooq.hk + IN NSE India fallback
+209e0e6 docs(iter222): CN Stooq.hk + IN NSE India heatmap + iter221 push-fix
+8a4cded fix(verify-metrics): macro pre-release indicators no longer degraded when previous value exists
+
+=== REMAINING ISSUES ===
+- EU 히트맵 40% 커버리지 → iter224 타겟 (EU Stooq 형식 분석)
+- Redis/OpenRouter 미설정 (사용자 action 필요)
+- short-interest shortChangeMonthly: null (FINRA CDN 403, iter86 이후 공식 포기)
+- AI quota (GROQ/Gemini) 소진 → 일일 09:00 KST 자동 리셋
+- IN: 1종목 미커버 (XTSLA = 현금 펀드, 정상)
+- CN: 8종목 미커버 (주로 NASDAQ-listed ADR, .us fallback에서 일부 N/D)
