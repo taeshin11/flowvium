@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet} from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 /**
  * Cron: /api/cron/update-credit-balance
  *
@@ -72,14 +72,7 @@ export async function GET(req: NextRequest) {
   if (redis) {
     const today = new Date().toISOString().slice(0, 10);
     const bustKey = `flowvium:credit-balance:v3:${today}`;
-    try {
-      // Wildcard delete — date-based keys
-      logger.info('cron.update-credit-balance', 'cache_bust_start', { key: bustKey });
-      await redis.del(bustKey);
-      logger.info('cron.update-credit-balance', 'cache_bust_ok', { key: bustKey });
-    } catch (bustErr) {
-      logger.error('cron.update-credit-balance', 'cache_bust_failed', { key: bustKey, error: bustErr });
-    }
+    await loggedRedisDel(redis, 'cron.update-credit-balance', [bustKey]);
   }
 
   // Revalidate relevant ISR pages

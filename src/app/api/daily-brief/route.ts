@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet } from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import {
   createRedis, cacheKey, staleCacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
@@ -165,10 +165,6 @@ export async function DELETE(request: Request) {
   const redis = createRedis();
   if (!redis) return NextResponse.json({ error: 'No Redis' }, { status: 503 });
   const keys = (['1w', '4w', '13w'] as Timeframe[]).map(cacheKey);
-  await Promise.allSettled(keys.map(async (k) => {
-    logger.info('api.daily-brief', 'cache_bust_start', { key: k });
-    await redis.del(k);
-    logger.info('api.daily-brief', 'cache_bust_ok', { key: k });
-  }));
+  await loggedRedisDel(redis, 'api.daily-brief', keys);
   return NextResponse.json({ deleted: keys });
 }

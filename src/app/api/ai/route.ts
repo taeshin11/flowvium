@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet} from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 import { callAI } from '@/lib/ai-providers';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
@@ -116,6 +116,6 @@ export async function DELETE(request: Request) {
   const redis = createRedis();
   if (!redis || !ticker) return NextResponse.json({ error: 'Bad request' }, { status: 400 });
   const key = cacheKey(ticker, type ?? 'general');
-  await redis.del(key);
+  await loggedRedisDel(redis, 'api.ai', [key]);
   return NextResponse.json({ deleted: key });
 }

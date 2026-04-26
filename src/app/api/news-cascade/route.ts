@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet} from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-providers';
@@ -507,7 +507,7 @@ export async function GET(request: Request) {
 
   // Release distributed lock (held only when we were the winning Lambda)
   if (redis && ownLock) {
-    try { await redis.del(LOCK_KEY); } catch { /* non-fatal */ }
+    await loggedRedisDel(redis, 'api.news-cascade', [LOCK_KEY]);
   }
 
   return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });
