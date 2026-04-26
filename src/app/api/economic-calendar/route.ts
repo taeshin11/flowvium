@@ -8,7 +8,7 @@
  * ?to=YYYY-MM-DD    (기본: 오늘+14일)
  * ?country=US       (기본: US — 쉼표 구분 복수 가능)
  *
- * Redis: flowvium:econ-cal:v1:{from}:{to}:{country} — 4h TTL
+ * Redis: flowvium:econ-cal:v2:{from}:{to}:{country} — 4h TTL
  */
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
@@ -43,6 +43,9 @@ export interface EconCalResponse {
 }
 
 function mapImpact(raw: string | number | null): EconCalEvent['impact'] {
+  if (raw === 'high' || raw === 3) return 'high';
+  if (raw === 'medium' || raw === 2) return 'medium';
+  // Finnhub returns string labels; numeric fallback for alternate API
   const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? '1'), 10);
   if (n >= 3) return 'high';
   if (n === 2) return 'medium';
@@ -73,7 +76,7 @@ export async function GET(req: Request) {
 
   const apiKey = process.env.FINNHUB_KEY?.trim();
   const redis = createRedis();
-  const cacheKey = `flowvium:econ-cal:v1:${from}:${to}:${country}`;
+  const cacheKey = `flowvium:econ-cal:v2:${from}:${to}:${country}`;
 
   if (redis) {
     try {
