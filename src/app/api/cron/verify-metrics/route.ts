@@ -147,7 +147,7 @@ async function verifyFearGreed(base: string): Promise<MetricItem[]> {
 }
 
 async function verifyCapitalFlows(base: string): Promise<MetricItem[]> {
-  const r = await safeJson(base, '/api/capital-flows');
+  const r = await safeJson(base, '/api/capital-flows', 45000); // 45s: cold Lambda + TwelveData can take 30s
   if (!r.ok) {
     return [{
       key: 'cf.ALL', label: 'Capital Flows API', group: 'capital-flows',
