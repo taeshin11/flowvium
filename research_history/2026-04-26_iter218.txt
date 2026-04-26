@@ -1,0 +1,71 @@
+ITER218 — 2026-04-26
+Primary outcome: market-movers Yahoo→Nasdaq 복구 + AI provider diag 완성
+
+=== DRIFT CHECK ===
+Recent 5 commits: d6938eb (Qwen diag), 77df893 (docs), ea864a2 (daily-brief CDN), cdcddc0 (CDN fix), 680b5c5 (iter217 log)
+영역 분산: ai-providers, CDN cache, docs — 연속 동일 영역 없음. NO DRIFT.
+
+=== PRIMARY OUTCOME ===
+market-movers: 0 gainers → 5 gainers/5 losers (Nasdaq source)
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+verify-metrics: 183/191 ok, 3 degraded, 0 error (from start of iter)
+[accuracy probe] metric=fg.us source=CNN via-verify-metrics=66 tolerance=3 → OK
+[accuracy probe] metric=market-movers.INTC source=Nasdaq direct_value=+23.60% our_value=+23.60% delta=0 → OK
+  INTC 04/24: $82.54 vs 04/23: $66.78 — Intel earnings jump (genuine)
+
+=== AI CHAIN STATUS ===
+All 4 providers exhausted:
+- GROQ 70b: 99,780/100,000 TPD (429)
+- GROQ 8b: 499,549/500,000 TPD (429)
+- Qwen: OPENROUTER_API_KEY not configured
+- Gemini: quota exhausted, resets in ~1285m (~21h from iter start)
+Resets at UTC midnight 2026-04-27.
+
+=== FIXES DONE ===
+
+1. AI provider diag push 누락 수정 (ai-providers.ts)
+   - callVLLM: VLLM_URL 없으면 diag push 없이 return null → diag push 추가
+   - callGroq: GROQ_API_KEY 없으면 diag push 없이 return null → diag push 추가
+   - callGemini: GEMINI_API_KEY 없으면 diag push 없이 return null → diag push 추가
+   - 이제 all_providers_failed 시 어떤 provider가 왜 스킵됐는지 완전히 보임
+   - commit d6938eb... (prev iter), 49051af
+
+2. market-movers: Yahoo Finance v7 batch → Nasdaq historical API (market-movers/route.ts)
+   - Yahoo Finance query2.finance.yahoo.com/v7/finance/quote 블록 확인 → 0 gainers/0 losers
+   - Nasdaq api.nasdaq.com/api/quote/{ticker}/historical?assetclass=stocks 로 교체
+   - 50종목 × 최근 5일 데이터 → 마지막 2 close로 change% 계산
+   - 첫 버전: 5-concur/200ms → FUNCTION_INVOCATION_TIMEOUT (>10s)
+   - 최적화: 50병렬 + 4s per-ticker timeout → 4024ms (10s 이내) ✓
+   - 결과: gainers=5, losers=5, advancers=25, decliners=24
+   - INTC +23.60%, AMD +13.91%, QCOM +11.12% (Intel 실적 급등 등 실제 데이터)
+   - commit 49051af → 91dfccf
+
+3. latest-updates getMarketMoverItems HTTP fallback (latest-updates/route.ts)
+   - 이전: Redis 없으면 return [] (항상 빈 배열)
+   - 수정: Redis 없으면 /api/market-movers HTTP fallback
+   - 이제 market-movers 데이터가 latest-updates 피드에 포함됨
+   - commit 49051af
+
+=== LIVE ENDPOINT STATUS (post-fix) ===
+- market-movers: gainers=5, losers=5, source=nasdaq, 4024ms (CDN warm 후 130ms)
+- capital-flows: Nasdaq ×41, 132ms CDN
+- fear-greed: score=66, 216ms CDN
+- macro-indicators: 13 indicators, 801ms CDN
+- fedwatch: 138ms CDN
+- volatility: VIX=18.71, regime=contango
+- sector-pe: 11 sectors, Technology PE=38.09
+- short-interest: 33 entries (shortRatio null — Yahoo quoteSummary blocked, base data OK)
+- batch-prices: Finnhub fallback 작동 (AAPL $271.06, source=finnhub)
+- stock-price/AAPL: source=finnhub, $271.06, prevClose=$273.43
+
+=== REMAINING ISSUES ===
+- AI 전체 소진 → midnight UTC reset 대기 (진행 불가)
+- OPENROUTER_API_KEY 미설정 → Qwen inactive (user action needed)
+- Redis 미설정 → CDN-only caching (user action needed)
+- short-interest shortRatio/shortChangeMonthly null (Yahoo quoteSummary blocked)
+- market-movers: 주말에는 전거래일 종가 기준 (실시간 아님 — acceptable)
+
+=== COMMITS ===
+49051af fix(market-movers): Yahoo Finance → Nasdaq 50-ticker 기반 당일 등락률 복구
+91dfccf perf(market-movers): 순차 배치 → 50병렬 fetch + 4s per-ticker timeout
