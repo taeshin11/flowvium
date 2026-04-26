@@ -440,14 +440,17 @@ async function buildEntry(
   let degradedFactors: string[] = [];
 
   if (useCNN) {
-    const cnn = await fetchCNNScore();
+    // Fetch CNN and Yahoo prices in parallel — CNN and Yahoo are independent sources
+    const [cnn, prices] = await Promise.all([
+      fetchCNNScore(),
+      fetchPrices(ticker).catch(() => [] as number[]),
+    ]);
     if (cnn) {
       score = cnn.score;
       prevScore = cnn.prevScore;
       history = cnn.history;
       source = 'cnn';
       try {
-        const prices = await fetchPrices(ticker);
         const f = compositeWithFactors(prices, ticker);
         rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
         dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
@@ -457,7 +460,6 @@ async function buildEntry(
       }
     } else {
       logger.error('fear-greed', 'cnn_expected_fallback_to_composite', { ticker });
-      const prices = await fetchPrices(ticker);
       const f = compositeWithFactors(prices, ticker);
       score = f.score; prevScore = compositeScore(prices.slice(0, -7));
       rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
