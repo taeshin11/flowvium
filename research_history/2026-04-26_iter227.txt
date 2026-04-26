@@ -1,0 +1,80 @@
+ITER227 — 2026-04-26
+Primary outcome: PCE/GDP nextRelease 자동진행 + GDP 컨센서스 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: docs(iter226), fix(verify-metrics), fix(economic-calendar)×2, feat(economic-calendar)
+- iter224=heatmap/stooq, iter225=macro-indicators, iter226=economic-calendar+verify-metrics
+- iter227: macro-indicators → iter225와 같은 모듈이지만 다른 결함 (staleness 아닌 auto-advance 부재)
+- No 3-consecutive signal: iter226은 economic-calendar였음 → no drift
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=pce.yoy source=FRED-PCEPILFE direct_value=2.97% our_value=2.97% delta=0 → OK
+  FRED: (128.859-125.145)/125.145*100=2.97% (Feb 2026 vs Feb 2025) ✓
+[accuracy probe] metric=gdp.consensus source=Finnhub-econ-cal direct_value=2.1 our_value_before=0.9 delta=1.2 → STALE (fixed)
+[accuracy probe] metric=gdp.nextRelease source=auto-schedule today=2026-04-26 → 2026-04-30 ✓ May1→2026-05-29 ✓
+
+=== FINDINGS ===
+
+1. GDP/PCE nextRelease stale problem (April 30 is 4 days away)
+   - FORECASTS.pce.nextRelease='2026-04-30', FORECASTS.gdp.nextRelease='2026-04-30'
+   - After April 30 passes, these stay as past dates — users see "Next release: April 30" forever
+   - FOMC was already fixed in iter225 with nextFomcDate() auto-compute
+   - GDP/PCE had no equivalent mechanism
+
+2. PCE/GDP RELEASE_SCHEDULE implementation
+   - Added RELEASE_SCHEDULE constant: PCE (9 dates through Dec 2026), GDP (6 dates through Jan 2027)
+   - Added nextScheduledRelease(series, fallback) — computes new Date() at request time
+   - Wire: PCE/GDP indicator blocks now use nextScheduledRelease() instead of FORECASTS.xxx.nextRelease
+   - Auto-advance test: Apr26→Apr30, May1→(pce:May30, gdp:May29), Jun1→(pce:Jun26, gdp:Jun25) ✓
+
+3. GDP consensus update: 0.9 → 2.1
+   - Finnhub economic-calendar shows: "GDP Growth Rate QoQ Adv est=2.1" on Apr 30
+   - Our FORECASTS.gdp.forecast was still 0.9 (early April consensus, before recent data)
+   - Updated FORECASTS.gdp.forecast: 0.9 → 2.1
+   - Updated STATIC.gdp.forecast: 0.9 → 2.1
+   - Updated STATIC.gdp.summary: "Consensus est. 0.9%" → "Consensus est. 2.1% (Finnhub)"
+   - Impact: surprise classification after April 30 will correctly evaluate against 2.1
+
+=== INVESTIGATION FINDINGS ===
+
+verify-metrics current state (Apr 26):
+- ok=183, degraded=3, error=0, skipped=5, total=191
+- DEGRADED: comm.oil (backwardation -16.6%), strategy.portfolio (neutral 5pos), brief.market (fallback data)
+- First probe returned partial result (160 items) — timeout artifact. Second: 191 total. ✓
+
+/api/brief/market → 404. Actual endpoint is /api/daily-brief → 200, source=data (AI quota exhausted)
+  - fallback content is structured and usable (sectors, F&G, FOMC cut%)
+  - degraded but not broken
+
+Economic calendar April 29-30:
+  - Apr 29: "Fed Interest Rate Decision est=3.75" (high) ← Finnhub covers, FOMC injection correctly skips ✓
+  - Apr 30: "GDP Growth Rate QoQ Adv est=2.1", "Core PCE Price Index MoM est=0.3",
+             "Personal Spending MoM est=0.9" (all high) ← correctly covered
+
+GDP future release structure:
+  - Apr 30: Q1 Advance (liveData will activate after FRED updates)
+  - May 29: Q1 Second (FRED A191RL1Q225SBEA updates, gdpLive date >= '2026-01-01' ✓)
+  - Jun 25: Q1 Third
+  - Jul 30: Q2 Advance
+
+ISM May 1 consensus: Finnhub shows 53.2 (vs current 49.0 actual) — +4.2 jump suspicious.
+  Single-source Finnhub only, no second confirmation → ISM forecast left unchanged (49.5 hardcoded).
+
+PCE date issue: pceData.date shows FRED observation date (2026-02-01) not BEA press-release date
+  (2026-03-28). Not fixed — minor cosmetic issue, behavior is known.
+
+=== ZOMBIE PROCESS CHECK ===
+No zombie node/cmd processes found. Clean.
+
+=== COMMITS ===
+feat(macro-indicators): PCE/GDP nextRelease auto-advance + GDP consensus 0.9→2.1
+
+=== REMAINING ISSUES ===
+- FORECASTS.pce.forecast=2.6, FORECASTS.gdp.forecast=2.1 — will need manual update after Apr-30 releases
+  for the NEXT release cycle (Apr PCE on May 30, Q1 Second on May 29)
+- FORECASTS.retail.forecast=-1.3 — stale consensus (actual was +1.7%), May est=None from Finnhub, no update
+- brief.market: degraded (AI quota exhaustion, auto-resets daily 09:00 KST)
+- EU heatmap: 45% ceiling (official)
+- Redis/OpenRouter: 미설정
+- FINRA: 공식 포기
+- KRX flow: auth required
