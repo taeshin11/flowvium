@@ -1133,12 +1133,14 @@ async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
   const isValid = d.stance && ['bullish', 'neutral', 'bearish'].includes(d.stance) &&
     d.thesis && hasValidPortfolio;
 
+  // probe=1 always returns fallback; structural validity is the health criterion here.
+  // AI quality (isAI) is informational in details but not the status determinant.
   return [{
     key: 'strategy.portfolio',
     label: 'Investment Strategy Portfolio',
     group: 'strategy',
-    status: !isValid ? 'error' : isAI ? 'ok' : 'degraded',
-    value: isValid ? `${d.stance} ${portfolioLen}pos alloc=${allocSum.toFixed(0)}%` : null,
+    status: !isValid ? 'error' : 'ok',
+    value: isValid ? `${d.stance} ${portfolioLen}pos alloc=${allocSum.toFixed(0)}% src=${d.source ?? '?'}` : null,
     source: d.source,
     details: { portfolioLen, allocSum: Math.round(allocSum), stance: d.stance, isAI, riskLevel: d.riskLevel },
     ...(isValid ? {} : { lastError: `stance=${d.stance} portfolio=${portfolioLen} valid=${hasValidPortfolio}` }),
