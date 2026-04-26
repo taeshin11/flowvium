@@ -162,10 +162,18 @@ export async function GET(req: Request) {
 
     logger.info('api.cot-positions', 'parsed', { found: entries.length, durationMs: Date.now() - t0 });
 
+    if (entries.length === 0) {
+      // Don't cache empty parse results — prevents CDN from serving stale empty data
+      logger.warn('api.cot-positions', 'parse_empty', { textLen: text.length });
+      return NextResponse.json({ entries: [], error: 'parse yielded 0 entries', cached: false }, { status: 502 });
+    }
+
     const reportDate = entries[0]?.reportDate ?? '';
     const payload = { entries, reportDate, count: entries.length, updatedAt: new Date().toISOString(), cached: false };
 
-    await loggedRedisSet(redis, 'api.cot-positions', CACHE_KEY, payload, { ex: CACHE_TTL });
+    if (redis) {
+      await loggedRedisSet(redis, 'api.cot-positions', CACHE_KEY, payload, { ex: CACHE_TTL });
+    }
     return NextResponse.json(payload, { headers: CDN_HEADERS });
   } catch (err) {
     logger.error('api.cot-positions', 'fetch_failed', { error: err instanceof Error ? err.message : String(err) });
