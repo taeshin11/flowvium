@@ -1,0 +1,116 @@
+iter238 — 2026-04-26
+primary outcome: CPI/PCE/PPI cascade 방향 역전 버그 수정
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- c752eeb docs(history): iter237 log
+- 616ec4b fix(fedwatch): correct Jun 17 date + update static probabilities
+- c85c251 docs(history): iter236 log
+- 2cf3ed0 fix(macro): cron-warm bypasses Redis + correct PCE static fallback
+- 77a7f6d docs(history): iter235 log
+
+Drift signal check:
+(1) macro-indicators: iter236 + iter237 + iter238 = 3회 — DRIFT 신호!
+    → 하지만 이번 iter는 다른 레이어(cascade logic) 버그 수정으로 실질 영역 이동
+    → 다음 iter는 macro-indicators 이외 영역으로 강제 이동
+(2) investment-strategy: 2회 → 2회 유지 (터치 없음) ✓
+(3) Primary metric 정체: 186/186 → 없음
+(4) 인프라 블로커: GROQ guard 자정 UTC 자동 해제 예정 → 없음
+
+→ Drift 경고: 다음 iter는 macro-indicators 아닌 영역으로 이동 필수
+
+## Primary Outcome
+CPI/PCE/PPI cascade 방향 역전 버그 수정
+
+## 발견된 버그
+
+### Critical Bug: macro-indicators cascade 방향이 인플레이션 지표에서 반전
+
+**문제:**
+`classify()` 함수와 `buildCascade()` 함수가 'beat'/'miss' 개념을 반대로 사용:
+
+- `classify(actual, forecast, false)`: "lower is better" 기준
+  - `beat` = actual < forecast = 인플레이션 낮음 = **dovish**
+  - `miss` = actual > forecast = 인플레이션 높음 = **hawkish**
+
+- `buildCascade()` 기존 코드: 금융 업계 관용어 기준
+  - `beat` 항목: "hawkish Fed expectations → bond sell-off" (yields↑) ← 역전!
+  - `miss` 항목: "dovish Fed expectations → bond rally" (yields↓) ← 역전!
+
+**결과:**
+- CPI 3.29% vs est 2.5% → classify returns `'miss'` (hawkish)
+- buildCascade('cpi', 'miss') → 기존: 채권 랠리, USD 약세 표시 ← **WRONG**
+- UI에서 hawkish CPI 발표 시 yields 하락 화살표(↓), 주식 상승 화살표(↑) 표시
+
+같은 버그: PCE (2.97 vs 2.6 est), PPI (4.11 vs 3.3 est) 동일하게 역전
+
+**수정 (commit 3efab71):**
+CPI, PCE, PPI의 beat/miss cascade 항목 교체 및 description 수정:
+- beat (인플레이션 하회 = dovish): yields↓, USD↓, 주식↑ ✓
+- miss (인플레이션 상회 = hawkish): yields↑, USD↑, 주식↓ ✓
+
+**UI 효과:**
+MacroIndicatorsTab cascade 화살표 색상이 이제 올바른 방향 표시:
+- CPI miss (3.29 > 2.5): 빨간 화살표 (yields↑, USD↑, 주식↓) ✓
+- PCE miss (2.97 > 2.6): 빨간 화살표 (yields↑, 주식↓) ✓
+- PPI miss (4.11 > 3.3): 빨간 화살표 (yields↑, 주식↓) ✓
+
+**비고:**
+- iclaims, unrate, nfp, gdp, retail, ism, fomc: classify()와 buildCascade() 일치 → 정상
+- rateImpact 함수는 이미 정확 (miss = hawkish for inflation) — cascade만 틀림
+
+## 조사 과정 중 false alarm
+
+### False alarm 1: OSINTPage.tsx entry.cascade (singular)
+- OSINT social API는 `cascade: string[]` 필드명 사용 (singular)
+- news-cascade API는 `cascades: CascadeStep[]` 사용 — 다른 타입, 다른 엔드포인트
+- OSINTPage.tsx의 `entry.cascade` 접근은 올바름 ✓
+
+### False alarm 2: OSINT social neutral sentiment
+- 모든 항목이 neutral sentiment — RSS 피드가 일반 뉴스여서 정상
+- sentiment 감지 regex가 좁은 것은 의도된 보수적 접근
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=cpi    source=FRED  direct_value=3.29  our_value=3.29  delta=0.00 → OK
+[accuracy probe] metric=pce    source=FRED  direct_value=2.97  our_value=2.97  delta=0.00 → OK
+[accuracy probe] metric=ppi    source=FRED  direct_value=4.11  our_value=4.1   delta=0.01 → OK (rounding)
+[accuracy probe] metric=fomc   source=FRED  direct_value=3.75  our_value=3.625 delta=0.125 → OK (upper bound vs mid)
+[accuracy probe] metric=curve  source=FRED  direct_value=0.53  our_value=0.51  delta=0.02 → OK (1-day lag)
+```
+
+## 전체 엔드포인트 상태
+cascade 방향 수정 후 verify-metrics endpoint 정상 (186 OK)
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: cascade 방향 수정 → UI 인플레이션 지표 화살표 올바르게 ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: N/A
+
+## 커밋 (총 1개)
+- 3efab71: fix(macro-indicators): correct inverted cascade directions for CPI/PCE/PPI
+
+## 다음 iter 우선순위
+
+⚠️ DRIFT 경고: macro-indicators 3회 연속 → 다음 iter는 다른 영역 필수
+
+1. **April 30 (목요일)**: GDP Q1 advance + PCE March + FOMC decision
+   - UTC 12:30: BEA GDP/PCE 발표 → FRED 직접 확인
+   - UTC 18:00: FOMC 결정 (hold 97% 예상)
+   - STATIC.gdp.actual 업데이트 필요
+   - FORECASTS.pce.forecast 2.6 → ~3.0 업데이트
+   - STATIC.pce.actual 3.0 유지 (이미 반영된 March PCE 예상치)
+
+2. **GROQ quota 복구 확인**: KST 09:00 April 27 이후 investment-strategy?debug=1 확인
+
+3. **drift 탈출 영역 탐색** (April 30 이후):
+   - company-news / news-gap / cascade 페이지 품질 점검
+   - watchlist 성능
+   - heatmap data quality
+
+## 기술 메모
+- CPI/PCE/PPI cascade 버그는 시각적 문제 (wrong arrows) — 수치 정확도와 무관
+- classify()와 buildCascade()는 이제 서로 일관된 'beat'/'miss' 의미 사용
+- iclaims(false), unrate(false) → classify와 buildCascade 레이블 일치 확인 ✓
