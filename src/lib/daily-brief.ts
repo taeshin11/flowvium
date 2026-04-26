@@ -256,6 +256,13 @@ export async function callAI(prompt: string): Promise<{ text: string; source: st
   return { text: r.text, source: r.source, attempts: r.attempts };
 }
 
+const SECTOR_EN: Record<string, string> = {
+  '정보기술': 'Tech', '커뮤니케이션': 'Comm', '금융': 'Financials',
+  '경기소비재': 'Cons Disc', '헬스케어': 'Health', '필수소비재': 'Staples',
+  '산업재': 'Industrials', '에너지': 'Energy', '소재': 'Materials',
+  '부동산': 'Real Estate', '유틸리티': 'Utilities',
+};
+
 // ── Compact summarisers for each tab ─────────────────────────────────────────
 function summariseHeatmap(data: unknown): string {
   const d = data as Record<string, unknown> | null;
@@ -264,8 +271,9 @@ function summariseHeatmap(data: unknown): string {
   const sorted = [...sectors]
     .filter(s => s.avgChangePct != null)
     .sort((a, b) => (b.avgChangePct as number) - (a.avgChangePct as number));
-  const top = sorted.slice(0, 3).map(s => `${s.sector}${(s.avgChangePct as number) > 0 ? '+' : ''}${(s.avgChangePct as number).toFixed(1)}%`);
-  const bot = sorted.slice(-2).map(s => `${s.sector}${(s.avgChangePct as number).toFixed(1)}%`);
+  const sL = (s: Record<string, unknown>) => SECTOR_EN[s.sector as string] ?? s.sector as string;
+  const top = sorted.slice(0, 3).map(s => `${sL(s)}${(s.avgChangePct as number) > 0 ? '+' : ''}${(s.avgChangePct as number).toFixed(1)}%`);
+  const bot = sorted.slice(-2).map(s => `${sL(s)}${(s.avgChangePct as number).toFixed(1)}%`);
   return `sectors↑${top.join(',')} ↓${bot.join(',')}`;
 }
 
@@ -635,8 +643,9 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
       const sorted = [...sectors]
         .filter(s => s.avgChangePct != null)
         .sort((a, b) => (b.avgChangePct as number) - (a.avgChangePct as number));
-      const top = sorted.slice(0, 2).map(s => `${s.sector} +${(s.avgChangePct as number).toFixed(1)}%`);
-      const bot = sorted.slice(-1).map(s => `${s.sector} ${(s.avgChangePct as number).toFixed(1)}%`);
+      const sectorLabel = (s: Record<string, unknown>) => SECTOR_EN[s.sector as string] ?? s.sector as string;
+      const top = sorted.slice(0, 2).map(s => `${sectorLabel(s)} +${(s.avgChangePct as number).toFixed(1)}%`);
+      const bot = sorted.slice(-1).map(s => `${sectorLabel(s)} ${(s.avgChangePct as number).toFixed(1)}%`);
       if (top.length) marketBullets.push(`Sectors up: ${top.join(', ')}`);
       if (bot.length) marketBullets.push(`Sectors down: ${bot.join(', ')}`);
     }
