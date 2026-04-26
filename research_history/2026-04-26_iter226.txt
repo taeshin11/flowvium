@@ -1,0 +1,63 @@
+ITER226 — 2026-04-26
+Primary outcome: 경제 캘린더 FOMC 주입 + verify-metrics CNN 418 오류 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: docs(iter225), feat(macro-FOMC-calendar), fix(macro-FRED-stale), fix(stooq-EU), docs(iter223)
+- iter225=macro-indicators, iter224=stooq/heatmap, iter223=verify-metrics
+- 3개 다른 모듈 → no drift
+- iter226: economic-calendar + verify-metrics → no drift
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=macro.nfp.previous source=FRED confirmed=117 our_value=117(after fix) → OK
+[accuracy probe] metric=accuracy.fg.us source=CNN CNN=418_blocked our_value=66 → SKIP (CNN Vercel block)
+[accuracy probe] metric=economic-calendar.fomc source=finnhub+static Finnhub_Apr29="Fed Interest Rate Decision" est=3.75 → Finnhub이 Apr29에 이미 커버, 우리 주입 dedup 처리
+
+=== FINDINGS ===
+
+1. 경제 캘린더 FOMC 누락
+   - Finnhub 무료 API: 170개 이벤트 (Apr 27~May 10), GDP/PCE/claims 등 포함
+   - FOMC 금리 결정 누락 → 가장 중요한 이벤트가 calendar에 없음
+   - 조사 결과: Finnhub이 실제로는 "Fed Interest Rate Decision" (Apr 29, impact=high, est=3.75)를 포함
+   - 단, Finnhub이 Apr 29 날짜로 listing (실제 발표 Apr 30 2PM ET)
+
+2. FOMC 주입 로직 구현
+   - FOMC_2026 constant: 8개 회의 날짜, 예상 금리, 전 금리
+   - injectFomcEvents(): Finnhub data에 FOMC 병합
+   - 첫 버전: "fed funds" 포함 이벤트만 dedup → Finnhub "Fed Interest Rate Decision"과 중복 발생
+   - 수정: ±1일 범위 + "interest rate|rate decision|fed funds|fomc" 정규식으로 dedup → Finnhub 이미 커버하면 주입 안 함
+   - 효과: Finnhub이 없거나 커버 못하는 미래 회의 날짜에 자동 보완
+
+3. verify-metrics CNN F&G 418 오류
+   - accuracy.fg.us 프로브: CNN 직접 fetch → Vercel IP에서 HTTP 418 "I'm a teapot" 반환
+   - 기존 코드: `!cnnRes.ok` → throw Error → status: 'error' (잘못된 오류)
+   - 수정: CNN non-2xx → status: 'skipped' + "Vercel IP blocked" 메시지
+   - 효과: 잘못된 error 카운트 제거, 더 정직한 상태 표시
+
+=== EU NEGATIVE RESULT ===
+Stooq 대안 suffix 재확인:
+- .mi (Italia): ENI.MI, ISP.MI, ENEL.MI → 모두 N/D (batch endpoint 차단, historical API key 필요)
+- .st (Stockholm): VOLV-B.ST, ATCO-A.ST → N/D
+- .co (Copenhagen): NOVO-B.CO, MAERSK-B.CO → N/D
+EU 커버리지 45% 상한 최종 확인, 상위 suffix 차이 아닌 Stooq access 문제
+
+=== ENDPOINT HEALTH CHECK ===
+- signals API: 3141개 ✓
+- capital-flows: 12개국 rotation data ✓
+- COT positions: 7개 선물 ✓ (name/net 필드명 다름 — probe 오류 아님)
+- options-flow / block-trades: configured=false (유료 API 잠김)
+- flow-analysis: static-fallback (AI 할당량 소진)
+- korea-flow: foreignerNetBuy=null (KRX API 차단)
+- short-interest: stocks=0 (FINRA CDN 403, iter86 공식 포기)
+
+=== COMMITS ===
+feat(economic-calendar): inject FOMC rate decision events — Finnhub free tier gap
+fix(economic-calendar): skip FOMC injection when Finnhub already includes Fed rate event (±1 day)
+fix(verify-metrics): CNN F&G accuracy probe — skip on 418/non-2xx instead of error
+
+=== REMAINING ISSUES ===
+- EU heatmap: 45% 상한, .mi/.st/.co 포함 모두 N/D 확인 → 공식 한계
+- Redis/OpenRouter: 미설정
+- AI quota (GROQ/Gemini): 소진 → 09:00 KST 자동 리셋
+- FINRA shortChangeMonthly: 공식 포기
+- April 30 대형 이벤트: FOMC, GDP, Core PCE → FRED 자동 업데이트 예정
+- FOMC nextRelease 이후 static 업데이트: FOMC 캘린더로 자동화 완료
