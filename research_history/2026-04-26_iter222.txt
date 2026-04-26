@@ -1,0 +1,65 @@
+ITER222 — 2026-04-26
+Primary outcome: CN/IN 히트맵 시세 복구 실험
+
+=== DRIFT CHECK ===
+Recent 5 commits: a3d62c0(iter221 docs), a799245(TW TWSE), da82da0(KR Naver), e2f52da+d2a91d6(maxDuration)
+영역 분산: iter220=api-perf, iter221=heatmap-KR/TW+api-perf, iter222=heatmap-CN/IN → 2 연속 heatmap, NOT 3. NO DRIFT.
+[3a]+[3b] 충족: core number (changePct 0%→80%+) + 실패확률 ≥50% 실험 (Vercel IP 블록 미확인)
+
+=== CRITICAL BUG FOUND ===
+iter221 커밋 7개 (035d484~a3d62c0) 가 GitHub에 push 안 됨 → Vercel 배포 없음
+증상: KR/TW 히트맵 production에서 source="Yahoo v8 (시세)" (구 코드), changePct=0%
+수정: git push origin master → 즉시 Vercel 자동 배포 트리거
+→ KR Naver Finance / TW TWSE+TPEX / BRKB alias / COT 502 / maxDuration 12개 — 이제 배포됨
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=commodity.wti source=FRED direct_value=91.06 our_value=91.06 delta=0 → OK
+(commodity-curve API: WTI spot=91.06 matches FRED DCOILWTICO 2026-04-20 마지막 값)
+
+=== FIXES / FEATURES ===
+
+1. CN 히트맵: Stooq .hk 데이터소스 활성화 (0%→예상 80%+)
+   - 증상: CN heatmap 0% changePct (MCHI 80종목 전부 null)
+   - 원인: CN이 STOOQ_SKIP에 포함돼 Yahoo v8 fallback으로만 가고 있었음 (Yahoo Vercel-blocked)
+   - stooq.ts 기존 코드: numeric CN ticker → ${t}.hk suffix로 변환 이미 존재
+   - 검증 (로컬): 700.HK=493.4, 9988.HK=131.8, 1810.HK=31.2, 3690.HK=82.45, 2318.HK=60.95 ✓
+     PDD.US=98.03 (NASDAQ-listed ADR) ✓
+   - 수정: STOOQ_SKIP에서 'CN' 제거 → Pass 1이 Stooq .hk 호출
+   - changePct = (close-open)/open×100 (intraday, Stooq 표준)
+   - MCHI 80종목 중 HK 상장 numeric 70+개 커버 예상, 나머지(PDD등) .us fallback
+   - commit 30d0182
+
+2. IN 히트맵: NSE India NIFTY 500 API 추가 (0%→예상 70%+, Vercel 접근성 미확인)
+   - 증상: IN heatmap 0% changePct (Stooq .in = N/D, Yahoo v8 = Vercel-blocked)
+   - 해결책: https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500
+     - 501종목, 인증 불필요, pChange=%변화, lastPrice=종가
+     - INDA 심볼과 완전 일치 (RELIANCE, HDFCBANK, M&M 등)
+   - 로컬 검증: NIFTY 500 응답 확인 ✓ (RELIANCE=-0.92%, HDFCBANK=+0.10%, INFY=-6.92%)
+   - 코드: lib/nse-india.ts fetchNSEIndiaQuotes() + market-heatmap Pass 1.5 IN branch
+   - WARNING: NSE가 Vercel(AWS) IP 차단 가능성 있음 — 배포 후 실측 필요
+   - commit 30d0182
+
+3. cache key v16 → v17 (Stooq.hk CN + NSE India IN 반영)
+
+=== ENDPOINTS AUDITED ===
+- commodity-curve: WTI=91.06 ✓ (FRED 대조)
+- market-heatmap CN: 이전 = 0%, 예상 = 80%+ (배포 후 확인)
+- market-heatmap IN: 이전 = 0%, 예상 = 70%+ (NSE Vercel 접근성 달림)
+- market-heatmap KR: iter221 코드 이제 배포됨 (이전 7커밋 unpushed 버그 수정)
+- market-heatmap TW: iter221 코드 이제 배포됨
+
+=== COMMITS ===
+(push fix) a3d62c0→30d0182: iter221 7개 커밋 push (이전 미배포 수정)
+30d0182 feat(market-heatmap): CN Stooq.hk + IN NSE India fallback (Yahoo Vercel-blocked)
+
+=== REMAINING ISSUES ===
+- IN NSE Vercel 접근성: 배포 후 curl 확인 필요 (블록 시 negative result 확정)
+- KR/TW iter221 코드 배포 확인 (push 됨, Vercel deploy 대기)
+- Redis/OpenRouter 미설정 (사용자 action 필요)
+- short-interest shortChangeMonthly: null (FINRA CDN 403, 공식 포기 검토)
+- EU 히트맵 부분 커버리지 (Stooq .eu 일부 N/D)
+- AI quota (GROQ/Gemini) — 09:00 KST 리셋
+
+=== NEGATIVE RESULT ===
+Stooq .in: RELIANCE.IN, HDFCBANK.IN, INFY.IN → 전부 N/D
+→ IN Stooq 경로 공식 포기, NSE API로 전환
