@@ -113,6 +113,8 @@ async function fetchRSS(feedUrl: string, source: string, requireFinancial = fals
       const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? new Date().toISOString();
 
       if (title && link) {
+        // Global: skip crime/sports/accident news from all feeds (wastes AI tokens)
+        if (NON_FINANCIAL_PATTERNS.test(title)) continue;
         if (!requireFinancial || FINANCIAL_SIGNAL.test(title)) {
           items.push({ title, link, pubDate, source });
         }
