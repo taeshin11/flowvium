@@ -119,7 +119,7 @@ async function fetchPricesNasdaq(ticker: string): Promise<number[]> {
 // ── Source 1: Twelve Data (real-time, 800 calls/day free) ─────────────────────
 async function fetchPricesTwelve(ticker: string, apiKey: string): Promise<number[]> {
   const url = `https://api.twelvedata.com/time_series?symbol=${ticker}&interval=1day&outputsize=120&apikey=${apiKey}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000), cache: 'no-store' }); // 5s: reduce cold-start waste when Twelve is slow
   if (!res.ok) throw new Error(`Twelve HTTP ${res.status}`);
   const data = await res.json();
   if (data.status === 'error') throw new Error(data.message);
