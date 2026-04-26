@@ -13,7 +13,7 @@ import { Redis } from '@upstash/redis';
 import { loggedRedisSet, logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+export const maxDuration = 20;
 
 const CACHE_TTL = 15 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=120' };
@@ -68,7 +68,7 @@ async function fetchQuoteNasdaq(ticker: string): Promise<Mover | null> {
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': NASDAQ_UA },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(4000),
       cache: 'no-store',
     });
     if (!res.ok) return null;
@@ -100,18 +100,11 @@ export async function GET() {
 
   const t0 = Date.now();
   const movers: Mover[] = [];
-  const CONCURRENT = 5;
-  const DELAY_MS = 200;
 
-  for (let i = 0; i < WATCH_TICKERS.length; i += CONCURRENT) {
-    const batch = WATCH_TICKERS.slice(i, i + CONCURRENT);
-    const settled = await Promise.allSettled(batch.map(fetchQuoteNasdaq));
-    for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) movers.push(r.value);
-    }
-    if (i + CONCURRENT < WATCH_TICKERS.length) {
-      await new Promise(res => setTimeout(res, DELAY_MS));
-    }
+  // All 50 tickers in parallel — each has a 4s timeout. Total bounded by slowest ticker (~4s max).
+  const settled = await Promise.allSettled(WATCH_TICKERS.map(fetchQuoteNasdaq));
+  for (const r of settled) {
+    if (r.status === 'fulfilled' && r.value) movers.push(r.value);
   }
 
   logger.info('api.market-movers', 'fetched', { count: movers.length, durationMs: Date.now() - t0 });
