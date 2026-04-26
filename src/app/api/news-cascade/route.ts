@@ -73,15 +73,21 @@ function hashUrl(url: string): string {
 // Tested 2026-04-26: Bloomberg returns 2 items locally, likely 0 on Vercel (IP/paywall block).
 // Replaced with MarketWatch Top Stories + Investing.com (10 items each, confirmed working).
 // WSJ(20) + SeekingAlpha(7) + Yahoo(20) + MarketWatch(10) + Investing(10) = ~67 candidates for top-7.
+// requireFinancial=true: Investing.com / MarketWatch mix in non-financial articles (royalty, sports);
+// pre-filter keeps only items matching at least one financial keyword before dedup.
 const RSS_FEEDS = [
-  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch' },
-  { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com' },
-  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets' },
-  { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha' },
-  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance' },
+  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch', requireFinancial: true },
+  { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com', requireFinancial: true },
+  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets', requireFinancial: false },
+  { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha', requireFinancial: false },
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance', requireFinancial: false },
 ];
 
-async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]> {
+// Minimum financial keyword signal required for requireFinancial feeds.
+// Broad enough to keep macro/policy/sector news; tight enough to drop royalty/sports.
+const FINANCIAL_SIGNAL = /\b(stock|market|rate|bond|yield|fed|fomc|earnings|gdp|inflation|cpi|pce|dollar|usd|euro|yen|equity|index|s&p|nasdaq|dow|trade|tariff|oil|gold|crypto|bitcoin|bank|economy|economic|invest|etf|fund|sector|tech|growth|recession|debt|deficit|treasury|fiscal|monetary|interest|employment|jobs|payroll|retail|sales|profit|revenue|quarter|analyst|forecast|outlook|fed|powell|ecb|boe|boj|imf|world bank|china|europe|emerging|hedge|risk|volatility|vix|ipo|merger|acquisition|dividend|buyback|short|long|bull|bear|rally|sell-off|correction|commodity|copper|aluminum|energy|supply|demand|manufacturing|pmi|ism|claims|unemployment|consumer|sentiment|housing|mortgage|credit|spread|oas|liquidity|hedge fund|private equity|capital|allocation|portfolio|rebalance)\b/i;
+
+async function fetchRSS(feedUrl: string, source: string, requireFinancial = false): Promise<RawNewsItem[]> {
   try {
     const res = await fetch(feedUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FlowviumBot/1.0)' },
@@ -105,7 +111,9 @@ async function fetchRSS(feedUrl: string, source: string): Promise<RawNewsItem[]>
       const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? new Date().toISOString();
 
       if (title && link) {
-        items.push({ title, link, pubDate, source });
+        if (!requireFinancial || FINANCIAL_SIGNAL.test(title)) {
+          items.push({ title, link, pubDate, source });
+        }
       }
       if (items.length >= 5) break; // max 5 per feed
     }
@@ -424,7 +432,7 @@ export async function GET(request: Request) {
   // 2. Fetch all RSS feeds in parallel
   const rawArticles: RawNewsItem[] = [];
   const results = await Promise.allSettled(
-    RSS_FEEDS.map((f) => fetchRSS(f.url, f.source))
+    RSS_FEEDS.map((f) => fetchRSS(f.url, f.source, f.requireFinancial))
   );
   for (const r of results) {
     if (r.status === 'fulfilled') rawArticles.push(...r.value);
