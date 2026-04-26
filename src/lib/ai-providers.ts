@@ -49,10 +49,10 @@ function secondsUntilUtcMidnight(): number {
 
 export interface AICallResult {
   text: string;
-  source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b-versatile' | 'GROQ-llama-3.1-8b-instant' | 'gemini-2.0-flash' | 'fallback'
+  source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b-versatile' | 'GROQ-llama-3.1-8b-instant' | 'qwen-2.5-72b' | 'gemini-2.0-flash' | 'fallback'
   durationMs: number;
   /** Per-provider attempt outcome — populated when chain fully fails, to aid diagnosis. */
-  attempts?: Array<{ provider: 'vllm' | 'groq' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
+  attempts?: Array<{ provider: 'vllm' | 'groq' | 'qwen' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
 }
 
 export interface AICallOptions {
@@ -70,7 +70,7 @@ export interface AICallOptions {
   tag?: string;
 }
 
-type ProviderAttempt = { provider: 'vllm' | 'groq' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number };
+type ProviderAttempt = { provider: 'vllm' | 'groq' | 'qwen' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number };
 
 /** vLLM EXAONE 호출 */
 async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
@@ -265,22 +265,22 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
       logger.warn(tag, 'qwen_http_error', { status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
-      diag?.push({ provider: 'gemini', ok: false, status: res.status, error: `[qwen] ${errText.slice(0, 200)}`, durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'qwen', ok: false, status: res.status, error: errText.slice(0, 200), durationMs: Date.now() - t0 });
       return null;
     }
     const data = await res.json();
     const text: string = data.choices?.[0]?.message?.content ?? '';
     if (!text) {
-      diag?.push({ provider: 'gemini', ok: false, error: '[qwen] empty_text', durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'qwen', ok: false, error: 'empty_text', durationMs: Date.now() - t0 });
       return null;
     }
     logger.info(tag, 'qwen_ok', { textLen: text.length, durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'gemini', ok: true, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'qwen', ok: true, durationMs: Date.now() - t0 });
     return text;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(tag, 'qwen_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'gemini', ok: false, error: `[qwen] ${msg.slice(0, 200)}`, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'qwen', ok: false, error: msg.slice(0, 200), durationMs: Date.now() - t0 });
     return null;
   }
 }
