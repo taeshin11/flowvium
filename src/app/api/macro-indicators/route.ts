@@ -472,6 +472,17 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
   return surprise === 'beat' ? def.beat : def.miss;
 }
 
+// ── FOMC calendar (auto-computes next meeting date to prevent static staleness) ─
+const FOMC_DATES_2026 = [
+  '2026-01-29', '2026-03-19', '2026-04-30',
+  '2026-06-17', '2026-07-29', '2026-09-16',
+  '2026-10-28', '2026-12-09',
+];
+function nextFomcDate(): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return FOMC_DATES_2026.find(d => d > today) ?? '2027-01-28';
+}
+
 // ── Static fallback data ──────────────────────────────────────────────────────
 // Used when FRED is unavailable; all values as of 2026-04-26
 const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
@@ -740,8 +751,9 @@ export async function GET(request: Request) {
       forecast: base.forecast,
       releaseDate: fomcUpper?.date ?? base.releaseDate,
       surprise, rateImpact: base.rateImpact, rateImpactKo: base.rateImpactKo,
+      nextRelease: nextFomcDate(),
       summary: fomcUpper
-        ? `Current rate ${actualLower}~${actualUpper}% (mid ${midRate}%). Next FOMC: ${base.nextRelease}.`
+        ? `Current rate ${actualLower}~${actualUpper}% (mid ${midRate}%). Next FOMC: ${nextFomcDate()}.`
         : base.summary,
       cascade: buildCascade('fomc', surprise),
       liveData: !!fomcUpper,
