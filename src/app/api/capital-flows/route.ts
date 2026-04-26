@@ -108,7 +108,21 @@ async function fetchPricesTwelve(ticker: string, apiKey: string): Promise<number
   return prices;
 }
 
-// ── Source 2: Yahoo Finance (15-min delay, no key, primary fallback) ──────────
+// ── Source 2b: Finnhub candle (free 60rpm, FINNHUB_KEY required) ─────────────
+async function fetchPricesFinnhub(ticker: string, finnhubKey: string): Promise<number[]> {
+  const to = Math.floor(Date.now() / 1000);
+  const from = to - 130 * 86400; // 130 calendar days → ~90 trading days
+  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+  if (!res.ok) throw new Error(`Finnhub HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.s !== 'ok') throw new Error(`Finnhub status: ${data.s}`);
+  const closes: number[] = data.c ?? [];
+  if (closes.length < 20) throw new Error('Finnhub: insufficient data');
+  return closes;
+}
+
+// ── Source 3: Yahoo Finance (15-min delay, no key, primary fallback) ──────────
 async function fetchPricesYahoo(ticker: string): Promise<number[]> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=120d`;
   const res = await fetch(url, {
@@ -147,7 +161,7 @@ async function fetchPricesBatchYahoo(tickers: string[]): Promise<Record<string, 
   return out;
 }
 
-// ── Cascade: Twelve → Yahoo ───────────────────────────────────────────────────
+// ── Cascade: Twelve → Yahoo (individual) ─────────────────────────────────────
 async function fetchPrices(ticker: string, twelveKey: string | null): Promise<{ prices: number[]; source: string }> {
   if (twelveKey) {
     try { return { prices: await fetchPricesTwelve(ticker, twelveKey), source: 'twelve' }; }
@@ -164,6 +178,7 @@ async function fetchPrices(ticker: string, twelveKey: string | null): Promise<{ 
 async function fetchAllPrices(
   allTickers: string[],
   twelveKey: string | null,
+  finnhubKey: string | null,
 ): Promise<{ priceMap: Record<string, number[]>; sourceCount: Record<string, number> }> {
   const priceMap: Record<string, number[]> = {};
   const sourceCount: Record<string, number> = {};
@@ -232,11 +247,23 @@ async function fetchAllPrices(
     }
   }
 
-  // Mark batch-failed tickers as empty (no additional fallback — Yahoo batch failure
-  // from cloud IPs means individual Yahoo calls would also fail from same IP)
-  for (const ticker of failed) {
-    priceMap[ticker] = [];
-    sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1;
+  // Finnhub fallback for tickers that still have no data (Yahoo batch blocked)
+  if (finnhubKey && failed.length > 0) {
+    logger.warn('capital-flows', 'yahoo_batch_failed_finnhub_fallback', { failed: failed.length });
+    await Promise.all(failed.map(async (ticker) => {
+      try {
+        priceMap[ticker] = await fetchPricesFinnhub(ticker, finnhubKey);
+        sourceCount['finnhub'] = (sourceCount['finnhub'] ?? 0) + 1;
+      } catch {
+        priceMap[ticker] = [];
+        sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1;
+      }
+    }));
+  } else {
+    for (const ticker of failed) {
+      priceMap[ticker] = [];
+      sourceCount['failed'] = (sourceCount['failed'] ?? 0) + 1;
+    }
   }
 
   return { priceMap, sourceCount };
@@ -380,6 +407,7 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
 export async function GET() {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
+  const finnhubKey = process.env.FINNHUB_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (realtime)' : 'Yahoo Finance (15min delay)';
   const cacheKey = `flowvium:capital-flows:v11:${twelveKey ? 'twelve' : 'yahoo'}`;
 
@@ -410,12 +438,13 @@ export async function GET() {
     ...SECTORS.map((s) => s.ticker),
   ]));
 
-  const { priceMap, sourceCount } = await fetchAllPrices(allTickers, twelveKey);
+  const { priceMap, sourceCount } = await fetchAllPrices(allTickers, twelveKey, finnhubKey);
 
   // Describe which sources actually provided data
   const sourceSummary = Object.entries(sourceCount)
     .filter(([s]) => s !== 'failed')
-    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance' }[s] ?? s) + ` ×${n}`)
+    .filter(([, n]) => (n as number) > 0)
+    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance', finnhub: 'Finnhub' }[s] ?? s) + ` ×${n}`)
     .join(' + ');
 
   const results = ASSETS.map((asset) => {
