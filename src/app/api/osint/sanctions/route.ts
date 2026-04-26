@@ -160,7 +160,7 @@ const FEATURED_PROGRAMS = [
   { key: 'DPRK', label: '북한 제재', color: 'yellow' },
   { key: 'SDGT', label: '테러 지원', color: 'red' },
   { key: 'CYBER2', label: '사이버 공격', color: 'purple' },
-  { key: 'CHINA', label: '중국 제재', color: 'blue' },
+  { key: 'CMIC', label: '중국 제재', color: 'blue' },
 ];
 
 // ── Route handler ──────────────────────────────────────────────────────────────
