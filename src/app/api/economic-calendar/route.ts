@@ -48,9 +48,10 @@ export interface EconCalResponse {
 // Updated 2026-04-26: estimates recalibrated to ZQ futures market consensus.
 // Tariff shock → NFP+228K beat → CPI 3.3% → no cuts priced through mid-2026.
 // Jun/Jul: 90%/80% hold per FedWatch. Sep: first cut scenario (~32% prob).
-const FOMC_2026: Array<{ date: string; time: string; prev: number; estimate: number }> = [
-  { date: '2026-01-29', time: '19:00:00', prev: 4.25, estimate: 4.25 },
-  { date: '2026-03-19', time: '18:00:00', prev: 4.25, estimate: 4.00 },
+// actual field = confirmed outcome for past meetings (FRED DFEDTARU verified).
+const FOMC_2026: Array<{ date: string; time: string; prev: number; estimate: number; actual?: number }> = [
+  { date: '2026-01-29', time: '19:00:00', prev: 4.25, estimate: 4.25, actual: 4.25 }, // hold confirmed
+  { date: '2026-03-19', time: '18:00:00', prev: 4.25, estimate: 4.00, actual: 3.75 }, // 50bp cut (FRED DFEDTARU=3.75)
   { date: '2026-04-30', time: '18:00:00', prev: 3.75, estimate: 3.75 },
   { date: '2026-06-17', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 90% hold — no cut priced
   { date: '2026-07-29', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 80% hold
@@ -68,7 +69,7 @@ function injectFomcEvents(events: EconCalEvent[], from: string, to: string): Eco
       country: 'US',
       event: 'FOMC Rate Decision (Fed Funds Target)',
       impact: 'high' as const,
-      actual: null,
+      actual: f.actual ?? null,
       estimate: f.estimate,
       prev: f.prev,
       unit: '%',
