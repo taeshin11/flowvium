@@ -1,0 +1,52 @@
+# iter213 — 2026-04-26
+
+## DRIFT CHECK
+- Recent: commodity carry (211), report buy/locale (210), strategy cache (209), MarketSnapshot i18n (212)
+- Drift rule 4 triggered: vol.vxst + vol.vxmt Yahoo-blocked 2+ iters "retry only" → 해결
+- No 3-iter module concentration ✅
+
+## PRIMARY OUTCOME (≤20자)
+VXST+VXMT → CBOE 직접 연결
+
+## ACCURACY PROBES
+[accuracy probe] metric=fg.us source=CNN direct_value=66 our_value=66 delta=0 tolerance=3 → OK
+[accuracy probe] metric=yc.spread10y2y source=FRED direct_value=0.53 our_value=0.51 delta=0.02 tolerance=0.1 → OK
+[accuracy probe] metric=cpi source=FRED direct_value=3.29 our_value=3.29 delta=0.00 tolerance=0.2 → OK
+[accuracy probe] metric=vix source=CBOE direct_value=18.71 our_value=18.71 delta=0.00 tolerance=1.0 → OK
+[accuracy probe] metric=vxst source=CBOE direct_value=16.71 our_value=null (prev) → fixed → OK
+[accuracy probe] metric=vxmt source=CBOE direct_value=23.27 our_value=null (prev) → fixed → OK
+Term structure confirmed: VXST 16.71 < VIX 18.71 < VXMT 23.27 (contango) ✅
+
+## WORK DONE
+### iter213a: VXST/VXMT CBOE fallback
+- CBOE CDN URL 발견: VIX9D_History.csv (VXST), VIX6M_History.csv (VXMT)
+- fetchCBOEIndex(csvName) 함수 추가 → 마지막 Close 값 파싱
+- GET handler: Yahoo null 시 CBOE fallback → vxstFinal, vxmtFinal
+- detectRegime() now uses real VXST/VXMT data (not estimated heuristic)
+- verify-metrics: DEGRADED 6 → 3 (vol.vxst + vol.vxmt + ai.groq 복구)
+
+### iter213b: ComparePage i18n
+- 19 keys × 16 locales 추가 (headquarters, gapScoreLabel, ibActivityLabel, noSignals,
+  roleLabel, noCascades, subtitle, marketCapTier, chainRole, gapScore, ibActivity,
+  gapScoreTooltip, notFound, tryExample, mcTitan/mcMega/mcLarge/mcMid/mcSmall)
+- Module-level marketCapLabel dict 제거 → mcLabel 컴포넌트 내 t() 맵으로 교체
+
+### iter213c: ExplorePage i18n
+- 5 keys × 16 locales 추가 (explore-specific thresholds: Mega=$200B+, Mid=$2B-$10B)
+- SidePanel + main component에 mcLabel 추가
+- Filter buttons 하드코딩 ternary → mcLabel[cap] ?? cap 교체
+
+## METRICS BEFORE/AFTER
+Before: OK=148, DEGRADED=6, ERROR=0
+After:  OK=160, DEGRADED=3, ERROR=0 (+12 OK, -3 DEGRADED)
+
+## COMMITS
+5a0095f fix(volatility): CBOE fallback for VXST + VXMT
+9baa5ea feat(compare): i18n all hardcoded strings — 19 keys × 16 locales
+33004a0 feat(explore): i18n market cap tier labels — filter buttons + side panel
+
+## NOTES
+- GROQ TPD: UTC midnight에 복구 확인 (로컬 테스트 "OK" 응답)
+- strategy.portfolio + brief.market: CDN 24h 캐시 (00:34 UTC 만료) — 자동 복구 예정
+- macro.gdp: April 30 릴리즈 대기
+- VXST/VXMT "공식 포기" iter211 기록 번복 — CBOE에 VIX9D/VIX6M CSV가 공개되어 있었음

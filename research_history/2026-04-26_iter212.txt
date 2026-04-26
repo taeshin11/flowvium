@@ -1,0 +1,31 @@
+# iter212 — 2026-04-26
+
+## DRIFT CHECK
+- Last 5 commits: commodity carry curve (iter211), capital-flows badge, strategy cache+compact, strategy locale+buy actions, MarketSnapshot i18n (iter212)
+- No same-module 3+ consecutive iters ✅
+- No metric stagnation ✅
+
+## PRIMARY OUTCOME (≤20자)
+홈 MarketSnapshot i18n
+
+## WORK DONE
+- Replaced hardcoded English strings in MarketSnapshot (HomePage.tsx):
+  - Risk signal: 'Risk On' → t('snapshotRiskOn'), 'Risk Off' → t('snapshotRiskOff'), 'Neutral' → t('snapshotNeutral')
+  - Regime labels: Recession/Stagflation/Overheating/Goldilocks/Slowdown → t('snapshot*')
+- Added 8 keys × 16 locales = 128 new message file entries
+- TypeScript check: ✅ clean
+
+## ACCURACY PROBES
+[accuracy probe] metric=fg.us source=CNN direct_value=66 our_value=66 delta=0 → OK
+[accuracy probe] metric=yc.spread source=FRED direct_value=0.53 our_value=0.51 delta=0.02 → OK
+[accuracy probe] metric=vix source=CBOE direct_value=18.71 our_value=18.71 delta=0.00 → OK
+
+## COMMITS
+0e33571 feat(home): i18n market snapshot labels — regime + risk signal
+
+## METRICS CHANGE
+None (i18n change, no new data points)
+
+## NOTES
+- MarketSnapshot 컴포넌트는 const t = useTranslations('home') 추가 (기존 없었음)
+- 16개 언어 동시 업데이트 완료
