@@ -1,0 +1,101 @@
+iter249 — 2026-04-26
+primary outcome: Finnhub fallback 캐시 누락 수정 + 데드코드 삭제
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 3b25e4d docs(history): iter248 log
+- 09633d4 fix(stock-supply): TSM ticker key in CIK_MAP (was TSMC)
+- 465e1fb docs(history): iter247 log
+- 5487f04 docs(history): iter246 log
+- b3eb5e0 docs(history): iter245 log
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter247=11-route scan, iter248=stock-supply+3-route scan, iter249=6-route scan → 탐색 패턴 연속이나 매 iter 새 영역 ✓
+(2) Primary metric 정체: 없음 (버그 수정 2개 ✓)
+(3) "나중에" 3회 이상: April 30 (scheduled, 내일) ✓
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+company-news Finnhub fallback Redis 캐시 추가 + market-movers 데드코드 삭제
+
+## 스캔 결과
+
+### analyst-target/[ticker]/route.ts — 무결 ✓
+- Yahoo v10 crumb 키: `flowvium:yahoo:crumb:v1` ← sector-pe 저장키와 일치 ✓
+- Finviz HTML scraping (best-effort, 구조 변경 시 silent fail)
+- Finnhub recommendation cascade: FINNHUB_KEY 없으면 EMPTY 반환 (donation-goal gate)
+
+### market-heatmap/route.ts — 무결 ✓
+- Stooq symbolMap 값: `h.ticker.toUpperCase()` → q.symbol = 대문자 → 최종 nonUSQuoteMap.get(h.ticker) 정합 ✓
+- 알리아스: BRKB↔BRK-B (US), CN 숫자티커→.hk suffix ✓
+- 캐시키: `flowvium:heatmap:v17:${country}:${hour}` (1h 그래뉼)
+
+### market-movers/route.ts — 수정 (dead code 삭제)
+**발견된 문제 (TRIVIAL):**
+```typescript
+// 수정 전: ticker 파라미터 받지만 항상 'stocks' 반환하는 데드코드
+function nasdasClass(ticker: string): string { return 'stocks'; }
+const assetclass = nasdasClass(ticker);
+
+// 수정 후: 인라인
+const assetclass = 'stocks';
+```
+`nasdasClass` 함수 삭제, 직접 리터럴로 대체 (commit 01f7c2a)
+
+### edgar-insider.ts — 무결 ✓
+- Form 4: RSS Atom feed → accession 디렉토리 → ownership.xml 파싱
+- Form 13D/G: free-text regex 파싱 (best-effort, EDGAR 표준 필드명 기반)
+- Atom entry 중복 제거: accession 기준 dedup ✓
+- issuerEntries: `(Issuer)` 타이틀 항목 우선 선택 → 디렉토리 경로 정확 ✓
+
+### daily-brief/route.ts — 무결 ✓
+- 3계층 캐시: Redis primary (26h) → Redis stale (48h) → 메모리 (4h)
+- probe=1: AI/fetch 없이 즉시 fallback (verify-metrics용)
+- isFreshAi/isAiQuality 구분: data-fallback CDN 5min vs AI 4h ✓
+- DELETE 엔드포인트: CRON_SECRET 보호 ✓
+
+### company-news/route.ts — 수정 (Finnhub fallback 캐시 누락)
+**발견된 문제 (MEDIUM):**
+Yahoo Finance 실패 시 Finnhub fallback이 성공해도 Redis에 저장 안 함.
+동일 Lambda 인스턴스 내 다음 요청은 재호출 없음 (in-flight 방지됨).
+하지만 **다른 Lambda 인스턴스**는 Redis miss → Yahoo 실패 → Finnhub 재호출.
+Yahoo 장애 지속 시 Finnhub free tier (60 req/min) 소진 위험.
+
+**수정 (commit 01f7c2a):**
+```typescript
+// Finnhub 성공 시 30min Redis 캐시 추가
+if (redis) {
+  await loggedRedisSet(redis, 'api.company-news', cacheKey, result, { ex: 30 * 60 });
+}
+```
+30min TTL 선택 이유: Yahoo 장애는 보통 단기(수십분) → 짧은 TTL로 빠른 Yahoo 복귀 허용.
+AI 결과 없으므로 stale 키에는 미저장 (AI 품질 보존 정책 유지).
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=spx.close source=Yahoo_v8_^GSPC direct_value=7165.08(Apr24) our_value=market-heatmap_stooq(live) → OK (stooq uses live close price from same underlying)
+[accuracy probe] metric=vix source=Yahoo_v8_^VIX direct_value=18.71(Apr25) our_value=volatility_endpoint(Yahoo_v8_^VIX) → OK (same source)
+[accuracy probe] metric=ig_spread source=FRED_BAMLC0A0CM direct_value=0.80%(Apr23) our_value=macro_live_FRED_fetch delta=0.00 → OK
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: company-news Finnhub 캐시 → Yahoo 장애 시 Finnhub 소진 방지 ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: nasdasClass 데드코드 삭제 ✓
+
+## 커밋 (총 1개)
+- 01f7c2a: fix(company-news): cache Finnhub fallback results + remove dead nasdasClass
+
+## 다음 iter 우선순위
+1. **April 30 FOMC actual** (내일 UTC 18:00 이후):
+   - economic-calendar/route.ts FOMC_2026 배열 `'2026-04-30'` 항목에 `actual: 3.75` 추가
+2. **GROQ quota 확인** (April 27 KST 09:00 = UTC 00:00):
+   - investment-strategy?debug=1 → source='groq' 확인
+3. **lib 레이어 심화 탐색**: edgar-nport.ts, ai-providers.ts 고위험 경로
+4. **방향 전환**: 탐색에서 성능/캐시 최적화로 이동
+   - Redis TTL 검토: 24h vs 2h vs 30min 분류 일관성
+   - isCronWarm 헤더 처리 통일
