@@ -1,0 +1,88 @@
+iter263 — 2026-04-26
+primary outcome: vercel.json 좀비 cron 제거 (update-all 4→3회)
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 7a24b07 docs(history): iter262 log
+- 69ed464 fix(news-cascade): replace 4s fixed wait with 30s polling
+- 205a19c feat(investment-strategy): add COT + commodity context
+- 8ee6732 docs(history): iter260 log
+- e43a0b7 feat(fear-greed): add VIX as 4th factor
+
+Drift signal check:
+(1) iter261=investment-strategy, iter262=news-cascade, iter263=vercel.json(infra) → 3 다른 영역 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에" 3+ deferred: April 30 GDP/PCE/IClaims/FOMC — 시간 제약 유효
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 없음 ✓
+
+## 탐색 negative results (방향전환 rationale)
+
+### 탐색 1: capital-flows Twelve Data unthrottled (negative)
+- allTickers는 이미 `new Set()` 중복제거 → 실제 41개 unique (L490)
+- Twelve 실패 시 Yahoo batch fallback 자동처리 (L232-238)
+- 4h Redis 캐시로 일 최대 ~250 Twelve 호출 (800/day 한도 내)
+- 결론: 실제 문제 아님, 기존 fallback이 이미 커버
+
+### 탐색 2: yield-curve → daily-brief context (negative)
+- daily-brief.ts L351/740/854에서 macro.yieldCurve 이미 읽어서 AI에 전달
+- 결론: 이미 구현됨, 중복 작업
+
+## Primary Outcome: 좀비 cron 제거
+
+### 발견
+vercel.json `crons` 배열에서 `/api/cron/update-all` 이 4개:
+- `50 22 * * *` → 07:50 KST ✓ (문서화됨)
+- `50 6 * * *`  → 15:50 KST ✓ (문서화됨)
+- `20 12 * * *` → 21:20 KST ✓ (문서화됨)
+- `0 13 * * *`  → 22:00 KST ← ZOMBIE (route.ts 주석 "하루 3회"에 없음)
+
+update-all/route.ts 주석: "하루 3회 실행 (vercel.json 기준 KST): 07:50 / 15:50 / 21:20"
+→ 4번째 실행은 문서에 없는 zombie
+
+### 왜 zombie인가
+- 13:00 UTC = 21:20 KST 12:20 UTC 실행에서 40분 후
+- update-all이 warming한 Redis 캐시 TTL: 4h (capital-flows), 25h (macro-indicators)
+- 40분 후에는 모든 캐시가 여전히 유효 → 재실행 효과 없음
+- 22개 endpoint × 40분 간격 재실행 = Yahoo Finance / FRED / CME 등 API 낭비
+
+### 수정
+vercel.json에서 `{ "path": "/api/cron/update-all", "schedule": "0 13 * * *" }` 제거.
+route.ts 주석은 이미 3회 기준으로 정확 → 변경 불필요.
+
+## 변경 내용
+
+### vercel.json
+- `{ "path": "/api/cron/update-all", "schedule": "0 13 * * *" }` 1줄 삭제
+
+## TypeScript 검증
+```
+npx tsc --noEmit → 오류 없음 ✓ (vercel.json 변경은 타입 무관)
+```
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+```
+[accuracy probe] metric=VIX source=Yahoo_v8 direct_value=18.71(Apr26) → vixLevelScore(18.71)=50(neutral) ✓
+[accuracy probe] metric=SPY source=Yahoo_v8 direct_value=713.94(Apr26) → capital-flows 동일 소스 ✓
+[accuracy probe] metric=cron_zombie source=vercel.json direct_value=4 runs → removed_to=3 runs ✓
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: N/A
+- (b) 실패 확률 ≥50%: N/A
+- (c) 삭제/단순화: zombie cron 제거 ✓ (일 1회 22개 API 낭비 제거)
+
+## 커밋 (이 로그와 함께)
+- fix(vercel): remove zombie update-all cron at 13:00 UTC
+
+## 다음 iter 우선순위 (다음 세션 인계)
+1. **April 30 UTC 12:30**: GDP Q1 Advance, Core PCE, IClaims 업데이트
+2. **April 30 UTC 18:00+**: FOMC actual 업데이트
+3. **iter264 방향**: 3 다른 영역 완료 → 새 영역
+   - 옵션A: Bloomberg RSS Vercel IP 차단 검증 (실패 확률 ≥50%)
+     → Bloomberg 차단 확인 시 대체 소스 추가 (AP Business, FT RSS)
+   - 옵션B: macro-indicators FRED cold start 개선
+     → FRED_API_KEY 있으면 JSON > CSV 우선 (cold start 10배 빠름)
+   - 옵션C: /admin/logs 에러 필터링 UI 추가

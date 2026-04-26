@@ -26,7 +26,6 @@
     { "path": "/api/cron/update-all",           "schedule": "20 12 * * *" },
     { "path": "/api/cron/daily-brief",          "schedule": "25 12 * * *" },
     { "path": "/api/cron/investment-strategy",  "schedule": "30 12 * * *" },
-    { "path": "/api/cron/update-all",           "schedule": "0 13 * * *"  },
     { "path": "/api/cron/update-signals", "schedule": "0 2 * * *"   },
     { "path": "/api/cron/update-credit-balance", "schedule": "30 3 * * *" },
     { "path": "/api/cron/verify-metrics", "schedule": "*/30 * * * *" },
