@@ -518,7 +518,11 @@
     "snapshotStagflation": "Stagflasyon",
     "snapshotOverheating": "Aşırı Isınma",
     "snapshotGoldilocks": "Altın Dönem",
-    "snapshotSlowdown": "Yavaşlama"
+    "snapshotSlowdown": "Yavaşlama",
+    "briefMarket": "Piyasa",
+    "briefCapital": "Sermaye",
+    "briefCompany": "Hisseler",
+    "briefSignals": "Sinyaller"
   },
   "feedback": {
     "title": "Geri Bildirim Gönder",

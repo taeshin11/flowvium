@@ -518,7 +518,11 @@
     "snapshotStagflation": "Стагфляция",
     "snapshotOverheating": "Перегрев",
     "snapshotGoldilocks": "Золотой век",
-    "snapshotSlowdown": "Замедление"
+    "snapshotSlowdown": "Замедление",
+    "briefMarket": "Рынок",
+    "briefCapital": "Капитал",
+    "briefCompany": "Акции",
+    "briefSignals": "Сигналы"
   },
   "feedback": {
     "title": "Отправить отзыв",

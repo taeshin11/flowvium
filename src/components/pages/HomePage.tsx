@@ -440,44 +440,20 @@ interface DailyBrief {
 }
 
 const SECTION_META = [
-  {
-    key: 'market' as const,
-    icon: '📊',
-    gradient: 'from-blue-600/20 to-blue-500/5',
-    border: 'border-blue-500/30',
-    accent: 'text-blue-400',
-    dot: 'bg-blue-400',
-  },
-  {
-    key: 'capital' as const,
-    icon: '💰',
-    gradient: 'from-violet-600/20 to-violet-500/5',
-    border: 'border-violet-500/30',
-    accent: 'text-violet-400',
-    dot: 'bg-violet-400',
-  },
-  {
-    key: 'company' as const,
-    icon: '🏢',
-    gradient: 'from-emerald-600/20 to-emerald-500/5',
-    border: 'border-emerald-500/30',
-    accent: 'text-emerald-400',
-    dot: 'bg-emerald-400',
-  },
-  {
-    key: 'signals' as const,
-    icon: '🔍',
-    gradient: 'from-amber-600/20 to-amber-500/5',
-    border: 'border-amber-500/30',
-    accent: 'text-amber-400',
-    dot: 'bg-amber-400',
-  },
+  { key: 'market' as const, icon: '📊', gradient: 'from-blue-600/20 to-blue-500/5', border: 'border-blue-500/30', accent: 'text-blue-400', dot: 'bg-blue-400' },
+  { key: 'capital' as const, icon: '💰', gradient: 'from-violet-600/20 to-violet-500/5', border: 'border-violet-500/30', accent: 'text-violet-400', dot: 'bg-violet-400' },
+  { key: 'company' as const, icon: '🏢', gradient: 'from-emerald-600/20 to-emerald-500/5', border: 'border-emerald-500/30', accent: 'text-emerald-400', dot: 'bg-emerald-400' },
+  { key: 'signals' as const, icon: '🔍', gradient: 'from-amber-600/20 to-amber-500/5', border: 'border-amber-500/30', accent: 'text-amber-400', dot: 'bg-amber-400' },
 ];
 
 const RISK_STYLE = {
   low:    { color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' },
   medium: { color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/30' },
   high:   { color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/30' },
+};
+
+const BRIEF_TITLE_KEY: Record<string, 'briefMarket' | 'briefCapital' | 'briefCompany' | 'briefSignals'> = {
+  market: 'briefMarket', capital: 'briefCapital', company: 'briefCompany', signals: 'briefSignals',
 };
 
 function AIDailyBrief() {
@@ -605,7 +581,7 @@ function AIDailyBrief() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-base leading-none">{icon}</span>
                           <span className={`text-[11px] font-bold uppercase tracking-wide ${accent}`}>
-                            {sec.title}
+                            {BRIEF_TITLE_KEY[key] ? tHome(BRIEF_TITLE_KEY[key]) : sec.title}
                           </span>
                         </div>
                         <ArrowRight className={`w-3 h-3 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />

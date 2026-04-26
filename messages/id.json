@@ -518,7 +518,11 @@
     "snapshotStagflation": "Stagflasi",
     "snapshotOverheating": "Kepanasan",
     "snapshotGoldilocks": "Goldilocks",
-    "snapshotSlowdown": "Perlambatan"
+    "snapshotSlowdown": "Perlambatan",
+    "briefMarket": "Pasar",
+    "briefCapital": "Modal",
+    "briefCompany": "Saham",
+    "briefSignals": "Sinyal"
   },
   "feedback": {
     "title": "Kirim Masukan",

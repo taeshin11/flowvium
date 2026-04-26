@@ -687,7 +687,11 @@
     "snapshotStagflation": "스태그플레이션",
     "snapshotOverheating": "과열",
     "snapshotGoldilocks": "황금기",
-    "snapshotSlowdown": "둔화"
+    "snapshotSlowdown": "둔화",
+    "briefMarket": "시장",
+    "briefCapital": "자금흐름",
+    "briefCompany": "종목",
+    "briefSignals": "시그널"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",

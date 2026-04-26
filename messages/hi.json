@@ -518,7 +518,11 @@
     "snapshotStagflation": "स्टैगफ्लेशन",
     "snapshotOverheating": "अतिताप",
     "snapshotGoldilocks": "स्वर्णिम दौर",
-    "snapshotSlowdown": "मंदी"
+    "snapshotSlowdown": "मंदी",
+    "briefMarket": "बाज़ार",
+    "briefCapital": "पूंजी",
+    "briefCompany": "शेयर",
+    "briefSignals": "संकेत"
   },
   "feedback": {
     "title": "फ़ीडबैक भेजें",

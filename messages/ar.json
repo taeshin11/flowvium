@@ -518,7 +518,11 @@
     "snapshotStagflation": "ركود تضخمي",
     "snapshotOverheating": "ارتفاع حرارة",
     "snapshotGoldilocks": "توازن",
-    "snapshotSlowdown": "تباطؤ"
+    "snapshotSlowdown": "تباطؤ",
+    "briefMarket": "السوق",
+    "briefCapital": "رأس المال",
+    "briefCompany": "الأسهم",
+    "briefSignals": "الإشارات"
   },
   "feedback": {
     "title": "إرسال ملاحظات",

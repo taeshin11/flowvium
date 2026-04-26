@@ -518,7 +518,11 @@
     "snapshotStagflation": "滞涨",
     "snapshotOverheating": "过热",
     "snapshotGoldilocks": "金发女孩",
-    "snapshotSlowdown": "放缓"
+    "snapshotSlowdown": "放缓",
+    "briefMarket": "市场",
+    "briefCapital": "资金",
+    "briefCompany": "股票",
+    "briefSignals": "信号"
   },
   "feedback": {
     "title": "发送反馈",

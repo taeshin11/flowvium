@@ -687,7 +687,11 @@
     "snapshotStagflation": "スタグフレーション",
     "snapshotOverheating": "過熱",
     "snapshotGoldilocks": "ゴルディロックス",
-    "snapshotSlowdown": "鈍化"
+    "snapshotSlowdown": "鈍化",
+    "briefMarket": "マーケット",
+    "briefCapital": "資金",
+    "briefCompany": "銘柄",
+    "briefSignals": "シグナル"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",

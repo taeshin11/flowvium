@@ -518,7 +518,11 @@
     "snapshotStagflation": "Lạm phát đình trệ",
     "snapshotOverheating": "Quá nóng",
     "snapshotGoldilocks": "Goldilocks",
-    "snapshotSlowdown": "Chậm lại"
+    "snapshotSlowdown": "Chậm lại",
+    "briefMarket": "Thị trường",
+    "briefCapital": "Vốn",
+    "briefCompany": "Cổ phiếu",
+    "briefSignals": "Tín hiệu"
   },
   "feedback": {
     "title": "Gửi phản hồi",

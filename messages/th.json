@@ -518,7 +518,11 @@
     "snapshotStagflation": "สแตกเฟลชัน",
     "snapshotOverheating": "ร้อนแรง",
     "snapshotGoldilocks": "โกลดิล็อคส์",
-    "snapshotSlowdown": "ชะลอตัว"
+    "snapshotSlowdown": "ชะลอตัว",
+    "briefMarket": "ตลาด",
+    "briefCapital": "เงินทุน",
+    "briefCompany": "หุ้น",
+    "briefSignals": "สัญญาณ"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",

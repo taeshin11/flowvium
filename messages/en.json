@@ -518,7 +518,11 @@
     "snapshotStagflation": "Stagflation",
     "snapshotOverheating": "Overheating",
     "snapshotGoldilocks": "Goldilocks",
-    "snapshotSlowdown": "Slowdown"
+    "snapshotSlowdown": "Slowdown",
+    "briefMarket": "Market",
+    "briefCapital": "Capital",
+    "briefCompany": "Stocks",
+    "briefSignals": "Signals"
   },
   "feedback": {
     "title": "Send Feedback",
