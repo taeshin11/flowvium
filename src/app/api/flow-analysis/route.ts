@@ -303,6 +303,7 @@ export async function GET(request: Request) {
     logger.info('flow-analysis', 'minimal_fallback_served', { tf, reason: 'no_data_no_ai' });
   }
 
-  const headers = analysis ? CDN_HEADERS : { 'Cache-Control': 'no-store' };
+  const isStaticFallback = !!(analysis as Record<string, unknown>)?._staticFallback;
+  const headers = isStaticFallback ? { 'Cache-Control': 'no-store' } : CDN_HEADERS;
   return NextResponse.json(result, { headers });
 }

@@ -641,5 +641,10 @@ export async function GET(request: Request) {
     logger.info('api.investment-strategy', 'memory_cache_written', { isFallback });
   }
 
-  return NextResponse.json(strategy, { headers: CDN_HEADERS });
+  // Fallbacks must not be CDN-cached for 24h — AI quota resets daily and users would
+  // see stale "quota pending" for the full day. Short 5min CDN TTL allows fast recovery.
+  const responseHeaders = isFallback
+    ? { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' }
+    : CDN_HEADERS;
+  return NextResponse.json(strategy, { headers: responseHeaders });
 }
