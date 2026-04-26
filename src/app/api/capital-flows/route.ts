@@ -95,6 +95,26 @@ const COUNTRIES = [
 
 // ── Data fetchers ─────────────────────────────────────────────────────────────
 
+// ── Source 0: Nasdaq public historical API (no auth, works from Vercel) ──────
+async function fetchPricesNasdaq(ticker: string): Promise<number[]> {
+  const to = new Date().toISOString().slice(0, 10);
+  const fromDate = new Date(Date.now() - 180 * 86400 * 1000).toISOString().slice(0, 10);
+  const url = `https://api.nasdaq.com/api/quote/${encodeURIComponent(ticker)}/historical?assetclass=etf&fromdate=${fromDate}&todate=${to}&limit=120&sortColumn=date&sortOrder=ASC&type=Historical`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
+    signal: AbortSignal.timeout(8000),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Nasdaq HTTP ${res.status}`);
+  const data = await res.json();
+  const rows = (data?.data?.tradesTable?.rows ?? []) as Array<{ close: string }>;
+  const closes = rows
+    .map(r => parseFloat((r.close ?? '').replace(',', '')))
+    .filter(v => !isNaN(v) && v > 0);
+  if (closes.length < 20) throw new Error(`Nasdaq: insufficient data (${closes.length} rows)`);
+  return closes;
+}
+
 // ── Source 1: Twelve Data (real-time, 800 calls/day free) ─────────────────────
 async function fetchPricesTwelve(ticker: string, apiKey: string): Promise<number[]> {
   const url = `https://api.twelvedata.com/time_series?symbol=${ticker}&interval=1day&outputsize=120&apikey=${apiKey}`;
@@ -247,24 +267,24 @@ async function fetchAllPrices(
     }
   }
 
-  // Throttled Yahoo v8 fallback — 5 concurrent / 350ms delay.
-  // Same pattern as fetchYFNonUSQuotes which works on Vercel IPs when v7 batch is blocked.
+  // Nasdaq public API fallback — no auth, works from Vercel IPs where Yahoo is blocked.
+  // 5 concurrent with 200ms delay to stay well within Nasdaq rate limits.
   let stillFailed = [...failed];
   if (stillFailed.length > 0) {
     const CONCURRENT = 5;
-    const DELAY_MS = 350;
+    const DELAY_MS = 200;
     for (let i = 0; i < stillFailed.length; i += CONCURRENT) {
       const batch = stillFailed.slice(i, i + CONCURRENT);
       const settled = await Promise.allSettled(
         batch.map(async (ticker) => {
-          try { return { ticker, prices: await fetchPricesYahoo(ticker) }; }
+          try { return { ticker, prices: await fetchPricesNasdaq(ticker) }; }
           catch { return null; }
         })
       );
       for (const r of settled) {
         if (r.status === 'fulfilled' && r.value) {
           priceMap[r.value.ticker] = r.value.prices;
-          sourceCount['yahoo_v8'] = (sourceCount['yahoo_v8'] ?? 0) + 1;
+          sourceCount['nasdaq'] = (sourceCount['nasdaq'] ?? 0) + 1;
         }
       }
       if (i + CONCURRENT < stillFailed.length) {
@@ -274,7 +294,7 @@ async function fetchAllPrices(
     const prevFailCount = stillFailed.length;
     stillFailed = stillFailed.filter(t => !(priceMap[t]?.length > 0));
     if (stillFailed.length < prevFailCount) {
-      logger.info('capital-flows', 'throttled_yahoo_recovered', { recovered: prevFailCount - stillFailed.length, remaining: stillFailed.length });
+      logger.info('capital-flows', 'nasdaq_recovered', { recovered: prevFailCount - stillFailed.length, remaining: stillFailed.length });
     }
   }
 
@@ -479,7 +499,7 @@ export async function GET() {
   const sourceSummary = Object.entries(sourceCount)
     .filter(([s]) => s !== 'failed')
     .filter(([, n]) => (n as number) > 0)
-    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance', yahoo_v8: 'Yahoo v8(throttled)', finnhub: 'Finnhub' }[s] ?? s) + ` ×${n}`)
+    .map(([s, n]) => ({ twelve: 'Twelve Data', yahoo: 'Yahoo Finance', nasdaq: 'Nasdaq', finnhub: 'Finnhub' }[s] ?? s) + ` ×${n}`)
     .join(' + ');
 
   const results = ASSETS.map((asset) => {
