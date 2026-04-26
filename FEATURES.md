@@ -216,10 +216,11 @@
 ---
 
 ### 탭 3: 머니 흐름 (`flows`)
-**데이터**: `/api/signals` (SEC 13F 기반 기관 포지션 변화)
+**데이터**: `/api/signals` (SEC 13F 기관 포지션) + `/api/capital-flows` (ETF sectorPerformance)
 
-- 스마트 머니 **유입 섹터** 랭킹 (`MoneyFlowRow`)
-- 스마트 머니 **이탈 섹터** 랭킹
+- 스마트 머니 **유입 섹터** 랭킹 (`MoneyFlowRow`) — 탭 진입 시 ETF 실시간 데이터로 자동 갱신 (LIVE 뱃지)
+- 스마트 머니 **이탈 섹터** 랭킹 — `deriveSectorFlows()`: ret4w 기반 방향·강도·signal 자동 계산
+- 정적 데이터 fallback (capital-flows fetch 전 또는 실패 시)
 - 데이터 출처 안내 (매일 새벽 3시 자동 업데이트)
 
 ---

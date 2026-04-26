@@ -241,6 +241,7 @@
 |---|------|------|------|
 | 96 | 스마트머니 유입 섹터 랭킹 | 💾 cached | 13F |
 | 97 | 스마트머니 이탈 섹터 랭킹 | 💾 cached | 13F |
+| 97a | ETF 섹터 자금흐름 (inflow/outflow) | ✅ live | capital-flows sectorPerformance (11 ETF) |
 
 ### 2-4. 탭: Fear & Greed (`fear-greed`)
 
