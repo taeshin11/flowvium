@@ -8,14 +8,15 @@ export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
 
-const CACHE_TTL = 12 * 60 * 60; // 12h Redis
+const CACHE_TTL = 24 * 60 * 60; // 24h Redis
 const STALE_KEY_PREFIX = 'flowvium:investment-strategy:stale'; // last known good result
-const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=43200, stale-while-revalidate=1800' };
+// 24h CDN + 2h stale window; daily strategy doesn't need more frequent refresh
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=7200' };
 
-// Module-level memory cache — without Redis every request triggers a heavy AI call.
+// Module-level memory cache — without Redis every cold start triggers a heavy AI call.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let STRATEGY_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
-const STRATEGY_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
+const STRATEGY_MEMORY_TTL_MS = 23 * 60 * 60 * 1000; // 23h — survive most of the day within one Lambda instance
 
 function cacheKey(): string {
   const kstDate = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -247,36 +248,9 @@ Key rules:
 4. allocation must sum to 100
 5. action must be "buy" (actively accumulate now), "hold" (keep if owned), or "watch" (wait for better entry)
 
-{
-  "stance": "bullish|neutral|bearish",
-  "thesis": "one-line strategy (specific sector/event, max 50 chars)",
-  "portfolio": [
-    {
-      "ticker": "NVDA",
-      "name": "NVIDIA",
-      "sector": "Technology",
-      "rationale": "AI accelerator demand +25% QoQ, P/E 35x below sector average",
-      "allocation": 20,
-      "entryZone": "$price-based range",
-      "stopLoss": "$price-7%",
-      "target": "$price+15%",
-      "confidence": "high",
-      "action": "buy|hold|watch"
-    }
-  ],
-  "sectorAllocation": [
-    {"sector": "Technology", "pct": 30, "stance": "overweight", "reason": "AI demand sustained + sector P/E 35x fair"}
-  ],
-  "riskEvents": [
-    {"date": "2026-04-30", "event": "FOMC Rate Decision + PCE", "impact": "high", "watchFor": "25bp cut ~52% probability, Powell guidance on future path"}
-  ],
-  "macroAnalysis": "Specific analysis based on yield curve spread, CPI, credit spreads (IG/HY OAS), FOMC probabilities",
-  "technicalAnalysis": "Analysis based on major index MA, RSI, VIX levels",
-  "fundamentalAnalysis": "Analysis based on sector P/E, EPS growth rate, FCF yield",
-  "riskLevel": "low|medium|high"
-}
+{"stance":"bullish|neutral|bearish","thesis":"≤50 chars","portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","rationale":"≤60 chars with numbers","allocation":20,"entryZone":"$840-855","stopLoss":"$780","target":"$950","confidence":"high","action":"buy|hold|watch"}],"sectorAllocation":[{"sector":"Technology","pct":30,"stance":"overweight","reason":"≤40 chars"}],"riskEvents":[{"date":"2026-04-30","event":"FOMC","impact":"high","watchFor":"≤50 chars"}],"macroAnalysis":"≤120 chars","technicalAnalysis":"≤120 chars","fundamentalAnalysis":"≤120 chars","riskLevel":"low|medium|high"}
 
-portfolio 5-6 items, sectorAllocation 5-7 items, riskEvents 3-5 items. Specific numbers required for each.`;
+portfolio exactly 5 items, sectorAllocation 5 items, riskEvents 3 items. Pure JSON, no markdown.`;
 }
 
 interface CtxSummary {
@@ -603,7 +577,7 @@ export async function GET(request: Request) {
   const aiResult = await callAIProvider(prompt, {
     tag: 'investment-strategy',
     skipVllm: true,
-    maxTokens: 2000,
+    maxTokens: 1400,
     temperature: 0.55,
     timeoutMs: 45000,
   });
