@@ -213,7 +213,7 @@ const KEYWORD_RULES: KeywordRule[] = [
     ],
   },
   {
-    pattern: /\b(ipo|initial public offering|listing|float|spac|direct listing|capital raise)\b/i,
+    pattern: /\bipos?\b|\b(initial public offering|stock listing|equity listing|spac|direct listing|capital raise)\b/i,
     sentiment: 'bullish', importance: 'medium',
     cascades: [
       { asset: 'Equities', direction: 'positive', magnitude: 'low', reason: 'Active IPO market signals investor risk appetite', timeframe: 'medium-term(1-4w)' },
@@ -247,8 +247,12 @@ const KEYWORD_RULES: KeywordRule[] = [
   },
 ];
 
+// Non-financial exclusion patterns — keyword rules should not fire on crime/accident/sports news
+const NON_FINANCIAL_PATTERNS = /\b(shooting|gunman|murder|arrested|killed|injured|accident|crash|fire|hurricane|earthquake|sports|olympic|football|basketball|baseball|soccer|tennis|nfl|nba|mlb|nhl)\b/i;
+
 function keywordFallbackCascade(title: string): Pick<NewsWithCascade, 'summary' | 'sentiment' | 'importance' | 'cascades'> | null {
   const t = title.toLowerCase();
+  if (NON_FINANCIAL_PATTERNS.test(t)) return null;
   for (const rule of KEYWORD_RULES) {
     if (rule.pattern.test(t)) {
       return {
