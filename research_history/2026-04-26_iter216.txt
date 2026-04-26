@@ -1,0 +1,77 @@
+iter216 — 2026-04-26
+PRIMARY OUTCOME: 자금흐름 stale fallback 추가 (11자)
+CATEGORY: (c) 삭제/단순화 — hard 503 failure mode 제거
+
+=== DRIFT CHECK ===
+최근 5 커밋:
+  2d0020f  capital-flows: universal stale key
+  6a2571a  docs: capital-flows Finnhub 반영
+  f8fe566  capital-flows: Finnhub 3단계 폴백
+  dfa63df  capital-flows: Twelve mass-failure → Yahoo batch 폴백
+  4b461dc  docs: iter212-213 logs
+
+capital-flows 영역 3 iter 연속 작업 → drift signal (condition 1).
+iter216 에서 flow-analysis 로 영역 이동 → drift 해소.
+
+=== ACCURACY PROBE ===
+[accuracy probe] metric=vix source=CBOE
+  direct_value=18.71 (2026-04-24 close)
+  our_value=18.71
+  delta=0 tolerance=0.5 → OK
+CBOE CSV: https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv
+
+=== CHANGES ===
+
+1. fix(flow-analysis): capital-flows 불가 시 stale Redis 결과 서빙
+   파일: src/app/api/flow-analysis/route.ts
+   커밋: 52a6f43
+
+   문제:
+     line 161에서 capitalData == null 이면 즉시 503 반환.
+     staleResult 는 GET 핸들러 초기에 Redis에서 이미 읽었으나 (line 128-136),
+     capitalData 실패 경로에서는 사용되지 않음.
+     capital-flows IP 차단(Yahoo Finance on Vercel) 또는 Twelve 장애 시
+     flow-analysis 탭 전체가 503으로 빠짐.
+
+   수정:
+     ```typescript
+     if (!capitalData) {
+       if (staleResult) {
+         logger.warn('flow-analysis', 'serving_stale_capital_unavailable', { tf });
+         return NextResponse.json({ ...(staleResult as object), stale: true, staleFallback: true }, { headers: CDN_HEADERS });
+       }
+       return NextResponse.json({ error: 'capital-flows data unavailable' }, { status: 503 });
+     }
+     ```
+   staleResult TTL = 48h. capital-flows 장애 시 이전 AI 분석(최대 48h)을 stale 플래그와 함께 서빙.
+
+2. verify(macro-indicators): fetchFredLatest() cache 감사
+   파일: src/app/api/macro-indicators/route.ts line 190-194
+   결과: `cache: 'no-store'` 이미 존재 — 취약점 없음.
+
+3. verify(daily-brief): Redis cache key 정합성 감사
+   파일: src/lib/daily-brief.ts lines 196-215
+   결과: 모든 7개 핵심 키 정합성 확인
+     - capital-flows v11:twelve / v11:yahoo ✓
+     - fg v6:SPY ✓
+     - macro-indicators v13:{kst} → kstDateStr() = macro-indicators kstDate() 동일 구현 ✓
+     - credit-balance v3:{today} ✓
+     - news-cascade v1:list:{today} ✓
+   Explore agent 우려 사항 — 실제 불일치 없음.
+
+=== 이전 세션 이월 사항 (status) ===
+- FINNHUB_KEY Vercel env 추가 필요 → 사용자 액션 required (vercel env add FINNHUB_KEY production)
+- GROQ quota → 2026-04-27 00:00 UTC 자동 복구 예정
+- news-cascade 분산 락 효과 검증 → 2026-04-27 09:00 KST 후 로그 확인
+
+=== SESSION SUMMARY (iter215-216) ===
+iter215:
+  - news-cascade 분산 락 (Redis nx:true, 90s TTL) — thundering herd at midnight UTC 차단
+  - fear-greed CNN+Yahoo 병렬화 (Promise.all) — US entry 2-4s 절약
+  - ai-providers Qwen 진단 로그 provider: 'gemini' → 'qwen' 수정
+  - capital-flows 3단계 폴백: Twelve → Yahoo v7 batch → Finnhub
+  - capital-flows universal stale key (:any) — 소스 전환 시 fallback miss 방지
+
+iter216:
+  - flow-analysis stale fallback — capital-flows 장애 시 503 대신 stale AI 분석 서빙
+  - 캐시 감사: macro-indicators, daily-brief 키 모두 정상 확인
