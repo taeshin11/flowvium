@@ -52,7 +52,7 @@ export interface EconCalResponse {
 const FOMC_2026: Array<{ date: string; time: string; prev: number; estimate: number; actual?: number }> = [
   { date: '2026-01-29', time: '19:00:00', prev: 4.25, estimate: 4.25, actual: 4.25 }, // hold confirmed
   { date: '2026-03-19', time: '18:00:00', prev: 4.25, estimate: 4.00, actual: 3.75 }, // 50bp cut (FRED DFEDTARU=3.75)
-  { date: '2026-04-30', time: '18:00:00', prev: 3.75, estimate: 3.75 },
+  { date: '2026-04-29', time: '18:00:00', prev: 3.75, estimate: 3.75 },
   { date: '2026-06-17', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 90% hold — no cut priced
   { date: '2026-07-29', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 80% hold
   { date: '2026-09-16', time: '18:00:00', prev: 3.75, estimate: 3.50 }, // first cut scenario (32%)

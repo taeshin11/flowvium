@@ -479,7 +479,7 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
 
 // ── FOMC calendar (auto-computes next meeting date to prevent static staleness) ─
 const FOMC_DATES_2026 = [
-  '2026-01-29', '2026-03-19', '2026-04-30',
+  '2026-01-29', '2026-03-19', '2026-04-29',
   '2026-06-17', '2026-07-29', '2026-09-16',
   '2026-10-28', '2026-12-09',
 ];
@@ -564,9 +564,9 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
   fomc: {
     id: 'fomc', name: 'FOMC Rate Decision', nameKo: 'FOMC 금리 결정',
     category: 'monetary', actual: 3.75, forecast: 3.625, previous: 3.875, unit: '%',
-    releaseDate: '2026-03-19', nextRelease: '2026-04-30', surprise: 'inline',
+    releaseDate: '2026-03-19', nextRelease: '2026-04-29', surprise: 'inline',
     rateImpact: 'neutral', rateImpactKo: 'neutral (data-dependent hold)',
-    summary: 'Mar FOMC hold. Current rate 3.5-3.75% (mid 3.625%). Next meeting 2026-04-30.',
+    summary: 'Mar FOMC hold. Current rate 3.5-3.75% (mid 3.625%). Next meeting 2026-04-29.',
   },
   gdp: {
     id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',
