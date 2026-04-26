@@ -1,0 +1,59 @@
+ITER229 — 2026-04-26
+Primary outcome: news-cascade 키워드 폴백 — AI 소진 시 cascade=0 해결
+
+=== DRIFT CHECK ===
+Recent 5 commits: docs(iter228), fix(commodity-curve), fix(verify-metrics), fix/feat(economic-calendar)×2
+- iter226=economic-calendar, iter227=macro-indicators, iter228=commodity-curve, iter229=news-cascade
+- 4개 다른 모듈 → no drift signal
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=yield.spread2s10s source=FRED-T10Y2Y direct_value=0.53(Apr24) our_value=0.51 delta=0.02 tolerance=0.05 → OK (1-day freshness lag)
+[accuracy probe] metric=vol.vix source=CBOE direct_value~18.7(intraday) our_value=18.71 delta=0.01 → OK
+[accuracy probe] metric=news.cascade.coverage pre=1/5(20%) post=3/5(60%) → IMPROVED (2 non-financial correctly excluded)
+
+=== FINDINGS ===
+
+1. news-cascade cascade=0 문제 (all articles)
+   - Root cause: AI quota exhausted (GROQ 70b TPD or RPD, Gemini module guard)
+   - callCascadeAI → preferSmallModel → 8b → fails → parseCascade → cascades:[]
+   - parseCascade catch block returns cascades:[] on any parse error
+   - Memory cache only written when hasGoodCoverage (≥50% cascades), so bad results NOT cached
+   - But fresh AI calls still fail → every lambda cold start returns 0 cascades
+
+2. Keyword-based fallback cascade implementation
+   - NON_FINANCIAL_PATTERNS guard: shooting/crime/sports → null (no false financial cascades)
+   - 14 keyword rule groups: Fed/inflation/GDP/oil/earnings/tariff/gold/banking/tech/geopolitics/IPO/silver/jobs/crypto
+   - Only fires when AI returns empty cascades (AI analysis takes precedence)
+   - Coverage improvement: 1/5 (20%) → 3/5 (60%) — 2 non-financial articles correctly excluded
+   - IPO bug: \bipo\b didn't match "IPOs" → fixed to \bipos?\b
+   - Caching: keyword fallback results NOT cached in Redis (only AI results cached for 24h)
+
+3. INVESTIGATION RESULTS
+   - verify-metrics final state: ok=184, degraded=2 (strategy.portfolio + brief.market), error=0, skipped=5
+   - strategy.portfolio degraded: isAI=False (AI quota exhausted) — intentional
+   - brief.market degraded: fallback(data) — AI quota exhausted again — intentional
+   - yield.spread2s10sCurrent=0.51 (FRED T10Y2Y=0.53, Δ0.02 ≤ tolerance) ✓
+   - sector-pe: trailingPE from STATIC_FUNDAMENTALS (Yahoo v10 crumb blocked from Vercel)
+     all 11 sectors ok in verify-metrics (static values from 2026-04-25)
+   - GROQ probe: TPM 11963/12000, RPD 979/1000 remaining at probe time (barely used today)
+     But /api/ai test returned exhausted=True — module-level guard from previous quota event
+     Brief.market showing fallback confirms GROQ 70b TPD exhausted (100k/day limit hit)
+   - news-cascade: module cache NOT written when cascades=0 (hasGoodCoverage=false) → correct
+   - investment-strategy fallback: CDN TTL=5min (short, allows recovery after quota reset) ✓
+
+=== VERIFY-METRICS STATE (post-deploy) ===
+ok=184, degraded=2 (strategy.portfolio + brief.market), error=0, skipped=5, total=191
+vs iter228: ok=185, degraded=1 → brief.market went degraded again (AI quota re-exhaustion)
+
+=== COMMITS ===
+feat(news-cascade): keyword-based cascade fallback when AI quota exhausted
+feat(news-cascade): expand keyword cascade rules — IPO/silver/jobs/crypto
+fix(news-cascade): IPO plural pattern + non-financial exclusion filter
+
+=== REMAINING ISSUES (no change except cascade=0 fixed) ===
+- strategy.portfolio: AI quota exhaustion (daily reset 09:00 KST / UTC midnight)
+- brief.market: same AI quota issue
+- EU heatmap: 45% ceiling
+- Redis/OpenRouter: 미설정
+- FOMC/GDP/PCE: April 30 releases in 4 days, FRED auto-updates expected
+- sector-pe trailingPE: static from 2026-04-25 (Yahoo v10 crumb blocked on Vercel)
