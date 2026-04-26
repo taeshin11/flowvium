@@ -190,11 +190,27 @@ function volatilityScore(prices: number[]): Factor {
   return { value: Math.min(100, Math.max(0, Math.round(50 * (2 - ratio)))), ok: true };
 }
 
+// Factor 4 (US only): VIX level → inverse sentiment.
+// High VIX = fear; low VIX = greed. Thresholds calibrated to CNN F&G historical mapping.
+function vixLevelScore(vix: number): Factor {
+  if (vix < 12) return { value: 92, ok: true };
+  if (vix < 15) return { value: 75, ok: true };
+  if (vix < 20) return { value: 50, ok: true };
+  if (vix < 25) return { value: 28, ok: true };
+  if (vix < 30) return { value: 15, ok: true };
+  return { value: 5, ok: true };
+}
+
 // Composite: 한 번만 계산해서 단일 score 반환 (prevScore 7일 전 값 계산용)
-function compositeScore(prices: number[]): number {
+// vixValue 제공 시 RSI(35%)+SMA(30%)+VIX(20%)+vol(15%), 없으면 기존 3-factor
+function compositeScore(prices: number[], vixValue?: number): number {
   const r = rsi14(prices).value;
   const m = smaMomentum(prices).value;
   const v = volatilityScore(prices).value;
+  if (vixValue != null) {
+    const vx = vixLevelScore(vixValue).value;
+    return Math.round(r * 0.35 + m * 0.30 + vx * 0.20 + v * 0.15);
+  }
   return Math.round(r * 0.40 + m * 0.35 + v * 0.25);
 }
 
@@ -207,7 +223,8 @@ interface CompositeResult {
   degradedFactors: string[];  // e.g. ['sma'] — UI에 노출
 }
 
-function compositeWithFactors(prices: number[], ticker: string): CompositeResult {
+// vixValue 제공 시 4-factor 가중치 적용 (US composite fallback 전용)
+function compositeWithFactors(prices: number[], ticker: string, vixValue?: number): CompositeResult {
   const r = rsi14(prices);
   const m = smaMomentum(prices);
   const v = volatilityScore(prices);
@@ -216,7 +233,7 @@ function compositeWithFactors(prices: number[], ticker: string): CompositeResult
   if (!m.ok) degraded.push('sma');
   if (!v.ok) degraded.push('vol');
 
-  // 3개 모두 ok = full / 일부만 = partial / 전부 실패 = insufficient
+  // 3개 모두 ok = full / 일부만 = partial / 전부 실패 = insufficient (VIX는 보조 factor)
   const okCount = [r.ok, m.ok, v.ok].filter(Boolean).length;
   const dataQuality: 'full' | 'partial' | 'insufficient' =
     okCount === 3 ? 'full' : okCount === 0 ? 'insufficient' : 'partial';
@@ -225,8 +242,16 @@ function compositeWithFactors(prices: number[], ticker: string): CompositeResult
     logger.warn('fear-greed', 'composite_degraded', { ticker, quality: dataQuality, degradedFactors: degraded, priceLen: prices.length });
   }
 
+  let score: number;
+  if (vixValue != null) {
+    const vx = vixLevelScore(vixValue).value;
+    score = Math.round(r.value * 0.35 + m.value * 0.30 + vx * 0.20 + v.value * 0.15);
+  } else {
+    score = Math.round(r.value * 0.40 + m.value * 0.35 + v.value * 0.25);
+  }
+
   return {
-    score: Math.round(r.value * 0.40 + m.value * 0.35 + v.value * 0.25),
+    score,
     rsiScore: r.value,
     momentumScore: m.value,
     volatilityScore: v.value,
@@ -441,11 +466,14 @@ async function buildEntry(
   let degradedFactors: string[] = [];
 
   if (useCNN) {
-    // Fetch CNN and Yahoo prices in parallel — CNN and Yahoo are independent sources
-    const [cnn, prices] = await Promise.all([
+    // Fetch CNN, SPY prices, and VIX in parallel. VIX is used when CNN is blocked.
+    const [cnn, prices, vixPrices] = await Promise.all([
       fetchCNNScore(),
       fetchPrices(ticker).catch(() => [] as number[]),
+      fetchPrices('^VIX').catch(() => [] as number[]),
     ]);
+    const currentVix = vixPrices.length > 0 ? vixPrices[vixPrices.length - 1] : undefined;
+    const prevVix = vixPrices.length > 7 ? vixPrices[vixPrices.length - 8] : undefined;
     if (cnn) {
       score = cnn.score;
       prevScore = cnn.prevScore;
@@ -460,9 +488,9 @@ async function buildEntry(
         degradedFactors = ['yahoo_factors'];
       }
     } else {
-      logger.error('fear-greed', 'cnn_expected_fallback_to_composite', { ticker });
-      const f = compositeWithFactors(prices, ticker);
-      score = f.score; prevScore = compositeScore(prices.slice(0, -7));
+      logger.error('fear-greed', 'cnn_expected_fallback_to_composite', { ticker, vixAvailable: currentVix != null });
+      const f = compositeWithFactors(prices, ticker, currentVix);
+      score = f.score; prevScore = compositeScore(prices.slice(0, -7), prevVix);
       rsiScore = f.rsiScore; momentumScore = f.momentumScore; volScore = f.volatilityScore;
       dataQuality = f.dataQuality; degradedFactors = f.degradedFactors;
     }
