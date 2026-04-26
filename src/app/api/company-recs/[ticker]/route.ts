@@ -46,7 +46,27 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
         };
       }
     }
-  } catch { /* prices stay null */ }
+  } catch { /* fall through to Finnhub */ }
+
+  // Finnhub fallback for symbols that got null prices
+  const fhKey = process.env.FINNHUB_KEY?.trim();
+  if (fhKey) {
+    const missing = symbols.filter(s => prices[s]?.price == null);
+    if (missing.length > 0) {
+      await Promise.allSettled(missing.map(async (sym) => {
+        try {
+          const res = await fetch(
+            `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(fhKey)}`,
+            { signal: AbortSignal.timeout(4000), cache: 'no-store' },
+          );
+          if (res.ok) {
+            const d = await res.json() as { c?: number; dp?: number };
+            if (d.c && d.c > 0) prices[sym] = { price: d.c, changePct: d.dp ?? null };
+          }
+        } catch { /* non-fatal */ }
+      }));
+    }
+  }
 
   const recs: RecEntry[] = symbols.map((sym) => ({
     symbol: sym,
