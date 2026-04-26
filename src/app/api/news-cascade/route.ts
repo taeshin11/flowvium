@@ -394,7 +394,19 @@ export async function GET(request: Request) {
     try {
       const acquired = await redis.set(LOCK_KEY, '1', { nx: true, ex: LOCK_TTL });
       if (!acquired) {
-        await new Promise(r => setTimeout(r, 4000));
+        // Poll up to 30s (AI analysis of 5 articles typically takes 5-20s).
+        // Returns as soon as list is ready; falls through only if holder crashed.
+        for (let i = 0; i < 6; i++) {
+          await new Promise(r => setTimeout(r, 5000));
+          try {
+            const fresh = await redis.get<NewsWithCascade[]>(listKey());
+            if (fresh && fresh.length > 0) {
+              return NextResponse.json({ articles: fresh, cached: true }, { headers: CDN_HEADERS });
+            }
+            const stillLocked = await redis.get(LOCK_KEY);
+            if (!stillLocked) break; // holder finished or crashed — do final check
+          } catch { break; }
+        }
         try {
           const fresh = await redis.get<NewsWithCascade[]>(listKey());
           if (fresh && fresh.length > 0) {
