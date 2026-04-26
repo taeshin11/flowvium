@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     let v7Ok = false;
     try {
       const res = await fetch(
-        `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(missing.join(','))}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`,
+        `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(missing.join(','))}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,marketState`,
         { headers: YHDR, signal: AbortSignal.timeout(10000), cache: 'no-store' },
       );
       if (res.ok) {

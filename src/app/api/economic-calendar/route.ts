@@ -45,15 +45,18 @@ export interface EconCalResponse {
 // FOMC decision dates 2026 — Finnhub free tier doesn't include FOMC rate decisions.
 // These are injected as fixed high-impact events so the calendar is never missing
 // the most market-moving event of the year.
+// Updated 2026-04-26: estimates recalibrated to ZQ futures market consensus.
+// Tariff shock → NFP+228K beat → CPI 3.3% → no cuts priced through mid-2026.
+// Jun/Jul: 90%/80% hold per FedWatch. Sep: first cut scenario (~32% prob).
 const FOMC_2026: Array<{ date: string; time: string; prev: number; estimate: number }> = [
   { date: '2026-01-29', time: '19:00:00', prev: 4.25, estimate: 4.25 },
   { date: '2026-03-19', time: '18:00:00', prev: 4.25, estimate: 4.00 },
   { date: '2026-04-30', time: '18:00:00', prev: 3.75, estimate: 3.75 },
-  { date: '2026-06-17', time: '18:00:00', prev: 3.75, estimate: 3.50 },
-  { date: '2026-07-29', time: '18:00:00', prev: 3.50, estimate: 3.50 },
-  { date: '2026-09-16', time: '18:00:00', prev: 3.50, estimate: 3.25 },
-  { date: '2026-10-28', time: '18:00:00', prev: 3.25, estimate: 3.25 },
-  { date: '2026-12-09', time: '19:00:00', prev: 3.25, estimate: 3.00 },
+  { date: '2026-06-17', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 90% hold — no cut priced
+  { date: '2026-07-29', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 80% hold
+  { date: '2026-09-16', time: '18:00:00', prev: 3.75, estimate: 3.50 }, // first cut scenario (32%)
+  { date: '2026-10-28', time: '18:00:00', prev: 3.50, estimate: 3.50 }, // hold after Sep cut
+  { date: '2026-12-09', time: '19:00:00', prev: 3.50, estimate: 3.25 }, // second cut possible (50%)
 ];
 
 function injectFomcEvents(events: EconCalEvent[], from: string, to: string): EconCalEvent[] {
