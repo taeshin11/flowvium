@@ -76,6 +76,7 @@ interface LivePrice {
 }
 
 async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]> {
+  // Try Yahoo v8 first
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
@@ -85,20 +86,44 @@ async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]
         cache: 'no-store',
       }
     );
-    if (!res.ok) return [ticker, null];
-    const data = await res.json();
-    const meta = data?.chart?.result?.[0]?.meta;
-    if (!meta) return [ticker, null];
-    const price = meta.regularMarketPrice as number;
-    const prev = meta.previousClose as number;
-    const change1d = prev ? ((price - prev) / prev) * 100 : 0;
-    return [ticker, {
-      price: Math.round(price * 100) / 100,
-      change1d: Math.round(change1d * 10) / 10,
-      high52w: meta.fiftyTwoWeekHigh ?? price * 1.3,
-      low52w: meta.fiftyTwoWeekLow ?? price * 0.7,
-    }];
-  } catch { return [ticker, null]; }
+    if (res.ok) {
+      const data = await res.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (meta) {
+        const price = meta.regularMarketPrice as number;
+        const prev = meta.previousClose as number;
+        const change1d = prev ? ((price - prev) / prev) * 100 : 0;
+        return [ticker, {
+          price: Math.round(price * 100) / 100,
+          change1d: Math.round(change1d * 10) / 10,
+          high52w: meta.fiftyTwoWeekHigh ?? price * 1.3,
+          low52w: meta.fiftyTwoWeekLow ?? price * 0.7,
+        }];
+      }
+    }
+  } catch { /* fall through to Finnhub */ }
+  // Finnhub fallback — works from Vercel IPs where Yahoo is blocked
+  const fhKey = process.env.FINNHUB_KEY?.trim();
+  if (fhKey) {
+    try {
+      const res = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(fhKey)}`,
+        { signal: AbortSignal.timeout(4000), cache: 'no-store' }
+      );
+      if (res.ok) {
+        const d = await res.json() as { c?: number; d?: number; dp?: number; h?: number; l?: number; pc?: number };
+        if (d.c && d.c > 0) {
+          return [ticker, {
+            price: Math.round(d.c * 100) / 100,
+            change1d: Math.round((d.dp ?? 0) * 10) / 10,
+            high52w: d.h ? d.h * 1.1 : d.c * 1.3,
+            low52w: d.l ? d.l * 0.9 : d.c * 0.7,
+          }];
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
+  return [ticker, null];
 }
 
 const CANDIDATE_TICKERS = [
@@ -133,7 +158,7 @@ async function getLivePrices(): Promise<Map<string, LivePrice>> {
         return map;
       }
     }
-  } catch { /* fall through to v8 */ }
+  } catch { /* fall through to v8 / Finnhub */ }
   const results = await Promise.all(CANDIDATE_TICKERS.map(fetchOnePrice));
   return new Map(results.filter((r): r is [string, LivePrice] => r[1] !== null));
 }
