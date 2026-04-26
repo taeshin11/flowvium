@@ -26,7 +26,7 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Redis } from '@upstash/redis';
-import { logger } from './logger';
+import { logger, loggedRedisSet } from './logger';
 
 // ── Redis lazy init for cross-instance quota guards ──────────────────────────
 const GROQ_TPD_KEY = 'flowvium:groq:tpd_exhausted_v2'; // v2: bust stale guard from Apr 26
@@ -233,10 +233,7 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
       const nextMidnight = new Date(Date.now() + ttl * 1000).toISOString();
       groqTpdExhaustedUntil = Date.now() + ttl * 1000;
       logger.error(tag, 'groq_all_tpd_exhausted', { resetsAt: nextMidnight, ttlS: ttl });
-      try {
-        const guardRedis = getGuardRedis();
-        if (guardRedis) await guardRedis.set(GROQ_TPD_KEY, nextMidnight, { ex: ttl });
-      } catch { /* non-fatal */ }
+      await loggedRedisSet(getGuardRedis(), tag, GROQ_TPD_KEY, nextMidnight, { ex: ttl });
     }
   }
   return null;
@@ -359,10 +356,7 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
       const resetsAt = new Date(Date.now() + ttl * 1000).toISOString();
       geminiQuotaExhaustedUntil = Date.now() + ttl * 1000;
       logger.error(tag, 'gemini_quota_exhausted', { error: msg.slice(0, 200), durationMs: Date.now() - t0, resetsAt });
-      try {
-        const guardRedis = getGuardRedis();
-        if (guardRedis) await guardRedis.set(GEMINI_QUOTA_KEY, resetsAt, { ex: ttl });
-      } catch { /* non-fatal */ }
+      await loggedRedisSet(getGuardRedis(), tag, GEMINI_QUOTA_KEY, resetsAt, { ex: ttl });
     } else {
       logger.warn(tag, 'gemini_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0, is503 });
     }
