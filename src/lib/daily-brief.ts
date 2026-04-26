@@ -746,10 +746,12 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
       }
     }
 
-    // Cascade headline
+    // Cascade headline — prefer articles with real cascades, sorted by cascade count
     const arr = ctx?.cascade as Array<Record<string, unknown>> | undefined;
     if (arr?.length) {
-      const top = arr[0];
+      const withCascades = arr.filter(a => ((a.cascades as unknown[] | undefined)?.length ?? 0) > 0)
+        .sort((a, b) => ((b.cascades as unknown[])?.length ?? 0) - ((a.cascades as unknown[])?.length ?? 0));
+      const top = withCascades[0] ?? arr[0];
       const sent = top.sentiment as string;
       signalBullets.push(`Cascade: ${sent === 'bullish' ? 'Bullish' : sent === 'bearish' ? 'Bearish' : 'News'} — ${(top.title as string).slice(0, 40)}`);
     }
