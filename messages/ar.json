@@ -505,7 +505,15 @@
     "earningsNoData": "لا توجد نتائج هذا الأسبوع",
     "moversTitle": "تحركات اليوم",
     "moversGainers": "الرابحون",
-    "moversLosers": "الخاسرون"
+    "moversLosers": "الخاسرون",
+    "snapshotRiskOn": "شهية المخاطرة",
+    "snapshotRiskOff": "تجنب المخاطرة",
+    "snapshotNeutral": "محايد",
+    "snapshotRecession": "ركود",
+    "snapshotStagflation": "ركود تضخمي",
+    "snapshotOverheating": "ارتفاع حرارة",
+    "snapshotGoldilocks": "توازن",
+    "snapshotSlowdown": "تباطؤ"
   },
   "feedback": {
     "title": "إرسال ملاحظات",

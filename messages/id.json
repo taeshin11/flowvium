@@ -505,7 +505,15 @@
     "earningsNoData": "Tidak ada laporan minggu ini",
     "moversTitle": "Pergerakan Hari Ini",
     "moversGainers": "Naik",
-    "moversLosers": "Turun"
+    "moversLosers": "Turun",
+    "snapshotRiskOn": "Selera risiko",
+    "snapshotRiskOff": "Hindari risiko",
+    "snapshotNeutral": "Netral",
+    "snapshotRecession": "Resesi",
+    "snapshotStagflation": "Stagflasi",
+    "snapshotOverheating": "Kepanasan",
+    "snapshotGoldilocks": "Goldilocks",
+    "snapshotSlowdown": "Perlambatan"
   },
   "feedback": {
     "title": "Kirim Masukan",

@@ -505,7 +505,15 @@
     "earningsNoData": "ไม่มีผลประกอบการสัปดาห์นี้",
     "moversTitle": "ความเคลื่อนไหววันนี้",
     "moversGainers": "ขึ้น",
-    "moversLosers": "ลง"
+    "moversLosers": "ลง",
+    "snapshotRiskOn": "รับความเสี่ยง",
+    "snapshotRiskOff": "หลีกเลี่ยงความเสี่ยง",
+    "snapshotNeutral": "เป็นกลาง",
+    "snapshotRecession": "ถดถอย",
+    "snapshotStagflation": "สแตกเฟลชัน",
+    "snapshotOverheating": "ร้อนแรง",
+    "snapshotGoldilocks": "โกลดิล็อคส์",
+    "snapshotSlowdown": "ชะลอตัว"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",

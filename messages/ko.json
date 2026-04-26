@@ -674,7 +674,15 @@
     "earningsNoData": "이번 주 실적 발표 없음",
     "moversTitle": "오늘의 급등·급락",
     "moversGainers": "급등",
-    "moversLosers": "급락"
+    "moversLosers": "급락",
+    "snapshotRiskOn": "리스크 온",
+    "snapshotRiskOff": "리스크 오프",
+    "snapshotNeutral": "중립",
+    "snapshotRecession": "침체",
+    "snapshotStagflation": "스태그플레이션",
+    "snapshotOverheating": "과열",
+    "snapshotGoldilocks": "황금기",
+    "snapshotSlowdown": "둔화"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",

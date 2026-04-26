@@ -505,7 +505,15 @@
     "earningsNoData": "इस सप्ताह कोई आय नहीं",
     "moversTitle": "आज के मूवर्स",
     "moversGainers": "बढ़त",
-    "moversLosers": "गिरावट"
+    "moversLosers": "गिरावट",
+    "snapshotRiskOn": "जोखिम सक्रिय",
+    "snapshotRiskOff": "जोखिम निष्क्रिय",
+    "snapshotNeutral": "तटस्थ",
+    "snapshotRecession": "मंदी",
+    "snapshotStagflation": "स्टैगफ्लेशन",
+    "snapshotOverheating": "अतिताप",
+    "snapshotGoldilocks": "स्वर्णिम दौर",
+    "snapshotSlowdown": "मंदी"
   },
   "feedback": {
     "title": "फ़ीडबैक भेजें",

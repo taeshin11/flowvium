@@ -505,7 +505,15 @@
     "earningsNoData": "本週沒有業績公布",
     "moversTitle": "今日漲跌榜",
     "moversGainers": "漲幅榜",
-    "moversLosers": "跌幅榜"
+    "moversLosers": "跌幅榜",
+    "snapshotRiskOn": "風險偏好",
+    "snapshotRiskOff": "風險規避",
+    "snapshotNeutral": "中性",
+    "snapshotRecession": "衰退",
+    "snapshotStagflation": "停滯性通膨",
+    "snapshotOverheating": "過熱",
+    "snapshotGoldilocks": "金髮姑娘",
+    "snapshotSlowdown": "放緩"
   },
   "feedback": {
     "title": "傳送意見回饋",

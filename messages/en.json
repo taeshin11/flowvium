@@ -505,7 +505,15 @@
     "earningsNoData": "No earnings this week",
     "moversTitle": "Today's Movers",
     "moversGainers": "Gainers",
-    "moversLosers": "Losers"
+    "moversLosers": "Losers",
+    "snapshotRiskOn": "Risk On",
+    "snapshotRiskOff": "Risk Off",
+    "snapshotNeutral": "Neutral",
+    "snapshotRecession": "Recession",
+    "snapshotStagflation": "Stagflation",
+    "snapshotOverheating": "Overheating",
+    "snapshotGoldilocks": "Goldilocks",
+    "snapshotSlowdown": "Slowdown"
   },
   "feedback": {
     "title": "Send Feedback",

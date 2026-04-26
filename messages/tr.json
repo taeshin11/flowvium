@@ -505,7 +505,15 @@
     "earningsNoData": "Bu hafta kazanç yok",
     "moversTitle": "Günün Hareketleri",
     "moversGainers": "Yükselenler",
-    "moversLosers": "Düşenler"
+    "moversLosers": "Düşenler",
+    "snapshotRiskOn": "Risk İştahı",
+    "snapshotRiskOff": "Riskten Kaçış",
+    "snapshotNeutral": "Nötr",
+    "snapshotRecession": "Durgunluk",
+    "snapshotStagflation": "Stagflasyon",
+    "snapshotOverheating": "Aşırı Isınma",
+    "snapshotGoldilocks": "Altın Dönem",
+    "snapshotSlowdown": "Yavaşlama"
   },
   "feedback": {
     "title": "Geri Bildirim Gönder",

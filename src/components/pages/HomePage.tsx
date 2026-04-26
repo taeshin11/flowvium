@@ -68,6 +68,7 @@ const TICKER_CONFIG: Record<string, { label: string; decimals: number; prefix: s
 };
 
 function MarketSnapshot() {
+  const t = useTranslations('home');
   const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
   const [fgScore, setFgScore] = useState<number | null>(null);
   const [fgHistory, setFgHistory] = useState<number[] | null>(null);
@@ -223,7 +224,7 @@ function MarketSnapshot() {
                 riskSignal === 'risk-off' ? 'text-red-700 bg-red-100' :
                 'text-gray-600 bg-gray-100'
               }`}>
-                {riskSignal === 'risk-on' ? '🟢 Risk On' : riskSignal === 'risk-off' ? '🔴 Risk Off' : '⚪ Neutral'}
+                {riskSignal === 'risk-on' ? `🟢 ${t('snapshotRiskOn')}` : riskSignal === 'risk-off' ? `🔴 ${t('snapshotRiskOff')}` : `⚪ ${t('snapshotNeutral')}`}
               </span>
             </div>
           )}
@@ -237,11 +238,11 @@ function MarketSnapshot() {
                 regimeSignal === 'goldilocks'  ? 'text-green-700 bg-green-100' :
                 'text-yellow-700 bg-yellow-100'
               }`}>
-                {regimeSignal === 'recession'   ? 'Recession'   :
-                 regimeSignal === 'stagflation' ? 'Stagflation' :
-                 regimeSignal === 'overheating' ? 'Overheating' :
-                 regimeSignal === 'goldilocks'  ? 'Goldilocks'  :
-                 'Slowdown'}
+                {regimeSignal === 'recession'   ? t('snapshotRecession')   :
+                 regimeSignal === 'stagflation' ? t('snapshotStagflation') :
+                 regimeSignal === 'overheating' ? t('snapshotOverheating') :
+                 regimeSignal === 'goldilocks'  ? t('snapshotGoldilocks')  :
+                 t('snapshotSlowdown')}
               </span>
             </div>
           )}

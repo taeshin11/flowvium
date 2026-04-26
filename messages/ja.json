@@ -674,7 +674,15 @@
     "earningsNoData": "今週の決算発表はありません",
     "moversTitle": "本日の急騰・急落",
     "moversGainers": "急騰",
-    "moversLosers": "急落"
+    "moversLosers": "急落",
+    "snapshotRiskOn": "リスクオン",
+    "snapshotRiskOff": "リスクオフ",
+    "snapshotNeutral": "中立",
+    "snapshotRecession": "不況",
+    "snapshotStagflation": "スタグフレーション",
+    "snapshotOverheating": "過熱",
+    "snapshotGoldilocks": "ゴルディロックス",
+    "snapshotSlowdown": "鈍化"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",

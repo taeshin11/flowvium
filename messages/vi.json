@@ -505,7 +505,15 @@
     "earningsNoData": "Không có thu nhập tuần này",
     "moversTitle": "Biến động Hôm nay",
     "moversGainers": "Tăng",
-    "moversLosers": "Giảm"
+    "moversLosers": "Giảm",
+    "snapshotRiskOn": "Ưa rủi ro",
+    "snapshotRiskOff": "Tránh rủi ro",
+    "snapshotNeutral": "Trung lập",
+    "snapshotRecession": "Suy thoái",
+    "snapshotStagflation": "Lạm phát đình trệ",
+    "snapshotOverheating": "Quá nóng",
+    "snapshotGoldilocks": "Goldilocks",
+    "snapshotSlowdown": "Chậm lại"
   },
   "feedback": {
     "title": "Gửi phản hồi",

@@ -505,7 +505,15 @@
     "earningsNoData": "Keine Ergebnisse diese Woche",
     "moversTitle": "Tagesbewegungen",
     "moversGainers": "Gewinner",
-    "moversLosers": "Verlierer"
+    "moversLosers": "Verlierer",
+    "snapshotRiskOn": "Risikobereit",
+    "snapshotRiskOff": "Risikoscheu",
+    "snapshotNeutral": "Neutral",
+    "snapshotRecession": "Rezession",
+    "snapshotStagflation": "Stagflation",
+    "snapshotOverheating": "Überhitzung",
+    "snapshotGoldilocks": "Goldilöckchen",
+    "snapshotSlowdown": "Abschwächung"
   },
   "feedback": {
     "title": "Feedback senden",

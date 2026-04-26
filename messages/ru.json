@@ -505,7 +505,15 @@
     "earningsNoData": "Нет отчётов на этой неделе",
     "moversTitle": "Движения Дня",
     "moversGainers": "Рост",
-    "moversLosers": "Падение"
+    "moversLosers": "Падение",
+    "snapshotRiskOn": "Риск включён",
+    "snapshotRiskOff": "Риск выключен",
+    "snapshotNeutral": "Нейтрально",
+    "snapshotRecession": "Рецессия",
+    "snapshotStagflation": "Стагфляция",
+    "snapshotOverheating": "Перегрев",
+    "snapshotGoldilocks": "Золотой век",
+    "snapshotSlowdown": "Замедление"
   },
   "feedback": {
     "title": "Отправить отзыв",
