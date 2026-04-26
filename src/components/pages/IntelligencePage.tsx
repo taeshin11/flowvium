@@ -481,6 +481,50 @@ Answer concisely (3–5 paragraphs). Be specific — name tickers, mechanisms, a
 }
 
 
+// ── Live sector flow derivation from capital-flows ETF data ──────────────────
+interface SectorReturn { id: string; label: string; flag: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; }
+
+const SECTOR_META: Record<string, { sectorKo: string; movers: string[] }> = {
+  XLK:  { sectorKo: 'AI 테크',       movers: ['NVDA', 'MSFT', 'META'] },
+  XLF:  { sectorKo: '금융',           movers: ['JPM', 'BAC', 'GS'] },
+  XLE:  { sectorKo: '에너지 (원유)',   movers: ['XOM', 'CVX', 'SLB'] },
+  XLV:  { sectorKo: '헬스케어',       movers: ['UNH', 'LLY', 'ABBV'] },
+  XLI:  { sectorKo: '산업재',         movers: ['CAT', 'GE', 'HON'] },
+  XLB:  { sectorKo: '소재',           movers: ['FCX', 'NEM', 'ALB'] },
+  XLY:  { sectorKo: '경기소비재',     movers: ['AMZN', 'TSLA', 'MCD'] },
+  XLP:  { sectorKo: '필수소비재',     movers: ['PG', 'KO', 'WMT'] },
+  XLU:  { sectorKo: '유틸리티',       movers: ['NEE', 'DUK', 'SO'] },
+  XLRE: { sectorKo: '부동산 (리츠)',  movers: ['AMT', 'PLD', 'SPG'] },
+  XLC:  { sectorKo: '통신 서비스',    movers: ['GOOGL', 'META', 'NFLX'] },
+};
+
+function deriveSectorFlows(sectors: SectorReturn[]): MoneyFlowSector[] {
+  const sinceDate = new Date(Date.now() - 28 * 86400_000).toISOString().slice(0, 10);
+  return sectors
+    .filter(s => Math.abs(s.ret4w) > 0.3 && SECTOR_META[s.ticker])
+    .map(s => {
+      const meta = SECTOR_META[s.ticker];
+      const direction: 'inflow' | 'outflow' = s.ret4w >= 0 ? 'inflow' : 'outflow';
+      const absRet = Math.abs(s.ret4w);
+      const magnitude = absRet < 1 ? 1 : absRet < 2 ? 2 : absRet < 4 ? 3 : absRet < 7 ? 4 : 5;
+      const signal: 'accelerating' | 'holding' | 'fading' =
+        direction === 'inflow'
+          ? (s.ret1w > absRet * 0.25 ? 'accelerating' : s.ret1w < 0 ? 'fading' : 'holding')
+          : (s.ret1w < -(absRet * 0.25) ? 'accelerating' : s.ret1w > 0 ? 'fading' : 'holding');
+      const sign = (n: number) => (n >= 0 ? '+' : '');
+      return {
+        sector: s.label,
+        sectorKo: meta.sectorKo,
+        direction,
+        magnitude,
+        topMovers: meta.movers.map(tk => ({ ticker: tk, action: direction === 'inflow' ? '↑' : '↓' })),
+        reason: `${s.ticker} ${sign(s.ret4w)}${s.ret4w.toFixed(1)}% 4W · 1W: ${sign(s.ret1w)}${s.ret1w.toFixed(1)}%`,
+        sinceDate,
+        signal,
+      } satisfies MoneyFlowSector;
+    });
+}
+
 // ── Lazily-loaded tab chunks ─────────────────────────────────────────────────
 const CapitalFlowsTab = dynamic(() => import('@/components/intelligence/CapitalFlowsTab'), { ssr: false });
 const MacroIndicatorsTab = dynamic(() => import('@/components/intelligence/MacroIndicatorsTab'), { ssr: false });
@@ -506,8 +550,9 @@ export default function IntelligencePage() {
   const [fgData, setFgData] = useState<LiveFGData | null>(null);
   const [fgLoading, setFgLoading] = useState(false);
 
-  // Live 13F signals for flows tab
+  // Live 13F signals and ETF sector performance for flows tab
   const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[] | null>(null);
+  const [liveCapSectors, setLiveCapSectors] = useState<SectorReturn[] | null>(null);
 
   useEffect(() => {
     if (activeTab !== 'fear-greed' || fgData) return;
@@ -524,10 +569,15 @@ export default function IntelligencePage() {
   useEffect(() => {
     if (activeTab !== 'flows' || liveSignals !== null) return;
     const controller = new AbortController();
-    fetch('/api/signals', { signal: controller.signal })
+    const { signal } = controller;
+    fetch('/api/signals', { signal })
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(d => { if (!controller.signal.aborted) setLiveSignals(d.signals ?? []); })
-      .catch(() => { if (!controller.signal.aborted) setLiveSignals([]); });
+      .then(d => { if (!signal.aborted) setLiveSignals(d.signals ?? []); })
+      .catch(() => { if (!signal.aborted) setLiveSignals([]); });
+    fetch('/api/capital-flows', { signal })
+      .then(r => r.json())
+      .then(d => { if (!signal.aborted) setLiveCapSectors(d.sectorPerformance ?? null); })
+      .catch(() => {});
     return () => controller.abort();
   }, [activeTab, liveSignals]);
 
@@ -573,8 +623,13 @@ export default function IntelligencePage() {
     'cot':         { label: t('tabCot'),        icon: <BarChart3 className="w-4 h-4" /> },
   };
 
-  const inflows = moneyFlowSectors.filter(f => f.direction === 'inflow').sort((a, b) => b.magnitude - a.magnitude);
-  const outflows = moneyFlowSectors.filter(f => f.direction === 'outflow').sort((a, b) => b.magnitude - a.magnitude);
+  // Live ETF-derived sector flows — falls back to static when capital-flows not yet fetched
+  const activeSectorFlows = useMemo(
+    () => liveCapSectors ? deriveSectorFlows(liveCapSectors) : moneyFlowSectors,
+    [liveCapSectors]
+  );
+  const inflows = activeSectorFlows.filter(f => f.direction === 'inflow').sort((a, b) => b.magnitude - a.magnitude);
+  const outflows = activeSectorFlows.filter(f => f.direction === 'outflow').sort((a, b) => b.magnitude - a.magnitude);
 
   return (
     <div className="min-h-screen bg-cf-bg">
@@ -668,12 +723,13 @@ export default function IntelligencePage() {
               </div>
             )}
 
-            {/* Editorial smart money context */}
+            {/* ETF sector flows — live when capital-flows loaded, static fallback otherwise */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h2 className="text-base font-heading font-bold text-green-700 mb-3 flex items-center gap-2">
                   <ArrowUpRight className="w-4 h-4" />
                   {t('smartMoneyInflow')}
+                  {liveCapSectors && <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">{t('liveLabel')}</span>}
                 </h2>
                 <div className="space-y-3">
                   {inflows.map((f) => <MoneyFlowRow key={f.sector} flow={f} />)}
