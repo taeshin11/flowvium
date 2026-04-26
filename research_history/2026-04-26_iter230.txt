@@ -1,0 +1,59 @@
+ITER230 — 2026-04-26
+Primary outcome: daily-brief 데이터 정확도 4개 버그 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: fix(iter230)×4, docs(iter229), fix(news-cascade)×3
+- iter228=commodity-curve, iter229=news-cascade, iter230=daily-brief data bugs → 3 different modules
+- No drift signal
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=yield.spread2s10s source=FRED direct_value=0.53(Apr24) our_value=0.51(Apr23) delta=0.02 tolerance=0.05 → OK (1-day freshness lag)
+[accuracy probe] metric=macro.cpi source=FRED-CPIAUCSL direct_value=3.29%(Mar26 YoY) our_value=3.29% delta=0 → OK (exact match)
+[accuracy probe] metric=macro.ppi source=FRED-WPSFD49207 direct_value=4.11%(Mar26 YoY) our_value=4.11% delta=0 → OK (exact match)
+
+=== FINDINGS ===
+
+1. yield spread 1bp→51bp (spread10y2y unit confusion)
+   - spread10y2y stored as % (0.51 = 51bp), but spread.toFixed(0) = "1"
+   - Affected 3 locations:
+     a) fallbackBrief() capital bullets (user-visible display)
+     b) buildCtxSummary() in investment-strategy (AI prompt context)
+     c) summariseMacro() in daily-brief (AI prompt context)
+   - Fix: Math.round(spread * 100) in all 3 locations
+   - After: capital bullets show "10Y-2Y spread: 51bp" ✓
+   - After: AI context receives "10y2y=51bp" ✓
+
+2. Korea flow "+0B KRW" when KRX API unavailable
+   - KRX API blocked from Vercel → Yahoo fallback (price-only)
+   - Yahoo data has no foreignerNetBuy → all null
+   - ?? 0 fallback caused "+0B KRW" misleading display
+   - Also: unit "B" wrong — should be "억" (1억=1e8, not 1 billion=1e9)
+   - Fix 1: null guard → show price change when flow data absent
+     "🇰🇷 KOSPI Hana Financial: +2.0%" instead of "+0B KRW"
+   - Fix 2: unit corrected "B" → "억" in both display and AI prompt context
+   - Also fixed summariseKorea() AI prompt: empty string when all null (not misleading "N/A(+0B)" entries)
+
+3. Cascade brief showing 0-cascade (non-financial) article
+   - Brief picked arr[0] without checking cascade count
+   - Non-financial article (Gunman article, 0 cascades) appeared as top signal
+   - Fix: sort by cascade count, pick article with most cascades first
+   - After: "Cascade: Bullish — HK Finance Chief Says City's 2026 IPOs H" ✓
+
+=== VERIFY-METRICS STATE (post-deploy) ===
+ok=184, degraded=2 (strategy.portfolio + brief.market), error=0, skipped=5, total=191
+No change from iter229 (AI quota issues are expected/intentional)
+
+=== COMMITS ===
+fix(daily-brief/strategy): yield spread 0.51% showing as 1bp instead of 51bp
+fix(daily-brief): summariseMacro AI context also showing 1bp instead of 51bp
+fix(daily-brief): Korea flow shows +0B when KRX unavailable; wrong unit 'B'→'억'
+fix(daily-brief): cascade brief shows 0-cascade article; now sorts by cascade count
+
+=== REMAINING ISSUES (no change) ===
+- strategy.portfolio: AI quota exhaustion (daily reset 09:00 KST / UTC midnight)
+- brief.market: same AI quota issue
+- EU heatmap: 45% ceiling
+- Redis/OpenRouter: 미설정
+- FOMC/GDP/PCE: April 30 releases in 4 days, FRED auto-updates expected
+- sector-pe trailingPE: static from 2026-04-25 (Yahoo v10 crumb blocked on Vercel)
+- KRX flow API: blocked from Vercel (Yahoo fallback price-only)
