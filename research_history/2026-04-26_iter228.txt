@@ -1,0 +1,51 @@
+ITER228 — 2026-04-26
+Primary outcome: commodity-curve Yahoo 부분데이터 → carry model 자동전환
+
+=== DRIFT CHECK ===
+Recent 5 commits: docs(iter227), feat(macro-indicators) GDP/PCE autoadvance, fix(verify-metrics), fix/feat(economic-calendar)×2
+- iter226=economic-calendar+verify-metrics, iter227=macro-indicators, iter228=commodity-curve → no 3-streak
+- No drift signals triggered
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+[accuracy probe] metric=intc.price source=Yahoo direct_value=82.54 our_value=82.54 delta=0 → OK (INTC +23.6% earnings gap-up 검증)
+[accuracy probe] metric=ig_spread source=FRED-BAMLC0A0CM direct_value=0.79(Apr22) our_value=0.80 delta=0.01 → OK (rounding)
+[accuracy probe] metric=hy_spread source=FRED-BAMLH0A0HYM2 direct_value=2.84(Apr22) our_value=2.86 delta=0.02 → OK (2-day freshness)
+[accuracy probe] metric=fg.us our_value=66(Greed) CNN=418_blocked → SKIP (expected, known)
+[accuracy probe] metric=fedwatch.apr30 source=Yahoo-ZQ our_value=hold=97% → OK
+
+=== FINDINGS ===
+
+1. commodity-curve oil backwardation bug (verify-metrics comm.oil degraded pts=2)
+   - Root cause: Yahoo returns 1-2 WTI futures contracts before blocking Vercel IPs
+   - buildCurve() with 2 real points: shows backwardation -16.6% (front > back)
+   - carry model fallback: only triggered when oilCurve.curve.length === 0
+   - With 2 real points: carry model NOT triggered → 2 real points with wrong structure
+   - Fix: change `length === 0` → `length < 3` for carry model trigger
+   - After fix: Yahoo 2pts → discarded, FRED carry model used (6 synthetic contango pts)
+   - Deployed to production: oil now shows contango slope=4.09 pts=6 synthetic=True ✓
+
+2. INVESTIGATION RESULTS (no bugs found)
+   - Signals (3141): 13F institutional filings, fresh (lastUpdated 06:00 KST), structure correct
+   - Market-movers: INTC +23.6% at 82.54 (Yahoo verified), AMD +13.91%, QCOM +11.12%
+   - Earnings: 1266/1500 have epsEstimate (84% coverage) — small-cap no-analyst expected
+   - FedWatch: Apr30 hold=97%, cut=0% — consistent with daily brief output ✓
+   - Credit spreads: IG=0.80%(FRED 0.79), HY=2.86%(FRED 2.84) — within 0.02 freshness tolerance
+   - strategy.portfolio degraded: AI quota exhausted → data fallback, isAI=false → degraded (intended)
+   - brief.market degraded: same AI quota reason (resets 09:00 KST daily) (intended)
+   - Economic calendar: FOMC dedup bug theoretical but blocked by 30-day window limit ✓
+   - Jun17 FOMC injection verified: Jun12-Jun20 window correctly injects Jun17 event ✓
+
+=== VERIFY-METRICS STATE (post-deploy) ===
+Pre-deploy:  ok=183, degraded=3 (oil/strategy/brief), error=0, skipped=5, total=191
+Post-deploy: oil probe still showing cached result — will clear on next verify-metrics run
+Expected:    ok=184, degraded=2 (strategy/brief), error=0, skipped=5 after cache clears
+
+=== COMMITS ===
+fix(commodity-curve): fall back to FRED carry model when Yahoo returns <3 oil futures
+
+=== REMAINING ISSUES (no change) ===
+- strategy.portfolio: AI quota exhaustion (daily reset 09:00 KST)
+- brief.market: same AI quota issue
+- EU heatmap: 45% ceiling
+- Redis/OpenRouter: 미설정
+- FOMC/GDP/PCE: April 30 releases in 4 days, FRED auto-updates expected
