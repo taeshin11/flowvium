@@ -580,6 +580,32 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
   const macroAnalysis = macroParts.join(' · ');
   const technicalAnalysis = `VIX=${vix.toFixed(1)}(${vixLabel})${inverted ? ' · curve inverted — recession signal active' : ' · curve normal — no recession signal'}`;
 
+  // Use real nextRelease dates from macro-indicators instead of fallback's d(N) offsets.
+  // fallbackStrategy uses d(7), d(14), d(21) relative offsets which drift from actual release dates.
+  const fomcInd = inds.find(i => i.id === 'fomc');
+  const nfpInd  = inds.find(i => i.id === 'nfp');
+  const cpiInd2 = inds.find(i => i.id === 'cpi');
+  const liveRiskEvents = [
+    fomcInd?.nextRelease && {
+      date: fomcInd.nextRelease as string,
+      event: isKo ? 'FOMC 금리 결정' : isJa ? 'FOMC金利決定' : 'FOMC Rate Decision',
+      impact: 'high' as const,
+      watchFor: isKo ? '금리 결정 및 점도표 변화' : isJa ? '金利決定とドットチャート変化' : 'Rate decision and dot-plot guidance',
+    },
+    nfpInd?.nextRelease && {
+      date: nfpInd.nextRelease as string,
+      event: isKo ? '비농업 고용지수' : isJa ? '非農業部門雇用者数' : 'Non-Farm Payrolls',
+      impact: 'high' as const,
+      watchFor: isKo ? '고용 강도 및 실업률' : isJa ? '雇用強度と失業率' : 'Jobs strength and unemployment rate',
+    },
+    cpiInd2?.nextRelease && {
+      date: cpiInd2.nextRelease as string,
+      event: isKo ? 'CPI 소비자물가' : isJa ? 'CPI消費者物価' : 'CPI Inflation',
+      impact: 'medium' as const,
+      watchFor: isKo ? '목표 2% 대비 인플레이션 추세' : isJa ? 'インフレ推移と利下げ見通し' : 'Inflation trend vs 2% target',
+    },
+  ].filter(Boolean) as typeof base.riskEvents;
+
   return {
     ...base,
     stance: riskLevel === 'high' ? 'bearish' : riskLevel === 'low' ? 'bullish' : 'neutral',
@@ -587,6 +613,7 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
     riskLevel,
     macroAnalysis,
     technicalAnalysis,
+    riskEvents: liveRiskEvents.length >= 3 ? liveRiskEvents.slice(0, 3) : base.riskEvents,
     portfolio: [
       { ...base.portfolio[0], allocation: spy },
       { ...base.portfolio[1], allocation: qqq },
