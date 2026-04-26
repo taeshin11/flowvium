@@ -1,0 +1,152 @@
+iter236 — 2026-04-26
+primary outcome: GDP/PCE April 30 데이터 지연 해소
+================================================================
+
+## Drift Check
+Recent 5 commits before this iter:
+- 54d5629 feat(chat): pass live sector flows to AI chat context
+- 08fd925 docs(features): update FEATURES.md + METRICS.md for live ETF sector flows
+- a91073b fix(strategy): remove internal quota language from fallback portfolio rationale
+- 1284edf fix(flows): better sector display names + sectorEn field in SECTOR_META
+- 6fe8c3b feat(flows): live ETF sector flows — replace static moneyFlowSectors
+
+Drift signal check:
+(1) investment-strategy: iter234 + iter235 연속 2회 — NOT 3, iter236에서 터치 금지 ✓
+(2) AI providers: iter234 + iter235 연속 2회 — NOT 3, iter236에서 터치 금지 ✓
+(3) Primary metric stall: 186/186 OK → 없음
+(4) Infra blocker retry: GROQ TPD iter234+235에서 근본 해결 → 없음
+
+→ Drift 없음. macro-indicators 영역 진입 (새 영역)
+
+## Primary Outcome
+GDP/PCE April 30 데이터 지연 해소
+
+## 발견된 버그
+
+### Critical Bug: cron-warm이 Redis를 bypass하지 않음
+
+**문제:**
+- macro-indicators cache key = `flowvium:macro-indicators:v13:{kstDate}` (25h TTL)
+- `x-cron-warm: 1` 헤더는 MODULE-LEVEL memory cache만 bypass
+- Redis cache check에는 isCronWarm 조건 없음
+- 결과: 06:50 UTC warm이 Redis에 GDP actual=null 기록
+  → 12:20 UTC warm: Redis HIT (40분 전 기록) → stale 반환
+  → 13:00 UTC warm: Redis HIT (1.2시간 전 기록) → stale 반환
+  → GDP Q1 advance (BEA 12:30 UTC 발표 April 30) 반영까지 ~10시간 지연
+
+**근본 원인:**
+```
+// 수정 전 — isCronWarm이 Redis check에 영향 없음
+if (redis) {
+  const cached = await redis.get<object>(key);
+  if (cached) { return cached_response; }  // ← cron-warm도 여기서 반환
+}
+```
+
+**수정 (commit 2cf3ed0):**
+```
+if (redis && !isCronWarm) {  // ← cron-warm은 Redis 완전 bypass
+  const cached = await redis.get<object>(key);
+  ...
+}
+```
+
+**효과:** April 30 GDP Q1 advance
+- BEA 발표: 12:30 UTC
+- FRED 업데이트: 보통 30분 이내 (12:50~13:00 UTC)
+- 13:00 UTC cron warm: Redis bypass → FRED 직접 호출 → GDP actual 반영
+- 지연: 10시간 → 30~60분
+
+### Data Accuracy Bug: STATIC.pce 오래된 값
+
+**문제:** STATIC.pce.actual = 2.6% (구 데이터)
+- FRED PCEPILFE Feb 2026 실제: 2.97% (Jan 2025 대비 YoY)
+- FRED가 다운되면 2.6% fallback 사용 → 0.37% 오차
+
+**FRED YoY 히스토리 (PCEPILFE):**
+- 2026-02-01: 2.97% ← 최신 (March 28 BEA 발표)
+- 2026-01-01: 3.05% ← previous
+- 2025-12-01: 2.97%
+- 2025-11-01: 2.83%
+
+**수정 (commit 2cf3ed0):**
+- STATIC.pce.actual: 2.6 → 3.0
+- STATIC.pce.previous: 2.7 → 3.1 (Jan 2026 = 3.05%)
+- STATIC.pce.surprise: 'inline' → 'miss'
+- STATIC.pce.rateImpact: 'neutral' → 'hawkish'
+- FORECASTS.pce.forecast: 2.6 → 3.0 (recent actuals 3.0% 기준)
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=cpi      source=FRED  direct_value=3.3  our_value=3.29  delta=0.01 → OK
+[accuracy probe] metric=pce      source=FRED  direct_value=2.97 our_value=2.97  delta=0.00 → OK (live FRED)
+[accuracy probe] metric=pce_static source=FRED direct_value=2.97 static_fallback=2.6 delta=0.37 → FIXED
+[accuracy probe] metric=fomc     source=FRED  direct_value=3.625 our_value=3.625 delta=0.000 → OK
+[accuracy probe] metric=gdp      source=BEA   direct_value=null  our_value=null  delta=0 → OK (pending April 30)
+[accuracy probe] metric=curve    source=FRED  direct_value=0.53  our_value=0.51  delta=0.02 → OK
+[accuracy probe] metric=fg.us    source=verify_metrics direct_value=66 our_value=66 delta=0 → OK
+```
+
+## 코드 조사 결과
+
+### IntelligencePage.tsx useEffect 점검 (zombie 검색)
+- fear-greed useEffect: AbortController 사용, cleanup ✓
+- flows useEffect: AbortController 사용, cleanup ✓
+- AiChat sendMessage: try/finally, no lingering promises ✓
+- setInterval/setTimeout: 없음 ✓
+→ Zombie process 없음
+
+### yield-curve Redis TTL: 1h — cron 3회/일 커버 → 문제 없음
+### fear-greed: force=1 파라미터로 이미 cache bypass → 문제 없음
+
+## April 30 데이터 체인 최종 확인
+
+### GDP Q1 2026 Advance (08:30 ET = 12:30 UTC)
+- FRED 시리즈: A191RL1Q225SBEA
+- 6개월 window로 fetch (Q1 date = 2026-01-01 커버)
+- gdpYearCutoff = '2026-01-01' → Q1 date >= cutoff ✓
+- 현재 FRED 최신값: 2025-10-01 = 0.5% (Q4 2025)
+- April 30 이후: 2026-01-01 = ??? 추가될 예정
+
+### PCE March 2026 (08:30 ET = 12:30 UTC, same as GDP)
+- FRED 시리즈: PCEPILFE (Core) / PCEPI (Headline)
+- FORECASTS.pce.nextRelease = '2026-04-30' ✓
+- RELEASE_SCHEDULE.pce[0] = '2026-04-30' ✓
+
+### FOMC April 30 (14:00 ET = 18:00 UTC)
+- FRED 시리즈: DFEDTARU / DFEDTARL
+- nextFomcDate() = '2026-06-17' (after April 30 passes) ✓
+- 18:00 UTC 이후 → key 2026-05-01 rotation (15:00 UTC) 이미 지남
+- 22:50 UTC cron warm이 새 key로 FRED 직접 fetch → 반영
+
+### Initial Claims April 30 (08:30 ET = 12:30 UTC)
+- RELEASE_SCHEDULE.iclaims[0] = '2026-04-30' ✓
+- STATIC.iclaims.nextRelease = '2026-05-01' (STATIC은 fallback이므로 무관)
+
+## 전체 엔드포인트 상태
+verify-metrics (iter 시작 시 fetch): ok=186 degraded=0 error=0 skipped=5
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: GDP/PCE April 30 반영 지연 10h → <1h ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: STATIC.pce 오래된 값 교정 ✓
+
+## 커밋 (총 1개)
+- 2cf3ed0: fix(macro): cron-warm bypasses Redis + correct PCE static fallback
+
+## 다음 iter 우선순위
+1. **April 30 (내일 KST, 오늘 UTC)**: GDP/PCE/FOMC/iclaims 실측값 업데이트
+   - GDP Q1 2026 advance: FRED A191RL1Q225SBEA 확인
+   - PCE March 2026: FRED PCEPILFE 확인
+   - FOMC: hold 예상 (97%) — DFEDTARU 변화 없어야 함
+   - STATIC 갱신 필요 여부 확인
+2. **GROQ quota 회복 확인**: KST 09:00 이후 investment-strategy source='groq' 반환 확인
+3. **OPENROUTER_API_KEY**: Vercel 대시보드 설정 → OpenRouter cascade 즉시 활성화
+
+## 기술 메모
+- Redis bypass 영향: 3회/일 cron warm이 각각 FRED 17개 시리즈 직접 fetch
+  → FRED CSV endpoint rate limit 매우 넉넉 (unauth CSV = 사실상 무제한)
+  → 실질 overhead 없음
+- FORECASTS.pce.forecast = 3.0: 이 값이 April 30 PCE surprise 계산에 사용됨
+  → March PCE 실값이 나오면 정확한 surprise 분류 가능
