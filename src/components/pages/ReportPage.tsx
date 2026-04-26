@@ -293,35 +293,35 @@ export default function ReportPage() {
     setVix({ loading: true, error: false, value: null });
     setFomc({ loading: true, error: false, value: null });
 
-    void fetch('/api/fear-greed', { signal }).then(r => r.json()).then(j => {
+    void fetch('/api/fear-greed', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
       const us = (j?.byCountry ?? []).find((x: { id?: string }) => x?.id === 'us');
       if (!signal.aborted) setFg({ loading: false, error: !us, value: us ? { score: us.score } : null });
     }).catch(() => { if (!signal.aborted) setFg({ loading: false, error: true, value: null }); });
 
-    void fetch('/api/capital-flows', { signal }).then(r => r.json()).then(j => {
+    void fetch('/api/capital-flows', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
       const assets: Array<{ ticker?: string; ret1w?: number }> = j?.assets ?? [];
       const spyRow = assets.find(a => a.ticker === 'SPY');
       if (!signal.aborted) setSpy({ loading: false, error: !spyRow, value: spyRow ? { ret1w: spyRow.ret1w ?? 0 } : null });
     }).catch(() => { if (!signal.aborted) setSpy({ loading: false, error: true, value: null }); });
 
-    void fetch('/api/yield-curve', { signal }).then(r => r.json()).then(j => {
+    void fetch('/api/yield-curve', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
       const raw = j?.spread2s10sCurrent ?? j?.spread ?? j?.spreadBp;
       // spread2s10sCurrent is in % (e.g. 0.51 = 51bp); legacy spreadBp already in bp
       const sp = raw != null ? (j?.spread2s10sCurrent != null ? Math.round(raw * 100) : raw) : null;
       if (!signal.aborted) setCurve({ loading: false, error: sp == null, value: sp != null ? { spread: sp, inverted: sp < 0 } : null });
     }).catch(() => { if (!signal.aborted) setCurve({ loading: false, error: true, value: null }); });
 
-    void fetch('/api/volatility', { signal }).then(r => r.json()).then(j => {
+    void fetch('/api/volatility', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
       const level = j?.vix30d ?? j?.vix ?? null;
       if (!signal.aborted) setVix({ loading: false, error: level == null, value: { level } });
     }).catch(() => { if (!signal.aborted) setVix({ loading: false, error: true, value: null }); });
 
-    void fetch('/api/fedwatch', { signal }).then(r => r.json()).then(j => {
+    void fetch('/api/fedwatch', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
       const next = (j?.meetings ?? [])[0];
       if (!signal.aborted) setFomc({ loading: false, error: !next, value: next ? { label: next.label, probCut: next.probCut25 ?? 0 } : null });
     }).catch(() => { if (!signal.aborted) setFomc({ loading: false, error: true, value: null }); });
 
-    void fetch('/api/price-history?ticker=SPY&days=30', { signal }).then(r => r.json()).then(j => {
+    void fetch('/api/price-history?ticker=SPY&days=30', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
       const closes = (j?.prices ?? []).map((p: { close?: number }) => p.close).filter(Boolean);
       if (!signal.aborted && closes.length > 3) setSpySpark(closes);
     }).catch(() => {});

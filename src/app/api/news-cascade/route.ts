@@ -407,9 +407,8 @@ export async function GET(request: Request) {
     try {
       const acquired = await redis.set(LOCK_KEY, '1', { nx: true, ex: LOCK_TTL });
       if (!acquired) {
-        // Poll up to 30s (AI analysis of 5 articles typically takes 5-20s).
-        // Returns as soon as list is ready; falls through only if holder crashed.
-        for (let i = 0; i < 6; i++) {
+        // Poll up to 20s (4×5s) — keeps waiter+pipeline total under maxDuration=60s.
+        for (let i = 0; i < 4; i++) {
           await new Promise(r => setTimeout(r, 5000));
           try {
             const fresh = await redis.get<NewsWithCascade[]>(listKey());
@@ -426,7 +425,8 @@ export async function GET(request: Request) {
             return NextResponse.json({ articles: fresh, cached: true }, { headers: CDN_HEADERS });
           }
         } catch { /* ignore */ }
-        // Lock holder may have crashed — proceed anyway so users aren't stuck
+        // Timed out waiting for lock — return empty rather than risk exceeding maxDuration
+        return NextResponse.json({ articles: [], cached: false, source: 'lock-wait-timeout' }, { headers: CDN_HEADERS });
       } else {
         ownLock = true;
       }

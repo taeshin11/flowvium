@@ -659,7 +659,9 @@ export async function GET(request: Request) {
 
   // Cron warm calls (x-cron-warm: 1) bypass both memory cache AND Redis — ensures fresh FRED data
   // on release days (e.g. GDP Q1 advance at 12:30 UTC April 30 picked up by 13:00 UTC cron warm).
-  const isCronWarm = request.headers.get('x-cron-warm') === '1';
+  const cronSecret = process.env.CRON_SECRET ?? '';
+  const cronAuthed = !cronSecret || request.headers.get('authorization') === `Bearer ${cronSecret}`;
+  const isCronWarm = cronAuthed && request.headers.get('x-cron-warm') === '1';
 
   // Module-level memory cache hit (no-Redis path)
   if (!isCronWarm && !redis && MACRO_MEMORY_CACHE && Date.now() < MACRO_MEMORY_CACHE.expiresAt) {

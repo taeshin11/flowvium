@@ -79,7 +79,7 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
     const cik = CIK_MAP[ticker];
     if (!cik) return [];
 
-    const cikFormatted = cik.replace('0', '').padStart(10, '0');
+    const cikFormatted = cik.replace(/^0+/, '').padStart(10, '0');
     const subRes = await fetch(
       `https://data.sec.gov/submissions/CIK${cikFormatted}.json`,
       { headers: { 'User-Agent': EDGAR_UA }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
@@ -239,8 +239,9 @@ async function fetchVolumeData(ticker: string) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const ticker = searchParams.get('ticker')?.toUpperCase();
-  if (!ticker) return NextResponse.json({ error: 'Missing ticker' }, { status: 400 });
+  const rawTicker = searchParams.get('ticker')?.toUpperCase() ?? '';
+  const ticker = rawTicker.replace(/[^A-Z0-9.\-^]/g, '');
+  if (!ticker || ticker.length > 10) return NextResponse.json({ error: 'Invalid or missing ticker' }, { status: 400 });
 
   const redis = createRedis();
   const cacheKey = `flowvium:stock-supply:v5:${ticker}`;

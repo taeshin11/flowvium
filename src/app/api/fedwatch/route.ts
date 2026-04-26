@@ -242,21 +242,17 @@ function computeMeetingProbs(
     probCut25 = tailCut;
     probHike = tailHike;
   } else if (expectedCuts < 1.5) {
-    // 1 cut most likely
-    const p1 = Math.round(Math.max(30, Math.min(85, (1 - Math.abs(expectedCuts - 1)) * 120)));
-    const p0 = Math.round(Math.max(0, (1.5 - expectedCuts) * 60));
-    const p2 = Math.max(0, 100 - p1 - p0);
-    probHold = p0;
-    probCut25 = p1;
-    probCut50 = p2;
+    // 1 cut most likely — normalize to ensure p0+p1+p2 = 100
+    probCut25 = Math.round(Math.max(30, Math.min(85, (1 - Math.abs(expectedCuts - 1)) * 120)));
+    probHold  = Math.max(0, Math.round((1.5 - expectedCuts) * 60));
+    if (probHold + probCut25 > 100) probHold = 100 - probCut25;
+    probCut50 = Math.max(0, 100 - probHold - probCut25);
   } else if (expectedCuts < 2.5) {
-    // 2 cuts most likely
-    const p2 = Math.round(Math.max(30, Math.min(80, (1 - Math.abs(expectedCuts - 2)) * 120)));
-    const p1 = Math.round(Math.max(0, (2.5 - expectedCuts) * 50));
-    const p3 = Math.max(0, 100 - p2 - p1);
-    probCut25 = p1;
-    probCut50 = p2;
-    probCut75 = p3;
+    // 2 cuts most likely — normalize to ensure p1+p2+p3 = 100
+    probCut50 = Math.round(Math.max(30, Math.min(80, (1 - Math.abs(expectedCuts - 2)) * 120)));
+    probCut25 = Math.max(0, Math.round((2.5 - expectedCuts) * 50));
+    if (probCut25 + probCut50 > 100) probCut25 = 100 - probCut50;
+    probCut75 = Math.max(0, 100 - probCut50 - probCut25);
   } else {
     // 3+ cuts
     probCut75 = Math.min(75, Math.round(expectedCuts * 20));

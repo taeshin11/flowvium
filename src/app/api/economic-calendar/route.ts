@@ -75,17 +75,17 @@ function injectFomcEvents(events: EconCalEvent[], from: string, to: string): Eco
       unit: '%',
     }));
   if (!fomc.length) return events;
-  // Skip injection if Finnhub already includes a Fed rate decision (±1 day of each FOMC date)
-  const fomcDates = new Set(fomc.map(f => f.date));
-  const hasFedRateEvent = events.some(e => {
-    if (!fomcDates.has(e.date) && !fomcDates.has(
-      new Date(new Date(e.date).getTime() + 86400000).toISOString().slice(0, 10)
-    )) return false;
-    return /interest rate|rate decision|fed funds|fomc/i.test(e.event);
-  });
-  if (hasFedRateEvent) return events;  // Finnhub already covers it
-  const merged = [...events, ...fomc];
-  return merged.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''));
+  // Skip injection only for individual FOMC dates already covered by Finnhub (±1 day)
+  const coveredDates = new Set(
+    fomc.filter(f => events.some(e => {
+      const eDatePlus1 = new Date(new Date(e.date).getTime() + 86400000).toISOString().slice(0, 10);
+      return (e.date === f.date || eDatePlus1 === f.date) &&
+        /interest rate|rate decision|fed funds|fomc/i.test(e.event);
+    })).map(f => f.date)
+  );
+  const toInject = fomc.filter(f => !coveredDates.has(f.date));
+  if (!toInject.length) return events;
+  return [...events, ...toInject].sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''));
 }
 
 function mapImpact(raw: string | number | null): EconCalEvent['impact'] {

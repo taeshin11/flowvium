@@ -730,7 +730,10 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
 // ── GET handler ───────────────────────────────────────────────────────────────
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const force = searchParams.get('force') === '1';
+  const rawForce = searchParams.get('force') === '1';
+  const cronSecret = process.env.CRON_SECRET ?? '';
+  const cronAuthed = !cronSecret || (request as Request).headers.get('authorization') === `Bearer ${cronSecret}`;
+  const force = rawForce && cronAuthed;
   const locale = searchParams.get('locale') ?? 'en';
   // probe=1: return cached or data-fallback immediately without AI — used by verify-metrics
   const probe = searchParams.get('probe') === '1';
