@@ -55,7 +55,7 @@ async function warm(
   }
 }
 
-const TOP_TICKERS = ['NVDA', 'AAPL', 'MSFT', 'TSMC', 'AMZN', 'GOOGL', 'META', 'LMT', 'MU', 'ASML'];
+const TOP_TICKERS = ['NVDA', 'AAPL', 'MSFT', 'TSM', 'AMZN', 'GOOGL', 'META', 'LMT', 'MU', 'ASML'];
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
