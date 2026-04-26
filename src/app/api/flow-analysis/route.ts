@@ -109,6 +109,8 @@ Analyze the drivers of capital flows for each country/asset. Respond in the foll
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tf = searchParams.get('tf') ?? '4w';
+  // probe=1: return cached data or minimal fallback without calling AI — used by verify-metrics
+  const probe = searchParams.get('probe') === '1';
 
   const redis = createRedis();
 
@@ -134,6 +136,10 @@ export async function GET(request: Request) {
       }
       if (staleRead.status === 'fulfilled') staleResult = staleRead.value;
     } catch { /* non-fatal */ }
+  }
+
+  if (probe) {
+    return NextResponse.json({ source: 'probe-fallback', analysis: null, cached: false }, { headers: { 'Cache-Control': 'no-store' } });
   }
 
   // Fetch capital flows data.

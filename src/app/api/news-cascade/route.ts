@@ -360,7 +360,8 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 }
 
 // ── GET handler ───────────────────────────────────────────────────────────────
-export async function GET() {
+export async function GET(request: Request) {
+  const probe = new URL(request.url).searchParams.get('probe') === '1';
   const redis = createRedis();
 
   // 1a. Module-level memory cache hit (no-Redis path) — avoids 5 GROQ calls per request
@@ -377,6 +378,11 @@ export async function GET() {
         return NextResponse.json({ articles: cached, cached: true }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
+  }
+
+  // probe=1: no cache found → return empty structure without calling AI
+  if (probe) {
+    return NextResponse.json({ articles: [], cached: false, source: 'probe-fallback' }, { headers: { 'Cache-Control': 'no-store' } });
   }
 
   // 1c. Distributed lock — prevent thundering herd at midnight UTC (9 AM KST).

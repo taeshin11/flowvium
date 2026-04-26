@@ -81,6 +81,8 @@ export async function GET(req: NextRequest) {
   if (!ticker || !/^[A-Z0-9.^=]{1,10}$/.test(ticker)) {
     return NextResponse.json({ error: 'Invalid ticker' }, { status: 400 });
   }
+  // probe=1: return cached or minimal fallback without calling AI — used by verify-metrics
+  const probe = req.nextUrl.searchParams.get('probe') === '1';
 
   const redis = createRedis();
   const cacheKey = redisCacheKey(ticker);
@@ -99,6 +101,10 @@ export async function GET(req: NextRequest) {
       }
       if (staleRead.status === 'fulfilled') staleResult = staleRead.value;
     } catch (err) { logger.warn('api.company-news', 'cache_read_error', { ticker, error: err }); }
+  }
+
+  if (probe) {
+    return NextResponse.json({ news: [], source: 'probe-fallback', ticker, cached: false }, { headers: { 'Cache-Control': 'no-store' } });
   }
 
   try {

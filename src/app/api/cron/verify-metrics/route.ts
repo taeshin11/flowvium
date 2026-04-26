@@ -662,8 +662,8 @@ async function verifyKoreaFlowDetailed(base: string): Promise<MetricItem[]> {
 
 async function verifyAdditionalEndpoints(base: string): Promise<MetricItem[]> {
   return Promise.all([
-    verifyEndpoint(base, '/api/news-cascade', 'market.news', '뉴스 캐스케이드', 'market',
-      (d) => Array.isArray((d as { articles?: unknown[] })?.articles) && ((d as { articles: unknown[] }).articles.length > 0)),
+    verifyEndpoint(base, '/api/news-cascade?probe=1', 'market.news', '뉴스 캐스케이드', 'market',
+      (d) => (d as { source?: string })?.source === 'probe-fallback' || (Array.isArray((d as { articles?: unknown[] })?.articles) && ((d as { articles: unknown[] }).articles.length > 0))),
     verifyEndpoint(base, '/api/signals', 'market.signals', '기관 신호 13F', 'market',
       (d) => Array.isArray((d as { signals?: unknown[] })?.signals) && ((d as { signals: unknown[] }).signals.length > 0)),
     verifyEndpoint(base, '/api/latest-updates', 'market.latest', '홈 LiveFeed', 'market',
@@ -1162,10 +1162,13 @@ async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
         source: String(d.source ?? 'none'),
       };
     }),
-    // Flow Analysis (AI capital flow) — Gemini call can take 20-25s; extend timeout
-    safeJson(base, '/api/flow-analysis', 30000).then((r): MetricItem => {
+    // Flow Analysis (AI capital flow) — probe=1 skips AI call to save GROQ quota (48x/day)
+    safeJson(base, '/api/flow-analysis?probe=1', 10000).then((r): MetricItem => {
       if (!r.ok) return { key: 'flow.analysis', label: 'Flow Analysis API', group: 'flow-analysis', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
       const d = r.data as { analysis?: unknown; source?: string; stale?: boolean; staleFallback?: boolean };
+      if (d.source === 'probe-fallback') {
+        return { key: 'flow.analysis', label: 'AI 자금흐름 분석', group: 'flow-analysis', status: 'ok', value: 'probe-ok', source: 'probe' };
+      }
       // analysis can be a parsed JSON object OR a string — check either
       const hasContent = (typeof d.analysis === 'object' && d.analysis !== null) ||
         (typeof d.analysis === 'string' && (d.analysis as string).length > 20);
@@ -1192,10 +1195,13 @@ async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
         value: points > 0 ? `${points}pts` : null,
       };
     }),
-    // Company News (sample NVDA)
-    safeJson(base, '/api/company-news?ticker=NVDA').then((r): MetricItem => {
+    // Company News (sample NVDA) — probe=1 skips AI summarization to save GROQ quota (48x/day)
+    safeJson(base, '/api/company-news?ticker=NVDA&probe=1').then((r): MetricItem => {
       if (!r.ok) return { key: 'news.company', label: 'Company News API', group: 'company-news', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
       const d = r.data as { news?: unknown[]; source?: string };
+      if (d.source === 'probe-fallback') {
+        return { key: 'news.company', label: 'NVDA 기업뉴스', group: 'company-news', status: 'ok', value: 'probe-ok', source: 'probe' };
+      }
       const count = Array.isArray(d.news) ? d.news.length : 0;
       return {
         key: 'news.company', label: 'NVDA 기업뉴스', group: 'company-news',
