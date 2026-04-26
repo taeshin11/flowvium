@@ -577,7 +577,7 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
     category: 'growth', actual: 49.0, forecast: 49.5, previous: 50.3, unit: 'index',
     releaseDate: '2026-04-01', nextRelease: '2026-05-01', surprise: 'miss',
     rateImpact: 'dovish', rateImpactKo: 'dovish (manufacturing contraction → rate cut expectations)',
-    summary: 'Apr ISM Mfg 49.0, below 50 threshold. Tariff uncertainty weighing.',
+    summary: 'Mar ISM Mfg 49.0, below 50 threshold. Tariff uncertainty weighing.',
   },
   retail: {
     id: 'retail', name: 'Retail Sales', nameKo: '소매 판매',

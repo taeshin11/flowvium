@@ -240,7 +240,8 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   return null;
 }
 
-/** Qwen 2.5 72B via OpenRouter — GROQ 소진 후 2차 폴백 */
+/** OpenRouter free-tier cascade — GROQ 소진 후 2차 폴백.
+ *  OPENROUTER_API_KEY 없으면 스킵. 순서대로 시도 → 첫 성공 반환. */
 async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
@@ -248,50 +249,53 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
     return null;
   }
 
-  const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
-  try {
-    const messages: Array<{ role: string; content: string }> = [];
-    if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
-    messages.push({ role: 'user', content: prompt });
+  const FREE_MODELS = [
+    'qwen/qwen-2.5-72b-instruct:free',
+    'meta-llama/llama-3.1-8b-instruct:free',
+    'mistralai/mistral-7b-instruct:free',
+    'google/gemma-3-12b-it:free',
+  ];
+  const messages: Array<{ role: string; content: string }> = [];
+  if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
+  messages.push({ role: 'user', content: prompt });
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://flowvium.vercel.app',
-        'X-Title': 'FlowVium',
-      },
-      body: JSON.stringify({
-        model: 'qwen/qwen-2.5-72b-instruct:free',
-        messages,
-        max_tokens: opts.maxTokens ?? 1600,
-        temperature: opts.temperature ?? 0.7,
-      }),
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
-    });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      logger.warn(tag, 'qwen_http_error', { status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
-      diag?.push({ provider: 'qwen', ok: false, status: res.status, error: errText.slice(0, 200), durationMs: Date.now() - t0 });
-      return null;
+  for (const model of FREE_MODELS) {
+    const t0 = Date.now();
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://flowvium.vercel.app',
+          'X-Title': 'FlowVium',
+        },
+        body: JSON.stringify({ model, messages, max_tokens: opts.maxTokens ?? 1600, temperature: opts.temperature ?? 0.7 }),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        logger.warn(tag, 'openrouter_http_error', { model, status: res.status, body: errText.slice(0, 100), durationMs: Date.now() - t0 });
+        diag?.push({ provider: 'qwen', ok: false, status: res.status, error: `[${model}] ${errText.slice(0, 100)}`, durationMs: Date.now() - t0 });
+        continue;
+      }
+      const data = await res.json();
+      const text: string = data.choices?.[0]?.message?.content ?? '';
+      if (!text) {
+        diag?.push({ provider: 'qwen', ok: false, error: `[${model}] empty_text`, durationMs: Date.now() - t0 });
+        continue;
+      }
+      logger.info(tag, 'openrouter_ok', { model, textLen: text.length, durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'qwen', ok: true, durationMs: Date.now() - t0 });
+      return text;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(tag, 'openrouter_failed', { model, error: msg.slice(0, 100), durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'qwen', ok: false, error: `[${model}] ${msg.slice(0, 100)}`, durationMs: Date.now() - t0 });
     }
-    const data = await res.json();
-    const text: string = data.choices?.[0]?.message?.content ?? '';
-    if (!text) {
-      diag?.push({ provider: 'qwen', ok: false, error: 'empty_text', durationMs: Date.now() - t0 });
-      return null;
-    }
-    logger.info(tag, 'qwen_ok', { textLen: text.length, durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'qwen', ok: true, durationMs: Date.now() - t0 });
-    return text;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.warn(tag, 'qwen_failed', { error: msg.slice(0, 200), durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'qwen', ok: false, error: msg.slice(0, 200), durationMs: Date.now() - t0 });
-    return null;
   }
+  return null;
 }
 
 /** Gemini 호출 — 최종 유료 폴백 */
