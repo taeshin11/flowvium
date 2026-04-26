@@ -64,15 +64,24 @@ async function getYahooCrumb(redis: Redis | null): Promise<{ crumb: string; cook
   }
 }
 
-/** Fetch shortPercentOfFloat from Yahoo v10 defaultKeyStatistics.
- *  Returns a map of ticker → float short % (0-100). */
-async function fetchYahooShortFloat(
+/** Fetch shortPercentOfFloat + shortRatio from Yahoo v10 defaultKeyStatistics.
+ *  Both fields live in the same module — no extra request cost. */
+async function fetchYahooShortData(
   tickers: string[],
   crumb: string,
   cookie: string,
-): Promise<Map<string, number>> {
-  const map = new Map<string, number>();
+): Promise<{ floatMap: Map<string, number>; ratioMap: Map<string, number> }> {
+  const floatMap = new Map<string, number>();
+  const ratioMap = new Map<string, number>();
   const CONCURRENT = 6;
+
+  function rawVal(field: unknown): number | null {
+    if (field && typeof field === 'object' && 'raw' in (field as object)) {
+      const v = (field as { raw: unknown }).raw;
+      return typeof v === 'number' ? v : null;
+    }
+    return typeof field === 'number' ? field : null;
+  }
 
   for (let i = 0; i < tickers.length; i += CONCURRENT) {
     const batch = tickers.slice(i, i + CONCURRENT);
@@ -87,21 +96,26 @@ async function fetchYahooShortFloat(
         if (!res.ok) return null;
         const json = await res.json();
         const ks = json?.quoteSummary?.result?.[0]?.defaultKeyStatistics ?? {};
-        const raw = ks?.shortPercentOfFloat;
-        const val = raw && typeof raw === 'object' && 'raw' in (raw as object)
-          ? (raw as { raw: unknown }).raw
-          : null;
-        // Yahoo returns decimal (e.g. 0.038 = 3.8%) → multiply by 100
-        return typeof val === 'number' ? { ticker, pct: parseFloat((val * 100).toFixed(1)) } : null;
+        const floatRaw = rawVal(ks?.shortPercentOfFloat);
+        const ratioRaw = rawVal(ks?.shortRatio);
+        return {
+          ticker,
+          pct: floatRaw !== null ? parseFloat((floatRaw * 100).toFixed(1)) : null,
+          ratio: ratioRaw !== null ? parseFloat(ratioRaw.toFixed(2)) : null,
+        };
       })
     );
     for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) map.set(r.value.ticker, r.value.pct);
+      if (r.status === 'fulfilled' && r.value) {
+        const { ticker, pct, ratio } = r.value;
+        if (pct !== null) floatMap.set(ticker, pct);
+        if (ratio !== null) ratioMap.set(ticker, ratio);
+      }
     }
     if (i + CONCURRENT < tickers.length) await new Promise(res => setTimeout(res, 150));
   }
-  logger.info('api.short-interest', 'yahoo_shortfloat_ok', { fetched: map.size, of: tickers.length });
-  return map;
+  logger.info('api.short-interest', 'yahoo_short_data_ok', { floatFetched: floatMap.size, ratioFetched: ratioMap.size, of: tickers.length });
+  return { floatMap, ratioMap };
 }
 
 // Tracked tickers — ordered by interest
@@ -137,7 +151,7 @@ export interface ShortEntry {
 
 /** Compute short squeeze score.
  * shortFloatPct: Yahoo v10 defaultKeyStatistics (up to 40pts — iter186 fix)
- * shortRatio (DTC): always null (FINRA monthly 403 from Vercel, no free alternative — iter86)
+ * shortRatio (DTC): Yahoo v10 defaultKeyStatistics.shortRatio (same crumb request as shortFloatPct)
  * shortChangeMoM: always null (requires bi-monthly FINRA + float data)
  */
 function calcSqueezeScore(
@@ -274,18 +288,20 @@ export async function GET(req: Request) {
   // Fetch FINRA short vol, Finnhub P/E, 13f-signals, and Yahoo shortFloat in parallel.
   // Yahoo path: crumb (shared with sector-pe) → v10 quoteSummary per ticker.
   // DTC (FINRA monthly): cdn.finra.org 403 from Vercel IPs; no free alternative — iter86
-  const [finraMap, peMap, redisSignals, shortFloatMapResult] = await Promise.allSettled([
+  const [finraMap, peMap, redisSignals, shortDataResult] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
     fetchFinnhubPE(tickers),
     redis ? redis.get<typeof institutionalSignals>('flowvium:13f-signals:v1') : Promise.resolve(null),
     getYahooCrumb(redis).then(c =>
-      c ? fetchYahooShortFloat(tickers, c.crumb, c.cookie) : new Map<string, number>()
+      c ? fetchYahooShortData(tickers, c.crumb, c.cookie)
+        : { floatMap: new Map<string, number>(), ratioMap: new Map<string, number>() }
     ),
   ]);
   const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
   const trailingPEMap = peMap.status === 'fulfilled' ? peMap.value : new Map<string, number>();
   const liveRaw = redisSignals.status === 'fulfilled' ? redisSignals.value : null;
-  const shortFloatMap = shortFloatMapResult.status === 'fulfilled' ? shortFloatMapResult.value : new Map<string, number>();
+  const shortFloatMap = shortDataResult.status === 'fulfilled' ? shortDataResult.value.floatMap : new Map<string, number>();
+  const shortRatioMap = shortDataResult.status === 'fulfilled' ? shortDataResult.value.ratioMap : new Map<string, number>();
   const liveSignals = (Array.isArray(liveRaw) && liveRaw.length > 0)
     ? liveRaw as typeof institutionalSignals
     : institutionalSignals;
@@ -313,6 +329,7 @@ export async function GET(req: Request) {
 
     const shortVolPct = shortVolMap.get(ticker) ?? null;
     const shortFloatPct = shortFloatMap.get(ticker) ?? null;
+    const shortRatio = shortRatioMap.get(ticker) ?? null;
     const trailingPE = trailingPEMap.get(ticker) ?? null;
     return {
       ticker,
@@ -320,7 +337,7 @@ export async function GET(req: Request) {
       sector,
       shortFloatPct,
       shortVolPct,
-      shortRatio: null,
+      shortRatio,
       shortChangeMonthly: null,
       instAction,
       trailingPE,
