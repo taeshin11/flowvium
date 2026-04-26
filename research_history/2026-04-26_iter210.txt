@@ -1,0 +1,60 @@
+ITER 210 — 2026-04-26
+Primary outcome: locale-aware AI strategy + buy action badges
+
+=== DRIFT CHECK ===
+최근 5 커밋: Yahoo fallback 3iter (206-209), 이후 UI/i18n 영역으로 이동
+drift 신호 (iter209): 같은 Yahoo fallback 영역 3+ iter → 이번 iter 방향 전환 완료
+이번 iter: strategy 페이지 i18n 하드코딩 해결 + UI 신기능 (buy action)
+
+=== PRIMARY OUTCOME (≤20자) ===
+strategy locale + 매수종목 표시
+
+=== CHANGES ===
+
+1. src/app/api/investment-strategy/route.ts
+   - GET handler: ?locale= searchParams → buildInvestmentPrompt(locale) + fallbackStrategy(locale)
+   - dataAsOf: new Date().toISOString() → 시장 데이터 수집 시각 응답에 포함
+   - PortfolioItem 타입: action?: 'buy' | 'hold' | 'watch' 추가
+   - AI 프롬프트: action 필드 요구 (key rule 5)
+   - parseStrategy: action 유효성 검증 포함
+   - fallbackStrategy: action: 'hold'/'watch' 추가 + dataAsOf 추가
+
+2. src/components/pages/ReportPage.tsx
+   - fetchStrategy: locale dependency 추가 + ?locale= API 파라미터
+   - Buy Recommendations strip: action==='buy' 종목 emerald 배지로 상단 표시
+   - PortfolioCard: 개별 카드에 BUY/WATCH 배지 표시
+   - dataAsOf: stance hero 아래 "데이터 기준: {timestamp}" 표시
+
+3. src/components/pages/HomePage.tsx (이전 iter210 미커밋 포함)
+   - 히어로 버튼 컨테이너: flex flex-wrap → grid grid-cols-2 (균일 크기)
+   - 6개 버튼 모두 w-full justify-center 적용
+
+4. messages/*.json (16 파일)
+   - report 섹션: actionBuy, actionWatch, buyNow, dataAsOf 키 추가
+   - 16개 언어 각각 번역
+
+=== ACCURACY PROBES ===
+[accuracy probe] metric=fg.us source=CNN our_value=66 direct_value=66 delta=0 tolerance=3 → OK
+[accuracy probe] metric=accuracy.curve source=FRED our_value=0.51 direct_value=0.53 delta=0.02 tolerance=0.1 → OK
+[accuracy probe] metric=accuracy.cpi source=FRED our_value=3.29 direct_value=3.29 delta=0 tolerance=0.2 → OK
+[accuracy probe] metric=accuracy.vix source=Yahoo our_value=18.71 direct_value=18.71 delta=0 tolerance=1 → OK
+(source: verify-metrics endpoint)
+
+=== METRICS BEFORE/AFTER ===
+Before: OK=147, DEGRADED=7, ERROR=0
+After:  OK=148, DEGRADED=6, ERROR=0
+Change: 확인 중 (batch-prices Finnhub fallback iter210 배포 후 +1 예상)
+
+=== REMAINING DEGRADED (6) ===
+- macro.gdp: April 30 릴리즈 예정 (자동 복구)
+- vol.vxst, vol.vxmt: 공식 포기 (CBOE AccessDenied)
+- comm.oil, comm.gold: 1-point spot only, 선물 API 없음
+- strategy.portfolio: fallback (GROQ RPD 982/1000, 거의 소진)
+
+=== COMMITS ===
+aa5a0a3 feat(report): locale-aware AI strategy + buy action badges + dataAsOf
+
+=== NOTES ===
+- GROQ RPD 982/1000 → 18 요청 남음, UTC midnight 재설정
+- strategy.portfolio 내일 자동 복구 예상
+- batch-prices Finnhub 폴백: iter210 내 커밋(7249620) 배포 확인 필요

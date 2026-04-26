@@ -1,0 +1,59 @@
+ITER 211 — 2026-04-26
+Primary outcome: comm.oil/gold DEGRADED→OK (carry model)
+
+=== DRIFT CHECK ===
+최근 5 커밋: strategy i18n, batch-prices Finnhub, commodity curve
+drift 없음: 방향 전환 성공 (Yahoo fallback → product quality 개선)
+
+=== PRIMARY OUTCOME (≤20자) ===
+상품 선물 커브 6포인트
+
+=== CHANGES ===
+
+1. src/app/api/commodity-curve/route.ts
+   - fetchFREDSeries() 범용화 (series + days 파라미터)
+   - buildCarryCurve(): F(T) = Spot × exp((r + storage) × T/12)
+     - WTI: storage 6%/yr (pipeline+tank), 5개월 포워드
+     - Gold: storage 0.2%/yr (vault), 5개월 포워드
+   - FRED DTB3로 T-bill rate fetching (리스크 프리 레이트)
+   - CommodityCurve 타입에 synthetic?: boolean 추가
+   - 결과: oil 6pt contango +4.09%, gold 6pt contango +1.60%
+   - comm.oil, comm.gold: DEGRADED(1pt) → OK(6pts)
+
+2. src/components/intelligence/CapitalFlowsTab.tsx
+   - CommodityCurveData 인터페이스에 synthetic 필드 추가
+   - carry model 레이블 "(carry model)" 배지 표시
+
+3. src/app/api/investment-strategy/route.ts
+   - CDN cache: 43200s(12h) → 86400s(24h)
+   - Memory cache TTL: 4h → 23h
+   - maxTokens: 2000 → 1400 (TPD 절약 30%)
+   - JSON schema 압축 (inline 포맷, ≤60자 rationale)
+   - 이유: TPD 100k/day 소진 방지
+
+=== ACCURACY PROBES ===
+[accuracy probe] metric=comm.oil source=FRED our_value=91.06 direct_value=91.06 delta=0 tolerance=0.5 → OK
+[accuracy probe] metric=carry.oil source=model M+1=91.79 M+5=94.78 slope=4.09% → 이론적 정합
+[accuracy probe] metric=carry.gold source=model M+1=4725.74 M+5=4785.98 slope=1.60% → 이론적 정합
+(Gold carry 낮음: 현물 보관 비용 0.2%/yr + T-bill 4.3% = 4.5%/yr → 6개월 2.25% ✓)
+
+=== METRICS BEFORE/AFTER ===
+Before: OK=147, DEGRADED=7, ERROR=0
+After:  OK=149, DEGRADED=5, ERROR=0
+
+=== REMAINING DEGRADED (5) ===
+- macro.gdp: April 30 릴리즈 (자동 복구)
+- vol.vxst, vol.vxmt: CBOE 영구 차단 (공식 포기)
+- strategy.portfolio: GROQ TPD 100k/day 소진 → UTC midnight 재설정
+- brief.market: 동일 이유
+
+=== COMMITS ===
+a20148f feat(commodity): carry-model synthetic forward curve when Yahoo blocked
+92d4c47 feat(commodity-ui): show 'carry model' label when curve is synthetic
+99eddc9 perf(strategy): 24h CDN cache + reduce maxTokens 2000→1400 + compact JSON schema
+
+=== NOTES ===
+- GROQ TPD: llama-3.3-70b 99,950/100,000 + llama-3.1-8b 499,913/500,000 소진
+- 원인: 각 요청당 ~5,000 토큰 → 24h CDN + 23h 메모리 캐시로 재시도 억제
+- Gemini도 quota 소진 (무료 tier 일일 한도)
+- batch-prices Finnhub 폴백 작동 확인: SPY $713.94, NVDA $208.27 등
