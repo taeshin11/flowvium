@@ -2,13 +2,11 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/analyst-target/[ticker]
  *
- * Analyst price targets + buy/hold/sell recommendation breakdown via Finnhub.
- * Requires FINNHUB_KEY (free tier, 60 req/min).
+ * Analyst price targets + buy/hold/sell recommendation breakdown.
+ * - Price target (mean) + consensus: Finviz HTML scrape (no auth, free)
+ * - Buy/Hold/Sell counts: Finnhub /stock/recommendation (free tier)
  *
- * Fetches in parallel:
- *   - /stock/price-target → targetHigh/Low/Mean/Median
- *   - /stock/recommendation → most-recent period buy/hold/sell counts
- *
+ * Finnhub /stock/price-target requires paid tier → replaced by Finviz.
  * Redis cache: 24h (consensus changes slowly)
  */
 import { NextResponse } from 'next/server';
@@ -32,6 +30,7 @@ export interface AnalystData {
   strongSell: number;
   totalAnalysts: number;
   period: string | null;
+  recommendationMean?: number;
 }
 
 function createRedis(): Redis | null {
@@ -67,10 +66,11 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
 
   const t0 = Date.now();
   try {
-    const [ptRes, recRes] = await Promise.allSettled([
+    const FINVIZ_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+    const [finvizRes, recRes] = await Promise.allSettled([
       fetch(
-        `https://finnhub.io/api/v1/stock/price-target?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`,
-        { signal: AbortSignal.timeout(8000), cache: 'no-store' },
+        `https://finviz.com/quote.ashx?t=${encodeURIComponent(ticker)}`,
+        { headers: { 'User-Agent': FINVIZ_UA }, signal: AbortSignal.timeout(8000), cache: 'no-store' },
       ),
       fetch(
         `https://finnhub.io/api/v1/stock/recommendation?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`,
@@ -79,12 +79,16 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
     ]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let pt: any = null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let latestRec: any = null;
+    let targetMean: number | null = null;
+    let recommendationMean: number | null = null;
 
-    if (ptRes.status === 'fulfilled' && ptRes.value.ok) {
-      pt = await ptRes.value.json();
+    if (finvizRes.status === 'fulfilled' && finvizRes.value.ok) {
+      const html = await finvizRes.value.text();
+      const tMatch = html.match(/Target Price[\s\S]{0,400}?<b><span[^>]*>([\d.,]+)<\/span>/);
+      if (tMatch) targetMean = parseFloat(tMatch[1].replace(/,/g, ''));
+      const rMatch = html.match(/\bRecom[\s\S]{0,400}?<b><span[^>]*>([\d.]+)<\/span>/);
+      if (rMatch) recommendationMean = parseFloat(rMatch[1]);
     }
     if (recRes.status === 'fulfilled' && recRes.value.ok) {
       const arr = await recRes.value.json();
@@ -92,11 +96,11 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
     }
 
     const result: AnalystData = {
-      targetHigh: typeof pt?.targetHigh === 'number' ? pt.targetHigh : null,
-      targetLow: typeof pt?.targetLow === 'number' ? pt.targetLow : null,
-      targetMean: typeof pt?.targetMean === 'number' ? pt.targetMean : null,
-      targetMedian: typeof pt?.targetMedian === 'number' ? pt.targetMedian : null,
-      lastUpdated: pt?.lastUpdated ?? null,
+      targetHigh: null,
+      targetLow: null,
+      targetMean,
+      targetMedian: null,
+      lastUpdated: null,
       strongBuy: latestRec?.strongBuy ?? 0,
       buy: latestRec?.buy ?? 0,
       hold: latestRec?.hold ?? 0,
@@ -104,9 +108,10 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
       strongSell: latestRec?.strongSell ?? 0,
       totalAnalysts: (latestRec?.strongBuy ?? 0) + (latestRec?.buy ?? 0) + (latestRec?.hold ?? 0) + (latestRec?.sell ?? 0) + (latestRec?.strongSell ?? 0),
       period: latestRec?.period ?? null,
+      recommendationMean: recommendationMean ?? undefined,
     };
 
-    logger.info('api.analyst-target', 'ok', { ticker, durationMs: Date.now() - t0 });
+    logger.info('api.analyst-target', 'ok', { ticker, targetMean, durationMs: Date.now() - t0 });
 
     if (redis) {
       await loggedRedisSet(redis, 'api.analyst-target', cacheKey, result, { ex: CACHE_TTL });
