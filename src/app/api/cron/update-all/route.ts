@@ -83,7 +83,7 @@ export async function GET(req: Request) {
   // 타임아웃 설계: stage 1(30s) + stage 2(25s) < maxDuration(60s).
   // EDGAR 3종(insider/ownership/nport): 30s — 그 이상이면 EDGAR 장애이므로 조기 포기.
   // market-caps/heatmap: Yahoo Finance — 25s/20s 충분.
-  const [macroR, yieldR, fedR, capitalR, commCurveR, volR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, cotR, heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, sectorR] = await Promise.all([
+  const [macroR, yieldR, fedR, capitalR, commCurveR, volR, fearGreedR, creditR, shortR, capsR, insiderR, ownerR, optR, koreaR, nportR, blockR, cotR, heatmapR, osintSocR, osintSancR, moversR, sectorR] = await Promise.all([
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/yield-curve', 'yield-curve', 30000),
     warm(base, '/api/fedwatch', 'fedwatch'),
@@ -104,8 +104,7 @@ export async function GET(req: Request) {
     warm(base, '/api/market-heatmap?country=US', 'market-heatmap', 20000),
     warm(base, '/api/osint/social',    'osint-social',    20000),
     warm(base, '/api/osint/sanctions', 'osint-sanctions', 20000),
-    warm(base, '/api/osint/corporate', 'osint-corporate', 20000),
-    warm(base, '/api/osint/crypto',    'osint-crypto',    20000),
+    // osint/corporate and osint/crypto omitted — search endpoints requiring user params (q= / address=), always 400 without them
     warm(base, '/api/market-movers',   'market-movers',   15000),
     warm(base, '/api/sector-pe',       'sector-pe',       25000),
   ]);
@@ -139,7 +138,7 @@ export async function GET(req: Request) {
   const results = [
     macroR, yieldR, fedR, capitalR, commCurveR, volR, fearGreedR, creditR, shortR, capsR,
     insiderR, ownerR, optR, koreaR, nportR, blockR, cotR,
-    heatmapR, osintSocR, osintSancR, osintCorpR, osintCryptoR, moversR, sectorR, latestR,
+    heatmapR, osintSocR, osintSancR, moversR, sectorR, latestR,
     flowR,
   ];
   const failedCount = results.filter(r => !r.ok).length;
