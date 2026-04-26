@@ -63,6 +63,28 @@ async function fetchCurrentPrice(symbol: string): Promise<number | null> {
 
 // CBOE CDN is not subject to Yahoo Finance IP rate-limits on Vercel cloud IPs.
 // CSV format: DATE(MM/DD/YYYY),OPEN,HIGH,LOW,CLOSE — updated daily after market close.
+// csvName examples: 'VIX' (30d), 'VIX9D' (VXST), 'VIX6M' (VXMT)
+async function fetchCBOEIndex(csvName: string): Promise<number | null> {
+  try {
+    const res = await fetch(`https://cdn.cboe.com/api/global/us_indices/daily_prices/${csvName}_History.csv`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/csv,text/plain,*/*',
+      },
+      signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const lines = text.trim().split('\n').filter(l => l.trim() && !l.startsWith('DATE'));
+    const last = lines[lines.length - 1];
+    if (!last) return null;
+    const parts = last.split(',');
+    const close = parseFloat(parts[4]);
+    return isNaN(close) ? null : parseFloat(close.toFixed(2));
+  } catch { return null; }
+}
+
 async function fetchVixFromCBOE(): Promise<{ current: number | null; history: VolPoint[] }> {
   try {
     const res = await fetch('https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv', {
@@ -178,11 +200,23 @@ export async function GET() {
     if (cboe.current != null) logger.info('volatility', 'cboe_fallback', { vix: cboe.current, histLen: cboe.history.length });
   }
 
-  const { regime, estimated: regimeEstimated } = detectRegime(vxst, vixFinal, vxmt);
+  // CBOE fallback for VXST (VIX9D) and VXMT (VIX6M) — Yahoo Finance blocked on Vercel
+  let vxstFinal = vxst;
+  let vxmtFinal = vxmt;
+  if (vxstFinal == null) {
+    vxstFinal = await fetchCBOEIndex('VIX9D');
+    if (vxstFinal != null) logger.info('volatility', 'cboe_fallback', { metric: 'vxst', value: vxstFinal });
+  }
+  if (vxmtFinal == null) {
+    vxmtFinal = await fetchCBOEIndex('VIX6M');
+    if (vxmtFinal != null) logger.info('volatility', 'cboe_fallback', { metric: 'vxmt', value: vxmtFinal });
+  }
+
+  const { regime, estimated: regimeEstimated } = detectRegime(vxstFinal, vixFinal, vxmtFinal);
   const latestDate = histFinal.length ? histFinal[histFinal.length - 1].date : null;
 
   const data: VolatilityData = {
-    vxst, vix: vixFinal, vxmt, vvix,
+    vxst: vxstFinal, vix: vixFinal, vxmt: vxmtFinal, vvix,
     regime,
     regimeLabel: regimeEstimated ? REGIME_LABEL_EST[regime] : REGIME_LABEL[regime],
     history: histFinal.slice(-90),
