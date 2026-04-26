@@ -1,0 +1,105 @@
+iter253 — 2026-04-26
+primary outcome: cron update-all 허위 실패 2건 제거
+================================================================
+
+## Drift Check
+Recent 5 commits:
+- 3caf477 docs(history): iter252 log
+- abc819d fix(osint-sanctions): CMIC key for China featured group
+- 5018ae7 docs(history): iter251 log
+- 7918beb fix(fear-greed): force=1 parameter now bypasses Redis cache
+- 886ccb5 docs(history): iter250 log
+
+Drift signal check:
+(1) 같은 영역 3+ iter 연속: iter250=lib, iter251=fear-greed, iter252=osint, iter253=cron — 다른 영역 ✓
+(2) Primary metric 정체: 없음
+(3) "나중에": April 30 FOMC actual (내일 UTC 18:00), GROQ quota (내일 KST 09:00) ✓
+(4) 인프라 블로커: GROQ quota — 공식 abandon 유지 ✓
+
+→ Drift 없음 ✓
+
+## Primary Outcome
+cron/update-all 허위 실패 2건 제거 (매 실행마다 failedCount≥2 → 0)
+
+## 스캔 결과
+
+### flow-analysis/route.ts — 무결 ✓ (iter252 계속)
+- `cache: 'no-store'` on capital-flows fetch ✓
+- 3계층 캐시: Redis(8h) → Redis stale(48h) → 메모리(8h) ✓
+- static fallback: AI 실패 + price data 없을 때 최소 JSON 반환 ✓
+- static fallback 시 `Cache-Control: no-store` → CDN stale 루프 방지 ✓
+
+### osint/corporate, osint/crypto, translate, collect — 무결 ✓
+- osint/corporate: `cache: 'no-store'` ✓, `loggedRedisSet` ✓
+- osint/crypto: `cache: 'no-store'` ✓, `loggedRedisSet` ✓
+- translate: POST + AI cascade + 30일 Redis TTL ✓
+- collect: Google Sheets 웹훅 포워딩, POST는 fetch cache 없음 ✓
+
+### admin/* (health/logs/metrics-health/metrics-db) — 무결 ✓
+- 모두 `CRON_SECRET` x-admin-secret 보호 ✓
+- health: tracked keys 목록 Redis probe ✓
+- logs: lrange + 집계 bySource ✓
+- metrics-health: verify-metrics 스냅샷 조회 ✓
+- metrics-db: per-metric hash ✓
+
+### memory-cache.ts — 무결 ✓
+- MAX_ENTRIES=50 cap + FIFO eviction ✓
+- TTL expiry on get() ✓
+
+### logger.ts — 무결 ✓
+- `emit()` fire-and-forget 패턴 — 의도적 (console 로그는 동기 항상 성공) ✓
+- `safeUrl()`: api_key/apiKey/token/crumb REDACT ✓
+
+### cron/update-all/route.ts — 수정 (버그 발견)
+
+**발견된 버그 (MEDIUM):**
+```typescript
+// 수정 전: osint/corporate, osint/crypto 파라미터 없이 pre-warm
+warm(base, '/api/osint/corporate', 'osint-corporate', 20000),
+warm(base, '/api/osint/crypto',    'osint-crypto',    20000),
+```
+
+- `osint/corporate`: `?q=` 필수 → 없으면 HTTP 400 반환
+- `osint/crypto`: `?address=` 필수 → 없으면 HTTP 400 반환
+- 두 엔드포인트 모두 검색 전용 (사전 캐시 불가)
+- → 매 cron 실행마다 `failedCount += 2`, `success: false` 오보
+- → `/admin/logs`에 허위 경고 2건/회 × 하루 3회 = 6건 허위 경고
+
+**영향:**
+- `success: false` 응답이 실제 장애를 가리는 노이즈 생성
+- 알람/모니터링 신뢰도 하락
+
+**수정 (commit 1adcb8f):**
+```typescript
+// 수정 후: search endpoints 제거 (주석으로 이유 명시)
+// osint/corporate and osint/crypto omitted — search endpoints requiring user params (q= / address=), always 400 without them
+```
+destructuring에서 `osintCorpR`, `osintCryptoR` 제거, results 배열에서 제거.
+
+### cron/verify-metrics/route.ts — 무결 ✓
+- 22개 검증 함수 병렬 실행 ✓
+- accuracy group: CNN F&G, FRED yield/CPI/PPI/FOMC/GDP, Yahoo/CBOE VIX 직접 대조 ✓
+- CNN 418 bot block → `skipped` 처리 (오류 아님) ✓
+
+## 외부 실값 대조 (CLAUDE.md §3 — MANDATORY)
+
+```
+[accuracy probe] metric=SPY.close source=Yahoo_v8 direct_value=713.94(Apr24) our_value=capital-flows/fear-greed(Yahoo_v8) → OK (동일 소스)
+[accuracy probe] metric=fg.us source=CNN direct_value=418_bot_block our_value=N/A → skipped (Vercel IP 차단 지속, verify-metrics 'skipped' 처리 정상)
+```
+
+## 산출물 평가
+- (a) 핵심 숫자 이동: cron success 보고 정확도 복구 → 하루 6건 허위 경고 제거 ✓
+- (b) 실패 확률 ≥50% 실험: N/A
+- (c) 삭제/단순화: 무의미한 warm() 2개 제거 ✓
+
+## 커밋 (총 1개)
+- 1adcb8f: fix(cron-update-all): remove osint/corporate and osint/crypto from warming (always 400 without params)
+
+## 다음 iter 우선순위
+1. **April 30 FOMC actual** (내일 UTC 18:00 이후):
+   - economic-calendar/route.ts: FOMC_2026 배열 `'2026-04-30'` 항목에 `actual: 3.75` 추가
+2. **GROQ quota 확인** (April 27 KST 09:00 = UTC April 27 00:00):
+   - investment-strategy?debug=1 → source='groq' 확인
+3. **미탐색 cron 라우트**: cron/daily-brief, cron/update-signals, cron/send-alerts, cron/investment-strategy, cron/update-credit-balance
+4. **데이터 정확도**: verify-metrics accuracy 스냅샷 분석
