@@ -1,0 +1,71 @@
+ITER219 — 2026-04-26
+Primary outcome: 3 Yahoo-blocked endpoint 복구 + 2 data-accuracy 버그 수정
+
+=== DRIFT CHECK ===
+Recent 5 commits: 0536aff (flow-analysis), 1195490 (company-recs), f8c2fef (investment-strategy), 6b0f289 (iter218 log), 91dfccf (market-movers perf)
+영역 분산: API fallback (×3), docs, perf — 연속 동일 영역 없음. NO DRIFT.
+
+=== PRIMARY OUTCOME ===
+Yahoo Finance 블록 대응 + 데이터 정확도 버그 2개 수정
+
+=== EXTERNAL VALUE ACCURACY PROBE ===
+verify-metrics: 183/191 ok, 3 degraded, 0 error
+[accuracy probe] metric=fg.us source=CNN via-verify-metrics=66 → OK (external CNN 418 blocked locally, verify-metrics confirms 66)
+Degraded (expected): macro.gdp_growth_rate_(q1_advance) actual=null (Q1 Advance 미발표), strategy.portfolio (AI quota), brief.market (AI quota)
+
+=== FIXES DONE ===
+
+1. investment-strategy: Yahoo v8 price → Finnhub 폴백 (fetchOnePrice)
+   - Yahoo Finance v8 chart blocked on Vercel IPs
+   - Finnhub /v1/quote 폴백 추가 — AAPL $271.06 확인 (source=finnhub)
+   - commit f8c2fef
+
+2. company-recs/[ticker]: Yahoo v7 batch 가격 → Finnhub 폴백
+   - /v6/finance/recommendationsbysymbol 는 동작 (company-recs용)
+   - 추천 종목 가격 조회 v7 batch 실패 시 Finnhub /v1/quote 폴백
+   - 검증: AMZN=$263.99, TSLA=$376.3, GOOG=$342.32 (source=finnhub)
+   - commit 1195490
+
+3. flow-analysis: capital-flows 불가 시 503 → static fallback
+   - capitalData=null일 때 503 hard error → {}로 설정 후 기존 static fallback 진행
+   - force=1 테스트: source=static-fallback 반환 (503 아님)
+   - commit 0536aff
+
+4. analyst-target/[ticker]: Finnhub price-target (paid tier) → Finviz HTML scrape
+   - Finnhub /stock/price-target: {"error": "You don't have access to this resource."}
+   - Finviz quote.ashx HTML에서 Target Price + Recom 추출 (regex)
+   - AAPL targetMean=301.62, recommendationMean=1.89 확인 (로컬 테스트)
+   - Finnhub /stock/recommendation (free tier) buy/hold/sell counts는 유지
+   - commit 0d721e3
+
+5. economic-calendar: mapImpact 버그 — high-impact US 이벤트 0개 → 15개
+   - 버그: mapImpact가 숫자(3,2,1) 처리만 구현, Finnhub 실제 반환값은 문자열('high','medium','low')
+   - parseInt('high', 10) = NaN → 모든 이벤트가 'low'로 변환
+   - 수정: 문자열 직접 비교 우선 처리 + 숫자 fallback 유지
+   - 영향: EconCalendarSection이 high/medium 필터링 → 전체 컴포넌트 숨겨짐
+   - 수정 후: 15 high-impact + 44 medium US events 정상 표시
+   - commit 8003dc2
+
+=== LIVE ENDPOINT STATUS (post-fix) ===
+- analyst-target/AAPL: local test 정상 (Vercel deploy 후 확인 예정)
+- economic-calendar: CDN v2 key로 캐시 무효화
+- company-recs/AAPL: recs=5, prices from Finnhub ✓
+- investment-strategy: source=finnhub prices ✓
+- market-movers: gainers=5, losers=5, source=nasdaq ✓
+- insider-trades: 52 total (AAPL=0, weekend no filings — OK)
+- korea-flow: fallback=true (KRX, weekend, foreignerNetBuy=null — expected)
+- batch-prices: works with ?tickers= param (prev test used wrong ?symbols=)
+
+=== REMAINING ISSUES ===
+- AI 전체 소진 → midnight UTC 2026-04-27 reset
+- OPENROUTER_API_KEY 미설정 → Qwen inactive
+- Redis 미설정 → CDN-only caching
+- short-interest shortRatio/shortChangeMonthly null (Yahoo quoteSummary blocked)
+- Finviz scrape 취약성: Vercel IP 블록 가능성, HTML 구조 변경 시 재수정 필요
+
+=== COMMITS ===
+f8c2fef fix(investment-strategy): Yahoo price fetch → Finnhub fallback 추가
+1195490 fix(company-recs): Yahoo v7 가격 블록 시 Finnhub 폴백 추가
+0536aff fix(flow-analysis): capital-flows 불가 시 503 → static fallback 제공
+0d721e3 fix(analyst-target): Finnhub price-target (paid) → Finviz HTML scrape + recommendationMean field
+8003dc2 fix(economic-calendar): mapImpact string→enum 버그 — 15개 high-impact US 이벤트 누락 수정
