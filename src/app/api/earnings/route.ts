@@ -224,21 +224,28 @@ async function resolveCompanyNames(
     }));
   }
 
-  // 3. Finnhub profile2 for still-unknown (max 20 new lookups per request)
-  const stillUnknown = symbols.filter(s => !names[s]).slice(0, 20);
+  // 3. Yahoo Finance v7 batch for still-unknown (100 symbols/request, no key needed)
+  const stillUnknown = symbols.filter(s => !names[s]);
   if (stillUnknown.length > 0) {
-    await Promise.all(stillUnknown.map(async sym => {
+    const CHUNK = 100;
+    const batches: string[][] = [];
+    for (let i = 0; i < stillUnknown.length; i += CHUNK)
+      batches.push(stillUnknown.slice(i, i + CHUNK));
+    await Promise.all(batches.map(async batch => {
       try {
         const r = await fetch(
-          `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(apiKey)}`,
-          { signal: AbortSignal.timeout(4000), cache: 'no-store' },
+          `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${batch.map(s => encodeURIComponent(s)).join(',')}`,
+          { headers: YHDR, signal: AbortSignal.timeout(8000), cache: 'no-store' },
         );
         if (!r.ok) return;
-        const d = await r.json() as { name?: string };
-        if (d.name) {
-          names[sym] = d.name;
-          if (redis) {
-            loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${sym}`, d.name, { ex: 7 * 24 * 3600 }).catch(() => {});
+        const d = await r.json() as { quoteResponse?: { result?: Array<{ symbol?: string; shortName?: string; longName?: string }> } };
+        for (const q of d?.quoteResponse?.result ?? []) {
+          if (!q.symbol) continue;
+          const name = q.shortName ?? q.longName ?? null;
+          if (name) {
+            names[q.symbol] = name;
+            if (redis)
+              loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${q.symbol}`, name, { ex: 7 * 24 * 3600 }).catch(() => {});
           }
         }
       } catch { /* non-fatal */ }

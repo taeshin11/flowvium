@@ -88,7 +88,7 @@ const PRESETS: { id: string; filter: (r: ScreenerRow) => boolean }[] = [
 
 type SortKey = keyof ScreenerRow;
 
-interface TopPrice { price: number | null; changePct: number | null; currency: string; }
+interface TopPrice { price: number | null; changePct: number | null; ret: number | null; currency: string; }
 
 function parseVal(v: string): number {
   if (!v) return 0;
@@ -238,7 +238,7 @@ export default function ScreenerPage() {
         bullishCount: consensus.bullish, bearishCount: consensus.bearish,
         institutionCount: consensus.instSet.size,
         nportValue: nport?.value ?? null, nportFundCount: nport?.fundCount ?? null,
-        price: lp?.price ?? null, changePct: lp?.changePct ?? null,
+        price: lp?.price ?? null, changePct: lp?.ret ?? lp?.changePct ?? null,
       };
     });
   }, [signals, shortMap, nportMap, priceMap]);
@@ -327,14 +327,15 @@ export default function ScreenerPage() {
     const tickers = insiderTickerKey.split(',').filter(Boolean);
     if (!tickers.length) return;
     const ctrl = new AbortController();
-    fetch(`/api/batch-prices?tickers=${tickers.join(',')}`, { signal: ctrl.signal })
+    const periodParam = tf === '1w' || tf === '4w' ? `&period=${tf}` : '';
+    fetch(`/api/batch-prices?tickers=${tickers.join(',')}${periodParam}`, { signal: ctrl.signal })
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((d: { prices: Record<string, { price: number | null; changePct: number | null }> }) => {
+      .then((d: { prices: Record<string, { price: number | null; changePct: number | null; ret: number | null }> }) => {
         if (ctrl.signal.aborted) return;
         setPriceMap(prev => {
           const map = new Map(prev);
           for (const [ticker, entry] of Object.entries(d.prices ?? {}))
-            map.set(ticker, { price: entry.price, changePct: entry.changePct, currency: 'USD' });
+            map.set(ticker, { price: entry.price, changePct: entry.changePct, ret: entry.ret ?? null, currency: 'USD' });
           return map;
         });
         setPricesLoaded(true);
@@ -354,7 +355,7 @@ export default function ScreenerPage() {
         if (ctrl.signal.aborted) return;
         const map = new Map<string, TopPrice>();
         for (const [ticker, entry] of Object.entries(d.prices ?? {}))
-          map.set(ticker, { price: entry.price, changePct: entry.changePct, currency: 'USD' });
+          map.set(ticker, { price: entry.price, changePct: entry.changePct, ret: null, currency: 'USD' });
         setPriceMap(map);
         setPricesLoaded(true);
       })
@@ -741,6 +742,8 @@ export default function ScreenerPage() {
                     <tr>
                       <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colTicker')}</th>
                       <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colCompany')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colPrice')}</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{tf === '1w' ? '1W 수익률' : '4W 수익률'}</th>
                       <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colInsider')}</th>
                       <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colTitle')}</th>
                       <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colBuyAmount')}</th>
@@ -757,6 +760,12 @@ export default function ScreenerPage() {
                           </Link>
                         </td>
                         <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.issuerName}</td>
+                        <td className="px-3 py-2.5 font-mono text-xs tabular-nums">
+                          {(() => { const lp = priceMap.get(row.ticker); return lp?.price != null ? <span className="text-cf-text-primary">${lp.price < 1000 ? lp.price.toFixed(2) : lp.price.toFixed(0)}</span> : <span className="text-cf-text-secondary/30 text-[10px]">···</span>; })()}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-xs tabular-nums">
+                          {(() => { const lp = priceMap.get(row.ticker); const ret = lp?.ret ?? lp?.changePct ?? null; return ret != null ? <span className={ret >= 0 ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>{ret >= 0 ? '+' : ''}{ret.toFixed(2)}%</span> : <span className="text-cf-text-secondary/30 text-[10px]">···</span>; })()}
+                        </td>
                         <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[120px] truncate">{row.topBuyer}</td>
                         <td className="px-3 py-2.5">
                           {row.topTitle && (
