@@ -78,6 +78,45 @@ function StockBox(props: BoxProps) {
   );
 }
 
+// ── Finviz-style: depth=1 → sector border+label, depth=2 → stock box
+interface SectorContentProps {
+  x?: number; y?: number; width?: number; height?: number;
+  depth?: number; name?: string; sectorColor?: string;
+  ticker?: string; changePct?: number | null; fullName?: string;
+}
+function SectorTreemapContent(props: SectorContentProps) {
+  const { x = 0, y = 0, width = 0, height = 0, depth, name, sectorColor, ticker, changePct, fullName } = props;
+  if (width < 1 || height < 1) return null;
+
+  if (depth === 1) {
+    // Sector container: colored border + sector name pill
+    const labelW = Math.min(width - 4, (name?.length ?? 0) * 6 + 12);
+    return (
+      <g>
+        <rect x={x} y={y} width={width} height={height}
+              fill="#0a1628" stroke={sectorColor ?? '#334155'} strokeWidth={2} rx={2} />
+        {width > 50 && height > 20 && (
+          <>
+            <rect x={x + 2} y={y + 2} width={labelW} height={15}
+                  fill={sectorColor ?? '#334155'} opacity={0.9} rx={2} />
+            <text x={x + 7} y={y + 13} fill="#fff" fontSize={9} fontWeight={700}
+                  style={{ pointerEvents: 'none' as const, userSelect: 'none' as const }}>
+              {name}
+            </text>
+          </>
+        )}
+      </g>
+    );
+  }
+
+  if (depth === 2) {
+    return <StockBox x={x} y={y} width={width} height={height}
+                     ticker={ticker} changePct={changePct} fullName={fullName} />;
+  }
+
+  return null;
+}
+
 // ── Sector block: internal treemap of its constituent stocks
 function SectorBlock({ sector }: { sector: HeatmapSector }) {
   const t = useTranslations('heatmap');
@@ -308,20 +347,24 @@ export default function HeatmapPage() {
           <div style={{ height: Math.min(700, Math.max(400, data.totalStocks * 3.2)) }}>
             <ResponsiveContainer>
               <Treemap
-                data={data.sectors.flatMap(s =>
-                  s.stocks.map(st => ({
+                data={data.sectors.map(s => ({
+                  name: s.sector,
+                  size: s.totalMarketCap,
+                  sectorColor: s.color,
+                  children: s.stocks.map(st => ({
                     name: st.ticker,
                     size: st.marketCap,
                     ticker: st.ticker,
                     changePct: st.changePct,
                     fullName: st.name,
-                  }))
-                )}
+                    sectorColor: s.color,
+                  })),
+                }))}
                 dataKey="size"
                 aspectRatio={1.6}
                 stroke="#0f172a"
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                content={<StockBox /> as any}
+                content={<SectorTreemapContent /> as any}
                 animationDuration={300}
               />
             </ResponsiveContainer>
