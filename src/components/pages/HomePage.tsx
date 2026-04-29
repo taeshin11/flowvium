@@ -959,11 +959,23 @@ export default function HomePage() {
                 {t('description')}
               </p>
               <div className="grid grid-cols-2 gap-3">
-                <Link href="/explore" className="cf-btn-primary w-full justify-center text-sm px-4 py-3.5 gap-2 shadow-lg shadow-cf-primary/25 hover:shadow-xl hover:shadow-cf-primary/30 transition-all">
+                <Link
+                  href="/explore"
+                  className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
+                             bg-cf-primary text-white border border-cf-primary/80
+                             hover:bg-cf-primary/90 hover:shadow-lg hover:shadow-cf-primary/25
+                             transition-all duration-200"
+                >
                   {tHome('exploreSupplyChains')}
                   <ArrowRight className="w-4 h-4 flex-shrink-0" />
                 </Link>
-                <Link href="/signals" className="cf-btn-secondary w-full justify-center text-sm px-4 py-3.5">
+                <Link
+                  href="/signals"
+                  className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
+                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
+                             hover:border-cf-primary/40 hover:bg-gray-50 dark:hover:bg-white/10 hover:shadow-sm
+                             transition-all duration-200"
+                >
                   {tHome('viewSignals')}
                 </Link>
                 <Link
