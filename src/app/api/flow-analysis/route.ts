@@ -5,7 +5,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  * 통합 AI 체인 (vLLM → GROQ → Gemini) 으로 국가별 자금흐름의 원인을 분석.
  * 각 국가의 수익률 데이터를 받아 "왜 이렇게 움직였는가"를 설명.
  *
- * Cache: 4h Redis
+ * Cache: 8h Redis
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';

@@ -238,7 +238,7 @@ async function resolveCompanyNames(
         if (d.name) {
           names[sym] = d.name;
           if (redis) {
-            redis.set(`flowvium:co-name:v1:${sym}`, d.name, { ex: 7 * 24 * 3600 }).catch(() => {});
+            loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${sym}`, d.name, { ex: 7 * 24 * 3600 }).catch(() => {});
           }
         }
       } catch { /* non-fatal */ }

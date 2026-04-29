@@ -70,6 +70,16 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
 
   const redis = createRedis();
 
+  if (redis) {
+    try {
+      const redisCached = await redis.get(`flowvium:stock-price:v1:${sym}`);
+      if (redisCached) {
+        mem.set(sym, redisCached as object);
+        return NextResponse.json({ ...(redisCached as object), cached: true }, { headers: CDN_HEADERS });
+      }
+    } catch { /* non-fatal */ }
+  }
+
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=5d`;
     const res = await fetch(url, {
