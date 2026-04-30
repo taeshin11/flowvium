@@ -973,16 +973,17 @@ export default function HomePage() {
                   href="/signals"
                   className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
-                             hover:border-cf-primary/40 hover:bg-gray-50 dark:hover:bg-white/10 hover:shadow-sm
+                             hover:border-blue-400/50 hover:bg-blue-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
                 >
+                  <TrendingUp className="w-4 h-4 flex-shrink-0 text-blue-500" />
                   {tHome('viewSignals')}
                 </Link>
                 <Link
                   href="/intelligence"
                   className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-slate-900 text-amber-400 border border-slate-700
-                             hover:bg-slate-800 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10
+                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
+                             hover:border-amber-400/50 hover:bg-amber-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
                 >
                   <span className="relative flex h-2 w-2 flex-shrink-0">
@@ -994,34 +995,34 @@ export default function HomePage() {
                 <Link
                   href="/news-gap"
                   className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-emerald-600 text-white border border-emerald-500
-                             hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20
+                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
+                             hover:border-emerald-400/50 hover:bg-emerald-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
                 >
-                  <Radar className="w-4 h-4 flex-shrink-0" />
+                  <Radar className="w-4 h-4 flex-shrink-0 text-emerald-500" />
                   {tHome('newsGapScan')}
                 </Link>
                 <Link
                   href="/report"
                   className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-violet-600 text-white border border-violet-500
-                             hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-500/20
+                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
+                             hover:border-violet-400/50 hover:bg-violet-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
                 >
                   <span className="relative flex h-2 w-2 flex-shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
                   </span>
                   {tHome('aiReport')}
                 </Link>
                 <Link
                   href="/osint"
                   className="inline-flex items-center justify-center gap-2 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-cyan-600 text-white border border-cyan-500
-                             hover:bg-cyan-700 hover:shadow-lg hover:shadow-cyan-500/20
+                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
+                             hover:border-cyan-400/50 hover:bg-cyan-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
                 >
-                  <Search className="w-4 h-4 flex-shrink-0" />
+                  <Search className="w-4 h-4 flex-shrink-0 text-cyan-500" />
                   {tHome('fundTracking')}
                 </Link>
               </div>

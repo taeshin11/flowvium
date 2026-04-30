@@ -86,9 +86,9 @@ interface FlowData {
   updatedAt: string;
 }
 
-const GROUP_KEY: Record<string, string> = { equity: 'cfGroupEquity', bonds: 'cfGroupBonds', alts: 'cfGroupAlts', commodities: 'cfGroupCommodities', currency: 'cfGroupCurrency' };
-const GROUP_COLORS: Record<string, string> = { equity: 'bg-blue-500', bonds: 'bg-amber-500', alts: 'bg-yellow-400', commodities: 'bg-orange-500', currency: 'bg-purple-500' };
-const GROUP_LIGHT: Record<string, string> = { equity: 'bg-blue-50 text-blue-700 border-blue-200', bonds: 'bg-amber-50 text-amber-700 border-amber-200', alts: 'bg-yellow-50 text-yellow-700 border-yellow-200', commodities: 'bg-orange-50 text-orange-700 border-orange-200', currency: 'bg-purple-50 text-purple-700 border-purple-200' };
+const GROUP_KEY: Record<string, string> = { equity: 'cfGroupEquity', bonds: 'cfGroupBonds', alts: 'cfGroupAlts', commodities: 'cfGroupCommodities', currency: 'cfGroupCurrency', oil: 'cfLblOil', energy: 'cfLblEnergy', agri: 'cfLblAgri' };
+const GROUP_COLORS: Record<string, string> = { equity: 'bg-blue-500', bonds: 'bg-amber-500', alts: 'bg-yellow-400', commodities: 'bg-orange-500', currency: 'bg-purple-500', oil: 'bg-slate-700', energy: 'bg-orange-600', agri: 'bg-lime-600' };
+const GROUP_LIGHT: Record<string, string> = { equity: 'bg-blue-50 text-blue-700 border-blue-200', bonds: 'bg-amber-50 text-amber-700 border-amber-200', alts: 'bg-yellow-50 text-yellow-700 border-yellow-200', commodities: 'bg-orange-50 text-orange-700 border-orange-200', currency: 'bg-purple-50 text-purple-700 border-purple-200', oil: 'bg-slate-100 text-slate-700 border-slate-300', energy: 'bg-orange-50 text-orange-800 border-orange-300', agri: 'bg-lime-50 text-lime-800 border-lime-300' };
 
 function ReturnBar({ val, max }: { val: number; max: number }) {
   const pct = Math.min(Math.abs(val) / max * 100, 100);

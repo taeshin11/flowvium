@@ -18,7 +18,7 @@ export const maxDuration = 60;
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 
-const CACHE_TTL = 4 * 60 * 60;
+const CACHE_TTL = 10 * 60 * 60; // 10h — covers 8h cron gap (was 4h → 4h cold window)
 const STALE_KEY_PREFIX = 'flowvium:capital-flows:stale';
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
@@ -40,9 +40,9 @@ const ASSETS = [
   { id: 'gold',        ticker: 'GLD',   label: 'Gold',          group: 'alts',        flag: '🥇' },
   { id: 'silver',      ticker: 'SLV',   label: 'Silver',        group: 'alts',        flag: '🪙' },
   { id: 'bitcoin',     ticker: 'BITO',  label: 'Bitcoin',       group: 'alts',        flag: '₿' },
-  { id: 'oil',         ticker: 'USO',   label: 'WTI Oil',       group: 'commodities', flag: '🛢️' },
-  { id: 'energy',      ticker: 'XLE',   label: 'US Energy',     group: 'commodities', flag: '⚡' },
-  { id: 'agri',        ticker: 'DBA',   label: 'Agriculture',   group: 'commodities', flag: '🌾' },
+  { id: 'oil',         ticker: 'USO',   label: 'WTI Oil',       group: 'oil',         flag: '🛢️' },
+  { id: 'energy',      ticker: 'XLE',   label: 'US Energy',     group: 'energy',      flag: '⚡' },
+  { id: 'agri',        ticker: 'DBA',   label: 'Agriculture',   group: 'agri',        flag: '🌾' },
   { id: 'dollar',      ticker: 'UUP',   label: 'USD',           group: 'currency',    flag: '💵' },
   { id: 'yen',         ticker: 'FXY',   label: 'JPY',           group: 'currency',    flag: '💴' },
 ];
