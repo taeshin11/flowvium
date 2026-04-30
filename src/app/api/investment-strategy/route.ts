@@ -188,6 +188,9 @@ const CANDIDATE_TICKERS = [
 ];
 
 async function getLivePrices(): Promise<Map<string, LivePrice>> {
+  const map = new Map<string, LivePrice>();
+
+  // 1. Yahoo v7 batch (US/global tickers — KS tickers often missing)
   try {
     const fields = 'regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow';
     const res = await fetch(
@@ -197,25 +200,30 @@ async function getLivePrices(): Promise<Map<string, LivePrice>> {
     if (res.ok) {
       const data = await res.json();
       const quotes = (data?.quoteResponse?.result ?? []) as Array<Record<string, unknown>>;
-      if (quotes.length > 0) {
-        const map = new Map<string, LivePrice>();
-        for (const q of quotes) {
-          const price = q.regularMarketPrice as number | undefined;
-          if (price == null) continue;
-          const changePct = q.regularMarketChangePercent as number | undefined;
-          map.set(q.symbol as string, {
-            price: Math.round(price * 100) / 100,
-            change1d: changePct != null ? Math.round(changePct * 10) / 10 : null,
-            high52w: (q.fiftyTwoWeekHigh as number | undefined) ?? price * 1.3,
-            low52w: (q.fiftyTwoWeekLow as number | undefined) ?? price * 0.7,
-          });
-        }
-        return map;
+      for (const q of quotes) {
+        const price = q.regularMarketPrice as number | undefined;
+        if (price == null) continue;
+        const changePct = q.regularMarketChangePercent as number | undefined;
+        map.set(q.symbol as string, {
+          price: Math.round(price * 100) / 100,
+          change1d: changePct != null ? Math.round(changePct * 10) / 10 : null,
+          high52w: (q.fiftyTwoWeekHigh as number | undefined) ?? price * 1.3,
+          low52w: (q.fiftyTwoWeekLow as number | undefined) ?? price * 0.7,
+        });
       }
     }
-  } catch { /* fall through to v8 / Finnhub */ }
-  const results = await Promise.all(CANDIDATE_TICKERS.map(fetchOnePrice));
-  return new Map(results.filter((r): r is [string, LivePrice] => r[1] !== null));
+  } catch { /* fall through */ }
+
+  // 2. v8 개별 조회 — 배치에서 누락된 티커 (KS 등) + 배치 자체 실패 시
+  const missing = CANDIDATE_TICKERS.filter(t => !map.has(t));
+  if (missing.length > 0) {
+    const results = await Promise.all(missing.map(fetchOnePrice));
+    for (const [ticker, lp] of results) {
+      if (lp) map.set(ticker, lp);
+    }
+  }
+
+  return map;
 }
 
 const KR_NAMES: Record<string, string> = {

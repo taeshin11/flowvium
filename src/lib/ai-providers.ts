@@ -253,9 +253,13 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   const tag = opts.tag ?? 'ai';
   const FREE_MODELS = [
     'qwen/qwen-2.5-72b-instruct:free',
+    'deepseek/deepseek-chat-v3-0324:free', // DeepSeek V3 — 매우 강력한 무료 모델
+    'meta-llama/llama-3.3-70b-instruct:free',
     'meta-llama/llama-3.1-8b-instruct:free',
     'mistralai/mistral-7b-instruct:free',
     'google/gemma-3-12b-it:free',
+    'microsoft/phi-3-mini-128k-instruct:free',
+    'nousresearch/hermes-3-llama-3.1-405b:free',
   ];
   const messages: Array<{ role: string; content: string }> = [];
   if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
