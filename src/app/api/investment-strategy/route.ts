@@ -10,6 +10,7 @@ import {
   buildCritiquePrompt, applyCritique,
 } from '@/lib/investment-prompts';
 import type { CtxForPrompts, CritiqueInput, RiskMgmtInput } from '@/lib/investment-prompts';
+import { logPortfolioPredictions, getRetrospectiveSummary } from '@/lib/portfolio-retrospective';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -1230,10 +1231,16 @@ export async function GET(request: Request) {
   const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.55, timeoutMs: 40000 };
   const parseSec = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
 
+  // 과거 예측 회고 요약 (S2 포트폴리오 프롬프트에 주입)
+  const retroSummary = redis ? await getRetrospectiveSummary(redis).catch(() => '') : '';
+  const ctxWithRetro: CtxForPrompts = retroSummary
+    ? { ...ctxForPrompts, news: `${ctxForPrompts.news}\n${retroSummary}` }
+    : ctxForPrompts;
+
   // ── Wave 1: 5섹션 병렬 (서로 독립적) ───────────────────────────────────────
   const [macroResult, portfolioResult, regionalResult, opportunityResult, narrativeResult] = await Promise.all([
     callAIProvider(buildMacroPrompt(ctxForPrompts, vixCtx, locale, session),               { ...aiOpts, tag: 'invest-macro',      maxTokens: 800 }),
-    callAIProvider(buildPortfolioPrompt(ctxForPrompts, sectorPe, earnings, priceData, locale), { ...aiOpts, tag: 'invest-portfolio', maxTokens: 1000 }),
+    callAIProvider(buildPortfolioPrompt(ctxWithRetro, sectorPe, earnings, priceData, locale), { ...aiOpts, tag: 'invest-portfolio', maxTokens: 1000 }),
     callAIProvider(buildRegionalPrompt(ctxForPrompts, locale),                              { ...aiOpts, tag: 'invest-regional',   maxTokens: 700 }),
     callAIProvider(buildOpportunityPrompt(ctxForPrompts, locale),                           { ...aiOpts, tag: 'invest-opportunity',maxTokens: 500 }),
     callAIProvider(buildNarrativePrompt(ctxForPrompts, session, locale),                    { ...aiOpts, tag: 'invest-narrative',  maxTokens: 500 }),
@@ -1408,6 +1415,10 @@ export async function GET(request: Request) {
       const updated = [meta, ...cleaned].slice(0, 30);
       await loggedRedisSet(redis, 'api.investment-strategy', HIST_KEY, updated, { ex: 90 * 86400 });
       logger.info('api.investment-strategy', 'history_saved', { count: updated.length, source: strategy.source });
+      // 포트폴리오 예측 회고 로그 (14일 후 평가)
+      if (!isFallback && strategy.portfolio?.length) {
+        logPortfolioPredictions(redis, strategy.portfolio, strategy.generatedAt).catch(() => {});
+      }
     } catch (he) { logger.warn('api.investment-strategy', 'history_save_error', { error: String(he) }); }
   }
 
