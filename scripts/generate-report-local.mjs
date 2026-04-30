@@ -184,11 +184,38 @@ Generate a JSON investment strategy with these exact fields:
     buildId: 'local',
   };
 
+  // 히스토리 배열 업데이트 (UI 탭에 표시)
+  const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
+  const SESSION_KO = { morning: '오전 (미국장 마감 후)', afternoon: '오후 (아시아장 마감 후)', evening: '저녁 (미국장 개장 전)' };
+  const histMeta = {
+    key, generatedAt: now, session,
+    kstDate: new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' '),
+    stance: report.stance ?? 'neutral',
+    thesis: (report.thesis ?? '').slice(0, 80),
+    riskLevel: report.riskLevel ?? 'medium',
+    source: finalReport.source,
+    sessionLabel: SESSION_KO[session] ?? session,
+  };
+  async function updateHistory() {
+    const url = env.UPSTASH_REDIS_REST_URL;
+    const token = env.UPSTASH_REDIS_REST_TOKEN;
+    const getRes = await fetch(`${url}/get/${encodeURIComponent(HIST_KEY)}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const getD = await getRes.json();
+    let existing = [];
+    if (getD.result) {
+      try { existing = JSON.parse(typeof getD.result === 'string' ? getD.result : JSON.stringify(getD.result)); } catch {}
+    }
+    if (!Array.isArray(existing)) existing = [];
+    const updated = [histMeta, ...existing.filter(e => e.generatedAt !== now)].slice(0, 30);
+    await redisSet(HIST_KEY, updated, 90 * 86400);
+  }
+
   console.log('Redis 저장 중...');
   const [ok1, ok2] = await Promise.all([
     redisSet(key, finalReport, 86400),
     redisSet(staleKey, finalReport, 7 * 86400),
   ]);
+  await updateHistory();
 
   console.log(`session key (${key}): ${ok1 ? '✅' : '❌'}`);
   console.log(`stale key: ${ok2 ? '✅' : '❌'}`);

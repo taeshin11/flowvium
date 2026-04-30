@@ -277,7 +277,8 @@ export default function ReportPage() {
 
   // History
   const [historyItems, setHistoryItems] = useState<HistoryMeta[]>([]);
-  const [selectedHistoryKey, setSelectedHistoryKey] = useState<string | null>(null);
+  // generatedAt을 선택 식별자로 사용 (같은 Redis key를 가진 항목이 여러 개일 수 있음)
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
 
   // KPI strip
   const [fg,    setFg]    = useState<KpiState<{ score: number }>>({ loading: true, error: false, value: null });
@@ -365,11 +366,11 @@ export default function ReportPage() {
   }, []);
 
   // Load specific historical report when tab selected
-  const loadHistoricalReport = useCallback(async (key: string) => {
-    setSelectedHistoryKey(key);
+  const loadHistoricalReport = useCallback(async (redisKey: string, generatedAt: string) => {
+    setSelectedHistoryId(generatedAt);
     setLoading(true);
     try {
-      const res = await fetch(`/api/investment-strategy/history?key=${encodeURIComponent(key)}`, { cache: 'no-store' });
+      const res = await fetch(`/api/investment-strategy/history?key=${encodeURIComponent(redisKey)}`, { cache: 'no-store' });
       const d = await res.json();
       if (d.report) setData(d.report);
     } catch { /* ignore */ } finally { setLoading(false); }
@@ -417,9 +418,9 @@ export default function ReportPage() {
         <div className="mb-4 overflow-x-auto">
           <div className="flex gap-1.5 pb-1 min-w-max">
             <button
-              onClick={() => { setSelectedHistoryKey(null); fetchStrategy(); }}
+              onClick={() => { setSelectedHistoryId(null); fetchStrategy(); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border
-                ${selectedHistoryKey === null
+                ${selectedHistoryId === null
                   ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
             >
@@ -428,10 +429,10 @@ export default function ReportPage() {
             </button>
             {historyItems.map((item) => (
               <button
-                key={item.key}
-                onClick={() => loadHistoricalReport(item.key)}
+                key={item.generatedAt || item.key}
+                onClick={() => loadHistoricalReport(item.key, item.generatedAt)}
                 className={`flex flex-col items-start px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all border
-                  ${selectedHistoryKey === item.key
+                  ${selectedHistoryId === item.generatedAt
                     ? 'bg-gray-800 text-white border-gray-800 shadow-sm'
                     : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
               >
