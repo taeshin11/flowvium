@@ -54,12 +54,13 @@ function buildPrompt(
   countries: Array<{ country: string; ticker: string; ret: number }>,
   rotations: Array<{ from: string; to: string; diff: number }>,
   topAssets: Array<{ name: string; ticker: string; ret: number }>,
-  gvd: { goldRet: number; dollarRet: number; signal: string },
+  gvd: { goldRet: number | null; dollarRet: number | null; signal: string },
 ) {
   const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
-  const cList = countries.map(c => `${c.country}(${c.ticker}): ${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`).join(', ');
+  const fmt = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+  const cList = countries.map(c => `${c.country}(${c.ticker}): ${fmt(c.ret)}`).join(', ');
   const rList = rotations.slice(0, 5).map(r => `${r.from}→${r.to}(+${r.diff.toFixed(1)}%p)`).join(', ');
-  const aList = topAssets.slice(0, 8).map(a => `${a.ticker}: ${a.ret >= 0 ? '+' : ''}${a.ret.toFixed(1)}%`).join(', ');
+  const aList = topAssets.slice(0, 8).map(a => `${a.ticker}: ${fmt(a.ret)}`).join(', ');
 
   return `${tfLabel} Global Capital Flows Analysis
 
@@ -73,7 +74,7 @@ ${rList}
 ${aList}
 
 === Gold / Dollar ===
-Gold: ${gvd.goldRet >= 0 ? '+' : ''}${gvd.goldRet.toFixed(1)}%, Dollar: ${gvd.dollarRet >= 0 ? '+' : ''}${gvd.dollarRet.toFixed(1)}%, Signal: ${gvd.signal}
+Gold: ${gvd.goldRet != null ? fmt(gvd.goldRet) : 'N/A'}, Dollar: ${gvd.dollarRet != null ? fmt(gvd.dollarRet) : 'N/A'}, Signal: ${gvd.signal}
 
 Analyze the drivers of capital flows for each country/asset. Respond in the following JSON format only:
 {
@@ -178,8 +179,8 @@ export async function GET(request: Request) {
   const countries = rawCountries.map(c => ({
     country: COUNTRY_EN[(c.id as string) ?? ''] ?? (c.id as string) ?? 'Unknown',
     ticker: c.ticker as string,
-    ret: (c[retKey] as number) ?? 0,
-  })).sort((a, b) => b.ret - a.ret);
+    ret: (c[retKey] as number | null) ?? null,
+  })).filter((c): c is { country: string; ticker: string; ret: number } => c.ret != null).sort((a, b) => b.ret - a.ret);
 
   // Extract rotations — capital-flows uses 'magnitude', not 'diff'
   const rotKey = tf === '1w' ? 'rotations1w' : tf === '4w' ? 'rotations4w' : 'rotations13w';
@@ -194,12 +195,13 @@ export async function GET(request: Request) {
   const topAssets = [...assets]
     .sort((a, b) => Math.abs((b[retKey] as number) ?? 0) - Math.abs((a[retKey] as number) ?? 0))
     .slice(0, 8)
-    .map(a => ({ name: (a.label ?? a.ticker) as string, ticker: a.ticker as string, ret: (a[retKey] as number) ?? 0 }));
+    .filter(a => (a[retKey] as number | null) != null)
+    .map(a => ({ name: (a.label ?? a.ticker) as string, ticker: a.ticker as string, ret: (a[retKey] as number) }));
 
   // Gold vs dollar
   const gvd = capitalData.goldVsDollar as Record<string, unknown> | undefined;
-  const goldRet = (tf === '1w' ? gvd?.goldRet1w : tf === '4w' ? gvd?.goldRet4w : gvd?.goldRet13w) as number ?? 0;
-  const dollarRet = (tf === '1w' ? gvd?.dollarRet1w : tf === '4w' ? gvd?.dollarRet4w : gvd?.dollarRet13w) as number ?? 0;
+  const goldRet = ((tf === '1w' ? gvd?.goldRet1w : tf === '4w' ? gvd?.goldRet4w : gvd?.goldRet13w) as number | null) ?? null;
+  const dollarRet = ((tf === '1w' ? gvd?.dollarRet1w : tf === '4w' ? gvd?.dollarRet4w : gvd?.dollarRet13w) as number | null) ?? null;
   const signal = (tf === '1w' ? gvd?.signal1w : tf === '4w' ? gvd?.signal4w : gvd?.signal13w) as string ?? '';
 
   const prompt = buildPrompt(tf, countries, rotations, topAssets, { goldRet, dollarRet, signal });
@@ -261,14 +263,15 @@ export async function GET(request: Request) {
   // Static fallback: AI quota 소진 시 capital flows 데이터로 기계적 요약 생성
   // analysis가 없어도 사용자가 수치 기반 요약을 볼 수 있도록
   if (!analysis && countries.length > 0) {
+    const fmtRet = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
     const sorted = [...countries].sort((a, b) => b.ret - a.ret);
     const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
     analysis = {
-      summary: `${tfLabel} capital flows mechanical summary (AI analysis pending). Leaders: ${sorted.slice(0, 3).map(c => `${c.country} ${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`).join(', ')}.`,
+      summary: `${tfLabel} capital flows mechanical summary (AI analysis pending). Leaders: ${sorted.slice(0, 3).map(c => `${c.country} ${fmtRet(c.ret)}`).join(', ')}.`,
       mainTheme: `Data summary (AI quota exhausted — resets 09:00 KST)`,
       countries: sorted.map(c => ({
         country: c.country,
-        ret: `${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(1)}%`,
+        ret: fmtRet(c.ret),
         direction: c.ret >= 0 ? 'inflow' : 'outflow',
         causes: ['Return data only — AI analysis unavailable'],
         risk: '',
@@ -281,7 +284,7 @@ export async function GET(request: Request) {
       keyWatchpoints: [
         `Bull markets: ${sorted.slice(0, 3).map(c => c.country).join(', ')}`,
         `Bear markets: ${sorted.slice(-3).reverse().map(c => c.country).join(', ')}`,
-        `Gold ${goldRet >= 0 ? '+' : ''}${goldRet.toFixed(1)}% / Dollar ${dollarRet >= 0 ? '+' : ''}${dollarRet.toFixed(1)}%`,
+        `Gold ${goldRet != null ? fmtRet(goldRet) : 'N/A'} / Dollar ${dollarRet != null ? fmtRet(dollarRet) : 'N/A'}`,
       ],
       _staticFallback: true,
     };

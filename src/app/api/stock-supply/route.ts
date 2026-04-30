@@ -186,9 +186,9 @@ async function fetchVolumeData(ticker: string) {
     const m1Price = validCloses[validCloses.length - 22] ?? validCloses[0] ?? current;
     const m3Price = validCloses[0] ?? current;
 
-    const ret1w = current && w1Price ? ((current - w1Price) / w1Price) * 100 : 0;
-    const ret1m = current && m1Price ? ((current - m1Price) / m1Price) * 100 : 0;
-    const ret3m = current && m3Price ? ((current - m3Price) / m3Price) * 100 : 0;
+    const ret1w = current && w1Price && w1Price !== current ? ((current - w1Price) / w1Price) * 100 : null;
+    const ret1m = current && m1Price && m1Price !== current ? ((current - m1Price) / m1Price) * 100 : null;
+    const ret3m = current && m3Price && m3Price !== current ? ((current - m3Price) / m3Price) * 100 : null;
 
     // True 52-week high/low from Yahoo meta; fallback to 90d data if absent
     const high52 = (result.meta?.fiftyTwoWeekHigh as number | undefined)

@@ -20,7 +20,8 @@ export const maxDuration = 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 
 // Module-level memory cache — without Redis, each request fires 17 parallel FRED calls.
-// 4h TTL: FRED data updates at most once daily; 4h is safe and conserves FRED rate limits.
+// Memory TTL: 4h (FRED data updates at most once daily; conserves FRED rate limits).
+// Redis TTL: 25h (covers one full day; the next cron run always refreshes before expiry).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let MACRO_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const MACRO_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;

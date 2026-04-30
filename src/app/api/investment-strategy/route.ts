@@ -71,7 +71,7 @@ export interface InvestmentStrategy {
 // ── Live price fetcher ────────────────────────────────────────────────────────
 interface LivePrice {
   price: number;
-  change1d: number;
+  change1d: number | null;
   high52w: number;
   low52w: number;
 }
@@ -93,10 +93,10 @@ async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]
       if (meta) {
         const price = meta.regularMarketPrice as number;
         const prev = meta.previousClose as number;
-        const change1d = prev ? ((price - prev) / prev) * 100 : 0;
+        const change1d = prev ? ((price - prev) / prev) * 100 : null;
         return [ticker, {
           price: Math.round(price * 100) / 100,
-          change1d: Math.round(change1d * 10) / 10,
+          change1d: change1d != null ? Math.round(change1d * 10) / 10 : null,
           high52w: meta.fiftyTwoWeekHigh ?? price * 1.3,
           low52w: meta.fiftyTwoWeekLow ?? price * 0.7,
         }];
@@ -116,7 +116,7 @@ async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]
         if (d.c && d.c > 0) {
           return [ticker, {
             price: Math.round(d.c * 100) / 100,
-            change1d: Math.round((d.dp ?? 0) * 10) / 10,
+            change1d: d.dp != null ? Math.round(d.dp * 10) / 10 : null,
             high52w: d.h ? d.h * 1.1 : d.c * 1.3,
             low52w: d.l ? d.l * 0.9 : d.c * 0.7,
           }];
@@ -151,7 +151,7 @@ async function getLivePrices(): Promise<Map<string, LivePrice>> {
           const changePct = q.regularMarketChangePercent as number | undefined;
           map.set(q.symbol as string, {
             price: Math.round(price * 100) / 100,
-            change1d: Math.round((changePct ?? 0) * 10) / 10,
+            change1d: changePct != null ? Math.round(changePct * 10) / 10 : null,
             high52w: (q.fiftyTwoWeekHigh as number | undefined) ?? price * 1.3,
             low52w: (q.fiftyTwoWeekLow as number | undefined) ?? price * 0.7,
           });
@@ -167,7 +167,7 @@ async function getLivePrices(): Promise<Map<string, LivePrice>> {
 function pricesSection(prices: Map<string, LivePrice>): string {
   if (prices.size === 0) return '';
   const lines = Array.from(prices.entries()).map(([t, p]) =>
-    `${t}: $${p.price} (1d ${p.change1d > 0 ? '+' : ''}${p.change1d}%, 52wH $${p.high52w}, 52wL $${p.low52w})`
+    `${t}: $${p.price} (1d ${p.change1d != null ? `${p.change1d > 0 ? '+' : ''}${p.change1d}%` : 'N/A'}, 52wH $${p.high52w}, 52wL $${p.low52w})`
   );
   return lines.join('\n');
 }
