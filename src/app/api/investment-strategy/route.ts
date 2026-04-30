@@ -293,13 +293,14 @@ ${ctx.cot || 'No data'}
 [Commodity Prices]
 ${ctx.commodity || 'No data'}
 
-[Institutional Positions — 13F US]
+[Institutional Positions — 13F + Insider + 집중매매감지]
 ${ctx.institutional}
+※ 집중매매감지 = 기간 내 5건 이상 내부자 신고 종목 (강한 확신 신호 → 포트폴리오 후보 고려)
 
 [Sector Valuations — US SPDR ETFs]
 ${sectorPe || 'No data'}
 
-[Short Squeeze Candidates — US]
+[Short Squeeze Candidates — 숏커버 폭발 가능 종목]
 ${ctx.shorts}
 
 [Upcoming Earnings]
@@ -413,6 +414,22 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     if (insider.length) {
       const recent = insider.filter((i: Record<string, unknown>) => i.direction === 'buy').slice(0, 3).map((i: Record<string, unknown>) => `${i.ticker ?? '?'} ${i.officerTitle ?? 'insider'} $${Math.round(((i.transactionValueUsd as number) ?? 0) / 1000)}K`);
       if (recent.length) institutional += ` | Insider buys: ${recent.join(', ')}`;
+
+      // Cluster detection: tickers with 5+ filings = unusually concentrated insider activity
+      const clusterMap = new Map<string, { buys: number; sells: number; totalUsd: number }>();
+      for (const i of insider) {
+        const t = i.ticker as string; if (!t) continue;
+        const c = clusterMap.get(t) ?? { buys: 0, sells: 0, totalUsd: 0 };
+        if (i.direction === 'buy') c.buys++; else c.sells++;
+        c.totalUsd += (i.transactionValueUsd as number) ?? 0;
+        clusterMap.set(t, c);
+      }
+      const hotTickers = Array.from(clusterMap.entries())
+        .filter(([, c]) => c.buys + c.sells >= 5)
+        .sort((a, b) => (b[1].buys + b[1].sells) - (a[1].buys + a[1].sells))
+        .slice(0, 3)
+        .map(([t, c]) => `${t}(${c.buys}buy/${c.sells}sell $${Math.round(c.totalUsd / 1000)}K)`);
+      if (hotTickers.length) institutional += ` | 집중매매감지: ${hotTickers.join(', ')}`;
     }
   } catch { /* ignore */ }
 
@@ -625,7 +642,15 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
 }
 
 // ── Data-driven fallback: adjusts base allocations using real-time signals ────
-function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>, locale = 'en'): InvestmentStrategy {
+function priceZone(prices: Map<string, { price: number }>, ticker: string, pctRange: number): string {
+  const p = prices.get(ticker)?.price;
+  if (!p || p <= 0) return 'market ±' + pctRange + '%';
+  const lo = Math.round(p * (1 - pctRange / 100) * 100) / 100;
+  const hi = Math.round(p * (1 + pctRange / 100) * 100) / 100;
+  return `$${lo.toFixed(2)}-$${hi.toFixed(2)}`;
+}
+
+function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>, locale = 'en', prices: Map<string, { price: number }> = new Map()): InvestmentStrategy {
   const base = fallbackStrategy(locale);
 
   // Extract signals from context
@@ -750,28 +775,51 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
       ? `${fgScore > 70 ? '탐욕 과잉 — 고PER 구간 경계' : fgScore < 30 ? '극단적 공포 — 밸류에이션 저점 접근' : 'F&G 중립 — 밸류에이션 합리적'}. 기술주 AI 실적 서프라이즈로 모멘텀 유지. 에너지·금융 상대적 저평가.`
       : `F&G ${Math.round(fgScore)}(${fgLabel}) — ${fgScore > 70 ? 'overvalued territory' : fgScore < 30 ? 'undervalued entry' : 'fair valuation'}. Tech AI beats sustain momentum. Energy/Financials cheap.`,
     portfolio: [
-      // ETF core + individual stocks
-      { ...base.portfolio[0], allocation: Math.round(spy * 0.7) },  // SPY reduced
-      { ...base.portfolio[1], allocation: Math.round(qqq * 0.7) },  // QQQ reduced
+      // ETF core — with actual dollar entry zones from live prices
+      { ...base.portfolio[0], allocation: Math.round(spy * 0.7),
+        entryZone: priceZone(prices, 'SPY', 1),
+        stopLoss: (() => { const p = prices.get('SPY')?.price; return p ? `$${(p * 0.93).toFixed(2)}` : '-7%'; })(),
+        target: (() => { const p = prices.get('SPY')?.price; return p ? `$${(p * 1.09).toFixed(2)}` : '+9%'; })(),
+        currentPrice: prices.get('SPY')?.price,
+      },
+      { ...base.portfolio[1], allocation: Math.round(qqq * 0.7),
+        entryZone: priceZone(prices, 'QQQ', 1.5),
+        stopLoss: (() => { const p = prices.get('QQQ')?.price; return p ? `$${(p * 0.91).toFixed(2)}` : '-9%'; })(),
+        target: (() => { const p = prices.get('QQQ')?.price; return p ? `$${(p * 1.12).toFixed(2)}` : '+12%'; })(),
+        currentPrice: prices.get('QQQ')?.price,
+      },
+      // Individual stocks
       {
         ticker: 'NVDA', name: 'NVIDIA', sector: isKo ? '기술' : 'Technology', market: 'us',
         rationale: isKo ? `AI 가속기 독점 — Blackwell 사이클 + F&G ${Math.round(fgScore)}` : `AI accelerator monopoly — Blackwell cycle`,
         allocation: Math.max(5, Math.round(qqq * 0.2)),
-        entryZone: 'market ±3%', stopLoss: '-12%', target: '+25%',
-        confidence: fgScore > 60 ? 'high' : 'medium' as 'high' | 'medium',
+        entryZone: priceZone(prices, 'NVDA', 2.5),
+        stopLoss: (() => { const p = prices.get('NVDA')?.price; return p ? `$${(p * 0.88).toFixed(2)}` : '-12%'; })(),
+        target: (() => { const p = prices.get('NVDA')?.price; return p ? `$${(p * 1.25).toFixed(2)}` : '+25%'; })(),
+        currentPrice: prices.get('NVDA')?.price,
+        confidence: (fgScore > 60 ? 'high' : 'medium') as 'high' | 'medium',
         action: 'buy' as const,
       },
       {
         ticker: 'JPM', name: 'JPMorgan Chase', sector: isKo ? '금융' : 'Financials', market: 'us',
         rationale: isKo ? `금리 고공 → NIM 수혜 + 실적 서프라이즈` : `High rates → NIM tailwind + earnings beat`,
         allocation: Math.max(5, Math.round(spy * 0.15)),
-        entryZone: 'market ±2%', stopLoss: '-8%', target: '+15%',
+        entryZone: priceZone(prices, 'JPM', 2),
+        stopLoss: (() => { const p = prices.get('JPM')?.price; return p ? `$${(p * 0.92).toFixed(2)}` : '-8%'; })(),
+        target: (() => { const p = prices.get('JPM')?.price; return p ? `$${(p * 1.15).toFixed(2)}` : '+15%'; })(),
+        currentPrice: prices.get('JPM')?.price,
         confidence: 'medium' as const,
         action: 'buy' as const,
       },
-      { ...base.portfolio[2], allocation: gld },  // GLD
-      { ...base.portfolio[3], allocation: tlt },   // TLT
-      { ...base.portfolio[4], allocation: Math.max(5, cash - 5) },  // CASH
+      { ...base.portfolio[2], allocation: gld,
+        entryZone: priceZone(prices, 'GLD', 1.5),
+        currentPrice: prices.get('GLD')?.price,
+      },
+      { ...base.portfolio[3], allocation: tlt,
+        entryZone: priceZone(prices, 'TLT', 2),
+        currentPrice: prices.get('TLT')?.price,
+      },
+      { ...base.portfolio[4], allocation: Math.max(5, cash - 5) },
     ].filter(p => p.allocation > 0),
   };
 }
@@ -915,7 +963,7 @@ export async function GET(request: Request) {
       } catch { /* ignore */ }
     }
 
-    strategy = dataFallbackStrategy(ctx, locale);
+    strategy = dataFallbackStrategy(ctx, locale, livePrices);
     const isDebug = searchParams.get('debug') === '1';
     if (isDebug) {
       return NextResponse.json({
