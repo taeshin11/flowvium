@@ -1263,8 +1263,8 @@ export async function GET(request: Request) {
       if (!isFallback) {
         await loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 });
       }
-      // History list — AI 생성 리포트만 저장 (fallback은 노이즈)
-      if (!isFallback) {
+      // History list — 모든 리포트 저장 (source 필드로 AI/Fallback 구분)
+      {
         const meta = { key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: strategy.thesis, riskLevel: strategy.riskLevel, source: strategy.source };
         await loggedRedisLpushTrim(redis, 'api.investment-strategy', 'flowvium:investment-strategy:history:v1', meta, 30);
       }

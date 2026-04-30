@@ -424,6 +424,9 @@ export default function ReportPage() {
                 <span className="font-medium flex items-center gap-1">
                   <span className={stanceColor(item.stance)}>{stanceIcon(item.stance)}</span>
                   {item.kstDate}
+                  {item.source && item.source === 'fallback' && (
+                    <span className="text-[9px] opacity-40 font-normal">F</span>
+                  )}
                 </span>
                 <span className="text-[10px] opacity-60">{item.sessionLabel}</span>
               </button>
@@ -616,7 +619,7 @@ export default function ReportPage() {
             </div>
           )}
 
-          {/* ── S5: 리스크 관리 (손절 근거 + 헤징) ──────────────────────────── */}
+          {/* ── S5: 리스크 관리 (손절선 설정 근거 + 헤징) ──────────────────────────── */}
           {(data.stopLossRationale?.length || data.hedgingSuggestion) && (
             <div className="mb-5 rounded-xl border border-red-100 bg-red-50 p-4">
               <p className="text-sm font-bold text-red-800 mb-3">🛡️ 리스크 관리</p>
@@ -628,7 +631,7 @@ export default function ReportPage() {
               )}
               {data.stopLossRationale?.length ? (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] font-bold text-red-700">손절 근거</p>
+                  <p className="text-[10px] font-bold text-red-700">손절선 설정 근거</p>
                   {data.stopLossRationale.map((s, i) => (
                     <div key={i} className="flex gap-2 text-xs">
                       <span className="font-bold text-red-800 w-12 shrink-0">{s.ticker}</span>
