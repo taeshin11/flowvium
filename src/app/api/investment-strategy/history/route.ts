@@ -4,7 +4,7 @@ import type { InvestmentStrategy } from '@/app/api/investment-strategy/route';
 
 export const dynamic = 'force-dynamic';
 
-const HISTORY_KEY = 'flowvium:investment-strategy:history:v1';
+const HISTORY_KEY = 'flowvium:investment-strategy:history:arr:v1'; // JSON array stored via loggedRedisSet
 const SESSION_KO: Record<string, string> = {
   morning: '오전 (미국장 마감 후)',
   afternoon: '오후 (아시아장 마감 후)',
@@ -39,17 +39,14 @@ export async function GET(req: Request) {
     }
   }
 
-  // Return history list
+  // Return history (JSON array stored via loggedRedisSet)
   try {
-    const raw = await redis.lrange(HISTORY_KEY, 0, 29);
-    const items: HistoryMeta[] = raw.flatMap(r => {
-      try {
-        // loggedRedisLpushTrim stores as JSON string → parse; or already object
-        const m = (typeof r === 'string' ? JSON.parse(r) : r) as HistoryMeta;
-        if (!m?.key || !m?.generatedAt) return [];
-        m.sessionLabel = SESSION_KO[m.session] ?? m.session;
-        return [m];
-      } catch { return []; }
+    const arr = await redis.get<HistoryMeta[]>(HISTORY_KEY);
+    const raw: HistoryMeta[] = Array.isArray(arr) ? arr : [];
+    const items: HistoryMeta[] = raw.flatMap(m => {
+      if (!m?.key || !m?.generatedAt) return [];
+      m.sessionLabel = SESSION_KO[m.session] ?? m.session;
+      return [m];
     });
     return NextResponse.json({ items });
   } catch {
