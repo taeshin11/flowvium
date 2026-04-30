@@ -67,7 +67,7 @@ async function callOllama(prompt, model = 'qwen2.5:14b') {
       model: baseModel,
       messages: [{ role: 'user', content: prompt }],
       stream: false,
-      options: { temperature: 0.5, num_predict: 2000 },
+      options: { temperature: 0.5, num_predict: 4096 },
     }),
     signal: AbortSignal.timeout(120000),
   });
@@ -163,11 +163,40 @@ Generate a JSON investment strategy with these exact fields:
     process.exit(1);
   }
 
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) { console.error('JSON 파싱 실패'); console.log(text.slice(0, 500)); process.exit(1); }
+  // DeepSeek-R1 <think>...</think> 추론 태그 제거
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+  // JSON 추출 — 코드블록(```json) 또는 raw JSON 모두 처리
+  const codeBlock = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const jsonStr = codeBlock ? codeBlock[1] : cleaned;
+  const match = jsonStr.match(/\{[\s\S]*\}/);
+  if (!match) { console.error('JSON 파싱 실패'); console.log(cleaned.slice(0, 500)); process.exit(1); }
 
   let report;
-  try { report = JSON.parse(match[0]); } catch (e) { console.error('JSON parse error:', e.message); process.exit(1); }
+  try {
+    // trailing comma 자동 수정 (DeepSeek-R1 등 소형 모델 공통 문제)
+    const fixedJson = match[0]
+      .replace(/,\s*([}\]])/g, '$1')   // trailing comma before } or ]
+      .replace(/([{,])\s*\n\s*([}\]])/g, '$1$2'); // empty trailing items
+    report = JSON.parse(fixedJson);
+  } catch (e) { console.error('JSON parse error:', e.message); console.log(match[0].slice(0, 400)); process.exit(1); }
+
+  // portfolio dedup (7B 모델 중복 ticker 문제 방지)
+  if (Array.isArray(report.portfolio)) {
+    const dedupMap = new Map();
+    for (const p of report.portfolio) {
+      const key = (p.ticker || '').toUpperCase();
+      if (!key) continue;
+      const existing = dedupMap.get(key);
+      if (!existing || (p.allocation ?? 0) > (existing.allocation ?? 0)) dedupMap.set(key, p);
+    }
+    report.portfolio = Array.from(dedupMap.values());
+    // allocation 합계 100 맞추기
+    const total = report.portfolio.reduce((s, p) => s + (p.allocation ?? 0), 0);
+    if (total > 0 && Math.abs(total - 100) > 2) {
+      report.portfolio = report.portfolio.map(p => ({ ...p, allocation: Math.round((p.allocation ?? 0) / total * 100) }));
+    }
+  }
 
   const now = new Date().toISOString();
   const session = getSession();
