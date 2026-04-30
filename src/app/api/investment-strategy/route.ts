@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 90;
 
 const CACHE_TTL = 24 * 60 * 60; // 24h Redis
-const STALE_KEY_PREFIX = 'flowvium:investment-strategy:stale'; // last known good result
+const STALE_KEY_PREFIX = 'flowvium:investment-strategy:stale:v7'; // versioned with cache key schema
 // 24h CDN + 2h stale window; daily strategy doesn't need more frequent refresh
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=7200' };
 

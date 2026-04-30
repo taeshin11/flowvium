@@ -18,9 +18,11 @@ export async function GET(req: NextRequest) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '').replace(/\\n/g, '') || 'https://flowvium.vercel.app';
 
   try {
+    const cronSecret = process.env.CRON_SECRET ?? '';
     const res = await fetch(`${baseUrl}/api/investment-strategy?force=1`, {
       signal: AbortSignal.timeout(80000),
       cache: 'no-store',
+      headers: cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {},
     });
     if (!res.ok) {
       logger.error('cron.investment-strategy', 'fetch_failed', { status: res.status });

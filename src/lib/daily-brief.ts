@@ -229,6 +229,18 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   ctx.short = shortData;
   ctx.capital = capFlowsTwelve ?? capFlowsYahoo;
   ctx.fearGreed = fg;
+
+  // fearGreedAssets: load key asset F&G from Redis (Gold, Tech, Energy, Crypto, Bonds, Defense, etc.)
+  const ASSET_FG_TICKERS = ['GLD','XLK','XLE','BITO','TLT','XLV','XLF','DBA','FXY'];
+  const COUNTRY_IDS_SET = new Set(['us','korea','japan','china','europe','uk','india','brazil','taiwan','australia']);
+  try {
+    const assetFgEntries = await Promise.all(
+      ASSET_FG_TICKERS.map(t => safeGet<Record<string, unknown>>(redis, `flowvium:fg:v6:${t}`))
+    );
+    ctx.fearGreedAssets = assetFgEntries
+      .filter((e): e is Record<string, unknown> => e != null && typeof e.id === 'string' && !COUNTRY_IDS_SET.has(e.id as string));
+  } catch { /* non-fatal */ }
+
   ctx.fedWatch = fed;
   ctx.macro = macro;
   ctx.credit = credit;
