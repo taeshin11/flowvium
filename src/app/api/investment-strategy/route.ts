@@ -1087,7 +1087,7 @@ export async function GET(request: Request) {
         portfolio: strategy.portfolio.map(p => ({
           ticker: p.ticker,
           rationale: p.rationale ?? '',
-          action: p.action,
+          action: (p.action as string) || 'hold',
           entryZone: p.entryZone ?? '',
           target: p.target ?? '',
         })),
