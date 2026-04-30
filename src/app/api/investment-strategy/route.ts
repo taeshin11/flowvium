@@ -165,9 +165,15 @@ async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]
 }
 
 const CANDIDATE_TICKERS = [
+  // US 대형주
   'NVDA', 'MSFT', 'AAPL', 'META', 'GOOGL', 'AMZN', 'TSLA',
-  'KLAC', 'AMD', 'JPM', 'V', 'UNH', 'XOM',
-  'SPY', 'QQQ', 'GLD', 'TLT', 'USO', 'IWM',
+  'KLAC', 'AMD', 'JPM', 'V', 'UNH', 'XOM', 'GS', 'BAC',
+  // US ETF
+  'SPY', 'QQQ', 'GLD', 'TLT', 'USO', 'IWM', 'XLE', 'XLK', 'XLF', 'XLV',
+  // 국가 ETF — AI가 자주 추천하는 것들
+  'EWY', 'EWJ', 'FXI', 'VGK', 'INDA', 'EWT', 'EWZ', 'EWA',
+  // 기타 자산
+  'BITO', 'SLV', 'DBA',
 ];
 
 async function getLivePrices(): Promise<Map<string, LivePrice>> {
@@ -1265,21 +1271,16 @@ export async function GET(request: Request) {
       }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
 
-    // History — 메인 캐시 블록과 독립적으로 저장 (별도 try)
+    // History — loggedRedisSet으로 배열 직접 저장 (CI 규칙 준수, 자동 직렬화)
     try {
       const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
       const kstDateHist = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
-      const metaStr = JSON.stringify({ key, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source });
-      const rawExisting = await redis.get(HIST_KEY);
-      const arr: unknown[] = rawExisting
-        ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : Array.isArray(rawExisting) ? rawExisting : [])
-        : [];
-      const updated = [JSON.parse(metaStr), ...arr].slice(0, 30);
-      const setRes = await redis.set(HIST_KEY, JSON.stringify(updated), { ex: 90 * 86400 });
-      // Immediate readback to verify
-      const verify = await redis.get(HIST_KEY);
-      const verifyLen = Array.isArray(verify) ? verify.length : (typeof verify === 'string' ? JSON.parse(verify).length : -1);
-      logger.info('api.investment-strategy', 'history_saved', { count: updated.length, setRes, verifyLen, source: strategy.source });
+      const meta = { key, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source };
+      const existing = await redis.get<unknown[]>(HIST_KEY);
+      const arr = Array.isArray(existing) ? existing : [];
+      const updated = [meta, ...arr].slice(0, 30);
+      await loggedRedisSet(redis, 'api.investment-strategy', HIST_KEY, updated, { ex: 90 * 86400 });
+      logger.info('api.investment-strategy', 'history_saved', { count: updated.length, source: strategy.source });
     } catch (he) { logger.warn('api.investment-strategy', 'history_save_error', { error: String(he) }); }
   }
 
