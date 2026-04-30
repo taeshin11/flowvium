@@ -317,12 +317,16 @@ Key rules:
 1. portfolio: 6-8 items — mix US stocks, US ETFs, and country ETFs (EWY=Korea, EWJ=Japan, FXI=China, VGK=Europe, INDA=India, EWT=Taiwan, EWZ=Brazil)
 2. EACH portfolio item MUST have "market" field: country code (us/korea/japan/china/europe/india/taiwan/brazil/australia/global)
 3. entryZone/stopLoss/target: actual $ ranges based on live prices (e.g. price=$209 → entryZone="$205-211")
-4. rationale (≤80 chars): MUST include ALL of these that apply:
-   a) 4W or 1W return if significant (e.g. "4주 +25% 이미 고점권, 추가 상승 여력 제한")
-   b) Key reason to buy/watch (institutional signal, earnings beat, short squeeze, F&G level)
-   c) Risk factor if already rallied >15% in 4W → action should be "watch" not "buy", warn of overextension
-   BAD: "KOSPI 상승세 지속" (no data)
-   GOOD: "EWY 4주+25% 고평가, F&G 77 극단탐욕 → 눌림목 대기, 진입 $112 이하"
+4. rationale (≤100 chars): MUST include ALL of these that apply:
+   a) 4W return if available (e.g. "4주+25%")
+   b) Overextension warning — use THIS data to judge, NOT arbitrary % thresholds:
+      - If region/asset F&G > 75 (extreme greed) → action="watch", add "극단탐욕 눌림목 대기"
+      - If current price > 90% of 52W high → add "52주 고점권"
+      - If 4W return > 20% AND F&G > 65 → action="watch" not "buy"
+   c) Key reason (institutional signal, earnings beat, short squeeze)
+   BAD: "KOSPI 상승세 지속" — no data, no risk assessment
+   GOOD: "EWY 4주+25% + F&G 77 극단탐욕 → 눌림목 대기($112 이하 진입)"
+   GOOD: "NVDA 13F 집중매집+AI 실적 서프라이즈, 52주고점 근접→단기조정 가능"
 5. allocation: must sum to 100
 6. action: "buy"=accumulate now, "hold"=keep if owned, "watch"=wait for entry
 7. regionStances: cover ALL countries with capital flows data — us, korea, japan, china, europe, india, taiwan, brazil, australia, global
@@ -937,12 +941,15 @@ export async function GET(request: Request) {
           logger.info('api.investment-strategy', 'stale_hit');
           return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
         }
-        // 3. Any previous session's report from today
-        for (const s of ['morning', 'afternoon', 'evening'] as const) {
-          if (s === session) continue;
-          const alt = await redis.get(cacheKey(s));
-          if (alt) {
-            return NextResponse.json({ ...(alt as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+        // 3. Any previous session's report from today or yesterday (A1 fix)
+        const yesterday = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
+        for (const dateStr of [new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), yesterday]) {
+          for (const s of ['morning', 'afternoon', 'evening'] as const) {
+            if (dateStr === new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10) && s === session) continue;
+            const alt = await redis.get(`flowvium:investment-strategy:v7:${dateStr}:${s}`);
+            if (alt) {
+              return NextResponse.json({ ...(alt as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+            }
           }
         }
         // 4. No data at all — return minimal static fallback (no AI)
@@ -1030,13 +1037,14 @@ export async function GET(request: Request) {
 
   if (strategy && !strategy.dataAsOf) strategy = { ...strategy, dataAsOf };
 
-  // Inject current live prices into portfolio items for safety-margin display in the UI
+  // Inject current live prices (only if not already set by dataFallbackStrategy)
   if (strategy) {
     strategy = {
       ...strategy,
       portfolio: strategy.portfolio.map(p => ({
         ...p,
-        currentPrice: livePrices.get(p.ticker)?.price,
+        currentPrice: p.currentPrice ?? livePrices.get(p.ticker)?.price,
+        rationale: p.rationale ? p.rationale.slice(0, 100) : p.rationale, // D2: truncate
       })),
     };
   }
@@ -1050,10 +1058,12 @@ export async function GET(request: Request) {
       if (!isFallback) {
         await loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 });
       }
-      // History list — save ALL reports (fallback included) for the report browser
-      const meta = { key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: strategy.thesis, riskLevel: strategy.riskLevel, source: strategy.source };
-      await redis.lpush('flowvium:investment-strategy:history:v1', JSON.stringify(meta));
-      await redis.ltrim('flowvium:investment-strategy:history:v1', 0, 29);
+      // History list — AI 생성 리포트만 저장 (fallback은 노이즈)
+      if (!isFallback) {
+        const meta = { key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: strategy.thesis, riskLevel: strategy.riskLevel, source: strategy.source };
+        await redis.lpush('flowvium:investment-strategy:history:v1', JSON.stringify(meta));
+        await redis.ltrim('flowvium:investment-strategy:history:v1', 0, 29);
+      }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
   }
 

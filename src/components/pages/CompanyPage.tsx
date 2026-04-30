@@ -401,9 +401,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           <div className="cf-card p-4 mb-4">
             <h2 className="text-sm font-bold text-cf-text-primary mb-3">최신 뉴스</h2>
             <div className="space-y-2">
-              {companyNews.news.slice(0, 5).map((n, i) => (
-                <a key={i} href={n.link} target="_blank" rel="noopener noreferrer" className="block text-xs text-cf-text-primary hover:text-cf-accent truncate">{n.title}</a>
-              ))}
+              {companyNews.news.slice(0, 5).map((n, i) =>
+                n.link
+                  ? <a key={i} href={n.link} target="_blank" rel="noopener noreferrer" className="block text-xs text-cf-text-primary hover:text-cf-accent truncate">{n.title}</a>
+                  : <span key={i} className="block text-xs text-cf-text-secondary truncate">{n.title}</span>
+              )}
             </div>
           </div>
         )}
@@ -413,7 +415,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             <h2 className="text-sm font-bold text-cf-text-primary mb-3">기관 시그널</h2>
             <div className="space-y-1">
               {signals.slice(0, 5).map((s, i) => (
-                <p key={i} className="text-xs text-cf-text-secondary">{s.institution} · {s.action} · {s.estimatedValue}</p>
+                <p key={i} className="text-xs text-cf-text-secondary">{s?.institution ?? "—"} · {s?.action ?? "—"} · {s?.estimatedValue ?? "—"}</p>
               ))}
             </div>
           </div>
