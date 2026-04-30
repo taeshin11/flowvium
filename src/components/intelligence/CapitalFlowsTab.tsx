@@ -518,7 +518,7 @@ export default function CapitalFlowsTab() {
   const t = useTranslations('intelligence');
   const [data, setData] = useState<FlowData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tf, setTf] = useState<Timeframe>('4w');
+  const [tf, setTf] = useState<Timeframe>('1w');
   const [commCurves, setCommCurves] = useState<CommodityCurveData[] | null>(null);
 
   useEffect(() => {
