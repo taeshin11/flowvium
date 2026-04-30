@@ -1,10 +1,19 @@
 /**
  * investment-prompts.ts
  *
- * 3섹션 분리 프롬프트 — 병렬 AI 호출 후 최종 리포트 조합.
- * Section 1: 거시경제 + 기술적 + 리스크이벤트
- * Section 2: 포트폴리오 구성
- * Section 3: 국가별 시장 전망
+ * Karpathy AutoResearch Loop 적용 (2026년 3월 개념):
+ *   Draft → Critique → Refine
+ *
+ * Section 1: 거시경제 + 기술적 + 리스크이벤트  (병렬)
+ * Section 2: 포트폴리오 구성                   (병렬)
+ * Section 3: 국가별 시장 전망                  (병렬)
+ * Section 4: 자기비판 루프 (Critic)            (Draft 완성 후)
+ *   → Draft 포트폴리오의 약점/오류/누락 지적
+ *   → 수정된 rationale/action 반영
+ *
+ * "Editable asset": 포트폴리오 Draft
+ * "Scalar metric": 리스크 조정 기대수익률 (rationale 품질)
+ * "Karpathy Loop": Propose → Critique → Commit/Revert
  */
 
 const LOCALE_LANG: Record<string, string> = {
@@ -136,4 +145,77 @@ export function buildRegionalPrompt(ctx: CtxForPrompts, locale = 'en'): string {
     '}}',
     'All 10 regions required. Pure JSON only.',
   ].join('\n');
+}
+
+// ── Section 4: Karpathy Loop — 자기비판 (Critic) ─────────────────────────────
+// Draft 포트폴리오를 반박하는 역할. 약점 발견 → rationale 수정 제안.
+// AutoResearch의 "val_bpb로 평가 후 리버트" 대신 AI가 자체 평가.
+export interface CritiqueInput {
+  portfolio: Array<{
+    ticker: string;
+    rationale: string;
+    action: string;
+    entryZone: string;
+    target: string;
+  }>;
+  macroAnalysis: string;
+  bbWarnings: string;
+  assetFg: string;
+}
+
+export function buildCritiquePrompt(draft: CritiqueInput, locale = 'en'): string {
+  const lang = LOCALE_LANG[locale] ?? 'Korean';
+  const portfolioSummary = draft.portfolio
+    .map(p => `${p.ticker}(${p.action}) entry=${p.entryZone} target=${p.target}: ${p.rationale}`)
+    .join('\n');
+
+  return [
+    `You are a contrarian analyst critiquing an investment portfolio. Write in ${lang}.`,
+    '',
+    '[Draft Portfolio to Critique]',
+    portfolioSummary,
+    '',
+    `[Macro Context] ${draft.macroAnalysis}`,
+    `[BB Overextension Warnings] ${draft.bbWarnings || 'None'}`,
+    `[Asset F&G] ${draft.assetFg || 'No data'}`,
+    '',
+    'For each portfolio item, identify ONE of:',
+    '1. REVISE: action or rationale needs correction (e.g. "buy" when BB shows 4d4sig, or F&G>75)',
+    '2. WARN: add a risk not mentioned in rationale',
+    '3. OK: no change needed',
+    '',
+    'Be concise. Only flag items that need change.',
+    '',
+    'Respond in pure JSON:',
+    '{"critiques":[{"ticker":"NVDA","verdict":"REVISE|WARN|OK","correction":"≤80 chars 한국어, 구체적 수치 포함"}]}',
+    'Only include items that need REVISE or WARN. Pure JSON only.',
+  ].join('\n');
+}
+
+// ── Critique 결과를 Draft에 반영 ──────────────────────────────────────────────
+export function applyCritique(
+  portfolio: CritiqueInput['portfolio'],
+  critiqueJson: string,
+): CritiqueInput['portfolio'] {
+  try {
+    const m = critiqueJson.match(/\{[\s\S]*\}/);
+    if (!m) return portfolio;
+    const parsed = JSON.parse(m[0]) as { critiques?: Array<{ ticker: string; verdict: string; correction: string }> };
+    const critiques = parsed.critiques ?? [];
+    if (!critiques.length) return portfolio;
+
+    return portfolio.map(p => {
+      const c = critiques.find(cr => cr.ticker === p.ticker);
+      if (!c) return p;
+      if (c.verdict === 'REVISE') {
+        // action 수정 (4d4sig → watch)
+        const newAction = c.correction.includes('진입금지') || c.correction.includes('WARN') ? 'watch' : p.action;
+        return { ...p, action: newAction, rationale: `[수정] ${c.correction}`.slice(0, 100) };
+      }
+      if (c.verdict === 'WARN') {
+        return { ...p, rationale: `${p.rationale} ⚠️${c.correction}`.slice(0, 100) };
+      }
+      return p;
+    });
+  } catch { return portfolio; }
 }

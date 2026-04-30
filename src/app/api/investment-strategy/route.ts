@@ -4,8 +4,8 @@ import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider } from '@/lib/ai-providers';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
-import { buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt } from '@/lib/investment-prompts';
-import type { CtxForPrompts } from '@/lib/investment-prompts';
+import { buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt, buildCritiquePrompt, applyCritique } from '@/lib/investment-prompts';
+import type { CtxForPrompts, CritiqueInput } from '@/lib/investment-prompts';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -1077,6 +1077,42 @@ export async function GET(request: Request) {
   const singleResult = singlePrompt ? await callAIProvider(singlePrompt, { ...aiOpts, maxTokens: 1400 }) : null;
 
   let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
+
+  // ── Section 4: Karpathy Loop — Critic (Draft → Critique → Refine) ─────────
+  // AutoResearch "val_bpb 평가 후 커밋/리버트" 개념을 투자에 적용:
+  // AI가 자신의 Draft 포트폴리오를 반박 → REVISE/WARN → 반영
+  if (strategy && strategy.portfolio?.length > 0 && bestSource !== 'fallback') {
+    try {
+      const critiqueInput: CritiqueInput = {
+        portfolio: strategy.portfolio.map(p => ({
+          ticker: p.ticker,
+          rationale: p.rationale ?? '',
+          action: p.action,
+          entryZone: p.entryZone ?? '',
+          target: p.target ?? '',
+        })),
+        macroAnalysis: strategy.macroAnalysis ?? '',
+        bbWarnings: ctxSummary.bbWarnings,
+        assetFg: ctxSummary.assetFg,
+      };
+      const critiqueResult = await callAIProvider(
+        buildCritiquePrompt(critiqueInput, locale),
+        { tag: 'invest-critic', skipVllm: true, maxTokens: 600, temperature: 0.4, timeoutMs: 30000 },
+      );
+      if (critiqueResult.text && critiqueResult.source !== 'fallback') {
+        const refinedPortfolio = applyCritique(critiqueInput.portfolio, critiqueResult.text);
+        strategy = {
+          ...strategy,
+          portfolio: strategy.portfolio.map((p, i) => ({
+            ...p,
+            action: ((refinedPortfolio[i]?.action ?? p.action) || 'hold') as 'buy' | 'hold' | 'watch',
+            rationale: refinedPortfolio[i]?.rationale ?? p.rationale,
+          })),
+        };
+        logger.info('api.investment-strategy', 'karpathy_critic_applied', { source: critiqueResult.source });
+      }
+    } catch (e) { logger.warn('api.investment-strategy', 'critic_failed', { error: e }); }
+  }
 
   if (!strategy) {
     logger.warn('api.investment-strategy', 'parse_failed', {
