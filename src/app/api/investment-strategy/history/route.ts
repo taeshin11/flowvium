@@ -41,8 +41,10 @@ export async function GET(req: Request) {
 
   // Return history (stored as array via loggedRedisSet — Upstash auto-deserializes)
   try {
-    const raw = await redis.get<HistoryMeta[]>(HISTORY_KEY);
-    const arr = Array.isArray(raw) ? raw : [];
+    const raw = await redis.get(HISTORY_KEY);
+    // E1 FIX: Upstash may return JSON string or auto-deserialized array
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const arr: HistoryMeta[] = Array.isArray(parsed) ? parsed : [];
     const items: HistoryMeta[] = arr.flatMap(m => {
       if (!m?.key || !m?.generatedAt) return [];
       m.sessionLabel = SESSION_KO[m.session] ?? m.session;

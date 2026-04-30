@@ -269,7 +269,15 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
   messages.push({ role: 'user', content: prompt });
 
+  // C2 FIX: cap total OpenRouter cascade to prevent runaway time (e.g. 10 models × 30s = 300s)
+  const cascadeStart = Date.now();
+  const MAX_TOTAL_OPENROUTER_MS = 50000; // 50s max for all models combined
+
   for (const model of FREE_MODELS) {
+    if (Date.now() - cascadeStart > MAX_TOTAL_OPENROUTER_MS) {
+      logger.warn(tag, 'openrouter_cascade_timeout', { elapsed: Date.now() - cascadeStart });
+      break;
+    }
     const t0 = Date.now();
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {

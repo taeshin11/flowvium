@@ -120,7 +120,8 @@ async function fetchOnePrice(ticker: string): Promise<[string, LivePrice | null]
       `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
       {
         headers: YAHOO_HEADERS,
-        signal: AbortSignal.timeout(4000),
+        // KS(Korean) tickers need longer timeout from US-hosted Vercel servers
+        signal: AbortSignal.timeout(ticker.endsWith('.KS') ? 8000 : 4000),
         cache: 'no-store',
       }
     );
@@ -1225,7 +1226,8 @@ export async function GET(request: Request) {
   // ── Section 4: Karpathy Loop — Critic (Draft → Critique → Refine) ─────────
   // AutoResearch "val_bpb 평가 후 커밋/리버트" 개념을 투자에 적용:
   // AI가 자신의 Draft 포트폴리오를 반박 → REVISE/WARN → 반영
-  if (strategy && strategy.portfolio?.length > 0 && bestSource !== 'fallback') {
+  // D3 FIX: gate on strategy.source (covers both combinedStrategy + singleResult paths)
+  if (strategy && strategy.portfolio?.length > 0 && strategy.source !== 'fallback' && strategy.source !== '데이터 기반 모델') {
     try {
       // Critic에 S4 기회신호 요약 추가 (Codex 권장: ~150 tokens, 상위 2개만)
       const s4Summary = strategy.shortSqueeze?.slice(0, 2)
@@ -1311,9 +1313,13 @@ export async function GET(request: Request) {
       const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
       const kstDateHist = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
       const meta = { key, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source };
-      const existing = await redis.get<unknown[]>(HIST_KEY);
+      const raw = await redis.get(HIST_KEY);
+      // E1 FIX: handle both string (stringified) and auto-deserialized array
+      const existing = typeof raw === 'string' ? JSON.parse(raw) : raw;
       const arr = Array.isArray(existing) ? existing : [];
-      const updated = [meta, ...arr].slice(0, 30);
+      // E2 FIX: filter malformed entries before prepend
+      const cleaned = arr.filter((e: unknown) => e && typeof e === 'object' && (e as Record<string,unknown>).key && (e as Record<string,unknown>).generatedAt);
+      const updated = [meta, ...cleaned].slice(0, 30);
       await loggedRedisSet(redis, 'api.investment-strategy', HIST_KEY, updated, { ex: 90 * 86400 });
       logger.info('api.investment-strategy', 'history_saved', { count: updated.length, source: strategy.source });
     } catch (he) { logger.warn('api.investment-strategy', 'history_save_error', { error: String(he) }); }
