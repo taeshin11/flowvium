@@ -44,7 +44,9 @@ export async function GET(req: Request) {
     const raw = await redis.lrange(HISTORY_KEY, 0, 29);
     const items: HistoryMeta[] = raw.flatMap(r => {
       try {
-        const m = JSON.parse(r as string) as HistoryMeta;
+        // loggedRedisLpushTrim stores as JSON string → parse; or already object
+        const m = (typeof r === 'string' ? JSON.parse(r) : r) as HistoryMeta;
+        if (!m?.key || !m?.generatedAt) return [];
         m.sessionLabel = SESSION_KO[m.session] ?? m.session;
         return [m];
       } catch { return []; }

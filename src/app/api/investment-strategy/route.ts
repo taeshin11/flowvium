@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet } from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisLpushTrim } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
@@ -1266,8 +1266,7 @@ export async function GET(request: Request) {
       // History list — AI 생성 리포트만 저장 (fallback은 노이즈)
       if (!isFallback) {
         const meta = { key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: strategy.thesis, riskLevel: strategy.riskLevel, source: strategy.source };
-        await redis.lpush('flowvium:investment-strategy:history:v1', JSON.stringify(meta));
-        await redis.ltrim('flowvium:investment-strategy:history:v1', 0, 29);
+        await loggedRedisLpushTrim(redis, 'api.investment-strategy', 'flowvium:investment-strategy:history:v1', meta, 30);
       }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
   }
