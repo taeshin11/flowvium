@@ -2,6 +2,7 @@
  * investment-prompts.ts
  *
  * Karpathy AutoResearch Loop 적용 (2026년 3월 개념):
+ * Grounding facts 주입: buildGroundingFacts()로 할루시네이션 방지
  *   Draft → Critique → Refine
  *
  * Section 1: 거시경제 + 기술적 + 리스크이벤트  (병렬)
@@ -15,6 +16,8 @@
  * "Scalar metric": 리스크 조정 기대수익률 (rationale 품질)
  * "Karpathy Loop": Propose → Critique → Commit/Revert
  */
+
+import { buildGroundingFacts } from '@/lib/grounding';
 
 const LOCALE_LANG: Record<string, string> = {
   ko: 'Korean', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
@@ -85,6 +88,8 @@ export function buildPortfolioPrompt(
   const li = lang ? `\nWrite rationale/reason in ${lang} (Korean preferred).\n` : '';
 
   return [
+    buildGroundingFacts(priceData || undefined),
+    '',
     `You are a portfolio manager building an investment strategy. Date: ${today}.${li}`,
     '',
     `[Live Prices — base for entryZone/stopLoss/target]`,
