@@ -306,8 +306,9 @@ ${ctx.shorts}
 [Upcoming Earnings]
 ${earnings || 'None'}
 
-[News Cascade]
+[News — 연준 발언·경제지표·13F 변화 포함]
 ${ctx.news}
+※ [연준/중앙은행] 태그 = 금리 경로에 직접 영향. riskEvents와 thesis에 반드시 반영할 것.
 
 Synthesize the above data and respond in the following JSON format only. Pure JSON, no markdown.
 
@@ -479,19 +480,27 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     if (squeeze.length) shorts = squeeze.join(', ');
   } catch { /* ignore */ }
 
-  // News — include AI summary + top cascade asset impacts for richer context
+  // News — 연준 위원 발언 + 경제지표 발표 + 13F 변화 반영
   let news = '';
   try {
     const cascadeArr = (ctx.cascade as Array<Record<string, unknown>>) ?? [];
-    const topNews = cascadeArr.slice(0, 3).map(n => {
+    // Prioritize Fed/ECB/macro policy news, then earnings, then general
+    const sorted = [...cascadeArr].sort((a, b) => {
+      const isFedA = /powell|fomc|fed|ecb|lagarde|monetary|rate/i.test(String(a.title ?? a.summary));
+      const isFedB = /powell|fomc|fed|ecb|lagarde|monetary|rate/i.test(String(b.title ?? b.summary));
+      return (isFedB ? 1 : 0) - (isFedA ? 1 : 0);
+    });
+    const topNews = sorted.slice(0, 5).map(n => {
       const sent = n.sentiment === 'bullish' ? '↑' : n.sentiment === 'bearish' ? '↓' : '·';
-      const text = ((n.summary as string) || (n.title as string) || '').slice(0, 50);
+      const isFed = /powell|fomc|fed|ecb|lagarde|boj|monetary|rate cut|rate hike/i.test(String(n.title ?? n.summary));
+      const prefix = isFed ? '[연준/중앙은행]' : '';
+      const text = ((n.summary as string) || (n.title as string) || '').slice(0, 60);
       const impacts = ((n.cascades as Array<Record<string, unknown>>) ?? [])
         .filter(c => (c.magnitude === 'high' || c.magnitude === 'medium') && c.direction !== 'neutral')
         .slice(0, 2)
         .map(c => `${c.asset}${c.direction === 'positive' ? '↑' : '↓'}`)
         .join(',');
-      return impacts ? `${sent}${text}(${impacts})` : `${sent}${text}`;
+      return impacts ? `${sent}${prefix}${text}(${impacts})` : `${sent}${prefix}${text}`;
     });
     if (topNews.length) news = topNews.join(' | ');
   } catch { /* ignore */ }
