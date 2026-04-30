@@ -326,10 +326,17 @@ Key rules:
 {"stance":"bullish|neutral|bearish","thesis":"≤50 chars","regionStances":{"us":{"stance":"bullish","thesis":"≤40 chars","keyData":"SPY+0.1% 1w, F&G 64, VIX 18.0"},"korea":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWY+1.2% 1w, F&G 77"},"japan":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWJ-1.1% 1w"},"china":{"stance":"neutral","thesis":"≤40 chars","keyData":"FXI-1.7% 1w"},"europe":{"stance":"bearish","thesis":"≤40 chars","keyData":"VGK-2.3% 1w"},"india":{"stance":"neutral","thesis":"≤40 chars","keyData":"INDA-1.9% 1w"},"taiwan":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWT+1.2% 1w"},"brazil":{"stance":"bearish","thesis":"≤40 chars","keyData":"EWZ-4.8% 1w"},"australia":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWA-2.8% 1w"},"global":{"stance":"neutral","thesis":"≤40 chars","keyData":"Mixed signals"}},"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us","rationale":"≤60 chars with numbers","allocation":15,"entryZone":"$205-212","stopLoss":"$190","target":"$240","confidence":"high","action":"buy"}],"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"≤40 chars"}],"riskEvents":[{"date":"2026-05-01","event":"NFP","impact":"high","watchFor":"≤50 chars"}],"macroAnalysis":"≤150 chars","technicalAnalysis":"≤120 chars","fundamentalAnalysis":"≤120 chars","riskLevel":"low|medium|high"}
 
 FIELD CONTENT RULES (must be readable by non-expert investors):
-- macroAnalysis: plain sentence about CPI/GDP/yield curve impact on markets. NO raw abbreviations without explanation. Example: "CPI 3.3%로 인플레이션 완화 중이나 목표치 2%까진 거리 있음. 수익률 곡선 정상화 +52bp."
-- technicalAnalysis: VIX level + what it means for investors + yield curve signal ONLY. NO commodity curve terms like "contango/backwardation". Example: "VIX 18.8 저변동성 구간으로 시장 안정적. 수익률 곡선 정상(+52bp)이며 경기침체 신호 없음."
-- fundamentalAnalysis: earnings/valuation brief. Example: "기술주 PER 과대평가 구간이나 AI 실적 서프라이즈 지속 중. 에너지·금융 밸류에이션 매력적."
-- riskEvents.watchFor: plain sentence, what specifically investors should monitor. NO abbreviations alone.
+- macroAnalysis: 거시지표 + 연준 발언이 시장에 미치는 영향을 평이한 한국어 문장으로. 예: "CPI 3.3%로 목표치 2% 초과 지속. 파월 의장 '금리 인하 서두르지 않겠다' 발언으로 장기금리 상승 압력."
+- technicalAnalysis: VIX + 수익률 곡선만. "contango/backwardation" 같은 선물 용어 금지. 예: "VIX 18.8 저변동성 안정. 수익률 곡선 정상화."
+- fundamentalAnalysis: 실적 서프라이즈 + 섹터 밸류에이션 + 기관/내부자 매수 시그널을 포함한 종합 판단. 예: "NVDA·MSFT AI 실적 서프라이즈 지속. 기관 13F 기술주 집중매집(CRWV 63건). 에너지·금융 저평가. 숏스퀴즈 위험종목(SMCI squeeze=48) 주의."
+- thesis: 시장의 핵심 테마 1문장. 숏스퀴즈/내부자 매수/실적 등 주목할 시그널 포함.
+- riskEvents.watchFor: 투자자가 구체적으로 무엇을 봐야 하는지 평이한 문장.
+
+CRITICAL: portfolio의 rationale에는 반드시 아래 중 관련된 것을 언급할 것:
+- 집중매매감지(내부자 X건 신고) 있으면 → "내부자 집중매수 X건"
+- 숏스퀴즈 후보면 → "숏스퀴즈 위험(squeeze=N)"
+- 실적 발표 임박이면 → "N일 내 실적 발표"
+- 기관 13F 매집이면 → "기관 매집(기관명)"
 
 portfolio 6-8 items with diverse markets, sectorAllocation 5 items, riskEvents 3-5 items. Pure JSON only.`;
 }
