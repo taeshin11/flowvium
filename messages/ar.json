@@ -27,7 +27,13 @@
     "heatmap": "خريطة حرارية",
     "screener": "فلتر",
     "short": "بيع على المكشوف",
-    "watchlist": "قائمة المتابعة"
+    "watchlist": "قائمة المتابعة",
+    "earningsDesc": "مفاجأة EPS والإيرادات",
+    "insiderDesc": "Form4 D+2 وقت فعلي",
+    "heatmapDesc": "خريطة حرارية للأسهم",
+    "screenerDesc": "فلتر مؤسسي",
+    "shortDesc": "مرشحو الضغط القصير",
+    "cascadeDesc": "قائد→شركات متوسطة"
   },
   "hero": {
     "title": "اكتشف مخاطر سلسلة التوريد الخفية",

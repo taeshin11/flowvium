@@ -27,7 +27,13 @@
     "heatmap": "熱力圖",
     "screener": "篩選器",
     "short": "做空",
-    "watchlist": "自選股"
+    "watchlist": "自選股",
+    "earningsDesc": "EPS和營收驚喜",
+    "insiderDesc": "Form4 D+2即時",
+    "heatmapDesc": "全球股票熱力圖",
+    "screenerDesc": "機構篩選",
+    "shortDesc": "軋空候選",
+    "cascadeDesc": "龍頭→中型股傳導"
   },
   "hero": {
     "title": "發掘隱藏的供應鏈風險",

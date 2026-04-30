@@ -27,7 +27,13 @@
     "heatmap": "Peta Panas",
     "screener": "Screener",
     "short": "Short",
-    "watchlist": "Daftar pantau"
+    "watchlist": "Daftar pantau",
+    "earningsDesc": "Kejutan EPS·pendapatan",
+    "insiderDesc": "Form4 D+2 real-time",
+    "heatmapDesc": "Heatmap saham global",
+    "screenerDesc": "Filter institusional",
+    "shortDesc": "Kandidat short squeeze",
+    "cascadeDesc": "Pemimpin→midcap cascade"
   },
   "hero": {
     "title": "Temukan Risiko Rantai Pasok Tersembunyi",

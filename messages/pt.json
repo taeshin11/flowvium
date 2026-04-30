@@ -27,7 +27,13 @@
     "heatmap": "Mapa de calor",
     "screener": "Screener",
     "short": "Short",
-    "watchlist": "Lista de observação"
+    "watchlist": "Lista de observação",
+    "earningsDesc": "Surpresa EPS·receita",
+    "insiderDesc": "Form4 D+2 tempo real",
+    "heatmapDesc": "Mapa de calor de ações",
+    "screenerDesc": "Filtro institucional",
+    "shortDesc": "Candidatos short squeeze",
+    "cascadeDesc": "Líder→midcap cascata"
   },
   "hero": {
     "title": "Descubra Riscos Ocultos na Cadeia de Suprimentos",

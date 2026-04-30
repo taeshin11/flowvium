@@ -27,7 +27,13 @@
     "heatmap": "ฮีทแมป",
     "screener": "สกรีนเนอร์",
     "short": "ชอร์ต",
-    "watchlist": "รายการติดตาม"
+    "watchlist": "รายการติดตาม",
+    "earningsDesc": "เซอร์ไพรส์ EPS·รายได้",
+    "insiderDesc": "Form4 D+2 เรียลไทม์",
+    "heatmapDesc": "ฮีทแมปหุ้นทั่วโลก",
+    "screenerDesc": "ตัวกรองสถาบัน",
+    "shortDesc": "โอกาส short squeeze",
+    "cascadeDesc": "หุ้นนำ→มิดแคป"
   },
   "hero": {
     "title": "ค้นพบความเสี่ยงที่ซ่อนอยู่ในห่วงโซ่อุปทาน",

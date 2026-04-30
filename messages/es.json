@@ -27,7 +27,13 @@
     "heatmap": "Mapa de calor",
     "screener": "Screener",
     "short": "Cortos",
-    "watchlist": "Lista de seguimiento"
+    "watchlist": "Lista de seguimiento",
+    "earningsDesc": "Sorpresa EPS·ingresos",
+    "insiderDesc": "Form4 D+2 tiempo real",
+    "heatmapDesc": "Mapa de calor bursátil",
+    "screenerDesc": "Filtro institucional",
+    "shortDesc": "Candidatos short squeeze",
+    "cascadeDesc": "Líder→mediana capitalización"
   },
   "hero": {
     "title": "Descubre Riesgos Ocultos en la Cadena de Suministro",

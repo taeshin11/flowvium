@@ -27,7 +27,13 @@
     "heatmap": "Heatmap",
     "screener": "Screener",
     "short": "Short",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "earningsDesc": "EPS & revenue surprise",
+    "insiderDesc": "Form4 D+2 real-time",
+    "heatmapDesc": "Global stock treemap",
+    "screenerDesc": "Institutional filter",
+    "shortDesc": "Short squeeze picks",
+    "cascadeDesc": "Leader→midcap cascade"
   },
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",

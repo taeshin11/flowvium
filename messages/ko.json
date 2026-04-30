@@ -27,7 +27,13 @@
     "heatmap": "히트맵",
     "screener": "스크리너",
     "short": "공매도",
-    "watchlist": "관심 종목"
+    "watchlist": "관심 종목",
+    "earningsDesc": "EPS·매출 서프라이즈",
+    "insiderDesc": "Form4 D+2 실시간",
+    "heatmapDesc": "글로벌 주가 트리맵",
+    "screenerDesc": "기관·내부자 필터링",
+    "shortDesc": "숏스퀴즈 후보",
+    "cascadeDesc": "리더→중형주 연쇄"
   },
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",

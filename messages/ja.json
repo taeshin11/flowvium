@@ -27,7 +27,13 @@
     "heatmap": "ヒートマップ",
     "screener": "スクリーナー",
     "short": "ショート",
-    "watchlist": "ウォッチリスト"
+    "watchlist": "ウォッチリスト",
+    "earningsDesc": "EPS·売上サプライズ",
+    "insiderDesc": "Form4 D+2リアルタイム",
+    "heatmapDesc": "株価ツリーマップ",
+    "screenerDesc": "機関フィルター",
+    "shortDesc": "ショートスクイーズ",
+    "cascadeDesc": "リーダー→中型株連鎖"
   },
   "hero": {
     "title": "隠れたサプライチェーンリスクを発見",

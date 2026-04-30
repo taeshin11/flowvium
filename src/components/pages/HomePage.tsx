@@ -965,15 +965,15 @@ export default function HomePage() {
                   { href: '/signals',      icon: <TrendingUp className="w-3.5 h-3.5" />,      label: tHome('viewSignals'),          desc: tHome('viewSignalsDesc'),         accent: 'text-blue-500' },
                   { href: '/intelligence', icon: <span className="relative flex h-3 w-3 items-center justify-center"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" /></span>, label: tHome('secretMoneyTrack'), desc: tHome('secretMoneyTrackDesc'), accent: 'text-amber-500' },
                   { href: '/news-gap',     icon: <Radar className="w-3.5 h-3.5" />,           label: tHome('newsGapScan'),          desc: tHome('newsGapScanDesc'),         accent: 'text-emerald-500' },
-                  { href: '/report',       icon: <span className="relative flex h-3 w-3 items-center justify-center"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-500 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" /></span>, label: tHome('aiReport'), desc: tHome('aiReportDesc'), accent: 'text-violet-500' },
+                  { href: '/report',       icon: <span className="relative flex h-3 w-3 items-center justify-center"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-white opacity-90" /><span className="relative inline-flex rounded-full h-2 w-2 bg-white" /></span>, label: tHome('aiReport'), desc: tHome('aiReportDesc'), accent: 'text-white', aiReport: true },
                   { href: '/osint',        icon: <Search className="w-3.5 h-3.5" />,          label: tHome('fundTracking'),         desc: tHome('fundTrackingDesc'),         accent: 'text-cyan-500' },
-                  { href: '/earnings',     icon: <BarChart3 className="w-3.5 h-3.5" />,       label: tNav('earnings'),              accent: 'text-amber-600 dark:text-amber-400' },
-                  { href: '/insider',      icon: <TrendingUp className="w-3.5 h-3.5" />,      label: tNav('insider'),               accent: 'text-emerald-600 dark:text-emerald-400' },
-                  { href: '/heatmap',      icon: <Layers className="w-3.5 h-3.5" />,          label: tNav('heatmap'),               accent: 'text-blue-600 dark:text-blue-400' },
-                  { href: '/screener',     icon: <Radar className="w-3.5 h-3.5" />,           label: tNav('screener'),              accent: 'text-violet-600 dark:text-violet-400' },
-                  { href: '/short',        icon: <TrendingDown className="w-3.5 h-3.5" />,    label: tNav('short'),                 accent: 'text-red-600 dark:text-red-400' },
-                  { href: '/cascade',      icon: <Network className="w-3.5 h-3.5" />,         label: tNav('cascade'),               accent: 'text-cyan-600 dark:text-cyan-400' },
-                ] as { href: string; icon: React.ReactNode; label: string; desc?: string; accent: string; primary?: boolean }[]).map(item => (
+                  { href: '/earnings',     icon: <BarChart3 className="w-3.5 h-3.5" />,       label: tNav('earnings'),              desc: tNav('earningsDesc'),              accent: 'text-amber-600 dark:text-amber-400' },
+                  { href: '/insider',      icon: <TrendingUp className="w-3.5 h-3.5" />,      label: tNav('insider'),               desc: tNav('insiderDesc'),               accent: 'text-emerald-600 dark:text-emerald-400' },
+                  { href: '/heatmap',      icon: <Layers className="w-3.5 h-3.5" />,          label: tNav('heatmap'),               desc: tNav('heatmapDesc'),               accent: 'text-blue-600 dark:text-blue-400' },
+                  { href: '/screener',     icon: <Radar className="w-3.5 h-3.5" />,           label: tNav('screener'),              desc: tNav('screenerDesc'),              accent: 'text-violet-600 dark:text-violet-400' },
+                  { href: '/short',        icon: <TrendingDown className="w-3.5 h-3.5" />,    label: tNav('short'),                 desc: tNav('shortDesc'),                 accent: 'text-red-600 dark:text-red-400' },
+                  { href: '/cascade',      icon: <Network className="w-3.5 h-3.5" />,         label: tNav('cascade'),               desc: tNav('cascadeDesc'),               accent: 'text-cyan-600 dark:text-cyan-400' },
+                ] as { href: string; icon: React.ReactNode; label: string; desc?: string; accent: string; primary?: boolean; aiReport?: boolean }[]).map(item => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -981,14 +981,16 @@ export default function HomePage() {
                                border transition-all duration-200
                                ${item.primary
                                  ? 'bg-cf-primary text-white border-cf-primary/80 hover:bg-cf-primary/90 hover:shadow-md'
-                                 : 'bg-white dark:bg-white/[0.06] text-cf-text-primary border-cf-border hover:border-cf-primary/30 hover:bg-gray-50/80 dark:hover:bg-white/10 hover:shadow-sm'}`}
+                                 : item.aiReport
+                                   ? 'bg-gradient-to-br from-violet-600 to-purple-700 text-white border-violet-500/80 hover:from-violet-500 hover:to-purple-600 hover:shadow-lg hover:shadow-violet-500/30'
+                                   : 'bg-white dark:bg-white/[0.06] text-cf-text-primary border-cf-border hover:border-cf-primary/30 hover:bg-gray-50/80 dark:hover:bg-white/10 hover:shadow-sm'}`}
                   >
-                    <span className={`flex items-center gap-1.5 ${item.primary ? '' : item.accent}`}>
+                    <span className={`flex items-center gap-1.5 ${item.primary || item.aiReport ? '' : item.accent}`}>
                       {item.icon}
                       <span className="truncate">{item.label}</span>
                     </span>
                     {item.desc && (
-                      <span className={`text-[9px] font-normal truncate leading-tight ${item.primary ? 'opacity-75' : 'text-cf-text-secondary'}`}>
+                      <span className={`text-[9px] font-normal truncate leading-tight ${item.primary || item.aiReport ? 'opacity-75' : 'text-cf-text-secondary'}`}>
                         {item.desc}
                       </span>
                     )}

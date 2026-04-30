@@ -27,7 +27,13 @@
     "heatmap": "Heatmap",
     "screener": "Screener",
     "short": "Short",
-    "watchlist": "Watchlist"
+    "watchlist": "Watchlist",
+    "earningsDesc": "EPS·Umsatz-Überraschung",
+    "insiderDesc": "Form4 D+2 Echtzeit",
+    "heatmapDesc": "Globale Aktienheatmap",
+    "screenerDesc": "Institutioneller Filter",
+    "shortDesc": "Short-Squeeze-Kandidaten",
+    "cascadeDesc": "Leader→Midcap-Kaskade"
   },
   "hero": {
     "title": "Verborgene Lieferkettenrisiken aufdecken",

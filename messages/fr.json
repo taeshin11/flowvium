@@ -27,7 +27,13 @@
     "heatmap": "Carte thermique",
     "screener": "Screener",
     "short": "Short",
-    "watchlist": "Liste de suivi"
+    "watchlist": "Liste de suivi",
+    "earningsDesc": "Surprise EPS·revenus",
+    "insiderDesc": "Form4 D+2 temps réel",
+    "heatmapDesc": "Carte thermique boursière",
+    "screenerDesc": "Filtre institutionnel",
+    "shortDesc": "Candidats short squeeze",
+    "cascadeDesc": "Leader→moyenne capitalisation"
   },
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",

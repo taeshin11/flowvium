@@ -27,7 +27,13 @@
     "heatmap": "Bản đồ nhiệt",
     "screener": "Bộ lọc",
     "short": "Bán khống",
-    "watchlist": "Danh sách theo dõi"
+    "watchlist": "Danh sách theo dõi",
+    "earningsDesc": "Bất ngờ EPS·doanh thu",
+    "insiderDesc": "Form4 D+2 thời gian thực",
+    "heatmapDesc": "Bản đồ nhiệt cổ phiếu",
+    "screenerDesc": "Bộ lọc tổ chức",
+    "shortDesc": "Ứng viên short squeeze",
+    "cascadeDesc": "Dẫn đầu→vốn trung"
   },
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",

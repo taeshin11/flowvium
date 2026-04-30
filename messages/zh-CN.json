@@ -27,7 +27,13 @@
     "heatmap": "热力图",
     "screener": "筛选器",
     "short": "做空",
-    "watchlist": "自选股"
+    "watchlist": "自选股",
+    "earningsDesc": "EPS和营收惊喜",
+    "insiderDesc": "Form4 D+2实时",
+    "heatmapDesc": "全球股票热力图",
+    "screenerDesc": "机构筛选",
+    "shortDesc": "逼空候选",
+    "cascadeDesc": "龙头→中型股传导"
   },
   "hero": {
     "title": "发现隐藏的供应链风险",

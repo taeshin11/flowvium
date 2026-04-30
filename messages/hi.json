@@ -27,7 +27,13 @@
     "heatmap": "हीटमैप",
     "screener": "स्क्रीनर",
     "short": "शॉर्ट",
-    "watchlist": "वॉचलिस्ट"
+    "watchlist": "वॉचलिस्ट",
+    "earningsDesc": "EPS·राजस्व सरप्राइज",
+    "insiderDesc": "Form4 D+2 रियल-टाइम",
+    "heatmapDesc": "ग्लोबल स्टॉक हीटमैप",
+    "screenerDesc": "संस्थागत फ़िल्टर",
+    "shortDesc": "शॉर्ट स्क्वीज़",
+    "cascadeDesc": "लीडर→मिडकैप कैस्केड"
   },
   "hero": {
     "title": "छिपे हुए सप्लाई चेन जोखिम उजागर करें",

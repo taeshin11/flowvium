@@ -27,7 +27,13 @@
     "heatmap": "Isı Haritası",
     "screener": "Tarayıcı",
     "short": "Açığa Satış",
-    "watchlist": "İzleme listesi"
+    "watchlist": "İzleme listesi",
+    "earningsDesc": "EPS·gelir sürprizi",
+    "insiderDesc": "Form4 D+2 gerçek zamanlı",
+    "heatmapDesc": "Global hisse ısı haritası",
+    "screenerDesc": "Kurumsal filtre",
+    "shortDesc": "Short squeeze adayları",
+    "cascadeDesc": "Lider→orta ölçekli cascade"
   },
   "hero": {
     "title": "Gizli Tedarik Zinciri Risklerini Keşfedin",
