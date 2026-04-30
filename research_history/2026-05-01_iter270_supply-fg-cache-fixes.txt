@@ -1,0 +1,58 @@
+# iter270 — 수급모달 실데이터 + F&G UI 개선 + AI 리포트 캐시 스키마 검증
+
+## 날짜
+2026-05-01
+
+## 주요 마일스톤
+
+### 1. stock-supply 기관보유율/공매도 실데이터 연결
+- 기존: instHeld/insiderHeld/shortPct/shortRatio/marketCap 전부 null 하드코딩
+- 변경: fetchQuoteStats() 추가 — Yahoo Finance v7 quote API 병렬 조회
+  - heldPercentInstitutions → instHeld (%)
+  - heldPercentInsiders → insiderHeld (%)
+  - shortPercentOfFloat → shortPct (%)
+  - shortRatio → shortRatio (일)
+  - marketCap → marketCap
+- fetchVolumeData / fetchInsiderTransactions / fetchQuoteStats 3개 병렬 실행
+
+### 2. AI 리포트 flows 컨텍스트 — 방향성 신호 추가
+- 기존: 단순 1w 수익률 top5 (ret1w% 나열)
+- 변경:
+  - 각 자산에 방향성 계산: reversal↕(4w와 1w 방향 불일치) / accel↑ / hold→
+  - 추세 전환 감지: 1w vs 13w 부호 불일치 + 각 |ret| > 1.5% → TREND_REVERSAL 표기
+  - rotations1w 배열 → from→to(magnitude%, momentum) 형식 AI 프롬프트 전달
+  - 국가별 4w 수익률 + 반전↕ 마커 포함
+
+### 3. AI 리포트 시간 표시 — 상대시간 → 절대시간
+- "5분 전", "19분 전" → "2026. 5. 1. 오전 7:21:50" 형식으로 변경
+- humanAge() 함수 제거 → new Date(data.generatedAt).toLocaleString() 직접 사용
+
+### 4. 국가별 F&G — factor 바 항상 표시
+- 기존: RSI/추세강도/변동성 바 차트가 클릭해야만 보임
+- 변경: factor 바 3개 항상 표시 (border-t 아래 항상 렌더)
+- 클릭 시 펼치는 섹션: 측정요인 bullets + 심리배경 + 주요리스크 텍스트만
+- 효과: 한국/일본/대만 등 모든 국가 카드가 기본 상태에서 데이터 있어 보임
+
+### 5. AI 리포트 캐시 스키마 검증 (재발 방지)
+- 문제: 코드 배포 후 구버전(v7) stale 캐시가 계속 서빙되어 7섹션 UI 공백 발생
+- 해결:
+  - SCHEMA_VERSION = 8 상수 도입: 스키마 변경 시 이 숫자만 올리면 자동 무효화
+  - isSchemaCompatible(): stale 서빙 전 marketNarrative/regionStances/shortSqueeze 중 하나라도 없으면 구버전 판정
+  - 구버전 stale → Redis에서 즉시 삭제 → 다음 크론이 v8 구조로 재생성
+  - alt 세션 키 조회도 v8 버전으로 통일
+
+### 6. Codex 전략 조언 (수급 주기적 업데이트)
+- 인기 티커: update-all 크론 워밍 + TTL 12-24h
+- 롱테일: on-demand + TTL 6-12h (현재 3h → 연장 검토)
+- Yahoo IP 차단 대안: Polygon(short) / Intrinio(13F) / FMP 중장기 도입 검토
+- liveInstitutions: 평시 주 1회, 분기 D+35~D+50 구간 매일 갱신
+
+## 커밋 목록
+- 56c7492 fix(fg): 국가별 F&G factor 바 항상 표시
+- e9d4dac feat(supply+report): stock-supply 실데이터 + 시간 절대표시 + flows 방향성
+- c3160c2 fix(cache): AI 리포트 stale 캐시 스키마 검증 + v8 버전 bump
+
+## 기술 결정
+- SCHEMA_VERSION 상수를 route.ts 상단에 두어 스키마 변경 시 단일 수정점 제공
+- isSchemaCompatible()은 "필드 중 하나라도 있으면 OK" (OR) — 너무 엄격하면 오탐 가능성
+- Yahoo v7 quote API: Vercel IP 차단 리스크 있으나 현재 유일한 무료 대안
