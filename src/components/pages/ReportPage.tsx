@@ -449,7 +449,7 @@ export default function ReportPage() {
             </span>
           )}
           <button
-            onClick={() => fetchStrategy(true)}
+            onClick={() => fetchStrategy(false)}
             disabled={refreshing}
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-40"
           >
