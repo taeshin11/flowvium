@@ -1275,9 +1275,12 @@ export async function GET(request: Request) {
         ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : Array.isArray(rawExisting) ? rawExisting : [])
         : [];
       const updated = [JSON.parse(metaStr), ...arr].slice(0, 30);
-      await redis.set(HIST_KEY, JSON.stringify(updated), { ex: 90 * 86400 });
-      logger.info('api.investment-strategy', 'history_saved', { count: updated.length, source: strategy.source });
-    } catch (he) { logger.warn('api.investment-strategy', 'history_save_error', { error: he }); }
+      const setRes = await redis.set(HIST_KEY, JSON.stringify(updated), { ex: 90 * 86400 });
+      // Immediate readback to verify
+      const verify = await redis.get(HIST_KEY);
+      const verifyLen = Array.isArray(verify) ? verify.length : (typeof verify === 'string' ? JSON.parse(verify).length : -1);
+      logger.info('api.investment-strategy', 'history_saved', { count: updated.length, setRes, verifyLen, source: strategy.source });
+    } catch (he) { logger.warn('api.investment-strategy', 'history_save_error', { error: String(he) }); }
   }
 
   // Module-level memory cache write (no-Redis path)
