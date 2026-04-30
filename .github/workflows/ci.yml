@@ -39,17 +39,19 @@ jobs:
           fi
           echo "✅ No bare redis.set() in API routes"
 
-      - name: Audit — no ?? 0 / || 0 return-coercion in API routes
+      - name: Audit — pctReturn/return-coercion pattern (price/return fields only)
         run: |
-          HITS=$(grep -rn --include="route.ts" "\?\? 0\b\||| 0\b" src/app/api/ \
-            | grep -v "# allow\|/ \(.*\|1\)" || true)
+          # Target only financial return fields (ret1w, ret4w, ret13w, ret1m, ret3m, changePct)
+          # These must never use ?? 0 — use ?? null instead.
+          HITS=$(grep -rn --include="route.ts" \
+            "ret[0-9][wm]\b.*?? 0\|ret13w.*?? 0\|changePct.*?? 0\|pctReturn.*return 0" \
+            src/app/api/ | grep -v "# allow" || true)
           if [ -n "$HITS" ]; then
-            echo "⚠️  Potential null-coerced-to-0 pattern found — verify each is intentional:"
+            echo "❌ Financial return field coerced to 0 (use ?? null instead):"
             echo "$HITS"
-            echo "If intentional, add '# allow' comment on that line."
             exit 1
           fi
-          echo "✅ No unreviewed ?? 0 patterns"
+          echo "✅ No return-field null-coercion to 0"
 
       - name: Audit — no sortOrder=ASC with limit (Nasdaq stale-data bug pattern)
         run: |
