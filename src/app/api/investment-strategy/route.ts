@@ -300,6 +300,9 @@ ${ctx.institutional}
 [Sector Valuations — US SPDR ETFs]
 ${sectorPe || 'No data'}
 
+[Bollinger Band 과매수 경고 — 실제 계산값]
+${ctx.bbWarnings || '없음'}
+
 [Short Squeeze Candidates — 숏커버 폭발 가능 종목]
 ${ctx.shorts}
 
@@ -319,10 +322,11 @@ Key rules:
 3. entryZone/stopLoss/target: actual $ ranges based on live prices (e.g. price=$209 → entryZone="$205-211")
 4. rationale (≤100 chars): MUST include ALL of these that apply:
    a) 4W return if available (e.g. "4주+25%")
-   b) Overextension warning — use THIS data to judge, NOT arbitrary % thresholds:
-      - If region/asset F&G > 75 (extreme greed) → action="watch", add "극단탐욕 눌림목 대기"
-      - If current price > 90% of 52W high → add "52주 고점권"
-      - If 4W return > 20% AND F&G > 65 → action="watch" not "buy"
+   b) Overextension warning — use Bollinger Band data above + F&G:
+      - If ticker appears in BB warnings with "20d2σ초과" → action="watch", add "BB 상단 이탈"
+      - If ticker appears in BB warnings with "4d4σ극단초과" → action MUST be "watch", add "4일4σ극단 진입금지"
+      - If F&G > 75 → add "극단탐욕 눌림목 대기"
+      (4일 기준 4σ 도달은 통계적으로 극히 드문 과매수로 전문가들도 진입 금지 신호로 봄)
    c) Key reason (institutional signal, earnings beat, short squeeze)
    BAD: "KOSPI 상승세 지속" — no data, no risk assessment
    GOOD: "EWY 4주+25% + F&G 77 극단탐욕 → 눌림목 대기($112 이하 진입)"
@@ -363,6 +367,7 @@ interface CtxSummary {
   news: string;
   koreaFlow: string;
   assetFg: string;
+  bbWarnings: string;
 }
 
 function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): CtxSummary {
@@ -542,7 +547,40 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     }
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg };
+  // Bollinger Band 과매수 판단 (sparklines from capital-flows)
+  let bbWarnings = '';
+  try {
+    const cap = ctx.capital as Record<string, unknown> | null;
+    const assets = (cap?.assets as Array<{ ticker?: string; sparkline?: number[] }>) ?? [];
+    const countryAssets = ((cap?.countryFlow as Record<string, unknown>)?.countries as Array<{ ticker?: string; sparkline?: number[] }>) ?? [];
+    const allAssets = [...assets, ...countryAssets];
+    const warnings: string[] = [];
+    for (const a of allAssets) {
+      if (!a.ticker || !a.sparkline?.length) continue;
+      const prices = a.sparkline;
+      // 20-day BB
+      if (prices.length >= 20) {
+        const slice20 = prices.slice(-20);
+        const mean20 = slice20.reduce((s, v) => s + v, 0) / 20;
+        const std20 = Math.sqrt(slice20.reduce((s, v) => s + (v - mean20) ** 2, 0) / 20);
+        const upper2σ = mean20 + 2 * std20;
+        const last = prices[prices.length - 1];
+        if (last > upper2σ) warnings.push(`${a.ticker}:20d2σ초과(BB${upper2σ.toFixed(2)},현재${last.toFixed(2)})`);
+      }
+      // 4-day 4σ
+      if (prices.length >= 4) {
+        const slice4 = prices.slice(-4);
+        const mean4 = slice4.reduce((s, v) => s + v, 0) / 4;
+        const std4 = Math.sqrt(slice4.reduce((s, v) => s + (v - mean4) ** 2, 0) / 4);
+        const upper4σ = mean4 + 4 * std4;
+        const last = prices[prices.length - 1];
+        if (last >= upper4σ && std4 > 0) warnings.push(`⚠️${a.ticker}:4d4σ극단초과→진입금지`);
+      }
+    }
+    if (warnings.length) bbWarnings = warnings.join(', ');
+  } catch { /* non-fatal */ }
+
+  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings };
 }
 
 // ── Event calendar for fallback risk events — mirrors macro-indicators FOMC_DATES_2026 / RELEASE_SCHEDULE ─
