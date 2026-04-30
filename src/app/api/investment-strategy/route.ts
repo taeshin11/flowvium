@@ -976,12 +976,11 @@ export async function GET(request: Request) {
   const ctxSummary = buildCtxSummary(ctx);
   const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx, locale, session);
 
-  // investment-strategy: GROQ는 news-cascade/daily-brief 용 — 여기서는 Gemini 직행
-  // GROQ 무료 RPD(1000/일)를 다른 실시간 기능에 보존
+  // investment-strategy: GROQ 우선 (오늘 49 requests 남음), Gemini 쿼타 소진 시 GROQ 필수
   const aiResult = await callAIProvider(prompt, {
     tag: 'investment-strategy',
     skipVllm: true,
-    skipGroq: true,
+    skipGroq: false, // GROQ 활성화 — 오늘 남은 quota 사용
     maxTokens: 1400,
     temperature: 0.55,
     timeoutMs: 60000,
