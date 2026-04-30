@@ -6,7 +6,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const redis = createRedis();
-  if (!redis) return NextResponse.json({ error: 'no redis' });
+  if (!redis) return NextResponse.json({
+    error: 'no redis',
+    hasUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+    hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+    urlLen: process.env.UPSTASH_REDIS_REST_URL?.length ?? 0,
+  });
 
   const TEST_KEY = 'flowvium:test:array:v1';
   const testData = [{ id: 1, ts: new Date().toISOString(), msg: 'test' }];
