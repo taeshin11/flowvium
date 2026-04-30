@@ -170,10 +170,21 @@ const CANDIDATE_TICKERS = [
   'KLAC', 'AMD', 'JPM', 'V', 'UNH', 'XOM', 'GS', 'BAC',
   // US ETF
   'SPY', 'QQQ', 'GLD', 'TLT', 'USO', 'IWM', 'XLE', 'XLK', 'XLF', 'XLV',
-  // 국가 ETF — AI가 자주 추천하는 것들
+  // 국가 ETF
   'EWY', 'EWJ', 'FXI', 'VGK', 'INDA', 'EWT', 'EWZ', 'EWA',
   // 기타 자산
   'BITO', 'SLV', 'DBA',
+  // 🇰🇷 한국 주요 개별 종목 (KRW 가격, Yahoo .KS 형식)
+  '005930.KS', // 삼성전자
+  '000660.KS', // SK하이닉스
+  '373220.KS', // LG에너지솔루션
+  '005380.KS', // 현대차
+  '035420.KS', // NAVER
+  '035720.KS', // 카카오
+  '207940.KS', // 삼성바이오로직스
+  '051910.KS', // LG화학
+  '005490.KS', // POSCO홀딩스
+  '000270.KS', // 기아
 ];
 
 async function getLivePrices(): Promise<Map<string, LivePrice>> {
@@ -207,11 +218,21 @@ async function getLivePrices(): Promise<Map<string, LivePrice>> {
   return new Map(results.filter((r): r is [string, LivePrice] => r[1] !== null));
 }
 
+const KR_NAMES: Record<string, string> = {
+  '005930.KS': '삼성전자', '000660.KS': 'SK하이닉스', '373220.KS': 'LG에너지솔루션',
+  '005380.KS': '현대차', '035420.KS': 'NAVER', '035720.KS': '카카오',
+  '207940.KS': '삼성바이오로직스', '051910.KS': 'LG화학', '005490.KS': 'POSCO홀딩스', '000270.KS': '기아',
+};
+
 function pricesSection(prices: Map<string, LivePrice>): string {
   if (prices.size === 0) return '';
-  const lines = Array.from(prices.entries()).map(([t, p]) =>
-    `${t}: $${p.price} (1d ${p.change1d != null ? `${p.change1d > 0 ? '+' : ''}${p.change1d}%` : 'N/A'}, 52wH $${p.high52w}, 52wL $${p.low52w})`
-  );
+  const lines = Array.from(prices.entries()).map(([t, p]) => {
+    const isKR = t.endsWith('.KS');
+    const curr = isKR ? '₩' : '$';
+    const name = KR_NAMES[t] ? ` (${KR_NAMES[t]})` : '';
+    const priceStr = isKR ? Math.round(p.price).toLocaleString() : p.price.toFixed(2);
+    return `${t}${name}: ${curr}${priceStr} (1d ${p.change1d != null ? `${p.change1d > 0 ? '+' : ''}${p.change1d}%` : 'N/A'})`;
+  });
   return lines.join('\n');
 }
 
@@ -790,6 +811,12 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
 function priceZone(prices: Map<string, { price: number }>, ticker: string, pctRange: number): string {
   const p = prices.get(ticker)?.price;
   if (!p || p <= 0) return 'market ±' + pctRange + '%';
+  const isKR = ticker.endsWith('.KS');
+  if (isKR) {
+    const lo = Math.round(p * (1 - pctRange / 100) / 100) * 100;
+    const hi = Math.round(p * (1 + pctRange / 100) / 100) * 100;
+    return `₩${lo.toLocaleString()}-₩${hi.toLocaleString()}`;
+  }
   const lo = Math.round(p * (1 - pctRange / 100) * 100) / 100;
   const hi = Math.round(p * (1 + pctRange / 100) * 100) / 100;
   return `$${lo.toFixed(2)}-$${hi.toFixed(2)}`;
