@@ -448,7 +448,7 @@ export default function ReportPage() {
           {data && (
             <span className="flex items-center gap-1 text-[10px] text-gray-400">
               <span className={`w-1.5 h-1.5 rounded-full ${freshnessDot(ageMs)}`} />
-              {humanAge(ageMs, t)}
+              {new Date(data.generatedAt).toLocaleString()}
             </span>
           )}
           <button

@@ -469,15 +469,43 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   let flows = '';
   try {
     const cap = ctx.capital as Record<string, unknown> | null;
-    const assets = (cap?.assets as Array<{ ticker?: string; ret1w?: number; ret4w?: number }>) ?? [];
-    const top = assets.filter(a => a.ticker && typeof a.ret1w === 'number')
-      .sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0))
-      .slice(0, 5)
-      .map(a => `${a.ticker}:${a.ret1w?.toFixed(1)}%`);
-    if (top.length) flows = `Weekly top: ${top.join(', ')}`;
+    const assets = (cap?.assets as Array<{ id?: string; label?: string; ticker?: string; ret1w?: number; ret4w?: number; ret13w?: number }>) ?? [];
+
+    // Top inflows/outflows by 4w with direction signal
+    const withDir = assets.filter(a => typeof a.ret4w === 'number' && typeof a.ret1w === 'number').map(a => {
+      const isInflow = (a.ret4w ?? 0) >= 0;
+      const signal = isInflow
+        ? ((a.ret1w ?? 0) < 0 ? 'reversal↕' : (a.ret1w ?? 0) > (a.ret4w ?? 0) * 0.3 ? 'accel↑' : 'hold→')
+        : ((a.ret1w ?? 0) > 0 ? 'reversal↕' : 'hold→');
+      return { ...a, signal };
+    });
+    const topInflows = [...withDir].sort((a, b) => (b.ret4w ?? 0) - (a.ret4w ?? 0)).slice(0, 4)
+      .map(a => `${a.label ?? a.ticker}:1w${(a.ret1w ?? 0) >= 0 ? '+' : ''}${(a.ret1w ?? 0).toFixed(1)}%/4w${(a.ret4w ?? 0) >= 0 ? '+' : ''}${(a.ret4w ?? 0).toFixed(1)}%(${a.signal})`);
+    if (topInflows.length) flows = `Top inflows: ${topInflows.join(', ')}`;
+
+    // 추세 전환 감지: 1w vs 13w 방향 불일치 (divergence signal)
+    const divergent = assets.filter(a =>
+      typeof a.ret1w === 'number' && typeof a.ret13w === 'number' &&
+      Math.sign(a.ret1w) !== Math.sign(a.ret13w) &&
+      Math.abs(a.ret1w) > 1.5 && Math.abs(a.ret13w) > 1.5
+    ).slice(0, 3).map(a => `${a.label ?? a.ticker}(1w${(a.ret1w ?? 0) >= 0 ? '+' : ''}${(a.ret1w ?? 0).toFixed(1)}% vs 13w${(a.ret13w ?? 0) >= 0 ? '+' : ''}${(a.ret13w ?? 0).toFixed(1)}%=TREND_REVERSAL)`);
+    if (divergent.length) flows += ` | TrendReversal: ${divergent.join(', ')}`;
+
+    // Rotation pairs with momentum
+    const flow = cap?.flow as Record<string, unknown> | null;
+    const rots = (flow?.rotations1w as Array<{ from?: string; to?: string; magnitude?: number; momentum?: string }>) ?? [];
+    if (rots.length) {
+      const rotStr = rots.slice(0, 3).map(r => `${r.from}→${r.to}(${(r.magnitude ?? 0).toFixed(1)}%,${r.momentum})`).join(', ');
+      flows += ` | Rotation: ${rotStr}`;
+    }
+
+    // Country flows with direction
     const cf = cap?.countryFlow as Record<string, unknown> | undefined;
-    const countries = (cf?.countries as Array<{ name?: string; label?: string; ret1w?: number }>) ?? [];
-    const topCtry = countries.sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0)).slice(0, 3).map(c => `${c.name ?? c.label}:${c.ret1w?.toFixed(1)}%`);
+    const countries = (cf?.countries as Array<{ id?: string; label?: string; ret1w?: number; ret4w?: number; ret13w?: number }>) ?? [];
+    const topCtry = countries.filter(c => typeof c.ret4w === 'number').sort((a, b) => (b.ret4w ?? 0) - (a.ret4w ?? 0)).slice(0, 4).map(c => {
+      const reversal = typeof c.ret1w === 'number' && typeof c.ret13w === 'number' && Math.sign(c.ret1w) !== Math.sign(c.ret13w) ? '↕' : '';
+      return `${c.label}:4w${(c.ret4w ?? 0) >= 0 ? '+' : ''}${(c.ret4w ?? 0).toFixed(1)}%${reversal}`;
+    });
     if (topCtry.length) flows += ` | Countries: ${topCtry.join(', ')}`;
   } catch { /* ignore */ }
 

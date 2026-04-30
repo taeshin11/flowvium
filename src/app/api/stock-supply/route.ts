@@ -158,6 +158,41 @@ async function fetchInsiderTransactions(ticker: string): Promise<InsiderTx[]> {
   } catch { return []; }
 }
 
+// ── Yahoo Finance quote stats (institutional/short data) ─────────────────────
+interface QuoteStats {
+  instHeld: number | null;
+  insiderHeld: number | null;
+  shortPct: number | null;
+  shortRatio: number | null;
+  marketCap: number | null;
+  sharesOutstanding: number | null;
+}
+
+async function fetchQuoteStats(ticker: string): Promise<QuoteStats> {
+  const empty: QuoteStats = { instHeld: null, insiderHeld: null, shortPct: null, shortRatio: null, marketCap: null, sharesOutstanding: null };
+  try {
+    const fields = 'marketCap,shortRatio,shortPercentOfFloat,heldPercentInstitutions,heldPercentInsiders,sharesOutstanding';
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&fields=${fields}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return empty;
+    const data = await res.json();
+    const q = data?.quoteResponse?.result?.[0];
+    if (!q) return empty;
+    return {
+      instHeld: typeof q.heldPercentInstitutions === 'number' ? parseFloat((q.heldPercentInstitutions * 100).toFixed(1)) : null,
+      insiderHeld: typeof q.heldPercentInsiders === 'number' ? parseFloat((q.heldPercentInsiders * 100).toFixed(1)) : null,
+      shortPct: typeof q.shortPercentOfFloat === 'number' ? parseFloat((q.shortPercentOfFloat * 100).toFixed(1)) : null,
+      shortRatio: typeof q.shortRatio === 'number' ? parseFloat(q.shortRatio.toFixed(1)) : null,
+      marketCap: typeof q.marketCap === 'number' ? q.marketCap : null,
+      sharesOutstanding: typeof q.sharesOutstanding === 'number' ? q.sharesOutstanding : null,
+    };
+  } catch { return empty; }
+}
+
 // ── Yahoo Finance price history (volume + stats) ─────────────────────────────
 async function fetchVolumeData(ticker: string) {
   try {
@@ -251,13 +286,15 @@ export async function GET(request: Request) {
   const ownership13F = staticEntry?.ownershipData ?? [];
 
   // Fetch data in parallel
-  const [volResult, insidersResult] = await Promise.allSettled([
+  const [volResult, insidersResult, quoteResult] = await Promise.allSettled([
     fetchVolumeData(ticker),
     fetchInsiderTransactions(ticker),
+    fetchQuoteStats(ticker),
   ]);
 
   const volData = volResult.status === 'fulfilled' ? volResult.value : null;
   const insiderTransactions = insidersResult.status === 'fulfilled' ? insidersResult.value : [];
+  const quoteStats = quoteResult.status === 'fulfilled' ? quoteResult.value : { instHeld: null, insiderHeld: null, shortPct: null, shortRatio: null, marketCap: null, sharesOutstanding: null };
 
   // Supply pressure score (0=sell pressure, 100=buy pressure)
   let supplyScore = 50;
@@ -303,12 +340,12 @@ export async function GET(request: Request) {
     avgVol10d: volData?.avgVol10d ?? null,
     avgVol3m: volData?.avgVol3m ?? null,
     dailyVolume: volData?.dailyVolume ?? [],
-    marketCap: volData?.marketCap ?? null,
-    sharesOutstanding: null,
-    instHeld: null as null,
-    insiderHeld: null as null,
-    shortPct: null as null,
-    shortRatio: null,
+    marketCap: quoteStats.marketCap ?? volData?.marketCap ?? null,
+    sharesOutstanding: quoteStats.sharesOutstanding ?? null,
+    instHeld: quoteStats.instHeld,
+    insiderHeld: quoteStats.insiderHeld,
+    shortPct: quoteStats.shortPct,
+    shortRatio: quoteStats.shortRatio,
     ownership13F,
     liveInstitutions: [],
     insiderTransactions,
