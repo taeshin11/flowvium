@@ -366,7 +366,9 @@
     "clickToExpand": "點擊展開 ↓",
     "allInstitutions": "所有機構",
     "supplyDemand": "供需",
-    "supplyDemandTitle": "查看供需"
+    "supplyDemandTitle": "查看供需",
+    "entryZone": "建議買入區間",
+    "priceEntry": "建議買入區間"
   },
   "newsGap": {
     "title": "新聞盲區分析器",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "低配",
     "sectorNeutral": "中性",
     "allocWeight": "權重",
-    "entryZone": "入場區間",
+    "entryZone": "建議買入區間",
     "stopLoss": "停損",
     "targetPrice": "目標價",
     "expand": "入場·停損·目標",
@@ -1132,7 +1134,7 @@
     "buyNow": "立即買入推薦",
     "dataAsOf": "數據截至:",
     "priceExpensive": "+{pct}%高估",
-    "priceEntry": "進場區間",
+    "priceEntry": "建議買入區間",
     "priceCheap": "{pct}%折價",
     "expandStopLoss": "查看停損"
   },

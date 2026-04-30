@@ -664,9 +664,14 @@ export default function CapitalFlowsTab() {
       {/* 스마트베타 팩터 성과 */}
       {data.factorPerformance && data.factorPerformance.length > 0 && (
         <div className="cf-card p-4">
-          <h3 className="text-sm font-bold text-cf-text-primary mb-3 flex items-center gap-2">
-            <span>🧮</span> {t('cfFactorTitle', { tf: t(TF_I18N_KEY[tf]) })}
-          </h3>
+          <div className="mb-3">
+            <h3 className="text-sm font-bold text-cf-text-primary flex items-center gap-2">
+              <span>🧮</span> {t('cfFactorTitle', { tf: t(TF_I18N_KEY[tf]) })}
+            </h3>
+            <p className="text-[11px] text-cf-text-secondary mt-0.5">
+              가치(저평가) · 모멘텀(상승세) · 성장(고성장) · 퀄리티(재무우량) · 저변동성(안정) — 어느 스타일이 강한지 보여줍니다
+            </p>
+          </div>
           {(() => {
             const sorted = [...data.factorPerformance].sort((a, b) => b[retKey] - a[retKey]);
             const maxAbs2 = Math.max(...sorted.map(f => Math.abs(f[retKey])), 1);

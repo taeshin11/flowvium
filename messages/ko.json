@@ -366,7 +366,9 @@
     "clickToExpand": "클릭하여 펼치기 ↓",
     "allInstitutions": "전체 기관",
     "supplyDemand": "수급",
-    "supplyDemandTitle": "수급동향 보기"
+    "supplyDemandTitle": "수급동향 보기",
+    "entryZone": "매수 추천 구간",
+    "priceEntry": "매수 추천 구간"
   },
   "newsGap": {
     "title": "뉴스 갭 분석기",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "비중축소",
     "sectorNeutral": "중립",
     "allocWeight": "비중",
-    "entryZone": "진입 구간",
+    "entryZone": "매수 추천 구간",
     "stopLoss": "손절",
     "targetPrice": "목표가",
     "expand": "진입·손절·목표",
@@ -1132,7 +1134,7 @@
     "buyNow": "지금 매수 추천",
     "dataAsOf": "데이터 기준:",
     "priceExpensive": "+{pct}% 고가 주의",
-    "priceEntry": "진입 구간",
+    "priceEntry": "매수 추천 구간",
     "priceCheap": "{pct}% 매수 기회",
     "expandStopLoss": "손절가 보기"
   },

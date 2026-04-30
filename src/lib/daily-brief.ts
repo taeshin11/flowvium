@@ -60,6 +60,7 @@ export interface TabContext {
   short: unknown | null;          // Short Interest (squeeze candidates)
   capital: unknown | null;        // Capital Flows (assets + countries)
   fearGreed: unknown | null;      // Fear & Greed (SPY = US)
+  fearGreedAssets: Array<Record<string, unknown>>;  // Asset-class F&G (Gold, Tech, Defense, etc.)
   fedWatch: unknown | null;       // CME FedWatch
   macro: unknown | null;          // Macro Indicators (CPI, yield curve, …)
   credit: unknown | null;         // NYSE margin / credit balance
@@ -105,7 +106,7 @@ async function safeFetchJson<T = unknown>(baseUrl: string, path: string, timeout
  *  Each endpoint's own caching layer (if any) still applies. */
 async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   const ctx: TabContext = {
-    heatmap: null, short: null, capital: null, fearGreed: null,
+    heatmap: null, short: null, capital: null, fearGreed: null, fearGreedAssets: [],
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,
@@ -140,6 +141,9 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   if (fgAll) {
     const byCountry = (fgAll as { byCountry?: Array<Record<string, unknown>> }).byCountry ?? [];
     ctx.fearGreed = byCountry.find(x => x.id === 'us') ?? byCountry[0] ?? null;
+    // Asset-class F&G (Gold, Tech, Defense, etc.) — ids not in country list
+    const COUNTRY_IDS = new Set(['us','korea','japan','china','europe','uk','india','brazil','taiwan','australia']);
+    ctx.fearGreedAssets = byCountry.filter(x => typeof x.id === 'string' && !COUNTRY_IDS.has(x.id as string));
   }
   ctx.fedWatch = fedWatch;
   ctx.macro = macro;
@@ -173,7 +177,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
 
 export async function gatherTabContext(redis: Redis | null, baseUrl?: string): Promise<TabContext> {
   const ctx: TabContext = {
-    heatmap: null, short: null, capital: null, fearGreed: null,
+    heatmap: null, short: null, capital: null, fearGreed: null, fearGreedAssets: [],
     fedWatch: null, macro: null, credit: null, cascade: [],
     signals: institutionalSignals,
     insider: [], ownership: [], options: [], korea: null,

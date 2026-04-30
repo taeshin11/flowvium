@@ -366,7 +366,9 @@
     "clickToExpand": "Klik untuk perluas ↓",
     "allInstitutions": "Semua Institusi",
     "supplyDemand": "Aliran",
-    "supplyDemandTitle": "Lihat aliran"
+    "supplyDemandTitle": "Lihat aliran",
+    "entryZone": "Zona beli",
+    "priceEntry": "Zona beli"
   },
   "newsGap": {
     "title": "Penganalisis Kesenjangan Berita",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Underweight",
     "sectorNeutral": "Netral",
     "allocWeight": "Bobot",
-    "entryZone": "Zona masuk",
+    "entryZone": "Zona beli",
     "stopLoss": "Stop Loss",
     "targetPrice": "Target",
     "expand": "Masuk·Stop·Target",
@@ -1132,7 +1134,7 @@
     "buyNow": "Beli Sekarang",
     "dataAsOf": "Data per:",
     "priceExpensive": "+{pct}% mahal",
-    "priceEntry": "Zona masuk",
+    "priceEntry": "Zona beli",
     "priceCheap": "{pct}% diskon",
     "expandStopLoss": "Stop loss"
   },

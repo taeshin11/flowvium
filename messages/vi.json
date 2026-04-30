@@ -366,7 +366,9 @@
     "clickToExpand": "Nhấp để mở rộng ↓",
     "allInstitutions": "Tất cả tổ chức",
     "supplyDemand": "Dòng chảy",
-    "supplyDemandTitle": "Xem dòng chảy"
+    "supplyDemandTitle": "Xem dòng chảy",
+    "entryZone": "Vùng mua",
+    "priceEntry": "Vùng mua"
   },
   "newsGap": {
     "title": "Phân tích khoảng trống tin tức",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Tỷ trọng thấp",
     "sectorNeutral": "Trung lập",
     "allocWeight": "Tỷ trọng",
-    "entryZone": "Vùng vào",
+    "entryZone": "Vùng mua",
     "stopLoss": "Cắt lỗ",
     "targetPrice": "Mục tiêu",
     "expand": "Vào·Dừng·Mục tiêu",
@@ -1132,7 +1134,7 @@
     "buyNow": "Mua ngay",
     "dataAsOf": "Dữ liệu tính đến:",
     "priceExpensive": "+{pct}% đắt",
-    "priceEntry": "Vùng vào lệnh",
+    "priceEntry": "Vùng mua",
     "priceCheap": "{pct}% chiết khấu",
     "expandStopLoss": "Cắt lỗ"
   },

@@ -366,7 +366,9 @@
     "clickToExpand": "Click to expand ↓",
     "allInstitutions": "All Institutions",
     "supplyDemand": "Supply",
-    "supplyDemandTitle": "View Supply/Demand"
+    "supplyDemandTitle": "View Supply/Demand",
+    "entryZone": "Buy Zone",
+    "priceEntry": "Buy Zone"
   },
   "newsGap": {
     "title": "News Gap Analyzer",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Underweight",
     "sectorNeutral": "Neutral",
     "allocWeight": "Weight",
-    "entryZone": "Entry Zone",
+    "entryZone": "Buy Zone",
     "stopLoss": "Stop Loss",
     "targetPrice": "Target",
     "expand": "Entry·Stop·Target",
@@ -1132,7 +1134,7 @@
     "buyNow": "Buy Now",
     "dataAsOf": "Data as of",
     "priceExpensive": "+{pct}% above entry",
-    "priceEntry": "In entry zone",
+    "priceEntry": "Buy Zone",
     "priceCheap": "{pct}% discount",
     "expandStopLoss": "Show stop loss"
   },

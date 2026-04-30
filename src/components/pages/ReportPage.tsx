@@ -152,7 +152,14 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
             <p className="text-[10px] text-gray-400">{t('allocWeight')}</p>
           </div>
         </div>
-        <p className="text-xs text-gray-600 mt-2 leading-relaxed">{item.rationale}</p>
+        {/* Current price — prominent */}
+        {item.currentPrice != null && (
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-lg font-bold text-gray-900 font-mono">${item.currentPrice.toFixed(item.currentPrice >= 100 ? 2 : 2)}</span>
+            <span className="text-xs text-gray-400">현재가</span>
+          </div>
+        )}
+        <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{item.rationale}</p>
 
         {/* Entry zone + target — always visible */}
         <div className="mt-2.5 flex items-center gap-2 flex-wrap">

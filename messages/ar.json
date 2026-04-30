@@ -366,7 +366,9 @@
     "clickToExpand": "انقر للتوسيع ↓",
     "allInstitutions": "جميع المؤسسات",
     "supplyDemand": "تدفق",
-    "supplyDemandTitle": "عرض تدفق"
+    "supplyDemandTitle": "عرض تدفق",
+    "entryZone": "منطقة الشراء",
+    "priceEntry": "منطقة الشراء"
   },
   "newsGap": {
     "title": "محلل الفجوات الإخبارية",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "أقل من المعيار",
     "sectorNeutral": "محايد",
     "allocWeight": "الوزن",
-    "entryZone": "منطقة الدخول",
+    "entryZone": "منطقة الشراء",
     "stopLoss": "وقف الخسارة",
     "targetPrice": "الهدف",
     "expand": "دخول·وقف·هدف",
@@ -1132,7 +1134,7 @@
     "buyNow": "اشتر الآن",
     "dataAsOf": "البيانات اعتبارًا من:",
     "priceExpensive": "+{pct}% مرتفع",
-    "priceEntry": "منطقة دخول",
+    "priceEntry": "منطقة الشراء",
     "priceCheap": "{pct}% خصم",
     "expandStopLoss": "وقف خسارة"
   },

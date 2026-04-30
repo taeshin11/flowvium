@@ -974,7 +974,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/signals"
-                  className="inline-flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
+                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
                              hover:border-blue-400/50 hover:bg-blue-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
@@ -984,20 +984,20 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/intelligence"
-                  className="inline-flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
+                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
                              hover:border-amber-400/50 hover:bg-amber-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
                 >
-                  <span className="relative flex h-2 w-2 flex-shrink-0 mt-0.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative flex h-4 w-4 flex-shrink-0 items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
                   </span>
                   <span className="flex flex-col gap-0.5"><span>{tHome('secretMoneyTrack')}</span><span className="text-[10px] font-normal text-cf-text-secondary">{tHome('secretMoneyTrackDesc')}</span></span>
                 </Link>
                 <Link
                   href="/news-gap"
-                  className="inline-flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
+                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
                              hover:border-emerald-400/50 hover:bg-emerald-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
@@ -1007,20 +1007,20 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/report"
-                  className="inline-flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
+                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
                              hover:border-violet-400/50 hover:bg-violet-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"
                 >
-                  <span className="relative flex h-2 w-2 flex-shrink-0 mt-0.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-500 opacity-75" />
+                  <span className="relative flex h-4 w-4 flex-shrink-0 items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
                   </span>
                   <span className="flex flex-col gap-0.5"><span>{tHome('aiReport')}</span><span className="text-[10px] font-normal text-cf-text-secondary">{tHome('aiReportDesc')}</span></span>
                 </Link>
                 <Link
                   href="/osint"
-                  className="col-span-2 inline-flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
+                  className="col-span-2 flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
                              bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
                              hover:border-cyan-400/50 hover:bg-cyan-50/50 dark:hover:bg-white/10 hover:shadow-sm
                              transition-all duration-200"

@@ -366,7 +366,9 @@
     "clickToExpand": "Zum Aufklappen klicken ↓",
     "allInstitutions": "Alle Institutionen",
     "supplyDemand": "Fluss",
-    "supplyDemandTitle": "Fluss anzeigen"
+    "supplyDemandTitle": "Fluss anzeigen",
+    "entryZone": "Kaufzone",
+    "priceEntry": "Kaufzone"
   },
   "newsGap": {
     "title": "Nachrichtenlücken-Analysator",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Untergewichten",
     "sectorNeutral": "Neutral",
     "allocWeight": "Gewicht",
-    "entryZone": "Einstiegszone",
+    "entryZone": "Kaufzone",
     "stopLoss": "Stop Loss",
     "targetPrice": "Ziel",
     "expand": "Einstieg·Stop·Ziel",
@@ -1132,7 +1134,7 @@
     "buyNow": "Jetzt kaufen",
     "dataAsOf": "Daten vom:",
     "priceExpensive": "+{pct}% überteuert",
-    "priceEntry": "Einstiegszone",
+    "priceEntry": "Kaufzone",
     "priceCheap": "{pct}% Rabatt",
     "expandStopLoss": "Stop-Loss"
   },

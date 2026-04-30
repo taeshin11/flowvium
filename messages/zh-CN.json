@@ -366,7 +366,9 @@
     "clickToExpand": "点击展开 ↓",
     "allInstitutions": "所有机构",
     "supplyDemand": "供需",
-    "supplyDemandTitle": "查看供需"
+    "supplyDemandTitle": "查看供需",
+    "entryZone": "建议买入区间",
+    "priceEntry": "建议买入区间"
   },
   "newsGap": {
     "title": "新闻盲区分析器",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "低配",
     "sectorNeutral": "中性",
     "allocWeight": "权重",
-    "entryZone": "入场区间",
+    "entryZone": "建议买入区间",
     "stopLoss": "止损",
     "targetPrice": "目标价",
     "expand": "入场·止损·目标",
@@ -1132,7 +1134,7 @@
     "buyNow": "立即买入推荐",
     "dataAsOf": "数据截至:",
     "priceExpensive": "+{pct}%高估",
-    "priceEntry": "进场区间",
+    "priceEntry": "建议买入区间",
     "priceCheap": "{pct}%折价",
     "expandStopLoss": "查看止损"
   },

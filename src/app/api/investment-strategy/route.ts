@@ -52,9 +52,21 @@ export interface RiskEvent {
   watchFor: string;
 }
 
+export interface RegionStance {
+  stance: 'bullish' | 'neutral' | 'bearish';
+  thesis: string;
+  /** e.g. "SPY -1.8% 1w, F&G 64, VIX 18" */
+  keyData: string;
+}
+
 export interface InvestmentStrategy {
   stance: 'bullish' | 'neutral' | 'bearish';
   thesis: string;
+  /**
+   * Per-country/region outlook.
+   * Keys: "us" | "korea" | "japan" | "china" | "europe" | "india" | "taiwan" | "brazil" | "australia" | "global"
+   */
+  regionStances?: Record<string, RegionStance>;
   portfolio: PortfolioItem[];
   sectorAllocation: SectorWeight[];
   riskEvents: RiskEvent[];
@@ -231,24 +243,30 @@ function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe
   const today = new Date().toISOString().slice(0, 10);
   const priceData = pricesSection(prices);
   const lang = LOCALE_LANG[locale];
-  const langInstruction = lang ? `\nIMPORTANT: Write ALL text fields (thesis, rationale, macroAnalysis, technicalAnalysis, fundamentalAnalysis, sectorAllocation.reason, riskEvents.event, riskEvents.watchFor) in ${lang}. Keep ticker symbols and numbers in English/digits.\n` : '';
+  const langInstruction = lang ? `\nIMPORTANT: Write ALL text fields in ${lang} EXCEPT ticker symbols, numbers, and JSON keys.\n` : '';
 
-  return `You are a quantitative strategist and portfolio manager. Based on real-time data as of ${today}, provide the optimal investment strategy for the next 4 weeks.${langInstruction}
+  return `You are a global quantitative strategist. Based on real-time multi-market data as of ${today}, provide investment strategy for the next 4 weeks.${langInstruction}
 
-[Live Prices — use these as the basis for entryZone/stopLoss/target calculations]
+[Live Prices — use as basis for entryZone/stopLoss/target]
 ${priceData || 'No data'}
 
-[Macro]
+[Macro — US]
 ${ctx.macro}
 
-[Market Sentiment]
+[Market Sentiment — US]
 ${ctx.sentiment}
 
-[Volatility]
+[Volatility — US VIX]
 ${vix || 'No data'}
 
-[Capital Flows]
+[Capital Flows — Global Assets & Countries]
 ${ctx.flows}
+
+[Korean Market — KOSPI/KOSDAQ flows]
+${ctx.koreaFlow || 'No data'}
+
+[Asset-Class Fear & Greed]
+${ctx.assetFg || 'No data'}
 
 [COT Positions]
 ${ctx.cot || 'No data'}
@@ -256,13 +274,13 @@ ${ctx.cot || 'No data'}
 [Commodity Prices]
 ${ctx.commodity || 'No data'}
 
-[Institutional Positions]
+[Institutional Positions — 13F US]
 ${ctx.institutional}
 
-[Sector Valuations]
+[Sector Valuations — US SPDR ETFs]
 ${sectorPe || 'No data'}
 
-[Short Squeeze Candidates]
+[Short Squeeze Candidates — US]
 ${ctx.shorts}
 
 [Upcoming Earnings]
@@ -274,15 +292,25 @@ ${ctx.news}
 Synthesize the above data and respond in the following JSON format only. Pure JSON, no markdown.
 
 Key rules:
-1. portfolio must have exactly 5 or 6 positions (minimum 5)
-2. entryZone/stopLoss/target must be actual dollar ranges based on the live prices above (e.g., if current price is $850, entryZone "$840-855")
-3. rationale must include specific numbers/reasons, no repetitive phrases
-4. allocation must sum to 100
-5. action must be "buy" (actively accumulate now), "hold" (keep if owned), or "watch" (wait for better entry)
+Key rules:
+1. portfolio: 6-8 items — mix US stocks, US ETFs, and country ETFs (EWY=Korea, EWJ=Japan, FXI=China, VGK=Europe, INDA=India, EWT=Taiwan, EWZ=Brazil)
+2. EACH portfolio item MUST have "market" field: country code (us/korea/japan/china/europe/india/taiwan/brazil/australia/global)
+3. entryZone/stopLoss/target: actual $ ranges based on live prices (e.g. price=$209 → entryZone="$205-211")
+4. rationale: include specific data numbers (%, $, bp) from the data above
+5. allocation: must sum to 100
+6. action: "buy"=accumulate now, "hold"=keep if owned, "watch"=wait for entry
+7. regionStances: cover ALL countries with capital flows data — us, korea, japan, china, europe, india, taiwan, brazil, australia, global
+8. riskEvents: include BOTH US and international events (BOJ, ECB, Fed)
 
-{"stance":"bullish|neutral|bearish","thesis":"≤50 chars","portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","rationale":"≤60 chars with numbers","allocation":20,"entryZone":"$840-855","stopLoss":"$780","target":"$950","confidence":"high","action":"buy|hold|watch"}],"sectorAllocation":[{"sector":"Technology","pct":30,"stance":"overweight","reason":"≤40 chars"}],"riskEvents":[{"date":"2026-04-30","event":"FOMC","impact":"high","watchFor":"≤50 chars"}],"macroAnalysis":"≤120 chars","technicalAnalysis":"≤120 chars","fundamentalAnalysis":"≤120 chars","riskLevel":"low|medium|high"}
+{"stance":"bullish|neutral|bearish","thesis":"≤50 chars","regionStances":{"us":{"stance":"bullish","thesis":"≤40 chars","keyData":"SPY+0.1% 1w, F&G 64, VIX 18.0"},"korea":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWY+1.2% 1w, F&G 77"},"japan":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWJ-1.1% 1w"},"china":{"stance":"neutral","thesis":"≤40 chars","keyData":"FXI-1.7% 1w"},"europe":{"stance":"bearish","thesis":"≤40 chars","keyData":"VGK-2.3% 1w"},"india":{"stance":"neutral","thesis":"≤40 chars","keyData":"INDA-1.9% 1w"},"taiwan":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWT+1.2% 1w"},"brazil":{"stance":"bearish","thesis":"≤40 chars","keyData":"EWZ-4.8% 1w"},"australia":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWA-2.8% 1w"},"global":{"stance":"neutral","thesis":"≤40 chars","keyData":"Mixed signals"}},"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us","rationale":"≤60 chars with numbers","allocation":15,"entryZone":"$205-212","stopLoss":"$190","target":"$240","confidence":"high","action":"buy"}],"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"≤40 chars"}],"riskEvents":[{"date":"2026-05-01","event":"NFP","impact":"high","watchFor":"≤50 chars"}],"macroAnalysis":"≤150 chars","technicalAnalysis":"≤120 chars","fundamentalAnalysis":"≤120 chars","riskLevel":"low|medium|high"}
 
-portfolio exactly 5 items, sectorAllocation 5 items, riskEvents 3 items. Pure JSON, no markdown.`;
+FIELD CONTENT RULES (must be readable by non-expert investors):
+- macroAnalysis: plain sentence about CPI/GDP/yield curve impact on markets. NO raw abbreviations without explanation. Example: "CPI 3.3%로 인플레이션 완화 중이나 목표치 2%까진 거리 있음. 수익률 곡선 정상화 +52bp."
+- technicalAnalysis: VIX level + what it means for investors + yield curve signal ONLY. NO commodity curve terms like "contango/backwardation". Example: "VIX 18.8 저변동성 구간으로 시장 안정적. 수익률 곡선 정상(+52bp)이며 경기침체 신호 없음."
+- fundamentalAnalysis: earnings/valuation brief. Example: "기술주 PER 과대평가 구간이나 AI 실적 서프라이즈 지속 중. 에너지·금융 밸류에이션 매력적."
+- riskEvents.watchFor: plain sentence, what specifically investors should monitor. NO abbreviations alone.
+
+portfolio 6-8 items with diverse markets, sectorAllocation 5 items, riskEvents 3-5 items. Pure JSON only.`;
 }
 
 interface CtxSummary {
@@ -294,6 +322,8 @@ interface CtxSummary {
   institutional: string;
   shorts: string;
   news: string;
+  koreaFlow: string;
+  assetFg: string;
 }
 
 function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): CtxSummary {
@@ -430,7 +460,26 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     if (topNews.length) news = topNews.join(' | ');
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news };
+  // Korea flows
+  let koreaFlow = '';
+  try {
+    const cap = ctx.capital as Record<string, unknown> | null;
+    const cf = cap?.countryFlow as Record<string, unknown> | undefined;
+    const countries = (cf?.countries as Array<{ id?: string; label?: string; ret1w?: number | null; ret4w?: number | null }>) ?? [];
+    const korea = countries.find(c => c.id === 'korea');
+    if (korea) koreaFlow = `Korea(EWY): 1w=${korea.ret1w?.toFixed(1) ?? '?'}% 4w=${korea.ret4w?.toFixed(1) ?? '?'}%`;
+  } catch { /* ignore */ }
+
+  // Asset-class F&G
+  let assetFg = '';
+  try {
+    const assets = ctx.fearGreedAssets ?? [];
+    if (assets.length) {
+      assetFg = assets.slice(0, 8).map(a => `${a.id}:${Math.round(a.score as number)}(${a.level})`).join(', ');
+    }
+  } catch { /* ignore */ }
+
+  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg };
 }
 
 // ── Event calendar for fallback risk events — mirrors macro-indicators FOMC_DATES_2026 / RELEASE_SCHEDULE ─
@@ -627,9 +676,21 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
   const gdpStr = gdpInd?.actual != null
     ? `GDP=${(gdpInd.actual as number).toFixed(1)}%`
     : gdpInd?.previous != null ? `GDP(Q4)=${(gdpInd.previous as number).toFixed(1)}%→Q1 pending` : '';
-  const macroParts = [ycStr, cpiStr, gdpStr, `IG_OAS=${igSpread.toFixed(2)}%`, `HY_OAS=${hySpread.toFixed(2)}%`, `F&G=${Math.round(fgScore)}(${fgLabel})`].filter(Boolean);
-  const macroAnalysis = macroParts.join(' · ');
-  const technicalAnalysis = `VIX=${vix.toFixed(1)}(${vixLabel})${inverted ? ' · curve inverted — recession signal active' : ' · curve normal — no recession signal'}`;
+  // Human-readable Korean analysis (fallback when AI unavailable)
+  const cpiVal = cpiInd?.actual as number | null | undefined;
+  const gdpVal = gdpInd?.actual != null ? gdpInd.actual as number : gdpInd?.previous as number | null | undefined;
+  const macroAnalysis = isKo
+    ? [
+        inverted ? `수익률 곡선 역전(${Math.round((spread ?? 0) * 100)}bp) — 경기침체 경보` : `수익률 곡선 정상(+${Math.round((spread ?? 0) * 100)}bp), 경기침체 신호 없음`,
+        cpiVal != null ? `CPI ${cpiVal.toFixed(1)}%로 인플레이션 ${cpiVal > 3 ? '여전히 목표치(2%) 초과' : '완화세'}` : '',
+        gdpVal != null ? `GDP ${gdpVal.toFixed(1)}% (${gdpInd?.actual != null ? '최신' : 'Q4 이전'})` : '',
+        igSpread > 1.5 ? `신용 스프레드(IG ${igSpread.toFixed(1)}%) 확대 — 리스크 경보` : `신용 스프레드 안정(IG ${igSpread.toFixed(1)}%)`,
+      ].filter(Boolean).join('. ') + '.'
+    : [ycStr, cpiStr, gdpStr, `IG OAS ${igSpread.toFixed(2)}%`, `F&G ${Math.round(fgScore)}(${fgLabel})`].filter(Boolean).join(' · ');
+
+  const technicalAnalysis = isKo
+    ? `VIX ${vix.toFixed(1)}${vix > 28 ? ' — 고변동성, 방어 포지션 확대 권장' : vix > 20 ? ' — 변동성 상승, 헤지 고려' : ' — 저변동성 안정 구간'}. ${inverted ? '수익률 곡선 역전 — 경기침체 리스크 주시' : '수익률 곡선 정상, 경기침체 신호 없음'}.`
+    : `VIX=${vix.toFixed(1)}(${vixLabel})${inverted ? ' · curve inverted — recession signal active' : ' · curve normal — no recession signal'}`;
 
   // Use real nextRelease dates from macro-indicators instead of fallback's d(N) offsets.
   // fallbackStrategy uses d(7), d(14), d(21) relative offsets which drift from actual release dates.

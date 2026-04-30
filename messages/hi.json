@@ -366,7 +366,9 @@
     "clickToExpand": "विस्तार के लिए क्लिक करें ↓",
     "allInstitutions": "सभी संस्थान",
     "supplyDemand": "प्रवाह",
-    "supplyDemandTitle": "प्रवाह देखें"
+    "supplyDemandTitle": "प्रवाह देखें",
+    "entryZone": "खरीद क्षेत्र",
+    "priceEntry": "खरीद क्षेत्र"
   },
   "newsGap": {
     "title": "न्यूज़ गैप विश्लेषक",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "कम भार",
     "sectorNeutral": "तटस्थ",
     "allocWeight": "भार",
-    "entryZone": "प्रवेश क्षेत्र",
+    "entryZone": "खरीद क्षेत्र",
     "stopLoss": "स्टॉप लॉस",
     "targetPrice": "लक्ष्य",
     "expand": "प्रवेश·स्टॉप·लक्ष्य",
@@ -1132,7 +1134,7 @@
     "buyNow": "अभी खरीदें",
     "dataAsOf": "डेटा तक:",
     "priceExpensive": "+{pct}% महंगा",
-    "priceEntry": "प्रवेश क्षेत्र",
+    "priceEntry": "खरीद क्षेत्र",
     "priceCheap": "{pct}% छूट",
     "expandStopLoss": "स्टॉप लॉस"
   },

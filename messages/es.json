@@ -366,7 +366,9 @@
     "clickToExpand": "Clic para expandir ↓",
     "allInstitutions": "Todas las Instituciones",
     "supplyDemand": "Flujo",
-    "supplyDemandTitle": "Ver flujo"
+    "supplyDemandTitle": "Ver flujo",
+    "entryZone": "Zona de compra",
+    "priceEntry": "Zona de compra"
   },
   "newsGap": {
     "title": "Analizador de Brecha Informativa",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Infraponderar",
     "sectorNeutral": "Neutral",
     "allocWeight": "Peso",
-    "entryZone": "Zona entrada",
+    "entryZone": "Zona de compra",
     "stopLoss": "Stop Loss",
     "targetPrice": "Objetivo",
     "expand": "Entrada·Stop·Obj.",
@@ -1132,7 +1134,7 @@
     "buyNow": "Comprar ahora",
     "dataAsOf": "Datos a:",
     "priceExpensive": "+{pct}% caro",
-    "priceEntry": "Zona de entrada",
+    "priceEntry": "Zona de compra",
     "priceCheap": "{pct}% descuento",
     "expandStopLoss": "Ver stop loss"
   },

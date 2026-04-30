@@ -97,7 +97,7 @@ function SurpriseBadge({ pct }: { pct: number | null }) {
 export default function EarningsPage() {
   const locale = useLocale();
   const t = useTranslations('earnings');
-  const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('twoweeks');
+  const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('yesterday');
   const [data, setData] = useState<EarningsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');

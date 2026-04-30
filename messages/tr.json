@@ -366,7 +366,9 @@
     "clickToExpand": "Genişletmek için tıklayın ↓",
     "allInstitutions": "Tüm Kurumlar",
     "supplyDemand": "Akış",
-    "supplyDemandTitle": "Akışı gör"
+    "supplyDemandTitle": "Akışı gör",
+    "entryZone": "Alım bölgesi",
+    "priceEntry": "Alım bölgesi"
   },
   "newsGap": {
     "title": "Haber Boşluğu Analiz Aracı",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Ağırlık azalt",
     "sectorNeutral": "Nötr",
     "allocWeight": "Ağırlık",
-    "entryZone": "Giriş bölgesi",
+    "entryZone": "Alım bölgesi",
     "stopLoss": "Zarar kes",
     "targetPrice": "Hedef",
     "expand": "Giriş·Stop·Hedef",
@@ -1132,7 +1134,7 @@
     "buyNow": "Şimdi Al",
     "dataAsOf": "Veri tarihi:",
     "priceExpensive": "+{pct}% pahalı",
-    "priceEntry": "Giriş bölgesi",
+    "priceEntry": "Alım bölgesi",
     "priceCheap": "{pct}% iskonto",
     "expandStopLoss": "Stop-Loss"
   },

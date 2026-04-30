@@ -366,7 +366,9 @@
     "clickToExpand": "クリックして展開 ↓",
     "allInstitutions": "全機関",
     "supplyDemand": "需給",
-    "supplyDemandTitle": "需給動向を見る"
+    "supplyDemandTitle": "需給動向を見る",
+    "entryZone": "推奨買いゾーン",
+    "priceEntry": "推奨買いゾーン"
   },
   "newsGap": {
     "title": "ニュースギャップ・アナライザー",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "ウェイト減",
     "sectorNeutral": "中立",
     "allocWeight": "比重",
-    "entryZone": "エントリー",
+    "entryZone": "推奨買いゾーン",
     "stopLoss": "損切り",
     "targetPrice": "目標価格",
     "expand": "エントリー·損切·目標",
@@ -1132,7 +1134,7 @@
     "buyNow": "今すぐ買い推奨",
     "dataAsOf": "データ基準日:",
     "priceExpensive": "+{pct}%割高",
-    "priceEntry": "エントリー圏",
+    "priceEntry": "推奨買いゾーン",
     "priceCheap": "{pct}%割安",
     "expandStopLoss": "損切り確認"
   },

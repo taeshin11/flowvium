@@ -366,7 +366,9 @@
     "clickToExpand": "Cliquer pour développer ↓",
     "allInstitutions": "Toutes les Institutions",
     "supplyDemand": "Flux",
-    "supplyDemandTitle": "Voir le flux"
+    "supplyDemandTitle": "Voir le flux",
+    "entryZone": "Zone d'achat",
+    "priceEntry": "Zone d'achat"
   },
   "newsGap": {
     "title": "Analyseur d'écart médiatique",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Sous-pondérer",
     "sectorNeutral": "Neutre",
     "allocWeight": "Poids",
-    "entryZone": "Zone entrée",
+    "entryZone": "Zone d'achat",
     "stopLoss": "Stop Loss",
     "targetPrice": "Objectif",
     "expand": "Entrée·Stop·Obj.",
@@ -1132,7 +1134,7 @@
     "buyNow": "Acheter maintenant",
     "dataAsOf": "Données au:",
     "priceExpensive": "+{pct}% cher",
-    "priceEntry": "Zone d'entrée",
+    "priceEntry": "Zone d'achat",
     "priceCheap": "{pct}% rabais",
     "expandStopLoss": "Stop loss"
   },

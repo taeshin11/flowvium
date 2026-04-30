@@ -366,7 +366,9 @@
     "clickToExpand": "คลิกเพื่อขยาย ↓",
     "allInstitutions": "สถาบันทั้งหมด",
     "supplyDemand": "กระแส",
-    "supplyDemandTitle": "ดูกระแส"
+    "supplyDemandTitle": "ดูกระแส",
+    "entryZone": "โซนซื้อ",
+    "priceEntry": "โซนซื้อ"
   },
   "newsGap": {
     "title": "เครื่องมือวิเคราะห์ช่องว่างข่าว",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "น้ำหนักต่ำ",
     "sectorNeutral": "เป็นกลาง",
     "allocWeight": "น้ำหนัก",
-    "entryZone": "โซนเข้า",
+    "entryZone": "โซนซื้อ",
     "stopLoss": "ตัดขาดทุน",
     "targetPrice": "เป้าหมาย",
     "expand": "เข้า·หยุด·เป้า",
@@ -1132,7 +1134,7 @@
     "buyNow": "ซื้อตอนนี้",
     "dataAsOf": "ข้อมูล ณ:",
     "priceExpensive": "+{pct}% แพง",
-    "priceEntry": "โซนเข้าซื้อ",
+    "priceEntry": "โซนซื้อ",
     "priceCheap": "{pct}% ถูก",
     "expandStopLoss": "จุดตัดขาดทุน"
   },

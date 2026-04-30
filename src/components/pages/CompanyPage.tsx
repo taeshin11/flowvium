@@ -373,17 +373,56 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [ticker]);
 
   if (!company) {
+    // Minimal live page for tickers not in static dataset (IPX, AMRZ, etc.)
+    const liveCompanyName = ticker.toUpperCase();
     return (
-      <div className="mx-auto max-w-7xl px-4 py-20 text-center">
-        <h1 className="text-2xl font-heading font-bold text-cf-text-primary mb-4">
-          {t('notFound')}
-        </h1>
-        <p className="text-cf-text-secondary mb-6">
-          {t('notFoundDesc', { ticker })}
-        </p>
-        <Link href="/explore" className="cf-btn-primary">
-          {t('backToExplorer')}
-        </Link>
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-heading font-bold text-cf-text-primary">{liveCompanyName}</h1>
+          <p className="text-cf-text-secondary text-sm mt-0.5">SEC 공시 + 실시간 데이터</p>
+        </div>
+        {/* Live financials if available */}
+        {liveFinancials?.revenueFormatted && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">재무 심화 — {liveFinancials.fiscalYear}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {liveFinancials.latestAnnual?.revenueUSD != null && (
+                <div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">매출</p><p className="text-sm font-bold">{liveFinancials.revenueFormatted}</p></div>
+              )}
+              {liveFinancials.latestAnnual?.netIncomeUSD != null && (
+                <div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">순이익</p><p className="text-sm font-bold">${(liveFinancials.latestAnnual.netIncomeUSD / 1e6).toFixed(0)}M</p></div>
+              )}
+            </div>
+            <p className="text-[10px] text-cf-text-secondary/50 mt-2">{liveFinancials.source} · {liveFinancials.periodEnd}</p>
+          </div>
+        )}
+        {/* News if available */}
+        {companyNews && companyNews.news.length > 0 && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">최신 뉴스</h2>
+            <div className="space-y-2">
+              {companyNews.news.slice(0, 5).map((n, i) => (
+                <a key={i} href={n.link} target="_blank" rel="noopener noreferrer" className="block text-xs text-cf-text-primary hover:text-cf-accent truncate">{n.title}</a>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Institutional signals */}
+        {signals.length > 0 && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">기관 시그널</h2>
+            <div className="space-y-1">
+              {signals.slice(0, 5).map((s, i) => (
+                <p key={i} className="text-xs text-cf-text-secondary">{s.institution} · {s.action} · {s.estimatedValue}</p>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="text-center mt-8">
+          <Link href="/explore" className="cf-btn-secondary text-sm px-4 py-2">
+            {t('backToExplorer')}
+          </Link>
+        </div>
       </div>
     );
   }

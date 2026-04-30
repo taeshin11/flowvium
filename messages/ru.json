@@ -366,7 +366,9 @@
     "clickToExpand": "Нажмите для раскрытия ↓",
     "allInstitutions": "Все Учреждения",
     "supplyDemand": "Поток",
-    "supplyDemandTitle": "Просмотр потока"
+    "supplyDemandTitle": "Просмотр потока",
+    "entryZone": "Зона покупки",
+    "priceEntry": "Зона покупки"
   },
   "newsGap": {
     "title": "Анализатор информационных пробелов",
@@ -1113,7 +1115,7 @@
     "sectorUnderweight": "Недовес",
     "sectorNeutral": "Нейтрально",
     "allocWeight": "Вес",
-    "entryZone": "Зона входа",
+    "entryZone": "Зона покупки",
     "stopLoss": "Стоп-лосс",
     "targetPrice": "Цель",
     "expand": "Вход·Стоп·Цель",
@@ -1132,7 +1134,7 @@
     "buyNow": "Купить сейчас",
     "dataAsOf": "Данные на:",
     "priceExpensive": "+{pct}% дорого",
-    "priceEntry": "Зона входа",
+    "priceEntry": "Зона покупки",
     "priceCheap": "{pct}% дешевле",
     "expandStopLoss": "Стоп-лосс"
   },
