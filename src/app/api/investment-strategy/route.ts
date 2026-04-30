@@ -1268,7 +1268,8 @@ export async function GET(request: Request) {
     // History — 메인 캐시 블록과 독립적으로 저장 (별도 try)
     try {
       const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
-      const metaStr = JSON.stringify({ key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source });
+      const kstDateHist = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
+      const metaStr = JSON.stringify({ key, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source });
       const rawExisting = await redis.get(HIST_KEY);
       const arr: unknown[] = rawExisting
         ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : Array.isArray(rawExisting) ? rawExisting : [])
