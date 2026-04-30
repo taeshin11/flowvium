@@ -34,6 +34,11 @@ export interface CtxForPrompts {
   koreaFlow: string;
   assetFg: string;
   bbWarnings: string;
+  credit: string;       // 국가별 신용잔고 요약
+  nport: string;        // N-PORT 뮤추얼펀드 기관 집계
+  optionsFlow: string;  // 이상 옵션 플로우
+  ownership: string;    // 13D/G 대량보유 변동
+  econCal: string;      // 향후 고임팩트 경제 이벤트
 }
 
 // ── Section 1: 거시경제 + 기술적 분석 + 리스크이벤트 ─────────────────────────
@@ -49,6 +54,8 @@ export function buildMacroPrompt(ctx: CtxForPrompts, vix: string, locale = 'en',
     `[Macro Indicators] ${ctx.macro}`,
     `[Sentiment + FedWatch] ${ctx.sentiment}`,
     `[VIX] ${vix || 'No data'}`,
+    `[Credit Balance — Market Leverage Risk] ${ctx.credit || 'No data'}`,
+    `[Upcoming High-Impact Events] ${ctx.econCal || 'No data'}`,
     `[COT Positioning] ${ctx.cot || 'No data'}`,
     `[Commodity Curves] ${ctx.commodity || 'No data'}`,
     `[News — 연준발언 우선] ${ctx.news}`,
@@ -90,6 +97,9 @@ export function buildPortfolioPrompt(
     `[Sector Valuations (SPDR ETFs)] ${sectorPe || 'No data'}`,
     `[Bollinger Band 과매수 경고] ${ctx.bbWarnings || 'None'}`,
     `[Short Squeeze Candidates] ${ctx.shorts || 'None'}`,
+    `[Unusual Options Flow] ${ctx.optionsFlow || 'None'}`,
+    `[13D/G 대량보유 변동] ${ctx.ownership || 'None'}`,
+    `[N-PORT 뮤추얼펀드 기관집계] ${ctx.nport || 'None'}`,
     `[Upcoming Earnings] ${earnings || 'None'}`,
     '',
     'RULES:',

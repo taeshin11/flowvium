@@ -380,6 +380,11 @@ interface CtxSummary {
   koreaFlow: string;
   assetFg: string;
   bbWarnings: string;
+  credit: string;
+  nport: string;
+  optionsFlow: string;
+  ownership: string;
+  econCal: string;
 }
 
 function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): CtxSummary {
@@ -592,7 +597,64 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     if (warnings.length) bbWarnings = warnings.join(', ');
   } catch { /* non-fatal */ }
 
-  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings };
+  // 신용잔고 — 시장 레버리지 리스크 신호 (Codex 권장: S1 Macro에 포함)
+  let credit = '';
+  try {
+    const cr = ctx.credit as Record<string, unknown> | null;
+    const snap = (cr?.globalSnapshot as Record<string, unknown>) ?? {};
+    const total = snap.totalUsd as number | null;
+    const gdpPct = snap.avgGdpPct as number | null;
+    const usEntry = (cr?.countries as Array<Record<string, unknown>>)?.find((c: Record<string, unknown>) => c.id === 'us');
+    if (total && gdpPct) {
+      const usYoy = usEntry?.yoyChangePct as number | null;
+      credit = `신용잔고: 글로벌 $${(total/1e9).toFixed(0)}B, GDP대비${gdpPct.toFixed(1)}%${usYoy != null ? `, US YoY${usYoy.toFixed(1)}%` : ''}`;
+    }
+  } catch { /* ignore */ }
+
+  // N-PORT 뮤추얼펀드 집계 (기관 매집 신호)
+  let nport = '';
+  try {
+    const np = ctx.nport as Record<string, unknown> | null;
+    const byTicker = (np?.byTicker as Array<Record<string, unknown>>) ?? [];
+    const top = byTicker
+      .filter(t => typeof t.totalValue === 'number' && t.totalValue > 0)
+      .sort((a, b) => (b.totalValue as number) - (a.totalValue as number))
+      .slice(0, 4)
+      .map(t => `${t.ticker}($${Math.round((t.totalValue as number) / 1e6)}M)`);
+    if (top.length) nport = `N-PORT 기관집계: ${top.join(', ')}`;
+  } catch { /* ignore */ }
+
+  // 옵션 플로우 (이상 매수/매도 신호)
+  let optionsFlow = '';
+  try {
+    const opts = (ctx.options as Array<Record<string, unknown>>) ?? [];
+    const notable = opts.filter(o => o.unusual || (o.premium as number) > 500000).slice(0, 3);
+    if (notable.length) {
+      optionsFlow = `옵션이상: ${notable.map(o => `${o.ticker}${o.side}(${o.type}$${Math.round((o.premium as number)/1000)}K)`).join(', ')}`;
+    }
+  } catch { /* ignore */ }
+
+  // 13D/G 대량보유 알림 (5% 이상 지분 변동)
+  let ownership = '';
+  try {
+    const ow = (ctx.ownership as Array<Record<string, unknown>>) ?? [];
+    const recent = ow.slice(0, 3).map(o => `${o.ticker}(${o.filerName} ${o.changePct ?? o.pct}%)`);
+    if (recent.length) ownership = `13D/G지분변동: ${recent.join(', ')}`;
+  } catch { /* ignore */ }
+
+  // 경제 캘린더 — 향후 7일 고임팩트 이벤트
+  let econCal = '';
+  try {
+    const cal = ctx.econCal as Record<string, unknown> | null;
+    const events = (cal?.events as Array<Record<string, unknown>>) ?? [];
+    const highImpact = events
+      .filter(e => e.impact === 'high' || e.impact === 3)
+      .slice(0, 4)
+      .map(e => `${e.date}:${e.event}`);
+    if (highImpact.length) econCal = `고임팩트이벤트: ${highImpact.join(', ')}`;
+  } catch { /* ignore */ }
+
+  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal };
 }
 
 // ── Event calendar for fallback risk events — mirrors macro-indicators FOMC_DATES_2026 / RELEASE_SCHEDULE ─
@@ -1046,6 +1108,9 @@ export async function GET(request: Request) {
     cot: ctxSummary.cot, commodity: ctxSummary.commodity, institutional: ctxSummary.institutional,
     shorts: ctxSummary.shorts, news: ctxSummary.news, koreaFlow: ctxSummary.koreaFlow,
     assetFg: ctxSummary.assetFg, bbWarnings: ctxSummary.bbWarnings,
+    credit: ctxSummary.credit, nport: ctxSummary.nport,
+    optionsFlow: ctxSummary.optionsFlow, ownership: ctxSummary.ownership,
+    econCal: ctxSummary.econCal,
   };
 
   const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.55, timeoutMs: 40000 };
