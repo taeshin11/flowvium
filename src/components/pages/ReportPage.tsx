@@ -375,14 +375,13 @@ export default function ReportPage() {
   const ageMs = data ? nowTick - new Date(data.generatedAt).getTime() : 0;
   const sb = data ? sourceBadge(data.source) : null;
 
-  // ── Loading state ─────────────────────────────────────────────────────────
-  if (loading) {
+  // ── Loading: data 없을 때만 최소 스피너 (보통은 stale/fallback이 즉시 옴) ──
+  if (loading && !data) {
     return (
       <div className="container mx-auto px-4 py-12 max-w-5xl">
-        <div className="flex flex-col items-center gap-4 text-gray-400 py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
-          <p className="text-sm">{t('loadingDetail')}</p>
-          <p className="text-xs text-gray-300">{t('loadingDesc')}</p>
+        <div className="flex flex-col items-center gap-3 text-gray-400 py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+          <p className="text-sm">불러오는 중...</p>
         </div>
       </div>
     );

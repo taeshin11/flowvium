@@ -951,6 +951,11 @@ export async function GET(request: Request) {
     return NextResponse.json(fallbackStrategy(locale), { headers: { 'Cache-Control': 'no-store' } });
   }
 
+  // HARD GATE: if not cron-authenticated force request → NEVER generate, always return fallback
+  if (!force) {
+    return NextResponse.json({ ...fallbackStrategy(locale), stale: true, noData: true }, { headers: { 'Cache-Control': 'public, s-maxage=60' } });
+  }
+
   // Only continues if force=1 AND cronAuthed (cron calls only)
 
   const reqUrl = new URL(request.url);
