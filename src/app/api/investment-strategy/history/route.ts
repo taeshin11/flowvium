@@ -19,6 +19,7 @@ export interface HistoryMeta {
   stance: 'bullish' | 'neutral' | 'bearish';
   thesis: string;
   riskLevel: 'low' | 'medium' | 'high';
+  source?: string;
   sessionLabel?: string;
 }
 
