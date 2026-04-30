@@ -39,11 +39,15 @@ export async function GET(req: Request) {
     }
   }
 
-  // Return history (JSON array stored via loggedRedisSet)
+  // Return history (raw JSON string stored via redis.set)
   try {
-    const arr = await redis.get<HistoryMeta[]>(HISTORY_KEY);
-    const raw: HistoryMeta[] = Array.isArray(arr) ? arr : [];
-    const items: HistoryMeta[] = raw.flatMap(m => {
+    const raw = await redis.get(HISTORY_KEY);
+    let arr: unknown[] = [];
+    if (raw) {
+      if (typeof raw === 'string') arr = JSON.parse(raw);
+      else if (Array.isArray(raw)) arr = raw;
+    }
+    const items: HistoryMeta[] = (arr as HistoryMeta[]).flatMap(m => {
       if (!m?.key || !m?.generatedAt) return [];
       m.sessionLabel = SESSION_KO[m.session] ?? m.session;
       return [m];

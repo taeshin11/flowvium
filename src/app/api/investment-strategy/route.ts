@@ -1263,16 +1263,20 @@ export async function GET(request: Request) {
       if (!isFallback) {
         await loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 });
       }
-      // History — JSON array (set 방식, lpush/lrange 인코딩 이슈 회피)
-      try {
-        const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
-        const meta = { key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: strategy.thesis, riskLevel: strategy.riskLevel, source: strategy.source };
-        const existing = await redis.get<unknown[]>(HIST_KEY) ?? [];
-        const arr = Array.isArray(existing) ? existing : [];
-        const updated = [meta, ...arr].slice(0, 30);
-        await loggedRedisSet(redis, 'api.investment-strategy', HIST_KEY, updated, { ex: 90 * 86400 });
-      } catch { /* non-fatal */ }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
+
+    // History — 메인 캐시 블록과 독립적으로 저장 (별도 try)
+    try {
+      const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
+      const metaStr = JSON.stringify({ key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source });
+      const rawExisting = await redis.get(HIST_KEY);
+      const arr: unknown[] = rawExisting
+        ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : Array.isArray(rawExisting) ? rawExisting : [])
+        : [];
+      const updated = [JSON.parse(metaStr), ...arr].slice(0, 30);
+      await redis.set(HIST_KEY, JSON.stringify(updated), { ex: 90 * 86400 });
+      logger.info('api.investment-strategy', 'history_saved', { count: updated.length, source: strategy.source });
+    } catch (he) { logger.warn('api.investment-strategy', 'history_save_error', { error: he }); }
   }
 
   // Module-level memory cache write (no-Redis path)
