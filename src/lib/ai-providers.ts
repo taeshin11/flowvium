@@ -7,8 +7,8 @@
  *   1. **vLLM** (로컬 무료): EXAONE + cloudflared 터널. 8s 타임아웃 시 즉시 폴백.
  *   2. **GROQ** (무료 티어): llama-3.3-70b → llama-3.1-8b. TPD 100k/500k.
  *      TPD 소진 시 Redis key로 cross-instance guard → 즉시 다음 provider.
- *   3. **Qwen 2.5 72B** (OpenRouter — OPENROUTER_API_KEY): qwen/qwen-2.5-72b-instruct:free.
- *      OPENROUTER_API_KEY 없으면 스킵. 200 RPD free tier.
+ *   3. **OpenRouter cascade** (OPENROUTER_API_KEY): DeepSeek-V3 → GPT-OSS-120B → Qwen3-80B → ...
+ *      DeepSeek-V3:free 우선 (87%+ JSON accuracy). OPENROUTER_API_KEY 없으면 스킵.
  *   4. **Gemini 2.0 Flash** (최종 폴백): GEMINI_API_KEY 없으면 스킵.
  *
  * 환경변수:
@@ -251,16 +251,20 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   }
 
   const tag = opts.tag ?? 'ai';
+  // 품질 기반 우선순위 (2026-05 벤치마크 기준, JSON accuracy 내림차순)
   const FREE_MODELS = [
-    // 2026-05 기준 작동하는 OpenRouter 무료 모델 (우선순위 순)
-    'openai/gpt-oss-120b:free',              // GPT-class, 검증됨
-    'google/gemma-4-31b-it:free',            // Google Gemma 4 31B
+    // Tier 1: 87-93% JSON accuracy, instruction following 최상급
+    'deepseek/deepseek-v3:free',             // DeepSeek-V3 — RL 최적화, 87%+ JSON
+    'openai/gpt-oss-120b:free',              // GPT-class 120B
+    // Tier 2: 70-80B급, MMLU 85-86%
+    'qwen/qwen3-next-80b-a3b-instruct:free', // Qwen3 80B — 한국어 우수
     'nvidia/nemotron-3-super-120b-a12b:free',// NVIDIA 120B
-    'qwen/qwen3-next-80b-a3b-instruct:free', // Qwen3 80B
-    'nvidia/nemotron-3-nano-30b-a3b:free',   // NVIDIA 30B 경량
-    'google/gemma-4-26b-a4b-it:free',        // Google Gemma 4 26B
-    'openrouter/free',                        // OpenRouter 자동 선택
-    // 레거시 (이전 버전)
+    // Tier 3: 26-31B급
+    'google/gemma-4-31b-it:free',            // Gemma 4 31B — structured output 강점
+    'nvidia/nemotron-3-nano-30b-a3b:free',   // NVIDIA 30B
+    'google/gemma-4-26b-a4b-it:free',        // Gemma 4 26B
+    'openrouter/free',                        // OpenRouter 자동선택
+    // 레거시 fallback
     'qwen/qwen-2.5-72b-instruct:free',
     'meta-llama/llama-3.1-8b-instruct:free',
     'mistralai/mistral-7b-instruct:free',

@@ -35,7 +35,7 @@ function loadEnv() {
 const env = loadEnv();
 const args = process.argv.slice(2);
 const viaVercel = args.includes('--via-vercel');
-const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'ollama/qwen2.5:14b';
+const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'ollama/qwen3:14b';
 const SITE = env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '') || 'https://flowvium.net';
 
 // ── Option A: Vercel force 요청 ──────────────────────────────────────────────
