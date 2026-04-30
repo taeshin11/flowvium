@@ -958,98 +958,40 @@ export default function HomePage() {
               <p className="text-lg md:text-xl text-cf-text-secondary mb-8 max-w-lg">
                 {t('description')}
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <Link
-                  href="/explore"
-                  className="col-span-2 inline-flex items-center justify-between gap-2 w-full text-sm px-5 py-4 rounded-xl font-semibold
-                             bg-cf-primary text-white border border-cf-primary/80
-                             hover:bg-cf-primary/90 hover:shadow-lg hover:shadow-cf-primary/25
-                             transition-all duration-200"
-                >
-                  <span className="flex flex-col items-start gap-0.5">
-                    <span>{tHome('exploreSupplyChains')}</span>
-                    <span className="text-[11px] font-normal opacity-75">{tHome('exploreSupplyChainsDesc')}</span>
-                  </span>
-                  <ArrowRight className="w-4 h-4 flex-shrink-0" />
-                </Link>
-                <Link
-                  href="/signals"
-                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
-                             hover:border-blue-400/50 hover:bg-blue-50/50 dark:hover:bg-white/10 hover:shadow-sm
-                             transition-all duration-200"
-                >
-                  <TrendingUp className="w-4 h-4 flex-shrink-0 text-blue-500" />
-                  <span className="flex flex-col gap-0.5"><span>{tHome('viewSignals')}</span><span className="text-[10px] font-normal text-cf-text-secondary">{tHome('viewSignalsDesc')}</span></span>
-                </Link>
-                <Link
-                  href="/intelligence"
-                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
-                             hover:border-amber-400/50 hover:bg-amber-50/50 dark:hover:bg-white/10 hover:shadow-sm
-                             transition-all duration-200"
-                >
-                  <span className="relative flex h-4 w-4 flex-shrink-0 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
-                  </span>
-                  <span className="flex flex-col gap-0.5"><span>{tHome('secretMoneyTrack')}</span><span className="text-[10px] font-normal text-cf-text-secondary">{tHome('secretMoneyTrackDesc')}</span></span>
-                </Link>
-                <Link
-                  href="/news-gap"
-                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
-                             hover:border-emerald-400/50 hover:bg-emerald-50/50 dark:hover:bg-white/10 hover:shadow-sm
-                             transition-all duration-200"
-                >
-                  <Radar className="w-4 h-4 flex-shrink-0 text-emerald-500" />
-                  <span className="flex flex-col gap-0.5"><span>{tHome('newsGapScan')}</span><span className="text-[10px] font-normal text-cf-text-secondary">{tHome('newsGapScanDesc')}</span></span>
-                </Link>
-                <Link
-                  href="/report"
-                  className="flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
-                             hover:border-violet-400/50 hover:bg-violet-50/50 dark:hover:bg-white/10 hover:shadow-sm
-                             transition-all duration-200"
-                >
-                  <span className="relative flex h-4 w-4 flex-shrink-0 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-500 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
-                  </span>
-                  <span className="flex flex-col gap-0.5"><span>{tHome('aiReport')}</span><span className="text-[10px] font-normal text-cf-text-secondary">{tHome('aiReportDesc')}</span></span>
-                </Link>
-                <Link
-                  href="/osint"
-                  className="col-span-2 flex items-center gap-3 w-full text-sm px-4 py-3.5 rounded-xl font-semibold
-                             bg-white dark:bg-white/[0.06] text-cf-text-primary border border-cf-border
-                             hover:border-cyan-400/50 hover:bg-cyan-50/50 dark:hover:bg-white/10 hover:shadow-sm
-                             transition-all duration-200"
-                >
-                  <Search className="w-4 h-4 flex-shrink-0 text-cyan-500" />
-                  <span className="flex flex-col gap-0.5"><span>{tHome('fundTracking')}</span><span className="text-[10px] font-normal text-cf-text-secondary">{tHome('fundTrackingDesc')}</span></span>
-                </Link>
-              </div>
-              {/* Secondary nav — all remaining pages */}
-              <div className="flex flex-wrap gap-2 mt-2">
+              {/* 통합 3열 그리드 — 모든 버튼 동일 크기 */}
+              <div className="grid grid-cols-3 gap-2">
                 {([
-                  { href: '/earnings', label: tNav('earnings'), icon: <BarChart3 className="w-4 h-4" />, color: 'text-amber-600 dark:text-amber-400' },
-                  { href: '/insider',  label: tNav('insider'),  icon: <TrendingUp className="w-4 h-4" />, color: 'text-emerald-600 dark:text-emerald-400' },
-                  { href: '/heatmap',  label: tNav('heatmap'),  icon: <Layers className="w-4 h-4" />, color: 'text-blue-600 dark:text-blue-400' },
-                  { href: '/screener', label: tNav('screener'), icon: <Radar className="w-4 h-4" />, color: 'text-violet-600 dark:text-violet-400' },
-                  { href: '/short',    label: tNav('short'),    icon: <TrendingDown className="w-4 h-4" />, color: 'text-red-600 dark:text-red-400' },
-                  { href: '/cascade',  label: tNav('cascade'),  icon: <Network className="w-4 h-4" />, color: 'text-cyan-600 dark:text-cyan-400' },
-                ] as { href: string; label: string; icon: React.ReactNode; color: string }[]).map(item => (
+                  { href: '/explore',      icon: <ArrowRight className="w-3.5 h-3.5" />,      label: tHome('exploreSupplyChains'),  desc: tHome('exploreSupplyChainsDesc'), accent: 'text-cf-primary',   primary: true },
+                  { href: '/signals',      icon: <TrendingUp className="w-3.5 h-3.5" />,      label: tHome('viewSignals'),          desc: tHome('viewSignalsDesc'),         accent: 'text-blue-500' },
+                  { href: '/intelligence', icon: <span className="relative flex h-3 w-3 items-center justify-center"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" /></span>, label: tHome('secretMoneyTrack'), desc: tHome('secretMoneyTrackDesc'), accent: 'text-amber-500' },
+                  { href: '/news-gap',     icon: <Radar className="w-3.5 h-3.5" />,           label: tHome('newsGapScan'),          desc: tHome('newsGapScanDesc'),         accent: 'text-emerald-500' },
+                  { href: '/report',       icon: <span className="relative flex h-3 w-3 items-center justify-center"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-500 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" /></span>, label: tHome('aiReport'), desc: tHome('aiReportDesc'), accent: 'text-violet-500' },
+                  { href: '/osint',        icon: <Search className="w-3.5 h-3.5" />,          label: tHome('fundTracking'),         desc: tHome('fundTrackingDesc'),         accent: 'text-cyan-500' },
+                  { href: '/earnings',     icon: <BarChart3 className="w-3.5 h-3.5" />,       label: tNav('earnings'),              accent: 'text-amber-600 dark:text-amber-400' },
+                  { href: '/insider',      icon: <TrendingUp className="w-3.5 h-3.5" />,      label: tNav('insider'),               accent: 'text-emerald-600 dark:text-emerald-400' },
+                  { href: '/heatmap',      icon: <Layers className="w-3.5 h-3.5" />,          label: tNav('heatmap'),               accent: 'text-blue-600 dark:text-blue-400' },
+                  { href: '/screener',     icon: <Radar className="w-3.5 h-3.5" />,           label: tNav('screener'),              accent: 'text-violet-600 dark:text-violet-400' },
+                  { href: '/short',        icon: <TrendingDown className="w-3.5 h-3.5" />,    label: tNav('short'),                 accent: 'text-red-600 dark:text-red-400' },
+                  { href: '/cascade',      icon: <Network className="w-3.5 h-3.5" />,         label: tNav('cascade'),               accent: 'text-cyan-600 dark:text-cyan-400' },
+                ] as { href: string; icon: React.ReactNode; label: string; desc?: string; accent: string; primary?: boolean }[]).map(item => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 rounded-lg
-                               bg-white/70 dark:bg-white/[0.06] border border-cf-border
-                               text-cf-text-primary hover:border-cf-primary/40 hover:bg-white
-                               dark:hover:bg-white/10 hover:shadow-sm
-                               transition-all duration-150 ${item.color}`}
+                    className={`flex flex-col justify-center gap-0.5 w-full text-xs px-3 py-2.5 rounded-xl font-semibold
+                               border transition-all duration-200
+                               ${item.primary
+                                 ? 'bg-cf-primary text-white border-cf-primary/80 hover:bg-cf-primary/90 hover:shadow-md'
+                                 : 'bg-white dark:bg-white/[0.06] text-cf-text-primary border-cf-border hover:border-cf-primary/30 hover:bg-gray-50/80 dark:hover:bg-white/10 hover:shadow-sm'}`}
                   >
-                    {item.icon}
-                    <span className="text-cf-text-primary">{item.label}</span>
+                    <span className={`flex items-center gap-1.5 ${item.primary ? '' : item.accent}`}>
+                      {item.icon}
+                      <span className="truncate">{item.label}</span>
+                    </span>
+                    {item.desc && (
+                      <span className={`text-[9px] font-normal truncate leading-tight ${item.primary ? 'opacity-75' : 'text-cf-text-secondary'}`}>
+                        {item.desc}
+                      </span>
+                    )}
                   </Link>
                 ))}
               </div>
