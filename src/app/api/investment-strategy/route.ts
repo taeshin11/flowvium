@@ -892,41 +892,66 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
   }
 }
 
-// ── GET handler ───────────────────────────────────────────────────────────────
+// ── GET handler — READ-ONLY (캐시만 읽음, AI 생성 없음) ──────────────────────
+// AI 생성은 크론(/api/cron/investment-strategy)이 하루 3회 담당.
+// 사용자 요청: 캐시 히트 → 즉시 반환 / 미스 → stale 반환 / 없으면 빈 응답.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const locale = searchParams.get('locale') ?? 'en';
+  // probe=1: used by verify-metrics — always return quickly
+  const probe = searchParams.get('probe') === '1';
+  // force=1 with cron auth only — triggers live generation (for cron route)
   const rawForce = searchParams.get('force') === '1';
   const cronSecret = process.env.CRON_SECRET ?? '';
   const cronAuthed = !cronSecret || (request as Request).headers.get('authorization') === `Bearer ${cronSecret}`;
   const force = rawForce && cronAuthed;
-  const locale = searchParams.get('locale') ?? 'en';
-  // probe=1: return cached or data-fallback immediately without AI — used by verify-metrics
-  const probe = searchParams.get('probe') === '1';
 
   const redis = createRedis();
   const session = getKstSession();
   const key = cacheKey(session);
 
-  // Module-level memory cache hit (no-Redis path)
-  if (!redis && !force && STRATEGY_MEMORY_CACHE && Date.now() < STRATEGY_MEMORY_CACHE.expiresAt) {
-    logger.info('api.investment-strategy', 'memory_cache_hit');
+  // Memory cache (no-Redis path)
+  if (!redis && STRATEGY_MEMORY_CACHE && Date.now() < STRATEGY_MEMORY_CACHE.expiresAt) {
     return NextResponse.json({ ...STRATEGY_MEMORY_CACHE.data, cached: true }, { headers: CDN_HEADERS });
   }
 
-  if (redis && !force) {
+  if (redis) {
     try {
+      // 1. Current session cache
       const cached = await redis.get(key);
       if (cached) {
-        logger.info('api.investment-strategy', 'cache_hit');
+        logger.info('api.investment-strategy', 'cache_hit', { session });
         return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+      }
+      // 2. Stale (last AI-generated report, up to 7 days)
+      if (!force) {
+        const stale = await redis.get(STALE_KEY_PREFIX);
+        if (stale) {
+          logger.info('api.investment-strategy', 'stale_hit');
+          return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+        }
+        // 3. Any previous session's report from today
+        for (const s of ['morning', 'afternoon', 'evening'] as const) {
+          if (s === session) continue;
+          const alt = await redis.get(cacheKey(s));
+          if (alt) {
+            return NextResponse.json({ ...(alt as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+          }
+        }
+        // 4. No data at all — return minimal static fallback (no AI)
+        if (probe) {
+          return NextResponse.json(fallbackStrategy(locale), { headers: { 'Cache-Control': 'no-store' } });
+        }
+        return NextResponse.json({ ...fallbackStrategy(locale), stale: true, noData: true }, { headers: { 'Cache-Control': 'public, s-maxage=60' } });
       }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_read_error', { error: e }); }
   }
 
-  // probe mode: no cache found → return minimal static fallback (no AI, no heavy context fetch)
   if (probe) {
     return NextResponse.json(fallbackStrategy(locale), { headers: { 'Cache-Control': 'no-store' } });
   }
+
+  // Only continues if force=1 AND cronAuthed (cron calls only)
 
   const reqUrl = new URL(request.url);
   const baseUrl = reqUrl.host.startsWith('localhost')
@@ -1006,7 +1031,7 @@ export async function GET(request: Request) {
   if (redis) {
     try {
       const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
-      const ttl = isFallback ? 5 * 60 : CACHE_TTL;
+      const ttl = isFallback ? 2 * 60 * 60 : CACHE_TTL; // Fallback: 2h (was 5min → prevented re-generation too frequently)
       await loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: ttl });
       if (!isFallback) {
         await loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 });
