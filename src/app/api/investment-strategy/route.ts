@@ -317,7 +317,12 @@ Key rules:
 1. portfolio: 6-8 items — mix US stocks, US ETFs, and country ETFs (EWY=Korea, EWJ=Japan, FXI=China, VGK=Europe, INDA=India, EWT=Taiwan, EWZ=Brazil)
 2. EACH portfolio item MUST have "market" field: country code (us/korea/japan/china/europe/india/taiwan/brazil/australia/global)
 3. entryZone/stopLoss/target: actual $ ranges based on live prices (e.g. price=$209 → entryZone="$205-211")
-4. rationale: include specific data numbers (%, $, bp) from the data above
+4. rationale (≤80 chars): MUST include ALL of these that apply:
+   a) 4W or 1W return if significant (e.g. "4주 +25% 이미 고점권, 추가 상승 여력 제한")
+   b) Key reason to buy/watch (institutional signal, earnings beat, short squeeze, F&G level)
+   c) Risk factor if already rallied >15% in 4W → action should be "watch" not "buy", warn of overextension
+   BAD: "KOSPI 상승세 지속" (no data)
+   GOOD: "EWY 4주+25% 고평가, F&G 77 극단탐욕 → 눌림목 대기, 진입 $112 이하"
 5. allocation: must sum to 100
 6. action: "buy"=accumulate now, "hold"=keep if owned, "watch"=wait for entry
 7. regionStances: cover ALL countries with capital flows data — us, korea, japan, china, europe, india, taiwan, brazil, australia, global
