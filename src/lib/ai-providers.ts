@@ -56,6 +56,8 @@ export interface AICallResult {
 }
 
 export interface AICallOptions {
+  /** Skip GROQ entirely — use when GROQ quota is low, go straight to Gemini */
+  skipGroq?: boolean;
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
@@ -382,9 +384,11 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
     if (t) return { text: t, source: 'EXAONE-3.5', durationMs: Date.now() - start };
   }
 
-  // 2. GROQ (무료 티어 — TPD 소진 시 Redis guard로 즉시 스킵)
-  const g = await callGroq(prompt, opts, attempts);
-  if (g) return { text: g.text, source: `GROQ-${g.model}`, durationMs: Date.now() - start };
+  // 2. GROQ (무료 티어 — TPD 소진 시 Redis guard로 즉시 스킵, skipGroq 옵션으로도 건너뜀)
+  if (!opts.skipGroq) {
+    const g = await callGroq(prompt, opts, attempts);
+    if (g) return { text: g.text, source: `GROQ-${g.model}`, durationMs: Date.now() - start };
+  }
 
   // 3. Qwen 2.5 72B via OpenRouter (GROQ 소진 시 2차 폴백)
   const qw = await callQwen(prompt, opts, attempts);
