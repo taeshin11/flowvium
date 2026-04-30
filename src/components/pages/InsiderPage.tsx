@@ -257,16 +257,17 @@ export default function InsiderPage() {
           )}
         </div>
         {clusters.length > 0 && (
-          <div className="flex items-center gap-1.5 text-[10px] text-cf-text-secondary">
-            <Flame className="w-3 h-3 text-orange-400" /> {t('clusters')}:
+          <div className="flex items-center gap-1.5 text-[10px] text-cf-text-secondary flex-wrap">
+            <Flame className="w-3 h-3 text-orange-400" />
+            <span>{t('clusters')}<span className="opacity-50 font-normal"> (숫자 = 기간 내 신고 건수)</span>:</span>
             {clusters.slice(0, 5).map(c => (
               <button
                 key={c.ticker}
                 onClick={() => { setTickerFilter(c.ticker); setTab('insider'); }}
                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${c.buys > c.sells ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}
-                title={`${c.count} filings (${c.buys} buys / ${c.sells} sells)`}
+                title={`${c.ticker}: ${c.count}건 신고 (매수 ${c.buys}건 / 매도 ${c.sells}건)`}
               >
-                {c.ticker} · {c.count}
+                {c.ticker} · {c.count}건
               </button>
             ))}
           </div>

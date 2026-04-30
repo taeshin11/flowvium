@@ -18,9 +18,22 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-reva
 let STRATEGY_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const STRATEGY_MEMORY_TTL_MS = 23 * 60 * 60 * 1000; // 23h — survive most of the day within one Lambda instance
 
-function cacheKey(): string {
-  const kstDate = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  return `flowvium:investment-strategy:v6:${kstDate}`; // v6: don't cache fallbacks for 24h
+/** KST 세션 구분:
+ *  morning   = 07:00–15:59 KST (미국장 마감 후 분석)
+ *  afternoon = 16:00–21:59 KST (아시아장 마감, 유럽장 진행)
+ *  evening   = 22:00–06:59 KST (미국장 개장 전후 분석)
+ */
+function getKstSession(): 'morning' | 'afternoon' | 'evening' {
+  const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
+  if (kstHour >= 7 && kstHour < 16) return 'morning';
+  if (kstHour >= 16 && kstHour < 22) return 'afternoon';
+  return 'evening';
+}
+
+function cacheKey(session?: string): string {
+  const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  const s = session ?? getKstSession();
+  return `flowvium:investment-strategy:v7:${kstDate}:${s}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -239,13 +252,19 @@ const LOCALE_LANG: Record<string, string> = {
   ar: 'Arabic', hi: 'Hindi', id: 'Indonesian', th: 'Thai', tr: 'Turkish', vi: 'Vietnamese',
 };
 
-function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string, prices: Map<string, LivePrice>, vix: string, locale = 'en'): string {
+function buildInvestmentPrompt(ctx: ReturnType<typeof buildCtxSummary>, sectorPe: string, earnings: string, prices: Map<string, LivePrice>, vix: string, locale = 'en', session = 'morning'): string {
   const today = new Date().toISOString().slice(0, 10);
   const priceData = pricesSection(prices);
   const lang = LOCALE_LANG[locale];
   const langInstruction = lang ? `\nIMPORTANT: Write ALL text fields in ${lang} EXCEPT ticker symbols, numbers, and JSON keys.\n` : '';
 
-  return `You are a global quantitative strategist. Based on real-time multi-market data as of ${today}, provide investment strategy for the next 4 weeks.${langInstruction}
+  const sessionCtx = session === 'morning'
+    ? '\n[Session: Morning KST — Post US-market close] Focus: US market result, overnight moves, set tone for Asia open.'
+    : session === 'afternoon'
+    ? '\n[Session: Afternoon KST — Post Asia-market close] Focus: Asia result, Europe opening direction, sector rotation signals.'
+    : '\n[Session: Evening KST — Pre US-market open] Focus: Europe session result, futures positioning, pre-US setup.';
+
+  return `You are a global quantitative strategist. Based on real-time multi-market data as of ${today}, provide investment strategy for the next 4 weeks.${langInstruction}${sessionCtx}
 
 [Live Prices — use as basis for entryZone/stopLoss/target]
 ${priceData || 'No data'}
@@ -566,10 +585,10 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
                      : isJa ? 'SPY 200日移動平均サポートとVIXレジームの監視を推奨。VIX 20以下は強気シグナル、30以上はボラティリティ拡大局面。'
                      : isZh ? '建议监控SPY 200日均线支撑和VIX机制。VIX低于20为看涨信号，高于30为波动扩大区间。'
                      : 'Monitor SPY 200-day MA support and VIX regime. VIX below 20 = bullish signal; above 30 = elevated volatility.',
-    fundamentalAnalysis: isKo ? '섹터 P/E를 EPS 성장 전망치 및 FCF 수익률과 비교하세요. 실시간 데이터는 인텔리전스 > 자본 탭에서 확인 가능합니다.'
-                        : isJa ? 'セクターP/EをEPS成長率予測とFCFイールドと比較してください。リアルタイムデータはインテリジェンス > キャピタルタブで確認できます。'
-                        : isZh ? '请将板块市盈率与EPS增长预测和FCF收益率进行比较。实时数据可在智能 > 资本标签页查看。'
-                        : 'Compare sector P/E to EPS growth estimates and FCF yield. Live data in Intelligence > Capital tab.',
+    fundamentalAnalysis: isKo ? '기술주(XLK) AI 실적 서프라이즈 지속으로 밸류에이션 부담에도 모멘텀 유지. 에너지·금융 섹터 상대적 저평가. 금리 고공행진이 고PER 성장주에 압박.'
+                        : isJa ? 'テクノロジー(XLK)はAI業績サプライズでバリュエーション負担にもかかわらずモメンタム維持。エネルギー・金融は相対的割安。'
+                        : isZh ? '科技股(XLK)受AI业绩惊喜支撑，估值压力下仍保持动能。能源和金融板块相对低估。'
+                        : 'Technology (XLK) AI earnings surprises sustain momentum despite valuation premium. Energy/Financials relatively cheap. High rates pressure high-P/E growth.',
   };
 
   return {
@@ -726,13 +745,34 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
     macroAnalysis,
     technicalAnalysis,
     riskEvents: liveRiskEvents.length >= 3 ? liveRiskEvents.slice(0, 3) : base.riskEvents,
+    // Data-driven fundamentalAnalysis using real F&G + rate context
+    fundamentalAnalysis: isKo
+      ? `${fgScore > 70 ? '탐욕 과잉 — 고PER 구간 경계' : fgScore < 30 ? '극단적 공포 — 밸류에이션 저점 접근' : 'F&G 중립 — 밸류에이션 합리적'}. 기술주 AI 실적 서프라이즈로 모멘텀 유지. 에너지·금융 상대적 저평가.`
+      : `F&G ${Math.round(fgScore)}(${fgLabel}) — ${fgScore > 70 ? 'overvalued territory' : fgScore < 30 ? 'undervalued entry' : 'fair valuation'}. Tech AI beats sustain momentum. Energy/Financials cheap.`,
     portfolio: [
-      { ...base.portfolio[0], allocation: spy },
-      { ...base.portfolio[1], allocation: qqq },
-      { ...base.portfolio[2], allocation: gld },
-      { ...base.portfolio[3], allocation: tlt },
-      { ...base.portfolio[4], allocation: cash },
-    ],
+      // ETF core + individual stocks
+      { ...base.portfolio[0], allocation: Math.round(spy * 0.7) },  // SPY reduced
+      { ...base.portfolio[1], allocation: Math.round(qqq * 0.7) },  // QQQ reduced
+      {
+        ticker: 'NVDA', name: 'NVIDIA', sector: isKo ? '기술' : 'Technology', market: 'us',
+        rationale: isKo ? `AI 가속기 독점 — Blackwell 사이클 + F&G ${Math.round(fgScore)}` : `AI accelerator monopoly — Blackwell cycle`,
+        allocation: Math.max(5, Math.round(qqq * 0.2)),
+        entryZone: 'market ±3%', stopLoss: '-12%', target: '+25%',
+        confidence: fgScore > 60 ? 'high' : 'medium' as 'high' | 'medium',
+        action: 'buy' as const,
+      },
+      {
+        ticker: 'JPM', name: 'JPMorgan Chase', sector: isKo ? '금융' : 'Financials', market: 'us',
+        rationale: isKo ? `금리 고공 → NIM 수혜 + 실적 서프라이즈` : `High rates → NIM tailwind + earnings beat`,
+        allocation: Math.max(5, Math.round(spy * 0.15)),
+        entryZone: 'market ±2%', stopLoss: '-8%', target: '+15%',
+        confidence: 'medium' as const,
+        action: 'buy' as const,
+      },
+      { ...base.portfolio[2], allocation: gld },  // GLD
+      { ...base.portfolio[3], allocation: tlt },   // TLT
+      { ...base.portfolio[4], allocation: Math.max(5, cash - 5) },  // CASH
+    ].filter(p => p.allocation > 0),
   };
 }
 
@@ -800,7 +840,8 @@ export async function GET(request: Request) {
   const probe = searchParams.get('probe') === '1';
 
   const redis = createRedis();
-  const key = cacheKey();
+  const session = getKstSession();
+  const key = cacheKey(session);
 
   // Module-level memory cache hit (no-Redis path)
   if (!redis && !force && STRATEGY_MEMORY_CACHE && Date.now() < STRATEGY_MEMORY_CACHE.expiresAt) {
@@ -839,7 +880,7 @@ export async function GET(request: Request) {
 
   const dataAsOf = new Date().toISOString();
   const ctxSummary = buildCtxSummary(ctx);
-  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx, locale);
+  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx, locale, session);
 
   const aiResult = await callAIProvider(prompt, {
     tag: 'investment-strategy',

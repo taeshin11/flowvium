@@ -64,8 +64,11 @@ function parseEntryZone(zone: string): { lower: number | null; upper: number | n
 
 function safetyBadge(currentPrice: number | undefined, entryZone: string, t: Tr): { label: string; cls: string } | null {
   if (!currentPrice) return null;
+  if (!entryZone || entryZone === '-' || /market|±|N\/A/i.test(entryZone)) return null;
   const { lower, upper } = parseEntryZone(entryZone);
   if (!upper) return null;
+  // Sanity check: prices should be within reasonable range (not "1%" parsed as $1)
+  if (currentPrice > 0 && upper > 0 && (currentPrice / upper > 20 || upper / currentPrice > 20)) return null;
   if (currentPrice > upper * 1.03) {
     const overPct = Math.round((currentPrice - upper) / upper * 100);
     return { label: t('priceExpensive', { pct: overPct }), cls: 'bg-red-50 text-red-600 border border-red-200' };
