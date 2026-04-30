@@ -94,7 +94,9 @@ const COUNTRIES = [
 async function fetchPricesNasdaq(ticker: string): Promise<number[]> {
   const to = new Date().toISOString().slice(0, 10);
   const fromDate = new Date(Date.now() - 180 * 86400 * 1000).toISOString().slice(0, 10);
-  const url = `https://api.nasdaq.com/api/quote/${encodeURIComponent(ticker)}/historical?assetclass=etf&fromdate=${fromDate}&todate=${to}&limit=120&sortColumn=date&sortOrder=ASC&type=Historical`;
+  // DESC+reverse: get most-recent 120 rows, then chronological order
+  // ASC+limit=120 was wrong — missed the most recent ~6 trading days
+  const url = `https://api.nasdaq.com/api/quote/${encodeURIComponent(ticker)}/historical?assetclass=etf&fromdate=${fromDate}&todate=${to}&limit=120&sortColumn=date&sortOrder=DESC&type=Historical`;
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
     signal: AbortSignal.timeout(8000),
@@ -105,7 +107,8 @@ async function fetchPricesNasdaq(ticker: string): Promise<number[]> {
   const rows = (data?.data?.tradesTable?.rows ?? []) as Array<{ close: string }>;
   const closes = rows
     .map(r => parseFloat((r.close ?? '').replace(',', '')))
-    .filter(v => !isNaN(v) && v > 0);
+    .filter(v => !isNaN(v) && v > 0)
+    .reverse(); // DESC → ASC (oldest first) so pctReturn indexes work correctly
   if (closes.length < 20) throw new Error(`Nasdaq: insufficient data (${closes.length} rows)`);
   return closes;
 }
@@ -317,8 +320,8 @@ async function fetchAllPrices(
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 
-function pctReturn(prices: number[], days: number): number {
-  if (prices.length < days + 1) return 0;
+function pctReturn(prices: number[], days: number): number | null {
+  if (prices.length < days + 1) return null;
   const last = prices[prices.length - 1];
   const prev = prices[prices.length - 1 - days];
   return parseFloat(((last - prev) / prev * 100).toFixed(2));
@@ -385,7 +388,7 @@ type RotationEntry = {
   weeksAgo: number; startDate: string; momentum: 'accelerating' | 'holding' | 'fading';
 };
 
-type AssetResult = { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number; ret4w: number; ret13w: number; sparkline?: number[] };
+type AssetResult = { id: string; label: string; flag: string; group: string; ticker: string; ret1w: number | null; ret4w: number | null; ret13w: number | null; sparkline?: number[] };
 
 function buildRotations(
   results: AssetResult[],
@@ -397,8 +400,10 @@ function buildRotations(
   const maxWeeks = retKey === 'ret1w' ? 2 : retKey === 'ret4w' ? 5 : 13;
   const groupPerf: Record<string, number[]> = {};
   for (const r of results) {
+    const val = r[retKey];
+    if (val == null) continue;
     if (!groupPerf[r.group]) groupPerf[r.group] = [];
-    groupPerf[r.group].push(r[retKey]);
+    groupPerf[r.group].push(val);
   }
   const groupAvg = Object.entries(groupPerf).map(([group, vals]) => ({
     group,
@@ -424,12 +429,13 @@ function buildRotations(
 }
 
 function detectRotation(results: AssetResult[], priceMap: Record<string, number[]>) {
-  const sorted4w = [...results].sort((a, b) => b.ret4w - a.ret4w);
+  const sorted4w = [...results].sort((a, b) => (b.ret4w ?? -999) - (a.ret4w ?? -999));
   const topInflows = sorted4w.slice(0, 5);
   const topOutflows = sorted4w.slice(-5).reverse();
 
   const groupPerf: Record<string, number[]> = {};
   for (const r of results) {
+    if (r.ret4w == null) continue;
     if (!groupPerf[r.group]) groupPerf[r.group] = [];
     groupPerf[r.group].push(r.ret4w);
   }
@@ -511,14 +517,15 @@ export async function GET() {
       ret13w: pctReturn(prices, 65),
       sparkline,
     };
-  }).filter((r) => r.ret4w !== 0 || r.ret13w !== 0);
+  }).filter((r) => r.ret4w != null || r.ret13w != null);
 
   const flow = detectRotation(results, priceMap);
 
   const gldPrices = priceMap['GLD'] ?? [];
   const uupPrices = priceMap['UUP'] ?? [];
 
-  function goldSignal(g: number, d: number): string {
+  function goldSignal(g: number | null, d: number | null): string {
+    if (g == null || d == null) return 'mixed';
     return g > d + 2 ? 'gold_preferred' : d > g + 2 ? 'dollar_preferred' : 'mixed';
   }
 
@@ -546,20 +553,22 @@ export async function GET() {
       ret4w:  pctReturn(prices, 20),
       ret13w: pctReturn(prices, 65),
     };
-  }).filter((r) => r.ret4w !== 0 || r.ret13w !== 0);
+  }).filter((r) => r.ret4w != null || r.ret13w != null);
 
   // Build country rotation (top 3 pairs per timeframe)
   function buildCountryRotations(retKey: 'ret1w' | 'ret4w' | 'ret13w', minSpread: number) {
-    const sorted = [...countryResults].sort((a, b) => b[retKey] - a[retKey]);
+    const sorted = [...countryResults].sort((a, b) => (b[retKey] ?? -999) - (a[retKey] ?? -999));
     const pairs: { from: string; fromFlag: string; fromId: string; to: string; toFlag: string; toId: string; magnitude: number; momentum: 'accelerating' | 'holding' | 'fading' }[] = [];
     for (let i = 0; i < Math.min(sorted.length, 4); i++) {
       for (let j = sorted.length - 1; j >= Math.max(0, sorted.length - 4); j--) {
         if (i >= j) continue;
-        const spread = parseFloat((sorted[i][retKey] - sorted[j][retKey]).toFixed(1));
+        const vi = sorted[i][retKey]; const vj = sorted[j][retKey];
+        if (vi == null || vj == null) continue;
+        const spread = parseFloat((vi - vj).toFixed(1));
         if (spread > minSpread) {
           // Estimate momentum: compare 1w vs 4w per-week
-          const spread1w = sorted[i].ret1w - sorted[j].ret1w;
-          const spread4wPerWeek = (sorted[i].ret4w - sorted[j].ret4w) / 4;
+          const spread1w = (sorted[i].ret1w ?? 0) - (sorted[j].ret1w ?? 0);
+          const spread4wPerWeek = ((sorted[i].ret4w ?? 0) - (sorted[j].ret4w ?? 0)) / 4;
           const momentum: 'accelerating' | 'holding' | 'fading' =
             spread1w > spread4wPerWeek * 1.3 ? 'accelerating' :
             spread1w < spread4wPerWeek * 0.4 ? 'fading' : 'holding';
@@ -586,7 +595,7 @@ export async function GET() {
       ret4w:  pctReturn(prices, 20),
       ret13w: pctReturn(prices, 65),
     };
-  }).filter(f => f.ret4w !== 0 || f.ret13w !== 0);
+  }).filter(f => f.ret4w != null || f.ret13w != null);
 
   // ── US Sector performance ─────────────────────────────────────────────────
   const sectorPerformance = SECTORS.map(s => {
@@ -597,7 +606,7 @@ export async function GET() {
       ret4w:  pctReturn(prices, 20),
       ret13w: pctReturn(prices, 65),
     };
-  }).filter(s => s.ret4w !== 0 || s.ret13w !== 0);
+  }).filter(s => s.ret4w != null || s.ret13w != null);
 
   const response = { assets: results, flow, goldVsDollar, countryFlow, factorPerformance, sectorPerformance, dataSource: sourceSummary || dataSource, updatedAt: new Date().toISOString() };
 
