@@ -1,5 +1,6 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
+import { logRotationSignals, getEffectiveThresholds } from '@/lib/signal-accuracy';
 /**
  * /api/capital-flows
  *
@@ -428,7 +429,7 @@ function buildRotations(
   return rotations.sort((a, b) => b.magnitude - a.magnitude).slice(0, 5);
 }
 
-function detectRotation(results: AssetResult[], priceMap: Record<string, number[]>) {
+function detectRotation(results: AssetResult[], priceMap: Record<string, number[]>, thresholds = { '1w': 0.5, '4w': 1.5, '13w': 3.0 }) {
   const sorted4w = [...results].sort((a, b) => (b.ret4w ?? -999) - (a.ret4w ?? -999));
   const topInflows = sorted4w.slice(0, 5);
   const topOutflows = sorted4w.slice(-5).reverse();
@@ -448,9 +449,9 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
     topInflows,
     topOutflows,
     groupAvg,
-    rotations1w:  buildRotations(results, priceMap, 'ret1w',  0.5),
-    rotations4w:  buildRotations(results, priceMap, 'ret4w',  1.5),
-    rotations13w: buildRotations(results, priceMap, 'ret13w', 3.0),
+    rotations1w:  buildRotations(results, priceMap, 'ret1w',  thresholds['1w']),
+    rotations4w:  buildRotations(results, priceMap, 'ret4w',  thresholds['4w']),
+    rotations13w: buildRotations(results, priceMap, 'ret13w', thresholds['13w']),
   };
 }
 
@@ -519,7 +520,10 @@ export async function GET() {
     };
   }).filter((r) => r.ret4w != null || r.ret13w != null);
 
-  const flow = detectRotation(results, priceMap);
+  // Karpathy Loop: 동적 임계값 (정확도 기반 자동 조정)
+  const thresholds = redis ? await getEffectiveThresholds(redis) : { '1w': 0.5, '4w': 1.5, '13w': 3.0 };
+
+  const flow = detectRotation(results, priceMap, thresholds);
 
   const gldPrices = priceMap['GLD'] ?? [];
   const uupPrices = priceMap['UUP'] ?? [];
@@ -623,6 +627,21 @@ export async function GET() {
         ]);
       }
       logger.info('capital-flows', 'cache_saved', { assets: results.length, failedTickers: sourceCount['failed'] ?? 0 });
+
+      // Karpathy Loop: 로테이션 신호 저장 (1W/4W/13W 각각)
+      const TICKER_MAP: Record<string, string> = {
+        equity: 'SPY', bonds: 'TLT', alts: 'GLD', commodities: 'USO',
+        oil: 'USO', energy: 'XLE', agri: 'DBA', currency: 'UUP',
+      };
+      const signalPromises: Promise<void>[] = [];
+      for (const tf of ['1w', '4w', '13w'] as const) {
+        const key = tf === '1w' ? 'rotations1w' : tf === '4w' ? 'rotations4w' : 'rotations13w';
+        const rots = (flow as Record<string, unknown>)[key] as Array<{ from: string; to: string; magnitude: number }> ?? [];
+        if (rots.length) {
+          signalPromises.push(logRotationSignals(redis, rots, tf, TICKER_MAP));
+        }
+      }
+      if (signalPromises.length) await Promise.all(signalPromises).catch(() => {});
     } catch (e) { logger.warn('capital-flows', 'cache_write_error', { error: e }); }
   }
 

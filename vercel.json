@@ -29,6 +29,7 @@
     { "path": "/api/cron/update-signals", "schedule": "0 2 * * *"   },
     { "path": "/api/cron/update-credit-balance", "schedule": "30 3 * * *" },
     { "path": "/api/cron/verify-metrics", "schedule": "*/30 * * * *" },
-    { "path": "/api/cron/send-alerts",   "schedule": "0 */4 * * *"  }
+    { "path": "/api/cron/send-alerts",   "schedule": "0 */4 * * *"  },
+    { "path": "/api/cron/evaluate-signals", "schedule": "0 3 * * 0" }
   ]
 }
