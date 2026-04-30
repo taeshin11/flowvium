@@ -503,6 +503,23 @@ export default function ReportPage() {
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
           </div>
 
+          {/* ── S6: 시장 내러티브 (Why + Watch + Story) ─────────────────────── */}
+          {data.marketNarrative && (
+            <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <span className="text-sm font-bold text-amber-800">📖 시장 내러티브</span>
+                {data.marketNarrative.sessionNote && (
+                  <span className="text-[10px] text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">{data.marketNarrative.sessionNote}</span>
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">WHY</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.why}</span></div>
+                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">WATCH</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.watch}</span></div>
+                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">STORY</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.story}</span></div>
+              </div>
+            </div>
+          )}
+
           {/* ── Buy Recommendations strip ─────────────────────────────────── */}
           {data.portfolio.some(p => p.action === 'buy') && (
             <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3 flex-wrap">
@@ -546,6 +563,44 @@ export default function ReportPage() {
             </div>
           </div>
 
+          {/* ── S4: 기회 신호 (숏스퀴즈 + 내부자) ──────────────────────────── */}
+          {(data.shortSqueeze?.length || data.insiderSignals?.length) && (
+            <div className="mb-5 rounded-xl border border-orange-100 bg-orange-50 p-4">
+              <p className="text-sm font-bold text-orange-800 mb-3">⚡ 기회 신호</p>
+              {data.topOpportunity && (
+                <p className="text-xs text-orange-700 bg-orange-100 rounded-lg px-3 py-2 mb-3 font-medium">{data.topOpportunity}</p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {data.shortSqueeze?.length ? (
+                  <div>
+                    <p className="text-xs font-bold text-orange-700 mb-2">🔥 숏스퀴즈 후보</p>
+                    {data.shortSqueeze.map((s, i) => (
+                      <div key={i} className="mb-2 text-xs">
+                        <span className="font-bold text-orange-800">{s.ticker}</span>
+                        <span className="text-orange-600 ml-1">score={s.score}</span>
+                        <p className="text-gray-600 mt-0.5">{s.timing}</p>
+                        <p className="text-red-500 text-[10px]">리스크: {s.risk}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {data.insiderSignals?.length ? (
+                  <div>
+                    <p className="text-xs font-bold text-orange-700 mb-2">👤 내부자 집중 매매</p>
+                    {data.insiderSignals.map((s, i) => (
+                      <div key={i} className="mb-2 text-xs">
+                        <span className="font-bold text-orange-800">{s.ticker}</span>
+                        <span className="text-orange-600 ml-1">{s.filings}건</span>
+                        <p className="text-gray-600 mt-0.5">{s.significance}</p>
+                        <p className="text-gray-500 text-[10px]">{s.pattern}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+
           {/* ── Portfolio ─────────────────────────────────────────────────── */}
           {data.portfolio.length > 0 && (
             <div className="mb-5">
@@ -558,6 +613,30 @@ export default function ReportPage() {
                   <PortfolioCard key={item.ticker} item={item} rank={i + 1} />
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ── S5: 리스크 관리 (손절 근거 + 헤징) ──────────────────────────── */}
+          {(data.stopLossRationale?.length || data.hedgingSuggestion) && (
+            <div className="mb-5 rounded-xl border border-red-100 bg-red-50 p-4">
+              <p className="text-sm font-bold text-red-800 mb-3">🛡️ 리스크 관리</p>
+              {data.portfolioRiskNote && (
+                <p className="text-xs text-red-700 bg-red-100 rounded-lg px-3 py-2 mb-3">{data.portfolioRiskNote}</p>
+              )}
+              {data.hedgingSuggestion && (
+                <p className="text-xs text-gray-700 mb-3">💡 {data.hedgingSuggestion}</p>
+              )}
+              {data.stopLossRationale?.length ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-red-700">손절 근거</p>
+                  {data.stopLossRationale.map((s, i) => (
+                    <div key={i} className="flex gap-2 text-xs">
+                      <span className="font-bold text-red-800 w-12 shrink-0">{s.ticker}</span>
+                      <span className="text-gray-600">{s.rationale}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
 

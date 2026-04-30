@@ -4,8 +4,12 @@ import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider } from '@/lib/ai-providers';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
-import { buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt, buildCritiquePrompt, applyCritique } from '@/lib/investment-prompts';
-import type { CtxForPrompts, CritiqueInput } from '@/lib/investment-prompts';
+import {
+  buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt,
+  buildOpportunityPrompt, buildRiskMgmtPrompt, buildNarrativePrompt,
+  buildCritiquePrompt, applyCritique,
+} from '@/lib/investment-prompts';
+import type { CtxForPrompts, CritiqueInput, RiskMgmtInput } from '@/lib/investment-prompts';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -77,10 +81,6 @@ export interface RegionStance {
 export interface InvestmentStrategy {
   stance: 'bullish' | 'neutral' | 'bearish';
   thesis: string;
-  /**
-   * Per-country/region outlook.
-   * Keys: "us" | "korea" | "japan" | "china" | "europe" | "india" | "taiwan" | "brazil" | "australia" | "global"
-   */
   regionStances?: Record<string, RegionStance>;
   portfolio: PortfolioItem[];
   sectorAllocation: SectorWeight[];
@@ -89,6 +89,16 @@ export interface InvestmentStrategy {
   technicalAnalysis: string;
   fundamentalAnalysis: string;
   riskLevel: 'low' | 'medium' | 'high';
+  // S4: 기회 신호
+  shortSqueeze?: Array<{ ticker: string; score: number; timing: string; risk: string }>;
+  insiderSignals?: Array<{ ticker: string; filings: number; significance: string; pattern: string }>;
+  topOpportunity?: string;
+  // S5: 리스크 관리
+  stopLossRationale?: Array<{ ticker: string; rationale: string }>;
+  hedgingSuggestion?: string;
+  portfolioRiskNote?: string;
+  // S6: 시장 내러티브
+  marketNarrative?: { why: string; watch: string; story: string; sessionNote: string };
   generatedAt: string;
   dataAsOf?: string;
   source: string;
@@ -1038,27 +1048,45 @@ export async function GET(request: Request) {
     assetFg: ctxSummary.assetFg, bbWarnings: ctxSummary.bbWarnings,
   };
 
-  const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, maxTokens: 900, temperature: 0.55, timeoutMs: 45000 };
+  const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.55, timeoutMs: 40000 };
+  const parseSec = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
 
-  const [macroResult, portfolioResult, regionalResult] = await Promise.all([
-    callAIProvider(buildMacroPrompt(ctxForPrompts, vixCtx, locale, session), { ...aiOpts, tag: 'invest-macro' }),
-    callAIProvider(buildPortfolioPrompt(ctxForPrompts, sectorPe, earnings, priceData, locale), { ...aiOpts, tag: 'invest-portfolio' }),
-    callAIProvider(buildRegionalPrompt(ctxForPrompts, locale), { ...aiOpts, tag: 'invest-regional' }),
+  // ── Wave 1: 5섹션 병렬 (서로 독립적) ───────────────────────────────────────
+  const [macroResult, portfolioResult, regionalResult, opportunityResult, narrativeResult] = await Promise.all([
+    callAIProvider(buildMacroPrompt(ctxForPrompts, vixCtx, locale, session),               { ...aiOpts, tag: 'invest-macro',      maxTokens: 800 }),
+    callAIProvider(buildPortfolioPrompt(ctxForPrompts, sectorPe, earnings, priceData, locale), { ...aiOpts, tag: 'invest-portfolio', maxTokens: 1000 }),
+    callAIProvider(buildRegionalPrompt(ctxForPrompts, locale),                              { ...aiOpts, tag: 'invest-regional',   maxTokens: 700 }),
+    callAIProvider(buildOpportunityPrompt(ctxForPrompts, locale),                           { ...aiOpts, tag: 'invest-opportunity',maxTokens: 500 }),
+    callAIProvider(buildNarrativePrompt(ctxForPrompts, session, locale),                    { ...aiOpts, tag: 'invest-narrative',  maxTokens: 500 }),
   ]);
 
-  // 3섹션 파싱 후 조합
-  const parseMacro = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
-  const macroData = parseMacro(macroResult.text);
-  const portfolioData = parseMacro(portfolioResult.text);
-  const regionalData = parseMacro(regionalResult.text);
+  const macroData      = parseSec(macroResult.text);
+  const portfolioData  = parseSec(portfolioResult.text);
+  const regionalData   = parseSec(regionalResult.text);
+  const opportunityData = parseSec(opportunityResult.text);
+  const narrativeData  = parseSec(narrativeResult.text);
 
-  // fallback source 결정 (가장 좋은 provider 우선)
-  const bestSource = [macroResult, portfolioResult, regionalResult].find(r => r.source !== 'fallback')?.source ?? 'fallback';
+  // ── Wave 2: S5 리스크 관리 (S2 포트폴리오 완성 후) ─────────────────────────
+  let riskData: Record<string, unknown> | null = null;
+  if (portfolioData?.portfolio?.length) {
+    const riskInput: RiskMgmtInput = {
+      portfolio: (portfolioData.portfolio as Array<{ ticker: string; entryZone: string; stopLoss: string; allocation: number; action: string }>),
+      riskLevel: macroData?.riskLevel ?? 'medium',
+      bbWarnings: ctxSummary.bbWarnings,
+      vix: vixCtx,
+    };
+    const riskResult = await callAIProvider(buildRiskMgmtPrompt(riskInput, locale), { ...aiOpts, tag: 'invest-risk', maxTokens: 600 });
+    riskData = parseSec(riskResult.text);
+  }
 
-  // 합산된 단일 결과 텍스트로 parseStrategy 우회 후 직접 조합
+  // fallback source 결정
+  const bestSource = [macroResult, portfolioResult, regionalResult, opportunityResult, narrativeResult]
+    .find(r => r.source !== 'fallback')?.source ?? 'fallback';
+
+  // ── 7섹션 조합 ──────────────────────────────────────────────────────────────
   const combinedStrategy: InvestmentStrategy | null = portfolioData?.portfolio ? {
     stance: portfolioData.stance ?? 'neutral',
-    thesis: macroData?.thesis ?? portfolioData.stance ?? '데이터 기반 배분',
+    thesis: macroData?.thesis ?? '데이터 기반 배분',
     portfolio: portfolioData.portfolio ?? [],
     sectorAllocation: portfolioData.sectorAllocation ?? [],
     riskEvents: macroData?.riskEvents ?? [],
@@ -1067,6 +1095,16 @@ export async function GET(request: Request) {
     fundamentalAnalysis: macroData?.fundamentalAnalysis ?? '',
     riskLevel: macroData?.riskLevel ?? 'medium',
     regionStances: regionalData?.regionStances ?? undefined,
+    // S4: 기회 신호
+    shortSqueeze: opportunityData?.shortSqueeze ?? undefined,
+    insiderSignals: opportunityData?.insiderSignals ?? undefined,
+    topOpportunity: opportunityData?.topOpportunity ?? undefined,
+    // S5: 리스크 관리
+    stopLossRationale: riskData?.stopLossRationale as InvestmentStrategy['stopLossRationale'] ?? undefined,
+    hedgingSuggestion: riskData?.hedgingSuggestion as string ?? undefined,
+    portfolioRiskNote: riskData?.portfolioRiskNote as string ?? undefined,
+    // S6: 시장 내러티브
+    marketNarrative: narrativeData ?? undefined,
     generatedAt: dataAsOf,
     dataAsOf,
     source: bestSource,
@@ -1083,6 +1121,9 @@ export async function GET(request: Request) {
   // AI가 자신의 Draft 포트폴리오를 반박 → REVISE/WARN → 반영
   if (strategy && strategy.portfolio?.length > 0 && bestSource !== 'fallback') {
     try {
+      // Critic에 S4 기회신호 요약 추가 (Codex 권장: ~150 tokens, 상위 2개만)
+      const s4Summary = strategy.shortSqueeze?.slice(0, 2)
+        .map(s => `${s.ticker}:squeeze${s.score}(${s.timing})`).join(', ') ?? '';
       const critiqueInput: CritiqueInput = {
         portfolio: strategy.portfolio.map(p => ({
           ticker: p.ticker,
@@ -1092,7 +1133,7 @@ export async function GET(request: Request) {
           target: p.target ?? '',
         })),
         macroAnalysis: strategy.macroAnalysis ?? '',
-        bbWarnings: ctxSummary.bbWarnings,
+        bbWarnings: ctxSummary.bbWarnings + (s4Summary ? ` | S4기회:${s4Summary}` : ''),
         assetFg: ctxSummary.assetFg,
       };
       const critiqueResult = await callAIProvider(

@@ -147,7 +147,88 @@ export function buildRegionalPrompt(ctx: CtxForPrompts, locale = 'en'): string {
   ].join('\n');
 }
 
-// ── Section 4: Karpathy Loop — 자기비판 (Critic) ─────────────────────────────
+// ── Section 4: 기회 신호 분석 (숏스퀴즈 + 내부자 매매) ───────────────────────
+// 숏스퀴즈 후보와 내부자 집중매매 패턴을 전문적으로 분석
+export function buildOpportunityPrompt(ctx: CtxForPrompts, locale = 'en'): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const lang = LOCALE_LANG[locale] ?? 'Korean';
+  return [
+    `You are a short squeeze and insider trading specialist. Date: ${today}. Write in ${lang}.`,
+    '',
+    `[Short Squeeze Candidates] ${ctx.shorts || 'None'}`,
+    `[Insider + Institutional Signals] ${ctx.institutional}`,
+    `[Asset F&G (sector sentiment)] ${ctx.assetFg || 'No data'}`,
+    '',
+    'For each SHORT SQUEEZE candidate, analyze:',
+    '- squeeze_score: the level (scale of urgency)',
+    '- timing: when squeeze could trigger (near-term catalyst?)',
+    '- risk: what could prevent the squeeze',
+    '',
+    'For INSIDER signals with 5+ filings (집중매매감지):',
+    '- significance: why this matters (officer level, size)',
+    '- pattern: accumulation vs single trade',
+    '',
+    'Respond in pure JSON:',
+    '{"shortSqueeze":[{"ticker":"SMCI","score":48,"timing":"실적발표 전 48시간내 폭발 가능","risk":"추가 숏 진입 시 완화"}],"insiderSignals":[{"ticker":"CRWV","filings":63,"significance":"임원급 대규모 매집, 내부 정보 신호","pattern":"연속 매집"}],"topOpportunity":"가장 주목할 기회 1개 100자"}',
+    'Pure JSON only.',
+  ].join('\n');
+}
+
+// ── Section 5: 리스크 관리 (손절 + 헤징 전략) ────────────────────────────────
+// 각 포트폴리오 항목의 손절 근거와 전체 포트폴리오 헤징 전략
+export interface RiskMgmtInput {
+  portfolio: Array<{ ticker: string; entryZone: string; stopLoss: string; allocation: number; action: string }>;
+  riskLevel: string;
+  bbWarnings: string;
+  vix: string;
+}
+export function buildRiskMgmtPrompt(input: RiskMgmtInput, locale = 'en'): string {
+  const lang = LOCALE_LANG[locale] ?? 'Korean';
+  const positions = input.portfolio.map(p =>
+    `${p.ticker}(${p.allocation}%): entry=${p.entryZone} stop=${p.stopLoss} action=${p.action}`
+  ).join('\n');
+  return [
+    `You are a risk manager. Write in ${lang}.`,
+    '',
+    `[Portfolio Positions] ${positions}`,
+    `[Overall Risk Level] ${input.riskLevel}`,
+    `[BB Overextension] ${input.bbWarnings || 'None'}`,
+    `[VIX] ${input.vix || 'No data'}`,
+    '',
+    'For each position, provide stop-loss rationale (WHY this level, not just the number).',
+    'Also provide overall portfolio hedging suggestion.',
+    '',
+    'Respond in pure JSON:',
+    '{"stopLossRationale":[{"ticker":"NVDA","rationale":"$190은 8월 저점 지지선이자 200일 이평선, 이탈 시 추세전환"}],"hedgingSuggestion":"VIX 18 저변동 → TLT 5% 헤지 + GLD 5% 인플레 헤지","portfolioRiskNote":"포트폴리오 전체 리스크 평가 100자"}',
+    'Pure JSON only.',
+  ].join('\n');
+}
+
+// ── Section 6: 시장 내러티브 (Why + Next) ─────────────────────────────────────
+// 시장이 왜 이렇게 움직이는지, 다음에 무엇을 봐야 하는지
+export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', locale = 'en'): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const lang = LOCALE_LANG[locale] ?? 'Korean';
+  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : '미국장 개장 전';
+  return [
+    `You are a market narrative writer. Session: ${sc} ${today}. Write in ${lang}.`,
+    '',
+    `[Capital Flow Story] ${ctx.flows}`,
+    `[News Events] ${ctx.news}`,
+    `[Macro Context] ${ctx.macro}`,
+    '',
+    'Write 3 things:',
+    '1. WHY: 지금 시장이 이렇게 움직이는 핵심 이유 (1-2문장, 구체적)',
+    '2. WATCH: 다음 24-48시간 내 가장 중요한 관찰 포인트',
+    '3. STORY: 전반적인 시장 스토리 (투자자가 이해할 수 있게, 3문장)',
+    '',
+    'Respond in pure JSON:',
+    '{"why":"구체적 이유 100자","watch":"관찰포인트 80자","story":"시장스토리 200자","sessionNote":"이 세션의 특이사항 60자"}',
+    'Pure JSON only.',
+  ].join('\n');
+}
+
+// ── Section 7: Karpathy Loop — 자기비판 (Critic) ─────────────────────────────
 // Draft 포트폴리오를 반박하는 역할. 약점 발견 → rationale 수정 제안.
 // AutoResearch의 "val_bpb로 평가 후 리버트" 대신 AI가 자체 평가.
 export interface CritiqueInput {
