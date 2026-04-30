@@ -1,0 +1,26 @@
+# iter268 — 실적 기업명 + 스크리너 1W/4W + flowvium.net 도메인
+
+## 날짜
+2026-04-30
+
+## 수행 작업
+
+### 실적 캘린더 기업명 (earnings/route.ts)
+- 문제: resolveCompanyNames가 Finnhub profile2로 요청당 20개만 조회 → 1500개 중 29개 이름만 있음
+- 수정: Yahoo v7 batch quote (100개/request)로 교체 → 요청 즉시 전체 커버
+- Redis 7d 캐시 유지
+
+### 스크리너 1W/4W 수익률 (batch-prices/route.ts + ScreenerPage.tsx)
+- 문제: 1W/4W 탭에서 기간 수익률 없음, 일간 changePct만 표시
+- 수정:
+  - batch-prices에 ?period=1w|4w 파라미터 추가
+  - Yahoo spark 배치 호출로 기간 수익률 계산
+  - Bloomberg 스타일: 데이터 부족 시 available oldest로 유추
+  - 1w/4w 인사이더 테이블에 현재가 + 기간수익률 컬럼 추가
+
+### flowvium.net 도메인 연결
+- vercel domains add flowvium.net + www.flowvium.net 완료
+- 필요한 Gabia DNS 작업: A 레코드 @ → 76.76.21.21, www → 76.76.21.21
+
+## 커밋
+0ad84ed

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  quality:
+    name: Lint + Type-check + Pattern audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript (noEmit)
+        run: npx tsc --noEmit
+
+      # ── Pattern audits — catch known recurring bug classes ──────────────
+      - name: Audit — no direct redis.set() in API routes
+        run: |
+          HITS=$(grep -rn --include="route.ts" "redis\.set(" src/app/api/ \
+            | grep -v "loggedRedisSet\|# allow\|lock\|nx:" || true)
+          if [ -n "$HITS" ]; then
+            echo "❌ Direct redis.set() found (use loggedRedisSet or loggedRedisSetNx):"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "✅ No bare redis.set() in API routes"
+
+      - name: Audit — no ?? 0 / || 0 return-coercion in API routes
+        run: |
+          HITS=$(grep -rn --include="route.ts" "\?\? 0\b\||| 0\b" src/app/api/ \
+            | grep -v "# allow\|/ \(.*\|1\)" || true)
+          if [ -n "$HITS" ]; then
+            echo "⚠️  Potential null-coerced-to-0 pattern found — verify each is intentional:"
+            echo "$HITS"
+            echo "If intentional, add '# allow' comment on that line."
+            exit 1
+          fi
+          echo "✅ No unreviewed ?? 0 patterns"
+
+      - name: Audit — no sortOrder=ASC with limit (Nasdaq stale-data bug pattern)
+        run: |
+          HITS=$(grep -rn "sortOrder=ASC.*limit\|limit.*sortOrder=ASC" src/ || true)
+          if [ -n "$HITS" ]; then
+            echo "❌ sortOrder=ASC+limit pattern detected (use DESC+reverse for recent data):"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "✅ No ASC+limit sort pattern"
+
+      - name: Audit — TTL constants not inline literals
+        run: |
+          # Warn if any route has a bare numeric Redis ex: value > 3600 that isn't a named constant
+          HITS=$(grep -rn --include="route.ts" "ex: [0-9]\{4,\}" src/app/api/ || true)
+          if [ -n "$HITS" ]; then
+            echo "⚠️  Bare numeric TTL (>9999s) — consider a named const:"
+            echo "$HITS"
+          fi
+          echo "ℹ️  TTL audit complete (informational)"

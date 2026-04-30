@@ -1,0 +1,36 @@
+# iter267 — P2 버그픽스 + METRICS TTL drift 수정
+
+## 날짜
+2026-04-30
+
+## 수행 작업
+
+### 코드 수정 (3곳)
+1. src/app/api/stock-price/[ticker]/route.ts
+   - memory miss 후 Redis primary key 읽기 추가
+   - hit 시 memory 재주입 → Yahoo/Finnhub/Twelve cold start 호출 감소
+
+2. src/app/api/earnings/route.ts:241
+   - redis.set() 직접 사용 → loggedRedisSet() 통일
+   - 규칙: "Redis 쓰기: 직접 redis.set 금지, loggedRedisSet 사용"
+
+3. src/app/api/flow-analysis/route.ts
+   - JSDoc 주석 "Cache: 4h Redis" → "Cache: 8h Redis" (실제 CACHE_TTL_S = 8h)
+
+### METRICS.md TTL drift 수정 (6건)
+| 엔드포인트 | 기존 | 수정 |
+|-----------|------|------|
+| /api/fear-greed (E1) | Redis 1h | Redis 4h |
+| /api/insider-trades (E8) | Redis 2h | Redis 30min |
+| /api/nport-holdings (E10) | Redis 24h | Redis 6h |
+| /api/market-heatmap (E13) | Redis 1h | Redis 15min |
+| /api/flow-analysis (E19) | Redis 1h | Redis 8h |
+| /api/company-news (#322) | Redis 30min | Redis 2h |
+
+## 엔드포인트 상태
+- 186 OK / 0 error / 0 degraded (Codex 조사 + verify-metrics 직접 확인)
+- F&G US: 64 greed (2일 전 67에서 정상 변화 중)
+- Vercel cron 정상 작동 중 (update-all 3회/일, verify-metrics 30분마다)
+
+## 커밋
+559d25a
