@@ -1,4 +1,5 @@
-import { logger, loggedRedisSet} from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
+import { logMetrics } from '@/lib/metrics-db';
 /**
  * /api/macro-indicators
  *
@@ -1034,13 +1035,30 @@ export async function GET(request: Request) {
   }
 
   const yc = get(yieldCurve as PromiseSettledResult<{ points: YieldPoint[]; inverted: boolean; spread10y2y: number | null } | null>) ?? { points: [], inverted: false, spread10y2y: null };
-  const response = { indicators, yieldCurve: yc, updatedAt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const response = { indicators, yieldCurve: yc, updatedAt: now };
 
   if (redis) {
     try {
       await loggedRedisSet(redis, 'api.macro-indicators', key, response, { ex: 25 * 60 * 60 });
       logger.info('macro-indicators', 'cache_saved', { indicators: indicators.length });
     } catch (e) { logger.warn('macro-indicators', 'cache_write_error', { error: e }); }
+
+    // ── metrics-db: 발표된 실제값 영구 기록 ───────────────────────────────
+    const dbItems = indicators
+      .filter(ind => ind.actual != null)
+      .map(ind => ({
+        key: `macro.actual.${ind.id}`,
+        label: `${ind.name} (실제값)`,
+        group: 'macro-actual' as const,
+        status: 'ok' as const,
+        value: `${ind.actual}${ind.unit ?? ''}`,
+        source: 'FRED',
+      }));
+    if (dbItems.length > 0) {
+      await logMetrics(redis, dbItems, now).catch(() => {});
+      logger.info('macro-indicators', 'mdb_written', { count: dbItems.length });
+    }
   }
 
   // Module-level memory cache write (no-Redis path)
