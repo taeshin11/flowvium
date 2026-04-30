@@ -4,6 +4,8 @@ import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider } from '@/lib/ai-providers';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
+import { buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt } from '@/lib/investment-prompts';
+import type { CtxForPrompts } from '@/lib/investment-prompts';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -1026,24 +1028,60 @@ export async function GET(request: Request) {
 
   const dataAsOf = new Date().toISOString();
   const ctxSummary = buildCtxSummary(ctx);
-  const prompt = buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx, locale, session);
+  const priceData = pricesSection(livePrices);
 
-  // investment-strategy: GROQ 우선 (오늘 49 requests 남음), Gemini 쿼타 소진 시 GROQ 필수
-  const aiResult = await callAIProvider(prompt, {
-    tag: 'investment-strategy',
-    skipVllm: true,
-    skipGroq: false, // GROQ 활성화 — 오늘 남은 quota 사용
-    maxTokens: 1400,
-    temperature: 0.55,
-    timeoutMs: 60000,
-  });
-  let strategy = parseStrategy(aiResult.text, aiResult.source);
+  // ── 3섹션 병렬 AI 호출 ──────────────────────────────────────────────────────
+  const ctxForPrompts: CtxForPrompts = {
+    macro: ctxSummary.macro, sentiment: ctxSummary.sentiment, flows: ctxSummary.flows,
+    cot: ctxSummary.cot, commodity: ctxSummary.commodity, institutional: ctxSummary.institutional,
+    shorts: ctxSummary.shorts, news: ctxSummary.news, koreaFlow: ctxSummary.koreaFlow,
+    assetFg: ctxSummary.assetFg, bbWarnings: ctxSummary.bbWarnings,
+  };
+
+  const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, maxTokens: 900, temperature: 0.55, timeoutMs: 45000 };
+
+  const [macroResult, portfolioResult, regionalResult] = await Promise.all([
+    callAIProvider(buildMacroPrompt(ctxForPrompts, vixCtx, locale, session), { ...aiOpts, tag: 'invest-macro' }),
+    callAIProvider(buildPortfolioPrompt(ctxForPrompts, sectorPe, earnings, priceData, locale), { ...aiOpts, tag: 'invest-portfolio' }),
+    callAIProvider(buildRegionalPrompt(ctxForPrompts, locale), { ...aiOpts, tag: 'invest-regional' }),
+  ]);
+
+  // 3섹션 파싱 후 조합
+  const parseMacro = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
+  const macroData = parseMacro(macroResult.text);
+  const portfolioData = parseMacro(portfolioResult.text);
+  const regionalData = parseMacro(regionalResult.text);
+
+  // fallback source 결정 (가장 좋은 provider 우선)
+  const bestSource = [macroResult, portfolioResult, regionalResult].find(r => r.source !== 'fallback')?.source ?? 'fallback';
+
+  // 합산된 단일 결과 텍스트로 parseStrategy 우회 후 직접 조합
+  const combinedStrategy: InvestmentStrategy | null = portfolioData?.portfolio ? {
+    stance: portfolioData.stance ?? 'neutral',
+    thesis: macroData?.thesis ?? portfolioData.stance ?? '데이터 기반 배분',
+    portfolio: portfolioData.portfolio ?? [],
+    sectorAllocation: portfolioData.sectorAllocation ?? [],
+    riskEvents: macroData?.riskEvents ?? [],
+    macroAnalysis: macroData?.macroAnalysis ?? '',
+    technicalAnalysis: macroData?.technicalAnalysis ?? '',
+    fundamentalAnalysis: macroData?.fundamentalAnalysis ?? '',
+    riskLevel: macroData?.riskLevel ?? 'medium',
+    regionStances: regionalData?.regionStances ?? undefined,
+    generatedAt: dataAsOf,
+    dataAsOf,
+    source: bestSource,
+  } : null;
+
+  // combined 실패 시 단일 프롬프트 폴백 (기존 방식)
+  const singlePrompt = combinedStrategy ? null : buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx, locale, session);
+  const singleResult = singlePrompt ? await callAIProvider(singlePrompt, { ...aiOpts, maxTokens: 1400 }) : null;
+
+  let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
 
   if (!strategy) {
     logger.warn('api.investment-strategy', 'parse_failed', {
-      raw: aiResult.text.slice(0, 500),
-      source: aiResult.source,
-      attempts: JSON.stringify(aiResult.attempts ?? []).slice(0, 300),
+      sources: [macroResult.source, portfolioResult.source, regionalResult.source],
+      singleSource: singleResult?.source,
     });
 
     // Try last known good result before serving generic fallback
@@ -1052,25 +1090,12 @@ export async function GET(request: Request) {
         const stale = await redis.get(STALE_KEY_PREFIX);
         if (stale) {
           logger.info('api.investment-strategy', 'stale_cache_served');
-          const isDebug = searchParams.get('debug') === '1';
-          return NextResponse.json({
-            ...(stale as object),
-            cached: true,
-            stale: true,
-            ...(isDebug ? { _debug: { raw: aiResult.text.slice(0, 1000), source: aiResult.source, attempts: aiResult.attempts } } : {}),
-          }, { headers: CDN_HEADERS });
+          return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
         }
       } catch { /* ignore */ }
     }
 
     strategy = dataFallbackStrategy(ctx, locale, livePrices);
-    const isDebug = searchParams.get('debug') === '1';
-    if (isDebug) {
-      return NextResponse.json({
-        ...strategy,
-        _debug: { raw: aiResult.text.slice(0, 1000), source: aiResult.source, attempts: aiResult.attempts },
-      }, { headers: CDN_HEADERS });
-    }
   }
 
   if (strategy && !strategy.dataAsOf) strategy = { ...strategy, dataAsOf };
