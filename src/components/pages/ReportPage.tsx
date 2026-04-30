@@ -182,11 +182,25 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
         </div>
       </div>
 
-      {/* Expanded: stop loss only */}
+      {/* Expanded: entry/target rationale + stop loss */}
       {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50 px-4 py-2.5 flex items-center gap-2 text-xs">
-          <span className="text-gray-400">{t('stopLoss')}</span>
-          <span className="font-semibold text-red-600 font-mono">{item.stopLoss}</span>
+        <div className="border-t border-gray-100 bg-gray-50 px-4 py-2.5 space-y-2">
+          {item.entryRationale && (
+            <div className="text-xs">
+              <span className="text-gray-400 mr-1">📍 매수구간 근거</span>
+              <span className="text-gray-700">{item.entryRationale}</span>
+            </div>
+          )}
+          {item.targetRationale && (
+            <div className="text-xs">
+              <span className="text-gray-400 mr-1">🎯 목표가 근거</span>
+              <span className="text-gray-700">{item.targetRationale}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-xs pt-0.5">
+            <span className="text-gray-400">{t('stopLoss')}</span>
+            <span className="font-semibold text-red-600 font-mono">{item.stopLoss}</span>
+          </div>
         </div>
       )}
       <div className="px-4 pb-2 flex justify-end">

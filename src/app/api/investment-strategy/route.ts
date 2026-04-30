@@ -76,8 +76,10 @@ export interface PortfolioItem {
   rationale: string;
   allocation: number;
   entryZone: string;
+  entryRationale?: string;   // why this entry range (support/MA/BB level)
   stopLoss: string;
   target: string;
+  targetRationale?: string;  // why this target (resistance/PE/52w high)
   confidence: 'high' | 'medium' | 'low';
   action?: 'buy' | 'hold' | 'watch';
   currentPrice?: number;
@@ -1072,7 +1074,7 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
 
     // Portfolio: minimum 5 positions, each must have ticker + positive allocation
     if (!Array.isArray(parsed.portfolio)) return null;
-    const portfolio = (parsed.portfolio as Partial<PortfolioItem>[])
+    const portfolioRaw = (parsed.portfolio as Partial<PortfolioItem>[])
       .filter((p): p is PortfolioItem =>
         typeof p?.ticker === 'string' && p.ticker.length > 0 &&
         typeof p?.allocation === 'number' && p.allocation > 0
@@ -1081,6 +1083,15 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
         ...p,
         action: (['buy', 'hold', 'watch'] as const).includes(p.action as never) ? p.action : undefined,
       }));
+    // Dedup by ticker — keep highest allocation entry (AI occasionally returns same ticker twice)
+    const seenTickers = new Map<string, PortfolioItem>();
+    for (const p of portfolioRaw) {
+      const existing = seenTickers.get(p.ticker.toUpperCase());
+      if (!existing || (p.allocation ?? 0) > (existing.allocation ?? 0)) {
+        seenTickers.set(p.ticker.toUpperCase(), p);
+      }
+    }
+    const portfolio = Array.from(seenTickers.values());
     if (portfolio.length < 5) {
       logger.warn('investment-strategy', 'portfolio_invalid', { count: portfolio.length, raw: raw.slice(0, 200) });
       return null;
@@ -1281,6 +1292,19 @@ export async function GET(request: Request) {
   const singleResult = singlePrompt ? await callAIProvider(singlePrompt, { ...aiOpts, maxTokens: 1400 }) : null;
 
   let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
+
+  // ── 후처리: portfolio dedup + 섹션 필드 보강 ─────────────────────────────────
+  if (strategy?.portfolio?.length) {
+    // Dedup after section merge (combinedStrategy path에서 두 섹션이 같은 ticker 포함 가능)
+    const dedupMap = new Map<string, typeof strategy.portfolio[0]>();
+    for (const p of strategy.portfolio) {
+      const key = p.ticker?.toUpperCase();
+      if (!key) continue;
+      const existing = dedupMap.get(key);
+      if (!existing || (p.allocation ?? 0) > (existing.allocation ?? 0)) dedupMap.set(key, p);
+    }
+    strategy = { ...strategy, portfolio: Array.from(dedupMap.values()) };
+  }
 
   // ── Section 4: Karpathy Loop — Critic (Draft → Critique → Refine) ─────────
   // AutoResearch "val_bpb 평가 후 커밋/리버트" 개념을 투자에 적용:
