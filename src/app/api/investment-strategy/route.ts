@@ -1147,11 +1147,13 @@ export async function GET(request: Request) {
 
   if (redis) {
     try {
-      // 1. Current session cache
-      const cached = await redis.get(key);
-      if (cached) {
-        logger.info('api.investment-strategy', 'cache_hit', { session });
-        return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+      // 1. Current session cache (force=1 bypasses for fresh cron regeneration)
+      if (!force) {
+        const cached = await redis.get(key);
+        if (cached) {
+          logger.info('api.investment-strategy', 'cache_hit', { session });
+          return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+        }
       }
       // 2. Stale (last AI-generated report, up to 7 days) — schema-validated
       if (!force) {
