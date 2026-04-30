@@ -326,7 +326,9 @@ Key rules:
 {"stance":"bullish|neutral|bearish","thesis":"≤50 chars","regionStances":{"us":{"stance":"bullish","thesis":"≤40 chars","keyData":"SPY+0.1% 1w, F&G 64, VIX 18.0"},"korea":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWY+1.2% 1w, F&G 77"},"japan":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWJ-1.1% 1w"},"china":{"stance":"neutral","thesis":"≤40 chars","keyData":"FXI-1.7% 1w"},"europe":{"stance":"bearish","thesis":"≤40 chars","keyData":"VGK-2.3% 1w"},"india":{"stance":"neutral","thesis":"≤40 chars","keyData":"INDA-1.9% 1w"},"taiwan":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWT+1.2% 1w"},"brazil":{"stance":"bearish","thesis":"≤40 chars","keyData":"EWZ-4.8% 1w"},"australia":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWA-2.8% 1w"},"global":{"stance":"neutral","thesis":"≤40 chars","keyData":"Mixed signals"}},"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us","rationale":"≤60 chars with numbers","allocation":15,"entryZone":"$205-212","stopLoss":"$190","target":"$240","confidence":"high","action":"buy"}],"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"≤40 chars"}],"riskEvents":[{"date":"2026-05-01","event":"NFP","impact":"high","watchFor":"≤50 chars"}],"macroAnalysis":"≤150 chars","technicalAnalysis":"≤120 chars","fundamentalAnalysis":"≤120 chars","riskLevel":"low|medium|high"}
 
 FIELD CONTENT RULES (must be readable by non-expert investors):
-- macroAnalysis: 거시지표 + 연준 발언이 시장에 미치는 영향을 평이한 한국어 문장으로. 예: "CPI 3.3%로 목표치 2% 초과 지속. 파월 의장 '금리 인하 서두르지 않겠다' 발언으로 장기금리 상승 압력."
+- macroAnalysis: 거시지표 + 연준 발언이 시장에 미치는 영향을 평이한 한국어 문장으로.
+  ※ 중요: 파월은 2026년 의장 임기 만료 후 이사(Governor)로 남아있음. "파월 의장"이 아닌 "파월 전 의장" 또는 "파월 이사"로 표기. 새 의장은 트럼프가 임명.
+  예: "CPI 3.3%로 목표치 2% 초과 지속. 연준 위원 발언으로 장기금리 상승 압력."
 - technicalAnalysis: VIX + 수익률 곡선만. "contango/backwardation" 같은 선물 용어 금지. 예: "VIX 18.8 저변동성 안정. 수익률 곡선 정상화."
 - fundamentalAnalysis: 실적 서프라이즈 + 섹터 밸류에이션 + 기관/내부자 매수 시그널을 포함한 종합 판단. 예: "NVDA·MSFT AI 실적 서프라이즈 지속. 기관 13F 기술주 집중매집(CRWV 63건). 에너지·금융 저평가. 숏스퀴즈 위험종목(SMCI squeeze=48) 주의."
 - thesis: 시장의 핵심 테마 1문장. 숏스퀴즈/내부자 매수/실적 등 주목할 시그널 포함.
@@ -598,7 +600,7 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
               : isJa ? 'リスク管理 + 利下げオプション性'
               : isZh ? '风险管理 + 降息期权性'
               : 'Risk management + rate-cut optionality',
-    fomcWatch: isKo ? '금리 인하 확률 및 파월 의장의 향후 경로 발언'
+    fomcWatch: isKo ? '금리 인하 확률 및 연준 위원(파월 전 의장 포함) 향후 발언'
              : isJa ? '利下げ確率とパウエル議長の今後の方針発言'
              : isZh ? '降息概率及鲍威尔对未来路径的指引'
              : 'Rate cut probability and Powell guidance on future path',
