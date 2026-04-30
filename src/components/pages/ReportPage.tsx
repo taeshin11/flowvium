@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, ChevronDown, ChevronUp, BarChart3, Target, Shield } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
+import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
 
 // ── KPI types ─────────────────────────────────────────────────────────────────
 interface KpiState<T> { loading: boolean; error: boolean; value: T | null; }
@@ -260,6 +261,10 @@ export default function ReportPage() {
   const [nowTick, setNowTick] = useState(Date.now());
   const abortRef = useRef<AbortController | null>(null);
 
+  // History
+  const [historyItems, setHistoryItems] = useState<HistoryMeta[]>([]);
+  const [selectedHistoryKey, setSelectedHistoryKey] = useState<string | null>(null);
+
   // KPI strip
   const [fg,    setFg]    = useState<KpiState<{ score: number }>>({ loading: true, error: false, value: null });
   const [spy,   setSpy]   = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
@@ -337,6 +342,25 @@ export default function ReportPage() {
     }).catch(() => {});
   }, []);
 
+  // Load history list
+  useEffect(() => {
+    fetch('/api/investment-strategy/history', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(d => setHistoryItems(d.items ?? []))
+      .catch(() => {});
+  }, []);
+
+  // Load specific historical report when tab selected
+  const loadHistoricalReport = useCallback(async (key: string) => {
+    setSelectedHistoryKey(key);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/investment-strategy/history?key=${encodeURIComponent(key)}`, { cache: 'no-store' });
+      const d = await res.json();
+      if (d.report) setData(d.report);
+    } catch { /* ignore */ } finally { setLoading(false); }
+  }, []);
+
   useEffect(() => {
     fetchStrategy();
     fetchKpis();
@@ -369,8 +393,45 @@ export default function ReportPage() {
   const stanceLabel = data ? (data.stance === 'bullish' ? t('stanceBullish') : data.stance === 'bearish' ? t('stanceBearish') : t('stanceNeutral')) : '';
   const riskLevelLabel = data ? (data.riskLevel === 'high' ? t('riskHigh') : data.riskLevel === 'low' ? t('riskLow') : t('riskMedium')) : '';
 
+  const stanceIcon = (s: string) => s === 'bullish' ? '↑' : s === 'bearish' ? '↓' : '→';
+  const stanceColor = (s: string) => s === 'bullish' ? 'text-emerald-600' : s === 'bearish' ? 'text-red-500' : 'text-amber-600';
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
+
+      {/* ── History Tabs ──────────────────────────────────────────────────── */}
+      {historyItems.length > 0 && (
+        <div className="mb-4 overflow-x-auto">
+          <div className="flex gap-1.5 pb-1 min-w-max">
+            <button
+              onClick={() => { setSelectedHistoryKey(null); fetchStrategy(); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border
+                ${selectedHistoryKey === null
+                  ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              최신 리포트
+            </button>
+            {historyItems.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => loadHistoricalReport(item.key)}
+                className={`flex flex-col items-start px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all border
+                  ${selectedHistoryKey === item.key
+                    ? 'bg-gray-800 text-white border-gray-800 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+              >
+                <span className="font-medium flex items-center gap-1">
+                  <span className={stanceColor(item.stance)}>{stanceIcon(item.stance)}</span>
+                  {item.kstDate}
+                </span>
+                <span className="text-[10px] opacity-60">{item.sessionLabel}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">

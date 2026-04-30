@@ -1002,9 +1002,16 @@ export async function GET(request: Request) {
         // Cache fallbacks briefly so retries happen after AI quota resets, not 24h later
         await loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: 5 * 60 }); // 5min
       } else {
+        const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
         await Promise.all([
           loggedRedisSet(redis, 'api.investment-strategy', key, strategy, { ex: CACHE_TTL }),
           loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, strategy, { ex: 7 * 24 * 60 * 60 }),
+          // History list for report browser
+          (async () => {
+            const meta = { key, generatedAt: strategy.generatedAt, session, kstDate, stance: strategy.stance, thesis: strategy.thesis, riskLevel: strategy.riskLevel };
+            await redis.lpush('flowvium:investment-strategy:history:v1', JSON.stringify(meta));
+            await redis.ltrim('flowvium:investment-strategy:history:v1', 0, 29); // keep last 30
+          })().catch(() => {}),
         ]);
       }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
