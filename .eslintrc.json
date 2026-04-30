@@ -1,0 +1,20 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression[callee.object.name='redis'][callee.property.name='set']:not(:matches([arguments.2.properties.0.key.name='nx'], [arguments.2.properties.1.key.name='nx']))",
+        "message": "Use loggedRedisSet() instead of redis.set(). For distributed locks use loggedRedisSetNx()."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/lib/logger.ts"],
+      "rules": {
+        "no-restricted-syntax": "off"
+      }
+    }
+  ]
+}

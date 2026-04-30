@@ -212,6 +212,27 @@ export async function loggedRedisLpushTrim(
   }
 }
 
+/** Redis SET NX (distributed lock) with structured logging.
+ *  Use this instead of bare redis.set(..., { nx, ex }) so lock acquisitions are observable. */
+export async function loggedRedisSetNx(
+  redis: RedisLike | null,
+  source: string,
+  key: string,
+  value: string,
+  ex: number,
+): Promise<boolean> {
+  if (!redis) return false;
+  const start = Date.now();
+  try {
+    const acquired = await redis.set(key, value, { nx: true, ex }); // allow: lock primitive
+    logger.debug(source, acquired ? 'lock_acquired' : 'lock_contended', { key, ex, durationMs: Date.now() - start });
+    return !!acquired;
+  } catch (err) {
+    logger.error(source, 'lock_failed', { key, error: err, durationMs: Date.now() - start });
+    return false;
+  }
+}
+
 /** Redis DEL with structured logging. */
 export async function loggedRedisDel(
   redis: RedisLike | null,

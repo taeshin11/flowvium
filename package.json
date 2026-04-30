@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
     "gen": "tsx scripts/generate-contexts.ts",
     "gen:single": "tsx scripts/generate-contexts.ts",
     "gen:skip": "SKIP_EXISTING=1 tsx scripts/generate-contexts.ts",

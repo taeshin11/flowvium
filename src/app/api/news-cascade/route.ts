@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
+import { logger, loggedRedisSet, loggedRedisSetNx, loggedRedisDel } from '@/lib/logger';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
@@ -398,7 +398,7 @@ export async function GET(request: Request) {
   let ownLock = false;
   if (redis) {
     try {
-      const acquired = await redis.set(LOCK_KEY, '1', { nx: true, ex: LOCK_TTL });
+      const acquired = await loggedRedisSetNx(redis, 'api.news-cascade', LOCK_KEY, '1', LOCK_TTL);
       if (!acquired) {
         // Poll up to 20s (4×5s) — keeps waiter+pipeline total under maxDuration=60s.
         for (let i = 0; i < 4; i++) {
