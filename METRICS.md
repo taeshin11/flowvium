@@ -538,6 +538,8 @@
 | 210-I3 | 집중 매수 배너 (복수 내부자 동시 매수) | ✅ live | `/api/insider-trades` |
 | 210-I4 | 내부자 테이블: 티커·기업·내부자·직책·매수금액·건수·거래일 | ✅ live | `/api/insider-trades` |
 | 210-I5 | 기간 필터: 1w=최근7일, 4w=최근28일 | ✅ live | transactionDate 기준 |
+| 210-I6 | 내부자 테이블: 현재가 컬럼 | ✅ live | `/api/batch-prices` Yahoo v7 → Finnhub 폴백 ← iter268 |
+| 210-I7 | 내부자 테이블: 1W/4W 기간수익률 컬럼 | ✅ live | `/api/batch-prices?period=1w\|4w` Yahoo spark 5/20거래일 ← iter268 |
 
 ---
 
@@ -577,12 +579,19 @@
 |---|------|------|
 | 235 | 국가별 대표 지수 4개 (심볼·종가·등락%) | 💾 cached | Yahoo |
 
-### 10-3. 트리맵
+### 10-3. Overview 트리맵 (Finviz 스타일, iter269)
 
 | # | 지표 | 상태 |
 |---|------|------|
-| 236 | 섹터별 종목 박스 (크기=시가총액) | 💾 cached | Yahoo |
-| 237 | 박스 색상 (등락%) | 💾 cached | Yahoo |
+| 236 | 섹터 컨테이너 (depth=1, 크기=totalMarketCap, 색상 테두리+라벨) | 💾 cached | API 데이터 재가공 |
+| 237 | 종목 박스 (depth=2, 크기=시가총액, 색상=등락%) | 💾 cached | Yahoo |
+
+### 10-4. 섹터 상세 트리맵 (2열 그리드)
+
+| # | 지표 | 상태 |
+|---|------|------|
+| 238 | 섹터별 종목 박스 (크기=시가총액) | 💾 cached | Yahoo |
+| 239 | 박스 색상 (등락%) | 💾 cached | Yahoo |
 
 ---
 
