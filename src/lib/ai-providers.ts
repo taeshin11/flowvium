@@ -252,14 +252,18 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
 
   const tag = opts.tag ?? 'ai';
   const FREE_MODELS = [
+    // 2026-05 기준 작동하는 OpenRouter 무료 모델 (우선순위 순)
+    'openai/gpt-oss-120b:free',              // GPT-class, 검증됨
+    'google/gemma-4-31b-it:free',            // Google Gemma 4 31B
+    'nvidia/nemotron-3-super-120b-a12b:free',// NVIDIA 120B
+    'qwen/qwen3-next-80b-a3b-instruct:free', // Qwen3 80B
+    'nvidia/nemotron-3-nano-30b-a3b:free',   // NVIDIA 30B 경량
+    'google/gemma-4-26b-a4b-it:free',        // Google Gemma 4 26B
+    'openrouter/free',                        // OpenRouter 자동 선택
+    // 레거시 (이전 버전)
     'qwen/qwen-2.5-72b-instruct:free',
-    'deepseek/deepseek-chat-v3-0324:free', // DeepSeek V3 — 매우 강력한 무료 모델
-    'meta-llama/llama-3.3-70b-instruct:free',
     'meta-llama/llama-3.1-8b-instruct:free',
     'mistralai/mistral-7b-instruct:free',
-    'google/gemma-3-12b-it:free',
-    'microsoft/phi-3-mini-128k-instruct:free',
-    'nousresearch/hermes-3-llama-3.1-405b:free',
   ];
   const messages: Array<{ role: string; content: string }> = [];
   if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
