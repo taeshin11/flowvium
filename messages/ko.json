@@ -691,7 +691,13 @@
     "briefMarket": "시장",
     "briefCapital": "자금흐름",
     "briefCompany": "종목",
-    "briefSignals": "시그널"
+    "briefSignals": "시그널",
+    "exploreSupplyChainsDesc": "616개 기업 공급망 분석",
+    "viewSignalsDesc": "13F 기관 포지션 추적",
+    "secretMoneyTrackDesc": "글로벌 자금 흐름 AI 분석",
+    "newsGapScanDesc": "갭 발생 종목 뉴스 연결",
+    "aiReportDesc": "일간 AI 시장 리포트",
+    "fundTrackingDesc": "SEC 공시 자금 추적"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",
@@ -1422,7 +1428,8 @@
     "emptyNone": "해당 기간 실적 발표 없음",
     "updatedAt": "업데이트: {date} · 출처: Finnhub · {cache}",
     "cacheHit": "캐시됨 (2h TTL)",
-    "cacheNo": "실시간"
+    "cacheNo": "실시간",
+    "presetYesterday": "어제"
   },
   "heatmap": {
     "pageTitle": "시장 히트맵",

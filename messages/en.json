@@ -522,7 +522,13 @@
     "briefMarket": "Market",
     "briefCapital": "Capital",
     "briefCompany": "Stocks",
-    "briefSignals": "Signals"
+    "briefSignals": "Signals",
+    "exploreSupplyChainsDesc": "Map 616 company supply chains",
+    "viewSignalsDesc": "Track institutional 13F positions",
+    "secretMoneyTrackDesc": "Global capital flow AI analysis",
+    "newsGapScanDesc": "Price gap + news correlation",
+    "aiReportDesc": "Daily AI market report",
+    "fundTrackingDesc": "SEC filing capital tracker"
   },
   "feedback": {
     "title": "Send Feedback",
@@ -1422,7 +1428,8 @@
     "emptyNone": "No earnings in this period",
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
-    "cacheNo": "Live"
+    "cacheNo": "Live",
+    "presetYesterday": "Yesterday"
   },
   "heatmap": {
     "pageTitle": "Market Heatmap",

@@ -59,6 +59,7 @@ const MAJOR_TICKERS = new Set([
 ]);
 
 const PRESETS = [
+  { id: 'yesterday', from: -1, to: -1 },
   { id: 'today', from: 0, to: 0 },
   { id: 'week', from: 0, to: 7 },
   { id: 'twoweeks', from: 0, to: 14 },
@@ -104,6 +105,7 @@ export default function EarningsPage() {
   const [majorOnly, setMajorOnly] = useState(false);
 
   const PRESET_LABELS: Record<string, string> = {
+    yesterday: t('presetYesterday'),
     today: t('presetToday'),
     week: t('presetWeek'),
     twoweeks: t('presetTwoweeks'),

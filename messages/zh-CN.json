@@ -522,7 +522,13 @@
     "briefMarket": "市场",
     "briefCapital": "资金",
     "briefCompany": "股票",
-    "briefSignals": "信号"
+    "briefSignals": "信号",
+    "exploreSupplyChainsDesc": "分析616家企业供应链",
+    "viewSignalsDesc": "追踪机构13F持仓",
+    "secretMoneyTrackDesc": "全球资金流向AI分析",
+    "newsGapScanDesc": "缺口股票+新闻关联",
+    "aiReportDesc": "每日AI市场报告",
+    "fundTrackingDesc": "SEC申报资金追踪"
   },
   "feedback": {
     "title": "发送反馈",
@@ -1422,7 +1428,8 @@
     "emptyNone": "该时段无财报发布",
     "updatedAt": "更新时间: {date} · 来源: Finnhub · {cache}",
     "cacheHit": "缓存 (2h TTL)",
-    "cacheNo": "实时"
+    "cacheNo": "实时",
+    "presetYesterday": "昨天"
   },
   "heatmap": {
     "pageTitle": "市场热力图",

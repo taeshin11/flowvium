@@ -522,7 +522,13 @@
     "briefMarket": "ตลาด",
     "briefCapital": "เงินทุน",
     "briefCompany": "หุ้น",
-    "briefSignals": "สัญญาณ"
+    "briefSignals": "สัญญาณ",
+    "exploreSupplyChainsDesc": "วิเคราะห์ห่วงโซ่อุปทาน 616 บริษัท",
+    "viewSignalsDesc": "ติดตามตำแหน่ง 13F สถาบัน",
+    "secretMoneyTrackDesc": "วิเคราะห์กระแสเงินทุนทั่วโลก AI",
+    "newsGapScanDesc": "ช่องว่างราคา + ข่าว",
+    "aiReportDesc": "รายงาน AI รายวัน",
+    "fundTrackingDesc": "ติดตามทุน SEC"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",
@@ -1422,7 +1428,8 @@
     "emptyNone": "No earnings in this period",
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
-    "cacheNo": "Live"
+    "cacheNo": "Live",
+    "presetYesterday": "เมื่อวาน"
   },
   "heatmap": {
     "pageTitle": "Market Heatmap",

@@ -522,7 +522,13 @@
     "briefMarket": "Рынок",
     "briefCapital": "Капитал",
     "briefCompany": "Акции",
-    "briefSignals": "Сигналы"
+    "briefSignals": "Сигналы",
+    "exploreSupplyChainsDesc": "Анализ 616 цепочек поставок",
+    "viewSignalsDesc": "Отслеживание позиций 13F",
+    "secretMoneyTrackDesc": "Анализ потоков капитала ИИ",
+    "newsGapScanDesc": "Ценовой разрыв + новости",
+    "aiReportDesc": "Ежедневный ИИ-обзор рынка",
+    "fundTrackingDesc": "Отслеживание капитала SEC"
   },
   "feedback": {
     "title": "Отправить отзыв",
@@ -1422,7 +1428,8 @@
     "emptyNone": "No earnings in this period",
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
-    "cacheNo": "Live"
+    "cacheNo": "Live",
+    "presetYesterday": "Вчера"
   },
   "heatmap": {
     "pageTitle": "Market Heatmap",

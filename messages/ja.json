@@ -691,7 +691,13 @@
     "briefMarket": "マーケット",
     "briefCapital": "資金",
     "briefCompany": "銘柄",
-    "briefSignals": "シグナル"
+    "briefSignals": "シグナル",
+    "exploreSupplyChainsDesc": "616社のサプライチェーン分析",
+    "viewSignalsDesc": "機関13Fポジション追跡",
+    "secretMoneyTrackDesc": "グローバル資金フローAI分析",
+    "newsGapScanDesc": "ギャップ銘柄+ニュース連携",
+    "aiReportDesc": "日次AIマーケットレポート",
+    "fundTrackingDesc": "SEC開示資金追跡"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",
@@ -1422,7 +1428,8 @@
     "emptyNone": "該当期間の決算発表なし",
     "updatedAt": "更新: {date} · ソース: Finnhub · {cache}",
     "cacheHit": "キャッシュ (2h TTL)",
-    "cacheNo": "リアルタイム"
+    "cacheNo": "リアルタイム",
+    "presetYesterday": "昨日"
   },
   "heatmap": {
     "pageTitle": "市場ヒートマップ",

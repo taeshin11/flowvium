@@ -522,7 +522,13 @@
     "briefMarket": "Thị trường",
     "briefCapital": "Vốn",
     "briefCompany": "Cổ phiếu",
-    "briefSignals": "Tín hiệu"
+    "briefSignals": "Tín hiệu",
+    "exploreSupplyChainsDesc": "Phân tích 616 chuỗi cung ứng",
+    "viewSignalsDesc": "Theo dõi vị thế 13F tổ chức",
+    "secretMoneyTrackDesc": "Phân tích luồng vốn toàn cầu AI",
+    "newsGapScanDesc": "Khoảng giá + tin tức",
+    "aiReportDesc": "Báo cáo thị trường AI hàng ngày",
+    "fundTrackingDesc": "Bộ theo dõi vốn SEC"
   },
   "feedback": {
     "title": "Gửi phản hồi",
@@ -1422,7 +1428,8 @@
     "emptyNone": "No earnings in this period",
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
-    "cacheNo": "Live"
+    "cacheNo": "Live",
+    "presetYesterday": "Hôm qua"
   },
   "heatmap": {
     "pageTitle": "Market Heatmap",

@@ -89,17 +89,21 @@ function SectorTreemapContent(props: SectorContentProps) {
   if (width < 1 || height < 1) return null;
 
   if (depth === 1) {
-    // Sector container: colored border + sector name pill
-    const labelW = Math.min(width - 4, (name?.length ?? 0) * 6 + 12);
+    // Sector container: bold colored border + sector name bar
+    const HEADER = 18;
+    const color = sectorColor ?? '#334155';
+    const labelW = Math.min(width - 6, (name?.length ?? 0) * 7.5 + 16);
     return (
       <g>
-        <rect x={x} y={y} width={width} height={height}
-              fill="#0a1628" stroke={sectorColor ?? '#334155'} strokeWidth={2} rx={2} />
-        {width > 50 && height > 20 && (
+        {/* sector background */}
+        <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2}
+              fill="#0a1628" stroke={color} strokeWidth={3} rx={3} />
+        {/* sector header bar */}
+        {width > 40 && height > 22 && (
           <>
-            <rect x={x + 2} y={y + 2} width={labelW} height={15}
-                  fill={sectorColor ?? '#334155'} opacity={0.9} rx={2} />
-            <text x={x + 7} y={y + 13} fill="#fff" fontSize={9} fontWeight={700}
+            <rect x={x + 3} y={y + 3} width={width - 6} height={HEADER}
+                  fill={color} opacity={0.85} rx={2} />
+            <text x={x + 8} y={y + 3 + HEADER * 0.72} fill="#fff" fontSize={10} fontWeight={800}
                   style={{ pointerEvents: 'none' as const, userSelect: 'none' as const }}>
               {name}
             </text>
@@ -333,16 +337,9 @@ export default function HeatmapPage() {
       {/* Treemap view */}
       {viewMode === 'overview' ? (
         <div className="cf-card p-3" style={{ backgroundColor: '#0f172a', borderColor: '#1e293b' }}>
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
+          <div className="flex items-center gap-3 mb-2">
             <span className="text-sm font-bold text-white">{t('totalMarket', { count: data.totalStocks })}</span>
-            <div className="flex gap-2 flex-wrap">
-              {data.sectors.map(s => (
-                <span key={s.sector} className="inline-flex items-center gap-1 text-[10px] text-slate-400">
-                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: s.color }} />
-                  {s.sector}
-                </span>
-              ))}
-            </div>
+            <span className="text-[10px] text-slate-500">섹터 경계선 색상 = 섹터 구분</span>
           </div>
           <div style={{ height: Math.min(700, Math.max(400, data.totalStocks * 3.2)) }}>
             <ResponsiveContainer>

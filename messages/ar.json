@@ -522,7 +522,13 @@
     "briefMarket": "السوق",
     "briefCapital": "رأس المال",
     "briefCompany": "الأسهم",
-    "briefSignals": "الإشارات"
+    "briefSignals": "الإشارات",
+    "exploreSupplyChainsDesc": "تحليل 616 سلسلة توريد",
+    "viewSignalsDesc": "تتبع مراكز المؤسسات 13F",
+    "secretMoneyTrackDesc": "تحليل تدفق رأس المال بالذكاء الاصطناعي",
+    "newsGapScanDesc": "الفجوة السعرية + الأخبار",
+    "aiReportDesc": "تقرير الذكاء الاصطناعي اليومي",
+    "fundTrackingDesc": "متتبع رأس المال SEC"
   },
   "feedback": {
     "title": "إرسال ملاحظات",
@@ -1422,7 +1428,8 @@
     "emptyNone": "No earnings in this period",
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
-    "cacheNo": "Live"
+    "cacheNo": "Live",
+    "presetYesterday": "أمس"
   },
   "heatmap": {
     "pageTitle": "Market Heatmap",

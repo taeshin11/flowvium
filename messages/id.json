@@ -522,7 +522,13 @@
     "briefMarket": "Pasar",
     "briefCapital": "Modal",
     "briefCompany": "Saham",
-    "briefSignals": "Sinyal"
+    "briefSignals": "Sinyal",
+    "exploreSupplyChainsDesc": "Analisis 616 rantai pasokan",
+    "viewSignalsDesc": "Lacak posisi 13F institusi",
+    "secretMoneyTrackDesc": "Analisis aliran modal global AI",
+    "newsGapScanDesc": "Gap harga + korelasi berita",
+    "aiReportDesc": "Laporan pasar AI harian",
+    "fundTrackingDesc": "Pelacak modal SEC"
   },
   "feedback": {
     "title": "Kirim Masukan",
@@ -1422,7 +1428,8 @@
     "emptyNone": "No earnings in this period",
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
-    "cacheNo": "Live"
+    "cacheNo": "Live",
+    "presetYesterday": "Kemarin"
   },
   "heatmap": {
     "pageTitle": "Market Heatmap",
