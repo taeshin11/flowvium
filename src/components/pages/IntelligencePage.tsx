@@ -209,41 +209,34 @@ function FearGreedCard({ entry }: { entry: FearGreedEntryExtended }) {
         </div>
       </button>
 
-      {/* Expanded detail */}
-      {expanded && (
-        <div className="border-t border-cf-border bg-gray-50/60 px-4 py-3 space-y-3">
-          {/* Factor breakdown */}
-          {entry.factors && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wide mb-1.5">📊 {t('factorBreakdown')}</p>
-              <FactorBar label={t('rsiMomentum')} score={entry.factors.rsi} weight="40%" />
-              <FactorBar label={t('trendStrength')} score={entry.factors.momentum} weight="35%" />
-              <FactorBar label={t('volatility')} score={entry.factors.volatility} weight="25%" />
-              <p className="text-[9px] text-gray-400 mt-1">{t('fgScaleHint')}</p>
-            </div>
-          )}
+      {/* Factor bars — always visible when data is available */}
+      {entry.factors && (
+        <div className="border-t border-cf-border bg-gray-50/40 px-4 pt-2.5 pb-2 space-y-1.5">
+          <FactorBar label={t('rsiMomentum')} score={entry.factors.rsi} weight="40%" />
+          <FactorBar label={t('trendStrength')} score={entry.factors.momentum} weight="35%" />
+          <FactorBar label={t('volatility')} score={entry.factors.volatility} weight="25%" />
+        </div>
+      )}
 
-          {/* Macro context */}
-          {entry.detail && (
-            <>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wide">🔍 {t('measureFactors')}</p>
-                {entry.detail.factors.map((f, i) => (
-                  <p key={i} className="text-[11px] text-cf-text-secondary leading-relaxed flex gap-1.5">
-                    <span className="text-gray-400 flex-shrink-0">•</span>{f}
-                  </p>
-                ))}
-              </div>
-              <div className="rounded-lg bg-blue-50 border border-blue-100 p-2.5">
-                <p className="text-[10px] font-bold text-blue-700 mb-1">📈 {t('sentimentBackground')}</p>
-                <p className="text-[11px] text-blue-700 leading-relaxed">{entry.detail.macro}</p>
-              </div>
-              <div className="rounded-lg bg-red-50 border border-red-100 p-2.5">
-                <p className="text-[10px] font-bold text-red-600 mb-1">⚠ {t('keyRisks')}</p>
-                <p className="text-[11px] text-red-600 leading-relaxed">{entry.detail.risk}</p>
-              </div>
-            </>
-          )}
+      {/* Expanded detail — macro context + methodology */}
+      {expanded && entry.detail && (
+        <div className="border-t border-cf-border bg-gray-50/60 px-4 py-3 space-y-3">
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wide">🔍 {t('measureFactors')}</p>
+            {entry.detail.factors.map((f, i) => (
+              <p key={i} className="text-[11px] text-cf-text-secondary leading-relaxed flex gap-1.5">
+                <span className="text-gray-400 flex-shrink-0">•</span>{f}
+              </p>
+            ))}
+          </div>
+          <div className="rounded-lg bg-blue-50 border border-blue-100 p-2.5">
+            <p className="text-[10px] font-bold text-blue-700 mb-1">📈 {t('sentimentBackground')}</p>
+            <p className="text-[11px] text-blue-700 leading-relaxed">{entry.detail.macro}</p>
+          </div>
+          <div className="rounded-lg bg-red-50 border border-red-100 p-2.5">
+            <p className="text-[10px] font-bold text-red-600 mb-1">⚠ {t('keyRisks')}</p>
+            <p className="text-[11px] text-red-600 leading-relaxed">{entry.detail.risk}</p>
+          </div>
         </div>
       )}
     </div>
