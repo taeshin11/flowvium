@@ -850,6 +850,7 @@
 | `ShareButtons` | 소셜 공유 버튼 | 각 페이지 헤더 |
 | `SupplyChainMap` | ASCII 공급망 네트워크 뷰 | 기업 프로필 "터미널 뷰" 토글 |
 | `MiniGraph` | SVG 애니메이션 캐스케이드 그래프 | 홈페이지 |
+| `guru-methodologies` | 투자 구루 8명 매수/매도 원칙 DB + AI 프롬프트 주입 유틸 | `/api/investment-strategy` AI 포트폴리오 생성 시 |
 
 ---
 

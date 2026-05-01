@@ -1,0 +1,46 @@
+# iter271 - 투자 구루 방법론 DB 구축 + AI 리포트 통합
+Date: 2026-05-01
+
+## 목표
+AI 포트폴리오 리포트의 entryRationale/targetRationale이 기술적 분석(50일선, 52주 고점)만
+반환하던 문제를 해결. 펀더멘탈 + 밸류에이션 + 구루 프레임워크 근거를 AI 프롬프트에 주입.
+
+## 변경 파일
+
+### 신규: src/lib/guru-methodologies.ts
+- GuruCriteria 인터페이스 정의
+- GURU_METHODOLOGIES: 8명 구루의 매수/매도 원칙 DB
+  - Warren Buffett (value): ROE>15%, Debt/Equity<0.5, Owner earnings yield>2x 10Y treasury
+  - Peter Lynch (growth): PEG<1, Revenue growth>15% YoY, EPS growth 20-50%
+  - Joel Greenblatt (value): Magic Formula EBIT/EV>10% + ROIC>25%
+  - Benjamin Graham (value): Graham Number = sqrt(22.5 x EPS x Book Value)
+  - Philip Fisher (growth): Scuttlebutt, R&D/Sales, Profit margin 5Y
+  - Howard Marks (value): Second-level thinking, Market cycle, Risk premium
+  - Stanley Druckenmiller (macro): Liquidity-driven, Earnings inflection, Fed easing
+  - Michael Burry (value): P/FCF<10, Insider buying, Share buybacks
+- getGuruPromptContext(): top5 구루 핵심 신호를 AI 프롬프트 텍스트로 반환
+
+### 수정: src/lib/investment-prompts.ts
+- import 추가: getGuruPromptContext from '@/lib/guru-methodologies'
+- buildPortfolioPrompt 내부 [Upcoming Earnings] 다음에 guru context 주입
+- Rule 7 (entryRationale): 60자 -> 80자, 비기술적 신호 필수 명시
+  - 버핑 ROE/FCF yield, 린치 PEG, 버리 P/FCF, 그린블라트 EBIT/EV 예시 추가
+- Rule 8 (targetRationale): 60자 -> 80자, 밸류에이션 앵커 명시
+  - DCF 내재가치, P/E 목표배수 예시 추가
+
+### 수정: FEATURES.md
+- Section 17 공유 컴포넌트에 guru-methodologies 라이브러리 항목 추가
+
+### 수정: METRICS.md
+- 12-G1: entryRationale 펀더멘탈+구루 근거 포함 여부
+- 12-G2: targetRationale 밸류에이션 앵커 포함 여부
+
+## 검증
+- npx tsc --noEmit: 에러 없음
+
+## 기대 효과
+다음 AI 리포트 재생성 시:
+  BAD before: "50일선 지지"
+  GOOD after:  "50일선+린치PEG0.8->성장대비저평가 진입"
+  BAD before: "52주 고점 저항"
+  GOOD after:  "52주고점+P/E목표35배 밸류에이션 앵커"

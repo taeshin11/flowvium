@@ -18,6 +18,7 @@
  */
 
 import { buildGroundingFacts } from '@/lib/grounding';
+import { getGuruPromptContext } from '@/lib/guru-methodologies';
 
 const LOCALE_LANG: Record<string, string> = {
   ko: 'Korean', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
@@ -107,6 +108,10 @@ export function buildPortfolioPrompt(
     `[N-PORT 뮤추얼펀드 기관집계] ${ctx.nport || 'None'}`,
     `[Upcoming Earnings] ${earnings || 'None'}`,
     '',
+    '[Guru Frameworks]',
+    getGuruPromptContext([]),
+    '',
+    '',
     'RULES:',
     '1. 6-8 items: mix US stocks, US ETFs, country ETFs (EWY=Korea ETF), AND Korean individual stocks:',
     '   Korean stocks (use .KS ticker): 005930.KS=삼성전자, 000660.KS=SK하이닉스, 373220.KS=LG에너지솔루션,',
@@ -122,10 +127,17 @@ export function buildPortfolioPrompt(
     '   BAD: "KOSPI 상승세" GOOD: "EWY F&G77+BB상단->눌림목대기 $112이하"',
     '5. allocation must sum to 100',
     '6. action: buy=accumulate now, hold=keep, watch=wait for entry',
-    '7. entryRationale (≤60자): WHY this entry range — technical level (50일선/$X 지지, BB중선, 주요지지선)',
-    '   예: "50일선 $195 지지, BB중선 반등 구간"',
-    '8. targetRationale (≤60자): WHY this target — resistance/PE/52w level',
-    '   예: "52주 고점 $247 전 저항, P/E 38배 기준"',
+    '7. entryRationale (≤80자): WHY this entry — MUST use ≥1 non-technical reason when available:',
+    '   Technical: 50일선/$X 지지, BB중선, 주요지지선',
+    '   Fundamental: ROE X%+FCF수익률Y% (버핑), PEG<1 성장대비저평가 (린치), P/FCF<10 (버리)',
+    '   Valuation: P/E vs 섹터평균 -X%, Graham Number=$Y 이하, EBIT/EV>10% (그린블라트)',
+    '   예(GOOD): "100일선+린치PEG0.8→성장대비저평가 진입"',
+    '   예(GOOD): "50일선+버핑ROE18%FCF수익률 → 안전마진"',
+    '   예(BAD): "50일선 지지" (기술적만 — reject)',
+    '8. targetRationale (≤80자): WHY this target — include valuation anchor:',
+    '   예(GOOD): "52주고점+P/E목표35배→$370 (섹터평균 38배 할인)"',
+    '   예(GOOD): "DCF내재가치$385×75% 안전마진 → $290 목표"',
+    '   예(BAD): "52주 고점 저항" (너무 단순 — add valuation context)',
     '',
     'Respond in pure JSON (no markdown):',
     '{"stance":"bullish|neutral|bearish",',

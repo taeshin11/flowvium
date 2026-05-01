@@ -637,6 +637,8 @@
 | 12-M3 | 리스크 레벨 (low/medium/high) | 💾 cached | AI 판단 |
 | 12-M4 | 데이터 기준 시각 (dataAsOf) | ✅ live | 시장 데이터 수집 시각 ← iter210 |
 | 12-B1 | 지금 매수 추천 종목 스트립 (action=buy) | 💾 cached | 포트폴리오 액션 필드 ← iter210 |
+| 12-G1 | entryRationale 펀더멘탈+구루 근거 포함 여부 | 💾 cached | guru-methodologies 프롬프트 주입 ← iter267 |
+| 12-G2 | targetRationale 밸류에이션 앵커 포함 여부 | 💾 cached | guru-methodologies 프롬프트 주입 ← iter267 |
 
 ---
 
