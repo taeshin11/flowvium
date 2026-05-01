@@ -1436,17 +1436,27 @@ export async function GET(request: Request) {
 
   let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
 
-  // ── 후처리: portfolio dedup + 섹션 필드 보강 ─────────────────────────────────
+  // ── 후처리: portfolio dedup + 유효하지 않은 티커 필터 ──────────────────────────
+  // 거래 불가 티커: 인덱스(^KS11=KOSPI, ^N225=Nikkei, ^GSPC=S&P500 등), 빈 값
+  const INDEX_TICKERS = new Set(['^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11']);
   if (strategy?.portfolio?.length) {
-    // Dedup after section merge (combinedStrategy path에서 두 섹션이 같은 ticker 포함 가능)
     const dedupMap = new Map<string, typeof strategy.portfolio[0]>();
     for (const p of strategy.portfolio) {
       const key = p.ticker?.toUpperCase();
-      if (!key) continue;
+      if (!key || INDEX_TICKERS.has(key)) continue; // 인덱스 티커 제거
       const existing = dedupMap.get(key);
       if (!existing || (p.allocation ?? 0) > (existing.allocation ?? 0)) dedupMap.set(key, p);
     }
-    strategy = { ...strategy, portfolio: Array.from(dedupMap.values()) };
+    // allocation 합계 100 재조정
+    const items = Array.from(dedupMap.values());
+    const total = items.reduce((s, p) => s + (p.allocation ?? 0), 0);
+    if (total > 0 && Math.abs(total - 100) > 2) {
+      items.forEach(p => { p.allocation = Math.round((p.allocation ?? 0) / total * 100); });
+      // 반올림 오차 보정
+      const diff = 100 - items.reduce((s, p) => s + p.allocation, 0);
+      if (diff !== 0 && items.length) items[0].allocation += diff;
+    }
+    strategy = { ...strategy, portfolio: items };
   }
 
   // ── Section 4: Karpathy Loop — Critic (Draft → Critique → Refine) ─────────
