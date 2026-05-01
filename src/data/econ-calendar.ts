@@ -16,7 +16,7 @@ export interface EconEvent {
 export const ECON_EVENTS_2026: EconEvent[] = [
   // ── FOMC ──────────────────────────────────────────────────────────────────────
   { date: '2026-04-29', time: '–', title: 'FOMC Meeting Day 1', titleKo: 'FOMC 1일차', category: 'Fed', impact: 'high' },
-  { date: '2026-04-30', time: '14:00 ET', title: 'FOMC Rate Decision + Powell Press Conf', titleKo: 'FOMC 금리 결정 + 파월 기자회견', category: 'Fed', impact: 'high', note: 'Market expects 25bp cut', noteKo: '시장 25bp 인하 예상' },
+  { date: '2026-04-30', time: '14:00 ET', title: 'FOMC Rate Decision + Powell Press Conf', titleKo: 'FOMC 금리 결정 + 파월 기자회견', category: 'Fed', impact: 'high' },
   { date: '2026-06-09', time: '–', title: 'FOMC Meeting Day 1', titleKo: 'FOMC 1일차', category: 'Fed', impact: 'high' },
   { date: '2026-06-10', time: '14:00 ET', title: 'FOMC Rate Decision + SEP/Dot Plot', titleKo: 'FOMC 금리 결정 + 점도표', category: 'Fed', impact: 'high', note: 'Summary of Economic Projections', noteKo: 'SEP 점도표 발표 회의' },
   { date: '2026-07-28', time: '–', title: 'FOMC Meeting Day 1', titleKo: 'FOMC 1일차', category: 'Fed', impact: 'high' },
@@ -29,7 +29,7 @@ export const ECON_EVENTS_2026: EconEvent[] = [
   { date: '2026-12-09', time: '14:00 ET', title: 'FOMC Rate Decision + SEP/Dot Plot', titleKo: 'FOMC 금리 결정 + 점도표', category: 'Fed', impact: 'high' },
 
   // ── GDP ───────────────────────────────────────────────────────────────────────
-  { date: '2026-04-30', time: '08:30 ET', title: 'Q1 2026 GDP (Advance)', titleKo: 'Q1 GDP 1차 속보치', category: 'GDP', impact: 'high', note: 'First read on Q1 economic growth', noteKo: '1분기 성장률 첫 속보' },
+  { date: '2026-04-30', time: '08:30 ET', title: 'Q1 2026 GDP (Advance)', titleKo: 'Q1 GDP 1차 속보치', category: 'GDP', impact: 'high' },
   { date: '2026-05-28', time: '08:30 ET', title: 'Q1 2026 GDP (2nd Estimate)', titleKo: 'Q1 GDP 2차 수정치', category: 'GDP', impact: 'medium' },
   { date: '2026-06-25', time: '08:30 ET', title: 'Q1 2026 GDP (3rd Estimate)', titleKo: 'Q1 GDP 3차 확정치', category: 'GDP', impact: 'low' },
   { date: '2026-07-30', time: '08:30 ET', title: 'Q2 2026 GDP (Advance)', titleKo: 'Q2 GDP 1차 속보치', category: 'GDP', impact: 'high' },
@@ -52,7 +52,7 @@ export const ECON_EVENTS_2026: EconEvent[] = [
   { date: '2026-07-14', time: '08:30 ET', title: 'June PPI Producer Prices', titleKo: '6월 PPI 생산자물가', category: 'PPI', impact: 'medium' },
 
   // ── PCE (Fed's preferred inflation gauge) ─────────────────────────────────────
-  { date: '2026-04-30', time: '08:30 ET', title: 'March PCE Price Index', titleKo: '3월 PCE 물가 (연준 선호 지표)', category: 'PCE', impact: 'high', note: "Fed's preferred inflation measure", noteKo: '연준이 가장 중시하는 물가 지표' },
+  { date: '2026-04-30', time: '08:30 ET', title: 'March PCE Price Index', titleKo: '3월 PCE 물가 (연준 선호 지표)', category: 'PCE', impact: 'high' },
   { date: '2026-05-29', time: '08:30 ET', title: 'April PCE Price Index', titleKo: '4월 PCE 물가', category: 'PCE', impact: 'high' },
   { date: '2026-06-26', time: '08:30 ET', title: 'May PCE Price Index', titleKo: '5월 PCE 물가', category: 'PCE', impact: 'high' },
   { date: '2026-07-31', time: '08:30 ET', title: 'June PCE Price Index', titleKo: '6월 PCE 물가', category: 'PCE', impact: 'high' },

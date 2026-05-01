@@ -141,6 +141,14 @@ export async function GET(req: Request) {
     ),
   ]).catch(() => {});
 
+  // Q1 2026 13F SEC EDGAR 업데이트 시도 (5월 15일 이후 데이터 공개)
+  const today = new Date().toISOString().slice(0, 10);
+  if (today >= '2026-05-15') {
+    fetch(base + '/api/institutional-refresh', {
+      signal: AbortSignal.timeout(30000), cache: 'no-store'
+    }).catch(function() {});
+  }
+
   // ── 5단계: news-cascade (느림 — fire & forget) ─────────────────────────
   fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000), cache: 'no-store' })
     .then(r => { if (!r.ok) logger.warn('cron.update-all', 'news_cascade_failed', { status: r.status }); })

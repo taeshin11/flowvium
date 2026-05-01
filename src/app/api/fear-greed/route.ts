@@ -255,6 +255,7 @@ function compositeWithFactors(prices: number[], ticker: string, vixValue?: numbe
 }
 
 import { FG } from '@/lib/thresholds';
+import { moneyFlowSectors } from '@/data/fear-greed';
 
 function getLevel(score: number): string {
   if (score <= FG.EXTREME_FEAR) return 'extreme-fear';
@@ -529,6 +530,44 @@ async function buildEntry(
   return entry;
 }
 
+
+// ── sectorFlows 동적 계산 ─────────────────────────────────────────────────────
+// capital-flows Redis 캐시에서 sectorPerformance를 읽어 signal 계산.
+// Redis miss시 moneyFlowSectors static fallback 사용.
+async function computeSectorFlows(redis: Redis | null): Promise<typeof moneyFlowSectors> {
+  try {
+    if (redis) {
+      const cached = await redis.get<{ sectorPerformance?: Array<{ id: string; label: string; flag: string; ticker: string; ret1w: number | null; ret4w: number | null }> }>(
+        'flowvium:capital-flows:v5'
+      );
+      const sectors = cached?.sectorPerformance;
+      if (sectors && sectors.length > 0) {
+        const sinceDate = new Date().toISOString().slice(0, 10);
+        return sectors.map(s => {
+          const ret4w = s.ret4w ?? 0;
+          const ret1w = s.ret1w ?? 0;
+          const signal: 'accelerating' | 'holding' | 'fading' =
+            ret4w > 3 ? 'accelerating' : ret4w < -3 ? 'fading' : 'holding';
+          return {
+            sector: s.label,
+            sectorKo: s.label,
+            direction: ret4w >= 0 ? 'inflow' : 'outflow' as 'inflow' | 'outflow',
+            magnitude: Math.min(5, Math.max(1, Math.round(Math.abs(ret4w) / 2) + 1)),
+            topMovers: [{ ticker: s.ticker, action: ret4w >= 0 ? '↑' : '↓' }],
+            reason: `${s.label} 4W ${ret4w.toFixed(1)}% / 1W ${ret1w.toFixed(1)}%`,
+            sinceDate,
+            signal,
+          };
+        });
+      }
+    }
+  } catch {
+    // Redis miss or parse error — fall through to static fallback
+  }
+  return moneyFlowSectors;
+}
+
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const force = searchParams.get('force') === '1';
@@ -560,9 +599,12 @@ export async function GET(request: Request) {
     ),
   ]);
 
+  const sectorFlows = await computeSectorFlows(redis);
+
   const response = {
     byCountry: byCountry.filter(Boolean),
     byAsset: byAsset.filter(Boolean),
+    sectorFlows,
     updatedAt: new Date().toISOString(),
   };
 

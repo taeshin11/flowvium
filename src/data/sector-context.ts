@@ -1,3 +1,9 @@
+/**
+ * @static-data-warning
+ * 이 파일의 수치들은 정적 데이터입니다. FRED/Yahoo/Bloomberg에서 자동 update되지 않음.
+ * UI에서는 live API (macro-indicators, volatility 등)가 있으면 override됩니다.
+ * 수치 수동 업데이트 시 날짜 기록: @last-reviewed 2026-05-01
+ */
 export interface SectorContext {
   id: string;
   name: string;
