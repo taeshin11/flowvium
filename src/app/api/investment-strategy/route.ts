@@ -10,7 +10,7 @@ import {
   buildCritiquePrompt, applyCritique,
 } from '@/lib/investment-prompts';
 import type { CtxForPrompts, CritiqueInput, RiskMgmtInput } from '@/lib/investment-prompts';
-import { logPortfolioPredictions, getRetrospectiveSummary } from '@/lib/portfolio-retrospective';
+import { logPortfolioPredictions, getRetrospectiveForS2, getRetrospectiveForS7 } from '@/lib/portfolio-retrospective';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -1231,10 +1231,17 @@ export async function GET(request: Request) {
   const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.55, timeoutMs: 40000 };
   const parseSec = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
 
-  // 과거 예측 회고 요약 (S2 포트폴리오 프롬프트에 주입)
-  const retroSummary = redis ? await getRetrospectiveSummary(redis).catch(() => '') : '';
-  const ctxWithRetro: CtxForPrompts = retroSummary
-    ? { ...ctxForPrompts, news: `${ctxForPrompts.news}\n${retroSummary}` }
+  // 과거 예측 회고 교훈 (S2: 전술적, S7: 전략적)
+  const [retroS2, retroS7] = redis
+    ? await Promise.allSettled([getRetrospectiveForS2(redis), getRetrospectiveForS7(redis)])
+        .then(r => [
+          r[0].status==='fulfilled' ? r[0].value : '',
+          r[1].status==='fulfilled' ? r[1].value : '',
+        ])
+    : ['', ''];
+  // S2 전술 교훈 주입 (entry/target calibration)
+  const ctxWithRetro: CtxForPrompts = retroS2
+    ? { ...ctxForPrompts, news: `${ctxForPrompts.news}\n${retroS2}` }
     : ctxForPrompts;
 
   // ── Wave 1: 5섹션 병렬 (서로 독립적) ───────────────────────────────────────
@@ -1333,7 +1340,7 @@ export async function GET(request: Request) {
           target: p.target ?? '',
         })),
         macroAnalysis: strategy.macroAnalysis ?? '',
-        bbWarnings: ctxSummary.bbWarnings + (s4Summary ? ` | S4기회:${s4Summary}` : ''),
+        bbWarnings: ctxSummary.bbWarnings + (s4Summary ? ` | S4기회:${s4Summary}` : '') + (retroS7 ? `\n${retroS7}` : ''),
         assetFg: ctxSummary.assetFg,
       };
       const critiqueResult = await callAIProvider(

@@ -78,8 +78,11 @@ export function buildGroundingFacts(livePriceSummary?: string): string {
     `- ALLOWED: Country ETFs (EWY/EWJ/EWZ/VGK etc.), bond ETFs, commodity ETFs`,
     `- ALLOWED: Korean stocks (KRW): ${APPROVED_KR.join(', ')}`,
     `- ALLOWED: Crypto via Yahoo Finance: BTC-USD, ETH-USD, SOL-USD etc. and ETFs: IBIT, FBTC, BITO`,
-    `- BLOCKED: OTC stocks (suffix .OB), pink sheets, unlisted companies, inverse 3x ETFs (SQQQ/TQQQ as primary hold)`,
-    `- RULE: All tickers must have Yahoo Finance price data. If unsure, use SPY/QQQ/GLD/TLT as alternatives.`,
+    `- ALLOWED: Small caps listed on NYSE/NASDAQ (Russell 2000 components, S&P 600): e.g. MARA, RIOT, SMCI, SOFI, UPST, HOOD`,
+    `- ALLOWED: Small cap ETFs: IWM (Russell 2000), IJR (S&P 600), SCHA (small-cap blend)`,
+    `- BLOCKED: OTC/pink sheets (suffix .OB, .PK) — not on major exchanges, unreliable pricing`,
+    `- BLOCKED: Pure inverse/leveraged ETFs as primary hold (SQQQ/TQQQ/SOXS etc.)`,
+    `- RULE: All tickers must have Yahoo Finance price data. If unsure, use IWM/QQQ/SPY as small/mid/large proxy.`,
   ];
   if (livePriceSummary) {
     lines.push('', `[Live Prices — use for entryZone/target/stopLoss]`, livePriceSummary);
