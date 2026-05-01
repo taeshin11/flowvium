@@ -273,9 +273,10 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
   messages.push({ role: 'user', content: prompt });
 
-  // C2 FIX: cap total OpenRouter cascade to prevent runaway time (e.g. 10 models × 30s = 300s)
+  // 90초 Lambda 한도 내 완료를 위해 총 20s, 모델당 12s로 제한
   const cascadeStart = Date.now();
-  const MAX_TOTAL_OPENROUTER_MS = 50000; // 50s max for all models combined
+  const MAX_TOTAL_OPENROUTER_MS = 20000; // 50000 → 20000 (90s Lambda 예산 내)
+  const PER_MODEL_TIMEOUT_MS = 12000;    // 모델당 최대 12s
 
   for (const model of FREE_MODELS) {
     if (Date.now() - cascadeStart > MAX_TOTAL_OPENROUTER_MS) {
@@ -293,7 +294,7 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
           'X-Title': 'FlowVium',
         },
         body: JSON.stringify({ model, messages, max_tokens: opts.maxTokens ?? 1600, temperature: opts.temperature ?? 0.7 }),
-        signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
+        signal: AbortSignal.timeout(Math.min(opts.timeoutMs ?? PER_MODEL_TIMEOUT_MS, PER_MODEL_TIMEOUT_MS)),
       });
       if (!res.ok) {
         const errText = await res.text().catch(() => '');

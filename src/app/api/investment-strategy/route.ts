@@ -1287,14 +1287,29 @@ export async function GET(request: Request) {
     : `${reqUrl.protocol}//${reqUrl.host}`;
 
   // Gather all context in parallel (including live prices)
-  const [ctx, sectorPe, earnings, livePrices, vixCtx, activeCascades] = await Promise.all([
-    gatherTabContext(redis, baseUrl),
-    getSectorSummary(baseUrl),
-    getUpcomingEarnings(baseUrl),
-    getLivePrices(),
-    getVixContext(baseUrl),
-    getActiveCascadeSignals(baseUrl),
-  ]);
+  // 컨텍스트 수집 전체를 15s로 cap — cache miss 시 slow API가 AI 예산을 잠식하는 것 방지
+  let ctx: Awaited<ReturnType<typeof gatherTabContext>>;
+  let sectorPe: string, earnings: string, vixCtx: string, activeCascades: string;
+  let livePrices: Awaited<ReturnType<typeof getLivePrices>>;
+  try {
+    const results = await Promise.race([
+      Promise.all([
+        gatherTabContext(redis, baseUrl),
+        getSectorSummary(baseUrl),
+        getUpcomingEarnings(baseUrl),
+        getLivePrices(),
+        getVixContext(baseUrl),
+        getActiveCascadeSignals(baseUrl),
+      ]),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('ctx_timeout')), 15000)),
+    ]);
+    [ctx, sectorPe, earnings, livePrices, vixCtx, activeCascades] = results;
+  } catch (e) {
+    logger.warn('api.investment-strategy', 'gather_timeout', { error: e });
+    ctx = {} as Awaited<ReturnType<typeof gatherTabContext>>;
+    sectorPe = ''; earnings = ''; vixCtx = ''; activeCascades = '';
+    livePrices = new Map();
+  }
 
   const dataAsOf = new Date().toISOString();
   const ctxSummary = buildCtxSummary(ctx);
@@ -1422,7 +1437,8 @@ export async function GET(request: Request) {
 
   // combined 실패 시 단일 프롬프트 폴백 (기존 방식)
   const singlePrompt = combinedStrategy ? null : buildInvestmentPrompt(ctxSummary, sectorPe, earnings, livePrices, vixCtx, locale, session);
-  const singleResult = singlePrompt ? await callAIProvider(singlePrompt, { ...aiOpts, maxTokens: 1400 }) : null;
+  // Wave 1 실패 후 singleResult — 이미 실패한 GROQ 건너뜀 (skipGroq: true)
+  const singleResult = singlePrompt ? await callAIProvider(singlePrompt, { ...aiOpts, skipGroq: true, maxTokens: 1400 }) : null;
 
   let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
 
