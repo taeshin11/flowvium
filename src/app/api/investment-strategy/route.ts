@@ -328,6 +328,49 @@ async function getCompanyFinancialsSummary(baseUrl: string, tickers: string[]): 
   return results.filter(r => r.status === 'fulfilled' && r.value).map(r => (r as PromiseFulfilledResult<string>).value).join(' | ');
 }
 
+// ── Active cascade detector ───────────────────────────────────────────────────
+// cascade 리더가 1주간 ±5% 이상 움직이면 "현재 활성" 신호로 판단, AI 프롬프트에 주입
+async function getActiveCascadeSignals(baseUrl: string): Promise<string> {
+  try {
+    // cascade leaders + 주요 followers
+    const LEADERS = ['NVDA','ASML','MSFT','TSM','LMT','ABBV','TSLA','WMT'];
+    const res = await fetch(
+      `${baseUrl}/api/batch-prices?tickers=${LEADERS.join(',')}`,
+      { signal: AbortSignal.timeout(8000), cache: 'no-store' }
+    );
+    if (!res.ok) return '';
+    const d = await res.json() as { prices?: Record<string, { price: number|null; changePct: number|null; ret1w?: number|null }> };
+    const prices = d.prices ?? {};
+
+    // cascade 패턴 임포트 (빌드 타임 static import OK — 패턴 자체는 분석 기준)
+    const CASCADES: Array<{ leader: string; followers: string[]; sector: string }> = [
+      { leader: 'NVDA', followers: ['MU','000660.KS','TSM','AMAT','LRCX','AMD'], sector: 'AI반도체' },
+      { leader: 'ASML', followers: ['AMAT','LRCX','KLAC','TSM'], sector: '반도체장비' },
+      { leader: 'MSFT', followers: ['NVDA','GOOGL','AMZN','ORCL'], sector: 'AI클라우드' },
+      { leader: 'TSM', followers: ['NVDA','AMD','AVGO','QCOM'], sector: 'TSMC파운드리' },
+      { leader: 'LMT', followers: ['RTX','NOC','BA','GE'], sector: '방산' },
+      { leader: 'ABBV', followers: ['LLY','JNJ','PFE','MRK'], sector: '바이오파마' },
+      { leader: 'TSLA', followers: ['RIVN','NIO','LI','LCID'], sector: 'EV' },
+      { leader: 'WMT', followers: ['COST','HD','TGT','AMZN'], sector: '소비유통' },
+    ];
+
+    const active: string[] = [];
+    for (const c of CASCADES) {
+      const lp = prices[c.leader];
+      const ret1w = lp?.ret1w ?? null;
+      if (ret1w == null || Math.abs(ret1w) < 5) continue;
+      const dir = ret1w > 0 ? '상승' : '하락';
+      const sign = ret1w > 0 ? '+' : '';
+      active.push(
+        `[CASCADE ACTIVE] ${c.sector} ${c.leader} 1W ${sign}${ret1w.toFixed(1)}% → ` +
+        `팔로워 주목: ${c.followers.slice(0,3).join(', ')} (공급망/경쟁 cascade 진행 가능)`
+      );
+    }
+
+    return active.length ? active.join('\n') : '';
+  } catch { return ''; }
+}
+
 // ── Earnings risk helper ──────────────────────────────────────────────────────
 async function getUpcomingEarnings(baseUrl: string): Promise<string> {
   try {
@@ -1242,12 +1285,13 @@ export async function GET(request: Request) {
     : `${reqUrl.protocol}//${reqUrl.host}`;
 
   // Gather all context in parallel (including live prices)
-  const [ctx, sectorPe, earnings, livePrices, vixCtx] = await Promise.all([
+  const [ctx, sectorPe, earnings, livePrices, vixCtx, activeCascades] = await Promise.all([
     gatherTabContext(redis, baseUrl),
     getSectorSummary(baseUrl),
     getUpcomingEarnings(baseUrl),
     getLivePrices(),
     getVixContext(baseUrl),
+    getActiveCascadeSignals(baseUrl),
   ]);
 
   const dataAsOf = new Date().toISOString();
@@ -1255,10 +1299,18 @@ export async function GET(request: Request) {
   const priceData = pricesSection(livePrices);
 
   // ── 3섹션 병렬 AI 호출 ──────────────────────────────────────────────────────
+  // activeCascades: 리더 1W ±5% 이상 시 팔로워 추천 신호 — flows + news에 주입
+  const cascadeCtx = activeCascades
+    ? `\n[ACTIVE CASCADE SIGNALS — 공급망 연쇄 움직임 감지]\n${activeCascades}`
+    : '';
+
   const ctxForPrompts: CtxForPrompts = {
-    macro: ctxSummary.macro, sentiment: ctxSummary.sentiment, flows: ctxSummary.flows,
+    macro: ctxSummary.macro, sentiment: ctxSummary.sentiment,
+    flows: ctxSummary.flows + cascadeCtx,   // cascade 신호 → 자금흐름 컨텍스트에 추가
     cot: ctxSummary.cot, commodity: ctxSummary.commodity, institutional: ctxSummary.institutional,
-    shorts: ctxSummary.shorts, news: ctxSummary.news, koreaFlow: ctxSummary.koreaFlow,
+    shorts: ctxSummary.shorts,
+    news: ctxSummary.news + (activeCascades ? `\n[공급망 cascade 활성]\n${activeCascades}` : ''),
+    koreaFlow: ctxSummary.koreaFlow,
     assetFg: ctxSummary.assetFg, bbWarnings: ctxSummary.bbWarnings,
     credit: ctxSummary.credit, nport: ctxSummary.nport,
     optionsFlow: ctxSummary.optionsFlow, ownership: ctxSummary.ownership,
