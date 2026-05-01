@@ -12,6 +12,7 @@ import {
 import type { CtxForPrompts, CritiqueInput, RiskMgmtInput, CompanyChangesInput } from '@/lib/investment-prompts';
 import { logPortfolioPredictions, getRetrospectiveForS2, getRetrospectiveForS7 } from '@/lib/portfolio-retrospective';
 import { executeReportTrades } from '@/lib/paper-trading';
+import { FG, VIX, SPREADS, PORTFOLIO } from '@/lib/thresholds';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -985,20 +986,20 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
   const vix: number = (vol?.vix as number) ?? 18;
 
   // Base allocations (sum = 100)
-  let spy = 35, qqq = 25, gld = 15, tlt = 15, cash = 10;
+  let spy = PORTFOLIO.DEFAULT_SPY, qqq = PORTFOLIO.DEFAULT_QQQ, gld = PORTFOLIO.DEFAULT_GLD, tlt = PORTFOLIO.DEFAULT_TLT, cash = PORTFOLIO.DEFAULT_CASH;
 
   // Adjustments: risk-off signals → reduce equity, increase defensive
-  if (vix > 30 || igSpread > 1.5 || hySpread > 5.5) {
+  if (vix > VIX.HIGH || igSpread > SPREADS.IG_ELEVATED || hySpread > SPREADS.HY_ELEVATED) {
     spy -= 10; qqq -= 5; gld += 5; cash += 10;
-  } else if (vix > 22 || igSpread > 1.2) {
+  } else if (vix > VIX.NORMAL || igSpread > SPREADS.IG_NORMAL) {
     spy -= 5; qqq -= 5; gld += 5; cash += 5;
   }
   if (inverted) {
     tlt -= 10; cash += 10; // Inverted curve = bond duration risk
   }
-  if (fgScore > 75) {
+  if (fgScore >= FG.EXTREME_GREED) {
     spy -= 5; gld += 5; // Extreme greed = take some off the table
-  } else if (fgScore < 25) {
+  } else if (fgScore <= FG.EXTREME_FEAR) {
     spy += 5; cash -= 5; // Extreme fear = buying opportunity
   }
 
@@ -1017,8 +1018,8 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
   const isKo = locale === 'ko';
   const isJa = locale === 'ja';
   const isZh = locale === 'zh-CN' || locale === 'zh-TW';
-  const vixLabel = vix > 30 ? (isKo ? '고변동성' : 'high-vol') : vix > 22 ? (isKo ? '변동성 상승' : 'elevated-vol') : (isKo ? '저변동성' : 'low-vol');
-  const fgLabel = fgScore > 75 ? (isKo ? '탐욕 과잉' : 'extreme greed') : fgScore > 55 ? (isKo ? '탐욕' : 'greed') : fgScore > 45 ? (isKo ? '중립' : 'neutral') : fgScore > 25 ? (isKo ? '공포' : 'fear') : (isKo ? '극단적 공포' : 'extreme fear');
+  const vixLabel = vix > VIX.HIGH ? (isKo ? '고변동성' : 'high-vol') : vix > VIX.NORMAL ? (isKo ? '변동성 상승' : 'elevated-vol') : (isKo ? '저변동성' : 'low-vol');
+  const fgLabel = fgScore >= FG.EXTREME_GREED ? (isKo ? '탐욕 과잉' : 'extreme greed') : fgScore >= FG.GREED ? (isKo ? '탐욕' : 'greed') : fgScore >= FG.FEAR ? (isKo ? '중립' : 'neutral') : fgScore > FG.EXTREME_FEAR ? (isKo ? '공포' : 'fear') : (isKo ? '극단적 공포' : 'extreme fear');
   const ycLabel = inverted ? (isKo ? '수익률 곡선 역전' : 'curve inverted') : (spread != null ? (isKo ? `스프레드 ${Math.round(spread * 100)}bp` : `spread ${Math.round(spread * 100)}bp`) : '');
   const conditions = [vixLabel, fgLabel, ycLabel].filter(Boolean).join(' · ');
 
@@ -1027,7 +1028,7 @@ function dataFallbackStrategy(ctx: Awaited<ReturnType<typeof gatherTabContext>>,
     : isZh ? `数据驱动配置 — ${conditions}`
     : `Data-driven allocation — ${conditions}`;
 
-  const riskLevel: 'low' | 'medium' | 'high' = vix > 28 || fgScore < 25 || igSpread > 1.5 ? 'high' : vix < 18 && fgScore > 55 ? 'low' : 'medium';
+  const riskLevel: 'low' | 'medium' | 'high' = vix > 28 || fgScore <= FG.EXTREME_FEAR || igSpread > 1.5 ? 'high' : vix < 18 && fgScore >= FG.GREED ? 'low' : 'medium';
 
   // Build data-populated analysis text (replaces generic "AI unavailable" from base)
   const cpiInd = inds.find((i: Record<string, unknown>) => i.id === 'cpi');

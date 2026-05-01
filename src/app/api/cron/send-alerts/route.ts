@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
+import { FG, VIX } from '@/lib/thresholds';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 30;
@@ -57,7 +58,7 @@ async function checkFGAlert(
 
   const results: AlertResult[] = [];
 
-  if (entry.score <= 25) {
+  if (entry.score <= FG.EXTREME_FEAR) {
     const type = 'fg-extreme-fear';
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {
@@ -80,7 +81,7 @@ async function checkFGAlert(
     }
   }
 
-  if (entry.score >= 75) {
+  if (entry.score >= FG.EXTREME_GREED) {
     const type = 'fg-extreme-greed';
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {
@@ -114,7 +115,7 @@ async function checkVIXAlert(
 
   const results: AlertResult[] = [];
 
-  if (vol.vix >= 30) {
+  if (vol.vix >= VIX.HIGH) {
     const type = 'vix-high';
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {
@@ -134,7 +135,7 @@ async function checkVIXAlert(
     } else {
       results.push({ type, sent: false, cooldown: true });
     }
-  } else if (vol.vix >= 25) {
+  } else if (vol.vix >= VIX.ELEVATED) {
     const type = 'vix-caution';
     const cooled = await isCooledDown(redis, type);
     if (!cooled) {

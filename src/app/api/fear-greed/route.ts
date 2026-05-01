@@ -254,12 +254,14 @@ function compositeWithFactors(prices: number[], ticker: string, vixValue?: numbe
   };
 }
 
+import { FG } from '@/lib/thresholds';
+
 function getLevel(score: number): string {
-  if (score <= 25) return 'extreme-fear';
-  if (score <= 40) return 'fear';
-  if (score <= 60) return 'neutral';
-  if (score <= 75) return 'greed';
-  return 'extreme-greed';
+  if (score <= FG.EXTREME_FEAR) return 'extreme-fear';
+  if (score <= FG.FEAR)         return 'fear';
+  if (score >= FG.EXTREME_GREED) return 'extreme-greed';
+  if (score >= FG.GREED)        return 'greed';
+  return 'neutral';
 }
 
 // ── Configs ───────────────────────────────────────────────────────────────────

@@ -255,7 +255,7 @@ export const sectorContextMap: Record<string, SectorContext> = {
     name: '금융',
     phase: '금리 인하 사이클 + 자본시장 회복 — IB 수수료·대출 스프레드 동시 개선',
     keyData: [
-      { label: 'Fed Funds Rate', value: '4.25~4.50%', trend: 'down' },
+      { label: 'Fed Funds Rate', value: '3.50~3.75%', trend: 'down' },  // 2026-03-19 50bp 인하 후
       { label: 'M&A 거래 규모 (2026Q1)', value: '$842B (+34% YoY)', trend: 'up' },
       { label: '은행 NIM (평균)', value: '2.85%', trend: 'neutral' },
       { label: '신용카드 연체율', value: '3.2% (10년 최고)', trend: 'up' },
