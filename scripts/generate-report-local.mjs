@@ -58,18 +58,22 @@ async function generateViaVercel() {
 }
 
 // ── Option B: Ollama 로컬 생성 ───────────────────────────────────────────────
-async function callOllama(prompt, model = 'qwen2.5:14b') {
+async function callOllama(prompt, model = 'qwen3:8b') {
   const baseModel = model.replace('ollama/', '');
+  // Qwen3은 think:false로 구조화 JSON 생성에 집중 (thinking 모드 OFF)
+  const isQwen3 = baseModel.startsWith('qwen3');
+  const body = {
+    model: baseModel,
+    messages: [{ role: 'user', content: prompt }],
+    stream: false,
+    options: { temperature: 0.5, num_predict: 4096 },
+    ...(isQwen3 ? { think: false } : {}),
+  };
   const res = await fetch('http://localhost:11434/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: baseModel,
-      messages: [{ role: 'user', content: prompt }],
-      stream: false,
-      options: { temperature: 0.5, num_predict: 4096 },
-    }),
-    signal: AbortSignal.timeout(120000),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(240000),
   });
   if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
   const d = await res.json();

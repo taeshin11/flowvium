@@ -31,41 +31,36 @@ Forbidden: Do not cite RSI/MACD/Bollinger values unless explicitly provided in c
 Forbidden: Do not invent analyst targets, earnings estimates, or credit ratings.
 `.trim();
 
-/** Approved ticker universe — universe 이탈 방지 */
-const APPROVED_US = [
-  // Mega-cap Tech
-  'NVDA','AAPL','MSFT','GOOGL','GOOG','META','AMZN','TSLA',
-  // Semiconductors
-  'AMD','INTC','MU','AVGO','QCOM','TXN','AMAT','KLAC','LRCX','MRVL','ON','ARM','ASML',
-  // AI/Cloud
-  'PLTR','SNOW','CRM','NOW','ADBE','ORCL','INTU','UBER','COIN','SHOP',
-  // Financials
-  'JPM','GS','MS','BAC','WFC','C','SCHW','V','MA','PYPL','AXP','SPGI','MCO','BLK',
-  // Healthcare
-  'LLY','JNJ','PFE','MRK','ABBV','AMGN','GILD','REGN','BIIB','UNH','CVS',
-  // Energy
-  'XOM','CVX','COP','SLB',
-  // Consumer/Industrial
-  'WMT','COST','HD','TGT','KO','PEP','PG','MCD','SBUX','NKE',
-  'LMT','RTX','NOC','BA','GE','CAT','DE','HON','UPS','FDX','MMM',
-  // Telecom/Media
-  'T','VZ','CMCSA','DIS','NFLX',
+/** Universe 정책 — 허용 리스트가 아닌 정책 기반 (S&P500 전체 + 주요 ETF + 암호화폐) */
+// 예시 리스트 (AI 참고용 — 이 외에도 S&P500 전체, 주요 국가 ETF, 암호화폐 허용)
+const APPROVED_US_EXAMPLES = [
+  'NVDA','AAPL','MSFT','GOOGL','META','AMZN','TSLA','AMD','AVGO','JPM','GS','V','MA',
+  'LLY','JNJ','XOM','WMT','COST','HD','KO','PG','MCD','LMT','RTX','BA','UNH',
+  'PLTR','COIN','SNOW','CRM','ADBE','ORCL','INTU','UBER','SHOP','NFLX','DIS',
+  'ALB','FCX','NEM','CF','MOS',  // Materials/Commodities stocks
+  'SMCI','DELL','HPE','ANET',    // AI infra
 ];
-const APPROVED_ETF = [
+const APPROVED_ETF_EXAMPLES = [
   // US broad/sector
-  'SPY','QQQ','IWM','DIA','VTI',
-  'XLK','XLE','XLF','XLV','XLI','XLY','XLB','XLU','XLRE','XLC','XLK','XLP',
+  'SPY','QQQ','IWM','VTI','XLK','XLE','XLF','XLV','XLI','XLY','XLB','XLU','XLC','XLP','XLRE',
+  // Smart Beta
+  'MTUM','QUAL','USMV','VLUE','IVE','IVW',
   // Country ETFs
-  'EWY','EWJ','EWZ','EWA','EWG','EWU','EWT','EWH','INDA','FXI','EEM','VWO',
+  'EWY','EWJ','EWZ','EWA','EWG','EWU','EWT','EWH','INDA','FXI','EEM','VWO','VGK','EWW',
+  // Bonds/Rates
+  'TLT','IEF','SHY','HYG','LQD',
   // Commodities/Hedges
-  'GLD','SLV','USO','DBA','GDX','UUP','TLT','IEF','HYG','LQD','MTUM','QUAL',
+  'GLD','SLV','USO','DBA','GDX','UUP',
+  // Crypto & Crypto ETFs
+  'IBIT','FBTC','GBTC','ETHA','BITB','BITO',
 ];
+const APPROVED_CRYPTO = ['BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','AVAX-USD','LINK-USD'];
 const APPROVED_KR = [
   '005930.KS','000660.KS','373220.KS','005380.KS','035420.KS',
   '035720.KS','051910.KS','005490.KS','000270.KS','207940.KS',
 ];
 
-export const APPROVED_UNIVERSE = [...APPROVED_US, ...APPROVED_ETF, ...APPROVED_KR];
+export const APPROVED_UNIVERSE = [...APPROVED_US_EXAMPLES, ...APPROVED_ETF_EXAMPLES, ...APPROVED_CRYPTO, ...APPROVED_KR];
 
 /** [FACTS] 섹션 문자열 생성 — 프롬프트 앞부분에 주입 */
 export function buildGroundingFacts(livePriceSummary?: string): string {
@@ -78,10 +73,13 @@ export function buildGroundingFacts(livePriceSummary?: string): string {
     '',
     INDICATOR_CATALOG,
     '',
-    `Approved ticker universe (${APPROVED_UNIVERSE.length} tickers):`,
-    `${[...APPROVED_US, ...APPROVED_ETF].join(', ')}`,
-    `Korean stocks (KRW): ${APPROVED_KR.join(', ')}`,
-    `RULE: Portfolio tickers MUST be from this universe only.`,
+    `Ticker universe POLICY (not a strict allowlist):`,
+    `- ALLOWED: Any S&P 500 component, major ETF, or top-100 crypto by market cap`,
+    `- ALLOWED: Country ETFs (EWY/EWJ/EWZ/VGK etc.), bond ETFs, commodity ETFs`,
+    `- ALLOWED: Korean stocks (KRW): ${APPROVED_KR.join(', ')}`,
+    `- ALLOWED: Crypto via Yahoo Finance: BTC-USD, ETH-USD, SOL-USD etc. and ETFs: IBIT, FBTC, BITO`,
+    `- BLOCKED: OTC stocks (suffix .OB), pink sheets, unlisted companies, inverse 3x ETFs (SQQQ/TQQQ as primary hold)`,
+    `- RULE: All tickers must have Yahoo Finance price data. If unsure, use SPY/QQQ/GLD/TLT as alternatives.`,
   ];
   if (livePriceSummary) {
     lines.push('', `[Live Prices — use for entryZone/target/stopLoss]`, livePriceSummary);
