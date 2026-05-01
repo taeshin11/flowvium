@@ -6,6 +6,7 @@ import {
   getSnapshots,
   checkStopLossAndTarget,
   resetAccount,
+  executeReportTrades,
 } from '@/lib/paper-trading';
 
 export const dynamic = 'force-dynamic';
@@ -52,14 +53,33 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action') ?? '';
 
-  if (action !== 'reset') {
-    return NextResponse.json({ error: 'Unknown action. Use: reset' }, { status: 400 });
-  }
-
   const authHeader = req.headers.get('authorization') ?? '';
   const expectedToken = `Bearer ${process.env.CRON_SECRET ?? ''}`;
-  if (!process.env.CRON_SECRET || authHeader !== expectedToken) {
+  const authed = !process.env.CRON_SECRET || authHeader === expectedToken;
+
+  // execute: 리포트 포트폴리오로 가상 매매 실행 (로컬 스크립트 + cron에서 호출)
+  if (action === 'execute') {
+    const redis = createRedis();
+    if (!redis) return NextResponse.json({ error: 'Redis unavailable' }, { status: 503 });
+    const body = await req.json().catch(() => ({})) as { portfolio?: unknown[]; reportDate?: string };
+    const portfolio = body.portfolio ?? [];
+    const reportDate = body.reportDate ?? new Date().toISOString().slice(0, 10);
+    if (!Array.isArray(portfolio) || portfolio.length === 0)
+      return NextResponse.json({ error: 'portfolio required' }, { status: 400 });
+    const result = await executeReportTrades(redis, portfolio as Parameters<typeof executeReportTrades>[1], reportDate);
+    return NextResponse.json(result);
+  }
+
+  if (!authed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (action !== 'reset') {
+    return NextResponse.json({ error: 'Unknown action. Use: execute | reset' }, { status: 400 });
+  }
+
+  if (!authed) {
+    return NextResponse.json({ error: 'Unauthorized for reset' }, { status: 401 });
   }
 
   const redis = createRedis();

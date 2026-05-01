@@ -76,17 +76,21 @@ export interface DailySnapshot {
 // ── Yahoo price fetch ─────────────────────────────────────────────────────────
 
 async function fetchPrice(ticker: string): Promise<number | null> {
-  try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`,
-      { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store', signal: AbortSignal.timeout(6000) }
-    );
-    if (!res.ok) return null;
-    const d = await res.json();
-    const closes: number[] = d?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
-    const valid = closes.filter(Boolean);
-    return valid.length ? valid[valid.length - 1] : null;
-  } catch { return null; }
+  // query1 → query2 폴백 (Vercel IP 차단 대응)
+  for (const host of ['query1', 'query2'] as const) {
+    try {
+      const res = await fetch(
+        `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`,
+        { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, cache: 'no-store', signal: AbortSignal.timeout(6000) }
+      );
+      if (!res.ok) continue;
+      const d = await res.json();
+      const closes: number[] = d?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
+      const valid = closes.filter(Boolean);
+      if (valid.length) return valid[valid.length - 1];
+    } catch { /* try next host */ }
+  }
+  return null;
 }
 
 // ── Account CRUD ──────────────────────────────────────────────────────────────
@@ -132,7 +136,7 @@ export async function executeReportTrades(
   portfolio: Array<{
     ticker: string; name?: string; allocation: number; action?: string;
     sector?: string; stopLoss?: string; target?: string;
-    entryZone?: string; rationale?: string;
+    entryZone?: string; rationale?: string; currentPrice?: number;
   }>,
   reportDate: string,
 ): Promise<{ bought: string[]; sold: string[]; skipped: string[]; totalValue: number }> {
@@ -188,11 +192,21 @@ export async function executeReportTrades(
   const currentTotal = account.cash + account.positions.reduce((s, p) => s + p.marketValue, 0);
 
   // 3. 목표 비중대로 매수
+  // currentPrice (리포트가 제공한 live 가격)을 우선 사용 — Yahoo IP 차단 대응
   const priceMap = new Map<string, number>();
-  const newPrices = await Promise.allSettled(buyItems.map(p => fetchPrice(p.ticker)));
-  for (let i = 0; i < buyItems.length; i++) {
-    const pr = newPrices[i];
-    if (pr.status === 'fulfilled' && pr.value) priceMap.set(buyItems[i].ticker.toUpperCase(), pr.value);
+  for (const item of buyItems) {
+    if (item.currentPrice && item.currentPrice > 0) {
+      priceMap.set(item.ticker.toUpperCase(), item.currentPrice);
+    }
+  }
+  // currentPrice 없는 종목만 Yahoo에서 조회
+  const missingTickers = buyItems.filter(p => !priceMap.has(p.ticker.toUpperCase()));
+  if (missingTickers.length > 0) {
+    const fetched = await Promise.allSettled(missingTickers.map(p => fetchPrice(p.ticker)));
+    for (let i = 0; i < missingTickers.length; i++) {
+      const pr = fetched[i];
+      if (pr.status === 'fulfilled' && pr.value) priceMap.set(missingTickers[i].ticker.toUpperCase(), pr.value);
+    }
   }
 
   for (const item of buyItems) {
