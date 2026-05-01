@@ -1301,7 +1301,7 @@ export async function GET(request: Request) {
         getVixContext(baseUrl),
         getActiveCascadeSignals(baseUrl),
       ]),
-      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('ctx_timeout')), 15000)),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('ctx_timeout')), 30000)),
     ]);
     [ctx, sectorPe, earnings, livePrices, vixCtx, activeCascades] = results;
   } catch (e) {
@@ -1334,14 +1334,8 @@ export async function GET(request: Request) {
     econCal: ctxSummary.econCal,
   };
 
-  // 90초 Lambda 한도 내 예산:
-  //   컨텍스트 수집: ~12s
-  //   Wave 1 (5개 병렬): 25s
-  //   Wave 2 (S5+S8 병렬): 20s
-  //   S7 Critic: 10s
-  //   캐시/기록: 3s
-  //   합계 목표: ~70s (마진 20s)
-  const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.55, timeoutMs: 25000 };
+  // maxDuration 300s (vercel.json) — 타임아웃 여유 확보
+  const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.55, timeoutMs: 40000 };
   const parseSec = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
 
   // 과거 예측 회고 교훈 (S2: 전술적, S7: 전략적)
@@ -1478,7 +1472,7 @@ export async function GET(request: Request) {
       };
       const critiqueResult = await callAIProvider(
         buildCritiquePrompt(critiqueInput, locale),
-        { tag: 'invest-critic', skipVllm: true, maxTokens: 600, temperature: 0.4, timeoutMs: 10000 },
+        { tag: 'invest-critic', skipVllm: true, maxTokens: 600, temperature: 0.4, timeoutMs: 25000 },
       );
       if (critiqueResult.text && critiqueResult.source !== 'fallback') {
         const refinedPortfolio = applyCritique(critiqueInput.portfolio, critiqueResult.text);

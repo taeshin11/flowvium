@@ -22,7 +22,7 @@
       "maxDuration": 60
     },
     "src/app/api/cron/investment-strategy/route.ts": {
-      "maxDuration": 90
+      "maxDuration": 300
     },
     "src/app/api/capital-flows/route.ts": {
       "maxDuration": 60
@@ -44,6 +44,9 @@
     },
     "src/app/api/volatility/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/investment-strategy/route.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [
