@@ -79,10 +79,11 @@ export interface PortfolioItem {
   rationale: string;
   allocation: number;
   entryZone: string;
-  entryRationale?: string;   // why this entry range (support/MA/BB level)
+  entryRationale?: string;     // why this entry range (fundamental + technical)
   stopLoss: string;
-  target: string;
-  targetRationale?: string;  // why this target (resistance/PE/52w high)
+  target: string;              // base case target
+  targetBull?: string;         // bull case: breakout continuation target
+  targetRationale?: string;    // fundamental-first, then technical
   confidence: 'high' | 'medium' | 'low';
   action?: 'buy' | 'hold' | 'watch';
   currentPrice?: number;

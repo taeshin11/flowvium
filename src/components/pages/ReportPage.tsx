@@ -175,6 +175,11 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           <div className="flex items-center gap-1 text-xs">
             <span className="text-gray-400">{t('targetPrice')}</span>
             <span className="font-semibold text-emerald-600 font-mono">{item.target}</span>
+            {item.targetBull && (
+              <span className="text-[10px] text-violet-600 font-semibold ml-0.5">
+                / 🚀{item.targetBull}
+              </span>
+            )}
           </div>
           {badge && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${badge.cls}`}>{badge.label}</span>
