@@ -11,6 +11,7 @@ import {
 } from '@/lib/investment-prompts';
 import type { CtxForPrompts, CritiqueInput, RiskMgmtInput } from '@/lib/investment-prompts';
 import { logPortfolioPredictions, getRetrospectiveForS2, getRetrospectiveForS7 } from '@/lib/portfolio-retrospective';
+import { executeReportTrades } from '@/lib/paper-trading';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 90;
@@ -1425,6 +1426,7 @@ export async function GET(request: Request) {
       // 포트폴리오 예측 회고 로그 (14일 후 평가)
       if (!isFallback && strategy.portfolio?.length) {
         logPortfolioPredictions(redis, strategy.portfolio, strategy.generatedAt).catch(() => {});
+        executeReportTrades(redis, strategy.portfolio, strategy.generatedAt.slice(0, 10)).catch(() => {});
       }
     } catch (he) { logger.warn('api.investment-strategy', 'history_save_error', { error: String(he) }); }
   }

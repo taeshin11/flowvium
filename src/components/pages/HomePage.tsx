@@ -973,6 +973,7 @@ export default function HomePage() {
                   { href: '/screener',     icon: <Radar className="w-3.5 h-3.5" />,           label: tNav('screener'),              desc: tNav('screenerDesc'),              accent: 'text-violet-600 dark:text-violet-400' },
                   { href: '/short',        icon: <TrendingDown className="w-3.5 h-3.5" />,    label: tNav('short'),                 desc: tNav('shortDesc'),                 accent: 'text-red-600 dark:text-red-400' },
                   { href: '/cascade',      icon: <Network className="w-3.5 h-3.5" />,         label: tNav('cascade'),               desc: tNav('cascadeDesc'),               accent: 'text-cyan-600 dark:text-cyan-400' },
+                  { href: '/paper-trading', icon: <TrendingUp className="w-3.5 h-3.5" />, label: '가상계좌', desc: 'AI 리포트 가상 매매', accent: 'text-emerald-500' },
                 ] as { href: string; icon: React.ReactNode; label: string; desc?: string; accent: string; primary?: boolean; aiReport?: boolean }[]).map(item => (
                   <Link
                     key={item.href}

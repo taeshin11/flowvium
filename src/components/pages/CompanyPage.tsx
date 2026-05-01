@@ -88,9 +88,18 @@ const actionColors: Record<string, string> = {
   exit: 'text-orange-600 bg-orange-50',
 };
 
-function SegmentRow({ seg, idx, topCustomersLabel }: { seg: RevenueSegment; idx: number; topCustomersLabel: string }) {
+function SegmentRow({ seg, idx, topCustomersLabel, liveRevenueUSD }: { seg: RevenueSegment; idx: number; topCustomersLabel: string; liveRevenueUSD?: number | null }) {
   const [open, setOpen] = useState(false);
   const hasExtra = !!(seg.topCustomers?.length || seg.description);
+  // live 매출 있으면 비율로 계산, 없으면 정적 amount 사용
+  const displayAmount = liveRevenueUSD
+    ? (() => {
+        const v = liveRevenueUSD * (seg.percentage / 100);
+        if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(1)}B`;
+        return `$${(v/1e6).toFixed(0)}M`;
+      })()
+    : seg.amount;
   return (
     <div className="rounded-lg border border-cf-border overflow-hidden">
       <button
@@ -106,7 +115,7 @@ function SegmentRow({ seg, idx, topCustomersLabel }: { seg: RevenueSegment; idx:
           <span className="text-sm font-medium text-cf-text-primary truncate">{seg.name}</span>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm text-cf-text-secondary">{seg.amount}</span>
+          <span className="text-sm text-cf-text-secondary">{displayAmount}</span>
           <div className="flex items-center gap-1">
             <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-cf-primary" style={{ width: `${seg.percentage}%` }} />
@@ -188,6 +197,25 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     () => allCompanies.find((c) => c.ticker.toUpperCase() === ticker.toUpperCase()),
     [ticker]
   );
+
+  // Live employee count from Yahoo Finance (overrides static company.employees)
+  const [liveEmployees, setLiveEmployees] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ticker) return;
+    const ctrl = new AbortController();
+    fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker.toUpperCase()}?modules=summaryProfile`, {
+      signal: ctrl.signal, cache: 'no-store',
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const n = d?.quoteSummary?.result?.[0]?.summaryProfile?.fullTimeEmployees;
+        if (n && !ctrl.signal.aborted) {
+          setLiveEmployees(n >= 10000 ? `${(n/1000).toFixed(0)}K` : n.toLocaleString());
+        }
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [ticker]);
 
   // Use hardcoded data if available, otherwise fall back to generated context
   const effectiveMacroImpact = useMemo(
@@ -691,7 +719,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 {t('segmentCompositionAndCustomers')}
               </h3>
               {company.revenue.segments.map((s, idx) => (
-                <SegmentRow key={s.name} seg={s} idx={idx} topCustomersLabel={t('topCustomers')} />
+                <SegmentRow key={s.name} seg={s} idx={idx} topCustomersLabel={t('topCustomers')} liveRevenueUSD={liveFinancials?.latestAnnual?.revenueUSD} />
               ))}
             </div>
 
@@ -1362,7 +1390,10 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 <Users className="w-4 h-4 text-cf-text-secondary mt-0.5" />
                 <div>
                   <p className="text-xs text-cf-text-secondary">{t('employees')}</p>
-                  <p className="text-sm text-cf-text-primary">{company.employees}</p>
+                  <p className="text-sm text-cf-text-primary">
+                    {liveEmployees ?? company.employees}
+                    {liveEmployees && <span className="text-[10px] text-emerald-500 ml-1">live</span>}
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
