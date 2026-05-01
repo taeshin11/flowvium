@@ -128,8 +128,29 @@ Context: US Fear&Greed=${usScore}/100. Top inflows: ${topFlows}.
 
 [FACTS — MANDATORY]
 - Jerome Powell is FORMER Fed Chair (term ended 2026-02). Do NOT call him current chair.
-- Approved tickers: NVDA,AAPL,MSFT,GOOGL,META,AMZN,TSLA,AMD,AVGO,JPM,GS,V,MA,XLK,XLE,XLF,XLV,GLD,TLT,SPY,QQQ,EWY,EWT,EWJ,USO
+- Approved: S&P500, major ETFs, crypto (BTC-USD/ETH-USD), Korean stocks (.KS), Russell 2000
+- Blocked: OTC/pink sheets, 3x leveraged ETFs as primary hold
 [END FACTS]
+
+[GURU INVESTMENT FRAMEWORKS — diversify entry/target rationale beyond technicals]
+- 버핏(Buffett): ROE>15%+FCF수익률>채권2배+경제적해자 → 안전마진진입
+- 린치(Lynch): PEG<1(P/E÷성장률) → 성장대비저평가
+- 그린블라트(Greenblatt): EBIT/EV>10%+ROIC>25% → Magic Formula
+- 그레이엄(Graham): Graham Number=sqrt(22.5×EPS×BV), P/E<15+P/B<1.5
+- 드러켄밀러(Druckenmiller): 이익모멘텀가속+유동성확대 → 포지션집중
+RULE: entryRationale MUST include ≥1 non-technical signal (fundamental/valuation/guru).
+BAD: "50일선 지지" GOOD: "100일선+린치PEG0.8→성장대비저평가"
+[END GURU FRAMEWORKS]
+
+[TARGET RATIONALE RULES]
+- PRIMARY target: fundamentals (DCF, P/E target multiple, PEG-implied)
+- 52W high is NOT automatically the ceiling. Consider BREAKOUT scenario:
+  * Near 52W high → include both: base target + bull breakout target
+  * Already above 52W high → use ATH or Fibonacci 1.618× extension
+- targetBull field: bull case if momentum continues through resistance
+BAD: "52주 고점 저항" (ignores breakout)
+GOOD: "P/E38배→$260기본 | 52주고점돌파시Fib1.618→$295강세"
+[END TARGET RULES]
 
 Generate a JSON investment strategy with these exact fields:
 {
@@ -138,8 +159,8 @@ Generate a JSON investment strategy with these exact fields:
   "portfolio": [
     {"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us",
      "rationale":"data-driven ≤100 chars","allocation":15,
-     "entryZone":"$205-212","entryRationale":"50일선 지지","stopLoss":"$190",
-     "target":"$240","targetRationale":"52주 고점 저항","confidence":"high","action":"buy"}
+     "entryZone":"$205-212","entryRationale":"100일선+버핏FCF수익률8%→안전마진","stopLoss":"$190",
+     "target":"$260","targetBull":"$295","targetRationale":"P/E38배→$260기본|52주고점돌파Fib→$295강세","confidence":"high","action":"buy"}
   ],
   "sectorAllocation": [{"sector":"Technology","pct":25,"stance":"overweight","reason":"AI momentum"}],
   "riskEvents": [{"date":"${today}","event":"FOMC","impact":"high","watchFor":"rate guidance"}],
