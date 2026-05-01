@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { cascadePatterns, type CascadeStep } from '@/data/cascades';
@@ -14,6 +14,7 @@ import {
   Clock,
   Zap,
   CheckCircle2,
+  Activity,
 } from 'lucide-react';
 import ShareButtons from '@/components/ShareButtons';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -88,6 +89,26 @@ export default function CascadeDetailPage({ sector }: { sector: string }) {
     [sector]
   );
 
+  // Live prices for all tickers in this cascade
+  interface LivePrice { price: number | null; changePct: number | null; ret1w?: number | null }
+  const [livePrices, setLivePrices] = useState<Map<string, LivePrice>>(new Map());
+
+  useEffect(() => {
+    if (!patterns.length) return;
+    const tickers = Array.from(new Set(patterns.flatMap(p => [p.leaderTicker, ...p.sequence.map(s => s.ticker)])));
+    const ctrl = new AbortController();
+    fetch(`/api/batch-prices?tickers=${tickers.join(',')}`, { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { prices?: Record<string, { price: number | null; changePct: number | null; ret1w?: number | null }> }) => {
+        if (ctrl.signal.aborted || !d?.prices) return;
+        const m = new Map<string, LivePrice>();
+        for (const [t, v] of Object.entries(d.prices)) m.set(t, v);
+        setLivePrices(m);
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [patterns]);
+
   if (patterns.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-20 text-center">
@@ -129,16 +150,42 @@ export default function CascadeDetailPage({ sector }: { sector: string }) {
         <p className="text-lg text-cf-text-secondary max-w-3xl">{t('cascadeDescription')}</p>
       </div>
 
-      {patterns.map((pattern) => (
+      {patterns.map((pattern) => {
+        const leaderPrice = livePrices.get(pattern.leaderTicker);
+        const leaderRet1w = leaderPrice?.ret1w ?? null;
+        // 활성 cascade 감지: 리더가 1주간 ±5% 이상 움직임
+        const isActive = leaderRet1w != null && Math.abs(leaderRet1w) >= 5;
+        const isPositive = leaderRet1w != null && leaderRet1w >= 5;
+        return (
         <div key={pattern.id} className="mb-16">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-cf-primary/10 flex items-center justify-center">
               <Zap className="w-6 h-6 text-cf-primary" />
             </div>
-            <div>
-              <h2 className="text-xl font-heading font-bold text-cf-text-primary">
-                {pattern.leaderName} ({pattern.leaderTicker}) {t('earningsCascade')}
-              </h2>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-xl font-heading font-bold text-cf-text-primary">
+                  {pattern.leaderName} ({pattern.leaderTicker}) {t('earningsCascade')}
+                </h2>
+                {isActive && (
+                  <span className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border animate-pulse ${
+                    isPositive ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-700 border-red-300'
+                  }`}>
+                    <Activity className="w-3 h-3" />
+                    CASCADE {isPositive ? '상승' : '하락'} 진행중 {leaderRet1w! >= 0 ? '+' : ''}{leaderRet1w!.toFixed(1)}% 1W
+                  </span>
+                )}
+                {leaderPrice?.price && (
+                  <span className="text-sm font-mono text-gray-600">
+                    ${leaderPrice.price.toFixed(2)}
+                    {leaderPrice.changePct != null && (
+                      <span className={`ml-1 ${leaderPrice.changePct >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {leaderPrice.changePct >= 0 ? '+' : ''}{leaderPrice.changePct.toFixed(2)}%
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-cf-text-secondary">
                 {t('stepsAndEvents', { steps: pattern.sequence.length, events: pattern.historicalOccurrences.length })}
               </p>
@@ -270,7 +317,8 @@ export default function CascadeDetailPage({ sector }: { sector: string }) {
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

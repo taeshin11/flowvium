@@ -113,6 +113,12 @@ export const cascadePatterns: CascadePattern[] = [
         leaderMove: "NVDA +4.2% (modest given elevated expectations)",
         cascadeResult: "SK Hynix +5%, Micron +3% on HBM3e validation. Equipment names lagged as capex timing questions persisted.",
       },
+      {
+        date: "2026-02-26",
+        trigger: "NVIDIA FY26 Q4 earnings: data-center revenue $35.6B Q4, full-year $215.9B (+114% YoY). Blackwell GPU demand continues to surge; Rubin architecture roadmap announced.",
+        leaderMove: "NVDA +3.8% post-earnings (beat expectations, Q1 FY27 guided $43B)",
+        cascadeResult: "SK Hynix +6% on HBM4 demand confirmation. Micron +4%, TSMC +3%. AMD +2% on broader AI chip tailwinds. SOX index +4% over the week.",
+      },
     ],
   },
   {
