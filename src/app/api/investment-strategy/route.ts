@@ -1523,13 +1523,17 @@ export async function GET(request: Request) {
     };
   }
 
-  const isFallback = strategy.source === 'fallback';
+  // isFallback: source 이름과 무관하게 7섹션 필드 없으면 fallback으로 판단
+  // → 데이터 기반 fallback이 stale 키를 덮어쓰는 것 방지 (기존 좋은 stale 보존)
+  const isFallback = strategy.source === 'fallback'
+    || strategy.source === '데이터 기반 모델'
+    || !isSchemaCompatible(strategy as unknown as Record<string, unknown>);
   if (redis) {
     try {
-      const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
       const ttl = isFallback ? 2 * 60 * 60 : CACHE_TTL;
       const cacheable = toCacheable(strategy);
       await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: ttl });
+      // stale 키는 AI 생성 7섹션 리포트만 덮어씀 — fallback으로 좋은 stale 오염 방지
       if (!isFallback) {
         await loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, cacheable, { ex: 7 * 24 * 60 * 60 });
       }
