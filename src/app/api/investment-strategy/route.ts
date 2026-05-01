@@ -7,9 +7,9 @@ import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 import {
   buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt,
   buildOpportunityPrompt, buildRiskMgmtPrompt, buildNarrativePrompt,
-  buildCritiquePrompt, applyCritique,
+  buildCritiquePrompt, applyCritique, buildCompanyChangesPrompt,
 } from '@/lib/investment-prompts';
-import type { CtxForPrompts, CritiqueInput, RiskMgmtInput } from '@/lib/investment-prompts';
+import type { CtxForPrompts, CritiqueInput, RiskMgmtInput, CompanyChangesInput } from '@/lib/investment-prompts';
 import { logPortfolioPredictions, getRetrospectiveForS2, getRetrospectiveForS7 } from '@/lib/portfolio-retrospective';
 import { executeReportTrades } from '@/lib/paper-trading';
 export const dynamic = 'force-dynamic';
@@ -129,6 +129,16 @@ export interface InvestmentStrategy {
   portfolioRiskNote?: string;
   // S6: 시장 내러티브
   marketNarrative?: { why: string; watch: string; story: string; sessionNote: string };
+  // S8: 기업 변화 모니터링
+  companyChanges?: Array<{
+    ticker: string;
+    name: string;
+    revenueYoY?: number;      // 최근 분기 YoY 성장률 %
+    latestQuarter?: string;   // "Q4 FY2026"
+    keyChange: string;        // AI 분석: 주요 변화 (≤80자)
+    guidance?: string;        // raised/maintained/lowered/unknown
+    sentiment: 'positive' | 'neutral' | 'negative';
+  }>;
   generatedAt: string;
   dataAsOf?: string;
   source: string;
@@ -290,6 +300,32 @@ async function getSectorSummary(baseUrl: string): Promise<string> {
       return `${e.ticker}(${e.name}) P/E=${e.trailingPE?.toFixed(1) ?? 'N/A'} YTD=${ytd}% 1d=${e.changePct?.toFixed(2) ?? 'N/A'}%`;
     }).join(', ');
   } catch { return ''; }
+}
+
+// ── Company financials helper (S8 기업변화 섹션용) ────────────────────────────
+async function getCompanyFinancialsSummary(baseUrl: string, tickers: string[]): Promise<string> {
+  if (!tickers.length) return '';
+  const results = await Promise.allSettled(
+    tickers.slice(0, 8).map(async ticker => {
+      try {
+        const res = await fetch(`${baseUrl}/api/company-financials/${ticker}`, {
+          signal: AbortSignal.timeout(5000), cache: 'no-store',
+        });
+        if (!res.ok) return null;
+        const d = await res.json() as {
+          ticker: string; quarterlyRevenue?: Array<{ label: string; revenueUSD: number; yoyPct: number | null }>;
+          latestAnnual?: { operatingMarginPct?: number | null; roePct?: number | null };
+        };
+        const q = d.quarterlyRevenue?.[0];
+        if (!q) return null;
+        const rev = q.revenueUSD >= 1e9 ? `$${(q.revenueUSD/1e9).toFixed(1)}B` : `$${(q.revenueUSD/1e6).toFixed(0)}M`;
+        const yoy = q.yoyPct != null ? `${q.yoyPct > 0 ? '+' : ''}${q.yoyPct.toFixed(1)}% YoY` : '';
+        const margin = d.latestAnnual?.operatingMarginPct != null ? ` opMgn=${d.latestAnnual.operatingMarginPct.toFixed(1)}%` : '';
+        return `${ticker}: ${q.label} ${rev} ${yoy}${margin}`;
+      } catch { return null; }
+    })
+  );
+  return results.filter(r => r.status === 'fulfilled' && r.value).map(r => (r as PromiseFulfilledResult<string>).value).join(' | ');
 }
 
 // ── Earnings risk helper ──────────────────────────────────────────────────────
@@ -1260,18 +1296,35 @@ export async function GET(request: Request) {
   const opportunityData = parseSec(opportunityResult.text);
   const narrativeData  = parseSec(narrativeResult.text);
 
-  // ── Wave 2: S5 리스크 관리 (S2 포트폴리오 완성 후) ─────────────────────────
+  // ── Wave 2: S5 리스크 관리 + S8 기업변화 (S2 포트폴리오 완성 후 병렬) ─────────
   let riskData: Record<string, unknown> | null = null;
+  let companyChangesData: Record<string, unknown> | null = null;
+
   if (portfolioData?.portfolio?.length) {
-    const riskInput: RiskMgmtInput = {
-      portfolio: (portfolioData.portfolio as Array<{ ticker: string; entryZone: string; stopLoss: string; allocation: number; action: string }>),
-      riskLevel: macroData?.riskLevel ?? 'medium',
-      bbWarnings: ctxSummary.bbWarnings,
-      vix: vixCtx,
+    const portfolioTickers = (portfolioData.portfolio as Array<{ ticker: string; name?: string }>).map(p => p.ticker);
+    const companyFinancialsSummary = await getCompanyFinancialsSummary(baseUrl, portfolioTickers).catch(() => '');
+
+    const s8Input: CompanyChangesInput = {
+      portfolio: (portfolioData.portfolio as Array<{ ticker: string; name?: string }>).map(p => ({ ticker: p.ticker, name: p.name ?? p.ticker })),
+      earnings,
+      institutional: ctxSummary.institutional,
+      news: ctxSummary.news,
+      companyFinancials: companyFinancialsSummary,
     };
-    const riskResult = await callAIProvider(buildRiskMgmtPrompt(riskInput, locale), { ...aiOpts, tag: 'invest-risk', maxTokens: 600 });
+
+    const [riskResult, companyChangesResult] = await Promise.all([
+      callAIProvider(buildRiskMgmtPrompt({
+        portfolio: (portfolioData.portfolio as Array<{ ticker: string; entryZone: string; stopLoss: string; allocation: number; action: string }>),
+        riskLevel: macroData?.riskLevel ?? 'medium',
+        bbWarnings: ctxSummary.bbWarnings,
+        vix: vixCtx,
+      }, locale), { ...aiOpts, tag: 'invest-risk', maxTokens: 600 }),
+      callAIProvider(buildCompanyChangesPrompt(s8Input, locale), { ...aiOpts, tag: 'invest-s8', maxTokens: 800 }),
+    ]);
     riskData = parseSec(riskResult.text);
+    companyChangesData = parseSec(companyChangesResult.text);
   }
+
 
   // fallback source 결정
   const bestSource = [macroResult, portfolioResult, regionalResult, opportunityResult, narrativeResult]
@@ -1299,6 +1352,8 @@ export async function GET(request: Request) {
     portfolioRiskNote: riskData?.portfolioRiskNote as string ?? undefined,
     // S6: 시장 내러티브
     marketNarrative: narrativeData ?? undefined,
+    // S8: 기업 변화
+    companyChanges: companyChangesData?.companyChanges as InvestmentStrategy['companyChanges'] ?? undefined,
     generatedAt: dataAsOf,
     dataAsOf,
     source: bestSource,

@@ -673,6 +673,40 @@ export default function ReportPage() {
             </div>
           )}
 
+          {/* ── S8: 기업 변화 모니터링 ────────────────────────────────────── */}
+          {data.companyChanges?.length ? (
+            <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <p className="text-sm font-bold text-blue-900 mb-3">🏢 기업 변화 모니터링</p>
+              <div className="space-y-2">
+                {data.companyChanges.map((c, i) => {
+                  const sentColor = c.sentiment === 'positive' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                    : c.sentiment === 'negative' ? 'text-red-700 bg-red-50 border-red-200'
+                    : 'text-gray-600 bg-gray-50 border-gray-200';
+                  const guidanceIcon = c.guidance === 'raised' ? '▲' : c.guidance === 'lowered' ? '▼' : '→';
+                  return (
+                    <div key={i} className={`rounded-lg border px-3 py-2 ${sentColor}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs font-mono">{c.ticker}</span>
+                          {c.latestQuarter && <span className="text-[10px] opacity-70">{c.latestQuarter}</span>}
+                          {c.revenueYoY != null && (
+                            <span className="text-[10px] font-semibold">
+                              {c.revenueYoY >= 0 ? '+' : ''}{c.revenueYoY.toFixed(1)}% YoY
+                            </span>
+                          )}
+                        </div>
+                        {c.guidance && c.guidance !== 'unknown' && (
+                          <span className="text-[10px] font-semibold">{guidanceIcon} 가이던스 {c.guidance}</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] leading-relaxed">{c.keyChange}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           {/* ── Risk Events ───────────────────────────────────────────────── */}
           {data.riskEvents.length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-4">

@@ -251,6 +251,48 @@ export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', lo
   ].join('\n');
 }
 
+// ── Section 8: 기업 변화 모니터링 (Corporate Changes) ─────────────────────────
+// 포트폴리오 종목별 최근 실적/가이던스/이벤트 변화를 분석
+export interface CompanyChangesInput {
+  portfolio: Array<{ ticker: string; name: string }>;
+  earnings: string;           // 최근 실적 데이터 (buildCtxSummary 기반)
+  institutional: string;      // 13F 기관 변화
+  news: string;               // 관련 뉴스
+  companyFinancials: string;  // 종목별 분기 매출 성장률 요약
+}
+
+export function buildCompanyChangesPrompt(input: CompanyChangesInput, locale = 'en'): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const lang = LOCALE_LANG[locale] ?? 'Korean';
+  const tickers = input.portfolio.map(p => `${p.ticker}(${p.name})`).join(', ');
+  return [
+    `You are a corporate analyst tracking key company changes. Date: ${today}. Write keyChange in ${lang}.`,
+    '',
+    `Portfolio tickers to analyze: ${tickers}`,
+    '',
+    `[Recent Financials — Revenue YoY Growth]`,
+    input.companyFinancials || 'No data',
+    '',
+    `[Upcoming/Recent Earnings] ${input.earnings}`,
+    `[Institutional Changes] ${input.institutional}`,
+    `[News & Events] ${input.news}`,
+    '',
+    'For EACH ticker in the portfolio, identify the most important recent change:',
+    '- Revenue growth acceleration/deceleration',
+    '- Earnings beat/miss vs expectations',
+    '- Management guidance raised/lowered/maintained',
+    '- Major corporate events (acquisition, partnership, product launch, regulatory)',
+    '- Institutional ownership increase/decrease',
+    '',
+    'keyChange: ≤80자, specific numbers preferred. sentiment based on overall change direction.',
+    'guidance: "raised" | "maintained" | "lowered" | "unknown"',
+    '',
+    'Respond in pure JSON:',
+    `{"companyChanges":[{"ticker":"NVDA","name":"NVIDIA","revenueYoY":73.2,"latestQuarter":"Q4 FY2026","keyChange":"Q4 매출 $68.1B (+73% YoY) 컨센서스 7% 상회, 데이터센터 Blackwell 수요 가속","guidance":"raised","sentiment":"positive"}]}`,
+    'Include ALL portfolio tickers. If no data, set sentiment to "neutral" and explain why. Pure JSON only.',
+  ].join('\n');
+}
+
 // ── Section 7: Karpathy Loop — 자기비판 (Critic) ─────────────────────────────
 // Draft 포트폴리오를 반박하는 역할. 약점 발견 → rationale 수정 제안.
 // AutoResearch의 "val_bpb로 평가 후 리버트" 대신 AI가 자체 평가.
