@@ -1438,7 +1438,11 @@ export async function GET(request: Request) {
 
   // ── 후처리: portfolio dedup + 유효하지 않은 티커 필터 ──────────────────────────
   // 거래 불가 티커: 인덱스(^KS11=KOSPI, ^N225=Nikkei, ^GSPC=S&P500 등), 빈 값
-  const INDEX_TICKERS = new Set(['^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11']);
+  // 거래 불가 티커: 인덱스, 약자(KS=Korea Stock?), 유효하지 않은 단일문자
+  const INDEX_TICKERS = new Set([
+    '^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11',
+    'KS','KR','JP','CN','EU','US','UK',  // 국가 약자 오류 방지
+  ]);
   if (strategy?.portfolio?.length) {
     const dedupMap = new Map<string, typeof strategy.portfolio[0]>();
     for (const p of strategy.portfolio) {
