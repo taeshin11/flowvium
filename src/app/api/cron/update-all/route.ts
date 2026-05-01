@@ -120,15 +120,26 @@ export async function GET(req: Request) {
   // daily-brief and investment-strategy each have dedicated crons 5-10 min after update-all.
   // Removed pre-warm calls here to avoid double AI quota consumption without Redis deduplication.
 
-  // ── 4단계: 수급동향 주요 티커 pre-warm (fire & forget) ──────────────────
+  // ── 4단계: 수급동향 + company-financials 주요 티커 pre-warm (fire & forget) ──
+  const FINANCIALS_TICKERS = [
+    'NVDA','AAPL','MSFT','GOOGL','META','AMZN','TSLA','AMD','AVGO',
+    'JPM','GS','V','LLY','UNH','XOM','WMT','COST','HD','KO','NFLX',
+    'PLTR','COIN','ARM','MU','ASML','TSM','LMT','BA','GE','SMCI',
+  ];
 
-  // ── 수급동향 주요 티커 pre-warm (fire & forget, 병렬) ──────────────
-  Promise.allSettled(TOP_TICKERS.map(ticker =>
-    fetch(`${base}/api/stock-supply?ticker=${ticker}`, {
-      signal: AbortSignal.timeout(15000),
-      cache: 'no-store',
-    })
-  )).catch(() => {});
+  // stock-supply + company-financials 병렬 워밍 (fire & forget)
+  Promise.allSettled([
+    ...TOP_TICKERS.map(ticker =>
+      fetch(`${base}/api/stock-supply?ticker=${ticker}`, {
+        signal: AbortSignal.timeout(15000), cache: 'no-store',
+      })
+    ),
+    ...FINANCIALS_TICKERS.map(ticker =>
+      fetch(`${base}/api/company-financials/${ticker}`, {
+        signal: AbortSignal.timeout(10000), cache: 'no-store',
+      })
+    ),
+  ]).catch(() => {});
 
   // ── 5단계: news-cascade (느림 — fire & forget) ─────────────────────────
   fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000), cache: 'no-store' })

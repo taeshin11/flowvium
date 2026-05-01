@@ -15,7 +15,8 @@
     "scrape:sec": "tsx scripts/scrapers/sec-13f.ts",
     "scrape:macro": "tsx scripts/scrapers/fred-macro.ts",
     "scrape:news": "tsx scripts/scrapers/rss-news.ts",
-    "scrape:gap": "tsx scripts/scrapers/news-gap-calc.ts"
+    "scrape:gap": "tsx scripts/scrapers/news-gap-calc.ts",
+    "check:hardcoded": "node scripts/check-hardcoded.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.1",

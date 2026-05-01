@@ -1,3 +1,10 @@
+/**
+ * @static-data-warning
+ * revenue.total, revenue.segments[].amount, employees 필드는 정적 데이터입니다.
+ * 실제 값은 /api/company-financials/{ticker} (SEC EDGAR) 및 Yahoo Finance에서 자동 override됩니다.
+ * 이 파일의 금액/직원수를 수동으로 수정하지 마세요 — live API가 우선합니다.
+ * 정적값은 live 데이터 없을 때의 fallback 역할만 합니다.
+ */
 import { Company } from './companies';
 
 export const companiesBatch9: Company[] = [
