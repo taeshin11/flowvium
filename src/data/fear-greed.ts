@@ -1,3 +1,6 @@
+// @static-data-warning: 이 파일의 byCountry/byAsset 데이터는 정적 fallback입니다.
+// live API (fear-greed/route.ts) 가 이 데이터를 override하므로 코드 변경 불필요.
+// 직접 수정 시 route.ts의 override 로직을 함께 확인하세요.
 /**
  * Fear & Greed data — by country and by asset class.
  * Updated: daily via scripts/scrapers/fear-greed-calc.ts (TODO)

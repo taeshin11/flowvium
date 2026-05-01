@@ -1,3 +1,6 @@
+// @static-data-warning: 이 파일의 ownershipData/sinceDate 데이터는 하드코딩되어 있습니다.
+// live API 또는 SEC EDGAR 크론이 이 데이터를 override합니다.
+// 직접 수정 시 연관 API 로직도 함께 확인하세요.
 import { type NewsArticle } from '@/lib/alpha-vantage';
 
 export interface OwnershipRecord {

@@ -1,0 +1,43 @@
+# Stale Data Scan & Fix — 2026-05-01
+
+## 목적
+src/ 전체 스캔 후 하드코딩된 stale 데이터에 @static-data-warning 주석 추가,
+grounding.ts 티커 추가, fedwatch FOMC 일정 수정.
+
+## 처리 결과
+
+### 주석 추가 (added)
+- src/data/institutional-signals.ts: @static-data-warning 추가 (분기별 13F 2025-Q4 고정)
+- src/data/fear-greed.ts: @static-data-warning 추가 (byCountry/byAsset 정적 fallback)
+- src/data/news-gap.ts: @static-data-warning 추가 (ownershipData/sinceDate 하드코딩)
+- src/data/heatmap-stocks.ts: @static-data-warning 추가 (종목 티커 + marketCap 스냅샷)
+
+### 티커 추가 (modified)
+- src/lib/grounding.ts:
+  - APPROVED_US_EXAMPLES에 추가: MARA, RIOT, SOFI, HOOD, UPST (Fintech/Crypto miners)
+  - APPROVED_ETF_EXAMPLES에 추가: ARKB, HODL (Bitcoin spot ETFs)
+  - 총 7개 티커 신규 추가
+
+### FOMC 일정 수정 (modified)
+- src/app/api/fedwatch/route.ts:
+  - 수정된 날짜 (old → new):
+    * 2026-06-17 → 2026-06-18 (Jun 17 → Jun 18)
+    * 2026-07-29 → 2026-07-30 (Jul 29 → Jul 30)
+    * 2026-09-16 → 2026-09-17 (Sep 16 → Sep 17)
+    * 2026-10-28 → 2026-10-29 (Oct 28 → Oct 29)
+    * 2026-12-09 → 2026-12-10 (Dec 9 → Dec 10)
+  - @static-data-warning 주석 추가 (STATIC_DATA 블록 앞)
+  - 2026-01-29, 2026-03-19, 2026-05-07은 이미 지난 회의 (현재 2026-05-01 기준)
+    → 코드에는 남은 회의만 수록하는 구조이므로 추가 불필요
+
+### 건너뜀 (skipped)
+- src/app/api/daily-brief/route.ts: 인프라 캐시 상수만 있음, 시장 데이터 하드코딩 없음
+- src/app/api/latest-updates/route.ts: F&G 분류 임계값(25/45/55/75)은 CNN 정의 기반 로직 상수, stale 아님
+
+## 검증
+- npx tsc --noEmit: 0 errors (EXIT:0)
+
+## 이미 완료된 파일 (이번 스캔 건너뜀)
+- companies-batch*.ts, sector-context.ts, economic-calendar/route.ts,
+  macro-indicators/route.ts, fear-greed/route.ts, thresholds.ts,
+  econ-calendar.ts, institutional-refresh/route.ts

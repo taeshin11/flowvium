@@ -39,6 +39,7 @@ const APPROVED_US_EXAMPLES = [
   'PLTR','COIN','SNOW','CRM','ADBE','ORCL','INTU','UBER','SHOP','NFLX','DIS',
   'ALB','FCX','NEM','CF','MOS',  // Materials/Commodities stocks
   'SMCI','DELL','HPE','ANET',    // AI infra
+  'MARA', 'RIOT', 'SOFI', 'HOOD', 'UPST',    // Fintech/Crypto miners (Russell 2000)
 ];
 const APPROVED_ETF_EXAMPLES = [
   // US broad/sector
@@ -53,6 +54,7 @@ const APPROVED_ETF_EXAMPLES = [
   'GLD','SLV','USO','DBA','GDX','UUP',
   // Crypto & Crypto ETFs
   'IBIT','FBTC','GBTC','ETHA','BITB','BITO',
+  'ARKB', 'HODL',    // Bitcoin spot ETFs (Ark, VanEck)
 ];
 const APPROVED_CRYPTO = ['BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','AVAX-USD','LINK-USD'];
 const APPROVED_KR = [

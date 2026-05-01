@@ -1,3 +1,6 @@
+// @static-data-warning: 종목 티커 리스트는 정적 스냅샷입니다 (early 2026 기준).
+// 티커 자체는 정적이어도 무방하나, marketCap 수치는 stale할 수 있습니다.
+// 색상(수익률)은 런타임에 live 가격으로 채워집니다.
 /**
  * Top S&P 500 stocks for heatmap rendering.
  * marketCap in $B (as of early 2026 — snapshot used for box sizing only).

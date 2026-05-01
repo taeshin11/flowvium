@@ -1,3 +1,6 @@
+// @static-data-warning: 이 파일의 데이터는 정적으로 하드코딩되어 있습니다.
+// 분기별 13F 데이터 (2025-Q4 기준 고정). live API 또는 Redis 캐시가 이 데이터를 override합니다.
+// 직접 수정 시 institutional-refresh 크론 로직도 함께 확인하세요.
 export interface InstitutionalSignal {
   id: string;
   ticker: string;

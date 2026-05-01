@@ -43,10 +43,12 @@ export interface FedWatchData {
   source: string;
 }
 
+// @static-data-warning: 과거 회의(Apr 29 이전) 및 미래 확률값은 하드코딩됨.
+// ZQ futures 기반으로 수동 보정. live override는 fetchYFImpliedRates() 참조.
 // ── Static data (updated 2026-04-26) ─────────────────────────────────────────
 // Current rate: 3.50-3.75% (mid 3.625%) after Mar 19 meeting (FRED DFEDTARU=3.75)
 // Macro-indicators STATIC confirms range 3.5-3.75 from March 19 FOMC decision.
-// FOMC dates: Apr 29, Jun 17, Jul 29, Sep 16, Oct 28, Dec 9 (official Fed calendar)
+// FOMC dates 2026: Apr 29 (past), Jun 18, Jul 30, Sep 17, Oct 29, Dec 10 (official Fed calendar)
 // Probabilities calibrated to 2026-04-26 ZQ futures (no cuts priced through mid-2026).
 // targetLow/targetHigh = expected target after each meeting (hold-dominant → current range).
 // ZQ futures imply only 10bp total cuts by Dec 9; first likely cut at Sep/Oct 50th percentile.
@@ -70,8 +72,8 @@ const STATIC_DATA: FedWatchData = {
       cumulativeCuts: 1,
     },
     {
-      date: '2026-06-17',
-      label: 'Jun 17',
+      date: '2026-06-18',
+      label: 'Jun 18',
       current: 3.625,
       targetLow: 3.50,
       targetHigh: 3.75,
@@ -84,8 +86,8 @@ const STATIC_DATA: FedWatchData = {
       cumulativeCuts: 2,
     },
     {
-      date: '2026-07-29',
-      label: 'Jul 29',
+      date: '2026-07-30',
+      label: 'Jul 30',
       current: 3.625,
       targetLow: 3.50,   // 80% hold → expected range = current
       targetHigh: 3.75,
@@ -98,8 +100,8 @@ const STATIC_DATA: FedWatchData = {
       cumulativeCuts: 4,
     },
     {
-      date: '2026-09-16',
-      label: 'Sep 16',
+      date: '2026-09-17',
+      label: 'Sep 17',
       current: 3.625,
       targetLow: 3.50,   // 68% hold dominant — first cut possible (32%) but not expected
       targetHigh: 3.75,
@@ -112,8 +114,8 @@ const STATIC_DATA: FedWatchData = {
       cumulativeCuts: 6,
     },
     {
-      date: '2026-10-28',
-      label: 'Oct 28',
+      date: '2026-10-29',
+      label: 'Oct 29',
       current: 3.625,
       targetLow: 3.50,   // 58% hold still dominant
       targetHigh: 3.75,
@@ -126,8 +128,8 @@ const STATIC_DATA: FedWatchData = {
       cumulativeCuts: 8,
     },
     {
-      date: '2026-12-09',
-      label: 'Dec 9',
+      date: '2026-12-10',
+      label: 'Dec 10',
       current: 3.625,
       targetLow: 3.25,   // 50/50 cut/hold — first 25bp cut likely by year-end
       targetHigh: 3.50,
