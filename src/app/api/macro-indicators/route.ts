@@ -486,7 +486,54 @@ function nextFomcDate(): string {
 
 // ── BEA/BLS release schedule — auto-advance nextRelease after each date passes ─
 // Prevents stale "next release" dates without manual updates after each report.
+// STATIC_DATA_AS_OF: 이 날짜 이후 FRED 데이터가 없으면 static fallback 사용됨 (수동 업데이트 필요)
+// FRED live 데이터가 있으면 이 값은 무시됨.
+const STATIC_DATA_AS_OF = '2026-04-26';
+
 const RELEASE_SCHEDULE: Record<string, string[]> = {
+  // CPI: BLS releases ~2nd week of following month
+  cpi: [
+    '2026-05-13', // April CPI
+    '2026-06-11', // May CPI
+    '2026-07-15', // June CPI
+    '2026-08-12', // July CPI
+    '2026-09-11', // August CPI
+    '2026-10-14', // September CPI
+    '2026-11-12', // October CPI
+    '2026-12-10', // November CPI
+  ],
+  // PPI: BLS releases ~1 day after CPI
+  ppi: [
+    '2026-05-14', // April PPI
+    '2026-06-12', // May PPI
+    '2026-07-16', // June PPI
+    '2026-08-13', // July PPI
+    '2026-09-12', // August PPI
+    '2026-10-15', // September PPI
+    '2026-11-13', // October PPI
+    '2026-12-11', // November PPI
+  ],
+  // Retail Sales: Census Bureau ~mid-month
+  retail: [
+    '2026-05-15', // April Retail
+    '2026-06-16', // May Retail
+    '2026-07-17', // June Retail
+    '2026-08-14', // July Retail
+    '2026-09-16', // August Retail
+    '2026-10-16', // September Retail
+    '2026-11-17', // October Retail
+    '2026-12-16', // November Retail
+  ],
+  // Unemployment Rate: same day as NFP (first Friday of month)
+  unrate: [
+    '2026-05-01', '2026-06-05', '2026-07-03', '2026-08-07',
+    '2026-09-04', '2026-10-02', '2026-11-06', '2026-12-04',
+  ],
+  // UMich Sentiment: preliminary ~2nd Friday of month
+  umcsent: [
+    '2026-05-08', '2026-06-12', '2026-07-10', '2026-08-14',
+    '2026-09-11', '2026-10-09', '2026-11-13', '2026-12-11',
+  ],
   pce: [
     '2026-04-30', // March Core PCE
     '2026-05-30', // April Core PCE
@@ -631,18 +678,20 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
 
 // ── FRED static forecasts (consensus at time of last update) ──────────────────
 // FRED gives actual values; we keep forecasts as static consensus
-const FORECASTS: Record<string, { forecast: number; nextRelease: string }> = {
-  cpi:    { forecast: 2.5,   nextRelease: '2026-05-13' },
-  pce:    { forecast: 2.8,   nextRelease: '2026-04-30' },  // March PCE consensus (updated 2026-04-26 — Feb came in 3.0% vs 2.6 est)
-  nfp:    { forecast: 140,   nextRelease: '2026-05-01' },  // auto-advance via RELEASE_SCHEDULE.nfp
-  gdp:    { forecast: 2.1,   nextRelease: '2026-04-30' },  // Wall Street consensus 2.1% (Finnhub); Atlanta Fed GDPNow 1.2% (tariff drag)
-  ppi:    { forecast: 3.3,   nextRelease: '2026-05-14' },
-  retail: { forecast: -1.3,  nextRelease: '2026-05-15' },
-  unrate:   { forecast: 4.1,   nextRelease: '2026-05-01' },  // same day as NFP
-  iclaims:  { forecast: 224,   nextRelease: '2026-04-30' },  // auto-advance via RELEASE_SCHEDULE.iclaims
-  umcsent:  { forecast: 54.0,  nextRelease: '2026-05-09' },
-  ig_spread: { forecast: 0.75, nextRelease: '' },  // daily series — computed dynamically via nextBizDay()
-  hy_spread: { forecast: 2.80, nextRelease: '' },  // daily series — computed dynamically via nextBizDay()
+// nextRelease는 모두 RELEASE_SCHEDULE에서 자동 계산 — 하드코딩 날짜 제거
+// forecast는 시장 컨센서스 (업데이트 필요 시 여기만 수정, 날짜는 자동)
+const FORECASTS: Record<string, { forecast: number }> = {
+  cpi:       { forecast: 2.5  },
+  pce:       { forecast: 2.8  },
+  nfp:       { forecast: 140  },
+  gdp:       { forecast: 2.1  },
+  ppi:       { forecast: 3.3  },
+  retail:    { forecast: -1.3 },
+  unrate:    { forecast: 4.1  },
+  iclaims:   { forecast: 224  },
+  umcsent:   { forecast: 54.0 },
+  ig_spread: { forecast: 0.75 },
+  hy_spread: { forecast: 2.80 },
 };
 
 // ── Main GET ──────────────────────────────────────────────────────────────────
@@ -726,7 +775,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous, forecast: fc,
       releaseDate: cpiData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.cpi.nextRelease,
+      nextRelease: nextScheduledRelease("cpi", ""),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `CPI ${actual.toFixed(1)}%YoY (est. ${fc}%, prev ${previous?.toFixed(1) ?? '?'}%). ${actual < fc ? 'Below est. — rate cut expectations strengthened.' : actual > fc ? 'Above est. — tightening pressure.' : 'In line.'}`
@@ -749,7 +798,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous, forecast: fc,
       releaseDate: pceData?.date ?? base.releaseDate,
-      nextRelease: nextScheduledRelease('pce', FORECASTS.pce.nextRelease),
+      nextRelease: nextScheduledRelease('pce', nextScheduledRelease("pce", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `Core PCE ${actual.toFixed(1)}%YoY (est. ${fc}%). ${actual > 2.5 ? 'Still above Fed 2% target.' : 'Approaching Fed 2% target.'}`
@@ -780,7 +829,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous, forecast: fc,
       releaseDate: nfpData?.date ?? base.releaseDate,
-      nextRelease: nextScheduledRelease('nfp', FORECASTS.nfp.nextRelease),
+      nextRelease: nextScheduledRelease('nfp', nextScheduledRelease("nfp", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `NFP ${actual.toLocaleString()}K (est. ${fc}K). ${actual > fc ? 'Strong jobs — rate cut timing delayed.' : 'Jobs slowing — rate cut expectations strengthened.'}`
@@ -833,7 +882,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous: gdpLive?.previous != null ? parseFloat(gdpLive.previous.toFixed(1)) : base.previous, forecast: fc,
       releaseDate: base.releaseDate,
-      nextRelease: nextScheduledRelease('gdp', FORECASTS.gdp.nextRelease),
+      nextRelease: nextScheduledRelease('gdp', nextScheduledRelease("gdp", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `GDP ${actual}% QoQ SAAR (est. ${fc}%). ${actual > 2 ? 'Growth solid.' : actual > 0 ? 'Growth slowing.' : 'Negative growth warning.'}`
@@ -877,7 +926,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous, forecast: fc,
       releaseDate: retailData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.retail.nextRelease,
+      nextRelease: nextScheduledRelease("retail", ""),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `Retail Sales ${actual > 0 ? '+' : ''}${actual}%MoM (est. ${fc > 0 ? '+' : ''}${fc}%). ${actual > 0 ? 'Consumer recovery signal.' : 'Consumer spending contracting.'}`
@@ -900,7 +949,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous, forecast: fc,
       releaseDate: ppiData?.date ?? base.releaseDate,
-      nextRelease: FORECASTS.ppi.nextRelease,
+      nextRelease: nextScheduledRelease("ppi", ""),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `PPI (final demand) ${actual.toFixed(1)}%YoY (est. ${fc}%). ${actual < fc ? 'Leading signal of CPI stabilization.' : 'Leading signal of CPI upside pressure.'}`
@@ -923,7 +972,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous: base.previous, forecast: fc,
       releaseDate: unrateData?.date ?? base.releaseDate,
-      nextRelease: nextScheduledRelease('nfp', FORECASTS.unrate.nextRelease),
+      nextRelease: nextScheduledRelease('nfp', nextScheduledRelease("unrate", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null
         ? `Unemployment ${actual}% (est. ${fc}%, prev ${base.previous}%). ${actual > fc ? 'Labor market cooling — rate cut pressure.' : 'Labor market holding firm.'}`
@@ -950,7 +999,7 @@ export async function GET(request: Request) {
       ...base,
       actual: displayActual, previous: base.previous, forecast: fc,
       releaseDate: iclaimsRaw && !iclaimsStale ? iclaimsRaw.date : base.releaseDate,
-      nextRelease: nextScheduledRelease('iclaims', FORECASTS.iclaims.nextRelease),
+      nextRelease: nextScheduledRelease('iclaims', nextScheduledRelease("iclaims", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actualK != null
         ? `Initial claims ${actualK}K/wk (est. ${fc}K). ${actualK < fc ? 'No layoff surge — labor market resilient.' : 'Claims rising — watch for layoff pressure.'}`
@@ -977,7 +1026,7 @@ export async function GET(request: Request) {
       ...base,
       actual, previous: base.previous, forecast: fc,
       releaseDate: umcsentData && !fredMonthStale ? umcsentData.date : base.releaseDate,
-      nextRelease: FORECASTS.umcsent.nextRelease,
+      nextRelease: nextScheduledRelease("umcsent", ""),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: liveVal != null
         ? `Consumer sentiment ${liveVal.toFixed(1)} (est. ${fc}). ${liveVal < 60 ? 'Below 60 — consumer spending slowdown risk.' : liveVal < fc ? 'Below est. — household spending concern.' : 'Above est. — consumer recovery signal.'}`

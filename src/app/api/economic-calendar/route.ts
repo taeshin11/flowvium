@@ -43,25 +43,37 @@ export interface EconCalResponse {
   updatedAt: string;
 }
 
-// FOMC decision dates 2026 — Finnhub free tier doesn't include FOMC rate decisions.
-// These are injected as fixed high-impact events so the calendar is never missing
-// the most market-moving event of the year.
-// Updated 2026-04-26: estimates recalibrated to ZQ futures market consensus.
-// Tariff shock → NFP+228K beat → CPI 3.3% → no cuts priced through mid-2026.
-// Jun/Jul: 90%/80% hold per FedWatch. Sep: first cut scenario (~32% prob).
-// actual field = confirmed outcome for past meetings (FRED DFEDTARU verified).
-const FOMC_2026: Array<{ date: string; time: string; prev: number; estimate: number; actual?: number }> = [
-  { date: '2026-01-29', time: '19:00:00', prev: 4.25, estimate: 4.25, actual: 4.25 }, // hold confirmed
-  { date: '2026-03-19', time: '18:00:00', prev: 4.25, estimate: 4.00, actual: 3.75 }, // 50bp cut (FRED DFEDTARU=3.75)
-  { date: '2026-04-29', time: '18:00:00', prev: 3.75, estimate: 3.75, actual: 3.75 }, // hold confirmed (DFEDTARU unchanged)
-  { date: '2026-06-17', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 90% hold — no cut priced
-  { date: '2026-07-29', time: '18:00:00', prev: 3.75, estimate: 3.75 }, // 80% hold
-  { date: '2026-09-16', time: '18:00:00', prev: 3.75, estimate: 3.50 }, // first cut scenario (32%)
-  { date: '2026-10-28', time: '18:00:00', prev: 3.50, estimate: 3.50 }, // hold after Sep cut
-  { date: '2026-12-09', time: '19:00:00', prev: 3.50, estimate: 3.25 }, // second cut possible (50%)
+// FOMC decision dates 2026 — dates and estimates only (NO hardcoded actuals).
+// Actual rates are fetched live from FRED DFEDTARU series via fetchFredActualRate().
+// Estimates are ZQ futures consensus — updated when market consensus shifts significantly.
+const FOMC_2026: Array<{ date: string; time: string; prev: number; estimate: number }> = [
+  { date: '2026-01-29', time: '19:00:00', prev: 4.25, estimate: 4.25 },
+  { date: '2026-03-19', time: '18:00:00', prev: 4.25, estimate: 4.00 },
+  { date: '2026-04-29', time: '18:00:00', prev: 3.75, estimate: 3.75 },
+  { date: '2026-06-17', time: '18:00:00', prev: 3.75, estimate: 3.75 },
+  { date: '2026-07-29', time: '18:00:00', prev: 3.75, estimate: 3.75 },
+  { date: '2026-09-16', time: '18:00:00', prev: 3.75, estimate: 3.50 },
+  { date: '2026-10-28', time: '18:00:00', prev: 3.50, estimate: 3.50 },
+  { date: '2026-12-09', time: '19:00:00', prev: 3.50, estimate: 3.25 },
 ];
 
-function injectFomcEvents(events: EconCalEvent[], from: string, to: string): EconCalEvent[] {
+// FRED DFEDTARU: 실제 금리 상한 (Federal Funds Target Rate Upper) 조회
+// 과거 FOMC 회의 결과를 live로 확인 — 하드코딩 actual 대신 사용
+async function fetchFredActualRate(): Promise<number | null> {
+  const fredKey = process.env.FRED_API_KEY?.trim();
+  if (!fredKey) return null;
+  try {
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=DFEDTARU&api_key=${fredKey}&sort_order=desc&limit=1&file_type=json`;
+    const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const d = await res.json() as { observations?: Array<{ value: string }> };
+    const val = parseFloat(d?.observations?.[0]?.value ?? '');
+    return isNaN(val) ? null : val;
+  } catch { return null; }
+}
+
+function injectFomcEvents(events: EconCalEvent[], from: string, to: string, currentRate: number | null): EconCalEvent[] {
+  const today = new Date().toISOString().slice(0, 10);
   const fomc = FOMC_2026
     .filter(f => f.date >= from && f.date <= to)
     .map(f => ({
@@ -70,7 +82,8 @@ function injectFomcEvents(events: EconCalEvent[], from: string, to: string): Eco
       country: 'US',
       event: 'FOMC Rate Decision (Fed Funds Target)',
       impact: 'high' as const,
-      actual: f.actual ?? null,
+      // past meeting: use FRED live rate as actual; future: null
+      actual: f.date < today ? currentRate : null,
       estimate: f.estimate,
       prev: f.prev,
       unit: '%',
@@ -127,10 +140,13 @@ export async function GET(req: Request) {
     } catch { /* non-fatal */ }
   }
 
+  // FRED 실제 금리 조회 (FOMC actual 필드에 사용)
+  const currentRate = await fetchFredActualRate().catch(() => null);
+
   if (!apiKey) {
     logger.warn('api.economic-calendar', 'no_finnhub_key');
     const empty: EconCalResponse = {
-      events: injectFomcEvents([], from, to), from, to, country, cached: false, source: 'empty',
+      events: injectFomcEvents([], from, to, currentRate), from, to, country, cached: false, source: 'empty',
       updatedAt: new Date().toISOString(),
     };
     return NextResponse.json(empty, { headers: CDN_HEADERS });
@@ -189,7 +205,7 @@ export async function GET(req: Request) {
       .sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''));
 
     const payload: EconCalResponse = {
-      events: injectFomcEvents(events, from, to), from, to, country, cached: false, source: 'finnhub',
+      events: injectFomcEvents(events, from, to, currentRate), from, to, country, cached: false, source: 'finnhub',
       updatedAt: new Date().toISOString(),
     };
 
