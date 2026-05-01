@@ -280,10 +280,10 @@ Generate a JSON investment strategy with these exact fields:
   // 가상계좌 거래 실행 — /api/paper-trading에 POST 요청
   try {
     console.log('가상계좌 거래 실행 중...');
-    const ptRes = await fetch(`${SITE}/api/paper-trading`, {
+    const ptRes = await fetch(`${SITE}/api/paper-trading?action=execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${env.CRON_SECRET ?? ''}` },
-      body: JSON.stringify({ action: 'execute', portfolio: report.portfolio, reportDate: kstDate }),
+      body: JSON.stringify({ portfolio: report.portfolio, reportDate: kstDate }),
       signal: AbortSignal.timeout(30000),
     });
     if (ptRes.ok) {
