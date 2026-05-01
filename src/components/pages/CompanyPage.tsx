@@ -182,6 +182,37 @@ const updateTypeColors: Record<string, string> = {
   opportunity: 'text-purple-700 bg-purple-50',
 };
 
+
+// ── Sector metrics live overlay helpers ──────────────────────────────────────
+interface SectorMetricsForHelper {
+  wtiPrice: number | null;
+  naturalGas: number | null;
+  creditCardDelinquency: number | null;
+  fedFundsRate: number | null;
+  tnxYield: number | null;
+  ismPmi: number | null;
+}
+function getLiveValue(label: string, m: SectorMetricsForHelper): number | null {
+  const l = label.toLowerCase();
+  if (l.includes('wti')) return m.wtiPrice;
+  if (l.includes('천연가스') || l.includes('henry hub') || l.includes('natural gas')) return m.naturalGas;
+  if (l.includes('연체율') || l.includes('delinquency')) return m.creditCardDelinquency;
+  if (l.includes('ism') || l.includes('pmi')) return m.ismPmi;
+  if (l.includes('10년물') || l.includes('tnx') || l.includes('treasury') || l.includes('10y')) return m.tnxYield;
+  if (l.includes('fed funds') || l.includes('기준금리') || l.includes('ffr')) return m.fedFundsRate;
+  return null;
+}
+function formatLiveValue(label: string, val: number): string {
+  const l = label.toLowerCase();
+  if (l.includes('wti')) return `$${val.toFixed(1)}/bbl`;
+  if (l.includes('천연가스') || l.includes('henry hub')) return `$${val.toFixed(2)}/MMBtu`;
+  if (l.includes('연체율') || l.includes('delinquency')) return `${val.toFixed(2)}%`;
+  if (l.includes('ism') || l.includes('pmi')) return val.toFixed(1);
+  if (l.includes('10년물') || l.includes('tnx')) return `${val.toFixed(2)}%`;
+  if (l.includes('fed funds') || l.includes('기준금리')) return `${val.toFixed(2)}%`;
+  return val.toFixed(2);
+}
+
 export default function CompanyPage({ ticker }: { ticker: string }) {
   const t = useTranslations('company');
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
@@ -258,6 +289,24 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }
   interface PricePoint { date: string; close: number }
   const [livePrice, setLivePrice] = useState<LivePrice | null>(null);
+  interface SectorMetrics {
+    wtiPrice: number | null;
+    naturalGas: number | null;
+    creditCardDelinquency: number | null;
+    fedFundsRate: number | null;
+    tnxYield: number | null;
+    ismPmi: number | null;
+  }
+  const [liveMetrics, setLiveMetrics] = useState<SectorMetrics | null>(null);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/sector-metrics', { signal: ctrl.signal, cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !ctrl.signal.aborted) setLiveMetrics(d); })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
   const [liveMarketCap, setLiveMarketCap] = useState<number | null>(null);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
 
@@ -998,17 +1047,22 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 {/* Key data grid */}
                 {sc && sc.keyData.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-                    {sc.keyData.map((kd) => (
+                    {sc.keyData.map((kd) => {
+                      const liveVal = liveMetrics ? getLiveValue(kd.label, liveMetrics) : null;
+                      const displayValue = liveVal != null ? formatLiveValue(kd.label, liveVal) : kd.value;
+                      return (
                       <div key={kd.label} className="bg-gray-50 rounded-lg p-2.5">
                         <p className="text-[10px] text-cf-text-secondary mb-0.5">{kd.label}</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-sm font-bold text-cf-text-primary">{kd.value}</span>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="text-sm font-bold text-cf-text-primary">{displayValue}</span>
                           {kd.trend === 'up' && <TrendingUp className="w-3 h-3 text-green-500" />}
                           {kd.trend === 'down' && <TrendingDown className="w-3 h-3 text-red-500" />}
                           {kd.trend === 'neutral' && <Minus className="w-3 h-3 text-gray-400" />}
+                          {liveVal != null && <span style={{color:'#22c55e',fontSize:'0.7em',fontWeight:600}}>● live</span>}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 {/* Company-specific macro impact */}
@@ -1640,17 +1694,22 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   <p className="text-xs text-cf-primary font-medium leading-relaxed">{sc.phase}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mb-3">
-                  {sc.keyData.map((kd) => (
+                  {sc.keyData.map((kd) => {
+                    const liveVal = liveMetrics ? getLiveValue(kd.label, liveMetrics) : null;
+                    const displayValue = liveVal != null ? formatLiveValue(kd.label, liveVal) : kd.value;
+                    return (
                     <div key={kd.label} className="bg-gray-50 rounded-lg p-2">
                       <p className="text-[10px] text-cf-text-secondary mb-0.5">{kd.label}</p>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-cf-text-primary">{kd.value}</span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-xs font-bold text-cf-text-primary">{displayValue}</span>
                         {kd.trend === 'up' && <TrendingUp className="w-3 h-3 text-green-500" />}
                         {kd.trend === 'down' && <TrendingDown className="w-3 h-3 text-red-500" />}
                         {kd.trend === 'neutral' && <Minus className="w-3 h-3 text-gray-400" />}
+                        {liveVal != null && <span style={{color:'#22c55e',fontSize:'0.7em',fontWeight:600}}>● live</span>}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="mb-3">
                   <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-1.5">{t('keyThemes')}</p>

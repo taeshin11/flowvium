@@ -1,35 +1,111 @@
 {
   "functions": {
-    "src/app/api/daily-brief/route.ts": { "maxDuration": 60 },
-    "src/app/api/cron/daily-brief/route.ts": { "maxDuration": 60 },
-    "src/app/api/insider-trades/route.ts": { "maxDuration": 60 },
-    "src/app/api/ownership-alerts/route.ts": { "maxDuration": 60 },
-    "src/app/api/nport-holdings/route.ts": { "maxDuration": 60 },
-    "src/app/api/market-caps/route.ts": { "maxDuration": 60 },
-    "src/app/api/cron/verify-metrics/route.ts": { "maxDuration": 60 },
-    "src/app/api/cron/investment-strategy/route.ts": { "maxDuration": 90 },
-    "src/app/api/capital-flows/route.ts": { "maxDuration": 60 },
-    "src/app/api/korea-flow/route.ts": { "maxDuration": 60 },
-    "src/app/api/macro-indicators/route.ts": { "maxDuration": 60 },
-    "src/app/api/yield-curve/route.ts": { "maxDuration": 60 },
-    "src/app/api/fear-greed/route.ts": { "maxDuration": 60 },
-    "src/app/api/stock-supply/route.ts": { "maxDuration": 60 },
-    "src/app/api/volatility/route.ts": { "maxDuration": 60 }
+    "src/app/api/daily-brief/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/daily-brief/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/insider-trades/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/ownership-alerts/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/nport-holdings/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/market-caps/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/verify-metrics/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/investment-strategy/route.ts": {
+      "maxDuration": 90
+    },
+    "src/app/api/capital-flows/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/korea-flow/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/macro-indicators/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/yield-curve/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/fear-greed/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/stock-supply/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/volatility/route.ts": {
+      "maxDuration": 60
+    }
   },
   "crons": [
-    { "path": "/api/cron/update-all",     "schedule": "50 22 * * *" },
-    { "path": "/api/cron/daily-brief",          "schedule": "55 22 * * *" },
-    { "path": "/api/cron/investment-strategy",  "schedule": "0 23 * * *"  },
-    { "path": "/api/cron/update-all",           "schedule": "50 6 * * *"  },
-    { "path": "/api/cron/daily-brief",          "schedule": "55 6 * * *"  },
-    { "path": "/api/cron/investment-strategy",  "schedule": "0 7 * * *"   },
-    { "path": "/api/cron/update-all",           "schedule": "20 12 * * *" },
-    { "path": "/api/cron/daily-brief",          "schedule": "25 12 * * *" },
-    { "path": "/api/cron/investment-strategy",  "schedule": "30 12 * * *" },
-    { "path": "/api/cron/update-signals", "schedule": "0 2 * * *"   },
-    { "path": "/api/cron/update-credit-balance", "schedule": "30 3 * * *" },
-    { "path": "/api/cron/verify-metrics", "schedule": "*/30 * * * *" },
-    { "path": "/api/cron/send-alerts",   "schedule": "0 */4 * * *"  },
-    { "path": "/api/cron/evaluate-signals", "schedule": "0 3 * * 0" }
+    {
+      "path": "/api/cron/update-all",
+      "schedule": "50 22 * * *"
+    },
+    {
+      "path": "/api/cron/daily-brief",
+      "schedule": "55 22 * * *"
+    },
+    {
+      "path": "/api/cron/investment-strategy",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/update-all",
+      "schedule": "50 6 * * *"
+    },
+    {
+      "path": "/api/cron/daily-brief",
+      "schedule": "55 6 * * *"
+    },
+    {
+      "path": "/api/cron/investment-strategy",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/update-all",
+      "schedule": "20 12 * * *"
+    },
+    {
+      "path": "/api/cron/daily-brief",
+      "schedule": "25 12 * * *"
+    },
+    {
+      "path": "/api/cron/investment-strategy",
+      "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/cron/update-signals",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/update-credit-balance",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/verify-metrics",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/send-alerts",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/evaluate-signals",
+      "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/log-cascade-events",
+      "schedule": "0 1 * * 0"
+    }
   ]
 }

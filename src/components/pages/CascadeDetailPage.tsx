@@ -109,6 +109,28 @@ export default function CascadeDetailPage({ sector }: { sector: string }) {
     return () => ctrl.abort();
   }, [patterns]);
 
+  interface DynamicOccurrence {
+    date: string;
+    leader: string;
+    leaderMove: string;
+    description: string;
+    generatedAt: string;
+  }
+  const [dynamicOccurrences, setDynamicOccurrences] = useState<DynamicOccurrence[]>([]);
+  useEffect(() => {
+    if (!patterns.length) return;
+    const sectorName = patterns[0]?.sectorName ?? sector;
+    const ctrl = new AbortController();
+    fetch(`/api/cascade-events?sector=${encodeURIComponent(sectorName)}`, { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: unknown) => {
+        if (ctrl.signal.aborted || !Array.isArray(d)) return;
+        setDynamicOccurrences(d as DynamicOccurrence[]);
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [patterns, sector]);
+
   if (patterns.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-20 text-center">
@@ -297,6 +319,34 @@ export default function CascadeDetailPage({ sector }: { sector: string }) {
                   );
                 })}
               </div>
+
+              {/* Dynamic AI-logged cascade events */}
+              {dynamicOccurrences.length > 0 && (
+                <div className="mt-4 space-y-4">
+                  <p className="text-xs font-bold text-cf-text-secondary uppercase tracking-wider">AI 자동 기록 이벤트</p>
+                  {dynamicOccurrences.map((ev, i) => (
+                    <div key={i} className="cf-card p-5 border-l-4 border-cf-primary/40">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-cf-text-secondary" />
+                        <span className="text-sm font-medium text-cf-text-primary">{ev.date}</span>
+                        {ev.leaderMove.startsWith('+') ? (
+                          <TrendingUp className="w-4 h-4 text-cf-success" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-cf-danger" />
+                        )}
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-cf-primary/10 text-cf-primary">
+                          ● AI 자동 기록
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-cf-text-secondary">{ev.leader}</span>
+                        <span className="text-sm font-bold text-cf-primary">{ev.leaderMove}</span>
+                      </div>
+                      <p className="text-sm text-cf-text-secondary leading-relaxed">{ev.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Current Status */}
               <div className="cf-card p-5 mt-6 border-l-4 border-cf-success">

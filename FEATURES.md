@@ -853,6 +853,16 @@
 
 ---
 
+### CompanyPage 섹터 지표 live overlay
+-  client-side fetch →  state
+- keyData 라벨 매칭 (WTI, 천연가스, 연체율, ISM, 10년물, Fed Funds) → live 값 교체
+- live 값 있으면  뱃지 표시 (초록색)
+
+### CascadeDetailPage AI 자동 기록 이벤트
+-  fetch →  state
+- historicalOccurrences 섹션 아래 날짜 내림차순 표시
+- 각 이벤트에  배지
+
 ## 18. 백엔드·인프라 기능
 
 ### API 라우트 전체 목록
@@ -883,6 +893,9 @@ ownership-alerts 적용).
 | `/api/market-heatmap` | iShares ETF CSV + Stooq(JP/EU) + Yahoo v8(KR/TW/IN/CN/EU-fallback) + CNBC(지수) | 15m Redis; EU 79/80 (98.75%) |
 | `/api/market-caps` | 정적 band 분류 (allCompanies) | band 분류만 반환; Yahoo v7 crumb 불가로 live USD 제거 |
 | `/api/sector-pe` | Yahoo Finance v8 (no auth) | 4h Redis; 11개 SPDR 섹터 ETF; price + changePct + ytdReturn + 52주 범위 |
+| `/api/sector-metrics` | Yahoo Finance (CL=F, ^TNX) + FRED CSV (MHHNGSP, DRCCLACBS, DFEDTARU) + Redis ISM 캐시 | 6h Redis |
+| `/api/cascade-events` | Redis `flowvium:cascade:events:v1` | Redis (크론 갱신) |
+| `/api/cron/log-cascade-events` | Yahoo Finance 10d prices + AI 체인 설명 생성 (주간 크론) | Redis LPUSH, TTL 180일 |
 | `/api/price-history?ticker=X&days=N` | Stooq daily CSV | 1h Redis + 30min memory |
 | `/api/batch-prices?tickers=A,B,...` | Yahoo Finance v7 quote (최대 120 티커) | 5분 메모리 (티커별) ← iter117 |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
