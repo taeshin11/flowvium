@@ -1,4 +1,5 @@
 import type { Account, Trade } from '@/lib/paper-trading';
+import { getTranslations } from 'next-intl/server';
 import { INITIAL_CASH } from '@/lib/paper-trading';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://flowvium.net';
@@ -37,7 +38,8 @@ function pnlClass(n: number) {
   return 'text-gray-400';
 }
 
-export default async function PaperTradingPage() {
+export default async function PaperTradingPage({ params }: { params: { locale: string } }) {
+  const t = await getTranslations({ locale: params.locale, namespace: 'paperTrading' });
   const [account, trades] = await Promise.all([fetchAccount(), fetchTrades(20)]);
 
   const positionValue = account
@@ -45,17 +47,17 @@ export default async function PaperTradingPage() {
     : 0;
 
   const cards: { label: string; value: string; pnlVal: number | null; sub: string | null }[] = [
-    { label: '전체자산', value: account ? fmtUSD(account.totalValue) : '—', pnlVal: null, sub: null },
-    { label: '현금', value: account ? fmtUSD(account.cash) : '—', pnlVal: null, sub: account ? fmt((account.cash / account.totalValue) * 100, 1) + '%' : null },
-    { label: '포지션가치', value: account ? fmtUSD(positionValue) : '—', pnlVal: null, sub: account ? account.positions.length + '종목' : null },
-    { label: '수익률', value: account ? (account.totalPnlPct >= 0 ? '+' : '') + fmt(account.totalPnlPct) + '%' : '—', pnlVal: account?.totalPnlPct ?? 0, sub: account ? (account.totalPnl >= 0 ? '+' : '') + fmtUSD(account.totalPnl) : null },
+    { label: t('totalAssets'), value: account ? fmtUSD(account.totalValue) : '—', pnlVal: null, sub: null },
+    { label: t('cash'), value: account ? fmtUSD(account.cash) : '—', pnlVal: null, sub: account ? fmt((account.cash / account.totalValue) * 100, 1) + '%' : null },
+    { label: t('positionValue'), value: account ? fmtUSD(positionValue) : '—', pnlVal: null, sub: account ? account.positions.length + ' ' + t('ticker') : null },
+    { label: t('returnRate'), value: account ? (account.totalPnlPct >= 0 ? '+' : '') + fmt(account.totalPnlPct) + '%' : '—', pnlVal: account?.totalPnlPct ?? 0, sub: account ? (account.totalPnl >= 0 ? '+' : '') + fmtUSD(account.totalPnl) : null },
   ];
 
   return (
     <main className="min-h-screen bg-cf-bg text-cf-text-primary px-4 py-8 max-w-6xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">가상계좌 (Paper Trading)</h1>
-        <p className="text-cf-text-secondary text-sm mt-1">AI 리포트 추천 포트폴리오 기준 가상 매매 시스템 · 시드 {fmtUSD(INITIAL_CASH)}</p>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        <p className="text-cf-text-secondary text-sm mt-1">{t('subtitle')} · {t('seed')} {fmtUSD(INITIAL_CASH)}</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -70,19 +72,19 @@ export default async function PaperTradingPage() {
 
       {account && account.positions.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-3">보유 포지션</h2>
+          <h2 className="text-lg font-semibold mb-3">{t('positions')}</h2>
           <div className="overflow-x-auto rounded-xl border border-cf-border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-white/[0.04] text-cf-text-secondary text-xs">
-                  <th className="text-left px-4 py-3">종목</th>
-                  <th className="text-right px-4 py-3">수량</th>
-                  <th className="text-right px-4 py-3">평균단가</th>
-                  <th className="text-right px-4 py-3">현재가</th>
-                  <th className="text-right px-4 py-3">미실현손익</th>
-                  <th className="text-right px-4 py-3">손절가</th>
-                  <th className="text-right px-4 py-3">목표가</th>
-                  <th className="text-right px-4 py-3">진입일</th>
+                  <th className="text-left px-4 py-3">{t('ticker')}</th>
+                  <th className="text-right px-4 py-3">{t('quantity')}</th>
+                  <th className="text-right px-4 py-3">{t('avgPrice')}</th>
+                  <th className="text-right px-4 py-3">{t('currentPrice')}</th>
+                  <th className="text-right px-4 py-3">{t('unrealizedPnl')}</th>
+                  <th className="text-right px-4 py-3">{t('stopLoss')}</th>
+                  <th className="text-right px-4 py-3">{t('target')}</th>
+                  <th className="text-right px-4 py-3">{t('entryDate')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -108,23 +110,23 @@ export default async function PaperTradingPage() {
       )}
 
       <section>
-        <h2 className="text-lg font-semibold mb-3">최근 거래 내역</h2>
+        <h2 className="text-lg font-semibold mb-3">{t('tradeHistory')}</h2>
         {trades.length === 0 ? (
           <div className="text-cf-text-secondary text-sm py-8 text-center border border-cf-border rounded-xl">
-            아직 거래 내역이 없습니다. AI 리포트 생성 시 자동 매매됩니다.
+            {t('noTrades')}
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-cf-border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-white/[0.04] text-cf-text-secondary text-xs">
-                  <th className="text-left px-4 py-3">날짜</th>
-                  <th className="text-left px-4 py-3">종목</th>
-                  <th className="text-left px-4 py-3">구분</th>
-                  <th className="text-right px-4 py-3">체결가</th>
-                  <th className="text-right px-4 py-3">수량</th>
-                  <th className="text-right px-4 py-3">거래금액</th>
-                  <th className="text-right px-4 py-3">실현손익</th>
+                  <th className="text-left px-4 py-3">{t('date')}</th>
+                  <th className="text-left px-4 py-3">{t('ticker')}</th>
+                  <th className="text-left px-4 py-3">{t('type')}</th>
+                  <th className="text-right px-4 py-3">{t('executionPrice')}</th>
+                  <th className="text-right px-4 py-3">{t('quantity')}</th>
+                  <th className="text-right px-4 py-3">{t('amount')}</th>
+                  <th className="text-right px-4 py-3">{t('realizedPnl')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -134,7 +136,7 @@ export default async function PaperTradingPage() {
                     <td className="px-4 py-3"><div className="font-semibold">{trade.ticker}</div><div className="text-xs text-cf-text-secondary truncate max-w-[100px]">{trade.name}</div></td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${trade.type === 'buy' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                        {trade.type === 'buy' ? '매수' : '매도'}
+                        {trade.type === 'buy' ? t('buy') : t('sell')}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">{fmtUSD(trade.price)}</td>
@@ -153,7 +155,7 @@ export default async function PaperTradingPage() {
 
       {account && (
         <p className="text-xs text-cf-text-secondary mt-6 text-right">
-          마지막 업데이트: {new Date(account.lastUpdated).toLocaleString('ko-KR')} · 처리된 리포트 {account.reportCount}건
+          {t('lastUpdated')}: {new Date(account.lastUpdated).toLocaleString('ko-KR')} · {t('processedReports')} {account.reportCount}{t('filingUnit')}
         </p>
       )}
     </main>

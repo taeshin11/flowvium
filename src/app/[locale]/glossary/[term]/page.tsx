@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { glossaryTerms, getGlossaryTermBySlug } from '@/data/glossary';
@@ -6,8 +7,8 @@ import { glossaryTerms, getGlossaryTermBySlug } from '@/data/glossary';
 export function generateStaticParams() {
   const params: { locale: string; term: string }[] = [];
   for (const locale of ["ko","en","ja","zh-CN","zh-TW","es","fr","de","pt","ru","ar","hi","id","th","tr","vi"]) {
-    for (const t of glossaryTerms) {
-      params.push({ locale, term: t.slug });
+    for (const gt of glossaryTerms) {
+      params.push({ locale, term: gt.slug });
     }
   }
   return params;
@@ -18,24 +19,24 @@ export async function generateMetadata({
 }: {
   params: { locale: string; term: string };
 }): Promise<Metadata> {
-  const t = getGlossaryTermBySlug(params.term);
-  if (!t) return { title: 'Not Found' };
+  const term = getGlossaryTermBySlug(params.term);
+  if (!term) return { title: 'Not Found' };
+  const tl = await getTranslations({ locale: params.locale, namespace: 'glossary' });
   const isKo = params.locale === 'ko';
   return {
-    title: isKo
-      ? `${t.termKo} 뜻 — 투자 용어 사전 | Flowvium`
-      : `${t.term} Definition — Investment Glossary | Flowvium`,
-    description: isKo ? t.definitionKo.substring(0, 160) : t.definition.substring(0, 160),
+    title: tl('termMetaTitle', { term: isKo ? term.termKo : term.term }),
+    description: isKo ? term.definitionKo.substring(0, 160) : term.definition.substring(0, 160),
   };
 }
 
-export default function GlossaryTermPage({
+export default async function GlossaryTermPage({
   params,
 }: {
   params: { locale: string; term: string };
 }) {
-  const t = getGlossaryTermBySlug(params.term);
-  if (!t) return notFound();
+  const term = getGlossaryTermBySlug(params.term);
+  if (!term) return notFound();
+  const tl = await getTranslations({ locale: params.locale, namespace: 'glossary' });
 
   const isKo = params.locale === 'ko';
 
@@ -56,41 +57,41 @@ export default function GlossaryTermPage({
           href={`/${params.locale}/glossary`}
           className="text-sm text-blue-600 hover:underline"
         >
-          {isKo ? '← 용어 사전으로 돌아가기' : '← Back to Glossary'}
+          {tl('backButton')}
         </Link>
       </div>
 
       <div className="mb-2">
         <span
-          className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${categoryColors[t.category] ?? 'bg-gray-100 text-gray-800'}`}
+          className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${categoryColors[term.category] ?? 'bg-gray-100 text-gray-800'}`}
         >
-          {t.category}
+          {term.category}
         </span>
       </div>
 
-      <h1 className="text-3xl font-bold mb-1">{t.term}</h1>
-      {isKo && <p className="text-xl text-gray-600 mb-6">{t.termKo}</p>}
+      <h1 className="text-3xl font-bold mb-1">{term.term}</h1>
+      {isKo && <p className="text-xl text-gray-600 mb-6">{term.termKo}</p>}
 
       <div className="prose max-w-none mb-8">
         <h2 className="text-lg font-semibold mb-2">
-          {isKo ? '정의' : 'Definition'}
+          {tl('definitionLabel')}
         </h2>
-        <p className="text-gray-700 leading-relaxed mb-4">{isKo ? t.definitionKo : t.definition}</p>
+        <p className="text-gray-700 leading-relaxed mb-4">{isKo ? term.definitionKo : term.definition}</p>
         {isKo && (
           <>
-            <h3 className="text-base font-semibold text-gray-500 mb-1">English</h3>
-            <p className="text-gray-500 leading-relaxed">{t.definition}</p>
+            <h3 className="text-base font-semibold text-gray-500 mb-1">{tl('englishLabel')}</h3>
+            <p className="text-gray-500 leading-relaxed">{term.definition}</p>
           </>
         )}
       </div>
 
-      {t.relatedTickers && t.relatedTickers.length > 0 && (
+      {term.relatedTickers && term.relatedTickers.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold mb-2">
-            {isKo ? '관련 종목' : 'Related Tickers'}
+            {tl('relatedTickers')}
           </h3>
           <div className="flex gap-2 flex-wrap">
-            {t.relatedTickers.map((ticker) => (
+            {term.relatedTickers.map((ticker) => (
               <Link
                 key={ticker}
                 href={`/${params.locale}/company/${ticker}`}
@@ -103,13 +104,13 @@ export default function GlossaryTermPage({
         </div>
       )}
 
-      {t.relatedTerms.length > 0 && (
+      {term.relatedTerms.length > 0 && (
         <div>
           <h3 className="font-semibold mb-2">
-            {isKo ? '관련 용어' : 'Related Terms'}
+            {tl('relatedTerms')}
           </h3>
           <div className="flex gap-2 flex-wrap">
-            {t.relatedTerms.map((slug) => {
+            {term.relatedTerms.map((slug) => {
               const related = glossaryTerms.find((x) => x.slug === slug);
               if (!related) return null;
               return (

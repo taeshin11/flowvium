@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useEffect, useState } from 'react';
 
 interface FearGreedEntry {
@@ -34,6 +36,7 @@ export default function FearGreedMarketClient({
   const [data, setData] = useState<FearGreedEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations('fearGreedMarket');
   const isKo = locale === 'ko';
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function FearGreedMarketClient({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-48">
-        <div className="animate-pulse text-gray-500">{isKo ? '로딩 중...' : 'Loading...'}</div>
+        <div className="animate-pulse text-gray-500">{t('loading')}</div>
       </div>
     );
   }
@@ -59,7 +62,7 @@ export default function FearGreedMarketClient({
   if (error || !data) {
     return (
       <div className="text-center py-12 text-gray-500">
-        {isKo ? '데이터를 불러올 수 없습니다.' : error ?? 'No data available.'}
+        {error ?? t('error')}
       </div>
     );
   }
@@ -101,7 +104,7 @@ export default function FearGreedMarketClient({
 
       {/* Driver */}
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
-        <h3 className="font-semibold mb-1">{isKo ? '주요 원인' : 'Key Driver'}</h3>
+        <h3 className="font-semibold mb-1">{t('keyDriver')}</h3>
         <p className="text-gray-700 text-sm leading-relaxed">{data.driver}</p>
       </div>
 
@@ -109,14 +112,14 @@ export default function FearGreedMarketClient({
       {data.prevScore !== undefined && (
         <div className="flex items-center gap-4 p-4 border rounded-lg">
           <div className="flex-1">
-            <div className="text-sm text-gray-500">{isKo ? '7일 전' : '7 Days Ago'}</div>
+            <div className="text-sm text-gray-500">{t('sevenDaysAgo')}</div>
             <div className="text-2xl font-bold">{data.prevScore}</div>
           </div>
           <div className="text-2xl">
             {data.trend === 'up' ? '↑' : data.trend === 'down' ? '↓' : '→'}
           </div>
           <div className="flex-1 text-right">
-            <div className="text-sm text-gray-500">{isKo ? '현재' : 'Current'}</div>
+            <div className="text-sm text-gray-500">{t('current')}</div>
             <div className="text-2xl font-bold" style={{ color: level.color }}>
               {data.score}
             </div>

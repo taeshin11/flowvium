@@ -160,7 +160,7 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
         {item.currentPrice != null && (
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-lg font-bold text-gray-900 font-mono">${item.currentPrice.toFixed(item.currentPrice >= 100 ? 2 : 2)}</span>
-            <span className="text-xs text-gray-400">현재가</span>
+            <span className="text-xs text-gray-400">{t('currentPrice')}</span>
           </div>
         )}
         <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{item.rationale}</p>
@@ -192,13 +192,13 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
         <div className="border-t border-gray-100 bg-gray-50 px-4 py-2.5 space-y-2">
           {item.entryRationale && (
             <div className="text-xs">
-              <span className="text-gray-400 mr-1">📍 매수구간 근거</span>
+              <span className="text-gray-400 mr-1">📍 {t('entryRationaleLabel')}</span>
               <span className="text-gray-700">{item.entryRationale}</span>
             </div>
           )}
           {item.targetRationale && (
             <div className="text-xs">
-              <span className="text-gray-400 mr-1">🎯 목표가 근거</span>
+              <span className="text-gray-400 mr-1">🎯 {t('targetRationaleLabel')}</span>
               <span className="text-gray-700">{item.targetRationale}</span>
             </div>
           )}
@@ -401,7 +401,7 @@ export default function ReportPage() {
       <div className="container mx-auto px-4 py-12 max-w-5xl">
         <div className="flex flex-col items-center gap-3 text-gray-400 py-20">
           <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
-          <p className="text-sm">불러오는 중...</p>
+          <p className="text-sm">{t('loadingText')}</p>
         </div>
       </div>
     );
@@ -430,7 +430,7 @@ export default function ReportPage() {
                   : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              최신 리포트
+              {t('latestReport')}
             </button>
             {historyItems.map((item) => (
               <button
@@ -530,15 +530,15 @@ export default function ReportPage() {
           {data.marketNarrative && (
             <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 p-4">
               <div className="flex items-center gap-1.5 mb-3">
-                <span className="text-sm font-bold text-amber-800">📖 시장 내러티브</span>
+                <span className="text-sm font-bold text-amber-800">📖 {t('marketNarrativeTitle')}</span>
                 {data.marketNarrative.sessionNote && (
                   <span className="text-[10px] text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">{data.marketNarrative.sessionNote}</span>
                 )}
               </div>
               <div className="space-y-2">
-                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">WHY</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.why}</span></div>
-                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">WATCH</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.watch}</span></div>
-                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">STORY</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.story}</span></div>
+                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeWhy')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.why}</span></div>
+                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeWatch')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.watch}</span></div>
+                <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeStory')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.story}</span></div>
               </div>
             </div>
           )}
@@ -589,31 +589,31 @@ export default function ReportPage() {
           {/* ── S4: 기회 신호 (숏스퀴즈 + 내부자) ──────────────────────────── */}
           {(data.shortSqueeze?.length || data.insiderSignals?.length) && (
             <div className="mb-5 rounded-xl border border-orange-100 bg-orange-50 p-4">
-              <p className="text-sm font-bold text-orange-800 mb-3">⚡ 기회 신호</p>
+              <p className="text-sm font-bold text-orange-800 mb-3">⚡ {t('opportunitySignalsTitle')}</p>
               {data.topOpportunity && (
                 <p className="text-xs text-orange-700 bg-orange-100 rounded-lg px-3 py-2 mb-3 font-medium">{data.topOpportunity}</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {data.shortSqueeze?.length ? (
                   <div>
-                    <p className="text-xs font-bold text-orange-700 mb-2">🔥 숏스퀴즈 후보</p>
+                    <p className="text-xs font-bold text-orange-700 mb-2">🔥 {t('shortSqueezeLabel')}</p>
                     {data.shortSqueeze.map((s, i) => (
                       <div key={i} className="mb-2 text-xs">
                         <span className="font-bold text-orange-800">{s.ticker}</span>
                         <span className="text-orange-600 ml-1">score={s.score}</span>
                         <p className="text-gray-600 mt-0.5">{s.timing}</p>
-                        <p className="text-red-500 text-[10px]">리스크: {s.risk}</p>
+                        <p className="text-red-500 text-[10px]">{t('riskLabel')}: {s.risk}</p>
                       </div>
                     ))}
                   </div>
                 ) : null}
                 {data.insiderSignals?.length ? (
                   <div>
-                    <p className="text-xs font-bold text-orange-700 mb-2">👤 내부자 집중 매매</p>
+                    <p className="text-xs font-bold text-orange-700 mb-2">👤 {t('insiderSignalsLabel')}</p>
                     {data.insiderSignals.map((s, i) => (
                       <div key={i} className="mb-2 text-xs">
                         <span className="font-bold text-orange-800">{s.ticker}</span>
-                        <span className="text-orange-600 ml-1">{s.filings}건</span>
+                        <span className="text-orange-600 ml-1">{s.filings}{t('filingUnit')}</span>
                         <p className="text-gray-600 mt-0.5">{s.significance}</p>
                         <p className="text-gray-500 text-[10px]">{s.pattern}</p>
                       </div>
@@ -642,7 +642,7 @@ export default function ReportPage() {
           {/* ── S5: 리스크 관리 (손절선 설정 근거 + 헤징) ──────────────────────────── */}
           {(data.stopLossRationale?.length || data.hedgingSuggestion) && (
             <div className="mb-5 rounded-xl border border-red-100 bg-red-50 p-4">
-              <p className="text-sm font-bold text-red-800 mb-3">🛡️ 리스크 관리</p>
+              <p className="text-sm font-bold text-red-800 mb-3">🛡️ {t('riskManagementTitle')}</p>
               {data.portfolioRiskNote && (
                 <p className="text-xs text-red-700 bg-red-100 rounded-lg px-3 py-2 mb-3">{data.portfolioRiskNote}</p>
               )}
@@ -651,7 +651,7 @@ export default function ReportPage() {
               )}
               {data.stopLossRationale?.length ? (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] font-bold text-red-700">손절선 설정 근거</p>
+                  <p className="text-[10px] font-bold text-red-700">{t('stopLossRationaleLabel')}</p>
                   {data.stopLossRationale.map((s, i) => (
                     <div key={i} className="flex gap-2 text-xs">
                       <span className="font-bold text-red-800 w-12 shrink-0">{s.ticker}</span>
@@ -681,7 +681,7 @@ export default function ReportPage() {
           {/* ── S8: 기업 변화 모니터링 ────────────────────────────────────── */}
           {data.companyChanges?.length ? (
             <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
-              <p className="text-sm font-bold text-blue-900 mb-3">🏢 기업 변화 모니터링</p>
+              <p className="text-sm font-bold text-blue-900 mb-3">🏢 {t('companyChangesTitle')}</p>
               <div className="space-y-2">
                 {data.companyChanges.map((c, i) => {
                   const sentColor = c.sentiment === 'positive' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
@@ -696,12 +696,12 @@ export default function ReportPage() {
                           {c.latestQuarter && <span className="text-[10px] opacity-70">{c.latestQuarter}</span>}
                           {c.revenueYoY != null && (
                             <span className="text-[10px] font-semibold">
-                              {c.revenueYoY >= 0 ? '+' : ''}{c.revenueYoY.toFixed(1)}% YoY
+                              {c.revenueYoY >= 0 ? '+' : ''}{c.revenueYoY.toFixed(1)}% {t('companyChangesYoY')}
                             </span>
                           )}
                         </div>
                         {c.guidance && c.guidance !== 'unknown' && (
-                          <span className="text-[10px] font-semibold">{guidanceIcon} 가이던스 {c.guidance}</span>
+                          <span className="text-[10px] font-semibold">{guidanceIcon} {t('guidanceLabel')} {c.guidance}</span>
                         )}
                       </div>
                       <p className="text-[11px] leading-relaxed">{c.keyChange}</p>

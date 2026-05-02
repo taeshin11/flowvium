@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import FearGreedMarketClient from './FearGreedMarketClient';
 
 const MARKETS = ["us","korea","japan","china","europe","uk","india","brazil","taiwan","australia"];
@@ -22,32 +23,28 @@ export async function generateMetadata({
   params: { locale: string; market: string };
 }): Promise<Metadata> {
   const marketLabel = MARKET_LABELS[params.market] ?? params.market;
-  const isKo = params.locale === 'ko';
+  const t = await getTranslations({ locale: params.locale, namespace: 'fearGreedMarket' });
   return {
-    title: `${marketLabel} Fear & Greed Index | Flowvium`,
-    description: isKo
-      ? `${marketLabel} 시장의 공포·탐욕 지수 실시간 현황 및 구성 요소를 확인하세요.`
-      : `Track the ${marketLabel} Fear & Greed Index in real time. See the current score, key driver, and 7-day trend.`,
+    title: t('metaTitle', { market: marketLabel }),
+    description: t('metaDesc', { market: marketLabel }),
   };
 }
 
-export default function FearGreedMarketPage({
+export default async function FearGreedMarketPage({
   params,
 }: {
   params: { locale: string; market: string };
 }) {
   const marketLabel = MARKET_LABELS[params.market] ?? params.market;
-  const isKo = params.locale === 'ko';
+  const t = await getTranslations({ locale: params.locale, namespace: 'fearGreedMarket' });
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-1">
-        {marketLabel} {isKo ? '공포·탐욕 지수' : 'Fear & Greed Index'}
+        {marketLabel} {t('title')}
       </h1>
       <p className="text-gray-500 text-sm mb-8">
-        {isKo
-          ? '실시간 투자 심리 지표 — 0: 극단적 공포, 100: 극단적 탐욕'
-          : 'Real-time investor sentiment — 0: Extreme Fear, 100: Extreme Greed'}
+        {t('description')}
       </p>
 
       <FearGreedMarketClient market={params.market} locale={params.locale} />

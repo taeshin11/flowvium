@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { glossaryTerms, glossaryCategories } from '@/data/glossary';
 
@@ -11,31 +12,28 @@ export async function generateMetadata({
 }: {
   params: { locale: string };
 }): Promise<Metadata> {
-  const isKo = params.locale === 'ko';
+  const t = await getTranslations({ locale: params.locale, namespace: 'glossary' });
   return {
-    title: isKo ? '투자 용어 사전 | Flowvium' : 'Investment Glossary | Flowvium',
-    description: isKo
-      ? 'PER, RSI, 볼린저 밴드 등 핵심 투자 용어를 카테고리별로 쉽게 찾아보세요.'
-      : 'Browse essential investment terms by category including valuation, technical analysis, macro, and more.',
+    title: t('metaTitle'),
+    description: t('metaDesc'),
   };
 }
 
-export default function GlossaryIndexPage({
+export default async function GlossaryIndexPage({
   params,
 }: {
   params: { locale: string };
 }) {
+  const t = await getTranslations({ locale: params.locale, namespace: 'glossary' });
   const isKo = params.locale === 'ko';
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-2">
-        {isKo ? '투자 용어 사전' : 'Investment Glossary'}
+        {t('title')}
       </h1>
       <p className="text-gray-500 mb-8">
-        {isKo
-          ? '핵심 투자 용어를 카테고리별로 찾아보세요.'
-          : 'Browse essential investment terms by category.'}
+        {t('subtitle')}
       </p>
 
       {glossaryCategories
