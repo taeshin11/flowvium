@@ -206,12 +206,17 @@ Generate a JSON investment strategy with these exact fields:
     report = JSON.parse(fixedJson);
   } catch (e) { console.error('JSON parse error:', e.message); console.log(match[0].slice(0, 400)); process.exit(1); }
 
-  // portfolio dedup (7B 모델 중복 ticker 문제 방지)
+  // portfolio dedup + 한국 주식 .KS 자동 보정
   if (Array.isArray(report.portfolio)) {
+    report.portfolio = report.portfolio.map(p => ({
+      ...p,
+      ticker: /^\d{6}$/.test(p.ticker || '') ? `${p.ticker}.KS` : (p.ticker || ''),
+    }));
+    const INDEX_TICKERS = new Set(['KS','KR','JP','CN','EU','US','UK','KOSPI','NIKKEI','KOSDAQ','^KS11','^N225','^GSPC']);
     const dedupMap = new Map();
     for (const p of report.portfolio) {
       const key = (p.ticker || '').toUpperCase();
-      if (!key) continue;
+      if (!key || INDEX_TICKERS.has(key)) continue;
       const existing = dedupMap.get(key);
       if (!existing || (p.allocation ?? 0) > (existing.allocation ?? 0)) dedupMap.set(key, p);
     }

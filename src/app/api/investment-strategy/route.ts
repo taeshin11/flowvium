@@ -1443,7 +1443,13 @@ export async function GET(request: Request) {
     '^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11',
     'KS','KR','JP','CN','EU','US','UK',  // 국가 약자 오류 방지
   ]);
+  // 한국 주식 6자리 숫자 티커 → .KS 자동 보정 (AI가 005930 대신 005930.KS 형식 필요)
+  const KR_NUM_REGEX = /^\d{6}$/;
   if (strategy?.portfolio?.length) {
+    strategy.portfolio = strategy.portfolio.map(p => ({
+      ...p,
+      ticker: KR_NUM_REGEX.test(p.ticker ?? '') ? `${p.ticker}.KS` : (p.ticker ?? ''),
+    }));
     const dedupMap = new Map<string, typeof strategy.portfolio[0]>();
     for (const p of strategy.portfolio) {
       const key = p.ticker?.toUpperCase();
