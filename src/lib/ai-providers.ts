@@ -52,7 +52,7 @@ export interface AICallResult {
   source: string;  // 'EXAONE-3.5' | 'GROQ-llama-3.3-70b-versatile' | 'GROQ-llama-3.1-8b-instant' | 'qwen-2.5-72b' | 'gemini-2.0-flash' | 'fallback'
   durationMs: number;
   /** Per-provider attempt outcome — populated when chain fully fails, to aid diagnosis. */
-  attempts?: Array<{ provider: 'vllm' | 'groq' | 'qwen' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
+  attempts?: Array<{ provider: 'vllm' | 'groq' | 'qwen' | 'gemini' | 'claude'; ok: boolean; status?: number; error?: string; durationMs?: number }>;
 }
 
 export interface AICallOptions {
@@ -72,7 +72,7 @@ export interface AICallOptions {
   tag?: string;
 }
 
-type ProviderAttempt = { provider: 'vllm' | 'groq' | 'qwen' | 'gemini'; ok: boolean; status?: number; error?: string; durationMs?: number };
+type ProviderAttempt = { provider: 'vllm' | 'groq' | 'qwen' | 'gemini' | 'claude'; ok: boolean; status?: number; error?: string; durationMs?: number };
 
 /** vLLM EXAONE 호출 */
 async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
@@ -392,7 +392,7 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
 async function callClaude(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
-    diag?.push({ provider: 'gemini', ok: false, error: 'ANTHROPIC_API_KEY not configured', durationMs: 0 });
+    diag?.push({ provider: 'claude', ok: false, error: 'ANTHROPIC_API_KEY not configured', durationMs: 0 });
     return null;
   }
   const t0 = Date.now();
@@ -420,18 +420,18 @@ async function callClaude(prompt: string, opts: AICallOptions, diag?: ProviderAt
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
       logger.warn(tag, 'claude_http_error', { status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
-      diag?.push({ provider: 'gemini', ok: false, status: res.status, durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'claude', ok: false, status: res.status, durationMs: Date.now() - t0 });
       return null;
     }
     const data = await res.json() as { content?: Array<{ text?: string }> };
     const text = data.content?.[0]?.text ?? '';
-    if (!text) { diag?.push({ provider: 'gemini', ok: false, error: 'empty', durationMs: Date.now() - t0 }); return null; }
+    if (!text) { diag?.push({ provider: 'claude', ok: false, error: 'empty', durationMs: Date.now() - t0 }); return null; }
     logger.info(tag, 'claude_ok', { model, textLen: text.length, durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'gemini', ok: true, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'claude', ok: true, durationMs: Date.now() - t0 });
     return text;
   } catch (err) {
     logger.warn(tag, 'claude_failed', { error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
-    diag?.push({ provider: 'gemini', ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'claude', ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
     return null;
   }
 }

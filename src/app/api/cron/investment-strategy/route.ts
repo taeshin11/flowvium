@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * Pre-generating ensures users always see AI content, not the data-driven fallback.
  */
 export const dynamic = 'force-dynamic';
-export const maxDuration = 90;
+export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   try {
     const cronSecret = process.env.CRON_SECRET ?? '';
     const res = await fetch(`${baseUrl}/api/investment-strategy?force=1`, {
-      signal: AbortSignal.timeout(80000),
+      signal: AbortSignal.timeout(280000),
       cache: 'no-store',
       headers: cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {},
     });

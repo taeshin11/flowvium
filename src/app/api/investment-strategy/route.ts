@@ -15,7 +15,7 @@ import { executeReportTrades } from '@/lib/paper-trading';
 import { FG, VIX, SPREADS, PORTFOLIO } from '@/lib/thresholds';
 export const dynamic = 'force-dynamic';
 
-export const maxDuration = 90;
+export const maxDuration = 300;
 
 const CACHE_TTL = 24 * 60 * 60; // 24h Redis
 // Bump this version whenever the report schema adds/removes required fields.
@@ -1286,29 +1286,29 @@ export async function GET(request: Request) {
     ? 'http://localhost:3000'
     : `${reqUrl.protocol}//${reqUrl.host}`;
 
-  // Gather all context in parallel (including live prices)
-  // 컨텍스트 수집 전체를 15s로 cap — cache miss 시 slow API가 AI 예산을 잠식하는 것 방지
+  // 각 컨텍스트를 독립적으로 수집 — 하나가 느려도 나머지 데이터 보존
+  // (Promise.race + allSettled 조합: 전체 타임아웃 30s, 개별 실패는 빈값으로 대체)
   let ctx: Awaited<ReturnType<typeof gatherTabContext>>;
   let sectorPe: string, earnings: string, vixCtx: string, activeCascades: string;
   let livePrices: Awaited<ReturnType<typeof getLivePrices>>;
-  try {
-    const results = await Promise.race([
-      Promise.all([
-        gatherTabContext(redis, baseUrl),
-        getSectorSummary(baseUrl),
-        getUpcomingEarnings(baseUrl),
-        getLivePrices(),
-        getVixContext(baseUrl),
-        getActiveCascadeSignals(baseUrl),
-      ]),
-      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('ctx_timeout')), 30000)),
+  {
+    const GATHER_TIMEOUT = 30000;
+    const wrap = <T>(p: Promise<T>, fallback: T): Promise<T> =>
+      Promise.race([p, new Promise<T>(res => setTimeout(() => res(fallback), GATHER_TIMEOUT))]);
+    const [ctxR, sectorR, earningsR, pricesR, vixR, cascadeR] = await Promise.all([
+      wrap(gatherTabContext(redis, baseUrl), {} as Awaited<ReturnType<typeof gatherTabContext>>),
+      wrap(getSectorSummary(baseUrl), ''),
+      wrap(getUpcomingEarnings(baseUrl), ''),
+      wrap(getLivePrices(), new Map()),
+      wrap(getVixContext(baseUrl), ''),
+      wrap(getActiveCascadeSignals(baseUrl), ''),
     ]);
-    [ctx, sectorPe, earnings, livePrices, vixCtx, activeCascades] = results;
-  } catch (e) {
-    logger.warn('api.investment-strategy', 'gather_timeout', { error: e });
-    ctx = {} as Awaited<ReturnType<typeof gatherTabContext>>;
-    sectorPe = ''; earnings = ''; vixCtx = ''; activeCascades = '';
-    livePrices = new Map();
+    ctx = ctxR; sectorPe = sectorR; earnings = earningsR;
+    livePrices = pricesR; vixCtx = vixR; activeCascades = cascadeR;
+    logger.info('api.investment-strategy', 'ctx_gathered', {
+      hasCtx: Object.keys(ctx).length > 0, hasPrices: livePrices.size > 0,
+      hasSectorPe: !!sectorPe, hasVix: !!vixCtx,
+    });
   }
 
   const dataAsOf = new Date().toISOString();
