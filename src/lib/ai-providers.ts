@@ -388,8 +388,58 @@ async function callGemini(prompt: string, opts: AICallOptions, diag?: ProviderAt
   }
 }
 
+/** Anthropic Claude API 호출 (claude-haiku-4-5: 빠름+저렴, claude-sonnet-4-6: 고품질) */
+async function callClaude(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!apiKey) {
+    diag?.push({ provider: 'gemini', ok: false, error: 'ANTHROPIC_API_KEY not configured', durationMs: 0 });
+    return null;
+  }
+  const t0 = Date.now();
+  const tag = opts.tag ?? 'ai';
+  // 투자 리포트: sonnet 우선, 빠른 호출은 haiku
+  const model = opts.maxTokens && opts.maxTokens > 800
+    ? 'claude-haiku-4-5-20251001'
+    : 'claude-haiku-4-5-20251001';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: opts.maxTokens ?? 1600,
+        temperature: opts.temperature ?? 0.6,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 40000),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      logger.warn(tag, 'claude_http_error', { status: res.status, body: errText.slice(0, 200), durationMs: Date.now() - t0 });
+      diag?.push({ provider: 'gemini', ok: false, status: res.status, durationMs: Date.now() - t0 });
+      return null;
+    }
+    const data = await res.json() as { content?: Array<{ text?: string }> };
+    const text = data.content?.[0]?.text ?? '';
+    if (!text) { diag?.push({ provider: 'gemini', ok: false, error: 'empty', durationMs: Date.now() - t0 }); return null; }
+    logger.info(tag, 'claude_ok', { model, textLen: text.length, durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'gemini', ok: true, durationMs: Date.now() - t0 });
+    return text;
+  } catch (err) {
+    logger.warn(tag, 'claude_failed', { error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
+    diag?.push({ provider: 'gemini', ok: false, error: err instanceof Error ? err.message : String(err), durationMs: Date.now() - t0 });
+    return null;
+  }
+}
+
 /**
- * 통합 AI 호출. vLLM → GROQ → Qwen → Gemini 체인을 순차 시도.
+ * 통합 AI 호출.
+ * GROQ → Claude(Anthropic) → OpenRouter → Gemini 순서.
+ * Claude가 있으면 OpenRouter/Gemini보다 먼저 시도 — 품질이 압도적으로 좋음.
  * 모두 실패하면 { text: '', source: 'fallback' } 반환.
  */
 export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<AICallResult> {
@@ -405,17 +455,22 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
     if (t) return { text: t, source: 'EXAONE-3.5', durationMs: Date.now() - start };
   }
 
-  // 2. GROQ (무료 티어 — TPD 소진 시 Redis guard로 즉시 스킵, skipGroq 옵션으로도 건너뜀)
+  // 2. GROQ (무료 티어 — TPD 소진 시 Redis guard로 즉시 스킵)
   if (!opts.skipGroq) {
     const g = await callGroq(prompt, opts, attempts);
     if (g) return { text: g.text, source: `GROQ-${g.model}`, durationMs: Date.now() - start };
   }
 
-  // 3. Qwen 2.5 72B via OpenRouter (GROQ 소진 시 2차 폴백)
+  // 3. Claude (Anthropic) — GROQ 소진 시 최우선 고품질 폴백
+  //    ANTHROPIC_API_KEY 설정 시 자동 활성화. GPT급 instruction following.
+  const cl = await callClaude(prompt, opts, attempts);
+  if (cl) return { text: cl, source: 'claude-haiku-4-5', durationMs: Date.now() - start };
+
+  // 4. OpenRouter cascade (DeepSeek-V3 → GPT-OSS → Qwen3)
   const qw = await callQwen(prompt, opts, attempts);
   if (qw) return { text: qw, source: 'qwen-2.5-72b', durationMs: Date.now() - start };
 
-  // 4. Gemini 2.0 Flash (최종 폴백)
+  // 5. Gemini 2.0 Flash (최종 폴백)
   const gm = await callGemini(prompt, opts, attempts);
   if (gm) return { text: gm, source: 'gemini-2.0-flash', durationMs: Date.now() - start };
 
