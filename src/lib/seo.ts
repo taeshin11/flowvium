@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 
-const BASE_URL = 'https://flowvium.vercel.app';
+const BASE_URL = 'https://flowvium.net';
 const SITE_NAME = 'Flowvium';
 const DEFAULT_DESC =
   'Track where smart money flows through the supply chain. Free institutional flow tracker, supply chain maps, and leader-to-midcap cascade analysis.';

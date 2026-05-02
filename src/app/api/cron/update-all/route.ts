@@ -26,7 +26,7 @@ export const maxDuration = 60;
 function getBaseUrl(): string {
   return (
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '').replace(/\\n/g, '') ||
-    'https://flowvium.vercel.app'
+    'https://flowvium.net'
   );
 }
 

@@ -13,7 +13,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
   const t = useTranslations('common');
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : 'https://flowvium.vercel.app');
+  const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : 'https://flowvium.net');
   const encodedUrl = encodeURIComponent(shareUrl);
   const encodedTitle = encodeURIComponent(title);
 

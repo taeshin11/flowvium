@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
           <p className="text-cf-text-secondary leading-relaxed">
             Flowvium (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is operated by THE ELIOT K FINANCIAL. This Privacy Policy
             explains how we collect, use, disclose, and safeguard your information when you visit our
-            website at https://flowvium.vercel.app (the &quot;Site&quot;) and use our supply chain
+            website at https://flowvium.net (the &quot;Site&quot;) and use our supply chain
             intelligence platform (the &quot;Service&quot;). Please read this Privacy Policy carefully. By
             accessing or using the Site and Service, you acknowledge that you have read, understood,
             and agree to be bound by the terms of this Privacy Policy. If you do not agree with the
@@ -336,7 +336,7 @@ export default function PrivacyPolicyPage() {
             <div className="bg-cf-background rounded-lg p-4">
               <p className="font-medium text-cf-text-primary">THE ELIOT K FINANCIAL — Flowvium</p>
               <p>Email: <a href="mailto:taeshinkim11@gmail.com" className="text-cf-primary hover:underline">taeshinkim11@gmail.com</a></p>
-              <p>Website: <a href="https://flowvium.vercel.app" className="text-cf-primary hover:underline">https://flowvium.vercel.app</a></p>
+              <p>Website: <a href="https://flowvium.net" className="text-cf-primary hover:underline">https://flowvium.net</a></p>
             </div>
           </div>
         </section>

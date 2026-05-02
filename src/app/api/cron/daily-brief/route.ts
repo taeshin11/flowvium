@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   // Gather all-tab context once and reuse across timeframes.
   // When Redis is unavailable, falls back to HTTP fetches against the public alias.
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '').replace(/\\n/g, '') || 'https://flowvium.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '').replace(/\\n/g, '') || 'https://flowvium.net';
   const ctx = await gatherTabContext(redis, baseUrl);
 
   for (const tf of TIMEFRAMES) {

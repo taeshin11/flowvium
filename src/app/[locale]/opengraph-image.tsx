@@ -78,7 +78,7 @@ export default function OGImage() {
             color: '#475569',
           }}
         >
-          flowvium.vercel.app
+          flowvium.net
         </div>
       </div>
     ),

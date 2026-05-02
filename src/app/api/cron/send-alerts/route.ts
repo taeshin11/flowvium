@@ -71,7 +71,7 @@ async function checkFGAlert(
           { name: 'Level', value: '🔴 Extreme Fear', inline: true },
           { name: 'Trend', value: entry.trend === 'down' ? '↓ Falling' : entry.trend === 'up' ? '↑ Rising' : '→ Neutral', inline: true },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) await markSent(redis, type);
@@ -94,7 +94,7 @@ async function checkFGAlert(
           { name: 'Level', value: '🟠 Extreme Greed', inline: true },
           { name: 'Trend', value: entry.trend === 'up' ? '↑ Rising' : entry.trend === 'down' ? '↓ Falling' : '→ Neutral', inline: true },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) await markSent(redis, type);
@@ -127,7 +127,7 @@ async function checkVIXAlert(
           { name: 'VIX', value: `**${vol.vix.toFixed(2)}**`, inline: true },
           { name: 'Regime', value: vol.regime === 'backwardation' ? 'Backwardation' : vol.regime === 'contango' ? 'Contango' : vol.regime, inline: true },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) await markSent(redis, type);
@@ -147,7 +147,7 @@ async function checkVIXAlert(
           { name: 'VIX', value: `**${vol.vix.toFixed(2)}**`, inline: true },
           { name: 'Regime', value: vol.regime, inline: true },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) await markSent(redis, type);
@@ -192,7 +192,7 @@ async function checkCreditAlert(
           { name: 'IG OAS', value: ig !== null ? `${ig.toFixed(2)}%` : '—', inline: true },
           { name: 'Context', value: 'Rising corporate default risk → leading equities lower', inline: false },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) await markSent(redis, type);
@@ -214,7 +214,7 @@ async function checkCreditAlert(
           { name: 'IG OAS', value: `**${ig.toFixed(2)}%**`, inline: true },
           { name: 'HY OAS', value: hy !== null ? `${hy.toFixed(2)}%` : '—', inline: true },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) await markSent(redis, type);
@@ -255,7 +255,7 @@ async function checkYieldCurveAlert(
           { name: 'Signal', value: '🔴 Inverted', inline: true },
           { name: 'Context', value: 'Historically followed by recession 12-18mo later — do not over-rely on single indicator', inline: false },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) {
@@ -285,7 +285,7 @@ async function checkYieldCurveAlert(
           { name: 'Signal', value: '🟢 Normal', inline: true },
           { name: 'Context', value: 'Inversion resolved → short-term liquidity pressure easing signal', inline: false },
         ],
-        footer: { text: 'FlowVium · flowvium.vercel.app' },
+        footer: { text: 'FlowVium · flowvium.net' },
         timestamp: new Date().toISOString(),
       }]);
       if (sent) {

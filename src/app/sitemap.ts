@@ -3,7 +3,7 @@ import { allCompanies } from '@/data/companies';
 import { sectors } from '@/data/sectors';
 import { blogPosts } from '@/data/blog-posts';
 
-const BASE_URL = 'https://flowvium.vercel.app';
+const BASE_URL = 'https://flowvium.net';
 const locales = ['en', 'ko', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr', 'pt', 'hi', 'ar', 'vi', 'th', 'id', 'ru', 'tr'];
 
 export default function sitemap(): MetadataRoute.Sitemap {

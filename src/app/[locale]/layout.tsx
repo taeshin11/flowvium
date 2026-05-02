@@ -26,7 +26,7 @@ export async function generateMetadata({
   });
 }
 
-const BASE_URL = 'https://flowvium.vercel.app';
+const BASE_URL = 'https://flowvium.net';
 
 const jsonLd = {
   '@context': 'https://schema.org',

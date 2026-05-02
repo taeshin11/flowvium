@@ -39,13 +39,13 @@ export default function Breadcrumbs({ overrides = {} }: BreadcrumbsProps) {
         '@type': 'ListItem',
         position: 1,
         name: t('home'),
-        item: 'https://flowvium.vercel.app',
+        item: 'https://flowvium.net',
       },
       ...crumbs.map((crumb, i) => ({
         '@type': 'ListItem',
         position: i + 2,
         name: crumb.label,
-        item: `https://flowvium.vercel.app${crumb.href}`,
+        item: `https://flowvium.net${crumb.href}`,
       })),
     ],
   };

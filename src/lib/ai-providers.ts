@@ -290,7 +290,7 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://flowvium.vercel.app',
+          'HTTP-Referer': 'https://flowvium.net',
           'X-Title': 'FlowVium',
         },
         body: JSON.stringify({ model, messages, max_tokens: opts.maxTokens ?? 1600, temperature: opts.temperature ?? 0.7 }),

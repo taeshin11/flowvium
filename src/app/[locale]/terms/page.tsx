@@ -38,7 +38,7 @@ export default function TermsOfServicePage() {
         <section>
           <p className="text-cf-text-secondary leading-relaxed">
             Welcome to Flowvium. These Terms of Service (&quot;Terms&quot;) govern your access to and use of
-            the Flowvium website located at https://flowvium.vercel.app (the &quot;Site&quot;) and the
+            the Flowvium website located at https://flowvium.net (the &quot;Site&quot;) and the
             supply chain intelligence services provided through the Site (the &quot;Service&quot;). Flowvium is
             operated by THE ELIOT K FINANCIAL (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). By accessing or using the Site and Service,
             you agree to be bound by these Terms. If you do not agree to these Terms, you must not
@@ -359,7 +359,7 @@ export default function TermsOfServicePage() {
             <div className="bg-cf-background rounded-lg p-4">
               <p className="font-medium text-cf-text-primary">THE ELIOT K FINANCIAL — Flowvium</p>
               <p>Email: <a href="mailto:taeshinkim11@gmail.com" className="text-cf-primary hover:underline">taeshinkim11@gmail.com</a></p>
-              <p>Website: <a href="https://flowvium.vercel.app" className="text-cf-primary hover:underline">https://flowvium.vercel.app</a></p>
+              <p>Website: <a href="https://flowvium.net" className="text-cf-primary hover:underline">https://flowvium.net</a></p>
             </div>
           </div>
         </section>

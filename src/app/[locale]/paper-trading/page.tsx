@@ -1,7 +1,7 @@
 import type { Account, Trade } from '@/lib/paper-trading';
 import { INITIAL_CASH } from '@/lib/paper-trading';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://flowvium.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://flowvium.net';
 
 async function fetchAccount(): Promise<Account | null> {
   try {

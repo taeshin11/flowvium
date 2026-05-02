@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   }
 
   const start = Date.now();
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '').replace(/\\n/g, '') || 'https://flowvium.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '').replace(/\\n/g, '') || 'https://flowvium.net';
 
   try {
     const cronSecret = process.env.CRON_SECRET ?? '';
