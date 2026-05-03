@@ -1323,6 +1323,48 @@ async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
   ]);
 }
 
+// ── OSINT 엔드포인트 검증 ──────────────────────────────────────────────────────
+async function verifyOsint(base: string): Promise<MetricItem[]> {
+  return Promise.all([
+    // Sanctions: OFAC SDN CSV 접근 + 파싱 확인 (VTB는 제재 목록에 확실히 존재)
+    safeJson(base, '/api/osint/sanctions?q=VTB').then((r): MetricItem => {
+      if (!r.ok) return { key: 'osint.sanctions', label: 'OSINT OFAC 제재 조회', group: 'osint', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { results?: unknown[]; source?: string; total?: number };
+      const structOk = Array.isArray(d.results) && d.source === 'OFAC SDN';
+      if (!structOk) return { key: 'osint.sanctions', label: 'OSINT OFAC 제재 조회', group: 'osint', status: 'error', lastError: 'unexpected response structure' };
+      return {
+        key: 'osint.sanctions', label: 'OSINT OFAC 제재 조회', group: 'osint',
+        status: d.results!.length > 0 ? 'ok' : 'degraded',
+        value: `${d.total ?? d.results!.length}건`,
+      };
+    }),
+    // Corporate: 구조 확인 (gazprom → static fallback, OpenCorporates 레이트리밋 없이 구조 테스트)
+    safeJson(base, '/api/osint/corporate?q=gazprom').then((r): MetricItem => {
+      if (!r.ok) return { key: 'osint.corporate', label: 'OSINT 기업 조회', group: 'osint', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { companies?: unknown[]; source?: string };
+      const structOk = Array.isArray(d.companies) && !!d.source;
+      if (!structOk) return { key: 'osint.corporate', label: 'OSINT 기업 조회', group: 'osint', status: 'error', lastError: 'unexpected response structure' };
+      return {
+        key: 'osint.corporate', label: 'OSINT 기업 조회', group: 'osint',
+        status: d.companies!.length > 0 ? 'ok' : 'degraded',
+        value: `${d.companies!.length}건 (${d.source})`,
+      };
+    }),
+    // Social: Nitter RSS + Bloomberg/WSJ 피드 (캐시 있으면 즉시, cold start는 20s 허용)
+    safeJson(base, '/api/osint/social', 20000).then((r): MetricItem => {
+      if (!r.ok) return { key: 'osint.social', label: 'OSINT 주요인물 피드', group: 'osint', status: 'error', lastError: r.error ?? `HTTP ${r.status}` };
+      const d = r.data as { entries?: unknown[] };
+      const count = Array.isArray(d.entries) ? d.entries.length : -1;
+      if (count < 0) return { key: 'osint.social', label: 'OSINT 주요인물 피드', group: 'osint', status: 'error', lastError: 'entries field missing' };
+      return {
+        key: 'osint.social', label: 'OSINT 주요인물 피드', group: 'osint',
+        status: count > 0 ? 'ok' : 'degraded',
+        value: `${count}건`,
+      };
+    }),
+  ]);
+}
+
 // ── 메인 핸들러 ──────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -1332,7 +1374,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
-  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, strategy, missing] = await Promise.all([
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, strategy, missing, osint] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -1355,9 +1397,10 @@ export async function GET(req: Request) {
     verifyCommodityCurve(base).catch((e): MetricItem[] => [{ key: 'comm.ERR', label: 'Commodity verify throw', group: 'commodity', status: 'error', lastError: String(e) }]),
     verifyInvestmentStrategy(base).catch((e): MetricItem[] => [{ key: 'strategy.ERR', label: 'Strategy verify throw', group: 'strategy', status: 'error', lastError: String(e) }]),
     verifyMissingEndpoints(base).catch((e): MetricItem[] => [{ key: 'missing.ERR', label: 'Missing endpoints verify throw', group: 'brief', status: 'error', lastError: String(e) }]),
+    verifyOsint(base).catch((e): MetricItem[] => [{ key: 'osint.ERR', label: 'OSINT verify throw', group: 'osint', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...strategy, ...missing];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...strategy, ...missing, ...osint];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,
