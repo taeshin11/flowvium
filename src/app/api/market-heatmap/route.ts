@@ -97,6 +97,8 @@ function toYFSuffix(ticker: string, country: string, location?: string): string 
     const clean = ticker.replace(/\.$/, '').replace(/\s+/g, '-');
     return `${clean}${suf}`;
   }
+  // CN tickers map to Hong Kong-listed shares (.HK) — not mainland A-shares.
+  // UI should render heatmap.cn_exchange_note to clarify this to users.
   if (country === 'CN') return /^\d+$/.test(ticker) ? `${ticker}.HK` : ticker;
   const suf = YF_SUFFIX[country];
   return suf ? `${ticker}${suf}` : ticker;
@@ -110,7 +112,7 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get('refresh') === '1';
   const cfg = ISHARES_ETFS[country];
   const hour = new Date().toISOString().slice(0, 13);
-  const cacheKey = `flowvium:heatmap:v17:${country}:${hour}`; // v17: CN Stooq.hk + IN NSE India (Yahoo Vercel-blocked)
+  const cacheKey = `flowvium:heatmap:v18:${country}:${hour}`; // v18: KR Stooq.ks + IN Stooq.ns (Naver/NSE UA-spoofing removed)
   const redis = createRedis();
 
   if (!force) {
@@ -221,8 +223,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Pass 2: Yahoo fallback for tickers still missing (TW/IN/CN + EU remainder; KR after Naver)
-    const missingHoldings = topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase()));
+    // Pass 2: Yahoo fallback for tickers still missing.
+    // KR skipped — Naver handles it and Yahoo is blocked from Vercel.
+    // IN, CN, EU, JP: attempt Yahoo (IN especially needs this as NSE may be IP-blocked).
+    const missingHoldings = country === 'KR'
+      ? []
+      : topHoldings.filter(h => !nonUSQuoteMap.has(h.ticker.toUpperCase()));
     if (missingHoldings.length > 0) {
       const yfSymMap = new Map(
         missingHoldings.map(h => [toYFSuffix(h.ticker, country, h.location), h.ticker.toUpperCase()])

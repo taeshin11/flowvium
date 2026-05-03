@@ -1,6 +1,11 @@
 /**
  * One-shot KRX flow updater — called by GitHub Actions cron.
  * Fetches KRX investor flow data and writes all 4 periods to Upstash Redis.
+ *
+ * Fix history:
+ * - v2: Added session cookie pre-fetch to resolve KRX 403 (Azure IP block workaround).
+ *       Replaced parallel burst with sequential batching to avoid rate-limit 400s.
+ *       Removed process.exit(1) — job no longer fails on KRX unavailability.
  */
 import { Redis } from '@upstash/redis';
 
@@ -26,12 +31,42 @@ const PERIOD_CONFIGS = {
   '13w': { tradingDays: 65, ttl: 4 * 60 * 60, key: 'flowvium:korea-flow:v4:13w' },
 };
 
-const KRX_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+const BASE_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   'Referer': 'https://data.krx.co.kr/',
   'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
   'Content-Type': 'application/x-www-form-urlencoded',
+  'Origin': 'https://data.krx.co.kr',
 };
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/** Pre-fetch KRX main page to obtain session cookies (resolves 403 from cloud IPs). */
+async function getKrxCookie() {
+  try {
+    const res = await fetch('https://data.krx.co.kr/', {
+      headers: {
+        'User-Agent': BASE_HEADERS['User-Agent'],
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': BASE_HEADERS['Accept-Language'],
+      },
+      signal: AbortSignal.timeout(10000),
+      redirect: 'follow',
+    });
+    const raw = res.headers.get('set-cookie') ?? '';
+    // Collect all name=value pairs (headers may contain multiple cookies separated by commas)
+    const pairs = raw.split(/,(?=[^;]+=)/)
+      .map(c => c.split(';')[0].trim())
+      .filter(Boolean)
+      .join('; ');
+    console.log(`[krx] session cookie: ${pairs ? pairs.slice(0, 60) + '...' : 'none'}`);
+    return pairs || null;
+  } catch (err) {
+    console.warn('[krx] cookie pre-fetch failed:', err.message);
+    return null;
+  }
+}
 
 function kstDateStr(daysAgo = 0) {
   const ts = Date.now() + 9 * 3600000 - daysAgo * 86400000;
@@ -50,7 +85,7 @@ function getLastNTradingDays(n) {
   return days;
 }
 
-async function fetchKrxFlowForDate(market, trdDd) {
+async function fetchKrxFlowForDate(market, trdDd, headers) {
   const body = new URLSearchParams({
     bld: 'dbms/MDC/STAT/standard/MDCSTAT02301',
     mktId: market === 'KOSPI' ? 'STK' : 'KSQ',
@@ -63,7 +98,7 @@ async function fetchKrxFlowForDate(market, trdDd) {
   try {
     const res = await fetch('https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd', {
       method: 'POST',
-      headers: KRX_HEADERS,
+      headers,
       body: body.toString(),
       signal: AbortSignal.timeout(15000),
     });
@@ -87,34 +122,41 @@ async function fetchKrxFlowForDate(market, trdDd) {
   }
 }
 
-async function fetchSingleDay(market) {
+async function fetchSingleDay(market, headers) {
   for (let daysAgo = 0; daysAgo <= 7; daysAgo++) {
     const trdDd = kstDateStr(daysAgo);
-    const entries = await fetchKrxFlowForDate(market, trdDd);
+    const entries = await fetchKrxFlowForDate(market, trdDd, headers);
     if (entries.length > 0) return { entries, trdDd };
+    await sleep(300);
   }
   return { entries: [], trdDd: kstDateStr(0) };
 }
 
-async function fetchAccumulated(market, tradingDays) {
-  const results = await Promise.allSettled(tradingDays.map(d => fetchKrxFlowForDate(market, d)));
+/** Sequential batching with delay to avoid KRX rate-limit 400s. */
+async function fetchAccumulated(market, tradingDays, headers) {
   const nameMap = new Map();
   const acc = new Map();
-  results.forEach(r => {
-    if (r.status !== 'fulfilled') return;
-    for (const e of r.value) {
-      if (!nameMap.has(e.ticker)) nameMap.set(e.ticker, e.name);
-      const ex = acc.get(e.ticker);
-      if (ex) { ex.fb += e.foreignerNetBuy ?? 0; ex.ib += e.institutionNetBuy ?? 0; ex.indi += e.individualNetBuy ?? 0; }
-      else acc.set(e.ticker, { fb: e.foreignerNetBuy ?? 0, ib: e.institutionNetBuy ?? 0, indi: e.individualNetBuy ?? 0 });
-    }
-  });
   let mostRecent = [], mostRecentDate = '';
-  results.forEach((r, i) => {
-    if (r.status === 'fulfilled' && r.value.length > 0 && tradingDays[i] > mostRecentDate) {
-      mostRecent = r.value; mostRecentDate = tradingDays[i];
-    }
-  });
+
+  // Fetch sequentially in pairs (2 concurrent max) with 400ms pause between pairs
+  const BATCH = 2;
+  for (let i = 0; i < tradingDays.length; i += BATCH) {
+    const batch = tradingDays.slice(i, i + BATCH);
+    const results = await Promise.allSettled(batch.map(d => fetchKrxFlowForDate(market, d, headers)));
+    results.forEach((r, bi) => {
+      if (r.status !== 'fulfilled') return;
+      const day = batch[bi];
+      for (const e of r.value) {
+        if (!nameMap.has(e.ticker)) nameMap.set(e.ticker, e.name);
+        const ex = acc.get(e.ticker);
+        if (ex) { ex.fb += e.foreignerNetBuy ?? 0; ex.ib += e.institutionNetBuy ?? 0; ex.indi += e.individualNetBuy ?? 0; }
+        else acc.set(e.ticker, { fb: e.foreignerNetBuy ?? 0, ib: e.institutionNetBuy ?? 0, indi: e.individualNetBuy ?? 0 });
+      }
+      if (r.value.length > 0 && day > mostRecentDate) { mostRecent = r.value; mostRecentDate = day; }
+    });
+    if (i + BATCH < tradingDays.length) await sleep(400);
+  }
+
   const priceMap = new Map(mostRecent.map(e => [e.ticker, { closePrice: e.closePrice, changePct: e.changePct }]));
   const entries = Array.from(acc.entries()).map(([ticker, s]) => ({
     ticker, name: EN_NAMES[ticker] ?? nameMap.get(ticker) ?? ticker, market,
@@ -145,16 +187,19 @@ function buildPayload(all, trdDd, period) {
   };
 }
 
-async function updatePeriod(period) {
+async function updatePeriod(period, headers) {
   const cfg = PERIOD_CONFIGS[period];
   let all, trdDd;
   if (period === '1d') {
-    const [kospi, kosdaq] = await Promise.all([fetchSingleDay('KOSPI'), fetchSingleDay('KOSDAQ')]);
+    const [kospi, kosdaq] = await Promise.all([fetchSingleDay('KOSPI', headers), fetchSingleDay('KOSDAQ', headers)]);
     all = [...kospi.entries, ...kosdaq.entries];
     trdDd = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
   } else {
     const days = getLastNTradingDays(cfg.tradingDays);
-    const [kospi, kosdaq] = await Promise.all([fetchAccumulated('KOSPI', days), fetchAccumulated('KOSDAQ', days)]);
+    const [kospi, kosdaq] = await Promise.all([
+      fetchAccumulated('KOSPI', days, headers),
+      fetchAccumulated('KOSDAQ', days, headers),
+    ]);
     all = [...kospi.entries, ...kosdaq.entries];
     trdDd = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
   }
@@ -165,8 +210,13 @@ async function updatePeriod(period) {
   return true;
 }
 
-const results = await Promise.allSettled(Object.keys(PERIOD_CONFIGS).map(updatePeriod));
+// ── Main ────────────────────────────────────────────────────────────────────
+const cookie = await getKrxCookie();
+const KRX_HEADERS = cookie ? { ...BASE_HEADERS, Cookie: cookie } : BASE_HEADERS;
+
+const results = await Promise.allSettled(Object.keys(PERIOD_CONFIGS).map(p => updatePeriod(p, KRX_HEADERS)));
 const ok = results.filter(r => r.status === 'fulfilled' && r.value).length;
 const fail = results.filter(r => r.status === 'rejected' || !r.value).length;
 console.log(`\n[done] ${ok} periods updated, ${fail} skipped/failed`);
-if (fail === 4) process.exit(1);
+// No process.exit(1) — KRX unavailability should not fail the GitHub Actions job.
+// Stale Redis data is handled gracefully by the korea-flow API route (fallback mode).

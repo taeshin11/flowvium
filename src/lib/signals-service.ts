@@ -1,4 +1,4 @@
-import { institutionalSignals, type InstitutionalSignal } from '@/data/institutional-signals';
+import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { logger } from '@/lib/logger';
 import { fetchNewsData, computeNewsGapScore } from '@/lib/alpha-vantage';
 import {
@@ -141,9 +141,11 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
 
   // === 1. EDGAR 13F Redis 데이터 우선 사용 ===
   const liveSignals = await get13FSignals();
-  const baseSignals = liveSignals ?? institutionalSignals;
+  // 하드코딩 institutionalSignals 폴백 제거 — stale 데이터가 실데이터처럼 보이는 문제 방지.
+  // 크론이 한 번도 안 돌았거나 Redis 비어있으면 빈 배열 반환 (투명한 실패).
+  const baseSignals = liveSignals ?? [];
 
-  // === No API key → EDGAR 또는 static fallback ===
+  // === No API key → EDGAR 또는 empty ===
   if (!apiKey) {
     return {
       signals: baseSignals,

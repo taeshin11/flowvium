@@ -1,6 +1,6 @@
 import { logger, loggedRedisSet} from '@/lib/logger';
 import { NextResponse } from 'next/server';
-import { newsGapData } from '@/data/news-gap';
+import { newsGapData, type OwnershipRecord } from '@/data/news-gap';
 import { createRedis } from '@/lib/redis';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -281,9 +281,21 @@ export async function GET(request: Request) {
     } catch { /* non-fatal */ }
   }
 
-  // Static 13F data from our data files
+  // company name lookup (static scaffold — used for companyName fallback only)
   const staticEntry = newsGapData.find(n => n.ticker === ticker);
-  const ownership13F = staticEntry?.ownershipData ?? [];
+
+  // 13F ownership: Redis EDGAR 파싱 데이터 우선, 없으면 static fallback
+  let ownership13F: OwnershipRecord[] = staticEntry?.ownershipData ?? [];
+  let ownership13FSource = 'static';
+  if (redis) {
+    try {
+      const liveOwnership = await redis.get<Record<string, OwnershipRecord[]>>('flowvium:13f-ownership:v1');
+      if (liveOwnership?.[ticker]?.length) {
+        ownership13F = liveOwnership[ticker];
+        ownership13FSource = 'live';
+      }
+    } catch { /* non-fatal */ }
+  }
 
   // Fetch data in parallel
   const [volResult, insidersResult, quoteResult] = await Promise.allSettled([
@@ -347,6 +359,7 @@ export async function GET(request: Request) {
     shortPct: quoteStats.shortPct,
     shortRatio: quoteStats.shortRatio,
     ownership13F,
+    ownership13FSource,
     liveInstitutions: [],
     insiderTransactions,
     supplyScore,

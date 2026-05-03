@@ -2,7 +2,7 @@ name: KRX Flow Update
 
 on:
   schedule:
-    - cron: '*/15 * * * *'   # every 15 min (GitHub runs on Azure — not blocked by KRX)
+    - cron: '0,30 0-6 * * 1-5'  # every 30 min during KRX hours (00:00–06:30 UTC = 09:00–15:30 KST), weekdays only
   workflow_dispatch:           # manual trigger
 
 jobs:

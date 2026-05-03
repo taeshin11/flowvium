@@ -255,7 +255,7 @@ function compositeWithFactors(prices: number[], ticker: string, vixValue?: numbe
 }
 
 import { FG } from '@/lib/thresholds';
-import { moneyFlowSectors } from '@/data/fear-greed';
+import type { MoneyFlowSector } from '@/data/fear-greed';
 
 function getLevel(score: number): string {
   if (score <= FG.EXTREME_FEAR) return 'extreme-fear';
@@ -533,8 +533,8 @@ async function buildEntry(
 
 // ── sectorFlows 동적 계산 ─────────────────────────────────────────────────────
 // capital-flows Redis 캐시에서 sectorPerformance를 읽어 signal 계산.
-// Redis miss시 moneyFlowSectors static fallback 사용.
-async function computeSectorFlows(redis: Redis | null): Promise<typeof moneyFlowSectors> {
+// Redis miss 또는 capital-flows 크론 미실행 시 빈 배열 반환.
+async function computeSectorFlows(redis: Redis | null): Promise<MoneyFlowSector[]> {
   try {
     if (redis) {
       const cached = await redis.get<{ sectorPerformance?: Array<{ id: string; label: string; flag: string; ticker: string; ret1w: number | null; ret4w: number | null }> }>(
@@ -562,9 +562,9 @@ async function computeSectorFlows(redis: Redis | null): Promise<typeof moneyFlow
       }
     }
   } catch {
-    // Redis miss or parse error — fall through to static fallback
+    // Redis miss or parse error — return empty (capital-flows cron not yet run)
   }
-  return moneyFlowSectors;
+  return [];
 }
 
 

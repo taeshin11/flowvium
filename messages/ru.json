@@ -1479,7 +1479,8 @@
     "cEU": "Europe",
     "cIN": "India",
     "cTW": "Taiwan",
-    "stockUnit": ""
+    "stockUnit": "",
+    "cn_exchange_note": "Цены тепловой карты Китая основаны на акциях, котирующихся в Гонконге."
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

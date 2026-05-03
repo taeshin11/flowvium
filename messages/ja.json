@@ -1479,7 +1479,8 @@
     "cEU": "欧州",
     "cIN": "インド",
     "cTW": "台湾",
-    "stockUnit": "銘柄"
+    "stockUnit": "銘柄",
+    "cn_exchange_note": "中国ヒートマップの株価は香港上場株式に基づいています。"
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

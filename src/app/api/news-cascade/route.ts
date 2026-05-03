@@ -40,6 +40,7 @@ export interface NewsWithCascade extends RawNewsItem {
   sentiment: 'bullish' | 'bearish' | 'neutral';
   importance: 'high' | 'medium' | 'low';
   analyzedAt: string;
+  analysisSource: 'ai' | 'keyword-rule' | 'cached';
 }
 
 // Cache key: per-article (by URL hash) + list key
@@ -351,6 +352,7 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
       importance: parsed.importance ?? 'medium',
       cascades,
       analyzedAt: new Date().toISOString(),
+      analysisSource: 'ai' as const,
     };
   } catch {
     return {
@@ -361,6 +363,7 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
       importance: 'medium',
       cascades: [],
       analyzedAt: new Date().toISOString(),
+      analysisSource: 'ai' as const,
     };
   }
 }
@@ -467,7 +470,7 @@ export async function GET(request: Request) {
         try {
           const cached = await redis.get<NewsWithCascade>(articleKey(id));
           // Only use cached result if it has real AI analysis (cascades present)
-          if (cached && cached.cascades.length > 0) return cached;
+          if (cached && cached.cascades.length > 0) return { ...cached, analysisSource: 'cached' };
         } catch { /* ignore */ }
       }
       const raw = await callCascadeAI(buildCascadePrompt(item.title));
@@ -478,7 +481,7 @@ export async function GET(request: Request) {
       if (result.cascades.length === 0) {
         const kb = keywordFallbackCascade(item.title);
         if (kb) {
-          result = { ...result, ...kb, analyzedAt: new Date().toISOString() };
+          result = { ...result, ...kb, analyzedAt: new Date().toISOString(), analysisSource: 'keyword-rule' as const };
           logger.info('api.news-cascade', 'keyword_fallback_used', { title: item.title.slice(0, 60) });
         }
       }

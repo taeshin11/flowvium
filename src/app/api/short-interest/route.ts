@@ -14,7 +14,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
-import { institutionalSignals } from '@/data/institutional-signals';
+import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
 
@@ -56,14 +56,19 @@ async function getYahooCrumb(redis: Redis | null): Promise<{ crumb: string; cook
       .filter(c => c.startsWith('A1=') || c.startsWith('A3=') || c.startsWith('A1S='))
       .join('; ');
     if (!cookie) return null;
-    const crumbRes = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
-      headers: { 'User-Agent': YF_UA, 'Cookie': cookie },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!crumbRes.ok) return null;
-    const crumb = (await crumbRes.text()).trim();
-    if (!crumb || crumb.startsWith('{')) return null;
+    // query2 먼저, 실패 시 query1 재시도 (두 호스트 중 하나는 항상 응답)
+    let crumb = '';
+    for (const host of ['query2', 'query1']) {
+      const crumbRes = await fetch(`https://${host}.finance.yahoo.com/v1/test/getcrumb`, {
+        headers: { 'User-Agent': YF_UA, 'Cookie': cookie },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!crumbRes.ok) continue;
+      const text = (await crumbRes.text()).trim();
+      if (text && !text.startsWith('{')) { crumb = text; break; }
+    }
+    if (!crumb) return null;
     const result = { crumb, cookie };
     await loggedRedisSet(redis, 'api.short-interest', CRUMB_KEY, result, { ex: CRUMB_TTL });
     return result;
@@ -272,14 +277,18 @@ export async function GET(req: Request) {
     try {
       const cached = await redis.get(CACHE_KEY);
       if (cached) {
-        logger.info('api.short-interest', 'cache_hit', { cachedEntries: Array.isArray(cached) ? cached.length : -1 });
-        return NextResponse.json({ entries: cached, cached: true }, { headers: CDN_HEADERS });
+        const cachedEntries = cached as Array<{ instAction?: string | null }>;
+        const cachedInstSource = Array.isArray(cachedEntries) && cachedEntries.some(e => e.instAction != null) ? 'live' : 'empty';
+        logger.info('api.short-interest', 'cache_hit', { cachedEntries: Array.isArray(cachedEntries) ? cachedEntries.length : -1 });
+        return NextResponse.json({ entries: cached, instSource: cachedInstSource, cached: true }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.short-interest', 'cache_read_error', { error: err }); }
   } else if (!redis && !forceRefresh) {
     const mem = MEMORY_CACHE.get(MEM_KEY);
     if (mem && Array.isArray(mem) && mem.length > 0) {
-      return NextResponse.json({ entries: mem, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
+      const memEntries = mem as Array<{ instAction?: string | null }>;
+      const memInstSource = memEntries.some(e => e.instAction != null) ? 'live' : 'empty';
+      return NextResponse.json({ entries: mem, instSource: memInstSource, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
     }
   }
 
@@ -293,7 +302,7 @@ export async function GET(req: Request) {
   const [finraMap, peMap, redisSignals, shortDataResult] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
     fetchFinnhubPE(tickers),
-    redis ? redis.get<typeof institutionalSignals>('flowvium:13f-signals:v1') : Promise.resolve(null),
+    redis ? redis.get<InstitutionalSignal[]>('flowvium:13f-signals:v1') : Promise.resolve(null),
     getYahooCrumb(redis).then(c =>
       c ? fetchYahooShortData(tickers, c.crumb, c.cookie)
         : { floatMap: new Map<string, number>(), ratioMap: new Map<string, number>() }
@@ -304,9 +313,10 @@ export async function GET(req: Request) {
   const liveRaw = redisSignals.status === 'fulfilled' ? redisSignals.value : null;
   const shortFloatMap = shortDataResult.status === 'fulfilled' ? shortDataResult.value.floatMap : new Map<string, number>();
   const shortRatioMap = shortDataResult.status === 'fulfilled' ? shortDataResult.value.ratioMap : new Map<string, number>();
-  const liveSignals = (Array.isArray(liveRaw) && liveRaw.length > 0)
-    ? liveRaw as typeof institutionalSignals
-    : institutionalSignals;
+  const liveSignals: InstitutionalSignal[] = (Array.isArray(liveRaw) && liveRaw.length > 0)
+    ? liveRaw as InstitutionalSignal[]
+    : [];
+  const instSource: 'live' | 'empty' = liveSignals.length > 0 ? 'live' : 'empty';
 
   // Latest action per ticker (most recent filing date) — O(n) single pass
   const instActionMap = new Map<string, string>();
@@ -355,9 +365,10 @@ export async function GET(req: Request) {
   logger.info('api.short-interest', 'served', {
     tickers: tickers.length,
     entries: entries.length,
+    instSource,
     topScore: entries[0]?.squeezeScore ?? 0,
     durationMs: Date.now() - reqStart,
   });
 
-  return NextResponse.json({ entries, cached: false }, { headers: CDN_HEADERS });
+  return NextResponse.json({ entries, instSource, cached: false }, { headers: CDN_HEADERS });
 }

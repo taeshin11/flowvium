@@ -1479,7 +1479,8 @@
     "cEU": "歐洲",
     "cIN": "印度",
     "cTW": "台灣",
-    "stockUnit": "支"
+    "stockUnit": "支",
+    "cn_exchange_note": "中國熱圖價格基於香港上市股票。"
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

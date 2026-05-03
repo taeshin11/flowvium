@@ -15,7 +15,6 @@ import {
 } from '@/lib/edgar-13f';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
 import type { OwnershipRecord } from '@/data/news-gap';
-import { newsGapData } from '@/data/news-gap';
 
 export const dynamic = 'force-dynamic';
 

@@ -1479,7 +1479,8 @@
     "cEU": "Europe",
     "cIN": "India",
     "cTW": "Taiwan",
-    "stockUnit": ""
+    "stockUnit": "",
+    "cn_exchange_note": "Giá heatmap Trung Quốc dựa trên cổ phiếu niêm yết tại Hồng Kông."
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

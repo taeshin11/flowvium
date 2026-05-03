@@ -1479,7 +1479,8 @@
     "cEU": "Europe",
     "cIN": "India",
     "cTW": "Taiwan",
-    "stockUnit": ""
+    "stockUnit": "",
+    "cn_exchange_note": "Les prix du heatmap Chine sont basés sur les actions cotées à Hong Kong."
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

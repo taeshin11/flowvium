@@ -16,38 +16,47 @@ export interface NSEIndiaQuote {
   changePct: number | null;
 }
 
+const NSE_FETCH_OPTS = {
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+    'Accept': 'application/json',
+    'Referer': 'https://www.nseindia.com/',
+    'Origin': 'https://www.nseindia.com',
+  },
+  cache: 'no-store' as const,
+};
+
+async function fetchNSEOnce(): Promise<Array<{ symbol: string; lastPrice?: number; pChange?: number }>> {
+  const res = await fetch(
+    'https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500',
+    { ...NSE_FETCH_OPTS, signal: AbortSignal.timeout(10000) },
+  );
+  if (!res.ok) throw new Error(`NSE HTTP ${res.status}`);
+  const json = await res.json() as { data?: Array<{ symbol: string; lastPrice?: number; pChange?: number }> };
+  return json.data ?? [];
+}
+
 export async function fetchNSEIndiaQuotes(tickers: string[]): Promise<NSEIndiaQuote[]> {
   if (!tickers.length) return [];
   const tickerSet = new Set(tickers.map(t => t.toUpperCase()));
 
-  try {
-    const res = await fetch(
-      'https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500',
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
-          'Accept': 'application/json',
-          'Referer': 'https://www.nseindia.com/',
-          'Origin': 'https://www.nseindia.com',
-        },
-        signal: AbortSignal.timeout(10000),
-        cache: 'no-store',
-      }
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as {
-      data?: Array<{ symbol: string; lastPrice?: number; pChange?: number }>;
-    };
-    const out: NSEIndiaQuote[] = [];
-    for (const item of data.data ?? []) {
-      const sym = item.symbol?.toUpperCase();
-      if (!sym || !tickerSet.has(sym)) continue;
-      const close = typeof item.lastPrice === 'number' && item.lastPrice > 0 ? item.lastPrice : null;
-      const changePct = typeof item.pChange === 'number' ? parseFloat(item.pChange.toFixed(2)) : null;
-      out.push({ symbol: sym, close, changePct });
+  let rows: Array<{ symbol: string; lastPrice?: number; pChange?: number }> = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      rows = await fetchNSEOnce();
+      break;
+    } catch {
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
     }
-    return out;
-  } catch {
-    return [];
   }
+
+  const out: NSEIndiaQuote[] = [];
+  for (const item of rows) {
+    const sym = item.symbol?.toUpperCase();
+    if (!sym || !tickerSet.has(sym)) continue;
+    const close = typeof item.lastPrice === 'number' && item.lastPrice > 0 ? item.lastPrice : null;
+    const changePct = typeof item.pChange === 'number' ? parseFloat(item.pChange.toFixed(2)) : null;
+    out.push({ symbol: sym, close, changePct });
+  }
+  return out;
 }

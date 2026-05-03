@@ -1479,7 +1479,8 @@
     "cEU": "유럽",
     "cIN": "인도",
     "cTW": "대만",
-    "stockUnit": "종목"
+    "stockUnit": "종목",
+    "cn_exchange_note": "중국 히트맵 시세는 홍콩 상장 주식 기준입니다."
   },
   "screener": {
     "tf1w": "1주 (내부자 Form 4)",

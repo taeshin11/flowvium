@@ -1479,7 +1479,8 @@
     "cEU": "Europe",
     "cIN": "India",
     "cTW": "Taiwan",
-    "stockUnit": ""
+    "stockUnit": "",
+    "cn_exchange_note": "Çin ısı haritası fiyatları Hong Kong'da işlem gören hisselere dayanmaktadır."
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",

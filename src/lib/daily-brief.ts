@@ -1,7 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { logger } from './logger';
 import { callAI as callAIProvider } from './ai-providers';
-import { institutionalSignals, type InstitutionalSignal } from '@/data/institutional-signals';
+import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { allCompanies } from '@/data/companies';
 import { companySupplyChainUpdates } from '@/data/company-supply-chain-updates';
@@ -108,7 +108,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   const ctx: TabContext = {
     heatmap: null, short: null, capital: null, fearGreed: null, fearGreedAssets: [],
     fedWatch: null, macro: null, credit: null, cascade: [],
-    signals: institutionalSignals,
+    signals: [],
     insider: [], ownership: [], options: [], korea: null,
     nport: null, blocks: [], econCal: null, volatility: null, cot: null, commodity: null,
   };
@@ -179,7 +179,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   const ctx: TabContext = {
     heatmap: null, short: null, capital: null, fearGreed: null, fearGreedAssets: [],
     fedWatch: null, macro: null, credit: null, cascade: [],
-    signals: institutionalSignals,
+    signals: [],
     insider: [], ownership: [], options: [], korea: null,
     nport: null, blocks: [], econCal: null, volatility: null, cot: null, commodity: null,
   };
@@ -578,7 +578,7 @@ function summariseSupply(): string {
 // ── Build rich prompt covering every tab ─────────────────────────────────────
 export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
   const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
-  const signals = ctx?.signals ?? institutionalSignals;
+  const signals = ctx?.signals ?? [];
   const { buys, cuts } = summariseSignals(signals);
   const { stakes, gaps } = summariseNewsGap();
   const supply = summariseSupply();
@@ -695,7 +695,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
   const retKey = tf === '1w' ? 'ret1w' : tf === '4w' ? 'ret4w' : 'ret13w';
   const capital = ctx?.capital as Record<string, unknown> | null | undefined;
   const macro = ctx?.macro as Record<string, unknown> | null | undefined;
-  const signals = ctx?.signals ?? institutionalSignals;
+  const signals = ctx?.signals ?? [];
 
   // ── Market: heatmap + assets + fg + fed ──────────────────────────────────
   const marketBullets: string[] = [];
@@ -848,13 +848,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     }
   } catch { /* ignore */ }
   if (signalBullets.length === 0) {
-    // Fallback to 13F stake changes when nothing real-time is available
-    const stakeChanges = newsGapData
-      .flatMap(n => n.ownershipData.filter(o => o.action === 'new' || o.action === 'increased').map(o => ({ ticker: n.ticker, ...o })))
-      .sort((a, b) => b.valueM - a.valueM)
-      .slice(0, 2)
-      .map(s => `${s.ticker}: ${s.institution} (${s.quarter})`);
-    signalBullets.push(...(stakeChanges.length ? stakeChanges : ['Live signals loading']));
+    signalBullets.push('Live signals loading');
   }
 
   // ── Risk ─────────────────────────────────────────────────────────────────

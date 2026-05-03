@@ -29,6 +29,7 @@ export interface MarketCapPayload {
   caps: Record<string, number>;          // ticker → raw USD cap
   updatedAt: string;
   count: number;
+  source: 'static';  // bands는 allCompanies 정적 enum (Yahoo Vercel 차단으로 live 불가)
   cached?: boolean;
 }
 
@@ -84,6 +85,7 @@ export async function GET(req: Request) {
     caps: {},
     updatedAt: new Date().toISOString(),
     count: seen.size,
+    source: 'static',
   };
 
   await loggedRedisSet(redis, 'api.market-caps', CACHE_KEY, payload, { ex: CACHE_TTL });

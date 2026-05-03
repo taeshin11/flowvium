@@ -46,6 +46,55 @@
 
 ---
 
+## 🚨 정적 데이터 폴백 금지 규칙 (필수 — 2026-05-03 institutionalSignals 사건 이후 신설)
+
+**발생 경위:** `institutionalSignals` (Q4 2025 13F 하드코딩) 가 Redis miss 폴백으로 사용되어
+`/signals`, `/short`, `/latest-updates`, `daily-brief` 등 여러 페이지에서 몇 달째 stale 데이터가
+"실시간"처럼 표시됨. verify-metrics 가 `source` 필드 없이는 정적/라이브를 구분할 수 없어 자동 감지 실패.
+
+### 규칙
+
+**`src/app/api/` 또는 `src/lib/` 에서 `@/data/` 경로의 배열/객체를 값으로 import 할 때마다 아래 3가지를 반드시 같은 작업에서 수행한다:**
+
+#### 1. 응답에 `source` 메타데이터 필드 포함
+```typescript
+// ❌ 금지
+return NextResponse.json({ entries: liveData ?? staticFallback });
+
+// ✅ 필수
+const dataSource = liveData ? 'live' : 'static';
+return NextResponse.json({ entries: liveData ?? staticFallback, source: dataSource });
+```
+
+#### 2. verify-metrics 에 probe 추가
+`src/app/api/cron/verify-metrics/route.ts` 에 해당 엔드포인트의 `source` 필드를 체크하는 probe 추가:
+```typescript
+// source='static' → error (Redis 크론 미실행 감지)
+items.push({
+  key: 'accuracy.xxx.source',
+  status: source === 'live' ? 'ok' : 'error',
+  value: `source=${source}`,
+});
+```
+
+#### 3. 폴백 허용 여부 명시적 결정
+| 폴백 데이터 성격 | 처리 방법 |
+|---|---|
+| 시계열 시장 데이터 (가격, 포지션, 뉴스) | **빈 배열 `[]` 반환** — 절대 정적 사용 금지 |
+| 구조/설정 데이터 (색상, 섹터명, 공급망 관계) | 정적 사용 허용 — `source: 'static'` 명시 |
+| 과거 역사 기록 (cascade 사례, 이벤트 로그) | 정적 사용 허용 — `source: 'static'` 명시 |
+
+### 자동 감지
+
+```bash
+node scripts/check-static-fallbacks.mjs
+```
+
+`src/app/api/` 및 `src/lib/` 에서 `@/data/` 값 import를 찾아 `source` 필드 누락 여부를 보고함.
+새 API route 작성 후 이 스크립트로 검증 권장.
+
+---
+
 ## 🗂️ 기타 프로젝트 관습
 
 - i18n: 모든 UI 문자열은 `messages/*.json`에 넣고 하드코딩 금지

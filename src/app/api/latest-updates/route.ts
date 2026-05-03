@@ -24,7 +24,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
-import { institutionalSignals, type InstitutionalSignal } from '@/data/institutional-signals';
+import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
 
@@ -49,12 +49,12 @@ export interface UpdateItem {
 }
 
 async function getBaseSignals(redis: Redis | null): Promise<InstitutionalSignal[]> {
-  if (!redis) return institutionalSignals;
+  if (!redis) return [];
   try {
     const data = await redis.get('flowvium:13f-signals:v1');
     if (Array.isArray(data) && data.length > 0) return data as InstitutionalSignal[];
   } catch { /* non-fatal */ }
-  return institutionalSignals;
+  return [];
 }
 
 function fmtTime(iso: string): string {

@@ -443,11 +443,23 @@ async function verifyShortInterestDetailed(base: string): Promise<MetricItem[]> 
   if (!r.ok) {
     return [{ key: 'short.ALL', label: 'Short Interest API', group: 'short-interest', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
   }
-  const data = r.data as { entries?: Array<{ ticker: string; shortVolPct: number | null; squeezeScore: number; shortRatio: number | null; companyName?: string }> };
+  const data = r.data as { entries?: Array<{ ticker: string; shortVolPct: number | null; squeezeScore: number; shortRatio: number | null; companyName?: string }>; instSource?: string };
   const entries = data.entries ?? [];
   if (entries.length === 0) return [{ key: 'short.ALL', label: 'Short Interest (empty)', group: 'short-interest', status: 'error' }];
 
   const items: MetricItem[] = [];
+
+  // 13F 기관 데이터 소스 probe — 'empty' = EDGAR 크론 미실행 or Redis 비어있음
+  const instSource = data.instSource ?? 'unknown';
+  items.push({
+    key: 'short.instSource',
+    label: 'Short Interest 13F 소스',
+    group: 'short-interest',
+    status: instSource === 'live' ? 'ok' : 'error',
+    value: `instSource=${instSource}`,
+    details: instSource !== 'live' ? { hint: 'Redis 13F 비어있음 — update-signals 크론 확인 필요' } : undefined,
+  });
+
   for (const e of entries) {
     const hasVol = e.shortVolPct != null;
     items.push({
@@ -493,7 +505,10 @@ async function verifyMarketCapsDetailed(base: string): Promise<MetricItem[]> {
   const bandCount = Object.keys(bands).length;
   if (bandCount === 0) return [{ key: 'caps.ALL', label: 'Market Caps (empty)', group: 'market-caps', status: 'error' }];
 
-  return [{ key: 'caps.ALL', label: 'Market Caps bands', group: 'market-caps', status: 'ok', value: `${bandCount} tickers` }];
+  // source='static' 은 정상 — explore 페이지 관계 그래프용 enum 데이터이며 Yahoo Vercel 차단으로 live 불가.
+  // 빈 bands 만 error, static 은 ok (설계상 정적).
+  return [{ key: 'caps.ALL', label: 'Market Caps bands', group: 'market-caps', status: 'ok',
+    value: `${bandCount} tickers (source=${(data as { source?: string }).source ?? 'unknown'})` }];
 }
 
 async function verifySectorPE(base: string): Promise<MetricItem[]> {
@@ -657,9 +672,20 @@ async function verifyKoreaFlowDetailed(base: string): Promise<MetricItem[]> {
 async function verifyAdditionalEndpoints(base: string): Promise<MetricItem[]> {
   return Promise.all([
     verifyEndpoint(base, '/api/news-cascade?probe=1', 'market.news', '뉴스 캐스케이드', 'market',
-      (d) => (d as { source?: string })?.source === 'probe-fallback' || (Array.isArray((d as { articles?: unknown[] })?.articles) && ((d as { articles: unknown[] }).articles.length > 0))),
+      (d) => {
+        const data = d as { source?: string; articles?: Array<{ analysisSource?: string }> };
+        if (data.source === 'probe-fallback') return true;
+        if (!Array.isArray(data.articles) || data.articles.length === 0) return false;
+        // keyword-rule 만 있으면 degraded 취급 — AI 분석 또는 캐시 항목이 1개 이상이어야 ok
+        const hasAI = data.articles.some(a => a.analysisSource === 'ai' || a.analysisSource === 'cached');
+        return hasAI;
+      }),
     verifyEndpoint(base, '/api/signals', 'market.signals', '기관 신호 13F', 'market',
-      (d) => Array.isArray((d as { signals?: unknown[] })?.signals) && ((d as { signals: unknown[] }).signals.length > 0)),
+      (d) => {
+        const data = d as { signals?: unknown[]; source?: string };
+        // source='static' = 하드코딩 폴백 사용 중 → degraded
+        return Array.isArray(data.signals) && data.signals.length > 0 && data.source !== 'static';
+      }),
     verifyEndpoint(base, '/api/latest-updates', 'market.latest', '홈 LiveFeed', 'market',
       (d) => Array.isArray((d as { items?: unknown[] })?.items) && ((d as { items: unknown[] }).items.length > 0)),
     verifyEndpoint(base, '/api/price-history?ticker=SPY&days=30', 'market.priceHistory', 'SPY 가격 시계열', 'market',
@@ -1008,6 +1034,85 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       lastError: err instanceof Error ? err.message : String(err) });
   }
 
+  // ── 13F signals source probe ─────────────────────────────────────────────
+  // source='static' = Redis 13F 없음, 하드코딩 폴백 사용 중.
+  // "endpoint alive" probe 만으로는 이 상태를 잡지 못하므로 별도 accuracy probe 추가.
+  try {
+    const r = await safeJson(base, '/api/signals');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = r.data as { signals?: unknown[]; source?: string };
+    const source = data.source ?? 'unknown';
+    const count = Array.isArray(data.signals) ? data.signals.length : 0;
+    items.push({
+      key: 'accuracy.signals.source', label: '13F signals 소스 (static 폴백 검출)', group: 'accuracy',
+      status: source === 'static' || source === 'unknown' ? 'error' : 'ok',
+      value: `source=${source} count=${count}`,
+      source,
+      details: source === 'static' ? { hint: 'Redis 13F 비어있음 — update-signals 크론 확인 필요' } : undefined,
+    });
+  } catch (err) {
+    items.push({ key: 'accuracy.signals.source', label: '13F signals 소스 (static 폴백 검출)', group: 'accuracy',
+      status: 'error', lastError: err instanceof Error ? err.message : String(err) });
+  }
+
+  // ── short-interest instSource probe ─────────────────────────────────────
+  // instSource='empty' = Redis 13F 없음. verifyShortInterestDetailed 와 중복이지만
+  // accuracy group 에서도 잡아서 /admin/logs 에서 한눈에 볼 수 있도록.
+  try {
+    const r = await safeJson(base, '/api/short-interest');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = r.data as { instSource?: string };
+    const instSource = data.instSource ?? 'unknown';
+    items.push({
+      key: 'accuracy.short.instSource', label: 'Short Interest 13F 소스 (static 폴백 검출)', group: 'accuracy',
+      status: instSource === 'live' ? 'ok' : 'error',
+      value: `instSource=${instSource}`,
+      details: instSource !== 'live' ? { hint: 'Redis 13F 비어있음 — update-signals 크론 확인 필요' } : undefined,
+    });
+  } catch (err) {
+    items.push({ key: 'accuracy.short.instSource', label: 'Short Interest 13F 소스 (static 폴백 검출)', group: 'accuracy',
+      status: 'error', lastError: err instanceof Error ? err.message : String(err) });
+  }
+
+  // ── fear-greed sectorFlows probe ─────────────────────────────────────────
+  // sectorFlows=[] = capital-flows 크론 미실행 또는 Redis miss (이전엔 stale static 반환).
+  try {
+    const r = await safeJson(base, '/api/fear-greed');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = r.data as { sectorFlows?: unknown[] };
+    const flowCount = Array.isArray(data.sectorFlows) ? data.sectorFlows.length : -1;
+    items.push({
+      key: 'accuracy.fg.sectorFlows', label: 'F&G sectorFlows (capital-flows 의존)', group: 'accuracy',
+      status: flowCount > 0 ? 'ok' : flowCount === 0 ? 'degraded' : 'error',
+      value: flowCount >= 0 ? `${flowCount} sectors` : null,
+      details: flowCount === 0 ? { hint: 'capital-flows Redis 캐시 없음 — capital-flows 크론 확인 필요' } : undefined,
+    });
+  } catch (err) {
+    items.push({ key: 'accuracy.fg.sectorFlows', label: 'F&G sectorFlows (capital-flows 의존)', group: 'accuracy',
+      status: 'error', lastError: err instanceof Error ? err.message : String(err) });
+  }
+
+  // ── short-interest crumb coverage probe ─────────────────────────────────
+  // Yahoo crumb 실패 시 shortFloatPct 전부 null → squeeze score 손실.
+  // shortFloatPct 커버리지로 crumb 동작 여부를 간접 검증.
+  try {
+    const r = await safeJson(base, '/api/short-interest');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const entries = (r.data as { entries?: Array<{ shortFloatPct?: number | null }> })?.entries ?? [];
+    const total = entries.length;
+    const withFloat = entries.filter(e => e.shortFloatPct != null).length;
+    const pct = total > 0 ? Math.round((withFloat / total) * 100) : 0;
+    items.push({
+      key: 'accuracy.short.crumb', label: 'Short Interest crumb 커버리지', group: 'accuracy',
+      status: total === 0 ? 'degraded' : pct >= 80 ? 'ok' : pct >= 50 ? 'degraded' : 'error',
+      value: `${withFloat}/${total} (${pct}%)`,
+      details: pct < 80 ? { hint: 'Yahoo crumb 실패 가능성 — shortFloatPct 누락으로 squeeze score 손실' } : undefined,
+    });
+  } catch (err) {
+    items.push({ key: 'accuracy.short.crumb', label: 'Short Interest crumb 커버리지', group: 'accuracy',
+      status: 'error', lastError: err instanceof Error ? err.message : String(err) });
+  }
+
   return items;
 }
 
@@ -1079,6 +1184,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:market-caps:v2', label: 'market-caps' },
     { key: 'flowvium:13f-signals:v1', label: '13f-signals' },
     { key: 'flowvium:13f-ownership:v1', label: '13f-ownership' },
+    { key: 'flowvium:news-gap:v2', label: 'news-gap-scores' },
     { key: 'flowvium:latest-updates:v3', label: 'latest-updates' },
     { key: `flowvium:macro-indicators:v13:${kstDate}`, label: `macro-indicators(${kstDate})` },
     { key: `flowvium:fedwatch:v2:${utcDate}`, label: `fedwatch(${utcDate})` },

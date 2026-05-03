@@ -1479,7 +1479,8 @@
     "cEU": "Europe",
     "cIN": "India",
     "cTW": "Taiwan",
-    "stockUnit": ""
+    "stockUnit": "",
+    "cn_exchange_note": "Harga heatmap China didasarkan pada saham yang terdaftar di Hong Kong."
   },
   "screener": {
     "tf1w": "1W (Insider Form 4)",
