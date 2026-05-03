@@ -244,6 +244,85 @@ async function fetchYahooKoreaFallback(): Promise<KoreaFlowEntry[]> {
   return results.filter((e): e is KoreaFlowEntry => e !== null);
 }
 
+/**
+ * Naver Finance frgn.naver — per-stock foreign net buy (shares × close = KRW approx).
+ * Accessible from all IPs including Vercel; KRX blocks cloud IPs.
+ * Institution/individual data not available per-stock from Naver.
+ */
+async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null> {
+  try {
+    const res = await fetch(`https://finance.naver.com/item/frgn.naver?code=${code}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://finance.naver.com/',
+        'Accept-Language': 'ko-KR,ko;q=0.9',
+      },
+    });
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    const html = new TextDecoder('euc-kr').decode(buf);
+
+    // Extract span.tah cells: date, closePrice, changePct, holdingShares, netBuyShares, ...
+    const raw = Array.from(html.matchAll(/<span class="tah[^"]*">([\s\S]*?)<\/span>/g))
+      .map(m => m[1].replace(/<[^>]+>/g, '').replace(/[,\s\n]/g, '').trim())
+      .filter(v => v.length > 0);
+
+    const dateIdx = raw.findIndex(v => /^\d{4}\.\d{2}\.\d{2}$/.test(v));
+    if (dateIdx < 0) return null;
+
+    const row = raw.slice(dateIdx, dateIdx + 8);
+    // row layout: [date, close, change, changePct%, holdingShares, netBuyShares, ?, volume]
+    const closePrice = Number(row[1]) || null;
+    // row[5] = foreign net buy shares ('+' prefix = buy, '-' prefix = sell, plain = buy)
+    const netBuySharesStr = row[5] ?? '0';
+    const netBuyShares = Number(netBuySharesStr.replace('+', '')) || 0;
+    const foreignerNetBuy = (closePrice && netBuyShares !== 0)
+      ? Math.round(closePrice * netBuyShares)
+      : null;
+
+    const changePctStr = row[3] ?? '0';
+    const changePct = Number(changePctStr.replace('%', '')) || null;
+
+    return {
+      ticker: code,
+      name: EN_NAMES[code] ?? code,
+      market: 'KOSPI',
+      foreignerNetBuy,
+      institutionNetBuy: null,
+      individualNetBuy:  null,
+      closePrice,
+      changePct,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchNaverForeignFlow(): Promise<{ entries: KoreaFlowEntry[]; trdDd: string } | null> {
+  const tickers = Object.keys(EN_NAMES);
+  const results = await Promise.all(tickers.map(c => fetchNaverFrgnEntry(c)));
+  const entries = results.filter((e): e is KoreaFlowEntry => e !== null && e.foreignerNetBuy !== null);
+  if (entries.length === 0) return null;
+  // Derive tradingDay from the raw HTML date (YYYY.MM.DD → YYYYMMDD)
+  // All entries share the same date; pick first valid one
+  const sampleRes = await fetch(`https://finance.naver.com/item/frgn.naver?code=${tickers[0]}`, {
+    cache: 'no-store', signal: AbortSignal.timeout(8000),
+    headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://finance.naver.com/' },
+  }).catch(() => null);
+  let trdDd = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, '');
+  if (sampleRes?.ok) {
+    const buf = await sampleRes.arrayBuffer();
+    const html = new TextDecoder('euc-kr').decode(buf);
+    const raw = Array.from(html.matchAll(/<span class="tah[^"]*">([\s\S]*?)<\/span>/g))
+      .map(m => m[1].replace(/<[^>]+>/g, '').replace(/[,\s\n]/g, '').trim());
+    const dateStr = raw.find(v => /^\d{4}\.\d{2}\.\d{2}$/.test(v));
+    if (dateStr) trdDd = dateStr.replace(/\./g, '');
+  }
+  return { entries, trdDd };
+}
+
 function buildPayload(all: KoreaFlowEntry[], trdDd: string, extra?: object) {
   const tradingDayFmt = `${trdDd.slice(0, 4)}-${trdDd.slice(4, 6)}-${trdDd.slice(6, 8)}`;
   const topForeignBuy  = [...all].filter(e => (e.foreignerNetBuy   ?? 0) > 0).sort((a,b) => (b.foreignerNetBuy   ?? 0) - (a.foreignerNetBuy   ?? 0)).slice(0, 15);
@@ -296,20 +375,29 @@ export async function GET(req: Request) {
     trdDd = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
 
     if (all.length === 0) {
-      const yahooEntries = await fetchYahooKoreaFallback();
-      logger.warn('api.korea-flow', 'krx_empty_yahoo_fallback', { period });
-      const byDesc = [...yahooEntries].sort((a,b) => (b.changePct ?? 0) - (a.changePct ?? 0));
-      const byAsc  = [...yahooEntries].sort((a,b) => (a.changePct ?? 0) - (b.changePct ?? 0));
-      const fp = { updatedAt: new Date().toISOString(), tradingDay: `${trdDd.slice(0,4)}-${trdDd.slice(4,6)}-${trdDd.slice(6,8)}`,
-        topForeignBuy: byDesc.slice(0,15), topForeignSell: byAsc.slice(0,15),
-        topInstBuy: byDesc.slice(0,15), topInstSell: byAsc.slice(0,15),
-        totalTickers: yahooEntries.length, fallback: true, period,
-        fallbackReason: 'KRX API unavailable — Yahoo Finance price data only' };
-      await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
-      return NextResponse.json({ ...fp, cached: false }, { headers: cdnHeaders });
+      // KRX unavailable → try Naver frgn (real foreign flow, institution=null)
+      const naverFlow = await fetchNaverForeignFlow();
+      if (naverFlow && naverFlow.entries.length > 0) {
+        logger.info('api.korea-flow', 'krx_empty_naver_fallback', { period, tickers: naverFlow.entries.length });
+        all = naverFlow.entries;
+        trdDd = naverFlow.trdDd;
+      } else {
+        // Final fallback: Yahoo price data only
+        const yahooEntries = await fetchYahooKoreaFallback();
+        logger.warn('api.korea-flow', 'krx_naver_empty_yahoo_fallback', { period });
+        const byDesc = [...yahooEntries].sort((a,b) => (b.changePct ?? 0) - (a.changePct ?? 0));
+        const byAsc  = [...yahooEntries].sort((a,b) => (a.changePct ?? 0) - (b.changePct ?? 0));
+        const fp = { updatedAt: new Date().toISOString(), tradingDay: `${trdDd.slice(0,4)}-${trdDd.slice(4,6)}-${trdDd.slice(6,8)}`,
+          topForeignBuy: byDesc.slice(0,15), topForeignSell: byAsc.slice(0,15),
+          topInstBuy: [] as KoreaFlowEntry[], topInstSell: [] as KoreaFlowEntry[],
+          totalTickers: yahooEntries.length, fallback: true, period,
+          fallbackReason: 'KRX + Naver unavailable — Yahoo Finance price data only' };
+        await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
+        return NextResponse.json({ ...fp, cached: false }, { headers: cdnHeaders });
+      }
     }
   } else {
-    // Multi-day accumulated
+    // Multi-day accumulated (KRX only; Naver frgn doesn't support multi-day ranking)
     const tradingDays = getLastNTradingDays(cfg.tradingDays);
     const [kospi, kosdaq] = await Promise.all([
       fetchKrxFlowAccumulated('KOSPI',  tradingDays),
@@ -320,20 +408,28 @@ export async function GET(req: Request) {
     logger.info('api.korea-flow', 'accumulated', { period, days: tradingDays.length, tickers: all.length });
 
     if (all.length === 0) {
-      const yahooEntries = await fetchYahooKoreaFallback();
-      logger.warn('api.korea-flow', 'krx_empty_yahoo_fallback', { period });
-      const byDesc = [...yahooEntries].sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0));
-      const byAsc  = [...yahooEntries].sort((a, b) => (a.changePct ?? 0) - (b.changePct ?? 0));
-      const fp = {
-        updatedAt: new Date().toISOString(),
-        tradingDay: `${trdDd.slice(0, 4)}-${trdDd.slice(4, 6)}-${trdDd.slice(6, 8)}`,
-        topForeignBuy: byDesc.slice(0, 15), topForeignSell: byAsc.slice(0, 15),
-        topInstBuy: byDesc.slice(0, 15), topInstSell: byAsc.slice(0, 15),
-        totalTickers: yahooEntries.length, fallback: true, period,
-        fallbackReason: 'KRX API unavailable — Yahoo Finance price data only',
-      };
-      await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
-      return NextResponse.json({ ...fp, cached: false }, { headers: cdnHeaders });
+      // For multi-day, use Naver 1d as best available approximation
+      const naverFlow = await fetchNaverForeignFlow();
+      if (naverFlow && naverFlow.entries.length > 0) {
+        logger.info('api.korea-flow', 'krx_empty_naver_1d_approx', { period });
+        all = naverFlow.entries;
+        trdDd = naverFlow.trdDd;
+      } else {
+        const yahooEntries = await fetchYahooKoreaFallback();
+        logger.warn('api.korea-flow', 'krx_naver_empty_yahoo_fallback', { period });
+        const byDesc = [...yahooEntries].sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0));
+        const byAsc  = [...yahooEntries].sort((a, b) => (a.changePct ?? 0) - (b.changePct ?? 0));
+        const fp = {
+          updatedAt: new Date().toISOString(),
+          tradingDay: `${trdDd.slice(0, 4)}-${trdDd.slice(4, 6)}-${trdDd.slice(6, 8)}`,
+          topForeignBuy: byDesc.slice(0, 15), topForeignSell: byAsc.slice(0, 15),
+          topInstBuy: [] as KoreaFlowEntry[], topInstSell: [] as KoreaFlowEntry[],
+          totalTickers: yahooEntries.length, fallback: true, period,
+          fallbackReason: 'KRX + Naver unavailable — Yahoo Finance price data only',
+        };
+        await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
+        return NextResponse.json({ ...fp, cached: false }, { headers: cdnHeaders });
+      }
     }
   }
 

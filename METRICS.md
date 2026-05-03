@@ -497,15 +497,15 @@
 
 ### 7-6. 탭: 한국 수급 (`korea`)
 
-| # | 지표 | 상태 |
-|---|------|------|
-| 203 | 거래일·총 종목 수 | 💾 cached | KRX 차단 공식 포기 → Yahoo fallback 20종목 (iter140 결정) |
-| 204 | 외국인 상위 순매수 | 💾 cached | KRX 차단 공식 포기 → Yahoo 등락% 정렬 대체 (fallback 배지 표시) |
-| 205 | 외국인 상위 순매도 | 💾 cached | KRX 차단 공식 포기 → Yahoo 등락% 역정렬 대체 |
-| 206 | 기관 상위 순매수 | 💾 cached | KRX 차단 공식 포기 → Yahoo 등락% 정렬 대체 |
-| 207 | 기관 상위 순매도 | 💾 cached | KRX 차단 공식 포기 → Yahoo 등락% 역정렬 대체 |
-| 208 | 종목별 현재가·등락% | 💾 cached | Yahoo v8 (15min TTL) |
-| 209 | 순매수 금액(원) | ⛔ missing | KRX 차단 공식 포기 — KRX API 없이 외국인 순매수액(원) 불가 |
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 203 | 거래일·총 종목 수 | 💾 cached | Naver frgn (15min TTL) |
+| 204 | 외국인 상위 순매수 | 💾 cached | Naver frgn (주수 × 종가 = KRW 근사) |
+| 205 | 외국인 상위 순매도 | 💾 cached | Naver frgn |
+| 206 | 기관 상위 순매수 | ⛔ missing | Naver per-stock 기관 데이터 없음 |
+| 207 | 기관 상위 순매도 | ⛔ missing | Naver per-stock 기관 데이터 없음 |
+| 208 | 종목별 현재가·등락% | 💾 cached | Naver frgn |
+| 209 | 외국인 순매수 금액(원) | 💾 cached | Naver frgn 주수 × 종가 (근사값) |
 
 ---
 
