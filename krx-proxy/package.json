@@ -1,0 +1,13 @@
+{
+  "name": "krx-proxy",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "KRX investor flow data proxy — fetches from KRX and writes to Upstash Redis",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.34.3"
+  }
+}

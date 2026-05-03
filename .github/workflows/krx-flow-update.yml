@@ -1,0 +1,29 @@
+name: KRX Flow Update
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # every 15 min (GitHub runs on Azure — not blocked by KRX)
+  workflow_dispatch:           # manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: krx-proxy
+
+      - name: Fetch KRX → Redis
+        working-directory: krx-proxy
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: node update-once.js
