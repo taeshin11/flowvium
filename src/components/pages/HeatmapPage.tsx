@@ -41,13 +41,13 @@ function StockBox(props: BoxProps) {
   // Display: prefer fullName (company name) over ticker for non-US / numeric tickers
   const isNumericTicker = ticker != null && /^\d+$/.test(ticker);
   const displayLabel = isNumericTicker && fullName ? fullName : (ticker ?? '');
-  // Short version for large labels
-  const shortLabel = displayLabel.length > 12 ? displayLabel.slice(0, 11) + '…' : displayLabel;
+  // Short version for large labels — 16 chars before truncating (was 12)
+  const shortLabel = displayLabel.length > 16 ? displayLabel.slice(0, 14) + '…' : displayLabel;
 
-  const tickerFont = Math.min(Math.max(width / 5.5, 9), 32);
-  const pctFont = Math.min(Math.max(width / 7.5, 8), 20);
-  const showText = width > 28 && height > 18;
-  const showPct = width > 42 && height > 34;
+  const tickerFont = Math.min(Math.max(width / 5, 9), 32);
+  const pctFont = Math.min(Math.max(width / 7, 8), 20);
+  const showText = width > 22 && height > 14;
+  const showPct = width > 36 && height > 28;
   const showCompany = width > 85 && height > 60 && fullName && !isNumericTicker;
 
   // SVG text-shadow via paint-order (stroke behind fill) for readability
@@ -78,45 +78,34 @@ function StockBox(props: BoxProps) {
   );
 }
 
-// ── Finviz-style: depth=1 → sector border+label, depth=2 → stock box
+// ── Finviz-style: depth=1 fills sector color as background "grout", depth=2 stocks are inset
 interface SectorContentProps {
   x?: number; y?: number; width?: number; height?: number;
   depth?: number; name?: string; sectorColor?: string;
   ticker?: string; changePct?: number | null; fullName?: string;
 }
 function SectorTreemapContent(props: SectorContentProps) {
-  const { x = 0, y = 0, width = 0, height = 0, depth, name, sectorColor, ticker, changePct, fullName } = props;
+  const { x = 0, y = 0, width = 0, height = 0, depth, sectorColor, ticker, changePct, fullName } = props;
   if (width < 1 || height < 1) return null;
 
   if (depth === 1) {
-    // Sector container: bold colored border + sector name bar
-    const HEADER = 20;
-    const color = sectorColor ?? '#334155';
-    const PAD = 3; // gap between adjacent sectors (PAD px on each side = PAD*2 total gap)
+    // Fill entire sector area with the sector color. depth=2 stocks are inset by GAP px,
+    // so this background color shows through between stocks as visible "grout".
+    // Adjacent sectors have different colors → sector boundaries become clearly visible.
+    const color = sectorColor ?? '#475569';
     return (
       <g>
-        {/* dark background separator (fills full cell — creates PAD-px gap at edges) */}
-        <rect x={x} y={y} width={width} height={height} fill="#0f172a" />
-        {/* sector fill with colored border */}
-        <rect x={x + PAD} y={y + PAD} width={width - PAD * 2} height={height - PAD * 2}
-              fill="#0a1628" stroke={color} strokeWidth={3} rx={3} />
-        {/* sector header bar */}
-        {width > 50 && height > 26 && (
-          <>
-            <rect x={x + PAD + 2} y={y + PAD + 2} width={width - PAD * 2 - 4} height={HEADER}
-                  fill={color} opacity={0.9} rx={2} />
-            <text x={x + PAD + 8} y={y + PAD + 2 + HEADER * 0.73} fill="#fff" fontSize={10} fontWeight={800}
-                  style={{ pointerEvents: 'none' as const, userSelect: 'none' as const }}>
-              {name}
-            </text>
-          </>
-        )}
+        <rect x={x} y={y} width={width} height={height} fill={color} opacity={0.85} />
       </g>
     );
   }
 
   if (depth === 2) {
-    return <StockBox x={x} y={y} width={width} height={height}
+    // Each stock is inset by GAP px on every side so the depth=1 sector color shows through.
+    // Within a sector: 4px of sector color between stocks.
+    // At sector boundary: different colors on each side → visually distinct.
+    const GAP = 2;
+    return <StockBox x={x + GAP} y={y + GAP} width={width - GAP * 2} height={height - GAP * 2}
                      ticker={ticker} changePct={changePct} fullName={fullName} />;
   }
 
@@ -343,7 +332,7 @@ export default function HeatmapPage() {
             <span className="text-sm font-bold text-white">{t('totalMarket', { count: data.totalStocks })}</span>
             <span className="text-[10px] text-slate-500">섹터 경계선 색상 = 섹터 구분</span>
           </div>
-          <div style={{ height: Math.min(700, Math.max(400, data.totalStocks * 3.2)) }}>
+          <div style={{ height: Math.min(820, Math.max(560, data.totalStocks * 4.8)) }}>
             <ResponsiveContainer>
               <Treemap
                 data={data.sectors.map(s => ({
