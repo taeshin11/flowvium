@@ -1,4 +1,5 @@
 import { logger, loggedRedisSet, loggedRedisLpushTrim } from '@/lib/logger';
+import { memSetReport, memSetArray, memGetArray } from '@/lib/investment-strategy-memory';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
@@ -1679,6 +1680,8 @@ export async function GET(request: Request) {
       const kstDateHist = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
       // 전용 히스토리 리포트 키 (session 키와 별도, 90일 TTL)
       const histReportKey = `flowvium:investment-strategy:hist:report:${strategy.generatedAt}`;
+      // Always write to in-process memory cache first — survives Upstash daily command limit exhaustion
+      memSetReport(histReportKey, cacheable);
       await loggedRedisSet(redis, 'api.investment-strategy', histReportKey, cacheable, { ex: HIST_REPORT_TTL });
       // 히스토리 배열에는 전용 키를 저장 (session TTL 만료와 무관)
       const meta = { key: histReportKey, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source };
@@ -1687,6 +1690,11 @@ export async function GET(request: Request) {
       const arr = Array.isArray(existing) ? existing : [];
       const cleaned = arr.filter((e: unknown) => e && typeof e === 'object' && (e as Record<string,unknown>).key && (e as Record<string,unknown>).generatedAt);
       const updated = [meta, ...cleaned].slice(0, 30);
+      // Merge with any in-memory items not yet persisted to Redis
+      const memArr = memGetArray() ?? [];
+      const memKeys = new Set(updated.map((e: Record<string,unknown>) => e.key));
+      const mergedArr = [...updated, ...memArr.filter(e => !memKeys.has(e.key))].slice(0, 30);
+      memSetArray(mergedArr as import('@/app/api/investment-strategy/history/route').HistoryMeta[]);
       await loggedRedisSet(redis, 'api.investment-strategy', HIST_KEY, updated, { ex: HIST_REPORT_TTL });
       logger.info('api.investment-strategy', 'history_saved', { count: updated.length, histReportKey, source: strategy.source });
       // 포트폴리오 예측 회고 로그 (14일 후 평가)

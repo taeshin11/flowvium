@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { InvestmentStrategy } from '@/app/api/investment-strategy/route';
+import { memGetReport, memGetArray } from '@/lib/investment-strategy-memory';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,12 +33,15 @@ export async function GET(req: Request) {
   if (loadKey) {
     try {
       const report = await redis.get<InvestmentStrategy>(loadKey);
-      if (!report) {
-        // 전용 히스토리 키가 만료됐거나 session 키가 삭제된 경우
-        return NextResponse.json({ report: null, expired: true });
-      }
-      return NextResponse.json({ report });
+      if (report) return NextResponse.json({ report });
+      // Redis miss — check in-process memory cache (covers Upstash daily limit exhaustion)
+      const memReport = memGetReport(loadKey);
+      if (memReport) return NextResponse.json({ report: memReport, fromMemory: true });
+      // 전용 히스토리 키가 만료됐거나 session 키가 삭제된 경우
+      return NextResponse.json({ report: null, expired: true });
     } catch {
+      const memReport = memGetReport(loadKey);
+      if (memReport) return NextResponse.json({ report: memReport, fromMemory: true });
       return NextResponse.json({ report: null, expired: true });
     }
   }
@@ -47,14 +51,28 @@ export async function GET(req: Request) {
     const raw = await redis.get(HISTORY_KEY);
     // E1 FIX: Upstash may return JSON string or auto-deserialized array
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    const arr: HistoryMeta[] = Array.isArray(parsed) ? parsed : [];
-    const items: HistoryMeta[] = arr.flatMap(m => {
+    const redisArr: HistoryMeta[] = Array.isArray(parsed) ? parsed : [];
+    // Merge with in-memory items not yet flushed to Redis (covers limit-exhaustion gaps)
+    const memArr = memGetArray() ?? [];
+    const redisKeys = new Set(redisArr.map(e => e.key));
+    const merged = [...redisArr, ...memArr.filter(e => !redisKeys.has(e.key))].slice(0, 30);
+    const items: HistoryMeta[] = merged.flatMap(m => {
       if (!m?.key || !m?.generatedAt) return [];
       m.sessionLabel = SESSION_KO[m.session] ?? m.session;
       return [m];
     });
     return NextResponse.json({ items });
   } catch {
+    // Full Redis failure — serve from memory
+    const memArr = memGetArray();
+    if (memArr?.length) {
+      const items = memArr.flatMap(m => {
+        if (!m?.key || !m?.generatedAt) return [];
+        m.sessionLabel = SESSION_KO[m.session] ?? m.session;
+        return [m];
+      });
+      return NextResponse.json({ items, fromMemory: true });
+    }
     return NextResponse.json({ items: [] });
   }
 }

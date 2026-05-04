@@ -6,10 +6,13 @@ import { RefreshCw, Loader2 } from 'lucide-react';
 import { Treemap, ResponsiveContainer } from 'recharts';
 import { Link } from '@/i18n/routing';
 import type { HeatmapData, HeatmapStock, HeatmapSector } from '@/app/api/market-heatmap/route';
+// module-level sector bounds cache — populated during Treemap render, read by SVG overlay
+const _sectorBoundsCache = new Map<string, {x:number;y:number;w:number;h:number;color:string}>();
+
 
 // ── Color scale: green for positive, red for negative, gray for neutral/null
 function pctColor(pct: number | null): string {
-  if (pct == null) return '#334155';
+  if (pct == null) return '#4a5568';
   if (pct >= 3)    return '#047857';
   if (pct >= 1.5)  return '#059669';
   if (pct >= 0.5)  return '#10b981';
@@ -85,7 +88,7 @@ interface SectorContentProps {
   ticker?: string; changePct?: number | null; fullName?: string;
 }
 function SectorTreemapContent(props: SectorContentProps) {
-  const { x = 0, y = 0, width = 0, height = 0, depth, sectorColor, ticker, changePct, fullName } = props;
+  const { x = 0, y = 0, width = 0, height = 0, depth, name, sectorColor, ticker, changePct, fullName } = props;
   if (width < 1 || height < 1) return null;
 
   if (depth === 1) {
@@ -93,6 +96,8 @@ function SectorTreemapContent(props: SectorContentProps) {
     // so this background color shows through between stocks as visible "grout".
     // Adjacent sectors have different colors → sector boundaries become clearly visible.
     const color = sectorColor ?? '#475569';
+    // Store bounds so the SVG overlay can draw sector labels on top
+    _sectorBoundsCache.set(name ?? '', { x, y, w: width, h: height, color });
     return (
       <g>
         <rect x={x} y={y} width={width} height={height} fill={color} opacity={0.85} />
@@ -332,8 +337,10 @@ export default function HeatmapPage() {
             <span className="text-sm font-bold text-white">{t('totalMarket', { count: data.totalStocks })}</span>
             <span className="text-[10px] text-slate-500">섹터 경계선 색상 = 섹터 구분</span>
           </div>
-          <div style={{ height: Math.min(820, Math.max(560, data.totalStocks * 4.8)) }}>
-            <ResponsiveContainer>
+          {/* Clear sector bounds cache before each render so overlay reads fresh data */}
+          {(() => { _sectorBoundsCache.clear(); return null; })()}
+          <div style={{ position: 'relative', height: Math.min(650, Math.max(460, data.totalStocks * 2.5)) }}>
+            <ResponsiveContainer width="100%" height="100%">
               <Treemap
                 data={data.sectors.map(s => ({
                   name: s.sector,
@@ -356,6 +363,23 @@ export default function HeatmapPage() {
                 animationDuration={300}
               />
             </ResponsiveContainer>
+            {/* Sector label overlay — drawn after Treemap so labels appear on top */}
+            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+              {Array.from(_sectorBoundsCache.entries()).map(([sName, b]) =>
+                b.w > 70 && b.h > 20 ? (
+                  <g key={sName}>
+                    <text x={b.x + 6} y={b.y + 14} fill="rgba(0,0,0,0.6)"
+                          fontSize={11} fontWeight={800} style={{ userSelect: 'none' }}>
+                      {sName.toUpperCase()}
+                    </text>
+                    <text x={b.x + 5} y={b.y + 13} fill="white"
+                          fontSize={11} fontWeight={800} style={{ userSelect: 'none' }}>
+                      {sName.toUpperCase()}
+                    </text>
+                  </g>
+                ) : null
+              )}
+            </svg>
           </div>
         </div>
       ) : (

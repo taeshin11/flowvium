@@ -398,7 +398,7 @@ function buildRotations(
   minSpread: number,
 ): RotationEntry[] {
   // Limit rotation-start lookback to the selected timeframe so the UI label is consistent
-  const maxWeeks = retKey === 'ret1w' ? 2 : retKey === 'ret4w' ? 5 : 13;
+  const maxWeeks = retKey === 'ret1w' ? 1 : retKey === 'ret4w' ? 4 : 13;
   const groupPerf: Record<string, number[]> = {};
   for (const r of results) {
     const val = r[retKey];
