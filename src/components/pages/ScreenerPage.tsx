@@ -582,7 +582,7 @@ export default function ScreenerPage() {
                           {row.ticker}<ExternalLink className="w-3 h-3 opacity-40" />
                         </Link>
                       </td>
-                      <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.companyName}</td>
+                      <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.companyName || row.ticker}</td>
                       <td className="px-3 py-2.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">{sectorLabels[row.sector] ?? row.sector}</span></td>
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[140px] truncate">{row.institution}</td>
                       <td className="px-3 py-2.5">

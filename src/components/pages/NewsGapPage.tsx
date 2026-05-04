@@ -137,7 +137,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
             </Link>
             {entry.gapScore >= 70 && <AlertTriangle className="w-4 h-4 text-cf-accent flex-shrink-0" />}
           </div>
-          <p className="text-sm font-medium text-cf-text-primary">{entry.companyName}</p>
+          <p className="text-sm font-medium text-cf-text-primary">{entry.companyName || entry.ticker}</p>
           <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full border font-medium ${sectorClass}`}>
             {entry.sector.replace('-', ' / ')}
           </span>

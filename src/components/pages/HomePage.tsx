@@ -1140,7 +1140,7 @@ export default function HomePage() {
                   </span>
                 </div>
                 <p className="text-sm text-cf-text-primary font-medium mb-1 truncate">
-                  {signal.companyName}
+                  {signal.companyName || signal.ticker}
                 </p>
                 <p className="text-xs text-cf-text-secondary mb-3">
                   {signal.institution}

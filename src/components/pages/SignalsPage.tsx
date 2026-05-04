@@ -330,7 +330,7 @@ export default function SignalsPage({
                     <td className="py-3 px-4">
                       <Link href={`/company/${sig.ticker}`} className="hover:text-cf-primary transition-colors">
                         <span className="font-mono font-bold text-cf-primary text-xs mr-2">{sig.ticker}</span>
-                        <span className="text-cf-text-primary text-sm">{sig.companyName}</span>
+                        <span className="text-cf-text-primary text-sm">{sig.companyName || sig.ticker}</span>
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-cf-text-secondary text-sm">{sig.institution}</td>

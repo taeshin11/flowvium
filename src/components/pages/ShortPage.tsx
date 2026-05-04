@@ -244,7 +244,7 @@ export default function ShortPage() {
                     </Link>
                   </td>
                   <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[140px] truncate">
-                    {entry.companyName}
+                    {entry.companyName || entry.ticker}
                   </td>
                   <td className="px-3 py-2.5">
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">
