@@ -1,12 +1,22 @@
 # Flowvium — robots.txt
-# https://flowvium.vercel.app
+# https://flowvium.net
 
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin/
 
 # Google
 User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-News
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: AdsBot-Google
 Allow: /
 
 # Naver (Korea) — NaverBot / Yeti
@@ -16,11 +26,26 @@ Allow: /
 User-agent: Yeti
 Allow: /
 
+# Daum (Korea)
+User-agent: Daum
+Allow: /
+
 # Baidu (China)
 User-agent: Baiduspider
 Allow: /
 
-# Bing
+User-agent: Baiduspider-image
+Allow: /
+
+# Sogou (China)
+User-agent: Sogou web spider
+Allow: /
+
+# 360Spider (China)
+User-agent: 360Spider
+Allow: /
+
+# Bing / DuckDuckGo / Ecosia
 User-agent: Bingbot
 Allow: /
 
@@ -35,4 +60,18 @@ Allow: /
 User-agent: YandexBot
 Allow: /
 
-Sitemap: https://flowvium.vercel.app/sitemap.xml
+User-agent: YandexImages
+Allow: /
+
+User-agent: YandexVideo
+Allow: /
+
+# Seznam (Czech/Slovakia)
+User-agent: SeznamBot
+Allow: /
+
+# Cốc Cốc (Vietnam)
+User-agent: coccocbot-web
+Allow: /
+
+Sitemap: https://flowvium.net/sitemap.xml

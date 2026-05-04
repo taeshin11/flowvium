@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
+import { generateSeoMetadata } from '@/lib/seo';
 import { glossaryTerms, glossaryCategories } from '@/data/glossary';
 
 export function generateStaticParams() {
@@ -13,10 +14,13 @@ export async function generateMetadata({
   params: { locale: string };
 }): Promise<Metadata> {
   const t = await getTranslations({ locale: params.locale, namespace: 'glossary' });
-  return {
+  return generateSeoMetadata({
     title: t('metaTitle'),
     description: t('metaDesc'),
-  };
+    path: '/glossary',
+    locale: params.locale,
+    keywords: ['financial glossary', 'investing terms', 'stock market terms', 'supply chain terminology', 'investment glossary'],
+  });
 }
 
 export default async function GlossaryIndexPage({

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { generateSeoMetadata } from '@/lib/seo';
 import FearGreedMarketClient from './FearGreedMarketClient';
 
 const MARKETS = ["us","korea","japan","china","europe","uk","india","brazil","taiwan","australia"];
@@ -24,10 +25,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const marketLabel = MARKET_LABELS[params.market] ?? params.market;
   const t = await getTranslations({ locale: params.locale, namespace: 'fearGreedMarket' });
-  return {
+  return generateSeoMetadata({
     title: t('metaTitle', { market: marketLabel }),
     description: t('metaDesc', { market: marketLabel }),
-  };
+    path: `/fear-greed/${params.market}`,
+    locale: params.locale,
+    keywords: ['fear and greed index', marketLabel.toLowerCase(), 'market sentiment', 'investor sentiment', 'greed index'],
+  });
 }
 
 export default async function FearGreedMarketPage({

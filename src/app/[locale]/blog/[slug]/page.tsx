@@ -34,6 +34,8 @@ export async function generateMetadata({
   });
 }
 
+const BASE_URL = 'https://flowvium.net';
+
 export default async function BlogArticlePage({
   params,
 }: {
@@ -50,11 +52,33 @@ export default async function BlogArticlePage({
     post.content,
   );
 
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: translatedTitle,
+    description: post.metaDescription,
+    datePublished: post.publishDate,
+    dateModified: post.publishDate,
+    author: { '@type': 'Organization', name: 'THE ELIOT K FINANCIAL', url: BASE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Flowvium',
+      logo: { '@type': 'ImageObject', url: `${BASE_URL}/opengraph-image`, width: 1200, height: 630 },
+    },
+    url: `${BASE_URL}/${params.locale === 'en' ? '' : params.locale + '/'}blog/${post.slug}`,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${BASE_URL}/blog/${post.slug}` },
+    articleSection: post.sector,
+    inLanguage: params.locale,
+  };
+
   return (
-    <BlogArticleClient
-      post={post}
-      translatedTitle={translatedTitle}
-      translatedContent={translatedContent}
-    />
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      <BlogArticleClient
+        post={post}
+        translatedTitle={translatedTitle}
+        translatedContent={translatedContent}
+      />
+    </>
   );
 }

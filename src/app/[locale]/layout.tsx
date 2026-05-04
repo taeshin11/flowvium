@@ -44,6 +44,8 @@ const jsonLd = {
       },
       sameAs: [
         'https://twitter.com/flowvium_app',
+        'https://x.com/flowvium_app',
+        `${BASE_URL}`,
       ],
     },
     {
@@ -71,7 +73,7 @@ const jsonLd = {
       '@id': `${BASE_URL}/#website`,
       url: BASE_URL,
       name: 'Flowvium',
-      inLanguage: 'en',
+      inLanguage: ['en', 'ko', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr', 'pt', 'hi', 'ar', 'vi', 'th', 'id', 'ru', 'tr'],
       publisher: {
         '@id': `${BASE_URL}/#organization`,
       },

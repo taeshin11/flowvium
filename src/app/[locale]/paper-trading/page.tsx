@@ -1,6 +1,22 @@
 import type { Account, Trade } from '@/lib/paper-trading';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
+import { generateSeoMetadata } from '@/lib/seo';
 import { INITIAL_CASH } from '@/lib/paper-trading';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  return generateSeoMetadata({
+    title: 'Paper Trading Simulator | Flowvium',
+    description: 'Practice supply chain cascade trading with $100,000 virtual cash. Test institutional flow strategies without real money — powered by live market data.',
+    path: '/paper-trading',
+    locale: params.locale,
+    keywords: ['paper trading', 'virtual trading', 'stock simulator', 'trading practice', 'supply chain trading'],
+  });
+}
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://flowvium.net';
 

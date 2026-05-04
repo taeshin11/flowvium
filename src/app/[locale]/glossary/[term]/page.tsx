@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { generateSeoMetadata } from '@/lib/seo';
 import { glossaryTerms, getGlossaryTermBySlug } from '@/data/glossary';
 
 export function generateStaticParams() {
@@ -23,10 +24,15 @@ export async function generateMetadata({
   if (!term) return { title: 'Not Found' };
   const tl = await getTranslations({ locale: params.locale, namespace: 'glossary' });
   const isKo = params.locale === 'ko';
-  return {
-    title: tl('termMetaTitle', { term: isKo ? term.termKo : term.term }),
-    description: isKo ? term.definitionKo.substring(0, 160) : term.definition.substring(0, 160),
-  };
+  const termName = isKo ? term.termKo : term.term;
+  const definition = (isKo ? term.definitionKo : term.definition).substring(0, 160);
+  return generateSeoMetadata({
+    title: tl('termMetaTitle', { term: termName }),
+    description: definition,
+    path: `/glossary/${params.term}`,
+    locale: params.locale,
+    keywords: [termName, 'financial glossary', 'investing terms', term.category],
+  });
 }
 
 export default async function GlossaryTermPage({

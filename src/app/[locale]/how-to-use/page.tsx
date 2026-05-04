@@ -17,8 +17,52 @@ export async function generateMetadata({
   });
 }
 
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What is Flowvium?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Flowvium is a free institutional supply chain flow tracker. It maps smart money movements through supply chains, showing institutional 13F filings, cascade trading signals, and news gap analysis to uncover hidden market opportunities.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'How do I track supply chain flows?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Use the Explore tab to search for any publicly traded company. Flowvium displays its complete supply chain map — upstream suppliers, downstream customers, and key relationships. Then use the Cascade tool to simulate how disruptions propagate through interconnected chains.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What are Cascade Signals?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Cascade Signals are algorithmic alerts that detect when institutional buying in a large-cap supply chain leader typically precedes movement in mid-cap suppliers or customers. These signals are based on historical 13F filing patterns and real-time SEC data.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is the News Gap Analyzer?',
+      acceptedAnswer: { '@type': 'Answer', text: 'The News Gap Analyzer compares the significance of supply chain activity against the volume of media coverage. It highlights material events that the market has not yet fully priced in — identifying underreported stories that could present early opportunities or emerging risks.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is Flowvium free to use?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes, Flowvium is completely free to use. All supply chain maps, cascade signals, institutional flow data, and market intelligence features are available at no cost.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Which markets and countries does Flowvium cover?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Flowvium covers US markets (S&P 500, NASDAQ), Korean markets (KOSPI, KOSDAQ), Japanese markets, Chinese markets (Shanghai, Hong Kong), European markets, and more. The Fear & Greed index covers 10 global markets.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is the Fear & Greed Index on Flowvium?',
+      acceptedAnswer: { '@type': 'Answer', text: 'The Fear & Greed Index on Flowvium measures market sentiment across 10 global markets including the US, Korea, Japan, China, Europe, UK, India, Brazil, Taiwan, and Australia. It combines multiple indicators to produce a score from 0 (Extreme Fear) to 100 (Extreme Greed).' },
+    },
+  ],
+};
+
 export default function HowToUsePage() {
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
       {/* Header */}
       <div className="text-center mb-12">
@@ -333,5 +377,6 @@ export default function HowToUsePage() {
         </a>
       </section>
     </div>
+    </>
   );
 }

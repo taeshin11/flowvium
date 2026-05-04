@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages = [
     '', '/explore', '/cascade', '/signals', '/news-gap', '/about', '/blog', '/how-to-use', '/privacy', '/terms',
     '/heatmap', '/screener', '/short', '/insider', '/report', '/earnings', '/intelligence', '/osint', '/glossary',
+    '/paper-trading', '/fear-greed',
   ];
 
   // localePrefix: 'as-needed' — default locale (en) has no /en/ prefix
