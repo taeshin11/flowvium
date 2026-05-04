@@ -1543,6 +1543,44 @@ export async function GET(request: Request) {
     };
   }
 
+  // ── Quality gate: garbage AI output 탐지 후 해당 필드만 제거 ──────────────
+  // qwen3:8b 같은 소형 모델이 "AI+AI+AI" 패턴의 garbage를 생성할 때 Redis 오염 방지.
+  // 필드 null 처리 → 빈 UI (garbage 텍스트보다 낫다).
+  {
+    const isGarbage = (text: string | undefined | null): boolean => {
+      if (!text || text.trim().length < 10) return false; // 짧은 건 별도 처리 안 함
+      const t = text.trim();
+      // "WORD+WORD+WORD" 반복 패턴
+      if (/^([\w가-힣]+\+){2,}[\w가-힣]+$/.test(t)) return true;
+      // 단일 토큰이 60% 초과 반복 (4개 이상 토큰 기준)
+      const tokens = t.split(/[\s,+|/·]+/).filter(w => w.length > 1);
+      if (tokens.length >= 4) {
+        const freq = new Map<string, number>();
+        for (const tok of tokens) freq.set(tok.toLowerCase(), (freq.get(tok.toLowerCase()) ?? 0) + 1);
+        const maxFreq = Math.max(...Array.from(freq.values()));
+        if (maxFreq / tokens.length > 0.55) return true;
+      }
+      return false;
+    };
+    const thesisGarbage = isGarbage(strategy.thesis);
+    const narrativeGarbage = strategy.marketNarrative != null && (
+      isGarbage(strategy.marketNarrative.why) || isGarbage(strategy.marketNarrative.story)
+    );
+    if (thesisGarbage || narrativeGarbage) {
+      logger.warn('api.investment-strategy', 'quality_gate_failed', {
+        thesisGarbage, narrativeGarbage,
+        thesis: strategy.thesis?.slice(0, 60),
+        why: strategy.marketNarrative?.why?.slice(0, 60),
+        source: strategy.source,
+      });
+      strategy = {
+        ...strategy,
+        ...(thesisGarbage ? { thesis: undefined } : {}),
+        ...(narrativeGarbage ? { marketNarrative: undefined } : {}),
+      };
+    }
+  }
+
   // isFallback: source 이름과 무관하게 7섹션 필드 없으면 fallback으로 판단
   // → 데이터 기반 fallback이 stale 키를 덮어쓰는 것 방지 (기존 좋은 stale 보존)
   const isFallback = strategy.source === 'fallback'

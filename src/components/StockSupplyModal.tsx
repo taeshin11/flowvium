@@ -316,9 +316,9 @@ export default function StockSupplyModal({ ticker, onClose }: Props) {
                     <div className="rounded-xl border border-gray-100 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('volumeTrend')}</p>
-                        {data.avgVol10d && (
+                        {data.avgVol10d != null && (
                           <span className="text-[10px] text-gray-400">
-                            10D Avg: {(data.avgVol10d / 1e6).toFixed(1)}M | 3M Avg: {data.avgVol3m ? (data.avgVol3m / 1e6).toFixed(1) : '—'}M
+                            10D Avg: {(data.avgVol10d / 1e6).toFixed(1)}M | 3M Avg: {data.avgVol3m != null ? (data.avgVol3m / 1e6).toFixed(1) : '—'}M
                           </span>
                         )}
                       </div>
