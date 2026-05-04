@@ -397,8 +397,9 @@ function buildRotations(
   retKey: 'ret1w' | 'ret4w' | 'ret13w',
   minSpread: number,
 ): RotationEntry[] {
-  // Limit rotation-start lookback to the selected timeframe so the UI label is consistent
-  const maxWeeks = retKey === 'ret1w' ? 1 : retKey === 'ret4w' ? 4 : 13;
+  // The timeframe cap: only show rotations that STARTED within the selected window.
+  // Always use 13-week lookback for accurate start detection, then filter.
+  const tfWeeks = retKey === 'ret1w' ? 1 : retKey === 'ret4w' ? 4 : 13;
   const groupPerf: Record<string, number[]> = {};
   for (const r of results) {
     const val = r[retKey];
@@ -416,13 +417,17 @@ function buildRotations(
     for (let j = i + 1; j < groupAvg.length; j++) {
       const spread = groupAvg[i].avg - groupAvg[j].avg;
       if (spread > minSpread) {
-        const timing = estimateRotationStart(priceMap, groupAvg[i].group, groupAvg[j].group, ASSETS, maxWeeks);
-        rotations.push({
-          from: groupAvg[j].group,
-          to: groupAvg[i].group,
-          magnitude: parseFloat(spread.toFixed(1)),
-          ...timing,
-        });
+        // Use full 13-week lookback for accurate start detection
+        const timing = estimateRotationStart(priceMap, groupAvg[i].group, groupAvg[j].group, ASSETS, 13);
+        // Only include if the rotation actually started within the selected timeframe
+        if (timing.weeksAgo <= tfWeeks) {
+          rotations.push({
+            from: groupAvg[j].group,
+            to: groupAvg[i].group,
+            magnitude: parseFloat(spread.toFixed(1)),
+            ...timing,
+          });
+        }
       }
     }
   }

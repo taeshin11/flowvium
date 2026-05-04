@@ -649,21 +649,25 @@ export default function IntelligencePage() {
 
       <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
         {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
-                activeTab === tab
-                  ? 'bg-white text-cf-text-primary shadow-sm'
-                  : 'text-cf-text-secondary hover:text-cf-text-primary'
-              }`}
-            >
-              {tabConfig[tab].icon}
-              {tabConfig[tab].label}
-            </button>
-          ))}
+        {/* Outer div provides rounded clip; inner div handles horizontal scroll so border-radius
+            doesn't clip the last tab's text when scrolled to the edge. */}
+        <div className="bg-gray-100 rounded-xl overflow-hidden">
+          <div className="flex gap-1 p-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
+                  activeTab === tab
+                    ? 'bg-white text-cf-text-primary shadow-sm'
+                    : 'text-cf-text-secondary hover:text-cf-text-primary'
+                }`}
+              >
+                {tabConfig[tab].icon}
+                {tabConfig[tab].label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab: 자금 흐름 지도 */}

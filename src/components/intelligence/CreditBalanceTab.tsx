@@ -58,8 +58,9 @@ function GdpRatioGauge({ ratio, peak, trough, percentile, labels }: {
   ratio: number; peak: number; trough: number; percentile: number;
   labels: { min: string; current: string; max: string; safe: string; caution: string; warning: string; danger: string };
 }) {
-  const range = peak - trough || 1;
-  const posPct = Math.min(((ratio - trough) / range) * 100, 100);
+  // Use percentile for marker position so bar location matches the risk badge text.
+  // (min-max ratio would place 2.81% near "safe" even at 78th percentile.)
+  const posPct = Math.min(percentile, 100);
   const riskColor = percentile >= 90 ? 'bg-red-500' : percentile >= 70 ? 'bg-orange-400' : percentile >= 40 ? 'bg-amber-400' : 'bg-emerald-400';
   return (
     <div className="mt-2">
@@ -273,10 +274,11 @@ export default function CreditBalanceTab() {
             <p className="text-xs font-bold text-cf-text-primary">{t('cbHistTitle')}</p>
             <span className="text-[10px] text-cf-text-secondary">{viewMode === 'gdpRatio' ? t('cbHistAxisGdp') : t('cbHistAxisBal')}</span>
           </div>
+          {/* h-28 = 112px; bars use px heights to avoid % resolving to 0 in flex containers */}
           <div className="flex items-end gap-0.5 h-28">
             {activeCountry.historical.map((pt, i) => {
               const val = viewMode === 'balance' ? pt.balance : pt.gdpRatio;
-              const heightPct = (val / maxHist) * 100;
+              const barPx = Math.max((val / maxHist) * 96, 4); // 96px usable bar area
               const isCurrentOrRecent = i >= activeCountry.historical.length - 2;
               const isPeak = val === Math.max(...histValues);
               return (
@@ -294,7 +296,7 @@ export default function CreditBalanceTab() {
                       isCurrentOrRecent ? rc.bar :
                       'bg-blue-300'
                     } ${isPeak ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
-                    style={{ height: `${Math.max(heightPct, 4)}%` }}
+                    style={{ height: `${barPx}px` }}
                   />
                   <span className={`text-[8px] truncate max-w-full text-center ${isCurrentOrRecent ? 'font-bold text-cf-text-primary' : 'text-gray-400'}`}>
                     {pt.period.replace('-Q1', '').replace('-Q2', '').replace('-Q3', '').replace('-Q4', '')}
@@ -326,10 +328,11 @@ export default function CreditBalanceTab() {
             {t('cbUsHistDesc')}
           </p>
           <div className="flex items-end gap-1 h-28">
-            {usLongHistory.historical.map((pt, i) => {
-              const val = pt.gdpRatio;
+            {(() => {
               const maxV = Math.max(...usLongHistory.historical.map(h => h.gdpRatio));
-              const heightPct = (val / maxV) * 100;
+              return usLongHistory.historical.map((pt, i) => {
+              const val = pt.gdpRatio;
+              const barPx = Math.max((val / maxV) * 96, 4);
               const isCurrent = i === usLongHistory.historical.length - 1;
               const isPeak = val === maxV;
               const isCrash = pt.period === '2002' || pt.period === '2009';
@@ -349,14 +352,15 @@ export default function CreditBalanceTab() {
                       isCurrent ? 'bg-amber-400' :
                       'bg-slate-300'
                     }`}
-                    style={{ height: `${Math.max(heightPct, 4)}%` }}
+                    style={{ height: `${barPx}px` }}
                   />
                   <span className={`text-[8px] truncate max-w-full ${isCurrent ? 'font-bold text-cf-text-primary' : 'text-gray-400'}`}>
                     {pt.period}
                   </span>
                 </div>
               );
-            })}
+            });
+            })()}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
             {[
