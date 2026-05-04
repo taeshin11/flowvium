@@ -13,26 +13,17 @@ import { callAI } from '@/lib/ai-providers';
 import {
   SIGNAL_LOG_KEY,
   SIGNAL_ACCURACY_PREFIX,
+  RETROSPECTIVE_KEY,
   type RotationSignal,
   type AccuracyRecord,
   type Timeframe,
+  type SignalRetrospective,
 } from '@/lib/signal-accuracy';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-export const RETROSPECTIVE_KEY = 'flowvium:signal-retrospective:v1';
 const RETROSPECTIVE_TTL = 14 * 86400; // 14 days
-
-export interface SignalRetrospective {
-  generatedAt: string;
-  aiSummary: string;           // LLM 생성 회고문 (마크다운)
-  aiSource: string;            // 어떤 AI 모델이 썼는지
-  totalEvaluated: number;
-  byTimeframe: Record<Timeframe, { samples: number; hitRate: number | null }>;
-  topHits: Array<{ from: string; to: string; timeframe: Timeframe; spread: number }>;
-  topMisses: Array<{ from: string; to: string; timeframe: Timeframe; spread: number }>;
-}
 
 function buildPrompt(
   signals: RotationSignal[],

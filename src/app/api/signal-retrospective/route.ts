@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
-import { RETROSPECTIVE_KEY, type SignalRetrospective } from '@/app/api/cron/signal-retrospective/route';
+import { RETROSPECTIVE_KEY, type SignalRetrospective } from '@/lib/signal-accuracy';
 
 export const dynamic = 'force-dynamic';
 

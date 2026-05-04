@@ -190,3 +190,17 @@ export async function getEffectiveThresholds(redis: Redis): Promise<Record<Timef
     '13w': acc['13w']?.suggestedThreshold ?? DEFAULT_THRESHOLDS['13w'],
   };
 }
+
+
+// ── Signal Retrospective (shared between cron route and read route) ───────────
+export const RETROSPECTIVE_KEY = 'flowvium:signal-retrospective:v1';
+
+export interface SignalRetrospective {
+  generatedAt: string;
+  aiSummary: string;
+  aiSource: string;
+  totalEvaluated: number;
+  byTimeframe: Record<Timeframe, { samples: number; hitRate: number | null }>;
+  topHits: Array<{ from: string; to: string; timeframe: Timeframe; spread: number }>;
+  topMisses: Array<{ from: string; to: string; timeframe: Timeframe; spread: number }>;
+}
