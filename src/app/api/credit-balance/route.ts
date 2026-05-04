@@ -422,12 +422,24 @@ const DATA: CountryCreditData[] = [
 const COUNTRY_DATA = DATA.filter(d => d.id !== 'us_gdp_sectors');
 const US_LONG_HISTORY = DATA.find(d => d.id === 'us_gdp_sectors')!;
 
-// ── Risk thresholds (percentile-based) ────────────────────────────────────────
-function computeRiskLabel(percentile: number): 'low' | 'medium' | 'high' | 'extreme' {
-  if (percentile >= 90) return 'extreme';
-  if (percentile >= 70) return 'high';
-  if (percentile >= 40) return 'medium';
+// ── Derived field calculators (dynamic, based on historical array) ───────────
+function calcPercentile(historical: CreditHistPoint[], current: number): number {
+  if (!historical || historical.length === 0) return 50;
+  const vals = historical.map(h => h.gdpRatio);
+  const below = vals.filter(v => v < current).length;
+  return Math.round((below / vals.length) * 100);
+}
+function calcRiskLevel(p: number): 'low' | 'medium' | 'high' | 'extreme' {
+  if (p >= 90) return 'extreme';
+  if (p >= 70) return 'high';
+  if (p >= 40) return 'medium';
   return 'low';
+}
+function calcChangeYoY(historical: CreditHistPoint[]): number {
+  if (!historical || historical.length < 2) return 0;
+  const last = historical[historical.length - 1].gdpRatio;
+  const prev = historical[historical.length - 2].gdpRatio;
+  return Math.round((last - prev) * 10) / 10;
 }
 
 // ── Global snapshot ───────────────────────────────────────────────────────────
@@ -477,13 +489,27 @@ export async function GET() {
 
   const countries = COUNTRY_DATA.map(c => {
     const liveEntry = live[c.id] ?? null;
-    const overlaid = applyLiveOverlay(c, liveEntry);
+    let overlaid = applyLiveOverlay(c, liveEntry);
+    // If live data changed gdpRatio, update the last historical point so derived fields are consistent
+    if (liveEntry) {
+      const hist = [...overlaid.historical];
+      if (hist.length > 0 && hist[hist.length - 1].gdpRatio !== overlaid.gdpRatio) {
+        hist[hist.length - 1] = { ...hist[hist.length - 1], balance: overlaid.currentBalance, gdpRatio: overlaid.gdpRatio };
+        overlaid = { ...overlaid, historical: hist };
+      }
+    }
+    // Dynamically compute derived fields from (possibly updated) historical array
+    const histPercentile = calcPercentile(overlaid.historical, overlaid.gdpRatio);
+    const riskLevel = calcRiskLevel(histPercentile);
+    const changeYoY = calcChangeYoY(overlaid.historical);
     // If no live data, refresh lastUpdated to the most-recent likely-published period
     const finalLastUpdated = liveEntry ? overlaid.lastUpdated : dynamicLastUpdated(c.id);
     return {
       ...overlaid,
       lastUpdated: finalLastUpdated,
-      riskLevel: computeRiskLabel(c.histPercentile),
+      histPercentile,
+      riskLevel,
+      changeYoY,
     };
   });
 
