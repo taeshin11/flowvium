@@ -93,6 +93,29 @@ node scripts/check-static-fallbacks.mjs
 `src/app/api/` 및 `src/lib/` 에서 `@/data/` 값 import를 찾아 `source` 필드 누락 여부를 보고함.
 새 API route 작성 후 이 스크립트로 검증 권장.
 
+### 같은 파일 내 파생 필드 하드코딩 금지 (2026-05-05 credit-balance 사건 이후 신설)
+
+**발생 경위:** `credit-balance/route.ts` 의 `const DATA` 배열 안에 `histPercentile`, `riskLevel`, `changeYoY` 가 리터럴로 박혀 있었으나 `check-static-fallbacks.mjs` 가 `@/data/` import 만 감지해 3번 검토에서도 놓쳤음.
+
+**금지 패턴 예시:**
+```typescript
+// ❌ 금지 — 파생값 하드코딩
+const DATA: CountryCreditData[] = [
+  { id: 'us', gdpRatio: 123.4, histPercentile: 78, riskLevel: 'high', changeYoY: -9.2 }
+]
+```
+
+**규칙:** `const DATA`/`STATIC_*`/`FALLBACK_*` 배열 내부에 퍼센타일·등급·파생통계 값을 리터럴로 쓰지 않는다. 반드시 런타임에 계산하거나 Redis/외부 소스에서 가져온다.
+
+| 필드 유형 | 처리 방법 |
+|---|---|
+| `histPercentile`, `percentile`, `rank` | 런타임 계산 필수 (`historical` 배열 기반) |
+| `riskLevel`, `riskScore`, `signal`, `stance` | Redis 기반 또는 계산식 필수 |
+| `changeYoY`, `changeQoQ`, `averageReturn` | 시계열 차분 계산 필수 |
+| `id`, `name`, `color`, `sector` (구조 메타) | 정적 허용 |
+
+**감지:** `node scripts/check-static-fallbacks.mjs` — Pattern B (ERROR) 가 잡아냄
+
 ---
 
 ## 🗂️ 기타 프로젝트 관습

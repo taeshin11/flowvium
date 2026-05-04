@@ -1140,7 +1140,34 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       status: 'error', lastError: err instanceof Error ? err.message : String(err) });
   }
 
+
+  // 7. credit-balance US histPercentile vs computed from historical array
+  //    파생값이 동적 계산되는지 검증 — static DATA 배열 리터럴 재발 방지
+  try {
+    const cbResp = await fetch(`${base}/api/credit-balance`, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    if (!cbResp.ok) throw new Error(`HTTP ${cbResp.status}`);
+    const cbData = await cbResp.json() as { countries?: Array<{ id: string; gdpRatio: number; histPercentile: number; historical: Array<{ gdpRatio: number }> }> };
+    const us = cbData.countries?.find(c => c.id === 'us');
+    if (us && Array.isArray(us.historical) && us.historical.length > 0 && typeof us.gdpRatio === 'number' && typeof us.histPercentile === 'number') {
+      const computedPct = (us.historical.filter(h => h.gdpRatio < us.gdpRatio).length / us.historical.length) * 100;
+      const delta = Math.abs(us.histPercentile - computedPct);
+      items.push({
+        key: 'accuracy.credit.us.percentile', label: 'Credit Balance US histPercentile 동적 계산 검증', group: 'accuracy',
+        status: delta < 5 ? 'ok' : delta < 15 ? 'degraded' : 'error',
+        value: `reported=${us.histPercentile} computed=${computedPct.toFixed(0)} delta=${delta.toFixed(0)}`,
+        details: { reported: us.histPercentile, computed: computedPct, delta, historicalCount: us.historical.length },
+      });
+    } else {
+      items.push({ key: 'accuracy.credit.us.percentile', label: 'Credit Balance US histPercentile 동적 계산 검증', group: 'accuracy',
+        status: 'degraded', value: 'us country or historical data missing' });
+    }
+  } catch (err) {
+    items.push({ key: 'accuracy.credit.us.percentile', label: 'Credit Balance US histPercentile 동적 계산 검증', group: 'accuracy',
+      status: 'error', lastError: err instanceof Error ? err.message : String(err) });
+  }
+
   return items;
+
 }
 
 async function verifyEarnings(_base: string): Promise<MetricItem[]> {
