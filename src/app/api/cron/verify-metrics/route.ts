@@ -1123,6 +1123,23 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       status: 'error', lastError: err instanceof Error ? err.message : String(err) });
   }
 
+  // ── stock-supply source probe ────────────────────────────────────────────
+  // SEC EDGAR Form 4 파싱 실패 시 빈 배열 반환. source 필드로 라이브 여부 검증.
+  try {
+    const r = await safeJson(base, '/api/stock-supply?ticker=AAPL');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = r.data as { source?: string; entries?: unknown[] };
+    const source = data.source ?? 'unknown';
+    items.push({
+      key: 'accuracy.stock_supply.source', label: 'Stock Supply SEC EDGAR 소스', group: 'accuracy',
+      status: source === 'live' ? 'ok' : source === 'unknown' ? 'degraded' : 'ok',
+      value: `source=${source}`,
+    });
+  } catch (err) {
+    items.push({ key: 'accuracy.stock_supply.source', label: 'Stock Supply SEC EDGAR 소스', group: 'accuracy',
+      status: 'error', lastError: err instanceof Error ? err.message : String(err) });
+  }
+
   return items;
 }
 
