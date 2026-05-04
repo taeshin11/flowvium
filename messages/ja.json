@@ -1165,7 +1165,8 @@
     "catalystsLabel": "主要触媒",
     "fundamentalBasisLabel": "ファンダメンタル",
     "technicalBasisLabel": "テクニカル",
-    "riskNoteLabel": "主要リスク"
+    "riskNoteLabel": "主要リスク",
+    "historyExpiredNote": "この過去レポートは期限切れで読み込めません。最新レポートをご覧ください。"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

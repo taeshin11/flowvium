@@ -1165,7 +1165,8 @@
     "catalystsLabel": "ตัวเร่งหลัก",
     "fundamentalBasisLabel": "พื้นฐาน",
     "technicalBasisLabel": "เทคนิคัล",
-    "riskNoteLabel": "ความเสี่ยงหลัก"
+    "riskNoteLabel": "ความเสี่ยงหลัก",
+    "historyExpiredNote": "รายงานประวัติศาสตร์นี้หมดอายุแล้วและไม่สามารถโหลดได้ ดูรายงานล่าสุด"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

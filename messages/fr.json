@@ -1165,7 +1165,8 @@
     "catalystsLabel": "Catalyseurs Clés",
     "fundamentalBasisLabel": "Fondamentaux",
     "technicalBasisLabel": "Technique",
-    "riskNoteLabel": "Risque Clé"
+    "riskNoteLabel": "Risque Clé",
+    "historyExpiredNote": "Ce rapport historique a expiré et ne peut pas être chargé. Voir le dernier rapport."
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

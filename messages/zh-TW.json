@@ -1165,7 +1165,8 @@
     "catalystsLabel": "主要催化劑",
     "fundamentalBasisLabel": "基本面",
     "technicalBasisLabel": "技術面",
-    "riskNoteLabel": "核心風險"
+    "riskNoteLabel": "核心風險",
+    "historyExpiredNote": "此歷史報告已過期，無法載入。請查看最新報告。"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

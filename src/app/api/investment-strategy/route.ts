@@ -1661,10 +1661,10 @@ export async function GET(request: Request) {
   const isFallback = strategy.source === 'fallback'
     || strategy.source === '데이터 기반 모델'
     || !isSchemaCompatible(strategy as unknown as Record<string, unknown>);
+  const cacheable = toCacheable(strategy);
   if (redis) {
     try {
       const ttl = isFallback ? 2 * 60 * 60 : CACHE_TTL;
-      const cacheable = toCacheable(strategy);
       await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: ttl });
       // stale 키는 AI 생성 7섹션 리포트만 덮어씀 — fallback으로 좋은 stale 오염 방지
       if (!isFallback) {
@@ -1672,20 +1672,23 @@ export async function GET(request: Request) {
       }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
 
-    // History — loggedRedisSet으로 배열 직접 저장 (CI 규칙 준수, 자동 직렬화)
+    // History — 전용 90일 키에 full report 저장 (session TTL 키 만료 시에도 히스토리 유지)
     try {
       const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
+      const HIST_REPORT_TTL = 90 * 86400; // 90일
       const kstDateHist = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
-      const meta = { key, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source };
+      // 전용 히스토리 리포트 키 (session 키와 별도, 90일 TTL)
+      const histReportKey = `flowvium:investment-strategy:hist:report:${strategy.generatedAt}`;
+      await loggedRedisSet(redis, 'api.investment-strategy', histReportKey, cacheable, { ex: HIST_REPORT_TTL });
+      // 히스토리 배열에는 전용 키를 저장 (session TTL 만료와 무관)
+      const meta = { key: histReportKey, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source };
       const raw = await redis.get(HIST_KEY);
-      // E1 FIX: handle both string (stringified) and auto-deserialized array
       const existing = typeof raw === 'string' ? JSON.parse(raw) : raw;
       const arr = Array.isArray(existing) ? existing : [];
-      // E2 FIX: filter malformed entries before prepend
       const cleaned = arr.filter((e: unknown) => e && typeof e === 'object' && (e as Record<string,unknown>).key && (e as Record<string,unknown>).generatedAt);
       const updated = [meta, ...cleaned].slice(0, 30);
-      await loggedRedisSet(redis, 'api.investment-strategy', HIST_KEY, updated, { ex: 90 * 86400 });
-      logger.info('api.investment-strategy', 'history_saved', { count: updated.length, source: strategy.source });
+      await loggedRedisSet(redis, 'api.investment-strategy', HIST_KEY, updated, { ex: HIST_REPORT_TTL });
+      logger.info('api.investment-strategy', 'history_saved', { count: updated.length, histReportKey, source: strategy.source });
       // 포트폴리오 예측 회고 로그 (14일 후 평가)
       if (!isFallback && strategy.portfolio?.length) {
         logPortfolioPredictions(redis, strategy.portfolio, strategy.generatedAt).catch(() => {});

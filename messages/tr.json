@@ -1165,7 +1165,8 @@
     "catalystsLabel": "Ana Katalizörler",
     "fundamentalBasisLabel": "Temel Analiz",
     "technicalBasisLabel": "Teknik Analiz",
-    "riskNoteLabel": "Ana Risk"
+    "riskNoteLabel": "Ana Risk",
+    "historyExpiredNote": "Bu tarihi rapor süresi doldu ve yüklenemiyor. En son raporu görüntüleyin."
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

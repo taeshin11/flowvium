@@ -1165,7 +1165,8 @@
     "catalystsLabel": "मुख्य उत्प्रेरक",
     "fundamentalBasisLabel": "बुनियादी विश्लेषण",
     "technicalBasisLabel": "तकनीकी विश्लेषण",
-    "riskNoteLabel": "मुख्य जोखिम"
+    "riskNoteLabel": "मुख्य जोखिम",
+    "historyExpiredNote": "यह ऐतिहासिक रिपोर्ट समाप्त हो गई है और लोड नहीं हो सकती। नवीनतम रिपोर्ट देखें।"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

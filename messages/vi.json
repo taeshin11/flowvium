@@ -1165,7 +1165,8 @@
     "catalystsLabel": "Chất xúc tác chính",
     "fundamentalBasisLabel": "Cơ bản",
     "technicalBasisLabel": "Kỹ thuật",
-    "riskNoteLabel": "Rủi ro chính"
+    "riskNoteLabel": "Rủi ro chính",
+    "historyExpiredNote": "Báo cáo lịch sử này đã hết hạn và không thể tải. Xem báo cáo mới nhất."
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

@@ -35,6 +35,9 @@ import {
   Search,
   X,
   Radar,
+  Activity,
+  Brain,
+  GitMerge,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import EmailCTA from '@/components/EmailCTA';
@@ -922,6 +925,7 @@ export default function HomePage() {
   const tHome = useTranslations('home');
   const tCommon = useTranslations('common');
   const tNav = useTranslations('nav');
+  const tIntel = useTranslations('intelligence');
 
   const socialProof = useInView();
   const featuredSectors = useInView();
@@ -974,6 +978,14 @@ export default function HomePage() {
                   { href: '/short',        icon: <TrendingDown className="w-3.5 h-3.5" />,    label: tNav('short'),                 desc: tNav('shortDesc'),                 accent: 'text-red-600 dark:text-red-400' },
                   { href: '/cascade',      icon: <Network className="w-3.5 h-3.5" />,         label: tNav('cascade'),               desc: tNav('cascadeDesc'),               accent: 'text-cyan-600 dark:text-cyan-400' },
                   { href: '/paper-trading', icon: <TrendingUp className="w-3.5 h-3.5" />, label: '가상계좌', desc: 'AI 리포트 가상 매매', accent: 'text-emerald-500' },
+                  { href: '/intelligence?tab=capital',    icon: <GitMerge className="w-3.5 h-3.5" />,     label: tIntel('tabCapital'),    desc: tIntel('cfAiTitle'),      accent: 'text-amber-500' },
+                  { href: '/intelligence?tab=macro',      icon: <TrendingUp className="w-3.5 h-3.5" />,   label: tIntel('tabMacro'),      accent: 'text-blue-500' },
+                  { href: '/intelligence?tab=flows',      icon: <Activity className="w-3.5 h-3.5" />,     label: tIntel('tabFlows'),      desc: tIntel('sectorSignalsTitle'), accent: 'text-emerald-500' },
+                  { href: '/intelligence?tab=fear-greed', icon: <BarChart3 className="w-3.5 h-3.5" />,    label: 'Fear & Greed',          desc: tIntel('fgByCountryTitle'), accent: 'text-rose-500' },
+                  { href: '/intelligence?tab=credit',     icon: <TrendingDown className="w-3.5 h-3.5" />, label: tIntel('tabCredit'),     desc: tIntel('cbTitle'),        accent: 'text-red-500' },
+                  { href: '/intelligence?tab=narratives', icon: <Brain className="w-3.5 h-3.5" />,        label: tIntel('tabNarratives'), accent: 'text-violet-500' },
+                  { href: '/intelligence?tab=news',       icon: <Zap className="w-3.5 h-3.5" />,          label: tIntel('tabNews'),       desc: tIntel('ncTitle'),        accent: 'text-orange-500' },
+                  { href: '/intelligence?tab=cot',        icon: <BarChart3 className="w-3.5 h-3.5" />,    label: tIntel('tabCot'),        desc: tIntel('cotTitle'),       accent: 'text-cyan-500' },
                 ] as { href: string; icon: React.ReactNode; label: string; desc?: string; accent: string; primary?: boolean; aiReport?: boolean }[]).map(item => (
                   <Link
                     key={item.href}

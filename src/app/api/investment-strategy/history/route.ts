@@ -30,12 +30,15 @@ export async function GET(req: Request) {
   if (!redis) return NextResponse.json({ items: [], report: null });
 
   if (loadKey) {
-    // Load full report by key
     try {
       const report = await redis.get<InvestmentStrategy>(loadKey);
-      return NextResponse.json({ report: report ?? null });
+      if (!report) {
+        // 전용 히스토리 키가 만료됐거나 session 키가 삭제된 경우
+        return NextResponse.json({ report: null, expired: true });
+      }
+      return NextResponse.json({ report });
     } catch {
-      return NextResponse.json({ report: null });
+      return NextResponse.json({ report: null, expired: true });
     }
   }
 

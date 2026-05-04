@@ -1165,7 +1165,8 @@
     "catalystsLabel": "Hauptkatalysatoren",
     "fundamentalBasisLabel": "Fundamentaldaten",
     "technicalBasisLabel": "Technisch",
-    "riskNoteLabel": "Hauptrisiko"
+    "riskNoteLabel": "Hauptrisiko",
+    "historyExpiredNote": "Dieser historische Bericht ist abgelaufen und kann nicht geladen werden. Aktuellen Bericht anzeigen."
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

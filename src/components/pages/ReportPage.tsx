@@ -321,8 +321,8 @@ export default function ReportPage() {
 
   // History
   const [historyItems, setHistoryItems] = useState<HistoryMeta[]>([]);
-  // generatedAt을 선택 식별자로 사용 (같은 Redis key를 가진 항목이 여러 개일 수 있음)
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [historyExpired, setHistoryExpired] = useState(false);
 
   // KPI strip
   const [fg,    setFg]    = useState<KpiState<{ score: number }>>({ loading: true, error: false, value: null });
@@ -412,12 +412,18 @@ export default function ReportPage() {
   // Load specific historical report when tab selected
   const loadHistoricalReport = useCallback(async (redisKey: string, generatedAt: string) => {
     setSelectedHistoryId(generatedAt);
+    setHistoryExpired(false);
     setLoading(true);
     try {
       const res = await fetch(`/api/investment-strategy/history?key=${encodeURIComponent(redisKey)}`, { cache: 'no-store' });
       const d = await res.json();
-      if (d.report) setData(d.report);
-    } catch { /* ignore */ } finally { setLoading(false); }
+      if (d.report) {
+        setData(d.report);
+      } else {
+        // 키 만료 또는 삭제된 경우 — 현재 데이터 유지하되 만료 표시
+        setHistoryExpired(true);
+      }
+    } catch { setHistoryExpired(true); } finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -462,7 +468,7 @@ export default function ReportPage() {
         <div className="mb-4 overflow-x-auto">
           <div className="flex gap-1.5 pb-1 min-w-max">
             <button
-              onClick={() => { setSelectedHistoryId(null); fetchStrategy(); }}
+              onClick={() => { setSelectedHistoryId(null); setHistoryExpired(false); fetchStrategy(); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border
                 ${selectedHistoryId === null
                   ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
@@ -491,6 +497,18 @@ export default function ReportPage() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── 히스토리 만료 배너 ──────────────────────────────────────────────── */}
+      {historyExpired && selectedHistoryId && (
+        <div className="mb-3 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+          <span>⚠️</span>
+          <span>{t('historyExpiredNote')}</span>
+          <button
+            onClick={() => { setSelectedHistoryId(null); setHistoryExpired(false); fetchStrategy(); }}
+            className="ml-auto text-amber-600 underline font-medium"
+          >{t('latestReport')}</button>
         </div>
       )}
 

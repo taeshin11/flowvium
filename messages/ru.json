@@ -1165,7 +1165,8 @@
     "catalystsLabel": "Ключевые Катализаторы",
     "fundamentalBasisLabel": "Фундаментал",
     "technicalBasisLabel": "Технический",
-    "riskNoteLabel": "Ключевой Риск"
+    "riskNoteLabel": "Ключевой Риск",
+    "historyExpiredNote": "Этот исторический отчёт истёк и не может быть загружен. Просмотрите последний отчёт."
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

@@ -1165,7 +1165,8 @@
     "catalystsLabel": "Katalis Utama",
     "fundamentalBasisLabel": "Fundamental",
     "technicalBasisLabel": "Teknikal",
-    "riskNoteLabel": "Risiko Utama"
+    "riskNoteLabel": "Risiko Utama",
+    "historyExpiredNote": "Laporan historis ini telah kedaluwarsa dan tidak dapat dimuat. Lihat laporan terbaru."
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

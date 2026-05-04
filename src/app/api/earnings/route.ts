@@ -242,7 +242,8 @@ async function resolveCompanyNames(
         for (const q of d?.quoteResponse?.result ?? []) {
           if (!q.symbol) continue;
           const name = q.shortName ?? q.longName ?? null;
-          if (name) {
+          // Skip if Yahoo returned the ticker itself as the name (meaningless)
+          if (name && name.toUpperCase() !== q.symbol.toUpperCase()) {
             names[q.symbol] = name;
             if (redis)
               loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${q.symbol}`, name, { ex: 7 * 24 * 3600 }).catch(() => {});
@@ -265,7 +266,7 @@ async function resolveCompanyNames(
         );
         if (!r.ok) return;
         const d = await r.json() as { name?: string };
-        if (d.name) {
+        if (d.name && d.name.toUpperCase() !== sym.toUpperCase()) {
           names[sym] = d.name;
           if (redis)
             loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${sym}`, d.name, { ex: 7 * 24 * 3600 }).catch(() => {});

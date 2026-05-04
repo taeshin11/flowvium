@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { macroNarratives, type MacroNarrative } from '@/data/macro-narratives';
@@ -536,7 +537,9 @@ interface LiveFGData {
 
 export default function IntelligencePage() {
   const t = useTranslations('intelligence');
-  const [activeTab, setActiveTab] = useState<Tab>('capital');
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get('tab') ?? 'capital') as Tab;
+  const [activeTab, setActiveTab] = useState<Tab>(TABS.includes(initialTab) ? initialTab : 'capital');
   const [chatOpen, setChatOpen] = useState(false);
 
   // Live Fear & Greed data from API
