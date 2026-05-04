@@ -985,7 +985,15 @@
     "cfSignalMixed": "混在",
     "poweredByGemini": "Gemini 2.5 搭載",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "キャリーモデル"
+    "cfModelCurve": "キャリーモデル",
+    "fgStaticBanner": "API接続失敗 — 2026-04-26のスナップショットを表示中",
+    "flowsStaticBanner": "API接続失敗 — 2026-04-26のスナップショットを表示中",
+    "creditStaticBanner": "API接続失敗 — 静的スナップショットデータを表示中",
+    "cotExplainTitle": "COTレポートとは？",
+    "cotExplainNetPos": "ネットポジション = ロング − ショート（ヘッジファンド等）",
+    "cotExplainBullish": "プラス（緑）：強気ポジション優勢 → 上昇圧力",
+    "cotExplainBearish": "マイナス（赤）：弱気ポジション優勢 → 下落圧力",
+    "cotExplainStrong": "OI比±15%以上 = 強い確信ポジション"
   },
   "osint": {
     "pageCategory": "グローバルインテリジェンス追跡",

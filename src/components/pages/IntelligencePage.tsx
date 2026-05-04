@@ -532,6 +532,7 @@ type Tab = typeof TABS[number];
 interface LiveFGData {
   byCountry: FearGreedEntryExtended[];
   byAsset: FearGreedEntryExtended[];
+  source?: 'live' | 'static';
   updatedAt: string;
 }
 
@@ -720,6 +721,12 @@ export default function IntelligencePage() {
             )}
 
             {/* ETF sector flows — live when capital-flows loaded, static fallback otherwise */}
+            {!liveCapSectors && (
+              <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+                <span>⚠️</span>
+                <span>{t('flowsStaticBanner')}</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h2 className="text-base font-heading font-bold text-green-700 mb-3 flex items-center gap-2">
@@ -770,9 +777,15 @@ export default function IntelligencePage() {
                       </span>
                     )}
                   </div>
+                  {(!fgData || fgData.source === 'static') && (
+                    <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+                      <span>⚠️</span>
+                      <span>{t('fgStaticBanner')}</span>
+                    </div>
+                  )}
                   <p className="text-xs text-cf-text-secondary mb-4">
-                    {fgData ? t('fgMethodologyLabel') : t('staticDataLabel')}
-                    {' '}· {t('fgScaleLabel')}
+                    {fgData && fgData.source !== 'static' ? t('fgMethodologyLabel') : t('fgScaleLabel')}
+                    {fgData && fgData.source !== 'static' ? ' · ' + t('fgScaleLabel') : ''}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {liveCountry.map((e) => <FearGreedCard key={e.id} entry={e} />)}

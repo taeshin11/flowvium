@@ -985,7 +985,15 @@
     "cfSignalMixed": "Hỗn hợp",
     "poweredByGemini": "Được hỗ trợ bởi Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "mô hình"
+    "cfModelCurve": "mô hình",
+    "fgStaticBanner": "API that bai — du lieu chup tu 2026-04-26",
+    "flowsStaticBanner": "API that bai — du lieu chup tu 2026-04-26",
+    "creditStaticBanner": "API that bai — du lieu tinh",
+    "cotExplainTitle": "Bao cao COT la gi?",
+    "cotExplainNetPos": "Vi the rong = Long - Short (quy phong ho)",
+    "cotExplainBullish": "Duong (xanh): cuoc tang chiem uu the, ap luc tang",
+    "cotExplainBearish": "Am (do): cuoc giam chiem uu the, ap luc giam",
+    "cotExplainStrong": "+-15% cua OI = dinh vi co do chac chan cao"
   },
   "osint": {
     "pageCategory": "Theo Dõi Tình Báo Toàn Cầu",

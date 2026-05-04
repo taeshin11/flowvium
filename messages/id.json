@@ -985,7 +985,15 @@
     "cfSignalMixed": "Campuran",
     "poweredByGemini": "Didukung Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "model"
+    "cfModelCurve": "model",
+    "fgStaticBanner": "API gagal — snapshot 2026-04-26",
+    "flowsStaticBanner": "API gagal — snapshot 2026-04-26",
+    "creditStaticBanner": "API gagal — data statis",
+    "cotExplainTitle": "Apa itu Laporan COT?",
+    "cotExplainNetPos": "Posisi Bersih = Long - Short (hedge fund & spekulan)",
+    "cotExplainBullish": "Positif (hijau): taruhan bullish mendominasi, tekanan naik",
+    "cotExplainBearish": "Negatif (merah): taruhan bearish mendominasi, tekanan turun",
+    "cotExplainStrong": "+-15% dari OI = posisi keyakinan tinggi"
   },
   "osint": {
     "pageCategory": "Pelacakan Intelijen Global",

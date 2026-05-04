@@ -985,7 +985,15 @@
     "cfSignalMixed": "혼조",
     "poweredByGemini": "Gemini 2.5 기반",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "carry모델"
+    "cfModelCurve": "carry모델",
+    "fgStaticBanner": "API 연결 실패 — 2026-04-26 기준 스냅숏입니다",
+    "flowsStaticBanner": "API 연결 실패 — 2026-04-26 기준 스냅숏입니다",
+    "creditStaticBanner": "API 연결 실패 — 정적 스냅숏 데이터입니다",
+    "cotExplainTitle": "COT 리포트란?",
+    "cotExplainNetPos": "순포지션 = 롱 − 숲 (헤지펀드 등 투기세력)",
+    "cotExplainBullish": "양수(녹색): 해당 자산 강세 베팅 → 상승 압력",
+    "cotExplainBearish": "음수(빨간): 약세 베팅 → 하락 압력",
+    "cotExplainStrong": "OI 대비 ±15% 이상 = 확신 강한 포지셔닝"
   },
   "osint": {
     "pageCategory": "글로벌 인텔리전스 추적",

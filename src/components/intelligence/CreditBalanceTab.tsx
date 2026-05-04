@@ -88,6 +88,7 @@ export default function CreditBalanceTab() {
   const [usLongHistory, setUsLongHistory] = useState<CountryCreditData | null>(null);
   const [globalSnapshot, setGlobalSnapshot] = useState<GlobalSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<'live' | 'static'>('static');
   const [selected, setSelected] = useState<string>('us');
   const [viewMode, setViewMode] = useState<'balance' | 'gdpRatio'>('gdpRatio');
   const [showLayman, setShowLayman] = useState(false);
@@ -101,6 +102,7 @@ export default function CreditBalanceTab() {
         setCountries(d.countries ?? []);
         setUsLongHistory(d.usLongHistory ?? null);
         setGlobalSnapshot(d.globalSnapshot ?? null);
+        setSource(d.source === 'live' ? 'live' : 'static');
       })
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -127,6 +129,13 @@ export default function CreditBalanceTab() {
 
   return (
     <div className="space-y-5">
+      {/* Static data banner */}
+      {source === 'static' && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+          <span>⚠️</span>
+          <span>{t('creditStaticBanner')}</span>
+        </div>
+      )}
       {/* Intro */}
       <div className="cf-card p-4 bg-gradient-to-r from-slate-50 to-indigo-50 border-indigo-100">
         <div className="flex items-start gap-3">

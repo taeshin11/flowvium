@@ -985,7 +985,15 @@
     "cfSignalMixed": "Mixte",
     "poweredByGemini": "Propulsé par Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "modèle"
+    "cfModelCurve": "modèle",
+    "fgStaticBanner": "Echec API — instantane du 2026-04-26",
+    "flowsStaticBanner": "Echec API — instantane du 2026-04-26",
+    "creditStaticBanner": "Echec API — donnees statiques affichees",
+    "cotExplainTitle": "Rapport COT: definition",
+    "cotExplainNetPos": "Position nette = Longs - Courts (fonds speculatifs)",
+    "cotExplainBullish": "Positif (vert): paris haussiers dominants vers pression a la hausse",
+    "cotExplainBearish": "Negatif (rouge): paris baissiers dominants vers pression a la baisse",
+    "cotExplainStrong": "15%+ du OI = positionnement a forte conviction"
   },
   "osint": {
     "pageCategory": "Suivi du Renseignement Mondial",

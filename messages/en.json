@@ -985,7 +985,15 @@
     "cfSignalMixed": "Mixed",
     "poweredByGemini": "Powered by Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "carry model"
+    "cfModelCurve": "carry model",
+    "fgStaticBanner": "API connection failed — showing snapshot from 2026-04-26",
+    "flowsStaticBanner": "API connection failed — showing snapshot from 2026-04-26",
+    "creditStaticBanner": "API connection failed — showing static snapshot data",
+    "cotExplainTitle": "What is a COT Report?",
+    "cotExplainNetPos": "Net Position = Long − Short (hedge funds & speculators)",
+    "cotExplainBullish": "Positive (green): bullish bets dominate → upward pressure",
+    "cotExplainBearish": "Negative (red): bearish bets dominate → downward pressure",
+    "cotExplainStrong": "±15%+ of OI = high-conviction positioning"
   },
   "osint": {
     "pageCategory": "Global Intelligence Tracking",

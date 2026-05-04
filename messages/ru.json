@@ -985,7 +985,15 @@
     "cfSignalMixed": "Смешанно",
     "poweredByGemini": "Работает на Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "модель"
+    "cfModelCurve": "модель",
+    "fgStaticBanner": "Sboi API — snimok ot 2026-04-26",
+    "flowsStaticBanner": "Sboi API — snimok ot 2026-04-26",
+    "creditStaticBanner": "Sboi API — staticheskie dannye",
+    "cotExplainTitle": "Chto takoye otchet COT?",
+    "cotExplainNetPos": "Netto-poziciya = Long - Short (khedzh-fondy)",
+    "cotExplainBullish": "Polozhitelnoye (zelenoye): bychi stavki preobladayut, davleniye vverkh",
+    "cotExplainBearish": "Otricatelnoye (krasnoye): medvezhi stavki preobladayut, davleniye vniz",
+    "cotExplainStrong": "+-15% ot OI = poziciya s vysokoy uverennostyu"
   },
   "osint": {
     "pageCategory": "Глобальное отслеживание разведданных",

@@ -985,7 +985,15 @@
     "cfSignalMixed": "मिश्रित",
     "poweredByGemini": "Gemini 2.5 द्वारा संचालित",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "मॉडल"
+    "cfModelCurve": "मॉडल",
+    "fgStaticBanner": "API failed — 2026-04-26 snapshot",
+    "flowsStaticBanner": "API failed — 2026-04-26 snapshot",
+    "creditStaticBanner": "API failed — static data",
+    "cotExplainTitle": "COT Report kya hai?",
+    "cotExplainNetPos": "Net Position = Long - Short (hedge funds)",
+    "cotExplainBullish": "Positive (green): bullish bets dominate, upward pressure",
+    "cotExplainBearish": "Negative (red): bearish bets dominate, downward pressure",
+    "cotExplainStrong": "+-15%+ OI = high conviction positioning"
   },
   "osint": {
     "pageCategory": "वैश्विक इंटेलिजेंस ट्रैकिंग",

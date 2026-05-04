@@ -985,7 +985,15 @@
     "cfSignalMixed": "Mixto",
     "poweredByGemini": "Desarrollado por Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "modelo"
+    "cfModelCurve": "modelo",
+    "fgStaticBanner": "Error de conexion API — instantanea del 2026-04-26",
+    "flowsStaticBanner": "Error de conexion API — instantanea del 2026-04-26",
+    "creditStaticBanner": "Error de conexion API — datos estaticos",
+    "cotExplainTitle": "Que es un informe COT?",
+    "cotExplainNetPos": "Posicion neta = Largos - Cortos (fondos especulativos)",
+    "cotExplainBullish": "Positivo (verde): apuestas alcistas dominan hacia presion alcista",
+    "cotExplainBearish": "Negativo (rojo): apuestas bajistas dominan hacia presion bajista",
+    "cotExplainStrong": "+-15% del OI = posicionamiento de alta conviccion"
   },
   "osint": {
     "pageCategory": "Seguimiento de Inteligencia Global",

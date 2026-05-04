@@ -90,20 +90,22 @@ function SectorTreemapContent(props: SectorContentProps) {
 
   if (depth === 1) {
     // Sector container: bold colored border + sector name bar
-    const HEADER = 18;
+    const HEADER = 20;
     const color = sectorColor ?? '#334155';
-    const labelW = Math.min(width - 6, (name?.length ?? 0) * 7.5 + 16);
+    const PAD = 3; // gap between adjacent sectors (PAD px on each side = PAD*2 total gap)
     return (
       <g>
-        {/* sector background */}
-        <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2}
+        {/* dark background separator (fills full cell — creates PAD-px gap at edges) */}
+        <rect x={x} y={y} width={width} height={height} fill="#0f172a" />
+        {/* sector fill with colored border */}
+        <rect x={x + PAD} y={y + PAD} width={width - PAD * 2} height={height - PAD * 2}
               fill="#0a1628" stroke={color} strokeWidth={3} rx={3} />
         {/* sector header bar */}
-        {width > 40 && height > 22 && (
+        {width > 50 && height > 26 && (
           <>
-            <rect x={x + 3} y={y + 3} width={width - 6} height={HEADER}
-                  fill={color} opacity={0.85} rx={2} />
-            <text x={x + 8} y={y + 3 + HEADER * 0.72} fill="#fff" fontSize={10} fontWeight={800}
+            <rect x={x + PAD + 2} y={y + PAD + 2} width={width - PAD * 2 - 4} height={HEADER}
+                  fill={color} opacity={0.9} rx={2} />
+            <text x={x + PAD + 8} y={y + PAD + 2 + HEADER * 0.73} fill="#fff" fontSize={10} fontWeight={800}
                   style={{ pointerEvents: 'none' as const, userSelect: 'none' as const }}>
               {name}
             </text>

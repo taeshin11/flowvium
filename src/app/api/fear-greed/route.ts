@@ -601,10 +601,15 @@ export async function GET(request: Request) {
 
   const sectorFlows = await computeSectorFlows(redis);
 
+  const filteredCountry = byCountry.filter(Boolean);
+  const filteredAsset = byAsset.filter(Boolean);
+  // source: 'live' if at least some entries were successfully fetched, 'static' if all failed
+  const hasLiveData = filteredCountry.length > 0 || filteredAsset.length > 0;
   const response = {
-    byCountry: byCountry.filter(Boolean),
-    byAsset: byAsset.filter(Boolean),
+    byCountry: filteredCountry,
+    byAsset: filteredAsset,
     sectorFlows,
+    source: hasLiveData ? 'live' : 'static',
     updatedAt: new Date().toISOString(),
   };
 

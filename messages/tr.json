@@ -985,7 +985,15 @@
     "cfSignalMixed": "Karışık",
     "poweredByGemini": "Gemini 2.5 ile çalışır",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "model"
+    "cfModelCurve": "model",
+    "fgStaticBanner": "API basarisiz — 2026-04-26 snapshot",
+    "flowsStaticBanner": "API basarisiz — 2026-04-26 snapshot",
+    "creditStaticBanner": "API basarisiz — statik veri",
+    "cotExplainTitle": "COT Raporu Nedir?",
+    "cotExplainNetPos": "Net Pozisyon = Long - Short (hedge fonlar)",
+    "cotExplainBullish": "Pozitif (yesil): yukselis bahisleri baskın, yukari baski",
+    "cotExplainBearish": "Negatif (kirmizi): dusus bahisleri baskin, asagi baski",
+    "cotExplainStrong": "OI nin yuzde 15 fazlasi = yuksek inancli pozisyon"
   },
   "osint": {
     "pageCategory": "Küresel İstihbarat Takibi",

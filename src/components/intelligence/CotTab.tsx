@@ -104,6 +104,17 @@ export default function CotTab() {
         </div>
       </div>
 
+      {/* COT Explanation Box */}
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <h4 className="text-sm font-semibold text-blue-800 mb-2">{t('cotExplainTitle')}</h4>
+        <ul className="space-y-1 text-xs text-blue-700">
+          <li className="flex items-start gap-1.5"><span className="mt-0.5">•</span><span>{t('cotExplainNetPos')}</span></li>
+          <li className="flex items-start gap-1.5"><span className="mt-0.5">•</span><span>{t('cotExplainBullish')}</span></li>
+          <li className="flex items-start gap-1.5"><span className="mt-0.5">•</span><span>{t('cotExplainBearish')}</span></li>
+          <li className="flex items-start gap-1.5"><span className="mt-0.5">•</span><span>{t('cotExplainStrong')}</span></li>
+        </ul>
+      </div>
+
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-cf-border">
         <table className="w-full text-xs">

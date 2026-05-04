@@ -985,7 +985,15 @@
     "cfSignalMixed": "Gemischt",
     "poweredByGemini": "Unterstützt von Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "Modell"
+    "cfModelCurve": "Modell",
+    "fgStaticBanner": "API fehlgeschlagen — Snapshot vom 2026-04-26",
+    "flowsStaticBanner": "API fehlgeschlagen — Snapshot vom 2026-04-26",
+    "creditStaticBanner": "API fehlgeschlagen — statische Snapshot-Daten",
+    "cotExplainTitle": "Was ist ein COT-Bericht?",
+    "cotExplainNetPos": "Nettoposition = Long - Short (Hedgefonds und Spekulanten)",
+    "cotExplainBullish": "Positiv (gruen): Bullish-Wetten ueberwiegen, Aufwaertsdruck",
+    "cotExplainBearish": "Negativ (rot): Bearish-Wetten ueberwiegen, Abwaertsdruck",
+    "cotExplainStrong": "+-15% des OI = Positionierung mit hoher Ueberzeugung"
   },
   "osint": {
     "pageCategory": "Globale Geheimdienstüberwachung",

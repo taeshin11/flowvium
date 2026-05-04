@@ -985,7 +985,15 @@
     "cfSignalMixed": "混合",
     "poweredByGemini": "由 Gemini 2.5 提供支持",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "期货模型"
+    "cfModelCurve": "期货模型",
+    "fgStaticBanner": "API连接失败 — 显示2026-04-26快照数据",
+    "flowsStaticBanner": "API连接失败 — 显示2026-04-26快照数据",
+    "creditStaticBanner": "API连接失败 — 显示静态快照数据",
+    "cotExplainTitle": "什么是COT报告？",
+    "cotExplainNetPos": "净仓位 = 多头 − 空头（对冲基金等投机者）",
+    "cotExplainBullish": "正值（绿色）：看多押注占优 → 上涨压力",
+    "cotExplainBearish": "负值（红色）：看空押注占优 → 下跌压力",
+    "cotExplainStrong": "占OI±15%以上 = 强烈信念仓位"
   },
   "osint": {
     "pageCategory": "全球情报追踪",

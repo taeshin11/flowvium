@@ -985,7 +985,15 @@
     "cfSignalMixed": "混合",
     "poweredByGemini": "由 Gemini 2.5 提供支援",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "期貨模型"
+    "cfModelCurve": "期貨模型",
+    "fgStaticBanner": "API連線失敗 — 顯示2026-04-26快照資料",
+    "flowsStaticBanner": "API連線失敗 — 顯示2026-04-26快照資料",
+    "creditStaticBanner": "API連線失敗 — 顯示靜態快照資料",
+    "cotExplainTitle": "什麼是COT報告？",
+    "cotExplainNetPos": "淨部位 = 多頭 − 空頭（對沖基金等投機者）",
+    "cotExplainBullish": "正值（綠色）：看多押注占優 → 上漲壓力",
+    "cotExplainBearish": "負值（紅色）：看空押注占優 → 下跌壓力",
+    "cotExplainStrong": "占OI±15%以上 = 強烈信念部位"
   },
   "osint": {
     "pageCategory": "全球情報追蹤",

@@ -985,7 +985,15 @@
     "cfSignalMixed": "Misto",
     "poweredByGemini": "Desenvolvido com Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "modelo"
+    "cfModelCurve": "modelo",
+    "fgStaticBanner": "Falha na API — instantaneo de 2026-04-26",
+    "flowsStaticBanner": "Falha na API — instantaneo de 2026-04-26",
+    "creditStaticBanner": "Falha na API — dados estaticos",
+    "cotExplainTitle": "O que e um Relatorio COT?",
+    "cotExplainNetPos": "Posicao liquida = Long - Short (hedge funds e especuladores)",
+    "cotExplainBullish": "Positivo (verde): apostas otimistas dominam, pressao de alta",
+    "cotExplainBearish": "Negativo (vermelho): apostas pessimistas dominam, pressao de baixa",
+    "cotExplainStrong": "+-15% do OI = posicionamento de alta convicao"
   },
   "osint": {
     "pageCategory": "Rastreamento Global de Inteligência",

@@ -985,7 +985,15 @@
     "cfSignalMixed": "ผสม",
     "poweredByGemini": "ขับเคลื่อนโดย Gemini 2.5",
     "flowviumAi": "Flowvium AI",
-    "cfModelCurve": "โมเดล"
+    "cfModelCurve": "โมเดล",
+    "fgStaticBanner": "API failed — snapshot 2026-04-26",
+    "flowsStaticBanner": "API failed — snapshot 2026-04-26",
+    "creditStaticBanner": "API failed — static data",
+    "cotExplainTitle": "COT Report คืออะไร?",
+    "cotExplainNetPos": "Net Position = Long - Short (hedge funds)",
+    "cotExplainBullish": "Positive (green): bullish bets dominate, upward pressure",
+    "cotExplainBearish": "Negative (red): bearish bets dominate, downward pressure",
+    "cotExplainStrong": "+-15% OI = high-conviction positioning"
   },
   "osint": {
     "pageCategory": "การติดตามข่าวกรองระดับโลก",

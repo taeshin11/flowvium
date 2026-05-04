@@ -489,10 +489,13 @@ export async function GET() {
 
   const globalSnapshot = buildGlobalSnapshot(countries);
 
+  // Determine if any live data was actually applied
+  const hasLiveEntries = Object.values(live).some(v => v !== null);
   const response = {
     countries,
     usLongHistory: US_LONG_HISTORY,
     globalSnapshot,
+    source: hasLiveEntries ? 'live' : 'static',
     updatedAt: new Date().toISOString(),
     cached: false,
   };
