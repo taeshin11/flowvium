@@ -273,7 +273,7 @@ export async function callAI(prompt: string): Promise<{ text: string; source: st
   const r = await callAIProvider(prompt, {
     tag: 'daily-brief',
     maxTokens: 1200,
-    temperature: 0.55,
+    temperature: 0.7,
     skipVllm: true,
     timeoutMs: 30000,
   });
@@ -631,7 +631,8 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
     .filter(([, v]) => v && v.trim().length > 0)
     .map(([k, v]) => `[${k}] ${v}`)
     .join('\n');
-  return `Flowvium ${tfLabel} report — live tab data below. Synthesize all tabs and return English JSON only.
+  const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  return `Flowvium ${tfLabel} report ${today} — live tab data below. Synthesize all tabs and return English JSON only.
 
 ${body}
 

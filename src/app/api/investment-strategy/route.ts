@@ -1335,7 +1335,7 @@ export async function GET(request: Request) {
   };
 
   // maxDuration 300s (vercel.json) — 타임아웃 여유 확보
-  const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.55, timeoutMs: 40000 };
+  const aiOpts = { tag: 'investment-strategy', skipVllm: true, skipGroq: false, temperature: 0.7, timeoutMs: 40000 };
   const parseSec = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
 
   // 과거 예측 회고 교훈 (S2: 전술적, S7: 전략적)
