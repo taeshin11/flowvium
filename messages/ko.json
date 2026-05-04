@@ -1422,7 +1422,9 @@
     "volSource": "출처: CBOE · Yahoo Finance · 30분 캐시 · VXST=9일 / VIX=30일 / VXMT=6개월",
     "volTerm9d": "9일 (VXST)",
     "volTerm30d": "30일 (VIX)",
-    "volTerm6m": "6개월 (VXMT)"
+    "volTerm6m": "6개월 (VXMT)",
+    "macroStaticBanner": "FRED 실시간 데이터를 사용할 수 없어 {date} 기준 정적 스냅샷을 표시합니다.",
+    "macroSnapshotBadge": "정적 스냅샷"
   },
   "earnings": {
     "pageTitle": "실적 캘린더",

@@ -191,6 +191,8 @@
 | 74 | 30Y Bond | 💾 cached | FRED DGS30 |
 | 75 | 10Y-2Y 스프레드 | 💾 cached | 자체계산 (DGS2/DGS10) + T10Y2Y fallback |
 | 76 | 역전 여부 | 💾 cached | 자체계산 |
+| 76a | 매크로 API source/live-static 구분 | 💾 cached | `/api/macro-indicators` source + staticAsOf |
+| 76b | 매크로 forecast staleness probe | 🔄 cron | `/api/cron/verify-metrics` 90일 초과 감지 |
 
 **Fed Watch**
 
@@ -742,7 +744,7 @@
 | 287 | 13f-signals:v1 | ✅ live |
 | 288 | capital-flows:v10:yahoo | ✅ live |
 | 289 | capital-flows:v10:twelve | ✅ live |
-| 290 | macro-indicators:v10:$(date) | ✅ live |
+| 290 | macro-indicators:v13:$(date) | ✅ live |
 | 291 | fedwatch:v1:$(hour) | ✅ live |
 | 292 | credit-balance:v2:$(date) | ✅ live |
 | 293 | latest-updates:v3 | ✅ live |

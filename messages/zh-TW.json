@@ -1422,7 +1422,9 @@
     "volSource": "來源: CBOE · Yahoo Finance · 30分鐘快取 · VXST=9天 / VIX=30天 / VXMT=6個月",
     "volTerm9d": "9天 (VXST)",
     "volTerm30d": "30天 (VIX)",
-    "volTerm6m": "6個月 (VXMT)"
+    "volTerm6m": "6個月 (VXMT)",
+    "macroStaticBanner": "無法取得 FRED 即時資料，目前顯示截至 {date} 的靜態快照。",
+    "macroSnapshotBadge": "靜態快照"
   },
   "earnings": {
     "pageTitle": "財報日曆",

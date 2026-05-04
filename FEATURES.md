@@ -184,6 +184,7 @@
 **컴포넌트**: `MacroIndicatorsTab`  
 **데이터**: `/api/macro-indicators` (FRED CSV + FRED API)
 
+- API `source` 필드로 FRED live / static fallback을 구분하고, static fallback 시 `staticAsOf` 기준일 노란 배너와 지표 카드별 스냅샷 배지를 표시.
 - **국채 수익률 곡선** (1M~30Y, 9 포인트)
   - 역전 여부 + 10Y-2Y 스프레드
 - **Fed Watch 섹션** (`FedWatchSection`)
@@ -196,7 +197,7 @@
   - 가격 · 등락률 · YTD 수익률 · 52주 고저 테이블 (P/E·배당 필드 null — crumb 불가)
 - **주요 매크로 이벤트 캘린더** (`EconCalendarSection`, iter35 신설 → iter131 live 업그레이드)
   - **Live 데이터**: `/api/economic-calendar` (Finnhub `/calendar/economic`, Redis 4h) — 실제값·예상치·이전값 표시
-  - 정적 fallback: `src/data/econ-calendar.ts` (FOMC/GDP/NFP/CPI/PPI/PCE/PMI/Retail)
+  - 정적 fallback: `src/data/econ-calendar.ts` (FOMC/GDP/NFP/CPI/PPI/PCE/PMI/Retail, 2026-2027)
   - LIVE/Static 배지 구분, 새로고침 버튼
   - 오늘부터 14일 범위, high/medium impact 필터, 날짜별 그룹, D-N 카운트다운 chip
   - Impact 3단계 (high=빨강/medium=노랑/low=회색), 발표시간 ET 표시

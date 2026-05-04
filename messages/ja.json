@@ -1422,7 +1422,9 @@
     "volSource": "出典: CBOE · Yahoo Finance · 30分キャッシュ · VXST=9日 / VIX=30日 / VXMT=6ヶ月",
     "volTerm9d": "9日 (VXST)",
     "volTerm30d": "30日 (VIX)",
-    "volTerm6m": "6ヶ月 (VXMT)"
+    "volTerm6m": "6ヶ月 (VXMT)",
+    "macroStaticBanner": "FREDのライブデータを利用できないため、{date}時点の静的スナップショットを表示しています。",
+    "macroSnapshotBadge": "静的スナップショット"
   },
   "earnings": {
     "pageTitle": "決算カレンダー",

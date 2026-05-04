@@ -845,7 +845,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal };
 }
 
-// ── Event calendar for fallback risk events — mirrors macro-indicators FOMC_DATES_2026 / RELEASE_SCHEDULE ─
+// ── Event calendar for fallback risk events — mirrors macro-indicators FOMC_DATES_UPCOMING / RELEASE_SCHEDULE ─
 const FALLBACK_FOMC_DATES = ['2026-06-17','2026-07-29','2026-09-16','2026-10-28','2026-12-09']; // 2026-04-29 hold confirmed
 const FALLBACK_NFP_DATES  = ['2026-05-01','2026-06-05','2026-07-03','2026-08-07','2026-09-04','2026-10-02'];
 const FALLBACK_CPI_DATES  = ['2026-05-13','2026-06-10','2026-07-15','2026-08-12','2026-09-10','2026-10-14'];

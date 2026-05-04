@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Loader2, TrendingUp, Activity, GitMerge, BarChart2 } from 'lucide-react';
+import { AlertTriangle, Loader2, TrendingUp, Activity, GitMerge, BarChart2 } from 'lucide-react';
 import EconCalendarSection from './EconCalendarSection';
 import VolatilityCard from '@/components/VolatilityCard';
 
@@ -394,6 +394,8 @@ export default function MacroIndicatorsTab() {
   const t = useTranslations('macro');
   const [indicators, setIndicators] = useState<MacroIndicator[]>([]);
   const [yieldCurve, setYieldCurve] = useState<YieldCurve | null>(null);
+  const [source, setSource] = useState<string | null>(null);
+  const [staticAsOf, setStaticAsOf] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showLayman, setShowLayman] = useState<string | null>(null);
@@ -413,7 +415,12 @@ export default function MacroIndicatorsTab() {
     const controller = new AbortController();
     fetch('/api/macro-indicators', { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { setIndicators(d.indicators ?? []); setYieldCurve(d.yieldCurve ?? null); })
+      .then(d => {
+        setIndicators(d.indicators ?? []);
+        setYieldCurve(d.yieldCurve ?? null);
+        setSource(d.source ?? null);
+        setStaticAsOf(d.staticAsOf ?? null);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => controller.abort();
@@ -429,6 +436,13 @@ export default function MacroIndicatorsTab() {
   return (
     <div className="space-y-4">
       <EconCalendarSection />
+
+      {source === 'static' && (
+        <div className="rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>{t('macroStaticBanner', { date: staticAsOf ?? '-' })}</span>
+        </div>
+      )}
 
       <div className="cf-card p-4 bg-gradient-to-r from-slate-50 to-blue-50 border-blue-100">
         <div className="flex items-start gap-3">
@@ -582,6 +596,11 @@ export default function MacroIndicatorsTab() {
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 flex items-center gap-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
                           LIVE
+                        </span>
+                      )}
+                      {source === 'static' && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                          {t('macroSnapshotBadge')}
                         </span>
                       )}
                     </div>

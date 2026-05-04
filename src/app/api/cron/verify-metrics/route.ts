@@ -248,6 +248,16 @@ async function verifyMacroIndicators(base: string): Promise<MetricItem[]> {
     group: 'macro',
     status: data.yieldCurve ? 'ok' : 'error',
   });
+  const forecastsAsOf = '2026-04-26';
+  const daysOld = Math.floor((Date.now() - new Date(`${forecastsAsOf}T00:00:00Z`).getTime()) / 86400000);
+  items.push({
+    key: 'macro.forecasts_staleness',
+    label: 'Macro Forecasts Staleness',
+    group: 'macro',
+    status: daysOld <= 90 ? 'ok' : 'degraded',
+    value: `${daysOld}d old`,
+    details: { forecastsAsOf, maxAgeDays: 90 },
+  });
   return items;
 }
 

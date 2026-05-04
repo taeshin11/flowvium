@@ -1422,7 +1422,9 @@
     "volSource": "Kaynak: CBOE · Yahoo Finance · 30dk önbellek · VXST=9g / VIX=30g / VXMT=6a",
     "volTerm9d": "9g (VXST)",
     "volTerm30d": "30g (VIX)",
-    "volTerm6m": "6a (VXMT)"
+    "volTerm6m": "6a (VXMT)",
+    "macroStaticBanner": "Canlı FRED verileri kullanılamıyor; {date} itibarıyla statik bir anlık görüntü gösteriliyor.",
+    "macroSnapshotBadge": "Statik anlık görüntü"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

@@ -1422,7 +1422,9 @@
     "volSource": "แหล่งที่มา: CBOE · Yahoo Finance · แคช 30นาที · VXST=9ว / VIX=30ว / VXMT=6ด",
     "volTerm9d": "9 วัน (VXST)",
     "volTerm30d": "30 วัน (VIX)",
-    "volTerm6m": "6 เดือน (VXMT)"
+    "volTerm6m": "6 เดือน (VXMT)",
+    "macroStaticBanner": "ไม่สามารถใช้ข้อมูลสดจาก FRED ได้ จึงแสดงสแนปชอตแบบคงที่ ณ วันที่ {date}",
+    "macroSnapshotBadge": "สแนปชอตคงที่"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

@@ -1422,7 +1422,9 @@
     "volSource": "Nguồn: CBOE · Yahoo Finance · Cache 30ph · VXST=9n / VIX=30n / VXMT=6th",
     "volTerm9d": "9 ngày (VXST)",
     "volTerm30d": "30 ngày (VIX)",
-    "volTerm6m": "6 tháng (VXMT)"
+    "volTerm6m": "6 tháng (VXMT)",
+    "macroStaticBanner": "Không có dữ liệu FRED trực tiếp, nên đang hiển thị ảnh chụp tĩnh tính đến {date}.",
+    "macroSnapshotBadge": "Ảnh chụp tĩnh"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

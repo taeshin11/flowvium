@@ -1422,7 +1422,9 @@
     "volSource": "स्रोत: CBOE · Yahoo Finance · 30मिनट कैश · VXST=9d / VIX=30d / VXMT=6m",
     "volTerm9d": "9 दिन (VXST)",
     "volTerm30d": "30 दिन (VIX)",
-    "volTerm6m": "6 माह (VXMT)"
+    "volTerm6m": "6 माह (VXMT)",
+    "macroStaticBanner": "FRED का लाइव डेटा उपलब्ध नहीं है, इसलिए {date} तक का स्थिर स्नैपशॉट दिखाया जा रहा है।",
+    "macroSnapshotBadge": "स्थिर स्नैपशॉट"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

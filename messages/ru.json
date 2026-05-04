@@ -1422,7 +1422,9 @@
     "volSource": "Источник: CBOE · Yahoo Finance · Кэш 30мин · VXST=9д / VIX=30д / VXMT=6м",
     "volTerm9d": "9д (VXST)",
     "volTerm30d": "30д (VIX)",
-    "volTerm6m": "6м (VXMT)"
+    "volTerm6m": "6м (VXMT)",
+    "macroStaticBanner": "Оперативные данные FRED недоступны, поэтому показан статический снимок на {date}.",
+    "macroSnapshotBadge": "Статический снимок"
   },
   "earnings": {
     "pageTitle": "Earnings Calendar",

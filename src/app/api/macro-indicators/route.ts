@@ -473,15 +473,18 @@ function buildCascade(id: string, surprise: 'beat' | 'miss' | 'inline' | 'pendin
   return surprise === 'beat' ? def.beat : def.miss;
 }
 
-// ── FOMC calendar (auto-computes next meeting date to prevent static staleness) ─
-const FOMC_DATES_2026 = [
+// Annual update: refresh this list when the Federal Reserve publishes the next year's FOMC calendar.
+const FOMC_DATES_UPCOMING = [
   '2026-01-29', '2026-03-19', '2026-04-29',
   '2026-06-17', '2026-07-29', '2026-09-16',
   '2026-10-28', '2026-12-09',
+  '2027-01-29', '2027-03-18', '2027-04-30',
+  '2027-06-17', '2027-07-29', '2027-09-16',
+  '2027-10-28', '2027-12-09',
 ];
 function nextFomcDate(): string {
   const today = new Date().toISOString().slice(0, 10);
-  return FOMC_DATES_2026.find(d => d > today) ?? '2027-01-28';
+  return FOMC_DATES_UPCOMING.find(d => d > today) ?? FOMC_DATES_UPCOMING[FOMC_DATES_UPCOMING.length - 1];
 }
 
 // ── BEA/BLS release schedule — auto-advance nextRelease after each date passes ─
@@ -490,6 +493,7 @@ function nextFomcDate(): string {
 // FRED live 데이터가 있으면 이 값은 무시됨.
 const STATIC_DATA_AS_OF = '2026-04-26';
 
+// Annual update: add the next year's BLS/BEA/Census release dates before year-end.
 const RELEASE_SCHEDULE: Record<string, string[]> = {
   // CPI: BLS releases ~2nd week of following month
   cpi: [
@@ -501,6 +505,9 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-10-14', // September CPI
     '2026-11-12', // October CPI
     '2026-12-10', // November CPI
+    '2027-01-13', '2027-02-10', '2027-03-10', '2027-04-14',
+    '2027-05-12', '2027-06-10', '2027-07-14', '2027-08-11',
+    '2027-09-10', '2027-10-13', '2027-11-10', '2027-12-10',
   ],
   // PPI: BLS releases ~1 day after CPI
   ppi: [
@@ -512,6 +519,9 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-10-15', // September PPI
     '2026-11-13', // October PPI
     '2026-12-11', // November PPI
+    '2027-01-14', '2027-02-11', '2027-03-11', '2027-04-15',
+    '2027-05-13', '2027-06-11', '2027-07-15', '2027-08-12',
+    '2027-09-13', '2027-10-14', '2027-11-12', '2027-12-13',
   ],
   // Retail Sales: Census Bureau ~mid-month
   retail: [
@@ -523,16 +533,25 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-10-16', // September Retail
     '2026-11-17', // October Retail
     '2026-12-16', // November Retail
+    '2027-01-15', '2027-02-16', '2027-03-16', '2027-04-15',
+    '2027-05-14', '2027-06-16', '2027-07-16', '2027-08-16',
+    '2027-09-16', '2027-10-15', '2027-11-16', '2027-12-16',
   ],
   // Unemployment Rate: same day as NFP (first Friday of month)
   unrate: [
     '2026-05-01', '2026-06-05', '2026-07-03', '2026-08-07',
     '2026-09-04', '2026-10-02', '2026-11-06', '2026-12-04',
+    '2027-01-08', '2027-02-05', '2027-03-05', '2027-04-02',
+    '2027-05-07', '2027-06-04', '2027-07-02', '2027-08-06',
+    '2027-09-03', '2027-10-01', '2027-11-05', '2027-12-03',
   ],
   // UMich Sentiment: preliminary ~2nd Friday of month
   umcsent: [
     '2026-05-08', '2026-06-12', '2026-07-10', '2026-08-14',
     '2026-09-11', '2026-10-09', '2026-11-13', '2026-12-11',
+    '2027-01-15', '2027-02-12', '2027-03-12', '2027-04-09',
+    '2027-05-14', '2027-06-11', '2027-07-09', '2027-08-13',
+    '2027-09-10', '2027-10-08', '2027-11-12', '2027-12-10',
   ],
   pce: [
     '2026-04-30', // March Core PCE
@@ -544,6 +563,9 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-10-30', // September Core PCE
     '2026-11-25', // October Core PCE
     '2026-12-23', // November Core PCE
+    '2027-01-29', '2027-02-26', '2027-03-26', '2027-04-30',
+    '2027-05-28', '2027-06-25', '2027-07-30', '2027-08-27',
+    '2027-09-30', '2027-10-29', '2027-11-24', '2027-12-23',
   ],
   gdp: [
     '2026-04-30', // Q1 Advance
@@ -552,6 +574,10 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-07-30', // Q2 Advance
     '2026-10-29', // Q3 Advance
     '2027-01-29', // Q4 Advance
+    '2027-02-26', '2027-03-25',
+    '2027-04-29', '2027-05-27', '2027-06-24',
+    '2027-07-29', '2027-08-26', '2027-09-30',
+    '2027-10-28', '2027-11-24', '2027-12-22',
   ],
   // NFP / Unemployment Rate: first Friday of each month (BLS Employment Situation)
   nfp: [
@@ -563,6 +589,9 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-10-02', // September 2026
     '2026-11-06', // October 2026
     '2026-12-04', // November 2026
+    '2027-01-08', '2027-02-05', '2027-03-05', '2027-04-02',
+    '2027-05-07', '2027-06-04', '2027-07-02', '2027-08-06',
+    '2027-09-03', '2027-10-01', '2027-11-05', '2027-12-03',
   ],
   // Initial Jobless Claims: every Thursday
   iclaims: [
@@ -571,6 +600,10 @@ const RELEASE_SCHEDULE: Record<string, string[]> = {
     '2026-06-04', '2026-06-11', '2026-06-18', '2026-06-25',
     '2026-07-02', '2026-07-09', '2026-07-16', '2026-07-23', '2026-07-30',
     '2026-08-06', '2026-08-13', '2026-08-20', '2026-08-27',
+    '2027-01-07', '2027-01-14', '2027-01-21', '2027-01-28',
+    '2027-02-04', '2027-02-11', '2027-02-18', '2027-02-25',
+    '2027-03-04', '2027-03-11', '2027-03-18', '2027-03-25',
+    '2027-04-01', '2027-04-08', '2027-04-15', '2027-04-22', '2027-04-29',
   ],
 };
 function nextScheduledRelease(series: string, fallback: string): string {
@@ -680,6 +713,7 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
 // FRED gives actual values; we keep forecasts as static consensus
 // nextRelease는 모두 RELEASE_SCHEDULE에서 자동 계산 — 하드코딩 날짜 제거
 // forecast는 시장 컨센서스 (업데이트 필요 시 여기만 수정, 날짜는 자동)
+// Quarterly update: refresh consensus forecasts after each major macro forecast cycle.
 const FORECASTS: Record<string, { forecast: number }> = {
   cpi:       { forecast: 2.5  },
   pce:       { forecast: 2.8  },
@@ -1085,7 +1119,14 @@ export async function GET(request: Request) {
 
   const yc = get(yieldCurve as PromiseSettledResult<{ points: YieldPoint[]; inverted: boolean; spread10y2y: number | null } | null>) ?? { points: [], inverted: false, spread10y2y: null };
   const now = new Date().toISOString();
-  const response = { indicators, yieldCurve: yc, updatedAt: now };
+  const responseSource = indicators.some(ind => ind.liveData) || yc.points.some(pt => pt.value != null) ? 'fred' : 'static';
+  const response = {
+    indicators,
+    yieldCurve: yc,
+    updatedAt: now,
+    source: responseSource,
+    ...(responseSource === 'static' ? { staticAsOf: STATIC_DATA_AS_OF } : {}),
+  };
 
   if (redis) {
     try {
