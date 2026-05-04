@@ -1161,7 +1161,11 @@
     "narrativeWhy": "क्यों",
     "narrativeWatch": "देखें",
     "narrativeStory": "कहानी",
-    "currentPrice": "वर्तमान मूल्य"
+    "currentPrice": "वर्तमान मूल्य",
+    "catalystsLabel": "मुख्य उत्प्रेरक",
+    "fundamentalBasisLabel": "बुनियादी विश्लेषण",
+    "technicalBasisLabel": "तकनीकी विश्लेषण",
+    "riskNoteLabel": "मुख्य जोखिम"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

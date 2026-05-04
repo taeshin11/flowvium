@@ -1161,7 +1161,11 @@
     "narrativeWhy": "WARUM",
     "narrativeWatch": "BEOBACHTEN",
     "narrativeStory": "STORY",
-    "currentPrice": "Aktueller Kurs"
+    "currentPrice": "Aktueller Kurs",
+    "catalystsLabel": "Hauptkatalysatoren",
+    "fundamentalBasisLabel": "Fundamentaldaten",
+    "technicalBasisLabel": "Technisch",
+    "riskNoteLabel": "Hauptrisiko"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

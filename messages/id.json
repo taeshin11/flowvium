@@ -1161,7 +1161,11 @@
     "narrativeWhy": "MENGAPA",
     "narrativeWatch": "PANTAU",
     "narrativeStory": "CERITA",
-    "currentPrice": "Harga saat ini"
+    "currentPrice": "Harga saat ini",
+    "catalystsLabel": "Katalis Utama",
+    "fundamentalBasisLabel": "Fundamental",
+    "technicalBasisLabel": "Teknikal",
+    "riskNoteLabel": "Risiko Utama"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

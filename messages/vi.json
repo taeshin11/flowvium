@@ -1161,7 +1161,11 @@
     "narrativeWhy": "TẠI SAO",
     "narrativeWatch": "THEO DÕI",
     "narrativeStory": "CÂU CHUYỆN",
-    "currentPrice": "Giá hiện tại"
+    "currentPrice": "Giá hiện tại",
+    "catalystsLabel": "Chất xúc tác chính",
+    "fundamentalBasisLabel": "Cơ bản",
+    "technicalBasisLabel": "Kỹ thuật",
+    "riskNoteLabel": "Rủi ro chính"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

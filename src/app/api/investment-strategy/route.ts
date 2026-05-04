@@ -8,8 +8,9 @@ import {
   buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt,
   buildOpportunityPrompt, buildRiskMgmtPrompt, buildNarrativePrompt,
   buildCritiquePrompt, applyCritique, buildCompanyChangesPrompt,
+  buildStockDetailPrompt,
 } from '@/lib/investment-prompts';
-import type { CtxForPrompts, CritiqueInput, RiskMgmtInput, CompanyChangesInput } from '@/lib/investment-prompts';
+import type { CtxForPrompts, CritiqueInput, RiskMgmtInput, CompanyChangesInput, StockDetailInput } from '@/lib/investment-prompts';
 import { logPortfolioPredictions, getRetrospectiveForS2, getRetrospectiveForS7 } from '@/lib/portfolio-retrospective';
 import { executeReportTrades } from '@/lib/paper-trading';
 import { FG, VIX, SPREADS, PORTFOLIO } from '@/lib/thresholds';
@@ -87,6 +88,11 @@ export interface PortfolioItem {
   confidence: 'high' | 'medium' | 'low';
   action?: 'buy' | 'hold' | 'watch';
   currentPrice?: number;
+  // Detailed analysis — required for action: 'buy'
+  catalysts?: string[];          // 2-3 specific catalysts with numbers
+  fundamentalBasis?: string;     // EPS/PE/margin + institutional signal (≤120 chars)
+  technicalBasis?: string;       // MA position, RSI, volume trend (≤80 chars)
+  riskNote?: string;             // main downside risk to thesis (≤60 chars)
 }
 
 export interface SectorWeight {
@@ -494,8 +500,15 @@ Key rules:
 6. action: "buy"=accumulate now, "hold"=keep if owned, "watch"=wait for entry
 7. regionStances: cover ALL countries with capital flows data — us, korea, japan, china, europe, india, taiwan, brazil, australia, global
 8. riskEvents: include BOTH US and international events (BOJ, ECB, Fed)
+9. REQUIRED for action="buy" items: fill catalysts, fundamentalBasis, technicalBasis, riskNote, entryRationale, targetRationale
+   - catalysts: array of 2-3 specific reasons with numbers (e.g., ["Blackwell GPU 출하 QoQ+40%", "내부자 집중매수 47건", "AI 데이터센터 capex $200B 전망"])
+   - fundamentalBasis: ≤120 chars — EPS growth%, PEG or PE, margin trend, institutional signal
+   - technicalBasis: ≤80 chars — MA position, RSI, volume trend (e.g., "200MA 위, RSI 55 중립권, 거래량 20일 평균 +18%")
+   - riskNote: ≤60 chars — single biggest downside risk (e.g., "수출 규제 확대 시 매출 15% 하락 위험")
+   - entryRationale: ≤80 chars — why this specific price zone
+   - targetRationale: ≤80 chars — what triggers the target
 
-{"stance":"bullish|neutral|bearish","thesis":"≤50 chars","regionStances":{"us":{"stance":"bullish","thesis":"≤40 chars","keyData":"SPY+0.1% 1w, F&G 64, VIX 18.0"},"korea":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWY+1.2% 1w, F&G 77"},"japan":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWJ-1.1% 1w"},"china":{"stance":"neutral","thesis":"≤40 chars","keyData":"FXI-1.7% 1w"},"europe":{"stance":"bearish","thesis":"≤40 chars","keyData":"VGK-2.3% 1w"},"india":{"stance":"neutral","thesis":"≤40 chars","keyData":"INDA-1.9% 1w"},"taiwan":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWT+1.2% 1w"},"brazil":{"stance":"bearish","thesis":"≤40 chars","keyData":"EWZ-4.8% 1w"},"australia":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWA-2.8% 1w"},"global":{"stance":"neutral","thesis":"≤40 chars","keyData":"Mixed signals"}},"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us","rationale":"≤60 chars with numbers","allocation":15,"entryZone":"$205-212","stopLoss":"$190","target":"$240","confidence":"high","action":"buy"}],"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"≤40 chars"}],"riskEvents":[{"date":"2026-05-01","event":"NFP","impact":"high","watchFor":"≤50 chars"}],"macroAnalysis":"≤150 chars","technicalAnalysis":"≤120 chars","fundamentalAnalysis":"≤120 chars","riskLevel":"low|medium|high"}
+{"stance":"bullish|neutral|bearish","thesis":"≤50 chars","regionStances":{"us":{"stance":"bullish","thesis":"≤40 chars","keyData":"SPY+0.1% 1w, F&G 64, VIX 18.0"},"korea":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWY+1.2% 1w, F&G 77"},"japan":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWJ-1.1% 1w"},"china":{"stance":"neutral","thesis":"≤40 chars","keyData":"FXI-1.7% 1w"},"europe":{"stance":"bearish","thesis":"≤40 chars","keyData":"VGK-2.3% 1w"},"india":{"stance":"neutral","thesis":"≤40 chars","keyData":"INDA-1.9% 1w"},"taiwan":{"stance":"bullish","thesis":"≤40 chars","keyData":"EWT+1.2% 1w"},"brazil":{"stance":"bearish","thesis":"≤40 chars","keyData":"EWZ-4.8% 1w"},"australia":{"stance":"neutral","thesis":"≤40 chars","keyData":"EWA-2.8% 1w"},"global":{"stance":"neutral","thesis":"≤40 chars","keyData":"Mixed signals"}},"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us","rationale":"≤100 chars with numbers","allocation":15,"entryZone":"$205-212","entryRationale":"200MA 지지+기관 매집 집중 구간","stopLoss":"$190","target":"$240","targetBull":"$275","targetRationale":"Blackwell 2Q 실적 확인+AI capex 가속 시 재평가","confidence":"high","action":"buy","catalysts":["Blackwell GPU 출하 QoQ+40%","내부자 집중매수 47건","AI 데이터센터 capex $200B"],"fundamentalBasis":"EPS YoY+102%, PEG 1.3, 영업이익률 55%, 기관 13F 47건 매집","technicalBasis":"200MA 위, RSI 55 중립권, 거래량 20일 평균 +18%","riskNote":"수출 규제 확대 시 매출 15% 하락 위험"}],"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"≤40 chars"}],"riskEvents":[{"date":"2026-05-01","event":"NFP","impact":"high","watchFor":"≤50 chars"}],"macroAnalysis":"≤150 chars","technicalAnalysis":"≤120 chars","fundamentalAnalysis":"≤120 chars","riskLevel":"low|medium|high"}
 
 FIELD CONTENT RULES (must be readable by non-expert investors):
 - macroAnalysis: 거시지표 + 연준 발언이 시장에 미치는 영향을 평이한 한국어 문장으로.
@@ -1366,13 +1379,29 @@ export async function GET(request: Request) {
   const opportunityData = parseSec(opportunityResult.text);
   const narrativeData  = parseSec(narrativeResult.text);
 
-  // ── Wave 2: S5 리스크 관리 + S8 기업변화 (S2 포트폴리오 완성 후 병렬) ─────────
+  // ── Wave 2: S2b 매수종목상세 + S5 리스크관리 + S8 기업변화 (병렬) ─────────────
   let riskData: Record<string, unknown> | null = null;
   let companyChangesData: Record<string, unknown> | null = null;
+  let stockDetailMap = new Map<string, { catalysts?: string[]; fundamentalBasis?: string; technicalBasis?: string; riskNote?: string }>();
 
   if (portfolioData?.portfolio?.length) {
     const portfolioTickers = (portfolioData.portfolio as Array<{ ticker: string; name?: string }>).map(p => p.ticker);
     const companyFinancialsSummary = await getCompanyFinancialsSummary(baseUrl, portfolioTickers).catch(() => '');
+
+    // buy 종목만 추출해서 상세분석 인풋 구성
+    type PortfolioRaw = { ticker: string; name?: string; sector?: string; rationale?: string; entryZone?: string; target?: string; entryRationale?: string; targetRationale?: string; action?: string };
+    const buyStocks = (portfolioData.portfolio as PortfolioRaw[])
+      .filter(p => p.action === 'buy')
+      .map(p => ({
+        ticker: p.ticker,
+        name: p.name ?? p.ticker,
+        sector: p.sector ?? '',
+        rationale: p.rationale ?? '',
+        entryZone: p.entryZone ?? '',
+        target: p.target ?? '',
+        entryRationale: p.entryRationale,
+        targetRationale: p.targetRationale,
+      }));
 
     const s8Input: CompanyChangesInput = {
       portfolio: (portfolioData.portfolio as Array<{ ticker: string; name?: string }>).map(p => ({ ticker: p.ticker, name: p.name ?? p.ticker })),
@@ -1382,7 +1411,16 @@ export async function GET(request: Request) {
       companyFinancials: companyFinancialsSummary,
     };
 
-    const [riskResult, companyChangesResult] = await Promise.all([
+    const stockDetailInput: StockDetailInput = {
+      buyStocks,
+      institutional: ctxSummary.institutional,
+      shorts: ctxSummary.shorts,
+      earnings,
+      sectorPe,
+      news: ctxSummary.news,
+    };
+
+    const wave2Calls: Promise<{ text: string; source: string }>[] = [
       callAIProvider(buildRiskMgmtPrompt({
         portfolio: (portfolioData.portfolio as Array<{ ticker: string; entryZone: string; stopLoss: string; allocation: number; action: string }>),
         riskLevel: macroData?.riskLevel ?? 'medium',
@@ -1390,9 +1428,26 @@ export async function GET(request: Request) {
         vix: vixCtx,
       }, locale), { ...aiOpts, tag: 'invest-risk', maxTokens: 600 }),
       callAIProvider(buildCompanyChangesPrompt(s8Input, locale), { ...aiOpts, tag: 'invest-s8', maxTokens: 800 }),
-    ]);
+    ];
+    // buy 종목 있을 때만 상세분석 호출
+    if (buyStocks.length > 0) {
+      wave2Calls.push(
+        callAIProvider(buildStockDetailPrompt(stockDetailInput, locale), { ...aiOpts, tag: 'invest-stock-detail', maxTokens: 900 }),
+      );
+    }
+
+    const [riskResult, companyChangesResult, stockDetailResult] = await Promise.all(wave2Calls);
     riskData = parseSec(riskResult.text);
     companyChangesData = parseSec(companyChangesResult.text);
+
+    if (stockDetailResult) {
+      const stockDetailData = parseSec(stockDetailResult.text);
+      if (Array.isArray(stockDetailData?.stockDetails)) {
+        for (const d of stockDetailData.stockDetails as Array<{ ticker: string; catalysts?: string[]; fundamentalBasis?: string; technicalBasis?: string; riskNote?: string }>) {
+          if (d.ticker) stockDetailMap.set(d.ticker.toUpperCase(), d);
+        }
+      }
+    }
   }
 
 
@@ -1400,11 +1455,25 @@ export async function GET(request: Request) {
   const bestSource = [macroResult, portfolioResult, regionalResult, opportunityResult, narrativeResult]
     .find(r => r.source !== 'fallback')?.source ?? 'fallback';
 
-  // ── 7섹션 조합 ──────────────────────────────────────────────────────────────
+  // ── 7섹션 + 상세분석 조합 ─────────────────────────────────────────────────────
+  // stockDetailMap: Wave2에서 생성된 buy종목 상세분석을 portfolio에 병합
+  const mergeStockDetail = (portfolio: PortfolioItem[]): PortfolioItem[] =>
+    portfolio.map(p => {
+      const detail = stockDetailMap.get(p.ticker.toUpperCase());
+      if (!detail) return p;
+      return {
+        ...p,
+        catalysts: detail.catalysts?.length ? detail.catalysts : p.catalysts,
+        fundamentalBasis: detail.fundamentalBasis || p.fundamentalBasis,
+        technicalBasis: detail.technicalBasis || p.technicalBasis,
+        riskNote: detail.riskNote || p.riskNote,
+      };
+    });
+
   const combinedStrategy: InvestmentStrategy | null = portfolioData?.portfolio ? {
     stance: portfolioData.stance ?? 'neutral',
     thesis: macroData?.thesis ?? '데이터 기반 배분',
-    portfolio: portfolioData.portfolio ?? [],
+    portfolio: mergeStockDetail(portfolioData.portfolio ?? []),
     sectorAllocation: portfolioData.sectorAllocation ?? [],
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',
@@ -1544,15 +1613,15 @@ export async function GET(request: Request) {
   }
 
   // ── Quality gate: garbage AI output 탐지 후 해당 필드만 제거 ──────────────
-  // qwen3:8b 같은 소형 모델이 "AI+AI+AI" 패턴의 garbage를 생성할 때 Redis 오염 방지.
-  // 필드 null 처리 → 빈 UI (garbage 텍스트보다 낫다).
+  // 소형 모델(qwen3:8b 등)이 프롬프트 구분자를 모방해 "AI+AI+AI" 또는
+  // "버핏FCF수익률+린치PEG<1" 같은 프롬프트 에코를 생성할 때 Redis 오염 방지.
   {
     const isGarbage = (text: string | undefined | null): boolean => {
-      if (!text || text.trim().length < 10) return false; // 짧은 건 별도 처리 안 함
+      if (!text || text.trim().length < 10) return false;
       const t = text.trim();
-      // "WORD+WORD+WORD" 반복 패턴
-      if (/^([\w가-힣]+\+){2,}[\w가-힣]+$/.test(t)) return true;
-      // 단일 토큰이 60% 초과 반복 (4개 이상 토큰 기준)
+      // "WORD+WORD+WORD..." 순수 구분자 반복 패턴 (공백 없이 + 만으로 이어진 경우)
+      if (/^[\w가-힣<>%\.\$]+(\+[\w가-힣<>%\.\$]+){2,}$/.test(t)) return true;
+      // 단일 토큰이 55% 초과 반복 (4개 이상 토큰 기준) — "AI AI AI AI AI" 패턴
       const tokens = t.split(/[\s,+|/·]+/).filter(w => w.length > 1);
       if (tokens.length >= 4) {
         const freq = new Map<string, number>();
@@ -1563,19 +1632,25 @@ export async function GET(request: Request) {
       return false;
     };
     const thesisGarbage = isGarbage(strategy.thesis);
+    const macroGarbage = isGarbage(strategy.macroAnalysis);
+    const fundamentalGarbage = isGarbage(strategy.fundamentalAnalysis);
     const narrativeGarbage = strategy.marketNarrative != null && (
       isGarbage(strategy.marketNarrative.why) || isGarbage(strategy.marketNarrative.story)
     );
-    if (thesisGarbage || narrativeGarbage) {
+    const anyGarbage = thesisGarbage || macroGarbage || fundamentalGarbage || narrativeGarbage;
+    if (anyGarbage) {
       logger.warn('api.investment-strategy', 'quality_gate_failed', {
-        thesisGarbage, narrativeGarbage,
+        thesisGarbage, macroGarbage, fundamentalGarbage, narrativeGarbage,
         thesis: strategy.thesis?.slice(0, 60),
-        why: strategy.marketNarrative?.why?.slice(0, 60),
+        macro: strategy.macroAnalysis?.slice(0, 60),
+        fundamental: strategy.fundamentalAnalysis?.slice(0, 60),
         source: strategy.source,
       });
       strategy = {
         ...strategy,
         ...(thesisGarbage ? { thesis: undefined } : {}),
+        ...(macroGarbage ? { macroAnalysis: '' } : {}),
+        ...(fundamentalGarbage ? { fundamentalAnalysis: '' } : {}),
         ...(narrativeGarbage ? { marketNarrative: undefined } : {}),
       };
     }

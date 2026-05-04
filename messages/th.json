@@ -1161,7 +1161,11 @@
     "narrativeWhy": "ทำไม",
     "narrativeWatch": "ติดตาม",
     "narrativeStory": "เรื่องราว",
-    "currentPrice": "ราคาปัจจุบัน"
+    "currentPrice": "ราคาปัจจุบัน",
+    "catalystsLabel": "ตัวเร่งหลัก",
+    "fundamentalBasisLabel": "พื้นฐาน",
+    "technicalBasisLabel": "เทคนิคัล",
+    "riskNoteLabel": "ความเสี่ยงหลัก"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

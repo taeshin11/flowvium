@@ -278,6 +278,64 @@ export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', lo
   ].join('\n');
 }
 
+// ── Section 2b: 매수 종목 상세분석 (Stock Detail Analysis) ──────────────────────
+// Wave 2에서 action='buy' 종목만 집중 분석. 촉매·펀더멘털·기술·리스크를 별도 LLM 호출로 생성.
+export interface StockDetailInput {
+  buyStocks: Array<{
+    ticker: string;
+    name: string;
+    sector: string;
+    rationale: string;
+    entryZone: string;
+    target: string;
+    entryRationale?: string;
+    targetRationale?: string;
+  }>;
+  institutional: string;   // 13F + insider signals
+  shorts: string;          // squeeze candidates
+  earnings: string;        // upcoming / recent earnings
+  sectorPe: string;        // sector valuations
+  news: string;            // relevant news
+}
+
+export function buildStockDetailPrompt(input: StockDetailInput, locale = 'en'): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const lang = LOCALE_LANG[locale] ?? 'Korean';
+  const stockList = input.buyStocks
+    .map(s => `- ${s.ticker}(${s.name}, ${s.sector}): entry=${s.entryZone}, target=${s.target}, rationale="${s.rationale}"`)
+    .join('\n');
+
+  return [
+    `You are an equity research analyst. Date: ${today}. Write ALL text fields in ${lang}.`,
+    '',
+    `Focus ONLY on these BUY-recommended stocks:`,
+    stockList,
+    '',
+    `[Institutional & Insider Signals] ${input.institutional}`,
+    `[Short Squeeze Candidates] ${input.shorts}`,
+    `[Upcoming / Recent Earnings] ${input.earnings}`,
+    `[Sector Valuations] ${input.sectorPe}`,
+    `[Recent News] ${input.news}`,
+    '',
+    'For EACH stock above, provide a detailed investment case:',
+    '- catalysts: array of 2-3 SPECIFIC near-term catalysts with numbers',
+    '  e.g., ["Blackwell GPU 출하 QoQ+40% (Q2 실적)", "13F 내부자 47건 순매수", "AI datacenter capex $200B 전망"]',
+    '- fundamentalBasis: ≤120 chars — EPS growth%, PE or PEG, margin trend, institutional activity',
+    '  e.g., "EPS YoY+102%, PEG 1.3, 영업이익률 55%, 기관 13F 47건 집중매집"',
+    '- technicalBasis: ≤80 chars — MA position, RSI (neutral=40-60, overbought>70), volume vs 20d avg',
+    '  e.g., "200MA 위, RSI 55 중립, 거래량 20일평균 +18%"',
+    '- riskNote: ≤60 chars — SINGLE biggest downside risk to the thesis with numbers if possible',
+    '  e.g., "수출규제 확대 시 매출 15% 하락 위험" or "경쟁사 AMD Mi400 출시 압박"',
+    '',
+    'CRITICAL: Use ONLY data present in the sections above. No hallucination.',
+    'If data is unavailable for a field, use the most relevant available signal.',
+    '',
+    'Respond in pure JSON:',
+    '{"stockDetails":[{"ticker":"NVDA","catalysts":["Blackwell GPU 출하 QoQ+40%","내부자 집중매수 47건","AI capex $200B"],"fundamentalBasis":"EPS YoY+102%, PEG 1.3, 영업이익률 55%","technicalBasis":"200MA 위, RSI 55 중립, 거래량 +18%","riskNote":"수출규제 확대 시 매출 15% 하락"}]}',
+    'Include ALL tickers from the buy list. Pure JSON only.',
+  ].join('\n');
+}
+
 // ── Section 8: 기업 변화 모니터링 (Corporate Changes) ─────────────────────────
 // 포트폴리오 종목별 최근 실적/가이던스/이벤트 변화를 분석
 export interface CompanyChangesInput {

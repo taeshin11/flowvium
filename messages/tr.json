@@ -1161,7 +1161,11 @@
     "narrativeWhy": "NEDEN",
     "narrativeWatch": "İZLE",
     "narrativeStory": "HİKAYE",
-    "currentPrice": "Güncel fiyat"
+    "currentPrice": "Güncel fiyat",
+    "catalystsLabel": "Ana Katalizörler",
+    "fundamentalBasisLabel": "Temel Analiz",
+    "technicalBasisLabel": "Teknik Analiz",
+    "riskNoteLabel": "Ana Risk"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

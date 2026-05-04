@@ -1161,7 +1161,11 @@
     "narrativeWhy": "WHY",
     "narrativeWatch": "WATCH",
     "narrativeStory": "STORY",
-    "currentPrice": "현재가"
+    "currentPrice": "현재가",
+    "catalystsLabel": "주요 촉매",
+    "fundamentalBasisLabel": "기초 분석",
+    "technicalBasisLabel": "기술 분석",
+    "riskNoteLabel": "핵심 리스크"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

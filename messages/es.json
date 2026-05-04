@@ -1161,7 +1161,11 @@
     "narrativeWhy": "POR QUÉ",
     "narrativeWatch": "VIGILAR",
     "narrativeStory": "HISTORIA",
-    "currentPrice": "Precio actual"
+    "currentPrice": "Precio actual",
+    "catalystsLabel": "Catalizadores Clave",
+    "fundamentalBasisLabel": "Fundamentos",
+    "technicalBasisLabel": "Técnico",
+    "riskNoteLabel": "Riesgo Clave"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

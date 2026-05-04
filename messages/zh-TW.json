@@ -1161,7 +1161,11 @@
     "narrativeWhy": "WHY",
     "narrativeWatch": "WATCH",
     "narrativeStory": "STORY",
-    "currentPrice": "現價"
+    "currentPrice": "現價",
+    "catalystsLabel": "主要催化劑",
+    "fundamentalBasisLabel": "基本面",
+    "technicalBasisLabel": "技術面",
+    "riskNoteLabel": "核心風險"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

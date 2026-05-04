@@ -1161,7 +1161,11 @@
     "narrativeWhy": "لماذا",
     "narrativeWatch": "مراقبة",
     "narrativeStory": "القصة",
-    "currentPrice": "السعر الحالي"
+    "currentPrice": "السعر الحالي",
+    "catalystsLabel": "المحفزات الرئيسية",
+    "fundamentalBasisLabel": "الأساسيات",
+    "technicalBasisLabel": "التحليل الفني",
+    "riskNoteLabel": "المخاطر الرئيسية"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

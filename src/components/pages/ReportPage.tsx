@@ -187,9 +187,48 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
         </div>
       </div>
 
-      {/* Expanded: entry/target rationale + stop loss */}
+      {/* Expanded: detailed analysis (buy only) + entry/target rationale + stop loss */}
       {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50 px-4 py-2.5 space-y-2">
+        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-2.5">
+          {/* Catalysts — buy 종목 상세분석 */}
+          {item.action === 'buy' && item.catalysts && item.catalysts.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">{t('catalystsLabel')}</p>
+              <ul className="space-y-0.5">
+                {item.catalysts.map((c, i) => (
+                  <li key={i} className="text-xs text-gray-700 flex items-start gap-1.5">
+                    <span className="text-emerald-500 mt-0.5 shrink-0">▸</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/* Fundamental + Technical basis side by side */}
+          {item.action === 'buy' && (item.fundamentalBasis || item.technicalBasis) && (
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {item.fundamentalBasis && (
+                <div className="bg-white rounded-lg border border-gray-100 px-2.5 py-1.5">
+                  <p className="text-[10px] font-bold text-violet-600 mb-0.5">{t('fundamentalBasisLabel')}</p>
+                  <p className="text-xs text-gray-700 leading-relaxed">{item.fundamentalBasis}</p>
+                </div>
+              )}
+              {item.technicalBasis && (
+                <div className="bg-white rounded-lg border border-gray-100 px-2.5 py-1.5">
+                  <p className="text-[10px] font-bold text-blue-600 mb-0.5">{t('technicalBasisLabel')}</p>
+                  <p className="text-xs text-gray-700 leading-relaxed">{item.technicalBasis}</p>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Risk note */}
+          {item.action === 'buy' && item.riskNote && (
+            <div className="bg-red-50 rounded-lg border border-red-100 px-2.5 py-1.5">
+              <p className="text-[10px] font-bold text-red-600 mb-0.5">{t('riskNoteLabel')}</p>
+              <p className="text-xs text-red-700 leading-relaxed">{item.riskNote}</p>
+            </div>
+          )}
+          {/* Entry / target rationale */}
           {item.entryRationale && (
             <div className="text-xs">
               <span className="text-gray-400 mr-1">📍 {t('entryRationaleLabel')}</span>

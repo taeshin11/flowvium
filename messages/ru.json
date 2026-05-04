@@ -1161,7 +1161,11 @@
     "narrativeWhy": "ПОЧЕМУ",
     "narrativeWatch": "СЛЕДИТЬ",
     "narrativeStory": "ИСТОРИЯ",
-    "currentPrice": "Текущая цена"
+    "currentPrice": "Текущая цена",
+    "catalystsLabel": "Ключевые Катализаторы",
+    "fundamentalBasisLabel": "Фундаментал",
+    "technicalBasisLabel": "Технический",
+    "riskNoteLabel": "Ключевой Риск"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",
