@@ -252,6 +252,28 @@ async function resolveCompanyNames(
     }));
   }
 
+  // 4. Finnhub profile2 for tickers still unknown after Yahoo (소형주 커버)
+  //    Finnhub이 earnings 데이터 원천이므로 profile2도 거의 항상 이름 반환.
+  //    Redis에 7일 캐싱 → 동일 심볼 재조회 비용 없음.
+  const finnhubUnknown = symbols.filter(s => !names[s]);
+  if (apiKey && finnhubUnknown.length > 0) {
+    await Promise.all(finnhubUnknown.map(async sym => {
+      try {
+        const r = await fetch(
+          `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(apiKey)}`,
+          { signal: AbortSignal.timeout(5000), cache: 'no-store' },
+        );
+        if (!r.ok) return;
+        const d = await r.json() as { name?: string };
+        if (d.name) {
+          names[sym] = d.name;
+          if (redis)
+            loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${sym}`, d.name, { ex: 7 * 24 * 3600 }).catch(() => {});
+        }
+      } catch { /* non-fatal */ }
+    }));
+  }
+
   return names;
 }
 

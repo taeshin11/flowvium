@@ -292,8 +292,8 @@ export default function EarningsPage() {
                   <td className="px-3 py-2">
                     <Link href={`/company/${r.symbol}`} className="font-mono text-xs font-bold text-cf-accent hover:underline">{r.symbol}</Link>
                   </td>
-                  <td className="px-3 py-2 text-xs text-cf-text-secondary max-w-[120px] truncate" title={r.companyName ?? ''}>
-                    {r.companyName ?? <span className="opacity-40">-</span>}
+                  <td className="px-3 py-2 text-xs text-cf-text-secondary max-w-[120px] truncate" title={r.companyName ?? r.symbol}>
+                    {r.companyName ?? <span className="opacity-50 font-mono">{r.symbol}</span>}
                   </td>
                   <td className="px-3 py-2 text-xs text-cf-text-secondary font-mono">Q{r.quarter} {r.year}</td>
                   <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-secondary">{fmtNum(r.epsEstimate)}</td>
