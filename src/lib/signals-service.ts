@@ -119,6 +119,44 @@ function applyNewsGaps(
 }
 
 /**
+ * EDGAR 13F는 한 기관 내 자회사/계좌별로 행이 분리돼 있어
+ * 같은 (institution, ticker)가 accumulating/reducing 으로 번갈아 표시됨.
+ * (institution, ticker) 기준으로 sharesChanged 합산 후 net 방향으로 통합.
+ */
+function aggregateByInstitutionTicker(signals: InstitutionalSignal[]): InstitutionalSignal[] {
+  const map = new Map<string, InstitutionalSignal & { _netShares: number }>();
+
+  for (const s of signals) {
+    const key = `${s.institution}::${s.ticker}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, { ...s, _netShares: s.sharesChanged });
+    } else {
+      const netShares = existing._netShares + s.sharesChanged;
+      const totalShares = Math.max(existing.totalShares, s.totalShares);
+      // Keep the most recent filing date
+      const filingDate = existing.filingDate > s.filingDate ? existing.filingDate : s.filingDate;
+      // Parse "$X.XB"/"$X.XM" to sum estimated values
+      const parseVal = (v: string) => {
+        const m = v.match(/([\d.]+)([BM])?/);
+        if (!m) return 0;
+        const n = parseFloat(m[1]);
+        return m[2] === 'B' ? n * 1000 : n; // normalize to $M
+      };
+      const totalM = parseVal(existing.estimatedValue) + parseVal(s.estimatedValue);
+      const estimatedValue = totalM >= 1000 ? `$${(totalM / 1000).toFixed(1)}B` : `$${Math.round(totalM)}M`;
+      map.set(key, { ...existing, _netShares: netShares, totalShares, filingDate, estimatedValue });
+    }
+  }
+
+  return Array.from(map.values()).map(({ _netShares, ...s }) => ({
+    ...s,
+    sharesChanged: _netShares,
+    action: _netShares > 0 ? 'accumulating' : _netShares < 0 ? 'reducing' : s.action,
+  }));
+}
+
+/**
  * Main entry point called by the signals server component.
  *
  * Strategy:
@@ -143,7 +181,8 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
   const liveSignals = await get13FSignals();
   // 하드코딩 institutionalSignals 폴백 제거 — stale 데이터가 실데이터처럼 보이는 문제 방지.
   // 크론이 한 번도 안 돌았거나 Redis 비어있으면 빈 배열 반환 (투명한 실패).
-  const baseSignals = liveSignals ?? [];
+  // EDGAR 13F는 자회사/계좌별 행 분리 → (institution, ticker) 기준으로 집계
+  const baseSignals = aggregateByInstitutionTicker(liveSignals ?? []);
 
   // === No API key → EDGAR 또는 empty ===
   if (!apiKey) {
