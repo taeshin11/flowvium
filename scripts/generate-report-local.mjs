@@ -434,7 +434,29 @@ Rules:
   }
 
   if (autoUpload) {
-    console.log('\n--auto-upload 설정됨, 품질 통과 → 업로드 진행...');
+    // --auto-upload: 핵심 내용 출력 후 사람 확인 (stdin이 TTY일 때만)
+    console.log('\n=== 업로드 전 최종 확인 ===');
+    console.log(`  stance: ${finalReport.stance}`);
+    console.log(`  thesis: ${finalReport.thesis}`);
+    console.log(`  macro:  ${finalReport.macroAnalysis}`);
+    console.log(`  port:   ${finalReport.portfolio?.map(p => `${p.ticker}(${p.allocation}%)`).join(' ')}`);
+
+    const isTTY = process.stdin.isTTY;
+    if (isTTY) {
+      process.stdout.write('\n업로드하시겠습니까? (y/N): ');
+      const answer = await new Promise(res => {
+        process.stdin.setEncoding('utf8');
+        process.stdin.once('data', d => res(d.trim().toLowerCase()));
+      });
+      if (answer !== 'y' && answer !== 'yes') {
+        console.log('업로드 취소됨. 파일은 reports/ 에 보존됩니다.');
+        process.exit(0);
+      }
+    } else {
+      // CI/파이프라인 환경에서는 확인 없이 진행 (배치 처리용)
+      console.log('  (non-TTY 환경 — 자동 진행)');
+    }
+
     await uploadFromFile(filepath);
   } else {
     console.log('\n✅ 생성 완료. 내용 확인 후 업로드:');
