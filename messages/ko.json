@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}% 고가 주의",
     "priceEntry": "매수 추천 구간",
     "priceCheap": "{pct}% 매수 기회",
-    "expandStopLoss": "손절가 보기",
+    "expandDetails": "상세 분석 보기",
     "entryRationaleLabel": "매수구간 근거",
     "targetRationaleLabel": "목표가 근거",
     "latestReport": "최신 리포트",

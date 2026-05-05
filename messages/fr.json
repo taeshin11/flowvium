@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}% cher",
     "priceEntry": "Zone d'achat",
     "priceCheap": "{pct}% rabais",
-    "expandStopLoss": "Stop loss",
+    "expandDetails": "Voir détails",
     "entryRationaleLabel": "Fondement d'entrée",
     "targetRationaleLabel": "Fondement de l'objectif",
     "latestReport": "Dernier rapport",

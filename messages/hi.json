@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}% महंगा",
     "priceEntry": "खरीद क्षेत्र",
     "priceCheap": "{pct}% छूट",
-    "expandStopLoss": "स्टॉप लॉस",
+    "expandDetails": "विवरण देखें",
     "entryRationaleLabel": "प्रवेश तर्क",
     "targetRationaleLabel": "लक्ष्य तर्क",
     "latestReport": "नवीनतम रिपोर्ट",

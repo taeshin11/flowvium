@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}%割高",
     "priceEntry": "推奨買いゾーン",
     "priceCheap": "{pct}%割安",
-    "expandStopLoss": "損切り確認",
+    "expandDetails": "詳細を見る",
     "entryRationaleLabel": "買いゾーン根拠",
     "targetRationaleLabel": "目標価格根拠",
     "latestReport": "最新レポート",

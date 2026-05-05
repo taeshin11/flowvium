@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}% مرتفع",
     "priceEntry": "منطقة الشراء",
     "priceCheap": "{pct}% خصم",
-    "expandStopLoss": "وقف خسارة",
+    "expandDetails": "عرض التفاصيل",
     "entryRationaleLabel": "مبرر الدخول",
     "targetRationaleLabel": "مبرر السعر المستهدف",
     "latestReport": "أحدث تقرير",

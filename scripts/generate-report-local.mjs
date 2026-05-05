@@ -529,10 +529,11 @@ function deduplicateRationales(portfolioItems, signalDigest) {
 
 /**
  * Post-processing: expand thesis if too short by appending key macro numbers.
- * Targets ≥60 chars without LLM.
+ * Targets ≥80 chars without LLM. Locale-aware labels (EN vs KO).
  */
-function expandThesis(thesis, macroData, ctx) {
-  if (!thesis || thesis.length >= 60) return thesis;
+function expandThesis(thesis, macroData, ctx, locale = 'ko') {
+  if (!thesis || thesis.length >= 80) return thesis;
+  const isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(locale);
   const parts = [];
   const ind = ctx.macro?.indicators ?? [];
   const cpi = ind.find(i => i.id === 'cpi' || i.id === 'us_cpi')?.actual;
@@ -541,9 +542,9 @@ function expandThesis(thesis, macroData, ctx) {
   const gdp = ind.find(i => i.id === 'gdp')?.actual;
   if (cpi != null) parts.push(`CPI ${cpi}%`);
   if (gdp != null) parts.push(`GDP ${gdp}%`);
-  if (spread != null) parts.push(`HY스프레드 ${spread}%`);
+  if (spread != null) parts.push(isEn ? `HY Spread ${spread}%` : `HY스프레드 ${spread}%`);
   if (vix != null) parts.push(`VIX ${typeof vix === 'number' ? vix.toFixed(1) : vix}`);
-  if (macroData?.riskLevel) parts.push(`리스크 ${macroData.riskLevel}`);
+  if (macroData?.riskLevel) parts.push(isEn ? `Risk ${macroData.riskLevel}` : `리스크 ${macroData.riskLevel}`);
   if (parts.length) {
     const expanded = `${thesis} — ${parts.join(', ')}`;
     if (expanded.length > thesis.length) {
@@ -555,39 +556,55 @@ function expandThesis(thesis, macroData, ctx) {
 }
 
 /**
- * Post-processing: auto-fill missing regionStances with data-driven defaults.
- * Used when LLM returns <10 regions.
+ * Post-processing: fill missing regionStances and enrich SHORT LLM-generated theses
+ * with actual capital flow data (ret4w, ret1w).
  */
 function fillMissingRegionStances(regionStances, ctx) {
   const REGIONS = ['us','korea','japan','china','europe','india','taiwan','brazil','australia','global'];
   const existing = regionStances ?? {};
-  if (Object.keys(existing).length >= 10) return existing;
 
-  // Build country flow map for data-driven stances
   const countries = ctx.capital?.countryFlow?.countries ?? [];
   const flowMap = new Map(countries.map(c => [c.id ?? c.label?.toLowerCase(), c]));
-  const assetArr = ctx.capital?.assets ?? [];
-  const assetMap = new Map(assetArr.map(a => [(a.id ?? a.ticker ?? '').toLowerCase(), a]));
 
-  const countrySignal = (id) => {
-    const c = flowMap.get(id);
+  const getFlow = (id) => flowMap.get(id) ?? null;
+  const flowSignal = (c) => {
     if (!c || typeof c.ret4w !== 'number') return 'neutral';
     return c.ret4w >= 1 ? 'bullish' : c.ret4w <= -1 ? 'bearish' : 'neutral';
+  };
+  const buildKeyData = (c) => {
+    if (!c) return null;
+    const parts = [];
+    if (c.ret4w != null) parts.push(`4w ${c.ret4w >= 0 ? '+' : ''}${c.ret4w.toFixed(1)}%`);
+    if (c.ret1w != null) parts.push(`1w ${c.ret1w >= 0 ? '+' : ''}${c.ret1w.toFixed(1)}%`);
+    return parts.join(', ') || null;
   };
 
   const filled = { ...existing };
   let addedCount = 0;
+  let enrichedCount = 0;
   for (const region of REGIONS) {
-    if (filled[region]) continue;
-    const stance = countrySignal(region);
-    filled[region] = {
-      stance,
-      thesis: `[data fallback] ${stance}`,
-      keyData: `4w flow`,
-    };
-    addedCount++;
+    const c = getFlow(region);
+    const stance = flowSignal(c);
+    const kd = buildKeyData(c);
+    if (!filled[region]) {
+      filled[region] = {
+        stance,
+        thesis: kd ? `${stance}: ${kd}` : `[data fallback] ${stance}`,
+        keyData: kd ?? '4w flow',
+      };
+      addedCount++;
+    } else {
+      const entry = filled[region];
+      const thesisLen = (entry.thesis ?? '').length;
+      if (thesisLen < 30 && kd) {
+        entry.thesis = `${entry.thesis} (${kd})`;
+        if (!entry.keyData || entry.keyData.length < 5) entry.keyData = kd;
+        enrichedCount++;
+      }
+    }
   }
   if (addedCount > 0) console.log(`  [후처리] regionStances ${addedCount}개 지역 자동 보완`);
+  if (enrichedCount > 0) console.log(`  [후처리] regionStances ${enrichedCount}개 짧은 thesis 데이터 보강`);
   return filled;
 }
 
@@ -610,6 +627,122 @@ function fillCompanyChangesYoY(companyChanges, signalDigest) {
   }
   if (filled > 0) console.log(`  [후처리] companyChanges revenueYoY ${filled}개 자동 보완`);
   return companyChanges;
+}
+
+/**
+ * Post-processing: rename "key,Data" → "keyData" typo in regionStances objects.
+ */
+function normalizeRegionStances(regionStances) {
+  if (!regionStances) return regionStances;
+  let fixed = 0;
+  const result = {};
+  for (const [region, entry] of Object.entries(regionStances)) {
+    if (!entry || typeof entry !== 'object') { result[region] = entry; continue; }
+    const normalized = { ...entry };
+    if ('key,Data' in normalized) {
+      normalized.keyData = normalized['key,Data'];
+      delete normalized['key,Data'];
+      fixed++;
+    }
+    result[region] = normalized;
+  }
+  if (fixed > 0) console.log(`  [후처리] regionStances "key,Data" 오타 ${fixed}개 수정`);
+  return result;
+}
+
+/**
+ * Post-processing: append signal data to rationales that are under 80 chars.
+ * Fills all portfolio items, not just duplicates.
+ */
+function enrichRationales(portfolioItems, signalDigest, locale = 'ko') {
+  const isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(locale);
+  let enriched = 0;
+  for (const item of portfolioItems) {
+    if ((item.rationale ?? '').length >= 80) continue;
+    const sig = signalDigest.get(item.ticker);
+    if (!sig) continue;
+    const parts = [];
+    if (sig.insider && sig.insider.buys >= 2) {
+      parts.push(isEn
+        ? `insider ${sig.insider.buys}x buy $${Math.round(sig.insider.totalUsd / 1000)}K`
+        : `내부자 ${sig.insider.buys}건 매수 $${Math.round(sig.insider.totalUsd / 1000)}K`);
+    }
+    if (sig.fin?.yoy) parts.push(isEn ? `rev ${sig.fin.yoy} YoY` : `매출 ${sig.fin.yoy} YoY`);
+    if (sig.fin?.margin) parts.push(isEn ? `op mgn ${sig.fin.margin}%` : `영업이익률 ${sig.fin.margin}%`);
+    if (sig.squeeze != null) parts.push(`squeeze ${sig.squeeze}`);
+    if (sig.tech) parts.push(sig.tech);
+    if (parts.length === 0) continue;
+    const append = parts.slice(0, 3).join(', ');
+    item.rationale = item.rationale ? `${item.rationale} | ${append}` : append;
+    enriched++;
+  }
+  if (enriched > 0) console.log(`  [후처리] rationale 보강: ${enriched}개`);
+  return portfolioItems;
+}
+
+/**
+ * Post-processing: append specific price/RSI levels to stopLossRationale entries.
+ */
+function enrichStopLoss(stopLossRationale, livePrices, technicalData, locale = 'ko') {
+  const isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(locale);
+  let enriched = 0;
+  for (const entry of (stopLossRationale ?? [])) {
+    if (!entry.ticker || (entry.rationale ?? '').length >= 100) continue;
+    const lp = livePrices.get(entry.ticker);
+    const tech = technicalData.get(entry.ticker);
+    const parts = [];
+    if (lp?.price) {
+      const stopPrice = (lp.price * 0.93).toFixed(lp.price > 100 ? 2 : 4);
+      parts.push(isEn
+        ? `cur $${lp.price} → stop ~$${stopPrice} (-7%)`
+        : `현재 $${lp.price} → 손절선 ~$${stopPrice} (-7%)`);
+    }
+    if (tech) parts.push(tech);
+    if (parts.length === 0) continue;
+    const append = parts.slice(0, 2).join(' / ');
+    entry.rationale = entry.rationale ? `${entry.rationale} | ${append}` : append;
+    enriched++;
+  }
+  if (enriched > 0) console.log(`  [후처리] stopLossRationale 구체화: ${enriched}개`);
+  return stopLossRationale;
+}
+
+/**
+ * Post-processing: append key indicator snapshot to macroAnalysis if under 200 chars.
+ */
+function enrichMacroAnalysis(macroAnalysis, ctxRaw, macroData, locale = 'ko') {
+  if (!macroAnalysis || macroAnalysis.length >= 200) return macroAnalysis;
+  const isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(locale);
+  const ind = ctxRaw.macro?.indicators ?? [];
+  const parts = [];
+  const fg = ctxRaw.fearGreed ?? ctxRaw.fear_greed;
+  const fgScore = fg?.score ?? fg?.fearGreedScore ?? fg?.us?.score;
+  const fgLabel = fg?.label ?? fg?.fearGreedLabel ?? fg?.us?.label;
+  const cpi = ind.find(i => i.id === 'cpi' || i.id === 'us_cpi')?.actual;
+  const fed = ind.find(i => i.id === 'fed_rate' || i.id === 'fomc' || i.id === 'fedfunds')?.actual;
+  const hySpread = ind.find(i => i.id === 'hy_spread' || i.id === 'hy_oas' || i.id === 'hyoas')?.actual;
+  const vix = ind.find(i => i.id === 'vix')?.actual;
+  const riskLevel = macroData?.riskLevel;
+  if (isEn) {
+    if (fgScore != null) parts.push(`F&G ${fgScore}${fgLabel ? `(${fgLabel})` : ''}`);
+    if (cpi != null) parts.push(`CPI ${cpi}%`);
+    if (fed != null) parts.push(`Fed ${fed}%`);
+    if (hySpread != null) parts.push(`HY ${hySpread}bps`);
+    if (vix != null) parts.push(`VIX ${typeof vix === 'number' ? vix.toFixed(1) : vix}`);
+    if (riskLevel) parts.push(`risk=${riskLevel}`);
+  } else {
+    if (fgScore != null) parts.push(`공포탐욕 ${fgScore}${fgLabel ? `(${fgLabel})` : ''}`);
+    if (cpi != null) parts.push(`CPI ${cpi}%`);
+    if (fed != null) parts.push(`연준금리 ${fed}%`);
+    if (hySpread != null) parts.push(`HY ${hySpread}bps`);
+    if (vix != null) parts.push(`VIX ${typeof vix === 'number' ? vix.toFixed(1) : vix}`);
+    if (riskLevel) parts.push(`리스크=${riskLevel}`);
+  }
+  if (parts.length === 0) return macroAnalysis;
+  const sep = isEn ? ' | Key data: ' : ' | 주요지표: ';
+  const expanded = `${macroAnalysis}${sep}${parts.join(', ')}`;
+  console.log(`  [후처리] macroAnalysis 보강: ${macroAnalysis.length}자 → ${expanded.length}자`);
+  return expanded;
 }
 
 // ── API 데이터 수집 ────────────────────────────────────────────────────────────
@@ -1267,25 +1400,27 @@ function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sect
 
 function buildCritiquePrompt(portfolio, macroAnalysis, bbWarnings, assetFg) {
   const summary = portfolio.map(p =>
-    `${p.ticker}(${p.action}) entry=${p.entryZone} target=${p.target}: ${p.rationale}`
+    `${p.ticker}(${p.action}) alloc=${p.allocation}% entry=${p.entryZone} target=${p.target} stop=${p.stopLoss ?? 'none'}: ${p.rationale}`
   ).join('\n');
   return [
-    `You are a contrarian analyst critiquing a portfolio. Write correction in ${TARGET_LANG}.`,
+    `You are a strict risk manager reviewing a portfolio. Write in ${TARGET_LANG}.`,
     '',
     `[Draft Portfolio]\n${summary}`,
     '',
-    `[Macro] ${macroAnalysis || 'No data'}`,
-    `[BB Overextension] ${bbWarnings || 'None'}`,
-    `[Asset F&G] ${assetFg || 'No data'}`,
+    `[Macro Context] ${macroAnalysis || 'No data'}`,
+    `[Overextension Signals] ${bbWarnings || 'None'}`,
+    `[Asset Fear&Greed] ${assetFg || 'No data'}`,
     '',
-    'REVISE: action is wrong (buy→watch or buy→hold) — major structural problem only.',
-    'WARN: target too high, risk overlooked, or entry zone needs adjustment.',
-    'OK: position is sound — use OK for minor target adjustments.',
-    'Be selective: only flag items with genuine concerns. Typical result: 0-2 flags.',
+    'For EACH ticker, assign one verdict and a specific correction:',
+    'REVISE: fundamental problem — change action buy→watch/hold (overextended, macro headwind, concentration risk)',
+    'WARN: target too optimistic, stop too loose, entry zone off, or allocation too high — adjust numbers',
+    'OK: position is well-structured and defensible',
     '',
-    'Respond in pure JSON:',
-    `{"critiques":[{"ticker":"NVDA","verdict":"REVISE|WARN|OK","correction":"[≤80 chars in ${TARGET_LANG}, include specific numbers]"}]}`,
-    'Pure JSON only.',
+    'Rules: at least 30% of positions should get WARN or REVISE if any have RSI>70, allocation>20%, or target>20% above entry.',
+    'Include specific numbers in corrections (e.g., "target too high, suggest $X", "cut alloc to Y%").',
+    '',
+    'Respond in pure JSON only:',
+    `{"critiques":[{"ticker":"NVDA","verdict":"WARN","correction":"[≤80 chars in ${TARGET_LANG} with specific numbers]"}]}`,
   ].join('\n');
 }
 
@@ -1296,18 +1431,37 @@ function applyCritique(portfolio, critiqueRaw) {
     const parsed = JSON.parse(m[0]);
     const critiques = parsed.critiques ?? [];
     if (!critiques.length) return portfolio;
+
+    // Log all non-OK verdicts for visibility
+    const flagged = critiques.filter(c => c.verdict !== 'OK');
+    if (flagged.length > 0) {
+      for (const f of flagged) console.log(`    ${f.verdict} ${f.ticker}: ${f.correction}`);
+    }
+
     return portfolio.map(p => {
       const c = critiques.find(cr => cr.ticker === p.ticker);
       if (!c || c.verdict === 'OK') return p;
+      const corr = c.correction ?? '';
+      const updated = { ...p, critiqueNote: corr.slice(0, 80) };
+
       if (c.verdict === 'REVISE') {
-        // action 변경이 필요한 경우만 action 변경, rationale 보존
-        const newAction = c.correction.includes('진입금지') || c.correction.includes('watch') ? 'watch' : p.action;
-        return { ...p, action: newAction, critiqueNote: c.correction.slice(0, 80) };
+        // Check if correction suggests downgrade to watch/hold
+        const shouldWatch = /watch|hold|avoid|wait|진입금지|관망|대기|관찰|보류/.test(corr.toLowerCase());
+        if (shouldWatch) updated.action = 'watch';
       }
+
       if (c.verdict === 'WARN') {
-        return { ...p, critiqueNote: c.correction.slice(0, 80) };
+        // Extract suggested allocation adjustment: "cut to X%" or "reduce to X%"
+        const allocMatch = corr.match(/(?:cut|reduce|lower|낮|줄).{0,15}?(\d+)%/i);
+        if (allocMatch) {
+          const suggested = parseInt(allocMatch[1], 10);
+          if (suggested > 0 && suggested < p.allocation) {
+            updated.allocation = suggested;
+          }
+        }
       }
-      return p;
+
+      return updated;
     });
   } catch { return portfolio; }
 }
@@ -1502,8 +1656,9 @@ async function generateViaOllama() {
       ctx.assetFg,
     ));
     refinedPortfolio = applyCritique(portfolioItemsDeduped, critiqueRaw);
-    const changed = refinedPortfolio.filter((p, i) => p.action !== portfolioItems[i]?.action);
-    console.log(`  critique 적용: ${changed.length}개 종목 수정`);
+    const actionChanged = refinedPortfolio.filter((p, i) => p.action !== portfolioItemsDeduped[i]?.action).length;
+    const flagged = refinedPortfolio.filter(p => p.critiqueNote).length;
+    console.log(`  critique 적용: action변경 ${actionChanged}개, WARN/flag ${flagged}개`);
   } catch (e) { console.log(`  critique 실패 (non-fatal): ${e.message}`); }
 
   // ── [5/7] 병합 ──────────────────────────────────────────────────────────────
@@ -1549,10 +1704,15 @@ async function generateViaOllama() {
     buildId: 'local',
   };
 
-  // ── 후처리: thesis 확장 / regionStances 보완 / companyChanges YoY 보완 ──────
-  finalReport.thesis = expandThesis(finalReport.thesis, macroData, ctxRaw);
+  // ── 후처리: 품질 향상 파이프라인 ─────────────────────────────────────────────
+  console.log('\n[5.5/7] 후처리 품질 향상...');
+  finalReport.thesis = expandThesis(finalReport.thesis, macroData, ctxRaw, localeArg);
+  finalReport.macroAnalysis = enrichMacroAnalysis(finalReport.macroAnalysis, ctxRaw, macroData, localeArg);
   finalReport.regionStances = fillMissingRegionStances(finalReport.regionStances, ctxRaw);
+  finalReport.regionStances = normalizeRegionStances(finalReport.regionStances);
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
+  finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
+  finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
 
   // ── [6/7] 품질 검사 + 저장 ──────────────────────────────────────────────────
   console.log('\n[6/7] 품질 게이트 검사...');

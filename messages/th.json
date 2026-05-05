@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}% แพง",
     "priceEntry": "โซนซื้อ",
     "priceCheap": "{pct}% ถูก",
-    "expandStopLoss": "จุดตัดขาดทุน",
+    "expandDetails": "ดูรายละเอียด",
     "entryRationaleLabel": "เหตุผลเข้าซื้อ",
     "targetRationaleLabel": "เหตุผลราคาเป้าหมาย",
     "latestReport": "รายงานล่าสุด",

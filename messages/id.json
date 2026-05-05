@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}% mahal",
     "priceEntry": "Zona beli",
     "priceCheap": "{pct}% diskon",
-    "expandStopLoss": "Stop loss",
+    "expandDetails": "Lihat detail",
     "entryRationaleLabel": "Alasan masuk",
     "targetRationaleLabel": "Alasan target harga",
     "latestReport": "Laporan terbaru",

@@ -1150,7 +1150,7 @@
     "priceExpensive": "+{pct}%高估",
     "priceEntry": "建議買入區間",
     "priceCheap": "{pct}%折價",
-    "expandStopLoss": "查看停損",
+    "expandDetails": "查看詳情",
     "entryRationaleLabel": "買入區間依據",
     "targetRationaleLabel": "目標價依據",
     "latestReport": "最新報告",

@@ -189,10 +189,20 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           {badge && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${badge.cls}`}>{badge.label}</span>
           )}
+          {/* Stop loss — always visible */}
+          {item.stopLoss && (
+            <>
+              <span className="text-gray-200">·</span>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-gray-400">{t('stopLoss')}</span>
+                <span className="font-semibold text-red-600 font-mono">{item.stopLoss}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Expanded: detailed analysis (buy only) + entry/target rationale + stop loss */}
+      {/* Expanded: detailed analysis (buy only) + entry/target rationale */}
       {expanded && (
         <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-2.5">
           {/* Catalysts — buy 종목 상세분석 */}
@@ -246,15 +256,11 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
               <span className="text-gray-700">{item.targetRationale}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs pt-0.5">
-            <span className="text-gray-400">{t('stopLoss')}</span>
-            <span className="font-semibold text-red-600 font-mono">{item.stopLoss}</span>
-          </div>
         </div>
       )}
       <div className="px-4 pb-2 flex justify-end">
         <button onClick={() => setExpanded(v => !v)} className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
-          {expanded ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('expandStopLoss')}</>}
+          {expanded ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('expandDetails')}</>}
         </button>
       </div>
     </div>
