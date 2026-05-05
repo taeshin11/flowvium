@@ -906,6 +906,8 @@ ownership-alerts 적용).
 | `/api/batch-prices?tickers=A,B,...` | Yahoo Finance v7 quote (최대 120 티커) | 5분 메모리 (티커별) ← iter117 |
 | `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
+| `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll, 연결재무제표) | 24h Redis |
+| `/api/company-kr/list` | DART CORPCODE.xml + company.json (companies-kr.ts 기반) | 7일 Redis |
 | `/api/company-recs/[ticker]` | Yahoo Finance v6 recommendationsbysymbol + v7 quote | 1h CDN |
 | `/api/analyst-target/[ticker]` | Finnhub price-target + recommendation | 24h CDN |
 | `/api/translate` | 통합 AI 체인 (vLLM → GROQ 8b → Qwen → Gemini, skipVllm=true, preferSmallModel=true) | 30일 |
