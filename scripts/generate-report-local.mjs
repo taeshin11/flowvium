@@ -951,13 +951,13 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '7. entryRationale ≤80자: MUST cite ≥1 fundamental signal',
     '8. targetRationale ≤80자: fundamentals-first',
     '',
-    'Respond in pure JSON (no markdown):',
+    `Respond in pure JSON (no markdown). ALL text values MUST be in ${TARGET_LANG}:`,
     '{"stance":"bullish|neutral|bearish",',
     '"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us",',
-    `"rationale":"실데이터포함100자(${TARGET_LANG})","allocation":15,"entryZone":"$X-Y",`,
-    '"entryRationale":"기술적+펀더멘털근거","stopLoss":"$Z",',
-    '"target":"$A","targetBull":"$B","targetRationale":"P/E목표배수→$A | 돌파시Fib→$B","confidence":"high","action":"buy"}],',
-    '"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"40자"}]}',
+    `"rationale":"[≤100 chars in ${TARGET_LANG}, cite real data signals]","allocation":15,"entryZone":"$X-Y",`,
+    `"entryRationale":"[≤80 chars in ${TARGET_LANG}, ≥1 fundamental signal]","stopLoss":"$Z",`,
+    `"target":"$A","targetBull":"$B","targetRationale":"[≤80 chars in ${TARGET_LANG}, fundamentals-first]","confidence":"high","action":"buy"}],`,
+    `"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"[≤40 chars in ${TARGET_LANG}]"}]}`,
     '6-8 portfolio items, 5 sectorAllocation items. Pure JSON only.',
   ].join('\n');
 }
@@ -974,7 +974,7 @@ function buildRegionalPrompt(ctx) {
     'Provide bullish/neutral/bearish for each country based on flows and F&G.',
     'Respond in pure JSON (no markdown):',
     '{"regionStances":{',
-    `"us":{"stance":"bullish","thesis":"40자(${TARGET_LANG})","keyData":"SPY 1w, F&G score"},`,
+    `"us":{"stance":"bullish","thesis":"[≤40 chars in ${TARGET_LANG}]","keyData":"SPY 1w, F&G score"},`,
     `"korea":{"stance":"neutral","thesis":"...","keyData":"EWY 1w, F&G"},`,
     '"japan":{"stance":"...","thesis":"...","keyData":"..."},',
     '"china":{"stance":"...","thesis":"...","keyData":"..."},',
@@ -997,10 +997,10 @@ function buildOpportunityPrompt(ctx) {
     `[Insider + Institutional Signals] ${ctx.institutional || 'None'}`,
     `[Asset F&G] ${ctx.assetFg || 'No data'}`,
     '',
-    'Respond in pure JSON:',
-    `{"shortSqueeze":[{"ticker":"SMCI","score":48,"timing":"실적발표 전 48시간내","risk":"추가 숏 진입 시 완화"}],`,
-    `"insiderSignals":[{"ticker":"CRWV","filings":63,"significance":"임원급 대규모 매집","pattern":"연속 매집"}],`,
-    `"topOpportunity":"가장 주목할 기회 1개 100자(${TARGET_LANG})"}`,
+    `Respond in pure JSON. ALL text values in ${TARGET_LANG}:`,
+    `{"shortSqueeze":[{"ticker":"SMCI","score":48,"timing":"[≤40 chars in ${TARGET_LANG}]","risk":"[≤40 chars in ${TARGET_LANG}]"}],`,
+    `"insiderSignals":[{"ticker":"CRWV","filings":63,"significance":"[≤40 chars in ${TARGET_LANG}]","pattern":"[≤30 chars in ${TARGET_LANG}]"}],`,
+    `"topOpportunity":"[≤100 chars in ${TARGET_LANG}]"}`,
     'Pure JSON only.',
   ].join('\n');
 }
@@ -1015,7 +1015,7 @@ function buildNarrativePrompt(ctx, session) {
     `[Macro Context] ${ctx.macro || 'No data'}`,
     '',
     'Respond in pure JSON:',
-    `{"why":"구체적 이유 100자(${TARGET_LANG})","watch":"관찰포인트 80자(${TARGET_LANG})","story":"시장스토리 200자(${TARGET_LANG})","sessionNote":"이 세션 특이사항 60자(${TARGET_LANG})"}`,
+    `{"why":"[≤100 chars in ${TARGET_LANG}]","watch":"[≤80 chars in ${TARGET_LANG}]","story":"[≤200 chars in ${TARGET_LANG}]","sessionNote":"[≤60 chars in ${TARGET_LANG}]"}`,
     'Pure JSON only.',
   ].join('\n');
 }
@@ -1033,7 +1033,7 @@ function buildRiskMgmtPrompt(portfolio, riskLevel, bbWarnings, vix) {
     `[VIX] ${vix || 'No data'}`,
     '',
     'Respond in pure JSON:',
-    `{"stopLossRationale":[{"ticker":"NVDA","rationale":"손절 근거 (${TARGET_LANG})"}],"hedgingSuggestion":"헤지 제안 (${TARGET_LANG})","portfolioRiskNote":"전체 리스크 요약 100자(${TARGET_LANG})"}`,
+    `{"stopLossRationale":[{"ticker":"NVDA","rationale":"[≤60 chars in ${TARGET_LANG}]"}],"hedgingSuggestion":"[≤80 chars in ${TARGET_LANG}]","portfolioRiskNote":"[≤100 chars in ${TARGET_LANG}]"}`,
     'Pure JSON only.',
   ].join('\n');
 }
@@ -1051,7 +1051,7 @@ function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news
     `[News & Events] ${news || 'None'}`,
     '',
     'Respond in pure JSON:',
-    `{"companyChanges":[{"ticker":"NVDA","name":"NVIDIA","revenueYoY":73.2,"latestQuarter":"Q4 FY2026","keyChange":"핵심 변화 (${TARGET_LANG})","guidance":"raised|maintained|lowered|unknown","sentiment":"positive|neutral|negative"}]}`,
+    `{"companyChanges":[{"ticker":"NVDA","name":"NVIDIA","revenueYoY":73.2,"latestQuarter":"Q4 FY2026","keyChange":"[≤60 chars in ${TARGET_LANG}]","guidance":"raised|maintained|lowered|unknown","sentiment":"positive|neutral|negative"}]}`,
     'Include ALL portfolio tickers. Pure JSON only.',
   ].join('\n');
 }
@@ -1105,7 +1105,7 @@ function buildCritiquePrompt(portfolio, macroAnalysis, bbWarnings, assetFg) {
     'Be selective: only flag items with genuine concerns. Typical result: 0-2 flags.',
     '',
     'Respond in pure JSON:',
-    `{"critiques":[{"ticker":"NVDA","verdict":"REVISE|WARN|OK","correction":"≤80자 (${TARGET_LANG}), 구체적 수치 포함"}]}`,
+    `{"critiques":[{"ticker":"NVDA","verdict":"REVISE|WARN|OK","correction":"[≤80 chars in ${TARGET_LANG}, include specific numbers]"}]}`,
     'Pure JSON only.',
   ].join('\n');
 }
@@ -1230,15 +1230,22 @@ async function generateViaOllama() {
 
   let macroData        = parseJson(macroRaw);
   const portfolioData  = parseJson(portfolioRaw);
-  const regionalData   = parseJson(regionalRaw);
+  let regionalData     = parseJson(regionalRaw);
   const opportunityData = parseJson(opportunityRaw);
   const narrativeData  = parseJson(narrativeRaw);
 
-  // Retry macro once on parse failure (qwen3:8b occasionally produces malformed JSON for CJK locales)
-  if (!macroData) {
-    console.log('  macro parse failed — retrying once...');
-    const macroRetry = await callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session));
-    macroData = parseJson(macroRetry);
+  // Retry failed wave1 calls once (qwen3:8b occasionally produces malformed JSON)
+  const retryNeeded = [];
+  if (!macroData)    retryNeeded.push('macro');
+  if (!regionalData) retryNeeded.push('regional');
+  if (retryNeeded.length > 0) {
+    console.log(`  parse failed [${retryNeeded.join(', ')}] — retrying...`);
+    const retries = await Promise.all([
+      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session))    : Promise.resolve(null),
+      !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade))                       : Promise.resolve(null),
+    ]);
+    if (!macroData    && retries[0]) macroData    = parseJson(retries[0]);
+    if (!regionalData && retries[1]) regionalData = parseJson(retries[1]);
   }
 
   console.log(`  macro=${!!macroData}, portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}`);
