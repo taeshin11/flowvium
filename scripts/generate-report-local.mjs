@@ -535,12 +535,14 @@ function expandThesis(thesis, macroData, ctx) {
   if (!thesis || thesis.length >= 60) return thesis;
   const parts = [];
   const ind = ctx.macro?.indicators ?? [];
-  const cpi = ind.find(i => i.id === 'cpi' || i.id === 'us_cpi')?.value;
-  const spread = ind.find(i => i.id === 'hy_oas' || i.id === 'hyoas')?.value;
-  const vix = ind.find(i => i.id === 'vix')?.value;
+  const cpi = ind.find(i => i.id === 'cpi' || i.id === 'us_cpi')?.actual;
+  const spread = ind.find(i => i.id === 'hy_spread' || i.id === 'hy_oas' || i.id === 'hyoas')?.actual;
+  const vix = ind.find(i => i.id === 'vix')?.actual;
+  const gdp = ind.find(i => i.id === 'gdp')?.actual;
   if (cpi != null) parts.push(`CPI ${cpi}%`);
-  if (spread != null) parts.push(`HY ${spread}%`);
-  if (vix != null) parts.push(`VIX ${vix.toFixed(1)}`);
+  if (gdp != null) parts.push(`GDP ${gdp}%`);
+  if (spread != null) parts.push(`HY스프레드 ${spread}%`);
+  if (vix != null) parts.push(`VIX ${typeof vix === 'number' ? vix.toFixed(1) : vix}`);
   if (macroData?.riskLevel) parts.push(`리스크 ${macroData.riskLevel}`);
   if (parts.length) {
     const expanded = `${thesis} — ${parts.join(', ')}`;
