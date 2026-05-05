@@ -1380,6 +1380,16 @@ export async function GET(request: Request) {
   const opportunityData = parseSec(opportunityResult.text);
   const narrativeData  = parseSec(narrativeResult.text);
 
+  logger.info('api.investment-strategy', 'wave1_results', {
+    macro:       { source: macroResult.source,       ok: !!macroData,       riskLevel: macroData?.riskLevel,        riskEvents: (macroData?.riskEvents as unknown[])?.length ?? 0 },
+    portfolio:   { source: portfolioResult.source,   ok: !!portfolioData,   count: (portfolioData?.portfolio as unknown[])?.length ?? 0,
+                   buy: (portfolioData?.portfolio as Array<{action?:string}>|undefined)?.filter(p => p.action==='buy').length ?? 0 },
+    regional:    { source: regionalResult.source,    ok: !!regionalData,    regions: Object.keys((regionalData?.regionStances as object|null) ?? {}) },
+    opportunity: { source: opportunityResult.source, ok: !!opportunityData, squeeze: (opportunityData?.shortSqueeze as unknown[])?.length ?? 0,
+                   insider: (opportunityData?.insiderSignals as unknown[])?.length ?? 0 },
+    narrative:   { source: narrativeResult.source,   ok: !!narrativeData },
+  });
+
   // ── Wave 2: S2b 매수종목상세 + S5 리스크관리 + S8 기업변화 (병렬) ─────────────
   let riskData: Record<string, unknown> | null = null;
   let companyChangesData: Record<string, unknown> | null = null;
@@ -1387,6 +1397,12 @@ export async function GET(request: Request) {
 
   if (portfolioData?.portfolio?.length) {
     const portfolioTickers = (portfolioData.portfolio as Array<{ ticker: string; name?: string }>).map(p => p.ticker);
+    const buyStocksForLog = (portfolioData.portfolio as Array<{action?:string; ticker:string}>).filter(p => p.action === 'buy').map(p => p.ticker);
+    logger.info('api.investment-strategy', 'wave2_start', {
+      portfolioCount: portfolioTickers.length,
+      buyTickers: buyStocksForLog,
+      hasBuyStocks: buyStocksForLog.length > 0,
+    });
     const companyFinancialsSummary = await getCompanyFinancialsSummary(baseUrl, portfolioTickers).catch(() => '');
 
     // buy 종목만 추출해서 상세분석 인풋 구성
@@ -1449,6 +1465,18 @@ export async function GET(request: Request) {
         }
       }
     }
+
+    logger.info('api.investment-strategy', 'wave2_results', {
+      risk:          { source: riskResult.source,          ok: !!riskData,          hasStopLoss: !!(riskData?.stopLossRationale), hasHedging: !!(riskData?.hedgingSuggestion) },
+      companyChange: { source: companyChangesResult.source, ok: !!companyChangesData, count: (companyChangesData?.companyChanges as unknown[])?.length ?? 0 },
+      stockDetail:   stockDetailResult ? { source: stockDetailResult.source, tickerCount: stockDetailMap.size } : null,
+    });
+  } else {
+    logger.warn('api.investment-strategy', 'wave2_skipped', {
+      reason: portfolioData ? 'empty_portfolio' : 'portfolio_parse_failed',
+      portfolioSource: portfolioResult.source,
+      portfolioRaw: portfolioResult.text.slice(0, 120),
+    });
   }
 
 
@@ -1506,37 +1534,70 @@ export async function GET(request: Request) {
 
   let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
 
+  logger.info('api.investment-strategy', 'merge_result', {
+    usedCombined: !!combinedStrategy,
+    usedSingle: !combinedStrategy && !!singleResult,
+    singleSource: singleResult?.source ?? null,
+    hasStrategy: !!strategy,
+    source: strategy?.source ?? null,
+    sections: strategy ? {
+      portfolio: strategy.portfolio?.length ?? 0,
+      sectorAllocation: strategy.sectorAllocation?.length ?? 0,
+      riskEvents: strategy.riskEvents?.length ?? 0,
+      regionStances: Object.keys(strategy.regionStances ?? {}),
+      shortSqueeze: strategy.shortSqueeze?.length ?? 0,
+      insiderSignals: strategy.insiderSignals?.length ?? 0,
+      hasRiskMgmt: !!(strategy.stopLossRationale?.length || strategy.hedgingSuggestion),
+      hasNarrative: !!strategy.marketNarrative,
+      companyChanges: strategy.companyChanges?.length ?? 0,
+    } : null,
+  });
+
   // ── 후처리: portfolio dedup + 유효하지 않은 티커 필터 ──────────────────────────
   // 거래 불가 티커: 인덱스(^KS11=KOSPI, ^N225=Nikkei, ^GSPC=S&P500 등), 빈 값
   // 거래 불가 티커: 인덱스, 약자(KS=Korea Stock?), 유효하지 않은 단일문자
   const INDEX_TICKERS = new Set([
     '^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11',
     'KS','KR','JP','CN','EU','US','UK',  // 국가 약자 오류 방지
+    // 한국 주요 지수명 (AI가 개별주로 착각하는 경우 방지)
+    'KOSPI200','KOSPI100','KOSPI50','KOSDAQ150','KRX300',
+    // 글로벌 지수 약자
+    'SPX','NDX','RUT','DAX','FTSE','HSI','N225','SENSEX',
   ]);
   // 한국 주식 6자리 숫자 티커 → .KS 자동 보정 (AI가 005930 대신 005930.KS 형식 필요)
   const KR_NUM_REGEX = /^\d{6}$/;
   if (strategy?.portfolio?.length) {
-    strategy.portfolio = strategy.portfolio.map(p => ({
-      ...p,
-      ticker: KR_NUM_REGEX.test(p.ticker ?? '') ? `${p.ticker}.KS` : (p.ticker ?? ''),
-    }));
+    const beforeDedup = strategy.portfolio.length;
+    const krFixed: string[] = [];
+    strategy.portfolio = strategy.portfolio.map(p => {
+      const fixed = KR_NUM_REGEX.test(p.ticker ?? '') ? `${p.ticker}.KS` : (p.ticker ?? '');
+      if (fixed !== p.ticker) krFixed.push(`${p.ticker}→${fixed}`);
+      return { ...p, ticker: fixed };
+    });
     const dedupMap = new Map<string, typeof strategy.portfolio[0]>();
+    const indexRemoved: string[] = [];
     for (const p of strategy.portfolio) {
       const key = p.ticker?.toUpperCase();
-      if (!key || INDEX_TICKERS.has(key)) continue; // 인덱스 티커 제거
+      if (!key || INDEX_TICKERS.has(key)) { indexRemoved.push(p.ticker); continue; }
       const existing = dedupMap.get(key);
       if (!existing || (p.allocation ?? 0) > (existing.allocation ?? 0)) dedupMap.set(key, p);
     }
     // allocation 합계 100 재조정
     const items = Array.from(dedupMap.values());
     const total = items.reduce((s, p) => s + (p.allocation ?? 0), 0);
+    let allocationAdjusted = false;
     if (total > 0 && Math.abs(total - 100) > 2) {
       items.forEach(p => { p.allocation = Math.round((p.allocation ?? 0) / total * 100); });
-      // 반올림 오차 보정
       const diff = 100 - items.reduce((s, p) => s + p.allocation, 0);
       if (diff !== 0 && items.length) items[0].allocation += diff;
+      allocationAdjusted = true;
     }
     strategy = { ...strategy, portfolio: items };
+    logger.info('api.investment-strategy', 'postprocess_portfolio', {
+      before: beforeDedup, after: items.length,
+      krFixed, indexRemoved, allocationAdjusted, totalAfter: items.reduce((s, p) => s + p.allocation, 0),
+      tickers: items.map(p => `${p.ticker}(${p.action ?? 'hold'},${p.allocation}%)`),
+    });
   }
 
   // ── Section 4: Karpathy Loop — Critic (Draft → Critique → Refine) ─────────
@@ -1544,6 +1605,7 @@ export async function GET(request: Request) {
   // AI가 자신의 Draft 포트폴리오를 반박 → REVISE/WARN → 반영
   // D3 FIX: gate on strategy.source (covers both combinedStrategy + singleResult paths)
   if (strategy && strategy.portfolio?.length > 0 && strategy.source !== 'fallback' && strategy.source !== '데이터 기반 모델') {
+    logger.info('api.investment-strategy', 'critic_gate_pass', { source: strategy.source, portfolioCount: strategy.portfolio.length });
     try {
       // Critic에 S4 기회신호 요약 추가 (Codex 권장: ~150 tokens, 상위 2개만)
       const s4Summary = strategy.shortSqueeze?.slice(0, 2)
@@ -1566,6 +1628,9 @@ export async function GET(request: Request) {
       );
       if (critiqueResult.text && critiqueResult.source !== 'fallback') {
         const refinedPortfolio = applyCritique(critiqueInput.portfolio, critiqueResult.text);
+        const actionChanges = refinedPortfolio
+          .map((r, i) => ({ ticker: r.ticker, before: (critiqueInput.portfolio[i]?.action ?? 'hold'), after: r.action }))
+          .filter(c => c.before !== c.after);
         strategy = {
           ...strategy,
           portfolio: strategy.portfolio.map((p, i) => ({
@@ -1574,9 +1639,16 @@ export async function GET(request: Request) {
             rationale: refinedPortfolio[i]?.rationale ?? p.rationale,
           })),
         };
-        logger.info('api.investment-strategy', 'karpathy_critic_applied', { source: critiqueResult.source });
+        logger.info('api.investment-strategy', 'critic_applied', { source: critiqueResult.source, actionChanges, changedCount: actionChanges.length });
+      } else {
+        logger.warn('api.investment-strategy', 'critic_no_change', { source: critiqueResult.source, hasText: !!critiqueResult.text });
       }
-    } catch (e) { logger.warn('api.investment-strategy', 'critic_failed', { error: e }); }
+    } catch (e) { logger.warn('api.investment-strategy', 'critic_failed', { error: String(e) }); }
+  } else if (strategy) {
+    logger.warn('api.investment-strategy', 'critic_gate_blocked', {
+      source: strategy.source, portfolioCount: strategy.portfolio?.length ?? 0,
+      reason: strategy.source === 'fallback' ? 'fallback_source' : strategy.source === '데이터 기반 모델' ? 'data_model_source' : 'empty_portfolio',
+    });
   }
 
   if (!strategy) {
@@ -1620,9 +1692,13 @@ export async function GET(request: Request) {
     const isGarbage = (text: string | undefined | null): boolean => {
       if (!text || text.trim().length < 10) return false;
       const t = text.trim();
-      // "WORD+WORD+WORD..." 순수 구분자 반복 패턴 (공백 없이 + 만으로 이어진 경우)
-      if (/^[\w가-힣<>%\.\$]+(\+[\w가-힣<>%\.\$]+){2,}$/.test(t)) return true;
-      // 단일 토큰이 55% 초과 반복 (4개 이상 토큰 기준) — "AI AI AI AI AI" 패턴
+      // Pattern 1: "X+Y+Z" 3개 이상 세그먼트 (공백 포함 허용) — 프롬프트 에코 목록 형식
+      // 기존: 공백 없는 경우만 → 확장: 공백 있는 경우도 탐지
+      if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t)) return true;
+      // Pattern 1b: 2세그먼트 + 구분 + 전체 80자 미만 (ex: "100일선 돌파+MACD 긍정적 교차")
+      // 숫자% 패턴(정상 데이터) 제외
+      if (t.length < 80 && /^[^\n+]{3,}\+[^\n+]{3,}$/.test(t) && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true;
+      // Pattern 2: 단일 토큰이 55% 초과 반복 (4개 이상 토큰 기준) — "AI AI AI AI AI" 패턴
       const tokens = t.split(/[\s,+|/·]+/).filter(w => w.length > 1);
       if (tokens.length >= 4) {
         const freq = new Map<string, number>();
@@ -1634,16 +1710,18 @@ export async function GET(request: Request) {
     };
     const thesisGarbage = isGarbage(strategy.thesis);
     const macroGarbage = isGarbage(strategy.macroAnalysis);
+    const technicalGarbage = isGarbage(strategy.technicalAnalysis);
     const fundamentalGarbage = isGarbage(strategy.fundamentalAnalysis);
     const narrativeGarbage = strategy.marketNarrative != null && (
       isGarbage(strategy.marketNarrative.why) || isGarbage(strategy.marketNarrative.story)
     );
-    const anyGarbage = thesisGarbage || macroGarbage || fundamentalGarbage || narrativeGarbage;
+    const anyGarbage = thesisGarbage || macroGarbage || technicalGarbage || fundamentalGarbage || narrativeGarbage;
     if (anyGarbage) {
       logger.warn('api.investment-strategy', 'quality_gate_failed', {
-        thesisGarbage, macroGarbage, fundamentalGarbage, narrativeGarbage,
+        thesisGarbage, macroGarbage, technicalGarbage, fundamentalGarbage, narrativeGarbage,
         thesis: strategy.thesis?.slice(0, 60),
         macro: strategy.macroAnalysis?.slice(0, 60),
+        technical: strategy.technicalAnalysis?.slice(0, 60),
         fundamental: strategy.fundamentalAnalysis?.slice(0, 60),
         source: strategy.source,
       });
@@ -1651,11 +1729,39 @@ export async function GET(request: Request) {
         ...strategy,
         ...(thesisGarbage ? { thesis: undefined } : {}),
         ...(macroGarbage ? { macroAnalysis: '' } : {}),
+        ...(technicalGarbage ? { technicalAnalysis: '' } : {}),
         ...(fundamentalGarbage ? { fundamentalAnalysis: '' } : {}),
         ...(narrativeGarbage ? { marketNarrative: undefined } : {}),
       };
+    } else {
+      logger.info('api.investment-strategy', 'quality_gate_passed', { source: strategy.source });
     }
   }
+
+  // ── 최종 보고서 섹션 완성도 요약 ──────────────────────────────────────────────
+  logger.info('api.investment-strategy', 'report_final_summary', {
+    session, locale, source: strategy.source,
+    sections: {
+      stance:           strategy.stance,
+      thesis:           { ok: !!(strategy.thesis), len: strategy.thesis?.length ?? 0 },
+      macroAnalysis:    { ok: !!(strategy.macroAnalysis), len: strategy.macroAnalysis?.length ?? 0 },
+      technicalAnalysis:{ ok: !!(strategy.technicalAnalysis) },
+      fundamental:      { ok: !!(strategy.fundamentalAnalysis) },
+      riskLevel:        strategy.riskLevel,
+      riskEvents:       strategy.riskEvents?.length ?? 0,
+      portfolio:        { count: strategy.portfolio?.length ?? 0, tickers: strategy.portfolio?.map(p => p.ticker) ?? [] },
+      sectorAlloc:      strategy.sectorAllocation?.length ?? 0,
+      regionStances:    Object.keys(strategy.regionStances ?? {}),
+      shortSqueeze:     strategy.shortSqueeze?.length ?? 0,
+      insiderSignals:   strategy.insiderSignals?.length ?? 0,
+      topOpportunity:   !!(strategy.topOpportunity),
+      stopLossRationale:strategy.stopLossRationale?.length ?? 0,
+      hedgingSuggestion:!!(strategy.hedgingSuggestion),
+      portfolioRiskNote:!!(strategy.portfolioRiskNote),
+      marketNarrative:  !!(strategy.marketNarrative),
+      companyChanges:   strategy.companyChanges?.length ?? 0,
+    },
+  });
 
   // isFallback: source 이름과 무관하게 7섹션 필드 없으면 fallback으로 판단
   // → 데이터 기반 fallback이 stale 키를 덮어쓰는 것 방지 (기존 좋은 stale 보존)
