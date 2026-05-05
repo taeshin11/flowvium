@@ -1268,7 +1268,7 @@ async function generateViaOllama() {
       console.error('❌ Wave1 포트폴리오 생성 실패 (2회). 종료합니다.');
       process.exit(1);
     }
-    Object.assign(portfolioData, portfolioRetryData);
+    portfolioData = portfolioRetryData;
   }
 
   // ── [3/7] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
