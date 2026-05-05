@@ -1043,21 +1043,31 @@ function buildRiskMgmtPrompt(portfolio, riskLevel, bbWarnings, vix) {
 }
 
 function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news, financials) {
-  const tickers = portfolioItems.map(p => `${p.ticker}(${p.name ?? p.ticker})`).join(', ');
+  // SEC EDGAR only covers US-listed companies. Korean .KS tickers have no financials source.
+  const usTickers = portfolioItems.filter(p => !p.ticker.endsWith('.KS'));
+  const krTickers  = portfolioItems.filter(p =>  p.ticker.endsWith('.KS'));
+  const tickers = usTickers.map(p => `${p.ticker}(${p.name ?? p.ticker})`).join(', ');
+  const krNote = krTickers.length
+    ? `\nKorean tickers (NO financials data — OMIT from companyChanges): ${krTickers.map(p => p.ticker).join(', ')}`
+    : '';
   return [
     `You are a corporate analyst. Date: ${TODAY}. Write keyChange in ${TARGET_LANG}.`,
     '',
-    `Portfolio tickers: ${tickers}`,
+    `US portfolio tickers (include these): ${tickers || 'None'}${krNote}`,
     '',
-    `[Recent Financials] ${financials || 'No data'}`,
+    `[Recent Financials — US only] ${financials || 'No data'}`,
     `[Upcoming/Recent Earnings] ${earnings || 'None'}`,
     `[Institutional Changes] ${institutional || 'None'}`,
     `[News & Events] ${news || 'None'}`,
     '',
+    'RULES:',
+    '- Include ONLY tickers listed under "US portfolio tickers".',
+    '- Korean .KS tickers have no financial data — do NOT include them.',
+    '- revenueYoY: use actual number from [Recent Financials]. If unknown, use null (NEVER 0).',
+    '',
     'Respond in pure JSON:',
     `{"companyChanges":[{"ticker":"NVDA","name":"NVIDIA","revenueYoY":73.2,"latestQuarter":"Q4 FY2026","keyChange":"[≤60 chars in ${TARGET_LANG}]","guidance":"raised|maintained|lowered|unknown","sentiment":"positive|neutral|negative"}]}`,
-    'IMPORTANT: If you have no real revenue data for a ticker, set revenueYoY to null (NOT 0).',
-    'Include ALL portfolio tickers. Pure JSON only.',
+    'Pure JSON only.',
   ].join('\n');
 }
 
