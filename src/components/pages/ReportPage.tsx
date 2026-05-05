@@ -716,7 +716,7 @@ export default function ReportPage() {
                   <p className="text-[10px] font-bold text-red-700">{t('stopLossRationaleLabel')}</p>
                   {data.stopLossRationale.map((s, i) => (
                     <div key={i} className="flex gap-2 text-xs">
-                      <span className="font-bold text-red-800 w-12 shrink-0">{s.ticker}</span>
+                      <span className="font-bold text-red-800 min-w-[5.5rem] shrink-0">{s.ticker}</span>
                       <span className="text-gray-600">{s.rationale}</span>
                     </div>
                   ))}
@@ -756,7 +756,7 @@ export default function ReportPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs font-mono">{c.ticker}</span>
                           {c.latestQuarter && <span className="text-[10px] opacity-70">{c.latestQuarter}</span>}
-                          {c.revenueYoY != null && (
+                          {c.revenueYoY != null && c.revenueYoY !== 0 && (
                             <span className="text-[10px] font-semibold">
                               {c.revenueYoY >= 0 ? '+' : ''}{c.revenueYoY.toFixed(1)}% {t('companyChangesYoY')}
                             </span>

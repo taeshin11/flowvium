@@ -1056,6 +1056,7 @@ function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news
     '',
     'Respond in pure JSON:',
     `{"companyChanges":[{"ticker":"NVDA","name":"NVIDIA","revenueYoY":73.2,"latestQuarter":"Q4 FY2026","keyChange":"[≤60 chars in ${TARGET_LANG}]","guidance":"raised|maintained|lowered|unknown","sentiment":"positive|neutral|negative"}]}`,
+    'IMPORTANT: If you have no real revenue data for a ticker, set revenueYoY to null (NOT 0).',
     'Include ALL portfolio tickers. Pure JSON only.',
   ].join('\n');
 }
