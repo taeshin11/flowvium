@@ -1050,13 +1050,42 @@ function postProcessPortfolio(portfolio) {
 }
 
 // ── Step 1: 다단계 Ollama 생성 ─────────────────────────────────────────────────
+async function refreshAllData() {
+  const cronSecret = env.CRON_SECRET?.trim();
+  if (!cronSecret) {
+    console.log('  ⚠️  CRON_SECRET 없음 — 데이터 갱신 건너뜀 (캐시 그대로 사용)');
+    return;
+  }
+  console.log('  update-all 호출 중...');
+  try {
+    const res = await fetch(`${SITE}/api/cron/update-all`, {
+      headers: { 'Authorization': `Bearer ${cronSecret}`, 'Cache-Control': 'no-store' },
+      signal: AbortSignal.timeout(65000),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      const ok = d.results?.filter(r => r.ok).length ?? '?';
+      const total = d.results?.length ?? '?';
+      console.log(`  ✅ update-all 완료 (${ok}/${total} API 갱신)`);
+    } else {
+      console.log(`  ⚠️  update-all ${res.status} — 캐시 그대로 사용`);
+    }
+  } catch (e) {
+    console.log(`  ⚠️  update-all 타임아웃/실패 (${e.message}) — 캐시 그대로 사용`);
+  }
+}
+
 async function generateViaOllama() {
   const session = getSession();
   console.log(`\n=== 로컬 Ollama 보고서 생성 (${modelArg}) ===`);
   console.log(`locale: ${localeArg} (${TARGET_LANG}), session: ${session}, auto-upload: ${autoUpload}`);
 
-  // ── [1/6] 데이터 수집 ────────────────────────────────────────────────────────
-  console.log('\n[1/6] 컨텍스트 데이터 수집 (16개 API 병렬)...');
+  // ── [0/7] 데이터 최신화 ──────────────────────────────────────────────────────
+  console.log('\n[0/7] 데이터 최신화 (update-all)...');
+  await refreshAllData();
+
+  // ── [1/7] 데이터 수집 ────────────────────────────────────────────────────────
+  console.log('\n[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...');
   const [ctxRaw, livePrices, sectorPe, earnings] = await Promise.all([
     gatherContext(),
     getLivePrices(),
@@ -1076,8 +1105,8 @@ async function generateViaOllama() {
   console.log(`  news=${ctx.news.length}c, institutional=${ctx.institutional.length}c, shorts=${ctx.shorts.length}c`);
   console.log(`  prices=${livePrices.size} tickers, sectorPe=${sectorPe.length}c, earnings=${earnings.length}c`);
 
-  // ── [2/6] Wave 1: 5섹션 병렬 ─────────────────────────────────────────────────
-  console.log('\n[2/6] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
+  // ── [2/7] Wave 1: 5섹션 병렬 ─────────────────────────────────────────────────
+  console.log('\n[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
   const [macroRaw, portfolioRaw, regionalRaw, opportunityRaw, narrativeRaw] = await Promise.all([
     callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session)),
     callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData)),
@@ -1100,8 +1129,8 @@ async function generateViaOllama() {
     process.exit(1);
   }
 
-  // ── [3/6] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
-  console.log('\n[3/6] Wave2 — 리스크/기업변화/종목상세 병렬 호출...');
+  // ── [3/7] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
+  console.log('\n[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...');
   const portfolioItems = postProcessPortfolio(portfolioData.portfolio);
   const buyStocks = portfolioItems
     .filter(p => p.action === 'buy')
@@ -1133,8 +1162,8 @@ async function generateViaOllama() {
   }
   console.log(`  risk=${!!riskData}, companyChanges=${companyChangesData?.companyChanges?.length ?? 0}개, stockDetail=${stockDetailMap.size}개`);
 
-  // ── [4/6] Critique ──────────────────────────────────────────────────────────
-  console.log('\n[4/6] Critique — 포트폴리오 자기비판...');
+  // ── [4/7] Critique ──────────────────────────────────────────────────────────
+  console.log('\n[4/7] Critique — 포트폴리오 자기비판...');
   let refinedPortfolio = portfolioItems;
   try {
     const critiqueRaw = await callOllama(buildCritiquePrompt(
@@ -1148,8 +1177,8 @@ async function generateViaOllama() {
     console.log(`  critique 적용: ${changed.length}개 종목 수정`);
   } catch (e) { console.log(`  critique 실패 (non-fatal): ${e.message}`); }
 
-  // ── [5/6] 병합 ──────────────────────────────────────────────────────────────
-  console.log('\n[5/6] 섹션 병합...');
+  // ── [5/7] 병합 ──────────────────────────────────────────────────────────────
+  console.log('\n[5/7] 섹션 병합...');
   const mergedPortfolio = refinedPortfolio.map(p => {
     const detail = stockDetailMap.get(p.ticker.toUpperCase());
     if (!detail) return p;
@@ -1191,8 +1220,8 @@ async function generateViaOllama() {
     buildId: 'local',
   };
 
-  // ── [6/6] 품질 검사 + 저장 ──────────────────────────────────────────────────
-  console.log('\n[6/6] 품질 게이트 검사...');
+  // ── [6/7] 품질 검사 + 저장 ──────────────────────────────────────────────────
+  console.log('\n[6/7] 품질 게이트 검사...');
   const { ok, issues, score } = qualityCheck(finalReport);
   console.log(`  품질 점수: ${score}/100`);
   if (issues.length) {
