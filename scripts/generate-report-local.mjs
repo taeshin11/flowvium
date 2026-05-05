@@ -1461,7 +1461,7 @@ async function generateViaOllama() {
   }
 
   // ── 후처리: 신호 digest 빌드 + rationale 중복 제거 ─────────────────────────
-  const signalDigest = buildSignalDigest(ctx, technicalData, companyFinancials);
+  const signalDigest = buildSignalDigest(ctxRaw, technicalData, companyFinancials);
   const portfolioItemsDeduped = deduplicateRationales(portfolioItems, signalDigest);
   // buyStocks도 deduplicated rationale로 갱신
   const buyStocksDeduped = portfolioItemsDeduped
@@ -1550,8 +1550,8 @@ async function generateViaOllama() {
   };
 
   // ── 후처리: thesis 확장 / regionStances 보완 / companyChanges YoY 보완 ──────
-  finalReport.thesis = expandThesis(finalReport.thesis, macroData, ctx);
-  finalReport.regionStances = fillMissingRegionStances(finalReport.regionStances, ctx);
+  finalReport.thesis = expandThesis(finalReport.thesis, macroData, ctxRaw);
+  finalReport.regionStances = fillMissingRegionStances(finalReport.regionStances, ctxRaw);
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
 
   // ── [6/7] 품질 검사 + 저장 ──────────────────────────────────────────────────
