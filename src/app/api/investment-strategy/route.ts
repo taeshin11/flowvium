@@ -18,15 +18,36 @@ import { executeReportTrades } from '@/lib/paper-trading';
 import { FG, VIX, SPREADS, PORTFOLIO } from '@/lib/thresholds';
 export const dynamic = 'force-dynamic';
 
+const ERROR_LOG_KEY = 'flowvium:error-log:recent';
+const ERROR_LOG_MAX = 200;
+
+async function appendErrorLog(
+  redis: Redis | null,
+  type: string,
+  details: Record<string, unknown>,
+  locale: string,
+  session: string,
+): Promise<void> {
+  if (!redis) return;
+  const entry = JSON.stringify({ ts: new Date().toISOString(), locale, session, type, ...details });
+  try {
+    await redis.lpush(ERROR_LOG_KEY, entry);
+    await redis.ltrim(ERROR_LOG_KEY, 0, ERROR_LOG_MAX - 1);
+    await redis.expire(ERROR_LOG_KEY, 7 * 86400); // 7일
+  } catch { /* non-fatal */ }
+}
+
+
 export const maxDuration = 300;
 
 const CACHE_TTL = 24 * 60 * 60; // 24h Redis
 // Bump this version whenever the report schema adds/removes required fields.
 // Old stale caches with different schema are automatically invalidated on the next cron run.
 const SCHEMA_VERSION = 8;
-const STALE_KEY_PREFIX = `flowvium:investment-strategy:stale:v${SCHEMA_VERSION}`;
+const staleKey = (locale = 'en') => `flowvium:investment-strategy:stale:v${SCHEMA_VERSION}:${locale}`;
 // 24h CDN + 2h stale window; daily strategy doesn't need more frequent refresh
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=7200' };
+const PRIORITY_LOCALES = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW']);
 
 // Module-level memory cache — without Redis every cold start triggers a heavy AI call.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,10 +89,10 @@ function getKstSession(): 'morning' | 'afternoon' | 'evening' {
   return 'evening';
 }
 
-function cacheKey(session?: string): string {
+function cacheKey(session?: string, locale = 'en'): string {
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   const s = session ?? getKstSession();
-  return `flowvium:investment-strategy:v${SCHEMA_VERSION}:${kstDate}:${s}`;
+  return `flowvium:investment-strategy:v${SCHEMA_VERSION}:${kstDate}:${s}:${locale}`;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1236,7 +1257,7 @@ export async function GET(request: Request) {
 
   const redis = createRedis();
   const session = getKstSession();
-  const key = cacheKey(session);
+  const key = cacheKey(session, locale);
 
   // Memory cache (no-Redis path)
   if (!redis && STRATEGY_MEMORY_CACHE && Date.now() < STRATEGY_MEMORY_CACHE.expiresAt) {
@@ -1249,21 +1270,31 @@ export async function GET(request: Request) {
       if (!force) {
         const cached = await redis.get(key);
         if (cached) {
-          logger.info('api.investment-strategy', 'cache_hit', { session });
+          logger.info('api.investment-strategy', 'cache_hit', { locale, session });
           return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+        }
+      }
+
+      // Non-priority locale: try 'en' cache first
+      if (!PRIORITY_LOCALES.has(locale) && locale !== 'en') {
+        const enKey = cacheKey(session, 'en');
+        const enCached = await redis.get(enKey);
+        if (enCached) {
+          logger.info('api.investment-strategy', 'locale_fallback_hit', { locale, fallbackLocale: 'en', session });
+          return NextResponse.json({ ...(enCached as object), cached: true, localeFallback: true }, { headers: CDN_HEADERS });
         }
       }
       // 2. Stale (last AI-generated report, up to 7 days) — schema-validated
       if (!force) {
-        const stale = await redis.get(STALE_KEY_PREFIX);
+        const stale = await redis.get(staleKey(locale));
         if (stale && isSchemaCompatible(stale as Record<string, unknown>)) {
-          logger.info('api.investment-strategy', 'stale_hit');
+          logger.info('api.investment-strategy', 'stale_hit', { locale });
           return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
         }
         if (stale && !isSchemaCompatible(stale as Record<string, unknown>)) {
-          logger.warn('api.investment-strategy', 'stale_schema_mismatch', { missing: REQUIRED_SCHEMA_FIELDS.filter(f => !(stale as Record<string,unknown>)[f]) });
+          logger.warn('api.investment-strategy', 'stale_schema_mismatch', { locale, missing: REQUIRED_SCHEMA_FIELDS.filter(f => !(stale as Record<string,unknown>)[f]) });
           // Delete incompatible stale so next cron regenerates properly
-          try { await redis.del(STALE_KEY_PREFIX); } catch { /* best-effort */ }
+          try { await redis.del(staleKey(locale)); } catch { /* best-effort */ }
         }
         // 3. Any previous session's report from today or yesterday (A1 fix)
         const yesterday = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
@@ -1320,15 +1351,39 @@ export async function GET(request: Request) {
     ]);
     ctx = ctxR; sectorPe = sectorR; earnings = earningsR;
     livePrices = pricesR; vixCtx = vixR; activeCascades = cascadeR;
-    logger.info('api.investment-strategy', 'ctx_gathered', {
-      hasCtx: Object.keys(ctx).length > 0, hasPrices: livePrices.size > 0,
-      hasSectorPe: !!sectorPe, hasVix: !!vixCtx,
+    logger.info('api.investment-strategy', 'ctx_gathered', { locale,
+      ctxKeys: Object.keys(ctx).length,
+      prices: livePrices.size,
+      sectorPe: sectorPe.length,
+      earnings: earnings.length,
+      vixCtx: vixCtx.length,
+      activeCascades: activeCascades.length,
     });
   }
 
   const dataAsOf = new Date().toISOString();
   const ctxSummary = buildCtxSummary(ctx);
   const priceData = pricesSection(livePrices);
+
+  logger.info('api.investment-strategy', 'ctx_summary', { locale,
+    macro: ctxSummary.macro?.length ?? 0,
+    sentiment: ctxSummary.sentiment?.length ?? 0,
+    flows: ctxSummary.flows?.length ?? 0,
+    news: ctxSummary.news?.length ?? 0,
+    koreaFlow: ctxSummary.koreaFlow?.length ?? 0,
+    institutional: ctxSummary.institutional?.length ?? 0,
+    shorts: ctxSummary.shorts?.length ?? 0,
+    cot: ctxSummary.cot?.length ?? 0,
+    credit: ctxSummary.credit?.length ?? 0,
+    nport: ctxSummary.nport?.length ?? 0,
+    optionsFlow: ctxSummary.optionsFlow?.length ?? 0,
+    ownership: ctxSummary.ownership?.length ?? 0,
+    econCal: ctxSummary.econCal?.length ?? 0,
+    commodity: ctxSummary.commodity?.length ?? 0,
+    assetFg: ctxSummary.assetFg?.length ?? 0,
+    bbWarnings: ctxSummary.bbWarnings?.length ?? 0,
+    priceData: priceData.length,
+  });
 
   // ── 3섹션 병렬 AI 호출 ──────────────────────────────────────────────────────
   // activeCascades: 리더 1W ±5% 이상 시 팔로워 추천 신호 — flows + news에 주입
@@ -1381,7 +1436,7 @@ export async function GET(request: Request) {
   const opportunityData = parseSec(opportunityResult.text);
   const narrativeData  = parseSec(narrativeResult.text);
 
-  logger.info('api.investment-strategy', 'wave1_results', {
+  logger.info('api.investment-strategy', 'wave1_results', { locale,
     macro:       { source: macroResult.source,       ok: !!macroData,       riskLevel: macroData?.riskLevel,        riskEvents: (macroData?.riskEvents as unknown[])?.length ?? 0 },
     portfolio:   { source: portfolioResult.source,   ok: !!portfolioData,   count: (portfolioData?.portfolio as unknown[])?.length ?? 0,
                    buy: (portfolioData?.portfolio as Array<{action?:string}>|undefined)?.filter(p => p.action==='buy').length ?? 0 },
@@ -1399,7 +1454,7 @@ export async function GET(request: Request) {
   if (portfolioData?.portfolio?.length) {
     const portfolioTickers = (portfolioData.portfolio as Array<{ ticker: string; name?: string }>).map(p => p.ticker);
     const buyStocksForLog = (portfolioData.portfolio as Array<{action?:string; ticker:string}>).filter(p => p.action === 'buy').map(p => p.ticker);
-    logger.info('api.investment-strategy', 'wave2_start', {
+    logger.info('api.investment-strategy', 'wave2_start', { locale,
       portfolioCount: portfolioTickers.length,
       buyTickers: buyStocksForLog,
       hasBuyStocks: buyStocksForLog.length > 0,
@@ -1467,17 +1522,18 @@ export async function GET(request: Request) {
       }
     }
 
-    logger.info('api.investment-strategy', 'wave2_results', {
+    logger.info('api.investment-strategy', 'wave2_results', { locale,
       risk:          { source: riskResult.source,          ok: !!riskData,          hasStopLoss: !!(riskData?.stopLossRationale), hasHedging: !!(riskData?.hedgingSuggestion) },
       companyChange: { source: companyChangesResult.source, ok: !!companyChangesData, count: (companyChangesData?.companyChanges as unknown[])?.length ?? 0 },
       stockDetail:   stockDetailResult ? { source: stockDetailResult.source, tickerCount: stockDetailMap.size } : null,
     });
   } else {
-    logger.warn('api.investment-strategy', 'wave2_skipped', {
+    logger.warn('api.investment-strategy', 'wave2_skipped', { locale,
       reason: portfolioData ? 'empty_portfolio' : 'portfolio_parse_failed',
       portfolioSource: portfolioResult.source,
       portfolioRaw: portfolioResult.text.slice(0, 120),
     });
+    await appendErrorLog(redis, 'wave2_skipped', { reason: portfolioData ? 'empty_portfolio' : 'portfolio_parse_failed', source: portfolioResult.source }, locale, session);
   }
 
 
@@ -1535,7 +1591,7 @@ export async function GET(request: Request) {
 
   let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
 
-  logger.info('api.investment-strategy', 'merge_result', {
+  logger.info('api.investment-strategy', 'merge_result', { locale,
     usedCombined: !!combinedStrategy,
     usedSingle: !combinedStrategy && !!singleResult,
     singleSource: singleResult?.source ?? null,
@@ -1594,7 +1650,7 @@ export async function GET(request: Request) {
       allocationAdjusted = true;
     }
     strategy = { ...strategy, portfolio: items };
-    logger.info('api.investment-strategy', 'postprocess_portfolio', {
+    logger.info('api.investment-strategy', 'postprocess_portfolio', { locale,
       before: beforeDedup, after: items.length,
       krFixed, indexRemoved, allocationAdjusted, totalAfter: items.reduce((s, p) => s + p.allocation, 0),
       tickers: items.map(p => `${p.ticker}(${p.action ?? 'hold'},${p.allocation}%)`),
@@ -1606,7 +1662,7 @@ export async function GET(request: Request) {
   // AI가 자신의 Draft 포트폴리오를 반박 → REVISE/WARN → 반영
   // D3 FIX: gate on strategy.source (covers both combinedStrategy + singleResult paths)
   if (strategy && strategy.portfolio?.length > 0 && strategy.source !== 'fallback' && strategy.source !== '데이터 기반 모델') {
-    logger.info('api.investment-strategy', 'critic_gate_pass', { source: strategy.source, portfolioCount: strategy.portfolio.length });
+    logger.info('api.investment-strategy', 'critic_gate_pass', { locale, source: strategy.source, portfolioCount: strategy.portfolio.length });
     try {
       // Critic에 S4 기회신호 요약 추가 (Codex 권장: ~150 tokens, 상위 2개만)
       const s4Summary = strategy.shortSqueeze?.slice(0, 2)
@@ -1640,20 +1696,20 @@ export async function GET(request: Request) {
             rationale: refinedPortfolio[i]?.rationale ?? p.rationale,
           })),
         };
-        logger.info('api.investment-strategy', 'critic_applied', { source: critiqueResult.source, actionChanges, changedCount: actionChanges.length });
+        logger.info('api.investment-strategy', 'critic_applied', { locale, source: critiqueResult.source, actionChanges, changedCount: actionChanges.length });
       } else {
-        logger.warn('api.investment-strategy', 'critic_no_change', { source: critiqueResult.source, hasText: !!critiqueResult.text });
+        logger.warn('api.investment-strategy', 'critic_no_change', { locale, source: critiqueResult.source, hasText: !!critiqueResult.text });
       }
-    } catch (e) { logger.warn('api.investment-strategy', 'critic_failed', { error: String(e) }); }
+    } catch (e) { logger.warn('api.investment-strategy', 'critic_failed', { locale, error: String(e) }); }
   } else if (strategy) {
-    logger.warn('api.investment-strategy', 'critic_gate_blocked', {
+    logger.warn('api.investment-strategy', 'critic_gate_blocked', { locale,
       source: strategy.source, portfolioCount: strategy.portfolio?.length ?? 0,
       reason: strategy.source === 'fallback' ? 'fallback_source' : strategy.source === '데이터 기반 모델' ? 'data_model_source' : 'empty_portfolio',
     });
   }
 
   if (!strategy) {
-    logger.warn('api.investment-strategy', 'parse_failed', {
+    logger.warn('api.investment-strategy', 'parse_failed', { locale,
       sources: [macroResult.source, portfolioResult.source, regionalResult.source],
       singleSource: singleResult?.source,
     });
@@ -1661,9 +1717,9 @@ export async function GET(request: Request) {
     // Try last known good result before serving generic fallback
     if (redis) {
       try {
-        const stale = await redis.get(STALE_KEY_PREFIX);
+        const stale = await redis.get(staleKey(locale));
         if (stale && isSchemaCompatible(stale)) {
-          logger.info('api.investment-strategy', 'stale_cache_served');
+          logger.info('api.investment-strategy', 'stale_cache_served', { locale });
           return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
         }
       } catch { /* ignore */ }
@@ -1703,7 +1759,7 @@ export async function GET(request: Request) {
     const anyGarbage = thesisGarbage || macroGarbage || technicalGarbage || fundamentalGarbage || narrativeGarbage;
     garbageStrippedMajor = anyGarbage && (thesisGarbage || macroGarbage);
     if (anyGarbage) {
-      logger.warn('api.investment-strategy', 'quality_gate_failed', {
+      logger.warn('api.investment-strategy', 'quality_gate_failed', { locale,
         thesisGarbage, macroGarbage, technicalGarbage, fundamentalGarbage, narrativeGarbage,
         garbageStrippedMajor,
         thesis: strategy.thesis?.slice(0, 60),
@@ -1713,6 +1769,7 @@ export async function GET(request: Request) {
         source: strategy.source,
         note: garbageStrippedMajor ? 'MAJOR_GARBAGE → short TTL, stale key protected' : 'minor garbage stripped',
       });
+      await appendErrorLog(redis, 'quality_gate_failed', { source: strategy.source, thesisGarbage, macroGarbage, garbageStrippedMajor }, locale, session);
       strategy = {
         ...strategy,
         ...(thesisGarbage ? { thesis: undefined } : {}),
@@ -1722,7 +1779,7 @@ export async function GET(request: Request) {
         ...(narrativeGarbage ? { marketNarrative: undefined } : {}),
       };
     } else {
-      logger.info('api.investment-strategy', 'quality_gate_passed', { source: strategy.source });
+      logger.info('api.investment-strategy', 'quality_gate_passed', { locale, source: strategy.source });
     }
   }
 
@@ -1730,15 +1787,34 @@ export async function GET(request: Request) {
   // ex: 'local-ollama/qwen3:8b' → isKnownSource=false → quarantine + stale 서빙
   const isUnknownSource = !isKnownSource(strategy.source);
   if (isUnknownSource) {
-    logger.warn('api.investment-strategy', 'unknown_source_detected', {
+    logger.warn('api.investment-strategy', 'unknown_source_detected', { locale,
       source: strategy.source,
       note: 'not in ALLOWED_SOURCES (strategy-quality.ts) — likely old deployment → quarantine, stale served',
     });
+    await appendErrorLog(redis, 'unknown_source_detected', { source: strategy.source }, locale, session);
   }
 
+  // 0-100 품질 점수: 섹션 완성도 기반 (로그 전용, 응답에 포함 안 함)
+  const qualityScore = (() => {
+    let s = 0;
+    if ((strategy.thesis?.length ?? 0) >= 25)             s += 15;
+    if ((strategy.macroAnalysis?.length ?? 0) >= 30)      s += 15;
+    if ((strategy.technicalAnalysis?.length ?? 0) >= 15)  s += 10;
+    if ((strategy.fundamentalAnalysis?.length ?? 0) >= 15)s += 10;
+    if ((strategy.portfolio?.length ?? 0) >= 2)            s += 15;
+    if ((strategy.riskEvents?.length ?? 0) >= 1)           s += 5;
+    if (Object.keys(strategy.regionStances ?? {}).length >= 2) s += 5;
+    if ((strategy.shortSqueeze?.length ?? 0) >= 1)         s += 5;
+    if ((strategy.insiderSignals?.length ?? 0) >= 1)       s += 3;
+    if ((strategy.stopLossRationale?.length ?? 0) >= 1)    s += 5;
+    if (strategy.marketNarrative?.why || strategy.marketNarrative?.story) s += 5;
+    if ((strategy.companyChanges?.length ?? 0) >= 1)       s += 7;
+    return s;
+  })();
+
   // ── 최종 보고서 섹션 완성도 요약 ──────────────────────────────────────────────
-  logger.info('api.investment-strategy', 'report_final_summary', {
-    session, locale, source: strategy.source,
+  logger.info('api.investment-strategy', 'report_final_summary', { locale,
+    session, source: strategy.source, qualityScore,
     sections: {
       stance:           strategy.stance,
       thesis:           { ok: !!(strategy.thesis), len: strategy.thesis?.length ?? 0 },
@@ -1779,7 +1855,7 @@ export async function GET(request: Request) {
         // quarantine 키에만 포렌식 보존 (24h)
         const quarantineKey = `flowvium:investment-strategy:quarantine:${key.split(':').slice(-2).join(':')}`;
         await loggedRedisSet(redis, 'api.investment-strategy', quarantineKey, cacheable, { ex: 24 * 60 * 60 });
-        logger.warn('api.investment-strategy', 'quarantined', {
+        logger.warn('api.investment-strategy', 'quarantined', { locale,
           quarantineKey, garbageStrippedMajor, isUnknownSource, source: strategy.source,
           note: 'session key NOT written — users will receive stale report',
         });
@@ -1790,9 +1866,9 @@ export async function GET(request: Request) {
         // 정상 AI 보고서: 24h TTL
         await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: CACHE_TTL });
         // stale 키는 정상 AI 보고서만 갱신
-        await loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, cacheable, { ex: 7 * 24 * 60 * 60 });
+        await loggedRedisSet(redis, 'api.investment-strategy', staleKey(locale), cacheable, { ex: 7 * 24 * 60 * 60 });
       }
-    } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }
+    } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { locale, error: e }); }
 
     // History — 전용 90일 키에 full report 저장 (session TTL 키 만료 시에도 히스토리 유지)
     try {

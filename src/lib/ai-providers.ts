@@ -243,7 +243,7 @@ async function callGroq(prompt: string, opts: AICallOptions, diag?: ProviderAtte
 
 /** OpenRouter free-tier cascade — GROQ 소진 후 2차 폴백.
  *  OPENROUTER_API_KEY 없으면 스킵. 순서대로 시도 → 첫 성공 반환. */
-async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
+async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<{ text: string; model: string } | null> {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
     diag?.push({ provider: 'qwen', ok: false, error: 'OPENROUTER_API_KEY not configured', durationMs: 0 });
@@ -310,7 +310,7 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
       }
       logger.info(tag, 'openrouter_ok', { model, textLen: text.length, durationMs: Date.now() - t0 });
       diag?.push({ provider: 'qwen', ok: true, durationMs: Date.now() - t0 });
-      return text;
+      return { text, model };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.warn(tag, 'openrouter_failed', { model, error: msg.slice(0, 100), durationMs: Date.now() - t0 });
@@ -397,10 +397,7 @@ async function callClaude(prompt: string, opts: AICallOptions, diag?: ProviderAt
   }
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
-  // 투자 리포트: sonnet 우선, 빠른 호출은 haiku
-  const model = opts.maxTokens && opts.maxTokens > 800
-    ? 'claude-haiku-4-5-20251001'
-    : 'claude-haiku-4-5-20251001';
+  const model = 'claude-haiku-4-5-20251001';
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -468,7 +465,13 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
 
   // 4. OpenRouter cascade (DeepSeek-V3 → GPT-OSS → Qwen3)
   const qw = await callQwen(prompt, opts, attempts);
-  if (qw) return { text: qw, source: 'qwen-2.5-72b', durationMs: Date.now() - start };
+  if (qw) {
+    // 실제 성공 모델명을 source에 포함 — isKnownSource() 통과 보장을 위해 prefix 사용
+    // deepseek/* → 'deepseek/…' (matches 'deepseek'), others → 'openrouter/…' (matches 'openrouter')
+    const mLabel = qw.model.split('/').pop()?.replace(':free', '') ?? 'free';
+    const src = qw.model.includes('deepseek') ? `deepseek/${mLabel}` : `openrouter/${mLabel}`;
+    return { text: qw.text, source: src, durationMs: Date.now() - start };
+  }
 
   // 5. Gemini 2.0 Flash (최종 폴백)
   const gm = await callGemini(prompt, opts, attempts);
