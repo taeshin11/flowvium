@@ -13,6 +13,15 @@ const SEC_HEADERS = {
   'Accept': 'application/json',
 };
 
+const YAHOO_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  'Accept': 'application/json',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
+// Approximate KRW/USD for revenue conversion (used for cross-country comparison only)
+const KRW_USD = 1 / 1450;
+
 export interface AnnualFinancials {
   fy: number;
   periodEnd: string;
@@ -215,8 +224,118 @@ function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[]):
   });
 }
 
+/** Fetch Korean stock financials via Yahoo Finance quoteSummary (income statements + key stats). */
+async function fetchKoreanFinancials(ticker: string): Promise<LiveFinancials | null> {
+  const start = Date.now();
+  try {
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=incomeStatementHistory,incomeStatementHistoryQuarterly,financialsData,price`;
+    const res = await fetch(url, {
+      headers: YAHOO_HEADERS,
+      signal: AbortSignal.timeout(15000),
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      logger.warn('yahoo.financials', 'http_error', { ticker, status: res.status });
+      return null;
+    }
+    const json = await res.json();
+    const result = json.quoteSummary?.result?.[0];
+    if (!result) return null;
+
+    const annualStmts: Record<string, { raw?: number }>[] = result.incomeStatementHistory?.incomeStatementHistory ?? [];
+    const quarterlyStmts: Record<string, { raw?: number }>[] = result.incomeStatementHistoryQuarterly?.incomeStatementHistory ?? [];
+    const priceData = result.price ?? {};
+    const currency: string = priceData.currency ?? 'KRW';
+    const toUSD = (v: number | null): number | null =>
+      v == null ? null : currency === 'KRW' ? parseFloat((v * KRW_USD).toFixed(2)) : v;
+
+    type Stmt = Record<string, { raw?: number } | { raw?: number; fmt?: string }>;
+    const parseStmt = (stmt: Stmt): AnnualFinancials & { endDateRaw?: number } => {
+      const raw = (field: string) => (stmt[field] as { raw?: number } | undefined)?.raw ?? null;
+      const rev    = raw('totalRevenue');
+      const opInc  = raw('operatingIncome') ?? raw('ebit');
+      const netInc = raw('netIncome');
+      const opMargin = rev && opInc != null ? parseFloat(((opInc / rev) * 100).toFixed(1)) : null;
+      const endRaw = (stmt['endDate'] as { raw?: number } | undefined)?.raw;
+      const endDate = endRaw ? new Date(endRaw * 1000) : new Date();
+      const fy = endDate.getFullYear();
+      return {
+        fy,
+        periodEnd: endDate.toISOString().slice(0, 10),
+        revenueUSD: toUSD(rev),
+        operatingIncomeUSD: toUSD(opInc),
+        netIncomeUSD: toUSD(netInc),
+        epsDiluted: raw('dilutedEps'),
+        totalAssetsUSD: null,
+        totalLiabilitiesUSD: null,
+        equityUSD: null,
+        operatingCFUSD: null,
+        investingCFUSD: null,
+        financingCFUSD: null,
+        rdExpenseUSD: raw('researchAndDevelopment') ? toUSD(raw('researchAndDevelopment')) : null,
+        capexUSD: null,
+        buybacksUSD: null,
+        dividendsUSD: null,
+        operatingMarginPct: opMargin,
+        roePct: null,
+        roaPct: null,
+        debtRatioPct: null,
+        endDateRaw: endRaw,
+      };
+    };
+
+    const annuals: AnnualFinancials[] = annualStmts.map(s => parseStmt(s as Stmt));
+
+    // Build quarterly revenue with YoY (compare index+4 = same quarter prior year)
+    const quarterlyRevenue: QuarterlyRevenue[] = quarterlyStmts.map((stmt, i) => {
+      const s = stmt as Stmt;
+      const endRaw = (s['endDate'] as { raw?: number } | undefined)?.raw;
+      const rev = (s['totalRevenue'] as { raw?: number } | undefined)?.raw ?? null;
+      const revUSD = toUSD(rev) ?? 0;
+      const endDate = endRaw ? new Date(endRaw * 1000) : new Date();
+      const fy = endDate.getFullYear();
+      const month = endDate.getMonth() + 1;
+      const fp = month <= 3 ? 'Q1' : month <= 6 ? 'Q2' : month <= 9 ? 'Q3' : 'Q4';
+      const prevStmt = quarterlyStmts[i + 4] as Stmt | undefined;
+      const prevRev = prevStmt ? (prevStmt['totalRevenue'] as { raw?: number } | undefined)?.raw ?? null : null;
+      const yoyPct = prevRev && rev ? parseFloat(((rev - prevRev) / prevRev * 100).toFixed(1)) : null;
+      return { label: `${fp} FY${fy}`, fy, fp, periodEnd: endDate.toISOString().slice(0, 10), revenueUSD: revUSD, yoyPct };
+    }).filter(q => q.revenueUSD > 0);
+
+    const latestAnnual = annuals[0] ?? null;
+    const companyName: string = (priceData.longName ?? priceData.shortName ?? ticker) as string;
+
+    logger.info('yahoo.financials', 'fetched', {
+      ticker, fy: latestAnnual?.fy, annuals: annuals.length, quarters: quarterlyRevenue.length, durationMs: Date.now() - start,
+    });
+
+    return {
+      ticker: ticker.toUpperCase(),
+      cik: '',
+      companyName,
+      fiscalYear: latestAnnual?.fy ?? new Date().getFullYear(),
+      fiscalPeriod: 'FY',
+      periodEnd: latestAnnual?.periodEnd ?? '',
+      revenueUSD: latestAnnual?.revenueUSD ?? 0,
+      revenueFormatted: formatUsd(latestAnnual?.revenueUSD ?? null),
+      source: 'Yahoo Finance quoteSummary',
+      fetchedAt: new Date().toISOString(),
+      annuals,
+      latestAnnual,
+      quarterlyRevenue,
+    };
+  } catch (err) {
+    logger.error('yahoo.financials', 'fetch_failed', { ticker, error: err, durationMs: Date.now() - start });
+    return null;
+  }
+}
+
 /** Fetch latest fiscal-year financials for a given ticker (single XBRL call). */
 export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancials | null> {
+  // Korean stocks (.KS) are not on SEC EDGAR — use Yahoo Finance quoteSummary instead
+  if (ticker.toUpperCase().endsWith('.KS')) {
+    return fetchKoreanFinancials(ticker);
+  }
   const start = Date.now();
   try {
     const tm = await loadTickerMap();
