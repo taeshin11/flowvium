@@ -164,6 +164,11 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           </div>
         )}
         <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{item.rationale}</p>
+        {item.critiqueNote && (
+          <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1 leading-relaxed">
+            ✏️ {item.critiqueNote}
+          </p>
+        )}
 
         {/* Entry zone + target — always visible */}
         <div className="mt-2.5 flex items-center gap-2 flex-wrap">

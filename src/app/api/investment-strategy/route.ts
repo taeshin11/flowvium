@@ -116,6 +116,7 @@ export interface PortfolioItem {
   fundamentalBasis?: string;     // EPS/PE/margin + institutional signal (≤120 chars)
   technicalBasis?: string;       // MA position, RSI, volume trend (≤80 chars)
   riskNote?: string;             // main downside risk to thesis (≤60 chars)
+  critiqueNote?: string;         // post-hoc critique annotation (display only)
 }
 
 export interface SectorWeight {

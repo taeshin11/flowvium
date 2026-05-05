@@ -161,13 +161,13 @@ const DATA: CountryCreditData[] = [
     id: 'kr',
     country: 'Korea',
     flag: '🇰🇷',
-    currentBalance: 13.8,     // ~20.0조원 → ~$13.8B at 1450 KRW/USD
-    currentBalanceLocal: '₩20.0조',
+    currentBalance: 21.4,     // ₩31조 ÷ 1450 KRW/USD (2026-Q1, record high in KRW terms)
+    currentBalanceLocal: '₩31조',
     gdp: 1780,
-    gdpRatio: 0.78,
-    gdpRatioRank: 'low',
+    gdpRatio: 1.20,
+    gdpRatioRank: 'extreme',
     changeYoY: -9.2,
-    changeQoQ: -3.5,
+    changeQoQ: +8.5,
     historical: [
       { period: '2015', balance: 6.2, gdpRatio: 0.45 },
       { period: '2016', balance: 7.8, gdpRatio: 0.55 },
@@ -175,24 +175,25 @@ const DATA: CountryCreditData[] = [
       { period: '2018', balance: 11.2, gdpRatio: 0.72 },
       { period: '2019', balance: 10.1, gdpRatio: 0.63 },
       { period: '2020', balance: 15.5, gdpRatio: 0.98 },
-      { period: '2021', balance: 24.8, gdpRatio: 1.48 }, // 역대 최고 (₩36조)
-      { period: '2022', balance: 14.3, gdpRatio: 0.84 },
-      { period: '2023', balance: 14.8, gdpRatio: 0.86 },
-      { period: '2024', balance: 15.2, gdpRatio: 0.86 },
-      { period: '2025-Q2', balance: 14.5, gdpRatio: 0.83 },
-      { period: '2026-Q1', balance: 13.8, gdpRatio: 0.78 },
+      { period: '2021', balance: 22.3, gdpRatio: 1.24 }, // ₩25.65조 ÷ 1150 KRW/USD (USD-basis ATH)
+      { period: '2022', balance: 12.7, gdpRatio: 0.71 }, // ₩17조 ÷ 1340 KRW/USD
+      { period: '2023', balance: 14.7, gdpRatio: 0.84 }, // ₩19조 ÷ 1290 KRW/USD
+      { period: '2024', balance: 15.9, gdpRatio: 0.89 }, // ₩22조 ÷ 1380 KRW/USD
+      { period: '2025-Q2', balance: 17.7, gdpRatio: 0.99 }, // ₩25조 ÷ 1410 KRW/USD
+      { period: '2025-Q4', balance: 19.7, gdpRatio: 1.10 }, // ₩28조 ÷ 1420 KRW/USD
+      { period: '2026-Q1', balance: 21.4, gdpRatio: 1.20 }, // ₩31조 ÷ 1450 KRW/USD (KRW-basis ATH)
     ],
-    peakBalance: 24.8,
+    peakBalance: 22.3,
     peakPeriod: '2021',
     troughBalance: 5.1,
     troughPeriod: '2014',
     histPercentile: 45,
     riskLevel: 'medium',
-    riskReason: '56% below 2021 ATH (₩36T) and falling. Leverage declining on recession concerns.',
+    riskReason: 'KRW 기준 역대 최고(₩31조, 2021 ATH ₩25.65조 돌파). 일부 증권사 신용융자 신규 중단 조치.',
     source: 'KRX Margin Loan Statistics',
     sourceUrl: 'https://data.krx.co.kr',
     lastUpdated: '2026-03',
-    laymanSummary: 'Total margin debt in KOSPI/KOSDAQ markets. Declining — not overheated, but retail investor share is high.',
+    laymanSummary: 'KOSPI/KOSDAQ 전체 신용잔고 ₩31조로 KRW 기준 역대 최고. 일부 증권사가 신규 신용융자를 중단할 정도로 과열 상태.',
   },
   {
     id: 'jp',

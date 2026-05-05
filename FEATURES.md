@@ -241,7 +241,7 @@
 
 ### 탭 5: 신용잔고 (`credit`)
 **컴포넌트**: `CreditBalanceTab`  
-**데이터**: `/api/credit-balance` (FRED + TWSE)
+**데이터**: `/api/credit-balance` (KRX MDCSTAT03701 / BOK ECOS / static-estimated fallback)
 
 - **글로벌 스냅샷** (총 신용잔고 $B · GDP 대비 % · YoY 변화)
 - **국가 셀렉터** (미국·한국·일본·대만 등)
@@ -887,7 +887,7 @@ ownership-alerts 적용).
 | `/api/macro-indicators` | FRED CSV + FRED API | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
 | `/api/fear-greed` | CNN 방식 + Yahoo Finance | 4h |
-| `/api/credit-balance` | FRED + TWSE | 24h |
+| `/api/credit-balance` | KRX / BOK ECOS / static-estimated | 24h |
 | `/api/flow-analysis` | capital-flows + 통합 AI 체인 (vLLM → GROQ → Qwen → Gemini, skipVllm=true로 GROQ 70b부터) | 4h |
 | `/api/insider-trades` | EDGAR Form 4 | 캐시 |
 | `/api/ownership-alerts` | EDGAR 13D/13G | 캐시 |

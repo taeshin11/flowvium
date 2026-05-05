@@ -175,45 +175,138 @@ export async function fetchJP(): Promise<LiveCreditData | null> {
   } catch { return null; }
 }
 
-/** ── Korea: KRX 신용거래융자 (complex POST, best effort) ─────── */
+/** ── Korea: KRX 신용거래융자 / BOK ECOS fallback ─────────────────
+ *
+ * Fetch strategy (in order):
+ *  1. KRX JSON endpoint (no auth needed) — OTP-based but accessible via POST
+ *  2. BOK ECOS API (requires KOREA_BOK_API_KEY, free via https://ecos.bok.or.kr → 회원가입 → API 키 발급)
+ *  3. If both fail, returns static-estimated value tagged source:'static-estimated'
+ *     so the route does NOT silently serve stale data.
+ *
+ * How to obtain BOK ECOS API key:
+ *   1. Go to https://ecos.bok.or.kr/api/#/
+ *   2. Register/login → 마이페이지 → API 키 발급
+ *   3. Set KOREA_BOK_API_KEY in .env.local and Vercel environment variables
+ */
 export async function fetchKR(): Promise<LiveCreditData | null> {
+  const start = Date.now();
+
+  // ── Attempt 1: KRX OTP-based JSON endpoint (no API key needed) ──────────
   try {
-    // KRX data.krx.co.kr uses an OTP-based API that's hard to call server-side.
-    // Best alternative: Bank of Korea ECOS API (free with registration).
-    // Without API key, return null.
-    const apiKey = process.env.KOREA_BOK_API_KEY;
-    if (!apiKey) return null;
+    logger.info('credit.kr', 'krx_start');
+    // Step 1: get OTP token
+    const otpRes = await fetch('https://data.krx.co.kr/comm/util/SearchEngineApi/getSearchEngineData.cmd', {
+      method: 'POST',
+      headers: {
+        ...COMMON_HEADERS,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://data.krx.co.kr',
+      },
+      body: 'bld=dbms/MDC/STAT/standard/MDCSTAT03701&locale=ko_KR&searchText=신용융자',
+      signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
+    });
 
-    // BOK ECOS: 신용거래융자 잔액 (통계코드 901Y001)
-    // https://ecos.bok.or.kr/api/StatisticSearch/{key}/json/kr/1/10/901Y001/M/202601/202603/
-    const now = new Date();
-    const endYm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const startDate = new Date(now); startDate.setMonth(startDate.getMonth() - 3);
-    const startYm = `${startDate.getFullYear()}${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+    if (otpRes.ok) {
+      const otpJson = await otpRes.json();
+      const otp = otpJson.result?.output?.[0]?.otp ?? otpJson.output?.[0]?.otp;
+      if (otp) {
+        const dataRes = await fetch('https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd', {
+          method: 'POST',
+          headers: {
+            ...COMMON_HEADERS,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Referer': 'https://data.krx.co.kr',
+          },
+          body: `bld=dbms/MDC/STAT/standard/MDCSTAT03701&otp=${otp}&locale=ko_KR`,
+          signal: AbortSignal.timeout(10000),
+          cache: 'no-store',
+        });
 
-    const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/901Y001/M/${startYm}/${endYm}/`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000), headers: COMMON_HEADERS, cache: 'no-store' });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const rows = json.StatisticSearch?.row;
-    if (!Array.isArray(rows) || !rows.length) return null;
+        if (dataRes.ok) {
+          const dataJson = await dataRes.json();
+          const rows = dataJson.OutBlock_1 ?? dataJson.output;
+          if (Array.isArray(rows) && rows.length > 0) {
+            // Rows have 신용융자잔고(억원) as ISU_ABBRV or CREDIT_RMNDR_AMT
+            const last = rows[rows.length - 1];
+            const rawAmt = last.CREDIT_RMNDR_AMT ?? last.IND_CREDIT_RMNDR_AMT ?? last.AMT;
+            if (rawAmt) {
+              const krwAuk = parseFloat(String(rawAmt).replace(/,/g, ''));  // 억원
+              if (!isNaN(krwAuk) && krwAuk > 0) {
+                const krwBillions = krwAuk / 10000;  // 억원 → 조원
+                const usdBillions = parseFloat((krwBillions * 1000 / 1450).toFixed(2));  // 조원 → B USD
+                const period = (last.BAS_DD ?? last.TRD_DD ?? '').replace(/(d{4})(d{2})(d{2})/, '$1-$2-$3');
+                logger.info('credit.kr', 'krx_ok', { balance: usdBillions, period, durationMs: Date.now() - start });
+                return {
+                  balance: usdBillions,
+                  balanceLocal: `₩${krwBillions.toFixed(1)}조`,
+                  period: period || new Date().toISOString().slice(0, 7),
+                  source: 'KRX MDCSTAT03701',
+                  fetchedAt: new Date().toISOString(),
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+    logger.warn('credit.kr', 'krx_failed', { durationMs: Date.now() - start });
+  } catch (e) {
+    logger.warn('credit.kr', 'krx_error', { error: e, durationMs: Date.now() - start });
+  }
 
-    const last = rows[rows.length - 1];
-    const krwBillions = parseFloat(last.DATA_VALUE ?? '0') / 100; // 억원 → 1000억원
-    if (!krwBillions) return null;
-    const usdBillions = parseFloat((krwBillions / 14.5).toFixed(2));  // 1450 KRW/USD rough
+  // ── Attempt 2: BOK ECOS API (requires KOREA_BOK_API_KEY) ─────────────────
+  const apiKey = process.env.KOREA_BOK_API_KEY?.trim();
+  if (apiKey) {
+    try {
+      logger.info('credit.kr', 'bok_start');
+      const now = new Date();
+      const endYm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const startDate = new Date(now); startDate.setMonth(startDate.getMonth() - 3);
+      const startYm = `${startDate.getFullYear()}${String(startDate.getMonth() + 1).padStart(2, '0')}`;
 
-    return {
-      balance: usdBillions,
-      balanceLocal: `₩${(krwBillions / 10).toFixed(1)}조`,
-      period: `${last.TIME.slice(0, 4)}-${last.TIME.slice(4, 6)}`,
-      source: 'BOK ECOS 901Y001',
-      fetchedAt: new Date().toISOString(),
-    };
-  } catch { return null; }
+      // BOK ECOS: 신용거래융자 잔액 (통계코드 901Y001, 항목코드 0060000)
+      const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/901Y001/M/${startYm}/${endYm}/0060000`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000), headers: COMMON_HEADERS, cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        const rows = json.StatisticSearch?.row;
+        if (Array.isArray(rows) && rows.length > 0) {
+          const last = rows[rows.length - 1];
+          const krwAuk = parseFloat(last.DATA_VALUE ?? '0');  // 억원
+          if (!isNaN(krwAuk) && krwAuk > 0) {
+            const krwBillions = krwAuk / 10000;  // 억원 → 조원
+            const usdBillions = parseFloat((krwBillions * 1000 / 1450).toFixed(2));
+            const period = `${last.TIME.slice(0, 4)}-${last.TIME.slice(4, 6)}`;
+            logger.info('credit.kr', 'bok_ok', { balance: usdBillions, period, durationMs: Date.now() - start });
+            return {
+              balance: usdBillions,
+              balanceLocal: `₩${krwBillions.toFixed(1)}조`,
+              period,
+              source: 'BOK ECOS 901Y001',
+              fetchedAt: new Date().toISOString(),
+            };
+          }
+        }
+      }
+      logger.warn('credit.kr', 'bok_failed', { durationMs: Date.now() - start });
+    } catch (e) {
+      logger.warn('credit.kr', 'bok_error', { error: e, durationMs: Date.now() - start });
+    }
+  }
+
+  // ── Attempt 3: static-estimated fallback (2026-Q1 known value) ───────────
+  // Returns tagged source so verify-metrics can detect static state.
+  logger.warn('credit.kr', 'using_static_estimate', { reason: 'all live fetches failed' });
+  return {
+    balance: 21.4,
+    balanceLocal: '₩31조',
+    period: '2026-03',
+    source: 'static-estimated',
+    fetchedAt: new Date().toISOString(),
+  };
 }
 
-/** ── China: SSE/SZSE 융자융권 (best effort) ────────────────────── */
 export async function fetchCN(): Promise<LiveCreditData | null> {
   try {
     // SSE publishes 融资融券 data at:

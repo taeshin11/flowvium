@@ -262,7 +262,7 @@
 | 101 | 미국 신용잔고 ($B) | 💾 cached | FRED BOGZ1FL663067003Q |
 | 102 | 미국 GDP 대비 % | 💾 cached | FRED |
 | 103 | 미국 YoY 변화 | ✅ live | historical 마지막 두 항목 gdpRatio 차이 동적계산 |
-| 104 | 한국 신용잔고 | 💾 cached | KOFIA/TWSE 추정 |
+| 104 | 한국 신용잔고 (₩31조, KRW-basis ATH) | ⚠️ buggy→💾 static-estimated | KRX MDCSTAT03701 / BOK ECOS 901Y001 (key-free KRX 시도, 실패시 static-estimated 반환) |
 | 105 | 일본 신용잔고 | 💾 cached | 추정 |
 | 106 | 대만 신용잔고 | 💾 cached | TWSE |
 | 107 | 글로벌 스냅샷 (총합) | 💾 cached | 자체계산 |

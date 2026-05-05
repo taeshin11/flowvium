@@ -1167,6 +1167,31 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       status: 'error', lastError: err instanceof Error ? err.message : String(err) });
   }
 
+
+  // 8. credit-balance source field — detects if KR live fetch is working or static-estimated
+  try {
+    const cbSourceResp = await fetch(`${base}/api/credit-balance`, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    if (!cbSourceResp.ok) throw new Error(`HTTP ${cbSourceResp.status}`);
+    const cbSourceData = await cbSourceResp.json() as { source?: string };
+    const source = cbSourceData.source;
+    items.push({
+      key: 'accuracy.credit-balance.source',
+      label: 'Credit Balance source field (live vs static)',
+      group: 'accuracy',
+      status: source === 'live' ? 'ok' : source === 'static-estimated' ? 'degraded' : 'error',
+      value: `source=${source ?? 'missing'}`,
+      details: { source },
+    });
+  } catch (err) {
+    items.push({
+      key: 'accuracy.credit-balance.source',
+      label: 'Credit Balance source field (live vs static)',
+      group: 'accuracy',
+      status: 'error',
+      lastError: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   return items;
 
 }

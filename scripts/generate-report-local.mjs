@@ -1091,7 +1091,7 @@ function buildCritiquePrompt(portfolio, macroAnalysis, bbWarnings, assetFg) {
     `${p.ticker}(${p.action}) entry=${p.entryZone} target=${p.target}: ${p.rationale}`
   ).join('\n');
   return [
-    `You are a contrarian analyst critiquing a portfolio. Write in ${TARGET_LANG}.`,
+    `You are a contrarian analyst critiquing a portfolio. Write correction in ${TARGET_LANG}.`,
     '',
     `[Draft Portfolio]\n${summary}`,
     '',
@@ -1099,8 +1099,10 @@ function buildCritiquePrompt(portfolio, macroAnalysis, bbWarnings, assetFg) {
     `[BB Overextension] ${bbWarnings || 'None'}`,
     `[Asset F&G] ${assetFg || 'No data'}`,
     '',
-    'For each portfolio item: REVISE (action/rationale wrong), WARN (add risk), or OK.',
-    'Only flag REVISE or WARN items.',
+    'REVISE: action is wrong (buy→watch or buy→hold) — major structural problem only.',
+    'WARN: target too high, risk overlooked, or entry zone needs adjustment.',
+    'OK: position is sound — use OK for minor target adjustments.',
+    'Be selective: only flag items with genuine concerns. Typical result: 0-2 flags.',
     '',
     'Respond in pure JSON:',
     `{"critiques":[{"ticker":"NVDA","verdict":"REVISE|WARN|OK","correction":"≤80자 (${TARGET_LANG}), 구체적 수치 포함"}]}`,
@@ -1119,11 +1121,12 @@ function applyCritique(portfolio, critiqueRaw) {
       const c = critiques.find(cr => cr.ticker === p.ticker);
       if (!c || c.verdict === 'OK') return p;
       if (c.verdict === 'REVISE') {
+        // action 변경이 필요한 경우만 action 변경, rationale 보존
         const newAction = c.correction.includes('진입금지') || c.correction.includes('watch') ? 'watch' : p.action;
-        return { ...p, action: newAction, rationale: `[수정] ${c.correction}`.slice(0, 100) };
+        return { ...p, action: newAction, critiqueNote: c.correction.slice(0, 80) };
       }
       if (c.verdict === 'WARN') {
-        return { ...p, rationale: `${p.rationale} ⚠️${c.correction}`.slice(0, 100) };
+        return { ...p, critiqueNote: c.correction.slice(0, 80) };
       }
       return p;
     });
