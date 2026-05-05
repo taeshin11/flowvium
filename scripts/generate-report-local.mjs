@@ -1,17 +1,13 @@
 /**
  * generate-report-local.mjs — 로컬 AI 보고서 생성 + 업로드 도구
  *
+ * 프로덕션 route.ts와 동일한 다단계 구조:
+ *   데이터 수집(16+ API) → Wave1 병렬 5 LLM → Wave2 병렬 3 LLM → Critique 1 LLM → 병합
+ *
  * 사용법:
- *   # Step 1: 로컬 Ollama로 생성 → reports/ 에 JSON 저장 (Redis 업로드 안 함)
- *   node scripts/generate-report-local.mjs
- *   node scripts/generate-report-local.mjs --model=qwen3:14b
- *
- *   # Step 2: 저장된 파일 검토 후 업로드
- *   node scripts/generate-report-local.mjs --upload=reports/report-2026-05-05-afternoon.json
- *   node scripts/generate-report-local.mjs --upload=latest   ← 가장 최근 파일
- *
- *   # 한 번에 생성 + 즉시 업로드 (품질게이트 통과 시만)
- *   node scripts/generate-report-local.mjs --auto-upload
+ *   node scripts/generate-report-local.mjs [--model=qwen3:8b] [--locale=ko] [--auto-upload]
+ *   node scripts/generate-report-local.mjs --upload=latest
+ *   node scripts/generate-report-local.mjs --upload=reports/report-YYYY-MM-DD-session-locale.json
  */
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'fs';
@@ -22,7 +18,7 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
 const REPORTS_DIR = resolve(ROOT, 'reports');
 
-// .env.local 파싱
+// ── .env.local 파싱 ────────────────────────────────────────────────────────────
 function loadEnv() {
   const env = {};
   try {
@@ -37,20 +33,50 @@ function loadEnv() {
 
 const env = loadEnv();
 const args = process.argv.slice(2);
-const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'qwen3:14b';
+const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'qwen3:8b';
 const uploadArg = args.find(a => a.startsWith('--upload='))?.split('=')[1];
 const autoUpload = args.includes('--auto-upload');
 const localeArg = args.find(a => a.startsWith('--locale='))?.split('=')[1] ?? 'ko';
 const SITE = env.NEXT_PUBLIC_SITE_URL?.replace(/\s+/g, '') || 'https://flowvium.net';
 
-// ── 품질 게이트 (strategy-quality.ts 로직 동일) ────────────────────────────────
-const GARBAGE_MIN_LEN = { thesis: 25, macroAnalysis: 30, technicalAnalysis: 15, fundamentalAnalysis: 15 };
-// CJK 한자는 글자당 밀도가 높으므로 최솟값을 60%로 축소
+// ── 상수 ──────────────────────────────────────────────────────────────────────
+const LOCALE_LANG = {
+  ko: 'Korean', en: 'English', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
+  es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', ru: 'Russian',
+  ar: 'Arabic', hi: 'Hindi', id: 'Indonesian', th: 'Thai', tr: 'Turkish', vi: 'Vietnamese',
+};
+const TARGET_LANG = LOCALE_LANG[localeArg] ?? 'Korean';
+
 const CJK_LOCALES = new Set(['ja', 'zh-CN', 'zh-TW', 'zh']);
+
+const CANDIDATE_TICKERS = [
+  'NVDA','MSFT','AAPL','META','GOOGL','AMZN','TSLA','KLAC','AMD','JPM','V','UNH','XOM','GS','BAC',
+  'SPY','QQQ','GLD','TLT','USO','IWM','XLE','XLK','XLF','XLV',
+  'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA',
+  'BITO','SLV','DBA',
+  '005930.KS','000660.KS','373220.KS','005380.KS','035420.KS',
+  '035720.KS','207940.KS','051910.KS','005490.KS','000270.KS',
+];
+const KR_NAMES = {
+  '005930.KS':'삼성전자','000660.KS':'SK하이닉스','373220.KS':'LG에너지솔루션',
+  '005380.KS':'현대차','035420.KS':'NAVER','035720.KS':'카카오',
+  '207940.KS':'삼성바이오로직스','051910.KS':'LG화학','005490.KS':'POSCO홀딩스','000270.KS':'기아',
+};
+const INDEX_TICKERS = new Set([
+  '^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11',
+  'KS','KR','JP','CN','EU','US','UK','KOSPI200','KOSPI100','KOSPI50','KOSDAQ150','KRX300',
+  'SPX','NDX','RUT','DAX','FTSE','HSI','N225','SENSEX','VIX',
+]);
+const YAHOO_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  'Accept': 'application/json',
+};
+
+// ── 품질 게이트 ────────────────────────────────────────────────────────────────
+const GARBAGE_MIN_LEN = { thesis: 25, macroAnalysis: 30, technicalAnalysis: 15, fundamentalAnalysis: 15 };
 function garbageMinLen(base) {
   return CJK_LOCALES.has(localeArg) ? Math.ceil(base * 0.6) : base;
 }
-
 function isGarbage(text, minLen = 15) {
   if (!text || text.trim().length === 0) return false;
   const t = text.trim();
@@ -67,7 +93,6 @@ function isGarbage(text, minLen = 15) {
   }
   return false;
 }
-
 function qualityCheck(report) {
   const issues = [];
   if (isGarbage(report.thesis, garbageMinLen(GARBAGE_MIN_LEN.thesis)))
@@ -81,21 +106,19 @@ function qualityCheck(report) {
   if (!report.regionStances || Object.keys(report.regionStances).length === 0) issues.push('regionStances MISSING');
   if (!report.shortSqueeze?.length) issues.push('shortSqueeze MISSING');
 
-  // 품질 점수 (0-100)
   let score = 0;
-  if ((report.thesis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.thesis))              score += 15;
-  if ((report.macroAnalysis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.macroAnalysis)) score += 15;
+  if ((report.thesis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.thesis))               score += 15;
+  if ((report.macroAnalysis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.macroAnalysis))  score += 15;
   if ((report.technicalAnalysis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.technicalAnalysis)) score += 10;
   if ((report.fundamentalAnalysis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.fundamentalAnalysis)) score += 10;
-  if ((report.portfolio?.length ?? 0) >= 2)             score += 15;
-  if ((report.riskEvents?.length ?? 0) >= 1)            score += 5;
-  if (Object.keys(report.regionStances ?? {}).length >= 2) score += 5;
-  if ((report.shortSqueeze?.length ?? 0) >= 1)          score += 5;
-  if ((report.insiderSignals?.length ?? 0) >= 1)        score += 3;
-  if ((report.stopLossRationale?.length ?? 0) >= 1)     score += 5;
-  if (report.marketNarrative?.why || report.marketNarrative?.story) score += 5;
-  if ((report.companyChanges?.length ?? 0) >= 1)        score += 7;
-
+  if ((report.portfolio?.length ?? 0) >= 2)                                                  score += 15;
+  if ((report.riskEvents?.length ?? 0) >= 1)                                                 score += 5;
+  if (Object.keys(report.regionStances ?? {}).length >= 2)                                   score += 5;
+  if ((report.shortSqueeze?.length ?? 0) >= 1)                                               score += 5;
+  if ((report.insiderSignals?.length ?? 0) >= 1)                                             score += 3;
+  if ((report.stopLossRationale?.length ?? 0) >= 1)                                          score += 5;
+  if (report.marketNarrative?.why || report.marketNarrative?.story)                          score += 5;
+  if ((report.companyChanges?.length ?? 0) >= 1)                                             score += 7;
   return { ok: issues.length === 0, issues, score };
 }
 
@@ -112,7 +135,6 @@ async function redisPost(body) {
   const d = await res.json();
   return d.result === 'OK';
 }
-
 async function redisSet(key, value, exSeconds) {
   const cmd = exSeconds
     ? ['SET', key, JSON.stringify(value), 'EX', String(exSeconds)]
@@ -131,7 +153,7 @@ function getSession() {
 async function uploadFromFile(filePath) {
   let resolved = filePath;
   if (filePath === 'latest') {
-    if (!existsSync(REPORTS_DIR)) { console.error('reports/ 디렉토리 없음. 먼저 생성하세요.'); process.exit(1); }
+    if (!existsSync(REPORTS_DIR)) { console.error('reports/ 디렉토리 없음'); process.exit(1); }
     const files = readdirSync(REPORTS_DIR).filter(f => f.endsWith('.json')).sort();
     if (!files.length) { console.error('reports/ 에 파일 없음'); process.exit(1); }
     resolved = resolve(REPORTS_DIR, files[files.length - 1]);
@@ -154,10 +176,9 @@ async function uploadFromFile(filePath) {
   } else {
     console.log('✅ 품질 검사 통과');
   }
-
   if (!ok) {
     console.error('\n❌ 품질 게이트 실패 — 업로드 중단됨.');
-    console.error('   보고서를 직접 수정한 후 다시 시도하거나 --force-upload 옵션 사용.');
+    console.error('   보고서를 직접 수정한 후 다시 시도.');
     process.exit(1);
   }
 
@@ -176,7 +197,6 @@ async function uploadFromFile(filePath) {
     redisSet(staleKeyStr, report, 7 * 86400),
   ]);
 
-  // 히스토리 배열 업데이트
   const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
   const histMeta = {
     key: sessionKey,
@@ -192,14 +212,14 @@ async function uploadFromFile(filePath) {
   try {
     const url = env.UPSTASH_REDIS_REST_URL;
     const token = env.UPSTASH_REDIS_REST_TOKEN;
-    const getRes = await fetch(`${url}`, {
+    const getRes = await fetch(url, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(['GET', HIST_KEY]),
     });
     const getD = await getRes.json();
     let existing = [];
-    try { existing = JSON.parse(typeof getD.result === 'string' ? getD.result : JSON.stringify(getD.result ?? '[]')); } catch {}
+    try { existing = JSON.parse(typeof getD.result === 'string' ? getD.result : '[]'); } catch {}
     if (!Array.isArray(existing)) existing = [];
     const updated = [histMeta, ...existing.filter(e => e.generatedAt !== report.generatedAt)].slice(0, 30);
     await redisSet(HIST_KEY, updated, 90 * 86400);
@@ -213,186 +233,955 @@ async function uploadFromFile(filePath) {
   console.log(`\n✅ 업로드 완료! ${SITE}/${locale}/report 에서 확인`);
 }
 
-// ── Step 1: Ollama 생성 ─────────────────────────────────────────────────────────
-async function callOllama(prompt, model) {
+// ── Ollama 호출 ────────────────────────────────────────────────────────────────
+async function callOllama(prompt, model = modelArg, timeoutMs = 180000) {
   const isQwen3 = model.startsWith('qwen3');
   const body = {
     model,
     messages: [{ role: 'user', content: prompt }],
     stream: false,
-    options: { temperature: 0.6, num_predict: 4096 },
+    options: { temperature: 0.7, num_predict: 2048 },
     ...(isQwen3 ? { think: false } : {}),
   };
   const res = await fetch('http://localhost:11434/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
-  if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Ollama HTTP ${res.status}: ${await res.text()}`);
   const d = await res.json();
   return d.message?.content ?? '';
 }
 
-async function generateViaOllama() {
-  console.log(`=== 로컬 Ollama 보고서 생성 (${modelArg}) ===`);
-  console.log(`locale: ${localeArg}, auto-upload: ${autoUpload}`);
-
-  // 컨텍스트 데이터 수집
-  console.log('\n[1/4] 컨텍스트 데이터 수집...');
-  const [fgRes, capitalRes, macroRes] = await Promise.allSettled([
-    fetch(`${SITE}/api/fear-greed`, { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
-    fetch(`${SITE}/api/capital-flows`, { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
-    fetch(`${SITE}/api/macro-indicators`, { signal: AbortSignal.timeout(10000) }).then(r => r.json()),
-  ]);
-
-  const fg = fgRes.status === 'fulfilled' ? fgRes.value : {};
-  const capital = capitalRes.status === 'fulfilled' ? capitalRes.value : {};
-  const macro = macroRes.status === 'fulfilled' ? macroRes.value : {};
-
-  const usScore = fg.byCountry?.find(c => c.id === 'us')?.score ?? '?';
-  const krScore = fg.byCountry?.find(c => c.id === 'kr')?.score ?? '?';
-  const topFlows = capital.flow?.topInflows?.slice(0, 3).map(a => `${a.label}+${a.ret4w?.toFixed(1)}%`).join(', ') ?? '';
-  const vix = macro?.indicators?.find?.(i => i.id === 'vix')?.value ?? '?';
-
-  const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-  const session = getSession();
-  const SESSION_KO = { morning: '오전 (미국장 마감 후)', afternoon: '오후 (아시아장)', evening: '저녁 (미국장 개장 전)' };
-
-  const LOCALE_LANG = {
-    ko: 'Korean', en: 'English', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
-    es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', ru: 'Russian',
-    ar: 'Arabic', hi: 'Hindi', id: 'Indonesian', th: 'Thai', tr: 'Turkish', vi: 'Vietnamese',
-  };
-  const targetLang = LOCALE_LANG[localeArg] ?? 'Korean';
-  const sessionLabel = localeArg === 'ko' ? (SESSION_KO[session] ?? session) : session;
-
-  console.log(`  US F&G: ${usScore}, KR F&G: ${krScore}, VIX: ${vix}, Top flows: ${topFlows}`);
-
-  const prompt = `You are a senior portfolio manager. Date: ${today} KST. Session: ${sessionLabel}.
-Live data: US Fear&Greed=${usScore}/100, KR Fear&Greed=${krScore}/100, VIX=${vix}, Top inflows: ${topFlows}.
-
-[FACTS — MANDATORY]
-- Do NOT use Jerome Powell as current Fed Chair (term ended 2026-02)
-- Approved tickers: S&P500 (SPY/VOO), Nasdaq (QQQ), major ETFs, crypto (BTC-USD/ETH-USD), Korean stocks (.KS suffix)
-- BLOCKED: OTC/pink sheets, 3x leveraged ETFs as primary hold, bare index names (KOSPI/SPX/NDX/VIX as buy)
-[END FACTS]
-
-[INVESTMENT FRAMEWORK — use ≥1 per entry]
-- Buffett: ROE>15%+FCF yield>2×bonds+moat → margin of safety entry
-- Lynch: PEG<1 (P/E÷growth) → undervalued vs growth
-- Greenblatt: EBIT/EV>10%+ROIC>25% → Magic Formula
-- Druckenmiller: earnings momentum+liquidity expansion → concentrated position
-RULE: entryRationale MUST include ≥1 fundamental signal.
-BAD: "50일선 지지" GOOD: "100일선+FCF수익률8%→안전마진" or "린치PEG0.8→성장대비저평가"
-[END FRAMEWORK]
-
-Generate a valid JSON investment strategy. ALL text fields in ${targetLang}. Return ONLY the JSON with no explanation.
-
-{
-  "stance": "bullish|neutral|bearish",
-  "thesis": "25-80 chars ${targetLang} summary of current market thesis",
-  "portfolio": [
-    {
-      "ticker": "NVDA", "name": "NVIDIA", "sector": "Technology", "market": "us",
-      "rationale": "${targetLang} rationale ≤100 chars",
-      "allocation": 15,
-      "entryZone": "$205-212",
-      "entryRationale": "must include ≥1 fundamental signal (e.g. 100-day MA + FCF yield 8% → margin of safety)",
-      "stopLoss": "$190",
-      "target": "$260",
-      "targetBull": "$295",
-      "targetRationale": "P/E 38x → $260 base | 52w high breakout Fib 1.618 → $295 bull",
-      "confidence": "high",
-      "action": "buy"
-    }
-  ],
-  "sectorAllocation": [{"sector": "Technology", "pct": 25, "stance": "overweight", "reason": "AI momentum"}],
-  "riskEvents": [{"date": "${today}", "event": "FOMC", "impact": "high", "watchFor": "rate guidance"}],
-  "macroAnalysis": "30-150 chars ${targetLang} macro analysis (NOT a list with + signs)",
-  "technicalAnalysis": "15-120 chars ${targetLang} technical analysis",
-  "fundamentalAnalysis": "15-120 chars ${targetLang} fundamental analysis",
-  "riskLevel": "low|medium|high",
-  "marketNarrative": {
-    "why": "30-100 chars why this stance",
-    "watch": "20-80 chars what to watch",
-    "story": "30-100 chars market story",
-    "sessionNote": "${session}"
-  },
-  "shortSqueeze": [{"ticker": "SMCI", "score": 45, "timing": "48h", "risk": "earnings vol"}],
-  "insiderSignals": [{"ticker": "GOOGL", "filings": 5, "significance": "Berkshire accumulation", "pattern": "consecutive buying"}],
-  "regionStances": {
-    "us": {"stance": "bullish", "thesis": "AI capex cycle", "keyData": "SPY+0.5% 1w"},
-    "korea": {"stance": "neutral", "thesis": "HBM demand recovery", "keyData": "EWY+1.2% 1w"}
-  },
-  "stopLossRationale": [{"ticker": "NVDA", "rationale": "trend reversal if 50-day MA breaks"}],
-  "hedgingSuggestion": "hedging suggestion (${targetLang}, specific)",
-  "portfolioRiskNote": "overall portfolio risk summary (${targetLang})"
+function parseJson(raw) {
+  if (!raw) return null;
+  try {
+    const clean = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    const codeBlock = clean.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const str = codeBlock ? codeBlock[1] : clean;
+    const m = str.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    return JSON.parse(m[0].replace(/,\s*([}\]])/g, '$1'));
+  } catch { return null; }
 }
 
-Rules:
-- 6-8 portfolio items, allocation sum MUST equal 100
-- Pure JSON only — no markdown, no explanation, no code blocks
-- ALL text fields MUST be in ${targetLang} — do NOT use Korean if locale is not ko
-- thesis must be 25+ chars and a SENTENCE, not a list (no + separators)
-- macroAnalysis must be 30+ chars and a SENTENCE (no + separators like "AI+crypto+FOMC")`;
-
-  console.log('\n[2/4] Ollama AI 생성 중...');
-  let rawText = '';
+// ── 라이브 가격 수집 ────────────────────────────────────────────────────────────
+async function fetchOnePrice(ticker) {
   try {
-    rawText = await callOllama(prompt, modelArg);
-    console.log(`  응답 수신 (${rawText.length}자)`);
-  } catch (e) {
-    console.error('Ollama 실패:', e.message);
-    console.error('Ollama 실행 확인: ollama serve && ollama list');
-    process.exit(1);
-  }
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+      { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(ticker.endsWith('.KS') ? 8000 : 4000) }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (meta) {
+        const price = meta.regularMarketPrice;
+        const prev = meta.previousClose;
+        const change1d = prev ? ((price - prev) / prev) * 100 : null;
+        return [ticker, {
+          price: Math.round(price * 100) / 100,
+          change1d: change1d != null ? Math.round(change1d * 10) / 10 : null,
+          high52w: meta.fiftyTwoWeekHigh ?? price * 1.3,
+          low52w: meta.fiftyTwoWeekLow ?? price * 0.7,
+        }];
+      }
+    }
+  } catch { /* ignore */ }
+  return [ticker, null];
+}
 
-  // JSON 파싱
-  console.log('\n[3/4] JSON 파싱...');
-  const cleaned = rawText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-  const codeBlock = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const jsonStr = codeBlock ? codeBlock[1] : cleaned;
-  const match = jsonStr.match(/\{[\s\S]*\}/);
-  if (!match) {
-    console.error('JSON 파싱 실패 — 원시 출력:');
-    console.log(cleaned.slice(0, 800));
-    process.exit(1);
-  }
-
-  let report;
+async function getLivePrices() {
+  const map = new Map();
   try {
-    const fixedJson = match[0]
-      .replace(/,\s*([}\]])/g, '$1')
-      .replace(/([{,])\s*\n\s*([}\]])/g, '$1$2');
-    report = JSON.parse(fixedJson);
-  } catch (e) {
-    console.error('JSON parse error:', e.message);
-    console.log(match[0].slice(0, 600));
+    const fields = 'regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow';
+    const res = await fetch(
+      `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(CANDIDATE_TICKERS.join(','))}&fields=${fields}`,
+      { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(8000) }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const quotes = data?.quoteResponse?.result ?? [];
+      for (const q of quotes) {
+        if (q.regularMarketPrice == null) continue;
+        map.set(q.symbol, {
+          price: Math.round(q.regularMarketPrice * 100) / 100,
+          change1d: q.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 10) / 10 : null,
+          high52w: q.fiftyTwoWeekHigh ?? q.regularMarketPrice * 1.3,
+          low52w: q.fiftyTwoWeekLow ?? q.regularMarketPrice * 0.7,
+        });
+      }
+    }
+  } catch { /* batch failed */ }
+
+  const missing = CANDIDATE_TICKERS.filter(t => !map.has(t));
+  if (missing.length > 0) {
+    const results = await Promise.all(missing.map(fetchOnePrice));
+    for (const [t, lp] of results) { if (lp) map.set(t, lp); }
+  }
+  return map;
+}
+
+function pricesSection(map) {
+  if (!map.size) return '';
+  return Array.from(map.entries()).map(([t, p]) => {
+    const isKR = t.endsWith('.KS');
+    const curr = isKR ? '₩' : '$';
+    const name = KR_NAMES[t] ? ` (${KR_NAMES[t]})` : '';
+    const priceStr = isKR ? Math.round(p.price).toLocaleString() : p.price.toFixed(2);
+    return `${t}${name}: ${curr}${priceStr} (1d ${p.change1d != null ? `${p.change1d >= 0 ? '+' : ''}${p.change1d}%` : 'N/A'})`;
+  }).join('\n');
+}
+
+// ── API 데이터 수집 ────────────────────────────────────────────────────────────
+async function safeFetch(url, timeoutMs = 10000) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function gatherContext() {
+  const base = SITE;
+  const [
+    capital, fearGreed, fedwatch, macro,
+    creditBalance, insider, ownershipAlerts, koreaFlow,
+    nport, shortInterest, newsCascade, econCal,
+    volatility, cot, commodity,
+  ] = await Promise.all([
+    safeFetch(`${base}/api/capital-flows`, 15000),
+    safeFetch(`${base}/api/fear-greed`, 12000),
+    safeFetch(`${base}/api/fedwatch`, 10000),
+    safeFetch(`${base}/api/macro-indicators`, 10000),
+    safeFetch(`${base}/api/credit-balance`, 10000),
+    safeFetch(`${base}/api/insider-trades`, 15000),
+    safeFetch(`${base}/api/ownership-alerts`, 15000),
+    safeFetch(`${base}/api/korea-flow`, 10000),
+    safeFetch(`${base}/api/nport-holdings`, 15000),
+    safeFetch(`${base}/api/short-interest`, 12000),
+    safeFetch(`${base}/api/news-cascade`, 15000),
+    safeFetch(`${base}/api/economic-calendar?country=US`, 8000),
+    safeFetch(`${base}/api/volatility`, 8000),
+    safeFetch(`${base}/api/cot-positions`, 10000),
+    safeFetch(`${base}/api/commodity-curve`, 10000),
+  ]);
+
+  // fear-greed returns { byCountry:[{id:'us',score}], byAsset:[...] }
+  const fgByCountry = fearGreed?.byCountry ?? [];
+  const fgByAsset = fearGreed?.byAsset ?? fearGreed?.assets ?? [];
+  return {
+    capital,
+    fearGreed: fgByCountry.find(c => c.id === 'us') ?? fearGreed,
+    fearGreedByCountry: fgByCountry,
+    fearGreedAssets: fgByAsset,
+    fedWatch: fedwatch,
+    macro,
+    credit: creditBalance,
+    insider: insider?.items ?? [],
+    ownership: ownershipAlerts?.items ?? ownershipAlerts ?? [],
+    koreaFlow,
+    nport,
+    short: shortInterest,
+    cascade: newsCascade?.articles ?? [],
+    econCal,
+    volatility,
+    cot,
+    commodity,
+  };
+}
+
+// ── buildCtxSummary: raw context → prompt-ready text strings ─────────────────
+function buildCtxSummary(ctx) {
+  // Macro
+  let macro = '';
+  try {
+    const m = ctx.macro;
+    if (m) {
+      const yc = m.yieldCurve;
+      const inds = m.indicators ?? [];
+      const cpi = inds.find(i => i.id === 'cpi');
+      const gdp = inds.find(i => i.id === 'gdp');
+      const spread = yc?.spread10y2y;
+      const ig = inds.find(i => i.id === 'ig_spread');
+      const hy = inds.find(i => i.id === 'hy_spread');
+      const parts = [`YieldCurve=${yc?.inverted ? 'inverted' : 'normal'}(${spread != null ? Math.round(spread * 100) : '?'}bp)`];
+      if (cpi?.actual != null) parts.push(`CPI=${cpi.actual}%`);
+      if (gdp?.actual != null) {
+        parts.push(`GDP=${gdp.actual}%`);
+      } else if (gdp?.previous != null) {
+        const rel = gdp.releaseDate;
+        parts.push(`GDP(prev Q4)=${gdp.previous}%${rel ? `→release ${rel}` : '→pending'}`);
+      }
+      if (ig?.actual != null) parts.push(`IG_OAS=${ig.actual}%`);
+      if (hy?.actual != null) parts.push(`HY_OAS=${hy.actual}%`);
+      macro = parts.join(' ');
+    }
+  } catch { /* ignore */ }
+
+  // Sentiment + FedWatch
+  let sentiment = '';
+  try {
+    const fg = ctx.fearGreed;
+    if (fg?.score != null) sentiment = `F&G(US)=${Math.round(fg.score)}(${fg.level ?? fg.label ?? ''})`;
+    const meetings = ctx.fedWatch?.meetings ?? [];
+    if (meetings.length) {
+      const next = meetings[0];
+      sentiment += ` FOMC ${next.label} cut_prob=${next.probCut25}%`;
+    }
+  } catch { /* ignore */ }
+
+  // Capital flows
+  let flows = '';
+  try {
+    const cap = ctx.capital;
+    const assets = cap?.assets ?? [];
+    const withDir = assets.filter(a => typeof a.ret4w === 'number' && typeof a.ret1w === 'number').map(a => {
+      const isInflow = (a.ret4w ?? 0) >= 0;
+      const signal = isInflow
+        ? ((a.ret1w ?? 0) < 0 ? 'reversal↕' : (a.ret1w ?? 0) > (a.ret4w ?? 0) * 0.3 ? 'accel↑' : 'hold→')
+        : ((a.ret1w ?? 0) > 0 ? 'reversal↕' : 'hold→');
+      return { ...a, signal };
+    });
+    const topInflows = [...withDir].sort((a, b) => (b.ret4w ?? 0) - (a.ret4w ?? 0)).slice(0, 4)
+      .map(a => `${a.label ?? a.ticker}:1w${(a.ret1w ?? 0) >= 0 ? '+' : ''}${(a.ret1w ?? 0).toFixed(1)}%/4w${(a.ret4w ?? 0) >= 0 ? '+' : ''}${(a.ret4w ?? 0).toFixed(1)}%(${a.signal})`);
+    if (topInflows.length) flows = `Top inflows: ${topInflows.join(', ')}`;
+
+    const divergent = assets.filter(a =>
+      typeof a.ret1w === 'number' && typeof a.ret13w === 'number' &&
+      Math.sign(a.ret1w) !== Math.sign(a.ret13w) &&
+      Math.abs(a.ret1w) > 1.5 && Math.abs(a.ret13w) > 1.5
+    ).slice(0, 3).map(a =>
+      `${a.label ?? a.ticker}(1w${(a.ret1w ?? 0) >= 0 ? '+' : ''}${(a.ret1w ?? 0).toFixed(1)}% vs 13w${(a.ret13w ?? 0) >= 0 ? '+' : ''}${(a.ret13w ?? 0).toFixed(1)}%=TREND_REVERSAL)`
+    );
+    if (divergent.length) flows += ` | TrendReversal: ${divergent.join(', ')}`;
+
+    const rots = cap?.flow?.rotations1w ?? [];
+    if (rots.length) {
+      flows += ` | Rotation: ${rots.slice(0, 3).map(r => `${r.from}→${r.to}(${(r.magnitude ?? 0).toFixed(1)}%,${r.momentum})`).join(', ')}`;
+    }
+
+    const countries = cap?.countryFlow?.countries ?? [];
+    const topCtry = countries.filter(c => typeof c.ret4w === 'number').sort((a, b) => (b.ret4w ?? 0) - (a.ret4w ?? 0)).slice(0, 4).map(c => {
+      const rev = typeof c.ret1w === 'number' && typeof c.ret13w === 'number' && Math.sign(c.ret1w) !== Math.sign(c.ret13w) ? '↕' : '';
+      return `${c.label}:4w${(c.ret4w ?? 0) >= 0 ? '+' : ''}${(c.ret4w ?? 0).toFixed(1)}%${rev}`;
+    });
+    if (topCtry.length) flows += ` | Countries: ${topCtry.join(', ')}`;
+  } catch { /* ignore */ }
+
+  // Institutional: 13F + insider
+  let institutional = '';
+  try {
+    const sigs = ctx.signals ?? [];
+    const buys = sigs.filter(s => s.action === 'accumulating' || s.action === 'new_position').slice(0, 5)
+      .map(s => `${s.ticker}(${s.institution} ${s.estimatedValue ?? ''})`);
+    if (buys.length) institutional = `13F buys: ${buys.join(', ')}`;
+
+    const insiderArr = Array.isArray(ctx.insider) ? ctx.insider : [];
+    if (insiderArr.length) {
+      const recent = insiderArr.filter(i => i.direction === 'buy').slice(0, 3)
+        .map(i => `${i.ticker ?? '?'} ${i.officerTitle ?? 'insider'} $${Math.round((i.transactionValueUsd ?? 0) / 1000)}K`);
+      if (recent.length) institutional += ` | Insider buys: ${recent.join(', ')}`;
+
+      const clusterMap = new Map();
+      for (const i of insiderArr) {
+        const t = i.ticker; if (!t) continue;
+        const c = clusterMap.get(t) ?? { buys: 0, sells: 0, totalUsd: 0 };
+        if (i.direction === 'buy') c.buys++; else c.sells++;
+        c.totalUsd += i.transactionValueUsd ?? 0;
+        clusterMap.set(t, c);
+      }
+      const hot = Array.from(clusterMap.entries())
+        .filter(([, c]) => c.buys + c.sells >= 5)
+        .sort((a, b) => (b[1].buys + b[1].sells) - (a[1].buys + a[1].sells))
+        .slice(0, 3)
+        .map(([t, c]) => `${t}(${c.buys}buy/${c.sells}sell $${Math.round(c.totalUsd / 1000)}K)`);
+      if (hot.length) institutional += ` | 집중매매감지: ${hot.join(', ')}`;
+    }
+  } catch { /* ignore */ }
+
+  // COT
+  let cot = '';
+  try {
+    const entries = ctx.cot?.entries ?? [];
+    if (entries.length) {
+      cot = entries.slice(0, 5).map(e => {
+        const wk = e.weeklyChange;
+        const wkStr = wk != null ? `(${wk > 0 ? '+' : ''}${Math.round(wk / 1000)}k wk)` : '';
+        return `${e.id}:${e.sentiment}${e.netPosition > 0 ? '+' : ''}${Math.round(e.netPosition / 1000)}k${wkStr}`;
+      }).join(', ');
+    }
+  } catch { /* ignore */ }
+
+  // Commodity
+  let commodity = '';
+  try {
+    const curves = ctx.commodity?.curves ?? [];
+    if (curves.length) {
+      commodity = curves.filter(c => Array.isArray(c.curve) && c.curve.length > 0).map(c => {
+        const front = c.curve[0]?.price;
+        if (!front) return null;
+        const slopeStr = Math.abs(c.slope) > 0.1 ? `${c.slope > 0 ? '+' : ''}${c.slope.toFixed(1)}%` : '';
+        const name = c.id === 'oil' ? 'WTI' : 'Gold';
+        const unit = c.unit ?? '';
+        return `${name}=${front.toFixed(front >= 1000 ? 0 : 2)}${unit.includes('oz') ? '/oz' : '/bbl'}(${c.structure}${slopeStr})`;
+      }).filter(Boolean).join(', ');
+    }
+  } catch { /* ignore */ }
+
+  // Shorts
+  let shorts = '';
+  try {
+    const sd = ctx.short;
+    const arr = Array.isArray(sd) ? sd : (sd?.entries ?? []);
+    const squeeze = arr.filter(s => (s.squeezeScore ?? 0) >= 25).slice(0, 3)
+      .map(s => `${s.ticker}(squeeze=${s.squeezeScore})`);
+    if (squeeze.length) shorts = squeeze.join(', ');
+  } catch { /* ignore */ }
+
+  // News (cascade)
+  let news = '';
+  try {
+    const cascadeArr = Array.isArray(ctx.cascade) ? ctx.cascade : [];
+    const sorted = [...cascadeArr].sort((a, b) => {
+      const isFedA = /powell|fomc|fed|ecb|lagarde|monetary|rate/i.test(String(a.title ?? a.summary));
+      const isFedB = /powell|fomc|fed|ecb|lagarde|monetary|rate/i.test(String(b.title ?? b.summary));
+      return (isFedB ? 1 : 0) - (isFedA ? 1 : 0);
+    });
+    const topNews = sorted.slice(0, 5).map(n => {
+      const sent = n.sentiment === 'bullish' ? '↑' : n.sentiment === 'bearish' ? '↓' : '·';
+      const isFed = /powell|fomc|fed|ecb|lagarde|boj|monetary|rate cut|rate hike/i.test(String(n.title ?? n.summary));
+      const prefix = isFed ? '[연준/중앙은행]' : '';
+      const text = ((n.summary || n.title || '')).slice(0, 60);
+      const impacts = (n.cascades ?? [])
+        .filter(c => (c.magnitude === 'high' || c.magnitude === 'medium') && c.direction !== 'neutral')
+        .slice(0, 2).map(c => `${c.asset}${c.direction === 'positive' ? '↑' : '↓'}`).join(',');
+      return impacts ? `${sent}${prefix}${text}(${impacts})` : `${sent}${prefix}${text}`;
+    });
+    if (topNews.length) news = topNews.join(' | ');
+  } catch { /* ignore */ }
+
+  // Korea flows
+  let koreaFlow = '';
+  try {
+    const countries = ctx.capital?.countryFlow?.countries ?? [];
+    const korea = countries.find(c => c.id === 'korea');
+    if (korea) koreaFlow = `Korea(EWY): 1w=${korea.ret1w?.toFixed(1) ?? '?'}% 4w=${korea.ret4w?.toFixed(1) ?? '?'}%`;
+    if (ctx.koreaFlow) {
+      const kf = ctx.koreaFlow;
+      const net = kf.foreignNet ?? kf.netBuy;
+      if (net != null) koreaFlow += ` | Foreign net: ${net > 0 ? '+' : ''}${(net / 1e8).toFixed(1)}억`;
+    }
+  } catch { /* ignore */ }
+
+  // Asset-class F&G
+  let assetFg = '';
+  try {
+    const assets = ctx.fearGreedAssets ?? [];
+    if (assets.length) assetFg = assets.slice(0, 8).map(a => `${a.id}:${Math.round(a.score)}(${a.level})`).join(', ');
+  } catch { /* ignore */ }
+
+  // Bollinger Band 경고
+  let bbWarnings = '';
+  try {
+    const capAssets = ctx.capital?.assets ?? [];
+    const countryAssets = ctx.capital?.countryFlow?.countries ?? [];
+    const warnings = [];
+    for (const a of [...capAssets, ...countryAssets]) {
+      if (!a.ticker || !a.sparkline?.length) continue;
+      const prices = a.sparkline;
+      if (prices.length >= 20) {
+        const s20 = prices.slice(-20);
+        const m20 = s20.reduce((s, v) => s + v, 0) / 20;
+        const sd20 = Math.sqrt(s20.reduce((s, v) => s + (v - m20) ** 2, 0) / 20);
+        if (prices[prices.length - 1] > m20 + 2 * sd20)
+          warnings.push(`${a.ticker}:20d2σ초과(BB${(m20 + 2 * sd20).toFixed(2)},현재${prices[prices.length - 1].toFixed(2)})`);
+      }
+      if (prices.length >= 4) {
+        const s4 = prices.slice(-4);
+        const m4 = s4.reduce((s, v) => s + v, 0) / 4;
+        const sd4 = Math.sqrt(s4.reduce((s, v) => s + (v - m4) ** 2, 0) / 4);
+        const upper4 = m4 + 4 * sd4;
+        if (sd4 > 0 && prices[prices.length - 1] >= upper4)
+          warnings.push(`⚠️${a.ticker}:4d4σ극단초과→진입금지`);
+      }
+    }
+    if (warnings.length) bbWarnings = warnings.join(', ');
+  } catch { /* ignore */ }
+
+  // Credit balance
+  let credit = '';
+  try {
+    const cr = ctx.credit;
+    const snap = cr?.globalSnapshot ?? {};
+    const total = snap.totalUsd;
+    const gdpPct = snap.avgGdpPct;
+    const usEntry = cr?.countries?.find(c => c.id === 'us');
+    if (total && gdpPct) {
+      const usYoy = usEntry?.yoyChangePct;
+      credit = `신용잔고: 글로벌 $${(total / 1e9).toFixed(0)}B, GDP대비${gdpPct.toFixed(1)}%${usYoy != null ? `, US YoY${usYoy.toFixed(1)}%` : ''}`;
+    }
+  } catch { /* ignore */ }
+
+  // N-PORT
+  let nport = '';
+  try {
+    const np = ctx.nport;
+    const byTicker = np?.byTicker ?? [];
+    const top = byTicker.filter(t => typeof t.totalValue === 'number' && t.totalValue > 0)
+      .sort((a, b) => b.totalValue - a.totalValue).slice(0, 4)
+      .map(t => `${t.ticker}($${Math.round(t.totalValue / 1e6)}M)`);
+    if (top.length) nport = `N-PORT 기관집계: ${top.join(', ')}`;
+  } catch { /* ignore */ }
+
+  // Options flow
+  let optionsFlow = '';
+  try {
+    const opts = Array.isArray(ctx.options) ? ctx.options : [];
+    const notable = opts.filter(o => o.unusual || (o.premium ?? 0) > 500000).slice(0, 3);
+    if (notable.length)
+      optionsFlow = `옵션이상: ${notable.map(o => `${o.ticker}${o.side}(${o.type}$${Math.round((o.premium ?? 0) / 1000)}K)`).join(', ')}`;
+  } catch { /* ignore */ }
+
+  // Ownership (13D/G)
+  let ownership = '';
+  try {
+    const ow = Array.isArray(ctx.ownership) ? ctx.ownership : [];
+    const recent = ow.slice(0, 3).map(o => `${o.ticker}(${o.filerName} ${o.changePct ?? o.pct}%)`);
+    if (recent.length) ownership = `13D/G지분변동: ${recent.join(', ')}`;
+  } catch { /* ignore */ }
+
+  // Econ calendar
+  let econCal = '';
+  try {
+    const events = ctx.econCal?.events ?? [];
+    const high = events.filter(e => e.impact === 'high' || e.impact === 3).slice(0, 4)
+      .map(e => `${e.date}:${e.event}`);
+    if (high.length) econCal = `고임팩트이벤트: ${high.join(', ')}`;
+  } catch { /* ignore */ }
+
+  // VIX context
+  let vixCtx = '';
+  try {
+    const v = ctx.volatility;
+    if (v?.vix != null) {
+      const parts = [`VIX=${v.vix.toFixed(2)}`];
+      if (v.regime) parts.push(`regime=${v.regime}`);
+      if (v.regimeLabel) parts.push(`(${v.regimeLabel})`);
+      vixCtx = parts.join(' ');
+    }
+    if (!vixCtx) {
+      const vixInd = ctx.macro?.indicators?.find(i => i.id === 'vix');
+      if (vixInd?.value != null) vixCtx = `VIX=${vixInd.value}`;
+    }
+  } catch { /* ignore */ }
+
+  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx };
+}
+
+// ── Cascade signals ────────────────────────────────────────────────────────────
+async function getActiveCascadeSignals(prices) {
+  const CASCADES = [
+    { leader: 'NVDA', followers: ['MU','000660.KS','TSM','AMAT','LRCX','AMD'], sector: 'AI반도체' },
+    { leader: 'ASML', followers: ['AMAT','LRCX','KLAC','TSM'], sector: '반도체장비' },
+    { leader: 'MSFT', followers: ['NVDA','GOOGL','AMZN','ORCL'], sector: 'AI클라우드' },
+    { leader: 'TSM',  followers: ['NVDA','AMD','AVGO','QCOM'], sector: 'TSMC파운드리' },
+    { leader: 'LMT',  followers: ['RTX','NOC','BA','GE'], sector: '방산' },
+    { leader: 'ABBV', followers: ['LLY','JNJ','PFE','MRK'], sector: '바이오파마' },
+    { leader: 'TSLA', followers: ['RIVN','NIO','LI','LCID'], sector: 'EV' },
+    { leader: 'WMT',  followers: ['COST','HD','TGT','AMZN'], sector: '소비유통' },
+  ];
+  try {
+    const active = [];
+    for (const c of CASCADES) {
+      const lp = prices.get(c.leader);
+      if (!lp) continue;
+      // change1d가 있으면 1d로 cascade 판단 (5d 데이터 없으므로 1d±3% 이상)
+      const ret = lp.change1d;
+      if (ret == null || Math.abs(ret) < 3) continue;
+      const dir = ret > 0 ? '상승' : '하락';
+      active.push(
+        `[CASCADE ACTIVE] ${c.sector} ${c.leader} 1d ${ret >= 0 ? '+' : ''}${ret.toFixed(1)}% → ` +
+        `팔로워 주목: ${c.followers.slice(0, 3).join(', ')}`
+      );
+    }
+    return active.join('\n');
+  } catch { return ''; }
+}
+
+async function getSectorSummary() {
+  try {
+    const d = await safeFetch(`${SITE}/api/sector-pe`, 8000);
+    if (!d?.sectors) return '';
+    return d.sectors.slice(0, 8).map(e => {
+      const ytd = e.ytdReturn != null ? (e.ytdReturn * 100).toFixed(1) : 'N/A';
+      return `${e.ticker}(${e.name}) P/E=${e.trailingPE?.toFixed(1) ?? 'N/A'} YTD=${ytd}%`;
+    }).join(', ');
+  } catch { return ''; }
+}
+
+async function getUpcomingEarnings() {
+  try {
+    const d = await safeFetch(`${SITE}/api/earnings`, 8000);
+    const items = (d?.earnings ?? []).slice(0, 5);
+    return items.map(e => `${e.symbol} ${e.date}`).join(', ');
+  } catch { return ''; }
+}
+
+async function getCompanyFinancials(tickers) {
+  if (!tickers.length) return '';
+  const results = await Promise.allSettled(
+    tickers.slice(0, 8).map(async ticker => {
+      try {
+        const d = await safeFetch(`${SITE}/api/company-financials/${ticker}`, 5000);
+        if (!d) return null;
+        const q = d.quarterlyRevenue?.[0];
+        if (!q) return null;
+        const rev = q.revenueUSD >= 1e9 ? `$${(q.revenueUSD / 1e9).toFixed(1)}B` : `$${(q.revenueUSD / 1e6).toFixed(0)}M`;
+        const yoy = q.yoyPct != null ? `${q.yoyPct > 0 ? '+' : ''}${q.yoyPct.toFixed(1)}% YoY` : '';
+        const margin = d.latestAnnual?.operatingMarginPct != null ? ` opMgn=${d.latestAnnual.operatingMarginPct.toFixed(1)}%` : '';
+        return `${ticker}: ${q.label} ${rev} ${yoy}${margin}`;
+      } catch { return null; }
+    })
+  );
+  return results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value).join(' | ');
+}
+
+// ── 프롬프트 빌더 (investment-prompts.ts 포팅) ─────────────────────────────────
+const TODAY = new Date().toISOString().slice(0, 10);
+const li = TARGET_LANG ? `\nWrite ALL text in ${TARGET_LANG} except tickers/numbers/JSON keys.\n` : '';
+
+function buildGroundingFacts(livePriceData) {
+  const lines = [
+    `[FACTS — MANDATORY]`,
+    `System date: ${TODAY}`,
+    `파월은 2026년 2월 의장 임기 만료. "파월 전 의장" 또는 "파월 이사"로만 표기. 트럼프가 새 의장 임명.`,
+    `Ticker policy: S&P500 components, major ETFs, top-100 crypto, country ETFs (EWY/EWJ/EWZ/VGK etc.), Korean stocks (.KS)`,
+    `BLOCKED: OTC/pink sheets (.OB/.PK), pure inverse/leveraged ETFs (SQQQ/TQQQ) as primary hold`,
+  ];
+  if (livePriceData) lines.push('', `[Live Prices]`, livePriceData);
+  lines.push('[END FACTS]');
+  return lines.join('\n');
+}
+
+function getGuruContext() {
+  return [
+    '[GURU INVESTMENT FRAMEWORKS]',
+    'Buffett: ROE>15%+FCF yield>2×bonds+moat → margin of safety entry',
+    'Lynch: PEG<1 (P/E÷growth) → undervalued vs growth',
+    'Greenblatt: EBIT/EV>10%+ROIC>25% → Magic Formula',
+    'Druckenmiller: earnings momentum+liquidity expansion → concentrated position',
+    'Graham: Graham Number = √(22.5 × EPS × BVPS) → buy below',
+    'RULE: entryRationale MUST include ≥1 non-technical signal when data available.',
+    'BAD: "50일선 지지" GOOD: "100일선+ROE18%FCF수익률8%→안전마진" or "린치PEG0.8→성장대비저평가"',
+    '[END GURU FRAMEWORKS]',
+  ].join('\n');
+}
+
+function buildMacroPrompt(ctx, vix, session) {
+  const sc = session === 'morning' ? 'Post US-close' : session === 'afternoon' ? 'Post Asia-close' : 'Pre US-open';
+  return [
+    `You are a macro strategist. Session: ${sc} ${TODAY}.${li}`,
+    '',
+    `[Macro Indicators] ${ctx.macro || 'No data'}`,
+    `[Sentiment + FedWatch] ${ctx.sentiment || 'No data'}`,
+    `[VIX] ${vix || 'No data'}`,
+    `[Credit Balance] ${ctx.credit || 'No data'}`,
+    `[Upcoming High-Impact Events] ${ctx.econCal || 'No data'}`,
+    `[COT Positioning] ${ctx.cot || 'No data'}`,
+    `[Commodity Curves] ${ctx.commodity || 'No data'}`,
+    `[News — 연준발언 우선] ${ctx.news || 'No data'}`,
+    '파월은 2026년 의장 임기 만료 후 이사(Governor)로 잔류. "파월 전 의장" 또는 "파월 이사"로 표기.',
+    '',
+    'Respond in pure JSON (no markdown):',
+    `{"macroAnalysis":"${TARGET_LANG} 150자 이내, CPI/금리/스프레드 실제수치 포함",`,
+    `"technicalAnalysis":"VIX+수익률곡선만 120자, 선물용어 금지",`,
+    `"fundamentalAnalysis":"실적서프라이즈+밸류에이션+기관시그널 150자",`,
+    `"thesis":"핵심테마 50자 (${TARGET_LANG})",`,
+    '"riskLevel":"low|medium|high",',
+    `"riskEvents":[{"date":"YYYY-MM-DD","event":"이벤트명","impact":"high|medium|low","watchFor":"60자 ${TARGET_LANG} 구체적 설명"}]}`,
+    'riskEvents 3-5개, BOJ/ECB/Fed/NFP/CPI 포함. Pure JSON only.',
+  ].join('\n');
+}
+
+function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
+  return [
+    buildGroundingFacts(priceData),
+    '',
+    `You are a portfolio manager building an investment strategy. Date: ${TODAY}.${li}`,
+    '',
+    `[Live Prices — base for entryZone/stopLoss/target]`,
+    priceData || 'No data',
+    '',
+    `[Institutional + Insider Signals]`,
+    ctx.institutional || 'No data',
+    '집중매매감지 = 5건 이상 내부자 신고 = 강한 확신 신호',
+    '',
+    `[Sector Valuations] ${sectorPe || 'No data'}`,
+    `[Bollinger Band 과매수 경고] ${ctx.bbWarnings || 'None'}`,
+    `[Short Squeeze Candidates] ${ctx.shorts || 'None'}`,
+    `[Unusual Options Flow] ${ctx.optionsFlow || 'None'}`,
+    `[13D/G 대량보유 변동] ${ctx.ownership || 'None'}`,
+    `[N-PORT 뮤추얼펀드] ${ctx.nport || 'None'}`,
+    `[Upcoming Earnings] ${earnings || 'None'}`,
+    '',
+    getGuruContext(),
+    '',
+    '** OBJECTIVE: ALPHA GENERATION — Beat the index (S&P 500). **',
+    '** Passive ETFs (SPY/QQQ/VTI) and bonds combined ≤ 20% total. **',
+    '** Concentrate on HIGH-CONVICTION individual stocks. **',
+    '** Minimum 5 individual stocks, each ≥ 10% allocation. **',
+    '',
+    'RULES:',
+    '1. 6-8 items: PRIMARILY individual stocks — ONLY pick tickers in [Live Prices]',
+    '   Rank by signal: (1) insider 집중매수/13D, (2) squeeze score, (3) 13F accumulation, (4) options flow, (5) capital-flow momentum',
+    '2. "market" field = us/korea/japan/china/europe/india/taiwan/global',
+    '3. entryZone/stopLoss/target: actual dollar ranges from live prices',
+    '4. rationale 100 chars max with real data signals',
+    '5. allocation sum = 100, no single position > 25%',
+    '6. action: buy=accumulate now, hold=keep, watch=wait for entry',
+    '7. entryRationale ≤80자: MUST cite ≥1 fundamental signal',
+    '8. targetRationale ≤80자: fundamentals-first',
+    '',
+    'Respond in pure JSON (no markdown):',
+    '{"stance":"bullish|neutral|bearish",',
+    '"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us",',
+    `"rationale":"실데이터포함100자(${TARGET_LANG})","allocation":15,"entryZone":"$X-Y",`,
+    '"entryRationale":"기술적+펀더멘털근거","stopLoss":"$Z",',
+    '"target":"$A","targetBull":"$B","targetRationale":"P/E목표배수→$A | 돌파시Fib→$B","confidence":"high","action":"buy"}],',
+    '"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"40자"}]}',
+    '6-8 portfolio items, 5 sectorAllocation items. Pure JSON only.',
+  ].join('\n');
+}
+
+function buildRegionalPrompt(ctx) {
+  return [
+    `You are a global market strategist. Date: ${TODAY}.${li}`,
+    '',
+    `[Capital Flows — 1W/4W returns by country/asset]`,
+    ctx.flows || 'No data',
+    `[Korean Market] ${ctx.koreaFlow || 'No data'}`,
+    `[Asset-Class Fear & Greed] ${ctx.assetFg || 'No data'}`,
+    '',
+    'Provide bullish/neutral/bearish for each country based on flows and F&G.',
+    'Respond in pure JSON (no markdown):',
+    '{"regionStances":{',
+    `"us":{"stance":"bullish","thesis":"40자(${TARGET_LANG})","keyData":"SPY 1w, F&G score"},`,
+    `"korea":{"stance":"neutral","thesis":"...","keyData":"EWY 1w, F&G"},`,
+    '"japan":{"stance":"...","thesis":"...","keyData":"..."},',
+    '"china":{"stance":"...","thesis":"...","keyData":"..."},',
+    '"europe":{"stance":"...","thesis":"...","keyData":"..."},',
+    '"india":{"stance":"...","thesis":"...","keyData":"..."},',
+    '"taiwan":{"stance":"...","thesis":"...","keyData":"..."},',
+    '"brazil":{"stance":"...","thesis":"...","keyData":"..."},',
+    '"australia":{"stance":"...","thesis":"...","keyData":"..."},',
+    '"global":{"stance":"...","thesis":"...","keyData":"..."}',
+    '}}',
+    'All 10 regions required. Pure JSON only.',
+  ].join('\n');
+}
+
+function buildOpportunityPrompt(ctx) {
+  return [
+    `You are a short squeeze and insider trading specialist. Date: ${TODAY}. Write in ${TARGET_LANG}.`,
+    '',
+    `[Short Squeeze Candidates] ${ctx.shorts || 'None'}`,
+    `[Insider + Institutional Signals] ${ctx.institutional || 'None'}`,
+    `[Asset F&G] ${ctx.assetFg || 'No data'}`,
+    '',
+    'Respond in pure JSON:',
+    `{"shortSqueeze":[{"ticker":"SMCI","score":48,"timing":"실적발표 전 48시간내","risk":"추가 숏 진입 시 완화"}],`,
+    `"insiderSignals":[{"ticker":"CRWV","filings":63,"significance":"임원급 대규모 매집","pattern":"연속 매집"}],`,
+    `"topOpportunity":"가장 주목할 기회 1개 100자(${TARGET_LANG})"}`,
+    'Pure JSON only.',
+  ].join('\n');
+}
+
+function buildNarrativePrompt(ctx, session) {
+  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : '미국장 개장 전';
+  return [
+    `You are a market narrative writer. Session: ${sc} ${TODAY}. Write in ${TARGET_LANG}.`,
+    '',
+    `[Capital Flow Story] ${ctx.flows || 'No data'}`,
+    `[News Events] ${ctx.news || 'No data'}`,
+    `[Macro Context] ${ctx.macro || 'No data'}`,
+    '',
+    'Respond in pure JSON:',
+    `{"why":"구체적 이유 100자(${TARGET_LANG})","watch":"관찰포인트 80자(${TARGET_LANG})","story":"시장스토리 200자(${TARGET_LANG})","sessionNote":"이 세션 특이사항 60자(${TARGET_LANG})"}`,
+    'Pure JSON only.',
+  ].join('\n');
+}
+
+function buildRiskMgmtPrompt(portfolio, riskLevel, bbWarnings, vix) {
+  const positions = (portfolio ?? []).map(p =>
+    `${p.ticker}(${p.allocation}%): entry=${p.entryZone} stop=${p.stopLoss} action=${p.action}`
+  ).join('\n');
+  return [
+    `You are a risk manager. Write in ${TARGET_LANG}.`,
+    '',
+    `[Portfolio Positions]\n${positions}`,
+    `[Overall Risk Level] ${riskLevel || 'medium'}`,
+    `[BB Overextension] ${bbWarnings || 'None'}`,
+    `[VIX] ${vix || 'No data'}`,
+    '',
+    'Respond in pure JSON:',
+    `{"stopLossRationale":[{"ticker":"NVDA","rationale":"손절 근거 (${TARGET_LANG})"}],"hedgingSuggestion":"헤지 제안 (${TARGET_LANG})","portfolioRiskNote":"전체 리스크 요약 100자(${TARGET_LANG})"}`,
+    'Pure JSON only.',
+  ].join('\n');
+}
+
+function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news, financials) {
+  const tickers = portfolioItems.map(p => `${p.ticker}(${p.name ?? p.ticker})`).join(', ');
+  return [
+    `You are a corporate analyst. Date: ${TODAY}. Write keyChange in ${TARGET_LANG}.`,
+    '',
+    `Portfolio tickers: ${tickers}`,
+    '',
+    `[Recent Financials] ${financials || 'No data'}`,
+    `[Upcoming/Recent Earnings] ${earnings || 'None'}`,
+    `[Institutional Changes] ${institutional || 'None'}`,
+    `[News & Events] ${news || 'None'}`,
+    '',
+    'Respond in pure JSON:',
+    `{"companyChanges":[{"ticker":"NVDA","name":"NVIDIA","revenueYoY":73.2,"latestQuarter":"Q4 FY2026","keyChange":"핵심 변화 (${TARGET_LANG})","guidance":"raised|maintained|lowered|unknown","sentiment":"positive|neutral|negative"}]}`,
+    'Include ALL portfolio tickers. Pure JSON only.',
+  ].join('\n');
+}
+
+function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sectorPe, news) {
+  const stockList = buyStocks.map(s =>
+    `- ${s.ticker}(${s.name}, ${s.sector}): entry=${s.entryZone}, target=${s.target}, rationale="${s.rationale}"`
+  ).join('\n');
+  return [
+    `You are an equity research analyst. Date: ${TODAY}. Write ALL text in ${TARGET_LANG}.`,
+    '',
+    `Focus ONLY on these BUY-recommended stocks:\n${stockList}`,
+    '',
+    `[Institutional & Insider Signals] ${institutional || 'None'}`,
+    `[Short Squeeze Candidates] ${shorts || 'None'}`,
+    `[Upcoming / Recent Earnings] ${earnings || 'None'}`,
+    `[Sector Valuations] ${sectorPe || 'No data'}`,
+    `[Recent News] ${news || 'None'}`,
+    '',
+    'For EACH stock, provide:',
+    '- catalysts: 2-3 SPECIFIC near-term catalysts with numbers',
+    '- fundamentalBasis: ≤120 chars — EPS growth%, PE/PEG, margin, institutional activity',
+    '- technicalBasis: ≤80 chars — MA position, RSI, volume vs 20d avg',
+    '- riskNote: ≤60 chars — single biggest downside risk',
+    '',
+    'Respond in pure JSON:',
+    `{"stockDetails":[{"ticker":"NVDA","catalysts":["Blackwell GPU QoQ+40%","13F 47건 매집","AI capex $200B"],"fundamentalBasis":"EPS YoY+102%, PEG 1.3, 영업이익률 55%","technicalBasis":"200MA 위, RSI 55, 거래량+18%","riskNote":"수출규제 매출 15% 하락 위험"}]}`,
+    'Include ALL buy tickers. Pure JSON only.',
+  ].join('\n');
+}
+
+function buildCritiquePrompt(portfolio, macroAnalysis, bbWarnings, assetFg) {
+  const summary = portfolio.map(p =>
+    `${p.ticker}(${p.action}) entry=${p.entryZone} target=${p.target}: ${p.rationale}`
+  ).join('\n');
+  return [
+    `You are a contrarian analyst critiquing a portfolio. Write in ${TARGET_LANG}.`,
+    '',
+    `[Draft Portfolio]\n${summary}`,
+    '',
+    `[Macro] ${macroAnalysis || 'No data'}`,
+    `[BB Overextension] ${bbWarnings || 'None'}`,
+    `[Asset F&G] ${assetFg || 'No data'}`,
+    '',
+    'For each portfolio item: REVISE (action/rationale wrong), WARN (add risk), or OK.',
+    'Only flag REVISE or WARN items.',
+    '',
+    'Respond in pure JSON:',
+    `{"critiques":[{"ticker":"NVDA","verdict":"REVISE|WARN|OK","correction":"≤80자 (${TARGET_LANG}), 구체적 수치 포함"}]}`,
+    'Pure JSON only.',
+  ].join('\n');
+}
+
+function applyCritique(portfolio, critiqueRaw) {
+  try {
+    const m = critiqueRaw.match(/\{[\s\S]*\}/);
+    if (!m) return portfolio;
+    const parsed = JSON.parse(m[0]);
+    const critiques = parsed.critiques ?? [];
+    if (!critiques.length) return portfolio;
+    return portfolio.map(p => {
+      const c = critiques.find(cr => cr.ticker === p.ticker);
+      if (!c || c.verdict === 'OK') return p;
+      if (c.verdict === 'REVISE') {
+        const newAction = c.correction.includes('진입금지') || c.correction.includes('watch') ? 'watch' : p.action;
+        return { ...p, action: newAction, rationale: `[수정] ${c.correction}`.slice(0, 100) };
+      }
+      if (c.verdict === 'WARN') {
+        return { ...p, rationale: `${p.rationale} ⚠️${c.correction}`.slice(0, 100) };
+      }
+      return p;
+    });
+  } catch { return portfolio; }
+}
+
+// ── 포트폴리오 후처리 ────────────────────────────────────────────────────────────
+function postProcessPortfolio(portfolio) {
+  if (!Array.isArray(portfolio)) return [];
+  const KR_NUM = /^\d{6}$/;
+  let items = portfolio.map(p => ({
+    ...p,
+    ticker: KR_NUM.test(p.ticker ?? '') ? `${p.ticker}.KS` : (p.ticker ?? ''),
+  })).filter(p => {
+    const k = (p.ticker ?? '').toUpperCase();
+    return k && !INDEX_TICKERS.has(k);
+  });
+
+  const dedupMap = new Map();
+  for (const p of items) {
+    const k = p.ticker.toUpperCase();
+    const ex = dedupMap.get(k);
+    if (!ex || (p.allocation ?? 0) > (ex.allocation ?? 0)) dedupMap.set(k, p);
+  }
+  items = Array.from(dedupMap.values());
+
+  const total = items.reduce((s, p) => s + (p.allocation ?? 0), 0);
+  if (total > 0 && Math.abs(total - 100) > 2) {
+    items = items.map(p => ({ ...p, allocation: Math.round((p.allocation ?? 0) / total * 100) }));
+    const diff = 100 - items.reduce((s, p) => s + p.allocation, 0);
+    if (diff !== 0 && items.length) items[0].allocation += diff;
+  }
+  return items;
+}
+
+// ── Step 1: 다단계 Ollama 생성 ─────────────────────────────────────────────────
+async function generateViaOllama() {
+  const session = getSession();
+  console.log(`\n=== 로컬 Ollama 보고서 생성 (${modelArg}) ===`);
+  console.log(`locale: ${localeArg} (${TARGET_LANG}), session: ${session}, auto-upload: ${autoUpload}`);
+
+  // ── [1/6] 데이터 수집 ────────────────────────────────────────────────────────
+  console.log('\n[1/6] 컨텍스트 데이터 수집 (16개 API 병렬)...');
+  const [ctxRaw, livePrices, sectorPe, earnings] = await Promise.all([
+    gatherContext(),
+    getLivePrices(),
+    getSectorSummary(),
+    getUpcomingEarnings(),
+  ]);
+  const ctx = buildCtxSummary(ctxRaw);
+  const priceData = pricesSection(livePrices);
+  const cascadeStr = await getActiveCascadeSignals(livePrices);
+  const ctxWithCascade = {
+    ...ctx,
+    flows: ctx.flows + (cascadeStr ? `\n[ACTIVE CASCADE SIGNALS]\n${cascadeStr}` : ''),
+    news: ctx.news + (cascadeStr ? `\n[공급망 cascade 활성]\n${cascadeStr}` : ''),
+  };
+
+  console.log(`  macro=${ctx.macro.length}c, sentiment=${ctx.sentiment.length}c, flows=${ctx.flows.length}c`);
+  console.log(`  news=${ctx.news.length}c, institutional=${ctx.institutional.length}c, shorts=${ctx.shorts.length}c`);
+  console.log(`  prices=${livePrices.size} tickers, sectorPe=${sectorPe.length}c, earnings=${earnings.length}c`);
+
+  // ── [2/6] Wave 1: 5섹션 병렬 ─────────────────────────────────────────────────
+  console.log('\n[2/6] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
+  const [macroRaw, portfolioRaw, regionalRaw, opportunityRaw, narrativeRaw] = await Promise.all([
+    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session)),
+    callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData)),
+    callOllama(buildRegionalPrompt(ctxWithCascade)),
+    callOllama(buildOpportunityPrompt(ctxWithCascade)),
+    callOllama(buildNarrativePrompt(ctxWithCascade, session)),
+  ]);
+
+  const macroData      = parseJson(macroRaw);
+  const portfolioData  = parseJson(portfolioRaw);
+  const regionalData   = parseJson(regionalRaw);
+  const opportunityData = parseJson(opportunityRaw);
+  const narrativeData  = parseJson(narrativeRaw);
+
+  console.log(`  macro=${!!macroData}, portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}`);
+  console.log(`  opportunity=${!!opportunityData}, narrative=${!!narrativeData}`);
+
+  if (!portfolioData?.portfolio?.length) {
+    console.error('❌ Wave1 포트폴리오 생성 실패. 종료합니다.');
     process.exit(1);
   }
 
-  // 후처리
-  if (Array.isArray(report.portfolio)) {
-    report.portfolio = report.portfolio
-      .map(p => ({ ...p, ticker: /^\d{6}$/.test(p.ticker || '') ? `${p.ticker}.KS` : (p.ticker || '') }))
-      .filter(p => {
-        const k = (p.ticker || '').toUpperCase();
-        const INDEX = new Set(['KS','KR','JP','CN','EU','US','UK','KOSPI','NIKKEI','KOSDAQ',
-          '^KS11','^N225','^GSPC','KOSPI200','KOSPI100','KOSDAQ150','KRX300','SPX','NDX','RUT','VIX']);
-        return k && !INDEX.has(k);
-      });
-    const total = report.portfolio.reduce((s, p) => s + (p.allocation ?? 0), 0);
-    if (total > 0 && Math.abs(total - 100) > 2) {
-      report.portfolio = report.portfolio.map(p => ({ ...p, allocation: Math.round((p.allocation ?? 0) / total * 100) }));
-      const diff = 100 - report.portfolio.reduce((s, p) => s + p.allocation, 0);
-      if (diff !== 0 && report.portfolio.length) report.portfolio[0].allocation += diff;
+  // ── [3/6] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
+  console.log('\n[3/6] Wave2 — 리스크/기업변화/종목상세 병렬 호출...');
+  const portfolioItems = postProcessPortfolio(portfolioData.portfolio);
+  const buyStocks = portfolioItems
+    .filter(p => p.action === 'buy')
+    .map(p => ({ ticker: p.ticker, name: p.name ?? p.ticker, sector: p.sector ?? '', rationale: p.rationale ?? '', entryZone: p.entryZone ?? '', target: p.target ?? '' }));
+
+  const portfolioForFinancials = portfolioItems.map(p => p.ticker);
+  const companyFinancials = await getCompanyFinancials(portfolioForFinancials);
+
+  const wave2Calls = [
+    callOllama(buildRiskMgmtPrompt(portfolioItems, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx)),
+    callOllama(buildCompanyChangesPrompt(portfolioItems, earnings, ctx.institutional, ctx.news, companyFinancials)),
+  ];
+  if (buyStocks.length > 0) {
+    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocks, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news)));
+  }
+
+  const [riskRaw, companyChangesRaw, stockDetailRaw] = await Promise.all(wave2Calls);
+  const riskData = parseJson(riskRaw);
+  const companyChangesData = parseJson(companyChangesRaw);
+
+  const stockDetailMap = new Map();
+  if (stockDetailRaw) {
+    const sd = parseJson(stockDetailRaw);
+    if (Array.isArray(sd?.stockDetails)) {
+      for (const d of sd.stockDetails) {
+        if (d.ticker) stockDetailMap.set(d.ticker.toUpperCase(), d);
+      }
     }
   }
+  console.log(`  risk=${!!riskData}, companyChanges=${companyChangesData?.companyChanges?.length ?? 0}개, stockDetail=${stockDetailMap.size}개`);
+
+  // ── [4/6] Critique ──────────────────────────────────────────────────────────
+  console.log('\n[4/6] Critique — 포트폴리오 자기비판...');
+  let refinedPortfolio = portfolioItems;
+  try {
+    const critiqueRaw = await callOllama(buildCritiquePrompt(
+      portfolioItems,
+      macroData?.macroAnalysis ?? '',
+      ctx.bbWarnings,
+      ctx.assetFg,
+    ));
+    refinedPortfolio = applyCritique(portfolioItems, critiqueRaw);
+    const changed = refinedPortfolio.filter((p, i) => p.action !== portfolioItems[i]?.action);
+    console.log(`  critique 적용: ${changed.length}개 종목 수정`);
+  } catch (e) { console.log(`  critique 실패 (non-fatal): ${e.message}`); }
+
+  // ── [5/6] 병합 ──────────────────────────────────────────────────────────────
+  console.log('\n[5/6] 섹션 병합...');
+  const mergedPortfolio = refinedPortfolio.map(p => {
+    const detail = stockDetailMap.get(p.ticker.toUpperCase());
+    if (!detail) return p;
+    return {
+      ...p,
+      catalysts: detail.catalysts?.length ? detail.catalysts : p.catalysts,
+      fundamentalBasis: detail.fundamentalBasis || p.fundamentalBasis,
+      technicalBasis: detail.technicalBasis || p.technicalBasis,
+      riskNote: detail.riskNote || p.riskNote,
+    };
+  });
 
   const now = new Date().toISOString();
   const finalReport = {
-    ...report,
+    stance: portfolioData.stance ?? 'neutral',
+    thesis: macroData?.thesis ?? portfolioData.stance ?? 'neutral',
+    portfolio: mergedPortfolio,
+    sectorAllocation: portfolioData.sectorAllocation ?? [],
+    riskEvents: macroData?.riskEvents ?? [],
+    macroAnalysis: macroData?.macroAnalysis ?? '',
+    technicalAnalysis: macroData?.technicalAnalysis ?? '',
+    fundamentalAnalysis: macroData?.fundamentalAnalysis ?? '',
+    riskLevel: macroData?.riskLevel ?? 'medium',
+    regionStances: regionalData?.regionStances ?? {},
+    shortSqueeze: opportunityData?.shortSqueeze ?? [],
+    insiderSignals: opportunityData?.insiderSignals ?? [],
+    topOpportunity: opportunityData?.topOpportunity ?? '',
+    stopLossRationale: riskData?.stopLossRationale ?? [],
+    hedgingSuggestion: riskData?.hedgingSuggestion ?? '',
+    portfolioRiskNote: riskData?.portfolioRiskNote ?? '',
+    marketNarrative: narrativeData ?? {},
+    companyChanges: companyChangesData?.companyChanges ?? [],
     generatedAt: now,
     dataAsOf: now,
     source: `local-${modelArg}`,
@@ -402,8 +1191,8 @@ Rules:
     buildId: 'local',
   };
 
-  // 품질 검사
-  console.log('\n[4/4] 품질 게이트 검사...');
+  // ── [6/6] 품질 검사 + 저장 ──────────────────────────────────────────────────
+  console.log('\n[6/6] 품질 게이트 검사...');
   const { ok, issues, score } = qualityCheck(finalReport);
   console.log(`  품질 점수: ${score}/100`);
   if (issues.length) {
@@ -413,7 +1202,6 @@ Rules:
     console.log('  ✅ 품질 검사 통과');
   }
 
-  // reports/ 디렉토리에 저장
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   const filename = `report-${kstDate}-${session}-${localeArg}.json`;
@@ -422,10 +1210,11 @@ Rules:
 
   console.log(`\n=== 저장 완료 ===`);
   console.log(`파일: reports/${filename}`);
-  console.log(`source: ${finalReport.source}`);
   console.log(`stance: ${finalReport.stance}`);
   console.log(`thesis: ${finalReport.thesis}`);
+  console.log(`macro: ${finalReport.macroAnalysis?.slice(0, 80)}`);
   console.log(`portfolio: ${finalReport.portfolio?.map(p => `${p.ticker}(${p.allocation}%)`).join(' ')}`);
+  console.log(`sections: portfolio=${finalReport.portfolio?.length}, regionStances=${Object.keys(finalReport.regionStances ?? {}).length}, shortSqueeze=${finalReport.shortSqueeze?.length}, companyChanges=${finalReport.companyChanges?.length}`);
 
   if (!ok) {
     console.log('\n❌ 품질 불합격 — 자동 업로드 건너뜀.');
