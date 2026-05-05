@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, ChevronDown, ChevronUp, BarChart3, Target, Shield } from 'lucide-react';
+import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3, Target, Shield } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
@@ -124,7 +124,6 @@ function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
 // ── Portfolio Card ────────────────────────────────────────────────────────────
 function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
   const t = useTranslations('report');
-  const [expanded, setExpanded] = useState(false);
   const confidenceLabel = item.confidence === 'high' ? t('confidenceHigh') : item.confidence === 'low' ? t('confidenceLow') : t('confidenceMedium');
   const badge = safetyBadge(item.currentPrice, item.entryZone, t as Tr);
   return (
@@ -202,11 +201,10 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
         </div>
       </div>
 
-      {/* Expanded: detailed analysis (buy only) + entry/target rationale */}
-      {expanded && (
+      {/* Detail section — always visible */}
+      {(item.action === 'buy') && (item.catalysts?.length || item.fundamentalBasis || item.technicalBasis || item.riskNote || item.entryRationale || item.targetRationale) && (
         <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-2.5">
-          {/* Catalysts — buy 종목 상세분석 */}
-          {item.action === 'buy' && item.catalysts && item.catalysts.length > 0 && (
+          {item.catalysts && item.catalysts.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">{t('catalystsLabel')}</p>
               <ul className="space-y-0.5">
@@ -219,8 +217,7 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
               </ul>
             </div>
           )}
-          {/* Fundamental + Technical basis side by side */}
-          {item.action === 'buy' && (item.fundamentalBasis || item.technicalBasis) && (
+          {(item.fundamentalBasis || item.technicalBasis) && (
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
               {item.fundamentalBasis && (
                 <div className="bg-white rounded-lg border border-gray-100 px-2.5 py-1.5">
@@ -236,14 +233,12 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
               )}
             </div>
           )}
-          {/* Risk note */}
-          {item.action === 'buy' && item.riskNote && (
+          {item.riskNote && (
             <div className="bg-red-50 rounded-lg border border-red-100 px-2.5 py-1.5">
               <p className="text-[10px] font-bold text-red-600 mb-0.5">{t('riskNoteLabel')}</p>
               <p className="text-xs text-red-700 leading-relaxed">{item.riskNote}</p>
             </div>
           )}
-          {/* Entry / target rationale */}
           {item.entryRationale && (
             <div className="text-xs">
               <span className="text-gray-400 mr-1">📍 {t('entryRationaleLabel')}</span>
@@ -258,11 +253,6 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           )}
         </div>
       )}
-      <div className="px-4 pb-2 flex justify-end">
-        <button onClick={() => setExpanded(v => !v)} className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
-          {expanded ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('expandDetails')}</>}
-        </button>
-      </div>
     </div>
   );
 }
