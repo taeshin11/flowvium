@@ -901,14 +901,14 @@ function buildMacroPrompt(ctx, vix, session) {
     `[News — 연준발언 우선] ${ctx.news || 'No data'}`,
     '파월은 2026년 의장 임기 만료 후 이사(Governor)로 잔류. "파월 전 의장" 또는 "파월 이사"로 표기.',
     '',
-    'Respond in pure JSON (no markdown):',
-    `{"macroAnalysis":"${TARGET_LANG} 150자 이내, CPI/금리/스프레드 실제수치 포함",`,
-    `"technicalAnalysis":"VIX+수익률곡선만 120자, 선물용어 금지",`,
-    `"fundamentalAnalysis":"실적서프라이즈+밸류에이션+기관시그널 150자",`,
-    `"thesis":"핵심테마 50자 (${TARGET_LANG})",`,
+    `Write ALL text values in ${TARGET_LANG}. Respond ONLY in pure JSON, no markdown, no explanation:`,
+    `{"macroAnalysis":"[${TARGET_LANG} text, ≤150 chars, include actual CPI/rate/spread numbers]",`,
+    `"technicalAnalysis":"[${TARGET_LANG} text, ≤120 chars, VIX + yield curve only, no futures jargon]",`,
+    `"fundamentalAnalysis":"[${TARGET_LANG} text, ≤150 chars, earnings surprise + valuation + institutional signal]",`,
+    `"thesis":"[${TARGET_LANG} text, ≤50 chars, core market theme]",`,
     '"riskLevel":"low|medium|high",',
-    `"riskEvents":[{"date":"YYYY-MM-DD","event":"이벤트명","impact":"high|medium|low","watchFor":"60자 ${TARGET_LANG} 구체적 설명"}]}`,
-    'riskEvents 3-5개, BOJ/ECB/Fed/NFP/CPI 포함. Pure JSON only.',
+    `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
+    `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,
   ].join('\n');
 }
 
@@ -1228,11 +1228,18 @@ async function generateViaOllama() {
     callOllama(buildNarrativePrompt(ctxWithCascade, session)),
   ]);
 
-  const macroData      = parseJson(macroRaw);
+  let macroData        = parseJson(macroRaw);
   const portfolioData  = parseJson(portfolioRaw);
   const regionalData   = parseJson(regionalRaw);
   const opportunityData = parseJson(opportunityRaw);
   const narrativeData  = parseJson(narrativeRaw);
+
+  // Retry macro once on parse failure (qwen3:8b occasionally produces malformed JSON for CJK locales)
+  if (!macroData) {
+    console.log('  macro parse failed — retrying once...');
+    const macroRetry = await callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session));
+    macroData = parseJson(macroRetry);
+  }
 
   console.log(`  macro=${!!macroData}, portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}`);
   console.log(`  opportunity=${!!opportunityData}, narrative=${!!narrativeData}`);
