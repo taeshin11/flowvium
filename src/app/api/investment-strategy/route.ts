@@ -1881,7 +1881,7 @@ export async function GET(request: Request) {
       memSetReport(histReportKey, cacheable);
       await loggedRedisSet(redis, 'api.investment-strategy', histReportKey, cacheable, { ex: HIST_REPORT_TTL });
       // 히스토리 배열에는 전용 키를 저장 (session TTL 만료와 무관)
-      const meta = { key: histReportKey, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source };
+      const meta = { key: histReportKey, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source, locale };
       const raw = await redis.get(HIST_KEY);
       const existing = typeof raw === 'string' ? JSON.parse(raw) : raw;
       const arr = Array.isArray(existing) ? existing : [];
