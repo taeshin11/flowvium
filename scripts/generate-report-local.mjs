@@ -75,7 +75,8 @@ const YAHOO_HEADERS = {
 // ── 품질 게이트 ────────────────────────────────────────────────────────────────
 const GARBAGE_MIN_LEN = { thesis: 25, macroAnalysis: 30, technicalAnalysis: 15, fundamentalAnalysis: 15 };
 function garbageMinLen(base) {
-  return CJK_LOCALES.has(localeArg) ? Math.ceil(base * 0.6) : base;
+  // CJK 문자는 글자당 정보 밀도가 영어의 2-3배 → 45% 임계값 적용
+  return CJK_LOCALES.has(localeArg) ? Math.ceil(base * 0.45) : base;
 }
 function isGarbage(text, minLen = 15) {
   if (!text || text.trim().length === 0) return false;
@@ -332,6 +333,112 @@ function pricesSection(map) {
     const priceStr = isKR ? Math.round(p.price).toLocaleString() : p.price.toFixed(2);
     return `${t}${name}: ${curr}${priceStr} (1d ${p.change1d != null ? `${p.change1d >= 0 ? '+' : ''}${p.change1d}%` : 'N/A'})`;
   }).join('\n');
+}
+
+// ── Technical analysis (OHLCV 기반 실제 지표) ─────────────────────────────────
+async function fetchOHLCV(ticker, range = '3mo') {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=${range}`;
+    const res = await fetch(url, { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const result = data?.chart?.result?.[0];
+    if (!result) return null;
+    const quote = result.indicators?.quote?.[0] ?? {};
+    const closes = (quote.close ?? []).filter(c => c != null && c > 0);
+    const volumes = (quote.volume ?? []).filter((_, i) => (quote.close ?? [])[i] != null);
+    return { closes, volumes };
+  } catch { return null; }
+}
+
+function computeRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  const start = closes.length - period - 1;
+  for (let i = start; i < closes.length - 1; i++) {
+    const diff = closes[i + 1] - closes[i];
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  const avgGain = gains / period;
+  const avgLoss = losses / period;
+  if (avgLoss === 0) return 100;
+  return Math.round(100 - 100 / (1 + avgGain / avgLoss));
+}
+
+function computeSMA(closes, period) {
+  if (closes.length < period) return null;
+  return closes.slice(-period).reduce((a, b) => a + b, 0) / period;
+}
+
+function computeVolRatio(volumes, period = 20) {
+  if (volumes.length < period + 2) return null;
+  const avg = volumes.slice(-period - 1, -1).reduce((a, b) => a + (b ?? 0), 0) / period;
+  const last = volumes[volumes.length - 1];
+  if (!avg) return null;
+  return Math.round(((last / avg) - 1) * 100);
+}
+
+/** 포트폴리오 매수 종목들의 실제 기술 지표를 병렬로 계산 */
+async function buildTechnicalData(tickers, livePrices) {
+  const results = await Promise.allSettled(
+    tickers.map(async ticker => {
+      const isKR = ticker.endsWith('.KS');
+      const ohlcv = await fetchOHLCV(ticker, isKR ? '1y' : '6mo');
+      if (!ohlcv || ohlcv.closes.length < 21) return [ticker, null];
+      const { closes, volumes } = ohlcv;
+      const rsi = computeRSI(closes);
+      const sma50 = computeSMA(closes, Math.min(50, closes.length));
+      const sma200 = computeSMA(closes, 200);
+      const volRatio = computeVolRatio(volumes);
+      const actual = livePrices.get(ticker)?.price ?? closes[closes.length - 1];
+      const parts = [];
+      if (sma200 != null) parts.push(actual > sma200 ? '200MA 위' : '200MA 아래');
+      else if (sma50 != null) parts.push(actual > sma50 ? '50MA 위' : '50MA 아래');
+      if (rsi != null) parts.push(`RSI ${rsi}`);
+      if (volRatio != null) parts.push(`거래량${volRatio >= 0 ? '+' : ''}${volRatio}%`);
+      return [ticker, parts.length ? parts.join(', ') : null];
+    })
+  );
+  const map = new Map();
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value?.[1]) map.set(r.value[0], r.value[1]);
+  }
+  return map;
+}
+
+/**
+ * Wave1이 생성한 entryZone/stopLoss/target이 실제 현재가와 동떨어진 경우 보정.
+ * LLM 모델이 현재가를 무시하고 훈련 데이터 기반 가격을 사용하는 버그를 방지.
+ */
+function validateEntryZones(portfolioItems, livePrices) {
+  return portfolioItems.map(p => {
+    const pd = livePrices.get(p.ticker);
+    if (!pd) return p;
+    const actual = pd.price;
+    const isKR = p.ticker.endsWith('.KS');
+    const curr = isKR ? '₩' : '$';
+    const fmt = n => isKR ? `${curr}${Math.round(n).toLocaleString()}` : `${curr}${n.toFixed(2)}`;
+    const extractNums = str => (str ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(n => n > 0) ?? [];
+    const inRange = nums => nums.some(n => n > actual * 0.25 && n < actual * 4);
+
+    let updated = { ...p };
+    const zoneNums = extractNums(p.entryZone);
+    if (!zoneNums.length || !inRange(zoneNums)) {
+      if (zoneNums.length) console.warn(`  ⚠️  ${p.ticker} entryZone="${p.entryZone}" vs actual ${fmt(actual)} → 보정`);
+      updated.entryZone = `${fmt(Math.round(actual * 0.97 * (isKR ? 1 : 100) / (isKR ? 1 : 100)))}-${fmt(Math.round(actual * 1.02 * (isKR ? 1 : 100) / (isKR ? 1 : 100)))}`;
+    }
+    const stopNums = extractNums(p.stopLoss);
+    if (stopNums.length && !inRange(stopNums)) {
+      console.warn(`  ⚠️  ${p.ticker} stopLoss="${p.stopLoss}" vs actual ${fmt(actual)} → 보정`);
+      updated.stopLoss = fmt(isKR ? Math.round(actual * 0.92) : parseFloat((actual * 0.92).toFixed(2)));
+    }
+    const targetNums = extractNums(p.target);
+    if (targetNums.length && !inRange(targetNums)) {
+      console.warn(`  ⚠️  ${p.ticker} target="${p.target}" vs actual ${fmt(actual)} → 보정`);
+      updated.target = fmt(isKR ? Math.round(actual * 1.15) : parseFloat((actual * 1.15).toFixed(2)));
+    }
+    return updated;
+  });
 }
 
 // ── API 데이터 수집 ────────────────────────────────────────────────────────────
@@ -949,10 +1056,12 @@ function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news
   ].join('\n');
 }
 
-function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sectorPe, news) {
-  const stockList = buyStocks.map(s =>
-    `- ${s.ticker}(${s.name}, ${s.sector}): entry=${s.entryZone}, target=${s.target}, rationale="${s.rationale}"`
-  ).join('\n');
+function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sectorPe, news, technicalData = new Map(), financials = '') {
+  const stockList = buyStocks.map(s => {
+    const tech = technicalData.get(s.ticker);
+    const techStr = tech ? ` [COMPUTED_TECH: ${tech}]` : '';
+    return `- ${s.ticker}(${s.name}, ${s.sector}): entry=${s.entryZone}, target=${s.target}, rationale="${s.rationale}"${techStr}`;
+  }).join('\n');
   return [
     `You are an equity research analyst. Date: ${TODAY}. Write ALL text in ${TARGET_LANG}.`,
     '',
@@ -962,16 +1071,17 @@ function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sect
     `[Short Squeeze Candidates] ${shorts || 'None'}`,
     `[Upcoming / Recent Earnings] ${earnings || 'None'}`,
     `[Sector Valuations] ${sectorPe || 'No data'}`,
+    `[Recent Company Financials (revenue YoY, operating margin)] ${financials || 'None'}`,
     `[Recent News] ${news || 'None'}`,
     '',
     'For EACH stock, provide:',
     '- catalysts: 2-3 SPECIFIC near-term catalysts with numbers',
-    '- fundamentalBasis: ≤120 chars — EPS growth%, PE/PEG, margin, institutional activity',
-    '- technicalBasis: ≤80 chars — MA position, RSI, volume vs 20d avg',
+    `- fundamentalBasis: ≤120 chars — use [Recent Company Financials] data; EPS/revenue growth%, operating margin, PE/PEG, institutional`,
+    `- technicalBasis: ≤80 chars — MUST use [COMPUTED_TECH] values verbatim if provided; otherwise estimate MA/RSI/volume`,
     '- riskNote: ≤60 chars — single biggest downside risk',
     '',
     'Respond in pure JSON:',
-    `{"stockDetails":[{"ticker":"NVDA","catalysts":["Blackwell GPU QoQ+40%","13F 47건 매집","AI capex $200B"],"fundamentalBasis":"EPS YoY+102%, PEG 1.3, 영업이익률 55%","technicalBasis":"200MA 위, RSI 55, 거래량+18%","riskNote":"수출규제 매출 15% 하락 위험"}]}`,
+    `{"stockDetails":[{"ticker":"NVDA","catalysts":["Blackwell GPU QoQ+40%","13F 47건 매집","AI capex $200B"],"fundamentalBasis":"매출 YoY+73%, 영업이익률 55%, PEG 1.3","technicalBasis":"200MA 위, RSI 55, 거래량+18%","riskNote":"수출규제 매출 15% 하락 위험"}]}`,
     'Include ALL buy tickers. Pure JSON only.',
   ].join('\n');
 }
@@ -1131,20 +1241,28 @@ async function generateViaOllama() {
 
   // ── [3/7] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
   console.log('\n[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...');
-  const portfolioItems = postProcessPortfolio(portfolioData.portfolio);
+  // 현재가와 동떨어진 entryZone/stopLoss/target 보정 (LLM 환각 방지)
+  const portfolioItems = validateEntryZones(postProcessPortfolio(portfolioData.portfolio), livePrices);
   const buyStocks = portfolioItems
     .filter(p => p.action === 'buy')
     .map(p => ({ ticker: p.ticker, name: p.name ?? p.ticker, sector: p.sector ?? '', rationale: p.rationale ?? '', entryZone: p.entryZone ?? '', target: p.target ?? '' }));
 
   const portfolioForFinancials = portfolioItems.map(p => p.ticker);
-  const companyFinancials = await getCompanyFinancials(portfolioForFinancials);
+  // 재무 데이터 + OHLCV 기술 지표 병렬 수집
+  const [companyFinancials, technicalData] = await Promise.all([
+    getCompanyFinancials(portfolioForFinancials),
+    buildTechnicalData(buyStocks.map(s => s.ticker), livePrices),
+  ]);
+  if (technicalData.size > 0) {
+    console.log(`  기술지표 계산 완료: ${[...technicalData.entries()].map(([t, v]) => `${t}(${v})`).join(', ')}`);
+  }
 
   const wave2Calls = [
     callOllama(buildRiskMgmtPrompt(portfolioItems, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx)),
     callOllama(buildCompanyChangesPrompt(portfolioItems, earnings, ctx.institutional, ctx.news, companyFinancials)),
   ];
   if (buyStocks.length > 0) {
-    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocks, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news)));
+    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocks, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials)));
   }
 
   const [riskRaw, companyChangesRaw, stockDetailRaw] = await Promise.all(wave2Calls);
