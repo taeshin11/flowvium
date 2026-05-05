@@ -1688,12 +1688,15 @@ export async function GET(request: Request) {
   // ── Quality gate: garbage AI output 탐지 후 해당 필드만 제거 ──────────────
   // 소형 모델(qwen3:8b 등)이 프롬프트 구분자를 모방해 "AI+AI+AI" 또는
   // "버핏FCF수익률+린치PEG<1" 같은 프롬프트 에코를 생성할 때 Redis 오염 방지.
+  // garbageStrippedMajor: thesis/macro garbage → isFallback 처리 → 단기 TTL, stale 보호
+  let garbageStrippedMajor = false;
   {
-    const isGarbage = (text: string | undefined | null): boolean => {
-      if (!text || text.trim().length < 10) return false;
+    const isGarbage = (text: string | undefined | null, minLen = 15): boolean => {
+      if (!text || text.trim().length === 0) return false;
       const t = text.trim();
+      // Pattern 0: 최소 의미 있는 분석 길이 미달 (ex: "AI+AI+AI"=8자, "bullish"=7자)
+      if (t.length < minLen) return true;
       // Pattern 1: "X+Y+Z" 3개 이상 세그먼트 (공백 포함 허용) — 프롬프트 에코 목록 형식
-      // 기존: 공백 없는 경우만 → 확장: 공백 있는 경우도 탐지
       if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t)) return true;
       // Pattern 1b: 2세그먼트 + 구분 + 전체 80자 미만 (ex: "100일선 돌파+MACD 긍정적 교차")
       // 숫자% 패턴(정상 데이터) 제외
@@ -1708,22 +1711,25 @@ export async function GET(request: Request) {
       }
       return false;
     };
-    const thesisGarbage = isGarbage(strategy.thesis);
-    const macroGarbage = isGarbage(strategy.macroAnalysis);
-    const technicalGarbage = isGarbage(strategy.technicalAnalysis);
-    const fundamentalGarbage = isGarbage(strategy.fundamentalAnalysis);
+    const thesisGarbage = isGarbage(strategy.thesis, 25);       // thesis: 문장 필요
+    const macroGarbage = isGarbage(strategy.macroAnalysis, 30); // macro: 분석 필요
+    const technicalGarbage = isGarbage(strategy.technicalAnalysis, 15);
+    const fundamentalGarbage = isGarbage(strategy.fundamentalAnalysis, 15);
     const narrativeGarbage = strategy.marketNarrative != null && (
       isGarbage(strategy.marketNarrative.why) || isGarbage(strategy.marketNarrative.story)
     );
     const anyGarbage = thesisGarbage || macroGarbage || technicalGarbage || fundamentalGarbage || narrativeGarbage;
+    garbageStrippedMajor = anyGarbage && (thesisGarbage || macroGarbage);
     if (anyGarbage) {
       logger.warn('api.investment-strategy', 'quality_gate_failed', {
         thesisGarbage, macroGarbage, technicalGarbage, fundamentalGarbage, narrativeGarbage,
+        garbageStrippedMajor,
         thesis: strategy.thesis?.slice(0, 60),
         macro: strategy.macroAnalysis?.slice(0, 60),
         technical: strategy.technicalAnalysis?.slice(0, 60),
         fundamental: strategy.fundamentalAnalysis?.slice(0, 60),
         source: strategy.source,
+        note: garbageStrippedMajor ? 'MAJOR_GARBAGE → short TTL, stale key protected' : 'minor garbage stripped',
       });
       strategy = {
         ...strategy,
@@ -1736,6 +1742,22 @@ export async function GET(request: Request) {
     } else {
       logger.info('api.investment-strategy', 'quality_gate_passed', { source: strategy.source });
     }
+  }
+
+  // ── Source allowlist — 현재 코드에 없는 provider source는 구버전 배포로 판단 ──
+  // ex: 'local-ollama/qwen3:8b', 'ollama/...' → 단기 TTL, stale 보호
+  const ALLOWED_SOURCES = [
+    'GROQ-', 'claude-haiku', 'claude-sonnet', 'gemini-2.0-flash', 'EXAONE-3.5',
+    'qwen-2.5-72b', 'deepseek', 'openrouter', 'fallback', '데이터 기반',
+  ];
+  const isUnknownSource = strategy.source
+    ? !ALLOWED_SOURCES.some(s => (strategy.source ?? '').includes(s))
+    : false;
+  if (isUnknownSource) {
+    logger.warn('api.investment-strategy', 'unknown_source_detected', {
+      source: strategy.source,
+      note: 'not in ALLOWED_SOURCES — likely old deployment → short TTL, stale key protected',
+    });
   }
 
   // ── 최종 보고서 섹션 완성도 요약 ──────────────────────────────────────────────
@@ -1765,9 +1787,13 @@ export async function GET(request: Request) {
 
   // isFallback: source 이름과 무관하게 7섹션 필드 없으면 fallback으로 판단
   // → 데이터 기반 fallback이 stale 키를 덮어쓰는 것 방지 (기존 좋은 stale 보존)
+  // → garbage 주요 필드 제거된 보고서: 1h TTL, stale 보호
+  // → 알 수 없는 source(구버전 배포): 1h TTL, stale 보호
   const isFallback = strategy.source === 'fallback'
     || strategy.source === '데이터 기반 모델'
-    || !isSchemaCompatible(strategy as unknown as Record<string, unknown>);
+    || !isSchemaCompatible(strategy as unknown as Record<string, unknown>)
+    || garbageStrippedMajor   // thesis/macro garbage → 1h TTL
+    || isUnknownSource;       // 구버전 provider → 1h TTL
   const cacheable = toCacheable(strategy);
   if (redis) {
     try {

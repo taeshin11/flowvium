@@ -1265,40 +1265,124 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
 }
 
 // ── 미커버 엔드포인트 추가 검증 (iter84) ────────────────────────────────────
+// 현재 코드에 존재하는 provider source 목록
+const ALLOWED_AI_SOURCES = [
+  'GROQ-', 'claude-haiku', 'claude-sonnet', 'gemini-2.0-flash', 'EXAONE-3.5',
+  'qwen-2.5-72b', 'deepseek', 'openrouter',
+];
+const FALLBACK_SOURCES = ['fallback', '데이터 기반'];
+
+function detectGarbage(text: string | undefined | null): boolean {
+  if (!text || text.trim().length === 0) return false;
+  const t = text.trim();
+  if (t.length < 15) return true;                                       // 너무 짧음
+  if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t)) return true;                // X+Y+Z 목록
+  if (t.length < 80 && /^[^\n+]{3,}\+[^\n+]{3,}$/.test(t) && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true; // X+Y 짧은 목록
+  const tokens = t.split(/[\s,+|/·]+/).filter(w => w.length > 1);
+  if (tokens.length >= 4) {
+    const freq = new Map<string, number>();
+    for (const tok of tokens) freq.set(tok.toLowerCase(), (freq.get(tok.toLowerCase()) ?? 0) + 1);
+    const maxFreq = Math.max(...Array.from(freq.values()));
+    if (maxFreq / tokens.length > 0.55) return true;                  // 반복 토큰
+  }
+  return false;
+}
+
 async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
-  // probe=1 returns cached or data-fallback without triggering AI — prevents verify-metrics
-  // from burning GROQ quota every 30 min. Structural validity is the same either way.
+  // probe=1 returns cached report (if exists) or static fallback — no AI call.
+  // Because cached data is served before the probe-fallback check, this sees real garbage.
   const r = await safeJson(base, '/api/investment-strategy?probe=1', 20000);
   if (!r.ok) {
     return [{ key: 'strategy.ALL', label: 'Investment Strategy API', group: 'strategy',
       status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
   }
   const d = r.data as {
-    stance?: string; thesis?: string; source?: string;
-    portfolio?: Array<{ ticker?: string; allocation?: number }>;
-    riskLevel?: string;
+    stance?: string; thesis?: string; source?: string; cached?: boolean;
+    portfolio?: Array<{ ticker?: string; allocation?: number; action?: string }>;
+    riskLevel?: string; macroAnalysis?: string; technicalAnalysis?: string;
+    regionStances?: Record<string, unknown>; shortSqueeze?: unknown[];
+    companyChanges?: unknown[]; marketNarrative?: unknown;
+    generatedAt?: string; schemaVersion?: number;
   };
+
   const portfolioLen = Array.isArray(d.portfolio) ? d.portfolio.length : 0;
   const hasValidPortfolio = portfolioLen >= 5 &&
     (d.portfolio ?? []).every(p => p.ticker && typeof p.allocation === 'number' && p.allocation > 0);
   const allocSum = hasValidPortfolio
     ? (d.portfolio ?? []).reduce((s, p) => s + (p.allocation ?? 0), 0) : 0;
-  const isAI = d.source && d.source !== 'fallback' && d.source !== 'data';
+  const isAI = d.source && !FALLBACK_SOURCES.some(s => (d.source ?? '').includes(s));
   const isValid = d.stance && ['bullish', 'neutral', 'bearish'].includes(d.stance) &&
     d.thesis && hasValidPortfolio;
+  const isCachedReport = d.cached === true;  // false → static fallback (no real data yet)
 
-  // probe=1 always returns fallback; structural validity is the health criterion here.
-  // AI quality (isAI) is informational in details but not the status determinant.
-  return [{
+  const items: MetricItem[] = [];
+
+  // 구조 체크
+  items.push({
     key: 'strategy.portfolio',
     label: 'Investment Strategy Portfolio',
     group: 'strategy',
     status: !isValid ? 'error' : 'ok',
     value: isValid ? `${d.stance} ${portfolioLen}pos alloc=${allocSum.toFixed(0)}% src=${d.source ?? '?'}` : null,
     source: d.source,
-    details: { portfolioLen, allocSum: Math.round(allocSum), stance: d.stance, isAI, riskLevel: d.riskLevel },
+    details: { portfolioLen, allocSum: Math.round(allocSum), stance: d.stance, isAI, riskLevel: d.riskLevel, isCachedReport },
     ...(isValid ? {} : { lastError: `stance=${d.stance} portfolio=${portfolioLen} valid=${hasValidPortfolio}` }),
-  }];
+  });
+
+  // 콘텐츠 품질 체크 — 실제 캐시된 보고서일 때만
+  if (isCachedReport) {
+    const src = d.source ?? '';
+    const isKnownSource = ALLOWED_AI_SOURCES.some(s => src.includes(s)) || FALLBACK_SOURCES.some(s => src.includes(s));
+    const thesisGarbage = detectGarbage(d.thesis);
+    const macroGarbage = detectGarbage(d.macroAnalysis);
+    const thesisLen = (d.thesis ?? '').length;
+    const macroLen = (d.macroAnalysis ?? '').length;
+
+    // 보고서 나이 (26h 이상이면 크론 미실행 의심)
+    const generatedMs = d.generatedAt ? Date.now() - new Date(d.generatedAt).getTime() : null;
+    const ageH = generatedMs != null ? Math.round(generatedMs / 3600000) : null;
+    const isStaleReport = ageH != null && ageH > 26;
+
+    // 섹션 완성도
+    const hasRegion = !!(d.regionStances && Object.keys(d.regionStances).length > 0);
+    const hasSqueeze = Array.isArray(d.shortSqueeze) && d.shortSqueeze.length > 0;
+    const hasNarrative = !!d.marketNarrative;
+    const hasCompanyChanges = Array.isArray(d.companyChanges) && d.companyChanges.length > 0;
+    const missingSections = [
+      !hasRegion && 'regionStances',
+      !hasSqueeze && 'shortSqueeze',
+      !hasNarrative && 'marketNarrative',
+      !hasCompanyChanges && 'companyChanges',
+    ].filter(Boolean);
+
+    const qualityStatus: MetricItem['status'] =
+      !isKnownSource ? 'error' :
+      thesisGarbage || macroGarbage ? 'error' :
+      isStaleReport ? 'degraded' :
+      missingSections.length >= 2 ? 'degraded' :
+      'ok';
+
+    items.push({
+      key: 'strategy.quality',
+      label: 'AI 보고서 콘텐츠 품질',
+      group: 'strategy',
+      status: qualityStatus,
+      value: `thesis=${thesisLen}자 macro=${macroLen}자 src=${src.slice(0, 20)}${isStaleReport ? ` [${ageH}h]` : ''}`,
+      source: src,
+      details: {
+        isKnownSource, thesisGarbage, macroGarbage,
+        thesisLen, macroLen, ageH, isStaleReport,
+        missingSections, schemaVersion: d.schemaVersion,
+      },
+      ...((qualityStatus === 'error') ? {
+        lastError: !isKnownSource
+          ? `unknown source: "${src}" — old deployment detected`
+          : `garbage content: thesis="${(d.thesis ?? '').slice(0, 40)}"`,
+      } : {}),
+    });
+  }
+
+  return items;
 }
 
 async function verifyMissingEndpoints(base: string): Promise<MetricItem[]> {
