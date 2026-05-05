@@ -3,6 +3,7 @@ import { createRedis } from '@/lib/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { callAI } from '@/lib/ai-providers';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
+import { isGarbage } from '@/lib/strategy-quality';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -115,6 +116,10 @@ export async function GET(req: NextRequest) {
       const result = await callAI(prompt, { maxTokens: 200, temperature: 0.3, tag: 'company-news', preferSmallModel: true });
       summary = result.text ?? '';
       if (/[一-鿿぀-ゟ゠-ヿ가-힣]/.test(summary)) summary = '';
+      if (summary && isGarbage(summary, 35)) {
+        logger.warn('api.company-news', 'garbage_summary', { ticker, sample: summary.slice(0, 80) });
+        summary = '';
+      }
     } catch {
       summary = '';
     }

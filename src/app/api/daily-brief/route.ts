@@ -5,6 +5,7 @@ import {
   gatherTabContext, type DailyBrief,
   type Timeframe,
 } from '@/lib/daily-brief';
+import { isGarbage } from '@/lib/strategy-quality';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +113,11 @@ export async function GET(request: Request) {
     if (r.text) brief = parseAIResponse(r.text, tf, r.source);
     if (brief) aiDiag.parsed = true;
     if (!brief) logger.warn('api.daily-brief', 'ai_unparseable', { tf, source: r.source, textLength: r.text?.length });
+    // Garbage check: outlook이 반복/짧은 텍스트면 parse 실패와 동일 → stale/fallback 경로
+    if (brief && isGarbage(brief.outlook ?? '', 30)) {
+      logger.warn('api.daily-brief', 'garbage_outlook', { tf, sample: (brief.outlook ?? '').slice(0, 80) });
+      brief = null;
+    }
   } catch (err) {
     aiDiag.error = err instanceof Error ? err.message : String(err);
     logger.error('api.daily-brief', 'ai_exception', { tf, error: err });

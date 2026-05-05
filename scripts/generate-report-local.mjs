@@ -47,7 +47,7 @@ const LOCALE_LANG = {
 };
 const TARGET_LANG = LOCALE_LANG[localeArg] ?? 'Korean';
 
-const CJK_LOCALES = new Set(['ja', 'zh-CN', 'zh-TW', 'zh']);
+const CJK_LOCALES = new Set(['ko', 'ja', 'zh-CN', 'zh-TW', 'zh']);
 
 const CANDIDATE_TICKERS = [
   'NVDA','MSFT','AAPL','META','GOOGL','AMZN','TSLA','KLAC','AMD','JPM','V','UNH','XOM','GS','BAC',

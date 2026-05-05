@@ -3,6 +3,7 @@ import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-providers';
+import { isGarbage } from '@/lib/strategy-quality';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -335,10 +336,22 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
       logger.warn('news-cascade', 'chinese_leak_summary', { link: item.link, sample: summary.slice(0, 80) });
       summary = item.title;
     }
+    // Garbage check: AI가 의미없는 반복/짧은 텍스트를 뱉었으면 keyword 룰로 교체
+    if (isGarbage(summary, 25)) {
+      const kwFallback = keywordFallbackCascade(item.title);
+      if (kwFallback) {
+        logger.warn('news-cascade', 'garbage_summary_kw_fallback', { link: item.link, sample: summary.slice(0, 80) });
+        return { ...item, id, ...kwFallback, analyzedAt: new Date().toISOString(), analysisSource: 'keyword-rule' as const };
+      }
+    }
     const cascades = Array.isArray(parsed.cascades) ? parsed.cascades.map((c: Record<string, unknown>) => {
       const reason = typeof c?.reason === 'string' ? c.reason : '';
       if (reason && hasChineseLeak(reason)) {
         logger.warn('news-cascade', 'chinese_leak_reason', { link: item.link });
+        return { ...c, reason: '' };
+      }
+      if (reason && isGarbage(reason, 10)) {
+        logger.warn('news-cascade', 'garbage_reason', { link: item.link });
         return { ...c, reason: '' };
       }
       return c;

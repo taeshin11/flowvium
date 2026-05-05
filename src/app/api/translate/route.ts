@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
+import { isGarbage } from '@/lib/strategy-quality';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,13 @@ export async function POST(request: NextRequest) {
     // AI 체인이 모두 실패하면 원본 반환 (UI는 영문 원문 표시)
     if (!translated) {
       return NextResponse.json({ translated: text });
+    }
+
+    // Garbage check: 반복 토큰·최소 길이 미달이면 원문 반환, 캐시 안 함
+    const minLen = Math.max(3, Math.min(8, text.length));
+    if (isGarbage(translated, minLen)) {
+      logger.warn('api.translate', 'garbage_detected', { targetLocale, sample: translated.slice(0, 80) });
+      return NextResponse.json({ translated: text, source: 'garbage-fallback' });
     }
 
     // 3. Store in Redis (loggedRedisSet 사용 — CLAUDE.md 규칙)

@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
+import { isGarbage } from '@/lib/strategy-quality';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -222,6 +223,15 @@ export async function GET(request: Request) {
       const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? [null, raw];
       analysis = JSON.parse((jsonMatch[1] ?? raw).trim());
     } catch (e) { logger.warn('flow-analysis', 'ai_parse_failed', { tf, rawLength: raw.length, error: e }); }
+  }
+
+  // Garbage check: summary가 반복/짧은 텍스트면 parse 실패와 동일 처리 → stale 서빙
+  if (analysis) {
+    const summaryText = (analysis as Record<string, unknown>).summary;
+    if (typeof summaryText === 'string' && isGarbage(summaryText, 40)) {
+      logger.warn('flow-analysis', 'garbage_summary', { tf, sample: summaryText.slice(0, 80) });
+      analysis = null;
+    }
   }
 
   const result: Record<string, unknown> = {
