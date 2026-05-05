@@ -950,6 +950,10 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '6. action: buy=accumulate now, hold=keep, watch=wait for entry',
     '7. entryRationale ≤80자: MUST cite ≥1 fundamental signal',
     '8. targetRationale ≤80자: fundamentals-first',
+    '9. CRITICAL — UNIQUE rationale per stock: Each ticker MUST have a DIFFERENT rationale',
+    '   citing THAT stock\'s specific primary signal. Do NOT copy-paste the same text.',
+    '   Examples of different signals: insider filings count, squeeze score, options flow,',
+    '   13F accumulation, earnings beat %, PE vs sector, RSI level, 52w position.',
     '',
     `Respond in pure JSON (no markdown). ALL text values MUST be in ${TARGET_LANG}:`,
     '{"stance":"bullish|neutral|bearish",',
@@ -1251,9 +1255,16 @@ async function generateViaOllama() {
   console.log(`  macro=${!!macroData}, portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}`);
   console.log(`  opportunity=${!!opportunityData}, narrative=${!!narrativeData}`);
 
+  // Portfolio retry — portfolio failure is fatal so retry immediately
   if (!portfolioData?.portfolio?.length) {
-    console.error('❌ Wave1 포트폴리오 생성 실패. 종료합니다.');
-    process.exit(1);
+    console.log('  portfolio parse failed — retrying once...');
+    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData));
+    const portfolioRetryData = parseJson(portfolioRetry);
+    if (!portfolioRetryData?.portfolio?.length) {
+      console.error('❌ Wave1 포트폴리오 생성 실패 (2회). 종료합니다.');
+      process.exit(1);
+    }
+    Object.assign(portfolioData, portfolioRetryData);
   }
 
   // ── [3/7] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
