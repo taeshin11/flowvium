@@ -224,108 +224,110 @@ function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[]):
   });
 }
 
-/** Fetch Korean stock financials via Yahoo Finance quoteSummary (income statements + key stats). */
+interface TsEntry { asOfDate: string; reportedValue?: { raw?: number } }
+
+/**
+ * Fetch Korean stock financials via Yahoo Finance fundamentals-timeseries API.
+ * This endpoint does NOT require a crumb/session cookie, unlike v10/quoteSummary.
+ */
 async function fetchKoreanFinancials(ticker: string): Promise<LiveFinancials | null> {
   const start = Date.now();
   try {
-    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=incomeStatementHistory,incomeStatementHistoryQuarterly,financialsData,price`;
+    const PERIOD_START = 1451606400; // 2016-01-01 unix
+    const PERIOD_END   = 1893456000; // 2030-01-01 unix
+    const types = [
+      'annualTotalRevenue', 'annualOperatingIncome', 'annualNetIncome',
+      'quarterlyTotalRevenue', 'quarterlyOperatingIncome',
+    ].join(',');
+    const url = `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(ticker)}?type=${types}&period1=${PERIOD_START}&period2=${PERIOD_END}`;
     const res = await fetch(url, {
       headers: YAHOO_HEADERS,
       signal: AbortSignal.timeout(15000),
       cache: 'no-store',
     });
     if (!res.ok) {
-      logger.warn('yahoo.financials', 'http_error', { ticker, status: res.status });
+      logger.warn('yahoo.timeseries', 'http_error', { ticker, status: res.status });
       return null;
     }
     const json = await res.json();
-    const result = json.quoteSummary?.result?.[0];
-    if (!result) return null;
+    const results: { meta: { type: string[] }; [key: string]: unknown }[] = json.timeseries?.result ?? [];
+    if (!results.length) return null;
 
-    const annualStmts: Record<string, { raw?: number }>[] = result.incomeStatementHistory?.incomeStatementHistory ?? [];
-    const quarterlyStmts: Record<string, { raw?: number }>[] = result.incomeStatementHistoryQuarterly?.incomeStatementHistory ?? [];
-    const priceData = result.price ?? {};
-    const currency: string = priceData.currency ?? 'KRW';
-    const toUSD = (v: number | null): number | null =>
-      v == null ? null : currency === 'KRW' ? parseFloat((v * KRW_USD).toFixed(2)) : v;
+    const byType = new Map<string, TsEntry[]>();
+    for (const r of results) {
+      const type = r.meta?.type?.[0];
+      if (type) byType.set(type, (r[type] as TsEntry[] | undefined) ?? []);
+    }
 
-    type Stmt = Record<string, { raw?: number } | { raw?: number; fmt?: string }>;
-    const parseStmt = (stmt: Stmt): AnnualFinancials & { endDateRaw?: number } => {
-      const raw = (field: string) => (stmt[field] as { raw?: number } | undefined)?.raw ?? null;
-      const rev    = raw('totalRevenue');
-      const opInc  = raw('operatingIncome') ?? raw('ebit');
-      const netInc = raw('netIncome');
+    const annualRev   = byType.get('annualTotalRevenue')    ?? [];
+    const annualOpInc = byType.get('annualOperatingIncome') ?? [];
+    const annualNet   = byType.get('annualNetIncome')       ?? [];
+    const qtrRev      = byType.get('quarterlyTotalRevenue') ?? [];
+
+    const toUSD = (v: number | null | undefined): number | null =>
+      v == null ? null : parseFloat((v * KRW_USD).toFixed(2));
+
+    // Build annual records (last 5 years, sorted desc by date)
+    const annuals: AnnualFinancials[] = annualRev.slice().reverse().slice(0, 5).map((e) => {
+      const fy = parseInt(e.asOfDate.slice(0, 4), 10);
+      const rev = e.reportedValue?.raw ?? null;
+      const opInc = annualOpInc.find(x => x.asOfDate === e.asOfDate)?.reportedValue?.raw ?? null;
+      const netInc = annualNet.find(x => x.asOfDate === e.asOfDate)?.reportedValue?.raw ?? null;
       const opMargin = rev && opInc != null ? parseFloat(((opInc / rev) * 100).toFixed(1)) : null;
-      const endRaw = (stmt['endDate'] as { raw?: number } | undefined)?.raw;
-      const endDate = endRaw ? new Date(endRaw * 1000) : new Date();
-      const fy = endDate.getFullYear();
       return {
         fy,
-        periodEnd: endDate.toISOString().slice(0, 10),
+        periodEnd: e.asOfDate,
         revenueUSD: toUSD(rev),
         operatingIncomeUSD: toUSD(opInc),
         netIncomeUSD: toUSD(netInc),
-        epsDiluted: raw('dilutedEps'),
-        totalAssetsUSD: null,
-        totalLiabilitiesUSD: null,
-        equityUSD: null,
-        operatingCFUSD: null,
-        investingCFUSD: null,
-        financingCFUSD: null,
-        rdExpenseUSD: raw('researchAndDevelopment') ? toUSD(raw('researchAndDevelopment')) : null,
-        capexUSD: null,
-        buybacksUSD: null,
-        dividendsUSD: null,
+        epsDiluted: null,
+        totalAssetsUSD: null, totalLiabilitiesUSD: null, equityUSD: null,
+        operatingCFUSD: null, investingCFUSD: null, financingCFUSD: null,
+        rdExpenseUSD: null, capexUSD: null, buybacksUSD: null, dividendsUSD: null,
         operatingMarginPct: opMargin,
-        roePct: null,
-        roaPct: null,
-        debtRatioPct: null,
-        endDateRaw: endRaw,
+        roePct: null, roaPct: null, debtRatioPct: null,
       };
-    };
+    }).sort((a, b) => b.fy - a.fy);
 
-    const annuals: AnnualFinancials[] = annualStmts.map(s => parseStmt(s as Stmt));
-
-    // Build quarterly revenue with YoY (compare index+4 = same quarter prior year)
-    const quarterlyRevenue: QuarterlyRevenue[] = quarterlyStmts.map((stmt, i) => {
-      const s = stmt as Stmt;
-      const endRaw = (s['endDate'] as { raw?: number } | undefined)?.raw;
-      const rev = (s['totalRevenue'] as { raw?: number } | undefined)?.raw ?? null;
-      const revUSD = toUSD(rev) ?? 0;
-      const endDate = endRaw ? new Date(endRaw * 1000) : new Date();
-      const fy = endDate.getFullYear();
-      const month = endDate.getMonth() + 1;
+    // Build quarterly revenue with YoY (last 8 quarters, sorted desc)
+    const qtrSorted = qtrRev.slice().reverse().slice(0, 8);
+    const quarterlyRevenue: QuarterlyRevenue[] = qtrSorted.map((e) => {
+      const fy = parseInt(e.asOfDate.slice(0, 4), 10);
+      const month = parseInt(e.asOfDate.slice(5, 7), 10);
       const fp = month <= 3 ? 'Q1' : month <= 6 ? 'Q2' : month <= 9 ? 'Q3' : 'Q4';
-      const prevStmt = quarterlyStmts[i + 4] as Stmt | undefined;
-      const prevRev = prevStmt ? (prevStmt['totalRevenue'] as { raw?: number } | undefined)?.raw ?? null : null;
+      const rev = e.reportedValue?.raw ?? null;
+      const revUSD = toUSD(rev) ?? 0;
+      // Find same quarter prior year
+      const prevYear = `${fy - 1}${e.asOfDate.slice(4)}`;
+      const prevE = qtrRev.find(x => x.asOfDate === prevYear);
+      const prevRev = prevE?.reportedValue?.raw ?? null;
       const yoyPct = prevRev && rev ? parseFloat(((rev - prevRev) / prevRev * 100).toFixed(1)) : null;
-      return { label: `${fp} FY${fy}`, fy, fp, periodEnd: endDate.toISOString().slice(0, 10), revenueUSD: revUSD, yoyPct };
-    }).filter(q => q.revenueUSD > 0);
+      return { label: `${fp} FY${fy}`, fy, fp, periodEnd: e.asOfDate, revenueUSD: revUSD, yoyPct };
+    }).filter(q => q.revenueUSD > 0).sort((a, b) => b.fy !== a.fy ? b.fy - a.fy : b.fp.localeCompare(a.fp));
 
     const latestAnnual = annuals[0] ?? null;
-    const companyName: string = (priceData.longName ?? priceData.shortName ?? ticker) as string;
 
-    logger.info('yahoo.financials', 'fetched', {
+    logger.info('yahoo.timeseries', 'fetched', {
       ticker, fy: latestAnnual?.fy, annuals: annuals.length, quarters: quarterlyRevenue.length, durationMs: Date.now() - start,
     });
 
     return {
       ticker: ticker.toUpperCase(),
       cik: '',
-      companyName,
+      companyName: ticker,
       fiscalYear: latestAnnual?.fy ?? new Date().getFullYear(),
       fiscalPeriod: 'FY',
       periodEnd: latestAnnual?.periodEnd ?? '',
       revenueUSD: latestAnnual?.revenueUSD ?? 0,
       revenueFormatted: formatUsd(latestAnnual?.revenueUSD ?? null),
-      source: 'Yahoo Finance quoteSummary',
+      source: 'Yahoo Finance timeseries',
       fetchedAt: new Date().toISOString(),
       annuals,
       latestAnnual,
       quarterlyRevenue,
     };
   } catch (err) {
-    logger.error('yahoo.financials', 'fetch_failed', { ticker, error: err, durationMs: Date.now() - start });
+    logger.error('yahoo.timeseries', 'fetch_failed', { ticker, error: err, durationMs: Date.now() - start });
     return null;
   }
 }
