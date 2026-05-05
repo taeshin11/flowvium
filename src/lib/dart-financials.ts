@@ -21,7 +21,8 @@ const CORP_CODE_TTL  = 30 * 24 * 3600;  // 30 days
 const FINANCIALS_TTL = 24 * 3600;        // 24 hours
 const FETCH_TIMEOUT  = 15_000;
 
-// KRW → USD for cross-market comparison (rounded to avoid false precision)
+// DART 재무제표 금액 단위: 원(KRW), 숫자 그대로 원(₩)
+// USD 환산: 원 × (1/1450) — 단순 크로스마켓 비교용 (소수점 과한 정밀도 방지)
 const KRW_USD = 1 / 1450;
 
 // DART 재무제표 구분
@@ -58,7 +59,7 @@ export interface DartCorpInfo {
 export interface DartAnnualFinancials {
   fiscalYear: string;          // "2024"
   reportCode: string;          // "11011"
-  revenueKRW: number | null;   // 백만원
+  revenueKRW: number | null;   // 원(KRW) — DART 원본 단위
   operatingIncomeKRW: number | null;
   netIncomeKRW: number | null;
   totalAssetsKRW: number | null;
@@ -260,9 +261,9 @@ export async function fetchDartFinancials(
     annuals.push({
       ...base,
       ...ratios,
-      revenueUSD:         rev  != null ? Math.round(rev  * KRW_USD * 1_000_000) : null,  // KRW 백만원 → USD
-      operatingIncomeUSD: op   != null ? Math.round(op   * KRW_USD * 1_000_000) : null,
-      netIncomeUSD:       net  != null ? Math.round(net  * KRW_USD * 1_000_000) : null,
+      revenueUSD:         rev  != null ? Math.round(rev  * KRW_USD) : null,  // 원(KRW) → USD
+      operatingIncomeUSD: op   != null ? Math.round(op   * KRW_USD) : null,
+      netIncomeUSD:       net  != null ? Math.round(net  * KRW_USD) : null,
     });
   }
 
