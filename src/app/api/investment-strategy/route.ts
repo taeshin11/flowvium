@@ -1,5 +1,6 @@
 import { logger, loggedRedisSet, loggedRedisLpushTrim } from '@/lib/logger';
 import { memSetReport, memSetArray, memGetArray } from '@/lib/investment-strategy-memory';
+import { isGarbage as isGarbageText, isKnownSource, GARBAGE_MIN_LEN } from '@/lib/strategy-quality';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
@@ -1688,35 +1689,16 @@ export async function GET(request: Request) {
   // ── Quality gate: garbage AI output 탐지 후 해당 필드만 제거 ──────────────
   // 소형 모델(qwen3:8b 등)이 프롬프트 구분자를 모방해 "AI+AI+AI" 또는
   // "버핏FCF수익률+린치PEG<1" 같은 프롬프트 에코를 생성할 때 Redis 오염 방지.
-  // garbageStrippedMajor: thesis/macro garbage → isFallback 처리 → 단기 TTL, stale 보호
+  // garbageStrippedMajor: thesis/macro garbage → isFallback 처리 → quarantine + stale 서빙
   let garbageStrippedMajor = false;
   {
-    const isGarbage = (text: string | undefined | null, minLen = 15): boolean => {
-      if (!text || text.trim().length === 0) return false;
-      const t = text.trim();
-      // Pattern 0: 최소 의미 있는 분석 길이 미달 (ex: "AI+AI+AI"=8자, "bullish"=7자)
-      if (t.length < minLen) return true;
-      // Pattern 1: "X+Y+Z" 3개 이상 세그먼트 (공백 포함 허용) — 프롬프트 에코 목록 형식
-      if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t)) return true;
-      // Pattern 1b: 2세그먼트 + 구분 + 전체 80자 미만 (ex: "100일선 돌파+MACD 긍정적 교차")
-      // 숫자% 패턴(정상 데이터) 제외
-      if (t.length < 80 && /^[^\n+]{3,}\+[^\n+]{3,}$/.test(t) && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true;
-      // Pattern 2: 단일 토큰이 55% 초과 반복 (4개 이상 토큰 기준) — "AI AI AI AI AI" 패턴
-      const tokens = t.split(/[\s,+|/·]+/).filter(w => w.length > 1);
-      if (tokens.length >= 4) {
-        const freq = new Map<string, number>();
-        for (const tok of tokens) freq.set(tok.toLowerCase(), (freq.get(tok.toLowerCase()) ?? 0) + 1);
-        const maxFreq = Math.max(...Array.from(freq.values()));
-        if (maxFreq / tokens.length > 0.55) return true;
-      }
-      return false;
-    };
-    const thesisGarbage = isGarbage(strategy.thesis, 25);       // thesis: 문장 필요
-    const macroGarbage = isGarbage(strategy.macroAnalysis, 30); // macro: 분석 필요
-    const technicalGarbage = isGarbage(strategy.technicalAnalysis, 15);
-    const fundamentalGarbage = isGarbage(strategy.fundamentalAnalysis, 15);
-    const narrativeGarbage = strategy.marketNarrative != null && (
-      isGarbage(strategy.marketNarrative.why) || isGarbage(strategy.marketNarrative.story)
+    const thesisGarbage      = isGarbageText(strategy.thesis,              GARBAGE_MIN_LEN.thesis);
+    const macroGarbage       = isGarbageText(strategy.macroAnalysis,       GARBAGE_MIN_LEN.macroAnalysis);
+    const technicalGarbage   = isGarbageText(strategy.technicalAnalysis,   GARBAGE_MIN_LEN.technicalAnalysis);
+    const fundamentalGarbage = isGarbageText(strategy.fundamentalAnalysis, GARBAGE_MIN_LEN.fundamentalAnalysis);
+    const narrativeGarbage   = strategy.marketNarrative != null && (
+      isGarbageText(strategy.marketNarrative.why, GARBAGE_MIN_LEN.narrative) ||
+      isGarbageText(strategy.marketNarrative.story, GARBAGE_MIN_LEN.narrative)
     );
     const anyGarbage = thesisGarbage || macroGarbage || technicalGarbage || fundamentalGarbage || narrativeGarbage;
     garbageStrippedMajor = anyGarbage && (thesisGarbage || macroGarbage);
@@ -1744,19 +1726,13 @@ export async function GET(request: Request) {
     }
   }
 
-  // ── Source allowlist — 현재 코드에 없는 provider source는 구버전 배포로 판단 ──
-  // ex: 'local-ollama/qwen3:8b', 'ollama/...' → 단기 TTL, stale 보호
-  const ALLOWED_SOURCES = [
-    'GROQ-', 'claude-haiku', 'claude-sonnet', 'gemini-2.0-flash', 'EXAONE-3.5',
-    'qwen-2.5-72b', 'deepseek', 'openrouter', 'fallback', '데이터 기반',
-  ];
-  const isUnknownSource = strategy.source
-    ? !ALLOWED_SOURCES.some(s => (strategy.source ?? '').includes(s))
-    : false;
+  // ── Source allowlist — 공유 모듈(strategy-quality.ts)로 중앙화 ──
+  // ex: 'local-ollama/qwen3:8b' → isKnownSource=false → quarantine + stale 서빙
+  const isUnknownSource = !isKnownSource(strategy.source);
   if (isUnknownSource) {
     logger.warn('api.investment-strategy', 'unknown_source_detected', {
       source: strategy.source,
-      note: 'not in ALLOWED_SOURCES — likely old deployment → short TTL, stale key protected',
+      note: 'not in ALLOWED_SOURCES (strategy-quality.ts) — likely old deployment → quarantine, stale served',
     });
   }
 
@@ -1797,10 +1773,23 @@ export async function GET(request: Request) {
   const cacheable = toCacheable(strategy);
   if (redis) {
     try {
-      const ttl = isFallback ? 2 * 60 * 60 : CACHE_TTL;
-      await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: ttl });
-      // stale 키는 AI 생성 7섹션 리포트만 덮어씀 — fallback으로 좋은 stale 오염 방지
-      if (!isFallback) {
+      const isQuarantined = garbageStrippedMajor || isUnknownSource;
+      if (isQuarantined) {
+        // Garbage/unknown-source 보고서: 세션 키에 저장 안 함 → 사용자는 stale(정상 보고서) 수신
+        // quarantine 키에만 포렌식 보존 (24h)
+        const quarantineKey = `flowvium:investment-strategy:quarantine:${key.split(':').slice(-2).join(':')}`;
+        await loggedRedisSet(redis, 'api.investment-strategy', quarantineKey, cacheable, { ex: 24 * 60 * 60 });
+        logger.warn('api.investment-strategy', 'quarantined', {
+          quarantineKey, garbageStrippedMajor, isUnknownSource, source: strategy.source,
+          note: 'session key NOT written — users will receive stale report',
+        });
+      } else if (isFallback) {
+        // data-based fallback: 2h TTL (크론이 곧 재생성)
+        await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: 2 * 60 * 60 });
+      } else {
+        // 정상 AI 보고서: 24h TTL
+        await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: CACHE_TTL });
+        // stale 키는 정상 AI 보고서만 갱신
         await loggedRedisSet(redis, 'api.investment-strategy', STALE_KEY_PREFIX, cacheable, { ex: 7 * 24 * 60 * 60 });
       }
     } catch (e) { logger.warn('api.investment-strategy', 'cache_write_error', { error: e }); }

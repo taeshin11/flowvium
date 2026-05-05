@@ -22,6 +22,7 @@ import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { logMetrics } from '@/lib/metrics-db';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
+import { isGarbage as isGarbageText, isKnownSource, GARBAGE_MIN_LEN, ALLOWED_AI_SOURCES, FALLBACK_SOURCES } from '@/lib/strategy-quality';
 
 export const dynamic = 'force-dynamic';
 
@@ -1265,28 +1266,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
 }
 
 // ── 미커버 엔드포인트 추가 검증 (iter84) ────────────────────────────────────
-// 현재 코드에 존재하는 provider source 목록
-const ALLOWED_AI_SOURCES = [
-  'GROQ-', 'claude-haiku', 'claude-sonnet', 'gemini-2.0-flash', 'EXAONE-3.5',
-  'qwen-2.5-72b', 'deepseek', 'openrouter',
-];
-const FALLBACK_SOURCES = ['fallback', '데이터 기반'];
-
-function detectGarbage(text: string | undefined | null): boolean {
-  if (!text || text.trim().length === 0) return false;
-  const t = text.trim();
-  if (t.length < 15) return true;                                       // 너무 짧음
-  if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t)) return true;                // X+Y+Z 목록
-  if (t.length < 80 && /^[^\n+]{3,}\+[^\n+]{3,}$/.test(t) && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true; // X+Y 짧은 목록
-  const tokens = t.split(/[\s,+|/·]+/).filter(w => w.length > 1);
-  if (tokens.length >= 4) {
-    const freq = new Map<string, number>();
-    for (const tok of tokens) freq.set(tok.toLowerCase(), (freq.get(tok.toLowerCase()) ?? 0) + 1);
-    const maxFreq = Math.max(...Array.from(freq.values()));
-    if (maxFreq / tokens.length > 0.55) return true;                  // 반복 토큰
-  }
-  return false;
-}
+// ALLOWED_AI_SOURCES, FALLBACK_SOURCES, isGarbageText, isKnownSource → @/lib/strategy-quality 공유 모듈
 
 async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
   // probe=1 returns cached report (if exists) or static fallback — no AI call.
@@ -1329,12 +1309,12 @@ async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
     ...(isValid ? {} : { lastError: `stance=${d.stance} portfolio=${portfolioLen} valid=${hasValidPortfolio}` }),
   });
 
-  // 콘텐츠 품질 체크 — 실제 캐시된 보고서일 때만
+  // 콘텐츠 품질 체크 — 실제 캐시된 보고서일 때만 (공유 모듈 사용)
   if (isCachedReport) {
     const src = d.source ?? '';
-    const isKnownSource = ALLOWED_AI_SOURCES.some(s => src.includes(s)) || FALLBACK_SOURCES.some(s => src.includes(s));
-    const thesisGarbage = detectGarbage(d.thesis);
-    const macroGarbage = detectGarbage(d.macroAnalysis);
+    const knownSrc = isKnownSource(src);
+    const thesisGarbage = isGarbageText(d.thesis,       GARBAGE_MIN_LEN.thesis);
+    const macroGarbage  = isGarbageText(d.macroAnalysis, GARBAGE_MIN_LEN.macroAnalysis);
     const thesisLen = (d.thesis ?? '').length;
     const macroLen = (d.macroAnalysis ?? '').length;
 
@@ -1356,7 +1336,7 @@ async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
     ].filter(Boolean);
 
     const qualityStatus: MetricItem['status'] =
-      !isKnownSource ? 'error' :
+      !knownSrc ? 'error' :
       thesisGarbage || macroGarbage ? 'error' :
       isStaleReport ? 'degraded' :
       missingSections.length >= 2 ? 'degraded' :
@@ -1370,12 +1350,12 @@ async function verifyInvestmentStrategy(base: string): Promise<MetricItem[]> {
       value: `thesis=${thesisLen}자 macro=${macroLen}자 src=${src.slice(0, 20)}${isStaleReport ? ` [${ageH}h]` : ''}`,
       source: src,
       details: {
-        isKnownSource, thesisGarbage, macroGarbage,
+        isKnownSource: knownSrc, thesisGarbage, macroGarbage,
         thesisLen, macroLen, ageH, isStaleReport,
         missingSections, schemaVersion: d.schemaVersion,
       },
       ...((qualityStatus === 'error') ? {
-        lastError: !isKnownSource
+        lastError: !knownSrc
           ? `unknown source: "${src}" — old deployment detected`
           : `garbage content: thesis="${(d.thesis ?? '').slice(0, 40)}"`,
       } : {}),
