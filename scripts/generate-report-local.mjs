@@ -441,6 +441,175 @@ function validateEntryZones(portfolioItems, livePrices) {
   });
 }
 
+/**
+ * Build a per-ticker signal digest from raw context data.
+ * Returns Map<ticker, {insider, squeeze, yoy, margin, tech}>
+ */
+function buildSignalDigest(ctx, technicalData, financialsText) {
+  const digest = new Map();
+
+  // Insider cluster map
+  const insiderArr = Array.isArray(ctx.insider) ? ctx.insider : [];
+  const clusterMap = new Map();
+  for (const i of insiderArr) {
+    const t = i.ticker; if (!t) continue;
+    const c = clusterMap.get(t) ?? { buys: 0, sells: 0, totalUsd: 0 };
+    if (i.direction === 'buy') c.buys++; else c.sells++;
+    c.totalUsd += i.transactionValueUsd ?? 0;
+    clusterMap.set(t, c);
+  }
+
+  // Squeeze scores
+  const shortsArr = (() => {
+    const sd = ctx.short;
+    return Array.isArray(sd) ? sd : (sd?.entries ?? []);
+  })();
+  const squeezeMap = new Map();
+  for (const s of shortsArr) {
+    if (s.ticker && typeof s.squeezeScore === 'number') squeezeMap.set(s.ticker, s.squeezeScore);
+  }
+
+  // Financials text: "NVDA: Q4 FY2026 $68.1B +73.2% YoY opMgn=64.9%"
+  const finMap = new Map();
+  for (const part of (financialsText ?? '').split(' | ')) {
+    const m = part.match(/^(\S+):\s*(\S+)\s+(\S+)\s+([\+\-]?\d+\.?\d*%)\s+YoY(?:\s+opMgn=([\d.]+)%)?/);
+    if (m) finMap.set(m[1], { label: m[2], rev: m[3], yoy: m[4], margin: m[5] ?? null });
+  }
+
+  // Combine all tickers
+  const allTickers = new Set([
+    ...clusterMap.keys(), ...squeezeMap.keys(), ...finMap.keys(), ...technicalData.keys(),
+  ]);
+  for (const t of allTickers) {
+    digest.set(t, {
+      insider: clusterMap.get(t) ?? null,
+      squeeze: squeezeMap.get(t) ?? null,
+      fin: finMap.get(t) ?? null,
+      tech: technicalData.get(t) ?? null,
+    });
+  }
+  return digest;
+}
+
+/**
+ * Post-processing: detect duplicate rationales and replace with unique
+ * data-driven descriptions from signalDigest. No LLM call.
+ */
+function deduplicateRationales(portfolioItems, signalDigest) {
+  const rFirst25 = (r) => (r ?? '').replace(/\s+/g, ' ').slice(0, 25);
+  const grouped = new Map();
+  for (const item of portfolioItems) {
+    const key = rFirst25(item.rationale);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(item);
+  }
+
+  let fixedCount = 0;
+  for (const [, items] of grouped) {
+    if (items.length < 2) continue;
+    for (const item of items) {
+      const t = item.ticker;
+      const sig = signalDigest.get(t);
+      const parts = [];
+      if (sig?.insider && sig.insider.buys >= 3)
+        parts.push(`insider ${sig.insider.buys}건 매수 $${Math.round(sig.insider.totalUsd / 1000)}K`);
+      if (sig?.fin?.yoy) parts.push(`매출 ${sig.fin.yoy} YoY(${sig.fin.label})`);
+      if (sig?.fin?.margin) parts.push(`영업이익률 ${sig.fin.margin}%`);
+      if (sig?.squeeze != null) parts.push(`squeeze ${sig.squeeze}`);
+      if (sig?.tech) parts.push(sig.tech);
+      if (parts.length) {
+        item.rationale = parts.slice(0, 3).join(', ');
+        fixedCount++;
+      }
+    }
+  }
+  if (fixedCount > 0) console.log(`  [후처리] rationale 중복 ${fixedCount}개 → 고유 신호 교체`);
+  return portfolioItems;
+}
+
+/**
+ * Post-processing: expand thesis if too short by appending key macro numbers.
+ * Targets ≥60 chars without LLM.
+ */
+function expandThesis(thesis, macroData, ctx) {
+  if (!thesis || thesis.length >= 60) return thesis;
+  const parts = [];
+  const ind = ctx.macro?.indicators ?? [];
+  const cpi = ind.find(i => i.id === 'cpi' || i.id === 'us_cpi')?.value;
+  const spread = ind.find(i => i.id === 'hy_oas' || i.id === 'hyoas')?.value;
+  const vix = ind.find(i => i.id === 'vix')?.value;
+  if (cpi != null) parts.push(`CPI ${cpi}%`);
+  if (spread != null) parts.push(`HY ${spread}%`);
+  if (vix != null) parts.push(`VIX ${vix.toFixed(1)}`);
+  if (macroData?.riskLevel) parts.push(`리스크 ${macroData.riskLevel}`);
+  if (parts.length) {
+    const expanded = `${thesis} — ${parts.join(', ')}`;
+    if (expanded.length > thesis.length) {
+      console.log(`  [후처리] thesis 확장: ${thesis.length}자 → ${expanded.length}자`);
+      return expanded;
+    }
+  }
+  return thesis;
+}
+
+/**
+ * Post-processing: auto-fill missing regionStances with data-driven defaults.
+ * Used when LLM returns <10 regions.
+ */
+function fillMissingRegionStances(regionStances, ctx) {
+  const REGIONS = ['us','korea','japan','china','europe','india','taiwan','brazil','australia','global'];
+  const existing = regionStances ?? {};
+  if (Object.keys(existing).length >= 10) return existing;
+
+  // Build country flow map for data-driven stances
+  const countries = ctx.capital?.countryFlow?.countries ?? [];
+  const flowMap = new Map(countries.map(c => [c.id ?? c.label?.toLowerCase(), c]));
+  const assetArr = ctx.capital?.assets ?? [];
+  const assetMap = new Map(assetArr.map(a => [(a.id ?? a.ticker ?? '').toLowerCase(), a]));
+
+  const countrySignal = (id) => {
+    const c = flowMap.get(id);
+    if (!c || typeof c.ret4w !== 'number') return 'neutral';
+    return c.ret4w >= 1 ? 'bullish' : c.ret4w <= -1 ? 'bearish' : 'neutral';
+  };
+
+  const filled = { ...existing };
+  let addedCount = 0;
+  for (const region of REGIONS) {
+    if (filled[region]) continue;
+    const stance = countrySignal(region);
+    filled[region] = {
+      stance,
+      thesis: `[data fallback] ${stance}`,
+      keyData: `4w flow`,
+    };
+    addedCount++;
+  }
+  if (addedCount > 0) console.log(`  [후처리] regionStances ${addedCount}개 지역 자동 보완`);
+  return filled;
+}
+
+/**
+ * Post-processing: fill null revenueYoY in companyChanges from financials data.
+ */
+function fillCompanyChangesYoY(companyChanges, signalDigest) {
+  let filled = 0;
+  for (const c of (companyChanges ?? [])) {
+    if (c.revenueYoY != null) continue;
+    const sig = signalDigest.get(c.ticker);
+    if (sig?.fin?.yoy) {
+      const parsed = parseFloat(sig.fin.yoy);
+      if (!isNaN(parsed)) {
+        c.revenueYoY = parsed;
+        c.latestQuarter = sig.fin.label;
+        filled++;
+      }
+    }
+  }
+  if (filled > 0) console.log(`  [후처리] companyChanges revenueYoY ${filled}개 자동 보완`);
+  return companyChanges;
+}
+
 // ── API 데이터 수집 ────────────────────────────────────────────────────────────
 async function safeFetch(url, timeoutMs = 10000) {
   try {
@@ -1289,12 +1458,20 @@ async function generateViaOllama() {
     console.log(`  기술지표 계산 완료: ${[...technicalData.entries()].map(([t, v]) => `${t}(${v})`).join(', ')}`);
   }
 
+  // ── 후처리: 신호 digest 빌드 + rationale 중복 제거 ─────────────────────────
+  const signalDigest = buildSignalDigest(ctx, technicalData, companyFinancials);
+  const portfolioItemsDeduped = deduplicateRationales(portfolioItems, signalDigest);
+  // buyStocks도 deduplicated rationale로 갱신
+  const buyStocksDeduped = portfolioItemsDeduped
+    .filter(p => p.action === 'buy')
+    .map(p => ({ ticker: p.ticker, name: p.name ?? p.ticker, sector: p.sector ?? '', rationale: p.rationale ?? '', entryZone: p.entryZone ?? '', target: p.target ?? '' }));
+
   const wave2Calls = [
-    callOllama(buildRiskMgmtPrompt(portfolioItems, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx)),
-    callOllama(buildCompanyChangesPrompt(portfolioItems, earnings, ctx.institutional, ctx.news, companyFinancials)),
+    callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx)),
+    callOllama(buildCompanyChangesPrompt(portfolioItemsDeduped, earnings, ctx.institutional, ctx.news, companyFinancials)),
   ];
-  if (buyStocks.length > 0) {
-    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocks, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials)));
+  if (buyStocksDeduped.length > 0) {
+    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials)));
   }
 
   const [riskRaw, companyChangesRaw, stockDetailRaw] = await Promise.all(wave2Calls);
@@ -1314,15 +1491,15 @@ async function generateViaOllama() {
 
   // ── [4/7] Critique ──────────────────────────────────────────────────────────
   console.log('\n[4/7] Critique — 포트폴리오 자기비판...');
-  let refinedPortfolio = portfolioItems;
+  let refinedPortfolio = portfolioItemsDeduped;
   try {
     const critiqueRaw = await callOllama(buildCritiquePrompt(
-      portfolioItems,
+      portfolioItemsDeduped,
       macroData?.macroAnalysis ?? '',
       ctx.bbWarnings,
       ctx.assetFg,
     ));
-    refinedPortfolio = applyCritique(portfolioItems, critiqueRaw);
+    refinedPortfolio = applyCritique(portfolioItemsDeduped, critiqueRaw);
     const changed = refinedPortfolio.filter((p, i) => p.action !== portfolioItems[i]?.action);
     console.log(`  critique 적용: ${changed.length}개 종목 수정`);
   } catch (e) { console.log(`  critique 실패 (non-fatal): ${e.message}`); }
@@ -1369,6 +1546,11 @@ async function generateViaOllama() {
     schemaVersion: 8,
     buildId: 'local',
   };
+
+  // ── 후처리: thesis 확장 / regionStances 보완 / companyChanges YoY 보완 ──────
+  finalReport.thesis = expandThesis(finalReport.thesis, macroData, ctx);
+  finalReport.regionStances = fillMissingRegionStances(finalReport.regionStances, ctx);
+  finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
 
   // ── [6/7] 품질 검사 + 저장 ──────────────────────────────────────────────────
   console.log('\n[6/7] 품질 게이트 검사...');
