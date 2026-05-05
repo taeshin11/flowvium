@@ -1562,7 +1562,7 @@ async function generateViaOllama() {
   ]);
 
   let macroData        = parseJson(macroRaw);
-  const portfolioData  = parseJson(portfolioRaw);
+  let portfolioData  = parseJson(portfolioRaw);
   let regionalData     = parseJson(regionalRaw);
   const opportunityData = parseJson(opportunityRaw);
   const narrativeData  = parseJson(narrativeRaw);
