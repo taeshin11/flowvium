@@ -630,6 +630,34 @@ function fillCompanyChangesYoY(companyChanges, signalDigest) {
 }
 
 /**
+ * Post-processing: remove shortSqueeze entries whose timing date has already passed.
+ * Parses Korean/English date patterns like "2026-05-05", "5월5일", "May 5".
+ */
+function filterStaleSqueezes(shortSqueeze, topOpportunity) {
+  if (!Array.isArray(shortSqueeze) || shortSqueeze.length === 0) return shortSqueeze;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); // compare by date only
+  const filtered = shortSqueeze.filter(s => {
+    const timing = s.timing ?? '';
+    // Try ISO date pattern: 2026-05-05
+    const iso = timing.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+      const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      if (d < now) { console.log(`  [후처리] shortSqueeze ${s.ticker} 만료 제거 (${iso[0]})`); return false; }
+    }
+    // Try Korean: 5월5일, 5월 5일
+    const kr = timing.match(/(\d{1,2})월\s*(\d{1,2})일/);
+    if (kr) {
+      const year = now.getFullYear();
+      const d = new Date(year, Number(kr[1]) - 1, Number(kr[2]));
+      if (d < now) { console.log(`  [후처리] shortSqueeze ${s.ticker} 만료 제거 (${kr[0]})`); return false; }
+    }
+    return true;
+  });
+  return filtered;
+}
+
+/**
  * Post-processing: rename "key,Data" → "keyData" typo in regionStances objects.
  */
 function normalizeRegionStances(regionStances) {
@@ -946,7 +974,7 @@ function buildCtxSummary(ctx) {
   try {
     const sd = ctx.short;
     const arr = Array.isArray(sd) ? sd : (sd?.entries ?? []);
-    const squeeze = arr.filter(s => (s.squeezeScore ?? 0) >= 25).slice(0, 3)
+    const squeeze = arr.filter(s => (s.squeezeScore ?? 0) >= 50).slice(0, 3)
       .map(s => `${s.ticker}(squeeze=${s.squeezeScore})`);
     if (squeeze.length) shorts = squeeze.join(', ');
   } catch { /* ignore */ }
@@ -1306,7 +1334,7 @@ function buildOpportunityPrompt(ctx) {
     `[Asset F&G] ${ctx.assetFg || 'No data'}`,
     '',
     `Respond in pure JSON. ALL text values in ${TARGET_LANG}:`,
-    `{"shortSqueeze":[{"ticker":"SMCI","score":48,"timing":"[≤40 chars in ${TARGET_LANG}]","risk":"[≤40 chars in ${TARGET_LANG}]"}],`,
+    `{"shortSqueeze":[{"ticker":"SMCI","score":48,"timing":"[relative timing only, e.g. 'within 24h', 'this week' — NO specific past dates, ≤40 chars in ${TARGET_LANG}]","risk":"[≤40 chars in ${TARGET_LANG}]"}],`,
     `"insiderSignals":[{"ticker":"CRWV","filings":63,"significance":"[≤40 chars in ${TARGET_LANG}]","pattern":"[≤30 chars in ${TARGET_LANG}]"}],`,
     `"topOpportunity":"[≤100 chars in ${TARGET_LANG}]"}`,
     'Pure JSON only.',
@@ -1713,6 +1741,16 @@ async function generateViaOllama() {
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
+  finalReport.shortSqueeze = filterStaleSqueezes(finalReport.shortSqueeze, finalReport.topOpportunity);
+  // topOpportunity가 stale ticker를 가리키면 제거
+  if (finalReport.shortSqueeze.length === 0 && finalReport.topOpportunity) {
+    const staleTickers = (opportunityData?.shortSqueeze ?? [])
+      .filter(s => !finalReport.shortSqueeze.find(r => r.ticker === s.ticker))
+      .map(s => s.ticker);
+    if (staleTickers.some(t => finalReport.topOpportunity.includes(t))) {
+      finalReport.topOpportunity = '';
+    }
+  }
 
   // ── [6/7] 품질 검사 + 저장 ──────────────────────────────────────────────────
   console.log('\n[6/7] 품질 게이트 검사...');
