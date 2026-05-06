@@ -235,7 +235,30 @@ async function uploadFromFile(filePath) {
   console.log(`stale   key: ${ok2 ? '✅' : '❌'}`);
   console.log(`source: ${report.source}`);
   console.log(`quality score: ${score}/100`);
+  await verifyUploadSource(locale);
   console.log(`\n✅ 업로드 완료! ${SITE}/${locale}/report 에서 확인`);
+}
+
+// ── 업로드 검증 ────────────────────────────────────────────────────────────────
+async function verifyUploadSource(locale) {
+  const APP_BASE_URL = (env.NEXT_PUBLIC_APP_URL || env.NEXT_PUBLIC_SITE_URL || 'https://flowvium.vercel.app')
+    .replace(/\s+/g, '').replace(/\/+$/, '');
+  try {
+    const res = await fetch(
+      `${APP_BASE_URL}/api/investment-strategy?locale=${encodeURIComponent(locale)}`,
+      { method: 'GET', headers: { 'Cache-Control': 'no-store' }, signal: AbortSignal.timeout(15000) }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const source = data?.source ?? 'missing';
+    if (typeof source === 'string' && source.startsWith('local-')) {
+      console.log(`[UPLOAD VERIFY] ✓ Redis key confirmed, source=${source}`);
+    } else {
+      console.warn(`[UPLOAD VERIFY] ⚠ Source mismatch: expected local-*, got ${source}`);
+    }
+  } catch (err) {
+    console.warn('[UPLOAD VERIFY] ⚠ Could not verify upload: ' + err.message);
+  }
 }
 
 // ── Ollama 호출 ────────────────────────────────────────────────────────────────
