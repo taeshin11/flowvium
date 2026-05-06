@@ -155,9 +155,13 @@ async function uploadFromFile(filePath) {
   let resolved = filePath;
   if (filePath === 'latest') {
     if (!existsSync(REPORTS_DIR)) { console.error('reports/ 디렉토리 없음'); process.exit(1); }
-    const files = readdirSync(REPORTS_DIR).filter(f => f.endsWith('.json')).sort();
+    const { statSync } = await import('fs');
+    const files = readdirSync(REPORTS_DIR)
+      .filter(f => f.endsWith('.json'))
+      .map(f => ({ f, mtime: statSync(resolve(REPORTS_DIR, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
     if (!files.length) { console.error('reports/ 에 파일 없음'); process.exit(1); }
-    resolved = resolve(REPORTS_DIR, files[files.length - 1]);
+    resolved = resolve(REPORTS_DIR, files[0].f);
     console.log(`최신 파일: ${basename(resolved)}`);
   } else {
     resolved = resolve(process.cwd(), filePath);
