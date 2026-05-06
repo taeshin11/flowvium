@@ -630,31 +630,118 @@ function fillCompanyChangesYoY(companyChanges, signalDigest) {
 }
 
 /**
- * Post-processing: remove shortSqueeze entries whose timing date has already passed.
- * Parses Korean/English date patterns like "2026-05-05", "5월5일", "May 5".
+ * Post-processing: post-earnings 자체 판단.
+ * 최근 7일 내 실적발표가 있는 squeeze 후보는:
+ *   - 발표 후 OHLCV 기반 누적 수익률 계산
+ *   - ≤ -5%: catalyst 소멸 → 제거
+ *   - ≥ +5%: momentum 확인 → timing 업데이트
+ *   - 중립:  소강 상태 → timing 업데이트
+ * 실적 날짜 없어도 timing에 과거 날짜가 명시된 항목은 제거.
  */
-function filterStaleSqueezes(shortSqueeze, topOpportunity) {
+async function enrichSqueezePostEarnings(shortSqueeze, rawEarnings, livePrices, locale = 'ko') {
   if (!Array.isArray(shortSqueeze) || shortSqueeze.length === 0) return shortSqueeze;
+  const isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(locale);
   const now = new Date();
-  now.setHours(0, 0, 0, 0); // compare by date only
-  const filtered = shortSqueeze.filter(s => {
+  const sevenDaysAgo = new Date(now - 7 * 24 * 3600 * 1000);
+
+  // 최근 7일 내 실적발표 맵 ticker → date
+  const recentEarningsMap = new Map();
+  for (const e of rawEarnings) {
+    if (!e.ticker || !e.date) continue;
+    const d = new Date(e.date);
+    if (!isNaN(d.getTime()) && d >= sevenDaysAgo && d <= now) {
+      recentEarningsMap.set(e.ticker, { date: d, epsActual: e.epsActual, epsSurprise: e.epsSurprise });
+    }
+  }
+
+  const result = [];
+  for (const s of shortSqueeze) {
+    const ticker = (s.ticker ?? '').toUpperCase();
     const timing = s.timing ?? '';
-    // Try ISO date pattern: 2026-05-05
-    const iso = timing.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (iso) {
-      const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-      if (d < now) { console.log(`  [후처리] shortSqueeze ${s.ticker} 만료 제거 (${iso[0]})`); return false; }
+
+    // ─ 1) timing에 과거 절대 날짜가 있으면 제거 ─
+    const isoM = timing.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoM) {
+      const d = new Date(Number(isoM[1]), Number(isoM[2]) - 1, Number(isoM[3]));
+      d.setHours(0, 0, 0, 0);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (d < today) { console.log(`  [후처리] ${ticker} timing 만료일(${isoM[0]}) → 제거`); continue; }
     }
-    // Try Korean: 5월5일, 5월 5일
-    const kr = timing.match(/(\d{1,2})월\s*(\d{1,2})일/);
-    if (kr) {
-      const year = now.getFullYear();
-      const d = new Date(year, Number(kr[1]) - 1, Number(kr[2]));
-      if (d < now) { console.log(`  [후처리] shortSqueeze ${s.ticker} 만료 제거 (${kr[0]})`); return false; }
+    const krM = timing.match(/(\d{1,2})월\s*(\d{1,2})일/);
+    if (krM) {
+      const d = new Date(now.getFullYear(), Number(krM[1]) - 1, Number(krM[2]));
+      d.setHours(0, 0, 0, 0);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (d < today) { console.log(`  [후처리] ${ticker} timing 만료일(${krM[0]}) → 제거`); continue; }
     }
-    return true;
-  });
-  return filtered;
+
+    // ─ 2) OHLCV로 post-earnings 감지 ─
+    // 방법 A: rawEarnings에 최근 실적일이 있으면 그날 이후 수익률 사용
+    // 방법 B: 최근 5일 중 단일일 >8% 급등락이 있으면 실적 반응으로 간주 (earnings API 미수록 케이스)
+    let postReturn = null;
+    let earnInfo = recentEarningsMap.get(ticker);
+    try {
+      const ohlcv = await fetchOHLCV(s.ticker, '5d');
+      if (ohlcv?.closes?.length >= 2) {
+        const closes = ohlcv.closes;
+
+        if (earnInfo) {
+          // 방법 A: 실적일 이후 누적 수익률
+          const daysSince = Math.max(1, Math.ceil((now - earnInfo.date) / (24 * 3600 * 1000)));
+          const lookback = Math.min(daysSince, closes.length - 1);
+          const pre = closes[closes.length - 1 - lookback];
+          const cur = closes[closes.length - 1];
+          if (pre > 0) postReturn = Math.round((cur / pre - 1) * 1000) / 10;
+        } else {
+          // 방법 B: 최근 5일 중 단일일 >8% 급등락 감지
+          for (let i = 1; i < closes.length; i++) {
+            const prev = closes[i - 1], cur = closes[i];
+            if (prev > 0) {
+              const dayRet = (cur / prev - 1) * 100;
+              if (Math.abs(dayRet) >= 5) {
+                // 이 날이 사실상 실적일 — 그 이후 수익률 계산
+                const pre = closes[i - 1];
+                const latest = closes[closes.length - 1];
+                postReturn = Math.round((latest / pre - 1) * 1000) / 10;
+                earnInfo = { date: new Date(now - (closes.length - 1 - i) * 24 * 3600 * 1000), inferred: true };
+                console.log(`  [후처리] ${ticker} 단일일 ${Math.round(dayRet)}% 급등락 감지 → post-earnings 판단`);
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch { /* no ohlcv */ }
+
+    // OHLCV 실패 시 1d change 폴백 (earnInfo 있을 때만)
+    if (postReturn == null && earnInfo) {
+      const lp = livePrices.get(s.ticker) ?? livePrices.get(ticker);
+      postReturn = lp?.change1d ?? null;
+    }
+
+    // 실적 이벤트 없으면 그냥 통과
+    if (!earnInfo) { result.push(s); continue; }
+
+    const retStr = postReturn != null ? `${postReturn >= 0 ? '+' : ''}${postReturn}%` : null;
+
+    if (postReturn != null && postReturn <= -5) {
+      console.log(`  [후처리] ${ticker} 실적 후 ${retStr} → catalyst 소멸, 제거`);
+      continue;
+    }
+
+    const updated = { ...s };
+    if (retStr) {
+      if (postReturn >= 5) {
+        updated.timing = isEn ? `Post-earnings surge ${retStr}` : `실적 후 ${retStr} 급등, squeeze 지속`;
+      } else {
+        updated.timing = isEn ? `Post-earnings ${retStr}, consolidating` : `실적 후 ${retStr} 소강, 재진입 대기`;
+      }
+      console.log(`  [후처리] ${ticker} 실적 후 ${retStr} → timing 업데이트`);
+    }
+    result.push(updated);
+  }
+
+  return result;
 }
 
 /**
@@ -974,7 +1061,7 @@ function buildCtxSummary(ctx) {
   try {
     const sd = ctx.short;
     const arr = Array.isArray(sd) ? sd : (sd?.entries ?? []);
-    const squeeze = arr.filter(s => (s.squeezeScore ?? 0) >= 50).slice(0, 3)
+    const squeeze = arr.filter(s => (s.squeezeScore ?? 0) >= 40).slice(0, 3)
       .map(s => `${s.ticker}(squeeze=${s.squeezeScore})`);
     if (squeeze.length) shorts = squeeze.join(', ');
   } catch { /* ignore */ }
@@ -1166,6 +1253,19 @@ async function getUpcomingEarnings() {
     const items = (d?.earnings ?? []).slice(0, 5);
     return items.map(e => `${e.symbol} ${e.date}`).join(', ');
   } catch { return ''; }
+}
+
+/** 최근 7일 + 향후 14일 실적 raw 배열 반환 (post-earnings 판단용) */
+async function getRawEarnings() {
+  try {
+    const d = await safeFetch(`${SITE}/api/earnings`, 8000);
+    return (d?.earnings ?? []).map(e => ({
+      ticker: (e.symbol ?? e.ticker ?? '').toUpperCase(),
+      date: e.date,
+      epsActual: e.epsActual ?? null,
+      epsSurprise: e.epsSurprise ?? null,
+    }));
+  } catch { return []; }
 }
 
 async function getCompanyFinancials(tickers) {
@@ -1741,15 +1841,16 @@ async function generateViaOllama() {
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
-  finalReport.shortSqueeze = filterStaleSqueezes(finalReport.shortSqueeze, finalReport.topOpportunity);
-  // topOpportunity가 stale ticker를 가리키면 제거
-  if (finalReport.shortSqueeze.length === 0 && finalReport.topOpportunity) {
-    const staleTickers = (opportunityData?.shortSqueeze ?? [])
-      .filter(s => !finalReport.shortSqueeze.find(r => r.ticker === s.ticker))
-      .map(s => s.ticker);
-    if (staleTickers.some(t => finalReport.topOpportunity.includes(t))) {
-      finalReport.topOpportunity = '';
-    }
+  const rawEarnings = await getRawEarnings();
+  const squeezeBefore = finalReport.shortSqueeze.map(s => s.ticker);
+  finalReport.shortSqueeze = await enrichSqueezePostEarnings(finalReport.shortSqueeze, rawEarnings, livePrices, localeArg);
+  // topOpportunity가 제거된 ticker를 가리키면 비움
+  const removedTickers = squeezeBefore.filter(t => !finalReport.shortSqueeze.find(s => s.ticker === t));
+  if (removedTickers.some(t => (finalReport.topOpportunity ?? '').includes(t))) {
+    const _isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(localeArg);
+    finalReport.topOpportunity = finalReport.shortSqueeze[0]
+      ? (_isEn ? `${finalReport.shortSqueeze[0].ticker} squeeze opportunity` : `${finalReport.shortSqueeze[0].ticker} squeeze 기회`)
+      : '';
   }
 
   // ── [6/7] 품질 검사 + 저장 ──────────────────────────────────────────────────

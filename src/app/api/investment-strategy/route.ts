@@ -727,7 +727,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     const shortData = ctx.short as Record<string, unknown> | null;
     const arr = Array.isArray(shortData) ? shortData as Array<Record<string, unknown>>
       : (shortData?.entries as Array<Record<string, unknown>>) ?? [];
-    const squeeze = arr.filter(s => (s.squeezeScore as number) >= 50).slice(0, 3)
+    const squeeze = arr.filter(s => (s.squeezeScore as number) >= 40).slice(0, 3)
       .map(s => `${s.ticker}(squeeze=${s.squeezeScore})`);
     if (squeeze.length) shorts = squeeze.join(', ');
   } catch { /* ignore */ }
