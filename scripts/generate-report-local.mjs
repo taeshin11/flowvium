@@ -1369,7 +1369,7 @@ async function gatherContext() {
     capital, fearGreed, fedwatch, macro,
     creditBalance, insider, ownershipAlerts, koreaFlow,
     nport, shortInterest, newsCascade, econCal,
-    volatility, cot, commodity,
+    volatility, cot, commodity, supplyChainSignals,
   ] = await Promise.all([
     safeFetch(`${base}/api/capital-flows`, 15000),
     safeFetch(`${base}/api/fear-greed`, 12000),
@@ -1386,6 +1386,7 @@ async function gatherContext() {
     safeFetch(`${base}/api/volatility`, 8000),
     safeFetch(`${base}/api/cot-positions`, 10000),
     safeFetch(`${base}/api/commodity-curve`, 10000),
+    safeFetch(`${base}/api/supply-chain-signals`, 10000),
   ]);
 
   // fear-greed returns { byCountry:[{id:'us',score}], byAsset:[...] }
@@ -1409,6 +1410,7 @@ async function gatherContext() {
     volatility,
     cot,
     commodity,
+    supplyChainSignals: supplyChainSignals?.signals ?? [],
   };
 }
 
@@ -1702,7 +1704,24 @@ function buildCtxSummary(ctx) {
     }
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx };
+  // Supply chain signals → prompt text
+  let supplyChain = '';
+  try {
+    const sigs = Array.isArray(ctx.supplyChainSignals) ? ctx.supplyChainSignals : [];
+    const positives = sigs.filter(s => s.direction === 'positive' && s.conviction >= 60).slice(0, 5);
+    const negatives = sigs.filter(s => s.direction === 'negative' && s.conviction >= 60).slice(0, 3);
+    const lines = [];
+    for (const s of positives) {
+      const down = s.downstreamBeneficiaries?.length ? ` → downstream: ${s.downstreamBeneficiaries.join(',')}` : '';
+      lines.push(`[+${s.conviction}] ${s.ticker} ${s.signalType.toUpperCase()}: ${s.headline.slice(0, 80)}${down}`);
+    }
+    for (const s of negatives) {
+      lines.push(`[-${s.conviction}] ${s.ticker} ${s.signalType.toUpperCase()}: ${s.headline.slice(0, 80)}`);
+    }
+    if (lines.length) supplyChain = lines.join('\n');
+  } catch { /* ignore */ }
+
+  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
 }
 
 // ── Cascade signals ────────────────────────────────────────────────────────────
@@ -1863,6 +1882,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     `[13D/G 대량보유 변동] ${ctx.ownership || 'None'}`,
     `[N-PORT 뮤추얼펀드] ${ctx.nport || 'None'}`,
     `[Upcoming Earnings] ${earnings || 'None'}`,
+    `[Supply Chain Signals] ${ctx.supplyChain || 'None'}`,
     '',
     getGuruContext(),
     '',
@@ -1963,6 +1983,7 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     '',
     `[Capital Flow Story] ${ctx.flows || 'No data'}`,
     `[News Events] ${ctx.news || 'No data'}`,
+    `[Supply Chain Signals] ${ctx.supplyChain || 'No data'}`,
     `[Macro Context] ${ctx.macro || 'No data'}`,
     `[Institutional & Insider Signals] ${institutional || 'No data'}`,
     `[Sector Valuations & Returns] ${sectorPe || 'No data'}`,

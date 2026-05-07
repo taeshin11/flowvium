@@ -4,6 +4,7 @@ import type { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
+import { cascadePatterns, type CascadePattern } from '@/data/cascades';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -311,25 +312,98 @@ async function callCascadeAI(prompt: string): Promise<string> {
   return r.text;
 }
 
-function buildCascadePrompt(title: string): string {
-  return `News headline: "${title}"
+// ── Supply chain lookup — cascadePatterns를 company name/ticker 기준으로 역인덱싱 ──
+// 뉴스 헤드라인에서 회사명/ticker가 감지되면 관련 패턴을 프롬프트에 주입한다.
+const COMPANY_ALIASES: Record<string, string[]> = {
+  'NVDA': ['nvidia', 'nvda'],
+  'TSM':  ['tsmc', 'taiwan semiconductor', 'tsm'],
+  'ASML': ['asml'],
+  'AMAT': ['applied materials', 'amat'],
+  'LRCX': ['lam research', 'lrcx'],
+  'KLAC': ['kla', 'klac'],
+  'MU':   ['micron', ' mu '],
+  '000660.KS': ['sk hynix', 'hynix'],
+  'MSFT': ['microsoft', 'msft', 'azure'],
+  'GOOGL':['google', 'alphabet', 'googl'],
+  'AMZN': ['amazon', 'aws', 'amzn'],
+  'META': ['meta ', 'facebook'],
+  'TSLA': ['tesla', 'tsla'],
+  'LMT':  ['lockheed', 'lmt'],
+  'RTX':  ['raytheon', 'rtx'],
+  'LLY':  ['eli lilly', 'lilly', 'lly'],
+  'NVO':  ['novo nordisk', 'nvo', 'ozempic', 'wegovy'],
+  'ORCL': ['oracle', 'orcl'],
+  'FSLR': ['first solar', 'fslr'],
+  'ALB':  ['albemarle', 'alb'],
+  'CORNING': ['corning', 'glc'],
+  'ANET': ['arista', 'anet'],
+  'AMD':  ['amd', 'advanced micro'],
+  'AVGO': ['broadcom', 'avgo'],
+  'INTC': ['intel', 'intc'],
+  'ARM':  ['arm holdings', 'arm chip'],
+};
 
-Analyze the cascade effects of this news on financial markets. Respond in the following JSON format only:
+const _patternByTicker = new Map<string, CascadePattern[]>();
+for (const p of cascadePatterns) {
+  for (const step of p.sequence) {
+    const tk = step.ticker.toUpperCase();
+    if (!_patternByTicker.has(tk)) _patternByTicker.set(tk, []);
+    _patternByTicker.get(tk)!.push(p);
+  }
+}
+
+function findRelevantPatterns(title: string): CascadePattern[] {
+  const lower = title.toLowerCase();
+  const hitTickers: string[] = [];
+  for (const [ticker, aliases] of Object.entries(COMPANY_ALIASES)) {
+    if (aliases.some(a => lower.includes(a))) hitTickers.push(ticker.toUpperCase());
+  }
+  const seenIds = new Set<string>();
+  const result: CascadePattern[] = [];
+  for (const tk of hitTickers) {
+    for (const p of (_patternByTicker.get(tk) ?? [])) {
+      if (!seenIds.has(p.id)) { seenIds.add(p.id); result.push(p); }
+    }
+  }
+  return result.slice(0, 2); // 최대 2개 패턴만 (프롬프트 길이 제한)
+}
+
+function buildCascadePrompt(title: string): string {
+  const patterns = findRelevantPatterns(title);
+  if (patterns.length > 0) {
+    logger.info('news-cascade', 'supply_chain_context_injected', {
+      title: title.slice(0, 80),
+      patterns: patterns.map(p => p.id).join(','),
+      tickers: patterns.flatMap(p => p.sequence.map(s => s.ticker)).join(','),
+    });
+  }
+  const supplyChainCtx = patterns.length > 0
+    ? `\n## Known Supply Chain Relationships (use these to infer cascade effects)\n` +
+      patterns.map(p =>
+        `[${p.sectorName}] ${p.description}\n` +
+        `Chain: ${p.sequence.map(s => `${s.ticker}(${s.role},${s.typicalDelay})`).join(' → ')}`
+      ).join('\n') + '\n'
+    : '';
+
+  return `News headline: "${title}"
+${supplyChainCtx}
+Analyze the cascade effects on financial markets. If supply chain relationships are provided above, use them to identify specific ticker-level impacts with correct direction and timing.
+Respond in JSON only:
 {
-  "summary": "Key summary in 1-2 sentences",
+  "summary": "1-2 sentence summary",
   "sentiment": "bullish|bearish|neutral",
   "importance": "high|medium|low",
   "cascades": [
     {
-      "asset": "specific asset or sub-sector name — use the most specific applicable term, e.g.: 'AI Semiconductors', 'Fiber Optics', 'Power Infrastructure', 'Data Centers', 'Defense', 'Biotech', 'EV Batteries', 'Cloud Software', 'Energy', 'S&P500', 'Gold', 'Dollar', 'Bonds'",
+      "asset": "specific ticker or sub-sector — prefer tickers from supply chain relationships above when applicable. e.g.: 'NVDA', 'TSM', 'AI Semiconductors', 'Fiber Optics', 'Power Infrastructure', 'Data Centers', 'Defense', 'Biotech', 'EV Batteries'",
       "direction": "positive|negative|neutral",
       "magnitude": "high|medium|low",
-      "reason": "reason for the impact (1 sentence)",
+      "reason": "1 sentence citing the supply chain link or market mechanism",
       "timeframe": "short-term(1-3d)|medium-term(1-4w)|long-term(1-3m)"
     }
   ]
 }
-Include 3-5 cascade items. Use specific sub-sector names (e.g. 'AI Semiconductors' not just 'Technology') when the news clearly targets a sub-sector.`;
+Include 3-6 cascade items. Prefer specific tickers over generic sector names when supply chain data supports it.`;
 }
 
 function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {

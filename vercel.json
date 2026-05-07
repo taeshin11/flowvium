@@ -42,6 +42,9 @@
     "src/app/api/stock-supply/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/supply-chain-signals/route.ts": {
+      "maxDuration": 30
+    },
     "src/app/api/volatility/route.ts": {
       "maxDuration": 60
     },
