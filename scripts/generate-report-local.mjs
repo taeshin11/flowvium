@@ -2160,14 +2160,27 @@ function applyCritique(portfolio, critiqueRaw) {
   } catch { return portfolio; }
 }
 
+// LLM sometimes writes full company name as ticker (NVIDIA instead of NVDA).
+const TICKER_ALIASES = new Map([
+  ['NVIDIA', 'NVDA'], ['ALPHABET', 'GOOGL'], ['GOOGLE', 'GOOGL'],
+  ['METAPLATFORMS', 'META'], ['AMAZON', 'AMZN'], ['APPLE', 'AAPL'],
+  ['MICROSOFT', 'MSFT'], ['TESLA', 'TSLA'], ['SAMSUNG', '005930.KS'],
+  ['SAMSUNGELECTRONICS', '005930.KS'], ['SKHYNIX', '000660.KS'],
+  ['HYUNDAI', '005380.KS'],
+]);
+
 // ── 포트폴리오 후처리 ────────────────────────────────────────────────────────────
 function postProcessPortfolio(portfolio) {
   if (!Array.isArray(portfolio)) return [];
   const KR_NUM = /^\d{6}$/;
-  let items = portfolio.map(p => ({
-    ...p,
-    ticker: KR_NUM.test(p.ticker ?? '') ? `${p.ticker}.KS` : (p.ticker ?? ''),
-  })).filter(p => {
+  let items = portfolio.map(p => {
+    let ticker = (p.ticker ?? '').trim();
+    if (KR_NUM.test(ticker)) ticker = `${ticker}.KS`;
+    // Normalize alias: NVIDIA→NVDA, ALPHABET→GOOGL, etc.
+    const aliasKey = ticker.toUpperCase().replace(/[\s.]/g, '');
+    ticker = TICKER_ALIASES.get(aliasKey) ?? ticker;
+    return { ...p, ticker };
+  }).filter(p => {
     const k = (p.ticker ?? '').toUpperCase();
     return k && !INDEX_TICKERS.has(k);
   });
@@ -2176,7 +2189,10 @@ function postProcessPortfolio(portfolio) {
   for (const p of items) {
     const k = p.ticker.toUpperCase();
     const ex = dedupMap.get(k);
-    if (!ex || (p.allocation ?? 0) > (ex.allocation ?? 0)) dedupMap.set(k, p);
+    if (!ex || (p.allocation ?? 0) > (ex.allocation ?? 0)) {
+      if (ex) console.warn(`  ⚠️  ticker alias dedup: "${ex.ticker}" merged into "${p.ticker}"`);
+      dedupMap.set(k, p);
+    }
   }
   items = Array.from(dedupMap.values());
 
@@ -2187,6 +2203,25 @@ function postProcessPortfolio(portfolio) {
     if (diff !== 0 && items.length) items[0].allocation += diff;
   }
   return items;
+}
+
+// Fix 2: cross-ticker catalyst dedup — if the same catalyst text appears for multiple
+// tickers (LLM copy-pasted insider/squeeze data), remove it from all but the first.
+function dedupCrossTickerCatalysts(items) {
+  const usedCatalysts = new Set();
+  let removed = 0;
+  const result = items.map(p => ({
+    ...p,
+    catalysts: (p.catalysts ?? []).filter(c => {
+      if (!c || typeof c !== 'string') return false;
+      const key = c.toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 60);
+      if (usedCatalysts.has(key)) { removed++; return false; }
+      usedCatalysts.add(key);
+      return true;
+    }),
+  }));
+  if (removed > 0) console.warn(`  ⚠️  cross-ticker catalyst dedup: ${removed}개 중복 제거됨`);
+  return result;
 }
 
 // ── Step 1: 다단계 Ollama 생성 ─────────────────────────────────────────────────
@@ -2427,7 +2462,7 @@ async function generateViaOllama() {
   const finalReport = {
     stance: portfolioData.stance ?? 'neutral',
     thesis: macroData?.thesis ?? portfolioData.stance ?? 'neutral',
-    portfolio: mergedPortfolio,
+    portfolio: dedupCrossTickerCatalysts(mergedPortfolio),
     sectorAllocation: portfolioData.sectorAllocation ?? [],
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',

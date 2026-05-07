@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { createRedis } from '@/lib/redis';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -12,6 +13,22 @@ export const maxDuration = 300;
 /** 직접 AI 생성하는 우선 언어 — 아시아·영어권 주요 시장 */
 const PRIORITY_LOCALES = ['ko', 'en', 'ja', 'zh-CN', 'zh-TW'] as const;
 
+const SCHEMA_VERSION = 8;
+function staleKey(locale: string) { return `flowvium:investment-strategy:stale:v${SCHEMA_VERSION}:${locale}`; }
+
+/** stale key에 2시간 내 로컬/AI 생성 보고서가 있으면 재생성 불필요 */
+async function hasRecentGoodReport(redis: ReturnType<typeof createRedis>, locale: string): Promise<boolean> {
+  if (!redis) return false;
+  try {
+    const stale = await redis.get(staleKey(locale)) as Record<string, unknown> | null;
+    if (!stale || !stale.generatedAt || !stale.source) return false;
+    const isFallback = String(stale.source) === 'fallback' || String(stale.source) === 'data';
+    if (isFallback) return false;
+    const ageMs = Date.now() - new Date(String(stale.generatedAt)).getTime();
+    return ageMs < 2 * 60 * 60 * 1000; // 2시간 이내
+  } catch { return false; }
+}
+
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
   if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
@@ -23,6 +40,8 @@ export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET ?? '';
   const headers: HeadersInit = cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {};
 
+  const redis = await createRedis();
+
   logger.info('cron.investment-strategy', 'start', { locales: PRIORITY_LOCALES });
 
   // 5개 언어 병렬 생성 (각 요청이 별도 Lambda에서 독립 실행)
@@ -30,6 +49,13 @@ export async function GET(req: NextRequest) {
     PRIORITY_LOCALES.map(async (locale) => {
       const t0 = Date.now();
       try {
+        // Skip if local already uploaded a fresh report in the last 2h
+        if (redis && await hasRecentGoodReport(redis, locale)) {
+          const durationMs = Date.now() - t0;
+          logger.info('cron.investment-strategy', 'skipped_recent_local', { locale, durationMs });
+          return { locale, ok: true, source: 'skipped-recent-local', isAi: true, durationMs };
+        }
+
         const res = await fetch(`${baseUrl}/api/investment-strategy?force=1&locale=${locale}`, {
           signal: AbortSignal.timeout(270000), // 270s — cron maxDuration 여유 확보
           cache: 'no-store',
