@@ -67,15 +67,24 @@ function hashUrl(url: string): string {
 // ── RSS feeds ─────────────────────────────────────────────────────────────────
 // Tested 2026-04-26: Bloomberg returns 2 items locally, likely 0 on Vercel (IP/paywall block).
 // Replaced with MarketWatch Top Stories + Investing.com (10 items each, confirmed working).
-// WSJ(20) + SeekingAlpha(7) + Yahoo(20) + MarketWatch(10) + Investing(10) = ~67 candidates for top-7.
+// WSJ(20) + SeekingAlpha(7) + Yahoo(20) + MarketWatch(10) + Investing(10) = ~67 candidates for top-10.
 // requireFinancial=true: Investing.com / MarketWatch mix in non-financial articles (royalty, sports);
 // pre-filter keeps only items matching at least one financial keyword before dedup.
+// 2026-05-07: Added Reuters Tech/Business + Yahoo sector ETF feeds to improve thematic coverage
+// beyond individual company earnings — catches AI/semiconductor, energy, global macro themes.
 const RSS_FEEDS = [
+  // Broad market
   { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch', requireFinancial: true },
   { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com', requireFinancial: true },
   { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets', requireFinancial: false },
   { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha', requireFinancial: false },
   { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance', requireFinancial: false },
+  // Global thematic — Reuters (sector/macro/geopolitical)
+  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters Business', requireFinancial: true },
+  { url: 'https://feeds.reuters.com/reuters/technologyNews', source: 'Reuters Tech', requireFinancial: true },
+  // Sector ETF headlines — captures semiconductor, energy, biotech moves
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=SOXX,SMH,NVDA,AMAT,ANET&region=US&lang=en-US', source: 'Yahoo Semis', requireFinancial: true },
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=XLE,XOM,LNG,CVX,NEE&region=US&lang=en-US', source: 'Yahoo Energy', requireFinancial: true },
 ];
 
 // Minimum financial keyword signal required for requireFinancial feeds.
@@ -459,7 +468,7 @@ export async function GET(request: Request) {
     return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
   });
 
-  // De-duplicate by title similarity (keep top 7 most recent)
+  // De-duplicate by title similarity (keep top 10 most recent)
   const seen = new Set<string>();
   const deduped: RawNewsItem[] = [];
   for (const a of rawArticles) {
@@ -468,7 +477,7 @@ export async function GET(request: Request) {
       seen.add(key);
       deduped.push(a);
     }
-    if (deduped.length >= 7) break;
+    if (deduped.length >= 10) break;
   }
 
   if (deduped.length === 0) {
@@ -510,7 +519,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const settled = await Promise.allSettled(deduped.slice(0, 7).map(analyzeOne));
+  const settled = await Promise.allSettled(deduped.slice(0, 10).map(analyzeOne));
   const analyzed: NewsWithCascade[] = settled
     .map(r => r.status === 'fulfilled' ? r.value : null)
     .filter((v): v is NewsWithCascade => v != null);
