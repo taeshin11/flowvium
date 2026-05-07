@@ -259,7 +259,7 @@ export function buildRiskMgmtPrompt(input: RiskMgmtInput, locale = 'en'): string
 
 // ── Section 6: 시장 내러티브 (Why + Next) ─────────────────────────────────────
 // 시장이 왜 이렇게 움직이는지, 다음에 무엇을 봐야 하는지
-export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', locale = 'en'): string {
+export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', locale = 'en', sectorPe = ''): string {
   const today = new Date().toISOString().slice(0, 10);
   const lang = LOCALE_LANG[locale] ?? 'Korean';
   const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : '미국장 개장 전';
@@ -269,14 +269,19 @@ export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', lo
     `[Capital Flow Story] ${ctx.flows}`,
     `[News Events] ${ctx.news}`,
     `[Macro Context] ${ctx.macro}`,
+    `[Institutional & Insider Signals] ${ctx.institutional || 'No data'}`,
+    `[Sector Valuations & Returns] ${sectorPe || 'No data'}`,
+    `[Short Squeeze & Options Flow] ${ctx.shorts || 'No data'}`,
     '',
-    'Write 3 things:',
-    '1. WHY: 지금 시장이 이렇게 움직이는 핵심 이유 (1-2문장, 구체적)',
-    '2. WATCH: 다음 24-48시간 내 가장 중요한 관찰 포인트',
-    '3. STORY: 전반적인 시장 스토리 (투자자가 이해할 수 있게, 3문장)',
+    '## Theme extraction rules',
+    'From the data above, identify 2-4 specific hot investment themes currently driving markets.',
+    'Examples of good themes (name actual sector/tech/industry): "AI 반도체", "광통신", "전력 인프라", "바이오텍", "방산", "에너지", "핀테크", "클라우드", "Biotech", "Defense".',
+    'Do NOT write generic phrases like "테크", "성장주", "위험자산". Must be specific sub-sector or technology.',
+    'Derive themes from the actual news/flows/institutional data provided, not from training data.',
     '',
     'Respond in pure JSON:',
-    '{"why":"구체적 이유 100자","watch":"관찰포인트 80자","story":"시장스토리 200자","sessionNote":"이 세션의 특이사항 60자"}',
+    `{"why":"구체적 이유 100자","watch":"관찰포인트 80자","story":"시장스토리 200자","hotThemes":["specific theme 1","specific theme 2"],"sessionNote":"이 세션의 특이사항 60자"}`,
+    '- hotThemes: array of 2-4 strings, each ≤15 chars, in ' + lang + ', specific sector/technology names only.',
     'Pure JSON only.',
   ].join('\n');
 }

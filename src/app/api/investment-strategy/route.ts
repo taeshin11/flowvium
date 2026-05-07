@@ -1446,7 +1446,7 @@ export async function GET(request: Request) {
     callAIProvider(buildPortfolioPrompt(ctxWithRetro, sectorPe, earnings, priceData, locale), { ...aiOpts, tag: 'invest-portfolio', maxTokens: 1000 }),
     callAIProvider(buildRegionalPrompt(ctxForPrompts, locale),                              { ...aiOpts, tag: 'invest-regional',   maxTokens: 700 }),
     callAIProvider(buildOpportunityPrompt(ctxForPrompts, locale),                           { ...aiOpts, tag: 'invest-opportunity',maxTokens: 500 }),
-    callAIProvider(buildNarrativePrompt(ctxForPrompts, session, locale),                    { ...aiOpts, tag: 'invest-narrative',  maxTokens: 500 }),
+    callAIProvider(buildNarrativePrompt(ctxForPrompts, session, locale, sectorPe),          { ...aiOpts, tag: 'invest-narrative',  maxTokens: 600 }),
   ]);
 
   const macroData      = parseSec(macroResult.text);
