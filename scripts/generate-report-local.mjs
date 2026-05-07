@@ -904,8 +904,17 @@ function validateEntryZones(portfolioItems, livePrices) {
     const zoneNums = extractNums(p.entryZone);
     // Also flag entries that are >= 99% of current price (LLM wrote current price instead of entry zone)
     const isTooHigh = zoneNums.length > 0 && zoneNums.every(n => n >= actual * 0.99);
-    if (!zoneNums.length || !inRange(zoneNums) || isTooHigh) {
-      if (zoneNums.length) console.warn(`  ⚠️  ${p.ticker} entryZone="${p.entryZone}" vs actual ${fmt(actual)} → 보정 (${isTooHigh ? '현재가와 동일' : '범위 이탈'})`);
+    // [Fix P2] Clamp entryZone when HIGH bound < 80% of actual price (LLM used stale/wrong price)
+    const zoneHigh = zoneNums.length > 0 ? Math.max(...zoneNums) : 0;
+    const isTooLow = zoneNums.length > 0 && zoneHigh < actual * 0.80;
+    if (!zoneNums.length || !inRange(zoneNums) || isTooHigh || isTooLow) {
+      if (zoneNums.length) {
+        if (isTooLow) {
+          console.warn(`  ⚠️  ${p.ticker} entryZone clamped: was ${p.entryZone}, actual=${fmt(actual)} (high=${fmt(zoneHigh)} < 80% of actual)`);
+        } else {
+          console.warn(`  ⚠️  ${p.ticker} entryZone="${p.entryZone}" vs actual ${fmt(actual)} → 보정 (${isTooHigh ? '현재가와 동일' : '범위 이탈'})`);
+        }
+      }
       // Strategic entry: 4-7% below current (pullback buy zone, not current price)
       updated.entryZone = isKR
         ? `${fmt(Math.round(actual * 0.93))}-${fmt(Math.round(actual * 0.96))}`
@@ -1967,6 +1976,12 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     '',
     'Respond in pure JSON:',
     `{"why":"[≤100 chars in ${TARGET_LANG}]","watch":"[≤80 chars in ${TARGET_LANG}]","story":"[≤200 chars in ${TARGET_LANG}]","hotThemes":["specific theme 1","specific theme 2","specific theme 3"],"sessionNote":"[≤60 chars in ${TARGET_LANG}]"}`,
+    // [Fix P3] Force 'why' to cite at least one concrete data point (not vague generic text)
+    '## why field rules (MANDATORY)',
+    '- why MUST cite at least one specific data point: a named metric, percentage, index level, interest rate, or named market event.',
+    '- GOOD why: "S&P500 PER 22x 고평가 → 섹터로테이션, 10Y 국채 4.3% 하락 기대로 성장주 매수"',
+    '- BAD why: "전환기의 투자 유입 증가" (too vague — no numbers, no named metrics, no events)',
+    '- If no specific data point exists in context, write exactly: N/A',
     '- hotThemes: array of 2-4 strings, each ≤15 chars, in ${TARGET_LANG}, specific sector/technology names only.',
     'Pure JSON only.',
   ].join('\n');
@@ -2045,6 +2060,10 @@ function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sect
     '- catalysts must cite THIS ticker\'s actual product/event/financial data (NOT generic sector commentary)',
     '- riskNote must name THIS ticker\'s specific risk (NOT a generic industry risk reused across tickers)',
     '- If two tickers end up with identical catalysts or riskNote, you made an error — revise',
+    // [Fix P1] Per-ticker catalyst uniqueness: squeeze score and insider data must be ticker-specific
+    '- If Short Squeeze is cited as a catalyst, use the ACTUAL squeeze score from [Short Squeeze Candidates] for THAT specific ticker (NOT a shared fallback value). If the ticker is NOT listed there, do NOT mention squeeze at all.',
+    '- If Insider Buying is cited as a catalyst, reference the actual insider count or dollar amount from [Institutional & Insider Signals] for THAT ticker only. If no data exists for that ticker, do NOT include Insider Buying as a catalyst.',
+    '- Cross-check all tickers before responding: each ticker must have at least 2 catalysts that differ completely from every other ticker. Same catalyst text across tickers is an error.',
     '',
     'Respond in pure JSON (replace ALL placeholders with real data from context):',
     `{"stockDetails":[{"ticker":"[TICKER_1]","catalysts":["[company-specific event+number]","[second event]","[third]"],"fundamentalBasis":"[YoY%, margin%, P/E or PEG]","technicalBasis":"[MA status, RSI, vol]","riskNote":"[TICKER_1-unique risk ≤60 chars]"},{"ticker":"[TICKER_2]","catalysts":["[DIFFERENT event for TICKER_2]","..."],"fundamentalBasis":"...","technicalBasis":"...","riskNote":"[TICKER_2-unique risk]"}]}`,
@@ -2101,7 +2120,7 @@ function applyCritique(portfolio, critiqueRaw) {
       if (!ex || severity(c.verdict) > severity(ex.verdict)) bestCritique.set(c.ticker, c);
     }
 
-    return portfolio.map(p => {
+    const result = portfolio.map(p => {
       const c = bestCritique.get(p.ticker);
       if (!c || c.verdict === 'OK') return p;
       const corr = c.correction ?? '';
@@ -2114,18 +2133,30 @@ function applyCritique(portfolio, critiqueRaw) {
       }
 
       if (c.verdict === 'WARN') {
-        // Extract suggested allocation adjustment: "cut to X%" or "reduce to X%"
-        const allocMatch = corr.match(/(?:cut|reduce|lower|낮|줄).{0,15}?(\d+)%/i);
-        if (allocMatch) {
-          const suggested = parseInt(allocMatch[1], 10);
-          if (suggested > 0 && suggested < p.allocation) {
-            updated.allocation = suggested;
-          }
+        // [Fix P4] Parse allocation target from critique notes
+        // Pattern A: arrow pattern e.g. '21%->10%' or '26%=>10%'
+        const arrowMatch = corr.match(/(\d+)%\s*[-=]?>+\s*(\d+)%/);
+        // Pattern B: Korean/English reduction e.g. 'cut alloc to 10%' or '26%로 조정'
+        const cutMatch = corr.match(/(?:cut|reduce|lower|낙|줄|조정).{0,20}?(\d+)%/i);
+        const allocTarget = arrowMatch ? parseInt(arrowMatch[2], 10) : cutMatch ? parseInt(cutMatch[1], 10) : null;
+        if (allocTarget !== null && allocTarget > 0 && allocTarget < p.allocation) {
+          console.log(`    allocation adjusted: ticker=${p.ticker} old=${p.allocation}% new=${allocTarget}%`);
+          updated.allocation = allocTarget;
         }
       }
 
       return updated;
     });
+
+    // [Fix P4] Re-normalize allocations to sum to 100% after critique adjustments
+    const adjTotal = result.reduce((s, p) => s + (p.allocation ?? 0), 0);
+    if (adjTotal > 0 && Math.abs(adjTotal - 100) > 1) {
+      const normalized = result.map(p => ({ ...p, allocation: Math.round((p.allocation ?? 0) / adjTotal * 100) }));
+      const diff = 100 - normalized.reduce((s, p) => s + p.allocation, 0);
+      if (diff !== 0 && normalized.length) normalized[0].allocation += diff;
+      return normalized;
+    }
+    return result;
   } catch { return portfolio; }
 }
 

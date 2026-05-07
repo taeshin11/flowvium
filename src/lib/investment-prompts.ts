@@ -281,6 +281,12 @@ export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', lo
     '',
     'Respond in pure JSON:',
     `{"why":"구체적 이유 100자","watch":"관찰포인트 80자","story":"시장스토리 200자","hotThemes":["specific theme 1","specific theme 2"],"sessionNote":"이 세션의 특이사항 60자"}`,
+    // [Fix P3] Force 'why' to cite at least one concrete data point
+    '## why field rules (MANDATORY)',
+    '- why MUST cite at least one specific data point: a named metric, percentage, index level, interest rate, or named market event.',
+    '- GOOD why: "S&P500 PER 22x high -> sector rotation, 10Y treasury 4.3% decline expected driving growth stock buys"',
+    '- BAD why: "increased investment inflow during transition" (too vague, no numbers, no named events)',
+    '- If no specific data point is available in the context, write exactly: N/A',
     '- hotThemes: array of 2-4 strings, each ≤15 chars, in ' + lang + ', specific sector/technology names only.',
     'Pure JSON only.',
   ].join('\n');
@@ -334,6 +340,13 @@ export function buildStockDetailPrompt(input: StockDetailInput, locale = 'en'): 
     '  e.g., "200MA 위, RSI 55 중립, 거래량 20일평균 +18%"',
     '- riskNote: ≤60 chars — SINGLE biggest downside risk to the thesis with numbers if possible',
     '  e.g., "수출규제 확대 시 매출 15% 하락 위험" or "경쟁사 AMD Mi400 출시 압박"',
+    '',
+    // [Fix P1] Per-ticker catalyst uniqueness rules
+    '⚠️ PER-TICKER CATALYST RULES (violations corrupt the report):',
+    '- Each ticker must have UNIQUE catalysts drawn from its own data. Cross-ticker copy-paste is an error.',
+    '- If Short Squeeze is cited, use the ACTUAL squeeze score from [Short Squeeze Candidates] for THAT ticker only. If not listed, omit squeeze entirely.',
+    '- If Insider Buying is cited, reference the actual count/amount from [Institutional & Insider Signals] for THAT ticker. If absent, omit.',
+    '- Before finalizing, verify: no two tickers share the same catalyst text.',
     '',
     'CRITICAL: Use ONLY data present in the sections above. No hallucination.',
     'If data is unavailable for a field, use the most relevant available signal.',
