@@ -217,9 +217,12 @@ export function buildOpportunityPrompt(ctx: CtxForPrompts, locale = 'en'): strin
     'For INSIDER signals with 5+ filings (집중매매감지):',
     '- significance: why this matters (officer level, size)',
     '- pattern: accumulation vs single trade',
+    '- dateRange: EXACT period from [Insider + Institutional Signals] — format "YYYY-MM-DD~YYYY-MM-DD"',
+    '',
+    '⚠️ filings count MUST match exactly what appears in [집중매매감지] above — NEVER copy example numbers.',
     '',
     'Respond in pure JSON:',
-    '{"shortSqueeze":[{"ticker":"SMCI","score":48,"timing":"실적발표 전 48시간내 폭발 가능","risk":"추가 숏 진입 시 완화"}],"insiderSignals":[{"ticker":"CRWV","filings":63,"significance":"임원급 대규모 매집, 내부 정보 신호","pattern":"연속 매집"}],"topOpportunity":"가장 주목할 기회 1개 100자"}',
+    '{"shortSqueeze":[{"ticker":"[TICKER]","score":0,"timing":"[≤40 chars]","risk":"[≤40 chars]"}],"insiderSignals":[{"ticker":"[TICKER]","filings":[EXACT_COUNT_FROM_DATA],"dateRange":"[YYYY-MM-DD~YYYY-MM-DD from data]","significance":"[≤40 chars]","pattern":"[≤30 chars]"}],"topOpportunity":"[≤100 chars]"}',
     'Pure JSON only.',
   ].join('\n');
 }

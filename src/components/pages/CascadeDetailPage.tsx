@@ -197,7 +197,7 @@ export default function CascadeDetailPage({ sector }: { sector: string }) {
                     CASCADE {isPositive ? '상승' : '하락'} 진행중 {leaderRet1w! >= 0 ? '+' : ''}{leaderRet1w!.toFixed(1)}% 1W
                   </span>
                 )}
-                {leaderPrice?.price && (
+                {leaderPrice?.price != null && (
                   <span className="text-sm font-mono text-gray-600">
                     ${leaderPrice.price.toFixed(2)}
                     {leaderPrice.changePct != null && (

@@ -153,14 +153,14 @@ export interface InvestmentStrategy {
   riskLevel: 'low' | 'medium' | 'high';
   // S4: 기회 신호
   shortSqueeze?: Array<{ ticker: string; score: number; timing: string; risk: string }>;
-  insiderSignals?: Array<{ ticker: string; filings: number; significance: string; pattern: string }>;
+  insiderSignals?: Array<{ ticker: string; filings: number; dateRange?: string; significance: string; pattern: string }>;
   topOpportunity?: string;
   // S5: 리스크 관리
   stopLossRationale?: Array<{ ticker: string; rationale: string }>;
   hedgingSuggestion?: string;
   portfolioRiskNote?: string;
   // S6: 시장 내러티브
-  marketNarrative?: { why: string; watch: string; story: string; sessionNote: string };
+  marketNarrative?: { why: string; watch: string; story: string; hotThemes?: string[]; sessionNote: string };
   // S8: 기업 변화 모니터링
   companyChanges?: Array<{
     ticker: string;
@@ -508,7 +508,20 @@ Key rules:
 Key rules:
 1. portfolio: 6-8 items — mix US stocks, US ETFs, and country ETFs (EWY=Korea, EWJ=Japan, FXI=China, VGK=Europe, INDA=India, EWT=Taiwan, EWZ=Brazil)
 2. EACH portfolio item MUST have "market" field: country code (us/korea/japan/china/europe/india/taiwan/brazil/australia/global)
-3. entryZone/stopLoss/target: actual $ ranges based on live prices (e.g. price=$209 → entryZone="$205-211")
+3. entryZone: derive from TECHNICAL + FUNDAMENTAL + GURU analysis.
+   TECHNICAL: use MA/support levels from live prices context:
+     - If RSI>70 (overbought): entry at 200MA level or 8-15% pullback from current
+     - If RSI 50-70: entry near 50MA support level (not current price)
+     - If RSI<50: entry near current (already at discount)
+   FUNDAMENTAL: apply margin of safety based on valuation:
+     - Growth stock (PEG 1.0-1.5): entry 10-15% below recent high
+     - Value stock (P/E < sector): entry near current if P/E justified
+   GURU: match entry logic to portfolio guru:
+     - Lynch (PEG<1): enter at current, target = PEG*EPS*20
+     - Druckenmiller: enter only after MA confirmation
+     - Buffett/value: 20-30% discount to intrinsic value
+   stopLoss: BELOW 200MA or -10% below entry, whichever is lower.
+   target: earnings/catalyst driven, minimum +10% above current.
 4. rationale (≤100 chars): MUST include ALL of these that apply:
    a) 4W return if available (e.g. "4주+25%")
    b) Overextension warning — use Bollinger Band data above + F&G:
@@ -669,19 +682,25 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
       if (recent.length) institutional += ` | Insider buys: ${recent.join(', ')}`;
 
       // Cluster detection: tickers with 5+ filings = unusually concentrated insider activity
-      const clusterMap = new Map<string, { buys: number; sells: number; totalUsd: number }>();
+      const clusterMap = new Map<string, { buys: number; sells: number; totalUsd: number; dates: string[] }>();
       for (const i of insider) {
         const t = i.ticker as string; if (!t) continue;
-        const c = clusterMap.get(t) ?? { buys: 0, sells: 0, totalUsd: 0 };
+        const c = clusterMap.get(t) ?? { buys: 0, sells: 0, totalUsd: 0, dates: [] };
         if (i.direction === 'buy') c.buys++; else c.sells++;
         c.totalUsd += (i.transactionValueUsd as number) ?? 0;
+        const d = (i.transactionDate ?? i.filingDate) as string | undefined;
+        if (d) c.dates.push(d);
         clusterMap.set(t, c);
       }
       const hotTickers = Array.from(clusterMap.entries())
         .filter(([, c]) => c.buys + c.sells >= 5)
         .sort((a, b) => (b[1].buys + b[1].sells) - (a[1].buys + a[1].sells))
         .slice(0, 3)
-        .map(([t, c]) => `${t}(${c.buys}buy/${c.sells}sell $${Math.round(c.totalUsd / 1000)}K)`);
+        .map(([t, c]) => {
+          const sorted = [...c.dates].sort();
+          const dr = sorted.length > 1 ? `${sorted[0]}~${sorted[sorted.length - 1]}` : (sorted[0] ?? '');
+          return `${t}(${c.buys}buy/${c.sells}sell $${Math.round(c.totalUsd / 1000)}K${dr ? ` ${dr}` : ''})`;
+        });
       if (hotTickers.length) institutional += ` | 집중매매감지: ${hotTickers.join(', ')}`;
     }
   } catch { /* ignore */ }
@@ -736,20 +755,19 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
   let news = '';
   try {
     const cascadeArr = (ctx.cascade as Array<Record<string, unknown>>) ?? [];
-    // Prioritize Fed/ECB/macro policy news, then earnings, then general
-    const sorted = [...cascadeArr].sort((a, b) => {
-      const isFedA = /powell|fomc|fed|ecb|lagarde|monetary|rate/i.test(String(a.title ?? a.summary));
-      const isFedB = /powell|fomc|fed|ecb|lagarde|monetary|rate/i.test(String(b.title ?? b.summary));
-      return (isFedB ? 1 : 0) - (isFedA ? 1 : 0);
-    });
-    const topNews = sorted.slice(0, 5).map(n => {
+    const isFedArticle = (n: Record<string, unknown>) =>
+      /powell|fomc|fed|ecb|lagarde|boj|monetary|rate cut|rate hike/i.test(String(n.title ?? n.summary));
+    // Fed articles capped at 2 — prevents macro news from squeezing out sector/company themes
+    const fedArticles = cascadeArr.filter(isFedArticle).slice(0, 2);
+    const sectorArticles = cascadeArr.filter(n => !isFedArticle(n));
+    const mixed = [...fedArticles, ...sectorArticles].slice(0, 6);
+    const topNews = mixed.map(n => {
       const sent = n.sentiment === 'bullish' ? '↑' : n.sentiment === 'bearish' ? '↓' : '·';
-      const isFed = /powell|fomc|fed|ecb|lagarde|boj|monetary|rate cut|rate hike/i.test(String(n.title ?? n.summary));
-      const prefix = isFed ? '[연준/중앙은행]' : '';
-      const text = ((n.summary as string) || (n.title as string) || '').slice(0, 60);
+      const prefix = isFedArticle(n) ? '[연준]' : '';
+      const text = ((n.summary as string) || (n.title as string) || '').slice(0, 70);
       const impacts = ((n.cascades as Array<Record<string, unknown>>) ?? [])
         .filter(c => (c.magnitude === 'high' || c.magnitude === 'medium') && c.direction !== 'neutral')
-        .slice(0, 2)
+        .slice(0, 3)
         .map(c => `${c.asset}${c.direction === 'positive' ? '↑' : '↓'}`)
         .join(',');
       return impacts ? `${sent}${prefix}${text}(${impacts})` : `${sent}${prefix}${text}`;

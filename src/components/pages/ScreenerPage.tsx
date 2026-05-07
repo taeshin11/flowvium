@@ -96,7 +96,7 @@ function parseVal(v: string): number {
   if (v.endsWith('B')) return n * 1e9;
   if (v.endsWith('M')) return n * 1e6;
   if (v.endsWith('K')) return n * 1e3;
-  return n || 0;
+  return Number.isNaN(n) ? 0 : n;
 }
 
 function fmtUsd(v: number): string {

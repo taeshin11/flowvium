@@ -368,8 +368,8 @@ export default function ComparePage({ slug }: { slug: string }) {
       .slice(0, 5)
       .map((name) => ({
         name: name.length > 16 ? name.slice(0, 16) + '…' : name,
-        [company1.ticker]: company1.revenue.segments.find((s) => s.name === name)?.percentage || 0,
-        [company2.ticker]: company2.revenue.segments.find((s) => s.name === name)?.percentage || 0,
+        [company1.ticker]: company1.revenue.segments.find((s) => s.name === name)?.percentage ?? 0,
+        [company2.ticker]: company2.revenue.segments.find((s) => s.name === name)?.percentage ?? 0,
       }));
   }, [company1, company2]);
 
@@ -439,7 +439,7 @@ export default function ComparePage({ slug }: { slug: string }) {
                 v1: mcLabel[company1.marketCap]?.split(' ')[0],
                 v2: mcLabel[company2.marketCap]?.split(' ')[0],
                 winner:
-                  (marketCapOrder[company1.marketCap] || 0) > (marketCapOrder[company2.marketCap] || 0) ? 'left' : 'right',
+                  (marketCapOrder[company1.marketCap] ?? 0) > (marketCapOrder[company2.marketCap] ?? 0) ? 'left' : 'right',
               },
               {
                 label: t('chainRole'),

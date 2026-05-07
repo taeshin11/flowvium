@@ -364,7 +364,7 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
       name: c.name,
       ticker: c.ticker,
       sector: c.sector,
-      val: marketCapSizes[capFor(c)] || getRoleSize(c.role),
+      val: marketCapSizes[capFor(c)] ?? getRoleSize(c.role),
       color: sectorColorMap[c.sector] || '#888',
     }));
 
@@ -523,7 +523,7 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
               ) => {
                 const x = node.x as number;
                 const y = node.y as number;
-                const val = (node.val as number) || 6;
+                const val = (node.val as number) ?? 6;
                 const color = (node.color as string) || '#888';
                 const label = (node.ticker as string) || '';
                 const r = Math.sqrt(val) * 4;

@@ -1,4 +1,4 @@
-﻿export interface GuruCriteria {
+export interface GuruCriteria {
   name: string;
   nameKo: string;
   style: string;
@@ -142,14 +142,42 @@ export const GURU_METHODOLOGIES: GuruCriteria[] = [
   },
 ];
 
+/**
+ * Returns a compact multi-guru prompt context string for the LLM.
+ *
+ * Included gurus (indices 0-6, .slice(0, 7)):
+ *   0 Warren Buffett         — value/moat/DCF
+ *   1 Peter Lynch            — growth/PEG/consumer
+ *   2 Joel Greenblatt        — magic formula/ROIC
+ *   3 Benjamin Graham        — net-net/Graham Number
+ *   4 Philip Fisher          — scuttlebutt/R&D/growth
+ *   5 Howard Marks           — cycle/contrarian/risk-premium
+ *   6 Stanley Druckenmiller  — macro/liquidity/momentum
+ *
+ * Michael Burry (index 7) is intentionally deferred: his catalyst-heavy
+ * deep-value framework requires more context than the current token budget
+ * allows and overlaps significantly with Graham's value signals.
+ *
+ * --- Generated context preview (7 gurus, entrySignals x2 + keyMetrics x2) ---
+ * 워렌 버핑(Warren Buffett): Entry=ROE > 15% for 10 consecutive years | Debt/Equity < 0.5; Metrics=ROE, FCF yield; Target=DCF with 15% discount rate, 10-year FCF projection; target = intrinsic val
+ * 피터 린치(Peter Lynch): Entry=PEG ratio < 1 (P/E divided by EPS growth rate) | Invest in what you know -- consumer/retail preference; Metrics=PEG ratio, EPS growth rate; Target=Target P/E = 2 x EPS growth rate; 10-bagger = 10x return over 5 yea
+ * 조엘 그린블라트(Joel Greenblatt): Entry=Magic Formula: high earnings yield (EBIT/EV) + high ROIC | Earnings yield > 10% (EBIT/Enterprise Value); Metrics=EBIT/EV, ROIC; Target=Reversion to mean valuation; target EV/EBIT normalization within 2-3
+ * 벤저민 그레이엄(Benjamin Graham): Entry=P/E x P/B < 22.5 (Graham Number) | P/E < 15 and P/B < 1.5; Metrics=Graham Number, P/B; Target=Graham Number = sqrt(22.5 x EPS x Book Value per share)
+ * 필립 피셔(Philip Fisher): Entry=Scuttlebutt: industry checks confirm competitive advantage | R&D as % of sales > competitors; Metrics=Profit margin, R&D/Sales; Target=Buy and hold indefinitely if growth thesis intact; no fixed price target
+ * 하워드 마크스(Howard Marks): Entry=Second-level thinking: consensus is wrong, contrarian opportunity | Market cycle: buy aggressively in fear/panic, reduce in greed; Metrics=Yield spread, Sentiment indicator; Target=Risk-adjusted: buy when probability-weighted return >> downside risk; targe
+ * 스탠리 드러켄밀러(Stanley Druckenmiller): Entry=Liquidity-driven: Fed easing = buy equities/risk assets | Earnings inflection: first derivative of earnings acceleration; Metrics=Fed funds trend, EPS momentum; Target=Momentum-based; target set at resistance level with trailing stop; hold as lo
+ * ---
+ */
 export function getGuruPromptContext(_tickers: string[]): string {
-  const top5 = GURU_METHODOLOGIES.slice(0, 5);
+  // Michael Burry (index 7) intentionally deferred — catalyst-heavy deep-value
+  // framework needs more token budget; overlaps with Graham for most use cases.
+  const topGurus = GURU_METHODOLOGIES.slice(0, 7);
   return [
     '[GURU INVESTMENT FRAMEWORKS -- use these to diversify entry/target rationale]',
     'When generating entryRationale and targetRationale, cite MULTIPLE frameworks, not just technicals:',
-    ...top5.map(
+    ...topGurus.map(
       (g) =>
-        `${g.nameKo}(${g.name}): Entry=${g.entrySignals[0]}; Target=${g.targetMethod.slice(0, 80)}`,
+        `${g.nameKo}(${g.name}): Entry=${g.entrySignals.slice(0, 2).join(' | ')}; Metrics=${g.keyMetrics.slice(0, 2).join(', ')}; Target=${g.targetMethod.slice(0, 80).trimEnd()}`,
     ),
     '',
     'RULE: entryRationale must include at least one NON-technical signal when fundamental data available.',

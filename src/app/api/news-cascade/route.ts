@@ -312,7 +312,7 @@ Analyze the cascade effects of this news on financial markets. Respond in the fo
   "importance": "high|medium|low",
   "cascades": [
     {
-      "asset": "asset name (e.g. S&P500, Gold, Dollar, Semiconductors, Bonds)",
+      "asset": "specific asset or sub-sector name — use the most specific applicable term, e.g.: 'AI Semiconductors', 'Fiber Optics', 'Power Infrastructure', 'Data Centers', 'Defense', 'Biotech', 'EV Batteries', 'Cloud Software', 'Energy', 'S&P500', 'Gold', 'Dollar', 'Bonds'",
       "direction": "positive|negative|neutral",
       "magnitude": "high|medium|low",
       "reason": "reason for the impact (1 sentence)",
@@ -320,7 +320,7 @@ Analyze the cascade effects of this news on financial markets. Respond in the fo
     }
   ]
 }
-Include 3-5 cascade items.`;
+Include 3-5 cascade items. Use specific sub-sector names (e.g. 'AI Semiconductors' not just 'Technology') when the news clearly targets a sub-sector.`;
 }
 
 function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
@@ -510,7 +510,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const settled = await Promise.allSettled(deduped.slice(0, 5).map(analyzeOne));
+  const settled = await Promise.allSettled(deduped.slice(0, 7).map(analyzeOne));
   const analyzed: NewsWithCascade[] = settled
     .map(r => r.status === 'fulfilled' ? r.value : null)
     .filter((v): v is NewsWithCascade => v != null);

@@ -126,12 +126,23 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
   const t = useTranslations('report');
   const confidenceLabel = item.confidence === 'high' ? t('confidenceHigh') : item.confidence === 'low' ? t('confidenceLow') : t('confidenceMedium');
   const badge = safetyBadge(item.currentPrice, item.entryZone, t as Tr);
+  const isWatch = item.action === 'watch';
   return (
-    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow">
+    <div className={`rounded-xl overflow-hidden hover:shadow-md transition-shadow ${isWatch ? 'border-2 border-orange-400 bg-orange-50' : 'border border-gray-200 bg-white'}`}>
+      {isWatch && (
+        <div className="bg-orange-500 px-4 py-2">
+          <div className="flex items-start gap-1.5">
+            <span className="text-xs font-bold text-white shrink-0">⚠️ 관망</span>
+            <span className="text-xs text-orange-100 leading-relaxed">
+              {item.critiqueNote ?? item.riskNote ?? '현재가 고점권 — 조정 후 재진입 검토'}
+            </span>
+          </div>
+        </div>
+      )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${isWatch ? 'bg-orange-400' : 'bg-gradient-to-br from-violet-500 to-blue-500'}`}>
               {rank}
             </div>
             <div>
@@ -140,8 +151,8 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
                 {item.action === 'buy' && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-500 text-white">{t('actionBuy')}</span>
                 )}
-                {item.action === 'watch' && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-700">{t('actionWatch')}</span>
+                {isWatch && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-orange-500 text-white border border-orange-600">⚠️ {t('actionWatch')}</span>
                 )}
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${confidenceBadge(item.confidence)}`}>
                   {confidenceLabel}
@@ -202,8 +213,8 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
       </div>
 
       {/* Detail section — always visible */}
-      {(item.action === 'buy') && (item.catalysts?.length || item.fundamentalBasis || item.technicalBasis || item.riskNote || item.entryRationale || item.targetRationale) && (
-        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-2.5">
+      {(item.action === 'buy' || isWatch) && (item.catalysts?.length || item.fundamentalBasis || item.technicalBasis || item.riskNote || item.entryRationale || item.targetRationale || item.critiqueNote) && (
+        <div className={`border-t px-4 py-3 space-y-2.5 ${isWatch ? 'border-orange-200 bg-orange-50/60' : 'border-gray-100 bg-gray-50'}`}>
           {item.catalysts && item.catalysts.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">{t('catalystsLabel')}</p>
@@ -233,10 +244,16 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
               )}
             </div>
           )}
-          {item.riskNote && (
+          {item.riskNote && !isWatch && (
             <div className="bg-red-50 rounded-lg border border-red-100 px-2.5 py-1.5">
               <p className="text-[10px] font-bold text-red-600 mb-0.5">{t('riskNoteLabel')}</p>
               <p className="text-xs text-red-700 leading-relaxed">{item.riskNote}</p>
+            </div>
+          )}
+          {item.riskNote && isWatch && item.critiqueNote && item.riskNote !== item.critiqueNote && (
+            <div className="bg-orange-50 rounded-lg border border-orange-200 px-2.5 py-1.5">
+              <p className="text-[10px] font-bold text-orange-700 mb-0.5">⚠️ {t('riskNoteLabel')}</p>
+              <p className="text-xs text-orange-800 leading-relaxed">{item.riskNote}</p>
             </div>
           )}
           {item.entryRationale && (
@@ -594,6 +611,13 @@ export default function ReportPage() {
                 )}
               </div>
               <div className="space-y-2">
+                {Array.isArray(data.marketNarrative.hotThemes) && data.marketNarrative.hotThemes.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-1">
+                    {(data.marketNarrative.hotThemes as string[]).map((theme: string, i: number) => (
+                      <span key={i} className="text-[11px] font-semibold text-orange-700 bg-orange-100 border border-orange-200 px-2 py-0.5 rounded-full">🔥 {theme}</span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeWhy')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.why}</span></div>
                 <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeWatch')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.watch}</span></div>
                 <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeStory')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.story}</span></div>
@@ -672,6 +696,9 @@ export default function ReportPage() {
                       <div key={i} className="mb-2 text-xs">
                         <span className="font-bold text-orange-800">{s.ticker}</span>
                         <span className="text-orange-600 ml-1">{s.filings}{t('filingUnit')}</span>
+                        {s.dateRange && (
+                          <span className="text-gray-400 ml-1 text-[10px]">({s.dateRange})</span>
+                        )}
                         <p className="text-gray-600 mt-0.5">{s.significance}</p>
                         <p className="text-gray-500 text-[10px]">{s.pattern}</p>
                       </div>

@@ -192,8 +192,8 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                           )}
                         </td>
                         {TF_COLS.map(c => (
-                          <td key={c.key} className={`text-right py-1.5 font-bold tabular-nums ${item[c.key] >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                            {item[c.key] > 0 ? '+' : ''}{item[c.key].toFixed(1)}%
+                          <td key={c.key} className={`text-right py-1.5 font-bold tabular-nums ${(item[c.key] ?? 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {(item[c.key] ?? 0) > 0 ? '+' : ''}{(item[c.key] ?? 0).toFixed(1)}%
                           </td>
                         ))}
                         <td className={`text-right py-1.5 text-[10px] font-bold ${trendColor}`}>{trend}</td>
@@ -233,8 +233,8 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                           )}
                         </td>
                         {TF_COLS.map(c => (
-                          <td key={c.key} className={`text-right py-1.5 font-bold tabular-nums ${item[c.key] >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                            {item[c.key] > 0 ? '+' : ''}{item[c.key].toFixed(1)}%
+                          <td key={c.key} className={`text-right py-1.5 font-bold tabular-nums ${(item[c.key] ?? 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {(item[c.key] ?? 0) > 0 ? '+' : ''}{(item[c.key] ?? 0).toFixed(1)}%
                           </td>
                         ))}
                         <td className={`text-right py-1.5 text-[10px] font-bold ${trendColor}`}>{trend}</td>
@@ -280,10 +280,10 @@ function FlowIntensityPanel({ data }: { data: FlowData }) {
                 <span className="text-base leading-none">{item.flag}</span>
                 <span className="text-xs font-bold text-green-700">{t(ITEM_LABEL_KEY[item.id] ?? 'cfLblUsStocks')}</span>
                 <span className="text-xs font-bold text-green-600 ml-auto tabular-nums">
-                  4w {item.ret4w > 0 ? '+' : ''}{item.ret4w.toFixed(1)}%
+                  4w {(item.ret4w ?? 0) > 0 ? '+' : ''}{(item.ret4w ?? 0).toFixed(1)}%
                 </span>
-                <span className={`text-[10px] tabular-nums ${item.ret1w >= 0 ? 'text-green-500' : 'text-orange-500'}`}>
-                  1w {item.ret1w > 0 ? '+' : ''}{item.ret1w.toFixed(1)}%
+                <span className={`text-[10px] tabular-nums ${(item.ret1w ?? 0) >= 0 ? 'text-green-500' : 'text-orange-500'}`}>
+                  1w {(item.ret1w ?? 0) > 0 ? '+' : ''}{(item.ret1w ?? 0).toFixed(1)}%
                 </span>
               </div>
               <div className="px-3 py-2 flex gap-4">

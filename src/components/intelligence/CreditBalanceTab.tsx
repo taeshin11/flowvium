@@ -167,10 +167,10 @@ export default function CreditBalanceTab() {
           </div>
           <div className="cf-card p-3 text-center">
             <div className="text-base font-extrabold text-red-600 truncate">
-              {globalSnapshot.fastestGrowing[0]?.flag} {globalSnapshot.fastestGrowing[0]?.country}
+              {globalSnapshot.fastestGrowing[0]?.flag ?? ''} {globalSnapshot.fastestGrowing[0]?.country ?? '—'}
             </div>
             <div className="text-[10px] text-cf-text-secondary mt-0.5">{t('cbFastestGrowing')}</div>
-            <div className="text-[11px] font-bold text-red-500">+{globalSnapshot.fastestGrowing[0]?.changeYoY.toFixed(1)}% YoY</div>
+            <div className="text-[11px] font-bold text-red-500">+{(globalSnapshot.fastestGrowing[0]?.changeYoY ?? 0).toFixed(1)}% YoY</div>
           </div>
         </div>
       )}

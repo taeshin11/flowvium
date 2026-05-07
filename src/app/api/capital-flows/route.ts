@@ -396,6 +396,7 @@ function buildRotations(
   priceMap: Record<string, number[]>,
   retKey: 'ret1w' | 'ret4w' | 'ret13w',
   minSpread: number,
+  maxWeeks: number,
 ): RotationEntry[] {
   const groupPerf: Record<string, number[]> = {};
   for (const r of results) {
@@ -414,7 +415,7 @@ function buildRotations(
     for (let j = i + 1; j < groupAvg.length; j++) {
       const spread = groupAvg[i].avg - groupAvg[j].avg;
       if (spread > minSpread) {
-        const timing = estimateRotationStart(priceMap, groupAvg[i].group, groupAvg[j].group, ASSETS, 13);
+        const timing = estimateRotationStart(priceMap, groupAvg[i].group, groupAvg[j].group, ASSETS, maxWeeks);
         rotations.push({
           from: groupAvg[j].group,
           to: groupAvg[i].group,
@@ -447,9 +448,9 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
     topInflows,
     topOutflows,
     groupAvg,
-    rotations1w:  buildRotations(results, priceMap, 'ret1w',  thresholds['1w']),
-    rotations4w:  buildRotations(results, priceMap, 'ret4w',  thresholds['4w']),
-    rotations13w: buildRotations(results, priceMap, 'ret13w', thresholds['13w']),
+    rotations1w:  buildRotations(results, priceMap, 'ret1w',  thresholds['1w'],  4),
+    rotations4w:  buildRotations(results, priceMap, 'ret4w',  thresholds['4w'],  4),
+    rotations13w: buildRotations(results, priceMap, 'ret13w', thresholds['13w'], 13),
   };
 }
 
