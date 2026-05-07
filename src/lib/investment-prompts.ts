@@ -443,18 +443,25 @@ export function applyCritique(
     const critiques = parsed.critiques ?? [];
     if (!critiques.length) return portfolio;
 
+    // ticker당 최고 심각도 critique만 적용 (REVISE > WARN > OK)
+    const severity: Record<string, number> = { REVISE: 3, WARN: 2, OK: 1 };
+    const bestCritique = new Map<string, { ticker: string; verdict: string; correction: string }>();
+    for (const c of critiques) {
+      const key = c.ticker.toUpperCase();
+      const prev = bestCritique.get(key);
+      if (!prev || (severity[c.verdict] ?? 0) > (severity[prev.verdict] ?? 0)) bestCritique.set(key, c);
+    }
+
+    const shouldWatchRe = /watch|hold|avoid|wait|진입금지|관망|대기|관찰|보류|철회|매수 취소|취소|overextended|overbought|매도|비중 축소|줄이기|오버확장|집중 매매|조정 및 매도|전환/i;
+
     return portfolio.map(p => {
-      const c = critiques.find(cr => cr.ticker === p.ticker);
+      const c = bestCritique.get(p.ticker.toUpperCase());
       if (!c) return p;
+      const updated = { ...p, critiqueNote: c.correction.slice(0, 100) };
       if (c.verdict === 'REVISE') {
-        // action 수정 (4d4sig → watch)
-        const newAction = c.correction.includes('진입금지') || c.correction.includes('WARN') ? 'watch' : p.action;
-        return { ...p, action: newAction, rationale: `[수정] ${c.correction}`.slice(0, 100) };
+        if (shouldWatchRe.test(c.correction)) updated.action = 'watch' as const;
       }
-      if (c.verdict === 'WARN') {
-        return { ...p, rationale: `${p.rationale} ⚠️${c.correction}`.slice(0, 100) };
-      }
-      return p;
+      return updated;
     });
   } catch { return portfolio; }
 }

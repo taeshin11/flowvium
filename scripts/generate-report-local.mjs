@@ -917,8 +917,9 @@ function validateEntryZones(portfolioItems, livePrices) {
       updated.stopLoss = fmt(isKR ? Math.round(actual * 0.92) : parseFloat((actual * 0.92).toFixed(2)));
     }
     const targetNums = extractNums(p.target);
-    if (targetNums.length && !inRange(targetNums)) {
-      console.warn(`  ⚠️  ${p.ticker} target="${p.target}" vs actual ${fmt(actual)} → 보정`);
+    const targetTooLow = targetNums.length > 0 && targetNums.every(n => n < actual * 0.99);
+    if (targetNums.length && (!inRange(targetNums) || targetTooLow)) {
+      console.warn(`  ⚠️  ${p.ticker} target="${p.target}" vs actual ${fmt(actual)} → 보정 (${targetTooLow ? '현재가 이하' : '범위 이탈'})`);
       updated.target = fmt(isKR ? Math.round(actual * 1.15) : parseFloat((actual * 1.15).toFixed(2)));
     }
     return updated;
@@ -2108,7 +2109,7 @@ function applyCritique(portfolio, critiqueRaw) {
 
       if (c.verdict === 'REVISE') {
         // Check if correction suggests downgrade to watch/hold
-        const shouldWatch = /watch|hold|avoid|wait|진입금지|관망|대기|관찰|보류|철회|매수 취소|취소|overextended|overbought/.test(corr.toLowerCase());
+        const shouldWatch = /watch|hold|avoid|wait|진입금지|관망|대기|관찰|보류|철회|매수 취소|취소|overextended|overbought|매도|비중 축소|줄이기|오버확장|집중 매매|조정 및 매도|전환/.test(corr.toLowerCase());
         if (shouldWatch) updated.action = 'watch';
       }
 
@@ -2276,12 +2277,13 @@ async function generateViaOllama() {
   console.log(`  macro=${!!macroData}(riskLevel:${macroData?.riskLevel ?? 'N/A'}), portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}(${Object.keys(regionalData?.regionStances ?? {}).length}지역)`);
   console.log(`  opportunity=${!!opportunityData}(squeeze:${opportunityData?.shortSqueeze?.length ?? 0}), narrative=${!!narrativeData}`);
 
-  // Portfolio retry — portfolio failure is fatal
-  if (!portfolioData?.portfolio?.length) {
-    console.log('  portfolio parse failed — retrying once...');
+  // Portfolio retry — 5개 미만이면 재시도 (fatal)
+  if ((portfolioData?.portfolio?.length ?? 0) < 5) {
+    const gotCount = portfolioData?.portfolio?.length ?? 0;
+    console.log(`  portfolio ${gotCount}개 (최소 5 미달) — retrying once...`);
     const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 180000, 'portfolio-retry');
     const portfolioRetryData = parseJson(portfolioRetry, 'portfolio-retry');
-    if (!portfolioRetryData?.portfolio?.length) {
+    if ((portfolioRetryData?.portfolio?.length ?? 0) < 3) {
       console.error('❌ Wave1 포트폴리오 생성 실패 (2회). 종료합니다.');
       process.exit(1);
     }
