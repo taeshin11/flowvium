@@ -129,6 +129,30 @@ const DATA: CountryCreditData[] = [
 
 ---
 
+## 💸 Vercel 빌드 시간 절감 규칙 (필수 — 2026-04-24 사건 이후 신설)
+
+**발생 경위:** 2026-04-24 하루 master push 139건 × 평균 빌드 ~97초 = **3시간 46분 빌드 시간 누적**.
+이 중 다수가 `research_history/`, `*.md` 만 변경한 docs-only 커밋이라 빌드 자체가 낭비.
+
+### 규칙
+
+1. **로컬에서 commit 여러 개 누적 후 1번 push** — 매 commit마다 push 금지 (push 1회 = build 1회).
+2. **docs-only 커밋은 자동 skip** — `vercel.json`의 `ignoreCommand: bash scripts/vercel-should-build.sh` 가
+   다음 경로만 변경된 push 시 빌드를 스킵한다:
+   - `research_history/`, `reports/`, `logs/`, `.claude/`, `*.md`
+3. **새 docs 경로 추가 시 `scripts/vercel-should-build.sh` 의 exclude 목록 갱신**.
+4. **`scripts/check-cron-cost.mjs` 도 같이 통과해야 함** — cron 비용 폭증 방지 (Vercel 과금 사건 후 신설).
+
+### 자동 검증
+
+```bash
+# docs-only 변경인지 확인
+bash scripts/vercel-should-build.sh
+# exit 0 = skip (docs-only) / exit 1 = build (code changed)
+```
+
+---
+
 ## 🔄 `/loop` 검증 프로토콜 (필수)
 
 `/loop` 실행 중 "verify-metrics / 값 정합성 검증 / live test" 류의 지시가 있으면
