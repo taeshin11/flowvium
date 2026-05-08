@@ -194,7 +194,7 @@ Respond ONLY in JSON: {"activityScore":<0-100>,"vehicleDensity":"low"|"medium"|"
 // ── 히스토리 + 베이스라인 ─────────────────────────────────────────────────────
 interface HistoryEntry { activityScore: number; confidence: string; imageDate: string; }
 
-async function loadHistory(factoryId: string, redis: ReturnType<typeof createRedis>): Promise<HistoryEntry[]> {
+async function loadHistory(factoryId: string, redis: NonNullable<ReturnType<typeof createRedis>>): Promise<HistoryEntry[]> {
   try {
     const key = `flowvium:satellite:history:${factoryId}`;
     const raw = await redis.lrange<string>(key, 0, 9);
@@ -229,6 +229,7 @@ export async function GET(req: Request) {
   }
 
   const redis = createRedis();
+  if (!redis) return NextResponse.json({ error: 'Redis not configured' }, { status: 503 });
   const today = new Date().toISOString().slice(0, 10);
   const start = Date.now();
 

@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const redis = createRedis();
+    if (!redis) return NextResponse.json({ error: 'Redis not configured' }, { status: 503 });
     const key = `flowvium:satellite:img:${id}`;
     const base64 = await redis.get<string>(key);
 
