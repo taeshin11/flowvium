@@ -158,9 +158,19 @@ Respond ONLY in JSON: {"activityScore":<0-100>,"vehicleDensity":"low"|"medium"|"
         const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
         const text = data.choices?.[0]?.message?.content ?? '';
         const match = text.match(/\{[\s\S]*\}/);
-        if (match) return JSON.parse(match[0]) as VisionResult;
+        if (match) {
+          logger.info('cron.satellite-scan', 'vision_ok', { factory: factory.id, provider: 'openrouter' });
+          return JSON.parse(match[0]) as VisionResult;
+        }
+        logger.warn('cron.satellite-scan', 'vision_no_json', { factory: factory.id, provider: 'openrouter', preview: text.slice(0, 80) });
+      } else {
+        logger.warn('cron.satellite-scan', 'vision_http_err', { factory: factory.id, provider: 'openrouter', status: res.status });
       }
-    } catch { /* fall through */ }
+    } catch (e) {
+      logger.warn('cron.satellite-scan', 'vision_exception', { factory: factory.id, provider: 'openrouter', error: String(e) });
+    }
+  } else {
+    logger.warn('cron.satellite-scan', 'vision_no_key', { factory: factory.id, provider: 'openrouter' });
   }
 
   // 2) Gemini Vision
@@ -183,11 +193,22 @@ Respond ONLY in JSON: {"activityScore":<0-100>,"vehicleDensity":"low"|"medium"|"
         const data = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
         const match = text.match(/\{[\s\S]*\}/);
-        if (match) return JSON.parse(match[0]) as VisionResult;
+        if (match) {
+          logger.info('cron.satellite-scan', 'vision_ok', { factory: factory.id, provider: 'gemini' });
+          return JSON.parse(match[0]) as VisionResult;
+        }
+        logger.warn('cron.satellite-scan', 'vision_no_json', { factory: factory.id, provider: 'gemini', preview: text.slice(0, 80) });
+      } else {
+        logger.warn('cron.satellite-scan', 'vision_http_err', { factory: factory.id, provider: 'gemini', status: res.status });
       }
-    } catch { /* fall through */ }
+    } catch (e) {
+      logger.warn('cron.satellite-scan', 'vision_exception', { factory: factory.id, provider: 'gemini', error: String(e) });
+    }
+  } else {
+    logger.warn('cron.satellite-scan', 'vision_no_key', { factory: factory.id, provider: 'gemini' });
   }
 
+  logger.error('cron.satellite-scan', 'vision_all_failed', { factory: factory.id });
   return { activityScore: null, vehicleDensity: null, cloudCoverage: null, loadingActivity: null, constructionVisible: null, confidence: null, summary: null };
 }
 
@@ -276,10 +297,16 @@ export async function GET(req: Request) {
 
         // 이미지 Redis 저장 (7일 TTL)
         const imgKey = `flowvium:satellite:img:${factory.id}`;
-        await redis.set(imgKey, imageBase64, { ex: 604800 }).catch(() => {});
+        const imgSizeKB = Math.round(imageBase64.length / 1024);
+        try {
+          await redis.set(imgKey, imageBase64, { ex: 604800 });
+          logger.info('cron.satellite-scan', 'img_saved', { factory: factory.id, sizeKB: imgSizeKB, key: imgKey });
+        } catch (imgErr) {
+          logger.error('cron.satellite-scan', 'img_save_failed', { factory: factory.id, sizeKB: imgSizeKB, error: String(imgErr) });
+        }
 
         const analysis = await analyzeImage(factory, imageBase64);
-        logger.info('cron.satellite-scan', 'analysis_done', { factory: factory.id, score: analysis.activityScore, confidence: analysis.confidence });
+        logger.info('cron.satellite-scan', 'analysis_done', { factory: factory.id, score: analysis.activityScore, confidence: analysis.confidence, model: process.env.OPENROUTER_API_KEY ? 'openrouter' : process.env.GEMINI_API_KEY ? 'gemini' : 'none' });
 
         const history = await loadHistory(factory.id, redis);
         const baseline = computeBaseline(analysis.activityScore, history);
@@ -290,14 +317,18 @@ export async function GET(req: Request) {
         // 히스토리 업데이트
         if (analysis.activityScore != null) {
           const histKey = `flowvium:satellite:history:${factory.id}`;
-          await redis.lpush(histKey, JSON.stringify({ activityScore: analysis.activityScore, confidence: analysis.confidence, imageDate: today, scannedAt: result.scannedAt }));
-          await redis.ltrim(histKey, 0, 9);
-          await redis.expire(histKey, 7776000);
+          try {
+            await redis.lpush(histKey, JSON.stringify({ activityScore: analysis.activityScore, confidence: analysis.confidence, imageDate: today, scannedAt: result.scannedAt }));
+            await redis.ltrim(histKey, 0, 9);
+            await redis.expire(histKey, 7776000);
+          } catch (histErr) {
+            logger.error('cron.satellite-scan', 'history_save_failed', { factory: factory.id, error: String(histErr) });
+          }
         }
 
         success++;
       } catch (err) {
-        logger.error('cron.satellite-scan', 'factory_error', { factory: factory.id, error: String(err) });
+        logger.error('cron.satellite-scan', 'factory_error', { factory: factory.id, error: String(err), stack: err instanceof Error ? err.stack?.slice(0, 300) : undefined });
         results.push({ ...factory, activityScore: null, error: String(err).slice(0, 100), scannedAt: new Date().toISOString(), imageDate: today });
         failed++;
       }

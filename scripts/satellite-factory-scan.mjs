@@ -513,16 +513,28 @@ async function main() {
       // 이미지 Redis 저장 (7일 TTL, 나중에 UI 표시용)
       if (REDIS_URL && REDIS_TOKEN) {
         const imgKey = `flowvium:satellite:img:${factory.id}`;
-        await fetch(`${REDIS_URL}/set/${encodeURIComponent(imgKey)}`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(imageBase64),
-        }).catch(() => {});
-        await fetch(`${REDIS_URL}/expire/${encodeURIComponent(imgKey)}/604800`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-        }).catch(() => {});
-        console.log(`  📸 이미지 저장: ${Math.round(imageBase64.length / 1024)}KB base64`);
+        const sizeKB = Math.round(imageBase64.length / 1024);
+        try {
+          const setRes = await fetch(`${REDIS_URL}/set/${encodeURIComponent(imgKey)}`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(imageBase64),
+          });
+          if (setRes.ok) {
+            await fetch(`${REDIS_URL}/expire/${encodeURIComponent(imgKey)}/604800`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+            });
+            console.log(`  📸 이미지 저장: ${sizeKB}KB base64 → Redis OK`);
+          } else {
+            const errText = await setRes.text().catch(() => '');
+            console.error(`  ❌ 이미지 Redis 저장 실패 HTTP ${setRes.status}: ${errText.slice(0, 100)}`);
+          }
+        } catch (e) {
+          console.error(`  ❌ 이미지 Redis 저장 예외: ${e.message ?? e}`);
+        }
+      } else {
+        console.warn(`  ⚠️  REDIS_URL/TOKEN 미설정 — 이미지 저장 스킵 (UPSTASH_REDIS_REST_URL 확인)`);
       }
 
       console.log('  🤖 Claude Vision 분석 중...');
