@@ -66,12 +66,23 @@ export async function GET() {
     );
   }
 
+  // 히스토리 enrichment (factory별 30일 점수 시계열)
+  const enriched = await Promise.all(signals.map(async (s) => {
+    try {
+      const raw = await redis?.get<string>(`flowvium:satellite:history:${s.id}`);
+      const hist = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
+      return { ...s, history: (hist as { points?: unknown[] } | null)?.points ?? [] };
+    } catch {
+      return { ...s, history: [] };
+    }
+  }));
+
   return NextResponse.json(
     {
-      signals,
+      signals: enriched,
       dataDate,
-      count: signals.length,
-      source: 'sentinel-2-copernicus',
+      count: enriched.length,
+      source: 'sentinel-1-sar-copernicus',
       updatedAt: new Date().toISOString(),
     },
     { headers: CDN_HEADERS }

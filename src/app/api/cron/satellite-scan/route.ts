@@ -78,10 +78,11 @@ function evaluatePixel(s){
   return[Math.min(1,vv*2.2),Math.min(1,vh*4),ratio,s.dataMask]
 }`;
 
-// 통계용: VV/VH LINEAR_POWER 값 그대로 출력
+// 통계용: ORBIT mosaicking + median (복수 패스 합성 → speckle 감소)
 const SAR_STATS_EVALSCRIPT = `//VERSION=3
-function setup(){return{input:[{bands:["VV","VH","dataMask"],units:"LINEAR_POWER"}],output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]}}
-function evaluatePixel(s){return{VV:[s.VV*s.dataMask],VH:[s.VH*s.dataMask],dataMask:[s.dataMask]}}`;
+function setup(){return{input:[{bands:["VV","VH","dataMask"],units:"LINEAR_POWER"}],mosaicking:"ORBIT",output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]}}
+function median(arr){if(arr.length===0)return 0;arr.sort(function(a,b){return a-b});return arr[Math.floor(arr.length/2)];}
+function evaluatePixel(samples){var vv=[],vh=[];for(var i=0;i<samples.length;i++){if(samples[i].dataMask){vv.push(samples[i].VV);vh.push(samples[i].VH);}}var ok=vv.length>0?1:0;return{VV:[median(vv)],VH:[median(vh)],dataMask:[ok]};}`;
 
 // ── SAR 표시 이미지 fetch ─────────────────────────────────────────────────────
 async function fetchSARImage(factory: FactoryLocation, token: string): Promise<string | null> {
@@ -138,7 +139,7 @@ async function fetchSARStats(factory: FactoryLocation, from: string, to: string,
     },
     aggregation: {
       timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
-      aggregationInterval: { of: 'P30D' },
+      aggregationInterval: { of: 'P12D' },
       evalscript: SAR_STATS_EVALSCRIPT,
       resx: 0.00018, resy: 0.00018, // 20m in WGS84 degrees (20 / 111320)
     },
@@ -216,6 +217,29 @@ async function updateBaseline(
   return updated;
 }
 
+// ── 시설 타입별 SAR 가중치 ────────────────────────────────────────────────────
+const SAR_WEIGHTS: Record<string, { vv: number; vh: number; constrVhDb: number }> = {
+  port:      { vv: 11, vh: 4, constrVhDb: 2.5 },
+  LNG:       { vv: 8,  vh: 5, constrVhDb: 2.4 },
+  fab:       { vv: 8,  vh: 6, constrVhDb: 2.0 },
+  aerospace: { vv: 7,  vh: 5, constrVhDb: 2.3 },
+  auto:      { vv: 8,  vh: 4, constrVhDb: 2.3 },
+  steel:     { vv: 10, vh: 4, constrVhDb: 2.5 },
+  solar:     { vv: 6,  vh: 5, constrVhDb: 2.2 },
+  default:   { vv: 8,  vh: 6, constrVhDb: 2.0 },
+};
+
+function getFacilityType(factory: FactoryLocation): string {
+  const t = factory.tags;
+  if (t.includes('port'))      return 'port';
+  if (t.includes('LNG'))       return 'LNG';
+  if (t.includes('aerospace')) return 'aerospace';
+  if (t.includes('auto'))      return 'auto';
+  if (t.includes('steel'))     return 'steel';
+  if (t.includes('solar'))     return 'solar';
+  return 'fab';
+}
+
 // ── 점수 계산 (추측 없음, 순수 수치) ─────────────────────────────────────────
 interface SARAnalysis {
   activityScore: number | null;
@@ -231,7 +255,8 @@ interface SARAnalysis {
   summary: string;
 }
 
-function scoreFactory(current: SARStats, baseline: SARBaseline | null): SARAnalysis {
+function scoreFactory(current: SARStats, baseline: SARBaseline | null, factory: FactoryLocation): SARAnalysis {
+  const w = SAR_WEIGHTS[getFacilityType(factory)] ?? SAR_WEIGHTS.default;
   const vv_db = Math.round(toDb(current.vv_mean) * 10) / 10;
   const vh_db = Math.round(toDb(current.vh_mean) * 10) / 10;
   let score: number;
@@ -243,14 +268,10 @@ function scoreFactory(current: SARStats, baseline: SARBaseline | null): SARAnaly
   const obsCount = baseline?.obs_count ?? 0;
 
   if (baseline && obsCount >= 2) {
-    // ── 베이스라인 대비 델타 (가장 신뢰성 높음) ──
     vv_delta_db = Math.round((vv_db - toDb(baseline.vv_mean)) * 100) / 100;
     vh_delta_db = Math.round((vh_db - toDb(baseline.vh_mean)) * 100) / 100;
-
-    // 점수: 베이스라인 50점 기준, dB 변화로 ±
-    score = 50 + Math.round(vv_delta_db * 8 + vh_delta_db * 6);
-    score = Math.max(5, Math.min(97, score));
-    constructionVisible = vh_delta_db > 2.0;  // VH +2dB = 중장비/건설 감지 역치
+    score = Math.max(5, Math.min(97, 50 + Math.round(vv_delta_db * w.vv + vh_delta_db * w.vh)));
+    constructionVisible = vh_delta_db > w.constrVhDb;
     confidence = obsCount >= 5 ? 'high' : 'medium';
   } else {
     // ── 절대값 분류 (첫 스캔, 베이스라인 없음) ──
@@ -309,7 +330,7 @@ export async function GET(req: Request) {
   if (!redis) return NextResponse.json({ error: 'Redis not configured' }, { status: 503 });
 
   const today = new Date().toISOString().slice(0, 10);
-  const statsFrom = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const statsFrom = new Date(Date.now() - 12 * 86400000).toISOString().slice(0, 10);
   const start = Date.now();
 
   logger.info('cron.satellite-scan', 'start', { mode: 'SAR', factories: FACTORY_LOCATIONS.length, date: today });
@@ -339,11 +360,17 @@ export async function GET(req: Request) {
           failed++;
           return;
         }
+        if (stats.sample_count < 500) {
+          logger.warn('cron.satellite-scan', 'sar_samples_low', { factory: factory.id, samples: stats.sample_count });
+          results.push({ id: factory.id, ticker: factory.ticker, name: factory.name, country: factory.country, tags: factory.tags, significance: factory.significance, activityScore: null, error: 'insufficient_sar_samples', scannedAt: new Date().toISOString(), imageDate: today, cloudCoverage: 'clear', source: 'SAR' });
+          failed++;
+          return;
+        }
         logger.info('cron.satellite-scan', 'sar_stats_ok', { factory: factory.id, vv_db: Math.round(toDb(stats.vv_mean)*10)/10, vh_db: Math.round(toDb(stats.vh_mean)*10)/10, samples: stats.sample_count });
 
         // 2) 베이스라인 로드 + 점수 계산
         const baseline = await loadBaseline(factory.id, redis);
-        const analysis = scoreFactory(stats, baseline);
+        const analysis = scoreFactory(stats, baseline, factory);
 
         logger.info('cron.satellite-scan', 'scored', { factory: factory.id, score: analysis.activityScore, vv_delta: analysis.vv_delta_db, vh_delta: analysis.vh_delta_db, construction: analysis.constructionVisible, confidence: analysis.confidence });
 
@@ -373,14 +400,18 @@ export async function GET(req: Request) {
         };
         results.push(result);
 
-        // 5) 히스토리 (기존 UI 호환용)
-        const histKey = `flowvium:satellite:history:${factory.id}`;
-        try {
-          await redis.lpush(histKey, JSON.stringify({ activityScore: analysis.activityScore, confidence: analysis.confidence, imageDate: today, scannedAt: result.scannedAt, vv_db: analysis.vv_db, vh_db: analysis.vh_db }));
-          await redis.ltrim(histKey, 0, 14);
-          await redis.expire(histKey, 7776000);
-        } catch (e) {
-          logger.error('cron.satellite-scan', 'history_save_failed', { factory: factory.id, error: String(e) });
+        // 5) 히스토리 (30일 점수 시계열)
+        if (analysis.activityScore != null) {
+          const histKey = `flowvium:satellite:history:${factory.id}`;
+          try {
+            const rawHist = await redis.get<string>(histKey);
+            const prev = rawHist ? JSON.parse(typeof rawHist === 'string' ? rawHist : JSON.stringify(rawHist)) : { v: 1, points: [] };
+            const newPoint = { d: today, s: analysis.activityScore, vv: analysis.vv_db, vh: analysis.vh_db, c: analysis.confidence[0] };
+            const points = [...((prev.points ?? []) as typeof newPoint[]).filter((p) => p.d !== today), newPoint].slice(-30);
+            await redis.set(histKey, JSON.stringify({ v: 1, points }), { ex: 7776000 });
+          } catch (e) {
+            logger.error('cron.satellite-scan', 'history_save_failed', { factory: factory.id, error: String(e) });
+          }
         }
 
         success++;

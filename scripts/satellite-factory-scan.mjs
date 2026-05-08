@@ -113,10 +113,11 @@ function evaluatePixel(s){
   return[Math.min(1,vv*2.2),Math.min(1,vh*4),ratio,s.dataMask]
 }`;
 
-// SAR 통계용: VV/VH linear power 그대로
+// SAR 통계용: ORBIT mosaicking + median (복수 패스 합성 → speckle 감소)
 const SAR_STATS_EVALSCRIPT = `//VERSION=3
-function setup(){return{input:[{bands:["VV","VH","dataMask"],units:"LINEAR_POWER"}],output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]}}
-function evaluatePixel(s){return{VV:[s.VV*s.dataMask],VH:[s.VH*s.dataMask],dataMask:[s.dataMask]}}`;
+function setup(){return{input:[{bands:["VV","VH","dataMask"],units:"LINEAR_POWER"}],mosaicking:"ORBIT",output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]}}
+function median(arr){if(arr.length===0)return 0;arr.sort(function(a,b){return a-b});return arr[Math.floor(arr.length/2)];}
+function evaluatePixel(samples){var vv=[],vh=[];for(var i=0;i<samples.length;i++){if(samples[i].dataMask){vv.push(samples[i].VV);vh.push(samples[i].VH);}}var ok=vv.length>0?1:0;return{VV:[median(vv)],VH:[median(vh)],dataMask:[ok]};}`;
 
 // ── SAR Statistics API (핵심 — Vision AI 대체) ────────────────────────────────
 async function fetchSARStats(factory, from, to, token) {
@@ -131,7 +132,7 @@ async function fetchSARStats(factory, from, to, token) {
     },
     aggregation: {
       timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
-      aggregationInterval: { of: 'P30D' },
+      aggregationInterval: { of: 'P12D' },
       evalscript: SAR_STATS_EVALSCRIPT,
       resx: 0.00018, resy: 0.00018, // 20m in WGS84 degrees (20 / 111320)
     },
@@ -234,8 +235,32 @@ function updateBaseline(current, baseline, today) {
   };
 }
 
+// ── 시설 타입별 SAR 가중치 ────────────────────────────────────────────────────
+const SAR_WEIGHTS = {
+  port:      { vv: 11, vh: 4, constrVhDb: 2.5 }, // 크레인/컨테이너: VV 강함
+  LNG:       { vv: 8,  vh: 5, constrVhDb: 2.4 }, // 탱크+선박: VV+VH 혼합
+  fab:       { vv: 8,  vh: 6, constrVhDb: 2.0 }, // 반도체 fab: 현행 기준
+  aerospace: { vv: 7,  vh: 5, constrVhDb: 2.3 }, // 격납고/계류장: VV 우세
+  auto:      { vv: 8,  vh: 4, constrVhDb: 2.3 }, // 완성차 야드: VV
+  steel:     { vv: 10, vh: 4, constrVhDb: 2.5 }, // 금속 산란체: VV 강함
+  solar:     { vv: 6,  vh: 5, constrVhDb: 2.2 }, // 패널 지붕: 혼합
+  default:   { vv: 8,  vh: 6, constrVhDb: 2.0 },
+};
+
+function getFacilityType(factory) {
+  const t = factory.tags;
+  if (t.includes('port'))      return 'port';
+  if (t.includes('LNG'))       return 'LNG';
+  if (t.includes('aerospace')) return 'aerospace';
+  if (t.includes('auto'))      return 'auto';
+  if (t.includes('steel'))     return 'steel';
+  if (t.includes('solar'))     return 'solar';
+  return 'fab';
+}
+
 // ── 점수 계산 (순수 수치, 추측 없음) ─────────────────────────────────────────
-function scoreFactory(current, baseline) {
+function scoreFactory(current, baseline, factory) {
+  const w = SAR_WEIGHTS[getFacilityType(factory)] ?? SAR_WEIGHTS.default;
   const vv_db = Math.round(toDb(current.vv_mean) * 10) / 10;
   const vh_db = Math.round(toDb(current.vh_mean) * 10) / 10;
   const obsCount = baseline?.obs_count ?? 0;
@@ -245,8 +270,8 @@ function scoreFactory(current, baseline) {
   if (baseline && obsCount >= 2) {
     vv_delta_db = Math.round((vv_db - toDb(baseline.vv_mean)) * 100) / 100;
     vh_delta_db = Math.round((vh_db - toDb(baseline.vh_mean)) * 100) / 100;
-    score = Math.max(5, Math.min(97, 50 + Math.round(vv_delta_db * 8 + vh_delta_db * 6)));
-    constructionVisible = vh_delta_db > 2.0;
+    score = Math.max(5, Math.min(97, 50 + Math.round(vv_delta_db * w.vv + vh_delta_db * w.vh)));
+    constructionVisible = vh_delta_db > w.constrVhDb;
     confidence = obsCount >= 5 ? 'high' : 'medium';
   } else {
     // 절대값 기반 (첫 스캔)
@@ -279,6 +304,29 @@ function scoreFactory(current, baseline) {
     vehicleDensity, cloudCoverage: 'clear', loadingActivity,
     constructionVisible, confidence, summary: summaryParts.join('. '),
   };
+}
+
+// ── 히스토리 (30일 점수 시계열) ───────────────────────────────────────────────
+async function loadHistory(factoryId) {
+  if (!REDIS_URL || !REDIS_TOKEN) return { v: 1, points: [] };
+  try {
+    const res = await fetch(`${REDIS_URL}/get/${encodeURIComponent(`flowvium:satellite:history:${factoryId}`)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { v: 1, points: [] };
+    const data = await res.json();
+    return data.result ? JSON.parse(data.result) : { v: 1, points: [] };
+  } catch { return { v: 1, points: [] }; }
+}
+
+async function saveHistory(factoryId, point) {
+  if (!REDIS_URL || !REDIS_TOKEN) return;
+  try {
+    const prev = await loadHistory(factoryId);
+    const points = [...(prev.points ?? []).filter(p => p.d !== point.d), point].slice(-30);
+    await redisSet(`flowvium:satellite:history:${factoryId}`, JSON.stringify({ v: 1, points }), 7776000);
+  } catch (e) { console.warn(`  ⚠️  히스토리 저장 실패: ${e?.message}`); }
 }
 
 // ── Redis 저장 ─────────────────────────────────────────────────────────────────
@@ -356,7 +404,7 @@ async function main() {
     catch (e) { console.error(`❌ 인증 실패: ${e.message}`); process.exit(1); }
   }
 
-  const statsFrom = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const statsFrom = new Date(Date.now() - 12 * 86400000).toISOString().slice(0, 10);
   const results = [];
   let success = 0, failed = 0;
 
@@ -372,9 +420,17 @@ async function main() {
         continue;
       }
 
+      // 1b) samples 필터 — 픽셀 수 부족 시 신뢰 불가
+      if (stats && stats.sample_count < 500 && !dryRun) {
+        console.warn(`  ⚠️  SAR samples 부족: ${stats.sample_count}/500 → 스킵`);
+        results.push({ ...factory, activityScore: null, error: 'insufficient_sar_samples', scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
+        failed++;
+        continue;
+      }
+
       // 2) 베이스라인 + 점수
       const baseline = dryRun ? null : await loadBaseline(factory.id);
-      const analysis = stats ? scoreFactory(stats, baseline) : { activityScore: null, vv_db: null, vh_db: null, vv_delta_db: null, vh_delta_db: null, vehicleDensity: null, cloudCoverage: 'clear', loadingActivity: null, constructionVisible: false, confidence: 'low', summary: 'DRY-RUN' };
+      const analysis = stats ? scoreFactory(stats, baseline, factory) : { activityScore: null, vv_db: null, vh_db: null, vv_delta_db: null, vh_delta_db: null, vehicleDensity: null, cloudCoverage: 'clear', loadingActivity: null, constructionVisible: false, confidence: 'low', summary: 'DRY-RUN' };
       printResult(factory, analysis, today, baseline?.obs_count ?? 0);
 
       // 3) 베이스라인 업데이트
@@ -400,6 +456,10 @@ async function main() {
         sar_raw: stats ? { vv_db: analysis.vv_db, vh_db: analysis.vh_db, samples: stats.sample_count } : null,
       };
       results.push(result);
+      // 5) 히스토리 저장
+      if (analysis.activityScore != null && !dryRun) {
+        await saveHistory(factory.id, { d: today, s: analysis.activityScore, vv: analysis.vv_db, vh: analysis.vh_db, c: analysis.confidence?.[0] ?? 'l' });
+      }
       success++;
     } catch (e) {
       const errMsg = String(e?.message ?? e);

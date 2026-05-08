@@ -3,6 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Satellite, Factory, AlertCircle, RefreshCw, TrendingUp, TrendingDown, Minus, ExternalLink, Zap, Hammer, PackageOpen, TrendingDown as TrendingDownIcon } from 'lucide-react';
+import Sparkline from '@/components/Sparkline';
+
+interface HistoryPoint {
+  d: string;   // YYYY-MM-DD
+  s: number;   // activityScore
+  vv?: number;
+  vh?: number;
+  c?: string;  // confidence first char
+}
 
 interface FactorySignal {
   id: string;
@@ -12,6 +21,7 @@ interface FactorySignal {
   tags: string[];
   significance: 'critical' | 'major' | 'moderate';
   activityScore: number | null;
+  history?: HistoryPoint[];
   vehicleDensity: 'low' | 'medium' | 'high' | null;
   cloudCoverage: 'clear' | 'partial' | 'heavy' | null;
   loadingActivity: 'inactive' | 'normal' | 'busy' | null;
@@ -224,6 +234,22 @@ function SignificanceBadge({ sig }: { sig: string }) {
   return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${cls}`}>{label}</span>;
 }
 
+function HistoryMini({ history, current }: { history?: HistoryPoint[]; current: number }) {
+  const pts = (history ?? []).filter(p => typeof p.s === 'number').slice(-7);
+  if (pts.length < 2) return null;
+  const delta = current - pts[0].s;
+  return (
+    <div className="flex items-center justify-between gap-2 pt-1 border-t border-cf-border">
+      <Sparkline values={pts.map(p => p.s)} width={58} height={16} stroke={1.25} />
+      {Math.abs(delta) >= 1 && (
+        <span className={`text-[10px] font-mono font-bold tabular-nums ${delta > 0 ? 'text-red-500' : 'text-blue-400'}`}>
+          {delta > 0 ? '▲' : '▼'}{delta > 0 ? '+' : ''}{delta} vs 7d
+        </span>
+      )}
+    </div>
+  );
+}
+
 function FactoryCard({ f }: { f: FactorySignal }) {
   const flag = COUNTRY_FLAGS[f.country] ?? '🌐';
   const hasScore = f.activityScore != null;
@@ -318,6 +344,11 @@ function FactoryCard({ f }: { f: FactorySignal }) {
         <p className="text-xs text-cf-text-secondary leading-relaxed border-t border-cf-border pt-2">
           {f.summary}
         </p>
+      )}
+
+      {/* 7일 트렌드 */}
+      {f.activityScore != null && (
+        <HistoryMini history={f.history} current={f.activityScore} />
       )}
 
       {/* Tags */}
