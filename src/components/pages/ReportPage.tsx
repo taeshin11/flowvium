@@ -58,6 +58,22 @@ function confidenceBadge(c: string) {
   return 'bg-amber-100 text-amber-700';
 }
 
+function fmtSignalDate(d?: string): string {
+  if (!d) return '';
+  // YYYYMMDD (DART format)
+  if (/^\d{8}$/.test(d)) return `${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  // YYYY-MM-DDTHH:MM (ISO with time)
+  if (d.includes('T')) {
+    const [datePart, timePart] = d.split('T');
+    const [, mm, dd] = datePart.split('-');
+    return `${mm}-${dd} ${timePart.slice(0, 5)}`;
+  }
+  // YYYY-MM-DD
+  if (d.length === 10) return d.slice(5);
+  // YYYY-MM (cascade month-level)
+  return d;
+}
+
 function parseEntryZone(zone: string): { lower: number | null; upper: number | null } {
   const rangeMatch = zone.match(/\$?([\d,]+(?:\.\d+)?)\s*[-–]\s*\$?([\d,]+(?:\.\d+)?)/);
   if (rangeMatch) {
@@ -836,7 +852,7 @@ export default function ReportPage() {
                         <span className="font-bold text-xs">{s.ticker}</span>
                         <span className="text-[10px] opacity-70">{dirIcon} {s.direction}</span>
                         <span className="text-[10px] opacity-60 bg-white/60 rounded px-1">{s.source}</span>
-                        {s.date && <span className="text-[10px] opacity-60 font-mono">{s.date}</span>}
+                        {s.date && <span className="text-[10px] opacity-60 font-mono">{fmtSignalDate(s.date)}</span>}
                         <span className="text-[10px] opacity-60">신뢰도 {s.conviction}</span>
                       </div>
                       <p className="text-[11px] leading-relaxed">{s.headline}</p>

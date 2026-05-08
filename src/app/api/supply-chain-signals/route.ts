@@ -147,7 +147,7 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
       scanned++;
       const entry = m[1];
       const title = entry.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim() ?? '';
-      const updated = entry.match(/<updated>([\s\S]*?)<\/updated>/)?.[1]?.slice(0, 10) ?? '';
+      const updated = entry.match(/<updated>([\s\S]*?)<\/updated>/)?.[1]?.slice(0, 16) ?? ''; // YYYY-MM-DDTHH:MM
       const link = entry.match(/<link[^>]+href="([^"]+)"/)?.[1] ?? '';
 
       const lowerTitle = title.toLowerCase();
