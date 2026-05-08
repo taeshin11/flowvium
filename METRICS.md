@@ -644,6 +644,8 @@
 | 12-B1 | 지금 매수 추천 종목 스트립 (action=buy) | 💾 cached | 포트폴리오 액션 필드 ← iter210 |
 | 12-G1 | entryRationale 펀더멘탈+구루 근거 포함 여부 | 💾 cached | guru-methodologies 프롬프트 주입 ← iter267 |
 | 12-G2 | targetRationale 밸류에이션 앵커 포함 여부 | 💾 cached | guru-methodologies 프롬프트 주입 ← iter267 |
+| 12-CR1 | 위기 포착 신호 목록 (crisisSignals) | 💾 cached | Wave2 AI 호출 `invest-crisis` ← 위기포착 추가 |
+| 12-CR2 | 위기 신호 심각도 (high/medium/low) | 💾 cached | AI 판단 (내부자매도/BB극단/어닝스미스/기관이탈) |
 
 ---
 

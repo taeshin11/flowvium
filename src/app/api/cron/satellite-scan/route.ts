@@ -15,7 +15,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
-import { logger } from '@/lib/logger';
+import { logger, loggedRedisSet } from '@/lib/logger';
 import { FACTORY_LOCATIONS, type FactoryLocation } from '@/data/factory-locations';
 
 export const dynamic = 'force-dynamic';
@@ -210,11 +210,7 @@ async function updateBaseline(
     obs_count: n + 1,
     dates: [...prevDates.slice(-14), today],
   };
-  try {
-    await redis.set(`flowvium:satellite:sar-baseline:${factoryId}`, JSON.stringify(updated), { ex: 7776000 });
-  } catch (e) {
-    logger.error('cron.satellite-scan', 'baseline_save_failed', { factory: factoryId, error: String(e) });
-  }
+  await loggedRedisSet(redis, 'cron.satellite-scan', `flowvium:satellite:sar-baseline:${factoryId}`, JSON.stringify(updated), { ex: 7776000 });
   return updated;
 }
 
@@ -417,7 +413,7 @@ export async function GET(req: Request) {
           const imageBase64 = await fetchSARImage(factory, token);
           if (imageBase64) {
             const sizeKB = Math.round(imageBase64.length / 1024);
-            await redis.set(`flowvium:satellite:img:${factory.id}`, imageBase64, { ex: 604800 });
+            await loggedRedisSet(redis, 'cron.satellite-scan', `flowvium:satellite:img:${factory.id}`, imageBase64, { ex: 604800 });
             logger.info('cron.satellite-scan', 'img_saved', { factory: factory.id, sizeKB });
           }
         } catch (e) {
@@ -432,7 +428,7 @@ export async function GET(req: Request) {
             const prev = rawHist ? JSON.parse(typeof rawHist === 'string' ? rawHist : JSON.stringify(rawHist)) : { v: 1, points: [] };
             const newPoint = { d: today, s: analysis.activityScore, vv: analysis.vv_db, vh: analysis.vh_db, c: analysis.confidence[0] };
             const points = [...((prev.points ?? []) as typeof newPoint[]).filter((p) => p.d !== today), newPoint].slice(-30);
-            await redis.set(histKey, JSON.stringify({ v: 1, points }), { ex: 7776000 });
+            await loggedRedisSet(redis, 'cron.satellite-scan', histKey, JSON.stringify({ v: 1, points }), { ex: 7776000 });
           } catch (e) {
             logger.error('cron.satellite-scan', 'history_save_failed', { factory: factory.id, error: String(e) });
           }
@@ -451,7 +447,7 @@ export async function GET(req: Request) {
   if (success > 0) {
     const scanKey = `flowvium:satellite:v1:${today}`;
     try {
-      await redis.set(scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), { ex: 172800 });
+      await loggedRedisSet(redis, 'cron.satellite-scan', scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), { ex: 172800 });
       logger.info('cron.satellite-scan', 'saved', { key: scanKey, success, failed, ms: Date.now() - start });
     } catch (e) {
       logger.error('cron.satellite-scan', 'result_save_failed', { error: String(e) });

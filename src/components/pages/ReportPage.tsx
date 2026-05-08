@@ -746,6 +746,60 @@ export default function ReportPage() {
             </div>
           )}
 
+          {/* ── S4b: 위기 포착 (내부자 매도 + BB 극단 + 어닝스 미스 등) ──── */}
+          {data.crisisSignals?.length ? (
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm font-bold text-red-900 mb-3">🚨 {t('crisisSignalsTitle')}</p>
+              <div className="space-y-2">
+                {data.crisisSignals.map((s, i) => {
+                  const severityBadge = s.severity === 'high'
+                    ? 'bg-red-600 text-white'
+                    : s.severity === 'medium'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-gray-400 text-white';
+                  const severityLabel = s.severity === 'high'
+                    ? t('crisisSeverityHigh')
+                    : s.severity === 'medium'
+                    ? t('crisisSeverityMedium')
+                    : t('crisisSeverityLow');
+                  const typeLabel = s.type === 'insider_selling' ? t('crisisTypeInsiderSelling')
+                    : s.type === 'earnings_miss' ? t('crisisTypeEarningsMiss')
+                    : s.type === 'bb_overextended' ? t('crisisTypeBBOverextended')
+                    : s.type === 'institutional_exit' ? t('crisisTypeInstitutionalExit')
+                    : s.type === 'guidance_cut' ? t('crisisTypeGuidanceCut')
+                    : t('crisisTypeMacroRisk');
+                  const rowBg = s.severity === 'high'
+                    ? 'border-red-200 bg-red-50'
+                    : s.severity === 'medium'
+                    ? 'border-amber-200 bg-amber-50'
+                    : 'border-gray-200 bg-gray-50';
+                  return (
+                    <div key={i} className={`rounded-lg border p-2.5 ${rowBg}`}>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${severityBadge}`}>{severityLabel}</span>
+                        <span className="text-xs font-bold text-gray-900 font-mono">{s.ticker}</span>
+                        <span className="text-[10px] text-gray-500 bg-white/70 rounded px-1.5 py-0.5 border border-gray-200">{typeLabel}</span>
+                      </div>
+                      <p className="text-xs text-gray-800 font-medium leading-snug">{s.signal}</p>
+                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                        {s.action && (
+                          <span className="text-[10px] text-red-700 font-semibold">
+                            ▶ {t('crisisActionLabel')}: {s.action}
+                          </span>
+                        )}
+                        {s.evidence && (
+                          <span className="text-[10px] text-gray-500 font-mono truncate max-w-[200px]">
+                            {t('crisisEvidenceLabel')}: {s.evidence}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           {/* ── Portfolio ─────────────────────────────────────────────────── */}
           {data.portfolio.length > 0 && (
             <div className="mb-5">

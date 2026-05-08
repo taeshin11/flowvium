@@ -10,9 +10,9 @@ import {
   buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt,
   buildOpportunityPrompt, buildRiskMgmtPrompt, buildNarrativePrompt,
   buildCritiquePrompt, applyCritique, buildCompanyChangesPrompt,
-  buildStockDetailPrompt,
+  buildStockDetailPrompt, buildCrisisPrompt,
 } from '@/lib/investment-prompts';
-import type { CtxForPrompts, CritiqueInput, RiskMgmtInput, CompanyChangesInput, StockDetailInput } from '@/lib/investment-prompts';
+import type { CtxForPrompts, CritiqueInput, RiskMgmtInput, CompanyChangesInput, StockDetailInput, CrisisInput } from '@/lib/investment-prompts';
 import { logPortfolioPredictions, getRetrospectiveForS2, getRetrospectiveForS7 } from '@/lib/portfolio-retrospective';
 import { executeReportTrades } from '@/lib/paper-trading';
 import { FG, VIX, SPREADS, PORTFOLIO } from '@/lib/thresholds';
@@ -182,6 +182,15 @@ export interface InvestmentStrategy {
     downstreamBeneficiaries?: string[];
     upstreamRisks?: string[];
     evidenceUrl?: string | null;
+  }>;
+  // S4b: 위기 포착
+  crisisSignals?: Array<{
+    type: 'insider_selling' | 'earnings_miss' | 'bb_overextended' | 'institutional_exit' | 'guidance_cut' | 'macro_risk';
+    ticker: string;
+    signal: string;
+    severity: 'high' | 'medium' | 'low';
+    action: string;
+    evidence: string;
   }>;
   generatedAt: string;
   dataAsOf?: string;
@@ -1557,6 +1566,7 @@ export async function GET(request: Request) {
   // ── Wave 2: S2b 매수종목상세 + S5 리스크관리 + S8 기업변화 (병렬) ─────────────
   let riskData: Record<string, unknown> | null = null;
   let companyChangesData: Record<string, unknown> | null = null;
+  let crisisDataOuter: Record<string, unknown> | null = null;
   let stockDetailMap = new Map<string, { catalysts?: string[]; fundamentalBasis?: string; technicalBasis?: string; riskNote?: string }>();
 
   if (portfolioData?.portfolio?.length) {
@@ -1601,6 +1611,14 @@ export async function GET(request: Request) {
       news: ctxSummary.news,
     };
 
+    const crisisInput: CrisisInput = {
+      institutional: ctxSummary.institutional,
+      bbWarnings: ctxSummary.bbWarnings,
+      news: ctxSummary.news,
+      earnings,
+      portfolioTickers: portfolioTickers,
+    };
+
     const wave2Calls: Promise<{ text: string; source: string }>[] = [
       callAIProvider(buildRiskMgmtPrompt({
         portfolio: (portfolioData.portfolio as Array<{ ticker: string; entryZone: string; stopLoss: string; allocation: number; action: string }>),
@@ -1609,6 +1627,7 @@ export async function GET(request: Request) {
         vix: vixCtx,
       }, locale), { ...aiOpts, tag: 'invest-risk', maxTokens: 600 }),
       callAIProvider(buildCompanyChangesPrompt(s8Input, locale), { ...aiOpts, tag: 'invest-s8', maxTokens: 800 }),
+      callAIProvider(buildCrisisPrompt(crisisInput, locale), { ...aiOpts, tag: 'invest-crisis', maxTokens: 600 }),
     ];
     // buy 종목 있을 때만 상세분석 호출
     if (buyStocks.length > 0) {
@@ -1617,9 +1636,10 @@ export async function GET(request: Request) {
       );
     }
 
-    const [riskResult, companyChangesResult, stockDetailResult] = await Promise.all(wave2Calls);
+    const [riskResult, companyChangesResult, crisisResult, stockDetailResult] = await Promise.all(wave2Calls);
     riskData = parseSec(riskResult.text);
     companyChangesData = parseSec(companyChangesResult.text);
+    crisisDataOuter = parseSec(crisisResult.text);
 
     if (stockDetailResult) {
       const stockDetailData = parseSec(stockDetailResult.text);
@@ -1633,6 +1653,7 @@ export async function GET(request: Request) {
     logger.info('api.investment-strategy', 'wave2_results', { locale,
       risk:          { source: riskResult.source,          ok: !!riskData,          hasStopLoss: !!(riskData?.stopLossRationale), hasHedging: !!(riskData?.hedgingSuggestion) },
       companyChange: { source: companyChangesResult.source, ok: !!companyChangesData, count: (companyChangesData?.companyChanges as unknown[])?.length ?? 0 },
+      crisis:        { source: crisisResult.source,        ok: !!crisisDataOuter,   count: (crisisDataOuter?.crisisSignals as unknown[])?.length ?? 0 },
       stockDetail:   stockDetailResult ? { source: stockDetailResult.source, tickerCount: stockDetailMap.size } : null,
     });
   } else {
@@ -1689,6 +1710,10 @@ export async function GET(request: Request) {
     companyChanges: companyChangesData?.companyChanges as InvestmentStrategy['companyChanges'] ?? undefined,
     // S9: 공급망 변화
     supplyChainChanges: supplyChainSignals?.length ? supplyChainSignals : undefined,
+    // S4b: 위기 포착
+    crisisSignals: (crisisDataOuter?.crisisSignals as InvestmentStrategy['crisisSignals'])?.length
+      ? crisisDataOuter!.crisisSignals as InvestmentStrategy['crisisSignals']
+      : undefined,
     generatedAt: dataAsOf,
     dataAsOf,
     source: bestSource,
@@ -1720,6 +1745,7 @@ export async function GET(request: Request) {
       hasRiskMgmt: !!(strategy.stopLossRationale?.length || strategy.hedgingSuggestion),
       hasNarrative: !!strategy.marketNarrative,
       companyChanges: strategy.companyChanges?.length ?? 0,
+      crisisSignals: strategy.crisisSignals?.length ?? 0,
     } : null,
   });
 

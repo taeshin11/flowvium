@@ -487,3 +487,67 @@ export function applyCritique(
     });
   } catch { return portfolio; }
 }
+
+// ── Section 4b: 위기 포착 (Crisis Detection) ──────────────────────────────────
+// 내부자 매도, BB 극단 과매수, 어닝스 미스, 기관 이탈, 가이던스 하향 등 부정적 신호
+export interface CrisisInput {
+  institutional: string;
+  bbWarnings: string;
+  news: string;
+  earnings: string;
+  portfolioTickers: string[];
+}
+
+export function buildCrisisPrompt(input: CrisisInput, locale = 'en'): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const lang = LOCALE_LANG[locale] ?? 'Korean';
+  const tickers = input.portfolioTickers.join(', ');
+  return [
+    `You are a risk intelligence analyst detecting crisis/warning signals. Date: ${today}. Write signal/action/evidence in ${lang}.`,
+    '',
+    `[Portfolio Tickers to Monitor]: ${tickers || 'No tickers'}`,
+    '',
+    '[Institutional & Insider Signals — LOOK FOR SELLING]',
+    input.institutional || 'No data',
+    '⚠️ 집중매매감지에서 sell 건수가 buy 보다 많은 티커 = 내부자 집중 매도 신호',
+    '⚠️ 개별 insider sell 거래 (방향=sell) = 위험 신호',
+    '',
+    '[BB Overextension Warnings — ALREADY COMPUTED]',
+    input.bbWarnings || 'None',
+    '⚠️ 4d4σ극단초과 = 통계적 극단 과매수, 진입금지 CRITICAL',
+    '⚠️ 20d2σ초과 = BB 상단 이탈, WARNING',
+    '',
+    '[Upcoming/Recent Earnings — LOOK FOR MISSES]',
+    input.earnings || 'None',
+    '⚠️ EPS_surprise < -5% = earnings miss = HIGH severity',
+    '',
+    '[News — LOOK FOR NEGATIVE CATALYSTS]',
+    input.news || 'No data',
+    '',
+    'Identify ONLY NEGATIVE/RISK signals. Focus on:',
+    '1. 내부자 매도 집중: 집중매매감지에서 sell 건수가 높은 패턴, 또는 고위임원 sell',
+    '2. BB 극단 과매수: ⚠️ 표시된 4d4σ 또는 20d2σ 초과',
+    '3. 어닝스 미스: EPS_surprise < -5%',
+    '4. 기관 이탈: 13F 대규모 매도/지분 감소 뉴스',
+    '5. 가이던스 하향: guidance lowered/cut 뉴스',
+    '6. 매크로 리스크: 금리 급등, 지정학 충격, 규제 리스크',
+    '',
+    'CRITICAL RULES:',
+    '- Include ONLY data-backed signals with exact numbers/dates from the data above',
+    '- Do NOT generate signals not present in the input data',
+    '- ticker: exact ticker symbol, or "MARKET" for macro signals',
+    '- Maximum 6 signals — only the most important/urgent',
+    '- signal: ≤60 chars, specific (include actual numbers)',
+    '- action: ≤30 chars ("매도 검토", "신규 매수 금지", "비중 축소", "관망" 등)',
+    '- evidence: ≤60 chars, the exact data point that triggered this signal',
+    '',
+    'Respond in pure JSON:',
+    '{"crisisSignals":[',
+    '{"type":"insider_selling","ticker":"NVDA","signal":"임원 1.2만주 매도, 최근 0buy/6sell","severity":"high","action":"포지션 주의","evidence":"집중매매감지 0buy/6sell $1,200K"},',
+    '{"type":"bb_overextended","ticker":"QQQ","signal":"4d4σ극단초과 통계적 진입금지","severity":"high","action":"신규 매수 금지","evidence":"⚠️QQQ:4d4σ극단초과"},',
+    '{"type":"earnings_miss","ticker":"META","signal":"Q1 EPS 컨센서스 -15% 미스","severity":"high","action":"포지션 축소","evidence":"EPS_surprise=-15.3%"}',
+    ']}',
+    'If no crisis signals exist in the data, return: {"crisisSignals":[]}',
+    'Pure JSON only.',
+  ].join('\n');
+}
