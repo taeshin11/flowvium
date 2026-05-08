@@ -377,19 +377,7 @@ export async function GET(req: Request) {
         // 3) 베이스라인 업데이트
         await updateBaseline(factory.id, stats, baseline, redis, today);
 
-        // 4) SAR 이미지 (병렬, 실패해도 계속)
-        const imageBase64 = await fetchSARImage(factory, token);
-        if (imageBase64) {
-          const imgKey = `flowvium:satellite:img:${factory.id}`;
-          const sizeKB = Math.round(imageBase64.length / 1024);
-          try {
-            await redis.set(imgKey, imageBase64, { ex: 604800 });
-            logger.info('cron.satellite-scan', 'img_saved', { factory: factory.id, sizeKB });
-          } catch (e) {
-            logger.error('cron.satellite-scan', 'img_save_failed', { factory: factory.id, sizeKB, error: String(e) });
-          }
-        }
-
+        // 4) 결과 저장 (이미지보다 먼저 — 이미지 실패가 점수를 날리지 않도록)
         const result = {
           id: factory.id, ticker: factory.ticker, name: factory.name,
           country: factory.country, tags: factory.tags, significance: factory.significance,
@@ -399,6 +387,19 @@ export async function GET(req: Request) {
           sar_raw: { vv_db: analysis.vv_db, vh_db: analysis.vh_db, samples: stats.sample_count },
         };
         results.push(result);
+
+        // 5) SAR 이미지 (optional — 실패해도 점수/히스토리에 영향 없음)
+        try {
+          const imageBase64 = await fetchSARImage(factory, token);
+          if (imageBase64) {
+            const imgKey = `flowvium:satellite:img:${factory.id}`;
+            const sizeKB = Math.round(imageBase64.length / 1024);
+            await redis.set(imgKey, imageBase64, { ex: 604800 });
+            logger.info('cron.satellite-scan', 'img_saved', { factory: factory.id, sizeKB });
+          }
+        } catch (e) {
+          logger.warn('cron.satellite-scan', 'img_failed_nonfatal', { factory: factory.id, error: String(e).slice(0, 80) });
+        }
 
         // 5) 히스토리 (30일 점수 시계열)
         if (analysis.activityScore != null) {

@@ -440,14 +440,7 @@ async function main() {
         console.log(`     베이스라인: ${updatedBaseline.obs_count}회 축적 (vv_mean=${toDb(updatedBaseline.vv_mean).toFixed(1)}dB)`);
       }
 
-      // 4) SAR 이미지
-      const imageBase64 = await fetchSARImage(factory, token ?? 'dry', dryRun);
-      if (imageBase64) {
-        const sizeKB = Math.round(imageBase64.length / 1024);
-        const ok = await redisSet(`flowvium:satellite:img:${factory.id}`, imageBase64, 604800);
-        console.log(`  📸 SAR 이미지 저장: ${sizeKB}KB → Redis ${ok ? 'OK' : 'FAIL'}`);
-      }
-
+      // 4) 결과 저장 (이미지보다 먼저 — 이미지 실패가 점수를 날리지 않도록)
       const result = {
         id: factory.id, ticker: factory.ticker, name: factory.name,
         country: factory.country, tags: factory.tags, significance: factory.significance,
@@ -456,11 +449,22 @@ async function main() {
         sar_raw: stats ? { vv_db: analysis.vv_db, vh_db: analysis.vh_db, samples: stats.sample_count } : null,
       };
       results.push(result);
-      // 5) 히스토리 저장
       if (analysis.activityScore != null && !dryRun) {
         await saveHistory(factory.id, { d: today, s: analysis.activityScore, vv: analysis.vv_db, vh: analysis.vh_db, c: analysis.confidence?.[0] ?? 'l' });
       }
       success++;
+
+      // 5) SAR 이미지 (optional — 실패해도 점수/히스토리에 영향 없음)
+      try {
+        const imageBase64 = await fetchSARImage(factory, token ?? 'dry', dryRun);
+        if (imageBase64) {
+          const sizeKB = Math.round(imageBase64.length / 1024);
+          const ok = await redisSet(`flowvium:satellite:img:${factory.id}`, imageBase64, 604800);
+          console.log(`  📸 SAR 이미지 저장: ${sizeKB}KB → Redis ${ok ? 'OK' : 'FAIL'}`);
+        }
+      } catch (imgErr) {
+        console.warn(`  ⚠️  이미지 fetch 실패 (점수는 저장됨): ${String(imgErr?.message ?? imgErr).slice(0, 80)}`);
+      }
     } catch (e) {
       const errMsg = String(e?.message ?? e);
       console.error(`  ❌ 오류: ${errMsg}`);
