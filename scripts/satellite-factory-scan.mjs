@@ -48,6 +48,10 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const REDIS_KEY_PREFIX = 'flowvium:satellite:v1';
+const HISTORY_KEY = (id) => `flowvium:satellite:history:${id}`;
+const LAST_IMAGE_KEY = (id) => `flowvium:satellite:last-image:${id}`;
+const STAC_SEARCH_URL = 'https://stac.dataspace.copernicus.eu/v1/search';
+const HISTORY_MAX = 10; // 최대 10개 관측치 보관 (~50일)
 
 // ── Factory 목록 (factory-locations.ts 와 동기) ───────────────────────────────
 const FACTORIES = [
@@ -281,6 +285,137 @@ Respond ONLY in JSON (no markdown):
 }
 
 
+// ── STAC 최신 이미지 체크 (중복 분석 방지) ────────────────────────────────────
+async function findLatestStacItem(factory) {
+  try {
+    const margin = factory.radiusKm / 111.32;
+    const bbox = [
+      factory.lng - margin, factory.lat - margin,
+      factory.lng + margin, factory.lat + margin,
+    ];
+    const from = new Date(Date.now() - 14 * 86400000).toISOString();
+    const to = new Date().toISOString();
+
+    const res = await fetch(STAC_SEARCH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        collections: ['sentinel-2-l2a'],
+        bbox,
+        datetime: `${from}/${to}`,
+        query: { 'eo:cloud_cover': { lte: 50 } },
+        sortby: [{ field: 'properties.datetime', direction: 'desc' }],
+        limit: 1,
+        fields: { include: ['id', 'properties.datetime', 'properties.eo:cloud_cover'] },
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const item = data.features?.[0];
+    if (!item) return null;
+    return {
+      id: item.id,
+      datetime: item.properties.datetime,
+      cloudPct: item.properties['eo:cloud_cover'],
+    };
+  } catch { return null; }
+}
+
+async function isNewImage(factory) {
+  if (!REDIS_URL || !REDIS_TOKEN) return true; // Redis 없으면 항상 스캔
+  const stacItem = await findLatestStacItem(factory);
+  if (!stacItem) return true; // STAC 실패 시 스캔 진행
+
+  const key = LAST_IMAGE_KEY(factory.id);
+  const res = await fetch(`${REDIS_URL}/get/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+  });
+  if (res.ok) {
+    const data = await res.json();
+    const prev = data.result ? JSON.parse(data.result) : null;
+    if (prev?.stacItemId === stacItem.id) {
+      console.log(`  ⏭️  동일 이미지 (${stacItem.id.slice(-8)}) — 스킵`);
+      return false;
+    }
+  }
+
+  // 새 이미지 → last-image 키 갱신 (90일 TTL)
+  await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(JSON.stringify({ stacItemId: stacItem.id, imageDate: stacItem.datetime.slice(0, 10) })),
+  });
+  await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/7776000`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+  });
+  console.log(`  🆕 새 이미지 감지: ${stacItem.datetime.slice(0, 10)} (cloud ${stacItem.cloudPct?.toFixed(0)}%)`);
+  return true;
+}
+
+// ── 히스토리 로드 + baseline 계산 ─────────────────────────────────────────────
+async function loadHistory(factoryId) {
+  if (!REDIS_URL || !REDIS_TOKEN) return [];
+  try {
+    const key = HISTORY_KEY(factoryId);
+    const res = await fetch(`${REDIS_URL}/lrange/${encodeURIComponent(key)}/0/${HISTORY_MAX - 1}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.result ?? []).map(item => {
+      try { return JSON.parse(item); } catch { return null; }
+    }).filter(Boolean);
+  } catch { return []; }
+}
+
+async function appendHistory(factoryId, entry) {
+  if (!REDIS_URL || !REDIS_TOKEN) return;
+  const key = HISTORY_KEY(factoryId);
+  const val = JSON.stringify(entry);
+  await fetch(`${REDIS_URL}/lpush/${encodeURIComponent(key)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(val),
+  });
+  await fetch(`${REDIS_URL}/ltrim/${encodeURIComponent(key)}/0/${HISTORY_MAX - 1}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+  });
+  await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/7776000`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+  });
+}
+
+function computeBaseline(currentScore, history) {
+  const usable = history
+    .filter(h => h.activityScore != null && h.confidence !== 'low')
+    .slice(0, 6); // 4~5주치 관측
+
+  if (currentScore == null || usable.length < 3) {
+    return { baselineScore: null, deltaFromBaseline: null, trend: 'insufficient_history' };
+  }
+
+  const scores = usable.map(h => h.activityScore);
+  const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
+  const variance = scores.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / scores.length;
+  const sd = Math.sqrt(variance) || 1;
+  const delta = currentScore - mean;
+  const zScore = delta / sd;
+
+  let trend = 'flat';
+  if (Math.abs(delta) >= 15) trend = delta > 0 ? 'up' : 'down';
+
+  return {
+    baselineScore: Math.round(mean),
+    deltaFromBaseline: Math.round(delta),
+    zScore: Math.round(zScore * 100) / 100,
+    trend,
+  };
+}
+
 // ── Redis 저장 ────────────────────────────────────────────────────────────────
 async function saveToRedis(results) {
   if (!REDIS_URL || !REDIS_TOKEN) {
@@ -362,6 +497,12 @@ async function main() {
   for (const factory of targets) {
     console.log(`\n📍 ${factory.name} (${factory.id})`);
     try {
+      // STAC 중복 체크 (새 이미지 없으면 스킵)
+      if (!dryRun && targets.length > 1) {
+        const newImg = await isNewImage(factory);
+        if (!newImg) { failed++; continue; }
+      }
+
       const imageBase64 = await fetchSentinelImage(factory, token, dryRun);
       if (!imageBase64) {
         results.push({ ...factory, activityScore: null, error: 'no_image', scannedAt: new Date().toISOString() });
@@ -374,7 +515,17 @@ async function main() {
       const today = new Date().toISOString().slice(0, 10);
       printResult(factory, analysis, today);
 
-      results.push({
+      // 히스토리 로드 + baseline 계산
+      const history = await loadHistory(factory.id);
+      const baseline = computeBaseline(analysis.activityScore, history);
+      if (baseline.deltaFromBaseline != null) {
+        const sign = baseline.deltaFromBaseline >= 0 ? '+' : '';
+        console.log(`     베이스라인: ${baseline.baselineScore}/100 (Δ${sign}${baseline.deltaFromBaseline}, trend=${baseline.trend})`);
+      } else {
+        console.log(`     베이스라인: 히스토리 부족 (현재 ${history.length}개 관측치)`);
+      }
+
+      const result = {
         id: factory.id,
         ticker: factory.ticker,
         name: factory.name,
@@ -382,8 +533,18 @@ async function main() {
         tags: factory.tags,
         significance: factory.significance,
         ...analysis,
+        ...baseline,
         scannedAt: new Date().toISOString(),
         imageDate: today,
+      };
+      results.push(result);
+
+      // 히스토리에 추가
+      await appendHistory(factory.id, {
+        activityScore: analysis.activityScore,
+        confidence: analysis.confidence,
+        imageDate: today,
+        scannedAt: result.scannedAt,
       });
       success++;
 
