@@ -125,6 +125,14 @@
     },
     {
       "path": "/api/cron/satellite-scan",
+      "schedule": "40 7 * * *"
+    },
+    {
+      "path": "/api/cron/satellite-scan",
+      "schedule": "40 12 * * *"
+    },
+    {
+      "path": "/api/cron/satellite-scan",
       "schedule": "40 22 * * *"
     }
   ]

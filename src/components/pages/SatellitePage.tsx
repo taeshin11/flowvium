@@ -344,6 +344,12 @@ const THEMES = [
   { key: 'equipment', label: '장비/소재',   emoji: '🔬', match: (f: FactorySignal) => f.tags.includes('EUV') || f.tags.includes('lithography') },
   { key: 'assembly',  label: '조립',        emoji: '📱', match: (f: FactorySignal) => f.tags.includes('assembly') && f.tags.includes('AAPL') },
   { key: 'ev',        label: '배터리/EV',   emoji: '⚡', match: (f: FactorySignal) => f.tags.includes('EV') || f.tags.includes('battery') },
+  { key: 'ports',     label: '항구/물류',   emoji: '🚢', match: (f: FactorySignal) => f.tags.includes('port') },
+  { key: 'aerospace', label: '항공우주',    emoji: '✈️', match: (f: FactorySignal) => f.tags.includes('aerospace') },
+  { key: 'auto',      label: '자동차',      emoji: '🚗', match: (f: FactorySignal) => f.tags.includes('auto') },
+  { key: 'solar',     label: '태양광',      emoji: '☀️', match: (f: FactorySignal) => f.tags.includes('solar') },
+  { key: 'steel',     label: '철강/소재',   emoji: '🏗️', match: (f: FactorySignal) => f.tags.includes('steel') },
+  { key: 'energy',    label: '에너지/LNG',  emoji: '🛢️', match: (f: FactorySignal) => f.tags.includes('LNG') },
 ] as const;
 
 export default function SatellitePage() {
