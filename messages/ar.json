@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "الأساسيات",
     "technicalBasisLabel": "التحليل الفني",
     "riskNoteLabel": "المخاطر الرئيسية",
-    "historyExpiredNote": "انتهت صلاحية هذا التقرير التاريخي ولا يمكن تحميله. عرض أحدث تقرير."
+    "historyExpiredNote": "انتهت صلاحية هذا التقرير التاريخي ولا يمكن تحميله. عرض أحدث تقرير.",
+    "satelliteTitle": "أبرز نشاط المصانع عبر الأقمار الصناعية",
+    "satelliteActive": "نشط",
+    "satelliteNormal": "عادي"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

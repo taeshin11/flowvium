@@ -1,0 +1,256 @@
+[
+  {
+    "id": "tsmc-tainan-n3",
+    "ticker": "TSM",
+    "name": "TSMC Fab 18 / Tainan (N3/N2)",
+    "country": "TW",
+    "tags": [
+      "NVDA",
+      "AAPL",
+      "AMD",
+      "foundry"
+    ],
+    "significance": "critical",
+    "activityScore": 45,
+    "vehicleDensity": "low",
+    "cloudCoverage": "heavy",
+    "loadingActivity": "normal",
+    "constructionVisible": false,
+    "confidence": "low",
+    "summary": "구름 덮임이 심각하여 정확한 활동 분석이 제한되나, 가시적인 농업 지역과 일부 건물 구조가 관찰됩니다.",
+    "scannedAt": "2026-05-08T02:48:58.082Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "tsmc-taichung",
+    "ticker": "TSM",
+    "name": "TSMC Fab 15 / Taichung (N5/N7)",
+    "country": "TW",
+    "tags": [
+      "NVDA",
+      "AMD",
+      "AAPL",
+      "foundry"
+    ],
+    "significance": "critical",
+    "activityScore": 72,
+    "vehicleDensity": "medium",
+    "cloudCoverage": "partial",
+    "loadingActivity": "normal",
+    "constructionVisible": false,
+    "confidence": "medium",
+    "summary": "중간 수준의 차량 밀도와 정상적인 물류 활동이 관찰되며, 부분적 구름으로 인해 분석 정확도가 제한됩니다.",
+    "scannedAt": "2026-05-08T02:49:07.222Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "samsung-pyeongtaek",
+    "ticker": "005930.KS",
+    "name": "Samsung Pyeongtaek P3/P4 (HBM/DRAM)",
+    "country": "KR",
+    "tags": [
+      "HBM",
+      "DRAM",
+      "NVDA",
+      "memory"
+    ],
+    "significance": "critical",
+    "activityScore": 75,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "high",
+    "summary": "삼성 평택 캠퍼스는 높은 차량 밀도와 활발한 건설 활동이 관찰되며, 주차장과 로딩 구역에서 활발한 운영 징후가 명확히 보입니다.",
+    "scannedAt": "2026-05-08T02:49:17.675Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "skhynix-icheon",
+    "ticker": "000660.KS",
+    "name": "SK Hynix Icheon M14/M16 (HBM3E)",
+    "country": "KR",
+    "tags": [
+      "HBM",
+      "DRAM",
+      "NVDA",
+      "memory"
+    ],
+    "significance": "critical",
+    "activityScore": 72,
+    "vehicleDensity": "medium",
+    "cloudCoverage": "clear",
+    "loadingActivity": "normal",
+    "constructionVisible": true,
+    "confidence": "high",
+    "summary": "SK하이닉스 이천 캠퍼스는 중간 수준의 차량 밀도와 명확한 건설 활동이 관찰되며, 정상적인 생산 가동 상태를 보이고 있습니다.",
+    "scannedAt": "2026-05-08T02:49:26.895Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "micron-boise",
+    "ticker": "MU",
+    "name": "Micron Fab 10X / Boise ID",
+    "country": "US",
+    "tags": [
+      "DRAM",
+      "NAND",
+      "memory"
+    ],
+    "significance": "major",
+    "activityScore": 72,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "normal",
+    "constructionVisible": true,
+    "confidence": "high",
+    "summary": "마이크론 보이시 반도체 공장은 주차장 차량 밀도가 높고 상단 우측에 건설 활동이 보이며 정상적인 가동 수준을 나타냅니다.",
+    "scannedAt": "2026-05-08T02:49:35.844Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "intel-chandler",
+    "ticker": "INTC",
+    "name": "Intel Fab 42 / Chandler AZ (18A)",
+    "country": "US",
+    "tags": [
+      "foundry",
+      "logic"
+    ],
+    "significance": "major",
+    "activityScore": 72,
+    "vehicleDensity": "medium",
+    "cloudCoverage": "clear",
+    "loadingActivity": "normal",
+    "constructionVisible": true,
+    "confidence": "high",
+    "summary": "인텔 챈들러 팹 시설에서 중간 수준의 차량 밀도와 여러 건설/확장 구역이 관찰되며, 정상적인 운영 활동이 진행 중입니다.",
+    "scannedAt": "2026-05-08T02:49:45.858Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "asml-veldhoven",
+    "ticker": "ASML",
+    "name": "ASML HQ / Veldhoven (EUV 제조)",
+    "country": "NL",
+    "tags": [
+      "EUV",
+      "lithography",
+      "supply-chain"
+    ],
+    "significance": "critical",
+    "activityScore": 72,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "normal",
+    "constructionVisible": false,
+    "confidence": "medium",
+    "summary": "ASML 본사 시설의 주차장에서 높은 차량 밀도가 관찰되며, 정상적인 운영 활동 수준을 보이고 있습니다.",
+    "scannedAt": "2026-05-08T02:49:53.475Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "foxconn-zhengzhou",
+    "ticker": "AAPL",
+    "name": "Foxconn iPhone City / Zhengzhou",
+    "country": "CN",
+    "tags": [
+      "assembly",
+      "AAPL",
+      "iPhone"
+    ],
+    "significance": "critical",
+    "activityScore": 72,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "high",
+    "summary": "정저우 폭스콘 아이폰 시티는 높은 차량 밀도와 활발한 물류 활동을 보이며, 일부 확장 공사가 진행 중인 것으로 보입니다.",
+    "scannedAt": "2026-05-08T02:50:07.083Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "catl-ningde",
+    "ticker": "CATL",
+    "name": "CATL 본사 공장 / Ningde",
+    "country": "CN",
+    "tags": [
+      "battery",
+      "EV",
+      "TSLA"
+    ],
+    "significance": "major",
+    "activityScore": 75,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "high",
+    "summary": "CATL 닝더 본사 공장은 주차장 및 적재 구역에서 높은 차량 밀도와 활발한 물류 활동이 관찰되며, 확장 공사가 진행 중입니다.",
+    "scannedAt": "2026-05-08T02:50:15.614Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "tesla-shanghai",
+    "ticker": "TSLA",
+    "name": "Tesla Gigafactory Shanghai",
+    "country": "CN",
+    "tags": [
+      "EV",
+      "TSLA",
+      "assembly"
+    ],
+    "significance": "major",
+    "activityScore": 25,
+    "vehicleDensity": "low",
+    "cloudCoverage": "heavy",
+    "loadingActivity": "inactive",
+    "constructionVisible": false,
+    "confidence": "low",
+    "summary": "구름으로 인해 대부분의 공장 시설이 가려져 있어 정확한 활동 수준 분석이 불가능하며, 보이는 일부 지역에서는 낮은 차량 밀도가 관찰됩니다.",
+    "scannedAt": "2026-05-08T02:50:25.046Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "tesla-nevada",
+    "ticker": "TSLA",
+    "name": "Tesla Gigafactory Nevada",
+    "country": "US",
+    "tags": [
+      "battery",
+      "EV",
+      "TSLA"
+    ],
+    "significance": "moderate",
+    "activityScore": 65,
+    "vehicleDensity": "medium",
+    "cloudCoverage": "clear",
+    "loadingActivity": "normal",
+    "constructionVisible": false,
+    "confidence": "medium",
+    "summary": "테슬라 기가팩토리 네바다는 주차장에 중간 수준의 차량 밀도와 정상적인 물류 활동을 보이며, 명확한 확장 공사는 관찰되지 않습니다.",
+    "scannedAt": "2026-05-08T02:50:36.167Z",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "samsung-austin",
+    "ticker": "TSM",
+    "name": "Samsung Austin Semiconductor (S3/S5)",
+    "country": "US",
+    "tags": [
+      "foundry",
+      "logic"
+    ],
+    "significance": "moderate",
+    "activityScore": 72,
+    "vehicleDensity": "medium",
+    "cloudCoverage": "clear",
+    "loadingActivity": "normal",
+    "constructionVisible": false,
+    "confidence": "high",
+    "summary": "삼성 오스틴 반도체 공장은 주차장 차량 밀도가 중간 수준이며 정상적인 가동 상태를 보이고 있습니다.",
+    "scannedAt": "2026-05-08T02:50:46.051Z",
+    "imageDate": "2026-05-08"
+  }
+]

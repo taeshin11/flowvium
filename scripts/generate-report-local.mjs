@@ -54,6 +54,8 @@ const CJK_LOCALES = new Set(['ko', 'ja', 'zh-CN', 'zh-TW', 'zh']);
 
 const CANDIDATE_TICKERS = [
   'NVDA','MSFT','AAPL','META','GOOGL','AMZN','TSLA','KLAC','AMD','JPM','V','UNH','XOM','GS','BAC',
+  // AI infra / recent IPO high-signal names
+  'CRWV','APP','ARM','MU','MRVL','SMCI','DDOG','NET','ANET','PLTR',
   'SPY','QQQ','GLD','TLT','USO','IWM','XLE','XLK','XLF','XLV',
   'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA',
   'BITO','SLV','DBA',
@@ -99,6 +101,7 @@ function isGarbage(text, minLen = 15) {
 }
 function qualityCheck(report) {
   const issues = [];
+  const warnings = [];
   if (isGarbage(report.thesis, garbageMinLen(GARBAGE_MIN_LEN.thesis)))
     issues.push(`thesis GARBAGE: "${report.thesis}"`);
   if (isGarbage(report.macroAnalysis, garbageMinLen(GARBAGE_MIN_LEN.macroAnalysis)))
@@ -110,12 +113,47 @@ function qualityCheck(report) {
   if (!report.regionStances || Object.keys(report.regionStances).length === 0) issues.push('regionStances MISSING');
   if (!report.shortSqueeze?.length) issues.push('shortSqueeze MISSING');
 
+  // Ticker duplicate check — catches NVDA + NVIDIA both surviving dedup
+  if (Array.isArray(report.portfolio) && report.portfolio.length > 0) {
+    const tickersSeen = new Map(); // normalizedKey → original ticker
+    for (const p of report.portfolio) {
+      const raw = p.ticker ?? '';
+      const norm = raw.toUpperCase().replace(/[\s.]/g, '');
+      if (tickersSeen.has(norm)) {
+        issues.push(`ticker DUPLICATE: "${raw}" ≡ "${tickersSeen.get(norm)}" (alias not resolved)`);
+      } else {
+        tickersSeen.set(norm, raw);
+      }
+    }
+  }
+
+  // Portfolio count warnings (not gate-failures, but score penalties)
+  const portLen = report.portfolio?.length ?? 0;
+  if (portLen > 0 && portLen < 5) warnings.push(`portfolio COUNT LOW: ${portLen} (recommend ≥5)`);
+
+  // Cross-ticker catalyst duplication check
+  if (Array.isArray(report.portfolio)) {
+    const catalystKeys = new Map(); // normalized key → ticker
+    for (const p of report.portfolio) {
+      for (const c of (p.catalysts ?? [])) {
+        if (!c || typeof c !== 'string') continue;
+        const key = c.toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 60);
+        if (catalystKeys.has(key)) {
+          warnings.push(`cross-ticker catalyst DUPLICATE: "${c.slice(0, 50)}" (${p.ticker} ≡ ${catalystKeys.get(key)})`);
+        } else {
+          catalystKeys.set(key, p.ticker);
+        }
+      }
+    }
+  }
+
   let score = 0;
   if ((report.thesis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.thesis))               score += 15;
   if ((report.macroAnalysis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.macroAnalysis))  score += 15;
   if ((report.technicalAnalysis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.technicalAnalysis)) score += 10;
   if ((report.fundamentalAnalysis?.length ?? 0) >= garbageMinLen(GARBAGE_MIN_LEN.fundamentalAnalysis)) score += 10;
-  if ((report.portfolio?.length ?? 0) >= 2)                                                  score += 15;
+  if (portLen >= 5)       score += 15;
+  else if (portLen >= 2)  score += 8;  // partial credit — 2-4 items
   if ((report.riskEvents?.length ?? 0) >= 1)                                                 score += 5;
   if (Object.keys(report.regionStances ?? {}).length >= 2)                                   score += 5;
   if ((report.shortSqueeze?.length ?? 0) >= 1)                                               score += 5;
@@ -123,7 +161,7 @@ function qualityCheck(report) {
   if ((report.stopLossRationale?.length ?? 0) >= 1)                                          score += 5;
   if (report.marketNarrative?.why || report.marketNarrative?.story)                          score += 5;
   if ((report.companyChanges?.length ?? 0) >= 1)                                             score += 7;
-  return { ok: issues.length === 0, issues, score };
+  return { ok: issues.length === 0, issues, warnings, score };
 }
 
 // ── Redis 업로드 ────────────────────────────────────────────────────────────────
@@ -176,11 +214,15 @@ async function uploadFromFile(filePath) {
   } catch (e) { console.error('파일 읽기 실패:', e.message); process.exit(1); }
 
   console.log('\n=== 품질 게이트 검사 ===');
-  const { ok, issues, score } = qualityCheck(report);
+  const { ok, issues, warnings, score } = qualityCheck(report);
   console.log(`품질 점수: ${score}/100`);
+  if (warnings?.length) {
+    console.log('⚠️  경고 (업로드는 허용):');
+    for (const w of warnings) console.log('   WARN:', w);
+  }
   if (issues.length) {
-    console.log('⚠️  문제 발견:');
-    for (const i of issues) console.log('   ', i);
+    console.log('❌ 게이트 오류:');
+    for (const i of issues) console.log('   ERROR:', i);
   } else {
     console.log('✅ 품질 검사 통과');
   }
@@ -931,6 +973,18 @@ function validateEntryZones(portfolioItems, livePrices) {
       console.warn(`  ⚠️  ${p.ticker} target="${p.target}" vs actual ${fmt(actual)} → 보정 (${targetTooLow ? '현재가 이하' : '범위 이탈'})`);
       updated.target = fmt(isKR ? Math.round(actual * 1.15) : parseFloat((actual * 1.15).toFixed(2)));
     }
+
+    // targetBull must always be strictly higher than the (possibly corrected) base target
+    if (updated.targetBull) {
+      const baseTargetNum = Math.max(...extractNums(updated.target).filter(n => n > 0), 0);
+      const bullNums = extractNums(updated.targetBull);
+      const bullHigh = bullNums.length > 0 ? Math.max(...bullNums) : 0;
+      if (bullHigh > 0 && baseTargetNum > 0 && bullHigh <= baseTargetNum) {
+        console.warn(`  ⚠️  ${p.ticker} targetBull=${fmt(bullHigh)} ≤ target=${fmt(baseTargetNum)} → bull 목표가 보정`);
+        updated.targetBull = fmt(isKR ? Math.round(baseTargetNum * 1.20) : parseFloat((baseTargetNum * 1.20).toFixed(2)));
+      }
+    }
+
     return updated;
   });
 }
@@ -1365,28 +1419,60 @@ async function safeFetch(url, timeoutMs = 10000) {
 
 async function gatherContext() {
   const base = SITE;
+
+  // Named fetch with inline per-API logging
+  async function namedFetch(name, url, timeoutMs) {
+    const t0 = Date.now();
+    const result = await safeFetch(url, timeoutMs);
+    const ms = Date.now() - t0;
+    if (!result) {
+      console.warn(`  [API] ❌ ${name} null (${ms}ms) — ${url}`);
+    } else {
+      // Summarise key field so we can verify the data looks sensible
+      let summary = '';
+      if (name === 'fearGreed') summary = `us_score=${result?.byCountry?.find(c=>c.id==='us')?.score ?? result?.score ?? '?'}`;
+      else if (name === 'fedwatch') summary = `hold=${result?.probHold ?? '?'}% cut=${result?.probCut ?? '?'}%`;
+      else if (name === 'macro') summary = `indicators=${result?.indicators?.length ?? '?'}`;
+      else if (name === 'insider') summary = `items=${result?.items?.length ?? 0}`;
+      else if (name === 'ownershipAlerts') summary = `items=${result?.items?.length ?? result?.length ?? 0}`;
+      else if (name === 'newsCascade') summary = `articles=${result?.articles?.length ?? 0}`;
+      else if (name === 'shortInterest') summary = `items=${result?.items?.length ?? result?.data?.length ?? '?'}`;
+      else if (name === 'nport') summary = `positions=${result?.positions?.length ?? result?.data?.length ?? '?'}`;
+      else if (name === 'supplyChainSignals') summary = `signals=${result?.signals?.length ?? 0}`;
+      else if (name === 'volatility') summary = `vix=${result?.vix ?? result?.data?.vix ?? '?'}`;
+      else if (name === 'capital') summary = `source=${result?.source ?? '?'}`;
+      else if (name === 'creditBalance') summary = `entries=${result?.data?.length ?? '?'}`;
+      else if (name === 'koreaFlow') summary = `foreignNet=${result?.foreignNet ?? '?'}`;
+      else if (name === 'econCal') summary = `events=${result?.events?.length ?? result?.length ?? '?'}`;
+      else if (name === 'cot') summary = `tickers=${result?.positions ? Object.keys(result.positions).length : '?'}`;
+      else if (name === 'commodity') summary = `items=${result?.curves?.length ?? result?.data?.length ?? '?'}`;
+      console.log(`  [API] ✅ ${name} (${ms}ms) ${summary}`);
+    }
+    return result;
+  }
+
   const [
     capital, fearGreed, fedwatch, macro,
     creditBalance, insider, ownershipAlerts, koreaFlow,
     nport, shortInterest, newsCascade, econCal,
     volatility, cot, commodity, supplyChainSignals,
   ] = await Promise.all([
-    safeFetch(`${base}/api/capital-flows`, 15000),
-    safeFetch(`${base}/api/fear-greed`, 12000),
-    safeFetch(`${base}/api/fedwatch`, 10000),
-    safeFetch(`${base}/api/macro-indicators`, 10000),
-    safeFetch(`${base}/api/credit-balance`, 10000),
-    safeFetch(`${base}/api/insider-trades`, 15000),
-    safeFetch(`${base}/api/ownership-alerts`, 15000),
-    safeFetch(`${base}/api/korea-flow`, 10000),
-    safeFetch(`${base}/api/nport-holdings`, 15000),
-    safeFetch(`${base}/api/short-interest`, 12000),
-    safeFetch(`${base}/api/news-cascade`, 15000),
-    safeFetch(`${base}/api/economic-calendar?country=US`, 8000),
-    safeFetch(`${base}/api/volatility`, 8000),
-    safeFetch(`${base}/api/cot-positions`, 10000),
-    safeFetch(`${base}/api/commodity-curve`, 10000),
-    safeFetch(`${base}/api/supply-chain-signals`, 10000),
+    namedFetch('capital',           `${base}/api/capital-flows`, 15000),
+    namedFetch('fearGreed',         `${base}/api/fear-greed`, 12000),
+    namedFetch('fedwatch',          `${base}/api/fedwatch`, 10000),
+    namedFetch('macro',             `${base}/api/macro-indicators`, 10000),
+    namedFetch('creditBalance',     `${base}/api/credit-balance`, 10000),
+    namedFetch('insider',           `${base}/api/insider-trades`, 15000),
+    namedFetch('ownershipAlerts',   `${base}/api/ownership-alerts`, 15000),
+    namedFetch('koreaFlow',         `${base}/api/korea-flow`, 10000),
+    namedFetch('nport',             `${base}/api/nport-holdings`, 15000),
+    namedFetch('shortInterest',     `${base}/api/short-interest`, 12000),
+    namedFetch('newsCascade',       `${base}/api/news-cascade`, 15000),
+    namedFetch('econCal',           `${base}/api/economic-calendar?country=US`, 8000),
+    namedFetch('volatility',        `${base}/api/volatility`, 8000),
+    namedFetch('cot',               `${base}/api/cot-positions`, 10000),
+    namedFetch('commodity',         `${base}/api/commodity-curve`, 10000),
+    namedFetch('supplyChainSignals',`${base}/api/supply-chain-signals`, 10000),
   ]);
 
   // fear-greed returns { byCountry:[{id:'us',score}], byAsset:[...] }
@@ -1767,16 +1853,26 @@ async function getSectorSummary() {
 
 async function getUpcomingEarnings() {
   try {
-    const d = await safeFetch(`${SITE}/api/earnings`, 8000);
-    const items = (d?.earnings ?? []).slice(0, 5);
-    return items.map(e => `${e.symbol} ${e.date}`).join(', ');
+    // Include past 7 days to capture recently reported earnings (e.g. CRWV Q1)
+    const kstNow = Date.now() + 9 * 3600000;
+    const from = new Date(kstNow - 7 * 86400000).toISOString().slice(0, 10);
+    const to   = new Date(kstNow + 14 * 86400000).toISOString().slice(0, 10);
+    const d = await safeFetch(`${SITE}/api/earnings?from=${from}&to=${to}`, 8000);
+    const items = (d?.earnings ?? []).slice(0, 12);
+    return items.map(e => {
+      const surp = e.epsSurprise != null ? ` EPS${e.epsSurprise >= 0 ? '+' : ''}${e.epsSurprise}%` : '';
+      return `${e.symbol} ${e.date}${surp}`;
+    }).join(', ');
   } catch { return ''; }
 }
 
 /** 최근 7일 + 향후 14일 실적 raw 배열 반환 (post-earnings 판단용) */
 async function getRawEarnings() {
   try {
-    const d = await safeFetch(`${SITE}/api/earnings`, 8000);
+    const kstNow = Date.now() + 9 * 3600000;
+    const from = new Date(kstNow - 7 * 86400000).toISOString().slice(0, 10);
+    const to   = new Date(kstNow + 14 * 86400000).toISOString().slice(0, 10);
+    const d = await safeFetch(`${SITE}/api/earnings?from=${from}&to=${to}`, 8000);
     return (d?.earnings ?? []).map(e => ({
       ticker: (e.symbol ?? e.ticker ?? '').toUpperCase(),
       date: e.date,
@@ -1920,6 +2016,15 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '   citing THAT stock\'s specific primary signal. Do NOT copy-paste the same text.',
     '   Examples of different signals: insider filings count, squeeze score, options flow,',
     '   13F accumulation, earnings beat %, PE vs sector, RSI level, 52w position.',
+    '',
+    '⚠️ ANTI-COPY RULES FOR rationale (same violation type ruins the report):',
+    '- Insider Buying in rationale: ONLY if [Institutional + Insider Signals] explicitly lists filings for THAT ticker.',
+    '  Write the actual count (e.g. "insider 23건") — never use "insider buying" without a specific number.',
+    '  If the ticker is NOT listed in insider signals, do NOT mention insider buying.',
+    '- Short Squeeze in rationale: ONLY if [Short Squeeze Candidates] explicitly lists THAT ticker with a score.',
+    '  Write the actual squeeze score (e.g. "squeeze 38") — never mention squeeze without the score.',
+    '  If the ticker is NOT in squeeze candidates, do NOT mention squeeze at all.',
+    '- If you find yourself writing similar insider/squeeze text for 3+ stocks, you are copy-pasting — stop and rewrite using each stock\'s own fundamental data instead.',
     '',
     `Respond in pure JSON (no markdown). ALL text values MUST be in ${TARGET_LANG}:`,
     '{"stance":"bullish|neutral|bearish",',
@@ -2166,6 +2271,24 @@ function applyCritique(portfolio, critiqueRaw) {
         }
       }
 
+      // Parse target price adjustment from critiqueNote (e.g. "₩270,000으로 조정" or "adjust target to $420")
+      // Only apply if critique suggests LOWER target (overbought/overvalued) — don't let critique raise target
+      {
+        const priceMatch = corr.match(/[₩$]([\d,]+)\s*(?:으로|로)?\s*조정|adjust.*?target.*?[₩$]([\d,]+)/i);
+        const rawNum = priceMatch?.[1] ?? priceMatch?.[2];
+        if (rawNum) {
+          const suggested = parseFloat(rawNum.replace(/,/g, ''));
+          const existingNums = (updated.target ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(n => n > 0) ?? [];
+          const existingTarget = existingNums.length ? Math.max(...existingNums) : 0;
+          // Only lower the target, never raise it via critique
+          if (suggested > 0 && existingTarget > 0 && suggested < existingTarget) {
+            const isKRTicker = (updated.ticker ?? '').endsWith('.KS');
+            updated.target = isKRTicker ? `₩${Math.round(suggested).toLocaleString()}` : `$${suggested.toFixed(2)}`;
+            console.log(`    target adjusted by critique: ${p.ticker} ${existingTarget} → ${suggested}`);
+          }
+        }
+      }
+
       return updated;
     });
 
@@ -2380,7 +2503,25 @@ async function generateViaOllama() {
   // ── [3/7] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
   console.log('\n[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...');
   // 현재가와 동떨어진 entryZone/stopLoss/target 보정 (LLM 환각 방지)
-  const portfolioItems = validateEntryZones(postProcessPortfolio(portfolioData.portfolio), livePrices);
+  const rawPortfolio = portfolioData.portfolio ?? [];
+  const postProcessed = postProcessPortfolio(rawPortfolio);
+  // Log alias normalization results
+  {
+    const before = rawPortfolio.map(p => p.ticker ?? '');
+    const after  = postProcessed.map(p => p.ticker ?? '');
+    const aliased = before.filter((t, i) => t !== after[i]);
+    if (aliased.length) console.log(`  [postProcess] alias 정규화: ${aliased.map((t, i) => `${t}→${after[before.indexOf(t)]}`).join(', ')}`);
+    const removed = before.filter(t => !after.includes(t) && !aliased.includes(t));
+    if (removed.length) console.log(`  [postProcess] 필터 제거 (인덱스/빈값): ${removed.join(', ')}`);
+    console.log(`  [postProcess] 포트폴리오: ${rawPortfolio.length}개 → ${postProcessed.length}개`);
+  }
+  const portfolioItems = validateEntryZones(postProcessed, livePrices);
+  // Log entryZone clamping results
+  {
+    const clamped = portfolioItems.filter((p, i) => p.entryZone !== postProcessed[i]?.entryZone);
+    if (clamped.length) console.log(`  [validateEntryZones] 보정: ${clamped.map(p => `${p.ticker}(${p.entryZone})`).join(', ')}`);
+    else console.log(`  [validateEntryZones] 보정 없음 (${portfolioItems.length}개 그대로)`);
+  }
   const buyStocks = portfolioItems
     .filter(p => p.action === 'buy')
     .map(p => ({ ticker: p.ticker, name: p.name ?? p.ticker, sector: p.sector ?? '', rationale: p.rationale ?? '', entryZone: p.entryZone ?? '', target: p.target ?? '' }));
@@ -2479,11 +2620,22 @@ async function generateViaOllama() {
     };
   });
 
+  // Log final portfolio before dedup
+  console.log(`  [merge] mergedPortfolio: ${mergedPortfolio.length}개 — ${mergedPortfolio.map(p => `${p.ticker}(${p.action})`).join(', ')}`);
+  const dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
+  // Quality pre-flight
+  {
+    const { ok: qOk, issues: qIssues, warnings: qWarnings, score: qScore } = qualityCheck({ ...{}, portfolio: dedupedPortfolio, regionStances: regionalData?.regionStances ?? {}, shortSqueeze: opportunityData?.shortSqueeze ?? [], marketNarrative: narrativeData ?? {}, thesis: macroData?.thesis ?? '', macroAnalysis: macroData?.macroAnalysis ?? '', technicalAnalysis: macroData?.technicalAnalysis ?? '' });
+    console.log(`  [quality pre-flight] score=${qScore}/100, issues=${qIssues.length}, warnings=${qWarnings?.length ?? 0}`);
+    for (const w of qWarnings ?? []) console.warn(`    WARN: ${w}`);
+    for (const e of qIssues) console.error(`    ERROR: ${e}`);
+  }
+
   const now = new Date().toISOString();
   const finalReport = {
     stance: portfolioData.stance ?? 'neutral',
     thesis: macroData?.thesis ?? portfolioData.stance ?? 'neutral',
-    portfolio: dedupCrossTickerCatalysts(mergedPortfolio),
+    portfolio: dedupedPortfolio,
     sectorAllocation: portfolioData.sectorAllocation ?? [],
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',
@@ -2499,6 +2651,20 @@ async function generateViaOllama() {
     portfolioRiskNote: riskData?.portfolioRiskNote ?? '',
     marketNarrative: narrativeData ?? {},
     companyChanges: companyChangesData?.companyChanges ?? [],
+    // S9: 공급망 변화 모니터링 (supply-chain-signals 데이터 직접 주입 — LLM 없이)
+    supplyChainChanges: (ctxRaw.supplyChainSignals ?? [])
+      .filter(s => s.conviction >= 45)
+      .slice(0, 10)
+      .map(s => ({
+        ticker: s.ticker,
+        direction: s.direction ?? 'neutral',
+        headline: s.headline,
+        source: s.source,
+        conviction: s.conviction,
+        downstreamBeneficiaries: s.downstreamBeneficiaries ?? [],
+        upstreamRisks: s.upstreamRisks ?? [],
+        evidenceUrl: s.evidenceUrl ?? null,
+      })),
     generatedAt: now,
     dataAsOf: now,
     source: `local-${modelArg}`,

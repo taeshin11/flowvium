@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "Fundamentaldaten",
     "technicalBasisLabel": "Technisch",
     "riskNoteLabel": "Hauptrisiko",
-    "historyExpiredNote": "Dieser historische Bericht ist abgelaufen und kann nicht geladen werden. Aktuellen Bericht anzeigen."
+    "historyExpiredNote": "Dieser historische Bericht ist abgelaufen und kann nicht geladen werden. Aktuellen Bericht anzeigen.",
+    "satelliteTitle": "Satelliten-Fabrikaktivitäts-Highlights",
+    "satelliteActive": "Aktiv",
+    "satelliteNormal": "Normal"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "기초 분석",
     "technicalBasisLabel": "기술 분석",
     "riskNoteLabel": "핵심 리스크",
-    "historyExpiredNote": "이전 보고서가 만료되어 조회할 수 없습니다. 최신 보고서를 확인하세요."
+    "historyExpiredNote": "이전 보고서가 만료되어 조회할 수 없습니다. 최신 보고서를 확인하세요.",
+    "satelliteTitle": "위성 공장 활동 하이라이트",
+    "satelliteActive": "활발",
+    "satelliteNormal": "보통"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

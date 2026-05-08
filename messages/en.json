@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "Fundamental",
     "technicalBasisLabel": "Technical",
     "riskNoteLabel": "Key Risk",
-    "historyExpiredNote": "This historical report has expired and cannot be loaded. View the latest report."
+    "historyExpiredNote": "This historical report has expired and cannot be loaded. View the latest report.",
+    "satelliteTitle": "Satellite Factory Activity Highlights",
+    "satelliteActive": "Active",
+    "satelliteNormal": "Normal"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

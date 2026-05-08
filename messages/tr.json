@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "Temel Analiz",
     "technicalBasisLabel": "Teknik Analiz",
     "riskNoteLabel": "Ana Risk",
-    "historyExpiredNote": "Bu tarihi rapor süresi doldu ve yüklenemiyor. En son raporu görüntüleyin."
+    "historyExpiredNote": "Bu tarihi rapor süresi doldu ve yüklenemiyor. En son raporu görüntüleyin.",
+    "satelliteTitle": "Uydu Fabrika Aktivitesi Öne Çıkanlar",
+    "satelliteActive": "Aktif",
+    "satelliteNormal": "Normal"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

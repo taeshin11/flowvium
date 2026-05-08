@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "ファンダメンタル",
     "technicalBasisLabel": "テクニカル",
     "riskNoteLabel": "主要リスク",
-    "historyExpiredNote": "この過去レポートは期限切れで読み込めません。最新レポートをご覧ください。"
+    "historyExpiredNote": "この過去レポートは期限切れで読み込めません。最新レポートをご覧ください。",
+    "satelliteTitle": "衛星工場活動ハイライト",
+    "satelliteActive": "活発",
+    "satelliteNormal": "普通"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

@@ -58,9 +58,27 @@ function SignificanceBadge({ sig }: { sig: string }) {
 function FactoryCard({ f }: { f: FactorySignal }) {
   const flag = COUNTRY_FLAGS[f.country] ?? '🌐';
   const hasScore = f.activityScore != null;
+  const [imgFailed, setImgFailed] = useState(false);
 
   return (
     <div className="cf-card p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      {/* Satellite image thumbnail */}
+      {!imgFailed && (
+        <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5" style={{ aspectRatio: '1/1' }}>
+          <img
+            src={`/api/satellite-image?id=${f.id}`}
+            alt={`Sentinel-2 ${f.name}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
+            <span className="text-[10px] text-white/80 font-medium">Sentinel-2 · ESA</span>
+            {f.imageDate && <span className="text-[10px] text-white/60 ml-1">{f.imageDate}</span>}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">

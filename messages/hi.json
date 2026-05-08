@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "बुनियादी विश्लेषण",
     "technicalBasisLabel": "तकनीकी विश्लेषण",
     "riskNoteLabel": "मुख्य जोखिम",
-    "historyExpiredNote": "यह ऐतिहासिक रिपोर्ट समाप्त हो गई है और लोड नहीं हो सकती। नवीनतम रिपोर्ट देखें।"
+    "historyExpiredNote": "यह ऐतिहासिक रिपोर्ट समाप्त हो गई है और लोड नहीं हो सकती। नवीनतम रिपोर्ट देखें।",
+    "satelliteTitle": "उपग्रह कारखाना गतिविधि हाइलाइट्स",
+    "satelliteActive": "सक्रिय",
+    "satelliteNormal": "सामान्य"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

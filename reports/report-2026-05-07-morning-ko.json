@@ -1,0 +1,434 @@
+{
+  "stance": "bullish",
+  "thesis": "NFP 상향 전망, 파월 이사 잔류 영향 — CPI 3.29%, GDP 2%, HY스프레드 2.77%, 리스크 medium",
+  "portfolio": [
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "내부자 집중매수 + squeeze score 55 | squeeze 20, 50MA 위($187.73), RSI 58, 거래량+27%, 52주:$165.17-$216.61, 진입지지선:$187.73",
+      "allocation": 22,
+      "entryZone": "$195-210",
+      "entryRationale": "내부자 집중매수",
+      "stopLoss": "$180",
+      "target": "$250",
+      "targetBull": "$300",
+      "targetRationale": "기술 성장 + 수요 증가",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 $250 너무 높아, $220으로 수정",
+      "catalysts": [
+        "AI server demand up 73.2% YoY in Q4 FY2026",
+        "60.4% operating margin in Q4 FY2026",
+        "52-week range $165.17-$216.61"
+      ],
+      "fundamentalBasis": "73.2% revenue growth, 60.4% margin, 37.3 P/E",
+      "technicalBasis": "50MA 위($187.73), RSI 58, 거래량+27%",
+      "riskNote": "AI demand slowdown in 2026"
+    },
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corporation",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "squeeze score 45 + 내부자 집중매수 | squeeze 45, 50MA 위($1605.98), RSI 57, 거래량+39%, 52주:$1097.12-$1935.00, 진입지지선:$1605.98",
+      "allocation": 17,
+      "entryZone": "$1750-1850",
+      "entryRationale": "squeeze score 45",
+      "stopLoss": "$1600",
+      "target": "$2100",
+      "targetBull": "$2500",
+      "targetRationale": "반도체 수요 증가",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 $2100 너무 높아, $1900으로 수정",
+      "catalysts": [
+        "3.4B revenue in Q3 FY2026 +11.5% YoY",
+        "11.5% revenue growth in Q3 FY2026",
+        "52-week range $1097.12-$1935.00"
+      ],
+      "fundamentalBasis": "11.5% revenue growth, 26.5 P/E",
+      "technicalBasis": "50MA 위($1605.98), RSI 57, 거래량+39%",
+      "riskNote": "Semiconductor demand slowdown"
+    },
+    {
+      "ticker": "TSLA",
+      "name": "Tesla",
+      "sector": "Consumer Dis.",
+      "market": "us",
+      "rationale": "squeeze score 45 + 기술 혁신 | squeeze 20, 50MA 위($382.91), RSI 56, 거래량-17%, 52주:$343.25-$489.88, 진입지지선:$382.91",
+      "allocation": 14,
+      "entryZone": "$380-410",
+      "entryRationale": "squeeze score 45",
+      "stopLoss": "$350",
+      "target": "$450",
+      "targetBull": "$500",
+      "targetRationale": "전기차 시장 성장",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 $450 너무 높아, $420으로 수정",
+      "catalysts": [
+        "22.4B revenue in Q1 FY2026 +15.8% YoY",
+        "4.6% operating margin in Q1 FY2026",
+        "52-week range $343.25-$489.88"
+      ],
+      "fundamentalBasis": "15.8% revenue growth, 30.8 P/E",
+      "technicalBasis": "50MA 위($382.91), RSI 56, 거래량-17%",
+      "riskNote": "Battery production delays"
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "sector": "Technology",
+      "market": "korea",
+      "rationale": "내부자 집중매수 + 반도체 수요 | 200MA 위(₩127,963), 50MA 위(₩202,839), RSI 82, 거래량+71%, 52주:₩53,900-₩271,500, 진입지지선:₩127,963",
+      "allocation": 17,
+      "entryZone": "₩252,495-₩260,640",
+      "entryRationale": "내부자 집중매수",
+      "stopLoss": "₩249,780",
+      "target": "₩312,225",
+      "targetBull": "120000",
+      "targetRationale": "반도체 수요 증가",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 ₩312,225 너무 높아, ₩290,000으로 수정",
+      "catalysts": [
+        "64.7B revenue in Q4 FY2025 +23.8% YoY",
+        "13.1% operating margin in Q4 FY2025",
+        "52-week range ₩53,900-₩271,500"
+      ],
+      "fundamentalBasis": "23.8% revenue growth, 13.1% margin, 26.5 P/E",
+      "technicalBasis": "200MA 위(₩127,963), 50MA 위(₩202,839), RSI 82, 거래량+71%",
+      "riskNote": "🟠 고점 경고 — 분할매도 검토: RSI 82(과매수·조정 가능), 거래량+71%(급등후 차익주의) | ➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조 | Global semiconductor demand slowdown"
+    },
+    {
+      "ticker": "005490.KS",
+      "name": "현대차",
+      "sector": "Consumer Dis.",
+      "market": "korea",
+      "rationale": "내부자 집중매수 + 전기차 전략 | 200MA 위(₩329,405), 50MA 위(₩377,820), RSI 91, 거래량+81%, 52주:₩233,500-₩535,000, 진입지지선:₩329,405",
+      "allocation": 14,
+      "entryZone": "₩497,550-₩513,600",
+      "entryRationale": "내부자 집중매수",
+      "stopLoss": "₩492,200",
+      "target": "₩615,250",
+      "targetBull": "70000",
+      "targetRationale": "전기차 수요 증가",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 ₩615,250 너무 높아, ₩570,000으로 수정",
+      "catalysts": [
+        "11.5B revenue in Q4 FY2025 -9.9% YoY",
+        "2.7% operating margin in Q4 FY2025",
+        "52-week range ₩233,500-₩535,000"
+      ],
+      "fundamentalBasis": "-9.9% revenue growth, 2.7% margin, 25.6 P/E",
+      "technicalBasis": "200MA 위(₩329,405), 50MA 위(₩377,820), RSI 91, 거래량+81%",
+      "riskNote": "🟠 고점 경고 — 분할매도 검토: RSI 91(과매수·조정 가능), 거래량+81%(급등후 차익주의) | ➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조 | Electric vehicle adoption delay"
+    },
+    {
+      "ticker": "035720.KS",
+      "name": "POSCO",
+      "sector": "Materials",
+      "market": "korea",
+      "rationale": "내부자 집중매수 + 건설 재개 | 200MA 아래(₩57,553), 50MA 아래(₩49,620), RSI 23, 거래량+171%, 52주:₩36,450-₩70,400, 진입지지선:₩57,553",
+      "allocation": 16,
+      "entryZone": "₩42,083-₩43,440",
+      "entryRationale": "내부자 집중매수",
+      "stopLoss": "₩41,630",
+      "target": "₩52,037",
+      "targetBull": "150000",
+      "targetRationale": "건설 활성화",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "1.5B revenue in Q4 FY2025 +8.4% YoY",
+        "9.1% operating margin in Q4 FY2025",
+        "52-week range ₩36,450-₩70,400"
+      ],
+      "fundamentalBasis": "8.4% revenue growth, 9.1% margin, 26.5 P/E",
+      "technicalBasis": "200MA 아래(₩57,553), 50MA 아래(₩49,620), RSI 23, 거래량+171%",
+      "riskNote": "Construction activity slowdown"
+    }
+  ],
+  "sectorAllocation": [
+    {
+      "sector": "Technology",
+      "pct": 40,
+      "stance": "overweight",
+      "reason": "반도체 수요 증가"
+    },
+    {
+      "sector": "Consumer Dis.",
+      "pct": 25,
+      "stance": "overweight",
+      "reason": "전기차 성장"
+    },
+    {
+      "sector": "Materials",
+      "pct": 15,
+      "stance": "neutral",
+      "reason": "건설회복 기대"
+    },
+    {
+      "sector": "Financials",
+      "pct": 10,
+      "stance": "underweight",
+      "reason": "저금리 환경"
+    },
+    {
+      "sector": "Energy",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "에너지 수요 증가"
+    }
+  ],
+  "riskEvents": [
+    {
+      "date": "2026-05-08",
+      "event": "비농업고용량 발표",
+      "impact": "high",
+      "watchFor": "NFP 상향 여부"
+    },
+    {
+      "date": "2026-05-08",
+      "event": "실업률 발표",
+      "impact": "high",
+      "watchFor": "실업률 하락"
+    },
+    {
+      "date": "2026-05-08",
+      "event": "미시건 소비심리 발표",
+      "impact": "medium",
+      "watchFor": "심리 개선"
+    },
+    {
+      "date": "2026-05-11",
+      "event": "주택매매량 발표",
+      "impact": "medium",
+      "watchFor": "매매량 상승"
+    }
+  ],
+  "macroAnalysis": "CPI 3.29%, 금리 50bp, IG_OAS 0.79%, HY_OAS 2.77%로 정상 곡선 유지 | 주요지표: 공포탐욕 68(United States), CPI 3.29%, 연준금리 3.625%, HY 2.77bps, 리스크=medium",
+  "technicalAnalysis": "VIX 17.39, 곡선 정상. 단기 변동성 낮음",
+  "fundamentalAnalysis": "NFP, 실업률, 소비심리 발표 예정. 기관 순매수 증가",
+  "riskLevel": "medium",
+  "regionStances": {
+    "us": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +8.6%, 1w +3.1%",
+      "keyData": "4w +8.6%, 1w +3.1%"
+    },
+    "korea": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +29.9%, 1w +18.2%",
+      "keyData": "4w +29.9%, 1w +18.2%"
+    },
+    "japan": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +2.5%, 1w +5.6%",
+      "keyData": "4w +2.5%, 1w +5.6%"
+    },
+    "china": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +3.1%, 1w +3.2%",
+      "keyData": "4w +3.1%, 1w +3.2%"
+    },
+    "europe": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +2.9%, 1w +4.8%",
+      "keyData": "4w +2.9%, 1w +4.8%"
+    },
+    "india": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +1.5%, 1w +2.0%",
+      "keyData": "4w +1.5%, 1w +2.0%"
+    },
+    "taiwan": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +24.2%, 1w +8.8%",
+      "keyData": "4w +24.2%, 1w +8.8%"
+    },
+    "brazil": {
+      "stance": "neutral",
+      "thesis": "neutral: 4w +0.9%, 1w +3.2%",
+      "keyData": "4w +0.9%, 1w +3.2%"
+    },
+    "australia": {
+      "stance": "bullish",
+      "thesis": "bullish: 4w +2.0%, 1w +5.2%",
+      "keyData": "4w +2.0%, 1w +5.2%"
+    },
+    "global": {
+      "stance": "neutral",
+      "thesis": "[data fallback] neutral",
+      "keyData": "4w flow"
+    }
+  },
+  "shortSqueeze": [
+    {
+      "ticker": "DELL",
+      "score": 55,
+      "timing": "실적 후 +10.4% 급등, squeeze 지속",
+      "risk": "고점 매도 위험"
+    },
+    {
+      "ticker": "ARM",
+      "score": 45,
+      "timing": "실적 후 +13.6% 급등, squeeze 지속",
+      "risk": "등락 가능성 높음"
+    },
+    {
+      "ticker": "KLAC",
+      "score": 45,
+      "timing": "5월 중순 매매 집중",
+      "risk": "등락 가능성 높음"
+    }
+  ],
+  "insiderSignals": [
+    {
+      "ticker": "CXDO",
+      "filings": [
+        1
+      ],
+      "dateRange": "2026-05-04~2026-05-06",
+      "significance": "주요 인수자 매수",
+      "pattern": "혼합 매매"
+    },
+    {
+      "ticker": "CRWV",
+      "filings": [
+        0
+      ],
+      "dateRange": "2026-05-05~2026-05-05",
+      "significance": "매도 집중 신호",
+      "pattern": "단기 매도"
+    },
+    {
+      "ticker": "ALKT",
+      "filings": [
+        6
+      ],
+      "dateRange": "2026-05-04~2026-05-06",
+      "significance": "주요 인수자 매수",
+      "pattern": "집중 매수"
+    }
+  ],
+  "topOpportunity": "ARM 주가 상승 가능성 높음",
+  "stopLossRationale": [
+    {
+      "ticker": "NVDA",
+      "rationale": "NVDA의 손절은 180달러로, 손실 최소화 및 리스크 관리 목적 | 현재 $207.83 → 손절선 ~$193.28 (-7%) / 50MA 위($187.73), RSI 58, 거래량+27%, 52주:$165.17-$216.61, 진입지지선:$187.73"
+    },
+    {
+      "ticker": "KLAC",
+      "rationale": "KLAC의 손절은 1600달러로, 하락 방향 대비 안전성 확보 | 현재 $1816.29 → 손절선 ~$1689.15 (-7%) / 50MA 위($1605.98), RSI 57, 거래량+39%, 52주:$1097.12-$1935.00, 진입지지선:$1605.98"
+    },
+    {
+      "ticker": "TSLA",
+      "rationale": "TSLA의 손절은 350달러로, 가격 변동성 대비 리스크 제어 | 현재 $398.73 → 손절선 ~$370.82 (-7%) / 50MA 위($382.91), RSI 56, 거래량-17%, 52주:$343.25-$489.88, 진입지지선:$382.91"
+    },
+    {
+      "ticker": "005930.KS",
+      "rationale": "005930.KS 손절은 249,780원으로, 하락 시 손실 제한 | 현재 $271500 → 손절선 ~$252495.00 (-7%) / 200MA 위(₩127,963), 50MA 위(₩202,839), RSI 82, 거래량+71%, 52주:₩53,900-₩271,500, 진입지지선:₩127,963"
+    },
+    {
+      "ticker": "005490.KS",
+      "rationale": "005490.KS 손절은 492,200원으로, 변동성 대비 안정성 확보 | 현재 $535000 → 손절선 ~$497550.00 (-7%) / 200MA 위(₩329,405), 50MA 위(₩377,820), RSI 91, 거래량+81%, 52주:₩233,500-₩535,000, 진입지지선:₩329,405"
+    },
+    {
+      "ticker": "035720.KS",
+      "rationale": "035720.KS 손절은 41,630원으로, 하락 시 손실 최소화 | 현재 $45250 → 손절선 ~$42082.50 (-7%) / 200MA 아래(₩57,553), 50MA 아래(₩49,620), RSI 23, 거래량+171%, 52주:₩36,450-₩70,400, 진입지지선:₩57,553"
+    }
+  ],
+  "hedgingSuggestion": "상황에 따라 옵션 또는 펀드를 활용한 헤징 전략 고려",
+  "portfolioRiskNote": "중간 리스크 수준, 범위 초과 신호 및 VIX 상승에 주의 필요",
+  "marketNarrative": {
+    "why": "테크와 비트코인 수요 증가",
+    "watch": "에너지 주가 반전 가능성",
+    "story": "미국 시장 마감 직후 테크와 비트코인에 대규모 흐름이 집중되며, 에너지 관련 자산은 하락세로 전환되고 있다. 전반적인 투자 분위기는 긍정적이다.",
+    "sessionNote": "테크 및 암호화폐 강세"
+  },
+  "companyChanges": [
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "revenueYoY": 73.2,
+      "latestQuarter": "Q4 FY2026",
+      "keyChange": "2026년 4분기 매출 681억 달러, 전년 대비 73.2% 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "Samsung Electronics",
+      "revenueYoY": 23.8,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "2025년 4분기 매출 647억 달러, 전년 대비 23.8% 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "035720.KS",
+      "name": "Hyundai Mobis",
+      "revenueYoY": 8.4,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "2025년 4분기 매출 150억 달러, 전년 대비 8.4% 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "005490.KS",
+      "name": "Korea Electric Power",
+      "revenueYoY": -9.9,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "2025년 4분기 매출 115억 달러, 전년 대비 9.9% 감소",
+      "guidance": "lowered",
+      "sentiment": "negative"
+    },
+    {
+      "ticker": "SLMT",
+      "name": "SLMT",
+      "revenueYoY": null,
+      "latestQuarter": "Q1 FY2026",
+      "keyChange": "2026년 5월 11일 실적 발표 예정",
+      "guidance": "unknown",
+      "sentiment": "neutral"
+    },
+    {
+      "ticker": "CRWV",
+      "name": "CRWV",
+      "revenueYoY": null,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "2026년 5월 5일 집중 매도 감지",
+      "guidance": "unknown",
+      "sentiment": "negative"
+    },
+    {
+      "ticker": "CXDO",
+      "name": "CXDO",
+      "revenueYoY": null,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "2026년 5월 4~6일 집중 매도 감지",
+      "guidance": "unknown",
+      "sentiment": "negative"
+    },
+    {
+      "ticker": "ALKT",
+      "name": "ALKT",
+      "revenueYoY": null,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "2026년 5월 4~6일 집중 매수 감지",
+      "guidance": "unknown",
+      "sentiment": "positive"
+    }
+  ],
+  "generatedAt": "2026-05-07T06:57:56.799Z",
+  "dataAsOf": "2026-05-07T06:57:56.799Z",
+  "source": "local-qwen3:8b",
+  "locale": "ko",
+  "session": "morning",
+  "schemaVersion": 8,
+  "buildId": "local"
+}

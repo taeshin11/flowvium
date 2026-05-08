@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "Cơ bản",
     "technicalBasisLabel": "Kỹ thuật",
     "riskNoteLabel": "Rủi ro chính",
-    "historyExpiredNote": "Báo cáo lịch sử này đã hết hạn và không thể tải. Xem báo cáo mới nhất."
+    "historyExpiredNote": "Báo cáo lịch sử này đã hết hạn và không thể tải. Xem báo cáo mới nhất.",
+    "satelliteTitle": "Điểm Nổi Bật Hoạt Động Nhà Máy Vệ Tinh",
+    "satelliteActive": "Hoạt động",
+    "satelliteNormal": "Bình thường"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

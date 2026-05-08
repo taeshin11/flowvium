@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "พื้นฐาน",
     "technicalBasisLabel": "เทคนิคัล",
     "riskNoteLabel": "ความเสี่ยงหลัก",
-    "historyExpiredNote": "รายงานประวัติศาสตร์นี้หมดอายุแล้วและไม่สามารถโหลดได้ ดูรายงานล่าสุด"
+    "historyExpiredNote": "รายงานประวัติศาสตร์นี้หมดอายุแล้วและไม่สามารถโหลดได้ ดูรายงานล่าสุด",
+    "satelliteTitle": "ไฮไลต์กิจกรรมโรงงานดาวเทียม",
+    "satelliteActive": "คึกคัก",
+    "satelliteNormal": "ปกติ"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

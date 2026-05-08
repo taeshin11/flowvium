@@ -1,0 +1,380 @@
+{
+  "stance": "bullish",
+  "thesis": "米国非農雇用データでリスクオン",
+  "portfolio": [
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "内部取引集中買い、セクターPE38.5",
+      "allocation": 22,
+      "entryZone": "$185-205",
+      "entryRationale": "内部取引集中買い",
+      "stopLoss": "$175",
+      "target": "$230",
+      "targetBull": "$270",
+      "targetRationale": "技術革新リーダー",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "買われすぎ。ターゲット230は高すぎる。",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+73%, 영업이익률 55%, PEG 1.3",
+      "technicalBasis": "50MA 위, RSI 48, 거래량+18%",
+      "riskNote": "수출규제 매출 15% 하락 위험"
+    },
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corporation",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "内部取引集中買い、squeezeスコア45",
+      "allocation": 15,
+      "entryZone": "$1700-1800",
+      "entryRationale": "squeezeスコア45",
+      "stopLoss": "$1600",
+      "target": "$2000",
+      "targetBull": "$2500",
+      "targetRationale": "半導体設備需要高",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "スクリュー45はやや高。エントリーポイント1700-1800は調整の必要あり。",
+      "catalysts": [
+        "AI fab capex $15B",
+        "Q3 매출 YoY+11.5%",
+        "200MA 돌파"
+      ],
+      "fundamentalBasis": "매출 YoY+11.5%, PEG 1.5",
+      "technicalBasis": "50MA 위, RSI 51, 거래량+55%",
+      "riskNote": "반도체 수요 둔화"
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "sector": "Technology",
+      "market": "korea",
+      "rationale": "内部取引集中買い、成長株",
+      "allocation": 18,
+      "entryZone": "₩220,000-240,000",
+      "entryRationale": "内部取引集中買い",
+      "stopLoss": "₩210,000",
+      "target": "₩260,000",
+      "targetBull": "₩300,000",
+      "targetRationale": "半導体成長を牽引",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "AI chip 수주 $10B",
+        "Q4 매출 YoY+23.8%",
+        "반도체 수요 확대"
+      ],
+      "fundamentalBasis": "매출 YoY+23.8%, PEG 1.2",
+      "technicalBasis": "200MA 위, RSI 74, 거래량+42%",
+      "riskNote": "외부 수요 감소"
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "sector": "Technology",
+      "market": "korea",
+      "rationale": "内部取引集中買い、squeezeスコア40",
+      "allocation": 15,
+      "entryZone": "₩1400,000-1500,000",
+      "entryRationale": "squeezeスコア40",
+      "stopLoss": "₩1350,000",
+      "target": "₩1600,000",
+      "targetBull": "₩1800,000",
+      "targetRationale": "半導体需要高",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "AI memory 수주 $8B",
+        "Q4 매출 YoY+66.1%",
+        "메모리 가격 상승"
+      ],
+      "fundamentalBasis": "매출 YoY+66.1%, PEG 1.1",
+      "technicalBasis": "200MA 위, RSI 91, 거래량+54%",
+      "riskNote": "메모리 가격 하락"
+    },
+    {
+      "ticker": "005490.KS",
+      "name": "POSCO홀딩스",
+      "sector": "Materials",
+      "market": "korea",
+      "rationale": "内部取引集中買い、成長株",
+      "allocation": 15,
+      "entryZone": "₩490,000-520,000",
+      "entryRationale": "内部取引集中買い",
+      "stopLoss": "₩480,000",
+      "target": "₩550,000",
+      "targetBull": "₩600,000",
+      "targetRationale": "鋼鉄需要高",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "철강 수출 $3B",
+        "Q4 매출 YoY-9.9%",
+        "철강 수요 회복"
+      ],
+      "fundamentalBasis": "매출 YoY-9.9%, PEG 2.0",
+      "technicalBasis": "200MA 위, RSI 90, 거래량+119%",
+      "riskNote": "금속 가격 하락"
+    },
+    {
+      "ticker": "051910.KS",
+      "name": "LG化학",
+      "sector": "Materials",
+      "market": "korea",
+      "rationale": "内部取引集中買い、成長株",
+      "allocation": 15,
+      "entryZone": "₩420,000-440,000",
+      "entryRationale": "内部取引集中買い",
+      "stopLoss": "₩410,000",
+      "target": "₩470,000",
+      "targetBull": "₩520,000",
+      "targetRationale": "バッテリー需要高",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "배터리 수주 $5B",
+        "Q4 매출 YoY-9.2%",
+        "EV 수요 확대"
+      ],
+      "fundamentalBasis": "매출 YoY-9.2%, PEG 1.8",
+      "technicalBasis": "200MA 위, RSI 83, 거래량+89%",
+      "riskNote": "화학 가격 하락"
+    }
+  ],
+  "sectorAllocation": [
+    {
+      "sector": "Technology",
+      "pct": 50,
+      "stance": "overweight",
+      "reason": "成長株集中"
+    },
+    {
+      "sector": "Materials",
+      "pct": 20,
+      "stance": "neutral",
+      "reason": "需要回復"
+    },
+    {
+      "sector": "Consumer Staples",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "安定需要"
+    },
+    {
+      "sector": "Health Care",
+      "pct": 10,
+      "stance": "underweight",
+      "reason": "成長率低"
+    },
+    {
+      "sector": "Energy",
+      "pct": 10,
+      "stance": "overweight",
+      "reason": "価格上昇"
+    }
+  ],
+  "riskEvents": [
+    {
+      "date": "2026-05-08",
+      "event": "非農雇用データ",
+      "impact": "high",
+      "watchFor": "雇用増加と賃金上昇"
+    },
+    {
+      "date": "2026-05-08",
+      "event": "失業率",
+      "impact": "high",
+      "watchFor": "失業率低下"
+    },
+    {
+      "date": "2026-05-08",
+      "event": "ミシガン消費者信頼感",
+      "impact": "medium",
+      "watchFor": "信頼感改善"
+    },
+    {
+      "date": "2026-05-11",
+      "event": "既存住宅販売",
+      "impact": "medium",
+      "watchFor": "住宅販売増加"
+    }
+  ],
+  "macroAnalysis": "インフレ3.29％、金利51bp、GDP成長率2％で景気循環正常",
+  "technicalAnalysis": "VIX18.29、利差曲線普通形、長期不確実性が短期を上回る",
+  "fundamentalAnalysis": "利益上方修正、株価割引、機関投資家が買い増し",
+  "riskLevel": "medium",
+  "regionStances": {
+    "us": {
+      "stance": "bullish",
+      "thesis": "米国テクノロジーが牽引",
+      "keyData": "SPY 1w, F&G score"
+    },
+    "korea": {
+      "stance": "neutral",
+      "thesis": "外資流入が加速中",
+      "keyData": "EWY 1w, F&G"
+    },
+    "japan": {
+      "stance": "neutral",
+      "thesis": "資金流入が停滞中",
+      "keyData": "N225 1w, F&G"
+    },
+    "china": {
+      "stance": "neutral",
+      "thesis": "流出圧力が続く",
+      "keyData": "AEX 1w, F&G"
+    },
+    "europe": {
+      "stance": "neutral",
+      "thesis": "欧州株が回復中",
+      "keyData": "DAX 1w, F&G"
+    },
+    "india": {
+      "stance": "neutral",
+      "thesis": "資金流入が鈍化中",
+      "keyData": "Nifty 1w, F&G"
+    },
+    "taiwan": {
+      "stance": "bullish",
+      "thesis": "テクノロジーが牽引",
+      "keyData": "TWII 1w, F&G"
+    },
+    "brazil": {
+      "stance": "neutral",
+      "thesis": "資金流入が停滞中",
+      "keyData": "BOVA11 1w, F&G"
+    },
+    "australia": {
+      "stance": "neutral",
+      "thesis": "資金流入が鈍化中",
+      "keyData": "ASX200 1w, F&G"
+    },
+    "global": {
+      "stance": "bullish",
+      "thesis": "アルト資産が牽引",
+      "keyData": "BTC 1w, F&G"
+    }
+  },
+  "shortSqueeze": [
+    {
+      "ticker": "SMCI",
+      "score": 48,
+      "timing": "短期急騰のタイミング",
+      "risk": "高リスクだが利益大きい"
+    }
+  ],
+  "insiderSignals": [
+    {
+      "ticker": "CRWV",
+      "filings": 63,
+      "significance": " insider買入信号強い",
+      "pattern": "集中買いの兆し"
+    }
+  ],
+  "topOpportunity": "SMCIが短期急騰のチャンス",
+  "stopLossRationale": [
+    {
+      "ticker": "NVDA",
+      "rationale": "ポジション保護のためのストップ損切り"
+    },
+    {
+      "ticker": "KLAC",
+      "rationale": "ポジション保護のためのストップ損切り"
+    },
+    {
+      "ticker": "005930.KS",
+      "rationale": "ポジション保護のためのストップ損切り"
+    },
+    {
+      "ticker": "000660.KS",
+      "rationale": "ポジション保護のためのストップ損切り"
+    },
+    {
+      "ticker": "005490.KS",
+      "rationale": "ポジション保護のためのストップ損切り"
+    },
+    {
+      "ticker": "051910.KS",
+      "rationale": "ポジション保護のためのストップ損切り"
+    }
+  ],
+  "hedgingSuggestion": "為替ヘッジを検討し、リスクを分散する。",
+  "portfolioRiskNote": "中程度のリスクで、各銘柄のストップ損切りが適切に設定されている。",
+  "marketNarrative": {
+    "why": "テクノロジーとビットコインが資金流入",
+    "watch": "米株上げが続くか？",
+    "story": "米国株とビットコインが資金流入。テクノロジーと原油へのローテーションが進む。韓国・台湾が強い。",
+    "sessionNote": "米国市場開幕前"
+  },
+  "companyChanges": [
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "revenueYoY": 73.2,
+      "latestQuarter": "Q4 FY2026",
+      "keyChange": "NVIDIAの売上高が前年比73.2％増加",
+      "guidance": "unknown",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corporation",
+      "revenueYoY": 11.5,
+      "latestQuarter": "Q3 FY2026",
+      "keyChange": "KLAの売上高が前年比11.5％増加",
+      "guidance": "unknown",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "revenueYoY": 23.8,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "サムスンの売上高が前年比23.8％増加",
+      "guidance": "unknown",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "revenueYoY": 66.1,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "SKハイニックスの売上高が前年比66.1％増加",
+      "guidance": "unknown",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "005490.KS",
+      "name": "POSCO홀딩스",
+      "revenueYoY": -9.9,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "POSCOの売上高が前年比9.9％減少",
+      "guidance": "unknown",
+      "sentiment": "negative"
+    },
+    {
+      "ticker": "051910.KS",
+      "name": "LG化학",
+      "revenueYoY": -9.2,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "LG化学の売上高が前年比9.2％減少",
+      "guidance": "unknown",
+      "sentiment": "negative"
+    }
+  ],
+  "generatedAt": "2026-05-05T15:43:45.690Z",
+  "dataAsOf": "2026-05-05T15:43:45.690Z",
+  "source": "local-qwen3:8b",
+  "locale": "ja",
+  "session": "evening",
+  "schemaVersion": 8,
+  "buildId": "local"
+}

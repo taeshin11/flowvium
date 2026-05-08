@@ -54,6 +54,7 @@
 | 뉴스 갭 | `/news-gap` |
 | 인텔리전스 | `/intelligence` |
 | OSINT | `/osint` |
+| 위성 추적 | `/satellite` |
 
 ---
 
@@ -64,6 +65,7 @@
 ### 2-1. Hero + 검색
 - 회사 검색 인풋 (`HeroSearch`)
 - 자동완성 드롭다운 (회사명·티커·섹터)
+- 빠른 이동 버튼: AI 리포트 / 인텔리전스 / 히트맵 / 위성 추적 (가상계좌 제거됨 — 2026-05-08)
 
 ### 2-2. AI 데일리 브리프 위젯
 - 타임프레임 탭: `1w` / `4w` / `13w`
@@ -925,12 +927,56 @@ ownership-alerts 적용).
 | `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
 | `/api/economic-calendar` | Finnhub 경제 캘린더 (실제값·예상치·이전값 포함, 정적 fallback) | 4h |
 | `/api/market-movers` | Yahoo Finance v7 batch — S&P 500 상위 50개 당일 급등·급락 Top 5 각 | 15m |
+| `/api/satellite-signals` | Redis `flowvium:satellite:v1:{date}` (5일 역스캔) — 공장 활동 지수 배열 반환 | Redis (scan 시 갱신) |
+| `/api/satellite-image?id={factoryId}` | Redis `flowvium:satellite:img:{id}` base64 PNG 반환 → `image/png` 응답 | Redis (scan 시 갱신, 7일 TTL) |
 
 ---
 
 ---
 
-## 19. 가상계좌 (Paper Trading)
+## 19. 위성 공급망 추적 (`/satellite`) ← 신규 2026-05-08
+
+**파일**: `src/components/pages/SatellitePage.tsx`  
+**데이터**: `/api/satellite-signals` → Redis `flowvium:satellite:v1:{date}`  
+**스캔 스크립트**: `scripts/satellite-factory-scan.mjs` (npm run scan:satellite)
+
+### 19-1. 헤더 + 배지
+- ESA Sentinel-2 · 10m 해상도 배지
+- Claude Vision 분석 배지
+- 마지막 스캔 날짜
+
+### 19-2. 통계 바 (4열)
+- 모니터링 공장 수 · 활발한 공장 수(점수≥70) · 핵심 시설 수 · 신규 공사 수
+
+### 19-3. 필터 탭
+- 전체 / 핵심 시설 / ⚠️ 활발(≥70) / 💤 조용(≤30)
+
+### 19-4. 공장 카드 그리드 (4열)
+각 카드: 국가 플래그·티커·중요도 배지 / 이름 / 활동 지수 바(0~100) / 차량·하역·구름 3열 / AI 요약 / 태그 칩 / 신규공사 배지
+
+### 19-5. 데이터 없음 상태
+- Copernicus 설정 가이드 3단계 + 외부 링크
+
+### 19-6. 방법론 노트
+- Sentinel-2 L2A 10m → Claude Vision 주차장·하역·공사 분석, 점수 70+=활발 / 30-=조용
+
+### 19-7. 스캔 로직 (scripts/satellite-factory-scan.mjs)
+- Copernicus OAuth2 → Sentinel Hub Process API → PNG 획득 → Claude/Gemini Vision 분석
+- STAC API로 최신 이미지 ID 체크 (중복 스캔 방지)
+- Redis LPUSH 히스토리(최대 10회) + baselineScore / deltaFromBaseline / zScore / trend 계산
+- OpenRouter(Claude) → Anthropic → Gemini 2.0 Flash Vision 폴백 체인
+
+### 19-8. 공급망 자동 주입
+- 활동 delta ≥±15 또는 절대값 ≥80/≤20 (critical 시설) → `/api/supply-chain-signals` satellite 소스로 자동 병합
+- → `/api/investment-strategy` supplyChainChanges 컨텍스트에 반영
+
+**추적 공장 12개**: TSMC 타이난/타이중, 삼성 평택/오스틴, SK하이닉스 이천, Micron 보이시, Intel 챈들러, ASML 펠트호번, Foxconn 정저우, CATL 닝더, Tesla 상하이/네바다
+
+---
+
+## 19b. 가상계좌 (Paper Trading) — 내비게이션에서 제거됨 (2026-05-08)
+
+**상태**: 코드 존재, 내비게이션·홈 Hero에서 제거됨. 위성 추적으로 교체.
 
 ### 페이지: 
 
@@ -957,11 +1003,11 @@ ownership-alerts 적용).
 
 | 잡 경로 | 실행 시각 (KST) | 주요 작업 |
 |---------|----------------|----------|
-| `cron/update-all` | 07:50 · 15:50 · 21:20 | 13개 소스 병렬 워밍 → flow-analysis → daily-brief ×3 → stock-supply pre-warm → news-cascade |
+| `cron/update-all` | 07:10 · 16:00 · 21:10 KST | 13개 소스 병렬 워밍 → flow-analysis → daily-brief ×3 → stock-supply pre-warm → news-cascade |
 | `cron/update-signals` | 매일 02:00 UTC | EDGAR 13F 파싱 → Redis 저장 → Alpha Vantage 뉴스갭 갱신 → ISR revalidate |
 | `cron/update-credit-balance` | 스케줄 | FRED + TWSE 신용잔고 갱신 → ISR revalidate |
-| `cron/daily-brief` | 스케줄 | Redis bust → AI 브리프 재생성 |
-| `cron/investment-strategy` | 23:00 · 07:00 · 12:30 UTC | force=1 재생성 → stale cache 갱신 |
+| `cron/daily-brief` | 07:15 · 16:05 · 21:15 KST | Redis bust → AI 브리프 재생성 |
+| `cron/investment-strategy` | 07:20 · 16:10 · 21:20 KST | force=1 재생성 → stale cache 갱신 |
 | `cron/verify-metrics` | 매 30분 | 255+ 지표 21개 검증 그룹 병렬 probe → per-ticker/sector/maturity 세부 커버리지 (F&G · Capital Flows · Macro · Short per-ticker 35개 · Heatmap 섹터 11개 · MarketCaps · SectorPE · YieldCurve 만기별 · FedWatch 회의별 · COT 상품별 · KoreaFlow · Additional · Earnings · Cache · Accuracy · Volatility · Commodity · **Missing: Brief/FlowAnalysis/YC-hist/CompanyNews/StockPrice**) ← iter84 확장 |
 | `cron/send-alerts` | 매 4시간 | F&G 극단(≤25/≥75) + VIX 고공포(≥30)/주의(≥25) 시 Discord 웹훅 발송 · 24h 쿨다운 · `DISCORD_WEBHOOK_URL` 미설정 시 무음 스킵 |
 | `cron/evaluate-signals` | 일요일 03:00 UTC | 평가 기한 지난 로테이션 신호 Yahoo Finance 수익률 대조 → hit/miss → 타임프레임별 정확도 갱신 |

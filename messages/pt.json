@@ -1179,7 +1179,10 @@
     "fundamentalBasisLabel": "Fundamentos",
     "technicalBasisLabel": "Técnico",
     "riskNoteLabel": "Risco Principal",
-    "historyExpiredNote": "Este relatório histórico expirou e não pode ser carregado. Ver o relatório mais recente."
+    "historyExpiredNote": "Este relatório histórico expirou e não pode ser carregado. Ver o relatório mais recente.",
+    "satelliteTitle": "Destaques de Atividade Fabril Satelital",
+    "satelliteActive": "Ativo",
+    "satelliteNormal": "Normal"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

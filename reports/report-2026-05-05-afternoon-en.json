@@ -1,0 +1,211 @@
+{
+  "stance": "bullish",
+  "thesis": "AI-driven tech growth and crypto momentum support risk-on sentiment",
+  "portfolio": [
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "AI capex growth",
+      "allocation": 23,
+      "entryZone": "$205-212",
+      "entryRationale": "100-day MA + FCF yield 8% → margin of safety",
+      "stopLoss": "$190",
+      "target": "$260",
+      "targetBull": "$295",
+      "targetRationale": "P/E 38x → $260 base | 52w high breakout Fib 1.618 → $295 bull",
+      "confidence": "high",
+      "action": "buy"
+    },
+    {
+      "ticker": "QQQ",
+      "name": "Invesco QQQ Trust",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "Nasdaq leadership",
+      "allocation": 14,
+      "entryZone": "$320-330",
+      "entryRationale": "PEG 0.8 → growth vs price",
+      "stopLoss": "$305",
+      "target": "$360",
+      "targetBull": "$400",
+      "targetRationale": "52w high breakout + AI adoption tailwinds",
+      "confidence": "high",
+      "action": "buy"
+    },
+    {
+      "ticker": "BTC-USD",
+      "name": "Bitcoin",
+      "sector": "Crypto",
+      "market": "us",
+      "rationale": "Institutional inflow",
+      "allocation": 14,
+      "entryZone": "$31,000-32,000",
+      "entryRationale": "Bitcoin+14.3% inflow + macro liquidity",
+      "stopLoss": "$29,000",
+      "target": "$37,000",
+      "targetBull": "$42,000",
+      "targetRationale": "Institutional adoption + VIX volatility contraction",
+      "confidence": "high",
+      "action": "buy"
+    },
+    {
+      "ticker": "ETH-USD",
+      "name": "Ethereum",
+      "sector": "Crypto",
+      "market": "us",
+      "rationale": "Smart contract growth",
+      "allocation": 11,
+      "entryZone": "$2,100-2,200",
+      "entryRationale": "ETH+14.3% inflow + DeFi adoption",
+      "stopLoss": "$2,000",
+      "target": "$2,700",
+      "targetBull": "$3,200",
+      "targetRationale": "52w high breakout + institutional interest",
+      "confidence": "medium",
+      "action": "buy"
+    },
+    {
+      "ticker": "TSM",
+      "name": "TSMC",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "AI chip demand",
+      "allocation": 17,
+      "entryZone": "$65-68",
+      "entryRationale": "ROE 18% + FCF yield 6% → margin of safety",
+      "stopLoss": "$60",
+      "target": "$80",
+      "targetBull": "$95",
+      "targetRationale": "AI capex cycle + 52w high breakout",
+      "confidence": "high",
+      "action": "buy"
+    },
+    {
+      "ticker": "XLF",
+      "name": "Financials ETF",
+      "sector": "Financials",
+      "market": "us",
+      "rationale": "Liquidity expansion",
+      "allocation": 11,
+      "entryZone": "$55-58",
+      "entryRationale": "Druckenmiller: earnings momentum + liquidity expansion",
+      "stopLoss": "$50",
+      "target": "$65",
+      "targetBull": "$75",
+      "targetRationale": "Interest rate stability + FOMC guidance",
+      "confidence": "medium",
+      "action": "buy"
+    },
+    {
+      "ticker": "VXX",
+      "name": "VIX Short-Term Futures",
+      "sector": "Volatility",
+      "market": "us",
+      "rationale": "Volatility contraction",
+      "allocation": 10,
+      "entryZone": "18-20",
+      "entryRationale": "VIX contraction + risk-on sentiment",
+      "stopLoss": "15",
+      "target": "25",
+      "targetBull": "30",
+      "targetRationale": "Fear&Greed 63/100 → risk-on",
+      "confidence": "medium",
+      "action": "buy"
+    }
+  ],
+  "sectorAllocation": [
+    {
+      "sector": "Technology",
+      "pct": 33,
+      "stance": "overweight",
+      "reason": "AI capex cycle"
+    },
+    {
+      "sector": "Crypto",
+      "pct": 18,
+      "stance": "overweight",
+      "reason": "institutional inflow"
+    },
+    {
+      "sector": "Equity",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "HBM demand recovery"
+    },
+    {
+      "sector": "Financials",
+      "pct": 8,
+      "stance": "neutral",
+      "reason": "liquidity expansion"
+    }
+  ],
+  "riskEvents": [
+    {
+      "date": "2026-05-05",
+      "event": "FOMC",
+      "impact": "high",
+      "watchFor": "rate guidance"
+    },
+    {
+      "date": "2026-05-06",
+      "event": "China PMI",
+      "impact": "medium",
+      "watchFor": "economic data"
+    }
+  ],
+  "macroAnalysis": "Global liquidity expansion and AI-driven growth support risk-on sentiment",
+  "technicalAnalysis": "Nasdaq and S&P500 above 50-day MA with strong volume",
+  "fundamentalAnalysis": "Tech sector ROE >15% with strong FCF yields and AI capex momentum",
+  "riskLevel": "medium",
+  "marketNarrative": {
+    "why": "AI and crypto momentum drive risk-on behavior",
+    "watch": "FOMC rate guidance and China economic data",
+    "story": "Global liquidity and AI adoption support equity and crypto growth",
+    "sessionNote": "afternoon"
+  },
+  "shortSqueeze": [
+    {
+      "ticker": "SMCI",
+      "score": 45,
+      "timing": "48h",
+      "risk": "earnings vol"
+    }
+  ],
+  "insiderSignals": [
+    {
+      "ticker": "GOOGL",
+      "filings": 5,
+      "significance": "Berkshire accumulation",
+      "pattern": "consecutive buying"
+    }
+  ],
+  "regionStances": {
+    "us": {
+      "stance": "bullish",
+      "thesis": "AI capex cycle",
+      "keyData": "SPY+0.5% 1w"
+    },
+    "korea": {
+      "stance": "neutral",
+      "thesis": "HBM demand recovery",
+      "keyData": "EWY+1.2% 1w"
+    }
+  },
+  "stopLossRationale": [
+    {
+      "ticker": "NVDA",
+      "rationale": "trend reversal if 50-day MA breaks"
+    }
+  ],
+  "hedgingSuggestion": "Short VXX to hedge against volatility contraction",
+  "portfolioRiskNote": "Portfolio is medium risk with concentration in tech and crypto",
+  "generatedAt": "2026-05-05T11:32:01.847Z",
+  "dataAsOf": "2026-05-05T11:32:01.847Z",
+  "source": "local-qwen3:8b",
+  "locale": "en",
+  "session": "afternoon",
+  "schemaVersion": 8,
+  "buildId": "local"
+}

@@ -1,0 +1,397 @@
+{
+  "stance": "bullish",
+  "thesis": "NFP 상승 기대, 경기 회복 주도 — CPI 3.29%, GDP 2%, HY스프레드 2.78%, 리스크 medium",
+  "portfolio": [
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corporation",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "집중매매감지 2391K | squeeze 45, 50MA 위, RSI 49, 거래량+28%",
+      "allocation": 22,
+      "entryZone": "$1732.90-1800",
+      "entryRationale": "집중매매감지 2391K",
+      "stopLoss": "$1650",
+      "target": "$1900",
+      "targetBull": "$2100",
+      "targetRationale": "squeeze 45, 기술부족",
+      "confidence": "high",
+      "action": "watch",
+      "critiqueNote": "기본적 문제, 매수→관찰/보유로 전환",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+11.5%, 영업이익률 5.7%, PEG 1.8",
+      "technicalBasis": "50MA 위, RSI 49, 거래량+28%",
+      "riskNote": "수출규제 매출 15% 하락 위험"
+    },
+    {
+      "ticker": "SMCI",
+      "name": "Semiconductor Manufacturing International Corporation",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "Short Squeeze 48 | squeeze 48, 50MA 위, RSI 52, 거래량+80%",
+      "allocation": 13,
+      "entryZone": "$140-150",
+      "entryRationale": "Short Squeeze 48",
+      "stopLoss": "$120",
+      "target": "$160",
+      "targetBull": "$180",
+      "targetRationale": "squeeze 48, 반도체 수요",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 너무 낙관적, 추천 $155",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+123.4%, 영업이익률 5.7%, PEG 1.2",
+      "technicalBasis": "50MA 위, RSI 52, 거래량+80%",
+      "riskNote": "수출규제 매출 15% 하락 위험"
+    },
+    {
+      "ticker": "TSLA",
+      "name": "Tesla",
+      "sector": "Consumer Discretionary",
+      "market": "us",
+      "rationale": "Short Squeeze 45 | squeeze 20, 50MA 위, RSI 48, 거래량-28%",
+      "allocation": 13,
+      "entryZone": "$380-400",
+      "entryRationale": "Short Squeeze 45",
+      "stopLoss": "$350",
+      "target": "$420",
+      "targetBull": "$450",
+      "targetRationale": "squeeze 45, 전기차 성장",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 너무 낙관적, 추천 $390",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+15.8%, 영업이익률 4.6%, PEG 2.1",
+      "technicalBasis": "50MA 위, RSI 48, 거래량-28%",
+      "riskNote": "수출규제 매출 15% 하락 위험"
+    },
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "집중매매감지 1977K | squeeze 20, 50MA 위, RSI 48, 거래량-25%",
+      "allocation": 13,
+      "entryZone": "$196.50-200",
+      "entryRationale": "집중매매감지 1977K",
+      "stopLoss": "$180",
+      "target": "$220",
+      "targetBull": "$250",
+      "targetRationale": "집중매매감지 1977K",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 너무 낙관적, 추천 $210",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+73.2%, 영업이익률 55%, PEG 1.3",
+      "technicalBasis": "200MA 위, RSI 48, 거래량-25%",
+      "riskNote": "수출규제 매출 15% 하락 위험"
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "sector": "Consumer Discretionary",
+      "market": "korea",
+      "rationale": "200MA 위, RSI 81, 거래량+137% | 200MA 위, RSI 81, 거래량+137%",
+      "allocation": 13,
+      "entryZone": "₩260,000-270,000",
+      "entryRationale": "100일선 지지",
+      "stopLoss": "₩240,000",
+      "target": "₩290,000",
+      "targetBull": "₩320,000",
+      "targetRationale": "100일선 지지, 반도체 수요",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 너무 낙관적, 추천 ₩280,000",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+23.8%, 영업이익률 13.1%, PEG 1.4",
+      "technicalBasis": "200MA 위, RSI 81, 거래량+137%",
+      "riskNote": "🟠 고점 경고: RSI 81, 거래량+137% | ➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조 | 수출규제 매출 15% 하락 위험"
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "sector": "Technology",
+      "market": "korea",
+      "rationale": "200MA 위, RSI 92, 거래량+84% | 200MA 위, RSI 92, 거래량+84%",
+      "allocation": 13,
+      "entryZone": "₩1,600,000-1,650,000",
+      "entryRationale": "100일선 지지",
+      "stopLoss": "₩1,500,000",
+      "target": "₩1,750,000",
+      "targetBull": "₩1,900,000",
+      "targetRationale": "100일선 지지, 메모리 수요",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 너무 낙관적, 추천 ₩1,700,000",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+66.1%, 영업이익률 48.6%, PEG 1.3",
+      "technicalBasis": "200MA 위, RSI 92, 거래량+84%",
+      "riskNote": "🟠 고점 경고: RSI 92, 거래량+84% | ➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조 | 수출규제 매출 15% 하락 위험"
+    },
+    {
+      "ticker": "035420.KS",
+      "name": "NAVER",
+      "sector": "Communication Services",
+      "market": "korea",
+      "rationale": "200MA 아래, RSI 57, 거래량+14% | 200MA 아래, RSI 57, 거래량+14%",
+      "allocation": 13,
+      "entryZone": "₩200,000-210,000",
+      "entryRationale": "100일선 지지",
+      "stopLoss": "₩180,000",
+      "target": "₩220,000",
+      "targetBull": "₩250,000",
+      "targetRationale": "100일선 지지, 인터넷 성장",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "Blackwell GPU QoQ+40%",
+        "13F 47건 매집",
+        "AI capex $200B"
+      ],
+      "fundamentalBasis": "매출 YoY+10.7%, 영업이익률 18.3%, PEG 1.5",
+      "technicalBasis": "200MA 아래, RSI 57, 거래량+14%",
+      "riskNote": "수출규제 매출 15% 하락 위험"
+    }
+  ],
+  "sectorAllocation": [
+    {
+      "sector": "Technology",
+      "pct": 25,
+      "stance": "overweight",
+      "reason": "집중매매감지, squeeze 45"
+    },
+    {
+      "sector": "Consumer Discretionary",
+      "pct": 20,
+      "stance": "overweight",
+      "reason": "100일선 지지, 반도체 수요"
+    },
+    {
+      "sector": "Communication Services",
+      "pct": 15,
+      "stance": "neutral",
+      "reason": "100일선 지지, 인터넷 성장"
+    },
+    {
+      "sector": "Financials",
+      "pct": 10,
+      "stance": "underweight",
+      "reason": "P/E 17.4, YTD -6.1%"
+    },
+    {
+      "sector": "Health Care",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "P/E 25.6, YTD -6.6%"
+    }
+  ],
+  "riskEvents": [
+    {
+      "date": "2026-05-08",
+      "event": "비농업 취업인수 발표",
+      "impact": "high",
+      "watchFor": "실업률 및 경기 회복 여부"
+    },
+    {
+      "date": "2026-05-08",
+      "event": "실업률 발표",
+      "impact": "high",
+      "watchFor": "실업률 하락 기대"
+    },
+    {
+      "date": "2026-05-08",
+      "event": "미시간 소비자 심리 전망치 발표",
+      "impact": "medium",
+      "watchFor": "소비자 심리 개선"
+    },
+    {
+      "date": "2026-05-11",
+      "event": "주택 매매 수량 발표",
+      "impact": "medium",
+      "watchFor": "주택 시장 활성화 여부"
+    }
+  ],
+  "macroAnalysis": "YieldCurve 정상(51bp), CPI 3.29%, GDP 2%, IG_OAS 0.8%, HY_OAS 2.78% | 주요지표: 공포탐욕 67(United States), CPI 3.29%, 연준금리 3.625%, HY 2.78bps, 리스크=medium",
+  "technicalAnalysis": "VIX 17.38, 컨토ango, YieldCurve 정상",
+  "fundamentalAnalysis": "NFP, 실업률, 소비심리, 주가 상승, 기관 순매수",
+  "riskLevel": "medium",
+  "regionStances": {
+    "us": {
+      "stance": "bullish",
+      "thesis": "테크 부문 강세 지속 (4w +9.8%, 1w +1.7%)",
+      "keyData": "SPY 1w+3.7%, F&G 70"
+    },
+    "korea": {
+      "stance": "neutral",
+      "thesis": "외국인 유입 지속 (4w +36.4%, 1w +12.4%)",
+      "keyData": "EWY 1w+12.4%, F&G 49"
+    },
+    "japan": {
+      "stance": "neutral",
+      "thesis": "유동성 부족 지속 (4w +4.4%, 1w +1.9%)",
+      "keyData": "JPN 1w-0.2%, F&G 55"
+    },
+    "china": {
+      "stance": "neutral",
+      "thesis": "정책 유동성 확대 (4w +2.9%, 1w +0.7%)",
+      "keyData": "CNH 1w+2.1%, F&G 48"
+    },
+    "europe": {
+      "stance": "bullish",
+      "thesis": "에너지 가격 상승 (4w +4.0%, 1w +0.8%)",
+      "keyData": "DAX 1w+2.3%, F&G 58"
+    },
+    "india": {
+      "stance": "neutral",
+      "thesis": "외국인 유입 지속 (4w +3.8%, 1w -0.1%)",
+      "keyData": "IND 1w+1.8%, F&G 54"
+    },
+    "taiwan": {
+      "stance": "bullish",
+      "thesis": "기술 부문 강세 (4w +29.2%, 1w +6.3%)",
+      "keyData": "TWN 1w+8.5%, F&G 43"
+    },
+    "brazil": {
+      "stance": "neutral",
+      "thesis": "외국인 유입 제한 (4w +3.3%, 1w +0.1%)",
+      "keyData": "BRA 1w-0.5%, F&G 57"
+    },
+    "australia": {
+      "stance": "neutral",
+      "thesis": "금리 상승 영향 (4w +2.3%, 1w +0.4%)",
+      "keyData": "AUS 1w-0.3%, F&G 52"
+    },
+    "global": {
+      "stance": "bullish",
+      "thesis": "비트코인 회복",
+      "keyData": "BTC 1w+6.9%, F&G 76"
+    }
+  },
+  "shortSqueeze": [
+    {
+      "ticker": "SMCI",
+      "score": 48,
+      "timing": "이틀 이내",
+      "risk": "고점 진입 위험"
+    }
+  ],
+  "insiderSignals": [
+    {
+      "ticker": "PATK",
+      "filings": 63,
+      "significance": "대규모 인수자 매수",
+      "pattern": "대량 집중 매수"
+    }
+  ],
+  "topOpportunity": "PATK 대량 매수 + 단기 매수 기회",
+  "stopLossRationale": [
+    {
+      "ticker": "NVDA",
+      "rationale": "NVDA는 단기 변동성 상승으로 손절 필요 | 현재 $196.5 → 손절선 ~$182.75 (-7%) / 50MA 위, RSI 48, 거래량-25%"
+    }
+  ],
+  "hedgingSuggestion": "비트코인 옵션을 활용한 헤지 전략 고려",
+  "portfolioRiskNote": "중간 리스크 수준 유지, BB 오버확장 및 VIX 추세 관찰 필요",
+  "marketNarrative": {
+    "why": "비트코인 강세, 기술주 및 신흥시장 유입",
+    "watch": "비트코인, 반도체, 에너지 섹터",
+    "story": "비트코인 강세가 지속되며, 기술주와 신흥시장에 투자유입이 확대되고 있다. 에너지 섹터도 상승세를 이어가고 있다.",
+    "sessionNote": "아시아장 마감 직후"
+  },
+  "companyChanges": [
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corporation",
+      "revenueYoY": 11.5,
+      "latestQuarter": "Q3 FY2026",
+      "keyChange": "반도체 수요 증가로 매출 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "SMCI",
+      "name": "Semiconductor Manufacturing International Corporation",
+      "revenueYoY": 123.4,
+      "latestQuarter": "Q2 FY2026",
+      "keyChange": "매출 급증, 운영 마진 개선",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "TSLA",
+      "name": "Tesla",
+      "revenueYoY": 15.8,
+      "latestQuarter": "Q1 FY2026",
+      "keyChange": "재고 증가로 매출 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "revenueYoY": 73.2,
+      "latestQuarter": "Q4 FY2026",
+      "keyChange": "반도체 수요 증가로 매출 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "revenueYoY": 23.8,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "반도체 수요 증가로 매출 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "revenueYoY": 66.1,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "반도체 수요 증가로 매출 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "035420.KS",
+      "name": "NAVER",
+      "revenueYoY": 10.7,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "반도체 수요 증가로 매출 성장",
+      "guidance": "raised",
+      "sentiment": "positive"
+    }
+  ],
+  "generatedAt": "2026-05-06T12:37:34.564Z",
+  "dataAsOf": "2026-05-06T12:37:34.564Z",
+  "source": "local-qwen3:8b",
+  "locale": "ko",
+  "session": "afternoon",
+  "schemaVersion": 8,
+  "buildId": "local"
+}
