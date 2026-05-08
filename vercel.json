@@ -105,7 +105,7 @@
     },
     {
       "path": "/api/cron/verify-metrics",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/cron/send-alerts",
@@ -126,14 +126,6 @@
     {
       "path": "/api/cron/satellite-scan",
       "schedule": "40 7 * * *"
-    },
-    {
-      "path": "/api/cron/satellite-scan",
-      "schedule": "40 12 * * *"
-    },
-    {
-      "path": "/api/cron/satellite-scan",
-      "schedule": "40 22 * * *"
     }
   ]
 }

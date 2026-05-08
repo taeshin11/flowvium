@@ -12,6 +12,17 @@ export const maxDuration = 300;
 
 /** 직접 AI 생성하는 우선 언어 — 아시아·영어권 주요 시장 */
 const PRIORITY_LOCALES = ['ko', 'en', 'ja', 'zh-CN', 'zh-TW'] as const;
+type PriorityLocale = typeof PRIORITY_LOCALES[number];
+
+/**
+ * STRATEGY_LOCALES env var: comma-separated list to restrict which locales run.
+ * Example: STRATEGY_LOCALES=ko,en  → only Korean + English generated.
+ * Unset → all 5 priority locales run (default).
+ */
+const _envLocales = process.env.STRATEGY_LOCALES;
+const activeLocales: readonly PriorityLocale[] = _envLocales
+  ? _envLocales.split(',').map(s => s.trim()).filter((l): l is PriorityLocale => PRIORITY_LOCALES.includes(l as PriorityLocale))
+  : PRIORITY_LOCALES;
 
 const SCHEMA_VERSION = 8;
 function staleKey(locale: string) { return `flowvium:investment-strategy:stale:v${SCHEMA_VERSION}:${locale}`; }
@@ -42,11 +53,11 @@ export async function GET(req: NextRequest) {
 
   const redis = await createRedis();
 
-  logger.info('cron.investment-strategy', 'start', { locales: PRIORITY_LOCALES });
+  logger.info('cron.investment-strategy', 'start', { locales: activeLocales });
 
   // 5개 언어 병렬 생성 (각 요청이 별도 Lambda에서 독립 실행)
   const results = await Promise.allSettled(
-    PRIORITY_LOCALES.map(async (locale) => {
+    activeLocales.map(async (locale) => {
       const t0 = Date.now();
       try {
         // Skip if local already uploaded a fresh report in the last 2h
@@ -90,9 +101,9 @@ export async function GET(req: NextRequest) {
   const totalMs = Date.now() - start;
 
   logger.info('cron.investment-strategy', 'done', {
-    successCount, total: PRIORITY_LOCALES.length, totalMs,
+    successCount, total: activeLocales.length, totalMs,
     locales: summary.map(s => `${s.locale}:${s.ok ? 'ok' : 'fail'}`).join(' '),
   });
 
-  return NextResponse.json({ ok: successCount > 0, successCount, total: PRIORITY_LOCALES.length, summary, totalMs });
+  return NextResponse.json({ ok: successCount > 0, successCount, total: activeLocales.length, summary, totalMs });
 }
