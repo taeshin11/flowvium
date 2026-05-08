@@ -178,6 +178,7 @@ export interface InvestmentStrategy {
     headline: string;
     source: string;
     conviction: number;
+    date?: string;
     downstreamBeneficiaries?: string[];
     upstreamRisks?: string[];
     evidenceUrl?: string | null;

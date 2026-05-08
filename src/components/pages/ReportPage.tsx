@@ -836,6 +836,7 @@ export default function ReportPage() {
                         <span className="font-bold text-xs">{s.ticker}</span>
                         <span className="text-[10px] opacity-70">{dirIcon} {s.direction}</span>
                         <span className="text-[10px] opacity-60 bg-white/60 rounded px-1">{s.source}</span>
+                        {s.date && <span className="text-[10px] opacity-60 font-mono">{s.date}</span>}
                         <span className="text-[10px] opacity-60">신뢰도 {s.conviction}</span>
                       </div>
                       <p className="text-[11px] leading-relaxed">{s.headline}</p>
