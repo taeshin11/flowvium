@@ -1508,6 +1508,46 @@ async function verifyOsint(base: string): Promise<MetricItem[]> {
   ]);
 }
 
+// ── 위성 스캔 헬스 ───────────────────────────────────────────────────────────
+async function verifySatellite(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/satellite-signals', 8000);
+  if (!r.ok) {
+    return [{ key: 'satellite.signals', label: '위성 신호 API', group: 'satellite', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const d = r.data as { signals?: unknown[]; dataDate?: string };
+  const signals = Array.isArray(d.signals) ? d.signals : [];
+  const items: MetricItem[] = [];
+
+  if (signals.length === 0) {
+    items.push({ key: 'satellite.signals', label: '위성 공장 신호', group: 'satellite', status: 'degraded', value: '데이터 없음 (scan:satellite 실행 필요)', lastError: 'no scan data in Redis' });
+    return items;
+  }
+
+  const withScore = signals.filter((s): s is { activityScore: number } => typeof (s as Record<string, unknown>)['activityScore'] === 'number');
+  const dataDate = d.dataDate ?? null;
+  const dataAgeH = dataDate ? (Date.now() - new Date(dataDate).getTime()) / 3600000 : 999;
+
+  items.push({
+    key: 'satellite.signals',
+    label: '위성 공장 신호',
+    group: 'satellite',
+    status: signals.length >= 6 && dataAgeH <= 48 ? 'ok' : 'degraded',
+    value: `${signals.length}개 공장 (${withScore.length}개 점수 유효)`,
+    source: `scan date: ${dataDate ?? 'unknown'}`,
+  });
+
+  items.push({
+    key: 'satellite.freshness',
+    label: '위성 데이터 신선도',
+    group: 'satellite',
+    status: dataAgeH <= 48 ? 'ok' : dataAgeH <= 120 ? 'degraded' : 'error',
+    value: dataDate ? `${Math.round(dataAgeH)}h ago` : 'unknown',
+    lastError: dataAgeH > 120 ? `Data too old: ${Math.round(dataAgeH)}h` : undefined,
+  });
+
+  return items;
+}
+
 // ── 메인 핸들러 ──────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -1517,7 +1557,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
-  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, strategy, missing, osint] = await Promise.all([
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, strategy, missing, osint, satellite] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -1541,9 +1581,10 @@ export async function GET(req: Request) {
     verifyInvestmentStrategy(base).catch((e): MetricItem[] => [{ key: 'strategy.ERR', label: 'Strategy verify throw', group: 'strategy', status: 'error', lastError: String(e) }]),
     verifyMissingEndpoints(base).catch((e): MetricItem[] => [{ key: 'missing.ERR', label: 'Missing endpoints verify throw', group: 'brief', status: 'error', lastError: String(e) }]),
     verifyOsint(base).catch((e): MetricItem[] => [{ key: 'osint.ERR', label: 'OSINT verify throw', group: 'osint', status: 'error', lastError: String(e) }]),
+    verifySatellite(base).catch((e): MetricItem[] => [{ key: 'satellite.ERR', label: 'Satellite verify throw', group: 'satellite', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...strategy, ...missing, ...osint];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...strategy, ...missing, ...osint, ...satellite];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

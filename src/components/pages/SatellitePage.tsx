@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Satellite, Factory, AlertCircle, RefreshCw, TrendingUp, TrendingDown, Minus, ExternalLink } from 'lucide-react';
+import { Satellite, Factory, AlertCircle, RefreshCw, TrendingUp, TrendingDown, Minus, ExternalLink, Zap, Hammer, PackageOpen, TrendingDown as TrendingDownIcon } from 'lucide-react';
 
 interface FactorySignal {
   id: string;
@@ -26,6 +26,169 @@ interface FactorySignal {
 const COUNTRY_FLAGS: Record<string, string> = {
   TW: '🇹🇼', KR: '🇰🇷', US: '🇺🇸', NL: '🇳🇱', CN: '🇨🇳', JP: '🇯🇵', DE: '🇩🇪',
 };
+
+// ── Signal interpretation logic ───────────────────────────────────────────────
+const STOCK_TAGS = new Set(['NVDA','AMD','AAPL','TSM','INTC','ASML','MU','TSLA','NIO','QCOM','ARM','LMT']);
+
+interface SignalInsight {
+  id: string;
+  type: 'active' | 'construction' | 'shipping' | 'quiet';
+  factory: FactorySignal;
+  headline: string;
+  subtext: string;
+  tickers: string[];
+  direction: 'positive' | 'negative' | 'neutral';
+}
+
+function buildInsights(signals: FactorySignal[]): SignalInsight[] {
+  const insights: SignalInsight[] = [];
+
+  for (const f of signals) {
+    const score = f.activityScore ?? 0;
+    const affectedTickers = f.tags.filter(t => STOCK_TAGS.has(t));
+
+    if (score >= 75 && f.loadingActivity === 'busy') {
+      insights.push({
+        id: f.id + '-active-busy',
+        type: 'active',
+        factory: f,
+        headline: `${f.name} 극도로 활발 (${score}점)`,
+        subtext: `주차장 밀집 + 하역 급증 → 공급망 풀 가동 신호. ${affectedTickers.slice(0,3).join('/')} 수혜 가능`,
+        tickers: affectedTickers.slice(0, 4),
+        direction: 'positive',
+      });
+    } else if (score >= 70) {
+      insights.push({
+        id: f.id + '-active',
+        type: 'active',
+        factory: f,
+        headline: `${f.name} 가동률 상승 (${score}점)`,
+        subtext: `평상시 대비 활동 증가. ${affectedTickers.slice(0,3).join('/')} 공급망 긍정 신호`,
+        tickers: affectedTickers.slice(0, 3),
+        direction: 'positive',
+      });
+    }
+
+    if (f.constructionVisible) {
+      insights.push({
+        id: f.id + '-construction',
+        type: 'construction',
+        factory: f,
+        headline: `${f.name} 신규 공사 가시`,
+        subtext: `설비 증설·확장 진행 중. CapEx 집행 → 다음 분기 생산능력 확대 예고`,
+        tickers: [f.ticker, ...affectedTickers.slice(0,2)].filter((t,i,a)=>a.indexOf(t)===i).slice(0,3),
+        direction: 'positive',
+      });
+    }
+
+    if (f.loadingActivity === 'busy' && score < 70) {
+      insights.push({
+        id: f.id + '-shipping',
+        type: 'shipping',
+        factory: f,
+        headline: `${f.name} 하역 급증`,
+        subtext: `출하량 증가 감지. 재고 출고 또는 원자재 입고 증가`,
+        tickers: affectedTickers.slice(0, 3),
+        direction: 'positive',
+      });
+    }
+
+    if (score > 0 && score <= 25 && f.significance === 'critical') {
+      insights.push({
+        id: f.id + '-quiet',
+        type: 'quiet',
+        factory: f,
+        headline: `${f.name} 조용 (${score}점)`,
+        subtext: `핵심 시설 가동률 급감. 수요 부진 또는 계획 유지보수 가능성`,
+        tickers: affectedTickers.slice(0, 3),
+        direction: 'negative',
+      });
+    }
+  }
+
+  // 우선순위: 극도로 활발 > 공사 > 조용 (최대 4개)
+  return insights
+    .sort((a, b) => {
+      const order: Record<SignalInsight['type'], number> = { active: 0, construction: 1, shipping: 2, quiet: 3 };
+      return order[a.type] - order[b.type];
+    })
+    .slice(0, 5);
+}
+
+function SignalInsightsPanel({ signals }: { signals: FactorySignal[] }) {
+  const insights = buildInsights(signals);
+  if (insights.length === 0) return null;
+
+  const typeConfig: Record<SignalInsight['type'], { icon: React.ReactNode; bg: string; border: string; badge: string }> = {
+    active: {
+      icon: <Zap className="w-4 h-4" />,
+      bg: 'bg-red-50 dark:bg-red-500/10',
+      border: 'border-red-200 dark:border-red-500/30',
+      badge: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400',
+    },
+    construction: {
+      icon: <Hammer className="w-4 h-4" />,
+      bg: 'bg-orange-50 dark:bg-orange-500/10',
+      border: 'border-orange-200 dark:border-orange-500/30',
+      badge: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400',
+    },
+    shipping: {
+      icon: <PackageOpen className="w-4 h-4" />,
+      bg: 'bg-amber-50 dark:bg-amber-500/10',
+      border: 'border-amber-200 dark:border-amber-500/30',
+      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
+    },
+    quiet: {
+      icon: <TrendingDownIcon className="w-4 h-4" />,
+      bg: 'bg-blue-50 dark:bg-blue-500/10',
+      border: 'border-blue-200 dark:border-blue-500/30',
+      badge: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+    },
+  };
+
+  return (
+    <div className="mb-8 rounded-2xl border border-violet-200 dark:border-violet-500/30 bg-violet-50/80 dark:bg-violet-500/10 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Satellite className="w-4 h-4 text-violet-600" />
+        <h2 className="text-sm font-bold text-violet-900 dark:text-violet-300">핵심 공급망 신호</h2>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 font-medium">
+          Sentinel-2 · AI 해석
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {insights.map(ins => {
+          const cfg = typeConfig[ins.type];
+          const flag = COUNTRY_FLAGS[ins.factory.country] ?? '🌐';
+          return (
+            <div key={ins.id} className={`rounded-xl border p-3.5 ${cfg.bg} ${cfg.border}`}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.badge}`}>
+                  {cfg.icon}
+                  {ins.type === 'active' ? '활발' : ins.type === 'construction' ? '신규공사' : ins.type === 'shipping' ? '출하증가' : '조용'}
+                </div>
+                <span className="text-base">{flag}</span>
+              </div>
+              <p className="text-sm font-bold text-cf-text-primary leading-tight mb-1">{ins.headline}</p>
+              <p className="text-xs text-cf-text-secondary leading-relaxed mb-2">{ins.subtext}</p>
+              {ins.tickers.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  <span className={`text-[10px] font-semibold mr-0.5 ${ins.direction === 'positive' ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {ins.direction === 'positive' ? '▲' : '▼'}
+                  </span>
+                  {ins.tickers.map(t => (
+                    <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 dark:bg-white/10 font-mono font-bold text-cf-primary">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function ActivityBar({ score }: { score: number }) {
   const color = score >= 70 ? 'bg-red-500' : score >= 50 ? 'bg-amber-500' : 'bg-emerald-500';
@@ -212,6 +375,9 @@ export default function SatellitePage() {
           )}
         </div>
       </div>
+
+      {/* ── Signal Insights ─────────────────────────────────────────────── */}
+      {signals.length > 0 && <SignalInsightsPanel signals={signals} />}
 
       {/* Stats row */}
       {signals.length > 0 && (
