@@ -33,7 +33,9 @@
     "heatmapDesc": "Mapa de calor bursátil",
     "screenerDesc": "Filtro institucional",
     "shortDesc": "Candidatos short squeeze",
-    "cascadeDesc": "Líder→mediana capitalización"
+    "cascadeDesc": "Líder→mediana capitalización",
+    "satellite": "Satélite",
+    "satelliteDesc": "Monitor de actividad fabril"
   },
   "hero": {
     "title": "Descubre Riesgos Ocultos en la Cadena de Suministro",
@@ -673,7 +675,9 @@
     "shortTitle": "Posiciones Cortas · Short Squeeze — Flowvium",
     "shortDescription": "Analiza Short Interest % of Float, Days to Cover y conflictos institucionales para identificar candidatos a short squeeze.",
     "watchlistTitle": "Lista de Seguimiento — Flowvium",
-    "watchlistDescription": "Añade acciones a tu lista de seguimiento y monitoriza precios en tiempo real y cambios diarios de un vistazo."
+    "watchlistDescription": "Añade acciones a tu lista de seguimiento y monitoriza precios en tiempo real y cambios diarios de un vistazo.",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "Desbloquea Flowvium Pro",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "Fundamento del stop loss",
     "companyChangesTitle": "Monitor de cambios empresariales",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "Monitor de cadena de suministro",
     "loadingText": "Cargando...",
     "narrativeWhy": "POR QUÉ",
     "narrativeWatch": "VIGILAR",
@@ -1727,5 +1732,14 @@
     "keyDriver": "Factor clave",
     "sevenDaysAgo": "Hace 7 días",
     "current": "Actual"
+  },
+  "satellite": {
+    "title": "Rastreador Satelital de Cadena de Suministro",
+    "subtitle": "Monitorea la actividad de fábricas clave de semiconductores y VE con imágenes ESA Sentinel-2 + Claude Vision.",
+    "noDataTitle": "Sin datos de escaneo",
+    "noDataDesc": "Ejecuta un escaneo satelital con tu cuenta gratuita de Copernicus para 12 fábricas.",
+    "setupSteps": "Pasos de configuración",
+    "methodologyTitle": "Metodología",
+    "methodologyDesc": "Imágenes Sentinel-2 L2A (10m) analizadas por Claude Vision para densidad de estacionamiento, carga y construcción."
   }
 }

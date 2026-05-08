@@ -16,7 +16,12 @@
     "scrape:macro": "tsx scripts/scrapers/fred-macro.ts",
     "scrape:news": "tsx scripts/scrapers/rss-news.ts",
     "scrape:gap": "tsx scripts/scrapers/news-gap-calc.ts",
-    "check:hardcoded": "node scripts/check-hardcoded.mjs"
+    "check:hardcoded": "node scripts/check-hardcoded.mjs",
+    "check:fallbacks": "node scripts/check-static-fallbacks.mjs",
+    "review:logs": "node scripts/review-logs.mjs",
+    "review:redis": "node scripts/review-logs.mjs --redis",
+    "scan:satellite": "node scripts/satellite-factory-scan.mjs",
+    "scan:satellite:dry": "node scripts/satellite-factory-scan.mjs --dry-run"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.1",

@@ -171,6 +171,17 @@ export interface InvestmentStrategy {
     guidance?: string;        // raised/maintained/lowered/unknown
     sentiment: 'positive' | 'neutral' | 'negative';
   }>;
+  // S9: 공급망 변화 모니터링
+  supplyChainChanges?: Array<{
+    ticker: string;
+    direction: 'positive' | 'negative' | 'neutral';
+    headline: string;
+    source: string;
+    conviction: number;
+    downstreamBeneficiaries?: string[];
+    upstreamRisks?: string[];
+    evidenceUrl?: string | null;
+  }>;
   generatedAt: string;
   dataAsOf?: string;
   source: string;
@@ -406,14 +417,21 @@ async function getActiveCascadeSignals(baseUrl: string): Promise<string> {
 // ── Earnings risk helper ──────────────────────────────────────────────────────
 async function getUpcomingEarnings(baseUrl: string): Promise<string> {
   try {
-    const res = await fetch(`${baseUrl}/api/earnings`, {
+    // from = 7 days ago to capture afterhours/AMC reports from prior day (e.g. CRWV Q1)
+    const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
+    const from = new Date(kstNow.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+    const to = new Date(kstNow.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+    const res = await fetch(`${baseUrl}/api/earnings?from=${from}&to=${to}`, {
       signal: AbortSignal.timeout(8000),
       cache: 'no-store',
     });
     if (!res.ok) return '';
-    const data = await res.json() as { earnings?: Array<{ symbol: string; date: string; epsEstimate?: number | null }> };
-    const items = (data.earnings ?? []).slice(0, 5);
-    return items.map(e => `${e.symbol} ${e.date}`).join(', ');
+    const data = await res.json() as { earnings?: Array<{ symbol: string; date: string; epsActual?: number | null; epsEstimate?: number | null; epsSurprise?: number | null }> };
+    const items = (data.earnings ?? []).slice(0, 12);
+    return items.map(e => {
+      const surprise = e.epsSurprise != null ? ` EPS_surprise=${e.epsSurprise.toFixed(1)}%` : '';
+      return `${e.symbol} ${e.date}${surprise}`;
+    }).join(', ');
   } catch { return ''; }
 }
 
@@ -1356,20 +1374,29 @@ export async function GET(request: Request) {
   let ctx: Awaited<ReturnType<typeof gatherTabContext>>;
   let sectorPe: string, earnings: string, vixCtx: string, activeCascades: string;
   let livePrices: Awaited<ReturnType<typeof getLivePrices>>;
+  let supplyChainSignals: InvestmentStrategy['supplyChainChanges'] = [];
   {
     const GATHER_TIMEOUT = 30000;
     const wrap = <T>(p: Promise<T>, fallback: T): Promise<T> =>
       Promise.race([p, new Promise<T>(res => setTimeout(() => res(fallback), GATHER_TIMEOUT))]);
-    const [ctxR, sectorR, earningsR, pricesR, vixR, cascadeR] = await Promise.all([
+    const [ctxR, sectorR, earningsR, pricesR, vixR, cascadeR, supplyChainR] = await Promise.all([
       wrap(gatherTabContext(redis, baseUrl), {} as Awaited<ReturnType<typeof gatherTabContext>>),
       wrap(getSectorSummary(baseUrl), ''),
       wrap(getUpcomingEarnings(baseUrl), ''),
       wrap(getLivePrices(), new Map()),
       wrap(getVixContext(baseUrl), ''),
       wrap(getActiveCascadeSignals(baseUrl), ''),
+      wrap(
+        fetch(`${baseUrl}/api/supply-chain-signals`, { cache: 'no-store', signal: AbortSignal.timeout(8000) })
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null) as Promise<{ signals?: InvestmentStrategy['supplyChainChanges'] } | null>,
+        null,
+      ),
     ]);
     ctx = ctxR; sectorPe = sectorR; earnings = earningsR;
     livePrices = pricesR; vixCtx = vixR; activeCascades = cascadeR;
+    supplyChainSignals =
+      (supplyChainR?.signals ?? []).filter((s: { conviction?: number }) => (s.conviction ?? 0) >= 45).slice(0, 10);
     logger.info('api.investment-strategy', 'ctx_gathered', { locale,
       ctxKeys: Object.keys(ctx).length,
       prices: livePrices.size,
@@ -1598,6 +1625,8 @@ export async function GET(request: Request) {
     marketNarrative: narrativeData ?? undefined,
     // S8: 기업 변화
     companyChanges: companyChangesData?.companyChanges as InvestmentStrategy['companyChanges'] ?? undefined,
+    // S9: 공급망 변화
+    supplyChainChanges: supplyChainSignals?.length ? supplyChainSignals : undefined,
     generatedAt: dataAsOf,
     dataAsOf,
     source: bestSource,

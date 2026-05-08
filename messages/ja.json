@@ -33,7 +33,9 @@
     "heatmapDesc": "株価ツリーマップ",
     "screenerDesc": "機関フィルター",
     "shortDesc": "ショートスクイーズ",
-    "cascadeDesc": "リーダー→中型株連鎖"
+    "cascadeDesc": "リーダー→中型株連鎖",
+    "satellite": "衛星追跡",
+    "satelliteDesc": "工場活動モニター"
   },
   "hero": {
     "title": "隠れたサプライチェーンリスクを発見",
@@ -586,7 +588,9 @@
     "shortTitle": "空売り・ショートスクイーズ — Flowvium",
     "shortDescription": "Short Interest % of Float、Days to Cover、機関投資家買い集め衝突分析でショートスクイーズ候補を発掘。",
     "watchlistTitle": "ウォッチリスト — Flowvium",
-    "watchlistDescription": "ウォッチリストに銘柄を追加し、リアルタイム株価と日次変動率を一目で確認。"
+    "watchlistDescription": "ウォッチリストに銘柄を追加し、リアルタイム株価と日次変動率を一目で確認。",
+    "satelliteTitle": "衛星サプライチェーン追跡 | FlowVium",
+    "satelliteDescription": "ESA Sentinel-2衛星画像で半導体・EV工場の活動指数をモニタリング。"
   },
   "pro": {
     "upgradeTitle": "Flowvium Proを利用する",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "損切り根拠",
     "companyChangesTitle": "企業変化モニタリング",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "サプライチェーン変化モニタリング",
     "loadingText": "読み込み中...",
     "narrativeWhy": "WHY",
     "narrativeWatch": "WATCH",
@@ -1727,5 +1732,14 @@
     "keyDriver": "主な要因",
     "sevenDaysAgo": "7日前",
     "current": "現在"
+  },
+  "satellite": {
+    "title": "衛星サプライチェーン追跡",
+    "subtitle": "ESA Sentinel-2衛星画像とClaude Visionで主要半導体・EV工場の活動指数をモニタリング。",
+    "noDataTitle": "スキャンデータがありません",
+    "noDataDesc": "Copernicusの無料アカウントで12工場をスキャンできます。5日ごとに新しい衛星画像。",
+    "setupSteps": "設定手順",
+    "methodologyTitle": "分析手法",
+    "methodologyDesc": "Sentinel-2 L2A（10m）画像をClaude Visionで駐車場密度・荷積み・建設を分析。70+=活発、30以下=静止。"
   }
 }

@@ -33,7 +33,9 @@
     "heatmapDesc": "خريطة حرارية للأسهم",
     "screenerDesc": "فلتر مؤسسي",
     "shortDesc": "مرشحو الضغط القصير",
-    "cascadeDesc": "قائد→شركات متوسطة"
+    "cascadeDesc": "قائد→شركات متوسطة",
+    "satellite": "الأقمار الصناعية",
+    "satelliteDesc": "مراقبة نشاط المصانع"
   },
   "hero": {
     "title": "اكتشف مخاطر سلسلة التوريد الخفية",
@@ -673,7 +675,9 @@
     "shortTitle": "البيع على المكشوف — Flowvium",
     "shortDescription": "تحليل نسبة البيع على المكشوف وأيام التغطية والتعارض المؤسسي لتحديد مرشحي الضغط القصير.",
     "watchlistTitle": "قائمة المراقبة — Flowvium",
-    "watchlistDescription": "أضف الأسهم إلى قائمة مراقبتك وراقب الأسعار في الوقت الفعلي والتغيرات اليومية."
+    "watchlistDescription": "أضف الأسهم إلى قائمة مراقبتك وراقب الأسعار في الوقت الفعلي والتغيرات اليومية.",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "افتح Flowvium Pro",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "مبرر وقف الخسارة",
     "companyChangesTitle": "مراقبة تغييرات الشركة",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "مراقبة سلسلة التوريد",
     "loadingText": "جارٍ التحميل...",
     "narrativeWhy": "لماذا",
     "narrativeWatch": "مراقبة",
@@ -1727,5 +1732,14 @@
     "keyDriver": "العامل الرئيسي",
     "sevenDaysAgo": "منذ 7 أيام",
     "current": "الحالي"
+  },
+  "satellite": {
+    "title": "تتبع سلسلة التوريد بالأقمار الصناعية",
+    "subtitle": "مراقبة نشاط المصانع الرئيسية باستخدام صور Sentinel-2 + Claude Vision.",
+    "noDataTitle": "لا توجد بيانات مسح",
+    "noDataDesc": "قم بتشغيل مسح بحساب Copernicus المجاني لـ 12 مصنعاً.",
+    "setupSteps": "خطوات الإعداد",
+    "methodologyTitle": "المنهجية",
+    "methodologyDesc": "صور Sentinel-2 L2A (10م) يحللها Claude Vision لمواقف السيارات والتحميل والبناء."
   }
 }

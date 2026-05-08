@@ -33,7 +33,9 @@
     "heatmapDesc": "Bản đồ nhiệt cổ phiếu",
     "screenerDesc": "Bộ lọc tổ chức",
     "shortDesc": "Ứng viên short squeeze",
-    "cascadeDesc": "Dẫn đầu→vốn trung"
+    "cascadeDesc": "Dẫn đầu→vốn trung",
+    "satellite": "Vệ tinh",
+    "satelliteDesc": "Theo dõi hoạt động nhà máy"
   },
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",
@@ -673,7 +675,9 @@
     "shortTitle": "Bán Khống · Short Squeeze — Flowvium",
     "shortDescription": "Phân tích Short Interest % of Float, Days to Cover và xung đột tổ chức để xác định ứng viên short squeeze.",
     "watchlistTitle": "Danh Sách Theo Dõi — Flowvium",
-    "watchlistDescription": "Thêm cổ phiếu vào danh sách theo dõi và giám sát giá thời gian thực và thay đổi hàng ngày trong nháy mắt."
+    "watchlistDescription": "Thêm cổ phiếu vào danh sách theo dõi và giám sát giá thời gian thực và thay đổi hàng ngày trong nháy mắt.",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "Mở khóa Flowvium Pro",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "Lý do stop loss",
     "companyChangesTitle": "Theo dõi thay đổi công ty",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "Theo dõi chuỗi cung ứng",
     "loadingText": "Đang tải...",
     "narrativeWhy": "TẠI SAO",
     "narrativeWatch": "THEO DÕI",
@@ -1727,5 +1732,14 @@
     "keyDriver": "Yếu tố chính",
     "sevenDaysAgo": "7 ngày trước",
     "current": "Hiện tại"
+  },
+  "satellite": {
+    "title": "Theo dõi Chuỗi Cung ứng Vệ tinh",
+    "subtitle": "Theo dõi hoạt động nhà máy quan trọng bằng hình ảnh ESA Sentinel-2 + Claude Vision.",
+    "noDataTitle": "Chưa có dữ liệu quét",
+    "noDataDesc": "Chạy quét với tài khoản Copernicus miễn phí cho 12 nhà máy.",
+    "setupSteps": "Các bước cài đặt",
+    "methodologyTitle": "Phương pháp",
+    "methodologyDesc": "Hình ảnh Sentinel-2 L2A (10m) được Claude Vision phân tích bãi đậu xe, bốc dỡ và xây dựng."
   }
 }

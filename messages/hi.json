@@ -33,7 +33,9 @@
     "heatmapDesc": "ग्लोबल स्टॉक हीटमैप",
     "screenerDesc": "संस्थागत फ़िल्टर",
     "shortDesc": "शॉर्ट स्क्वीज़",
-    "cascadeDesc": "लीडर→मिडकैप कैस्केड"
+    "cascadeDesc": "लीडर→मिडकैप कैस्केड",
+    "satellite": "सैटेलाइट",
+    "satelliteDesc": "फ़ैक्टरी गतिविधि मॉनिटर"
   },
   "hero": {
     "title": "छिपे हुए सप्लाई चेन जोखिम उजागर करें",
@@ -673,7 +675,9 @@
     "shortTitle": "शॉर्ट इंटरेस्ट · शॉर्ट स्क्वीज़ — Flowvium",
     "shortDescription": "शॉर्ट स्क्वीज़ उम्मीदवारों की पहचान के लिए Short Interest % of Float, Days to Cover और इंस्टीट्यूशनल संघर्ष विश्लेषण।",
     "watchlistTitle": "वॉचलिस्ट — Flowvium",
-    "watchlistDescription": "अपनी वॉचलिस्ट में शेयर जोड़ें और रियल-टाइम कीमतों और दैनिक परिवर्तनों को एक नज़र में मॉनिटर करें।"
+    "watchlistDescription": "अपनी वॉचलिस्ट में शेयर जोड़ें और रियल-टाइम कीमतों और दैनिक परिवर्तनों को एक नज़र में मॉनिटर करें।",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro अनलॉक करें",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "स्टॉप लॉस तर्क",
     "companyChangesTitle": "कंपनी परिवर्तन मॉनिटर",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "आपूर्ति श्रृंखला परिवर्तन",
     "loadingText": "लोड हो रहा है...",
     "narrativeWhy": "क्यों",
     "narrativeWatch": "देखें",
@@ -1727,5 +1732,14 @@
     "keyDriver": "मुख्य कारक",
     "sevenDaysAgo": "7 दिन पहले",
     "current": "वर्तमान"
+  },
+  "satellite": {
+    "title": "सैटेलाइट सप्लाई चेन ट्रैकर",
+    "subtitle": "ESA Sentinel-2 इमेजरी + Claude Vision से प्रमुख फैक्ट्रियों की गतिविधि मॉनिटर करें।",
+    "noDataTitle": "कोई स्कैन डेटा नहीं",
+    "noDataDesc": "12 फैक्ट्रियों के लिए मुफ्त Copernicus अकाउंट से स्कैन चलाएं।",
+    "setupSteps": "सेटअप चरण",
+    "methodologyTitle": "पद्धति",
+    "methodologyDesc": "Sentinel-2 L2A (10m) को Claude Vision पार्किंग, लोडिंग और निर्माण के लिए विश्लेषण करता है।"
   }
 }

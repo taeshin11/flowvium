@@ -797,6 +797,44 @@ export default function ReportPage() {
             </div>
           ) : null}
 
+          {/* ── S9: 공급망 변화 모니터링 ──────────────────────────────────── */}
+          {(data.supplyChainChanges?.length ?? 0) > 0 && (
+            <div className="mb-5 rounded-xl border border-violet-100 bg-violet-50 p-4">
+              <p className="text-sm font-bold text-violet-900 mb-3">🔗 {t('supplyChainChangesTitle')}</p>
+              <div className="space-y-2">
+                {data.supplyChainChanges!.map((s, i) => {
+                  const dirColor = s.direction === 'positive'
+                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                    : s.direction === 'negative'
+                    ? 'text-red-700 bg-red-50 border-red-200'
+                    : 'text-gray-600 bg-gray-50 border-gray-200';
+                  const dirIcon = s.direction === 'positive' ? '▲' : s.direction === 'negative' ? '▼' : '—';
+                  return (
+                    <div key={i} className={`rounded-lg border p-2.5 ${dirColor}`}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-bold text-xs">{s.ticker}</span>
+                        <span className="text-[10px] opacity-70">{dirIcon} {s.direction}</span>
+                        <span className="text-[10px] opacity-60 bg-white/60 rounded px-1">{s.source}</span>
+                        <span className="text-[10px] opacity-60">신뢰도 {s.conviction}</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed">{s.headline}</p>
+                      {s.downstreamBeneficiaries?.length ? (
+                        <p className="text-[10px] mt-1 opacity-70">
+                          ↘ 수혜: {s.downstreamBeneficiaries.join(', ')}
+                        </p>
+                      ) : null}
+                      {s.upstreamRisks?.length ? (
+                        <p className="text-[10px] mt-0.5 opacity-70">
+                          ↗ 위험: {s.upstreamRisks.join(', ')}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ── Risk Events ───────────────────────────────────────────────── */}
           {data.riskEvents.length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-4">

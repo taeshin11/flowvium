@@ -33,7 +33,9 @@
     "heatmapDesc": "Global hisse ısı haritası",
     "screenerDesc": "Kurumsal filtre",
     "shortDesc": "Short squeeze adayları",
-    "cascadeDesc": "Lider→orta ölçekli cascade"
+    "cascadeDesc": "Lider→orta ölçekli cascade",
+    "satellite": "Uydu",
+    "satelliteDesc": "Fabrika aktivite monitörü"
   },
   "hero": {
     "title": "Gizli Tedarik Zinciri Risklerini Keşfedin",
@@ -673,7 +675,9 @@
     "shortTitle": "Açığa Satış · Short Squeeze — Flowvium",
     "shortDescription": "Short Squeeze adaylarını belirlemek için Short Interest % of Float, Days to Cover ve kurumsal çatışma analizi.",
     "watchlistTitle": "İzleme Listesi — Flowvium",
-    "watchlistDescription": "Hisseleri izleme listenize ekleyin ve gerçek zamanlı fiyatları ve günlük değişimleri tek bakışta izleyin."
+    "watchlistDescription": "Hisseleri izleme listenize ekleyin ve gerçek zamanlı fiyatları ve günlük değişimleri tek bakışta izleyin.",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro'yu Açın",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "Stop loss gerekçesi",
     "companyChangesTitle": "Şirket değişiklikleri monitörü",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "Tedarik zinciri monitörü",
     "loadingText": "Yükleniyor...",
     "narrativeWhy": "NEDEN",
     "narrativeWatch": "İZLE",
@@ -1727,5 +1732,14 @@
     "keyDriver": "Ana etken",
     "sevenDaysAgo": "7 gün önce",
     "current": "Güncel"
+  },
+  "satellite": {
+    "title": "Uydu Tedarik Zinciri Takipçisi",
+    "subtitle": "Önemli fabrikaların aktivitesini ESA Sentinel-2 + Claude Vision ile izleyin.",
+    "noDataTitle": "Tarama verisi yok",
+    "noDataDesc": "12 fabrika için ücretsiz Copernicus hesabıyla tarama çalıştırın.",
+    "setupSteps": "Kurulum adımları",
+    "methodologyTitle": "Metodoloji",
+    "methodologyDesc": "Sentinel-2 L2A (10m) görüntüleri Claude Vision tarafından otopark, yükleme ve inşaat için analiz edilir."
   }
 }

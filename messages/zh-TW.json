@@ -33,7 +33,9 @@
     "heatmapDesc": "全球股票熱力圖",
     "screenerDesc": "機構篩選",
     "shortDesc": "軋空候選",
-    "cascadeDesc": "龍頭→中型股傳導"
+    "cascadeDesc": "龍頭→中型股傳導",
+    "satellite": "衛星追蹤",
+    "satelliteDesc": "工廠活動監測"
   },
   "hero": {
     "title": "發掘隱藏的供應鏈風險",
@@ -673,7 +675,9 @@
     "shortTitle": "放空 · 軋空 — Flowvium",
     "shortDescription": "透過空頭利率占流通股比例、回補天數和機構買進衝突分析發掘軋空候選股。",
     "watchlistTitle": "自選股 — Flowvium",
-    "watchlistDescription": "新增股票至自選股，一目了然地監控即時股價和日漲跌幅。"
+    "watchlistDescription": "新增股票至自選股，一目了然地監控即時股價和日漲跌幅。",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "解鎖 Flowvium Pro",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "止損依據",
     "companyChangesTitle": "企業變化監控",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "供應鏈變化監控",
     "loadingText": "載入中...",
     "narrativeWhy": "WHY",
     "narrativeWatch": "WATCH",
@@ -1727,5 +1732,14 @@
     "keyDriver": "主要驅動因素",
     "sevenDaysAgo": "7天前",
     "current": "當前"
+  },
+  "satellite": {
+    "title": "衛星供應鏈追蹤",
+    "subtitle": "使用ESA Sentinel-2衛星圖像和Claude Vision AI監控全球主要半導體和電動車工廠活動指數。",
+    "noDataTitle": "暫無掃描數據",
+    "noDataDesc": "使用免費Copernicus帳戶可掃描12個工廠。每5天提供新衛星圖像。",
+    "setupSteps": "設定步驟",
+    "methodologyTitle": "分析方法",
+    "methodologyDesc": "Sentinel-2 L2A（10m）圖像由Claude Vision分析停車密度、裝卸活動和建設情況。70+=活躍，30以下=安靜。"
   }
 }

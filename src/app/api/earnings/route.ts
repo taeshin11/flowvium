@@ -70,6 +70,8 @@ const COMPANY_NAMES: Record<string, string> = {
   COIN: 'Coinbase', MSTR: 'MicroStrategy', MARA: 'MARA Holdings',
   T: 'AT&T', VZ: 'Verizon', TMUS: 'T-Mobile',
   BABA: 'Alibaba', NIO: 'NIO',
+  CRWV: 'CoreWeave', APP: 'Applovin', HOOD: 'Robinhood', RDDT: 'Reddit',
+  DDOG: 'Datadog', NET: 'Cloudflare', ZS: 'Zscaler',
   AAON: 'AAON', AAP: 'Advance Auto', AAXN: 'Axon', ACN: 'Accenture',
   ADI: 'Analog Devices', ADP: 'ADP', ADSK: 'Autodesk', AEP: 'AEP',
   AFL: 'Aflac', AIG: 'AIG', ALL: 'Allstate', ANET: 'Arista Networks',
@@ -122,6 +124,8 @@ const YAHOO_EARNINGS_TICKERS = [
   'BAC','MRK','CRM','ORCL','CVX','AMD','NFLX','ADBE','NOW','KO',
   'PEP','TMO','WMT','WFC','GS','BX','QCOM','ISRG','TXN','DHR',
   'MS','RTX','AMGN','CAT','INTU','PLTR','PANW','AMAT','INTC','COIN',
+  // AI/cloud infra — high-signal for supply chain reports
+  'CRWV','APP','ARM','MU','MRVL','SMCI','DDOG','NET','ZS','HOOD','RDDT',
 ];
 
 function estimateQuarter(dateStr: string): number {

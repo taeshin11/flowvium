@@ -33,7 +33,9 @@
     "heatmapDesc": "Globale Aktienheatmap",
     "screenerDesc": "Institutioneller Filter",
     "shortDesc": "Short-Squeeze-Kandidaten",
-    "cascadeDesc": "Leader→Midcap-Kaskade"
+    "cascadeDesc": "Leader→Midcap-Kaskade",
+    "satellite": "Satellit",
+    "satelliteDesc": "Fabrikaktivitäts-Monitor"
   },
   "hero": {
     "title": "Verborgene Lieferkettenrisiken aufdecken",
@@ -673,7 +675,9 @@
     "shortTitle": "Leerverkauf · Short Squeeze — Flowvium",
     "shortDescription": "Analysieren Sie Short Interest % of Float, Days to Cover und institutionelle Konflikte, um Short-Squeeze-Kandidaten zu identifizieren.",
     "watchlistTitle": "Watchlist — Flowvium",
-    "watchlistDescription": "Fügen Sie Aktien zu Ihrer Watchlist hinzu und überwachen Sie Echtzeitkurse und tägliche Veränderungen auf einen Blick."
+    "watchlistDescription": "Fügen Sie Aktien zu Ihrer Watchlist hinzu und überwachen Sie Echtzeitkurse und tägliche Veränderungen auf einen Blick.",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro freischalten",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "Stop-Loss-Begründung",
     "companyChangesTitle": "Unternehmensveränderungen",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "Lieferketten-Monitor",
     "loadingText": "Lädt...",
     "narrativeWhy": "WARUM",
     "narrativeWatch": "BEOBACHTEN",
@@ -1727,5 +1732,14 @@
     "keyDriver": "Haupttreiber",
     "sevenDaysAgo": "Vor 7 Tagen",
     "current": "Aktuell"
+  },
+  "satellite": {
+    "title": "Satelliten-Lieferkettenüberwachung",
+    "subtitle": "Überwachen Sie die Fabrikaktivität mit ESA Sentinel-2 + Claude Vision.",
+    "noDataTitle": "Keine Scandaten vorhanden",
+    "noDataDesc": "Starten Sie einen Scan mit Ihrem kostenlosen Copernicus-Konto für 12 Fabriken.",
+    "setupSteps": "Einrichtungsschritte",
+    "methodologyTitle": "Methodik",
+    "methodologyDesc": "Sentinel-2 L2A (10m) Bilder werden von Claude Vision auf Parkhausdichte, Laden und Bau analysiert."
   }
 }

@@ -58,39 +58,39 @@
   "crons": [
     {
       "path": "/api/cron/update-all",
-      "schedule": "50 22 * * *"
+      "schedule": "10 22 * * *"
     },
     {
       "path": "/api/cron/daily-brief",
-      "schedule": "55 22 * * *"
+      "schedule": "15 22 * * *"
     },
     {
       "path": "/api/cron/investment-strategy",
-      "schedule": "0 23 * * *"
+      "schedule": "20 22 * * *"
     },
     {
       "path": "/api/cron/update-all",
-      "schedule": "50 6 * * *"
-    },
-    {
-      "path": "/api/cron/daily-brief",
-      "schedule": "55 6 * * *"
-    },
-    {
-      "path": "/api/cron/investment-strategy",
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/update-all",
-      "schedule": "20 12 * * *"
-    },
-    {
       "path": "/api/cron/daily-brief",
-      "schedule": "25 12 * * *"
+      "schedule": "5 7 * * *"
     },
     {
       "path": "/api/cron/investment-strategy",
-      "schedule": "0 13 * * *"
+      "schedule": "10 7 * * *"
+    },
+    {
+      "path": "/api/cron/update-all",
+      "schedule": "10 12 * * *"
+    },
+    {
+      "path": "/api/cron/daily-brief",
+      "schedule": "15 12 * * *"
+    },
+    {
+      "path": "/api/cron/investment-strategy",
+      "schedule": "20 12 * * *"
     },
     {
       "path": "/api/cron/update-signals",

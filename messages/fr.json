@@ -33,7 +33,9 @@
     "heatmapDesc": "Carte thermique boursière",
     "screenerDesc": "Filtre institutionnel",
     "shortDesc": "Candidats short squeeze",
-    "cascadeDesc": "Leader→moyenne capitalisation"
+    "cascadeDesc": "Leader→moyenne capitalisation",
+    "satellite": "Satellite",
+    "satelliteDesc": "Monitoring activité usine"
   },
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",
@@ -673,7 +675,9 @@
     "shortTitle": "Vente à Découvert · Short Squeeze — Flowvium",
     "shortDescription": "Analysez Short Interest % of Float, Days to Cover et les conflits institutionnels pour identifier les candidats au short squeeze.",
     "watchlistTitle": "Liste de Suivi — Flowvium",
-    "watchlistDescription": "Ajoutez des actions à votre liste de suivi et surveillez les prix en temps réel et les variations journalières."
+    "watchlistDescription": "Ajoutez des actions à votre liste de suivi et surveillez les prix en temps réel et les variations journalières.",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "Débloquez Flowvium Pro",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "Fondement du stop loss",
     "companyChangesTitle": "Surveillance des changements",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "Surveillance chaîne d'approvisionnement",
     "loadingText": "Chargement...",
     "narrativeWhy": "POURQUOI",
     "narrativeWatch": "SURVEILLER",
@@ -1727,5 +1732,14 @@
     "keyDriver": "Facteur clé",
     "sevenDaysAgo": "Il y a 7 jours",
     "current": "Actuel"
+  },
+  "satellite": {
+    "title": "Suivi Satellitaire de la Chaîne d'Approvisionnement",
+    "subtitle": "Surveillez l'activité des usines clés avec les images ESA Sentinel-2 + Claude Vision.",
+    "noDataTitle": "Aucune donnée de scan",
+    "noDataDesc": "Lancez un scan avec votre compte Copernicus gratuit pour 12 usines.",
+    "setupSteps": "Étapes de configuration",
+    "methodologyTitle": "Méthodologie",
+    "methodologyDesc": "Images Sentinel-2 L2A (10m) analysées par Claude Vision pour la densité de stationnement, chargement et construction."
   }
 }

@@ -33,7 +33,9 @@
     "heatmapDesc": "Тепловая карта акций",
     "screenerDesc": "Институциональный фильтр",
     "shortDesc": "Кандидаты шорт-сквиз",
-    "cascadeDesc": "Лидер→средняя капитализация"
+    "cascadeDesc": "Лидер→средняя капитализация",
+    "satellite": "Спутник",
+    "satelliteDesc": "Мониторинг заводов"
   },
   "hero": {
     "title": "Обнаружьте скрытые риски цепочки поставок",
@@ -673,7 +675,9 @@
     "shortTitle": "Короткие Позиции · Шорт-сквиз — Flowvium",
     "shortDescription": "Анализируйте Short Interest % of Float, Days to Cover и институциональные конфликты для выявления кандидатов на шорт-сквиз.",
     "watchlistTitle": "Список Наблюдения — Flowvium",
-    "watchlistDescription": "Добавляйте акции в список наблюдения и отслеживайте цены в реальном времени и дневные изменения."
+    "watchlistDescription": "Добавляйте акции в список наблюдения и отслеживайте цены в реальном времени и дневные изменения.",
+    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
   },
   "pro": {
     "upgradeTitle": "Разблокируйте Flowvium Pro",
@@ -1165,6 +1169,7 @@
     "stopLossRationaleLabel": "Обоснование стоп-лосса",
     "companyChangesTitle": "Мониторинг изменений",
     "companyChangesYoY": "YoY",
+    "supplyChainChangesTitle": "Мониторинг цепочки поставок",
     "loadingText": "Загрузка...",
     "narrativeWhy": "ПОЧЕМУ",
     "narrativeWatch": "СЛЕДИТЬ",
@@ -1727,5 +1732,14 @@
     "keyDriver": "Ключевой фактор",
     "sevenDaysAgo": "7 дней назад",
     "current": "Сейчас"
+  },
+  "satellite": {
+    "title": "Спутниковое отслеживание цепочки поставок",
+    "subtitle": "Мониторинг активности заводов с помощью снимков ESA Sentinel-2 + Claude Vision.",
+    "noDataTitle": "Нет данных сканирования",
+    "noDataDesc": "Запустите сканирование с бесплатным аккаунтом Copernicus для 12 заводов.",
+    "setupSteps": "Шаги настройки",
+    "methodologyTitle": "Методология",
+    "methodologyDesc": "Снимки Sentinel-2 L2A (10м) анализируются Claude Vision для парковки, погрузки и строительства."
   }
 }
