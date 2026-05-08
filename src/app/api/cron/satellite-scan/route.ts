@@ -80,8 +80,8 @@ function evaluatePixel(s){
 
 // 통계용: VV/VH LINEAR_POWER 값 그대로 출력
 const SAR_STATS_EVALSCRIPT = `//VERSION=3
-function setup(){return{input:[{bands:["VV","VH"],units:"LINEAR_POWER"}],output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"}]}}
-function evaluatePixel(s){return{VV:[s.VV],VH:[s.VH]}}`;
+function setup(){return{input:[{bands:["VV","VH","dataMask"],units:"LINEAR_POWER"}],output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]}}
+function evaluatePixel(s){return{VV:[s.VV*s.dataMask],VH:[s.VH*s.dataMask],dataMask:[s.dataMask]}}`;
 
 // ── SAR 표시 이미지 fetch ─────────────────────────────────────────────────────
 async function fetchSARImage(factory: FactoryLocation, token: string): Promise<string | null> {
@@ -140,7 +140,7 @@ async function fetchSARStats(factory: FactoryLocation, from: string, to: string,
       timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
       aggregationInterval: { of: 'P30D' },
       evalscript: SAR_STATS_EVALSCRIPT,
-      resx: 20, resy: 20,
+      resx: 0.00018, resy: 0.00018, // 20m in WGS84 degrees (20 / 111320)
     },
     calculations: { default: {} },
   };
