@@ -1030,6 +1030,67 @@ function fallbackStrategy(locale = 'en'): InvestmentStrategy {
 }
 
 // ── Data-driven fallback: adjusts base allocations using real-time signals ────
+// ── 가격 필드 hallucination 교정 ────────────────────────────────────────────────
+function parseFirstPrice(s: string | undefined): number | null {
+  if (!s) return null;
+  const clean = s.replace(/[₩$, ]/g, '').match(/\d+(\.\d+)?/);
+  const n = clean ? parseFloat(clean[0]) : NaN;
+  return isNaN(n) ? null : n;
+}
+
+function fixPortfolioPrices(
+  strategy: InvestmentStrategy,
+  prices: Map<string, LivePrice>,
+): InvestmentStrategy {
+  const fixed = strategy.portfolio.map(item => {
+    const lp = prices.get(item.ticker);
+    if (!lp || lp.price <= 0) return item;
+
+    const cur = lp.price;
+    const low52 = lp.low52w ?? cur * 0.7;
+    const high52 = lp.high52w ?? cur * 1.3;
+    const isKR = item.ticker.endsWith('.KS');
+
+    const entry = parseFirstPrice(item.entryZone);
+    const stop  = parseFirstPrice(item.stopLoss);
+    const tgt   = parseFirstPrice(item.target);
+
+    // 허용 범위: 52주 저점의 85% ~ 52주 고점의 120%
+    const lo = low52 * 0.85;
+    const hi = high52 * 1.20;
+    const entryOk = entry !== null && entry >= lo && entry <= hi;
+    const stopOk  = stop  !== null && stop  >= lo && stop  <= cur;
+    const tgtOk   = tgt   !== null && tgt   >  cur * 0.99 && tgt <= hi;
+
+    if (entryOk && stopOk && tgtOk) return item;
+
+    const fmt = isKR
+      ? (n: number) => `₩${Math.round(n / 100) * 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : (n: number) => `$${n.toFixed(2)}`;
+
+    const calcEntry   = fmt(cur * 0.97);
+    const calcEntryHi = fmt(cur * 1.00);
+    const calcStop    = fmt(Math.max(low52 * 0.95, cur * 0.88));
+    const calcTarget  = fmt(cur * 1.15);
+    const calcBull    = fmt(cur * 1.25);
+
+    logger.warn('api.investment-strategy', 'price_hallucination_fixed', {
+      ticker: item.ticker, cur,
+      origEntry: item.entryZone, origStop: item.stopLoss, origTarget: item.target,
+      entryOk, stopOk, tgtOk,
+    });
+
+    return {
+      ...item,
+      entryZone:  entryOk ? item.entryZone : `${calcEntry}-${calcEntryHi}`,
+      stopLoss:   stopOk  ? item.stopLoss  : calcStop,
+      target:     tgtOk   ? item.target    : calcTarget,
+      targetBull: tgtOk   ? item.targetBull : calcBull,
+    };
+  });
+  return { ...strategy, portfolio: fixed };
+}
+
 function priceZone(prices: Map<string, { price: number }>, ticker: string, pctRange: number): string {
   const p = prices.get(ticker)?.price;
   if (!p || p <= 0) return 'market ±' + pctRange + '%';
@@ -1639,6 +1700,9 @@ export async function GET(request: Request) {
   const singleResult = singlePrompt ? await callAIProvider(singlePrompt, { ...aiOpts, skipGroq: true, maxTokens: 1400 }) : null;
 
   let strategy: InvestmentStrategy | null = combinedStrategy ?? (singleResult ? parseStrategy(singleResult.text, singleResult.source) : null);
+
+  // 가격 hallucination 교정 — LLM이 잘못된 가격대 생성 시 live 데이터 기반 재계산
+  if (strategy) strategy = fixPortfolioPrices(strategy, livePrices);
 
   logger.info('api.investment-strategy', 'merge_result', { locale,
     usedCombined: !!combinedStrategy,
