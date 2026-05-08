@@ -227,9 +227,10 @@ function updateBaseline(current, baseline, today) {
   const prev = baseline ?? { vv_mean: 0, vh_mean: 0, obs_count: 0, dates: [] };
   const n = Number(prev.obs_count ?? 0);
   const prevDates = Array.isArray(prev.dates) ? prev.dates : [];
+  const alpha = 0.3; // EMA: 최근 관측에 30% 가중, 이상치에 강건
   return {
-    vv_mean: n > 0 ? (Number(prev.vv_mean) * n + current.vv_mean) / (n + 1) : current.vv_mean,
-    vh_mean: n > 0 ? (Number(prev.vh_mean) * n + current.vh_mean) / (n + 1) : current.vh_mean,
+    vv_mean: n > 0 ? alpha * current.vv_mean + (1 - alpha) * Number(prev.vv_mean) : current.vv_mean,
+    vh_mean: n > 0 ? alpha * current.vh_mean + (1 - alpha) * Number(prev.vh_mean) : current.vh_mean,
     obs_count: n + 1,
     dates: [...prevDates.slice(-14), today],
   };
@@ -259,26 +260,36 @@ function getFacilityType(factory) {
 }
 
 // ── 점수 계산 (순수 수치, 추측 없음) ─────────────────────────────────────────
-function scoreFactory(current, baseline, factory) {
+function scoreFactory(current, baseline, factory, allStats = []) {
   const w = SAR_WEIGHTS[getFacilityType(factory)] ?? SAR_WEIGHTS.default;
   const vv_db = Math.round(toDb(current.vv_mean) * 10) / 10;
   const vh_db = Math.round(toDb(current.vh_mean) * 10) / 10;
   const obsCount = baseline?.obs_count ?? 0;
   let score, vv_delta_db = null, vh_delta_db = null, constructionVisible = false;
   let confidence;
+  let scoreSource = 'percentile_rank';
 
-  if (baseline && obsCount >= 2) {
+  if (baseline && obsCount >= 5) {
+    // 델타 모드: 베이스라인 5회 이상 → 변화량 기반
     vv_delta_db = Math.round((vv_db - toDb(baseline.vv_mean)) * 100) / 100;
     vh_delta_db = Math.round((vh_db - toDb(baseline.vh_mean)) * 100) / 100;
     score = Math.max(5, Math.min(97, 50 + Math.round(vv_delta_db * w.vv + vh_delta_db * w.vh)));
     constructionVisible = vh_delta_db > w.constrVhDb;
-    confidence = obsCount >= 5 ? 'high' : 'medium';
+    confidence = 'high';
+    scoreSource = 'delta';
+  } else if (allStats.length >= 2) {
+    // 백분위 모드: 동일 일자 모든 공장 VV 중 상대 위치 (10~90 범위)
+    const sorted = allStats.map(s => toDb(s.vv_mean)).sort((a, b) => a - b);
+    const rank = sorted.filter(v => v < vv_db).length;
+    score = Math.max(10, Math.min(90, Math.round((rank / sorted.length) * 80 + 10)));
+    constructionVisible = (vh_db - vv_db) > -10;
+    confidence = obsCount >= 2 ? 'medium' : 'low';
   } else {
-    // 절대값 기반 (첫 스캔)
-    if (vv_db > -6) score = 78;
-    else if (vv_db > -9) score = 62;
-    else if (vv_db > -13) score = 46;
-    else score = 28;
+    // 단독 스캔 절대값 (백분위 불가 — 저신뢰)
+    if (vv_db > -6) score = 55;
+    else if (vv_db > -9) score = 45;
+    else if (vv_db > -13) score = 35;
+    else score = 20;
     constructionVisible = (vh_db - vv_db) > -10;
     confidence = 'low';
   }
@@ -286,7 +297,7 @@ function scoreFactory(current, baseline, factory) {
   const vehicleDensity = score >= 70 ? 'high' : score >= 45 ? 'medium' : 'low';
   const loadingActivity = score >= 75 ? 'busy' : score >= 40 ? 'normal' : 'inactive';
   const summaryParts = [];
-  if (vv_delta_db !== null && obsCount >= 2) {
+  if (scoreSource === 'delta' && vv_delta_db !== null) {
     summaryParts.push(`레이더(VV) ${vv_delta_db >= 0 ? '+' : ''}${vv_delta_db}dB vs ${obsCount}회 평균`);
     if (constructionVisible && vh_delta_db != null) summaryParts.push(`VH +${vh_delta_db}dB — 건설/중장비 역치 초과`);
     else if (Math.abs(vv_delta_db) < 0.8) summaryParts.push('유의미한 변화 없음 — 정상 가동');
@@ -294,8 +305,9 @@ function scoreFactory(current, baseline, factory) {
     else summaryParts.push('레이더 반사 감소 — 활동 저하');
   } else {
     summaryParts.push(`VV ${vv_db}dB · VH ${vh_db}dB (베이스라인 축적 중 ${obsCount}/5회)`);
-    if (score >= 70) summaryParts.push('고강도 산업 반사 감지');
-    else if (score >= 45) summaryParts.push('정상 산업단지 수준');
+    if (allStats.length >= 2) summaryParts.push(`동일 일자 ${allStats.length}개 시설 대비 백분위`);
+    else if (score >= 55) summaryParts.push('고강도 산업 반사 감지');
+    else if (score >= 40) summaryParts.push('정상 산업단지 수준');
     else summaryParts.push('저강도 — 야간·휴일 또는 커버리지 제한');
   }
 
@@ -303,6 +315,7 @@ function scoreFactory(current, baseline, factory) {
     activityScore: score, vv_db, vh_db, vv_delta_db, vh_delta_db,
     vehicleDensity, cloudCoverage: 'clear', loadingActivity,
     constructionVisible, confidence, summary: summaryParts.join('. '),
+    scoreSource, obs_count: obsCount,
   };
 }
 
@@ -408,62 +421,80 @@ async function main() {
   const results = [];
   let success = 0, failed = 0;
 
+  // ── Phase 1: SAR 통계 수집 (전체 공장 → 백분위 계산용) ──────────────────────
+  console.log(`\n📡 Phase 1: SAR 통계 수집 (${targets.length}개 공장)...`);
+  const statsMap = new Map();
   for (const factory of targets) {
-    console.log(`\n📍 ${factory.name} (${factory.id})`);
+    console.log(`\n  [1/2] ${factory.name}`);
     try {
-      // 1) SAR 통계 (핵심)
       const stats = await fetchSARStats(factory, statsFrom, today, token ?? 'dry');
       if (!stats && !dryRun) {
-        console.warn(`  ⚠️  SAR 데이터 없음 (커버리지 부족 또는 API 오류)`);
+        console.warn(`  ⚠️  SAR 데이터 없음 — 스킵`);
         results.push({ ...factory, activityScore: null, error: 'no_sar_data', scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
         failed++;
         continue;
       }
-
-      // 1b) samples 필터 — 픽셀 수 부족 시 신뢰 불가
       if (stats && stats.sample_count < 500 && !dryRun) {
-        console.warn(`  ⚠️  SAR samples 부족: ${stats.sample_count}/500 → 스킵`);
+        console.warn(`  ⚠️  samples 부족: ${stats.sample_count}/500 — 스킵`);
         results.push({ ...factory, activityScore: null, error: 'insufficient_sar_samples', scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
         failed++;
         continue;
       }
+      const s = stats ?? { vv_mean: 0.02, vh_mean: 0.005, vv_stdev: 0, vh_stdev: 0, sample_count: 1000 };
+      statsMap.set(factory.id, s);
+      console.log(`  ✅ VV=${toDb(s.vv_mean).toFixed(1)}dB VH=${toDb(s.vh_mean).toFixed(1)}dB samples=${s.sample_count}`);
+    } catch (e) {
+      console.error(`  ❌ 오류: ${e.message}`);
+      results.push({ ...factory, activityScore: null, error: String(e?.message ?? e).slice(0, 120), scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
+      failed++;
+    }
+  }
 
-      // 2) 베이스라인 + 점수
+  const allStats = [...statsMap.values()];
+  console.log(`\n  → 수집 완료: ${statsMap.size}개 시설 | 백분위 풀 크기: ${allStats.length}`);
+
+  // ── Phase 2: 점수 계산 + 저장 (백분위 사용) ──────────────────────────────────
+  console.log(`\n🔢 Phase 2: 점수 계산 + 저장...`);
+  for (const factory of targets) {
+    const stats = statsMap.get(factory.id);
+    if (!stats) continue;
+
+    console.log(`\n  [2/2] ${factory.name}`);
+    try {
       const baseline = dryRun ? null : await loadBaseline(factory.id);
-      const analysis = stats ? scoreFactory(stats, baseline, factory) : { activityScore: null, vv_db: null, vh_db: null, vv_delta_db: null, vh_delta_db: null, vehicleDensity: null, cloudCoverage: 'clear', loadingActivity: null, constructionVisible: false, confidence: 'low', summary: 'DRY-RUN' };
-      printResult(factory, analysis, today, baseline?.obs_count ?? 0);
+      const analysis = scoreFactory(stats, baseline, factory, allStats);
+      printResult(factory, analysis, today, analysis.obs_count);
 
-      // 3) 베이스라인 업데이트
-      if (stats && !dryRun) {
+      if (!dryRun) {
         const updatedBaseline = updateBaseline(stats, baseline, today);
         await saveBaseline(factory.id, updatedBaseline);
-        console.log(`     베이스라인: ${updatedBaseline.obs_count}회 축적 (vv_mean=${toDb(updatedBaseline.vv_mean).toFixed(1)}dB)`);
+        console.log(`     베이스라인: ${updatedBaseline.obs_count}회 (EMA vv=${toDb(updatedBaseline.vv_mean).toFixed(1)}dB)`);
       }
 
-      // 4) 결과 저장 (이미지보다 먼저 — 이미지 실패가 점수를 날리지 않도록)
       const result = {
         id: factory.id, ticker: factory.ticker, name: factory.name,
         country: factory.country, tags: factory.tags, significance: factory.significance,
         ...analysis, scannedAt: new Date().toISOString(), imageDate: today,
         source: 'SAR',
-        sar_raw: stats ? { vv_db: analysis.vv_db, vh_db: analysis.vh_db, samples: stats.sample_count } : null,
+        sar_raw: { vv_db: analysis.vv_db, vh_db: analysis.vh_db, samples: stats.sample_count },
       };
       results.push(result);
+
       if (analysis.activityScore != null && !dryRun) {
         await saveHistory(factory.id, { d: today, s: analysis.activityScore, vv: analysis.vv_db, vh: analysis.vh_db, c: analysis.confidence?.[0] ?? 'l' });
       }
       success++;
 
-      // 5) SAR 이미지 (optional — 실패해도 점수/히스토리에 영향 없음)
+      // SAR 이미지 (optional — 실패해도 점수/히스토리에 영향 없음)
       try {
         const imageBase64 = await fetchSARImage(factory, token ?? 'dry', dryRun);
         if (imageBase64) {
           const sizeKB = Math.round(imageBase64.length / 1024);
           const ok = await redisSet(`flowvium:satellite:img:${factory.id}`, imageBase64, 604800);
-          console.log(`  📸 SAR 이미지 저장: ${sizeKB}KB → Redis ${ok ? 'OK' : 'FAIL'}`);
+          console.log(`  📸 SAR 이미지: ${sizeKB}KB → Redis ${ok ? 'OK' : 'FAIL'}`);
         }
       } catch (imgErr) {
-        console.warn(`  ⚠️  이미지 fetch 실패 (점수는 저장됨): ${String(imgErr?.message ?? imgErr).slice(0, 80)}`);
+        console.warn(`  ⚠️  이미지 실패 (점수는 저장됨): ${String(imgErr?.message ?? imgErr).slice(0, 80)}`);
       }
     } catch (e) {
       const errMsg = String(e?.message ?? e);
@@ -488,11 +519,12 @@ async function main() {
   // 점수 순위
   const scored = results.filter(r => r.activityScore != null).sort((a, b) => b.activityScore - a.activityScore);
   if (scored.length > 0) {
-    console.log(`\n📊 SAR 활동 지수 순위:`);
+    const mode = scored[0]?.scoreSource === 'delta' ? '델타' : '백분위';
+    console.log(`\n📊 SAR 활동 지수 순위 (${mode} 모드):`);
     scored.forEach((r, i) => {
       const bar = '█'.repeat(Math.round(r.activityScore / 10));
-      const delta = r.vv_delta_db != null ? ` (Δ${r.vv_delta_db >= 0 ? '+' : ''}${r.vv_delta_db}dB)` : '';
-      console.log(`   ${i+1}. [${String(r.activityScore).padStart(3)}] ${bar.padEnd(10)} ${r.name}${delta}`);
+      const src = r.scoreSource === 'delta' ? `Δ${r.vv_delta_db >= 0 ? '+' : ''}${r.vv_delta_db}dB` : `pct obs=${r.obs_count}`;
+      console.log(`   ${i+1}. [${String(r.activityScore).padStart(3)}] ${bar.padEnd(10)} ${r.name} (${src})`);
     });
   }
 }

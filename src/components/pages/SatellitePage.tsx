@@ -31,6 +31,8 @@ interface FactorySignal {
   imageDate: string | null;
   scannedAt: string;
   source?: string;
+  scoreSource?: 'delta' | 'percentile_rank';
+  obs_count?: number;
   // SAR 전용 수치 필드
   vv_db?: number | null;
   vh_db?: number | null;
@@ -206,14 +208,15 @@ function SignalInsightsPanel({ signals }: { signals: FactorySignal[] }) {
   );
 }
 
-function ActivityBar({ score }: { score: number }) {
-  const color = score >= 70 ? 'bg-red-500' : score >= 50 ? 'bg-amber-500' : 'bg-emerald-500';
+function ActivityBar({ score, dimmed = false }: { score: number; dimmed?: boolean }) {
+  const color = dimmed ? 'bg-gray-400' : score >= 70 ? 'bg-red-500' : score >= 50 ? 'bg-amber-500' : 'bg-emerald-500';
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex items-center gap-2 ${dimmed ? 'opacity-50' : ''}`}>
       <div className="flex-1 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${score}%` }} />
       </div>
-      <span className="text-xs font-mono font-bold tabular-nums w-7 text-right">{score}</span>
+      {!dimmed && <span className="text-xs font-mono font-bold tabular-nums w-7 text-right">{score}</span>}
+      {dimmed && <span className="text-xs font-mono tabular-nums w-7 text-right text-cf-text-secondary/40">?</span>}
     </div>
   );
 }
@@ -253,6 +256,7 @@ function HistoryMini({ history, current }: { history?: HistoryPoint[]; current: 
 function FactoryCard({ f }: { f: FactorySignal }) {
   const flag = COUNTRY_FLAGS[f.country] ?? '🌐';
   const hasScore = f.activityScore != null;
+  const isWarmingUp = f.scoreSource === 'percentile_rank' && (f.obs_count ?? 0) < 5;
   const [imgFailed, setImgFailed] = useState(false);
 
   return (
@@ -292,9 +296,16 @@ function FactoryCard({ f }: { f: FactorySignal }) {
         <div>
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs text-cf-text-secondary">활동 지수</span>
-            {f.imageDate && <span className="text-xs text-cf-text-secondary/60">{f.imageDate}</span>}
+            <div className="flex items-center gap-1.5">
+              {isWarmingUp && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-cf-text-secondary/60 font-medium">
+                  📡 {f.obs_count ?? 0}/5 관측 중
+                </span>
+              )}
+              {f.imageDate && <span className="text-xs text-cf-text-secondary/60">{f.imageDate}</span>}
+            </div>
           </div>
-          <ActivityBar score={f.activityScore!} />
+          <ActivityBar score={f.activityScore!} dimmed={isWarmingUp} />
         </div>
       ) : (
         <div className="text-xs text-cf-text-secondary/60 italic">
