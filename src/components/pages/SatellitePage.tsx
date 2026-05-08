@@ -20,6 +20,12 @@ interface FactorySignal {
   summary: string | null;
   imageDate: string | null;
   scannedAt: string;
+  source?: string;
+  // SAR 전용 수치 필드
+  vv_db?: number | null;
+  vh_db?: number | null;
+  vv_delta_db?: number | null;
+  vh_delta_db?: number | null;
   error?: string;
 }
 
@@ -236,7 +242,7 @@ function FactoryCard({ f }: { f: FactorySignal }) {
             onError={() => setImgFailed(true)}
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
-            <span className="text-[10px] text-white/80 font-medium">Sentinel-2 · ESA</span>
+            <span className="text-[10px] text-white/80 font-medium">{f.source === 'SAR' ? 'Sentinel-1 SAR · ESA' : 'Sentinel-2 · ESA'}</span>
             {f.imageDate && <span className="text-[10px] text-white/60 ml-1">{f.imageDate}</span>}
           </div>
         </div>
@@ -271,7 +277,26 @@ function FactoryCard({ f }: { f: FactorySignal }) {
       )}
 
       {/* Details */}
-      {hasScore && (
+      {hasScore && f.source === 'SAR' ? (
+        /* SAR 수치 기반 표시 */
+        <div className="grid grid-cols-3 gap-1 text-xs">
+          <div className="cf-card-inner px-2 py-1 text-center">
+            <div className="text-cf-text-secondary/60">VV (dB)</div>
+            <div className="font-mono font-medium text-cf-text-primary">{f.vv_db ?? '-'}</div>
+          </div>
+          <div className="cf-card-inner px-2 py-1 text-center">
+            <div className="text-cf-text-secondary/60">VH (dB)</div>
+            <div className="font-mono font-medium text-cf-text-primary">{f.vh_db ?? '-'}</div>
+          </div>
+          <div className="cf-card-inner px-2 py-1 text-center">
+            <div className="text-cf-text-secondary/60">Δ기준선</div>
+            <div className={`font-mono font-medium ${f.vv_delta_db == null ? 'text-cf-text-secondary/60' : f.vv_delta_db > 1 ? 'text-red-500' : f.vv_delta_db < -1 ? 'text-blue-500' : 'text-cf-text-primary'}`}>
+              {f.vv_delta_db != null ? `${f.vv_delta_db > 0 ? '+' : ''}${f.vv_delta_db}` : '축적중'}
+            </div>
+          </div>
+        </div>
+      ) : hasScore ? (
+        /* 레거시 optical 데이터 */
         <div className="grid grid-cols-3 gap-1 text-xs">
           <div className="cf-card-inner px-2 py-1 text-center">
             <div className="text-cf-text-secondary/60">차량</div>
@@ -286,7 +311,7 @@ function FactoryCard({ f }: { f: FactorySignal }) {
             <div className="font-medium capitalize">{f.cloudCoverage ?? '-'}</div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Summary */}
       {f.summary && (

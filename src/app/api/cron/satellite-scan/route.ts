@@ -1,20 +1,17 @@
 /**
- * /api/cron/satellite-scan
+ * /api/cron/satellite-scan  —  Sentinel-1 SAR 레이더 기반 공장 활동 분석
  *
- * Sentinel-2 위성사진으로 12개 반도체·EV 공장 활동 지수 자동 스캔.
- * vercel.json에서 매일 07:40 KST (22:40 UTC) 실행.
- *
- * 필요 환경변수 (Vercel 배포):
- *   COPERNICUS_EMAIL    — dataspace.copernicus.eu 계정
- *   COPERNICUS_PASSWORD — 계정 비밀번호
- *   OPENROUTER_API_KEY  — Claude Vision (선택)
- *   GEMINI_API_KEY      — Gemini Vision 폴백 (선택)
+ * Vision AI 추측 대신 레이더 후방산란(backscatter) 수치로 객관적 측정:
+ *   - 구름 관통 (날씨 무관)
+ *   - VV/VH 밴드 Statistics API → JSON 통계 직접 수신
+ *   - 베이스라인 대비 dB 변화량 → 활동 점수 (추측 없음)
+ *   - 건설: VH 채널 +2dB 이상 증가
+ *   - 차량/구조물: VV 채널 증가
  *
  * Redis 키:
- *   flowvium:satellite:v1:{YYYY-MM-DD} — 공장 배열 (48h TTL)
- *   flowvium:satellite:img:{id}         — 이미지 base64 (7일 TTL)
- *   flowvium:satellite:history:{id}     — 활동 히스토리 (90일 TTL)
- *   flowvium:satellite:last-image:{id}  — 중복 방지 (90일 TTL)
+ *   flowvium:satellite:v1:{YYYY-MM-DD}         — 결과 배열 (48h TTL)
+ *   flowvium:satellite:img:{id}                — SAR PNG base64 (7일 TTL)
+ *   flowvium:satellite:sar-baseline:{id}       — 롤링 베이스라인 (90일 TTL)
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
@@ -22,7 +19,7 @@ import { logger } from '@/lib/logger';
 import { FACTORY_LOCATIONS, type FactoryLocation } from '@/data/factory-locations';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // Pro 플랜: 최대 5분 (12개 공장 병렬 처리)
+export const maxDuration = 300;
 
 // ── 인증 ─────────────────────────────────────────────────────────────────────
 function checkAuth(req: Request): boolean {
@@ -38,207 +35,265 @@ function checkAuth(req: Request): boolean {
 // ── Copernicus OAuth ──────────────────────────────────────────────────────────
 const TOKEN_URL = 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
 const PROCESS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/process';
-const STAC_URL = 'https://stac.dataspace.copernicus.eu/v1/search';
+const STATS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
 let _tokenCache: { token: string; expiresAt: number } | null = null;
 
 async function getCopernicusToken(): Promise<string> {
-  if (_tokenCache && _tokenCache.expiresAt > Date.now() + 60000) {
-    return _tokenCache.token;
-  }
+  if (_tokenCache && _tokenCache.expiresAt > Date.now() + 60000) return _tokenCache.token;
   const email = process.env.COPERNICUS_EMAIL?.trim();
   const password = process.env.COPERNICUS_PASSWORD?.trim();
   if (!email || !password) throw new Error('COPERNICUS_EMAIL/PASSWORD not set');
-
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'password', client_id: 'cdse-public', username: email, password }),
     signal: AbortSignal.timeout(15000),
   });
-  if (!res.ok) throw new Error(`Copernicus auth ${res.status}: ${(await res.text()).slice(0, 100)}`);
+  if (!res.ok) throw new Error(`Copernicus auth ${res.status}: ${(await res.text()).slice(0, 80)}`);
   const data = await res.json() as { access_token: string; expires_in: number };
   _tokenCache = { token: data.access_token, expiresAt: Date.now() + (data.expires_in - 30) * 1000 };
   return _tokenCache.token;
 }
 
-// ── 이미지 fetch ──────────────────────────────────────────────────────────────
-const EVALSCRIPT = `//VERSION=3
-function setup(){return{input:[{bands:["B04","B03","B02","dataMask"]}],output:{bands:4}}}
-function evaluatePixel(s){return[3.5*s.B04,3.5*s.B03,3.5*s.B02,s.dataMask]}`;
-
-async function fetchImage(factory: FactoryLocation, token: string): Promise<string | null> {
+// ── 유틸 ─────────────────────────────────────────────────────────────────────
+function getBbox(factory: FactoryLocation) {
   const m = factory.radiusKm / 111.32;
-  const bbox = [factory.lng - m, factory.lat - m, factory.lng + m, factory.lat + m];
-  const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const to = new Date().toISOString().slice(0, 10);
+  return [factory.lng - m, factory.lat - m, factory.lng + m, factory.lat + m];
+}
 
+function toDb(linear: number) {
+  return 10 * Math.log10(Math.max(linear, 1e-7));
+}
+
+// ── SAR evalscripts ───────────────────────────────────────────────────────────
+
+// 표시용: false-color composite (Red=VV, Green=VH, Blue=VV/VH)
+// 도심/공장 → 주황, 건설/식생 → 초록, 수면 → 파랑
+const SAR_DISPLAY_EVALSCRIPT = `//VERSION=3
+function setup(){return{input:[{bands:["VV","VH","dataMask"],units:"LINEAR_POWER"}],output:{bands:4}}}
+function evaluatePixel(s){
+  const vv=Math.sqrt(s.VV+1e-7);const vh=Math.sqrt(s.VH+1e-7);
+  const ratio=Math.min(1,vv/Math.max(vh,0.001)/2.5);
+  return[Math.min(1,vv*2.2),Math.min(1,vh*4),ratio,s.dataMask]
+}`;
+
+// 통계용: VV/VH LINEAR_POWER 값 그대로 출력
+const SAR_STATS_EVALSCRIPT = `//VERSION=3
+function setup(){return{input:[{bands:["VV","VH"],units:"LINEAR_POWER"}],output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"}]}}
+function evaluatePixel(s){return{VV:[s.VV],VH:[s.VH]}}`;
+
+// ── SAR 표시 이미지 fetch ─────────────────────────────────────────────────────
+async function fetchSARImage(factory: FactoryLocation, token: string): Promise<string | null> {
+  const bbox = getBbox(factory);
+  const to = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 12 * 86400000).toISOString().slice(0, 10); // 최근 12일 내 최신
   const payload = {
     input: {
       bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
-      data: [{ type: 'sentinel-2-l2a', dataFilter: {
+      data: [{ type: 'sentinel-1-grd', dataFilter: {
         timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
-        maxCloudCoverage: 30, mosaickingOrder: 'leastCC',
+        acquisitionMode: 'IW',
+        polarization: 'DV',
+        resolution: 'HIGH',
+        mosaickingOrder: 'mostRecent',
       }}],
     },
     output: { width: 512, height: 512, responses: [{ identifier: 'default', format: { type: 'image/png' } }] },
-    evalscript: EVALSCRIPT,
+    evalscript: SAR_DISPLAY_EVALSCRIPT,
   };
-
   const res = await fetch(PROCESS_URL, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'image/png' },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(30000),
   });
-  if (!res.ok) return null;
-  const buffer = await res.arrayBuffer();
-  return Buffer.from(buffer).toString('base64');
-}
-
-// ── STAC 중복 체크 ────────────────────────────────────────────────────────────
-async function getLatestStacId(factory: FactoryLocation): Promise<string | null> {
-  try {
-    const m = factory.radiusKm / 111.32;
-    const bbox = [factory.lng - m, factory.lat - m, factory.lng + m, factory.lat + m];
-    const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-    const res = await fetch(STAC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        collections: ['sentinel-2-l2a'], bbox,
-        datetime: `${from}/${new Date().toISOString().slice(0, 10)}`,
-        query: { 'eo:cloud_cover': { lte: 50 } },
-        sortby: [{ field: 'properties.datetime', direction: 'desc' }],
-        limit: 1,
-        fields: { include: ['id'] },
-      }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json() as { features?: Array<{ id: string }> };
-    return data.features?.[0]?.id ?? null;
-  } catch { return null; }
-}
-
-// ── Vision 분석 ───────────────────────────────────────────────────────────────
-interface VisionResult {
-  activityScore: number | null;
-  vehicleDensity: 'low' | 'medium' | 'high' | null;
-  cloudCoverage: 'clear' | 'partial' | 'heavy' | null;
-  loadingActivity: 'inactive' | 'normal' | 'busy' | null;
-  constructionVisible: boolean | null;
-  confidence: 'low' | 'medium' | 'high' | null;
-  summary: string | null;
-}
-
-async function analyzeImage(factory: FactoryLocation, imageBase64: string): Promise<VisionResult> {
-  const prompt = `Sentinel-2 satellite image (10m/pixel) of ${factory.name}. Area: ~${(factory.radiusKm*2).toFixed(1)}km x ${(factory.radiusKm*2).toFixed(1)}km.
-Analyze factory activity: parking lot fill ratio, loading dock brightness, construction, cloud coverage.
-Respond ONLY in JSON: {"activityScore":<0-100>,"vehicleDensity":"low"|"medium"|"high","cloudCoverage":"clear"|"partial"|"heavy","loadingActivity":"inactive"|"normal"|"busy","constructionVisible":true|false,"confidence":"low"|"medium"|"high","summary":"<1 sentence in Korean>"}`;
-
-  // 1) OpenRouter (Claude Vision)
-  const openrouterKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (openrouterKey) {
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${openrouterKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4-5',
-          messages: [{ role: 'user', content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
-          ]}],
-          max_tokens: 300,
-        }),
-        signal: AbortSignal.timeout(45000),
-      });
-      if (res.ok) {
-        const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-        const text = data.choices?.[0]?.message?.content ?? '';
-        const match = text.match(/\{[\s\S]*\}/);
-        if (match) {
-          logger.info('cron.satellite-scan', 'vision_ok', { factory: factory.id, provider: 'openrouter' });
-          return JSON.parse(match[0]) as VisionResult;
-        }
-        logger.warn('cron.satellite-scan', 'vision_no_json', { factory: factory.id, provider: 'openrouter', preview: text.slice(0, 80) });
-      } else {
-        logger.warn('cron.satellite-scan', 'vision_http_err', { factory: factory.id, provider: 'openrouter', status: res.status });
-      }
-    } catch (e) {
-      logger.warn('cron.satellite-scan', 'vision_exception', { factory: factory.id, provider: 'openrouter', error: String(e) });
-    }
-  } else {
-    logger.warn('cron.satellite-scan', 'vision_no_key', { factory: factory.id, provider: 'openrouter' });
+  if (!res.ok) {
+    logger.warn('cron.satellite-scan', 'sar_image_failed', { factory: factory.id, status: res.status, text: (await res.text()).slice(0, 80) });
+    return null;
   }
+  return Buffer.from(await res.arrayBuffer()).toString('base64');
+}
 
-  // 2) Gemini Vision
-  const geminiKey = process.env.GEMINI_API_KEY?.trim();
-  if (geminiKey) {
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [
-            { text: prompt },
-            { inline_data: { mime_type: 'image/png', data: imageBase64 } },
-          ]}],
-          generationConfig: { maxOutputTokens: 300 },
-        }),
-        signal: AbortSignal.timeout(45000),
-      });
-      if (res.ok) {
-        const data = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        const match = text.match(/\{[\s\S]*\}/);
-        if (match) {
-          logger.info('cron.satellite-scan', 'vision_ok', { factory: factory.id, provider: 'gemini' });
-          return JSON.parse(match[0]) as VisionResult;
-        }
-        logger.warn('cron.satellite-scan', 'vision_no_json', { factory: factory.id, provider: 'gemini', preview: text.slice(0, 80) });
-      } else {
-        logger.warn('cron.satellite-scan', 'vision_http_err', { factory: factory.id, provider: 'gemini', status: res.status });
-      }
-    } catch (e) {
-      logger.warn('cron.satellite-scan', 'vision_exception', { factory: factory.id, provider: 'gemini', error: String(e) });
-    }
-  } else {
-    logger.warn('cron.satellite-scan', 'vision_no_key', { factory: factory.id, provider: 'gemini' });
+// ── SAR 통계 fetch (핵심: Vision AI 대체) ────────────────────────────────────
+interface SARStats {
+  vv_mean: number;  // linear power
+  vh_mean: number;
+  vv_stdev: number;
+  vh_stdev: number;
+  sample_count: number;
+}
+
+async function fetchSARStats(factory: FactoryLocation, from: string, to: string, token: string): Promise<SARStats | null> {
+  const bbox = getBbox(factory);
+  const payload = {
+    input: {
+      bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+      data: [{ type: 'sentinel-1-grd', dataFilter: {
+        timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
+        acquisitionMode: 'IW',
+        polarization: 'DV',
+        resolution: 'HIGH',
+      }}],
+    },
+    aggregation: {
+      timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
+      aggregationInterval: { of: 'P30D' },
+      evalscript: SAR_STATS_EVALSCRIPT,
+      resx: 20, resy: 20,
+    },
+    calculations: { default: {} },
+  };
+  const res = await fetch(STATS_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    logger.warn('cron.satellite-scan', 'sar_stats_failed', { factory: factory.id, status: res.status, error: errText.slice(0, 100) });
+    return null;
   }
-
-  logger.error('cron.satellite-scan', 'vision_all_failed', { factory: factory.id });
-  return { activityScore: null, vehicleDensity: null, cloudCoverage: null, loadingActivity: null, constructionVisible: null, confidence: null, summary: null };
-}
-
-// ── 히스토리 + 베이스라인 ─────────────────────────────────────────────────────
-interface HistoryEntry { activityScore: number; confidence: string; imageDate: string; }
-
-async function loadHistory(factoryId: string, redis: NonNullable<ReturnType<typeof createRedis>>): Promise<HistoryEntry[]> {
-  try {
-    const key = `flowvium:satellite:history:${factoryId}`;
-    const raw = await redis.lrange<string>(key, 0, 9);
-    return raw.map(s => { try { return JSON.parse(s) as HistoryEntry; } catch { return null; } }).filter(Boolean) as HistoryEntry[];
-  } catch { return []; }
-}
-
-function computeBaseline(score: number | null, history: HistoryEntry[]) {
-  const usable = history.filter(h => h.activityScore != null && h.confidence !== 'low').slice(0, 6);
-  if (score == null || usable.length < 3) return { baselineScore: null, deltaFromBaseline: null, zScore: null, trend: 'insufficient_history' };
-  const scores = usable.map(h => h.activityScore);
-  const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
-  const sd = Math.sqrt(scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length) || 1;
-  const delta = score - mean;
+  type StatsResp = {
+    status?: string;
+    data?: Array<{
+      outputs?: {
+        VV?: { bands?: { B0?: { stats?: { mean?: number; stDev?: number; sampleCount?: number } } } };
+        VH?: { bands?: { B0?: { stats?: { mean?: number; stDev?: number; sampleCount?: number } } } };
+      };
+    }>;
+  };
+  const data = await res.json() as StatsResp;
+  const vvS = data.data?.[0]?.outputs?.VV?.bands?.B0?.stats;
+  const vhS = data.data?.[0]?.outputs?.VH?.bands?.B0?.stats;
+  if (!vvS?.mean || !vhS?.mean || vvS.sampleCount === 0) {
+    logger.warn('cron.satellite-scan', 'sar_stats_empty', { factory: factory.id, status: data.status, vvMean: vvS?.mean, sampleCount: vvS?.sampleCount });
+    return null;
+  }
   return {
-    baselineScore: Math.round(mean),
-    deltaFromBaseline: Math.round(delta),
-    zScore: Math.round(delta / sd * 100) / 100,
-    trend: Math.abs(delta) >= 15 ? (delta > 0 ? 'up' : 'down') : 'flat',
+    vv_mean: vvS.mean,
+    vh_mean: vhS.mean,
+    vv_stdev: vvS.stDev ?? 0,
+    vh_stdev: vhS.stDev ?? 0,
+    sample_count: vvS.sampleCount ?? 0,
   };
 }
 
-// ── 메인 ──────────────────────────────────────────────────────────────────────
+// ── 베이스라인 (롤링 평균) ────────────────────────────────────────────────────
+interface SARBaseline {
+  vv_mean: number;
+  vh_mean: number;
+  obs_count: number;
+  dates: string[];
+}
+
+async function loadBaseline(factoryId: string, redis: NonNullable<ReturnType<typeof createRedis>>): Promise<SARBaseline | null> {
+  try {
+    const raw = await redis.get<string>(`flowvium:satellite:sar-baseline:${factoryId}`);
+    return raw ? JSON.parse(raw) as SARBaseline : null;
+  } catch { return null; }
+}
+
+async function updateBaseline(
+  factoryId: string, current: SARStats, baseline: SARBaseline | null,
+  redis: NonNullable<ReturnType<typeof createRedis>>, today: string,
+): Promise<SARBaseline> {
+  const prev = baseline ?? { vv_mean: 0, vh_mean: 0, obs_count: 0, dates: [] };
+  const n = prev.obs_count;
+  const updated: SARBaseline = {
+    vv_mean: n > 0 ? (prev.vv_mean * n + current.vv_mean) / (n + 1) : current.vv_mean,
+    vh_mean: n > 0 ? (prev.vh_mean * n + current.vh_mean) / (n + 1) : current.vh_mean,
+    obs_count: n + 1,
+    dates: [...prev.dates.slice(-14), today],
+  };
+  try {
+    await redis.set(`flowvium:satellite:sar-baseline:${factoryId}`, JSON.stringify(updated), { ex: 7776000 });
+  } catch (e) {
+    logger.error('cron.satellite-scan', 'baseline_save_failed', { factory: factoryId, error: String(e) });
+  }
+  return updated;
+}
+
+// ── 점수 계산 (추측 없음, 순수 수치) ─────────────────────────────────────────
+interface SARAnalysis {
+  activityScore: number | null;
+  vv_db: number;
+  vh_db: number;
+  vv_delta_db: number | null;
+  vh_delta_db: number | null;
+  vehicleDensity: 'low' | 'medium' | 'high';
+  cloudCoverage: 'clear';        // SAR은 항상 clear
+  loadingActivity: 'inactive' | 'normal' | 'busy';
+  constructionVisible: boolean;
+  confidence: 'low' | 'medium' | 'high';
+  summary: string;
+}
+
+function scoreFactory(current: SARStats, baseline: SARBaseline | null): SARAnalysis {
+  const vv_db = Math.round(toDb(current.vv_mean) * 10) / 10;
+  const vh_db = Math.round(toDb(current.vh_mean) * 10) / 10;
+  let score: number;
+  let vv_delta_db: number | null = null;
+  let vh_delta_db: number | null = null;
+  let constructionVisible = false;
+  let confidence: 'low' | 'medium' | 'high' = 'low';
+
+  const obsCount = baseline?.obs_count ?? 0;
+
+  if (baseline && obsCount >= 2) {
+    // ── 베이스라인 대비 델타 (가장 신뢰성 높음) ──
+    vv_delta_db = Math.round((vv_db - toDb(baseline.vv_mean)) * 100) / 100;
+    vh_delta_db = Math.round((vh_db - toDb(baseline.vh_mean)) * 100) / 100;
+
+    // 점수: 베이스라인 50점 기준, dB 변화로 ±
+    score = 50 + Math.round(vv_delta_db * 8 + vh_delta_db * 6);
+    score = Math.max(5, Math.min(97, score));
+    constructionVisible = vh_delta_db > 2.0;  // VH +2dB = 중장비/건설 감지 역치
+    confidence = obsCount >= 5 ? 'high' : 'medium';
+  } else {
+    // ── 절대값 분류 (첫 스캔, 베이스라인 없음) ──
+    // 산업단지 VV 일반 범위: -13 ~ -3 dB
+    if (vv_db > -6) score = 78;
+    else if (vv_db > -9) score = 62;
+    else if (vv_db > -13) score = 46;
+    else score = 28;
+    // VH/VV 비율: 식생/건설 → VH 높음, 도시/포장 → VV 높음
+    constructionVisible = (vh_db - vv_db) > -10;  // cross-ratio 역치
+    confidence = 'low';
+  }
+
+  const vehicleDensity: 'low' | 'medium' | 'high' =
+    score >= 70 ? 'high' : score >= 45 ? 'medium' : 'low';
+  const loadingActivity: 'inactive' | 'normal' | 'busy' =
+    score >= 75 ? 'busy' : score >= 40 ? 'normal' : 'inactive';
+
+  // 요약 문장 (수치 기반, 추측 없음)
+  const summaryParts: string[] = [];
+  if (vv_delta_db !== null && baseline && obsCount >= 2) {
+    const sign = vv_delta_db >= 0 ? '+' : '';
+    summaryParts.push(`레이더(VV) ${sign}${vv_delta_db}dB vs ${obsCount}회 평균`);
+    if (constructionVisible && vh_delta_db != null) summaryParts.push(`VH +${vh_delta_db}dB — 건설/중장비 역치 초과`);
+    else if (Math.abs(vv_delta_db) < 0.8) summaryParts.push('유의미한 변화 없음 — 정상 가동');
+    else if (vv_delta_db > 0) summaryParts.push('레이더 반사 증가 — 차량·구조물 증가');
+    else summaryParts.push('레이더 반사 감소 — 활동 저하');
+  } else {
+    summaryParts.push(`VV ${vv_db}dB · VH ${vh_db}dB (베이스라인 축적 중 ${obsCount}/5회)`);
+    if (score >= 70) summaryParts.push('고강도 산업 반사 감지');
+    else if (score >= 45) summaryParts.push('정상 산업단지 수준');
+    else summaryParts.push('저강도 — 야간·휴일 또는 커버리지 제한');
+  }
+
+  return {
+    activityScore: score,
+    vv_db, vh_db, vv_delta_db, vh_delta_db,
+    vehicleDensity, cloudCoverage: 'clear', loadingActivity,
+    constructionVisible, confidence,
+    summary: summaryParts.join('. '),
+  };
+}
+
+// ── 메인 핸들러 ──────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -251,10 +306,12 @@ export async function GET(req: Request) {
 
   const redis = createRedis();
   if (!redis) return NextResponse.json({ error: 'Redis not configured' }, { status: 503 });
+
   const today = new Date().toISOString().slice(0, 10);
+  const statsFrom = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const start = Date.now();
 
-  logger.info('cron.satellite-scan', 'start', { factories: FACTORY_LOCATIONS.length, date: today });
+  logger.info('cron.satellite-scan', 'start', { mode: 'SAR', factories: FACTORY_LOCATIONS.length, date: today });
 
   let token: string;
   try {
@@ -265,92 +322,85 @@ export async function GET(req: Request) {
   }
 
   const results: Record<string, unknown>[] = [];
-  let success = 0, skipped = 0, failed = 0;
+  let success = 0, failed = 0;
 
-  // 3개씩 배치 처리 (Copernicus rate limit 보호)
+  // 3개씩 배치 처리
   const BATCH = 3;
   for (let i = 0; i < FACTORY_LOCATIONS.length; i += BATCH) {
     const batch = FACTORY_LOCATIONS.slice(i, i + BATCH);
     await Promise.allSettled(batch.map(async (factory) => {
-      const label = `[${factory.ticker}] ${factory.name}`;
       try {
-        // STAC 중복 체크
-        const stacId = await getLatestStacId(factory);
-        if (stacId) {
-          const lastKey = `flowvium:satellite:last-image:${factory.id}`;
-          const prev = await redis.get<string>(lastKey);
-          if (prev === stacId) {
-            logger.info('cron.satellite-scan', 'skip_same_image', { factory: factory.id, stacId });
-            skipped++;
-            return;
-          }
-          await redis.set(lastKey, stacId, { ex: 7776000 });
-        }
-
-        const imageBase64 = await fetchImage(factory, token);
-        if (!imageBase64) {
-          logger.warn('cron.satellite-scan', 'no_image', { factory: factory.id });
-          results.push({ ...factory, activityScore: null, error: 'no_image', scannedAt: new Date().toISOString(), imageDate: today });
+        // 1) SAR 통계 (핵심, 동기)
+        const stats = await fetchSARStats(factory, statsFrom, today, token);
+        if (!stats) {
+          logger.warn('cron.satellite-scan', 'no_sar_stats', { factory: factory.id });
+          results.push({ id: factory.id, ticker: factory.ticker, name: factory.name, country: factory.country, tags: factory.tags, significance: factory.significance, activityScore: null, error: 'no_sar_data', scannedAt: new Date().toISOString(), imageDate: today, cloudCoverage: 'clear', source: 'SAR' });
           failed++;
           return;
         }
+        logger.info('cron.satellite-scan', 'sar_stats_ok', { factory: factory.id, vv_db: Math.round(toDb(stats.vv_mean)*10)/10, vh_db: Math.round(toDb(stats.vh_mean)*10)/10, samples: stats.sample_count });
 
-        // 이미지 Redis 저장 (7일 TTL)
-        const imgKey = `flowvium:satellite:img:${factory.id}`;
-        const imgSizeKB = Math.round(imageBase64.length / 1024);
-        try {
-          await redis.set(imgKey, imageBase64, { ex: 604800 });
-          logger.info('cron.satellite-scan', 'img_saved', { factory: factory.id, sizeKB: imgSizeKB, key: imgKey });
-        } catch (imgErr) {
-          logger.error('cron.satellite-scan', 'img_save_failed', { factory: factory.id, sizeKB: imgSizeKB, error: String(imgErr) });
+        // 2) 베이스라인 로드 + 점수 계산
+        const baseline = await loadBaseline(factory.id, redis);
+        const analysis = scoreFactory(stats, baseline);
+
+        logger.info('cron.satellite-scan', 'scored', { factory: factory.id, score: analysis.activityScore, vv_delta: analysis.vv_delta_db, vh_delta: analysis.vh_delta_db, construction: analysis.constructionVisible, confidence: analysis.confidence });
+
+        // 3) 베이스라인 업데이트
+        await updateBaseline(factory.id, stats, baseline, redis, today);
+
+        // 4) SAR 이미지 (병렬, 실패해도 계속)
+        const imageBase64 = await fetchSARImage(factory, token);
+        if (imageBase64) {
+          const imgKey = `flowvium:satellite:img:${factory.id}`;
+          const sizeKB = Math.round(imageBase64.length / 1024);
+          try {
+            await redis.set(imgKey, imageBase64, { ex: 604800 });
+            logger.info('cron.satellite-scan', 'img_saved', { factory: factory.id, sizeKB });
+          } catch (e) {
+            logger.error('cron.satellite-scan', 'img_save_failed', { factory: factory.id, sizeKB, error: String(e) });
+          }
         }
 
-        const analysis = await analyzeImage(factory, imageBase64);
-        logger.info('cron.satellite-scan', 'analysis_done', { factory: factory.id, score: analysis.activityScore, confidence: analysis.confidence, model: process.env.OPENROUTER_API_KEY ? 'openrouter' : process.env.GEMINI_API_KEY ? 'gemini' : 'none' });
-
-        const history = await loadHistory(factory.id, redis);
-        const baseline = computeBaseline(analysis.activityScore, history);
-
-        const result = { id: factory.id, ticker: factory.ticker, name: factory.name, country: factory.country, tags: factory.tags, significance: factory.significance, ...analysis, ...baseline, scannedAt: new Date().toISOString(), imageDate: today };
+        const result = {
+          id: factory.id, ticker: factory.ticker, name: factory.name,
+          country: factory.country, tags: factory.tags, significance: factory.significance,
+          ...analysis,
+          scannedAt: new Date().toISOString(), imageDate: today,
+          source: 'SAR',
+          sar_raw: { vv_db: analysis.vv_db, vh_db: analysis.vh_db, samples: stats.sample_count },
+        };
         results.push(result);
 
-        // 히스토리 업데이트
-        if (analysis.activityScore != null) {
-          const histKey = `flowvium:satellite:history:${factory.id}`;
-          try {
-            await redis.lpush(histKey, JSON.stringify({ activityScore: analysis.activityScore, confidence: analysis.confidence, imageDate: today, scannedAt: result.scannedAt }));
-            await redis.ltrim(histKey, 0, 9);
-            await redis.expire(histKey, 7776000);
-          } catch (histErr) {
-            logger.error('cron.satellite-scan', 'history_save_failed', { factory: factory.id, error: String(histErr) });
-          }
+        // 5) 히스토리 (기존 UI 호환용)
+        const histKey = `flowvium:satellite:history:${factory.id}`;
+        try {
+          await redis.lpush(histKey, JSON.stringify({ activityScore: analysis.activityScore, confidence: analysis.confidence, imageDate: today, scannedAt: result.scannedAt, vv_db: analysis.vv_db, vh_db: analysis.vh_db }));
+          await redis.ltrim(histKey, 0, 14);
+          await redis.expire(histKey, 7776000);
+        } catch (e) {
+          logger.error('cron.satellite-scan', 'history_save_failed', { factory: factory.id, error: String(e) });
         }
 
         success++;
       } catch (err) {
         logger.error('cron.satellite-scan', 'factory_error', { factory: factory.id, error: String(err), stack: err instanceof Error ? err.stack?.slice(0, 300) : undefined });
-        results.push({ ...factory, activityScore: null, error: String(err).slice(0, 100), scannedAt: new Date().toISOString(), imageDate: today });
+        results.push({ id: factory.id, ticker: factory.ticker, name: factory.name, country: factory.country, tags: factory.tags, significance: factory.significance, activityScore: null, error: String(err).slice(0, 120), scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
         failed++;
       }
     }));
-
-    // 배치 간 1.5초 대기
     if (i + BATCH < FACTORY_LOCATIONS.length) await new Promise(r => setTimeout(r, 1500));
   }
 
-  // 결과 Redis 저장
   if (success > 0) {
     const scanKey = `flowvium:satellite:v1:${today}`;
-    await redis.set(scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString() }), { ex: 172800 });
-    logger.info('cron.satellite-scan', 'saved', { key: scanKey, success, skipped, failed, ms: Date.now() - start });
+    try {
+      await redis.set(scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), { ex: 172800 });
+      logger.info('cron.satellite-scan', 'saved', { key: scanKey, success, failed, ms: Date.now() - start });
+    } catch (e) {
+      logger.error('cron.satellite-scan', 'result_save_failed', { error: String(e) });
+    }
   }
 
-  return NextResponse.json({
-    ok: true,
-    date: today,
-    success,
-    skipped,
-    failed,
-    ms: Date.now() - start,
-  });
+  return NextResponse.json({ ok: true, date: today, mode: 'SAR', success, failed, ms: Date.now() - start });
 }

@@ -1,23 +1,21 @@
 /**
- * satellite-factory-scan.mjs
+ * satellite-factory-scan.mjs  —  Sentinel-1 SAR 레이더 기반 공장 활동 스캔
  *
- * Sentinel-2 위성사진으로 주요 반도체/EV 공장의 활동 지수 스캔.
- *
- * 데이터: Copernicus Data Space Ecosystem (ESA, 완전 무료)
- * 해상도: 10m (주차장·하역장 수준 감지)
- * 주기: 5일마다 새 이미지 (구름 없을 때 자동 선택)
- * 분석: Claude Vision (활동 지수 0-100 + 현장 상황 요약)
+ * Vision AI 추측 제거. 레이더 후방산란(backscatter) 수치로 객관적 측정:
+ *   - Sentinel-1 SAR: 구름 관통 (날씨·시간 무관)
+ *   - Statistics API → VV/VH linear power 통계값 직접 수신
+ *   - 베이스라인(롤링 평균) 대비 dB 변화량 → 활동 점수 (추측 없음)
+ *   - 건설 감지: VH +2dB 이상 = 중장비/토공 역치
+ *   - 차량/구조물 감지: VV 증가 = 금속 반사체 증가
  *
  * 필요 환경변수:
- *   COPERNICUS_EMAIL    — dataspace.copernicus.eu 계정 이메일
- *   COPERNICUS_PASSWORD — 계정 비밀번호
- *   ANTHROPIC_API_KEY   — Claude Vision 분석용
+ *   COPERNICUS_EMAIL / COPERNICUS_PASSWORD — dataspace.copernicus.eu 계정
  *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN — 결과 저장
  *
  * 실행:
  *   node scripts/satellite-factory-scan.mjs
- *   node scripts/satellite-factory-scan.mjs --factory=tsmc-tainan-n3
- *   node scripts/satellite-factory-scan.mjs --dry-run   (이미지 다운로드 없이 API 테스트)
+ *   node scripts/satellite-factory-scan.mjs --factory=samsung-pyeongtaek
+ *   node scripts/satellite-factory-scan.mjs --dry-run
  */
 
 import { createRequire } from 'module';
@@ -34,580 +32,385 @@ const envPath = path.join(ROOT, '.env.local');
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
     const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
-    if (m) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '').replace(/\\[rn]/g, '').trim();
+    if (m) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '').trim();
   }
 }
 
-const COPERNICUS_TOKEN_URL =
-  'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
-const SENTINEL_PROCESS_URL =
-  'https://sh.dataspace.copernicus.eu/api/v1/process';
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
+const TOKEN_URL   = 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
+const PROCESS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/process';
+const STATS_URL   = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
+const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const REDIS_KEY_PREFIX = 'flowvium:satellite:v1';
-const HISTORY_KEY = (id) => `flowvium:satellite:history:${id}`;
-const LAST_IMAGE_KEY = (id) => `flowvium:satellite:last-image:${id}`;
-const STAC_SEARCH_URL = 'https://stac.dataspace.copernicus.eu/v1/search';
-const HISTORY_MAX = 10; // 최대 10개 관측치 보관 (~50일)
 
-// ── Factory 목록 (factory-locations.ts 와 동기) ───────────────────────────────
+// ── Factory 목록 ─────────────────────────────────────────────────────────────
 const FACTORIES = [
-  { id: 'tsmc-tainan-n3',   ticker: 'TSM',       name: 'TSMC Fab 18 / Tainan (N3/N2)',             country: 'TW', lat: 22.9271, lng: 120.3038, radiusKm: 2.0, tags: ['NVDA','AAPL','AMD','foundry'],         significance: 'critical' },
-  { id: 'tsmc-taichung',    ticker: 'TSM',       name: 'TSMC Fab 15 / Taichung (N5/N7)',           country: 'TW', lat: 24.1964, lng: 120.6464, radiusKm: 1.5, tags: ['NVDA','AMD','AAPL','foundry'],         significance: 'critical' },
-  { id: 'samsung-pyeongtaek', ticker: '005930.KS', name: 'Samsung Pyeongtaek P3/P4 (HBM/DRAM)',   country: 'KR', lat: 37.0034, lng: 127.0786, radiusKm: 2.5, tags: ['HBM','DRAM','NVDA','memory'],         significance: 'critical' },
-  { id: 'skhynix-icheon',   ticker: '000660.KS', name: 'SK Hynix Icheon M14/M16 (HBM3E)',         country: 'KR', lat: 37.2776, lng: 127.4512, radiusKm: 2.0, tags: ['HBM','DRAM','NVDA','memory'],         significance: 'critical' },
-  { id: 'micron-boise',     ticker: 'MU',        name: 'Micron Fab 10X / Boise ID',               country: 'US', lat: 43.6022, lng: -116.1936, radiusKm: 1.5, tags: ['DRAM','NAND','memory'],              significance: 'major' },
-  { id: 'intel-chandler',   ticker: 'INTC',      name: 'Intel Fab 42 / Chandler AZ (18A)',        country: 'US', lat: 33.3045, lng: -111.8316, radiusKm: 1.5, tags: ['foundry','logic'],                   significance: 'major' },
-  { id: 'asml-veldhoven',   ticker: 'ASML',      name: 'ASML HQ / Veldhoven (EUV 제조)',           country: 'NL', lat: 51.3965, lng: 5.4195,   radiusKm: 1.0, tags: ['EUV','lithography','supply-chain'],   significance: 'critical' },
-  { id: 'foxconn-zhengzhou',ticker: 'AAPL',      name: 'Foxconn iPhone City / Zhengzhou',         country: 'CN', lat: 34.7046, lng: 113.7394, radiusKm: 3.0, tags: ['assembly','AAPL','iPhone'],           significance: 'critical' },
-  { id: 'catl-ningde',      ticker: 'CATL',      name: 'CATL 본사 공장 / Ningde',                  country: 'CN', lat: 26.6616, lng: 119.5163, radiusKm: 2.0, tags: ['battery','EV','TSLA'],               significance: 'major' },
-  { id: 'tesla-shanghai',   ticker: 'TSLA',      name: 'Tesla Gigafactory Shanghai',              country: 'CN', lat: 30.9265, lng: 121.8571, radiusKm: 2.0, tags: ['EV','TSLA','assembly'],              significance: 'major' },
-  { id: 'tesla-nevada',     ticker: 'TSLA',      name: 'Tesla Gigafactory Nevada',               country: 'US', lat: 39.5363, lng: -118.9769, radiusKm: 2.0, tags: ['battery','EV','TSLA'],              significance: 'moderate' },
-  { id: 'samsung-austin',   ticker: 'TSM',       name: 'Samsung Austin Semiconductor (S3/S5)',   country: 'US', lat: 30.3820, lng: -97.7749, radiusKm: 1.5, tags: ['foundry','logic'],                   significance: 'moderate' },
+  { id: 'tsmc-tainan-n3',    ticker: 'TSM',       name: 'TSMC Fab 18 / Tainan (N3/N2)',           country: 'TW', lat: 22.9271, lng: 120.3038, radiusKm: 2.0, tags: ['NVDA','AAPL','AMD','foundry'],       significance: 'critical' },
+  { id: 'tsmc-taichung',     ticker: 'TSM',       name: 'TSMC Fab 15 / Taichung (N5/N7)',         country: 'TW', lat: 24.1964, lng: 120.6464, radiusKm: 1.5, tags: ['NVDA','AMD','AAPL','foundry'],       significance: 'critical' },
+  { id: 'samsung-pyeongtaek',ticker: '005930.KS', name: 'Samsung Pyeongtaek P3/P4 (HBM/DRAM)',   country: 'KR', lat: 37.0034, lng: 127.0786, radiusKm: 2.5, tags: ['HBM','DRAM','NVDA','memory'],       significance: 'critical' },
+  { id: 'skhynix-icheon',    ticker: '000660.KS', name: 'SK Hynix Icheon M14/M16 (HBM3E)',       country: 'KR', lat: 37.2776, lng: 127.4512, radiusKm: 2.0, tags: ['HBM','DRAM','NVDA','memory'],       significance: 'critical' },
+  { id: 'micron-boise',      ticker: 'MU',        name: 'Micron Fab 10X / Boise ID',             country: 'US', lat: 43.6022, lng: -116.1936, radiusKm: 1.5, tags: ['DRAM','NAND','memory'],            significance: 'major' },
+  { id: 'intel-chandler',    ticker: 'INTC',      name: 'Intel Fab 42 / Chandler AZ (18A)',      country: 'US', lat: 33.3045, lng: -111.8316, radiusKm: 1.5, tags: ['foundry','logic'],                 significance: 'major' },
+  { id: 'asml-veldhoven',    ticker: 'ASML',      name: 'ASML HQ / Veldhoven (EUV 제조)',         country: 'NL', lat: 51.3965, lng: 5.4195,   radiusKm: 1.0, tags: ['EUV','lithography'],               significance: 'critical' },
+  { id: 'foxconn-zhengzhou', ticker: 'AAPL',      name: 'Foxconn iPhone City / Zhengzhou',       country: 'CN', lat: 34.7046, lng: 113.7394, radiusKm: 3.0, tags: ['assembly','AAPL','iPhone'],         significance: 'critical' },
+  { id: 'catl-ningde',       ticker: 'CATL',      name: 'CATL 본사 공장 / Ningde',               country: 'CN', lat: 26.6616, lng: 119.5163, radiusKm: 2.0, tags: ['battery','EV','TSLA'],             significance: 'major' },
+  { id: 'tesla-shanghai',    ticker: 'TSLA',      name: 'Tesla Gigafactory Shanghai',            country: 'CN', lat: 30.9265, lng: 121.8571, radiusKm: 2.0, tags: ['EV','TSLA','assembly'],            significance: 'major' },
+  { id: 'tesla-nevada',      ticker: 'TSLA',      name: 'Tesla Gigafactory Nevada',             country: 'US', lat: 39.5363, lng: -118.9769, radiusKm: 2.0, tags: ['battery','EV','TSLA'],            significance: 'moderate' },
+  { id: 'samsung-austin',    ticker: 'TSM',       name: 'Samsung Austin Semiconductor (S3/S5)', country: 'US', lat: 30.3820, lng: -97.7749,  radiusKm: 1.5, tags: ['foundry','logic'],                 significance: 'moderate' },
 ];
 
-// ── Copernicus Auth ────────────────────────────────────────────────────────────
+// ── Copernicus 인증 ───────────────────────────────────────────────────────────
 let _tokenCache = null;
 async function getCopernicusToken() {
-  if (_tokenCache && _tokenCache.expiresAt > Date.now() + 60000) {
-    return _tokenCache.token;
-  }
-  const email = process.env.COPERNICUS_EMAIL;
-  const password = process.env.COPERNICUS_PASSWORD;
-  if (!email || !password) {
-    throw new Error(
-      '환경변수 누락: COPERNICUS_EMAIL + COPERNICUS_PASSWORD\n' +
-      '  → https://dataspace.copernicus.eu 에서 무료 가입 후 .env.local에 추가하세요.'
-    );
-  }
-  const res = await fetch(COPERNICUS_TOKEN_URL, {
+  if (_tokenCache && _tokenCache.expiresAt > Date.now() + 60000) return _tokenCache.token;
+  const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'password',
-      client_id: 'cdse-public',
-      username: email,
-      password,
-    }),
+    body: new URLSearchParams({ grant_type: 'password', client_id: 'cdse-public', username: process.env.COPERNICUS_EMAIL, password: process.env.COPERNICUS_PASSWORD }),
+    signal: AbortSignal.timeout(15000),
   });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Copernicus auth failed ${res.status}: ${txt.slice(0, 200)}`);
-  }
+  if (!res.ok) throw new Error(`Copernicus auth ${res.status}: ${(await res.text()).slice(0, 80)}`);
   const data = await res.json();
-  _tokenCache = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in - 30) * 1000,
-  };
-  console.log('  ✅ Copernicus 인증 완료 (토큰 만료:', new Date(Date.now() + data.expires_in * 1000).toISOString(), ')');
+  _tokenCache = { token: data.access_token, expiresAt: Date.now() + (data.expires_in - 30) * 1000 };
+  console.log(`  ✅ Copernicus 인증 완료`);
   return _tokenCache.token;
 }
 
-// ── Sentinel-2 이미지 가져오기 ────────────────────────────────────────────────
-const EVALSCRIPT_TRUE_COLOR = `//VERSION=3
-function setup() {
-  return {
-    input: [{ bands: ["B04","B03","B02","dataMask"] }],
-    output: { bands: 4 }
-  };
+// ── 유틸 ─────────────────────────────────────────────────────────────────────
+function getBbox(factory) {
+  const m = factory.radiusKm / 111.32;
+  return [factory.lng - m, factory.lat - m, factory.lng + m, factory.lat + m];
 }
-function evaluatePixel(s) {
-  // 3.5x brightness boost for clearer industrial area visibility
-  return [3.5*s.B04, 3.5*s.B03, 3.5*s.B02, s.dataMask];
+function toDb(linear) {
+  return 10 * Math.log10(Math.max(linear, 1e-7));
+}
+
+// ── Evalscripts ───────────────────────────────────────────────────────────────
+
+// SAR 표시용 false-color: Red=VV, Green=VH, Blue=VV/VH
+const SAR_DISPLAY_EVALSCRIPT = `//VERSION=3
+function setup(){return{input:[{bands:["VV","VH","dataMask"],units:"LINEAR_POWER"}],output:{bands:4}}}
+function evaluatePixel(s){
+  const vv=Math.sqrt(s.VV+1e-7);const vh=Math.sqrt(s.VH+1e-7);
+  const ratio=Math.min(1,vv/Math.max(vh,0.001)/2.5);
+  return[Math.min(1,vv*2.2),Math.min(1,vh*4),ratio,s.dataMask]
 }`;
 
-async function fetchSentinelImage(factory, token, dryRun = false) {
-  const margin = factory.radiusKm / 111.32; // km → degrees (approx)
-  const bbox = [
-    factory.lng - margin,
-    factory.lat - margin,
-    factory.lng + margin,
-    factory.lat + margin,
-  ];
+// SAR 통계용: VV/VH linear power 그대로
+const SAR_STATS_EVALSCRIPT = `//VERSION=3
+function setup(){return{input:[{bands:["VV","VH"],units:"LINEAR_POWER"}],output:[{id:"VV",bands:1,sampleType:"FLOAT32"},{id:"VH",bands:1,sampleType:"FLOAT32"}]}}
+function evaluatePixel(s){return{VV:[s.VV],VH:[s.VH]}}`;
 
-  const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const to = new Date().toISOString().slice(0, 10);
-
+// ── SAR Statistics API (핵심 — Vision AI 대체) ────────────────────────────────
+async function fetchSARStats(factory, from, to, token) {
+  const bbox = getBbox(factory);
   const payload = {
     input: {
-      bounds: {
-        bbox,
-        properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' },
-      },
-      data: [{
-        type: 'sentinel-2-l2a',
-        dataFilter: {
-          timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
-          maxCloudCoverage: 30,
-          mosaickingOrder: 'leastCC', // 구름 가장 적은 이미지 우선
-        },
-      }],
+      bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+      data: [{ type: 'sentinel-1-grd', dataFilter: {
+        timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
+        acquisitionMode: 'IW', polarization: 'DV', resolution: 'HIGH',
+      }}],
     },
-    output: {
-      width: 512,
-      height: 512,
-      responses: [{ identifier: 'default', format: { type: 'image/png' } }],
+    aggregation: {
+      timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
+      aggregationInterval: { of: 'P30D' },
+      evalscript: SAR_STATS_EVALSCRIPT,
+      resx: 20, resy: 20,
     },
-    evalscript: EVALSCRIPT_TRUE_COLOR,
+    calculations: { default: {} },
   };
-
-  if (dryRun) {
-    console.log(`  [DRY-RUN] bbox=${bbox.map(v=>v.toFixed(4)).join(',')} from=${from} to=${to}`);
-    return null;
-  }
-
-  const res = await fetch(SENTINEL_PROCESS_URL, {
+  const res = await fetch(STATS_URL, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      Accept: 'image/png',
-    },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(30000),
   });
-
   if (!res.ok) {
-    const txt = await res.text();
-    console.warn(`  ⚠️  Sentinel API ${res.status} for ${factory.id}: ${txt.slice(0, 150)}`);
+    const err = await res.text().catch(() => '');
+    console.warn(`  ⚠️  SAR 통계 API ${res.status}: ${err.slice(0, 100)}`);
     return null;
   }
-
-  const buffer = await res.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString('base64');
-  console.log(`  🛰️  이미지 수신 (${(buffer.byteLength / 1024).toFixed(0)} KB)`);
-  return base64;
+  const data = await res.json();
+  const vvS = data.data?.[0]?.outputs?.VV?.bands?.B0?.stats;
+  const vhS = data.data?.[0]?.outputs?.VH?.bands?.B0?.stats;
+  if (!vvS?.mean || !vhS?.mean || vvS.sampleCount === 0) {
+    console.warn(`  ⚠️  SAR 통계 빈 응답 (커버리지 없음) status=${data.status} vvMean=${vvS?.mean} samples=${vvS?.sampleCount}`);
+    return null;
+  }
+  return { vv_mean: vvS.mean, vh_mean: vhS.mean, vv_stdev: vvS.stDev ?? 0, vh_stdev: vhS.stDev ?? 0, sample_count: vvS.sampleCount ?? 0 };
 }
 
-// ── Vision 분석 (OpenRouter Claude → Anthropic → Gemini 순서) ─────────────────
-async function analyzeWithClaude(factory, imageBase64) {
-  const prompt = `This is a Sentinel-2 satellite true-color image (10m/pixel) of ${factory.name} (${factory.ticker}).
-The image covers a ~${(factory.radiusKm * 2).toFixed(1)}km x ${(factory.radiusKm * 2).toFixed(1)}km area.
-At 10m resolution, individual trucks are ~1 pixel wide, but parking/loading areas (50m+) are visible as bright clusters.
-
-Analyze factory activity level for supply chain intelligence:
-- Parking lot fill ratio (empty=low, clustered vehicles=high)
-- Loading dock/truck bay area brightness (active loading = brighter spots at building edges)
-- Any visible construction or expansion activity
-- Seasonal vegetation vs industrial surface ratio
-- Cloud/shadow coverage affecting analysis quality
-
-Respond ONLY in JSON (no markdown):
-{"activityScore":<0-100>,"vehicleDensity":"low"|"medium"|"high","cloudCoverage":"clear"|"partial"|"heavy","loadingActivity":"inactive"|"normal"|"busy","constructionVisible":true|false,"confidence":"low"|"medium"|"high","summary":"<1 sentence in Korean>"}`;
-
-  // 1) OpenRouter (Claude Sonnet vision)
-  if (OPENROUTER_KEY) {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://flowvium.vercel.app',
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-sonnet-4-5',
-        max_tokens: 400,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
-            { type: 'text', text: prompt },
-          ],
-        }],
-      }),
-      signal: AbortSignal.timeout(40000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.choices?.[0]?.message?.content ?? '';
-      const match = text.match(/\{[\s\S]+\}/);
-      if (match) return JSON.parse(match[0]);
-    } else {
-      console.warn(`  ⚠️ OpenRouter ${res.status} — Gemini로 폴백`);
-    }
+// ── SAR 표시 이미지 fetch ─────────────────────────────────────────────────────
+async function fetchSARImage(factory, token, dryRun) {
+  const bbox = getBbox(factory);
+  const to = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 12 * 86400000).toISOString().slice(0, 10);
+  if (dryRun) {
+    console.log(`  [DRY-RUN] SAR bbox=${bbox.map(v=>v.toFixed(4)).join(',')} from=${from}`);
+    return null;
   }
-
-  // 2) Anthropic direct
-  if (ANTHROPIC_KEY) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 400,
-        messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageBase64 } },
-          { type: 'text', text: prompt },
-        ]}],
-      }),
-      signal: AbortSignal.timeout(40000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.content?.find(b => b.type === 'text')?.text ?? '';
-      const match = text.match(/\{[\s\S]+\}/);
-      if (match) return JSON.parse(match[0]);
-    }
+  const payload = {
+    input: {
+      bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+      data: [{ type: 'sentinel-1-grd', dataFilter: {
+        timeRange: { from: `${from}T00:00:00Z`, to: `${to}T23:59:59Z` },
+        acquisitionMode: 'IW', polarization: 'DV', resolution: 'HIGH', mosaickingOrder: 'mostRecent',
+      }}],
+    },
+    output: { width: 512, height: 512, responses: [{ identifier: 'default', format: { type: 'image/png' } }] },
+    evalscript: SAR_DISPLAY_EVALSCRIPT,
+  };
+  const res = await fetch(PROCESS_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'image/png' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) {
+    console.warn(`  ⚠️  SAR 이미지 ${res.status}: ${(await res.text().catch(()=>'')).slice(0,80)}`);
+    return null;
   }
-
-  // 3) Gemini vision
-  if (GEMINI_KEY) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [
-            { inline_data: { mime_type: 'image/png', data: imageBase64 } },
-            { text: prompt },
-          ]}],
-          generationConfig: { maxOutputTokens: 400, temperature: 0.1 },
-        }),
-        signal: AbortSignal.timeout(40000),
-      }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-      const match = text.match(/\{[\s\S]+\}/);
-      if (match) return JSON.parse(match[0]);
-    } else {
-      const txt = await res.text();
-      throw new Error(`Gemini API ${res.status}: ${txt.slice(0, 200)}`);
-    }
-  }
-
-  throw new Error('사용 가능한 Vision API 없음 (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY 중 하나 필요)');
+  const buf = await res.arrayBuffer();
+  console.log(`  🛰️  SAR 이미지 수신 (${(buf.byteLength/1024).toFixed(0)} KB)`);
+  return Buffer.from(buf).toString('base64');
 }
 
-
-// ── STAC 최신 이미지 체크 (중복 분석 방지) ────────────────────────────────────
-async function findLatestStacItem(factory) {
+// ── 베이스라인 (Redis 롤링 평균) ──────────────────────────────────────────────
+async function loadBaseline(factoryId) {
+  if (!REDIS_URL || !REDIS_TOKEN) return null;
   try {
-    const margin = factory.radiusKm / 111.32;
-    const bbox = [
-      factory.lng - margin, factory.lat - margin,
-      factory.lng + margin, factory.lat + margin,
-    ];
-    const from = new Date(Date.now() - 14 * 86400000).toISOString();
-    const to = new Date().toISOString();
-
-    const res = await fetch(STAC_SEARCH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        collections: ['sentinel-2-l2a'],
-        bbox,
-        datetime: `${from}/${to}`,
-        query: { 'eo:cloud_cover': { lte: 50 } },
-        sortby: [{ field: 'properties.datetime', direction: 'desc' }],
-        limit: 1,
-        fields: { include: ['id', 'properties.datetime', 'properties.eo:cloud_cover'] },
-      }),
+    const res = await fetch(`${REDIS_URL}/get/${encodeURIComponent(`flowvium:satellite:sar-baseline:${factoryId}`)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const item = data.features?.[0];
-    if (!item) return null;
-    return {
-      id: item.id,
-      datetime: item.properties.datetime,
-      cloudPct: item.properties['eo:cloud_cover'],
-    };
+    return data.result ? JSON.parse(data.result) : null;
   } catch { return null; }
 }
 
-async function isNewImage(factory) {
-  if (!REDIS_URL || !REDIS_TOKEN) return true; // Redis 없으면 항상 스캔
-  const stacItem = await findLatestStacItem(factory);
-  if (!stacItem) return true; // STAC 실패 시 스캔 진행
-
-  const key = LAST_IMAGE_KEY(factory.id);
-  const res = await fetch(`${REDIS_URL}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-  });
-  if (res.ok) {
-    const data = await res.json();
-    const prev = data.result ? JSON.parse(data.result) : null;
-    if (prev?.stacItemId === stacItem.id) {
-      console.log(`  ⏭️  동일 이미지 (${stacItem.id.slice(-8)}) — 스킵`);
-      return false;
-    }
-  }
-
-  // 새 이미지 → last-image 키 갱신 (90일 TTL)
-  await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(JSON.stringify({ stacItemId: stacItem.id, imageDate: stacItem.datetime.slice(0, 10) })),
-  });
-  await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/7776000`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-  });
-  console.log(`  🆕 새 이미지 감지: ${stacItem.datetime.slice(0, 10)} (cloud ${stacItem.cloudPct?.toFixed(0)}%)`);
-  return true;
-}
-
-// ── 히스토리 로드 + baseline 계산 ─────────────────────────────────────────────
-async function loadHistory(factoryId) {
-  if (!REDIS_URL || !REDIS_TOKEN) return [];
-  try {
-    const key = HISTORY_KEY(factoryId);
-    const res = await fetch(`${REDIS_URL}/lrange/${encodeURIComponent(key)}/0/${HISTORY_MAX - 1}`, {
-      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.result ?? []).map(item => {
-      try { return JSON.parse(item); } catch { return null; }
-    }).filter(Boolean);
-  } catch { return []; }
-}
-
-async function appendHistory(factoryId, entry) {
+async function saveBaseline(factoryId, baseline) {
   if (!REDIS_URL || !REDIS_TOKEN) return;
-  const key = HISTORY_KEY(factoryId);
-  const val = JSON.stringify(entry);
-  await fetch(`${REDIS_URL}/lpush/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(val),
-  });
-  await fetch(`${REDIS_URL}/ltrim/${encodeURIComponent(key)}/0/${HISTORY_MAX - 1}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-  });
-  await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/7776000`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-  });
+  try {
+    await fetch(`${REDIS_URL}/set/${encodeURIComponent(`flowvium:satellite:sar-baseline:${factoryId}`)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(JSON.stringify(baseline)),
+      signal: AbortSignal.timeout(8000),
+    });
+    await fetch(`${REDIS_URL}/expire/${encodeURIComponent(`flowvium:satellite:sar-baseline:${factoryId}`)}/7776000`, {
+      method: 'POST', headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+    });
+  } catch (e) { console.warn(`  ⚠️  베이스라인 저장 실패: ${e.message}`); }
 }
 
-function computeBaseline(currentScore, history) {
-  const usable = history
-    .filter(h => h.activityScore != null && h.confidence !== 'low')
-    .slice(0, 6); // 4~5주치 관측
-
-  if (currentScore == null || usable.length < 3) {
-    return { baselineScore: null, deltaFromBaseline: null, trend: 'insufficient_history' };
-  }
-
-  const scores = usable.map(h => h.activityScore);
-  const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
-  const variance = scores.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / scores.length;
-  const sd = Math.sqrt(variance) || 1;
-  const delta = currentScore - mean;
-  const zScore = delta / sd;
-
-  let trend = 'flat';
-  if (Math.abs(delta) >= 15) trend = delta > 0 ? 'up' : 'down';
-
+function updateBaseline(current, baseline, today) {
+  const prev = baseline ?? { vv_mean: 0, vh_mean: 0, obs_count: 0, dates: [] };
+  const n = prev.obs_count;
   return {
-    baselineScore: Math.round(mean),
-    deltaFromBaseline: Math.round(delta),
-    zScore: Math.round(zScore * 100) / 100,
-    trend,
+    vv_mean: n > 0 ? (prev.vv_mean * n + current.vv_mean) / (n + 1) : current.vv_mean,
+    vh_mean: n > 0 ? (prev.vh_mean * n + current.vh_mean) / (n + 1) : current.vh_mean,
+    obs_count: n + 1,
+    dates: [...prev.dates.slice(-14), today],
   };
 }
 
-// ── Redis 저장 ────────────────────────────────────────────────────────────────
-async function saveToRedis(results) {
-  if (!REDIS_URL || !REDIS_TOKEN) {
-    console.log('  ℹ️  Redis 미설정 — 결과를 로컬 파일로만 저장');
-    return;
+// ── 점수 계산 (순수 수치, 추측 없음) ─────────────────────────────────────────
+function scoreFactory(current, baseline) {
+  const vv_db = Math.round(toDb(current.vv_mean) * 10) / 10;
+  const vh_db = Math.round(toDb(current.vh_mean) * 10) / 10;
+  const obsCount = baseline?.obs_count ?? 0;
+  let score, vv_delta_db = null, vh_delta_db = null, constructionVisible = false;
+  let confidence;
+
+  if (baseline && obsCount >= 2) {
+    vv_delta_db = Math.round((vv_db - toDb(baseline.vv_mean)) * 100) / 100;
+    vh_delta_db = Math.round((vh_db - toDb(baseline.vh_mean)) * 100) / 100;
+    score = Math.max(5, Math.min(97, 50 + Math.round(vv_delta_db * 8 + vh_delta_db * 6)));
+    constructionVisible = vh_delta_db > 2.0;
+    confidence = obsCount >= 5 ? 'high' : 'medium';
+  } else {
+    // 절대값 기반 (첫 스캔)
+    if (vv_db > -6) score = 78;
+    else if (vv_db > -9) score = 62;
+    else if (vv_db > -13) score = 46;
+    else score = 28;
+    constructionVisible = (vh_db - vv_db) > -10;
+    confidence = 'low';
   }
-  const today = new Date().toISOString().slice(0, 10);
-  const key = `${REDIS_KEY_PREFIX}:${today}`;
-  const payload = JSON.stringify({ results, updatedAt: new Date().toISOString() });
-  await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  // TTL 48h
-  await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/172800`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-  });
-  console.log(`  💾 Redis 저장: ${key}`);
+
+  const vehicleDensity = score >= 70 ? 'high' : score >= 45 ? 'medium' : 'low';
+  const loadingActivity = score >= 75 ? 'busy' : score >= 40 ? 'normal' : 'inactive';
+  const summaryParts = [];
+  if (vv_delta_db !== null && obsCount >= 2) {
+    summaryParts.push(`레이더(VV) ${vv_delta_db >= 0 ? '+' : ''}${vv_delta_db}dB vs ${obsCount}회 평균`);
+    if (constructionVisible && vh_delta_db != null) summaryParts.push(`VH +${vh_delta_db}dB — 건설/중장비 역치 초과`);
+    else if (Math.abs(vv_delta_db) < 0.8) summaryParts.push('유의미한 변화 없음 — 정상 가동');
+    else if (vv_delta_db > 0) summaryParts.push('레이더 반사 증가 — 차량·구조물 증가');
+    else summaryParts.push('레이더 반사 감소 — 활동 저하');
+  } else {
+    summaryParts.push(`VV ${vv_db}dB · VH ${vh_db}dB (베이스라인 축적 중 ${obsCount}/5회)`);
+    if (score >= 70) summaryParts.push('고강도 산업 반사 감지');
+    else if (score >= 45) summaryParts.push('정상 산업단지 수준');
+    else summaryParts.push('저강도 — 야간·휴일 또는 커버리지 제한');
+  }
+
+  return {
+    activityScore: score, vv_db, vh_db, vv_delta_db, vh_delta_db,
+    vehicleDensity, cloudCoverage: 'clear', loadingActivity,
+    constructionVisible, confidence, summary: summaryParts.join('. '),
+  };
 }
 
-// ── 로컬 파일 저장 (debug) ────────────────────────────────────────────────────
-function saveLocal(results) {
-  const today = new Date().toISOString().slice(0, 10);
+// ── Redis 저장 ─────────────────────────────────────────────────────────────────
+async function redisSet(key, value, exSec) {
+  if (!REDIS_URL || !REDIS_TOKEN) { console.warn(`  ⚠️  Redis 미설정 — ${key} 저장 스킵`); return false; }
+  try {
+    const res = await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(value),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) { console.error(`  ❌ Redis set ${key} HTTP ${res.status}: ${(await res.text()).slice(0,80)}`); return false; }
+    if (exSec) {
+      await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/${exSec}`, {
+        method: 'POST', headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+      });
+    }
+    return true;
+  } catch (e) { console.error(`  ❌ Redis set ${key} 예외: ${e.message}`); return false; }
+}
+
+// ── 출력 ─────────────────────────────────────────────────────────────────────
+function printResult(factory, analysis, today, obsCount) {
+  const score = analysis.activityScore ?? 0;
+  const bar = '█'.repeat(Math.round(score / 10)) + '░'.repeat(10 - Math.round(score / 10));
+  const color = score >= 70 ? '🔴' : score >= 50 ? '🟡' : '🟢';
+  const deltaStr = analysis.vv_delta_db != null ? ` Δ${analysis.vv_delta_db >= 0 ? '+' : ''}${analysis.vv_delta_db}dB` : ' (기준선 축적중)';
+  console.log(`\n  ${color} [${factory.ticker}] ${factory.name}`);
+  console.log(`     활동지수: ${bar} ${score}/100`);
+  console.log(`     VV: ${analysis.vv_db}dB · VH: ${analysis.vh_db}dB${deltaStr}`);
+  console.log(`     건설: ${analysis.constructionVisible ? '🔨 YES' : 'NO'} | 신뢰도: ${analysis.confidence} (관측 ${obsCount}회)`);
+  console.log(`     요약: ${analysis.summary}`);
+}
+
+function saveLocal(results, today) {
   const outPath = path.join(ROOT, 'research_history', `${today}_satellite-scan.json`);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(results, null, 2), 'utf8');
   console.log(`  📁 로컬 저장: ${outPath}`);
 }
 
-// ── 결과 출력 ─────────────────────────────────────────────────────────────────
-function printResult(factory, analysis, imageDate) {
-  const score = analysis.activityScore ?? 50;
-  const bar = '█'.repeat(Math.round(score / 10)) + '░'.repeat(10 - Math.round(score / 10));
-  const color = score >= 70 ? '🔴' : score >= 50 ? '🟡' : '🟢';
-  console.log(`\n  ${color} [${factory.ticker}] ${factory.name}`);
-  console.log(`     활동지수: ${bar} ${score}/100 (${analysis.vehicleDensity ?? '?'} vehicles)`);
-  console.log(`     하역활동: ${analysis.loadingActivity ?? '?'} | 구름: ${analysis.cloudCoverage ?? '?'} | 신뢰도: ${analysis.confidence ?? '?'}`);
-  console.log(`     신규공사: ${analysis.constructionVisible ? '🔨 YES' : 'NO'} | 이미지: ${imageDate}`);
-  console.log(`     요약: ${analysis.summary ?? '-'}`);
-}
-
-// ── 메인 ──────────────────────────────────────────────────────────────────────
+// ── 메인 ─────────────────────────────────────────────────────────────────────
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
-  const factoryFilter = args.find(a => a.startsWith('--factory='))?.split('=')[1];
+  const factoryFilter = args.find(a => a.startsWith('--factory='))?.split('=')[1]
+    ?? (args.find(a => !a.startsWith('-')) ?? null);
 
   const targets = factoryFilter
-    ? FACTORIES.filter(f => f.id === factoryFilter)
+    ? FACTORIES.filter(f => f.id === factoryFilter || f.ticker === factoryFilter.toUpperCase())
     : FACTORIES;
 
   if (targets.length === 0) {
-    console.error(`❌ factory '${factoryFilter}' 없음`);
+    console.error(`❌ factory '${factoryFilter}' 없음. 사용 가능: ${FACTORIES.map(f=>f.id).join(', ')}`);
     process.exit(1);
   }
 
-  console.log(`\n🛰️  FlowVium 위성 공장 스캔 시작`);
-  console.log(`   대상: ${targets.length}개 공장 | 날짜: ${new Date().toISOString().slice(0, 10)}`);
-  console.log(`   모드: ${dryRun ? 'DRY-RUN (이미지 다운로드 없음)' : 'LIVE'}\n`);
+  const today = new Date().toISOString().slice(0, 10);
+  console.log(`\n🛰️  FlowVium 위성 공장 스캔 (Sentinel-1 SAR)`);
+  console.log(`   대상: ${targets.length}개 공장 | 날짜: ${today}`);
+  console.log(`   모드: ${dryRun ? 'DRY-RUN' : 'LIVE'} | 방식: 레이더 수치 (추측 없음)\n`);
 
   if (!dryRun && (!process.env.COPERNICUS_EMAIL || !process.env.COPERNICUS_PASSWORD)) {
     console.error('❌ COPERNICUS_EMAIL / COPERNICUS_PASSWORD 미설정');
-    console.error('   → https://dataspace.copernicus.eu 에서 무료 가입 후 .env.local에 추가하세요:');
-    console.error('   COPERNICUS_EMAIL=your@email.com');
-    console.error('   COPERNICUS_PASSWORD=yourpassword');
     process.exit(1);
+  }
+  if (!REDIS_URL || !REDIS_TOKEN) {
+    console.warn('⚠️  UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN 미설정 — Redis 저장 스킵\n');
   }
 
   let token = null;
   if (!dryRun) {
-    token = await getCopernicusToken();
+    try { token = await getCopernicusToken(); }
+    catch (e) { console.error(`❌ 인증 실패: ${e.message}`); process.exit(1); }
   }
 
+  const statsFrom = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const results = [];
   let success = 0, failed = 0;
 
   for (const factory of targets) {
     console.log(`\n📍 ${factory.name} (${factory.id})`);
     try {
-      // STAC 중복 체크 (새 이미지 없으면 스킵)
-      if (!dryRun && targets.length > 1) {
-        const newImg = await isNewImage(factory);
-        if (!newImg) { failed++; continue; }
-      }
-
-      const imageBase64 = await fetchSentinelImage(factory, token, dryRun);
-      if (!imageBase64) {
-        results.push({ ...factory, activityScore: null, error: 'no_image', scannedAt: new Date().toISOString() });
+      // 1) SAR 통계 (핵심)
+      const stats = await fetchSARStats(factory, statsFrom, today, token ?? 'dry');
+      if (!stats && !dryRun) {
+        console.warn(`  ⚠️  SAR 데이터 없음 (커버리지 부족 또는 API 오류)`);
+        results.push({ ...factory, activityScore: null, error: 'no_sar_data', scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
         failed++;
         continue;
       }
 
-      // 이미지 Redis 저장 (7일 TTL, 나중에 UI 표시용)
-      if (REDIS_URL && REDIS_TOKEN) {
-        const imgKey = `flowvium:satellite:img:${factory.id}`;
-        const sizeKB = Math.round(imageBase64.length / 1024);
-        try {
-          const setRes = await fetch(`${REDIS_URL}/set/${encodeURIComponent(imgKey)}`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(imageBase64),
-          });
-          if (setRes.ok) {
-            await fetch(`${REDIS_URL}/expire/${encodeURIComponent(imgKey)}/604800`, {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-            });
-            console.log(`  📸 이미지 저장: ${sizeKB}KB base64 → Redis OK`);
-          } else {
-            const errText = await setRes.text().catch(() => '');
-            console.error(`  ❌ 이미지 Redis 저장 실패 HTTP ${setRes.status}: ${errText.slice(0, 100)}`);
-          }
-        } catch (e) {
-          console.error(`  ❌ 이미지 Redis 저장 예외: ${e.message ?? e}`);
-        }
-      } else {
-        console.warn(`  ⚠️  REDIS_URL/TOKEN 미설정 — 이미지 저장 스킵 (UPSTASH_REDIS_REST_URL 확인)`);
+      // 2) 베이스라인 + 점수
+      const baseline = dryRun ? null : await loadBaseline(factory.id);
+      const analysis = stats ? scoreFactory(stats, baseline) : { activityScore: null, vv_db: null, vh_db: null, vv_delta_db: null, vh_delta_db: null, vehicleDensity: null, cloudCoverage: 'clear', loadingActivity: null, constructionVisible: false, confidence: 'low', summary: 'DRY-RUN' };
+      printResult(factory, analysis, today, baseline?.obs_count ?? 0);
+
+      // 3) 베이스라인 업데이트
+      if (stats && !dryRun) {
+        const updatedBaseline = updateBaseline(stats, baseline, today);
+        await saveBaseline(factory.id, updatedBaseline);
+        console.log(`     베이스라인: ${updatedBaseline.obs_count}회 축적 (vv_mean=${toDb(updatedBaseline.vv_mean).toFixed(1)}dB)`);
       }
 
-      console.log('  🤖 Claude Vision 분석 중...');
-      const analysis = await analyzeWithClaude(factory, imageBase64);
-      const today = new Date().toISOString().slice(0, 10);
-      printResult(factory, analysis, today);
-
-      // 히스토리 로드 + baseline 계산
-      const history = await loadHistory(factory.id);
-      const baseline = computeBaseline(analysis.activityScore, history);
-      if (baseline.deltaFromBaseline != null) {
-        const sign = baseline.deltaFromBaseline >= 0 ? '+' : '';
-        console.log(`     베이스라인: ${baseline.baselineScore}/100 (Δ${sign}${baseline.deltaFromBaseline}, trend=${baseline.trend})`);
-      } else {
-        console.log(`     베이스라인: 히스토리 부족 (현재 ${history.length}개 관측치)`);
+      // 4) SAR 이미지
+      const imageBase64 = await fetchSARImage(factory, token ?? 'dry', dryRun);
+      if (imageBase64) {
+        const sizeKB = Math.round(imageBase64.length / 1024);
+        const ok = await redisSet(`flowvium:satellite:img:${factory.id}`, imageBase64, 604800);
+        console.log(`  📸 SAR 이미지 저장: ${sizeKB}KB → Redis ${ok ? 'OK' : 'FAIL'}`);
       }
 
       const result = {
-        id: factory.id,
-        ticker: factory.ticker,
-        name: factory.name,
-        country: factory.country,
-        tags: factory.tags,
-        significance: factory.significance,
-        ...analysis,
-        ...baseline,
-        scannedAt: new Date().toISOString(),
-        imageDate: today,
+        id: factory.id, ticker: factory.ticker, name: factory.name,
+        country: factory.country, tags: factory.tags, significance: factory.significance,
+        ...analysis, scannedAt: new Date().toISOString(), imageDate: today,
+        source: 'SAR',
+        sar_raw: stats ? { vv_db: analysis.vv_db, vh_db: analysis.vh_db, samples: stats.sample_count } : null,
       };
       results.push(result);
-
-      // 히스토리에 추가
-      await appendHistory(factory.id, {
-        activityScore: analysis.activityScore,
-        confidence: analysis.confidence,
-        imageDate: today,
-        scannedAt: result.scannedAt,
-      });
       success++;
-
-      // Rate limit: Sentinel Hub 처리 유닛 절약 + Claude API 과부하 방지
-      if (targets.length > 1) await new Promise(r => setTimeout(r, 2000));
-    } catch (err) {
-      console.error(`  ❌ 실패: ${err.message}`);
-      results.push({ ...factory, activityScore: null, error: err.message.slice(0, 100), scannedAt: new Date().toISOString() });
+    } catch (e) {
+      console.error(`  ❌ 오류: ${e.message}`);
+      results.push({ ...factory, activityScore: null, error: e.message.slice(0, 120), scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
       failed++;
     }
   }
 
-  console.log(`\n${'─'.repeat(60)}`);
-  console.log(`✅ 완료: 성공 ${success} | 실패 ${failed}`);
-
-  if (!dryRun && success > 0) {
-    await saveToRedis(results);
-    saveLocal(results);
+  // Redis 결과 저장
+  if (success > 0 && !dryRun) {
+    const scanKey = `flowvium:satellite:v1:${today}`;
+    const ok = await redisSet(scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), 172800);
+    console.log(`\n────────────────────────────────────────────────────────────`);
+    console.log(`✅ 완료: 성공 ${success} | 실패 ${failed}`);
+    console.log(`  💾 Redis 저장: ${scanKey} → ${ok ? 'OK' : 'FAIL'}`);
+    saveLocal(results, today);
+  } else if (dryRun) {
+    console.log(`\n✅ DRY-RUN 완료 (Redis 저장 안 함)`);
   }
 
-  // 활동 지수 요약 (높은 순)
-  const ranked = results
-    .filter(r => r.activityScore != null)
-    .sort((a, b) => b.activityScore - a.activityScore);
-
-  if (ranked.length > 0) {
-    console.log('\n📊 활동 지수 순위:');
-    ranked.forEach((r, i) => {
+  // 점수 순위
+  const scored = results.filter(r => r.activityScore != null).sort((a, b) => b.activityScore - a.activityScore);
+  if (scored.length > 0) {
+    console.log(`\n📊 SAR 활동 지수 순위:`);
+    scored.forEach((r, i) => {
       const bar = '█'.repeat(Math.round(r.activityScore / 10));
-      const flag = r.activityScore >= 70 ? ' ⚠️ 높음' : r.activityScore <= 30 ? ' 💤 조용' : '';
-      console.log(`  ${String(i+1).padStart(2)}. [${r.activityScore.toString().padStart(3)}] ${bar.padEnd(10)} ${r.name}${flag}`);
+      const delta = r.vv_delta_db != null ? ` (Δ${r.vv_delta_db >= 0 ? '+' : ''}${r.vv_delta_db}dB)` : '';
+      console.log(`   ${i+1}. [${String(r.activityScore).padStart(3)}] ${bar.padEnd(10)} ${r.name}${delta}`);
     });
   }
 }
 
-main().catch(err => {
-  console.error('Fatal:', err);
-  process.exit(1);
-});
+main().catch(e => { console.error('❌ Fatal:', e); process.exit(1); });
