@@ -206,12 +206,13 @@ async function saveBaseline(factoryId, baseline) {
 
 function updateBaseline(current, baseline, today) {
   const prev = baseline ?? { vv_mean: 0, vh_mean: 0, obs_count: 0, dates: [] };
-  const n = prev.obs_count;
+  const n = Number(prev.obs_count ?? 0);
+  const prevDates = Array.isArray(prev.dates) ? prev.dates : [];
   return {
-    vv_mean: n > 0 ? (prev.vv_mean * n + current.vv_mean) / (n + 1) : current.vv_mean,
-    vh_mean: n > 0 ? (prev.vh_mean * n + current.vh_mean) / (n + 1) : current.vh_mean,
+    vv_mean: n > 0 ? (Number(prev.vv_mean) * n + current.vv_mean) / (n + 1) : current.vv_mean,
+    vh_mean: n > 0 ? (Number(prev.vh_mean) * n + current.vh_mean) / (n + 1) : current.vh_mean,
     obs_count: n + 1,
-    dates: [...prev.dates.slice(-14), today],
+    dates: [...prevDates.slice(-14), today],
   };
 }
 
@@ -383,8 +384,9 @@ async function main() {
       results.push(result);
       success++;
     } catch (e) {
-      console.error(`  ❌ 오류: ${e.message}`);
-      results.push({ ...factory, activityScore: null, error: e.message.slice(0, 120), scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
+      const errMsg = String(e?.message ?? e);
+      console.error(`  ❌ 오류: ${errMsg}`);
+      results.push({ ...factory, activityScore: null, error: errMsg.slice(0, 120), scannedAt: new Date().toISOString(), imageDate: today, source: 'SAR' });
       failed++;
     }
   }

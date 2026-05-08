@@ -200,12 +200,13 @@ async function updateBaseline(
   redis: NonNullable<ReturnType<typeof createRedis>>, today: string,
 ): Promise<SARBaseline> {
   const prev = baseline ?? { vv_mean: 0, vh_mean: 0, obs_count: 0, dates: [] };
-  const n = prev.obs_count;
+  const n = Number(prev.obs_count ?? 0);
+  const prevDates = Array.isArray(prev.dates) ? prev.dates : [];
   const updated: SARBaseline = {
-    vv_mean: n > 0 ? (prev.vv_mean * n + current.vv_mean) / (n + 1) : current.vv_mean,
-    vh_mean: n > 0 ? (prev.vh_mean * n + current.vh_mean) / (n + 1) : current.vh_mean,
+    vv_mean: n > 0 ? (Number(prev.vv_mean) * n + current.vv_mean) / (n + 1) : current.vv_mean,
+    vh_mean: n > 0 ? (Number(prev.vh_mean) * n + current.vh_mean) / (n + 1) : current.vh_mean,
     obs_count: n + 1,
-    dates: [...prev.dates.slice(-14), today],
+    dates: [...prevDates.slice(-14), today],
   };
   try {
     await redis.set(`flowvium:satellite:sar-baseline:${factoryId}`, JSON.stringify(updated), { ex: 7776000 });
