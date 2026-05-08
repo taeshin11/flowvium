@@ -312,6 +312,15 @@ function FactoryCard({ f }: { f: FactorySignal }) {
   );
 }
 
+// ── Theme grouping ────────────────────────────────────────────────────────────
+const THEMES = [
+  { key: 'foundry',   label: '파운드리',    emoji: '🏭', match: (f: FactorySignal) => f.tags.includes('foundry') },
+  { key: 'memory',    label: '메모리',      emoji: '💾', match: (f: FactorySignal) => f.tags.includes('memory') },
+  { key: 'equipment', label: '장비/소재',   emoji: '🔬', match: (f: FactorySignal) => f.tags.includes('EUV') || f.tags.includes('lithography') },
+  { key: 'assembly',  label: '조립',        emoji: '📱', match: (f: FactorySignal) => f.tags.includes('assembly') && f.tags.includes('AAPL') },
+  { key: 'ev',        label: '배터리/EV',   emoji: '⚡', match: (f: FactorySignal) => f.tags.includes('EV') || f.tags.includes('battery') },
+] as const;
+
 export default function SatellitePage() {
   const t = useTranslations('satellite');
   const [signals, setSignals] = useState<FactorySignal[]>([]);
@@ -461,9 +470,45 @@ export default function SatellitePage() {
             <strong>비용:</strong> 완전 무료 — Copernicus는 EU 공공 서비스, Claude API는 기존 키 사용
           </div>
         </div>
-      ) : (
+      ) : filter !== 'all' ? (
+        /* Filtered: flat grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {sorted.map(f => <FactoryCard key={f.id} f={f} />)}
+        </div>
+      ) : (
+        /* Themed sections */
+        <div className="space-y-8">
+          {THEMES.map(theme => {
+            const group = signals.filter(theme.match).sort((a, b) =>
+              (b.activityScore ?? 0) - (a.activityScore ?? 0)
+            );
+            if (group.length === 0) return null;
+            const avgScore = Math.round(group.reduce((s, f) => s + (f.activityScore ?? 0), 0) / group.length);
+            const topScore = group[0]?.activityScore ?? 0;
+            return (
+              <section key={theme.key}>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xl">{theme.emoji}</span>
+                  <h2 className="text-base font-semibold text-cf-text-primary">{theme.label}</h2>
+                  <span className="text-xs text-cf-text-secondary/60">{group.length}개 시설</span>
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <span className="text-xs text-cf-text-secondary/60">섹터 평균</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      avgScore >= 70 ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                      : avgScore >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'
+                      : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400'
+                    }`}>
+                      {avgScore}
+                    </span>
+                    {topScore >= 75 && <span className="text-[10px] text-red-500 font-medium">⚠️ 최고 {topScore}</span>}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {group.map(f => <FactoryCard key={f.id} f={f} />)}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
