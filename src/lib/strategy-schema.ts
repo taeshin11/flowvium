@@ -151,9 +151,65 @@ export const InvestmentStrategySchema = z.object({
 export type ValidatedStrategy = z.infer<typeof InvestmentStrategySchema>;
 
 /**
+ * Harness 가 적용한 자동 교정 항목 추적용 audit 결과.
+ * /admin/logs 또는 reports/*.json 에 보존되어 결함 패턴 통계 가능.
+ */
+export interface HarnessAudit {
+  /** 9 카테고리 카운트 — schema_validation_failed 와 별개 */
+  fixes: {
+    krNameMismatch: string[];        // ['000660.KS:삼성전자→SK하이닉스']
+    rationaleDedup: string[];        // ['MSFT:|A|A removed']
+    insiderFilingsType: string[];    // ['CRWV: array→15']
+    sectorAllocSum: { from: number; to: number } | null;
+    portfolioAllocSum: { from: number; to: number } | null;
+    buyLowConfidence: string[];      // ['NVDA:buy→watch (low confidence)']
+    stopLossDeep: string[];          // ['NVDA:stopLoss 45% deep']
+    targetBullInverted: string[];    // ['NVDA:targetBull < target']
+  };
+  /** Zod schema 검증 결과 — preValidateFix 후에도 통과 못 한 issue */
+  schemaErrors: string[];
+  /** harness 자체가 동작했음을 보증 */
+  appliedAt: string;
+  /** 0 = 깨끗, N>0 = N 결함 자동 교정됨 */
+  totalFixes: number;
+}
+
+export function emptyAudit(): HarnessAudit {
+  return {
+    fixes: {
+      krNameMismatch: [],
+      rationaleDedup: [],
+      insiderFilingsType: [],
+      sectorAllocSum: null,
+      portfolioAllocSum: null,
+      buyLowConfidence: [],
+      stopLossDeep: [],
+      targetBullInverted: [],
+    },
+    schemaErrors: [],
+    appliedAt: new Date().toISOString(),
+    totalFixes: 0,
+  };
+}
+
+function countAudit(a: HarnessAudit): number {
+  const f = a.fixes;
+  return (
+    f.krNameMismatch.length +
+    f.rationaleDedup.length +
+    f.insiderFilingsType.length +
+    (f.sectorAllocSum ? 1 : 0) +
+    (f.portfolioAllocSum ? 1 : 0) +
+    f.buyLowConfidence.length +
+    f.stopLossDeep.length +
+    f.targetBullInverted.length
+  );
+}
+
+/**
  * sectorAllocation pct 합산을 100 으로 강제 정규화 (5 초과 차이 시).
  */
-export function normalizeSectorAllocation<T extends { sectorAllocation: Array<{ pct: number }> }>(s: T): T {
+export function normalizeSectorAllocation<T extends { sectorAllocation: Array<{ pct: number }> }>(s: T, audit?: HarnessAudit): T {
   if (!s.sectorAllocation?.length) return s;
   const sum = s.sectorAllocation.reduce((a, x) => a + (x.pct ?? 0), 0);
   if (sum <= 0) return s;
@@ -162,14 +218,31 @@ export function normalizeSectorAllocation<T extends { sectorAllocation: Array<{ 
   s.sectorAllocation.forEach(x => { x.pct = Math.round((x.pct ?? 0) * scale); });
   const drift = 100 - s.sectorAllocation.reduce((a, x) => a + x.pct, 0);
   if (drift !== 0 && s.sectorAllocation.length > 0) s.sectorAllocation[0].pct += drift;
+  if (audit) audit.fixes.sectorAllocSum = { from: sum, to: 100 };
+  return s;
+}
+
+/**
+ * portfolio allocation 합산 정규화 — schema 가 100±5 요구하므로 사전 교정.
+ */
+export function normalizePortfolioAllocation<T extends { portfolio: Array<{ allocation: number }> }>(s: T, audit?: HarnessAudit): T {
+  if (!s.portfolio?.length) return s;
+  const sum = s.portfolio.reduce((a, x) => a + (x.allocation ?? 0), 0);
+  if (sum <= 0) return s;
+  if (Math.abs(sum - 100) <= 2) return s;
+  const scale = 100 / sum;
+  s.portfolio.forEach(x => { x.allocation = Math.round((x.allocation ?? 0) * scale); });
+  const drift = 100 - s.portfolio.reduce((a, x) => a + x.allocation, 0);
+  if (drift !== 0 && s.portfolio.length > 0) s.portfolio[0].allocation += drift;
+  if (audit) audit.fixes.portfolioAllocSum = { from: sum, to: 100 };
   return s;
 }
 
 /**
  * rationale " | A | A " 동일 substring 중복 검출 → 한쪽만 유지.
  */
-export function dedupRationale(rationale: string): string {
-  if (!rationale.includes(' | ')) return rationale;
+export function dedupRationale(rationale: string): { result: string; dedupped: boolean } {
+  if (!rationale.includes(' | ')) return { result: rationale, dedupped: false };
   const parts = rationale.split(' | ').map(s => s.trim());
   const seen = new Set<string>();
   const unique: string[] = [];
@@ -180,16 +253,20 @@ export function dedupRationale(rationale: string): string {
       unique.push(p);
     }
   }
-  return unique.join(' | ');
+  const result = unique.join(' | ');
+  return { result, dedupped: result !== rationale };
 }
 
 /**
  * KR_NAMES 매핑이 있는 티커는 name 강제 교정.
  */
-export function fixKoreaTickerNames<T extends { portfolio: Array<{ ticker: string; name: string }> }>(s: T): T {
+export function fixKoreaTickerNames<T extends { portfolio: Array<{ ticker: string; name: string }> }>(s: T, audit?: HarnessAudit): T {
   for (const p of s.portfolio) {
     const expected = KR_NAMES[p.ticker.toUpperCase()];
-    if (expected && p.name !== expected) p.name = expected;
+    if (expected && p.name !== expected) {
+      if (audit) audit.fixes.krNameMismatch.push(`${p.ticker}:"${p.name}"→"${expected}"`);
+      p.name = expected;
+    }
   }
   return s;
 }
@@ -197,26 +274,20 @@ export function fixKoreaTickerNames<T extends { portfolio: Array<{ ticker: strin
 /**
  * filings 배열 [15] → 15 강제.
  */
-export function fixInsiderFilings<T extends { insiderSignals?: Array<{ filings: unknown }> }>(s: T): T {
+export function fixInsiderFilings<T extends { insiderSignals?: Array<{ ticker?: string; filings: unknown }> }>(s: T, audit?: HarnessAudit): T {
   if (!s.insiderSignals) return s;
   for (const sig of s.insiderSignals) {
     if (Array.isArray(sig.filings)) {
+      const before = JSON.stringify(sig.filings);
       sig.filings = (sig.filings as unknown[])[0] ?? 0;
+      if (audit) audit.fixes.insiderFilingsType.push(`${sig.ticker ?? '?'}:array${before}→${sig.filings}`);
     }
     if (typeof sig.filings === 'string') {
+      const before = sig.filings;
       const n = parseInt(sig.filings, 10);
       sig.filings = Number.isFinite(n) ? n : 0;
+      if (audit) audit.fixes.insiderFilingsType.push(`${sig.ticker ?? '?'}:string"${before}"→${sig.filings}`);
     }
-  }
-  return s;
-}
-
-/**
- * 모든 portfolio.rationale 에 dedupRationale 적용.
- */
-export function dedupPortfolioRationales<T extends { portfolio: Array<{ rationale: string }> }>(s: T): T {
-  for (const p of s.portfolio) {
-    if (p.rationale) p.rationale = dedupRationale(p.rationale);
   }
   return s;
 }
@@ -224,9 +295,10 @@ export function dedupPortfolioRationales<T extends { portfolio: Array<{ rational
 /**
  * action=buy + confidence=low 모순 시 action='watch' 강등.
  */
-export function fixBuyLowConfidence<T extends { portfolio: Array<{ action?: string; confidence?: string }> }>(s: T): T {
+export function fixBuyLowConfidence<T extends { portfolio: Array<{ ticker: string; action?: string; confidence?: string }> }>(s: T, audit?: HarnessAudit): T {
   for (const p of s.portfolio) {
     if (p.action === 'buy' && p.confidence === 'low') {
+      if (audit) audit.fixes.buyLowConfidence.push(`${p.ticker}:buy+low→watch`);
       p.action = 'watch';
     }
   }
@@ -234,19 +306,37 @@ export function fixBuyLowConfidence<T extends { portfolio: Array<{ action?: stri
 }
 
 /**
+ * portfolio.rationale dedup 일괄 적용.
+ */
+export function dedupPortfolioRationales<T extends { portfolio: Array<{ ticker: string; rationale: string }> }>(s: T, audit?: HarnessAudit): T {
+  for (const p of s.portfolio) {
+    if (!p.rationale) continue;
+    const { result, dedupped } = dedupRationale(p.rationale);
+    if (dedupped) {
+      if (audit) audit.fixes.rationaleDedup.push(`${p.ticker}`);
+      p.rationale = result;
+    }
+  }
+  return s;
+}
+
+/**
  * 후처리 파이프라인 — schema 검증 전 자동 교정 가능한 항목 처리.
+ * audit 결과는 logger / Redis / report 메타필드에 기록 가능.
  */
 export function preValidateFix<T extends {
-  portfolio: Array<{ ticker: string; name: string; rationale: string; action?: string; confidence?: string }>;
+  portfolio: Array<{ ticker: string; name: string; rationale: string; action?: string; confidence?: string; allocation: number }>;
   sectorAllocation: Array<{ pct: number }>;
-  insiderSignals?: Array<{ filings: unknown }>;
-}>(s: T): T {
-  fixKoreaTickerNames(s);
-  fixInsiderFilings(s);
-  dedupPortfolioRationales(s);
-  normalizeSectorAllocation(s);
-  fixBuyLowConfidence(s);
-  return s;
+  insiderSignals?: Array<{ ticker?: string; filings: unknown }>;
+}>(s: T, audit: HarnessAudit = emptyAudit()): { strategy: T; audit: HarnessAudit } {
+  fixKoreaTickerNames(s, audit);
+  fixInsiderFilings(s, audit);
+  dedupPortfolioRationales(s, audit);
+  normalizeSectorAllocation(s, audit);
+  normalizePortfolioAllocation(s, audit);
+  fixBuyLowConfidence(s, audit);
+  audit.totalFixes = countAudit(audit);
+  return { strategy: s, audit };
 }
 
 /**

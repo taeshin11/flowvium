@@ -1741,15 +1741,36 @@ export async function GET(request: Request) {
     strategy = { ...dataFallbackStrategy(ctx, locale, livePrices), source: 'fallback-no-prices', dataAsOf };
   }
 
-  // ── Harness: pre-validate fix (이름/필드 자동 교정 후 schema 검증) ───────────
+  // ── Harness: pre-validate fix (자동 교정 + schema 검증 + audit 기록) ─────────
   if (strategy) {
-    preValidateFix(strategy as unknown as Parameters<typeof preValidateFix>[0]);
+    const { audit } = preValidateFix(strategy as unknown as Parameters<typeof preValidateFix>[0]);
     const v = validateStrategy(strategy);
-    if (!v.ok) {
-      logger.warn('api.investment-strategy', 'schema_validation_failed', { locale, errors: v.errors.slice(0, 8), source: strategy.source });
-      await appendErrorLog(redis, 'schema_validation_failed', { errors: v.errors.slice(0, 8), source: strategy.source }, locale, session);
+    if (!v.ok) audit.schemaErrors = v.errors.slice(0, 12);
+
+    // audit 결과를 보고서 메타필드로 보존 — /admin/logs 또는 history 에서 추적 가능
+    (strategy as InvestmentStrategy & { harnessAudit?: typeof audit }).harnessAudit = audit;
+
+    if (audit.totalFixes > 0 || audit.schemaErrors.length > 0) {
+      logger.warn('api.investment-strategy', 'harness_fixes_applied', {
+        locale, source: strategy.source,
+        totalFixes: audit.totalFixes,
+        krNameMismatch: audit.fixes.krNameMismatch,
+        rationaleDedup: audit.fixes.rationaleDedup,
+        insiderFilingsType: audit.fixes.insiderFilingsType,
+        sectorAllocSum: audit.fixes.sectorAllocSum,
+        portfolioAllocSum: audit.fixes.portfolioAllocSum,
+        buyLowConfidence: audit.fixes.buyLowConfidence,
+        stopLossDeep: audit.fixes.stopLossDeep,
+        targetBullInverted: audit.fixes.targetBullInverted,
+        schemaErrors: audit.schemaErrors,
+      });
+      // Redis 에 누적 — /admin/logs 에서 패턴 분석 가능
+      await appendErrorLog(redis, 'harness_audit', {
+        source: strategy.source, totalFixes: audit.totalFixes,
+        fixes: audit.fixes, schemaErrors: audit.schemaErrors,
+      }, locale, session);
     } else {
-      logger.info('api.investment-strategy', 'schema_validation_ok', { locale, source: strategy.source });
+      logger.info('api.investment-strategy', 'harness_clean', { locale, source: strategy.source });
     }
   }
 

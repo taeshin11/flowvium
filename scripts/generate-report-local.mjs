@@ -116,31 +116,73 @@ function dedupRationale(s) {
   }
   return uniq.join(' | ');
 }
+function emptyHarnessAudit() {
+  return {
+    fixes: {
+      krNameMismatch: [], rationaleDedup: [], insiderFilingsType: [],
+      sectorAllocSum: null, portfolioAllocSum: null,
+      buyLowConfidence: [], stopLossDeep: [], targetBullInverted: [],
+    },
+    schemaErrors: [], appliedAt: new Date().toISOString(), totalFixes: 0,
+  };
+}
+function parseFirstPriceMjs(s) {
+  if (!s) return null;
+  const m = String(s).replace(/[$₩,\s]/g, '').match(/\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
 function applyLocalHarness(r) {
-  if (!r || !Array.isArray(r.portfolio)) return;
-  // 1. KR ticker name mismatch 강제 교정
+  const audit = emptyHarnessAudit();
+  if (!r || !Array.isArray(r.portfolio)) return audit;
+
+  // 1. KR ticker name mismatch
   for (const p of r.portfolio) {
     const expected = KR_NAMES_HARNESS[p.ticker?.toUpperCase()];
     if (expected && p.name !== expected) {
-      console.log(`  [harness] ${p.ticker} name "${p.name}" → "${expected}"`);
+      audit.fixes.krNameMismatch.push(`${p.ticker}:"${p.name}"→"${expected}"`);
       p.name = expected;
     }
-    // 2. action=buy + confidence=low → watch 강등
+    // 2. action=buy + confidence=low → watch
     if (p.action === 'buy' && p.confidence === 'low') {
-      console.log(`  [harness] ${p.ticker} buy+low → watch`);
+      audit.fixes.buyLowConfidence.push(`${p.ticker}:buy+low→watch`);
       p.action = 'watch';
     }
-    // 3. rationale 중복 제거
-    if (p.rationale) p.rationale = dedupRationale(p.rationale);
-  }
-  // 4. insiderSignals.filings 배열 → number 강제
-  if (Array.isArray(r.insiderSignals)) {
-    for (const sig of r.insiderSignals) {
-      if (Array.isArray(sig.filings)) sig.filings = sig.filings[0] ?? 0;
-      if (typeof sig.filings === 'string') sig.filings = parseInt(sig.filings, 10) || 0;
+    // 3. rationale 중복
+    if (p.rationale) {
+      const before = p.rationale;
+      p.rationale = dedupRationale(p.rationale);
+      if (p.rationale !== before) audit.fixes.rationaleDedup.push(p.ticker);
+    }
+    // 4. stopLoss 거리 검증 (자동 교정 X — 경고만)
+    const e = parseFirstPriceMjs(p.entryZone);
+    const s = parseFirstPriceMjs(p.stopLoss);
+    if (e && s && e > 0 && (e - s) / e > 0.20) {
+      audit.fixes.stopLossDeep.push(`${p.ticker}:${((e-s)/e*100).toFixed(1)}%`);
+    }
+    // 5. targetBull < target 검증 (경고만)
+    const t = parseFirstPriceMjs(p.target);
+    const tb = parseFirstPriceMjs(p.targetBull);
+    if (t && tb && tb < t) {
+      audit.fixes.targetBullInverted.push(`${p.ticker}:bull=${tb}<base=${t}`);
     }
   }
-  // 5. sectorAllocation 합산 정규화 (100±2 초과 차이 시)
+
+  // 6. insiderSignals.filings type
+  if (Array.isArray(r.insiderSignals)) {
+    for (const sig of r.insiderSignals) {
+      if (Array.isArray(sig.filings)) {
+        const before = JSON.stringify(sig.filings);
+        sig.filings = sig.filings[0] ?? 0;
+        audit.fixes.insiderFilingsType.push(`${sig.ticker ?? '?'}:array${before}→${sig.filings}`);
+      } else if (typeof sig.filings === 'string') {
+        const before = sig.filings;
+        sig.filings = parseInt(sig.filings, 10) || 0;
+        audit.fixes.insiderFilingsType.push(`${sig.ticker ?? '?'}:string"${before}"→${sig.filings}`);
+      }
+    }
+  }
+
+  // 7. sectorAllocation 합산 정규화
   if (Array.isArray(r.sectorAllocation) && r.sectorAllocation.length > 0) {
     const sum = r.sectorAllocation.reduce((a, x) => a + (x.pct ?? 0), 0);
     if (sum > 0 && Math.abs(sum - 100) > 2) {
@@ -148,9 +190,44 @@ function applyLocalHarness(r) {
       r.sectorAllocation.forEach(x => { x.pct = Math.round((x.pct ?? 0) * scale); });
       const drift = 100 - r.sectorAllocation.reduce((a, x) => a + x.pct, 0);
       if (drift !== 0) r.sectorAllocation[0].pct += drift;
-      console.log(`  [harness] sectorAllocation sum ${sum} → 100 정규화`);
+      audit.fixes.sectorAllocSum = { from: sum, to: 100 };
     }
   }
+
+  // 8. portfolio.allocation 합산 정규화
+  const pSum = r.portfolio.reduce((a, x) => a + (x.allocation ?? 0), 0);
+  if (pSum > 0 && Math.abs(pSum - 100) > 2) {
+    const scale = 100 / pSum;
+    r.portfolio.forEach(x => { x.allocation = Math.round((x.allocation ?? 0) * scale); });
+    const drift = 100 - r.portfolio.reduce((a, x) => a + x.allocation, 0);
+    if (drift !== 0) r.portfolio[0].allocation += drift;
+    audit.fixes.portfolioAllocSum = { from: pSum, to: 100 };
+  }
+
+  audit.totalFixes =
+    audit.fixes.krNameMismatch.length +
+    audit.fixes.rationaleDedup.length +
+    audit.fixes.insiderFilingsType.length +
+    (audit.fixes.sectorAllocSum ? 1 : 0) +
+    (audit.fixes.portfolioAllocSum ? 1 : 0) +
+    audit.fixes.buyLowConfidence.length +
+    audit.fixes.stopLossDeep.length +
+    audit.fixes.targetBullInverted.length;
+
+  if (audit.totalFixes > 0) {
+    console.log(`\n  [harness] ${audit.totalFixes} 결함 자동 교정/검출:`);
+    if (audit.fixes.krNameMismatch.length) console.log(`    - KR name: ${audit.fixes.krNameMismatch.join(', ')}`);
+    if (audit.fixes.rationaleDedup.length) console.log(`    - rationale dup: ${audit.fixes.rationaleDedup.join(', ')}`);
+    if (audit.fixes.insiderFilingsType.length) console.log(`    - filings type: ${audit.fixes.insiderFilingsType.join(', ')}`);
+    if (audit.fixes.sectorAllocSum) console.log(`    - sectorAlloc sum ${audit.fixes.sectorAllocSum.from}→100`);
+    if (audit.fixes.portfolioAllocSum) console.log(`    - portfolio alloc sum ${audit.fixes.portfolioAllocSum.from}→100`);
+    if (audit.fixes.buyLowConfidence.length) console.log(`    - buy+low: ${audit.fixes.buyLowConfidence.join(', ')}`);
+    if (audit.fixes.stopLossDeep.length) console.warn(`    ⚠️  stopLoss deep: ${audit.fixes.stopLossDeep.join(', ')}`);
+    if (audit.fixes.targetBullInverted.length) console.warn(`    ⚠️  bull < base: ${audit.fixes.targetBullInverted.join(', ')}`);
+  } else {
+    console.log(`  [harness] ✅ 결함 없음 — 깨끗한 출력`);
+  }
+  return audit;
 }
 
 function qualityCheck(report) {
@@ -2828,7 +2905,8 @@ async function generateViaOllama() {
   }
 
   // ── Harness: 저장 직전 결함 자동 교정 (route.ts schema 와 동일 규칙) ──
-  applyLocalHarness(finalReport);
+  // audit 결과를 finalReport.harnessAudit 에 보존 — 업로드 후 /admin/logs 추적 가능
+  finalReport.harnessAudit = applyLocalHarness(finalReport);
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
