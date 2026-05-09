@@ -384,20 +384,48 @@ export function detectStopAboveEntry<T extends { portfolio: Array<{ ticker: stri
 
 /**
  * rationale 의 50MA 값과 진입가 비교 — 50% 이상 차이면 가격 hallucination.
+ * 자동 교정: entry/stop/target 을 50MA 기반으로 재계산 + action='watch' 강등.
  * ASML 50MA $1402 + entry $350 같은 케이스.
  */
-export function detectEntryFar50MA<T extends { portfolio: Array<{ ticker: string; entryZone: string; rationale: string }> }>(s: T, audit?: HarnessAudit): T {
-  if (!audit) return s;
+export function fixEntryFar50MA<T extends {
+  portfolio: Array<{
+    ticker: string; entryZone: string; rationale: string;
+    stopLoss: string; target: string; targetBull?: string;
+    action?: string; critiqueNote?: string;
+  }>;
+}>(s: T, audit?: HarnessAudit): T {
   for (const p of s.portfolio) {
-    const ma50Match = p.rationale?.match(/50MA[^$₩\d]*[$₩]?([\d,]+\.?\d*)/);
+    const ma50Match = p.rationale?.match(/50MA[^$₩\d]*([$₩])?([\d,]+\.?\d*)/);
     if (!ma50Match) continue;
-    const ma50 = parseFloat(ma50Match[1].replace(/,/g, ''));
+    const currencySym = ma50Match[1] ?? '$';
+    const ma50 = parseFloat(ma50Match[2].replace(/,/g, ''));
     const entry = parseFirstPrice(p.entryZone);
     if (!ma50 || !entry || ma50 <= 0) continue;
     const ratio = entry / ma50;
-    if (ratio <= 0.5 || ratio >= 2.0) {
-      audit.fixes.entryFar50MA.push(`${p.ticker}:entry=${entry} vs 50MA=${ma50} (ratio=${ratio.toFixed(2)})`);
-    }
+    if (ratio > 0.5 && ratio < 2.0) continue;
+
+    // 가격 hallucination 자동 교정 — 50MA 기반 재계산
+    const fmt = currencySym === '₩'
+      ? (n: number) => `₩${Math.round(n / 100) * 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : (n: number) => `$${n.toFixed(2)}`;
+
+    const newEntryLow = ma50 * 0.97;
+    const newEntryHigh = ma50 * 1.00;
+    const newStop = ma50 * 0.92;
+    const newTarget = ma50 * 1.15;
+    const newBull = ma50 * 1.30;
+
+    if (audit) audit.fixes.entryFar50MA.push(
+      `${p.ticker}:entry=${entry}→${fmt(newEntryLow)}-${fmt(newEntryHigh)} (was ${ratio.toFixed(2)}x of 50MA=${ma50})`,
+    );
+
+    p.entryZone = `${fmt(newEntryLow)}-${fmt(newEntryHigh)}`;
+    p.stopLoss = fmt(newStop);
+    p.target = fmt(newTarget);
+    p.targetBull = fmt(newBull);
+    p.action = 'watch';
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `가격 hallucination 의심 — 50MA(${fmt(ma50)}) 기반 재계산, 진입 전 재검토 필요`;
   }
   return s;
 }
@@ -407,7 +435,12 @@ export function detectEntryFar50MA<T extends { portfolio: Array<{ ticker: string
  * audit 결과는 logger / Redis / report 메타필드에 기록 가능.
  */
 export function preValidateFix<T extends {
-  portfolio: Array<{ ticker: string; name: string; rationale: string; action?: string; confidence?: string; allocation: number; entryZone: string; stopLoss: string }>;
+  portfolio: Array<{
+    ticker: string; name: string; rationale: string;
+    action?: string; confidence?: string; allocation: number;
+    entryZone: string; stopLoss: string;
+    target: string; targetBull?: string; critiqueNote?: string;
+  }>;
   sectorAllocation: Array<{ pct: number }>;
   insiderSignals?: Array<{ ticker?: string; filings: unknown }>;
   companyChanges?: Array<{ ticker: string; name: string }>;
@@ -420,7 +453,7 @@ export function preValidateFix<T extends {
   normalizePortfolioAllocation(s, audit);
   fixBuyLowConfidence(s, audit);
   detectStopAboveEntry(s, audit);
-  detectEntryFar50MA(s, audit);
+  fixEntryFar50MA(s, audit);
   audit.totalFixes = countAudit(audit);
   return { strategy: s, audit };
 }

@@ -177,17 +177,34 @@ function applyLocalHarness(r) {
     }
   }
 
-  // 6b. entry vs rationale 50MA 검증 (ASML $1402 50MA + entry $350 케이스)
+  // 6b. entry vs rationale 50MA 자동 교정 (ASML $1402 50MA + entry $350 케이스)
+  // entry/stop/target 을 50MA 기반으로 재계산 + action=watch 강등
   for (const p of r.portfolio) {
-    const ma50Match = p.rationale?.match(/50MA[^$₩\d]*[$₩]?([\d,]+\.?\d*)/);
+    const ma50Match = p.rationale?.match(/50MA[^$₩\d]*([$₩])?([\d,]+\.?\d*)/);
     if (!ma50Match) continue;
-    const ma50 = parseFloat(ma50Match[1].replace(/,/g, ''));
+    const currencySym = ma50Match[1] ?? '$';
+    const ma50 = parseFloat(ma50Match[2].replace(/,/g, ''));
     const e = parseFirstPriceMjs(p.entryZone);
     if (!ma50 || !e || ma50 <= 0) continue;
     const ratio = e / ma50;
-    if (ratio <= 0.5 || ratio >= 2.0) {
-      audit.fixes.entryFar50MA.push(`${p.ticker}:entry=${e} vs 50MA=${ma50} (${ratio.toFixed(2)}x)`);
-    }
+    if (ratio > 0.5 && ratio < 2.0) continue;
+
+    const fmt = currencySym === '₩'
+      ? (n) => `₩${Math.round(n / 100) * 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : (n) => `$${n.toFixed(2)}`;
+    const newLow = ma50 * 0.97, newHigh = ma50 * 1.00;
+    const newStop = ma50 * 0.92, newTarget = ma50 * 1.15, newBull = ma50 * 1.30;
+
+    audit.fixes.entryFar50MA.push(
+      `${p.ticker}:entry=${e}→${fmt(newLow)}-${fmt(newHigh)} (was ${ratio.toFixed(2)}x of 50MA=${ma50})`,
+    );
+    p.entryZone = `${fmt(newLow)}-${fmt(newHigh)}`;
+    p.stopLoss = fmt(newStop);
+    p.target = fmt(newTarget);
+    p.targetBull = fmt(newBull);
+    p.action = 'watch';
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `가격 hallucination 의심 — 50MA(${fmt(ma50)}) 기반 재계산, 진입 전 재검토 필요`;
   }
 
   // 6c. companyChanges.name KR_NAMES 매핑
@@ -262,7 +279,7 @@ function applyLocalHarness(r) {
     if (audit.fixes.buyLowConfidence.length) console.log(`    - buy+low: ${audit.fixes.buyLowConfidence.join(', ')}`);
     if (audit.fixes.stopLossDeep.length) console.warn(`    ⚠️  stopLoss deep: ${audit.fixes.stopLossDeep.join(', ')}`);
     if (audit.fixes.stopLossAboveEntry.length) console.warn(`    ⚠️  stop>=entry: ${audit.fixes.stopLossAboveEntry.join(', ')}`);
-    if (audit.fixes.entryFar50MA.length) console.warn(`    ⚠️  entry≠50MA: ${audit.fixes.entryFar50MA.join(', ')}`);
+    if (audit.fixes.entryFar50MA.length) console.warn(`    🔧 entry≠50MA 자동교정 + watch강등: ${audit.fixes.entryFar50MA.join(', ')}`);
     if (audit.fixes.targetBullInverted.length) console.warn(`    ⚠️  bull < base: ${audit.fixes.targetBullInverted.join(', ')}`);
   } else {
     console.log(`  [harness] ✅ 결함 없음 — 깨끗한 출력`);
