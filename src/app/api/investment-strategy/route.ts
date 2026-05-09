@@ -1,6 +1,7 @@
 import { logger, loggedRedisSet, loggedRedisLpushTrim } from '@/lib/logger';
 import { memSetReport, memSetArray, memGetArray } from '@/lib/investment-strategy-memory';
 import { isGarbage as isGarbageText, isKnownSource, GARBAGE_MIN_LEN } from '@/lib/strategy-quality';
+import { preValidateFix, validateStrategy } from '@/lib/strategy-schema';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
@@ -1728,6 +1729,29 @@ export async function GET(request: Request) {
 
   // 가격 hallucination 교정 — LLM이 잘못된 가격대 생성 시 live 데이터 기반 재계산
   if (strategy) strategy = fixPortfolioPrices(strategy, livePrices);
+
+  // ── Harness: livePrices empty guard ───────────────────────────────────────
+  // livePrices 가 비어있으면 fixPortfolioPrices() 가 무력화되어 hallucination 통과.
+  // Yahoo/Finnhub 둘 다 실패한 경우 AI 결과 자체를 폐기하고 dataFallbackStrategy 사용.
+  if (strategy && livePrices.size < 5) {
+    logger.error('api.investment-strategy', 'refusing_strategy_no_live_prices', {
+      locale, livePricesSize: livePrices.size, source: strategy.source,
+    });
+    await appendErrorLog(redis, 'no_live_prices_fallback', { livePricesSize: livePrices.size, originalSource: strategy.source }, locale, session);
+    strategy = { ...dataFallbackStrategy(ctx, locale, livePrices), source: 'fallback-no-prices', dataAsOf };
+  }
+
+  // ── Harness: pre-validate fix (이름/필드 자동 교정 후 schema 검증) ───────────
+  if (strategy) {
+    preValidateFix(strategy as unknown as Parameters<typeof preValidateFix>[0]);
+    const v = validateStrategy(strategy);
+    if (!v.ok) {
+      logger.warn('api.investment-strategy', 'schema_validation_failed', { locale, errors: v.errors.slice(0, 8), source: strategy.source });
+      await appendErrorLog(redis, 'schema_validation_failed', { errors: v.errors.slice(0, 8), source: strategy.source }, locale, session);
+    } else {
+      logger.info('api.investment-strategy', 'schema_validation_ok', { locale, source: strategy.source });
+    }
+  }
 
   logger.info('api.investment-strategy', 'merge_result', { locale,
     usedCombined: !!combinedStrategy,

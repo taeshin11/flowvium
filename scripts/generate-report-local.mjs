@@ -99,6 +99,60 @@ function isGarbage(text, minLen = 15) {
   }
   return false;
 }
+// ── Harness: 핵심 결함 자동 교정 (src/lib/strategy-schema.ts 와 동일 규칙) ──
+const KR_NAMES_HARNESS = {
+  '005930.KS': '삼성전자', '000660.KS': 'SK하이닉스', '373220.KS': 'LG에너지솔루션',
+  '005380.KS': '현대차', '035420.KS': 'NAVER', '035720.KS': '카카오',
+  '207940.KS': '삼성바이오로직스', '051910.KS': 'LG화학',
+  '005490.KS': 'POSCO홀딩스', '000270.KS': '기아',
+};
+function dedupRationale(s) {
+  if (!s || !s.includes(' | ')) return s;
+  const parts = s.split(' | ').map(x => x.trim());
+  const seen = new Set(); const uniq = [];
+  for (const p of parts) {
+    const k = p.toLowerCase().replace(/[^\w가-힣]+/g, '').slice(0, 60);
+    if (k && !seen.has(k)) { seen.add(k); uniq.push(p); }
+  }
+  return uniq.join(' | ');
+}
+function applyLocalHarness(r) {
+  if (!r || !Array.isArray(r.portfolio)) return;
+  // 1. KR ticker name mismatch 강제 교정
+  for (const p of r.portfolio) {
+    const expected = KR_NAMES_HARNESS[p.ticker?.toUpperCase()];
+    if (expected && p.name !== expected) {
+      console.log(`  [harness] ${p.ticker} name "${p.name}" → "${expected}"`);
+      p.name = expected;
+    }
+    // 2. action=buy + confidence=low → watch 강등
+    if (p.action === 'buy' && p.confidence === 'low') {
+      console.log(`  [harness] ${p.ticker} buy+low → watch`);
+      p.action = 'watch';
+    }
+    // 3. rationale 중복 제거
+    if (p.rationale) p.rationale = dedupRationale(p.rationale);
+  }
+  // 4. insiderSignals.filings 배열 → number 강제
+  if (Array.isArray(r.insiderSignals)) {
+    for (const sig of r.insiderSignals) {
+      if (Array.isArray(sig.filings)) sig.filings = sig.filings[0] ?? 0;
+      if (typeof sig.filings === 'string') sig.filings = parseInt(sig.filings, 10) || 0;
+    }
+  }
+  // 5. sectorAllocation 합산 정규화 (100±2 초과 차이 시)
+  if (Array.isArray(r.sectorAllocation) && r.sectorAllocation.length > 0) {
+    const sum = r.sectorAllocation.reduce((a, x) => a + (x.pct ?? 0), 0);
+    if (sum > 0 && Math.abs(sum - 100) > 2) {
+      const scale = 100 / sum;
+      r.sectorAllocation.forEach(x => { x.pct = Math.round((x.pct ?? 0) * scale); });
+      const drift = 100 - r.sectorAllocation.reduce((a, x) => a + x.pct, 0);
+      if (drift !== 0) r.sectorAllocation[0].pct += drift;
+      console.log(`  [harness] sectorAllocation sum ${sum} → 100 정규화`);
+    }
+  }
+}
+
 function qualityCheck(report) {
   const issues = [];
   const warnings = [];
@@ -322,6 +376,7 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 180000, label = 
     model,
     messages: [{ role: 'user', content: prompt }],
     stream: false,
+    format: 'json',
     options: { temperature: 0.7, num_predict: 2048 },
     ...(isQwen3 ? { think: false } : {}),
   };
@@ -2771,6 +2826,9 @@ async function generateViaOllama() {
     console.log('  ⚠️  추가 문제:');
     for (const i of issues) console.log(`    - ${i}`);
   }
+
+  // ── Harness: 저장 직전 결함 자동 교정 (route.ts schema 와 동일 규칙) ──
+  applyLocalHarness(finalReport);
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
