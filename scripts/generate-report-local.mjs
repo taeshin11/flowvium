@@ -443,10 +443,90 @@ async function verifyUploadSource(locale) {
   }
 }
 
+// ── GROQ 폴백 (로컬 LLM 실패 시 cloud 70B) ─────────────────────────────────
+// 무료 tier: llama-3.3-70b-versatile (TPD 한계 있음).
+// JSON mode 강제 + 실패 시 null 반환.
+async function callGroq(prompt, timeoutMs = 60000, label = '') {
+  const key = env.GROQ_API_KEY?.trim();
+  if (!key) return null;
+  const tag = label ? `[GROQ:${label}]` : '[GROQ]';
+  const t0 = Date.now();
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+  for (const model of models) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 2048,
+          response_format: { type: 'json_object' },
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        if (res.status === 429) {
+          console.warn(`  ${tag}[${model}] HTTP 429 rate limit — 다음 모델 시도`);
+          continue;
+        }
+        console.warn(`  ${tag}[${model}] HTTP ${res.status}: ${errBody.slice(0, 100)}`);
+        continue;
+      }
+      const d = await res.json();
+      const text = d.choices?.[0]?.message?.content ?? '';
+      if (!text) { console.warn(`  ${tag}[${model}] empty response`); continue; }
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+      console.log(`  ${tag}[${model}] ${elapsed}s → ${text.length}c`);
+      return text;
+    } catch (e) {
+      console.warn(`  ${tag}[${model}] ${e.message?.slice(0, 80)}`);
+    }
+  }
+  return null;
+}
+
+// ── Gemini 폴백 (GROQ 도 실패 시) ──────────────────────────────────────────────
+async function callGemini(prompt, timeoutMs = 60000, label = '') {
+  const key = env.GEMINI_API_KEY?.trim();
+  if (!key) return null;
+  const tag = label ? `[Gemini:${label}]` : '[Gemini]';
+  const t0 = Date.now();
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048, responseMimeType: 'application/json' },
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      },
+    );
+    if (!res.ok) { console.warn(`  ${tag} HTTP ${res.status}`); return null; }
+    const d = await res.json();
+    const text = d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    if (!text) return null;
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    console.log(`  ${tag} ${elapsed}s → ${text.length}c`);
+    return text;
+  } catch (e) {
+    console.warn(`  ${tag} ${e.message?.slice(0, 80)}`);
+    return null;
+  }
+}
+
 // ── vLLM / TabbyAPI 호출 (OpenAI-호환 endpoint) ───────────────────────────────
 // VLLM_URL 환경변수 (예: http://localhost:5000/v1) 가 설정되면 Ollama 보다 우선.
 // VLLM_MODEL 로 모델명 명시 가능 (TabbyAPI 의 경우 모델 디렉터리명).
-async function callVLLM(prompt, timeoutMs = 180000, label = '') {
+async function callVLLM(prompt, timeoutMs = 360000, label = '') {
   const url = process.env.VLLM_URL?.replace(/\s+/g, '');
   if (!url) return null;
   const tag = label ? `[vLLM:${label}]` : '[vLLM]';
@@ -484,13 +564,15 @@ async function callVLLM(prompt, timeoutMs = 180000, label = '') {
   }
 }
 
-// ── Ollama 호출 ────────────────────────────────────────────────────────────────
-// TS: label은 로그용 식별자. VLLM_URL 설정 시 vLLM/TabbyAPI 먼저 시도, 실패 시 Ollama.
-async function callOllama(prompt, model = modelArg, timeoutMs = 180000, label = '') {
+// ── Ollama 호출 with cloud fallback ────────────────────────────────────────────
+// 우선순위: vLLM/TabbyAPI (VLLM_URL) → Ollama → GROQ 70B → Gemini 2.0 Flash
+// 로컬 우선 + 실패/timeout 자동 cloud 폴백 = 항상 결과 반환 보장.
+async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = '') {
   // 1. vLLM/TabbyAPI 우선 (VLLM_URL 설정된 경우만)
   const vllmText = await callVLLM(prompt, timeoutMs, label);
   if (vllmText) return vllmText;
 
+  // 2. Ollama 로컬 (default)
   const t0 = Date.now();
   const tag = label ? `[LLM:${label}]` : '[LLM]';
   const isQwen3 = model.startsWith('qwen3');
@@ -502,22 +584,43 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 180000, label = 
     options: { temperature: 0.7, num_predict: 2048 },
     ...(isQwen3 ? { think: false } : {}),
   };
-  const res = await fetch('http://localhost:11434/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    console.error(`  ${tag} HTTP ${res.status}: ${errBody.slice(0, 120)}`);
-    throw new Error(`Ollama HTTP ${res.status}`);
+  let ollamaText = null;
+  try {
+    const res = await fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.warn(`  ${tag} HTTP ${res.status}: ${errBody.slice(0, 100)} — cloud 폴백`);
+    } else {
+      const d = await res.json();
+      ollamaText = d.message?.content ?? '';
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+      if (ollamaText && ollamaText.length > 50) {
+        console.log(`  ${tag} ${elapsed}s → ${ollamaText.length}c | prompt ${prompt.length}c`);
+        return ollamaText;
+      }
+      console.warn(`  ${tag} ${elapsed}s empty/short(${ollamaText?.length ?? 0}c) — cloud 폴백`);
+    }
+  } catch (e) {
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    console.warn(`  ${tag} ${elapsed}s ${e.name}: ${e.message?.slice(0, 80)} — cloud 폴백`);
   }
-  const d = await res.json();
-  const text = d.message?.content ?? '';
-  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  console.log(`  ${tag} ${elapsed}s → ${text.length}c | prompt ${prompt.length}c`);
-  return text;
+
+  // 3. GROQ 70B 폴백 (로컬 실패/timeout 시)
+  const groqText = await callGroq(prompt, 60000, label);
+  if (groqText) return groqText;
+
+  // 4. Gemini 폴백 (GROQ 도 실패 시)
+  const geminiText = await callGemini(prompt, 60000, label);
+  if (geminiText) return geminiText;
+
+  // 모든 provider 실패
+  console.error(`  ${tag} ALL PROVIDERS FAILED — 빈 문자열 반환 (parser 가 fallback 할 것)`);
+  return '';
 }
 
 function parseJson(raw, label = '') {
@@ -2627,11 +2730,11 @@ async function generateViaOllama() {
   console.log('\n[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
   const wave1Start = Date.now();
   const [macroRaw, portfolioRaw, regionalRaw, opportunityRaw, narrativeRaw] = await Promise.all([
-    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 180000, 'macro'),
-    callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 180000, 'portfolio'),
-    callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 180000, 'regional'),
-    callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 180000, 'opportunity'),
-    callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 180000, 'narrative'),
+    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 360000, 'macro'),
+    callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 360000, 'portfolio'),
+    callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 360000, 'regional'),
+    callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 360000, 'opportunity'),
+    callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 360000, 'narrative'),
   ]);
   console.log(`  Wave1 총 소요: ${((Date.now() - wave1Start) / 1000).toFixed(1)}s`);
 
@@ -2654,8 +2757,8 @@ async function generateViaOllama() {
   if (retryNeeded.length > 0) {
     console.log(`  parse failed [${retryNeeded.join(', ')}] — retrying...`);
     const retries = await Promise.all([
-      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 180000, 'macro-retry')    : Promise.resolve(null),
-      !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 180000, 'regional-retry')                   : Promise.resolve(null),
+      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 360000, 'macro-retry')    : Promise.resolve(null),
+      !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 360000, 'regional-retry')                   : Promise.resolve(null),
     ]);
     if (!macroData    && retries[0]) macroData    = parseJson(retries[0], 'macro-retry');
     if (!regionalData && retries[1]) regionalData = parseJson(retries[1], 'regional-retry');
@@ -2668,7 +2771,7 @@ async function generateViaOllama() {
   if ((portfolioData?.portfolio?.length ?? 0) < 5) {
     const gotCount = portfolioData?.portfolio?.length ?? 0;
     console.log(`  portfolio ${gotCount}개 (최소 5 미달) — retrying once...`);
-    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 180000, 'portfolio-retry');
+    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 360000, 'portfolio-retry');
     const portfolioRetryData = parseJson(portfolioRetry, 'portfolio-retry');
     if ((portfolioRetryData?.portfolio?.length ?? 0) < 3) {
       console.error('❌ Wave1 포트폴리오 생성 실패 (2회). 종료합니다.');
@@ -2726,11 +2829,11 @@ async function generateViaOllama() {
 
   const wave2Start = Date.now();
   const wave2Calls = [
-    callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx), modelArg, 180000, 'risk'),
-    callOllama(buildCompanyChangesPrompt(portfolioItemsDeduped, earnings, ctx.institutional, ctx.news, companyFinancials), modelArg, 180000, 'companyChanges'),
+    callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx), modelArg, 360000, 'risk'),
+    callOllama(buildCompanyChangesPrompt(portfolioItemsDeduped, earnings, ctx.institutional, ctx.news, companyFinancials), modelArg, 360000, 'companyChanges'),
   ];
   if (buyStocksDeduped.length > 0) {
-    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials), modelArg, 180000, 'stockDetail'));
+    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials), modelArg, 360000, 'stockDetail'));
   }
 
   const [riskRaw, companyChangesRaw, stockDetailRaw] = await Promise.all(wave2Calls);
@@ -2769,7 +2872,7 @@ async function generateViaOllama() {
       macroData?.macroAnalysis ?? '',
       ctx.bbWarnings,
       ctx.assetFg,
-    ), modelArg, 180000, 'critique');
+    ), modelArg, 360000, 'critique');
     refinedPortfolio = applyCritique(portfolioItemsDeduped, critiqueRaw);
     // 종목별 critique 결과 상세 로그
     for (const p of refinedPortfolio) {

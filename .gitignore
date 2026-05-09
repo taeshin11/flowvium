@@ -34,3 +34,11 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# 로컬 LLM 인프라 (대용량, 로컬 전용)
+.tabbyapi/
+.tabby-venv/
+tabbyapi-install.log
+
+# 보고서 백업 (debug용)
+reports/*.PRE-HARNESS.json
