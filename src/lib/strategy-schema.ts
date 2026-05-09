@@ -82,6 +82,27 @@ const PortfolioItemSchema = z.object({
 ).refine(
   (p: { action?: string; confidence?: string }) => !(p.action === 'buy' && p.confidence === 'low'),
   { message: 'action=buy with confidence=low is contradictory — downgrade to watch' },
+).refine(
+  // stopLoss 가 entry 보다 비싸면 비합리 (NVDA $500 손절 같은 케이스)
+  (p: { entryZone: string; stopLoss: string }) => {
+    const entry = parseFirstPrice(p.entryZone);
+    const stop = parseFirstPrice(p.stopLoss);
+    if (entry == null || stop == null || entry <= 0) return true;
+    return stop < entry * 1.05; // 5% 이내 마진 허용 (range upper 이하)
+  },
+  { message: 'stopLoss must be lower than entry (stop > entry is irrational)' },
+).refine(
+  // rationale 의 50MA 값과 진입가 비교 — 50% 이상 차이면 hallucination 가능성
+  (p: { ticker: string; entryZone: string; rationale: string }) => {
+    const ma50Match = p.rationale.match(/50MA[^$₩\d]*[$₩]?([\d,]+\.?\d*)/);
+    if (!ma50Match) return true;
+    const ma50 = parseFloat(ma50Match[1].replace(/,/g, ''));
+    const entry = parseFirstPrice(p.entryZone);
+    if (!ma50 || !entry || ma50 <= 0) return true;
+    const ratio = entry / ma50;
+    return ratio > 0.5 && ratio < 2.0; // entry 가 50MA 의 0.5x ~ 2x 범위
+  },
+  { message: 'entry too far from rationale 50MA — likely price hallucination' },
 );
 
 const SectorAllocationSchema = z.object({
@@ -165,6 +186,9 @@ export interface HarnessAudit {
     buyLowConfidence: string[];      // ['NVDA:buy→watch (low confidence)']
     stopLossDeep: string[];          // ['NVDA:stopLoss 45% deep']
     targetBullInverted: string[];    // ['NVDA:targetBull < target']
+    stopLossAboveEntry: string[];    // ['NVDA:stop=$500 > entry=$206']
+    entryFar50MA: string[];          // ['ASML:entry=$350 vs 50MA=$1402']
+    companyChangeName: string[];     // ['000660.KS:"Samsung"→"SK하이닉스"']
   };
   /** Zod schema 검증 결과 — preValidateFix 후에도 통과 못 한 issue */
   schemaErrors: string[];
@@ -185,6 +209,9 @@ export function emptyAudit(): HarnessAudit {
       buyLowConfidence: [],
       stopLossDeep: [],
       targetBullInverted: [],
+      stopLossAboveEntry: [],
+      entryFar50MA: [],
+      companyChangeName: [],
     },
     schemaErrors: [],
     appliedAt: new Date().toISOString(),
@@ -202,7 +229,10 @@ function countAudit(a: HarnessAudit): number {
     (f.portfolioAllocSum ? 1 : 0) +
     f.buyLowConfidence.length +
     f.stopLossDeep.length +
-    f.targetBullInverted.length
+    f.targetBullInverted.length +
+    f.stopLossAboveEntry.length +
+    f.entryFar50MA.length +
+    f.companyChangeName.length
   );
 }
 
@@ -321,20 +351,76 @@ export function dedupPortfolioRationales<T extends { portfolio: Array<{ ticker: 
 }
 
 /**
+ * companyChanges.name 도 KR_NAMES 매핑 강제 (portfolio 외 경로 결함).
+ */
+export function fixCompanyChangeNames<T extends { companyChanges?: Array<{ ticker: string; name: string }> }>(s: T, audit?: HarnessAudit): T {
+  if (!s.companyChanges) return s;
+  for (const c of s.companyChanges) {
+    const expected = KR_NAMES[c.ticker?.toUpperCase()];
+    if (expected && c.name !== expected) {
+      if (audit) audit.fixes.companyChangeName.push(`${c.ticker}:"${c.name}"→"${expected}"`);
+      c.name = expected;
+    }
+  }
+  return s;
+}
+
+/**
+ * stopLoss 가 entry 보다 비싸면 검출 (자동 교정은 안 함 — 경고만).
+ * NVDA stopLoss=$500 + entryZone=$200 같은 비합리 케이스.
+ */
+export function detectStopAboveEntry<T extends { portfolio: Array<{ ticker: string; entryZone: string; stopLoss: string }> }>(s: T, audit?: HarnessAudit): T {
+  if (!audit) return s;
+  for (const p of s.portfolio) {
+    const entry = parseFirstPrice(p.entryZone);
+    const stop = parseFirstPrice(p.stopLoss);
+    if (entry == null || stop == null || entry <= 0) continue;
+    if (stop >= entry * 1.05) {
+      audit.fixes.stopLossAboveEntry.push(`${p.ticker}:stop=${stop} >= entry=${entry}`);
+    }
+  }
+  return s;
+}
+
+/**
+ * rationale 의 50MA 값과 진입가 비교 — 50% 이상 차이면 가격 hallucination.
+ * ASML 50MA $1402 + entry $350 같은 케이스.
+ */
+export function detectEntryFar50MA<T extends { portfolio: Array<{ ticker: string; entryZone: string; rationale: string }> }>(s: T, audit?: HarnessAudit): T {
+  if (!audit) return s;
+  for (const p of s.portfolio) {
+    const ma50Match = p.rationale?.match(/50MA[^$₩\d]*[$₩]?([\d,]+\.?\d*)/);
+    if (!ma50Match) continue;
+    const ma50 = parseFloat(ma50Match[1].replace(/,/g, ''));
+    const entry = parseFirstPrice(p.entryZone);
+    if (!ma50 || !entry || ma50 <= 0) continue;
+    const ratio = entry / ma50;
+    if (ratio <= 0.5 || ratio >= 2.0) {
+      audit.fixes.entryFar50MA.push(`${p.ticker}:entry=${entry} vs 50MA=${ma50} (ratio=${ratio.toFixed(2)})`);
+    }
+  }
+  return s;
+}
+
+/**
  * 후처리 파이프라인 — schema 검증 전 자동 교정 가능한 항목 처리.
  * audit 결과는 logger / Redis / report 메타필드에 기록 가능.
  */
 export function preValidateFix<T extends {
-  portfolio: Array<{ ticker: string; name: string; rationale: string; action?: string; confidence?: string; allocation: number }>;
+  portfolio: Array<{ ticker: string; name: string; rationale: string; action?: string; confidence?: string; allocation: number; entryZone: string; stopLoss: string }>;
   sectorAllocation: Array<{ pct: number }>;
   insiderSignals?: Array<{ ticker?: string; filings: unknown }>;
+  companyChanges?: Array<{ ticker: string; name: string }>;
 }>(s: T, audit: HarnessAudit = emptyAudit()): { strategy: T; audit: HarnessAudit } {
   fixKoreaTickerNames(s, audit);
+  fixCompanyChangeNames(s, audit);
   fixInsiderFilings(s, audit);
   dedupPortfolioRationales(s, audit);
   normalizeSectorAllocation(s, audit);
   normalizePortfolioAllocation(s, audit);
   fixBuyLowConfidence(s, audit);
+  detectStopAboveEntry(s, audit);
+  detectEntryFar50MA(s, audit);
   audit.totalFixes = countAudit(audit);
   return { strategy: s, audit };
 }

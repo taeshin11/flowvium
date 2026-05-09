@@ -122,6 +122,7 @@ function emptyHarnessAudit() {
       krNameMismatch: [], rationaleDedup: [], insiderFilingsType: [],
       sectorAllocSum: null, portfolioAllocSum: null,
       buyLowConfidence: [], stopLossDeep: [], targetBullInverted: [],
+      stopLossAboveEntry: [], entryFar50MA: [], companyChangeName: [],
     },
     schemaErrors: [], appliedAt: new Date().toISOString(), totalFixes: 0,
   };
@@ -167,7 +168,40 @@ function applyLocalHarness(r) {
     }
   }
 
-  // 6. insiderSignals.filings type
+  // 6a. stopLoss > entry 검출 (NVDA $500 stop + entry $206 케이스)
+  for (const p of r.portfolio) {
+    const e = parseFirstPriceMjs(p.entryZone);
+    const st = parseFirstPriceMjs(p.stopLoss);
+    if (e && st && e > 0 && st >= e * 1.05) {
+      audit.fixes.stopLossAboveEntry.push(`${p.ticker}:stop=${st} >= entry=${e}`);
+    }
+  }
+
+  // 6b. entry vs rationale 50MA 검증 (ASML $1402 50MA + entry $350 케이스)
+  for (const p of r.portfolio) {
+    const ma50Match = p.rationale?.match(/50MA[^$₩\d]*[$₩]?([\d,]+\.?\d*)/);
+    if (!ma50Match) continue;
+    const ma50 = parseFloat(ma50Match[1].replace(/,/g, ''));
+    const e = parseFirstPriceMjs(p.entryZone);
+    if (!ma50 || !e || ma50 <= 0) continue;
+    const ratio = e / ma50;
+    if (ratio <= 0.5 || ratio >= 2.0) {
+      audit.fixes.entryFar50MA.push(`${p.ticker}:entry=${e} vs 50MA=${ma50} (${ratio.toFixed(2)}x)`);
+    }
+  }
+
+  // 6c. companyChanges.name KR_NAMES 매핑
+  if (Array.isArray(r.companyChanges)) {
+    for (const c of r.companyChanges) {
+      const expected = KR_NAMES_HARNESS[c.ticker?.toUpperCase()];
+      if (expected && c.name !== expected) {
+        audit.fixes.companyChangeName.push(`${c.ticker}:"${c.name}"→"${expected}"`);
+        c.name = expected;
+      }
+    }
+  }
+
+  // 7. insiderSignals.filings type
   if (Array.isArray(r.insiderSignals)) {
     for (const sig of r.insiderSignals) {
       if (Array.isArray(sig.filings)) {
@@ -212,17 +246,23 @@ function applyLocalHarness(r) {
     (audit.fixes.portfolioAllocSum ? 1 : 0) +
     audit.fixes.buyLowConfidence.length +
     audit.fixes.stopLossDeep.length +
-    audit.fixes.targetBullInverted.length;
+    audit.fixes.targetBullInverted.length +
+    audit.fixes.stopLossAboveEntry.length +
+    audit.fixes.entryFar50MA.length +
+    audit.fixes.companyChangeName.length;
 
   if (audit.totalFixes > 0) {
     console.log(`\n  [harness] ${audit.totalFixes} 결함 자동 교정/검출:`);
     if (audit.fixes.krNameMismatch.length) console.log(`    - KR name: ${audit.fixes.krNameMismatch.join(', ')}`);
+    if (audit.fixes.companyChangeName.length) console.log(`    - companyChanges name: ${audit.fixes.companyChangeName.join(', ')}`);
     if (audit.fixes.rationaleDedup.length) console.log(`    - rationale dup: ${audit.fixes.rationaleDedup.join(', ')}`);
     if (audit.fixes.insiderFilingsType.length) console.log(`    - filings type: ${audit.fixes.insiderFilingsType.join(', ')}`);
     if (audit.fixes.sectorAllocSum) console.log(`    - sectorAlloc sum ${audit.fixes.sectorAllocSum.from}→100`);
     if (audit.fixes.portfolioAllocSum) console.log(`    - portfolio alloc sum ${audit.fixes.portfolioAllocSum.from}→100`);
     if (audit.fixes.buyLowConfidence.length) console.log(`    - buy+low: ${audit.fixes.buyLowConfidence.join(', ')}`);
     if (audit.fixes.stopLossDeep.length) console.warn(`    ⚠️  stopLoss deep: ${audit.fixes.stopLossDeep.join(', ')}`);
+    if (audit.fixes.stopLossAboveEntry.length) console.warn(`    ⚠️  stop>=entry: ${audit.fixes.stopLossAboveEntry.join(', ')}`);
+    if (audit.fixes.entryFar50MA.length) console.warn(`    ⚠️  entry≠50MA: ${audit.fixes.entryFar50MA.join(', ')}`);
     if (audit.fixes.targetBullInverted.length) console.warn(`    ⚠️  bull < base: ${audit.fixes.targetBullInverted.join(', ')}`);
   } else {
     console.log(`  [harness] ✅ 결함 없음 — 깨끗한 출력`);
