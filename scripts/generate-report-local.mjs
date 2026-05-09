@@ -443,9 +443,54 @@ async function verifyUploadSource(locale) {
   }
 }
 
+// ── vLLM / TabbyAPI 호출 (OpenAI-호환 endpoint) ───────────────────────────────
+// VLLM_URL 환경변수 (예: http://localhost:5000/v1) 가 설정되면 Ollama 보다 우선.
+// VLLM_MODEL 로 모델명 명시 가능 (TabbyAPI 의 경우 모델 디렉터리명).
+async function callVLLM(prompt, timeoutMs = 180000, label = '') {
+  const url = process.env.VLLM_URL?.replace(/\s+/g, '');
+  if (!url) return null;
+  const tag = label ? `[vLLM:${label}]` : '[vLLM]';
+  const t0 = Date.now();
+  const model = process.env.VLLM_MODEL || 'default';
+  try {
+    const res = await fetch(`${url}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.VLLM_API_KEY ? { 'Authorization': `Bearer ${process.env.VLLM_API_KEY}` } : {}),
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048,
+        response_format: { type: 'json_object' },
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.warn(`  ${tag} HTTP ${res.status}: ${errBody.slice(0, 120)} — Ollama 폴백`);
+      return null;
+    }
+    const d = await res.json();
+    const text = d.choices?.[0]?.message?.content ?? '';
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    console.log(`  ${tag} ${elapsed}s → ${text.length}c | prompt ${prompt.length}c`);
+    return text;
+  } catch (e) {
+    console.warn(`  ${tag} ${e.message?.slice(0, 100)} — Ollama 폴백`);
+    return null;
+  }
+}
+
 // ── Ollama 호출 ────────────────────────────────────────────────────────────────
-// TS: label은 로그용 식별자
+// TS: label은 로그용 식별자. VLLM_URL 설정 시 vLLM/TabbyAPI 먼저 시도, 실패 시 Ollama.
 async function callOllama(prompt, model = modelArg, timeoutMs = 180000, label = '') {
+  // 1. vLLM/TabbyAPI 우선 (VLLM_URL 설정된 경우만)
+  const vllmText = await callVLLM(prompt, timeoutMs, label);
+  if (vllmText) return vllmText;
+
   const t0 = Date.now();
   const tag = label ? `[LLM:${label}]` : '[LLM]';
   const isQwen3 = model.startsWith('qwen3');

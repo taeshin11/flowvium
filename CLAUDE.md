@@ -129,6 +129,53 @@ const DATA: CountryCreditData[] = [
 
 ---
 
+## 🧠 로컬 LLM 본격 운용 가이드 (RTX 4050 6GB VRAM 환경)
+
+목적: 로컬 우선, cloud LLM 폴백. 6GB VRAM 한계에서 최대 quality.
+
+### Stage 1 — Ollama 환경변수 (적용 완료)
+
+```powershell
+setx OLLAMA_KV_CACHE_TYPE q8_0       # KV cache 50% 절감
+setx OLLAMA_FLASH_ATTENTION 1        # FA2 활성화 (속도+메모리)
+# Ollama 재시작 (시스템 트레이 → Quit Ollama → 재실행)
+```
+
+### Stage 2 — 14B 모델 운용
+
+**옵션 A: Ollama 14B Q3 (즉시, 무료)**
+```bash
+ollama pull qwen2.5:14b-instruct-q3_K_M    # ~7.3 GB
+node scripts/generate-report-local.mjs --model=qwen2.5:14b-instruct-q3_K_M
+```
+주의: 7.3 GB 라 GPU + CPU offload 발생 → 8B 보다 느릴 수 있음. 품질 ↑.
+
+**옵션 B: TabbyAPI + EXL2 (본격, 1시간 구축)**
+```powershell
+.\scripts\setup-tabbyapi.ps1
+# huggingface-cli download turboderp/Qwen2.5-14B-Instruct-exl2 --revision 3.5bpw ...
+.\.tabbyapi\start.bat
+setx VLLM_URL http://localhost:5000/v1
+# 이후 ai-providers.ts 의 callVLLM 이 자동 활용 (Vercel + 로컬 generator 양쪽)
+```
+EXL2 3.5bpw = ~6 GB, GPU only, GGUF Q4 동급 quality + 속도 2-3배.
+
+### 우선순위 순서 (로컬 우선)
+
+```
+ai-providers.ts:  vLLM (VLLM_URL) → GROQ → Qwen(OpenRouter) → Gemini → Claude → fallback
+generate-report-local.mjs: vLLM (VLLM_URL) → Ollama → fail
+```
+
+`VLLM_URL` 미설정 시 vLLM step skip — 기존 Ollama-only 동작 유지.
+
+### 결함 추적
+
+`harnessAudit` 메타필드 + `harness_fixes_applied` 로그로 모델별 결함률 비교 가능.
+14B 도입 후 `krNameMismatch`, `rationaleDedup` 등 카운트가 줄면 모델 효과 검증된 것.
+
+---
+
 ## 💸 Vercel 빌드 시간 절감 규칙 (필수 — 2026-04-24 사건 이후 신설)
 
 **발생 경위:** 2026-04-24 하루 master push 139건 × 평균 빌드 ~97초 = **3시간 46분 빌드 시간 누적**.
