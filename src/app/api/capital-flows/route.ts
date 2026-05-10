@@ -448,7 +448,9 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
     topInflows,
     topOutflows,
     groupAvg,
-    rotations1w:  buildRotations(results, priceMap, 'ret1w',  thresholds['1w'],  4),
+    // maxWeeks 는 각 timeframe 의 라벨과 일치해야 사용자가 "1주 기준" 탭에서 "3주 전 시작" 같은
+    // 모순 라벨을 보지 않음. 1주 탭은 1주 내 시작한 rotation 만, 4주 탭은 4주 내, 13주 탭은 13주 내.
+    rotations1w:  buildRotations(results, priceMap, 'ret1w',  thresholds['1w'],  1),
     rotations4w:  buildRotations(results, priceMap, 'ret4w',  thresholds['4w'],  4),
     rotations13w: buildRotations(results, priceMap, 'ret13w', thresholds['13w'], 13),
   };
