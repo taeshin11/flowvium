@@ -1,0 +1,558 @@
+{
+  "stance": "bullish",
+  "thesis": "AI ETF 흐름, NVDA, TSM, MU 주목 — 리스크 medium",
+  "portfolio": [
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "squeeze 20, 50MA 위($188.65), RSI 60, 거래량-10%, 52주:$165.17-$216.61, 진입지지선:$188.65",
+      "allocation": 22,
+      "entryZone": "$200.14-$206.59",
+      "entryRationale": "100일선+ROE18%FCF수익률8%→안전마진",
+      "stopLoss": "$197.98",
+      "target": "$225.00",
+      "targetBull": "$296.98",
+      "targetRationale": "AI 인프라 확대 + 수익성 개선",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 $247.48 과도함, $225로 조정",
+      "catalysts": [
+        "Q4 FY2026 revenue $68.1B +73.2% YoY",
+        "AI memory ETF news boosting demand for AI chips",
+        "50MA above with RSI 60 (technical support at $188.65)"
+      ],
+      "fundamentalBasis": "Revenue +73.2%, OpMgn 60.4%, P/E 38.5",
+      "technicalBasis": "50MA 위($188.65), RSI 60, 거래량-10%",
+      "riskNote": "AI demand slowdown in key markets"
+    },
+    {
+      "ticker": "KLAC",
+      "name": "KLA Corporation",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "squeeze 45 + 100일선+ROE18%FCF수익률8%→안전마진 | squeeze 45, 50MA 위($1617.21), RSI 55, 거래량+29%, 52주:$1097.12-$1935.00, 진입지지선:$1617.21",
+      "allocation": 17,
+      "entryZone": "$1738.35-$1794.42",
+      "entryRationale": "squeeze 45 + 100일선+ROE18%FCF수익률8%→안전마진",
+      "stopLoss": "$1719.65",
+      "target": "$2000.00",
+      "targetBull": "$2579.48",
+      "targetRationale": "2nm 계측 장비 수주 확대",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 $2149.57 과도함, $2000으로 조정",
+      "catalysts": [
+        "Q3 FY2026 revenue $3.4B +11.5% YoY",
+        "KLAC squeeze 45 + 100일선+ROE18%FCF수익률8%→안전마진",
+        "AI memory ETF news boosting demand for semiconductor equipment"
+      ],
+      "fundamentalBasis": "Revenue +11.5%, ROE 18%, FCF 수익률 8%",
+      "technicalBasis": "50MA 위($1617.21), RSI 55, 거래량+29%",
+      "riskNote": "Semiconductor capex slowdown in key regions"
+    },
+    {
+      "ticker": "TSM",
+      "name": "TSMC",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "squeeze 23, 50MA 위($363.28), RSI 71, 거래량+29%, 52주:$275.06-$419.50, 진입지지선:$363.28",
+      "allocation": 17,
+      "entryZone": "$352.38-$363.28",
+      "entryRationale": "100일선+ROE18%FCF수익률8%→안전마진",
+      "stopLoss": "$334.22",
+      "target": "$417.77",
+      "targetBull": "$472.26",
+      "targetRationale": "N2 팹 가동 + 수익성 개선",
+      "confidence": "high",
+      "action": "watch",
+      "catalysts": [
+        "Q4 FY2025 revenue $22.6B +66.1% YoY",
+        "50MA above with RSI 71 (technical support at $363.28)",
+        "AI demand driving advanced node demand"
+      ],
+      "fundamentalBasis": "Revenue +66.1%, OpMgn 48.6%, P/E 20.3",
+      "technicalBasis": "50MA 위($363.28), RSI 71, 거래량+29%",
+      "riskNote": "Advanced node manufacturing delays",
+      "critiqueNote": "가격 hallucination 의심 — 50MA($363.28) 기반 재계산, 진입 전 재검토 필요"
+    },
+    {
+      "ticker": "ASML",
+      "name": "ASML",
+      "sector": "Technology",
+      "market": "global",
+      "rationale": "KLAC squeeze 45 + 100일선+ROE18%FCF수익률8%→안전마진 | squeeze 25, 50MA 위($1402.28), RSI 61, 거래량+26%, 52주:$966.57-$1592.02, 진입지지선:$1402.28",
+      "allocation": 14,
+      "entryZone": "$1360.21-$1402.28",
+      "entryRationale": "KLAC squeeze 45 + 100일선+ROE18%FCF수익률8%→안전마진",
+      "stopLoss": "$1290.10",
+      "target": "$1612.62",
+      "targetBull": "$1822.96",
+      "targetRationale": "2nm 장비 수요 증가",
+      "confidence": "high",
+      "action": "watch",
+      "critiqueNote": "타겟 $145 과도함, $130으로 조정 | 가격 hallucination 의심 — 50MA($1402.28) 기반 재계산, 진입 전 재검토 필요",
+      "catalysts": [
+        "AI memory ETF news boosting demand for advanced lithography",
+        "50MA above with RSI 61 (technical support at $1402.28)"
+      ],
+      "fundamentalBasis": "ROE 18%, FCF 수익률 8%, P/E 26.4",
+      "technicalBasis": "50MA 위($1402.28), RSI 61, 거래량+26%",
+      "riskNote": "Lithography equipment procurement delays"
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "sector": "Technology",
+      "market": "korea",
+      "rationale": "200MA 위(₩649,978), 50MA 위(₩1,070,480), RSI 93, 거래량+2%, 52주:₩190,100-₩1,686,000, 진입지지선:₩649,978",
+      "allocation": 14,
+      "entryZone": "₩1,567,980-₩1,618,560",
+      "entryRationale": "100일선+ROE18%FCF수익률8%→안전마진",
+      "stopLoss": "₩650,000",
+      "target": "₩1,938,900",
+      "targetBull": "₩2,326,680",
+      "targetRationale": "미국 수출 관세 회피 + 수익성 개선",
+      "confidence": "high",
+      "action": "watch",
+      "critiqueNote": "기본적 약점, 매수→관망 | 52주 범위 비현실(8.9x) — split/통화/데이터 오류 의심, 진입 보류",
+      "catalysts": [
+        "200MA above with RSI 93 (technical support at ₩649,978)",
+        "AI memory ETF news boosting demand for semiconductors"
+      ],
+      "fundamentalBasis": "Revenue +66.1%, OpMgn 48.6%, P/E 26.4",
+      "technicalBasis": "200MA 위(₩649,978), 50MA 위(₩1,070,480), RSI 93",
+      "riskNote": "Global semiconductor demand slowdown"
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft",
+      "sector": "Technology",
+      "market": "us",
+      "rationale": "squeeze 20, 50MA 위($398.15), RSI 48, 거래량-6%, 52주:$356.77-$511.14, 진입지지선:$398.15",
+      "allocation": 16,
+      "entryZone": "$350-370",
+      "entryRationale": "100일선+ROE18%FCF수익률8%→안전마진",
+      "stopLoss": "$320",
+      "target": "$450.00",
+      "targetBull": "$572.87",
+      "targetRationale": "AI 인프라 확대 + 수익성 개선",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "타겟 $477.39 과도함, $450으로 조정",
+      "catalysts": [
+        "Q3 FY2026 revenue $82.9B +18.3% YoY",
+        "AI memory ETF news boosting cloud computing demand",
+        "50MA above with RSI 48 (technical support at $398.15)"
+      ],
+      "fundamentalBasis": "Revenue +18.3%, OpMgn 45.6%, P/E 38.5",
+      "technicalBasis": "50MA 위($398.15), RSI 48, 거래량-6%",
+      "riskNote": "Cloud computing growth slowdown"
+    }
+  ],
+  "sectorAllocation": [
+    {
+      "sector": "Technology",
+      "pct": 60,
+      "stance": "overweight",
+      "reason": "AI 인프라 확대 + 수익성 개선"
+    },
+    {
+      "sector": "Financials",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "P/E 16.4 YTD=-6.7%"
+    },
+    {
+      "sector": "Energy",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "P/E 20.3 YTD=22.0%"
+    },
+    {
+      "sector": "Health Care",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "P/E 26.4 YTD=-7.7%"
+    },
+    {
+      "sector": "Consumer Discretionary",
+      "pct": 10,
+      "stance": "neutral",
+      "reason": "P/E 30.9 YTD=1.6%"
+    }
+  ],
+  "riskEvents": [
+    {
+      "date": "2026-05-11",
+      "event": "주택 판매량 발표",
+      "impact": "high",
+      "watchFor": "주택 판매량 상승"
+    },
+    {
+      "date": "2026-05-12",
+      "event": "중심 인플레이션 YoY",
+      "impact": "high",
+      "watchFor": "인플레이션 회복"
+    },
+    {
+      "date": "2026-05-12",
+      "event": "중심 인플레이션 MoM",
+      "impact": "high",
+      "watchFor": "인플레이션 회복"
+    },
+    {
+      "date": "2026-05-12",
+      "event": "총 인플레이션 MoM",
+      "impact": "high",
+      "watchFor": "인플레이션 회복"
+    },
+    {
+      "date": "2026-05-11",
+      "event": "고용 보고서 발표",
+      "impact": "medium",
+      "watchFor": "고용 증가"
+    }
+  ],
+  "macroAnalysis": "CPI 3.2%, 금리 5.25%, 스프레드 15bps, 경제 성장 둔화 신호 | 주요지표: 공포탐욕 67(United States), 리스크=medium",
+  "technicalAnalysis": "VIX 17.19, 10y yield 4.1%, 2y yield 5.0%, 골드 contango",
+  "fundamentalAnalysis": "EPS 1.2% 상회, P/E 18x, 기관 2.3% 증대",
+  "riskLevel": "medium",
+  "regionStances": {
+    "us": {
+      "stance": "bullish",
+      "thesis": "테크 강세 지속 (4w +8.6%, 1w +2.4%)",
+      "keyData": "SPY 1w, F&G score"
+    },
+    "korea": {
+      "stance": "neutral",
+      "thesis": "외자 유입 강세 (4w +37.1%, 1w +17.4%)",
+      "keyData": "EWY 1w, F&G"
+    },
+    "japan": {
+      "stance": "bullish",
+      "thesis": "재정 안정성 강화 (4w +4.6%, 1w +4.4%)",
+      "keyData": "Nikkei 225 1w, F&G"
+    },
+    "china": {
+      "stance": "neutral",
+      "thesis": "외자 유입 둔화 (4w +2.7%, 1w +1.2%)",
+      "keyData": "CSI 300 1w, F&G"
+    },
+    "europe": {
+      "stance": "neutral",
+      "thesis": "유동성 약화 (4w +1.2%, 1w +1.1%)",
+      "key": "EU Stoxx 600 1w, F&G",
+      "keyData": "4w +1.2%, 1w +1.1%"
+    },
+    "india": {
+      "stance": "bullish",
+      "thesis": "외자 유입 확대 (4w +1.0%, 1w +1.5%)",
+      "keyData": "Nifty 1w, F&G"
+    },
+    "taiwan": {
+      "stance": "bullish",
+      "thesis": "테크 부상 (4w +24.9%, 1w +6.8%)",
+      "keyData": "TWII 1w, F&G"
+    },
+    "brazil": {
+      "stance": "neutral",
+      "thesis": "외자 유입 부족 (4w -5.3%, 1w -0.8%)",
+      "keyData": "Bovespa 1w, F&G"
+    },
+    "australia": {
+      "stance": "neutral",
+      "thesis": "재정 안정성 유지 (4w -1.0%, 1w +0.9%)",
+      "keyData": "ASX 200 1w, F&G"
+    },
+    "global": {
+      "stance": "bullish",
+      "thesis": "자산 회전 강세",
+      "keyData": "Global F&G score"
+    }
+  },
+  "shortSqueeze": [
+    {
+      "ticker": "DELL",
+      "score": 55,
+      "timing": "실적 후 +20.4% 급등, squeeze 지속",
+      "risk": "고점 매도 위험"
+    },
+    {
+      "ticker": "KLAC",
+      "score": 45,
+      "timing": "실적 후 +6% 급등, squeeze 지속",
+      "risk": "적정 수익 가능성"
+    },
+    {
+      "ticker": "SMCI",
+      "score": 40,
+      "timing": "실적 후 +27.1% 급등, squeeze 지속",
+      "risk": "지지선 근접"
+    }
+  ],
+  "insiderSignals": [],
+  "topOpportunity": "테크 섹터 초과 매집, 급등 조짐",
+  "stopLossRationale": [
+    {
+      "ticker": "NVDA",
+      "rationale": "NVDA는 하락 시 손실 제한을 설정하여 리스크 관리 | 현재 $215.2 → 손절선 ~$200.14 (-7%) / 50MA 위($188.65), RSI 60, 거래량-10%, 52주:$165.17-$216.61, 진입지지선:$188.65"
+    },
+    {
+      "ticker": "KLAC",
+      "rationale": "KLAC는 하락 시 손실 제한을 설정하여 리스크 관리 | 현재 $1869.19 → 손절선 ~$1738.35 (-7%) / 50MA 위($1617.21), RSI 55, 거래량+29%, 52주:$1097.12-$1935.00, 진입지지선:$1617.21"
+    },
+    {
+      "ticker": "TSM",
+      "rationale": "TSM는 하락 시 손실 제한을 설정하여 리스크 관리 | 50MA 위($363.28), RSI 71, 거래량+29%, 52주:$275.06-$419.50, 진입지지선:$363.28"
+    },
+    {
+      "ticker": "ASML",
+      "rationale": "ASML는 하락 시 손실 제한을 설정하여 리스크 관리 | 50MA 위($1402.28), RSI 61, 거래량+26%, 52주:$966.57-$1592.02, 진입지지선:$1402.28"
+    },
+    {
+      "ticker": "000660.KS",
+      "rationale": "000660.KS는 하락 시 손실 제한을 설정하여 리스크 관리 | 현재 $1686000 → 손절선 ~$1567980.00 (-7%) / 200MA 위(₩649,978), 50MA 위(₩1,070,480), RSI 93, 거래량+2%, 52주:₩190,100-₩1,686,000, 진입지지선:₩649,978"
+    },
+    {
+      "ticker": "MSFT",
+      "rationale": "MSFT는 하락 시 손실 제한을 설정하여 리스크 관리 | 현재 $415.12 → 손절선 ~$386.06 (-7%) / 50MA 위($398.15), RSI 48, 거래량-6%, 52주:$356.77-$511.14, 진입지지선:$398.15"
+    }
+  ],
+  "hedgingSuggestion": "포트폴리오 리스크를 분산하기 위해 옵션 헤지 고려",
+  "portfolioRiskNote": "중간 리스크 수준으로, BB 바깥으로 벗어난 상황으로 주의 필요",
+  "marketNarrative": {
+    "why": "AI ETF 관심 ↑, NVIDIA↑, TSM↑",
+    "watch": "AI 반도체, 에너지",
+    "story": "AI ETF 관심 증가로 반도체 및 에너지 섹터가 강세를 보이며, 금과 원유는 트렌드 전환을 보여주고 있다.",
+    "hotThemes": [
+      "AI 반도체",
+      "에너지",
+      "클라우드"
+    ],
+    "sessionNote": "미국장 마감 직후"
+  },
+  "companyChanges": [
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "revenueYoY": 73.2,
+      "latestQuarter": "Q4 FY2026",
+      "keyChange": "Q4 FY2026 매출 $68.1B, 전년比 73.2% 증가",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK하이닉스",
+      "revenueYoY": 66.1,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "Q4 FY2025 매출 $22.6B, 전년比 66.1% 증가",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft",
+      "revenueYoY": 18.3,
+      "latestQuarter": "Q3 FY2026",
+      "keyChange": "Q3 FY2026 매출 $82.9B, 전년比 18.3% 증가",
+      "guidance": "raised",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "PANW",
+      "name": "Palo Alto Networks",
+      "revenueYoY": null,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "사이버보안 주식에 대한 투자 관심 증가",
+      "guidance": "unknown",
+      "sentiment": "positive"
+    },
+    {
+      "ticker": "ENB",
+      "name": "Energy Transfer",
+      "revenueYoY": null,
+      "latestQuarter": "Q4 FY2025",
+      "keyChange": "배당금 증가로 시장 관심 상승",
+      "guidance": "unknown",
+      "sentiment": "positive"
+    }
+  ],
+  "supplyChainChanges": [
+    {
+      "ticker": "NVDA",
+      "direction": "negative",
+      "headline": "GB300 CoWoS 패키징 병목 지속",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "NVDA",
+      "direction": "positive",
+      "headline": "멕시코 조립라인 추가 — 미국 수출 관세 회피",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [
+        "000660.KS",
+        "MU",
+        "TSM",
+        "MSFT"
+      ],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "TSMC",
+      "direction": "positive",
+      "headline": "애리조나 N2 팹 2026H2 가동 목표",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "AMAT",
+      "direction": "positive",
+      "headline": "GAA 공정 전환 — 장비 수주 급증",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "LRCX",
+      "direction": "positive",
+      "headline": "HBM 식각 장비 점유율 확대",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "KLAC",
+      "direction": "positive",
+      "headline": "2nm 계측 장비 단독 수주 확대",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [
+        "ASML"
+      ],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "MU",
+      "direction": "positive",
+      "headline": "HBM3e 8단 양산 — NVDA GB200 독점 공급",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [
+        "NVDA"
+      ],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "MU",
+      "direction": "positive",
+      "headline": "아이다호 팹 투자 $15B — CHIPS법 보조금 수령",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [
+        "NVDA"
+      ],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "ALB",
+      "direction": "positive",
+      "headline": "리튬 현물가 바닥 신호 — 기관 매집 포착",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [
+        "FCX",
+        "MP",
+        "LAC"
+      ],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    },
+    {
+      "ticker": "KTOS",
+      "direction": "positive",
+      "headline": "국방부 Valkyrie UCAV 추가 계약 $380M",
+      "source": "cascade-update",
+      "conviction": 70,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "evidenceUrl": null
+    }
+  ],
+  "generatedAt": "2026-05-09T22:08:30.631Z",
+  "dataAsOf": "2026-05-09T22:08:30.631Z",
+  "source": "local-qwen3:8b",
+  "locale": "ko",
+  "session": "morning",
+  "schemaVersion": 8,
+  "buildId": "local",
+  "harnessAudit": {
+    "fixes": {
+      "krNameMismatch": [
+        "000660.KS:\"삼성전자\"→\"SK하이닉스\""
+      ],
+      "rationaleDedup": [
+        "MSFT"
+      ],
+      "insiderFilingsType": [],
+      "sectorAllocSum": null,
+      "portfolioAllocSum": null,
+      "buyLowConfidence": [],
+      "stopLossDeep": [],
+      "targetBullInverted": [],
+      "stopLossAboveEntry": [],
+      "entryFar50MA": [
+        "TSM:entry=55→$352.38-$363.28 (was 0.15x of 50MA=363.28)",
+        "ASML:entry=120→$1360.21-$1402.28 (was 0.09x of 50MA=1402.28)"
+      ],
+      "companyChangeName": [
+        "000660.KS:\"삼성전자\"→\"SK하이닉스\""
+      ]
+    },
+    "schemaErrors": [],
+    "appliedAt": "2026-05-09T22:08:31.958Z",
+    "totalFixes": 5,
+    "retroAudit": {
+      "fixes": {
+        "krNameMismatch": [],
+        "rationaleDedup": [],
+        "insiderFilingsType": [],
+        "sectorAllocSum": null,
+        "portfolioAllocSum": null,
+        "buyLowConfidence": [],
+        "stopLossDeep": [],
+        "targetBullInverted": [],
+        "stopLossAboveEntry": [],
+        "entryFar50MA": [],
+        "companyChangeName": [],
+        "unrealistic52WRange": [
+          "000660.KS:190,100-1,686,000, (8.9x)"
+        ],
+        "stopRationaleMismatch": [
+          "000660.KS:1551120→649978"
+        ]
+      },
+      "appliedAt": "2026-05-10T05:04:35.538Z",
+      "totalFixes": 2
+    },
+    "retroAppliedAt": "2026-05-10T05:04:35.542Z"
+  }
+}

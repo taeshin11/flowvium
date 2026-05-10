@@ -61,13 +61,13 @@
       "allocation": 17,
       "entryZone": "₩1,567,980-₩1,618,560",
       "entryRationale": "공급 확대+13F 집중보유",
-      "stopLoss": "₩1,551,120",
+      "stopLoss": "₩650,000",
       "target": "₩1,938,900",
       "targetBull": "₩2,326,680",
       "targetRationale": "미국 수출 관세 회피+하이엔드 수주",
       "confidence": "high",
-      "action": "buy",
-      "critiqueNote": "타겟 ₩1,938,900 너무 높아, ₩1,750,000으로 낮춤",
+      "action": "watch",
+      "critiqueNote": "타겟 ₩1,938,900 너무 높아, ₩1,750,000으로 낮춤 | 52주 범위 비현실(8.9x) — split/통화/데이터 오류 의심, 진입 보류",
       "catalysts": [
         "Q4 FY2025 revenue $22.6B +66.1% YoY",
         "미국 수출 관세 회피 전략",
@@ -544,6 +544,30 @@
     },
     "schemaErrors": [],
     "appliedAt": "2026-05-09T05:35:12.010Z",
-    "totalFixes": 4
+    "totalFixes": 4,
+    "retroAudit": {
+      "fixes": {
+        "krNameMismatch": [],
+        "rationaleDedup": [],
+        "insiderFilingsType": [],
+        "sectorAllocSum": null,
+        "portfolioAllocSum": null,
+        "buyLowConfidence": [],
+        "stopLossDeep": [],
+        "targetBullInverted": [],
+        "stopLossAboveEntry": [],
+        "entryFar50MA": [],
+        "companyChangeName": [],
+        "unrealistic52WRange": [
+          "000660.KS:190,100-1,686,000, (8.9x)"
+        ],
+        "stopRationaleMismatch": [
+          "000660.KS:1551120→649978"
+        ]
+      },
+      "appliedAt": "2026-05-10T05:04:35.540Z",
+      "totalFixes": 2
+    },
+    "retroAppliedAt": "2026-05-10T05:04:35.659Z"
   }
 }

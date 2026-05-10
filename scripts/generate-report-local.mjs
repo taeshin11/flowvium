@@ -123,6 +123,7 @@ function emptyHarnessAudit() {
       sectorAllocSum: null, portfolioAllocSum: null,
       buyLowConfidence: [], stopLossDeep: [], targetBullInverted: [],
       stopLossAboveEntry: [], entryFar50MA: [], companyChangeName: [],
+      unrealistic52WRange: [], stopRationaleMismatch: [],
     },
     schemaErrors: [], appliedAt: new Date().toISOString(), totalFixes: 0,
   };
@@ -207,6 +208,41 @@ function applyLocalHarness(r) {
       `가격 hallucination 의심 — 50MA(${fmt(ma50)}) 기반 재계산, 진입 전 재검토 필요`;
   }
 
+  // 6d. 52주 범위 ratio > 5x → split/통화/데이터 오류 의심, action=watch 강등
+  for (const p of r.portfolio) {
+    const m52 = p.rationale?.match(/52주[^$₩\d]*[$₩]?([\d,.]+)\s*-\s*[$₩]?([\d,.]+)/);
+    if (!m52) continue;
+    const lo = parseFloat(m52[1].replace(/,/g, ''));
+    const hi = parseFloat(m52[2].replace(/,/g, ''));
+    if (lo <= 0 || !isFinite(hi)) continue;
+    const ratio = hi / lo;
+    if (ratio < 5) continue;
+    audit.fixes.unrealistic52WRange.push(`${p.ticker}:${m52[1]}-${m52[2]} (${ratio.toFixed(1)}x)`);
+    p.action = 'watch';
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `52주 범위 비현실(${ratio.toFixed(1)}x) — split/통화/데이터 오류 의심, 진입 보류`;
+  }
+
+  // 6e. stopLossRationale 가격과 portfolio.stopLoss 50% 이상 차이 시 통일
+  if (Array.isArray(r.stopLossRationale)) {
+    for (const sr of r.stopLossRationale) {
+      const p = r.portfolio.find(x => x.ticker === sr.ticker);
+      if (!p) continue;
+      const stopP = parseFirstPriceMjs(p.stopLoss);
+      if (!stopP) continue;
+      const matches = sr.rationale?.match(/[$₩][\d,.]+/g) || [];
+      const vals = matches.map(m => parseFloat(m.replace(/[$₩,]/g, ''))).filter(v => v > 0);
+      const truer = vals.find(v => v < stopP * 0.5);
+      if (!truer) continue;
+      audit.fixes.stopRationaleMismatch.push(`${sr.ticker}:${stopP}→${truer}`);
+      const isKR = (p.stopLoss || '').includes('₩') || sr.rationale?.includes('₩');
+      const fmt = isKR
+        ? (n) => `₩${Math.round(n / 100) * 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+        : (n) => `$${n.toFixed(2)}`;
+      p.stopLoss = fmt(truer);
+    }
+  }
+
   // 6c. companyChanges.name KR_NAMES 매핑
   if (Array.isArray(r.companyChanges)) {
     for (const c of r.companyChanges) {
@@ -266,7 +302,9 @@ function applyLocalHarness(r) {
     audit.fixes.targetBullInverted.length +
     audit.fixes.stopLossAboveEntry.length +
     audit.fixes.entryFar50MA.length +
-    audit.fixes.companyChangeName.length;
+    audit.fixes.companyChangeName.length +
+    audit.fixes.unrealistic52WRange.length +
+    audit.fixes.stopRationaleMismatch.length;
 
   if (audit.totalFixes > 0) {
     console.log(`\n  [harness] ${audit.totalFixes} 결함 자동 교정/검출:`);
@@ -281,6 +319,8 @@ function applyLocalHarness(r) {
     if (audit.fixes.stopLossAboveEntry.length) console.warn(`    ⚠️  stop>=entry: ${audit.fixes.stopLossAboveEntry.join(', ')}`);
     if (audit.fixes.entryFar50MA.length) console.warn(`    🔧 entry≠50MA 자동교정 + watch강등: ${audit.fixes.entryFar50MA.join(', ')}`);
     if (audit.fixes.targetBullInverted.length) console.warn(`    ⚠️  bull < base: ${audit.fixes.targetBullInverted.join(', ')}`);
+    if (audit.fixes.unrealistic52WRange.length) console.warn(`    🔧 52주 비현실 → watch강등: ${audit.fixes.unrealistic52WRange.join(', ')}`);
+    if (audit.fixes.stopRationaleMismatch.length) console.warn(`    🔧 stop 가격 통일: ${audit.fixes.stopRationaleMismatch.join(', ')}`);
   } else {
     console.log(`  [harness] ✅ 결함 없음 — 깨끗한 출력`);
   }

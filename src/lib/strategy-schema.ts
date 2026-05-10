@@ -189,6 +189,8 @@ export interface HarnessAudit {
     stopLossAboveEntry: string[];    // ['NVDA:stop=$500 > entry=$206']
     entryFar50MA: string[];          // ['ASML:entry=$350 vs 50MA=$1402']
     companyChangeName: string[];     // ['000660.KS:"Samsung"→"SK하이닉스"']
+    unrealistic52WRange: string[];   // ['000660.KS:52주 8.9x — split/data error 의심']
+    stopRationaleMismatch: string[]; // ['MU:portfolio=$687 vs rationale=$201']
   };
   /** Zod schema 검증 결과 — preValidateFix 후에도 통과 못 한 issue */
   schemaErrors: string[];
@@ -212,6 +214,8 @@ export function emptyAudit(): HarnessAudit {
       stopLossAboveEntry: [],
       entryFar50MA: [],
       companyChangeName: [],
+      unrealistic52WRange: [],
+      stopRationaleMismatch: [],
     },
     schemaErrors: [],
     appliedAt: new Date().toISOString(),
@@ -232,8 +236,64 @@ function countAudit(a: HarnessAudit): number {
     f.targetBullInverted.length +
     f.stopLossAboveEntry.length +
     f.entryFar50MA.length +
-    f.companyChangeName.length
+    f.companyChangeName.length +
+    f.unrealistic52WRange.length +
+    f.stopRationaleMismatch.length
   );
+}
+
+/**
+ * 52주 범위가 5x 이상이면 split / 통화 / 데이터 오류 의심 → action=watch 강등.
+ * 000660.KS ₩190K-₩1,686K (8.9x) 같은 케이스.
+ */
+export function detect52WUnrealistic<T extends {
+  portfolio: Array<{ ticker: string; rationale?: string; action?: string; critiqueNote?: string }>;
+}>(s: T, audit?: HarnessAudit): T {
+  for (const p of s.portfolio) {
+    const m52 = p.rationale?.match(/52주[^$₩\d]*[$₩]?([\d,.]+)\s*-\s*[$₩]?([\d,.]+)/);
+    if (!m52) continue;
+    const lo = parseFloat(m52[1].replace(/,/g, ''));
+    const hi = parseFloat(m52[2].replace(/,/g, ''));
+    if (lo <= 0 || !isFinite(hi)) continue;
+    const ratio = hi / lo;
+    if (ratio < 5) continue;
+    if (audit) audit.fixes.unrealistic52WRange.push(`${p.ticker}:${m52[1]}-${m52[2]} (${ratio.toFixed(1)}x)`);
+    p.action = 'watch';
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `52주 범위 비현실(${ratio.toFixed(1)}x) — split/통화/데이터 오류 의심, 진입 보류`;
+  }
+  return s;
+}
+
+/**
+ * stopLossRationale 의 가격이 portfolio.stopLoss 와 50% 이상 차이나면 한쪽으로 통일.
+ * portfolio.stopLoss = $687 vs rationale = $201 같은 케이스.
+ * 더 작은 값(저점 근처) 을 선호 — 일반적으로 후처리 enrichStopLoss 가 더 합리.
+ */
+export function fixStopRationaleMismatch<T extends {
+  portfolio: Array<{ ticker: string; stopLoss: string }>;
+  stopLossRationale?: Array<{ ticker: string; rationale: string }>;
+}>(s: T, audit?: HarnessAudit): T {
+  if (!s.stopLossRationale) return s;
+  for (const sr of s.stopLossRationale) {
+    const p = s.portfolio.find(x => x.ticker === sr.ticker);
+    if (!p) continue;
+    const stopP = parseFirstPrice(p.stopLoss);
+    if (!stopP) continue;
+    const matches = sr.rationale?.match(/[$₩][\d,.]+/g) || [];
+    const vals = matches.map(m => parseFloat(m.replace(/[$₩,]/g, ''))).filter(v => v > 0);
+    // rationale 에 portfolio.stopLoss 보다 50% 이상 작은 가격이 있으면 그게 진짜 stop
+    const truer = vals.find(v => v < stopP * 0.5);
+    if (!truer) continue;
+    if (audit) audit.fixes.stopRationaleMismatch.push(`${sr.ticker}:portfolio=${stopP}→${truer} (rationale 기준)`);
+    // 통화 추정
+    const isKR = (p.stopLoss || '').includes('₩') || sr.rationale?.includes('₩');
+    const fmt = isKR
+      ? (n: number) => `₩${Math.round(n / 100) * 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : (n: number) => `$${n.toFixed(2)}`;
+    p.stopLoss = fmt(truer);
+  }
+  return s;
 }
 
 /**
@@ -444,6 +504,7 @@ export function preValidateFix<T extends {
   sectorAllocation: Array<{ pct: number }>;
   insiderSignals?: Array<{ ticker?: string; filings: unknown }>;
   companyChanges?: Array<{ ticker: string; name: string }>;
+  stopLossRationale?: Array<{ ticker: string; rationale: string }>;
 }>(s: T, audit: HarnessAudit = emptyAudit()): { strategy: T; audit: HarnessAudit } {
   fixKoreaTickerNames(s, audit);
   fixCompanyChangeNames(s, audit);
@@ -454,6 +515,8 @@ export function preValidateFix<T extends {
   fixBuyLowConfidence(s, audit);
   detectStopAboveEntry(s, audit);
   fixEntryFar50MA(s, audit);
+  detect52WUnrealistic(s, audit);
+  fixStopRationaleMismatch(s, audit);
   audit.totalFixes = countAudit(audit);
   return { strategy: s, audit };
 }
