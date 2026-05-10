@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { GitMerge, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -26,9 +27,13 @@ const CASCADE_DIR_STYLE: Record<string, { icon: string; cls: string }> = {
 export default function NewsCascadeTab() {
   const t = useTranslations('intelligence');
   const locale = useLocale();
+  const searchParams = useSearchParams();
+  const targetArticleId = searchParams.get('articleId');
   const [news, setNews] = useState<NewsWithCascadeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const didScrollRef = useRef(false);
   const SENTIMENT_LABEL: Record<string, string> = {
     bullish: t('ncSentimentBullish'),
     bearish: t('ncSentimentBearish'),
@@ -49,6 +54,20 @@ export default function NewsCascadeTab() {
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, []);
+
+  // ?articleId=… 가 있으면 해당 기사 자동 expand + scroll into view (홈 LiveFeed 클릭 진입용)
+  useEffect(() => {
+    if (!targetArticleId || loading || news.length === 0 || didScrollRef.current) return;
+    // article.id 가 없는 경우 title 로 매칭 (latest-updates fallback id 와 일치)
+    const match = news.find(n => n.id === targetArticleId || n.title === targetArticleId);
+    if (!match) return;
+    setExpanded(match.id);
+    const node = itemRefs.current.get(match.id);
+    if (node) {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      didScrollRef.current = true;
+    }
+  }, [targetArticleId, loading, news]);
 
   if (loading) return (
     <div className="flex items-center justify-center gap-2 py-16 text-cf-text-secondary">
@@ -79,8 +98,13 @@ export default function NewsCascadeTab() {
           const isOpen = expanded === item.id;
           const ss = SENTIMENT_STYLE[item.sentiment] ?? SENTIMENT_STYLE.neutral;
           const imp = IMPORTANCE_STYLE[item.importance] ?? IMPORTANCE_STYLE.low;
+          const isHighlighted = targetArticleId && (item.id === targetArticleId || item.title === targetArticleId);
           return (
-            <div key={item.id} className={`cf-card overflow-hidden ${imp.cls}`}>
+            <div
+              key={item.id}
+              ref={(el) => { itemRefs.current.set(item.id, el); }}
+              className={`cf-card overflow-hidden ${imp.cls} ${isHighlighted ? 'ring-2 ring-cf-primary ring-offset-2' : ''}`}
+            >
               <div className="p-4">
                 <div className="flex items-start gap-2 mb-2">
                   <div className="flex-1 min-w-0">

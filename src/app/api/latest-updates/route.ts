@@ -299,6 +299,8 @@ async function getNewsCascadeItems(redis: Redis | null, base: string): Promise<U
 function newsItemFrom(article: { title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }, id: string): UpdateItem {
   const cascades = article.cascades ?? [];
   const cascadeStr = cascades.slice(0, 3).map(c => `${c.asset}${c.direction === 'positive' ? '↑' : c.direction === 'negative' ? '↓' : ''}`).join(' ');
+  // 클릭 시 IntelligencePage news 탭으로 이동 + 해당 기사 자동 expand 하도록 articleId 전달
+  const linkHref = `/intelligence?tab=news&articleId=${encodeURIComponent(id)}`;
   return {
     id: `news-${id}`,
     type: 'news',
@@ -309,7 +311,7 @@ function newsItemFrom(article: { title: string; pubDate: string; source: string;
     sortTime: article.pubDate,
     badge: article.sentiment === 'bullish' ? 'Bullish' : article.sentiment === 'bearish' ? 'Bearish' : 'News',
     badgeColor: article.sentiment === 'bullish' ? '#10b981' : article.sentiment === 'bearish' ? '#ef4444' : '#6366f1',
-    link: '/cascade',
+    link: linkHref,
     direction: article.sentiment === 'bullish' ? 'up' : article.sentiment === 'bearish' ? 'down' : 'neutral',
   };
 }
