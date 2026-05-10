@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   if (!redis && !force && INSIDER_MEMORY_CACHE && Date.now() < INSIDER_MEMORY_CACHE.expiresAt) {
     const items = tickerFilter ? INSIDER_MEMORY_CACHE.items.filter(t => t.ticker === tickerFilter) : INSIDER_MEMORY_CACHE.items;
-    return NextResponse.json({ items, cached: true, total: INSIDER_MEMORY_CACHE.items.length }, { headers: CDN_HEADERS });
+    return NextResponse.json({ items, cached: true, total: INSIDER_MEMORY_CACHE.items.length, source: 'edgar-form4' }, { headers: CDN_HEADERS });
   }
 
   if (redis && !force) {
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
       if (cached) {
         const filtered = tickerFilter ? cached.filter(t => t.ticker === tickerFilter) : cached;
         logger.info('api.insider-trades', 'cache_hit', { total: cached.length, filtered: filtered.length, durationMs: Date.now() - reqStart });
-        return NextResponse.json({ items: filtered, cached: true, total: cached.length }, { headers: CDN_HEADERS });
+        return NextResponse.json({ items: filtered, cached: true, total: cached.length, source: 'edgar-form4' }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.insider-trades', 'cache_read_error', { error: err }); }
   }
@@ -69,6 +69,7 @@ export async function GET(req: Request) {
           cached: true,
           total: prior.length,
           note: 'EDGAR getcurrent feed empty — returning prior snapshot',
+          source: 'edgar-form4-stale',
           durationMs: Date.now() - reqStart,
         }, { headers: CDN_HEADERS });
       }
@@ -77,5 +78,5 @@ export async function GET(req: Request) {
 
   const filtered = tickerFilter ? transactions.filter(t => t.ticker === tickerFilter) : transactions;
   logger.info('api.insider-trades', 'served', { total: transactions.length, filtered: filtered.length, forced: force, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ items: filtered, cached: false, total: transactions.length }, { headers: CDN_HEADERS });
+  return NextResponse.json({ items: filtered, cached: false, total: transactions.length, source: transactions.length > 0 ? 'edgar-form4' : 'empty' }, { headers: CDN_HEADERS });
 }

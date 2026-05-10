@@ -702,7 +702,7 @@
 
 ### 13-6. 금리 커브 + 변동성 카드 (2열 그리드, 동적 로드)
 **파일**: `src/components/YieldCurveCard.tsx`  
-**데이터**: `/api/yield-curve` (FRED CSV 무키, 1h Redis 캐시)
+**데이터**: `/api/yield-curve` (FRED CSV 무키, 1h Redis 캐시; `source: fred\|fred-stale(>7일)\|empty`)
 
 - 현재 · 1주 전 · 1개월 전 · 3개월 전 수익률 곡선 4선 오버레이 (과거 비교 토글)
 - 수익률 테이블 (1M~30Y, 9 만기)
@@ -711,7 +711,7 @@
 - TIPS 실질금리 곡선 (5Y~30Y, 5 만기) — 탭 전환
 - Breakeven 인플레이션 (5Y, 10Y 일별 시계열 90일)
 
-**`VolatilityCard`** — `/api/volatility` (Yahoo Finance chart, 30min 캐시)
+**`VolatilityCard`** — `/api/volatility` (Yahoo Finance chart → CBOE CDN fallback, 30min 캐시; `source: yahoo\|cboe-fallback\|mixed\|stale\|empty`)
 - VIX 기간 구조 바 차트: VXST(9일) / VIX(30일) / VXMT(6개월)
 - 콘탱고/백워데이션/험프형 레짐 배지
 - 90일 VIX 이력 Area 차트 (20/30 기준선)
@@ -892,28 +892,28 @@ ownership-alerts 적용).
 | `/api/investment-strategy` | 전 탭 컨텍스트 종합 + Yahoo v7 배치 19종목 → GROQ/Qwen/Gemini (v6 키: 일별 1회 갱신; 폴백 5min 캐시) | 12h Redis / 4h mem |
 | `/api/signals` | EDGAR 13F (Redis `flowvium:13f-signals:v1`) | 7일 |
 | `/api/news-cascade` | RSS 5개 피드 + 통합 AI 체인 (GROQ 8b, skipVllm=true, preferSmallModel); Redis 분산 락(90s) 썬더링 허드 차단; 한자 혼입 0% guard | 기사별 24h (cascade>0만) / 목록 1h~12h |
-| `/api/capital-flows` | Twelve Data → Yahoo v7 spark batch → Nasdaq public API (5-concur/200ms) → Finnhub (FINNHUB_KEY) | 4h |
-| `/api/macro-indicators` | FRED CSV + FRED API | 25h (일별 키) |
+| `/api/capital-flows` | Twelve Data → Yahoo v7 spark batch → Nasdaq public API (5-concur/200ms) → Finnhub (FINNHUB_KEY); `source: live\|stale\|empty` | 4h |
+| `/api/macro-indicators` | FRED CSV + FRED API; `source: fred\|mixed\|static` + `liveCount/staticCount` (일부 indicator 만 live 일 때 mixed) | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
 | `/api/fear-greed` | CNN 방식 + Yahoo Finance | 4h |
-| `/api/credit-balance` | KRX / BOK ECOS / static-estimated | 24h |
+| `/api/credit-balance` | KRX / BOK ECOS / per-country live overlay; `source: live\|mixed\|static` + `liveCount/staticCount`; per-country `liveData` 플래그 | 24h |
 | `/api/flow-analysis` | capital-flows + 통합 AI 체인 (vLLM → GROQ → Qwen → Gemini, skipVllm=true로 GROQ 70b부터) | 4h |
-| `/api/insider-trades` | EDGAR Form 4 | 캐시 |
-| `/api/ownership-alerts` | EDGAR 13D/13G | 캐시 |
-| `/api/nport-holdings` | EDGAR N-PORT | 캐시 |
+| `/api/insider-trades` | EDGAR Form 4; `source: edgar-form4\|edgar-form4-stale\|empty` | 캐시 |
+| `/api/ownership-alerts` | EDGAR 13D/13G; `source: edgar-13dg\|edgar-13dg-stale\|empty` | 캐시 |
+| `/api/nport-holdings` | EDGAR N-PORT-P; `source: edgar-nport\|empty` | 캐시 |
 | `/api/block-trades` | Polygon (API 키 필요) | 5분 |
 | `/api/options-flow` | Unusual Whales (API 키 필요) | 캐시 |
-| `/api/korea-flow` | KRX POST API | 캐시 |
+| `/api/korea-flow` | KRX → Naver(foreign-only) → Yahoo(price-only) cascade; `source: krx\|naver-fallback\|yahoo-price-only` | 캐시 |
 | `/api/short-interest` | EDGAR 13F + FINRA 일간 공매도율; shortRatio(DTC): FINRA monthly 403(Cloudflare) → null 유지 | 캐시 |
 | `/api/market-heatmap` | iShares ETF CSV + Stooq(JP/EU) + Yahoo v8(KR/TW/IN/CN/EU-fallback) + CNBC(지수) | 15m Redis; EU 79/80 (98.75%) |
-| `/api/market-caps` | 정적 band 분류 (allCompanies) | band 분류만 반환; Yahoo v7 crumb 불가로 live USD 제거 |
+| `/api/market-caps` | 정적 band 분류 (allCompanies); 단일 ticker 시 Yahoo v8 chart 의 live cap; `source: yahoo-live\|static-band` | map 24h CDN; 단일 ticker 4h CDN (장중 변동 반영) |
 | `/api/sector-pe` | Yahoo Finance v8 (no auth) | 4h Redis; 11개 SPDR 섹터 ETF; price + changePct + ytdReturn + 52주 범위 |
 | `/api/sector-metrics` | Yahoo Finance (CL=F, ^TNX) + FRED CSV (MHHNGSP, DRCCLACBS, DFEDTARU) + Redis ISM 캐시 | 6h Redis |
 | `/api/cascade-events` | Redis `flowvium:cascade:events:v1` | Redis (크론 갱신) |
 | `/api/cron/log-cascade-events` | Yahoo Finance 10d prices + AI 체인 설명 생성 (주간 크론) | Redis LPUSH, TTL 180일 |
 | `/api/price-history?ticker=X&days=N` | Stooq daily CSV | 1h Redis + 30min memory |
 | `/api/batch-prices?tickers=A,B,...` | Yahoo Finance v7 quote (최대 120 티커) | 5분 메모리 (티커별) ← iter117 |
-| `/api/stock-supply` | (ticker별 on-demand) | 캐시 |
+| `/api/stock-supply` | (ticker별 on-demand) Yahoo v8 + EDGAR Form 4 + Redis 13F live overlay; `source: live\|price-only\|ownership-only\|static` | 1h Redis (3h→1h: 가격/거래량 신선도) |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
 | `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll, 연결재무제표) | 24h Redis |
 | `/api/company-kr/list` | DART CORPCODE.xml + company.json (companies-kr.ts 기반) | 7일 Redis |

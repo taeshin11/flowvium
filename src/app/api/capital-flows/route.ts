@@ -611,7 +611,14 @@ export async function GET() {
     };
   }).filter(s => s.ret4w != null || s.ret13w != null);
 
-  const response = { assets: results, flow, goldVsDollar, countryFlow, factorPerformance, sectorPerformance, dataSource: sourceSummary || dataSource, updatedAt: new Date().toISOString() };
+  const response = {
+    assets: results, flow, goldVsDollar, countryFlow, factorPerformance, sectorPerformance,
+    dataSource: sourceSummary || dataSource,
+    // top-level source: 한 자산이라도 fetch 됐으면 'live', 모두 실패면 'stale'(stale fallback) 또는 'empty'
+    source: results.length > 0 ? 'live' : (staleResult ? 'stale' : 'empty'),
+    assetCount: results.length,
+    updatedAt: new Date().toISOString(),
+  };
 
   const hasData = results.length > 0;
   if (redis) {

@@ -367,6 +367,7 @@ export async function GET(req: Request) {
 
   let all: KoreaFlowEntry[];
   let trdDd: string;
+  let dataSource: 'krx' | 'naver-fallback' | 'yahoo-price-only' = 'krx';
 
   if (period === '1d') {
     // Single-day with fallback scan (original behaviour)
@@ -381,6 +382,7 @@ export async function GET(req: Request) {
         logger.info('api.korea-flow', 'krx_empty_naver_fallback', { period, tickers: naverFlow.entries.length });
         all = naverFlow.entries;
         trdDd = naverFlow.trdDd;
+        dataSource = 'naver-fallback';
       } else {
         // Final fallback: Yahoo price data only
         const yahooEntries = await fetchYahooKoreaFallback();
@@ -391,6 +393,7 @@ export async function GET(req: Request) {
           topForeignBuy: byDesc.slice(0,15), topForeignSell: byAsc.slice(0,15),
           topInstBuy: [] as KoreaFlowEntry[], topInstSell: [] as KoreaFlowEntry[],
           totalTickers: yahooEntries.length, fallback: true, period,
+          source: 'yahoo-price-only' as const,
           fallbackReason: 'KRX + Naver unavailable — Yahoo Finance price data only' };
         await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
         return NextResponse.json({ ...fp, cached: false }, { headers: cdnHeaders });
@@ -414,6 +417,7 @@ export async function GET(req: Request) {
         logger.info('api.korea-flow', 'krx_empty_naver_1d_approx', { period });
         all = naverFlow.entries;
         trdDd = naverFlow.trdDd;
+        dataSource = 'naver-fallback';
       } else {
         const yahooEntries = await fetchYahooKoreaFallback();
         logger.warn('api.korea-flow', 'krx_naver_empty_yahoo_fallback', { period });
@@ -425,6 +429,7 @@ export async function GET(req: Request) {
           topForeignBuy: byDesc.slice(0, 15), topForeignSell: byAsc.slice(0, 15),
           topInstBuy: [] as KoreaFlowEntry[], topInstSell: [] as KoreaFlowEntry[],
           totalTickers: yahooEntries.length, fallback: true, period,
+          source: 'yahoo-price-only' as const,
           fallbackReason: 'KRX + Naver unavailable — Yahoo Finance price data only',
         };
         await loggedRedisSet(redis, 'api.korea-flow', cfg.key, fp, { ex: cfg.ttl });
@@ -433,7 +438,7 @@ export async function GET(req: Request) {
     }
   }
 
-  const payload = buildPayload(all, trdDd, { period });
+  const payload = buildPayload(all, trdDd, { period, source: dataSource });
   await loggedRedisSet(redis, 'api.korea-flow', cfg.key, payload, { ex: cfg.ttl });
   if (!redis) KOREA_MEMORY_CACHE.set(period, { data: payload, expiresAt: Date.now() + (KOREA_MEMORY_TTLS[period] ?? 15 * 60 * 1000) });
   logger.info('api.korea-flow', 'served', { period, totalTickers: all.length, durationMs: Date.now() - reqStart });

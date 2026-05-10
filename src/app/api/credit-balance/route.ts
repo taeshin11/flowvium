@@ -21,6 +21,7 @@ import type { Redis } from '@upstash/redis';
 import { fetchAllCreditData, type LiveCreditData } from '@/lib/credit-fetchers';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 const REDIS_KEY_LIVE = 'flowvium:credit-balance:live:v1';
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=82800, stale-while-revalidate=3600' };
@@ -61,6 +62,8 @@ export interface CountryCreditData {
   lastUpdated: string;      // data as-of date
   // For plain language explanation
   laymanSummary: string;
+  // Per-country live data flag — true 면 currentBalance/gdpRatio 가 fetch 결과로 overlay 됨
+  liveData?: boolean;
 }
 
 /** Read live credit data from Redis (populated by cron). Returns null per country if missing. */
@@ -511,18 +514,26 @@ export async function GET() {
       histPercentile,
       riskLevel,
       changeYoY,
+      liveData: liveEntry != null,
     };
   });
 
   const globalSnapshot = buildGlobalSnapshot(countries);
 
-  // Determine if any live data was actually applied
-  const hasLiveEntries = Object.values(live).some(v => v !== null);
+  // 3-tier source: 모든 country live → 'live', 일부만 → 'mixed', 전부 static → 'static'
+  const liveCount = countries.filter(c => c.liveData).length;
+  const totalCount = countries.length;
+  const responseSource: 'live' | 'mixed' | 'static' =
+    liveCount === totalCount ? 'live'
+    : liveCount === 0 ? 'static'
+    : 'mixed';
   const response = {
     countries,
     usLongHistory: US_LONG_HISTORY,
     globalSnapshot,
-    source: hasLiveEntries ? 'live' : 'static',
+    source: responseSource,
+    liveCount,
+    staticCount: totalCount - liveCount,
     updatedAt: new Date().toISOString(),
     cached: false,
   };

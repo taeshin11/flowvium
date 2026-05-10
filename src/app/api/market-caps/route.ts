@@ -19,8 +19,10 @@ import { type MarketCapBand, YAHOO_HEADERS } from '@/lib/yahoo-finance';
 export const dynamic = 'force-dynamic';
 
 const CACHE_KEY = 'flowvium:market-caps:v2';
-const CACHE_TTL = 24 * 60 * 60; // 24h
-const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
+const CACHE_TTL = 24 * 60 * 60; // 24h — bands enum 은 allCompanies 정적이므로 길어도 OK
+// 단일 ticker live cap 은 Yahoo 응답 그대로 반환 — CDN 은 4h 로 단축 (장중 변동 반영)
+const CDN_HEADERS_MAP = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
+const CDN_HEADERS_TICKER = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=300' };
 
 export const maxDuration = 60;
 
@@ -65,9 +67,13 @@ export async function GET(req: Request) {
           const band = cached.bands[filterTicker] ?? null;
           const liveCap = await fetchYahooCap(filterTicker);
           const caps = liveCap != null ? { [filterTicker]: liveCap } : {};
-          return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps, updatedAt: cached.updatedAt, count: 1, cached: true }, { headers: CDN_HEADERS });
+          return NextResponse.json({
+            bands: band ? { [filterTicker]: band } : {}, caps,
+            updatedAt: cached.updatedAt, count: 1, cached: true,
+            source: liveCap != null ? 'yahoo-live' : 'static-band',
+          }, { headers: CDN_HEADERS_TICKER });
         }
-        return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
+        return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS_MAP });
       }
     } catch (err) { logger.warn('api.market-caps', 'cache_read_error', { error: err }); }
   }
@@ -96,7 +102,11 @@ export async function GET(req: Request) {
     const band = payload.bands[filterTicker] ?? null;
     const liveCap = await fetchYahooCap(filterTicker);
     const caps = liveCap != null ? { [filterTicker]: liveCap } : {};
-    return NextResponse.json({ bands: band ? { [filterTicker]: band } : {}, caps, updatedAt: payload.updatedAt, count: 1, cached: false }, { headers: CDN_HEADERS });
+    return NextResponse.json({
+      bands: band ? { [filterTicker]: band } : {}, caps,
+      updatedAt: payload.updatedAt, count: 1, cached: false,
+      source: liveCap != null ? 'yahoo-live' : 'static-band',
+    }, { headers: CDN_HEADERS_TICKER });
   }
-  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS });
+  return NextResponse.json({ ...payload, cached: false }, { headers: CDN_HEADERS_MAP });
 }

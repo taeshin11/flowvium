@@ -1178,7 +1178,8 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       key: 'accuracy.credit-balance.source',
       label: 'Credit Balance source field (live vs static)',
       group: 'accuracy',
-      status: source === 'live' ? 'ok' : source === 'static-estimated' ? 'degraded' : 'error',
+      // 'live' = 모든 country live fetch 성공, 'mixed' = 일부, 'static' = 전부 실패
+      status: source === 'live' ? 'ok' : source === 'mixed' ? 'degraded' : source === 'static' ? 'error' : 'error',
       value: `source=${source ?? 'missing'}`,
       details: { source },
     });
@@ -1190,6 +1191,115 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       status: 'error',
       lastError: err instanceof Error ? err.message : String(err),
     });
+  }
+
+  // 9. 다른 endpoint 들 source 필드 표준화 검증 (2026-05 신규)
+  //    각 endpoint 가 'live' 또는 그에 준하는 정상 source 를 보고하는지 확인
+  const sourceProbes: Array<{
+    path: string; key: string; label: string;
+    okSources: string[]; degradedSources: string[];
+  }> = [
+    {
+      path: '/api/macro-indicators', key: 'accuracy.macro.source',
+      label: 'Macro Indicators source (FRED 활성)',
+      okSources: ['fred'], degradedSources: ['mixed'],
+    },
+    {
+      path: '/api/yield-curve', key: 'accuracy.yield-curve.source',
+      label: 'Yield Curve source (FRED 신선도)',
+      okSources: ['fred'], degradedSources: ['fred-stale'],
+    },
+    {
+      path: '/api/capital-flows', key: 'accuracy.capital-flows.source',
+      label: 'Capital Flows source (Yahoo/TwelveData live)',
+      okSources: ['live'], degradedSources: ['stale'],
+    },
+    {
+      path: '/api/korea-flow?period=1d', key: 'accuracy.korea-flow.source',
+      label: 'Korea Flow source (KRX 활성)',
+      okSources: ['krx'], degradedSources: ['naver-fallback', 'yahoo-price-only'],
+    },
+    {
+      path: '/api/volatility', key: 'accuracy.volatility.source',
+      label: 'Volatility source (Yahoo/CBOE)',
+      okSources: ['yahoo', 'cboe-fallback', 'mixed'], degradedSources: ['stale'],
+    },
+    {
+      path: '/api/insider-trades', key: 'accuracy.insider-trades.source',
+      label: 'Insider Trades source (EDGAR Form 4)',
+      okSources: ['edgar-form4'], degradedSources: ['edgar-form4-stale'],
+    },
+    {
+      path: '/api/ownership-alerts', key: 'accuracy.ownership-alerts.source',
+      label: 'Ownership Alerts source (EDGAR 13D/G)',
+      okSources: ['edgar-13dg'], degradedSources: ['edgar-13dg-stale'],
+    },
+    {
+      path: '/api/nport-holdings', key: 'accuracy.nport-holdings.source',
+      label: 'N-PORT source (EDGAR N-PORT-P)',
+      okSources: ['edgar-nport'], degradedSources: [],
+    },
+    {
+      path: '/api/company-kr/list', key: 'accuracy.company-kr.source',
+      label: 'KR Company List source (DART+static)',
+      okSources: ['dart+static'], degradedSources: [],
+    },
+    {
+      path: '/api/supply-chain-signals', key: 'accuracy.supply-chain-signals.source',
+      label: 'Supply Chain Signals source',
+      // signal 별 source 가 섞여 있음 — top-level 'mixed' 또는 'live' 모두 OK
+      okSources: ['live', 'mixed'], degradedSources: ['static'],
+    },
+  ];
+
+  // 10. satellite-scan 신선도 — cron-only endpoint (manual trigger), Redis 직접 조회
+  //     /api/cron/satellite-scan 자체는 cron-only 라 verify-metrics 에서 호출 불가 — 결과 키만 확인
+  try {
+    const probeRedis = createRedis();
+    if (probeRedis) {
+      const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+      const scanKey = `flowvium:satellite:v1:${today}`;
+      const scan = await probeRedis.get(scanKey);
+      const isFresh = scan != null;
+      items.push({
+        key: 'accuracy.satellite-scan.freshness',
+        label: 'Satellite Scan 오늘자 결과',
+        group: 'accuracy',
+        // satellite-scan 은 수동 trigger 라 stale 이어도 'degraded' 로 보고
+        status: isFresh ? 'ok' : 'degraded',
+        value: isFresh ? `key=${scanKey} present` : `${scanKey} missing — 수동 scan 필요`,
+        details: { scanKey, hasResult: isFresh },
+      });
+    }
+  } catch (err) {
+    items.push({
+      key: 'accuracy.satellite-scan.freshness',
+      label: 'Satellite Scan 오늘자 결과',
+      group: 'accuracy',
+      status: 'error',
+      lastError: err instanceof Error ? err.message : String(err),
+    });
+  }
+  for (const probe of sourceProbes) {
+    try {
+      const r = await safeJson(base, probe.path, 8000);
+      if (!r.ok) throw new Error(`HTTP ${r.status ?? 'fetch failed'}`);
+      const data = r.data as { source?: string };
+      const source = data.source ?? 'missing';
+      items.push({
+        key: probe.key, label: probe.label, group: 'accuracy',
+        status: probe.okSources.includes(source) ? 'ok'
+          : probe.degradedSources.includes(source) ? 'degraded'
+          : 'error',
+        value: `source=${source}`,
+        details: { source, path: probe.path },
+      });
+    } catch (err) {
+      items.push({
+        key: probe.key, label: probe.label, group: 'accuracy',
+        status: 'error', lastError: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   return items;

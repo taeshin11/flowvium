@@ -42,7 +42,7 @@ export async function GET(req: Request) {
       if (cached) {
         const filtered = tickerFilter ? cached.filter(a => a.ticker === tickerFilter) : cached;
         logger.info('api.ownership-alerts', 'cache_hit', { total: cached.length, filtered: filtered.length });
-        return NextResponse.json({ items: filtered, cached: true, total: cached.length }, { headers: CDN_HEADERS });
+        return NextResponse.json({ items: filtered, cached: true, total: cached.length, source: 'edgar-13dg' }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.ownership-alerts', 'cache_read_error', { error: err }); }
   }
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     const cached = MEMORY_CACHE.alerts;
     const filtered = tickerFilter ? cached.filter(a => a.ticker === tickerFilter) : cached;
     logger.info('api.ownership-alerts', 'memory_cache_hit', { total: cached.length, filtered: filtered.length });
-    return NextResponse.json({ items: filtered, cached: true, cacheLayer: 'memory', total: cached.length }, { headers: CDN_HEADERS });
+    return NextResponse.json({ items: filtered, cached: true, cacheLayer: 'memory', total: cached.length, source: 'edgar-13dg' }, { headers: CDN_HEADERS });
   }
 
   const alerts = await fetchRecentOwnershipAlerts({ minPercent: 5 });
@@ -76,6 +76,7 @@ export async function GET(req: Request) {
           cached: true,
           total: prior.length,
           note: 'EDGAR getcurrent feed empty — returning prior snapshot',
+          source: 'edgar-13dg-stale',
           durationMs: Date.now() - reqStart,
         }, { headers: CDN_HEADERS });
       }
@@ -91,11 +92,12 @@ export async function GET(req: Request) {
       cacheLayer: 'memory',
       total: prior.length,
       note: 'EDGAR empty window — returning prior in-memory snapshot',
+      source: 'edgar-13dg-stale',
       durationMs: Date.now() - reqStart,
     }, { headers: CDN_HEADERS });
   }
 
   const filtered = tickerFilter ? alerts.filter(a => a.ticker === tickerFilter) : alerts;
   logger.info('api.ownership-alerts', 'served', { total: alerts.length, filtered: filtered.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ items: filtered, cached: false, total: alerts.length }, { headers: CDN_HEADERS });
+  return NextResponse.json({ items: filtered, cached: false, total: alerts.length, source: alerts.length > 0 ? 'edgar-13dg' : 'empty' }, { headers: CDN_HEADERS });
 }

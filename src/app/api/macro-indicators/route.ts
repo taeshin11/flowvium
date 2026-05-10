@@ -1119,13 +1119,23 @@ export async function GET(request: Request) {
 
   const yc = get(yieldCurve as PromiseSettledResult<{ points: YieldPoint[]; inverted: boolean; spread10y2y: number | null } | null>) ?? { points: [], inverted: false, spread10y2y: null };
   const now = new Date().toISOString();
-  const responseSource = indicators.some(ind => ind.liveData) || yc.points.some(pt => pt.value != null) ? 'fred' : 'static';
+  const liveCount = indicators.filter(ind => ind.liveData).length;
+  const totalCount = indicators.length;
+  const ycLive = yc.points.some(pt => pt.value != null);
+  // 3-tier source: all-live → 'fred', some-live → 'mixed', none-live → 'static'.
+  // verify-metrics 가 'mixed'/'static' 을 별도 감지해 stale 노출 방지.
+  const responseSource: 'fred' | 'mixed' | 'static' =
+    liveCount === totalCount && ycLive ? 'fred'
+    : liveCount === 0 && !ycLive ? 'static'
+    : 'mixed';
   const response = {
     indicators,
     yieldCurve: yc,
     updatedAt: now,
     source: responseSource,
-    ...(responseSource === 'static' ? { staticAsOf: STATIC_DATA_AS_OF } : {}),
+    liveCount,
+    staticCount: totalCount - liveCount,
+    ...(responseSource !== 'fred' ? { staticAsOf: STATIC_DATA_AS_OF } : {}),
   };
 
   if (redis) {

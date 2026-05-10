@@ -41,6 +41,7 @@ export interface VolatilityData {
   dataDate: string | null;
   updatedAt: string;
   cached: boolean;
+  source: 'yahoo' | 'cboe-fallback' | 'mixed' | 'stale' | 'empty';
 }
 
 const YF_HEADERS = YAHOO_HEADERS;
@@ -188,10 +189,11 @@ export async function GET() {
   // CBOE CDN fallback — activates when Vercel IP is Yahoo rate-limited
   let vixFinal = vix;
   let histFinal = history;
+  let cboeUsed = false;
   if (vixFinal == null || histFinal.length < 10) {
     const cboe = await fetchVixFromCBOE();
-    if (cboe.current != null) vixFinal = cboe.current;
-    if (cboe.history.length >= 10) histFinal = cboe.history;
+    if (cboe.current != null) { vixFinal = cboe.current; cboeUsed = true; }
+    if (cboe.history.length >= 10) { histFinal = cboe.history; cboeUsed = true; }
     if (cboe.current != null) logger.info('volatility', 'cboe_fallback', { vix: cboe.current, histLen: cboe.history.length });
   }
 
@@ -201,19 +203,26 @@ export async function GET() {
   let vvixFinal = vvix;
   if (vxstFinal == null) {
     vxstFinal = await fetchCBOEIndex('VIX9D');
-    if (vxstFinal != null) logger.info('volatility', 'cboe_fallback', { metric: 'vxst', value: vxstFinal });
+    if (vxstFinal != null) { logger.info('volatility', 'cboe_fallback', { metric: 'vxst', value: vxstFinal }); cboeUsed = true; }
   }
   if (vxmtFinal == null) {
     vxmtFinal = await fetchCBOEIndex('VIX6M');
-    if (vxmtFinal != null) logger.info('volatility', 'cboe_fallback', { metric: 'vxmt', value: vxmtFinal });
+    if (vxmtFinal != null) { logger.info('volatility', 'cboe_fallback', { metric: 'vxmt', value: vxmtFinal }); cboeUsed = true; }
   }
   if (vvixFinal == null) {
     vvixFinal = await fetchCBOEIndex('VVIX', 1); // VVIX CSV is DATE,CLOSE (2 cols)
-    if (vvixFinal != null) logger.info('volatility', 'cboe_fallback', { metric: 'vvix', value: vvixFinal });
+    if (vvixFinal != null) { logger.info('volatility', 'cboe_fallback', { metric: 'vvix', value: vvixFinal }); cboeUsed = true; }
   }
 
   const { regime, estimated: regimeEstimated } = detectRegime(vxstFinal, vixFinal, vxmtFinal);
   const latestDate = histFinal.length ? histFinal[histFinal.length - 1].date : null;
+
+  const yahooUsed = vix != null || history.length >= 10 || vxst != null || vxmt != null || vvix != null;
+  const sourceLabel: VolatilityData['source'] =
+    vixFinal == null ? 'empty'
+    : cboeUsed && yahooUsed ? 'mixed'
+    : cboeUsed ? 'cboe-fallback'
+    : 'yahoo';
 
   const data: VolatilityData = {
     vxst: vxstFinal, vix: vixFinal, vxmt: vxmtFinal, vvix: vvixFinal,
@@ -223,6 +232,7 @@ export async function GET() {
     dataDate: latestDate,
     updatedAt: new Date().toISOString(),
     cached: false,
+    source: sourceLabel,
   };
 
   const hasData = data.vix != null;
@@ -242,7 +252,7 @@ export async function GET() {
       if (stale) {
         logger.info('api.volatility', 'stale_fallback', { note: 'Yahoo returned null, serving stale' });
         MEM_CACHE.set('global', stale as VolatilityData);
-        return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+        return NextResponse.json({ ...(stale as object), cached: true, stale: true, source: 'stale' }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
   }

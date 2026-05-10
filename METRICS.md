@@ -815,6 +815,15 @@
 | 297g | daily-brief fallback: VIX + regime 표시 | ✅ live | AI 없을 때 market 섹션에 VIX 수치 + low/elevated/high regime 레이블 (iter231) |
 | 297h | daily-brief fallback: CPI YoY 표시 | ✅ live | AI 없을 때 capital 섹션에 CPI%YoY + miss/beat 서프라이즈 (iter231) |
 | 297i | daily-brief 섹터명 한국어→영문 변환 | ✅ live | SECTOR_EN 역매핑으로 정보기술→Tech 등 11개 섹터 영문 표기 (전 언어 버전 정상화, iter231) |
+| 297j | accuracy.macro.source — FRED 활성 검증 | 🔄 cron | source=fred(ok)/mixed(degraded)/static(error) — STATIC 폴백 노출 감지 (2026-05-10) |
+| 297k | accuracy.yield-curve.source — FRED 신선도 검증 | 🔄 cron | source=fred(ok)/fred-stale(>7일)/empty(error) (2026-05-10) |
+| 297l | accuracy.capital-flows.source — Yahoo/Twelve live | 🔄 cron | source=live(ok)/stale(degraded)/empty(error) (2026-05-10) |
+| 297m | accuracy.korea-flow.source — KRX 활성 | 🔄 cron | source=krx(ok)/naver-fallback(degraded)/yahoo-price-only(degraded) (2026-05-10) |
+| 297n | accuracy.volatility.source — Yahoo/CBOE | 🔄 cron | source=yahoo/cboe-fallback/mixed(ok)/stale(degraded)/empty(error) (2026-05-10) |
+| 297o | accuracy.insider-trades.source — EDGAR Form 4 | 🔄 cron | source=edgar-form4(ok)/edgar-form4-stale(degraded) (2026-05-10) |
+| 297p | accuracy.ownership-alerts.source — EDGAR 13D/G | 🔄 cron | source=edgar-13dg(ok)/edgar-13dg-stale(degraded) (2026-05-10) |
+| 297q | accuracy.nport-holdings.source — EDGAR N-PORT-P | 🔄 cron | source=edgar-nport(ok)/empty(error) (2026-05-10) |
+| 297r | credit-balance source 3-tier 변경 | ✅ live | live(전체)/mixed(일부 fetch 실패)/static(전부 실패) — 'static-estimated' deprecated (2026-05-10) |
 
 ---
 

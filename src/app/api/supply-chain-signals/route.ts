@@ -428,7 +428,11 @@ export async function GET(request: Request) {
   if (!force && redis) {
     try {
       const cached = await redis.get(CACHE_KEY) as SupplyChainSignal[] | null;
-      if (cached) return NextResponse.json({ signals: cached, cached: true }, { headers: CDN_HEADERS });
+      if (cached) {
+        const liveCount = cached.filter(s => s.source === 'sec-8k' || s.source === 'dart' || s.source === 'satellite').length;
+        const topSource = liveCount > 0 ? (liveCount === cached.length ? 'live' : 'mixed') : 'static';
+        return NextResponse.json({ signals: cached, cached: true, source: topSource, liveCount, totalCount: cached.length }, { headers: CDN_HEADERS });
+      }
     } catch { /* non-fatal */ }
   }
 
@@ -465,5 +469,11 @@ export async function GET(request: Request) {
     await loggedRedisSet(redis, 'supply-chain-signals', CACHE_KEY, deduped, { ex: CACHE_TTL });
   }
 
-  return NextResponse.json({ signals: deduped, cached: false, count: deduped.length }, { headers: CDN_HEADERS });
+  // top-level source: live(전부 외부) / mixed(일부) / static(전부 cascade-update or cascade-inference)
+  const liveSignalCount = deduped.filter(s => s.source === 'sec-8k' || s.source === 'dart' || s.source === 'satellite').length;
+  const topSource = liveSignalCount > 0 ? (liveSignalCount === deduped.length ? 'live' : 'mixed') : 'static';
+  return NextResponse.json({
+    signals: deduped, cached: false, count: deduped.length,
+    source: topSource, liveCount: liveSignalCount, totalCount: deduped.length,
+  }, { headers: CDN_HEADERS });
 }

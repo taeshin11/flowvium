@@ -5,8 +5,8 @@ import { createRedis } from '@/lib/redis';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const CACHE_TTL = 3 * 60 * 60; // 3h
-const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=10800, stale-while-revalidate=300' };
+const CACHE_TTL = 60 * 60; // 1h — 가격/거래량 포함이므로 3h 는 너무 김
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' };
 const EDGAR_UA = 'FlowVium/1.0 taeshinkim11@gmail.com';
 
 // ── Fetch recent Form 4 filings from EDGAR ─────────────────────────────────
@@ -367,6 +367,11 @@ export async function GET(request: Request) {
     supplyLabel,
     updatedAt: new Date().toISOString(),
     cached: false,
+    // top-level source: 가격/거래량 fetch 성공 + 13F live 면 'live', 가격만 live 면 'price-only', 모두 실패면 'static'
+    source:
+      volData == null ? (ownership13FSource === 'live' ? 'ownership-only' : 'static')
+      : ownership13FSource === 'live' ? 'live'
+      : 'price-only',
   };
 
   if (redis) {

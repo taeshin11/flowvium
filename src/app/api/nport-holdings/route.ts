@@ -44,7 +44,12 @@ export async function GET(req: Request) {
 
   const funds = await fetchRecentNPORT({ feedCount: 30 });
   const byTicker = aggregateByTicker(funds);
-  const payload = { funds, byTicker, updatedAt: new Date().toISOString() };
+  const payload = {
+    funds, byTicker,
+    source: funds.length > 0 ? 'edgar-nport' : 'empty',
+    fundCount: funds.length,
+    updatedAt: new Date().toISOString(),
+  };
 
   await loggedRedisSet(redis, 'api.nport-holdings', CACHE_KEY, payload, { ex: CACHE_TTL });
   logger.info('api.nport-holdings', 'served', { funds: funds.length, byTicker: byTicker.length, durationMs: Date.now() - reqStart });

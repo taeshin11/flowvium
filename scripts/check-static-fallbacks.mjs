@@ -86,8 +86,9 @@ function getRelPath(abs) {
 }
 
 function hasSourceField(content) {
-  // source: 'live' | source: 'static' | source: 'cached' | source: dataSource 등
-  return /source:\s*['"`]?(live|static|cached|unknown)|source,\s|,\s*source\s*[,}]|instSource|ownership13FSource|analysisSource/.test(content);
+  // source: '<any string>' | source: <variable> | source 단축형 | 알려진 source 변수명
+  // 2026-05-10: source 값 화이트리스트 → 임의 문자열 허용 (live/mixed/static/krx/edgar-form4 등 모든 패턴 인정)
+  return /source:\s*['"`][^'"`]+['"`]|source:\s*[a-zA-Z_]\w*[,}\s]|source,\s|,\s*source\s*[,}]|instSource|ownership13FSource|analysisSource/.test(content);
 }
 
 function hasVerifyProbe(verifyContent, endpointPath) {

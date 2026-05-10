@@ -81,6 +81,7 @@ export interface YieldCurveData {
   dataDate: string | null;
   updatedAt: string;
   cached: boolean;
+  source: 'fred' | 'fred-stale' | 'empty';
 }
 
 function parseFredCsv(csv: string): Map<string, number> {
@@ -225,6 +226,13 @@ export async function GET() {
   const bei5yCurrent = latestDate ? closestValueOnOrBefore(bei5yMap, latestDate) : null;
   const bei10yCurrent = latestDate ? closestValueOnOrBefore(bei10yMap, latestDate) : null;
 
+  // source 결정: latestDate 가 7일 이상 stale 이면 'fred-stale', 데이터 없으면 'empty'
+  const dataAgeDays = latestDate
+    ? Math.floor((Date.now() - new Date(latestDate).getTime()) / (24 * 60 * 60 * 1000))
+    : null;
+  const source: YieldCurveData['source'] =
+    !latestDate ? 'empty' : (dataAgeDays !== null && dataAgeDays > 7) ? 'fred-stale' : 'fred';
+
   const data: YieldCurveData = {
     today: todayCurve,
     weekAgo: weekAgoCurve,
@@ -243,6 +251,7 @@ export async function GET() {
     dataDate: latestDate,
     updatedAt: new Date().toISOString(),
     cached: false,
+    source,
   };
 
   if (redis) {
