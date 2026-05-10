@@ -2070,7 +2070,26 @@ export async function GET(request: Request) {
       const existing = typeof raw === 'string' ? JSON.parse(raw) : raw;
       const arr = Array.isArray(existing) ? existing : [];
       const cleaned = arr.filter((e: unknown) => e && typeof e === 'object' && (e as Record<string,unknown>).key && (e as Record<string,unknown>).generatedAt);
-      const updated = [meta, ...cleaned].slice(0, 30);
+
+      // dedup: 같은 (kstDate-day, session, locale) 항목이 있으면 source 우선순위로 결정
+      // - fallback 은 non-fallback 을 덮지 않음 (skipPush=true)
+      // - non-fallback 은 기존 같은 session 의 모든 항목 제거 후 새 것만 추가
+      const dayHist = kstDateHist.slice(0, 10);
+      const sameSession = (e: Record<string, unknown>) =>
+        typeof e.kstDate === 'string' && e.kstDate.slice(0, 10) === dayHist &&
+        e.session === session && e.locale === locale;
+      const isFallbackSrc = (src: unknown) => typeof src === 'string' && (src === 'fallback' || src === 'data' || src.startsWith('fallback'));
+      const existingSame = cleaned.find(e => sameSession(e as Record<string, unknown>)) as Record<string, unknown> | undefined;
+      const skipPush = isFallbackSrc(strategy.source) && existingSame && !isFallbackSrc(existingSame.source);
+      let updated;
+      if (skipPush) {
+        logger.info('api.investment-strategy', 'history_skip_fallback', { locale, session, existingSource: existingSame!.source });
+        updated = cleaned.slice(0, 30);
+      } else {
+        // 같은 (날짜, session, locale) 의 이전 항목 모두 제거 후 새 것 추가
+        const filtered = cleaned.filter(e => !sameSession(e as Record<string, unknown>));
+        updated = [meta, ...filtered].slice(0, 30);
+      }
       // Merge with any in-memory items not yet persisted to Redis
       const memArr = memGetArray() ?? [];
       const memKeys = new Set(updated.map((e: Record<string,unknown>) => e.key));

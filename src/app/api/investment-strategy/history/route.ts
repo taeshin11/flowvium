@@ -61,7 +61,22 @@ export async function GET(req: Request) {
       m.sessionLabel = SESSION_KO[m.session] ?? m.session;
       return [m];
     });
-    return NextResponse.json({ items });
+    // dedup: 같은 (kstDate-day, session) 의 보고서가 여러 개면 source 우선 (non-fallback > fallback)
+    const isFallbackSrc = (s?: string) => !!s && (s === 'fallback' || s === 'data' || s.startsWith('fallback'));
+    const seen = new Map<string, HistoryMeta>();
+    for (const m of items) {
+      const key = `${(m.kstDate ?? '').slice(0, 10)}|${m.session}`;
+      const prev = seen.get(key);
+      if (!prev) { seen.set(key, m); continue; }
+      // non-fallback 우선, 같은 우선순위면 더 최신 (generatedAt 큰)
+      const prevFb = isFallbackSrc(prev.source);
+      const curFb = isFallbackSrc(m.source);
+      if (prevFb && !curFb) { seen.set(key, m); continue; }
+      if (!prevFb && curFb) continue;
+      if (m.generatedAt > prev.generatedAt) seen.set(key, m);
+    }
+    const dedupped = Array.from(seen.values()).sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+    return NextResponse.json({ items: dedupped });
   } catch {
     // Full Redis failure — serve from memory
     const memArr = memGetArray();
