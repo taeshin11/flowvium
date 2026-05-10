@@ -86,15 +86,15 @@
     },
     {
       "path": "/api/cron/update-all",
-      "schedule": "10 12 * * *"
+      "schedule": "10 13 * * *"
     },
     {
       "path": "/api/cron/daily-brief",
-      "schedule": "15 12 * * *"
+      "schedule": "15 13 * * *"
     },
     {
       "path": "/api/cron/investment-strategy",
-      "schedule": "20 12 * * *"
+      "schedule": "20 13 * * *"
     },
     {
       "path": "/api/cron/update-signals",

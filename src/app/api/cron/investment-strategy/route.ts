@@ -25,7 +25,43 @@ const activeLocales: readonly PriorityLocale[] = _envLocales
   : PRIORITY_LOCALES;
 
 const SCHEMA_VERSION = 8;
+const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
 function staleKey(locale: string) { return `flowvium:investment-strategy:stale:v${SCHEMA_VERSION}:${locale}`; }
+
+function getKstSession(): 'morning' | 'afternoon' | 'evening' {
+  const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
+  if (kstHour >= 7 && kstHour < 16) return 'morning';
+  if (kstHour >= 16 && kstHour < 22) return 'afternoon';
+  return 'evening';
+}
+function todayKstDate() {
+  return new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+}
+
+const isFallbackSrc = (s: unknown) =>
+  typeof s === 'string' && (s === 'fallback' || s === 'data' || s.startsWith('fallback'));
+
+/**
+ * 같은 (날짜, session, locale) 의 non-fallback 보고서가 hist 에 이미 있으면 true.
+ * Vercel cron 이 같은 session 에 fallback 을 또 push 하는 걸 차단.
+ */
+async function sessionAlreadyCovered(
+  redis: ReturnType<typeof createRedis>,
+  locale: string,
+): Promise<boolean> {
+  if (!redis) return false;
+  try {
+    const raw = await redis.get(HIST_KEY);
+    const arr = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Array<Record<string, unknown>> | null;
+    if (!Array.isArray(arr)) return false;
+    const day = todayKstDate();
+    const session = getKstSession();
+    return arr.some(e =>
+      typeof e.kstDate === 'string' && e.kstDate.slice(0, 10) === day &&
+      e.session === session && e.locale === locale && !isFallbackSrc(e.source),
+    );
+  } catch { return false; }
+}
 
 /** stale key에 2시간 내 로컬/AI 생성 보고서가 있으면 재생성 불필요 */
 async function hasRecentGoodReport(redis: ReturnType<typeof createRedis>, locale: string): Promise<boolean> {
@@ -33,8 +69,7 @@ async function hasRecentGoodReport(redis: ReturnType<typeof createRedis>, locale
   try {
     const stale = await redis.get(staleKey(locale)) as Record<string, unknown> | null;
     if (!stale || !stale.generatedAt || !stale.source) return false;
-    const isFallback = String(stale.source) === 'fallback' || String(stale.source) === 'data';
-    if (isFallback) return false;
+    if (isFallbackSrc(stale.source)) return false;
     const ageMs = Date.now() - new Date(String(stale.generatedAt)).getTime();
     return ageMs < 2 * 60 * 60 * 1000; // 2시간 이내
   } catch { return false; }
@@ -65,6 +100,12 @@ export async function GET(req: NextRequest) {
           const durationMs = Date.now() - t0;
           logger.info('cron.investment-strategy', 'skipped_recent_local', { locale, durationMs });
           return { locale, ok: true, source: 'skipped-recent-local', isAi: true, durationMs };
+        }
+        // Skip if same session already has a non-fallback report (Windows scheduler 가 먼저 push 한 경우)
+        if (redis && await sessionAlreadyCovered(redis, locale)) {
+          const durationMs = Date.now() - t0;
+          logger.info('cron.investment-strategy', 'skipped_session_covered', { locale, durationMs });
+          return { locale, ok: true, source: 'skipped-session-covered', isAi: true, durationMs };
         }
 
         const res = await fetch(`${baseUrl}/api/investment-strategy?force=1&locale=${locale}`, {
