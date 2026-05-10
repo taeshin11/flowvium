@@ -542,22 +542,23 @@
         "sectorAllocSum": null,
         "portfolioAllocSum": null,
         "buyLowConfidence": [],
-        "stopLossDeep": [],
+        "stopLossDeep": [
+          "000660.KS:58.5%",
+          "MU:71.0%"
+        ],
         "targetBullInverted": [],
         "stopLossAboveEntry": [],
         "entryFar50MA": [],
         "companyChangeName": [],
-        "unrealistic52WRange": [
-          "000660.KS:190,100-1,686,000, (8.9x)"
-        ],
+        "unrealistic52WRange": [],
         "stopRationaleMismatch": [
-          "000660.KS:1551120→649978",
-          "MU:687.07→201.37"
+          "000660.KS:portfolio=650000 vs rationale=1686000 (참고가격)",
+          "MU:portfolio=201.37 vs rationale=746.81 (참고가격)"
         ]
       },
-      "appliedAt": "2026-05-10T05:04:35.540Z",
-      "totalFixes": 3
+      "appliedAt": "2026-05-10T05:18:48.067Z",
+      "totalFixes": 4
     },
-    "retroAppliedAt": "2026-05-10T05:04:35.730Z"
+    "retroAppliedAt": "2026-05-10T05:18:48.069Z"
   }
 }

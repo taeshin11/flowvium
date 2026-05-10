@@ -208,7 +208,8 @@ function applyLocalHarness(r) {
       `가격 hallucination 의심 — 50MA(${fmt(ma50)}) 기반 재계산, 진입 전 재검토 필요`;
   }
 
-  // 6d. 52주 범위 ratio > 5x → split/통화/데이터 오류 의심, action=watch 강등
+  // 6d. 52주 ratio > 10x → split/통화/데이터 오류 의심, watch 강등
+  // (5x → 10x 완화: SK하이닉스 같은 정상 8.7x 상승 false positive 방지)
   for (const p of r.portfolio) {
     const m52 = p.rationale?.match(/52주[^$₩\d]*[$₩]?([\d,.]+)\s*-\s*[$₩]?([\d,.]+)/);
     if (!m52) continue;
@@ -216,14 +217,14 @@ function applyLocalHarness(r) {
     const hi = parseFloat(m52[2].replace(/,/g, ''));
     if (lo <= 0 || !isFinite(hi)) continue;
     const ratio = hi / lo;
-    if (ratio < 5) continue;
+    if (ratio < 10) continue;
     audit.fixes.unrealistic52WRange.push(`${p.ticker}:${m52[1]}-${m52[2]} (${ratio.toFixed(1)}x)`);
     p.action = 'watch';
     p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
       `52주 범위 비현실(${ratio.toFixed(1)}x) — split/통화/데이터 오류 의심, 진입 보류`;
   }
 
-  // 6e. stopLossRationale 가격과 portfolio.stopLoss 50% 이상 차이 시 통일
+  // 6e. stopLossRationale 가격 mismatch 검출만 (자동 교정 X — false positive 위험)
   if (Array.isArray(r.stopLossRationale)) {
     for (const sr of r.stopLossRationale) {
       const p = r.portfolio.find(x => x.ticker === sr.ticker);
@@ -232,14 +233,9 @@ function applyLocalHarness(r) {
       if (!stopP) continue;
       const matches = sr.rationale?.match(/[$₩][\d,.]+/g) || [];
       const vals = matches.map(m => parseFloat(m.replace(/[$₩,]/g, ''))).filter(v => v > 0);
-      const truer = vals.find(v => v < stopP * 0.5);
-      if (!truer) continue;
-      audit.fixes.stopRationaleMismatch.push(`${sr.ticker}:${stopP}→${truer}`);
-      const isKR = (p.stopLoss || '').includes('₩') || sr.rationale?.includes('₩');
-      const fmt = isKR
-        ? (n) => `₩${Math.round(n / 100) * 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-        : (n) => `$${n.toFixed(2)}`;
-      p.stopLoss = fmt(truer);
+      const inconsistent = vals.find(v => v < stopP * 0.5 || v > stopP * 2);
+      if (!inconsistent) continue;
+      audit.fixes.stopRationaleMismatch.push(`${sr.ticker}:portfolio=${stopP} vs rationale=${inconsistent} (참고가격, 검증 필요)`);
     }
   }
 

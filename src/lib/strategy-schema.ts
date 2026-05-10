@@ -243,8 +243,9 @@ function countAudit(a: HarnessAudit): number {
 }
 
 /**
- * 52주 범위가 5x 이상이면 split / 통화 / 데이터 오류 의심 → action=watch 강등.
- * 000660.KS ₩190K-₩1,686K (8.9x) 같은 케이스.
+ * 52주 범위가 10x 이상이면 split / 통화 / 데이터 오류 의심 → action=watch 강등.
+ * 임계치 5x → 10x: SK하이닉스 5/9-5/10 케이스 (실제 1년 8.7x 상승, AI 슈퍼사이클)
+ * 가 false positive 였음. 진짜 split 미반영은 보통 100x+ 또는 통화 단위 오류.
  */
 export function detect52WUnrealistic<T extends {
   portfolio: Array<{ ticker: string; rationale?: string; action?: string; critiqueNote?: string }>;
@@ -256,7 +257,7 @@ export function detect52WUnrealistic<T extends {
     const hi = parseFloat(m52[2].replace(/,/g, ''));
     if (lo <= 0 || !isFinite(hi)) continue;
     const ratio = hi / lo;
-    if (ratio < 5) continue;
+    if (ratio < 10) continue;
     if (audit) audit.fixes.unrealistic52WRange.push(`${p.ticker}:${m52[1]}-${m52[2]} (${ratio.toFixed(1)}x)`);
     p.action = 'watch';
     p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
@@ -266,15 +267,18 @@ export function detect52WUnrealistic<T extends {
 }
 
 /**
- * stopLossRationale 의 가격이 portfolio.stopLoss 와 50% 이상 차이나면 한쪽으로 통일.
- * portfolio.stopLoss = $687 vs rationale = $201 같은 케이스.
- * 더 작은 값(저점 근처) 을 선호 — 일반적으로 후처리 enrichStopLoss 가 더 합리.
+ * stopLossRationale 의 가격이 portfolio.stopLoss 와 차이 — 경고만 기록 (자동 교정 X).
+ *
+ * 이전 자동 교정 시도 false positive: rationale 에는 200MA, 52주 저점 등
+ * stopLoss 가 아닌 참고가격이 자주 등장. SK하이닉스: portfolio=₩1.55M, rationale=₩649K(200MA).
+ * 후처리 enrichStopLoss 가 entry × 0.93 으로 portfolio.stopLoss 를 잘 만드므로,
+ * portfolio.stopLoss 를 신뢰하고 mismatch 만 audit 에 기록.
  */
-export function fixStopRationaleMismatch<T extends {
+export function detectStopRationaleMismatch<T extends {
   portfolio: Array<{ ticker: string; stopLoss: string }>;
   stopLossRationale?: Array<{ ticker: string; rationale: string }>;
 }>(s: T, audit?: HarnessAudit): T {
-  if (!s.stopLossRationale) return s;
+  if (!audit || !s.stopLossRationale) return s;
   for (const sr of s.stopLossRationale) {
     const p = s.portfolio.find(x => x.ticker === sr.ticker);
     if (!p) continue;
@@ -282,16 +286,9 @@ export function fixStopRationaleMismatch<T extends {
     if (!stopP) continue;
     const matches = sr.rationale?.match(/[$₩][\d,.]+/g) || [];
     const vals = matches.map(m => parseFloat(m.replace(/[$₩,]/g, ''))).filter(v => v > 0);
-    // rationale 에 portfolio.stopLoss 보다 50% 이상 작은 가격이 있으면 그게 진짜 stop
-    const truer = vals.find(v => v < stopP * 0.5);
-    if (!truer) continue;
-    if (audit) audit.fixes.stopRationaleMismatch.push(`${sr.ticker}:portfolio=${stopP}→${truer} (rationale 기준)`);
-    // 통화 추정
-    const isKR = (p.stopLoss || '').includes('₩') || sr.rationale?.includes('₩');
-    const fmt = isKR
-      ? (n: number) => `₩${Math.round(n / 100) * 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-      : (n: number) => `$${n.toFixed(2)}`;
-    p.stopLoss = fmt(truer);
+    const inconsistent = vals.find(v => v < stopP * 0.5 || v > stopP * 2);
+    if (!inconsistent) continue;
+    audit.fixes.stopRationaleMismatch.push(`${sr.ticker}:portfolio=${stopP} vs rationale=${inconsistent} (검증 필요)`);
   }
   return s;
 }
@@ -516,7 +513,7 @@ export function preValidateFix<T extends {
   detectStopAboveEntry(s, audit);
   fixEntryFar50MA(s, audit);
   detect52WUnrealistic(s, audit);
-  fixStopRationaleMismatch(s, audit);
+  detectStopRationaleMismatch(s, audit);
   audit.totalFixes = countAudit(audit);
   return { strategy: s, audit };
 }
