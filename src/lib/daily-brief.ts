@@ -8,7 +8,11 @@ import { companySupplyChainUpdates } from '@/data/company-supply-chain-updates';
 import type { NewsWithCascade } from '@/app/api/news-cascade/route';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-export type Timeframe = '1w' | '4w' | '13w';
+// Timeframe 타입은 src/lib/timeframes.ts 의 단일 소스에서 re-export
+export { TIMEFRAME } from '@/lib/timeframes';
+export type { Timeframe } from '@/lib/timeframes';
+import { TIMEFRAME as _TF } from '@/lib/timeframes';
+import type { Timeframe } from '@/lib/timeframes';
 
 export interface BriefSection {
   title: string;
@@ -104,7 +108,12 @@ async function safeFetchJson<T = unknown>(baseUrl: string, path: string, timeout
  *  Redis (each call ~100-500ms vs ~10ms Redis get) but ensures daily-brief
  *  has real context even without UPSTASH env vars.
  *  Each endpoint's own caching layer (if any) still applies. */
-async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
+/** tf → korea-flow period 매핑. korea-flow 는 1d/1w/4w/13w period 를 받음. */
+function koreaPeriodForTf(tf: Timeframe): '1w' | '4w' | '13w' {
+  return tf;
+}
+
+async function gatherTabContextViaHttp(baseUrl: string, tf: Timeframe = '4w'): Promise<TabContext> {
   const ctx: TabContext = {
     heatmap: null, short: null, capital: null, fearGreed: null, fearGreedAssets: [],
     fedWatch: null, macro: null, credit: null, cascade: [],
@@ -125,7 +134,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/credit-balance', 10000),
     safeFetchJson<{ items?: unknown[] }>(baseUrl, '/api/insider-trades', 15000),
     safeFetchJson<{ items?: unknown[] }>(baseUrl, '/api/ownership-alerts', 15000),
-    safeFetchJson<Record<string, unknown>>(baseUrl, '/api/korea-flow', 10000),
+    safeFetchJson<Record<string, unknown>>(baseUrl, `/api/korea-flow?period=${koreaPeriodForTf(tf)}`, 10000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/nport-holdings', 15000),
     safeFetchJson<Record<string, unknown>>(baseUrl, '/api/short-interest', 12000),
     safeFetchJson<{ articles?: unknown[] }>(baseUrl, '/api/news-cascade', 15000),
@@ -175,7 +184,7 @@ async function gatherTabContextViaHttp(baseUrl: string): Promise<TabContext> {
   return ctx;
 }
 
-export async function gatherTabContext(redis: Redis | null, baseUrl?: string): Promise<TabContext> {
+export async function gatherTabContext(redis: Redis | null, baseUrl?: string, tf: Timeframe = '4w'): Promise<TabContext> {
   const ctx: TabContext = {
     heatmap: null, short: null, capital: null, fearGreed: null, fearGreedAssets: [],
     fedWatch: null, macro: null, credit: null, cascade: [],
@@ -185,7 +194,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
   };
   if (!redis) {
     // UPSTASH 미설정 환경: 내부 API endpoint 로 HTTP fetch 폴백
-    if (baseUrl) return gatherTabContextViaHttp(baseUrl);
+    if (baseUrl) return gatherTabContextViaHttp(baseUrl, tf);
     logger.warn('daily-brief', 'no_redis_no_baseUrl', { note: 'context will be empty' });
     return ctx;
   }
@@ -212,7 +221,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string): P
     safeGet<unknown[]>(redis, 'flowvium:insider-trades:v1'),
     safeGet<unknown[]>(redis, 'flowvium:ownership-alerts:v1'),
     safeGet<unknown[]>(redis, 'flowvium:options-flow:v1'),
-    safeGet(redis, 'flowvium:korea-flow:v4:4w'),
+    safeGet(redis, `flowvium:korea-flow:v4:${koreaPeriodForTf(tf)}`),
     safeGet(redis, 'flowvium:nport-holdings:v1'),
     safeGet<unknown[]>(redis, 'flowvium:block-trades:v1'),
     // econ-cal has date-range dependent key; fetch via HTTP (hits its own Redis cache)
@@ -314,7 +323,7 @@ function summariseShort(data: unknown): string {
 }
 
 function summariseCapital(data: unknown, tf: Timeframe): string {
-  const retKey = tf === '1w' ? 'ret1w' : tf === '4w' ? 'ret4w' : 'ret13w';
+  const retKey = _TF[tf].retKey;
   const d = data as Record<string, unknown> | null;
   if (!d) return '';
   const assets = (d.assets as Array<Record<string, unknown>>) ?? [];
@@ -577,7 +586,7 @@ function summariseSupply(): string {
 
 // ── Build rich prompt covering every tab ─────────────────────────────────────
 export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
-  const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
+  const tfLabel = _TF[tf].label;
   const signals = ctx?.signals ?? [];
   const { buys, cuts } = summariseSignals(signals);
   const { stakes, gaps } = summariseNewsGap();
@@ -692,8 +701,8 @@ export function parseAIResponse(raw: string, tf: Timeframe, source = 'AI'): Dail
 
 /** Data-driven brief — used when AI is unavailable. Now pulls every tab. */
 export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
-  const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
-  const retKey = tf === '1w' ? 'ret1w' : tf === '4w' ? 'ret4w' : 'ret13w';
+  const tfLabel = _TF[tf].label;
+  const retKey = _TF[tf].retKey;
   const capital = ctx?.capital as Record<string, unknown> | null | undefined;
   const macro = ctx?.macro as Record<string, unknown> | null | undefined;
   const signals = ctx?.signals ?? [];

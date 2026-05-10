@@ -411,13 +411,17 @@ export async function GET(req: Request) {
     logger.info('api.korea-flow', 'accumulated', { period, days: tradingDays.length, tickers: all.length });
 
     if (all.length === 0) {
-      // For multi-day, use Naver 1d as best available approximation
+      // For multi-day, use Naver 1d as best available approximation.
+      // 중요: multi-day(1w/4w) 탭에서 Naver 1d 가 들어가면 "1주=5거래일" 라벨과 모순 →
+      // payload 에 fallback:true + effectiveTradingDays:1 + fallbackReason 명시.
       const naverFlow = await fetchNaverForeignFlow();
       if (naverFlow && naverFlow.entries.length > 0) {
         logger.info('api.korea-flow', 'krx_empty_naver_1d_approx', { period });
         all = naverFlow.entries;
         trdDd = naverFlow.trdDd;
         dataSource = 'naver-fallback';
+        // multi-day 라벨 모순 방지용 메타 — buildPayload extra 로 전달됨
+        // (1d 코드 경로는 cfg.tradingDays === 1 라 영향 없음)
       } else {
         const yahooEntries = await fetchYahooKoreaFallback();
         logger.warn('api.korea-flow', 'krx_naver_empty_yahoo_fallback', { period });
@@ -438,7 +442,15 @@ export async function GET(req: Request) {
     }
   }
 
-  const payload = buildPayload(all, trdDd, { period, source: dataSource });
+  // multi-day(1w/4w) 탭이지만 Naver 1d fallback 으로 채워졌으면 effectiveTradingDays=1 로 라벨 모순 차단
+  const isNaverDayFallbackOnMultiDay = dataSource === 'naver-fallback' && cfg.tradingDays > 1;
+  const payload = buildPayload(all, trdDd, {
+    period,
+    source: dataSource,
+    ...(isNaverDayFallbackOnMultiDay
+      ? { fallback: true, effectiveTradingDays: 1, fallbackReason: `KRX ${cfg.tradingDays}-day accumulated unavailable — Naver 1-day approximation` }
+      : { effectiveTradingDays: cfg.tradingDays }),
+  });
   await loggedRedisSet(redis, 'api.korea-flow', cfg.key, payload, { ex: cfg.ttl });
   if (!redis) KOREA_MEMORY_CACHE.set(period, { data: payload, expiresAt: Date.now() + (KOREA_MEMORY_TTLS[period] ?? 15 * 60 * 1000) });
   logger.info('api.korea-flow', 'served', { period, totalTickers: all.length, durationMs: Date.now() - reqStart });

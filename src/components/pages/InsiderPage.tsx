@@ -20,6 +20,8 @@ interface KoreaFlowPayload {
   topInstSell: KoreaRow[];
   totalTickers: number;
   fallback?: boolean;
+  fallbackReason?: string;
+  effectiveTradingDays?: number;
 }
 interface KoreaRow {
   ticker: string;
@@ -568,7 +570,10 @@ export default function InsiderPage() {
           </div>
           {koreaPeriod !== '1d' && (
             <div className="text-[10px] text-cf-text-secondary/60 px-1">
-              {t('korPeriodDesc', { days: koreaPeriod === '1w' ? 5 : koreaPeriod === '4w' ? 20 : 65 })}
+              {/* effectiveTradingDays 가 cfg.tradingDays 와 다르면 fallback 라벨 우선 표시 */}
+              {korea.effectiveTradingDays && korea.effectiveTradingDays < (koreaPeriod === '1w' ? 5 : koreaPeriod === '4w' ? 20 : 65)
+                ? t('korPeriodDesc', { days: korea.effectiveTradingDays })
+                : t('korPeriodDesc', { days: koreaPeriod === '1w' ? 5 : koreaPeriod === '4w' ? 20 : 65 })}
             </div>
           )}
           {korea.fallback && (

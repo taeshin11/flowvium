@@ -428,6 +428,10 @@ function buildRotations(
   return rotations.sort((a, b) => b.magnitude - a.magnitude).slice(0, 5);
 }
 
+// timeframe → (retKey, rotKey, maxWeeks) 일관 매핑은 src/lib/timeframes.ts 의 TIMEFRAME 단일 소스
+// 에서 파생. detectRotation 는 의도적으로 const 그대로 import 함 (런타임 의존 줄이기).
+import { TIMEFRAME } from '@/lib/timeframes';
+
 function detectRotation(results: AssetResult[], priceMap: Record<string, number[]>, thresholds = { '1w': 0.5, '4w': 1.5, '13w': 3.0 }) {
   const sorted4w = [...results].sort((a, b) => (b.ret4w ?? -999) - (a.ret4w ?? -999));
   const topInflows = sorted4w.slice(0, 5);
@@ -448,11 +452,11 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
     topInflows,
     topOutflows,
     groupAvg,
-    // maxWeeks 는 각 timeframe 의 라벨과 일치해야 사용자가 "1주 기준" 탭에서 "3주 전 시작" 같은
-    // 모순 라벨을 보지 않음. 1주 탭은 1주 내 시작한 rotation 만, 4주 탭은 4주 내, 13주 탭은 13주 내.
-    rotations1w:  buildRotations(results, priceMap, 'ret1w',  thresholds['1w'],  1),
-    rotations4w:  buildRotations(results, priceMap, 'ret4w',  thresholds['4w'],  4),
-    rotations13w: buildRotations(results, priceMap, 'ret13w', thresholds['13w'], 13),
+    // maxWeeks 는 TIMEFRAME 단일 소스에서 파생. 1주 탭에서 "3주 전 시작" 같은 모순 라벨이
+    // 다시 발생하지 않도록 retKey/maxWeeks 를 한 객체에서만 읽음.
+    rotations1w:  buildRotations(results, priceMap, TIMEFRAME['1w'].retKey,  thresholds['1w'],  TIMEFRAME['1w'].weeks),
+    rotations4w:  buildRotations(results, priceMap, TIMEFRAME['4w'].retKey,  thresholds['4w'],  TIMEFRAME['4w'].weeks),
+    rotations13w: buildRotations(results, priceMap, TIMEFRAME['13w'].retKey, thresholds['13w'], TIMEFRAME['13w'].weeks),
   };
 }
 
@@ -643,7 +647,7 @@ export async function GET() {
       };
       const signalPromises: Promise<void>[] = [];
       for (const tf of ['1w', '4w', '13w'] as const) {
-        const key = tf === '1w' ? 'rotations1w' : tf === '4w' ? 'rotations4w' : 'rotations13w';
+        const key = TIMEFRAME[tf].rotKey;
         const rots = (flow as Record<string, unknown>)[key] as Array<{ from: string; to: string; magnitude: number }> ?? [];
         if (rots.length) {
           signalPromises.push(logRotationSignals(redis, rots, tf, TICKER_MAP));

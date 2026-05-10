@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import {
   createRedis, cacheKey, staleCacheKey, callAI, buildPrompt, parseAIResponse, fallbackBrief,
   gatherTabContext, type DailyBrief,
-  type Timeframe,
 } from '@/lib/daily-brief';
+import { parseTimeframe, type Timeframe } from '@/lib/timeframes';
 import { isGarbage } from '@/lib/strategy-quality';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,9 @@ const MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const tf = (searchParams.get('tf') as Timeframe) ?? '4w';
+  // 단일 소스 parseTimeframe 으로 정규화 — invalid tf 가 캐시 키 분기와 라벨/retKey 사이의
+  // 모순을 만들지 않도록 경계에서 정제
+  const tf: Timeframe = parseTimeframe(searchParams.get('tf'));
   const force = searchParams.get('force') === '1';
   const debug = searchParams.get('debug') === '1';
   // probe=1: return cached or data-fallback immediately without AI — used by verify-metrics
@@ -76,7 +78,7 @@ export async function GET(request: Request) {
   const baseUrl = reqUrl.host.startsWith('localhost')
     ? 'http://localhost:3000'
     : `${reqUrl.protocol}//${reqUrl.host}`;
-  const ctx = await gatherTabContext(redis, baseUrl);
+  const ctx = await gatherTabContext(redis, baseUrl, tf);
 
   // Debug mode — expose which ctx fields were populated to pinpoint
   // cache-key mismatches without needing Redis introspection.

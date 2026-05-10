@@ -18,6 +18,8 @@
     "scrape:gap": "tsx scripts/scrapers/news-gap-calc.ts",
     "check:hardcoded": "node scripts/check-hardcoded.mjs",
     "check:fallbacks": "node scripts/check-static-fallbacks.mjs",
+    "check:timeframes": "node scripts/check-timeframes.mjs",
+    "check:cron-sessions": "node scripts/check-cron-sessions.mjs",
     "review:logs": "node scripts/review-logs.mjs",
     "review:redis": "node scripts/review-logs.mjs --redis",
     "scan:satellite": "node scripts/satellite-factory-scan.mjs",

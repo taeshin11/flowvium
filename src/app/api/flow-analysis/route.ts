@@ -12,6 +12,7 @@ import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
+import { parseTimeframe, TIMEFRAME, type Timeframe } from '@/lib/timeframes';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -104,7 +105,8 @@ Analyze the drivers of capital flows for each country/asset. Respond in the foll
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const tf = searchParams.get('tf') ?? '4w';
+  // 단일 소스 parseTimeframe 으로 정규화 — invalid tf 가 캐시 키와 retKey/rotKey 사이에 모순을 만들지 않게 막음
+  const tf: Timeframe = parseTimeframe(searchParams.get('tf'));
   // probe=1: return cached data or minimal fallback without calling AI — used by verify-metrics
   const probe = searchParams.get('probe') === '1';
 
@@ -171,7 +173,7 @@ export async function GET(request: Request) {
     capitalData = {};
   }
 
-  const retKey = tf === '1w' ? 'ret1w' : tf === '4w' ? 'ret4w' : 'ret13w';
+  const retKey = TIMEFRAME[tf].retKey;
 
   // Extract country returns
   // capital-flows uses 'label' for display name and 'id' for key — not 'country'
@@ -184,7 +186,7 @@ export async function GET(request: Request) {
   })).filter((c): c is { country: string; ticker: string; ret: number } => c.ret != null).sort((a, b) => b.ret - a.ret);
 
   // Extract rotations — capital-flows uses 'magnitude', not 'diff'
-  const rotKey = tf === '1w' ? 'rotations1w' : tf === '4w' ? 'rotations4w' : 'rotations13w';
+  const rotKey = TIMEFRAME[tf].rotKey;
   const rotations = ((countryFlow?.[rotKey] as Array<Record<string, unknown>>) ?? []).map(r => ({
     from: COUNTRY_EN[(r.fromId as string) ?? ''] ?? COUNTRY_EN[(r.from as string) ?? ''] ?? (r.from as string),
     to: COUNTRY_EN[(r.toId as string) ?? ''] ?? COUNTRY_EN[(r.to as string) ?? ''] ?? (r.to as string),
