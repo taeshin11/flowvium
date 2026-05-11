@@ -1,0 +1,18 @@
+[
+  {
+    "ticker": "051910.KS",
+    "reason": "BAN: 2+ stops, 0 hits",
+    "evaluated": 4,
+    "hits": 0,
+    "stops": 2,
+    "avg_pnl": 1.8
+  },
+  {
+    "ticker": "SMCI",
+    "reason": "BAN: avg_pnl -37.07% < -10%",
+    "evaluated": 2,
+    "hits": 0,
+    "stops": 1,
+    "avg_pnl": -37.07
+  }
+]

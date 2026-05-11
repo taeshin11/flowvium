@@ -13,10 +13,11 @@
  *   node scripts/evaluate-recommendations.mjs --dry-run    # DB 쓰기 없이 보기만
  *   node scripts/evaluate-recommendations.mjs --limit=10   # 상위 10건만
  */
-import { openDb, getOverdueRecommendations, saveOutcome, getSummary } from './lib/db.mjs';
+import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary } from './lib/db.mjs';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry-run');
+const ALL = args.includes('--all'); // 14d 윈도우 무시 — 조기 baseline 평가용
 const limit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] ?? '0', 10);
 
 async function fetchYahooOHLC(ticker, fromIso, toIso) {
@@ -107,12 +108,13 @@ async function main() {
   console.log(`\n=== evaluate-recommendations ${DRY ? '— DRY RUN' : ''} ===\n`);
   console.log(`현재 DB: ${before.recs} 추천 / ${before.overdue} overdue / ${before.outcomes} outcomes\n`);
 
-  let queue = getOverdueRecommendations();
+  let queue = ALL ? getAllRecommendationsForEval() : getOverdueRecommendations();
   if (limit > 0) queue = queue.slice(0, limit);
   if (queue.length === 0) {
-    console.log('💡 overdue 추천 0건 — 평가 대상 없음');
+    console.log(`💡 ${ALL ? '미평가 추천' : 'overdue 추천'} 0건 — 평가 대상 없음`);
     return;
   }
+  if (ALL) console.log(`📡 --all 모드: 14d 윈도우 무시 (${queue.length}건 조기 baseline 평가)\n`);
 
   // SPY 벤치마크 — 가장 오래된 보고서 시점부터 캐싱
   const oldestGen = queue.reduce((min, r) => r.generated_at < min ? r.generated_at : min, queue[0].generated_at);

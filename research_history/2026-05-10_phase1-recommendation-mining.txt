@@ -1,0 +1,77 @@
+2026-05-10 Phase 1 — Recommendation outcome mining + harness 강화
+=======================================================================
+
+목적: 누적된 118 추천 outcome 데이터를 활용해 (1) 진입대 calibration,
+     (2) ticker 컬링/부스트, (3) cascade 컨텍스트 강화 — 미래 보고서
+     품질을 데이터 드리븐으로 끌어올린다.
+
+배경
+-----
+data/flowvium.db 에는 28개 보고서, 118 추천, 118 outcome 이 누적.
+초기 분석:
+  - hit_target 15.3% (18/118)
+  - stop_loss   4.2% (5/118)
+  - not_entered 55.9% (66/118)  ← 진입대 미달성 = 진입선이 너무 낮음
+  - still_holding 22.9%
+
+→ 절반 이상이 "진입선까지 안 내려와서" 평가 불가. 강세장에선
+   validateEntryZones 가 0.93-0.96x actual 로 클램프 → 4-7% 풀백 기대했지만
+   AI 반도체 강세장은 그만큼 안 빠지고 위로 갔다.
+
+변경 1 — Momentum-aware entry clamp (generate-report-local.mjs)
+----------------------------------------------------------------
+change1w 기반 regime 분류:
+  strong-bull (1w +5% ↑)  → 0.98-1.00 (현재가 부근)
+  bull        (1w +1% ↑)  → 0.96-0.99
+  neutral                 → 0.94-0.97
+  bear        (1w -3% ↓)  → 0.92-0.96 (기존 폭)
+
+unreachable 조건 (zoneHigh < actual * clampLow) 시 자동 보정 로그.
+
+변경 2 — Ban-list 강등 가드 (applyLocalHarness)
+-----------------------------------------------
+data/ban-list.json (analyze-recs.mjs --export 산출):
+  - 051910.KS (LG화학): 2 stops, 0 hits, 4 evals → BAN
+  - SMCI:               avg_pnl -37%, 2 evals    → BAN
+
+harness 가 portfolio 내 ban ticker 발견 시
+  action = 'watch', confidence = 'low', critiqueNote += 사유.
+audit.fixes.bannedDowngrade 카운트로 추적 가능.
+
+변경 3 — 구조화된 cascadePatterns 주입 (Phase 1.3)
+--------------------------------------------------
+이전: inline 8개 CASCADES, 1d ±3% 임펄스 시에만 emit
+이후: src/data/cascades.ts 의 cascadePatterns (10 패턴, role 시퀀스 +
+     historicalOccurrences) 를 vm.runInNewContext 로 런타임 파싱 → 항상 emit
+
+프롬프트 포맷:
+  ■ Semiconductors: NVDA(L) → 000660.KS/MU → TSM/ASML → AMAT/LRCX/KLAC
+     🔥ACTIVE: NVDA 1d +4.2% [최근 2026-02-26: NVDA +3.8% post-earnings ...]
+  ■ AI / Cloud: MSFT(L) → NVDA → GOOGL/AMZN/META → ORCL
+     [최근 2025-10-28: MSFT +6.1%]
+  ...
+
+→ Wave 1 (macro/portfolio/regional/opportunity/narrative) 모두에 cascade 가
+   "must-consider" 컨텍스트로 들어가 종목 선정 단계에서 leader→follower
+   chain 을 참조.
+
+변경 4 — 분석 도구
+------------------
+- scripts/analyze-recs.mjs (NEW): ticker / sector / confidence / entry-gap
+  종합 분석, --export 로 ban-list/boost-list/entry-calibration JSON 생성
+- scripts/evaluate-recommendations.mjs: --all 플래그 추가 (14d 윈도우 무시 조기 평가)
+- scripts/lib/db.mjs: getTickerStats, getAllRecommendationsForEval 추가
+
+산출물
+------
+data/ban-list.json       — 2 ticker (051910.KS, SMCI)
+data/boost-list.json     — 4 ticker (000660.KS, TSLA, TSM, 005490.KS)
+data/entry-calibration.json — ticker 별 median gap%, 진단 메시지
+
+다음 단계 (Phase 2 후보)
+------------------------
+- boost-list 활용 → action=buy 후보 가산점 / allocation 상향
+- TSM hit_target 0/6 인데 avg_pnl 221% — entry zone 너무 낮아 not_entered
+  된 사례 분석. boost 기준 재검토.
+- confidence='high' 의 hit rate 가 15% (113 evals) — 과신 패턴.
+  prompt 에 "confidence='high'는 hit_target 50%+ 확신일 때만" 가드 추가 검토.

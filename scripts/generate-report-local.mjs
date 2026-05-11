@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'fs';
 import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
+import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -148,6 +149,18 @@ const ACTION_DOWNGRADE_PATTERNS_HARNESS = [
   /watch\b/i, /avoid\s+new\s+buy/i, /trim\b/i, /reduce\s+position/i,
 ];
 
+// ── Ban list (analyze-recs --export 산출물): 과거 평가에서 stop_loss/avg_pnl 기준 미달
+// → action=watch + confidence=low 강제 + critiqueNote 부착.
+function loadBanList() {
+  try {
+    const raw = readFileSync(resolve(ROOT, 'data/ban-list.json'), 'utf8');
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return new Map();
+    return new Map(arr.map(b => [b.ticker.toUpperCase(), b]));
+  } catch { return new Map(); }
+}
+const BAN_LIST_HARNESS = loadBanList();
+
 function nativeCurrencyForTickerMjs(ticker) {
   const t = (ticker ?? '').toUpperCase();
   if (t.endsWith('.KS') || t.endsWith('.KQ')) return '₩';
@@ -165,6 +178,7 @@ function emptyHarnessAudit() {
       unrealistic52WRange: [], stopRationaleMismatch: [],
       usNameMismatch: [], targetBullUnrealistic: [],
       actionCritiqueMismatch: [], stopRationaleAligned: [], currencyMismatch: [],
+      bannedDowngrade: [],
     },
     schemaErrors: [], appliedAt: new Date().toISOString(), totalFixes: 0,
   };
@@ -378,6 +392,21 @@ function applyLocalHarness(r) {
     }
   }
 
+  // 6k. Ban list 강등 — data/ban-list.json (analyze-recs.mjs --export 산출)
+  // 과거 평가에서 2+ stop_loss + 0 hits OR avg_pnl < -10% 인 ticker 는
+  // action=watch + confidence=low 로 강등하고 critiqueNote 에 사유 부착.
+  for (const p of r.portfolio) {
+    const banned = BAN_LIST_HARNESS.get(p.ticker?.toUpperCase());
+    if (!banned) continue;
+    const wasAction = p.action;
+    const wasConf = p.confidence;
+    p.action = 'watch';
+    p.confidence = 'low';
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `과거 평가 부진 (${banned.reason}, eval=${banned.evaluated}/hits=${banned.hits}/stops=${banned.stops}/pnl=${banned.avg_pnl}%) — action 강등`;
+    audit.fixes.bannedDowngrade.push(`${p.ticker}:${wasAction}/${wasConf}→watch/low (${banned.reason})`);
+  }
+
   // 7. insiderSignals.filings type
   if (Array.isArray(r.insiderSignals)) {
     for (const sig of r.insiderSignals) {
@@ -433,7 +462,8 @@ function applyLocalHarness(r) {
     audit.fixes.targetBullUnrealistic.length +
     audit.fixes.actionCritiqueMismatch.length +
     audit.fixes.stopRationaleAligned.length +
-    audit.fixes.currencyMismatch.length;
+    audit.fixes.currencyMismatch.length +
+    audit.fixes.bannedDowngrade.length;
 
   if (audit.totalFixes > 0) {
     console.log(`\n  [harness] ${audit.totalFixes} 결함 자동 교정/검출:`);
@@ -455,6 +485,7 @@ function applyLocalHarness(r) {
     if (audit.fixes.actionCritiqueMismatch.length) console.warn(`    🔧 action 강등: ${audit.fixes.actionCritiqueMismatch.join(', ')}`);
     if (audit.fixes.stopRationaleAligned.length) console.warn(`    🔧 stopRationale 정렬: ${audit.fixes.stopRationaleAligned.join(', ')}`);
     if (audit.fixes.currencyMismatch.length) console.warn(`    ⚠️  통화 불일치: ${audit.fixes.currencyMismatch.join(', ')}`);
+    if (audit.fixes.bannedDowngrade.length) console.warn(`    🚫 ban-list 강등: ${audit.fixes.bannedDowngrade.join(', ')}`);
   } else {
     console.log(`  [harness] ✅ 결함 없음 — 깨끗한 출력`);
   }
@@ -1453,25 +1484,39 @@ function validateEntryZones(portfolioItems, livePrices) {
     const maxMult = isKR ? 2.0 : 2.5;
     const inRange = nums => nums.some(n => n > actual * 0.5 && n < actual * maxMult);
 
+    // momentum-aware clamp: 강세장(최근 1주 +3% 이상)이면 좁은 풀백, 약세장이면 넓은 풀백
+    // Phase 1 (2026-05-12): 기존 0.93-0.96 (4-7% 할인) 으로는 not_entered 56% — 강세장에서 풀백 안 와서.
+    // 모멘텀에 따라 동적 조정: 강세 → 시장가 근접, 중립/약세 → 보수적
+    const change1d = pd.change1d ?? 0;
+    const change1w = pd.change1w ?? change1d * 3; // 1w 없으면 1d × 3 추정
+    const momentum = change1w > 5 ? 'strong-bull' : change1w > 1 ? 'bull' : change1w > -3 ? 'neutral' : 'bear';
+    // 시장가 대비 entry 클램프 범위
+    const clampLow  = momentum === 'strong-bull' ? 0.98 : momentum === 'bull' ? 0.96 : momentum === 'neutral' ? 0.94 : 0.92;
+    const clampHigh = momentum === 'strong-bull' ? 1.00 : momentum === 'bull' ? 0.99 : momentum === 'neutral' ? 0.97 : 0.96;
+
     let updated = { ...p };
     const zoneNums = extractNums(p.entryZone);
-    // Also flag entries that are >= 99% of current price (LLM wrote current price instead of entry zone)
-    const isTooHigh = zoneNums.length > 0 && zoneNums.every(n => n >= actual * 0.99);
-    // [Fix P2] Clamp entryZone when HIGH bound < 80% of actual price (LLM used stale/wrong price)
+    // Also flag entries that are >= 100% of current price (LLM wrote above current — only valid in strong-bull)
+    const isTooHigh = zoneNums.length > 0 && zoneNums.every(n => n >= actual * 1.05);
+    // Clamp entryZone when HIGH bound < 80% of actual price (LLM used stale/wrong price)
     const zoneHigh = zoneNums.length > 0 ? Math.max(...zoneNums) : 0;
     const isTooLow = zoneNums.length > 0 && zoneHigh < actual * 0.80;
-    if (!zoneNums.length || !inRange(zoneNums) || isTooHigh || isTooLow) {
+    // 새 가드: entry_high 가 시장가의 clampLow 미만이면 도달 불가 → 보정 (예: 강세장에서 -4% 진입은 못 채움)
+    const isUnreachable = zoneNums.length > 0 && zoneHigh < actual * clampLow;
+    if (!zoneNums.length || !inRange(zoneNums) || isTooHigh || isTooLow || isUnreachable) {
       if (zoneNums.length) {
         if (isTooLow) {
           console.warn(`  ⚠️  ${p.ticker} entryZone clamped: was ${p.entryZone}, actual=${fmt(actual)} (high=${fmt(zoneHigh)} < 80% of actual)`);
+        } else if (isUnreachable) {
+          console.warn(`  🔧 ${p.ticker} entryZone unreachable (momentum=${momentum}, gap=${((1 - zoneHigh/actual) * 100).toFixed(1)}%): was ${p.entryZone}, actual=${fmt(actual)}`);
         } else {
-          console.warn(`  ⚠️  ${p.ticker} entryZone="${p.entryZone}" vs actual ${fmt(actual)} → 보정 (${isTooHigh ? '현재가와 동일' : '범위 이탈'})`);
+          console.warn(`  ⚠️  ${p.ticker} entryZone="${p.entryZone}" vs actual ${fmt(actual)} → 보정 (${isTooHigh ? '현재가 +5%↑' : '범위 이탈'})`);
         }
       }
-      // Strategic entry: 4-7% below current (pullback buy zone, not current price)
+      // momentum-aware entry zone
       updated.entryZone = isKR
-        ? `${fmt(Math.round(actual * 0.93))}-${fmt(Math.round(actual * 0.96))}`
-        : `${fmt(parseFloat((actual * 0.93).toFixed(2)))}-${fmt(parseFloat((actual * 0.96).toFixed(2)))}`;
+        ? `${fmt(Math.round(actual * clampLow))}-${fmt(Math.round(actual * clampHigh))}`
+        : `${fmt(parseFloat((actual * clampLow).toFixed(2)))}-${fmt(parseFloat((actual * clampHigh).toFixed(2)))}`;
     }
     const stopNums = extractNums(p.stopLoss);
     if (stopNums.length && !inRange(stopNums)) {
@@ -2322,33 +2367,83 @@ function buildCtxSummary(ctx) {
 }
 
 // ── Cascade signals ────────────────────────────────────────────────────────────
-async function getActiveCascadeSignals(prices) {
-  const CASCADES = [
-    { leader: 'NVDA', followers: ['MU','000660.KS','TSM','AMAT','LRCX','AMD'], sector: 'AI반도체' },
-    { leader: 'ASML', followers: ['AMAT','LRCX','KLAC','TSM'], sector: '반도체장비' },
-    { leader: 'MSFT', followers: ['NVDA','GOOGL','AMZN','ORCL'], sector: 'AI클라우드' },
-    { leader: 'TSM',  followers: ['NVDA','AMD','AVGO','QCOM'], sector: 'TSMC파운드리' },
-    { leader: 'LMT',  followers: ['RTX','NOC','BA','GE'], sector: '방산' },
-    { leader: 'ABBV', followers: ['LLY','JNJ','PFE','MRK'], sector: '바이오파마' },
-    { leader: 'TSLA', followers: ['RIVN','NIO','LI','LCID'], sector: 'EV' },
-    { leader: 'WMT',  followers: ['COST','HD','TGT','AMZN'], sector: '소비유통' },
-  ];
+// src/data/cascades.ts 의 cascadePatterns 를 runtime 으로 파싱 (TS UI 와 단일 진실 원천 공유).
+let _cascadePatternsCache = null;
+function loadCascadePatterns() {
+  if (_cascadePatternsCache) return _cascadePatternsCache;
   try {
-    const active = [];
-    for (const c of CASCADES) {
-      const lp = prices.get(c.leader);
-      if (!lp) continue;
-      // change1d가 있으면 1d로 cascade 판단 (5d 데이터 없으므로 1d±3% 이상)
-      const ret = lp.change1d;
-      if (ret == null || Math.abs(ret) < 3) continue;
-      const dir = ret > 0 ? '상승' : '하락';
-      active.push(
-        `[CASCADE ACTIVE] ${c.sector} ${c.leader} 1d ${ret >= 0 ? '+' : ''}${ret.toFixed(1)}% → ` +
-        `팔로워 주목: ${c.followers.slice(0, 3).join(', ')}`
-      );
+    const src = readFileSync(resolve(ROOT, 'src/data/cascades.ts'), 'utf8');
+    const marker = 'export const cascadePatterns';
+    const start = src.indexOf(marker);
+    if (start < 0) return (_cascadePatternsCache = []);
+    const eq = src.indexOf('= [', start);
+    if (eq < 0) return (_cascadePatternsCache = []);
+    // 매칭 `];` 찾기 — 문자열 안의 [ ] 는 건너뛴다
+    let depth = 0, end = -1;
+    let i = eq + 2;
+    while (i < src.length) {
+      const ch = src[i];
+      if (ch === '"' || ch === "'" || ch === '`') {
+        const q = ch; i++;
+        while (i < src.length && src[i] !== q) {
+          if (src[i] === '\\') i++;
+          i++;
+        }
+        i++; continue;
+      }
+      if (ch === '/' && src[i + 1] === '/') {
+        while (i < src.length && src[i] !== '\n') i++;
+        continue;
+      }
+      if (ch === '[') depth++;
+      else if (ch === ']') { depth--; if (depth === 0) { end = i; break; } }
+      i++;
     }
-    return active.join('\n');
-  } catch { return ''; }
+    if (end < 0) return (_cascadePatternsCache = []);
+    const arrSrc = src.slice(eq + 2, end + 1);
+    _cascadePatternsCache = vm.runInNewContext(arrSrc, {}, { timeout: 1000 });
+    return _cascadePatternsCache;
+  } catch (e) {
+    console.warn(`  ⚠️  cascade-patterns 파싱 실패: ${e.message}`);
+    return (_cascadePatternsCache = []);
+  }
+}
+
+async function getActiveCascadeSignals(prices) {
+  const patterns = loadCascadePatterns();
+  if (!patterns.length) return '';
+
+  const lines = [];
+  for (const p of patterns) {
+    const lp = prices.get(p.leaderTicker);
+    const ret = lp?.change1d ?? null;
+
+    // sequence 를 role 그룹별로 정리 (leader / first_follower / mid_cap / late_mover)
+    const seq = Array.isArray(p.sequence) ? p.sequence : [];
+    const firstFollowers = seq.filter(s => s.role === 'first_follower').map(s => s.ticker);
+    const midCaps = seq.filter(s => s.role === 'mid_cap').map(s => s.ticker);
+    const lateMovers = seq.filter(s => s.role === 'late_mover').map(s => s.ticker);
+    const chain = [
+      `${p.leaderTicker}(L)`,
+      firstFollowers.length ? `→${firstFollowers.join('/')}` : '',
+      midCaps.length ? `→${midCaps.join('/')}` : '',
+      lateMovers.length ? `→${lateMovers.join('/')}` : '',
+    ].filter(Boolean).join('');
+
+    // 최근 historical occurrence 1건 압축
+    const occ = Array.isArray(p.historicalOccurrences) ? p.historicalOccurrences : [];
+    const latest = occ.length ? occ[occ.length - 1] : null;
+    const sample = latest
+      ? ` [최근 ${latest.date}: ${latest.leaderMove} → ${(latest.cascadeResult ?? '').slice(0, 80)}]`
+      : '';
+
+    const liveTag = ret != null && Math.abs(ret) >= 3
+      ? ` 🔥ACTIVE: ${p.leaderTicker} 1d ${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`
+      : '';
+
+    lines.push(`■ ${p.sectorName}: ${chain}${liveTag}${sample}`);
+  }
+  return lines.join('\n');
 }
 
 async function getSectorSummary() {
@@ -2925,10 +3020,14 @@ async function generateViaOllama() {
   const ctx = buildCtxSummary(ctxRaw);
   const priceData = pricesSection(livePrices);
   const cascadeStr = await getActiveCascadeSignals(livePrices);
+  const cascadeBlock = cascadeStr
+    ? `\n[CASCADE PATTERNS — must-consider for portfolio selection]\n` +
+      `(L=leader, → 표시는 일반적 전파 순서. 🔥ACTIVE 는 1d ≥3% 임펄스 감지)\n${cascadeStr}`
+    : '';
   const ctxWithCascade = {
     ...ctx,
-    flows: ctx.flows + (cascadeStr ? `\n[ACTIVE CASCADE SIGNALS]\n${cascadeStr}` : ''),
-    news: ctx.news + (cascadeStr ? `\n[공급망 cascade 활성]\n${cascadeStr}` : ''),
+    flows: ctx.flows + cascadeBlock,
+    news: ctx.news + cascadeBlock,
   };
 
   // ── 데이터 수집 요약 ─────────────────────────────────────────────────────────

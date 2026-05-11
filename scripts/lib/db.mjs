@@ -316,6 +316,42 @@ export function getOverdueRecommendations(asOf = new Date().toISOString()) {
   `).all(asOf);
 }
 
+/** 전체 추천 (14d 윈도우 무시) — 조기 baseline 측정용. */
+export function getAllRecommendationsForEval() {
+  const db = openDb();
+  return db.prepare(`
+    SELECT r.*
+    FROM recommendations r
+    LEFT JOIN recommendation_outcomes o ON o.recommendation_id = r.id
+    WHERE o.id IS NULL
+    ORDER BY r.generated_at ASC
+  `).all();
+}
+
+/** ticker 별 outcome 통계 — Phase 1 컬링/가중치 결정용. */
+export function getTickerStats() {
+  const db = openDb();
+  return db.prepare(`
+    SELECT r.ticker,
+           COUNT(o.id)                                                   AS evaluated,
+           SUM(CASE WHEN o.outcome='hit_target'    THEN 1 ELSE 0 END)    AS hits,
+           SUM(CASE WHEN o.outcome='stop_loss'     THEN 1 ELSE 0 END)    AS stops,
+           SUM(CASE WHEN o.outcome='not_entered'   THEN 1 ELSE 0 END)    AS skipped,
+           SUM(CASE WHEN o.outcome='still_holding' THEN 1 ELSE 0 END)    AS holding,
+           ROUND(AVG(o.pnl_pct), 2)                                      AS avg_pnl,
+           ROUND(AVG(CASE WHEN o.outcome IN ('hit_target','stop_loss')
+                          THEN o.pnl_pct END), 2)                        AS realized_pnl,
+           MIN(r.generated_at)                                            AS first_seen,
+           MAX(r.generated_at)                                            AS last_seen,
+           COUNT(DISTINCT r.id)                                           AS total_recs
+    FROM recommendations r
+    LEFT JOIN recommendation_outcomes o ON o.recommendation_id = r.id
+    GROUP BY r.ticker
+    HAVING total_recs > 0
+    ORDER BY evaluated DESC, hits DESC
+  `).all();
+}
+
 /** 요약 통계. */
 export function getSummary() {
   const db = openDb();
