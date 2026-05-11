@@ -16,6 +16,8 @@ import { fileURLToPath } from 'url';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
+import { saveReport, saveRecommendations } from './lib/db.mjs';
+import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -3290,6 +3292,26 @@ async function generateViaOllama() {
   const filename = `report-${kstDate}-${session}-${localeArg}.json`;
   const filepath = resolve(REPORTS_DIR, filename);
   writeFileSync(filepath, JSON.stringify(finalReport, null, 2), 'utf8');
+
+  // ── 로컬 SQLite 적재 (data/flowvium.db) — 보고서 + 추천 + 엔드포인트 스냅샷 ──
+  // 전향적 추천 평가의 컨텍스트로 사용. 실패해도 보고서 저장 자체는 영향 없음.
+  try {
+    finalReport.generatedAt = finalReport.generatedAt ?? new Date().toISOString();
+    finalReport.session = finalReport.session ?? session;
+    finalReport.locale = finalReport.locale ?? localeArg;
+    const reportId = saveReport(finalReport);
+    const recCount = saveRecommendations(finalReport, reportId);
+    console.log(`\n[db] 📦 SQLite 적재: report=${reportId} recommendations=${recCount}`);
+    console.log(`[db] 엔드포인트 스냅샷 fetch 시작 (${20}개)...`);
+    const snapStart = Date.now();
+    const snapResults = await snapshotAllEndpoints(reportId);
+    const okCount = snapResults.filter(r => r.ok).length;
+    console.log(`[db] ✅ 스냅샷 완료: ${okCount}/${snapResults.length} ok, ${Date.now() - snapStart}ms`);
+    const failed = snapResults.filter(r => !r.ok).map(r => r.endpoint);
+    if (failed.length) console.log(`[db] ⚠️  실패: ${failed.join(', ')}`);
+  } catch (dbErr) {
+    console.warn(`[db] ⚠️  SQLite 적재 실패: ${String(dbErr).slice(0, 150)}`);
+  }
 
   console.log(`\n=== 저장 완료 ===`);
   console.log(`파일: reports/${filename}`);

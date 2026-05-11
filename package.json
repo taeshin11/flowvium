@@ -20,6 +20,9 @@
     "check:fallbacks": "node scripts/check-static-fallbacks.mjs",
     "check:timeframes": "node scripts/check-timeframes.mjs",
     "check:cron-sessions": "node scripts/check-cron-sessions.mjs",
+    "db:backfill": "node scripts/backfill-db.mjs",
+    "db:eval": "node scripts/evaluate-recommendations.mjs",
+    "db:query": "node scripts/query-db.mjs",
     "review:logs": "node scripts/review-logs.mjs",
     "review:redis": "node scripts/review-logs.mjs --redis",
     "scan:satellite": "node scripts/satellite-factory-scan.mjs",
@@ -44,9 +47,11 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "better-sqlite3": "^12.9.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",

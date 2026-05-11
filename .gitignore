@@ -29,6 +29,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local SQLite DB (회고 분석용 — 로컬에서만 사용)
+/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
