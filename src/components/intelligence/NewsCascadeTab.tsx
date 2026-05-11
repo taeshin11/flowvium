@@ -47,13 +47,13 @@ export default function NewsCascadeTab() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/news-cascade', { signal: controller.signal })
+    fetch(`/api/news-cascade?locale=${encodeURIComponent(locale)}`, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { if (!controller.signal.aborted) setNews(Array.isArray(d) ? d : (d.articles ?? d.news ?? d.items ?? [])); })
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, []);
+  }, [locale]);
 
   // ?articleId=… 가 있으면 해당 기사 자동 expand + scroll into view (홈 LiveFeed 클릭 진입용)
   useEffect(() => {

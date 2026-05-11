@@ -52,6 +52,84 @@ function listKey(): string {
   const today = new Date().toISOString().slice(0, 10);
   return `flowvium:news-cascade:v1:list:${today}`;
 }
+
+// 번역 캐시 키 — locale 별 분리. 영어(en) 는 listKey() 그대로 사용.
+function translatedKey(locale: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `flowvium:news-cascade:v1:translated:${locale}:${today}`;
+}
+
+// 16개 언어 라벨 — 번역 프롬프트에 명시적으로 사용
+const LOCALE_NAMES: Record<string, string> = {
+  ko: 'Korean (한국어)',
+  ja: 'Japanese (日本語)',
+  'zh-CN': 'Simplified Chinese (简体中文)',
+  'zh-TW': 'Traditional Chinese (繁體中文)',
+  es: 'Spanish (Español)',
+  fr: 'French (Français)',
+  de: 'German (Deutsch)',
+  pt: 'Portuguese (Português)',
+  ru: 'Russian (Русский)',
+  ar: 'Arabic (العربية)',
+  hi: 'Hindi (हिन्दी)',
+  id: 'Indonesian (Bahasa Indonesia)',
+  th: 'Thai (ไทย)',
+  tr: 'Turkish (Türkçe)',
+  vi: 'Vietnamese (Tiếng Việt)',
+};
+
+/**
+ * 영어 기사 N개 → target locale 로 batch 번역. 단일 AI 호출로 비용 절감.
+ * title + summary 모두 번역. cascades/metadata 는 그대로.
+ * 실패 시 원문(영어) 반환 — UI 깨짐 방지.
+ */
+async function translateArticles(
+  articles: NewsWithCascade[],
+  locale: string,
+): Promise<NewsWithCascade[]> {
+  if (locale === 'en' || !LOCALE_NAMES[locale]) return articles;
+  if (!articles.length) return articles;
+  const langName = LOCALE_NAMES[locale];
+
+  const payload = articles.map((a, i) => ({
+    i,
+    title: a.title.slice(0, 200),
+    summary: a.summary.slice(0, 300),
+  }));
+
+  const prompt = `Translate the following financial news headlines and summaries to ${langName}.
+Keep ticker symbols (NVDA, AAPL, etc.) and numbers/percentages unchanged.
+Tone: professional financial analyst.
+Return STRICT JSON array of {i, title, summary} — same length, same order. NO extra fields, NO commentary.
+
+Input:
+${JSON.stringify(payload, null, 2)}
+
+Output (JSON array only):`;
+
+  try {
+    const r = await callAI(prompt, {
+      tag: 'news-cascade.translate',
+      maxTokens: 4000,
+      temperature: 0.3,
+      skipVllm: true, // EXAONE 2.4B 가 16개 언어 번역에 약함
+      timeoutMs: 25000,
+    });
+    if (!r.text) return articles;
+    const jsonMatch = r.text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (!jsonMatch) return articles;
+    const translated = JSON.parse(jsonMatch[0]) as Array<{ i: number; title: string; summary: string }>;
+    const byIdx = new Map(translated.map(t => [t.i, t]));
+    return articles.map((a, i) => {
+      const t = byIdx.get(i);
+      if (!t || !t.title) return a;
+      return { ...a, title: t.title.trim(), summary: (t.summary ?? a.summary).trim() };
+    });
+  } catch (e) {
+    logger.warn('news-cascade.translate', 'translation_failed', { locale, error: String(e).slice(0, 100) });
+    return articles;
+  }
+}
 function articleKey(id: string): string {
   return `flowvium:news-cascade:v1:article:${id}`;
 }
@@ -466,13 +544,27 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 
 // ── GET handler ───────────────────────────────────────────────────────────────
 export async function GET(request: Request) {
-  const probe = new URL(request.url).searchParams.get('probe') === '1';
+  const searchParams = new URL(request.url).searchParams;
+  const probe = searchParams.get('probe') === '1';
+  const locale = (searchParams.get('locale') ?? 'en').trim();
+  const wantsTranslation = locale !== 'en' && LOCALE_NAMES[locale];
   const redis = createRedis();
+
+  // ── locale 번역 캐시 우선 — 영어가 아니고 번역 캐시 있으면 즉시 반환 ──
+  if (redis && wantsTranslation) {
+    try {
+      const translatedCache = await redis.get<NewsWithCascade[]>(translatedKey(locale));
+      if (translatedCache && translatedCache.length > 0) {
+        return NextResponse.json({ articles: translatedCache, cached: true, locale }, { headers: CDN_HEADERS });
+      }
+    } catch { /* non-fatal */ }
+  }
 
   // 1a. Module-level memory cache hit (no-Redis path) — avoids 5 GROQ calls per request
   if (!redis && NEWS_MEMORY_CACHE && Date.now() < NEWS_MEMORY_CACHE.expiresAt) {
     logger.info('api.news-cascade', 'memory_cache_hit', { articles: NEWS_MEMORY_CACHE.articles.length });
-    return NextResponse.json({ articles: NEWS_MEMORY_CACHE.articles, cached: true }, { headers: CDN_HEADERS });
+    const out = wantsTranslation ? await translateArticles(NEWS_MEMORY_CACHE.articles, locale) : NEWS_MEMORY_CACHE.articles;
+    return NextResponse.json({ articles: out, cached: true, locale }, { headers: CDN_HEADERS });
   }
 
   // 1b. Try to load today's cached list from Redis
@@ -480,7 +572,17 @@ export async function GET(request: Request) {
     try {
       const cached = await redis.get<NewsWithCascade[]>(listKey());
       if (cached && cached.length > 0) {
-        return NextResponse.json({ articles: cached, cached: true }, { headers: CDN_HEADERS });
+        if (!wantsTranslation) {
+          return NextResponse.json({ articles: cached, cached: true }, { headers: CDN_HEADERS });
+        }
+        // 영어 캐시 hit + 번역 요청 → 번역 + per-locale 캐시 저장
+        const translated = await translateArticles(cached, locale);
+        const sameAsOriginal = translated === cached; // 번역 실패 시 원문 반환됨
+        if (!sameAsOriginal) {
+          await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 })
+            .catch(() => { /* non-fatal */ });
+        }
+        return NextResponse.json({ articles: translated, cached: true, locale, translated: !sameAsOriginal }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
   }
@@ -625,6 +727,17 @@ export async function GET(request: Request) {
   // Release distributed lock (held only when we were the winning Lambda)
   if (redis && ownLock) {
     await loggedRedisDel(redis, 'api.news-cascade', [LOCK_KEY]);
+  }
+
+  // 번역 요청 시 즉시 번역해서 응답 + per-locale 캐시 저장
+  if (wantsTranslation && sorted.length > 0) {
+    const translated = await translateArticles(sorted, locale);
+    const sameAsOriginal = translated === sorted;
+    if (redis && !sameAsOriginal) {
+      await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 })
+        .catch(() => { /* non-fatal */ });
+    }
+    return NextResponse.json({ articles: translated, cached: false, locale, translated: !sameAsOriginal }, { headers: CDN_HEADERS });
   }
 
   return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });

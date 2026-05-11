@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { UpdateItem } from '@/app/api/latest-updates/route';
 import { TrendingUp, TrendingDown, Minus, Loader2, RefreshCw } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -14,6 +14,7 @@ function DirectionIcon({ direction }: { direction?: 'up' | 'down' | 'neutral' })
 
 export default function LiveFeed() {
   const t = useTranslations('common');
+  const locale = useLocale();
   const [items, setItems] = useState<UpdateItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,7 +24,7 @@ export default function LiveFeed() {
   const fetchItems = useCallback(async (isManual = false, signal?: AbortSignal) => {
     if (isManual) setRefreshing(true);
     try {
-      const res = await fetch('/api/latest-updates', signal ? { signal } : undefined);
+      const res = await fetch(`/api/latest-updates?locale=${encodeURIComponent(locale)}`, signal ? { signal } : undefined);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (signal?.aborted) return;
@@ -39,7 +40,7 @@ export default function LiveFeed() {
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const controller = new AbortController();

@@ -272,12 +272,25 @@ async function getFedWatchItem(redis: Redis | null, base: string): Promise<Updat
 // ── 5. News Cascade ──────────────────────────────────────────────────────────
 type ArticleData = { id?: string; title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> };
 
-async function getNewsCascadeItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+async function getNewsCascadeItems(redis: Redis | null, base: string, locale: string = 'en'): Promise<UpdateItem[]> {
+  const wantsTranslation = locale !== 'en';
   // Redis 직접 읽기: news-cascade는 전체 배열을 JSON key로 저장
   // (lrange가 아닌 get — lrange는 Redis list 자료구조에만 작동)
   if (redis) {
     try {
       const today = new Date().toISOString().slice(0, 10);
+      // 1) locale 번역 캐시 우선 (한국어/일본어/중국어 등)
+      if (wantsTranslation) {
+        const translatedKey = `flowvium:news-cascade:v1:translated:${locale}:${today}`;
+        const tCached = await redis.get<ArticleData[]>(translatedKey);
+        if (Array.isArray(tCached) && tCached.length > 0) {
+          return tCached
+            .filter(a => a.pubDate && withinDays(a.pubDate, 3))
+            .slice(0, 5)
+            .map(a => newsItemFrom(a, a.id ?? a.title));
+        }
+      }
+      // 2) 영어 캐시 fallback
       const cached = await redis.get<ArticleData[]>(`flowvium:news-cascade:v1:list:${today}`);
       if (Array.isArray(cached) && cached.length > 0) {
         return cached
@@ -287,8 +300,9 @@ async function getNewsCascadeItems(redis: Redis | null, base: string): Promise<U
       }
     } catch { /* non-fatal */ }
   }
-  // Fallback: /api/news-cascade가 articles 배열로 최근 기사 반환
-  const d = await safeJson<{ articles?: ArticleData[] }>(`${base}/api/news-cascade`);
+  // 3) HTTP fallback — locale 전달해서 번역 트리거
+  const url = wantsTranslation ? `${base}/api/news-cascade?locale=${encodeURIComponent(locale)}` : `${base}/api/news-cascade`;
+  const d = await safeJson<{ articles?: ArticleData[] }>(url);
   const arts = d?.articles ?? [];
   return arts
     .filter(a => a.pubDate && withinDays(a.pubDate, 3))
@@ -494,12 +508,15 @@ function getBaseUrl(req: Request): string {
 export async function GET(req: Request) {
   const redis = createRedis();
   const base = getBaseUrl(req);
-  const cacheKey = 'flowvium:latest-updates:v3';
+  const url = new URL(req.url);
+  const locale = (url.searchParams.get('locale') ?? 'en').trim();
+  // locale 별 다른 캐시 — 번역된 뉴스 항목이 섞이지 않도록
+  const cacheKey = locale !== 'en' ? `flowvium:latest-updates:v3:${locale}` : 'flowvium:latest-updates:v3';
 
   if (redis) {
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return NextResponse.json({ items: cached, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
+      if (cached) return NextResponse.json({ items: cached, cached: true, source: 'cached', locale }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -508,7 +525,7 @@ export async function GET(req: Request) {
     getCapitalFlowItems(redis, base),
     getMacroItems(redis, base),
     getFedWatchItem(redis, base),
-    getNewsCascadeItems(redis, base),
+    getNewsCascadeItems(redis, base, locale),
     getMarketMoverItems(redis, base),
   ]);
 
