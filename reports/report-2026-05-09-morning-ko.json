@@ -13,11 +13,11 @@
       "entryRationale": "100일선+ROE 18% FCF수익률 8%→안전마진",
       "stopLoss": "$500",
       "target": "$220.00",
-      "targetBull": "$750",
+      "targetBull": "$264.00",
       "targetRationale": "AI 수요 확대, 매출 성장 전망",
       "confidence": "high",
       "action": "buy",
-      "critiqueNote": "목표가 $247.48 너무 높아, $220으로 조정",
+      "critiqueNote": "목표가 $247.48 너무 높아, $220으로 조정 | targetBull 3.7x of entry — 자동 축소",
       "catalysts": [
         "Q4 FY2026 revenue $68.1B +73.2% YoY",
         "AI chip demand surge in H2 2026",
@@ -103,7 +103,7 @@
     },
     {
       "ticker": "ASML",
-      "name": "ASML",
+      "name": "ASML Holding",
       "sector": "Technology",
       "market": "us",
       "rationale": "squeeze 25, 50MA 위($1402.28), RSI 61, 거래량+26%, 52주:$966.57-$1592.02, 진입지지선:$1402.28",
@@ -297,7 +297,7 @@
   "stopLossRationale": [
     {
       "ticker": "NVDA",
-      "rationale": "NVDA의 손절은 500달러로, 손실을 제한하기 위한 전략 | 현재 $215.2 → 손절선 ~$200.14 (-7%) / 50MA 위($188.65), RSI 60, 거래량-10%, 52주:$165.17-$216.61, 진입지지선:$188.65"
+      "rationale": "NVDA의 손절은 500달러로, 손실을 제한하기 위한 전략 | 현재 $215.2 → 손절선 ~$500 (-7%) / 50MA 위($188.65), RSI 60, 거래량-10%, 52주:$165.17-$216.61, 진입지지선:$188.65"
     },
     {
       "ticker": "KLAC",
@@ -305,7 +305,7 @@
     },
     {
       "ticker": "MSFT",
-      "rationale": "MSFT의 손절은 320달러로, 추세 파괴 시 손실 제한 | 현재 $415.12 → 손절선 ~$386.06 (-7%) / 50MA 위($398.15), RSI 48, 거래량-6%, 52주:$356.77-$511.14, 진입지지선:$398.15"
+      "rationale": "MSFT의 손절은 320달러로, 추세 파괴 시 손실 제한 | 현재 $415.12 → 손절선 ~$320 (-7%) / 50MA 위($398.15), RSI 48, 거래량-6%, 52주:$356.77-$511.14, 진입지지선:$398.15"
     },
     {
       "ticker": "000660.KS",
@@ -553,22 +553,29 @@
         "stopLossAboveEntry": [
           "NVDA:stop=500>=entry=200.14"
         ],
-        "entryFar50MA": [
-          "ASML:entry=350→$1360.21-$1402.28 (was 0.25x)",
-          "TSM:entry=55→$352.38-$363.28 (was 0.15x)"
-        ],
-        "companyChangeName": [
-          "000660.KS:\"Samsung Electronics\"→\"SK하이닉스\""
-        ],
+        "entryFar50MA": [],
+        "companyChangeName": [],
         "unrealistic52WRange": [],
         "stopRationaleMismatch": [
           "NVDA:portfolio=500 vs rationale=215.2 (참고가격)",
           "000660.KS:portfolio=1500000 vs rationale=649978 (참고가격)"
-        ]
+        ],
+        "usNameMismatch": [
+          "ASML:portfolio \"ASML\"→\"ASML Holding\""
+        ],
+        "targetBullUnrealistic": [
+          "NVDA:$750→$264.00 (3.7x entry)"
+        ],
+        "actionCritiqueMismatch": [],
+        "stopRationaleAligned": [
+          "NVDA:200.14→500",
+          "MSFT:386.06→320"
+        ],
+        "currencyMismatch": []
       },
-      "appliedAt": "2026-05-10T05:18:48.059Z",
-      "totalFixes": 6
+      "appliedAt": "2026-05-11T00:42:55.249Z",
+      "totalFixes": 7
     },
-    "retroAppliedAt": "2026-05-10T05:18:48.069Z"
+    "retroAppliedAt": "2026-05-11T00:42:55.251Z"
   }
 }

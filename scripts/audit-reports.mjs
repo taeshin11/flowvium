@@ -41,6 +41,39 @@ const KR_NAMES = {
   '005490.KS': 'POSCO홀딩스', '000270.KS': '기아',
 };
 
+// US/global 주요 ticker→name 화이트리스트 (strategy-schema.ts US_NAMES 와 동기)
+const US_NAMES = {
+  NVDA: 'NVIDIA', AMD: 'AMD', INTC: 'Intel',
+  MU: 'Micron Technology', MCHP: 'Microchip Technology',
+  TSM: 'TSMC', ASML: 'ASML Holding', AMAT: 'Applied Materials',
+  LRCX: 'Lam Research', KLAC: 'KLA Corporation', AVGO: 'Broadcom',
+  QCOM: 'Qualcomm', ARM: 'ARM Holdings',
+  SMCI: 'Super Micro Computer', SMTC: 'Semtech Corporation', SNPS: 'Synopsys',
+  ON: 'onsemi', MRVL: 'Marvell Technology',
+  AAPL: 'Apple', MSFT: 'Microsoft', GOOGL: 'Alphabet', GOOG: 'Alphabet',
+  AMZN: 'Amazon', META: 'Meta Platforms', TSLA: 'Tesla', NFLX: 'Netflix',
+  ORCL: 'Oracle', CRM: 'Salesforce', ADBE: 'Adobe', NOW: 'ServiceNow',
+  PLTR: 'Palantir', JPM: 'JPMorgan Chase', GS: 'Goldman Sachs', BLK: 'BlackRock',
+  V: 'Visa', MA: 'Mastercard', LMT: 'Lockheed Martin', RTX: 'RTX',
+  NOC: 'Northrop Grumman', KTOS: 'Kratos Defense',
+  XOM: 'Exxon Mobil', CVX: 'Chevron',
+  TDS: 'Telephone and Data Systems', IONQ: 'IonQ',
+  SPY: 'SPDR S&P 500 ETF', QQQ: 'Invesco QQQ', DELL: 'Dell Technologies',
+};
+
+const ACTION_DOWNGRADE_PATTERNS = [
+  /매수\s*자제/, /보유\s*권장/, /신규\s*매수\s*자제/, /고점\s*주의/,
+  /과매수/, /기초\s*약화/, /조정\s*가능/, /매수\s*대신\s*보유/,
+  /watch\b/i, /avoid\s+new\s+buy/i, /trim\b/i, /reduce\s+position/i,
+];
+
+function nativeCurrency(ticker) {
+  const t = (ticker ?? '').toUpperCase();
+  if (t.endsWith('.KS') || t.endsWith('.KQ')) return '₩';
+  if (t.endsWith('.AS') || t.endsWith('.PA') || t.endsWith('.DE')) return '€';
+  return '$';
+}
+
 function parseFirstPrice(s) {
   if (!s) return null;
   const m = String(s).replace(/[$₩,\s]/g, '').match(/\d+(\.\d+)?/);
@@ -66,6 +99,8 @@ function applyHarness(r) {
       buyLowConfidence: [], stopLossDeep: [], targetBullInverted: [],
       stopLossAboveEntry: [], entryFar50MA: [], companyChangeName: [],
       unrealistic52WRange: [], stopRationaleMismatch: [],
+      usNameMismatch: [], targetBullUnrealistic: [],
+      actionCritiqueMismatch: [], stopRationaleAligned: [], currencyMismatch: [],
     },
     appliedAt: new Date().toISOString(), totalFixes: 0,
   };
@@ -158,6 +193,93 @@ function applyHarness(r) {
         audit.fixes.companyChangeName.push(`${c.ticker}:"${c.name}"→"${exp}"`);
         c.name = exp;
       }
+    }
+  }
+
+  // US ticker → name 화이트리스트
+  for (const p of r.portfolio) {
+    const exp = US_NAMES[p.ticker?.toUpperCase()];
+    if (exp && p.name !== exp) {
+      audit.fixes.usNameMismatch.push(`${p.ticker}:portfolio "${p.name}"→"${exp}"`);
+      p.name = exp;
+    }
+  }
+  if (Array.isArray(r.companyChanges)) {
+    for (const c of r.companyChanges) {
+      const exp = US_NAMES[c.ticker?.toUpperCase()];
+      if (exp && c.name !== exp) {
+        audit.fixes.usNameMismatch.push(`${c.ticker}:companyChanges "${c.name}"→"${exp}"`);
+        c.name = exp;
+      }
+    }
+  }
+
+  // targetBull 합리성 — 2x entry 초과 또는 1.6x target 초과 시 축소
+  for (const p of r.portfolio) {
+    if (!p.targetBull) continue;
+    const tb = parseFirstPrice(p.targetBull);
+    const t = parseFirstPrice(p.target);
+    const e = parseFirstPrice(p.entryZone);
+    if (tb == null || t == null || e == null || e <= 0) continue;
+    const bullVsEntry = tb / e;
+    const bullVsTarget = tb / t;
+    if (bullVsEntry <= 2.0 && bullVsTarget <= 1.6) continue;
+    const sym = (p.targetBull.match(/^[₩$€]/)?.[0]) ?? '$';
+    const newBull = t * 1.2;
+    const fmt = sym === '₩'
+      ? (n) => `₩${Math.round(n).toLocaleString('en-US')}`
+      : (n) => `${sym}${n.toFixed(2)}`;
+    audit.fixes.targetBullUnrealistic.push(
+      `${p.ticker}:${p.targetBull}→${fmt(newBull)} (${bullVsEntry.toFixed(1)}x entry)`,
+    );
+    p.targetBull = fmt(newBull);
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `targetBull ${bullVsEntry.toFixed(1)}x of entry — 자동 축소`;
+  }
+
+  // action↔critique/risk 의미 일관성
+  for (const p of r.portfolio) {
+    if (p.action !== 'buy') continue;
+    const notes = `${p.critiqueNote ?? ''} ${p.riskNote ?? ''}`;
+    const matched = ACTION_DOWNGRADE_PATTERNS.find(re => re.test(notes));
+    if (!matched) continue;
+    audit.fixes.actionCritiqueMismatch.push(`${p.ticker}:buy→watch (note 매칭)`);
+    p.action = 'watch';
+  }
+
+  // stopLossRationale "손절선 ~X" → portfolio.stopLoss 값으로 통일
+  if (Array.isArray(r.stopLossRationale)) {
+    for (const sr of r.stopLossRationale) {
+      const p = r.portfolio.find(x => x.ticker === sr.ticker);
+      if (!p) continue;
+      const stopP = parseFirstPrice(p.stopLoss);
+      if (!stopP) continue;
+      const m = sr.rationale?.match(/손절선\s*~\s*([$₩€])?([\d,.]+)/);
+      if (!m) continue;
+      const rationaleStop = parseFloat(m[2].replace(/,/g, ''));
+      if (!isFinite(rationaleStop) || rationaleStop === stopP) continue;
+      if (Math.abs(rationaleStop - stopP) / stopP < 0.05) continue;
+      const sym = m[1] ?? (p.stopLoss.match(/^[₩$€]/)?.[0] ?? '$');
+      sr.rationale = sr.rationale.replace(
+        /손절선\s*~\s*[$₩€]?[\d,.]+/,
+        `손절선 ~${sym}${stopP}`,
+      );
+      audit.fixes.stopRationaleAligned.push(`${sr.ticker}:${rationaleStop}→${stopP}`);
+    }
+  }
+
+  // 통화 일관성 검증 (자동 교정 없음)
+  for (const p of r.portfolio) {
+    const native = nativeCurrency(p.ticker);
+    const fields = [['entry', p.entryZone], ['stop', p.stopLoss], ['target', p.target]];
+    const mismatches = [];
+    for (const [field, val] of fields) {
+      if (!val) continue;
+      const sym = val.match(/[₩$€]/)?.[0];
+      if (sym && sym !== native) mismatches.push(`${field}=${sym}`);
+    }
+    if (mismatches.length > 0) {
+      audit.fixes.currencyMismatch.push(`${p.ticker} (native ${native}): ${mismatches.join(', ')}`);
     }
   }
 

@@ -20,6 +20,88 @@ export const KR_NAMES: Record<string, string> = {
   '000270.KS': '기아',
 };
 
+/**
+ * 미국·글로벌 주요 티커 → 정확한 회사명 매핑.
+ * 로컬 LLM 이 SMCI→"Semtech Corporation", MU→"Microchip Technology" 등
+ * 비슷한 이름끼리 자주 혼동하는 패턴을 차단.
+ * 추가 시 ticker uppercase 기준. 한국 KS 종목은 KR_NAMES 사용.
+ */
+export const US_NAMES: Record<string, string> = {
+  // 반도체 / 메모리 / 장비
+  NVDA: 'NVIDIA',
+  AMD: 'AMD',
+  INTC: 'Intel',
+  MU: 'Micron Technology',           // ⚠️ MCHP(Microchip) 와 혼동 빈번
+  MCHP: 'Microchip Technology',
+  TSM: 'TSMC',                       // Taiwan Semiconductor Manufacturing
+  ASML: 'ASML Holding',
+  AMAT: 'Applied Materials',
+  LRCX: 'Lam Research',
+  KLAC: 'KLA Corporation',
+  AVGO: 'Broadcom',
+  QCOM: 'Qualcomm',
+  ARM: 'ARM Holdings',
+  SMCI: 'Super Micro Computer',      // ⚠️ SMTC(Semtech), SNPS(Synopsys) 와 혼동 빈번
+  SMTC: 'Semtech Corporation',
+  SNPS: 'Synopsys',
+  ON: 'onsemi',
+  MRVL: 'Marvell Technology',
+  // 빅테크
+  AAPL: 'Apple',
+  MSFT: 'Microsoft',
+  GOOGL: 'Alphabet',
+  GOOG: 'Alphabet',
+  AMZN: 'Amazon',
+  META: 'Meta Platforms',
+  TSLA: 'Tesla',
+  NFLX: 'Netflix',
+  ORCL: 'Oracle',
+  CRM: 'Salesforce',
+  ADBE: 'Adobe',
+  NOW: 'ServiceNow',
+  PLTR: 'Palantir',
+  // 금융
+  JPM: 'JPMorgan Chase',
+  GS: 'Goldman Sachs',
+  BLK: 'BlackRock',
+  V: 'Visa',
+  MA: 'Mastercard',
+  // 방산
+  LMT: 'Lockheed Martin',
+  RTX: 'RTX',
+  NOC: 'Northrop Grumman',
+  KTOS: 'Kratos Defense',
+  // 에너지
+  XOM: 'Exxon Mobil',
+  CVX: 'Chevron',
+  // 통신
+  TDS: 'Telephone and Data Systems', // ⚠️ "TDS Holding" 같은 hallucination 차단
+  // 양자/AI 신생
+  IONQ: 'IonQ',
+  // ETF
+  SPY: 'SPDR S&P 500 ETF',
+  QQQ: 'Invesco QQQ',
+  DELL: 'Dell Technologies',
+};
+
+/** 알려진 ticker→name 매핑이 있으면 반환. KS 는 KR_NAMES, 나머지는 US_NAMES. */
+export function expectedNameForTicker(ticker: string): string | null {
+  const t = ticker.toUpperCase();
+  return KR_NAMES[t] ?? US_NAMES[t] ?? null;
+}
+
+/**
+ * 티커별 native 통화. rationale/entry/stopLoss/target 의 통화 기호와 매칭 검증용.
+ * KS 종목 → ₩, ASML(네덜란드) → € (단, 미국 ADR 가격으로 표기되는 경우 $), 나머지 → $
+ */
+export function nativeCurrencyForTicker(ticker: string): '$' | '₩' | '€' | null {
+  const t = ticker.toUpperCase();
+  if (t.endsWith('.KS') || t.endsWith('.KQ')) return '₩';
+  // ASML 은 NASDAQ ADR 이라 보통 $ 가 정상. AS.AS (Amsterdam) 만 €.
+  if (t.endsWith('.AS') || t.endsWith('.PA') || t.endsWith('.DE')) return '€';
+  return '$';
+}
+
 // 진입가 / 손절가 1차 가격 추출 (route.ts parseFirstPrice 와 동등)
 function parseFirstPrice(s: string | undefined | null): number | null {
   if (!s) return null;
@@ -191,6 +273,16 @@ export interface HarnessAudit {
     companyChangeName: string[];     // ['000660.KS:"Samsung"→"SK하이닉스"']
     unrealistic52WRange: string[];   // ['000660.KS:52주 8.9x — split/data error 의심']
     stopRationaleMismatch: string[]; // ['MU:portfolio=$687 vs rationale=$201']
+    /** ticker→name 화이트리스트 미스매치 자동 교정 (SMCI→"Super Micro Computer" 등) */
+    usNameMismatch: string[];        // ['SMCI:"Semtech Corporation"→"Super Micro Computer"']
+    /** targetBull 이 entry 대비 2x 이상이면 자동 축소 */
+    targetBullUnrealistic: string[]; // ['NVDA:targetBull $950→$258 (4.4x→1.2x)']
+    /** action↔critique/risk 의미 모순 → watch 강등 */
+    actionCritiqueMismatch: string[]; // ['SK:RSI 93+신규매수자제→action=watch']
+    /** stopLossRationale 의 가격과 portfolio.stopLoss 불일치 → portfolio 값으로 통일 */
+    stopRationaleAligned: string[];  // ['NVDA:rationale $200.14→$197.98 (portfolio 값으로 통일)']
+    /** rationale/entry/stopLoss 통화 기호 ↔ native 통화 불일치 */
+    currencyMismatch: string[];      // ['ASML:€ in rationale but $ in entry/stop']
   };
   /** Zod schema 검증 결과 — preValidateFix 후에도 통과 못 한 issue */
   schemaErrors: string[];
@@ -216,6 +308,11 @@ export function emptyAudit(): HarnessAudit {
       companyChangeName: [],
       unrealistic52WRange: [],
       stopRationaleMismatch: [],
+      usNameMismatch: [],
+      targetBullUnrealistic: [],
+      actionCritiqueMismatch: [],
+      stopRationaleAligned: [],
+      currencyMismatch: [],
     },
     schemaErrors: [],
     appliedAt: new Date().toISOString(),
@@ -238,7 +335,12 @@ function countAudit(a: HarnessAudit): number {
     f.entryFar50MA.length +
     f.companyChangeName.length +
     f.unrealistic52WRange.length +
-    f.stopRationaleMismatch.length
+    f.stopRationaleMismatch.length +
+    f.usNameMismatch.length +
+    f.targetBullUnrealistic.length +
+    f.actionCritiqueMismatch.length +
+    f.stopRationaleAligned.length +
+    f.currencyMismatch.length
   );
 }
 
@@ -488,6 +590,174 @@ export function fixEntryFar50MA<T extends {
 }
 
 /**
+ * ticker → US_NAMES 매핑이 있는 종목은 portfolio 와 companyChanges 의 name 강제 교정.
+ * SMCI→"Super Micro Computer", MU→"Micron Technology", TDS→"Telephone and Data Systems" 등
+ * 로컬 LLM 이 비슷한 이름끼리 혼동하는 패턴 자동 차단.
+ */
+export function fixUsTickerNames<T extends {
+  portfolio: Array<{ ticker: string; name: string }>;
+  companyChanges?: Array<{ ticker: string; name: string }>;
+}>(s: T, audit?: HarnessAudit): T {
+  for (const p of s.portfolio) {
+    const expected = US_NAMES[p.ticker?.toUpperCase() ?? ''];
+    if (expected && p.name !== expected) {
+      if (audit) audit.fixes.usNameMismatch.push(`${p.ticker}:portfolio "${p.name}"→"${expected}"`);
+      p.name = expected;
+    }
+  }
+  if (s.companyChanges) {
+    for (const c of s.companyChanges) {
+      const expected = US_NAMES[c.ticker?.toUpperCase() ?? ''];
+      if (expected && c.name !== expected) {
+        if (audit) audit.fixes.usNameMismatch.push(`${c.ticker}:companyChanges "${c.name}"→"${expected}"`);
+        c.name = expected;
+      }
+    }
+  }
+  return s;
+}
+
+/**
+ * targetBull 합리성 가드: entry 대비 2x 초과 또는 target 대비 1.6x 초과 시 축소.
+ * 로컬 LLM 이 NVDA $215→$950 (4.4x), SMCI $35→$140 (4x) 같은 4~7x 환상 빈번.
+ * 자동 교정: targetBull = target * 1.2 (보수적 bull case).
+ */
+export function fixTargetBullUnrealistic<T extends {
+  portfolio: Array<{
+    ticker: string; entryZone: string;
+    target: string; targetBull?: string;
+    critiqueNote?: string;
+  }>;
+}>(s: T, audit?: HarnessAudit): T {
+  for (const p of s.portfolio) {
+    if (!p.targetBull) continue;
+    const tb = parseFirstPrice(p.targetBull);
+    const t = parseFirstPrice(p.target);
+    const entry = parseFirstPrice(p.entryZone);
+    if (tb == null || t == null || entry == null || entry <= 0) continue;
+    const bullVsEntry = tb / entry;
+    const bullVsTarget = tb / t;
+    // entry 대비 2x 초과 OR target 대비 1.6x 초과 시 hallucination 의심
+    if (bullVsEntry <= 2.0 && bullVsTarget <= 1.6) continue;
+
+    const currencySym = p.targetBull.match(/^[₩$€]/)?.[0] ?? '$';
+    const newBull = t * 1.2;
+    const fmt = currencySym === '₩'
+      ? (n: number) => `₩${Math.round(n).toLocaleString('en-US')}`
+      : (n: number) => `${currencySym}${n.toFixed(2)}`;
+
+    if (audit) audit.fixes.targetBullUnrealistic.push(
+      `${p.ticker}:targetBull ${p.targetBull}→${fmt(newBull)} (${bullVsEntry.toFixed(1)}x entry, ${bullVsTarget.toFixed(1)}x target)`,
+    );
+    p.targetBull = fmt(newBull);
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `targetBull ${(bullVsEntry).toFixed(1)}x of entry — 자동 축소`;
+  }
+  return s;
+}
+
+/**
+ * action ↔ critique/riskNote 의미 일관성 가드.
+ * critiqueNote / riskNote 에 "매수 자제", "보유", "watch", "신규 매수 자제", "조정 가능",
+ * "고점 주의", "과매수", "기초 약화" 류 키워드가 있는데 action=buy 면 watch 강등.
+ * SK하이닉스 RSI 93 + "신규 매수 자제" + action=buy 같은 모순 케이스.
+ */
+const ACTION_DOWNGRADE_PATTERNS = [
+  /매수\s*자제/, /보유\s*권장/, /신규\s*매수\s*자제/, /고점\s*주의/,
+  /과매수/, /기초\s*약화/, /조정\s*가능/, /매수\s*대신\s*보유/,
+  /watch\b/i, /avoid\s+new\s+buy/i, /trim\b/i, /reduce\s+position/i,
+];
+export function fixActionCritiqueMismatch<T extends {
+  portfolio: Array<{
+    ticker: string; action?: string;
+    critiqueNote?: string; riskNote?: string;
+  }>;
+}>(s: T, audit?: HarnessAudit): T {
+  for (const p of s.portfolio) {
+    if (p.action !== 'buy') continue;
+    const notes = `${p.critiqueNote ?? ''} ${p.riskNote ?? ''}`;
+    const matched = ACTION_DOWNGRADE_PATTERNS.find(re => re.test(notes));
+    if (!matched) continue;
+    if (audit) audit.fixes.actionCritiqueMismatch.push(
+      `${p.ticker}:buy→watch (note 매칭: "${matched.source}")`,
+    );
+    p.action = 'watch';
+  }
+  return s;
+}
+
+/**
+ * stopLossRationale 텍스트 안의 가격 → portfolio.stopLoss 와 동기화.
+ * 라쇼날에 "현재 X → 손절선 ~Y (-7%)" 같은 표현이 있고 Y 가 portfolio 와 다르면 통일.
+ * detectStopRationaleMismatch (기존) 는 경고만, 이건 실제 텍스트 교정.
+ */
+export function alignStopRationale<T extends {
+  portfolio: Array<{ ticker: string; stopLoss: string }>;
+  stopLossRationale?: Array<{ ticker: string; rationale: string }>;
+}>(s: T, audit?: HarnessAudit): T {
+  if (!s.stopLossRationale) return s;
+  for (const sr of s.stopLossRationale) {
+    const p = s.portfolio.find(x => x.ticker === sr.ticker);
+    if (!p) continue;
+    const stopP = parseFirstPrice(p.stopLoss);
+    if (!stopP) continue;
+    // 라쇼날 텍스트의 "손절선 ~X" 패턴
+    const m = sr.rationale.match(/손절선\s*~\s*([$₩€])?([\d,.]+)/);
+    if (!m) continue;
+    const rationaleStop = parseFloat(m[2].replace(/,/g, ''));
+    if (!isFinite(rationaleStop) || rationaleStop === stopP) continue;
+    // stopLoss 와 5% 이상 차이날 때만 정렬 (반올림 차이 무시)
+    if (Math.abs(rationaleStop - stopP) / stopP < 0.05) continue;
+    const sym = m[1] ?? (p.stopLoss.match(/^[₩$€]/)?.[0] ?? '$');
+    const newText = sr.rationale.replace(
+      /손절선\s*~\s*[$₩€]?[\d,.]+/,
+      `손절선 ~${sym}${stopP}`,
+    );
+    if (audit) audit.fixes.stopRationaleAligned.push(
+      `${sr.ticker}:rationale ${rationaleStop}→${stopP} (portfolio 값으로 통일)`,
+    );
+    sr.rationale = newText;
+  }
+  return s;
+}
+
+/**
+ * 통화 일관성 가드.
+ * 티커별 native 통화(₩/$/€) 와 portfolio.entryZone/stopLoss/target 의 통화 기호가
+ * 일치하는지 검증. KS 티커인데 $ 기호 (또는 그 반대) → 경고.
+ * 자동 교정은 안 함 (가격 자체가 hallucination 가능성 — 단순 기호 치환은 위험).
+ */
+export function detectCurrencyMismatch<T extends {
+  portfolio: Array<{
+    ticker: string;
+    entryZone: string; stopLoss: string; target: string;
+  }>;
+}>(s: T, audit?: HarnessAudit): T {
+  if (!audit) return s;
+  for (const p of s.portfolio) {
+    const native = nativeCurrencyForTicker(p.ticker);
+    if (!native) continue;
+    const checks: Array<[string, string | undefined]> = [
+      ['entry', p.entryZone],
+      ['stop', p.stopLoss],
+      ['target', p.target],
+    ];
+    const mismatches: string[] = [];
+    for (const [field, val] of checks) {
+      if (!val) continue;
+      const sym = val.match(/[₩$€]/)?.[0];
+      if (sym && sym !== native) mismatches.push(`${field}=${sym}`);
+    }
+    if (mismatches.length > 0) {
+      audit.fixes.currencyMismatch.push(
+        `${p.ticker} (native ${native}): ${mismatches.join(', ')}`,
+      );
+    }
+  }
+  return s;
+}
+
+/**
  * 후처리 파이프라인 — schema 검증 전 자동 교정 가능한 항목 처리.
  * audit 결과는 logger / Redis / report 메타필드에 기록 가능.
  */
@@ -505,6 +775,7 @@ export function preValidateFix<T extends {
 }>(s: T, audit: HarnessAudit = emptyAudit()): { strategy: T; audit: HarnessAudit } {
   fixKoreaTickerNames(s, audit);
   fixCompanyChangeNames(s, audit);
+  fixUsTickerNames(s, audit);
   fixInsiderFilings(s, audit);
   dedupPortfolioRationales(s, audit);
   normalizeSectorAllocation(s, audit);
@@ -514,6 +785,11 @@ export function preValidateFix<T extends {
   fixEntryFar50MA(s, audit);
   detect52WUnrealistic(s, audit);
   detectStopRationaleMismatch(s, audit);
+  // 새 가드 (2026-05-11) — 보고서 평가 후 추가
+  fixTargetBullUnrealistic(s, audit);
+  fixActionCritiqueMismatch(s, audit);
+  alignStopRationale(s, audit);
+  detectCurrencyMismatch(s, audit);
   audit.totalFixes = countAudit(audit);
   return { strategy: s, audit };
 }

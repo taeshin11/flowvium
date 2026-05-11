@@ -57,6 +57,9 @@
     },
     "src/app/api/cron/satellite-scan/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/cron/portfolio-retrospective/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -127,6 +130,10 @@
     {
       "path": "/api/cron/satellite-scan",
       "schedule": "40 7 * * *"
+    },
+    {
+      "path": "/api/cron/portfolio-retrospective",
+      "schedule": "0 4 * * *"
     }
   ]
 }

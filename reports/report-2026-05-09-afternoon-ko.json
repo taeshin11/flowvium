@@ -13,11 +13,11 @@
       "entryRationale": "100일선+ROE18%FCF수익률8%→안전마진",
       "stopLoss": "$197.98",
       "target": "$247.48",
-      "targetBull": "$950",
+      "targetBull": "$296.98",
       "targetRationale": "수요 확대 + 52주 고점 20% 하락",
       "confidence": "high",
       "action": "buy",
-      "critiqueNote": "목표가 $247.48은 과도하게 낙관적, $223.00으로 낮추세요",
+      "critiqueNote": "목표가 $247.48은 과도하게 낙관적, $223.00으로 낮추세요 | targetBull 4.7x of entry — 자동 축소",
       "catalysts": [
         "Q4 FY2026 revenue $68.1B +73.2% YoY",
         "AI chip demand surge in H2 2026",
@@ -53,7 +53,7 @@
     },
     {
       "ticker": "ASML",
-      "name": "ASML Holding NV",
+      "name": "ASML Holding",
       "sector": "Technology",
       "market": "global",
       "rationale": "squeeze 38 + 100일선+ROE18%FCF수익률8%→안전마진 | squeeze 25, 50MA 위($1402.28), RSI 61, 거래량+26%, 52주:$966.57-$1592.02, 진입지지선:$1402.28",
@@ -127,7 +127,7 @@
     },
     {
       "ticker": "MU",
-      "name": "Microchip Technology",
+      "name": "Micron Technology",
       "sector": "Technology",
       "market": "us",
       "rationale": "squeeze 20, 50MA 위($448.96), RSI 88, 거래량+56%, 52주:$201.37-$746.81, 진입지지선:$448.96",
@@ -293,15 +293,15 @@
     },
     {
       "ticker": "000660.KS",
-      "rationale": "000660.KS의 손절은 하락 시 리스크를 제한하기 위해 설정 | 현재 $1686000 → 손절선 ~$1567980.00 (-7%) / 200MA 위(₩649,978), 50MA 위(₩1,070,480), RSI 93, 거래량+2%, 52주:₩190,100-₩1,686,000, 진입지지선:₩649,978"
+      "rationale": "000660.KS의 손절은 하락 시 리스크를 제한하기 위해 설정 | 현재 $1686000 → 손절선 ~$650000 (-7%) / 200MA 위(₩649,978), 50MA 위(₩1,070,480), RSI 93, 거래량+2%, 52주:₩190,100-₩1,686,000, 진입지지선:₩649,978"
     },
     {
       "ticker": "MSFT",
-      "rationale": "MSFT의 손절은 하락 시 리스크를 제한하기 위해 설정 | 현재 $415.12 → 손절선 ~$386.06 (-7%) / 50MA 위($398.15), RSI 48, 거래량-6%, 52주:$356.77-$511.14, 진입지지선:$398.15"
+      "rationale": "MSFT의 손절은 하락 시 리스크를 제한하기 위해 설정 | 현재 $415.12 → 손절선 ~$320 (-7%) / 50MA 위($398.15), RSI 48, 거래량-6%, 52주:$356.77-$511.14, 진입지지선:$398.15"
     },
     {
       "ticker": "MU",
-      "rationale": "MU의 손절은 하락 시 리스크를 제한하기 위해 설정 | 현재 $746.81 → 손절선 ~$694.53 (-7%) / 50MA 위($448.96), RSI 88, 거래량+56%, 52주:$201.37-$746.81, 진입지지선:$448.96"
+      "rationale": "MU의 손절은 하락 시 리스크를 제한하기 위해 설정 | 현재 $746.81 → 손절선 ~$201.37 (-7%) / 50MA 위($448.96), RSI 88, 거래량+56%, 52주:$201.37-$746.81, 진입지지선:$448.96"
     }
   ],
   "hedgingSuggestion": "포트폴리오 리스크 분산을 위해 변동성 하락 시 콜옵션 구매 추천",
@@ -356,7 +356,7 @@
     },
     {
       "ticker": "TDS",
-      "name": "TDS Holding",
+      "name": "Telephone and Data Systems",
       "revenueYoY": null,
       "latestQuarter": "Q4 FY2026",
       "keyChange": "2026년 20만~25만 개 신규 광钎 주소 목표 설정",
@@ -554,11 +554,26 @@
         "stopRationaleMismatch": [
           "000660.KS:portfolio=650000 vs rationale=1686000 (참고가격)",
           "MU:portfolio=201.37 vs rationale=746.81 (참고가격)"
-        ]
+        ],
+        "usNameMismatch": [
+          "ASML:portfolio \"ASML Holding NV\"→\"ASML Holding\"",
+          "MU:portfolio \"Microchip Technology\"→\"Micron Technology\"",
+          "TDS:companyChanges \"TDS Holding\"→\"Telephone and Data Systems\""
+        ],
+        "targetBullUnrealistic": [
+          "NVDA:$950→$296.98 (4.7x entry)"
+        ],
+        "actionCritiqueMismatch": [],
+        "stopRationaleAligned": [
+          "000660.KS:1567980→650000",
+          "MSFT:386.06→320",
+          "MU:694.53→201.37"
+        ],
+        "currencyMismatch": []
       },
-      "appliedAt": "2026-05-10T05:18:48.067Z",
-      "totalFixes": 4
+      "appliedAt": "2026-05-11T00:42:55.249Z",
+      "totalFixes": 11
     },
-    "retroAppliedAt": "2026-05-10T05:18:48.069Z"
+    "retroAppliedAt": "2026-05-11T00:42:55.251Z"
   }
 }
