@@ -20,7 +20,8 @@ import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 
 const CACHE_TTL = 10 * 60 * 60; // 10h — covers 8h cron gap (was 4h → 4h cold window)
-const STALE_KEY_PREFIX = 'flowvium:capital-flows:stale';
+// v2 (2026-05-11): rotations1w maxWeeks 변경 시 stale fallback 도 옛 weeksAgo=3 데이터 누출 차단
+const STALE_KEY_PREFIX = 'flowvium:capital-flows:stale:v2';
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 
 // Module-level memory cache — this route makes ~41 Yahoo API calls on every miss.
@@ -467,7 +468,8 @@ export async function GET() {
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const finnhubKey = process.env.FINNHUB_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (realtime)' : 'Yahoo Finance (15min delay)';
-  const cacheKey = `flowvium:capital-flows:v11:${twelveKey ? 'twelve' : 'yahoo'}`;
+  // v12 (2026-05-11): rotations1w maxWeeks 1주 변경 후 1주 탭 "3주 전 시작" 잔존 모순 무효화
+  const cacheKey = `flowvium:capital-flows:v12:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   // Module-level memory cache — saves ~41 Yahoo calls per warm-instance hit
   if (!redis && CAPITAL_MEMORY_CACHE && Date.now() < CAPITAL_MEMORY_CACHE.expiresAt) {
