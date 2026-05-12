@@ -54,9 +54,10 @@ function listKey(): string {
 }
 
 // 번역 캐시 키 — locale 별 분리. 영어(en) 는 listKey() 그대로 사용.
+// v2 (2026-05-12): cascade.reason + timeframe 도 번역 포함 — v1 캐시 무효화.
 function translatedKey(locale: string): string {
   const today = new Date().toISOString().slice(0, 10);
-  return `flowvium:news-cascade:v1:translated:${locale}:${today}`;
+  return `flowvium:news-cascade:v2:translated:${locale}:${today}`;
 }
 
 // 16개 언어 라벨 — 번역 프롬프트에 명시적으로 사용
@@ -78,10 +79,44 @@ const LOCALE_NAMES: Record<string, string> = {
   vi: 'Vietnamese (Tiếng Việt)',
 };
 
+// timeframe 정적 i18n 매핑 — 16 언어. 패턴: "short-term", "medium-term", "long-term"
+// 옵션 괄호 (1-3d) 는 그대로 보존. AI 호출 없이 token 절약.
+const TF_BASE_I18N: Record<string, Record<string, string>> = {
+  'short-term': {
+    ko: '단기', ja: '短期', 'zh-CN': '短期', 'zh-TW': '短期',
+    es: 'corto plazo', fr: 'court terme', de: 'kurzfristig', pt: 'curto prazo',
+    ru: 'краткосрочный', ar: 'قصير الأجل', hi: 'अल्पकालिक', id: 'jangka pendek',
+    th: 'ระยะสั้น', tr: 'kısa vadeli', vi: 'ngắn hạn',
+  },
+  'medium-term': {
+    ko: '중기', ja: '中期', 'zh-CN': '中期', 'zh-TW': '中期',
+    es: 'mediano plazo', fr: 'moyen terme', de: 'mittelfristig', pt: 'médio prazo',
+    ru: 'среднесрочный', ar: 'متوسط الأجل', hi: 'मध्यकालिक', id: 'jangka menengah',
+    th: 'ระยะกลาง', tr: 'orta vadeli', vi: 'trung hạn',
+  },
+  'long-term': {
+    ko: '장기', ja: '長期', 'zh-CN': '长期', 'zh-TW': '長期',
+    es: 'largo plazo', fr: 'long terme', de: 'langfristig', pt: 'longo prazo',
+    ru: 'долгосрочный', ar: 'طويل الأجل', hi: 'दीर्घकालिक', id: 'jangka panjang',
+    th: 'ระยะยาว', tr: 'uzun vadeli', vi: 'dài hạn',
+  },
+};
+
+function localizeTimeframe(tf: string, locale: string): string {
+  if (locale === 'en' || !tf) return tf;
+  // "medium-term(1-4w)" → base="medium-term", range="(1-4w)"
+  const m = tf.match(/^(short-term|medium-term|long-term)(\s*\([^)]+\))?\s*$/i);
+  if (!m) return tf;
+  const base = m[1].toLowerCase();
+  const range = m[2] ?? '';
+  const localBase = TF_BASE_I18N[base]?.[locale];
+  return localBase ? `${localBase}${range}` : tf;
+}
+
 /**
  * 영어 기사 N개 → target locale 로 batch 번역. 단일 AI 호출로 비용 절감.
- * title + summary 모두 번역. cascades/metadata 는 그대로.
- * 실패 시 원문(영어) 반환 — UI 깨짐 방지.
+ * title + summary + cascade.reason 까지 번역. timeframe 은 정적 i18n.
+ * asset 은 ticker/심볼이라 그대로. 실패 시 원문(영어) 반환 — UI 깨짐 방지.
  */
 async function translateArticles(
   articles: NewsWithCascade[],
@@ -95,12 +130,15 @@ async function translateArticles(
     i,
     title: a.title.slice(0, 200),
     summary: a.summary.slice(0, 300),
+    reasons: a.cascades.map((c, j) => ({ j, r: c.reason.slice(0, 280) })),
   }));
 
-  const prompt = `Translate the following financial news headlines and summaries to ${langName}.
-Keep ticker symbols (NVDA, AAPL, etc.) and numbers/percentages unchanged.
+  const prompt = `Translate the following financial news fields to ${langName}.
+Keep ticker symbols (NVDA, AAPL, CRM, etc.), asset names (S&P500, Bonds), and numbers/percentages unchanged.
 Tone: professional financial analyst.
-Return STRICT JSON array of {i, title, summary} — same length, same order. NO extra fields, NO commentary.
+Return STRICT JSON array — same length, same order, same shape:
+[{ "i": <int>, "title": "<translated>", "summary": "<translated>", "reasons": [{ "j": <int>, "r": "<translated>" }, ...] }, ...]
+NO extra fields, NO commentary.
 
 Input:
 ${JSON.stringify(payload, null, 2)}
@@ -110,25 +148,48 @@ Output (JSON array only):`;
   try {
     const r = await callAI(prompt, {
       tag: 'news-cascade.translate',
-      maxTokens: 4000,
+      maxTokens: 8000,
       temperature: 0.3,
       skipVllm: true, // EXAONE 2.4B 가 16개 언어 번역에 약함
-      timeoutMs: 25000,
+      timeoutMs: 30000,
     });
-    if (!r.text) return articles;
+    if (!r.text) return articles.map(a => localizeTimeframesOnly(a, locale));
     const jsonMatch = r.text.match(/\[\s*\{[\s\S]*\}\s*\]/);
-    if (!jsonMatch) return articles;
-    const translated = JSON.parse(jsonMatch[0]) as Array<{ i: number; title: string; summary: string }>;
+    if (!jsonMatch) return articles.map(a => localizeTimeframesOnly(a, locale));
+    const translated = JSON.parse(jsonMatch[0]) as Array<{
+      i: number; title: string; summary: string; reasons?: Array<{ j: number; r: string }>;
+    }>;
     const byIdx = new Map(translated.map(t => [t.i, t]));
     return articles.map((a, i) => {
       const t = byIdx.get(i);
-      if (!t || !t.title) return a;
-      return { ...a, title: t.title.trim(), summary: (t.summary ?? a.summary).trim() };
+      const cascades = a.cascades.map((c, j) => {
+        const tr = t?.reasons?.find(x => x.j === j);
+        return {
+          ...c,
+          reason: tr?.r?.trim() || c.reason,
+          timeframe: localizeTimeframe(c.timeframe, locale),
+        };
+      });
+      if (!t || !t.title) return { ...a, cascades };
+      return {
+        ...a,
+        title: t.title.trim(),
+        summary: (t.summary ?? a.summary).trim(),
+        cascades,
+      };
     });
   } catch (e) {
     logger.warn('news-cascade.translate', 'translation_failed', { locale, error: String(e).slice(0, 100) });
-    return articles;
+    return articles.map(a => localizeTimeframesOnly(a, locale));
   }
+}
+
+// AI 번역 실패해도 timeframe 만은 정적 i18n 적용 — graceful degradation
+function localizeTimeframesOnly(a: NewsWithCascade, locale: string): NewsWithCascade {
+  return {
+    ...a,
+    cascades: a.cascades.map(c => ({ ...c, timeframe: localizeTimeframe(c.timeframe, locale) })),
+  };
 }
 function articleKey(id: string): string {
   return `flowvium:news-cascade:v1:article:${id}`;
