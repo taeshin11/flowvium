@@ -35,7 +35,9 @@
     "shortDesc": "Ứng viên short squeeze",
     "cascadeDesc": "Dẫn đầu→vốn trung",
     "satellite": "Vệ tinh",
-    "satelliteDesc": "Theo dõi hoạt động nhà máy"
+    "satelliteDesc": "Theo dõi hoạt động nhà máy",
+    "volatility": "Biến động ngụ ý",
+    "volatilityDesc": "Quyền chọn IV · skew"
   },
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",
@@ -677,7 +679,9 @@
     "watchlistTitle": "Danh Sách Theo Dõi — Flowvium",
     "watchlistDescription": "Thêm cổ phiếu vào danh sách theo dõi và giám sát giá thời gian thực và thay đổi hàng ngày trong nháy mắt.",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "Bộ lọc Biến động ngụ ý — Flowvium",
+    "volatilityDescription": "Biến động ngụ ý kiểu Bloomberg: trích xuất forward từ tương đồng call-put + đảo ngược Brent. ATM IV 30d/90d, skew 25Δ, độ dốc kỳ hạn, IV rank."
   },
   "pro": {
     "upgradeTitle": "Mở khóa Flowvium Pro",
@@ -1756,5 +1760,34 @@
     "setupSteps": "Các bước cài đặt",
     "methodologyTitle": "Phương pháp",
     "methodologyDesc": "Hình ảnh Sentinel-2 L2A (10m) được Claude Vision phân tích bãi đậu xe, bốc dỡ và xây dựng."
+  },
+  "volatility": {
+    "title": "Bộ lọc Biến động",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "Đang tải chain + tính IV...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "Bộ lọc Biến động ngụ ý — Flowvium",
+    "seoDescription": "Biến động ngụ ý kiểu Bloomberg: trích xuất forward từ tương đồng call-put + đảo ngược Brent. ATM IV 30d/90d, skew 25Δ, độ dốc kỳ hạn, IV rank."
   }
 }

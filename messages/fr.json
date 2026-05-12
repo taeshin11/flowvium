@@ -35,7 +35,9 @@
     "shortDesc": "Candidats short squeeze",
     "cascadeDesc": "Leader→moyenne capitalisation",
     "satellite": "Satellite",
-    "satelliteDesc": "Monitoring activité usine"
+    "satelliteDesc": "Monitoring activité usine",
+    "volatility": "Volatilité",
+    "volatilityDesc": "Options IV · skew"
   },
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",
@@ -677,7 +679,9 @@
     "watchlistTitle": "Liste de Suivi — Flowvium",
     "watchlistDescription": "Ajoutez des actions à votre liste de suivi et surveillez les prix en temps réel et les variations journalières.",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "Outil de Volatilité Implicite — Flowvium",
+    "volatilityDescription": "Volatilité implicite façon Bloomberg : extraction du forward par parité call-put + inversion Brent. IV ATM 30j/90j, skew 25Δ, pente de term, rang IV."
   },
   "pro": {
     "upgradeTitle": "Débloquez Flowvium Pro",
@@ -1756,5 +1760,34 @@
     "setupSteps": "Étapes de configuration",
     "methodologyTitle": "Méthodologie",
     "methodologyDesc": "Images Sentinel-2 L2A (10m) analysées par Claude Vision pour la densité de stationnement, chargement et construction."
+  },
+  "volatility": {
+    "title": "Volatilité Implicite",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "Récupération de la chaîne + inversion de la VI...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "Outil de Volatilité Implicite — Flowvium",
+    "seoDescription": "Volatilité implicite façon Bloomberg : extraction du forward par parité call-put + inversion Brent. IV ATM 30j/90j, skew 25Δ, pente de term, rang IV."
   }
 }

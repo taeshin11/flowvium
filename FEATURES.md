@@ -576,6 +576,33 @@
 
 ---
 
+## 10b. 내재변동성 스크리너 (`/volatility`) — 신규 (2026-05-12)
+
+**파일**: `src/components/pages/VolatilityPage.tsx`, `src/app/[locale]/volatility/page.tsx`
+**데이터**: `/api/iv-screener` (집계) · `/api/iv/[ticker]` (개별)
+**라이브러리**: `src/lib/options/iv-math.ts` (Brent + Black-76 + 콜-풋 패리티) · `src/lib/options/yahoo-chain.ts` · `src/lib/options/iv-summary.ts`
+
+### 10b-1. 방법론 (Bloomberg-style)
+- 콜-풋 패리티로 expiry 별 forward + implied rate 자동 추출 (r, q 가정 X)
+- Brent's method 로 Black-76 시장가 → σ 역산 (bid/ask wide 환경에 robust)
+- 30d/90d ATM IV: variance-space 시간가중 보간
+- 25Δ skew: σ(25Δ put) - σ(25Δ call)
+- term slope: 90d - 30d ATM IV
+- quality score: spread/OI/lastTradeDate 기반 stale 필터링 후 0-100 점
+
+### 10b-2. 표시 컬럼
+- 티커 · 주가 · 30d ATM IV · IV 순위 (데이터셋 내 percentile) · Term Slope · 25Δ Skew · P/C · 품질 점수 · 상세 링크
+
+### 10b-3. 추적 종목 (30개)
+NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/GS/BAC/V/UNH/XOM/CVX/LMT/RTX/NOC/SPY/QQQ/IWM/GLD/TLT
+
+### 10b-4. CompanyPage 통합
+- 우측 컬럼에 "옵션 내재변동성 (IV)" 카드 표시
+- 30d/90d ATM IV, Term Slope, 25Δ Skew, P/C, 품질
+- "전체 스크리너 →" 링크로 `/volatility` 이동
+
+---
+
 ## 11. 시장 히트맵 (`/heatmap`)
 
 **파일**: `src/components/pages/HeatmapPage.tsx`  
@@ -903,6 +930,8 @@ ownership-alerts 적용).
 | `/api/nport-holdings` | EDGAR N-PORT-P; `source: edgar-nport\|empty` | 캐시 |
 | `/api/block-trades` | Polygon (API 키 필요) | 5분 |
 | `/api/options-flow` | Unusual Whales (API 키 필요) | 캐시 |
+| `/api/iv/[ticker]` | Yahoo v7/finance/options 풀체인 + Bloomberg-style 콜-풋 패리티 + Brent BS 역산; `source: live\|cached\|error` | 4h Redis + 24h stale |
+| `/api/iv-screener` | 30 종목 mget 캐시 + 최대 3 lazy 계산; `source: live\|cached\|mixed\|partial\|error` | 4h Redis |
 | `/api/korea-flow` | KRX → Naver(foreign-only) → Yahoo(price-only) cascade; `source: krx\|naver-fallback\|yahoo-price-only` | 캐시 |
 | `/api/short-interest` | EDGAR 13F + FINRA 일간 공매도율; shortRatio(DTC): FINRA monthly 403(Cloudflare) → null 유지 | 캐시 |
 | `/api/market-heatmap` | iShares ETF CSV + Stooq(JP/EU) + Yahoo v8(KR/TW/IN/CN/EU-fallback) + CNBC(지수) | 15m Redis; EU 79/80 (98.75%) |

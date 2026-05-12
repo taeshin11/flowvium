@@ -35,7 +35,9 @@
     "shortDesc": "숏스퀴즈 후보",
     "cascadeDesc": "리더→중형주 연쇄",
     "satellite": "위성 추적",
-    "satelliteDesc": "공장 활동 모니터"
+    "satelliteDesc": "공장 활동 모니터",
+    "volatility": "내재변동성",
+    "volatilityDesc": "옵션 IV·skew·term"
   },
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",
@@ -590,7 +592,9 @@
     "watchlistTitle": "관심 종목 — Flowvium",
     "watchlistDescription": "관심 종목을 추가하고 실시간 주가와 일간 변동률을 한 눈에 확인하세요.",
     "satelliteTitle": "위성 공급망 추적 | FlowVium",
-    "satelliteDescription": "ESA Sentinel-2 위성사진으로 반도체·EV 공장 활동 지수를 모니터링합니다."
+    "satelliteDescription": "ESA Sentinel-2 위성사진으로 반도체·EV 공장 활동 지수를 모니터링합니다.",
+    "volatilityTitle": "내재변동성 스크리너 — Flowvium",
+    "volatilityDescription": "Bloomberg 식 옵션 내재변동성: 콜-풋 패리티로 forward 추출 + Brent 역산. 30d/90d ATM IV · 25Δ skew · term slope · IV rank."
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro 이용하기",
@@ -1756,5 +1760,34 @@
     "setupSteps": "설정 방법",
     "methodologyTitle": "분석 방법론",
     "methodologyDesc": "Sentinel-2 L2A (10m 해상도) 이미지를 Claude Vision으로 주차장 밀도·하역 활동·신규 공사 여부를 분석합니다. 활동 지수 70+ = 활발, 30 이하 = 조용."
+  },
+  "volatility": {
+    "title": "내재변동성 스크리너",
+    "subtitle": "옵션 시장이 가격책정 중인 변동성 — 30d/90d ATM IV · 25Δ skew · term slope",
+    "loading": "체인 fetch + IV 역산 중...",
+    "methodologyTitle": "계산 방법:",
+    "methodologyParity": "콜-풋 패리티로 expiry 별 forward 추출 (r·q 가정 불필요)",
+    "methodologyBrent": "Brent's method 로 Black-76 시장가 → σ 역산 (bid/ask wide 환경에 robust)",
+    "methodologyInterp": "variance-space 시간가중 보간으로 30d/90d ATM IV 산출",
+    "methodologyQuality": "spread/OI/lastTradeDate 기반 stale quote 필터링 + quality score",
+    "errorBanner": "옵션 체인 fetch 실패 — Yahoo 차단 또는 일시적 오류. 캐시 만료 후 재시도.",
+    "colTicker": "티커",
+    "colSpot": "주가",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV 순위",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "품질",
+    "colLink": "상세",
+    "colLinkLabel": "기업",
+    "empty": "표시할 데이터 없음",
+    "legendIvRank": "IV 순위: 데이터셋 내 상대순위 (역사적 1y rank 아님)",
+    "legendSkew": "Skew > 0 = 하방 두려움 (put 비싸짐)",
+    "legendTermSlope": "Term slope < 0 = backwardation (단기 스트레스)",
+    "source": "소스",
+    "generatedAt": "생성",
+    "seoTitle": "내재변동성 스크리너 — Flowvium",
+    "seoDescription": "Bloomberg 식 옵션 내재변동성: 콜-풋 패리티로 forward 추출 + Brent 역산. 30d/90d ATM IV · 25Δ skew · term slope · IV rank."
   }
 }

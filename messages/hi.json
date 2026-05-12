@@ -35,7 +35,9 @@
     "shortDesc": "शॉर्ट स्क्वीज़",
     "cascadeDesc": "लीडर→मिडकैप कैस्केड",
     "satellite": "सैटेलाइट",
-    "satelliteDesc": "फ़ैक्टरी गतिविधि मॉनिटर"
+    "satelliteDesc": "फ़ैक्टरी गतिविधि मॉनिटर",
+    "volatility": "अंतर्निहित अस्थिरता",
+    "volatilityDesc": "विकल्प IV · स्क्यू"
   },
   "hero": {
     "title": "छिपे हुए सप्लाई चेन जोखिम उजागर करें",
@@ -677,7 +679,9 @@
     "watchlistTitle": "वॉचलिस्ट — Flowvium",
     "watchlistDescription": "अपनी वॉचलिस्ट में शेयर जोड़ें और रियल-टाइम कीमतों और दैनिक परिवर्तनों को एक नज़र में मॉनिटर करें।",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "अंतर्निहित अस्थिरता स्क्रीनर — Flowvium",
+    "volatilityDescription": "ब्लूमबर्ग-स्टाइल विकल्प अंतर्निहित अस्थिरता: कॉल-पुट पैरिटी फॉरवर्ड एक्सट्रैक्शन + ब्रेंट इन्वर्शन। 30d/90d ATM IV, 25Δ स्क्यू, टर्म स्लोप, IV रैंक।"
   },
   "pro": {
     "upgradeTitle": "Flowvium Pro अनलॉक करें",
@@ -1756,5 +1760,34 @@
     "setupSteps": "सेटअप चरण",
     "methodologyTitle": "पद्धति",
     "methodologyDesc": "Sentinel-2 L2A (10m) को Claude Vision पार्किंग, लोडिंग और निर्माण के लिए विश्लेषण करता है।"
+  },
+  "volatility": {
+    "title": "अंतर्निहित अस्थिरता स्क्रीनर",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "चेन प्राप्त + IV उलट रहा है...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "अंतर्निहित अस्थिरता स्क्रीनर — Flowvium",
+    "seoDescription": "ब्लूमबर्ग-स्टाइल विकल्प अंतर्निहित अस्थिरता: कॉल-पुट पैरिटी फॉरवर्ड एक्सट्रैक्शन + ब्रेंट इन्वर्शन। 30d/90d ATM IV, 25Δ स्क्यू, टर्म स्लोप, IV रैंक।"
   }
 }

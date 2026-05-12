@@ -449,6 +449,29 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     return () => controller.abort();
   }, [ticker]);
 
+  // ── IV summary (Bloomberg-style options 내재변동성) ─────────────────────────
+  interface IvData {
+    atmIv30d: number | null;
+    atmIv90d: number | null;
+    termSlope: number | null;
+    skew25d: number | null;
+    putCallRatio: number | null;
+    qualityScore: number;
+    source: string;
+  }
+  const [ivData, setIvData] = useState<IvData | null>(null);
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    fetch(`/api/iv/${ticker.toUpperCase()}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!controller.signal.aborted && d && d.atmIv30d != null) setIvData(d);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ticker]);
+
   if (!company) {
     // Minimal live page for tickers not in static dataset (IPX, AMRZ, etc.)
     const liveCompanyName = ticker.toUpperCase();
@@ -1671,6 +1694,48 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               {analystData.period && (
                 <p className="text-[10px] text-cf-text-secondary/40 mt-2">{t('finnhubPeriod', { period: analystData.period })}</p>
               )}
+            </div>
+          )}
+
+          {/* Options 내재변동성 (IV) — Bloomberg-style 패리티 + Brent 역산 */}
+          {ivData && ivData.atmIv30d != null && (
+            <div className="cf-card p-5">
+              <h3 className="text-base font-heading font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-cf-primary" />
+                옵션 내재변동성 (IV)
+              </h3>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <p className="text-cf-text-secondary mb-0.5">30d ATM IV</p>
+                  <p className="text-lg font-extrabold tabular-nums">{(ivData.atmIv30d * 100).toFixed(1)}%</p>
+                </div>
+                <div>
+                  <p className="text-cf-text-secondary mb-0.5">90d ATM IV</p>
+                  <p className="text-lg font-extrabold tabular-nums">{ivData.atmIv90d != null ? `${(ivData.atmIv90d * 100).toFixed(1)}%` : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-cf-text-secondary mb-0.5">Term Slope (90-30)</p>
+                  <p className={`text-sm font-bold tabular-nums ${ivData.termSlope != null ? (ivData.termSlope > 0.005 ? 'text-emerald-500' : ivData.termSlope < -0.005 ? 'text-rose-500' : '') : ''}`}>
+                    {ivData.termSlope != null ? `${ivData.termSlope >= 0 ? '+' : ''}${(ivData.termSlope * 100).toFixed(2)}pp` : '—'}
+                  </p>
+                  <p className="text-[10px] text-cf-text-secondary mt-0.5">
+                    {ivData.termSlope != null && ivData.termSlope < -0.005 ? 'backwardation' : ivData.termSlope != null && ivData.termSlope > 0.005 ? 'contango' : 'flat'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-cf-text-secondary mb-0.5">25Δ Skew</p>
+                  <p className={`text-sm font-bold tabular-nums ${ivData.skew25d != null && ivData.skew25d > 0.02 ? 'text-rose-500' : ''}`}>
+                    {ivData.skew25d != null ? `${ivData.skew25d >= 0 ? '+' : ''}${(ivData.skew25d * 100).toFixed(2)}pp` : '—'}
+                  </p>
+                  <p className="text-[10px] text-cf-text-secondary mt-0.5">
+                    {ivData.skew25d != null && ivData.skew25d > 0.02 ? 'put 비싸짐 (downside fear)' : '대칭'}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[10px] text-cf-text-secondary">
+                <span>품질: {ivData.qualityScore}/100 · {ivData.putCallRatio != null ? `P/C ${ivData.putCallRatio.toFixed(2)}` : ''}</span>
+                <Link href="/volatility" className="text-cf-primary hover:underline">전체 스크리너 →</Link>
+              </div>
             </div>
           )}
 

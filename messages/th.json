@@ -35,7 +35,9 @@
     "shortDesc": "โอกาส short squeeze",
     "cascadeDesc": "หุ้นนำ→มิดแคป",
     "satellite": "ดาวเทียม",
-    "satelliteDesc": "ติดตามกิจกรรมโรงงาน"
+    "satelliteDesc": "ติดตามกิจกรรมโรงงาน",
+    "volatility": "ความผันผวน",
+    "volatilityDesc": "ออปชั่น IV · skew"
   },
   "hero": {
     "title": "ค้นพบความเสี่ยงที่ซ่อนอยู่ในห่วงโซ่อุปทาน",
@@ -677,7 +679,9 @@
     "watchlistTitle": "รายการเฝ้าดู — Flowvium",
     "watchlistDescription": "เพิ่มหุ้นในรายการเฝ้าดูและติดตามราคาแบบเรียลไทม์และการเปลี่ยนแปลงรายวันในมุมเดียว",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "เครื่องคัดกรองความผันผวนโดยนัย — Flowvium",
+    "volatilityDescription": "ความผันผวนโดยนัยสไตล์ Bloomberg: ดึงค่าฟอร์เวิร์ดจากสมการ call-put parity + การแยกค่า Brent. ATM IV 30/90 วัน, สกิว 25Δ, ความชันเทอม, อันดับ IV."
   },
   "pro": {
     "upgradeTitle": "ปลดล็อก Flowvium Pro",
@@ -1756,5 +1760,34 @@
     "setupSteps": "ขั้นตอนการตั้งค่า",
     "methodologyTitle": "วิธีการวิเคราะห์",
     "methodologyDesc": "ภาพ Sentinel-2 L2A (10m) วิเคราะห์โดย Claude Vision สำหรับที่จอดรถ การขนส่ง และการก่อสร้าง"
+  },
+  "volatility": {
+    "title": "เครื่องคัดกรองความผันผวน",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "กำลังดึงเชน + คำนวณ IV...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "เครื่องคัดกรองความผันผวนโดยนัย — Flowvium",
+    "seoDescription": "ความผันผวนโดยนัยสไตล์ Bloomberg: ดึงค่าฟอร์เวิร์ดจากสมการ call-put parity + การแยกค่า Brent. ATM IV 30/90 วัน, สกิว 25Δ, ความชันเทอม, อันดับ IV."
   }
 }

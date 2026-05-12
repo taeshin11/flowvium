@@ -35,7 +35,9 @@
     "shortDesc": "ショートスクイーズ",
     "cascadeDesc": "リーダー→中型株連鎖",
     "satellite": "衛星追跡",
-    "satelliteDesc": "工場活動モニター"
+    "satelliteDesc": "工場活動モニター",
+    "volatility": "内在ボラティリティ",
+    "volatilityDesc": "オプションIV・スキュー"
   },
   "hero": {
     "title": "隠れたサプライチェーンリスクを発見",
@@ -590,7 +592,9 @@
     "watchlistTitle": "ウォッチリスト — Flowvium",
     "watchlistDescription": "ウォッチリストに銘柄を追加し、リアルタイム株価と日次変動率を一目で確認。",
     "satelliteTitle": "衛星サプライチェーン追跡 | FlowVium",
-    "satelliteDescription": "ESA Sentinel-2衛星画像で半導体・EV工場の活動指数をモニタリング。"
+    "satelliteDescription": "ESA Sentinel-2衛星画像で半導体・EV工場の活動指数をモニタリング。",
+    "volatilityTitle": "内在ボラティリティ・スクリーナー — Flowvium",
+    "volatilityDescription": "ブルームバーグ方式の内在ボラティリティ。コール・プット・パリティでフォワード抽出+ブレント逆算。30d/90d ATM IV、25デルタスキュー、期間傾斜、IVランク。"
   },
   "pro": {
     "upgradeTitle": "Flowvium Proを利用する",
@@ -1756,5 +1760,34 @@
     "setupSteps": "設定手順",
     "methodologyTitle": "分析手法",
     "methodologyDesc": "Sentinel-2 L2A（10m）画像をClaude Visionで駐車場密度・荷積み・建設を分析。70+=活発、30以下=静止。"
+  },
+  "volatility": {
+    "title": "内在ボラティリティ・スクリーナー",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "チェーン取得 + IV計算中...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "内在ボラティリティ・スクリーナー — Flowvium",
+    "seoDescription": "ブルームバーグ方式の内在ボラティリティ。コール・プット・パリティでフォワード抽出+ブレント逆算。30d/90d ATM IV、25デルタスキュー、期間傾斜、IVランク。"
   }
 }

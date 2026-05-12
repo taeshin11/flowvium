@@ -35,7 +35,9 @@
     "shortDesc": "Kandidat short squeeze",
     "cascadeDesc": "Pemimpin→midcap cascade",
     "satellite": "Satelit",
-    "satelliteDesc": "Monitor aktivitas pabrik"
+    "satelliteDesc": "Monitor aktivitas pabrik",
+    "volatility": "Volatilitas",
+    "volatilityDesc": "Opsi IV · skew"
   },
   "hero": {
     "title": "Temukan Risiko Rantai Pasok Tersembunyi",
@@ -677,7 +679,9 @@
     "watchlistTitle": "Daftar Pantau — Flowvium",
     "watchlistDescription": "Tambahkan saham ke daftar pantau Anda dan pantau harga real-time serta perubahan harian sekilas.",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "Pemindai Volatilitas Tersirat — Flowvium",
+    "volatilityDescription": "Volatilitas tersirat ala Bloomberg: ekstraksi forward via paritas call-put + inversi Brent. ATM IV 30h/90h, skew 25Δ, kemiringan, IV rank."
   },
   "pro": {
     "upgradeTitle": "Buka Flowvium Pro",
@@ -1756,5 +1760,34 @@
     "setupSteps": "Langkah penyiapan",
     "methodologyTitle": "Metodologi",
     "methodologyDesc": "Citra Sentinel-2 L2A (10m) dianalisis Claude Vision untuk parkir, bongkar muat, dan konstruksi."
+  },
+  "volatility": {
+    "title": "Pemindai Volatilitas",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "Mengambil chain + inversi IV...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "Pemindai Volatilitas Tersirat — Flowvium",
+    "seoDescription": "Volatilitas tersirat ala Bloomberg: ekstraksi forward via paritas call-put + inversi Brent. ATM IV 30h/90h, skew 25Δ, kemiringan, IV rank."
   }
 }

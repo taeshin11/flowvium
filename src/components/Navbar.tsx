@@ -14,6 +14,7 @@ const navLinks = [
   { href: '/heatmap', key: 'heatmap' },
   { href: '/screener', key: 'screener' },
   { href: '/short', key: 'short' },
+  { href: '/volatility', key: 'volatility' },
   { href: '/explore', key: 'explore' },
   { href: '/cascade', key: 'cascade' },
   { href: '/signals', key: 'signals' },

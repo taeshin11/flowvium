@@ -35,7 +35,9 @@
     "shortDesc": "軋空候選",
     "cascadeDesc": "龍頭→中型股傳導",
     "satellite": "衛星追蹤",
-    "satelliteDesc": "工廠活動監測"
+    "satelliteDesc": "工廠活動監測",
+    "volatility": "隱含波動率",
+    "volatilityDesc": "選擇權IV·偏度·期限"
   },
   "hero": {
     "title": "發掘隱藏的供應鏈風險",
@@ -677,7 +679,9 @@
     "watchlistTitle": "自選股 — Flowvium",
     "watchlistDescription": "新增股票至自選股，一目了然地監控即時股價和日漲跌幅。",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "隱含波動率篩選器 — Flowvium",
+    "volatilityDescription": "彭博式選擇權隱含波動率：透過買權賣權平價提取遠期+布倫特反演。30/90日ATM IV、25Δ偏度、期限斜率、IV排名。"
   },
   "pro": {
     "upgradeTitle": "解鎖 Flowvium Pro",
@@ -1756,5 +1760,34 @@
     "setupSteps": "設定步驟",
     "methodologyTitle": "分析方法",
     "methodologyDesc": "Sentinel-2 L2A（10m）圖像由Claude Vision分析停車密度、裝卸活動和建設情況。70+=活躍，30以下=安靜。"
+  },
+  "volatility": {
+    "title": "隱含波動率篩選器",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "正在獲取選擇權鏈 + 反演 IV...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "隱含波動率篩選器 — Flowvium",
+    "seoDescription": "彭博式選擇權隱含波動率：透過買權賣權平價提取遠期+布倫特反演。30/90日ATM IV、25Δ偏度、期限斜率、IV排名。"
   }
 }

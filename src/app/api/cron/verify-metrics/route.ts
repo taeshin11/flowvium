@@ -191,6 +191,44 @@ async function verifyVolatility(base: string): Promise<MetricItem[]> {
 }
 
 
+async function verifyIv(base: string): Promise<MetricItem[]> {
+  // /api/iv-screener — 종목 IV 대시보드. source='error' 또는 entries 0 = degraded.
+  const r = await safeJson(base, '/api/iv-screener');
+  if (!r.ok) {
+    return [{ key: 'iv.screener', label: 'IV Screener API', group: 'iv', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const data = r.data as { entries?: Array<{ ticker: string; atmIv30d: number | null; qualityScore: number }>; source?: string };
+  const items: MetricItem[] = [];
+  const valid = (data.entries ?? []).filter(e => e.atmIv30d != null);
+  const total = data.entries?.length ?? 0;
+  items.push({
+    key: 'iv.coverage',
+    label: 'IV 종목 커버리지',
+    group: 'iv',
+    status: valid.length >= 10 ? 'ok' : valid.length >= 3 ? 'degraded' : 'error',
+    value: `${valid.length}/${total} 종목 IV 계산됨`,
+    source: data.source ?? undefined,
+  });
+  // 정적 폴백 사용 안 함 검증: source 가 'error' 면 error, 'cached'/'live'/'mixed'/'partial' 는 ok
+  items.push({
+    key: 'iv.source',
+    label: 'IV 소스 (정적 폴백 금지)',
+    group: 'iv',
+    status: data.source === 'error' ? 'error' : data.source ? 'ok' : 'degraded',
+    value: `source=${data.source ?? 'unknown'}`,
+  });
+  // ATM IV 범위 sanity: 모두 5%~300% 사이여야 함
+  const outOfRange = valid.filter(e => (e.atmIv30d ?? 0) < 0.05 || (e.atmIv30d ?? 0) > 3);
+  items.push({
+    key: 'iv.range',
+    label: 'IV 값 범위 sanity (5%-300%)',
+    group: 'iv',
+    status: outOfRange.length === 0 ? 'ok' : 'degraded',
+    value: outOfRange.length === 0 ? '범위 내' : `${outOfRange.length}건 이탈`,
+  });
+  return items;
+}
+
 async function verifyCommodityCurve(base: string): Promise<MetricItem[]> {
   const r = await safeJson(base, '/api/commodity-curve');
   if (!r.ok) {
@@ -1667,7 +1705,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
-  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, comm, strategy, missing, osint, satellite] = await Promise.all([
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, iv, comm, strategy, missing, osint, satellite] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -1687,6 +1725,7 @@ export async function GET(req: Request) {
     redis ? verifyRedisCaches(redis) : Promise.resolve([] as MetricItem[]),
     verifyAccuracyStack(base).catch((e): MetricItem[] => [{ key: 'accuracy.ERR', label: 'Accuracy verify throw', group: 'accuracy', status: 'error', lastError: String(e) }]),
     verifyVolatility(base).catch((e): MetricItem[] => [{ key: 'vol.ERR', label: 'Volatility verify throw', group: 'volatility', status: 'error', lastError: String(e) }]),
+    verifyIv(base).catch((e): MetricItem[] => [{ key: 'iv.ERR', label: 'IV verify throw', group: 'iv', status: 'error', lastError: String(e) }]),
     verifyCommodityCurve(base).catch((e): MetricItem[] => [{ key: 'comm.ERR', label: 'Commodity verify throw', group: 'commodity', status: 'error', lastError: String(e) }]),
     verifyInvestmentStrategy(base).catch((e): MetricItem[] => [{ key: 'strategy.ERR', label: 'Strategy verify throw', group: 'strategy', status: 'error', lastError: String(e) }]),
     verifyMissingEndpoints(base).catch((e): MetricItem[] => [{ key: 'missing.ERR', label: 'Missing endpoints verify throw', group: 'brief', status: 'error', lastError: String(e) }]),
@@ -1694,7 +1733,7 @@ export async function GET(req: Request) {
     verifySatellite(base).catch((e): MetricItem[] => [{ key: 'satellite.ERR', label: 'Satellite verify throw', group: 'satellite', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...comm, ...strategy, ...missing, ...osint, ...satellite];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...iv, ...comm, ...strategy, ...missing, ...osint, ...satellite];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

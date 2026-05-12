@@ -564,6 +564,31 @@
 
 ---
 
+## 9b. 내재변동성 스크리너 (`/volatility`) — 신규 (2026-05-12)
+
+### 9b-1. 종목별 IV (30개 추적)
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 227a | 30d ATM IV | 💾 cached | Yahoo v7/finance/options + 자체계산 (Brent + Black-76 콜-풋 패리티) |
+| 227b | 90d ATM IV | 💾 cached | 동일 |
+| 227c | Term Slope (90d - 30d) | 💾 cached | 자체계산 |
+| 227d | 25Δ Skew (σ_put - σ_call) | 💾 cached | 자체계산 |
+| 227e | Put/Call Ratio (front-month OI) | 💾 cached | Yahoo |
+| 227f | IV 순위 (데이터셋 percentile) | ✅ live | 클라이언트 계산 |
+| 227g | Quality Score (0-100) | 💾 cached | spread/OI/lastTradeDate 기반 |
+| 227h | Forward (콜-풋 패리티 회귀) | 💾 cached | 자체계산 |
+| 227i | Implied rate (parity 회귀 기울기) | 💾 cached | 자체계산 |
+| 227j | source 필드 ('live'\|'cached'\|'mixed'\|'partial'\|'error') | ✅ live | verify-metrics probe iv.source |
+
+### 9b-2. CompanyPage IV 카드
+
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 227k | CompanyPage "옵션 내재변동성 (IV)" 카드 (30d/90d/Slope/Skew/P/C/품질) | 💾 cached | `/api/iv/[ticker]` |
+
+---
+
 ## 10. 시장 히트맵 (`/heatmap`)
 
 ### 10-1. 국가 탭 (7개)

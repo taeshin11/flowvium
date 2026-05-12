@@ -35,7 +35,9 @@
     "shortDesc": "Кандидаты шорт-сквиз",
     "cascadeDesc": "Лидер→средняя капитализация",
     "satellite": "Спутник",
-    "satelliteDesc": "Мониторинг заводов"
+    "satelliteDesc": "Мониторинг заводов",
+    "volatility": "Волатильность",
+    "volatilityDesc": "Опционы IV · скью"
   },
   "hero": {
     "title": "Обнаружьте скрытые риски цепочки поставок",
@@ -677,7 +679,9 @@
     "watchlistTitle": "Список Наблюдения — Flowvium",
     "watchlistDescription": "Добавляйте акции в список наблюдения и отслеживайте цены в реальном времени и дневные изменения.",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "Скринер подразумеваемой волатильности — Flowvium",
+    "volatilityDescription": "Подразумеваемая волатильность опционов в стиле Bloomberg: извлечение форвардной цены по паритету колл-пут + инверсия Брента. 30д/90д ATM IV, 25Δ скью, наклон, IV-ранг."
   },
   "pro": {
     "upgradeTitle": "Разблокируйте Flowvium Pro",
@@ -1756,5 +1760,34 @@
     "setupSteps": "Шаги настройки",
     "methodologyTitle": "Методология",
     "methodologyDesc": "Снимки Sentinel-2 L2A (10м) анализируются Claude Vision для парковки, погрузки и строительства."
+  },
+  "volatility": {
+    "title": "Скринер волатильности",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "Получение цепочки + расчёт IV...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "Скринер подразумеваемой волатильности — Flowvium",
+    "seoDescription": "Подразумеваемая волатильность опционов в стиле Bloomberg: извлечение форвардной цены по паритету колл-пут + инверсия Брента. 30д/90д ATM IV, 25Δ скью, наклон, IV-ранг."
   }
 }

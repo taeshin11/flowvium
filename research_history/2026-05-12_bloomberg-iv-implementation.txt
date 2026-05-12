@@ -1,0 +1,103 @@
+2026-05-12 Bloomberg-style 옵션 내재변동성 구현
+===============================================
+
+목적: FlowVium 에 종목별 옵션 내재변동성(IV) 계산·표시 추가. 블룸버그 터미널이
+종목 입력 시 뉴스 + IV 를 함께 보여주는 패턴 재현.
+
+배경
+----
+사용자 요청: "터미널은 기업을 치면 관련 뉴스도 나오고 내재변동성도 나오고 그러던데"
+Codex 와 Phase 분리 논의 후 MVP 범위 확정:
+  - TypeScript serverless (Vercel) — Python microservice 보류
+  - European/Black-76 가정 (미국형 조기행사 v2 로 미룸)
+  - Brent's method (Jäckel "Let's Be Rational" 보류)
+  - Yahoo Finance 옵션 체인 (Polygon 유료 업그레이드 v2)
+  - 종목 IV 카드 + 별도 스크리너 페이지 둘 다
+
+구현 파일
+---------
+src/lib/options/iv-math.ts (NEW)
+  - normalCdf / inverseNormalCdf (Beasley-Springer)
+  - black76Price / black76Vega
+  - Brent's method root finder (50줄)
+  - impliedVol (forward-based BS 역산)
+  - extractForwardFromParity (콜-풋 패리티 OLS 회귀로 F, r 추출)
+  - strikeFromDelta (25Δ skew 계산용)
+  - interpolate30dIv (variance-space 시간가중 보간)
+
+src/lib/options/yahoo-chain.ts (NEW)
+  - Yahoo v7/finance/options 풀체인 fetcher
+  - 크럼 인증: sector-pe 가 Redis 에 저장한 `flowvium:yahoo:crumb:v1` 공유
+  - 7~120 일 만기만 (LEAPS 제외) · 최대 6 expiry
+  - source: 'live' | 'error', errorReason 명시
+
+src/lib/options/iv-summary.ts (NEW)
+  - filterContracts: bid/ask spread, OI, lastTradeDate 48h 필터
+  - processExpiry: 콜+풋 페어링 → 패리티 forward → expiry 전체 strike IV 역산
+  - iv25dSkew: ATM IV 로 25Δ strike 추정 후 IV 보간
+  - quality score: expiry 수 + 평균 sample count + mid price 분포
+  - 절대 정적 폴백 없음 (시계열 시장 데이터)
+
+API 라우트
+----------
+src/app/api/iv/[ticker]/route.ts
+  - GET → IvSummary (atmIv30d, atmIv90d, termSlope, skew25d, P/C, quality)
+  - Redis 캐시 4h + stale 24h
+  - source: 'live' | 'cached' | 'error'
+
+src/app/api/iv-screener/route.ts
+  - GET → 30 종목 ScreenerEntry[]
+  - Upstash mget 으로 일괄 캐시 hit, miss 3건 lazy 계산 (Vercel 30s budget)
+  - source: 'live' | 'cached' | 'mixed' | 'partial' | 'error'
+
+UI
+--
+src/app/[locale]/volatility/page.tsx + components/pages/VolatilityPage.tsx
+  - 정렬 가능 표: ticker / 주가 / 30d IV / IV rank / Term Slope / 25Δ Skew / P/C / Quality
+  - IV rank = 데이터셋 내 percentile (역사적 1y 아님 — v2)
+  - 방법론 설명 카드, Quality dot (녹 80+, 황 60+, 적 < 60)
+
+src/components/pages/CompanyPage.tsx
+  - 우측 컬럼 Analyst Consensus 카드 아래 "옵션 내재변동성 (IV)" 카드
+  - 30d/90d/Term Slope/25Δ Skew/P/C/Quality 한 화면
+  - 전체 스크리너 → /volatility 링크
+
+i18n
+----
+scripts/add-volatility-i18n.mjs — 16 언어에 nav.volatility, volatilityDesc,
+seo.volatilityTitle, seo.volatilityDescription, volatility.* (20+ keys) idempotent 삽입.
+번역: nav 라벨/카드 헤더는 각 언어 native, table column 은 영어 보존 (금융용어 관례).
+
+verify-metrics
+--------------
+src/app/api/cron/verify-metrics/route.ts
+  - verifyIv probe 추가: iv.coverage (10+/3+/<3), iv.source ('error'=ERROR),
+    iv.range (5%~300% 이탈 검출)
+  - group: 'iv', /admin/logs 별도 카드로 노출
+
+FEATURES.md / METRICS.md
+-------------------------
+- FEATURES.md: 새 섹션 10b (Volatility) + API 테이블 행 2개 추가
+- METRICS.md: 새 섹션 9b — 227a~k 11 개 지표 행 추가
+
+검증
+----
+scripts/test-iv-math.mjs (15 cases): Black-76 ↔ IV roundtrip, deep OTM, short T,
+arbitrage rejection, parity F/r 회귀 (8 strike, R²>0.99), variance 보간, invNormCdf.
+→ 15/15 pass.
+
+scripts/test-iv-summary.mjs (8 cases): 합성 체인으로 summary E2E. atmIv30d/90d
+오차 < 2%, termSlope ≈ 0 (flat smile), 25Δ skew 양수 (smile 케이스), empty chain
+처리, quality > 70.
+→ 8/8 pass.
+
+npx tsc --noEmit: 0 에러.
+
+다음 단계 (v2 후보)
+-------------------
+- Bjerksund-Stensland 2002 closed-form 미국형 보정 (배당 ticker)
+- 역사적 1y IV history Redis 누적 → 진짜 IV rank/percentile
+- SVI/SABR surface calibration (Python worker)
+- VIX-style model-free 30d variance (CBOE 공식 적용 — 종목별 자체 변동성 지수)
+- vendor (Polygon) 비교 검증 (CBOE 공개 VIX 와 SPX 계산 비교)
+- /api/cron/refresh-iv 별도 크론 (현재는 lazy + 4h Redis TTL 로 충분)

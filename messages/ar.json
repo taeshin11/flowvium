@@ -35,7 +35,9 @@
     "shortDesc": "مرشحو الضغط القصير",
     "cascadeDesc": "قائد→شركات متوسطة",
     "satellite": "الأقمار الصناعية",
-    "satelliteDesc": "مراقبة نشاط المصانع"
+    "satelliteDesc": "مراقبة نشاط المصانع",
+    "volatility": "التقلب",
+    "volatilityDesc": "خيارات IV · انحراف"
   },
   "hero": {
     "title": "اكتشف مخاطر سلسلة التوريد الخفية",
@@ -677,7 +679,9 @@
     "watchlistTitle": "قائمة المراقبة — Flowvium",
     "watchlistDescription": "أضف الأسهم إلى قائمة مراقبتك وراقب الأسعار في الوقت الفعلي والتغيرات اليومية.",
     "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis."
+    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
+    "volatilityTitle": "فاحص التقلب الضمني — Flowvium",
+    "volatilityDescription": "التقلب الضمني للخيارات بأسلوب بلومبيرغ: استخراج الفورورد من تكافؤ كول-بوت + عكس برنت. 30/90 يوم ATM IV، انحراف 25 دلتا، ميل، رتبة IV."
   },
   "pro": {
     "upgradeTitle": "افتح Flowvium Pro",
@@ -1756,5 +1760,34 @@
     "setupSteps": "خطوات الإعداد",
     "methodologyTitle": "المنهجية",
     "methodologyDesc": "صور Sentinel-2 L2A (10م) يحللها Claude Vision لمواقف السيارات والتحميل والبناء."
+  },
+  "volatility": {
+    "title": "فاحص التقلب الضمني",
+    "subtitle": "What options markets price as volatility — 30d/90d ATM IV, 25Δ skew, term slope",
+    "loading": "جلب السلسلة + عكس IV...",
+    "methodologyTitle": "Methodology:",
+    "methodologyParity": "Call-put parity extracts per-expiry forward (no r/q assumption)",
+    "methodologyBrent": "Brent inversion on Black-76 mid prices (robust to wide bid/ask)",
+    "methodologyInterp": "Variance-space time-weighted interpolation for 30d/90d ATM IV",
+    "methodologyQuality": "Spread/OI/lastTradeDate filters + quality score",
+    "errorBanner": "Options chain fetch failed — Yahoo block or transient error. Retry after cache expiry.",
+    "colTicker": "Ticker",
+    "colSpot": "Spot",
+    "colAtm30d": "30d ATM IV",
+    "colIvRank": "IV Rank",
+    "colTermSlope": "Term Slope (90d-30d)",
+    "colSkew": "25Δ Skew",
+    "colPcr": "P/C",
+    "colQuality": "Quality",
+    "colLink": "Detail",
+    "colLinkLabel": "Company",
+    "empty": "No data to display",
+    "legendIvRank": "IV Rank: relative position within dataset (not historical 1y rank)",
+    "legendSkew": "Skew > 0 = downside fear (puts richer)",
+    "legendTermSlope": "Term slope < 0 = backwardation (short-term stress)",
+    "source": "Source",
+    "generatedAt": "Generated",
+    "seoTitle": "فاحص التقلب الضمني — Flowvium",
+    "seoDescription": "التقلب الضمني للخيارات بأسلوب بلومبيرغ: استخراج الفورورد من تكافؤ كول-بوت + عكس برنت. 30/90 يوم ATM IV، انحراف 25 دلتا، ميل، رتبة IV."
   }
 }
