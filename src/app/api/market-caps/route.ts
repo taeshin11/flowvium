@@ -9,7 +9,9 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  * Optional ?ticker=AAPL param returns single-ticker data with live market cap.
  *
  * Redis cache: 24h (bands enum 정적, live caps 는 24h 안에 +-수% 변동 허용).
- * source: 'live' (전부 라이브), 'mixed' (일부 라이브), 'static' (Yahoo 전부 실패)
+ * source: 'live' (30/30), 'partial' (일부), 'error' (Yahoo 전부 실패).
+ * bands enum 자체는 categorical (small/mid/large/mega) 라 항상 정적 — source
+ * 차원에서 분리. capsLive/capsTotal 가 라이브 커버리지 측정 지표.
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
@@ -38,8 +40,8 @@ export interface MarketCapPayload {
   caps: Record<string, number>;          // ticker → raw USD cap (TRACKED_TICKERS live)
   updatedAt: string;
   count: number;
-  /** 'live' = TRACKED 전부 라이브, 'mixed' = 일부, 'static' = 라이브 실패 (bands 만) */
-  source: 'live' | 'mixed' | 'static';
+  /** 'live' = TRACKED 전부 성공, 'partial' = 일부, 'error' = Yahoo 전부 실패 */
+  source: 'live' | 'partial' | 'error';
   capsLive: number;       // 실제로 라이브 fetch 된 caps 개수
   capsTotal: number;      // 시도한 caps 개수 (= TRACKED_TICKERS.length)
   cached?: boolean;
@@ -106,8 +108,8 @@ export async function GET(req: Request) {
     if (c != null && c > 0) { caps[t] = c; capsLive++; }
   }
   const capsTotal = TRACKED_TICKERS.length;
-  const liveSource: 'live' | 'mixed' | 'static' =
-    capsLive === capsTotal ? 'live' : capsLive > 0 ? 'mixed' : 'static';
+  const liveSource: 'live' | 'partial' | 'error' =
+    capsLive === capsTotal ? 'live' : capsLive > 0 ? 'partial' : 'error';
 
   const payload: MarketCapPayload = {
     bands,

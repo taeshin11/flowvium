@@ -585,12 +585,12 @@ async function verifyMarketCapsDetailed(base: string): Promise<MetricItem[]> {
       : capsLive > capsTotal * 0.5 ? 'degraded' : 'error',
     value: `${capsLive}/${capsTotal} live`,
   });
-  // source 필드 probe — static 이면 Yahoo 전부 실패 (alert)
+  // source 필드 probe — 'error' = Yahoo 전부 실패 (alert)
   items.push({
     key: 'caps.source',
     label: 'Market Caps source',
     group: 'market-caps',
-    status: !data.source ? 'degraded' : data.source === 'static' ? 'error' : 'ok',
+    status: !data.source ? 'degraded' : data.source === 'error' ? 'error' : 'ok',
     value: `source=${data.source ?? 'missing'}`,
   });
   return items;
