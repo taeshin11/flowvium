@@ -234,7 +234,7 @@ async function verifyCommodityCurve(base: string): Promise<MetricItem[]> {
   if (!r.ok) {
     return [{ key: 'comm.ALL', label: 'Commodity Curve API', group: 'commodity', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
   }
-  const data = r.data as { curves?: Array<{ id: string; name: string; curve?: Array<{ price: number }>; structure?: string; slope?: number }> };
+  const data = r.data as { curves?: Array<{ id: string; name: string; curve?: Array<{ price: number }>; structure?: string; slope?: number }>; source?: string };
   const items: MetricItem[] = [];
   for (const c of data.curves ?? []) {
     const pts = c.curve?.length ?? 0;
@@ -248,6 +248,14 @@ async function verifyCommodityCurve(base: string): Promise<MetricItem[]> {
     });
   }
   if (items.length === 0) items.push({ key: 'comm.EMPTY', label: 'Commodity Curve (empty)', group: 'commodity', status: 'error' });
+  // source 필드 probe — 정적 폴백 사용 시 alert (CLAUDE.md 정책)
+  items.push({
+    key: 'comm.source',
+    label: 'Commodity Curve source (정적 폴백 금지)',
+    group: 'commodity',
+    status: !data.source ? 'degraded' : data.source === 'empty' || data.source === 'error' ? 'error' : 'ok',
+    value: `source=${data.source ?? 'missing'}`,
+  });
   return items;
 }
 
@@ -655,18 +663,27 @@ async function verifyFedWatchDetailed(base: string): Promise<MetricItem[]> {
 async function verifyCOTDetailed(base: string): Promise<MetricItem[]> {
   const r = await safeJson(base, '/api/cot-positions');
   if (!r.ok) return [{ key: 'cot.ALL', label: 'COT Positions API', group: 'cot', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
-  const data = r.data as { entries?: Array<{ id: string; label: string; netPctOI: number | null; sentiment: string; longPct?: number | null; shortPct?: number | null }> };
+  const data = r.data as { entries?: Array<{ id: string; label: string; netPctOI: number | null; sentiment: string; longPct?: number | null; shortPct?: number | null }>; source?: string };
   const entries = data.entries ?? [];
   if (entries.length === 0) return [{ key: 'cot.ALL', label: 'COT (empty)', group: 'cot', status: 'error' }];
 
-  return entries.map(e => ({
+  const items: MetricItem[] = entries.map(e => ({
     key: `cot.${e.id}`,
     label: `COT ${e.label}`,
     group: 'cot',
-    status: e.netPctOI != null ? 'ok' as const : 'degraded' as const,
+    status: (e.netPctOI != null ? 'ok' : 'degraded') as 'ok' | 'degraded',
     value: e.netPctOI != null ? `net ${e.netPctOI > 0 ? '+' : ''}${e.netPctOI.toFixed(1)}%` : null,
     details: { sentiment: e.sentiment, longPct: e.longPct, shortPct: e.shortPct },
   }));
+  // source 필드 probe (CLAUDE.md 정책)
+  items.push({
+    key: 'cot.source',
+    label: 'COT Positions source (정적 폴백 금지)',
+    group: 'cot',
+    status: !data.source ? 'degraded' : data.source === 'empty' || data.source === 'error' ? 'error' : 'ok',
+    value: `source=${data.source ?? 'missing'}`,
+  });
+  return items;
 }
 
 async function verifyKoreaFlowDetailed(base: string): Promise<MetricItem[]> {

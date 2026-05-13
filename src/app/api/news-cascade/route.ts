@@ -616,7 +616,7 @@ export async function GET(request: Request) {
     try {
       const translatedCache = await redis.get<NewsWithCascade[]>(translatedKey(locale));
       if (translatedCache && translatedCache.length > 0) {
-        return NextResponse.json({ articles: translatedCache, cached: true, locale }, { headers: CDN_HEADERS });
+        return NextResponse.json({ articles: translatedCache, cached: true, locale, source: 'cached' }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
   }
@@ -625,7 +625,7 @@ export async function GET(request: Request) {
   if (!redis && NEWS_MEMORY_CACHE && Date.now() < NEWS_MEMORY_CACHE.expiresAt) {
     logger.info('api.news-cascade', 'memory_cache_hit', { articles: NEWS_MEMORY_CACHE.articles.length });
     const out = wantsTranslation ? await translateArticles(NEWS_MEMORY_CACHE.articles, locale) : NEWS_MEMORY_CACHE.articles;
-    return NextResponse.json({ articles: out, cached: true, locale }, { headers: CDN_HEADERS });
+    return NextResponse.json({ articles: out, cached: true, locale, source: 'cached' }, { headers: CDN_HEADERS });
   }
 
   // 1b. Try to load today's cached list from Redis
@@ -634,7 +634,7 @@ export async function GET(request: Request) {
       const cached = await redis.get<NewsWithCascade[]>(listKey());
       if (cached && cached.length > 0) {
         if (!wantsTranslation) {
-          return NextResponse.json({ articles: cached, cached: true }, { headers: CDN_HEADERS });
+          return NextResponse.json({ articles: cached, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
         }
         // 영어 캐시 hit + 번역 요청 → 번역 + per-locale 캐시 저장
         const translated = await translateArticles(cached, locale);
@@ -643,7 +643,7 @@ export async function GET(request: Request) {
           await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 })
             .catch(() => { /* non-fatal */ });
         }
-        return NextResponse.json({ articles: translated, cached: true, locale, translated: !sameAsOriginal }, { headers: CDN_HEADERS });
+        return NextResponse.json({ articles: translated, cached: true, locale, translated: !sameAsOriginal, source: 'cached' }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
   }
@@ -668,7 +668,7 @@ export async function GET(request: Request) {
           try {
             const fresh = await redis.get<NewsWithCascade[]>(listKey());
             if (fresh && fresh.length > 0) {
-              return NextResponse.json({ articles: fresh, cached: true }, { headers: CDN_HEADERS });
+              return NextResponse.json({ articles: fresh, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
             }
             const stillLocked = await redis.get(LOCK_KEY);
             if (!stillLocked) break; // holder finished or crashed — do final check
@@ -677,7 +677,7 @@ export async function GET(request: Request) {
         try {
           const fresh = await redis.get<NewsWithCascade[]>(listKey());
           if (fresh && fresh.length > 0) {
-            return NextResponse.json({ articles: fresh, cached: true }, { headers: CDN_HEADERS });
+            return NextResponse.json({ articles: fresh, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
           }
         } catch { /* ignore */ }
         // Timed out waiting for lock — return empty rather than risk exceeding maxDuration
@@ -718,7 +718,11 @@ export async function GET(request: Request) {
   }
 
   if (deduped.length === 0) {
-    return NextResponse.json({ articles: [], cached: false }, { headers: CDN_HEADERS });
+    // RSS hiccup 으로 0 article — lock leak 방지를 위해 즉시 release
+    if (redis && ownLock) {
+      await loggedRedisDel(redis, 'api.news-cascade', [LOCK_KEY]).catch(() => undefined);
+    }
+    return NextResponse.json({ articles: [], cached: false, source: 'empty' }, { headers: CDN_HEADERS });
   }
 
   // 3. Analyze each article with AI — parallel (5 concurrent, each 10s timeout)
@@ -798,8 +802,8 @@ export async function GET(request: Request) {
       await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 })
         .catch(() => { /* non-fatal */ });
     }
-    return NextResponse.json({ articles: translated, cached: false, locale, translated: !sameAsOriginal }, { headers: CDN_HEADERS });
+    return NextResponse.json({ articles: translated, cached: false, locale, translated: !sameAsOriginal, source: 'live' }, { headers: CDN_HEADERS });
   }
 
-  return NextResponse.json({ articles: sorted, cached: false }, { headers: CDN_HEADERS });
+  return NextResponse.json({ articles: sorted, cached: false, source: 'live' }, { headers: CDN_HEADERS });
 }

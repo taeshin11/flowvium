@@ -135,7 +135,7 @@ export async function GET(req: Request) {
       const cached = await redis.get(CACHE_KEY);
       if (cached) {
         logger.info('api.cot-positions', 'cache_hit');
-        return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+        return NextResponse.json({ ...(cached as object), cached: true, source: 'cached' }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.cot-positions', 'cache_read_error', { error: err }); }
   }
@@ -148,7 +148,7 @@ export async function GET(req: Request) {
     });
     if (!res.ok) {
       logger.error('api.cot-positions', 'cftc_http_error', { status: res.status });
-      return NextResponse.json({ entries: [], error: `CFTC HTTP ${res.status}`, cached: false }, { status: 502 });
+      return NextResponse.json({ entries: [], error: `CFTC HTTP ${res.status}`, cached: false, source: 'error' }, { status: 502 });
     }
 
     const text = await res.text();
@@ -159,11 +159,11 @@ export async function GET(req: Request) {
     if (entries.length === 0) {
       // Don't cache empty parse results — prevents CDN from serving stale empty data
       logger.warn('api.cot-positions', 'parse_empty', { textLen: text.length });
-      return NextResponse.json({ entries: [], error: 'parse yielded 0 entries', cached: false }, { status: 502 });
+      return NextResponse.json({ entries: [], error: 'parse yielded 0 entries', cached: false, source: 'empty' }, { status: 502 });
     }
 
     const reportDate = entries[0]?.reportDate ?? '';
-    const payload = { entries, reportDate, count: entries.length, updatedAt: new Date().toISOString(), cached: false };
+    const payload = { entries, reportDate, count: entries.length, updatedAt: new Date().toISOString(), cached: false, source: 'live' as const };
 
     if (redis) {
       await loggedRedisSet(redis, 'api.cot-positions', CACHE_KEY, payload, { ex: CACHE_TTL });
@@ -171,6 +171,6 @@ export async function GET(req: Request) {
     return NextResponse.json(payload, { headers: CDN_HEADERS });
   } catch (err) {
     logger.error('api.cot-positions', 'fetch_failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ entries: [], error: 'fetch failed', cached: false }, { status: 502 });
+    return NextResponse.json({ entries: [], error: 'fetch failed', cached: false, source: 'error' }, { status: 502 });
   }
 }

@@ -135,7 +135,7 @@ export interface CommodityCurve {
 export async function GET() {
   const cacheKey = 'curves';
   const cached = mem.get(cacheKey);
-  if (cached) return NextResponse.json({ ...cached, cached: true }, { headers: CDN_HEADERS });
+  if (cached) return NextResponse.json({ ...cached, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
 
   const redis = createRedis();
   if (redis) {
@@ -143,7 +143,7 @@ export async function GET() {
       const rCached = await redis.get(REDIS_KEY);
       if (rCached) {
         mem.set(cacheKey, rCached as object);
-        return NextResponse.json({ ...(rCached as object), cached: true }, { headers: CDN_HEADERS });
+        return NextResponse.json({ ...(rCached as object), cached: true, source: 'cached' }, { headers: CDN_HEADERS });
       }
     } catch (e) { logger.warn('commodity-curve', 'redis_read_error', { error: e }); }
   }
@@ -223,7 +223,17 @@ export async function GET() {
     }
   }
 
-  const result = { curves: [oilCurve, goldCurve], updatedAt: now.toISOString(), cached: false };
+  const bothSynthetic = !!(oilCurve.synthetic && goldCurve.synthetic);
+  const someSynthetic = !!(oilCurve.synthetic || goldCurve.synthetic);
+  const liveSource: 'live' | 'mixed' | 'synthetic' | 'empty' =
+    oilCurve.curve.length === 0 && goldCurve.curve.length === 0
+      ? 'empty'
+      : bothSynthetic
+      ? 'synthetic'
+      : someSynthetic
+      ? 'mixed'
+      : 'live';
+  const result = { curves: [oilCurve, goldCurve], updatedAt: now.toISOString(), cached: false, source: liveSource };
   const hasData = oilCurve.curve.length > 0 || goldCurve.curve.length > 0;
   if (hasData) {
     mem.set(cacheKey, result);
@@ -232,12 +242,12 @@ export async function GET() {
       await loggedRedisSet(redis, 'commodity-curve', STALE_KEY, result, {});
     }
   } else if (redis) {
-    // Yahoo returned no data — try stale fallback
+    // Yahoo + FRED + gold-api 모두 실패 — stale fallback
     try {
       const stale = await redis.get(STALE_KEY);
       if (stale) {
-        logger.info('commodity-curve', 'stale_fallback', { note: 'Yahoo returned 0 pts, serving stale' });
-        return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+        logger.info('commodity-curve', 'stale_fallback', { note: 'all fetchers failed, serving stale' });
+        return NextResponse.json({ ...(stale as object), cached: true, stale: true, source: 'cached-stale' }, { headers: CDN_HEADERS });
       }
     } catch (e) { logger.warn('commodity-curve', 'stale_read_error', { error: e }); }
   }

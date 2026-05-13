@@ -280,7 +280,7 @@ export async function GET(req: Request) {
         const cachedEntries = cached as Array<{ instAction?: string | null }>;
         const cachedInstSource = Array.isArray(cachedEntries) && cachedEntries.some(e => e.instAction != null) ? 'live' : 'empty';
         logger.info('api.short-interest', 'cache_hit', { cachedEntries: Array.isArray(cachedEntries) ? cachedEntries.length : -1 });
-        return NextResponse.json({ entries: cached, instSource: cachedInstSource, cached: true }, { headers: CDN_HEADERS });
+        return NextResponse.json({ entries: cached, instSource: cachedInstSource, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.short-interest', 'cache_read_error', { error: err }); }
   } else if (!redis && !forceRefresh) {
@@ -288,7 +288,7 @@ export async function GET(req: Request) {
     if (mem && Array.isArray(mem) && mem.length > 0) {
       const memEntries = mem as Array<{ instAction?: string | null }>;
       const memInstSource = memEntries.some(e => e.instAction != null) ? 'live' : 'empty';
-      return NextResponse.json({ entries: mem, instSource: memInstSource, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
+      return NextResponse.json({ entries: mem, instSource: memInstSource, cached: true, cacheLayer: 'memory', source: 'cached' }, { headers: CDN_HEADERS });
     }
   }
 
@@ -370,5 +370,6 @@ export async function GET(req: Request) {
     durationMs: Date.now() - reqStart,
   });
 
-  return NextResponse.json({ entries, instSource, cached: false }, { headers: CDN_HEADERS });
+  const liveSource = entries.length === 0 ? 'empty' : 'live';
+  return NextResponse.json({ entries, instSource, cached: false, source: liveSource }, { headers: CDN_HEADERS });
 }

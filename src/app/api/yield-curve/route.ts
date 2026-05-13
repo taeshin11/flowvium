@@ -18,6 +18,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const CACHE_TTL = 60 * 60;  // 1h Redis
+const STALE_TTL = 24 * 60 * 60;  // 24h stale fallback (FRED hiccup 방어)
+const STALE_KEY = 'flowvium:yield-curve:v2:stale';
 const MEM_CACHE = createMemoryCache<YieldCurveData>('yield-curve', 30 * 60_000);
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=120' };
 
@@ -81,7 +83,7 @@ export interface YieldCurveData {
   dataDate: string | null;
   updatedAt: string;
   cached: boolean;
-  source: 'fred' | 'fred-stale' | 'empty';
+  source: 'fred' | 'fred-stale' | 'cached-stale' | 'empty';
 }
 
 function parseFredCsv(csv: string): Map<string, number> {
@@ -254,15 +256,33 @@ export async function GET() {
     source,
   };
 
-  if (redis) {
-    try {
-      await loggedRedisSet(redis, 'api.yield-curve', cacheKey, data, { ex: CACHE_TTL });
-    } catch (err) {
-      logger.error('yield-curve', 'redis_save_error', { error: err });
+  // empty 결과는 1h CDN/Redis 캐싱 금지 — FRED 일시 hiccup 으로 stuck 방지.
+  // 정상 응답일 때만 1h fresh + 24h stale 양쪽에 저장 (volatility 패턴 일관).
+  if (source !== 'empty') {
+    if (redis) {
+      try {
+        await loggedRedisSet(redis, 'api.yield-curve', cacheKey, data, { ex: CACHE_TTL });
+        await loggedRedisSet(redis, 'api.yield-curve', STALE_KEY, data, { ex: STALE_TTL });
+      } catch (err) {
+        logger.error('yield-curve', 'redis_save_error', { error: err });
+      }
+    } else {
+      MEM_CACHE.set('us', data);
     }
-  } else {
-    MEM_CACHE.set('us', data);
+    return NextResponse.json(data, { headers: CDN_HEADERS });
   }
 
-  return NextResponse.json(data, { headers: CDN_HEADERS });
+  // empty 인 경우 stale fallback 시도
+  if (redis) {
+    try {
+      const stale = await redis.get<YieldCurveData>(STALE_KEY);
+      if (stale && stale.dataDate) {
+        logger.info('yield-curve', 'stale_fallback', { dataDate: stale.dataDate });
+        const staled: YieldCurveData = { ...stale, source: 'cached-stale', updatedAt: new Date().toISOString(), cached: true };
+        return NextResponse.json(staled, { headers: CDN_HEADERS });
+      }
+    } catch { /* non-fatal */ }
+  }
+  // empty + stale 도 없으면 empty 그대로 (no-store 헤더로 짧게 캐싱)
+  return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
 }
