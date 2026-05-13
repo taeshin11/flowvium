@@ -2,14 +2,14 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/market-caps
  *
- * Returns a { ticker: band } map for every ticker in allCompanies.
- * Uses static marketCap bands from allCompanies data.
- * Yahoo Finance v7 crumb auth fails from Vercel IPs — live fetch removed.
- * Single-ticker ?ticker=AAPL requests fetch live marketCap via Yahoo v8 chart endpoint.
+ * Returns { ticker: band } 정적 enum + { ticker: liveCap } TRACKED_TICKERS (~30개).
+ * Yahoo v8 chart 는 Vercel 에서도 작동 (no crumb 필요) — TRACKED 30 tickers 만
+ * 병렬 fetch 로 caps map 채움. 나머지는 categorical band 만 제공.
  *
  * Optional ?ticker=AAPL param returns single-ticker data with live market cap.
  *
- * Redis cache: 24h.
+ * Redis cache: 24h (bands enum 정적, live caps 는 24h 안에 +-수% 변동 허용).
+ * source: 'live' (전부 라이브), 'mixed' (일부 라이브), 'static' (Yahoo 전부 실패)
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
@@ -18,8 +18,15 @@ import { allCompanies } from '@/data/companies';
 import { type MarketCapBand, YAHOO_HEADERS } from '@/lib/yahoo-finance';
 export const dynamic = 'force-dynamic';
 
-const CACHE_KEY = 'flowvium:market-caps:v2';
-const CACHE_TTL = 24 * 60 * 60; // 24h — bands enum 은 allCompanies 정적이므로 길어도 OK
+const CACHE_KEY = 'flowvium:market-caps:v3'; // v3: TRACKED_TICKERS live caps 추가
+const CACHE_TTL = 24 * 60 * 60; // 24h — bands enum 정적, live cap 도 ±수% 변동 24h 허용
+// Intelligence/Signals/Heatmap 페이지에서 가장 자주 노출되는 hot ticker
+const TRACKED_TICKERS = [
+  'NVDA', 'MSFT', 'AAPL', 'META', 'GOOGL', 'AMZN', 'TSLA', 'AMD',
+  'MU', 'AVGO', 'ARM', 'TSM', 'ASML', 'AMAT', 'LRCX', 'KLAC',
+  'JPM', 'GS', 'BAC', 'V', 'UNH', 'XOM', 'CVX',
+  'LMT', 'RTX', 'NOC', 'PLTR', 'COIN', 'MRNA', 'LLY',
+];
 // 단일 ticker live cap 은 Yahoo 응답 그대로 반환 — CDN 은 4h 로 단축 (장중 변동 반영)
 const CDN_HEADERS_MAP = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' };
 const CDN_HEADERS_TICKER = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=300' };
@@ -27,11 +34,14 @@ const CDN_HEADERS_TICKER = { 'Cache-Control': 'public, s-maxage=14400, stale-whi
 export const maxDuration = 60;
 
 export interface MarketCapPayload {
-  bands: Record<string, MarketCapBand>;  // ticker → band
-  caps: Record<string, number>;          // ticker → raw USD cap
+  bands: Record<string, MarketCapBand>;  // ticker → band (정적 enum)
+  caps: Record<string, number>;          // ticker → raw USD cap (TRACKED_TICKERS live)
   updatedAt: string;
   count: number;
-  source: 'static';  // bands는 allCompanies 정적 enum (Yahoo Vercel 차단으로 live 불가)
+  /** 'live' = TRACKED 전부 라이브, 'mixed' = 일부, 'static' = 라이브 실패 (bands 만) */
+  source: 'live' | 'mixed' | 'static';
+  capsLive: number;       // 실제로 라이브 fetch 된 caps 개수
+  capsTotal: number;      // 시도한 caps 개수 (= TRACKED_TICKERS.length)
   cached?: boolean;
 }
 
@@ -86,12 +96,27 @@ export async function GET(req: Request) {
     bands[c.ticker] = c.marketCap as MarketCapBand;
   }
 
+  // TRACKED_TICKERS 만 병렬 라이브 fetch (Vercel maxDuration=60s 안)
+  const liveResults = await Promise.all(
+    TRACKED_TICKERS.map(async t => [t, await fetchYahooCap(t)] as const),
+  );
+  const caps: Record<string, number> = {};
+  let capsLive = 0;
+  for (const [t, c] of liveResults) {
+    if (c != null && c > 0) { caps[t] = c; capsLive++; }
+  }
+  const capsTotal = TRACKED_TICKERS.length;
+  const liveSource: 'live' | 'mixed' | 'static' =
+    capsLive === capsTotal ? 'live' : capsLive > 0 ? 'mixed' : 'static';
+
   const payload: MarketCapPayload = {
     bands,
-    caps: {},
+    caps,
     updatedAt: new Date().toISOString(),
     count: seen.size,
-    source: 'static',
+    source: liveSource,
+    capsLive,
+    capsTotal,
   };
 
   await loggedRedisSet(redis, 'api.market-caps', CACHE_KEY, payload, { ex: CACHE_TTL });

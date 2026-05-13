@@ -555,17 +555,45 @@ async function verifyMarketCapsDetailed(base: string): Promise<MetricItem[]> {
   if (!r.ok) {
     return [{ key: 'caps.ALL', label: 'Market Caps API', group: 'market-caps', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
   }
-  // Bulk endpoint returns bands (static tiers) + caps:{} (live, only populated for ?ticker=X requests)
-  // Use bands as the coverage check — caps is intentionally empty for bulk responses
-  const data = r.data as { caps?: Record<string, number>; bands?: Record<string, string>; count?: number };
+  // Bulk endpoint returns bands (정적 enum) + caps (TRACKED_TICKERS ~30 라이브 fetch)
+  const data = r.data as {
+    caps?: Record<string, number>;
+    bands?: Record<string, string>;
+    count?: number;
+    source?: string;
+    capsLive?: number;
+    capsTotal?: number;
+  };
   const bands = data.bands ?? {};
   const bandCount = Object.keys(bands).length;
   if (bandCount === 0) return [{ key: 'caps.ALL', label: 'Market Caps (empty)', group: 'market-caps', status: 'error' }];
 
-  // source='static' 은 정상 — explore 페이지 관계 그래프용 enum 데이터이며 Yahoo Vercel 차단으로 live 불가.
-  // 빈 bands 만 error, static 은 ok (설계상 정적).
-  return [{ key: 'caps.ALL', label: 'Market Caps bands', group: 'market-caps', status: 'ok',
-    value: `${bandCount} tickers (source=${(data as { source?: string }).source ?? 'unknown'})` }];
+  const items: MetricItem[] = [];
+  items.push({
+    key: 'caps.bands', label: 'Market Caps bands', group: 'market-caps', status: 'ok',
+    value: `${bandCount} tickers`,
+  });
+  // 라이브 caps 커버리지 (capsLive / capsTotal) — Yahoo 차단 감지
+  const capsLive = data.capsLive ?? 0;
+  const capsTotal = data.capsTotal ?? 0;
+  items.push({
+    key: 'caps.live',
+    label: 'Market Caps live (Yahoo v8 chart)',
+    group: 'market-caps',
+    status: capsTotal === 0 ? 'degraded'
+      : capsLive === capsTotal ? 'ok'
+      : capsLive > capsTotal * 0.5 ? 'degraded' : 'error',
+    value: `${capsLive}/${capsTotal} live`,
+  });
+  // source 필드 probe — static 이면 Yahoo 전부 실패 (alert)
+  items.push({
+    key: 'caps.source',
+    label: 'Market Caps source',
+    group: 'market-caps',
+    status: !data.source ? 'degraded' : data.source === 'static' ? 'error' : 'ok',
+    value: `source=${data.source ?? 'missing'}`,
+  });
+  return items;
 }
 
 async function verifySectorPE(base: string): Promise<MetricItem[]> {

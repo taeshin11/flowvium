@@ -32,7 +32,7 @@ const VERIFY_METRICS_PATH = resolve(ROOT, 'src/app/api/cron/verify-metrics/route
 
 // 허용 목록 — 이 파일들은 정적 데이터 사용이 설계상 허용됨
 const ALLOWED = new Set([
-  'src/app/api/market-caps/route.ts',          // enum bands (연 단위), source: 'static' 명시됨
+  'src/app/api/market-caps/route.ts',          // bands enum 정적 (categorical) + caps 30개 라이브; source: 'live'|'mixed'|'static'
   'src/app/api/market-heatmap/route.ts',        // SECTOR_COLORS (색상, 변경 없음)
   'src/app/api/cron/log-cascade-events/route.ts', // cascadePatterns (관계 구조 설정)
   'src/lib/daily-brief.ts',                     // newsGapData → AI prompt 재료 (사용자 직접 노출 아님)
