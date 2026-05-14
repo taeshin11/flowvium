@@ -237,13 +237,26 @@ function applyLocalHarness(r) {
     }
   }
 
-  // 6a. stopLoss > entry 검출 (NVDA $500 stop + entry $206 케이스)
+  // 6a. stopLoss > entry 자동 교정 — stop 은 정의상 entry 보다 낮아야 함
+  // SMCI $32 entry + $120 stop, NVDA $206 entry + $500 stop 등 LLM hallucination 차단.
+  // (1) stop >= entry * 1.05 인 경우 stop = entry * 0.93 으로 강제 재계산
+  // (2) action=watch 강등 + critiqueNote 부착 — 진입 보류 신호
   for (const p of r.portfolio) {
     const e = parseFirstPriceMjs(p.entryZone);
     const st = parseFirstPriceMjs(p.stopLoss);
-    if (e && st && e > 0 && st >= e * 1.05) {
-      audit.fixes.stopLossAboveEntry.push(`${p.ticker}:stop=${st} >= entry=${e}`);
-    }
+    if (!e || !st || e <= 0) continue;
+    if (st < e * 1.05) continue; // 정상 (stop < entry)
+    const isKR = p.ticker?.endsWith('.KS');
+    const sym = isKR ? '₩' : (p.stopLoss?.match(/^[₩$€]/)?.[0] ?? '$');
+    const newStop = e * 0.93;
+    const fmt = isKR
+      ? (n) => `${sym}${Math.round(n).toLocaleString('en-US')}`
+      : (n) => `${sym}${n.toFixed(2)}`;
+    audit.fixes.stopLossAboveEntry.push(`${p.ticker}:stop=${st} >= entry=${e} → ${fmt(newStop)}`);
+    p.stopLoss = fmt(newStop);
+    p.action = 'watch';
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `stopLoss(${fmt(st)}) > entry(${fmt(e)}) hallucination — entry·0.93 으로 재계산, 진입 보류`;
   }
 
   // 6b. entry vs rationale 50MA 자동 교정 (ASML $1402 50MA + entry $350 케이스)

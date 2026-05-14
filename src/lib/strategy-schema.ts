@@ -525,18 +525,36 @@ export function fixCompanyChangeNames<T extends { companyChanges?: Array<{ ticke
 }
 
 /**
- * stopLoss 가 entry 보다 비싸면 검출 (자동 교정은 안 함 — 경고만).
- * NVDA stopLoss=$500 + entryZone=$200 같은 비합리 케이스.
+ * stopLoss 가 entry 보다 비싸면 자동 교정 (2026-05-14 SMCI $120 stop hallucination 사건 이후).
+ * stop 은 정의상 entry 보다 낮아야 함. stop >= entry × 1.05 인 경우:
+ *  (1) stop = entry × 0.93 으로 재계산
+ *  (2) action = 'watch' 강등 + critiqueNote 부착
+ * NVDA $500 stop + $206 entry, SMCI $120 stop + $32 entry 같은 케이스 차단.
  */
-export function detectStopAboveEntry<T extends { portfolio: Array<{ ticker: string; entryZone: string; stopLoss: string }> }>(s: T, audit?: HarnessAudit): T {
-  if (!audit) return s;
+export function detectStopAboveEntry<T extends {
+  portfolio: Array<{
+    ticker: string; entryZone: string; stopLoss: string;
+    action?: string; critiqueNote?: string;
+  }>;
+}>(s: T, audit?: HarnessAudit): T {
   for (const p of s.portfolio) {
     const entry = parseFirstPrice(p.entryZone);
     const stop = parseFirstPrice(p.stopLoss);
     if (entry == null || stop == null || entry <= 0) continue;
-    if (stop >= entry * 1.05) {
-      audit.fixes.stopLossAboveEntry.push(`${p.ticker}:stop=${stop} >= entry=${entry}`);
+    if (stop < entry * 1.05) continue;
+    const isKR = p.ticker?.endsWith('.KS');
+    const sym = isKR ? '₩' : (p.stopLoss?.match(/^[₩$€]/)?.[0] ?? '$');
+    const newStop = entry * 0.93;
+    const fmt = isKR
+      ? (n: number) => `${sym}${Math.round(n).toLocaleString('en-US')}`
+      : (n: number) => `${sym}${n.toFixed(2)}`;
+    if (audit) {
+      audit.fixes.stopLossAboveEntry.push(`${p.ticker}:stop=${stop} >= entry=${entry} → ${fmt(newStop)}`);
     }
+    p.stopLoss = fmt(newStop);
+    p.action = 'watch';
+    p.critiqueNote = (p.critiqueNote ? p.critiqueNote + ' | ' : '') +
+      `stopLoss(${fmt(stop)}) > entry(${fmt(entry)}) hallucination — entry·0.93 으로 재계산, 진입 보류`;
   }
   return s;
 }
