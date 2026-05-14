@@ -161,6 +161,19 @@ function loadBanList() {
 }
 const BAN_LIST_HARNESS = loadBanList();
 
+// ── Entry calibration (analyze-recs --export): ticker 별 not_entered 케이스의
+// 시장가 - entry_high median gap(%). 5% 초과면 해당 ticker entry 가 만성적으로
+// 시장가에 못 미친다는 신호 → validateEntryZones 에서 더 공격적 clamp 적용.
+function loadEntryCalibration() {
+  try {
+    const raw = readFileSync(resolve(ROOT, 'data/entry-calibration.json'), 'utf8');
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return new Map();
+    return new Map(arr.map(c => [c.ticker.toUpperCase(), c]));
+  } catch { return new Map(); }
+}
+const ENTRY_CALIBRATION = loadEntryCalibration();
+
 function nativeCurrencyForTickerMjs(ticker) {
   const t = (ticker ?? '').toUpperCase();
   if (t.endsWith('.KS') || t.endsWith('.KQ')) return '₩';
@@ -1486,13 +1499,27 @@ function validateEntryZones(portfolioItems, livePrices) {
 
     // momentum-aware clamp: 강세장(최근 1주 +3% 이상)이면 좁은 풀백, 약세장이면 넓은 풀백
     // Phase 1 (2026-05-12): 기존 0.93-0.96 (4-7% 할인) 으로는 not_entered 56% — 강세장에서 풀백 안 와서.
-    // 모멘텀에 따라 동적 조정: 강세 → 시장가 근접, 중립/약세 → 보수적
+    // Phase 2 (2026-05-14): per-ticker historical gap override 추가 — MSFT 15.9% / TSM 9.6% / ASML 8.5%
+    // 같은 만성 미진입 ticker 는 momentum 무관 시장가 ±1% 까지 strict clamp.
     const change1d = pd.change1d ?? 0;
     const change1w = pd.change1w ?? change1d * 3; // 1w 없으면 1d × 3 추정
     const momentum = change1w > 5 ? 'strong-bull' : change1w > 1 ? 'bull' : change1w > -3 ? 'neutral' : 'bear';
-    // 시장가 대비 entry 클램프 범위
-    const clampLow  = momentum === 'strong-bull' ? 0.98 : momentum === 'bull' ? 0.96 : momentum === 'neutral' ? 0.94 : 0.92;
-    const clampHigh = momentum === 'strong-bull' ? 1.00 : momentum === 'bull' ? 0.99 : momentum === 'neutral' ? 0.97 : 0.96;
+    // 시장가 대비 entry 클램프 범위 — momentum baseline
+    let clampLow  = momentum === 'strong-bull' ? 0.98 : momentum === 'bull' ? 0.96 : momentum === 'neutral' ? 0.94 : 0.92;
+    let clampHigh = momentum === 'strong-bull' ? 1.00 : momentum === 'bull' ? 0.99 : momentum === 'neutral' ? 0.97 : 0.96;
+    // Per-ticker historical gap override (entry-calibration.json):
+    // - median gap > 8% (TSM, MSFT, ASML 류): 시장가 ±1% strict (0.99-1.01)
+    // - median gap 5~8% (000660.KS, MU, TSLA): 시장가 -2~+0.5% (0.98-1.005)
+    // - median gap 0~5%: momentum 기본값 유지
+    const cal = ENTRY_CALIBRATION.get(p.ticker?.toUpperCase());
+    const histGap = cal?.median ?? null; // 양수 = 시장가 대비 N% 낮음 (미달성)
+    if (histGap != null && histGap > 8) {
+      clampLow = Math.max(clampLow, 0.99);
+      clampHigh = Math.max(clampHigh, 1.01);
+    } else if (histGap != null && histGap > 5) {
+      clampLow = Math.max(clampLow, 0.98);
+      clampHigh = Math.max(clampHigh, 1.005);
+    }
 
     let updated = { ...p };
     const zoneNums = extractNums(p.entryZone);

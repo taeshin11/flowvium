@@ -37,10 +37,11 @@ async function fetchYahooOHLC(ticker, fromIso, toIso) {
     if (!result) return null;
     const ts = result.timestamp ?? [];
     const q = result.indicators?.quote?.[0] ?? {};
+    // 0 도 typeof 'number' 라 통과해버려 Yahoo 결측일 (low=0) 이 판정 오염시킴 — 양수만.
     return {
-      closes: (q.close ?? []).filter(v => typeof v === 'number'),
-      highs: (q.high ?? []).filter(v => typeof v === 'number'),
-      lows: (q.low ?? []).filter(v => typeof v === 'number'),
+      closes: (q.close ?? []).filter(v => typeof v === 'number' && v > 0),
+      highs: (q.high ?? []).filter(v => typeof v === 'number' && v > 0),
+      lows: (q.low ?? []).filter(v => typeof v === 'number' && v > 0),
       days: ts.length,
     };
   } catch {
@@ -52,14 +53,22 @@ function judgeOutcome(rec, ohlc) {
   if (!ohlc || ohlc.closes.length === 0) {
     return { outcome: 'unknown', detail: 'no OHLC data' };
   }
+  if (ohlc.lows.length === 0 || ohlc.highs.length === 0) {
+    return { outcome: 'unknown', detail: 'OHLC contains only zero/missing days (filtered out)' };
+  }
   const highSeen = Math.max(...ohlc.highs);
   const lowSeen = Math.min(...ohlc.lows);
   const lastClose = ohlc.closes.at(-1);
 
+  // 데이터 sanity: lowSeen 이 0/음수면 판정 불가 (이미 fetchYahooOHLC 에서 필터되지만 한번 더 가드)
+  if (!isFinite(lowSeen) || lowSeen <= 0 || !isFinite(highSeen) || highSeen <= 0) {
+    return { outcome: 'unknown', detail: `invalid OHLC: high=${highSeen} low=${lowSeen}`, highSeen, lowSeen, lastClose };
+  }
+
   // 1) Entry zone 진입 여부 — low_seen ≤ entry_high (역지정가 도달)
   const entryHigh = rec.entry_high ?? rec.entry_low;
   const entryLow = rec.entry_low ?? rec.entry_high;
-  const entered = entryHigh != null && lowSeen != null && lowSeen <= entryHigh;
+  const entered = entryHigh != null && lowSeen <= entryHigh;
 
   if (!entered) {
     return {
@@ -78,8 +87,8 @@ function judgeOutcome(rec, ohlc) {
     };
   }
 
-  // 3) Stop loss 발동 — low_seen ≤ stop_loss*1.02
-  if (rec.stop_loss != null && lowSeen != null && lowSeen <= rec.stop_loss * 1.02) {
+  // 3) Stop loss 발동 — low_seen ≤ stop_loss*1.02 (lowSeen 양수 가드 위에서 이미 검증됨)
+  if (rec.stop_loss != null && lowSeen <= rec.stop_loss * 1.02) {
     return {
       outcome: 'stop_loss',
       detail: `low_seen=${lowSeen} <= stop*1.02=${rec.stop_loss * 1.02}`,

@@ -53,7 +53,7 @@ async function fetchYahooCap(ticker: string): Promise<number | null> {
       `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
       {
         headers: YAHOO_HEADERS,
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(8000), // 4s → 8s (Vercel→Yahoo 평균 latency 고려)
         cache: 'no-store',
       }
     );
@@ -61,6 +61,19 @@ async function fetchYahooCap(ticker: string): Promise<number | null> {
     const data = await res.json();
     return (data?.chart?.result?.[0]?.meta?.marketCap as number | undefined) ?? null;
   } catch { return null; }
+}
+
+// 청크 단위 순차 fetch — Yahoo 가 큰 병렬도에 throttle 하므로 5개씩 처리.
+async function fetchBatchInChunks(tickers: readonly string[], chunkSize = 5): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  for (let i = 0; i < tickers.length; i += chunkSize) {
+    const chunk = tickers.slice(i, i + chunkSize);
+    const results = await Promise.all(chunk.map(async t => [t, await fetchYahooCap(t)] as const));
+    for (const [t, cap] of results) {
+      if (cap != null && cap > 0) out.set(t, cap);
+    }
+  }
+  return out;
 }
 
 export async function GET(req: Request) {
@@ -98,15 +111,11 @@ export async function GET(req: Request) {
     bands[c.ticker] = c.marketCap as MarketCapBand;
   }
 
-  // TRACKED_TICKERS 만 병렬 라이브 fetch (Vercel maxDuration=60s 안)
-  const liveResults = await Promise.all(
-    TRACKED_TICKERS.map(async t => [t, await fetchYahooCap(t)] as const),
-  );
-  const caps: Record<string, number> = {};
-  let capsLive = 0;
-  for (const [t, c] of liveResults) {
-    if (c != null && c > 0) { caps[t] = c; capsLive++; }
-  }
+  // TRACKED_TICKERS 청크 단위 fetch — 30 병렬 동시 시 Yahoo 가 throttle (capsLive=0/30 관찰됨).
+  // 5개씩 6 chunk × 8s timeout = 최대 48s (Vercel maxDuration=60s 안).
+  const capsMap = await fetchBatchInChunks(TRACKED_TICKERS, 5);
+  const caps: Record<string, number> = Object.fromEntries(capsMap);
+  const capsLive = capsMap.size;
   const capsTotal = TRACKED_TICKERS.length;
   const liveSource: 'live' | 'partial' | 'error' =
     capsLive === capsTotal ? 'live' : capsLive > 0 ? 'partial' : 'error';
