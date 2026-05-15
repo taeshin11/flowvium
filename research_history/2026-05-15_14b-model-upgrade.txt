@@ -1,0 +1,50 @@
+2026-05-15 14B 모델 업그레이드 — TabbyAPI 실패, Ollama Q3 채택
+================================================================
+
+목적: qwen3:8b → qwen2.5:14b 업그레이드로 보고서 품질 향상.
+배경: 누적 158 outcome 분석 결과 'high' confidence hit rate 15%→11% 악화.
+모델 자체가 의사결정 병목 (Codex 분석 후 결론).
+
+시도 1: TabbyAPI + ExLlamaV2 (EXL2 3.5bpw) — 실패
+---------------------------------------------------
+설치: scripts/setup-tabbyapi.ps1
+- PowerShell 5.1 `2>&1 | Out-Null` 가 pip stderr 를 NativeCommandError 로 wrap
+  → ErrorActionPreference=Stop 와 결합해 즉시 abort. 수동 pip 직접 호출로 해결.
+- .tabbyapi 가 pyproject.toml 사용 (requirements.txt 아님) → `pip install -e .[cu12]`
+  로 cu128 torch + exllamav2 + flash_attn 일괄 설치.
+
+모델: turboderp/Qwen2.5-14B-Instruct-exl2 (원본 repo 부재) → bartowski 3_5 branch
+사용. output.safetensors 7.95 GB 단일 파일 (HF index 의 8 shard 는 EXL2 무관).
+
+서버 기동 결과: torch.OutOfMemoryError at 82% (81/99 modules loaded)
+- RTX 4050 6GB VRAM 에 14B EXL2 3.5bpw 안 들어감.
+- CLAUDE.md "EXL2 3.5bpw = ~6 GB, GPU only" 추정은 낙관적 — 실측 7.95GB.
+- TabbyAPI/EXL2 는 CPU offload 미지원 (GPU only 정책).
+
+결론: 14B EXL2 on 6GB VRAM 인프라 자체가 인feasible.
+
+시도 2: Ollama Q3_K_M (GGUF, llama.cpp 백엔드) — 성공
+-----------------------------------------------------
+`ollama pull qwen2.5:14b-instruct-q3_K_M` (7.3 GB)
+- llama.cpp 가 자동 CPU+GPU offload 처리 → 6GB VRAM 에서 작동
+- 속도: 8B 대비 2-3x 느림 (Wave1 5병렬 ~10-15분 예상)
+- 품질: 14B 의 의사결정 능력 + EXL2 보다 5-10% 낮은 정확도 (Q3 양자화 손실)
+
+CLAUDE.md Stage 2 가이드 "옵션 A" 가 결과적으로 옳았음.
+
+남은 자산
+---------
+- .tabby-venv/ + .tabbyapi/ : 향후 7B EXL2 (4-6 bpw) 실험에 재활용 가능
+- .tabbyapi/config.yml : Q4 cache, 6GB 최적화 설정 저장됨
+- scripts/start-tabbyapi.bat : .tabby-venv 활성화 + main.py 호출 wrapper
+- .tabbyapi/models/Qwen2.5-14B-3.5bpw/output.safetensors (7.95 GB) : 디스크에 남아있음
+  GPU 업그레이드 (12GB+) 시 즉시 사용 가능
+
+권장 다음 단계
+-------------
+1. 14B 첫 보고서 outcome 14-day 후 평가 → 8B 와 not_entered 비율 / hit rate 비교
+2. 14B 가 ban-list 가드 + entry-calibration 잘 따르는지 확인
+3. 8B 와 14B 의 wave 호출 평균 latency 차이 측정 → 보고서 cadence (3x/day) 유지
+   가능 여부 평가
+4. (선택) Qwen2.5-7B-Instruct EXL2 6bpw 로 TabbyAPI 활용 — 8B 와 비슷한 크기지만
+   EXL2 quantization 이 GGUF Q4 보다 정확도 우수

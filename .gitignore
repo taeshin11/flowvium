@@ -45,6 +45,10 @@ next-env.d.ts
 .tabbyapi/
 .tabby-venv/
 tabbyapi-install.log
+tabbyapi-server.log
+ollama-pull.log
+model-download.log
+report-14b.log
 
 # 보고서 백업 (debug용)
 reports/*.PRE-HARNESS.json
