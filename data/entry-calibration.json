@@ -1,7 +1,7 @@
 [
   {
     "ticker": "TSM",
-    "samples": 6,
+    "samples": 12,
     "median": 9.609668146169973,
     "diagnosis": "entry 가 시장가 대비 9.6% 낮음 — 거의 도달 불가"
   },
@@ -13,13 +13,13 @@
   },
   {
     "ticker": "000660.KS",
-    "samples": 9,
-    "median": 7.411764705882352,
-    "diagnosis": "entry 가 시장가 대비 7.4% 낮음 — 거의 도달 불가"
+    "samples": 11,
+    "median": 6.6438356164383565,
+    "diagnosis": "entry 가 시장가 대비 6.6% 낮음 — 거의 도달 불가"
   },
   {
     "ticker": "KLAC",
-    "samples": 9,
+    "samples": 10,
     "median": 2.7401048393248195,
     "diagnosis": "entry 가 시장가 -2.7% — 보수적"
   },
@@ -31,26 +31,32 @@
   },
   {
     "ticker": "NVDA",
-    "samples": 8,
-    "median": 3.5335686091526375,
+    "samples": 14,
+    "median": 3.5235464835431123,
     "diagnosis": "entry 가 시장가 -3.5% — 보수적"
   },
   {
     "ticker": "MSFT",
-    "samples": 8,
-    "median": 15.857142857142856,
-    "diagnosis": "entry 가 시장가 대비 15.9% 낮음 — 거의 도달 불가"
+    "samples": 12,
+    "median": 9.594594594594595,
+    "diagnosis": "entry 가 시장가 대비 9.6% 낮음 — 거의 도달 불가"
   },
   {
     "ticker": "MU",
-    "samples": 4,
+    "samples": 5,
     "median": 7.219772453799768,
     "diagnosis": "entry 가 시장가 대비 7.2% 낮음 — 거의 도달 불가"
   },
   {
     "ticker": "ASML",
-    "samples": 7,
+    "samples": 13,
     "median": 8.526469086282699,
     "diagnosis": "entry 가 시장가 대비 8.5% 낮음 — 거의 도달 불가"
+  },
+  {
+    "ticker": "SMCI",
+    "samples": 2,
+    "median": 2.367911142172275,
+    "diagnosis": "entry 가 시장가 -2.4% — 보수적"
   }
 ]

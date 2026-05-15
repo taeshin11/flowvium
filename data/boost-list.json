@@ -1,11 +1,11 @@
 [
   {
-    "ticker": "000660.KS",
-    "reason": "BOOST: avg_pnl 21.15% > 20%",
-    "evaluated": 13,
-    "hits": 3,
-    "stops": 1,
-    "avg_pnl": 21.15
+    "ticker": "TSM",
+    "reason": "BOOST: avg_pnl 118.02% > 20%",
+    "evaluated": 12,
+    "hits": 0,
+    "stops": 0,
+    "avg_pnl": 118.02
   },
   {
     "ticker": "TSLA",
@@ -14,14 +14,6 @@
     "hits": 5,
     "stops": 0,
     "avg_pnl": 17.13
-  },
-  {
-    "ticker": "TSM",
-    "reason": "BOOST: avg_pnl 221.68% > 20%",
-    "evaluated": 6,
-    "hits": 0,
-    "stops": 0,
-    "avg_pnl": 221.68
   },
   {
     "ticker": "005490.KS",
