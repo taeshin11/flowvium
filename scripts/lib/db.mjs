@@ -352,6 +352,32 @@ export function getTickerStats() {
   `).all();
 }
 
+/**
+ * Ticker 별 NE / hit 패턴 + entry 부족분 — 환각 prevention prompt feedback 용.
+ * "이 ticker는 entry 너무 낮게 잡음, X% 올려야 함" 같은 cue 를 LLM 에 주입.
+ */
+export function getEntryFeedbackStats() {
+  const db = openDb();
+  return db.prepare(`
+    SELECT r.ticker,
+      COUNT(*) AS total,
+      SUM(CASE WHEN o.outcome='hit_target' THEN 1 ELSE 0 END) AS hits,
+      SUM(CASE WHEN o.outcome='not_entered' THEN 1 ELSE 0 END) AS ne,
+      SUM(CASE WHEN o.outcome='stop_loss' THEN 1 ELSE 0 END) AS stops,
+      ROUND(AVG(CASE WHEN o.outcome='not_entered' THEN r.entry_high END), 2) AS avg_ne_entry,
+      ROUND(AVG(CASE WHEN o.outcome='not_entered' THEN o.price_at_eval END), 2) AS avg_ne_actual,
+      ROUND(AVG(CASE WHEN o.outcome='hit_target' THEN r.entry_high END), 2) AS avg_hit_entry
+    FROM recommendations r
+    JOIN recommendation_outcomes o ON o.recommendation_id = r.id
+    WHERE r.action = 'buy'
+      AND o.evaluated_at >= datetime('now', '-30 days')
+    GROUP BY r.ticker
+    HAVING total >= 3
+    ORDER BY ne DESC
+    LIMIT 20
+  `).all();
+}
+
 /** 요약 통계. */
 export function getSummary() {
   const db = openDb();

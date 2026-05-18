@@ -78,14 +78,25 @@ async function fetchYahooCap(ticker: string): Promise<number | null> {
   } catch { return null; }
 }
 
-// 청크 단위 순차 fetch — Yahoo 가 큰 병렬도에 throttle 하므로 5개씩 처리.
-async function fetchBatchInChunks(tickers: readonly string[], chunkSize = 5): Promise<Map<string, number>> {
+// 청크 단위 순차 fetch — Vercel→Yahoo throttle 회피 (3개씩 + 800ms sleep + 실패 시 1회 retry).
+async function fetchBatchInChunks(tickers: readonly string[], chunkSize = 3): Promise<Map<string, number>> {
   const out = new Map<string, number>();
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
   for (let i = 0; i < tickers.length; i += chunkSize) {
     const chunk = tickers.slice(i, i + chunkSize);
     const results = await Promise.all(chunk.map(async t => [t, await fetchYahooCap(t)] as const));
     for (const [t, cap] of results) {
       if (cap != null && cap > 0) out.set(t, cap);
+    }
+    if (i + chunkSize < tickers.length) await sleep(800);
+  }
+  // 실패한 ticker 1회 재시도 (개별 fetch, 200ms 간격)
+  const missing = tickers.filter(t => !out.has(t));
+  if (missing.length > 0 && missing.length < tickers.length) {
+    for (const t of missing) {
+      const cap = await fetchYahooCap(t);
+      if (cap != null && cap > 0) out.set(t, cap);
+      await sleep(200);
     }
   }
   return out;

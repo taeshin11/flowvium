@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations } from './lib/db.mjs';
+import { saveReport, saveRecommendations, getEntryFeedbackStats } from './lib/db.mjs';
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
@@ -2650,6 +2650,31 @@ function buildMacroPrompt(ctx, vix, session) {
   ].join('\n');
 }
 
+/**
+ * 과거 30일 outcome 기반 ticker별 entry feedback — LLM 환각 prevention.
+ * "ASML: 13/13 NE, avg entry $1370 vs actual $1497 → entry 9% 올려야 함" 같은 cue.
+ */
+function getEntryFeedbackBlock() {
+  try {
+    const stats = getEntryFeedbackStats();
+    if (!stats.length) return '';
+    const lines = stats.map(s => {
+      const isKR = (s.ticker ?? '').endsWith('.KS');
+      const fmt = n => n == null ? '?' : isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
+      const neRate = s.total ? Math.round(s.ne / s.total * 100) : 0;
+      let cue = '';
+      if (s.avg_ne_entry && s.avg_ne_actual) {
+        const gap = ((s.avg_ne_actual - s.avg_ne_entry) / s.avg_ne_actual * 100).toFixed(0);
+        if (parseInt(gap) > 3) cue = ` ⚠️ entry was ${gap}% TOO LOW`;
+        else if (parseInt(gap) < -3) cue = ` ⚠️ entry was ${Math.abs(parseInt(gap))}% TOO HIGH`;
+      }
+      const hitInfo = s.hits > 0 ? `hit=${s.hits}` : '';
+      return `  ${(s.ticker ?? '').padEnd(11)} NE=${s.ne}/${s.total} (${neRate}%)${hitInfo ? ' '+hitInfo : ''} avg_NE_entry=${fmt(s.avg_ne_entry)} vs avg_actual=${fmt(s.avg_ne_actual)}${cue}`;
+    });
+    return ['[ENTRY FEEDBACK — last 30d outcomes per ticker]', ...lines, ''].join('\n');
+  } catch (e) { console.warn('  ⚠️ entry feedback 생성 실패:', e.message); return ''; }
+}
+
 function getRecentTickers() {
   try {
     const dir = resolve(import.meta.dirname ?? '.', '..', 'reports');
@@ -2740,7 +2765,9 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '⚠️ LIVE PRICES (as of TODAY — use THESE numbers, NOT your training data):',
     priceData || 'No data',
     '═══════════════════════════════════════════════════════════════',
+    getEntryFeedbackBlock(),
     'Your entryZone/stopLoss/target MUST be anchored to the LIVE PRICES above.',
+    'If a ticker has "entry was X% TOO LOW" feedback, ADJUST entry UPWARD this time.',
     'If you write a price that differs >30% from the live price, it is a HALLUCINATION.',
     '',
     `Respond in pure JSON (no markdown). ALL text values MUST be in ${TARGET_LANG}:`,

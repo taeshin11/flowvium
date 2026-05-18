@@ -124,37 +124,45 @@ const EFTS_TICKERS = ['NVDA','TSM','ASML','AMD','MU','MSFT','TSLA','LMT','RTX','
 async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
   const signals: SupplyChainSignal[] = [];
   const t0 = Date.now();
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const weekAgo = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10); // 7→14d
   const today = new Date().toISOString().slice(0, 10);
+  let totalHits = 0, httpFails = 0;
   try {
-    for (const ticker of EFTS_TICKERS) {
-      if (signals.length >= 10) break;
+    // 병렬 fetch (sequential 시 Vercel 60s 한도에 걸림 + 누적 throttle)
+    const results = await Promise.all(EFTS_TICKERS.map(async ticker => {
       const nameEntry = Object.entries(NAME_TO_TICKER).find(([, t]) => t === ticker);
       const q = nameEntry ? nameEntry[0] : ticker.toLowerCase();
       const url = `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(q)}%22&forms=8-K&dateRange=custom&startdt=${weekAgo}&enddt=${today}`;
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'FlowviumBot contact@flowvium.net' },
-        signal: AbortSignal.timeout(6000),
-        cache: 'no-store',
-      });
-      if (!res.ok) continue;
-      const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; items?: string[] }; _id?: string }> } };
-      const hits = data?.hits?.hits ?? [];
-      for (const hit of hits.slice(0, 3)) {
+      try {
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'FlowviumBot contact@flowvium.net', 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+          cache: 'no-store',
+        });
+        if (!res.ok) { httpFails++; return { ticker, hits: [] }; }
+        const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; items?: string[] }; _id?: string }> } };
+        return { ticker, hits: data?.hits?.hits ?? [] };
+      } catch { httpFails++; return { ticker, hits: [] }; }
+    }));
+
+    for (const { ticker, hits } of results) {
+      totalHits += hits.length;
+      for (const hit of hits.slice(0, 2)) {
         const src = hit._source;
-        const displayName = src?.display_names?.[0] ?? '';
+        const displayName = src?.display_names?.[0] ?? ticker;
         const fileDate = src?.file_date ?? today;
         const items = (src?.items ?? []).join(', ');
         const signal = CONTRACT_SIGNALS.find(s => s.re.test(items) || s.re.test(displayName));
-        if (!signal && !items.includes('1.01')) continue;
+        // Looser: Item 1.01 (Material Definitive Agreement) OR Item 7.01 (Reg FD) — both supply-chain relevant
+        if (!signal && !items.includes('1.01') && !items.includes('7.01') && !items.includes('8.01')) continue;
         const downstream = inferDownstream(ticker, signal?.type ?? 'contract_win');
         signals.push({
           ticker,
           companyName: displayName.split('(')[0].trim(),
           signalType: (signal?.type ?? 'contract_win') as SupplyChainSignal['signalType'],
-          conviction: signal?.score ?? 70,
+          conviction: signal?.score ?? 60,
           direction: ['contract_loss', 'supply_risk'].includes(signal?.type ?? '') ? 'negative' : 'positive',
-          headline: `${displayName} — ${items}`,
+          headline: `${displayName} — ${items || '8-K filing'}`,
           source: 'sec-8k',
           date: fileDate,
           downstreamBeneficiaries: downstream.beneficiaries,
@@ -163,8 +171,9 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
         });
         if (signals.length >= 10) break;
       }
+      if (signals.length >= 10) break;
     }
-    logger.info('supply-chain-signals', 'edgar_efts_done', { signals: signals.length, ms: Date.now() - t0 });
+    logger.info('supply-chain-signals', 'edgar_efts_done', { tickers: EFTS_TICKERS.length, totalHits, httpFails, signals: signals.length, ms: Date.now() - t0 });
   } catch (e) {
     logger.warn('supply-chain-signals', 'edgar_efts_failed', { error: String(e), ms: Date.now() - t0 });
   }
