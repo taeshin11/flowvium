@@ -1508,38 +1508,45 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
 }
 
 /**
- * Two-pass skeleton-fill: LLM 이 entryPlan { anchorReason, discountPct } 만 출력하고,
- * 시스템이 livePrice 기준으로 entry/stop/target 을 계산. 가격 환각의 1차 방어선.
+ * Hybrid: LLM 분석 기반 entry zone 존중 + 환각만 교정.
  *
- * anchorReason:
- *  - "current": livePrice 기준 (RSI<50 oversold, 또는 value play)
- *  - "50MA"   : rationale 에서 추출한 50MA 기준 (RSI 50-70)
- *  - "200MA"  : rationale 에서 추출한 200MA 기준 (RSI>70 overbought)
- *  - "52w_pullback": 52주 고점 -10% 기준 (high-growth)
- * discountPct: 0-5, anchor 대비 할인폭 (강세장 미진입 방지를 위해 max 5 제한)
- *
- * 추출 anchor 가 livePrice 의 50~150% 밖이면 livePrice 로 폴백 (안전망).
+ * 1) LLM이 entryZone 을 정상 출력했고 livePrice ±30% 이내 → LLM 값 그대로 유지 (분석 존중)
+ * 2) LLM이 entryZone 을 안 출력했거나 ±30% 밖 (환각) → entryPlan fallback 계산
+ * 3) entryPlan 도 없으면 → validateEntryZones 가 최종 안전망
  */
 function computePricesFromPlan(portfolioItems, livePrices) {
+  const extractNums = str => (str ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(n => n > 0) ?? [];
+
   return portfolioItems.map(p => {
-    if (!p.entryPlan) return p;
     const pd = livePrices.get(p.ticker);
     const isKR = p.ticker.endsWith('.KS');
     const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
+    const actual = pd?.price ?? null;
 
-    // livePrice 우선, 없으면 rationale 에서 50MA/200MA 추출해서 surrogate 사용
-    let actual = pd?.price ?? null;
-    if (!actual || actual <= 0) {
+    // 1) LLM이 entryZone 을 출력했고, livePrice ±30% 이내면 분석 존중
+    const zoneNums = extractNums(p.entryZone);
+    if (zoneNums.length >= 2 && actual && actual > 0) {
+      const hi = Math.max(...zoneNums);
+      const lo = Math.min(...zoneNums);
+      if (hi > actual * 0.70 && hi < actual * 1.30 && lo > actual * 0.50) {
+        return { ...p, _entryAnchor: 'llm-analysis' };
+      }
+      console.warn(`  ⚠️  ${p.ticker} entry zone 환각: ${p.entryZone} vs actual ${fmt(actual)} — entryPlan fallback`);
+    }
+
+    // 2) entryPlan fallback — LLM zone 없거나 환각일 때
+    if (!p.entryPlan) return p;
+    let base = actual;
+    if (!base || base <= 0) {
       const m50 = p.rationale?.match(/50MA[^$₩\d]*[$₩]?([\d,.]+)/);
       const m200 = p.rationale?.match(/200MA[^$₩\d]*[$₩]?([\d,.]+)/);
-      actual = m50 ? parseFloat(m50[1].replace(/,/g, '')) : m200 ? parseFloat(m200[1].replace(/,/g, '')) : null;
-      if (actual) console.warn(`  ⚠️  ${p.ticker} livePrice 없음 — rationale 에서 추출한 가격(${fmt(actual)}) 사용`);
+      base = m50 ? parseFloat(m50[1].replace(/,/g, '')) : m200 ? parseFloat(m200[1].replace(/,/g, '')) : null;
+      if (base) console.warn(`  ⚠️  ${p.ticker} livePrice 없음 — rationale 가격(${fmt(base)}) 사용`);
     }
-    if (!actual || actual <= 0) return p;
+    if (!base || base <= 0) return p;
 
     const { anchorReason = 'current', discountPct = 0 } = p.entryPlan;
-    let anchor = actual;
-    let anchorLabel = 'current';
+    let anchor = base, anchorLabel = 'current';
     if (anchorReason === '50MA') {
       const m = p.rationale?.match(/50MA[^$₩\d]*[$₩]?([\d,.]+)/);
       if (m) { anchor = parseFloat(m[1].replace(/,/g, '')); anchorLabel = '50MA'; }
@@ -1547,12 +1554,11 @@ function computePricesFromPlan(portfolioItems, livePrices) {
       const m = p.rationale?.match(/200MA[^$₩\d]*[$₩]?([\d,.]+)/);
       if (m) { anchor = parseFloat(m[1].replace(/,/g, '')); anchorLabel = '200MA'; }
     } else if (anchorReason === '52w_pullback') {
-      // 52주 고점 자체를 anchor 로 — discountPct 가 pullback 폭을 결정 (이중 할인 방지)
       const m = p.rationale?.match(/52주[^$₩\d]*[$₩]?[\d,.]+\s*-\s*[$₩]?([\d,.]+)/);
       if (m) { anchor = parseFloat(m[1].replace(/,/g, '')); anchorLabel = '52w_high'; }
     }
-    if (!Number.isFinite(anchor) || anchor < actual * 0.5 || anchor > actual * 1.5) {
-      anchor = actual; anchorLabel = 'current(fallback)';
+    if (!Number.isFinite(anchor) || anchor < base * 0.5 || anchor > base * 1.5) {
+      anchor = base; anchorLabel = 'current(fallback)';
     }
     const disc = Math.max(0, Math.min(5, Number(discountPct) || 0)) / 100;
     const entryLow = anchor * (1 - disc - 0.02);
@@ -1564,15 +1570,15 @@ function computePricesFromPlan(portfolioItems, livePrices) {
       stopLoss: fmt(entryLow * 0.93),
       target: fmt(entryHigh * 1.15),
       targetBull: fmt(entryHigh * 1.30),
-      _entryAnchor: anchorLabel,
+      _entryAnchor: anchorLabel + '(plan-fallback)',
     };
   });
 }
 
 /**
- * Wave1이 생성한 entryZone/stopLoss/target이 실제 현재가와 동떨어진 경우 보정.
- * LLM 모델이 현재가를 무시하고 훈련 데이터 기반 가격을 사용하는 버그를 방지.
- * computePricesFromPlan 의 2차 안전망 — entryPlan 미사용 모델/구버전 path 도 커버.
+ * 환각 안전망: LLM 출력이 실가 대비 50% 이상 벗어나면 교정.
+ * 분석 기반 ±30% 범위는 LLM 판단을 존중 (기술적/기본적/구루 분석 결과).
+ * momentum clamp, per-ticker calibration 등 기계적 보정은 하지 않음.
  */
 function validateEntryZones(portfolioItems, livePrices) {
   return portfolioItems.map(p => {
@@ -1583,66 +1589,30 @@ function validateEntryZones(portfolioItems, livePrices) {
     const curr = isKR ? '₩' : '$';
     const fmt = n => isKR ? `${curr}${Math.round(n).toLocaleString()}` : `${curr}${n.toFixed(2)}`;
     const extractNums = str => (str ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(n => n > 0) ?? [];
-    const maxMult = isKR ? 2.0 : 2.5;
-    const inRange = nums => nums.some(n => n > actual * 0.5 && n < actual * maxMult);
-
-    // momentum-aware clamp: 강세장(최근 1주 +3% 이상)이면 좁은 풀백, 약세장이면 넓은 풀백
-    // Phase 1 (2026-05-12): 기존 0.93-0.96 (4-7% 할인) 으로는 not_entered 56% — 강세장에서 풀백 안 와서.
-    // Phase 2 (2026-05-14): per-ticker historical gap override 추가 — MSFT 15.9% / TSM 9.6% / ASML 8.5%
-    // 같은 만성 미진입 ticker 는 momentum 무관 시장가 ±1% 까지 strict clamp.
-    const change1d = pd.change1d ?? 0;
-    const change1w = pd.change1w ?? change1d * 3; // 1w 없으면 1d × 3 추정
-    const momentum = change1w > 5 ? 'strong-bull' : change1w > 1 ? 'bull' : change1w > -3 ? 'neutral' : 'bear';
-    // 시장가 대비 entry 클램프 범위 — momentum baseline
-    let clampLow  = momentum === 'strong-bull' ? 0.98 : momentum === 'bull' ? 0.96 : momentum === 'neutral' ? 0.94 : 0.92;
-    let clampHigh = momentum === 'strong-bull' ? 1.00 : momentum === 'bull' ? 0.99 : momentum === 'neutral' ? 0.97 : 0.96;
-    // Per-ticker historical gap override (entry-calibration.json):
-    // - median gap > 8% (TSM, MSFT, ASML 류): 시장가 ±1% strict (0.99-1.01)
-    // - median gap 5~8% (000660.KS, MU, TSLA): 시장가 -2~+0.5% (0.98-1.005)
-    // - median gap 0~5%: momentum 기본값 유지
-    const cal = ENTRY_CALIBRATION.get(p.ticker?.toUpperCase());
-    const histGap = cal?.median ?? null; // 양수 = 시장가 대비 N% 낮음 (미달성)
-    if (histGap != null && histGap > 8) {
-      clampLow = Math.max(clampLow, 0.99);
-      clampHigh = Math.max(clampHigh, 1.01);
-    } else if (histGap != null && histGap > 5) {
-      clampLow = Math.max(clampLow, 0.98);
-      clampHigh = Math.max(clampHigh, 1.005);
-    }
 
     let updated = { ...p };
     const zoneNums = extractNums(p.entryZone);
-    // Also flag entries that are >= 100% of current price (LLM wrote above current — only valid in strong-bull)
-    const isTooHigh = zoneNums.length > 0 && zoneNums.every(n => n >= actual * 1.05);
-    // Clamp entryZone when HIGH bound < 80% of actual price (LLM used stale/wrong price)
     const zoneHigh = zoneNums.length > 0 ? Math.max(...zoneNums) : 0;
-    const isTooLow = zoneNums.length > 0 && zoneHigh < actual * 0.80;
-    // 새 가드: entry_high 가 시장가의 clampLow 미만이면 도달 불가 → 보정 (예: 강세장에서 -4% 진입은 못 채움)
-    const isUnreachable = zoneNums.length > 0 && zoneHigh < actual * clampLow;
-    if (!zoneNums.length || !inRange(zoneNums) || isTooHigh || isTooLow || isUnreachable) {
-      if (zoneNums.length) {
-        if (isTooLow) {
-          console.warn(`  ⚠️  ${p.ticker} entryZone clamped: was ${p.entryZone}, actual=${fmt(actual)} (high=${fmt(zoneHigh)} < 80% of actual)`);
-        } else if (isUnreachable) {
-          console.warn(`  🔧 ${p.ticker} entryZone unreachable (momentum=${momentum}, gap=${((1 - zoneHigh/actual) * 100).toFixed(1)}%): was ${p.entryZone}, actual=${fmt(actual)}`);
-        } else {
-          console.warn(`  ⚠️  ${p.ticker} entryZone="${p.entryZone}" vs actual ${fmt(actual)} → 보정 (${isTooHigh ? '현재가 +5%↑' : '범위 이탈'})`);
-        }
-      }
-      // momentum-aware entry zone
+    // 명백한 환각만 교정: 실가의 50% 미만 (2023 훈련가) 또는 150% 초과
+    const isHalluc = zoneNums.length > 0 && (zoneHigh < actual * 0.50 || zoneNums.every(n => n > actual * 1.50));
+    // zone 미출력
+    const noZone = !zoneNums.length;
+    if (noZone || isHalluc) {
+      if (isHalluc) console.warn(`  ⚠️  ${p.ticker} entry 환각: ${p.entryZone} vs actual ${fmt(actual)} → 시장가 기준 보정`);
       updated.entryZone = isKR
-        ? `${fmt(Math.round(actual * clampLow))}-${fmt(Math.round(actual * clampHigh))}`
-        : `${fmt(parseFloat((actual * clampLow).toFixed(2)))}-${fmt(parseFloat((actual * clampHigh).toFixed(2)))}`;
+        ? `${fmt(Math.round(actual * 0.95))}-${fmt(Math.round(actual * 0.99))}`
+        : `${fmt(parseFloat((actual * 0.95).toFixed(2)))}-${fmt(parseFloat((actual * 0.99).toFixed(2)))}`;
     }
     const stopNums = extractNums(p.stopLoss);
-    if (stopNums.length && !inRange(stopNums)) {
-      console.warn(`  ⚠️  ${p.ticker} stopLoss="${p.stopLoss}" vs actual ${fmt(actual)} → 보정`);
+    const stopHalluc = stopNums.length > 0 && (stopNums[0] < actual * 0.50 || stopNums[0] > actual * 1.50);
+    if (!stopNums.length || stopHalluc) {
+      if (stopHalluc) console.warn(`  ⚠️  ${p.ticker} stop 환각: ${p.stopLoss} → 보정`);
       updated.stopLoss = fmt(isKR ? Math.round(actual * 0.92) : parseFloat((actual * 0.92).toFixed(2)));
     }
     const targetNums = extractNums(p.target);
-    const targetTooLow = targetNums.length > 0 && targetNums.every(n => n < actual * 0.99);
-    if (targetNums.length && (!inRange(targetNums) || targetTooLow)) {
-      console.warn(`  ⚠️  ${p.ticker} target="${p.target}" vs actual ${fmt(actual)} → 보정 (${targetTooLow ? '현재가 이하' : '범위 이탈'})`);
+    const targetHalluc = targetNums.length > 0 && (targetNums[0] < actual * 0.50 || targetNums[0] > actual * 3.0);
+    if (!targetNums.length || targetHalluc) {
+      if (targetHalluc) console.warn(`  ⚠️  ${p.ticker} target 환각: ${p.target} → 보정`);
       updated.target = fmt(isKR ? Math.round(actual * 1.15) : parseFloat((actual * 1.15).toFixed(2)));
     }
 
@@ -2730,19 +2700,25 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '1. 6-8 items: PRIMARILY individual stocks — ONLY pick tickers in [Live Prices]',
     '   Rank by signal: (1) insider 집중매수/13D, (2) squeeze score, (3) 13F accumulation, (4) options flow, (5) capital-flow momentum',
     '2. "market" field = us/korea/japan/china/europe/india/taiwan/global',
-    '3. entryPlan: STRUCTURED ENTRY REASONING (system will compute entry/stop/target from livePrice — DO NOT output price strings).',
-    '   Output: { "anchorReason": "current"|"50MA"|"200MA"|"52w_pullback", "discountPct": 0-5 }',
-    '   - "current": entry near livePrice (RSI<50 oversold, or value play P/E<sector PEG<1)',
-    '   - "50MA": pullback to 50-day MA support (RSI 50-70 neutral, Druckenmiller momentum)',
-    '   - "200MA": deeper pullback to 200-day MA (RSI>70 overbought, high-PEG growth)',
-    '   - "52w_pullback": 10% below 52-week high (high-growth PEG>1.5, Buffett margin-of-safety)',
-    '   - discountPct: anchor 대비 추가 할인 (0=at anchor, 3=3% below, max 5)',
-    '   ⚠️ KEEP discountPct LOW (0-5). 10%+ pullback rarely materializes in bull markets → chronic not_entered.',
-    '   Examples:',
-    '     - NVDA RSI 56, momentum stock → {"anchorReason":"50MA","discountPct":2}',
-    '     - ASML RSI 75, overbought → {"anchorReason":"200MA","discountPct":5}',
-    '     - MSFT RSI 48, value/AI growth → {"anchorReason":"current","discountPct":3}',
-    '   ⚠️ DO NOT include entryZone, stopLoss, target, targetBull in your output — system computes them.',
+    '3. entryZone/stopLoss/target: SYNTHESIZE from technical + fundamental + guru analysis.',
+    '   ⚠️ CRITICAL: Use the ACTUAL prices from [Live Prices] as your anchor. Do NOT use memorized/training prices.',
+    '   TECHNICAL (use [COMPUTED_TECH] 진입지지선/200MA/50MA values):',
+    '     - 진입지지선:$X in [COMPUTED_TECH] → center entry zone around that price (±2%)',
+    '     - RSI>70 (overbought): entry at 200MA or 8-15% pullback from current [Live Prices] price',
+    '     - RSI 50-70 (neutral): entry near 50MA support',
+    '     - RSI<50 (oversold): entry near current [Live Prices] price (already discounted)',
+    '   FUNDAMENTAL (use [Recent Company Financials]):',
+    '     - High P/E growth stock (PEG 1.0-1.5): entry at 10-15% below 52주 고점 (margin of safety)',
+    '     - Deep value (P/E < sector avg, PEG < 1): entry near current if fundamentals support',
+    '   GURU FRAMEWORK (apply matching guru from context):',
+    '     - Lynch/PEG: entry when PEG < 1 → current is entry, target = 20-30% above',
+    '     - Druckenmiller/momentum: entry ONLY after MA confirmation, not before',
+    '     - Marks/contrarian: entry on fear dips, wider entry zone',
+    '     - Buffett/value: entry with 20-30% margin of safety vs intrinsic value',
+    '   stopLoss: structural invalidation — BELOW key support (200MA or -8% below entry, whichever is tighter).',
+    '   target: earnings/catalyst driven — use [Recent Financials] revenue growth to project.',
+    '   ⚠️ SANITY CHECK: Your entryZone MUST be within ±30% of the [Live Prices] value. If it is not, you are hallucinating.',
+    '   Also output entryPlan for system fallback: {"anchorReason":"current|50MA|200MA|52w_pullback","discountPct":0-5}',
     '4. rationale 100 chars max with real data signals',
     '5. allocation sum = 100, no single position > 25%',
     '6. action: buy=accumulate now, hold=keep, watch=wait for entry',
@@ -2766,13 +2742,13 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '{"stance":"bullish|neutral|bearish",',
     '"portfolio":[{"ticker":"NVDA","name":"NVIDIA","sector":"Technology","market":"us",',
     `"rationale":"[≤100 chars in ${TARGET_LANG}, cite real data signals]","allocation":15,`,
-    '"entryPlan":{"anchorReason":"current","discountPct":3},',
-    `"entryRationale":"[≤80 chars in ${TARGET_LANG}, ≥1 fundamental signal — cite anchor & discount]",`,
-    `"targetRationale":"[≤80 chars in ${TARGET_LANG}, fundamentals-first]",`,
+    `"entryZone":"$X-Y","entryRationale":"[≤80 chars in ${TARGET_LANG}, cite support level / guru / margin-of-safety]",`,
+    '"entryPlan":{"anchorReason":"50MA","discountPct":2},',
+    `"stopLoss":"$Z","target":"$A","targetBull":"$B","targetRationale":"[≤80 chars in ${TARGET_LANG}, fundamentals-first]",`,
     '"confidence":"high","action":"buy"}],',
     `"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"[≤40 chars in ${TARGET_LANG}]"}]}`,
     '6-8 portfolio items, 5 sectorAllocation items. Pure JSON only.',
-    '⚠️ Each portfolio item MUST have entryPlan. DO NOT output entryZone/stopLoss/target/targetBull — system computes them.',
+    '⚠️ entryZone MUST be based on [Live Prices] + analysis. entryPlan is a BACKUP — system uses it only if entryZone is hallucinated.',
   ].join('\n');
 }
 
