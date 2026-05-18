@@ -47,19 +47,34 @@ export interface MarketCapPayload {
   cached?: boolean;
 }
 
+// Yahoo v8 chart에서 meta.marketCap 삭제됨 (2026-05 확인).
+// 대안: regularMarketPrice × sharesOutstanding(billions, 분기 업데이트).
+const SHARES_B: Record<string, number> = {
+  NVDA: 24.49, MSFT: 7.43, AAPL: 15.33, META: 2.53, GOOGL: 12.16,
+  AMZN: 10.52, TSLA: 3.21, AMD: 1.62, MU: 1.10, AVGO: 4.64,
+  ARM: 1.03, TSM: 5.18, ASML: 0.39, AMAT: 0.82, LRCX: 0.13,
+  KLAC: 0.13, JPM: 2.86, GS: 0.33, BAC: 7.89, V: 1.62,
+  UNH: 0.92, XOM: 4.22, CVX: 1.84, LMT: 0.24, RTX: 1.33,
+  NOC: 0.15, PLTR: 2.36, COIN: 0.24, MRNA: 0.38, LLY: 0.95,
+};
+
 async function fetchYahooCap(ticker: string): Promise<number | null> {
   try {
     const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
       {
         headers: YAHOO_HEADERS,
-        signal: AbortSignal.timeout(8000), // 4s → 8s (Vercel→Yahoo 평균 latency 고려)
+        signal: AbortSignal.timeout(8000),
         cache: 'no-store',
       }
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return (data?.chart?.result?.[0]?.meta?.marketCap as number | undefined) ?? null;
+    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice as number | undefined;
+    if (!price || price <= 0) return null;
+    const shares = SHARES_B[ticker];
+    if (!shares) return null;
+    return Math.round(price * shares * 1e9);
   } catch { return null; }
 }
 

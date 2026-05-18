@@ -117,79 +117,56 @@ async function fetchEdgar8K(): Promise<SupplyChainSignal[]> {
   return signals;
 }
 
-// ── EDGAR RSS Atom 피드 (company-specific) ────────────────────────────────────
+// ── EDGAR EFTS 검색 (per-ticker, 최근 7일 8-K) ──────────────────────────────
+// 기존 Atom generic-40건 방식은 tracked ticker 매칭률 ~0% — per-ticker EFTS 검색으로 교체.
+const EFTS_TICKERS = ['NVDA','TSM','ASML','AMD','MU','MSFT','TSLA','LMT','RTX','LLY'];
+
 async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
   const signals: SupplyChainSignal[] = [];
   const t0 = Date.now();
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
   try {
-    const url = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=40&search_text=&output=atom';
-    logger.info('supply-chain-signals', 'edgar_atom_start', { url });
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'FlowviumBot contact@flowvium.net' },
-      signal: AbortSignal.timeout(8000),
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      logger.warn('supply-chain-signals', 'edgar_atom_http_error', { status: res.status, ms: Date.now() - t0 });
-      return [];
-    }
-    const xml = await res.text();
-    const totalEntries = (xml.match(/<entry>/g) ?? []).length;
-    logger.info('supply-chain-signals', 'edgar_atom_fetched', { totalEntries, ms: Date.now() - t0 });
-
-    // Parse atom entries
-    const entryRe = /<entry>([\s\S]*?)<\/entry>/g;
-    let m;
-    let scanned = 0;
-    let watchlistHits = 0;
-    let signalHits = 0;
-    while ((m = entryRe.exec(xml)) !== null) {
-      scanned++;
-      const entry = m[1];
-      const title = entry.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim() ?? '';
-      const updated = entry.match(/<updated>([\s\S]*?)<\/updated>/)?.[1]?.slice(0, 16) ?? ''; // YYYY-MM-DDTHH:MM
-      const link = entry.match(/<link[^>]+href="([^"]+)"/)?.[1] ?? '';
-
-      const lowerTitle = title.toLowerCase();
-      const matchEntry = Object.entries(NAME_TO_TICKER).find(([name]) => lowerTitle.includes(name));
-      const ticker = matchEntry?.[1];
-      if (!ticker || !WATCHLIST_TICKERS.has(ticker)) continue;
-      watchlistHits++;
-
-      const signal = CONTRACT_SIGNALS.find(s => s.re.test(title));
-      if (!signal) {
-        logger.debug('supply-chain-signals', 'edgar_no_signal_match', { ticker, title: title.slice(0, 80) });
-        continue;
-      }
-      signalHits++;
-
-      const downstream = inferDownstream(ticker, signal.type);
-      logger.info('supply-chain-signals', 'edgar_signal_found', {
-        ticker, signalType: signal.type, conviction: signal.score,
-        downstream: downstream.beneficiaries.join(','),
-        headline: title.slice(0, 100),
-        date: updated,
-      });
-      signals.push({
-        ticker,
-        companyName: title.split('(')[0].trim(),
-        signalType: signal.type as SupplyChainSignal['signalType'],
-        conviction: signal.score,
-        direction: ['contract_loss', 'supply_risk'].includes(signal.type) ? 'negative' : 'positive',
-        headline: title,
-        source: 'sec-8k',
-        date: updated,
-        downstreamBeneficiaries: downstream.beneficiaries,
-        upstreamRisks: downstream.risks,
-        evidenceUrl: link,
-      });
+    for (const ticker of EFTS_TICKERS) {
       if (signals.length >= 10) break;
+      const nameEntry = Object.entries(NAME_TO_TICKER).find(([, t]) => t === ticker);
+      const q = nameEntry ? nameEntry[0] : ticker.toLowerCase();
+      const url = `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(q)}%22&forms=8-K&dateRange=custom&startdt=${weekAgo}&enddt=${today}`;
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'FlowviumBot contact@flowvium.net' },
+        signal: AbortSignal.timeout(6000),
+        cache: 'no-store',
+      });
+      if (!res.ok) continue;
+      const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; items?: string[] }; _id?: string }> } };
+      const hits = data?.hits?.hits ?? [];
+      for (const hit of hits.slice(0, 3)) {
+        const src = hit._source;
+        const displayName = src?.display_names?.[0] ?? '';
+        const fileDate = src?.file_date ?? today;
+        const items = (src?.items ?? []).join(', ');
+        const signal = CONTRACT_SIGNALS.find(s => s.re.test(items) || s.re.test(displayName));
+        if (!signal && !items.includes('1.01')) continue;
+        const downstream = inferDownstream(ticker, signal?.type ?? 'contract_win');
+        signals.push({
+          ticker,
+          companyName: displayName.split('(')[0].trim(),
+          signalType: (signal?.type ?? 'contract_win') as SupplyChainSignal['signalType'],
+          conviction: signal?.score ?? 70,
+          direction: ['contract_loss', 'supply_risk'].includes(signal?.type ?? '') ? 'negative' : 'positive',
+          headline: `${displayName} — ${items}`,
+          source: 'sec-8k',
+          date: fileDate,
+          downstreamBeneficiaries: downstream.beneficiaries,
+          upstreamRisks: downstream.risks,
+          evidenceUrl: hit._id ? `https://www.sec.gov/Archives/edgar/data/${hit._id.split(':')[0]}` : undefined,
+        });
+        if (signals.length >= 10) break;
+      }
     }
-    logger.info('supply-chain-signals', 'edgar_atom_done', {
-      scanned, watchlistHits, signalHits, signals: signals.length, ms: Date.now() - t0,
-    });
+    logger.info('supply-chain-signals', 'edgar_efts_done', { signals: signals.length, ms: Date.now() - t0 });
   } catch (e) {
-    logger.warn('supply-chain-signals', 'edgar_atom_failed', { error: String(e), ms: Date.now() - t0 });
+    logger.warn('supply-chain-signals', 'edgar_efts_failed', { error: String(e), ms: Date.now() - t0 });
   }
   return signals;
 }

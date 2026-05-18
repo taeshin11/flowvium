@@ -1,0 +1,51 @@
+2026-05-17 entryFar50MA 보정 livePrice-aware 로 전환 + 2차 클램프 추가
+================================================================
+
+발견 경위
+--------
+2026-05-16 아침/오후 보고서 6+6 종목 평가 — entry zone 적합도 4/12.
+buy 추천 6건 중 실가 진입 가능 1건 (MSFT) = 17%.
+
+대표 사례 ASML (Morning + Afternoon 동일):
+- 실가 $1501.81 (5/15 종가)
+- 보고서 entry $1374.80-$1417.32 = 50MA $1417.32 × (0.97~1.00)
+- 시장가가 zone 위 $84 → action=buy 인데 진입 불가능
+
+근본 원인
+--------
+generate-report-local.mjs 의 보정 순서:
+  1. validateEntryZones (line 3168) → 시장가 기준 clamp
+  2. wave2/critique
+  3. applyLocalHarness.entryFar50MA (line 280-289) → 50MA 기준 zone 덮어쓰기
+
+entryFar50MA 가 마지막에 실행되면서 validateEntryZones 의 시장가 clamp 결과를
+50MA × (0.97~1.00) 로 무조건 덮어씀. 50MA 가 시장가보다 5-10% 낮으면
+zone 자체가 도달 불가.
+
+Codex 분석 (task-mp8154r5-uksc6l)
+---------------------------------
+가설 C 채택: 14B Q3 가 stale price prior 더 강하게 사용.
+MU 50MA $479.69 인데 entry $760.49-$779.89, GOOGL 50MA $330.82 인데 entry $377.01-$389.04.
+권장: (Z) 8B 유지 + prompt grounding 강화.
+
+수정 내용
+--------
+scripts/generate-report-local.mjs:
+1. applyLocalHarness 시그니처에 livePrices 추가
+2. entryFar50MA 의 anchor 를 livePrice 우선, 없으면 50MA 폴백으로 변경
+3. 호출부에서 livePrices 전달 (line 3429)
+4. applyLocalHarness 직후 validateEntryZones 2차 호출로 안전망 추가
+
+검증 방법
+--------
+다음 보고서 1건 생성 후:
+- entry zone 적합도가 33% → 70%+ 로 회복되는지 확인
+- harness audit 의 entryFar50MA 항목에 anchor=livePrice 표기 확인
+- ASML/TSM/KLAC 같이 만성 미진입 종목의 zone 이 시장가 ±1% 안에 들어오는지
+
+남은 일
+-------
+- src/lib/strategy-schema.ts (Vercel/cloud 경로) 도 같은 패턴 가지는지 확인 필요
+  → applyLocalHarness 매칭 없음. cloud 경로는 별도 harness — 추후 동기화.
+- prompt grounding 강화 (codex 권장 Z) — entry-calibration 을 prompt 전단에 명시
+- ban-list / boost-list 자동 갱신 14일 후 outcome 평가 후 재실행

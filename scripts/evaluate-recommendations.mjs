@@ -131,8 +131,10 @@ async function main() {
   const spyRet = await fetchSpyReturn(oldestGen, nowIso);
   console.log(`SPY ${oldestGen.slice(0,10)} → now: ${spyRet}%\n`);
 
-  let counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, unknown: 0 };
+  let counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, unknown: 0, skipped_watch: 0 };
   for (const rec of queue) {
+    // watch 추천은 "대기" 의미 — outcome 평가에서 제외 (not_entered 통계 오염 방지)
+    if (rec.action === 'watch') { counts.skipped_watch++; continue; }
     const ohlc = await fetchYahooOHLC(rec.ticker, rec.generated_at, nowIso);
     const judge = judgeOutcome(rec, ohlc);
     counts[judge.outcome]++;
@@ -166,9 +168,28 @@ async function main() {
   console.log(`  ⏸  not_entered:    ${counts.not_entered}`);
   console.log(`  📊 still_holding:  ${counts.still_holding}`);
   console.log(`  ?  unknown:        ${counts.unknown}`);
+  if (counts.skipped_watch) console.log(`  👁  watch(skip):    ${counts.skipped_watch}`);
   if (!DRY) {
     const after = getSummary();
     console.log(`\nDB 갱신: outcomes ${before.outcomes} → ${after.outcomes}`);
+  }
+
+  // 만성 NE 자동감지: 5회+ 연속 not_entered ticker 경고
+  const db = openDb();
+  const chronicNe = db.prepare(`
+    SELECT r.ticker, COUNT(*) AS ne_count
+    FROM recommendation_outcomes o
+    JOIN recommendations r ON r.id = o.recommendation_id
+    WHERE o.outcome = 'not_entered' AND r.action = 'buy'
+    GROUP BY r.ticker
+    HAVING ne_count >= 5
+    ORDER BY ne_count DESC
+  `).all();
+  if (chronicNe.length) {
+    console.log('\n🚨 만성 미진입 경고 (buy 5회+ NE):');
+    for (const { ticker, ne_count } of chronicNe) {
+      console.log(`  ${ticker}: ${ne_count}회 not_entered — entry-calibration strict clamp 또는 ban-list 검토 권장`);
+    }
   }
 }
 

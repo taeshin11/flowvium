@@ -1,0 +1,51 @@
+2026-05-17 Two-pass skeleton-fill (entryPlan) 도입 — LLM 가격 환각 근본 차단
+================================================================
+
+배경
+----
+어제(2026-05-16) 보고서 entry zone 적합도 17% (buy 6건 중 진입 가능 1건).
+사례: TSMC 실가 $404 → LLM entry $70-80, ASML 실가 $1502 → entry $1374-1417.
+원인: prompt 규칙 "entryZone derive from TECHNICAL — NOT just current price"(line 2645)
+가 50MA prior 를 부추겨 LLM 이 stale 가격 환각.
+
+Codex 분석 (task-mp9cp4bn-fqqss1, 41초)
+---------------------------------------
+5개 옵션 평가 후 (4 + 2) 조합 권장:
+- 옵션 4 (Two-pass skeleton-fill): 환각 감소 최대
+- 옵션 2 (Structured output): 이미 JSON mode 사용 중이라 비용 작음
+근거: 코드 주석 자체가 "LLM이 훈련 데이터 가격 사용하는 버그"(line 1503) 명시.
+
+수정 내용 (scripts/generate-report-local.mjs)
+---------------------------------------------
+
+1. 새 함수 computePricesFromPlan() 추가 (line 1500 부근)
+   - LLM 의 entryPlan { anchorReason, discountPct } 받아 시스템이 가격 계산
+   - anchorReason: current | 50MA | 200MA | 52w_pullback
+   - anchor 가 livePrice 의 50~150% 밖이면 livePrice 폴백
+   - entry/stop/target/targetBull 모두 시스템 계산
+
+2. buildPortfolioPrompt 규칙 3 변경 (line 2645 부근)
+   - 기존: 'entryZone derive from TECHNICAL — NOT just current price'
+   - 변경: 'entryPlan: STRUCTURED ENTRY REASONING — DO NOT output price strings'
+   - 4가지 anchorReason 별 사용 시점 명시 + 예시 3개
+
+3. JSON schema 변경 (line 2680 부근)
+   - 기존: entryZone, stopLoss, target, targetBull 모두 LLM 출력
+   - 변경: entryPlan 만 출력 + warning "system computes prices"
+
+4. Wave1 직후 computePricesFromPlan 호출 (line 3173 부근)
+   - 호출 순서: postProcessPortfolio → computePricesFromPlan → validateEntryZones
+   - validateEntryZones 는 안전망으로 유지 (entryPlan 미사용 path 커버)
+
+검증 계획 (1주일)
+----------------
+- 보정률 (validateEntryZones 가 fire 하는 비율) < 10%
+- entryFar50MA harness fix 건수 0
+- entry < 80% × livePrice stale 케이스 0건
+- buy 추천 중 실제 진입률 17% → 60%+
+
+남은 일
+-------
+- Cloud 경로 (src/lib/strategy-schema.ts) 도 entryPlan schema 로 동기화
+- 다음 보고서 1건 생성 후 로그에서 "[computePricesFromPlan] N/N 종목 plan 적용" 라인 확인
+- entryPlan 없이 entryZone 만 출력하는 LLM 응답 패턴 발견 시 prompt 강화
