@@ -105,6 +105,42 @@ const SECTOR_KO: Record<string, string> = {
   'Utilities':              '유틸리티',
 };
 
+// 2026-05: iShares CSV URL이 JS challenge로 차단 — Wikipedia S&P 500 list 폴백.
+async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
+  const start = Date.now();
+  try {
+    const res = await fetch('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies', {
+      signal: AbortSignal.timeout(15000),
+      headers: { 'User-Agent': 'Mozilla/5.0 FlowviumBot' },
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const html = await res.text();
+    // Wikipedia constituents table parsing
+    // Row format: <td><a ...>SYM</a></td>\n<td><a ...>Company</a></td>\n<td><a ...>Sector</a></td>\n<td>...</td>
+    const rowRe = /<tr>\s*<td><a[^>]*>([A-Z][A-Z0-9.\-]{0,5})<\/a><\/td>\s*<td><a[^>]*>([^<]+)<\/a><\/td>\s*<td>([^<]+)<\/td>/g;
+    const holdings: IShareHolding[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = rowRe.exec(html)) !== null) {
+      const ticker = m[1].trim();
+      const name = m[2].trim();
+      const sectorEn = m[3].trim();
+      holdings.push({
+        ticker, name,
+        sector: SECTOR_KO[sectorEn] ?? sectorEn ?? '기타',
+        marketValue: 1e10 - holdings.length * 1e7, // proxy 정렬용 (실제 가중치 없음 → top 200 위주)
+        weight: 0, price: 0, location: 'US', currency: 'USD',
+      });
+      if (holdings.length >= 500) break;
+    }
+    logger.info('ishares', 'wikipedia_fallback', { holdings: holdings.length, durationMs: Date.now() - start });
+    return holdings;
+  } catch (err) {
+    logger.warn('ishares', 'wikipedia_failed', { error: String(err), durationMs: Date.now() - start });
+    return [];
+  }
+}
+
 export async function fetchIShareHoldings(country: string): Promise<IShareHolding[]> {
   const cfg = ISHARES_ETFS[country.toUpperCase()];
   if (!cfg) {
@@ -120,14 +156,25 @@ export async function fetchIShareHoldings(country: string): Promise<IShareHoldin
     });
     if (!res.ok) {
       logger.warn('ishares', 'http_error', { country, etf: cfg.etfTicker, status: res.status, durationMs: Date.now() - start });
+      if (country.toUpperCase() === 'US') return fetchSP500FromWikipedia();
       return [];
     }
     const text = await res.text();
     const lines = text.split('\n').filter(Boolean);
 
+    // iShares가 HTML 페이지로 응답하는 경우 (JS challenge) → Wikipedia 폴백
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      logger.warn('ishares', 'html_response_fallback', { country, etf: cfg.etfTicker });
+      if (country.toUpperCase() === 'US') return fetchSP500FromWikipedia();
+      return [];
+    }
+
     // Find the header line
     const headerIdx = lines.findIndex(l => l.trim().startsWith('Ticker,'));
-    if (headerIdx < 0) return [];
+    if (headerIdx < 0) {
+      if (country.toUpperCase() === 'US') return fetchSP500FromWikipedia();
+      return [];
+    }
 
     const headers = parseCSVLine(lines[headerIdx]);
     const tickerI = headers.indexOf('Ticker');

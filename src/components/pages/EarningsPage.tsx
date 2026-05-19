@@ -59,15 +59,24 @@ const MAJOR_TICKERS = new Set([
 ]);
 
 const PRESETS = [
-  { id: 'yesterday', from: -1, to: -1 },
+  { id: 'yesterday', from: 'lastTradingDay', to: 'lastTradingDay' },
   { id: 'today', from: 0, to: 0 },
   { id: 'week', from: 0, to: 7 },
   { id: 'twoweeks', from: 0, to: 14 },
   { id: 'month', from: 0, to: 30 },
 ] as const;
 
-function dateFromOffset(offset: number): string {
-  const d = new Date(Date.now() + 9 * 3600000 + offset * 86400000); // KST UTC+9
+function dateFromOffset(offset: number | 'lastTradingDay'): string {
+  if (offset === 'lastTradingDay') {
+    // KST 기준 오늘 → 미국 직전 거래일 (월=금요일, 일=금요일, 토=금요일, 평일=어제)
+    const now = new Date(Date.now() + 9 * 3600000);
+    const dow = now.getUTCDay(); // KST 보정 후이므로 UTCDay = KST day
+    // 미국 거래일 기준: 한국 월(1) → 미국 금(diff=-3), 한국 화(2)~금(5) → 미국 전일(-1), 한국 토(6) → 미국 금(-1), 한국 일(0) → 미국 금(-2)
+    const offsetDays = dow === 1 ? -3 : dow === 0 ? -2 : dow === 6 ? -1 : -1;
+    const d = new Date(now.getTime() + offsetDays * 86400000);
+    return d.toISOString().slice(0, 10);
+  }
+  const d = new Date(Date.now() + 9 * 3600000 + offset * 86400000);
   return d.toISOString().slice(0, 10);
 }
 
@@ -97,7 +106,7 @@ function SurpriseBadge({ pct }: { pct: number | null }) {
 export default function EarningsPage() {
   const locale = useLocale();
   const t = useTranslations('earnings');
-  const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('week');
+  const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('yesterday');
   const [data, setData] = useState<EarningsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
