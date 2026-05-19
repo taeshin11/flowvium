@@ -116,9 +116,9 @@ async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
     });
     if (!res.ok) return [];
     const html = await res.text();
-    // Wikipedia constituents table parsing
-    // Row format: <td><a ...>SYM</a></td>\n<td><a ...>Company</a></td>\n<td><a ...>Sector</a></td>\n<td>...</td>
-    const rowRe = /<tr>\s*<td><a[^>]*>([A-Z][A-Z0-9.\-]{0,5})<\/a><\/td>\s*<td><a[^>]*>([^<]+)<\/a><\/td>\s*<td>([^<]+)<\/td>/g;
+    // Wikipedia constituents table parsing (2026-05 구조).
+    // ticker link 은 nasdaq.com 또는 nyse.com — 둘 다 외부 link (class="external text")
+    const rowRe = /<a[^>]*class="external text"[^>]*href="https:\/\/www\.(?:nasdaq|nyse)\.com[^"]*">([A-Z][A-Z0-9.\-]{0,5})<\/a>[^<]*<\/td>\s*<td><a[^>]*>([^<]+)<\/a><\/td>\s*<td>([^<]+)<\/td>/g;
     const holdings: IShareHolding[] = [];
     let m: RegExpExecArray | null;
     while ((m = rowRe.exec(html)) !== null) {
