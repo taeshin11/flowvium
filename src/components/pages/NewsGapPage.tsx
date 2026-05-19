@@ -507,6 +507,7 @@ interface NewsArticle {
 
 function NewsCascadeSection() {
   const t = useTranslations('newsGap');
+  const locale = useLocale();
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -519,7 +520,7 @@ function NewsCascadeSection() {
     abortRef.current = controller;
     setLoading(true);
     setFetchError(false);
-    fetch('/api/news-cascade', { signal: controller.signal })
+    fetch(`/api/news-cascade?locale=${encodeURIComponent(locale)}`, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d: { articles: NewsArticle[] }) => { if (!controller.signal.aborted) setArticles(d.articles ?? []); })
       .catch((e) => { if (!controller.signal.aborted && e?.name !== 'AbortError') setFetchError(true); })
@@ -530,7 +531,7 @@ function NewsCascadeSection() {
     load();
     return () => abortRef.current?.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locale]);
 
   const sentimentColor = {
     bullish: 'text-emerald-600 bg-emerald-50 border-emerald-200',
