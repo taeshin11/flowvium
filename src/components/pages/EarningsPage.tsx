@@ -97,7 +97,7 @@ function SurpriseBadge({ pct }: { pct: number | null }) {
 export default function EarningsPage() {
   const locale = useLocale();
   const t = useTranslations('earnings');
-  const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('yesterday');
+  const [preset, setPreset] = useState<typeof PRESETS[number]['id']>('week');
   const [data, setData] = useState<EarningsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -147,7 +147,16 @@ export default function EarningsPage() {
     if (sortBy === 'surprise') {
       return [...filtered].sort((a, b) => Math.abs(b.epsSurprise ?? 0) - Math.abs(a.epsSurprise ?? 0));
     }
-    return filtered;
+    // date 정렬: 메이저 종목을 같은 날짜 내에서 위로 (사용자가 자주 보는 종목 부각)
+    return [...filtered].sort((a, b) => {
+      const dateCmp = (a.date ?? '').localeCompare(b.date ?? '');
+      if (dateCmp !== 0) return dateCmp;
+      const aMajor = MAJOR_TICKERS.has(a.symbol?.toUpperCase() ?? '');
+      const bMajor = MAJOR_TICKERS.has(b.symbol?.toUpperCase() ?? '');
+      if (aMajor && !bMajor) return -1;
+      if (!aMajor && bMajor) return 1;
+      return 0;
+    });
   }, [data, search, sortBy, majorOnly]);
 
   const stats = useMemo(() => {
