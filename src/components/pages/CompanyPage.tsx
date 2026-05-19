@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { allCompanies, type Company, type RevenueSegment } from '@/data/companies';
 import { getGeneratedMacroImpact, getGeneratedRdPipeline } from '@/data/company-contexts';
@@ -215,6 +215,7 @@ function formatLiveValue(label: string, val: number): string {
 
 export default function CompanyPage({ ticker }: { ticker: string }) {
   const t = useTranslations('company');
+  const locale = useLocale();
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [terminalView, setTerminalView] = useState(false);
@@ -339,13 +340,13 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     if (!ticker) return;
     const controller = new AbortController();
     setNewsLoading(true);
-    fetch(`/api/company-news?ticker=${ticker.toUpperCase()}`, { signal: controller.signal })
+    fetch(`/api/company-news?ticker=${ticker.toUpperCase()}&locale=${encodeURIComponent(locale)}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (!controller.signal.aborted && d?.news?.length) setCompanyNews(d); })
       .catch(() => undefined)
       .finally(() => { if (!controller.signal.aborted) setNewsLoading(false); });
     return () => controller.abort();
-  }, [ticker]);
+  }, [ticker, locale]);
 
   // ── Yahoo recommended stocks ──────────────────────────────────────────────
   interface RecEntry { symbol: string; score: number; price: number | null; changePct: number | null; }

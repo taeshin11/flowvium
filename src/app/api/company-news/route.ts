@@ -4,6 +4,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { callAI } from '@/lib/ai-providers';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 import { isGarbage } from '@/lib/strategy-quality';
+import { translateItems, LOCALE_NAMES } from '@/lib/translate-headlines';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -20,11 +21,12 @@ export interface NewsItem {
   source: string;
 }
 
-function redisCacheKey(ticker: string): string {
-  return `flowvium:company-news:v3:${ticker}`;
+// locale 별 캐시 분리 (en 은 base, 그 외는 번역본). v4 = locale 도입.
+function redisCacheKey(ticker: string, locale: string = 'en'): string {
+  return locale === 'en' ? `flowvium:company-news:v4:${ticker}` : `flowvium:company-news:v4:${locale}:${ticker}`;
 }
-function staleRedisCacheKey(ticker: string): string {
-  return `flowvium:company-news:v3:stale:${ticker}`;
+function staleRedisCacheKey(ticker: string, locale: string = 'en'): string {
+  return locale === 'en' ? `flowvium:company-news:v4:stale:${ticker}` : `flowvium:company-news:v4:stale:${locale}:${ticker}`;
 }
 
 // Finnhub company news — requires FINNHUB_KEY, free tier 60 req/min
@@ -77,10 +79,12 @@ export async function GET(req: NextRequest) {
   }
   // probe=1: return cached or minimal fallback without calling AI — used by verify-metrics
   const probe = req.nextUrl.searchParams.get('probe') === '1';
+  const rawLocale = (req.nextUrl.searchParams.get('locale') ?? 'en').trim();
+  const locale = LOCALE_NAMES[rawLocale] ? rawLocale : 'en';
 
   const redis = createRedis();
-  const cacheKey = redisCacheKey(ticker);
-  const staleCacheKey = staleRedisCacheKey(ticker);
+  const cacheKey = redisCacheKey(ticker, locale);
+  const staleCacheKey = staleRedisCacheKey(ticker, locale);
 
   let staleResult: object | null = null;
   if (redis) {
@@ -124,7 +128,14 @@ export async function GET(req: NextRequest) {
       summary = '';
     }
 
-    const result = { ticker, news, summary: summary || null, generatedAt: new Date().toISOString(), cached: false };
+    // locale 번역 (en 은 no-op, 다른 locale 은 title/description batch 번역)
+    const translatedNews = locale === 'en' ? news : await translateItems(
+      news.map(n => ({ ...n, summary: n.description })),
+      locale,
+      'api.company-news.translate',
+    ).then(items => items.map(it => ({ ...it, description: it.summary ?? it.description ?? '' })));
+
+    const result = { ticker, news: translatedNews, summary: summary || null, locale, generatedAt: new Date().toISOString(), cached: false };
 
     // If AI failed (quota exhausted) but we have a stale result, serve it
     if (!summary && staleResult) {
@@ -147,7 +158,12 @@ export async function GET(req: NextRequest) {
       const finnhubNews = await fetchFinnhubNews(ticker);
       if (finnhubNews.length > 0) {
         logger.info('api.company-news', 'finnhub_fallback', { ticker, count: finnhubNews.length });
-        const result = { ticker, news: finnhubNews, summary: null, source: 'finnhub', generatedAt: new Date().toISOString(), cached: false };
+        const translatedFinnhub = locale === 'en' ? finnhubNews : await translateItems(
+          finnhubNews.map(n => ({ ...n, summary: n.description })),
+          locale,
+          'api.company-news.translate-finnhub',
+        ).then(items => items.map(it => ({ ...it, description: it.summary ?? it.description ?? '' })));
+        const result = { ticker, news: translatedFinnhub, summary: null, source: 'finnhub', locale, generatedAt: new Date().toISOString(), cached: false };
         if (redis) {
           await loggedRedisSet(redis, 'api.company-news', cacheKey, result, { ex: 30 * 60 });
         }
