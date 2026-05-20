@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+function backgroundTask(fn: () => Promise<unknown>): void {
+  void fn().catch(() => { /* swallow — logged inside */ });
+}
 import { createRedis } from '@/lib/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { callAI } from '@/lib/ai-providers';
@@ -128,14 +132,24 @@ export async function GET(req: NextRequest) {
       summary = '';
     }
 
-    // locale 번역 (en 은 no-op, 다른 locale 은 title/description batch 번역)
-    const translatedNews = locale === 'en' ? news : await translateItems(
-      news.map(n => ({ ...n, summary: n.description })),
-      locale,
-      'api.company-news.translate',
-    ).then(items => items.map(it => ({ ...it, description: it.summary ?? it.description ?? '' })));
-
-    const result = { ticker, news: translatedNews, summary: summary || null, locale, generatedAt: new Date().toISOString(), cached: false };
+    // locale 번역: 영어 즉시 반환 + 백그라운드 번역 (response timeout 회피)
+    // 다음 호출은 번역 캐시 hit
+    const result = { ticker, news, summary: summary || null, locale, generatedAt: new Date().toISOString(), cached: false, translating: locale !== 'en' };
+    if (locale !== 'en' && redis) {
+      backgroundTask(async () => {
+        try {
+          const translated = await translateItems(
+            news.map(n => ({ ...n, summary: n.description })),
+            locale,
+            'api.company-news.translate',
+          );
+          const translatedNews = translated.map(it => ({ ...it, description: it.summary ?? it.description ?? '' }));
+          const cached = { ticker, news: translatedNews, summary: summary || null, locale, generatedAt: new Date().toISOString(), cached: false };
+          await loggedRedisSet(redis, 'api.company-news', cacheKey, cached, { ex: CACHE_TTL_S });
+          logger.info('api.company-news', 'bg_translation_done', { ticker, locale, count: translatedNews.length });
+        } catch (e) { logger.warn('api.company-news', 'bg_translation_failed', { ticker, locale, error: String(e).slice(0, 100) }); }
+      });
+    }
 
     // If AI failed (quota exhausted) but we have a stale result, serve it
     if (!summary && staleResult) {

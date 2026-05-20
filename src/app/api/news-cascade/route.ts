@@ -2,6 +2,12 @@ import { logger, loggedRedisSet, loggedRedisSetNx, loggedRedisDel } from '@/lib/
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
+
+// fire-and-forget background translation — Next 14 호환 (unstable_after 미지원).
+// Vercel: 응답 후 함수가 짧은 동안 유지되므로 translation 12s 안에 끝나면 캐시 저장됨.
+function backgroundTask(fn: () => Promise<unknown>): void {
+  void fn().catch(() => { /* swallow — logged inside */ });
+}
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
@@ -636,14 +642,18 @@ export async function GET(request: Request) {
         if (!wantsTranslation) {
           return NextResponse.json({ articles: cached, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
         }
-        // 영어 캐시 hit + 번역 요청 → 번역 + per-locale 캐시 저장
-        const translated = await translateArticles(cached, locale);
-        const sameAsOriginal = translated === cached; // 번역 실패 시 원문 반환됨
-        if (!sameAsOriginal) {
-          await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 })
-            .catch(() => { /* non-fatal */ });
-        }
-        return NextResponse.json({ articles: translated, cached: true, locale, translated: !sameAsOriginal, source: 'cached' }, { headers: CDN_HEADERS });
+        // 영어 캐시 hit + 번역 요청 → 영어 즉시 반환 + 백그라운드 번역 (30s 동기 호출 회피)
+        // 다음 호출은 번역 캐시 hit (translatedCache 경로)
+        backgroundTask(async () => {
+          try {
+            const translated = await translateArticles(cached, locale);
+            if (translated !== cached) {
+              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 });
+              logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
+            }
+          } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }
+        });
+        return NextResponse.json({ articles: cached, cached: true, locale, translated: false, translating: true, source: 'cached-en' }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
   }
@@ -794,15 +804,18 @@ export async function GET(request: Request) {
     await loggedRedisDel(redis, 'api.news-cascade', [LOCK_KEY]);
   }
 
-  // 번역 요청 시 즉시 번역해서 응답 + per-locale 캐시 저장
+  // 번역 요청 시 영어 즉시 반환 + 백그라운드 번역 (응답 지연 회피)
   if (wantsTranslation && sorted.length > 0) {
-    const translated = await translateArticles(sorted, locale);
-    const sameAsOriginal = translated === sorted;
-    if (redis && !sameAsOriginal) {
-      await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 })
-        .catch(() => { /* non-fatal */ });
-    }
-    return NextResponse.json({ articles: translated, cached: false, locale, translated: !sameAsOriginal, source: 'live' }, { headers: CDN_HEADERS });
+    backgroundTask(async () => {
+      try {
+        const translated = await translateArticles(sorted, locale);
+        if (redis && translated !== sorted) {
+          await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 });
+          logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
+        }
+      } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }
+    });
+    return NextResponse.json({ articles: sorted, cached: false, locale, translated: false, translating: true, source: 'live-en' }, { headers: CDN_HEADERS });
   }
 
   return NextResponse.json({ articles: sorted, cached: false, source: 'live' }, { headers: CDN_HEADERS });
