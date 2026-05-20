@@ -2658,20 +2658,26 @@ function getEntryFeedbackBlock() {
   try {
     const stats = getEntryFeedbackStats();
     if (!stats.length) return '';
+    // outlier 제거: NE 샘플 < 3 또는 gap > 20% 는 신뢰 불가 → cue 제거
+    // "TOO LOW" → "median 통계" 로 톤 약화 (LLM over-correction 방지)
     const lines = stats.map(s => {
       const isKR = (s.ticker ?? '').endsWith('.KS');
       const fmt = n => n == null ? '?' : isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
       const neRate = s.total ? Math.round(s.ne / s.total * 100) : 0;
       let cue = '';
-      if (s.avg_ne_entry && s.avg_ne_actual) {
-        const gap = ((s.avg_ne_actual - s.avg_ne_entry) / s.avg_ne_actual * 100).toFixed(0);
-        if (parseInt(gap) > 3) cue = ` ⚠️ entry was ${gap}% TOO LOW`;
-        else if (parseInt(gap) < -3) cue = ` ⚠️ entry was ${Math.abs(parseInt(gap))}% TOO HIGH`;
+      if (s.avg_ne_entry && s.avg_ne_actual && s.ne >= 3) {
+        const gap = parseInt(((s.avg_ne_actual - s.avg_ne_entry) / s.avg_ne_actual * 100).toFixed(0));
+        if (gap >= 4 && gap <= 15) cue = ` → past entry median was ${gap}% below actual (consider tighter zone)`;
+        // gap > 15 또는 < -15 는 데이터 이상치 → cue 없음 (over-correction 방지)
       }
-      const hitInfo = s.hits > 0 ? `hit=${s.hits}` : '';
-      return `  ${(s.ticker ?? '').padEnd(11)} NE=${s.ne}/${s.total} (${neRate}%)${hitInfo ? ' '+hitInfo : ''} avg_NE_entry=${fmt(s.avg_ne_entry)} vs avg_actual=${fmt(s.avg_ne_actual)}${cue}`;
+      const hitInfo = s.hits > 0 ? ` hit=${s.hits}` : '';
+      return `  ${(s.ticker ?? '').padEnd(11)} NE=${s.ne}/${s.total} (${neRate}%)${hitInfo}${cue}`;
     });
-    return ['[ENTRY FEEDBACK — last 30d outcomes per ticker]', ...lines, ''].join('\n');
+    return [
+      '[PAST PERFORMANCE — last 30d (informational, do NOT over-correct)]',
+      ...lines,
+      '',
+    ].join('\n');
   } catch (e) { console.warn('  ⚠️ entry feedback 생성 실패:', e.message); return ''; }
 }
 
@@ -2767,7 +2773,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '═══════════════════════════════════════════════════════════════',
     getEntryFeedbackBlock(),
     'Your entryZone/stopLoss/target MUST be anchored to the LIVE PRICES above.',
-    'If a ticker has "entry was X% TOO LOW" feedback, ADJUST entry UPWARD this time.',
+    'Past performance is informational only — do NOT mechanically push entry up. Use technical/fundamental analysis to decide entry zone.',
     'If you write a price that differs >30% from the live price, it is a HALLUCINATION.',
     '',
     `Respond in pure JSON (no markdown). ALL text values MUST be in ${TARGET_LANG}:`,
