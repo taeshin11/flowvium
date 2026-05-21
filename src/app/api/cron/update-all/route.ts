@@ -149,10 +149,16 @@ export async function GET(req: Request) {
     }).catch(function() {});
   }
 
-  // ── 5단계: news-cascade (느림 — fire & forget) ─────────────────────────
+  // ── 5단계: news-cascade — 영어 캐시 + ko 번역 캐시 warming (fire & forget) ──
   fetch(`${base}/api/news-cascade`, { signal: AbortSignal.timeout(60000), cache: 'no-store' })
     .then(r => { if (!r.ok) logger.warn('cron.update-all', 'news_cascade_failed', { status: r.status }); })
     .catch(e => logger.warn('cron.update-all', 'news_cascade_error', { error: e instanceof Error ? e.message : String(e) }));
+  // 한국어 번역도 미리 워밍 (audit timeout 방지). 30s 후 호출 → 영어 캐시 채워진 뒤 번역 시작
+  setTimeout(() => {
+    fetch(`${base}/api/news-cascade?locale=ko`, { signal: AbortSignal.timeout(60000), cache: 'no-store' })
+      .then(r => { if (!r.ok) logger.warn('cron.update-all', 'news_cascade_ko_failed', { status: r.status }); })
+      .catch(e => logger.warn('cron.update-all', 'news_cascade_ko_error', { error: e instanceof Error ? e.message : String(e) }));
+  }, 30000);
 
   const results = [
     macroR, yieldR, fedR, capitalR, commCurveR, volR, fearGreedR, creditR, shortR, capsR,

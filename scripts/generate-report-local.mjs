@@ -2793,6 +2793,8 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '4. rationale 100 chars max with real data signals',
     '5. allocation sum = 100, no single position > 25%',
     '6. action: buy=accumulate now, hold=keep, watch=wait for entry',
+    '   ⚠️ KR tickers (.KS) — morning session 은 KST 장 미개장. Live Prices = 전일 종가.',
+    '   한국 종목은 entry zone 을 더 넓게 (시장가 ±5%) 잡거나 action=watch 로 권장.',
     '7. entryRationale ≤80자: cite WHICH support level / indicator anchors the entry zone',
     '8. targetRationale ≤80자: fundamentals-first',
     '9. CRITICAL — UNIQUE rationale per stock: Each ticker MUST have a DIFFERENT rationale',

@@ -1,15 +1,15 @@
 [
   {
     "ticker": "TSM",
-    "samples": 12,
+    "samples": 13,
     "median": 9.609668146169973,
     "diagnosis": "entry 가 시장가 대비 9.6% 낮음 — 거의 도달 불가"
   },
   {
     "ticker": "005930.KS",
-    "samples": 3,
-    "median": 4.583333333333333,
-    "diagnosis": "entry 가 시장가 -4.6% — 보수적"
+    "samples": 4,
+    "median": 4.744525547445255,
+    "diagnosis": "entry 가 시장가 -4.7% — 보수적"
   },
   {
     "ticker": "000660.KS",
@@ -49,7 +49,7 @@
   },
   {
     "ticker": "ASML",
-    "samples": 13,
+    "samples": 14,
     "median": 8.526469086282699,
     "diagnosis": "entry 가 시장가 대비 8.5% 낮음 — 거의 도달 불가"
   },

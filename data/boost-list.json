@@ -1,11 +1,11 @@
 [
   {
     "ticker": "TSM",
-    "reason": "BOOST: avg_pnl 118.02% > 20%",
-    "evaluated": 12,
-    "hits": 0,
+    "reason": "BOOST: avg_pnl 80.61% > 20%",
+    "evaluated": 20,
+    "hits": 1,
     "stops": 0,
-    "avg_pnl": 118.02
+    "avg_pnl": 80.61
   },
   {
     "ticker": "TSLA",
@@ -17,10 +17,18 @@
   },
   {
     "ticker": "005490.KS",
-    "reason": "BOOST: 50% hit rate, 0 stops",
-    "evaluated": 4,
-    "hits": 2,
+    "reason": "BOOST: 67% hit rate, 0 stops",
+    "evaluated": 6,
+    "hits": 4,
     "stops": 0,
-    "avg_pnl": 76.98
+    "avg_pnl": 51.98
+  },
+  {
+    "ticker": "005380.KS",
+    "reason": "BOOST: 100% hit rate, 0 stops",
+    "evaluated": 3,
+    "hits": 3,
+    "stops": 0,
+    "avg_pnl": 18.53
   }
 ]
