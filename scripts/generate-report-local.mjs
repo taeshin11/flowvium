@@ -1508,6 +1508,49 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
 }
 
 /**
+ * 구루 분할 매매 시스템 — Lynch ladder entry + Klarman ladder exit + Druckenmiller trailing.
+ * LLM이 entryZone + target 만 정하고, 시스템이 3단계 ladder 자동 생성.
+ * "위에서 물리는" 위험 방지: 30/40/30 분할 진입 + 33/33/34 분할 매도.
+ */
+function buildLadders(portfolioItems, livePrices) {
+  return portfolioItems.map(p => {
+    const pd = livePrices.get(p.ticker);
+    if (!pd?.price) return p;
+    const actual = pd.price;
+    const isKR = p.ticker.endsWith('.KS');
+    const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
+    const extract = s => (s ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(n => n > 0) ?? [];
+
+    const zoneNums = extract(p.entryZone);
+    const targetNums = extract(p.target);
+    if (zoneNums.length < 1 || targetNums.length < 1) return p;
+    const entryMid = (Math.min(...zoneNums) + Math.max(...zoneNums)) / 2;
+    const targetVal = Math.max(...targetNums);
+
+    // Entry ladder — Lynch/Druckenmiller 3단계 (시장가 기준 분할)
+    // tier1: 시장가 (즉시 진입 30%) / tier2: -3% 풀백 (40%) / tier3: -7% 깊은 풀백 (30%)
+    const entryLadder = [
+      { price: fmt(actual * 0.995), weight: 30, label: '즉시 진입 (모멘텀 확인)' },
+      { price: fmt(actual * 0.97),  weight: 40, label: '-3% 풀백 시 추가' },
+      { price: fmt(actual * 0.93),  weight: 30, label: '-7% 깊은 풀백 시 마지막' },
+    ];
+
+    // Exit ladder — Klarman 3단계 분할 매도 + trailing stop
+    const gain = (targetVal - entryMid) / entryMid;
+    const exit1 = entryMid * (1 + gain * 0.35);  // 35% 도달 시 1/3
+    const exit2 = entryMid * (1 + gain * 0.70);  // 70% 도달 시 1/3
+    const exit3 = targetVal;                       // 100% target 마지막 1/3
+    const exitLadder = [
+      { price: fmt(exit1), weight: 33, action: '1/3 정리 → stop을 entry로 이동 (breakeven lock)' },
+      { price: fmt(exit2), weight: 33, action: '1/3 정리 → stop을 +3%로 이동' },
+      { price: fmt(exit3), weight: 34, action: '마지막 1/3 + trailing stop (-5%)' },
+    ];
+
+    return { ...p, entryLadder, exitLadder };
+  });
+}
+
+/**
  * Hybrid: LLM 분석 기반 entry zone 존중 + 환각만 교정.
  *
  * 1) LLM이 entryZone 을 정상 출력했고 livePrice ±30% 이내 → LLM 값 그대로 유지 (분석 존중)
@@ -3548,6 +3591,8 @@ async function generateViaOllama() {
   finalReport.harnessAudit = applyLocalHarness(finalReport, livePrices);
   // 2차 클램프: harness 가 zone 을 덮어쓴 경우 다시 시장가 기준으로 보정 (도달 불가 zone 방지).
   finalReport.portfolio = validateEntryZones(finalReport.portfolio, livePrices);
+  // 구루 분할 매매 ladder 자동 생성 (entry 30/40/30 + exit 33/33/34 + trailing)
+  finalReport.portfolio = buildLadders(finalReport.portfolio, livePrices);
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
