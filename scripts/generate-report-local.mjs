@@ -459,15 +459,28 @@ function applyLocalHarness(r, livePrices) {
     }
   }
 
-  // 6j. 통화 일관성 — native 통화와 다른 기호 사용 시 경고만 (자동 교정 X)
+  // 6j. 통화 일관성 — native 통화와 다른 기호 사용 OR 단위 누락 시 자동 교정
   for (const p of r.portfolio) {
     const native = nativeCurrencyForTickerMjs(p.ticker);
-    const fields = [['entry', p.entryZone], ['stop', p.stopLoss], ['target', p.target]];
+    const isKR = native === '₩';
+    const fmt = n => isKR ? `${native}${Math.round(n).toLocaleString()}` : `${native}${parseFloat(n.toFixed(2))}`;
+    const fields = [['entryZone', 'entry'], ['stopLoss', 'stop'], ['target', 'target'], ['targetBull', 'targetBull']];
     const mismatches = [];
-    for (const [field, val] of fields) {
+    for (const [key, label] of fields) {
+      const val = p[key];
       if (!val) continue;
-      const sym = val.match(/[₩$€]/)?.[0];
-      if (sym && sym !== native) mismatches.push(`${field}=${sym}`);
+      const sym = String(val).match(/[₩$€]/)?.[0];
+      // 1) 다른 기호 사용 → 자동 교정 ($ → ₩ for KR)
+      if (sym && sym !== native) {
+        mismatches.push(`${label}=${sym}→${native}`);
+        p[key] = String(val).replace(/[₩$€]/g, native);
+      }
+      // 2) 단위 누락 (KR ticker 인데 ₩ 없음) → 자동 추가
+      else if (!sym && isKR) {
+        mismatches.push(`${label}=naked→${native}`);
+        // 숫자만 있는 zone: "115000-120000" → "₩115,000-₩120,000"
+        p[key] = String(val).replace(/(\d[\d,]*\.?\d*)/g, (_, n) => fmt(parseFloat(n.replace(/,/g, ''))));
+      }
     }
     if (mismatches.length > 0) {
       audit.fixes.currencyMismatch.push(`${p.ticker} (native ${native}): ${mismatches.join(', ')}`);
