@@ -1026,41 +1026,58 @@ async function fetchOnePrice(ticker) {
   return [ticker, null];
 }
 
+// Stooq batch — Yahoo v7 quote 401 차단 후 대체 (2026-05-22).
+// US: ticker.us / KR: ticker.kr (005930.KS → 005930.kr)
+async function fetchStooqBatch(tickers) {
+  const stooqs = tickers.map(t => t.endsWith('.KS') ? t.slice(0, -3) + '.kr' : t.replace(/\./g, '-').toLowerCase() + '.us');
+  const out = new Map();
+  // Stooq batch: 50 ticker per request (URL 길이 한도)
+  for (let i = 0; i < stooqs.length; i += 50) {
+    const chunk = stooqs.slice(i, i + 50);
+    const origChunk = tickers.slice(i, i + 50);
+    try {
+      const url = `https://stooq.com/q/l/?s=${chunk.join('+')}&f=sd2t2ohlcv&h&e=csv`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
+      if (!res.ok) continue;
+      const text = await res.text();
+      const lines = text.trim().split('\n').slice(1); // skip header
+      for (let j = 0; j < lines.length && j < chunk.length; j++) {
+        const cols = lines[j].split(',');
+        const close = parseFloat(cols[6]);
+        const open = parseFloat(cols[3]);
+        if (!close || close <= 0) continue;
+        const change1d = open ? Math.round(((close - open) / open) * 1000) / 10 : null;
+        out.set(origChunk[j], { price: Math.round(close * 100) / 100, change1d, high52w: close * 1.3, low52w: close * 0.7 });
+      }
+    } catch { /* chunk failed */ }
+  }
+  return out;
+}
+
 async function getLivePrices() {
   const map = new Map();
-  const fields = 'regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow';
-  // 462개를 batch 80개씩 분할 (URL 길이 한도 + Yahoo throttle 회피)
-  const chunkSize = 80;
-  for (let i = 0; i < CANDIDATE_TICKERS.length; i += chunkSize) {
-    const chunk = CANDIDATE_TICKERS.slice(i, i + chunkSize);
-    try {
-      const res = await fetch(
-        `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(chunk.join(','))}&fields=${fields}`,
-        { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(10000) }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const quotes = data?.quoteResponse?.result ?? [];
-        for (const q of quotes) {
-          if (q.regularMarketPrice == null) continue;
-          map.set(q.symbol, {
-            price: Math.round(q.regularMarketPrice * 100) / 100,
-            change1d: q.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 10) / 10 : null,
-            high52w: q.fiftyTwoWeekHigh ?? q.regularMarketPrice * 1.3,
-            low52w: q.fiftyTwoWeekLow ?? q.regularMarketPrice * 0.7,
-          });
-        }
-      }
-    } catch { /* chunk failed — continue with rest */ }
+  // 1) Stooq batch — US/EU 종목 (Yahoo v7 401 차단됨). KR/일부는 N/D
+  const usTickers = CANDIDATE_TICKERS.filter(t => !t.endsWith('.KS'));
+  const krTickers = CANDIDATE_TICKERS.filter(t => t.endsWith('.KS'));
+  const stooqMap = await fetchStooqBatch(usTickers);
+  for (const [t, v] of stooqMap) map.set(t, v);
+
+  // 2) KR ticker — Yahoo v8 chart 개별 (~29개, 동시 8개)
+  const krBatch = async (slice) => {
+    const results = await Promise.all(slice.map(fetchOnePrice));
+    for (const [t, lp] of results) { if (lp) map.set(t, lp); }
+  };
+  for (let i = 0; i < krTickers.length; i += 8) {
+    await krBatch(krTickers.slice(i, i + 8));
   }
 
-  // 누락 ticker는 개별 v8 chart fallback (Yahoo가 v7 차단한 ticker 처리)
-  const missing = CANDIDATE_TICKERS.filter(t => !map.has(t));
-  if (missing.length > 0 && missing.length < 100) {
-    const results = await Promise.all(missing.slice(0, 50).map(fetchOnePrice));
+  // 3) Stooq 누락 US ticker (N/D) — Yahoo v8 개별 fallback (50개 한도)
+  const missingUs = usTickers.filter(t => !map.has(t));
+  if (missingUs.length > 0 && missingUs.length < 100) {
+    const results = await Promise.all(missingUs.slice(0, 50).map(fetchOnePrice));
     for (const [t, lp] of results) { if (lp) map.set(t, lp); }
   }
-  console.log(`  [livePrices] ${map.size}/${CANDIDATE_TICKERS.length} 종목 확보`);
+  console.log(`  [livePrices] ${map.size}/${CANDIDATE_TICKERS.length} 종목 확보 (Stooq US: ${stooqMap.size}, Yahoo v8 KR+fallback: ${map.size - stooqMap.size})`);
   return map;
 }
 
