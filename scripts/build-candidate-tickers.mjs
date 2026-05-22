@@ -19,7 +19,7 @@ const seen = new Set();
 const grouped = { titan: [], mega: [], large: [], mid: [], small: [] };
 const fields = {}; // ticker -> { name, sector, market }
 
-const files = readdirSync(DATA_DIR).filter(f => f.startsWith('companies-batch') || f === 'companies.ts');
+const files = readdirSync(DATA_DIR).filter(f => f.startsWith('companies-batch') || f === 'companies.ts' || f === 'heatmap-stocks.ts');
 for (const f of files) {
   const c = readFileSync(resolve(DATA_DIR, f), 'utf8');
   // Position-based pairing: find each ticker, then nearest marketCap within 2000 chars after
@@ -30,11 +30,19 @@ for (const f of files) {
     if (seen.has(ticker)) continue;
     // Look ahead up to 3000 chars for marketCap
     const window = c.slice(m.index, m.index + 3000);
-    const capMatch = window.match(/marketCap:\s*['"](\w+)['"]/);
+    // String 형태 (companies-batch): marketCap:'mega'
+    const capStrMatch = window.match(/marketCap:\s*['"](\w+)['"]/);
+    // 숫자 형태 (heatmap-stocks): marketCap: 3200 → $3.2T = titan
+    const capNumMatch = !capStrMatch && window.match(/marketCap:\s*(\d+)/);
     const nameMatch = window.match(/name:\s*['"]([^'"]+)['"]/);
     const sectorMatch = window.match(/sector:\s*['"]([^'"]+)['"]/);
-    const cap = capMatch?.[1];
-    if (!cap || !grouped[cap]) continue;
+    let cap;
+    if (capStrMatch) cap = capStrMatch[1];
+    else if (capNumMatch) {
+      const billion = parseInt(capNumMatch[1]);
+      cap = billion >= 1000 ? 'titan' : billion >= 200 ? 'mega' : billion >= 10 ? 'large' : 'mid';
+    } else cap = 'large'; // 폴백
+    if (!grouped[cap]) continue;
     seen.add(ticker);
     grouped[cap].push(ticker);
     fields[ticker] = {
@@ -64,11 +72,14 @@ const KR_TICKERS = {
   '034730.KS':'SK','096770.KS':'SK이노베이션','000810.KS':'삼성화재',
 };
 
-// 추천 가능 풀 = titan + mega + large + ETF + KR
+// 추천 가능 풀 = titan + mega + large + mid + ETF + KR
+// (small 34개는 유동성 약함 — 제외)
+// mid 포함 = small-cap premium factor (Fama-French SMB) 활용
 const candidate = [
   ...grouped.titan,
   ...grouped.mega,
   ...grouped.large,
+  ...grouped.mid,
   ...ETF_TICKERS,
   ...Object.keys(KR_TICKERS),
 ];
@@ -80,6 +91,7 @@ const out = {
     titan: grouped.titan.length,
     mega: grouped.mega.length,
     large: grouped.large.length,
+    mid: grouped.mid.length,
     etf: ETF_TICKERS.length,
     kr: Object.keys(KR_TICKERS).length,
   },
