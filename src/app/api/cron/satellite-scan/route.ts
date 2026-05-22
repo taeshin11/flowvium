@@ -341,7 +341,10 @@ export async function GET(req: Request) {
   const statsFrom = new Date(Date.now() - 12 * 86400000).toISOString().slice(0, 10);
   const start = Date.now();
 
-  logger.info('cron.satellite-scan', 'start', { mode: 'SAR', factories: FACTORY_LOCATIONS.length, date: today });
+  // 2026-05-22: 24 → 8 시설 축소 (critical only) — major/moderate는 outcome correlation 검증 후 부활 판단
+  // ROI 부족 (confidence:low, baseline 0/5, vv_delta_db:null) → critical 8개로 베이스라인 빨리 축적
+  const FACTORIES_FILTERED: FactoryLocation[] = FACTORY_LOCATIONS.filter(f => f.significance === 'critical');
+  logger.info('cron.satellite-scan', 'start', { mode: 'SAR', factories: FACTORIES_FILTERED.length, total: FACTORY_LOCATIONS.length, filter: 'critical_only', date: today });
 
   let token: string;
   try {
@@ -357,8 +360,8 @@ export async function GET(req: Request) {
   // ── Phase 1: SAR 통계 수집 (전체 공장 → 백분위 계산용) ──────────────────────
   const statsMap = new Map<string, SARStats>();
   const BATCH = 3;
-  for (let i = 0; i < FACTORY_LOCATIONS.length; i += BATCH) {
-    const batch = FACTORY_LOCATIONS.slice(i, i + BATCH);
+  for (let i = 0; i < FACTORIES_FILTERED.length; i += BATCH) {
+    const batch = FACTORIES_FILTERED.slice(i, i + BATCH);
     await Promise.allSettled(batch.map(async (factory) => {
       const stats = await fetchSARStats(factory, statsFrom, today, token);
       if (!stats) {
@@ -376,15 +379,15 @@ export async function GET(req: Request) {
       logger.info('cron.satellite-scan', 'sar_stats_ok', { factory: factory.id, vv_db: Math.round(toDb(stats.vv_mean)*10)/10, vh_db: Math.round(toDb(stats.vh_mean)*10)/10, samples: stats.sample_count });
       statsMap.set(factory.id, stats);
     }));
-    if (i + BATCH < FACTORY_LOCATIONS.length) await new Promise(r => setTimeout(r, 1500));
+    if (i + BATCH < FACTORIES_FILTERED.length) await new Promise(r => setTimeout(r, 1500));
   }
 
   // ── Phase 2: 점수 계산 + 저장 (백분위 사용) ──────────────────────────────────
   const allStats = Array.from(statsMap.values());
   logger.info('cron.satellite-scan', 'phase2_start', { collected: statsMap.size, percentilePool: allStats.length });
 
-  for (let i = 0; i < FACTORY_LOCATIONS.length; i += BATCH) {
-    const batch = FACTORY_LOCATIONS.slice(i, i + BATCH).filter(f => statsMap.has(f.id));
+  for (let i = 0; i < FACTORIES_FILTERED.length; i += BATCH) {
+    const batch = FACTORIES_FILTERED.slice(i, i + BATCH).filter(f => statsMap.has(f.id));
     await Promise.allSettled(batch.map(async (factory) => {
       const stats = statsMap.get(factory.id)!;
       try {
@@ -441,7 +444,7 @@ export async function GET(req: Request) {
         failed++;
       }
     }));
-    if (i + BATCH < FACTORY_LOCATIONS.length) await new Promise(r => setTimeout(r, 1500));
+    if (i + BATCH < FACTORIES_FILTERED.length) await new Promise(r => setTimeout(r, 1500));
   }
 
   if (success > 0) {
