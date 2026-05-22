@@ -58,24 +58,46 @@ const SHARES_B: Record<string, number> = {
   NOC: 0.15, PLTR: 2.36, COIN: 0.24, MRNA: 0.38, LLY: 0.95,
 };
 
+// Stooq fallback — Vercel IP 에서 Yahoo 보다 throttle 적음 (market-heatmap이 이미 안정 사용 중)
+async function fetchStooqPrice(ticker: string): Promise<number | null> {
+  try {
+    // Stooq는 dot → dash + .us 접미사 (US 종목)
+    const stooqTicker = ticker.replace(/\./g, '-').toLowerCase() + '.us';
+    const res = await fetch(`https://stooq.com/q/l/?s=${stooqTicker}&f=sd2t2ohlcv&h&e=csv`, {
+      signal: AbortSignal.timeout(5000),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    // CSV: Symbol,Date,Time,Open,High,Low,Close,Volume
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return null;
+    const cols = lines[1].split(',');
+    const close = parseFloat(cols[6]);
+    return close > 0 ? close : null;
+  } catch { return null; }
+}
+
 async function fetchYahooCap(ticker: string): Promise<number | null> {
+  const shares = SHARES_B[ticker];
+  if (!shares) return null;
+
+  // 1) Yahoo v8 chart 시도
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
-      {
-        headers: YAHOO_HEADERS,
-        signal: AbortSignal.timeout(8000),
-        cache: 'no-store',
-      }
+      { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(6000), cache: 'no-store' }
     );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice as number | undefined;
-    if (!price || price <= 0) return null;
-    const shares = SHARES_B[ticker];
-    if (!shares) return null;
-    return Math.round(price * shares * 1e9);
-  } catch { return null; }
+    if (res.ok) {
+      const data = await res.json();
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice as number | undefined;
+      if (price && price > 0) return Math.round(price * shares * 1e9);
+    }
+  } catch { /* fall through to Stooq */ }
+
+  // 2) Stooq fallback (Vercel throttle 적음)
+  const stooqPrice = await fetchStooqPrice(ticker);
+  return stooqPrice ? Math.round(stooqPrice * shares * 1e9) : null;
 }
 
 // 청크 단위 순차 fetch — Vercel→Yahoo throttle 회피 (3개씩 + 800ms sleep + 실패 시 1회 retry).

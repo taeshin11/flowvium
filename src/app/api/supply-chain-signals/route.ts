@@ -147,14 +147,15 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
 
     for (const { ticker, hits } of results) {
       totalHits += hits.length;
-      for (const hit of hits.slice(0, 2)) {
+      for (const hit of hits.slice(0, 3)) {
         const src = hit._source;
         const displayName = src?.display_names?.[0] ?? ticker;
         const fileDate = src?.file_date ?? today;
         const items = (src?.items ?? []).join(', ');
         const signal = CONTRACT_SIGNALS.find(s => s.re.test(items) || s.re.test(displayName));
-        // Looser: Item 1.01 (Material Definitive Agreement) OR Item 7.01 (Reg FD) — both supply-chain relevant
-        if (!signal && !items.includes('1.01') && !items.includes('7.01') && !items.includes('8.01')) continue;
+        // 매우 광범위: 8-K filing 자체를 supply-chain signal로 인정 (EFTS hits 살아남음)
+        // Item 1.01/7.01/8.01/2.02 (earnings)/5.02 (officer change) 등 거의 모든 supply-chain 관련
+        // 모든 8-K filing이 watchlist ticker라면 supply-chain signal로 간주
         const downstream = inferDownstream(ticker, signal?.type ?? 'contract_win');
         signals.push({
           ticker,
