@@ -16,7 +16,15 @@ if errorlevel 1 (
   exit /b 1
 )
 
-:: 3. 보고서 생성 + 업로드 실행
+:: 3a. 외부 데이터 source 사전 체크 (silent failure 방지)
+echo [%DATE% %TIME%] [INFO] Pre-flight: data source health check... >> "%LOG_FILE%"
+"C:\Program Files\nodejs\node.exe" "C:\NoAddsMakingApps\FlowVium\scripts\audit-data-sources.mjs" >> "%LOG_FILE%" 2>&1
+if errorlevel 2 (
+  echo [%DATE% %TIME%] [FATAL] Critical data source failed — aborting report generation >> "%LOG_FILE%"
+  exit /b 2
+)
+
+:: 3b. 보고서 생성 + 업로드 실행
 echo [%DATE% %TIME%] [INFO] Starting report pipeline... >> "%LOG_FILE%"
 "C:\Program Files\nodejs\node.exe" "C:\NoAddsMakingApps\FlowVium\scripts\generate-report-local.mjs" --model=qwen3:8b --auto-upload >> "%LOG_FILE%" 2>&1
 set "PIPE_EXIT=%ERRORLEVEL%"

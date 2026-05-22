@@ -1077,7 +1077,21 @@ async function getLivePrices() {
     const results = await Promise.all(missingUs.slice(0, 50).map(fetchOnePrice));
     for (const [t, lp] of results) { if (lp) map.set(t, lp); }
   }
-  console.log(`  [livePrices] ${map.size}/${CANDIDATE_TICKERS.length} 종목 확보 (Stooq US: ${stooqMap.size}, Yahoo v8 KR+fallback: ${map.size - stooqMap.size})`);
+  const coverage = map.size / CANDIDATE_TICKERS.length;
+  console.log(`  [livePrices] ${map.size}/${CANDIDATE_TICKERS.length} 종목 확보 (${(coverage*100).toFixed(1)}%, Stooq US: ${stooqMap.size}, Yahoo v8 KR+fallback: ${map.size - stooqMap.size})`);
+
+  // 🚨 Fail-loud guard: 가격 source 50% 미만이면 환각 보고서 방지를 위해 abort
+  // (Yahoo v7 차단 같은 silent failure 시 보고서 생성 중단)
+  const MIN_COVERAGE = 0.50;
+  if (coverage < MIN_COVERAGE) {
+    console.error(`\n❌ FATAL: livePrices coverage ${(coverage*100).toFixed(1)}% < ${MIN_COVERAGE*100}% — 환각 위험. 보고서 생성 중단.`);
+    console.error(`   외부 데이터 source 점검 필요: Stooq batch / Yahoo v8 chart`);
+    console.error(`   진단: node scripts/audit-data-sources.mjs`);
+    process.exit(2);
+  }
+  if (coverage < 0.85) {
+    console.warn(`  ⚠️  WARN: coverage ${(coverage*100).toFixed(1)}% < 85% — degraded. 추후 source 점검 필요.`);
+  }
   return map;
 }
 
