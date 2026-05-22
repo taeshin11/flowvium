@@ -132,14 +132,39 @@ export async function fetchRecentNPORT(opts: { feedCount?: number } = {}): Promi
   const feedCount = opts.feedCount ?? 20;
   const runStart = Date.now();
   try {
+    // 1) getcurrent (최근 10분) — N-PORT 분기 filing이라 자주 empty
     const rssRes = await pacedFetch(
       `${EDGAR_BASE}/cgi-bin/browse-edgar?action=getcurrent&type=NPORT-P&count=${feedCount}&output=atom`
     );
-    if (!rssRes.ok) {
-      logger.warn('edgar.nport', 'rss_http_error', { status: rssRes.status });
-      return [];
+    let entries: AtomEntry[] = [];
+    if (rssRes.ok) entries = parseAtomFeed(await rssRes.text());
+
+    // 2) Fallback: EFTS search (최근 14일) — N-PORT 분기 filing이라 윈도우 길게
+    if (!entries.length) {
+      const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      try {
+        const efts = await pacedFetch(`https://efts.sec.gov/LATEST/search-index?forms=NPORT-P&dateRange=custom&startdt=${twoWeeksAgo}&enddt=${today}`, 10000);
+        if (efts.ok) {
+          const data = await efts.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; ciks?: string[] }; _id?: string }> } };
+          const hits = data?.hits?.hits ?? [];
+          entries = hits.slice(0, feedCount).map(hit => {
+            const src = hit._source;
+            const accession = hit._id?.split(':')[0] ?? '';
+            const cik = src?.ciks?.[0] ?? '';
+            const accessionPath = accession.replace(/-/g, '');
+            return {
+              title: src?.display_names?.[0] ?? '',
+              link: `https://www.sec.gov/Archives/edgar/data/${cik}/${accessionPath}/${accession}-index.htm`,
+              accession, accessionPath, cik,
+              updatedAt: src?.file_date ?? today, filedDate: src?.file_date ?? today,
+            };
+          }).filter(e => e.accession && e.cik);
+          logger.info('edgar.nport', 'efts_fallback', { entries: entries.length });
+        }
+      } catch (e) { logger.warn('edgar.nport', 'efts_fallback_failed', { error: String(e).slice(0, 100) }); }
     }
-    const entries = parseAtomFeed(await rssRes.text());
+
     if (!entries.length) {
       logger.warn('edgar.nport', 'empty_feed');
       return [];

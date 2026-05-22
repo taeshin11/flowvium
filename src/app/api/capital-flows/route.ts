@@ -492,6 +492,12 @@ export async function GET() {
       staleResult = (staleSrc.status === 'fulfilled' && staleSrc.value)
         ? staleSrc.value
         : (staleUniversal.status === 'fulfilled' ? staleUniversal.value : null);
+      // Fresh miss + stale 있으면 즉시 stale 반환 (cron이 백그라운드 refresh)
+      // 사용자 면전에서 50+ ticker fetch 회피 (20s timeout 원인)
+      if (staleResult) {
+        logger.info('capital-flows', 'serving_stale_immediately', { reason: 'fresh_miss' });
+        return NextResponse.json({ ...(staleResult as object), stale: true }, { headers: CDN_HEADERS });
+      }
     } catch (e) { logger.warn('capital-flows', 'cache_read_error', { error: e }); }
   }
 

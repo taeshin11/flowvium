@@ -340,14 +340,52 @@ export interface OwnershipAlert {
 }
 
 async function fetchAtomBothForms(): Promise<AtomEntry[]> {
-  // getcurrent supports a single form type, so combine two calls
+  // 1) getcurrent (최근 10분) — 빠르지만 SC 13D/G 드물어 자주 empty
   const [d, g, da, ga] = await Promise.all([
     fetchAtomFeed('SC 13D', 20),
     fetchAtomFeed('SC 13G', 20),
     fetchAtomFeed('SC 13D/A', 10),
     fetchAtomFeed('SC 13G/A', 10),
   ]);
-  return [...d, ...g, ...da, ...ga];
+  const atom = [...d, ...g, ...da, ...ga];
+  if (atom.length > 0) return atom;
+
+  // 2) Fallback: EFTS search (최근 7일) — getcurrent 빈 윈도우 대비
+  return await fetchEftsOwnershipFilings();
+}
+
+async function fetchEftsOwnershipFilings(): Promise<AtomEntry[]> {
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const start = Date.now();
+  const entries: AtomEntry[] = [];
+  // SC 13D + SC 13G + amendments
+  for (const formType of ['SC%2013D', 'SC%2013G', 'SC%2013D%2FA', 'SC%2013G%2FA']) {
+    try {
+      const url = `https://efts.sec.gov/LATEST/search-index?forms=${formType}&dateRange=custom&startdt=${weekAgo}&enddt=${today}`;
+      const res = await pacedFetch(url, 8000);
+      if (!res.ok) continue;
+      const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; ciks?: string[] }; _id?: string }> } };
+      const hits = data?.hits?.hits ?? [];
+      for (const hit of hits.slice(0, 15)) {
+        const src = hit._source;
+        const accession = hit._id?.split(':')[0] ?? '';
+        const cik = src?.ciks?.[0] ?? '';
+        const issuerName = src?.display_names?.[0] ?? '';
+        const filedDate = src?.file_date ?? today;
+        if (!accession || !cik) continue;
+        const accessionPath = accession.replace(/-/g, '');
+        entries.push({
+          title: issuerName,
+          link: `https://www.sec.gov/Archives/edgar/data/${cik}/${accessionPath}/${accession}-index.htm`,
+          accession, accessionPath, cik,
+          updatedAt: filedDate, filedDate,
+        });
+      }
+    } catch { /* skip form */ }
+  }
+  logger.info('edgar.efts.ownership', 'fetched', { entries: entries.length, durationMs: Date.now() - start });
+  return entries;
 }
 
 function parse13xText(text: string, meta: { accession: string; filingUrl: string; filedAt: string; issuerName: string; ticker: string | null; cik: string; formType: OwnershipAlert['formType'] }): OwnershipAlert | null {
