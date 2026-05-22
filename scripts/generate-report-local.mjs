@@ -56,25 +56,55 @@ const TARGET_LANG = LOCALE_LANG[localeArg] ?? 'Korean';
 const CJK_LOCALES = new Set(['ko', 'ja', 'zh-CN', 'zh-TW', 'zh']);
 
 const CANDIDATE_TICKERS = [
-  'NVDA','MSFT','AAPL','META','GOOGL','AMZN','TSLA','KLAC','AMD','JPM','V','UNH','XOM','GS','BAC',
-  // AI infra / semicon — ASML·TSM 만성 UNDEF 해결 (보고서 63%·52% 출현인데 후보 누락)
-  'TSM','ASML','AVGO','AMAT','LRCX',
+  // Mag7 + 메가 Tech
+  'NVDA','MSFT','AAPL','META','GOOGL','AMZN','TSLA','NFLX','ADBE','CRM',
+  // 반도체 / AI infra
+  'TSM','ASML','AVGO','AMAT','LRCX','KLAC','AMD','MU','MRVL','QCOM','ARM',
+  'SMCI','DELL','ANET','SNPS','CDNS','INTC',
+  // SW / Cloud / Security (high momentum)
+  'PLTR','SNOW','DDOG','NET','CRWD','PANW','ZS','OKTA','MDB','FTNT',
+  // Fintech / Consumer
+  'V','MA','COIN','HOOD','SOFI','AFRM','SQ','PYPL',
+  // 금융 / 보험
+  'JPM','BAC','GS','MS','WFC','C','BLK','SCHW','BRK-B',
+  // 헬스케어 (defensive + biotech upside)
+  'UNH','LLY','NVO','JNJ','PFE','MRNA','REGN','VRTX','GILD',
+  // 산업/방산 (Buffett-style)
+  'LMT','RTX','NOC','GE','BA','CAT','DE','HON','UNP',
+  // Consumer Disc (Sharpe 5.13 — boost)
+  'COST','HD','LOW','MCD','SBUX','NKE','TGT','BKNG',
+  // Consumer Staples (defensive)
+  'WMT','KO','PEP','PG','MO',
+  // Materials (Sharpe 2.79 — boost)
+  'FCX','NEM','ALB','LIN','APD','MP',
+  // Energy
+  'XOM','CVX','COP','EOG','OXY',
+  // Utilities (defensive yield)
+  'NEE','DUK','SO',
   // Recent IPO / high-signal
-  'CRWV','APP','ARM','MU','MRVL','SMCI','DDOG','NET','ANET','PLTR',
-  // Defense / pharma
-  'LMT','RTX','NOC','LLY','MRNA','COIN',
-  // ETFs / indices
-  'SPY','QQQ','GLD','TLT','USO','IWM','XLE','XLK','XLF','XLV',
-  'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA',
-  'BITO','SLV','DBA',
-  // KR
+  'CRWV','APP',
+  // === ETFs / Sector Rotation ===
+  // 주요 인덱스
+  'SPY','QQQ','VOO','VTI','IWM','DIA',
+  // 섹터 ETF (rotation 트리거용)
+  'XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLB','XLRE',
+  // 해외 ETF
+  'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA','MCHI','EZA',
+  // 자산
+  'GLD','SLV','TLT','SHY','USO','UNG','DBA','BITO','VXX',
+  // === KR ===
   '005930.KS','000660.KS','373220.KS','005380.KS','035420.KS',
   '035720.KS','207940.KS','051910.KS','005490.KS','000270.KS',
+  '003550.KS','068270.KS','105560.KS','028260.KS','012450.KS',
+  '009150.KS','032830.KS','015760.KS','006400.KS','017670.KS',
 ];
 const KR_NAMES = {
   '005930.KS':'삼성전자','000660.KS':'SK하이닉스','373220.KS':'LG에너지솔루션',
   '005380.KS':'현대차','035420.KS':'NAVER','035720.KS':'카카오',
   '207940.KS':'삼성바이오로직스','051910.KS':'LG화학','005490.KS':'POSCO홀딩스','000270.KS':'기아',
+  '003550.KS':'LG','068270.KS':'셀트리온','105560.KS':'KB금융','028260.KS':'삼성물산',
+  '012450.KS':'한화에어로스페이스','009150.KS':'삼성전기','032830.KS':'삼성생명',
+  '015760.KS':'한국전력','006400.KS':'삼성SDI','017670.KS':'SK텔레콤',
 };
 const INDEX_TICKERS = new Set([
   '^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11',
@@ -2827,9 +2857,13 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     getGuruContext(),
     '',
     '** OBJECTIVE: ALPHA GENERATION — Beat the index (S&P 500). **',
-    '** Passive ETFs (SPY/QQQ/VTI) and bonds combined ≤ 20% total. **',
-    '** Concentrate on HIGH-CONVICTION individual stocks. **',
+    '** Sector ETF rotation 권장 (sector-tilt 알파): VIX>20 → XLP/XLU/XLV (defensive) / VIX<14 → XLK/XLY (cyclical) **',
+    '** Sector ETF (XLK/XLE/XLF/XLV/XLI/XLY/XLP/XLU/XLB/XLRE) 1-2개 포함 권장 (sector rotation, 10-15% each) **',
+    '** Passive 인덱스 ETF (SPY/QQQ/VTI) + bonds ≤ 20% total **',
     '** Minimum 5 individual stocks, each ≥ 10% allocation. **',
+    '** ⚠️ Tech 종목 (NVDA/MSFT/META/GOOGL/TSM/ASML/KLAC/AMD/MU) 합계 ≤ 50% allocation (Tech 집중 회피, sector Sharpe 비교: Consumer Disc 5.13 > Materials 2.79 > Tech 2.17) **',
+    '** 통계적으로 약한 종목 회피: MSFT (n=8, hit 0%), KLAC (n=16, hit 6%) — 우선순위 낮춤 **',
+    '** 통계적으로 강한 종목 우선: TSLA (5/5 hit, +16.5%), 005380.KS 현대차 (4/5, +10.7%), 005490.KS POSCO (4/5, +52%) **',
     '',
     recentTickers.length ? `[ROTATION — recent 3 reports used: ${recentTickers.join(', ')}]` : '',
     'ROTATION RULE: Include ≥2 tickers NOT in the recent list above. Avoid using the same 6 tickers every session.',
