@@ -1508,6 +1508,73 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
 }
 
 /**
+ * 강제 rotation — 최근 5개 보고서 ticker와 5개+ 겹치면 boost-list에서 신규 ticker 강제 추가.
+ * "맨날 같은 종목" 문제 해결 (NVDA/TSM/ASML/000660 가 100% 반복되는 현상).
+ */
+function enforceRotation(portfolio, livePrices) {
+  try {
+    const dir = resolve(import.meta.dirname ?? '.', '..', 'reports');
+    const files = readdirSync(dir).filter(f => f.endsWith('-ko.json')).sort().slice(-5);
+    const recentTickers = new Set();
+    for (const f of files) {
+      try {
+        const r = JSON.parse(readFileSync(resolve(dir, f), 'utf8'));
+        for (const p of r.portfolio ?? []) if (p.ticker) recentTickers.add(p.ticker);
+      } catch { /* skip */ }
+    }
+    const currentTickers = new Set(portfolio.map(p => p.ticker));
+    const overlap = [...currentTickers].filter(t => recentTickers.has(t)).length;
+    if (overlap < 5) return portfolio; // 충분히 새로움
+
+    // boost-list 중 portfolio 에 없는 ticker
+    let boostList = [];
+    try {
+      const raw = readFileSync(resolve(ROOT, 'data/boost-list.json'), 'utf8');
+      boostList = JSON.parse(raw).filter(b => livePrices.has(b.ticker) && !currentTickers.has(b.ticker));
+    } catch { /* skip */ }
+    if (!boostList.length) return portfolio;
+
+    // 가장 약한 종목 1-2개를 boost-list 종목으로 교체
+    // 약한 종목 = action=watch + 최근 5보고서 모두 출현 + allocation 작음
+    const candidates = portfolio
+      .map((p, idx) => ({ p, idx, recentCount: [...recentTickers].filter(t => t === p.ticker).length, watch: p.action === 'watch' }))
+      .filter(c => recentTickers.has(c.p.ticker))
+      .sort((a, b) => (b.watch ? 1 : 0) - (a.watch ? 1 : 0) || (a.p.allocation ?? 0) - (b.p.allocation ?? 0));
+    if (!candidates.length) return portfolio;
+
+    const replaceCount = Math.min(2, boostList.length, candidates.length);
+    const updated = [...portfolio];
+    for (let i = 0; i < replaceCount; i++) {
+      const oldP = candidates[i].p;
+      const boost = boostList[i];
+      const pd = livePrices.get(boost.ticker);
+      if (!pd?.price) continue;
+      const isKR = boost.ticker.endsWith('.KS');
+      const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
+      const actual = pd.price;
+      console.warn(`  🔄 rotation: ${oldP.ticker} → ${boost.ticker} (boost-list, avg_pnl ${boost.avg_pnl}%)`);
+      updated[candidates[i].idx] = {
+        ticker: boost.ticker,
+        name: boost.ticker,
+        sector: 'Technology',
+        market: isKR ? 'korea' : 'us',
+        rationale: `BOOST: ${boost.reason}`,
+        allocation: oldP.allocation ?? 10,
+        entryZone: `${fmt(actual * 0.98)}-${fmt(actual * 1.01)}`,
+        entryRationale: `boost-list — 과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}%`,
+        stopLoss: fmt(actual * 0.93),
+        target: fmt(actual * 1.10),
+        targetBull: fmt(actual * 1.20),
+        targetRationale: '과거 성과 기반 보수적 target',
+        confidence: 'medium',
+        action: 'buy',
+      };
+    }
+    return updated;
+  } catch (e) { console.warn('  ⚠️ enforceRotation 실패:', e.message); return portfolio; }
+}
+
+/**
  * 구루 분할 매매 시스템 — Lynch ladder entry + Klarman ladder exit + Druckenmiller trailing.
  * LLM이 entryZone + target 만 정하고, 시스템이 3단계 ladder 자동 생성.
  * "위에서 물리는" 위험 방지: 30/40/30 분할 진입 + 33/33/34 분할 매도.
@@ -3593,6 +3660,8 @@ async function generateViaOllama() {
   finalReport.harnessAudit = applyLocalHarness(finalReport, livePrices);
   // 2차 클램프: harness 가 zone 을 덮어쓴 경우 다시 시장가 기준으로 보정 (도달 불가 zone 방지).
   finalReport.portfolio = validateEntryZones(finalReport.portfolio, livePrices);
+  // 강제 rotation — 최근 5보고서와 5+ 종목 겹치면 boost-list 종목으로 교체
+  finalReport.portfolio = enforceRotation(finalReport.portfolio, livePrices);
   // 구루 분할 매매 ladder 자동 생성 (entry 30/40/30 + exit 33/33/34 + trailing)
   finalReport.portfolio = buildLadders(finalReport.portfolio, livePrices);
 
