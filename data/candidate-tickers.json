@@ -1,0 +1,3813 @@
+{
+  "generatedAt": "2026-05-22T02:12:52.554Z",
+  "total": 462,
+  "byBand": {
+    "titan": 5,
+    "mega": 106,
+    "large": 287,
+    "etf": 35,
+    "kr": 29
+  },
+  "tickers": [
+    "AAPL",
+    "BRK.B",
+    "NVDA",
+    "TSM",
+    "GOOGL",
+    "UNH",
+    "JNJ",
+    "ABT",
+    "TMO",
+    "DHR",
+    "SYK",
+    "ISRG",
+    "MDT",
+    "CI",
+    "ELV",
+    "CAT",
+    "HON",
+    "UNP",
+    "UPS",
+    "DE",
+    "GE",
+    "ETN",
+    "PH",
+    "DIS",
+    "NFLX",
+    "CMCSA",
+    "TMUS",
+    "ATVI",
+    "AMT",
+    "PLD",
+    "EQIX",
+    "LIN",
+    "APD",
+    "SHW",
+    "ECL",
+    "DUK",
+    "SO",
+    "HD",
+    "MCD",
+    "NKE",
+    "LOW",
+    "SBUX",
+    "TJX",
+    "BKNG",
+    "MAR",
+    "HLT",
+    "CMG",
+    "ORLY",
+    "AZO",
+    "CRM",
+    "ACN",
+    "ADBE",
+    "CSCO",
+    "INTU",
+    "ADP",
+    "FI",
+    "PANW",
+    "ANET",
+    "BAC",
+    "WFC",
+    "C",
+    "AXP",
+    "MMC",
+    "CB",
+    "CME",
+    "PM",
+    "MDLZ",
+    "MRK",
+    "AZN",
+    "SNY",
+    "V",
+    "MA",
+    "RTX",
+    "AMD",
+    "UBER",
+    "MCK",
+    "COR",
+    "ABNB",
+    "SPOT",
+    "PAYX",
+    "VEEV",
+    "TTD",
+    "APP",
+    "MELI",
+    "NU",
+    "BABA",
+    "INFY",
+    "NVS",
+    "BHP",
+    "RIO",
+    "VALE",
+    "TM",
+    "ASML",
+    "ORCL",
+    "TSLA",
+    "LLY",
+    "NVO",
+    "AVGO",
+    "ABBV",
+    "PG",
+    "KO",
+    "PEP",
+    "WMT",
+    "COST",
+    "JPM",
+    "GS",
+    "MS",
+    "BLK",
+    "XOM",
+    "CVX",
+    "NEE",
+    "BMY",
+    "HCA",
+    "ZTS",
+    "BSX",
+    "BDX",
+    "EW",
+    "DXCM",
+    "IDXX",
+    "A",
+    "IQV",
+    "MTD",
+    "HOLX",
+    "ALGN",
+    "RMD",
+    "COO",
+    "WST",
+    "MMM",
+    "ITW",
+    "EMR",
+    "CTAS",
+    "FAST",
+    "ODFL",
+    "NSC",
+    "CSX",
+    "WM",
+    "RSG",
+    "VRSK",
+    "IR",
+    "ROK",
+    "DOV",
+    "AME",
+    "FTV",
+    "HUBB",
+    "TT",
+    "PWR",
+    "PCAR",
+    "CPRT",
+    "TDG",
+    "DAL",
+    "UAL",
+    "CDW",
+    "CDAY",
+    "ZI",
+    "PTC",
+    "TDC",
+    "LOGI",
+    "STM",
+    "COHR",
+    "MKSI",
+    "LAZ",
+    "WU",
+    "HRB",
+    "NSP",
+    "GPS",
+    "URBN",
+    "GTLS",
+    "DCI",
+    "GLPI",
+    "NXST",
+    "FYBR",
+    "FLO",
+    "ABG",
+    "T",
+    "VZ",
+    "CHTR",
+    "EA",
+    "TTWO",
+    "OMC",
+    "LYV",
+    "RBLX",
+    "CCI",
+    "PSA",
+    "O",
+    "WELL",
+    "DLR",
+    "SPG",
+    "VICI",
+    "AVB",
+    "EQR",
+    "ARE",
+    "MAA",
+    "INVH",
+    "VTR",
+    "FCX",
+    "NEM",
+    "NUE",
+    "STLD",
+    "VMC",
+    "MLM",
+    "DD",
+    "DOW",
+    "PPG",
+    "CF",
+    "BALL",
+    "AVY",
+    "D",
+    "AEP",
+    "SRE",
+    "EXC",
+    "XEL",
+    "ED",
+    "WEC",
+    "ES",
+    "DTE",
+    "PPL",
+    "CMS",
+    "AEE",
+    "FE",
+    "ATO",
+    "AWK",
+    "ROST",
+    "DHI",
+    "LEN",
+    "PHM",
+    "NVR",
+    "GPC",
+    "BBY",
+    "DRI",
+    "YUM",
+    "DPZ",
+    "LVS",
+    "GRMN",
+    "DECK",
+    "LULU",
+    "EBAY",
+    "CCL",
+    "RCL",
+    "IBM",
+    "FISV",
+    "CDNS",
+    "SNPS",
+    "ANSS",
+    "FTNT",
+    "ZS",
+    "KEYS",
+    "HPE",
+    "HPQ",
+    "DELL",
+    "CTSH",
+    "USB",
+    "PNC",
+    "TFC",
+    "COF",
+    "AON",
+    "AIG",
+    "MET",
+    "PRU",
+    "AFL",
+    "ALL",
+    "TRV",
+    "HIG",
+    "NDAQ",
+    "MSCI",
+    "MO",
+    "STZ",
+    "K",
+    "HSY",
+    "MNST",
+    "KDP",
+    "SYY",
+    "KR",
+    "EL",
+    "GSK",
+    "BIIB",
+    "OXY",
+    "PSX",
+    "MPC",
+    "VLO",
+    "HES",
+    "DVN",
+    "FANG",
+    "HAL",
+    "BKR",
+    "TRGP",
+    "WMB",
+    "KMI",
+    "OKE",
+    "HWM",
+    "ALB",
+    "COIN",
+    "SMCI",
+    "MSFT",
+    "AMZN",
+    "GOOG",
+    "META",
+    "INTC",
+    "F",
+    "GM",
+    "TGT",
+    "PYPL",
+    "CVS",
+    "HUM",
+    "CARR",
+    "OTIS",
+    "CAH",
+    "MOH",
+    "CNC",
+    "FDX",
+    "JBHT",
+    "XPO",
+    "KHC",
+    "TSN",
+    "DG",
+    "DLTR",
+    "ULTA",
+    "DASH",
+    "SNAP",
+    "PINS",
+    "XYZ",
+    "GPN",
+    "HUBS",
+    "DT",
+    "ROKU",
+    "GTLB",
+    "OVV",
+    "CTRA",
+    "MRO",
+    "COLD",
+    "WPC",
+    "NNN",
+    "RPM",
+    "TOL",
+    "RJF",
+    "VOYA",
+    "LPLA",
+    "SE",
+    "CPNG",
+    "TCOM",
+    "HMC",
+    "STLA",
+    "LI",
+    "LKQ",
+    "EQT",
+    "NTES",
+    "GRAB",
+    "GOLD",
+    "AEM",
+    "WPM",
+    "CCJ",
+    "MSTR",
+    "QSR",
+    "TXRH",
+    "DKNG",
+    "UTHR",
+    "PODD",
+    "SRPT",
+    "ICLR",
+    "ACM",
+    "TDY",
+    "GGG",
+    "PCOR",
+    "PSTG",
+    "BURL",
+    "EG",
+    "RYAN",
+    "SCI",
+    "MU",
+    "AMAT",
+    "LRCX",
+    "KLAC",
+    "6752.T",
+    "1211.HK",
+    "LMT",
+    "NOC",
+    "BA.L",
+    "LHX",
+    "PFE",
+    "REGN",
+    "VRTX",
+    "QCOM",
+    "TXN",
+    "ADI",
+    "NOW",
+    "GD",
+    "AMGN",
+    "GILD",
+    "CL",
+    "GIS",
+    "KMB",
+    "SPGI",
+    "SCHW",
+    "ICE",
+    "COP",
+    "SLB",
+    "EOG",
+    "ENB",
+    "LNG",
+    "SPY",
+    "QQQ",
+    "VOO",
+    "VTI",
+    "IWM",
+    "DIA",
+    "XLK",
+    "XLE",
+    "XLF",
+    "XLV",
+    "XLI",
+    "XLY",
+    "XLP",
+    "XLU",
+    "XLB",
+    "XLRE",
+    "EWY",
+    "EWJ",
+    "FXI",
+    "VGK",
+    "INDA",
+    "EWT",
+    "EWZ",
+    "EWA",
+    "MCHI",
+    "EZA",
+    "GLD",
+    "SLV",
+    "TLT",
+    "SHY",
+    "USO",
+    "UNG",
+    "DBA",
+    "BITO",
+    "VXX",
+    "005930.KS",
+    "000660.KS",
+    "373220.KS",
+    "005380.KS",
+    "035420.KS",
+    "035720.KS",
+    "207940.KS",
+    "051910.KS",
+    "005490.KS",
+    "000270.KS",
+    "003550.KS",
+    "068270.KS",
+    "105560.KS",
+    "028260.KS",
+    "012450.KS",
+    "009150.KS",
+    "032830.KS",
+    "015760.KS",
+    "006400.KS",
+    "017670.KS",
+    "055550.KS",
+    "086790.KS",
+    "316140.KS",
+    "030200.KS",
+    "009540.KS",
+    "010130.KS",
+    "034730.KS",
+    "096770.KS",
+    "000810.KS"
+  ],
+  "meta": {
+    "UNH": {
+      "name": "UnitedHealthcare",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "JNJ": {
+      "name": "Innovative Medicine",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "ABT": {
+      "name": "Medical Devices",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "TMO": {
+      "name": "Life Sciences Solutions",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "DHR": {
+      "name": "Biotechnology",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "BMY": {
+      "name": "Eliquis",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "SYK": {
+      "name": "MedSurg & Neurotechnology",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "ISRG": {
+      "name": "da Vinci Systems",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "MDT": {
+      "name": "Cardiovascular",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "CI": {
+      "name": "Evernorth Health Services",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "ELV": {
+      "name": "Health Benefits",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "HCA": {
+      "name": "Inpatient Services",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "ZTS": {
+      "name": "Companion Animal Products",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "BSX": {
+      "name": "Cardiovascular",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "BDX": {
+      "name": "BD Medical",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "EW": {
+      "name": "TAVR (SAPIEN)",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "DXCM": {
+      "name": "Dexcom G7",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "IDXX": {
+      "name": "Companion Animal Diagnostics",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "A": {
+      "name": "Life Sciences & Applied Markets",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "IQV": {
+      "name": "Technology & Analytics",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "MTD": {
+      "name": "Laboratory Instruments",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "HOLX": {
+      "name": "Diagnostics",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "ALGN": {
+      "name": "Invisalign Clear Aligners",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "RMD": {
+      "name": "CPAP/BiPAP Devices",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "COO": {
+      "name": "CooperVision",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "TECH": {
+      "name": "Protein Sciences",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "WAT": {
+      "name": "LC Systems",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "BIO": {
+      "name": "Life Science Research",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "HSIC": {
+      "name": "Dental Distribution",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "WST": {
+      "name": "Proprietary Products",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "CAT": {
+      "name": "Construction Industries",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "HON": {
+      "name": "Aerospace",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "UNP": {
+      "name": "Bulk Freight",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "UPS": {
+      "name": "US Domestic Package",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "DE": {
+      "name": "Production & Precision Agriculture",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "GE": {
+      "name": "Commercial Engines & Services",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "MMM": {
+      "name": "Safety & Industrial",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "ETN": {
+      "name": "Electrical Americas",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "ITW": {
+      "name": "Automotive OEM",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "EMR": {
+      "name": "Intelligent Devices",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "PH": {
+      "name": "Diversified Industrial NA",
+      "sector": "industrials",
+      "cap": "mega"
+    },
+    "CTAS": {
+      "name": "Uniform Rental & Facility Services",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "FAST": {
+      "name": "Fasteners",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "ODFL": {
+      "name": "LTL Shipping",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "NSC": {
+      "name": "Intermodal",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "CSX": {
+      "name": "Merchandise",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "WM": {
+      "name": "Collection",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "RSG": {
+      "name": "Collection",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "VRSK": {
+      "name": "Insurance Solutions",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "IR": {
+      "name": "Industrial Technologies",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "ROK": {
+      "name": "Intelligent Devices",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "DOV": {
+      "name": "Engineered Products",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "SWK": {
+      "name": "Tools & Outdoor",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "AME": {
+      "name": "Electronic Instruments",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "GNRC": {
+      "name": "Residential Products",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "NDSN": {
+      "name": "Industrial Precision Solutions",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "FTV": {
+      "name": "Intelligent Operating Solutions",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "HUBB": {
+      "name": "Utility Solutions",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "TT": {
+      "name": "Commercial HVAC",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "PWR": {
+      "name": "Electric Power",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "PCAR": {
+      "name": "Kenworth Trucks",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "CPRT": {
+      "name": "Vehicle Auction Services",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "LII": {
+      "name": "Home Comfort Solutions",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "SNA": {
+      "name": "Tools Group",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "TDG": {
+      "name": "Actuators & Controls (Power & Control)",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "ALLE": {
+      "name": "Mechanical Locks & Hardware",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "AOS": {
+      "name": "North America Water Heating",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "CHRW": {
+      "name": "NAST Truckload",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "DAL": {
+      "name": "Passenger Revenue - Domestic",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "LUV": {
+      "name": "Passenger Revenue",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "AAL": {
+      "name": "Mainline Passenger",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "UAL": {
+      "name": "Domestic Passenger",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "CDW": {
+      "name": "Hardware Solutions",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "CDAY": {
+      "name": "Dayforce HCM Platform",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "ZI": {
+      "name": "ZoomInfo SalesOS",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "PTC": {
+      "name": "Creo (CAD/CAM)",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "TDC": {
+      "name": "Teradata Vantage (Cloud)",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "FARO": {
+      "name": "3D Laser Scanners",
+      "sector": "technology",
+      "cap": "small"
+    },
+    "LOGI": {
+      "name": "PC Peripherals (Mice, Keyboards)",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "STM": {
+      "name": "Microcontrollers (STM32)",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "COHR": {
+      "name": "Transceiver Modules (Datacom)",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "MKSI": {
+      "name": "Vacuum & Gas Control",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "ALGM": {
+      "name": "Current Sensors",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "AEIS": {
+      "name": "Semiconductor Power Supplies",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "FORM": {
+      "name": "Probe Cards (Foundry & Logic)",
+      "sector": "semiconductors",
+      "cap": "small"
+    },
+    "ACMR": {
+      "name": "SAPS / TEBO Cleaning Systems",
+      "sector": "semiconductors",
+      "cap": "small"
+    },
+    "CERT": {
+      "name": "Phoenix PK/PD Software",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "MEDP": {
+      "name": "Full-Service CRO",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "TMDX": {
+      "name": "Organ Care System (OCS) — Heart",
+      "sector": "healthcare",
+      "cap": "small"
+    },
+    "IRTC": {
+      "name": "Zio Patch (Long-term ECG)",
+      "sector": "healthcare",
+      "cap": "small"
+    },
+    "RXRX": {
+      "name": "Recursion OS (Drug Discovery Platform)",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "DNLI": {
+      "name": "LRRK2 Inhibitors (Parkinson",
+      "sector": "healthcare",
+      "cap": "small"
+    },
+    "AXSM": {
+      "name": "Auvelity (MDD)",
+      "sector": "healthcare",
+      "cap": "small"
+    },
+    "ACAD": {
+      "name": "Nuplazid (Parkinson",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "INSM": {
+      "name": "ARIKAYCE (MAC lung disease)",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "GKOS": {
+      "name": "iStent (MIGS)",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "RARE": {
+      "name": "Mepsevii (MPS VII)",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "IMVT": {
+      "name": "Batoclimab (IMVT-1402)",
+      "sector": "healthcare",
+      "cap": "small"
+    },
+    "LAZ": {
+      "name": "Financial Advisory (M&A, Restructuring)",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "SLM": {
+      "name": "Private Student Loans",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "NAVI": {
+      "name": "Federal Student Loan Servicing",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "WU": {
+      "name": "Consumer-to-Consumer (C2C) Transfers",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "COOP": {
+      "name": "Mortgage Servicing (MSR)",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "HRB": {
+      "name": "Assisted Tax Prep (Retail)",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "NSP": {
+      "name": "Workforce Solutions (PEO)",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "GPS": {
+      "name": "Old Navy",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "URBN": {
+      "name": "Anthropologie",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "BOOT": {
+      "name": "Western Wear & Boots",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "SFM": {
+      "name": "Fresh Produce & Bulk Foods",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "WING": {
+      "name": "Chicken Wings (12 flavors)",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "BROS": {
+      "name": "Drive-Thru Coffee & Energy Drinks",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "SHAK": {
+      "name": "ShackBurgers & Chicken Shack",
+      "sector": "consumer",
+      "cap": "small"
+    },
+    "DRVN": {
+      "name": "Maintenance (Take 5 Oil Change, Midas)",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "GTLS": {
+      "name": "Cryo Equipment & Heat Exchangers",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "DCI": {
+      "name": "Engine Filtration",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "CSWI": {
+      "name": "HVAC/R Products (RectorSeal, Whitmore)",
+      "sector": "industrials",
+      "cap": "small"
+    },
+    "REVG": {
+      "name": "Fire & Emergency Vehicles",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "ENSG": {
+      "name": "Skilled Nursing Facilities (SNF)",
+      "sector": "healthcare",
+      "cap": "mid"
+    },
+    "CNX": {
+      "name": "Appalachian Natural Gas (Marcellus/Utica)",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "CIVI": {
+      "name": "DJ Basin Oil (Colorado)",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "GLPI": {
+      "name": "Regional Gaming Casino Net Leases",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "EPRT": {
+      "name": "Single-Tenant Net Lease Properties",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "ADC": {
+      "name": "Retail Net Lease Properties (Ground Leases, NNN)",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "IIPR": {
+      "name": "Cannabis Cultivation & Processing Leases",
+      "sector": "real-estate",
+      "cap": "small"
+    },
+    "NXST": {
+      "name": "Local TV Stations (200 markets)",
+      "sector": "media",
+      "cap": "large"
+    },
+    "AMCX": {
+      "name": "AMC (Linear Cable Channel)",
+      "sector": "media",
+      "cap": "mid"
+    },
+    "FYBR": {
+      "name": "Fiber Broadband (Frontier Fiber)",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "SSYS": {
+      "name": "FDM Printers (Fortus, F123)",
+      "sector": "technology",
+      "cap": "small"
+    },
+    "FLO": {
+      "name": "Nature",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "CAKE": {
+      "name": "Cheesecake Factory Restaurants",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "ABG": {
+      "name": "New Vehicle Sales",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "DIS": {
+      "name": "Disney+",
+      "sector": "communication-services",
+      "cap": "mega"
+    },
+    "NFLX": {
+      "name": "Subscription Streaming",
+      "sector": "communication-services",
+      "cap": "mega"
+    },
+    "CMCSA": {
+      "name": "Xfinity Broadband & Cable",
+      "sector": "communication-services",
+      "cap": "mega"
+    },
+    "T": {
+      "name": "Wireless (Mobility)",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "VZ": {
+      "name": "Consumer Wireless",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "TMUS": {
+      "name": "Postpaid Wireless",
+      "sector": "communication-services",
+      "cap": "mega"
+    },
+    "CHTR": {
+      "name": "Spectrum Internet",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "EA": {
+      "name": "EA Sports FC",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "TTWO": {
+      "name": "Grand Theft Auto Series",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "ATVI": {
+      "name": "Call of Duty",
+      "sector": "communication-services",
+      "cap": "mega"
+    },
+    "WBD": {
+      "name": "Max Streaming",
+      "sector": "communication-services",
+      "cap": "mid"
+    },
+    "PARA": {
+      "name": "Paramount+",
+      "sector": "communication-services",
+      "cap": "mid"
+    },
+    "FOX": {
+      "name": "Fox News Channel",
+      "sector": "communication-services",
+      "cap": "mid"
+    },
+    "FOXA": {
+      "name": "Fox News Channel",
+      "sector": "communication-services",
+      "cap": "mid"
+    },
+    "OMC": {
+      "name": "Advertising",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "IPG": {
+      "name": "Integrated Advertising",
+      "sector": "communication-services",
+      "cap": "mid"
+    },
+    "LYV": {
+      "name": "Concerts & Events",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "MTCH": {
+      "name": "Tinder",
+      "sector": "communication-services",
+      "cap": "mid"
+    },
+    "RBLX": {
+      "name": "Roblox Platform",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "AMT": {
+      "name": "US Tower Leasing",
+      "sector": "real-estate",
+      "cap": "mega"
+    },
+    "PLD": {
+      "name": "Logistics Facilities Leasing",
+      "sector": "real-estate",
+      "cap": "mega"
+    },
+    "CCI": {
+      "name": "Towers",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "EQIX": {
+      "name": "Colocation",
+      "sector": "real-estate",
+      "cap": "mega"
+    },
+    "PSA": {
+      "name": "Self-Storage Rental",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "O": {
+      "name": "Single-Tenant Net Lease Retail",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "WELL": {
+      "name": "Senior Housing Operating",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "DLR": {
+      "name": "Colocation & Interconnection",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "SPG": {
+      "name": "Malls & Premium Outlets",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "VICI": {
+      "name": "Gaming Properties",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "AVB": {
+      "name": "Apartment Communities",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "EQR": {
+      "name": "Urban Apartments",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "ARE": {
+      "name": "Life Science Campuses",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "MAA": {
+      "name": "Sunbelt Apartments",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "UDR": {
+      "name": "Apartment Communities",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "ESS": {
+      "name": "West Coast Apartments",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "INVH": {
+      "name": "Single-Family Home Rentals",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "CPT": {
+      "name": "Sunbelt Apartment Communities",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "VTR": {
+      "name": "Senior Housing Operating",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "KIM": {
+      "name": "Grocery-Anchored Shopping Centers",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "REG": {
+      "name": "Grocery-Anchored Neighborhood Centers",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "HST": {
+      "name": "Luxury & Upper-Upscale Hotels",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "PEAK": {
+      "name": "Life Science Properties",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "BXP": {
+      "name": "Class-A Office Space",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "SLG": {
+      "name": "Manhattan Office Buildings",
+      "sector": "real-estate",
+      "cap": "mid"
+    },
+    "LIN": {
+      "name": "Atmospheric Gases",
+      "sector": "materials",
+      "cap": "mega"
+    },
+    "APD": {
+      "name": "Industrial Gases",
+      "sector": "materials",
+      "cap": "mega"
+    },
+    "SHW": {
+      "name": "Paint Stores Group",
+      "sector": "materials",
+      "cap": "mega"
+    },
+    "ECL": {
+      "name": "Global Industrial",
+      "sector": "materials",
+      "cap": "mega"
+    },
+    "FCX": {
+      "name": "Copper Concentrate & Cathode",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "NEM": {
+      "name": "Gold",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "NUE": {
+      "name": "Steel Mills Products",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "STLD": {
+      "name": "Steel Operations",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "VMC": {
+      "name": "Aggregates",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "MLM": {
+      "name": "Aggregates",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "DD": {
+      "name": "Electronics & Industrial",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "DOW": {
+      "name": "Packaging & Specialty Plastics",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "PPG": {
+      "name": "Performance Coatings",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "CE": {
+      "name": "Engineered Materials",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "EMN": {
+      "name": "Advanced Materials",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "CF": {
+      "name": "Ammonia",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "MOS": {
+      "name": "Potash",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "IFF": {
+      "name": "Nourish",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "FMC": {
+      "name": "Insecticides",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "PKG": {
+      "name": "Corrugated Products",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "IP": {
+      "name": "Industrial Packaging",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "WRK": {
+      "name": "Corrugated Packaging",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "SEE": {
+      "name": "Food Packaging",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "BALL": {
+      "name": "Beverage Cans (Americas)",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "AVY": {
+      "name": "Label & Graphic Materials",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "DUK": {
+      "name": "Regulated Electric Generation",
+      "sector": "utilities",
+      "cap": "mega"
+    },
+    "SO": {
+      "name": "Regulated Electric Utilities",
+      "sector": "utilities",
+      "cap": "mega"
+    },
+    "D": {
+      "name": "Regulated Electric Generation & Distribution",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "AEP": {
+      "name": "Regulated Electric Generation",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "SRE": {
+      "name": "San Diego Gas & Electric",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "EXC": {
+      "name": "Electric Distribution",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "XEL": {
+      "name": "Regulated Electric Service",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "ED": {
+      "name": "Electric Distribution",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "WEC": {
+      "name": "Regulated Electric Utility",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "ES": {
+      "name": "Electric Distribution",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "DTE": {
+      "name": "DTE Electric",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "PPL": {
+      "name": "PPL Electric Utilities",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "CMS": {
+      "name": "Electric Utility",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "AEE": {
+      "name": "Ameren Missouri",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "EVRG": {
+      "name": "Electric Generation",
+      "sector": "utilities",
+      "cap": "mid"
+    },
+    "FE": {
+      "name": "Electric Distribution",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "ATO": {
+      "name": "Natural Gas Distribution",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "NI": {
+      "name": "Gas Distribution",
+      "sector": "utilities",
+      "cap": "mid"
+    },
+    "LNT": {
+      "name": "Interstate Power & Light (Iowa)",
+      "sector": "utilities",
+      "cap": "mid"
+    },
+    "PNW": {
+      "name": "Retail Electric Service",
+      "sector": "utilities",
+      "cap": "mid"
+    },
+    "AWK": {
+      "name": "Regulated Water Service",
+      "sector": "utilities",
+      "cap": "large"
+    },
+    "WTRG": {
+      "name": "Regulated Water",
+      "sector": "utilities",
+      "cap": "mid"
+    },
+    "HD": {
+      "name": "Building Materials & Décor",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "MCD": {
+      "name": "Franchised Restaurants",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "NKE": {
+      "name": "Footwear",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "LOW": {
+      "name": "Home Décor & Building Products",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "SBUX": {
+      "name": "Beverages",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "TJX": {
+      "name": "T.J. Maxx / Marshalls",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "BKNG": {
+      "name": "Booking.com",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "MAR": {
+      "name": "Luxury Brands",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "HLT": {
+      "name": "Management & Franchise",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "CMG": {
+      "name": "Restaurant Sales",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "ORLY": {
+      "name": "Professional Parts",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "AZO": {
+      "name": "DIY Auto Parts",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "ROST": {
+      "name": "Ross Dress for Less",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "DHI": {
+      "name": "Homebuilding",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "LEN": {
+      "name": "Homebuilding",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "PHM": {
+      "name": "Pulte Homes",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "NVR": {
+      "name": "Ryan Homes",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "GPC": {
+      "name": "Automotive Parts (NAPA)",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "POOL": {
+      "name": "Maintenance & Repair Products",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "BBY": {
+      "name": "Computing & Mobile",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "DRI": {
+      "name": "Olive Garden",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "YUM": {
+      "name": "KFC",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "DPZ": {
+      "name": "U.S. Franchise Operations",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "WYNN": {
+      "name": "Casino Operations",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "MGM": {
+      "name": "Casino Operations",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "CZR": {
+      "name": "Casino Operations",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "LVS": {
+      "name": "Casino Operations",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "GRMN": {
+      "name": "Fitness",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "DECK": {
+      "name": "HOKA",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "LULU": {
+      "name": "Women",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "EBAY": {
+      "name": "Marketplace",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "ETSY": {
+      "name": "Etsy Marketplace",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "W": {
+      "name": "Wayfair.com",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "KMX": {
+      "name": "Used Vehicle Sales",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "CCL": {
+      "name": "Carnival Cruise Line",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "RCL": {
+      "name": "Royal Caribbean International",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "NCLH": {
+      "name": "Norwegian Cruise Line",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "AAPL": {
+      "name": "iPhone",
+      "sector": "it-software",
+      "cap": "titan"
+    },
+    "CRM": {
+      "name": "Sales Cloud",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "ACN": {
+      "name": "Consulting",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "ADBE": {
+      "name": "Creative Cloud",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "CSCO": {
+      "name": "Secure Networking",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "IBM": {
+      "name": "Hybrid Cloud (Red Hat)",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "INTU": {
+      "name": "TurboTax",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "ADP": {
+      "name": "Employer Services",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "FI": {
+      "name": "Merchant Acceptance",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "FISV": {
+      "name": "Banking Solutions",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "CDNS": {
+      "name": "Custom IC Design",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "SNPS": {
+      "name": "EDA Tools",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "ANSS": {
+      "name": "Structures",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "FTNT": {
+      "name": "FortiGate Firewalls",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "PANW": {
+      "name": "Strata (Network Security)",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "ZS": {
+      "name": "Zscaler Internet Access (ZIA)",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "KEYS": {
+      "name": "Communications Solutions",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "ZBRA": {
+      "name": "Enterprise Visibility & Mobility",
+      "sector": "it-software",
+      "cap": "mid"
+    },
+    "TER": {
+      "name": "Semiconductor Test",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "TRMB": {
+      "name": "Buildings & Infrastructure",
+      "sector": "it-software",
+      "cap": "mid"
+    },
+    "JNPR": {
+      "name": "AI-Driven Enterprise",
+      "sector": "it-software",
+      "cap": "mid"
+    },
+    "ANET": {
+      "name": "Cloud Networking Switches",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "HPE": {
+      "name": "Server",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "HPQ": {
+      "name": "Personal Systems",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "DELL": {
+      "name": "Infrastructure Solutions Group",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "CTSH": {
+      "name": "Digital Business",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "EPAM": {
+      "name": "Digital Platform Engineering",
+      "sector": "it-software",
+      "cap": "mid"
+    },
+    "GEN": {
+      "name": "Norton Security",
+      "sector": "it-software",
+      "cap": "mid"
+    },
+    "WDC": {
+      "name": "Cloud Storage",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "STX": {
+      "name": "Mass Capacity Storage",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "BRK.B": {
+      "name": "Insurance (GEICO, Gen Re)",
+      "sector": "financials",
+      "cap": "titan"
+    },
+    "BAC": {
+      "name": "Consumer Banking",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "WFC": {
+      "name": "Consumer Banking & Lending",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "C": {
+      "name": "Services (TTS & Securities Services)",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "USB": {
+      "name": "Consumer & Business Banking",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "PNC": {
+      "name": "Retail Banking",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "TFC": {
+      "name": "Consumer Banking & Wealth",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "COF": {
+      "name": "Credit Card",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "AXP": {
+      "name": "Card Member Services",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "MMC": {
+      "name": "Marsh (Insurance Brokerage)",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "AON": {
+      "name": "Commercial Risk Solutions",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "CB": {
+      "name": "North America Commercial P&C",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "AIG": {
+      "name": "General Insurance",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "MET": {
+      "name": "Group Benefits",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "PRU": {
+      "name": "PGIM (Asset Management)",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "AFL": {
+      "name": "Aflac Japan",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "ALL": {
+      "name": "Allstate Protection",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "TRV": {
+      "name": "Business Insurance",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "HIG": {
+      "name": "Commercial Lines",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "BEN": {
+      "name": "Franklin Templeton Funds",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "IVZ": {
+      "name": "ETFs (QQQ)",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "NDAQ": {
+      "name": "Market Platforms",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "CME": {
+      "name": "Interest Rate Derivatives",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "MSCI": {
+      "name": "Index",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "PM": {
+      "name": "IQOS / Heated Tobacco",
+      "sector": "consumer-defensive",
+      "cap": "mega"
+    },
+    "MO": {
+      "name": "Marlboro (US)",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "STZ": {
+      "name": "Modelo Especial",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "TAP": {
+      "name": "Coors Light",
+      "sector": "consumer-defensive",
+      "cap": "mid"
+    },
+    "K": {
+      "name": "Pringles",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "SJM": {
+      "name": "Folgers & Café Bustelo",
+      "sector": "consumer-defensive",
+      "cap": "mid"
+    },
+    "HSY": {
+      "name": "Hershey",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "MDLZ": {
+      "name": "Oreo & Biscuits",
+      "sector": "consumer-defensive",
+      "cap": "mega"
+    },
+    "MNST": {
+      "name": "Monster Energy",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "KDP": {
+      "name": "Keurig Brewing Systems",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "CLX": {
+      "name": "Clorox Cleaning",
+      "sector": "consumer-defensive",
+      "cap": "mid"
+    },
+    "SYY": {
+      "name": "Broadline Distribution",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "KR": {
+      "name": "Kroger Supermarkets",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "WBA": {
+      "name": "Walgreens US Pharmacy",
+      "sector": "consumer-defensive",
+      "cap": "mid"
+    },
+    "EL": {
+      "name": "Estée Lauder & Clinique",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "MRK": {
+      "name": "Keytruda",
+      "sector": "pharma-biotech",
+      "cap": "mega"
+    },
+    "AZN": {
+      "name": "Oncology Portfolio",
+      "sector": "pharma-biotech",
+      "cap": "mega"
+    },
+    "SNY": {
+      "name": "Dupixent",
+      "sector": "pharma-biotech",
+      "cap": "mega"
+    },
+    "GSK": {
+      "name": "HIV (ViiV Healthcare)",
+      "sector": "pharma-biotech",
+      "cap": "large"
+    },
+    "VTRS": {
+      "name": "Branded Generics",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "OGN": {
+      "name": "Nexplanon",
+      "sector": "pharma-biotech",
+      "cap": "small"
+    },
+    "BIIB": {
+      "name": "Leqembi (lecanemab)",
+      "sector": "pharma-biotech",
+      "cap": "large"
+    },
+    "INCY": {
+      "name": "Jakafi (ruxolitinib)",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "OXY": {
+      "name": "Oil Production",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "PSX": {
+      "name": "Refined Petroleum Products",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "MPC": {
+      "name": "Refined Fuels",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "VLO": {
+      "name": "Refined Petroleum Products",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "HES": {
+      "name": "Guyana (Stabroek Block)",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "DVN": {
+      "name": "Delaware Basin Oil",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "FANG": {
+      "name": "Permian Basin Oil",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "HAL": {
+      "name": "Completion & Production",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "BKR": {
+      "name": "Oilfield Services & Equipment",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "TRGP": {
+      "name": "NGL Gathering & Processing",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "WMB": {
+      "name": "Transco Pipeline",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "KMI": {
+      "name": "Natural Gas Pipelines",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "OKE": {
+      "name": "NGL Gathering & Processing",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "HII": {
+      "name": "Nuclear Aircraft Carriers",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "HWM": {
+      "name": "Engine Products",
+      "sector": "defense",
+      "cap": "large"
+    },
+    "SAIC": {
+      "name": "Defense & Intelligence IT",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "PSN": {
+      "name": "Missile Defense & Space",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "RKLB": {
+      "name": "Electron Launch Vehicle",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "FSLR": {
+      "name": "Series 7 CdTe Modules",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "ENPH": {
+      "name": "IQ8 / IQ9 Microinverters",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "SEDG": {
+      "name": "DC-Optimized Inverter Systems",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "RUN": {
+      "name": "Residential Solar as a Service",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "ALB": {
+      "name": "Lithium Carbonate & Hydroxide",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "V": {
+      "name": "Consumer Payment Solutions",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "MA": {
+      "name": "Consumer Payments",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "COIN": {
+      "name": "Retail Trading Platform",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "MP": {
+      "name": "Rare Earth Concentrate (Stage I)",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "LAC": {
+      "name": "Thacker Pass Lithium Carbonate",
+      "sector": "materials",
+      "cap": "small"
+    },
+    "RTX": {
+      "name": "Pratt & Whitney Engines",
+      "sector": "defense",
+      "cap": "mega"
+    },
+    "LDOS": {
+      "name": "Defense Solutions",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "SMCI": {
+      "name": "AI GPU Servers (NVIDIA H/B Series)",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "AMD": {
+      "name": "EPYC Server CPUs",
+      "sector": "semiconductors",
+      "cap": "mega"
+    },
+    "MSFT": {
+      "name": "Amazon AWS",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "AMZN": {
+      "name": "Google Cloud",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "GOOG": {
+      "name": "Meta Platforms",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "META": {
+      "name": "Client (PC)",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "INTC": {
+      "name": "Core Ultra / Xeon CPUs",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "F": {
+      "name": "F-Series Trucks",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "GM": {
+      "name": "Chevrolet Silverado / GMC Sierra Trucks",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "TGT": {
+      "name": "Owned Brands (Cat & Jack, Good & Gather, Up&Up)",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "UBER": {
+      "name": "Uber Rides (Mobility)",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "PYPL": {
+      "name": "PayPal Checkout (Merchant Services)",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "CVS": {
+      "name": "Pharmacy Benefits (CVS Caremark)",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "HUM": {
+      "name": "Medicare Advantage (MA)",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "CARR": {
+      "name": "Commercial HVAC Systems",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "OTIS": {
+      "name": "New Equipment (Elevators & Escalators)",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "AA": {
+      "name": "Aluminum Smelting (Primary)",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "MCK": {
+      "name": "Pharmaceutical Distribution",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "CAH": {
+      "name": "Pharmaceutical Distribution",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "COR": {
+      "name": "Drug Distribution (US Healthcare Solutions)",
+      "sector": "healthcare",
+      "cap": "mega"
+    },
+    "MOH": {
+      "name": "Medicaid Managed Care",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "CNC": {
+      "name": "Medicaid Managed Care",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "FDX": {
+      "name": "FedEx Express",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "JBHT": {
+      "name": "Intermodal (JBI)",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "XPO": {
+      "name": "LTL North America",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "KHC": {
+      "name": "Condiments & Sauces",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "TSN": {
+      "name": "Chicken",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "DG": {
+      "name": "Consumables",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "DLTR": {
+      "name": "Dollar Tree Stores",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "ULTA": {
+      "name": "Cosmetics & Color",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "ABNB": {
+      "name": "Short-Term Rental Marketplace",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "DASH": {
+      "name": "US Food Delivery Marketplace",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "LYFT": {
+      "name": "Rideshare (US & Canada)",
+      "sector": "consumer-discretionary",
+      "cap": "mid"
+    },
+    "SNAP": {
+      "name": "Snapchat App",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "PINS": {
+      "name": "Pinterest Discovery Platform",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "SPOT": {
+      "name": "Premium Subscription",
+      "sector": "communication-services",
+      "cap": "mega"
+    },
+    "XYZ": {
+      "name": "Cash App",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "GPN": {
+      "name": "Merchant Solutions",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "PAYX": {
+      "name": "Payroll Processing",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "BILL": {
+      "name": "BILL Accounts Payable/Receivable",
+      "sector": "it-software",
+      "cap": "mid"
+    },
+    "VEEV": {
+      "name": "Veeva Commercial Cloud",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "HUBS": {
+      "name": "Marketing Hub",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "DT": {
+      "name": "Dynatrace Platform",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "TTD": {
+      "name": "Trade Desk Demand-Side Platform (DSP)",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "APP": {
+      "name": "AXON AI Advertising Engine",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "ROKU": {
+      "name": "Platform Revenue (Advertising)",
+      "sector": "communication-services",
+      "cap": "large"
+    },
+    "GTLB": {
+      "name": "GitLab DevSecOps Platform",
+      "sector": "it-software",
+      "cap": "large"
+    },
+    "OVV": {
+      "name": "Permian Basin Oil (Midland/Delaware)",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "CTRA": {
+      "name": "Permian Basin Oil",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "MRO": {
+      "name": "Eagle Ford Shale",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "COLD": {
+      "name": "Temperature-Controlled Warehouse Rental",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "WPC": {
+      "name": "Net Lease Industrial Properties",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "NNN": {
+      "name": "Triple-Net Retail Leases",
+      "sector": "real-estate",
+      "cap": "large"
+    },
+    "OLN": {
+      "name": "Chlorine & Caustic Soda (Chlor Alkali)",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "RPM": {
+      "name": "Construction Products Group",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "TOL": {
+      "name": "Luxury Single-Family Homes",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "RJF": {
+      "name": "Private Client Group",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "VOYA": {
+      "name": "Workplace Solutions (Retirement)",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "LPLA": {
+      "name": "Independent Financial Advisor Platform",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "MELI": {
+      "name": "MercadoLibre Marketplace",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "SE": {
+      "name": "Shopee (E-Commerce)",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "NU": {
+      "name": "Nubank Credit Card",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "BABA": {
+      "name": "Taobao / Tmall (China Commerce)",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "INFY": {
+      "name": "IT Services & Consulting",
+      "sector": "it-software",
+      "cap": "mega"
+    },
+    "NVS": {
+      "name": "Kisqali (ribociclib)",
+      "sector": "pharma-biotech",
+      "cap": "mega"
+    },
+    "BHP": {
+      "name": "Iron Ore",
+      "sector": "materials",
+      "cap": "mega"
+    },
+    "RIO": {
+      "name": "Iron Ore (Pilbara)",
+      "sector": "materials",
+      "cap": "mega"
+    },
+    "VALE": {
+      "name": "Iron Ore & Pellets",
+      "sector": "materials",
+      "cap": "mega"
+    },
+    "TM": {
+      "name": "Toyota Passenger Vehicles",
+      "sector": "consumer-discretionary",
+      "cap": "mega"
+    },
+    "CPNG": {
+      "name": "Rocket Delivery (E-Commerce)",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "TCOM": {
+      "name": "Trip.com International OTA",
+      "sector": "consumer-discretionary",
+      "cap": "large"
+    },
+    "HMC": {
+      "name": "Automobiles & SUVs",
+      "sector": "automotive",
+      "cap": "large"
+    },
+    "STLA": {
+      "name": "Jeep / Ram / Dodge",
+      "sector": "automotive",
+      "cap": "large"
+    },
+    "LI": {
+      "name": "Extended-Range EVs (EREV)",
+      "sector": "automotive",
+      "cap": "large"
+    },
+    "LKQ": {
+      "name": "Aftermarket Parts (North America)",
+      "sector": "automotive",
+      "cap": "large"
+    },
+    "EQT": {
+      "name": "Natural Gas Production",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "APA": {
+      "name": "US Permian Oil & Gas",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "RRC": {
+      "name": "Marcellus Shale Gas",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "PR": {
+      "name": "Delaware Basin Crude Oil",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "AR": {
+      "name": "Natural Gas (Marcellus/Utica)",
+      "sector": "energy",
+      "cap": "mid"
+    },
+    "NTES": {
+      "name": "Online Games",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "BILI": {
+      "name": "Value-Added Services (VAS)",
+      "sector": "technology",
+      "cap": "mid"
+    },
+    "GRAB": {
+      "name": "Deliveries (GrabFood / GrabMart)",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "TME": {
+      "name": "Online Music (QQ Music, KuGou, Kuwo)",
+      "sector": "technology",
+      "cap": "mid"
+    },
+    "BEKE": {
+      "name": "Existing Home Transactions (Lianjia)",
+      "sector": "technology",
+      "cap": "mid"
+    },
+    "VIPS": {
+      "name": "Online Discount Retail (Vipshop)",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "GOLD": {
+      "name": "Gold Mining",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "AEM": {
+      "name": "Gold Production",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "WPM": {
+      "name": "Gold Streaming",
+      "sector": "materials",
+      "cap": "large"
+    },
+    "CCJ": {
+      "name": "Uranium Production (Cigar Lake / McArthur River)",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "AFRM": {
+      "name": "BNPL Installment Loans",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "HOOD": {
+      "name": "Options & Equities Trading",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "MSTR": {
+      "name": "Bitcoin Treasury Holdings",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "WEX": {
+      "name": "Fleet Solutions",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "EVR": {
+      "name": "Advisory (M&A / Restructuring)",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "MARA": {
+      "name": "Bitcoin Mining",
+      "sector": "technology",
+      "cap": "mid"
+    },
+    "RIOT": {
+      "name": "Bitcoin Mining",
+      "sector": "technology",
+      "cap": "mid"
+    },
+    "QSR": {
+      "name": "Tim Hortons",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "TXRH": {
+      "name": "Texas Roadhouse Restaurants",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "WEN": {
+      "name": "Wendy",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "DKNG": {
+      "name": "Sportsbook (DraftKings Sportsbook)",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "PENN": {
+      "name": "ESPN BET (Online Sportsbook)",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "UTHR": {
+      "name": "Tyvaso / Tyvaso DPI (Inhaled Treprostinil)",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "PODD": {
+      "name": "Omnipod 5 (Automated Insulin Delivery)",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "SRPT": {
+      "name": "Elevidys (Delandistrogene Moxeparvovec)",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "ICLR": {
+      "name": "Clinical Development Services",
+      "sector": "healthcare",
+      "cap": "large"
+    },
+    "ACM": {
+      "name": "Americas Advisory, Design & Engineering (ACAD)",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "KBR": {
+      "name": "Government Solutions",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "TDY": {
+      "name": "Instrumentation",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "GGG": {
+      "name": "Contractor Segment (Sprayers)",
+      "sector": "industrials",
+      "cap": "large"
+    },
+    "RRX": {
+      "name": "Industrial Motion (Rexnord)",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "NVT": {
+      "name": "Enclosures (Hoffman/Schroff)",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "DOCS": {
+      "name": "Pharmaceutical Marketing Platform",
+      "sector": "technology",
+      "cap": "mid"
+    },
+    "PCOR": {
+      "name": "Project Management",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "TENB": {
+      "name": "Tenable One (Exposure Management)",
+      "sector": "technology",
+      "cap": "mid"
+    },
+    "PSTG": {
+      "name": "FlashArray (Block Storage)",
+      "sector": "technology",
+      "cap": "large"
+    },
+    "BURL": {
+      "name": "Apparel (Women/Men/Kids)",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "FIVE": {
+      "name": "Trend & Style (teen/tween)",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "PVH": {
+      "name": "Calvin Klein",
+      "sector": "consumer",
+      "cap": "mid"
+    },
+    "OHI": {
+      "name": "Skilled Nursing Facilities (SNF)",
+      "sector": "real estate",
+      "cap": "mid"
+    },
+    "STAG": {
+      "name": "Single-Tenant Industrial Properties",
+      "sector": "real estate",
+      "cap": "mid"
+    },
+    "CMC": {
+      "name": "North America Steel Manufacturing",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "ATI": {
+      "name": "High-Performance Materials (Aerospace)",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "TREX": {
+      "name": "Trex Decking (Transcend/Select/Enhance)",
+      "sector": "materials",
+      "cap": "mid"
+    },
+    "EG": {
+      "name": "Reinsurance",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "RYAN": {
+      "name": "Wholesale Specialty Insurance Brokerage",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "OMF": {
+      "name": "Personal Loans (Secured & Unsecured)",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "TNET": {
+      "name": "Professional Employer Organization (PEO)",
+      "sector": "industrials",
+      "cap": "mid"
+    },
+    "SCI": {
+      "name": "Funeral Services (Dignity Memorial)",
+      "sector": "consumer",
+      "cap": "large"
+    },
+    "NVDA": {
+      "name": "H100 / H200 GPUs",
+      "sector": "semiconductors",
+      "cap": "titan"
+    },
+    "TSM": {
+      "name": "3nm Process (N3E/N3P)",
+      "sector": "semiconductors",
+      "cap": "titan"
+    },
+    "MU": {
+      "name": "HBM3e",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "ASML": {
+      "name": "High-NA EUV (EXE:5000)",
+      "sector": "semiconductors",
+      "cap": "mega"
+    },
+    "AMAT": {
+      "name": "Etch Systems",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "LRCX": {
+      "name": "Conductor Etch",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "KLAC": {
+      "name": "Wafer Inspection",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "GOOGL": {
+      "name": "Google Search & Ads",
+      "sector": "ai-cloud",
+      "cap": "titan"
+    },
+    "ORCL": {
+      "name": "Oracle Cloud Infrastructure (OCI)",
+      "sector": "ai-cloud",
+      "cap": "mega"
+    },
+    "TSLA": {
+      "name": "Model Y / Model 3",
+      "sector": "ev-battery",
+      "cap": "mega"
+    },
+    "6752.T": {
+      "name": "4680 Cylindrical Cells",
+      "sector": "ev-battery",
+      "cap": "large"
+    },
+    "1211.HK": {
+      "name": "BYD Passenger EVs",
+      "sector": "ev-battery",
+      "cap": "large"
+    },
+    "LMT": {
+      "name": "F-35 Lightning II",
+      "sector": "defense",
+      "cap": "large"
+    },
+    "NOC": {
+      "name": "B-21 Raider",
+      "sector": "defense",
+      "cap": "large"
+    },
+    "BA.L": {
+      "name": "Combat Vehicles",
+      "sector": "defense",
+      "cap": "large"
+    },
+    "LHX": {
+      "name": "Tactical Communications",
+      "sector": "defense",
+      "cap": "large"
+    },
+    "PFE": {
+      "name": "Paxlovid",
+      "sector": "pharma-biotech",
+      "cap": "large"
+    },
+    "MRNA": {
+      "name": "Spikevax (COVID-19 Vaccine)",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "LLY": {
+      "name": "Mounjaro / Zepbound (tirzepatide)",
+      "sector": "pharma-biotech",
+      "cap": "mega"
+    },
+    "NVO": {
+      "name": "Ozempic (semaglutide injection)",
+      "sector": "pharma-biotech",
+      "cap": "mega"
+    },
+    "REGN": {
+      "name": "Dupixent (dupilumab)",
+      "sector": "pharma-biotech",
+      "cap": "large"
+    },
+    "MRVL": {
+      "name": "Custom AI Accelerators (ASICs)",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "ON": {
+      "name": "Silicon Carbide (SiC) MOSFETs",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "LSCC": {
+      "name": "Nexus FPGAs",
+      "sector": "semiconductors",
+      "cap": "small"
+    },
+    "MPWR": {
+      "name": "Data Center Power ICs",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "AMKR": {
+      "name": "Advanced Packaging (FC-BGA, SiP)",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "WOLF": {
+      "name": "SiC Power Devices",
+      "sector": "semiconductors",
+      "cap": "small"
+    },
+    "PLTR": {
+      "name": "Gotham",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "SNOW": {
+      "name": "Data Cloud Platform",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "NET": {
+      "name": "Application Services (CDN, DDoS)",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "DDOG": {
+      "name": "Infrastructure Monitoring",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "AI": {
+      "name": "C3 AI Platform",
+      "sector": "ai-cloud",
+      "cap": "small"
+    },
+    "RIVN": {
+      "name": "R1T Electric Pickup",
+      "sector": "ev-battery",
+      "cap": "mid"
+    },
+    "QS": {
+      "name": "Solid-State Lithium-Metal Cells",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "CHPT": {
+      "name": "Commercial AC Charging",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "LCID": {
+      "name": "Lucid Air (Sedan)",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "LTHM": {
+      "name": "Battery-Grade Lithium Hydroxide",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "KTOS": {
+      "name": "Tactical Drones (Valkyrie, XQ-58)",
+      "sector": "defense",
+      "cap": "small"
+    },
+    "MRCY": {
+      "name": "Mission Processors",
+      "sector": "defense",
+      "cap": "small"
+    },
+    "CW": {
+      "name": "Defense Electronics",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "BWXT": {
+      "name": "Naval Nuclear Reactors",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "AXON": {
+      "name": "TASER Devices",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "BNTX": {
+      "name": "Comirnaty (COVID-19 Vaccine)",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "VRTX": {
+      "name": "Trikafta / Kaftrio",
+      "sector": "pharma-biotech",
+      "cap": "large"
+    },
+    "BMRN": {
+      "name": "Voxzogo (vosoritide)",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "EXAS": {
+      "name": "Cologuard (Colorectal Cancer)",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "NTLA": {
+      "name": "NTLA-2002 (HAE Gene Editing)",
+      "sector": "pharma-biotech",
+      "cap": "small"
+    },
+    "AVGO": {
+      "name": "Networking ASICs",
+      "sector": "semiconductors",
+      "cap": "mega"
+    },
+    "QCOM": {
+      "name": "Snapdragon Mobile Platforms",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "TXN": {
+      "name": "Analog ICs",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "ADI": {
+      "name": "Data Converters",
+      "sector": "semiconductors",
+      "cap": "large"
+    },
+    "SWKS": {
+      "name": "Mobile RF Front-End Modules",
+      "sector": "semiconductors",
+      "cap": "mid"
+    },
+    "SLAB": {
+      "name": "IoT Wireless SoCs",
+      "sector": "semiconductors",
+      "cap": "small"
+    },
+    "NOW": {
+      "name": "IT Service Management (ITSM)",
+      "sector": "ai-cloud",
+      "cap": "large"
+    },
+    "CRWD": {
+      "name": "Falcon Endpoint Protection",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "MDB": {
+      "name": "MongoDB Atlas",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "PATH": {
+      "name": "UiPath Platform (Automation Suite)",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "CFLT": {
+      "name": "Confluent Cloud",
+      "sector": "ai-cloud",
+      "cap": "small"
+    },
+    "ESTC": {
+      "name": "Elastic Search",
+      "sector": "ai-cloud",
+      "cap": "mid"
+    },
+    "NIO": {
+      "name": "ES/EC SUV Series",
+      "sector": "ev-battery",
+      "cap": "mid"
+    },
+    "XPEV": {
+      "name": "G6/G9 SUVs",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "SLDP": {
+      "name": "Sulfide Solid Electrolyte",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "PLL": {
+      "name": "Spodumene Concentrate",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "PLUG": {
+      "name": "GenDrive Fuel Cells",
+      "sector": "ev-battery",
+      "cap": "small"
+    },
+    "GD": {
+      "name": "Gulfstream Business Jets",
+      "sector": "defense",
+      "cap": "large"
+    },
+    "TXT": {
+      "name": "Bell Helicopters",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "CACI": {
+      "name": "Signals Intelligence (SIGINT)",
+      "sector": "defense",
+      "cap": "mid"
+    },
+    "AJRD": {
+      "name": "Liquid Rocket Engines",
+      "sector": "defense",
+      "cap": "small"
+    },
+    "AVAV": {
+      "name": "Switchblade Loitering Munitions",
+      "sector": "defense",
+      "cap": "small"
+    },
+    "ABBV": {
+      "name": "Skyrizi / Rinvoq",
+      "sector": "pharma-biotech",
+      "cap": "mega"
+    },
+    "AMGN": {
+      "name": "Repatha/Prolia/Xgeva",
+      "sector": "pharma-biotech",
+      "cap": "large"
+    },
+    "GILD": {
+      "name": "Biktarvy",
+      "sector": "pharma-biotech",
+      "cap": "large"
+    },
+    "ALNY": {
+      "name": "Onpattro (Patisiran)",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "CRSP": {
+      "name": "Casgevy (Exagamglogene)",
+      "sector": "pharma-biotech",
+      "cap": "small"
+    },
+    "IONS": {
+      "name": "Spinraza (Nusinersen)",
+      "sector": "pharma-biotech",
+      "cap": "mid"
+    },
+    "PG": {
+      "name": "Fabric & Home Care (Tide, Downy, Swiffer)",
+      "sector": "consumer-defensive",
+      "cap": "mega"
+    },
+    "KO": {
+      "name": "Coca-Cola Trademark",
+      "sector": "consumer-defensive",
+      "cap": "mega"
+    },
+    "PEP": {
+      "name": "Frito-Lay Snacks (Lay",
+      "sector": "consumer-defensive",
+      "cap": "mega"
+    },
+    "WMT": {
+      "name": "Walmart U.S. Stores",
+      "sector": "consumer-defensive",
+      "cap": "mega"
+    },
+    "COST": {
+      "name": "Warehouse Club Sales",
+      "sector": "consumer-defensive",
+      "cap": "mega"
+    },
+    "CL": {
+      "name": "Oral Care (Colgate, elmex)",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "GIS": {
+      "name": "Cereal & Snack Bars (Cheerios, Nature Valley)",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "KMB": {
+      "name": "Personal Care (Huggies, Pull-Ups)",
+      "sector": "consumer-defensive",
+      "cap": "large"
+    },
+    "CHD": {
+      "name": "Household (Arm & Hammer, OxiClean)",
+      "sector": "consumer-defensive",
+      "cap": "mid"
+    },
+    "LW": {
+      "name": "Frozen French Fries & Potato Products",
+      "sector": "consumer-defensive",
+      "cap": "mid"
+    },
+    "JPM": {
+      "name": "Consumer & Community Banking",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "GS": {
+      "name": "Global Banking & Markets",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "MS": {
+      "name": "Wealth Management",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "BLK": {
+      "name": "iShares ETFs",
+      "sector": "financials",
+      "cap": "mega"
+    },
+    "SPGI": {
+      "name": "S&P Global Ratings",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "SCHW": {
+      "name": "Brokerage & Trading",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "ICE": {
+      "name": "Exchanges (NYSE, ICE Futures)",
+      "sector": "financials",
+      "cap": "large"
+    },
+    "TW": {
+      "name": "Rates Trading",
+      "sector": "financials",
+      "cap": "mid"
+    },
+    "XOM": {
+      "name": "Upstream (Exploration & Production)",
+      "sector": "energy",
+      "cap": "mega"
+    },
+    "CVX": {
+      "name": "Upstream (Exploration & Production)",
+      "sector": "energy",
+      "cap": "mega"
+    },
+    "NEE": {
+      "name": "Florida Power & Light (FPL)",
+      "sector": "energy",
+      "cap": "mega"
+    },
+    "COP": {
+      "name": "Lower 48 Production",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "SLB": {
+      "name": "Digital & Integration",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "EOG": {
+      "name": "Crude Oil Production",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "ENB": {
+      "name": "Liquids Pipelines",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "SHLS": {
+      "name": "Big Lead Assembly (BLA)",
+      "sector": "energy",
+      "cap": "small"
+    },
+    "LNG": {
+      "name": "Sabine Pass LNG Terminal",
+      "sector": "energy",
+      "cap": "large"
+    },
+    "SPY": {
+      "name": "SPY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QQQ": {
+      "name": "QQQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VOO": {
+      "name": "VOO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VTI": {
+      "name": "VTI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IWM": {
+      "name": "IWM",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "DIA": {
+      "name": "DIA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLK": {
+      "name": "XLK",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLE": {
+      "name": "XLE",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLF": {
+      "name": "XLF",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLV": {
+      "name": "XLV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLI": {
+      "name": "XLI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLY": {
+      "name": "XLY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLP": {
+      "name": "XLP",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLU": {
+      "name": "XLU",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLB": {
+      "name": "XLB",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLRE": {
+      "name": "XLRE",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWY": {
+      "name": "EWY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWJ": {
+      "name": "EWJ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "FXI": {
+      "name": "FXI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VGK": {
+      "name": "VGK",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "INDA": {
+      "name": "INDA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWT": {
+      "name": "EWT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWZ": {
+      "name": "EWZ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWA": {
+      "name": "EWA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "MCHI": {
+      "name": "MCHI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EZA": {
+      "name": "EZA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "GLD": {
+      "name": "GLD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SLV": {
+      "name": "SLV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TLT": {
+      "name": "TLT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SHY": {
+      "name": "SHY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "USO": {
+      "name": "USO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "UNG": {
+      "name": "UNG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "DBA": {
+      "name": "DBA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BITO": {
+      "name": "BITO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VXX": {
+      "name": "VXX",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "005930.KS": {
+      "name": "삼성전자",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "000660.KS": {
+      "name": "SK하이닉스",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "373220.KS": {
+      "name": "LG에너지솔루션",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "005380.KS": {
+      "name": "현대차",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "035420.KS": {
+      "name": "NAVER",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "035720.KS": {
+      "name": "카카오",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "207940.KS": {
+      "name": "삼성바이오로직스",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "051910.KS": {
+      "name": "LG화학",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "005490.KS": {
+      "name": "POSCO홀딩스",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "000270.KS": {
+      "name": "기아",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "003550.KS": {
+      "name": "LG",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "068270.KS": {
+      "name": "셀트리온",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "105560.KS": {
+      "name": "KB금융",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "028260.KS": {
+      "name": "삼성물산",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "012450.KS": {
+      "name": "한화에어로스페이스",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "009150.KS": {
+      "name": "삼성전기",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "032830.KS": {
+      "name": "삼성생명",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "015760.KS": {
+      "name": "한국전력",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "006400.KS": {
+      "name": "삼성SDI",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "017670.KS": {
+      "name": "SK텔레콤",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "055550.KS": {
+      "name": "신한지주",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "086790.KS": {
+      "name": "하나금융지주",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "316140.KS": {
+      "name": "우리금융지주",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "030200.KS": {
+      "name": "KT",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "009540.KS": {
+      "name": "HD한국조선해양",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "010130.KS": {
+      "name": "고려아연",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "034730.KS": {
+      "name": "SK",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "096770.KS": {
+      "name": "SK이노베이션",
+      "sector": "KR",
+      "cap": "kr"
+    },
+    "000810.KS": {
+      "name": "삼성화재",
+      "sector": "KR",
+      "cap": "kr"
+    }
+  },
+  "krNames": {
+    "005930.KS": "삼성전자",
+    "000660.KS": "SK하이닉스",
+    "373220.KS": "LG에너지솔루션",
+    "005380.KS": "현대차",
+    "035420.KS": "NAVER",
+    "035720.KS": "카카오",
+    "207940.KS": "삼성바이오로직스",
+    "051910.KS": "LG화학",
+    "005490.KS": "POSCO홀딩스",
+    "000270.KS": "기아",
+    "003550.KS": "LG",
+    "068270.KS": "셀트리온",
+    "105560.KS": "KB금융",
+    "028260.KS": "삼성물산",
+    "012450.KS": "한화에어로스페이스",
+    "009150.KS": "삼성전기",
+    "032830.KS": "삼성생명",
+    "015760.KS": "한국전력",
+    "006400.KS": "삼성SDI",
+    "017670.KS": "SK텔레콤",
+    "055550.KS": "신한지주",
+    "086790.KS": "하나금융지주",
+    "316140.KS": "우리금융지주",
+    "030200.KS": "KT",
+    "009540.KS": "HD한국조선해양",
+    "010130.KS": "고려아연",
+    "034730.KS": "SK",
+    "096770.KS": "SK이노베이션",
+    "000810.KS": "삼성화재"
+  }
+}

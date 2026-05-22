@@ -55,7 +55,20 @@ const TARGET_LANG = LOCALE_LANG[localeArg] ?? 'Korean';
 
 const CJK_LOCALES = new Set(['ko', 'ja', 'zh-CN', 'zh-TW', 'zh']);
 
-const CANDIDATE_TICKERS = [
+// data/candidate-tickers.json 동적 로드 (build-candidate-tickers.mjs 생성).
+// titan(5) + mega(106) + large(287) + ETF(35) + KR(29) = 462 종목 자동 추출.
+// 누락 시 hardcoded fallback 사용.
+let CANDIDATE_TICKERS;
+try {
+  const raw = readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8');
+  const data = JSON.parse(raw);
+  if (Array.isArray(data.tickers) && data.tickers.length > 100) {
+    CANDIDATE_TICKERS = data.tickers;
+    console.log(`[startup] candidate-tickers.json 로드: ${CANDIDATE_TICKERS.length} 종목 (titan ${data.byBand?.titan ?? '?'} / mega ${data.byBand?.mega ?? '?'} / large ${data.byBand?.large ?? '?'} / ETF ${data.byBand?.etf ?? '?'} / KR ${data.byBand?.kr ?? '?'})`);
+  }
+} catch { /* fall through to hardcoded */ }
+CANDIDATE_TICKERS ??= [
+  // Fallback (build-candidate-tickers.mjs 미실행 시)
   // Mag7 + 메가 Tech
   'NVDA','MSFT','AAPL','META','GOOGL','AMZN','TSLA','NFLX','ADBE','CRM',
   // 반도체 / AI infra
@@ -1002,32 +1015,39 @@ async function fetchOnePrice(ticker) {
 
 async function getLivePrices() {
   const map = new Map();
-  try {
-    const fields = 'regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow';
-    const res = await fetch(
-      `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(CANDIDATE_TICKERS.join(','))}&fields=${fields}`,
-      { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(8000) }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      const quotes = data?.quoteResponse?.result ?? [];
-      for (const q of quotes) {
-        if (q.regularMarketPrice == null) continue;
-        map.set(q.symbol, {
-          price: Math.round(q.regularMarketPrice * 100) / 100,
-          change1d: q.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 10) / 10 : null,
-          high52w: q.fiftyTwoWeekHigh ?? q.regularMarketPrice * 1.3,
-          low52w: q.fiftyTwoWeekLow ?? q.regularMarketPrice * 0.7,
-        });
+  const fields = 'regularMarketPrice,regularMarketChangePercent,fiftyTwoWeekHigh,fiftyTwoWeekLow';
+  // 462개를 batch 80개씩 분할 (URL 길이 한도 + Yahoo throttle 회피)
+  const chunkSize = 80;
+  for (let i = 0; i < CANDIDATE_TICKERS.length; i += chunkSize) {
+    const chunk = CANDIDATE_TICKERS.slice(i, i + chunkSize);
+    try {
+      const res = await fetch(
+        `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(chunk.join(','))}&fields=${fields}`,
+        { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(10000) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const quotes = data?.quoteResponse?.result ?? [];
+        for (const q of quotes) {
+          if (q.regularMarketPrice == null) continue;
+          map.set(q.symbol, {
+            price: Math.round(q.regularMarketPrice * 100) / 100,
+            change1d: q.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 10) / 10 : null,
+            high52w: q.fiftyTwoWeekHigh ?? q.regularMarketPrice * 1.3,
+            low52w: q.fiftyTwoWeekLow ?? q.regularMarketPrice * 0.7,
+          });
+        }
       }
-    }
-  } catch { /* batch failed */ }
+    } catch { /* chunk failed — continue with rest */ }
+  }
 
+  // 누락 ticker는 개별 v8 chart fallback (Yahoo가 v7 차단한 ticker 처리)
   const missing = CANDIDATE_TICKERS.filter(t => !map.has(t));
-  if (missing.length > 0) {
-    const results = await Promise.all(missing.map(fetchOnePrice));
+  if (missing.length > 0 && missing.length < 100) {
+    const results = await Promise.all(missing.slice(0, 50).map(fetchOnePrice));
     for (const [t, lp] of results) { if (lp) map.set(t, lp); }
   }
+  console.log(`  [livePrices] ${map.size}/${CANDIDATE_TICKERS.length} 종목 확보`);
   return map;
 }
 
