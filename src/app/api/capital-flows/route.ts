@@ -463,24 +463,23 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(req: Request) {
+  const force = new URL(req.url).searchParams.get('refresh') === '1' || new URL(req.url).searchParams.get('force') === '1';
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const finnhubKey = process.env.FINNHUB_KEY?.trim() || null;
   const dataSource = twelveKey ? 'Twelve Data (realtime)' : 'Yahoo Finance (15min delay)';
-  // v12 (2026-05-11): rotations1w maxWeeks 1주 변경 후 1주 탭 "3주 전 시작" 잔존 모순 무효화
   const cacheKey = `flowvium:capital-flows:v12:${twelveKey ? 'twelve' : 'yahoo'}`;
 
-  // Module-level memory cache — saves ~41 Yahoo calls per warm-instance hit
-  if (!redis && CAPITAL_MEMORY_CACHE && Date.now() < CAPITAL_MEMORY_CACHE.expiresAt) {
+  // Module-level memory cache — force=1 시 skip
+  if (!force && !redis && CAPITAL_MEMORY_CACHE && Date.now() < CAPITAL_MEMORY_CACHE.expiresAt) {
     logger.info('capital-flows', 'memory_cache_hit');
     return NextResponse.json(CAPITAL_MEMORY_CACHE.data, { headers: CDN_HEADERS });
   }
 
   let staleResult: object | null = null;
-  if (redis) {
+  if (redis && !force) {
     try {
-      // Stale key is source-agnostic so Twelve→Yahoo source switch doesn't lose fallback
       const [fresh, staleSrc, staleUniversal] = await Promise.allSettled([
         redis.get<object>(cacheKey),
         redis.get<object>(`${STALE_KEY_PREFIX}:${twelveKey ? 'twelve' : 'yahoo'}`),
@@ -492,11 +491,17 @@ export async function GET() {
       staleResult = (staleSrc.status === 'fulfilled' && staleSrc.value)
         ? staleSrc.value
         : (staleUniversal.status === 'fulfilled' ? staleUniversal.value : null);
-      // Fresh miss + stale 있으면 즉시 stale 반환 (cron이 백그라운드 refresh)
-      // 사용자 면전에서 50+ ticker fetch 회피 (20s timeout 원인)
+      // Stale fallback — staleResult age 검증 (24h 초과면 stale도 무시하고 fresh fetch)
       if (staleResult) {
-        logger.info('capital-flows', 'serving_stale_immediately', { reason: 'fresh_miss' });
-        return NextResponse.json({ ...(staleResult as object), stale: true }, { headers: CDN_HEADERS });
+        const staleAge = (staleResult as { updatedAt?: string }).updatedAt
+          ? Date.now() - new Date((staleResult as { updatedAt: string }).updatedAt).getTime()
+          : Infinity;
+        if (staleAge < 24 * 3600 * 1000) {
+          logger.info('capital-flows', 'serving_stale_immediately', { ageHr: (staleAge / 3600000).toFixed(1) });
+          return NextResponse.json({ ...(staleResult as object), stale: true }, { headers: CDN_HEADERS });
+        }
+        logger.warn('capital-flows', 'stale_too_old', { ageHr: (staleAge / 3600000).toFixed(1) });
+        staleResult = null; // 강제 fresh fetch
       }
     } catch (e) { logger.warn('capital-flows', 'cache_read_error', { error: e }); }
   }

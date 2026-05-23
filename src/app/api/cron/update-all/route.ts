@@ -87,7 +87,7 @@ export async function GET(req: Request) {
     warm(base, '/api/macro-indicators', 'macro-indicators'),
     warm(base, '/api/yield-curve', 'yield-curve', 30000),
     warm(base, '/api/fedwatch', 'fedwatch'),
-    warm(base, '/api/capital-flows', 'capital-flows'),
+    warm(base, '/api/capital-flows?refresh=1', 'capital-flows'),
     warm(base, '/api/commodity-curve', 'commodity-curve', 20000),
     warm(base, '/api/volatility', 'volatility'),
     warm(base, '/api/fear-greed?force=1', 'fear-greed'),
