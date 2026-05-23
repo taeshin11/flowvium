@@ -505,20 +505,20 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
                 onChange={(e) => setHideIsolated(e.target.checked)}
                 className="w-3.5 h-3.5"
               />
-              <span>관계 없는 종목 숨김</span>
+              <span>{t('hideIsolated')}</span>
             </label>
             <div className="flex border border-cf-border rounded-md overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
                 className={`px-2.5 py-1 text-xs font-mono ${viewMode === 'table' ? 'bg-cf-accent text-white' : 'bg-white hover:bg-gray-50'}`}
               >
-                TABLE
+                {t('viewTable')}
               </button>
               <button
                 onClick={() => setViewMode('graph')}
                 className={`px-2.5 py-1 text-xs font-mono ${viewMode === 'graph' ? 'bg-cf-accent text-white' : 'bg-white hover:bg-gray-50'}`}
               >
-                GRAPH
+                {t('viewGraph')}
               </button>
             </div>
           </div>
@@ -538,14 +538,14 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
               <table className="w-full text-xs font-mono">
                 <thead className="bg-gray-50 border-b border-cf-border sticky top-0">
                   <tr className="text-left text-[10px] uppercase tracking-wide text-cf-text-secondary">
-                    <th className="px-3 py-2 font-semibold">Ticker</th>
-                    <th className="px-3 py-2 font-semibold">Name</th>
-                    <th className="px-3 py-2 font-semibold">Sector</th>
-                    <th className="px-3 py-2 font-semibold text-right">Cap</th>
-                    <th className="px-3 py-2 font-semibold text-center" title="공급업체">SUP</th>
-                    <th className="px-3 py-2 font-semibold text-center" title="고객사">CUS</th>
-                    <th className="px-3 py-2 font-semibold text-center" title="파트너">PAR</th>
-                    <th className="px-3 py-2 font-semibold text-center" title="경쟁사">COM</th>
+                    <th className="px-3 py-2 font-semibold">{t('tblTicker')}</th>
+                    <th className="px-3 py-2 font-semibold">{t('tblName')}</th>
+                    <th className="px-3 py-2 font-semibold">{t('tblSector')}</th>
+                    <th className="px-3 py-2 font-semibold text-right">{t('tblCap')}</th>
+                    <th className="px-3 py-2 font-semibold text-center" title={t('ttSup')}>{t('tblSup')}</th>
+                    <th className="px-3 py-2 font-semibold text-center" title={t('ttCus')}>{t('tblCus')}</th>
+                    <th className="px-3 py-2 font-semibold text-center" title={t('ttPar')}>{t('tblPar')}</th>
+                    <th className="px-3 py-2 font-semibold text-center" title={t('ttCom')}>{t('tblCom')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -582,7 +582,7 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
             </div>
             {filteredCompanies.length > 200 && (
               <div className="px-3 py-2 text-[11px] text-cf-text-secondary bg-gray-50 border-t border-cf-border">
-                상위 200건 표시 ({filteredCompanies.length} 종목 중) — 필터로 좁히세요.
+                {t('topNlimit', { n: 200, total: filteredCompanies.length })}
               </div>
             )}
             {filteredCompanies.length === 0 && (
