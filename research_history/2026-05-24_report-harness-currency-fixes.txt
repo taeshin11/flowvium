@@ -1,0 +1,48 @@
+2026-05-24 보고서 harness 통화/포맷 자동교정 룰 추가
+
+# 발견
+오늘 아침 보고서 (report-2026-05-24-morning-ko.json) 검토 중 4가지 user-facing 결함:
+
+1. BOOST 중복 prefix
+   - TSLA: "BOOST: BOOST: 71% hit rate, 0 stops"
+   - 005490.KS: "BOOST: BOOST: 67% hit rate, 0 stops"
+   - 원인: data/boost-list.json 의 reason 필드가 이미 "BOOST:" prefix 포함이라
+     generate-report-local.mjs:1655 의 `BOOST: ${boost.reason}` 가 이중 prefix.
+   - harness 의 rationaleDedup 룰은 이 패턴 못 잡음.
+
+2. KR 종목 stopLossRationale "$" 오표기
+   - 005930.KS: "현재 $292500 → 손절선 ~$272025.00"
+   - 000660.KS: "현재 $1941000 → 손절선 ~$1805130.00"
+   - 051910.KS / 005380.KS 동일 패턴
+   - 같은 텍스트 안의 200MA/50MA 부분은 ₩ 정상 (LLM 이 일부만 currency 오인)
+
+3. orphan stopLossRationale
+   - 005930.KS / 000660.KS 는 stopLossRationale 에는 있는데 portfolio 에 없음
+   - 기존 6e/6i 룰이 `if (!p) continue` 로 처리 안 함 → 통화 교정 영원히 누락
+
+4. "손절선 ~₩272025.00" unformatted
+   - section 6i 의 `${sym}${stopP}` 가 comma 없이 출력 → 같은 텍스트 내 ₩222,269 와 포맷 불일치
+
+# 수정 (scripts/generate-report-local.mjs)
+- line 1655: boost.reason 에서 기존 "BOOST:" prefix strip 후 재부착
+- section 6i: nativeCurrencyForTickerMjs + toLocaleString 으로 ₩1,805,130 / $200.26 통일
+- section 6j-2 신설: orphan stopLossRationale 도 통화 정규화 + livePrices 기반 "현재" 가격 교정
+
+# 검증
+scripts/test-harness-fixes.mjs 작성 — 기존 보고서에 dry-run.
+4종목 KR rationale 모두:
+  $292500 → ₩92,500 (livePrice 기반)
+  $1941000 → ₩280,000
+  $351000 → ₩351,000 (livePrice 와 일치, 변화 X)
+  $655000 → ₩245,000
+BOOST 이중 prefix 도 정상 제거 확인.
+
+# 한계 (아직 미해결)
+- portfolio sector tagging 전부 "Technology" 오류 — candidate-tickers.json 의 sector
+  필드가 KR 은 "KR" 으로만 표기되어 자동 매핑 불가. 별도 sector 룩업 테이블 필요.
+- macroAnalysis "연준금리 3.625%" 같은 macro 사실 hallucination — 별도 fact-check 필요.
+- companyChanges 의 reasoning 복붙 (CVX/HAL/SLB 모두 "Exxon Mobil 주가 상승") — LLM
+  prompt 개선 영역.
+
+# 커밋
+d505f1d fix(harness): 2026-05-24 아침 보고서 4가지 결함 자동 교정 룰 추가
