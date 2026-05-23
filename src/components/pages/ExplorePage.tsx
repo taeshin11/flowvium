@@ -274,7 +274,10 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
   const t = useTranslations('explore');
   const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   const [selectedSector, setSelectedSector] = useState<string>(initialSector || 'all');
-  const [selectedCap, setSelectedCap] = useState<string>('all');
+  // 기본값: 'mega' (110개 ~ 시각화 적정) — 'all'(600+) 은 사용자 명시 선택 시만
+  const [selectedCap, setSelectedCap] = useState<string>('mega');
+  // isolated 노드 (relationship 0개) 자동 hide 토글
+  const [hideIsolated, setHideIsolated] = useState<boolean>(true);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -389,8 +392,14 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
       }
     }
 
+    // hideIsolated: 그래프에 link 가 0개인 노드는 시각화 가독성 저해 → 제거
+    if (hideIsolated && links.length > 0) {
+      const connected = new Set<string>();
+      for (const l of links) { connected.add(l.source); connected.add(l.target); }
+      return { nodes: nodes.filter(n => connected.has(n.id)), links };
+    }
     return { nodes, links };
-  }, [filteredCompanies]);
+  }, [filteredCompanies, hideIsolated]);
 
   const handleNodeClick = useCallback(
     (node: Record<string, unknown>) => {
@@ -476,20 +485,31 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
         </div>
       </div>
 
-      {/* Legend */}
+      {/* Legend + 옵션 */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-2">
-        <div className="flex flex-wrap gap-4 text-xs text-cf-text-secondary">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-cf-text-secondary">
           <span className="font-medium">{t('filters')}:</span>
           {Object.entries(relationshipColors).map(([type, color]) => (
             <span key={type} className="flex items-center gap-1.5">
-              <span
-                className="w-5 h-1 rounded-full"
-                style={{ backgroundColor: color }}
-              />
+              <span className="w-5 h-1 rounded-full" style={{ backgroundColor: color }} />
               {t(`relationships.${type}`)}
             </span>
           ))}
+          <label className="flex items-center gap-1.5 ml-auto cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={hideIsolated}
+              onChange={(e) => setHideIsolated(e.target.checked)}
+              className="w-3.5 h-3.5"
+            />
+            <span>관계 없는 종목 숨김</span>
+          </label>
         </div>
+        {selectedCap === 'all' && (
+          <div className="mt-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800">
+            ⚠️ 전체 600+개 종목 표시 — 그래프 매우 혼잡. <strong>메가 ($200B+)</strong> 또는 섹터 필터 권장.
+          </div>
+        )}
       </div>
 
       {/* Graph */}
