@@ -57,10 +57,23 @@ async function checkEndpoint(ep) {
     const j = JSON.parse(text);
     const { n, src } = ep.extract(j);
     const sizeKB = (text.length / 1024).toFixed(0);
+    // 데이터 staleness check — updatedAt 24h+ 시 WARN
+    const updatedAt = j.updatedAt ?? j.lastUpdated ?? j.dataDate ?? j.timestamp;
+    let staleness = null;
+    if (updatedAt) {
+      const ageMs = Date.now() - new Date(updatedAt).getTime();
+      if (isFinite(ageMs) && ageMs > 0) {
+        const ageH = ageMs / 3600000;
+        if (ageH > 24) staleness = `STALE ${ageH.toFixed(1)}h`;
+        else if (ageH > 12) staleness = `aging ${ageH.toFixed(1)}h`;
+      }
+    }
     let icon = FMT_OK, msg = '';
     if (n === 0) { icon = FMT_ERR; msg = '0 items'; }
+    else if (staleness && staleness.startsWith('STALE')) { icon = FMT_ERR; msg = staleness; }
     else if (src === 'error' || src === 'static' || (src && src.startsWith('error'))) { icon = FMT_WARN; msg = `degraded source`; }
-    return { ep: ep.path, status: 200, ms, icon, n, src, sizeKB, msg };
+    else if (staleness) { icon = FMT_WARN; msg = staleness; }
+    return { ep: ep.path, status: 200, ms, icon, n, src: msg ? `${src} [${msg}]` : src, sizeKB, msg };
   } catch (e) {
     return { ep: ep.path, status: 'ERR', ms: Date.now() - t0, icon: FMT_ERR, msg: String(e).slice(0, 60) };
   }
