@@ -977,7 +977,7 @@ export default function HomePage() {
                   { href: '/screener',     icon: <Radar className="w-3.5 h-3.5" />,           label: tNav('screener'),              desc: tNav('screenerDesc'),              accent: 'text-violet-600 dark:text-violet-400' },
                   { href: '/short',        icon: <TrendingDown className="w-3.5 h-3.5" />,    label: tNav('short'),                 desc: tNav('shortDesc'),                 accent: 'text-red-600 dark:text-red-400' },
                   { href: '/cascade',      icon: <Network className="w-3.5 h-3.5" />,         label: tNav('cascade'),               desc: tNav('cascadeDesc'),               accent: 'text-cyan-600 dark:text-cyan-400' },
-                  { href: '/satellite', icon: <Satellite className="w-3.5 h-3.5" />, label: tNav('satellite'), desc: tNav('satelliteDesc'), accent: 'text-violet-500' },
+                  { href: '/volatility', icon: <Activity className="w-3.5 h-3.5" />, label: tNav('volatility'), desc: tNav('volatilityDesc'), accent: 'text-fuchsia-500' },
                   { href: '/intelligence?tab=capital',    icon: <GitMerge className="w-3.5 h-3.5" />,     label: tIntel('tabCapital'),    desc: tIntel('cfAiTitle'),      accent: 'text-amber-500' },
                   { href: '/intelligence?tab=macro',      icon: <TrendingUp className="w-3.5 h-3.5" />,   label: tIntel('tabMacro'),      accent: 'text-blue-500' },
                   { href: '/intelligence?tab=flows',      icon: <Activity className="w-3.5 h-3.5" />,     label: tIntel('tabFlows'),      desc: tIntel('sectorSignalsTitle'), accent: 'text-emerald-500' },

@@ -5,7 +5,8 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 const CACHE_TTL = 24 * 60 * 60; // 24 hours
-const OFAC_CSV_URL = 'https://www.treasury.gov/ofac/downloads/sdn.csv';
+// 2026-05: OFAC URL 이전 (treasury.gov → sanctionslistservice.ofac.treas.gov)
+const OFAC_CSV_URL = 'https://sanctionslistservice.ofac.treas.gov/api/publicationpreview/exports/sdn.csv';
 
 // ── CSV parsing ───────────────────────────────────────────────────────────────
 // OFAC SDN format: "ent_num","SDN_Name","SDN_Type","Program","Title","Callsign","Vess_type","Tonnage","GRT","Vess_flag","Vess_owner","Remarks"
