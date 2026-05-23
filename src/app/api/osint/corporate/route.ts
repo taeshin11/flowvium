@@ -78,63 +78,65 @@ export async function GET(req: NextRequest) {
   // Check static fallback first (preset companies)
   const staticData = getStaticFallback(q);
 
+  // 2026-05: OpenCorporates 401 (무료 막힘) → SEC EDGAR full-text search 대체
+  // US 기업 한정이지만 신뢰성/유지보수 우수 (우리 EDGAR 인프라 재활용)
   try {
-    const res = await fetch(
-      `https://api.opencorporates.com/v0.4/companies/search?q=${encodedQuery}&per_page=5&format=json`,
-      {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal: AbortSignal.timeout(10000),
-        cache: 'no-store',
-      }
-    );
+    const eftsUrl = `https://efts.sec.gov/LATEST/search-index?q=%22${encodedQuery}%22&forms=10-K&dateRange=custom&startdt=2024-01-01&enddt=${new Date().toISOString().slice(0, 10)}`;
+    const res = await fetch(eftsUrl, {
+      headers: { 'User-Agent': 'FlowviumBot contact@flowvium.net' },
+      signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`EDGAR EFTS HTTP ${res.status}`);
 
-    if (!res.ok) throw new Error(`OpenCorporates HTTP ${res.status}`);
+    const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; ciks?: string[]; file_date?: string; sics?: string[]; biz_states?: string[]; inc_states?: string[]; }; _id?: string }> } };
+    const hits = data?.hits?.hits ?? [];
 
-    const data: OcApiResponse = await res.json();
-    const rawCompanies = data?.results?.companies ?? [];
-    const total = data?.results?.total_count ?? rawCompanies.length;
+    // CIK + name + 주소 추출, dedupe by CIK
+    const seen = new Set<string>();
+    const apiCompanies = [];
+    for (const hit of hits) {
+      const src = hit._source;
+      const cik = src?.ciks?.[0];
+      if (!cik || seen.has(cik)) continue;
+      seen.add(cik);
+      const display = src?.display_names?.[0] ?? '';
+      // display 형식: "Apple Inc.  (AAPL)  (CIK 0000320193)"
+      const nameMatch = display.match(/^(.+?)(?:\s*\(([A-Z]+)\))?\s*\(CIK/);
+      const name = nameMatch?.[1]?.trim() ?? display;
+      const ticker = nameMatch?.[2];
+      apiCompanies.push({
+        name,
+        number: cik,
+        jurisdiction: src?.inc_states?.[0] ?? 'US',
+        incorporated: null,
+        dissolved: null,
+        type: ticker ? `Public (${ticker})` : 'Filer',
+        address: src?.biz_states?.[0] ? `${src.biz_states[0]}, US` : 'US',
+        url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=10-K`,
+      });
+      if (apiCompanies.length >= 5) break;
+    }
 
-    const apiCompanies = rawCompanies.map(({ company: c }) => ({
-      name: c.name,
-      number: c.company_number,
-      jurisdiction: c.jurisdiction_code,
-      incorporated: c.incorporation_date,
-      dissolved: c.dissolution_date,
-      type: c.company_type,
-      address: c.registered_address_in_full,
-      url: c.opencorporates_url,
-    }));
-
-    // Merge: static data first (more context), then live API results
-    const companies = staticData
-      ? [...staticData, ...apiCompanies.slice(0, 3)]
-      : apiCompanies;
-
+    const companies = staticData ? [...staticData, ...apiCompanies.slice(0, 3)] : apiCompanies;
     const result = {
       companies,
       total: companies.length,
-      source: staticData ? 'Curated + OpenCorporates' : 'OpenCorporates',
+      source: staticData ? 'Curated + SEC EDGAR' : (apiCompanies.length > 0 ? 'SEC EDGAR' : 'empty'),
     };
 
     if (redis) {
       await loggedRedisSet(redis, 'api.osint.corporate', cacheKey, result, { ex: CACHE_TTL });
     }
-
     return NextResponse.json(result);
-  } catch {
-    // API failed — return static fallback if available
+  } catch (err) {
+    logger.warn('api.osint.corporate', 'edgar_search_failed', { error: String(err).slice(0, 100) });
     if (staticData) {
-      return NextResponse.json({
-        companies: staticData,
-        total: staticData.length,
-        source: 'Curated',
-      });
+      return NextResponse.json({ companies: staticData, total: staticData.length, source: 'Curated' });
     }
     return NextResponse.json({
-      companies: [],
-      total: 0,
-      source: 'OpenCorporates',
-      error: 'OpenCorporates unavailable — search the company name directly or use an external link',
+      companies: [], total: 0, source: 'empty',
+      error: 'SEC EDGAR search failed — try direct URL',
     });
   }
 }

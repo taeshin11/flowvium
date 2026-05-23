@@ -100,11 +100,13 @@ function parseRssXml(xml: string, sourceName: string, limit = 30): RssItem[] {
 }
 
 async function fetchNitterRss(handle: string): Promise<RssItem[]> {
+  // 2026-05: Nitter ecosystem 거의 다 죽음 (poast 403, 나머지 connection refused)
+  // → 비활성 (try-but-expect-fail). 빈 배열 반환하고 Reddit 으로 대체.
   for (const base of NITTER_INSTANCES) {
     try {
       const res = await fetch(`${base}/${handle}/rss`, {
         headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/rss+xml, application/xml' },
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(4000),
         cache: 'no-store',
       });
       if (!res.ok) continue;
@@ -115,6 +117,39 @@ async function fetchNitterRss(handle: string): Promise<RssItem[]> {
     } catch { /* try next */ }
   }
   return [];
+}
+
+// 2026-05: Nitter 붕괴 후 Reddit RSS 대체 — retail sentiment / breaking news 신호
+const REDDIT_SUBS = [
+  { sub: 'wallstreetbets', tag: 'WSB', impact: 'high' as const },
+  { sub: 'investing', tag: 'Investing', impact: 'medium' as const },
+  { sub: 'stocks', tag: 'Stocks', impact: 'medium' as const },
+  { sub: 'StockMarket', tag: 'StockMarket', impact: 'medium' as const },
+];
+async function fetchRedditRss(sub: string, tag: string): Promise<RssItem[]> {
+  try {
+    const res = await fetch(`https://www.reddit.com/r/${sub}/top/.rss?t=day&limit=10`, {
+      headers: { 'User-Agent': 'FlowviumBot/1.0', Accept: 'application/rss+xml, application/xml' },
+      signal: AbortSignal.timeout(6000),
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    // Reddit RSS uses <entry> (Atom) not <item> (RSS 2.0)
+    const items: RssItem[] = [];
+    const entries = Array.from(xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g));
+    for (const m of entries) {
+      const content = m[1];
+      const title = content.match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i)?.[1]?.trim() ?? '';
+      const link = content.match(/<link\s+href="([^"]+)"/i)?.[1] ?? '';
+      const pubDate = content.match(/<updated>([^<]+)<\/updated>/i)?.[1]?.trim() ?? '';
+      if (title && title !== `top scoring links : ${sub}`) {
+        items.push({ title, description: '', link, pubDate, source: `r/${sub}` });
+      }
+      if (items.length >= 8) break;
+    }
+    return items.map(it => ({ ...it, source: `r/${sub}` }));
+  } catch { return []; }
 }
 
 async function fetchNewsRss(url: string, sourceName: string): Promise<RssItem[]> {
@@ -233,6 +268,36 @@ export async function GET() {
   );
   const allNewsItems: RssItem[] = newsResults.flatMap(r => r.status === 'fulfilled' ? r.value : []);
 
+  // ── 2b. Reddit retail sentiment (Nitter 대체) ─────────────────────────────────
+  const redditResults = await Promise.allSettled(
+    REDDIT_SUBS.map(s => fetchRedditRss(s.sub, s.tag))
+  );
+  const redditEntries: SocialEntry[] = [];
+  redditResults.forEach((r, idx) => {
+    if (r.status !== 'fulfilled') return;
+    const meta = REDDIT_SUBS[idx];
+    for (const item of r.value.slice(0, 3)) {
+      const sentiment = detectSentiment(item.title);
+      redditEntries.push({
+        person: meta.tag,
+        role: `r/${meta.sub} top post`,
+        flag: '🇺🇸',
+        tag: meta.tag,
+        title: item.title,
+        summary: `Reddit ${meta.sub} 인기 게시물 — retail sentiment`,
+        source: item.source,
+        url: item.link,
+        publishedAt: item.pubDate || new Date().toISOString(),
+        sentiment,
+        impact: meta.impact,
+        istweet: false,
+        isFed: false,
+        votingMember: false,
+        cascade: ['retail-sentiment', 'meme-stock', 'short-squeeze'],
+      });
+    }
+  });
+
   // ── 3. Build entries ──────────────────────────────────────────────────────────
   const entries: SocialEntry[] = [];
 
@@ -283,18 +348,22 @@ export async function GET() {
     }
   });
 
-  // ── 4. Sort + deduplicate ─────────────────────────────────────────────────────
+  // ── 4. Sort + deduplicate (Reddit 포함) ─────────────────────────────────────
+  const allEntries = [...entries, ...redditEntries];
   const seen = new Set<string>();
-  const deduped = entries
+  const deduped = allEntries
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     .filter(e => { if (seen.has(e.url)) return false; seen.add(e.url); return true; });
 
   const tweetCount = deduped.filter(e => e.istweet).length;
+  const redditCount = deduped.filter(e => e.source.startsWith('r/')).length;
   const result = {
     entries: deduped,
     total: deduped.length,
     tweetCount,
-    newsCount: deduped.length - tweetCount,
+    redditCount,
+    newsCount: deduped.length - tweetCount - redditCount,
+    source: deduped.length > 0 ? (tweetCount > 0 ? 'mixed' : redditCount > 0 ? 'reddit-news' : 'news-only') : 'empty',
     updatedAt: new Date().toISOString(),
     cached: false,
   };
