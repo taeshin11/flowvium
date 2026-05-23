@@ -381,12 +381,13 @@ export default function ReportPage() {
   const [satSignals, setSatSignals] = useState<SatFactorySignal[]>([]);
   const [satDate, setSatDate] = useState<string | null>(null);
 
-  // 주요 뉴스 (news-cascade)
+  // 주요 뉴스 (news-cascade) — 48시간 이내 fresh only
   interface NewsItem {
     id: string;
     title: string;
     summary: string;
     link: string;
+    pubDate?: string;
     sentiment: 'bullish' | 'bearish' | 'neutral';
     importance: 'high' | 'medium' | 'low';
     cascades?: Array<{ asset: string; direction: 'positive' | 'negative' | 'neutral'; magnitude: 'high' | 'medium' | 'low'; reason: string }>;
@@ -499,11 +500,19 @@ export default function ReportPage() {
   }, [fetchStrategy, fetchKpis]);
 
   useEffect(() => {
-    // 주요 뉴스 fetch (news-cascade, locale 인식)
+    // 주요 뉴스 fetch (news-cascade, locale 인식). 48시간 이내만 통과 (stale 차단)
     setNewsLoading(true);
     fetch(`/api/news-cascade?locale=${encodeURIComponent(locale)}`, { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => setNews(d.articles ?? []))
+      .then(d => {
+        const cutoff = Date.now() - 48 * 3600 * 1000;
+        const fresh = (d.articles ?? []).filter((a: NewsItem) => {
+          if (!a.pubDate) return false;
+          const ts = new Date(a.pubDate).getTime();
+          return isFinite(ts) && ts >= cutoff;
+        });
+        setNews(fresh);
+      })
       .catch(() => {})
       .finally(() => setNewsLoading(false));
   }, [locale]);
@@ -697,13 +706,24 @@ export default function ReportPage() {
               ) : (
                 <div className="space-y-2">
                   {news
-                    .sort((a, b) => (a.importance === 'high' ? -1 : 0) - (b.importance === 'high' ? -1 : 0))
+                    .sort((a, b) => {
+                      // importance high 먼저, 그 다음 pubDate desc (최신 우선)
+                      const impDiff = (a.importance === 'high' ? -1 : 0) - (b.importance === 'high' ? -1 : 0);
+                      if (impDiff !== 0) return impDiff;
+                      return new Date(b.pubDate ?? 0).getTime() - new Date(a.pubDate ?? 0).getTime();
+                    })
                     .slice(0, 5)
                     .map(n => {
                       const sentColor = n.sentiment === 'bullish' ? 'text-emerald-600 bg-emerald-100'
                         : n.sentiment === 'bearish' ? 'text-red-600 bg-red-100'
                         : 'text-gray-600 bg-gray-100';
                       const impDot = n.importance === 'high' ? 'bg-red-500' : n.importance === 'medium' ? 'bg-amber-500' : 'bg-gray-300';
+                      const ageMs = n.pubDate ? Date.now() - new Date(n.pubDate).getTime() : null;
+                      const ageStr = ageMs != null && isFinite(ageMs)
+                        ? (ageMs < 3600_000 ? `${Math.floor(ageMs / 60_000)}m`
+                          : ageMs < 86400_000 ? `${Math.floor(ageMs / 3600_000)}h`
+                          : `${Math.floor(ageMs / 86400_000)}d`)
+                        : null;
                       return (
                         <a
                           key={n.id}
@@ -715,6 +735,7 @@ export default function ReportPage() {
                           <div className="flex items-start gap-2 mb-1">
                             <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${impDot}`} />
                             <h4 className="text-sm font-semibold text-gray-900 leading-snug flex-1">{n.title}</h4>
+                            {ageStr && <span className="text-[10px] text-gray-400 font-mono shrink-0">{ageStr}</span>}
                             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${sentColor}`}>
                               {n.sentiment === 'bullish' ? '↑' : n.sentiment === 'bearish' ? '↓' : '·'}
                             </span>
