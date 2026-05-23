@@ -2841,7 +2841,12 @@ function buildMacroPrompt(ctx, vix, session) {
     `[COT Positioning] ${ctx.cot || 'No data'}`,
     `[Commodity Curves] ${ctx.commodity || 'No data'}`,
     `[News — 연준발언 우선] ${ctx.news || 'No data'}`,
-    '파월은 2026년 의장 임기 만료 후 이사(Governor)로 잔류. "파월 전 의장" 또는 "파월 이사"로 표기.',
+    '',
+    '⚠️ FACT-CHECK RULES (2차 검증):',
+    '- thesis/macroAnalysis 에 [Macro Indicators] + [News] 에 명시된 사실만 사용.',
+    '- 특정 인물 임명/잔류/사임 (예: Powell, Bessent) 같은 정치 인물 발언 금지 — 입력에 없으면 추측 X.',
+    '- "파월 잔류", "트럼프 정책" 같은 정치 이벤트는 [News] 에 명시된 경우만 인용.',
+    '- 추측/일반화 (예: "AI 인프라 확장") 보다 구체 수치 (예: "CPI 3.78%, NVDA Q1 +73%") 우선.',
     '',
     `Write ALL text values in ${TARGET_LANG}. Respond ONLY in pure JSON, no markdown, no explanation:`,
     `{"macroAnalysis":"[${TARGET_LANG} text, ≤150 chars, include actual CPI/rate/spread numbers]",`,
@@ -3656,6 +3661,28 @@ async function generateViaOllama() {
 
   // ── 후처리: 품질 향상 파이프라인 ─────────────────────────────────────────────
   console.log('\n[5.5/7] 후처리 품질 향상...');
+
+  // Fact-check guard: 정치 인물/임명 환각 패턴 자동 제거 (2026-05-23 신설)
+  // 입력 데이터에 없는 단언 (예: "Powell 잔류", "Trump 정책") 을 LLM 이 생성 시 제거
+  const HALLUCINATION_PATTERNS = [
+    /파월\s*이사\s*잔류[^,—]*/g,
+    /파월\s*전\s*의장[^,—]*/g,
+    /Powell\s+(?:remains?|stays?|retains?)[^,.]*/gi,
+    /트럼프\s*(?:정책|관세)\s*우려[^,—]*/g,
+    /Trump\s+(?:tariff|policy)\s+concerns?[^,.]*/gi,
+    /BoJ\s+intervention[^,.]*/gi,
+  ];
+  const removeHalluc = (text) => {
+    if (!text) return text;
+    let cleaned = text;
+    for (const re of HALLUCINATION_PATTERNS) {
+      cleaned = cleaned.replace(re, '').replace(/\s*,\s*,/g, ',').replace(/^\s*,\s*/, '').replace(/\s*—\s*/, ' — ').trim();
+    }
+    return cleaned;
+  };
+  if (finalReport.thesis) finalReport.thesis = removeHalluc(finalReport.thesis);
+  if (finalReport.macroAnalysis) finalReport.macroAnalysis = removeHalluc(finalReport.macroAnalysis);
+
   finalReport.thesis = expandThesis(finalReport.thesis, macroData, ctxRaw, localeArg);
   finalReport.macroAnalysis = enrichMacroAnalysis(finalReport.macroAnalysis, ctxRaw, macroData, localeArg);
   finalReport.regionStances = fillMissingRegionStances(finalReport.regionStances, ctxRaw);
