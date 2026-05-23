@@ -69,7 +69,9 @@ async function checkEndpoint(ep) {
       }
     }
     let icon = FMT_OK, msg = '';
-    if (n === 0) { icon = FMT_ERR; msg = '0 items'; }
+    // 유료 API 잠금 상태 (configured:false) — 정상, lock UI 표시
+    if (j.configured === false) { icon = '🔒'; msg = 'locked (paid API)'; }
+    else if (n === 0) { icon = FMT_ERR; msg = '0 items'; }
     else if (staleness && staleness.startsWith('STALE')) { icon = FMT_ERR; msg = staleness; }
     else if (src === 'error' || src === 'static' || (src && src.startsWith('error'))) { icon = FMT_WARN; msg = `degraded source`; }
     else if (staleness) { icon = FMT_WARN; msg = staleness; }
