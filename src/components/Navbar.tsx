@@ -21,7 +21,6 @@ const navLinks = [
   { href: '/news-gap', key: 'newsGap' },
   { href: '/intelligence', key: 'intelligence' },
   { href: '/osint', key: 'osint' },
-  { href: '/satellite', key: 'satellite' },
   { href: '/about', key: 'about' },
 ] as const;
 

@@ -279,7 +279,6 @@ function MarketSnapshot() {
               </div>
             );
           })()}
-          <span className="text-[10px] text-cf-text-secondary/60 ml-auto flex-shrink-0">15min delay</span>
         </div>
       </div>
     </div>

@@ -355,20 +355,24 @@ async function fetchAtomBothForms(): Promise<AtomEntry[]> {
 }
 
 async function fetchEftsOwnershipFilings(): Promise<AtomEntry[]> {
+  // 2026-05-23: EFTS forms=SC+13D filter 가 root_forms 매칭 0건 (SEC 측 indexing 이슈)
+  // → q="schedule 13D" full-text search 로 검색 후 application 에서 form filter
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
   const start = Date.now();
   const entries: AtomEntry[] = [];
-  // SC 13D + SC 13G + amendments
-  for (const formType of ['SC%2013D', 'SC%2013G', 'SC%2013D%2FA', 'SC%2013G%2FA']) {
+  for (const q of ['%22schedule%2013D%22', '%22schedule%2013G%22']) {
     try {
-      const url = `https://efts.sec.gov/LATEST/search-index?forms=${formType}&dateRange=custom&startdt=${weekAgo}&enddt=${today}`;
+      const url = `https://efts.sec.gov/LATEST/search-index?q=${q}&startdt=${weekAgo}&enddt=${today}`;
       const res = await pacedFetch(url, 8000);
       if (!res.ok) continue;
-      const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; ciks?: string[] }; _id?: string }> } };
+      const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; ciks?: string[]; form?: string; root_forms?: string[] }; _id?: string }> } };
       const hits = data?.hits?.hits ?? [];
-      for (const hit of hits.slice(0, 15)) {
+      for (const hit of hits.slice(0, 30)) {
         const src = hit._source;
+        // application-side form filter (EFTS form filter 안 됨)
+        const form = src?.form ?? src?.root_forms?.[0] ?? '';
+        if (!/^SC?\s*(SCHEDULE\s*)?13[DG](\/A)?$/i.test(form) && !/^SCHEDULE\s*13[DG]/i.test(form)) continue;
         const accession = hit._id?.split(':')[0] ?? '';
         const cik = src?.ciks?.[0] ?? '';
         const issuerName = src?.display_names?.[0] ?? '';
@@ -382,7 +386,7 @@ async function fetchEftsOwnershipFilings(): Promise<AtomEntry[]> {
           updatedAt: filedDate, filedDate,
         });
       }
-    } catch { /* skip form */ }
+    } catch { /* skip query */ }
   }
   logger.info('edgar.efts.ownership', 'fetched', { entries: entries.length, durationMs: Date.now() - start });
   return entries;

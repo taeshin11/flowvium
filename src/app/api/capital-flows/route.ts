@@ -468,7 +468,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
   const twelveKey = process.env.TWELVE_DATA_KEY?.trim() || null;
   const finnhubKey = process.env.FINNHUB_KEY?.trim() || null;
-  const dataSource = twelveKey ? 'Twelve Data (realtime)' : 'Yahoo Finance (15min delay)';
+  const dataSource = twelveKey ? 'Twelve Data' : 'Yahoo Finance';
   const cacheKey = `flowvium:capital-flows:v12:${twelveKey ? 'twelve' : 'yahoo'}`;
 
   // Module-level memory cache — force=1 시 skip
