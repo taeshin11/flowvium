@@ -2805,7 +2805,7 @@ function buildGroundingFacts(livePriceData) {
   const lines = [
     `[FACTS — MANDATORY]`,
     `System date: ${TODAY}`,
-    `파월은 2026년 2월 의장 임기 만료. "파월 전 의장" 또는 "파월 이사"로만 표기. 트럼프가 새 의장 임명.`,
+    // 정치 인물 임명/잔류 같은 사실은 [News] 에 명시된 경우만 인용 (prompt 단언 금지)
     `Ticker policy: S&P500 components, major ETFs, top-100 crypto, country ETFs (EWY/EWJ/EWZ/VGK etc.), Korean stocks (.KS)`,
     `BLOCKED: OTC/pink sheets (.OB/.PK), pure inverse/leveraged ETFs (SQQQ/TQQQ) as primary hold`,
   ];
