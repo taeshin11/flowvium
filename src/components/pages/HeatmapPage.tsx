@@ -92,24 +92,22 @@ function SectorTreemapContent(props: SectorContentProps) {
   if (width < 1 || height < 1) return null;
 
   if (depth === 1) {
-    // Fill entire sector area with the sector color. depth=2 stocks are inset by GAP px,
-    // so this background color shows through between stocks as visible "grout".
-    // Adjacent sectors have different colors → sector boundaries become clearly visible.
+    // Sector 배경 — 사용자 피드백: 'boundary 안 보임' (2026-05-24)
+    // opacity 0.85 → 1.0 + 굵은 stroke 추가로 sector 경계 명확화
     const color = sectorColor ?? '#475569';
-    // Store bounds so the SVG overlay can draw sector labels on top
     _sectorBoundsCache.set(name ?? '', { x, y, w: width, h: height, color });
     return (
       <g>
-        <rect x={x} y={y} width={width} height={height} fill={color} opacity={0.85} />
+        <rect x={x} y={y} width={width} height={height} fill={color} opacity={1.0} />
+        {/* Sector border — 검은 외곽선 3px + sector color 자체로 시각적 분리 */}
+        <rect x={x} y={y} width={width} height={height} fill="none" stroke="#000" strokeWidth={3} />
       </g>
     );
   }
 
   if (depth === 2) {
-    // Each stock is inset by GAP px on every side so the depth=1 sector color shows through.
-    // Within a sector: 4px of sector color between stocks.
-    // At sector boundary: different colors on each side → visually distinct.
-    const GAP = 2;
+    // GAP 2 → 6: sector 색 grout 6px 노출 (이전 2px 은 거의 안 보임)
+    const GAP = 6;
     return <StockBox x={x + GAP} y={y + GAP} width={width - GAP * 2} height={height - GAP * 2}
                      ticker={ticker} changePct={changePct} fullName={fullName} />;
   }

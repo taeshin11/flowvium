@@ -40,7 +40,7 @@ const ENDPOINTS = [
   { path: '/api/news-cascade?locale=ko', extract: j => ({ n: (j.articles ?? []).length, src: j.source ?? '-' }) },
   { path: '/api/market-heatmap?country=US', extract: j => ({ n: (j.sectors ?? []).reduce((s, x) => s + (x.stocks?.length ?? 0), 0), src: j.source ?? '-' }) },
   { path: '/api/supply-chain-signals', extract: j => { const sigs = j.signals ?? []; const live = sigs.filter(s => ['sec-8k','dart','satellite'].includes(s.source)).length; return { n: sigs.length, src: `${j.source ?? '-'} (live=${live})` }; } },
-  { path: '/api/signals', extract: j => ({ n: (j.entries ?? j.signals ?? []).length, src: j.source ?? '-' }) },
+  { path: '/api/signals', extract: j => ({ n: Math.max((j.entries ?? []).length, (j.signals ?? []).length), src: j.source ?? '-' }) },
   { path: '/api/cot-positions', extract: j => ({ n: (j.entries ?? []).length, src: j.source ?? '-' }) },
   { path: '/api/commodity-curve', extract: j => ({ n: (j.curves ?? j.entries ?? []).length, src: j.source ?? '-' }) },
   { path: '/api/market-caps', extract: j => ({ n: j.capsLive ?? 0, src: `${j.source ?? '-'} (${j.capsLive ?? 0}/${j.capsTotal ?? '?'})` }) },
