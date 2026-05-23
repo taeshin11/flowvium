@@ -593,8 +593,13 @@
 ### 10b-2. 표시 컬럼
 - 티커 · 주가 · 30d ATM IV · IV 순위 (데이터셋 내 percentile) · Term Slope · 25Δ Skew · P/C · 품질 점수 · 상세 링크
 
-### 10b-3. 추적 종목 (30개)
+### 10b-3. 추적 종목 (31개)
 NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/GS/BAC/V/UNH/XOM/CVX/LMT/RTX/NOC/SPY/QQQ/IWM/GLD/TLT
+
+**캐시 채우기 정책 (2026-05-24 강화)**:
+- `cron/iv-prewarm` 가 평일 2x/일 (22:30 KST · 03:00 KST) 전 종목 4h TTL 워밍
+- `/api/iv-screener` 가 미스 시 무작위 3건 lazy compute (이전 `.slice(0,3)` 였으면 NVDA/MSFT/AAPL 고정으로 MSFT 영구실패가 28종목 영구 빈칸 유발 — 사건 후 무작위 샘플링으로 변경)
+- 영구실패 티커는 1h `neg:` 캐시로 격리되어 lazy 슬롯 낭비 방지
 
 ### 10b-4. CompanyPage 통합
 - 우측 컬럼에 "옵션 내재변동성 (IV)" 카드 표시
@@ -931,7 +936,8 @@ ownership-alerts 적용).
 | `/api/block-trades` | Polygon (API 키 필요) | 5분 |
 | `/api/options-flow` | Unusual Whales (API 키 필요) | 캐시 |
 | `/api/iv/[ticker]` | Yahoo v7/finance/options 풀체인 + Bloomberg-style 콜-풋 패리티 + Brent BS 역산; `source: live\|cached\|error` | 4h Redis + 24h stale |
-| `/api/iv-screener` | 30 종목 mget 캐시 + 최대 3 lazy 계산; `source: live\|cached\|mixed\|partial\|error` | 4h Redis |
+| `/api/iv-screener` | 31 종목 mget 캐시 + 무작위 3 lazy 계산 + 영구실패 1h negative cache; `source: live\|cached\|mixed\|partial\|error` | 4h Redis |
+| `/api/cron/iv-prewarm` | iv-screener watchlist 31종목 IV 사전 워밍 (concurrency 4); `source: live\|error` | 4h Redis + 24h stale + 1h neg cache; 평일 13:30 UTC / 18:00 UTC 2x/일 |
 | `/api/korea-flow` | KRX → Naver(foreign-only) → Yahoo(price-only) cascade; `source: krx\|naver-fallback\|yahoo-price-only` | 캐시 |
 | `/api/short-interest` | EDGAR 13F + FINRA 일간 공매도율; shortRatio(DTC): FINRA monthly 403(Cloudflare) → null 유지 | 캐시 |
 | `/api/market-heatmap` | iShares ETF CSV + Stooq(JP/EU) + Yahoo v8(KR/TW/IN/CN/EU-fallback) + CNBC(지수) | 15m Redis; EU 79/80 (98.75%) |
@@ -1048,6 +1054,7 @@ ownership-alerts 적용).
 | `cron/send-alerts` | 매 4시간 | F&G 극단(≤25/≥75) + VIX 고공포(≥30)/주의(≥25) 시 Discord 웹훅 발송 · 24h 쿨다운 · `DISCORD_WEBHOOK_URL` 미설정 시 무음 스킵 |
 | `cron/evaluate-signals` | 일요일 03:00 UTC | 평가 기한 지난 로테이션 신호 Yahoo Finance 수익률 대조 → hit/miss → 타임프레임별 정확도 갱신 |
 | `cron/signal-retrospective` | 일요일 03:30 UTC | evaluate-signals 결과 + 정확도 레코드 → AI(callAI cascade) 요약 → Redis 14일 캐시 (`/api/signal-retrospective`) |
+| `cron/iv-prewarm` | 평일 22:30 KST (13:30 UTC) · 03:00 KST (18:00 UTC) | iv-screener watchlist 31종목 IV pre-warm (concurrency 4) → 4h Redis + 24h stale + 1h neg-cache (영구실패 티커 격리). 미수행 시 `/volatility` 페이지 2/31 만 표시되는 사건(2026-05-24) 이후 신설 |
 
 ---
 

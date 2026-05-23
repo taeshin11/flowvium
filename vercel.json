@@ -60,6 +60,9 @@
     },
     "src/app/api/cron/portfolio-retrospective/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/iv-prewarm/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -134,6 +137,14 @@
     {
       "path": "/api/cron/portfolio-retrospective",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/iv-prewarm",
+      "schedule": "30 13 * * 1-5"
+    },
+    {
+      "path": "/api/cron/iv-prewarm",
+      "schedule": "0 18 * * 1-5"
     }
   ]
 }

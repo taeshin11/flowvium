@@ -566,20 +566,22 @@
 
 ## 9b. 내재변동성 스크리너 (`/volatility`) — 신규 (2026-05-12)
 
-### 9b-1. 종목별 IV (30개 추적)
+### 9b-1. 종목별 IV (31개 추적)
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
-| 227a | 30d ATM IV | 💾 cached | Yahoo v7/finance/options + 자체계산 (Brent + Black-76 콜-풋 패리티) |
-| 227b | 90d ATM IV | 💾 cached | 동일 |
-| 227c | Term Slope (90d - 30d) | 💾 cached | 자체계산 |
-| 227d | 25Δ Skew (σ_put - σ_call) | 💾 cached | 자체계산 |
-| 227e | Put/Call Ratio (front-month OI) | 💾 cached | Yahoo |
+| 227a | 30d ATM IV | 🔄 cron | Yahoo v7/finance/options + 자체계산 (Brent + Black-76 콜-풋 패리티); `cron/iv-prewarm` 평일 2x/일 워밍 (2026-05-24 신설) |
+| 227b | 90d ATM IV | 🔄 cron | 동일 |
+| 227c | Term Slope (90d - 30d) | 🔄 cron | 자체계산 |
+| 227d | 25Δ Skew (σ_put - σ_call) | 🔄 cron | 자체계산 |
+| 227e | Put/Call Ratio (front-month OI) | 🔄 cron | Yahoo |
 | 227f | IV 순위 (데이터셋 percentile) | ✅ live | 클라이언트 계산 |
-| 227g | Quality Score (0-100) | 💾 cached | spread/OI/lastTradeDate 기반 |
-| 227h | Forward (콜-풋 패리티 회귀) | 💾 cached | 자체계산 |
-| 227i | Implied rate (parity 회귀 기울기) | 💾 cached | 자체계산 |
+| 227g | Quality Score (0-100) | 🔄 cron | spread/OI/lastTradeDate 기반 |
+| 227h | Forward (콜-풋 패리티 회귀) | 🔄 cron | 자체계산 |
+| 227i | Implied rate (parity 회귀 기울기) | 🔄 cron | 자체계산 |
 | 227j | source 필드 ('live'\|'cached'\|'mixed'\|'partial'\|'error') | ✅ live | verify-metrics probe iv.source |
+| 227l | iv-prewarm successCount (31중 ≥25 OK) | 🔄 cron | `/api/cron/iv-prewarm` (평일 22:30 / 03:00 KST) — 미수행 시 페이지 2/31만 표시되는 사건(2026-05-24) 이후 도입 |
+| 227m | 영구실패 negative cache (1h TTL) | 🔄 cron | `flowvium:iv:v1:neg:{TICKER}` — MSFT 같은 `no_valid_expiries` 티커가 lazy 슬롯 영원히 차지하는 문제 격리 |
 
 ### 9b-2. CompanyPage IV 카드
 
