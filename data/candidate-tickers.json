@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T07:50:58.090Z",
+  "generatedAt": "2026-05-23T02:26:11.574Z",
   "total": 630,
   "byBand": {
     "titan": 5,
@@ -1194,42 +1194,42 @@
     },
     "GPS": {
       "name": "Old Navy",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "URBN": {
       "name": "Anthropologie",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "BOOT": {
       "name": "Western Wear & Boots",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "SFM": {
       "name": "Fresh Produce & Bulk Foods",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "WING": {
       "name": "Chicken Wings (12 flavors)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "BROS": {
       "name": "Drive-Thru Coffee & Energy Drinks",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "SHAK": {
       "name": "ShackBurgers & Chicken Shack",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "small"
     },
     "DRVN": {
       "name": "Maintenance (Take 5 Oil Change, Midas)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "GTLS": {
@@ -1289,12 +1289,12 @@
     },
     "NXST": {
       "name": "Local TV Stations (200 markets)",
-      "sector": "media",
+      "sector": "communication-services",
       "cap": "large"
     },
     "AMCX": {
       "name": "AMC (Linear Cable Channel)",
-      "sector": "media",
+      "sector": "communication-services",
       "cap": "mid"
     },
     "FYBR": {
@@ -1309,17 +1309,17 @@
     },
     "FLO": {
       "name": "Nature",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "CAKE": {
       "name": "Cheesecake Factory Restaurants",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "ABG": {
       "name": "New Vehicle Sales",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "DIS": {
@@ -2919,7 +2919,7 @@
     },
     "VIPS": {
       "name": "Online Discount Retail (Vipshop)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "GOLD": {
@@ -2979,27 +2979,27 @@
     },
     "QSR": {
       "name": "Tim Hortons",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "TXRH": {
       "name": "Texas Roadhouse Restaurants",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "WEN": {
       "name": "Wendy",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "DKNG": {
       "name": "Sportsbook (DraftKings Sportsbook)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "PENN": {
       "name": "ESPN BET (Online Sportsbook)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "UTHR": {
@@ -3074,27 +3074,27 @@
     },
     "BURL": {
       "name": "Apparel (Women/Men/Kids)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "FIVE": {
       "name": "Trend & Style (teen/tween)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "PVH": {
       "name": "Calvin Klein",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "mid"
     },
     "OHI": {
       "name": "Skilled Nursing Facilities (SNF)",
-      "sector": "real estate",
+      "sector": "real-estate",
       "cap": "mid"
     },
     "STAG": {
       "name": "Single-Tenant Industrial Properties",
-      "sector": "real estate",
+      "sector": "real-estate",
       "cap": "mid"
     },
     "CMC": {
@@ -3134,7 +3134,7 @@
     },
     "SCI": {
       "name": "Funeral Services (Dignity Memorial)",
-      "sector": "consumer",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "NVDA": {

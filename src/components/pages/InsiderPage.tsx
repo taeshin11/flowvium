@@ -9,7 +9,8 @@ import type { OptionsFlowAlert } from '@/lib/unusual-whales';
 import type { NPortFundSnapshot, NPortTickerAggregate } from '@/lib/edgar-nport';
 import type { BlockTrade } from '@/lib/polygon';
 
-type Tab = 'insider' | 'ownership' | 'options' | 'korea' | 'nport' | 'blocks';
+// options / blocks 탭은 유료 API 의존 → 비활성. UI 컴포넌트만 유지 (재활성 옵션).
+type Tab = 'insider' | 'ownership' | 'korea' | 'nport';
 
 interface KoreaFlowPayload {
   updatedAt: string;
@@ -177,8 +178,6 @@ export default function InsiderPage() {
     { id: 'korea',     label: t('tabKorea'),     icon: <Globe className="w-4 h-4" />,          count: korea ? (korea.topForeignBuy.length + korea.topForeignSell.length) : 0 },
     { id: 'ownership', label: t('tabOwnership'), icon: <AlertTriangle className="w-4 h-4" />, count: ownership.length },
     { id: 'nport',     label: t('tabNport'),     icon: <Building2 className="w-4 h-4" />,     count: nportFunds.length },
-    { id: 'options',   label: t('tabOptions'),   icon: <Zap className="w-4 h-4" />,            count: options.length },
-    { id: 'blocks',    label: t('tabBlocks'),    icon: <DollarSign className="w-4 h-4" />,    count: blocks.length },
   ];
 
   // ── Filter + cluster insider transactions by ticker ─────────────────────
@@ -462,92 +461,7 @@ export default function InsiderPage() {
         </div>
       )}
 
-      {/* Block trades */}
-      {tab === 'blocks' && !blocksConfigured && (
-        <div className="cf-card p-8 text-center">
-          <DollarSign className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-          <p className="text-sm font-bold text-cf-text-primary mb-2">{t('blocksLockedTitle')}</p>
-          <p className="text-xs text-cf-text-secondary leading-relaxed max-w-md mx-auto">{t('blocksLockedBody')}</p>
-        </div>
-      )}
-
-      {tab === 'blocks' && blocksConfigured && (
-        <div className="cf-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-white/5">
-              <tr className="text-[10px] text-cf-text-secondary">
-                <th className="px-3 py-2 text-left">{t('th.time')}</th>
-                <th className="px-3 py-2 text-left">{t('th.ticker')}</th>
-                <th className="px-3 py-2 text-right">{t('th.shares')}</th>
-                <th className="px-3 py-2 text-right">{t('th.price')}</th>
-                <th className="px-3 py-2 text-right">{t('th.value')}</th>
-                <th className="px-3 py-2 text-left">{t('th.exchange')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {blocksFiltered.map(b => (
-                <tr key={b.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary font-mono whitespace-nowrap">{fmtTime(b.timestamp)}</td>
-                  <td className="px-3 py-2.5"><Link href={`/company/${b.ticker}` as Parameters<typeof Link>[0]['href']} className="font-bold text-cf-accent hover:underline">{b.ticker}</Link></td>
-                  <td className="px-3 py-2.5 font-mono text-xs text-right">{b.size.toLocaleString()}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs text-right">${b.price.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 font-mono text-sm font-bold text-right">{fmtUsd(b.valueUsd)}</td>
-                  <td className="px-3 py-2.5 text-[10px] text-cf-text-secondary">{b.exchange ?? '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {blocksFiltered.length === 0 && <div className="py-12 text-center text-sm text-cf-text-secondary">{t('empty')}</div>}
-        </div>
-      )}
-
-      {tab === 'options' && !optionsConfigured && (
-        <div className="cf-card p-8 text-center">
-          <Zap className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-          <p className="text-sm font-bold text-cf-text-primary mb-2">{t('optionsLockedTitle')}</p>
-          <p className="text-xs text-cf-text-secondary leading-relaxed max-w-md mx-auto">{t('optionsLockedBody')}</p>
-        </div>
-      )}
-
-      {tab === 'options' && optionsConfigured && (
-        <div className="cf-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-white/5">
-              <tr className="text-[10px] text-cf-text-secondary">
-                <th className="px-3 py-2 text-left">{t('th.time')}</th>
-                <th className="px-3 py-2 text-left">{t('th.ticker')}</th>
-                <th className="px-3 py-2 text-left">{t('th.sentiment')}</th>
-                <th className="px-3 py-2 text-left">{t('th.contract')}</th>
-                <th className="px-3 py-2 text-right">{t('th.size')}</th>
-                <th className="px-3 py-2 text-right">{t('th.premium')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(tf ? options.filter(o => o.ticker === tf) : options).map(o => (
-                <tr key={o.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                  <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary font-mono whitespace-nowrap">{fmtTime(o.timestamp)}</td>
-                  <td className="px-3 py-2.5 font-bold text-cf-accent">{o.ticker}</td>
-                  <td className="px-3 py-2.5">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      o.sentiment === 'bullish' ? 'bg-emerald-500/10 text-emerald-400' :
-                      o.sentiment === 'bearish' ? 'bg-red-500/10 text-red-400' :
-                      'bg-white/5 text-cf-text-secondary'
-                    }`}>
-                      {o.optionType.toUpperCase()} · {o.sentiment}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5 text-[11px] font-mono">
-                    ${o.strike} · {o.expiry ?? '-'}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-xs text-right">{o.size?.toLocaleString() ?? '-'}</td>
-                  <td className="px-3 py-2.5 font-mono text-sm font-bold text-right">{fmtUsd(o.premiumUsd)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {options.length === 0 && <div className="py-12 text-center text-sm text-cf-text-secondary">{t('empty')}</div>}
-        </div>
-      )}
+      {/* blocks/options 탭 UI 제거됨 — 유료 API 의존 (2026-05-23). 재활성 시 git 복원 */}
 
       {tab === 'korea' && korea && (
         <div className="space-y-4">
