@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "Laporan historis ini telah kedaluwarsa dan tidak dapat dimuat. Lihat laporan terbaru.",
     "satelliteTitle": "Sorotan Aktivitas Pabrik Satelit",
     "satelliteActive": "Aktif",
-    "satelliteNormal": "Normal"
+    "satelliteNormal": "Normal",
+    "newsTitle": "Berita Utama",
+    "newsSubtitle": "Berita berdampak besar dianalisis AI",
+    "newsLoading": "Memuat..."
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

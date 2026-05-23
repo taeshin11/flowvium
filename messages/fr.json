@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "Ce rapport historique a expiré et ne peut pas être chargé. Voir le dernier rapport.",
     "satelliteTitle": "Faits Saillants d'Activité Usine Satellite",
     "satelliteActive": "Actif",
-    "satelliteNormal": "Normal"
+    "satelliteNormal": "Normal",
+    "newsTitle": "Actualités Clés",
+    "newsSubtitle": "Titres à fort impact analysés par IA",
+    "newsLoading": "Chargement..."
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "انتهت صلاحية هذا التقرير التاريخي ولا يمكن تحميله. عرض أحدث تقرير.",
     "satelliteTitle": "أبرز نشاط المصانع عبر الأقمار الصناعية",
     "satelliteActive": "نشط",
-    "satelliteNormal": "عادي"
+    "satelliteNormal": "عادي",
+    "newsTitle": "الأخبار الرئيسية",
+    "newsSubtitle": "عناوين عالية التأثير محللة بالذكاء الاصطناعي",
+    "newsLoading": "جار التحميل..."
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

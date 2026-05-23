@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "此歷史報告已過期，無法載入。請查看最新報告。",
     "satelliteTitle": "衛星工廠活動亮點",
     "satelliteActive": "活躍",
-    "satelliteNormal": "正常"
+    "satelliteNormal": "正常",
+    "newsTitle": "主要新聞",
+    "newsSubtitle": "AI分析高影響頭條",
+    "newsLoading": "載入新聞..."
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

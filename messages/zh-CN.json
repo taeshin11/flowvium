@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "此历史报告已过期，无法加载。请查看最新报告。",
     "satelliteTitle": "卫星工厂活动亮点",
     "satelliteActive": "活跃",
-    "satelliteNormal": "正常"
+    "satelliteNormal": "正常",
+    "newsTitle": "主要新闻",
+    "newsSubtitle": "AI分析高影响头条",
+    "newsLoading": "加载新闻..."
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

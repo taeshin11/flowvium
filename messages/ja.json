@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "この過去レポートは期限切れで読み込めません。最新レポートをご覧ください。",
     "satelliteTitle": "衛星工場活動ハイライト",
     "satelliteActive": "活発",
-    "satelliteNormal": "普通"
+    "satelliteNormal": "普通",
+    "newsTitle": "主要ニュース",
+    "newsSubtitle": "AI分析・影響大ヘッドライン",
+    "newsLoading": "ニュース読込中..."
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

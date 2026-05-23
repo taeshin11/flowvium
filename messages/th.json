@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "รายงานประวัติศาสตร์นี้หมดอายุแล้วและไม่สามารถโหลดได้ ดูรายงานล่าสุด",
     "satelliteTitle": "ไฮไลต์กิจกรรมโรงงานดาวเทียม",
     "satelliteActive": "คึกคัก",
-    "satelliteNormal": "ปกติ"
+    "satelliteNormal": "ปกติ",
+    "newsTitle": "ข่าวสำคัญ",
+    "newsSubtitle": "พาดหัวข่าวผลกระทบสูงวิเคราะห์ AI",
+    "newsLoading": "กำลังโหลด..."
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

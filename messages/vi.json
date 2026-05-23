@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "Báo cáo lịch sử này đã hết hạn và không thể tải. Xem báo cáo mới nhất.",
     "satelliteTitle": "Điểm Nổi Bật Hoạt Động Nhà Máy Vệ Tinh",
     "satelliteActive": "Hoạt động",
-    "satelliteNormal": "Bình thường"
+    "satelliteNormal": "Bình thường",
+    "newsTitle": "Tin tức Quan trọng",
+    "newsSubtitle": "Tiêu đề tác động cao phân tích bởi AI",
+    "newsLoading": "Đang tải..."
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

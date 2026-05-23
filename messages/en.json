@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "This historical report has expired and cannot be loaded. View the latest report.",
     "satelliteTitle": "Satellite Factory Activity Highlights",
     "satelliteActive": "Active",
-    "satelliteNormal": "Normal"
+    "satelliteNormal": "Normal",
+    "newsTitle": "Key News",
+    "newsSubtitle": "AI-analyzed high-impact headlines",
+    "newsLoading": "Loading news..."
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

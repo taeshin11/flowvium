@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "Bu tarihi rapor süresi doldu ve yüklenemiyor. En son raporu görüntüleyin.",
     "satelliteTitle": "Uydu Fabrika Aktivitesi Öne Çıkanlar",
     "satelliteActive": "Aktif",
-    "satelliteNormal": "Normal"
+    "satelliteNormal": "Normal",
+    "newsTitle": "Önemli Haberler",
+    "newsSubtitle": "AI analizli yüksek etkili manşetler",
+    "newsLoading": "Yükleniyor..."
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

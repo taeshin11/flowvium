@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "Dieser historische Bericht ist abgelaufen und kann nicht geladen werden. Aktuellen Bericht anzeigen.",
     "satelliteTitle": "Satelliten-Fabrikaktivitäts-Highlights",
     "satelliteActive": "Aktiv",
-    "satelliteNormal": "Normal"
+    "satelliteNormal": "Normal",
+    "newsTitle": "Wichtige Nachrichten",
+    "newsSubtitle": "KI-analysierte Schlagzeilen",
+    "newsLoading": "Lade..."
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

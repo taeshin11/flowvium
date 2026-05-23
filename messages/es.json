@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "Este informe histórico ha caducado y no se puede cargar. Ver el informe más reciente.",
     "satelliteTitle": "Destacados de Actividad Fabril Satelital",
     "satelliteActive": "Activo",
-    "satelliteNormal": "Normal"
+    "satelliteNormal": "Normal",
+    "newsTitle": "Noticias Clave",
+    "newsSubtitle": "Titulares de alto impacto analizados por IA",
+    "newsLoading": "Cargando noticias..."
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

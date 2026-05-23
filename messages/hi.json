@@ -1198,7 +1198,10 @@
     "historyExpiredNote": "यह ऐतिहासिक रिपोर्ट समाप्त हो गई है और लोड नहीं हो सकती। नवीनतम रिपोर्ट देखें।",
     "satelliteTitle": "उपग्रह कारखाना गतिविधि हाइलाइट्स",
     "satelliteActive": "सक्रिय",
-    "satelliteNormal": "सामान्य"
+    "satelliteNormal": "सामान्य",
+    "newsTitle": "मुख्य समाचार",
+    "newsSubtitle": "AI विश्लेषित प्रभावशाली शीर्षक",
+    "newsLoading": "लोड हो रहा है..."
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

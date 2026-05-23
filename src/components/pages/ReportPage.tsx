@@ -381,6 +381,19 @@ export default function ReportPage() {
   const [satSignals, setSatSignals] = useState<SatFactorySignal[]>([]);
   const [satDate, setSatDate] = useState<string | null>(null);
 
+  // 주요 뉴스 (news-cascade)
+  interface NewsItem {
+    id: string;
+    title: string;
+    summary: string;
+    link: string;
+    sentiment: 'bullish' | 'bearish' | 'neutral';
+    importance: 'high' | 'medium' | 'low';
+    cascades?: Array<{ asset: string; direction: 'positive' | 'negative' | 'neutral'; magnitude: 'high' | 'medium' | 'low'; reason: string }>;
+  }
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+
   const fetchStrategy = useCallback(async (force = false) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -484,6 +497,16 @@ export default function ReportPage() {
       kpiAbortRef.current?.abort();
     };
   }, [fetchStrategy, fetchKpis]);
+
+  useEffect(() => {
+    // 주요 뉴스 fetch (news-cascade, locale 인식)
+    setNewsLoading(true);
+    fetch(`/api/news-cascade?locale=${encodeURIComponent(locale)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => setNews(d.articles ?? []))
+      .catch(() => {})
+      .finally(() => setNewsLoading(false));
+  }, [locale]);
 
   useEffect(() => {
     fetch('/api/satellite-signals', { cache: 'no-store' })
@@ -659,6 +682,66 @@ export default function ReportPage() {
                 <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeWatch')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.watch}</span></div>
                 <div className="flex gap-2 text-sm"><span className="font-semibold text-amber-700 shrink-0 w-14">{t('narrativeStory')}</span><span className="text-gray-700 leading-relaxed">{data.marketNarrative.story}</span></div>
               </div>
+            </div>
+          )}
+
+          {/* ── S6.5: 주요 뉴스 (news-cascade) ─────────────────────────────── */}
+          {(newsLoading || news.length > 0) && (
+            <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-blue-800">📰 {t('newsTitle')}</span>
+                <span className="text-[10px] text-blue-600">{t('newsSubtitle')}</span>
+              </div>
+              {newsLoading && news.length === 0 ? (
+                <div className="text-xs text-blue-500 text-center py-3">{t('newsLoading')}</div>
+              ) : (
+                <div className="space-y-2">
+                  {news
+                    .sort((a, b) => (a.importance === 'high' ? -1 : 0) - (b.importance === 'high' ? -1 : 0))
+                    .slice(0, 5)
+                    .map(n => {
+                      const sentColor = n.sentiment === 'bullish' ? 'text-emerald-600 bg-emerald-100'
+                        : n.sentiment === 'bearish' ? 'text-red-600 bg-red-100'
+                        : 'text-gray-600 bg-gray-100';
+                      const impDot = n.importance === 'high' ? 'bg-red-500' : n.importance === 'medium' ? 'bg-amber-500' : 'bg-gray-300';
+                      return (
+                        <a
+                          key={n.id}
+                          href={n.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block rounded-lg border border-blue-200 bg-white p-3 hover:border-blue-400 hover:shadow-sm transition"
+                        >
+                          <div className="flex items-start gap-2 mb-1">
+                            <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${impDot}`} />
+                            <h4 className="text-sm font-semibold text-gray-900 leading-snug flex-1">{n.title}</h4>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${sentColor}`}>
+                              {n.sentiment === 'bullish' ? '↑' : n.sentiment === 'bearish' ? '↓' : '·'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 leading-relaxed line-clamp-2 ml-4">{n.summary}</p>
+                          {n.cascades && n.cascades.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2 ml-4">
+                              {n.cascades.slice(0, 4).map((c, i) => (
+                                <span
+                                  key={i}
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                                    c.direction === 'positive' ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
+                                    : c.direction === 'negative' ? 'border-red-300 text-red-700 bg-red-50'
+                                    : 'border-gray-300 text-gray-600 bg-gray-50'
+                                  }`}
+                                  title={c.reason}
+                                >
+                                  {c.asset} {c.direction === 'positive' ? '↑' : c.direction === 'negative' ? '↓' : '→'}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </a>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           )}
 
