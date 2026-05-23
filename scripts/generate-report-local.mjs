@@ -439,6 +439,7 @@ function applyLocalHarness(r, livePrices) {
   }
 
   // 6i. stopLossRationale "손절선 ~X" → portfolio.stopLoss 값으로 통일
+  // native 통화 기준 + thousand-separator 포맷 통일 (KR: ₩1,805,130 / US: $200.26)
   if (Array.isArray(r.stopLossRationale)) {
     for (const sr of r.stopLossRationale) {
       const p = r.portfolio.find(x => x.ticker === sr.ticker);
@@ -450,10 +451,14 @@ function applyLocalHarness(r, livePrices) {
       const rationaleStop = parseFloat(m[2].replace(/,/g, ''));
       if (!isFinite(rationaleStop) || rationaleStop === stopP) continue;
       if (Math.abs(rationaleStop - stopP) / stopP < 0.05) continue;
-      const sym = m[1] ?? (p.stopLoss.match(/^[₩$€]/)?.[0] ?? '$');
+      const native = nativeCurrencyForTickerMjs(sr.ticker);
+      const isKR = native === '₩';
+      const formatted = isKR
+        ? `${native}${Math.round(stopP).toLocaleString()}`
+        : `${native}${parseFloat(stopP.toFixed(2))}`;
       sr.rationale = sr.rationale.replace(
         /손절선\s*~\s*[$₩€]?[\d,.]+/,
-        `손절선 ~${sym}${stopP}`,
+        `손절선 ~${formatted}`,
       );
       audit.fixes.stopRationaleAligned.push(`${sr.ticker}:${rationaleStop}→${stopP}`);
     }
@@ -484,6 +489,48 @@ function applyLocalHarness(r, livePrices) {
     }
     if (mismatches.length > 0) {
       audit.fixes.currencyMismatch.push(`${p.ticker} (native ${native}): ${mismatches.join(', ')}`);
+    }
+  }
+
+  // 6j-2. stopLossRationale 텍스트의 통화 기호 + "현재 ~X" 가격 교정 (2026-05-24 사건)
+  // 사건: KR 종목인데 rationale 에 "현재 $292500 → 손절선 ~$272025.00" 표시 — $ 잘못 사용 +
+  // portfolio.stopLoss(₩272,025) 와 rationale 의 "현재" 숫자 mismatch. 6e 는 마킹만, 6i 는
+  // "손절선 ~" 만 고침 → "현재 ~" 와 통화 기호 잔존.
+  // portfolio 에 없는 orphan stopLossRationale 도 통화 기호 정규화 대상 (005930/000660 사건).
+  if (Array.isArray(r.stopLossRationale)) {
+    for (const sr of r.stopLossRationale) {
+      if (!sr.rationale) continue;
+      const native = nativeCurrencyForTickerMjs(sr.ticker);
+      const isKR = native === '₩';
+      const fmt = n => isKR ? `${native}${Math.round(n).toLocaleString()}` : `${native}${parseFloat(n.toFixed(2))}`;
+      let modified = false;
+      const before = sr.rationale;
+      // (a) 잘못된 통화 기호: KR ticker 인데 $X (200MA/50MA 안의 ₩ 표기는 그대로 유지 —
+      //     그 안은 이미 native 기호 ₩ 사용중). 따라서 단순히 "$digit" 패턴만 잡아서 교체.
+      if (isKR) {
+        const swapped = sr.rationale.replace(/\$(\d)/g, `${native}$1`);
+        if (swapped !== sr.rationale) {
+          modified = true;
+          sr.rationale = swapped;
+        }
+      }
+      // (b) "현재 ~X" 가격을 livePrices 기반으로 재계산 (있을 때만)
+      const lp = livePrices?.get(sr.ticker)?.price;
+      if (lp && lp > 0) {
+        const rxCurrent = /현재\s*[$₩€]?\s*([\d,.]+)/;
+        const cm = sr.rationale.match(rxCurrent);
+        if (cm) {
+          const oldVal = parseFloat(cm[1].replace(/,/g, ''));
+          // livePrice 와 50% 이상 차이날 때만 교정 (LLM 이 split-adjusted 가격을 가져왔을 수도 있음)
+          if (isFinite(oldVal) && (oldVal < lp * 0.5 || oldVal > lp * 2)) {
+            sr.rationale = sr.rationale.replace(rxCurrent, `현재 ${fmt(lp)}`);
+            modified = true;
+          }
+        }
+      }
+      if (modified) {
+        audit.fixes.currencyMismatch.push(`${sr.ticker} stopLossRationale: ${before.slice(0, 60)}... → 통화/현재가 교정`);
+      }
     }
   }
 
@@ -1647,12 +1694,14 @@ function enforceRotation(portfolio, livePrices) {
       const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
       const actual = pd.price;
       console.warn(`  🔄 rotation: ${oldP.ticker} → ${boost.ticker} (boost-list, avg_pnl ${boost.avg_pnl}%)`);
+      // boost.reason 이 이미 "BOOST:" prefix 를 포함 — 이중 prefix 방지
+      const boostReason = String(boost.reason ?? '').replace(/^\s*BOOST:\s*/i, '').trim();
       updated[candidates[i].idx] = {
         ticker: boost.ticker,
         name: boost.ticker,
         sector: 'Technology',
         market: isKR ? 'korea' : 'us',
-        rationale: `BOOST: ${boost.reason}`,
+        rationale: `BOOST: ${boostReason || boost.reason}`,
         allocation: oldP.allocation ?? 10,
         entryZone: `${fmt(actual * 0.98)}-${fmt(actual * 1.01)}`,
         entryRationale: `boost-list — 과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}%`,
