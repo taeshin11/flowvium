@@ -130,34 +130,51 @@ function SectorBlock({ sector }: { sector: HeatmapSector }) {
   }));
 
   return (
-    <div className="cf-card p-3" style={{ backgroundColor: '#0f172a', borderColor: '#1e293b' }}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-5 rounded-full" style={{ backgroundColor: sector.color }} />
-          <h3 className="text-sm font-bold text-white">{sector.sector}</h3>
-          <span className="text-[10px] text-slate-500">({sector.stocks.length}{t('stockUnit')})</span>
+    <div
+      className="cf-card relative overflow-hidden"
+      style={{
+        backgroundColor: '#0f172a',
+        borderColor: sector.color,
+        borderWidth: '1px',
+        borderStyle: 'solid',
+      }}
+    >
+      {/* Sector color band — 카드 상단 전체 너비 (4px) */}
+      <div
+        className="absolute top-0 left-0 right-0 h-1"
+        style={{ backgroundColor: sector.color }}
+      />
+      <div className="p-3 pt-3.5">
+        <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2 h-7 rounded" style={{ backgroundColor: sector.color }} />
+            <div>
+              <h3 className="text-base font-extrabold text-white tracking-tight leading-tight">{sector.sector}</h3>
+              <span className="text-[10px] text-slate-500 font-mono">{sector.stocks.length}{t('stockUnit')}</span>
+            </div>
+          </div>
+          {sector.avgChangePct != null && (
+            <span
+              className="text-sm font-bold px-2.5 py-1 rounded font-mono"
+              style={{ backgroundColor: avgColor + '40', color: sector.avgChangePct >= 0 ? '#10b981' : '#ef4444' }}
+            >
+              {sector.avgChangePct > 0 ? '+' : ''}{sector.avgChangePct.toFixed(2)}%
+            </span>
+          )}
         </div>
-        {sector.avgChangePct != null && (
-          <span
-            className="text-xs font-bold px-2 py-0.5 rounded"
-            style={{ backgroundColor: avgColor + '40', color: sector.avgChangePct >= 0 ? '#10b981' : '#ef4444' }}
-          >
-            {sector.avgChangePct > 0 ? '+' : ''}{sector.avgChangePct.toFixed(2)}%
-          </span>
-        )}
-      </div>
-      <div style={{ height: Math.max(180, Math.min(420, 80 + sector.stocks.length * 22)) }}>
-        <ResponsiveContainer>
-          <Treemap
-            data={treeData}
-            dataKey="size"
-            aspectRatio={1.4}
-            stroke="#0f172a"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            content={<StockBox /> as any}
-            animationDuration={400}
-          />
-        </ResponsiveContainer>
+        <div style={{ height: Math.max(180, Math.min(420, 80 + sector.stocks.length * 22)) }}>
+          <ResponsiveContainer>
+            <Treemap
+              data={treeData}
+              dataKey="size"
+              aspectRatio={1.4}
+              stroke="#0f172a"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              content={<StockBox /> as any}
+              animationDuration={400}
+            />
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
