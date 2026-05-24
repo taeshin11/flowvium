@@ -1,0 +1,61 @@
+2026-05-25 fundamentalAnalysis self-consistency 룰 추가 (F7)
+
+# 발견
+2026-05-24 오후 보고서:
+  - portfolio[NVDA].catalysts/fundamentalBasis: 매출 YoY% = 85.2%
+  - companyChanges.NVDA.keyChange: "85.2% 증가"
+  - fundamentalAnalysis: "NVDA Q1 매출 73% 증가, 기관 투자자 신규 매수"
+  → 같은 보고서 안에서 두 다른 % (85.2 vs 73) 가 노출됨. 자체 모순.
+
+원인: fundamentalAnalysis 는 다른 LLM 호출에서 생성되어 catalysts/fundamentalBasis 와
+독립적으로 만들어짐. 두 호출 사이에 fact alignment 없음.
+
+# 수정 (generate-report-local.mjs)
+F5/F6 다음 단계로 F7 추가:
+
+1. ticker별 YoY% 추출 — 4가지 패턴
+   - /Revenue +X%/ — fundamentalBasis 형식
+   - /+X% YoY/ — catalysts 형식
+   - /revenue growth X%/ — catalysts 영어 형식
+   - /전년 대비 X%/ — companyChanges.keyChange 한국어 형식
+
+2. 우선순위
+   companyChanges.revenueYoY (F5d field-swap 검증 통과한 값) →
+   keyChange 텍스트 추출 →
+   fundamentalBasis 추출 →
+   catalysts join 추출
+
+3. fundamentalAnalysis 안에서 `TICKER ... X% (증가/초과/상승/growth/YoY)` 매치 →
+   추출된 catYoY 와 5pp 이상 차이 시 강제 치환
+
+# 실행 흐름 (NVDA 예시)
+  F5d 단계: revenueYoY=81.6 → null (cap 50B의 163% → field-swap 검출)
+  F7 단계: ccRevYoY=null → keyChange "전년 대비 85.2% 증가" → catYoY=85.2
+  fundamentalAnalysis "73% 증가" vs 85.2 → 차이 12.2pp → 치환
+  결과: "NVDA Q1 매출 85.2% 증가, 기관 투자자 신규 매수"
+
+# 검증
+scripts/test-harness-fixes.mjs F7 단계 추가. raw 보고서로 dry-run 했을 때
+ccRevYoY=81.6 (field-swap 적용 전이라) 우선시 → "73% → 81.6%" 치환.
+실제 generate-report-local 실행 시 F5d 가 81.6 → null 처리 후 F7 가 85.2 사용.
+
+# 한계
+- catalysts 자체도 LLM hallucination 가능성 — F7 은 inter-field consistency 만 확보,
+  값의 절대 정확성은 보장 못함. 100% 정확성 위해 EDGAR/DART API 직접 호출 필요.
+- fundamentalAnalysis 의 정성적 텍스트 ("기관 신규 매수 신호") 자체는 검증 안 됨.
+
+# 누적 fix 통계 (2026-05-24~25 신설 룰)
+| # | 룰 | 작동 확인 |
+|---|---|---|
+| F1 | BOOST 중복 prefix 제거 | ✓ |
+| F2 | KR ticker stopLossRationale $ → ₩ | ✓ |
+| F3 | livePrice 기반 "현재" 가격 재계산 | KR livePrices 존재 시 작동 (의도된 conditional) |
+| F4 | 손절선 thousand-separator 통일 | rationale stop = portfolio stop 시 skip (정상) |
+| F5 | 미래 분기 + 매출 절대값 strip (영어/한국어) | ✓ |
+| F5d | revenueYoY field-swap 검출 (메가캡 cap × 0.5) | ✓ |
+| F6 | macroAnalysis 연준금리 FRED 강제 치환 | FRED 값과 일치 시 no-op (정상) |
+| F7 | fundamentalAnalysis vs catalysts YoY% 정합성 | ✓ |
+| CRWV | US_NAMES_HARNESS 9 ticker 보강 | ✓ (Crown Castle → CoreWeave 교정) |
+
+# 커밋
+5651eff fix(harness): fundamentalAnalysis self-consistency 보정 (F7)
