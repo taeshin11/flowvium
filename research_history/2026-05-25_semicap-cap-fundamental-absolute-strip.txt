@@ -1,0 +1,81 @@
+2026-05-25 morning 보고서 점검 + 추가 fix (F8 + semicap cap)
+
+# 점검 결과 (오늘 아침 보고서, 어제 F5d/F7 fix 첫 적용)
+
+## ✅ 작동
+- F5d revenueYoY field-swap 검출 → NVDA/000660/005930/051910 모두 null
+- F2 KR \$ → ₩ (currencyMismatch 3건 기록)
+- F5 미래 분기 + 매출 절대값 strip (NVDA companyChanges keyChange 일부 처리)
+- BOOST/CRWV 정상
+
+## ❌ 잔존 / 새 결함
+
+1. fundamentalAnalysis "NVDA Q1 매출 43억 달러"
+   - F7 (% 패턴) 우회. 어제 "73% 증가" → 오늘 "43억 달러" (LLM 변형)
+   - NVDA \$4.3B/quarter 는 실제 (\$30-40B) 의 1/10. hallucination.
+
+2. TSM catalysts "Q1 FY2026 매출 \$92.3B"
+   - FY2026 은 FUTURE_QUARTER_RX (FY2027+) 안 잡힘
+   - TSM cap 미정의 → strip 작동 안 함
+   - 실제 TSM \$25-28B/quarter
+
+3. ASML catalysts "Q1 FY2026 매출 \$36.3B"
+   - 동일 문제, cap 미정의
+   - 실제 ASML \$7-9B/quarter
+
+4. companyChanges.keyChange "매출 816억 달성"
+   - 분기 표기 없음 (LLM이 'Q1 FY2027' 제거)
+   - "달성" 단위 표기는 기존 패턴 ('달러' 만) 우회
+
+5. LLM 매출 데이터 cross-ticker swap 의심
+   - Samsung 매출 \$92.3B 가 TSM catalysts 에 매핑
+   - SK하이닉스 \$36.3B 가 ASML catalysts 에 매핑
+
+# 추가 fix
+
+## A. MEGA_CAP_QUARTERLY_REV_CAP semicap 확장
+   TSM 30 / TSMC 30 / ASML 10 / AMAT 8 / LRCX 6 / KLAC 4 / MU 10 / INTC 18
+
+## B. REVENUE_ABS_RX 패턴 확장
+   기존: /\$X.XB | X억 달러/
+   확장: /\$X.XB | X억 (달러|달성) | (매출|revenue) X억/
+
+## C. extractRevenueB() 패턴 추가
+   m3: /(?:매출|revenue) X억/ → X/10 (B 단위)
+
+## D. F8 신설 — fundamentalAnalysis 매출 절대값 strip
+   ticker별 매출 패턴 매칭 → cap × 0.5 미만 또는 × 2 초과면 hallucination 의심
+   매출 segment 만 잘라냄 (ticker prefix 유지)
+
+# 검증
+scripts/test-harness-fixes.mjs (REPORT path: morning) dry-run:
+  - TSM \$92.3B (cap 30 의 308%) → catalysts strip 1건
+  - ASML \$36.3B (cap 10 의 363%) → catalysts strip 1건
+  - NVDA \$4.3B (cap 50 의 9%) → fundamentalAnalysis strip:
+    "NVDA Q1 매출 43억 달러, 기관 투자자 신규 매수"
+    → "NVDA Q1, 기관 투자자 신규 매수"
+
+# 한계 (미해결)
+- F8 cleanup 어색: "NVDA Q1," trailing 정리 안 됨
+- companyChanges.keyChange "매출 816억 달성" 패턴이 (b) cap 룰로 잡혀야 하나
+  test 미시뮬 — 실제 보고서 다음 차에 검증
+- regionStances 데이터-thesis 불일치 잔존 (india 4w -2.4% but bullish)
+- shortSqueeze 모든 종목 동일 boilerplate risk 잔존
+- macroAnalysis 연준금리 3.625% — FRED 캐시 stale 가능성, 또는 실제 값일 수도
+
+# 누적 fix 통계 (2026-05-24~25)
+F1 BOOST dedup ✓
+F2 KR \$ → ₩ ✓
+F3 livePrice "현재" 가격 (conditional)
+F4 손절선 thousand-separator (conditional)
+F5 미래 분기 + 매출 절대값 strip ✓
+F5d revenueYoY field-swap 검출 ✓
+F6 macroAnalysis 연준금리 FRED (conditional)
+F7 fundamentalAnalysis vs catalysts % 정합성 ✓
+F8 fundamentalAnalysis 매출 절대값 strip ✓ (신설)
+CRWV+ US_NAMES 9 ticker 추가 ✓
+TSM/ASML/AMAT/LRCX/KLAC/MU/INTC quarterly cap 추가 ✓
+한국어 패턴 X억 달성 / 매출 X억 추가 ✓
+
+# 커밋
+43297f2 fix(harness): TSM/ASML cap 추가 + fundamentalAnalysis 매출 절대값 strip (F8)
