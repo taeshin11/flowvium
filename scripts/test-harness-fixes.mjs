@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * scripts/test-harness-fixes.mjs — 2026-05-24 신규 harness 룰 4가지를 기존
+ * scripts/test-harness-fixes.mjs — 2026-05-24 신규 harness 룰을 기존
  * 보고서에 적용해 before/after 비교만 출력 (실제 보고서 재생성 X).
  *
  * 검증 항목:
@@ -8,10 +8,12 @@
  *   F2: KR stopLossRationale 의 $ → ₩
  *   F3: "현재" 가격 livePrice 기반 교정 (split-adjusted 의심 시)
  *   F4: 손절선 ~X 포맷 통일 (₩1,805,130 vs ₩1805130)
+ *   F5: 미래 분기 + 매출 절대값 hallucination strip (NVDA Q1 FY2027 $81.6B)
+ *   F6: macroAnalysis 연준금리 FRED 강제 치환
  */
 import { readFileSync } from 'fs';
 
-const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-24-morning-ko.json';
+const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-24-afternoon-ko.json';
 const r = JSON.parse(readFileSync(REPORT, 'utf8'));
 
 function nativeCurrency(t) {
@@ -80,3 +82,48 @@ for (const sr of r.stopLossRationale.filter(x => x.ticker.endsWith('.KS'))) {
   console.log(`    BEFORE: ${before.slice(0, 160)}`);
   console.log(`    AFTER:  ${s.slice(0, 160)}`);
 }
+
+console.log('\n=== F5: 미래 분기 + 매출 절대값 hallucination strip ===');
+const FUTURE_QUARTER_RX = /Q[1-4]\s*FY\s*202[7-9]/i;
+const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B/i;
+const MEGA_CAP = { NVDA: 50, MSFT: 80, AAPL: 140, AMZN: 180, GOOGL: 105, META: 55, TSLA: 35, ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12 };
+for (const p of r.portfolio) {
+  if (!Array.isArray(p.catalysts)) continue;
+  const removed = p.catalysts.filter(c => {
+    if (typeof c !== 'string') return false;
+    if (FUTURE_QUARTER_RX.test(c) && REVENUE_ABS_RX.test(c)) return true;
+    const cap = MEGA_CAP[p.ticker?.toUpperCase()];
+    if (cap) {
+      const m = c.match(/\$(\d+\.?\d*)\s*B/i);
+      if (m && parseFloat(m[1]) > cap) return true;
+    }
+    return false;
+  });
+  if (removed.length > 0) {
+    console.log(`  ${p.ticker}: ${removed.length}건 strip`);
+    for (const c of removed) console.log(`    - "${c}"`);
+  }
+}
+for (const c of r.companyChanges ?? []) {
+  if (typeof c.keyChange === 'string' && FUTURE_QUARTER_RX.test(c.keyChange) && REVENUE_ABS_RX.test(c.keyChange)) {
+    console.log(`  ${c.ticker} companyChanges.keyChange: 미래 분기 strip`);
+    console.log(`    BEFORE: ${c.keyChange}`);
+    const cleaned = c.keyChange.replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*\$\d+\.?\d*\s*B[^,;]*/gi, '').replace(/[,;\s]+,/g, ',').replace(/^[,;\s]+|[,;\s]+$/g, '');
+    console.log(`    AFTER:  ${cleaned || '(empty — entry should be removed)'}`);
+  }
+  const cap = MEGA_CAP[c.ticker?.toUpperCase()];
+  if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > 100) {
+    console.log(`  ${c.ticker} companyChanges.revenueYoY: ${c.revenueYoY}% → null (mega-cap > 100%)`);
+  }
+}
+
+console.log('\n=== F6: macroAnalysis 연준금리 FRED 강제 치환 ===');
+console.log(`  현재 macroAnalysis: "${r.macroAnalysis}"`);
+const fedActual = 4.375; // 데모 — 실제 FRED 값은 매번 동적
+const rx = /(연준금리|Fed(?:eral)?\s*(?:Funds\s*)?Rate|연방준비)\s*[:은]?\s*(\d+\.?\d*)\s*%/gi;
+const replaced = r.macroAnalysis.replace(rx, (match, label, val) => {
+  const v = parseFloat(val);
+  if (!isFinite(v) || Math.abs(v - fedActual) < 0.5) return match;
+  return `${label} ${fedActual}%`;
+});
+console.log(`  치환 후 (demo FRED=${fedActual}%): "${replaced}"`);

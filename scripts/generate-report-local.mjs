@@ -181,7 +181,9 @@ const US_NAMES_HARNESS = {
   AAPL: 'Apple', MSFT: 'Microsoft', GOOGL: 'Alphabet', GOOG: 'Alphabet',
   AMZN: 'Amazon', META: 'Meta Platforms', TSLA: 'Tesla', NFLX: 'Netflix',
   ORCL: 'Oracle', CRM: 'Salesforce', ADBE: 'Adobe', NOW: 'ServiceNow',
-  PLTR: 'Palantir',
+  PLTR: 'Palantir', CRWV: 'CoreWeave', SNOW: 'Snowflake', NET: 'Cloudflare',
+  DDOG: 'Datadog', MDB: 'MongoDB', ZS: 'Zscaler', CRWD: 'CrowdStrike',
+  PANW: 'Palo Alto Networks', FTNT: 'Fortinet',
   JPM: 'JPMorgan Chase', GS: 'Goldman Sachs', BLK: 'BlackRock',
   V: 'Visa', MA: 'Mastercard',
   LMT: 'Lockheed Martin', RTX: 'RTX', NOC: 'Northrop Grumman',
@@ -3731,6 +3733,100 @@ async function generateViaOllama() {
   };
   if (finalReport.thesis) finalReport.thesis = removeHalluc(finalReport.thesis);
   if (finalReport.macroAnalysis) finalReport.macroAnalysis = removeHalluc(finalReport.macroAnalysis);
+
+  // 미래 분기 + 매출 절대값 hallucination sweep (2026-05-24 사건)
+  // LLM 이 "Q1 FY2027 revenue $81.6B +85.2% YoY" 같이 미공시 미래 분기 매출을 추측 →
+  // 분기 식별자 (FY2027+) 와 절대 매출 ($X.XB) 함께 있으면 catalyst entry 제거.
+  // YoY% 만 있는 catalyst 는 유지 (검증된 macro context 활용 가능).
+  const FUTURE_QUARTER_RX = /Q[1-4]\s*FY\s*202[7-9]/i;
+  const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B/i;
+  // 메가캡 분기 매출 상한 ($B) — LLM 이 절대값 hallucination 한 경우 검출용.
+  // 출처: 2025 실적 기준 ±20% margin. 한국주식은 fiscal 다양해 cap 미정의.
+  const MEGA_CAP_QUARTERLY_REV_CAP = {
+    NVDA: 50, MSFT: 80, AAPL: 140, AMZN: 180, GOOGL: 105, GOOG: 105, META: 55,
+    TSLA: 35, ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12,
+  };
+  const futureQuarterStripped = [];
+  if (Array.isArray(finalReport.portfolio)) {
+    for (const p of finalReport.portfolio) {
+      if (!Array.isArray(p.catalysts)) continue;
+      const before = p.catalysts.length;
+      p.catalysts = p.catalysts.filter(c => {
+        if (typeof c !== 'string') return true;
+        // (a) 미래 분기 + 절대 매출 조합
+        if (FUTURE_QUARTER_RX.test(c) && REVENUE_ABS_RX.test(c)) return false;
+        // (b) 메가캡 분기 매출 cap 초과
+        const cap = MEGA_CAP_QUARTERLY_REV_CAP[p.ticker?.toUpperCase()];
+        if (cap) {
+          const m = c.match(/\$(\d+\.?\d*)\s*B/i);
+          if (m) {
+            const rev = parseFloat(m[1]);
+            if (rev > cap) return false;
+          }
+        }
+        return true;
+      });
+      if (p.catalysts.length < before) {
+        futureQuarterStripped.push(`${p.ticker}: catalysts ${before}→${p.catalysts.length}`);
+      }
+      // fundamentalBasis 도 같은 검사 — 통째로 strip 보다는 매출 segment 만 잘라냄
+      if (typeof p.fundamentalBasis === 'string' && FUTURE_QUARTER_RX.test(p.fundamentalBasis) && REVENUE_ABS_RX.test(p.fundamentalBasis)) {
+        const before = p.fundamentalBasis;
+        p.fundamentalBasis = p.fundamentalBasis
+          .replace(/[^,;|]*Q[1-4]\s*FY\s*202[7-9][^,;|]*/gi, '')
+          .replace(/[,;\s]+,/g, ',')
+          .replace(/^[,;\s]+|[,;\s]+$/g, '');
+        if (p.fundamentalBasis !== before) {
+          futureQuarterStripped.push(`${p.ticker}: fundamentalBasis 미래분기 strip`);
+        }
+      }
+    }
+  }
+  // companyChanges 도 같이 — 메가캡 revenueYoY > 100% 는 null 처리 (NVDA 85% 도 의심이나 SK하이닉스
+  // 198% 실제 가능성 있어 100% 컷오프).
+  if (Array.isArray(finalReport.companyChanges)) {
+    for (const c of finalReport.companyChanges) {
+      if (typeof c.keyChange === 'string' && FUTURE_QUARTER_RX.test(c.keyChange) && REVENUE_ABS_RX.test(c.keyChange)) {
+        const before = c.keyChange;
+        c.keyChange = c.keyChange
+          .replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*\$\d+\.?\d*\s*B[^,;]*/gi, '')
+          .replace(/[,;\s]+,/g, ',')
+          .replace(/^[,;\s]+|[,;\s]+$/g, '');
+        if (c.keyChange !== before) {
+          futureQuarterStripped.push(`${c.ticker}: keyChange 미래분기 strip`);
+        }
+      }
+      const cap = MEGA_CAP_QUARTERLY_REV_CAP[c.ticker?.toUpperCase()];
+      if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > 100) {
+        futureQuarterStripped.push(`${c.ticker}: revenueYoY ${c.revenueYoY}%→null (mega-cap > 100% 비현실)`);
+        c.revenueYoY = null;
+      }
+    }
+  }
+  if (futureQuarterStripped.length) {
+    console.log(`  [후처리] 미래 분기/매출 hallucination strip: ${futureQuarterStripped.length}건`);
+    for (const s of futureQuarterStripped) console.log(`    - ${s}`);
+  }
+
+  // Macro fact-check: macroAnalysis 안의 "연준금리 X%" 가 FRED 실값과 0.5%+ 차이 시 강제 치환
+  // (2026-05-24 사건: LLM 이 "연준금리 3.625%" hallucination — 실제 5.25-5.50%)
+  if (finalReport.macroAnalysis && ctxRaw?.macro?.indicators) {
+    const fedActual = ctxRaw.macro.indicators.find(i =>
+      i.id === 'fed_rate' || i.id === 'fomc' || i.id === 'fedfunds'
+    )?.actual;
+    if (typeof fedActual === 'number') {
+      const rx = /(연준금리|Fed(?:eral)?\s*(?:Funds\s*)?Rate|연방준비)\s*[:은]?\s*(\d+\.?\d*)\s*%/gi;
+      const before = finalReport.macroAnalysis;
+      finalReport.macroAnalysis = finalReport.macroAnalysis.replace(rx, (match, label, val) => {
+        const v = parseFloat(val);
+        if (!isFinite(v) || Math.abs(v - fedActual) < 0.5) return match;
+        return `${label} ${fedActual}%`;
+      });
+      if (finalReport.macroAnalysis !== before) {
+        console.log(`  [후처리] macroAnalysis 연준금리 강제 치환 → ${fedActual}%`);
+      }
+    }
+  }
 
   finalReport.thesis = expandThesis(finalReport.thesis, macroData, ctxRaw, localeArg);
   finalReport.macroAnalysis = enrichMacroAnalysis(finalReport.macroAnalysis, ctxRaw, macroData, localeArg);
