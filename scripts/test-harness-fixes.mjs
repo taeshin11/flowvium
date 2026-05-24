@@ -83,10 +83,22 @@ for (const sr of r.stopLossRationale.filter(x => x.ticker.endsWith('.KS'))) {
   console.log(`    AFTER:  ${s.slice(0, 160)}`);
 }
 
-console.log('\n=== F5: 미래 분기 + 매출 절대값 hallucination strip ===');
+console.log('\n=== F5: 미래 분기 + 매출 절대값 hallucination strip (2026-05-25 강화) ===');
 const FUTURE_QUARTER_RX = /Q[1-4]\s*FY\s*202[7-9]/i;
-const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B/i;
-const MEGA_CAP = { NVDA: 50, MSFT: 80, AAPL: 140, AMZN: 180, GOOGL: 105, META: 55, TSLA: 35, ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12 };
+const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B|\d+\s*억\s*달러/i;
+const MEGA_CAP = {
+  NVDA: 50, MSFT: 80, AAPL: 140, AMZN: 180, GOOGL: 105, META: 55, TSLA: 35,
+  ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12,
+  '005930.KS': 70, '000660.KS': 22, '005380.KS': 35, '051910.KS': 15,
+  '005490.KS': 25,
+};
+const extractRevenueB = (text) => {
+  const m1 = text.match(/\$(\d+\.?\d*)\s*B/i);
+  if (m1) return parseFloat(m1[1]);
+  const m2 = text.match(/(\d+(?:\.\d+)?)\s*억\s*달러/i);
+  if (m2) return parseFloat(m2[1]) / 10;
+  return null;
+};
 for (const p of r.portfolio) {
   if (!Array.isArray(p.catalysts)) continue;
   const removed = p.catalysts.filter(c => {
@@ -94,8 +106,8 @@ for (const p of r.portfolio) {
     if (FUTURE_QUARTER_RX.test(c) && REVENUE_ABS_RX.test(c)) return true;
     const cap = MEGA_CAP[p.ticker?.toUpperCase()];
     if (cap) {
-      const m = c.match(/\$(\d+\.?\d*)\s*B/i);
-      if (m && parseFloat(m[1]) > cap) return true;
+      const rev = extractRevenueB(c);
+      if (rev != null && rev > cap) return true;
     }
     return false;
   });
@@ -104,16 +116,22 @@ for (const p of r.portfolio) {
     for (const c of removed) console.log(`    - "${c}"`);
   }
 }
+console.log('\n=== F5b: companyChanges.keyChange + revenueYoY field-swap ===');
 for (const c of r.companyChanges ?? []) {
   if (typeof c.keyChange === 'string' && FUTURE_QUARTER_RX.test(c.keyChange) && REVENUE_ABS_RX.test(c.keyChange)) {
-    console.log(`  ${c.ticker} companyChanges.keyChange: 미래 분기 strip`);
+    console.log(`  ${c.ticker} 미래 분기 strip:`);
     console.log(`    BEFORE: ${c.keyChange}`);
-    const cleaned = c.keyChange.replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*\$\d+\.?\d*\s*B[^,;]*/gi, '').replace(/[,;\s]+,/g, ',').replace(/^[,;\s]+|[,;\s]+$/g, '');
-    console.log(`    AFTER:  ${cleaned || '(empty — entry should be removed)'}`);
+    const cleaned = c.keyChange
+      .replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*달러)[^,;]*/gi, '')
+      .replace(/[,;\s]+,/g, ',')
+      .replace(/^[,;\s]+|[,;\s]+$/g, '');
+    console.log(`    AFTER:  ${cleaned || '(empty)'}`);
   }
   const cap = MEGA_CAP[c.ticker?.toUpperCase()];
-  if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > 100) {
-    console.log(`  ${c.ticker} companyChanges.revenueYoY: ${c.revenueYoY}% → null (mega-cap > 100%)`);
+  if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > cap * 0.5) {
+    console.log(`  ${c.ticker} revenueYoY=${c.revenueYoY} (cap=${cap}B 의 ${(c.revenueYoY/cap*100).toFixed(0)}%) — field swap → null`);
+  } else if (typeof c.revenueYoY === 'number' && c.revenueYoY > 100) {
+    console.log(`  ${c.ticker} revenueYoY=${c.revenueYoY}% → null (> 100%)`);
   }
 }
 

@@ -3736,15 +3736,26 @@ async function generateViaOllama() {
 
   // 미래 분기 + 매출 절대값 hallucination sweep (2026-05-24 사건)
   // LLM 이 "Q1 FY2027 revenue $81.6B +85.2% YoY" 같이 미공시 미래 분기 매출을 추측 →
-  // 분기 식별자 (FY2027+) 와 절대 매출 ($X.XB) 함께 있으면 catalyst entry 제거.
+  // 분기 식별자 (FY2027+) 와 절대 매출 ($X.XB 또는 X억 달러) 함께 있으면 catalyst entry 제거.
   // YoY% 만 있는 catalyst 는 유지 (검증된 macro context 활용 가능).
+  // 2026-05-25 강화: 한국어 단위 표현 (816억 달러 = $81.6B) 도 함께 처리.
   const FUTURE_QUARTER_RX = /Q[1-4]\s*FY\s*202[7-9]/i;
-  const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B/i;
+  const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B|\d+\s*억\s*달러/i;
   // 메가캡 분기 매출 상한 ($B) — LLM 이 절대값 hallucination 한 경우 검출용.
-  // 출처: 2025 실적 기준 ±20% margin. 한국주식은 fiscal 다양해 cap 미정의.
+  // 출처: 2025 실적 기준 ±20% margin. 한국 메가는 보수적으로 추가 (Samsung Q1 ≈ $60-65B).
   const MEGA_CAP_QUARTERLY_REV_CAP = {
     NVDA: 50, MSFT: 80, AAPL: 140, AMZN: 180, GOOGL: 105, GOOG: 105, META: 55,
     TSLA: 35, ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12,
+    '005930.KS': 70, '000660.KS': 22, '005380.KS': 35, '051910.KS': 15,
+    '005490.KS': 25, '035420.KS': 5, '035720.KS': 5,
+  };
+  // 절대 매출 값 추출 — 영어 ($X.XB) + 한국어 (X억 달러) 동시 처리
+  const extractRevenueB = (text) => {
+    const m1 = text.match(/\$(\d+\.?\d*)\s*B/i);
+    if (m1) return parseFloat(m1[1]);
+    const m2 = text.match(/(\d+(?:\.\d+)?)\s*억\s*달러/i);
+    if (m2) return parseFloat(m2[1]) / 10; // 억 → B (100M → 0.1B)
+    return null;
   };
   const futureQuarterStripped = [];
   if (Array.isArray(finalReport.portfolio)) {
@@ -3755,14 +3766,11 @@ async function generateViaOllama() {
         if (typeof c !== 'string') return true;
         // (a) 미래 분기 + 절대 매출 조합
         if (FUTURE_QUARTER_RX.test(c) && REVENUE_ABS_RX.test(c)) return false;
-        // (b) 메가캡 분기 매출 cap 초과
+        // (b) 메가캡 분기 매출 cap 초과 (영어 $X.XB + 한국어 X억 달러 동시 검사)
         const cap = MEGA_CAP_QUARTERLY_REV_CAP[p.ticker?.toUpperCase()];
         if (cap) {
-          const m = c.match(/\$(\d+\.?\d*)\s*B/i);
-          if (m) {
-            const rev = parseFloat(m[1]);
-            if (rev > cap) return false;
-          }
+          const rev = extractRevenueB(c);
+          if (rev != null && rev > cap) return false;
         }
         return true;
       });
@@ -3782,23 +3790,47 @@ async function generateViaOllama() {
       }
     }
   }
-  // companyChanges 도 같이 — 메가캡 revenueYoY > 100% 는 null 처리 (NVDA 85% 도 의심이나 SK하이닉스
-  // 198% 실제 가능성 있어 100% 컷오프).
+  // companyChanges 도 같이 — keyChange 안의 매출 절대값 (영어/한국어) + 미래 분기 strip,
+  // 그리고 revenueYoY 필드 swap/cap 검증.
+  // 2026-05-25 사건: LLM 이 매출 절대값을 revenueYoY 필드에 넣고 (예: NVDA revenueYoY=81.6)
+  // 실제 YoY% 를 keyChange 텍스트에 박는 field-swap hallucination. 메가캡 quarterly cap 으로 검출.
   if (Array.isArray(finalReport.companyChanges)) {
     for (const c of finalReport.companyChanges) {
+      // (a) 미래 분기 + 매출 절대값 segment strip (영어 + 한국어)
       if (typeof c.keyChange === 'string' && FUTURE_QUARTER_RX.test(c.keyChange) && REVENUE_ABS_RX.test(c.keyChange)) {
         const before = c.keyChange;
         c.keyChange = c.keyChange
-          .replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*\$\d+\.?\d*\s*B[^,;]*/gi, '')
+          .replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*달러)[^,;]*/gi, '')
           .replace(/[,;\s]+,/g, ',')
           .replace(/^[,;\s]+|[,;\s]+$/g, '');
         if (c.keyChange !== before) {
           futureQuarterStripped.push(`${c.ticker}: keyChange 미래분기 strip`);
         }
       }
+      // (b) keyChange 의 매출 절대값이 메가캡 cap 초과 시 그 segment strip
       const cap = MEGA_CAP_QUARTERLY_REV_CAP[c.ticker?.toUpperCase()];
-      if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > 100) {
-        futureQuarterStripped.push(`${c.ticker}: revenueYoY ${c.revenueYoY}%→null (mega-cap > 100% 비현실)`);
+      if (cap && typeof c.keyChange === 'string') {
+        const rev = extractRevenueB(c.keyChange);
+        if (rev != null && rev > cap) {
+          const before = c.keyChange;
+          c.keyChange = c.keyChange
+            .replace(/(?:매출|revenue)\s*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*달러)\s*,?\s*/gi, '')
+            .replace(/[,;\s]+,/g, ',')
+            .replace(/^[,;\s]+|[,;\s]+$/g, '');
+          if (c.keyChange !== before) {
+            futureQuarterStripped.push(`${c.ticker}: keyChange 매출 ${rev}B>cap ${cap}B strip`);
+          }
+        }
+      }
+      // (c) revenueYoY field swap 검출 — LLM이 매출 절대값을 revenueYoY 에 넣음
+      // 메가캡 cap 정의된 ticker 만: revenueYoY 가 cap 보다 큰 숫자면 매출값 오기입 의심 → null
+      if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > cap * 0.5) {
+        // cap 의 50% 이상이면 매출값일 가능성 — 정상 YoY% 는 보통 -50~+50%
+        futureQuarterStripped.push(`${c.ticker}: revenueYoY=${c.revenueYoY} (cap=${cap}B 의 ${(c.revenueYoY/cap*100).toFixed(0)}% — field swap 의심)→null`);
+        c.revenueYoY = null;
+      } else if (typeof c.revenueYoY === 'number' && c.revenueYoY > 100) {
+        // cap 미정의 ticker: 100% 컷오프 (SK하이닉스 198% 같은 실제 가능성 있어 컷오프 보수적)
+        futureQuarterStripped.push(`${c.ticker}: revenueYoY ${c.revenueYoY}%→null (> 100% 비현실)`);
         c.revenueYoY = null;
       }
     }
