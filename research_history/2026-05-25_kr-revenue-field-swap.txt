@@ -1,0 +1,50 @@
+2026-05-25 한국어 매출 단위 + revenueYoY field-swap 검출 룰 추가
+
+# 발견
+2026-05-24 오후 보고서 (21:38 KST 재생성) 검토에서 어제 적용한 F5/F6 룰의 빈틈 확인:
+
+1. F5 영어 \$X.XB 패턴은 한국어 우회 가능
+   - LLM 이 'Q1 FY2027 매출 816억 달러' 형태로 출력
+   - REVENUE_ABS_RX = /\$\d+\.?\d*\s*B/ 는 '$X.XB' 만 매칭 → 한국어 통과
+   - 1억 달러 = $100M = $0.1B → '816억 달러' = $81.6B (변환 필요)
+
+2. revenueYoY field-swap (모든 메가 종목)
+   - NVDA: revenueYoY=81.6 (=\$81.6B 매출 절대값), keyChange '85.2% 증가'
+   - 000660.KS: revenueYoY=36.3 (=\$36.3B), keyChange '198.1% 증가'
+   - 005930.KS: revenueYoY=92.3 (=\$92.3B), keyChange '69.2% 증가'
+   - LLM 이 fundamental data 를 한 필드에 한꺼번에 넣다가 swap. 모두 100% 미만이라
+     기존 'revenueYoY > 100% null' rule 통과.
+
+3. 한국 메가캡 분기 매출 cap 미정의
+   - Samsung Q1 매출 $92.3B (실제 ~$60-65B), SK하이닉스 $36.3B (실제 ~$15-18B)
+   - cap 정의 안 됐으니 mega-cap revenue strip 작동 안 함
+
+# 수정 (generate-report-local.mjs)
+- REVENUE_ABS_RX = /\$\d+\.?\d*\s*B|\d+\s*억\s*달러/i (한국어 단위 OR)
+- extractRevenueB() helper — 영어 + 한국어 통합 변환 함수
+- MEGA_CAP_QUARTERLY_REV_CAP 에 한국 메가 추가:
+  005930.KS=70, 000660.KS=22, 005380.KS=35, 051910.KS=15, 005490.KS=25
+  035420.KS=5 (네이버), 035720.KS=5 (카카오)
+- companyChanges.keyChange strip regex 에 한국어 단위 OR 추가
+- revenueYoY field-swap 검출 룰:
+  cap 정의된 ticker 의 revenueYoY > cap×0.5 → 매출 절대값 오기입 의심, null
+  cap 미정의 ticker 의 revenueYoY > 100% → 기존 룰대로 null
+
+# 검증
+scripts/test-harness-fixes.mjs 가 2026-05-24-afternoon 보고서에 dry-run:
+  - 005930.KS catalyst: 'Q1 FY2026 revenue $92.3B' 1건 strip (cap=70 초과)
+  - NVDA companyChanges.keyChange: 'Q1 FY2027 매출 816억 달러' → '85.2% 증가' 만 잔존
+  - revenueYoY field-swap 3건 모두 검출:
+    NVDA 81.6 → null (cap 50의 163%)
+    000660.KS 36.3 → null (cap 22의 165%)
+    005930.KS 92.3 → null (cap 70의 132%)
+
+# 미해결
+- F6 macroAnalysis 연준금리 — 본문에 '연준금리' 안 들어가고 enrichMacroAnalysis 가
+  ctxRaw.macro.indicators.fed_rate 그대로 사용. 만약 FRED 가 3.625% 라면 그건 진짜값
+  (2026년 cut 이후 가능). 검증을 위해 verify-metrics accuracy probe 가 필요.
+- LLM 의 NVDA fiscal year 표기 (Q1 FY2027 = 2026-02~04). 오늘 2026-05 이면 이미 끝남
+  → 실적 발표 가능 분기. 다만 LLM이 값 hallucination (cap 초과로 검출).
+
+# 커밋
+3742a8f fix(harness): 한국어 매출 단위 + revenueYoY field-swap 검출
