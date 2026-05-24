@@ -3840,6 +3840,61 @@ async function generateViaOllama() {
     for (const s of futureQuarterStripped) console.log(`    - ${s}`);
   }
 
+  // fundamentalAnalysis self-consistency 검증 (2026-05-25 사건)
+  // 사건: NVDA catalysts/fundamentalBasis "85.2%" vs fundamentalAnalysis "73% 증가" 자체 모순.
+  // ticker별 YoY% 를 catalysts/fundamentalBasis/companyChanges 에서 추출하여
+  // fundamentalAnalysis 안의 단언과 5pp 이상 다르면 강제 치환.
+  // companyChanges 가 가장 우선 (revenueYoY 필드 swap 검사 후 정합성 확인됨).
+  if (typeof finalReport.fundamentalAnalysis === 'string' && Array.isArray(finalReport.portfolio)) {
+    let fa = finalReport.fundamentalAnalysis;
+    const before = fa;
+    const aligned = [];
+    // 다양한 패턴으로 ticker별 YoY% 추출 (우선순위 순)
+    const YOY_PATTERNS = [
+      /(?:Revenue|매출)\s*\+?(\d+\.?\d*)\s*%/i,      // "Revenue +85.2%" / "매출 85.2%"
+      /\+?(\d+\.?\d*)\s*%\s*(?:YoY|증가|상승)/i,      // "+85.2% YoY" / "85.2% 증가"
+      /revenue\s*growth\s*\+?(\d+\.?\d*)\s*%/i,      // "revenue growth 85.2%"
+      /전년\s*대비\s*(\d+\.?\d*)\s*%/i,              // "전년 대비 85.2%"
+    ];
+    const extractYoY = (text) => {
+      if (!text) return null;
+      for (const rx of YOY_PATTERNS) {
+        const m = text.match(rx);
+        if (m) return parseFloat(m[1]);
+      }
+      return null;
+    };
+    for (const p of finalReport.portfolio) {
+      const t = p.ticker;
+      if (!t) continue;
+      // 1) catalysts join 에서 추출
+      const catText = (Array.isArray(p.catalysts) ? p.catalysts : []).join(' | ');
+      // 2) fundamentalBasis 에서 추출
+      const fbText = p.fundamentalBasis ?? '';
+      // 3) companyChanges 의 같은 ticker keyChange 에서 추출
+      const cc = (Array.isArray(finalReport.companyChanges) ? finalReport.companyChanges : [])
+        .find(c => c.ticker === t);
+      const ccText = cc?.keyChange ?? '';
+      const ccRevYoY = (typeof cc?.revenueYoY === 'number') ? cc.revenueYoY : null;
+      const catYoY = ccRevYoY ?? extractYoY(ccText) ?? extractYoY(fbText) ?? extractYoY(catText);
+      if (catYoY == null) continue;
+      // fundamentalAnalysis 안에서 "TICKER ... X% (증가/초과/상승/growth/YoY)" 매치
+      const tickerEscaped = t.replace(/[.]/g, '\\.');
+      const rx = new RegExp(`(${tickerEscaped}[^,;.|]*?)(\\d+\\.?\\d*)(\\s*%\\s*(?:증가|초과|상승|상회|growth|YoY))`, 'gi');
+      fa = fa.replace(rx, (match, prefix, val, suffix) => {
+        const v = parseFloat(val);
+        if (!isFinite(v) || Math.abs(v - catYoY) < 5) return match;
+        aligned.push(`${t}: ${val}% → ${catYoY}% (catalysts/companyChanges 일치)`);
+        return `${prefix}${catYoY}${suffix}`;
+      });
+    }
+    if (fa !== before) {
+      finalReport.fundamentalAnalysis = fa;
+      console.log(`  [후처리] fundamentalAnalysis self-consistency 보정: ${aligned.length}건`);
+      for (const a of aligned) console.log(`    - ${a}`);
+    }
+  }
+
   // Macro fact-check: macroAnalysis 안의 "연준금리 X%" 가 FRED 실값과 0.5%+ 차이 시 강제 치환
   // (2026-05-24 사건: LLM 이 "연준금리 3.625%" hallucination — 실제 5.25-5.50%)
   if (finalReport.macroAnalysis && ctxRaw?.macro?.indicators) {

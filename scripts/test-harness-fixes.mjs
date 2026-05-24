@@ -135,6 +135,46 @@ for (const c of r.companyChanges ?? []) {
   }
 }
 
+console.log('\n=== F7: fundamentalAnalysis vs catalysts self-consistency ===');
+{
+  let fa = r.fundamentalAnalysis;
+  console.log(`  BEFORE: "${fa}"`);
+  const YOY_PATTERNS = [
+    /(?:Revenue|매출)\s*\+?(\d+\.?\d*)\s*%/i,
+    /\+?(\d+\.?\d*)\s*%\s*(?:YoY|증가|상승)/i,
+    /revenue\s*growth\s*\+?(\d+\.?\d*)\s*%/i,
+    /전년\s*대비\s*(\d+\.?\d*)\s*%/i,
+  ];
+  const extractYoY = (text) => {
+    if (!text) return null;
+    for (const rx of YOY_PATTERNS) {
+      const m = text.match(rx);
+      if (m) return parseFloat(m[1]);
+    }
+    return null;
+  };
+  for (const p of r.portfolio ?? []) {
+    const t = p.ticker;
+    if (!t) continue;
+    const catText = (Array.isArray(p.catalysts) ? p.catalysts : []).join(' | ');
+    const fbText = p.fundamentalBasis ?? '';
+    const cc = (r.companyChanges ?? []).find(c => c.ticker === t);
+    const ccText = cc?.keyChange ?? '';
+    const ccRevYoY = (typeof cc?.revenueYoY === 'number') ? cc.revenueYoY : null;
+    const catYoY = ccRevYoY ?? extractYoY(ccText) ?? extractYoY(fbText) ?? extractYoY(catText);
+    if (catYoY == null) continue;
+    const tickerEscaped = t.replace(/[.]/g, '\\.');
+    const rx = new RegExp(`(${tickerEscaped}[^,;.|]*?)(\\d+\\.?\\d*)(\\s*%\\s*(?:증가|초과|상승|상회|growth|YoY))`, 'gi');
+    fa = fa.replace(rx, (match, prefix, val, suffix) => {
+      const v = parseFloat(val);
+      if (!isFinite(v) || Math.abs(v - catYoY) < 5) return match;
+      console.log(`    ${t}: ${val}% → ${catYoY}% (sources: ccRevYoY=${ccRevYoY}, ccText="${ccText.slice(0,40)}", fb="${fbText.slice(0,40)}")`);
+      return `${prefix}${catYoY}${suffix}`;
+    });
+  }
+  console.log(`  AFTER:  "${fa}"`);
+}
+
 console.log('\n=== F6: macroAnalysis 연준금리 FRED 강제 치환 ===');
 console.log(`  현재 macroAnalysis: "${r.macroAnalysis}"`);
 const fedActual = 4.375; // 데모 — 실제 FRED 값은 매번 동적
