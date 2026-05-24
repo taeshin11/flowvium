@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'fs';
 
-const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-24-afternoon-ko.json';
+const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-25-morning-ko.json';
 const r = JSON.parse(readFileSync(REPORT, 'utf8'));
 
 function nativeCurrency(t) {
@@ -89,14 +89,17 @@ const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B|\d+\s*억\s*달러/i;
 const MEGA_CAP = {
   NVDA: 50, MSFT: 80, AAPL: 140, AMZN: 180, GOOGL: 105, META: 55, TSLA: 35,
   ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12,
+  TSM: 30, TSMC: 30, ASML: 10, AMAT: 8, LRCX: 6, KLAC: 4, MU: 10, INTC: 18,
   '005930.KS': 70, '000660.KS': 22, '005380.KS': 35, '051910.KS': 15,
   '005490.KS': 25,
 };
 const extractRevenueB = (text) => {
   const m1 = text.match(/\$(\d+\.?\d*)\s*B/i);
   if (m1) return parseFloat(m1[1]);
-  const m2 = text.match(/(\d+(?:\.\d+)?)\s*억\s*달러/i);
+  const m2 = text.match(/(\d+(?:\.\d+)?)\s*억\s*(?:달러|달성)/i);
   if (m2) return parseFloat(m2[1]) / 10;
+  const m3 = text.match(/(?:매출|revenue)\s*(\d+(?:\.\d+)?)\s*억/i);
+  if (m3) return parseFloat(m3[1]) / 10;
   return null;
 };
 for (const p of r.portfolio) {
@@ -170,6 +173,27 @@ console.log('\n=== F7: fundamentalAnalysis vs catalysts self-consistency ===');
       if (!isFinite(v) || Math.abs(v - catYoY) < 5) return match;
       console.log(`    ${t}: ${val}% → ${catYoY}% (sources: ccRevYoY=${ccRevYoY}, ccText="${ccText.slice(0,40)}", fb="${fbText.slice(0,40)}")`);
       return `${prefix}${catYoY}${suffix}`;
+    });
+  }
+  console.log(`  AFTER:  "${fa}"`);
+}
+
+console.log('\n=== F8: fundamentalAnalysis 매출 절대값 strip ===');
+{
+  let fa = r.fundamentalAnalysis;
+  console.log(`  BEFORE: "${fa}"`);
+  for (const ticker of Object.keys(MEGA_CAP)) {
+    const cap = MEGA_CAP[ticker];
+    const tickerEscaped = ticker.replace(/[.]/g, '\\.');
+    const rx = new RegExp(`(${tickerEscaped}[^,;.|]*?(?:매출|revenue)\\s*)(\\$\\d+\\.?\\d*\\s*B|\\d+\\s*억(?:\\s*(?:달러|달성))?)([^,;.|]*)`, 'gi');
+    fa = fa.replace(rx, (match, prefix, val, suffix) => {
+      const rev = extractRevenueB(val);
+      if (rev == null) return match;
+      if (rev < cap * 0.5 || rev > cap * 2) {
+        console.log(`    ${ticker}: 매출 ${rev}B (cap ${cap}B 범위 밖) strip`);
+        return `${prefix.replace(/\s*(?:매출|revenue)\s*$/i, '')}${suffix}`;
+      }
+      return match;
     });
   }
   console.log(`  AFTER:  "${fa}"`);

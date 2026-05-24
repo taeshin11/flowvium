@@ -3740,21 +3740,25 @@ async function generateViaOllama() {
   // YoY% 만 있는 catalyst 는 유지 (검증된 macro context 활용 가능).
   // 2026-05-25 강화: 한국어 단위 표현 (816억 달러 = $81.6B) 도 함께 처리.
   const FUTURE_QUARTER_RX = /Q[1-4]\s*FY\s*202[7-9]/i;
-  const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B|\d+\s*억\s*달러/i;
+  // 한국어 패턴 확장 (2026-05-25): "X억 달러" / "X억 달성" / "매출 X억"
+  const REVENUE_ABS_RX = /\$\d+\.?\d*\s*B|\d+\s*억\s*(?:달러|달성)|(?:매출|revenue)\s*\d+\s*억/i;
   // 메가캡 분기 매출 상한 ($B) — LLM 이 절대값 hallucination 한 경우 검출용.
-  // 출처: 2025 실적 기준 ±20% margin. 한국 메가는 보수적으로 추가 (Samsung Q1 ≈ $60-65B).
+  // 출처: 2025 실적 기준 ±20% margin. 2026-05-25 추가: TSM/ASML/TSMC (semicap).
   const MEGA_CAP_QUARTERLY_REV_CAP = {
     NVDA: 50, MSFT: 80, AAPL: 140, AMZN: 180, GOOGL: 105, GOOG: 105, META: 55,
     TSLA: 35, ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12,
+    TSM: 30, TSMC: 30, ASML: 10, AMAT: 8, LRCX: 6, KLAC: 4, MU: 10, INTC: 18,
     '005930.KS': 70, '000660.KS': 22, '005380.KS': 35, '051910.KS': 15,
     '005490.KS': 25, '035420.KS': 5, '035720.KS': 5,
   };
-  // 절대 매출 값 추출 — 영어 ($X.XB) + 한국어 (X억 달러) 동시 처리
+  // 절대 매출 값 추출 — 영어 ($X.XB) + 한국어 (X억 달러 / X억 달성 / 매출 X억) 통합
   const extractRevenueB = (text) => {
     const m1 = text.match(/\$(\d+\.?\d*)\s*B/i);
     if (m1) return parseFloat(m1[1]);
-    const m2 = text.match(/(\d+(?:\.\d+)?)\s*억\s*달러/i);
+    const m2 = text.match(/(\d+(?:\.\d+)?)\s*억\s*(?:달러|달성)/i);
     if (m2) return parseFloat(m2[1]) / 10; // 억 → B (100M → 0.1B)
+    const m3 = text.match(/(?:매출|revenue)\s*(\d+(?:\.\d+)?)\s*억/i);
+    if (m3) return parseFloat(m3[1]) / 10;
     return null;
   };
   const futureQuarterStripped = [];
@@ -3796,11 +3800,11 @@ async function generateViaOllama() {
   // 실제 YoY% 를 keyChange 텍스트에 박는 field-swap hallucination. 메가캡 quarterly cap 으로 검출.
   if (Array.isArray(finalReport.companyChanges)) {
     for (const c of finalReport.companyChanges) {
-      // (a) 미래 분기 + 매출 절대값 segment strip (영어 + 한국어)
+      // (a) 미래 분기 + 매출 절대값 segment strip (영어 + 한국어 변형)
       if (typeof c.keyChange === 'string' && FUTURE_QUARTER_RX.test(c.keyChange) && REVENUE_ABS_RX.test(c.keyChange)) {
         const before = c.keyChange;
         c.keyChange = c.keyChange
-          .replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*달러)[^,;]*/gi, '')
+          .replace(/Q[1-4]\s*FY\s*202[7-9][^,;]*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*(?:달러|달성)|(?:매출|revenue)\s*\d+\s*억)[^,;]*/gi, '')
           .replace(/[,;\s]+,/g, ',')
           .replace(/^[,;\s]+|[,;\s]+$/g, '');
         if (c.keyChange !== before) {
@@ -3814,7 +3818,7 @@ async function generateViaOllama() {
         if (rev != null && rev > cap) {
           const before = c.keyChange;
           c.keyChange = c.keyChange
-            .replace(/(?:매출|revenue)\s*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*달러)\s*,?\s*/gi, '')
+            .replace(/(?:매출|revenue)\s*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*(?:달러|달성)?)\s*,?\s*/gi, '')
             .replace(/[,;\s]+,/g, ',')
             .replace(/^[,;\s]+|[,;\s]+$/g, '');
           if (c.keyChange !== before) {
@@ -3892,6 +3896,38 @@ async function generateViaOllama() {
       finalReport.fundamentalAnalysis = fa;
       console.log(`  [후처리] fundamentalAnalysis self-consistency 보정: ${aligned.length}건`);
       for (const a of aligned) console.log(`    - ${a}`);
+    }
+  }
+
+  // F8: fundamentalAnalysis 안의 매출 절대값 hallucination strip (2026-05-25 사건)
+  // 사건: "NVDA Q1 매출 43억 달러, 기관 신규 매수" — NVDA $4.3B 는 분기 cap (50B) 의 1/10.
+  // F7 은 %만 매칭 → 절대값 우회. ticker별 매출 절대값이 cap 의 50%↓ 또는 200%↑ 일 때
+  // 비현실 의심 → segment strip.
+  if (typeof finalReport.fundamentalAnalysis === 'string') {
+    let fa = finalReport.fundamentalAnalysis;
+    const before = fa;
+    const stripped = [];
+    for (const ticker of Object.keys(MEGA_CAP_QUARTERLY_REV_CAP)) {
+      const cap = MEGA_CAP_QUARTERLY_REV_CAP[ticker];
+      const tickerEscaped = ticker.replace(/[.]/g, '\\.');
+      // "TICKER ... 매출 X억 달러" 또는 "TICKER ... revenue $X.XB" 형태
+      const rx = new RegExp(`(${tickerEscaped}[^,;.|]*?(?:매출|revenue)\\s*)(\\$\\d+\\.?\\d*\\s*B|\\d+\\s*억(?:\\s*(?:달러|달성))?)([^,;.|]*)`, 'gi');
+      fa = fa.replace(rx, (match, prefix, val, suffix) => {
+        const rev = extractRevenueB(val);
+        if (rev == null) return match;
+        // cap 의 50% 미만 또는 200% 초과면 hallucination 의심
+        if (rev < cap * 0.5 || rev > cap * 2) {
+          stripped.push(`${ticker}: 매출 ${rev}B (cap ${cap}B 범위 밖) strip`);
+          // 매출 segment 만 잘라냄, ticker prefix 유지
+          return `${prefix.replace(/\s*(?:매출|revenue)\s*$/i, '')}${suffix}`;
+        }
+        return match;
+      });
+    }
+    if (fa !== before) {
+      finalReport.fundamentalAnalysis = fa;
+      console.log(`  [후처리] fundamentalAnalysis 매출 절대값 strip: ${stripped.length}건`);
+      for (const s of stripped) console.log(`    - ${s}`);
     }
   }
 
