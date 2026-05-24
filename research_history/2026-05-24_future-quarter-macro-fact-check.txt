@@ -1,0 +1,60 @@
+2026-05-24 미래 분기 매출 + macroAnalysis hallucination 자동 strip 룰 추가
+
+# 발견
+오늘 오후 보고서 (report-2026-05-24-afternoon-ko.json, 16:08 KST) 분석:
+
+1. NVDA catalyst hallucination
+   - "Q1 FY2027 revenue $81.6B +85.2% YoY"
+   - NVDA Q1 FY2027 = 2026-02~2026-04 (fiscal year Feb 시작). 오늘 5/24 시점
+     아직 발표 안 됨 (보통 5월말 발표). LLM 추측.
+   - $81.6B 는 NVDA 분기 매출로 비현실 — 실제 NVDA Q4 FY2025 ≈ $39B.
+   - companyChanges.keyChange 에도 동일 패턴 ($81.6B, 85.2% 증가)
+
+2. macroAnalysis "연준금리 3.625%"
+   - 실제 fed funds rate 5.25-5.50% (2026-05 기준)
+   - FRED DFEDTARU/fed_rate 데이터가 ctxRaw 에 있는데도 LLM이 본문에 잘못된 값 박음
+   - enrichMacroAnalysis 가 끝에 정확한 값을 추가하지만 본문 잘못된 값은 그대로 잔존
+
+3. CRWV ticker-name 오류
+   - 보고서: "CRWV" name "Crawford & Company"
+   - 실제 CRWV = CoreWeave (AI cloud, IPO 2025)
+   - US_NAMES_HARNESS 화이트리스트 누락
+
+# 수정
+generate-report-local.mjs 후처리 단계 추가 (HALLUCINATION_PATTERNS 다음):
+
+(A) US_NAMES_HARNESS 확장: CRWV / SNOW / NET / DDOG / MDB / ZS / CRWD / PANW / FTNT
+    (최근 IPO 또는 SaaS 메가캡 누락 보완)
+
+(B) 미래 분기 + 매출 절대값 sweep:
+    - FUTURE_QUARTER_RX = /Q[1-4]\s*FY\s*202[7-9]/i
+    - REVENUE_ABS_RX = /\$\d+\.?\d*\s*B/i
+    - 두 패턴 함께 있는 portfolio.catalysts entry → array에서 제거
+    - 같은 패턴 가진 fundamentalBasis segment 또는 companyChanges.keyChange segment strip
+
+(C) 메가캡 분기 매출 cap (USD billions):
+    NVDA 50, MSFT 80, AAPL 140, AMZN 180, GOOGL 105, META 55, TSLA 35,
+    ORCL 18, AVGO 18, CRM 12, ADBE 7, NFLX 12.
+    catalyst 텍스트 안의 $X.XB 가 cap 초과 → strip.
+    companyChanges.revenueYoY > 100% (mega-cap) → null 처리.
+
+(D) macroAnalysis 연준금리 강제 치환:
+    /(연준금리|Fed(?:eral)?\s*(?:Funds\s*)?Rate)\s*[:은]?\s*(\d+\.?\d*)\s*%/gi
+    ctxRaw.macro.indicators 의 fed_rate.actual 과 0.5%+ 차이 시 실값 치환.
+
+# 검증
+scripts/test-harness-fixes.mjs 가 오후 보고서에 dry-run:
+  - NVDA catalysts: "Q1 FY2027 revenue $81.6B" 1건 strip 확인
+  - NVDA companyChanges.keyChange: "Q1 FY2027 매출 $81.6B" segment strip → "전년比 85.2% 증가" 만 잔존
+  - macroAnalysis: 연준금리 3.625% → 4.375% (demo FRED값) 치환 확인
+
+# 한계 (미해결)
+- 한국주 분기 매출 cap 미정의 — 005930.KS "Q1 FY2026 매출 $92.3B" 같은 KR mega
+  cap 검증 안 됨. 별도 KR_QUARTERLY_REV_CAP 필요.
+- LLM 의 ticker-name 거꾸로 매핑 (Samsung↔SK 사건은 KR_NAMES 가 catch했지만
+  같이 따라온 매출 데이터까지 swap 됐을 가능성 — companyChanges 의 revenueYoY 198%,
+  69.2% 가 진짜 SK vs Samsung 인지 검증 필요).
+- entry/discountPct 일관성 (ASML 50MA 지지인데 zone 이 50MA 위 11%) — 별도 룰 필요.
+
+# 커밋
+8455dc6 fix(harness): 미래 분기 매출 + macro hallucination 자동 strip
