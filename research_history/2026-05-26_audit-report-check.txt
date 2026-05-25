@@ -1,0 +1,79 @@
+2026-05-26 보고서 평가 + 엔드포인트 점검
+
+# audit-all 결과
+✅ 17 OK / ⚠️ 2 WARN / ❌ 1 ERR
+
+✅ ownership-alerts 47건 (어제 fix 잘 작동)
+✅ news-cascade 200 (어제 timeout 사라짐 — cached-en)
+
+⚠️ credit-balance aging 18.9h
+⚠️ fedwatch aging 23.2h
+
+❌ market-caps 0/30 caps (source='error')
+
+# 보고서 평가 (morning 2026-05-26, 07:08 KST)
+- 6 종목, entryPlan 6, 실가 대조: zone안 4 + 근접 2 + 멀리 0
+- (이전 zone안 3 → 4 개선)
+- totalFixes 14
+
+## 잔존 cross-ticker swap 발견
+TSM fundamentalBasis: "Q1 FY2026 매출 \$92.3B (+69.2%), opMgn 13.1%, P/E 39.5"
+005930.KS fundamentalBasis: 동일
+
+원인: F10 의 /Revenue.../ regex 가 한국어 '매출 ... (+X%)' 우회.
+
+# 수정
+
+## 1. F10 한국어 + 괄호 % 패턴 확장 (커밋 16dbea1)
+   - 추출 패턴 2가지:
+     (1) /(?:Revenue|매출)\s*\+?X%/ — 직접
+     (2) /(?:매출|revenue)[^,;|]*\(\s*\+?X%\s*\)/ — 괄호
+   - strip regex 확장 — Q[1-4] FY 분기 + 한국어 매출 + 괄호 % 모두 포함
+
+## 2. F5 fundamentalBasis cap 검사 신설
+   - 기존: catalysts 만 검사
+   - 추가: fundamentalBasis 의 매출 절대값이 메가캡 cap 의 0.5x~2x 범위 밖이면
+     매출 segment strip
+   - TSM cap=30, \$92.3B > 30 → strip
+   - 한국어 단위 'X억 달러' / 'X억 달성' / '매출 X억' 모두 처리
+
+## 3. market-caps prior 캐시 보존 (커밋 db57816)
+   - capsLive=0 (Yahoo+Stooq 전부 실패) 시 prior 캐시 검사
+   - prior.capsLive > 0 이면 prior 유지 + 'partial' source 반환
+   - empty payload TTL 24h → 1h (다음 호출 재시도)
+   - ownership-alerts 패턴 차용
+
+# 검증
+F10 dry-run (morning 보고서):
+  ⚠️ swap 의심: 69.2% 가 2종목 공유: TSM, 005930.KS ✓
+  no swap: 198.1% in 1 ticker (000660.KS) — SK하이닉스 단독
+  no swap: 16.3% in 1 ticker (035420.KS) — NAVER 단독
+
+market-caps: 빠른 재시도 가능 — 다음 보고서 audit 에서 확인.
+
+# 누적 fix (2026-05-24~26)
+| 룰 | 작동 |
+|---|---|
+| F1 BOOST dedup | ✓ |
+| F2 KR \$ → ₩ | ✓ |
+| F3 livePrice "현재" | conditional |
+| F4 손절선 thousand-separator | conditional |
+| F5 미래 분기 + 매출 strip + fundamentalBasis cap | ✓ (오늘 확장) |
+| F5d revenueYoY field-swap | ✓ |
+| F6 macroAnalysis 연준금리 FRED | conditional |
+| F7 fundamentalAnalysis YoY% 정합성 | ✓ |
+| F8 fundamentalAnalysis 매출 절대값 strip | ✓ |
+| F9 regionStances stance-data 정합성 | ✓ |
+| F10 cross-ticker 매출 swap (한국어/괄호 포함) | ✓ (오늘 확장) |
+| F11 companyChanges relevance filter | ✓ |
+| market-caps prior cache 보존 | ✓ (오늘 신설) |
+| ownership-alerts EFTS title fix + cron | ✓ (어제 신설) |
+
+# 커밋
+16dbea1 fix(harness): F10 한국어 + 괄호 % 패턴 확장 + fundamentalBasis cap 검사
+db57816 fix(market-caps): capsLive=0 시 prior 캐시 유지 + 짧은 retry TTL
+
+# 다음 우선순위
+- credit-balance / fedwatch aging — cron 갱신 주기 단축?
+- 만성 NE (MSFT/NVDA 11회) — entry calibration 보강
+- news-cascade 영어 leak (Visteon/Modine) — translate-headlines fallback
