@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'fs';
 
-const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-25-morning-ko.json';
+const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-25-afternoon-ko.json';
 const r = JSON.parse(readFileSync(REPORT, 'utf8'));
 
 function nativeCurrency(t) {
@@ -197,6 +197,45 @@ console.log('\n=== F8: fundamentalAnalysis 매출 절대값 strip ===');
     });
   }
   console.log(`  AFTER:  "${fa}"`);
+}
+
+console.log('\n=== F10: Cross-ticker 매출 swap 검출 (2026-05-26) ===');
+{
+  const revByPercent = new Map();
+  for (const p of r.portfolio ?? []) {
+    if (typeof p.fundamentalBasis !== 'string') continue;
+    const m = p.fundamentalBasis.match(/Revenue\s*\+?(\d+\.?\d*)\s*%/i);
+    if (!m) continue;
+    const pct = parseFloat(m[1]);
+    if (!isFinite(pct) || pct < 5) continue;
+    if (!revByPercent.has(pct)) revByPercent.set(pct, []);
+    revByPercent.get(pct).push(p.ticker);
+  }
+  for (const [pct, tickers] of revByPercent) {
+    if (tickers.length < 2) continue;
+    console.log(`  swap 의심: Revenue +${pct}% 가 ${tickers.length}종목 공유: ${tickers.join(', ')}`);
+  }
+}
+
+console.log('\n=== F11: companyChanges relevance filter (보수적) ===');
+{
+  // 실제 코드와 동일 로직 — relevant ticker = portfolio + insider + short + supplyChain + 화이트리스트
+  const known = new Set([
+    'NVDA','TSM','ASML','MSFT','AAPL','META','GOOGL','AMZN','TSLA','AMD','MU','AVGO','ARM','AMAT','LRCX','KLAC',
+    'JPM','GS','BAC','V','UNH','XOM','CVX','LMT','RTX','NOC','SPY','QQQ','IWM','GLD','TLT','CRWV','SNOW',
+    'NET','DDOG','MDB','ZS','CRWD','PANW','FTNT','PLTR','TOYO','TSMC',
+    '005930.KS','000660.KS','005380.KS','051910.KS','005490.KS','035420.KS','035720.KS',
+  ]);
+  for (const p of r.portfolio ?? []) if (p.ticker) known.add(p.ticker.toUpperCase());
+  for (const s of r.insiderSignals ?? []) if (s.ticker) known.add(s.ticker.toUpperCase());
+  for (const s of r.shortSqueeze ?? []) if (s.ticker) known.add(s.ticker.toUpperCase());
+  for (const s of r.supplyChainChanges ?? []) if (s.ticker) known.add(s.ticker.toUpperCase());
+  for (const c of r.companyChanges ?? []) {
+    const t = c.ticker?.toUpperCase();
+    if (t && !known.has(t)) {
+      console.log(`  removed (no relevance): ${c.ticker} (${c.name ?? '?'})`);
+    }
+  }
 }
 
 console.log('\n=== F6: macroAnalysis 연준금리 FRED 강제 치환 ===');

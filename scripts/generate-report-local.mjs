@@ -3790,7 +3790,7 @@ async function generateViaOllama() {
     TSLA: 35, ORCL: 18, AVGO: 18, CRM: 12, ADBE: 7, NFLX: 12,
     TSM: 30, TSMC: 30, ASML: 10, AMAT: 8, LRCX: 6, KLAC: 4, MU: 10, INTC: 18,
     '005930.KS': 70, '000660.KS': 22, '005380.KS': 35, '051910.KS': 15,
-    '005490.KS': 25, '035420.KS': 5, '035720.KS': 5,
+    '005490.KS': 25, '035420.KS': 2, '035720.KS': 2, // 2026-05-26: NAVER/Kakao cap 5→2 (실제 ~$1.5B)
   };
   // 절대 매출 값 추출 — 영어 ($X.XB) + 한국어 (X억 달러 / X억 달성 / 매출 X억) 통합
   const extractRevenueB = (text) => {
@@ -3883,6 +3883,75 @@ async function generateViaOllama() {
   if (futureQuarterStripped.length) {
     console.log(`  [후처리] 미래 분기/매출 hallucination strip: ${futureQuarterStripped.length}건`);
     for (const s of futureQuarterStripped) console.log(`    - ${s}`);
+  }
+
+  // F10: Cross-ticker 매출 swap 검출 (2026-05-26 사건)
+  // 사건: portfolio[TSM].fundamentalBasis = "Revenue +69.2%" + portfolio[005930.KS] = "Revenue +69.2%".
+  // 동일 % 가 2+ ticker 에 나타나면 LLM 이 한 종목의 fundamental 을 다른 ticker 에 swap.
+  // 검출: portfolio.fundamentalBasis 의 "Revenue +X%" 값을 ticker별로 모은 후 동일 % 발견 시 모두 strip.
+  if (Array.isArray(finalReport.portfolio)) {
+    const revByPercent = new Map(); // pct → [ticker...]
+    for (const p of finalReport.portfolio) {
+      if (typeof p.fundamentalBasis !== 'string') continue;
+      const m = p.fundamentalBasis.match(/Revenue\s*\+?(\d+\.?\d*)\s*%/i);
+      if (!m) continue;
+      const pct = parseFloat(m[1]);
+      if (!isFinite(pct) || pct < 5) continue; // 작은 % 는 false positive 가능
+      if (!revByPercent.has(pct)) revByPercent.set(pct, []);
+      revByPercent.get(pct).push(p.ticker);
+    }
+    const swapStripped = [];
+    for (const [pct, tickers] of revByPercent) {
+      if (tickers.length < 2) continue;
+      for (const t of tickers) {
+        const p = finalReport.portfolio.find(x => x.ticker === t);
+        if (!p) continue;
+        const before = p.fundamentalBasis;
+        // Revenue +X% segment 만 strip — opMgn/PE 는 유지
+        p.fundamentalBasis = p.fundamentalBasis
+          .replace(/Revenue\s*\+?\d+\.?\d*\s*%\s*,?\s*/i, '')
+          .replace(/^[,;\s]+|[,;\s]+$/g, '')
+          .replace(/,\s*,/g, ',');
+        if (p.fundamentalBasis !== before) {
+          swapStripped.push(`${t}: Revenue +${pct}% (${tickers.length}종목 공유 — cross-swap 의심)`);
+        }
+      }
+    }
+    if (swapStripped.length > 0) {
+      console.log(`  [후처리] cross-ticker 매출 swap 검출 strip: ${swapStripped.length}건`);
+      for (const s of swapStripped) console.log(`    - ${s}`);
+    }
+  }
+
+  // F11: companyChanges hallucinated ticker 제거 (2026-05-26 사건)
+  // 사건: ISPC/AZRS 같은 존재하지 않는 ticker 가 companyChanges 에 나타남.
+  // 보수적 룰: ticker 가 (a) CANDIDATE_TICKERS / (b) US_NAMES/KR_NAMES 화이트리스트 /
+  //   (c) portfolio.ticker / (d) insiderSignals.ticker / (e) shortSqueeze.ticker /
+  //   (f) supplyChainChanges.ticker 중 한 곳이라도 등장하면 유지. 모두 등장 안 하면 제거
+  //   (sub-cap 진짜 ticker 의 false positive 회피).
+  if (Array.isArray(finalReport.companyChanges)) {
+    const relevantTickers = new Set();
+    for (const t of CANDIDATE_TICKERS) relevantTickers.add(String(t).toUpperCase());
+    for (const t of Object.keys(US_NAMES_HARNESS)) relevantTickers.add(t.toUpperCase());
+    for (const t of Object.keys(KR_NAMES_HARNESS)) relevantTickers.add(t.toUpperCase());
+    for (const p of finalReport.portfolio ?? []) if (p.ticker) relevantTickers.add(p.ticker.toUpperCase());
+    for (const s of finalReport.insiderSignals ?? []) if (s.ticker) relevantTickers.add(s.ticker.toUpperCase());
+    for (const s of finalReport.shortSqueeze ?? []) if (s.ticker) relevantTickers.add(s.ticker.toUpperCase());
+    for (const s of finalReport.supplyChainChanges ?? []) if (s.ticker) relevantTickers.add(s.ticker.toUpperCase());
+
+    const before = finalReport.companyChanges.length;
+    const removed = [];
+    finalReport.companyChanges = finalReport.companyChanges.filter(c => {
+      const t = c.ticker?.toUpperCase();
+      if (!t) return false;
+      if (relevantTickers.has(t)) return true;
+      removed.push(`${c.ticker} (${c.name ?? '?'})`);
+      return false;
+    });
+    if (removed.length > 0) {
+      console.log(`  [후처리] companyChanges hallucinated ticker 제거: ${before}→${finalReport.companyChanges.length} (${removed.length}건)`);
+      for (const r of removed) console.log(`    - ${r}`);
+    }
   }
 
   // fundamentalAnalysis self-consistency 검증 (2026-05-25 사건)
