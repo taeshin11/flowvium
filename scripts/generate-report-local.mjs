@@ -2211,6 +2211,47 @@ function normalizeRegionStances(regionStances) {
 }
 
 /**
+ * regionStances stance-data 정합성 검증 (2026-05-25 신설).
+ *
+ * 사건: india "4w -2.4%, 1w +0.8%" 인데 stance="bullish" thesis="경제 성장 기대".
+ * 4주 수익률 음수인데 강세 단언은 데이터-thesis 모순.
+ *
+ * 룰:
+ *   4w ≤ -2%  →  stance="bullish" 면 "neutral" 강등 (thesis 에 (...) 데이터 유지)
+ *   4w ≥ +5%  →  stance="bearish" 면 "neutral" 승격
+ *   (4w 만 우선 — 1w 노이즈 가능, monthly 트렌드가 stance 결정에 더 적절)
+ */
+function reconcileRegionStanceWithData(regionStances) {
+  if (!regionStances) return regionStances;
+  let adjusted = 0;
+  const out = {};
+  for (const [region, entry] of Object.entries(regionStances)) {
+    if (!entry || typeof entry !== 'object') { out[region] = entry; continue; }
+    const fixed = { ...entry };
+    const m = fixed.thesis?.match(/\(\s*4w\s*([+-]?\d+\.?\d*)\s*%/i);
+    if (m) {
+      const w4 = parseFloat(m[1]);
+      if (isFinite(w4)) {
+        if (w4 <= -2 && fixed.stance === 'bullish') {
+          fixed.stance = 'neutral';
+          fixed.thesis = `${fixed.thesis ?? ''} | 데이터-stance 보정 (4w ${w4}%)`.trim();
+          adjusted++;
+          console.log(`  [후처리] regionStances ${region}: bullish→neutral (4w ${w4}% 음수)`);
+        } else if (w4 >= 5 && fixed.stance === 'bearish') {
+          fixed.stance = 'neutral';
+          fixed.thesis = `${fixed.thesis ?? ''} | 데이터-stance 보정 (4w ${w4}%)`.trim();
+          adjusted++;
+          console.log(`  [후처리] regionStances ${region}: bearish→neutral (4w ${w4}% 양수)`);
+        }
+      }
+    }
+    out[region] = fixed;
+  }
+  if (adjusted > 0) console.log(`  [후처리] regionStances 정합성 보정: ${adjusted}건`);
+  return out;
+}
+
+/**
  * Post-processing: append signal data to rationales that are under 80 chars.
  * Fills all portfolio items, not just duplicates.
  */
@@ -3955,6 +3996,7 @@ async function generateViaOllama() {
   finalReport.macroAnalysis = enrichMacroAnalysis(finalReport.macroAnalysis, ctxRaw, macroData, localeArg);
   finalReport.regionStances = fillMissingRegionStances(finalReport.regionStances, ctxRaw);
   finalReport.regionStances = normalizeRegionStances(finalReport.regionStances);
+  finalReport.regionStances = reconcileRegionStanceWithData(finalReport.regionStances);
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
