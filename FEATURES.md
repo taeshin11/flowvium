@@ -1055,6 +1055,7 @@ ownership-alerts 적용).
 | `cron/evaluate-signals` | 일요일 03:00 UTC | 평가 기한 지난 로테이션 신호 Yahoo Finance 수익률 대조 → hit/miss → 타임프레임별 정확도 갱신 |
 | `cron/signal-retrospective` | 일요일 03:30 UTC | evaluate-signals 결과 + 정확도 레코드 → AI(callAI cascade) 요약 → Redis 14일 캐시 (`/api/signal-retrospective`) |
 | `cron/iv-prewarm` | 평일 22:30 KST (13:30 UTC) · 03:00 KST (18:00 UTC) | iv-screener watchlist 31종목 IV pre-warm (concurrency 4) → 4h Redis + 24h stale + 1h neg-cache (영구실패 티커 격리). 미수행 시 `/volatility` 페이지 2/31 만 표시되는 사건(2026-05-24) 이후 신설 |
+| `cron/refresh-ownership-alerts` | 매일 17:00 KST (08:00 UTC) | EDGAR Schedule 13D/13G EFTS pull → Redis 24h 캐시. live request 가 SEC rate-limit/throttle 받으면 prior 캐시로 fallback. 0건 응답 시 prior 유지 (stale 우선) — 2026-05-25 ownership-alerts Vercel empty 사건 이후 신설 |
 
 ---
 

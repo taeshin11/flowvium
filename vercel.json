@@ -63,6 +63,9 @@
     },
     "src/app/api/cron/iv-prewarm/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/refresh-ownership-alerts/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -145,6 +148,10 @@
     {
       "path": "/api/cron/iv-prewarm",
       "schedule": "0 18 * * 1-5"
+    },
+    {
+      "path": "/api/cron/refresh-ownership-alerts",
+      "schedule": "0 8 * * *"
     }
   ]
 }

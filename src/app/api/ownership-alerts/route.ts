@@ -18,7 +18,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 const CACHE_KEY = 'flowvium:ownership-alerts:v1';
-const CACHE_TTL = 2 * 60 * 60;
+const CACHE_TTL = 24 * 60 * 60; // 24h — cron/refresh-ownership-alerts 와 정합 (2026-05-25 확장)
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=6000, stale-while-revalidate=300' };
 
 export const maxDuration = 60;
