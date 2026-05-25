@@ -168,6 +168,25 @@ export async function GET(req: Request) {
   const liveSource: 'live' | 'partial' | 'error' =
     capsLive === capsTotal ? 'live' : capsLive > 0 ? 'partial' : 'error';
 
+  // 2026-05-26: capsLive=0 (Yahoo+Stooq 전부 실패) 시 prior 캐시 유지 — empty payload 저장 안 함.
+  // 이전 버그: 빈 caps 가 24h TTL 캐시에 저장되어 user-visible 0/30 상태가 24h 지속.
+  if (capsLive === 0 && redis) {
+    try {
+      const prior = await redis.get<MarketCapPayload>(CACHE_KEY);
+      if (prior && prior.capsLive > 0) {
+        logger.warn('api.market-caps', 'fetch_failed_preserving_prior', {
+          priorCapsLive: prior.capsLive,
+        });
+        return NextResponse.json({
+          ...prior,
+          cached: true,
+          source: 'partial' as const,
+          updatedAt: prior.updatedAt,
+        }, { headers: CDN_HEADERS_MAP });
+      }
+    } catch { /* non-fatal */ }
+  }
+
   const payload: MarketCapPayload = {
     bands,
     caps,
@@ -178,7 +197,9 @@ export async function GET(req: Request) {
     capsTotal,
   };
 
-  await loggedRedisSet(redis, 'api.market-caps', CACHE_KEY, payload, { ex: CACHE_TTL });
+  // empty payload (capsLive=0) 시 1h 짧은 TTL — 다음 호출에서 재시도 가능
+  const cacheTtl = capsLive === 0 ? 60 * 60 : CACHE_TTL;
+  await loggedRedisSet(redis, 'api.market-caps', CACHE_KEY, payload, { ex: cacheTtl });
 
   logger.info('api.market-caps', 'served', { tickers: seen.size, durationMs: Date.now() - reqStart });
 
