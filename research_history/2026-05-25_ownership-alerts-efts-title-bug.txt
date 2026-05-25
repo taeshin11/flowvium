@@ -1,0 +1,63 @@
+2026-05-25 ownership-alerts EFTS fallback 0건 버그 해결
+
+# 발견 (audit-all 점검)
+/api/ownership-alerts 가 prod 환경에서 0 items 반환. audit-all 의 18/20 OK,
+2개 결함 중 하나로 식별.
+
+# 진단 과정
+1. 로컬에서 EFTS 직접 호출 → 385 hits 정상 응답
+2. prod (Vercel) 환경에서 ownership-alerts?refresh=1 → 여전히 0건
+3. 가설: SEC 가 Vercel IP 차단/throttle
+4. 검증: /api/debug/edgar-efts (임시 진단 endpoint) 신설
+5. prod 호출 결과:
+   - efts-schedule-13D: status 200, 100 hits ✓
+   - efts-schedule-13G: status 200, 100 hits ✓
+   - getcurrent atom: status 200, "No recent filings" (정상 — 10분 윈도우 비어있음)
+6. SEC 차단 가설 X. EFTS 정상 응답.
+
+# 근본 원인
+src/lib/edgar-insider.ts fetchEftsOwnershipFilings (line 357~):
+  push 직전 entries.title 을 issuerName 로 set
+  → AtomEntry { title: "PHIBRO ANIMAL HEALTH CORP (PAHC)..." }
+
+dedupe loop (line 449~) 의 formMatch regex:
+  /^(SC 13[DG](?:\/A)?)/  ← atom title 형식 ("SC 13D - Issuer (CIK)") 만 매칭
+
+EFTS entries 의 title 은 form prefix 없어서 formMatch null → continue → uniques=[]
+→ results=[] → 0건 반환.
+
+기존 atom feed 에서는 정상 작동. EFTS fallback 통로만 broken.
+
+# 수정 (src/lib/edgar-insider.ts)
+1. fetchEftsOwnershipFilings push 시 title 을 "SC 13D - <issuer>" 형식으로 통일:
+   - src.form ('SCHEDULE 13D/A') → 'SC 13D/A' 변환 후 prepend
+2. dedupe loop formMatch regex 확장:
+   기존: /^(SC 13[DG](?:\/A)?)/
+   변경: /^(SC\s+13[DG](?:\/A)?)/i  (case-insensitive + \s+)
+3. issuerName 추출 로직 단순화 — paren 없는 케이스도 허용
+
+# 추가 fix
+1. /api/cron/refresh-ownership-alerts 신설 (매일 17:00 KST 08:00 UTC)
+   EDGAR pull 후 Redis 24h 캐시 — live request 와 시간 분리로 rate-limit 회피.
+2. ownership-alerts CACHE_TTL 2h → 24h (cron 정합성).
+3. vercel.json cron + maxDuration 등록.
+4. FEATURES.md 의 cron 표 갱신.
+
+# 검증
+배포 후 /api/ownership-alerts?refresh=1:
+  total: 47 ✓
+  source: edgar-13dg ✓
+  items[0]: PHIBRO ANIMAL HEALTH CORP (13D/A) 2026-05-22 ✓
+
+# Minor 잔존 이슈
+- ticker: null (TICKER_TO_COMPANY 화이트리스트 부족 — PHIBRO/FB Financial 등)
+- percentOwned/sharesOwned: null (primary_doc.xml parsing 미작동 케이스)
+별도 작업으로 분리.
+
+# 디버그 endpoint cleanup
+/api/debug/edgar-efts 제거 (진단 완료).
+
+# 커밋
+67ad2f1 fix(ownership-alerts): EFTS Vercel empty 사건 — cron 사전 캐시 + 진단 endpoint
+500ccb7 fix(edgar): ownership-alerts EFTS fallback 0건 사건 — title 형식 통일
+8ded907 chore: remove /api/debug/edgar-efts (진단 완료)
