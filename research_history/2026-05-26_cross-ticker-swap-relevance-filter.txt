@@ -1,0 +1,67 @@
+2026-05-26 cross-ticker 매출 swap 검출 + companyChanges relevance filter
+
+# 발견 (2026-05-25 afternoon 보고서)
+1. portfolio[TSM].fundamentalBasis = "Revenue +69.2%, OpMgn 13.1%, P/E 39.5"
+   portfolio[005930.KS].fundamentalBasis = "Revenue +69.2%, OpMgn 13.1%, P/E 25.7"
+   → 동일 매출 % 가 2 종목에 등장. LLM 이 Samsung 의 fundamental 을 TSM 에 swap
+   → 사용자가 잘못된 ticker 의 매출 trend 로 매수 판단
+
+2. NAVER (035420.KS) revenueYoY=2.2 (=$2.2B 매출 절대값)
+   기존 cap=5 라 2.2 < 5×0.5=2.5 → F5d field-swap 검출 우회
+   keyChange: "Q1 FY2026 매출 $2.2B, 전년대비 16.3% 증가"
+   실제 YoY 는 16.3, revenueYoY 필드엔 매출값 들어감
+
+# 수정 (scripts/generate-report-local.mjs)
+
+## F10 — Cross-ticker 매출 swap 검출
+portfolio loop:
+  - fundamentalBasis 의 "Revenue +X%" 추출 → Map<pct, [ticker...]>
+  - 2+ ticker 가 같은 % 공유 시 양쪽 모두 매출 segment strip
+    (OpMgn/PE 는 유지 — 그건 ticker 고유 정보)
+  - 5% 미만 false positive 방지
+
+## F11 — companyChanges relevance filter
+보수적 룰: 다음 합집합에 등장하는 ticker 만 유지
+  - CANDIDATE_TICKERS (candidate-tickers.json)
+  - KR_NAMES_HARNESS 키
+  - US_NAMES_HARNESS 키
+  - portfolio.ticker
+  - insiderSignals.ticker
+  - shortSqueeze.ticker
+  - supplyChainChanges.ticker
+
+→ 보고서 내 다른 섹션에 등장하지 않는 orphan ticker 만 제거
+→ NXDT/BRCB (insider 에 등장), TOYO/CRWV (화이트리스트) 같은 진짜 sub-cap false positive 회피
+
+## NAVER/Kakao cap 5 → 2 (035420.KS / 035720.KS)
+실제 NAVER/Kakao 분기 매출 ~$1.5B 기준. cap=2 면 revenueYoY=2.2 가 2×0.5=1.0
+초과 → F5d field-swap 검출.
+
+# 검증
+afternoon 보고서 dry-run:
+  F10: 'Revenue +69.2% 가 2종목 공유: TSM, 005930.KS' 검출 ✓
+  F11: 모든 cc ticker 가 relevance set 안에 있어 0건 제거 (보수적, 안전)
+  NAVER cap: 다음 보고서에서 NAVER 의 revenueYoY=2.2 가 자동 null 처리 예정
+
+# 잔존 (사용자가 비판하면 차차)
+- macroAnalysis 연준금리 3.625% — FRED 캐시 값 정확성 검증 필요 (자동 fix 불가)
+- shortSqueeze "고점 매도 위험" boilerplate (낮은 우선)
+- 005930 stopLossRationale "현재 ₩292500" — Samsung 실제가 일치 확인 필요
+
+# 누적 fix 통계 (2026-05-24~26 신설)
+F1  BOOST 중복 prefix ✓
+F2  KR \$ → ₩ ✓
+F3  livePrice "현재" 가격 (conditional)
+F4  손절선 thousand-separator (conditional)
+F5  미래 분기 + 매출 절대값 strip (한국어 단위 포함) ✓
+F5d revenueYoY field-swap 검출 ✓
+F6  macroAnalysis 연준금리 FRED (conditional)
+F7  fundamentalAnalysis YoY% 정합성 ✓
+F8  fundamentalAnalysis 매출 절대값 strip ✓
+F9  regionStances stance-data 정합성 ✓
+F10 cross-ticker 매출 swap 검출 ✓ (신설)
+F11 companyChanges relevance filter ✓ (신설)
+meta US_NAMES 9 + semicap cap 7 + NAVER/Kakao cap 조정 ✓
+
+# 커밋
+676ada8 fix(harness): cross-ticker 매출 swap 검출 (F10) + companyChanges relevance filter (F11) + NAVER cap 조정
