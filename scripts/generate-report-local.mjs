@@ -3833,6 +3833,24 @@ async function generateViaOllama() {
           futureQuarterStripped.push(`${p.ticker}: fundamentalBasis 미래분기 strip`);
         }
       }
+      // 2026-05-26: fundamentalBasis 의 매출 절대값 cap 검사 추가
+      // TSM 'Q1 FY2026 매출 $92.3B (+69.2%)' 같은 cap 초과 케이스. catalysts 와 동일 룰.
+      const fbCap = MEGA_CAP_QUARTERLY_REV_CAP[p.ticker?.toUpperCase()];
+      if (fbCap && typeof p.fundamentalBasis === 'string') {
+        const rev = extractRevenueB(p.fundamentalBasis);
+        if (rev != null && (rev > fbCap || rev < fbCap * 0.5)) {
+          const before = p.fundamentalBasis;
+          // "Q1 FY2026 매출 $92.3B (+69.2%)" / "Revenue +85.2%" 모두 strip,
+          // opMgn / P/E 등 ticker 고유 멀티플은 유지
+          p.fundamentalBasis = p.fundamentalBasis
+            .replace(/(?:Q[1-4]\s*FY\s*\d{4}\s*)?(?:매출|revenue)\s*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*(?:달러|달성)?)(?:\s*\(\s*\+?-?\d+\.?\d*\s*%\s*\))?\s*,?\s*/gi, '')
+            .replace(/[,;\s]+,/g, ',')
+            .replace(/^[,;\s]+|[,;\s]+$/g, '');
+          if (p.fundamentalBasis !== before) {
+            futureQuarterStripped.push(`${p.ticker}: fundamentalBasis 매출 ${rev}B cap ${fbCap}B 범위 밖 strip`);
+          }
+        }
+      }
     }
   }
   // companyChanges 도 같이 — keyChange 안의 매출 절대값 (영어/한국어) + 미래 분기 strip,
@@ -3886,17 +3904,25 @@ async function generateViaOllama() {
   }
 
   // F10: Cross-ticker 매출 swap 검출 (2026-05-26 사건)
-  // 사건: portfolio[TSM].fundamentalBasis = "Revenue +69.2%" + portfolio[005930.KS] = "Revenue +69.2%".
-  // 동일 % 가 2+ ticker 에 나타나면 LLM 이 한 종목의 fundamental 을 다른 ticker 에 swap.
-  // 검출: portfolio.fundamentalBasis 의 "Revenue +X%" 값을 ticker별로 모은 후 동일 % 발견 시 모두 strip.
+  // 사건 1: portfolio[TSM].fundamentalBasis = "Revenue +69.2%" + portfolio[005930.KS] = "Revenue +69.2%"
+  // 사건 2: portfolio[TSM].fundamentalBasis = "Q1 FY2026 매출 $92.3B (+69.2%)" 같은 한국어 + 괄호 % 형식
+  // 동일 % 가 2+ ticker 에 나타나면 LLM 이 한 종목 fundamental 을 다른 ticker 에 swap.
+  // 패턴 확장: 영어 "Revenue +X%" + 한국어 "매출 ... (+X%)" + 단순 "(+X%)" 괄호.
   if (Array.isArray(finalReport.portfolio)) {
     const revByPercent = new Map(); // pct → [ticker...]
+    const extractRevPct = (text) => {
+      // (1) "Revenue +X%" / "매출 +X%"
+      let m = text.match(/(?:Revenue|매출)\s*\+?(\d+\.?\d*)\s*%/i);
+      if (m) return parseFloat(m[1]);
+      // (2) "(+X%)" 괄호 안의 % (매출 다음에 오는 패턴)
+      m = text.match(/(?:매출|revenue)[^,;|]*\(\s*\+?(\d+\.?\d*)\s*%\s*\)/i);
+      if (m) return parseFloat(m[1]);
+      return null;
+    };
     for (const p of finalReport.portfolio) {
       if (typeof p.fundamentalBasis !== 'string') continue;
-      const m = p.fundamentalBasis.match(/Revenue\s*\+?(\d+\.?\d*)\s*%/i);
-      if (!m) continue;
-      const pct = parseFloat(m[1]);
-      if (!isFinite(pct) || pct < 5) continue; // 작은 % 는 false positive 가능
+      const pct = extractRevPct(p.fundamentalBasis);
+      if (pct == null || !isFinite(pct) || pct < 5) continue;
       if (!revByPercent.has(pct)) revByPercent.set(pct, []);
       revByPercent.get(pct).push(p.ticker);
     }
@@ -3907,13 +3933,13 @@ async function generateViaOllama() {
         const p = finalReport.portfolio.find(x => x.ticker === t);
         if (!p) continue;
         const before = p.fundamentalBasis;
-        // Revenue +X% segment 만 strip — opMgn/PE 는 유지
+        // 매출 segment + (+X%) 괄호까지 strip. opMgn/PE 는 유지.
         p.fundamentalBasis = p.fundamentalBasis
-          .replace(/Revenue\s*\+?\d+\.?\d*\s*%\s*,?\s*/i, '')
+          .replace(/(?:Q[1-4]\s*FY\s*\d{4}\s*)?(?:Revenue|매출)\s*(?:\$\d+\.?\d*\s*B|\d+\s*억\s*(?:달러|달성)?)?\s*\(?\s*\+?\d+\.?\d*\s*%\s*\)?\s*,?\s*/i, '')
           .replace(/^[,;\s]+|[,;\s]+$/g, '')
           .replace(/,\s*,/g, ',');
         if (p.fundamentalBasis !== before) {
-          swapStripped.push(`${t}: Revenue +${pct}% (${tickers.length}종목 공유 — cross-swap 의심)`);
+          swapStripped.push(`${t}: ${pct}% (${tickers.length}종목 공유 — cross-swap 의심)`);
         }
       }
     }

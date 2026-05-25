@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'fs';
 
-const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-25-afternoon-ko.json';
+const REPORT = 'C:/NoAddsMakingApps/FlowVium/reports/report-2026-05-26-morning-ko.json';
 const r = JSON.parse(readFileSync(REPORT, 'utf8'));
 
 function nativeCurrency(t) {
@@ -199,21 +199,29 @@ console.log('\n=== F8: fundamentalAnalysis 매출 절대값 strip ===');
   console.log(`  AFTER:  "${fa}"`);
 }
 
-console.log('\n=== F10: Cross-ticker 매출 swap 검출 (2026-05-26) ===');
+console.log('\n=== F10: Cross-ticker 매출 swap 검출 (영어 + 한국어 + 괄호 % 패턴) ===');
 {
+  const extractRevPct = (text) => {
+    let m = text.match(/(?:Revenue|매출)\s*\+?(\d+\.?\d*)\s*%/i);
+    if (m) return parseFloat(m[1]);
+    m = text.match(/(?:매출|revenue)[^,;|]*\(\s*\+?(\d+\.?\d*)\s*%\s*\)/i);
+    if (m) return parseFloat(m[1]);
+    return null;
+  };
   const revByPercent = new Map();
   for (const p of r.portfolio ?? []) {
     if (typeof p.fundamentalBasis !== 'string') continue;
-    const m = p.fundamentalBasis.match(/Revenue\s*\+?(\d+\.?\d*)\s*%/i);
-    if (!m) continue;
-    const pct = parseFloat(m[1]);
-    if (!isFinite(pct) || pct < 5) continue;
+    const pct = extractRevPct(p.fundamentalBasis);
+    if (pct == null || !isFinite(pct) || pct < 5) continue;
     if (!revByPercent.has(pct)) revByPercent.set(pct, []);
     revByPercent.get(pct).push(p.ticker);
   }
   for (const [pct, tickers] of revByPercent) {
-    if (tickers.length < 2) continue;
-    console.log(`  swap 의심: Revenue +${pct}% 가 ${tickers.length}종목 공유: ${tickers.join(', ')}`);
+    if (tickers.length < 2) {
+      console.log(`  no swap: ${pct}% in ${tickers.length} ticker (${tickers.join(', ')})`);
+    } else {
+      console.log(`  ⚠️ swap 의심: ${pct}% 가 ${tickers.length}종목 공유: ${tickers.join(', ')}`);
+    }
   }
 }
 
