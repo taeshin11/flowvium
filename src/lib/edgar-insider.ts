@@ -379,8 +379,14 @@ async function fetchEftsOwnershipFilings(): Promise<AtomEntry[]> {
         const filedDate = src?.file_date ?? today;
         if (!accession || !cik) continue;
         const accessionPath = accession.replace(/-/g, '');
+        // 2026-05-25 버그 수정: dedupe loop 의 formMatch regex (atom title 형식) 가
+        // 매칭할 수 있게 "SC 13D - <issuer>" 형태로 title 구성. 그렇지 않으면
+        // EFTS fallback entries 모두 dedupe loop 에서 continue 처리됨 (0건 결과).
+        const formStr = (src?.form ?? src?.root_forms?.[0] ?? '')
+          .replace(/^SCHEDULE\s+/i, 'SC ')
+          .toUpperCase();
         entries.push({
-          title: issuerName,
+          title: `${formStr} - ${issuerName}`,
           link: `https://www.sec.gov/Archives/edgar/data/${cik}/${accessionPath}/${accession}-index.htm`,
           accession, accessionPath, cik,
           updatedAt: filedDate, filedDate,
@@ -445,12 +451,17 @@ export async function fetchRecentOwnershipAlerts(opts: {
   for (const e of feed) {
     if (seen.has(e.accession)) continue;
     seen.add(e.accession);
-    // Derive form type and issuer name from title: "SC 13D - Issuer Name (CIK) (Issuer)"
-    const formMatch = e.title.match(/^(SC 13[DG](?:\/A)?)/);
-    const nameMatch = e.title.match(/-\s+([^(]+)\s+\(/);
-    if (!formMatch || !nameMatch) continue;
-    const formType = formMatch[1].replace('SC ', '') as OwnershipAlert['formType'];
-    uniques.push({ ...e, formType, issuerName: nameMatch[1].trim() });
+    // Derive form type and issuer name from title.
+    // Atom feed:  "SC 13D - Issuer Name (CIK) (Issuer)"
+    // EFTS path:  "SC 13D - Issuer Name (TKR) (CIK XXX)"  (fetchEftsOwnershipFilings 가 통일)
+    const formMatch = e.title.match(/^(SC\s+13[DG](?:\/A)?)/i);
+    if (!formMatch) continue;
+    // Issuer name: "SC 13D - " 뒤에 첫 paren 직전까지. paren 없는 케이스도 허용.
+    const afterForm = e.title.replace(/^SC\s+13[DG](?:\/A)?\s*-\s*/i, '');
+    const issuerName = afterForm.replace(/\s*\(.*$/, '').trim();
+    if (!issuerName) continue;
+    const formType = formMatch[1].replace(/^SC\s+/i, '').toUpperCase() as OwnershipAlert['formType'];
+    uniques.push({ ...e, formType, issuerName });
   }
 
   // Fetch primary text/xml for each in batches of 6
