@@ -1,0 +1,53 @@
+2026-05-25 regionStances 데이터-stance 정합성 보정 (F9)
+
+# 발견
+2026-05-25 morning 보고서:
+  india: stance="bullish", thesis="경제 성장 기대 (4w -2.4%, 1w +0.8%)"
+  → 4주 수익률 -2.4% 인데 bullish 단언 — 데이터-thesis 모순
+
+기존 fillMissingRegionStances 는 누락 지역 보완만, normalizeRegionStances 는
+key,Data → keyData 오타 수정만. stance-data 정합성 검증 없음.
+
+# 수정 (scripts/generate-report-local.mjs)
+reconcileRegionStanceWithData() 신설:
+  - thesis 에서 '(4w X.X%, 1w ...)' 패턴 추출
+  - 4w ≤ -2%  + stance='bullish'  → 'neutral' 강등
+  - 4w ≥ +5%  + stance='bearish'  → 'neutral' 승격
+  - 1w 무시 (노이즈 가능, monthly 트렌드가 stance 에 더 적절)
+  - thesis 끝에 '| 데이터-stance 보정 (4w X%)' 부착 (사용자 이해)
+
+후처리 순서:
+  fillMissingRegionStances → normalizeRegionStances → reconcileRegionStanceWithData
+
+# 검증
+보고서 9개 지역 dry-run:
+  india    : bullish → neutral (4w -2.4%)  ← 유일 보정
+  us       : bullish (4w +4.4%)  정상
+  japan    : bullish (4w +4.9%)  정상
+  taiwan   : bullish (4w +9.9%)  정상
+  korea    : neutral (4w +17.8%) 보수적 유지 (자동 승격 안 함)
+  europe   : neutral (4w +1.6%)  정상
+  china    : neutral (4w -3.6%)  정상
+  brazil   : neutral (4w -8.9%)  보수적 유지 (자동 강등 안 함)
+  australia: neutral (4w -1.3%)  정상
+
+# 보수성 선택 이유
+- bullish→bearish 자동 강등은 위험 — neutral 까지만 단계 보정
+- korea +17.8% / brazil -8.9% 처럼 극단값도 자동 승격/강등 안 함 (사용자 검토 여지)
+- 4w 만 사용 (1w 노이즈 회피)
+
+# 누적 fix 통계 (2026-05-24~25 신설)
+F1  BOOST 중복 prefix ✓
+F2  KR \$ → ₩ ✓
+F3  livePrice "현재" 가격 (conditional)
+F4  손절선 thousand-separator (conditional)
+F5  미래 분기 + 매출 절대값 strip ✓
+F5d revenueYoY field-swap 검출 ✓
+F6  macroAnalysis 연준금리 FRED (conditional)
+F7  fundamentalAnalysis YoY% 정합성 ✓
+F8  fundamentalAnalysis 매출 절대값 strip ✓
+F9  regionStances stance-data 정합성 ✓ (신설)
+meta US_NAMES 9 + semicap cap 7 추가 ✓
+
+# 커밋
+914d8d9 fix(harness): regionStances stance-data 정합성 보정 (F9)
