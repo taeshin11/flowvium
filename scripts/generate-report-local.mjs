@@ -4018,15 +4018,20 @@ async function generateViaOllama() {
       const ccRevYoY = (typeof cc?.revenueYoY === 'number') ? cc.revenueYoY : null;
       const catYoY = ccRevYoY ?? extractYoY(ccText) ?? extractYoY(fbText) ?? extractYoY(catText);
       if (catYoY == null) continue;
-      // fundamentalAnalysis 안에서 "TICKER ... X% (증가/초과/상승/growth/YoY)" 매치
+      // fundamentalAnalysis 안에서 ticker % 패턴 매치 — 2가지 형식:
+      //   (A) "TICKER ... X% (증가/초과/상승/growth/YoY)" — explicit suffix
+      //   (B) "TICKER ... +X%" — '+' prefix (suffix 없는 단순 형식, 2026-05-26 NVDA "+73%" 케이스)
       const tickerEscaped = t.replace(/[.]/g, '\\.');
-      const rx = new RegExp(`(${tickerEscaped}[^,;.|]*?)(\\d+\\.?\\d*)(\\s*%\\s*(?:증가|초과|상승|상회|growth|YoY))`, 'gi');
-      fa = fa.replace(rx, (match, prefix, val, suffix) => {
-        const v = parseFloat(val);
-        if (!isFinite(v) || Math.abs(v - catYoY) < 5) return match;
-        aligned.push(`${t}: ${val}% → ${catYoY}% (catalysts/companyChanges 일치)`);
-        return `${prefix}${catYoY}${suffix}`;
-      });
+      const rxA = new RegExp(`(${tickerEscaped}[^,;.|]*?)(\\d+\\.?\\d*)(\\s*%\\s*(?:증가|초과|상승|상회|growth|YoY))`, 'gi');
+      const rxB = new RegExp(`(${tickerEscaped}[^,;.|]*?\\+)(\\d+\\.?\\d*)(\\s*%(?!\\s*(?:증가|초과|상승|상회|growth|YoY)))`, 'gi');
+      for (const rx of [rxA, rxB]) {
+        fa = fa.replace(rx, (match, prefix, val, suffix) => {
+          const v = parseFloat(val);
+          if (!isFinite(v) || Math.abs(v - catYoY) < 5) return match;
+          aligned.push(`${t}: ${val}% → ${catYoY}% (catalysts/companyChanges 일치)`);
+          return `${prefix}${catYoY}${suffix}`;
+        });
+      }
     }
     if (fa !== before) {
       finalReport.fundamentalAnalysis = fa;

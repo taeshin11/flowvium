@@ -167,13 +167,16 @@ console.log('\n=== F7: fundamentalAnalysis vs catalysts self-consistency ===');
     const catYoY = ccRevYoY ?? extractYoY(ccText) ?? extractYoY(fbText) ?? extractYoY(catText);
     if (catYoY == null) continue;
     const tickerEscaped = t.replace(/[.]/g, '\\.');
-    const rx = new RegExp(`(${tickerEscaped}[^,;.|]*?)(\\d+\\.?\\d*)(\\s*%\\s*(?:증가|초과|상승|상회|growth|YoY))`, 'gi');
-    fa = fa.replace(rx, (match, prefix, val, suffix) => {
-      const v = parseFloat(val);
-      if (!isFinite(v) || Math.abs(v - catYoY) < 5) return match;
-      console.log(`    ${t}: ${val}% → ${catYoY}% (sources: ccRevYoY=${ccRevYoY}, ccText="${ccText.slice(0,40)}", fb="${fbText.slice(0,40)}")`);
-      return `${prefix}${catYoY}${suffix}`;
-    });
+    const rxA = new RegExp(`(${tickerEscaped}[^,;.|]*?)(\\d+\\.?\\d*)(\\s*%\\s*(?:증가|초과|상승|상회|growth|YoY))`, 'gi');
+    const rxB = new RegExp(`(${tickerEscaped}[^,;.|]*?\\+)(\\d+\\.?\\d*)(\\s*%(?!\\s*(?:증가|초과|상승|상회|growth|YoY)))`, 'gi');
+    for (const rx of [rxA, rxB]) {
+      fa = fa.replace(rx, (match, prefix, val, suffix) => {
+        const v = parseFloat(val);
+        if (!isFinite(v) || Math.abs(v - catYoY) < 5) return match;
+        console.log(`    ${t}: ${val}% → ${catYoY}% (rx=${rx === rxA ? 'A' : 'B'})`);
+        return `${prefix}${catYoY}${suffix}`;
+      });
+    }
   }
   console.log(`  AFTER:  "${fa}"`);
 }
