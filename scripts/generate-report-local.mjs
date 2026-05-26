@@ -1815,6 +1815,15 @@ function computePricesFromPlan(portfolioItems, livePrices) {
     if (!Number.isFinite(anchor) || anchor < base * 0.5 || anchor > base * 1.5) {
       anchor = base; anchorLabel = 'current(fallback)';
     }
+    // 2026-05-27: ENTRY_CALIBRATION 활용 — analyze-recs --export 로 산출된 ticker별
+    // 만성 NE gap (entry vs actual). gap > 5% 이면 50MA/200MA anchor 무시하고 시장가 사용
+    // (만성 NE 의 근본 원인은 entry 가 시장가에 못 미침. MSFT/NVDA/TSM/ASML/MU 11회+ NE 케이스).
+    const calib = ENTRY_CALIBRATION?.get?.(p.ticker?.toUpperCase());
+    if (calib && typeof calib.medianGap === 'number' && calib.medianGap > 5 && anchor < base * 0.98) {
+      console.log(`  [entry-calib] ${p.ticker}: medianGap ${calib.medianGap.toFixed(1)}% > 5% — anchor ${anchorLabel}(${fmt(anchor)}) → current(${fmt(base)})`);
+      anchor = base;
+      anchorLabel = `current(calib-NE-${calib.medianGap.toFixed(1)}%)`;
+    }
     const disc = Math.max(0, Math.min(5, Number(discountPct) || 0)) / 100;
     const entryLow = anchor * (1 - disc - 0.02);
     const entryHigh = anchor * (1 - disc + 0.01);
