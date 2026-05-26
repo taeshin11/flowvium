@@ -1,0 +1,100 @@
+2026-05-27 보고서 + 엔드포인트 + DB + 전향적 연구
+
+# 요약
+1. 엔드포인트 18 OK + 2 WARN + 0 ERR — market-caps 회복!
+2. 보고서 morning 2026-05-27: F10/F5 fix 적용 확인 (TSM 매출 segment strip)
+3. DB 분석으로 ENTRY_CALIBRATION dead code 발견 → 활성화
+4. ban/boost/entry-calibration JSON 갱신
+
+# 1. 엔드포인트 (audit-all)
+✅ 18 OK / ⚠️ 2 WARN / ❌ 0 ERR
+
+🎉 market-caps 30/30 회복 — 어제 db57816 + 2e37a55 (prior 캐시 + cron 신설) 효과!
+✅ ownership-alerts 44건 — 안정
+✅ news-cascade 200 cached-en — timeout 사라짐
+
+⚠️ credit-balance aging 20.3h — 곧 만료
+⚠️ fedwatch aging 23.9h — 매우 stale
+
+# 2. 보고서 (morning 2026-05-27)
+- generatedAt: 2026-05-26T22:08:38 UTC
+- 6 종목 / entryPlan 4 / 실가 대조 zone안 4 + 근접 2 + 멀리 0
+- totalFixes 14
+
+## F10/F5 작동 확인
+TSM fundamentalBasis: "마진 13.1%, P/E 40.6" — 매출 segment strip ✓ (이전 "Q1 FY2026 매출 \$92.3B (+69.2%), 마진 13.1%")
+NVDA fundamentalBasis: "매출 +85.2%, 마진 60.4%, P/E 40.6" — 한국어 매출 % 유지 (TSM 과 다른 값이라 cross-swap 검출 X)
+NVDA target $244.62 → $220 critique 적용 ✓
+
+# 3. DB 분석 (db-retrospective)
+58 reports / 321 recommendations / 214 outcomes / 980 endpoint_snapshots
+
+## 후향 (주별)
+2026-18주: 85건 buy, hit 35%, NE 44%
+2026-19주: 33건, hit 25%, NE 52%
+2026-20주: 39건, hit 27%, NE 5%, hold 59% (개선!)
+
+## 전향 (미평가 15건)
+대부분 eval_after 2026-06-05~06 — KR 종목 entry=110000/130000 (split-adjusted 의문)
+
+## ticker 누적 성과
+🌟 (>15%): 000660.KS, TSLA, 005380.KS
+✅ (5-15%): 005930.KS, NVDA, KLAC, 035420.KS, ASML, 005490.KS
+⚠️ (<5%): TSM, 051910.KS, MSFT, TSMC
+
+## 만성 NE (top)
+MSFT 19건 0/0/11 (58% NE)
+KLAC 24건 1/1/8 (33% NE)
+NVDA 27건 7/0/11 (41% NE)
+ASML 10건 2/2/3 (30% NE)
+
+## Entry calibration (analyze-recs --export)
+TSM gap 9.6%, MSFT gap 9.6%, ASML gap 8.5%, MU gap 7.2%,
+TSLA gap 5.8%, 000660.KS gap 6.6%, NVDA gap 3.5%, KLAC gap 2.7%
+
+# 4. 전향적 연구 → 보고서 반영
+analyze-recs --export 결과:
+  - ban-list.json: SMCI, 051910.KS (2 ticker, 변경 없음)
+  - boost-list.json: TSM, TSLA, 005490.KS, 035420.KS (+ 035420 신규)
+  - entry-calibration.json: 10 ticker calibration
+
+## 핵심 발견 — ENTRY_CALIBRATION dead code
+generate-report-local.mjs:226 ENTRY_CALIBRATION load 만 하고 미사용.
+주석 (line 217): "validateEntryZones 에서 더 공격적 clamp 적용" — 미구현.
+결과: 만성 NE 패턴 영구화. MSFT 11회, NVDA 11회, KLAC 8회 NE.
+
+## 수정 (computePricesFromPlan)
+ENTRY_CALIBRATION 활성화:
+```js
+const calib = ENTRY_CALIBRATION?.get?.(p.ticker?.toUpperCase());
+if (calib && calib.medianGap > 5 && anchor < base * 0.98) {
+  // 만성 NE — 50MA anchor 가 시장가 -5%+ 이라 entry 도달 불가
+  anchor = base;  // 시장가 강제
+  anchorLabel = `current(calib-NE-${calib.medianGap.toFixed(1)}%)`;
+}
+```
+
+효과:
+  - TSM 50MA \$373.11, 시장가 \$404.52 → anchor 변경 (\$373 → \$404)
+    → entry zone \$396~\$404 (시장가 근처) — 도달 가능
+  - MSFT/ASML/MU 동일 패턴 — entry 시장가 근처 형성
+  - 다음 보고서부터 NE rate 감소 예상
+
+# 누적 fix (2026-05-24~27)
+F1 BOOST dedup ✓
+F2 KR \$ → ₩ ✓
+F3 livePrice "현재" (conditional)
+F4 손절선 thousand-separator (conditional)
+F5 미래 분기 + 매출 절대값 strip (영어/한국어 + fundamentalBasis cap) ✓
+F5d revenueYoY field-swap ✓
+F6 macroAnalysis 연준금리 FRED (conditional)
+F7 fundamentalAnalysis YoY% 정합성 (explicit + '+' prefix) ✓
+F8 fundamentalAnalysis 매출 절대값 strip ✓
+F9 regionStances stance-data 정합성 ✓
+F10 cross-ticker 매출 swap (영어/한국어/괄호 패턴) ✓
+F11 companyChanges relevance filter ✓
+F12 ENTRY_CALIBRATION 활성화 ✓ (오늘 신설)
+인프라: ownership-alerts EFTS title fix + cron, market-caps prior cache + cron
+
+# 커밋
+3183e97 fix(prospective): ENTRY_CALIBRATION dead code 활성화 + ban/boost/entry-calib 갱신
