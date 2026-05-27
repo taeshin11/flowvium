@@ -300,8 +300,10 @@ export async function logPortfolioPredictions(
     const kstDate = new Date(Date.now() + 9*3600000).toISOString().slice(0,10);
     const hour = new Date(Date.now() + 9*3600000).getUTCHours();
     const session = hour < 16 ? 'morning' : hour < 22 ? 'afternoon' : 'evening';
+    // 2026-05-27: 'watch' 도 'hold' 아니라 추적 대상으로 잡혀 NE 인플레이션 야기.
+    // 실제 buy 추천만 outcome 추적 (watch 는 사용자에게 "참고" 표시일 뿐).
     const newPreds: PortfolioPrediction[] = portfolio
-      .filter(p => p.ticker && p.action !== 'hold')
+      .filter(p => p.ticker && p.action === 'buy')
       .map(p => {
         const [lo, hi] = parseZone(p.entryZone);
         return {
@@ -363,10 +365,22 @@ export async function evaluatePendingPredictions(redis: Redis): Promise<{ evalua
 
       const entry = pred.entryZoneLow ?? pred.priceAtGen;
       const pnlPct = entry && actualPrice ? parseFloat(((actualPrice - entry) / entry * 100).toFixed(1)) : null;
+      // 2026-05-27: Codex 진단 — actualPrice (마지막 close) 만 보면 intraperiod 에
+      // hit/stop 한 케이스 미검출. highs/lows 로 day-by-day 검사 (worst-case stop 우선).
       let outcome: EvaluatedPrediction['outcome'] = 'still_holding';
-      if (!dim_entry.reached) outcome = 'not_entered';
-      else if (pred.target && actualPrice && actualPrice >= pred.target * 0.98) outcome = 'hit_target';
-      else if (pred.stopLoss && actualPrice && actualPrice <= pred.stopLoss * 1.02) outcome = 'stop_loss';
+      if (!dim_entry.reached) {
+        outcome = 'not_entered';
+      } else {
+        const n = Math.min(highs?.length ?? 0, lows?.length ?? 0);
+        let resolved = false;
+        for (let i = 0; i < n; i++) {
+          const high = highs[i], low = lows[i];
+          if (!isFinite(high) || high <= 0 || !isFinite(low) || low <= 0) continue;
+          if (pred.stopLoss && low <= pred.stopLoss * 1.02) { outcome = 'stop_loss'; resolved = true; break; }
+          if (pred.target && high >= pred.target * 0.98) { outcome = 'hit_target'; resolved = true; break; }
+        }
+        if (!resolved) outcome = 'still_holding';
+      }
 
       const evaled: EvaluatedPrediction = {
         ...pred, evaluatedAt: now, priceAtEval: actualPrice, ohlcDays: closes.length,

@@ -37,6 +37,7 @@ export interface Position {
   allocation: number;     // 리포트 추천 비중
   stopLoss: number | null;
   target: number | null;
+  peakPrice?: number | null;  // 2026-05-27: trailing stop ratcheting 용 최고가
 }
 
 export interface Trade {
@@ -333,8 +334,23 @@ export async function checkStopLossAndTarget(redis: Redis): Promise<{ triggered:
     pos.unrealizedPnl = pos.marketValue - pos.shares * pos.avgCost;
     pos.unrealizedPct = parseFloat(((pos.unrealizedPnl / (pos.shares * pos.avgCost)) * 100).toFixed(2));
 
+    // 2026-05-27: trailing stop ratcheting (Codex 진단)
+    // peakPrice 갱신 후 매수가 대비 +6% 도달하면 stop 을 peakPrice × 0.94 로 올림.
+    // breakeven 보호 + 추가 상승 시 더 큰 수익 잡음. 기존 target 도 동시 작동.
+    const oldPeak = pos.peakPrice ?? pos.avgCost;
+    if (price > oldPeak) pos.peakPrice = price;
+    if (pos.peakPrice && pos.peakPrice >= pos.avgCost * 1.06) {
+      const trail = pos.peakPrice * 0.94;
+      if (!pos.stopLoss || trail > pos.stopLoss) pos.stopLoss = parseFloat(trail.toFixed(2));
+    }
+
     let reason = '';
-    if (pos.stopLoss && price <= pos.stopLoss) reason = `손절 (${price.toFixed(2)} ≤ SL ${pos.stopLoss})`;
+    if (pos.stopLoss && price <= pos.stopLoss) {
+      const isTrail = pos.peakPrice && pos.peakPrice >= pos.avgCost * 1.06;
+      reason = isTrail
+        ? `trailing stop (${price.toFixed(2)} ≤ SL ${pos.stopLoss}, peak ${pos.peakPrice?.toFixed(2)})`
+        : `손절 (${price.toFixed(2)} ≤ SL ${pos.stopLoss})`;
+    }
     else if (pos.target && price >= pos.target) reason = `목표가 도달 (${price.toFixed(2)} ≥ TG ${pos.target})`;
 
     if (reason) {

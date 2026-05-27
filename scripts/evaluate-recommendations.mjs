@@ -56,20 +56,44 @@ function judgeOutcome(rec, ohlc) {
   if (ohlc.lows.length === 0 || ohlc.highs.length === 0) {
     return { outcome: 'unknown', detail: 'OHLC contains only zero/missing days (filtered out)' };
   }
-  const highSeen = Math.max(...ohlc.highs);
-  const lowSeen = Math.min(...ohlc.lows);
   const lastClose = ohlc.closes.at(-1);
+  const entryHigh = rec.entry_high ?? rec.entry_low;
 
-  // 데이터 sanity: lowSeen 이 0/음수면 판정 불가 (이미 fetchYahooOHLC 에서 필터되지만 한번 더 가드)
+  // 2026-05-27: Codex 진단 — 기존 aggregate high/low 는 hit/stop 동시 발생 시 hardcoded
+  // priority (target > stop) 로 분류해 stop 을 hit 으로 잘못 판정. day-by-day 순회 로
+  // 시간 순서 반영. 같은 날 양쪽 발생 시 보수적으로 stop 우선 (worst-case 가정).
+  const n = Math.min(ohlc.lows.length, ohlc.highs.length);
+  let entered = false;
+  let highSeen = -Infinity, lowSeen = Infinity;
+  for (let i = 0; i < n; i++) {
+    const high = ohlc.highs[i];
+    const low = ohlc.lows[i];
+    if (!isFinite(high) || high <= 0 || !isFinite(low) || low <= 0) continue;
+    if (high > highSeen) highSeen = high;
+    if (low < lowSeen) lowSeen = low;
+    if (!entered && entryHigh != null && low <= entryHigh) entered = true;
+    if (entered) {
+      // 같은 날 stop+target 모두 hit 시 stop 우선 (보수적, slippage 보호)
+      if (rec.stop_loss != null && low <= rec.stop_loss * 1.02) {
+        return {
+          outcome: 'stop_loss',
+          detail: `day${i+1}: low=${low} <= stop*1.02=${rec.stop_loss * 1.02}`,
+          highSeen, lowSeen, lastClose,
+        };
+      }
+      if (rec.target != null && high >= rec.target * 0.98) {
+        return {
+          outcome: 'hit_target',
+          detail: `day${i+1}: high=${high} >= target*0.98=${rec.target * 0.98}`,
+          highSeen, lowSeen, lastClose,
+        };
+      }
+    }
+  }
+
   if (!isFinite(lowSeen) || lowSeen <= 0 || !isFinite(highSeen) || highSeen <= 0) {
     return { outcome: 'unknown', detail: `invalid OHLC: high=${highSeen} low=${lowSeen}`, highSeen, lowSeen, lastClose };
   }
-
-  // 1) Entry zone 진입 여부 — low_seen ≤ entry_high (역지정가 도달)
-  const entryHigh = rec.entry_high ?? rec.entry_low;
-  const entryLow = rec.entry_low ?? rec.entry_high;
-  const entered = entryHigh != null && lowSeen <= entryHigh;
-
   if (!entered) {
     return {
       outcome: 'not_entered',
@@ -77,25 +101,6 @@ function judgeOutcome(rec, ohlc) {
       highSeen, lowSeen, lastClose,
     };
   }
-
-  // 2) Target 도달 — high_seen ≥ target*0.98
-  if (rec.target != null && highSeen >= rec.target * 0.98) {
-    return {
-      outcome: 'hit_target',
-      detail: `high_seen=${highSeen} >= target*0.98=${rec.target * 0.98}`,
-      highSeen, lowSeen, lastClose,
-    };
-  }
-
-  // 3) Stop loss 발동 — low_seen ≤ stop_loss*1.02 (lowSeen 양수 가드 위에서 이미 검증됨)
-  if (rec.stop_loss != null && lowSeen <= rec.stop_loss * 1.02) {
-    return {
-      outcome: 'stop_loss',
-      detail: `low_seen=${lowSeen} <= stop*1.02=${rec.stop_loss * 1.02}`,
-      highSeen, lowSeen, lastClose,
-    };
-  }
-
   return {
     outcome: 'still_holding',
     detail: `last=${lastClose}`,
