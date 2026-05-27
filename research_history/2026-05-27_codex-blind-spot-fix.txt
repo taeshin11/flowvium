@@ -1,0 +1,72 @@
+2026-05-27 Codex 진단 기반 전향적 평가 blind spot 수정
+
+# Codex 진단 (codex-rescue, fresh thread)
+가장 큰 발견:
+  /api/cron/evaluate-signals 는 SQLite recommendations 평가 아님.
+  Redis rotation signal 전용 (src/lib/signal-accuracy.ts).
+  SQLite outcome 갱신은 scripts/evaluate-recommendations.mjs 수동 실행만.
+
+  → 우리가 "cron 자동 평가" 라 가정한 시스템이 실제로는 수동 작업.
+
+# 적용한 fix (4건, d7187a9)
+
+## F13: judgeOutcome day-by-day 순회
+파일: scripts/evaluate-recommendations.mjs
+문제: aggregate high/low → 같은 윈도우에서 hit + stop 모두 발생 시 hardcoded
+      priority (target > stop) 로 분류. stop 먼저 발생해도 hit_target.
+수정: ohlc 일별 순회. 같은 날 양쪽 hit 시 stop 우선 (보수적, slippage 보호).
+효과: stop_loss 더 정직, hit_target 약간 감소, still_holding baseline 청정.
+
+## F15: logPortfolioPredictions watch filter
+파일: src/lib/portfolio-retrospective.ts:304
+문제: 기존 filter `action !== 'hold'` 가 'watch' 도 통과시켜 NE 인플레이션.
+수정: `action === 'buy'` 만 추적.
+
+## F16: portfolio-retrospective evaluatePendingPredictions intraperiod
+파일: src/lib/portfolio-retrospective.ts:368
+문제: actualPrice (마지막 close) 만으로 hit/stop 판정 → intraperiod 미검출.
+수정: highs/lows day-by-day 순회 (F13 와 동일 패턴).
+
+## F17: paper-trading trailing stop ratcheting
+파일: src/lib/paper-trading.ts::checkStopLossAndTarget
+문제: stop = entry × 0.93 고정. fast winner (avg 3.3일 +10.6%) 일찍 종결.
+수정: peak 갱신 후 매수가 × 1.06 도달 시 stop 을 peak × 0.94 로 올림.
+      Position 에 peakPrice 필드 추가. trade reason 에 'trailing stop' 라벨.
+효과: breakeven 보호 + 상승 시 더 큰 수익 capture.
+
+# 진단 도구 (영구 보관)
+scripts/check-prospective.mjs       — 평가 mechanism 상태 확인
+scripts/check-prospective-gaps.mjs  — 10가지 blind spot 분석
+
+# Codex 가 발견한 추가 blind spot (아직 미수정, 향후 작업)
+- portfolio-retrospective.ts:368 → F16 으로 해결 ✓
+- evaluate-recommendations.mjs:82 → F13 으로 해결 ✓
+- paper-trading.ts:337 daily 가격만 — intraday 미체크 (별도 — fetchPrice OHLC 필요)
+- logPortfolioPredictions watch — F15 로 해결 ✓
+- route.ts:1537 retrospective 가 ctx.news 에 묻힘 (별도 — qualityScore persistence 작업)
+- signal-accuracy.ts updateAccuracy thresholds 비적응적 (별도)
+- evaluate-recommendations 가 quality_score 미계산 (별도)
+
+# 우리가 발견한 10가지 blind spot (앞서 정리)
+1. Confidence calibration 무의미 (high vs medium hit 20% 동일)
+2. Alpha +4.63% beat SPY 89% — selection 자체 우수
+3. hit_target 3.3일 +10.6% — "쉬운 hit" 53% (target 너무 작음)
+4. 종목 다양성 W19/W20 17-21% (메가 반복)
+5. TSM NE gap 112.5% — 데이터 오류 의심 (별도 진단)
+6. still_holding 30% 94% profitable — outcome 종결 lag
+7. quality_score n=0 (DB persistence 미작동)
+8. evaluate cron 일요일만 — 30일 중 24일 zero
+9. Sector accuracy Materials 50% / Tech 14% / Consumer Disc 75%
+10. NE 비율 47% — entry 시장가 위 (F12 활성화로 해결중)
+
+# 누적 fix (2026-05-24~27)
+F1~F11   기존 11 룰
+F12      ENTRY_CALIBRATION 활성화 (어제)
+F13      judgeOutcome day-by-day (오늘 신설)
+F15      logPortfolioPredictions buy-only (오늘 신설)
+F16      portfolio-retrospective intraperiod (오늘 신설)
+F17      paper-trading trailing stop ratcheting (오늘 신설)
+인프라    EFTS title fix, market-caps cron, ownership-alerts cron
+
+# 커밋
+d7187a9 fix(prospective): Codex 진단 기반 4가지 blind spot 수정 (F13-F17)
