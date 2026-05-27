@@ -1,0 +1,65 @@
+2026-05-27 보고서 + 엔드포인트 + DB + 종목 다양성 종합 점검
+
+# 1. 엔드포인트 (audit-all)
+✅ 20 OK / ⚠️ 0 WARN / ❌ 0 ERR (역대 최고)
+
+market-caps 30/30 + ownership-alerts 44건 + news-cascade 200 cached-en 모두 정상.
+어제까지 stale 였던 credit-balance / fedwatch 도 해제.
+
+# 2. 보고서 (morning 2026-05-27)
+- 6 종목 / entryPlan 4 / 실가 대조 zone안 1 + 근접 4 + 멀리 1
+- totalFixes 14
+- F5/F10 작동 — TSM 의 매출 segment strip 확인 완료
+- F9 작동 — india neutral 강등 확인
+
+# 3. DB 정리 (analyze-recs --export)
+ban-list:  SMCI, 051910.KS (2 ticker)
+boost-list: TSM, TSLA, 005490.KS, 035420.KS (4 ticker)
+entry-calibration: 10 ticker (gap 9.6%~2.7%)
+
+214 outcomes / 321 recommendations (66.7% 평가율).
+
+# 4. 종목 다양성 — 충격 발견 ⚠️
+candidate-tickers.json 630 종목 중:
+  - 추천에 등장 = 32 (5.1%)
+  - 한 번도 추천 안 됨 = 603 (96%)
+  - 최근 7일 unique = 11 종목만
+  - 반복: NVDA×13, TSM×13, 005930×11, 005380×10, 005490×10, TSLA×9, ...
+
+한 번도 추천 안 된 ticker 예시 (모두 메이저):
+  GOOGL, BRK.B, UNH, JNJ, CAT, HON, UNP, DE, GE, ETN, ABT, TMO, DHR, SYK,
+  ISRG, MDT, CI, ELV, PH, ...
+
+## 근본 원인
+1. buildPortfolioPrompt 의 메가캡 예시 (NVDA/MSFT/META/GOOGL/TSM/ASML/KLAC/AMD/MU)
+   가 LLM 의 selection bias 야기.
+2. getRecentTickers() 윈도우 = 최근 3 보고서 만 (1.5일치 — 너무 짧음).
+3. enforceRotation 의 boost-list = 4 ticker 한정. 그것마저 매번 같음.
+4. CANDIDATE_TICKERS (630) 가 livePrices prompt 노출만 됨, 적극 활용 X.
+
+## 수정 (4304b4b)
+A. getRecentTickers() 윈도우 3 → 10 보고서 (5일치).
+B. prompt ROTATION RULE 강화:
+   - "≥3 종목 NEW ticker" (기존 2 → 3)
+   - sector pool 명시: Healthcare / Financials / Defense / Energy / Industrials /
+     Consumer Discretionary 등 600+ candidate 활용 유도.
+   - 메가캡 예시 (NVDA/MSFT/META...) 제거 — selection bias 차단.
+C. enforceRotation: boost-list (4 ticker) 한정 → CANDIDATE_TICKERS mid-cap pool
+   에서 random 2개 sampling 추가. recent 5 보고서에 없는 + livePrices 보유 ticker.
+   reason = "BOOST: candidate pool random sample (sector=X)".
+
+# 5. 다음 보고서 cycle 검증
+오늘 16:05 KST afternoon (수정된 코드 첫 반영) 이후:
+- mid-cap (LLY/UNH/CAT/HON/DE/GE 등) 등장 확인
+- enforceRotation 의 random pool sample 로그 확인
+- 1주일 후 unique ticker 수 측정 (목표: 11 → 25+)
+
+# 누적 fix (2026-05-24~27)
+F1~F11 기존 11 룰
+F12 ENTRY_CALIBRATION 활성화
+F13-F17 Codex blind spot fix (judgeOutcome / paper-trading / portfolio-retro)
+F18 종목 다양성 강제 (오늘 신설)
+인프라: EFTS title fix, market-caps cron, ownership-alerts cron, getSession evening 버그 fix
+
+# 커밋
+4304b4b fix(diversity): 630 candidate 중 5.1% 만 추천되던 종목 다양성 문제 해결
