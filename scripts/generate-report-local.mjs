@@ -1679,15 +1679,20 @@ function enforceRotation(portfolio, livePrices) {
       boostList = JSON.parse(raw).filter(b => livePrices.has(b.ticker) && !currentTickers.has(b.ticker));
     } catch { /* skip */ }
 
-    // 2026-05-27: boost-list 만으로는 다양성 부족 (4 ticker 만). recent X 인 메가캡 제외 후
-    // CANDIDATE_TICKERS 의 mid-cap pool 에서 random sample 추가 (630 종목 활용).
+    // 2026-05-27: boost-list 만으로는 다양성 부족 (4 ticker 모두 메가). recent X 인 메가캡
+    // 제외 후 CANDIDATE_TICKERS 의 mid-cap pool 에서 random sample.
+    // 2026-05-27 수정: random pool 을 boost-list 앞에 prepend — replaceCount=3 이라
+    // 처음 3개가 우선 사용됨. boost 메가가 다양성 효과 0 인 문제 해결.
     try {
       const tickerMeta = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8'));
+      // mid/large 중심으로 다양성 — mega/titan/etf 제외 (이미 메가 편향).
+      const capOf = (t) => tickerMeta.meta?.[t]?.cap ?? 'unknown';
       const pool = (tickerMeta.tickers ?? []).filter(t =>
         livePrices.has(t) &&
         !currentTickers.has(t) &&
         !recentTickers.has(t) &&
-        !boostList.some(b => b.ticker === t)
+        !boostList.some(b => b.ticker === t) &&
+        ['mid', 'large'].includes(capOf(t))
       );
       // 무작위 셔플 후 2개 sampling
       for (let i = pool.length - 1; i > 0; i--) {
@@ -1696,14 +1701,14 @@ function enforceRotation(portfolio, livePrices) {
       }
       const sampled = pool.slice(0, 2);
       const sectorOf = Object.fromEntries(Object.entries(tickerMeta.meta ?? {}).map(([t, m]) => [t, m.sector]));
-      for (const t of sampled) {
-        boostList.push({
-          ticker: t,
-          reason: `BOOST: candidate pool random sample (sector=${sectorOf[t] ?? 'Unknown'})`,
-          evaluated: 0, hits: 0, stops: 0, avg_pnl: 0,
-          _fromPool: true,
-        });
-      }
+      const poolEntries = sampled.map(t => ({
+        ticker: t,
+        reason: `BOOST: candidate pool random sample (sector=${sectorOf[t] ?? 'Unknown'})`,
+        evaluated: 0, hits: 0, stops: 0, avg_pnl: 0,
+        _fromPool: true,
+      }));
+      // prepend — random pool 이 boost 메가 앞에서 먼저 inject
+      boostList = [...poolEntries, ...boostList];
     } catch { /* skip */ }
 
     if (!boostList.length) return portfolio;
@@ -1716,7 +1721,8 @@ function enforceRotation(portfolio, livePrices) {
       .sort((a, b) => (b.watch ? 1 : 0) - (a.watch ? 1 : 0) || (a.p.allocation ?? 0) - (b.p.allocation ?? 0));
     if (!candidates.length) return portfolio;
 
-    const replaceCount = Math.min(2, boostList.length, candidates.length);
+    // 2026-05-27: replaceCount 2 → 3 (다양성 우선). random pool 2 + boost 1 strict.
+    const replaceCount = Math.min(3, boostList.length, candidates.length);
     const updated = [...portfolio];
     for (let i = 0; i < replaceCount; i++) {
       const oldP = candidates[i].p;
