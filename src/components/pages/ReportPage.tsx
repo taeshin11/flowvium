@@ -10,17 +10,6 @@ import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
 // ── KPI types ─────────────────────────────────────────────────────────────────
 interface KpiState<T> { loading: boolean; error: boolean; value: T | null; }
 
-interface SatFactorySignal {
-  id: string;
-  name: string;
-  country: string;
-  ticker: string;
-  significance: 'critical' | 'major' | 'moderate';
-  activityScore: number | null;
-  summary: string | null;
-  imageDate: string | null;
-}
-
 type Tr = (k: string, vals?: Record<string, string | number | Date>) => string;
 
 function humanAge(ms: number, t: Tr): string {
@@ -378,9 +367,6 @@ export default function ReportPage() {
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
   const kpiAbortRef = useRef<AbortController | null>(null);
 
-  const [satSignals, setSatSignals] = useState<SatFactorySignal[]>([]);
-  const [satDate, setSatDate] = useState<string | null>(null);
-
   // 주요 뉴스 (news-cascade) — 48시간 이내 fresh only
   interface NewsItem {
     id: string;
@@ -516,13 +502,6 @@ export default function ReportPage() {
       .catch(() => {})
       .finally(() => setNewsLoading(false));
   }, [locale]);
-
-  useEffect(() => {
-    fetch('/api/satellite-signals', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(d => { setSatSignals(d.signals ?? []); setSatDate(d.dataDate ?? null); })
-      .catch(() => {});
-  }, []);
 
   const ageMs = data ? nowTick - new Date(data.generatedAt).getTime() : 0;
   const sb = data ? sourceBadge(data.source) : null;
@@ -1030,64 +1009,6 @@ export default function ReportPage() {
               </div>
             </div>
           )}
-
-          {/* ── S10: 위성 공장 활동 하이라이트 ───────────────────────────── */}
-          {(() => {
-            const topSat = satSignals
-              .filter(s => s.activityScore != null && s.activityScore >= 60)
-              .sort((a, b) => (b.activityScore ?? 0) - (a.activityScore ?? 0))
-              .slice(0, 4);
-            if (topSat.length === 0) return null;
-            const FLAGS: Record<string, string> = { TW: '🇹🇼', KR: '🇰🇷', US: '🇺🇸', NL: '🇳🇱', CN: '🇨🇳', JP: '🇯🇵', DE: '🇩🇪' };
-            return (
-              <div className="mb-5 rounded-xl border border-violet-100 bg-violet-50/60 p-4">
-                <p className="text-sm font-bold text-violet-900 mb-3 flex items-center gap-2">
-                  🛰️ {t('satelliteTitle')}
-                  {satDate && <span className="text-[10px] font-normal opacity-60">{satDate}</span>}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {topSat.map(f => {
-                    const score = f.activityScore!;
-                    const barColor = score >= 70 ? 'bg-red-500' : 'bg-amber-500';
-                    const scoreLabel = score >= 70 ? t('satelliteActive') : t('satelliteNormal');
-                    const scoreCls = score >= 70 ? 'text-red-600' : 'text-amber-600';
-                    return (
-                      <div key={f.id} className="bg-white/70 rounded-lg border border-violet-100 overflow-hidden">
-                        {/* satellite image */}
-                        <div className="relative bg-gray-100" style={{ aspectRatio: '2/1' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={`/api/satellite-image?id=${f.id}`}
-                            alt={f.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end px-2 py-1">
-                            <span className="text-[9px] text-white/70">Sentinel-2 · ESA</span>
-                          </div>
-                        </div>
-                        <div className="p-2.5">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-semibold text-gray-800 truncate flex-1 mr-2">
-                              {FLAGS[f.country] ?? '🌐'} {f.name.length > 26 ? f.name.slice(0, 24) + '…' : f.name}
-                            </span>
-                            <span className={`text-[10px] font-bold font-mono ${scoreCls} shrink-0`}>{score} {scoreLabel}</span>
-                          </div>
-                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-1.5">
-                            <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${score}%` }} />
-                          </div>
-                          {f.summary && (
-                            <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{f.summary}</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
 
           {/* ── Risk Events ───────────────────────────────────────────────── */}
           {data.riskEvents.length > 0 && (

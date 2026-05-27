@@ -722,9 +722,12 @@ async function redisSet(key, value, exSeconds) {
 }
 
 function getSession() {
+  // Windows Task Scheduler triggers: 07:05 (morning) / 16:05 (afternoon) / 21:35 (evening).
+  // 2026-05-27 버그 수정: afternoon cutoff 22 → 20. 21:35 evening trigger 가 'afternoon'
+  // 으로 라벨링되어 매일 afternoon 보고서가 evening 데이터로 덮어쓰는 문제 해결.
   const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
   if (kstHour >= 7 && kstHour < 16) return 'morning';
-  if (kstHour >= 16 && kstHour < 22) return 'afternoon';
+  if (kstHour >= 16 && kstHour < 20) return 'afternoon';
   return 'evening';
 }
 
