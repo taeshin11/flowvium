@@ -1678,6 +1678,34 @@ function enforceRotation(portfolio, livePrices) {
       const raw = readFileSync(resolve(ROOT, 'data/boost-list.json'), 'utf8');
       boostList = JSON.parse(raw).filter(b => livePrices.has(b.ticker) && !currentTickers.has(b.ticker));
     } catch { /* skip */ }
+
+    // 2026-05-27: boost-list 만으로는 다양성 부족 (4 ticker 만). recent X 인 메가캡 제외 후
+    // CANDIDATE_TICKERS 의 mid-cap pool 에서 random sample 추가 (630 종목 활용).
+    try {
+      const tickerMeta = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8'));
+      const pool = (tickerMeta.tickers ?? []).filter(t =>
+        livePrices.has(t) &&
+        !currentTickers.has(t) &&
+        !recentTickers.has(t) &&
+        !boostList.some(b => b.ticker === t)
+      );
+      // 무작위 셔플 후 2개 sampling
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const sampled = pool.slice(0, 2);
+      const sectorOf = Object.fromEntries(Object.entries(tickerMeta.meta ?? {}).map(([t, m]) => [t, m.sector]));
+      for (const t of sampled) {
+        boostList.push({
+          ticker: t,
+          reason: `BOOST: candidate pool random sample (sector=${sectorOf[t] ?? 'Unknown'})`,
+          evaluated: 0, hits: 0, stops: 0, avg_pnl: 0,
+          _fromPool: true,
+        });
+      }
+    } catch { /* skip */ }
+
     if (!boostList.length) return portfolio;
 
     // 가장 약한 종목 1-2개를 boost-list 종목으로 교체
@@ -2997,7 +3025,9 @@ function getEntryFeedbackBlock() {
 function getRecentTickers() {
   try {
     const dir = resolve(import.meta.dirname ?? '.', '..', 'reports');
-    const files = readdirSync(dir).filter(f => f.endsWith('-ko.json')).sort().slice(-3);
+    // 2026-05-27: 종목 다양성 확보 — 최근 3 → 10 보고서 (5일치). 630 candidate 중 5.1%
+    // 만 추천에 사용되던 문제 (메가 10종목 무한 반복) 완화.
+    const files = readdirSync(dir).filter(f => f.endsWith('-ko.json')).sort().slice(-10);
     const seen = new Set();
     for (const f of files) {
       const r = JSON.parse(readFileSync(resolve(dir, f), 'utf8'));
@@ -3034,12 +3064,17 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '** Sector ETF (XLK/XLE/XLF/XLV/XLI/XLY/XLP/XLU/XLB/XLRE) 1-2개 포함 권장 (sector rotation, 10-15% each) **',
     '** Passive 인덱스 ETF (SPY/QQQ/VTI) + bonds ≤ 20% total **',
     '** Minimum 5 individual stocks, each ≥ 10% allocation. **',
-    '** ⚠️ Tech 종목 (NVDA/MSFT/META/GOOGL/TSM/ASML/KLAC/AMD/MU) 합계 ≤ 50% allocation (Tech 집중 회피, sector Sharpe 비교: Consumer Disc 5.13 > Materials 2.79 > Tech 2.17) **',
-    '** 통계 참고만 (정확한 가격 출력이 우선, 통계 강조 X): 약함 MSFT/KLAC, 강함 TSLA/005380/005490 **',
+    '** ⚠️ Tech 합계 ≤ 50% allocation (Tech 집중 회피, sector Sharpe: Consumer Disc 5.13 > Materials 2.79 > Tech 2.17) **',
     '** ⚠️ KR ticker (.KS) — 통화 ₩ (원화) 강제. $ 단위 절대 금지. 한국명: 005490=POSCO홀딩스, 005380=현대차, 035420=NAVER, 000660=SK하이닉스, 051910=LG화학, 005930=삼성전자 **',
     '',
-    recentTickers.length ? `[ROTATION — recent 3 reports used: ${recentTickers.join(', ')}]` : '',
-    'ROTATION RULE: Include ≥2 tickers NOT in the recent list above. Avoid using the same 6 tickers every session.',
+    recentTickers.length ? `[ROTATION — last 10 reports used these tickers (AVOID): ${recentTickers.join(', ')}]` : '',
+    '** 🔄 ROTATION RULE (강제 — 종목 다양성):',
+    '   - ≥ 3 종목은 위 recent list 에 없는 NEW ticker (반복 메가캡 회피).',
+    '   - [Live Prices] 의 mid-cap / large-cap pool 활용 — Healthcare (LLY/UNH/NVO/REGN/PFE), ',
+    '     Financials (JPM/V/MA/GS/BLK), Defense (LMT/RTX/NOC/KTOS), Energy (XOM/CVX/SLB/ALB),',
+    '     Industrials (CAT/HON/UNP/DE/GE/ETN), Consumer (COST/HD/SBUX/MCD/NKE) 등 600+ candidate 활용.',
+    '   - 630 종목 중 매번 같은 10 종목만 추천하면 ALPHA 0 — diversification 필수.',
+    ' **',
     '',
     'RULES:',
     '1. 6-8 items: PRIMARILY individual stocks — ONLY pick tickers in [Live Prices]',
