@@ -3037,11 +3037,58 @@ function getRecentTickers() {
   } catch { return []; }
 }
 
+/**
+ * 2026-05-27 SkillOpt feedback loop: 최근 보고서의 quality_score 추세 + 부족 영역 추출.
+ * generate-report-local 매 실행 시 prompt 의 [Quality Feedback] 섹션으로 주입 →
+ * LLM 이 과거 약점 인지하여 자체 개선.
+ */
+function getRecentQualityFeedback() {
+  try {
+    const Database = (() => { try { return require('better-sqlite3'); } catch { return null; } })();
+    if (!Database) return '';
+    const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+    const rows = db.prepare(`
+      SELECT generated_at, quality_score, session, full_json
+      FROM reports
+      WHERE quality_score IS NOT NULL
+      ORDER BY generated_at DESC LIMIT 5
+    `).all();
+    db.close();
+    if (!rows.length) return '';
+    const avg = rows.reduce((s, r) => s + r.quality_score, 0) / rows.length;
+    // 가장 자주 누락된 quality check 항목 분석 (recent 5)
+    const missingCounts = {};
+    for (const r of rows) {
+      try {
+        const d = JSON.parse(r.full_json);
+        if (!d.thesis || d.thesis.length <= 20) missingCounts.thesis = (missingCounts.thesis ?? 0) + 1;
+        if (!d.macroAnalysis || d.macroAnalysis.length <= 30) missingCounts.macroAnalysis = (missingCounts.macroAnalysis ?? 0) + 1;
+        if (!d.technicalAnalysis || d.technicalAnalysis.length <= 15) missingCounts.technicalAnalysis = (missingCounts.technicalAnalysis ?? 0) + 1;
+        if ((d.portfolio?.length ?? 0) < 5) missingCounts.portfolioSize = (missingCounts.portfolioSize ?? 0) + 1;
+        if ((d.shortSqueeze?.length ?? 0) === 0) missingCounts.shortSqueeze = (missingCounts.shortSqueeze ?? 0) + 1;
+        if ((d.insiderSignals?.length ?? 0) === 0) missingCounts.insiderSignals = (missingCounts.insiderSignals ?? 0) + 1;
+        if ((d.companyChanges?.length ?? 0) === 0) missingCounts.companyChanges = (missingCounts.companyChanges ?? 0) + 1;
+      } catch { /* skip */ }
+    }
+    const weak = Object.entries(missingCounts).filter(([, c]) => c >= 2).map(([k, c]) => `${k}(${c}/5)`).join(', ');
+    const lastScore = rows[0].quality_score;
+    const trend = lastScore < avg - 5 ? '하락' : lastScore > avg + 5 ? '상승' : '유지';
+    return `[Quality Feedback — 최근 5보고서 평균 ${avg.toFixed(0)}/100, 직전 ${lastScore}, 추세 ${trend}]\n` +
+      (weak ? `약점: ${weak} (이 영역 강화 필요)\n` : '강점 유지 중 — 모든 영역 정상\n');
+  } catch (e) {
+    console.warn('  ⚠️ getRecentQualityFeedback 실패:', e.message);
+    return '';
+  }
+}
+
 function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
   const recentTickers = getRecentTickers();
+  const qualityFeedback = getRecentQualityFeedback();
   return [
     buildGroundingFacts(priceData),
     '',
+    qualityFeedback,  // 2026-05-27 SkillOpt: 자체 quality 추세 + 약점 인지
+    qualityFeedback ? '' : null,
     `You are a portfolio manager building an investment strategy. Date: ${TODAY}.${li}`,
     '',
     `[Institutional + Insider Signals]`,
@@ -4213,6 +4260,10 @@ async function generateViaOllama() {
 
   console.log('\n[6/7] 품질 게이트 검사...');
   const { ok, issues, score } = qualityCheck(finalReport);
+  // 2026-05-27: SkillOpt 패턴 — quality_score DB persistence (Codex F#3).
+  // 매 보고서 score 가 reports.quality_score 컬럼에 적재 → 다음 보고서 prompt 의
+  // [Quality Feedback] 섹션에서 활용 (getRecentQualityScores → buildPortfolioPrompt).
+  finalReport.qualityScore = score;
   // 항목별 체크 상세 출력
   const checks = [
     ['thesis',            !!(finalReport.thesis?.length > 20)],
