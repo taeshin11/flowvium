@@ -1,0 +1,55 @@
+2026-05-27 종목 다양성 + F19 첫 cycle 점검 (self-prime protocol 첫 적용)
+
+# 1. self-prime protocol 작동 확인
+research_history 최근 5개 자동 스캔 — 누적 19 fix + 잔존 결함 인지 (F18 다양성, F19 quality persistence 등).
+
+# 2. 엔드포인트 (audit-all)
+✅ 17 OK / ⚠️ 3 WARN (macro-indicators 14.1h, fedwatch 12.2h, market-caps 14.0h aging) / ❌ 0 ERR
+
+아침/오후 cron 다음에 모두 회복.
+
+# 3. 보고서 (afternoon 2026-05-27 — F18+F19 첫 적용 cycle)
+✅ F19 작동 — qualityScore=100 부착 + DB reports.quality_score=100 적재
+✅ F18 부분 작동 — enforceRotation 2 rotation 실행:
+   051910.KS → TSLA (boost-list)
+   000660.KS → 005490.KS (boost-list)
+
+❌ F18 한계 — boost-list 4 ticker 모두 메가 → 메가→메가 swap 으로 다양성 효과 0
+   portfolio: NVDA/TSM/005930/005490/TSLA/005380 — 여전히 메가 6종
+   최근 7일 unique 11 (변화 없음), 누적 33 (소폭 증가)
+
+# 4. DB 정리 (analyze-recs --export)
+ban-list: SMCI, 051910.KS
+boost-list: TSM, TSLA, 005490.KS, 035420.KS
+entry-calibration: 10 ticker
+
+# 5. F18 강화 (b6bdaa1)
+원인 분석:
+  - random pool sample 이 boostList 뒤에 추가 → replaceCount=2 에 잘림
+  - boost-list 메가 swap 효과 0
+  - cap filter 부재
+
+수정:
+  A. random pool 을 boostList 앞에 prepend — 우선 사용 보장
+  B. replaceCount 2 → 3 — 강제 다양성 확대
+  C. random pool cap filter: 'mid' || 'large' 만 (메가/titan/etf 제외)
+     candidate-tickers cap 분포:
+       titan 5 / mega 104 / large 292 / mid 165 / small 34 / etf 35 / kr 29
+       → mid+large = 457 종목 활용 가능
+
+# 6. 검증 마일스톤
+- 오늘 21:35 KST evening 보고서:
+  enforceRotation 가 random pool 의 mid/large (LLY/UNH/CAT/HON/DE/GE 등) 우선 사용
+  → portfolio 메가 비중 6/6 → 3/6 + mid/large 3/6 예상
+- 내일 morning + 일주일 후 unique ticker 측정 (목표: 11 → 25+)
+
+# 누적 fix (2026-05-24~27)
+F1~F11 기존 11 룰
+F12 ENTRY_CALIBRATION 활성화
+F13~F17 Codex blind spot fix
+F18 종목 다양성 강제 (강화 — pool prepend + cap filter + replace 3)
+F19 qualityScore DB persistence + feedback loop (SkillOpt)
+인프라: EFTS title, market-caps cron, ownership-alerts cron, getSession evening fix, 위성 제거
+
+# 커밋
+b6bdaa1 fix(diversity): enforceRotation pool prepend + cap filter + replace 2→3
