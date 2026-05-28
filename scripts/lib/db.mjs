@@ -96,6 +96,96 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_outcome_rec_eval ON recommendation_outcomes(recommendation_id, evaluated_at);
 CREATE INDEX IF NOT EXISTS idx_outcome_evaluated ON recommendation_outcomes(evaluated_at);
+
+-- 2026-05-29: 뉴스 장기 아카이브 (30년 누적 — point-in-time 검색 가능)
+-- 매 보고서 cycle 마다 news-cascade + supplyChainChanges + companyChanges 헤드라인 저장.
+-- report_id 로 endpoint_snapshots / recommendations / outcomes 와 join → 그 시점의
+-- 시장심리/macro/추천/실제 가격 반응 종합 컨텍스트 검색 가능.
+CREATE TABLE IF NOT EXISTS news_archive (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  external_id   TEXT,                     -- 원본 article id (dedup key)
+  source        TEXT NOT NULL,            -- news-cascade / supply-chain / company-change / cascade-event
+  ticker        TEXT,                     -- 대표 ticker (null = macro/global)
+  tickers_json  TEXT,                     -- 관련 ticker 배열 ['NVDA','TSM']
+  headline      TEXT NOT NULL,
+  summary       TEXT,
+  pub_date      TEXT,                     -- 원본 게시일 (RSS pubDate)
+  captured_at   TEXT NOT NULL,
+  sentiment     TEXT,                     -- bullish/bearish/neutral
+  importance    TEXT,                     -- high/medium/low
+  signal_type   TEXT,                     -- supply_risk/contract_win/earnings 등
+  direction     TEXT,                     -- positive/negative/neutral
+  link          TEXT,
+  cascades_json TEXT,                     -- LLM cascade 분석 (영향 받는 ticker)
+  raw_json      TEXT,                     -- 전체 원본 (자료 보존)
+  report_id     TEXT,                     -- 어느 보고서 cycle 에서 발견 (join key)
+  locale        TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_news_ticker     ON news_archive(ticker, pub_date);
+CREATE INDEX IF NOT EXISTS idx_news_pub_date   ON news_archive(pub_date);
+CREATE INDEX IF NOT EXISTS idx_news_source     ON news_archive(source);
+CREATE INDEX IF NOT EXISTS idx_news_sentiment  ON news_archive(sentiment, importance);
+CREATE INDEX IF NOT EXISTS idx_news_report     ON news_archive(report_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_news_ext_src ON news_archive(external_id, source) WHERE external_id IS NOT NULL;
+
+-- FTS5 full-text search (검색용 — "Powell rate cut" 같은 자연어 query)
+CREATE VIRTUAL TABLE IF NOT EXISTS news_archive_fts USING fts5(
+  headline, summary, ticker, sentiment, signal_type,
+  content=news_archive, content_rowid=id,
+  tokenize='unicode61'
+);
+CREATE TRIGGER IF NOT EXISTS news_archive_ai AFTER INSERT ON news_archive BEGIN
+  INSERT INTO news_archive_fts(rowid, headline, summary, ticker, sentiment, signal_type)
+  VALUES (new.id, new.headline, new.summary, new.ticker, new.sentiment, new.signal_type);
+END;
+CREATE TRIGGER IF NOT EXISTS news_archive_ad AFTER DELETE ON news_archive BEGIN
+  INSERT INTO news_archive_fts(news_archive_fts, rowid, headline, summary, ticker, sentiment, signal_type)
+  VALUES ('delete', old.id, old.headline, old.summary, old.ticker, old.sentiment, old.signal_type);
+END;
+
+-- 뉴스 후 가격 반응 (전향적 평가 cron 이 1d/5d/30d 후 채움)
+CREATE TABLE IF NOT EXISTS news_price_reactions (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  news_id         INTEGER NOT NULL,
+  ticker          TEXT NOT NULL,
+  pub_date        TEXT NOT NULL,
+  pnl_1d          REAL,
+  pnl_5d          REAL,
+  pnl_30d         REAL,
+  high_5d         REAL,
+  low_5d          REAL,
+  spy_return_5d   REAL,
+  alpha_5d        REAL,
+  evaluated_at    TEXT NOT NULL,
+  FOREIGN KEY (news_id) REFERENCES news_archive(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_news_react ON news_price_reactions(news_id, ticker);
+CREATE INDEX IF NOT EXISTS idx_react_ticker ON news_price_reactions(ticker, pub_date);
+
+-- 시점 핵심 macro 압축 (endpoint_snapshots JSON 무거워 query 느림 → 핵심 column 분리)
+CREATE TABLE IF NOT EXISTS macro_snapshots (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id    TEXT NOT NULL,
+  captured_at  TEXT NOT NULL,
+  fg_score     INTEGER,                   -- Fear & Greed
+  fg_label     TEXT,
+  vix          REAL,
+  cpi          REAL,
+  fed_rate     REAL,
+  yield_10y    REAL,
+  yield_2y     REAL,
+  yield_spread REAL,
+  hy_oas       REAL,
+  ig_oas       REAL,
+  gdp_growth   REAL,
+  spy_close    REAL,
+  qqq_close    REAL,
+  risk_level   TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_macro_report ON macro_snapshots(report_id);
+CREATE INDEX IF NOT EXISTS idx_macro_captured ON macro_snapshots(captured_at);
 `;
 
 let _dbInstance = null;
@@ -202,6 +292,142 @@ export function saveSnapshot({ reportId, endpoint, status, response, capturedAt,
     JSON.stringify(response ?? null),
     durationMs ?? null,
   );
+}
+
+/**
+ * 2026-05-29: news_archive 적재. 매 보고서 cycle 마다 news/supply/companyChange 헤드라인 저장.
+ * external_id+source dedup — 같은 article 여러 보고서에 등장해도 1 row.
+ *
+ * 입력 형식 (병합):
+ *   newsArticles: [{ id, ticker, title, summary, sentiment, importance, pubDate, source, link, cascades }]
+ *   supplyChainChanges: [{ ticker, headline, direction, signalType, source, date, downstreamBeneficiaries }]
+ *   companyChanges: [{ ticker, name, keyChange, sentiment, latestQuarter }]
+ */
+export function saveNewsArchive({ reportId, locale, newsArticles = [], supplyChainChanges = [], companyChanges = [] }) {
+  const db = openDb();
+  const now = new Date().toISOString();
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO news_archive
+      (external_id, source, ticker, tickers_json, headline, summary, pub_date,
+       captured_at, sentiment, importance, signal_type, direction, link, cascades_json, raw_json, report_id, locale)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  let inserted = 0;
+  const txn = db.transaction(() => {
+    // 1) news-cascade articles
+    for (const a of newsArticles) {
+      const tickers = Array.from(new Set((a.cascades ?? []).map(c => c.asset).filter(Boolean)));
+      const r = stmt.run(
+        a.id ?? null, 'news-cascade',
+        tickers[0] ?? null, JSON.stringify(tickers),
+        a.title ?? a.headline ?? '', a.summary ?? '',
+        a.pubDate ?? null, now,
+        a.sentiment ?? null, a.importance ?? null, null, null,
+        a.link ?? null,
+        JSON.stringify(a.cascades ?? []),
+        JSON.stringify(a),
+        reportId, locale ?? 'en',
+      );
+      if (r.changes > 0) inserted++;
+    }
+    // 2) supplyChainChanges
+    for (const s of supplyChainChanges) {
+      const tickers = [s.ticker, ...(s.downstreamBeneficiaries ?? [])].filter(Boolean);
+      const extId = `supply:${s.ticker}:${(s.headline ?? '').slice(0, 60)}`;
+      const r = stmt.run(
+        extId, 'supply-chain',
+        s.ticker ?? null, JSON.stringify(tickers),
+        s.headline ?? '', null,
+        s.date ?? null, now,
+        s.direction === 'positive' ? 'bullish' : s.direction === 'negative' ? 'bearish' : 'neutral',
+        s.conviction >= 75 ? 'high' : s.conviction >= 50 ? 'medium' : 'low',
+        s.signalType ?? null, s.direction ?? null,
+        s.evidenceUrl ?? null, null,
+        JSON.stringify(s),
+        reportId, locale ?? 'en',
+      );
+      if (r.changes > 0) inserted++;
+    }
+    // 3) companyChanges
+    for (const c of companyChanges) {
+      const extId = `company:${c.ticker}:${(c.keyChange ?? '').slice(0, 60)}`;
+      const r = stmt.run(
+        extId, 'company-change',
+        c.ticker ?? null, JSON.stringify([c.ticker]),
+        c.keyChange ?? '', null,
+        null, now,
+        c.sentiment ?? 'neutral', null, null, null, null,
+        JSON.stringify(c),
+        JSON.stringify(c),
+        reportId, locale ?? 'en',
+      );
+      if (r.changes > 0) inserted++;
+    }
+  });
+  txn();
+  return inserted;
+}
+
+/**
+ * 2026-05-29: 매 보고서 cycle 의 핵심 macro 시점 스냅샷 압축 저장.
+ * endpoint_snapshots 의 JSON 무거워 query 느림 → fg/vix/cpi/금리/yield 등 핵심 column.
+ */
+export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
+  const db = openDb();
+  const ind = ctxRaw?.macro?.indicators ?? [];
+  const findInd = id => ind.find(i => i.id === id || i.id === id.replace('_','-'))?.actual ?? null;
+  const fg = ctxRaw?.fearGreed ?? ctxRaw?.fear_greed;
+  const yc = ctxRaw?.yieldCurve ?? ctxRaw?.yield_curve;
+  const yields = yc?.today ?? {};
+  db.prepare(`
+    INSERT OR REPLACE INTO macro_snapshots
+      (report_id, captured_at, fg_score, fg_label, vix, cpi, fed_rate,
+       yield_10y, yield_2y, yield_spread, hy_oas, ig_oas, gdp_growth,
+       spy_close, qqq_close, risk_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    reportId, capturedAt ?? new Date().toISOString(),
+    fg?.score ?? fg?.us?.score ?? null,
+    fg?.label ?? fg?.us?.label ?? null,
+    findInd('vix'),
+    findInd('cpi') ?? findInd('us_cpi'),
+    findInd('fed_rate') ?? findInd('fedfunds'),
+    yields?.['10Y'] ?? yields?.['10y'] ?? null,
+    yields?.['2Y'] ?? yields?.['2y'] ?? null,
+    yc?.spread10y2y ?? null,
+    findInd('hy_oas') ?? findInd('hy_spread'),
+    findInd('ig_oas'),
+    findInd('gdp') ?? findInd('gdp_growth'),
+    ctxRaw?.capital?.spy?.close ?? null,
+    ctxRaw?.capital?.qqq?.close ?? null,
+    macroData?.riskLevel ?? null,
+  );
+}
+
+/**
+ * 2026-05-29: 검색 helper — FTS5 query + 시점 context auto-join.
+ * 예: searchNewsContext('Powell rate cut') →
+ *   각 뉴스 + 그 시점 fg/vix/cpi/yield + 그 보고서의 추천 + 가격 반응 (5d) 한 row 로 반환.
+ */
+export function searchNewsContext(query, limit = 20) {
+  const db = openDb();
+  return db.prepare(`
+    SELECT
+      n.id, n.headline, n.summary, n.ticker, n.tickers_json,
+      n.pub_date, n.sentiment, n.importance, n.signal_type, n.source,
+      r.id AS report_id, r.session, r.stance, r.thesis, r.quality_score,
+      m.fg_score, m.fg_label, m.vix, m.cpi, m.fed_rate,
+      m.yield_10y, m.yield_2y, m.yield_spread, m.risk_level,
+      pr.pnl_1d, pr.pnl_5d, pr.pnl_30d, pr.alpha_5d
+    FROM news_archive_fts fts
+    JOIN news_archive n ON n.id = fts.rowid
+    LEFT JOIN reports r ON r.id = n.report_id
+    LEFT JOIN macro_snapshots m ON m.report_id = n.report_id
+    LEFT JOIN news_price_reactions pr ON pr.news_id = n.id AND pr.ticker = n.ticker
+    WHERE news_archive_fts MATCH ?
+    ORDER BY n.pub_date DESC NULLS LAST
+    LIMIT ?
+  `).all(query, limit);
 }
 
 /** portfolio entry → recommendation row 변환 + 저장. report.id 필요. */

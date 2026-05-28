@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, getEntryFeedbackStats } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveNewsArchive, saveMacroSnapshot, getEntryFeedbackStats } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
@@ -4573,7 +4573,26 @@ async function generateViaOllama() {
     }
     const reportId = saveReport(finalReport);
     const recCount = saveRecommendations(finalReport, reportId);
-    console.log(`\n[db] 📦 SQLite 적재: report=${reportId} recommendations=${recCount}`);
+    // 2026-05-29: 뉴스 + macro 시점 스냅샷 적재 (30년 누적 검색 가능)
+    let newsCount = 0;
+    try {
+      newsCount = saveNewsArchive({
+        reportId,
+        locale: localeArg,
+        newsArticles: ctxRaw?.newsCascade?.articles ?? ctxRaw?.news ?? [],
+        supplyChainChanges: finalReport.supplyChainChanges ?? [],
+        companyChanges: finalReport.companyChanges ?? [],
+      });
+      saveMacroSnapshot({
+        reportId,
+        capturedAt: finalReport.generatedAt,
+        ctxRaw,
+        macroData,
+      });
+    } catch (e) {
+      console.warn(`[db] ⚠️ news/macro 적재 실패: ${String(e).slice(0, 100)}`);
+    }
+    console.log(`\n[db] 📦 SQLite 적재: report=${reportId} recommendations=${recCount} news=${newsCount}`);
     console.log(`[db] 엔드포인트 스냅샷 fetch 시작 (${20}개)...`);
     const snapStart = Date.now();
     const snapResults = await snapshotAllEndpoints(reportId);
