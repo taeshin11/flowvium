@@ -1,0 +1,78 @@
+2026-05-28 보고서 검증 + 종목별 촉매 누락 + 뉴스 번역 fix
+
+# 사용자 보고
+1. enforceRotation 으로 새로 등장한 종목들의 catalysts/촉매 정보가 빠짐
+2. 뉴스 번역 안 됨 (영어 leak)
+
+# 진단
+
+## 1. catalysts 누락 — enforceRotation 의 부작용
+afternoon/evening/morning 3 보고서 검사:
+  - LLM 직접 추천 (NVDA, TSM, 005930, 005380): catalysts ✓ fundamentalBasis ✓
+  - enforceRotation 으로 교체된 종목 (TSLA, BXP, MRNA, DAL, AMKR, 005490):
+    catalysts=NULL, fundamentalBasis=NULL
+
+원인: enforceRotation (line 1707~) 의 새 entry 구성 시 catalysts/fundamentalBasis/
+     technicalBasis/riskNote 필드 빠뜨림. LLM 추천 종목 schema 와 mismatch.
+
+## 2. 뉴스 번역 — translated:false, translating:true
+curl /api/news-cascade?locale=ko 직접 호출:
+  source=cached-en, translated=false, translating=true
+  10건 중 EN 4건 + KO 1건 (mixed, 대부분 영어)
+
+원인: ko 번역이 background fire-and-forget. 일별 캐시 만료 → 첫 사용자
+     호출 시 새 fetch + translation 시작. 그 동안 영어 그대로 노출.
+
+# 수정 (ace3969)
+
+## A. enforceRotation 새 entry catalysts 자동 생성
+isFromPool 인지 boost-list 인지 구분:
+
+random pool (mid/large rotation):
+  catalysts = [
+    `Sector diversification (${sector}) — 비테크 노출`,
+    `Mid/large-cap rotation 후보 (CANDIDATE pool sample)`,
+  ]
+  fundamentalBasis = `Sector=${sector}, 시장가 $X (cap rotation 후보)`
+  technicalBasis = `시장가 $X 기준 -3% stop / +10% target`
+  riskNote = `Rotation 신규 — 추가 검증 후 진입 권장 (catalysts 자동 생성)`
+
+boost-list:
+  catalysts = [
+    `과거 N건 평가, 평균 +X% pnl (boost-list)`,
+    `M건 target hit / K건 stop`,
+  ]
+  기타 동일 패턴
+
+또 sector 정확히 매핑 — random pool sample 의 boost.reason 에서 'sector=X' 추출
+하여 portfolio.sector 에도 반영 (이전엔 무조건 'Technology').
+
+## B. /api/cron/refresh-news-cascade 신설
+스케줄: 매일 05:30 UTC (14:30 KST 한국 점심) — 미국 장 마감 후 뉴스 안정 시점
+
+순차 fetch (병렬 시 translation queue 폭주):
+  ko → en → ja → zh-CN
+
+효과: 다음 사용자 호출 시 cache hit + translated=true 보장.
+     영어 leak 거의 0 으로 감소 예상.
+
+vercel.json: cron 추가 + maxDuration 60s 등록 (cost +\$0.03/월).
+
+# 검증
+- tsc clean
+- check-cron-cost pass
+- 다음 cycle (오늘 16:05 KST afternoon) 부터 catalysts 자동 생성 확인 예정
+- 내일 05:30 UTC ko news 워밍 → 사용자 첫 호출 영어 leak 측정
+
+# 누적 fix (2026-05-24~28)
+F1~F11 기존 11 룰
+F12 ENTRY_CALIBRATION 활성화
+F13~F17 Codex blind spot fix
+F18 종목 다양성 강제 (강화 — random pool prepend + cap filter + replace 3)
+F19 qualityScore DB persistence + feedback loop
+F20 rotation 신규 종목 catalysts 자동 생성 ← 오늘 신설
+인프라: EFTS title, market-caps cron, ownership-alerts cron, news-cascade cron ← 오늘,
+       getSession evening fix, 위성 제거
+
+# 커밋
+ace3969 fix(reports): rotation 종목 catalysts 누락 + news-cascade ko 번역 cron
