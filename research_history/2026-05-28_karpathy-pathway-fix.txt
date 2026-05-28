@@ -1,0 +1,68 @@
+2026-05-28 Karpathy pathway (F19 SkillOpt closed loop) 끊김 복원
+
+# 사용자 보고
+"카파시 페쓰웨이가 작동안하는거아냐?"
+
+= F19 SkillOpt closed loop (execution → diagnosis → skill doc update → next execution)
+   가 실제로 작동하는지 의심.
+
+# 진단
+
+## DB persistence — ✓ 작동
+reports.quality_score 컬럼에 4건 적재:
+  2026-05-28:afternoon:ko qs=100
+  2026-05-28:morning:ko   qs=100
+  2026-05-27:evening:ko   qs=100
+  2026-05-27:afternoon:ko qs=100
+
+## prompt inject — ❌ silent fail (Karpathy pathway 절단!)
+generate-report-local.mjs 의 5/27 일 출력 / 5/28 manual run output 모두
+grep 'Quality Feedback' 0건. logs 어디에도 quality feedback 텍스트 없음.
+
+코드 분석 — getRecentQualityFeedback() 내부:
+```js
+const Database = (() => { try { return require('better-sqlite3'); } catch { return null; } })();
+if (!Database) return '';
+```
+
+.mjs ESM 환경에서 require 미정의 → ReferenceError → try/catch 가 swallow →
+Database=null → 빈 문자열 반환. LLM prompt 의 [Quality Feedback] 섹션 빈 줄.
+
+# 수정 (d8e965f)
+top-level import 추가:
+```js
+import Database from 'better-sqlite3';
+```
+
+getRecentQualityFeedback() 의 require 폴백 제거.
+
+# 검증
+standalone test 출력:
+  [Quality Feedback — 최근 5보고서 평균 100/100, 직전 100, 추세 유지]
+  강점 유지 — 모든 영역 정상
+
+이제 buildPortfolioPrompt 의 prompt 구성 시 실제 inject 됨.
+
+# 영향
+- F19 의 절반 (DB persistence) 만 작동했던 상태에서 → 완전 closed loop 복원.
+- LLM 이 매 보고서 prompt 에서 자체 quality 추세 + 약점 인지 → SkillOpt
+  본격 동작.
+- 사용자가 어제 SkillOpt 논문 적용 가능 여부 질문 → F19 도입 → 오늘 검증으로
+  실제로 절반만 작동했음을 발견.
+
+# 다음 검증
+- 오늘 21:35 KST evening 보고서: prompt 의 Quality Feedback 노출 확인
+- 1주일 후: quality_score 추세 + 약점 영역 자동 개선 측정
+
+# 누적 fix (2026-05-24~28)
+F1~F11 기존 11 룰
+F12 ENTRY_CALIBRATION 활성화
+F13~F17 Codex blind spot fix
+F18 종목 다양성 강제
+F19 qualityScore DB persistence + feedback loop (오늘 prompt inject 복원)
+F20 rotation 신규 종목 catalysts 자동 생성
+인프라: EFTS title, market-caps cron, ownership-alerts cron, news-cascade cron,
+       getSession evening fix, 위성 제거
+
+# 커밋
+d8e965f fix(skillopt): F19 Karpathy pathway 끊김 복원 — ESM require → import
