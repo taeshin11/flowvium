@@ -1,0 +1,80 @@
+2026-05-29 supplyChainChanges date + signalType 매핑 추가
+
+# 사용자 발견
+공급망 변화 / 기업 변화 모니터링은? 저 정보들 알게된 날짜도 알려줘야할듯
+
+# 진단
+
+## supplyChainChanges 결함
+1. 매 보고서마다 동일 10건 반복:
+   - GB300 CoWoS 패키징 병목
+   - 멕시코 조립라인 추가
+   - TSMC 애리조나 N2 팹
+   - MU HBM3e 8단 양산
+   - ALB 리튬 현물가 바닥
+   - 등 — evening 5/28 + morning 5/29 완전 동일
+
+2. date 필드 보고서 json 에 없음 → 사용자가 언제 알게된 정보인지 판단 못함
+
+## 진단 — API source 검증
+curl /api/supply-chain-signals 응답:
+  source: static
+  entries 30개 모두 date 필드 보유 ("2026-04", "2026-03", etc)
+  + signalType 필드 (supply_risk / supply_expansion / demand_shift)
+
+  cron 자동 갱신 없음 — src/data/cascades.ts 기반 정적 데이터
+  가장 새 date = "2026-04" → 한달 이상 stale
+
+## 매핑 누락 — 단순 코드 버그
+generate-report-local.mjs:3865 의 supplyChainChanges 매핑이
+ticker/direction/headline/source/conviction/downstreamBeneficiaries/upstreamRisks/evidenceUrl
+만 매핑하고 date + signalType drop.
+
+ReportPage.tsx:992 의 렌더링은 이미 s.date 표시 코드 보유:
+  {s.date && <span className="text-[10px] opacity-60 font-mono">{fmtSignalDate(s.date)}</span>}
+
+# 수정 (96438c8)
+매핑에 date + signalType 추가:
+```js
+.map(s => ({
+  ticker, direction, headline, source,
+  date: s.date ?? null,           // 신규
+  signalType: s.signalType ?? null, // 신규
+  conviction, downstreamBeneficiaries, upstreamRisks, evidenceUrl,
+}))
+```
+
+다음 cycle (16:05 KST afternoon) 부터:
+- 각 entry 옆에 "2026-04" 같은 발견 시점 노출
+- supply_risk vs supply_expansion 구분 가능
+
+# 미해결 (별도 round)
+
+## companyChanges firstSeen 추적
+companyChanges 는 LLM 직접 생성이라 API date 없음.
+"Q1 FY2027" 같은 회계 분기만 있고 보고서 처음 등장 시점 X.
+
+해결안:
+  DB 쿼리 기반 firstSeen 추가 — ticker + keyChange hash 의 첫 등장 reports.generated_at.
+  매 보고서 생성 시 companyChanges 각 entry 에 firstSeen 부착.
+
+  → 사용자가 "이건 5일 전부터 알려진 정보" 같은 staleness 인지 가능
+  → 새 entry 일 때 ✨ 마크 가능
+
+## supplyChainChanges 정적 데이터 자체 갱신
+src/data/cascades.ts 가 수동 갱신 — 한달+ stale 가능성.
+실제 cron 으로 갱신하려면 외부 source (예: SEC filings, news, EDGAR 13D) 와 연동 필요.
+
+# 누적 fix (2026-05-24~29)
+F1~F11 기존 11 룰
+F12 ENTRY_CALIBRATION 활성화
+F13~F17 Codex blind spot fix
+F18 종목 다양성 강제 (효과 ✓ unique 11→21)
+F19 SkillOpt closed loop (require→import fix + console.log 검증)
+F20 rotation 신규 catalysts (duplicate fix)
+F21 supplyChainChanges date + signalType 매핑 ← 오늘 신설
+인프라: EFTS title, market-caps cron, ownership-alerts cron, news-cascade cron
+       (영어 leak 0건 효과 ✓), getSession evening fix, 위성 제거
+
+# 커밋
+96438c8 fix(reports): supplyChainChanges date + signalType 매핑 추가
