@@ -71,7 +71,7 @@
       "maxDuration": 60
     },
     "src/app/api/cron/refresh-news-cascade/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   },
   "crons": [

@@ -613,6 +613,9 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   const probe = searchParams.get('probe') === '1';
+  // 2026-05-29: wait=1 옵션 — background translation 대신 sync 완료 (cron 용).
+  // fire-and-forget 가 Vercel function 종료와 동시에 종료되어 ko 캐시 채우지 못하던 문제 해결.
+  const waitForTranslation = searchParams.get('wait') === '1';
   const locale = (searchParams.get('locale') ?? 'en').trim();
   const wantsTranslation = locale !== 'en' && LOCALE_NAMES[locale];
   const redis = createRedis();
@@ -642,8 +645,21 @@ export async function GET(request: Request) {
         if (!wantsTranslation) {
           return NextResponse.json({ articles: cached, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
         }
+        // 2026-05-29: wait=1 시 sync 번역 (cron 용) — 사용자 호출은 background 유지.
+        if (waitForTranslation) {
+          try {
+            const translated = await translateArticles(cached, locale);
+            if (translated !== cached) {
+              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 });
+              logger.info('api.news-cascade', 'sync_translation_done', { locale, count: translated.length });
+            }
+            return NextResponse.json({ articles: translated, cached: true, locale, translated: true, source: 'cached-translated-sync' }, { headers: CDN_HEADERS });
+          } catch (e) {
+            logger.warn('api.news-cascade', 'sync_translation_failed', { locale, error: String(e).slice(0, 100) });
+            return NextResponse.json({ articles: cached, cached: true, locale, translated: false, error: 'translation failed', source: 'cached-en' }, { headers: CDN_HEADERS });
+          }
+        }
         // 영어 캐시 hit + 번역 요청 → 영어 즉시 반환 + 백그라운드 번역 (30s 동기 호출 회피)
-        // 다음 호출은 번역 캐시 hit (translatedCache 경로)
         backgroundTask(async () => {
           try {
             const translated = await translateArticles(cached, locale);

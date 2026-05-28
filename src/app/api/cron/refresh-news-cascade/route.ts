@@ -30,9 +30,14 @@ export async function GET(req: NextRequest) {
   for (const locale of LOCALES_TO_WARM) {
     const t0 = Date.now();
     try {
-      const res = await fetch(`${base}/api/news-cascade?locale=${locale}`, {
+      // 2026-05-29: wait=1 으로 sync 번역 강제 — background fire-and-forget 가
+      // Vercel function 종료 시 같이 끝나 ko 캐시 채워지지 않는 문제 해결.
+      const url = locale === 'en'
+        ? `${base}/api/news-cascade?locale=${locale}`
+        : `${base}/api/news-cascade?locale=${locale}&wait=1`;
+      const res = await fetch(url, {
         cache: 'no-store',
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(45000),  // sync 번역 ~30s 여유
       });
       const j = res.ok ? await res.json() : null;
       results.push({
