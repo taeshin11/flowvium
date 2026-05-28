@@ -1,0 +1,68 @@
+2026-05-29 종목 다양성 21 + F20 catalysts duplicate fix + F19 검증 log
+
+# 점검 결과 (self-prime protocol 적용)
+audit-all: 17 OK / 3 WARN (fedwatch 22.5h, market-caps 15.4h aging) / 0 ERR
+🎉 news-cascade 영어 leak 0건 — 어제 cron 효과 첫 확인
+🎉 종목 다양성 unique 11 → 21 (+10) — F18 강화 효과
+🎉 F20 catalysts 자동 생성 — DTE/ETSY/STLA/REGN sector 정확 매핑
+
+# 최근 7일 ticker 다양성 (21 unique)
+NVDA x17, TSLA x15, TSM x15, 005380.KS x13, 005930.KS x13, 005490.KS x10,
+035420.KS x8, 051910.KS x7, 000660.KS x6, ASML x6 — 메가 베이스라인 10개
+
+신규 (random pool 통한 등장):
+AMKR x1 (Semicap), BXP x1 (REIT), CCL x1 (Cruise), DAL x1 (Airlines),
+DTE x1 (Utilities), ETSY x1 (Consumer Disc), KLAC x1 (Semicap),
+MRNA x1 (Biotech), REGN x1 (Pharma), STLA x1 (Automotive), ZTS x1 (Pharma)
+
+= 11 종목 신규 등장. 일주일 전 5.1% → 오늘 mid/large pool 활용 효과.
+
+# 새 보고서 검증
+report-2026-05-28-evening-ko.json (F19 prompt inject 후 첫 cycle):
+  qualityScore: 100
+  NVDA Tech / TSLA Tech / DTE Utilities / TSM Tech / ETSY Consumer-disc / 035420 Tech
+  catalysts 모두 2건 채워짐 (F20 작동 ✓)
+
+report-2026-05-29-morning-ko.json:
+  NVDA / TSM / ASML / TSLA / STLA Automotive / REGN Pharma-biotech
+  catalysts 모두 2-3건 채워짐
+
+# 새 결함 발견 + fix (34813b0)
+
+## F20 boilerplate catalysts duplicate
+logs WARN:
+  cross-ticker catalyst DUPLICATE: "Mid/large-cap rotation 후보 (CANDIDATE pool sample)"
+  (ETSY ≡ DTE / REGN ≡ STLA)
+
+원인: enforceRotation baseCatalysts 가 random pool 종목 모두 동일 텍스트.
+수정: ticker/sector/price 변수 포함하여 entry 별 unique:
+  ["\${ticker} (\${sector}) — Tech 비편향 sector 신규 노출",
+   "시장가 \${price} 기준 mid/large-cap rotation pool 무작위 선택"]
+
+## F19 Karpathy pathway 작동 검증 log
+어제 d8e965f fix 후에도 logs grep 'Quality Feedback' 0건 — prompt LLM send 라
+console 미노출.
+
+수정: buildPortfolioPrompt 진입 시 console.log:
+  "[F19/SkillOpt] prompt 에 Quality Feedback inject ✓"
+  + 첫 2줄 노출
+
+다음 cycle (16:05 KST afternoon) logs/report.log 에서 명확한 흔적 확인 가능.
+
+# DB 정리 (analyze-recs --export)
+ban-list: SMCI, 051910.KS (2)
+boost-list: TSM, TSLA, 005490.KS, 035420.KS (4)
+entry-calibration: 10 ticker
+
+# 누적 fix (2026-05-24~29)
+F1~F11 기존 11 룰
+F12 ENTRY_CALIBRATION 활성화
+F13~F17 Codex blind spot fix
+F18 종목 다양성 강제 (효과 확인 ✓ — 11→21)
+F19 SkillOpt closed loop (어제 require→import fix, 오늘 console.log 검증)
+F20 rotation 신규 catalysts 자동 생성 (오늘 duplicate fix)
+인프라: EFTS title, market-caps cron, ownership-alerts cron, news-cascade cron
+       (효과 확인 ✓ — 영어 leak 0건), getSession evening fix, 위성 제거
+
+# 커밋
+34813b0 fix(reports): F20 catalysts boilerplate 다양화 + F19 작동 검증 log
