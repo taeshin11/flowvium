@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-05-23T02:26:11.574Z",
-  "total": 630,
+  "generatedAt": "2026-05-28T22:59:39.556Z",
+  "total": 841,
   "byBand": {
     "titan": 5,
     "mega": 104,
     "large": 292,
     "mid": 165,
     "etf": 35,
-    "kr": 29
+    "kr": 240
   },
   "tickers": [
     "AAPL",
@@ -613,33 +613,244 @@
     "VXX",
     "005930.KS",
     "000660.KS",
+    "207940.KS",
     "373220.KS",
     "005380.KS",
-    "035420.KS",
-    "035720.KS",
-    "207940.KS",
-    "051910.KS",
-    "005490.KS",
     "000270.KS",
-    "003550.KS",
+    "051910.KS",
     "068270.KS",
-    "105560.KS",
+    "035420.KS",
     "028260.KS",
-    "012450.KS",
-    "009150.KS",
-    "032830.KS",
-    "015760.KS",
-    "006400.KS",
-    "017670.KS",
+    "105560.KS",
     "055550.KS",
-    "086790.KS",
-    "316140.KS",
-    "030200.KS",
-    "009540.KS",
-    "010130.KS",
-    "034730.KS",
+    "012330.KS",
+    "066570.KS",
+    "003550.KS",
+    "032830.KS",
     "096770.KS",
-    "000810.KS"
+    "017670.KS",
+    "030200.KS",
+    "086790.KS",
+    "003490.KS",
+    "034730.KS",
+    "015760.KS",
+    "010130.KS",
+    "005490.KS",
+    "032640.KS",
+    "047050.KS",
+    "011070.KS",
+    "009150.KS",
+    "316140.KS",
+    "000810.KS",
+    "033780.KS",
+    "138040.KS",
+    "009830.KS",
+    "071050.KS",
+    "010950.KS",
+    "000100.KS",
+    "018260.KS",
+    "034020.KS",
+    "035720.KS",
+    "006400.KS",
+    "024110.KS",
+    "036460.KS",
+    "001040.KS",
+    "097950.KS",
+    "078930.KS",
+    "011200.KS",
+    "004020.KS",
+    "011780.KS",
+    "042660.KS",
+    "008770.KS",
+    "003230.KS",
+    "185750.KS",
+    "000720.KS",
+    "028050.KS",
+    "047040.KS",
+    "000210.KS",
+    "064350.KS",
+    "180640.KS",
+    "090430.KS",
+    "051900.KS",
+    "001450.KS",
+    "039570.KS",
+    "016880.KS",
+    "002790.KS",
+    "021240.KS",
+    "041510.KQ",
+    "036570.KS",
+    "251270.KS",
+    "293490.KQ",
+    "115390.KS",
+    "086280.KS",
+    "000990.KS",
+    "012450.KS",
+    "054180.KQ",
+    "272210.KS",
+    "042700.KS",
+    "000120.KS",
+    "069620.KS",
+    "267250.KS",
+    "079550.KS",
+    "175330.KS",
+    "192820.KS",
+    "039200.KQ",
+    "271560.KS",
+    "007310.KS",
+    "241560.KS",
+    "042670.KS",
+    "352820.KS",
+    "326030.KS",
+    "214450.KQ",
+    "200130.KQ",
+    "069960.KS",
+    "006280.KS",
+    "161390.KS",
+    "004990.KS",
+    "016360.KS",
+    "004800.KS",
+    "054620.KQ",
+    "003670.KS",
+    "053000.KS",
+    "082800.KQ",
+    "067830.KS",
+    "002310.KS",
+    "010620.KS",
+    "007070.KS",
+    "000080.KS",
+    "005810.KS",
+    "001680.KS",
+    "003410.KS",
+    "139480.KS",
+    "030000.KS",
+    "047810.KS",
+    "010140.KS",
+    "082740.KS",
+    "054780.KQ",
+    "086520.KQ",
+    "214150.KQ",
+    "032350.KS",
+    "002600.KS",
+    "011390.KS",
+    "011760.KS",
+    "227840.KS",
+    "036800.KQ",
+    "031430.KS",
+    "003960.KS",
+    "245620.KQ",
+    "002070.KS",
+    "016580.KS",
+    "003030.KS",
+    "001120.KS",
+    "010280.KQ",
+    "058430.KS",
+    "042000.KQ",
+    "001800.KS",
+    "029530.KS",
+    "021040.KQ",
+    "023790.KQ",
+    "247540.KQ",
+    "091990.KQ",
+    "357780.KQ",
+    "058470.KQ",
+    "041830.KQ",
+    "035760.KQ",
+    "018290.KQ",
+    "101680.KQ",
+    "048410.KQ",
+    "073540.KQ",
+    "078600.KQ",
+    "237690.KQ",
+    "064760.KQ",
+    "048530.KQ",
+    "032500.KQ",
+    "054450.KQ",
+    "267260.KS",
+    "067160.KQ",
+    "095700.KQ",
+    "053350.KQ",
+    "145020.KQ",
+    "039030.KQ",
+    "032280.KQ",
+    "049480.KQ",
+    "100120.KQ",
+    "080160.KQ",
+    "039290.KQ",
+    "168490.KQ",
+    "352480.KQ",
+    "065690.KQ",
+    "009420.KS",
+    "130740.KQ",
+    "030520.KQ",
+    "131970.KQ",
+    "108490.KQ",
+    "052600.KQ",
+    "041960.KQ",
+    "093050.KS",
+    "199480.KQ",
+    "190650.KQ",
+    "122870.KQ",
+    "089470.KS",
+    "060300.KQ",
+    "049630.KQ",
+    "203650.KQ",
+    "027830.KQ",
+    "050890.KQ",
+    "048870.KQ",
+    "215600.KQ",
+    "196170.KQ",
+    "094970.KQ",
+    "095910.KQ",
+    "219130.KQ",
+    "086900.KQ",
+    "038460.KQ",
+    "112610.KS",
+    "078130.KQ",
+    "190510.KQ",
+    "065500.KQ",
+    "069510.KQ",
+    "014710.KS",
+    "220100.KQ",
+    "079190.KQ",
+    "107640.KQ",
+    "007390.KQ",
+    "044060.KQ",
+    "036640.KQ",
+    "053800.KQ",
+    "063570.KQ",
+    "224880.KQ",
+    "089600.KQ",
+    "093380.KQ",
+    "036540.KQ",
+    "033160.KQ",
+    "038870.KQ",
+    "234080.KS",
+    "054540.KQ",
+    "043370.KQ",
+    "024120.KQ",
+    "199800.KQ",
+    "034230.KS",
+    "078650.KQ",
+    "104830.KQ",
+    "222080.KQ",
+    "054040.KQ",
+    "048260.KQ",
+    "214420.KS",
+    "025900.KQ",
+    "050540.KQ",
+    "017040.KS",
+    "056730.KQ",
+    "073640.KQ",
+    "098460.KQ",
+    "081000.KS",
+    "044990.KQ",
+    "019570.KQ",
+    "037400.KQ",
+    "025870.KQ",
+    "052790.KQ",
+    "026040.KQ",
+    "036810.KQ",
+    "205100.KQ"
   ],
   "meta": {
     "UNH": {
@@ -3819,179 +4030,1685 @@
     },
     "005930.KS": {
       "name": "삼성전자",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kospi"
     },
     "000660.KS": {
       "name": "SK하이닉스",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "373220.KS": {
-      "name": "LG에너지솔루션",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "005380.KS": {
-      "name": "현대차",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "035420.KS": {
-      "name": "NAVER",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "035720.KS": {
-      "name": "카카오",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Semiconductors",
+      "cap": "kr",
+      "market": "kospi"
     },
     "207940.KS": {
       "name": "삼성바이오로직스",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "051910.KS": {
-      "name": "LG화학",
-      "sector": "KR",
-      "cap": "kr"
+    "373220.KS": {
+      "name": "LG에너지솔루션",
+      "sector": "Battery",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "005490.KS": {
-      "name": "POSCO홀딩스",
-      "sector": "KR",
-      "cap": "kr"
+    "005380.KS": {
+      "name": "현대자동차",
+      "sector": "Automotive",
+      "cap": "kr",
+      "market": "kospi"
     },
     "000270.KS": {
       "name": "기아",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Automotive",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "003550.KS": {
-      "name": "LG",
-      "sector": "KR",
-      "cap": "kr"
+    "051910.KS": {
+      "name": "LG화학",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
     },
     "068270.KS": {
       "name": "셀트리온",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "105560.KS": {
-      "name": "KB금융",
-      "sector": "KR",
-      "cap": "kr"
+    "035420.KS": {
+      "name": "NAVER",
+      "sector": "IT Services",
+      "cap": "kr",
+      "market": "kospi"
     },
     "028260.KS": {
       "name": "삼성물산",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "012450.KS": {
-      "name": "한화에어로스페이스",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "009150.KS": {
-      "name": "삼성전기",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "032830.KS": {
-      "name": "삼성생명",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "015760.KS": {
-      "name": "한국전력",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "006400.KS": {
-      "name": "삼성SDI",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "017670.KS": {
-      "name": "SK텔레콤",
-      "sector": "KR",
-      "cap": "kr"
+    "105560.KS": {
+      "name": "KB금융",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
     },
     "055550.KS": {
       "name": "신한지주",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "086790.KS": {
-      "name": "하나금융지주",
-      "sector": "KR",
-      "cap": "kr"
+    "012330.KS": {
+      "name": "현대모비스",
+      "sector": "Transportation Equipment",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "316140.KS": {
-      "name": "우리금융지주",
-      "sector": "KR",
-      "cap": "kr"
+    "066570.KS": {
+      "name": "LG전자",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "030200.KS": {
-      "name": "KT",
-      "sector": "KR",
-      "cap": "kr"
+    "003550.KS": {
+      "name": "LG",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
     },
-    "009540.KS": {
-      "name": "HD한국조선해양",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "010130.KS": {
-      "name": "고려아연",
-      "sector": "KR",
-      "cap": "kr"
-    },
-    "034730.KS": {
-      "name": "SK",
-      "sector": "KR",
-      "cap": "kr"
+    "032830.KS": {
+      "name": "삼성생명",
+      "sector": "Insurance",
+      "cap": "kr",
+      "market": "kospi"
     },
     "096770.KS": {
       "name": "SK이노베이션",
-      "sector": "KR",
-      "cap": "kr"
+      "sector": "Energy",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "017670.KS": {
+      "name": "SK텔레콤",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "030200.KS": {
+      "name": "케이티",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "086790.KS": {
+      "name": "하나금융지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "003490.KS": {
+      "name": "대한항공",
+      "sector": "Transportation",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "034730.KS": {
+      "name": "SK",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "015760.KS": {
+      "name": "한국전력공사",
+      "sector": "Energy",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "010130.KS": {
+      "name": "고려아연",
+      "sector": "Metals & Mining",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "005490.KS": {
+      "name": "POSCO홀딩스",
+      "sector": "Metals & Mining",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "032640.KS": {
+      "name": "LG유플러스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "047050.KS": {
+      "name": "포스코인터내셔널",
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "011070.KS": {
+      "name": "LG이노텍",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "009150.KS": {
+      "name": "삼성전기",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "316140.KS": {
+      "name": "우리금융지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
     },
     "000810.KS": {
-      "name": "삼성화재",
-      "sector": "KR",
-      "cap": "kr"
+      "name": "삼성화재해상보험",
+      "sector": "Insurance",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "033780.KS": {
+      "name": "케이티앤지",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "138040.KS": {
+      "name": "메리츠금융지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "009830.KS": {
+      "name": "한화솔루션",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "071050.KS": {
+      "name": "한국금융지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "010950.KS": {
+      "name": "S-Oil",
+      "sector": "Energy",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "000100.KS": {
+      "name": "유한양행",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "018260.KS": {
+      "name": "삼성에스디에스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "034020.KS": {
+      "name": "두산에너빌리티",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "035720.KS": {
+      "name": "카카오",
+      "sector": "IT Services",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "006400.KS": {
+      "name": "삼성SDI",
+      "sector": "Battery",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "024110.KS": {
+      "name": "기업은행",
+      "sector": "Telecom",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "036460.KS": {
+      "name": "한국가스공사",
+      "sector": "Energy",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "001040.KS": {
+      "name": "CJ",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "097950.KS": {
+      "name": "CJ제일제당",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "078930.KS": {
+      "name": "GS",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "011200.KS": {
+      "name": "HMM",
+      "sector": "Transportation",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "004020.KS": {
+      "name": "현대제철",
+      "sector": "Metals & Mining",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "011780.KS": {
+      "name": "금호석유화학",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "042660.KS": {
+      "name": "한화오션",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "008770.KS": {
+      "name": "호텔신라",
+      "sector": "Retail",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "003230.KS": {
+      "name": "삼양식품",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "185750.KS": {
+      "name": "종근당",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "000720.KS": {
+      "name": "현대건설",
+      "sector": "Construction",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "028050.KS": {
+      "name": "삼성E&amp;A",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "047040.KS": {
+      "name": "대우건설",
+      "sector": "Construction",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "000210.KS": {
+      "name": "DL",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "064350.KS": {
+      "name": "현대로템",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "180640.KS": {
+      "name": "한진칼",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "090430.KS": {
+      "name": "아모레퍼시픽",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "051900.KS": {
+      "name": "LG생활건강",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "001450.KS": {
+      "name": "현대해상",
+      "sector": "Insurance",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "039570.KS": {
+      "name": "HDC랩스",
+      "sector": "Construction",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "016880.KS": {
+      "name": "웅진",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "002790.KS": {
+      "name": "아모레퍼시픽홀딩스",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "021240.KS": {
+      "name": "코웨이",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "041510.KQ": {
+      "name": "에스엠",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "036570.KS": {
+      "name": "NC",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "251270.KS": {
+      "name": "넷마블",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "293490.KQ": {
+      "name": "카카오게임즈",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "115390.KS": {
+      "name": "락앤락",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "086280.KS": {
+      "name": "현대글로비스",
+      "sector": "Transportation",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "000990.KS": {
+      "name": "DB하이텍",
+      "sector": "Semiconductors",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "012450.KS": {
+      "name": "한화에어로스페이스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "054180.KQ": {
+      "name": "메디콕스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "272210.KS": {
+      "name": "한화시스템",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "042700.KS": {
+      "name": "한미반도체",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "000120.KS": {
+      "name": "CJ대한통운",
+      "sector": "Transportation",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "069620.KS": {
+      "name": "대웅제약",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "267250.KS": {
+      "name": "HD현대",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "079550.KS": {
+      "name": "LIG디펜스앤에어로스페이스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "175330.KS": {
+      "name": "JB금융지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "192820.KS": {
+      "name": "코스맥스",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "039200.KQ": {
+      "name": "오스코텍",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "271560.KS": {
+      "name": "오리온",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "007310.KS": {
+      "name": "오뚜기",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "241560.KS": {
+      "name": "두산밥캣",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "042670.KS": {
+      "name": "에이치디현대인프라코어",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "352820.KS": {
+      "name": "하이브",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "326030.KS": {
+      "name": "에스케이바이오팜",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "214450.KQ": {
+      "name": "파마리서치",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "200130.KQ": {
+      "name": "콜마비앤에이치",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "069960.KS": {
+      "name": "현대백화점",
+      "sector": "Retail",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "006280.KS": {
+      "name": "녹십자",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "161390.KS": {
+      "name": "한국타이어앤테크놀로지",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "004990.KS": {
+      "name": "롯데지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "016360.KS": {
+      "name": "삼성증권",
+      "sector": "Financial Services",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "004800.KS": {
+      "name": "효성",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "054620.KQ": {
+      "name": "APS",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "003670.KS": {
+      "name": "포스코퓨처엠",
+      "sector": "Electrical Equipment",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "053000.KS": {
+      "name": "우리금융지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "082800.KQ": {
+      "name": "비보존 제약",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "067830.KS": {
+      "name": "세이브존I&amp;C",
+      "sector": "Retail",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "002310.KS": {
+      "name": "아세아제지",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "010620.KS": {
+      "name": "에이치디현대미포",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "007070.KS": {
+      "name": "GS리테일",
+      "sector": "Retail",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "000080.KS": {
+      "name": "하이트진로",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "005810.KS": {
+      "name": "풍산홀딩스",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "001680.KS": {
+      "name": "대상",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "003410.KS": {
+      "name": "쌍용씨앤이",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "139480.KS": {
+      "name": "이마트",
+      "sector": "Retail",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "030000.KS": {
+      "name": "제일기획",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "047810.KS": {
+      "name": "한국항공우주",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "010140.KS": {
+      "name": "삼성중공업",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "082740.KS": {
+      "name": "한화엔진",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "054780.KQ": {
+      "name": "키이스트",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "086520.KQ": {
+      "name": "에코프로",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "214150.KQ": {
+      "name": "클래시스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "032350.KS": {
+      "name": "롯데관광개발",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "002600.KS": {
+      "name": "조흥",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "011390.KS": {
+      "name": "부산산업",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "011760.KS": {
+      "name": "현대코퍼레이션",
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "227840.KS": {
+      "name": "현대코퍼레이션홀딩스",
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "036800.KQ": {
+      "name": "나이스정보통신",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "031430.KS": {
+      "name": "신세계인터내셔날",
+      "sector": "Retail",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "003960.KS": {
+      "name": "사조대림",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "245620.KQ": {
+      "name": "EDGC",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "002070.KS": {
+      "name": "비비안",
+      "sector": "Textiles",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "016580.KS": {
+      "name": "환인제약",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "003030.KS": {
+      "name": "세아제강지주",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "001120.KS": {
+      "name": "LX인터내셔널",
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "010280.KQ": {
+      "name": "아이티센엔텍",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "058430.KS": {
+      "name": "포스코스틸리온",
+      "sector": "Metals & Mining",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "042000.KQ": {
+      "name": "카페24",
+      "sector": "IT Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "001800.KS": {
+      "name": "오리온홀딩스",
+      "sector": "Banking",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "029530.KS": {
+      "name": "신도리코",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "021040.KQ": {
+      "name": "대호특수강",
+      "sector": "Metals & Mining",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "023790.KQ": {
+      "name": "동일스틸럭스",
+      "sector": "Metals & Mining",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "247540.KQ": {
+      "name": "에코프로비엠",
+      "sector": "Battery",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "091990.KQ": {
+      "name": "셀트리온헬스케어",
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "357780.KQ": {
+      "name": "솔브레인",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "058470.KQ": {
+      "name": "리노공업",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "041830.KQ": {
+      "name": "인바디",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "035760.KQ": {
+      "name": "CJ ENM",
+      "sector": "Entertainment",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "018290.KQ": {
+      "name": "브이티",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "101680.KQ": {
+      "name": "한국정밀기계",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "048410.KQ": {
+      "name": "현대바이오",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "073540.KQ": {
+      "name": "에프알텍",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "078600.KQ": {
+      "name": "대주전자재료",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "237690.KQ": {
+      "name": "에스티팜",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "064760.KQ": {
+      "name": "티씨케이",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "048530.KQ": {
+      "name": "인트론바이오",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "032500.KQ": {
+      "name": "케이엠더블유",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "054450.KQ": {
+      "name": "텔레칩스",
+      "sector": "Semiconductors",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "267260.KS": {
+      "name": "HD현대일렉트릭",
+      "sector": "Electrical Equipment",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "067160.KQ": {
+      "name": "SOOP",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "095700.KQ": {
+      "name": "제넥신",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "053350.KQ": {
+      "name": "이니텍",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "145020.KQ": {
+      "name": "휴젤",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "039030.KQ": {
+      "name": "이오테크닉스",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "032280.KQ": {
+      "name": "삼일",
+      "sector": "Transportation",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "049480.KQ": {
+      "name": "오픈베이스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "100120.KQ": {
+      "name": "뷰웍스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "080160.KQ": {
+      "name": "모두투어",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "039290.KQ": {
+      "name": "인포뱅크",
+      "sector": "IT Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "168490.KQ": {
+      "name": "한국투자패러랠유전해외자원개발특별자산투자회사1호(지분증권)",
+      "sector": "Telecom",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "352480.KQ": {
+      "name": "씨앤씨인터내셔널",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "065690.KQ": {
+      "name": "파커스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "009420.KS": {
+      "name": "한올바이오파마",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "130740.KQ": {
+      "name": "티피씨글로벌",
+      "sector": "Transportation Equipment",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "030520.KQ": {
+      "name": "한글과컴퓨터",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "131970.KQ": {
+      "name": "두산테스나",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "108490.KQ": {
+      "name": "로보티즈",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "052600.KQ": {
+      "name": "한네트",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "041960.KQ": {
+      "name": "코미팜",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "093050.KS": {
+      "name": "LF",
+      "sector": "Textiles",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "199480.KQ": {
+      "name": "뱅크웨어글로벌",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "190650.KQ": {
+      "name": "코리아에셋투자증권",
+      "sector": "Financial Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "122870.KQ": {
+      "name": "와이지엔터테인먼트",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "089470.KS": {
+      "name": "HDC현대EP",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "060300.KQ": {
+      "name": "레드로버",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "049630.KQ": {
+      "name": "재영솔루텍",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "203650.KQ": {
+      "name": "드림시큐리티",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "027830.KQ": {
+      "name": "대성창투",
+      "sector": "Telecom",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "050890.KQ": {
+      "name": "쏠리드",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "048870.KQ": {
+      "name": "시너지이노베이션",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "215600.KQ": {
+      "name": "신라젠",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "196170.KQ": {
+      "name": "알테오젠",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "094970.KQ": {
+      "name": "제이엠티",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "095910.KQ": {
+      "name": "에스에너지",
+      "sector": "Electrical Equipment",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "219130.KQ": {
+      "name": "타이거일렉",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "086900.KQ": {
+      "name": "메디톡스",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "038460.KQ": {
+      "name": "바이오스마트",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "112610.KS": {
+      "name": "씨에스윈드",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "078130.KQ": {
+      "name": "국일제지",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "190510.KQ": {
+      "name": "나무가",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "065500.KQ": {
+      "name": "오리엔트정공",
+      "sector": "Transportation Equipment",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "069510.KQ": {
+      "name": "에스텍",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "014710.KS": {
+      "name": "사조씨푸드",
+      "sector": "Consumer Staples",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "220100.KQ": {
+      "name": "퓨쳐켐",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "079190.KQ": {
+      "name": "케스피온",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "107640.KQ": {
+      "name": "한중엔시에스",
+      "sector": "Electrical Equipment",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "007390.KQ": {
+      "name": "네이처셀",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "044060.KQ": {
+      "name": "조광아이엘아이",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "036640.KQ": {
+      "name": "HRS",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "053800.KQ": {
+      "name": "안랩",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "063570.KQ": {
+      "name": "NICE인프라",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "224880.KQ": {
+      "name": "에스지에이클라우드서비스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "089600.KQ": {
+      "name": "KT나스미디어",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "093380.KQ": {
+      "name": "풍강",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "036540.KQ": {
+      "name": "SFA반도체",
+      "sector": "Semiconductors",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "033160.KQ": {
+      "name": "엠케이전자",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "038870.KQ": {
+      "name": "에코심플렉스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "234080.KS": {
+      "name": "JW생명과학",
+      "sector": "Healthcare",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "054540.KQ": {
+      "name": "삼영엠텍",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "043370.KQ": {
+      "name": "피에이치에이",
+      "sector": "Transportation Equipment",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "024120.KQ": {
+      "name": "KB오토시스",
+      "sector": "Transportation Equipment",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "199800.KQ": {
+      "name": "툴젠",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "034230.KS": {
+      "name": "파라다이스",
+      "sector": "Entertainment",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "078650.KQ": {
+      "name": "지나인제약",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "104830.KQ": {
+      "name": "원익머트리얼즈",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "222080.KQ": {
+      "name": "씨아이에스",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "054040.KQ": {
+      "name": "한국컴퓨터",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "048260.KQ": {
+      "name": "오스템임플란트",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "214420.KS": {
+      "name": "토니모리",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "025900.KQ": {
+      "name": "동화기업",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "050540.KQ": {
+      "name": "엠피씨플러스",
+      "sector": "Professional Services",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "017040.KS": {
+      "name": "광명전기",
+      "sector": "Electrical Equipment",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "056730.KQ": {
+      "name": "CNT85",
+      "sector": "Construction",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "073640.KQ": {
+      "name": "테라사이언스",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "098460.KQ": {
+      "name": "고영",
+      "sector": "Industrials",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "081000.KS": {
+      "name": "일진다이아",
+      "sector": "Chemicals",
+      "cap": "kr",
+      "market": "kospi"
+    },
+    "044990.KQ": {
+      "name": "에이치엔에스하이텍",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "019570.KQ": {
+      "name": "플루토스",
+      "sector": "Telecom",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "037400.KQ": {
+      "name": "우리엔터프라이즈",
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "025870.KQ": {
+      "name": "신라에스지",
+      "sector": "Wholesale",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "052790.KQ": {
+      "name": "액토즈소프트",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "026040.KQ": {
+      "name": "제이에스티나",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "036810.KQ": {
+      "name": "에프에스티",
+      "sector": "Technology",
+      "cap": "kr",
+      "market": "kosdaq"
+    },
+    "205100.KQ": {
+      "name": "엑셈",
+      "sector": "Other",
+      "cap": "kr",
+      "market": "kosdaq"
     }
   },
   "krNames": {
     "005930.KS": "삼성전자",
     "000660.KS": "SK하이닉스",
-    "373220.KS": "LG에너지솔루션",
-    "005380.KS": "현대차",
-    "035420.KS": "NAVER",
-    "035720.KS": "카카오",
     "207940.KS": "삼성바이오로직스",
-    "051910.KS": "LG화학",
-    "005490.KS": "POSCO홀딩스",
+    "373220.KS": "LG에너지솔루션",
+    "005380.KS": "현대자동차",
     "000270.KS": "기아",
-    "003550.KS": "LG",
+    "051910.KS": "LG화학",
     "068270.KS": "셀트리온",
-    "105560.KS": "KB금융",
+    "035420.KS": "NAVER",
     "028260.KS": "삼성물산",
-    "012450.KS": "한화에어로스페이스",
-    "009150.KS": "삼성전기",
-    "032830.KS": "삼성생명",
-    "015760.KS": "한국전력",
-    "006400.KS": "삼성SDI",
-    "017670.KS": "SK텔레콤",
+    "105560.KS": "KB금융",
     "055550.KS": "신한지주",
-    "086790.KS": "하나금융지주",
-    "316140.KS": "우리금융지주",
-    "030200.KS": "KT",
-    "009540.KS": "HD한국조선해양",
-    "010130.KS": "고려아연",
-    "034730.KS": "SK",
+    "012330.KS": "현대모비스",
+    "066570.KS": "LG전자",
+    "003550.KS": "LG",
+    "032830.KS": "삼성생명",
     "096770.KS": "SK이노베이션",
-    "000810.KS": "삼성화재"
+    "017670.KS": "SK텔레콤",
+    "030200.KS": "케이티",
+    "086790.KS": "하나금융지주",
+    "003490.KS": "대한항공",
+    "034730.KS": "SK",
+    "015760.KS": "한국전력공사",
+    "010130.KS": "고려아연",
+    "005490.KS": "POSCO홀딩스",
+    "032640.KS": "LG유플러스",
+    "047050.KS": "포스코인터내셔널",
+    "011070.KS": "LG이노텍",
+    "009150.KS": "삼성전기",
+    "316140.KS": "우리금융지주",
+    "000810.KS": "삼성화재해상보험",
+    "033780.KS": "케이티앤지",
+    "138040.KS": "메리츠금융지주",
+    "009830.KS": "한화솔루션",
+    "071050.KS": "한국금융지주",
+    "010950.KS": "S-Oil",
+    "000100.KS": "유한양행",
+    "018260.KS": "삼성에스디에스",
+    "034020.KS": "두산에너빌리티",
+    "035720.KS": "카카오",
+    "006400.KS": "삼성SDI",
+    "024110.KS": "기업은행",
+    "036460.KS": "한국가스공사",
+    "001040.KS": "CJ",
+    "097950.KS": "CJ제일제당",
+    "078930.KS": "GS",
+    "011200.KS": "HMM",
+    "004020.KS": "현대제철",
+    "011780.KS": "금호석유화학",
+    "042660.KS": "한화오션",
+    "008770.KS": "호텔신라",
+    "003230.KS": "삼양식품",
+    "185750.KS": "종근당",
+    "000720.KS": "현대건설",
+    "028050.KS": "삼성E&amp;A",
+    "047040.KS": "대우건설",
+    "000210.KS": "DL",
+    "064350.KS": "현대로템",
+    "180640.KS": "한진칼",
+    "090430.KS": "아모레퍼시픽",
+    "051900.KS": "LG생활건강",
+    "001450.KS": "현대해상",
+    "039570.KS": "HDC랩스",
+    "016880.KS": "웅진",
+    "002790.KS": "아모레퍼시픽홀딩스",
+    "021240.KS": "코웨이",
+    "041510.KQ": "에스엠",
+    "036570.KS": "NC",
+    "251270.KS": "넷마블",
+    "293490.KQ": "카카오게임즈",
+    "115390.KS": "락앤락",
+    "086280.KS": "현대글로비스",
+    "000990.KS": "DB하이텍",
+    "012450.KS": "한화에어로스페이스",
+    "054180.KQ": "메디콕스",
+    "272210.KS": "한화시스템",
+    "042700.KS": "한미반도체",
+    "000120.KS": "CJ대한통운",
+    "069620.KS": "대웅제약",
+    "267250.KS": "HD현대",
+    "079550.KS": "LIG디펜스앤에어로스페이스",
+    "175330.KS": "JB금융지주",
+    "192820.KS": "코스맥스",
+    "039200.KQ": "오스코텍",
+    "271560.KS": "오리온",
+    "007310.KS": "오뚜기",
+    "241560.KS": "두산밥캣",
+    "042670.KS": "에이치디현대인프라코어",
+    "352820.KS": "하이브",
+    "326030.KS": "에스케이바이오팜",
+    "214450.KQ": "파마리서치",
+    "200130.KQ": "콜마비앤에이치",
+    "069960.KS": "현대백화점",
+    "006280.KS": "녹십자",
+    "161390.KS": "한국타이어앤테크놀로지",
+    "004990.KS": "롯데지주",
+    "016360.KS": "삼성증권",
+    "004800.KS": "효성",
+    "054620.KQ": "APS",
+    "003670.KS": "포스코퓨처엠",
+    "053000.KS": "우리금융지주",
+    "082800.KQ": "비보존 제약",
+    "067830.KS": "세이브존I&amp;C",
+    "002310.KS": "아세아제지",
+    "010620.KS": "에이치디현대미포",
+    "007070.KS": "GS리테일",
+    "000080.KS": "하이트진로",
+    "005810.KS": "풍산홀딩스",
+    "001680.KS": "대상",
+    "003410.KS": "쌍용씨앤이",
+    "139480.KS": "이마트",
+    "030000.KS": "제일기획",
+    "047810.KS": "한국항공우주",
+    "010140.KS": "삼성중공업",
+    "082740.KS": "한화엔진",
+    "054780.KQ": "키이스트",
+    "086520.KQ": "에코프로",
+    "214150.KQ": "클래시스",
+    "032350.KS": "롯데관광개발",
+    "002600.KS": "조흥",
+    "011390.KS": "부산산업",
+    "011760.KS": "현대코퍼레이션",
+    "227840.KS": "현대코퍼레이션홀딩스",
+    "036800.KQ": "나이스정보통신",
+    "031430.KS": "신세계인터내셔날",
+    "003960.KS": "사조대림",
+    "245620.KQ": "EDGC",
+    "002070.KS": "비비안",
+    "016580.KS": "환인제약",
+    "003030.KS": "세아제강지주",
+    "001120.KS": "LX인터내셔널",
+    "010280.KQ": "아이티센엔텍",
+    "058430.KS": "포스코스틸리온",
+    "042000.KQ": "카페24",
+    "001800.KS": "오리온홀딩스",
+    "029530.KS": "신도리코",
+    "021040.KQ": "대호특수강",
+    "023790.KQ": "동일스틸럭스",
+    "247540.KQ": "에코프로비엠",
+    "091990.KQ": "셀트리온헬스케어",
+    "357780.KQ": "솔브레인",
+    "058470.KQ": "리노공업",
+    "041830.KQ": "인바디",
+    "035760.KQ": "CJ ENM",
+    "018290.KQ": "브이티",
+    "101680.KQ": "한국정밀기계",
+    "048410.KQ": "현대바이오",
+    "073540.KQ": "에프알텍",
+    "078600.KQ": "대주전자재료",
+    "237690.KQ": "에스티팜",
+    "064760.KQ": "티씨케이",
+    "048530.KQ": "인트론바이오",
+    "032500.KQ": "케이엠더블유",
+    "054450.KQ": "텔레칩스",
+    "267260.KS": "HD현대일렉트릭",
+    "067160.KQ": "SOOP",
+    "095700.KQ": "제넥신",
+    "053350.KQ": "이니텍",
+    "145020.KQ": "휴젤",
+    "039030.KQ": "이오테크닉스",
+    "032280.KQ": "삼일",
+    "049480.KQ": "오픈베이스",
+    "100120.KQ": "뷰웍스",
+    "080160.KQ": "모두투어",
+    "039290.KQ": "인포뱅크",
+    "168490.KQ": "한국투자패러랠유전해외자원개발특별자산투자회사1호(지분증권)",
+    "352480.KQ": "씨앤씨인터내셔널",
+    "065690.KQ": "파커스",
+    "009420.KS": "한올바이오파마",
+    "130740.KQ": "티피씨글로벌",
+    "030520.KQ": "한글과컴퓨터",
+    "131970.KQ": "두산테스나",
+    "108490.KQ": "로보티즈",
+    "052600.KQ": "한네트",
+    "041960.KQ": "코미팜",
+    "093050.KS": "LF",
+    "199480.KQ": "뱅크웨어글로벌",
+    "190650.KQ": "코리아에셋투자증권",
+    "122870.KQ": "와이지엔터테인먼트",
+    "089470.KS": "HDC현대EP",
+    "060300.KQ": "레드로버",
+    "049630.KQ": "재영솔루텍",
+    "203650.KQ": "드림시큐리티",
+    "027830.KQ": "대성창투",
+    "050890.KQ": "쏠리드",
+    "048870.KQ": "시너지이노베이션",
+    "215600.KQ": "신라젠",
+    "196170.KQ": "알테오젠",
+    "094970.KQ": "제이엠티",
+    "095910.KQ": "에스에너지",
+    "219130.KQ": "타이거일렉",
+    "086900.KQ": "메디톡스",
+    "038460.KQ": "바이오스마트",
+    "112610.KS": "씨에스윈드",
+    "078130.KQ": "국일제지",
+    "190510.KQ": "나무가",
+    "065500.KQ": "오리엔트정공",
+    "069510.KQ": "에스텍",
+    "014710.KS": "사조씨푸드",
+    "220100.KQ": "퓨쳐켐",
+    "079190.KQ": "케스피온",
+    "107640.KQ": "한중엔시에스",
+    "007390.KQ": "네이처셀",
+    "044060.KQ": "조광아이엘아이",
+    "036640.KQ": "HRS",
+    "053800.KQ": "안랩",
+    "063570.KQ": "NICE인프라",
+    "224880.KQ": "에스지에이클라우드서비스",
+    "089600.KQ": "KT나스미디어",
+    "093380.KQ": "풍강",
+    "036540.KQ": "SFA반도체",
+    "033160.KQ": "엠케이전자",
+    "038870.KQ": "에코심플렉스",
+    "234080.KS": "JW생명과학",
+    "054540.KQ": "삼영엠텍",
+    "043370.KQ": "피에이치에이",
+    "024120.KQ": "KB오토시스",
+    "199800.KQ": "툴젠",
+    "034230.KS": "파라다이스",
+    "078650.KQ": "지나인제약",
+    "104830.KQ": "원익머트리얼즈",
+    "222080.KQ": "씨아이에스",
+    "054040.KQ": "한국컴퓨터",
+    "048260.KQ": "오스템임플란트",
+    "214420.KS": "토니모리",
+    "025900.KQ": "동화기업",
+    "050540.KQ": "엠피씨플러스",
+    "017040.KS": "광명전기",
+    "056730.KQ": "CNT85",
+    "073640.KQ": "테라사이언스",
+    "098460.KQ": "고영",
+    "081000.KS": "일진다이아",
+    "044990.KQ": "에이치엔에스하이텍",
+    "019570.KQ": "플루토스",
+    "037400.KQ": "우리엔터프라이즈",
+    "025870.KQ": "신라에스지",
+    "052790.KQ": "액토즈소프트",
+    "026040.KQ": "제이에스티나",
+    "036810.KQ": "에프에스티",
+    "205100.KQ": "엑셈"
   }
 }

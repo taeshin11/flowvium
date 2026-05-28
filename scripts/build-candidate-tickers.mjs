@@ -60,17 +60,28 @@ const ETF_TICKERS = [
   'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA','MCHI','EZA',
   'GLD','SLV','TLT','SHY','USO','UNG','DBA','BITO','VXX',
 ];
-const KR_TICKERS = {
-  '005930.KS':'삼성전자','000660.KS':'SK하이닉스','373220.KS':'LG에너지솔루션',
-  '005380.KS':'현대차','035420.KS':'NAVER','035720.KS':'카카오',
-  '207940.KS':'삼성바이오로직스','051910.KS':'LG화학','005490.KS':'POSCO홀딩스','000270.KS':'기아',
-  '003550.KS':'LG','068270.KS':'셀트리온','105560.KS':'KB금융','028260.KS':'삼성물산',
-  '012450.KS':'한화에어로스페이스','009150.KS':'삼성전기','032830.KS':'삼성생명',
-  '015760.KS':'한국전력','006400.KS':'삼성SDI','017670.KS':'SK텔레콤',
-  '055550.KS':'신한지주','086790.KS':'하나금융지주','316140.KS':'우리금융지주',
-  '030200.KS':'KT','009540.KS':'HD한국조선해양','010130.KS':'고려아연',
-  '034730.KS':'SK','096770.KS':'SK이노베이션','000810.KS':'삼성화재',
-};
+// 2026-05-29: hardcoded 29개 → companies-kr.ts 의 242개 (KOSPI 132 + KOSDAQ 108) 활용.
+// stockCode 6자리 + market (KOSPI→.KS / KOSDAQ→.KQ) 자동 매핑. sector 도 메타에 반영.
+const KR_TICKERS = {};
+const KR_META = {};
+try {
+  const krFile = readFileSync(resolve(DATA_DIR, 'companies-kr.ts'), 'utf8');
+  const krEntries = [...krFile.matchAll(
+    /stockCode:\s*"(\d{6})"[^}]*?name:\s*"([^"]+)"[^}]*?market:\s*"(KOSPI|KOSDAQ)"[^}]*?sector:\s*"([^"]+)"/g
+  )];
+  for (const [, code, name, market, sector] of krEntries) {
+    const ticker = code + (market === 'KOSPI' ? '.KS' : '.KQ');
+    KR_TICKERS[ticker] = name;
+    KR_META[ticker] = { name, sector, cap: 'kr', market: market.toLowerCase() };
+  }
+  console.log(`[KR] companies-kr.ts 에서 ${krEntries.length}개 로드 (KOSPI ${Object.values(KR_META).filter(m=>m.market==='kospi').length} + KOSDAQ ${Object.values(KR_META).filter(m=>m.market==='kosdaq').length})`);
+} catch (e) {
+  console.warn('[KR] companies-kr.ts 로드 실패, hardcoded fallback:', e.message);
+  Object.assign(KR_TICKERS, {
+    '005930.KS':'삼성전자','000660.KS':'SK하이닉스','373220.KS':'LG에너지솔루션',
+    '005380.KS':'현대차','035420.KS':'NAVER','035720.KS':'카카오',
+  });
+}
 
 // 추천 가능 풀 = titan + mega + large + mid + ETF + KR
 // (small 34개는 유동성 약함 — 제외)
@@ -100,7 +111,7 @@ const out = {
   meta: Object.fromEntries([
     ...Object.entries(fields),
     ...ETF_TICKERS.map(t => [t, { name: t, sector: 'ETF', cap: 'etf' }]),
-    ...Object.entries(KR_TICKERS).map(([t, name]) => [t, { name, sector: 'KR', cap: 'kr' }]),
+    ...Object.entries(KR_TICKERS).map(([t, name]) => [t, KR_META[t] ?? { name, sector: 'KR', cap: 'kr' }]),
   ]),
   krNames: KR_TICKERS,
 };

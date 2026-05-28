@@ -1110,8 +1110,9 @@ async function fetchStooqBatch(tickers) {
 async function getLivePrices() {
   const map = new Map();
   // 1) Stooq batch — US/EU 종목 (Yahoo v7 401 차단됨). KR/일부는 N/D
-  const usTickers = CANDIDATE_TICKERS.filter(t => !t.endsWith('.KS'));
-  const krTickers = CANDIDATE_TICKERS.filter(t => t.endsWith('.KS'));
+  // 2026-05-29: KOSDAQ (.KQ) 도 KR fetch path 로 처리 — Yahoo v8 chart 가 양쪽 지원.
+  const usTickers = CANDIDATE_TICKERS.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ'));
+  const krTickers = CANDIDATE_TICKERS.filter(t => t.endsWith('.KS') || t.endsWith('.KQ'));
   const stooqMap = await fetchStooqBatch(usTickers);
   for (const [t, v] of stooqMap) map.set(t, v);
 
@@ -3113,9 +3114,74 @@ function getRecentQualityFeedback() {
   }
 }
 
+/**
+ * 2026-05-29: 이전 portfolio 성과 피드백 — DB 의 최근 recommendation_outcomes 집계.
+ * "지난 5건 추천 중 hit 2건 / NE 2건 / stop 1건. 만성 NE: MSFT 11회" 형식으로
+ * LLM 에게 직접 노출 → 자가 학습 강화 (SkillOpt 의 outcome-aware skill update).
+ *
+ * 보고서 자체에도 portfolioOutcomes 필드로 추가 — 사용자 가시.
+ */
+function getPortfolioFeedback() {
+  try {
+    const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+    // 최근 30일 buy 추천 중 outcome 측정된 entry
+    const rows = db.prepare(`
+      SELECT r.ticker, o.outcome, o.pnl_pct
+      FROM recommendation_outcomes o
+      JOIN recommendations r ON r.id = o.recommendation_id
+      WHERE r.action = 'buy'
+        AND r.generated_at >= date('now', '-30 days')
+      ORDER BY o.evaluated_at DESC LIMIT 30
+    `).all();
+    // 만성 NE/stop ticker
+    const chronicNE = db.prepare(`
+      SELECT r.ticker, COUNT(*) cnt
+      FROM recommendation_outcomes o
+      JOIN recommendations r ON r.id = o.recommendation_id
+      WHERE r.action = 'buy' AND o.outcome = 'not_entered'
+      GROUP BY r.ticker HAVING cnt >= 5 ORDER BY cnt DESC LIMIT 5
+    `).all();
+    db.close();
+    if (!rows.length) return { feedback: '', summary: null };
+
+    const counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, unknown: 0 };
+    const tickerPnl = {};
+    for (const r of rows) {
+      counts[r.outcome] = (counts[r.outcome] ?? 0) + 1;
+      if (r.pnl_pct != null) {
+        if (!tickerPnl[r.ticker]) tickerPnl[r.ticker] = { sum: 0, n: 0 };
+        tickerPnl[r.ticker].sum += r.pnl_pct;
+        tickerPnl[r.ticker].n++;
+      }
+    }
+    const total = rows.length;
+    const hitRate = ((counts.hit_target / total) * 100).toFixed(0);
+    const neRate = ((counts.not_entered / total) * 100).toFixed(0);
+    const text =
+      `[Portfolio Feedback — 최근 30일 ${total}건 buy 추천 평가]\n` +
+      `hit ${counts.hit_target} (${hitRate}%) / stop ${counts.stop_loss} / NE ${counts.not_entered} (${neRate}%) / holding ${counts.still_holding}\n` +
+      (chronicNE.length ? `만성 NE 회피 (entry zone 시장가 위 자제): ${chronicNE.map(c => `${c.ticker}(${c.cnt}회)`).join(', ')}\n` : '');
+    const summary = {
+      total, ...counts,
+      hitRate: parseFloat(hitRate),
+      neRate: parseFloat(neRate),
+      chronicNE: chronicNE.map(c => ({ ticker: c.ticker, neCount: c.cnt })),
+    };
+    return { feedback: text, summary };
+  } catch (e) {
+    console.warn('  ⚠️ getPortfolioFeedback 실패:', e.message);
+    return { feedback: '', summary: null };
+  }
+}
+
 function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
   const recentTickers = getRecentTickers();
   const qualityFeedback = getRecentQualityFeedback();
+  const { feedback: portfolioFeedback } = getPortfolioFeedback();
+  if (portfolioFeedback) {
+    console.log('  [F22/Portfolio Feedback] prompt 에 outcome 통계 inject ✓');
+    console.log('    ' + portfolioFeedback.split('\n').slice(0, 2).join(' | '));
+  }
   // 2026-05-29: Karpathy pathway 작동 검증 — prompt inject 여부 stdout 로 표시.
   if (qualityFeedback) {
     console.log('  [F19/SkillOpt] prompt 에 Quality Feedback inject ✓');
@@ -3127,6 +3193,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     buildGroundingFacts(priceData),
     '',
     qualityFeedback,  // 2026-05-27 SkillOpt: 자체 quality 추세 + 약점 인지
+    portfolioFeedback,  // 2026-05-29 F22: 이전 portfolio outcome 통계 자가 학습
     qualityFeedback ? '' : null,
     `You are a portfolio manager building an investment strategy. Date: ${TODAY}.${li}`,
     '',
@@ -3879,6 +3946,8 @@ async function generateViaOllama() {
         upstreamRisks: s.upstreamRisks ?? [],
         evidenceUrl: s.evidenceUrl ?? null,
       })),
+    // 2026-05-29 F22: 이전 portfolio outcome 통계 — 사용자 가시 (ReportPage 표시 예정)
+    portfolioOutcomes: getPortfolioFeedback().summary,
     generatedAt: now,
     dataAsOf: now,
     source: `local-${modelArg}`,
