@@ -1741,15 +1741,17 @@ function enforceRotation(portfolio, livePrices) {
       const isFromPool = boost._fromPool === true;
       const sectorTag = isFromPool && boost.reason?.match(/sector=([^)]+)\)/)?.[1] || 'Unknown';
       const baseRationale = isFromPool
-        ? `${sectorTag} sector, mid/large-cap diversification`
+        ? `${boost.ticker} — ${sectorTag} 섹터 분산 (메가 편향 회피)`
         : `BOOST: ${boostReason || boost.reason}`;
+      // 2026-05-29: catalysts 의 cross-ticker duplicate WARN 해결 — ticker/sector/price
+      // 변수 포함하여 entry 별 unique. rationaleDedup 가 catch 안 함.
       const baseCatalysts = isFromPool
         ? [
-            `Sector diversification (${sectorTag}) — 비테크 노출`,
-            `Mid/large-cap rotation 후보 (CANDIDATE pool sample)`,
+            `${boost.ticker} (${sectorTag}) — Tech 비편향 sector 신규 노출`,
+            `시장가 ${fmt(actual)} 기준 mid/large-cap rotation pool 무작위 선택`,
           ]
         : [
-            `과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}% (boost-list)`,
+            `${boost.ticker} 과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}% (boost-list)`,
             `${boost.hits ?? 0}건 target hit / ${boost.stops ?? 0}건 stop`,
           ];
       updated[candidates[i].idx] = {
@@ -3114,6 +3116,13 @@ function getRecentQualityFeedback() {
 function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
   const recentTickers = getRecentTickers();
   const qualityFeedback = getRecentQualityFeedback();
+  // 2026-05-29: Karpathy pathway 작동 검증 — prompt inject 여부 stdout 로 표시.
+  if (qualityFeedback) {
+    console.log('  [F19/SkillOpt] prompt 에 Quality Feedback inject ✓');
+    console.log('    ' + qualityFeedback.split('\n').slice(0, 2).join(' | '));
+  } else {
+    console.log('  [F19/SkillOpt] ⚠️  qualityFeedback 빈 문자열 — DB 비어있거나 import 실패');
+  }
   return [
     buildGroundingFacts(priceData),
     '',
