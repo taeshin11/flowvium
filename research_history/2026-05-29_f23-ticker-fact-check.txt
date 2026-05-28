@@ -1,0 +1,107 @@
+2026-05-29 F23 ticker별 fact-check 재호출 + audit-all 전수조사 강화
+
+# 사용자 발견 + 제안
+1. "audit 가 표면적 200 만 보고 사용자 가시 결함 못 잡음 — 전수조사"
+2. "LLM 환각 시 prompt 세분화 + 여러번 돌린 후 합치기/정리"
+
+# Part A: audit-all 전수조사 강화 (62c83b6)
+어제까지 audit-all 이 status code 200 + extract(j).n > 0 만 검사 → 사용자 가시
+결함 (영어 leak, F19 silent fail, supply stale, NULL fields) 못 잡음.
+
+새 probe 7개 추가:
+
+## Endpoint quality 강화
+- news-cascade: translated=false + translating=true → 'UNTRANSLATED'
+                cached-en → '영어 노출 중!' tag
+- supply-chain-signals: live source 비율 명시 (live=0/30, 0%)
+                        모두 정적이면 'STALE 정적만' tag
+- 위 패턴이면 ERR 처리
+
+## [5/8] 보고서 content quality
+- catalysts NULL 카운트 (F20)
+- fundamentalBasis NULL 카운트
+- portfolioOutcomes (F22) / qualityScore (F19) / supplyChain date (F21) 존재
+- supplyChainChanges drift — 직전 보고서와 동일 hash 면 stale
+
+## [6/8] silent fail logs grep
+- '[F19/SkillOpt] inject ✓' hits
+- '[F22/Portfolio Feedback] inject ✓' hits
+- 'rotation:' enforceRotation 작동
+- '품질 점수' cycle 흔적
+
+## [7/8] 종목 다양성
+- 최근 7일 unique / candidate × 100
+- < 15 면 ERR, < 20 면 WARN
+
+오늘 즉시 detect:
+  ❌ news-cascade UNTRANSLATED
+  ❌ supply-chain STALE (live=0/30)
+  ❌ portfolioOutcomes / supplyChain date missing (commit 시점이 morning cycle 후)
+  ❌ F19/F22 logs hits=0 (commit 후 next cycle 까지 wait)
+  ✅ enforceRotation hits=23 / 품질 hits=20 / 다양성 정상
+
+# Part B: F23 ticker별 fact-check 재호출 (7b1a5d4)
+
+## 기존 구조
+portfolioData 한 호출에 6-8 종목 × catalysts 2-3 + fundamentalBasis +
+technicalBasis + 7-8 필드 한꺼번에 — 환각 빈번:
+  - cross-ticker swap (TSM/Samsung Revenue +69.2%)
+  - revenueYoY 매출 절대값 swap
+  - boilerplate catalysts
+  - 미래 분기 매출 hallucination
+
+## F23 구현
+mergedPortfolio 직후 (dedupCrossTickerCatalysts 전) ticker별 작은 prompt 병렬 호출:
+
+```
+Generate ONLY catalysts (2 items) and fundamentalBasis (1 line) for ${ticker}.
+Live price: ${ccy}${lp}
+Sector / Insider / Squeeze / YoY / Margin signals
+
+⚠️ RULES:
+- Catalysts specific to THIS ticker (NOT generic sector talk)
+- Each ≤ 60 chars. Cite actual signal numbers.
+- fundamentalBasis ≤ 80 chars
+- NO future-quarter speculation
+- NO cross-ticker bleed
+- ALL in ${TARGET_LANG}
+
+Pure JSON: {"catalysts":[...],"fundamentalBasis":"..."}
+```
+
+결과:
+- 작은 prompt 라 단일 종목 집중 → 환각 적음
+- 기존 catalysts/fundamentalBasis 와 다르면 fact-check 값으로 교체
+- 파싱 fail / 빈 응답 시 기존 값 유지 (graceful)
+
+비용: Ollama 로컬 \$0. 시간 +30~60s (6 종목 병렬).
+
+# 누적 fix (2026-05-24~29)
+F1~F11 기존 11 룰
+F12 ENTRY_CALIBRATION 활성화
+F13~F17 Codex blind spot fix
+F18 종목 다양성 강제
+F19 SkillOpt closed loop (require → import)
+F20 rotation catalysts auto-gen + sector 정확
+F21 supplyChainChanges date + signalType
+F22 이전 portfolio feedback inject
+F23 ticker별 fact-check 재호출 ← 오늘
+
+인프라:
+- EFTS title fix
+- market-caps cron, ownership-alerts cron
+- news-cascade cron (wait=1 sync 옵션)
+- getSession evening fix, 위성 제거
+- KR 29 → 240 (KOSPI 132 + KOSDAQ 108)
+- audit-all 전수조사 강화 ← 오늘
+
+# 검증 마일스톤 (16:05 KST afternoon, 약 1시간 후)
+- F19/F22 inject logs hits > 0
+- F23 fact-check ${N}/6 적용
+- portfolioOutcomes 필드 노출
+- supplyChain date 노출 (F21)
+- KR 240 종목 풀에서 KOSDAQ 신규 등장
+
+# 커밋
+62c83b6 fix(audit): 전수조사 강화 — 사용자 가시 결함 자동 detect (7 신규 probe)
+7b1a5d4 feat(skillopt): F23 ticker별 fact-check 재호출 — 환각 차단 (사용자 제안)
