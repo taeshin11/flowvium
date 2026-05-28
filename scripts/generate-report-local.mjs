@@ -1735,21 +1735,45 @@ function enforceRotation(portfolio, livePrices) {
       console.warn(`  🔄 rotation: ${oldP.ticker} → ${boost.ticker} (boost-list, avg_pnl ${boost.avg_pnl}%)`);
       // boost.reason 이 이미 "BOOST:" prefix 를 포함 — 이중 prefix 방지
       const boostReason = String(boost.reason ?? '').replace(/^\s*BOOST:\s*/i, '').trim();
+      // 2026-05-28: catalysts/fundamentalBasis/technicalBasis/riskNote 누락 사건 fix.
+      // LLM 추천 종목은 이 필드들 채움 — rotation 신규 종목도 동등 정보 노출.
+      const isFromPool = boost._fromPool === true;
+      const sectorTag = isFromPool && boost.reason?.match(/sector=([^)]+)\)/)?.[1] || 'Unknown';
+      const baseRationale = isFromPool
+        ? `${sectorTag} sector, mid/large-cap diversification`
+        : `BOOST: ${boostReason || boost.reason}`;
+      const baseCatalysts = isFromPool
+        ? [
+            `Sector diversification (${sectorTag}) — 비테크 노출`,
+            `Mid/large-cap rotation 후보 (CANDIDATE pool sample)`,
+          ]
+        : [
+            `과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}% (boost-list)`,
+            `${boost.hits ?? 0}건 target hit / ${boost.stops ?? 0}건 stop`,
+          ];
       updated[candidates[i].idx] = {
         ticker: boost.ticker,
         name: boost.ticker,
-        sector: 'Technology',
+        sector: isFromPool ? (sectorTag.charAt(0).toUpperCase() + sectorTag.slice(1)) : 'Technology',
         market: isKR ? 'korea' : 'us',
-        rationale: `BOOST: ${boostReason || boost.reason}`,
+        rationale: baseRationale,
         allocation: oldP.allocation ?? 10,
         entryZone: `${fmt(actual * 0.98)}-${fmt(actual * 1.01)}`,
-        entryRationale: `boost-list — 과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}%`,
+        entryRationale: isFromPool ? `시장가 -1% 진입 (rotation 신규)` : `boost-list — 과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}%`,
         stopLoss: fmt(actual * 0.93),
         target: fmt(actual * 1.10),
         targetBull: fmt(actual * 1.20),
-        targetRationale: '과거 성과 기반 보수적 target',
+        targetRationale: isFromPool ? '시장가 +10% 보수적 target' : '과거 성과 기반 보수적 target',
         confidence: 'medium',
         action: 'buy',
+        catalysts: baseCatalysts,
+        fundamentalBasis: isFromPool
+          ? `Sector=${sectorTag}, 시장가 ${fmt(actual)} (cap rotation 후보)`
+          : `과거 성과 기반: ${boost.evaluated}건 평가, ${boost.hits ?? 0} hits`,
+        technicalBasis: `시장가 ${fmt(actual)} 기준 -3% stop / +10% target`,
+        riskNote: isFromPool
+          ? `Rotation 신규 — 추가 검증 후 진입 권장 (catalysts 자동 생성)`
+          : `boost-list 기반 — 과거 데이터 의존, 미래 보장 X`,
       };
     }
     return updated;
