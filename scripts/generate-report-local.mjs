@@ -18,6 +18,7 @@ import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, getEntryFeedbackStats } from './lib/db.mjs';
+import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
@@ -3074,8 +3075,7 @@ function getRecentTickers() {
  */
 function getRecentQualityFeedback() {
   try {
-    const Database = (() => { try { return require('better-sqlite3'); } catch { return null; } })();
-    if (!Database) return '';
+    // 2026-05-28: ESM .mjs 에서 require 미정의 — top-level import 로 변경.
     const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
     const rows = db.prepare(`
       SELECT generated_at, quality_score, session, full_json
