@@ -723,13 +723,81 @@ async function redisSet(key, value, exSeconds) {
 }
 
 function getSession() {
-  // Windows Task Scheduler triggers: 07:05 (morning) / 16:05 (afternoon) / 21:35 (evening).
-  // 2026-05-27 버그 수정: afternoon cutoff 22 → 20. 21:35 evening trigger 가 'afternoon'
-  // 으로 라벨링되어 매일 afternoon 보고서가 evening 데이터로 덮어쓰는 문제 해결.
+  // Windows Task Scheduler triggers: 06:50 (morning) / 15:50 (afternoon) / 21:20 (evening).
+  // 2026-05-29: 시작 시간 10분 전 buffer + sleep until target 으로 정시 발간 보장.
   const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
-  if (kstHour >= 7 && kstHour < 16) return 'morning';
-  if (kstHour >= 16 && kstHour < 20) return 'afternoon';
+  if (kstHour >= 6 && kstHour < 15) return 'morning';
+  if (kstHour >= 15 && kstHour < 20) return 'afternoon';
   return 'evening';
+}
+
+/**
+ * 2026-05-29: 세션별 시장 focus — 한국 시간대 + 글로벌 장 일정 매칭.
+ *   morning  06:50 KST → US 장 마감 직후 (전일 22:00 UTC) → US-focused
+ *   afternoon 15:50 KST → KR 장 마감 직후 (15:30 KST) → KR-focused
+ *   evening  21:20 KST → US 장 시작 직후 (= 09:35 EST) → US-premarket + 글로벌
+ *
+ * 보고서에 sessionFocus 메타 + prompt 에 inject — LLM 이 해당 시장 종목 비중 강화.
+ */
+function getSessionFocus(session) {
+  switch (session) {
+    case 'morning':
+      return {
+        primary: 'us',
+        secondary: ['global'],
+        label: 'US 장 마감 직후 (전일 close)',
+        marketWeight: { us: 60, kr: 20, global: 20 },
+      };
+    case 'afternoon':
+      return {
+        primary: 'kr',
+        secondary: ['japan', 'china'],
+        label: 'KR 장 마감 직후 + 아시아',
+        marketWeight: { kr: 50, us: 25, asia: 25 },
+      };
+    case 'evening':
+      return {
+        primary: 'us',
+        secondary: ['premarket', 'global'],
+        label: 'US 장 시작 직후 (premarket → open)',
+        marketWeight: { us: 70, global: 20, kr: 10 },
+      };
+    default:
+      return { primary: 'global', secondary: [], label: '글로벌', marketWeight: {} };
+  }
+}
+
+/**
+ * 2026-05-29: 정시 발간 — 보고서 완료 후 target 시간까지 sleep.
+ *   morning  → 07:00 KST
+ *   afternoon → 16:00 KST
+ *   evening  → 21:30 KST
+ */
+function getPublishTarget(session) {
+  const kstNow = new Date(Date.now() + 9 * 3600000);
+  const target = new Date(kstNow);
+  if (session === 'morning')        { target.setUTCHours(7, 0, 0, 0); }
+  else if (session === 'afternoon') { target.setUTCHours(16, 0, 0, 0); }
+  else                              { target.setUTCHours(21, 30, 0, 0); }
+  // target 이 이미 지났으면 (보고서가 늦게 끝나서) wait 안 함
+  const waitMs = target.getTime() - kstNow.getTime();
+  return { target, waitMs };
+}
+
+async function sleepUntilPublishTarget(session) {
+  const { target, waitMs } = getPublishTarget(session);
+  if (waitMs <= 0) {
+    console.log(`  [정시 발간] target ${target.toISOString().slice(11,16)} KST 이미 지남 — 즉시 발간`);
+    return;
+  }
+  // 2026-05-29: trigger 시간 20분 전 → 최대 20분 sleep 허용 (이전 15분 cutoff 확장)
+  if (waitMs > 25 * 60 * 1000) {
+    console.log(`  [정시 발간] target ${target.toISOString().slice(11,16)} KST 까지 25분+ — sleep 생략 (수동 실행 등)`);
+    return;
+  }
+  const sec = Math.round(waitMs / 1000);
+  console.log(`  [정시 발간] target ${target.toISOString().slice(11,16)} KST 까지 ${sec}s wait...`);
+  await new Promise(r => setTimeout(r, waitMs));
 }
 
 // ── Step 2: 파일 → Redis 업로드 ────────────────────────────────────────────────
@@ -3182,6 +3250,13 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     console.log('  [F22/Portfolio Feedback] prompt 에 outcome 통계 inject ✓');
     console.log('    ' + portfolioFeedback.split('\n').slice(0, 2).join(' | '));
   }
+  // 2026-05-29 F24: 세션별 시장 focus inject — 해당 시장 종목 비중 강화
+  const session = getSession();
+  const focus = getSessionFocus(session);
+  const focusBlock = `[Session Focus] ${session.toUpperCase()} (${focus.label})\n` +
+    `Primary 시장: ${focus.primary} | 보조: ${focus.secondary.join('/')}\n` +
+    `목표 비중: ${Object.entries(focus.marketWeight).map(([k,v])=>`${k.toUpperCase()} ${v}%`).join(' / ')}\n` +
+    `→ 이 세션은 위 primary 시장 종목을 우선 추천 (해당 시장 ≥${focus.marketWeight[focus.primary] ?? 50}%).`;
   // 2026-05-29: Karpathy pathway 작동 검증 — prompt inject 여부 stdout 로 표시.
   if (qualityFeedback) {
     console.log('  [F19/SkillOpt] prompt 에 Quality Feedback inject ✓');
@@ -3194,6 +3269,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '',
     qualityFeedback,  // 2026-05-27 SkillOpt: 자체 quality 추세 + 약점 인지
     portfolioFeedback,  // 2026-05-29 F22: 이전 portfolio outcome 통계 자가 학습
+    focusBlock,  // 2026-05-29 F24: 세션별 시장 focus (morning=US / afternoon=KR / evening=US-pre)
     qualityFeedback ? '' : null,
     `You are a portfolio manager building an investment strategy. Date: ${TODAY}.${li}`,
     '',
@@ -4010,6 +4086,13 @@ async function generateViaOllama() {
       })),
     // 2026-05-29 F22: 이전 portfolio outcome 통계 — 사용자 가시 (ReportPage 표시 예정)
     portfolioOutcomes: getPortfolioFeedback().summary,
+    // 2026-05-29 F24: 세션별 시장 focus — morning=US/afternoon=KR/evening=US-premarket
+    sessionFocus: getSessionFocus(session),
+    // 2026-05-29 F25: portfolio market 별 분리 — 미국장 / 한국장 그룹 (ReportPage 별도 섹션)
+    portfolioByMarket: {
+      us: dedupedPortfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ')),
+      kr: dedupedPortfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')),
+    },
     generatedAt: now,
     dataAsOf: now,
     source: `local-${modelArg}`,
@@ -4518,6 +4601,8 @@ async function generateViaOllama() {
 
   if (autoUpload) {
     console.log('\n--auto-upload 설정됨, 품질 통과 → 업로드 진행...');
+    // 2026-05-29: 정시 발간 — target 시간까지 sleep 후 업로드
+    await sleepUntilPublishTarget(session);
     await uploadFromFile(filepath);
   } else {
     console.log('\n✅ 생성 완료. 내용 확인 후 업로드:');
