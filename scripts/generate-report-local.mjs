@@ -3899,6 +3899,68 @@ async function generateViaOllama() {
 
   // Log final portfolio before dedup
   console.log(`  [merge] mergedPortfolio: ${mergedPortfolio.length}개 — ${mergedPortfolio.map(p => `${p.ticker}(${p.action})`).join(', ')}`);
+
+  // 2026-05-29 F23: ticker별 fact-check 재호출 — 환각 차단 (큰 prompt 한 번 → 작은 prompt × N)
+  // 각 종목 별도 LLM 호출 (작은 prompt) 로 catalysts/fundamentalBasis 검증.
+  // 결과 정답 가까운 small-prompt 응답으로 기존 값 교체. cross-ticker swap 차단.
+  console.log(`\n  [F23/fact-check] ticker별 fact-check 재호출 시작 (${mergedPortfolio.length}개 병렬)...`);
+  try {
+    const factCheckResults = await Promise.all(mergedPortfolio.map(async p => {
+      const lp = livePrices.get(p.ticker)?.price;
+      const sigDigest = signalDigest.get(p.ticker);
+      const isKR = p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ');
+      const ccy = isKR ? '₩' : '$';
+      const factPrompt = [
+        `Generate ONLY catalysts (2 short items in ${TARGET_LANG}) and fundamentalBasis (1 short line) for ticker ${p.ticker}.`,
+        '',
+        `Ticker: ${p.ticker}${p.name && p.name !== p.ticker ? ' (' + p.name + ')' : ''}`,
+        `Live price: ${ccy}${lp ?? 'N/A'}`,
+        `Sector: ${p.sector ?? 'N/A'}`,
+        sigDigest?.insider ? `Insider signals: ${sigDigest.insider}` : '',
+        sigDigest?.squeeze ? `Squeeze score: ${sigDigest.squeeze}` : '',
+        sigDigest?.yoy ? `Last quarter YoY: ${sigDigest.yoy} (revenue) / margin ${sigDigest.margin ?? 'N/A'}` : '',
+        '',
+        '⚠️ RULES:',
+        '- Catalysts MUST be specific to this ticker — NOT generic sector talk.',
+        '- Each catalyst ≤ 60 chars. Cite actual signal (insider count / squeeze score / revenue % YoY).',
+        '- fundamentalBasis ≤ 80 chars — Revenue/margin/PE values from above signals only.',
+        '- NO speculation about future quarters. NO cross-ticker bleed (other ticker numbers).',
+        `- ALL text in ${TARGET_LANG}. NO English fallback.`,
+        '',
+        'Pure JSON only:',
+        '{"catalysts":["item1","item2"],"fundamentalBasis":"text"}',
+      ].filter(Boolean).join('\n');
+      try {
+        const resp = await callOllama(factPrompt, modelArg, 60000, `fact-check:${p.ticker}`);
+        const m = resp?.match(/\{[\s\S]*\}/);
+        if (!m) return null;
+        const parsed = JSON.parse(m[0]);
+        if (Array.isArray(parsed.catalysts) && parsed.catalysts.length >= 1 && typeof parsed.fundamentalBasis === 'string') {
+          return { ticker: p.ticker, catalysts: parsed.catalysts.slice(0, 3), fundamentalBasis: parsed.fundamentalBasis.slice(0, 120) };
+        }
+        return null;
+      } catch { return null; }
+    }));
+    let replaced = 0;
+    for (let i = 0; i < mergedPortfolio.length; i++) {
+      const fc = factCheckResults[i];
+      if (!fc) continue;
+      // 기존 catalysts/fundamentalBasis 와 다르면 fact-check 값으로 교체
+      const oldCat = JSON.stringify(mergedPortfolio[i].catalysts ?? []);
+      const newCat = JSON.stringify(fc.catalysts);
+      if (oldCat !== newCat) {
+        mergedPortfolio[i].catalysts = fc.catalysts;
+        replaced++;
+      }
+      if (mergedPortfolio[i].fundamentalBasis !== fc.fundamentalBasis) {
+        mergedPortfolio[i].fundamentalBasis = fc.fundamentalBasis;
+      }
+    }
+    console.log(`  [F23/fact-check] ${replaced}/${mergedPortfolio.length} 종목 catalysts/fundamentalBasis 재생성 적용`);
+  } catch (e) {
+    console.warn('  [F23/fact-check] 실패 (기존 값 유지):', e.message);
+  }
+
   const dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
   // Quality pre-flight
   {
