@@ -3862,6 +3862,8 @@ async function generateViaOllama() {
     marketNarrative: narrativeData ?? {},
     companyChanges: companyChangesData?.companyChanges ?? [],
     // S9: 공급망 변화 모니터링 (supply-chain-signals 데이터 직접 주입 — LLM 없이)
+    // 2026-05-29: date 필드 추가 (사용자가 "언제 알게 됐는지" 인지 가능).
+    // signalType 도 노출 — supply_risk / supply_expansion / demand_shift 등 분류.
     supplyChainChanges: (ctxRaw.supplyChainSignals ?? [])
       .filter(s => s.conviction >= 45)
       .slice(0, 10)
@@ -3870,6 +3872,8 @@ async function generateViaOllama() {
         direction: s.direction ?? 'neutral',
         headline: s.headline,
         source: s.source,
+        date: s.date ?? null,
+        signalType: s.signalType ?? null,
         conviction: s.conviction,
         downstreamBeneficiaries: s.downstreamBeneficiaries ?? [],
         upstreamRisks: s.upstreamRisks ?? [],
