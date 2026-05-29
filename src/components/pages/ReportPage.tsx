@@ -883,20 +883,53 @@ export default function ReportPage() {
             </div>
           ) : null}
 
-          {/* ── Portfolio ─────────────────────────────────────────────────── */}
-          {data.portfolio.length > 0 && (
-            <div className="mb-5">
-              <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-violet-500" />
-                {t('portfolioTitle')}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {data.portfolio.map((item, i) => (
-                  <PortfolioCard key={item.ticker} item={item} rank={i + 1} />
-                ))}
+          {/* ── Portfolio (시장별 분리 — F25) ────────────────────────────── */}
+          {data.portfolio.length > 0 && (() => {
+            // portfolioByMarket 있으면 분리 표시, 없으면 fallback 으로 자체 분류
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pbm = (data as any).portfolioByMarket as { us?: typeof data.portfolio; kr?: typeof data.portfolio } | undefined;
+            const us = pbm?.us ?? data.portfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ'));
+            const kr = pbm?.kr ?? data.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ'));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const focus = (data as any).sessionFocus as { primary?: string; label?: string; marketWeight?: Record<string, number> } | undefined;
+            return (
+              <div className="mb-5">
+                <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-violet-500" />
+                  {t('portfolioTitle')}
+                  {focus?.label && (
+                    <span className="ml-2 text-[10px] font-normal text-violet-600 bg-violet-50 rounded px-2 py-0.5">
+                      📍 {focus.label} (primary: {focus.primary?.toUpperCase()})
+                    </span>
+                  )}
+                </h2>
+                {us.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                      🇺🇸 US Market <span className="text-[10px] text-gray-500 font-normal">({us.length} 종목)</span>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {us.map((item, i) => (
+                        <PortfolioCard key={item.ticker} item={item} rank={i + 1} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {kr.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                      🇰🇷 KR Market <span className="text-[10px] text-gray-500 font-normal">({kr.length} 종목)</span>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {kr.map((item, i) => (
+                        <PortfolioCard key={item.ticker} item={item} rank={us.length + i + 1} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ── S5: 리스크 관리 (손절선 설정 근거 + 헤징) ──────────────────────────── */}
           {(data.stopLossRationale?.length || data.hedgingSuggestion) && (
