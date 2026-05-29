@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
@@ -3753,7 +3753,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       if (rule.category === 'price' && rule.id !== 'price_oversold_gap') continue; // 나머지 가격은 Stage 2
       if (rule.category === 'rotation' && !['rotation_defensive'].includes(rule.id)) continue; // 나머지 회전은 Stage 3
       const r = evaluateBuyRule(rule, ctx);
-      if (r) { cumScore += rule.score; reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
+      if (r) { cumScore += rule.score; reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
     if (cumScore <= -50) continue; // ban
     if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price });
@@ -3774,7 +3774,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
         rule.id === 'rotation_new_high_after_consolidation';
       if (!needsOHLCV) continue;
       const r = evaluateBuyRule(rule, ctx);
-      if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
+      if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
   }
   stage2Cands.sort((a, b) => b.stage1Score - a.stage1Score);
@@ -3795,7 +3795,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     for (const rule of ruleSpec.rules) {
       if (!['fundamental', 'guru'].includes(rule.category) && rule.id !== 'rotation_sector_in') continue;
       const r = evaluateBuyRule(rule, ctx);
-      if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
+      if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
   }
   stage3Cands.sort((a, b) => b.stage1Score - a.stage1Score);
@@ -3885,6 +3885,7 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         market: isKR ? 'kr' : 'us',
         score: matchedRule.score,
         ruleId: matchedRule.id,
+        category: matchedRule.category ?? null,
         urgency: matchedRule.urgency,
         reason,
         currentPrice: fmt(price),
@@ -5524,6 +5525,15 @@ async function generateViaOllama() {
       console.log(`[db] 📤 매도 추천 적재: ${sellCount}건`);
     } catch (e) {
       console.warn(`[db] ⚠️ 매도 추천 적재 실패: ${String(e).slice(0, 100)}`);
+    }
+    // 2026-05-29: 매수 후보 전량 적재 (LLM 선택 12 외 score top N 까지) — Karpathy source 누락 방지
+    let buyCandCount = 0;
+    try {
+      const selectedTickers = new Set((finalReport.portfolio ?? []).map(p => p.ticker).filter(Boolean));
+      buyCandCount = saveBuyCandidates(reportId, finalReport.generatedAt, buyCandidates, selectedTickers);
+      console.log(`[db] 🛒 매수 후보 적재: ${buyCandCount}건 (선택=${selectedTickers.size})`);
+    } catch (e) {
+      console.warn(`[db] ⚠️ 매수 후보 적재 실패: ${String(e).slice(0, 100)}`);
     }
     // 2026-05-29: 뉴스 + macro 시점 스냅샷 적재 (30년 누적 검색 가능)
     let newsCount = 0;

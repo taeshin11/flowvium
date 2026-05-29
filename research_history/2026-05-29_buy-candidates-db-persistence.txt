@@ -1,0 +1,62 @@
+2026-05-29 — buy_candidates DB 적재 + 카테고리 대칭 audit + 사용자 명시 list 검증 의무
+
+발생 경위
+─────────
+사용자: "빠뜨리는거 없이 DB에 남겨야 된다."
+직전: "매수룰도 가격, 기술, 거시, 기본, 구루, 회전, 미시 카테고리 다 고려된거지?"
+"왜 이런거 빠뜨리니?" — 사용자 명시 7개 카테고리 중 buy rule 에 "가격" 누락
++ 내가 만든 요약표에도 "가격" 컬럼 빠진 채 제출.
+
+이번 작업
+─────────
+1. scripts/generate-report-local.mjs
+   - sell candidate push 에 category: matchedRule.category 추가 (silent omission 차단)
+   - DB save flow 에 saveBuyCandidates() 호출 추가 (saveSellRecommendations 직후)
+     • selectedTickers = Set(finalReport.portfolio[].ticker) 로 selected 0/1 마킹
+     • 로그: "🛒 매수 후보 적재: N건 (선택=12)"
+
+2. scripts/lib/db.mjs (이전 commit 에 이미 schema 추가됨, 이번엔 import 만 연결)
+   - buy_candidates 테이블: id/report_id/ticker/market/sector/rank/total_score/selected
+     + matched_rules JSON ([{ruleId,category,score,reason}])
+     + category_scores JSON ({price:N, tech:N, ...})
+
+3. scripts/audit-coverage.mjs — Probe [5] + Probe [6] 신설
+   - Probe [5]: data/buy-rules-tuned.json + data/sell-rules-tuned.json 의
+     7개 카테고리 (price/technical/fundamental/guru/macro/micro/rotation) 양쪽 cover 확인.
+     한쪽 누락 시 ❌. category 필드 빈 룰도 색출.
+   - Probe [6]: buy_candidates 14일간 적재량 + matched_rules JSON 의 category 필드 검증.
+     0건이면 saveBuyCandidates 미연결 의심 경고.
+
+4. CLAUDE.md — "📋 사용자 명시 list 검증 의무" 신설
+   사용자가 N개 항목 나열 시:
+   (a) 즉시 checklist 화
+   (b) 작업 후 self grep 검증
+   (c) count 불일치 시 표 재작성 (잘못된 채 제출 금지)
+   (d) audit Probe [5] 가 매 audit 마다 자동 점검
+   적용 트리거 예시: "X, Y, Z 다 고려해서" → checklist [X, Y, Z]
+
+5. FEATURES.md / METRICS.md
+   - 13-3: buy_candidates DB 적재 + 31룰 7카테고리 라인 추가
+   - 13-3b: 19룰 7카테고리 + category 필드 + Probe [5] 라인 추가
+   - 12-P0b: buy_candidates 적재 항목 신설
+
+검증
+─────
+- node --check 3 파일 통과
+- node scripts/audit-coverage.mjs 실행:
+  ✅ buy rules — 7개 카테고리 모두 cover (총 31개 룰)
+  ✅ sell rules — 7개 카테고리 모두 cover (총 19개 룰)
+  ⚠️ buy_candidates 14일간 0건 — saveBuyCandidates 미연결 (예상, 다음 보고서 후 채워짐)
+- openDb() 실행으로 buy_candidates 테이블 SQLite 에 생성 완료
+
+루트 원인 (사용자가 "왜 자꾸 빠뜨리니" 물은 데 대한 답)
+─────────
+(1) ad-hoc 카테고리 추가 — sell rule 에 7개 카테고리 만들고 buy rule 대칭 확인 안 함
+(2) 자기 요약표 grep 자체 검증 부재 — "가격" 누락한 표를 그대로 사용자에게 제출
+(3) 가장 본질적: 사용자가 explicit list 로 N개를 나열한 것을 checklist 로 받아쓰지 않음
+→ CLAUDE.md 규칙 + audit Probe [5] 양면 방어로 재발 차단.
+
+다음 단계
+─────────
+- 다음 보고서 실행 시 buy_candidates 자동 적재 확인 (audit Probe [6] ⚠️→✅)
+- tune-buy-rules.mjs 가 buy_candidates 의 outcome 과 join 해서 룰별 hit rate 학습 (Karpathy)

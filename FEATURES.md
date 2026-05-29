@@ -702,10 +702,13 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 클릭 확장: 진입 구간 / 손절가 / 목표가 / Exit Ladder (entry/exit 분할)
 - 확신도 뱃지 (high/medium/low)
 - `buyCandidateScoring.top30` 메타 — score + 매칭 룰 ID 보존 (audit 가능)
+- 7 카테고리 31룰 multi-factor: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) + selflearn(2) (`data/buy-rules-tuned.json`)
+- `buy_candidates` DB 적재 — 선택 12 외 score top 30 까지 모두 보존 (Karpathy 학습 source, 룰별 category/score JSON)
 
 ### 13-3b. 📤 매도 추천 (US 6 + KR 6, multi-factor + Karpathy 학습, 2026-05-29)
-- 6 카테고리 multi-factor 룰: 가격 / 기술 / 기본 / 구루 / 거시 / 미시 (`data/sell-rules-tuned.json`)
-- 룰 18개 — stop_breach, dead_cross, 200ma_breach, rsi_overbought, op_margin_decline, lynch_peg, macro_high_risk, sector_underweight, news_negative 등
+- 7 카테고리 19룰 multi-factor: 가격 / 기술 / 기본 / 구루 / 거시 / 미시 / 회전 (`data/sell-rules-tuned.json`)
+- 룰 — stop_breach, dead_cross, 200ma_breach, rsi_overbought, op_margin_decline, lynch_peg, macro_high_risk, sector_underweight, news_negative, rotation_profit/loss/neutral 등
+- 매칭 룰 category 메타 보존 (sell_recommendations.matched_rules) — audit-coverage Probe [5] 가 buy/sell 카테고리 대칭 자동 점검
 - Exit Ladder 자동 생성 (Klarman 부분 매도): stop_breach=즉시전량 / target_near=1/3/1/3/1/3 trailing / rotation_profit=1/3 + breakeven lock
 - urgency 배지 (🔴 high / 🟠 medium / ⚪ low) — JSON 룰 메타에서 직접 (하드코딩 X)
 - `sell_recommendations` + `sell_outcomes` DB 적재 → `tune-sell-rules.mjs` weekly grid search 학습

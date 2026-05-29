@@ -264,6 +264,61 @@ if (problemReports >= 2) {
   ok(`portfolio↔snapshot 정합성: ${totalSnapshotted}/${totalExpected} ticker (${recentReports.length} 보고서)`);
 }
 
+// ═══════ Probe 5: buy/sell rule 카테고리 대칭 ═══════
+// 2026-05-29 사건 — sell rule 에 "가격/기술/기본/구루/거시/미시/회전" 7개 카테고리를 가졌는데
+// buy rule 은 ad-hoc 추가로 한쪽에만 있는 카테고리 노출. 한쪽에만 있는 카테고리는 silent gap.
+console.log('\n## [5] buy/sell rule 카테고리 대칭 (Karpathy pathway 무결성)\n');
+try {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const buy = JSON.parse(fs.readFileSync(path.resolve('data/buy-rules-tuned.json'), 'utf8'));
+  const sell = JSON.parse(fs.readFileSync(path.resolve('data/sell-rules-tuned.json'), 'utf8'));
+  const buyCats = new Map();
+  const sellCats = new Map();
+  for (const r of (buy.rules ?? [])) buyCats.set(r.category ?? '?', (buyCats.get(r.category ?? '?') ?? 0) + 1);
+  for (const r of (sell.rules ?? [])) sellCats.set(r.category ?? '?', (sellCats.get(r.category ?? '?') ?? 0) + 1);
+  // selflearn 은 buy 전용 (boost/ban-list) — sell 에 굳이 없어도 됨
+  const expected = ['price', 'technical', 'fundamental', 'guru', 'macro', 'micro', 'rotation'];
+  const missingBuy = expected.filter(c => !buyCats.has(c));
+  const missingSell = expected.filter(c => !sellCats.has(c));
+  if (missingBuy.length) err(`buy rules — 카테고리 누락: ${missingBuy.join(', ')}`);
+  else ok(`buy rules — 7개 카테고리 모두 cover (총 ${buy.rules.length}개 룰)`);
+  if (missingSell.length) err(`sell rules — 카테고리 누락: ${missingSell.join(', ')}`);
+  else ok(`sell rules — 7개 카테고리 모두 cover (총 ${sell.rules.length}개 룰)`);
+  // category 필드 자체가 비어있는 룰 색출 (silent omission)
+  const buyNoCat = (buy.rules ?? []).filter(r => !r.category).map(r => r.id);
+  const sellNoCat = (sell.rules ?? []).filter(r => !r.category).map(r => r.id);
+  if (buyNoCat.length) err(`buy rules — category 필드 빈 룰 ${buyNoCat.length}건: ${buyNoCat.slice(0, 3).join(', ')}`);
+  if (sellNoCat.length) err(`sell rules — category 필드 빈 룰 ${sellNoCat.length}건: ${sellNoCat.slice(0, 3).join(', ')}`);
+} catch (e) {
+  warn(`buy/sell rule 카테고리 점검 실패: ${e.message}`);
+}
+
+// ═══════ Probe 6: buy_candidates 적재 (Karpathy source — 선택 12 외 후보 보존) ═══════
+console.log('\n## [6] buy_candidates 적재 — 선택 외 후보 보존 (Karpathy 학습 source)\n');
+try {
+  const bcRows = db.prepare(`SELECT COUNT(*) c, COUNT(DISTINCT report_id) r FROM buy_candidates WHERE generated_at >= datetime('now','-14 days')`).get();
+  if (bcRows.c === 0) {
+    warn(`buy_candidates 14일간 0건 — saveBuyCandidates 미연결 의심`);
+  } else {
+    const perReport = bcRows.c / Math.max(bcRows.r, 1);
+    if (perReport < 10) err(`buy_candidates avg ${perReport.toFixed(1)}/report — top30 적재 기대 (저공급 의심)`);
+    else ok(`buy_candidates ${bcRows.c}건 / ${bcRows.r} reports (avg ${perReport.toFixed(0)}/report)`);
+    // matched_rules JSON 검증 — category 필드 누락 silent omission
+    const sample = db.prepare(`SELECT matched_rules FROM buy_candidates WHERE matched_rules IS NOT NULL ORDER BY generated_at DESC LIMIT 1`).get();
+    if (sample) {
+      try {
+        const arr = JSON.parse(sample.matched_rules);
+        const noCat = arr.filter(r => !r.category).length;
+        if (noCat > 0) err(`buy_candidates.matched_rules — category 필드 누락 ${noCat}/${arr.length}건 (sample)`);
+        else ok(`buy_candidates.matched_rules — category 필드 모두 채워짐 (sample ${arr.length}건)`);
+      } catch { warn(`buy_candidates.matched_rules JSON parse 실패`); }
+    }
+  }
+} catch (e) {
+  warn(`buy_candidates 점검 실패: ${e.message}`);
+}
+
 // ═══════ Probe 4: 동일 응답 반복 (drift 없음 = stale) ═══════
 console.log('\n## [4] 응답 drift (정적 데이터 의심)\n');
 

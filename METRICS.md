@@ -652,15 +652,16 @@
 | 12-S4 | 기술적 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
 | 12-S5 | 기본적 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
 | 12-P1 | AI 추천 포트폴리오 (US 6 + KR 6 = 12종목) | 💾 cached | buy-rules-tuned.json 4-stage + LLM ensemble ← 2026-05-29 |
-| 12-P0 | 매수 룰 score top 30 후보 (buyCandidateScoring) | 🔄 cron | 23 룰 multi-factor scoring (light→OHLCV→financials) |
+| 12-P0 | 매수 룰 score top 30 후보 (buyCandidateScoring) | 🔄 cron | 31 룰 multi-factor scoring (7 카테고리, light→OHLCV→financials) |
+| 12-P0b | `buy_candidates` DB 적재 (matched_rules + category JSON) | 🔄 cron | saveBuyCandidates, audit Probe [6] ← 2026-05-29 |
 | 12-PT | 매수 룰 학습 (weekly outcome 평가) | 🔄 cron | tune-buy-rules.mjs Sun 04:15 |
 | 12-P2 | 종목별 진입 구간 | 💾 cached | AI 생성 |
 | 12-P3 | 종목별 손절가 | 💾 cached | AI 생성 |
 | 12-P4 | 종목별 목표가 | 💾 cached | AI 생성 |
 | 12-P5 | 종목별 확신도 (high/medium/low) | 💾 cached | AI 생성 |
 | 12-P6 | 종목별 매수 액션 (buy/hold/watch) | 💾 cached | AI 생성 ← iter210 |
-| 12-S1 | 📤 매도 추천 (US 6 + KR 6, multi-factor) | 🔄 cron | sell-rules-tuned.json (가격/tech/fund/구루/거시/미시) ← 2026-05-29 |
-| 12-S2 | 매도 type (18 룰 카테고리, JSON 정의) | 🔄 cron | sell-rules-tuned.json (하드코딩 X) |
+| 12-S1 | 📤 매도 추천 (US 6 + KR 6, multi-factor) | 🔄 cron | sell-rules-tuned.json (가격/tech/fund/구루/거시/미시/회전) ← 2026-05-29 |
+| 12-S2 | 매도 type (19 룰, 7 카테고리, JSON 정의) | 🔄 cron | sell-rules-tuned.json (하드코딩 X), category 필드 보존 |
 | 12-S3 | 매도 urgency | 🔄 cron | sell-rules-tuned.json 룰 메타 |
 | 12-S4 | 매도 rationale (LLM 또는 룰) | 🔄 cron | Wave 2 LLM, 구루/tech/fund/macro inject |
 | 12-S5 | Exit Ladder (1/3, 2/3, 전량 부분 매도 ladder) | 🔄 cron | buildExitLadder() 룰 type 별 패턴 |

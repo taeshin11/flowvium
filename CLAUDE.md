@@ -160,6 +160,36 @@ node scripts/audit-coverage.mjs
 
 ---
 
+## 📋 사용자 명시 list 검증 의무 (2026-05-29 "왜 자꾸 빠뜨리니" 사건 이후 신설)
+
+**발생 경위:** 사용자가 "가격, 기술, 거시, 기본, 구루, 회전, 미시" 7개 카테고리를 나열했는데
+매수 룰 파일에 "가격(price)" 카테고리가 누락된 채로 진행. 매도 룰 (sell-rules-tuned.json) 추가
+직후 매수 룰 대칭 확인 안 했고, 자신이 만든 요약표에 "가격" 컬럼이 빠진 것도 발견 못함.
+
+### 규칙
+
+사용자가 **명시적으로 N개 항목을 나열**(",", "/", "·" 또는 번호 매기기)한 경우:
+
+1. **즉시 checklist 화** — 답변 작성 전 사용자가 나열한 항목을 그대로 받아쓰고 진행.
+2. **작업 후 self grep 검증** — 결과물 (코드/문서/데이터) 에 N개 항목 모두 들어갔는지 grep:
+   ```bash
+   for cat in price technical fundamental guru macro micro rotation; do
+     echo -n "$cat: "; grep -c "\"category\":\\s*\"$cat\"" data/buy-rules-tuned.json
+   done
+   ```
+3. **count 불일치 시 즉시 fix 후 표 재작성** — 표가 잘못된 채로 사용자에게 제출 금지.
+4. **자동 감지**: `node scripts/audit-coverage.mjs` 의 Probe [5] 가 buy/sell rule 카테고리
+   대칭을 매 audit 마다 확인 — 한쪽 누락 시 ❌.
+
+### 적용 트리거 (예시)
+
+- "X, Y, Z 다 고려해서" → checklist [X, Y, Z]
+- "P0/P1/P2 다 처리" → checklist [P0, P1, P2]
+- "이 6가지 …" → 6개 모두 grep 검증
+- "가격, 기술, 거시, 기본, 구루, 회전, 미시" → 7개 카테고리 grep
+
+---
+
 ## 🗂️ 기타 프로젝트 관습
 
 - i18n: 모든 UI 문자열은 `messages/*.json`에 넣고 하드코딩 금지

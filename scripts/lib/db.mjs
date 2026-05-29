@@ -319,6 +319,26 @@ CREATE TABLE IF NOT EXISTS sell_outcomes (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_sellout_rec_eval ON sell_outcomes(sell_rec_id, evaluated_at);
 CREATE INDEX IF NOT EXISTS idx_sellout_evaluated ON sell_outcomes(evaluated_at);
+
+-- 2026-05-29: 매수 candidate scoring 적재 — top 30 + 룰별 score breakdown.
+--   사후 분석 (어떤 룰 카테고리가 hit 에 기여했는지) + buy-rules-tuned outcome 학습 source.
+CREATE TABLE IF NOT EXISTS buy_candidates (
+  id              TEXT PRIMARY KEY,         -- 'YYYY-MM-DD:session:ticker'
+  report_id       TEXT NOT NULL,
+  generated_at    TEXT NOT NULL,
+  ticker          TEXT NOT NULL,
+  market          TEXT,                     -- us / kr
+  sector          TEXT,
+  rank            INTEGER,                  -- 1~30
+  total_score     INTEGER NOT NULL,
+  selected        INTEGER NOT NULL,         -- 0/1: 최종 12 portfolio 에 포함됐는지
+  matched_rules   TEXT,                     -- JSON array [{ ruleId, category, score, reason }]
+  category_scores TEXT,                     -- JSON object { price: 5, tech: 10, fund: 4, ... }
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_buycand_ticker  ON buy_candidates(ticker);
+CREATE INDEX IF NOT EXISTS idx_buycand_report  ON buy_candidates(report_id);
+CREATE INDEX IF NOT EXISTS idx_buycand_score   ON buy_candidates(total_score DESC);
 `;
 
 let _dbInstance = null;
@@ -910,6 +930,58 @@ export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
     }
   });
   txn(sellRecs);
+  return n;
+}
+
+/**
+ * 2026-05-29: 매수 candidate scoring 적재 — top 30 + 룰별 score breakdown.
+ * 사후 분석 (어떤 카테고리가 hit 에 기여) + tune-buy-rules.mjs 가 활용.
+ */
+export function saveBuyCandidates(reportId, generatedAt, candidates = [], selectedTickers = new Set()) {
+  const db = openDb();
+  const insert = db.prepare(`
+    INSERT INTO buy_candidates
+      (id, report_id, generated_at, ticker, market, sector, rank, total_score, selected, matched_rules, category_scores)
+    VALUES (@id, @report_id, @generated_at, @ticker, @market, @sector, @rank, @total_score, @selected, @matched_rules, @category_scores)
+    ON CONFLICT(id) DO UPDATE SET
+      rank = excluded.rank,
+      total_score = excluded.total_score,
+      selected = excluded.selected,
+      matched_rules = excluded.matched_rules,
+      category_scores = excluded.category_scores
+  `);
+  const sessionTag = reportId.split(':').slice(0, 2).join(':');
+  let n = 0;
+  const txn = db.transaction((rows) => {
+    rows.forEach((c, idx) => {
+      if (!c?.ticker) return;
+      const categoryScores = {};
+      const matchedRules = (c.reasons ?? []).map(r => ({
+        ruleId: r.ruleId, score: r.score, reason: r.reason,
+        category: r.category ?? null,
+      }));
+      // category 별 score 합산 — reasons 에 category 가 없으면 ruleId prefix 로 추측
+      for (const m of matchedRules) {
+        const cat = m.category ?? (m.ruleId?.split('_')[0]) ?? 'unknown';
+        categoryScores[cat] = (categoryScores[cat] ?? 0) + (m.score ?? 0);
+      }
+      insert.run({
+        id: `${sessionTag}:${c.ticker}`,
+        report_id: reportId,
+        generated_at: generatedAt,
+        ticker: c.ticker,
+        market: c.market ?? null,
+        sector: c.sector ?? null,
+        rank: idx + 1,
+        total_score: c.stage1Score ?? 0,
+        selected: selectedTickers.has(c.ticker) ? 1 : 0,
+        matched_rules: JSON.stringify(matchedRules),
+        category_scores: JSON.stringify(categoryScores),
+      });
+      n++;
+    });
+  });
+  txn(candidates);
   return n;
 }
 
