@@ -119,6 +119,28 @@ for (const at of archiveTables) {
   }
 }
 
+// ═══════ Probe 3b: S&P 500 / KOSPI 커버 ═══════
+console.log('\n## [3a] S&P 500 / KOSPI / KOSDAQ candidate 커버 ===\n');
+import { readFileSync } from 'fs';
+try {
+  const sp500 = JSON.parse(readFileSync('C:/NoAddsMakingApps/FlowVium/data/sp500-tickers.json', 'utf8'));
+  const cand = JSON.parse(readFileSync('C:/NoAddsMakingApps/FlowVium/data/candidate-tickers.json', 'utf8'));
+  const candSet = new Set(cand.tickers);
+  const missing = sp500.tickers.filter(t => !candSet.has(t) && !candSet.has(t.replace('-', '.')));
+  const coverage = ((sp500.tickers.length - missing.length) / sp500.tickers.length * 100).toFixed(1);
+  if (missing.length === 0) {
+    ok(`S&P 500: ${sp500.tickers.length}/${sp500.tickers.length} (100%)`);
+  } else if (missing.length < sp500.tickers.length * 0.05) {
+    warn(`S&P 500: ${sp500.tickers.length - missing.length}/${sp500.tickers.length} (${coverage}%) — ${missing.length}개 누락: ${missing.slice(0,8).join(', ')}...`);
+  } else {
+    err(`S&P 500: ${sp500.tickers.length - missing.length}/${sp500.tickers.length} (${coverage}%) — ${missing.length}개 누락 (5% 초과)`);
+  }
+  const krCount = cand.tickers.filter(t => t.endsWith('.KS') || t.endsWith('.KQ')).length;
+  ok(`KR 종목 (KOSPI + KOSDAQ): ${krCount} 종목`);
+} catch (e) {
+  warn(`S&P 500 coverage check 실패: ${String(e).slice(0,80)}`);
+}
+
 // ═══════ Probe 4b: 잘못된 값 범위 (NULL 아닌 silent bug — Codex 진단) ═══════
 console.log('\n## [4a] invalid value range (0/음수/불가능 범위)\n');
 const ranges = [

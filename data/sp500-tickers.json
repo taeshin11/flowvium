@@ -1,0 +1,2519 @@
+{
+  "source": "wikipedia-sp500",
+  "fetchedAt": "2026-05-29T01:07:58.666Z",
+  "total": 502,
+  "tickers": [
+    "MMM",
+    "AOS",
+    "ABT",
+    "ABBV",
+    "ACN",
+    "ADBE",
+    "AMD",
+    "AES",
+    "AFL",
+    "A",
+    "APD",
+    "ABNB",
+    "AKAM",
+    "ALB",
+    "ARE",
+    "ALGN",
+    "ALLE",
+    "LNT",
+    "ALL",
+    "GOOGL",
+    "GOOG",
+    "MO",
+    "AMZN",
+    "AMCR",
+    "AEE",
+    "AEP",
+    "AXP",
+    "AIG",
+    "AMT",
+    "AWK",
+    "AMP",
+    "AME",
+    "AMGN",
+    "APH",
+    "ADI",
+    "AON",
+    "APA",
+    "APO",
+    "AAPL",
+    "AMAT",
+    "APP",
+    "APTV",
+    "ACGL",
+    "ADM",
+    "ARES",
+    "ANET",
+    "AJG",
+    "AIZ",
+    "T",
+    "ATO",
+    "ADSK",
+    "ADP",
+    "AZO",
+    "AVB",
+    "AVY",
+    "AXON",
+    "BKR",
+    "BALL",
+    "BAC",
+    "BAX",
+    "BDX",
+    "BRK-B",
+    "BBY",
+    "TECH",
+    "BIIB",
+    "BLK",
+    "BX",
+    "XYZ",
+    "BNY",
+    "BA",
+    "BKNG",
+    "BSX",
+    "BMY",
+    "AVGO",
+    "BR",
+    "BRO",
+    "BF-B",
+    "BLDR",
+    "BG",
+    "BXP",
+    "CHRW",
+    "CDNS",
+    "CPT",
+    "CPB",
+    "COF",
+    "CAH",
+    "CCL",
+    "CARR",
+    "CVNA",
+    "CASY",
+    "CAT",
+    "CBRE",
+    "CDW",
+    "COR",
+    "CNC",
+    "CNP",
+    "CF",
+    "CRL",
+    "SCHW",
+    "CHTR",
+    "CVX",
+    "CMG",
+    "CB",
+    "CHD",
+    "CIEN",
+    "CI",
+    "CINF",
+    "CTAS",
+    "CSCO",
+    "C",
+    "CFG",
+    "CLX",
+    "CME",
+    "CMS",
+    "KO",
+    "CTSH",
+    "COHR",
+    "COIN",
+    "CL",
+    "CMCSA",
+    "FIX",
+    "CAG",
+    "COP",
+    "ED",
+    "STZ",
+    "CEG",
+    "COO",
+    "CPRT",
+    "GLW",
+    "CPAY",
+    "CTVA",
+    "CSGP",
+    "COST",
+    "CRH",
+    "CRWD",
+    "CCI",
+    "CSX",
+    "CMI",
+    "CVS",
+    "DHR",
+    "DRI",
+    "DDOG",
+    "DVA",
+    "DECK",
+    "DE",
+    "DELL",
+    "DAL",
+    "DVN",
+    "DXCM",
+    "FANG",
+    "DLR",
+    "DG",
+    "DLTR",
+    "D",
+    "DPZ",
+    "DASH",
+    "DOV",
+    "DOW",
+    "DHI",
+    "DTE",
+    "DUK",
+    "DD",
+    "ETN",
+    "EBAY",
+    "SATS",
+    "ECL",
+    "EIX",
+    "EW",
+    "EA",
+    "ELV",
+    "EME",
+    "EMR",
+    "ETR",
+    "EOG",
+    "EPAM",
+    "EQT",
+    "EFX",
+    "EQIX",
+    "EQR",
+    "ERIE",
+    "ESS",
+    "EL",
+    "EG",
+    "EVRG",
+    "ES",
+    "EXC",
+    "EXE",
+    "EXPE",
+    "EXPD",
+    "EXR",
+    "XOM",
+    "FFIV",
+    "FDS",
+    "FICO",
+    "FAST",
+    "FRT",
+    "FDX",
+    "FIS",
+    "FITB",
+    "FSLR",
+    "FE",
+    "FISV",
+    "F",
+    "FTNT",
+    "FTV",
+    "FOXA",
+    "FOX",
+    "BEN",
+    "FCX",
+    "GRMN",
+    "IT",
+    "GE",
+    "GEHC",
+    "GEV",
+    "GEN",
+    "GNRC",
+    "GD",
+    "GIS",
+    "GM",
+    "GPC",
+    "GILD",
+    "GPN",
+    "GL",
+    "GDDY",
+    "GS",
+    "HAL",
+    "HIG",
+    "HAS",
+    "HCA",
+    "DOC",
+    "HSIC",
+    "HSY",
+    "HPE",
+    "HLT",
+    "HD",
+    "HON",
+    "HRL",
+    "HST",
+    "HWM",
+    "HPQ",
+    "HUBB",
+    "HUM",
+    "HBAN",
+    "HII",
+    "IBM",
+    "IEX",
+    "IDXX",
+    "ITW",
+    "INCY",
+    "IR",
+    "PODD",
+    "INTC",
+    "IBKR",
+    "ICE",
+    "IFF",
+    "IP",
+    "INTU",
+    "ISRG",
+    "IVZ",
+    "INVH",
+    "IQV",
+    "IRM",
+    "JBHT",
+    "JBL",
+    "JKHY",
+    "J",
+    "JNJ",
+    "JCI",
+    "JPM",
+    "KVUE",
+    "KDP",
+    "KEY",
+    "KEYS",
+    "KMB",
+    "KIM",
+    "KMI",
+    "KKR",
+    "KLAC",
+    "KHC",
+    "KR",
+    "LHX",
+    "LH",
+    "LRCX",
+    "LVS",
+    "LDOS",
+    "LEN",
+    "LII",
+    "LLY",
+    "LIN",
+    "LYV",
+    "LMT",
+    "L",
+    "LOW",
+    "LULU",
+    "LITE",
+    "LYB",
+    "MTB",
+    "MPC",
+    "MAR",
+    "MRSH",
+    "MLM",
+    "MAS",
+    "MA",
+    "MKC",
+    "MCD",
+    "MCK",
+    "MDT",
+    "MRK",
+    "META",
+    "MET",
+    "MTD",
+    "MGM",
+    "MCHP",
+    "MU",
+    "MSFT",
+    "MAA",
+    "MRNA",
+    "TAP",
+    "MDLZ",
+    "MPWR",
+    "MNST",
+    "MCO",
+    "MS",
+    "MOS",
+    "MSI",
+    "MSCI",
+    "NDAQ",
+    "NTAP",
+    "NFLX",
+    "NEM",
+    "NWSA",
+    "NWS",
+    "NEE",
+    "NKE",
+    "NI",
+    "NDSN",
+    "NSC",
+    "NTRS",
+    "NOC",
+    "NCLH",
+    "NRG",
+    "NUE",
+    "NVDA",
+    "NVR",
+    "NXPI",
+    "ORLY",
+    "OXY",
+    "ODFL",
+    "OMC",
+    "ON",
+    "OKE",
+    "ORCL",
+    "OTIS",
+    "PCAR",
+    "PKG",
+    "PLTR",
+    "PANW",
+    "PSKY",
+    "PH",
+    "PAYX",
+    "PYPL",
+    "PNR",
+    "PEP",
+    "PFE",
+    "PCG",
+    "PM",
+    "PSX",
+    "PNW",
+    "PNC",
+    "POOL",
+    "PPG",
+    "PPL",
+    "PFG",
+    "PG",
+    "PGR",
+    "PLD",
+    "PRU",
+    "PEG",
+    "PTC",
+    "PSA",
+    "PHM",
+    "PWR",
+    "QCOM",
+    "DGX",
+    "Q",
+    "RL",
+    "RJF",
+    "RTX",
+    "O",
+    "REG",
+    "REGN",
+    "RF",
+    "RSG",
+    "RMD",
+    "RVTY",
+    "HOOD",
+    "ROK",
+    "ROL",
+    "ROP",
+    "ROST",
+    "RCL",
+    "SPGI",
+    "CRM",
+    "SNDK",
+    "SBAC",
+    "SLB",
+    "STX",
+    "SRE",
+    "NOW",
+    "SHW",
+    "SPG",
+    "SWKS",
+    "SJM",
+    "SW",
+    "SNA",
+    "SOLV",
+    "SO",
+    "LUV",
+    "SWK",
+    "SBUX",
+    "STT",
+    "STLD",
+    "STE",
+    "SYK",
+    "SMCI",
+    "SYF",
+    "SNPS",
+    "SYY",
+    "TMUS",
+    "TROW",
+    "TTWO",
+    "TPR",
+    "TRGP",
+    "TGT",
+    "TEL",
+    "TDY",
+    "TER",
+    "TSLA",
+    "TXN",
+    "TPL",
+    "TXT",
+    "TMO",
+    "TJX",
+    "TKO",
+    "TTD",
+    "TSCO",
+    "TT",
+    "TDG",
+    "TRV",
+    "TRMB",
+    "TFC",
+    "TYL",
+    "TSN",
+    "USB",
+    "UBER",
+    "UDR",
+    "ULTA",
+    "UNP",
+    "UAL",
+    "UPS",
+    "URI",
+    "UNH",
+    "UHS",
+    "VLO",
+    "VEEV",
+    "VTR",
+    "VLTO",
+    "VRSN",
+    "VRSK",
+    "VZ",
+    "VRTX",
+    "VRT",
+    "VTRS",
+    "VICI",
+    "V",
+    "VST",
+    "VMC",
+    "WRB",
+    "GWW",
+    "WAB",
+    "WMT",
+    "DIS",
+    "WBD",
+    "WM",
+    "WAT",
+    "WEC",
+    "WFC",
+    "WELL",
+    "WST",
+    "WDC",
+    "WY",
+    "WSM",
+    "WMB",
+    "WTW",
+    "WDAY",
+    "WYNN",
+    "XEL",
+    "XYL",
+    "YUM",
+    "ZBRA",
+    "ZBH",
+    "ZTS"
+  ],
+  "meta": {
+    "MMM": {
+      "name": "3M",
+      "sector": "Unknown"
+    },
+    "AOS": {
+      "name": "A. O. Smith",
+      "sector": "Unknown"
+    },
+    "ABT": {
+      "name": "Abbott Laboratories",
+      "sector": "Unknown"
+    },
+    "ABBV": {
+      "name": "AbbVie",
+      "sector": "Biotechnology"
+    },
+    "ACN": {
+      "name": "Accenture",
+      "sector": "Information Technology"
+    },
+    "ADBE": {
+      "name": "Adobe Inc.",
+      "sector": "Information Technology"
+    },
+    "AMD": {
+      "name": "Advanced Micro Devices",
+      "sector": "Information Technology"
+    },
+    "AES": {
+      "name": "AES Corporation",
+      "sector": "Independent Power Producers &amp; Energy Traders"
+    },
+    "AFL": {
+      "name": "Aflac",
+      "sector": "Unknown"
+    },
+    "A": {
+      "name": "Agilent Technologies",
+      "sector": "Unknown"
+    },
+    "APD": {
+      "name": "Air Products",
+      "sector": "Unknown"
+    },
+    "ABNB": {
+      "name": "Airbnb",
+      "sector": "Unknown"
+    },
+    "AKAM": {
+      "name": "Akamai Technologies",
+      "sector": "Information Technology"
+    },
+    "ALB": {
+      "name": "Albemarle Corporation",
+      "sector": "Unknown"
+    },
+    "ARE": {
+      "name": "Alexandria Real Estate Equities",
+      "sector": "Unknown"
+    },
+    "ALGN": {
+      "name": "Align Technology",
+      "sector": "Unknown"
+    },
+    "ALLE": {
+      "name": "Allegion",
+      "sector": "Unknown"
+    },
+    "LNT": {
+      "name": "Alliant Energy",
+      "sector": "Electric Utilities"
+    },
+    "ALL": {
+      "name": "Allstate",
+      "sector": "Unknown"
+    },
+    "GOOGL": {
+      "name": "Mountain View, California",
+      "sector": "Unknown"
+    },
+    "GOOG": {
+      "name": "Mountain View, California",
+      "sector": "Unknown"
+    },
+    "MO": {
+      "name": "Altria",
+      "sector": "Unknown"
+    },
+    "AMZN": {
+      "name": "Amazon",
+      "sector": "Unknown"
+    },
+    "AMCR": {
+      "name": "Amcor",
+      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+    },
+    "AEE": {
+      "name": "Ameren",
+      "sector": "Multi-Utilities"
+    },
+    "AEP": {
+      "name": "American Electric Power",
+      "sector": "Electric Utilities"
+    },
+    "AXP": {
+      "name": "American Express",
+      "sector": "Unknown"
+    },
+    "AIG": {
+      "name": "American International Group",
+      "sector": "Unknown"
+    },
+    "AMT": {
+      "name": "American Tower",
+      "sector": "Unknown"
+    },
+    "AWK": {
+      "name": "American Water Works",
+      "sector": "Water Utilities"
+    },
+    "AMP": {
+      "name": "Ameriprise Financial",
+      "sector": "Unknown"
+    },
+    "AME": {
+      "name": "Ametek",
+      "sector": "Unknown"
+    },
+    "AMGN": {
+      "name": "Amgen",
+      "sector": "Biotechnology"
+    },
+    "APH": {
+      "name": "Amphenol",
+      "sector": "Information Technology"
+    },
+    "ADI": {
+      "name": "Analog Devices",
+      "sector": "Information Technology"
+    },
+    "AON": {
+      "name": "Aon plc",
+      "sector": "Unknown"
+    },
+    "APA": {
+      "name": "APA Corporation",
+      "sector": "Unknown"
+    },
+    "APO": {
+      "name": "Apollo Global Management",
+      "sector": "Unknown"
+    },
+    "AAPL": {
+      "name": "Apple Inc.",
+      "sector": "Information Technology"
+    },
+    "AMAT": {
+      "name": "Applied Materials",
+      "sector": "Information Technology"
+    },
+    "APP": {
+      "name": "AppLovin",
+      "sector": "Information Technology"
+    },
+    "APTV": {
+      "name": "Aptiv",
+      "sector": "Unknown"
+    },
+    "ACGL": {
+      "name": "Arch Capital Group",
+      "sector": "Unknown"
+    },
+    "ADM": {
+      "name": "Archer Daniels Midland",
+      "sector": "Unknown"
+    },
+    "ARES": {
+      "name": "Ares Management",
+      "sector": "Unknown"
+    },
+    "ANET": {
+      "name": "Arista Networks",
+      "sector": "Information Technology"
+    },
+    "AJG": {
+      "name": "Arthur J. Gallagher &amp; Co.",
+      "sector": "Unknown"
+    },
+    "AIZ": {
+      "name": "Assurant",
+      "sector": "Unknown"
+    },
+    "T": {
+      "name": "AT&amp;T",
+      "sector": "Integrated Telecommunication Services"
+    },
+    "ATO": {
+      "name": "Atmos Energy",
+      "sector": "Gas Utilities"
+    },
+    "ADSK": {
+      "name": "Autodesk",
+      "sector": "Information Technology"
+    },
+    "ADP": {
+      "name": "Automatic Data Processing",
+      "sector": "Unknown"
+    },
+    "AZO": {
+      "name": "AutoZone",
+      "sector": "Unknown"
+    },
+    "AVB": {
+      "name": "AvalonBay Communities",
+      "sector": "Unknown"
+    },
+    "AVY": {
+      "name": "Avery Dennison",
+      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+    },
+    "AXON": {
+      "name": "Axon Enterprise",
+      "sector": "Unknown"
+    },
+    "BKR": {
+      "name": "Baker Hughes",
+      "sector": "Unknown"
+    },
+    "BALL": {
+      "name": "Ball Corporation",
+      "sector": "Unknown"
+    },
+    "BAC": {
+      "name": "Bank of America",
+      "sector": "Unknown"
+    },
+    "BAX": {
+      "name": "Baxter International",
+      "sector": "Unknown"
+    },
+    "BDX": {
+      "name": "Becton Dickinson",
+      "sector": "Unknown"
+    },
+    "BRK-B": {
+      "name": "Berkshire Hathaway",
+      "sector": "Unknown"
+    },
+    "BBY": {
+      "name": "Best Buy",
+      "sector": "Unknown"
+    },
+    "TECH": {
+      "name": "Bio-Techne",
+      "sector": "Unknown"
+    },
+    "BIIB": {
+      "name": "Biogen",
+      "sector": "Biotechnology"
+    },
+    "BLK": {
+      "name": "BlackRock",
+      "sector": "Unknown"
+    },
+    "BX": {
+      "name": "Blackstone Inc.",
+      "sector": "Unknown"
+    },
+    "XYZ": {
+      "name": "Block, Inc.",
+      "sector": "Unknown"
+    },
+    "BNY": {
+      "name": "BNY Mellon",
+      "sector": "Unknown"
+    },
+    "BA": {
+      "name": "Boeing",
+      "sector": "Unknown"
+    },
+    "BKNG": {
+      "name": "Booking Holdings",
+      "sector": "Unknown"
+    },
+    "BSX": {
+      "name": "Boston Scientific",
+      "sector": "Unknown"
+    },
+    "BMY": {
+      "name": "Bristol Myers Squibb",
+      "sector": "Unknown"
+    },
+    "AVGO": {
+      "name": "Broadcom",
+      "sector": "Information Technology"
+    },
+    "BR": {
+      "name": "Broadridge Financial Solutions",
+      "sector": "Unknown"
+    },
+    "BRO": {
+      "name": "Brown &amp; Brown",
+      "sector": "Unknown"
+    },
+    "BF-B": {
+      "name": "Brown–Forman",
+      "sector": "Unknown"
+    },
+    "BLDR": {
+      "name": "Builders FirstSource",
+      "sector": "Unknown"
+    },
+    "BG": {
+      "name": "Bunge Global",
+      "sector": "Unknown"
+    },
+    "BXP": {
+      "name": "BXP, Inc.",
+      "sector": "Unknown"
+    },
+    "CHRW": {
+      "name": "C.H. Robinson",
+      "sector": "Unknown"
+    },
+    "CDNS": {
+      "name": "Cadence Design Systems",
+      "sector": "Information Technology"
+    },
+    "CPT": {
+      "name": "Camden Property Trust",
+      "sector": "Unknown"
+    },
+    "CPB": {
+      "name": "Campbell's Company (The)",
+      "sector": "Unknown"
+    },
+    "COF": {
+      "name": "Capital One",
+      "sector": "Unknown"
+    },
+    "CAH": {
+      "name": "Cardinal Health",
+      "sector": "Unknown"
+    },
+    "CCL": {
+      "name": "Carnival Corporation",
+      "sector": "Unknown"
+    },
+    "CARR": {
+      "name": "Carrier Global",
+      "sector": "Unknown"
+    },
+    "CVNA": {
+      "name": "Carvana",
+      "sector": "Unknown"
+    },
+    "CASY": {
+      "name": "Casey's",
+      "sector": "Unknown"
+    },
+    "CAT": {
+      "name": "Caterpillar Inc.",
+      "sector": "Unknown"
+    },
+    "CBRE": {
+      "name": "CBRE Group",
+      "sector": "Unknown"
+    },
+    "CDW": {
+      "name": "CDW Corporation",
+      "sector": "Information Technology"
+    },
+    "COR": {
+      "name": "Cencora",
+      "sector": "Unknown"
+    },
+    "CNC": {
+      "name": "Centene Corporation",
+      "sector": "Managed Health Care"
+    },
+    "CNP": {
+      "name": "CenterPoint Energy",
+      "sector": "Multi-Utilities"
+    },
+    "CF": {
+      "name": "CF Industries",
+      "sector": "Unknown"
+    },
+    "CRL": {
+      "name": "Charles River Laboratories",
+      "sector": "Unknown"
+    },
+    "SCHW": {
+      "name": "Charles Schwab Corporation",
+      "sector": "Unknown"
+    },
+    "CHTR": {
+      "name": "Charter Communications",
+      "sector": "Unknown"
+    },
+    "CVX": {
+      "name": "Chevron Corporation",
+      "sector": "Unknown"
+    },
+    "CMG": {
+      "name": "Chipotle Mexican Grill",
+      "sector": "Unknown"
+    },
+    "CB": {
+      "name": "Chubb Limited",
+      "sector": "Unknown"
+    },
+    "CHD": {
+      "name": "Church &amp; Dwight",
+      "sector": "Unknown"
+    },
+    "CIEN": {
+      "name": "Ciena",
+      "sector": "Information Technology"
+    },
+    "CI": {
+      "name": "Cigna",
+      "sector": "Unknown"
+    },
+    "CINF": {
+      "name": "Cincinnati Financial",
+      "sector": "Unknown"
+    },
+    "CTAS": {
+      "name": "Cintas",
+      "sector": "Unknown"
+    },
+    "CSCO": {
+      "name": "Cisco",
+      "sector": "Information Technology"
+    },
+    "C": {
+      "name": "Citigroup",
+      "sector": "Unknown"
+    },
+    "CFG": {
+      "name": "Citizens Financial Group",
+      "sector": "Unknown"
+    },
+    "CLX": {
+      "name": "Clorox",
+      "sector": "Unknown"
+    },
+    "CME": {
+      "name": "CME Group",
+      "sector": "Unknown"
+    },
+    "CMS": {
+      "name": "CMS Energy",
+      "sector": "Multi-Utilities"
+    },
+    "KO": {
+      "name": "Coca-Cola Company (The)",
+      "sector": "Unknown"
+    },
+    "CTSH": {
+      "name": "Cognizant",
+      "sector": "Information Technology"
+    },
+    "COHR": {
+      "name": "Coherent Corp.",
+      "sector": "Information Technology"
+    },
+    "COIN": {
+      "name": "Coinbase",
+      "sector": "Unknown"
+    },
+    "CL": {
+      "name": "Colgate-Palmolive",
+      "sector": "Unknown"
+    },
+    "CMCSA": {
+      "name": "Comcast",
+      "sector": "Unknown"
+    },
+    "FIX": {
+      "name": "Comfort Systems USA",
+      "sector": "Unknown"
+    },
+    "CAG": {
+      "name": "Conagra Brands",
+      "sector": "Unknown"
+    },
+    "COP": {
+      "name": "ConocoPhillips",
+      "sector": "Unknown"
+    },
+    "ED": {
+      "name": "Consolidated Edison",
+      "sector": "Multi-Utilities"
+    },
+    "STZ": {
+      "name": "Constellation Brands",
+      "sector": "Unknown"
+    },
+    "CEG": {
+      "name": "Constellation Energy",
+      "sector": "Electric Utilities"
+    },
+    "COO": {
+      "name": "Cooper Companies (The)",
+      "sector": "Unknown"
+    },
+    "CPRT": {
+      "name": "Copart",
+      "sector": "Unknown"
+    },
+    "GLW": {
+      "name": "Corning Inc.",
+      "sector": "Information Technology"
+    },
+    "CPAY": {
+      "name": "Corpay",
+      "sector": "Unknown"
+    },
+    "CTVA": {
+      "name": "Corteva",
+      "sector": "Unknown"
+    },
+    "CSGP": {
+      "name": "CoStar Group",
+      "sector": "Unknown"
+    },
+    "COST": {
+      "name": "Costco",
+      "sector": "Unknown"
+    },
+    "CRH": {
+      "name": "CRH plc",
+      "sector": "Construction Materials"
+    },
+    "CRWD": {
+      "name": "CrowdStrike",
+      "sector": "Information Technology"
+    },
+    "CCI": {
+      "name": "Crown Castle",
+      "sector": "Unknown"
+    },
+    "CSX": {
+      "name": "CSX Corporation",
+      "sector": "Unknown"
+    },
+    "CMI": {
+      "name": "Cummins",
+      "sector": "Unknown"
+    },
+    "CVS": {
+      "name": "CVS Health",
+      "sector": "Unknown"
+    },
+    "DHR": {
+      "name": "Danaher Corporation",
+      "sector": "Unknown"
+    },
+    "DRI": {
+      "name": "Darden Restaurants",
+      "sector": "Unknown"
+    },
+    "DDOG": {
+      "name": "Datadog",
+      "sector": "Information Technology"
+    },
+    "DVA": {
+      "name": "DaVita",
+      "sector": "Unknown"
+    },
+    "DECK": {
+      "name": "Deckers Brands",
+      "sector": "Unknown"
+    },
+    "DE": {
+      "name": "Deere &amp; Company",
+      "sector": "Unknown"
+    },
+    "DELL": {
+      "name": "Dell Technologies",
+      "sector": "Information Technology"
+    },
+    "DAL": {
+      "name": "Delta Air Lines",
+      "sector": "Unknown"
+    },
+    "DVN": {
+      "name": "Devon Energy",
+      "sector": "Unknown"
+    },
+    "DXCM": {
+      "name": "Dexcom",
+      "sector": "Unknown"
+    },
+    "FANG": {
+      "name": "Diamondback Energy",
+      "sector": "Unknown"
+    },
+    "DLR": {
+      "name": "Digital Realty",
+      "sector": "Unknown"
+    },
+    "DG": {
+      "name": "Dollar General",
+      "sector": "Unknown"
+    },
+    "DLTR": {
+      "name": "Dollar Tree",
+      "sector": "Unknown"
+    },
+    "D": {
+      "name": "Dominion Energy",
+      "sector": "Multi-Utilities"
+    },
+    "DPZ": {
+      "name": "Domino's",
+      "sector": "Unknown"
+    },
+    "DASH": {
+      "name": "DoorDash",
+      "sector": "Specialized Consumer Services"
+    },
+    "DOV": {
+      "name": "Dover Corporation",
+      "sector": "Unknown"
+    },
+    "DOW": {
+      "name": "Dow Inc.",
+      "sector": "Unknown"
+    },
+    "DHI": {
+      "name": "D. R. Horton",
+      "sector": "Unknown"
+    },
+    "DTE": {
+      "name": "DTE Energy",
+      "sector": "Multi-Utilities"
+    },
+    "DUK": {
+      "name": "Duke Energy",
+      "sector": "Electric Utilities"
+    },
+    "DD": {
+      "name": "DuPont",
+      "sector": "Unknown"
+    },
+    "ETN": {
+      "name": "Eaton Corporation",
+      "sector": "Unknown"
+    },
+    "EBAY": {
+      "name": "eBay Inc.",
+      "sector": "Unknown"
+    },
+    "SATS": {
+      "name": "EchoStar",
+      "sector": "Wireless Telecommunication Services"
+    },
+    "ECL": {
+      "name": "Ecolab",
+      "sector": "Unknown"
+    },
+    "EIX": {
+      "name": "Edison International",
+      "sector": "Electric Utilities"
+    },
+    "EW": {
+      "name": "Edwards Lifesciences",
+      "sector": "Unknown"
+    },
+    "EA": {
+      "name": "Electronic Arts",
+      "sector": "Unknown"
+    },
+    "ELV": {
+      "name": "Elevance Health",
+      "sector": "Managed Health Care"
+    },
+    "EME": {
+      "name": "Emcor",
+      "sector": "Unknown"
+    },
+    "EMR": {
+      "name": "Emerson Electric",
+      "sector": "Unknown"
+    },
+    "ETR": {
+      "name": "Entergy",
+      "sector": "Electric Utilities"
+    },
+    "EOG": {
+      "name": "EOG Resources",
+      "sector": "Unknown"
+    },
+    "EPAM": {
+      "name": "Newtown, Pennsylvania",
+      "sector": "Information Technology"
+    },
+    "EQT": {
+      "name": "EQT Corporation",
+      "sector": "Unknown"
+    },
+    "EFX": {
+      "name": "Equifax",
+      "sector": "Unknown"
+    },
+    "EQIX": {
+      "name": "Equinix",
+      "sector": "Unknown"
+    },
+    "EQR": {
+      "name": "Equity Residential",
+      "sector": "Unknown"
+    },
+    "ERIE": {
+      "name": "Erie Indemnity",
+      "sector": "Unknown"
+    },
+    "ESS": {
+      "name": "Essex Property Trust",
+      "sector": "Unknown"
+    },
+    "EL": {
+      "name": "Estée Lauder Companies (The)",
+      "sector": "Unknown"
+    },
+    "EG": {
+      "name": "Everest Group",
+      "sector": "Unknown"
+    },
+    "EVRG": {
+      "name": "Evergy",
+      "sector": "Electric Utilities"
+    },
+    "ES": {
+      "name": "Eversource Energy",
+      "sector": "Electric Utilities"
+    },
+    "EXC": {
+      "name": "Exelon",
+      "sector": "Electric Utilities"
+    },
+    "EXE": {
+      "name": "Expand Energy",
+      "sector": "Unknown"
+    },
+    "EXPE": {
+      "name": "Expedia Group",
+      "sector": "Unknown"
+    },
+    "EXPD": {
+      "name": "Expeditors International",
+      "sector": "Unknown"
+    },
+    "EXR": {
+      "name": "Extra Space Storage",
+      "sector": "Unknown"
+    },
+    "XOM": {
+      "name": "ExxonMobil",
+      "sector": "Unknown"
+    },
+    "FFIV": {
+      "name": "F5, Inc.",
+      "sector": "Information Technology"
+    },
+    "FDS": {
+      "name": "FactSet",
+      "sector": "Unknown"
+    },
+    "FICO": {
+      "name": "Fair Isaac",
+      "sector": "Information Technology"
+    },
+    "FAST": {
+      "name": "Fastenal",
+      "sector": "Unknown"
+    },
+    "FRT": {
+      "name": "Federal Realty Investment Trust",
+      "sector": "Unknown"
+    },
+    "FDX": {
+      "name": "FedEx",
+      "sector": "Unknown"
+    },
+    "FIS": {
+      "name": "Fidelity National Information Services",
+      "sector": "Unknown"
+    },
+    "FITB": {
+      "name": "Fifth Third Bancorp",
+      "sector": "Unknown"
+    },
+    "FSLR": {
+      "name": "First Solar",
+      "sector": "Information Technology"
+    },
+    "FE": {
+      "name": "FirstEnergy",
+      "sector": "Electric Utilities"
+    },
+    "FISV": {
+      "name": "Fiserv",
+      "sector": "Unknown"
+    },
+    "F": {
+      "name": "Ford Motor Company",
+      "sector": "Unknown"
+    },
+    "FTNT": {
+      "name": "Fortinet",
+      "sector": "Information Technology"
+    },
+    "FTV": {
+      "name": "Fortive",
+      "sector": "Unknown"
+    },
+    "FOXA": {
+      "name": "FOXA",
+      "sector": "Unknown"
+    },
+    "FOX": {
+      "name": "FOX",
+      "sector": "Unknown"
+    },
+    "BEN": {
+      "name": "Franklin Resources",
+      "sector": "Unknown"
+    },
+    "FCX": {
+      "name": "Freeport-McMoRan",
+      "sector": "Unknown"
+    },
+    "GRMN": {
+      "name": "Garmin",
+      "sector": "Unknown"
+    },
+    "IT": {
+      "name": "Gartner",
+      "sector": "Information Technology"
+    },
+    "GE": {
+      "name": "GE Aerospace",
+      "sector": "Unknown"
+    },
+    "GEHC": {
+      "name": "GE HealthCare",
+      "sector": "Unknown"
+    },
+    "GEV": {
+      "name": "GE Vernova",
+      "sector": "Unknown"
+    },
+    "GEN": {
+      "name": "Gen Digital",
+      "sector": "Information Technology"
+    },
+    "GNRC": {
+      "name": "Generac",
+      "sector": "Unknown"
+    },
+    "GD": {
+      "name": "General Dynamics",
+      "sector": "Unknown"
+    },
+    "GIS": {
+      "name": "General Mills",
+      "sector": "Unknown"
+    },
+    "GM": {
+      "name": "General Motors",
+      "sector": "Unknown"
+    },
+    "GPC": {
+      "name": "Genuine Parts Company",
+      "sector": "Unknown"
+    },
+    "GILD": {
+      "name": "Gilead Sciences",
+      "sector": "Biotechnology"
+    },
+    "GPN": {
+      "name": "Global Payments",
+      "sector": "Unknown"
+    },
+    "GL": {
+      "name": "Globe Life",
+      "sector": "Unknown"
+    },
+    "GDDY": {
+      "name": "GoDaddy",
+      "sector": "Information Technology"
+    },
+    "GS": {
+      "name": "Goldman Sachs",
+      "sector": "Unknown"
+    },
+    "HAL": {
+      "name": "Halliburton",
+      "sector": "Unknown"
+    },
+    "HIG": {
+      "name": "Hartford (The)",
+      "sector": "Unknown"
+    },
+    "HAS": {
+      "name": "Hasbro",
+      "sector": "Unknown"
+    },
+    "HCA": {
+      "name": "HCA Healthcare",
+      "sector": "Unknown"
+    },
+    "DOC": {
+      "name": "Healthpeak Properties",
+      "sector": "Unknown"
+    },
+    "HSIC": {
+      "name": "Henry Schein",
+      "sector": "Unknown"
+    },
+    "HSY": {
+      "name": "Hershey Company (The)",
+      "sector": "Unknown"
+    },
+    "HPE": {
+      "name": "Hewlett Packard Enterprise",
+      "sector": "Information Technology"
+    },
+    "HLT": {
+      "name": "Hilton Worldwide",
+      "sector": "Unknown"
+    },
+    "HD": {
+      "name": "Home Depot (The)",
+      "sector": "Unknown"
+    },
+    "HON": {
+      "name": "Honeywell",
+      "sector": "Unknown"
+    },
+    "HRL": {
+      "name": "Hormel Foods",
+      "sector": "Unknown"
+    },
+    "HST": {
+      "name": "Host Hotels &amp; Resorts",
+      "sector": "Unknown"
+    },
+    "HWM": {
+      "name": "Howmet Aerospace",
+      "sector": "Unknown"
+    },
+    "HPQ": {
+      "name": "HP Inc.",
+      "sector": "Information Technology"
+    },
+    "HUBB": {
+      "name": "Hubbell Incorporated",
+      "sector": "Unknown"
+    },
+    "HUM": {
+      "name": "Humana",
+      "sector": "Managed Health Care"
+    },
+    "HBAN": {
+      "name": "Huntington Bancshares",
+      "sector": "Unknown"
+    },
+    "HII": {
+      "name": "Huntington Ingalls Industries",
+      "sector": "Unknown"
+    },
+    "IBM": {
+      "name": "IBM",
+      "sector": "Information Technology"
+    },
+    "IEX": {
+      "name": "IDEX Corporation",
+      "sector": "Unknown"
+    },
+    "IDXX": {
+      "name": "Idexx Laboratories",
+      "sector": "Unknown"
+    },
+    "ITW": {
+      "name": "Illinois Tool Works",
+      "sector": "Unknown"
+    },
+    "INCY": {
+      "name": "Incyte",
+      "sector": "Biotechnology"
+    },
+    "IR": {
+      "name": "Ingersoll Rand",
+      "sector": "Unknown"
+    },
+    "PODD": {
+      "name": "Acton, Massachusetts",
+      "sector": "Unknown"
+    },
+    "INTC": {
+      "name": "Intel",
+      "sector": "Information Technology"
+    },
+    "IBKR": {
+      "name": "Interactive Brokers",
+      "sector": "Unknown"
+    },
+    "ICE": {
+      "name": "Intercontinental Exchange",
+      "sector": "Unknown"
+    },
+    "IFF": {
+      "name": "International Flavors &amp; Fragrances",
+      "sector": "Unknown"
+    },
+    "IP": {
+      "name": "International Paper",
+      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+    },
+    "INTU": {
+      "name": "Intuit",
+      "sector": "Information Technology"
+    },
+    "ISRG": {
+      "name": "Intuitive Surgical",
+      "sector": "Unknown"
+    },
+    "IVZ": {
+      "name": "Invesco",
+      "sector": "Unknown"
+    },
+    "INVH": {
+      "name": "Invitation Homes",
+      "sector": "Unknown"
+    },
+    "IQV": {
+      "name": "IQVIA",
+      "sector": "Unknown"
+    },
+    "IRM": {
+      "name": "Iron Mountain",
+      "sector": "Unknown"
+    },
+    "JBHT": {
+      "name": "J.B. Hunt",
+      "sector": "Unknown"
+    },
+    "JBL": {
+      "name": "Jabil",
+      "sector": "Information Technology"
+    },
+    "JKHY": {
+      "name": "Jack Henry &amp; Associates",
+      "sector": "Unknown"
+    },
+    "J": {
+      "name": "Jacobs Solutions",
+      "sector": "Unknown"
+    },
+    "JNJ": {
+      "name": "Johnson &amp; Johnson",
+      "sector": "Unknown"
+    },
+    "JCI": {
+      "name": "Johnson Controls",
+      "sector": "Unknown"
+    },
+    "JPM": {
+      "name": "JPMorgan Chase",
+      "sector": "Unknown"
+    },
+    "KVUE": {
+      "name": "Kenvue",
+      "sector": "Unknown"
+    },
+    "KDP": {
+      "name": "Keurig Dr Pepper",
+      "sector": "Unknown"
+    },
+    "KEY": {
+      "name": "KeyCorp",
+      "sector": "Unknown"
+    },
+    "KEYS": {
+      "name": "Keysight Technologies",
+      "sector": "Information Technology"
+    },
+    "KMB": {
+      "name": "Kimberly-Clark",
+      "sector": "Unknown"
+    },
+    "KIM": {
+      "name": "Kimco Realty",
+      "sector": "Unknown"
+    },
+    "KMI": {
+      "name": "Kinder Morgan",
+      "sector": "Unknown"
+    },
+    "KKR": {
+      "name": "KKR &amp; Co.",
+      "sector": "Unknown"
+    },
+    "KLAC": {
+      "name": "KLA Corporation",
+      "sector": "Information Technology"
+    },
+    "KHC": {
+      "name": "Kraft Heinz",
+      "sector": "Unknown"
+    },
+    "KR": {
+      "name": "Kroger",
+      "sector": "Unknown"
+    },
+    "LHX": {
+      "name": "L3Harris",
+      "sector": "Unknown"
+    },
+    "LH": {
+      "name": "Labcorp",
+      "sector": "Unknown"
+    },
+    "LRCX": {
+      "name": "Lam Research",
+      "sector": "Information Technology"
+    },
+    "LVS": {
+      "name": "Las Vegas Sands",
+      "sector": "Unknown"
+    },
+    "LDOS": {
+      "name": "Leidos",
+      "sector": "Unknown"
+    },
+    "LEN": {
+      "name": "Lennar",
+      "sector": "Unknown"
+    },
+    "LII": {
+      "name": "Lennox International",
+      "sector": "Unknown"
+    },
+    "LLY": {
+      "name": "Lilly (Eli)",
+      "sector": "Unknown"
+    },
+    "LIN": {
+      "name": "Linde plc",
+      "sector": "Unknown"
+    },
+    "LYV": {
+      "name": "Live Nation Entertainment",
+      "sector": "Unknown"
+    },
+    "LMT": {
+      "name": "Lockheed Martin",
+      "sector": "Unknown"
+    },
+    "L": {
+      "name": "Loews Corporation",
+      "sector": "Unknown"
+    },
+    "LOW": {
+      "name": "Lowe's",
+      "sector": "Unknown"
+    },
+    "LULU": {
+      "name": "Lululemon Athletica",
+      "sector": "Unknown"
+    },
+    "LITE": {
+      "name": "Lumentum",
+      "sector": "Information Technology"
+    },
+    "LYB": {
+      "name": "LyondellBasell",
+      "sector": "Unknown"
+    },
+    "MTB": {
+      "name": "M&amp;T Bank",
+      "sector": "Unknown"
+    },
+    "MPC": {
+      "name": "Marathon Petroleum",
+      "sector": "Unknown"
+    },
+    "MAR": {
+      "name": "Marriott International",
+      "sector": "Unknown"
+    },
+    "MRSH": {
+      "name": "Marsh McLennan",
+      "sector": "Unknown"
+    },
+    "MLM": {
+      "name": "Martin Marietta Materials",
+      "sector": "Construction Materials"
+    },
+    "MAS": {
+      "name": "Masco",
+      "sector": "Unknown"
+    },
+    "MA": {
+      "name": "Mastercard",
+      "sector": "Unknown"
+    },
+    "MKC": {
+      "name": "McCormick &amp; Company",
+      "sector": "Unknown"
+    },
+    "MCD": {
+      "name": "McDonald's",
+      "sector": "Unknown"
+    },
+    "MCK": {
+      "name": "McKesson Corporation",
+      "sector": "Unknown"
+    },
+    "MDT": {
+      "name": "Medtronic",
+      "sector": "Unknown"
+    },
+    "MRK": {
+      "name": "Merck &amp; Co.",
+      "sector": "Unknown"
+    },
+    "META": {
+      "name": "Meta Platforms",
+      "sector": "Unknown"
+    },
+    "MET": {
+      "name": "MetLife",
+      "sector": "Unknown"
+    },
+    "MTD": {
+      "name": "Mettler Toledo",
+      "sector": "Unknown"
+    },
+    "MGM": {
+      "name": "MGM Resorts",
+      "sector": "Unknown"
+    },
+    "MCHP": {
+      "name": "Microchip Technology",
+      "sector": "Information Technology"
+    },
+    "MU": {
+      "name": "Micron Technology",
+      "sector": "Information Technology"
+    },
+    "MSFT": {
+      "name": "Microsoft",
+      "sector": "Information Technology"
+    },
+    "MAA": {
+      "name": "Mid-America Apartment Communities",
+      "sector": "Unknown"
+    },
+    "MRNA": {
+      "name": "Moderna",
+      "sector": "Biotechnology"
+    },
+    "TAP": {
+      "name": "Molson Coors Beverage Company",
+      "sector": "Unknown"
+    },
+    "MDLZ": {
+      "name": "Mondelez International",
+      "sector": "Unknown"
+    },
+    "MPWR": {
+      "name": "Monolithic Power Systems",
+      "sector": "Information Technology"
+    },
+    "MNST": {
+      "name": "Monster Beverage",
+      "sector": "Unknown"
+    },
+    "MCO": {
+      "name": "Moody's Corporation",
+      "sector": "Unknown"
+    },
+    "MS": {
+      "name": "Morgan Stanley",
+      "sector": "Unknown"
+    },
+    "MOS": {
+      "name": "Mosaic Company (The)",
+      "sector": "Unknown"
+    },
+    "MSI": {
+      "name": "Motorola Solutions",
+      "sector": "Information Technology"
+    },
+    "MSCI": {
+      "name": "MSCI Inc.",
+      "sector": "Unknown"
+    },
+    "NDAQ": {
+      "name": "Nasdaq, Inc.",
+      "sector": "Unknown"
+    },
+    "NTAP": {
+      "name": "NetApp",
+      "sector": "Information Technology"
+    },
+    "NFLX": {
+      "name": "Netflix",
+      "sector": "Unknown"
+    },
+    "NEM": {
+      "name": "Newmont",
+      "sector": "Unknown"
+    },
+    "NWSA": {
+      "name": "NWSA",
+      "sector": "Unknown"
+    },
+    "NWS": {
+      "name": "NWS",
+      "sector": "Unknown"
+    },
+    "NEE": {
+      "name": "NextEra Energy",
+      "sector": "Multi-Utilities"
+    },
+    "NKE": {
+      "name": "Nike, Inc.",
+      "sector": "Unknown"
+    },
+    "NI": {
+      "name": "NiSource",
+      "sector": "Multi-Utilities"
+    },
+    "NDSN": {
+      "name": "Nordson Corporation",
+      "sector": "Unknown"
+    },
+    "NSC": {
+      "name": "Norfolk Southern",
+      "sector": "Unknown"
+    },
+    "NTRS": {
+      "name": "Northern Trust",
+      "sector": "Unknown"
+    },
+    "NOC": {
+      "name": "Northrop Grumman",
+      "sector": "Unknown"
+    },
+    "NCLH": {
+      "name": "Norwegian Cruise Line Holdings",
+      "sector": "Unknown"
+    },
+    "NRG": {
+      "name": "NRG Energy",
+      "sector": "Independent Power Producers &amp; Energy Traders"
+    },
+    "NUE": {
+      "name": "Nucor",
+      "sector": "Unknown"
+    },
+    "NVDA": {
+      "name": "Nvidia",
+      "sector": "Information Technology"
+    },
+    "NVR": {
+      "name": "NVR, Inc.",
+      "sector": "Unknown"
+    },
+    "NXPI": {
+      "name": "NXP Semiconductors",
+      "sector": "Information Technology"
+    },
+    "ORLY": {
+      "name": "O’Reilly Automotive",
+      "sector": "Unknown"
+    },
+    "OXY": {
+      "name": "Occidental Petroleum",
+      "sector": "Unknown"
+    },
+    "ODFL": {
+      "name": "Old Dominion",
+      "sector": "Unknown"
+    },
+    "OMC": {
+      "name": "Omnicom Group",
+      "sector": "Unknown"
+    },
+    "ON": {
+      "name": "ON Semiconductor",
+      "sector": "Information Technology"
+    },
+    "OKE": {
+      "name": "Oneok",
+      "sector": "Unknown"
+    },
+    "ORCL": {
+      "name": "Oracle Corporation",
+      "sector": "Information Technology"
+    },
+    "OTIS": {
+      "name": "Otis Worldwide",
+      "sector": "Unknown"
+    },
+    "PCAR": {
+      "name": "Paccar",
+      "sector": "Unknown"
+    },
+    "PKG": {
+      "name": "Packaging Corporation of America",
+      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+    },
+    "PLTR": {
+      "name": "Palantir Technologies",
+      "sector": "Information Technology"
+    },
+    "PANW": {
+      "name": "Palo Alto Networks",
+      "sector": "Information Technology"
+    },
+    "PSKY": {
+      "name": "Paramount Skydance Corporation",
+      "sector": "Unknown"
+    },
+    "PH": {
+      "name": "Parker Hannifin",
+      "sector": "Unknown"
+    },
+    "PAYX": {
+      "name": "Paychex",
+      "sector": "Unknown"
+    },
+    "PYPL": {
+      "name": "PayPal",
+      "sector": "Unknown"
+    },
+    "PNR": {
+      "name": "Pentair",
+      "sector": "Unknown"
+    },
+    "PEP": {
+      "name": "PepsiCo",
+      "sector": "Unknown"
+    },
+    "PFE": {
+      "name": "Pfizer",
+      "sector": "Unknown"
+    },
+    "PCG": {
+      "name": "PG&amp;E Corporation",
+      "sector": "Multi-Utilities"
+    },
+    "PM": {
+      "name": "Philip Morris International",
+      "sector": "Unknown"
+    },
+    "PSX": {
+      "name": "Phillips 66",
+      "sector": "Unknown"
+    },
+    "PNW": {
+      "name": "Pinnacle West Capital",
+      "sector": "Multi-Utilities"
+    },
+    "PNC": {
+      "name": "PNC Financial Services",
+      "sector": "Unknown"
+    },
+    "POOL": {
+      "name": "Pool Corporation",
+      "sector": "Unknown"
+    },
+    "PPG": {
+      "name": "PPG Industries",
+      "sector": "Unknown"
+    },
+    "PPL": {
+      "name": "PPL Corporation",
+      "sector": "Electric Utilities"
+    },
+    "PFG": {
+      "name": "Principal Financial Group",
+      "sector": "Unknown"
+    },
+    "PG": {
+      "name": "Procter &amp; Gamble",
+      "sector": "Unknown"
+    },
+    "PGR": {
+      "name": "Progressive Corporation",
+      "sector": "Unknown"
+    },
+    "PLD": {
+      "name": "Prologis",
+      "sector": "Unknown"
+    },
+    "PRU": {
+      "name": "Prudential Financial",
+      "sector": "Unknown"
+    },
+    "PEG": {
+      "name": "Public Service Enterprise Group",
+      "sector": "Electric Utilities"
+    },
+    "PTC": {
+      "name": "PTC Inc.",
+      "sector": "Information Technology"
+    },
+    "PSA": {
+      "name": "Public Storage",
+      "sector": "Unknown"
+    },
+    "PHM": {
+      "name": "PulteGroup",
+      "sector": "Unknown"
+    },
+    "PWR": {
+      "name": "Quanta Services",
+      "sector": "Unknown"
+    },
+    "QCOM": {
+      "name": "Qualcomm",
+      "sector": "Information Technology"
+    },
+    "DGX": {
+      "name": "Quest Diagnostics",
+      "sector": "Unknown"
+    },
+    "Q": {
+      "name": "Qnity Electronics",
+      "sector": "Information Technology"
+    },
+    "RL": {
+      "name": "Ralph Lauren Corporation",
+      "sector": "Unknown"
+    },
+    "RJF": {
+      "name": "Raymond James Financial",
+      "sector": "Unknown"
+    },
+    "RTX": {
+      "name": "RTX Corporation",
+      "sector": "Unknown"
+    },
+    "O": {
+      "name": "Realty Income",
+      "sector": "Unknown"
+    },
+    "REG": {
+      "name": "Regency Centers",
+      "sector": "Unknown"
+    },
+    "REGN": {
+      "name": "Regeneron Pharmaceuticals",
+      "sector": "Biotechnology"
+    },
+    "RF": {
+      "name": "Regions Financial Corporation",
+      "sector": "Unknown"
+    },
+    "RSG": {
+      "name": "Republic Services",
+      "sector": "Unknown"
+    },
+    "RMD": {
+      "name": "ResMed",
+      "sector": "Unknown"
+    },
+    "RVTY": {
+      "name": "Revvity",
+      "sector": "Unknown"
+    },
+    "HOOD": {
+      "name": "Robinhood Markets",
+      "sector": "Unknown"
+    },
+    "ROK": {
+      "name": "Rockwell Automation",
+      "sector": "Unknown"
+    },
+    "ROL": {
+      "name": "Rollins, Inc.",
+      "sector": "Unknown"
+    },
+    "ROP": {
+      "name": "Roper Technologies",
+      "sector": "Information Technology"
+    },
+    "ROST": {
+      "name": "Ross Stores",
+      "sector": "Unknown"
+    },
+    "RCL": {
+      "name": "Royal Caribbean Group",
+      "sector": "Unknown"
+    },
+    "SPGI": {
+      "name": "S&amp;P Global",
+      "sector": "Unknown"
+    },
+    "CRM": {
+      "name": "Salesforce",
+      "sector": "Information Technology"
+    },
+    "SNDK": {
+      "name": "Sandisk",
+      "sector": "Information Technology"
+    },
+    "SBAC": {
+      "name": "SBA Communications",
+      "sector": "Unknown"
+    },
+    "SLB": {
+      "name": "Schlumberger",
+      "sector": "Unknown"
+    },
+    "STX": {
+      "name": "Seagate Technology",
+      "sector": "Information Technology"
+    },
+    "SRE": {
+      "name": "Sempra",
+      "sector": "Multi-Utilities"
+    },
+    "NOW": {
+      "name": "ServiceNow",
+      "sector": "Information Technology"
+    },
+    "SHW": {
+      "name": "Sherwin-Williams",
+      "sector": "Unknown"
+    },
+    "SPG": {
+      "name": "Simon Property Group",
+      "sector": "Unknown"
+    },
+    "SWKS": {
+      "name": "Skyworks Solutions",
+      "sector": "Information Technology"
+    },
+    "SJM": {
+      "name": "J.M. Smucker Company (The)",
+      "sector": "Unknown"
+    },
+    "SW": {
+      "name": "Smurfit Westrock",
+      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+    },
+    "SNA": {
+      "name": "Snap-on",
+      "sector": "Unknown"
+    },
+    "SOLV": {
+      "name": "Solventum",
+      "sector": "Health Care Technology"
+    },
+    "SO": {
+      "name": "Southern Company",
+      "sector": "Electric Utilities"
+    },
+    "LUV": {
+      "name": "Southwest Airlines",
+      "sector": "Unknown"
+    },
+    "SWK": {
+      "name": "Stanley Black &amp; Decker",
+      "sector": "Unknown"
+    },
+    "SBUX": {
+      "name": "Starbucks",
+      "sector": "Unknown"
+    },
+    "STT": {
+      "name": "State Street Corporation",
+      "sector": "Unknown"
+    },
+    "STLD": {
+      "name": "Steel Dynamics",
+      "sector": "Unknown"
+    },
+    "STE": {
+      "name": "Steris",
+      "sector": "Unknown"
+    },
+    "SYK": {
+      "name": "Stryker Corporation",
+      "sector": "Unknown"
+    },
+    "SMCI": {
+      "name": "Supermicro",
+      "sector": "Information Technology"
+    },
+    "SYF": {
+      "name": "Synchrony Financial",
+      "sector": "Unknown"
+    },
+    "SNPS": {
+      "name": "Synopsys",
+      "sector": "Information Technology"
+    },
+    "SYY": {
+      "name": "Sysco",
+      "sector": "Unknown"
+    },
+    "TMUS": {
+      "name": "T-Mobile US",
+      "sector": "Wireless Telecommunication Services"
+    },
+    "TROW": {
+      "name": "T. Rowe Price",
+      "sector": "Unknown"
+    },
+    "TTWO": {
+      "name": "Take-Two Interactive",
+      "sector": "Unknown"
+    },
+    "TPR": {
+      "name": "Tapestry, Inc.",
+      "sector": "Unknown"
+    },
+    "TRGP": {
+      "name": "Targa Resources",
+      "sector": "Unknown"
+    },
+    "TGT": {
+      "name": "Target Corporation",
+      "sector": "Unknown"
+    },
+    "TEL": {
+      "name": "TE Connectivity",
+      "sector": "Information Technology"
+    },
+    "TDY": {
+      "name": "Teledyne Technologies",
+      "sector": "Information Technology"
+    },
+    "TER": {
+      "name": "Teradyne",
+      "sector": "Information Technology"
+    },
+    "TSLA": {
+      "name": "Tesla, Inc.",
+      "sector": "Unknown"
+    },
+    "TXN": {
+      "name": "Texas Instruments",
+      "sector": "Information Technology"
+    },
+    "TPL": {
+      "name": "Texas Pacific Land Corporation",
+      "sector": "Unknown"
+    },
+    "TXT": {
+      "name": "Textron",
+      "sector": "Unknown"
+    },
+    "TMO": {
+      "name": "Thermo Fisher Scientific",
+      "sector": "Unknown"
+    },
+    "TJX": {
+      "name": "TJX Companies",
+      "sector": "Unknown"
+    },
+    "TKO": {
+      "name": "TKO Group Holdings",
+      "sector": "Unknown"
+    },
+    "TTD": {
+      "name": "Trade Desk (The)",
+      "sector": "Unknown"
+    },
+    "TSCO": {
+      "name": "Tractor Supply",
+      "sector": "Unknown"
+    },
+    "TT": {
+      "name": "Trane Technologies",
+      "sector": "Unknown"
+    },
+    "TDG": {
+      "name": "TransDigm Group",
+      "sector": "Unknown"
+    },
+    "TRV": {
+      "name": "Travelers Companies (The)",
+      "sector": "Unknown"
+    },
+    "TRMB": {
+      "name": "Trimble Inc.",
+      "sector": "Information Technology"
+    },
+    "TFC": {
+      "name": "Truist Financial",
+      "sector": "Unknown"
+    },
+    "TYL": {
+      "name": "Tyler Technologies",
+      "sector": "Information Technology"
+    },
+    "TSN": {
+      "name": "Tyson Foods",
+      "sector": "Unknown"
+    },
+    "USB": {
+      "name": "U.S. Bancorp",
+      "sector": "Unknown"
+    },
+    "UBER": {
+      "name": "Uber",
+      "sector": "Unknown"
+    },
+    "UDR": {
+      "name": "UDR, Inc.",
+      "sector": "Unknown"
+    },
+    "ULTA": {
+      "name": "Ulta Beauty",
+      "sector": "Unknown"
+    },
+    "UNP": {
+      "name": "Union Pacific Corporation",
+      "sector": "Unknown"
+    },
+    "UAL": {
+      "name": "United Airlines Holdings",
+      "sector": "Unknown"
+    },
+    "UPS": {
+      "name": "United Parcel Service",
+      "sector": "Unknown"
+    },
+    "URI": {
+      "name": "United Rentals",
+      "sector": "Unknown"
+    },
+    "UNH": {
+      "name": "UnitedHealth Group",
+      "sector": "Managed Health Care"
+    },
+    "UHS": {
+      "name": "Universal Health Services",
+      "sector": "Unknown"
+    },
+    "VLO": {
+      "name": "Valero Energy",
+      "sector": "Unknown"
+    },
+    "VEEV": {
+      "name": "Veeva Systems",
+      "sector": "Health Care Technology"
+    },
+    "VTR": {
+      "name": "Ventas",
+      "sector": "Unknown"
+    },
+    "VLTO": {
+      "name": "Veralto",
+      "sector": "Unknown"
+    },
+    "VRSN": {
+      "name": "Verisign",
+      "sector": "Information Technology"
+    },
+    "VRSK": {
+      "name": "Verisk Analytics",
+      "sector": "Unknown"
+    },
+    "VZ": {
+      "name": "Verizon",
+      "sector": "Integrated Telecommunication Services"
+    },
+    "VRTX": {
+      "name": "Vertex Pharmaceuticals",
+      "sector": "Biotechnology"
+    },
+    "VRT": {
+      "name": "Vertiv",
+      "sector": "Unknown"
+    },
+    "VTRS": {
+      "name": "Viatris",
+      "sector": "Unknown"
+    },
+    "VICI": {
+      "name": "Vici Properties",
+      "sector": "Unknown"
+    },
+    "V": {
+      "name": "Visa Inc.",
+      "sector": "Unknown"
+    },
+    "VST": {
+      "name": "Irving, Texas",
+      "sector": "Electric Utilities"
+    },
+    "VMC": {
+      "name": "Vulcan Materials Company",
+      "sector": "Construction Materials"
+    },
+    "WRB": {
+      "name": "W. R. Berkley Corporation",
+      "sector": "Unknown"
+    },
+    "GWW": {
+      "name": "W. W. Grainger",
+      "sector": "Unknown"
+    },
+    "WAB": {
+      "name": "Wabtec",
+      "sector": "Unknown"
+    },
+    "WMT": {
+      "name": "Walmart",
+      "sector": "Unknown"
+    },
+    "DIS": {
+      "name": "Walt Disney Company (The)",
+      "sector": "Unknown"
+    },
+    "WBD": {
+      "name": "Warner Bros. Discovery",
+      "sector": "Unknown"
+    },
+    "WM": {
+      "name": "Waste Management",
+      "sector": "Unknown"
+    },
+    "WAT": {
+      "name": "Waters Corporation",
+      "sector": "Unknown"
+    },
+    "WEC": {
+      "name": "WEC Energy Group",
+      "sector": "Electric Utilities"
+    },
+    "WFC": {
+      "name": "Wells Fargo",
+      "sector": "Unknown"
+    },
+    "WELL": {
+      "name": "Welltower",
+      "sector": "Unknown"
+    },
+    "WST": {
+      "name": "West Pharmaceutical Services",
+      "sector": "Unknown"
+    },
+    "WDC": {
+      "name": "Western Digital",
+      "sector": "Information Technology"
+    },
+    "WY": {
+      "name": "Weyerhaeuser",
+      "sector": "Unknown"
+    },
+    "WSM": {
+      "name": "Williams-Sonoma, Inc.",
+      "sector": "Unknown"
+    },
+    "WMB": {
+      "name": "Williams Companies",
+      "sector": "Unknown"
+    },
+    "WTW": {
+      "name": "Willis Towers Watson",
+      "sector": "Unknown"
+    },
+    "WDAY": {
+      "name": "Workday, Inc.",
+      "sector": "Information Technology"
+    },
+    "WYNN": {
+      "name": "Wynn Resorts",
+      "sector": "Unknown"
+    },
+    "XEL": {
+      "name": "Xcel Energy",
+      "sector": "Multi-Utilities"
+    },
+    "XYL": {
+      "name": "Xylem Inc.",
+      "sector": "Unknown"
+    },
+    "YUM": {
+      "name": "Yum! Brands",
+      "sector": "Unknown"
+    },
+    "ZBRA": {
+      "name": "Zebra Technologies",
+      "sector": "Information Technology"
+    },
+    "ZBH": {
+      "name": "Zimmer Biomet",
+      "sector": "Unknown"
+    },
+    "ZTS": {
+      "name": "Zoetis",
+      "sector": "Unknown"
+    }
+  }
+}

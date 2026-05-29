@@ -83,6 +83,33 @@ try {
   });
 }
 
+// 2026-05-29: S&P 500 자동 보장 — sp500-tickers.json (fetch-sp500-list.mjs 산출물).
+// candidate 에 없는 S&P 500 종목 자동 추가 (large 대역 + sp500=true 메타).
+const SP500_ADDED = {};
+try {
+  const sp500 = JSON.parse(readFileSync(resolve(ROOT, 'data/sp500-tickers.json'), 'utf8'));
+  const existing = new Set([
+    ...grouped.titan, ...grouped.mega, ...grouped.large, ...grouped.mid,
+  ]);
+  let added = 0;
+  for (const t of sp500.tickers) {
+    if (existing.has(t)) continue;
+    // candidate 의 dot 형식 (BRK.B) 도 동일 매칭
+    if (existing.has(t.replace('-', '.'))) continue;
+    grouped.large.push(t);
+    SP500_ADDED[t] = {
+      name: sp500.meta?.[t]?.name ?? t,
+      sector: sp500.meta?.[t]?.sector ?? 'Unknown',
+      cap: 'large',
+      sp500: true,
+    };
+    added++;
+  }
+  console.log(`[SP500] ${sp500.tickers.length} 종목 중 ${added}개 누락 → large 대역 자동 추가`);
+} catch (e) {
+  console.warn('[SP500] sp500-tickers.json 로드 실패 (수동 fetch 권장): ' + e.message);
+}
+
 // 추천 가능 풀 = titan + mega + large + mid + ETF + KR
 // (small 34개는 유동성 약함 — 제외)
 // mid 포함 = small-cap premium factor (Fama-French SMB) 활용
@@ -112,6 +139,7 @@ const out = {
     ...Object.entries(fields),
     ...ETF_TICKERS.map(t => [t, { name: t, sector: 'ETF', cap: 'etf' }]),
     ...Object.entries(KR_TICKERS).map(([t, name]) => [t, KR_META[t] ?? { name, sector: 'KR', cap: 'kr' }]),
+    ...Object.entries(SP500_ADDED),
   ]),
   krNames: KR_TICKERS,
 };

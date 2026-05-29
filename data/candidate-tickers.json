@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-05-28T22:59:39.556Z",
-  "total": 841,
+  "generatedAt": "2026-05-29T01:09:17.060Z",
+  "total": 975,
   "byBand": {
     "titan": 5,
     "mega": 104,
-    "large": 292,
+    "large": 426,
     "mid": 165,
     "etf": 35,
     "kr": 240
@@ -411,6 +411,140 @@
     "ENB",
     "LNG",
     "ARM",
+    "AES",
+    "AKAM",
+    "AMCR",
+    "AMP",
+    "APH",
+    "APO",
+    "APTV",
+    "ACGL",
+    "ADM",
+    "ARES",
+    "AJG",
+    "AIZ",
+    "ADSK",
+    "BAX",
+    "BX",
+    "BNY",
+    "BR",
+    "BRO",
+    "BF-B",
+    "BLDR",
+    "BG",
+    "CPB",
+    "CVNA",
+    "CASY",
+    "CBRE",
+    "CNP",
+    "CRL",
+    "CIEN",
+    "CINF",
+    "CFG",
+    "FIX",
+    "CAG",
+    "CEG",
+    "GLW",
+    "CPAY",
+    "CTVA",
+    "CSGP",
+    "CRH",
+    "CMI",
+    "DVA",
+    "SATS",
+    "EIX",
+    "EME",
+    "ETR",
+    "EFX",
+    "ERIE",
+    "EXE",
+    "EXPE",
+    "EXPD",
+    "EXR",
+    "FFIV",
+    "FDS",
+    "FICO",
+    "FRT",
+    "FIS",
+    "FITB",
+    "IT",
+    "GEHC",
+    "GEV",
+    "GL",
+    "GDDY",
+    "HAS",
+    "DOC",
+    "HRL",
+    "HBAN",
+    "IEX",
+    "IBKR",
+    "IRM",
+    "JBL",
+    "JKHY",
+    "J",
+    "JCI",
+    "KVUE",
+    "KEY",
+    "KKR",
+    "LH",
+    "L",
+    "LITE",
+    "LYB",
+    "MTB",
+    "MRSH",
+    "MAS",
+    "MKC",
+    "MCHP",
+    "MCO",
+    "MSI",
+    "NTAP",
+    "NWSA",
+    "NWS",
+    "NTRS",
+    "NRG",
+    "NXPI",
+    "PSKY",
+    "PNR",
+    "PCG",
+    "PFG",
+    "PGR",
+    "PEG",
+    "DGX",
+    "Q",
+    "RL",
+    "RF",
+    "RVTY",
+    "ROL",
+    "ROP",
+    "SNDK",
+    "SBAC",
+    "SW",
+    "SOLV",
+    "STT",
+    "STE",
+    "SYF",
+    "TROW",
+    "TPR",
+    "TEL",
+    "TPL",
+    "TKO",
+    "TSCO",
+    "TYL",
+    "URI",
+    "UHS",
+    "VLTO",
+    "VRSN",
+    "VRT",
+    "VST",
+    "WRB",
+    "GWW",
+    "WAB",
+    "WY",
+    "WSM",
+    "WTW",
+    "WDAY",
+    "XYL",
+    "ZBH",
     "TECH",
     "WAT",
     "BIO",
@@ -5467,6 +5601,810 @@
       "sector": "Other",
       "cap": "kr",
       "market": "kosdaq"
+    },
+    "AES": {
+      "name": "AES Corporation",
+      "sector": "Independent Power Producers &amp; Energy Traders",
+      "cap": "large",
+      "sp500": true
+    },
+    "AKAM": {
+      "name": "Akamai Technologies",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "AMCR": {
+      "name": "Amcor",
+      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials",
+      "cap": "large",
+      "sp500": true
+    },
+    "AMP": {
+      "name": "Ameriprise Financial",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "APH": {
+      "name": "Amphenol",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "APO": {
+      "name": "Apollo Global Management",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "APTV": {
+      "name": "Aptiv",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ACGL": {
+      "name": "Arch Capital Group",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ADM": {
+      "name": "Archer Daniels Midland",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ARES": {
+      "name": "Ares Management",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "AJG": {
+      "name": "Arthur J. Gallagher &amp; Co.",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "AIZ": {
+      "name": "Assurant",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ADSK": {
+      "name": "Autodesk",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "BAX": {
+      "name": "Baxter International",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "BX": {
+      "name": "Blackstone Inc.",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "BNY": {
+      "name": "BNY Mellon",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "BR": {
+      "name": "Broadridge Financial Solutions",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "BRO": {
+      "name": "Brown &amp; Brown",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "BF-B": {
+      "name": "Brown–Forman",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "BLDR": {
+      "name": "Builders FirstSource",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "BG": {
+      "name": "Bunge Global",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CPB": {
+      "name": "Campbell's Company (The)",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CVNA": {
+      "name": "Carvana",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CASY": {
+      "name": "Casey's",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CBRE": {
+      "name": "CBRE Group",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CNP": {
+      "name": "CenterPoint Energy",
+      "sector": "Multi-Utilities",
+      "cap": "large",
+      "sp500": true
+    },
+    "CRL": {
+      "name": "Charles River Laboratories",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CIEN": {
+      "name": "Ciena",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "CINF": {
+      "name": "Cincinnati Financial",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CFG": {
+      "name": "Citizens Financial Group",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "FIX": {
+      "name": "Comfort Systems USA",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CAG": {
+      "name": "Conagra Brands",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CEG": {
+      "name": "Constellation Energy",
+      "sector": "Electric Utilities",
+      "cap": "large",
+      "sp500": true
+    },
+    "GLW": {
+      "name": "Corning Inc.",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "CPAY": {
+      "name": "Corpay",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CTVA": {
+      "name": "Corteva",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CSGP": {
+      "name": "CoStar Group",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "CRH": {
+      "name": "CRH plc",
+      "sector": "Construction Materials",
+      "cap": "large",
+      "sp500": true
+    },
+    "CMI": {
+      "name": "Cummins",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "DVA": {
+      "name": "DaVita",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "SATS": {
+      "name": "EchoStar",
+      "sector": "Wireless Telecommunication Services",
+      "cap": "large",
+      "sp500": true
+    },
+    "EIX": {
+      "name": "Edison International",
+      "sector": "Electric Utilities",
+      "cap": "large",
+      "sp500": true
+    },
+    "EME": {
+      "name": "Emcor",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ETR": {
+      "name": "Entergy",
+      "sector": "Electric Utilities",
+      "cap": "large",
+      "sp500": true
+    },
+    "EFX": {
+      "name": "Equifax",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ERIE": {
+      "name": "Erie Indemnity",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "EXE": {
+      "name": "Expand Energy",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "EXPE": {
+      "name": "Expedia Group",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "EXPD": {
+      "name": "Expeditors International",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "EXR": {
+      "name": "Extra Space Storage",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "FFIV": {
+      "name": "F5, Inc.",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "FDS": {
+      "name": "FactSet",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "FICO": {
+      "name": "Fair Isaac",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "FRT": {
+      "name": "Federal Realty Investment Trust",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "FIS": {
+      "name": "Fidelity National Information Services",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "FITB": {
+      "name": "Fifth Third Bancorp",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "IT": {
+      "name": "Gartner",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "GEHC": {
+      "name": "GE HealthCare",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "GEV": {
+      "name": "GE Vernova",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "GL": {
+      "name": "Globe Life",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "GDDY": {
+      "name": "GoDaddy",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "HAS": {
+      "name": "Hasbro",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "DOC": {
+      "name": "Healthpeak Properties",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "HRL": {
+      "name": "Hormel Foods",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "HBAN": {
+      "name": "Huntington Bancshares",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "IEX": {
+      "name": "IDEX Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "IBKR": {
+      "name": "Interactive Brokers",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "IRM": {
+      "name": "Iron Mountain",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "JBL": {
+      "name": "Jabil",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "JKHY": {
+      "name": "Jack Henry &amp; Associates",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "J": {
+      "name": "Jacobs Solutions",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "JCI": {
+      "name": "Johnson Controls",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "KVUE": {
+      "name": "Kenvue",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "KEY": {
+      "name": "KeyCorp",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "KKR": {
+      "name": "KKR &amp; Co.",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "LH": {
+      "name": "Labcorp",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "L": {
+      "name": "Loews Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "LITE": {
+      "name": "Lumentum",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "LYB": {
+      "name": "LyondellBasell",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "MTB": {
+      "name": "M&amp;T Bank",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "MRSH": {
+      "name": "Marsh McLennan",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "MAS": {
+      "name": "Masco",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "MKC": {
+      "name": "McCormick &amp; Company",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "MCHP": {
+      "name": "Microchip Technology",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "MCO": {
+      "name": "Moody's Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "MSI": {
+      "name": "Motorola Solutions",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "NTAP": {
+      "name": "NetApp",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "NWSA": {
+      "name": "NWSA",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "NWS": {
+      "name": "NWS",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "NTRS": {
+      "name": "Northern Trust",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "NRG": {
+      "name": "NRG Energy",
+      "sector": "Independent Power Producers &amp; Energy Traders",
+      "cap": "large",
+      "sp500": true
+    },
+    "NXPI": {
+      "name": "NXP Semiconductors",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "PSKY": {
+      "name": "Paramount Skydance Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "PNR": {
+      "name": "Pentair",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "PCG": {
+      "name": "PG&amp;E Corporation",
+      "sector": "Multi-Utilities",
+      "cap": "large",
+      "sp500": true
+    },
+    "PFG": {
+      "name": "Principal Financial Group",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "PGR": {
+      "name": "Progressive Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "PEG": {
+      "name": "Public Service Enterprise Group",
+      "sector": "Electric Utilities",
+      "cap": "large",
+      "sp500": true
+    },
+    "DGX": {
+      "name": "Quest Diagnostics",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "Q": {
+      "name": "Qnity Electronics",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "RL": {
+      "name": "Ralph Lauren Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "RF": {
+      "name": "Regions Financial Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "RVTY": {
+      "name": "Revvity",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ROL": {
+      "name": "Rollins, Inc.",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ROP": {
+      "name": "Roper Technologies",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "SNDK": {
+      "name": "Sandisk",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "SBAC": {
+      "name": "SBA Communications",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "SW": {
+      "name": "Smurfit Westrock",
+      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials",
+      "cap": "large",
+      "sp500": true
+    },
+    "SOLV": {
+      "name": "Solventum",
+      "sector": "Health Care Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "STT": {
+      "name": "State Street Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "STE": {
+      "name": "Steris",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "SYF": {
+      "name": "Synchrony Financial",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "TROW": {
+      "name": "T. Rowe Price",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "TPR": {
+      "name": "Tapestry, Inc.",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "TEL": {
+      "name": "TE Connectivity",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "TPL": {
+      "name": "Texas Pacific Land Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "TKO": {
+      "name": "TKO Group Holdings",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "TSCO": {
+      "name": "Tractor Supply",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "TYL": {
+      "name": "Tyler Technologies",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "URI": {
+      "name": "United Rentals",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "UHS": {
+      "name": "Universal Health Services",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "VLTO": {
+      "name": "Veralto",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "VRSN": {
+      "name": "Verisign",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "VRT": {
+      "name": "Vertiv",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "VST": {
+      "name": "Irving, Texas",
+      "sector": "Electric Utilities",
+      "cap": "large",
+      "sp500": true
+    },
+    "WRB": {
+      "name": "W. R. Berkley Corporation",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "GWW": {
+      "name": "W. W. Grainger",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "WAB": {
+      "name": "Wabtec",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "WY": {
+      "name": "Weyerhaeuser",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "WSM": {
+      "name": "Williams-Sonoma, Inc.",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "WTW": {
+      "name": "Willis Towers Watson",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "WDAY": {
+      "name": "Workday, Inc.",
+      "sector": "Information Technology",
+      "cap": "large",
+      "sp500": true
+    },
+    "XYL": {
+      "name": "Xylem Inc.",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
+    },
+    "ZBH": {
+      "name": "Zimmer Biomet",
+      "sector": "Unknown",
+      "cap": "large",
+      "sp500": true
     }
   },
   "krNames": {
