@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "source": "initial-seed-with-guru-tech-fund-macro-micro",
+  "tunedAt": "2026-05-29T00:00:00.000Z",
+  "sampleSize": 0,
+  "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력).",
+  "rules": [
+    {
+      "id": "tech_rsi_oversold",
+      "score": 4,
+      "category": "technical",
+      "condition": { "type": "rsiOversold", "rsi_lte": 35 },
+      "description": "RSI ≤ 35 — 과매도 (Marks contrarian entry)"
+    },
+    {
+      "id": "tech_ma_golden_cross",
+      "score": 5,
+      "category": "technical",
+      "condition": { "type": "goldenCross" },
+      "description": "50MA > 200MA — 장기 상승 추세"
+    },
+    {
+      "id": "tech_200ma_reclaim",
+      "score": 4,
+      "category": "technical",
+      "condition": { "type": "ma200Reclaim", "above_pct_lte": 5 },
+      "description": "price > 200MA AND 200MA 도 5% 이내 — 추세 복원"
+    },
+    {
+      "id": "tech_volume_surge",
+      "score": 3,
+      "category": "technical",
+      "condition": { "type": "volumeSurge", "vol_pct_gte": 50, "price_up_gte": 2 },
+      "description": "volume +50%+ & price +2%+ — accumulation 패턴"
+    },
+    {
+      "id": "fund_high_roe",
+      "score": 5,
+      "category": "fundamental",
+      "condition": { "type": "roeAbove", "roe_pct_gte": 15 },
+      "description": "ROE ≥ 15% (Buffett 우량 기업)"
+    },
+    {
+      "id": "fund_op_margin_expansion",
+      "score": 4,
+      "category": "fundamental",
+      "condition": { "type": "opMarginExpand", "expand_pp_gte": 2 },
+      "description": "op margin YoY +2%p+ — 수익성 확대"
+    },
+    {
+      "id": "fund_pe_below_sector",
+      "score": 4,
+      "category": "fundamental",
+      "condition": { "type": "peBelowSector", "discount_pct_gte": 20 },
+      "description": "P/E sector 평균 대비 -20%+ — 상대 저평가"
+    },
+    {
+      "id": "fund_revenue_growth",
+      "score": 3,
+      "category": "fundamental",
+      "condition": { "type": "revenueYoY", "growth_pct_gte": 15 },
+      "description": "revenue YoY ≥ 15% — 성장세"
+    },
+    {
+      "id": "guru_lynch_peg_low",
+      "score": 5,
+      "category": "guru",
+      "condition": { "type": "lynchPeg", "peg_lte": 1.0 },
+      "description": "Lynch PEG ≤ 1 — 성장 대비 저평가"
+    },
+    {
+      "id": "guru_buffett_moat",
+      "score": 6,
+      "category": "guru",
+      "condition": { "type": "buffettMoat", "roe_pct_gte": 15, "op_margin_pct_gte": 20 },
+      "description": "ROE ≥ 15% AND op margin ≥ 20% — Buffett moat 신호"
+    },
+    {
+      "id": "guru_greenblatt_magic",
+      "score": 6,
+      "category": "guru",
+      "condition": { "type": "greenblattMagic", "earnings_yield_gte": 10, "roic_pct_gte": 25 },
+      "description": "EBIT/EV ≥ 10% AND ROIC ≥ 25% — Magic Formula"
+    },
+    {
+      "id": "guru_graham_value",
+      "score": 4,
+      "category": "guru",
+      "condition": { "type": "grahamValue", "pe_lte": 15, "pb_lte": 1.5 },
+      "description": "P/E ≤ 15 AND P/B ≤ 1.5 — Graham deep value"
+    },
+    {
+      "id": "macro_low_risk",
+      "score": 3,
+      "category": "macro",
+      "condition": { "type": "macroRisk", "risk_level": "low" },
+      "description": "macro riskLevel=low (cyclical 종목 가중)"
+    },
+    {
+      "id": "macro_vix_low",
+      "score": 2,
+      "category": "macro",
+      "condition": { "type": "vixLow", "vix_lte": 14 },
+      "description": "VIX ≤ 14 — risk-on 환경"
+    },
+    {
+      "id": "macro_fg_recovery",
+      "score": 3,
+      "category": "macro",
+      "condition": { "type": "fgRecovery", "fg_gte": 25, "fg_lte": 50 },
+      "description": "F&G 25~50 (extreme fear → 회복기 진입)"
+    },
+    {
+      "id": "micro_sector_overweight",
+      "score": 4,
+      "category": "micro",
+      "condition": { "type": "sectorStance", "stance": "overweight" },
+      "description": "해당 sectorAllocation stance=overweight"
+    },
+    {
+      "id": "micro_region_bullish",
+      "score": 4,
+      "category": "micro",
+      "condition": { "type": "regionStance", "stance": "bullish" },
+      "description": "해당 region stance=bullish"
+    },
+    {
+      "id": "micro_news_positive",
+      "score": 5,
+      "category": "micro",
+      "condition": { "type": "newsPositive", "pos_ratio_gte": 0.6, "min_articles": 3 },
+      "description": "최근 7d 해당 ticker news 긍정 sentiment ≥ 60% (3+ articles)"
+    },
+    {
+      "id": "micro_insider_buying",
+      "score": 6,
+      "category": "micro",
+      "condition": { "type": "insiderBuy", "filings_gte": 3 },
+      "description": "최근 30d insider 매수 filing ≥ 3건 (13D/Form 4)"
+    },
+    {
+      "id": "micro_squeeze_score",
+      "score": 4,
+      "category": "micro",
+      "condition": { "type": "squeezeScore", "score_gte": 50 },
+      "description": "short squeeze score ≥ 50 (high SI + low DTC)"
+    },
+    {
+      "id": "micro_cascade_upstream",
+      "score": 5,
+      "category": "micro",
+      "condition": { "type": "cascadeUpstream" },
+      "description": "최근 cascade signal 의 upstream beneficiary (supply chain)"
+    },
+    {
+      "id": "selflearn_boost_list",
+      "score": 5,
+      "category": "selflearn",
+      "condition": { "type": "boostList" },
+      "description": "boost-list 멤버 (과거 avg_pnl ≥ 5%)"
+    },
+    {
+      "id": "selflearn_ban_list_penalty",
+      "score": -100,
+      "category": "selflearn",
+      "condition": { "type": "banList" },
+      "description": "ban-list 멤버 → 제외 (2+ stops / 0 hits)"
+    }
+  ],
+  "outcomeStats": {}
+}

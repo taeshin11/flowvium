@@ -3448,6 +3448,288 @@ async function fetchSellSignals(tickers) {
   return out;
 }
 
+/**
+ * 매수 룰 로드 + 매수 후보 평가 함수.
+ * 4-stage scoring:
+ *   Stage 1 (light): macro/sector/region/insider/squeeze/news/boost-list — 0초 비용
+ *   Stage 2 (OHLCV): top 100 score 후보의 RSI/MA/volume fetch
+ *   Stage 3 (financials): top 50 의 company-financials fetch → ROE/PE/PEG/Buffett moat
+ *   Stage 4: top 30 → buildPortfolioPrompt 에 inject (LLM 이 최종 12 선택)
+ */
+function loadBuyRules() {
+  try {
+    return JSON.parse(readFileSync(resolve(ROOT, 'data/buy-rules-tuned.json'), 'utf8'));
+  } catch (e) {
+    console.warn(`  ⚠️ buy-rules-tuned.json 로드 실패: ${e.message}`);
+    return null;
+  }
+}
+
+function evaluateBuyRule(rule, ctx) {
+  const c = rule.condition;
+  switch (c.type) {
+    // 기술
+    case 'rsiOversold':
+      if (ctx.rsi != null && ctx.rsi <= (c.rsi_lte ?? 35)) return `RSI ${ctx.rsi} 과매도`;
+      break;
+    case 'goldenCross':
+      if (ctx.sma50 && ctx.sma200 && ctx.sma50 > ctx.sma200) return `50MA > 200MA golden cross`;
+      break;
+    case 'ma200Reclaim':
+      if (ctx.sma200 && ctx.price > ctx.sma200 &&
+          (ctx.price - ctx.sma200) / ctx.sma200 * 100 <= (c.above_pct_lte ?? 5)) {
+        return `200MA reclaim (${(((ctx.price / ctx.sma200) - 1) * 100).toFixed(1)}% 위)`;
+      }
+      break;
+    case 'volumeSurge':
+      if (ctx.volPct != null && ctx.change1d != null &&
+          ctx.volPct >= (c.vol_pct_gte ?? 50) && ctx.change1d >= (c.price_up_gte ?? 2)) {
+        return `volume +${ctx.volPct}% & 1d +${ctx.change1d}% accumulation`;
+      }
+      break;
+    // 기본
+    case 'roeAbove':
+      if (ctx.roe != null && ctx.roe >= (c.roe_pct_gte ?? 15)) return `ROE ${ctx.roe.toFixed(1)}%`;
+      break;
+    case 'opMarginExpand':
+      if (ctx.opMarginExpand != null && ctx.opMarginExpand >= (c.expand_pp_gte ?? 2)) {
+        return `op margin YoY +${ctx.opMarginExpand.toFixed(1)}%p`;
+      }
+      break;
+    case 'peBelowSector':
+      if (ctx.peRatio && ctx.sectorPe && ctx.peRatio / ctx.sectorPe <= 1 - (c.discount_pct_gte ?? 20) / 100) {
+        return `P/E ${ctx.peRatio.toFixed(1)} vs sector ${ctx.sectorPe.toFixed(1)} 저평가`;
+      }
+      break;
+    case 'revenueYoY':
+      if (ctx.revenueGrowth != null && ctx.revenueGrowth >= (c.growth_pct_gte ?? 15)) {
+        return `revenue YoY +${ctx.revenueGrowth.toFixed(1)}%`;
+      }
+      break;
+    // 구루
+    case 'lynchPeg':
+      if (ctx.peg != null && ctx.peg > 0 && ctx.peg <= (c.peg_lte ?? 1.0)) {
+        return `Lynch PEG ${ctx.peg.toFixed(2)} 성장대비 저평가`;
+      }
+      break;
+    case 'buffettMoat':
+      if (ctx.roe != null && ctx.opMargin != null &&
+          ctx.roe >= (c.roe_pct_gte ?? 15) && ctx.opMargin >= (c.op_margin_pct_gte ?? 20)) {
+        return `Buffett moat (ROE ${ctx.roe.toFixed(0)}% + opMgn ${ctx.opMargin.toFixed(0)}%)`;
+      }
+      break;
+    case 'greenblattMagic':
+      if (ctx.earningsYield != null && ctx.roic != null &&
+          ctx.earningsYield >= (c.earnings_yield_gte ?? 10) && ctx.roic >= (c.roic_pct_gte ?? 25)) {
+        return `Greenblatt magic (EY ${ctx.earningsYield.toFixed(1)}% + ROIC ${ctx.roic.toFixed(0)}%)`;
+      }
+      break;
+    case 'grahamValue':
+      if (ctx.peRatio && ctx.pbRatio &&
+          ctx.peRatio <= (c.pe_lte ?? 15) && ctx.pbRatio <= (c.pb_lte ?? 1.5)) {
+        return `Graham deep value (P/E ${ctx.peRatio.toFixed(1)} P/B ${ctx.pbRatio.toFixed(2)})`;
+      }
+      break;
+    // 거시
+    case 'macroRisk':
+      if (ctx.macroRiskLevel === (c.risk_level ?? 'low')) return `macro risk=${ctx.macroRiskLevel} (risk-on)`;
+      break;
+    case 'vixLow':
+      if (ctx.vix != null && ctx.vix <= (c.vix_lte ?? 14)) return `VIX ${ctx.vix.toFixed(1)} 안정`;
+      break;
+    case 'fgRecovery':
+      if (ctx.fgScore != null && ctx.fgScore >= (c.fg_gte ?? 25) && ctx.fgScore <= (c.fg_lte ?? 50)) {
+        return `F&G ${ctx.fgScore} 회복기`;
+      }
+      break;
+    // 미시
+    case 'sectorStance':
+      if (ctx.sectorStance === (c.stance ?? 'overweight')) return `sector overweight`;
+      break;
+    case 'regionStance':
+      if (ctx.regionStance === (c.stance ?? 'bullish')) return `region bullish`;
+      break;
+    case 'newsPositive':
+      if (ctx.newsPosRatio != null && ctx.newsPosRatio >= (c.pos_ratio_gte ?? 0.6) &&
+          ctx.newsArticleCount >= (c.min_articles ?? 3)) {
+        return `news +${(ctx.newsPosRatio * 100).toFixed(0)}% (${ctx.newsArticleCount}건)`;
+      }
+      break;
+    case 'insiderBuy':
+      if (ctx.insiderFilings != null && ctx.insiderFilings >= (c.filings_gte ?? 3)) {
+        return `insider ${ctx.insiderFilings}건 매수`;
+      }
+      break;
+    case 'squeezeScore':
+      if (ctx.squeezeScore != null && ctx.squeezeScore >= (c.score_gte ?? 50)) {
+        return `squeeze ${ctx.squeezeScore}`;
+      }
+      break;
+    case 'cascadeUpstream':
+      if (ctx.cascadeUpstream === true) return `cascade upstream beneficiary`;
+      break;
+    case 'boostList':
+      if (ctx.boostListMember === true) return `boost-list (과거 avg_pnl ≥ 5%)`;
+      break;
+    case 'banList':
+      if (ctx.banListMember === true) return `BAN: 2+ stops/0 hits`;
+      break;
+  }
+  return null;
+}
+
+/**
+ * Stage 2: top N 후보의 OHLCV fetch — RSI / 50MA / 200MA / volume.
+ */
+async function fetchBuyTechSignals(tickers) {
+  const out = new Map();
+  await Promise.all(tickers.slice(0, 100).map(async ticker => {
+    const sig = { rsi: null, sma50: null, sma200: null, volPct: null };
+    try {
+      const oh = await fetchOHLCV(ticker, '1y');
+      if (oh?.closes?.length) {
+        sig.rsi = computeRSI(oh.closes);
+        sig.sma50 = computeSMA(oh.closes, 50);
+        sig.sma200 = computeSMA(oh.closes, 200);
+        if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes);
+      }
+    } catch { /* skip */ }
+    out.set(ticker, sig);
+  }));
+  return out;
+}
+
+/**
+ * Stage 3: top N 후보의 company-financials fetch — ROE / PE / PEG / op margin.
+ */
+async function fetchBuyFundSignals(tickers) {
+  const out = new Map();
+  await Promise.all(tickers.slice(0, 50).map(async ticker => {
+    const sig = {};
+    try {
+      const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
+      const url = isKR
+        ? `${SITE}/api/company-kr/${ticker.replace(/\.(KS|KQ)$/, '')}`
+        : `${SITE}/api/company-financials/${ticker}`;
+      const d = await safeFetch(url, 5000);
+      if (d) {
+        const cur = d.latestAnnual?.operatingMarginPct;
+        const prev = d.annuals?.[1]?.operatingMarginPct;
+        if (cur != null && prev != null) sig.opMarginExpand = cur - prev;
+        sig.opMargin = cur;
+        sig.roe = d.latestAnnual?.roePct ?? null;
+        sig.peRatio = d.peRatio ?? null;
+        sig.pbRatio = d.pbRatio ?? null;
+        sig.revenueGrowth = d.revenueYoYPct ?? d.quarterlyRevenue?.[0]?.yoyPct ?? null;
+        if (sig.peRatio && sig.revenueGrowth && sig.revenueGrowth > 0) sig.peg = sig.peRatio / sig.revenueGrowth;
+        // Greenblatt: EBIT / EV (earnings yield)
+        sig.earningsYield = d.earningsYield ?? null;
+        sig.roic = d.roic ?? null;
+      }
+    } catch { /* skip */ }
+    out.set(ticker, sig);
+  }));
+  return out;
+}
+
+async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
+  const ruleSpec = loadBuyRules();
+  if (!ruleSpec?.rules?.length) return [];
+
+  // ban-list / boost-list 로드
+  const banList = new Set();
+  const boostList = new Set();
+  try {
+    const bl = JSON.parse(readFileSync(resolve(ROOT, 'data/ban-list.json'), 'utf8'));
+    for (const t of (Array.isArray(bl) ? bl : bl.tickers ?? [])) banList.add(typeof t === 'string' ? t : t.ticker);
+  } catch { /* skip */ }
+  try {
+    const bl = JSON.parse(readFileSync(resolve(ROOT, 'data/boost-list.json'), 'utf8'));
+    for (const t of (Array.isArray(bl) ? bl : [])) boostList.add(t.ticker ?? t);
+  } catch { /* skip */ }
+
+  // 메타데이터 (sector / market) 로드
+  const tickerMeta = (() => {
+    try { return JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8')); }
+    catch { return { meta: {} }; }
+  })();
+
+  // ── Stage 1 (light): 모든 livePrices ticker 에 대해 macro/sector/region/insider/squeeze/news/boost ──
+  const allTickers = [...livePrices.keys()];
+  console.log(`  [buy-cand Stage 1] ${allTickers.length} ticker 가벼운 score 계산...`);
+  const stage1Scored = [];
+  for (const ticker of allTickers) {
+    if (banList.has(ticker)) continue;
+    const pd = livePrices.get(ticker);
+    if (!pd?.price) continue;
+    const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
+    const meta = tickerMeta.meta?.[ticker] ?? {};
+    const sectorKey = String(meta.sector ?? '').toLowerCase();
+    const ctx = {
+      ticker, price: pd.price, change1d: pd.change1d, sector: meta.sector,
+      market: isKR ? 'kr' : 'us',
+      macroRiskLevel: macroCtx.riskLevel,
+      vix: macroCtx.vix,
+      fgScore: macroCtx.fgScore,
+      sectorStance: macroCtx.sectorStanceMap?.get(sectorKey),
+      regionStance: macroCtx.regionStanceMap?.get(isKR ? 'kr' : 'us'),
+      newsPosRatio: macroCtx.newsSentimentMap?.get(ticker)?.posRatio ?? null,
+      newsArticleCount: macroCtx.newsSentimentMap?.get(ticker)?.count ?? 0,
+      insiderFilings: macroCtx.insiderMap?.get(ticker) ?? 0,
+      squeezeScore: macroCtx.squeezeMap?.get(ticker) ?? null,
+      cascadeUpstream: macroCtx.cascadeUpstreamSet?.has(ticker) ?? false,
+      boostListMember: boostList.has(ticker),
+      banListMember: banList.has(ticker),
+    };
+    let cumScore = 0;
+    const reasons = [];
+    for (const rule of ruleSpec.rules) {
+      // 가벼운 룰만 stage 1 — 기술/기본/구루 제외 (필요 데이터 없음)
+      if (['technical', 'fundamental', 'guru'].includes(rule.category)) continue;
+      const r = evaluateBuyRule(rule, ctx);
+      if (r) { cumScore += rule.score; reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
+    }
+    if (cumScore <= -50) continue; // ban
+    if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price });
+  }
+  stage1Scored.sort((a, b) => b.stage1Score - a.stage1Score);
+  const stage2Cands = stage1Scored.slice(0, 100); // top 100 → Stage 2
+
+  // ── Stage 2 (OHLCV): top 100 의 기술 시그널 ──
+  console.log(`  [buy-cand Stage 2] top ${stage2Cands.length} OHLCV fetch...`);
+  const techSignals = await fetchBuyTechSignals(stage2Cands.map(c => c.ticker));
+  for (const c of stage2Cands) {
+    const sig = techSignals.get(c.ticker) ?? {};
+    const ctx = { ...c, ...sig, sma50: sig.sma50, sma200: sig.sma200, rsi: sig.rsi, volPct: sig.volPct };
+    for (const rule of ruleSpec.rules) {
+      if (rule.category !== 'technical') continue;
+      const r = evaluateBuyRule(rule, ctx);
+      if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
+    }
+  }
+  stage2Cands.sort((a, b) => b.stage1Score - a.stage1Score);
+  const stage3Cands = stage2Cands.slice(0, 50);
+
+  // ── Stage 3 (financials): top 50 의 기본/구루 시그널 ──
+  console.log(`  [buy-cand Stage 3] top ${stage3Cands.length} company-financials fetch...`);
+  const fundSignals = await fetchBuyFundSignals(stage3Cands.map(c => c.ticker));
+  const sectorPeMap = macroCtx.sectorPeMap ?? new Map();
+  for (const c of stage3Cands) {
+    const sig = fundSignals.get(c.ticker) ?? {};
+    const sectorKey = String(c.sector ?? '').toLowerCase();
+    const ctx = { ...c, ...sig, sectorPe: sectorPeMap.get(sectorKey) ?? null };
+    for (const rule of ruleSpec.rules) {
+      if (!['fundamental', 'guru'].includes(rule.category)) continue;
+      const r = evaluateBuyRule(rule, ctx);
+      if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
+    }
+  }
+  stage3Cands.sort((a, b) => b.stage1Score - a.stage1Score);
+  const finalCands = stage3Cands.slice(0, topN);
+  console.log(`  [buy-cand 최종] top ${finalCands.length}: ${finalCands.slice(0, 8).map(c => `${c.ticker}(${c.stage1Score})`).join(' ')}...`);
+  return finalCands;
+}
+
 async function buildSellCandidates(livePrices, excludeTickers = new Set(), macroCtx = {}) {
   const ruleSpec = loadSellRules();
   if (!ruleSpec?.rules?.length) return { us: [], kr: [], total: 0 };
@@ -3641,7 +3923,7 @@ function buildSellRationalePrompt(sellCands) {
   ].join('\n');
 }
 
-function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
+function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates = []) {
   const recentTickers = getRecentTickers();
   const qualityFeedback = getRecentQualityFeedback();
   const { feedback: portfolioFeedback } = getPortfolioFeedback();
@@ -3757,6 +4039,17 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '═══════════════════════════════════════════════════════════════',
     getEntryFeedbackBlock(),
     getSellLearningBlock(),
+    // 2026-05-29: Stage 1+2+3 룰 score 결과 — LLM 이 final 12 선택할 때 참고
+    buyCandidates.length ? [
+      '[BUY CANDIDATES — 1,200+ ticker 4-stage scoring 결과 top 30]',
+      '(score = cumulative sum of 23 rules: tech/fund/구루/macro/micro/selflearn)',
+      ...buyCandidates.slice(0, 30).map((c, i) =>
+        `  ${(i + 1).toString().padStart(2)}. ${c.ticker.padEnd(11)} score=${c.stage1Score} (${c.market}/${c.sector}) — ${c.reasons.slice(0, 3).map(r => r.ruleId).join(', ')}`
+      ),
+      'GUIDANCE: 위 score 는 정량 룰 결과. LLM 은 이 candidate pool 안에서 최종 12개 선택 — score 높은 것 우선.',
+      'KR 6개 / US 6개 균등 강제는 score 와 무관하게 적용. KR candidate 가 6 미만이면 score 낮아도 추가.',
+      '',
+    ].join('\n') : '',
     'Your entryZone/stopLoss/target MUST be anchored to the LIVE PRICES above.',
     'Past performance is informational only — do NOT mechanically push entry up. Use technical/fundamental analysis to decide entry zone.',
     'If you write a price that differs >30% from the live price, it is a HALLUCINATION.',
@@ -4189,12 +4482,44 @@ async function generateViaOllama() {
   console.log(`  institutional=${ctx.institutional.length}c, shorts=${ctx.shorts.length}c`);
   console.log(`  prices=${livePrices.size} tickers, sectorPe=${sectorPe.length}c, earnings=${earnings.length}c`);
 
+  // 2026-05-29: 매수 후보 4-stage scoring (Wave 1 portfolio LLM 호출 직전)
+  // macro/sector/region 데이터는 ctxRaw 에서 추출. 매도와 동일 macroCtx 재사용.
+  console.log('\n[1.5/7] 매수 후보 4-stage scoring (1,200+ ticker)...');
+  const buyMacroCtx = {
+    riskLevel: null, // Wave 1 macroData 가 아직 없음 — fg/vix 만 활용
+    vix: ctxRaw?.volatility?.score ?? ctxRaw?.vix?.score ?? null,
+    fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
+    sectorPeMap: new Map((sectorPe ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio])),
+    sectorStanceMap: new Map(), // Wave1 후 채워질 데이터 — Stage 1 에는 빈 Map
+    regionStanceMap: new Map(),
+    newsSentimentMap: (() => {
+      const m = new Map();
+      for (const a of (ctxRaw?.news?.articles ?? [])) {
+        for (const t of (a.tickers ?? [])) {
+          if (!m.has(t)) m.set(t, { pos: 0, neg: 0, count: 0 });
+          const s = m.get(t); s.count++;
+          if (a.sentiment === 'positive' || a.sentiment === 'bullish') s.pos++;
+          else if (a.sentiment === 'negative' || a.sentiment === 'bearish') s.neg++;
+        }
+      }
+      for (const [, v] of m) {
+        v.posRatio = v.count ? v.pos / v.count : 0;
+        v.negRatio = v.count ? v.neg / v.count : 0;
+      }
+      return m;
+    })(),
+    insiderMap: new Map((ctxRaw?.insider ?? []).map(i => [i.ticker, i.filings ?? i.count ?? 1])),
+    squeezeMap: new Map((ctxRaw?.shorts ?? ctxRaw?.shortSqueeze ?? []).map(s => [s.ticker, s.score ?? s.squeezeScore])),
+    cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
+  };
+  const buyCandidates = await buildBuyCandidates(livePrices, buyMacroCtx, 30);
+
   // ── [2/7] Wave 1: 5섹션 병렬 ─────────────────────────────────────────────────
   console.log('\n[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
   const wave1Start = Date.now();
   const [macroRaw, portfolioRaw, regionalRaw, opportunityRaw, narrativeRaw] = await Promise.all([
     callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 360000, 'macro'),
-    callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 360000, 'portfolio'),
+    callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 360000, 'portfolio'),
     callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 360000, 'regional'),
     callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 360000, 'opportunity'),
     callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 360000, 'narrative'),
@@ -4247,7 +4572,7 @@ async function generateViaOllama() {
   for (let attempt = 1; attempt <= 2; attempt++) {
     if (portfolioCounts.us >= 6 && portfolioCounts.kr >= 6) break;
     console.log(`  portfolio US ${portfolioCounts.us}/6 + KR ${portfolioCounts.kr}/6 — retry ${attempt}/2 ...`);
-    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 360000, `portfolio-retry-${attempt}`);
+    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 360000, `portfolio-retry-${attempt}`);
     const portfolioRetryData = parseJson(portfolioRetry, `portfolio-retry-${attempt}`);
     portfolioData = pickBetter(portfolioData, portfolioRetryData);
     portfolioCounts = countByMarket(portfolioData?.portfolio);
@@ -4627,6 +4952,15 @@ async function generateViaOllama() {
       us: sellCands.us,
       kr: sellCands.kr,
       total: sellCands.total,
+    },
+    // 2026-05-29: 매수 candidate scoring 메타 — LLM 12 선택 외 score top 30 보존
+    buyCandidateScoring: {
+      method: '4-stage (light → OHLCV → financials → LLM)',
+      ruleCount: 23,
+      top30: buyCandidates.slice(0, 30).map(c => ({
+        ticker: c.ticker, sector: c.sector, market: c.market,
+        score: c.stage1Score, reasons: c.reasons.slice(0, 4).map(r => r.ruleId),
+      })),
     },
     generatedAt: now,
     dataAsOf: now,

@@ -137,6 +137,29 @@ Register-ScheduledTask `
     -Force | Out-Null
 Write-Host "등록: FlowVium-Tune-Sell-Rules @ Sun 04:00 (룰 grid search 학습)" -ForegroundColor Cyan
 
+# ─── tune-buy-rules.mjs (매수 룰 outcome 평가, 주 1회) ───────────────────────────
+$TuneBuyScript = "$ProjectDir\scripts\tune-buy-rules.mjs"
+$TuneBuyLog = "$LogDir\tune-buy-rules.log"
+$TuneBuyBatch = @"
+@echo off
+cd /d "$ProjectDir"
+echo [%date% %time%] tune-buy-rules start >> "$TuneBuyLog"
+"$NodePath" "$TuneBuyScript" >> "$TuneBuyLog" 2>&1
+echo [%date% %time%] tune-buy-rules done. >> "$TuneBuyLog"
+"@
+$TuneBuyBatchFile = "$ProjectDir\scripts\run-tune-buy-rules.bat"
+$TuneBuyBatch | Out-File -FilePath $TuneBuyBatchFile -Encoding ASCII
+
+$TuneBuyTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At "04:15"
+Register-ScheduledTask `
+    -TaskName "FlowVium-Tune-Buy-Rules" `
+    -Trigger $TuneBuyTrigger `
+    -Action (New-ScheduledTaskAction -Execute $TuneBuyBatchFile) `
+    -Settings (New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 15) -StartWhenAvailable) `
+    -RunLevel Highest `
+    -Force | Out-Null
+Write-Host "등록: FlowVium-Tune-Buy-Rules @ Sun 04:15 (매수 룰 outcome 평가)" -ForegroundColor Cyan
+
 Write-Host ""
 Write-Host "✅ 작업 스케줄러 등록 완료!" -ForegroundColor Green
 Write-Host "   - 보고서: 매일 08:05 / 16:05 / 21:35 KST"

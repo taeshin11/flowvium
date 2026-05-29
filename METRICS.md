@@ -651,7 +651,9 @@
 | 12-S3 | 거시경제 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
 | 12-S4 | 기술적 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
 | 12-S5 | 기본적 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
-| 12-P1 | AI 추천 포트폴리오 (US 6 + KR 6 = 12종목, 비중%) | 💾 cached | AI 생성 (locale-aware) ← 2026-05-29 |
+| 12-P1 | AI 추천 포트폴리오 (US 6 + KR 6 = 12종목) | 💾 cached | buy-rules-tuned.json 4-stage + LLM ensemble ← 2026-05-29 |
+| 12-P0 | 매수 룰 score top 30 후보 (buyCandidateScoring) | 🔄 cron | 23 룰 multi-factor scoring (light→OHLCV→financials) |
+| 12-PT | 매수 룰 학습 (weekly outcome 평가) | 🔄 cron | tune-buy-rules.mjs Sun 04:15 |
 | 12-P2 | 종목별 진입 구간 | 💾 cached | AI 생성 |
 | 12-P3 | 종목별 손절가 | 💾 cached | AI 생성 |
 | 12-P4 | 종목별 목표가 | 💾 cached | AI 생성 |
