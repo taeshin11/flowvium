@@ -513,12 +513,13 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
     // 2026-05-29: VIX 는 /api/volatility 응답, yields 는 /api/yield-curve.today 배열에서 찾기
     findInd('vix') ?? snapVix,
     findInd('cpi') ?? findInd('us_cpi'),
-    findInd('fed_rate') ?? findInd('fedfunds'),
+    // 2026-05-29 Codex 진단: macro-indicators route 의 실제 id 는 'fomc' / 'ig_spread'
+    findInd('fed_rate') ?? findInd('fomc') ?? findInd('fedfunds'),
     findYield('10Y') ?? yields?.['10Y'] ?? yields?.['10y'] ?? null,
     findYield('2Y') ?? yields?.['2Y'] ?? yields?.['2y'] ?? null,
     snapYields?.spread2s10sCurrent ?? snapYields?.spread2s10s ?? yc?.spread10y2y ?? null,
     findInd('hy_oas') ?? findInd('hy_spread'),
-    findInd('ig_oas'),
+    findInd('ig_oas') ?? findInd('ig_spread'),
     findInd('gdp') ?? findInd('gdp_growth'),
     snapFlows?.assets?.find(a => a.ticker === 'SPY')?.sparkline?.at(-1) ?? ctxRaw?.capital?.spy?.close ?? null,
     snapFlows?.assets?.find(a => a.ticker === 'QQQ')?.sparkline?.at(-1) ?? ctxRaw?.capital?.qqq?.close ?? null,
@@ -585,24 +586,54 @@ export function saveFearGreedArchive({ reportId, capturedAt, fgResponse, capital
 export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], companyChanges = [], insiderSignals = [] }) {
   const db = openDb();
   const now = capturedAt ?? new Date().toISOString();
+  // 2026-05-29 Codex 진단: short-interest endpoint_snapshots 에서 shortFloatPct/shortRatio
+  // ticker 별 조회 → shortSqueeze entry 와 join (보고서 안에 필드 없는 결함 해결)
+  let shortByTicker = {};
+  if (reportId) {
+    try {
+      const siRow = db.prepare(`SELECT response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint='/api/short-interest'`).get(reportId);
+      if (siRow) {
+        const entries = JSON.parse(siRow.response_json)?.entries ?? [];
+        for (const e of entries) {
+          if (e.ticker) shortByTicker[e.ticker.toUpperCase()] = e;
+        }
+      }
+    } catch { /* skip */ }
+  }
+  // company-financials snapshots 도 ticker 별 매핑
+  let finByTicker = {};
+  if (reportId) {
+    try {
+      const finRows = db.prepare(`SELECT endpoint, response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint LIKE '/api/company-financials/%'`).all(reportId);
+      for (const f of finRows) {
+        const ticker = f.endpoint.split('/').pop()?.toUpperCase();
+        if (ticker) {
+          try { finByTicker[ticker] = JSON.parse(f.response_json); } catch {}
+        }
+      }
+    } catch { /* skip */ }
+  }
   const txn = db.transaction(() => {
-    // 숏 스퀴즈
+    // 숏 스퀴즈 — short-interest snapshot join 으로 short_ratio/short_pct 채움
     const sqStmt = db.prepare(`
       INSERT INTO short_squeeze_archive
         (report_id, captured_at, ticker, score, short_ratio, short_pct, timing, risk, rationale)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const s of shortSqueeze) {
+      const tkUp = (s.ticker ?? '').toUpperCase();
+      const siEntry = shortByTicker[tkUp];
       sqStmt.run(reportId, now, s.ticker ?? '', s.score ?? null,
-        s.shortRatio ?? null, s.shortPct ?? null,
-        s.timing ?? null, s.risk ?? null, s.rationale ?? null);
+        s.shortRatio ?? siEntry?.shortRatio ?? null,
+        s.shortPct ?? siEntry?.shortFloatPct ?? siEntry?.shortPct ?? null,
+        s.timing ?? null, s.risk ?? null, s.rationale ?? siEntry?.rationale ?? null);
     }
-    // 기업 실적 (companyChanges 에서 추출)
+    // 기업 실적 (companyChanges + company-financials snapshot 결합)
     const erStmt = db.prepare(`
       INSERT INTO earnings_archive
         (report_id, captured_at, ticker, quarter, revenue, revenue_yoy, op_margin,
-         guidance, sentiment, source, raw_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         net_income, pe_ratio, guidance, sentiment, source, raw_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const c of companyChanges) {
       // 2026-05-29: keyChange 다양한 패턴 — \$X.XB / X억 달러 / X조 원 / +Y% YoY / Y% 증가
@@ -620,8 +651,21 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
               ?? k.match(/전년\s*대비\s*[+\-]?(\d+\.?\d*)\s*%/);
         if (ym) yoy = parseFloat(ym[1]);
       }
+      // 2026-05-29 Codex 진단: op_margin 추출 — keyChange regex + company-financials snapshot
+      let opMargin = null;
+      const om = k.match(/(?:operating\s+margin|opMgn|운영\s*마진|영업이익률)\s*[:=]?\s*(\d+\.?\d*)\s*%/i)
+            ?? k.match(/(\d+\.?\d*)\s*%\s*(?:operating\s+margin|opMgn|운영\s*마진|영업이익률)/i);
+      if (om) opMargin = parseFloat(om[1]);
+      // company-financials snapshot 의 latestAnnual.operatingMarginPct 로 보강
+      const finData = finByTicker[(c.ticker ?? '').toUpperCase()];
+      if (opMargin == null && finData?.latestAnnual?.operatingMarginPct != null) {
+        opMargin = finData.latestAnnual.operatingMarginPct;
+      }
+      // net_income / pe_ratio 도 finData 에서 시도
+      const netIncome = finData?.latestAnnual?.netIncome ?? null;
+      const peRatio = finData?.peRatio ?? finData?.latestAnnual?.peRatio ?? null;
       erStmt.run(reportId, now, c.ticker ?? '', c.latestQuarter ?? null,
-        rev, yoy, null,
+        rev, yoy, opMargin, netIncome, peRatio,
         c.guidance ?? null, c.sentiment ?? null, 'companyChanges',
         JSON.stringify(c));
     }

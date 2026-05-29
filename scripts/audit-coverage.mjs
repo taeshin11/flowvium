@@ -119,6 +119,26 @@ for (const at of archiveTables) {
   }
 }
 
+// ═══════ Probe 4b: 잘못된 값 범위 (NULL 아닌 silent bug — Codex 진단) ═══════
+console.log('\n## [4a] invalid value range (0/음수/불가능 범위)\n');
+const ranges = [
+  { table: 'macro_snapshots', col: 'fg_score',  min: 0, max: 100 },
+  { table: 'macro_snapshots', col: 'vix',       min: 5, max: 100 },
+  { table: 'macro_snapshots', col: 'cpi',       min: -5, max: 30 },
+  { table: 'macro_snapshots', col: 'fed_rate',  min: 0, max: 20 },
+  { table: 'macro_snapshots', col: 'yield_10y', min: 0, max: 20 },
+  { table: 'fg_archive',      col: 'score',     min: 0, max: 100 },
+  { table: 'short_squeeze_archive', col: 'score', min: 0, max: 100 },
+  { table: 'short_squeeze_archive', col: 'short_pct', min: 0, max: 100 },
+  { table: 'earnings_archive', col: 'op_margin',  min: -100, max: 100 },
+  { table: 'earnings_archive', col: 'revenue_yoy', min: -100, max: 1000 },
+  { table: 'recommendations', col: 'allocation', min: 0, max: 100 },
+];
+for (const r of ranges) {
+  const invalid = db.prepare(`SELECT COUNT(*) c FROM ${r.table} WHERE ${r.col} IS NOT NULL AND (${r.col} < ? OR ${r.col} > ?)`).get(r.min, r.max).c;
+  if (invalid > 0) err(`${r.table}.${r.col}: ${invalid} row 가 [${r.min}, ${r.max}] 범위 밖`);
+}
+
 // ═══════ Probe 4: 동일 응답 반복 (drift 없음 = stale) ═══════
 console.log('\n## [4] 응답 drift (정적 데이터 의심)\n');
 
