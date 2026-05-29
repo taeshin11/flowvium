@@ -419,14 +419,17 @@ export function saveNewsArchive({ reportId, locale, newsArticles = [], supplyCha
       );
       if (r.changes > 0) inserted++;
     }
-    // 2) supplyChainChanges
+    // 2) supplyChainChanges (2026-05-29 매핑 보강 — summary/sign 채움)
     for (const s of supplyChainChanges) {
       const tickers = [s.ticker, ...(s.downstreamBeneficiaries ?? [])].filter(Boolean);
       const extId = `supply:${s.ticker}:${(s.headline ?? '').slice(0, 60)}`;
+      const summary = s.downstreamBeneficiaries?.length
+        ? `↘ 수혜: ${s.downstreamBeneficiaries.join(', ')}`
+        : (s.signalType ? `signal=${s.signalType}` : null);
       const r = stmt.run(
         extId, 'supply-chain',
         s.ticker ?? null, JSON.stringify(tickers),
-        s.headline ?? '', null,
+        s.headline ?? '', summary,
         s.date ?? null, now,
         s.direction === 'positive' ? 'bullish' : s.direction === 'negative' ? 'bearish' : 'neutral',
         s.conviction >= 75 ? 'high' : s.conviction >= 50 ? 'medium' : 'low',
@@ -437,15 +440,22 @@ export function saveNewsArchive({ reportId, locale, newsArticles = [], supplyCha
       );
       if (r.changes > 0) inserted++;
     }
-    // 3) companyChanges
+    // 3) companyChanges (2026-05-29 매핑 보강 — summary=keyChange, signal=earnings, importance/direction)
     for (const c of companyChanges) {
       const extId = `company:${c.ticker}:${(c.keyChange ?? '').slice(0, 60)}`;
+      const direction = c.sentiment === 'positive' ? 'positive'
+        : c.sentiment === 'negative' ? 'negative' : 'neutral';
+      const importance = c.guidance === 'raised' ? 'high'
+        : c.guidance === 'lowered' ? 'high'
+        : c.guidance === 'maintained' ? 'medium' : 'low';
       const r = stmt.run(
         extId, 'company-change',
         c.ticker ?? null, JSON.stringify([c.ticker]),
-        c.keyChange ?? '', null,
+        c.keyChange ?? '', c.latestQuarter ? `Quarter: ${c.latestQuarter}, guidance=${c.guidance ?? '?'}` : null,
         null, now,
-        c.sentiment ?? 'neutral', null, null, null, null,
+        c.sentiment ?? 'neutral', importance,
+        'earnings', direction,
+        null,
         JSON.stringify(c),
         JSON.stringify(c),
         reportId, locale ?? 'en',
@@ -465,6 +475,20 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
   const db = openDb();
   const ind = ctxRaw?.macro?.indicators ?? [];
   const findInd = id => ind.find(i => i.id === id || i.id === id.replace('_','-'))?.actual ?? null;
+  // 2026-05-29: endpoint_snapshots 직접 query — ctxRaw 누락 시 보강
+  let snapVix = null, snapYields = null, snapFlows = null;
+  if (reportId) {
+    try {
+      const volRow = db.prepare(`SELECT response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint='/api/volatility'`).get(reportId);
+      if (volRow) snapVix = JSON.parse(volRow.response_json)?.vix ?? null;
+      const ycRow = db.prepare(`SELECT response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint='/api/yield-curve'`).get(reportId);
+      if (ycRow) snapYields = JSON.parse(ycRow.response_json);
+      const cfRow = db.prepare(`SELECT response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint='/api/capital-flows'`).get(reportId);
+      if (cfRow) snapFlows = JSON.parse(cfRow.response_json);
+    } catch { /* skip */ }
+  }
+  const todayYields = snapYields?.today ?? [];
+  const findYield = lbl => todayYields.find(y => y.label === lbl)?.value ?? null;
   const fg = ctxRaw?.fearGreed ?? ctxRaw?.fear_greed;
   // 2026-05-29: byCountry array 처리 — us 찾아서 score 추출 (기존 fg.score 단일 형식 우회)
   const fgUs = (() => {
@@ -486,17 +510,18 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
     reportId, capturedAt ?? new Date().toISOString(),
     fgUs?.score ?? null,
     fgUs?.level ?? fgUs?.label ?? null,
-    findInd('vix'),
+    // 2026-05-29: VIX 는 /api/volatility 응답, yields 는 /api/yield-curve.today 배열에서 찾기
+    findInd('vix') ?? snapVix,
     findInd('cpi') ?? findInd('us_cpi'),
     findInd('fed_rate') ?? findInd('fedfunds'),
-    yields?.['10Y'] ?? yields?.['10y'] ?? null,
-    yields?.['2Y'] ?? yields?.['2y'] ?? null,
-    yc?.spread10y2y ?? null,
+    findYield('10Y') ?? yields?.['10Y'] ?? yields?.['10y'] ?? null,
+    findYield('2Y') ?? yields?.['2Y'] ?? yields?.['2y'] ?? null,
+    snapYields?.spread2s10sCurrent ?? snapYields?.spread2s10s ?? yc?.spread10y2y ?? null,
     findInd('hy_oas') ?? findInd('hy_spread'),
     findInd('ig_oas'),
     findInd('gdp') ?? findInd('gdp_growth'),
-    ctxRaw?.capital?.spy?.close ?? null,
-    ctxRaw?.capital?.qqq?.close ?? null,
+    snapFlows?.assets?.find(a => a.ticker === 'SPY')?.sparkline?.at(-1) ?? ctxRaw?.capital?.spy?.close ?? null,
+    snapFlows?.assets?.find(a => a.ticker === 'QQQ')?.sparkline?.at(-1) ?? ctxRaw?.capital?.qqq?.close ?? null,
     macroData?.riskLevel ?? null,
   );
 }
@@ -542,10 +567,11 @@ export function saveFearGreedArchive({ reportId, capturedAt, fgResponse, capital
     for (const a of flowAssets) {
       const sym = a.symbol ?? a.ticker ?? a.id;
       if (!sym) continue;
+      // 2026-05-29: capital-flows 응답 형식 ret4w/ret1w/ret13w (camelCase 단축)
       flowStmt.run(reportId, now, sym,
-        a.return4w ?? a.return_4w ?? null,
-        a.return1w ?? a.return_1w ?? null,
-        a.return1d ?? a.return_1d ?? null,
+        a.ret4w ?? a.return4w ?? a.return_4w ?? null,
+        a.ret1w ?? a.return1w ?? a.return_1w ?? null,
+        a.ret1d ?? a.return1d ?? a.return_1d ?? null,
         a.trend ?? null, 'capital-flows');
     }
   });
@@ -579,10 +605,21 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const c of companyChanges) {
-      // companyChanges 의 keyChange 텍스트에서 revenue + yoy 추출 시도
-      const m = (c.keyChange ?? '').match(/(\$?\d+\.?\d*)\s*B\s*\(?\+?(-?\d+\.?\d*)\s*%/i);
-      const rev = m ? parseFloat(m[1].replace('$','')) : null;
-      const yoy = m ? parseFloat(m[2]) : c.revenueYoY ?? null;
+      // 2026-05-29: keyChange 다양한 패턴 — \$X.XB / X억 달러 / X조 원 / +Y% YoY / Y% 증가
+      const k = c.keyChange ?? '';
+      let rev = null;
+      const m1 = k.match(/\$(\d+\.?\d*)\s*B/i);
+      if (m1) rev = parseFloat(m1[1]);
+      else {
+        const m2 = k.match(/(\d+(?:\.\d+)?)\s*억\s*달러/);  // X억 달러 = X/10 B
+        if (m2) rev = parseFloat(m2[1]) / 10;
+      }
+      let yoy = c.revenueYoY ?? null;
+      if (yoy == null) {
+        const ym = k.match(/[+\-]?(\d+\.?\d*)\s*%\s*(?:YoY|증가|성장|상승)/i)
+              ?? k.match(/전년\s*대비\s*[+\-]?(\d+\.?\d*)\s*%/);
+        if (ym) yoy = parseFloat(ym[1]);
+      }
       erStmt.run(reportId, now, c.ticker ?? '', c.latestQuarter ?? null,
         rev, yoy, null,
         c.guidance ?? null, c.sentiment ?? null, 'companyChanges',

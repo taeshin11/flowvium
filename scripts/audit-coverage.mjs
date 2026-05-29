@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+/**
+ * scripts/audit-coverage.mjs
+ *
+ * "있어야 할 것" vs "실제 적재" 비교 — silent NULL + endpoint 미스매치 +
+ * archive 누락 자동 detect. audit-all 의 표면 점검 보완.
+ *
+ * 매주 또는 매 fix push 후 실행 권장.
+ */
+import Database from 'better-sqlite3';
+const db = new Database('C:/NoAddsMakingApps/FlowVium/data/flowvium.db', { readonly: true });
+
+let errCount = 0;
+const ERR = '❌', WARN = '⚠️ ', OK = '✅';
+function err(msg) { console.log(`${ERR} ${msg}`); errCount++; }
+function warn(msg) { console.log(`${WARN} ${msg}`); }
+function ok(msg) { console.log(`${OK} ${msg}`); }
+
+console.log('═══════════════════════════════════════════════════════════');
+console.log('  Coverage Audit — "있어야 할 것" vs "실제 적재"');
+console.log('═══════════════════════════════════════════════════════════\n');
+
+// ═══════ Probe 1: 모든 테이블의 column NULL 비율 ═══════
+console.log('## [1] silent NULL audit (column 있는데 항상 NULL)\n');
+
+const tables = db.prepare(`
+  SELECT name FROM sqlite_master
+  WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts%' AND name NOT LIKE '%_data' AND name NOT LIKE '%_idx' AND name NOT LIKE '%_docsize' AND name NOT LIKE '%_config' AND name NOT LIKE '%_content'
+`).all().map(r => r.name);
+
+for (const t of tables) {
+  const total = db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c;
+  if (total < 10) continue; // 적은 데이터 skip
+  const cols = db.prepare(`PRAGMA table_info(${t})`).all();
+  const lowCovCols = [];
+  for (const c of cols) {
+    if (['id', 'created_at'].includes(c.name)) continue;
+    if (c.notnull) continue; // NOT NULL constraint
+    const nullCnt = db.prepare(`SELECT COUNT(*) c FROM ${t} WHERE ${c.name} IS NULL`).get().c;
+    const nullPct = (nullCnt / total) * 100;
+    if (nullPct >= 80) lowCovCols.push(`${c.name}(${nullPct.toFixed(0)}%null)`);
+  }
+  if (lowCovCols.length > 0) {
+    err(`${t}: ${lowCovCols.length} col NULL ≥80% — ${lowCovCols.slice(0, 5).join(', ')}`);
+  } else {
+    ok(`${t}: ${total} rows / 모든 column coverage 정상`);
+  }
+}
+
+// ═══════ Probe 2: endpoint 적재 vs 인텔리전스 탭 expected ═══════
+console.log('\n## [2] endpoint 적재 vs intelligence/signals 페이지 의존 비교\n');
+
+// app pages 가 호출하는 endpoint (manifest)
+const EXPECTED_PAGE_ENDPOINTS = {
+  intelligence: [
+    '/api/fear-greed', '/api/capital-flows', '/api/macro-indicators', '/api/credit-balance',
+    '/api/sector-pe', '/api/sector-metrics', '/api/yield-curve', '/api/fedwatch',
+    '/api/commodity-curve', '/api/cot-positions', '/api/korea-flow',
+  ],
+  signals: [
+    '/api/signals', '/api/short-interest', '/api/insider-trades', '/api/ownership-alerts',
+    '/api/nport-holdings', '/api/supply-chain-signals',
+  ],
+  volatility: ['/api/iv-screener', '/api/volatility'],
+  heatmap: ['/api/market-heatmap', '/api/market-caps'],
+  news: ['/api/news-cascade', '/api/cascade-events', '/api/economic-calendar'],
+  company: ['/api/company-financials', '/api/company-kr'],
+};
+
+const captured = db.prepare(`
+  SELECT DISTINCT endpoint FROM endpoint_snapshots
+  WHERE captured_at >= datetime('now','-3 days')
+`).all().map(r => r.endpoint);
+const capSet = new Set(captured);
+// /api/X?param 도 /api/X 로 normalize
+const capNormSet = new Set(captured.map(e => e.split('?')[0]).concat(captured));
+
+for (const [page, eps] of Object.entries(EXPECTED_PAGE_ENDPOINTS)) {
+  const missing = eps.filter(e => !capNormSet.has(e) && !capSet.has(e));
+  if (missing.length === 0) {
+    ok(`/${page} page: ${eps.length}/${eps.length} endpoint 적재 중`);
+  } else {
+    warn(`/${page} page: ${eps.length - missing.length}/${eps.length} — 누락: ${missing.join(', ')}`);
+  }
+}
+
+// ═══════ Probe 3: domain archive 적재 비교 (보고서마다 적재되어야 할 것) ═══════
+console.log('\n## [3] domain archive 적재율 (매 보고서마다 있어야 함)\n');
+
+const totalReports = db.prepare(`SELECT COUNT(*) c FROM reports WHERE generated_at >= datetime('now','-7 days')`).get().c;
+const archiveTables = [
+  { name: 'recommendations',         expected: totalReports * 6,  perReport: '6-8 종목' },
+  { name: 'endpoint_snapshots',      expected: totalReports * 24, perReport: '24 endpoint' },
+  { name: 'news_archive',            expected: totalReports * 5,  perReport: '5+ 뉴스' },
+  { name: 'macro_snapshots',         expected: totalReports,      perReport: '1 시점 압축' },
+  { name: 'short_squeeze_archive',   expected: totalReports * 3,  perReport: '3 종목' },
+  { name: 'earnings_archive',        expected: totalReports * 3,  perReport: '3 회사' },
+  { name: 'insider_archive',         expected: totalReports * 2,  perReport: '2 신호' },
+  { name: 'fg_archive',              expected: totalReports * 10, perReport: '10 국가' },
+  { name: 'asset_flow_archive',      expected: totalReports * 15, perReport: '15 자산' },
+];
+
+for (const at of archiveTables) {
+  // 테이블별 timestamp column 자동 선택
+  const cols = db.prepare(`PRAGMA table_info(${at.name})`).all().map(c => c.name);
+  const ts = cols.includes('captured_at') ? 'captured_at'
+    : cols.includes('generated_at') ? 'generated_at'
+    : cols.includes('evaluated_at') ? 'evaluated_at'
+    : null;
+  if (!ts) { warn(`${at.name}: timestamp column 없음`); continue; }
+  const actual = db.prepare(`SELECT COUNT(*) c FROM ${at.name} WHERE ${ts} >= datetime('now','-7 days')`).get().c;
+  const ratio = at.expected > 0 ? (actual / at.expected) * 100 : 0;
+  if (ratio >= 80) {
+    ok(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — ${at.perReport}`);
+  } else if (ratio >= 30) {
+    warn(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — 부분 적재`);
+  } else {
+    err(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — 적재 거의 안 됨`);
+  }
+}
+
+// ═══════ Probe 4: 동일 응답 반복 (drift 없음 = stale) ═══════
+console.log('\n## [4] 응답 drift (정적 데이터 의심)\n');
+
+const driftCheck = db.prepare(`
+  SELECT endpoint, COUNT(DISTINCT response_json) unique_resp, COUNT(*) total
+  FROM endpoint_snapshots
+  WHERE captured_at >= datetime('now','-7 days')
+  GROUP BY endpoint
+  HAVING total >= 5
+`).all();
+for (const r of driftCheck) {
+  const driftRatio = (r.unique_resp / r.total) * 100;
+  if (driftRatio < 30) {
+    warn(`${(r.endpoint ?? '?').padEnd(34)} unique ${r.unique_resp}/${r.total} (${driftRatio.toFixed(0)}%) — 정적 의심`);
+  }
+}
+
+// ═══════ 종합 ═══════
+console.log(`\n═══ 종합 ═══`);
+console.log(`silent NULL + 누락 + drift: ${errCount} 결함`);
+process.exit(errCount > 0 ? 1 : 0);
