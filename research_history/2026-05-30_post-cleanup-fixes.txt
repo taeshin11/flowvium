@@ -1,0 +1,82 @@
+2026-05-30 — cleanup 후 잔여 결함 검증 + 2 가지 fix + 2 false alarm 정리
+
+배경
+─────────
+사용자: "이전 보고서 검증" → 5/29 evening 보고서 4중 안전망 직후 + cleanup 직후 상태 깊이 검증.
+"제일 좋은 방향으로" → 가시 결함 즉시 fix + verify-report false alarm 정리.
+
+검증 결과
+─────────
+✅ portfolio 12 (US 6 + KR 6) — KR cap 6 작동
+✅ NE 위험 0/15 (이전 11/17)
+✅ NVDA entryZone $205.68-$212.11 (실가 $214 -2.5%)
+✅ 환각 6건 reject 작동 (035620/034700/033520/033700/033900)
+✅ Probe [5][6][7][8] 모두 깨끗
+✅ portfolioOutcomes SPY α +25.8%, beatSpy 130/147 (88%)
+
+잔여 결함 분석
+─────────
+### #1 portfolio[].weight undefined → false alarm
+- verify-report.mjs 가 잘못된 필드 검사
+- ReportPage.tsx 는 `allocation` 만 참조 (line 230, 894), `weight` 안 씀
+- fix: verify-report.mjs 의 `weight` → `allocation` 으로 교체
+
+### #2 sectorAllocation 0 → fallback 추가
+- logs/llm-raw-portfolio-*.txt 3건 모두 `sectorAllocation` 키 자체가 없음
+- qwen3:8b 가 portfolio 12개 출력 후 sectorAllocation 잊고 종료
+- fix: finalReport 만들 때 `sectorAllocationFallback` IIFE 로 portfolio.sector 합산
+  → stance 자동 결정 (≥25% overweight, ≥12% neutral, <12% underweight)
+
+### #3 kpis MISSING → false alarm
+- scripts/generate-report-local.mjs 에 `kpis` 필드 자체 없음 (생성 안 함)
+- ReportPage.tsx 어디에도 `kpis` 참조 없음 (UI 안 씀)
+- KPI strip 은 다른 source (API) 에서 가져옴
+- fix: verify-report.mjs 의 kpis 체크 제거
+
+### #7 DB recommendations=15 vs JSON portfolio=12 mismatch → fix
+- DB 만: SNPS, BNY, CTRA (3건). JSON 만: 0건.
+- 원인: line 5108-5115 의 KR cap 6 적용 후 enforceRotation/buildLadders 가 portfolio 늘림
+- fix: writeFileSync 직전 (line 5664 후) cap 한 번 더 강제 + portfolioByMarket 재계산
+
+fix 코드
+─────────
+```js
+// sectorAllocation fallback
+const sectorAllocationFallback = (() => {
+  if (Array.isArray(portfolioData.sectorAllocation) && portfolioData.sectorAllocation.length > 0) {
+    return portfolioData.sectorAllocation;
+  }
+  const byCat = new Map();
+  for (const p of dedupedPortfolio) {
+    const key = (p.sector ?? 'Unknown').trim();
+    byCat.set(key, (byCat.get(key) ?? 0) + (p.allocation ?? 0));
+  }
+  return [...byCat.entries()]
+    .map(([sector, pct]) => ({
+      sector, pct: Math.round(pct),
+      stance: pct >= 25 ? 'overweight' : pct >= 12 ? 'neutral' : 'underweight',
+      reason: `portfolio ${pct.toFixed(0)}% 노출`,
+    }))
+    .sort((a, b) => b.pct - a.pct);
+})();
+
+// final cap (DB-JSON mismatch fix)
+const us = finalReport.portfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ'));
+const kr = finalReport.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ'));
+finalReport.portfolio = [...us.slice(0, 6), ...kr.slice(0, 6)];
+finalReport.portfolioByMarket = {
+  us: finalReport.portfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ')),
+  kr: finalReport.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')),
+};
+```
+
+검증
+─────────
+- node --check ✓
+- 55s smoke test — buy-cand Stage 3 + Wave1 진입 정상
+
+다음 cycle
+─────────
+- 5/30 morning cron (06:40 KST 예정) 가 첫 검증
+- sectorAllocation 위젯에 portfolio sector 자동 합산 표시
+- DB recommendations = JSON portfolio 정확히 일치 (12)

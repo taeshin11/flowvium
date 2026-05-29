@@ -17,7 +17,8 @@ if (r.trackRecord) {
 }
 
 console.log('\n## portfolio[0] 필드 검사');
-const required = ['ticker','name','sector','weight','rationale','entryZone','target','stopLoss','action','confidence'];
+// 2026-05-30: UI 는 `allocation` 만 참조. `weight` 는 schema 에 없는 필드라 검사 제외.
+const required = ['ticker','name','sector','allocation','rationale','entryZone','target','stopLoss','action','confidence'];
 const p0 = r.portfolio?.[0] || {};
 console.log(' fields:', Object.keys(p0).join(', '));
 for (const f of required) {
@@ -27,7 +28,7 @@ for (const f of required) {
 }
 
 console.log('\n## portfolio 17건 필드 누락 통계');
-const missing = { rationale:0, entryZone:0, target:0, stopLoss:0, weight:0, action:0, confidence:0 };
+const missing = { rationale:0, entryZone:0, target:0, stopLoss:0, allocation:0, action:0, confidence:0 };
 const total = (r.portfolio||[]).length;
 for (const p of (r.portfolio||[])) {
   for (const k of Object.keys(missing)) {
@@ -73,4 +74,4 @@ console.log(' supplyChainChanges:', (r.supplyChainChanges||[]).length);
 console.log(' companyChanges:', (r.companyChanges||[]).length);
 console.log(' shortSqueeze:', (r.shortSqueeze||[]).length);
 console.log(' insiderSignals:', (r.insiderSignals||[]).length);
-console.log(' kpis:', r.kpis ? Object.keys(r.kpis).join(',') : 'MISSING');
+// kpis 필드는 schema 에 없음 (UI 는 다른 source 참조) — 검사 제외

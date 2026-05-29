@@ -5123,11 +5123,28 @@ async function generateViaOllama() {
   }
 
   const now = new Date().toISOString();
+  // 2026-05-30: sectorAllocation fallback — qwen3:8b 가 portfolio 후 sectorAllocation 잊고 종료 빈번.
+  // portfolio 의 sector + allocation 합산으로 자동 생성 (LLM 응답에 sectorAllocation 있으면 우선).
+  const sectorAllocationFallback = (() => {
+    if (Array.isArray(portfolioData.sectorAllocation) && portfolioData.sectorAllocation.length > 0) {
+      return portfolioData.sectorAllocation;
+    }
+    const byCat = new Map();
+    for (const p of dedupedPortfolio) {
+      const key = (p.sector ?? 'Unknown').trim();
+      byCat.set(key, (byCat.get(key) ?? 0) + (p.allocation ?? 0));
+    }
+    const rows = [...byCat.entries()]
+      .map(([sector, pct]) => ({ sector, pct: Math.round(pct), stance: pct >= 25 ? 'overweight' : pct >= 12 ? 'neutral' : 'underweight', reason: `portfolio ${pct.toFixed(0)}% 노출` }))
+      .sort((a, b) => b.pct - a.pct);
+    console.log(`  [sectorAllocation/fallback] LLM 누락 → portfolio.sector 합산 ${rows.length}건 자동 생성`);
+    return rows;
+  })();
   const finalReport = {
     stance: portfolioData.stance ?? 'neutral',
     thesis: macroData?.thesis ?? portfolioData.stance ?? 'neutral',
     portfolio: dedupedPortfolio,
-    sectorAllocation: portfolioData.sectorAllocation ?? [],
+    sectorAllocation: sectorAllocationFallback,
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',
     technicalAnalysis: macroData?.technicalAnalysis ?? '',
@@ -5645,6 +5662,21 @@ async function generateViaOllama() {
   finalReport.portfolio = enforceRotation(finalReport.portfolio, livePrices);
   // 구루 분할 매매 ladder 자동 생성 (entry 30/40/30 + exit 33/33/34 + trailing)
   finalReport.portfolio = buildLadders(finalReport.portfolio, livePrices);
+  // 2026-05-30: 후처리 (harness/validateEntryZones/enforceRotation/buildLadders) 가 portfolio 늘리는 케이스 차단.
+  //   DB-JSON mismatch (DB=15, JSON=12) 사건 fix. saveRecommendations 호출 직전 cap 한 번 더 강제.
+  {
+    const us = finalReport.portfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ'));
+    const kr = finalReport.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ'));
+    if (us.length > 6 || kr.length > 6) {
+      console.log(`  [final-cap] 후처리 후 US ${us.length}→${Math.min(us.length,6)}, KR ${kr.length}→${Math.min(kr.length,6)} (cap 6 재적용)`);
+    }
+    finalReport.portfolio = [...us.slice(0, 6), ...kr.slice(0, 6)];
+  }
+  // portfolioByMarket 도 cap 후 portfolio 기준으로 재계산
+  finalReport.portfolioByMarket = {
+    us: finalReport.portfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ')),
+    kr: finalReport.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')),
+  };
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
