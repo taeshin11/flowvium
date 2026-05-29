@@ -137,6 +137,16 @@ try {
   }
   const krCount = cand.tickers.filter(t => t.endsWith('.KS') || t.endsWith('.KQ')).length;
   ok(`KR 종목 (KOSPI + KOSDAQ): ${krCount} 종목`);
+  // KOSPI 200 + KOSDAQ 150 커버 비교
+  try {
+    const krIdx = JSON.parse(readFileSync('C:/NoAddsMakingApps/FlowVium/data/kr-major-indexes.json', 'utf8'));
+    const expectedKr = [...(krIdx.kospi?.tickers ?? []), ...(krIdx.kosdaq?.tickers ?? [])];
+    const missingKr = expectedKr.filter(t => !candSet.has(t));
+    const krCov = ((expectedKr.length - missingKr.length) / expectedKr.length * 100).toFixed(1);
+    if (missingKr.length === 0) ok(`KOSPI 200 + KOSDAQ 150: ${expectedKr.length}/${expectedKr.length} (100%)`);
+    else if (missingKr.length < 10) warn(`KOSPI 200 + KOSDAQ 150: ${expectedKr.length - missingKr.length}/${expectedKr.length} (${krCov}%) — ${missingKr.length}개 누락`);
+    else err(`KOSPI 200 + KOSDAQ 150: ${expectedKr.length - missingKr.length}/${expectedKr.length} (${krCov}%) — ${missingKr.length}개 누락`);
+  } catch {}
 } catch (e) {
   warn(`S&P 500 coverage check 실패: ${String(e).slice(0,80)}`);
 }

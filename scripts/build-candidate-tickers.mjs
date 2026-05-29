@@ -83,6 +83,28 @@ try {
   });
 }
 
+// 2026-05-29: KOSPI 200 + KOSDAQ 150 자동 보장 — kr-major-indexes.json
+// (fetch-kospi200-kosdaq150.mjs 산출물, Naver finance 시총 상위 기반).
+try {
+  const krIdx = JSON.parse(readFileSync(resolve(ROOT, 'data/kr-major-indexes.json'), 'utf8'));
+  let added = 0;
+  for (const t of [...(krIdx.kospi?.tickers ?? []), ...(krIdx.kosdaq?.tickers ?? [])]) {
+    if (KR_TICKERS[t]) continue;
+    const meta = krIdx.kospi?.meta?.[t] ?? krIdx.kosdaq?.meta?.[t] ?? {};
+    KR_TICKERS[t] = meta.name ?? t;
+    KR_META[t] = {
+      name: meta.name ?? t,
+      sector: 'KR',
+      cap: 'kr',
+      market: meta.market?.toLowerCase() ?? (t.endsWith('.KQ') ? 'kosdaq' : 'kospi'),
+    };
+    added++;
+  }
+  console.log(`[KR-IDX] kr-major-indexes (KOSPI ${krIdx.kospi?.total} + KOSDAQ ${krIdx.kosdaq?.total}) → ${added}개 추가`);
+} catch (e) {
+  console.warn('[KR-IDX] kr-major-indexes.json 로드 실패: ' + e.message);
+}
+
 // 2026-05-29: S&P 500 자동 보장 — sp500-tickers.json (fetch-sp500-list.mjs 산출물).
 // candidate 에 없는 S&P 500 종목 자동 추가 (large 대역 + sp500=true 메타).
 const SP500_ADDED = {};
