@@ -1,0 +1,72 @@
+2026-05-30 — morning 보고서 minor 결함 fix: anchor=fallback 시 disc cap 2%
+
+배경
+─────────
+5/30 morning 보고서 (06:48 KST 발간) — fix 들 적용 후 첫 cron.
+신규 fix 작동 흔적:
+✓ [ticker-suffix] 033640.KS → 033640.KQ
+✓ [ticker-halluc] 035550 / 035520 / 000260 .KS 3건 reject
+✓ [sectorAllocation/fallback] 8건 자동 생성
+✓ [final-cap] US 7→6 (DB-JSON 일치 확인 11=11)
+✓ audit Probe [5]-[8] 모두 ✅
+✓ NVDA Yahoo vs our_at_gen gap 0.0%
+
+minor 결함 A: portfolio NE 위험 3/11 (TSM/TSLA/005930)
+─────────
+TSM       real=$418.54 EZ=$389.24-$401.80 (-5.5%)
+TSLA      real=$435.52 EZ=$405.03-$418.10 (-5.5%)
+005930.KS real=₩317,000 EZ=₩297,980-₩307,490 (-4.5%)
+
+원인 추적
+─────────
+3 ticker 모두 entryPlan.anchorReason='200MA', discountPct=4~5.
+LLM entryZone 환각 → step 1 (LLM 분석 존중) fail → step 2 entryPlan fallback.
+
+calibrateEntryFallback:
+- TSM: rationale 에 200MA 값 없음 → anchor=current $418.54 (fallback)
+       disc=5% → entryLow=$418.54*0.93=$389.24, entryHigh=$418.54*0.96=$401.80
+- TSLA: rationale 에 200MA 없음 → anchor=current → -4~-7% gap
+- 005930: rationale 에 200MA=₩144,645 있지만 sanity check
+       (anchor < base * 0.5 = ₩158,500) 실패 → anchor=current(fallback)
+       disc=4% → ₩317,000*0.94-0.97 = ₩297,980-₩307,490
+
+근본 결함: anchor=current(fallback) 인데도 disc 5% 적용 → -4~-7% NE 위험.
+
+fix
+─────────
+calibrateEntryFallback 내부 — anchor=current(fallback) 일 땐 disc cap 2%.
+LLM 의 큰 discountPct 는 진짜 50MA/200MA anchor 일 때만 존중.
+
+```js
+const isAnchorFallback = anchorLabel === 'current' || anchorLabel?.startsWith('current(');
+const discCap = isAnchorFallback ? 2 : 5;
+const disc = Math.max(0, Math.min(discCap, Number(discountPct) || 0)) / 100;
+```
+
+기대 효과:
+- anchor=current 일 때 zone = current*0.96-0.99 (gap -1%~-4%, 진입 가능)
+- 진짜 50MA/200MA 일 때만 LLM disc 5% 까지 허용
+
+추가: audit Probe [7] 강화
+─────────
+임계값 ±10% → ±5% — minor NE 위험도 자동 catch.
+강화 후 결과: 6/134 (4.5%) 가 ±5% 초과 (005930.KS 3건 + 035420.KS + TSM 등).
+disc cap fix 후 다음 cron 부터 0 에 가까워질 예상.
+
+검증
+─────────
+- node --check ✓
+- audit Probe [7] (강화 후): 6 결함 노출 — 정상 detect
+
+다음 cycle
+─────────
+- 5/30 afternoon cron (15:50 KST) 가 첫 검증
+- TSM/TSLA/005930 같은 anchor=fallback 케이스에서 disc 2% cap 적용 확인
+- audit Probe [7] 결함 0 또는 ≤2 기대
+
+minor 결함 후속 (이번 commit 외)
+─────────
+- B: sectorAllocation Unknown 8% (portfolio[].sector 빈 종목) — sector 정규화
+- C: case mismatch (Technology vs it-software) — fallback 에서 lowercase normalize
+- D: /api/market-caps endpoint snapshot 실패
+- E: still_holding 50% — 평가 lag (별도 cron)

@@ -2036,7 +2036,13 @@ function computePricesFromPlan(portfolioItems, livePrices) {
       anchor = base;
       anchorLabel = `current(calib-NE-${calib.medianGap.toFixed(1)}%)`;
     }
-    const disc = Math.max(0, Math.min(5, Number(discountPct) || 0)) / 100;
+    // 2026-05-30: anchor 가 current(fallback) 인 경우 disc 를 max 2% 로 cap.
+    //   원인: LLM 이 200MA/50MA 보내도 rationale 에 값 없으면 anchor=current.
+    //   disc 5% 그대로 적용하면 zone = current*0.93-0.96 = -4~-7% gap → NE 위험 (5/30 morning TSM/TSLA/005930 case).
+    //   진짜 50MA/200MA anchor 일 때만 LLM disc 존중.
+    const isAnchorFallback = anchorLabel === 'current' || anchorLabel?.startsWith('current(');
+    const discCap = isAnchorFallback ? 2 : 5;
+    const disc = Math.max(0, Math.min(discCap, Number(discountPct) || 0)) / 100;
     const entryLow = anchor * (1 - disc - 0.02);
     const entryHigh = anchor * (1 - disc + 0.01);
 

@@ -338,15 +338,16 @@ try {
     total++;
     const mid = (r.entry_low + r.entry_high) / 2;
     const gap = Math.abs(mid / r.price_at_gen - 1) * 100;
-    if (gap > 10) {
+    // 2026-05-30: ±10% → ±5% 강화 (minor NE 위험도 catch)
+    if (gap > 5) {
       bad++;
       if (badSamples.length < 5) badSamples.push(`${r.ticker}(${r.report_id.slice(0,10)}: ${gap.toFixed(0)}%)`);
     }
   }
   const pct = total ? (bad / total * 100).toFixed(1) : '?';
-  if (bad === 0 && total > 0) ok(`entryZone gap — ${total} 종목 모두 ±10% 이내 (NE 환각 0)`);
-  else if (bad / Math.max(total, 1) < 0.10) warn(`entryZone gap — ${bad}/${total} (${pct}%) 가 ±10% 초과: ${badSamples.join(', ')}`);
-  else err(`entryZone gap — ${bad}/${total} (${pct}%) 가 ±10% 초과 (NE 환각 양산): ${badSamples.join(', ')}`);
+  if (bad === 0 && total > 0) ok(`entryZone gap — ${total} 종목 모두 ±5% 이내 (NE 위험 0)`);
+  else if (bad / Math.max(total, 1) < 0.10) warn(`entryZone gap — ${bad}/${total} (${pct}%) 가 ±5% 초과: ${badSamples.join(', ')}`);
+  else err(`entryZone gap — ${bad}/${total} (${pct}%) 가 ±5% 초과 (NE 위험 양산): ${badSamples.join(', ')}`);
 } catch (e) {
   warn(`entryZone gap 점검 실패: ${e.message}`);
 }
