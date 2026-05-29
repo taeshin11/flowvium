@@ -186,6 +186,60 @@ CREATE TABLE IF NOT EXISTS macro_snapshots (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_macro_report ON macro_snapshots(report_id);
 CREATE INDEX IF NOT EXISTS idx_macro_captured ON macro_snapshots(captured_at);
+
+-- 2026-05-29: 숏 스퀴즈 아카이브 (시점 별 검색 + 추세 추적)
+CREATE TABLE IF NOT EXISTS short_squeeze_archive (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id     TEXT NOT NULL,
+  captured_at   TEXT NOT NULL,
+  ticker        TEXT NOT NULL,
+  score         INTEGER,                  -- squeeze score 0-100
+  short_ratio   REAL,                     -- days to cover
+  short_pct     REAL,                     -- short interest / float %
+  timing        TEXT,                     -- LLM 분석 timing
+  risk          TEXT,                     -- LLM 분석 risk
+  rationale     TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_squeeze_ticker ON short_squeeze_archive(ticker, captured_at);
+CREATE INDEX IF NOT EXISTS idx_squeeze_score ON short_squeeze_archive(score DESC);
+
+-- 2026-05-29: 기업 실적 아카이브 (분기별 매출/이익 추적)
+CREATE TABLE IF NOT EXISTS earnings_archive (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id       TEXT,
+  captured_at     TEXT NOT NULL,
+  ticker          TEXT NOT NULL,
+  quarter         TEXT,                   -- 'Q1 FY2027' / '2026-Q1'
+  revenue         REAL,                   -- 매출 (USD billions)
+  revenue_yoy     REAL,                   -- YoY %
+  op_margin       REAL,                   -- 영업이익률 %
+  net_income      REAL,
+  pe_ratio        REAL,
+  guidance        TEXT,                   -- raised/lowered/maintained
+  sentiment       TEXT,                   -- positive/negative/neutral
+  source          TEXT,                   -- 'company-financials' / 'company-kr' / 'companyChanges'
+  raw_json        TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_earnings_ticker ON earnings_archive(ticker, captured_at);
+CREATE INDEX IF NOT EXISTS idx_earnings_quarter ON earnings_archive(ticker, quarter);
+
+-- 2026-05-29: insider trades 아카이브 (집중 매수/매도 추적)
+CREATE TABLE IF NOT EXISTS insider_archive (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id       TEXT,
+  captured_at     TEXT NOT NULL,
+  ticker          TEXT NOT NULL,
+  filings_count   INTEGER,                -- 집중 신고 건수
+  date_range      TEXT,
+  significance    TEXT,
+  pattern         TEXT,
+  direction       TEXT,                   -- buy/sell/mixed
+  raw_json        TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_insider_ticker ON insider_archive(ticker, captured_at);
 `;
 
 let _dbInstance = null;
@@ -402,6 +456,58 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
     ctxRaw?.capital?.qqq?.close ?? null,
     macroData?.riskLevel ?? null,
   );
+}
+
+/**
+ * 2026-05-29: 숏 스퀴즈 + 기업 실적 + insider 아카이브 적재.
+ * 매 보고서 cycle 마다 호출 — point-in-time 추세 추적 가능.
+ */
+export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], companyChanges = [], insiderSignals = [] }) {
+  const db = openDb();
+  const now = capturedAt ?? new Date().toISOString();
+  const txn = db.transaction(() => {
+    // 숏 스퀴즈
+    const sqStmt = db.prepare(`
+      INSERT INTO short_squeeze_archive
+        (report_id, captured_at, ticker, score, short_ratio, short_pct, timing, risk, rationale)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const s of shortSqueeze) {
+      sqStmt.run(reportId, now, s.ticker ?? '', s.score ?? null,
+        s.shortRatio ?? null, s.shortPct ?? null,
+        s.timing ?? null, s.risk ?? null, s.rationale ?? null);
+    }
+    // 기업 실적 (companyChanges 에서 추출)
+    const erStmt = db.prepare(`
+      INSERT INTO earnings_archive
+        (report_id, captured_at, ticker, quarter, revenue, revenue_yoy, op_margin,
+         guidance, sentiment, source, raw_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const c of companyChanges) {
+      // companyChanges 의 keyChange 텍스트에서 revenue + yoy 추출 시도
+      const m = (c.keyChange ?? '').match(/(\$?\d+\.?\d*)\s*B\s*\(?\+?(-?\d+\.?\d*)\s*%/i);
+      const rev = m ? parseFloat(m[1].replace('$','')) : null;
+      const yoy = m ? parseFloat(m[2]) : c.revenueYoY ?? null;
+      erStmt.run(reportId, now, c.ticker ?? '', c.latestQuarter ?? null,
+        rev, yoy, null,
+        c.guidance ?? null, c.sentiment ?? null, 'companyChanges',
+        JSON.stringify(c));
+    }
+    // insider trades
+    const inStmt = db.prepare(`
+      INSERT INTO insider_archive
+        (report_id, captured_at, ticker, filings_count, date_range, significance, pattern, direction, raw_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const i of insiderSignals) {
+      inStmt.run(reportId, now, i.ticker ?? '', i.filings ?? null,
+        i.dateRange ?? null, i.significance ?? null, i.pattern ?? null,
+        /매도|sell/i.test(i.pattern ?? '') ? 'sell' : 'buy',
+        JSON.stringify(i));
+    }
+  });
+  txn();
 }
 
 /**

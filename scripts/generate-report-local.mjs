@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveNewsArchive, saveMacroSnapshot, getEntryFeedbackStats } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, getEntryFeedbackStats } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
@@ -4589,13 +4589,23 @@ async function generateViaOllama() {
         ctxRaw,
         macroData,
       });
+      // 2026-05-29: 숏스퀴즈/실적/insider 시점별 아카이브 (검색 + 추세)
+      saveDomainArchives({
+        reportId,
+        capturedAt: finalReport.generatedAt,
+        shortSqueeze: finalReport.shortSqueeze ?? [],
+        companyChanges: finalReport.companyChanges ?? [],
+        insiderSignals: finalReport.insiderSignals ?? [],
+      });
     } catch (e) {
       console.warn(`[db] ⚠️ news/macro 적재 실패: ${String(e).slice(0, 100)}`);
     }
     console.log(`\n[db] 📦 SQLite 적재: report=${reportId} recommendations=${recCount} news=${newsCount}`);
-    console.log(`[db] 엔드포인트 스냅샷 fetch 시작 (${20}개)...`);
+    // 2026-05-29: portfolio ticker 별 company-financials 도 함께 스냅샷
+    const portfolioTickers = (finalReport.portfolio ?? []).map(p => p.ticker).filter(Boolean);
+    console.log(`[db] 엔드포인트 스냅샷 fetch 시작 (24 + ${portfolioTickers.length} ticker별 실적)...`);
     const snapStart = Date.now();
-    const snapResults = await snapshotAllEndpoints(reportId);
+    const snapResults = await snapshotAllEndpoints(reportId, { portfolioTickers });
     const okCount = snapResults.filter(r => r.ok).length;
     console.log(`[db] ✅ 스냅샷 완료: ${okCount}/${snapResults.length} ok, ${Date.now() - snapStart}ms`);
     const failed = snapResults.filter(r => !r.ok).map(r => r.endpoint);

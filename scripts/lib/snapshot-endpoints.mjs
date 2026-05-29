@@ -12,6 +12,7 @@
 import { saveSnapshot } from './db.mjs';
 
 // LLM context 에 들어가는 모든 엔드포인트 (CLAUDE.md 의 daily-brief 의존 목록 기준)
+// 2026-05-29: sector-pe / sector-metrics / iv-screener / cascade-events 추가 (인텔리전스 탭 완전성).
 export const TRACKED_ENDPOINTS = [
   '/api/fear-greed',
   '/api/capital-flows',
@@ -33,6 +34,11 @@ export const TRACKED_ENDPOINTS = [
   '/api/commodity-curve',
   '/api/market-caps',
   '/api/economic-calendar?country=US',
+  // 2026-05-29 추가
+  '/api/sector-pe',
+  '/api/sector-metrics',
+  '/api/iv-screener',
+  '/api/cascade-events',
 ];
 
 async function fetchOne(baseUrl, path, timeoutMs = 12000) {
@@ -67,10 +73,26 @@ export async function snapshotAllEndpoints(reportId, opts = {}) {
     ?? 'https://flowvium.net').replace(/\/$/, '');
   const endpoints = opts.endpoints ?? TRACKED_ENDPOINTS;
   const concurrency = opts.concurrency ?? 6;
+  // 2026-05-29: portfolio ticker 별 기업 실적 endpoint 자동 생성
+  // 미국 (XBRL): /api/company-financials/[ticker]
+  // 한국 (DART):  /api/company-kr/[ticker]
+  const tickerEndpoints = [];
+  if (Array.isArray(opts.portfolioTickers)) {
+    for (const t of opts.portfolioTickers) {
+      if (!t) continue;
+      if (t.endsWith('.KS') || t.endsWith('.KQ')) {
+        const code = t.replace(/\.(KS|KQ)$/, '');
+        tickerEndpoints.push(`/api/company-kr/${code}`);
+      } else {
+        tickerEndpoints.push(`/api/company-financials/${t}`);
+      }
+    }
+  }
+  const allEndpoints = [...endpoints, ...tickerEndpoints];
 
   const results = [];
-  for (let i = 0; i < endpoints.length; i += concurrency) {
-    const batch = endpoints.slice(i, i + concurrency);
+  for (let i = 0; i < allEndpoints.length; i += concurrency) {
+    const batch = allEndpoints.slice(i, i + concurrency);
     const settled = await Promise.all(batch.map(async ep => {
       const r = await fetchOne(baseUrl, ep);
       saveSnapshot({
