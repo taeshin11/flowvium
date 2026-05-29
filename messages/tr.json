@@ -1139,6 +1139,8 @@
     "pageTitle": "AI Yatırım Stratejisi Raporu",
     "pageDesc": "Tüm piyasa göstergelerini birleştiren AI destekli alım stratejisi",
     "portfolioTitle": "AI Tarafından Önerilen Portföy",
+    "sellRecommendationsTitle": "Satış Önerileri",
+    "sellRecommendationsSubtitle": "önceki alımlara dayalı",
     "sectorTitle": "Sektör Dağılım Stratejisi",
     "riskEventsTitle": "Temel Risk Olayları",
     "disclaimer": "Bu rapor, kamuya açık verilere dayalı AI tarafından oluşturulan başvuru materyalidir. Yatırım kararlarının sorumluluğu size aittir.",

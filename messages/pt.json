@@ -1139,6 +1139,8 @@
     "pageTitle": "Relatório de Estratégia de Investimento IA",
     "pageDesc": "Estratégia de compra orientada por IA combinando todos os indicadores de mercado",
     "portfolioTitle": "Portfólio recomendado pela IA",
+    "sellRecommendationsTitle": "Recomendações de venda",
+    "sellRecommendationsSubtitle": "baseado em compras anteriores",
     "sectorTitle": "Estratégia de alocação setorial",
     "riskEventsTitle": "Principais eventos de risco",
     "disclaimer": "Este relatório é material de referência gerado por IA com base em dados públicos. As decisões de investimento são de sua exclusiva responsabilidade.",

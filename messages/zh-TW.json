@@ -1139,6 +1139,8 @@
     "pageTitle": "AI投資策略報告",
     "pageDesc": "結合所有市場指標的AI驅動買入策略和投資組合",
     "portfolioTitle": "AI推薦投資組合",
+    "sellRecommendationsTitle": "賣出推薦",
+    "sellRecommendationsSubtitle": "基於過往買入推薦",
     "sectorTitle": "行業配置策略",
     "riskEventsTitle": "主要風險事件",
     "disclaimer": "本報告是AI基於公開數據生成的參考資料。投資決策由您負責，不保證投資回報。",

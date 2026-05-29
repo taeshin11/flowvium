@@ -137,6 +137,43 @@ function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
   );
 }
 
+// ── Sell Recommendation Card (2026-05-29 신설) ────────────────────────────────
+type SellItem = {
+  ticker: string; name?: string; sector?: string; market?: 'us' | 'kr';
+  currentPrice?: string; entryPrice?: string | null; target?: string | null; stopLoss?: string | null;
+  pnlPct?: number | null; heldDays?: number; score?: number;
+  rationale?: string; sellType?: string; urgency?: 'high' | 'medium' | 'low';
+};
+function SellCard({ item }: { item: SellItem }) {
+  const urgencyColor = item.urgency === 'high' ? 'border-red-300 bg-red-50' :
+                       item.urgency === 'medium' ? 'border-orange-300 bg-orange-50' :
+                       'border-gray-200 bg-white';
+  const urgencyTag = item.urgency === 'high' ? '🔴' : item.urgency === 'medium' ? '🟠' : '⚪';
+  const pnlColor = (item.pnlPct ?? 0) >= 0 ? 'text-green-700' : 'text-red-700';
+  return (
+    <div className={`rounded-lg border p-2.5 ${urgencyColor}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-bold text-sm text-gray-900">
+          {urgencyTag} {item.ticker} <span className="text-[10px] font-normal text-gray-500">{item.name}</span>
+        </span>
+        {item.pnlPct != null && (
+          <span className={`text-xs font-semibold ${pnlColor}`}>
+            {item.pnlPct >= 0 ? '+' : ''}{item.pnlPct.toFixed(1)}%
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-gray-700 mb-1.5 leading-snug">{item.rationale}</p>
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
+        <span>현재 {item.currentPrice}</span>
+        {item.entryPrice && <span>· entry {item.entryPrice}</span>}
+        {item.target && <span>· target {item.target}</span>}
+        {item.stopLoss && <span>· stop {item.stopLoss}</span>}
+        <span>· 보유 {item.heldDays}일</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Portfolio Card ────────────────────────────────────────────────────────────
 function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
   const t = useTranslations('report');
@@ -924,6 +961,41 @@ export default function ReportPage() {
                       {kr.map((item, i) => (
                         <PortfolioCard key={item.ticker} item={item} rank={us.length + i + 1} />
                       ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── 매도 추천 (2026-05-29 신설 — 과거 buy 추천 중 stop/target/회전 후보) ── */}
+          {(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const sell = (data as any).sellRecommendations as { us?: SellItem[]; kr?: SellItem[]; total?: number } | undefined;
+            if (!sell || (sell.total ?? 0) === 0) return null;
+            const usSell = sell.us ?? [];
+            const krSell = sell.kr ?? [];
+            return (
+              <div className="mb-5 rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+                <h2 className="text-sm font-bold text-orange-900 mb-3 flex items-center gap-2">
+                  📤 {t('sellRecommendationsTitle')}
+                  <span className="text-[10px] font-normal text-orange-600 bg-orange-100 rounded px-2 py-0.5">
+                    {t('sellRecommendationsSubtitle')}
+                  </span>
+                </h2>
+                {usSell.length > 0 && (
+                  <div className="mb-3">
+                    <h3 className="text-xs font-semibold text-orange-800 mb-2">🇺🇸 US ({usSell.length})</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {usSell.map((s) => <SellCard key={s.ticker} item={s} />)}
+                    </div>
+                  </div>
+                )}
+                {krSell.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-orange-800 mb-2">🇰🇷 KR ({krSell.length})</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {krSell.map((s) => <SellCard key={s.ticker} item={s} />)}
                     </div>
                   </div>
                 )}

@@ -1139,6 +1139,8 @@
     "pageTitle": "AI Investment Strategy Report",
     "pageDesc": "AI-driven buy strategy and portfolio combining all market indicators",
     "portfolioTitle": "AI-Recommended Portfolio",
+    "sellRecommendationsTitle": "Sell Recommendations",
+    "sellRecommendationsSubtitle": "based on prior buy picks",
     "sectorTitle": "Sector Allocation Strategy",
     "riskEventsTitle": "Key Risk Events",
     "disclaimer": "This report is AI-generated reference material based on public data. Investment decisions are solely your responsibility; returns are not guaranteed.",

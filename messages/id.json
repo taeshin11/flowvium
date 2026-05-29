@@ -1139,6 +1139,8 @@
     "pageTitle": "Laporan Strategi Investasi AI",
     "pageDesc": "Strategi beli berbasis AI yang menggabungkan semua indikator pasar",
     "portfolioTitle": "Portofolio yang Direkomendasikan AI",
+    "sellRecommendationsTitle": "Rekomendasi Jual",
+    "sellRecommendationsSubtitle": "berdasarkan pembelian sebelumnya",
     "sectorTitle": "Strategi Alokasi Sektor",
     "riskEventsTitle": "Peristiwa Risiko Utama",
     "disclaimer": "Laporan ini adalah materi referensi yang dihasilkan AI berdasarkan data publik. Keputusan investasi sepenuhnya menjadi tanggung jawab Anda.",

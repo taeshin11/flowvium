@@ -693,10 +693,18 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 기술적 분석 (보라색)
 - 기본적 분석 (초록색)
 
-### 13-3. AI 추천 포트폴리오 (5~7종목)
+### 13-3. AI 추천 포트폴리오 (US 6 + KR 6 = 12종목)
 - 종목명, 섹터, 비중(%), 매수 근거
+- 🇺🇸 US Market / 🇰🇷 KR Market 시장별 분리 표시
 - 클릭 확장: 진입 구간 / 손절가 / 목표가
 - 확신도 뱃지 (high/medium/low)
+
+### 13-3b. 📤 매도 추천 (US 6 + KR 6, 2026-05-29 신설)
+- 과거 buy 추천 중 stop 근접/돌파, target 근접, 보유 14일+ 회전 후보 자동 추출
+- 룰별 score (10=stop breach, 8=stop near, 7=target near, 6/5/3=rotation) + LLM rationale
+- urgency 배지 (🔴 high / 🟠 medium / ⚪ low)
+- 데이터: `recommendations` + `recommendation_outcomes` (still_holding 65건 + recent 30d buy)
+- 매도 후보 추출은 룰 기반, rationale 만 Wave 2 LLM 호출 (240s timeout)
 
 ### 13-4. 섹터 배분 전략
 - 섹터별 비중 바 차트

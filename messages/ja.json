@@ -1139,6 +1139,8 @@
     "pageTitle": "AI投資戦略レポート",
     "pageDesc": "すべての指標を統合したAIベースの買い戦略とポートフォリオ",
     "portfolioTitle": "AIおすすめポートフォリオ",
+    "sellRecommendationsTitle": "売却推奨",
+    "sellRecommendationsSubtitle": "過去の買い推奨に基づく",
     "sectorTitle": "セクター別配分戦略",
     "riskEventsTitle": "主要リスクイベント",
     "disclaimer": "本レポートはAIが公開データをもとに生成した参考資料です。投資判断の責任はご自身にあり、投資損失を保証するものではありません。",

@@ -1139,6 +1139,8 @@
     "pageTitle": "KI-Investitionsstrategie-Bericht",
     "pageDesc": "KI-gesteuerte Kaufstrategie und Portfolio mit allen Marktindikatoren",
     "portfolioTitle": "KI-empfohlenes Portfolio",
+    "sellRecommendationsTitle": "Verkaufsempfehlungen",
+    "sellRecommendationsSubtitle": "basierend auf früheren Käufen",
     "sectorTitle": "Sektorallokationsstrategie",
     "riskEventsTitle": "Wesentliche Risikoereignisse",
     "disclaimer": "Dieser Bericht ist KI-generiertes Referenzmaterial basierend auf öffentlichen Daten. Investitionsentscheidungen liegen in Ihrer alleinigen Verantwortung.",

@@ -651,12 +651,16 @@
 | 12-S3 | 거시경제 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
 | 12-S4 | 기술적 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
 | 12-S5 | 기본적 분석 텍스트 | 💾 cached | AI 생성 (locale-aware) |
-| 12-P1 | AI 추천 포트폴리오 (5종목, 비중%) | 💾 cached | AI 생성 (locale-aware) |
+| 12-P1 | AI 추천 포트폴리오 (US 6 + KR 6 = 12종목, 비중%) | 💾 cached | AI 생성 (locale-aware) ← 2026-05-29 |
 | 12-P2 | 종목별 진입 구간 | 💾 cached | AI 생성 |
 | 12-P3 | 종목별 손절가 | 💾 cached | AI 생성 |
 | 12-P4 | 종목별 목표가 | 💾 cached | AI 생성 |
 | 12-P5 | 종목별 확신도 (high/medium/low) | 💾 cached | AI 생성 |
 | 12-P6 | 종목별 매수 액션 (buy/hold/watch) | 💾 cached | AI 생성 ← iter210 |
+| 12-S1 | 📤 매도 추천 (US 6 + KR 6, 룰+LLM) | 🔄 cron | recommendations + recommendation_outcomes 기반 ← 2026-05-29 |
+| 12-S2 | 매도 type (stop_breach/near/target_near/rotation) | 🔄 cron | 룰 기반 (price vs stop/target/heldDays) |
+| 12-S3 | 매도 urgency (🔴 high / 🟠 medium / ⚪ low) | 🔄 cron | score 기반 |
+| 12-S4 | 매도 rationale (≤80자 LLM 또는 룰 텍스트) | 🔄 cron | Wave 2 LLM call (240s timeout) |
 | 12-A1 | 섹터 배분 (비중확대/중립/비중축소) | 💾 cached | AI 생성 |
 | 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
 | 12-K1 | KPI: F&G (US) | 💾 cached | `/api/fear-greed` (CNN 4h) |

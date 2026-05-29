@@ -3248,6 +3248,117 @@ function getPortfolioFeedback() {
   }
 }
 
+/**
+ * 2026-05-29: 매도 후보 추출 (still_holding + recent 30d buy 추천 중 현재 가격 기반).
+ * 룰별 score 후 US/KR top 6 each. excludeTickers (이번 cycle 의 새 buy 추천) 는 제외.
+ *
+ * 룰 (높은 순):
+ *   10 = stop 하향 돌파 (price < stop_loss) → 즉시 매도
+ *    8 = stop 근접 (price/stop ≤ 1.05) → 손절 임박
+ *    7 = target 근접 (price/target ≥ 0.9) → 익절 기회
+ *    6 = 보유 14일+ & pnl ≥ 10% → 익절 회전
+ *    5 = 보유 14일+ & pnl ≤ -5% → 손절 회전
+ *    3 = 보유 14일+ & 중립 → 회전
+ */
+function buildSellCandidates(livePrices, excludeTickers = new Set()) {
+  try {
+    const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+    // still_holding 또는 최근 30일 buy 추천 — ticker 별 가장 최근 entry 만
+    const rows = db.prepare(`
+      SELECT r.ticker, r.market, r.sector, r.target, r.stop_loss,
+             r.price_at_gen, r.generated_at, r.name, r.action, r.currency,
+             o.outcome, o.pnl_pct, o.evaluated_at
+      FROM recommendations r
+      LEFT JOIN recommendation_outcomes o ON r.id = o.recommendation_id
+      WHERE r.action = 'buy'
+        AND r.generated_at >= date('now', '-30 days')
+        AND (o.outcome IS NULL OR o.outcome IN ('still_holding', 'not_entered', 'unknown'))
+      ORDER BY r.generated_at DESC
+    `).all();
+    db.close();
+
+    // ticker 별 최신 1건만 (중복 제거)
+    const byTicker = new Map();
+    for (const r of rows) {
+      if (!byTicker.has(r.ticker)) byTicker.set(r.ticker, r);
+    }
+
+    const candidates = [];
+    const now = Date.now();
+    for (const [ticker, r] of byTicker) {
+      if (excludeTickers.has(ticker)) continue; // 이번 cycle 새 추천에 있음
+      const pd = livePrices.get(ticker);
+      if (!pd?.price) continue;
+      const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
+      const price = pd.price;
+      const target = r.target;
+      const stop = r.stop_loss;
+      const heldDays = (now - new Date(r.generated_at).getTime()) / 86400000;
+      const pnl = r.pnl_pct ?? (r.price_at_gen ? ((price - r.price_at_gen) / r.price_at_gen) * 100 : null);
+
+      let score = 0, reason = null;
+      if (stop && price < stop) {
+        score = 10; reason = `stop 하향 돌파 (현재 ${price.toFixed(2)} < stop ${stop})`;
+      } else if (stop && price / stop <= 1.05) {
+        score = 8; reason = `stop 근접 (${(((price / stop) - 1) * 100).toFixed(1)}% 위)`;
+      } else if (target && price / target >= 0.9) {
+        score = 7; reason = `target 근접 (${((price / target) * 100).toFixed(0)}% 도달)`;
+      } else if (heldDays >= 14 && pnl != null && pnl >= 10) {
+        score = 6; reason = `보유 ${Math.round(heldDays)}일 & +${pnl.toFixed(1)}% — 익절 회전`;
+      } else if (heldDays >= 14 && pnl != null && pnl <= -5) {
+        score = 5; reason = `보유 ${Math.round(heldDays)}일 & ${pnl.toFixed(1)}% — 손절 회전`;
+      } else if (heldDays >= 14) {
+        score = 3; reason = `보유 ${Math.round(heldDays)}일 (회전 후보)`;
+      } else {
+        continue; // 룰에 해당 없음
+      }
+
+      const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
+      candidates.push({
+        ticker, name: r.name ?? ticker, sector: r.sector ?? 'Unknown',
+        market: isKR ? 'kr' : 'us',
+        score, reason,
+        currentPrice: fmt(price),
+        entryPrice: r.price_at_gen ? fmt(r.price_at_gen) : null,
+        target: target ? fmt(target) : null,
+        stopLoss: stop ? fmt(stop) : null,
+        pnlPct: pnl != null ? Math.round(pnl * 10) / 10 : null,
+        heldDays: Math.round(heldDays),
+        outcome: r.outcome ?? 'open',
+      });
+    }
+    // score desc, then pnl desc
+    candidates.sort((a, b) => b.score - a.score || (b.pnlPct ?? 0) - (a.pnlPct ?? 0));
+    const us = candidates.filter(c => c.market === 'us').slice(0, 6);
+    const kr = candidates.filter(c => c.market === 'kr').slice(0, 6);
+    return { us, kr, total: us.length + kr.length };
+  } catch (e) {
+    console.warn('  ⚠️ buildSellCandidates 실패:', e.message);
+    return { us: [], kr: [], total: 0 };
+  }
+}
+
+/** 매도 후보 → LLM rationale prompt (짧은 한 줄 reason + 회전 제안). */
+function buildSellRationalePrompt(sellCands) {
+  const items = [...sellCands.us, ...sellCands.kr].map(c =>
+    `- ${c.ticker} (${c.market}, ${c.sector}, 보유 ${c.heldDays}일, ${c.pnlPct != null ? (c.pnlPct >= 0 ? '+' : '') + c.pnlPct + '%' : 'pnl미상'}): score=${c.score}, ${c.reason}. current=${c.currentPrice} entry=${c.entryPrice ?? 'N/A'} target=${c.target ?? 'N/A'} stop=${c.stopLoss ?? 'N/A'}`
+  ).join('\n');
+  return [
+    `You are a portfolio manager generating SELL recommendations in ${TARGET_LANG}.${li}`,
+    '',
+    'These are past BUY picks that NOW meet sell criteria:',
+    items,
+    '',
+    'For each ticker, write a sell rationale (≤80 chars) explaining WHY now is the sell moment.',
+    'sellType = "stop_breach" | "stop_near" | "target_near" | "rotation_profit" | "rotation_loss" | "rotation_neutral".',
+    '',
+    'Respond pure JSON:',
+    '{"sellRecommendations":[{"ticker":"NVDA","sellType":"target_near","rationale":"[≤80 chars]","urgency":"high|medium|low"}]}',
+    'urgency: high=stop breach/imminent, medium=target proximity or rotation profit, low=time-based rotation.',
+    'Pure JSON only. NO markdown.',
+  ].join('\n');
+}
+
 function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
   const recentTickers = getRecentTickers();
   const qualityFeedback = getRecentQualityFeedback();
@@ -3976,6 +4087,11 @@ async function generateViaOllama() {
     .filter(p => p.action === 'buy')
     .map(p => ({ ticker: p.ticker, name: p.name ?? p.ticker, sector: p.sector ?? '', rationale: p.rationale ?? '', entryZone: p.entryZone ?? '', target: p.target ?? '' }));
 
+  // 2026-05-29: 매도 후보 — 이번 cycle 새 portfolio 에 있는 ticker 는 제외 (중복 회피).
+  const excludeForSell = new Set(portfolioItemsDeduped.map(p => p.ticker));
+  const sellCands = buildSellCandidates(livePrices, excludeForSell);
+  console.log(`  매도 후보: US ${sellCands.us.length} + KR ${sellCands.kr.length} = ${sellCands.total}`);
+
   const wave2Start = Date.now();
   const wave2Calls = [
     callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx), modelArg, 360000, 'risk'),
@@ -3983,12 +4099,45 @@ async function generateViaOllama() {
   ];
   if (buyStocksDeduped.length > 0) {
     wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials), modelArg, 360000, 'stockDetail'));
+  } else {
+    wave2Calls.push(Promise.resolve(null));
+  }
+  // 매도 후보가 있을 때만 LLM rationale 생성
+  if (sellCands.total > 0) {
+    wave2Calls.push(callOllama(buildSellRationalePrompt(sellCands), modelArg, 240000, 'sellRationale'));
+  } else {
+    wave2Calls.push(Promise.resolve(null));
   }
 
-  const [riskRaw, companyChangesRaw, stockDetailRaw] = await Promise.all(wave2Calls);
+  const [riskRaw, companyChangesRaw, stockDetailRaw, sellRationaleRaw] = await Promise.all(wave2Calls);
   console.log(`  Wave2 총 소요: ${((Date.now() - wave2Start) / 1000).toFixed(1)}s`);
   const riskData = parseJson(riskRaw, 'risk');
   const companyChangesData = parseJson(companyChangesRaw, 'companyChanges');
+
+  // 매도 rationale 머지
+  if (sellRationaleRaw) {
+    const sd = parseJson(sellRationaleRaw, 'sellRationale');
+    const recMap = new Map();
+    if (Array.isArray(sd?.sellRecommendations)) {
+      for (const r of sd.sellRecommendations) {
+        if (r.ticker) recMap.set(r.ticker.toUpperCase(), r);
+      }
+    }
+    for (const c of [...sellCands.us, ...sellCands.kr]) {
+      const llm = recMap.get(c.ticker.toUpperCase());
+      c.rationale = llm?.rationale ?? c.reason;
+      c.sellType = llm?.sellType ?? (c.score >= 10 ? 'stop_breach' : c.score >= 8 ? 'stop_near' : c.score >= 7 ? 'target_near' : c.score >= 6 ? 'rotation_profit' : c.score >= 5 ? 'rotation_loss' : 'rotation_neutral');
+      c.urgency = llm?.urgency ?? (c.score >= 8 ? 'high' : c.score >= 6 ? 'medium' : 'low');
+    }
+    console.log(`  매도 rationale: LLM 매핑 ${recMap.size}개 / 룰 폴백 ${sellCands.total - recMap.size}개`);
+  } else {
+    // LLM 없으면 룰 reason 그대로
+    for (const c of [...sellCands.us, ...sellCands.kr]) {
+      c.rationale = c.reason;
+      c.sellType = c.score >= 10 ? 'stop_breach' : c.score >= 8 ? 'stop_near' : c.score >= 7 ? 'target_near' : c.score >= 6 ? 'rotation_profit' : c.score >= 5 ? 'rotation_loss' : 'rotation_neutral';
+      c.urgency = c.score >= 8 ? 'high' : c.score >= 6 ? 'medium' : 'low';
+    }
+  }
 
   const stockDetailMap = new Map();
   if (stockDetailRaw) {
@@ -4168,6 +4317,12 @@ async function generateViaOllama() {
     portfolioByMarket: {
       us: dedupedPortfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ')),
       kr: dedupedPortfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')),
+    },
+    // 2026-05-29: 매도 추천 — 과거 buy 추천 중 stop 근접/돌파, target 근접, 보유 14일+ 회전 후보
+    sellRecommendations: {
+      us: sellCands.us,
+      kr: sellCands.kr,
+      total: sellCands.total,
     },
     generatedAt: now,
     dataAsOf: now,
