@@ -2027,9 +2027,12 @@ function computePricesFromPlan(portfolioItems, livePrices) {
     // 2026-05-27: ENTRY_CALIBRATION 활용 — analyze-recs --export 로 산출된 ticker별
     // 만성 NE gap (entry vs actual). gap > 5% 이면 50MA/200MA anchor 무시하고 시장가 사용
     // (만성 NE 의 근본 원인은 entry 가 시장가에 못 미침. MSFT/NVDA/TSM/ASML/MU 11회+ NE 케이스).
+    // 2026-05-29: 양쪽 환각 catch — anchor 가 base 보다 위쪽으로 5% 초과 이탈할 때도 calibrate.
+    //   NVDA 사건: LLM anchor $350 vs base $214 (+63%) 일 때 기존 코드는 catch 못함.
     const calib = ENTRY_CALIBRATION?.get?.(p.ticker?.toUpperCase());
-    if (calib && typeof calib.medianGap === 'number' && calib.medianGap > 5 && anchor < base * 0.98) {
-      console.log(`  [entry-calib] ${p.ticker}: medianGap ${calib.medianGap.toFixed(1)}% > 5% — anchor ${anchorLabel}(${fmt(anchor)}) → current(${fmt(base)})`);
+    const anchorOff = Math.abs(anchor / base - 1) * 100;
+    if (calib && typeof calib.medianGap === 'number' && calib.medianGap > 5 && anchorOff > 5) {
+      console.log(`  [entry-calib] ${p.ticker}: medianGap ${calib.medianGap.toFixed(1)}% > 5% — anchor ${anchorLabel}(${fmt(anchor)}) gap=${anchorOff.toFixed(0)}% → current(${fmt(base)})`);
       anchor = base;
       anchorLabel = `current(calib-NE-${calib.medianGap.toFixed(1)}%)`;
     }
@@ -2065,25 +2068,31 @@ function validateEntryZones(portfolioItems, livePrices) {
 
     let updated = { ...p };
     const zoneNums = extractNums(p.entryZone);
+    const zoneLow = zoneNums.length > 0 ? Math.min(...zoneNums) : 0;
     const zoneHigh = zoneNums.length > 0 ? Math.max(...zoneNums) : 0;
-    // 명백한 환각만 교정: 실가의 50% 미만 (2023 훈련가) 또는 150% 초과
-    const isHalluc = zoneNums.length > 0 && (zoneHigh < actual * 0.50 || zoneNums.every(n => n > actual * 1.50));
+    // 2026-05-29: 환각 cutoff 강화 — 시장가 대비 ±15% 이상 이탈 시 환각으로 판정.
+    //   기존 1.50/0.50 은 LLM 의 +60% 환각 (NVDA $350 vs actual $214) 도 통과시켜서 NE 확정 양산.
+    //   현재가가 zone 의 -15% 아래도 LLM 이 너무 비싸게 잡은 환각.
+    const isHalluc = zoneNums.length > 0 && (
+      zoneHigh < actual * 0.85 ||             // zone 이 시장가 -15% 아래 → 너무 싸게 잡음
+      zoneNums.every(n => n > actual * 1.15)  // zone 모두 시장가 +15% 위 → 너무 비싸게 잡음 (NE 확정)
+    );
     // zone 미출력
     const noZone = !zoneNums.length;
     if (noZone || isHalluc) {
-      if (isHalluc) console.warn(`  ⚠️  ${p.ticker} entry 환각: ${p.entryZone} vs actual ${fmt(actual)} → 시장가 기준 보정`);
+      if (isHalluc) console.warn(`  ⚠️  ${p.ticker} entry 환각: ${p.entryZone} vs actual ${fmt(actual)} (gap ${((zoneLow/actual - 1)*100).toFixed(0)}~${((zoneHigh/actual - 1)*100).toFixed(0)}%) → 시장가 기준 보정`);
       updated.entryZone = isKR
-        ? `${fmt(Math.round(actual * 0.95))}-${fmt(Math.round(actual * 0.99))}`
-        : `${fmt(parseFloat((actual * 0.95).toFixed(2)))}-${fmt(parseFloat((actual * 0.99).toFixed(2)))}`;
+        ? `${fmt(Math.round(actual * 0.97))}-${fmt(Math.round(actual * 1.01))}`
+        : `${fmt(parseFloat((actual * 0.97).toFixed(2)))}-${fmt(parseFloat((actual * 1.01).toFixed(2)))}`;
     }
     const stopNums = extractNums(p.stopLoss);
-    const stopHalluc = stopNums.length > 0 && (stopNums[0] < actual * 0.50 || stopNums[0] > actual * 1.50);
+    const stopHalluc = stopNums.length > 0 && (stopNums[0] < actual * 0.70 || stopNums[0] > actual * 1.05);
     if (!stopNums.length || stopHalluc) {
       if (stopHalluc) console.warn(`  ⚠️  ${p.ticker} stop 환각: ${p.stopLoss} → 보정`);
       updated.stopLoss = fmt(isKR ? Math.round(actual * 0.92) : parseFloat((actual * 0.92).toFixed(2)));
     }
     const targetNums = extractNums(p.target);
-    const targetHalluc = targetNums.length > 0 && (targetNums[0] < actual * 0.50 || targetNums[0] > actual * 3.0);
+    const targetHalluc = targetNums.length > 0 && (targetNums[0] < actual * 1.02 || targetNums[0] > actual * 2.0);
     if (!targetNums.length || targetHalluc) {
       if (targetHalluc) console.warn(`  ⚠️  ${p.ticker} target 환각: ${p.target} → 보정`);
       updated.target = fmt(isKR ? Math.round(actual * 1.15) : parseFloat((actual * 1.15).toFixed(2)));
@@ -4507,9 +4516,28 @@ const TICKER_ALIASES = new Map([
 function postProcessPortfolio(portfolio) {
   if (!Array.isArray(portfolio)) return [];
   const KR_NUM = /^\d{6}$/;
+  // 2026-05-29: candidate-tickers 풀에 있는 KR 종목의 .KS/.KQ suffix lookup.
+  //   문제: LLM 이 KOSDAQ 종목 (예: 056080 유진로봇) 을 .KS 로 잘못 출력 → 가격 fetch 실패.
+  //   해결: 6자리 코드 → 풀에서 .KS / .KQ 둘 다 찾고 실제 존재하는 것 선택.
+  const krSuffixMap = new Map();
+  for (const t of CANDIDATE_TICKERS) {
+    if (typeof t !== 'string') continue;
+    const m = t.match(/^(\d{6})\.(KS|KQ)$/);
+    if (m) krSuffixMap.set(m[1], t); // 첫 번째 발견된 suffix 사용
+  }
   let items = portfolio.map(p => {
     let ticker = (p.ticker ?? '').trim();
-    if (KR_NUM.test(ticker)) ticker = `${ticker}.KS`;
+    // 6자리 → 풀에서 정확한 suffix 찾기. 없으면 .KS 기본.
+    if (KR_NUM.test(ticker)) {
+      ticker = krSuffixMap.get(ticker) ?? `${ticker}.KS`;
+    }
+    // 잘못된 suffix 보정: 053610.KS 인데 풀엔 053610.KQ 만 있으면 .KQ 로 swap
+    const krMatch = ticker.match(/^(\d{6})\.(KS|KQ)$/);
+    if (krMatch && krSuffixMap.has(krMatch[1]) && krSuffixMap.get(krMatch[1]) !== ticker) {
+      const correct = krSuffixMap.get(krMatch[1]);
+      console.warn(`  [ticker-suffix] ${ticker} → ${correct} (풀에 ${correct} 만 존재)`);
+      ticker = correct;
+    }
     // Normalize alias: NVIDIA→NVDA, ALPHABET→GOOGL, etc.
     const aliasKey = ticker.toUpperCase().replace(/[\s.]/g, '');
     ticker = TICKER_ALIASES.get(aliasKey) ?? ticker;
@@ -4517,7 +4545,15 @@ function postProcessPortfolio(portfolio) {
     return { ...p, ticker, action };
   }).filter(p => {
     const k = (p.ticker ?? '').toUpperCase();
-    return k && !INDEX_TICKERS.has(k);
+    if (!k || INDEX_TICKERS.has(k)) return false;
+    // 2026-05-29: 환각 ticker 차단. KR 6자리 코드인데 풀에 없으면 reject.
+    //   예: 056100~130.KS 같은 LLM 가 만들어낸 환각 ticker.
+    const krM = k.match(/^(\d{6})\.(KS|KQ)$/);
+    if (krM && !krSuffixMap.has(krM[1])) {
+      console.warn(`  [ticker-halluc] ❌ ${k} reject — candidate-tickers 풀에 없음 (LLM 환각)`);
+      return false;
+    }
+    return true;
   });
 
   const dedupMap = new Map();
@@ -5051,7 +5087,33 @@ async function generateViaOllama() {
     console.warn('  [F23/fact-check] 실패 (기존 값 유지):', e.message);
   }
 
-  const dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
+  let dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
+  // 2026-05-29: price_at_gen=null (livePrices 못 받은 ticker) 제외 — NE 확정 차단.
+  //   원인: 환각 ticker (예: 056100.KS) / 데이터 source 갱신 누락 → 가격 미수신.
+  //   entry zone / target / stop 모두 환각 위험. NVDA-class 환각도 validateEntryZones 가 잡지만,
+  //   가격 자체가 없으면 calibration 못함.
+  {
+    const before = dedupedPortfolio.length;
+    dedupedPortfolio = dedupedPortfolio.filter(p => {
+      const pd = livePrices.get(p.ticker);
+      if (pd?.price && Number.isFinite(pd.price) && pd.price > 0) return true;
+      console.warn(`  [no-price] ❌ ${p.ticker} reject — livePrices 미수신 (NE 확정 차단)`);
+      return false;
+    });
+    if (before !== dedupedPortfolio.length) console.log(`  [no-price] ${before} → ${dedupedPortfolio.length} (${before - dedupedPortfolio.length} 제거)`);
+  }
+  // 2026-05-29: KR cap 6 강제 — buildPortfolio LLM 이 KR 11+ 출력하는 경우 차단.
+  //   US 6 + KR 6 = 12 portfolio 가 목표. KR 종목수 cap 안 하면 비중 분산 + UI 표시 무너짐.
+  {
+    const us = dedupedPortfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ'));
+    const kr = dedupedPortfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ'));
+    const krCap = kr.slice(0, 6);
+    const usCap = us.slice(0, 6);
+    if (kr.length > 6 || us.length > 6) {
+      console.log(`  [market-cap] US ${us.length}→${usCap.length}, KR ${kr.length}→${krCap.length} (cap 6 적용)`);
+    }
+    dedupedPortfolio = [...usCap, ...krCap];
+  }
   // Quality pre-flight
   {
     const { ok: qOk, issues: qIssues, warnings: qWarnings, score: qScore } = qualityCheck({ ...{}, portfolio: dedupedPortfolio, regionStances: regionalData?.regionStances ?? {}, shortSqueeze: opportunityData?.shortSqueeze ?? [], marketNarrative: narrativeData ?? {}, thesis: macroData?.thesis ?? '', macroAnalysis: macroData?.macroAnalysis ?? '', technicalAnalysis: macroData?.technicalAnalysis ?? '' });

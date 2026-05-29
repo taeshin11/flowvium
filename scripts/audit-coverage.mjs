@@ -319,6 +319,65 @@ try {
   warn(`buy_candidates 점검 실패: ${e.message}`);
 }
 
+// ═══════ Probe 7: portfolio entryZone vs price_at_gen gap ═══════
+// 2026-05-29 NVDA $288 환각 사건 — LLM entryZone 이 현재가 +34% 였는데도 통과해서 NE 확정.
+// 최근 5보고서 portfolio 각 ticker 의 entryZone-price_at_gen gap 분포 → ±10% 초과 비율 알람.
+console.log('\n## [7] portfolio entryZone vs price_at_gen gap (NE 환각 차단)\n');
+try {
+  const rows = db.prepare(`
+    SELECT report_id, ticker, price_at_gen, entry_low, entry_high
+    FROM recommendations
+    WHERE generated_at >= datetime('now','-7 days')
+      AND price_at_gen IS NOT NULL
+      AND entry_low IS NOT NULL AND entry_high IS NOT NULL
+  `).all();
+  let bad = 0, total = 0;
+  const badSamples = [];
+  for (const r of rows) {
+    if (!isFinite(r.entry_low) || !isFinite(r.entry_high) || !isFinite(r.price_at_gen) || r.price_at_gen <= 0) continue;
+    total++;
+    const mid = (r.entry_low + r.entry_high) / 2;
+    const gap = Math.abs(mid / r.price_at_gen - 1) * 100;
+    if (gap > 10) {
+      bad++;
+      if (badSamples.length < 5) badSamples.push(`${r.ticker}(${r.report_id.slice(0,10)}: ${gap.toFixed(0)}%)`);
+    }
+  }
+  const pct = total ? (bad / total * 100).toFixed(1) : '?';
+  if (bad === 0 && total > 0) ok(`entryZone gap — ${total} 종목 모두 ±10% 이내 (NE 환각 0)`);
+  else if (bad / Math.max(total, 1) < 0.10) warn(`entryZone gap — ${bad}/${total} (${pct}%) 가 ±10% 초과: ${badSamples.join(', ')}`);
+  else err(`entryZone gap — ${bad}/${total} (${pct}%) 가 ±10% 초과 (NE 환각 양산): ${badSamples.join(', ')}`);
+} catch (e) {
+  warn(`entryZone gap 점검 실패: ${e.message}`);
+}
+
+// ═══════ Probe 8: invalid KR ticker (candidate-tickers 풀 외 ticker 적재) ═══════
+// 2026-05-29 056100~130.KS 환각 사건 — LLM 가 존재하지 않는 6자리 코드 만들어냄.
+// candidate-tickers.json 풀에 없는 KR 6자리 ticker 가 recommendations 에 들어가면 ❌.
+console.log('\n## [8] invalid KR ticker (LLM 환각 6자리 코드 차단)\n');
+try {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const pool = JSON.parse(fs.readFileSync(path.resolve('data/candidate-tickers.json'), 'utf8'));
+  const krSet = new Set();
+  for (const t of (pool.tickers ?? [])) {
+    const m = String(t).match(/^(\d{6})\.(KS|KQ)$/);
+    if (m) { krSet.add(`${m[1]}.KS`); krSet.add(`${m[1]}.KQ`); }
+  }
+  const rows = db.prepare(`
+    SELECT DISTINCT ticker FROM recommendations
+    WHERE generated_at >= datetime('now','-30 days') AND ticker LIKE '%.K%'
+  `).all();
+  const bad = [];
+  for (const r of rows) {
+    if (!krSet.has(r.ticker)) bad.push(r.ticker);
+  }
+  if (bad.length === 0) ok(`KR ticker — 최근 30일 모두 candidate-tickers 풀 안 (환각 0)`);
+  else err(`KR ticker 환각 ${bad.length}건 적재 — ${bad.slice(0, 8).join(', ')}`);
+} catch (e) {
+  warn(`KR ticker 점검 실패: ${e.message}`);
+}
+
 // ═══════ Probe 4: 동일 응답 반복 (drift 없음 = stale) ═══════
 console.log('\n## [4] 응답 drift (정적 데이터 의심)\n');
 

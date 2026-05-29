@@ -220,6 +220,49 @@ generateViaOllama().catch(onFatal);
 
 ---
 
+## 🎯 LLM portfolio 출력 안전망 4중 의무 (2026-05-29 NVDA $288 + 056100 환각 사건 이후 신설)
+
+**발생 경위:** 5/29 afternoon 보고서 NVDA entryZone $288-297 (실가 $214, +34% gap → NE 확정),
+056100~130.KS 4 종목이 LLM 환각으로 존재하지 않는 ticker (Naver 빈 응답) → 그대로 적재.
+17 portfolio 중 6 개만 진입 가능, 11 개는 NE 확정 위험. portfolioOutcomes 30% hit rate 가
+LLM 환각으로 인위적으로 낮아지는 구조.
+
+### 규칙 — portfolio 후처리에 4중 안전망
+
+LLM 의 portfolio JSON 을 받은 뒤 `saveRecommendations` 직전까지 다음 4단계 모두 통과:
+
+1. **Ticker 풀 cross-check** (`postProcessPortfolio`):
+   - KR 6자리 → `candidate-tickers.json` 의 `.KS`/`.KQ` 정확 lookup. 둘 다 없으면 reject.
+   - 잘못된 suffix (.KS↔.KQ) 발견 시 자동 swap.
+
+2. **livePrices 검증**:
+   - `livePrices.get(ticker)?.price` 가 falsy 또는 0 이면 portfolio 에서 제외.
+   - 가격 없는 ticker 는 entryZone calibration 불가 → NE 확정 차단.
+
+3. **`validateEntryZones` cutoff**:
+   - entryZone 이 실가 대비 ±15% 이상 이탈 시 환각으로 판정 (기존 ±50% → ±15% 강화).
+   - stop / target 도 ±5%/+2~100% 범위 검사.
+
+4. **`ENTRY_CALIBRATION` 양쪽 환각 catch**:
+   - `Math.abs(anchor/base - 1) > 0.05` — anchor 가 base 보다 위 또는 아래 5% 이탈 모두 catch
+     (기존 `anchor < base * 0.98` 은 위쪽 환각 미감지).
+
+### 자동 감지 (audit Probe)
+
+| Probe | 검사 | 임계값 |
+|---|---|---|
+| [7] | recommendations.entry_low~entry_high mid vs price_at_gen gap | ±10% 초과 비율 >10% → ❌ |
+| [8] | recommendations.ticker (KR) ∈ candidate-tickers.json 풀 | 풀 외 ticker 1건이라도 → ❌ |
+
+`node scripts/audit-coverage.mjs` 매 push 전 권장.
+
+### KR portfolio cap
+
+- US 6 + KR 6 = 총 12 가 목표.
+- LLM 이 KR 11+ 출력 시 `dedupedPortfolio` 후처리에서 강제 slice (US/KR 별도 6 cap).
+
+---
+
 ## 🗂️ 기타 프로젝트 관습
 
 - i18n: 모든 UI 문자열은 `messages/*.json`에 넣고 하드코딩 금지

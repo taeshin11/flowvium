@@ -1,0 +1,107 @@
+2026-05-29 — portfolio 환각 4중 안전망 fix + audit Probe [7][8] + CLAUDE.md 규칙
+
+질문: 5/29 afternoon 보고서 검증 결과 NVDA $288 환각 + 056100~130.KS 환각 발견.
+"제일 좋은 방향으로. 원인파악해서 앞으로 안이러도록"
+
+원인 추적
+─────────
+### 결함 1: NVDA entryZone $288-297 (실가 $214, +34% gap → NE 확정)
+- LLM raw 응답: entryZone $350-400 (실가 +63% 환각)
+- 후처리 calibrateEntryFallback 가 anchor=50MA $198.73 적용 + discount % 로 $288-297 산출
+- ENTRY_CALIBRATION 의 catch 조건 `anchor < base * 0.98` 가 **위쪽 환각만 missing**
+  → anchor $350 > base $214 * 0.98 → 통과 (catch 실패)
+- validateEntryZones 의 cutoff `> actual * 1.50` 가 $350 = $214*1.63 보다 미세하게 위지만
+  실제로 anchor 가 50MA 로 swap 되어 $288 로 normalize 되면서 catch 못 함
+
+### 결함 2: 056100~130.KS (4건) — LLM 환각 ticker
+- candidate-tickers.json (1,210 종목) 의 KR 풀에 없음
+- Naver finance 조회 결과: 4 코드 모두 빈 응답 (실재 종목 X)
+- LLM 가 KOSDAQ 056080 (유진로봇) 의 자릿수만 바꿔서 ticker 자체 만들어냄
+- 053610.KS, 056080.KS 는 실재 (KOSDAQ) → 풀의 .KQ suffix 와 mismatch 로 가격 fetch 실패
+
+### 결함 3: KR portfolio 11 (cap 6 안 됨)
+- buildPortfolio LLM 이 KR 11+ 출력 시 slice 미적용
+- US 6 + KR 6 = 12 목표가 무너짐
+
+### 결함 4: 가격 미수신 ticker 도 그대로 적재
+- TSMC, 053610, 056080~130 등 livePrices 미수신
+- price_at_gen=null → entry/target/stop 검증 불가 → NE 확정 양산
+
+4중 안전망 fix (commit 본문)
+─────────
+### A. postProcessPortfolio — ticker 풀 cross-check (line 4506~)
+```js
+const krSuffixMap = new Map();   // 6자리 → 정확한 .KS or .KQ
+for (const t of CANDIDATE_TICKERS) {
+  const m = t.match(/^(\d{6})\.(KS|KQ)$/);
+  if (m) krSuffixMap.set(m[1], t);
+}
+// 6자리 코드 → 풀에서 정확한 suffix 찾기
+if (KR_NUM.test(ticker)) ticker = krSuffixMap.get(ticker) ?? `${ticker}.KS`;
+// 잘못된 suffix swap (.KS↔.KQ)
+// 풀에 없는 6자리 코드 → reject (LLM 환각 차단)
+```
+
+### B. livePrices 검증 — dedupedPortfolio 직후 filter
+```js
+dedupedPortfolio = dedupedPortfolio.filter(p => {
+  const pd = livePrices.get(p.ticker);
+  if (pd?.price && Number.isFinite(pd.price) && pd.price > 0) return true;
+  console.warn(`[no-price] ❌ ${p.ticker} reject — livePrices 미수신`);
+  return false;
+});
+```
+
+### C. ENTRY_CALIBRATION 양쪽 환각 catch
+```js
+const anchorOff = Math.abs(anchor / base - 1) * 100;
+if (calib && calib.medianGap > 5 && anchorOff > 5) {  // 기존 anchor < base*0.98
+  anchor = base;  // 양쪽 모두 시장가로 anchor
+}
+```
+
+### D. validateEntryZones cutoff 강화 ±15%
+```js
+const isHalluc = zoneNums.length > 0 && (
+  zoneHigh < actual * 0.85 ||             // -15% 아래
+  zoneNums.every(n => n > actual * 1.15)  // +15% 위 (NVDA 환각 catch)
+);
+updated.entryZone = `${actual*0.97}-${actual*1.01}`;  // 기존 0.95-0.99 → 더 타이트
+```
+
+### E. KR portfolio cap 6 강제
+```js
+const us = dedupedPortfolio.filter(p => !p.ticker.endsWith('.KS') && !p.ticker.endsWith('.KQ'));
+const kr = dedupedPortfolio.filter(p => p.ticker.endsWith('.KS') || p.ticker.endsWith('.KQ'));
+dedupedPortfolio = [...us.slice(0,6), ...kr.slice(0,6)];
+```
+
+재발 방지 인프라
+─────────
+### Probe [7] entryZone gap (audit-coverage.mjs)
+recommendations.entry_low~high mid vs price_at_gen → ±10% 초과 비율.
+현재 결과: 109 종목 중 1건 (NVDA, 37%) 만 환각 → fix 후 0건 예상.
+
+### Probe [8] invalid KR ticker
+candidate-tickers.json 풀 외 KR ticker 적재 여부.
+현재 결과: ❌ 056100/110/120/130.KS 4건 catch (이미 적재된 결함 노출).
+
+### CLAUDE.md "🎯 LLM portfolio 출력 안전망 4중 의무"
+4단계 검증 (ticker 풀 → livePrices → validateEntryZones cutoff → ENTRY_CALIBRATION 양쪽).
+KR cap 6 강제. Probe [7][8] 자동 감지.
+
+검증
+─────────
+- node --check 모두 통과
+- 60초 smoke test: prices=1179 / buy-cand Stage 3 통과
+- audit Probe [7]: 1/109 (0.9%) 환각 노출 ✅
+- audit Probe [8]: 056100~130 4건 환각 노출 ✅
+
+다음 cycle
+─────────
+- 21:20 KST evening cron 첫 실제 검증:
+  * NVDA portfolio 들어가도 entryZone $209~217 로 calibrate 예상
+  * 056100/110/120/130 환각은 [ticker-halluc] reject
+  * KR portfolio 11+ 출력 시 [market-cap] slice
+  * livePrices 못 받은 ticker 는 [no-price] reject
+- 5/30 audit-coverage Probe [7][8] 둘 다 ✅ 기대
