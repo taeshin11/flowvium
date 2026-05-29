@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, getEntryFeedbackStats } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
@@ -4596,6 +4596,13 @@ async function generateViaOllama() {
         shortSqueeze: finalReport.shortSqueeze ?? [],
         companyChanges: finalReport.companyChanges ?? [],
         insiderSignals: finalReport.insiderSignals ?? [],
+      });
+      // 2026-05-29: F&G 10국가 + asset flow 시점별 아카이브
+      saveFearGreedArchive({
+        reportId,
+        capturedAt: finalReport.generatedAt,
+        fgResponse: ctxRaw?.fearGreed ?? ctxRaw?.fear_greed,
+        capitalFlowsResponse: ctxRaw?.capital ?? ctxRaw?.capitalFlows,
       });
     } catch (e) {
       console.warn(`[db] ⚠️ news/macro 적재 실패: ${String(e).slice(0, 100)}`);

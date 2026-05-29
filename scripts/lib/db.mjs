@@ -240,6 +240,41 @@ CREATE TABLE IF NOT EXISTS insider_archive (
   FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_insider_ticker ON insider_archive(ticker, captured_at);
+
+-- 2026-05-29: Fear & Greed 국가별 시점 아카이브 (10국가 × 매 cycle)
+CREATE TABLE IF NOT EXISTS fg_archive (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id     TEXT,
+  captured_at   TEXT NOT NULL,
+  country       TEXT NOT NULL,           -- us/korea/japan/china/europe/uk/india/brazil/australia/global
+  score         INTEGER NOT NULL,        -- 0-100
+  prev_score    INTEGER,
+  delta         INTEGER,                  -- score - prev_score
+  level         TEXT,                    -- extreme_fear/fear/neutral/greed/extreme_greed
+  trend         TEXT,                    -- up/down/neutral
+  driver        TEXT,                    -- 핵심 driver 텍스트
+  source        TEXT,                    -- cnn/composite/yahoo
+  data_quality  TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fg_country  ON fg_archive(country, captured_at);
+CREATE INDEX IF NOT EXISTS idx_fg_score    ON fg_archive(score);
+CREATE INDEX IF NOT EXISTS idx_fg_captured ON fg_archive(captured_at);
+
+-- 2026-05-29: 자산 별 자금 흐름 (4w/1w return 등 — capital-flows + fear-greed asset)
+CREATE TABLE IF NOT EXISTS asset_flow_archive (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id     TEXT,
+  captured_at   TEXT NOT NULL,
+  asset         TEXT NOT NULL,           -- SPY / QQQ / GLD / TLT / BTC 등
+  return_4w     REAL,
+  return_1w     REAL,
+  return_1d     REAL,
+  trend         TEXT,
+  source        TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_flow_asset ON asset_flow_archive(asset, captured_at);
 `;
 
 let _dbInstance = null;
@@ -431,6 +466,14 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
   const ind = ctxRaw?.macro?.indicators ?? [];
   const findInd = id => ind.find(i => i.id === id || i.id === id.replace('_','-'))?.actual ?? null;
   const fg = ctxRaw?.fearGreed ?? ctxRaw?.fear_greed;
+  // 2026-05-29: byCountry array 처리 — us 찾아서 score 추출 (기존 fg.score 단일 형식 우회)
+  const fgUs = (() => {
+    if (!fg) return null;
+    if (typeof fg.score === 'number') return fg; // 단일 형식
+    if (Array.isArray(fg.byCountry)) return fg.byCountry.find(c => c.id === 'us') ?? null;
+    if (fg.byCountry?.us) return fg.byCountry.us;
+    return null;
+  })();
   const yc = ctxRaw?.yieldCurve ?? ctxRaw?.yield_curve;
   const yields = yc?.today ?? {};
   db.prepare(`
@@ -441,8 +484,8 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     reportId, capturedAt ?? new Date().toISOString(),
-    fg?.score ?? fg?.us?.score ?? null,
-    fg?.label ?? fg?.us?.label ?? null,
+    fgUs?.score ?? null,
+    fgUs?.level ?? fgUs?.label ?? null,
     findInd('vix'),
     findInd('cpi') ?? findInd('us_cpi'),
     findInd('fed_rate') ?? findInd('fedfunds'),
@@ -456,6 +499,57 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
     ctxRaw?.capital?.qqq?.close ?? null,
     macroData?.riskLevel ?? null,
   );
+}
+
+/**
+ * 2026-05-29: Fear & Greed 국가별 + asset flow 적재.
+ * /api/fear-greed 응답 (byCountry 배열) 그대로 받아서 10국가 × row 적재.
+ */
+export function saveFearGreedArchive({ reportId, capturedAt, fgResponse, capitalFlowsResponse }) {
+  const db = openDb();
+  const now = capturedAt ?? new Date().toISOString();
+  const txn = db.transaction(() => {
+    // byCountry array
+    const byCountry = Array.isArray(fgResponse?.byCountry) ? fgResponse.byCountry
+      : (fgResponse?.byCountry ? Object.values(fgResponse.byCountry) : []);
+    const fgStmt = db.prepare(`
+      INSERT INTO fg_archive
+        (report_id, captured_at, country, score, prev_score, delta, level, trend, driver, source, data_quality)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const c of byCountry) {
+      if (!c?.id || typeof c.score !== 'number') continue;
+      const delta = (typeof c.prevScore === 'number') ? c.score - c.prevScore : null;
+      fgStmt.run(reportId, now, c.id, c.score, c.prevScore ?? null, delta,
+        c.level ?? null, c.trend ?? null,
+        (c.driver ?? '').slice(0, 200), c.source ?? null, c.dataQuality ?? null);
+    }
+    // asset flow (fear-greed.byAsset + capital-flows.assets)
+    const flowStmt = db.prepare(`
+      INSERT INTO asset_flow_archive
+        (report_id, captured_at, asset, return_4w, return_1w, return_1d, trend, source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const byAsset = Array.isArray(fgResponse?.byAsset) ? fgResponse.byAsset
+      : (fgResponse?.byAsset ? Object.values(fgResponse.byAsset) : []);
+    for (const a of byAsset) {
+      if (!a?.id) continue;
+      flowStmt.run(reportId, now, a.id,
+        a.return4w ?? null, a.return1w ?? null, a.return1d ?? null,
+        a.trend ?? null, 'fear-greed');
+    }
+    const flowAssets = Array.isArray(capitalFlowsResponse?.assets) ? capitalFlowsResponse.assets : [];
+    for (const a of flowAssets) {
+      const sym = a.symbol ?? a.ticker ?? a.id;
+      if (!sym) continue;
+      flowStmt.run(reportId, now, sym,
+        a.return4w ?? a.return_4w ?? null,
+        a.return1w ?? a.return_1w ?? null,
+        a.return1d ?? a.return_1d ?? null,
+        a.trend ?? null, 'capital-flows');
+    }
+  });
+  txn();
 }
 
 /**
