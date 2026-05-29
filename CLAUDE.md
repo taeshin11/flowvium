@@ -118,6 +118,48 @@ const DATA: CountryCreditData[] = [
 
 ---
 
+## 🚨 새 API 라우트 / 외부 API 통합 시 의무 (2026-05-29 DART 404 사건 이후 신설)
+
+**발생 경위:** `src/app/api/company-kr/[ticker]` 가 commit `bc46fca` 이후 **계속 100% 404**. DART `company.json` 은 `stock_code` 파라미터를 지원하지 않고 `corp_code` 필수인데, 그 사실을 한 번도 production curl 로 검증 안 했음. audit-coverage 도 endpoint status 분포를 안 봐서 못 잡았고, 보고서마다 portfolio 에 KR ticker 가 있어도 snapshot 자체가 안 일어남.
+
+### 규칙 — 새 외부 API 라우트 또는 외부 API 호출 추가 시 반드시 같은 작업에서
+
+1. **production (또는 dev) 에 한 번 curl** + 응답 첫 100자를 commit message 에 인용:
+   ```bash
+   curl -s "https://flowvium.net/api/{new-route}" | head -c 200
+   ```
+   commit message 본문 안에 응답 샘플을 붙여 stored evidence 화.
+
+2. **외부 API 직접 호출도 마찬가지** — 새 외부 endpoint (DART/SEC/FRED/Yahoo 등) 사용 시 `curl '{외부URL}'` 1회 직접 호출로 파라미터 / 응답 구조 검증.
+
+3. **응답 본문에 `error` 필드가 있는지 확인** — HTTP 200 이어도 body 가 `{"error": "..."}` 면 silent failure. `audit-coverage.mjs` 의 Probe [3b] 가 사후에 잡지만, 사전 1회 확인 필수.
+
+### 자동 감지
+
+```bash
+node scripts/audit-coverage.mjs
+```
+- Probe [3b]: endpoint_snapshots 의 4XX/5XX 비율 50%+ 또는 200 OK 인데 body 에 `"error"` 필드 → ❌
+- Probe [3c]: portfolio ticker 가 N 개인데 company-* snapshot < N → ❌ (snapshot-endpoints 옵션 점검)
+
+---
+
+## 🔄 cron / batch 의무 — git 최신 코드 동기화 (2026-05-29 신설)
+
+**발생 경위:** 2026-05-29 morning 보고서 (07:08 KST) 가 같은 날 09:20 KST commit 보다 빨라서, 신규 24-endpoint + portfolioTickers 로직이 적용 안 됨. `run-report.bat` 가 `git pull` 없이 마지막 로컬 코드로 실행한 결과 한 사이클 lag 발생.
+
+### 규칙
+
+- `scripts/run-report.bat` 또는 다른 batch / cron 의 첫 단계는 **항상** `git fetch + 코드 파일 selective checkout`:
+  ```bat
+  git fetch --quiet origin master
+  git checkout --quiet origin/master -- scripts/ src/ public/ messages/ data/*.json package.json
+  ```
+- `git reset --hard` 는 절대 금지 — `data/flowvium.db`, `logs/`, `reports/` 등 로컬 runtime 산출물 소실.
+- batch 신설 시 첫 줄에 sync 단계 의무.
+
+---
+
 ## 🗂️ 기타 프로젝트 관습
 
 - i18n: 모든 UI 문자열은 `messages/*.json`에 넣고 하드코딩 금지

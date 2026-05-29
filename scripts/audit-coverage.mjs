@@ -171,6 +171,99 @@ for (const r of ranges) {
   if (invalid > 0) err(`${r.table}.${r.col}: ${invalid} row 가 [${r.min}, ${r.max}] 범위 밖`);
 }
 
+// ═══════ Probe 3b: endpoint HTTP status 분포 (4XX/5XX 무더기 = 라우트 죽어있음) ═══════
+// 2026-05-29: DART /api/company-kr 가 처음부터 100% 404 였는데 audit 가 못 잡은 사건 fix.
+//   증상 = endpoint_snapshots.http_status 4XX 비율이 모든 호출의 50%+ 또는 응답 본문에 "error" 필드.
+//   추가로 body 안의 error JSON 도 본다 (200 OK 인데 {"error": "..."} 인 케이스).
+console.log('\n## [3b] endpoint HTTP status (4XX/5XX 비율 ≥50% = 라우트 죽음)\n');
+
+const statusDist = db.prepare(`
+  SELECT endpoint, http_status, COUNT(*) c
+  FROM endpoint_snapshots
+  WHERE captured_at >= datetime('now','-7 days')
+  GROUP BY endpoint, http_status
+`).all();
+const epStatus = new Map(); // endpoint → { ok, err4, err5, total }
+for (const r of statusDist) {
+  if (!epStatus.has(r.endpoint)) epStatus.set(r.endpoint, { ok: 0, err4: 0, err5: 0, total: 0 });
+  const e = epStatus.get(r.endpoint);
+  e.total += r.c;
+  if (r.http_status >= 200 && r.http_status < 300) e.ok += r.c;
+  else if (r.http_status >= 400 && r.http_status < 500) e.err4 += r.c;
+  else if (r.http_status >= 500) e.err5 += r.c;
+}
+for (const [ep, s] of epStatus) {
+  if (s.total < 3) continue; // 표본 부족
+  const errPct = ((s.err4 + s.err5) / s.total) * 100;
+  if (errPct >= 50) {
+    err(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — 라우트 죽음 의심`);
+  } else if (errPct >= 20) {
+    warn(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패)`);
+  }
+}
+
+// 200 OK 인데 응답 본문에 error 필드 — silent failure
+const errBodies = db.prepare(`
+  SELECT endpoint, COUNT(*) c
+  FROM endpoint_snapshots
+  WHERE captured_at >= datetime('now','-7 days')
+    AND http_status = 200
+    AND response_json LIKE '%"error"%'
+  GROUP BY endpoint
+  HAVING c >= 2
+`).all();
+for (const r of errBodies) {
+  err(`${(r.endpoint ?? '?').padEnd(40)} 200 OK 인데 body 에 "error" 필드 ${r.c} 회 (silent failure)`);
+}
+
+// ═══════ Probe 3c: portfolio ticker ↔ snapshot 정합성 ═══════
+// 2026-05-29: DART /api/company-kr 가 portfolio 에 KR ticker 있어도 0건 snapshot 된 사건 fix.
+//   증상 = recent 보고서의 portfolio ticker 가 N 개인데 company-* snapshot 이 N 보다 한참 적음.
+console.log('\n## [3c] portfolio ticker ↔ company-* snapshot 정합성\n');
+
+const recentReports = db.prepare(`
+  SELECT id, generated_at, full_json
+  FROM reports
+  WHERE generated_at >= datetime('now','-7 days')
+  ORDER BY generated_at DESC
+`).all();
+
+let totalExpected = 0, totalSnapshotted = 0, problemReports = 0;
+for (const r of recentReports) {
+  let portfolioTickers = [];
+  try {
+    const j = JSON.parse(r.full_json);
+    portfolioTickers = (j.portfolio ?? []).map(p => p.ticker).filter(Boolean);
+  } catch { continue; }
+  if (!portfolioTickers.length) continue;
+
+  const snaps = db.prepare(`
+    SELECT endpoint FROM endpoint_snapshots
+    WHERE report_id=? AND (endpoint LIKE '/api/company-financials/%' OR endpoint LIKE '/api/company-kr/%')
+  `).all(r.id);
+  const snappedTickers = new Set();
+  for (const s of snaps) {
+    const m = s.endpoint.match(/\/(company-financials|company-kr)\/(.+)$/);
+    if (m) snappedTickers.add(m[2].toUpperCase());
+  }
+  const expected = portfolioTickers.length;
+  const got = snappedTickers.size;
+  totalExpected += expected;
+  totalSnapshotted += got;
+  if (got < expected) {
+    problemReports++;
+    if (problemReports <= 3) {
+      const missing = portfolioTickers.filter(t => !snappedTickers.has(t.replace(/\.(KS|KQ)$/, '').toUpperCase()) && !snappedTickers.has(t.toUpperCase()));
+      console.log(`  report ${r.id}: portfolio ${expected} → snapshot ${got}, 누락 ${missing.length}: ${missing.slice(0,4).join(', ')}`);
+    }
+  }
+}
+if (problemReports >= 2) {
+  err(`portfolio↔snapshot mismatch: ${problemReports}/${recentReports.length} 보고서, 합산 ${totalSnapshotted}/${totalExpected} ticker (snapshot-endpoints.mjs 의 portfolioTickers 옵션 전달 점검)`);
+} else if (totalExpected > 0) {
+  ok(`portfolio↔snapshot 정합성: ${totalSnapshotted}/${totalExpected} ticker (${recentReports.length} 보고서)`);
+}
+
 // ═══════ Probe 4: 동일 응답 반복 (drift 없음 = stale) ═══════
 console.log('\n## [4] 응답 drift (정적 데이터 의심)\n');
 

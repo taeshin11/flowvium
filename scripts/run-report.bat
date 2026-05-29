@@ -2,6 +2,16 @@
 cd /d "C:\NoAddsMakingApps\FlowVium"
 set "LOG_FILE=C:\NoAddsMakingApps\FlowVium\logs\report.log"
 
+:: 0. git fetch + 코드 파일만 selective checkout (2026-05-29 신설).
+::    batch 가 옛 코드로 실행되어 snapshot/DART 로직 한 사이클 lag 사건 재발 방지.
+::    data/flowvium.db, logs/, reports/ 는 로컬 runtime 산출물 — 덮어쓰지 않음.
+echo [%DATE% %TIME%] [INFO] git fetch origin master + checkout scripts/src/data/dart-corp-codes.json ... >> "%LOG_FILE%"
+git fetch --quiet origin master 2>> "%LOG_FILE%"
+git checkout --quiet origin/master -- scripts/ src/ public/ messages/ data/dart-corp-codes.json data/candidate-tickers.json data/sp500-tickers.json data/kr-major-indexes.json package.json 2>> "%LOG_FILE%"
+if errorlevel 1 (
+  echo [%DATE% %TIME%] [WARN] git checkout 실패 — 현재 코드로 진행 >> "%LOG_FILE%"
+)
+
 :: 1. Ollama 실행 여부 확인
 ollama list >nul 2>&1
 if errorlevel 1 (
