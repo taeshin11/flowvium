@@ -1,0 +1,63 @@
+2026-05-29 — portfolio LLM JSON 잘림 (num_predict 2048 token 한계) + 3가지 fix
+
+배경
+─────────
+sectorPe TypeError fix 후 5/29 afternoon manual 실행 (17:08 KST):
+- buy candidate scoring 통과 ✓
+- Wave1 portfolio LLM 호출 응답 5,150~5,450c 즈음 잘림
+- "Expected ',' or '}' after property value in JSON at position 5224"
+- 3회 retry 모두 동일 위치 truncation → ❌ Wave1 포트폴리오 생성 실패
+
+원인
+─────────
+callOllama() 의 options.num_predict = 2048 (모든 호출 공통).
+한글 portfolio 12 종목 JSON ≈ 5K+ tokens 필요. qwen3:8b 가
+2048 token 에서 정확히 잘려서 marshall 못 끝냄.
+
+fix (3가지 동시 적용)
+─────────
+1. label 기반 num_predict 차등:
+   - /portfolio/i → 8192 (12 portfolio + rationale)
+   - /stockDetail|macro|narrative|regional|sellRationale/i → 4096
+   - 기타 → 2048 (기본)
+
+2. parseJson 에 repairTruncatedJson() 보강:
+   - 1차 JSON.parse 실패 시 array 안 마지막 완전 닫힌 element 까지
+     slice → 열린 ], } 모두 close.
+   - depth 추적: root=1, array=2, element=3. depth 3→2 transition 위치
+     = lastElemEnd. truncation 시 그 i+1 까지 잘라서 array close.
+   - unit test 4 케이스 모두 통과 (case 1 = portfolio 잘림 / case 2 =
+     string 안 잘림 / case 3 = 정상 / case 4 = 한국어 잘림).
+
+3. raw 응답 logs/llm-raw-<label>-<ts>.txt 저장 (portfolio + stockDetail):
+   다음 실패 시 raw 직접 분석 가능. 디스크 사용량 < 100KB/보고서.
+
+검증
+─────────
+- 2차 실행 (17:30 KST 보내기):
+  ✓ Wave1 portfolio 152.4s → 정상 parse (US 3 + KR 11)
+  ✓ retry 2 까지 가서 US 3 부족분 자동 pad
+  ✓ Wave2 stockDetail / sellRationale 정상
+  ✓ 품질 100/100 → 업로드 OK
+  ✓ DB 적재: recommendations 17 / sell 8 / buy_candidates 15 (선택 17)
+- audit-coverage:
+  ✓ Probe [5] buy/sell 7 카테고리 cover
+  ✓ Probe [6] buy_candidates ✅ 15건, matched_rules.category 모두 채워짐
+
+남은 이슈 (다음 cycle 점검)
+─────────
+- portfolio[].weight = undefined — schema 누락 (UI 표시는 다른 필드 사용
+  가능성, 점검 필요)
+- KR 11 종목 (cap 6 안 됨) — buildPortfolio 의 KR slice 로직 확인
+- sellRecommendations 8건 중 7건 tech_dead_cross 같은 룰 — 룰 다양성
+  강화 (RSI / op_margin / target_near 등 매칭 가중치 점검)
+
+연관 commit
+─────────
+- 2e300f1: sectorPe TypeError fix (오늘 1차)
+- (이번): portfolio LLM truncation fix (오늘 2차)
+
+CLAUDE.md 갱신 후보
+─────────
+- "LLM 호출 응답 5K chars 근처 잘림 → num_predict 늘릴지 우선 점검" 규칙
+  (이번엔 raw 저장 + repair 로 대응했으니 추후 다른 호출에도 같은 패턴 발생 시 ref).

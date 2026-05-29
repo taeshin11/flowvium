@@ -1060,12 +1060,17 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = 
   const t0 = Date.now();
   const tag = label ? `[LLM:${label}]` : '[LLM]';
   const isQwen3 = model.startsWith('qwen3');
+  // 2026-05-29: label 별 num_predict 차등. portfolio 12 종목 한글 rationale 포함 시 5K+ token 필요.
+  // 기본 2048 → portfolio 8192, stockDetail/macro/regional 4096.
+  const numPredict = /portfolio/i.test(label) ? 8192
+    : /(stockDetail|macro|narrative|regional|sellRationale)/i.test(label) ? 4096
+    : 2048;
   const body = {
     model,
     messages: [{ role: 'user', content: prompt }],
     stream: false,
     format: 'json',
-    options: { temperature: 0.4, num_predict: 2048 },
+    options: { temperature: 0.4, num_predict: numPredict },
     ...(isQwen3 ? { think: false } : {}),
   };
   let ollamaText = null;
@@ -1084,7 +1089,15 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = 
       ollamaText = d.message?.content ?? '';
       const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
       if (ollamaText && ollamaText.length > 50) {
-        console.log(`  ${tag} ${elapsed}s → ${ollamaText.length}c | prompt ${prompt.length}c`);
+        console.log(`  ${tag} ${elapsed}s → ${ollamaText.length}c | prompt ${prompt.length}c | np=${numPredict}`);
+        // 2026-05-29: portfolio / 대형 응답은 디버그 raw 파일 보존 (parse 실패 분석용)
+        if (/portfolio|stockDetail/i.test(label)) {
+          try {
+            const fs = await import('node:fs');
+            const ts = new Date().toISOString().replace(/[:.]/g, '-');
+            fs.writeFileSync(`logs/llm-raw-${label}-${ts}.txt`, ollamaText);
+          } catch {}
+        }
         return ollamaText;
       }
       console.warn(`  ${tag} ${elapsed}s empty/short(${ollamaText?.length ?? 0}c) — cloud 폴백`);
@@ -1110,21 +1123,78 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = 
 function parseJson(raw, label = '') {
   const tag = label ? `[parse:${label}]` : '[parse]';
   if (!raw) { console.warn(`  ${tag} SKIP — empty input`); return null; }
-  try {
-    const clean = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-    const codeBlock = clean.match(/```(?:json)?\s*([\s\S]*?)```/);
-    const str = codeBlock ? codeBlock[1] : clean;
-    const m = str.match(/\{[\s\S]*\}/);
-    if (!m) {
-      console.warn(`  ${tag} FAIL — no JSON object found. raw[0:120]: ${clean.slice(0, 120).replace(/\n/g, ' ')}`);
-      return null;
-    }
-    const result = JSON.parse(m[0].replace(/,\s*([}\]])/g, '$1'));
-    return result;
-  } catch (e) {
-    console.warn(`  ${tag} FAIL — ${e.message}. raw[0:120]: ${raw.slice(0, 120).replace(/\n/g, ' ')}`);
+  const clean = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  const codeBlock = clean.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const str = codeBlock ? codeBlock[1] : clean;
+  const m = str.match(/\{[\s\S]*\}/);
+  if (!m) {
+    console.warn(`  ${tag} FAIL — no JSON object found. raw[0:120]: ${clean.slice(0, 120).replace(/\n/g, ' ')}`);
     return null;
   }
+  // 1차: 표준 parse
+  try {
+    return JSON.parse(m[0].replace(/,\s*([}\]])/g, '$1'));
+  } catch (e1) {
+    // 2차: truncated repair — num_predict 토큰 제한으로 마지막 객체가 잘렸을 때 복구
+    // 전략: portfolio 같은 array 가 잘렸으면 마지막 incomplete element 잘라내고 array+object 닫음
+    try {
+      const repaired = repairTruncatedJson(m[0]);
+      if (repaired) {
+        const parsed = JSON.parse(repaired);
+        console.warn(`  ${tag} REPAIRED — truncated JSON 복구 (orig err: ${e1.message.slice(0, 60)})`);
+        return parsed;
+      }
+    } catch (e2) {
+      // repair 도 실패 → 원본 에러 보고
+    }
+    console.warn(`  ${tag} FAIL — ${e1.message}. raw[0:120]: ${raw.slice(0, 120).replace(/\n/g, ' ')}`);
+    return null;
+  }
+}
+
+/**
+ * 토큰 제한으로 잘린 JSON 복구. 마지막 미완성 element 잘라내고 array+object 닫음.
+ * 예: '{"stance":"x","portfolio":[{"a":1},{"b":' → '{"stance":"x","portfolio":[{"a":1}]}'
+ *
+ * 알고리즘:
+ * 1) root object 안 array 의 마지막으로 완전히 닫힌 element 위치 찾기
+ *    (root depth=1 → array depth=2 → element depth=3 → 다시 2 로 돌아온 i)
+ * 2) 그 i+1 까지만 잘라내고 open 인 [, { 모두 close
+ */
+function repairTruncatedJson(str) {
+  let depth = 0, inStr = false, esc = false;
+  let lastElemEnd = -1;        // element 가 닫혀서 depth=2 가 된 i
+  let lastRootClose = -1;      // root object 가 닫혀서 depth=0 가 된 i
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (esc) { esc = false; continue; }
+    if (c === '\\') { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{' || c === '[') depth++;
+    else if (c === '}' || c === ']') {
+      depth--;
+      if (depth === 2) lastElemEnd = i;     // array 안 element 닫힘
+      if (depth === 0) lastRootClose = i;   // root object 완전 닫힘 → 표준 parse 통과했을 것
+    }
+  }
+  if (lastRootClose >= 0) return str.slice(0, lastRootClose + 1);
+  if (lastElemEnd >= 0) {
+    let candidate = str.slice(0, lastElemEnd + 1).replace(/,\s*$/, '');
+    let openObj = 0, openArr = 0, s = false, e = false;
+    for (const c of candidate) {
+      if (e) { e = false; continue; }
+      if (c === '\\') { e = true; continue; }
+      if (c === '"') { s = !s; continue; }
+      if (s) continue;
+      if (c === '{') openObj++; else if (c === '}') openObj--;
+      else if (c === '[') openArr++; else if (c === ']') openArr--;
+    }
+    while (openArr > 0) { candidate += ']'; openArr--; }
+    while (openObj > 0) { candidate += '}'; openObj--; }
+    return candidate;
+  }
+  return null;
 }
 
 // ── 라이브 가격 수집 ────────────────────────────────────────────────────────────
