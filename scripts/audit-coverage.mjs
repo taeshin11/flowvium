@@ -203,12 +203,13 @@ for (const [ep, s] of epStatus) {
 }
 
 // 200 OK 인데 응답 본문에 error 필드 — silent failure
+// 2026-05-30: "error":" 패턴으로 강화 — "errorPolicy", "warning" 같은 false positive 차단.
 const errBodies = db.prepare(`
   SELECT endpoint, COUNT(*) c
   FROM endpoint_snapshots
   WHERE captured_at >= datetime('now','-7 days')
     AND http_status = 200
-    AND response_json LIKE '%"error"%'
+    AND (response_json LIKE '%"error":"%' OR response_json LIKE '%"error":{%')
   GROUP BY endpoint
   HAVING c >= 2
 `).all();
