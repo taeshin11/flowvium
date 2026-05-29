@@ -3468,6 +3468,51 @@ function loadBuyRules() {
 function evaluateBuyRule(rule, ctx) {
   const c = rule.condition;
   switch (c.type) {
+    // 가격
+    case 'priceGapDown':
+      if (ctx.change1d != null && ctx.change1d <= (c.change1d_lte ?? -3)) return `1d ${ctx.change1d}% drop`;
+      break;
+    case 'near52wLow':
+      if (ctx.low52w && ctx.price &&
+          (ctx.price - ctx.low52w) / ctx.low52w * 100 <= (c.above_pct_lte ?? 5)) {
+        return `52w 저점 ${(((ctx.price / ctx.low52w) - 1) * 100).toFixed(1)}% 위 (지지 반등)`;
+      }
+      break;
+    case 'near50MA':
+      if (ctx.sma50 && ctx.price &&
+          Math.abs(ctx.price - ctx.sma50) / ctx.sma50 * 100 <= (c.deviation_pct_lte ?? 2)) {
+        return `50MA pullback (${(((ctx.price / ctx.sma50) - 1) * 100).toFixed(1)}%)`;
+      }
+      break;
+    case 'below200MA':
+      if (ctx.sma200 && ctx.price && ctx.price < ctx.sma200 &&
+          (ctx.sma200 - ctx.price) / ctx.sma200 * 100 >= (c.below_pct_gte ?? 5)) {
+        return `200MA ${(((ctx.price / ctx.sma200) - 1) * 100).toFixed(1)}% (mean reversion)`;
+      }
+      break;
+    case 'above20dHigh':
+      if (ctx.high20d && ctx.price && ctx.price > ctx.high20d) return `20d 신고가 돌파 (${ctx.high20d.toFixed(2)})`;
+      break;
+    // 회전
+    case 'sectorRotateIn':
+      if (ctx.sectorStance === (c.stance ?? 'overweight') &&
+          ctx.peRatio && ctx.sectorPe &&
+          (ctx.sectorPe - ctx.peRatio) / ctx.sectorPe * 100 >= (c.pe_discount_pct_gte ?? 10)) {
+        return `sector overweight + P/E ${((1 - ctx.peRatio / ctx.sectorPe) * 100).toFixed(0)}% 할인`;
+      }
+      break;
+    case 'defensiveRotation':
+      if (ctx.macroRiskLevel === (c.risk_level ?? 'high') &&
+          Array.isArray(c.sectors) && c.sectors.some(s => ctx.sector?.toLowerCase()?.includes(s.toLowerCase()))) {
+        return `defensive sector (${ctx.sector}) + macro risk=high`;
+      }
+      break;
+    case 'newHighAfterFlat':
+      if (ctx.consolidationWeeks != null && ctx.high20d && ctx.price &&
+          ctx.consolidationWeeks >= (c.consolidation_weeks_gte ?? 4) && ctx.price > ctx.high20d) {
+        return `${ctx.consolidationWeeks}주 횡보 후 신고가 돌파 (Stage 2 advance)`;
+      }
+      break;
     // 기술
     case 'rsiOversold':
       if (ctx.rsi != null && ctx.rsi <= (c.rsi_lte ?? 35)) return `RSI ${ctx.rsi} 과매도`;
@@ -3584,14 +3629,30 @@ function evaluateBuyRule(rule, ctx) {
 async function fetchBuyTechSignals(tickers) {
   const out = new Map();
   await Promise.all(tickers.slice(0, 100).map(async ticker => {
-    const sig = { rsi: null, sma50: null, sma200: null, volPct: null };
+    const sig = { rsi: null, sma50: null, sma200: null, volPct: null, high52w: null, low52w: null, high20d: null, consolidationWeeks: null };
     try {
       const oh = await fetchOHLCV(ticker, '1y');
       if (oh?.closes?.length) {
-        sig.rsi = computeRSI(oh.closes);
-        sig.sma50 = computeSMA(oh.closes, 50);
-        sig.sma200 = computeSMA(oh.closes, 200);
+        const closes = oh.closes;
+        sig.rsi = computeRSI(closes);
+        sig.sma50 = computeSMA(closes, 50);
+        sig.sma200 = computeSMA(closes, 200);
         if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes);
+        // 52w + 20d high / low
+        sig.high52w = Math.max(...closes);
+        sig.low52w = Math.min(...closes);
+        sig.high20d = closes.length >= 20 ? Math.max(...closes.slice(-20)) : null;
+        // consolidation weeks: 직전 N주 동안 ±5% 박스권
+        const last100 = closes.slice(-100);
+        if (last100.length >= 20) {
+          let consolidatedDays = 0;
+          const recentHigh = sig.high20d ?? Math.max(...last100.slice(-20));
+          for (let i = last100.length - 1; i >= 0; i--) {
+            if (Math.abs(last100[i] - recentHigh) / recentHigh > 0.05) break;
+            consolidatedDays++;
+          }
+          sig.consolidationWeeks = Math.floor(consolidatedDays / 5); // 5 trading days = 1 week
+        }
       }
     } catch { /* skip */ }
     out.set(ticker, sig);
@@ -3684,8 +3745,13 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     let cumScore = 0;
     const reasons = [];
     for (const rule of ruleSpec.rules) {
-      // 가벼운 룰만 stage 1 — 기술/기본/구루 제외 (필요 데이터 없음)
+      // Stage 1 = 데이터 없이 평가 가능한 룰만 (macro/micro/selflearn/일부 가격/일부 회전).
+      // technical / fundamental / guru 는 Stage 2/3 에서 OHLCV/financials fetch 후 평가.
+      // price_oversold_gap 은 change1d 만 필요 — Stage 1 가능.
+      // rotation_defensive 도 sector 만 필요 — Stage 1 가능.
       if (['technical', 'fundamental', 'guru'].includes(rule.category)) continue;
+      if (rule.category === 'price' && rule.id !== 'price_oversold_gap') continue; // 나머지 가격은 Stage 2
+      if (rule.category === 'rotation' && !['rotation_defensive'].includes(rule.id)) continue; // 나머지 회전은 Stage 3
       const r = evaluateBuyRule(rule, ctx);
       if (r) { cumScore += rule.score; reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
     }
@@ -3695,14 +3761,18 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   stage1Scored.sort((a, b) => b.stage1Score - a.stage1Score);
   const stage2Cands = stage1Scored.slice(0, 100); // top 100 → Stage 2
 
-  // ── Stage 2 (OHLCV): top 100 의 기술 시그널 ──
+  // ── Stage 2 (OHLCV): top 100 의 기술 + 가격 (52w/MA/20d high) ──
   console.log(`  [buy-cand Stage 2] top ${stage2Cands.length} OHLCV fetch...`);
   const techSignals = await fetchBuyTechSignals(stage2Cands.map(c => c.ticker));
   for (const c of stage2Cands) {
     const sig = techSignals.get(c.ticker) ?? {};
-    const ctx = { ...c, ...sig, sma50: sig.sma50, sma200: sig.sma200, rsi: sig.rsi, volPct: sig.volPct };
+    const ctx = { ...c, ...sig };
     for (const rule of ruleSpec.rules) {
-      if (rule.category !== 'technical') continue;
+      // 기술 전체 + 가격 중 OHLCV 필요한 것 (price_oversold_gap 은 Stage 1 에서 이미 평가)
+      const needsOHLCV = rule.category === 'technical' ||
+        (rule.category === 'price' && rule.id !== 'price_oversold_gap') ||
+        rule.id === 'rotation_new_high_after_consolidation';
+      if (!needsOHLCV) continue;
       const r = evaluateBuyRule(rule, ctx);
       if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
     }
@@ -3710,16 +3780,20 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   stage2Cands.sort((a, b) => b.stage1Score - a.stage1Score);
   const stage3Cands = stage2Cands.slice(0, 50);
 
-  // ── Stage 3 (financials): top 50 의 기본/구루 시그널 ──
+  // ── Stage 3 (financials): top 50 의 기본/구루 + 회전 sector_in (P/E discount 필요) ──
   console.log(`  [buy-cand Stage 3] top ${stage3Cands.length} company-financials fetch...`);
   const fundSignals = await fetchBuyFundSignals(stage3Cands.map(c => c.ticker));
   const sectorPeMap = macroCtx.sectorPeMap ?? new Map();
   for (const c of stage3Cands) {
     const sig = fundSignals.get(c.ticker) ?? {};
     const sectorKey = String(c.sector ?? '').toLowerCase();
-    const ctx = { ...c, ...sig, sectorPe: sectorPeMap.get(sectorKey) ?? null };
+    const ctx = {
+      ...c, ...sig,
+      sectorPe: sectorPeMap.get(sectorKey) ?? null,
+      sectorStance: macroCtx.sectorStanceMap?.get(sectorKey) ?? null,
+    };
     for (const rule of ruleSpec.rules) {
-      if (!['fundamental', 'guru'].includes(rule.category)) continue;
+      if (!['fundamental', 'guru'].includes(rule.category) && rule.id !== 'rotation_sector_in') continue;
       const r = evaluateBuyRule(rule, ctx);
       if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, score: rule.score, reason: r }); }
     }

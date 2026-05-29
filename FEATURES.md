@@ -694,9 +694,9 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 기본적 분석 (초록색)
 
 ### 13-3. AI 추천 포트폴리오 (US 6 + KR 6 = 12종목, 룰+LLM ensemble)
-- 23개 룰 multi-factor scoring (`data/buy-rules-tuned.json`)
+- 31개 룰 multi-factor scoring (`data/buy-rules-tuned.json`) — 8 카테고리 전부 커버
 - 4-stage scoring: light (모든 ticker) → OHLCV top 100 → financials top 50 → LLM top 30 중 12 선택
-- 룰 카테고리: 기술/기본/구루/거시/미시/selflearn (ban-list/boost-list)
+- 룰 카테고리: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) / selflearn(2)
 - 종목명, 섹터, 비중(%), 매수 근거
 - 🇺🇸 US Market / 🇰🇷 KR Market 시장별 분리 표시
 - 클릭 확장: 진입 구간 / 손절가 / 목표가 / Exit Ladder (entry/exit 분할)
