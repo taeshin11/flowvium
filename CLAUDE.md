@@ -190,6 +190,36 @@ node scripts/audit-coverage.mjs
 
 ---
 
+## 🔬 신규 코드 1회 실행 smoke test 의무 (2026-05-29 sectorPe TypeError 사건 이후 신설)
+
+**발생 경위:** `data/buy-rules-tuned.json` + `buildBuyCandidates()` push 후 `node --check` 만
+수행 → 5/29 오후 cron 에서 `(sectorPe ?? []).map is not a function` runtime TypeError → 보고서 누락.
+`getSectorSummary()` 가 string 인데 신규 코드가 array 라고 잘못 가정.
+
+### 규칙
+
+다음 변경 후엔 반드시 **`node script.mjs` 1회 실제 실행** (timeout 60초, throw 발생 여부 확인):
+
+| 변경 영역 | smoke test 명령 |
+|---|---|
+| `scripts/generate-report-local.mjs` (신규 단계 추가/수정) | `timeout 60 node scripts/generate-report-local.mjs --model=qwen3:8b 2>&1 \| grep -E "TypeError\|FATAL\|\[1\."` |
+| `scripts/lib/db.mjs` 스키마 변경 | `node -e "import('./scripts/lib/db.mjs').then(m=>{m.openDb();console.log('schema OK')})"` |
+| 새 외부 API helper (Promise.all 에 추가된 fetch) | `node -e "import('./scripts/...').then(m=>m.newFn().then(r=>console.log(r)))"` |
+
+`node --check` 는 syntax 만 검사 — runtime TypeError / undefined 호출 / 빈 응답 처리 못 잡음.
+
+### Main entry 의 `.catch(console.error)` 금지
+
+`generateViaOllama().catch(console.error)` 처럼 throw 를 console 로만 흘리면 batch 가
+`exit code = 0` 으로 인식 → cron 이 [SUCCESS] 로 오기록. **반드시 `process.exit(1)`** 호출:
+
+```js
+const onFatal = (e) => { console.error('[FATAL]', e?.stack ?? e?.message); process.exit(1); };
+generateViaOllama().catch(onFatal);
+```
+
+---
+
 ## 🗂️ 기타 프로젝트 관습
 
 - i18n: 모든 UI 문자열은 `messages/*.json`에 넣고 하드코딩 금지

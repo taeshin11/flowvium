@@ -2987,6 +2987,20 @@ async function getSectorSummary() {
   } catch { return ''; }
 }
 
+/** sector-pe raw 배열 — buy/sell rule 의 sectorPeMap 생성용 (string 변환 전 raw) */
+async function getSectorPeRaw() {
+  try {
+    const d = await safeFetch(`${SITE}/api/sector-pe`, 8000);
+    if (!Array.isArray(d?.sectors)) return [];
+    return d.sectors.map(e => ({
+      sector: e.name ?? e.sector ?? e.ticker ?? '',
+      ticker: e.ticker ?? null,
+      peAvg: e.trailingPE ?? e.peRatio ?? null,
+      peRatio: e.trailingPE ?? e.peRatio ?? null,
+    }));
+  } catch { return []; }
+}
+
 async function getUpcomingEarnings() {
   try {
     // Include past 7 days to capture recently reported earnings (e.g. CRWV Q1)
@@ -4512,10 +4526,11 @@ async function generateViaOllama() {
 
   // ── [1/7] 데이터 수집 ────────────────────────────────────────────────────────
   console.log('\n[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...');
-  const [ctxRaw, livePrices, sectorPe, earnings] = await Promise.all([
+  const [ctxRaw, livePrices, sectorPe, sectorPeRaw, earnings] = await Promise.all([
     gatherContext(),
     getLivePrices(),
     getSectorSummary(),
+    getSectorPeRaw(),
     getUpcomingEarnings(),
   ]);
   const ctx = buildCtxSummary(ctxRaw);
@@ -4555,7 +4570,7 @@ async function generateViaOllama() {
   console.log(`  macro=${ctx.macro.length}c, sentiment=${ctx.sentiment.length}c, flows=${ctx.flows.length}c`);
   console.log(`  news=${ctx.news.length}c (preview: ${ctx.news.slice(0, 100).replace(/\n/g, ' ')})`);
   console.log(`  institutional=${ctx.institutional.length}c, shorts=${ctx.shorts.length}c`);
-  console.log(`  prices=${livePrices.size} tickers, sectorPe=${sectorPe.length}c, earnings=${earnings.length}c`);
+  console.log(`  prices=${livePrices.size} tickers, sectorPe=${sectorPe.length}c (raw ${sectorPeRaw.length} 섹터), earnings=${earnings.length}c`);
 
   // 2026-05-29: 매수 후보 4-stage scoring (Wave 1 portfolio LLM 호출 직전)
   // macro/sector/region 데이터는 ctxRaw 에서 추출. 매도와 동일 macroCtx 재사용.
@@ -4564,7 +4579,7 @@ async function generateViaOllama() {
     riskLevel: null, // Wave 1 macroData 가 아직 없음 — fg/vix 만 활용
     vix: ctxRaw?.volatility?.score ?? ctxRaw?.vix?.score ?? null,
     fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
-    sectorPeMap: new Map((sectorPe ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio])),
+    sectorPeMap: new Map((sectorPeRaw ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio])),
     sectorStanceMap: new Map(), // Wave1 후 채워질 데이터 — Stage 1 에는 빈 Map
     regionStanceMap: new Map(),
     newsSentimentMap: (() => {
@@ -4772,7 +4787,7 @@ async function generateViaOllama() {
 
   // 2026-05-29: 매도 후보 — multi-factor (가격/tech/fund/구루/macro/micro) + Karpathy outcome 학습.
   const excludeForSell = new Set(portfolioItemsDeduped.map(p => p.ticker));
-  const sectorPeMap = new Map((sectorPe ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio]));
+  const sectorPeMap = new Map((sectorPeRaw ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio]));
   const sectorStanceMap = new Map((portfolioData?.sectorAllocation ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.stance]));
   const regionStanceMap = new Map(Object.entries(regionalData?.regionStances ?? {}).map(([k, v]) => [k === 'korea' ? 'kr' : k, v?.stance]));
   // 뉴스 sentiment ticker 별 집계
@@ -5610,8 +5625,13 @@ async function generateViaOllama() {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
+// 2026-05-29: silent failure 차단 — throw 시 exit code 1 (batch 가 [SUCCESS] 오기록 방지).
+const onFatal = (e) => {
+  console.error('[FATAL]', e?.stack ?? e?.message ?? String(e));
+  process.exit(1);
+};
 if (uploadArg) {
-  uploadFromFile(uploadArg).catch(console.error);
+  uploadFromFile(uploadArg).catch(onFatal);
 } else {
-  generateViaOllama().catch(console.error);
+  generateViaOllama().catch(onFatal);
 }

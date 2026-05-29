@@ -1,0 +1,60 @@
+2026-05-29 — afternoon (15:40 KST) 보고서 누락 원인 + fix
+
+질문: "왜 16시 보고서가 없지?"
+
+증거 chain
+─────────
+1. Windows Task Scheduler:
+   FlowVium-Afternoon LastRunTime=5/29 15:40 LastTaskResult=0 (성공으로 표시)
+2. logs/report.log tail:
+   - 15:40:02 git fetch + checkout ✓
+   - 15:40:05 pipeline 시작 ✓ (=신규 코드 적용됨)
+   - [0/7] update-all (23/24) ✓
+   - [1/7] 16 API 병렬 수집 ✓
+   - prices=1179 tickers, sectorPe=291c ✓
+   - [1.5/7] 매수 후보 4-stage scoring (1,200+ ticker)...
+   - TypeError: (sectorPe ?? []).map is not a function
+       at generateViaOllama (file:.../generate-report-local.mjs:4567)
+   - [SUCCESS] Report pipeline completed successfully ← 거짓 SUCCESS
+
+루트 원인
+─────────
+(a) getSectorSummary() 가 string (".join(', ')") 반환인데, 신규 buy-candidate
+    코드가 array of {sector, peAvg} 라고 가정하고 sectorPe.map() 호출.
+(b) Main 의 generateViaOllama().catch(console.error) — throw 잡아서 console.error
+    출력만 하고 process 정상종료 (exit 0). → batch 가 PIPE_EXIT=0 으로 [SUCCESS]
+    오기록. cron 모니터링이 결함 못 잡음.
+(c) 더 본질적: 신규 코드 push 전 `node --check` 만 했고 실제 실행 검증 안 함.
+    TypeError 는 syntax 가 아니라 runtime → check 가 못 잡음.
+
+fix
+─────────
+1. getSectorPeRaw() 신설 — /api/sector-pe 응답을 raw 배열로 반환
+   ({sector, ticker, peAvg, peRatio}).
+2. main 의 Promise.all 에서 sectorPe (string) + sectorPeRaw (array) 둘 다 fetch.
+3. 4567 + 4790 줄의 sectorPe.map() → sectorPeRaw.map() 으로 교체.
+4. Main 의 catch(console.error) → onFatal (process.exit(1)) 로 교체.
+   향후 silent SUCCESS 차단.
+5. 로그에 raw 섹터 개수 표시 — "sectorPe=291c (raw 11 섹터)".
+
+검증
+─────────
+- node --check 통과
+- node 실제 실행 60초:
+  ✓ prices=1179 tickers, sectorPe=291c (raw 11 섹터)
+  ✓ [1.5/7] 매수 후보 4-stage scoring (1,200+ ticker)... 진입
+  ✓ TypeError 없음
+  ✓ 다음 단계 (regional LLM 호출) 까지 진행
+
+다음 단계
+─────────
+- 5/29 evening (21:38 KST) cron 자동 실행 시 정상 portfolio=12 + sellRec + buyCand 적재 확인
+- 다음 morning audit-coverage 실행 → Probe [6] 의 buy_candidates ⚠️→✅ 예상
+- 추후 신규 코드 push 전 반드시 60초 실행 smoke test (이번 사건 의 교훈)
+
+연관 사건 (재발 방지)
+─────────
+- 5/29 새벽 commit ddef4a3 (buy rules 카테고리) → 이번 commit (sectorPeRaw fix) 까지
+  한 사이클 (afternoon=오후 보고서) lag 발생.
+- CLAUDE.md "📋 사용자 명시 list 검증 의무" 와 별도로 "신규 코드 1회 실행 smoke test"
+  의무 추가 필요 — 다음 commit 에서 CLAUDE.md 갱신 권장.
