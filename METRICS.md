@@ -657,10 +657,16 @@
 | 12-P4 | 종목별 목표가 | 💾 cached | AI 생성 |
 | 12-P5 | 종목별 확신도 (high/medium/low) | 💾 cached | AI 생성 |
 | 12-P6 | 종목별 매수 액션 (buy/hold/watch) | 💾 cached | AI 생성 ← iter210 |
-| 12-S1 | 📤 매도 추천 (US 6 + KR 6, 룰+LLM) | 🔄 cron | recommendations + recommendation_outcomes 기반 ← 2026-05-29 |
-| 12-S2 | 매도 type (stop_breach/near/target_near/rotation) | 🔄 cron | 룰 기반 (price vs stop/target/heldDays) |
-| 12-S3 | 매도 urgency (🔴 high / 🟠 medium / ⚪ low) | 🔄 cron | score 기반 |
-| 12-S4 | 매도 rationale (≤80자 LLM 또는 룰 텍스트) | 🔄 cron | Wave 2 LLM call (240s timeout) |
+| 12-S1 | 📤 매도 추천 (US 6 + KR 6, multi-factor) | 🔄 cron | sell-rules-tuned.json (가격/tech/fund/구루/거시/미시) ← 2026-05-29 |
+| 12-S2 | 매도 type (18 룰 카테고리, JSON 정의) | 🔄 cron | sell-rules-tuned.json (하드코딩 X) |
+| 12-S3 | 매도 urgency | 🔄 cron | sell-rules-tuned.json 룰 메타 |
+| 12-S4 | 매도 rationale (LLM 또는 룰) | 🔄 cron | Wave 2 LLM, 구루/tech/fund/macro inject |
+| 12-S5 | Exit Ladder (1/3, 2/3, 전량 부분 매도 ladder) | 🔄 cron | buildExitLadder() 룰 type 별 패턴 |
+| 12-S6 | 룰 학습 (grid search) — target/stop 임계값 자동 조정 | 🔄 cron | tune-sell-rules.mjs weekly Sun 04:00 |
+| 12-T1 | 📊 트랙 레코드 평균 PnL (30d, hero card) | 🔄 cron | recommendation_outcomes ← 2026-05-29 |
+| 12-T2 | 적중률 (%) + hit/total | 🔄 cron | recommendation_outcomes.outcome='hit_target' |
+| 12-T3 | SPY α (alpha) + beat 비율 | 🔄 cron | recommendation_outcomes.spy_return 비교 |
+| 12-T4 | Top 3 / Bottom 3 ticker (avg PnL + n) | 🔄 cron | recommendations 그룹 by ticker |
 | 12-A1 | 섹터 배분 (비중확대/중립/비중축소) | 💾 cached | AI 생성 |
 | 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
 | 12-K1 | KPI: F&G (US) | 💾 cached | `/api/fear-greed` (CNN 4h) |

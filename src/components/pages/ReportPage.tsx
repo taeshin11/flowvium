@@ -143,6 +143,7 @@ type SellItem = {
   currentPrice?: string; entryPrice?: string | null; target?: string | null; stopLoss?: string | null;
   pnlPct?: number | null; heldDays?: number; score?: number;
   rationale?: string; sellType?: string; urgency?: 'high' | 'medium' | 'low';
+  sellLadder?: { pct: number; price: string; label: string; action: string }[];
 };
 function SellCard({ item }: { item: SellItem }) {
   const urgencyColor = item.urgency === 'high' ? 'border-red-300 bg-red-50' :
@@ -163,13 +164,24 @@ function SellCard({ item }: { item: SellItem }) {
         )}
       </div>
       <p className="text-xs text-gray-700 mb-1.5 leading-snug">{item.rationale}</p>
-      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500 mb-2">
         <span>현재 {item.currentPrice}</span>
         {item.entryPrice && <span>· entry {item.entryPrice}</span>}
         {item.target && <span>· target {item.target}</span>}
         {item.stopLoss && <span>· stop {item.stopLoss}</span>}
         <span>· 보유 {item.heldDays}일</span>
       </div>
+      {Array.isArray(item.sellLadder) && item.sellLadder.length > 0 && (
+        <div className="mt-1.5 pt-1.5 border-t border-gray-200 space-y-0.5">
+          {item.sellLadder.map((step, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-[10px]">
+              <span className="font-bold text-gray-700 min-w-[2.5rem]">{step.pct}%</span>
+              <span className="text-gray-600">@ {step.price}</span>
+              <span className="text-gray-500">— {step.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -685,6 +697,96 @@ export default function ReportPage() {
             )}
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
           </div>
+
+          {/* ── 🎯 포트폴리오 트랙 레코드 (2026-05-29 hero card) ──────────────── */}
+          {(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const po = (data as any).portfolioOutcomes as {
+              total?: number; hit_target?: number; stop_loss?: number; still_holding?: number; not_entered?: number;
+              hitRate?: number; avgPnl?: number | null; spyAlpha?: number | null;
+              beatSpy?: number; beatSpyTotal?: number;
+              top3?: { ticker: string; avg: number; n: number }[];
+              bottom3?: { ticker: string; avg: number; n: number }[];
+            } | undefined;
+            if (!po || !po.total) return null;
+            const pnlColor = (po.avgPnl ?? 0) >= 0 ? 'text-green-700' : 'text-red-700';
+            const alphaColor = (po.spyAlpha ?? 0) >= 0 ? 'text-green-700' : 'text-red-700';
+            return (
+              <div className="mb-5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-4">
+                <h2 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                  📊 {t('trackRecordTitle')}
+                  <span className="text-[10px] font-normal text-indigo-600 bg-white/60 rounded px-2 py-0.5">
+                    {t('trackRecordSubtitle', { days: 30, total: po.total })}
+                  </span>
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                  <div className="bg-white rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] text-gray-500">{t('avgPnlLabel')}</p>
+                    <p className={`text-lg font-bold ${pnlColor}`}>
+                      {po.avgPnl != null ? `${po.avgPnl >= 0 ? '+' : ''}${po.avgPnl}%` : '-'}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] text-gray-500">{t('hitRateLabel')}</p>
+                    <p className="text-lg font-bold text-indigo-700">
+                      {po.hitRate ?? 0}%
+                      <span className="text-[10px] text-gray-500 font-normal ml-1">
+                        ({po.hit_target ?? 0}/{po.total})
+                      </span>
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] text-gray-500">{t('spyAlphaLabel')}</p>
+                    <p className={`text-lg font-bold ${alphaColor}`}>
+                      {po.spyAlpha != null ? `${po.spyAlpha >= 0 ? '+' : ''}${po.spyAlpha}%` : '-'}
+                      <span className="text-[10px] text-gray-500 font-normal ml-1">
+                        ({po.beatSpy ?? 0}/{po.beatSpyTotal ?? 0})
+                      </span>
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] text-gray-500">{t('statusBreakdownLabel')}</p>
+                    <p className="text-[11px] font-semibold text-gray-700 leading-tight">
+                      🎯 {po.hit_target ?? 0} / 🛑 {po.stop_loss ?? 0}<br />
+                      ⏳ {po.still_holding ?? 0} / ❌ {po.not_entered ?? 0}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {po.top3 && po.top3.length > 0 && (
+                    <div className="bg-green-50 rounded-lg p-2 border border-green-100">
+                      <p className="text-[10px] font-semibold text-green-700 mb-1">🏆 {t('top3Label')}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {po.top3.map((s) => (
+                          <span key={s.ticker} className="text-xs bg-white rounded px-2 py-0.5 border border-green-200">
+                            <span className="font-bold">{s.ticker}</span>
+                            <span className="text-green-700 ml-1 font-semibold">+{s.avg}%</span>
+                            <span className="text-gray-400 ml-1">({s.n})</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {po.bottom3 && po.bottom3.length > 0 && (
+                    <div className="bg-red-50 rounded-lg p-2 border border-red-100">
+                      <p className="text-[10px] font-semibold text-red-700 mb-1">📉 {t('bottom3Label')}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {po.bottom3.map((s) => (
+                          <span key={s.ticker} className="text-xs bg-white rounded px-2 py-0.5 border border-red-200">
+                            <span className="font-bold">{s.ticker}</span>
+                            <span className={`ml-1 font-semibold ${s.avg >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              {s.avg >= 0 ? '+' : ''}{s.avg}%
+                            </span>
+                            <span className="text-gray-400 ml-1">({s.n})</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── S6: 시장 내러티브 (Why + Watch + Story) ─────────────────────── */}
           {data.marketNarrative && (

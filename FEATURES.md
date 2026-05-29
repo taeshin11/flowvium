@@ -699,12 +699,18 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 클릭 확장: 진입 구간 / 손절가 / 목표가
 - 확신도 뱃지 (high/medium/low)
 
-### 13-3b. 📤 매도 추천 (US 6 + KR 6, 2026-05-29 신설)
-- 과거 buy 추천 중 stop 근접/돌파, target 근접, 보유 14일+ 회전 후보 자동 추출
-- 룰별 score (10=stop breach, 8=stop near, 7=target near, 6/5/3=rotation) + LLM rationale
-- urgency 배지 (🔴 high / 🟠 medium / ⚪ low)
-- 데이터: `recommendations` + `recommendation_outcomes` (still_holding 65건 + recent 30d buy)
-- 매도 후보 추출은 룰 기반, rationale 만 Wave 2 LLM 호출 (240s timeout)
+### 13-3b. 📤 매도 추천 (US 6 + KR 6, multi-factor + Karpathy 학습, 2026-05-29)
+- 6 카테고리 multi-factor 룰: 가격 / 기술 / 기본 / 구루 / 거시 / 미시 (`data/sell-rules-tuned.json`)
+- 룰 18개 — stop_breach, dead_cross, 200ma_breach, rsi_overbought, op_margin_decline, lynch_peg, macro_high_risk, sector_underweight, news_negative 등
+- Exit Ladder 자동 생성 (Klarman 부분 매도): stop_breach=즉시전량 / target_near=1/3/1/3/1/3 trailing / rotation_profit=1/3 + breakeven lock
+- urgency 배지 (🔴 high / 🟠 medium / ⚪ low) — JSON 룰 메타에서 직접 (하드코딩 X)
+- `sell_recommendations` + `sell_outcomes` DB 적재 → `tune-sell-rules.mjs` weekly grid search 학습
+- Wave 2 LLM rationale (240s timeout) — 구루 framework + tech/fund/macro 신호 inject
+
+### 13-0. 📊 포트폴리오 트랙 레코드 (hero card 최상단, 2026-05-29)
+- 보고서 thesis 바로 아래 — 평균 PnL / 적중률 / SPY α / 상태 분포 4 metric pill
+- 🏆 Top 3 + 📉 Bottom 3 ticker (avg PnL + 평가 횟수)
+- 데이터: `recommendations` + `recommendation_outcomes` 최근 30일 + spy_return 비교
 
 ### 13-4. 섹터 배분 전략
 - 섹터별 비중 바 차트

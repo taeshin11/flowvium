@@ -114,6 +114,29 @@ Register-ScheduledTask `
     -Force | Out-Null
 Write-Host "등록: FlowVium-DART-CorpCodes @ 02:00 daily (corp_code mapping 갱신)" -ForegroundColor Cyan
 
+# ─── tune-sell-rules.mjs (Karpathy 매도 룰 grid search, 주 1회) ──────────────────
+$TuneScript = "$ProjectDir\scripts\tune-sell-rules.mjs"
+$TuneLog = "$LogDir\tune-sell-rules.log"
+$TuneBatch = @"
+@echo off
+cd /d "$ProjectDir"
+echo [%date% %time%] tune-sell-rules start >> "$TuneLog"
+"$NodePath" "$TuneScript" >> "$TuneLog" 2>&1
+echo [%date% %time%] tune-sell-rules done. >> "$TuneLog"
+"@
+$TuneBatchFile = "$ProjectDir\scripts\run-tune-sell-rules.bat"
+$TuneBatch | Out-File -FilePath $TuneBatchFile -Encoding ASCII
+
+$TuneTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At "04:00"
+Register-ScheduledTask `
+    -TaskName "FlowVium-Tune-Sell-Rules" `
+    -Trigger $TuneTrigger `
+    -Action (New-ScheduledTaskAction -Execute $TuneBatchFile) `
+    -Settings (New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 15) -StartWhenAvailable) `
+    -RunLevel Highest `
+    -Force | Out-Null
+Write-Host "등록: FlowVium-Tune-Sell-Rules @ Sun 04:00 (룰 grid search 학습)" -ForegroundColor Cyan
+
 Write-Host ""
 Write-Host "✅ 작업 스케줄러 등록 완료!" -ForegroundColor Green
 Write-Host "   - 보고서: 매일 08:05 / 16:05 / 21:35 KST"

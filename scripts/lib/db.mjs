@@ -275,6 +275,50 @@ CREATE TABLE IF NOT EXISTS asset_flow_archive (
   FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_flow_asset ON asset_flow_archive(asset, captured_at);
+
+-- 2026-05-29: 매도 추천 적재 + Karpathy pathway (closed loop) outcome 평가용.
+--   sell_recommendations 가 매 보고서 cycle 마다 적재 → tune-sell-rules.mjs 가
+--   주 1회 outcome 평가 → 룰 임계값 자동 조정 → 다음 cycle prompt 에 inject.
+CREATE TABLE IF NOT EXISTS sell_recommendations (
+  id              TEXT PRIMARY KEY,         -- 'YYYY-MM-DD:session:ticker'
+  report_id       TEXT NOT NULL,
+  generated_at    TEXT NOT NULL,
+  ticker          TEXT NOT NULL,
+  market          TEXT,                     -- us / kr
+  sector          TEXT,
+  sell_type       TEXT,                     -- stop_breach / stop_near / target_near / rotation_profit / rotation_loss / rotation_neutral
+  urgency         TEXT,                     -- high / medium / low
+  score           INTEGER,
+  current_price   REAL,
+  entry_price     REAL,
+  target          REAL,
+  stop_loss       REAL,
+  pnl_pct         REAL,
+  held_days       INTEGER,
+  rationale       TEXT,
+  evaluate_after  TEXT NOT NULL,            -- generated_at + 14d
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_sell_ticker     ON sell_recommendations(ticker);
+CREATE INDEX IF NOT EXISTS idx_sell_eval_after ON sell_recommendations(evaluate_after);
+CREATE INDEX IF NOT EXISTS idx_sell_sell_type  ON sell_recommendations(sell_type);
+
+CREATE TABLE IF NOT EXISTS sell_outcomes (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  sell_rec_id       TEXT NOT NULL,
+  evaluated_at      TEXT NOT NULL,
+  price_at_eval     REAL,
+  -- avoided_loss = 매도 후 가격 하락분 (매도 시점 대비)
+  -- missed_gain  = 매도 후 가격 상승분 (성급한 매도 = missed opportunity)
+  price_delta_pct   REAL,                   -- (eval_price - sell_price) / sell_price * 100
+  outcome           TEXT NOT NULL,          -- correct_sell (가격 하락) / premature (가격 상승) / neutral
+  ohlc_days         INTEGER,                -- 평가 기간 (보통 14d)
+  high_seen         REAL,                   -- 평가 기간 내 최고가
+  low_seen          REAL,                   -- 평가 기간 내 최저가
+  FOREIGN KEY (sell_rec_id) REFERENCES sell_recommendations(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_sellout_rec_eval ON sell_outcomes(sell_rec_id, evaluated_at);
+CREATE INDEX IF NOT EXISTS idx_sellout_evaluated ON sell_outcomes(evaluated_at);
 `;
 
 let _dbInstance = null;
@@ -807,6 +851,90 @@ export function saveOutcome(rec) {
     spy_return: rec.spy_return ?? null,
     quality_score: rec.quality_score ?? null,
     details_json: rec.details ? JSON.stringify(rec.details) : null,
+  });
+}
+
+/**
+ * 2026-05-29: 매도 추천 적재 — Karpathy pathway closed loop 의 source.
+ * tune-sell-rules.mjs 가 sell_outcomes 평가 후 룰 임계값 자동 조정.
+ */
+export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
+  const db = openDb();
+  const parseAmount = (s) => {
+    if (s == null) return null;
+    if (typeof s === 'number') return s;
+    const m = String(s).replace(/[$₩€,\s]/g, '').match(/\d+(\.\d+)?/);
+    return m ? parseFloat(m[0]) : null;
+  };
+  const insert = db.prepare(`
+    INSERT INTO sell_recommendations
+      (id, report_id, generated_at, ticker, market, sector, sell_type, urgency, score,
+       current_price, entry_price, target, stop_loss, pnl_pct, held_days, rationale, evaluate_after)
+    VALUES (@id, @report_id, @generated_at, @ticker, @market, @sector, @sell_type, @urgency, @score,
+            @current_price, @entry_price, @target, @stop_loss, @pnl_pct, @held_days, @rationale, @evaluate_after)
+    ON CONFLICT(id) DO UPDATE SET
+      sell_type = excluded.sell_type,
+      urgency = excluded.urgency,
+      score = excluded.score,
+      rationale = excluded.rationale,
+      current_price = excluded.current_price,
+      pnl_pct = excluded.pnl_pct,
+      held_days = excluded.held_days
+  `);
+  const evalAfter = new Date(new Date(generatedAt).getTime() + 14 * 86400000).toISOString();
+  const sessionTag = reportId.split(':').slice(0, 2).join(':');
+  let n = 0;
+  const txn = db.transaction((rows) => {
+    for (const c of rows) {
+      if (!c?.ticker) continue;
+      insert.run({
+        id: `${sessionTag}:${c.ticker}`,
+        report_id: reportId,
+        generated_at: generatedAt,
+        ticker: c.ticker,
+        market: c.market ?? null,
+        sector: c.sector ?? null,
+        sell_type: c.sellType ?? c.ruleId ?? null,
+        urgency: c.urgency ?? null,
+        score: c.score ?? null,
+        current_price: parseAmount(c.currentPrice),
+        entry_price: parseAmount(c.entryPrice),
+        target: parseAmount(c.target),
+        stop_loss: parseAmount(c.stopLoss),
+        pnl_pct: c.pnlPct ?? null,
+        held_days: c.heldDays ?? null,
+        rationale: c.rationale ?? c.reason ?? null,
+        evaluate_after: evalAfter,
+      });
+      n++;
+    }
+  });
+  txn(sellRecs);
+  return n;
+}
+
+/** 매도 outcome 한 건 저장 (tune-sell-rules.mjs 가 사용). */
+export function saveSellOutcome(row) {
+  const db = openDb();
+  db.prepare(`
+    INSERT INTO sell_outcomes
+      (sell_rec_id, evaluated_at, price_at_eval, price_delta_pct, outcome, ohlc_days, high_seen, low_seen)
+    VALUES (@sell_rec_id, @evaluated_at, @price_at_eval, @price_delta_pct, @outcome, @ohlc_days, @high_seen, @low_seen)
+    ON CONFLICT(sell_rec_id, evaluated_at) DO UPDATE SET
+      price_at_eval = excluded.price_at_eval,
+      price_delta_pct = excluded.price_delta_pct,
+      outcome = excluded.outcome,
+      high_seen = excluded.high_seen,
+      low_seen = excluded.low_seen
+  `).run({
+    sell_rec_id: row.sell_rec_id,
+    evaluated_at: row.evaluated_at ?? new Date().toISOString(),
+    price_at_eval: row.price_at_eval ?? null,
+    price_delta_pct: row.price_delta_pct ?? null,
+    outcome: row.outcome,
+    ohlc_days: row.ohlc_days ?? null,
+    high_seen: row.high_seen ?? null,
+    low_seen: row.low_seen ?? null,
   });
 }
 
