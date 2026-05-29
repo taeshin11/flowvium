@@ -15,6 +15,11 @@
 
 import { logger } from './logger';
 import type { Redis } from '@upstash/redis';
+// scripts/fetch-dart-corp-codes.mjs 가 월 1회 생성. DART company.json 은 corp_code 필수
+// (stock_code 로는 조회 불가) — 이 매핑이 없으면 모든 KR 종목 fetch 실패.
+import dartCorpCodes from '../../data/dart-corp-codes.json';
+
+const CORP_CODE_LOOKUP = (dartCorpCodes as { map: Record<string, { corpCode: string; corpName: string }> }).map;
 
 const DART_BASE = 'https://opendart.fss.or.kr/api';
 const CORP_CODE_TTL  = 30 * 24 * 3600;  // 30 days
@@ -178,17 +183,30 @@ export async function getDartCorpInfo(
     } catch { /* non-fatal */ }
   }
 
-  const data = await dartFetch('company.json', { stock_code: stockCode }) as Record<string, string> | null;
-  if (!data?.corp_code) {
-    logger.warn('dart', 'corp_code_not_found', { stockCode });
+  // 1차: corp_code static map (3,967 종목) 에서 lookup. DART company.json 은
+  //      stock_code 파라미터를 지원하지 않아 corp_code 가 필수.
+  const mapped = CORP_CODE_LOOKUP[stockCode];
+  let corpCode: string | null = mapped?.corpCode ?? null;
+  let corpName: string = mapped?.corpName ?? stockCode;
+  let corpCls = '';
+
+  if (corpCode) {
+    // map hit — corp_code 로 추가 메타 조회 (corpCls 등)
+    const data = await dartFetch('company.json', { corp_code: corpCode }) as Record<string, string> | null;
+    if (data?.corp_code) {
+      corpName = data.corp_name ?? corpName;
+      corpCls = data.corp_cls ?? '';
+    }
+  } else {
+    logger.warn('dart', 'corp_code_not_in_map', { stockCode });
     return null;
   }
 
   const info: DartCorpInfo = {
-    corpCode: data.corp_code,
-    corpName: data.corp_name,
+    corpCode,
+    corpName,
     stockCode,
-    corpCls: data.corp_cls ?? '',
+    corpCls,
   };
 
   if (redis) {

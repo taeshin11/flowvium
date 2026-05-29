@@ -54,11 +54,72 @@ foreach ($s in $Schedules) {
     Write-Host "등록: $($s.Name) @ $($s.Time)" -ForegroundColor Cyan
 }
 
+# ─── DART prefetch (KR 345 종목 매일 갱신) ──────────────────────────────────────
+$DartScript = "$ProjectDir\scripts\prefetch-dart-financials.mjs"
+$DartLog = "$LogDir\dart-prefetch.log"
+$DartBatch = @"
+@echo off
+cd /d "$ProjectDir"
+echo [%date% %time%] DART prefetch start >> "$DartLog"
+"$NodePath" "$DartScript" >> "$DartLog" 2>&1
+echo [%date% %time%] DART prefetch done. >> "$DartLog"
+"@
+$DartBatchFile = "$ProjectDir\scripts\run-dart-prefetch.bat"
+$DartBatch | Out-File -FilePath $DartBatchFile -Encoding ASCII
+Write-Host "배치 파일 생성: $DartBatchFile" -ForegroundColor Green
+
+$DartTrigger = New-ScheduledTaskTrigger -Daily -At "03:00"
+$DartAction  = New-ScheduledTaskAction -Execute $DartBatchFile
+$DartSettings = New-ScheduledTaskSettingsSet `
+    -ExecutionTimeLimit (New-TimeSpan -Minutes 30) `
+    -StartWhenAvailable `
+    -RunOnlyIfNetworkAvailable
+
+Register-ScheduledTask `
+    -TaskName "FlowVium-DART-Prefetch" `
+    -Trigger $DartTrigger `
+    -Action $DartAction `
+    -Settings $DartSettings `
+    -RunLevel Highest `
+    -Force | Out-Null
+Write-Host "등록: FlowVium-DART-Prefetch @ 03:00 (KR 345 종목)" -ForegroundColor Cyan
+
+# ─── DART corp_code 매월 갱신 (3,967 상장사 stock_code↔corp_code mapping) ───────
+$CorpScript = "$ProjectDir\scripts\fetch-dart-corp-codes.mjs"
+$CorpLog = "$LogDir\dart-corp-codes.log"
+$CorpBatch = @"
+@echo off
+cd /d "$ProjectDir"
+echo [%date% %time%] DART corp_code fetch start >> "$CorpLog"
+"$NodePath" "$CorpScript" >> "$CorpLog" 2>&1
+echo [%date% %time%] DART corp_code fetch done. >> "$CorpLog"
+"@
+$CorpBatchFile = "$ProjectDir\scripts\run-dart-corp-codes.bat"
+$CorpBatch | Out-File -FilePath $CorpBatchFile -Encoding ASCII
+
+# 매월 1일 02:00 KST
+$CorpTrigger = New-ScheduledTaskTrigger -Daily -At "02:00"
+$CorpTrigger.Repetition = $null
+$CorpSettings = New-ScheduledTaskSettingsSet `
+    -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
+    -StartWhenAvailable `
+    -RunOnlyIfNetworkAvailable
+
+Register-ScheduledTask `
+    -TaskName "FlowVium-DART-CorpCodes" `
+    -Trigger $CorpTrigger `
+    -Action (New-ScheduledTaskAction -Execute $CorpBatchFile) `
+    -Settings $CorpSettings `
+    -RunLevel Highest `
+    -Force | Out-Null
+Write-Host "등록: FlowVium-DART-CorpCodes @ 02:00 daily (corp_code mapping 갱신)" -ForegroundColor Cyan
+
 Write-Host ""
 Write-Host "✅ 작업 스케줄러 등록 완료!" -ForegroundColor Green
-Write-Host "   - 매일 08:05 / 16:05 / 21:35 KST에 자동 실행"
+Write-Host "   - 보고서: 매일 08:05 / 16:05 / 21:35 KST"
+Write-Host "   - DART prefetch: 매일 03:00 KST (KOSPI 200 + KOSDAQ 150)"
 Write-Host "   - Ollama가 켜져 있어야 함 (ollama serve)"
-Write-Host "   - 로그: $LogDir\report.log"
+Write-Host "   - 로그: $LogDir\report.log, $LogDir\dart-prefetch.log"
 Write-Host ""
-Write-Host "확인: Get-ScheduledTask -TaskName '$TaskName*'"
-Write-Host "삭제: Unregister-ScheduledTask -TaskName '$TaskName*' -Confirm:`$false"
+Write-Host "확인: Get-ScheduledTask -TaskName 'FlowVium-*'"
+Write-Host "삭제: Unregister-ScheduledTask -TaskName 'FlowVium-*' -Confirm:`$false"

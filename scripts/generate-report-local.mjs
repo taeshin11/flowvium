@@ -667,7 +667,13 @@ function qualityCheck(report) {
 
   // Portfolio count warnings (not gate-failures, but score penalties)
   const portLen = report.portfolio?.length ?? 0;
-  if (portLen > 0 && portLen < 5) warnings.push(`portfolio COUNT LOW: ${portLen} (recommend ≥5)`);
+  if (portLen > 0 && portLen < 12) warnings.push(`portfolio COUNT LOW: ${portLen} (target=12: US 6 + KR 6)`);
+  if (portLen >= 6) {
+    const krLen = report.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')).length;
+    const usLen = portLen - krLen;
+    if (usLen < 6) warnings.push(`portfolio US COUNT LOW: ${usLen}/6`);
+    if (krLen < 6) warnings.push(`portfolio KR COUNT LOW: ${krLen}/6`);
+  }
 
   // Cross-ticker catalyst duplication check
   if (Array.isArray(report.portfolio)) {
@@ -1220,7 +1226,7 @@ async function getLivePrices() {
 function pricesSection(map) {
   if (!map.size) return '';
   return Array.from(map.entries()).map(([t, p]) => {
-    const isKR = t.endsWith('.KS');
+    const isKR = t.endsWith('.KS') || t.endsWith('.KQ');
     const curr = isKR ? '₩' : '$';
     const name = KR_NAMES[t] ? ` (${KR_NAMES[t]})` : '';
     const priceStr = isKR ? Math.round(p.price).toLocaleString() : p.price.toFixed(2);
@@ -3165,7 +3171,7 @@ function getRecentQualityFeedback() {
         if (!d.thesis || d.thesis.length <= 20) missingCounts.thesis = (missingCounts.thesis ?? 0) + 1;
         if (!d.macroAnalysis || d.macroAnalysis.length <= 30) missingCounts.macroAnalysis = (missingCounts.macroAnalysis ?? 0) + 1;
         if (!d.technicalAnalysis || d.technicalAnalysis.length <= 15) missingCounts.technicalAnalysis = (missingCounts.technicalAnalysis ?? 0) + 1;
-        if ((d.portfolio?.length ?? 0) < 5) missingCounts.portfolioSize = (missingCounts.portfolioSize ?? 0) + 1;
+        if ((d.portfolio?.length ?? 0) < 12) missingCounts.portfolioSize = (missingCounts.portfolioSize ?? 0) + 1;
         if ((d.shortSqueeze?.length ?? 0) === 0) missingCounts.shortSqueeze = (missingCounts.shortSqueeze ?? 0) + 1;
         if ((d.insiderSignals?.length ?? 0) === 0) missingCounts.insiderSignals = (missingCounts.insiderSignals ?? 0) + 1;
         if ((d.companyChanges?.length ?? 0) === 0) missingCounts.companyChanges = (missingCounts.companyChanges ?? 0) + 1;
@@ -3292,7 +3298,8 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     '** Sector ETF rotation 권장 (sector-tilt 알파): VIX>20 → XLP/XLU/XLV (defensive) / VIX<14 → XLK/XLY (cyclical) **',
     '** Sector ETF (XLK/XLE/XLF/XLV/XLI/XLY/XLP/XLU/XLB/XLRE) 1-2개 포함 권장 (sector rotation, 10-15% each) **',
     '** Passive 인덱스 ETF (SPY/QQQ/VTI) + bonds ≤ 20% total **',
-    '** Minimum 5 individual stocks, each ≥ 10% allocation. **',
+    '** 🎯 EXACTLY 12 stocks REQUIRED: 6 US-market (NYSE/NASDAQ) + 6 KR-market (.KS/.KQ). Session 무관 균등 보장. **',
+    '** Each stock 5-12% allocation (sum=100). KR ticker 부족 시 [Live Prices] 의 KOSPI 200 / KOSDAQ 150 large-cap 활용. **',
     '** ⚠️ Tech 합계 ≤ 50% allocation (Tech 집중 회피, sector Sharpe: Consumer Disc 5.13 > Materials 2.79 > Tech 2.17) **',
     '** ⚠️ KR ticker (.KS) — 통화 ₩ (원화) 강제. $ 단위 절대 금지. 한국명: 005490=POSCO홀딩스, 005380=현대차, 035420=NAVER, 000660=SK하이닉스, 051910=LG화학, 005930=삼성전자 **',
     '',
@@ -3306,7 +3313,8 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     ' **',
     '',
     'RULES:',
-    '1. 6-8 items: PRIMARILY individual stocks — ONLY pick tickers in [Live Prices]',
+    '1. EXACTLY 12 items: 6 US + 6 KR (KR ticker MUST end with .KS or .KQ). ONLY pick tickers in [Live Prices].',
+    '   US 6개 < 6 또는 KR 6개 < 6 이면 보고서 reject. Sector ETF 는 US 6 안에 포함 가능 (.KS/.KQ 제외).',
     '   Rank by signal: (1) insider 집중매수/13D, (2) squeeze score, (3) 13F accumulation, (4) options flow, (5) capital-flow momentum',
     '2. "market" field = us/korea/japan/china/europe/india/taiwan/global',
     '3. entryZone/stopLoss/target: SYNTHESIZE from technical + fundamental + guru analysis.',
@@ -3368,7 +3376,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData) {
     `"stopLoss":"$Z","target":"$A","targetBull":"$B","targetRationale":"[≤80 chars in ${TARGET_LANG}, fundamentals-first]",`,
     '"confidence":"high","action":"buy"}],',
     `"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"[≤40 chars in ${TARGET_LANG}]"}]}`,
-    '6-8 portfolio items, 5 sectorAllocation items. Pure JSON only.',
+    'EXACTLY 12 portfolio items (US 6 + KR 6), 5 sectorAllocation items. Pure JSON only.',
     '⚠️ entryZone MUST be based on [Live Prices] + analysis. entryPlan is a BACKUP — system uses it only if entryZone is hallucinated.',
   ].join('\n');
 }
@@ -3828,17 +3836,85 @@ async function generateViaOllama() {
   console.log(`  macro=${!!macroData}(riskLevel:${macroData?.riskLevel ?? 'N/A'}), portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}(${Object.keys(regionalData?.regionStances ?? {}).length}지역)`);
   console.log(`  opportunity=${!!opportunityData}(squeeze:${opportunityData?.shortSqueeze?.length ?? 0}), narrative=${!!narrativeData}`);
 
-  // Portfolio retry — 5개 미만이면 재시도 (fatal)
-  if ((portfolioData?.portfolio?.length ?? 0) < 5) {
-    const gotCount = portfolioData?.portfolio?.length ?? 0;
-    console.log(`  portfolio ${gotCount}개 (최소 5 미달) — retrying once...`);
-    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 360000, 'portfolio-retry');
-    const portfolioRetryData = parseJson(portfolioRetry, 'portfolio-retry');
-    if ((portfolioRetryData?.portfolio?.length ?? 0) < 3) {
-      console.error('❌ Wave1 포트폴리오 생성 실패 (2회). 종료합니다.');
-      process.exit(1);
+  // Portfolio US 6 + KR 6 강제 — 2 retry → 부족 시 candidate pool padding
+  const countByMarket = (arr) => {
+    const items = arr ?? [];
+    const kr = items.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')).length;
+    const us = items.length - kr;
+    return { us, kr, total: items.length };
+  };
+  const pickBetter = (a, b) => {
+    const ca = countByMarket(a?.portfolio), cb = countByMarket(b?.portfolio);
+    const scoreA = Math.min(ca.us, 6) + Math.min(ca.kr, 6);
+    const scoreB = Math.min(cb.us, 6) + Math.min(cb.kr, 6);
+    return scoreB > scoreA ? b : a;
+  };
+  let portfolioCounts = countByMarket(portfolioData?.portfolio);
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    if (portfolioCounts.us >= 6 && portfolioCounts.kr >= 6) break;
+    console.log(`  portfolio US ${portfolioCounts.us}/6 + KR ${portfolioCounts.kr}/6 — retry ${attempt}/2 ...`);
+    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData), modelArg, 360000, `portfolio-retry-${attempt}`);
+    const portfolioRetryData = parseJson(portfolioRetry, `portfolio-retry-${attempt}`);
+    portfolioData = pickBetter(portfolioData, portfolioRetryData);
+    portfolioCounts = countByMarket(portfolioData?.portfolio);
+    console.log(`  retry ${attempt} 결과 (best so far): US ${portfolioCounts.us} + KR ${portfolioCounts.kr} = ${portfolioCounts.total}`);
+  }
+  if (portfolioCounts.total < 6) {
+    console.error('❌ Wave1 포트폴리오 생성 실패 (3회, total < 6). 종료합니다.');
+    process.exit(1);
+  }
+  // candidate pool 에서 부족분 자동 padding (US/KR 별도)
+  if (portfolioCounts.us < 6 || portfolioCounts.kr < 6) {
+    try {
+      const tickerMeta = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8'));
+      const existing = new Set((portfolioData.portfolio ?? []).map(p => p.ticker));
+      const isKR = (t) => t.endsWith('.KS') || t.endsWith('.KQ');
+      const pad = (need, krFilter) => {
+        const pool = (tickerMeta.tickers ?? []).filter(t =>
+          livePrices.has(t) && !existing.has(t) && (krFilter ? isKR(t) : !isKR(t))
+        );
+        // 시총 우선: titan/mega/large 먼저, mid/kr 그 다음
+        const rank = (t) => ({ titan: 0, mega: 1, large: 2, mid: 3, kr: 2, etf: 4 }[tickerMeta.meta?.[t]?.cap] ?? 5);
+        pool.sort((a, b) => rank(a) - rank(b));
+        const picks = pool.slice(0, need);
+        const padded = picks.map(t => {
+          const pd = livePrices.get(t);
+          const isK = isKR(t);
+          const fmt = n => isK ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
+          const meta = tickerMeta.meta?.[t] ?? {};
+          const actual = pd?.price ?? 100;
+          existing.add(t);
+          return {
+            ticker: t, name: meta.name ?? t, sector: meta.sector ?? 'Unknown',
+            market: isK ? 'korea' : 'us',
+            rationale: `${t} — ${meta.sector ?? '섹터'} 분산 (US/KR 균형 자동 보충)`,
+            allocation: 8,
+            entryZone: `${fmt(actual * 0.98)}-${fmt(actual * 1.01)}`,
+            entryRationale: `시장가 -1% 진입 (auto-pad)`,
+            stopLoss: fmt(actual * 0.93),
+            target: fmt(actual * 1.10),
+            targetBull: fmt(actual * 1.20),
+            targetRationale: '시장가 +10% 보수적 target',
+            confidence: 'medium',
+            action: 'buy',
+            catalysts: [`${t} cap=${meta.cap ?? '?'} candidate pool top-rank pick`, `시장가 ${fmt(actual)} 기준 ±10% band`],
+            fundamentalBasis: `Sector=${meta.sector ?? '?'}, 시장가 ${fmt(actual)}`,
+            technicalBasis: `시장가 ${fmt(actual)} 기준 -7% stop / +10% target`,
+            riskNote: `Auto-pad — 추가 검증 후 진입 권장`,
+          };
+        });
+        return padded;
+      };
+      const usNeed = Math.max(0, 6 - portfolioCounts.us);
+      const krNeed = Math.max(0, 6 - portfolioCounts.kr);
+      const addUs = usNeed > 0 ? pad(usNeed, false) : [];
+      const addKr = krNeed > 0 ? pad(krNeed, true) : [];
+      portfolioData.portfolio = [...(portfolioData.portfolio ?? []), ...addUs, ...addKr];
+      const after = countByMarket(portfolioData.portfolio);
+      console.log(`  ➕ auto-pad: +US ${addUs.length} +KR ${addKr.length} → US ${after.us} + KR ${after.kr} = ${after.total}`);
+    } catch (e) {
+      console.warn(`  ⚠️ auto-pad 실패: ${e.message}`);
     }
-    portfolioData = portfolioRetryData;
   }
 
   // ── [3/7] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
@@ -4526,7 +4602,7 @@ async function generateViaOllama() {
     ['thesis',            !!(finalReport.thesis?.length > 20)],
     ['macroAnalysis',     !!(finalReport.macroAnalysis?.length > 30)],
     ['technicalAnalysis', !!(finalReport.technicalAnalysis?.length > 15)],
-    ['portfolio(≥5)',     (finalReport.portfolio?.length ?? 0) >= 5],
+    ['portfolio(≥10)',    (finalReport.portfolio?.length ?? 0) >= 10],
     ['regionStances',     Object.keys(finalReport.regionStances ?? {}).length > 0],
     ['shortSqueeze',      (finalReport.shortSqueeze?.length ?? 0) > 0],
     ['insiderSignals',    (finalReport.insiderSignals?.length ?? 0) > 0],
