@@ -60,12 +60,16 @@ const CJK_LOCALES = new Set(['ko', 'ja', 'zh-CN', 'zh-TW', 'zh']);
 // titan(5) + mega(106) + large(287) + ETF(35) + KR(29) = 462 종목 자동 추출.
 // 누락 시 hardcoded fallback 사용.
 let CANDIDATE_TICKERS;
+// 2026-05-30: meta map (ticker → {name, sector, cap, market}) — LLM 환각 sector/name 강제 override 용
+//   원인: SK하이닉스 sector="Construction", NAVER sector="Energy" 같은 LLM 환각 직접 노출
+let CANDIDATE_META = {};
 try {
   const raw = readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8');
   const data = JSON.parse(raw);
   if (Array.isArray(data.tickers) && data.tickers.length > 100) {
     CANDIDATE_TICKERS = data.tickers;
-    console.log(`[startup] candidate-tickers.json 로드: ${CANDIDATE_TICKERS.length} 종목 (titan ${data.byBand?.titan ?? '?'} / mega ${data.byBand?.mega ?? '?'} / large ${data.byBand?.large ?? '?'} / ETF ${data.byBand?.etf ?? '?'} / KR ${data.byBand?.kr ?? '?'})`);
+    CANDIDATE_META = data.meta ?? {};
+    console.log(`[startup] candidate-tickers.json 로드: ${CANDIDATE_TICKERS.length} 종목 (titan ${data.byBand?.titan ?? '?'} / mega ${data.byBand?.mega ?? '?'} / large ${data.byBand?.large ?? '?'} / ETF ${data.byBand?.etf ?? '?'} / KR ${data.byBand?.kr ?? '?'}), meta=${Object.keys(CANDIDATE_META).length}`);
   }
 } catch { /* fall through to hardcoded */ }
 CANDIDATE_TICKERS ??= [
@@ -4548,7 +4552,51 @@ function postProcessPortfolio(portfolio) {
     const aliasKey = ticker.toUpperCase().replace(/[\s.]/g, '');
     ticker = TICKER_ALIASES.get(aliasKey) ?? ticker;
     const action = p.action && ['buy','watch','hold'].includes(p.action) ? p.action : 'buy';
-    return { ...p, ticker, action };
+    // 2026-05-30: candidate-tickers meta 강제 override — LLM 환각 차단.
+    //   원인: LLM 가 SK하이닉스 sector="Construction", NAVER sector="Energy" 같은 잘못된 매핑.
+    //   meta 의 정확한 sector + name 으로 override. KR 종목은 한글 이름 (사용자 가시 표시).
+    const meta = CANDIDATE_META[ticker];
+    let sector = p.sector;
+    let name = p.name;
+    if (meta) {
+      // sector: meta 우선. LLM 환각 차단.
+      if (meta.sector && meta.sector !== 'Unknown') {
+        if (p.sector && p.sector !== meta.sector) {
+          console.warn(`  [sector-fix] ${ticker} sector "${p.sector}" → "${meta.sector}" (meta override, LLM 환각 차단)`);
+        }
+        sector = meta.sector;
+      }
+      // name: KR 종목은 한글 이름 (005490.KS → POSCO홀딩스). meta.name 가 ticker 와 같지 않을 때만.
+      const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
+      if (isKR && meta.name && meta.name !== ticker) {
+        name = meta.name;
+      } else if (!isKR && meta.name && !name) {
+        name = meta.name;
+      }
+    }
+    // 2026-05-30: rationale 안의 52주/MA 환각 strip — Yahoo OHLCV 5y 섞임/액면분할 unit mismatch 차단.
+    let rationale = p.rationale ?? '';
+    const week52 = rationale.match(/52주\s*:\s*[₩$]?([\d,.]+)\s*-\s*[₩$]?([\d,.]+)/);
+    if (week52) {
+      const lo = parseFloat(week52[1].replace(/,/g, ''));
+      const hi = parseFloat(week52[2].replace(/,/g, ''));
+      if (lo > 0 && isFinite(hi) && hi / lo > 3) {
+        // 52주 비정상 → 해당 segment 통째로 strip
+        rationale = rationale.replace(/\s*,?\s*52주\s*:[^,|]+/, '').trim();
+        console.warn(`  [52w-halluc] ${ticker} 52주 ${lo}-${hi} (${(hi/lo).toFixed(1)}x) — strip`);
+      }
+    }
+    const m50 = rationale.match(/50MA[^₩$\d]*[₩$]?([\d,.]+)/);
+    const m200 = rationale.match(/200MA[^₩$\d]*[₩$]?([\d,.]+)/);
+    if (m50 && m200) {
+      const v50 = parseFloat(m50[1].replace(/,/g, ''));
+      const v200 = parseFloat(m200[1].replace(/,/g, ''));
+      if (v50 > 0 && v200 > 0 && Math.abs(v50 / v200 - 1) > 0.5) {
+        rationale = rationale.replace(/\s*,?\s*200MA[^,|]+/, '').replace(/\s*,?\s*50MA[^,|]+/, '').trim();
+        console.warn(`  [ma-halluc] ${ticker} 50MA=${v50} vs 200MA=${v200} (gap>50%) — strip`);
+      }
+    }
+    return { ...p, ticker, action, sector, name, rationale };
   }).filter(p => {
     const k = (p.ticker ?? '').toUpperCase();
     if (!k || INDEX_TICKERS.has(k)) return false;

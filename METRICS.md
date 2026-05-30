@@ -666,10 +666,8 @@
 | 12-S4 | 매도 rationale (LLM 또는 룰) | 🔄 cron | Wave 2 LLM, 구루/tech/fund/macro inject |
 | 12-S5 | Exit Ladder (1/3, 2/3, 전량 부분 매도 ladder) | 🔄 cron | buildExitLadder() 룰 type 별 패턴 |
 | 12-S6 | 룰 학습 (grid search) — target/stop 임계값 자동 조정 | 🔄 cron | tune-sell-rules.mjs weekly Sun 04:00 |
-| 12-T1 | 📊 트랙 레코드 평균 PnL (30d, hero card) | 🔄 cron | recommendation_outcomes ← 2026-05-29 |
-| 12-T2 | 적중률 (%) + hit/total | 🔄 cron | recommendation_outcomes.outcome='hit_target' |
-| 12-T3 | SPY α (alpha) + beat 비율 | 🔄 cron | recommendation_outcomes.spy_return 비교 |
-| 12-T4 | Top 3 / Bottom 3 ticker (avg PnL + n) | 🔄 cron | recommendations 그룹 by ticker |
+<!-- 12-T1~T4: 포트폴리오 트랙 레코드 hero card 제거 (2026-05-30, 사용자 요청). 데이터는 portfolioOutcomes 로 보고서 JSON 에 보존 — UI 만 제거. -->
+
 | 12-A1 | 섹터 배분 (비중확대/중립/비중축소) | 💾 cached | AI 생성 |
 | 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
 | 12-K1 | KPI: F&G (US) | 💾 cached | `/api/fear-greed` (CNN 4h) |

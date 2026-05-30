@@ -714,11 +714,6 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - `sell_recommendations` + `sell_outcomes` DB 적재 → `tune-sell-rules.mjs` weekly grid search 학습
 - Wave 2 LLM rationale (240s timeout) — 구루 framework + tech/fund/macro 신호 inject
 
-### 13-0. 📊 포트폴리오 트랙 레코드 (hero card 최상단, 2026-05-29)
-- 보고서 thesis 바로 아래 — 평균 PnL / 적중률 / SPY α / 상태 분포 4 metric pill
-- 🏆 Top 3 + 📉 Bottom 3 ticker (avg PnL + 평가 횟수)
-- 데이터: `recommendations` + `recommendation_outcomes` 최근 30일 + spy_return 비교
-
 ### 13-4. 섹터 배분 전략
 - 섹터별 비중 바 차트
 - 비중확대/중립/비중축소 스탠스

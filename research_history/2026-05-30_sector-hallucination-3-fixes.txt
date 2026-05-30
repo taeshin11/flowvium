@@ -1,0 +1,65 @@
+2026-05-30 — 하이닉스 "건설 수요 증가" 사건 + 3가지 가시 fix
+
+사용자 질문 chain:
+1. "하이닉스에 건설 수요 증가 이건 뭐야?"
+2. "이런게 왜 발생했지?"
+3. "포트폴리오 트랙 레코드 지우자"
+4. "005490.KS 이런거 이름으로 좀 바꿔주면 안되?"
+5. "너 보고서 검증하랬는데 제대로 한거 맞아?"
+
+5번 자기비판: 맞음. 표면 metric (NE 0/15, Probe ✅) 만 봤고 portfolio[].sector 가
+잘못된 것 못 잡았음. 사용자가 "건설" 직접 짚어주기 전까지 silent pass.
+
+부족했던 검증
+─────────
+- portfolio[].rationale ↔ sector 일관성 grep
+- portfolio[].sector 자체가 LLM 환각 (SK하이닉스 "Construction") 인지
+- Yahoo OHLCV 52주 범위 5x 초과 (액면분할 unit mismatch)
+- 50MA/200MA gap 50% 초과 (데이터 환각)
+
+원인 추적
+─────────
+SK하이닉스 sector="Construction" 으로 LLM 가 환각 매핑.
+NAVER sector="Energy", 현대차 sector="Communication" 등 다수 KR 종목 sector 환각.
+postProcessPortfolio 가 LLM 의 sector/name 그대로 통과시킴.
+
+candidate-tickers.json meta 에 정확한 sector/name 모두 있음:
+  000660.KS → name="SK하이닉스", sector="Semiconductors"
+  035420.KS → name="NAVER", sector="IT Services"
+  005380.KS → name="현대자동차", sector="Automotive"
+
+3가지 fix
+─────────
+### A. postProcessPortfolio — CANDIDATE_META 강제 override
+- meta.sector 가 있으면 LLM 의 p.sector 무시 (환각 차단)
+- KR 종목은 meta.name 로 override (사용자 요청 #4: 005490.KS → POSCO홀딩스 표시)
+- [sector-fix] 로그로 어떤 ticker 가 환각으로 바뀌었는지 노출
+
+### B. rationale 안 환각 strip
+- 52주 high/low 비율 > 3x → "52주: ..." 부분 strip
+- 50MA vs 200MA gap > 50% → MA 표현 strip
+- [52w-halluc] / [ma-halluc] 로그
+
+### C. 트랙 레코드 hero card 제거 (사용자 요청 #3)
+- ReportPage.tsx 의 701-789 줄 통째로 제거
+- FEATURES.md 의 13-0 섹션 제거
+- METRICS.md 의 12-T1~T4 행 제거
+- 보고서 JSON 의 portfolioOutcomes 필드는 유지 (학습용 source)
+- i18n 키 (trackRecordTitle 등) 은 유지 (다음 cycle 에 다시 살릴 수 있도록)
+
+### D. verify-report.mjs 강화
+- sector-keyword mismatch detect (SECTOR_FORBID 매핑)
+- 52주 환각 (>3x ratio)
+- 50MA-200MA gap (>50%)
+- 5/30 morning 보고서 적용 → 6 결함 즉시 노출
+
+검증
+─────────
+- node --check 통과
+- 강화된 verify-report 가 5/30 morning 의 6 결함 즉시 노출 (이전 0)
+→ 5/30 afternoon cron 부터 sector-fix 로그 + KR 종목 한글명 표시
+
+남은 fix 후보
+─────────
+- audit Probe 에도 sector mismatch / 52주 / MA gap 추가 (verify-report 와 동일 detect)
+- F23 fact-check 강화 (rationale 텍스트 재생성)
