@@ -163,6 +163,22 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (maBad === 0) log('  ✅ MA gap 50% 초과 0');
 
+  // 5. technicalBasis / riskNote 누락 detect (F23 fact-check 미완)
+  log('\n## technicalBasis / riskNote 누락 (F23 미완)');
+  let tbBad = 0;
+  for (const p of (r.portfolio||[])) {
+    if (p.action === 'buy' && (!p.technicalBasis || p.technicalBasis === 'undefined' || !p.riskNote || p.riskNote === 'undefined')) {
+      log(`  ⚠️ ${p.ticker} technicalBasis=${!!p.technicalBasis} riskNote=${!!p.riskNote}`);
+      defects.push({
+        ticker: p.ticker, defect_type: 'fact_check_incomplete',
+        llm_value: `technicalBasis=${!!p.technicalBasis} riskNote=${!!p.riskNote}`,
+        correct_value: 'F23 fact-check 필수 채움', severity: 'low',
+      });
+      tbBad++;
+    }
+  }
+  if (tbBad === 0) log('  ✅ 모든 buy 종목 technicalBasis + riskNote 채워짐');
+
   log(`\n## 종합 — 결함 ${defects.length}건`);
   return { defects, total: (r.portfolio||[]).length };
 }

@@ -1215,11 +1215,20 @@ async function fetchOnePrice(ticker) {
         const price = meta.regularMarketPrice;
         const prev = meta.previousClose;
         const change1d = prev ? ((price - prev) / prev) * 100 : null;
+        // 2026-05-31: Yahoo meta.fiftyTwoWeekLow 가 액면분할 전 가격일 때 ratio 비정상 (예: 005930.KS 5.7x).
+        //   chart events.splits 가 없으면 ratio > 3x 시 시장가 기반 합리적 범위로 fallback.
+        let high52w = meta.fiftyTwoWeekHigh ?? price * 1.3;
+        let low52w = meta.fiftyTwoWeekLow ?? price * 0.7;
+        if (high52w > 0 && low52w > 0 && high52w / low52w > 3) {
+          // 액면분할 또는 단위 mismatch 의심 → 시장가 기준 ±30% 추정.
+          high52w = price * 1.3;
+          low52w = price * 0.7;
+        }
         return [ticker, {
           price: Math.round(price * 100) / 100,
           change1d: change1d != null ? Math.round(change1d * 10) / 10 : null,
-          high52w: meta.fiftyTwoWeekHigh ?? price * 1.3,
-          low52w: meta.fiftyTwoWeekLow ?? price * 0.7,
+          high52w,
+          low52w,
         }];
       }
     }
@@ -1595,6 +1604,15 @@ async function buildTechnicalData(tickers, livePrices) {
       const isKR = ticker.endsWith('.KS');
       const ohlcv = await fetchOHLCV(ticker, isKR ? '1y' : '6mo');
       if (!ohlcv || ohlcv.closes.length < 21) return [ticker, null];
+      // 2026-05-31: split-adjust 안 된 closes 배열 detect.
+      //   원인: Yahoo OHLCV 가 액면분할 전후 가격 그대로 (예: 005930.KS ratio 5.7x).
+      //   sma200/52주 모두 환각으로 이어짐. ratio > 3x 시 그 데이터 전체 reject.
+      const cMax = Math.max(...ohlcv.closes);
+      const cMin = Math.min(...ohlcv.closes.filter(x => x > 0));
+      if (cMin > 0 && cMax / cMin > 3) {
+        console.warn(`  [ohlcv-split] ${ticker} closes ratio ${(cMax/cMin).toFixed(1)}x — split/unit mismatch, technical data skip`);
+        return [ticker, null];
+      }
       const { closes, volumes } = ohlcv;
       const rsi = computeRSI(closes);
       const sma50 = computeSMA(closes, Math.min(50, closes.length));
