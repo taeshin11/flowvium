@@ -965,7 +965,7 @@ export default function HomePage() {
               {/* 통합 3열 그리드 — 모든 버튼 동일 크기 */}
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { href: '/explore',      icon: <ArrowRight className="w-3.5 h-3.5" />,      label: tHome('exploreSupplyChains'),  desc: tHome('exploreSupplyChainsDesc'), accent: 'text-cf-primary',   primary: true },
+                  { href: '/explore',      icon: <ArrowRight className="w-3.5 h-3.5" />,      label: tHome('exploreSupplyChains'),  desc: tHome('exploreSupplyChainsDesc', { count: allCompanies.length }), accent: 'text-cf-primary',   primary: true },
                   { href: '/signals',      icon: <TrendingUp className="w-3.5 h-3.5" />,      label: tHome('viewSignals'),          desc: tHome('viewSignalsDesc'),         accent: 'text-blue-500' },
                   { href: '/intelligence', icon: <span className="relative flex h-3 w-3 items-center justify-center"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" /></span>, label: tHome('secretMoneyTrack'), desc: tHome('secretMoneyTrackDesc'), accent: 'text-amber-500' },
                   { href: '/news-gap',     icon: <Radar className="w-3.5 h-3.5" />,           label: tHome('newsGapScan'),          desc: tHome('newsGapScanDesc'),         accent: 'text-emerald-500' },
@@ -1046,7 +1046,8 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
               { value: '10,000+', label: tHome('socialProof.investors'), icon: <Users className="w-5 h-5" /> },
-              { value: '137+', label: tHome('socialProof.companies'), icon: <Network className="w-5 h-5" /> },
+              // 2026-05-31: 137+ hardcoded → allCompanies.length 동적. 사용자 "616 종목수 늘었는데 표시 안 됨" 사건.
+              { value: `${allCompanies.length}+`, label: tHome('socialProof.companies'), icon: <Network className="w-5 h-5" /> },
               { value: '16', label: tHome('socialProof.sectors'), icon: <Globe className="w-5 h-5" /> },
               { value: '$48B+', label: tHome('socialProof.flows'), icon: <BarChart3 className="w-5 h-5" /> },
             ].map((stat) => (

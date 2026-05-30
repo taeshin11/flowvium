@@ -551,7 +551,7 @@
     "briefCapital": "Modal",
     "briefCompany": "Saham",
     "briefSignals": "Sinyal",
-    "exploreSupplyChainsDesc": "Analisis 616 rantai pasokan",
+    "exploreSupplyChainsDesc": "Analisis {count} rantai pasokan",
     "viewSignalsDesc": "Lacak posisi 13F institusi",
     "secretMoneyTrackDesc": "Analisis aliran modal global AI",
     "newsGapScanDesc": "Gap harga + korelasi berita",

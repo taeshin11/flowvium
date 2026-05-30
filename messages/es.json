@@ -551,7 +551,7 @@
     "briefCapital": "Capital",
     "briefCompany": "Acciones",
     "briefSignals": "Señales",
-    "exploreSupplyChainsDesc": "Analiza 616 cadenas de suministro",
+    "exploreSupplyChainsDesc": "Analiza {count} cadenas de suministro",
     "viewSignalsDesc": "Rastrea posiciones 13F institucionales",
     "secretMoneyTrackDesc": "Análisis IA flujo de capital global",
     "newsGapScanDesc": "Gap de precio + noticias",

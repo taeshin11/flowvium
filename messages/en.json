@@ -551,7 +551,7 @@
     "briefCapital": "Capital",
     "briefCompany": "Stocks",
     "briefSignals": "Signals",
-    "exploreSupplyChainsDesc": "Map 616 company supply chains",
+    "exploreSupplyChainsDesc": "Map {count} company supply chains",
     "viewSignalsDesc": "Track institutional 13F positions",
     "secretMoneyTrackDesc": "Global capital flow AI analysis",
     "newsGapScanDesc": "Price gap + news correlation",

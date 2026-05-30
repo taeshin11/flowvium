@@ -551,7 +551,7 @@
     "briefCapital": "Капитал",
     "briefCompany": "Акции",
     "briefSignals": "Сигналы",
-    "exploreSupplyChainsDesc": "Анализ 616 цепочек поставок",
+    "exploreSupplyChainsDesc": "Анализ {count} цепочек поставок",
     "viewSignalsDesc": "Отслеживание позиций 13F",
     "secretMoneyTrackDesc": "Анализ потоков капитала ИИ",
     "newsGapScanDesc": "Ценовой разрыв + новости",

@@ -551,7 +551,7 @@
     "briefCapital": "رأس المال",
     "briefCompany": "الأسهم",
     "briefSignals": "الإشارات",
-    "exploreSupplyChainsDesc": "تحليل 616 سلسلة توريد",
+    "exploreSupplyChainsDesc": "تحليل {count} سلسلة توريد",
     "viewSignalsDesc": "تتبع مراكز المؤسسات 13F",
     "secretMoneyTrackDesc": "تحليل تدفق رأس المال بالذكاء الاصطناعي",
     "newsGapScanDesc": "الفجوة السعرية + الأخبار",

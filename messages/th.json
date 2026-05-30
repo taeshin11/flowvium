@@ -551,7 +551,7 @@
     "briefCapital": "เงินทุน",
     "briefCompany": "หุ้น",
     "briefSignals": "สัญญาณ",
-    "exploreSupplyChainsDesc": "วิเคราะห์ห่วงโซ่อุปทาน 616 บริษัท",
+    "exploreSupplyChainsDesc": "วิเคราะห์ห่วงโซ่อุปทาน {count} บริษัท",
     "viewSignalsDesc": "ติดตามตำแหน่ง 13F สถาบัน",
     "secretMoneyTrackDesc": "วิเคราะห์กระแสเงินทุนทั่วโลก AI",
     "newsGapScanDesc": "ช่องว่างราคา + ข่าว",

@@ -551,7 +551,7 @@
     "briefCapital": "Kapital",
     "briefCompany": "Aktien",
     "briefSignals": "Signale",
-    "exploreSupplyChainsDesc": "616 Lieferketten analysieren",
+    "exploreSupplyChainsDesc": "{count} Lieferketten analysieren",
     "viewSignalsDesc": "Institutionelle 13F-Positionen verfolgen",
     "secretMoneyTrackDesc": "Globale Kapitalfluss-KI-Analyse",
     "newsGapScanDesc": "Preislücke + Nachrichten",

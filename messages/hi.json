@@ -551,7 +551,7 @@
     "briefCapital": "पूंजी",
     "briefCompany": "शेयर",
     "briefSignals": "संकेत",
-    "exploreSupplyChainsDesc": "616 आपूर्ति श्रृंखला विश्लेषण",
+    "exploreSupplyChainsDesc": "{count} आपूर्ति श्रृंखला विश्लेषण",
     "viewSignalsDesc": "13F संस्थागत स्थिति ट्रैक",
     "secretMoneyTrackDesc": "वैश्विक पूंजी प्रवाह AI विश्लेषण",
     "newsGapScanDesc": "मूल्य गैप + समाचार",

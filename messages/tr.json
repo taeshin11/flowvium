@@ -551,7 +551,7 @@
     "briefCapital": "Sermaye",
     "briefCompany": "Hisseler",
     "briefSignals": "Sinyaller",
-    "exploreSupplyChainsDesc": "616 tedarik zinciri analizi",
+    "exploreSupplyChainsDesc": "{count} tedarik zinciri analizi",
     "viewSignalsDesc": "Kurumsal 13F pozisyonları takibi",
     "secretMoneyTrackDesc": "Küresel sermaye akışı AI analizi",
     "newsGapScanDesc": "Fiyat boşluğu + haberler",

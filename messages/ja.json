@@ -724,7 +724,7 @@
     "briefCapital": "資金",
     "briefCompany": "銘柄",
     "briefSignals": "シグナル",
-    "exploreSupplyChainsDesc": "616社のサプライチェーン分析",
+    "exploreSupplyChainsDesc": "{count}社のサプライチェーン分析",
     "viewSignalsDesc": "機関13Fポジション追跡",
     "secretMoneyTrackDesc": "グローバル資金フローAI分析",
     "newsGapScanDesc": "ギャップ銘柄+ニュース連携",

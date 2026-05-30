@@ -551,7 +551,7 @@
     "briefCapital": "Vốn",
     "briefCompany": "Cổ phiếu",
     "briefSignals": "Tín hiệu",
-    "exploreSupplyChainsDesc": "Phân tích 616 chuỗi cung ứng",
+    "exploreSupplyChainsDesc": "Phân tích {count} chuỗi cung ứng",
     "viewSignalsDesc": "Theo dõi vị thế 13F tổ chức",
     "secretMoneyTrackDesc": "Phân tích luồng vốn toàn cầu AI",
     "newsGapScanDesc": "Khoảng giá + tin tức",
