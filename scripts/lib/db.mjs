@@ -647,7 +647,7 @@ export function saveFearGreedArchive({ reportId, capturedAt, fgResponse, capital
  * 2026-05-29: 숏 스퀴즈 + 기업 실적 + insider 아카이브 적재.
  * 매 보고서 cycle 마다 호출 — point-in-time 추세 추적 가능.
  */
-export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], companyChanges = [], insiderSignals = [] }) {
+export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], companyChanges = [], insiderSignals = [], companyFinancials = null }) {
   const db = openDb();
   const now = capturedAt ?? new Date().toISOString();
   // 2026-05-29 Codex 진단: short-interest endpoint_snapshots 에서 shortFloatPct/shortRatio
@@ -665,8 +665,17 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
     } catch { /* skip */ }
   }
   // company-financials snapshots 도 ticker 별 매핑
+  // 2026-05-30: caller 가 companyFinancials 직접 전달 시 우선 사용 — endpoint_snapshots 시점 의존성 제거.
+  //   원인: saveDomainArchives 호출 시점에 snapshotAllEndpoints 가 아직 안 됐을 가능성 (실제로 그랬음)
   let finByTicker = {};
-  if (reportId) {
+  if (companyFinancials && typeof companyFinancials === 'object') {
+    // 형식: { NVDA: {...}, TSLA: {...} } 또는 Map
+    if (companyFinancials instanceof Map) {
+      for (const [k, v] of companyFinancials) finByTicker[(k ?? '').toUpperCase()] = v;
+    } else {
+      for (const [k, v] of Object.entries(companyFinancials)) finByTicker[(k ?? '').toUpperCase()] = v;
+    }
+  } else if (reportId) {
     try {
       const finRows = db.prepare(`SELECT endpoint, response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint LIKE '/api/company-financials/%'`).all(reportId);
       for (const f of finRows) {
@@ -842,6 +851,13 @@ export function saveRecommendations(report, reportId) {
 /** Outcome 한 건 기록 (recommendation 평가 결과). */
 export function saveOutcome(rec) {
   const db = openDb();
+  // 2026-05-30: quality_score 자동 inject — caller 가 안 주면 reports.quality_score 로 fallback.
+  //   100% NULL 결함 fix. outcome 학습 시 quality 별 hit rate 분석 가능.
+  let qs = rec.quality_score ?? null;
+  if (qs == null) {
+    const row = db.prepare(`SELECT r2.quality_score FROM recommendations r1 JOIN reports r2 ON r2.id=r1.report_id WHERE r1.id=?`).get(rec.recommendation_id);
+    qs = row?.quality_score ?? null;
+  }
   db.prepare(`
     INSERT INTO recommendation_outcomes
       (recommendation_id, evaluated_at, price_at_eval, outcome, pnl_pct,
@@ -869,9 +885,28 @@ export function saveOutcome(rec) {
     high_seen: rec.high_seen ?? null,
     low_seen: rec.low_seen ?? null,
     spy_return: rec.spy_return ?? null,
-    quality_score: rec.quality_score ?? null,
+    quality_score: qs,
     details_json: rec.details ? JSON.stringify(rec.details) : null,
   });
+}
+
+/**
+ * 2026-05-30: 과거 outcome row 의 NULL quality_score 일괄 backfill.
+ *   recommendation_outcomes ↔ recommendations ↔ reports JOIN 으로 채움.
+ *   cleanup-hallucinations.mjs 와 비슷한 retroactive helper.
+ */
+export function backfillOutcomeQualityScore() {
+  const db = openDb();
+  const r = db.prepare(`
+    UPDATE recommendation_outcomes
+    SET quality_score = (
+      SELECT r2.quality_score
+      FROM recommendations r1 JOIN reports r2 ON r2.id = r1.report_id
+      WHERE r1.id = recommendation_outcomes.recommendation_id
+    )
+    WHERE quality_score IS NULL
+  `).run();
+  return r.changes;
 }
 
 /**

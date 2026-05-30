@@ -5726,7 +5726,8 @@ async function generateViaOllama() {
       newsCount = saveNewsArchive({
         reportId,
         locale: localeArg,
-        newsArticles: ctxRaw?.newsCascade?.articles ?? ctxRaw?.news ?? [],
+        // 2026-05-30: ctxRaw.cascade (gatherContext line 2665) — 이전엔 newsCascade.articles 참조해서 100% NULL.
+        newsArticles: ctxRaw?.cascade ?? ctxRaw?.newsCascade?.articles ?? ctxRaw?.news ?? [],
         supplyChainChanges: finalReport.supplyChainChanges ?? [],
         companyChanges: finalReport.companyChanges ?? [],
       });
@@ -5737,12 +5738,15 @@ async function generateViaOllama() {
         macroData,
       });
       // 2026-05-29: 숏스퀴즈/실적/insider 시점별 아카이브 (검색 + 추세)
+      // 2026-05-30: companyFinancials 직접 전달 — endpoint_snapshots 시점 의존성 제거
+      //   (이전엔 saveDomainArchives 가 snapshotAllEndpoints 보다 먼저 호출되어 finByTicker={} → op_margin/net_income/pe_ratio 100% NULL)
       saveDomainArchives({
         reportId,
         capturedAt: finalReport.generatedAt,
         shortSqueeze: finalReport.shortSqueeze ?? [],
         companyChanges: finalReport.companyChanges ?? [],
         insiderSignals: finalReport.insiderSignals ?? [],
+        companyFinancials: companyFinancials ?? null,
       });
       // 2026-05-29: F&G 10국가 + asset flow 시점별 아카이브
       saveFearGreedArchive({
