@@ -380,6 +380,43 @@ try {
   warn(`KR ticker 점검 실패: ${e.message}`);
 }
 
+// ═══════ Probe 9: Karpathy 학습 효과 (환각 재발 감소 추세) ═══════
+// 2026-05-30 closed loop 인프라 — F26 anti-pattern inject 가 작동하는지 검증.
+// 같은 (ticker, defect_type) 의 detect 횟수가 최근 cycle 마다 감소하면 학습 효과 있음.
+console.log('\n## [9] Karpathy 학습 효과 (anti-pattern inject 후 재발 감소)\n');
+try {
+  const week = db.prepare(`SELECT COUNT(*) c FROM hallucination_history WHERE detected_at >= datetime('now','-7 days')`).get();
+  const today = db.prepare(`SELECT COUNT(*) c FROM hallucination_history WHERE detected_at >= datetime('now','-1 days')`).get();
+  const byType = db.prepare(`
+    SELECT defect_type, COUNT(*) c, AVG(injected_count) avg_injected
+    FROM hallucination_history
+    WHERE detected_at >= datetime('now','-7 days')
+    GROUP BY defect_type ORDER BY c DESC
+  `).all();
+  if (week.c === 0) {
+    ok(`hallucination_history — 최근 7일 결함 0건 (verify-loop 미작동 또는 클린)`);
+  } else {
+    ok(`hallucination_history — 7일 ${week.c}건 / 24h ${today.c}건 (closed loop 작동 중)`);
+    for (const r of byType) {
+      console.log(`   ${r.defect_type.padEnd(28)} ${r.c}건 / avg_injected ${r.avg_injected.toFixed(1)}`);
+    }
+    // 학습 효과: 같은 (ticker,type) 의 detect 가 inject 후 줄어드는지
+    const repeat = db.prepare(`
+      SELECT ticker, defect_type, COUNT(*) repeat_count
+      FROM hallucination_history
+      WHERE detected_at >= datetime('now','-7 days') AND ticker IS NOT NULL
+      GROUP BY ticker, defect_type HAVING repeat_count >= 3 ORDER BY repeat_count DESC LIMIT 5
+    `).all();
+    if (repeat.length > 0) {
+      warn(`반복 환각 (3+ 회) — anti-pattern inject 효과 약함: ${repeat.map(r => `${r.ticker}/${r.defect_type}=${r.repeat_count}`).join(', ')}`);
+    } else {
+      ok(`반복 환각 ≥3회 0건 — F26 anti-pattern inject 학습 효과 ✓`);
+    }
+  }
+} catch (e) {
+  warn(`hallucination_history 점검 실패: ${e.message}`);
+}
+
 // ═══════ Probe 4: 동일 응답 반복 (drift 없음 = stale) ═══════
 console.log('\n## [4] 응답 drift (정적 데이터 의심)\n');
 

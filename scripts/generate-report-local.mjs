@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 
@@ -4109,6 +4109,25 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     console.log('  [F22/Portfolio Feedback] prompt 에 outcome 통계 inject ✓');
     console.log('    ' + portfolioFeedback.split('\n').slice(0, 2).join(' | '));
   }
+  // 2026-05-30: F26/Karpathy closed loop — 최근 7일 환각 list 를 anti-pattern 으로 inject.
+  //   verify-report → hallucination_history → 다음 prompt 의 [⚠️ AVOID THESE HALLUCINATIONS]
+  //   LLM 가 같은 실수 반복하지 않도록 학습. 후처리 fix 와 별개로 source-level 차단.
+  let antiPatternBlock = '';
+  try {
+    const halluc = getRecentHallucinationsForPromptInject(7, 15);
+    if (halluc.length > 0) {
+      const lines = halluc.map(h => {
+        const tk = h.ticker ? `${h.ticker} ` : '';
+        return `  ❌ ${tk}${h.defect_type}: "${(h.llm_value ?? '').slice(0, 80)}" → 정답 "${(h.correct_value ?? '').slice(0, 60)}"`;
+      });
+      antiPatternBlock = `[⚠️ AVOID — 최근 7일간 발견된 환각 (${halluc.length}건, 반복 금지)]\n${lines.join('\n')}\n→ 위와 같은 패턴 출력 시 후처리에서 reject 됨. 처음부터 정확한 값 사용.`;
+      console.log(`  [F26/AntiPattern] 최근 환각 ${halluc.length}건 prompt inject ✓`);
+    } else {
+      console.log(`  [F26/AntiPattern] ✅ 최근 환각 0건 (학습 효과)`);
+    }
+  } catch (e) {
+    console.warn(`  [F26/AntiPattern] ⚠️ inject 실패: ${String(e).slice(0, 80)}`);
+  }
   // 2026-05-29 F24: 세션별 시장 focus inject — 해당 시장 종목 비중 강화
   const session = getSession();
   const focus = getSessionFocus(session);
@@ -4126,6 +4145,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
   return [
     buildGroundingFacts(priceData),
     '',
+    antiPatternBlock,  // 2026-05-30 F26: Karpathy closed loop — 최근 환각 anti-pattern inject
     qualityFeedback,  // 2026-05-27 SkillOpt: 자체 quality 추세 + 약점 인지
     portfolioFeedback,  // 2026-05-29 F22: 이전 portfolio outcome 통계 자가 학습
     focusBlock,  // 2026-05-29 F24: 세션별 시장 focus (morning=US / afternoon=KR / evening=US-pre)
@@ -5816,6 +5836,25 @@ async function generateViaOllama() {
     console.log(`[db] ✅ 스냅샷 완료: ${okCount}/${snapResults.length} ok, ${Date.now() - snapStart}ms`);
     const failed = snapResults.filter(r => !r.ok).map(r => r.endpoint);
     if (failed.length) console.log(`[db] ⚠️  실패: ${failed.join(', ')}`);
+
+    // 2026-05-30: Karpathy closed loop — 보고서 발간 직후 verify-report 자동 실행
+    //   결함 detect → hallucination_history 적재 → 다음 보고서 prompt 에 anti-pattern inject.
+    //   같은 환각 반복 방지 (사용자가 catch 하기 전에 학습).
+    try {
+      const verifyMod = await import('./verify-report.mjs');
+      const { saveHallucinationHistory } = await import('./lib/db.mjs');
+      const { defects } = verifyMod.verifyReport(filepath, { silent: true });
+      if (defects.length > 0) {
+        const n = saveHallucinationHistory(reportId, defects);
+        console.log(`[verify-loop] 🎯 결함 ${defects.length}건 detect → hallucination_history ${n}건 적재 (다음 보고서 prompt 에 inject 예정)`);
+        const bySev = defects.reduce((m, d) => { m[d.severity] = (m[d.severity] ?? 0) + 1; return m; }, {});
+        console.log(`[verify-loop] 분포: ${Object.entries(bySev).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+      } else {
+        console.log(`[verify-loop] ✅ 결함 0건 — 깨끗`);
+      }
+    } catch (e) {
+      console.warn(`[verify-loop] ⚠️ 검증 실패: ${String(e).slice(0, 120)}`);
+    }
   } catch (dbErr) {
     console.warn(`[db] ⚠️  SQLite 적재 실패: ${String(dbErr).slice(0, 150)}`);
   }

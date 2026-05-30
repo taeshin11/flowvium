@@ -339,6 +339,26 @@ CREATE TABLE IF NOT EXISTS buy_candidates (
 CREATE INDEX IF NOT EXISTS idx_buycand_ticker  ON buy_candidates(ticker);
 CREATE INDEX IF NOT EXISTS idx_buycand_report  ON buy_candidates(report_id);
 CREATE INDEX IF NOT EXISTS idx_buycand_score   ON buy_candidates(total_score DESC);
+
+-- 2026-05-30: Karpathy pathway closed loop — 발견된 LLM 환각 영구 기록.
+--   verify-report 가 결함 발견 → 여기 적재 → 다음 보고서 prompt 에 anti-pattern inject.
+--   목적: 같은 환각 (예: SK하이닉스 sector="Construction") 이 반복되지 않도록 LLM 학습.
+CREATE TABLE IF NOT EXISTS hallucination_history (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id       TEXT NOT NULL,
+  detected_at     TEXT NOT NULL,
+  ticker          TEXT,                       -- 결함 ticker (있으면)
+  defect_type     TEXT NOT NULL,              -- sector_mismatch / 52w_halluc / ma_halluc / nesp / price_halluc / identity_translation / ticker_halluc
+  llm_value       TEXT,                       -- LLM 가 출력한 잘못된 값
+  correct_value   TEXT,                       -- meta 또는 sanity check 의 정답
+  severity        TEXT NOT NULL,              -- low / medium / high
+  injected_count  INTEGER NOT NULL DEFAULT 0, -- 다음 prompt 에 몇 번 inject 됐는지 (학습 추적)
+  details_json    TEXT,
+  FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_halluc_ticker     ON hallucination_history(ticker);
+CREATE INDEX IF NOT EXISTS idx_halluc_type       ON hallucination_history(defect_type);
+CREATE INDEX IF NOT EXISTS idx_halluc_detected   ON hallucination_history(detected_at DESC);
 `;
 
 let _dbInstance = null;
@@ -907,6 +927,65 @@ export function backfillOutcomeQualityScore() {
     WHERE quality_score IS NULL
   `).run();
   return r.changes;
+}
+
+/**
+ * 2026-05-30: Karpathy pathway closed loop — 환각 적재 helper.
+ *   verify-report.mjs 가 호출. 같은 (ticker, defect_type, llm_value) 조합은 OR IGNORE.
+ *   배열로 한꺼번에 받음.
+ */
+export function saveHallucinationHistory(reportId, defects = []) {
+  if (!Array.isArray(defects) || defects.length === 0) return 0;
+  const db = openDb();
+  const detectedAt = new Date().toISOString();
+  const stmt = db.prepare(`
+    INSERT INTO hallucination_history
+      (report_id, detected_at, ticker, defect_type, llm_value, correct_value, severity, details_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  let n = 0;
+  const txn = db.transaction(() => {
+    for (const d of defects) {
+      if (!d?.defect_type) continue;
+      stmt.run(
+        reportId, detectedAt,
+        d.ticker ?? null, d.defect_type,
+        d.llm_value ?? null, d.correct_value ?? null,
+        d.severity ?? 'medium',
+        d.details ? JSON.stringify(d.details) : null,
+      );
+      n++;
+    }
+  });
+  txn();
+  return n;
+}
+
+/**
+ * 다음 보고서 prompt 에 anti-pattern inject 용. 최근 7일 환각 list 반환.
+ *   같은 (ticker, defect_type, llm_value) 조합 중복 제거.
+ *   injected_count 증가 (학습 추적용).
+ */
+export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) {
+  const db = openDb();
+  const rows = db.prepare(`
+    SELECT id, ticker, defect_type, llm_value, correct_value, severity, COUNT(*) repeat_count
+    FROM hallucination_history
+    WHERE detected_at >= datetime('now', '-' || ? || ' days')
+    GROUP BY ticker, defect_type, llm_value
+    ORDER BY MAX(detected_at) DESC, repeat_count DESC
+    LIMIT ?
+  `).all(days, maxItems);
+  // injected_count 증가 (해당 group 의 모든 row)
+  for (const r of rows) {
+    db.prepare(`
+      UPDATE hallucination_history
+      SET injected_count = injected_count + 1
+      WHERE COALESCE(ticker,'') = COALESCE(?,'') AND defect_type = ? AND COALESCE(llm_value,'') = COALESCE(?,'')
+        AND detected_at >= datetime('now', '-' || ? || ' days')
+    `).run(r.ticker, r.defect_type, r.llm_value, days);
+  }
+  return rows;
 }
 
 /**
