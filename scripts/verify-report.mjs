@@ -183,9 +183,19 @@ export function verifyReport(file, { silent = false } = {}) {
   return { defects, total: (r.portfolio||[]).length };
 }
 
-// CLI usage
-const isCLI = import.meta.url === `file://${process.argv[1]?.replaceAll('\\','/')}`;
+// CLI usage — robust Windows path 비교 (이전 isCLI 항상 false → 실행 안 됨)
+// 2026-05-31: silent false pass 의 근본 원인 — argv[1] 와 import.meta.url 의 case/sep mismatch.
+//   해결: argv[1] 의 basename 가 'verify-report.mjs' 이면 CLI 로 인식.
+const argv1 = (process.argv[1] ?? '').replace(/\\/g, '/').toLowerCase();
+const isCLI = argv1.endsWith('/verify-report.mjs') || argv1.endsWith('verify-report.mjs');
 if (isCLI) {
   const file = process.argv[2] || 'reports/report-2026-05-30-morning-ko.json';
-  verifyReport(file);
+  const { defects } = verifyReport(file);
+  // verify-all.mjs 의 grep ❌/FAIL pattern 이 caller stdout 에 들어가도록 명시.
+  if (defects.length > 0) {
+    console.log(`\n❌ FAIL — ${defects.length} defects detected. Run \`node ${process.argv[1]} <file>\` for details.`);
+  } else {
+    console.log(`\n✅ PASS — 0 defects.`);
+  }
+  process.exit(defects.length > 0 ? 1 : 0);
 }
