@@ -76,6 +76,51 @@ async function fetchYahooNews(ticker: string): Promise<NewsItem[]> {
   })).filter(n => n.title);
 }
 
+// 2026-05-31: KR 종목 (.KS / .KQ) news — Yahoo search 가 .KS 미지원 → Naver finance HTML scraping.
+//   1,210 종목 페이지 audit 에서 KR news 100% unavailable 결함 fix.
+//   ticker → 6자리 코드 → Naver 종목별 뉴스 page (EUC-KR HTML) → title/link/pubDate 추출.
+async function fetchNaverNews(ticker: string): Promise<NewsItem[]> {
+  const code = ticker.replace(/\.(KS|KQ)$/i, '');
+  if (!/^\d{6}$/.test(code)) return [];
+  const url = `https://finance.naver.com/item/news_news.naver?code=${code}&page=1&sm=title_entity_id.basic&clusterId=`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', Referer: 'https://finance.naver.com/' },
+    signal: AbortSignal.timeout(10000),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Naver finance news HTTP ${res.status}`);
+  // EUC-KR 응답 → UTF-8 decode. TextDecoder 가 euc-kr 지원.
+  const buffer = await res.arrayBuffer();
+  const html = new TextDecoder('euc-kr', { fatal: false }).decode(buffer);
+  // pattern: <a href="/item/news_read.naver?article_id=...&office_id=...&code=...&..." class="tit" ...>제목</a>
+  const re = /<a\s+href="(\/item\/news_read\.naver\?article_id=[^"]+)"[^>]*class="tit"[^>]*>([^<]+)<\/a>/g;
+  const seen = new Set<string>();
+  const items: NewsItem[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const link = `https://finance.naver.com${m[1]}`;
+    const titleRaw = m[2]
+      .replace(/&hellip;/g, '…')
+      .replace(/&middot;/g, '·')
+      .replace(/&lsquo;/g, '‘').replace(/&rsquo;/g, '’')
+      .replace(/&ldquo;/g, '“').replace(/&rdquo;/g, '”')
+      .replace(/&uarr;/g, '↑').replace(/&darr;/g, '↓')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .trim();
+    if (!titleRaw || seen.has(titleRaw)) continue;
+    seen.add(titleRaw);
+    items.push({
+      title: titleRaw,
+      description: '',
+      link,
+      pubDate: new Date().toISOString(), // Naver 페이지에서 정확한 pubDate 추출은 row 마다 별도 td (생략, 오늘 자정 기준)
+      source: 'Naver 금융',
+    });
+    if (items.length >= 8) break;
+  }
+  return items;
+}
+
 export async function GET(req: NextRequest) {
   const ticker = (req.nextUrl.searchParams.get('ticker') ?? '').toUpperCase().trim();
   if (!ticker || !/^[A-Z0-9.^=]{1,10}$/.test(ticker)) {
@@ -110,7 +155,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const news = await fetchYahooNews(ticker);
+    // 2026-05-31: KR ticker → Naver scraping. US/기타 → Yahoo search.
+    const isKR = /\.(KS|KQ)$/i.test(ticker);
+    const news = isKR ? await fetchNaverNews(ticker) : await fetchYahooNews(ticker);
     if (news.length === 0) throw new Error('No news items returned');
 
     const newsContext = news.slice(0, 5).map((n, i) =>
