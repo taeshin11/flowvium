@@ -159,12 +159,29 @@ Output (JSON array only):`;
       skipVllm: true, // EXAONE 2.4B 가 16개 언어 번역에 약함
       timeoutMs: 30000,
     });
-    if (!r.text) return articles.map(a => localizeTimeframesOnly(a, locale));
+    if (!r.text) {
+      logger.warn('news-cascade.translate', 'empty_ai_response', { locale, source: r.source });
+      return articles.map(a => localizeTimeframesOnly(a, locale));
+    }
     const jsonMatch = r.text.match(/\[\s*\{[\s\S]*\}\s*\]/);
-    if (!jsonMatch) return articles.map(a => localizeTimeframesOnly(a, locale));
+    if (!jsonMatch) {
+      logger.warn('news-cascade.translate', 'no_json_match', { locale, source: r.source, sample: r.text.slice(0, 100) });
+      return articles.map(a => localizeTimeframesOnly(a, locale));
+    }
     const translated = JSON.parse(jsonMatch[0]) as Array<{
       i: number; title: string; summary: string; reasons?: Array<{ j: number; r: string }>;
     }>;
+    // 2026-05-30: 응답 검증 — AI 가 영어 prompt 받고 영어 그대로 답하는 케이스 detect.
+    //   샘플 title 이 원문과 같으면 (locale 이 en 이 아닌데도) 번역 실패로 간주.
+    const sampleOrig = articles[0]?.title ?? '';
+    const sampleTranslated = translated.find(t => t.i === 0)?.title ?? '';
+    if (locale !== 'en' && sampleOrig && sampleTranslated && sampleOrig.trim() === sampleTranslated.trim()) {
+      logger.warn('news-cascade.translate', 'identity_translation', {
+        locale, source: r.source, sample: sampleTranslated.slice(0, 60),
+      });
+      // 영어 그대로 → 번역 실패. timeframe 만 localize 후 반환.
+      return articles.map(a => localizeTimeframesOnly(a, locale));
+    }
     const byIdx = new Map(translated.map(t => [t.i, t]));
     return articles.map((a, i) => {
       const t = byIdx.get(i);
@@ -650,7 +667,7 @@ export async function GET(request: Request) {
           try {
             const translated = await translateArticles(cached, locale);
             if (translated !== cached) {
-              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 });
+              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
               logger.info('api.news-cascade', 'sync_translation_done', { locale, count: translated.length });
             }
             return NextResponse.json({ articles: translated, cached: true, locale, translated: true, source: 'cached-translated-sync' }, { headers: CDN_HEADERS });
@@ -664,7 +681,7 @@ export async function GET(request: Request) {
           try {
             const translated = await translateArticles(cached, locale);
             if (translated !== cached) {
-              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 });
+              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
               logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
             }
           } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }
@@ -826,7 +843,7 @@ export async function GET(request: Request) {
       try {
         const translated = await translateArticles(sorted, locale);
         if (redis && translated !== sorted) {
-          await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 12 * 60 * 60 });
+          await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
           logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
         }
       } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }

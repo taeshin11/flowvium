@@ -1,0 +1,59 @@
+2026-05-30 — 영어 뉴스 번역 안 되는 원인 + 3축 fix
+
+사용자: "영어뉴스가 아직도 번역이 안되어나오는이유는?"
+
+증거 chain
+─────────
+production /api/news-cascade?locale=ko 응답:
+  source: "cached-en"
+  translated: false
+  translating: true
+  articles[0].title: "Ichiro Aoki, president, sells $3.79m in indie Semiconductor stock" (영문)
+
+wait=1 sync 호출:
+  source: "cached-translated-sync"
+  translated: true
+  articles[0].title: 여전히 영문 그대로
+
+원인 (3중 결함)
+─────────
+1. **schedule 약함**: vercel.json 의 refresh-news-cascade 가 "30 5 * * *" (매일 1회 14:30 KST)
+   - TTL 12h → 다음날 02:30 KST 부터 만료 → 영어 leak 12시간
+2. **background fire-and-forget 가 Vercel function 종료와 함께 종료**
+   - 일반 사용자 호출 시 backgroundTask 시작 → function 종료 → 번역 안 됨
+3. **identity translation 검증 부재**: AI 가 영어 prompt 받고 영어 그대로 반환해도 detect 안 함
+   - `translated: true` 메타는 timeframe array 변경만으로도 true (false signal)
+
+fix (3축)
+─────────
+### A. schedule 강화 — vercel.json
+- "30 5 * * *" (매일 1회) → "30 5,11,17,23 * * *" (매 6시간)
+- 14:30 / 20:30 / 02:30 / 08:30 KST = 매일 4회 사전 워밍
+
+### B. TTL 24h — news-cascade route.ts
+- translatedKey TTL: 12h → 24h
+- cron 매 6h 갱신 + TTL 24h → 안정 cache (만료 시점에 cron 이 이미 갱신)
+
+### C. identity translation detect — translateArticles
+- AI 응답 후 articles[0].title === translated[0].title 비교 (locale != 'en' 인데)
+- 같으면 "AI 가 영어 그대로 답함" → log + timeframe-only 반환
+- logger.warn('identity_translation') 로 production 모니터링
+
+logger.warn 추가
+─────────
+- empty_ai_response (AI text 빈 응답)
+- no_json_match (AI 응답에 JSON 없음)
+- identity_translation (영어 → 영어)
+→ Vercel logs 에서 어떤 provider 가 실패하는지 추적 가능
+
+다음 cycle
+─────────
+- 14:30 KST cron 실행 (다음 06:30 UTC) 에서 wait=1 sync 번역 시도
+- identity_translation log 나오면 → AI provider 진단 (GROQ 모델이 영어 답변 가능성)
+- log 안 나오면 → 번역 정상 작동 + 24h cache 유지
+
+추가 fix 후보 (다음 cycle)
+─────────
+- prompt 강화: "MUST translate to Korean (한국어). DO NOT return English."
+- callAI 결과 source 별 hit rate 측정 → GROQ 우회 옵션
+- 번역 실패 시 다른 provider 강제 retry (skipGroq=true 등)
