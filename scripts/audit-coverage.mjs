@@ -380,6 +380,54 @@ try {
   warn(`KR ticker 점검 실패: ${e.message}`);
 }
 
+// ═══════ Probe 10: company API 깊이 (1,210 종목 페이지 sample) ═══════
+// 2026-05-31 사용자 지적: "Routing이 문제가 아니라 그 내부에 세부내용들이 1210종목 다 정확히 들어가있어?"
+// audit-company-pages.mjs 와 동일 검증 (sample 작은 사이즈) — 매 audit 마다 회귀 detect.
+console.log('\n## [10] company API 깊이 (sample 12 ticker × 4 API)\n');
+try {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const pool = JSON.parse(fs.readFileSync(path.resolve('data/candidate-tickers.json'), 'utf8'));
+  const us = pool.tickers.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ'));
+  const kr = pool.tickers.filter(t => t.endsWith('.KS') || t.endsWith('.KQ'));
+  const usSample = us.sort(() => Math.random() - 0.5).slice(0, 6);
+  const krSample = kr.sort(() => Math.random() - 0.5).slice(0, 6);
+  const base = 'https://flowvium.net';
+
+  async function probe(url, validator) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(20000), cache: 'no-store' });
+      if (!res.ok) return { kind: 'error' };
+      const body = await res.json().catch(() => null);
+      if (body?.error) return { kind: 'error' };
+      return validator(body) ? { kind: 'ok' } : { kind: 'empty' };
+    } catch { return { kind: 'error' }; }
+  }
+  const results = {};
+  for (const [name, sample, val] of [
+    ['company-financials', usSample, b => b?.revenueUSD > 0],
+    ['company-kr', krSample, b => b?.annuals?.length > 0],
+    ['company-news', [...usSample, ...krSample], b => b?.news?.length > 0],
+    ['company-recs', [...usSample, ...krSample], b => b?.recs?.length > 0],
+  ]) {
+    const counts = { ok: 0, empty: 0, error: 0 };
+    for (const t of sample) {
+      const apiT = name === 'company-kr' ? t.replace(/\.(KS|KQ)$/, '') : t;
+      const url = name === 'company-news' ? `${base}/api/${name}?ticker=${encodeURIComponent(apiT)}` : `${base}/api/${name}/${apiT}`;
+      const r = await probe(url, val);
+      counts[r.kind]++;
+    }
+    results[name] = counts;
+    const total = sample.length;
+    const okPct = (counts.ok / total * 100).toFixed(0);
+    if (counts.error >= total / 2) err(`${name.padEnd(22)} ok ${counts.ok}/${total} (${okPct}%) error ${counts.error} 다수`);
+    else if (counts.ok >= total * 0.7) ok(`${name.padEnd(22)} ok ${counts.ok}/${total} (${okPct}%)`);
+    else warn(`${name.padEnd(22)} ok ${counts.ok}/${total} (${okPct}%) — 부분 결함`);
+  }
+} catch (e) {
+  warn(`company API 깊이 점검 실패: ${e.message}`);
+}
+
 // ═══════ Probe 9: Karpathy 학습 효과 (환각 재발 감소 추세) ═══════
 // 2026-05-30 closed loop 인프라 — F26 anti-pattern inject 가 작동하는지 검증.
 // 같은 (ticker, defect_type) 의 detect 횟수가 최근 cycle 마다 감소하면 학습 효과 있음.
