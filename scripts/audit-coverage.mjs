@@ -403,17 +403,31 @@ try {
       return validator(body) ? { kind: 'ok' } : { kind: 'empty' };
     } catch { return { kind: 'error' }; }
   }
+  // 2026-05-31: /company index page 404 사건 — routing 도 자동 detect.
+  try {
+    const idxRes = await fetch(`${base}/ko/company`, { signal: AbortSignal.timeout(10000), redirect: 'manual' });
+    if (idxRes.status === 404) err(`/company index page — 404 (page.tsx 없음)`);
+    else if (idxRes.status >= 200 && idxRes.status < 400) ok(`/company index page — HTTP ${idxRes.status}`);
+    else warn(`/company index page — HTTP ${idxRes.status}`);
+  } catch (e) { warn(`/company routing 점검 실패: ${e.message}`); }
+  // 2026-05-31: 11 endpoint × sample → 사용자 가시 페이지 데이터 모두 검증.
   const results = {};
   for (const [name, sample, val] of [
     ['company-financials', usSample, b => b?.revenueUSD > 0],
     ['company-kr', krSample, b => b?.annuals?.length > 0],
     ['company-news', [...usSample, ...krSample], b => b?.news?.length > 0],
     ['company-recs', [...usSample, ...krSample], b => b?.recs?.length > 0],
+    ['stock-price', [...usSample, ...krSample], b => typeof b?.price === 'number' && b.price > 0],
+    ['market-caps', [...usSample, ...krSample], b => b?.bands && Object.values(b.bands).some(v => v)],
+    ['price-history', [...usSample, ...krSample], b => b?.points?.length > 0 || b?.history?.length > 0],
+    ['analyst-target', usSample, b => typeof b?.targetMean === 'number' || typeof b?.targetMedian === 'number'],
+    ['iv', usSample, b => typeof b?.iv === 'number' || b?.atmIv30d],
   ]) {
     const counts = { ok: 0, empty: 0, error: 0 };
     for (const t of sample) {
       const apiT = name === 'company-kr' ? t.replace(/\.(KS|KQ)$/, '') : t;
-      const url = name === 'company-news' ? `${base}/api/${name}?ticker=${encodeURIComponent(apiT)}` : `${base}/api/${name}/${apiT}`;
+      const isQuery = ['company-news', 'market-caps', 'price-history'].includes(name);
+      const url = isQuery ? `${base}/api/${name}?ticker=${encodeURIComponent(apiT)}` : `${base}/api/${name}/${apiT}`;
       const r = await probe(url, val);
       counts[r.kind]++;
     }

@@ -57,13 +57,26 @@ const stats = {
   'company-kr':           { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
   'company-news':         { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
   'company-recs':         { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
+  'stock-price':          { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
+  'market-caps':          { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
+  'price-history':        { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
+  'analyst-target':       { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
+  'iv':                   { ok: 0, empty: 0, error: 0, samples: { ok: [], empty: [], error: [] } },
 };
 
+// 2026-05-31: 사용자 지적 — 4/11 만 검토했음. 11 endpoint 모두 audit.
 const validators = {
-  'company-financials': (b) => b?.revenueUSD ? { ok: true, summary: `revenue=$${(b.revenueUSD/1e9).toFixed(1)}B` } : { ok: false, reason: 'no revenueUSD' },
-  'company-kr':         (b) => (b?.annuals?.length > 0 || b?.fiscalYear) ? { ok: true, summary: `annuals=${b.annuals?.length ?? 0} FY${b.fiscalYear ?? '?'}` } : { ok: false, reason: 'no annuals' },
-  'company-news':       (b) => (b?.news?.length > 0 || b?.articles?.length > 0 || b?.items?.length > 0) ? { ok: true, summary: `news=${b.news?.length ?? b.articles?.length ?? b.items?.length}` } : { ok: false, reason: 'no news' },
+  'company-financials': (b) => b?.revenueUSD > 0 ? { ok: true, summary: `rev=$${(b.revenueUSD/1e9).toFixed(1)}B` } : { ok: false, reason: 'no revenueUSD' },
+  'company-kr':         (b) => (b?.annuals?.length > 0 || b?.fiscalYear) ? { ok: true, summary: `annuals=${b.annuals?.length ?? 0}` } : { ok: false, reason: 'no annuals' },
+  'company-news':       (b) => (b?.news?.length > 0 || b?.articles?.length > 0) ? { ok: true, summary: `news=${b.news?.length ?? b.articles?.length}` } : { ok: false, reason: 'no news' },
   'company-recs':       (b) => (b?.recs?.length > 0 || b?.recommendations?.length > 0) ? { ok: true, summary: `recs=${b.recs?.length ?? b.recommendations?.length}` } : { ok: false, reason: 'no recs' },
+  'stock-price':        (b) => (typeof b?.price === 'number' && b.price > 0) ? { ok: true, summary: `price=${b.price}` } : { ok: false, reason: 'no price' },
+  // 2026-05-31 validator fix: 응답 구조는 b.bands[ticker] = band 단어. b.band (단수) 가 아님.
+  'market-caps':        (b) => (b?.bands && Object.values(b.bands).some(v => v) || b?.marketCap > 0) ? { ok: true, summary: `bands=${Object.keys(b.bands ?? {}).length}` } : { ok: false, reason: 'no bands' },
+  'price-history':      (b) => (b?.history?.length > 0 || b?.points?.length > 0) ? { ok: true, summary: `pts=${b.history?.length ?? b.points?.length}` } : { ok: false, reason: 'no history' },
+  // validator fix: targetMean / targetMedian / targetHigh
+  'analyst-target':     (b) => (typeof b?.targetMean === 'number' || typeof b?.targetMedian === 'number' || typeof b?.target === 'number') ? { ok: true, summary: `target=${b.targetMean ?? b.targetMedian ?? b.target}` } : { ok: false, reason: 'no target' },
+  'iv':                 (b) => (typeof b?.iv === 'number' || b?.atmIv30d || b?.ivRank) ? { ok: true, summary: `iv=${b.iv ?? b.atmIv30d}` } : { ok: false, reason: 'no iv' },
 };
 
 // 병렬 8 = balance speed/rate-limit
@@ -75,8 +88,8 @@ async function runFor(name, tickers) {
     const results = await Promise.all(batch.map(async t => {
       // company-kr 은 .KS/.KQ 제거된 6자리 사용
       const apiTicker = name === 'company-kr' ? t.replace(/\.(KS|KQ)$/, '') : t;
-      // company-news 는 ?ticker= query param 방식 (dynamic route 없음)
-      const url = name === 'company-news'
+      // query param 방식: company-news / market-caps / price-history
+      const url = (name === 'company-news' || name === 'market-caps' || name === 'price-history')
         ? `${BASE}/api/${name}?ticker=${encodeURIComponent(apiTicker)}`
         : `${BASE}/api/${name}/${apiTicker}`;
       const r = await check(url, validators[name]);
@@ -90,12 +103,17 @@ async function runFor(name, tickers) {
   }
 }
 
-// US 종목: company-financials + company-news + company-recs
-// KR 종목: company-kr + company-news + company-recs
+// US 종목: company-financials + company-news + company-recs + 공통 7개
+// KR 종목: company-kr + company-news + company-recs + 공통 7개
 await runFor('company-financials', usSample);
 await runFor('company-kr', krSample);
 await runFor('company-news', [...usSample, ...krSample]);
 await runFor('company-recs', [...usSample, ...krSample]);
+await runFor('stock-price', [...usSample, ...krSample]);
+await runFor('market-caps', [...usSample, ...krSample]);
+await runFor('price-history', [...usSample, ...krSample]);
+await runFor('analyst-target', usSample); // KR 은 analyst target 없음
+await runFor('iv', usSample); // KR 은 IV 없음
 
 console.log(`## API 별 응답 분포 (sample)\n`);
 for (const [api, s] of Object.entries(stats)) {
