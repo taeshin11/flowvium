@@ -44,6 +44,35 @@ npm run verify:company        # 1,210 × 9 endpoint
 특정 dimension 만 fix 했어도 verify-all 실행 — 다른 dimension 의 회귀 자동 detect.
 예: company-news fix → audit-coverage 의 [10] Probe 가 회귀 catch 가능.
 
+### 자동화 — git pre-push hook (2026-05-31 신설)
+
+수동 의무를 잊지 않도록 git push 시 자동 실행:
+
+```bash
+npm run setup:hooks
+# = bash scripts/install-hooks.sh
+# → scripts/git-hooks/* → .git/hooks/ 복사
+```
+
+push 시 자동:
+1. `npm run verify` 실행
+2. critical fail 시 push **차단** (exit code 1)
+3. 우회: `git push --no-verify` (긴급 시만)
+
+### cron 후 자동 verify (2026-05-31 신설)
+
+`generate-report-local.mjs` 가 보고서 발간 직후 자동:
+1. `verifyReport(file)` 실행
+2. 결함 → `hallucination_history` 적재 (F26 Karpathy source)
+3. 결과 → `reports/verify/verify-{ts}.json` 저장 (학습 추세 trail)
+4. 다음 보고서 prompt 에 anti-pattern inject
+
+cron 후 사용자가 보고싶으면:
+```bash
+ls -t reports/verify/ | head -5     # 최근 5건 검증 결과
+cat reports/verify/verify-{ts}.json # 결함 상세
+```
+
 ---
 
 ## 🔒 FEATURES.md + METRICS.md 유지 의무 (필수)

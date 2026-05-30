@@ -5873,6 +5873,26 @@ async function generateViaOllama() {
       } else {
         console.log(`[verify-loop] ✅ 결함 0건 — 깨끗`);
       }
+      // 2026-05-31: cron 후 verify-all 결과 reports/verify-{ts}.json 자동 저장.
+      //   사용자: "지금 방법이 최선이니?" — 매 cron 후 종합 dashboard 흔적.
+      //   다음 보고서 작성 전 audit-coverage Probe [9] 가 이걸 source 로 학습 추세 추적.
+      try {
+        const { existsSync, mkdirSync, writeFileSync } = await import('node:fs');
+        const verifyDir = resolve(ROOT, 'reports/verify');
+        if (!existsSync(verifyDir)) mkdirSync(verifyDir, { recursive: true });
+        const verifyResult = {
+          reportId,
+          generatedAt: finalReport.generatedAt,
+          session,
+          defectCount: defects.length,
+          defects: defects.map(d => ({ ticker: d.ticker, type: d.defect_type, llmValue: d.llm_value, correct: d.correct_value, severity: d.severity })),
+        };
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        writeFileSync(resolve(verifyDir, `verify-${ts}.json`), JSON.stringify(verifyResult, null, 2), 'utf8');
+        console.log(`[verify-loop] 📋 결과 reports/verify/verify-${ts}.json 저장`);
+      } catch (e) {
+        console.warn(`[verify-loop] ⚠️ 결과 저장 실패: ${String(e).slice(0, 80)}`);
+      }
     } catch (e) {
       console.warn(`[verify-loop] ⚠️ 검증 실패: ${String(e).slice(0, 120)}`);
     }

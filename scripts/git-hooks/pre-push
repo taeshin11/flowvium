@@ -1,0 +1,25 @@
+#!/bin/sh
+# FlowVium git pre-push hook — npm run verify 자동 실행, fail 시 push 차단.
+#
+# 설치: bash scripts/install-hooks.sh (또는 npm run setup:hooks)
+#
+# 우회: git push --no-verify (긴급 시만 — CLAUDE.md 규칙 위반)
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  pre-push hook — npm run verify (CLAUDE.md 의무)"
+echo "═══════════════════════════════════════════════════════════"
+
+# verify-all 실행. critical fail 시 push 차단.
+node scripts/verify-all.mjs
+EXIT=$?
+
+if [ $EXIT -ne 0 ]; then
+  echo ""
+  echo "❌ verify-all FAIL ($EXIT) — push 차단."
+  echo "→ 결함 fix 후 다시 push 또는 'git push --no-verify' (긴급 시만)."
+  exit $EXIT
+fi
+
+echo ""
+echo "✅ verify-all PASS — push 진행."
+exit 0
