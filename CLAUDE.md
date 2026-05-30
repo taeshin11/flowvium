@@ -1,5 +1,51 @@
 # FlowVium 프로젝트 규칙
 
+## ✅ 모든 fix 후 통합 검증 의무 (2026-05-31 사용자 비판 이후 신설)
+
+**사용자 비판:** "다 고치고 검증할때 검증 일괄적으로 다 되게 해야지"
+
+### 규칙
+
+모든 fix commit / push 직전 **반드시** 통합 검증 1회 실행:
+
+```bash
+npm run verify
+# = node scripts/verify-all.mjs
+```
+
+6 검증 일괄 실행 (각각 별도 spawn):
+1. `audit-data-sources` — Stooq/Yahoo/SEC/FRED/CNN 외부 source 헬스
+2. `audit-coverage` — DB NULL + endpoint manifest + Karpathy 학습 [10 Probe]
+3. `audit-company-pages` — 1,210 종목 × 9 endpoint sample 20
+4. `check-static-fallbacks` — 정적 데이터 폴백 (실시간 위장 차단)
+5. `check-cron-cost` — Vercel cron 비용 폭증
+6. `verify-latest-report` — 최신 보고서 sector/52w/MA/fact-check
+
+### 결과 분기
+
+| 종합 결과 | 의미 |
+|---|---|
+| ✅ pass (모두) | commit/push OK |
+| ⚠️ warn 있음 | 경고만 — push 진행 가능, 다음 cycle 추적 |
+| ❌ fail 있음 | **critical 결함 — fix 후 재실행** |
+
+verify-all.mjs 의 exit code 1 = 적어도 하나 fail. CI/cron pre-flight 에 통합 권장.
+
+### 빠른 단일 검증
+
+```bash
+npm run verify:report         # 최신 보고서만
+npm run verify:coverage       # DB Probe만 (10개)
+npm run verify:company        # 1,210 × 9 endpoint
+```
+
+### 부분 fix 후에도 "전체 검증" 의무
+
+특정 dimension 만 fix 했어도 verify-all 실행 — 다른 dimension 의 회귀 자동 detect.
+예: company-news fix → audit-coverage 의 [10] Probe 가 회귀 catch 가능.
+
+---
+
 ## 🔒 FEATURES.md + METRICS.md 유지 의무 (필수)
 
 이 저장소에 UI 기능 또는 백엔드 엔드포인트를 **추가·수정·삭제**할 때마다 **반드시** 루트의 두 파일을 같은 작업에서 업데이트한다:
