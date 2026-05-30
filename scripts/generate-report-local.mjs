@@ -4580,11 +4580,14 @@ function postProcessPortfolio(portfolio) {
     let name = p.name;
     if (meta) {
       // sector: meta 우선. LLM 환각 차단.
+      // 2026-05-30: case mismatch 도 catch — "It-software" vs "it-software" 같은 차이.
       if (meta.sector && meta.sector !== 'Unknown') {
-        if (p.sector && p.sector !== meta.sector) {
+        const llmLower = (p.sector ?? '').toLowerCase().trim();
+        const metaLower = meta.sector.toLowerCase().trim();
+        if (p.sector && llmLower !== metaLower) {
           console.warn(`  [sector-fix] ${ticker} sector "${p.sector}" → "${meta.sector}" (meta override, LLM 환각 차단)`);
         }
-        sector = meta.sector;
+        sector = meta.sector;  // 항상 meta 사용 (case 통일)
       }
       // name: KR 종목은 한글 이름 (005490.KS → POSCO홀딩스). meta.name 가 ticker 와 같지 않을 때만.
       const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');

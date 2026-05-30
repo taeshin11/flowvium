@@ -653,10 +653,19 @@ export function saveFearGreedArchive({ reportId, capturedAt, fgResponse, capital
       const sym = a.symbol ?? a.ticker ?? a.id;
       if (!sym) continue;
       // 2026-05-29: capital-flows 응답 형식 ret4w/ret1w/ret13w (camelCase 단축)
+      // 2026-05-30: ret1d 가 응답에 없음 → sparkline 마지막 2값으로 계산. 이전 100% NULL fix.
+      let ret1d = a.ret1d ?? a.return1d ?? a.return_1d ?? null;
+      if (ret1d == null && Array.isArray(a.sparkline) && a.sparkline.length >= 2) {
+        const last = Number(a.sparkline[a.sparkline.length - 1]);
+        const prev = Number(a.sparkline[a.sparkline.length - 2]);
+        if (Number.isFinite(last) && Number.isFinite(prev) && prev !== 0) {
+          ret1d = Math.round((last / prev - 1) * 10000) / 100; // 2 decimal pct
+        }
+      }
       flowStmt.run(reportId, now, sym,
         a.ret4w ?? a.return4w ?? a.return_4w ?? null,
         a.ret1w ?? a.return1w ?? a.return_1w ?? null,
-        a.ret1d ?? a.return1d ?? a.return_1d ?? null,
+        ret1d,
         a.trend ?? null, 'capital-flows');
     }
   });
