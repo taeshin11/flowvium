@@ -22,7 +22,14 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { ticker: string } }
 ) {
-  const ticker = params.ticker.toUpperCase();
+  const rawTicker = params.ticker.toUpperCase();
+  // 2026-05-30: BRK.B → BRK-B (SEC EDGAR 형식). dot 가 SEC ticker lookup 에서 dash 로 표기됨.
+  //   기존엔 BRK.B 그대로 SEC 에 보내서 100% 404 발생 (audit Probe [3b] catch).
+  const ticker = rawTicker.replace(/\./g, '-');
+  // KR ticker (.KS / .KQ → -KS / -KQ) 는 SEC 가 처리 못함 — 즉시 redirect to company-kr.
+  if (rawTicker.endsWith('.KS') || rawTicker.endsWith('.KQ')) {
+    return NextResponse.json({ error: 'kr-ticker-use-company-kr', ticker: rawTicker, hint: '/api/company-kr/' + rawTicker.replace(/\.(KS|KQ)$/, '') }, { status: 404 });
+  }
   const redis = createRedis();
   const cacheKey = `flowvium:company-financials:v5:${ticker}`;  // v5: bank quarterly revenue (RevenuesNetOfInterestExpense)
 
