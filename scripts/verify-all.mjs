@@ -38,7 +38,10 @@ const checks = [
     name: 'audit-data-sources',
     script: 'scripts/audit-data-sources.mjs',
     desc: '외부 source 헬스 (Stooq/Yahoo/SEC/FRED/CNN)',
-    critical: true,
+    // 2026-06-01: critical:false. 외부 source degradation(Yahoo v7 deprecated 401,
+    //   CNN 418 rate-limit)은 환경 문제지 코드 회귀 아님 → warn. 진짜 critical(핵심
+    //   source 전멸)은 스크립트가 exit code 2 로 신호 → verify-all 이 hard-fail 처리.
+    critical: false,
     dimensions: ['외부 source 헬스 (Stooq/Yahoo/SEC/FRED/CNN)'],
   },
   {
@@ -123,9 +126,16 @@ const promises = checks.map(c => {
     const errCount = (stdout.match(/❌|\bFAIL\b|\bERROR\b/g) ?? []).length;
     const warnCount = (stdout.match(/⚠️|\bWARN\b/g) ?? []).length;
     const okCount = (stdout.match(/✅/g) ?? []).length;
-    // 2026-05-31: exit code 0 이 아니거나 critical 인 경우 ❌ 보임 → fail. silent false pass 차단.
-    const failed = (res.status !== 0) || (c.critical && errCount > 0);
-    const status = failed ? 'fail' : (errCount > 0 || warnCount > 0 ? 'warn' : 'pass');
+    // 2026-06-01: 심각도 차등 — 이전 `res.status !== 0` 이 critical 플래그를 무시해
+    //   non-critical 체크(CI 빈 DB audit-coverage, 외부소스 degradation)도 fail 처리 →
+    //   매 push 마다 CI Verify fail 메일 폭주. 규칙 재정의:
+    //   - exit 2 = 스크립트 자체 판단 hard-critical (핵심 source 전멸 등) → 항상 fail.
+    //   - exit 1 또는 stdout ❌ = 결함 있음 → critical 체크면 fail, 아니면 warn (가시화만).
+    //   silent false pass 차단(exit 0 인데 ❌ 다수)은 critical 체크의 errCount 로 유지.
+    const hardCritical = res.status === 2;
+    const softProblem = res.status !== 0 || errCount > 0;
+    const failed = hardCritical || (c.critical && softProblem);
+    const status = failed ? 'fail' : (softProblem || warnCount > 0 ? 'warn' : 'pass');
     return { ...c, status, errCount, warnCount, okCount, durationMs: res.durationMs, exitCode: res.status };
   });
 });

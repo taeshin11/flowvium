@@ -1,0 +1,46 @@
+# 2026-06-01 — GitHub Actions Verify 실패 메일 폭주 fix
+
+## 발단
+사용자: "[taeshin11/flowvium] Run failed: Verify - master (85ee9da) 이거 왜 또 뜨냐?"
+→ 매 master push 마다 GitHub Actions "Verify" 워크플로가 fail → 실패 메일 반복.
+
+## root cause (2층)
+.github/workflows/verify.yml 이 `VERIFY_CI=1 node scripts/verify-all.mjs` 실행,
+non-zero exit 시 job fail. 의도는 "CI 는 critical 결함만 fail" (verify.yml 주석).
+그러나 verify-all.mjs:130 이 의도를 무력화:
+
+  const failed = (res.status !== 0) || (c.critical && errCount > 0);
+
+- 첫 절 `res.status !== 0` 이 **critical 플래그를 무시** — child 가 non-zero exit 하면
+  non-critical 체크도 fail 처리.
+- CI 환경은 DB 가 freshly-init(빈) → audit-coverage(critical:!CI=false) 가 NULL/snapshot/
+  endpoint 전부 실패 exit 1 → fail 로 오마킹.
+- audit-data-sources(critical:true) 는 Yahoo v7 401(deprecated) + CNN 418(rate-limit)
+  외부 차단으로 exit 1 → fail. (스크립트 자체는 critical:0, exit 1 = 비-critical 신호인데
+  verify-all 이 exit 1/2 구분 안 함.)
+→ 매 push "Verify: All jobs have failed".
+
+## fix — scripts/verify-all.mjs
+1. 심각도 차등 (line 130):
+   - exit 2 = 스크립트 자체 hard-critical (핵심 source 전멸 등) → 항상 fail.
+   - exit 1 또는 stdout ❌ = softProblem → critical 체크면 fail, 아니면 warn (가시화만).
+   ```
+   const hardCritical = res.status === 2;
+   const softProblem  = res.status !== 0 || errCount > 0;
+   const failed = hardCritical || (c.critical && softProblem);
+   ```
+2. audit-data-sources critical:true → false. 외부 source degradation(Yahoo/CNN)은 환경
+   문제지 코드 회귀 아님 → warn. 진짜 critical(핵심 source 전멸)은 스크립트 exit 2 가 신호.
+
+## 효과
+- CI(VERIFY_CI=1) 시뮬: verify-all exit=**0**. non-critical 전부 warn, critical
+  (check-static-fallbacks) pass → GitHub Actions Verify 통과 → 실패 메일 중단.
+- 로컬(non-CI): audit-coverage critical:true 유지 → 진짜 결함 여전히 fail (안전망 보존).
+- 핵심 source 전멸 / 코드 패턴 결함(static fallback) 은 CI 에서도 여전히 fail (real signal 보존).
+
+## 검증
+- node --check OK.
+- VERIFY_CI=1 node scripts/verify-all.mjs → exit 0, 표: 4 warn / 2 pass / 0 fail.
+
+## 변경 파일
+- scripts/verify-all.mjs (심각도 차등 + audit-data-sources critical:false)
