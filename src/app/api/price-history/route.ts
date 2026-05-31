@@ -91,6 +91,37 @@ async function fetchNasdaqDaily(ticker: string, days: number, assetclass: string
   }
 }
 
+/** Naver 일별 OHLCV — KR(.KS/.KQ) 종목. Yahoo 가 Vercel IP 에서 KR 거부 + Nasdaq KR 미지원 →
+ *  company-news 가 Vercel 에서 Naver 스크래핑 성공하듯 Naver siseJson 도 동작.
+ *  응답: [['날짜',...], ["20260520", 시,고,저,종,거래량,...], ...] (헤더 작은따옴표라 JSON.parse 불가 → 정규식). */
+async function fetchNaverDaily(ticker: string, days: number): Promise<PricePoint[]> {
+  const code = ticker.replace(/\.(KS|KQ)$/i, '');
+  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
+  const end = fmt(new Date());
+  const start = fmt(new Date(Date.now() - (days + 15) * 86400000)); // 주말/공휴일 buffer
+  const url = `https://api.finance.naver.com/siseJson.naver?symbol=${code}&requestType=1&startTime=${start}&endTime=${end}&timeframe=day`;
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
+      headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://finance.naver.com' },
+    });
+    if (!res.ok) return [];
+    const text = await res.text();
+    const rows: PricePoint[] = [];
+    // ["YYYYMMDD", 시가, 고가, 저가, 종가, 거래량, ...] — 5번째 숫자(종가) 추출
+    const re = /\["(\d{8})",\s*[\d.]+,\s*[\d.]+,\s*[\d.]+,\s*([\d.]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const close = parseFloat(m[2]);
+      if (!isNaN(close)) rows.push({ date: `${m[1].slice(0, 4)}-${m[1].slice(4, 6)}-${m[1].slice(6, 8)}`, close });
+    }
+    return rows.slice(-Math.max(2, Math.min(days, 365)));
+  } catch {
+    return [];
+  }
+}
+
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   // 2026-06-01: slice(0,8) 가 "005930.KS"(9자) → "005930.K" 절단 → Yahoo 잘못된 심볼 → 502/no-data.
@@ -112,18 +143,30 @@ export async function GET(req: NextRequest) {
     if (mem) return NextResponse.json({ ...mem, cached: true, cacheLayer: 'memory' }, { headers: CDN_HEADERS });
   }
 
-  // Try Yahoo first (may work from some Vercel regions); Nasdaq as reliable fallback
-  let points = await fetchYahooDaily(ticker, days);
-  let source = 'yahoo';
+  let points: PricePoint[];
+  let source: string;
 
-  if (points.length === 0) {
-    // Nasdaq: try stocks then etf assetclass
-    points = await fetchNasdaqDaily(ticker, days, 'stocks');
+  if (/\.(KS|KQ)$/i.test(ticker)) {
+    // KR 종목 — Naver siseJson (Yahoo Vercel 거부 + Nasdaq KR 미지원). Yahoo 를 fallback 으로.
+    points = await fetchNaverDaily(ticker, days);
+    source = 'naver';
     if (points.length === 0) {
-      points = await fetchNasdaqDaily(ticker, days, 'etf');
-      if (points.length > 0) source = 'nasdaq-etf';
-    } else {
-      source = 'nasdaq';
+      points = await fetchYahooDaily(ticker, days);
+      if (points.length > 0) source = 'yahoo';
+    }
+  } else {
+    // Try Yahoo first (may work from some Vercel regions); Nasdaq as reliable fallback
+    points = await fetchYahooDaily(ticker, days);
+    source = 'yahoo';
+    if (points.length === 0) {
+      // Nasdaq: try stocks then etf assetclass
+      points = await fetchNasdaqDaily(ticker, days, 'stocks');
+      if (points.length === 0) {
+        points = await fetchNasdaqDaily(ticker, days, 'etf');
+        if (points.length > 0) source = 'nasdaq-etf';
+      } else {
+        source = 'nasdaq';
+      }
     }
   }
 

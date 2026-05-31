@@ -58,6 +58,35 @@ async function fetchPriceTwelve(sym: string): Promise<{ price: number; change: n
   };
 }
 
+// Naver 일별 시세 fallback — KR(.KS/.KQ). Yahoo 가 Vercel IP 에서 KR 거부 + Finnhub/Twelve KR 미지원.
+//   siseJson 행: ["YYYYMMDD", 시가, 고가, 저가, 종가, 거래량, ...]. 마지막 2행으로 quote 도출.
+async function fetchPriceNaver(sym: string): Promise<{ price: number; prevClose: number | null; change: number | null; changePct: number | null; volume: number | null; dayHigh: number | null; dayLow: number | null } | null> {
+  const code = sym.replace(/\.(KS|KQ)$/i, '');
+  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
+  const end = fmt(new Date());
+  const start = fmt(new Date(Date.now() - 20 * 86400000));
+  const url = `https://api.finance.naver.com/siseJson.naver?symbol=${code}&requestType=1&startTime=${start}&endTime=${end}&timeframe=day`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://finance.naver.com' },
+    signal: AbortSignal.timeout(8000),
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const text = await res.text();
+  const rows: { close: number; high: number; low: number; vol: number }[] = [];
+  const re = /\["(\d{8})",\s*[\d.]+,\s*([\d.]+),\s*([\d.]+),\s*([\d.]+),\s*(\d+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    rows.push({ high: parseFloat(m[2]), low: parseFloat(m[3]), close: parseFloat(m[4]), vol: parseInt(m[5], 10) });
+  }
+  if (rows.length === 0 || !(rows[rows.length - 1].close > 0)) return null;
+  const last = rows[rows.length - 1];
+  const prev = rows.length >= 2 ? rows[rows.length - 2] : null;
+  const change = prev ? parseFloat((last.close - prev.close).toFixed(2)) : null;
+  const changePct = prev && prev.close > 0 ? parseFloat(((last.close - prev.close) / prev.close * 100).toFixed(2)) : null;
+  return { price: last.close, prevClose: prev?.close ?? null, change, changePct, volume: last.vol || null, dayHigh: last.high || null, dayLow: last.low || null };
+}
+
 function staleKey(sym: string): string {
   return `flowvium:stock-price:stale:${sym}`;
 }
@@ -78,6 +107,27 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
         return NextResponse.json({ ...(redisCached as object), cached: true }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
+  }
+
+  // KR(.KS/.KQ) — Naver 우선 (Yahoo 가 Vercel IP 에서 KR 거부, Finnhub/Twelve KR 미지원).
+  if (/\.(KS|KQ)$/.test(sym)) {
+    try {
+      const nv = await fetchPriceNaver(sym);
+      if (nv) {
+        const result = {
+          ticker: sym, price: nv.price, prevClose: nv.prevClose, change: nv.change, changePct: nv.changePct,
+          volume: nv.volume, dayHigh: nv.dayHigh, dayLow: nv.dayLow, week52High: null, week52Low: null,
+          currency: 'KRW', marketState: null, updatedAt: new Date().toISOString(), cached: false, source: 'naver',
+        };
+        mem.set(sym, result);
+        if (redis) {
+          await loggedRedisSet(redis, 'stock-price', `flowvium:stock-price:v1:${sym}`, result, { ex: REDIS_TTL });
+          await loggedRedisSet(redis, 'stock-price', staleKey(sym), result, {});
+        }
+        return NextResponse.json(result, { headers: CDN_HEADERS });
+      }
+    } catch (e) { logger.warn('stock-price', 'naver_failed', { sym, error: String(e) }); }
+    // Naver 실패 시 아래 Yahoo/fallback 으로 진행
   }
 
   try {

@@ -323,9 +323,9 @@
 | # | 지표 | 상태 | 비고 |
 |---|------|------|------|
 | 123 | 기업명·설명·역할 | 📋 static | |
-| 123-P | 실시간 주가·일간 변화% | ✅ live | /api/stock-price Yahoo v8, 15min |
+| 123-P | 실시간 주가·일간 변화% | ✅ live | /api/stock-price — US: Yahoo v8, KR(.KS/.KQ): Naver siseJson, 15min |
 | 123-M | 시가총액 band 분류 (기업 프로필 헤더) | 📋 static | /api/market-caps — Yahoo v7 crumb 불가, 정적 band만 |
-| 123-C | 90일 주가 추이 차트 + 수익률 | 💾 cached | /api/price-history Yahoo v8, 1h |
+| 123-C | 90일 주가 추이 차트 + 수익률 | 💾 cached | /api/price-history — US: Yahoo v8/Nasdaq, KR: Naver siseJson, 1h |
 | 124 | 번역 설명 (16개 언어) | 💾 cached | Gemini 번역, 30d |
 | 125 | ASCII 공급망 네트워크 뷰 | 📋 static | |
 
