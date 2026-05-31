@@ -20,6 +20,7 @@ import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
+import { SECTOR_FORBID } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -1924,7 +1925,9 @@ function enforceRotation(portfolio, livePrices) {
       updated[candidates[i].idx] = {
         ticker: boost.ticker,
         name: boost.ticker,
-        sector: isFromPool ? (sectorTag.charAt(0).toUpperCase() + sectorTag.slice(1)) : 'Technology',
+        // 2026-05-31: meta canonical sector 직접 사용 (이전 charAt(0).toUpperCase() → "Pharma-biotech"
+        //   환각, postProcessPortfolio 이후 실행돼 meta override 못 받음). 없으면 lowercase fallback.
+        sector: CANDIDATE_META[boost.ticker]?.sector ?? (isFromPool ? sectorTag.toLowerCase() : 'technology'),
         market: isKR ? 'korea' : 'us',
         rationale: baseRationale,
         allocation: oldP.allocation ?? 10,
@@ -5757,6 +5760,45 @@ async function generateViaOllama() {
   finalReport.portfolio = enforceRotation(finalReport.portfolio, livePrices);
   // 구루 분할 매매 ladder 자동 생성 (entry 30/40/30 + exit 33/33/34 + trailing)
   finalReport.portfolio = buildLadders(finalReport.portfolio, livePrices);
+  // 2026-05-31: enforceRotation/buildLadders 가 postProcessPortfolio(line 4934) 이후 실행 →
+  //   rotation 주입 종목이 meta sector override 를 못 받음 (ALNY "Pharma-biotech" vs meta "pharma-biotech").
+  //   verify-report 의 case-sensitive 비교 통과를 위해 최종 저장 직전 sector 를 meta canonical 로 재정규화.
+  for (const p of finalReport.portfolio) {
+    const m = CANDIDATE_META[p.ticker];
+    if (m?.sector && m.sector !== 'Unknown' && p.sector !== m.sector) {
+      if (p.sector) console.warn(`  [sector-renorm] ${p.ticker} "${p.sector}" → "${m.sector}" (post-rotation meta override)`);
+      p.sector = m.sector;
+    }
+    // 2026-05-31: sector-keyword mismatch strip (잔여결함 #3). final sector 확정 후,
+    //   LLM free-text 필드의 thesis 에서 sector 금지 키워드 포함 clause 제거.
+    //   예: NAVER(it services) "건설 수요 증가, 기술적 돌파 | ..." → "건설" clause strip.
+    //   verify-report:SECTOR_FORBID 와 단일 source. 기술데이터(' | ' 뒤)는 보존.
+    const forbid = SECTOR_FORBID[(p.sector || '').toLowerCase()];
+    if (forbid) {
+      const hasKw = (s) => typeof s === 'string' && forbid.some(kw => s.includes(kw));
+      // clause 단위 strip — ' | ' 앞 thesis 만 손대고 기술데이터 suffix 는 보존.
+      const stripClauses = (str) => {
+        const [thesis, ...rest] = str.split(' | ');
+        const kept = thesis.split(/,\s*/).filter(c => !hasKw(c));
+        let newThesis = kept.join(', ').trim();
+        if (!newThesis) newThesis = '기술적 신호 기반 진입';  // thesis 전부 제거되면 fallback
+        return [newThesis, ...rest].join(' | ');
+      };
+      // verify-report 가 검사하는 모든 LLM 텍스트 필드 동일 처리.
+      for (const f of ['rationale', 'entryRationale', 'targetRationale', 'fundamentalBasis', 'riskNote']) {
+        if (typeof p[f] === 'string' && hasKw(p[f])) {
+          const before = p[f];
+          p[f] = stripClauses(p[f]);
+          if (p[f] !== before) console.warn(`  [sector-kw-strip] ${p.ticker} (${p.sector}) ${f} 금지키워드 clause strip`);
+        }
+      }
+      if (Array.isArray(p.catalysts)) {
+        const before = p.catalysts.length;
+        p.catalysts = p.catalysts.filter(c => !hasKw(c));
+        if (p.catalysts.length !== before) console.warn(`  [sector-kw-strip] ${p.ticker} catalysts ${before}→${p.catalysts.length} (금지키워드 제거)`);
+      }
+    }
+  }
   // 2026-05-30: 후처리 (harness/validateEntryZones/enforceRotation/buildLadders) 가 portfolio 늘리는 케이스 차단.
   //   DB-JSON mismatch (DB=15, JSON=12) 사건 fix. saveRecommendations 호출 직전 cap 한 번 더 강제.
   {

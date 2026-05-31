@@ -9,8 +9,9 @@
  * 매 commit / push 전 실행 권장. CLAUDE.md "모든 fix 후 통합 검증" 의무.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pickLatestReport } from './verify-report.mjs';
 
 const NODE = process.execPath;
 const ROOT = process.cwd();
@@ -86,10 +87,13 @@ const checks = [
     name: 'verify-latest-report',
     script: 'scripts/verify-report.mjs',
     args: () => {
+      // 2026-05-31: 이전 .sort().slice(-1) 는 lexicographic 정렬 → afternoon<evening<morning
+      //   순으로 "morning" 을 최신으로 오선택 (evening 무시). pickLatestReport 가 날짜+세션 rank
+      //   기준 정확 선택 (verify-report 와 단일 source of truth).
       const dir = resolve(ROOT, 'reports');
       if (!existsSync(dir)) return null;
-      const files = readdirSync(dir).filter(f => f.startsWith('report-') && f.endsWith('-ko.json')).sort().slice(-1);
-      return files.length ? [resolve(dir, files[0])] : null;
+      const latest = pickLatestReport(dir);
+      return latest ? [latest] : null;
     },
     desc: '최신 보고서 (sector/52w/MA/fact-check)',
     critical: !CI, // CI 는 reports/ 비어있어 skip 정상

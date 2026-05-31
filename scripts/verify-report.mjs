@@ -5,6 +5,22 @@
 // CLI 호환 유지 (console.log) + verifyReport(file, opts) 함수 export.
 import fs from 'node:fs';
 
+// 2026-05-31: 최신 보고서 자동 선택. 이전엔 default 가 'report-2026-05-30-morning-ko.json'
+//   하드코딩 → verify-all / cron verify-loop 가 며칠째 stale 보고서만 검증 (silent 사각지대).
+//   파일명 report-YYYY-MM-DD-{morning|afternoon|evening}-ko.json 의 날짜+세션 순으로 최신 선택.
+const SESSION_RANK = { morning: 0, afternoon: 1, evening: 2 };
+export function pickLatestReport(dir = 'reports') {
+  let files;
+  try { files = fs.readdirSync(dir); } catch { return null; }
+  const matched = files
+    .map(f => f.match(/^report-(\d{4}-\d{2}-\d{2})-(morning|afternoon|evening)-[a-z-]+\.json$/i))
+    .filter(Boolean)
+    .map(m => ({ file: `${dir}/${m[0]}`, date: m[1], rank: SESSION_RANK[m[2].toLowerCase()] ?? -1 }));
+  if (!matched.length) return null;
+  matched.sort((a, b) => (a.date === b.date ? b.rank - a.rank : b.date.localeCompare(a.date)));
+  return matched[0].file;
+}
+
 // CANDIDATE_TICKERS meta lookup (LLM sector 환각 cross-reference 용)
 let CANDIDATE_META = {};
 try {
@@ -13,7 +29,8 @@ try {
 } catch { /* skip */ }
 
 // sector → 금지 키워드 (한글). semiconductors/it 회사에 "건설", financials 에 "반도체" 등.
-const SECTOR_FORBID = {
+// 2026-05-31: export — generate-report-local 의 rationale strip 과 단일 source of truth.
+export const SECTOR_FORBID = {
   technology:               ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '의류', '식품'],
   semiconductor:            ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '의류', '식품'],
   semiconductors:           ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '의류', '식품'],
@@ -189,7 +206,12 @@ export function verifyReport(file, { silent = false } = {}) {
 const argv1 = (process.argv[1] ?? '').replace(/\\/g, '/').toLowerCase();
 const isCLI = argv1.endsWith('/verify-report.mjs') || argv1.endsWith('verify-report.mjs');
 if (isCLI) {
-  const file = process.argv[2] || 'reports/report-2026-05-30-morning-ko.json';
+  const file = process.argv[2] || pickLatestReport();
+  if (!file) {
+    console.log('\n❌ FAIL — reports/ 에서 report-*.json 을 찾지 못함 (검증 대상 없음).');
+    process.exit(1);
+  }
+  console.log(`검증 대상: ${file}`);
   const { defects } = verifyReport(file);
   // verify-all.mjs 의 grep ❌/FAIL pattern 이 caller stdout 에 들어가도록 명시.
   if (defects.length > 0) {

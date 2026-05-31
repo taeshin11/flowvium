@@ -1,0 +1,76 @@
+# 2026-05-31 — verify stale-file 버그 + sector meta-renorm (ALNY 결함 #1)
+
+## 발단
+"제일 좋은 방향으로" — 핸드오프 맹신 안 하고 npm run verify 로 실제 상태 grounding 부터.
+verify exit 1 (3 fail). 결함 내용 직접 확인 중 검증 코드 자체의 사각지대 2건 발견.
+
+## 발견 1 (최고 임팩트) — verify 가 며칠째 stale 보고서를 검증
+- 증상: `npm run verify` 의 verify-latest-report 가 5/30 morning 보고서(14결함)를 검증.
+  실제 최신은 5/31 evening(3결함). 검증이 잘못된 파일을 보고 있었음 = 사각지대.
+- root cause A: `scripts/verify-report.mjs:192` default 파일이
+  `'reports/report-2026-05-30-morning-ko.json'` 하드코딩 → 인자 없이 호출되면 항상 그 파일.
+- root cause B (진짜 원흉): `scripts/verify-all.mjs:91`
+  `readdirSync(...).filter(...).sort().slice(-1)` — lexicographic 정렬로
+  afternoon < evening < morning → "morning" 을 최신으로 오선택. evening 무시.
+  verify-all 이 이 잘못된 파일을 명시적 인자로 verify-report 에 넘겨 default fix 무력화.
+- fix:
+  - verify-report.mjs: `pickLatestReport()` 추가 (파일명 날짜 + 세션 rank{morning<afternoon<evening}
+    정렬) + export. default 를 pickLatestReport() 로 교체 + "검증 대상:" 로그.
+  - verify-all.mjs: line 91 자체 정렬 제거, `import { pickLatestReport }` 단일 source of truth.
+    미사용 readdirSync import 제거.
+- 검증: pickLatestReport('reports') → report-2026-05-31-evening-ko.json (양쪽 동일).
+  verify-all 의 verify-latest-report err 7 → 4 (이제 evening 정확 검증).
+
+## 발견 2 — ALNY sector "Pharma-biotech" 환각 (잔여결함 #1)
+- 증상: verify-report 가 ALNY sector="Pharma-biotech" → 정답 "pharma-biotech" (case mismatch).
+  verify-report:104 는 case-sensitive 비교(p.sector === meta.sector)라 flag.
+- root cause: ALNY 는 rotation/boost pool 픽(enforceRotation, line 1924~).
+  line 1927 `sectorTag.charAt(0).toUpperCase()+slice(1)` 가 "pharma-biotech"→"Pharma-biotech".
+  enforceRotation 은 line 5757 에서 호출 = postProcessPortfolio(4934)의 meta override 이후라
+  rotation 주입 종목은 meta override 를 영영 못 받음.
+- fix (2중):
+  - Fix 1 (line 1927): `CANDIDATE_META[boost.ticker]?.sector ?? (isFromPool? sectorTag.toLowerCase() : 'technology')`
+    — meta canonical 직접 사용.
+  - Fix 2 (line 5760 직후): enforceRotation/buildLadders 후 finalReport.portfolio sector 를
+    meta canonical 로 재정규화하는 방어 패스 (미래 어떤 codepath 가 postProcess 뒤 주입해도 catch).
+- 검증: 기존 evening 보고서 + 실제 meta 로 Fix 2 loop 시뮬 → sector_mismatch 0건.
+  유일 mismatch 였던 ALNY 해소, 나머지 10종목 이미 meta 일치. (TSLA meta=Unknown → skip 정상)
+- smoke test: node --check 2파일 OK + generate-report-local 30s 실행(startup~데이터수집 단계
+  TypeError 없음 확인).
+
+## 회귀 점검 (전체 verify 재실행)
+- 내 변경으로 인한 신규 회귀 0건.
+- 남은 fail 전부 알려진 잔여결함:
+  - audit-coverage 15err = BRK.B/TSM company-financials 404(#4 dot-route) +
+    portfolio↔snapshot mismatch(#6) + company-news/stock-price/price-history 42%(#5 KR Naver/.KS) +
+    만성 DB NULL gap(quality_score, earnings detail 등)
+  - audit-data-sources 4err = Yahoo v7 401(deprecated, v8 사용중) + CNN F&G 418 (critical:0 외부차단)
+  - verify-latest-report 4err = ALNY(code fix 적용됨, 다음 cron 해소) + 035420 "건설" 키워드(#3 미fix)
+
+## 발견 3 — 035420.KS "건설" 금지키워드 (잔여결함 #3) 해결
+- 증상: NAVER(it services) rationale + targetRationale 에 "건설 수요 증가" (sector 환각).
+  verify-report:SECTOR_FORBID['it services'] 에 '건설' 포함 → flag.
+- 함정: rationale 만 strip 하면 targetRationale 에 동일 thesis 가 남아 여전히 flag
+  (LLM 이 같은 문장 두 필드 복사). verify 가 검사하는 모든 텍스트 필드 strip 필요.
+- fix: SECTOR_FORBID 를 verify-report 에서 export → generate-report-local import (단일 source).
+  sector-renorm 루프(line 5760 후)에 clause 단위 strip 추가:
+  - 대상 필드: rationale, entryRationale, targetRationale, fundamentalBasis, riskNote + catalysts(배열).
+  - ' | ' 앞 thesis 만 comma-clause 단위로 금지키워드 포함 clause 제거, 기술데이터 suffix 보존.
+  - thesis 전부 제거되면 '기술적 신호 기반 진입' fallback.
+- 검증: 기존 evening 보고서에 시뮬 → 035420 rationale "기술적 돌파 | <기술>",
+  targetRationale "기술적 돌파", sector-keyword mismatch 0건.
+- smoke test: node --check OK + generate-report-local 18s startup TypeError 없음 (신규 import 정상).
+
+## 남은 작업 (다음)
+- #4 BRK.B/TSM Next.js dot-route 404 (company-financials)
+- #5 KR company-news Vercel 차단 / #6 stock-price .KS 미지원
+- 만성 DB NULL gap (quality_score, earnings detail) — 별도
+
+## 결과 (3 fix 후)
+- ALNY sector + 035420 keyword 둘 다 code fix 적용 → 다음 cron(07:00 KST)부터 evening 결함 0 예상.
+- verify-latest-report 가 이제 evening(실제 최신) 정확 검증 (이전 morning 오선택).
+
+## 변경 파일
+- scripts/verify-report.mjs (pickLatestReport 추가/export, default 교체)
+- scripts/verify-all.mjs (pickLatestReport import, line 91 버그 제거)
+- scripts/generate-report-local.mjs (line 1927 meta sector, line 5760 후 renorm 패스)
