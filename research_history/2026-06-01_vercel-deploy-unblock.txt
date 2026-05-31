@@ -1,0 +1,40 @@
+# 2026-06-01 — production 2일 미배포 복구 (Hobby cron 한도 위반)
+
+## 발단
+BRK.B/TSM company-financials fix 후 production 이 옛 코드 서빙 → vercel ls 확인 →
+최신 배포 전부 2d 전, 오늘 배포 항목 0건. ae04cb7(5/30) + 오늘 push 4건 전부 미반영.
+
+## root cause — Hobby cron 한도 위반으로 모든 배포 실패
+vercel --prod 수동 배포 시도 → 에러:
+  "Hobby accounts are limited to daily cron jobs. This cron expression
+   (30 5,11,17,23 * * *) would run more than once per day."
+- vercel.json 의 /api/cron/refresh-news-cascade 가 `30 5,11,17,23 * * *` (6h마다 4회)
+  = 단일 표현식 하루 4회 → Hobby(무료) 플랜 "표현식당 하루 1회" 위반.
+- ec7213c "news-translate cron 매 6h" 가 추가한 것으로 추정. 이후 모든 git-trigger
+  배포가 검증 단계에서 실패 → 2일째 production 정체 (git 연동 끊김 아님).
+- 23 cron 중 위반은 이 1건뿐 (나머지는 단일-일일; update-all 3회/일도 3개 별도 entry라 OK).
+
+## fix
+1. vercel.json: 위반 entry 를 4개 단일-일일 entry 로 분할
+   (30 5 / 30 11 / 30 17 / 30 23 * * *) — 6h 빈도 유지 + Hobby 호환. crons 23→26, 위반 0.
+2. .vercelignore 신설 — vercel --prod 1차 시도가 .tabbyapi(14B 모델)/.tabby-venv(torch)
+   까지 업로드 → "File size > 2 GiB" 실패. .vercelignore 없으면 .gitignore 일관 적용 안 됨.
+   제외: .tabbyapi/ .tabby-venv/ logs/ reports/ research_history/ data/*.db .next/
+   node_modules/ .claude/ *.log. (data/*.json 은 유지 — candidate-tickers 등 빌드 입력)
+
+## 결과 — 수동 배포 성공 + 검증
+- vercel --prod → readyState READY, production. dpl_HAJKfR3T4Emsd7NoNboUJb34xUCU.
+- production 검증:
+  - BRK.B → 200 "BRK-B" Berkshire \$371.44B (ae04cb7 정규화 배포됨)
+  - TSM   → 200 Taiwan Semiconductor FY24 \$88.27B (IFRS/20-F fix 배포됨)
+  - AAPL  → 200 (대조군 불변)
+- 그동안 미배포였던 모든 fix(sector/CI verify/BRK.B/TSM)가 이번 배포로 live.
+
+## git 자동배포 복구
+- vercel.json 위반 제거를 커밋/push → 이후 git-trigger 배포 정상화 예상.
+- 추가 안전: scripts/audit-data-sources 또는 verify 에 Hobby cron 한도 사전 체크 추가 고려
+  (check-cron-cost.mjs 가 비용은 보지만 "표현식당 1회/일" 위반은 안 봄).
+
+## 변경 파일
+- vercel.json (refresh-news-cascade cron 4분할)
+- .vercelignore (신설)

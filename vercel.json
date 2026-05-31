@@ -165,7 +165,19 @@
     },
     {
       "path": "/api/cron/refresh-news-cascade",
-      "schedule": "30 5,11,17,23 * * *"
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-news-cascade",
+      "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-news-cascade",
+      "schedule": "30 17 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-news-cascade",
+      "schedule": "30 23 * * *"
     }
   ]
 }
