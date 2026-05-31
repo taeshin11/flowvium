@@ -463,15 +463,22 @@ try {
       console.log(`   ${r.defect_type.padEnd(28)} ${r.c}건 / avg_injected ${r.avg_injected.toFixed(1)}`);
     }
     // 학습 효과: 같은 (ticker,type) 의 detect 가 inject 후 줄어드는지
+    // 2026-05-31: severity escalate — 3회 ⚠️ / 5회 ❌ critical (data source 결함 의심, 코드 fix 필요)
     const repeat = db.prepare(`
       SELECT ticker, defect_type, COUNT(*) repeat_count
       FROM hallucination_history
       WHERE detected_at >= datetime('now','-7 days') AND ticker IS NOT NULL
-      GROUP BY ticker, defect_type HAVING repeat_count >= 3 ORDER BY repeat_count DESC LIMIT 5
+      GROUP BY ticker, defect_type HAVING repeat_count >= 3 ORDER BY repeat_count DESC LIMIT 10
     `).all();
-    if (repeat.length > 0) {
-      warn(`반복 환각 (3+ 회) — anti-pattern inject 효과 약함: ${repeat.map(r => `${r.ticker}/${r.defect_type}=${r.repeat_count}`).join(', ')}`);
-    } else {
+    const critical = repeat.filter(r => r.repeat_count >= 5);
+    const moderate = repeat.filter(r => r.repeat_count >= 3 && r.repeat_count < 5);
+    if (critical.length > 0) {
+      err(`반복 환각 ≥5회 (${critical.length}건) — anti-pattern 학습 실패, 코드 fix 필수: ${critical.map(r => `${r.ticker}/${r.defect_type}=${r.repeat_count}`).join(', ')}`);
+    }
+    if (moderate.length > 0) {
+      warn(`반복 환각 3-4회 (${moderate.length}건) — 추세 관찰: ${moderate.map(r => `${r.ticker}/${r.defect_type}=${r.repeat_count}`).join(', ')}`);
+    }
+    if (critical.length === 0 && moderate.length === 0) {
       ok(`반복 환각 ≥3회 0건 — F26 anti-pattern inject 학습 효과 ✓`);
     }
   }

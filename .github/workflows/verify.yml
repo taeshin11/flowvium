@@ -1,0 +1,47 @@
+name: Verify
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    # 매일 KST 12:00 (UTC 03:00) — cron 결과 검증 + 학습 추세 추적
+    - cron: '0 3 * * *'
+
+jobs:
+  verify:
+    name: Verify-all (6 검증 병렬)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run verify-all
+        id: verify
+        run: |
+          set -o pipefail
+          node scripts/verify-all.mjs 2>&1 | tee verify-output.txt
+        continue-on-error: true
+
+      - name: Upload verify output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-output
+          path: verify-output.txt
+          retention-days: 14
+
+      - name: Fail if critical
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo "❌ verify-all FAIL — 결함 commit 차단."
+          echo "→ verify-output artifact 확인 + 로컬 'npm run verify' 로 재현."
+          exit 1

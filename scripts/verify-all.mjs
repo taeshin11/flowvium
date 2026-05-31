@@ -29,18 +29,33 @@ function runChild(node, script, args) {
   });
 }
 
+// 2026-05-31: 각 check 가 cover 하는 dimension 명시 — 매트릭스 자동 생성
 const checks = [
   {
     name: 'audit-data-sources',
     script: 'scripts/audit-data-sources.mjs',
     desc: '외부 source 헬스 (Stooq/Yahoo/SEC/FRED/CNN)',
     critical: true,
+    dimensions: ['외부 source 헬스 (Stooq/Yahoo/SEC/FRED/CNN)'],
   },
   {
     name: 'audit-coverage',
     script: 'scripts/audit-coverage.mjs',
     desc: 'DB NULL + endpoint manifest + Karpathy 학습 효과 [10 Probe]',
     critical: true,
+    dimensions: [
+      'DB NULL 컬럼 (모든 테이블 자동)',
+      'endpoint manifest (page 의존성)',
+      'domain archive 적재율',
+      'HTTP status 4XX/5XX 분포',
+      'portfolio↔snapshot 정합',
+      'buy/sell rule 7카테고리',
+      'buy_candidates Karpathy source',
+      'entryZone gap (NE 환각)',
+      'KR ticker 풀 cross-check',
+      'Karpathy 학습 효과 (재발 추세 + 5회 escalate)',
+      'company API 깊이 sample',
+    ],
   },
   {
     name: 'audit-company-pages',
@@ -48,18 +63,21 @@ const checks = [
     args: ['20'],
     desc: '1,210 종목 × 9 endpoint sample',
     critical: false,
+    dimensions: ['1,210 종목 × 9 endpoint body 검증 (validator 정확)'],
   },
   {
     name: 'check-static-fallbacks',
     script: 'scripts/check-static-fallbacks.mjs',
     desc: '정적 데이터 폴백 (실시간 위장)',
     critical: true,
+    dimensions: ['정적 데이터 폴백 (실시간 위장 차단)'],
   },
   {
     name: 'check-cron-cost',
     script: 'scripts/check-cron-cost.mjs',
     desc: 'Vercel cron 비용 폭증',
     critical: false,
+    dimensions: ['Vercel cron 비용'],
   },
   {
     name: 'verify-latest-report',
@@ -72,6 +90,7 @@ const checks = [
     },
     desc: '최신 보고서 (sector/52w/MA/fact-check)',
     critical: true,
+    dimensions: ['LLM 환각 (sector/52w/MA/fact-check/sector-keyword)'],
   },
 ];
 
@@ -128,28 +147,22 @@ for (const r of results) {
   console.log(`| ${icon} ${r.status.padEnd(5)} | ${r.name.padEnd(25)} | ${String(r.exitCode ?? '-').padStart(4)} | ${String(r.errCount ?? '-').padStart(3)} | ${String(r.warnCount ?? '-').padStart(4)} | ${String(r.okCount ?? '-').padStart(3)} | ${(r.durationMs/1000).toFixed(1).padStart(7)}s |`);
 }
 
-// dimension cover 매트릭스 — 각 검증이 어떤 dimension 을 cover 하는지 가시화
-console.log('\n## dimension cover 매트릭스');
-console.log('| dimension                  | cover script               |');
-console.log('|----------------------------|----------------------------|');
-const dimensions = [
-  ['외부 source 헬스 (Stooq/Yahoo/SEC/FRED)', 'audit-data-sources'],
-  ['DB NULL 컬럼 (모든 테이블 자동)', 'audit-coverage Probe [1]'],
-  ['endpoint manifest (page 의존성)', 'audit-coverage Probe [2]'],
-  ['domain archive 적재율', 'audit-coverage Probe [3]'],
-  ['HTTP status 4XX/5XX 분포', 'audit-coverage Probe [3b]'],
-  ['portfolio↔snapshot 정합', 'audit-coverage Probe [3c]'],
-  ['buy/sell rule 7카테고리', 'audit-coverage Probe [5]'],
-  ['buy_candidates Karpathy source', 'audit-coverage Probe [6]'],
-  ['entryZone gap (NE 환각)', 'audit-coverage Probe [7]'],
-  ['KR ticker 풀 cross-check', 'audit-coverage Probe [8]'],
-  ['Karpathy 학습 효과 (재발 추세)', 'audit-coverage Probe [9]'],
-  ['company API 깊이 (9 endpoint × sample)', 'audit-coverage Probe [10] + audit-company-pages'],
-  ['최신 보고서 sector/52w/MA/fact-check', 'verify-report (silent false pass 차단)'],
-  ['정적 데이터 폴백 (실시간 위장)', 'check-static-fallbacks'],
-  ['Vercel cron 비용', 'check-cron-cost'],
-];
-for (const [dim, src] of dimensions) console.log(`| ${dim.padEnd(43).slice(0, 43)} | ${src.padEnd(43).slice(0, 43)} |`);
+// 2026-05-31: dimension 매트릭스 자동 추출 — 각 check 의 dimensions field 에서 collect.
+//   script 추가/수정 시 매트릭스 자동 따라옴. hardcoded 사각지대 차단.
+console.log('\n## dimension cover 매트릭스 (자동 추출)');
+console.log('| dimension                                         | cover script               | status |');
+console.log('|---------------------------------------------------|----------------------------|--------|');
+const statusByName = Object.fromEntries(results.map(r => [r.name, r.status]));
+for (const c of checks) {
+  for (const dim of (c.dimensions ?? [])) {
+    const s = statusByName[c.name] ?? '-';
+    const icon = s === 'pass' ? '✅' : s === 'warn' ? '⚠️ ' : s === 'fail' ? '❌' : '⏭️ ';
+    console.log(`| ${dim.padEnd(49).slice(0, 49)} | ${c.name.padEnd(26).slice(0, 26)} | ${icon} ${s.padEnd(4)} |`);
+  }
+}
+const totalDims = checks.reduce((s, c) => s + (c.dimensions?.length ?? 0), 0);
+const passDims = checks.filter(c => statusByName[c.name] === 'pass').reduce((s, c) => s + (c.dimensions?.length ?? 0), 0);
+console.log(`\ncover: ${passDims}/${totalDims} dimensions pass (${(passDims/totalDims*100).toFixed(0)}%)`);
 
 console.log('\n→ 결함 상세는 각 script 직접 실행:');
 for (const r of results.filter(x => x.status !== 'pass' && x.status !== 'skip')) {
