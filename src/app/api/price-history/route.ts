@@ -93,7 +93,9 @@ async function fetchNasdaqDaily(ticker: string, days: number, assetclass: string
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const ticker = (url.searchParams.get('ticker') ?? 'SPY').toUpperCase().replace(/[^A-Z0-9.^-]/g, '').slice(0, 8);
+  // 2026-06-01: slice(0,8) 가 "005930.KS"(9자) → "005930.K" 절단 → Yahoo 잘못된 심볼 → 502/no-data.
+  //   Yahoo v8 chart 는 KR .KS/.KQ 정상 지원(currency KRW). slice 12 로 KR ticker 수용.
+  const ticker = (url.searchParams.get('ticker') ?? 'SPY').toUpperCase().replace(/[^A-Z0-9.^-]/g, '').slice(0, 12);
   const days = Math.max(2, Math.min(parseInt(url.searchParams.get('days') ?? '30', 10) || 30, 365));
   if (!ticker) return NextResponse.json({ error: 'ticker required' }, { status: 400 });
 
