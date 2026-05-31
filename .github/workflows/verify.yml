@@ -24,8 +24,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Run verify-all
+      # 2026-05-31: CI 환경에 data/flowvium.db + reports/ 없음 → schema init + dir 생성
+      - name: Init DB schema + reports dir
+        run: |
+          mkdir -p data reports/verify
+          node -e "import('./scripts/lib/db.mjs').then(m => { const db = m.openDb(); console.log('DB schema initialized'); db.close(); })"
+
+      - name: Run verify-all (외부 의존 + 코드 audit 만)
         id: verify
+        env:
+          # CI 모드 — DB 비어있음, 보고서 없음. critical 결함만 fail 처리.
+          VERIFY_CI: '1'
         run: |
           set -o pipefail
           node scripts/verify-all.mjs 2>&1 | tee verify-output.txt

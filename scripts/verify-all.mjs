@@ -14,6 +14,8 @@ import { resolve } from 'node:path';
 
 const NODE = process.execPath;
 const ROOT = process.cwd();
+// 2026-05-31: CI 환경 — DB 비어있고 reports/ 없음. 외부 의존 audit 만 critical.
+const CI = process.env.VERIFY_CI === '1' || process.env.CI === 'true';
 
 // 2026-05-31: 병렬 spawn — 6 script 동시 실행. 222s → 90s 기대 (가장 느린 audit-coverage ~140s).
 function runChild(node, script, args) {
@@ -42,7 +44,8 @@ const checks = [
     name: 'audit-coverage',
     script: 'scripts/audit-coverage.mjs',
     desc: 'DB NULL + endpoint manifest + Karpathy 학습 효과 [10 Probe]',
-    critical: true,
+    critical: !CI, // CI 는 DB 비어있어 NULL audit fail 정상 — non-critical
+
     dimensions: [
       'DB NULL 컬럼 (모든 테이블 자동)',
       'endpoint manifest (page 의존성)',
@@ -60,7 +63,7 @@ const checks = [
   {
     name: 'audit-company-pages',
     script: 'scripts/audit-company-pages.mjs',
-    args: ['20'],
+    args: CI ? ['8'] : ['20'], // CI 는 sample 8 로 속도 우선
     desc: '1,210 종목 × 9 endpoint sample',
     critical: false,
     dimensions: ['1,210 종목 × 9 endpoint body 검증 (validator 정확)'],
@@ -89,7 +92,7 @@ const checks = [
       return files.length ? [resolve(dir, files[0])] : null;
     },
     desc: '최신 보고서 (sector/52w/MA/fact-check)',
-    critical: true,
+    critical: !CI, // CI 는 reports/ 비어있어 skip 정상
     dimensions: ['LLM 환각 (sector/52w/MA/fact-check/sector-keyword)'],
   },
 ];
