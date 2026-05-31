@@ -1,0 +1,48 @@
+# 2026-06-01 — company-financials 외국 ADR(IFRS/20-F) 지원 (잔여결함 #4 TSM)
+
+## 발단
+"제일 좋은 방향으로" — 잔여결함 #4 (BRK.B/TSM company-financials 404) 착수.
+CLAUDE.md 의무대로 production curl 부터.
+
+## 핸드오프 진단 오류 정정
+핸드오프 #4 = "Next.js dot-route 404". 실제 curl 결과 **틀림**:
+- /api/company-financials/BRK.B → HTTP 404 {"error":"not-found","ticker":"BRK.B"}
+  → 라우트는 정상 작동(JSON 반환), dot 도 [ticker] 가 잘 매칭. 라우팅 문제 아님.
+- 원인 2갈래:
+  (A) BRK.B: ae04cb7(5/30) 에서 이미 BRK.B→BRK-B 정규화 fix 됨(line 28).
+      /api/.../BRK-B 직접 호출 → HTTP 200 (Berkshire \$371.44B). 코드 정상.
+      production /BRK.B 가 여전히 dot 유지 응답 → **ae04cb7 미배포** (Vercel deploy lag).
+      코드 수정 불필요 — 다음 배포 시 해결.
+  (B) TSM: SEC 에 ticker 존재(CIK 1046179) 하나 외국 발행사 → **20-F/IFRS** 보고.
+      sec-financials.ts 가 us-gaap/10-K 만 봐서 revenue 0건 → null → 404.
+
+## fix — sec-financials.ts 에 IFRS/20-F fallback
+- bestFYEntry/lastNFYEntries/buildQuarterlyRevenue/getValForFY 를 FactCfg(ns/annualForm/
+  quarterForm/concepts) 파라미터화. 기본값 GAAP_CFG → **기존 US 경로 byte-identical**.
+- fetchLiveFinancials: us-gaap/10-K 로 revenue null 이면 ifrs-full/20-F 로 재시도(IFRS_CFG).
+  IFRS concept 이름은 TSM 20-F companyfacts 로 사전 검증:
+    Revenue / ProfitLossFromOperatingActivities / ProfitLoss / Assets / Liabilities /
+    EquityAttributableToOwnersOfParent / CashFlowsFromUsedInOperatingActivities (전부 USD/20-F/FY 8년).
+- 안전성: IFRS fallback 은 us-gaap 가 null(=오늘 이미 404) 일 때만 발동 →
+  기존 ticker 회귀 불가능. 최악의 경우도 여전히 404 (no regression).
+- source 문자열 'SEC EDGAR XBRL 10-K' → `XBRL ${cfg.annualForm}` (10-K/20-F 구분).
+
+## 검증
+- TS: npx tsc --noEmit 에러 0.
+- 실데이터 replicate (TSM/AAPL companyfacts 직접 fetch + 새 로직 모사):
+  - AAPL(GAAP) FY2025 \$416.2B opMargin 32% ROE 151.9% — production 응답 일치, 불변.
+  - TSM(IFRS) FY2024 \$88.3B opMargin 45.7% ROE 27.3% 순이익 \$35.3B — 현실적.
+- e2e: 라우트는 deployed Next.js — 배포 후 curl /api/company-financials/TSM 로 최종 확인 필요.
+
+## 미해결 (배포 의존)
+- BRK.B: 코드 fix(ae04cb7) 이미 master, 미배포 상태. 이번 커밋이 Vercel 재빌드 트리거 →
+  BRK.B(BRK-B 정규화) + TSM(IFRS) 둘 다 다음 배포 때 live 예상.
+- 배포 후 audit Probe [3b] 의 company-financials 4XX 비율 재확인.
+
+## md 갱신
+- METRICS.md #152 소스 → "10-K + 20-F/IFRS (외국 ADR 예: TSM)"
+- METRICS.md E21 → "미국 10-K + 외국 ADR 20-F/IFRS"
+
+## 변경 파일
+- src/lib/sec-financials.ts (FactCfg 파라미터화 + IFRS fallback)
+- METRICS.md (소스 컬럼)

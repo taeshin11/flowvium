@@ -119,15 +119,71 @@ export function formatUsd(v: number | null | undefined): string {
 
 interface USDEntry { val: number; fy: number; fp: string; form: string; end: string; filed: string; }
 
-/** Pick best entry for a concept across all possible GAAP names.
- *  Collects latest FY 10-K entry from each candidate name and returns the most recent. */
-function bestFYEntry(facts: Record<string, unknown>, names: string[]): USDEntry | null {
+// 2026-06-01: 외국 발행사(ADR) 지원 — TSM 등은 10-K/us-gaap 아닌 20-F/ifrs-full 로 보고.
+//   us-gaap/10-K 로 revenue 못 찾으면 ifrs-full/20-F 로 fallback (기존 US 종목 경로는 불변).
+interface FactCfg {
+  ns: string;          // XBRL taxonomy namespace
+  annualForm: string;  // 연차보고서 form
+  quarterForm: string; // 분기보고서 form
+  concepts: {
+    revenue: string[]; opIncome: string[]; netIncome: string[]; eps: string[];
+    assets: string[]; liabilities: string[]; equity: string[];
+    opCF: string[]; invCF: string[]; finCF: string[];
+    rd: string[]; capex: string[]; buyback: string[]; dividends: string[];
+  };
+}
+
+const GAAP_CFG: FactCfg = {
+  ns: 'us-gaap', annualForm: '10-K', quarterForm: '10-Q',
+  concepts: {
+    // RevenuesNetOfInterestExpense covers banks (JPM, BAC, C, WFC) which don't
+    // report under the standard Revenues concept for 10-Q quarterly filings.
+    revenue: ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'SalesRevenueNet', 'RevenueFromContractWithCustomerIncludingAssessedTax', 'RevenuesNetOfInterestExpense'],
+    opIncome: ['OperatingIncomeLoss'],
+    netIncome: ['NetIncomeLoss'],
+    eps: ['EarningsPerShareDiluted'],
+    assets: ['Assets'],
+    liabilities: ['Liabilities'],
+    equity: ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'],
+    opCF: ['NetCashProvidedByUsedInOperatingActivities'],
+    invCF: ['NetCashProvidedByUsedInInvestingActivities'],
+    finCF: ['NetCashProvidedByUsedInFinancingActivities'],
+    rd: ['ResearchAndDevelopmentExpense'],
+    capex: ['PaymentsToAcquirePropertyPlantAndEquipment'],
+    buyback: ['PaymentsForRepurchaseOfCommonStock'],
+    dividends: ['PaymentsOfDividends'],
+  },
+};
+
+// IFRS concept 이름은 TSM(CIK 1046179) 20-F companyfacts 로 검증 (2026-06-01).
+const IFRS_CFG: FactCfg = {
+  ns: 'ifrs-full', annualForm: '20-F', quarterForm: '6-K',
+  concepts: {
+    revenue: ['Revenue', 'RevenueFromContractsWithCustomers'],
+    opIncome: ['ProfitLossFromOperatingActivities', 'OperatingProfitLoss'],
+    netIncome: ['ProfitLoss'],
+    eps: ['DilutedEarningsLossPerShare'],
+    assets: ['Assets'],
+    liabilities: ['Liabilities'],
+    equity: ['EquityAttributableToOwnersOfParent', 'Equity'],
+    opCF: ['CashFlowsFromUsedInOperatingActivities'],
+    invCF: ['CashFlowsFromUsedInInvestingActivities'],
+    finCF: ['CashFlowsFromUsedInFinancingActivities'],
+    rd: ['ResearchAndDevelopmentExpense'],
+    capex: ['PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities'],
+    buyback: ['PaymentsForRepurchaseOfEntitysOwnSharesClassifiedAsFinancingActivities'],
+    dividends: ['DividendsPaidClassifiedAsFinancingActivities'],
+  },
+};
+
+/** Pick best entry for a concept across all possible names (default GAAP/10-K). */
+function bestFYEntry(facts: Record<string, unknown>, names: string[], cfg: FactCfg = GAAP_CFG): USDEntry | null {
   let best: USDEntry | null = null;
   for (const name of names) {
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-      ?.['us-gaap']?.[name]?.units?.USD;
+      ?.[cfg.ns]?.[name]?.units?.USD;
     if (!Array.isArray(entries) || !entries.length) continue;
-    const fyEntries = entries.filter(e => e.form === '10-K' && e.fp === 'FY');
+    const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY');
     if (!fyEntries.length) continue;
     fyEntries.sort((a, b) => b.fy - a.fy || b.end.localeCompare(a.end));
     const candidate = fyEntries[0];
@@ -138,14 +194,14 @@ function bestFYEntry(facts: Record<string, unknown>, names: string[]): USDEntry 
   return best;
 }
 
-/** Collect last N fiscal years of annual 10-K entries for a concept. */
-function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: number): Map<number, USDEntry> {
+/** Collect last N fiscal years of annual entries for a concept (default GAAP/10-K). */
+function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: number, cfg: FactCfg = GAAP_CFG): Map<number, USDEntry> {
   const byFY = new Map<number, USDEntry>();
   for (const name of names) {
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-      ?.['us-gaap']?.[name]?.units?.USD;
+      ?.[cfg.ns]?.[name]?.units?.USD;
     if (!Array.isArray(entries)) continue;
-    const fyEntries = entries.filter(e => e.form === '10-K' && e.fp === 'FY');
+    const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY');
     for (const e of fyEntries) {
       const existing = byFY.get(e.fy);
       if (!existing || e.end > existing.end) byFY.set(e.fy, e);
@@ -162,17 +218,17 @@ function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: numb
  *  True quarterly = YTD_Q - YTD_Q_prev  (e.g. Q2 = YTD_Q2 - YTD_Q1).
  *  Q4 is derived: Annual (10-K FY) - YTD_Q3.
  */
-function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[]): QuarterlyRevenue[] {
+function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[], cfg: FactCfg = GAAP_CFG): QuarterlyRevenue[] {
   // key = `${fy}:${fp}` where fp ∈ Q1|Q2|Q3|FY
   const ytdMap = new Map<string, USDEntry>();
 
   for (const name of names) {
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-      ?.['us-gaap']?.[name]?.units?.USD;
+      ?.[cfg.ns]?.[name]?.units?.USD;
     if (!Array.isArray(entries)) continue;
     for (const e of entries) {
-      const isQ = e.form === '10-Q' && ['Q1', 'Q2', 'Q3'].includes(e.fp);
-      const isFY = e.form === '10-K' && e.fp === 'FY';
+      const isQ = e.form === cfg.quarterForm && ['Q1', 'Q2', 'Q3'].includes(e.fp);
+      const isFY = e.form === cfg.annualForm && e.fp === 'FY';
       if (!isQ && !isFY) continue;
       const key = `${e.fy}:${e.fp}`;
       const existing = ytdMap.get(key);
@@ -361,41 +417,39 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     const facts = json.facts ?? {};
 
     // Revenue — pick most recent across all concept variants.
-    // RevenuesNetOfInterestExpense covers banks (JPM, BAC, C, WFC) which don't
-    // report under the standard Revenues concept for 10-Q quarterly filings.
-    const REV_CONCEPTS = [
-      'Revenues',
-      'RevenueFromContractWithCustomerExcludingAssessedTax',
-      'SalesRevenueNet',
-      'RevenueFromContractWithCustomerIncludingAssessedTax',
-      'RevenuesNetOfInterestExpense',
-    ];
-    const revFYs = lastNFYEntries(facts, REV_CONCEPTS, 5);
-    const latestRevEntry = bestFYEntry(facts, REV_CONCEPTS);
-    const quarterlyRevenue = buildQuarterlyRevenue(facts, REV_CONCEPTS);
+    // 1차: us-gaap / 10-K (US 종목). 2차: ifrs-full / 20-F (외국 ADR, 예: TSM).
+    let cfg = GAAP_CFG;
+    let revFYs = lastNFYEntries(facts, cfg.concepts.revenue, 5, cfg);
+    let latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg);
+    if (!latestRevEntry) {
+      // foreign private issuer fallback — IFRS taxonomy + 20-F filings
+      cfg = IFRS_CFG;
+      revFYs = lastNFYEntries(facts, cfg.concepts.revenue, 5, cfg);
+      latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg);
+      if (latestRevEntry) logger.info('sec.financials', 'ifrs_fallback', { ticker });
+    }
+    const quarterlyRevenue = buildQuarterlyRevenue(facts, cfg.concepts.revenue, cfg);
 
     if (!latestRevEntry) {
       logger.warn('sec.financials', 'no_revenue_entry', { ticker, durationMs: Date.now() - start });
       return null;
     }
 
+    const C = cfg.concepts;
     // All other concepts — latest FY entry only (we'll align to revFYs below)
-    const opIncEntry = bestFYEntry(facts, ['OperatingIncomeLoss']);
-    const netIncEntry = bestFYEntry(facts, ['NetIncomeLoss']);
-    const epsEntry = bestFYEntry(facts, ['EarningsPerShareDiluted']);
-    const assetsEntry = bestFYEntry(facts, ['Assets']);
-    const liabEntry = bestFYEntry(facts, ['Liabilities']);
-    const equityEntry = bestFYEntry(facts, [
-      'StockholdersEquity',
-      'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
-    ]);
-    const opCFEntry = bestFYEntry(facts, ['NetCashProvidedByUsedInOperatingActivities']);
-    const invCFEntry = bestFYEntry(facts, ['NetCashProvidedByUsedInInvestingActivities']);
-    const finCFEntry = bestFYEntry(facts, ['NetCashProvidedByUsedInFinancingActivities']);
-    const rdEntry = bestFYEntry(facts, ['ResearchAndDevelopmentExpense']);
-    const capexEntry = bestFYEntry(facts, ['PaymentsToAcquirePropertyPlantAndEquipment']);
-    const buybackEntry = bestFYEntry(facts, ['PaymentsForRepurchaseOfCommonStock']);
-    const divEntry = bestFYEntry(facts, ['PaymentsOfDividends']);
+    const opIncEntry = bestFYEntry(facts, C.opIncome, cfg);
+    const netIncEntry = bestFYEntry(facts, C.netIncome, cfg);
+    const epsEntry = bestFYEntry(facts, C.eps, cfg);
+    const assetsEntry = bestFYEntry(facts, C.assets, cfg);
+    const liabEntry = bestFYEntry(facts, C.liabilities, cfg);
+    const equityEntry = bestFYEntry(facts, C.equity, cfg);
+    const opCFEntry = bestFYEntry(facts, C.opCF, cfg);
+    const invCFEntry = bestFYEntry(facts, C.invCF, cfg);
+    const finCFEntry = bestFYEntry(facts, C.finCF, cfg);
+    const rdEntry = bestFYEntry(facts, C.rd, cfg);
+    const capexEntry = bestFYEntry(facts, C.capex, cfg);
+    const buybackEntry = bestFYEntry(facts, C.buyback, cfg);
+    const divEntry = bestFYEntry(facts, C.dividends, cfg);
 
     // Build annual time series for last 5 years
     const targetFYs = Array.from(revFYs.keys()).sort((a, b) => b - a);
@@ -403,9 +457,9 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     const getValForFY = (concepts: string[], fy: number): number | null => {
       for (const name of concepts) {
         const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-          ?.['us-gaap']?.[name]?.units?.USD;
+          ?.[cfg.ns]?.[name]?.units?.USD;
         if (!Array.isArray(entries)) continue;
-        const fyEntries = entries.filter(e => e.form === '10-K' && e.fp === 'FY' && e.fy === fy);
+        const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY' && e.fy === fy);
         if (!fyEntries.length) continue;
         fyEntries.sort((a, b) => b.end.localeCompare(a.end));
         return fyEntries[0].val;
@@ -414,12 +468,12 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     };
 
     const annuals: AnnualFinancials[] = targetFYs.map(fy => {
-      const rev = getValForFY(REV_CONCEPTS, fy);
-      const opInc = getValForFY(['OperatingIncomeLoss'], fy);
-      const netInc = getValForFY(['NetIncomeLoss'], fy);
-      const equity = getValForFY(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], fy);
-      const assets = getValForFY(['Assets'], fy);
-      const liab = getValForFY(['Liabilities'], fy);
+      const rev = getValForFY(C.revenue, fy);
+      const opInc = getValForFY(C.opIncome, fy);
+      const netInc = getValForFY(C.netIncome, fy);
+      const equity = getValForFY(C.equity, fy);
+      const assets = getValForFY(C.assets, fy);
+      const liab = getValForFY(C.liabilities, fy);
       const periodEnd = revFYs.get(fy)?.end ?? '';
 
       const opMargin = rev && opInc != null ? (opInc / rev) * 100 : null;
@@ -433,17 +487,17 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
         revenueUSD: rev,
         operatingIncomeUSD: opInc,
         netIncomeUSD: netInc,
-        epsDiluted: getValForFY(['EarningsPerShareDiluted'], fy),
+        epsDiluted: getValForFY(C.eps, fy),
         totalAssetsUSD: assets,
         totalLiabilitiesUSD: liab,
         equityUSD: equity,
-        operatingCFUSD: getValForFY(['NetCashProvidedByUsedInOperatingActivities'], fy),
-        investingCFUSD: getValForFY(['NetCashProvidedByUsedInInvestingActivities'], fy),
-        financingCFUSD: getValForFY(['NetCashProvidedByUsedInFinancingActivities'], fy),
-        rdExpenseUSD: getValForFY(['ResearchAndDevelopmentExpense'], fy),
-        capexUSD: getValForFY(['PaymentsToAcquirePropertyPlantAndEquipment'], fy),
-        buybacksUSD: getValForFY(['PaymentsForRepurchaseOfCommonStock'], fy),
-        dividendsUSD: getValForFY(['PaymentsOfDividends'], fy),
+        operatingCFUSD: getValForFY(C.opCF, fy),
+        investingCFUSD: getValForFY(C.invCF, fy),
+        financingCFUSD: getValForFY(C.finCF, fy),
+        rdExpenseUSD: getValForFY(C.rd, fy),
+        capexUSD: getValForFY(C.capex, fy),
+        buybacksUSD: getValForFY(C.buyback, fy),
+        dividendsUSD: getValForFY(C.dividends, fy),
         operatingMarginPct: opMargin != null ? parseFloat(opMargin.toFixed(1)) : null,
         roePct: roe != null ? parseFloat(roe.toFixed(1)) : null,
         roaPct: roa != null ? parseFloat(roa.toFixed(1)) : null,
@@ -483,7 +537,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
       periodEnd: latestRev.end,
       revenueUSD: latestRev.val,
       revenueFormatted: formatUsd(latestRev.val),
-      source: 'SEC EDGAR XBRL 10-K',
+      source: `SEC EDGAR XBRL ${cfg.annualForm}`,
       fetchedAt: new Date().toISOString(),
       annuals,
       latestAnnual,
