@@ -1,0 +1,47 @@
+# 2026-06-01 — 종합 감사 + KR 커버리지 + 검증 인프라 보강
+
+사용자 8개 항목 감사 요청. 검증된 증거 기반 결과 + 실행.
+
+## 감사 결과 (검증 인프라 — "잘 되고 있는지")
+- #6 모든 테이블 NULL 자동 점검: ✅ 작동 (sqlite_master 전체 순회). gap 보강: 행<10 skip
+  테이블 가시화([1]), 80%미만은 통과(설계).
+- #7 endpoint manifest (page 의존성 자동): ⚠️ 하드코딩이었음 → [12] 신설: src 트리에서
+  /api/ 참조 자동 추출(52개) vs 하드코딩 manifest(26개) drift 비교.
+- #8 alias 불일치: ✅ 대체로 정합. [11] 신설: 풀↔meta(1210 완비)↔TICKER_ALIASES(12 풀내),
+  meta stale 34(무해). 이전엔 report-gen 시점만, 독립 probe 없었음.
+
+## 감사 결과 (커버리지 — "1210 다 정확히")
+- 검증은 샘플(audit-coverage [10] 12종목, audit-company-pages 20) — 전수 아님(production 부하).
+- KR 475종목(39%) company 페이지: 뉴스(Naver)·analyst-target·company-kr(DART)은 작동,
+  가격/차트/시총/기본정보 부재였음.
+- 근본: Yahoo v8 가 Vercel datacenter IP 에서 KR 거부 + Finnhub/Twelve KR 미지원.
+- price-history slice(0,8) 가 "005930.KS"→"005930.K" 절단 버그 (별도 fix).
+
+## 실행한 fix (전부 커밋+배포)
+- price-history slice 8→12 (절단 버그) [ce29ace]
+- KR 가격 소스 Naver: stock-price + price-history 에 siseJson fallback [d099de8].
+  production 검증: 005930.KS price 322000 +1.58%, 일별 차트 live. → KR 39% 커버리지 개선.
+- 검증 인프라: [11] alias probe + [12] manifest 자동추출 + NULL skip 가시화 [d0483ad]
+- company 페이지 KR enrich: company-kr(DART) 한글명+재무 + Naver 시세 카드 [fa0bd85].
+  005930 → "삼성전자(주)", 매출 333.6조 YoY+10.9% ROE10.4%. (브라우저 시각 렌더 미검증)
+
+## 이전 보고서 검증
+- 06-01 morning 결함 2건(둘 다 ⚠️ fact-check), sector/keyword 환각 0 → 어제 sector+keyword
+  fix live 작동 확증. 추세 6→2.
+
+## DB 정리
+- cleanup-hallucinations.mjs dry-run: 풀-外 KR 0 / entryZone 환각 0 → 이미 깨끗.
+- 만성 NULL 컬럼(quality_score, earnings op_margin/net_income/pe_ratio, news pub_date/link,
+  asset_flow return_1d, hallucination details_json)은 junk 아닌 **데이터 미적재 gap** —
+  writer 가 소스 부재로 NULL 삽입. audit [1] 이 추적 중. 컬럼별 writer 보강 = 별도 작업.
+- hallucination_history(52w 13/sector 10/ma 5/fact 4/keyword 4)는 Karpathy F26 학습 소스 →
+  삭제 금지 (training data).
+
+## 미완 (go-ahead 필요)
+- 전향적 연구 → 보고서 반영: 전체 report regen (Ollama, 수분, 발간물) → 사용자 확인 후 실행.
+- NULL writer 보강 (quality_score 등 컬럼별).
+- KR market-caps live (시총) / company 페이지 브라우저 시각 검증.
+
+## 변경 파일
+- src/app/api/price-history/route.ts, src/app/api/stock-price/[ticker]/route.ts
+- scripts/audit-coverage.mjs, src/components/pages/CompanyPage.tsx, METRICS.md
