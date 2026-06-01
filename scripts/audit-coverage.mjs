@@ -8,7 +8,9 @@
  * 매주 또는 매 fix push 후 실행 권장.
  */
 import Database from 'better-sqlite3';
-const db = new Database('C:/NoAddsMakingApps/FlowVium/data/flowvium.db', { readonly: true });
+import { readFileSync, readdirSync, statSync } from 'fs';
+const ROOT = 'C:/NoAddsMakingApps/FlowVium';
+const db = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
 
 let errCount = 0;
 const ERR = '❌', WARN = '⚠️ ', OK = '✅';
@@ -28,9 +30,10 @@ const tables = db.prepare(`
   WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts%' AND name NOT LIKE '%_data' AND name NOT LIKE '%_idx' AND name NOT LIKE '%_docsize' AND name NOT LIKE '%_config' AND name NOT LIKE '%_content'
 `).all().map(r => r.name);
 
+const skippedSmall = [];
 for (const t of tables) {
   const total = db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c;
-  if (total < 10) continue; // 적은 데이터 skip
+  if (total < 10) { skippedSmall.push(`${t}(${total})`); continue; } // 적은 데이터 skip — 사각지대 가시화
   const cols = db.prepare(`PRAGMA table_info(${t})`).all();
   const lowCovCols = [];
   for (const c of cols) {
@@ -46,6 +49,8 @@ for (const t of tables) {
     ok(`${t}: ${total} rows / 모든 column coverage 정상`);
   }
 }
+
+if (skippedSmall.length) console.log(`  ℹ️  NULL audit skip (행<10, 사각지대 가시화): ${skippedSmall.join(', ')}`);
 
 // ═══════ Probe 2: endpoint 적재 vs 인텔리전스 탭 expected ═══════
 console.log('\n## [2] endpoint 적재 vs intelligence/signals 페이지 의존 비교\n');
@@ -121,7 +126,6 @@ for (const at of archiveTables) {
 
 // ═══════ Probe 3b: S&P 500 / KOSPI 커버 ═══════
 console.log('\n## [3a] S&P 500 / KOSPI / KOSDAQ candidate 커버 ===\n');
-import { readFileSync } from 'fs';
 try {
   const sp500 = JSON.parse(readFileSync('C:/NoAddsMakingApps/FlowVium/data/sp500-tickers.json', 'utf8'));
   const cand = JSON.parse(readFileSync('C:/NoAddsMakingApps/FlowVium/data/candidate-tickers.json', 'utf8'));
@@ -502,6 +506,61 @@ for (const r of driftCheck) {
     warn(`${(r.endpoint ?? '?').padEnd(34)} unique ${r.unique_resp}/${r.total} (${driftRatio.toFixed(0)}%) — 정적 의심`);
   }
 }
+
+// ═══════ Probe 11: alias / meta 정합성 (candidate 풀 ↔ meta ↔ TICKER_ALIASES) ═══════
+console.log('\n## [11] alias / meta 정합성 (풀 ↔ meta ↔ TICKER_ALIASES)\n');
+try {
+  const ct = JSON.parse(readFileSync(`${ROOT}/data/candidate-tickers.json`, 'utf8'));
+  const pool = new Set(ct.tickers ?? []);
+  const meta = ct.meta ?? {};
+  // 1. 풀 ticker 중 meta 없음 (페이지/보고서가 name/sector 못 찾음 — 환각 위험)
+  const poolNoMeta = [...pool].filter(t => !meta[t]);
+  // 2. TICKER_ALIASES 타겟이 풀에 있나 (없으면 alias 정규화 후 가격/스냅샷 실패)
+  const gen = readFileSync(`${ROOT}/scripts/generate-report-local.mjs`, 'utf8');
+  const blk = gen.match(/TICKER_ALIASES = new Map\(\[([\s\S]*?)\]\)/)?.[1] ?? '';
+  const aliasTargets = [...blk.matchAll(/'[^']+',\s*'([^']+)'/g)].map(m => m[1]);
+  const badAlias = aliasTargets.filter(t => !pool.has(t));
+  // 3. meta 키 중 풀 외 (stale — 풀에서 빠진 종목 잔존, 무해하나 추적)
+  const metaStale = Object.keys(meta).filter(k => !pool.has(k));
+  if (poolNoMeta.length) err(`풀 ${poolNoMeta.length} ticker 가 meta 없음 — ${poolNoMeta.slice(0, 6).join(', ')}`);
+  else ok(`풀 ${pool.size} ticker 전부 meta 보유`);
+  if (badAlias.length) err(`TICKER_ALIASES 타겟 ${badAlias.length} 개가 풀 외 — ${badAlias.join(', ')}`);
+  else ok(`TICKER_ALIASES 타겟 ${aliasTargets.length} 개 전부 풀 내`);
+  if (metaStale.length > 60) warn(`meta stale 키 ${metaStale.length} 개 (풀 외 — build-candidate-tickers 재생성 권장)`);
+  else ok(`meta stale ${metaStale.length} 개 (정상 범위)`);
+} catch (e) { warn(`alias 정합성 점검 실패: ${e.message}`); }
+
+// ═══════ Probe 12: endpoint manifest 자동 추출 (page 의존성 drift) ═══════
+console.log('\n## [12] endpoint manifest drift (src 코드 자동 추출 vs 하드코딩 manifest/snapshot)\n');
+try {
+  // src 트리에서 코드가 실제 참조하는 /api/ endpoint 자동 수집
+  const walk = (dir, acc) => {
+    for (const f of readdirSync(dir)) {
+      if (f === 'node_modules' || f === '.next') continue;
+      const p = `${dir}/${f}`;
+      const st = statSync(p);
+      if (st.isDirectory()) walk(p, acc);
+      else if (/\.(ts|tsx)$/.test(f)) acc.push(p);
+    }
+    return acc;
+  };
+  const refEndpoints = new Set();
+  for (const file of walk(`${ROOT}/src`, [])) {
+    const txt = readFileSync(file, 'utf8');
+    for (const m of txt.matchAll(/['"`]\/api\/([a-z0-9-]+)/gi)) refEndpoints.add(`/api/${m[1].toLowerCase()}`);
+  }
+  const manifestEps = new Set(Object.values(EXPECTED_PAGE_ENDPOINTS).flat());
+  // 코드가 참조하지만 하드코딩 manifest 에 없음 → manifest stale (자동 추출이 catch)
+  const inCodeNotManifest = [...refEndpoints].filter(e => !manifestEps.has(e));
+  // manifest 에 있지만 코드 어디에도 없음 → manifest 가 죽은 endpoint 가리킴
+  const inManifestNotCode = [...manifestEps].filter(e => !refEndpoints.has(e));
+  console.log(`  코드 참조 endpoint: ${refEndpoints.size} 개 / 하드코딩 manifest: ${manifestEps.size} 개`);
+  if (inManifestNotCode.length) warn(`manifest 에만 있고 코드에 없음 (${inManifestNotCode.length}): ${inManifestNotCode.join(', ')}`);
+  // manifest 가 추적하는 핵심 endpoint 중 코드 참조되는데 최근 3일 snapshot 없는 것
+  const refNotCaptured = [...refEndpoints].filter(e => manifestEps.has(e) && !capNormSet.has(e));
+  if (refNotCaptured.length) warn(`manifest 핵심 endpoint 코드 참조하나 3일 snapshot 없음 (${refNotCaptured.length}): ${refNotCaptured.slice(0, 8).join(', ')}`);
+  if (!inManifestNotCode.length && !refNotCaptured.length) ok(`manifest ↔ 코드 ↔ snapshot 정합 (코드 ${refEndpoints.size} endpoint 추적)`);
+} catch (e) { warn(`manifest drift 점검 실패: ${e.message}`); }
 
 // ═══════ 종합 ═══════
 console.log(`\n═══ 종합 ═══`);
