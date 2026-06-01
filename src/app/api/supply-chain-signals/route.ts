@@ -17,10 +17,8 @@ const WATCHLIST_TICKERS = new Set([
   'MSFT','GOOGL','AMZN','META','ORCL','ANET','SMCI',
   'TSLA','LMT','RTX','NOC','LHX','LLY','NVO','PFE','MRNA','REGN',
   'FSLR','ALB','FCX','NEE',
-  // 2026-06-02: KR 주요 종목 — DART 수시공시 supply-chain 신호 대상 (이전엔 KR 미감시).
-  '005930.KS','000660.KS','005380.KS','000270.KS','035420.KS','035720.KS',
-  '005490.KS','051910.KS','006400.KS','373220.KS','068270.KS','207940.KS','012330.KS','066570.KS',
 ]);
+// 주: KR 은 WATCHLIST(=SEC 8-K US 필터)가 아니라 DART 경로의 resolveKrTicker(풀 475 전부)로 커버.
 
 // 회사명 → ticker 역매핑 (SEC/DART 공시는 회사명으로 오기 때문)
 const NAME_TO_TICKER: Record<string, string> = {
@@ -35,14 +33,36 @@ const NAME_TO_TICKER: Record<string, string> = {
   'first solar': 'FSLR', 'albemarle': 'ALB', 'freeport': 'FCX',
   'intel': 'INTC', 'qualcomm': 'QCOM', 'arm holdings': 'ARM',
   'advanced micro devices': 'AMD', 'amd': 'AMD',
-  // 2026-06-02: KR — DART corp_name 은 한글(소문자 무관) → 한글/혼합 substring 키 추가.
-  //   이전엔 영어 키('sk hynix')만 있어 한글 공시명("삼성전자")이 매칭 안 돼 전량 드롭.
-  '삼성전자': '005930.KS', '하이닉스': '000660.KS', '현대차': '005380.KS', '현대자동차': '005380.KS',
-  '기아': '000270.KS', '네이버': '035420.KS', 'naver': '035420.KS', '카카오': '035720.KS',
-  'posco': '005490.KS', '포스코': '005490.KS', 'lg화학': '051910.KS', '삼성sdi': '006400.KS',
-  'lg에너지솔루션': '373220.KS', 'lg엔솔': '373220.KS', '셀트리온': '068270.KS',
-  '삼성바이오': '207940.KS', '현대모비스': '012330.KS', 'lg전자': '066570.KS',
 };
+
+// 2026-06-02: KR DART 매핑을 14개 하드코딩 → candidate-tickers.json 의 KR 475개 전부에서
+//   data-driven 으로 구축 (하드코딩 list = 불완전 anti-pattern 제거). DART list.json 은
+//   stock_code(6자리) 도 반환 → 코드 직접 매칭이 1순위(이름 변형 무관), 한글명 substring 이 2순위.
+const KR_CODE_TO_TICKER = new Map<string, string>();   // '005930' → '005930.KS'
+const KR_NAME_TO_TICKER: Array<[string, string]> = [];  // ['삼성전자'(lower), '005930.KS']
+try {
+  const { readFileSync } = require('fs') as typeof import('fs');
+  const { resolve } = require('path') as typeof import('path');
+  const ct = JSON.parse(readFileSync(resolve(process.cwd(), 'data/candidate-tickers.json'), 'utf8'));
+  for (const t of (ct.tickers ?? [])) {
+    const m = String(t).match(/^(\d{6})\.(KS|KQ)$/);
+    if (m) {
+      KR_CODE_TO_TICKER.set(m[1], t);
+      const name = ct.meta?.[t]?.name;
+      if (name && typeof name === 'string') KR_NAME_TO_TICKER.push([name.toLowerCase().trim(), t]);
+    }
+  }
+  KR_NAME_TO_TICKER.sort((a, b) => b[0].length - a[0].length); // 긴 이름 우선(부분문자열 오매칭 방지)
+} catch { /* 파일 없으면 KR 매핑 skip — US 경로 불변 */ }
+
+/** DART 공시 item → ticker. stock_code(6자리) 직접 매칭 1순위, 한글 corp_name substring 2순위. */
+function resolveKrTicker(stockCode: string | undefined, corpNameLower: string): string | null {
+  if (stockCode && KR_CODE_TO_TICKER.has(stockCode)) return KR_CODE_TO_TICKER.get(stockCode)!;
+  for (const [name, ticker] of KR_NAME_TO_TICKER) {
+    if (name && (corpNameLower.includes(name) || name.includes(corpNameLower))) return ticker;
+  }
+  return null;
+}
 
 // SEC 8-K에서 계약/수주 신호를 나타내는 키워드
 const CONTRACT_SIGNALS = [
@@ -210,7 +230,7 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
       logger.warn('supply-chain-signals', 'dart_http_error', { status: res.status, ms: Date.now() - t0 });
       return [];
     }
-    const data = await res.json() as { status?: string; message?: string; list?: Array<{ corp_name?: string; report_nm?: string; rcept_dt?: string; rcept_no?: string }> };
+    const data = await res.json() as { status?: string; message?: string; list?: Array<{ corp_name?: string; stock_code?: string; report_nm?: string; rcept_dt?: string; rcept_no?: string }> };
 
     if (data.status && data.status !== '000') {
       logger.warn('supply-chain-signals', 'dart_api_error', { status: data.status, message: data.message });
@@ -229,9 +249,11 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
       if (!/계약|수주|공급|협약|협력|MOU|LOI|합작/i.test(reportNm)) continue;
       contractCount++;
 
-      const ticker = Object.entries(NAME_TO_TICKER).find(([name]) => corpName.includes(name))?.[1];
+      // 2026-06-02: stock_code(6자리) 1순위 → KR 475 전부 매칭. 이름 substring 2순위. US 맵 fallback.
+      const ticker = resolveKrTicker((item.stock_code ?? '').trim() || undefined, corpName)
+        ?? Object.entries(NAME_TO_TICKER).find(([name]) => corpName.includes(name))?.[1];
       if (!ticker) {
-        logger.debug('supply-chain-signals', 'dart_no_ticker_match', { corp: item.corp_name, reportNm: reportNm.slice(0, 60) });
+        logger.debug('supply-chain-signals', 'dart_no_ticker_match', { corp: item.corp_name, stock_code: item.stock_code, reportNm: reportNm.slice(0, 60) });
         continue;
       }
       watchlistHits++;

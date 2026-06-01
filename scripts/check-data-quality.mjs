@@ -79,6 +79,30 @@ async function main() {
     }
   }
 
+  // [D] 커버리지-차원 — "카테고리 0건 = 빨간불" 원칙. 최신 보고서에 KR portfolio 가 있는데
+  //     companyChanges/supplyChain 에 KR 이 0 이면 침묵이 아니라 결함으로 surface.
+  //     (US-우선 파이프라인이 KR 을 조용히 누락하던 사각지대 자동 감지.)
+  try {
+    const { readdirSync, readFileSync } = await import('fs');
+    const dir = 'C:/NoAddsMakingApps/FlowVium/reports';
+    const files = readdirSync(dir).filter(f => /^report-\d{4}-\d{2}-\d{2}-(morning|afternoon|evening)-[a-z-]+\.json$/.test(f)).sort();
+    const latest = files[files.length - 1];
+    if (latest) {
+      const d = JSON.parse(readFileSync(`${dir}/${latest}`, 'utf8'));
+      const isKR = t => /\.(KS|KQ)$/.test(t || '');
+      const krPortfolio = (d.portfolio || []).filter(p => isKR(p.ticker)).length;
+      if (krPortfolio > 0) {
+        const ccKr = (d.companyChanges || []).filter(x => isKR(x.ticker)).length;
+        const scArr = d.supplyChainChanges || d.supplyChainSignals || [];
+        const scKr = scArr.filter(x => isKR(x.ticker) || /삼성|하이닉스|현대|네이버|카카오|포스코|셀트리온/.test(JSON.stringify(x))).length;
+        if (ccKr === 0) issues.push(`[D] companyChanges KR 0건 (portfolio KR ${krPortfolio}개 보유) — KR 기업변화 누락 의심 (${latest})`);
+        else info.push(`[D] companyChanges KR ${ccKr}건`);
+        if (scKr === 0) issues.push(`[D] supplyChain KR 0건 (portfolio KR ${krPortfolio}개) — KR 공급망 누락 의심`);
+        else info.push(`[D] supplyChain KR ${scKr}건`);
+      } else info.push('[D] 최신 보고서 KR portfolio 없음 (coverage 점검 skip)');
+    }
+  } catch (e) { info.push(`[D] coverage 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);
