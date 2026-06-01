@@ -1,0 +1,51 @@
+# 2026-06-02 — 뉴스 번역 오염 fix + KR 기업변화/공급망 커버리지 + 데이터품질 모니터
+
+사용자 지적 연쇄: "엔드포인트 검토 같이 되나 / contango·뉴스번역 제대로 검토 안 됨" +
+"기업변화·공급망 모니터링 한국 종목도 하나?" → 검증 사각지대 + KR 커버리지 gap 다수 발견.
+
+## 1. 검증 종합화 (모니터 통합)
+- scripts/check-data-quality.mjs 신설 — production 실호출로 [A]엔드포인트 12개 헬스
+  [B]뉴스 ko 번역 완료 [C]contango synthetic 표시 점검. exit 1 = 결함.
+- 모니터 cron(f59bb721) 갱신: check-stall + check-data-quality 둘 다 30분 주기.
+- 첫 실행 즉시 잡음: 뉴스 ko 0/6 한글(미완), company-kr HTTP0, contango FRED라벨+synthetic.
+
+## 2. 뉴스 번역 오염 fix (news-cascade)
+- 근본: translateArticles 가 실패(empty/identity/error) 시 .map() 으로 새 영어 배열 반환.
+  caller(line 669)가 `translated !== cached`(참조비교)로 성공 판정 → 항상 true(새 배열) →
+  영어를 translatedKey 에 translated:true 로 24h 캐시 = ko 영어 오염 고착. callAI 실패해도
+  영어가 "번역됨"으로 서빙.
+- fix: translationSucceeded(orig, trans, locale) — 제목이 원문과 달라야 + CJK 로케일은
+  target script(한글/가나/한자) 존재 검증. 성공 시에만 캐시. 실패 시 translated:false +
+  캐시 미오염 → 재시도 가능. wait=1 sync + background 양쪽 적용.
+- 주의: 이 fix 는 오염 차단 + 재시도 가능화. callAI(클라우드) 가 Vercel 에서 실제 번역
+  성공해야 한글 표시됨 — 배포 후 + 기존 오염 캐시 만료(24h)/덮어쓰기 후 확인 필요.
+
+## 3. KR 공급망 커버리지 (supply-chain-signals)
+- 근본: fetchDartSignals 는 정상 동작(opendart 주요사항보고서)하나, DART corp_name 은
+  한글("삼성전자")인데 NAME_TO_TICKER 키가 영어('sk hynix')뿐 → line 222 corpName.includes(name)
+  매칭 실패 → 전 KR 공시 드롭. (최신 보고서 supplyChain KR 0건)
+- fix: NAME_TO_TICKER 에 한글/혼합 substring 키 18개 추가(삼성전자/하이닉스/현대차/기아/네이버/
+  카카오/posco/lg화학/삼성sdi/lg엔솔/셀트리온/삼성바이오/현대모비스/lg전자 등) + WATCHLIST 에
+  KR 14 ticker 추가. 시뮬: 14개 DART 한글명 전부 ticker 매칭 확인.
+
+## 4. KR 기업변화 커버리지 (companyChanges)
+- 근본: 프롬프트가 portfolio 전체 ticker 받지만 institutional(13F)=US전용 편향 → KR 누락
+  (최신 0건).
+- fix: buildCompanyChangesPrompt 에 Korean holdings 명시 + "KR 은 DART 재무/뉴스로 다뤄라,
+  US 편향 금지, ≥2 KR 포함" 규칙 추가.
+
+## 5. contango (확인만, 미수정)
+- commodity-curve M+1/M+2 는 carry-model 합성(synthetic:true 플래그 정상 노출). 단 ticker 를
+  FRED:DCOILWTICO:M+1 로 라벨해 실데이터 오인 소지. data-quality [C]가 매 점검 플래그 → 추후
+  라벨 'carry-model 추정' 명시 + UI disclosure 점검 (이번 미포함).
+
+## 변경 파일 (배치 1회 push)
+- src/app/api/news-cascade/route.ts (translationSucceeded)
+- src/app/api/supply-chain-signals/route.ts (KR NAME_TO_TICKER + WATCHLIST)
+- scripts/generate-report-local.mjs (companyChanges KR prompt)
+- scripts/check-data-quality.mjs (신규 모니터)
+- METRICS.md E6
+
+## 교훈
+- blacklist/영어키 같은 enum 의존 = 무한 누락 (바이오, 한글 회사명). positive/언어검증 방식 우선.
+- 검증이 "endpoint alive"만 보고 데이터 품질(번역/contango/KR커버리지) 사각 → 모니터 종합화로 보강.

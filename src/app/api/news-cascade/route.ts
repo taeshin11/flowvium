@@ -66,6 +66,24 @@ function translatedKey(locale: string): string {
   return `flowvium:news-cascade:v2:translated:${locale}:${today}`;
 }
 
+// 2026-06-02: 번역 성공 여부 검증. 이전엔 caller 가 `translated !== cached`(참조비교)로 판정 →
+//   translateArticles 가 실패 시 .map() 으로 새 영어 배열 반환 → 항상 "성공"으로 오판 →
+//   영어를 translated:true 로 24h 캐시 = ko 영어 오염 고착. 실제 언어로 검증해 오염 차단.
+const CJK_RE: Record<string, RegExp> = {
+  ko: /[가-힣]/, ja: /[ぁ-んァ-ヶ一-龯]/, 'zh-CN': /[一-龥]/, 'zh-TW': /[一-龥]/,
+};
+function translationSucceeded(orig: NewsWithCascade[], trans: NewsWithCascade[], locale: string): boolean {
+  if (locale === 'en') return true;
+  const sample = trans.slice(0, 5);
+  // 제목이 원문과 하나라도 달라야 번역 시도 성공 (identity/실패 배제)
+  const changed = sample.some((t, i) => (t.title ?? '').trim() !== (orig[i]?.title ?? '').trim());
+  if (!changed) return false;
+  // CJK 로케일은 target script 존재까지 확인 (영어 캐시 오염 추가 차단)
+  const re = CJK_RE[locale];
+  if (re) return sample.some(t => re.test(t.title ?? ''));
+  return true;
+}
+
 // 16개 언어 라벨 — 번역 프롬프트에 명시적으로 사용
 const LOCALE_NAMES: Record<string, string> = {
   ko: 'Korean (한국어)',
@@ -666,11 +684,14 @@ export async function GET(request: Request) {
         if (waitForTranslation) {
           try {
             const translated = await translateArticles(cached, locale);
-            if (translated !== cached) {
+            // 2026-06-02: 실제 번역 성공일 때만 캐시 (영어 오염 차단). 실패 시 캐시 미작성 → 재시도 가능.
+            if (translationSucceeded(cached, translated, locale)) {
               await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
               logger.info('api.news-cascade', 'sync_translation_done', { locale, count: translated.length });
+              return NextResponse.json({ articles: translated, cached: true, locale, translated: true, source: 'cached-translated-sync' }, { headers: CDN_HEADERS });
             }
-            return NextResponse.json({ articles: translated, cached: true, locale, translated: true, source: 'cached-translated-sync' }, { headers: CDN_HEADERS });
+            logger.warn('api.news-cascade', 'sync_translation_identity', { locale });
+            return NextResponse.json({ articles: cached, cached: true, locale, translated: false, error: 'translation produced no target-language text', source: 'cached-en' }, { headers: CDN_HEADERS });
           } catch (e) {
             logger.warn('api.news-cascade', 'sync_translation_failed', { locale, error: String(e).slice(0, 100) });
             return NextResponse.json({ articles: cached, cached: true, locale, translated: false, error: 'translation failed', source: 'cached-en' }, { headers: CDN_HEADERS });
@@ -680,9 +701,12 @@ export async function GET(request: Request) {
         backgroundTask(async () => {
           try {
             const translated = await translateArticles(cached, locale);
-            if (translated !== cached) {
+            // 2026-06-02: 실제 번역 성공일 때만 캐시 (영어 오염 차단).
+            if (translationSucceeded(cached, translated, locale)) {
               await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
               logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
+            } else {
+              logger.warn('api.news-cascade', 'bg_translation_identity', { locale });
             }
           } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }
         });

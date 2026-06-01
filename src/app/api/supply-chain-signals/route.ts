@@ -17,6 +17,9 @@ const WATCHLIST_TICKERS = new Set([
   'MSFT','GOOGL','AMZN','META','ORCL','ANET','SMCI',
   'TSLA','LMT','RTX','NOC','LHX','LLY','NVO','PFE','MRNA','REGN',
   'FSLR','ALB','FCX','NEE',
+  // 2026-06-02: KR 주요 종목 — DART 수시공시 supply-chain 신호 대상 (이전엔 KR 미감시).
+  '005930.KS','000660.KS','005380.KS','000270.KS','035420.KS','035720.KS',
+  '005490.KS','051910.KS','006400.KS','373220.KS','068270.KS','207940.KS','012330.KS','066570.KS',
 ]);
 
 // 회사명 → ticker 역매핑 (SEC/DART 공시는 회사명으로 오기 때문)
@@ -32,6 +35,13 @@ const NAME_TO_TICKER: Record<string, string> = {
   'first solar': 'FSLR', 'albemarle': 'ALB', 'freeport': 'FCX',
   'intel': 'INTC', 'qualcomm': 'QCOM', 'arm holdings': 'ARM',
   'advanced micro devices': 'AMD', 'amd': 'AMD',
+  // 2026-06-02: KR — DART corp_name 은 한글(소문자 무관) → 한글/혼합 substring 키 추가.
+  //   이전엔 영어 키('sk hynix')만 있어 한글 공시명("삼성전자")이 매칭 안 돼 전량 드롭.
+  '삼성전자': '005930.KS', '하이닉스': '000660.KS', '현대차': '005380.KS', '현대자동차': '005380.KS',
+  '기아': '000270.KS', '네이버': '035420.KS', 'naver': '035420.KS', '카카오': '035720.KS',
+  'posco': '005490.KS', '포스코': '005490.KS', 'lg화학': '051910.KS', '삼성sdi': '006400.KS',
+  'lg에너지솔루션': '373220.KS', 'lg엔솔': '373220.KS', '셀트리온': '068270.KS',
+  '삼성바이오': '207940.KS', '현대모비스': '012330.KS', 'lg전자': '066570.KS',
 };
 
 // SEC 8-K에서 계약/수주 신호를 나타내는 키워드

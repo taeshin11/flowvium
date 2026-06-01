@@ -4384,10 +4384,13 @@ function buildRiskMgmtPrompt(portfolio, riskLevel, bbWarnings, vix) {
 
 function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news, financials) {
   const portfolioRef = portfolioItems.map(p => p.ticker).join(', ');
+  // 2026-06-02: KR 종목이 companyChanges 에서 누락되던 문제(institutional=US 13F 편향) — KR 명시.
+  const krRef = portfolioItems.filter(p => /\.(KS|KQ)$/.test(p.ticker)).map(p => `${p.ticker}(${p.name ?? ''})`).join(', ');
   return [
     `You are a corporate analyst. Date: ${TODAY}. Write keyChange in ${TARGET_LANG}.`,
     '',
     `Portfolio (reference only): ${portfolioRef}`,
+    krRef ? `Korean portfolio holdings (MUST cover ≥2 if any DART financials/news exist): ${krRef}` : '',
     '',
     `[Recent Financials] ${financials || 'No data'}`,
     `[Upcoming/Recent Earnings] ${earnings || 'None'}`,
@@ -4397,6 +4400,7 @@ function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news
     'RULES:',
     '- Select ONLY 5-10 companies with the most NOTABLE recent changes from ALL context data above.',
     '- Include ANY company mentioned in context (NOT limited to portfolio tickers) if it has material news.',
+    '- KR(.KS/.KQ) 종목도 반드시 포함: institutional(13F)은 US 전용이라 비어있어도, [Recent Financials](DART) + [News & Events] 로 KR 변화를 다뤄라. US 편향 금지.',
     '- "Notable change" means: earnings beat/miss, guidance revision, institutional large buy/sell, M&A, product launch, regulatory event.',
     '- SKIP companies with no material recent update — do NOT pad with tickers that have no news.',
     '- revenueYoY: use actual number from [Recent Financials]. Use null if missing (NEVER invent).',
