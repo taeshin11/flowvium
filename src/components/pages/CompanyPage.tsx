@@ -281,7 +281,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [company, ticker]);
 
   // ── Live stock price + 90-day history (Yahoo Finance) ─────────────────────
-  interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; marketState: string | null; volume: number | null; dayHigh: number | null; dayLow: number | null; week52High: number | null; week52Low: number | null; }
+  interface LivePrice { price: number | null; change: number | null; changePct: number | null; currency: string; marketState: string | null; volume: number | null; dayHigh: number | null; dayLow: number | null; week52High: number | null; week52Low: number | null; marketCap?: number | null; }
   function fmtVol(v: number): string {
     if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
     if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
@@ -514,6 +514,13 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 </span>
               )}
             </div>
+            {(livePrice.marketCap != null || (livePrice.week52High != null && livePrice.week52Low != null) || livePrice.volume != null) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-cf-text-secondary">
+                {livePrice.marketCap != null && (<span>시총 {livePrice.currency === 'KRW' ? `₩${(livePrice.marketCap / 1e12).toFixed(1)}조` : `$${(livePrice.marketCap / 1e9).toFixed(1)}B`}</span>)}
+                {livePrice.week52High != null && livePrice.week52Low != null && (<span>52주 {livePrice.currency === 'KRW' ? `${fmtKRW(livePrice.week52Low)}~${fmtKRW(livePrice.week52High)}` : `$${livePrice.week52Low.toFixed(0)}~$${livePrice.week52High.toFixed(0)}`}</span>)}
+                {livePrice.volume != null && (<span>거래량 {livePrice.volume.toLocaleString()}</span>)}
+              </div>
+            )}
           </div>
         )}
         {/* KR DART 재무 (SEC 미해당 KR 종목) */}

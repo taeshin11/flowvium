@@ -58,19 +58,44 @@ async function fetchPriceTwelve(sym: string): Promise<{ price: number; change: n
   };
 }
 
+// Naver integration totalInfos — 52주 최고/최저 + 시가총액(KRW). 보조 필드 (siseJson 에 없음).
+async function fetchNaverExtra(code: string): Promise<{ week52High: number | null; week52Low: number | null; marketCapKRW: number | null }> {
+  const empty = { week52High: null, week52Low: null, marketCapKRW: null };
+  try {
+    const res = await fetch(`https://m.stock.naver.com/api/stock/${code}/integration`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000), cache: 'no-store',
+    });
+    if (!res.ok) return empty;
+    const j = await res.json() as { totalInfos?: Array<{ code?: string; key?: string; value?: string }> };
+    const infos = j?.totalInfos ?? [];
+    const numOf = (key: string) => {
+      const it = infos.find(x => x.key === key || x.code === key);
+      const n = it?.value ? parseFloat(String(it.value).replace(/[^\d.]/g, '')) : NaN;
+      return isNaN(n) ? null : n;
+    };
+    // 시총 "1,955조 5,802억" → KRW (조=1e12, 억=1e8)
+    const capStr = infos.find(x => x.code === 'marketValue' || x.key === '시총')?.value ?? '';
+    const jo = capStr.match(/([\d,]+)\s*조/); const eok = capStr.match(/([\d,]+)\s*억/);
+    const marketCapKRW = (jo || eok)
+      ? (jo ? parseInt(jo[1].replace(/,/g, ''), 10) * 1e12 : 0) + (eok ? parseInt(eok[1].replace(/,/g, ''), 10) * 1e8 : 0)
+      : null;
+    return { week52High: numOf('52주 최고'), week52Low: numOf('52주 최저'), marketCapKRW: marketCapKRW || null };
+  } catch { return empty; }
+}
+
 // Naver 일별 시세 fallback — KR(.KS/.KQ). Yahoo 가 Vercel IP 에서 KR 거부 + Finnhub/Twelve KR 미지원.
 //   siseJson 행: ["YYYYMMDD", 시가, 고가, 저가, 종가, 거래량, ...]. 마지막 2행으로 quote 도출.
-async function fetchPriceNaver(sym: string): Promise<{ price: number; prevClose: number | null; change: number | null; changePct: number | null; volume: number | null; dayHigh: number | null; dayLow: number | null } | null> {
+//   integration totalInfos 로 52주/시총 보강.
+async function fetchPriceNaver(sym: string): Promise<{ price: number; prevClose: number | null; change: number | null; changePct: number | null; volume: number | null; dayHigh: number | null; dayLow: number | null; week52High: number | null; week52Low: number | null; marketCapKRW: number | null } | null> {
   const code = sym.replace(/\.(KS|KQ)$/i, '');
   const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
   const end = fmt(new Date());
   const start = fmt(new Date(Date.now() - 20 * 86400000));
   const url = `https://api.finance.naver.com/siseJson.naver?symbol=${code}&requestType=1&startTime=${start}&endTime=${end}&timeframe=day`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://finance.naver.com' },
-    signal: AbortSignal.timeout(8000),
-    cache: 'no-store',
-  });
+  const [res, extra] = await Promise.all([
+    fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://finance.naver.com' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+    fetchNaverExtra(code),
+  ]);
   if (!res.ok) return null;
   const text = await res.text();
   const rows: { close: number; high: number; low: number; vol: number }[] = [];
@@ -84,7 +109,7 @@ async function fetchPriceNaver(sym: string): Promise<{ price: number; prevClose:
   const prev = rows.length >= 2 ? rows[rows.length - 2] : null;
   const change = prev ? parseFloat((last.close - prev.close).toFixed(2)) : null;
   const changePct = prev && prev.close > 0 ? parseFloat(((last.close - prev.close) / prev.close * 100).toFixed(2)) : null;
-  return { price: last.close, prevClose: prev?.close ?? null, change, changePct, volume: last.vol || null, dayHigh: last.high || null, dayLow: last.low || null };
+  return { price: last.close, prevClose: prev?.close ?? null, change, changePct, volume: last.vol || null, dayHigh: last.high || null, dayLow: last.low || null, ...extra };
 }
 
 function staleKey(sym: string): string {
@@ -116,8 +141,8 @@ export async function GET(_req: Request, { params }: { params: { ticker: string 
       if (nv) {
         const result = {
           ticker: sym, price: nv.price, prevClose: nv.prevClose, change: nv.change, changePct: nv.changePct,
-          volume: nv.volume, dayHigh: nv.dayHigh, dayLow: nv.dayLow, week52High: null, week52Low: null,
-          currency: 'KRW', marketState: null, updatedAt: new Date().toISOString(), cached: false, source: 'naver',
+          volume: nv.volume, dayHigh: nv.dayHigh, dayLow: nv.dayLow, week52High: nv.week52High, week52Low: nv.week52Low,
+          marketCap: nv.marketCapKRW, currency: 'KRW', marketState: null, updatedAt: new Date().toISOString(), cached: false, source: 'naver',
         };
         mem.set(sym, result);
         if (redis) {
