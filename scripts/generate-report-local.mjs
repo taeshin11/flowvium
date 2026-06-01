@@ -20,7 +20,7 @@ import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
-import { SECTOR_FORBID } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
+import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -4284,6 +4284,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     `"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"[≤40 chars in ${TARGET_LANG}]"}]}`,
     'EXACTLY 12 portfolio items (US 6 + KR 6), 5 sectorAllocation items. Pure JSON only.',
     '⚠️ entryZone MUST be based on [Live Prices] + analysis. entryPlan is a BACKUP — system uses it only if entryZone is hallucinated.',
+    '🚫 rationale/entryRationale/targetRationale 는 해당 종목의 실제 sector 사업에만 근거. 무관한 산업의 "수요/시장/성장" thesis 금지 (예: 자동차주에 "바이오 수요", 반도체주에 "건설 수요"). 모르면 기술적/재무 신호만 인용.',
   ].join('\n');
 }
 
@@ -5773,9 +5774,12 @@ async function generateViaOllama() {
     //   LLM free-text 필드의 thesis 에서 sector 금지 키워드 포함 clause 제거.
     //   예: NAVER(it services) "건설 수요 증가, 기술적 돌파 | ..." → "건설" clause strip.
     //   verify-report:SECTOR_FORBID 와 단일 source. 기술데이터(' | ' 뒤)는 보존.
-    const forbid = SECTOR_FORBID[(p.sector || '').toLowerCase()];
-    if (forbid) {
-      const hasKw = (s) => typeof s === 'string' && forbid.some(kw => s.includes(kw));
+    // 2026-06-01: blacklist(forbid) + positive 어휘(mismatchedIndustryTerm) 병행 —
+    //   나열 안 한 산업어(바이오 등)도 cross-sector thesis 면 strip. 현대차 "바이오 수요" 사건.
+    const sec = (p.sector || '').toLowerCase();
+    const forbid = SECTOR_FORBID[sec];
+    if (sec) {
+      const hasKw = (s) => typeof s === 'string' && ((forbid && forbid.some(kw => s.includes(kw))) || mismatchedIndustryTerm(s, sec) != null);
       // clause 단위 strip — ' | ' 앞 thesis 만 손대고 기술데이터 suffix 는 보존.
       const stripClauses = (str) => {
         const [thesis, ...rest] = str.split(' | ');

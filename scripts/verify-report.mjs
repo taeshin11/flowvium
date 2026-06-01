@@ -47,6 +47,77 @@ export const SECTOR_FORBID = {
   utilities:                ['반도체', 'AI', '소프트웨어'],
 };
 
+// 2026-06-01: blacklist(SECTOR_FORBID) 는 나열한 단어만 막아 무한히 샘(현대차 "바이오" 사건).
+//   positive 방식 — sector 별 *허용* 산업어휘. 산업어가 "수요/시장/성장" 맥락으로 등장하는데
+//   해당 sector 허용 어휘에 없으면 cross-sector thesis 환각으로 판정. 나열 안 한 산업어도 자동 차단.
+export const INDUSTRY_TERMS = [
+  '자동차','모빌리티','전기차','수소차','완성차',
+  '반도체','메모리','파운드리','d램','낸드','hbm',
+  '바이오','제약','신약','헬스케어','의료','진단','백신',
+  '건설','부동산','리츠','시멘트',
+  '석유','정유','원유','가스','에너지',
+  '철강','화학','소재','광물','금속','비철',
+  '조선','항공','방산','국방','기계',
+  '금융','은행','보험','증권','카드',
+  '배터리','2차전지','이차전지',
+  '식품','음료','담배',
+  '의류','패션','화장품','뷰티',
+  '유통','이커머스','면세',
+  '게임','엔터','미디어','콘텐츠',
+  '통신','전력',
+];
+export const SECTOR_VOCAB = {
+  'automotive': ['자동차','모빌리티','전기차','수소차','완성차','배터리','2차전지','이차전지'],
+  'transportation equipment': ['자동차','모빌리티','전기차','완성차','조선','항공','기계'],
+  'transportation': ['항공','조선','자동차'],
+  'semiconductors': ['반도체','메모리','파운드리','d램','낸드','hbm'],
+  'semiconductor': ['반도체','메모리','파운드리','d램','낸드','hbm'],
+  'technology': ['반도체','it','소프트웨어','클라우드','전자','통신'],
+  'it services': ['it','소프트웨어','클라우드','플랫폼','게임','엔터','미디어','콘텐츠','통신'],
+  'it-software': ['it','소프트웨어','클라우드','플랫폼','게임','엔터','미디어','콘텐츠'],
+  'ai-cloud': ['클라우드','반도체','소프트웨어','데이터'],
+  'communication-services': ['통신','미디어','엔터','콘텐츠','게임'],
+  'communication': ['통신','미디어','엔터','콘텐츠','게임'],
+  'telecom': ['통신','미디어'],
+  'pharma-biotech': ['바이오','제약','신약','헬스케어','의료','진단','백신'],
+  'healthcare': ['바이오','제약','신약','헬스케어','의료','진단','백신'],
+  'financials': ['금융','은행','보험','증권','카드'],
+  'banking': ['금융','은행','카드'],
+  'insurance': ['금융','보험'],
+  'energy': ['석유','정유','원유','가스','에너지','전력'],
+  'utilities': ['전력','가스','에너지'],
+  'materials': ['철강','화학','소재','광물','금속','비철','시멘트'],
+  'chemicals': ['화학','소재','배터리','2차전지','이차전지'],
+  'metals & mining': ['철강','광물','금속','비철','소재'],
+  'metals/mining': ['철강','광물','금속','비철','소재'],
+  'industrials': ['기계','조선','항공','방산','국방','건설'],
+  'defense': ['방산','국방','항공','기계'],
+  'consumer-discretionary': ['자동차','의류','패션','화장품','뷰티','유통','이커머스','게임','엔터','면세'],
+  'consumer discretionary': ['자동차','의류','패션','화장품','뷰티','유통','게임','엔터'],
+  'consumer-defensive': ['식품','음료','담배','유통'],
+  'consumer staples': ['식품','음료','담배','유통'],
+  'wholesale': ['유통','이커머스','식품'],
+  'ev-battery': ['배터리','2차전지','이차전지','전기차','소재'],
+  'battery': ['배터리','2차전지','이차전지','소재'],
+  'real-estate': ['부동산','리츠','건설'],
+};
+const DEMAND_CTX = /(수요|시장|성장|업황|호황|특수|확대|반등|회복|모멘텀|테마|수혜)/;
+/** text 의 산업어 중 sector 허용 어휘에 없고 demand 맥락인 첫 항목 반환 (cross-sector thesis 환각). 없으면 null. */
+export function mismatchedIndustryTerm(text, sectorLower) {
+  if (typeof text !== 'string' || !text) return null;
+  const allowed = SECTOR_VOCAB[sectorLower];
+  if (!allowed) return null; // 미등록 sector → 판단 보류 (false positive 방지)
+  for (const term of INDUSTRY_TERMS) {
+    const t = term.toLowerCase();
+    if (!text.toLowerCase().includes(t)) continue;
+    if (allowed.includes(t)) continue; // sector 허용 어휘
+    const idx = text.toLowerCase().indexOf(t);
+    const around = text.slice(Math.max(0, idx - 4), idx + term.length + 8);
+    if (DEMAND_CTX.test(around)) return term;
+  }
+  return null;
+}
+
 export function verifyReport(file, { silent = false } = {}) {
   const log = silent ? () => {} : console.log;
   const r = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -113,24 +184,24 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (secFix === 0) log('  ✅ sector meta consistent');
 
-  // 2. sector-keyword mismatch (rationale 안 forbidden 키워드)
-  log('\n## sector-keyword mismatch (rationale 안 forbidden)');
+  // 2. sector-keyword mismatch — blacklist(SECTOR_FORBID) + positive 어휘(mismatchedIndustryTerm).
+  //    2026-06-01: blacklist 만으론 나열 안 한 산업어(바이오 등)가 새어 → positive 방식 병행.
+  log('\n## sector-keyword mismatch (forbidden + cross-sector thesis)');
   let mmCount = 0;
   for (const p of (r.portfolio||[])) {
     const sec = (p.sector||'').toLowerCase();
-    const forbid = SECTOR_FORBID[sec];
-    if (!forbid) continue;
     const text = [p.rationale, p.entryRationale, p.targetRationale, p.fundamentalBasis, p.riskNote, ...(p.catalysts||[])].filter(Boolean).join(' | ');
-    for (const kw of forbid) {
-      if (text.includes(kw)) {
-        log(`  ❌ ${p.ticker} (${p.sector}) — 금지 키워드 "${kw}": "${text.slice(0, 80)}..."`);
-        defects.push({
-          ticker: p.ticker, defect_type: 'sector_keyword_mismatch',
-          llm_value: `"${kw}" in rationale`, correct_value: p.sector, severity: 'high',
-          details: { sample: text.slice(0, 200) },
-        });
-        mmCount++; break;
-      }
+    const forbid = SECTOR_FORBID[sec];
+    let hit = forbid?.find(kw => text.includes(kw)) ?? null;
+    if (!hit) hit = mismatchedIndustryTerm(text, sec);  // positive 어휘 — 나열 안 한 산업어도 catch
+    if (hit) {
+      log(`  ❌ ${p.ticker} (${p.sector}) — 무관 산업어 "${hit}": "${text.slice(0, 80)}..."`);
+      defects.push({
+        ticker: p.ticker, defect_type: 'sector_keyword_mismatch',
+        llm_value: `"${hit}" in rationale`, correct_value: p.sector, severity: 'high',
+        details: { sample: text.slice(0, 200) },
+      });
+      mmCount++;
     }
   }
   if (mmCount === 0) log('  ✅ sector-keyword mismatch 0');
