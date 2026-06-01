@@ -321,6 +321,22 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     return () => controller.abort();
   }, [ticker]);
 
+  // 2026-06-01: KR(.KS/.KQ) 종목은 allCompanies(US-only)에 없어 minimal page 로 렌더.
+  //   company-kr(DART) 로 한글명 + 재무를 채워 KR 페이지 충실화.
+  interface KrAnnual { fiscalYear?: string; revenueKRW?: number; operatingIncomeKRW?: number; netIncomeKRW?: number; operatingMarginPct?: number; netMarginPct?: number; roePct?: number; debtRatioPct?: number }
+  interface KrProfile { corpName?: string; latestAnnual?: KrAnnual; revenueYoYPct?: number; source?: string }
+  const [krProfile, setKrProfile] = useState<KrProfile | null>(null);
+  useEffect(() => {
+    if (!ticker || !/\.(KS|KQ)$/i.test(ticker)) return;
+    const ctrl = new AbortController();
+    const code = ticker.replace(/\.(KS|KQ)$/i, '');
+    fetch(`/api/company-kr/${code}`, { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error && !ctrl.signal.aborted) setKrProfile(d); })
+      .catch(() => undefined);
+    return () => ctrl.abort();
+  }, [ticker]);
+
   useEffect(() => {
     if (!ticker) return;
     const controller = new AbortController();
@@ -474,14 +490,45 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [ticker]);
 
   if (!company) {
-    // Minimal live page for tickers not in static dataset (IPX, AMRZ, etc.)
-    const liveCompanyName = ticker.toUpperCase();
+    // Minimal live page for tickers not in static dataset (IPX, AMRZ, KR .KS/.KQ 등).
+    const isKRTicker = /\.(KS|KQ)$/i.test(ticker);
+    const liveCompanyName = krProfile?.corpName ?? ticker.toUpperCase();
+    const fmtKRW = (n: number) => `₩${Math.round(n).toLocaleString()}`;
+    const krAnnual = krProfile?.latestAnnual;
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-heading font-bold text-cf-text-primary">{liveCompanyName}</h1>
-          <p className="text-cf-text-secondary text-sm mt-0.5">SEC 공시 + 실시간 데이터</p>
+          <p className="text-cf-text-secondary text-sm mt-0.5">{isKRTicker ? `DART 공시 + 실시간 시세 (Naver) · ${ticker.toUpperCase()}` : 'SEC 공시 + 실시간 데이터'}</p>
         </div>
+        {/* Live price — KR(Naver)/US(Yahoo) */}
+        {livePrice?.price != null && (
+          <div className="cf-card p-4 mb-4">
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl font-bold tabular-nums text-cf-text-primary">
+                {livePrice.currency === 'KRW' ? fmtKRW(livePrice.price) : `$${livePrice.price.toFixed(2)}`}
+              </span>
+              {livePrice.changePct != null && (
+                <span className={`text-sm font-bold px-2 py-0.5 rounded-full tabular-nums ${livePrice.changePct >= 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                  {livePrice.changePct >= 0 ? '+' : ''}{livePrice.changePct.toFixed(2)}%
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        {/* KR DART 재무 (SEC 미해당 KR 종목) */}
+        {krAnnual?.revenueKRW != null && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">재무 (DART {krAnnual.fiscalYear})</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">매출{krProfile?.revenueYoYPct != null ? ` (YoY ${krProfile.revenueYoYPct}%)` : ''}</p><p className="text-sm font-bold">{fmtKRW(krAnnual.revenueKRW)}</p></div>
+              {krAnnual.operatingIncomeKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">영업이익{krAnnual.operatingMarginPct != null ? ` (${krAnnual.operatingMarginPct}%)` : ''}</p><p className="text-sm font-bold">{fmtKRW(krAnnual.operatingIncomeKRW)}</p></div>)}
+              {krAnnual.netIncomeKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">순이익</p><p className="text-sm font-bold">{fmtKRW(krAnnual.netIncomeKRW)}</p></div>)}
+              {krAnnual.roePct != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">ROE</p><p className="text-sm font-bold">{krAnnual.roePct}%</p></div>)}
+            </div>
+            <p className="text-[10px] text-cf-text-secondary/50 mt-2">{krProfile?.source ?? 'DART 전자공시'} · FY{krAnnual.fiscalYear}</p>
+          </div>
+        )}
         {/* Live financials if available */}
         {liveFinancials?.revenueFormatted && (
           <div className="cf-card p-4 mb-4">

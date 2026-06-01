@@ -328,6 +328,7 @@
 | 123-C | 90일 주가 추이 차트 + 수익률 | 💾 cached | /api/price-history — US: Yahoo v8/Nasdaq, KR: Naver siseJson, 1h |
 | 124 | 번역 설명 (16개 언어) | 💾 cached | Gemini 번역, 30d |
 | 125 | ASCII 공급망 네트워크 뷰 | 📋 static | |
+| 126 | KR(.KS/.KQ) 종목 페이지 — 한글명·DART 재무·실시간 시세 | ✅ live | /api/company-kr (DART 한글명+annuals) + /api/stock-price (Naver), allCompanies 미수록 KR 475 종목 minimal page enrich |
 
 ### 4-2. 제품 & 매출
 
