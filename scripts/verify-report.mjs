@@ -31,18 +31,18 @@ try {
 // sector → 금지 키워드 (한글). semiconductors/it 회사에 "건설", financials 에 "반도체" 등.
 // 2026-05-31: export — generate-report-local 의 rationale strip 과 단일 source of truth.
 export const SECTOR_FORBID = {
-  technology:               ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '의류', '식품'],
-  semiconductor:            ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '의류', '식품'],
-  semiconductors:           ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '의류', '식품'],
-  'it services':            ['건설', '석유', '광물', '유틸리티', '제약', '의류', '식품'],
-  'metals & mining':        ['반도체', 'AI', '클라우드', '소프트웨어', '제약', '의류'],
-  'metals/mining':          ['반도체', 'AI', '클라우드', '소프트웨어', '제약'],
-  industrials:              ['반도체', 'AI', '클라우드', '제약'],
-  energy:                   ['반도체', 'AI', '소프트웨어', '제약', '의류'],
-  financials:               ['반도체', 'AI', '제약', '의류'],
+  technology:               ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '바이오', '의류', '식품'],
+  semiconductor:            ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '바이오', '의류', '식품'],
+  semiconductors:           ['건설', '석유', '광물', '유틸리티', '소비재', '제약', '바이오', '의류', '식품'],
+  'it services':            ['건설', '석유', '광물', '유틸리티', '제약', '바이오', '의류', '식품'],
+  'metals & mining':        ['반도체', 'AI', '클라우드', '소프트웨어', '제약', '바이오', '의류'],
+  'metals/mining':          ['반도체', 'AI', '클라우드', '소프트웨어', '제약', '바이오'],
+  industrials:              ['반도체', 'AI', '클라우드', '제약', '바이오'],
+  energy:                   ['반도체', 'AI', '소프트웨어', '제약', '바이오', '의류'],
+  financials:               ['반도체', 'AI', '제약', '바이오', '의류'],
   'consumer discretionary': ['반도체', '석유'],
   'consumer-discretionary': ['반도체', '석유'],
-  automotive:               ['반도체', 'AI', '클라우드', '제약'],
+  automotive:               ['반도체', 'AI', '클라우드', '제약', '바이오'],
   communication:            ['건설', '석유', '광물'],
   utilities:                ['반도체', 'AI', '소프트웨어'],
 };
