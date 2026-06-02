@@ -152,10 +152,6 @@
       "schedule": "30 13 * * 1-5"
     },
     {
-      "path": "/api/cron/iv-prewarm",
-      "schedule": "0 18 * * 1-5"
-    },
-    {
       "path": "/api/cron/refresh-ownership-alerts",
       "schedule": "0 8 * * *"
     },
@@ -169,15 +165,7 @@
     },
     {
       "path": "/api/cron/refresh-news-cascade",
-      "schedule": "30 11 * * *"
-    },
-    {
-      "path": "/api/cron/refresh-news-cascade",
       "schedule": "30 17 * * *"
-    },
-    {
-      "path": "/api/cron/refresh-news-cascade",
-      "schedule": "30 23 * * *"
     }
   ]
 }
