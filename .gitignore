@@ -52,3 +52,4 @@ report-14b.log
 
 # 보고서 백업 (debug용)
 reports/*.PRE-HARNESS.json
+.cf-tunnel-token
