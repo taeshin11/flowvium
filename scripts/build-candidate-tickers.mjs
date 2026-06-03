@@ -167,13 +167,14 @@ const out = {
     kr: Object.keys(KR_TICKERS).length,
   },
   tickers: candidate,
-  // ticker → meta (sector, cap, name)
+  // ticker → meta (sector, cap, name). 2026-06-04: 최종 pool(candidate)에 있는 ticker 만 — 죽은/풀외
+  //   ticker 의 stale meta 제거(alias probe [11] meta-stale 경고 해소).
   meta: Object.fromEntries([
     ...Object.entries(fields),
     ...ETF_TICKERS.map(t => [t, { name: t, sector: 'ETF', cap: 'etf' }]),
     ...Object.entries(KR_TICKERS).map(([t, name]) => [t, KR_META[t] ?? { name, sector: 'KR', cap: 'kr' }]),
     ...Object.entries(SP500_ADDED),
-  ]),
+  ].filter(([t]) => new Set(candidate).has(t))),
   krNames: KR_TICKERS,
 };
 

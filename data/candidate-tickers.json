@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T20:50:11.146Z",
+  "generatedAt": "2026-06-03T23:38:50.146Z",
   "total": 1180,
   "byBand": {
     "titan": 5,
@@ -1582,16 +1582,6 @@
       "sector": "technology",
       "cap": "large"
     },
-    "CDAY": {
-      "name": "Dayforce HCM Platform",
-      "sector": "technology",
-      "cap": "large"
-    },
-    "ZI": {
-      "name": "ZoomInfo SalesOS",
-      "sector": "technology",
-      "cap": "large"
-    },
     "PTC": {
       "name": "Creo (CAD/CAM)",
       "sector": "technology",
@@ -1601,11 +1591,6 @@
       "name": "Teradata Vantage (Cloud)",
       "sector": "technology",
       "cap": "large"
-    },
-    "FARO": {
-      "name": "3D Laser Scanners",
-      "sector": "technology",
-      "cap": "small"
     },
     "LOGI": {
       "name": "PC Peripherals (Mice, Keyboards)",
@@ -1637,16 +1622,6 @@
       "sector": "semiconductors",
       "cap": "mid"
     },
-    "FORM": {
-      "name": "Probe Cards (Foundry & Logic)",
-      "sector": "semiconductors",
-      "cap": "small"
-    },
-    "ACMR": {
-      "name": "SAPS / TEBO Cleaning Systems",
-      "sector": "semiconductors",
-      "cap": "small"
-    },
     "CERT": {
       "name": "Phoenix PK/PD Software",
       "sector": "healthcare",
@@ -1657,30 +1632,10 @@
       "sector": "healthcare",
       "cap": "mid"
     },
-    "TMDX": {
-      "name": "Organ Care System (OCS) — Heart",
-      "sector": "healthcare",
-      "cap": "small"
-    },
-    "IRTC": {
-      "name": "Zio Patch (Long-term ECG)",
-      "sector": "healthcare",
-      "cap": "small"
-    },
     "RXRX": {
       "name": "Recursion OS (Drug Discovery Platform)",
       "sector": "healthcare",
       "cap": "mid"
-    },
-    "DNLI": {
-      "name": "LRRK2 Inhibitors (Parkinson",
-      "sector": "healthcare",
-      "cap": "small"
-    },
-    "AXSM": {
-      "name": "Auvelity (MDD)",
-      "sector": "healthcare",
-      "cap": "small"
     },
     "ACAD": {
       "name": "Nuplazid (Parkinson",
@@ -1702,11 +1657,6 @@
       "sector": "healthcare",
       "cap": "mid"
     },
-    "IMVT": {
-      "name": "Batoclimab (IMVT-1402)",
-      "sector": "healthcare",
-      "cap": "small"
-    },
     "LAZ": {
       "name": "Financial Advisory (M&A, Restructuring)",
       "sector": "financials",
@@ -1726,11 +1676,6 @@
       "name": "Consumer-to-Consumer (C2C) Transfers",
       "sector": "financials",
       "cap": "large"
-    },
-    "COOP": {
-      "name": "Mortgage Servicing (MSR)",
-      "sector": "financials",
-      "cap": "mid"
     },
     "HRB": {
       "name": "Assisted Tax Prep (Retail)",
@@ -1772,11 +1717,6 @@
       "sector": "consumer-discretionary",
       "cap": "mid"
     },
-    "SHAK": {
-      "name": "ShackBurgers & Chicken Shack",
-      "sector": "consumer-discretionary",
-      "cap": "small"
-    },
     "DRVN": {
       "name": "Maintenance (Take 5 Oil Change, Midas)",
       "sector": "consumer-discretionary",
@@ -1792,16 +1732,6 @@
       "sector": "industrials",
       "cap": "large"
     },
-    "CSWI": {
-      "name": "HVAC/R Products (RectorSeal, Whitmore)",
-      "sector": "industrials",
-      "cap": "small"
-    },
-    "REVG": {
-      "name": "Fire & Emergency Vehicles",
-      "sector": "industrials",
-      "cap": "mid"
-    },
     "ENSG": {
       "name": "Skilled Nursing Facilities (SNF)",
       "sector": "healthcare",
@@ -1809,11 +1739,6 @@
     },
     "CNX": {
       "name": "Appalachian Natural Gas (Marcellus/Utica)",
-      "sector": "energy",
-      "cap": "mid"
-    },
-    "CIVI": {
-      "name": "DJ Basin Oil (Colorado)",
       "sector": "energy",
       "cap": "mid"
     },
@@ -1832,11 +1757,6 @@
       "sector": "real-estate",
       "cap": "mid"
     },
-    "IIPR": {
-      "name": "Cannabis Cultivation & Processing Leases",
-      "sector": "real-estate",
-      "cap": "small"
-    },
     "NXST": {
       "name": "Local TV Stations (200 markets)",
       "sector": "communication-services",
@@ -1846,16 +1766,6 @@
       "name": "AMC (Linear Cable Channel)",
       "sector": "communication-services",
       "cap": "mid"
-    },
-    "FYBR": {
-      "name": "Fiber Broadband (Frontier Fiber)",
-      "sector": "technology",
-      "cap": "large"
-    },
-    "SSYS": {
-      "name": "FDM Printers (Fortus, F123)",
-      "sector": "technology",
-      "cap": "small"
     },
     "FLO": {
       "name": "Nature",
@@ -1917,18 +1827,8 @@
       "sector": "communication-services",
       "cap": "large"
     },
-    "ATVI": {
-      "name": "Call of Duty",
-      "sector": "communication-services",
-      "cap": "mega"
-    },
     "WBD": {
       "name": "Max Streaming",
-      "sector": "communication-services",
-      "cap": "mid"
-    },
-    "PARA": {
-      "name": "Paramount+",
       "sector": "communication-services",
       "cap": "mid"
     },
@@ -1946,11 +1846,6 @@
       "name": "Advertising",
       "sector": "communication-services",
       "cap": "large"
-    },
-    "IPG": {
-      "name": "Integrated Advertising",
-      "sector": "communication-services",
-      "cap": "mid"
     },
     "LYV": {
       "name": "Concerts & Events",
@@ -2077,11 +1972,6 @@
       "sector": "real-estate",
       "cap": "mid"
     },
-    "PEAK": {
-      "name": "Life Science Properties",
-      "sector": "real-estate",
-      "cap": "mid"
-    },
     "BXP": {
       "name": "Class-A Office Space",
       "sector": "real-estate",
@@ -2194,11 +2084,6 @@
     },
     "IP": {
       "name": "Industrial Packaging",
-      "sector": "materials",
-      "cap": "mid"
-    },
-    "WRK": {
-      "name": "Corrugated Packaging",
       "sector": "materials",
       "cap": "mid"
     },
@@ -2572,11 +2457,6 @@
       "sector": "it-software",
       "cap": "large"
     },
-    "ANSS": {
-      "name": "Structures",
-      "sector": "it-software",
-      "cap": "large"
-    },
     "FTNT": {
       "name": "FortiGate Firewalls",
       "sector": "it-software",
@@ -2609,11 +2489,6 @@
     },
     "TRMB": {
       "name": "Buildings & Infrastructure",
-      "sector": "it-software",
-      "cap": "mid"
-    },
-    "JNPR": {
-      "name": "AI-Driven Enterprise",
       "sector": "it-software",
       "cap": "mid"
     },
@@ -2802,11 +2677,6 @@
       "sector": "consumer-defensive",
       "cap": "mid"
     },
-    "K": {
-      "name": "Pringles",
-      "sector": "consumer-defensive",
-      "cap": "large"
-    },
     "SJM": {
       "name": "Folgers & Café Bustelo",
       "sector": "consumer-defensive",
@@ -2847,11 +2717,6 @@
       "sector": "consumer-defensive",
       "cap": "large"
     },
-    "WBA": {
-      "name": "Walgreens US Pharmacy",
-      "sector": "consumer-defensive",
-      "cap": "mid"
-    },
     "EL": {
       "name": "Estée Lauder & Clinique",
       "sector": "consumer-defensive",
@@ -2882,11 +2747,6 @@
       "sector": "pharma-biotech",
       "cap": "mid"
     },
-    "OGN": {
-      "name": "Nexplanon",
-      "sector": "pharma-biotech",
-      "cap": "small"
-    },
     "BIIB": {
       "name": "Leqembi (lecanemab)",
       "sector": "pharma-biotech",
@@ -2914,11 +2774,6 @@
     },
     "VLO": {
       "name": "Refined Petroleum Products",
-      "sector": "energy",
-      "cap": "large"
-    },
-    "HES": {
-      "name": "Guyana (Stabroek Block)",
       "sector": "energy",
       "cap": "large"
     },
@@ -3031,11 +2886,6 @@
       "name": "Rare Earth Concentrate (Stage I)",
       "sector": "materials",
       "cap": "mid"
-    },
-    "LAC": {
-      "name": "Thacker Pass Lithium Carbonate",
-      "sector": "materials",
-      "cap": "small"
     },
     "LDOS": {
       "name": "Defense Solutions",
@@ -3284,11 +3134,6 @@
     },
     "CTRA": {
       "name": "Permian Basin Oil",
-      "sector": "energy",
-      "cap": "large"
-    },
-    "MRO": {
-      "name": "Eagle Ford Shale",
       "sector": "energy",
       "cap": "large"
     },
@@ -3737,21 +3582,6 @@
       "sector": "ai-cloud",
       "cap": "titan"
     },
-    "6752.T": {
-      "name": "4680 Cylindrical Cells",
-      "sector": "ev-battery",
-      "cap": "large"
-    },
-    "1211.HK": {
-      "name": "BYD Passenger EVs",
-      "sector": "ev-battery",
-      "cap": "large"
-    },
-    "BA.L": {
-      "name": "Combat Vehicles",
-      "sector": "defense",
-      "cap": "large"
-    },
     "PFE": {
       "name": "Paxlovid",
       "sector": "pharma-biotech",
@@ -3787,11 +3617,6 @@
       "sector": "semiconductors",
       "cap": "mid"
     },
-    "LSCC": {
-      "name": "Nexus FPGAs",
-      "sector": "semiconductors",
-      "cap": "small"
-    },
     "MPWR": {
       "name": "Data Center Power ICs",
       "sector": "semiconductors",
@@ -3801,11 +3626,6 @@
       "name": "Advanced Packaging (FC-BGA, SiP)",
       "sector": "semiconductors",
       "cap": "mid"
-    },
-    "WOLF": {
-      "name": "SiC Power Devices",
-      "sector": "semiconductors",
-      "cap": "small"
     },
     "PLTR": {
       "name": "Gotham",
@@ -3827,45 +3647,10 @@
       "sector": "ai-cloud",
       "cap": "mid"
     },
-    "AI": {
-      "name": "C3 AI Platform",
-      "sector": "ai-cloud",
-      "cap": "small"
-    },
     "RIVN": {
       "name": "R1T Electric Pickup",
       "sector": "ev-battery",
       "cap": "mid"
-    },
-    "QS": {
-      "name": "Solid-State Lithium-Metal Cells",
-      "sector": "ev-battery",
-      "cap": "small"
-    },
-    "CHPT": {
-      "name": "Commercial AC Charging",
-      "sector": "ev-battery",
-      "cap": "small"
-    },
-    "LCID": {
-      "name": "Lucid Air (Sedan)",
-      "sector": "ev-battery",
-      "cap": "small"
-    },
-    "LTHM": {
-      "name": "Battery-Grade Lithium Hydroxide",
-      "sector": "ev-battery",
-      "cap": "small"
-    },
-    "KTOS": {
-      "name": "Tactical Drones (Valkyrie, XQ-58)",
-      "sector": "defense",
-      "cap": "small"
-    },
-    "MRCY": {
-      "name": "Mission Processors",
-      "sector": "defense",
-      "cap": "small"
     },
     "CW": {
       "name": "Defense Electronics",
@@ -3902,11 +3687,6 @@
       "sector": "pharma-biotech",
       "cap": "mid"
     },
-    "NTLA": {
-      "name": "NTLA-2002 (HAE Gene Editing)",
-      "sector": "pharma-biotech",
-      "cap": "small"
-    },
     "AVGO": {
       "name": "Networking ASICs",
       "sector": "semiconductors",
@@ -3932,11 +3712,6 @@
       "sector": "semiconductors",
       "cap": "mid"
     },
-    "SLAB": {
-      "name": "IoT Wireless SoCs",
-      "sector": "semiconductors",
-      "cap": "small"
-    },
     "NOW": {
       "name": "IT Service Management (ITSM)",
       "sector": "ai-cloud",
@@ -3957,11 +3732,6 @@
       "sector": "ai-cloud",
       "cap": "mid"
     },
-    "CFLT": {
-      "name": "Confluent Cloud",
-      "sector": "ai-cloud",
-      "cap": "small"
-    },
     "ESTC": {
       "name": "Elastic Search",
       "sector": "ai-cloud",
@@ -3971,26 +3741,6 @@
       "name": "ES/EC SUV Series",
       "sector": "ev-battery",
       "cap": "mid"
-    },
-    "XPEV": {
-      "name": "G6/G9 SUVs",
-      "sector": "ev-battery",
-      "cap": "small"
-    },
-    "SLDP": {
-      "name": "Sulfide Solid Electrolyte",
-      "sector": "ev-battery",
-      "cap": "small"
-    },
-    "PLL": {
-      "name": "Spodumene Concentrate",
-      "sector": "ev-battery",
-      "cap": "small"
-    },
-    "PLUG": {
-      "name": "GenDrive Fuel Cells",
-      "sector": "ev-battery",
-      "cap": "small"
     },
     "GD": {
       "name": "Gulfstream Business Jets",
@@ -4006,16 +3756,6 @@
       "name": "Signals Intelligence (SIGINT)",
       "sector": "defense",
       "cap": "mid"
-    },
-    "AJRD": {
-      "name": "Liquid Rocket Engines",
-      "sector": "defense",
-      "cap": "small"
-    },
-    "AVAV": {
-      "name": "Switchblade Loitering Munitions",
-      "sector": "defense",
-      "cap": "small"
     },
     "ABBV": {
       "name": "Skyrizi / Rinvoq",
@@ -4036,11 +3776,6 @@
       "name": "Onpattro (Patisiran)",
       "sector": "pharma-biotech",
       "cap": "mid"
-    },
-    "CRSP": {
-      "name": "Casgevy (Exagamglogene)",
-      "sector": "pharma-biotech",
-      "cap": "small"
     },
     "IONS": {
       "name": "Spinraza (Nusinersen)",
@@ -4171,11 +3906,6 @@
       "name": "Liquids Pipelines",
       "sector": "energy",
       "cap": "large"
-    },
-    "SHLS": {
-      "name": "Big Lead Assembly (BLA)",
-      "sector": "energy",
-      "cap": "small"
     },
     "LNG": {
       "name": "Sabine Pass LNG Terminal",
@@ -4787,12 +4517,6 @@
       "cap": "kr",
       "market": "kosdaq"
     },
-    "115390.KS": {
-      "name": "락앤락",
-      "sector": "Other",
-      "cap": "kr",
-      "market": "kospi"
-    },
     "086280.KS": {
       "name": "현대글로비스",
       "sector": "Transportation",
@@ -4967,12 +4691,6 @@
       "cap": "kr",
       "market": "kospi"
     },
-    "053000.KS": {
-      "name": "우리금융지주",
-      "sector": "Banking",
-      "cap": "kr",
-      "market": "kospi"
-    },
     "082800.KQ": {
       "name": "비보존 제약",
       "sector": "Healthcare",
@@ -5018,12 +4736,6 @@
     "001680.KS": {
       "name": "대상",
       "sector": "Consumer Staples",
-      "cap": "kr",
-      "market": "kospi"
-    },
-    "003410.KS": {
-      "name": "쌍용씨앤이",
-      "sector": "Other",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5201,12 +4913,6 @@
       "cap": "kr",
       "market": "kosdaq"
     },
-    "091990.KQ": {
-      "name": "셀트리온헬스케어",
-      "sector": "Wholesale",
-      "cap": "kr",
-      "market": "kosdaq"
-    },
     "357780.KQ": {
       "name": "솔브레인",
       "sector": "Chemicals",
@@ -5357,12 +5063,6 @@
       "cap": "kr",
       "market": "kosdaq"
     },
-    "168490.KQ": {
-      "name": "한국투자패러랠유전해외자원개발특별자산투자회사1호(지분증권)",
-      "sector": "Telecom",
-      "cap": "kr",
-      "market": "kosdaq"
-    },
     "352480.KQ": {
       "name": "씨앤씨인터내셔널",
       "sector": "Chemicals",
@@ -5446,12 +5146,6 @@
       "sector": "Chemicals",
       "cap": "kr",
       "market": "kospi"
-    },
-    "060300.KQ": {
-      "name": "레드로버",
-      "sector": "Other",
-      "cap": "kr",
-      "market": "kosdaq"
     },
     "049630.KQ": {
       "name": "재영솔루텍",
@@ -5609,12 +5303,6 @@
       "cap": "kr",
       "market": "kosdaq"
     },
-    "224880.KQ": {
-      "name": "에스지에이클라우드서비스",
-      "sector": "Other",
-      "cap": "kr",
-      "market": "kosdaq"
-    },
     "089600.KQ": {
       "name": "KT나스미디어",
       "sector": "Professional Services",
@@ -5681,12 +5369,6 @@
       "cap": "kr",
       "market": "kospi"
     },
-    "078650.KQ": {
-      "name": "지나인제약",
-      "sector": "Other",
-      "cap": "kr",
-      "market": "kosdaq"
-    },
     "104830.KQ": {
       "name": "원익머트리얼즈",
       "sector": "Chemicals",
@@ -5705,12 +5387,6 @@
       "cap": "kr",
       "market": "kosdaq"
     },
-    "048260.KQ": {
-      "name": "오스템임플란트",
-      "sector": "Other",
-      "cap": "kr",
-      "market": "kosdaq"
-    },
     "214420.KS": {
       "name": "토니모리",
       "sector": "Chemicals",
@@ -5720,12 +5396,6 @@
     "025900.KQ": {
       "name": "동화기업",
       "sector": "Other",
-      "cap": "kr",
-      "market": "kosdaq"
-    },
-    "050540.KQ": {
-      "name": "엠피씨플러스",
-      "sector": "Professional Services",
       "cap": "kr",
       "market": "kosdaq"
     },
