@@ -179,10 +179,43 @@ const IFRS_CFG: FactCfg = {
 // 2026-06-04: 외국 발행사(ADR)는 현지통화 보고(ASML=EUR, NVO=DKK, GSK=GBP 등). XBRL units 가
 //   USD 아닌 EUR/GBP/DKK/JPY 등 → .units.USD 만 읽던 코드가 누락. cross-comparison USD 환산용
 //   상수 FX (dart-financials 의 KRW_USD 와 동일 패턴 — 표시 근사값, native 값이 정확).
+// 정적 fallback (FRED 실패 시만). 2026-06-04: 라이브 FRED 환율로 동적화 (getFxRates).
 const FX_TO_USD: Record<string, number> = {
   USD: 1, EUR: 1.08, GBP: 1.27, DKK: 0.145, JPY: 0.0064, CHF: 1.10,
   CAD: 0.73, AUD: 0.66, SEK: 0.095, NOK: 0.092, HKD: 0.128, CNY: 0.138, ILS: 0.27, SGD: 0.74,
 };
+// Yahoo Finance FX 페어 → USD/현지통화. invert=true 면 페어가 USD/현지 라 역수.
+//   (FRED 는 이 환경서 도달 불가 → stock-price 와 동일 Yahoo 소스 사용, reachable + 실시간.)
+const YAHOO_FX: Record<string, { sym: string; invert: boolean }> = {
+  EUR: { sym: 'EURUSD=X', invert: false }, GBP: { sym: 'GBPUSD=X', invert: false },
+  AUD: { sym: 'AUDUSD=X', invert: false }, JPY: { sym: 'USDJPY=X', invert: true },
+  DKK: { sym: 'USDDKK=X', invert: true }, CHF: { sym: 'USDCHF=X', invert: true },
+  CAD: { sym: 'USDCAD=X', invert: true }, CNY: { sym: 'USDCNY=X', invert: true },
+  HKD: { sym: 'USDHKD=X', invert: true }, SEK: { sym: 'USDSEK=X', invert: true },
+  NOK: { sym: 'USDNOK=X', invert: true }, SGD: { sym: 'USDSGD=X', invert: true },
+};
+let FX_CACHE: { rates: Record<string, number>; at: number; live: boolean } | null = null;
+const FX_TTL = 12 * 60 * 60_000; // 12h
+// 2026-06-04: 라이브 Yahoo FX (정적 상수 → 동적). 실패 시 FX_TO_USD fallback. source 추적용 live 플래그.
+async function getFxRates(): Promise<{ rates: Record<string, number>; live: boolean }> {
+  if (FX_CACHE && Date.now() - FX_CACHE.at < FX_TTL) return { rates: FX_CACHE.rates, live: FX_CACHE.live };
+  const rates: Record<string, number> = { ...FX_TO_USD };
+  let liveCount = 0;
+  await Promise.all(Object.entries(YAHOO_FX).map(async ([cur, { sym, invert }]) => {
+    try {
+      const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=5d`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+      if (!res.ok) return;
+      const j = await res.json() as { chart?: { result?: Array<{ meta?: { regularMarketPrice?: number } }> } };
+      const v = j.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (Number.isFinite(v) && (v as number) > 0) { rates[cur] = invert ? 1 / (v as number) : (v as number); liveCount++; }
+    } catch { /* keep static fallback for this currency */ }
+  }));
+  const live = liveCount > 0;
+  FX_CACHE = { rates, at: Date.now(), live };
+  return { rates, live };
+}
+export async function getFxStatus() { const r = await getFxRates(); return { live: r.live, eur: r.rates.EUR, gbp: r.rates.GBP }; }
 // 보고 통화 감지 — revenue 개념의 units 키 중 첫 번째 알려진 통화.
 function detectCurrency(facts: Record<string, unknown>, cfg: FactCfg): string {
   for (const name of cfg.concepts.revenue) {
@@ -450,7 +483,8 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
       latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg, curr);
       if (latestRevEntry) logger.info('sec.financials', 'ifrs_fallback', { ticker, curr });
     }
-    const fx = FX_TO_USD[curr] ?? 1;  // 현지통화 → USD cross-comparison 근사 (native 값이 정확)
+    const { rates: fxRates } = curr !== 'USD' ? await getFxRates() : { rates: FX_TO_USD };
+    const fx = fxRates[curr] ?? FX_TO_USD[curr] ?? 1;  // 라이브 FRED 환율(실패 시 정적 fallback)
     const quarterlyRevenue = buildQuarterlyRevenue(facts, cfg.concepts.revenue, cfg, curr, fx);
 
     if (!latestRevEntry) {

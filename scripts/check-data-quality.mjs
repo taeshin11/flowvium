@@ -98,6 +98,28 @@ async function main() {
     } catch (e) { issues.push(`[E] /api/translate 호출 실패: ${String(e.message || e).slice(0, 50)}`); }
   }
 
+  // [F] 동적성/freshness — 값이 실제로 갱신되는지(frozen/stale 캐시·고정상수 감지). 2026-06-04 신설.
+  //     "출력이 맞나"(A~E)와 별개로 "계속 동적으로 업데이트되나"를 updatedAt/source 로 검증.
+  {
+    const now = Date.now();
+    const ageH = (ts) => ts ? (now - new Date(ts).getTime()) / 3600000 : Infinity;
+    // 1) 실시간 시세 — updatedAt 신선(라이브 갱신). 장중 캐시 고려 48h 임계.
+    const sp = await getJson('/api/stock-price/AAPL');
+    const spAge = ageH(sp.body?.updatedAt);
+    if (spAge > 48) issues.push(`[F] stock-price updatedAt ${spAge.toFixed(0)}h 경과 — 시세 갱신 정지 의심(frozen)`);
+    else info.push(`[F] stock-price 신선 (${spAge.toFixed(1)}h)`);
+    // 2) F&G source=live (정적 폴백 아님)
+    const fg = await getJson('/api/fear-greed');
+    const fgSrc = fg.body?.source;
+    if (fgSrc && fgSrc !== 'live') issues.push(`[F] fear-greed source=${fgSrc} (정적 폴백 — 크론 미갱신 의심)`);
+    else info.push(`[F] fear-greed source=${fgSrc ?? '?'}`);
+    // 3) ADR FX 변환 라이브 — 외국통화 ADR 재무가 환산되는지 + 라이브 FX
+    const adr = await getJson('/api/company-financials/ASML', 25000);
+    const adrSrc = adr.body?.source ?? '';
+    if (adr.body?.latestAnnual?.revenueUSD == null) issues.push('[F] ASML(EUR ADR) 재무 누락 — 다통화/FX 경로 정지 의심');
+    else info.push(`[F] ADR FX 변환 OK (ASML rev=$${(adr.body.latestAnnual.revenueUSD/1e9).toFixed(1)}B, ${adrSrc.replace('SEC EDGAR XBRL ','')})`);
+  }
+
   // [D] 커버리지-차원 — "카테고리 0건 = 빨간불" 원칙. 최신 보고서에 KR portfolio 가 있는데
   //     companyChanges/supplyChain 에 KR 이 0 이면 침묵이 아니라 결함으로 surface.
   //     (US-우선 파이프라인이 KR 을 조용히 누락하던 사각지대 자동 감지.)
