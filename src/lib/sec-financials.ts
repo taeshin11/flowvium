@@ -177,11 +177,11 @@ const IFRS_CFG: FactCfg = {
 };
 
 /** Pick best entry for a concept across all possible names (default GAAP/10-K). */
-function bestFYEntry(facts: Record<string, unknown>, names: string[], cfg: FactCfg = GAAP_CFG): USDEntry | null {
+function bestFYEntry(facts: Record<string, unknown>, names: string[], cfg: FactCfg = GAAP_CFG, unit: string = 'USD'): USDEntry | null {
   let best: USDEntry | null = null;
   for (const name of names) {
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-      ?.[cfg.ns]?.[name]?.units?.USD;
+      ?.[cfg.ns]?.[name]?.units?.[unit];
     if (!Array.isArray(entries) || !entries.length) continue;
     const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY');
     if (!fyEntries.length) continue;
@@ -439,7 +439,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     // All other concepts — latest FY entry only (we'll align to revFYs below)
     const opIncEntry = bestFYEntry(facts, C.opIncome, cfg);
     const netIncEntry = bestFYEntry(facts, C.netIncome, cfg);
-    const epsEntry = bestFYEntry(facts, C.eps, cfg);
+    const epsEntry = bestFYEntry(facts, C.eps, cfg, 'USD/shares');
     const assetsEntry = bestFYEntry(facts, C.assets, cfg);
     const liabEntry = bestFYEntry(facts, C.liabilities, cfg);
     const equityEntry = bestFYEntry(facts, C.equity, cfg);
@@ -454,10 +454,12 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     // Build annual time series for last 5 years
     const targetFYs = Array.from(revFYs.keys()).sort((a, b) => b - a);
 
-    const getValForFY = (concepts: string[], fy: number): number | null => {
+    // 2026-06-03: unit 파라미터 추가 — EPS 는 SEC XBRL 에서 'USD/shares' unit (USD 아님).
+    //   이전엔 .units.USD 하드코딩이라 epsDiluted 항상 null → 모든 US 페이지 EPS '-' + P/E null.
+    const getValForFY = (concepts: string[], fy: number, unit: string = 'USD'): number | null => {
       for (const name of concepts) {
         const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-          ?.[cfg.ns]?.[name]?.units?.USD;
+          ?.[cfg.ns]?.[name]?.units?.[unit];
         if (!Array.isArray(entries)) continue;
         const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY' && e.fy === fy);
         if (!fyEntries.length) continue;
@@ -487,7 +489,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
         revenueUSD: rev,
         operatingIncomeUSD: opInc,
         netIncomeUSD: netInc,
-        epsDiluted: getValForFY(C.eps, fy),
+        epsDiluted: getValForFY(C.eps, fy, 'USD/shares'),
         totalAssetsUSD: assets,
         totalLiabilitiesUSD: liab,
         equityUSD: equity,

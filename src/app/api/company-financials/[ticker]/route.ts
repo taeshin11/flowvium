@@ -31,7 +31,7 @@ export async function GET(
     return NextResponse.json({ error: 'kr-ticker-use-company-kr', ticker: rawTicker, hint: '/api/company-kr/' + rawTicker.replace(/\.(KS|KQ)$/, '') }, { status: 404 });
   }
   const redis = createRedis();
-  const cacheKey = `flowvium:company-financials:v5:${ticker}`;  // v5: bank quarterly revenue (RevenuesNetOfInterestExpense)
+  const cacheKey = `flowvium:company-financials:v6:${ticker}`;  // v6: epsDiluted USD/shares unit fix (2026-06-03)
 
   if (redis) {
     try {
