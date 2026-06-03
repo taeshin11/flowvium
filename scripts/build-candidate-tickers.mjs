@@ -135,6 +135,17 @@ try {
 // 추천 가능 풀 = titan + mega + large + mid + ETF + KR
 // (small 34개는 유동성 약함 — 제외)
 // mid 포함 = small-cap premium factor (Fama-French SMB) 활용
+// 2026-06-04: 거래불가 종목 제외 — (a) 외국거래소 suffix 규칙, (b) prune-dead-tickers.mjs 가
+//   생성한 delisted-tickers.json(상장폐지/피인수, 데이터 기반). 죽은 티커가 풀에 남아 LLM 점수·NE 환각 노이즈.
+const FOREIGN_SUFFIX = /\.(T|HK|L|TO|PA|DE|SW|AS|MI|MC|ST|HE|OL|CO|VX|SI|AX|NZ|TW|SS|SZ|F|BR|MX|JO|IS)$/;
+let DELISTED = new Set();
+try {
+  const dl = JSON.parse(readFileSync(resolve(ROOT, 'data/delisted-tickers.json'), 'utf8'));
+  DELISTED = new Set((dl.tickers || []).map(t => t.toUpperCase()));
+  console.log(`[prune] delisted-tickers.json 로드: ${DELISTED.size} 제외 (외국 ${dl.foreign?.length ?? 0} + 폐지 ${dl.noPrice?.length ?? 0})`);
+} catch { /* prune-dead-tickers.mjs 미실행 — 제외 없음 */ }
+const isDead = (t) => FOREIGN_SUFFIX.test(t) || DELISTED.has((t || '').toUpperCase());
+
 const candidate = [
   ...grouped.titan,
   ...grouped.mega,
@@ -142,7 +153,7 @@ const candidate = [
   ...grouped.mid,
   ...ETF_TICKERS,
   ...Object.keys(KR_TICKERS),
-];
+].filter(t => !isDead(t));
 
 const out = {
   generatedAt: new Date().toISOString(),

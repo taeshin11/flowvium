@@ -122,9 +122,9 @@ interface USDEntry { val: number; fy: number; fp: string; form: string; end: str
 // 2026-06-01: 외국 발행사(ADR) 지원 — TSM 등은 10-K/us-gaap 아닌 20-F/ifrs-full 로 보고.
 //   us-gaap/10-K 로 revenue 못 찾으면 ifrs-full/20-F 로 fallback (기존 US 종목 경로는 불변).
 interface FactCfg {
-  ns: string;          // XBRL taxonomy namespace
-  annualForm: string;  // 연차보고서 form
-  quarterForm: string; // 분기보고서 form
+  ns: string;            // XBRL taxonomy namespace
+  annualForm: string[];  // 연차보고서 form (US=10-K, 외국 발행사 ADR=20-F)
+  quarterForm: string;   // 분기보고서 form
   concepts: {
     revenue: string[]; opIncome: string[]; netIncome: string[]; eps: string[];
     assets: string[]; liabilities: string[]; equity: string[];
@@ -134,7 +134,7 @@ interface FactCfg {
 }
 
 const GAAP_CFG: FactCfg = {
-  ns: 'us-gaap', annualForm: '10-K', quarterForm: '10-Q',
+  ns: 'us-gaap', annualForm: ['10-K', '20-F'], quarterForm: '10-Q',
   concepts: {
     // RevenuesNetOfInterestExpense covers banks (JPM, BAC, C, WFC) which don't
     // report under the standard Revenues concept for 10-Q quarterly filings.
@@ -157,7 +157,7 @@ const GAAP_CFG: FactCfg = {
 
 // IFRS concept 이름은 TSM(CIK 1046179) 20-F companyfacts 로 검증 (2026-06-01).
 const IFRS_CFG: FactCfg = {
-  ns: 'ifrs-full', annualForm: '20-F', quarterForm: '6-K',
+  ns: 'ifrs-full', annualForm: ['20-F'], quarterForm: '6-K',
   concepts: {
     revenue: ['Revenue', 'RevenueFromContractsWithCustomers'],
     opIncome: ['ProfitLossFromOperatingActivities', 'OperatingProfitLoss'],
@@ -183,7 +183,7 @@ function bestFYEntry(facts: Record<string, unknown>, names: string[], cfg: FactC
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
       ?.[cfg.ns]?.[name]?.units?.[unit];
     if (!Array.isArray(entries) || !entries.length) continue;
-    const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY');
+    const fyEntries = entries.filter(e => cfg.annualForm.includes(e.form) && e.fp === 'FY');
     if (!fyEntries.length) continue;
     fyEntries.sort((a, b) => b.fy - a.fy || b.end.localeCompare(a.end));
     const candidate = fyEntries[0];
@@ -201,7 +201,7 @@ function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: numb
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
       ?.[cfg.ns]?.[name]?.units?.USD;
     if (!Array.isArray(entries)) continue;
-    const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY');
+    const fyEntries = entries.filter(e => cfg.annualForm.includes(e.form) && e.fp === 'FY');
     for (const e of fyEntries) {
       const existing = byFY.get(e.fy);
       if (!existing || e.end > existing.end) byFY.set(e.fy, e);
@@ -228,7 +228,7 @@ function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[], 
     if (!Array.isArray(entries)) continue;
     for (const e of entries) {
       const isQ = e.form === cfg.quarterForm && ['Q1', 'Q2', 'Q3'].includes(e.fp);
-      const isFY = e.form === cfg.annualForm && e.fp === 'FY';
+      const isFY = cfg.annualForm.includes(e.form) && e.fp === 'FY';
       if (!isQ && !isFY) continue;
       const key = `${e.fy}:${e.fp}`;
       const existing = ytdMap.get(key);
@@ -461,7 +461,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
         const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
           ?.[cfg.ns]?.[name]?.units?.[unit];
         if (!Array.isArray(entries)) continue;
-        const fyEntries = entries.filter(e => e.form === cfg.annualForm && e.fp === 'FY' && e.fy === fy);
+        const fyEntries = entries.filter(e => cfg.annualForm.includes(e.form) && e.fp === 'FY' && e.fy === fy);
         if (!fyEntries.length) continue;
         fyEntries.sort((a, b) => b.end.localeCompare(a.end));
         return fyEntries[0].val;
@@ -539,7 +539,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
       periodEnd: latestRev.end,
       revenueUSD: latestRev.val,
       revenueFormatted: formatUsd(latestRev.val),
-      source: `SEC EDGAR XBRL ${cfg.annualForm}`,
+      source: `SEC EDGAR XBRL ${cfg.annualForm.join('/')}`,
       fetchedAt: new Date().toISOString(),
       annuals,
       latestAnnual,
