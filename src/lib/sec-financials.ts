@@ -176,6 +176,26 @@ const IFRS_CFG: FactCfg = {
   },
 };
 
+// 2026-06-04: 외국 발행사(ADR)는 현지통화 보고(ASML=EUR, NVO=DKK, GSK=GBP 등). XBRL units 가
+//   USD 아닌 EUR/GBP/DKK/JPY 등 → .units.USD 만 읽던 코드가 누락. cross-comparison USD 환산용
+//   상수 FX (dart-financials 의 KRW_USD 와 동일 패턴 — 표시 근사값, native 값이 정확).
+const FX_TO_USD: Record<string, number> = {
+  USD: 1, EUR: 1.08, GBP: 1.27, DKK: 0.145, JPY: 0.0064, CHF: 1.10,
+  CAD: 0.73, AUD: 0.66, SEK: 0.095, NOK: 0.092, HKD: 0.128, CNY: 0.138, ILS: 0.27, SGD: 0.74,
+};
+// 보고 통화 감지 — revenue 개념의 units 키 중 첫 번째 알려진 통화.
+function detectCurrency(facts: Record<string, unknown>, cfg: FactCfg): string {
+  for (const name of cfg.concepts.revenue) {
+    const units = (facts as Record<string, Record<string, Record<string, Record<string, unknown>>>>)
+      ?.[cfg.ns]?.[name]?.units;
+    if (units) {
+      if (units.USD) return 'USD';
+      for (const k of Object.keys(units)) if (FX_TO_USD[k] != null) return k;
+    }
+  }
+  return 'USD';
+}
+
 /** Pick best entry for a concept across all possible names (default GAAP/10-K). */
 function bestFYEntry(facts: Record<string, unknown>, names: string[], cfg: FactCfg = GAAP_CFG, unit: string = 'USD'): USDEntry | null {
   let best: USDEntry | null = null;
@@ -195,11 +215,11 @@ function bestFYEntry(facts: Record<string, unknown>, names: string[], cfg: FactC
 }
 
 /** Collect last N fiscal years of annual entries for a concept (default GAAP/10-K). */
-function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: number, cfg: FactCfg = GAAP_CFG): Map<number, USDEntry> {
+function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: number, cfg: FactCfg = GAAP_CFG, unit: string = 'USD'): Map<number, USDEntry> {
   const byFY = new Map<number, USDEntry>();
   for (const name of names) {
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-      ?.[cfg.ns]?.[name]?.units?.USD;
+      ?.[cfg.ns]?.[name]?.units?.[unit];
     if (!Array.isArray(entries)) continue;
     const fyEntries = entries.filter(e => cfg.annualForm.includes(e.form) && e.fp === 'FY');
     for (const e of fyEntries) {
@@ -218,13 +238,13 @@ function lastNFYEntries(facts: Record<string, unknown>, names: string[], n: numb
  *  True quarterly = YTD_Q - YTD_Q_prev  (e.g. Q2 = YTD_Q2 - YTD_Q1).
  *  Q4 is derived: Annual (10-K FY) - YTD_Q3.
  */
-function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[], cfg: FactCfg = GAAP_CFG): QuarterlyRevenue[] {
+function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[], cfg: FactCfg = GAAP_CFG, unit: string = 'USD', fx: number = 1): QuarterlyRevenue[] {
   // key = `${fy}:${fp}` where fp ∈ Q1|Q2|Q3|FY
   const ytdMap = new Map<string, USDEntry>();
 
   for (const name of names) {
     const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
-      ?.[cfg.ns]?.[name]?.units?.USD;
+      ?.[cfg.ns]?.[name]?.units?.[unit];
     if (!Array.isArray(entries)) continue;
     for (const e of entries) {
       const isQ = e.form === cfg.quarterForm && ['Q1', 'Q2', 'Q3'].includes(e.fp);
@@ -274,7 +294,7 @@ function buildQuarterlyRevenue(facts: Record<string, unknown>, names: string[], 
       fy: e.fy,
       fp: e.fp,
       periodEnd: e.end,
-      revenueUSD: e.val,
+      revenueUSD: e.val * fx,  // 현지통화 → USD
       yoyPct,
     };
   });
@@ -419,16 +439,19 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
     // Revenue — pick most recent across all concept variants.
     // 1차: us-gaap / 10-K (US 종목). 2차: ifrs-full / 20-F (외국 ADR, 예: TSM).
     let cfg = GAAP_CFG;
-    let revFYs = lastNFYEntries(facts, cfg.concepts.revenue, 5, cfg);
-    let latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg);
+    let curr = detectCurrency(facts, cfg);  // USD(US) 또는 EUR/GBP/DKK(외국 us-gaap 발행사 ASML 등)
+    let revFYs = lastNFYEntries(facts, cfg.concepts.revenue, 5, cfg, curr);
+    let latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg, curr);
     if (!latestRevEntry) {
       // foreign private issuer fallback — IFRS taxonomy + 20-F filings
       cfg = IFRS_CFG;
-      revFYs = lastNFYEntries(facts, cfg.concepts.revenue, 5, cfg);
-      latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg);
-      if (latestRevEntry) logger.info('sec.financials', 'ifrs_fallback', { ticker });
+      curr = detectCurrency(facts, cfg);
+      revFYs = lastNFYEntries(facts, cfg.concepts.revenue, 5, cfg, curr);
+      latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg, curr);
+      if (latestRevEntry) logger.info('sec.financials', 'ifrs_fallback', { ticker, curr });
     }
-    const quarterlyRevenue = buildQuarterlyRevenue(facts, cfg.concepts.revenue, cfg);
+    const fx = FX_TO_USD[curr] ?? 1;  // 현지통화 → USD cross-comparison 근사 (native 값이 정확)
+    const quarterlyRevenue = buildQuarterlyRevenue(facts, cfg.concepts.revenue, cfg, curr, fx);
 
     if (!latestRevEntry) {
       logger.warn('sec.financials', 'no_revenue_entry', { ticker, durationMs: Date.now() - start });
@@ -456,7 +479,9 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
 
     // 2026-06-03: unit 파라미터 추가 — EPS 는 SEC XBRL 에서 'USD/shares' unit (USD 아님).
     //   이전엔 .units.USD 하드코딩이라 epsDiluted 항상 null → 모든 US 페이지 EPS '-' + P/E null.
-    const getValForFY = (concepts: string[], fy: number, unit: string = 'USD'): number | null => {
+    // unit 미지정 시 보고통화(curr)로 읽고 fx 로 USD 환산. EPS 는 `${curr}/shares` 명시.
+    const getValForFY = (concepts: string[], fy: number, unitOverride?: string): number | null => {
+      const unit = unitOverride ?? curr;
       for (const name of concepts) {
         const entries = (facts as Record<string, Record<string, Record<string, Record<string, USDEntry[]>>>>)
           ?.[cfg.ns]?.[name]?.units?.[unit];
@@ -464,7 +489,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
         const fyEntries = entries.filter(e => cfg.annualForm.includes(e.form) && e.fp === 'FY' && e.fy === fy);
         if (!fyEntries.length) continue;
         fyEntries.sort((a, b) => b.end.localeCompare(a.end));
-        return fyEntries[0].val;
+        return fyEntries[0].val * fx;  // 현지통화 → USD
       }
       return null;
     };
@@ -489,7 +514,7 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
         revenueUSD: rev,
         operatingIncomeUSD: opInc,
         netIncomeUSD: netInc,
-        epsDiluted: getValForFY(C.eps, fy, 'USD/shares'),
+        epsDiluted: getValForFY(C.eps, fy, `${curr}/shares`),
         totalAssetsUSD: assets,
         totalLiabilitiesUSD: liab,
         equityUSD: equity,
@@ -537,9 +562,9 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
       fiscalYear: latestRev.fy,
       fiscalPeriod: latestRev.fp,
       periodEnd: latestRev.end,
-      revenueUSD: latestRev.val,
-      revenueFormatted: formatUsd(latestRev.val),
-      source: `SEC EDGAR XBRL ${cfg.annualForm.join('/')}`,
+      revenueUSD: latestRev.val * fx,           // 현지통화 → USD
+      revenueFormatted: formatUsd(latestRev.val * fx),
+      source: `SEC EDGAR XBRL ${cfg.annualForm.join('/')}${curr !== 'USD' ? ` (${curr}→USD)` : ''}`,
       fetchedAt: new Date().toISOString(),
       annuals,
       latestAnnual,
