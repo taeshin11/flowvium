@@ -42,6 +42,12 @@ const ACCOUNT_IDS = {
   totalAssets:      ['ifrs-full_Assets', 'dart_Assets'],
   totalEquity:      ['ifrs-full_Equity', 'dart_Equity'],
   totalLiabilities: ['ifrs-full_Liabilities', 'dart_Liabilities'],
+  // 2026-06-04: US-parity — 현금흐름표(CF) 계정. fnlttSinglAcntAll 응답에 sj_div='CF' 로 포함됨.
+  operatingCF:      ['ifrs-full_CashFlowsFromUsedInOperatingActivities', 'dart_CashFlowsFromUsedInOperatingActivities'],
+  investingCF:      ['ifrs-full_CashFlowsFromUsedInInvestingActivities'],
+  financingCF:      ['ifrs-full_CashFlowsFromUsedInFinancingActivities'],
+  capex:            ['ifrs-full_PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities'],
+  dividendsPaid:    ['ifrs-full_DividendsPaidClassifiedAsFinancingActivities'],
 } as const;
 
 // 한국어 계정명 fallback (account_id 매핑 실패 시)
@@ -52,6 +58,11 @@ const ACCOUNT_NM_MAP: Record<keyof typeof ACCOUNT_IDS, string[]> = {
   totalAssets:      ['자산총계'],
   totalEquity:      ['자본총계'],
   totalLiabilities: ['부채총계'],
+  operatingCF:      ['영업활동현금흐름', '영업활동으로 인한 현금흐름'],
+  investingCF:      ['투자활동현금흐름', '투자활동으로 인한 현금흐름'],
+  financingCF:      ['재무활동현금흐름', '재무활동으로 인한 현금흐름'],
+  capex:            ['유형자산의 취득', '유형자산의취득'],
+  dividendsPaid:    ['배당금의지급', '배당금의 지급'],
 };
 
 export interface DartCorpInfo {
@@ -79,6 +90,13 @@ export interface DartAnnualFinancials {
   totalAssetsKRW: number | null;
   totalEquityKRW: number | null;
   totalLiabilitiesKRW: number | null;
+  // 2026-06-04: 현금흐름표 (US-parity). 원(KRW).
+  operatingCFKRW: number | null;
+  investingCFKRW: number | null;
+  financingCFKRW: number | null;
+  capexKRW: number | null;
+  freeCashFlowKRW: number | null;   // 영업CF - capex (파생)
+  dividendsPaidKRW: number | null;
   // Derived (USD for cross-comparison)
   revenueUSD: number | null;
   operatingIncomeUSD: number | null;
@@ -164,7 +182,7 @@ function pickAccount(
   return null;
 }
 
-function deriveRatios(f: Omit<DartAnnualFinancials, 'revenueUSD'|'operatingIncomeUSD'|'netIncomeUSD'|'operatingMarginPct'|'netMarginPct'|'roePct'|'debtRatioPct'>): Pick<DartAnnualFinancials, 'operatingMarginPct'|'netMarginPct'|'roePct'|'debtRatioPct'> {
+function deriveRatios(f: Pick<DartAnnualFinancials, 'revenueKRW'|'operatingIncomeKRW'|'netIncomeKRW'|'totalEquityKRW'|'totalLiabilitiesKRW'>): Pick<DartAnnualFinancials, 'operatingMarginPct'|'netMarginPct'|'roePct'|'debtRatioPct'> {
   const rev = f.revenueKRW;
   const op  = f.operatingIncomeKRW;
   const net = f.netIncomeKRW;
@@ -251,7 +269,7 @@ export async function fetchDartFinancials(
   redis?: Redis | null
 ): Promise<DartFinancials | null> {
   const cleanCode = stockCode.replace(/\.KS$/i, '').replace(/\.KQ$/i, '');
-  const cacheKey = `flowvium:dart:financials:v3:${cleanCode}`;
+  const cacheKey = `flowvium:dart:financials:v4:${cleanCode}`;  // v4: 현금흐름표/capex 추가 (2026-06-04)
 
   if (redis) {
     try {
@@ -286,6 +304,13 @@ export async function fetchDartFinancials(
     const ast  = pickAccount(items, 'totalAssets');
     const eq   = pickAccount(items, 'totalEquity');
     const liab = pickAccount(items, 'totalLiabilities');
+    // 2026-06-04: 현금흐름표 (US-parity)
+    const ocf  = pickAccount(items, 'operatingCF');
+    const icf  = pickAccount(items, 'investingCF');
+    const fcf_ = pickAccount(items, 'financingCF');
+    const capx = pickAccount(items, 'capex');
+    const divp = pickAccount(items, 'dividendsPaid');
+    const freeCF = (ocf != null && capx != null) ? ocf - capx : null;  // capex 는 취득액(양수)
 
     const base = {
       fiscalYear: String(year),
@@ -302,6 +327,12 @@ export async function fetchDartFinancials(
     annuals.push({
       ...base,
       ...ratios,
+      operatingCFKRW: ocf,
+      investingCFKRW: icf,
+      financingCFKRW: fcf_,
+      capexKRW: capx,
+      freeCashFlowKRW: freeCF,
+      dividendsPaidKRW: divp,
       revenueUSD:         rev  != null ? Math.round(rev  * KRW_USD) : null,  // 원(KRW) → USD
       operatingIncomeUSD: op   != null ? Math.round(op   * KRW_USD) : null,
       netIncomeUSD:       net  != null ? Math.round(net  * KRW_USD) : null,

@@ -323,7 +323,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
 
   // 2026-06-01: KR(.KS/.KQ) 종목은 allCompanies(US-only)에 없어 minimal page 로 렌더.
   //   company-kr(DART) 로 한글명 + 재무를 채워 KR 페이지 충실화.
-  interface KrAnnual { fiscalYear?: string; revenueKRW?: number; operatingIncomeKRW?: number; netIncomeKRW?: number; totalAssetsKRW?: number; totalEquityKRW?: number; totalLiabilitiesKRW?: number; operatingMarginPct?: number; netMarginPct?: number; roePct?: number; debtRatioPct?: number }
+  interface KrAnnual { fiscalYear?: string; revenueKRW?: number; operatingIncomeKRW?: number; netIncomeKRW?: number; totalAssetsKRW?: number; totalEquityKRW?: number; totalLiabilitiesKRW?: number; operatingCFKRW?: number; capexKRW?: number; freeCashFlowKRW?: number; dividendsPaidKRW?: number; operatingMarginPct?: number; netMarginPct?: number; roePct?: number; debtRatioPct?: number }
   interface KrCorpInfo { corpNameEng?: string; ceo?: string; establishedDate?: string; address?: string; homepage?: string; indutyCode?: string; phone?: string }
   interface KrProfile { corpName?: string; latestAnnual?: KrAnnual; annuals?: KrAnnual[]; revenueYoYPct?: number; source?: string; corpInfo?: KrCorpInfo }
   const [krProfile, setKrProfile] = useState<KrProfile | null>(null);
@@ -584,6 +584,10 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               {krAnnual.totalEquityKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">자본총계</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.totalEquityKRW)}</p></div>)}
               {krAnnual.totalLiabilitiesKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">부채총계</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.totalLiabilitiesKRW)}</p></div>)}
               {krAnnual.debtRatioPct != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">부채비율</p><p className="text-sm font-bold">{krAnnual.debtRatioPct}%</p></div>)}
+              {krAnnual.operatingCFKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">영업현금흐름</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.operatingCFKRW)}</p></div>)}
+              {krAnnual.capexKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">CAPEX(유형자산취득)</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.capexKRW)}</p></div>)}
+              {krAnnual.freeCashFlowKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">잉여현금흐름(FCF)</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.freeCashFlowKRW)}</p></div>)}
+              {krAnnual.dividendsPaidKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">배당지급</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.dividendsPaidKRW)}</p></div>)}
             </div>
             {krAnnuals.length > 1 && (
               <div className="mt-3 flex items-end gap-2 text-[10px] text-cf-text-secondary">
