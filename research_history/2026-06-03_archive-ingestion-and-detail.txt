@@ -1,0 +1,27 @@
+2026-06-03 — earnings/fg archive 적재 갭 + 기업정보 최대 상세화
+
+[사용자] "진행하고 그리고 기업정보들이 이보다 더 자세할수없을정도로 자세히 파악되고있는지 확인."
+
+[A. earnings_archive/fg_archive 적재 갭]
+  - net_income 100% NULL: db.mjs 가 finData.latestAnnual.netIncome 읽음 → 실제 필드는 netIncomeUSD.
+    fix: netIncomeUSD/1e9 (USD billions). 
+  - op_margin 97% NULL: getCompanyFinancials() 가 LLM 프롬프트용 *문자열* 반환인데 saveDomainArchives 는
+    ticker-keyed 객체 기대 → typeof!=='object' 라 finByTicker={}. getFinancialsMap()(Map) 신설 전달.
+    KR(.KS/.KQ)은 company-kr(DART) 라우팅 — DART latestAnnual 도 operatingMarginPct/netIncomeUSD 제공.
+  - fg_archive 5-28 이후 중단: news/macro/domain/fg 가 한 try 블록 → 앞 단계 throw 시 fg skip.
+    각 archive 독립 try/catch 격리.
+  - pe_ratio: price÷EPS 계산 추가. EPS 는 SEC epsDiluted (아래 B 에서 fix).
+  - 검증: evening 보고서 backfill 7/7 net+op (삼성 op13.1%/net31B, SK하이닉스 op48.6%, NVDA op60.4%/net120B), fg 10행.
+
+[B. 기업정보 상세도]
+  - US 페이지: 재무 18필드(손익+재무상태+현금흐름+R&D/capex/buyback/배당+ROE/ROA/margin) + 세그먼트(고객사)
+    + 제품 + 공급망 + 애널리스트 + recs + 뉴스 + IV + 섹터 → 매우 상세.
+  - 발견·수정: epsDiluted 가 전 US 페이지에서 null('-') + P/E null. 근본원인 = getValForFY/bestFYEntry 가
+    .units.USD 하드코딩인데 EarningsPerShareDiluted 는 'USD/shares' unit. unit 파라미터화 + EPS 만 USD/shares.
+    검증 AAPL 7.46/NVDA 4.9/MSFT 13.64. 캐시 v5→v6.
+  - KR 페이지: DART 9필드 + 2년추이 + corpInfo + 동적 사업개요 + 차트 + 목표가 + peer.
+    남은 더-상세 여지: DART fnlttSinglAcntAll 의 현금흐름/capex 추출(현재 6 base account만), 
+    세그먼트/공급망은 DART 미제공(환각 금지로 미생성).
+
+[검증체계(이전 세션 연속)] check-uncommitted-risk + check-stall[5] 로 미커밋/미푸시 자동 감지.
+  이번 모든 fix 즉시 커밋+푸시(ccea590→10b8f12) — cron wipe 재발 방지.
