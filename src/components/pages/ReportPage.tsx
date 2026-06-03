@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3, Target, Shield } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
@@ -146,6 +147,7 @@ type SellItem = {
   sellLadder?: { pct: number; price: string; label: string; action: string }[];
 };
 function SellCard({ item }: { item: SellItem }) {
+  const locale = useLocale();
   const urgencyColor = item.urgency === 'high' ? 'border-red-300 bg-red-50' :
                        item.urgency === 'medium' ? 'border-orange-300 bg-orange-50' :
                        'border-gray-200 bg-white';
@@ -155,7 +157,7 @@ function SellCard({ item }: { item: SellItem }) {
     <div className={`rounded-lg border p-2.5 ${urgencyColor}`}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="font-bold text-sm text-gray-900">
-          {urgencyTag} {item.ticker} <span className="text-[10px] font-normal text-gray-500">{item.name}</span>
+          {urgencyTag} <Link href={`/${locale}/company/${item.ticker}`} className="text-violet-700 hover:text-violet-900 hover:underline">{item.ticker}</Link> <span className="text-[10px] font-normal text-gray-500">{item.name}</span>
         </span>
         {item.pnlPct != null && (
           <span className={`text-xs font-semibold ${pnlColor}`}>
@@ -189,6 +191,7 @@ function SellCard({ item }: { item: SellItem }) {
 // ── Portfolio Card ────────────────────────────────────────────────────────────
 function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
   const t = useTranslations('report');
+  const locale = useLocale();
   const confidenceLabel = item.confidence === 'high' ? t('confidenceHigh') : item.confidence === 'low' ? t('confidenceLow') : t('confidenceMedium');
   const badge = safetyBadge(item.currentPrice, item.entryZone, t as Tr);
   const isWatch = item.action === 'watch';
@@ -212,7 +215,7 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-gray-900">{item.ticker}</span>
+                <Link href={`/${locale}/company/${item.ticker}`} className="font-bold text-violet-700 hover:text-violet-900 hover:underline">{item.ticker}</Link>
                 {item.action === 'buy' && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-500 text-white">{t('actionBuy')}</span>
                 )}

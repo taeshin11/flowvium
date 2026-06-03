@@ -73,6 +73,16 @@ try {
     console.log(`[startup] candidate-tickers.json 로드: ${CANDIDATE_TICKERS.length} 종목 (titan ${data.byBand?.titan ?? '?'} / mega ${data.byBand?.mega ?? '?'} / large ${data.byBand?.large ?? '?'} / ETF ${data.byBand?.etf ?? '?'} / KR ${data.byBand?.kr ?? '?'}), meta=${Object.keys(CANDIDATE_META).length}`);
   }
 } catch { /* fall through to hardcoded */ }
+
+// 2026-06-03 CPRT→"Cypress Semiconductor" 환각 사건: portfolio name 검증을 ~60개 하드코딩
+//   US_NAMES_HARNESS 로만 해서 CPRT(Copart) 같은 비-테크 종목 이름 환각이 통과했음.
+//   build-company-names.mjs 가 companies-batch*.ts(~499 실제 프로필명)를 JSON 으로 추출 → 권위 소스.
+let COMPANY_NAMES_JSON = {};
+try {
+  COMPANY_NAMES_JSON = JSON.parse(readFileSync(resolve(ROOT, 'data/company-names.json'), 'utf8'));
+  console.log(`[startup] company-names.json 로드: ${Object.keys(COMPANY_NAMES_JSON).length} 실제 회사명 (name 환각 override 권위 소스)`);
+} catch { /* build-company-names.mjs 미실행 — US_NAMES_HARNESS 만 사용 */ }
+
 CANDIDATE_TICKERS ??= [
   // Fallback (build-candidate-tickers.mjs 미실행 시)
   // Mag7 + 메가 Tech
@@ -199,6 +209,10 @@ const US_NAMES_HARNESS = {
   IONQ: 'IonQ',
   SPY: 'SPDR S&P 500 ETF', QQQ: 'Invesco QQQ', DELL: 'Dell Technologies',
 };
+
+// 권위 name 맵: company-names.json(~499 실제 프로필) base + 큐레이션(US_NAMES_HARNESS) override.
+//   CPRT 같은 비-테크 종목까지 전부 커버 → name 환각 차단(2026-06-03).
+const US_NAME_LOOKUP = { ...COMPANY_NAMES_JSON, ...US_NAMES_HARNESS };
 
 const ACTION_DOWNGRADE_PATTERNS_HARNESS = [
   /매수\s*자제/, /보유\s*권장/, /신규\s*매수\s*자제/, /고점\s*주의/,
@@ -395,9 +409,9 @@ function applyLocalHarness(r, livePrices) {
     }
   }
 
-  // 6f. US ticker → name 화이트리스트 (SMCI/MU/TDS 류 hallucination 차단)
+  // 6f. US ticker → name 권위 맵 (company-names.json 499 + 큐레이션) — CPRT/SMCI/MU 류 환각 차단
   for (const p of r.portfolio) {
-    const expected = US_NAMES_HARNESS[p.ticker?.toUpperCase()];
+    const expected = US_NAME_LOOKUP[p.ticker?.toUpperCase()];
     if (expected && p.name !== expected) {
       audit.fixes.usNameMismatch.push(`${p.ticker}:portfolio "${p.name}"→"${expected}"`);
       p.name = expected;
@@ -405,7 +419,7 @@ function applyLocalHarness(r, livePrices) {
   }
   if (Array.isArray(r.companyChanges)) {
     for (const c of r.companyChanges) {
-      const expected = US_NAMES_HARNESS[c.ticker?.toUpperCase()];
+      const expected = US_NAME_LOOKUP[c.ticker?.toUpperCase()];
       if (expected && c.name !== expected) {
         audit.fixes.usNameMismatch.push(`${c.ticker}:companyChanges "${c.name}"→"${expected}"`);
         c.name = expected;

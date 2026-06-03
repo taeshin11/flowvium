@@ -36,8 +36,9 @@
 
 - 데스크톱·모바일 반응형 메뉴
 - **글로벌 검색 오버레이** (단축키: `Cmd/Ctrl+K`)
-  - 137+ 종목 실시간 자동완성 (회사명·티커·섹터)
-  - 키보드 네비게이션 (↑↓, Enter)
+  - 전체 모니터링 유니버스 **1,210 종목** 실시간 자동완성 (회사명·티커·섹터·i18n명) — `UNIVERSE_SEARCH` (2026-06-03: allCompanies 637 → 1210 확장)
+  - 키보드 네비게이션 (↑↓, Enter) → `/company/[ticker]`
+- 종목 카운트 라벨: `UNIVERSE_COUNT`(1,210) — 정적 프로필 수(637)가 아닌 실제 모니터링 풀 표시
 - 다국어 언어 전환 (16개 언어)
 
 | 메뉴 레이블 | 경로 |
@@ -63,8 +64,8 @@
 **파일**: `src/components/pages/HomePage.tsx`
 
 ### 2-1. Hero + 검색
-- 회사 검색 인풋 (`HeroSearch`)
-- 자동완성 드롭다운 (회사명·티커·섹터)
+- 회사 검색 인풋 (`HeroSearch`) — 전체 유니버스 **1,210 종목** (`UNIVERSE_SEARCH`), 라벨 "기업 직접 검색 — 1,210개 기업"
+- 자동완성 드롭다운 (회사명·티커·섹터·i18n명) → `/company/[ticker]`
 - 빠른 이동 버튼: AI 리포트 / 인텔리전스 / 히트맵 / 위성 추적 (가상계좌 제거됨 — 2026-05-08)
 
 ### 2-2. AI 데일리 브리프 위젯
@@ -315,6 +316,14 @@
 ## 5. 기업 프로필 (`/company/[ticker]`)
 
 **파일**: `src/components/pages/CompanyPage.tsx`
+
+### 5-0. KR(.KS/.KQ) 종목 페이지 (2026-06-03 — 전면 동적화)
+KR 종목은 US 정적 프로필(allCompanies)에 없어 라이브 데이터로만 구성 (정적 하드코딩 금지 원칙):
+- **사업 개요**: `/api/company-desc` 동적 생성 (DART grounded + Ollama, 45d 캐시, 환각방지)
+- **기업 정보**: DART company.json 라이브 — 영문명·대표·설립일·본사·홈페이지
+- **재무 (DART)**: 매출/영업익/순익/ROE/총자산/자본/부채/순이익률/부채비율 + 2년 매출추이 (조/억 표기)
+- **90일 주가 차트**(Naver) · **애널리스트 목표가**(KRW) · **관련 종목**(peer)
+- 남은 한계: 매출 세그먼트·공급망 관계 (DART 미제공 정량데이터 — 환각 위험으로 미생성)
 
 ### 5-1. 헤더
 - 기업명·티커·역할 배지·번역 설명
@@ -698,6 +707,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 4-stage scoring: light (모든 ticker) → OHLCV top 100 → financials top 50 → LLM top 30 중 12 선택
 - 룰 카테고리: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) / selflearn(2)
 - 종목명, 섹터, 비중(%), 매수 근거
+- **종목 티커 클릭 → `/{locale}/company/[ticker]` 기업 프로필 이동** (보라색 링크, 2026-06-03 — 매수·매도 카드 양쪽)
 - 🇺🇸 US Market / 🇰🇷 KR Market 시장별 분리 표시
 - 클릭 확장: 진입 구간 / 손절가 / 목표가 / Exit Ladder (entry/exit 분할)
 - 확신도 뱃지 (high/medium/low)
@@ -966,8 +976,9 @@ ownership-alerts 적용).
 | `/api/batch-prices?tickers=A,B,...` | Yahoo Finance v7 quote (최대 120 티커) | 5분 메모리 (티커별) ← iter117 |
 | `/api/stock-supply` | (ticker별 on-demand) Yahoo v8 + EDGAR Form 4 + Redis 13F live overlay; `source: live\|price-only\|ownership-only\|static` | 1h Redis (3h→1h: 가격/거래량 신선도) |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
-| `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll, 연결재무제표) | 24h Redis |
+| `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll 연결재무제표 + company.json 기업메타: 영문명/대표/설립일/본사/홈페이지/업종 — 2026-06-03) | 24h Redis (corp-code 30d) |
 | `/api/company-kr/list` | DART CORPCODE.xml + company.json (companies-kr.ts 기반) | 7일 Redis |
+| `/api/company-desc/[ticker]` | 사업개요 동적 생성 — DART grounded → 로컬 Ollama(qwen3:8b), 환각방지 프롬프트. **정적 하드코딩 금지**(2026-06-03) | 45일 Redis |
 | `/api/company-recs/[ticker]` | Yahoo Finance v6 recommendationsbysymbol + v7 quote | 1h CDN |
 | `/api/analyst-target/[ticker]` | Finnhub price-target + recommendation | 24h CDN |
 | `/api/translate` | 통합 AI 체인 (vLLM → GROQ 8b → Qwen → Gemini, skipVllm=true, preferSmallModel=true) | 30일 |

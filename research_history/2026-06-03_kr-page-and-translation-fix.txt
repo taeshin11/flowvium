@@ -1,0 +1,29 @@
+2026-06-03 — KR 회사페이지 부실 + 회사페이지 미번역 수정
+
+[사용자] "한국 종목 컴퍼니 페이지들이 미국 종목보다 왜 이렇게 부실하지?"
+  이어서: "왜 이런거 놓쳤니? 검증에 문제있는거 아냐? 그리고 리포트에서 컴퍼니별 링크 들어가니까 번역이 안돼."
+
+[원인 1 — KR 페이지 부실] 두 층위:
+  (a) 구조적: KR 475종목이 allCompanies(US 전용 정적 프로필 637 — 사업설명/매출세그먼트/제품/공급망관계)
+      에 없어 "minimal page" 로 렌더 → 풍부한 정성 섹션 통째로 누락. [미해결 — 콘텐츠 생성 필요]
+  (b) minimal page 가 *이미 fetch 되는* 라이브 데이터마저 안 그림:
+      - DART 재무 15필드 중 4개만(매출/영업익/순익/ROE) → 총자산/자본/부채/순이익률/부채비율/2년추이 버림
+      - 90일 주가 차트 / 애널리스트 목표가 / 동종(peer) 추천 — state 는 있는데 render 안 함
+  → fix: minimal page enrich. priceHistory/analystData/recs state 그대로 렌더 + DART 전체 필드
+    + fmtKRWc(조/억 compact) + 2년 매출추이. KrAnnual/KrProfile 인터페이스에 totalAssets/equity/liabilities/annuals 추가.
+
+[원인 2 — 회사페이지 미번역] root cause = 뉴스 번역과 동일:
+  /api/translate(useTranslatedText → <T> 가 사용)가 callAI(skipVllm) → cloud groq/gemini quota 소진
+  → 원문 영어 그대로 반환. 자가호스팅인데 cloud 의존이라 미번역. (news-cascade 는 Ollama 로 고쳤지만
+  공유 translate 엔드포인트는 같은 결함 방치 — 점검 안 함.)
+  → fix: /api/translate 에 translateViaOllama(localhost:11434, qwen3:8b) 우선 경로 + <think> strip.
+    실패/원문동일 시 cloud fallback. 검증: "Apple designs..." → "애플은 스마트폰, 컴퓨터 및 서비스를..."(source=ollama).
+
+[검증 공백 — "왜 놓쳤니"] audit-company-pages 는 endpoint 200 만 보고 "페이지가 가용 데이터를 렌더하는지"
+  는 안 봄(endpoint-alive ≠ page-rich). 번역도 news-cascade [B] 만 봤고 공유 /api/translate 는 probe 없었음.
+  → fix: check-data-quality [E] 신설 — /api/translate 에 영어 문장 넣고 실제 한글 출력 나오는지 검사.
+    cloud quota 소진/Ollama 다운 시 즉시 surface.
+
+[교훈] 자가호스팅 전환 후 **모든 LLM 번역 경로는 로컬 Ollama 우선이어야** 한다(cloud quota 무관).
+  번역 소비처가 2곳(news-cascade, /api/translate)인데 하나만 고치면 나머지는 silent 미번역.
+  새 LLM 의존 경로마다 "실제 출력이 목표언어인가" probe 동반.

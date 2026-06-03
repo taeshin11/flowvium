@@ -59,6 +59,15 @@ export interface DartCorpInfo {
   corpName: string;
   stockCode: string;
   corpCls: string;  // 'Y'=KOSPI, 'K'=KOSDAQ, 'N'=KONEX, 'E'=ETC
+  // 2026-06-03: DART company.json 의 실제 기업 메타 (이전엔 corp_name 만 쓰고 버렸음).
+  //   전부 라이브 DART 출처 — 정적/하드코딩 아님. KR 회사페이지 "기업 정보" 섹션용.
+  corpNameEng?: string;
+  ceo?: string;
+  establishedDate?: string;
+  address?: string;
+  homepage?: string;
+  indutyCode?: string;
+  phone?: string;
 }
 
 export interface DartAnnualFinancials {
@@ -91,6 +100,11 @@ export interface DartFinancials {
   annuals: DartAnnualFinancials[];
   latestAnnual: DartAnnualFinancials | null;
   revenueYoYPct: number | null;
+  // 2026-06-03: DART company.json 라이브 기업 메타 (정적 아님 — 매 fetch 갱신, 30d 캐시).
+  corpInfo?: {
+    corpNameEng?: string; ceo?: string; establishedDate?: string;
+    address?: string; homepage?: string; indutyCode?: string; phone?: string;
+  };
   source: 'dart';
   fetchedAt: string;
   cached?: boolean;
@@ -174,7 +188,7 @@ export async function getDartCorpInfo(
   stockCode: string,
   redis?: Redis | null
 ): Promise<DartCorpInfo | null> {
-  const cacheKey = `flowvium:dart:corp-code:v1:${stockCode}`;
+  const cacheKey = `flowvium:dart:corp-code:v2:${stockCode}`;
 
   if (redis) {
     try {
@@ -189,13 +203,15 @@ export async function getDartCorpInfo(
   let corpCode: string | null = mapped?.corpCode ?? null;
   let corpName: string = mapped?.corpName ?? stockCode;
   let corpCls = '';
+  let meta: Record<string, string> = {};
 
   if (corpCode) {
-    // map hit — corp_code 로 추가 메타 조회 (corpCls 등)
+    // map hit — corp_code 로 추가 메타 조회 (corpCls + 기업 메타)
     const data = await dartFetch('company.json', { corp_code: corpCode }) as Record<string, string> | null;
     if (data?.corp_code) {
       corpName = data.corp_name ?? corpName;
       corpCls = data.corp_cls ?? '';
+      meta = data;
     }
   } else {
     logger.warn('dart', 'corp_code_not_in_map', { stockCode });
@@ -207,6 +223,13 @@ export async function getDartCorpInfo(
     corpName,
     stockCode,
     corpCls,
+    corpNameEng: meta.corp_name_eng || undefined,
+    ceo: meta.ceo_nm || undefined,
+    establishedDate: meta.est_dt || undefined,
+    address: meta.adres || undefined,
+    homepage: meta.hm_url || undefined,
+    indutyCode: meta.induty_code || undefined,
+    phone: meta.phn_no || undefined,
   };
 
   if (redis) {
@@ -228,7 +251,7 @@ export async function fetchDartFinancials(
   redis?: Redis | null
 ): Promise<DartFinancials | null> {
   const cleanCode = stockCode.replace(/\.KS$/i, '').replace(/\.KQ$/i, '');
-  const cacheKey = `flowvium:dart:financials:v2:${cleanCode}`;
+  const cacheKey = `flowvium:dart:financials:v3:${cleanCode}`;
 
   if (redis) {
     try {
@@ -309,6 +332,15 @@ export async function fetchDartFinancials(
     annuals,
     latestAnnual: annuals[0] ?? null,
     revenueYoYPct,
+    corpInfo: {
+      corpNameEng: corpInfo.corpNameEng,
+      ceo: corpInfo.ceo,
+      establishedDate: corpInfo.establishedDate,
+      address: corpInfo.address,
+      homepage: corpInfo.homepage,
+      indutyCode: corpInfo.indutyCode,
+      phone: corpInfo.phone,
+    },
     source: 'dart',
     fetchedAt: new Date().toISOString(),
   };

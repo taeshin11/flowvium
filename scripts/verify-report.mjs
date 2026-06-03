@@ -28,6 +28,23 @@ try {
   CANDIDATE_META = data.meta ?? {};
 } catch { /* skip */ }
 
+// 2026-06-03 CPRT→"Cypress Semiconductor" 사건: ticker↔회사명 검증이 전혀 없었음(검증 사각지대).
+//   company-names.json(companies-batch*.ts 추출 ~499 실제명) 을 권위 소스로 name 환각 cross-check.
+let COMPANY_NAMES = {};
+try {
+  COMPANY_NAMES = JSON.parse(fs.readFileSync('data/company-names.json', 'utf8'));
+} catch { /* build-company-names.mjs 미실행 — name probe skip */ }
+
+const NAME_SUFFIX = /\b(inc|incorporated|corp|corporation|co|company|companies|ltd|limited|plc|llc|lp|holdings?|group|the|technologies|technology|sa|nv|ag|se)\b/g;
+function normName(s) {
+  return String(s || '').toLowerCase().replace(/[.,&'"()\-]/g, ' ').replace(NAME_SUFFIX, ' ').replace(/\s+/g, ' ').trim();
+}
+function nameMatches(a, b) {
+  const na = normName(a), nb = normName(b);
+  if (!na || !nb) return true;
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
 // sector → 금지 키워드 (한글). semiconductors/it 회사에 "건설", financials 에 "반도체" 등.
 // 2026-05-31: export — generate-report-local 의 rationale strip 과 단일 source of truth.
 export const SECTOR_FORBID = {
@@ -185,6 +202,28 @@ export function verifyReport(file, { silent = false } = {}) {
     }
   }
   if (secFix === 0) log('  ✅ sector meta consistent');
+
+  // 1b. ticker ↔ 회사명 일치 (CPRT="Cypress Semiconductor" 류 name 환각 detect, 2026-06-03)
+  log('\n## ticker ↔ 회사명 일치 (name 환각 detect)');
+  let nameFix = 0, nameChecked = 0;
+  const nameTargets = [
+    ...(r.portfolio || []).map(p => ['portfolio', p]),
+    ...(Array.isArray(r.companyChanges) ? r.companyChanges.map(c => ['companyChanges', c]) : []),
+  ];
+  for (const [src, item] of nameTargets) {
+    const authoritative = COMPANY_NAMES[(item.ticker || '').toUpperCase()];
+    if (!authoritative || !item.name) continue;
+    nameChecked++;
+    if (!nameMatches(item.name, authoritative)) {
+      log(`  ❌ ${item.ticker} name="${item.name}" → 정답 "${authoritative}" (${src})`);
+      defects.push({
+        ticker: item.ticker, defect_type: 'name_mismatch',
+        llm_value: item.name, correct_value: authoritative, severity: 'high',
+      });
+      nameFix++;
+    }
+  }
+  if (nameFix === 0) log(`  ✅ 회사명 일치 (${nameChecked}건 검증, 권위 소스 ${Object.keys(COMPANY_NAMES).length})`);
 
   // 2. sector-keyword mismatch — blacklist(SECTOR_FORBID) + positive 어휘(mismatchedIndustryTerm).
   //    2026-06-01: blacklist 만으론 나열 안 한 산업어(바이오 등)가 새어 → positive 방식 병행.

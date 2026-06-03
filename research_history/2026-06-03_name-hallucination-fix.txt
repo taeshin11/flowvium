@@ -1,0 +1,34 @@
+2026-06-03 — ticker↔회사명 환각 근본 수정 (CPRT="Cypress Semiconductor" 사건)
+
+[발생] 사용자: "보고서 보니까 CPRT와 Cypress Semiconductor는 상관 없는 거 같은데?"
+  → CPRT = Copart(온라인 차량 경매)인데 보고서 portfolio name 이 "Cypress Semiconductor"(반도체, 2020 Infineon 인수
+    소멸 종목)로 표시됨. LLM 이 ticker 에 전혀 다른 회사 이름을 붙인 환각.
+  → "왜 자꾸 이런 문제가 생기니? 검증에 문제 있는거 아냐?"
+
+[근본 원인]
+  1. generate-report-local.mjs 의 name 검증이 ~60개 하드코딩 화이트리스트(US_NAMES_HARNESS, 테크/반도체/방산
+     위주)로만 동작. CPRT 같은 비-테크 종목이 없어 LLM 환각이 그대로 통과. (사용자가 반복 비판한 하드코딩 안티패턴.)
+  2. verify-report.mjs 에 ticker↔회사명 probe 자체가 없었음 — 검증 사각지대. sector 환각은 잡았지만 name 환각은 0.
+  → DB/Redis 전수조사 결과 환각 광범위: SMCI="NVIDIA"/"Salesforce"/"SMIC", CLX="Caterpillar", MP="Morgan Stanley",
+    BRK.B="Insurance (GEICO, Gen Re)", RIOT="Riot Blockchain"(구명) 등. 발행 strategy 26키 36건, DB 23행.
+
+[수정 — 다중 방어]
+  1. scripts/build-company-names.mjs (신규): companies-batch*.ts 에서 ticker→실제명 499개 추출 → data/company-names.json.
+     권위 소스(allCompanies 프로필). npm run build:names.
+  2. generate-report-local.mjs: US_NAMES_HARNESS → US_NAME_LOOKUP = {...company-names.json(499), ...harness}.
+     portfolio/companyChanges name override 가 전체 풀 커버. (생성측 차단)
+  3. verify-report.mjs: name_mismatch probe 신설 — COMPANY_NAMES 권위 맵과 정규화 비교(법인접미사/구두점 흡수),
+     불일치 시 defect{defect_type:'name_mismatch'} → Karpathy hallucination_history 적재. (검증측 detect)
+     smoke: CPRT name="Cypress Semiconductor" → 정답 "Copart" ❌ 정상 검출 확인.
+  4. scripts/fix-recommendation-names.mjs (신규): DB recommendations 23행 결정적 교정(auditable, idempotent).
+  5. scripts/fix-published-strategy-names.mjs (신규): Redis 발행 strategy 26키 36건 교정(KEEPTTL).
+     라이브 검증: /api/investment-strategy?locale=ko → CPRT=Copart 확인.
+
+[부수 수정 — 같은 세션]
+  - 보고서 카드 종목 티커 클릭 → /{locale}/company/[ticker] 링크 (ReportPage PortfolioCard+SellCard, 보라색).
+  - "616개 기업" 불일치: Navbar/HomePage 카운트 → UNIVERSE_COUNT(1210). 검색 풀도 allCompanies(637) →
+    UNIVERSE_SEARCH(1210, build-universe-search.mjs 생성). /company/[ticker] 는 임의 ticker 라이브 동작이라 정직.
+  - 뉴스 번역 max_tokens 4000→12000 (truncation 으로 뒤 기사 영어 잔존).
+
+[교훈] "권위 데이터(allCompanies 637 실제명)가 있는데 작은 하드코딩 리스트로 검증" = 반복된 안티패턴.
+  검증은 항상 가능한 가장 완전한 권위 소스와 대조. 새 검증 차원은 verify-report probe + Karpathy 적재까지.

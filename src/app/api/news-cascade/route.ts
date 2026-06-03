@@ -153,9 +153,11 @@ async function translateViaOllama(prompt: string): Promise<string | null> {
         model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
-        max_tokens: 4000,
+        max_tokens: 12000, // 2026-06-03: 4000 은 10기사 번역 JSON 을 잘라 뒤 기사 영어 잔존 → 12000
       }),
-      signal: AbortSignal.timeout(90000),
+      // 2026-06-03: 10기사 번역이 RTX 4050 6GB 에서 ~93s + 모델 cold-load(~15s) → 90s 에 근접해
+      //   간헐 timeout → null → quota-dead cloud fallback → identity → gate 거부(영어 잔존). 240s 로 상향.
+      signal: AbortSignal.timeout(240000),
     });
     if (!res.ok) return null;
     const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -188,7 +190,7 @@ Return STRICT JSON array — same length, same order, same shape:
 NO extra fields, NO commentary.
 
 Input:
-${JSON.stringify(payload, null, 2)}
+${JSON.stringify(payload)}
 
 Output (JSON array only):`;
 

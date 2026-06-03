@@ -1,0 +1,102 @@
+/**
+ * GET /api/company-desc/[ticker]?locale=ko
+ *
+ * 회사 사업 개요(description) 동적 생성 — 정적 하드코딩 금지(2026-06-03 사용자 지적).
+ *   DART 기업정보(corpName/영문명/업종/매출)로 grounding → 로컬 Ollama 로 2-3문장 요약 생성.
+ *   Redis 45일 TTL 캐시(갱신 가능) — 하드코딩 .ts 아님. cloud 의존 X(자가호스팅 Ollama).
+ *
+ * 현재 KR(.KS/.KQ) 종목 대상. 환각 방지: "알려진 사실만, 수치/고객사 날조 금지" 지시.
+ */
+import { NextRequest, NextResponse } from 'next/server';
+import { createRedis } from '@/lib/redis';
+import { loggedRedisSet, logger } from '@/lib/logger';
+import { fetchDartFinancials } from '@/lib/dart-financials';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+const TTL = 45 * 24 * 3600; // 45일
+const LOCALE_NAMES: Record<string, string> = {
+  ko: 'Korean', en: 'English', ja: 'Japanese', 'zh-CN': 'Simplified Chinese',
+  'zh-TW': 'Traditional Chinese', es: 'Spanish', fr: 'French', de: 'German',
+  pt: 'Portuguese', ru: 'Russian', ar: 'Arabic', hi: 'Hindi', th: 'Thai',
+  vi: 'Vietnamese', id: 'Indonesian', tr: 'Turkish',
+};
+
+async function generateViaOllama(prompt: string): Promise<string | null> {
+  try {
+    const res = await fetch('http://localhost:11434/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        max_tokens: 1024,
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!res.ok) return null;
+    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    let txt = d.choices?.[0]?.message?.content?.trim() || '';
+    txt = txt.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    // 따옴표/머리말 제거
+    txt = txt.replace(/^["'「『]|["'」』]$/g, '').replace(/^(요약|사업\s*개요)\s*[:：]\s*/i, '').trim();
+    return txt || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET(_req: NextRequest, { params }: { params: { ticker: string } }) {
+  const ticker = params.ticker.trim();
+  const url = new URL(_req.url);
+  const locale = (url.searchParams.get('locale') || 'ko').trim();
+  const langName = LOCALE_NAMES[locale] ?? 'Korean';
+  const stockCode = ticker.replace(/\.(KS|KQ)$/i, '');
+
+  if (!/^\d{6}$/.test(stockCode)) {
+    return NextResponse.json({ error: 'kr-ticker-only', ticker }, { status: 400 });
+  }
+
+  const redis = createRedis();
+  const key = `flowvium:company-desc:v1:${stockCode}:${locale}`;
+  if (redis) {
+    try {
+      const cached = await redis.get<string>(key);
+      if (cached) return NextResponse.json({ description: cached, cached: true, source: 'ollama' });
+    } catch { /* non-fatal */ }
+  }
+
+  // DART grounding
+  const fin = await fetchDartFinancials(stockCode, redis).catch(() => null);
+  if (!fin) return NextResponse.json({ description: null, error: 'no-dart-data' });
+
+  const rev = fin.latestAnnual?.revenueKRW;
+  const revStr = rev != null ? (rev >= 1e12 ? `${(rev / 1e12).toFixed(1)}조원` : `${Math.round(rev / 1e8)}억원`) : '미상';
+  const ci = fin.corpInfo ?? {};
+  const grounding = [
+    `기업명: ${fin.corpName}`,
+    ci.corpNameEng ? `영문명: ${ci.corpNameEng}` : '',
+    ci.indutyCode ? `한국표준산업분류 업종코드: ${ci.indutyCode}` : '',
+    ci.establishedDate ? `설립: ${ci.establishedDate.slice(0, 4)}년` : '',
+    `최근(${fin.fiscalYear}) 매출: ${revStr}`,
+    fin.corpCls === 'Y' ? '시장: KOSPI' : fin.corpCls === 'K' ? '시장: KOSDAQ' : '',
+  ].filter(Boolean).join('\n');
+
+  const prompt = `다음은 한국 상장기업의 DART 공시 기본정보입니다. 이 기업이 무엇을 하는 회사인지 ${langName}로 2~3문장으로 객관적으로 요약하세요.
+규칙: 널리 알려진 사실(주력 사업영역/제품군)만 기술. 구체적 매출 비중·고객사·점유율 등 확인 불가한 수치는 절대 날조하지 말 것. 불확실하면 일반적 사업영역만 간결히. 머리말/따옴표 없이 본문만.
+
+${grounding}
+
+요약:`;
+
+  const desc = await generateViaOllama(prompt);
+  if (!desc) return NextResponse.json({ description: null, error: 'generation-failed' });
+
+  if (redis) {
+    try { await loggedRedisSet(redis, 'api.company-desc', key, desc, { ex: TTL }); }
+    catch (e) { logger.warn('api.company-desc', 'cache_write_failed', { stockCode, error: String(e).slice(0, 80) }); }
+  }
+  return NextResponse.json({ description: desc, cached: false, source: 'ollama' });
+}

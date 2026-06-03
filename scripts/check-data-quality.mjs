@@ -52,13 +52,15 @@ async function main() {
   // [B] 뉴스 번역 (ko)
   {
     const r = await getJson('/api/news-cascade?locale=ko');
-    const arts = (r.body?.articles || r.body?.events || r.body?.items || []).slice(0, 6);
+    // 2026-06-03: slice(0,6)+50% 기준이 truncation(앞4 ko/뒤6 영어)을 "통과"로 가렸음 →
+    //   전체 기사 + 80% 기준으로 강화.
+    const arts = (r.body?.articles || r.body?.events || r.body?.items || []);
     if (arts.length === 0) info.push('[B] news-cascade 기사 0');
     else {
       const titles = arts.map(a => a.title || a.headline || '').filter(Boolean);
       const koCount = titles.filter(t => /[가-힣]/.test(t)).length;
       const pct = titles.length ? Math.round(koCount / titles.length * 100) : 0;
-      if (pct < 50) issues.push(`[B] 뉴스 번역 미완 — ko 제목 ${koCount}/${titles.length} 한글 (${pct}%). 예: "${(titles.find(t => !/[가-힣]/.test(t)) || '').slice(0, 40)}"`);
+      if (pct < 80) issues.push(`[B] 뉴스 번역 미완 — ko 제목 ${koCount}/${titles.length} 한글 (${pct}%). 예: "${(titles.find(t => !/[가-힣]/.test(t)) || '').slice(0, 40)}"`);
       else info.push(`[B] 뉴스 번역 ko ${koCount}/${titles.length} (${pct}%)`);
     }
   }
@@ -77,6 +79,23 @@ async function main() {
         else info.push(`[C] ${c.id} ${c.structure}${c.synthetic ? '(synthetic)' : '(real)'}`);
       }
     }
+  }
+
+  // [E] 번역 엔드포인트 — /api/translate 가 실제 대상언어 출력을 내는지 (cloud quota 소진 시
+  //     원문 영어 그대로 반환하던 사각지대. 2026-06-03 회사페이지 미번역 사건 후 신설).
+  {
+    try {
+      const res = await fetch(`${BASE}/api/translate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Apple designs and sells smartphones, computers, and services worldwide.', targetLocale: 'ko' }),
+        signal: AbortSignal.timeout(70000),
+      });
+      const j = await res.json().catch(() => ({}));
+      const out = j.translated || '';
+      const hasKo = /[가-힣]/.test(out);
+      if (!hasKo) issues.push(`[E] /api/translate ko 미번역 — 출력에 한글 없음 (cloud quota 소진/Ollama 다운 의심). 예: "${String(out).slice(0, 50)}"`);
+      else info.push(`[E] /api/translate ko OK (source=${j.source ?? '?'}${j.cached ? ',cached' : ''})`);
+    } catch (e) { issues.push(`[E] /api/translate 호출 실패: ${String(e.message || e).slice(0, 50)}`); }
   }
 
   // [D] 커버리지-차원 — "카테고리 0건 = 빨간불" 원칙. 최신 보고서에 KR portfolio 가 있는데

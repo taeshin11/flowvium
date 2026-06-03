@@ -323,9 +323,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
 
   // 2026-06-01: KR(.KS/.KQ) 종목은 allCompanies(US-only)에 없어 minimal page 로 렌더.
   //   company-kr(DART) 로 한글명 + 재무를 채워 KR 페이지 충실화.
-  interface KrAnnual { fiscalYear?: string; revenueKRW?: number; operatingIncomeKRW?: number; netIncomeKRW?: number; operatingMarginPct?: number; netMarginPct?: number; roePct?: number; debtRatioPct?: number }
-  interface KrProfile { corpName?: string; latestAnnual?: KrAnnual; revenueYoYPct?: number; source?: string }
+  interface KrAnnual { fiscalYear?: string; revenueKRW?: number; operatingIncomeKRW?: number; netIncomeKRW?: number; totalAssetsKRW?: number; totalEquityKRW?: number; totalLiabilitiesKRW?: number; operatingMarginPct?: number; netMarginPct?: number; roePct?: number; debtRatioPct?: number }
+  interface KrCorpInfo { corpNameEng?: string; ceo?: string; establishedDate?: string; address?: string; homepage?: string; indutyCode?: string; phone?: string }
+  interface KrProfile { corpName?: string; latestAnnual?: KrAnnual; annuals?: KrAnnual[]; revenueYoYPct?: number; source?: string; corpInfo?: KrCorpInfo }
   const [krProfile, setKrProfile] = useState<KrProfile | null>(null);
+  const [krDesc, setKrDesc] = useState<string | null>(null);
   useEffect(() => {
     if (!ticker || !/\.(KS|KQ)$/i.test(ticker)) return;
     const ctrl = new AbortController();
@@ -336,6 +338,17 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
       .catch(() => undefined);
     return () => ctrl.abort();
   }, [ticker]);
+  // 사업 개요 — 동적 생성(Ollama+DART grounded, Redis TTL). 정적 아님. 별도 async (financials 비차단).
+  useEffect(() => {
+    if (!ticker || !/\.(KS|KQ)$/i.test(ticker)) return;
+    const ctrl = new AbortController();
+    const code = ticker.replace(/\.(KS|KQ)$/i, '');
+    fetch(`/api/company-desc/${code}?locale=${encodeURIComponent(locale)}`, { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.description && !ctrl.signal.aborted) setKrDesc(d.description); })
+      .catch(() => undefined);
+    return () => ctrl.abort();
+  }, [ticker, locale]);
 
   useEffect(() => {
     if (!ticker) return;
@@ -494,7 +507,15 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     const isKRTicker = /\.(KS|KQ)$/i.test(ticker);
     const liveCompanyName = krProfile?.corpName ?? ticker.toUpperCase();
     const fmtKRW = (n: number) => `₩${Math.round(n).toLocaleString()}`;
+    // 조/억 단위 compact (333,605,938,000,000 → 333.6조)
+    const fmtKRWc = (n: number) => {
+      const abs = Math.abs(n);
+      if (abs >= 1e12) return `₩${(n / 1e12).toFixed(1)}조`;
+      if (abs >= 1e8) return `₩${(n / 1e8).toFixed(0)}억`;
+      return `₩${Math.round(n).toLocaleString()}`;
+    };
     const krAnnual = krProfile?.latestAnnual;
+    const krAnnuals = krProfile?.annuals ?? [];
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-6">
@@ -522,17 +543,123 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             )}
           </div>
         )}
-        {/* KR DART 재무 (SEC 미해당 KR 종목) */}
+        {/* 사업 개요 (LLM 생성, 라이브 DART grounded — 정적 아님, Redis TTL 캐시) */}
+        {krDesc && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-2">사업 개요</h2>
+            <p className="text-sm text-cf-text-secondary leading-relaxed">{krDesc}</p>
+            <p className="text-[10px] text-cf-text-secondary/50 mt-2">AI 요약 (DART 기업정보 기반) · 자동 갱신</p>
+          </div>
+        )}
+        {/* 기업 정보 (DART company.json 라이브 — 본사/설립/대표/홈페이지) */}
+        {krProfile?.corpInfo && (krProfile.corpInfo.ceo || krProfile.corpInfo.address || krProfile.corpInfo.establishedDate) && (() => {
+          const ci = krProfile.corpInfo!;
+          const estFmt = ci.establishedDate && /^\d{8}$/.test(ci.establishedDate)
+            ? `${ci.establishedDate.slice(0, 4)}.${ci.establishedDate.slice(4, 6)}.${ci.establishedDate.slice(6, 8)}` : ci.establishedDate;
+          const hp = ci.homepage ? (ci.homepage.startsWith('http') ? ci.homepage : `https://${ci.homepage}`) : null;
+          return (
+            <div className="cf-card p-4 mb-4">
+              <h2 className="text-sm font-bold text-cf-text-primary mb-3">기업 정보</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
+                {ci.corpNameEng && (<div className="flex justify-between gap-2"><span className="text-cf-text-secondary">영문명</span><span className="text-cf-text-primary font-medium text-right">{ci.corpNameEng}</span></div>)}
+                {ci.ceo && (<div className="flex justify-between gap-2"><span className="text-cf-text-secondary">대표이사</span><span className="text-cf-text-primary font-medium text-right">{ci.ceo}</span></div>)}
+                {estFmt && (<div className="flex justify-between gap-2"><span className="text-cf-text-secondary">설립일</span><span className="text-cf-text-primary font-medium text-right">{estFmt}</span></div>)}
+                {ci.address && (<div className="flex justify-between gap-2 sm:col-span-2"><span className="text-cf-text-secondary shrink-0">본사</span><span className="text-cf-text-primary font-medium text-right">{ci.address}</span></div>)}
+                {hp && (<div className="flex justify-between gap-2"><span className="text-cf-text-secondary">홈페이지</span><a href={hp} target="_blank" rel="noopener noreferrer" className="text-cf-primary font-medium text-right hover:underline truncate">{ci.homepage}</a></div>)}
+              </div>
+              <p className="text-[10px] text-cf-text-secondary/50 mt-2">DART 전자공시 · 라이브</p>
+            </div>
+          );
+        })()}
+        {/* KR DART 재무 (SEC 미해당 KR 종목) — 2026-06-03: 4개 → 전체 DART 필드 + 2년 추이 */}
         {krAnnual?.revenueKRW != null && (
           <div className="cf-card p-4 mb-4">
             <h2 className="text-sm font-bold text-cf-text-primary mb-3">재무 (DART {krAnnual.fiscalYear})</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">매출{krProfile?.revenueYoYPct != null ? ` (YoY ${krProfile.revenueYoYPct}%)` : ''}</p><p className="text-sm font-bold">{fmtKRW(krAnnual.revenueKRW)}</p></div>
-              {krAnnual.operatingIncomeKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">영업이익{krAnnual.operatingMarginPct != null ? ` (${krAnnual.operatingMarginPct}%)` : ''}</p><p className="text-sm font-bold">{fmtKRW(krAnnual.operatingIncomeKRW)}</p></div>)}
-              {krAnnual.netIncomeKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">순이익</p><p className="text-sm font-bold">{fmtKRW(krAnnual.netIncomeKRW)}</p></div>)}
+              <div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">매출{krProfile?.revenueYoYPct != null ? ` (YoY ${krProfile.revenueYoYPct}%)` : ''}</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.revenueKRW)}</p></div>
+              {krAnnual.operatingIncomeKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">영업이익{krAnnual.operatingMarginPct != null ? ` (${krAnnual.operatingMarginPct}%)` : ''}</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.operatingIncomeKRW)}</p></div>)}
+              {krAnnual.netIncomeKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">순이익{krAnnual.netMarginPct != null ? ` (${krAnnual.netMarginPct}%)` : ''}</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.netIncomeKRW)}</p></div>)}
               {krAnnual.roePct != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">ROE</p><p className="text-sm font-bold">{krAnnual.roePct}%</p></div>)}
+              {krAnnual.totalAssetsKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">총자산</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.totalAssetsKRW)}</p></div>)}
+              {krAnnual.totalEquityKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">자본총계</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.totalEquityKRW)}</p></div>)}
+              {krAnnual.totalLiabilitiesKRW != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">부채총계</p><p className="text-sm font-bold">{fmtKRWc(krAnnual.totalLiabilitiesKRW)}</p></div>)}
+              {krAnnual.debtRatioPct != null && (<div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">부채비율</p><p className="text-sm font-bold">{krAnnual.debtRatioPct}%</p></div>)}
             </div>
+            {krAnnuals.length > 1 && (
+              <div className="mt-3 flex items-end gap-2 text-[10px] text-cf-text-secondary">
+                {[...krAnnuals].reverse().filter(a => a.revenueKRW != null).map((a) => (
+                  <span key={a.fiscalYear} className="px-2 py-1 rounded bg-white/5">FY{a.fiscalYear}: {fmtKRWc(a.revenueKRW!)}</span>
+                ))}
+              </div>
+            )}
             <p className="text-[10px] text-cf-text-secondary/50 mt-2">{krProfile?.source ?? 'DART 전자공시'} · FY{krAnnual.fiscalYear}</p>
+          </div>
+        )}
+        {/* 90일 주가 차트 (KR Naver/US Yahoo) */}
+        {priceHistory.length > 1 && (() => {
+          const first = priceHistory[0].close;
+          const last = priceHistory[priceHistory.length - 1].close;
+          const pct90 = ((last - first) / first) * 100;
+          const isUp = pct90 >= 0;
+          const min = Math.min(...priceHistory.map(p => p.close));
+          const max = Math.max(...priceHistory.map(p => p.close));
+          const pad = (max - min) * 0.06;
+          const sym = livePrice?.currency === 'KRW' ? '₩' : '$';
+          return (
+            <div className="cf-card p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-cf-text-primary">90일 주가</span>
+                <span className={`text-xs font-bold tabular-nums ${isUp ? 'text-green-600' : 'text-red-600'}`}>{isUp ? '+' : ''}{pct90.toFixed(2)}% <span className="font-normal text-cf-text-secondary">(90d)</span></span>
+              </div>
+              <div className="h-16">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={priceHistory} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                    <YAxis domain={[min - pad, max + pad]} hide />
+                    <Line type="monotone" dataKey="close" dot={false} strokeWidth={1.5} stroke={isUp ? '#16a34a' : '#dc2626'} />
+                    <Tooltip formatter={(v) => [`${sym}${Number(v).toLocaleString()}`, '']} labelFormatter={(l) => String(l)} contentStyle={{ fontSize: '11px', padding: '4px 8px' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          );
+        })()}
+        {/* 애널리스트 목표가 (KR 목표가 존재 — 등급분포는 Yahoo 미제공) */}
+        {analystData && analystData.targetMean != null && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">애널리스트 목표가</h2>
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="text-xs text-cf-text-secondary">평균 목표가</span>
+              <span className="text-lg font-extrabold text-cf-text-primary">{livePrice?.currency === 'KRW' ? fmtKRW(analystData.targetMean) : `$${analystData.targetMean.toFixed(2)}`}</span>
+            </div>
+            {livePrice?.price != null && (() => {
+              const upside = ((analystData.targetMean! - livePrice.price) / livePrice.price) * 100;
+              return (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-cf-text-secondary">상승여력</span>
+                  <span className={`font-semibold ${upside >= 0 ? 'text-green-600' : 'text-red-600'}`}>{upside >= 0 ? '+' : ''}{upside.toFixed(1)}%</span>
+                </div>
+              );
+            })()}
+            {analystData.targetLow != null && analystData.targetHigh != null && (
+              <div className="flex items-center justify-between text-xs text-cf-text-secondary mt-1">
+                <span>{livePrice?.currency === 'KRW' ? `${fmtKRW(analystData.targetLow)} — ${fmtKRW(analystData.targetHigh)}` : `$${analystData.targetLow.toFixed(0)} — $${analystData.targetHigh.toFixed(0)}`}</span>
+                <span className="opacity-60">범위</span>
+              </div>
+            )}
+          </div>
+        )}
+        {/* 관련 종목 (peer) */}
+        {recs.length > 0 && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">관련 종목</h2>
+            <div className="space-y-1">
+              {recs.slice(0, 6).map((rec) => (
+                <Link key={rec.symbol} href={`/company/${rec.symbol}`} className="flex items-center justify-between p-1.5 rounded hover:bg-white/5 transition-colors group">
+                  <span className="text-xs font-mono font-bold text-cf-text-primary group-hover:text-cf-primary">{rec.symbol}</span>
+                  {rec.changePct != null && (<span className={`text-[11px] font-semibold ${rec.changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>{rec.changePct >= 0 ? '+' : ''}{rec.changePct.toFixed(2)}%</span>)}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
         {/* Live financials if available */}

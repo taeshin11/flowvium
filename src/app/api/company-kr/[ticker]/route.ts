@@ -55,7 +55,7 @@ export async function GET(
       await loggedRedisSet(
         redis,
         'api.company-kr',
-        `flowvium:dart:financials:v2:${stockCode}`,
+        `flowvium:dart:financials:v3:${stockCode}`,
         data,
         { ex: 24 * 3600 }
       );

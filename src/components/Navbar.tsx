@@ -4,8 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { Menu, X, Link as LinkIcon, MessageCircle, Search } from 'lucide-react';
-import { allCompanies } from '@/data/companies';
 import { companyNamesI18n } from '@/data/company-names-i18n';
+import { UNIVERSE_COUNT } from '@/data/universe-count';
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
 
 const navLinks = [
   { href: '/report', key: 'report' },
@@ -24,11 +25,8 @@ const navLinks = [
   { href: '/about', key: 'about' },
 ] as const;
 
-const companies = allCompanies.map((c) => ({
-  name: c.name,
-  ticker: c.ticker,
-  sector: c.sector,
-}));
+// 2026-06-03: 검색을 전체 모니터링 유니버스(1210)로 확장 (allCompanies ~637 → UNIVERSE_SEARCH).
+const companies = UNIVERSE_SEARCH;
 
 function GlobalSearch({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -137,7 +135,7 @@ function GlobalSearch({ onClose }: { onClose: () => void }) {
 
         {query.trim().length === 0 && (
           <div className="px-4 py-5 text-center text-xs text-cf-text-secondary">
-            {t('totalCompanies', { count: companies.length })}
+            {t('totalCompanies', { count: UNIVERSE_COUNT })}
           </div>
         )}
       </div>

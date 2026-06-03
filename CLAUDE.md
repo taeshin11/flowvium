@@ -1,5 +1,46 @@
 # FlowVium 프로젝트 규칙
 
+## 🌐 자가호스팅: 모든 LLM 번역 경로는 로컬 Ollama 우선 (2026-06-03 회사페이지 미번역 사건 이후 신설)
+
+**발생 경위:** Vercel→자가호스팅 전환 후 cloud LLM(groq/gemini/openrouter) quota 가 소진돼 번역이
+원문(영어) 그대로 반환됨. news-cascade 는 Ollama 로 고쳤지만 **공유 `/api/translate`(회사/Cascade/
+Explore 페이지의 `useTranslatedText`→`<T>`)는 같은 결함 방치** — 한 곳만 고치고 나머지 점검 안 함.
+
+### 규칙
+
+1. **LLM 번역/생성 경로는 `localhost:11434`(Ollama) 우선, cloud 는 fallback.** 자가호스팅이라
+   cloud quota 는 상시 소진 가정. 번역 소비처가 여러 곳(news-cascade, /api/translate, …)이면 **전부** 적용.
+2. **새 LLM 의존 경로마다 "실제 출력이 목표언어인가" probe 동반** — `check-data-quality [E]` 처럼
+   영어 문장 넣고 한글(CJK) 출력 확인. endpoint 200 ≠ 번역 성공.
+3. **endpoint-alive ≠ page-rich.** 페이지가 *가용 데이터를 렌더하는지* 까지 검증. KR 회사페이지가
+   priceHistory/analyst/recs/DART 필드를 fetch 하고도 안 그리던 사각지대 — audit 는 endpoint 만 봤음.
+
+자동 감지: `node scripts/check-data-quality.mjs` [B](뉴스) + [E](/api/translate).
+
+---
+
+## 🚫 검증은 "가장 완전한 권위 소스"와 대조 — 하드코딩 화이트리스트 금지 (2026-06-03 CPRT="Cypress Semiconductor" 사건 이후 신설)
+
+**발생 경위:** 보고서 portfolio 의 CPRT(Copart) 이름이 LLM 환각으로 "Cypress Semiconductor" 표시.
+generate-report-local.mjs 의 name 검증이 ~60개 하드코딩 `US_NAMES_HARNESS`(테크/반도체 위주)로만 돼서
+CPRT 가 거기 없어 통과. verify-report 엔 ticker↔회사명 probe 자체가 없었음. 전수조사 결과 환각 광범위
+(SMCI="NVIDIA"/"SMIC", CLX="Caterpillar", MP="Morgan Stanley" 등 발행 26키 36건 + DB 23행).
+
+### 규칙
+
+1. **검증/override 의 ground-truth 는 항상 가능한 가장 완전한 권위 소스.** 작은 하드코딩 리스트로
+   "일부만" 검증하면 나머지는 silent 통과 — 반복된 안티패턴(14/350 매칭, 60/1210 이름 등).
+   - 회사명: `data/company-names.json` (companies-batch*.ts 추출 ~499) + 큐레이션 = `US_NAME_LOOKUP`.
+   - 종목 풀: `data/candidate-tickers.json` (1210) — `UNIVERSE_COUNT` / `UNIVERSE_SEARCH`.
+2. **새 LLM 출력 필드(name/sector/…)를 노출하면 verify-report 에 cross-check probe 를 같이 추가** —
+   defect{defect_type} push → Karpathy `hallucination_history` 적재까지. probe 없는 필드 = 사각지대.
+3. **권위 소스 파생물은 build 스크립트로 생성**(`npm run build:names` / `build:universe`) — 손으로 나열 금지.
+   batch/cron sync 시 재생성. drift 는 audit-coverage 가 감지.
+
+자동 감지: `npm run verify:report` 의 "ticker ↔ 회사명 일치" probe.
+
+---
+
 ## ✅ 모든 fix 후 통합 검증 의무 (2026-05-31 사용자 비판 이후 신설)
 
 **사용자 비판:** "다 고치고 검증할때 검증 일괄적으로 다 되게 해야지"

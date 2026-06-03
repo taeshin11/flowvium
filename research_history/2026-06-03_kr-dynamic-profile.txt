@@ -1,0 +1,24 @@
+2026-06-03 — KR 회사 프로필 동적화 (정적 금지)
+
+[사용자] "정적이면 안 되는데.. 계속 변할 수 있잖아? 왜 아직도 정적인 데이터가 있지?"
+  → 핵심: 회사 데이터(개요/메타/재무)는 변하므로 하드코딩 금지. 기존 US 정적 프로필(companies-batch*.ts
+    의 "NVDA Data Center 78%" 등)이 바로 stale-가능 레거시 안티패턴. CLAUDE.md "정적 폴백 금지"와 동일.
+
+[결정] KR 프로필을 정적 파일로 만들지 않고 전부 라이브:
+  1. 기업 메타: dart-financials.ts 가 이미 DART company.json 호출하면서 corp_name 만 쓰고 버리던
+     ceo/est_dt/adres/hm_url/induty_code/corp_name_eng/phn_no 를 capture → DartFinancials.corpInfo.
+     캐시 v bump (corp-code v1→v2, financials v2→v3). 라이브 + 30d/24h 캐시.
+  2. 사업 개요: 신규 /api/company-desc/[ticker] — DART grounding(기업명/영문명/업종/매출/시장) →
+     로컬 Ollama(qwen3:8b) 2-3문장 생성. 환각방지 프롬프트("알려진 사실만, 수치/고객사 날조 금지").
+     Redis 45d TTL 캐시(갱신 가능) — 하드코딩 .ts 아님. 정적 파일 0개 생성.
+  3. CompanyPage KR(minimal) 렌더: 사업개요 + 기업정보(DART 라이브) 섹션 추가.
+     (이전 세션의 90일차트/애널리스트목표가/관련종목/DART전체재무 enrich 와 합쳐 완성.)
+
+[검증] 005930 corpInfo=실데이터(전영현·노태문/1969/수원 삼성로/samsung.com). desc 3종 grounded:
+  삼성=반도체·디스플레이·소비자전자, SK하이닉스=DRAM·NAND KOSPI, 네이버=검색·콘텐츠·SNS. 날조 없음.
+
+[한계/미해결] 매출 세그먼트 %·공급망 관계는 DART 미제공 정량데이터 → 환각 위험으로 생성 안 함.
+  (US 정적 프로필의 그 필드들도 동일하게 stale 위험 — 별도 동적화 과제로 남김.)
+
+[원칙] 회사 description/메타도 정적 하드코딩 금지. DART 등 권위 소스 라이브 + TTL 캐시.
+  LLM 생성물은 grounding + 환각방지 + 자동 갱신.

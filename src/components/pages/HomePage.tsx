@@ -44,17 +44,16 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import EmailCTA from '@/components/EmailCTA';
 import LiveFeed from '@/components/LiveFeed';
 import { useRouter } from '@/i18n/routing';
-import { allCompanies } from '@/data/companies';
 import { companyNamesI18n } from '@/data/company-names-i18n';
+import { UNIVERSE_COUNT } from '@/data/universe-count';
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
 import { getLevel, levelLabels } from '@/data/fear-greed';
 import Sparkline from '@/components/Sparkline';
 import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
 
-const searchCompanies = allCompanies.map((c) => ({
-  name: c.name,
-  ticker: c.ticker,
-  sector: c.sector,
-}));
+// 2026-06-03: 검색을 전체 모니터링 유니버스(1210)로 확장 — allCompanies(프로필 ~637)만 검색하던
+//   "616개" 불일치 해소. /company/[ticker] 는 임의 ticker 라이브 동작.
+const searchCompanies = UNIVERSE_SEARCH;
 
 // Live market snapshot strip — SPY / QQQ / BTC / VIX + macro row (10Y / DXY / Gold)
 interface SnapPill { price: number | null; changePct: number | null; currency: string; }
@@ -965,7 +964,7 @@ export default function HomePage() {
               {/* 통합 3열 그리드 — 모든 버튼 동일 크기 */}
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { href: '/explore',      icon: <ArrowRight className="w-3.5 h-3.5" />,      label: tHome('exploreSupplyChains'),  desc: tHome('exploreSupplyChainsDesc', { count: allCompanies.length }), accent: 'text-cf-primary',   primary: true },
+                  { href: '/explore',      icon: <ArrowRight className="w-3.5 h-3.5" />,      label: tHome('exploreSupplyChains'),  desc: tHome('exploreSupplyChainsDesc', { count: UNIVERSE_COUNT }), accent: 'text-cf-primary',   primary: true },
                   { href: '/signals',      icon: <TrendingUp className="w-3.5 h-3.5" />,      label: tHome('viewSignals'),          desc: tHome('viewSignalsDesc'),         accent: 'text-blue-500' },
                   { href: '/intelligence', icon: <span className="relative flex h-3 w-3 items-center justify-center"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" /></span>, label: tHome('secretMoneyTrack'), desc: tHome('secretMoneyTrackDesc'), accent: 'text-amber-500' },
                   { href: '/news-gap',     icon: <Radar className="w-3.5 h-3.5" />,           label: tHome('newsGapScan'),          desc: tHome('newsGapScanDesc'),         accent: 'text-emerald-500' },
@@ -1046,8 +1045,8 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
               { value: '10,000+', label: tHome('socialProof.investors'), icon: <Users className="w-5 h-5" /> },
-              // 2026-05-31: 137+ hardcoded → allCompanies.length 동적. 사용자 "616 종목수 늘었는데 표시 안 됨" 사건.
-              { value: `${allCompanies.length}+`, label: tHome('socialProof.companies'), icon: <Network className="w-5 h-5" /> },
+              // 2026-06-03: allCompanies.length(정적 프로필 ~637)이 모니터링 풀(1210)을 과소표시 → UNIVERSE_COUNT 사용.
+              { value: `${UNIVERSE_COUNT}+`, label: tHome('socialProof.companies'), icon: <Network className="w-5 h-5" /> },
               { value: '16', label: tHome('socialProof.sectors'), icon: <Globe className="w-5 h-5" /> },
               { value: '$48B+', label: tHome('socialProof.flows'), icon: <BarChart3 className="w-5 h-5" /> },
             ].map((stat) => (

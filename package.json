@@ -22,6 +22,8 @@
     "verify:report": "node scripts/verify-report.mjs",
     "verify:coverage": "node scripts/audit-coverage.mjs",
     "verify:company": "node scripts/audit-company-pages.mjs 30",
+    "build:names": "node scripts/build-company-names.mjs",
+    "build:universe": "node scripts/build-company-names.mjs && node scripts/build-universe-search.mjs",
     "setup:hooks": "bash scripts/install-hooks.sh",
     "check:timeframes": "node scripts/check-timeframes.mjs",
     "check:cron-sessions": "node scripts/check-cron-sessions.mjs",
