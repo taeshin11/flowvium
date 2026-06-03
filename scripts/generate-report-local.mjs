@@ -3175,6 +3175,30 @@ async function getCompanyFinancials(tickers) {
   return results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value).join(' | ');
 }
 
+// 2026-06-03: getCompanyFinancials 는 LLM 프롬프트용 *문자열* 반환 → saveDomainArchives 가
+//   기대하는 ticker-keyed 객체와 타입 불일치로 finByTicker={} (op_margin/net_income/pe 100% NULL).
+//   이 함수가 ticker→원시 응답(latestAnnual 포함) Map 을 별도 반환 → earnings_archive 적재용.
+async function getFinancialsMap(tickers) {
+  const map = new Map();
+  if (!tickers?.length) return map;
+  const results = await Promise.allSettled(
+    [...new Set(tickers.map(t => (t ?? '').toUpperCase()))].slice(0, 16).map(async ticker => {
+      try {
+        // KR(.KS/.KQ) 은 company-financials 가 404 → company-kr(DART). DART 응답도 latestAnnual 에
+        //   operatingMarginPct + netIncomeUSD 제공하므로 saveDomainArchives 추출 로직 동일하게 동작.
+        const isKR = /\.(KS|KQ)$/.test(ticker);
+        const url = isKR
+          ? `${SITE}/api/company-kr/${ticker.replace(/\.(KS|KQ)$/, '')}`
+          : `${SITE}/api/company-financials/${ticker}`;
+        const d = await safeFetch(url, 6000);
+        return (d && !d.error) ? [ticker, d] : null;
+      } catch { return null; }
+    })
+  );
+  for (const r of results) if (r.status === 'fulfilled' && r.value) map.set(r.value[0], r.value[1]);
+  return map;
+}
+
 // ── 프롬프트 빌더 (investment-prompts.ts 포팅) ─────────────────────────────────
 const TODAY = new Date().toISOString().slice(0, 10);
 const li = TARGET_LANG ? `\nWrite ALL text in ${TARGET_LANG} except tickers/numbers/JSON keys.\n` : '';
@@ -4992,9 +5016,10 @@ async function generateViaOllama() {
 
   const portfolioForFinancials = portfolioItems.map(p => p.ticker);
   // 재무 데이터 + OHLCV 기술 지표 병렬 수집
-  const [companyFinancials, technicalData] = await Promise.all([
+  const [companyFinancials, technicalData, financialsMap] = await Promise.all([
     getCompanyFinancials(portfolioForFinancials),
     buildTechnicalData(buyStocks.map(s => s.ticker), livePrices),
+    getFinancialsMap(portfolioForFinancials),  // 2026-06-03: earnings_archive 적재용 ticker-keyed 맵
   ]);
   if (technicalData.size > 0) {
     console.log(`  기술지표 계산 완료: ${[...technicalData.entries()].map(([t, v]) => `${t}(${v})`).join(', ')}`);
@@ -5890,18 +5915,27 @@ async function generateViaOllama() {
         ctxRaw,
         macroData,
       });
-      // 2026-05-29: 숏스퀴즈/실적/insider 시점별 아카이브 (검색 + 추세)
-      // 2026-05-30: companyFinancials 직접 전달 — endpoint_snapshots 시점 의존성 제거
-      //   (이전엔 saveDomainArchives 가 snapshotAllEndpoints 보다 먼저 호출되어 finByTicker={} → op_margin/net_income/pe_ratio 100% NULL)
+    } catch (e) {
+      console.warn(`[db] ⚠️ news/macro 적재 실패: ${String(e).slice(0, 100)}`);
+    }
+    // 2026-06-03: 각 archive 를 독립 try/catch 로 격리 — 이전엔 news/macro/domain/fg 가 한 try 라
+    //   앞 단계 하나만 throw 해도 saveFearGreedArchive 가 skip 돼 fg_archive 가 5-28 이후 중단됐음.
+    try {
+      // 숏스퀴즈/실적/insider 시점별 아카이브. companyFinancials=ticker-keyed Map(2026-06-03 문자열 버그 fix).
       saveDomainArchives({
         reportId,
         capturedAt: finalReport.generatedAt,
         shortSqueeze: finalReport.shortSqueeze ?? [],
         companyChanges: finalReport.companyChanges ?? [],
         insiderSignals: finalReport.insiderSignals ?? [],
-        companyFinancials: companyFinancials ?? null,
+        companyFinancials: financialsMap,
+        livePrices,
       });
-      // 2026-05-29: F&G 10국가 + asset flow 시점별 아카이브
+    } catch (e) {
+      console.warn(`[db] ⚠️ domain archive 적재 실패: ${String(e).slice(0, 100)}`);
+    }
+    try {
+      // F&G 10국가 + asset flow 시점별 아카이브
       saveFearGreedArchive({
         reportId,
         capturedAt: finalReport.generatedAt,
@@ -5909,7 +5943,7 @@ async function generateViaOllama() {
         capitalFlowsResponse: ctxRaw?.capital ?? ctxRaw?.capitalFlows,
       });
     } catch (e) {
-      console.warn(`[db] ⚠️ news/macro 적재 실패: ${String(e).slice(0, 100)}`);
+      console.warn(`[db] ⚠️ fear-greed archive 적재 실패: ${String(e).slice(0, 100)}`);
     }
     console.log(`\n[db] 📦 SQLite 적재: report=${reportId} recommendations=${recCount} news=${newsCount}`);
     // 2026-05-29: portfolio ticker 별 company-financials 도 함께 스냅샷

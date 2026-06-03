@@ -676,7 +676,16 @@ export function saveFearGreedArchive({ reportId, capturedAt, fgResponse, capital
  * 2026-05-29: 숏 스퀴즈 + 기업 실적 + insider 아카이브 적재.
  * 매 보고서 cycle 마다 호출 — point-in-time 추세 추적 가능.
  */
-export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], companyChanges = [], insiderSignals = [], companyFinancials = null }) {
+export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], companyChanges = [], insiderSignals = [], companyFinancials = null, livePrices = null }) {
+  // 2026-06-03: livePrices(Map 또는 obj, ticker→{price}|price) → priceByTicker (P/E 계산용).
+  const priceByTicker = {};
+  if (livePrices) {
+    const entries = livePrices instanceof Map ? livePrices.entries() : Object.entries(livePrices);
+    for (const [k, v] of entries) {
+      const p = (v && typeof v === 'object') ? (v.price ?? v.close ?? null) : v;
+      if (p != null) priceByTicker[(k ?? '').toUpperCase()] = Number(p);
+    }
+  }
   const db = openDb();
   const now = capturedAt ?? new Date().toISOString();
   // 2026-05-29 Codex 진단: short-interest endpoint_snapshots 에서 shortFloatPct/shortRatio
@@ -763,9 +772,14 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
       if (opMargin == null && finData?.latestAnnual?.operatingMarginPct != null) {
         opMargin = finData.latestAnnual.operatingMarginPct;
       }
-      // net_income / pe_ratio 도 finData 에서 시도
-      const netIncome = finData?.latestAnnual?.netIncome ?? null;
-      const peRatio = finData?.peRatio ?? finData?.latestAnnual?.peRatio ?? null;
+      // 2026-06-03 fix: 필드명 오류 — company-financials 는 netIncomeUSD(원시 USD) 제공.
+      //   archive 는 USD billions 저장 → /1e9. (이전 finData.latestAnnual.netIncome=undefined → 100% NULL)
+      const netUSD = finData?.latestAnnual?.netIncomeUSD;
+      const netIncome = netUSD != null ? Math.round((netUSD / 1e9) * 100) / 100 : null;
+      // P/E: company-financials 엔 P/E 없음 → 라이브 price ÷ 연간 EPS(diluted) 로 계산. price 없으면 null.
+      const price = priceByTicker[(c.ticker ?? '').toUpperCase()];
+      const eps = finData?.latestAnnual?.epsDiluted;
+      const peRatio = (price != null && eps != null && eps > 0) ? Math.round((price / eps) * 10) / 10 : null;
       erStmt.run(reportId, now, c.ticker ?? '', c.latestQuarter ?? null,
         rev, yoy, opMargin, netIncome, peRatio,
         c.guidance ?? null, c.sentiment ?? null, 'companyChanges',
