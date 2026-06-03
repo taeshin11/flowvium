@@ -3984,6 +3984,8 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
       WHERE r.action = 'buy'
         AND r.generated_at >= date('now', '-30 days')
         AND (o.outcome IS NULL OR o.outcome IN ('still_holding', 'not_entered', 'unknown'))
+        -- 2026-06-04: 이미 매도추천/청산된 종목 제외 — "매수했던 목록"에서 빠지도록 (재-매도추천 방지)
+        AND r.id NOT IN (SELECT recommendation_id FROM recommendation_outcomes WHERE outcome IN ('sold', 'hit_target', 'stop_loss'))
       ORDER BY r.generated_at DESC
     `).all();
     db.close();

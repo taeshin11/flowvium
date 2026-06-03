@@ -1040,10 +1040,30 @@ export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
   `);
   const evalAfter = new Date(new Date(generatedAt).getTime() + 14 * 86400000).toISOString();
   const sessionTag = reportId.split(':').slice(0, 2).join(':');
+  // 2026-06-04: 매도추천 나간 종목 = 보유 종료 → 해당 매수추천의 outcome 을 'sold' 로 마감.
+  //   (이전엔 안 닫아서 still_holding 으로 남아 매 보고서 재-매도추천 + "매수했던 목록" 과다 누적)
+  // 종목당 *모든* open 매수추천 (여러 보고서가 같은 ticker 매수추천 → 전부 닫아야 보유목록서 빠짐)
+  const findAllOpenBuy = db.prepare(`
+    SELECT r.id FROM recommendations r
+    WHERE r.ticker = ? AND r.action = 'buy'
+      AND r.id NOT IN (SELECT recommendation_id FROM recommendation_outcomes WHERE outcome IN ('sold','hit_target','stop_loss'))
+  `);
+  const closeOutcome = db.prepare(`
+    INSERT INTO recommendation_outcomes (recommendation_id, evaluated_at, price_at_eval, outcome, pnl_pct, details_json)
+    VALUES (?, ?, ?, 'sold', ?, ?)
+    ON CONFLICT(recommendation_id, evaluated_at) DO UPDATE SET outcome='sold', pnl_pct=excluded.pnl_pct
+  `);
   let n = 0;
   const txn = db.transaction((rows) => {
     for (const c of rows) {
       if (!c?.ticker) continue;
+      // 보유 종료 마감 — 해당 ticker 의 모든 open 매수추천을 'sold' 로
+      try {
+        for (const open of findAllOpenBuy.all(c.ticker)) {
+          closeOutcome.run(open.id, generatedAt, parseAmount(c.currentPrice), c.pnlPct ?? null,
+            JSON.stringify({ closedBy: 'sell-recommendation', reportId, sellType: c.sellType ?? c.ruleId ?? null }));
+        }
+      } catch { /* non-fatal */ }
       insert.run({
         id: `${sessionTag}:${c.ticker}`,
         report_id: reportId,
