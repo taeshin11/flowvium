@@ -85,6 +85,20 @@ function checkOnce() {
     if (procs.length === 0) info.push('report-gen 실행 프로세스 없음');
   } catch { /* PowerShell 미가용 — skip */ }
 
+  // [5] git wipe-risk — 미커밋/미푸시 코드가 cron checkout origin/master 에 wipe 될 위험.
+  //     (2026-06-03 데이터손실 사건: fix 후 커밋+푸시 안 하면 다음 cron 이 silent revert.)
+  try {
+    const sh = (c) => { try { return execSync(c, { cwd: 'C:/NoAddsMakingApps/FlowVium', encoding: 'utf8', stdio: ['pipe','pipe','ignore'] }).trim(); } catch { return ''; } };
+    const WIPE = /^(scripts\/|src\/|public\/|messages\/|package\.json|data\/[^/]+\.json)/;
+    const tracked = sh('git status --porcelain').split('\n').filter(Boolean)
+      .filter(l => !l.startsWith('??') && WIPE.test(l.slice(3).replace(/^"|"$/g, '')));
+    sh('git fetch --quiet origin master');
+    const aheadTouch = sh('git diff --name-only origin/master..HEAD').split('\n').filter(Boolean).filter(p => WIPE.test(p));
+    if (tracked.length) issues.push(`git wipe-risk — 미커밋 tracked 변경 ${tracked.length}건 (다음 cron 이 wipe): ${tracked.map(l=>l.slice(3)).slice(0,5).join(', ')} → commit+push`);
+    else if (aheadTouch.length) issues.push(`git wipe-risk — 커밋했으나 미푸시(${aheadTouch.length}파일, cron 이 origin 으로 revert) → git push origin master`);
+    else info.push('git wipe-risk 없음 (코드 origin/master 동기화)');
+  } catch { /* git 미가용 — skip */ }
+
   return { issues, info };
 }
 

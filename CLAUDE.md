@@ -1,5 +1,27 @@
 # FlowVium 프로젝트 규칙
 
+## 🔴 코드 fix 후 즉시 커밋+푸시 의무 (2026-06-03 cron git-checkout wipe 사건 이후 신설)
+
+**발생 경위:** scripts/src 의 fix 들을 커밋 안 한 채 두었더니, `run-report.bat` cron 이 매 실행마다
+`git checkout origin/master -- scripts/ src/ public/ messages/ data/*.json package.json` 으로
+**미커밋 tracked 변경을 silent wipe**. afternoon cron 이 name-환각 fix 등 11파일을 되돌려 CPRT="Cypress
+Semiconductor" 환각이 재발했다. 로컬 커밋만으론 부족 — cron 이 *origin/master* 를 checkout 하므로 **push 필수**.
+
+### 규칙
+
+1. **scripts/ · src/ · public/ · messages/ · package.json · data/*.json 변경 후엔 같은 작업에서 커밋+푸시.**
+   build+restart 로 라이브 반영돼도, 푸시 안 하면 다음 cron 이 origin/master 로 revert.
+2. **untracked 신규 파일은 cron checkout 이 안 건드려 생존** — 단 버전관리 위해 함께 커밋 권장.
+3. **민감파일 절대 커밋 금지**: `.env.local`, `.cf-tunnel-token` (gitignored 확인).
+
+### 자동 감지 (검증체계 — "왜 best practice 안 했는지" 사전 포착)
+
+- `node scripts/check-uncommitted-risk.mjs` — wipe 경로의 미커밋 tracked 변경 + 미푸시 ahead 커밋 감지.
+- `check-stall.mjs [5] git wipe-risk` — **주기 모니터에 통합**. 매 사이클 "커밋+푸시 안 된 코드" 를 🚨 로 surface.
+  → 이전엔 이 검증이 없어 silent wipe 가 났음. 이제 모니터가 best-practice 미준수를 자동 포착.
+
+---
+
 ## 🌐 자가호스팅: 모든 LLM 번역 경로는 로컬 Ollama 우선 (2026-06-03 회사페이지 미번역 사건 이후 신설)
 
 **발생 경위:** Vercel→자가호스팅 전환 후 cloud LLM(groq/gemini/openrouter) quota 가 소진돼 번역이
