@@ -142,6 +142,29 @@ function localizeTimeframe(tf: string, locale: string): string {
  * title + summary + cascade.reason 까지 번역. timeframe 은 정적 i18n.
  * asset 은 ticker/심볼이라 그대로. 실패 시 원문(영어) 반환 — UI 깨짐 방지.
  */
+// 2026-06-03: 자가호스팅 로컬 Ollama 번역 (격리 — core callAI 안 건드림). localhost:11434/v1.
+//   클라우드 rate-limit 무관, 무료. 모델은 OLLAMA_TRANSLATE_MODEL(기본 qwen3:8b — 한국어 양호).
+async function translateViaOllama(prompt: string): Promise<string | null> {
+  try {
+    const res = await fetch('http://localhost:11434/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 4000,
+      }),
+      signal: AbortSignal.timeout(90000),
+    });
+    if (!res.ok) return null;
+    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    return d.choices?.[0]?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function translateArticles(
   articles: NewsWithCascade[],
   locale: string,
@@ -170,13 +193,13 @@ ${JSON.stringify(payload, null, 2)}
 Output (JSON array only):`;
 
   try {
-    const r = await callAI(prompt, {
-      tag: 'news-cascade.translate',
-      maxTokens: 8000,
-      temperature: 0.3,
-      skipVllm: true, // EXAONE 2.4B 가 16개 언어 번역에 약함
-      timeoutMs: 30000,
-    });
+    // 2026-06-03: 자가호스팅 — 로컬 Ollama(localhost:11434) 우선 번역. 클라우드 callAI 가
+    //   rate-limit/간헐 실패로 ko 번역이 지속 영어로 나오던 문제(self-host 라 localhost 안정).
+    //   실패 시 기존 클라우드 callAI(skipVllm) fallback. 둘 다 {text,source} 형태로 downstream 동일.
+    let r = { text: await translateViaOllama(prompt), source: 'ollama' };
+    if (!r.text) {
+      r = await callAI(prompt, { tag: 'news-cascade.translate', maxTokens: 8000, temperature: 0.3, skipVllm: true, timeoutMs: 30000 });
+    }
     if (!r.text) {
       logger.warn('news-cascade.translate', 'empty_ai_response', { locale, source: r.source });
       return articles.map(a => localizeTimeframesOnly(a, locale));
