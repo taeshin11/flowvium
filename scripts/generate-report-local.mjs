@@ -6011,13 +6011,22 @@ async function generateViaOllama() {
       console.warn(`[db] ⚠️ domain archive 적재 실패: ${String(e).slice(0, 100)}`);
     }
     try {
-      // F&G 10국가 + asset flow 시점별 아카이브
-      saveFearGreedArchive({
-        reportId,
-        capturedAt: finalReport.generatedAt,
-        fgResponse: ctxRaw?.fearGreed ?? ctxRaw?.fear_greed,
-        capitalFlowsResponse: ctxRaw?.capital ?? ctxRaw?.capitalFlows,
-      });
+      // F&G 10국가 + asset flow 시점별 아카이브.
+      // 2026-06-04: ctxRaw.fearGreed 가 비면(컨텍스트 수집 시 fetch 실패) 조용히 0행 적재돼
+      //   fg_archive 적재율 19%로 떨어지던 사각지대 → byCountry 비면 발간 시점 직접 재fetch 폴백.
+      let fgResponse = ctxRaw?.fearGreed ?? ctxRaw?.fear_greed;
+      let capitalFlowsResponse = ctxRaw?.capital ?? ctxRaw?.capitalFlows;
+      const fgEmpty = !(Array.isArray(fgResponse?.byCountry) ? fgResponse.byCountry.length
+        : Object.keys(fgResponse?.byCountry ?? {}).length);
+      if (fgEmpty) {
+        const fresh = await safeFetch(`${SITE}/api/fear-greed`, 12000);
+        if (fresh && !fresh.error) { fgResponse = fresh; console.log('[db] fg_archive 폴백 재fetch (ctx 비어있었음)'); }
+      }
+      if (!(capitalFlowsResponse?.assets?.length)) {
+        const freshCap = await safeFetch(`${SITE}/api/capital-flows`, 12000);
+        if (freshCap && !freshCap.error) capitalFlowsResponse = freshCap;
+      }
+      saveFearGreedArchive({ reportId, capturedAt: finalReport.generatedAt, fgResponse, capitalFlowsResponse });
     } catch (e) {
       console.warn(`[db] ⚠️ fear-greed archive 적재 실패: ${String(e).slice(0, 100)}`);
     }
