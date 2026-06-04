@@ -5357,6 +5357,16 @@ async function generateViaOllama() {
     }
     dedupedPortfolio = [...usCap, ...krCap];
   }
+  // 2026-06-04: 종목별 내재변동성(IV) 주입 (사용자 요청) — US 옵션 IV(atmIv30d). KR 은 옵션 IV 미제공 → null.
+  await Promise.all(dedupedPortfolio.map(async (p) => {
+    if (!p.ticker || /\.(KS|KQ)$/.test(p.ticker)) { p.impliedVol = null; return; }
+    try {
+      const iv = await safeFetch(`${SITE}/api/iv/${encodeURIComponent(p.ticker)}`, 8000);
+      p.impliedVol = (iv && typeof iv.atmIv30d === 'number') ? Math.round(iv.atmIv30d * 1000) / 10 : null; // %, 1자리
+      p.ivSkew = (iv && typeof iv.skew25d === 'number') ? Math.round(iv.skew25d * 1000) / 10 : null;
+    } catch { p.impliedVol = null; }
+  }));
+  console.log(`  [IV] 내재변동성 주입: ${dedupedPortfolio.filter(p => p.impliedVol != null).length}/${dedupedPortfolio.length} (US 옵션 IV)`);
   // Quality pre-flight
   {
     const { ok: qOk, issues: qIssues, warnings: qWarnings, score: qScore } = qualityCheck({ ...{}, portfolio: dedupedPortfolio, regionStances: regionalData?.regionStances ?? {}, shortSqueeze: opportunityData?.shortSqueeze ?? [], marketNarrative: narrativeData ?? {}, thesis: macroData?.thesis ?? '', macroAnalysis: macroData?.macroAnalysis ?? '', technicalAnalysis: macroData?.technicalAnalysis ?? '' });

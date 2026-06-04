@@ -234,6 +234,11 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${confidenceBadge(item.confidence)}`}>
                   {confidenceLabel}
                 </span>
+                {item.impliedVol != null && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-sky-50 text-sky-700 border border-sky-200" title="ATM 30-day implied volatility">
+                    IV {item.impliedVol}%{item.ivSkew != null && item.ivSkew !== 0 ? ` · skew ${item.ivSkew > 0 ? '+' : ''}${item.ivSkew}` : ''}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-gray-500">{item.sector}</p>
             </div>

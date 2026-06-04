@@ -122,6 +122,8 @@ export interface PortfolioItem {
   technicalBasis?: string;       // MA position, RSI, volume trend (≤80 chars)
   riskNote?: string;             // main downside risk to thesis (≤60 chars)
   critiqueNote?: string;         // post-hoc critique annotation (display only)
+  impliedVol?: number | null;    // ATM 30일 내재변동성 % (US 옵션, KR 은 null) — 2026-06-04
+  ivSkew?: number | null;        // 25-delta skew % (put-call skew)
 }
 
 export interface SectorWeight {
