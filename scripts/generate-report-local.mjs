@@ -809,6 +809,12 @@ function getPublishTarget(session) {
   return { target, waitMs };
 }
 
+// 보고서 KST 날짜 = 발간 target 날짜. midnight(23:40 생성→익일 00:00 발간)은 익일 날짜를 써야
+//   파일명/Redis 키가 웹 읽기(00:00~ midnight 조회)와 일치하고 SESSION_RANK 시간순 정렬도 맞다.
+function getReportKstDate(session) {
+  return getPublishTarget(session).target.toISOString().slice(0, 10);
+}
+
 async function sleepUntilPublishTarget(session) {
   const { target, waitMs } = getPublishTarget(session);
   if (waitMs <= 0) {
@@ -869,7 +875,7 @@ async function uploadFromFile(filePath) {
   const locale = report.locale ?? localeArg;
   const session = report.session ?? getSession();
   const kstNow = new Date(Date.now() + 9 * 3600000);
-  const kstDate = kstNow.toISOString().slice(0, 10);
+  const kstDate = getReportKstDate(session);  // midnight 은 발간일(익일) — 웹 읽기 키와 정합
   const sessionKey = `flowvium:investment-strategy:v8:${kstDate}:${session}:${locale}`;
   // 히스토리용 고유 키 (라이브 API와 동일한 방식 — session TTL 만료와 무관)
   const histReportKey = `flowvium:investment-strategy:hist:report:${report.generatedAt}`;
@@ -5939,7 +5945,7 @@ async function generateViaOllama() {
   };
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
-  const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  const kstDate = getReportKstDate(session);  // midnight 은 발간일(익일)
   const filename = `report-${kstDate}-${session}-${localeArg}.json`;
   const filepath = resolve(REPORTS_DIR, filename);
   writeFileSync(filepath, JSON.stringify(finalReport, null, 2), 'utf8');

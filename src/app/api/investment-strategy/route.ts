@@ -83,10 +83,14 @@ function toCacheable(strategy: InvestmentStrategy): InvestmentStrategy & { schem
   return { ...strategy, schemaVersion: SCHEMA_VERSION, buildId: BUILD_ID };
 }
 
-function getKstSession(): 'morning' | 'afternoon' | 'evening' {
+// 발간 시각(KST): midnight 00:00 / morning 07:00 / noon 12:00 / afternoon 16:00 / evening 21:30.
+//   현재 시각 기준 "가장 최근 발간된" 세션을 반환 (2026-06-04 noon/midnight 추가).
+function getKstSession(): 'midnight' | 'morning' | 'noon' | 'afternoon' | 'evening' {
   const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
-  if (kstHour >= 7 && kstHour < 16) return 'morning';
-  if (kstHour >= 16 && kstHour < 22) return 'afternoon';
+  if (kstHour < 7) return 'midnight';
+  if (kstHour < 12) return 'morning';
+  if (kstHour < 16) return 'noon';
+  if (kstHour < 22) return 'afternoon';
   return 'evening';
 }
 
@@ -1416,7 +1420,7 @@ export async function GET(request: Request) {
         // 3. Any previous session's report from today or yesterday (A1 fix)
         const yesterday = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
         for (const dateStr of [new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), yesterday]) {
-          for (const s of ['morning', 'afternoon', 'evening'] as const) {
+          for (const s of ['midnight', 'morning', 'noon', 'afternoon', 'evening'] as const) {
             if (dateStr === new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10) && s === session) continue;
             const alt = await redis.get(`flowvium:investment-strategy:v${SCHEMA_VERSION}:${dateStr}:${s}`);
             if (alt && isSchemaCompatible(alt as Record<string, unknown>)) {

@@ -28,10 +28,12 @@ const SCHEMA_VERSION = 8;
 const HIST_KEY = 'flowvium:investment-strategy:history:arr:v1';
 function staleKey(locale: string) { return `flowvium:investment-strategy:stale:v${SCHEMA_VERSION}:${locale}`; }
 
-function getKstSession(): 'morning' | 'afternoon' | 'evening' {
+function getKstSession(): 'midnight' | 'morning' | 'noon' | 'afternoon' | 'evening' {
   const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
-  if (kstHour >= 7 && kstHour < 16) return 'morning';
-  if (kstHour >= 16 && kstHour < 22) return 'afternoon';
+  if (kstHour < 7) return 'midnight';
+  if (kstHour < 12) return 'morning';
+  if (kstHour < 16) return 'noon';
+  if (kstHour < 22) return 'afternoon';
   return 'evening';
 }
 function todayKstDate() {

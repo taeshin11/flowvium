@@ -8,12 +8,12 @@ import fs from 'node:fs';
 // 2026-05-31: 최신 보고서 자동 선택. 이전엔 default 가 'report-2026-05-30-morning-ko.json'
 //   하드코딩 → verify-all / cron verify-loop 가 며칠째 stale 보고서만 검증 (silent 사각지대).
 //   파일명 report-YYYY-MM-DD-{morning|afternoon|evening}-ko.json 의 날짜+세션 순으로 최신 선택.
-const SESSION_RANK = { morning: 0, afternoon: 1, evening: 2 };
+const SESSION_RANK = { midnight: 0, morning: 1, noon: 2, afternoon: 3, evening: 4 };
 export function pickLatestReport(dir = 'reports') {
   let files;
   try { files = fs.readdirSync(dir); } catch { return null; }
   const matched = files
-    .map(f => f.match(/^report-(\d{4}-\d{2}-\d{2})-(morning|afternoon|evening)-[a-z-]+\.json$/i))
+    .map(f => f.match(/^report-(\d{4}-\d{2}-\d{2})-(midnight|morning|noon|afternoon|evening)-[a-z-]+\.json$/i))
     .filter(Boolean)
     .map(m => ({ file: `${dir}/${m[0]}`, date: m[1], rank: SESSION_RANK[m[2].toLowerCase()] ?? -1 }));
   if (!matched.length) return null;

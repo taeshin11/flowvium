@@ -126,7 +126,7 @@ async function main() {
   try {
     const { readdirSync, readFileSync } = await import('fs');
     const dir = 'C:/NoAddsMakingApps/FlowVium/reports';
-    const files = readdirSync(dir).filter(f => /^report-\d{4}-\d{2}-\d{2}-(morning|afternoon|evening)-[a-z-]+\.json$/.test(f)).sort();
+    const files = readdirSync(dir).filter(f => /^report-\d{4}-\d{2}-\d{2}-(midnight|morning|noon|afternoon|evening)-[a-z-]+\.json$/.test(f)).sort();
     const latest = files[files.length - 1];
     if (latest) {
       const d = JSON.parse(readFileSync(`${dir}/${latest}`, 'utf8'));

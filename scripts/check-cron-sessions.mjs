@@ -23,8 +23,10 @@ function utcToKstSession(cronExpr) {
   if (Number.isNaN(minute) || Number.isNaN(hour)) return null;
   const kstHour = (hour + 9) % 24;
   let session;
-  if (kstHour >= 7 && kstHour < 16) session = 'morning';
-  else if (kstHour >= 16 && kstHour < 22) session = 'afternoon';
+  if (kstHour < 7) session = 'midnight';
+  else if (kstHour < 12) session = 'morning';
+  else if (kstHour < 16) session = 'noon';
+  else if (kstHour < 22) session = 'afternoon';
   else session = 'evening';
   return { kst: `${String(kstHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`, session };
 }
@@ -34,7 +36,7 @@ const violations = [];
 
 for (const target of targets) {
   const matching = (cfg.crons ?? []).filter(c => c.path === target);
-  const bySession = { morning: [], afternoon: [], evening: [] };
+  const bySession = { midnight: [], morning: [], noon: [], afternoon: [], evening: [] };
   for (const c of matching) {
     const info = utcToKstSession(c.schedule);
     if (!info) continue;
