@@ -6,8 +6,8 @@ import { Link } from '@/i18n/routing';
 import { allCompanies, type Company, type RevenueSegment } from '@/data/companies';
 import { getGeneratedMacroImpact, getGeneratedRdPipeline } from '@/data/company-contexts';
 import { getNarrativesByTicker } from '@/data/macro-narratives';
-import { institutionalSignals } from '@/data/institutional-signals';
-import { newsGapData } from '@/data/news-gap';
+import { type InstitutionalSignal } from '@/data/institutional-signals';
+import { type NewsGapEntry } from '@/data/news-gap';
 import { cascadePatterns } from '@/data/cascades';
 import { sectorContextMap } from '@/data/sector-context';
 import { companySupplyChainUpdates, typeLabels, type SupplyChainUpdate } from '@/data/company-supply-chain-updates';
@@ -260,14 +260,27 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     [company, ticker]
   );
 
+  // 2026-06-04: 정적 institutionalSignals/newsGapData → 라이브 API (/api/signals 13F, /api/news-gap).
+  //   시계열 시장 데이터는 정적 금지(CLAUDE.md) — 라이브 없으면 빈 배열(stale 위장 차단).
+  const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
+  const [liveNewsGap, setLiveNewsGap] = useState<NewsGapEntry[]>([]);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/signals', { signal: ctrl.signal }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (!ctrl.signal.aborted && Array.isArray(d?.signals)) setLiveSignals(d.signals); }).catch(() => {});
+    fetch('/api/news-gap', { signal: ctrl.signal }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (!ctrl.signal.aborted && Array.isArray(d?.entries)) setLiveNewsGap(d.entries); }).catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
   const signals = useMemo(
-    () => institutionalSignals.filter((s) => s.ticker.toUpperCase() === ticker.toUpperCase()),
-    [ticker]
+    () => liveSignals.filter((s) => s.ticker.toUpperCase() === ticker.toUpperCase()),
+    [ticker, liveSignals]
   );
 
   const newsGap = useMemo(
-    () => newsGapData.find((n) => n.ticker.toUpperCase() === ticker.toUpperCase()),
-    [ticker]
+    () => liveNewsGap.find((n) => n.ticker.toUpperCase() === ticker.toUpperCase()),
+    [ticker, liveNewsGap]
   );
 
   const cascadePosition = useMemo(() => {
@@ -1465,7 +1478,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
 
           {/* 지분율 변화 (13F Ownership) */}
           {(() => {
-            const ownershipEntry = newsGapData.find(n => n.ticker === company.ticker);
+            const ownershipEntry = liveNewsGap.find(n => n.ticker === company.ticker);
             if (!ownershipEntry?.ownershipData?.length) return null;
             const owned = ownershipEntry.ownershipData;
             const actionColor: Record<string, string> = {
