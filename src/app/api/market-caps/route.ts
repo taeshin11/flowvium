@@ -78,6 +78,36 @@ async function fetchStooqPrice(ticker: string): Promise<number | null> {
   } catch { return null; }
 }
 
+// 2026-06-04: KR(.KS/.KQ) 시가총액 — Naver "시총"(예: "2,107조 5,834억") 파싱 → KRW.
+//   (allCompanies band·SHARES_B 둘 다 US-only 라 KOSDAQ "no bands" 사각지대 해소. 동적 라이브.)
+function parseKoreanCap(s: string): number | null {
+  if (!s) return null;
+  const clean = s.replace(/,/g, '');
+  const jo = clean.match(/([\d.]+)\s*조/);
+  const eok = clean.match(/([\d.]+)\s*억/);
+  let krw = 0;
+  if (jo) krw += parseFloat(jo[1]) * 1e12;
+  if (eok) krw += parseFloat(eok[1]) * 1e8;
+  return krw > 0 ? krw : null;
+}
+function krBand(krw: number): MarketCapBand {
+  if (krw >= 50e12) return 'mega' as MarketCapBand;
+  if (krw >= 10e12) return 'large' as MarketCapBand;
+  if (krw >= 1e12) return 'mid' as MarketCapBand;
+  return 'small' as MarketCapBand;
+}
+async function fetchNaverCapKR(ticker: string): Promise<number | null> {
+  const code = ticker.replace(/\.(KS|KQ)$/i, '');
+  try {
+    const res = await fetch(`https://m.stock.naver.com/api/stock/${code}/integration`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(6000), cache: 'no-store' });
+    if (!res.ok) return null;
+    const j = await res.json() as { totalInfos?: Array<{ key?: string; value?: string }> };
+    const cap = (j.totalInfos || []).find(x => x.key === '시총');
+    return cap?.value ? parseKoreanCap(cap.value) : null;
+  } catch { return null; }
+}
+
 async function fetchYahooCap(ticker: string): Promise<number | null> {
   const shares = SHARES_B[ticker];
   if (!shares) return null;
@@ -131,6 +161,17 @@ export async function GET(req: Request) {
   const filterTicker = url.searchParams.get('ticker')?.toUpperCase() ?? null;
 
   const reqStart = Date.now();
+  // 2026-06-04: KR(.KS/.KQ) 단일 조회 — Naver 시총 라이브(allCompanies band 없음). KRW 기준 band.
+  if (filterTicker && /\.(KS|KQ)$/i.test(filterTicker)) {
+    const krwCap = await fetchNaverCapKR(filterTicker);
+    if (krwCap != null) {
+      return NextResponse.json({
+        bands: { [filterTicker]: krBand(krwCap) }, caps: { [filterTicker]: krwCap },
+        currency: 'KRW', updatedAt: new Date().toISOString(), count: 1, cached: false, source: 'naver-live',
+      }, { headers: CDN_HEADERS_TICKER });
+    }
+    return NextResponse.json({ bands: {}, caps: {}, count: 1, source: 'kr-unavailable' }, { headers: CDN_HEADERS_TICKER });
+  }
   if (redis && !force) {
     try {
       const cached = await redis.get<MarketCapPayload>(CACHE_KEY);

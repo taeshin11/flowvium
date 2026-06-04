@@ -134,7 +134,7 @@ interface FactCfg {
 }
 
 const GAAP_CFG: FactCfg = {
-  ns: 'us-gaap', annualForm: ['10-K', '20-F'], quarterForm: '10-Q',
+  ns: 'us-gaap', annualForm: ['10-K', '20-F', '40-F'], quarterForm: '10-Q',
   concepts: {
     // RevenuesNetOfInterestExpense covers banks (JPM, BAC, C, WFC) which don't
     // report under the standard Revenues concept for 10-Q quarterly filings.
@@ -157,7 +157,7 @@ const GAAP_CFG: FactCfg = {
 
 // IFRS concept 이름은 TSM(CIK 1046179) 20-F companyfacts 로 검증 (2026-06-01).
 const IFRS_CFG: FactCfg = {
-  ns: 'ifrs-full', annualForm: ['20-F'], quarterForm: '6-K',
+  ns: 'ifrs-full', annualForm: ['20-F', '40-F'], quarterForm: '6-K',
   concepts: {
     revenue: ['Revenue', 'RevenueFromContractsWithCustomers'],
     opIncome: ['ProfitLossFromOperatingActivities', 'OperatingProfitLoss'],
