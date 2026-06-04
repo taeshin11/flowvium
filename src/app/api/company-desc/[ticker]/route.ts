@@ -54,13 +54,10 @@ export async function GET(_req: NextRequest, { params }: { params: { ticker: str
   const locale = (url.searchParams.get('locale') || 'ko').trim();
   const langName = LOCALE_NAMES[locale] ?? 'Korean';
   const stockCode = ticker.replace(/\.(KS|KQ)$/i, '');
-
-  if (!/^\d{6}$/.test(stockCode)) {
-    return NextResponse.json({ error: 'kr-ticker-only', ticker }, { status: 400 });
-  }
+  const isKR = /^\d{6}$/.test(stockCode);
 
   const redis = createRedis();
-  const key = `flowvium:company-desc:v1:${stockCode}:${locale}`;
+  const key = `flowvium:company-desc:v2:${stockCode}:${locale}`;  // v2: US 지원 추가
   if (redis) {
     try {
       const cached = await redis.get<string>(key);
@@ -68,23 +65,39 @@ export async function GET(_req: NextRequest, { params }: { params: { ticker: str
     } catch { /* non-fatal */ }
   }
 
-  // DART grounding
-  const fin = await fetchDartFinancials(stockCode, redis).catch(() => null);
-  if (!fin) return NextResponse.json({ description: null, error: 'no-dart-data' });
+  let grounding = '';
+  if (isKR) {
+    // KR — DART grounding
+    const fin = await fetchDartFinancials(stockCode, redis).catch(() => null);
+    if (!fin) return NextResponse.json({ description: null, error: 'no-dart-data' });
+    const rev = fin.latestAnnual?.revenueKRW;
+    const revStr = rev != null ? (rev >= 1e12 ? `${(rev / 1e12).toFixed(1)}조원` : `${Math.round(rev / 1e8)}억원`) : '미상';
+    const ci = fin.corpInfo ?? {};
+    grounding = [
+      `기업명: ${fin.corpName}`,
+      ci.corpNameEng ? `영문명: ${ci.corpNameEng}` : '',
+      ci.indutyCode ? `한국표준산업분류 업종코드: ${ci.indutyCode}` : '',
+      ci.establishedDate ? `설립: ${ci.establishedDate.slice(0, 4)}년` : '',
+      `최근(${fin.fiscalYear}) 매출: ${revStr}`,
+      fin.corpCls === 'Y' ? '시장: KOSPI' : fin.corpCls === 'K' ? '시장: KOSDAQ' : '',
+    ].filter(Boolean).join('\n');
+  } else {
+    // 2026-06-04: US/ADR — SEC company-financials grounding (allCompanies 정적프로필 없는 GDDY 등 사각지대).
+    const base = `http://localhost:${process.env.PORT || 3000}`;
+    let fin = null;
+    try { const r = await fetch(`${base}/api/company-financials/${stockCode.toUpperCase()}`, { signal: AbortSignal.timeout(20000) }); if (r.ok) fin = await r.json(); } catch { /* */ }
+    if (!fin || fin.error || fin.latestAnnual?.revenueUSD == null) return NextResponse.json({ description: null, error: 'no-financials' });
+    const revUSD = fin.latestAnnual.revenueUSD;
+    const revStr = revUSD >= 1e9 ? `$${(revUSD / 1e9).toFixed(1)}B` : `$${Math.round(revUSD / 1e6)}M`;
+    grounding = [
+      `Company: ${fin.companyName || stockCode.toUpperCase()} (${stockCode.toUpperCase()})`,
+      `Recent (${fin.latestAnnual.fy ?? fin.fiscalYear}) revenue: ${revStr}`,
+      fin.latestAnnual.netIncomeUSD != null ? `Net income: $${(fin.latestAnnual.netIncomeUSD / 1e9).toFixed(1)}B` : '',
+      `Filings: ${fin.source ?? 'SEC EDGAR'}`,
+    ].filter(Boolean).join('\n');
+  }
 
-  const rev = fin.latestAnnual?.revenueKRW;
-  const revStr = rev != null ? (rev >= 1e12 ? `${(rev / 1e12).toFixed(1)}조원` : `${Math.round(rev / 1e8)}억원`) : '미상';
-  const ci = fin.corpInfo ?? {};
-  const grounding = [
-    `기업명: ${fin.corpName}`,
-    ci.corpNameEng ? `영문명: ${ci.corpNameEng}` : '',
-    ci.indutyCode ? `한국표준산업분류 업종코드: ${ci.indutyCode}` : '',
-    ci.establishedDate ? `설립: ${ci.establishedDate.slice(0, 4)}년` : '',
-    `최근(${fin.fiscalYear}) 매출: ${revStr}`,
-    fin.corpCls === 'Y' ? '시장: KOSPI' : fin.corpCls === 'K' ? '시장: KOSDAQ' : '',
-  ].filter(Boolean).join('\n');
-
-  const prompt = `다음은 한국 상장기업의 DART 공시 기본정보입니다. 이 기업이 무엇을 하는 회사인지 ${langName}로 2~3문장으로 객관적으로 요약하세요.
+  const prompt = `다음은 상장기업의 공시 기본정보입니다. 이 기업이 무엇을 하는 회사인지 ${langName}로 2~3문장으로 객관적으로 요약하세요.
 규칙: 널리 알려진 사실(주력 사업영역/제품군)만 기술. 구체적 매출 비중·고객사·점유율 등 확인 불가한 수치는 절대 날조하지 말 것. 불확실하면 일반적 사업영역만 간결히. 머리말/따옴표 없이 본문만.
 
 ${grounding}

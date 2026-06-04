@@ -338,9 +338,10 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
       .catch(() => undefined);
     return () => ctrl.abort();
   }, [ticker]);
-  // 사업 개요 — 동적 생성(Ollama+DART grounded, Redis TTL). 정적 아님. 별도 async (financials 비차단).
+  // 사업 개요 — 동적 생성(Ollama, DART/SEC grounded, Redis TTL). 정적 아님.
+  //   2026-06-04: KR+US 모두. 정적 프로필(allCompanies) 있는 종목은 skip(이미 description 보유) — minimal 페이지 전용.
   useEffect(() => {
-    if (!ticker || !/\.(KS|KQ)$/i.test(ticker)) return;
+    if (!ticker || company) return; // company(allCompanies) 있으면 정적 description 사용
     const ctrl = new AbortController();
     const code = ticker.replace(/\.(KS|KQ)$/i, '');
     fetch(`/api/company-desc/${code}?locale=${encodeURIComponent(locale)}`, { signal: ctrl.signal })
@@ -348,7 +349,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
       .then(d => { if (d?.description && !ctrl.signal.aborted) setKrDesc(d.description); })
       .catch(() => undefined);
     return () => ctrl.abort();
-  }, [ticker, locale]);
+  }, [ticker, locale, company]);
 
   useEffect(() => {
     if (!ticker) return;
