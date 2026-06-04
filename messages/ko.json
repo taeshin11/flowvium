@@ -1535,7 +1535,8 @@
     "updatedAt": "업데이트: {date} · 출처: Finnhub · {cache}",
     "cacheHit": "캐시됨 (2h TTL)",
     "cacheNo": "실시간",
-    "presetYesterday": "어제"
+    "presetYesterday": "어제",
+    "upcoming": "예정"
   },
   "heatmap": {
     "pageTitle": "시장 히트맵",

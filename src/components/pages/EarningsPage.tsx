@@ -125,6 +125,8 @@ export default function EarningsPage() {
     const p = PRESETS.find(x => x.id === preset) ?? PRESETS[2];
     return { from: dateFromOffset(p.from), to: dateFromOffset(p.to) };
   }, [preset]);
+  // 미래(예정) 실적은 actual/surprise 가 당연히 비어있음 → "-" 대신 "예정" 표시(데이터 누락 오인 방지).
+  const todayKst = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
 
   const load = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -303,7 +305,11 @@ export default function EarningsPage() {
                   {data?.error ? t('emptyError', { error: data.error }) : t('emptyNone')}
                 </td></tr>
               )}
-              {!loading && rows.map((r, i) => (
+              {!loading && rows.map((r, i) => {
+                // 발표 전(미래 날짜 + actual 없음) = 예정. actual/surprise 컬럼에 "예정" 표시.
+                const upcoming = r.date >= todayKst && r.epsActual == null && r.revenueActual == null;
+                const upcomingCell = <span className="text-[10px] text-cf-text-secondary/50">{t('upcoming')}</span>;
+                return (
                 <tr key={`${r.symbol}-${r.date}-${i}`} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="px-3 py-2 font-mono text-xs text-cf-text-primary whitespace-nowrap">{r.date}</td>
                   <td className="px-3 py-2"><SessionBadge session={r.session} /></td>
@@ -315,11 +321,11 @@ export default function EarningsPage() {
                   </td>
                   <td className="px-3 py-2 text-xs text-cf-text-secondary font-mono">Q{r.quarter} {r.year}</td>
                   <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-secondary">{fmtNum(r.epsEstimate)}</td>
-                  <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-primary font-semibold">{fmtNum(r.epsActual)}</td>
-                  <td className="px-3 py-2 text-right"><SurpriseBadge pct={r.epsSurprise} /></td>
+                  <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-primary font-semibold">{upcoming ? upcomingCell : fmtNum(r.epsActual)}</td>
+                  <td className="px-3 py-2 text-right">{upcoming ? upcomingCell : <SurpriseBadge pct={r.epsSurprise} />}</td>
                   <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-secondary">{fmtNum(r.revenueEstimate)}</td>
-                  <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-primary font-semibold">{fmtNum(r.revenueActual)}</td>
-                  <td className="px-3 py-2 text-right"><SurpriseBadge pct={r.revenueSurprise} /></td>
+                  <td className="px-3 py-2 text-right font-mono text-xs text-cf-text-primary font-semibold">{upcoming ? upcomingCell : fmtNum(r.revenueActual)}</td>
+                  <td className="px-3 py-2 text-right">{upcoming ? upcomingCell : <SurpriseBadge pct={r.revenueSurprise} />}</td>
                   <td className="px-3 py-2 text-center">
                     <a
                       href={`https://finance.yahoo.com/quote/${r.symbol}`}
@@ -332,7 +338,8 @@ export default function EarningsPage() {
                     </a>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

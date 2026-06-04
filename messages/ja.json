@@ -1535,7 +1535,8 @@
     "updatedAt": "更新: {date} · ソース: Finnhub · {cache}",
     "cacheHit": "キャッシュ (2h TTL)",
     "cacheNo": "リアルタイム",
-    "presetYesterday": "昨日"
+    "presetYesterday": "昨日",
+    "upcoming": "予定"
   },
   "heatmap": {
     "pageTitle": "市場ヒートマップ",

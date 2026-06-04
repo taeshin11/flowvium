@@ -1535,7 +1535,8 @@
     "updatedAt": "更新时间: {date} · 来源: Finnhub · {cache}",
     "cacheHit": "缓存 (2h TTL)",
     "cacheNo": "实时",
-    "presetYesterday": "昨天"
+    "presetYesterday": "昨天",
+    "upcoming": "待公布"
   },
   "heatmap": {
     "pageTitle": "市场热力图",

@@ -1535,7 +1535,8 @@
     "updatedAt": "Updated: {date} · Source: Finnhub · {cache}",
     "cacheHit": "Cached (2h TTL)",
     "cacheNo": "Live",
-    "presetYesterday": "أمس"
+    "presetYesterday": "أمس",
+    "upcoming": "قادم"
   },
   "heatmap": {
     "pageTitle": "Market Heatmap",
