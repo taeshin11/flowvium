@@ -39,6 +39,10 @@ export const TRACKED_ENDPOINTS = [
   '/api/sector-metrics',
   '/api/iv-screener',
   '/api/cascade-events',
+  // OSINT — 2026-06-04: DB 아카이브 누락분 추가(사용자 "db에 저장은?"). 보고서마다 endpoint_snapshots 시계열.
+  '/api/osint/social',
+  '/api/osint/sanctions',
+  '/api/osint/crypto?address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045&chain=eth',
 ];
 
 async function fetchOne(baseUrl, path, timeoutMs = 12000) {
