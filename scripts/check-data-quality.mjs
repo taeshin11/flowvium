@@ -232,8 +232,14 @@ async function main() {
     const probeOne = async (ep) => {
       if (SKIP.has(ep)) return { ep, skip: true };
       const path = SAMPLE[ep] ?? `/api/${ep}`;
-      const r = await getJson(path, 12000);
-      if (r.status === 0 || r.status >= 400) return { ep, dead: `HTTP ${r.status}` };
+      let r = await getJson(path, 12000);
+      // 타임아웃(status 0) → 느린 엔드포인트일 수 있음. 긴 타임아웃 1회 재시도해 slow vs dead 구분.
+      if (r.status === 0) {
+        const r2 = await getJson(path, 30000);
+        if (r2.status === 0 || r2.status >= 400) return { ep, dead: `HTTP ${r2.status}` };
+        return { ep, slow: '응답 12s 초과(30s 내 OK) — 캐시/성능 점검 권장', skipBody: true };
+      }
+      if (r.status >= 400) return { ep, dead: `HTTP ${r.status}` };
       const b = r.body;
       if (b == null || (typeof b === 'object' && Object.keys(b).length === 0)) return { ep, dead: 'empty body' };
       if (b.error && !b.entries && !b.data) return { ep, dead: `error: ${String(b.error).slice(0, 30)}` };
@@ -251,12 +257,14 @@ async function main() {
     const probed = await Promise.all(uncovered.map(probeOne));
     const dead = probed.filter(p => p.dead);
     const weak = probed.filter(p => p.weak);
+    const slow = probed.filter(p => p.slow);
     const okN = probed.filter(p => p.ok).length;
     const skipN = probed.filter(p => p.skip).length;
     const lockedN = probed.filter(p => p.locked).length;
     if (dead.length) issues.push(`[I] 무검증 엔드포인트 중 DEAD ${dead.length}: ${dead.map(d => `${d.ep}(${d.dead})`).join(', ')}`);
     if (weak.length) issues.push(`[I] 무검증 엔드포인트 중 빈데이터 ${weak.length}: ${weak.map(w => w.ep).join(', ')}`);
-    info.push(`[I] 자가-커버리지: bespoke ${monitored.size}개 + auto-probe ${okN}/${uncovered.length} live (locked ${lockedN}, skip ${skipN}, dead ${dead.length}, weak ${weak.length}) — page 엔드포인트 ${total}개 전수 검증`);
+    if (slow.length) info.push(`[I] ⚠️ 느린 엔드포인트 ${slow.length}: ${slow.map(s => s.ep).join(', ')} (live, 12s 초과 — 캐시 점검)`);
+    info.push(`[I] 자가-커버리지: bespoke ${monitored.size}개 + auto-probe ${okN + slow.length}/${uncovered.length} live (locked ${lockedN}, skip ${skipN}, slow ${slow.length}, dead ${dead.length}, weak ${weak.length}) — page 엔드포인트 ${total}개 전수 검증`);
   } catch (e) { info.push(`[I] 자가-커버리지 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
   const ts = new Date().toISOString().slice(0, 19);
