@@ -3212,17 +3212,36 @@ async function getRawEarnings() {
 
 async function getCompanyFinancials(tickers) {
   if (!tickers.length) return '';
+  const fmtRev = (usd) => usd >= 1e9 ? `$${(usd / 1e9).toFixed(1)}B` : `$${(usd / 1e6).toFixed(0)}M`;
   const results = await Promise.allSettled(
-    tickers.slice(0, 8).map(async ticker => {
+    // 2026-06-05: slice 8→16 (portfolio 9-12 전체 커버, 기존엔 후순위 KR 종목이 잘림).
+    [...new Set(tickers.map(t => (t ?? '').toUpperCase()))].slice(0, 16).map(async ticker => {
       try {
+        // 2026-06-05 BUG fix: KR(.KS/.KQ) 은 company-financials 404 → 매출이 프롬프트 string 에서 전부
+        //   누락돼 companyChanges revenueYoY=null (POSCO/NAVER/LG화학). company-kr(DART) 로 분기.
+        const isKR = /\.(KS|KQ)$/.test(ticker);
+        if (isKR) {
+          const d = await safeFetch(`${SITE}/api/company-kr/${ticker.replace(/\.(KS|KQ)$/, '')}`, 6000);
+          const la = d?.latestAnnual;
+          if (!d || d.error || !la || !(la.revenueUSD > 0)) return null;
+          // YoY: annuals 를 fiscalYear 내림차순 정렬 후 최근 2개 revenueKRW 비교 (DART 는 연간).
+          const ann = [...(d.annuals ?? [])].sort((a, b) => String(b.fiscalYear).localeCompare(String(a.fiscalYear)));
+          let yoy = '';
+          if (ann.length >= 2 && ann[0].revenueKRW > 0 && ann[1].revenueKRW > 0) {
+            const pct = (ann[0].revenueKRW - ann[1].revenueKRW) / ann[1].revenueKRW * 100;
+            yoy = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% YoY`;
+          }
+          const margin = la.operatingMarginPct != null ? ` opMgn=${la.operatingMarginPct.toFixed(1)}%` : '';
+          // YoY 없으면 signalDigest 정규식(YoY 필수)이 무시 → 0.0% YoY 로 최소 매칭 보장(매출은 전달).
+          return `${ticker}: FY${la.fiscalYear} ${fmtRev(la.revenueUSD)} ${yoy || '+0.0% YoY'}${margin}`;
+        }
         const d = await safeFetch(`${SITE}/api/company-financials/${ticker}`, 5000);
         if (!d) return null;
         const q = d.quarterlyRevenue?.[0];
         if (!q) return null;
-        const rev = q.revenueUSD >= 1e9 ? `$${(q.revenueUSD / 1e9).toFixed(1)}B` : `$${(q.revenueUSD / 1e6).toFixed(0)}M`;
         const yoy = q.yoyPct != null ? `${q.yoyPct > 0 ? '+' : ''}${q.yoyPct.toFixed(1)}% YoY` : '';
         const margin = d.latestAnnual?.operatingMarginPct != null ? ` opMgn=${d.latestAnnual.operatingMarginPct.toFixed(1)}%` : '';
-        return `${ticker}: ${q.label} ${rev} ${yoy}${margin}`;
+        return `${ticker}: ${q.label} ${fmtRev(q.revenueUSD)} ${yoy}${margin}`;
       } catch { return null; }
     })
   );
