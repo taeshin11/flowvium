@@ -748,12 +748,15 @@ async function redisSet(key, value, exSeconds) {
 }
 
 function getSession() {
-  // Windows Task Scheduler triggers: 06:50 (morning) / 15:50 (afternoon) / 21:20 (evening).
-  // 2026-05-29: 시작 시간 10분 전 buffer + sleep until target 으로 정시 발간 보장.
+  // Windows Task Scheduler triggers (KST): 06:40 morning / 11:40 noon / 15:40 afternoon /
+  //   21:10 evening / 23:40 midnight. 트리거는 target 발간시각보다 ~20분 일찍 → 생성 후 정시 sleep.
+  // 2026-06-04: 낮 12시(noon) + 새벽 12시(midnight) 슬롯 추가 (사용자 요청). data/report-sessions.json 참조.
   const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
-  if (kstHour >= 6 && kstHour < 15) return 'morning';
+  if (kstHour >= 6 && kstHour < 11) return 'morning';
+  if (kstHour >= 11 && kstHour < 15) return 'noon';
   if (kstHour >= 15 && kstHour < 20) return 'afternoon';
-  return 'evening';
+  if (kstHour >= 20 && kstHour < 23) return 'evening';
+  return 'midnight'; // 23 ~ 익일 06 (23:40 트리거)
 }
 
 /**
@@ -787,6 +790,22 @@ function getSessionFocus(session) {
         label: 'US 장 시작 직후 (premarket → open)',
         marketWeight: { us: 70, global: 20, kr: 10 },
       };
+    case 'noon':
+      // 12:00 KST = 03:00 UTC → KR 장중 + 아시아 활발, US 마감.
+      return {
+        primary: 'kr',
+        secondary: ['china', 'japan'],
+        label: 'KR 장중 + 아시아 (점심)',
+        marketWeight: { kr: 50, asia: 30, us: 20 },
+      };
+    case 'midnight':
+      // 00:00 KST = 15:00 UTC → US 장중(오전), 글로벌. KR 마감.
+      return {
+        primary: 'us',
+        secondary: ['global'],
+        label: 'US 장중 (자정)',
+        marketWeight: { us: 65, global: 20, kr: 15 },
+      };
     default:
       return { primary: 'global', secondary: [], label: '글로벌', marketWeight: {} };
   }
@@ -799,10 +818,18 @@ function getSessionFocus(session) {
  *   evening  → 21:30 KST
  */
 function getPublishTarget(session) {
+  // 발간 target (KST): morning 07:00 / noon 12:00 / afternoon 16:00 / evening 21:30 / midnight 00:00.
   const kstNow = new Date(Date.now() + 9 * 3600000);
   const target = new Date(kstNow);
   if (session === 'morning')        { target.setUTCHours(7, 0, 0, 0); }
+  else if (session === 'noon')      { target.setUTCHours(12, 0, 0, 0); }
   else if (session === 'afternoon') { target.setUTCHours(16, 0, 0, 0); }
+  else if (session === 'evening')   { target.setUTCHours(21, 30, 0, 0); }
+  else if (session === 'midnight')  {
+    // 00:00 KST — 23:40 트리거 기준 익일 00:00. 이미 지났으면(자정 직후) +1일.
+    target.setUTCHours(0, 0, 0, 0);
+    if (target.getTime() <= kstNow.getTime()) target.setUTCDate(target.getUTCDate() + 1);
+  }
   else                              { target.setUTCHours(21, 30, 0, 0); }
   // target 이 이미 지났으면 (보고서가 늦게 끝나서) wait 안 함
   const waitMs = target.getTime() - kstNow.getTime();

@@ -1,0 +1,17 @@
+{
+  "_comment": "보고서 세션 단일 소스 (2026-06-04). 세션 enum 이 generate-report-local / 웹 investment-strategy / verify-report / check-data-quality 등 여러 곳에 하드코딩돼 있어, 슬롯 추가 시 한 곳만 빠뜨려도 보고서가 silent 미서빙되던 fragility 해소. check-data-quality [J] 가 이 목록과 코드 참조의 drift 를 감지.",
+  "sessions": [
+    { "id": "midnight",  "triggerKst": "23:40", "publishKst": "00:00", "rankOrder": 0, "focus": "us", "note": "US 장중(자정), 발간일=익일" },
+    { "id": "morning",   "triggerKst": "06:40", "publishKst": "07:00", "rankOrder": 1, "focus": "us", "note": "US 장 마감 직후" },
+    { "id": "noon",      "triggerKst": "11:40", "publishKst": "12:00", "rankOrder": 2, "focus": "kr", "note": "KR 장중+아시아" },
+    { "id": "afternoon", "triggerKst": "15:40", "publishKst": "16:00", "rankOrder": 3, "focus": "kr", "note": "KR 장 마감 직후" },
+    { "id": "evening",   "triggerKst": "21:10", "publishKst": "21:30", "rankOrder": 4, "focus": "us", "note": "US 장 시작 직후" }
+  ],
+  "criticalFiles": [
+    "scripts/generate-report-local.mjs",
+    "src/app/api/investment-strategy/route.ts",
+    "src/app/api/cron/investment-strategy/route.ts",
+    "scripts/verify-report.mjs",
+    "scripts/check-data-quality.mjs"
+  ]
+}

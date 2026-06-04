@@ -267,6 +267,25 @@ async function main() {
     info.push(`[I] 자가-커버리지: bespoke ${monitored.size}개 + auto-probe ${okN + slow.length}/${uncovered.length} live (locked ${lockedN}, skip ${skipN}, slow ${slow.length}, dead ${dead.length}, weak ${weak.length}) — page 엔드포인트 ${total}개 전수 검증`);
   } catch (e) { info.push(`[I] 자가-커버리지 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
+  // [J] 세션 enum drift 가드 — "왜 아직도 하드코딩" 의 검증 (2026-06-04 신설).
+  //   보고서 세션이 여러 파일에 하드코딩돼 슬롯 추가 시 한 곳만 빠뜨리면 보고서가 silent 미서빙됨.
+  //   data/report-sessions.json(단일 소스)의 세션을 critical 파일들이 모두 참조하는지 검사 → 누락 시 🚨.
+  try {
+    const { readFileSync } = await import('fs');
+    const ROOT = 'C:/NoAddsMakingApps/FlowVium';
+    const cfg = JSON.parse(readFileSync(`${ROOT}/data/report-sessions.json`, 'utf8'));
+    const sessionIds = cfg.sessions.map(s => s.id);
+    const drift = [];
+    for (const rel of cfg.criticalFiles) {
+      let src = '';
+      try { src = readFileSync(`${ROOT}/${rel}`, 'utf8'); } catch { drift.push(`${rel}(읽기실패)`); continue; }
+      const missing = sessionIds.filter(id => !new RegExp(`['"\`]${id}['"\`]|\\b${id}\\b`).test(src));
+      if (missing.length) drift.push(`${rel.split('/').pop()}(누락: ${missing.join(',')})`);
+    }
+    if (drift.length) issues.push(`[J] 세션 enum drift — ${sessionIds.length}슬롯 미반영 파일: ${drift.join(' · ')}`);
+    else info.push(`[J] 세션 enum 정합 — ${sessionIds.length}슬롯(${sessionIds.join('/')}) critical ${cfg.criticalFiles.length}파일 모두 반영`);
+  } catch (e) { info.push(`[J] 세션 drift 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);
