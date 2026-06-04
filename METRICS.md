@@ -262,9 +262,11 @@
 | 101 | 미국 신용잔고 ($B) | 💾 cached | FRED BOGZ1FL663067003Q |
 | 102 | 미국 GDP 대비 % | 💾 cached | FRED |
 | 103 | 미국 YoY 변화 | ✅ live | historical 마지막 두 항목 gdpRatio 차이 동적계산 |
-| 104 | 한국 신용잔고 (₩31조, KRW-basis ATH) | ⚠️ buggy→💾 static-estimated | KRX MDCSTAT03701 / BOK ECOS 901Y001 (key-free KRX 시도, 실패시 static-estimated 반환) |
-| 105 | 일본 신용잔고 | 💾 cached | 추정 |
-| 106 | 대만 신용잔고 | 💾 cached | TWSE |
+| 104 | 한국 신용잔고 (₩31조, KRW-basis ATH) | 📋 static | KRX MDCSTAT03701 시도 + BOK ECOS 901Y001 시도(현재 둘 다 실패) → static-estimated. source="KRX Margin Loan Statistics (static est.)", liveData=false (2026-06-05 정직표기) |
+| 105 | 일본 신용잔고 | 📋 static | fetchJP `return null` (JPX .xls 미파싱) → const DATA base, source="TSE (Tokyo Stock Exchange) (static est.)", liveData=false |
+| 106 | 대만 신용잔고 | ✅ live | TWSE MI_MARGN 실시간 fetch (2026-06-03 $17.76B) |
+| 106b | 중국 신용잔고 | 📋 static | SSE 융자융권 엔드포인트 응답구조 변경(result=null) → fetcher 실패, "(static est.)" |
+| 106c | EU/인도 신용잔고 | 📋 static | 무료 집계소스 없음(ESMA 단일집계 미발행/NSE 차단) → const DATA, "(static est.)" |
 | 107 | 글로벌 스냅샷 (총합) | 💾 cached | 자체계산 |
 | 108 | 국가별 장기 시계열 차트 | 💾 cached | FRED/외 |
 | 109a | 국가별 histPercentile (역사적 백분위) | ✅ live | historical 배열 기반 동적계산 (하드코딩 제거) |

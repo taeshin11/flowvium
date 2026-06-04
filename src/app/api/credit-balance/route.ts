@@ -508,13 +508,21 @@ export async function GET() {
     const changeYoY = calcChangeYoY(overlaid.historical);
     // If no live data, refresh lastUpdated to the most-recent likely-published period
     const finalLastUpdated = liveEntry ? overlaid.lastUpdated : dynamicLastUpdated(c.id);
+    // 정직한 live 판정: KR fetcher 는 라이브 실패 시 source:'static-estimated' 객체를 반환하므로
+    //   liveEntry!=null 만으론 static 을 live 로 오집계함. genuinely-live = 객체 존재 AND static-estimated 아님.
+    const isStaticEstimate = !liveEntry || liveEntry.source === 'static-estimated';
+    // 비-live 국가(jp/cn/eu = null fetch)는 const DATA 의 "TSE"/"CSRC"/"ESMA" 라벨을 그대로 달아
+    //   live 처럼 보였음 → "(static est.)" 마커로 정직하게 표기 (CLAUDE.md live-처럼-보이는-라벨 안티패턴).
+    const baseSource = overlaid.source === 'static-estimated' ? c.source : overlaid.source;
+    const finalSource = isStaticEstimate ? `${baseSource} (static est.)` : overlaid.source;
     return {
       ...overlaid,
+      source: finalSource,
       lastUpdated: finalLastUpdated,
       histPercentile,
       riskLevel,
       changeYoY,
-      liveData: liveEntry != null,
+      liveData: !isStaticEstimate,
     };
   });
 

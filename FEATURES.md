@@ -964,7 +964,7 @@ ownership-alerts 적용).
 | `/api/macro-indicators` | FRED CSV + FRED API; `source: fred\|mixed\|static` + `liveCount/staticCount` (일부 indicator 만 live 일 때 mixed) | 25h (일별 키) |
 | `/api/fedwatch` | CME FedWatch | 4h |
 | `/api/fear-greed` | CNN 방식 + Yahoo Finance | 4h |
-| `/api/credit-balance` | KRX / BOK ECOS / per-country live overlay; `source: live\|mixed\|static` + `liveCount/staticCount`; per-country `liveData` 플래그 | 24h |
+| `/api/credit-balance` | per-country live overlay: us=FRED·tw=TWSE 실시간(liveCount 2/7), kr/jp/cn/eu/in=정적(소스 차단·미구현); 정적 entry는 source에 "(static est.)" 마커 + liveData=false (live처럼 보이던 라벨 정직화, 2026-06-05); `source: live\|mixed\|static` + `liveCount/staticCount` | 24h |
 | `/api/flow-analysis` | capital-flows + 통합 AI 체인 (vLLM → GROQ → Qwen → Gemini, skipVllm=true로 GROQ 70b부터) | 4h |
 | `/api/insider-trades` | EDGAR Form 4; `source: edgar-form4\|edgar-form4-stale\|empty` | 캐시 |
 | `/api/ownership-alerts` | EDGAR 13D/13G; `source: edgar-13dg\|edgar-13dg-stale\|empty` | 캐시 |

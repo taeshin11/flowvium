@@ -324,6 +324,9 @@ async function main() {
   {
     const checks = [
       { name: 'macro-indicators', path: '/api/macro-indicators', live: 'liveCount', stat: 'staticCount', asOf: 'staticAsOf' },
+      // credit-balance: us(FRED)/tw(TWSE) live, kr static-estimated + jp/cn/eu/in null→static.
+      //   liveCount<=2/7 면 대부분 정적 — cn(SSE 엔드포인트 변경)/jp(xls 미파싱)/kr(BOK series) 회복 필요.
+      { name: 'credit-balance', path: '/api/credit-balance', live: 'liveCount', stat: 'staticCount', asOf: 'updatedAt' },
     ];
     for (const c of checks) {
       const r = await getJson(c.path, 20000);
