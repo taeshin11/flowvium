@@ -144,7 +144,9 @@ async function fetchEth(address: string) {
   const totalReceived = addrObj?.receivedEth ?? null;  // freekey 미제공 → null(0 위장 금지)
   const totalSent = addrObj?.sentEth ?? null;
   // txCount: Ethplorer countTxs 없으면 공개 RPC nonce(발신 거래수)로 대체.
-  const txCount = addrObj?.countTxs ?? (await fetchEthTxCount(address)) ?? 0;
+  //   2026-06-05 fix: ?? 는 countTxs=0(ethplorer 가 null→0 으로 동작 변경)을 nullish 로 안 봐서
+  //   RPC 폴백(5896)을 안 탔음 → txCount=0 결함. || 로 0 도 폴백 트리거.
+  const txCount = (addrObj?.countTxs || (await fetchEthTxCount(address)) || 0);
   const usdRate = data.ETH?.price?.rate ?? null;
   const balanceUsd = usdRate ? Math.round(balance * usdRate) : null;
 
