@@ -11,6 +11,7 @@ import { newsGapData } from '@/data/news-gap';
 import { cascadePatterns } from '@/data/cascades';
 import { sectorContextMap } from '@/data/sector-context';
 import { companySupplyChainUpdates, typeLabels, type SupplyChainUpdate } from '@/data/company-supply-chain-updates';
+import { krSupplyChain, type KrRelType } from '@/data/kr-supply-chain';
 import {
   PieChart,
   Pie,
@@ -517,6 +518,14 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     };
     const krAnnual = krProfile?.latestAnnual;
     const krAnnuals = krProfile?.annuals ?? [];
+    // 2026-06-04: KR 공급망/세그먼트 (큐레이션 사실 데이터) — US 풀페이지 parity.
+    const krSC = krSupplyChain[ticker.toUpperCase()];
+    const KR_REL_LABEL: Record<KrRelType, string> = { supplier: '공급사', customer: '고객사', partner: '파트너', competitor: '경쟁사' };
+    const KR_REL_ORDER: KrRelType[] = ['supplier', 'customer', 'partner', 'competitor'];
+    const KR_REL_STYLE: Record<KrRelType, string> = {
+      supplier: 'text-blue-600 bg-blue-50', customer: 'text-emerald-600 bg-emerald-50',
+      partner: 'text-violet-600 bg-violet-50', competitor: 'text-amber-600 bg-amber-50',
+    };
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-6">
@@ -598,6 +607,55 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               </div>
             )}
             <p className="text-[10px] text-cf-text-secondary/50 mt-2">{krProfile?.source ?? 'DART 전자공시'} · FY{krAnnual.fiscalYear}</p>
+          </div>
+        )}
+        {/* 매출 세그먼트 (사업보고서 부문별 — 큐레이션 사실) */}
+        {krSC?.segments && krSC.segments.length > 0 && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">사업 부문별 매출</h2>
+            <div className="space-y-2">
+              {krSC.segments.map((seg) => (
+                <div key={seg.name}>
+                  <div className="flex items-center justify-between text-xs mb-0.5">
+                    <span className="text-cf-text-primary font-medium">{seg.name}</span>
+                    <span className="text-cf-text-secondary tabular-nums">{seg.percentage}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full rounded-full bg-cf-primary/70" style={{ width: `${Math.min(100, seg.percentage)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-cf-text-secondary/50 mt-2">사업보고서 부문별 매출 비중 · 구조 데이터</p>
+          </div>
+        )}
+        {/* 공급망 관계 (공급사/고객사/파트너/경쟁사 — 큐레이션 사실) */}
+        {krSC?.relationships && krSC.relationships.length > 0 && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">{t('supplyChainRelationships')}</h2>
+            <div className="space-y-3">
+              {KR_REL_ORDER.filter(type => krSC.relationships.some(r => r.type === type)).map((type) => (
+                <div key={type}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${KR_REL_STYLE[type]}`}>{KR_REL_LABEL[type]}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {krSC.relationships.filter(r => r.type === type).map((rel, i) => {
+                      const inner = (
+                        <>
+                          <span className="text-xs font-medium text-cf-text-primary group-hover:text-cf-primary">{rel.targetName}{rel.targetTicker ? <span className="text-[10px] text-cf-text-secondary ml-1 font-mono">{rel.targetTicker.replace(/\.(KS|KQ)$/, '')}</span> : null}</span>
+                          <span className="text-[10px] text-cf-text-secondary text-right">{rel.products.join(', ')}</span>
+                        </>
+                      );
+                      return rel.targetTicker
+                        ? <Link key={i} href={`/company/${rel.targetTicker}`} className="flex items-center justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors group">{inner}</Link>
+                        : <div key={i} className="flex items-center justify-between gap-2 p-1.5 rounded">{inner}</div>;
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-cf-text-secondary/50 mt-2">주요 공급사·고객사·경쟁사 · 구조 데이터(공개 사실)</p>
           </div>
         )}
         {/* 90일 주가 차트 (KR Naver/US Yahoo) */}
