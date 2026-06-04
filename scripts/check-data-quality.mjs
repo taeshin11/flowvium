@@ -170,6 +170,63 @@ async function main() {
     }
   }
 
+  // [H] OSINT 동적성 — social(트윗/뉴스)·crypto(거래내역)·sanctions(OFAC) 실데이터 흐르는지.
+  //     2026-06-04 신설: 사용자가 /osint "변하는 게 없다" 지적 — 모니터가 OSINT 를 전혀 안 보던 사각지대.
+  {
+    // 1) social — 피드 살아있나 + 트윗(Nitter) degraded 여부 surface.
+    const soc = await getJson('/api/osint/social', 25000);
+    const newsCount = soc.body?.newsCount ?? 0;
+    const tweetCount = soc.body?.tweetCount ?? 0;
+    const socSrc = soc.body?.source ?? '?';
+    if ((soc.body?.entries?.length ?? 0) === 0) issues.push('[H] /osint social 0건 — 피드 정지');
+    else if (socSrc === 'news-only' || tweetCount === 0) info.push(`[H] /osint social 뉴스 ${newsCount}건 ⚠️ 트윗 0 (Nitter degraded — source=${socSrc})`);
+    else info.push(`[H] /osint social 트윗 ${tweetCount}·뉴스 ${newsCount}건`);
+    // 2) crypto — 활성 지갑(Vitalik) 거래내역이 살아있는지 (txCount=0 = ETH tx 파싱 정지).
+    const cr = await getJson('/api/osint/crypto?address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045&chain=eth', 25000);
+    const bal = cr.body?.balance ?? null;
+    const txc = cr.body?.txCount ?? 0;
+    if (bal == null) issues.push('[H] /osint crypto 잔액 null — ETH 조회 정지');
+    else if (txc === 0) issues.push(`[H] /osint crypto Vitalik txCount=0 (잔액 ${Number(bal).toFixed(1)}ETH는 OK) — ETH 거래내역 파싱 정지`);
+    else info.push(`[H] /osint crypto OK (Vitalik ${Number(bal).toFixed(1)}ETH, tx ${txc})`);
+    // 3) sanctions — OFAC SDN 적재.
+    const sanc = await getJson('/api/osint/sanctions', 25000);
+    const sGroups = sanc.body?.groups ? Object.keys(sanc.body.groups).length : 0;
+    if (sGroups === 0) issues.push('[H] /osint sanctions 0 그룹 — OFAC SDN 적재 정지');
+    else info.push(`[H] /osint sanctions ${sGroups} 그룹`);
+  }
+
+  // [I] 모니터 자가-커버리지 — "왜 사각지대가 반복됐나"의 근본 차단 (2026-06-04 신설).
+  //     근본원인: 검증 프로브가 엔드포인트별 수동 추가 → 프로브 없는 페이지는 자동으로 사각지대였고,
+  //     "무엇을 모니터해야 하나 vs 실제 모니터하나"를 대조하는 메커니즘이 없었음(news-gap·osint 사건).
+  //     해결: 페이지가 fetch 하는 user-facing 엔드포인트 ∖ 이 모니터가 검사하는 엔드포인트 = 사각지대.
+  //     새 페이지 추가 시 자동으로 여기 잡혀 프로브 추가를 강제 → 사각지대 재발 불가.
+  try {
+    const { readdirSync, readFileSync } = await import('fs');
+    const PAGES_DIR = 'C:/NoAddsMakingApps/FlowVium/src/components/pages';
+    const SELF = 'C:/NoAddsMakingApps/FlowVium/scripts/check-data-quality.mjs';
+    // 동적성/완전성 프로브가 불필요한 인프라/유틸 (존재만으로 충분하거나 사용자 비노출).
+    const EXCLUDE = new Set(['admin', 'cron', 'ai', 'batch-prices', 'translate', 'osint']); // osint 는 [H] 가 하위경로로 커버
+    const epRe = /\/api\/([a-z0-9][a-z0-9-]*)/g;
+    const pageEndpoints = new Set();
+    for (const f of readdirSync(PAGES_DIR).filter(x => x.endsWith('.tsx'))) {
+      const src = readFileSync(`${PAGES_DIR}/${f}`, 'utf8');
+      let m; while ((m = epRe.exec(src))) pageEndpoints.add(m[1]);
+    }
+    const selfSrc = readFileSync(SELF, 'utf8');
+    const monitored = new Set();
+    let mm; const epRe2 = /\/api\/([a-z0-9][a-z0-9-]*)/g;
+    while ((mm = epRe2.exec(selfSrc))) monitored.add(mm[1]);
+    // [A] 헬스체크가 커버하는 엔드포인트도 "최소 alive 검증됨"으로 인정
+    const uncovered = [...pageEndpoints].filter(e => !EXCLUDE.has(e) && !monitored.has(e)).sort();
+    const total = [...pageEndpoints].filter(e => !EXCLUDE.has(e)).length;
+    const covered = total - uncovered.length;
+    if (uncovered.length > 0) {
+      issues.push(`[I] 검증 사각지대 ${uncovered.length}/${total} 엔드포인트 — 모니터 미검사: ${uncovered.join(', ')}`);
+    } else {
+      info.push(`[I] 모니터 커버리지 ${covered}/${total} — 사각지대 0`);
+    }
+  } catch (e) { info.push(`[I] 자가-커버리지 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);
