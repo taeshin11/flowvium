@@ -1124,7 +1124,8 @@ export default function ReportPage() {
                     <div key={i} className={`rounded-lg border px-3 py-2 ${sentColor}`}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs font-mono">{c.ticker}</span>
+                          <span className="font-bold text-xs">{displayName(c.ticker, c.name)}</span>
+                          <span className="text-[10px] font-normal opacity-60 font-mono">{c.ticker}</span>
                           {c.latestQuarter && <span className="text-[10px] opacity-70">{c.latestQuarter}</span>}
                           {c.revenueYoY != null && c.revenueYoY !== 0 && (
                             <span className="text-[10px] font-semibold">
@@ -1159,7 +1160,8 @@ export default function ReportPage() {
                   return (
                     <div key={i} className={`rounded-lg border p-2.5 ${dirColor}`}>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-bold text-xs">{s.ticker}</span>
+                        <span className="font-bold text-xs">{displayName(s.ticker)}</span>
+                        <span className="text-[10px] font-normal opacity-60 font-mono">{s.ticker}</span>
                         <span className="text-[10px] opacity-70">{dirIcon} {s.direction}</span>
                         <span className="text-[10px] opacity-60 bg-white/60 rounded px-1">{s.source}</span>
                         {s.date && <span className="text-[10px] opacity-60 font-mono">{fmtSignalDate(s.date)}</span>}
