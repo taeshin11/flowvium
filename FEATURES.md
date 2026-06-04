@@ -732,7 +732,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 보고서 stance/sectorAllocation/regionStances 에 grounded 한 ETF 추천 (환각 없음)
 - 카테고리: broad(코어) / sector(섹터 비중확대 대응) / region(강세 지역) / commodity·bond(방어)
 - 티커 클릭 → `/company/[ticker]`, 라이브 가격·등락% (livePrices/batch-prices)
-- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). ETF 풀 35→**78** 확장(11 GICS섹터+테마+스타일+채권+배당+지역)
+- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). ETF 풀 35→**193**(스타일·테마·채권·배당·지역·레버리지/인버스) 확장(11 GICS섹터+테마+스타일+채권+배당+지역)
 
 ### 13-4b. 위기 포착 (S4b: Crisis Alerts)
 - 🚨 패널: 내부자 매도 집중 / BB 4d4σ 극단 과매수 / 어닝스 미스 / 기관 이탈 / 가이던스 하향 / 매크로 리스크

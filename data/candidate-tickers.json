@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-04T00:15:53.196Z",
-  "total": 1223,
+  "generatedAt": "2026-06-04T00:51:14.857Z",
+  "total": 1338,
   "byBand": {
     "titan": 5,
     "mega": 104,
     "large": 426,
     "mid": 165,
-    "etf": 78,
+    "etf": 193,
     "kr": 475
   },
   "tickers": [
@@ -691,16 +691,34 @@
     "LW",
     "TW",
     "SPY",
-    "QQQ",
     "VOO",
+    "IVV",
     "VTI",
-    "IWM",
+    "ITOT",
+    "SPLG",
+    "QQQ",
+    "QQQM",
     "DIA",
+    "IWM",
+    "IJR",
+    "IJH",
+    "MDY",
+    "VB",
+    "VO",
     "RSP",
     "VUG",
     "VTV",
+    "IWF",
+    "IWD",
+    "IWB",
+    "VIG",
+    "SCHG",
+    "QUAL",
+    "USMV",
+    "SPLV",
     "MTUM",
-    "QQQM",
+    "MAGS",
+    "MOAT",
     "XLK",
     "XLE",
     "XLF",
@@ -712,62 +730,159 @@
     "XLB",
     "XLRE",
     "XLC",
+    "VGT",
+    "VHT",
+    "VFH",
+    "VDE",
+    "VPU",
+    "VNQ",
     "SMH",
     "SOXX",
+    "IGV",
+    "IYW",
+    "FDN",
+    "SKYY",
+    "WCLD",
+    "AIQ",
+    "BOTZ",
+    "CIBR",
+    "HACK",
     "ARKK",
+    "ARKG",
+    "ARKW",
+    "ARKF",
+    "FINX",
     "XBI",
     "IBB",
     "KWEB",
     "ICLN",
     "TAN",
     "GDX",
+    "GDXJ",
     "URA",
     "LIT",
-    "BOTZ",
-    "CIBR",
     "JETS",
     "XME",
     "XOP",
     "KRE",
     "ITB",
+    "PAVE",
     "EWY",
     "EWJ",
     "FXI",
-    "VGK",
-    "INDA",
-    "EWT",
-    "EWZ",
-    "EWA",
     "MCHI",
-    "EZA",
+    "ASHR",
+    "GXC",
+    "VGK",
+    "EFA",
+    "IEFA",
     "VEA",
+    "SCHF",
     "VWO",
     "EEM",
-    "EFA",
-    "ACWI",
+    "IEMG",
     "EWG",
     "EWU",
     "EWC",
     "EWW",
+    "EWT",
+    "EWH",
+    "EWS",
+    "INDA",
+    "EPI",
+    "THD",
+    "EIDO",
+    "EPHE",
+    "TUR",
+    "EWA",
+    "EWZ",
+    "EZA",
+    "EWQ",
+    "EWL",
+    "EWN",
+    "EWP",
     "GLD",
+    "IAU",
     "SLV",
+    "PPLT",
     "USO",
+    "BNO",
     "UNG",
     "DBA",
+    "CORN",
+    "WEAT",
     "PDBC",
+    "CPER",
     "TLT",
-    "SHY",
     "IEF",
+    "SHY",
+    "GOVT",
     "AGG",
     "BND",
+    "BNDX",
     "LQD",
+    "VCIT",
+    "VCSH",
     "HYG",
+    "JNK",
+    "EMB",
+    "MUB",
     "TIP",
+    "SGOV",
+    "BIL",
+    "MBB",
     "SCHD",
     "VYM",
+    "DGRO",
+    "NOBL",
+    "HDV",
+    "SPYD",
     "JEPI",
+    "JEPQ",
+    "QYLD",
+    "IBIT",
+    "FBTC",
+    "ETHA",
     "BITO",
     "VXX",
+    "TQQQ",
+    "SQQQ",
+    "UPRO",
+    "SPXU",
+    "SPXL",
+    "SPXS",
+    "SOXL",
+    "SOXS",
+    "TNA",
+    "TZA",
+    "UDOW",
+    "SDOW",
+    "QLD",
+    "QID",
+    "SSO",
+    "SDS",
+    "TECL",
+    "TECS",
+    "FAS",
+    "FAZ",
+    "LABU",
+    "LABD",
+    "NUGT",
+    "DUST",
+    "YINN",
+    "YANG",
+    "TMF",
+    "TMV",
+    "BOIL",
+    "KOLD",
+    "UCO",
+    "SCO",
+    "UVXY",
+    "SVXY",
+    "SH",
+    "PSQ",
+    "FNGU",
+    "BULZ",
     "005930.KS",
     "000660.KS",
     "207940.KS",
@@ -3970,13 +4085,13 @@
       "sector": "ETF",
       "cap": "etf"
     },
-    "QQQ": {
-      "name": "QQQ",
+    "VOO": {
+      "name": "VOO",
       "sector": "ETF",
       "cap": "etf"
     },
-    "VOO": {
-      "name": "VOO",
+    "IVV": {
+      "name": "IVV",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -3985,13 +4100,58 @@
       "sector": "ETF",
       "cap": "etf"
     },
-    "IWM": {
-      "name": "IWM",
+    "ITOT": {
+      "name": "ITOT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SPLG": {
+      "name": "SPLG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QQQ": {
+      "name": "QQQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QQQM": {
+      "name": "QQQM",
       "sector": "ETF",
       "cap": "etf"
     },
     "DIA": {
       "name": "DIA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IWM": {
+      "name": "IWM",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IJR": {
+      "name": "IJR",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IJH": {
+      "name": "IJH",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "MDY": {
+      "name": "MDY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VB": {
+      "name": "VB",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VO": {
+      "name": "VO",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4010,13 +4170,58 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "IWF": {
+      "name": "IWF",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IWD": {
+      "name": "IWD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IWB": {
+      "name": "IWB",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VIG": {
+      "name": "VIG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SCHG": {
+      "name": "SCHG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QUAL": {
+      "name": "QUAL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "USMV": {
+      "name": "USMV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SPLV": {
+      "name": "SPLV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "MTUM": {
       "name": "MTUM",
       "sector": "ETF",
       "cap": "etf"
     },
-    "QQQM": {
-      "name": "QQQM",
+    "MAGS": {
+      "name": "MAGS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "MOAT": {
+      "name": "MOAT",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4075,6 +4280,36 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "VGT": {
+      "name": "VGT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VHT": {
+      "name": "VHT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VFH": {
+      "name": "VFH",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VDE": {
+      "name": "VDE",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VPU": {
+      "name": "VPU",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VNQ": {
+      "name": "VNQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "SMH": {
       "name": "SMH",
       "sector": "ETF",
@@ -4085,8 +4320,73 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "IGV": {
+      "name": "IGV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IYW": {
+      "name": "IYW",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "FDN": {
+      "name": "FDN",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SKYY": {
+      "name": "SKYY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "WCLD": {
+      "name": "WCLD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "AIQ": {
+      "name": "AIQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BOTZ": {
+      "name": "BOTZ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "CIBR": {
+      "name": "CIBR",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "HACK": {
+      "name": "HACK",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "ARKK": {
       "name": "ARKK",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ARKG": {
+      "name": "ARKG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ARKW": {
+      "name": "ARKW",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ARKF": {
+      "name": "ARKF",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "FINX": {
+      "name": "FINX",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4120,6 +4420,11 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "GDXJ": {
+      "name": "GDXJ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "URA": {
       "name": "URA",
       "sector": "ETF",
@@ -4127,16 +4432,6 @@
     },
     "LIT": {
       "name": "LIT",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "BOTZ": {
-      "name": "BOTZ",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "CIBR": {
-      "name": "CIBR",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4165,6 +4460,11 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "PAVE": {
+      "name": "PAVE",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "EWY": {
       "name": "EWY",
       "sector": "ETF",
@@ -4180,43 +4480,43 @@
       "sector": "ETF",
       "cap": "etf"
     },
-    "VGK": {
-      "name": "VGK",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "INDA": {
-      "name": "INDA",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "EWT": {
-      "name": "EWT",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "EWZ": {
-      "name": "EWZ",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "EWA": {
-      "name": "EWA",
-      "sector": "ETF",
-      "cap": "etf"
-    },
     "MCHI": {
       "name": "MCHI",
       "sector": "ETF",
       "cap": "etf"
     },
-    "EZA": {
-      "name": "EZA",
+    "ASHR": {
+      "name": "ASHR",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "GXC": {
+      "name": "GXC",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VGK": {
+      "name": "VGK",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EFA": {
+      "name": "EFA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IEFA": {
+      "name": "IEFA",
       "sector": "ETF",
       "cap": "etf"
     },
     "VEA": {
       "name": "VEA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SCHF": {
+      "name": "SCHF",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4230,13 +4530,8 @@
       "sector": "ETF",
       "cap": "etf"
     },
-    "EFA": {
-      "name": "EFA",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "ACWI": {
-      "name": "ACWI",
+    "IEMG": {
+      "name": "IEMG",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4260,8 +4555,93 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "EWT": {
+      "name": "EWT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWH": {
+      "name": "EWH",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWS": {
+      "name": "EWS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "INDA": {
+      "name": "INDA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EPI": {
+      "name": "EPI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "THD": {
+      "name": "THD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EIDO": {
+      "name": "EIDO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EPHE": {
+      "name": "EPHE",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TUR": {
+      "name": "TUR",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWA": {
+      "name": "EWA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWZ": {
+      "name": "EWZ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EZA": {
+      "name": "EZA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWQ": {
+      "name": "EWQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWL": {
+      "name": "EWL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWN": {
+      "name": "EWN",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWP": {
+      "name": "EWP",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "GLD": {
       "name": "GLD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IAU": {
+      "name": "IAU",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4270,8 +4650,18 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "PPLT": {
+      "name": "PPLT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "USO": {
       "name": "USO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BNO": {
+      "name": "BNO",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4285,8 +4675,23 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "CORN": {
+      "name": "CORN",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "WEAT": {
+      "name": "WEAT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "PDBC": {
       "name": "PDBC",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "CPER": {
+      "name": "CPER",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4295,13 +4700,18 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "IEF": {
+      "name": "IEF",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "SHY": {
       "name": "SHY",
       "sector": "ETF",
       "cap": "etf"
     },
-    "IEF": {
-      "name": "IEF",
+    "GOVT": {
+      "name": "GOVT",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4315,8 +4725,23 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "BNDX": {
+      "name": "BNDX",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "LQD": {
       "name": "LQD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VCIT": {
+      "name": "VCIT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VCSH": {
+      "name": "VCSH",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4325,8 +4750,38 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "JNK": {
+      "name": "JNK",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EMB": {
+      "name": "EMB",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "MUB": {
+      "name": "MUB",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "TIP": {
       "name": "TIP",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SGOV": {
+      "name": "SGOV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BIL": {
+      "name": "BIL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "MBB": {
+      "name": "MBB",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4340,8 +4795,53 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "DGRO": {
+      "name": "DGRO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "NOBL": {
+      "name": "NOBL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "HDV": {
+      "name": "HDV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SPYD": {
+      "name": "SPYD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "JEPI": {
       "name": "JEPI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "JEPQ": {
+      "name": "JEPQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QYLD": {
+      "name": "QYLD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IBIT": {
+      "name": "IBIT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "FBTC": {
+      "name": "FBTC",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ETHA": {
+      "name": "ETHA",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4352,6 +4852,196 @@
     },
     "VXX": {
       "name": "VXX",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TQQQ": {
+      "name": "TQQQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SQQQ": {
+      "name": "SQQQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "UPRO": {
+      "name": "UPRO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SPXU": {
+      "name": "SPXU",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SPXL": {
+      "name": "SPXL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SPXS": {
+      "name": "SPXS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SOXL": {
+      "name": "SOXL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SOXS": {
+      "name": "SOXS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TNA": {
+      "name": "TNA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TZA": {
+      "name": "TZA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "UDOW": {
+      "name": "UDOW",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SDOW": {
+      "name": "SDOW",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QLD": {
+      "name": "QLD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QID": {
+      "name": "QID",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SSO": {
+      "name": "SSO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SDS": {
+      "name": "SDS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TECL": {
+      "name": "TECL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TECS": {
+      "name": "TECS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "FAS": {
+      "name": "FAS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "FAZ": {
+      "name": "FAZ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "LABU": {
+      "name": "LABU",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "LABD": {
+      "name": "LABD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "NUGT": {
+      "name": "NUGT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "DUST": {
+      "name": "DUST",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "YINN": {
+      "name": "YINN",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "YANG": {
+      "name": "YANG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TMF": {
+      "name": "TMF",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TMV": {
+      "name": "TMV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BOIL": {
+      "name": "BOIL",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "KOLD": {
+      "name": "KOLD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "UCO": {
+      "name": "UCO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SCO": {
+      "name": "SCO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "UVXY": {
+      "name": "UVXY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SVXY": {
+      "name": "SVXY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SH": {
+      "name": "SH",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "PSQ": {
+      "name": "PSQ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "FNGU": {
+      "name": "FNGU",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BULZ": {
+      "name": "BULZ",
       "sector": "ETF",
       "cap": "etf"
     },

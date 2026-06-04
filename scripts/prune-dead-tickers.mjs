@@ -14,7 +14,11 @@ import { readFileSync, writeFileSync } from 'fs';
 
 const SITE = 'http://localhost:3000';
 const cand = JSON.parse(readFileSync('data/candidate-tickers.json', 'utf8'));
-const tickers = (Array.isArray(cand.tickers) ? cand.tickers : []).filter(Boolean);
+// 2026-06-04: 풀(필터 후) ∪ 기존 delisted 를 sweep — 이미 제외된 dead 도 재확인(revival 감지) +
+//   delisted 를 빈값으로 덮어쓰던 버그 방지. (풀만 sweep 하면 제외된 30 을 못 봐 delisted=0 으로 손실.)
+let prevDelisted = [];
+try { prevDelisted = JSON.parse(readFileSync('data/delisted-tickers.json', 'utf8')).tickers || []; } catch { /* */ }
+const tickers = [...new Set([...(Array.isArray(cand.tickers) ? cand.tickers : []), ...prevDelisted])].filter(Boolean);
 const FOREIGN = /\.(T|HK|L|TO|PA|DE|SW|AS|MI|MC|ST|HE|OL|CO|VX|SI|AX|NZ|TW|SS|SZ|F|BR|MX|JO|IS)$/;
 
 async function price(t) {
@@ -35,10 +39,12 @@ async function run(items, limit, fn) {
 }
 
 const t0 = Date.now();
-const checked = await run(tickers, 6, async (t) => {
+// 2026-06-04: 동시성 6→3 + 재시도 2회 — 1300종목 sweep 시 Yahoo throttle 로 유효 ETF(VEA/BND/IBIT 등)
+//   가 false-positive dead 로 잡히던 문제(40개 전부 오탐 확인) 방지. dead 판정은 보수적으로.
+const checked = await run(tickers, 3, async (t) => {
   if (FOREIGN.test(t)) return { t, dead: true, reason: 'foreign-exchange' };
   let p = await price(t);
-  if (!p) { await new Promise(r => setTimeout(r, 400)); p = await price(t); } // transient 1회 재시도
+  for (let i = 0; i < 2 && !p; i++) { await new Promise(r => setTimeout(r, 600)); p = await price(t); }
   return { t, dead: !p, reason: p ? null : 'no-price' };
 });
 

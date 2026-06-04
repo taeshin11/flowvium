@@ -54,22 +54,36 @@ for (const f of files) {
 }
 
 // ETF + KR (hardcoded — not in companies-batch files)
-// 2026-06-04: 35 → 확장. broad/style + 11 섹터(XLC 포함) + 테마 + 지역 + 원자재 + 채권 + 배당.
+// 2026-06-04: 유명 ETF 망라(레버리지/인버스 제외 — CLAUDE.md 차단). prune-dead 가 무효 티커 자동 제거.
 const ETF_TICKERS = [
-  // Broad US + style
-  'SPY','QQQ','VOO','VTI','IWM','DIA','RSP','VUG','VTV','MTUM','QQQM',
-  // 11 GICS 섹터 (XLC 추가)
+  // Broad US + index
+  'SPY','VOO','IVV','VTI','ITOT','SPLG','QQQ','QQQM','DIA','IWM','IJR','IJH','MDY','VB','VO','RSP',
+  // Style (성장/가치/퀄/저변동/모멘텀)
+  'VUG','VTV','IWF','IWD','IWB','VIG','SCHG','QUAL','USMV','SPLV','MTUM','MAGS','MOAT',
+  // 11 GICS 섹터 (SPDR) + Vanguard 섹터
   'XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLB','XLRE','XLC',
+  'VGT','VHT','VFH','VDE','VPU','VNQ',
   // 테마/산업
-  'SMH','SOXX','ARKK','XBI','IBB','KWEB','ICLN','TAN','GDX','URA','LIT','BOTZ','CIBR','JETS','XME','XOP','KRE','ITB',
+  'SMH','SOXX','IGV','IYW','FDN','SKYY','WCLD','AIQ','BOTZ','CIBR','HACK','ARKK','ARKG','ARKW','ARKF','FINX',
+  'XBI','IBB','KWEB','ICLN','TAN','GDX','GDXJ','URA','LIT','JETS','XME','XOP','KRE','ITB','PAVE',
   // 지역
-  'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA','MCHI','EZA','VEA','VWO','EEM','EFA','ACWI','EWG','EWU','EWC','EWW',
+  'EWY','EWJ','FXI','MCHI','ASHR','GXC','VGK','EFA','IEFA','VEA','SCHF','VWO','EEM','IEMG','EWG','EWU','EWC','EWW',
+  'EWT','EWH','EWS','INDA','EPI','THD','EIDO','EPHE','TUR','EWA','EWZ','EZA','EWQ','EWL','EWN','EWP',
   // 원자재
-  'GLD','SLV','USO','UNG','DBA','PDBC',
-  // 채권 + 배당/인컴
-  'TLT','SHY','IEF','AGG','BND','LQD','HYG','TIP','SCHD','VYM','JEPI',
-  // 기타
-  'BITO','VXX',
+  'GLD','IAU','SLV','PPLT','USO','BNO','UNG','DBA','CORN','WEAT','PDBC','CPER',
+  // 채권
+  'TLT','IEF','SHY','GOVT','AGG','BND','BNDX','LQD','VCIT','VCSH','HYG','JNK','EMB','MUB','TIP','SGOV','BIL','MBB',
+  // 배당/인컴
+  'SCHD','VYM','DGRO','NOBL','HDV','SPYD','JEPI','JEPQ','QYLD',
+  // 암호화폐 현물/선물
+  'IBIT','FBTC','ETHA','BITO',
+  // 변동성
+  'VXX',
+  // 레버리지/인버스 (2026-06-04 사용자 요청 — 모니터링 풀만. 보고서 매수추천엔 CLAUDE.md BLOCKED 규칙 +
+  //   ETF_META 미포함으로 제외. /company·heatmap 등 가시화용.)
+  'TQQQ','SQQQ','UPRO','SPXU','SPXL','SPXS','SOXL','SOXS','TNA','TZA','UDOW','SDOW',
+  'QLD','QID','SSO','SDS','TECL','TECS','FAS','FAZ','LABU','LABD','NUGT','DUST',
+  'YINN','YANG','TMF','TMV','BOIL','KOLD','UCO','SCO','UVXY','SVXY','SH','PSQ','FNGU','BULZ',
 ];
 // 2026-05-29: hardcoded 29개 → companies-kr.ts 의 242개 (KOSPI 132 + KOSDAQ 108) 활용.
 // stockCode 6자리 + market (KOSPI→.KS / KOSDAQ→.KQ) 자동 매핑. sector 도 메타에 반영.
