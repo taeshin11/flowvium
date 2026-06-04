@@ -144,6 +144,32 @@ async function main() {
     }
   } catch (e) { info.push(`[D] coverage 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
+  // [G] 페이지 필드 완전성 — "endpoint 200 ≠ 필드 채워짐" 사각지대. 2026-06-04 신설.
+  //     사용자가 직접 발견하던 빈칸(/earnings estimate, /insider 한국 기관)을 모니터가 사전 포착.
+  //     원칙: 페이지가 *표시하는* 행의 핵심 필드 채움률이 임계 미만이면 결함.
+  {
+    // 1) /api/earnings — 표시 종목의 estimate 채움률 (CEF/마이크로캡 필터 후 ≥70% 기대).
+    const ern = await getJson('/api/earnings', 25000);
+    const cov = ern.body?.coverage;
+    const arr = ern.body?.earnings ?? [];
+    if (arr.length === 0) {
+      issues.push('[G] /earnings 0건 — 캘린더 적재 정지 의심');
+    } else {
+      const est = cov?.estCoverage ?? Math.round(arr.filter(e => e.epsEstimate != null || e.revenueEstimate != null).length / arr.length * 100);
+      if (est < 70) issues.push(`[G] /earnings estimate 채움률 ${est}% (<70%) — 빈칸 과다, 필터/소스 점검`);
+      else info.push(`[G] /earnings estimate 채움률 ${est}% (${arr.length}건${cov?.droppedNoise != null ? `, 노이즈 ${cov.droppedNoise} 제거` : ''})`);
+    }
+    // 2) /api/korea-flow — 기관 순매수/매도 비공백 (KRX LOGOUT/파서버그로 0건 되던 사각지대).
+    const kf = await getJson('/api/korea-flow?period=1d', 25000);
+    const instBuy = kf.body?.topInstBuy?.length ?? 0;
+    const instSell = kf.body?.topInstSell?.length ?? 0;
+    if (instBuy === 0 && instSell === 0) {
+      issues.push(`[G] /insider 한국 기관 순매수/매도 0건 (source=${kf.body?.source ?? '?'}) — KRX/Naver 기관 파싱 정지 의심`);
+    } else {
+      info.push(`[G] /insider 한국 기관 매수 ${instBuy}·매도 ${instSell}건 (source=${kf.body?.source ?? '?'})`);
+    }
+  }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);

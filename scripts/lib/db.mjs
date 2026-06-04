@@ -756,6 +756,12 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
         const m2 = k.match(/(\d+(?:\.\d+)?)\s*억\s*달러/);  // X억 달러 = X/10 B
         if (m2) rev = parseFloat(m2[1]) / 10;
       }
+      // 2026-06-04: keyChange regex 실패 시 company-financials/DART 의 revenueUSD 폴백
+      //   (US+KR 둘 다 latestAnnual.revenueUSD 제공 — 이전엔 regex 만 써서 revenue 거의 NULL).
+      {
+        const finRev = finByTicker[(c.ticker ?? '').toUpperCase()]?.latestAnnual?.revenueUSD;
+        if (rev == null && finRev != null) rev = Math.round((finRev / 1e9) * 100) / 100;
+      }
       let yoy = c.revenueYoY ?? null;
       if (yoy == null) {
         const ym = k.match(/[+\-]?(\d+\.?\d*)\s*%\s*(?:YoY|증가|성장|상승)/i)

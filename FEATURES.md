@@ -665,7 +665,8 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 
 **파일**: `src/components/pages/EarningsPage.tsx`  
 **데이터**: `/api/earnings` (Finnhub 무료 티어 60 req/min)  
-**블룸버그 대응**: EE (Earnings Events)
+**블룸버그 대응**: EE (Earnings Events)  
+**노이즈 필터 (2026-06-04)**: Finnhub 캘린더의 커버리지 없는 CEF/마이크로캡(estimate 영구 NULL) 제거 — universe US 티커 OR estimate 보유 OR known 기업명만 유지. 응답에 `coverage{withEstimate,total,estCoverage,droppedNoise}` 메타. 검증: `check-data-quality [G]` 가 estimate 채움률 ≥70% 확인.
 
 ### 12b-1. 타임프레임 프리셋
 - 오늘 / 이번 주 / 2주 / 1개월

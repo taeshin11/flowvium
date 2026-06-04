@@ -15,6 +15,15 @@ import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
+import candidateTickers from '../../../../data/candidate-tickers.json';
+
+// 추적 universe(권위 소스) — Finnhub 캘린더는 애널리스트 커버리지 없는 CEF/마이크로캡 수백 개를
+//   포함해 estimate 가 전부 NULL → 페이지가 빈칸 투성이. universe US 티커로 노이즈 필터.
+const UNIVERSE_US = new Set(
+  ((candidateTickers as { tickers?: string[] }).tickers ?? [])
+    .filter(t => !/\.(KS|KQ)$/.test(t) && !/^\d{6}$/.test(t))
+    .map(t => t.toUpperCase()),
+);
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -354,18 +363,30 @@ export async function GET(req: Request) {
       return NextResponse.json({ earnings: [], from, to, error: `Finnhub HTTP ${res.status}`, cached: false }, { status: 502 });
     }
     const data = await res.json() as { earningsCalendar?: FinnhubEarning[] };
-    const raw = data.earningsCalendar ?? [];
+    const rawAll = data.earningsCalendar ?? [];
+    // 노이즈 필터: universe US 티커 OR 실제 estimate 보유 OR known 기업명(중대형주)만 유지.
+    //   → CEF/마이크로캡(estimate 영구 NULL) 제거해 페이지 빈칸 해소. estimate 보유는 무조건 유지.
+    const raw = rawAll.filter(e =>
+      UNIVERSE_US.has((e.symbol ?? '').toUpperCase()) ||
+      e.epsEstimate != null || e.revenueEstimate != null ||
+      !!COMPANY_NAMES[e.symbol],
+    );
+    const droppedNoise = rawAll.length - raw.length;
     const symbols = Array.from(new Set(raw.map(e => e.symbol)));
     const nameMap = await resolveCompanyNames(redis, key, symbols);
     const enriched = raw.map(e => enrichRow(e, nameMap[e.symbol] ?? null))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    logger.info('api.earnings', 'finnhub_ok', { from, to, count: enriched.length, durationMs: Date.now() - t0 });
+    // 커버리지 메타 — estimate 채움률(미래 실적은 actual 자연 NULL 이므로 estimate 기준).
+    const withEst = enriched.filter(e => e.epsEstimate != null || e.revenueEstimate != null).length;
+    const estCoverage = enriched.length ? Math.round((withEst / enriched.length) * 100) : 0;
+    logger.info('api.earnings', 'finnhub_ok', { from, to, count: enriched.length, droppedNoise, estCoverage, durationMs: Date.now() - t0 });
 
     const payload = {
       earnings: enriched,
       from, to,
       count: enriched.length,
+      coverage: { withEstimate: withEst, total: enriched.length, estCoverage, droppedNoise },
       updatedAt: new Date().toISOString(),
       source: 'Finnhub',
       cached: false,
