@@ -214,12 +214,15 @@ async function main() {
     ];
     for (const ps of paramSets) {
       const results = await Promise.all(ps.vals.map(async v => ({ v, body: (await getJson(ps.url(v), 30000)).body })));
-      const empties = results.filter(r => !(ps.arr(r.body)?.length)).map(r => r.v);
-      const sigs = results.map(r => String(ps.sig(r.body)));
+      // unavailable:true = 소스 차단 known(정직 표시) → silent-empty 결함과 구분.
+      const known = results.filter(r => r.body?.unavailable === true).map(r => r.v);
+      const empties = results.filter(r => !(ps.arr(r.body)?.length) && r.body?.unavailable !== true).map(r => r.v);
+      const live = results.filter(r => ps.arr(r.body)?.length);
+      const sigs = live.map(r => String(ps.sig(r.body)));
       const allSame = sigs.length > 1 && new Set(sigs).size === 1;
-      if (empties.length) issues.push(`[K] ${ps.name} 빈 param: ${empties.join('/')} (값마다 데이터 있어야 — 비US/특정 param 누락)`);
+      if (empties.length) issues.push(`[K] ${ps.name} 빈 param(silent): ${empties.join('/')} — 값마다 데이터 있어야`);
       else if (allSame) issues.push(`[K] ${ps.name} 전 param 동일값 — 파라미터 무효(누적/필터 미작동)`);
-      else info.push(`[K] ${ps.name} param 차별화 OK (${ps.vals.length}값 비어있지않고 상이)`);
+      else info.push(`[K] ${ps.name} param 차별화 OK (live ${live.length}${known.length ? `, known-unavailable ${known.length}: ${known.join('/')}` : ''})`);
     }
   }
 

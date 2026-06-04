@@ -1,4 +1,6 @@
 import { logger } from './logger';
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
+import { fetchNaverKRQuotes } from './naver-finance';
 
 /**
  * iShares ETF holdings fetcher.
@@ -105,6 +107,43 @@ const SECTOR_KO: Record<string, string> = {
   'Utilities':              '유틸리티',
 };
 
+// 2026-06-04: iShares 비US 구성 CSV 도 차단(HTML challenge) → KR 은 자체 universe + Naver 시총으로 구성.
+//   (US 는 Wikipedia, KR 은 우리가 추적하는 KR universe — JP/CN/EU/TW/IN 은 아직 대체 소스 없음.)
+const UNIV_SECTOR_KO: Record<string, string> = {
+  semiconductors: '반도체', 'it-software': '정보기술', 'ai-cloud': '정보기술', technology: '정보기술',
+  financials: '금융', healthcare: '헬스케어', industrials: '산업재', energy: '에너지', materials: '소재',
+  'consumer-discretionary': '경기소비재', 'consumer-staples': '필수소비재', automotive: '경기소비재',
+  'communication-services': '커뮤니케이션', telecom: '커뮤니케이션', utilities: '유틸리티', 'real-estate': '부동산',
+};
+async function fetchKRHoldingsFromUniverse(): Promise<IShareHolding[]> {
+  const krUniv = UNIVERSE_SEARCH.filter(c => /\.(KS|KQ)$/.test(c.ticker));
+  if (!krUniv.length) return [];
+  const codes = krUniv.map(c => c.ticker.replace(/\.(KS|KQ)$/, ''));
+  const quotes = await fetchNaverKRQuotes(codes);
+  const qmap = new Map(quotes.map(q => [q.symbol, q]));
+  const FX = 1350; // KRW→USD 근사 (국가 내 상대 sizing 용도라 정밀 불필요)
+  const holdings: IShareHolding[] = [];
+  for (const c of krUniv) {
+    const code = c.ticker.replace(/\.(KS|KQ)$/, '');
+    const q = qmap.get(code);
+    if (!q || q.marketCap == null || q.close == null) continue;
+    holdings.push({
+      ticker: code, name: c.name, sector: UNIV_SECTOR_KO[c.sector] ?? (c.sector || '기타'),
+      marketValue: Math.round(q.marketCap / FX), weight: 0, price: q.close, location: 'KR', currency: 'KRW',
+    });
+  }
+  const total = holdings.reduce((s, h) => s + h.marketValue, 0) || 1;
+  for (const h of holdings) h.weight = Math.round((h.marketValue / total) * 10000) / 100;
+  logger.info('ishares', 'kr_universe_fallback', { holdings: holdings.length });
+  return holdings.sort((a, b) => b.marketValue - a.marketValue);
+}
+
+/** 비US 구성 폴백 디스패치 (iShares 차단 시). KR 은 universe, 그 외는 아직 소스 없음. */
+async function nonUSHoldingsFallback(country: string): Promise<IShareHolding[]> {
+  if (country.toUpperCase() === 'KR') return fetchKRHoldingsFromUniverse();
+  return [];
+}
+
 // 2026-05: iShares CSV URL이 JS challenge로 차단 — Wikipedia S&P 500 list 폴백.
 async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
   const start = Date.now();
@@ -157,7 +196,7 @@ export async function fetchIShareHoldings(country: string): Promise<IShareHoldin
     if (!res.ok) {
       logger.warn('ishares', 'http_error', { country, etf: cfg.etfTicker, status: res.status, durationMs: Date.now() - start });
       if (country.toUpperCase() === 'US') return fetchSP500FromWikipedia();
-      return [];
+      return nonUSHoldingsFallback(country);
     }
     const text = await res.text();
     const lines = text.split('\n').filter(Boolean);
@@ -166,14 +205,14 @@ export async function fetchIShareHoldings(country: string): Promise<IShareHoldin
     if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
       logger.warn('ishares', 'html_response_fallback', { country, etf: cfg.etfTicker });
       if (country.toUpperCase() === 'US') return fetchSP500FromWikipedia();
-      return [];
+      return nonUSHoldingsFallback(country);
     }
 
     // Find the header line
     const headerIdx = lines.findIndex(l => l.trim().startsWith('Ticker,'));
     if (headerIdx < 0) {
       if (country.toUpperCase() === 'US') return fetchSP500FromWikipedia();
-      return [];
+      return nonUSHoldingsFallback(country);
     }
 
     const headers = parseCSVLine(lines[headerIdx]);
@@ -217,6 +256,7 @@ export async function fetchIShareHoldings(country: string): Promise<IShareHoldin
     return holdings;
   } catch (err) {
     logger.error('ishares', 'fetch_failed', { country, etf: cfg.etfTicker, error: err, durationMs: Date.now() - start });
-    return [];
+    if (country.toUpperCase() === 'US') return fetchSP500FromWikipedia();
+    return nonUSHoldingsFallback(country);
   }
 }

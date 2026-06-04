@@ -14,6 +14,7 @@ export interface NaverKRQuote {
   symbol: string;   // 6-digit Korean stock code
   close: number | null;
   changePct: number | null;
+  marketCap: number | null;  // 시가총액 (KRW) — marketValueFullRaw (2026-06-04 heatmap 구성용 추가)
 }
 
 export interface TWSEQuote {
@@ -30,13 +31,13 @@ const NAVER_HEADERS = {
   'Accept': 'application/json',
 };
 
-async function fetchNaverBatch(codes: string): Promise<Array<{ itemCode: string; closePrice?: string; fluctuationsRatio?: string }>> {
+async function fetchNaverBatch(codes: string): Promise<Array<{ itemCode: string; closePrice?: string; fluctuationsRatio?: string; marketValueFullRaw?: string | number }>> {
   const res = await fetch(
     `https://polling.finance.naver.com/api/realtime/domestic/stock/${codes}`,
     { headers: NAVER_HEADERS, signal: AbortSignal.timeout(8000), cache: 'no-store' },
   );
   if (!res.ok) throw new Error(`Naver HTTP ${res.status}`);
-  const data = await res.json() as { datas?: Array<{ itemCode: string; closePrice?: string; fluctuationsRatio?: string }> };
+  const data = await res.json() as { datas?: Array<{ itemCode: string; closePrice?: string; fluctuationsRatio?: string; marketValueFullRaw?: string | number }> };
   return data.datas ?? [];
 }
 
@@ -47,7 +48,7 @@ export async function fetchNaverKRQuotes(tickers: string[]): Promise<NaverKRQuot
   for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
     const batch = tickers.slice(i, i + BATCH_SIZE);
     const codes = batch.join(',');
-    let items: Array<{ itemCode: string; closePrice?: string; fluctuationsRatio?: string }> = [];
+    let items: Array<{ itemCode: string; closePrice?: string; fluctuationsRatio?: string; marketValueFullRaw?: string | number }> = [];
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         items = await fetchNaverBatch(codes);
@@ -59,10 +60,12 @@ export async function fetchNaverKRQuotes(tickers: string[]): Promise<NaverKRQuot
     for (const item of items) {
       const close = item.closePrice ? parseFloat(item.closePrice.replace(/,/g, '')) : NaN;
       const changePct = item.fluctuationsRatio ? parseFloat(item.fluctuationsRatio) : NaN;
+      const capRaw = item.marketValueFullRaw != null ? parseFloat(String(item.marketValueFullRaw).replace(/,/g, '')) : NaN;
       out.push({
         symbol: item.itemCode,
         close: !isNaN(close) && close > 0 ? close : null,
         changePct: !isNaN(changePct) ? changePct : null,
+        marketCap: !isNaN(capRaw) && capRaw > 0 ? capRaw : null,
       });
     }
   }

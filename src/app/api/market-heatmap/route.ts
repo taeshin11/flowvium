@@ -76,6 +76,8 @@ export interface HeatmapData {
   updatedAt: string;
   dataDate: string | null;
   source: string;
+  unavailable?: boolean;
+  unavailableReason?: string;
 }
 
 const SUPPORTED = ['US', 'KR', 'JP', 'CN', 'EU', 'IN', 'TW'];
@@ -291,6 +293,9 @@ export async function GET(req: NextRequest) {
   });
 
   const dataDate = new Date().toISOString().slice(0, 10);
+  // 2026-06-04: iShares 비US 구성 CSV 차단 → KR 은 universe 폴백으로 복구, 그 외(JP/CN/EU/TW/IN)는
+  //   아직 대체 구성 소스 없어 빈 결과 → silent blank 대신 unavailable 명시(정직 + [K] 가 known 처리).
+  const unavailable = sectors.length === 0 && country !== 'US';
   const data: HeatmapData = {
     country,
     countryLabel: cfg?.countryLabel ?? country,
@@ -299,10 +304,11 @@ export async function GET(req: NextRequest) {
     totalStocks: stocks.length,
     updatedAt: new Date().toISOString(),
     dataDate,
+    ...(unavailable ? { unavailable: true, unavailableReason: `${country} 구성종목 소스(iShares) 차단 — 대체 소스 작업 중` } : {}),
     source: country === 'US'
       ? 'iShares IVV (구성) + Stooq (종목 시세) + Yahoo v8 (지수)'
       : country === 'KR'
-        ? `iShares ${cfg?.etfTicker} (구성) + Naver Finance (시세)`
+        ? `KR universe (구성) + Naver Finance (시세)`
         : country === 'TW'
           ? `iShares ${cfg?.etfTicker} (구성) + TWSE+TPEX (시세)`
           : country === 'IN'
