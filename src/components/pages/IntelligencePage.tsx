@@ -320,7 +320,24 @@ function MoneyFlowRow({ flow }: { flow: MoneyFlowSector }) {
 }
 
 // ── Narrative Card ────────────────────────────────────────────────────────────
-function NarrativeCard({ n, t }: { n: MacroNarrative; t: ReturnType<typeof useTranslations<'intelligence'>> }) {
+interface NarrativeIntensity {
+  id: string;
+  intensity: number;
+  direction: 'heating' | 'cooling' | 'neutral';
+  tickerMomentum: number;
+  sectorMomentum: number;
+  topMovers: Array<{ ticker: string; changePct: number }>;
+  liveData: boolean;
+}
+
+function NarrativeCard({ n, t, intensity }: { n: MacroNarrative; t: ReturnType<typeof useTranslations<'intelligence'>>; intensity?: NarrativeIntensity }) {
+  const dir = intensity?.direction;
+  const dirStyle = dir === 'heating'
+    ? { cls: 'text-red-600 bg-red-50 border-red-200', icon: <TrendingUp className="w-3 h-3" />, label: t('narrativeHeating') }
+    : dir === 'cooling'
+    ? { cls: 'text-blue-600 bg-blue-50 border-blue-200', icon: <TrendingDown className="w-3 h-3" />, label: t('narrativeCooling') }
+    : { cls: 'text-gray-500 bg-gray-50 border-gray-200', icon: <Activity className="w-3 h-3" />, label: t('narrativeNeutral') };
+  const barColor = dir === 'heating' ? 'bg-red-500' : dir === 'cooling' ? 'bg-blue-500' : 'bg-gray-400';
   return (
     <div className={`cf-card p-5 border ${n.color.split(' ').filter(c => c.startsWith('border')).join(' ')} hover:shadow-md transition-shadow`}>
       <div className="flex items-start gap-3 mb-3">
@@ -332,10 +349,26 @@ function NarrativeCard({ n, t }: { n: MacroNarrative; t: ReturnType<typeof useTr
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${categoryColorMap[n.category]}`}>
               {categoryLabel(n.category, t)}
             </span>
+            {intensity?.liveData && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${dirStyle.cls}`} title={t('narrativeIntensityTip')}>
+                {dirStyle.icon}{dirStyle.label} {intensity.intensity}
+              </span>
+            )}
           </div>
           <h3 className="text-base font-heading font-bold text-cf-text-primary leading-tight">{n.title}</h3>
         </div>
       </div>
+      {intensity?.liveData && (
+        <div className="mb-3">
+          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div className={`h-full ${barColor} transition-all`} style={{ width: `${intensity.intensity}%` }} />
+          </div>
+          <div className="flex justify-between mt-1 text-[10px] text-cf-text-secondary/70">
+            <span>{t('narrativeTickerMom')}: {intensity.tickerMomentum > 0 ? '+' : ''}{intensity.tickerMomentum}%</span>
+            <span>{t('narrativeSectorMom')}(4w): {intensity.sectorMomentum > 0 ? '+' : ''}{intensity.sectorMomentum}%</span>
+          </div>
+        </div>
+      )}
       <p className="text-sm text-cf-text-secondary leading-relaxed mb-3">{n.summary}</p>
       <div className="flex flex-wrap gap-1.5 mb-4">
         {n.keyConceptsEn.slice(0, 4).map((kc) => (
@@ -362,6 +395,41 @@ function NarrativeCard({ n, t }: { n: MacroNarrative; t: ReturnType<typeof useTr
         ) : (
           <span className="text-xs text-cf-text-secondary/50 italic">{t('learnMore')}</span>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Narratives Tab (정적 정의 + 라이브 intensity overlay) ───────────────────────
+function NarrativesTab({ t }: { t: ReturnType<typeof useTranslations<'intelligence'>> }) {
+  const [intensityMap, setIntensityMap] = useState<Record<string, NarrativeIntensity>>({});
+  const [source, setSource] = useState<'live' | 'static' | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/narratives')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (cancelled || !j) return;
+        const map: Record<string, NarrativeIntensity> = {};
+        for (const i of (j.intensities ?? [])) map[i.id] = i;
+        setIntensityMap(map);
+        setSource(j.source ?? null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return (
+    <div>
+      <p className="text-sm text-cf-text-secondary mb-2">{t('narrativesDesc')}</p>
+      {source === 'live' && (
+        <p className="text-[11px] text-cf-text-secondary/70 mb-6 flex items-center gap-1">
+          <Activity className="w-3 h-3" /> {t('narrativeLiveNote')}
+        </p>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {macroNarratives.map((n) => (
+          <NarrativeCard key={n.id} n={n} t={t} intensity={intensityMap[n.id]} />
+        ))}
       </div>
     </div>
   );
@@ -815,18 +883,7 @@ export default function IntelligencePage() {
         {/* Tab: 신용잔고 */}
         {activeTab === 'credit' && <CreditBalanceTab />}
 
-        {activeTab === 'narratives' && (
-          <div>
-            <p className="text-sm text-cf-text-secondary mb-6">
-              {t('narrativesDesc')}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {macroNarratives.map((n) => (
-                <NarrativeCard key={n.id} n={n} t={t} />
-              ))}
-            </div>
-          </div>
-        )}
+        {activeTab === 'narratives' && <NarrativesTab t={t} />}
 
         {/* Tab: 뉴스 Cascade */}
         {activeTab === 'news' && <NewsCascadeTab />}

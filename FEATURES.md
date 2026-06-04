@@ -260,10 +260,14 @@
 ---
 
 ### 탭 6: 매크로 테마 (`narratives`)
-**데이터**: `/data/macro-narratives`
+**컴포넌트**: `NarrativesTab`
+**데이터**: `/data/macro-narratives` (8개 구조적 테마 정의 — 시간불변, 정적 정당) + `/api/narratives` (라이브 intensity overlay)
 
 - **NarrativeCard** 그리드 (카테고리별)
   - 테마명·카테고리 배지·설명·관련 티커 링크
+  - **라이브 intensity 배지** (2026-06-05): 각 테마의 현재 강도(0-100) + direction(heating/cooling/neutral)
+    — relatedTickers 평균 모멘텀(stooq 배치) + relatedSectors ret4w(capital-flows) 로 산출, intensity 바 + topMovers
+  - `/api/narratives` source=live\|static + liveCount, Redis 4h 캐시; 헤더가 약속만 하고 미구현이던 동적 레이어 구현
 
 ---
 
@@ -965,6 +969,7 @@ ownership-alerts 적용).
 | `/api/fedwatch` | CME FedWatch | 4h |
 | `/api/fear-greed` | CNN 방식 + Yahoo Finance | 4h |
 | `/api/credit-balance` | per-country live overlay: us=FRED·tw=TWSE 실시간(liveCount 2/7), kr/jp/cn/eu/in=정적(소스 차단·미구현); 정적 entry는 source에 "(static est.)" 마커 + liveData=false (live처럼 보이던 라벨 정직화, 2026-06-05); `source: live\|mixed\|static` + `liveCount/staticCount` | 24h |
+| `/api/narratives` | 8개 매크로 테마 라이브 intensity (relatedTickers stooq 모멘텀 + relatedSectors ret4w); `source: live\|static` + liveCount; 정의는 정적(구조적) overlay 만 라이브 | 4h |
 | `/api/flow-analysis` | capital-flows + 통합 AI 체인 (vLLM → GROQ → Qwen → Gemini, skipVllm=true로 GROQ 70b부터) | 4h |
 | `/api/insider-trades` | EDGAR Form 4; `source: edgar-form4\|edgar-form4-stale\|empty` | 캐시 |
 | `/api/ownership-alerts` | EDGAR 13D/13G; `source: edgar-13dg\|edgar-13dg-stale\|empty` | 캐시 |

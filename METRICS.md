@@ -275,9 +275,11 @@
 
 ### 2-6. 탭: 매크로 테마 (`narratives`)
 
-| # | 지표 | 상태 |
-|---|------|------|
-| 109 | 테마명·카테고리·설명 | 📋 static | `/data/macro-narratives` |
+| # | 지표 | 상태 | 소스 |
+|---|------|------|------|
+| 109 | 테마명·카테고리·설명 (8개 구조적 프레임워크) | 📋 static | `/data/macro-narratives` — 시간불변 정의, 정적 정당 |
+| 109d | 테마별 라이브 intensity (0-100) + direction | ✅ live | `/api/narratives` — relatedTickers stooq 모멘텀 + relatedSectors ret4w (2026-06-05 신설, 8/8 테마) |
+| 109e | 테마별 topMovers (관련 종목 changePct) | ✅ live | stooq 배치 시세 |
 
 ### 2-7. 탭: 뉴스 캐스케이드 (`news`)
 

@@ -359,6 +359,23 @@ async function main() {
     }
   }
 
+  // [M] narratives intensity 라이브 검증 (2026-06-05 신설).
+  //   narratives 탭은 8개 구조적 테마 정의(정적 정당) + 라이브 intensity overlay(관련 종목 모멘텀
+  //   + 섹터 자금흐름). 헤더가 약속한 "AI-generated analysis" 동적 레이어가 미구현이던 사각지대를
+  //   intensity 로 구현 → source=live + liveCount(8개 중 신호 수신) 검증. static 이면 시세소스 끊김.
+  {
+    const r = await getJson('/api/narratives', 20000);
+    const src = r.body?.source, liveCount = r.body?.liveCount, total = (r.body?.intensities ?? []).length;
+    if (src === 'live' && typeof liveCount === 'number') {
+      if (liveCount < total) issues.push(`[M] narratives intensity ${liveCount}/${total} — 일부 테마 시세/섹터 신호 미수신`);
+      else info.push(`[M] narratives intensity live ${liveCount}/${total} 테마`);
+    } else if (src === 'static') {
+      issues.push(`[M] narratives source=static — 시세(stooq)·섹터흐름 전부 실패, intensity 미산출 (정의만 렌더)`);
+    } else {
+      info.push(`[M] narratives 점검 불가 (응답 ${r.status})`);
+    }
+  }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);
