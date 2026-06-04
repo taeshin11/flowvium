@@ -1227,7 +1227,14 @@
     "satelliteNormal": "सामान्य",
     "newsTitle": "मुख्य समाचार",
     "newsSubtitle": "AI विश्लेषित प्रभावशाली शीर्षक",
-    "newsLoading": "लोड हो रहा है..."
+    "newsLoading": "लोड हो रहा है...",
+    "etfTitle": "ETF रणनीति",
+    "etfCat_broad": "व्यापक",
+    "etfCat_sector": "क्षेत्र",
+    "etfCat_region": "क्षेत्रफल",
+    "etfCat_commodity": "कमोडिटी",
+    "etfCat_bond": "बॉन्ड",
+    "etfNote": "पोर्टफोलियो क्षेत्र/क्षेत्रीय रुख के अनुरूप ETF · लाइव मूल्य"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

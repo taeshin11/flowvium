@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Bình thường",
     "newsTitle": "Tin tức Quan trọng",
     "newsSubtitle": "Tiêu đề tác động cao phân tích bởi AI",
-    "newsLoading": "Đang tải..."
+    "newsLoading": "Đang tải...",
+    "etfTitle": "Chiến lược ETF",
+    "etfCat_broad": "Rộng",
+    "etfCat_sector": "Ngành",
+    "etfCat_region": "Khu vực",
+    "etfCat_commodity": "Hàng hóa",
+    "etfCat_bond": "Trái phiếu",
+    "etfNote": "ETF phù hợp với lập trường ngành/khu vực của danh mục · giá trực tiếp"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

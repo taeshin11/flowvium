@@ -54,11 +54,22 @@ for (const f of files) {
 }
 
 // ETF + KR (hardcoded — not in companies-batch files)
+// 2026-06-04: 35 → 확장. broad/style + 11 섹터(XLC 포함) + 테마 + 지역 + 원자재 + 채권 + 배당.
 const ETF_TICKERS = [
-  'SPY','QQQ','VOO','VTI','IWM','DIA',
-  'XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLB','XLRE',
-  'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA','MCHI','EZA',
-  'GLD','SLV','TLT','SHY','USO','UNG','DBA','BITO','VXX',
+  // Broad US + style
+  'SPY','QQQ','VOO','VTI','IWM','DIA','RSP','VUG','VTV','MTUM','QQQM',
+  // 11 GICS 섹터 (XLC 추가)
+  'XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLB','XLRE','XLC',
+  // 테마/산업
+  'SMH','SOXX','ARKK','XBI','IBB','KWEB','ICLN','TAN','GDX','URA','LIT','BOTZ','CIBR','JETS','XME','XOP','KRE','ITB',
+  // 지역
+  'EWY','EWJ','FXI','VGK','INDA','EWT','EWZ','EWA','MCHI','EZA','VEA','VWO','EEM','EFA','ACWI','EWG','EWU','EWC','EWW',
+  // 원자재
+  'GLD','SLV','USO','UNG','DBA','PDBC',
+  // 채권 + 배당/인컴
+  'TLT','SHY','IEF','AGG','BND','LQD','HYG','TIP','SCHD','VYM','JEPI',
+  // 기타
+  'BITO','VXX',
 ];
 // 2026-05-29: hardcoded 29개 → companies-kr.ts 의 242개 (KOSPI 132 + KOSDAQ 108) 활용.
 // stockCode 6자리 + market (KOSPI→.KS / KOSDAQ→.KQ) 자동 매핑. sector 도 메타에 반영.

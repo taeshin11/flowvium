@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Нормально",
     "newsTitle": "Главные новости",
     "newsSubtitle": "AI-анализ важных заголовков",
-    "newsLoading": "Загрузка..."
+    "newsLoading": "Загрузка...",
+    "etfTitle": "ETF-стратегия",
+    "etfCat_broad": "Широкий",
+    "etfCat_sector": "Сектор",
+    "etfCat_region": "Регион",
+    "etfCat_commodity": "Сырьё",
+    "etfCat_bond": "Облигация",
+    "etfNote": "ETF в соответствии с секторной/региональной позицией портфеля · цены в реальном времени"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

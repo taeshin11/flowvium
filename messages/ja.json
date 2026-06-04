@@ -1227,7 +1227,14 @@
     "satelliteNormal": "普通",
     "newsTitle": "主要ニュース",
     "newsSubtitle": "AI分析・影響大ヘッドライン",
-    "newsLoading": "ニュース読込中..."
+    "newsLoading": "ニュース読込中...",
+    "etfTitle": "ETF戦略",
+    "etfCat_broad": "広範",
+    "etfCat_sector": "セクター",
+    "etfCat_region": "地域",
+    "etfCat_commodity": "商品",
+    "etfCat_bond": "債券",
+    "etfNote": "ポートフォリオのセクター・地域スタンスに基づくETF・価格はリアルタイム"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

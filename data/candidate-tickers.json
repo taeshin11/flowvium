@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-03T23:38:50.146Z",
-  "total": 1180,
+  "generatedAt": "2026-06-04T00:15:53.196Z",
+  "total": 1223,
   "byBand": {
     "titan": 5,
     "mega": 104,
     "large": 426,
     "mid": 165,
-    "etf": 35,
+    "etf": 78,
     "kr": 475
   },
   "tickers": [
@@ -696,6 +696,11 @@
     "VTI",
     "IWM",
     "DIA",
+    "RSP",
+    "VUG",
+    "VTV",
+    "MTUM",
+    "QQQM",
     "XLK",
     "XLE",
     "XLF",
@@ -706,6 +711,25 @@
     "XLU",
     "XLB",
     "XLRE",
+    "XLC",
+    "SMH",
+    "SOXX",
+    "ARKK",
+    "XBI",
+    "IBB",
+    "KWEB",
+    "ICLN",
+    "TAN",
+    "GDX",
+    "URA",
+    "LIT",
+    "BOTZ",
+    "CIBR",
+    "JETS",
+    "XME",
+    "XOP",
+    "KRE",
+    "ITB",
     "EWY",
     "EWJ",
     "FXI",
@@ -716,13 +740,32 @@
     "EWA",
     "MCHI",
     "EZA",
+    "VEA",
+    "VWO",
+    "EEM",
+    "EFA",
+    "ACWI",
+    "EWG",
+    "EWU",
+    "EWC",
+    "EWW",
     "GLD",
     "SLV",
-    "TLT",
-    "SHY",
     "USO",
     "UNG",
     "DBA",
+    "PDBC",
+    "TLT",
+    "SHY",
+    "IEF",
+    "AGG",
+    "BND",
+    "LQD",
+    "HYG",
+    "TIP",
+    "SCHD",
+    "VYM",
+    "JEPI",
     "BITO",
     "VXX",
     "005930.KS",
@@ -3952,6 +3995,31 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "RSP": {
+      "name": "RSP",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VUG": {
+      "name": "VUG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VTV": {
+      "name": "VTV",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "MTUM": {
+      "name": "MTUM",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "QQQM": {
+      "name": "QQQM",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "XLK": {
       "name": "XLK",
       "sector": "ETF",
@@ -3999,6 +4067,101 @@
     },
     "XLRE": {
       "name": "XLRE",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XLC": {
+      "name": "XLC",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SMH": {
+      "name": "SMH",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SOXX": {
+      "name": "SOXX",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ARKK": {
+      "name": "ARKK",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XBI": {
+      "name": "XBI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IBB": {
+      "name": "IBB",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "KWEB": {
+      "name": "KWEB",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ICLN": {
+      "name": "ICLN",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TAN": {
+      "name": "TAN",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "GDX": {
+      "name": "GDX",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "URA": {
+      "name": "URA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "LIT": {
+      "name": "LIT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BOTZ": {
+      "name": "BOTZ",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "CIBR": {
+      "name": "CIBR",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "JETS": {
+      "name": "JETS",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XME": {
+      "name": "XME",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "XOP": {
+      "name": "XOP",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "KRE": {
+      "name": "KRE",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ITB": {
+      "name": "ITB",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4052,6 +4215,51 @@
       "sector": "ETF",
       "cap": "etf"
     },
+    "VEA": {
+      "name": "VEA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VWO": {
+      "name": "VWO",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EEM": {
+      "name": "EEM",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EFA": {
+      "name": "EFA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "ACWI": {
+      "name": "ACWI",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWG": {
+      "name": "EWG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWU": {
+      "name": "EWU",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWC": {
+      "name": "EWC",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "EWW": {
+      "name": "EWW",
+      "sector": "ETF",
+      "cap": "etf"
+    },
     "GLD": {
       "name": "GLD",
       "sector": "ETF",
@@ -4059,16 +4267,6 @@
     },
     "SLV": {
       "name": "SLV",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "TLT": {
-      "name": "TLT",
-      "sector": "ETF",
-      "cap": "etf"
-    },
-    "SHY": {
-      "name": "SHY",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -4084,6 +4282,66 @@
     },
     "DBA": {
       "name": "DBA",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "PDBC": {
+      "name": "PDBC",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TLT": {
+      "name": "TLT",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SHY": {
+      "name": "SHY",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "IEF": {
+      "name": "IEF",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "AGG": {
+      "name": "AGG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "BND": {
+      "name": "BND",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "LQD": {
+      "name": "LQD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "HYG": {
+      "name": "HYG",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "TIP": {
+      "name": "TIP",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "SCHD": {
+      "name": "SCHD",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "VYM": {
+      "name": "VYM",
+      "sector": "ETF",
+      "cap": "etf"
+    },
+    "JEPI": {
+      "name": "JEPI",
       "sector": "ETF",
       "cap": "etf"
     },

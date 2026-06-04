@@ -1227,7 +1227,14 @@
     "satelliteNormal": "ปกติ",
     "newsTitle": "ข่าวสำคัญ",
     "newsSubtitle": "พาดหัวข่าวผลกระทบสูงวิเคราะห์ AI",
-    "newsLoading": "กำลังโหลด..."
+    "newsLoading": "กำลังโหลด...",
+    "etfTitle": "กลยุทธ์ ETF",
+    "etfCat_broad": "กว้าง",
+    "etfCat_sector": "กลุ่ม",
+    "etfCat_region": "ภูมิภาค",
+    "etfCat_commodity": "สินค้าโภคภัณฑ์",
+    "etfCat_bond": "พันธบัตร",
+    "etfNote": "ETF สอดคล้องกับจุดยืนกลุ่ม/ภูมิภาคของพอร์ต · ราคาเรียลไทม์"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

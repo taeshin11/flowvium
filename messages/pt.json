@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Normal",
     "newsTitle": "Notícias Principais",
     "newsSubtitle": "Manchetes de alto impacto",
-    "newsLoading": "Carregando..."
+    "newsLoading": "Carregando...",
+    "etfTitle": "Estratégia ETF",
+    "etfCat_broad": "Amplo",
+    "etfCat_sector": "Setor",
+    "etfCat_region": "Região",
+    "etfCat_commodity": "Commodity",
+    "etfCat_bond": "Título",
+    "etfNote": "ETFs alinhados à postura setorial/regional da carteira · preços ao vivo"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

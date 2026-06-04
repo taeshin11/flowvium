@@ -1227,7 +1227,14 @@
     "satelliteNormal": "正常",
     "newsTitle": "主要新聞",
     "newsSubtitle": "AI分析高影響頭條",
-    "newsLoading": "載入新聞..."
+    "newsLoading": "載入新聞...",
+    "etfTitle": "ETF策略",
+    "etfCat_broad": "寬基",
+    "etfCat_sector": "產業",
+    "etfCat_region": "地區",
+    "etfCat_commodity": "商品",
+    "etfCat_bond": "債券",
+    "etfNote": "基於組合產業/地區立場的ETF·即時價格"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

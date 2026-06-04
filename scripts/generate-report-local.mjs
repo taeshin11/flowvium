@@ -3199,6 +3199,64 @@ async function getFinancialsMap(tickers) {
   return map;
 }
 
+// ── ETF 전략 섹션 (2026-06-04 신설) ───────────────────────────────────────────
+// ETF 메타는 구조적 참조(정적 허용). 선택은 보고서의 sectorAllocation/regionStances/stance 에
+//   grounded(환각 없음), 가격은 livePrices/batch-prices 라이브.
+const ETF_META = {
+  SPY: { name: 'S&P 500', cat: 'broad' }, QQQ: { name: '나스닥100 (성장)', cat: 'broad' },
+  VTI: { name: '미국 전체시장', cat: 'broad' }, IWM: { name: '미국 소형주', cat: 'broad' }, DIA: { name: '다우30', cat: 'broad' },
+  XLK: { name: '기술 섹터', cat: 'sector' }, XLE: { name: '에너지 섹터', cat: 'sector' }, XLF: { name: '금융 섹터', cat: 'sector' },
+  XLV: { name: '헬스케어 섹터', cat: 'sector' }, XLI: { name: '산업재 섹터', cat: 'sector' }, XLY: { name: '경기소비재 섹터', cat: 'sector' },
+  XLP: { name: '필수소비재 섹터', cat: 'sector' }, XLU: { name: '유틸리티 섹터', cat: 'sector' }, XLB: { name: '소재 섹터', cat: 'sector' },
+  XLRE: { name: '부동산 섹터', cat: 'sector' }, XLC: { name: '커뮤니케이션 섹터', cat: 'sector' }, SMH: { name: '반도체', cat: 'sector' },
+  EWY: { name: '한국', cat: 'region' }, EWJ: { name: '일본', cat: 'region' }, FXI: { name: '중국 대형주', cat: 'region' },
+  MCHI: { name: '중국 전체', cat: 'region' }, VGK: { name: '유럽', cat: 'region' }, INDA: { name: '인도', cat: 'region' },
+  EWT: { name: '대만', cat: 'region' }, EWZ: { name: '브라질', cat: 'region' }, EWA: { name: '호주', cat: 'region' },
+  GLD: { name: '금', cat: 'commodity' }, SLV: { name: '은', cat: 'commodity' }, TLT: { name: '미국 장기국채(20년+)', cat: 'bond' },
+  SHY: { name: '미국 단기국채(1-3년)', cat: 'bond' },
+};
+const SECTOR_ETF = {
+  semiconductors: 'XLK', technology: 'XLK', 'ai-cloud': 'XLK', 'information technology': 'XLK',
+  energy: 'XLE', financials: 'XLF', healthcare: 'XLV', industrials: 'XLI',
+  'consumer discretionary': 'XLY', automotive: 'XLY', 'consumer staples': 'XLP',
+  utilities: 'XLU', materials: 'XLB', 'metals & mining': 'XLB', 'real estate': 'XLRE',
+  'communication-services': 'XLC', 'communication services': 'XLC', communication: 'XLC',
+};
+const REGION_ETF = { us: 'SPY', korea: 'EWY', japan: 'EWJ', china: 'FXI', europe: 'VGK', india: 'INDA', taiwan: 'EWT', brazil: 'EWZ', australia: 'EWA' };
+
+async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, stance = 'neutral', riskLevel = 'medium', livePrices }) {
+  const picks = new Map();
+  const add = (t, rationale, tag) => { if (t && ETF_META[t] && !picks.has(t)) picks.set(t, { ticker: t, ...ETF_META[t], rationale, tag }); };
+  // 1) 코어 (시장 stance)
+  if (stance === 'bullish') { add('QQQ', '강세 스탠스 — 성장주 핵심 노출', 'core'); add('SPY', '시장 전체 분산 코어', 'core'); }
+  else if (stance === 'bearish') { add('SPY', '방어적 시장 분산', 'core'); }
+  else add('SPY', '시장 전체 분산 코어', 'core');
+  // 2) 섹터 비중확대 → 섹터 ETF
+  for (const s of sectorAllocation) {
+    if (s.stance === 'overweight') add(SECTOR_ETF[(s.sector || '').toLowerCase()], `${s.sector} 비중확대 — 섹터 ETF 분산 노출`, 'sector');
+  }
+  // 3) 강세 지역 → 지역 ETF (최대 3)
+  let regionN = 0;
+  for (const [r, v] of Object.entries(regionStances)) {
+    if (v?.stance === 'bullish' && REGION_ETF[r] && regionN < 3) { add(REGION_ETF[r], `${r} 강세 — ${(v.thesis || '').slice(0, 28)}`, 'region'); regionN++; }
+  }
+  // 4) 방어 (고위험/약세)
+  if (riskLevel === 'high' || stance === 'bearish') { add('TLT', '리스크 헤지 — 미국 장기국채', 'defensive'); add('GLD', '안전자산 — 금', 'defensive'); }
+  const list = [...picks.values()].slice(0, 8);
+  // 가격: livePrices 우선, 없으면 batch-prices 라이브
+  const need = list.map(e => e.ticker).filter(t => !(livePrices?.get(t)?.price));
+  let fetched = {};
+  if (need.length) {
+    try { const d = await safeFetch(`${SITE}/api/batch-prices?tickers=${need.join(',')}`, 8000); fetched = d?.prices ?? {}; } catch { /* */ }
+  }
+  return list.map(e => {
+    const lp = livePrices?.get(e.ticker);
+    const px = lp?.price ?? fetched[e.ticker]?.price ?? null;
+    const chg = lp?.changePct ?? fetched[e.ticker]?.changePct ?? null;
+    return { ticker: e.ticker, name: e.name, category: e.cat, tag: e.tag, rationale: e.rationale, price: px, changePct: chg };
+  });
+}
+
 // ── 프롬프트 빌더 (investment-prompts.ts 포팅) ─────────────────────────────────
 const TODAY = new Date().toISOString().slice(0, 10);
 const li = TARGET_LANG ? `\nWrite ALL text in ${TARGET_LANG} except tickers/numbers/JSON keys.\n` : '';
@@ -5700,6 +5758,14 @@ async function generateViaOllama() {
   finalReport.regionStances = fillMissingRegionStances(finalReport.regionStances, ctxRaw);
   finalReport.regionStances = normalizeRegionStances(finalReport.regionStances);
   finalReport.regionStances = reconcileRegionStanceWithData(finalReport.regionStances);
+  // 2026-06-04: ETF 전략 섹션 — 보고서의 sector/region/stance 에 grounded (환각 없음, 가격 라이브).
+  try {
+    finalReport.etfStrategy = await buildEtfStrategy({
+      sectorAllocation: finalReport.sectorAllocation, regionStances: finalReport.regionStances,
+      stance: finalReport.stance, riskLevel: finalReport.riskLevel, livePrices,
+    });
+    console.log(`  [ETF] ${finalReport.etfStrategy.length} 추천 (${finalReport.etfStrategy.map(e => e.ticker).join(',')})`);
+  } catch (e) { finalReport.etfStrategy = []; console.warn('  [ETF] 실패:', e.message); }
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);

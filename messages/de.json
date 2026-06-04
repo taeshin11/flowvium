@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Normal",
     "newsTitle": "Wichtige Nachrichten",
     "newsSubtitle": "KI-analysierte Schlagzeilen",
-    "newsLoading": "Lade..."
+    "newsLoading": "Lade...",
+    "etfTitle": "ETF-Strategie",
+    "etfCat_broad": "Breit",
+    "etfCat_sector": "Sektor",
+    "etfCat_region": "Region",
+    "etfCat_commodity": "Rohstoff",
+    "etfCat_bond": "Anleihe",
+    "etfNote": "ETFs entsprechend der Sektor-/Regionsausrichtung des Portfolios · Live-Kurse"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

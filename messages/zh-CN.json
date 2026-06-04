@@ -1227,7 +1227,14 @@
     "satelliteNormal": "正常",
     "newsTitle": "主要新闻",
     "newsSubtitle": "AI分析高影响头条",
-    "newsLoading": "加载新闻..."
+    "newsLoading": "加载新闻...",
+    "etfTitle": "ETF策略",
+    "etfCat_broad": "宽基",
+    "etfCat_sector": "行业",
+    "etfCat_region": "地区",
+    "etfCat_commodity": "商品",
+    "etfCat_bond": "债券",
+    "etfNote": "基于组合行业/地区立场的ETF·实时价格"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

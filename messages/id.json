@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Normal",
     "newsTitle": "Berita Utama",
     "newsSubtitle": "Berita berdampak besar dianalisis AI",
-    "newsLoading": "Memuat..."
+    "newsLoading": "Memuat...",
+    "etfTitle": "Strategi ETF",
+    "etfCat_broad": "Luas",
+    "etfCat_sector": "Sektor",
+    "etfCat_region": "Wilayah",
+    "etfCat_commodity": "Komoditas",
+    "etfCat_bond": "Obligasi",
+    "etfNote": "ETF selaras dengan sikap sektor/wilayah portofolio · harga langsung"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

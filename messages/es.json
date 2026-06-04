@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Normal",
     "newsTitle": "Noticias Clave",
     "newsSubtitle": "Titulares de alto impacto analizados por IA",
-    "newsLoading": "Cargando noticias..."
+    "newsLoading": "Cargando noticias...",
+    "etfTitle": "Estrategia ETF",
+    "etfCat_broad": "Amplio",
+    "etfCat_sector": "Sector",
+    "etfCat_region": "Región",
+    "etfCat_commodity": "Materia prima",
+    "etfCat_bond": "Bono",
+    "etfNote": "ETF alineados con la postura sectorial/regional de la cartera · precios en vivo"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

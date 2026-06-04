@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Normal",
     "newsTitle": "Key News",
     "newsSubtitle": "AI-analyzed high-impact headlines",
-    "newsLoading": "Loading news..."
+    "newsLoading": "Loading news...",
+    "etfTitle": "ETF Strategy",
+    "etfCat_broad": "Broad",
+    "etfCat_sector": "Sector",
+    "etfCat_region": "Region",
+    "etfCat_commodity": "Commodity",
+    "etfCat_bond": "Bond",
+    "etfNote": "ETF picks aligned with portfolio sector/region stance · live prices"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

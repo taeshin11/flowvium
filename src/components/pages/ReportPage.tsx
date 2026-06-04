@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3, Target, Shield } from 'lucide-react';
+import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3, Target, Shield, Layers } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
@@ -1056,6 +1056,44 @@ export default function ReportPage() {
               </div>
             </div>
           )}
+
+          {/* ── ETF 전략 (2026-06-04) ──────────────────────────────────────── */}
+          {data.etfStrategy?.length ? (
+            <div className="mb-5 rounded-xl border border-violet-100 bg-violet-50/40 p-4">
+              <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-violet-500" />
+                {t('etfTitle')}
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {data.etfStrategy.map((e) => {
+                  const catCls = e.category === 'broad' ? 'bg-blue-100 text-blue-700'
+                    : e.category === 'sector' ? 'bg-violet-100 text-violet-700'
+                    : e.category === 'region' ? 'bg-emerald-100 text-emerald-700'
+                    : e.category === 'bond' ? 'bg-gray-200 text-gray-700'
+                    : 'bg-amber-100 text-amber-700';
+                  const chg = e.changePct;
+                  return (
+                    <div key={e.ticker} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Link href={`/${locale}/company/${e.ticker}`} className="font-bold text-sm font-mono text-violet-700 hover:underline shrink-0">{e.ticker}</Link>
+                          <span className="text-[11px] text-gray-500 truncate">{e.name}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${catCls}`}>{t(`etfCat_${e.category}`)}</span>
+                        </div>
+                        {e.price != null && (
+                          <span className="text-[11px] font-semibold text-gray-700 shrink-0">
+                            ${e.price.toFixed(2)}{chg != null && <span className={chg >= 0 ? ' text-green-600' : ' text-red-600'}> {chg >= 0 ? '+' : ''}{chg.toFixed(1)}%</span>}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-600 leading-snug">{e.rationale}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-gray-400 mt-2">{t('etfNote')}</p>
+            </div>
+          ) : null}
 
           {/* ── S8: 기업 변화 모니터링 ────────────────────────────────────── */}
           {data.companyChanges?.length ? (

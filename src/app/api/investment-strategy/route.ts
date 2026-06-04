@@ -147,6 +147,13 @@ export interface InvestmentStrategy {
   regionStances?: Record<string, RegionStance>;
   portfolio: PortfolioItem[];
   sectorAllocation: SectorWeight[];
+  // 2026-06-04: ETF 전략 섹션 (sector/region/stance grounded, 가격 라이브)
+  etfStrategy?: Array<{
+    ticker: string; name: string;
+    category: 'broad' | 'sector' | 'region' | 'commodity' | 'bond';
+    tag: 'core' | 'sector' | 'region' | 'defensive';
+    rationale: string; price: number | null; changePct: number | null;
+  }>;
   riskEvents: RiskEvent[];
   macroAnalysis: string;
   technicalAnalysis: string;

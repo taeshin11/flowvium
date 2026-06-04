@@ -1227,7 +1227,14 @@
     "satelliteNormal": "보통",
     "newsTitle": "주요 뉴스",
     "newsSubtitle": "AI 분석 영향 큰 헤드라인",
-    "newsLoading": "뉴스 로딩 중..."
+    "newsLoading": "뉴스 로딩 중...",
+    "etfTitle": "ETF 전략",
+    "etfCat_broad": "광범위",
+    "etfCat_sector": "섹터",
+    "etfCat_region": "지역",
+    "etfCat_commodity": "원자재",
+    "etfCat_bond": "채권",
+    "etfNote": "포트폴리오 섹터·지역 스탠스 기반 ETF · 가격 실시간"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

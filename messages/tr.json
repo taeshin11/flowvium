@@ -1227,7 +1227,14 @@
     "satelliteNormal": "Normal",
     "newsTitle": "Önemli Haberler",
     "newsSubtitle": "AI analizli yüksek etkili manşetler",
-    "newsLoading": "Yükleniyor..."
+    "newsLoading": "Yükleniyor...",
+    "etfTitle": "ETF Stratejisi",
+    "etfCat_broad": "Geniş",
+    "etfCat_sector": "Sektör",
+    "etfCat_region": "Bölge",
+    "etfCat_commodity": "Emtia",
+    "etfCat_bond": "Tahvil",
+    "etfNote": "Portföyün sektör/bölge duruşuna uygun ETF'ler · canlı fiyatlar"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

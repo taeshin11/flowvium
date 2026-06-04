@@ -1227,7 +1227,14 @@
     "satelliteNormal": "عادي",
     "newsTitle": "الأخبار الرئيسية",
     "newsSubtitle": "عناوين عالية التأثير محللة بالذكاء الاصطناعي",
-    "newsLoading": "جار التحميل..."
+    "newsLoading": "جار التحميل...",
+    "etfTitle": "استراتيجية ETF",
+    "etfCat_broad": "واسع",
+    "etfCat_sector": "قطاع",
+    "etfCat_region": "منطقة",
+    "etfCat_commodity": "سلعة",
+    "etfCat_bond": "سند",
+    "etfNote": "صناديق ETF متوافقة مع موقف المحفظة القطاعي/الإقليمي · أسعار حية"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",
