@@ -60,12 +60,14 @@ async function getYahooCrumb(redis: Redis | null): Promise<{ crumb: string; cook
     }
   }
   try {
-    const homeRes = await fetch('https://finance.yahoo.com/', {
-      headers: { 'User-Agent': YF_UA, 'Accept': 'text/html' },
+    // 2026-06-04: finance.yahoo.com/ 홈은 응답 헤더가 과대해 Node undici 가 UND_ERR_HEADERS_OVERFLOW
+    //   로 fetch 실패 → 쿠키 획득 불가 → crumb 없음 → 옵션 401 → IV 전멸. fc.yahoo.com(404 지만 A3
+    //   쿠키 set, 헤더 작음)이 canonical 쿠키 소스. 이걸로 교체해 IV 파이프라인 복구.
+    const homeRes = await fetch('https://fc.yahoo.com/', {
+      headers: { 'User-Agent': YF_UA },
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });
-    if (!homeRes.ok) return null;
     const rawCookies = homeRes.headers.getSetCookie?.() ?? [];
     const cookie = rawCookies
       .map((c) => c.split(';')[0])
