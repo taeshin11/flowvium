@@ -65,7 +65,17 @@ async function getLiveOwnership(): Promise<Record<string, OwnershipRecord[]> | n
  *
  * Zero additional Alpha Vantage calls — shares the same 25-ticker daily fetch budget.
  */
+// 2026-06-04: getNewsGapData 도 762KB(13f-ownership) Upstash GET(~11s)을 읽어 느림 → /api/news-gap
+//   (Company/Compare/Signals 페이지가 fetch) 가 빈 화면 지연. signals 와 동일하게 pm2 메모리 캐시.
+let _newsGapMemCache: { data: NewsGapResult; expiresAt: number } | null = null;
+const NEWSGAP_MEM_TTL = 15 * 60 * 1000;
+
 export async function getNewsGapData(): Promise<NewsGapResult> {
+  if (_newsGapMemCache && Date.now() < _newsGapMemCache.expiresAt) return _newsGapMemCache.data;
+  const _cache = (r: NewsGapResult): NewsGapResult => {
+    _newsGapMemCache = { data: r, expiresAt: Date.now() + NEWSGAP_MEM_TTL };
+    return r;
+  };
   const lastUpdated = new Date().toISOString();
 
   const [cached, liveOwnership] = await Promise.all([
@@ -76,6 +86,7 @@ export async function getNewsGapData(): Promise<NewsGapResult> {
   const source = liveOwnership ? 'live' : cached ? 'cached' : 'static';
 
   if (!cached && !liveOwnership) {
+    // static fallback 은 캐시하지 않음(다음 요청에서 live 재시도) — 빈 결과만 즉시 반환.
     return {
       entries: [...newsGapData].sort((a, b) => b.gapScore - a.gapScore),
       lastUpdated,
@@ -133,10 +144,10 @@ export async function getNewsGapData(): Promise<NewsGapResult> {
     ...(Object.keys(liveOwnership ?? {})),
   ].filter(t => entries.some(e => e.ticker === t))).size;
 
-  return {
+  return _cache({
     entries,
     lastUpdated,
     source,
     updatedTickers,
-  };
+  });
 }

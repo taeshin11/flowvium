@@ -73,9 +73,25 @@ export interface MacroIndicator {
 
 // ── FRED helpers ──────────────────────────────────────────────────────────────
 async function fetchFREDCsv(series: string, monthsBack: number = 15): Promise<Array<{ date: string; value: number }>> {
+  const startDate = new Date(Date.now() - monthsBack * 30.5 * 24 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10);
+  // 2026-06-04: fredgraph.csv 가 한국 자가호스트에서 25s+ 타임아웃 → FRED JSON API(api.stlouisfed.org,
+  //   빠름) 우선. 유효 32자 키 필요(이전 \n 오염으로 무효였음). 키 없거나 실패 시 CSV 폴백.
+  const apiKey = process.env.FRED_API_KEY?.trim();
+  if (apiKey && /^[a-z0-9]{32}$/.test(apiKey)) {
+    try {
+      const apiUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${series}&api_key=${apiKey}&file_type=json&observation_start=${startDate}&sort_order=asc`;
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+      if (res.ok) {
+        const j = await res.json() as { observations?: Array<{ date: string; value: string }> };
+        const obs = (j.observations ?? [])
+          .map(o => ({ date: o.date, value: parseFloat(o.value) }))
+          .filter((x): x is { date: string; value: number } => !!x.date && !isNaN(x.value));
+        if (obs.length) return obs;
+      }
+    } catch { /* fall through to CSV */ }
+  }
   try {
-    const startDate = new Date(Date.now() - monthsBack * 30.5 * 24 * 60 * 60 * 1000)
-      .toISOString().slice(0, 10);
     const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${series}&observation_start=${startDate}`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
