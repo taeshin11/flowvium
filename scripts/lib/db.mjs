@@ -787,6 +787,21 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
               ?? k.match(/전년\s*대비\s*[+\-]?(\d+\.?\d*)\s*%/);
         if (ym) yoy = parseFloat(ym[1]);
       }
+      // 2026-06-05: YoY sanity — LLM 이 매출 raw USD($81.6B=81600000000)를 revenueYoY 필드에 잘못
+      //   넣는 환각([4a] 4행 catch). |yoy|>500% 면 reject → finData annuals 차분으로 재계산.
+      if (yoy != null && Math.abs(yoy) > 500) yoy = null;
+      if (yoy == null) {
+        const fd = finByTicker[(c.ticker ?? '').toUpperCase()];
+        const q0 = fd?.quarterlyRevenue?.[0]?.yoyPct;
+        if (q0 != null && Math.abs(q0) <= 500) yoy = Math.round(q0 * 10) / 10;
+        else if (Array.isArray(fd?.annuals) && fd.annuals.length >= 2) {
+          const a = [...fd.annuals].sort((x, y) => String(y.fiscalYear).localeCompare(String(x.fiscalYear)));
+          if (a[0]?.revenueKRW > 0 && a[1]?.revenueKRW > 0) {
+            const pct = (a[0].revenueKRW - a[1].revenueKRW) / a[1].revenueKRW * 100;
+            if (Math.abs(pct) <= 500) yoy = Math.round(pct * 10) / 10;
+          }
+        }
+      }
       // 2026-05-29 Codex 진단: op_margin 추출 — keyChange regex + company-financials snapshot
       let opMargin = null;
       const om = k.match(/(?:operating\s+margin|opMgn|운영\s*마진|영업이익률)\s*[:=]?\s*(\d+\.?\d*)\s*%/i)
@@ -827,6 +842,7 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
           yoy = Math.round(((a[0].revenueKRW - a[1].revenueKRW) / a[1].revenueKRW * 100) * 10) / 10;
         }
       }
+      if (yoy != null && Math.abs(yoy) > 500) yoy = null;   // 2026-06-05: 극단값(prior 미미) reject
       const opMargin = la.operatingMarginPct ?? null;
       const netIncome = la.netIncomeUSD != null ? Math.round((la.netIncomeUSD / 1e9) * 100) / 100 : null;
       const price = priceByTicker[tkUp];
