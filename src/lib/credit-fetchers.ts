@@ -177,9 +177,16 @@ export async function fetchJP(): Promise<LiveCreditData | null> {
 
 /** ── Korea: KRX 신용거래융자 / BOK ECOS fallback ─────────────────
  *
+ * ⚠️ 2026-06-05: KR live 는 현재 구조적으로 차단 — static-estimated 가 정상 동작.
+ *   - KRX data.krx.co.kr: server-side fetch 를 anti-scrape 로 차단. getJsonData/fileDn 모두
+ *     "400 LOGOUT" 반환 (세션 쿠키 동반해도 동일 — JSESSIONID 가 브라우저 OTP 상호작용 필요).
+ *   - BOK ECOS: 키는 유효(200)하나 증권 신용거래융자 series 미보유(StatisticTableList 0 매칭).
+ *   → 둘 다 막혀 Attempt 3(static-estimated ₩31조≈$21.4B, KRW-basis ATH) 로 귀결. 값 자체는 정확.
+ *   복구하려면 헤드리스 브라우저(KRX 세션) 또는 KOFIA freesis API 연동 필요 — 별도 작업.
+ *
  * Fetch strategy (in order):
- *  1. KRX JSON endpoint (no auth needed) — OTP-based but accessible via POST
- *  2. BOK ECOS API (requires KOREA_BOK_API_KEY, free via https://ecos.bok.or.kr → 회원가입 → API 키 발급)
+ *  1. KRX JSON endpoint — 현재 anti-scrape 로 LOGOUT (위 참조). 코드는 KRX 정책 완화 대비 유지.
+ *  2. BOK ECOS API (requires KOREA_BOK_API_KEY) — series 미보유로 실패. 코드는 series 추가 대비 유지.
  *  3. If both fail, returns static-estimated value tagged source:'static-estimated'
  *     so the route does NOT silently serve stale data.
  *

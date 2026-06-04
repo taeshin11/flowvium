@@ -362,8 +362,10 @@ async function main() {
   //   *무료 집계소스 부재*(structural=구조적 불가, 인지됨) 를 구분. 전자만 🚨, 후자는 ℹ️.
   //   EXPECTED_LIVE = 작동 의도된 fetcher 보유. 이 중 "(static est.)" 면 회귀/소스사멸 → 결함.
   {
-    const EXPECTED_LIVE = { us: 'FRED', tw: 'TWSE', cn: 'Eastmoney', kr: 'KRX/BOK' };
-    const STRUCTURAL = { jp: 'JPX .xls 미파싱', in: 'NSE 차단', eu: 'ESMA 단일집계 미발행' };
+    const EXPECTED_LIVE = { us: 'FRED', tw: 'TWSE', cn: 'Eastmoney' };
+    // kr: KRX data.krx.co.kr 가 server-side 요청을 anti-scrape 로 차단(쿠키 동반해도 400 LOGOUT, 2026-06-05
+    //   테스트 확인) + BOK ECOS 는 증권 신용거래융자 series 미보유 → live 구조적 차단. static-estimated 유지.
+    const STRUCTURAL = { jp: 'JPX .xls 미파싱', in: 'NSE 차단', eu: 'ESMA 단일집계 미발행', kr: 'KRX anti-scrape(LOGOUT)+BOK 미보유' };
     const r = await getJson('/api/credit-balance', 20000);
     const countries = r.body?.countries;
     if (Array.isArray(countries)) {

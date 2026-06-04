@@ -262,7 +262,7 @@
 | 101 | 미국 신용잔고 ($B) | 💾 cached | FRED BOGZ1FL663067003Q |
 | 102 | 미국 GDP 대비 % | 💾 cached | FRED |
 | 103 | 미국 YoY 변화 | ✅ live | historical 마지막 두 항목 gdpRatio 차이 동적계산 |
-| 104 | 한국 신용잔고 (₩31조, KRW-basis ATH) | 📋 static | KRX MDCSTAT03701 시도 + BOK ECOS 901Y001 시도(현재 둘 다 실패) → static-estimated. source="KRX Margin Loan Statistics (static est.)", liveData=false (2026-06-05 정직표기) |
+| 104 | 한국 신용잔고 (₩31조, KRW-basis ATH) | 📋 static (구조적) | KRX anti-scrape(쿠키 동반에도 400 LOGOUT) + BOK ECOS 증권마진 series 미보유 → live 구조적 차단, static-estimated $21.4B(값 정확). [L2] structural 분류(jp/in/eu 동급). 복구=헤드리스/KOFIA 별도작업 (2026-06-05) |
 | 105 | 일본 신용잔고 | 📋 static | fetchJP `return null` (JPX .xls 미파싱) → const DATA base, source="TSE (Tokyo Stock Exchange) (static est.)", liveData=false |
 | 106 | 대만 신용잔고 | ✅ live | TWSE MI_MARGN 실시간 fetch (2026-06-03 $17.76B) |
 | 106b | 중국 신용잔고 | ✅ live | Eastmoney 沪深两市 융자余额(RPTA_RZRQ_LSHJ) 일별 실시간 — $399B (2026-06-05 SSE 엔드포인트 사멸→eastmoney 교체) |
