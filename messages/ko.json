@@ -478,7 +478,7 @@
     "staticDataPending": "리서치 기준 데이터 (2026-Q1) · 자동 갱신 대기 중",
     "staticDataTooltip": "Alpha Vantage 뉴스·EDGAR 13F 데이터가 아직 수집되지 않아 리서치 기반 정적 데이터를 표시 중입니다. 다음 cron 실행(02:00 UTC)에 갱신 예정",
     "dataScheduleLabel": "데이터 갱신 주기:",
-    "dataScheduleDetail": "기관 지분(EDGAR 13F) — 매일 02:00 UTC 크론 · 미디어 커버리지(Alpha Vantage) — 매일 25개 티커 배치 · 정적 기준 데이터는 2026-Q1 리서치 기반"
+    "dataScheduleDetail": "종목 리스트는 EDGAR 13F 보유 데이터에서 동적 산출(분기 갱신) · 기관활동 점수는 13F 액션(신규/증가/감소)에서 계산 · 미디어 커버리지(Alpha Vantage) 매일 배치 · 13F 미수집 시에만 리서치 기준 폴백"
   },
   "feedback": {
     "title": "피드백 보내기",

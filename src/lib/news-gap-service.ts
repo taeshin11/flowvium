@@ -1,9 +1,33 @@
 import { newsGapData, type NewsGapEntry, type OwnershipRecord } from '@/data/news-gap';
 import { getNewsGapCache } from '@/lib/signals-cache';
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
 import { Redis } from '@upstash/redis';
 import { logger } from '@/lib/logger';
 
 const REDIS_KEY_OWNERSHIP = 'flowvium:13f-ownership:v1';
+
+// ticker → {name, sector} (UNIVERSE_SEARCH 권위 맵) + 정적 newsGapData 의 richer 메타.
+const UNIV = new Map(UNIVERSE_SEARCH.map(c => [c.ticker, c]));
+const STATIC_BY_TICKER = new Map(newsGapData.map(e => [e.ticker, e]));
+
+/** 라이브 13F 보유 데이터에서 기관활동 점수(0-100) 계산 — 정적/하드코딩 50 대체. */
+function computeIbActivity(own: OwnershipRecord[]): { score: number; level: 'high' | 'medium' | 'low' } {
+  // breadth(기관 수)는 종목마다 ~top15 로 비슷해 변별력 없음(100 포화) → 기관당 *순매수 강도*가 진짜 신호.
+  //   net = (신규*1.5 + 증가 − 감소) / 기관수, 50 기준 ±45 로 스케일. 누적 매수 종목 ↑, 분산 종목 ↓.
+  const n = own.length || 1;
+  const newN = own.filter(o => o.action === 'new').length;
+  const incN = own.filter(o => o.action === 'increased').length;
+  const redN = own.filter(o => o.action === 'reduced').length;
+  const net = (newN * 1.5 + incN - redN) / n;
+  const score = Math.max(5, Math.min(100, Math.round(50 + net * 45)));
+  const level = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
+  return { score, level };
+}
+
+function mediaScoreFrom(articles: number | undefined): number {
+  if (articles == null) return 20; // 미디어 데이터 없음 = 낮은 커버리지(=갭의 일부)
+  return Math.min(100, Math.round(Math.sqrt(articles) * 5));
+}
 
 export interface NewsGapResult {
   entries: NewsGapEntry[];
@@ -60,44 +84,45 @@ export async function getNewsGapData(): Promise<NewsGapResult> {
     };
   }
 
-  const entries = newsGapData.map((entry) => {
-    const live = cached?.[entry.ticker];
-    const mediaScore = live
-      ? Math.min(100, Math.round(Math.sqrt(live.articles) * 5))
-      : entry.mediaScore;
+  let entries: NewsGapEntry[];
 
-    // EDGAR 13F ownership이 있으면 정적 데이터를 교체
-    const ownershipData = liveOwnership?.[entry.ticker] ?? entry.ownershipData;
-
-    return {
-      ...entry,
-      gapScore: live?.score ?? entry.gapScore,
-      mediaScore,
-      recentArticles: live?.recentArticles?.length ? live.recentArticles : entry.recentArticles,
-      ownershipData,
-    };
-  });
-
-  // 정적 newsGapData에 없는 ticker가 EDGAR에 있으면 동적으로 추가
-  if (liveOwnership) {
-    for (const [ticker, ownership] of Object.entries(liveOwnership)) {
-      if (!entries.find(e => e.ticker === ticker)) {
-        const live = cached?.[ticker];
-        entries.push({
-          ticker,
-          companyName: ticker,
-          sector: 'other',
-          ibActivityLevel: 'medium',
-          ibActivityScore: 50,
-          mediaScore: live ? Math.min(100, Math.round(Math.sqrt(live.articles) * 5)) : 30,
-          gapScore: live?.score ?? 50,
-          topInstitutions: ownership.map(o => o.institution).slice(0, 3),
-          recentArticles: live?.recentArticles ?? [],
-          ibActions: [],
-          ownershipData: ownership,
-        });
-      }
-    }
+  if (liveOwnership && Object.keys(liveOwnership).length > 0) {
+    // 동적 모드: 종목 셋을 라이브 13F 보유 ticker 에서 결정 + 점수 계산(정적 리스트 의존 제거).
+    //   이전엔 정적 newsGapData(Q1 2026) 가 종목 셋을 고정 + 동적 ticker 는 score 50 하드코딩이라
+    //   "변하는 게 없다"는 사용자 지적. 이제 매 분기 13F + 매일 미디어로 셋·점수 모두 갱신.
+    entries = Object.entries(liveOwnership).map(([ticker, ownership]) => {
+      const live = cached?.[ticker];
+      const stat = STATIC_BY_TICKER.get(ticker);
+      const univ = UNIV.get(ticker);
+      const { score: ibActivityScore, level: ibActivityLevel } = computeIbActivity(ownership);
+      const mediaScore = mediaScoreFrom(live?.articles);
+      // gapScore = 높은 기관활동 + 낮은 미디어 (news-gap thesis). 라이브 score 있으면 우선.
+      const gapScore = live?.score ?? Math.round(ibActivityScore * (1 - mediaScore / 100));
+      return {
+        ticker,
+        companyName: univ?.name ?? stat?.companyName ?? ticker,
+        sector: univ?.sector ?? stat?.sector ?? 'other',
+        ibActivityLevel,
+        ibActivityScore,
+        mediaScore,
+        gapScore,
+        topInstitutions: ownership.map(o => o.institution).slice(0, 3),
+        recentArticles: live?.recentArticles?.length ? live.recentArticles : (stat?.recentArticles ?? []),
+        ibActions: stat?.ibActions ?? [],
+        ownershipData: ownership,
+      };
+    });
+  } else {
+    // cached(미디어)만 있고 13F 없음 → 정적 셋에 미디어 점수만 overlay.
+    entries = newsGapData.map((entry) => {
+      const live = cached?.[entry.ticker];
+      return {
+        ...entry,
+        gapScore: live?.score ?? entry.gapScore,
+        mediaScore: live ? mediaScoreFrom(live.articles) : entry.mediaScore,
+        recentArticles: live?.recentArticles?.length ? live.recentArticles : entry.recentArticles,
+      };
+    });
   }
 
   // Sort: strongest signal first
