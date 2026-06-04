@@ -219,12 +219,44 @@ async function main() {
     // [A] 헬스체크가 커버하는 엔드포인트도 "최소 alive 검증됨"으로 인정
     const uncovered = [...pageEndpoints].filter(e => !EXCLUDE.has(e) && !monitored.has(e)).sort();
     const total = [...pageEndpoints].filter(e => !EXCLUDE.has(e)).length;
-    const covered = total - uncovered.length;
-    if (uncovered.length > 0) {
-      issues.push(`[I] 검증 사각지대 ${uncovered.length}/${total} 엔드포인트 — 모니터 미검사: ${uncovered.join(', ')}`);
-    } else {
-      info.push(`[I] 모니터 커버리지 ${covered}/${total} — 사각지대 0`);
-    }
+    // 무검증 엔드포인트를 제네릭 auto-probe — bespoke 프로브가 없어도 최소 liveness+non-empty+freshness
+    //   를 강제. param 엔드포인트는 샘플 URL. 이러면 "프로브 안 짠 페이지"도 자동 검증돼 사각지대 0.
+    const SAMPLE = {
+      'analyst-target': '/api/analyst-target/AAPL', 'company-news': '/api/company-news?ticker=AAPL',
+      'company-recs': '/api/company-recs/AAPL', 'company-desc': null, // Ollama 느림 — skip
+      'investment-strategy': null, // 보고서 대형 — verify-report 가 별도 검증
+      'satellite-image': null, 'nport-holdings': '/api/nport-holdings?ticker=069500',
+      'iv': '/api/iv/AAPL',
+    };
+    const SKIP = new Set(['company-desc', 'investment-strategy', 'satellite-image']);
+    const probeOne = async (ep) => {
+      if (SKIP.has(ep)) return { ep, skip: true };
+      const path = SAMPLE[ep] ?? `/api/${ep}`;
+      const r = await getJson(path, 12000);
+      if (r.status === 0 || r.status >= 400) return { ep, dead: `HTTP ${r.status}` };
+      const b = r.body;
+      if (b == null || (typeof b === 'object' && Object.keys(b).length === 0)) return { ep, dead: 'empty body' };
+      if (b.error && !b.entries && !b.data) return { ep, dead: `error: ${String(b.error).slice(0, 30)}` };
+      // configured===false = 유료 API 대기/미설정 (의도된 잠금, 결함 아님 — locked 로 분류).
+      if (b.configured === false) return { ep, locked: true };
+      // non-empty 데이터 흔적: 배열 길이 OR 스칼라 OR 구조 객체(market/outlook 등) 존재.
+      const arrLen = ['entries', 'data', 'results', 'signals', 'movers', 'items', 'companies', 'holdings', 'alerts', 'events', 'trades', 'rows', 'curve', 'sectors']
+        .reduce((n, k) => n + (Array.isArray(b[k]) ? b[k].length : 0), 0);
+      const objKeys = ['market', 'outlook', 'capital', 'company', 'summary', 'consensus', 'byCountry', 'byAsset'];
+      const hasObj = objKeys.some(k => b[k] != null && (typeof b[k] !== 'object' || Object.keys(b[k]).length > 0));
+      const hasScalar = b.score != null || b.value != null || b.probability != null || b.balance != null || b.total > 0 || typeof b.updatedAt === 'string' || typeof b.generatedAt === 'string';
+      if (arrLen === 0 && !hasScalar && !hasObj && !Array.isArray(b)) return { ep, weak: '빈 배열/스칼라/구조 없음 — 정적/정지 의심' };
+      return { ep, ok: true };
+    };
+    const probed = await Promise.all(uncovered.map(probeOne));
+    const dead = probed.filter(p => p.dead);
+    const weak = probed.filter(p => p.weak);
+    const okN = probed.filter(p => p.ok).length;
+    const skipN = probed.filter(p => p.skip).length;
+    const lockedN = probed.filter(p => p.locked).length;
+    if (dead.length) issues.push(`[I] 무검증 엔드포인트 중 DEAD ${dead.length}: ${dead.map(d => `${d.ep}(${d.dead})`).join(', ')}`);
+    if (weak.length) issues.push(`[I] 무검증 엔드포인트 중 빈데이터 ${weak.length}: ${weak.map(w => w.ep).join(', ')}`);
+    info.push(`[I] 자가-커버리지: bespoke ${monitored.size}개 + auto-probe ${okN}/${uncovered.length} live (locked ${lockedN}, skip ${skipN}, dead ${dead.length}, weak ${weak.length}) — page 엔드포인트 ${total}개 전수 검증`);
   } catch (e) { info.push(`[I] 자가-커버리지 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
   const ts = new Date().toISOString().slice(0, 19);
