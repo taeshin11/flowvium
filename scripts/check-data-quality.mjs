@@ -49,19 +49,19 @@ async function main() {
   }
   info.push(`[A] 엔드포인트 ${ok}/${ENDPOINTS.length} 정상`);
 
-  // [B] 뉴스 번역 (ko)
+  // [B] 뉴스 번역 — 2026-06-04: ko 만 보던 사각지대(ja/zh 영어 leak 미감지) → 다국어 검증.
+  //   ko(한글) + ja(가나/한자) + zh-CN(한자). cron 401 로 다국어 warm 실패하던 것을 모니터가 잡도록.
   {
-    const r = await getJson('/api/news-cascade?locale=ko');
-    // 2026-06-03: slice(0,6)+50% 기준이 truncation(앞4 ko/뒤6 영어)을 "통과"로 가렸음 →
-    //   전체 기사 + 80% 기준으로 강화.
-    const arts = (r.body?.articles || r.body?.events || r.body?.items || []);
-    if (arts.length === 0) info.push('[B] news-cascade 기사 0');
-    else {
+    const LOC = [{ l: 'ko', re: /[가-힣]/ }, { l: 'ja', re: /[぀-ヿ一-鿿]/ }, { l: 'zh-CN', re: /[一-鿿]/ }];
+    for (const { l, re } of LOC) {
+      const r = await getJson(`/api/news-cascade?locale=${l}`);
+      const arts = (r.body?.articles || r.body?.events || r.body?.items || []);
+      if (arts.length === 0) { info.push(`[B] news-cascade ${l} 기사 0`); continue; }
       const titles = arts.map(a => a.title || a.headline || '').filter(Boolean);
-      const koCount = titles.filter(t => /[가-힣]/.test(t)).length;
-      const pct = titles.length ? Math.round(koCount / titles.length * 100) : 0;
-      if (pct < 80) issues.push(`[B] 뉴스 번역 미완 — ko 제목 ${koCount}/${titles.length} 한글 (${pct}%). 예: "${(titles.find(t => !/[가-힣]/.test(t)) || '').slice(0, 40)}"`);
-      else info.push(`[B] 뉴스 번역 ko ${koCount}/${titles.length} (${pct}%)`);
+      const ok = titles.filter(t => re.test(t)).length;
+      const pct = titles.length ? Math.round(ok / titles.length * 100) : 0;
+      if (pct < 80) issues.push(`[B] 뉴스 번역 미완(${l}) — ${ok}/${titles.length} (${pct}%). 예: "${(titles.find(t => !re.test(t)) || '').slice(0, 35)}"`);
+      else info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%)`);
     }
   }
 

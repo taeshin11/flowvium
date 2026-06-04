@@ -13,7 +13,8 @@ import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const LOCALES_TO_WARM = ['ko', 'en', 'ja', 'zh-CN'];
+// 2026-06-04: 4→주요 9 locale 확장 (나머지 ru/ar/hi/id/th/tr/vi 는 news-cascade GET on-demand bg 번역).
+const LOCALES_TO_WARM = ['ko', 'en', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr', 'pt'];
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -23,41 +24,29 @@ export async function GET(req: NextRequest) {
   }
 
   const start = Date.now();
-  const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://flowvium.net';
-  const results: Array<{ locale: string; status: number | null; ms: number; translated?: boolean; entries?: number; error?: string }> = [];
-
-  // 순차 (병렬 시 translation queue 폭주). en 우선 (base cache) → 나머지.
-  for (const locale of LOCALES_TO_WARM) {
-    const t0 = Date.now();
-    try {
-      // 2026-05-29: wait=1 으로 sync 번역 강제 — background fire-and-forget 가
-      // Vercel function 종료 시 같이 끝나 ko 캐시 채워지지 않는 문제 해결.
-      const url = locale === 'en'
-        ? `${base}/api/news-cascade?locale=${locale}`
-        : `${base}/api/news-cascade?locale=${locale}&wait=1`;
-      const res = await fetch(url, {
-        cache: 'no-store',
-        signal: AbortSignal.timeout(45000),  // sync 번역 ~30s 여유
-      });
-      const j = res.ok ? await res.json() : null;
-      results.push({
-        locale,
-        status: res.status,
-        ms: Date.now() - t0,
-        translated: j?.translated,
-        entries: j?.entries?.length ?? j?.articles?.length,
-      });
-    } catch (e) {
-      results.push({ locale, status: null, ms: Date.now() - t0, error: String(e) });
+  // 2026-06-04: 자가호스팅 — localhost 직접(flowvium.net 라운드트립 회피) + bg 순차 warm 후 즉시 반환.
+  //   기존엔 9 locale × ~90s sync 번역을 한 응답에서 await → cron-runner 120s timeout 초과(HTTP 000).
+  //   pm2 persistent 라 bg floating promise 가 응답 후에도 완료됨(Vercel 과 달리 종료 안 됨).
+  const base = `http://localhost:${process.env.PORT || 3000}`;
+  const warmAll = async () => {
+    for (const locale of LOCALES_TO_WARM) {  // 순차 (Ollama single-GPU — 병렬 시 queue 폭주)
+      try {
+        const url = locale === 'en'
+          ? `${base}/api/news-cascade?locale=${locale}`
+          : `${base}/api/news-cascade?locale=${locale}&wait=1`;
+        await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(180000) });
+      } catch (e) { logger.warn('cron.refresh-news-cascade', 'warm_failed', { locale, error: String(e).slice(0, 80) }); }
     }
-  }
-
+    logger.info('cron.refresh-news-cascade', 'bg_warm_done', { locales: LOCALES_TO_WARM, durationMs: Date.now() - start });
+  };
+  void warmAll();  // 비대기 — bg 에서 완료
+  const results = LOCALES_TO_WARM.map(locale => ({ locale, status: 'warming-bg' }));
   const durationMs = Date.now() - start;
-  logger.info('cron.refresh-news-cascade', 'completed', { results, durationMs });
+  logger.info('cron.refresh-news-cascade', 'kicked_off', { locales: LOCALES_TO_WARM });
 
   return NextResponse.json({
-    ok: results.every(r => r.status === 200),
-    results,
+    ok: true,
+    warming: results,
     durationMs,
     timestamp: new Date().toISOString(),
   });
