@@ -3337,14 +3337,25 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
   if (stance === 'bullish') { add('QQQ', '강세 스탠스 — 성장주 핵심 노출', 'core', 'buy'); add('SPY', '시장 전체 분산 코어', 'core', 'buy'); }
   else if (stance === 'bearish') { add('SPY', '방어적 시장 분산', 'core', 'watch'); }
   else add('SPY', '시장 전체 분산 코어', 'core', 'buy');
-  // 2) 섹터 비중확대 → 섹터 ETF (매수)
+  // 2) 섹터 ETF — stance 별(overweight=매수 / neutral=관망). 2026-06-05: 이전엔 overweight 만 추가했는데
+  //    보고서가 overweight 를 거의 안 줘서(전부 neutral/underweight) sector ETF 가 0 이던 결함 → broad+region
+  //    만 나옴. neutral 까지 포함해 섹터 다양성 노출. underweight 는 노이즈라 생략.
+  const seenSector = new Set();
   for (const s of sectorAllocation) {
-    if (s.stance === 'overweight') add(SECTOR_ETF[(s.sector || '').toLowerCase()], `${s.sector} 비중확대 — 섹터 ETF 분산 노출`, 'sector', 'buy');
+    const etf = SECTOR_ETF[(s.sector || '').toLowerCase()];
+    if (!etf || seenSector.has(etf) || s.stance === 'underweight') continue;
+    seenSector.add(etf);
+    add(etf, `${s.sector} ${s.stance === 'overweight' ? '비중확대' : '중립'} — 섹터 분산 노출`, 'sector', s.stance === 'overweight' ? 'buy' : 'watch');
   }
-  // 3) 국가별 ETF — 분석한 모든 국가를 스탠스→액션으로 (강세=매수 / 중립=관망 / 약세=회피)
+  // 섹터 신호가 없으면 코어 섹터(기술/헬스케어)라도 노출 — ETF 다양성 보장
+  if (seenSector.size === 0) { add('XLK', '기술 섹터 코어 노출', 'sector', 'watch'); add('XLV', '헬스케어 방어 섹터', 'sector', 'watch'); }
+  // 3) 국가별 ETF — 강세 우선 정렬 후 최대 5 (전 국가 쏟아내기 방지 — 이전 8개 region 이 sector/bond 밀어냄)
   const KR_REGION_LABEL = { us: '미국', korea: '한국', japan: '일본', china: '중국', taiwan: '대만', india: '인도', brazil: '브라질', australia: '호주', europe: '유럽' };
-  for (const [r, v] of Object.entries(regionStances)) {
-    if (!REGION_ETF[r] || r === 'us') continue; // us 는 core(SPY/QQQ)로 이미 커버
+  const rRank = (st) => (st === 'bullish' ? 0 : st === 'bearish' ? 2 : 1);
+  const regionEntries = Object.entries(regionStances)
+    .filter(([r]) => REGION_ETF[r] && r !== 'us')
+    .sort((a, b) => rRank(a[1]?.stance) - rRank(b[1]?.stance));
+  for (const [r, v] of regionEntries.slice(0, 5)) {
     const st = v?.stance;
     const label = KR_REGION_LABEL[r] ?? r;
     const action = st === 'bullish' ? 'buy' : st === 'bearish' ? 'avoid' : 'watch';
@@ -3353,9 +3364,12 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
       : `${label} 중립 — 관망 ${(v.thesis || '').slice(0, 18)}`;
     add(REGION_ETF[r], note, 'region', action);
   }
-  // 4) 방어 (고위험/약세) — 헤지
-  if (riskLevel === 'high' || stance === 'bearish') { add('TLT', '리스크 헤지 — 미국 장기국채', 'defensive', 'hedge'); add('GLD', '안전자산 — 금', 'defensive', 'hedge'); }
-  const list = [...picks.values()].slice(0, 16);  // core + sector + 국가별(8) + defensive 수용
+  // 4) 분산 자산 — commodity + bond (상시 분산 슬리브, 방어 전용 아님 → 이전엔 고위험/약세일 때만 나옴)
+  const defensive = riskLevel === 'high' || stance === 'bearish';
+  add('GLD', defensive ? '안전자산 — 금(리스크 헤지)' : '포트폴리오 분산 — 금(주식 무상관)', 'diversifier', defensive ? 'buy' : 'watch');
+  add('SLV', '분산 — 은(산업+귀금속 혼합)', 'diversifier', 'watch');
+  add(defensive ? 'TLT' : 'SHY', defensive ? '장기국채 — 리스크 헤지' : '단기국채 — 현금성 분산', 'bond', defensive ? 'hedge' : 'watch');
+  const list = [...picks.values()].slice(0, 20);  // broad + sector + region(≤5) + commodity + bond 전 카테고리 수용
   // 가격: livePrices 우선, 없으면 batch-prices 라이브
   const need = list.map(e => e.ticker).filter(t => !(livePrices?.get(t)?.price));
   let fetched = {};
