@@ -3307,18 +3307,45 @@ async function getFinancialsMap(tickers) {
 // ── ETF 전략 섹션 (2026-06-04 신설) ───────────────────────────────────────────
 // ETF 메타는 구조적 참조(정적 허용). 선택은 보고서의 sectorAllocation/regionStances/stance 에
 //   grounded(환각 없음), 가격은 livePrices/batch-prices 라이브.
+// 2026-06-05: ETF 풀 30→62 확장 — 테마/스타일/배당 카테고리 신설(이전엔 broad/sector/region/
+//   commodity/bond 만, FEATURES 가 "193 확장" 주장했으나 미구현이던 문서-코드 불일치 해소).
 const ETF_META = {
+  // broad
   SPY: { name: 'S&P 500', cat: 'broad' }, QQQ: { name: '나스닥100 (성장)', cat: 'broad' },
   VTI: { name: '미국 전체시장', cat: 'broad' }, IWM: { name: '미국 소형주', cat: 'broad' }, DIA: { name: '다우30', cat: 'broad' },
+  // sector (11 GICS + 반도체)
   XLK: { name: '기술 섹터', cat: 'sector' }, XLE: { name: '에너지 섹터', cat: 'sector' }, XLF: { name: '금융 섹터', cat: 'sector' },
   XLV: { name: '헬스케어 섹터', cat: 'sector' }, XLI: { name: '산업재 섹터', cat: 'sector' }, XLY: { name: '경기소비재 섹터', cat: 'sector' },
   XLP: { name: '필수소비재 섹터', cat: 'sector' }, XLU: { name: '유틸리티 섹터', cat: 'sector' }, XLB: { name: '소재 섹터', cat: 'sector' },
   XLRE: { name: '부동산 섹터', cat: 'sector' }, XLC: { name: '커뮤니케이션 섹터', cat: 'sector' }, SMH: { name: '반도체', cat: 'sector' },
+  // thematic (테마)
+  SOXX: { name: '반도체(iShares)', cat: 'thematic' }, BOTZ: { name: 'AI·로보틱스', cat: 'thematic' }, ARKK: { name: '파괴적 혁신', cat: 'thematic' },
+  ICLN: { name: '청정에너지', cat: 'thematic' }, TAN: { name: '태양광', cat: 'thematic' }, IBB: { name: '바이오텍', cat: 'thematic' },
+  XBI: { name: '바이오텍(균등)', cat: 'thematic' }, SKYY: { name: '클라우드', cat: 'thematic' }, HACK: { name: '사이버보안', cat: 'thematic' },
+  LIT: { name: '리튬·배터리', cat: 'thematic' }, URA: { name: '우라늄·원자력', cat: 'thematic' }, ITA: { name: '방위산업', cat: 'thematic' },
+  // style (스타일·팩터)
+  VTV: { name: '대형 가치주', cat: 'style' }, VUG: { name: '대형 성장주', cat: 'style' }, MTUM: { name: '모멘텀 팩터', cat: 'style' },
+  QUAL: { name: '퀄리티 팩터', cat: 'style' }, USMV: { name: '최소변동성', cat: 'style' }, VYM: { name: '고배당', cat: 'style' },
+  // dividend (배당)
+  SCHD: { name: '배당성장(슈와브)', cat: 'dividend' }, NOBL: { name: '배당귀족', cat: 'dividend' }, DVY: { name: '고배당(iShares)', cat: 'dividend' },
+  // region
   EWY: { name: '한국', cat: 'region' }, EWJ: { name: '일본', cat: 'region' }, FXI: { name: '중국 대형주', cat: 'region' },
   MCHI: { name: '중국 전체', cat: 'region' }, VGK: { name: '유럽', cat: 'region' }, INDA: { name: '인도', cat: 'region' },
   EWT: { name: '대만', cat: 'region' }, EWZ: { name: '브라질', cat: 'region' }, EWA: { name: '호주', cat: 'region' },
-  GLD: { name: '금', cat: 'commodity' }, SLV: { name: '은', cat: 'commodity' }, TLT: { name: '미국 장기국채(20년+)', cat: 'bond' },
-  SHY: { name: '미국 단기국채(1-3년)', cat: 'bond' },
+  EWG: { name: '독일', cat: 'region' }, EWU: { name: '영국', cat: 'region' }, EEM: { name: '신흥국', cat: 'region' },
+  // commodity (원자재)
+  GLD: { name: '금', cat: 'commodity' }, SLV: { name: '은', cat: 'commodity' }, DBC: { name: '원자재 종합', cat: 'commodity' },
+  USO: { name: '원유(WTI)', cat: 'commodity' }, PDBC: { name: '원자재(무K-1)', cat: 'commodity' },
+  // bond (채권)
+  TLT: { name: '미국 장기국채(20년+)', cat: 'bond' }, SHY: { name: '미국 단기국채(1-3년)', cat: 'bond' },
+  AGG: { name: '미국 종합채권', cat: 'bond' }, LQD: { name: '투자등급 회사채', cat: 'bond' }, HYG: { name: '하이일드 회사채', cat: 'bond' },
+  TIP: { name: '물가연동국채', cat: 'bond' },
+};
+// 테마 ETF — 핫한 섹터/내러티브에 매핑 (hot 신호 시 노출)
+const THEMATIC_ETF = {
+  semiconductors: ['SOXX', 'SMH'], technology: ['SKYY', 'BOTZ'], 'ai-cloud': ['BOTZ', 'SKYY'],
+  energy: ['ICLN', 'URA'], 'clean-energy': ['ICLN', 'TAN'], healthcare: ['IBB', 'XBI'],
+  materials: ['LIT'], 'metals & mining': ['LIT'], defense: ['ITA'], financials: [],
 };
 const SECTOR_ETF = {
   semiconductors: 'XLK', technology: 'XLK', 'ai-cloud': 'XLK', 'information technology': 'XLK',
@@ -3332,7 +3359,10 @@ const REGION_ETF = { us: 'SPY', korea: 'EWY', japan: 'EWJ', china: 'FXI', europe
 async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, stance = 'neutral', riskLevel = 'medium', livePrices }) {
   const picks = new Map();
   // action: 'buy'(매수/비중확대) | 'watch'(관망/중립) | 'avoid'(회피/비중축소) | 'hedge'(헤지) — 명확한 신호
-  const add = (t, rationale, tag, action) => { if (t && ETF_META[t] && !picks.has(t)) picks.set(t, { ticker: t, ...ETF_META[t], rationale, tag, action }); };
+  const add = (t, rationale, tag, action) => {
+    if (t && ETF_META[t] && !picks.has(t)) { picks.set(t, { ticker: t, ...ETF_META[t], rationale, tag, action }); return true; }
+    return false;
+  };
   // 1) 코어 (시장 stance)
   if (stance === 'bullish') { add('QQQ', '강세 스탠스 — 성장주 핵심 노출', 'core', 'buy'); add('SPY', '시장 전체 분산 코어', 'core', 'buy'); }
   else if (stance === 'bearish') { add('SPY', '방어적 시장 분산', 'core', 'watch'); }
@@ -3349,6 +3379,21 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
   }
   // 섹터 신호가 없으면 코어 섹터(기술/헬스케어)라도 노출 — ETF 다양성 보장
   if (seenSector.size === 0) { add('XLK', '기술 섹터 코어 노출', 'sector', 'watch'); add('XLV', '헬스케어 방어 섹터', 'sector', 'watch'); }
+  // 2b) 테마 ETF — 비중확대/중립 섹터에 매핑된 테마 노출 (최대 3)
+  let themeN = 0;
+  for (const s of sectorAllocation) {
+    if (themeN >= 3 || s.stance === 'underweight') continue;
+    for (const t of (THEMATIC_ETF[(s.sector || '').toLowerCase()] ?? [])) {
+      if (themeN >= 3) break;
+      if (add(t, `${s.sector} 테마 — ${ETF_META[t]?.name ?? t}`, 'thematic', s.stance === 'overweight' ? 'buy' : 'watch')) themeN++;
+    }
+  }
+  // 2c) 스타일·배당 — stance 기반 팩터 슬리브 (강세=성장/모멘텀, 방어=가치/퀄리티/최소변동) + 배당 income
+  const defensiveStyle = riskLevel === 'high' || stance === 'bearish';
+  if (defensiveStyle) { add('VTV', '가치 팩터 — 방어적 스타일', 'style', 'buy'); add('USMV', '최소변동성 — 하방 방어', 'style', 'watch'); }
+  else { add('VUG', '성장 팩터 — 강세 스타일', 'style', 'buy'); add('MTUM', '모멘텀 팩터 — 추세 추종', 'style', 'watch'); }
+  add('QUAL', '퀄리티 팩터 — 우량주 분산', 'style', 'watch');
+  add('SCHD', defensiveStyle ? '배당성장 — 방어적 income' : '배당성장 — income 분산', 'dividend', defensiveStyle ? 'buy' : 'watch');
   // 3) 국가별 ETF — 강세 우선 정렬 후 최대 5 (전 국가 쏟아내기 방지 — 이전 8개 region 이 sector/bond 밀어냄)
   const KR_REGION_LABEL = { us: '미국', korea: '한국', japan: '일본', china: '중국', taiwan: '대만', india: '인도', brazil: '브라질', australia: '호주', europe: '유럽' };
   const rRank = (st) => (st === 'bullish' ? 0 : st === 'bearish' ? 2 : 1);
@@ -3369,7 +3414,7 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
   add('GLD', defensive ? '안전자산 — 금(리스크 헤지)' : '포트폴리오 분산 — 금(주식 무상관)', 'diversifier', defensive ? 'buy' : 'watch');
   add('SLV', '분산 — 은(산업+귀금속 혼합)', 'diversifier', 'watch');
   add(defensive ? 'TLT' : 'SHY', defensive ? '장기국채 — 리스크 헤지' : '단기국채 — 현금성 분산', 'bond', defensive ? 'hedge' : 'watch');
-  const list = [...picks.values()].slice(0, 20);  // broad + sector + region(≤5) + commodity + bond 전 카테고리 수용
+  const list = [...picks.values()].slice(0, 24);  // broad+sector+thematic+style+dividend+region(≤5)+commodity+bond 전 카테고리
   // 가격: livePrices 우선, 없으면 batch-prices 라이브
   const need = list.map(e => e.ticker).filter(t => !(livePrices?.get(t)?.price));
   let fetched = {};
