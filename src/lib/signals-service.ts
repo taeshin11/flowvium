@@ -169,7 +169,19 @@ function aggregateByInstitutionTicker(signals: InstitutionalSignal[]): Instituti
 // 서버리스 인스턴스 수명 내에서만 유효 (cold start 후 초기화).
 let backgroundRefreshInFlight = false;
 
+// 2026-06-04: getSignals 가 매 요청 762KB(13f-ownership) Upstash GET(~11s)을 읽어 22s 소요 →
+//   /screener·/intelligence 가 빈 화면으로 보임. pm2 장수 프로세스 메모리 캐시로 첫 로드 외 즉시 응답.
+let _signalsMemCache: { data: SignalsResult; expiresAt: number } | null = null;
+const SIGNALS_MEM_TTL = 15 * 60 * 1000; // 15분 — 13F 는 분기, news-gap 은 일 단위라 충분
+
 export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
+  if (!forceRefresh && _signalsMemCache && Date.now() < _signalsMemCache.expiresAt) {
+    return _signalsMemCache.data;
+  }
+  const _cache = (r: SignalsResult): SignalsResult => {
+    _signalsMemCache = { data: r, expiresAt: Date.now() + SIGNALS_MEM_TTL };
+    return r;
+  };
   const apiKey =
     process.env.ALPHA_VANTAGE_KEY ??
     process.env.NEXT_PUBLIC_ALPHA_VANTAGE_KEY ??
@@ -186,24 +198,24 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
 
   // === No API key → EDGAR 또는 empty ===
   if (!apiKey) {
-    return {
+    return _cache({
       signals: baseSignals,
       lastUpdated,
       updatedTickers: 0,
       source: liveSignals ? 'live' : 'static',
-    };
+    });
   }
 
   // === Try Redis cache ===
   const cached = await getNewsGapCache();
 
   if (cached && !forceRefresh) {
-    return {
+    return _cache({
       signals: applyNewsGaps(baseSignals, cached),
       lastUpdated,
       updatedTickers: Object.keys(cached).length,
       source: 'cached',
-    };
+    });
   }
 
   // === 캐시 없음: stale-while-revalidate ===
@@ -230,10 +242,10 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
   }
 
   // 사용자는 즉시 base signals 받는다 (news gap score 는 다음 요청부터)
-  return {
+  return _cache({
     signals: baseSignals,
     lastUpdated,
     updatedTickers: 0,
     source: liveSignals ? 'live' : 'static',
-  };
+  });
 }
