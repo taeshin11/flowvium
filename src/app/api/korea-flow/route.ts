@@ -126,17 +126,28 @@ async function fetchKrxFlowAccumulated(
   return { entries, trdDd: mostRecentDate || tradingDays[0] };
 }
 
-async function fetchKrxFlowForDate(market: 'KOSPI' | 'KOSDAQ', trdDd: string): Promise<KoreaFlowEntry[]> {
+const num = (v: string | undefined) => Number((v ?? '0').replace(/,/g, '')) || null;
+// KRX MDCSTAT02301 은 invstTpCd 로 "선택한 투자자 1종"의 순매수 랭킹만 반환한다.
+// 9000=외국인(FORN_*), 7050=기관합계(ORGN_*) — 한 번 호출로 3주체가 다 오지 않으므로
+// 외국인+기관 두 invstTpCd 를 각각 호출해 ticker 로 머지해야 기관 순매수가 채워진다.
+type RawNet = { name: string; net: number | null; closePrice: number | null; changePct: number | null };
+
+async function fetchKrxInvestorRanking(
+  market: 'KOSPI' | 'KOSDAQ',
+  trdDd: string,
+  invstTpCd: string,
+): Promise<Map<string, RawNet>> {
   const body = new URLSearchParams({
     bld: 'dbms/MDC/STAT/standard/MDCSTAT02301',
     mktId: market === 'KOSPI' ? 'STK' : 'KSQ',
-    invstTpCd: '9000',
+    invstTpCd,
     trdDd,
     share: '1',
     money: '1',
     csvxls_isNo: 'false',
   });
   const start = Date.now();
+  const out = new Map<string, RawNet>();
   try {
     const res = await fetch('https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd', {
       method: 'POST',
@@ -146,26 +157,55 @@ async function fetchKrxFlowForDate(market: 'KOSPI' | 'KOSDAQ', trdDd: string): P
       signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) {
-      logger.warn('krx.flow', 'http_error', { market, trdDd, status: res.status, durationMs: Date.now() - start });
-      return [];
+      logger.warn('krx.flow', 'http_error', { market, trdDd, invstTpCd, status: res.status, durationMs: Date.now() - start });
+      return out;
     }
     const json = await res.json();
     const rows = (json?.output ?? []) as Array<Record<string, string>>;
-    logger.info('krx.flow', 'fetched', { market, trdDd, rows: rows.length, durationMs: Date.now() - start });
-    return rows.map(r => ({
-      ticker: r.ISU_SRT_CD,
-      name: EN_NAMES[r.ISU_SRT_CD] ?? r.ISU_ABBRV,
-      market,
-      foreignerNetBuy: Number((r.FORN_NETBY_TRDVAL ?? '0').replace(/,/g, '')) || null,
-      institutionNetBuy: Number((r.ORGN_NETBY_TRDVAL ?? '0').replace(/,/g, '')) || null,
-      individualNetBuy: Number((r.IND_NETBY_TRDVAL ?? '0').replace(/,/g, '')) || null,
-      closePrice: Number((r.TDD_CLSPRC ?? '0').replace(/,/g, '')) || null,
-      changePct: Number((r.FLUC_RT ?? '0').replace(/,/g, '')) || null,
-    })).filter(e => e.ticker && e.name);
+    logger.info('krx.flow', 'fetched', { market, trdDd, invstTpCd, rows: rows.length, durationMs: Date.now() - start });
+    for (const r of rows) {
+      const ticker = r.ISU_SRT_CD;
+      if (!ticker) continue;
+      // 선택 투자자의 순매수 컬럼: 투자자별로 FORN_/ORGN_/NETBY_ 중 하나만 채워짐 — 우선순위로 robust 추출.
+      const net = num(r.NETBY_TRDVAL) ?? num(r.FORN_NETBY_TRDVAL) ?? num(r.ORGN_NETBY_TRDVAL) ?? num(r.IND_NETBY_TRDVAL);
+      out.set(ticker, {
+        name: EN_NAMES[ticker] ?? r.ISU_ABBRV,
+        net,
+        closePrice: num(r.TDD_CLSPRC),
+        changePct: num(r.FLUC_RT),
+      });
+    }
   } catch (err) {
-    logger.error('krx.flow', 'fetch_exception', { market, trdDd, error: err, durationMs: Date.now() - start });
-    return [];
+    logger.error('krx.flow', 'fetch_exception', { market, trdDd, invstTpCd, error: err, durationMs: Date.now() - start });
   }
+  return out;
+}
+
+async function fetchKrxFlowForDate(market: 'KOSPI' | 'KOSDAQ', trdDd: string): Promise<KoreaFlowEntry[]> {
+  // 외국인(9000) + 기관합계(7050) 동시 호출 → ticker union 머지.
+  const [foreign, inst] = await Promise.all([
+    fetchKrxInvestorRanking(market, trdDd, '9000'),
+    fetchKrxInvestorRanking(market, trdDd, '7050'),
+  ]);
+  const tickers = new Set(Array.from(foreign.keys()).concat(Array.from(inst.keys())));
+  const entries: KoreaFlowEntry[] = [];
+  for (const ticker of Array.from(tickers)) {
+    const f = foreign.get(ticker);
+    const i = inst.get(ticker);
+    const meta = f ?? i;
+    if (!meta) continue;
+    entries.push({
+      ticker,
+      name: EN_NAMES[ticker] ?? meta.name,
+      market,
+      foreignerNetBuy: f?.net ?? null,
+      institutionNetBuy: i?.net ?? null,
+      individualNetBuy: null,
+      closePrice: f?.closePrice ?? i?.closePrice ?? null,
+      changePct: f?.changePct ?? i?.changePct ?? null,
+    });
+  }
+  return entries.filter(e => e.ticker && e.name);
 }
 
 /**
@@ -245,9 +285,12 @@ async function fetchYahooKoreaFallback(): Promise<KoreaFlowEntry[]> {
 }
 
 /**
- * Naver Finance frgn.naver — per-stock foreign net buy (shares × close = KRW approx).
- * Accessible from all IPs including Vercel; KRX blocks cloud IPs.
- * Institution/individual data not available per-stock from Naver.
+ * Naver Finance frgn.naver — per-stock 외국인·기관 순매매량 (shares × close = KRW approx).
+ * Accessible from all IPs; KRX getJsonData 가 anti-bot LOGOUT 로 막혀 이게 1차 소스.
+ * 셀 레이아웃(span.tah, 헤더 검증): [0]날짜 [1]종가 [2]전일비 [3]등락률 [4]거래량
+ *   [5]기관 순매매량 [6]외국인 순매매량 [7]외국인 보유주수 [8]보유율.
+ *   ⚠️ row[5]=기관, row[6]=외국인 — 과거 코드가 row[5]를 외국인으로 잘못 라벨해 기관 데이터 전체 누락.
+ * 개인(individual)은 이 페이지에 없음.
  */
 async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null> {
   try {
@@ -272,15 +315,17 @@ async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null>
     const dateIdx = raw.findIndex(v => /^\d{4}\.\d{2}\.\d{2}$/.test(v));
     if (dateIdx < 0) return null;
 
-    const row = raw.slice(dateIdx, dateIdx + 8);
-    // row layout: [date, close, change, changePct%, holdingShares, netBuyShares, ?, volume]
+    const row = raw.slice(dateIdx, dateIdx + 9);
+    // row layout: [0]date [1]close [2]change [3]changePct% [4]volume
+    //   [5]기관 순매매량 [6]외국인 순매매량 [7]보유주수 [8]보유율
     const closePrice = Number(row[1]) || null;
-    // row[5] = foreign net buy shares ('+' prefix = buy, '-' prefix = sell, plain = buy)
-    const netBuySharesStr = row[5] ?? '0';
-    const netBuyShares = Number(netBuySharesStr.replace('+', '')) || 0;
-    const foreignerNetBuy = (closePrice && netBuyShares !== 0)
-      ? Math.round(closePrice * netBuyShares)
-      : null;
+    // '+' prefix = 순매수, '-' prefix = 순매도. shares × close = KRW 근사.
+    const sharesToKrw = (s: string | undefined) => {
+      const shares = Number((s ?? '0').replace('+', '')) || 0;
+      return closePrice && shares !== 0 ? Math.round(closePrice * shares) : null;
+    };
+    const institutionNetBuy = sharesToKrw(row[5]);
+    const foreignerNetBuy = sharesToKrw(row[6]);
 
     const changePctStr = row[3] ?? '0';
     const changePct = Number(changePctStr.replace('%', '')) || null;
@@ -290,7 +335,7 @@ async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null>
       name: EN_NAMES[code] ?? code,
       market: 'KOSPI',
       foreignerNetBuy,
-      institutionNetBuy: null,
+      institutionNetBuy,
       individualNetBuy:  null,
       closePrice,
       changePct,
@@ -303,7 +348,7 @@ async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null>
 async function fetchNaverForeignFlow(): Promise<{ entries: KoreaFlowEntry[]; trdDd: string } | null> {
   const tickers = Object.keys(EN_NAMES);
   const results = await Promise.all(tickers.map(c => fetchNaverFrgnEntry(c)));
-  const entries = results.filter((e): e is KoreaFlowEntry => e !== null && e.foreignerNetBuy !== null);
+  const entries = results.filter((e): e is KoreaFlowEntry => e !== null && (e.foreignerNetBuy !== null || e.institutionNetBuy !== null));
   if (entries.length === 0) return null;
   // Derive tradingDay from the raw HTML date (YYYY.MM.DD → YYYYMMDD)
   // All entries share the same date; pick first valid one
