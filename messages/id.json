@@ -1234,7 +1234,11 @@
     "etfCat_region": "Wilayah",
     "etfCat_commodity": "Komoditas",
     "etfCat_bond": "Obligasi",
-    "etfNote": "ETF selaras dengan sikap sektor/wilayah portofolio · harga langsung"
+    "etfNote": "ETF selaras dengan sikap sektor/wilayah portofolio · harga langsung",
+    "etfAction_buy": "BELI",
+    "etfAction_watch": "PANTAU",
+    "etfAction_avoid": "HINDARI",
+    "etfAction_hedge": "LINDUNGI"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

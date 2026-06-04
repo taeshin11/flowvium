@@ -1234,7 +1234,11 @@
     "etfCat_region": "地区",
     "etfCat_commodity": "商品",
     "etfCat_bond": "债券",
-    "etfNote": "基于组合行业/地区立场的ETF·实时价格"
+    "etfNote": "基于组合行业/地区立场的ETF·实时价格",
+    "etfAction_buy": "买入",
+    "etfAction_watch": "观望",
+    "etfAction_avoid": "回避",
+    "etfAction_hedge": "对冲"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

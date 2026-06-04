@@ -1234,7 +1234,11 @@
     "etfCat_region": "Region",
     "etfCat_commodity": "Rohstoff",
     "etfCat_bond": "Anleihe",
-    "etfNote": "ETFs entsprechend der Sektor-/Regionsausrichtung des Portfolios · Live-Kurse"
+    "etfNote": "ETFs entsprechend der Sektor-/Regionsausrichtung des Portfolios · Live-Kurse",
+    "etfAction_buy": "KAUFEN",
+    "etfAction_watch": "BEOBACHTEN",
+    "etfAction_avoid": "MEIDEN",
+    "etfAction_hedge": "HEDGE"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

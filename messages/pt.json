@@ -1234,7 +1234,11 @@
     "etfCat_region": "Região",
     "etfCat_commodity": "Commodity",
     "etfCat_bond": "Título",
-    "etfNote": "ETFs alinhados à postura setorial/regional da carteira · preços ao vivo"
+    "etfNote": "ETFs alinhados à postura setorial/regional da carteira · preços ao vivo",
+    "etfAction_buy": "COMPRAR",
+    "etfAction_watch": "OBSERVAR",
+    "etfAction_avoid": "EVITAR",
+    "etfAction_hedge": "PROTEGER"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

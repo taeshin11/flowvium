@@ -1234,7 +1234,11 @@
     "etfCat_region": "ภูมิภาค",
     "etfCat_commodity": "สินค้าโภคภัณฑ์",
     "etfCat_bond": "พันธบัตร",
-    "etfNote": "ETF สอดคล้องกับจุดยืนกลุ่ม/ภูมิภาคของพอร์ต · ราคาเรียลไทม์"
+    "etfNote": "ETF สอดคล้องกับจุดยืนกลุ่ม/ภูมิภาคของพอร์ต · ราคาเรียลไทม์",
+    "etfAction_buy": "ซื้อ",
+    "etfAction_watch": "เฝ้าดู",
+    "etfAction_avoid": "หลีกเลี่ยง",
+    "etfAction_hedge": "ป้องกัน"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

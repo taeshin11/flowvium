@@ -1234,7 +1234,11 @@
     "etfCat_region": "地區",
     "etfCat_commodity": "商品",
     "etfCat_bond": "債券",
-    "etfNote": "基於組合產業/地區立場的ETF·即時價格"
+    "etfNote": "基於組合產業/地區立場的ETF·即時價格",
+    "etfAction_buy": "買入",
+    "etfAction_watch": "觀望",
+    "etfAction_avoid": "迴避",
+    "etfAction_hedge": "對沖"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

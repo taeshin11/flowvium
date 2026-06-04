@@ -3226,28 +3226,30 @@ const REGION_ETF = { us: 'SPY', korea: 'EWY', japan: 'EWJ', china: 'FXI', europe
 
 async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, stance = 'neutral', riskLevel = 'medium', livePrices }) {
   const picks = new Map();
-  const add = (t, rationale, tag) => { if (t && ETF_META[t] && !picks.has(t)) picks.set(t, { ticker: t, ...ETF_META[t], rationale, tag }); };
+  // action: 'buy'(매수/비중확대) | 'watch'(관망/중립) | 'avoid'(회피/비중축소) | 'hedge'(헤지) — 명확한 신호
+  const add = (t, rationale, tag, action) => { if (t && ETF_META[t] && !picks.has(t)) picks.set(t, { ticker: t, ...ETF_META[t], rationale, tag, action }); };
   // 1) 코어 (시장 stance)
-  if (stance === 'bullish') { add('QQQ', '강세 스탠스 — 성장주 핵심 노출', 'core'); add('SPY', '시장 전체 분산 코어', 'core'); }
-  else if (stance === 'bearish') { add('SPY', '방어적 시장 분산', 'core'); }
-  else add('SPY', '시장 전체 분산 코어', 'core');
-  // 2) 섹터 비중확대 → 섹터 ETF
+  if (stance === 'bullish') { add('QQQ', '강세 스탠스 — 성장주 핵심 노출', 'core', 'buy'); add('SPY', '시장 전체 분산 코어', 'core', 'buy'); }
+  else if (stance === 'bearish') { add('SPY', '방어적 시장 분산', 'core', 'watch'); }
+  else add('SPY', '시장 전체 분산 코어', 'core', 'buy');
+  // 2) 섹터 비중확대 → 섹터 ETF (매수)
   for (const s of sectorAllocation) {
-    if (s.stance === 'overweight') add(SECTOR_ETF[(s.sector || '').toLowerCase()], `${s.sector} 비중확대 — 섹터 ETF 분산 노출`, 'sector');
+    if (s.stance === 'overweight') add(SECTOR_ETF[(s.sector || '').toLowerCase()], `${s.sector} 비중확대 — 섹터 ETF 분산 노출`, 'sector', 'buy');
   }
-  // 3) 국가별 ETF — 분석한 모든 국가(한국/중국/일본/대만/인도 등)를 스탠스와 함께 (2026-06-04 사용자 요청)
+  // 3) 국가별 ETF — 분석한 모든 국가를 스탠스→액션으로 (강세=매수 / 중립=관망 / 약세=회피)
   const KR_REGION_LABEL = { us: '미국', korea: '한국', japan: '일본', china: '중국', taiwan: '대만', india: '인도', brazil: '브라질', australia: '호주', europe: '유럽' };
   for (const [r, v] of Object.entries(regionStances)) {
     if (!REGION_ETF[r] || r === 'us') continue; // us 는 core(SPY/QQQ)로 이미 커버
     const st = v?.stance;
     const label = KR_REGION_LABEL[r] ?? r;
+    const action = st === 'bullish' ? 'buy' : st === 'bearish' ? 'avoid' : 'watch';
     const note = st === 'bullish' ? `${label} 강세 — ${(v.thesis || '').slice(0, 24)}`
-      : st === 'bearish' ? `${label} 약세 — 비중축소 검토`
-      : `${label} 중립 — ${(v.thesis || '관망').slice(0, 24)}`;
-    add(REGION_ETF[r], note, 'region');
+      : st === 'bearish' ? `${label} 약세 — 비중축소`
+      : `${label} 중립 — 관망 ${(v.thesis || '').slice(0, 18)}`;
+    add(REGION_ETF[r], note, 'region', action);
   }
-  // 4) 방어 (고위험/약세)
-  if (riskLevel === 'high' || stance === 'bearish') { add('TLT', '리스크 헤지 — 미국 장기국채', 'defensive'); add('GLD', '안전자산 — 금', 'defensive'); }
+  // 4) 방어 (고위험/약세) — 헤지
+  if (riskLevel === 'high' || stance === 'bearish') { add('TLT', '리스크 헤지 — 미국 장기국채', 'defensive', 'hedge'); add('GLD', '안전자산 — 금', 'defensive', 'hedge'); }
   const list = [...picks.values()].slice(0, 16);  // core + sector + 국가별(8) + defensive 수용
   // 가격: livePrices 우선, 없으면 batch-prices 라이브
   const need = list.map(e => e.ticker).filter(t => !(livePrices?.get(t)?.price));
@@ -3259,7 +3261,7 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
     const lp = livePrices?.get(e.ticker);
     const px = lp?.price ?? fetched[e.ticker]?.price ?? null;
     const chg = lp?.changePct ?? fetched[e.ticker]?.changePct ?? null;
-    return { ticker: e.ticker, name: e.name, category: e.cat, tag: e.tag, rationale: e.rationale, price: px, changePct: chg };
+    return { ticker: e.ticker, name: e.name, category: e.cat, tag: e.tag, action: e.action, rationale: e.rationale, price: px, changePct: chg };
   });
 }
 

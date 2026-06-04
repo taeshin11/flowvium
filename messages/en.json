@@ -1234,7 +1234,11 @@
     "etfCat_region": "Region",
     "etfCat_commodity": "Commodity",
     "etfCat_bond": "Bond",
-    "etfNote": "ETF picks aligned with portfolio sector/region stance · live prices"
+    "etfNote": "ETF picks aligned with portfolio sector/region stance · live prices",
+    "etfAction_buy": "BUY",
+    "etfAction_watch": "WATCH",
+    "etfAction_avoid": "AVOID",
+    "etfAction_hedge": "HEDGE"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

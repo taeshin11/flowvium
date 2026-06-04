@@ -1234,7 +1234,11 @@
     "etfCat_region": "Región",
     "etfCat_commodity": "Materia prima",
     "etfCat_bond": "Bono",
-    "etfNote": "ETF alineados con la postura sectorial/regional de la cartera · precios en vivo"
+    "etfNote": "ETF alineados con la postura sectorial/regional de la cartera · precios en vivo",
+    "etfAction_buy": "COMPRAR",
+    "etfAction_watch": "OBSERVAR",
+    "etfAction_avoid": "EVITAR",
+    "etfAction_hedge": "CUBRIR"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

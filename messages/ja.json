@@ -1234,7 +1234,11 @@
     "etfCat_region": "地域",
     "etfCat_commodity": "商品",
     "etfCat_bond": "債券",
-    "etfNote": "ポートフォリオのセクター・地域スタンスに基づくETF・価格はリアルタイム"
+    "etfNote": "ポートフォリオのセクター・地域スタンスに基づくETF・価格はリアルタイム",
+    "etfAction_buy": "買い",
+    "etfAction_watch": "様子見",
+    "etfAction_avoid": "回避",
+    "etfAction_hedge": "ヘッジ"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

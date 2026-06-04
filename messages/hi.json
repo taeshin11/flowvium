@@ -1234,7 +1234,11 @@
     "etfCat_region": "क्षेत्रफल",
     "etfCat_commodity": "कमोडिटी",
     "etfCat_bond": "बॉन्ड",
-    "etfNote": "पोर्टफोलियो क्षेत्र/क्षेत्रीय रुख के अनुरूप ETF · लाइव मूल्य"
+    "etfNote": "पोर्टफोलियो क्षेत्र/क्षेत्रीय रुख के अनुरूप ETF · लाइव मूल्य",
+    "etfAction_buy": "खरीदें",
+    "etfAction_watch": "देखें",
+    "etfAction_avoid": "बचें",
+    "etfAction_hedge": "हेज"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

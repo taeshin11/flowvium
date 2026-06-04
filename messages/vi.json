@@ -1234,7 +1234,11 @@
     "etfCat_region": "Khu vực",
     "etfCat_commodity": "Hàng hóa",
     "etfCat_bond": "Trái phiếu",
-    "etfNote": "ETF phù hợp với lập trường ngành/khu vực của danh mục · giá trực tiếp"
+    "etfNote": "ETF phù hợp với lập trường ngành/khu vực của danh mục · giá trực tiếp",
+    "etfAction_buy": "MUA",
+    "etfAction_watch": "THEO DÕI",
+    "etfAction_avoid": "TRÁNH",
+    "etfAction_hedge": "PHÒNG NGỪA"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

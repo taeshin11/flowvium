@@ -1234,7 +1234,11 @@
     "etfCat_region": "Bölge",
     "etfCat_commodity": "Emtia",
     "etfCat_bond": "Tahvil",
-    "etfNote": "Portföyün sektör/bölge duruşuna uygun ETF'ler · canlı fiyatlar"
+    "etfNote": "Portföyün sektör/bölge duruşuna uygun ETF'ler · canlı fiyatlar",
+    "etfAction_buy": "AL",
+    "etfAction_watch": "İZLE",
+    "etfAction_avoid": "KAÇIN",
+    "etfAction_hedge": "HEDGE"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

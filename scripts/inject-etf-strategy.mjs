@@ -16,20 +16,21 @@ const LBL = { korea: '한국', japan: '일본', china: '중국', taiwan: '대만
 
 async function buildEtf(s) {
   const picks = new Map();
-  const add = (t, r, tag) => { if (t && ETF_META[t] && !picks.has(t)) picks.set(t, { ticker: t, ...ETF_META[t], rationale: r, tag }); };
-  if (s.stance === 'bullish') { add('QQQ', '강세 스탠스 — 성장주 핵심 노출', 'core'); add('SPY', '시장 전체 분산 코어', 'core'); } else add('SPY', '시장 전체 분산 코어', 'core');
-  for (const x of s.sectorAllocation || []) if (x.stance === 'overweight') add(SECTOR_ETF[(x.sector || '').toLowerCase()], `${x.sector} 비중확대 — 섹터 ETF 분산 노출`, 'sector');
+  const add = (t, r, tag, action) => { if (t && ETF_META[t] && !picks.has(t)) picks.set(t, { ticker: t, ...ETF_META[t], rationale: r, tag, action }); };
+  if (s.stance === 'bullish') { add('QQQ', '강세 스탠스 — 성장주 핵심 노출', 'core', 'buy'); add('SPY', '시장 전체 분산 코어', 'core', 'buy'); } else add('SPY', '시장 전체 분산 코어', 'core', 'buy');
+  for (const x of s.sectorAllocation || []) if (x.stance === 'overweight') add(SECTOR_ETF[(x.sector || '').toLowerCase()], `${x.sector} 비중확대 — 섹터 ETF 분산 노출`, 'sector', 'buy');
   for (const [r, v] of Object.entries(s.regionStances || {})) {
     if (!REGION_ETF[r] || r === 'us') continue;
     const st = v?.stance, lb = LBL[r] || r;
-    const note = st === 'bullish' ? `${lb} 강세 — ${(v.thesis || '').slice(0, 24)}` : st === 'bearish' ? `${lb} 약세 — 비중축소 검토` : `${lb} 중립 — ${(v.thesis || '관망').slice(0, 24)}`;
-    add(REGION_ETF[r], note, 'region');
+    const action = st === 'bullish' ? 'buy' : st === 'bearish' ? 'avoid' : 'watch';
+    const note = st === 'bullish' ? `${lb} 강세 — ${(v.thesis || '').slice(0, 24)}` : st === 'bearish' ? `${lb} 약세 — 비중축소` : `${lb} 중립 — 관망 ${(v.thesis || '').slice(0, 18)}`;
+    add(REGION_ETF[r], note, 'region', action);
   }
-  if (s.riskLevel === 'high' || s.stance === 'bearish') { add('TLT', '리스크 헤지 — 미국 장기국채', 'defensive'); add('GLD', '안전자산 — 금', 'defensive'); }
+  if (s.riskLevel === 'high' || s.stance === 'bearish') { add('TLT', '리스크 헤지 — 미국 장기국채', 'defensive', 'hedge'); add('GLD', '안전자산 — 금', 'defensive', 'hedge'); }
   const list = [...picks.values()].slice(0, 16);
   let fx = {};
   try { fx = (await (await fetch(`${SITE}/api/batch-prices?tickers=${list.map(x => x.ticker).join(',')}`)).json())?.prices || {}; } catch { /* */ }
-  return list.map(x => ({ ticker: x.ticker, name: x.name, category: x.cat, tag: x.tag, rationale: x.rationale, price: fx[x.ticker]?.price ?? null, changePct: fx[x.ticker]?.changePct ?? null }));
+  return list.map(x => ({ ticker: x.ticker, name: x.name, category: x.cat, tag: x.tag, action: x.action, rationale: x.rationale, price: fx[x.ticker]?.price ?? null, changePct: fx[x.ticker]?.changePct ?? null }));
 }
 
 let cur = '0', keys = [];

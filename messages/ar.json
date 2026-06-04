@@ -1234,7 +1234,11 @@
     "etfCat_region": "منطقة",
     "etfCat_commodity": "سلعة",
     "etfCat_bond": "سند",
-    "etfNote": "صناديق ETF متوافقة مع موقف المحفظة القطاعي/الإقليمي · أسعار حية"
+    "etfNote": "صناديق ETF متوافقة مع موقف المحفظة القطاعي/الإقليمي · أسعار حية",
+    "etfAction_buy": "شراء",
+    "etfAction_watch": "مراقبة",
+    "etfAction_avoid": "تجنب",
+    "etfAction_hedge": "تحوط"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

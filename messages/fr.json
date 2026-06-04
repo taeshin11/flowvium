@@ -1234,7 +1234,11 @@
     "etfCat_region": "Région",
     "etfCat_commodity": "Matière première",
     "etfCat_bond": "Obligation",
-    "etfNote": "ETF alignés sur la position sectorielle/régionale du portefeuille · prix en direct"
+    "etfNote": "ETF alignés sur la position sectorielle/régionale du portefeuille · prix en direct",
+    "etfAction_buy": "ACHETER",
+    "etfAction_watch": "SURVEILLER",
+    "etfAction_avoid": "ÉVITER",
+    "etfAction_hedge": "COUVRIR"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

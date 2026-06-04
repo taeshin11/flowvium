@@ -152,6 +152,7 @@ export interface InvestmentStrategy {
     ticker: string; name: string;
     category: 'broad' | 'sector' | 'region' | 'commodity' | 'bond';
     tag: 'core' | 'sector' | 'region' | 'defensive';
+    action?: 'buy' | 'watch' | 'avoid' | 'hedge';
     rationale: string; price: number | null; changePct: number | null;
   }>;
   riskEvents: RiskEvent[];

@@ -1080,11 +1080,17 @@ export default function ReportPage() {
                     : e.category === 'region' ? 'bg-emerald-100 text-emerald-700'
                     : e.category === 'bond' ? 'bg-gray-200 text-gray-700'
                     : 'bg-amber-100 text-amber-700';
+                  const act = e.action ?? 'buy';
+                  const actCls = act === 'buy' ? 'bg-emerald-500 text-white'
+                    : act === 'avoid' ? 'bg-red-500 text-white'
+                    : act === 'hedge' ? 'bg-amber-500 text-white'
+                    : 'bg-gray-300 text-gray-700'; // watch
                   const chg = e.changePct;
                   return (
                     <div key={e.ticker} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
                       <div className="flex items-center justify-between mb-0.5">
                         <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${actCls}`}>{t(`etfAction_${act}`)}</span>
                           <Link href={`/${locale}/company/${e.ticker}`} className="font-bold text-sm text-violet-700 hover:underline shrink-0">{e.name}</Link>
                           <span className="text-[10px] text-gray-400 font-mono truncate">{e.ticker}</span>
                           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${catCls}`}>{t(`etfCat_${e.category}`)}</span>

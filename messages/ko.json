@@ -1234,7 +1234,11 @@
     "etfCat_region": "지역",
     "etfCat_commodity": "원자재",
     "etfCat_bond": "채권",
-    "etfNote": "포트폴리오 섹터·지역 스탠스 기반 ETF · 가격 실시간"
+    "etfNote": "포트폴리오 섹터·지역 스탠스 기반 ETF · 가격 실시간",
+    "etfAction_buy": "매수",
+    "etfAction_watch": "관망",
+    "etfAction_avoid": "회피",
+    "etfAction_hedge": "헤지"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",
