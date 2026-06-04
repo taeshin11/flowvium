@@ -247,8 +247,12 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (mmCount === 0) log('  ✅ sector-keyword mismatch 0');
 
-  // 3. 52주 범위 환각 (high/low > 3x)
-  log('\n## 52주 범위 환각 (>3x)');
+  // 3. 52주 범위 환각 — 권위적 검사 (2026-06-04 ratio>3x 휴리스틱 폐기).
+  //   근거: Samsung 005930.KS 가 1년간 57k→360k (6.3x), SK Hynix/Intel 등 AI 슈퍼사이클로 실제
+  //   3x+ 상승 → ratio>3x 는 genuine high-flyer 를 false positive 로 잡아 Karpathy 루프를 오염시켰음
+  //   (CLAUDE.md "검증은 권위 소스 대조, 휴리스틱 금지" 위반). 대신 "진짜 52주 범위는 항상 현재가를
+  //   bracket 한다"는 불변식 + 물리적으로 불가능한 ratio(>20x = 데이터 글리치/환각)만 flag.
+  log('\n## 52주 범위 환각 (현재가 bracket 불변식 + >20x absurd)');
   let weekBad = 0;
   for (const p of (r.portfolio||[])) {
     const m = (p.rationale||'').match(/52주\s*:\s*[₩$]?([\d,.]+)\s*-\s*[₩$]?([\d,.]+)/);
@@ -257,20 +261,35 @@ export function verifyReport(file, { silent = false } = {}) {
     const hi = parseFloat(m[2].replace(/,/g, ''));
     if (!isFinite(lo) || !isFinite(hi) || lo <= 0) continue;
     const ratio = hi / lo;
-    if (ratio > 3) {
-      log(`  ❌ ${p.ticker} 52주 ${lo}-${hi} (${ratio.toFixed(1)}x)`);
+    // 현재가 추출 — "현재 $X" / entryZone 중간값 폴백. 실제 52주 범위는 현재가를 포함해야 함.
+    const pm = (p.rationale||'').match(/현재\s*[~약]?\s*[₩$]?([\d,.]+)/);
+    let price = pm ? parseFloat(pm[1].replace(/,/g, '')) : null;
+    if (price == null && p.entryZone) {
+      const em = String(p.entryZone).match(/([\d,.]+)/g);
+      if (em?.length) price = em.map(x => parseFloat(x.replace(/,/g, ''))).reduce((a, b) => a + b, 0) / em.length;
+    }
+    let reason = null;
+    if (lo >= hi) reason = '범위 역전(lo≥hi)';
+    else if (ratio > 20) reason = `${ratio.toFixed(1)}x (물리적 불가 — 데이터 글리치)`;
+    else if (price != null && (price < lo * 0.9 || price > hi * 1.1)) reason = `현재가 ${price} 가 52주 범위 [${lo}, ${hi}] 밖`;
+    if (reason) {
+      log(`  ❌ ${p.ticker} 52주 ${lo}-${hi} — ${reason}`);
       defects.push({
         ticker: p.ticker, defect_type: '52w_halluc',
-        llm_value: `52주 ${lo}-${hi} (${ratio.toFixed(1)}x)`,
-        correct_value: '1년 ratio < 3x', severity: 'medium',
+        llm_value: `52주 ${lo}-${hi}${price != null ? ` (현재 ${price})` : ''}`,
+        correct_value: reason, severity: 'medium',
       });
       weekBad++;
     }
   }
-  if (weekBad === 0) log('  ✅ 52주 3x 초과 0');
+  if (weekBad === 0) log('  ✅ 52주 범위 정상 (high-flyer 의 genuine 3x+ 는 통과)');
 
-  // 4. 50MA-200MA gap (>50%)
-  log('\n## 50MA-200MA gap (>50%)');
+  // 4. 50MA-200MA — 권위적 검사 (2026-06-04 gap>50% 휴리스틱 폐기).
+  //   근거: 005930.KS(50MA=231k/200MA=144k, gap 60%)·000660.KS(gap 76%)는 AI 슈퍼사이클 genuine
+  //   우상향에서 50MA가 200MA 위 60-76% — 정상인데 false positive 였음. 반면 NVDA(50MA=200/200MA=50,
+  //   gap 300%)·005490.KS(50MA=200/200MA=340270)는 MA 값이 물리적으로 불가능한 진짜 글리치.
+  //   → 불가능한 MA 발산(>2.5x)이나 현재가 대비 극단 이탈(>3x)만 flag. genuine 우상향 gap 은 통과.
+  log('\n## 50MA-200MA (불가능 발산 >2.5x + 현재가 3x 이탈)');
   let maBad = 0;
   for (const p of (r.portfolio||[])) {
     const m50 = (p.rationale||'').match(/50MA[^₩$\d]*[₩$]?([\d,.]+)/);
@@ -278,19 +297,29 @@ export function verifyReport(file, { silent = false } = {}) {
     if (!m50 || !m200) continue;
     const v50 = parseFloat(m50[1].replace(/,/g, ''));
     const v200 = parseFloat(m200[1].replace(/,/g, ''));
-    if (!isFinite(v50) || !isFinite(v200) || v200 <= 0) continue;
-    const gap = Math.abs(v50 / v200 - 1) * 100;
-    if (gap > 50) {
-      log(`  ❌ ${p.ticker} 50MA=${v50} vs 200MA=${v200} (gap ${gap.toFixed(0)}%)`);
+    if (!isFinite(v50) || !isFinite(v200) || v200 <= 0 || v50 <= 0) continue;
+    const divergence = Math.max(v50 / v200, v200 / v50);
+    const pm = (p.rationale||'').match(/현재\s*[~약]?\s*[₩$]?([\d,.]+)/);
+    let price = pm ? parseFloat(pm[1].replace(/,/g, '')) : null;
+    if (price == null && p.entryZone) {
+      const em = String(p.entryZone).match(/([\d,.]+)/g);
+      if (em?.length) price = em.map(x => parseFloat(x.replace(/,/g, ''))).reduce((a, b) => a + b, 0) / em.length;
+    }
+    let reason = null;
+    if (divergence > 2.5) reason = `50MA↔200MA ${divergence.toFixed(1)}x 발산 (물리적 불가)`;
+    else if (price != null && (v50 < price / 3 || v50 > price * 3 || v200 < price / 3 || v200 > price * 3))
+      reason = `MA가 현재가 ${price} 대비 3x 이탈 (50MA=${v50}, 200MA=${v200})`;
+    if (reason) {
+      log(`  ❌ ${p.ticker} 50MA=${v50} vs 200MA=${v200} — ${reason}`);
       defects.push({
         ticker: p.ticker, defect_type: 'ma_halluc',
-        llm_value: `50MA=${v50} 200MA=${v200} gap=${gap.toFixed(0)}%`,
-        correct_value: '50MA/200MA gap < 50%', severity: 'medium',
+        llm_value: `50MA=${v50} 200MA=${v200}${price != null ? ` (현재 ${price})` : ''}`,
+        correct_value: reason, severity: 'medium',
       });
       maBad++;
     }
   }
-  if (maBad === 0) log('  ✅ MA gap 50% 초과 0');
+  if (maBad === 0) log('  ✅ MA 정상 (genuine 우상향 gap 통과)');
 
   // 5. technicalBasis / riskNote 누락 detect (F23 fact-check 미완)
   log('\n## technicalBasis / riskNote 누락 (F23 미완)');
