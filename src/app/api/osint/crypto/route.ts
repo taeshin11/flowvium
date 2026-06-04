@@ -99,6 +99,29 @@ interface EthplorerResponse {
   error?: { code: number; message: string };
 }
 
+// 2026-06-04: Ethplorer freekey 는 countTxs 를 안 줌(data.address 가 객체 아닌 주소 문자열) →
+//   txCount 가 항상 0 으로 표시되던 버그. 키리스 공개 RPC 의 eth_getTransactionCount(nonce=발신 거래수)
+//   로 대체. publicnode 우선, 실패 시 cloudflare 폴백.
+async function fetchEthTxCount(address: string): Promise<number | null> {
+  const RPCS = ['https://ethereum-rpc.publicnode.com', 'https://cloudflare-eth.com'];
+  for (const rpc of RPCS) {
+    try {
+      const r = await fetch(rpc, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getTransactionCount', params: [address, 'latest'] }),
+        signal: AbortSignal.timeout(8000), cache: 'no-store',
+      });
+      if (!r.ok) continue;
+      const j = await r.json() as { result?: string };
+      if (typeof j.result === 'string' && /^0x[0-9a-f]+$/i.test(j.result)) {
+        const n = parseInt(j.result, 16);
+        if (Number.isFinite(n)) return n;
+      }
+    } catch { /* try next RPC */ }
+  }
+  return null;
+}
+
 async function fetchEth(address: string) {
   // Ethplorer provides a free 'freekey' for public use (10 req/min limit)
   const apiKey = process.env.ETHPLORER_API_KEY?.trim() || 'freekey';
@@ -115,10 +138,13 @@ async function fetchEth(address: string) {
 
   if (data.error) throw new Error(`Ethplorer: ${data.error.message}`);
 
-  const balance = data.ETH?.balance ?? data.address?.balance ?? 0;
-  const totalReceived = data.address?.receivedEth ?? 0;
-  const totalSent = data.address?.sentEth ?? 0;
-  const txCount = data.address?.countTxs ?? 0;
+  // data.address 는 freekey 에서 주소 문자열 → 객체 필드(balance/countTxs/receivedEth)는 없음.
+  const addrObj = (typeof data.address === 'object' && data.address) ? data.address : undefined;
+  const balance = data.ETH?.balance ?? addrObj?.balance ?? 0;
+  const totalReceived = addrObj?.receivedEth ?? null;  // freekey 미제공 → null(0 위장 금지)
+  const totalSent = addrObj?.sentEth ?? null;
+  // txCount: Ethplorer countTxs 없으면 공개 RPC nonce(발신 거래수)로 대체.
+  const txCount = addrObj?.countTxs ?? (await fetchEthTxCount(address)) ?? 0;
   const usdRate = data.ETH?.price?.rate ?? null;
   const balanceUsd = usdRate ? Math.round(balance * usdRate) : null;
 
