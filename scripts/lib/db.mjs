@@ -806,6 +806,33 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
         c.guidance ?? null, c.sentiment ?? null, 'companyChanges',
         JSON.stringify(c));
     }
+    // 2026-06-05: companyChanges(보통 5건)만 적재하면 그 cycle 의 companyChanges 가 KR-heavy 일 때
+    //   US portfolio 종목이 financials snapshot 이 있는데도 earnings_archive 에서 누락(채움률 ~24%
+    //   원인). finByTicker(전 portfolio financials)를 전부 적재 — companyChanges 중복 ticker 는 skip.
+    //   US: rev/opMgn/netInc/PE(price÷EPS) 전부, KR: rev/opMgn/netInc (PE 는 DART EPS 부재로 null=구조적).
+    const archivedTickers = new Set(companyChanges.map(c => (c.ticker ?? '').toUpperCase()));
+    for (const [tkUp, finData] of Object.entries(finByTicker)) {
+      if (!tkUp || archivedTickers.has(tkUp)) continue;
+      const la = finData?.latestAnnual;
+      if (!la || la.revenueUSD == null) continue;   // 재무 없으면 skip (ETF 등)
+      const rev = Math.round((la.revenueUSD / 1e9) * 100) / 100;
+      let yoy = finData.quarterlyRevenue?.[0]?.yoyPct ?? null;
+      if (yoy == null && Array.isArray(finData.annuals) && finData.annuals.length >= 2) {
+        const a = [...finData.annuals].sort((x, y) => String(y.fiscalYear).localeCompare(String(x.fiscalYear)));
+        if (a[0]?.revenueKRW > 0 && a[1]?.revenueKRW > 0) {
+          yoy = Math.round(((a[0].revenueKRW - a[1].revenueKRW) / a[1].revenueKRW * 100) * 10) / 10;
+        }
+      }
+      const opMargin = la.operatingMarginPct ?? null;
+      const netIncome = la.netIncomeUSD != null ? Math.round((la.netIncomeUSD / 1e9) * 100) / 100 : null;
+      const price = priceByTicker[tkUp];
+      const eps = la.epsDiluted;
+      const peRatio = (price != null && eps != null && eps > 0) ? Math.round((price / eps) * 10) / 10 : null;
+      const quarter = la.fy ? `FY${la.fy}` : (la.fiscalYear ? `FY${la.fiscalYear}` : null);
+      erStmt.run(reportId, now, tkUp, quarter, rev, yoy, opMargin, netIncome, peRatio,
+        null, null, 'portfolio-financials', JSON.stringify({ ticker: tkUp, latestAnnual: la }));
+      archivedTickers.add(tkUp);
+    }
     // insider trades
     const inStmt = db.prepare(`
       INSERT INTO insider_archive
