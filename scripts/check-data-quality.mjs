@@ -168,6 +168,14 @@ async function main() {
     } else {
       info.push(`[G] /insider 한국 기관 매수 ${instBuy}·매도 ${instSell}건 (source=${kf.body?.source ?? '?'})`);
     }
+    // 2b) 기간 차별화 — 1d vs 4w 가 동일값이면 period 파라미터 무효(사용자 "1d=1w=4w=13w 똑같다" 버그).
+    const kf4w = await getJson('/api/korea-flow?period=4w', 25000);
+    const n1 = kf.body?.institutionNet, n4 = kf4w.body?.institutionNet;
+    if (n1 != null && n4 != null && n1 === n4) {
+      issues.push(`[G] /insider 기간 1d=4w 동일값(${n1}) — period 누적 미작동(Naver multi-day 정지 의심)`);
+    } else if (n1 != null && n4 != null) {
+      info.push(`[G] /insider 기간 차별화 OK (1d=${(n1/1e8|0)}억 ≠ 4w=${(n4/1e8|0)}억, 4w effDays=${kf4w.body?.effectiveTradingDays})`);
+    }
   }
 
   // [H] OSINT 동적성 — social(트윗/뉴스)·crypto(거래내역)·sanctions(OFAC) 실데이터 흐르는지.

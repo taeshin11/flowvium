@@ -292,7 +292,7 @@ async function fetchYahooKoreaFallback(): Promise<KoreaFlowEntry[]> {
  *   ⚠️ row[5]=기관, row[6]=외국인 — 과거 코드가 row[5]를 외국인으로 잘못 라벨해 기관 데이터 전체 누락.
  * 개인(individual)은 이 페이지에 없음.
  */
-async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null> {
+async function fetchNaverFrgnEntry(code: string, days = 1): Promise<(KoreaFlowEntry & { actualDays: number }) | null> {
   try {
     const res = await fetch(`https://finance.naver.com/item/frgn.naver?code=${code}`, {
       cache: 'no-store',
@@ -307,7 +307,6 @@ async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null>
     const buf = await res.arrayBuffer();
     const html = new TextDecoder('euc-kr').decode(buf);
 
-    // Extract span.tah cells: date, closePrice, changePct, holdingShares, netBuyShares, ...
     const raw = Array.from(html.matchAll(/<span class="tah[^"]*">([\s\S]*?)<\/span>/g))
       .map(m => m[1].replace(/<[^>]+>/g, '').replace(/[,\s\n]/g, '').trim())
       .filter(v => v.length > 0);
@@ -315,41 +314,50 @@ async function fetchNaverFrgnEntry(code: string): Promise<KoreaFlowEntry | null>
     const dateIdx = raw.findIndex(v => /^\d{4}\.\d{2}\.\d{2}$/.test(v));
     if (dateIdx < 0) return null;
 
-    const row = raw.slice(dateIdx, dateIdx + 9);
-    // row layout: [0]date [1]close [2]change [3]changePct% [4]volume
-    //   [5]기관 순매매량 [6]외국인 순매매량 [7]보유주수 [8]보유율
-    const closePrice = Number(row[1]) || null;
-    // '+' prefix = 순매수, '-' prefix = 순매도. shares × close = KRW 근사.
-    const sharesToKrw = (s: string | undefined) => {
+    // 2026-06-04: frgn.naver 테이블은 ~20+ 일별 행. period(1d/1w/4w/13w) 만큼 행을 합산해
+    //   진짜 multi-day 차별화 (이전엔 1행만 읽어 모든 period 가 동일값이던 버그).
+    // row layout: [0]date [1]close [2]change [3]changePct% [4]volume [5]기관 [6]외국인 [7]보유주수 [8]보유율
+    const sharesToKrw = (close: number | null, s: string | undefined) => {
       const shares = Number((s ?? '0').replace('+', '')) || 0;
-      return closePrice && shares !== 0 ? Math.round(closePrice * shares) : null;
+      return close && shares !== 0 ? Math.round(close * shares) : 0;
     };
-    const institutionNetBuy = sharesToKrw(row[5]);
-    const foreignerNetBuy = sharesToKrw(row[6]);
-
-    const changePctStr = row[3] ?? '0';
-    const changePct = Number(changePctStr.replace('%', '')) || null;
+    let instSum = 0, forSum = 0, actualDays = 0;
+    let latestClose: number | null = null, latestChangePct: number | null = null;
+    for (let d = 0; d < days; d++) {
+      const off = dateIdx + d * 9;
+      const row = raw.slice(off, off + 9);
+      if (!row[0] || !/^\d{4}\.\d{2}\.\d{2}$/.test(row[0])) break; // 더 이상 일별 행 없음
+      const close = Number(row[1]) || null;
+      if (d === 0) { latestClose = close; latestChangePct = Number((row[3] ?? '0').replace('%', '')) || null; }
+      instSum += sharesToKrw(close, row[5]);
+      forSum += sharesToKrw(close, row[6]);
+      actualDays++;
+    }
+    if (actualDays === 0) return null;
 
     return {
       ticker: code,
       name: EN_NAMES[code] ?? code,
       market: 'KOSPI',
-      foreignerNetBuy,
-      institutionNetBuy,
-      individualNetBuy:  null,
-      closePrice,
-      changePct,
+      foreignerNetBuy: forSum || null,
+      institutionNetBuy: instSum || null,
+      individualNetBuy: null,
+      closePrice: latestClose,
+      changePct: latestChangePct,
+      actualDays,
     };
   } catch {
     return null;
   }
 }
 
-async function fetchNaverForeignFlow(): Promise<{ entries: KoreaFlowEntry[]; trdDd: string } | null> {
+async function fetchNaverForeignFlow(days = 1): Promise<{ entries: KoreaFlowEntry[]; trdDd: string; effectiveDays: number } | null> {
   const tickers = Object.keys(EN_NAMES);
-  const results = await Promise.all(tickers.map(c => fetchNaverFrgnEntry(c)));
-  const entries = results.filter((e): e is KoreaFlowEntry => e !== null && (e.foreignerNetBuy !== null || e.institutionNetBuy !== null));
+  const results = await Promise.all(tickers.map(c => fetchNaverFrgnEntry(c, days)));
+  const valid = results.filter((e): e is KoreaFlowEntry & { actualDays: number } => e !== null && (e.foreignerNetBuy !== null || e.institutionNetBuy !== null));
+  const entries: KoreaFlowEntry[] = valid.map(({ actualDays: _d, ...e }) => e);
   if (entries.length === 0) return null;
+  const effectiveDays = Math.max(1, ...valid.map(e => e.actualDays));
   // Derive tradingDay from the raw HTML date (YYYY.MM.DD → YYYYMMDD)
   // All entries share the same date; pick first valid one
   const sampleRes = await fetch(`https://finance.naver.com/item/frgn.naver?code=${tickers[0]}`, {
@@ -365,7 +373,7 @@ async function fetchNaverForeignFlow(): Promise<{ entries: KoreaFlowEntry[]; trd
     const dateStr = raw.find(v => /^\d{4}\.\d{2}\.\d{2}$/.test(v));
     if (dateStr) trdDd = dateStr.replace(/\./g, '');
   }
-  return { entries, trdDd };
+  return { entries, trdDd, effectiveDays };
 }
 
 function buildPayload(all: KoreaFlowEntry[], trdDd: string, extra?: object) {
@@ -413,6 +421,7 @@ export async function GET(req: Request) {
   let all: KoreaFlowEntry[];
   let trdDd: string;
   let dataSource: 'krx' | 'naver-fallback' | 'yahoo-price-only' = 'krx';
+  let naverEffectiveDays = 0; // Naver 폴백이 실제 합산한 거래일 수 (multi-day 차별화)
 
   if (period === '1d') {
     // Single-day with fallback scan (original behaviour)
@@ -421,13 +430,14 @@ export async function GET(req: Request) {
     trdDd = kospi.trdDd >= kosdaq.trdDd ? kospi.trdDd : kosdaq.trdDd;
 
     if (all.length === 0) {
-      // KRX unavailable → try Naver frgn (real foreign flow, institution=null)
-      const naverFlow = await fetchNaverForeignFlow();
+      // KRX unavailable → Naver frgn (1일)
+      const naverFlow = await fetchNaverForeignFlow(1);
       if (naverFlow && naverFlow.entries.length > 0) {
         logger.info('api.korea-flow', 'krx_empty_naver_fallback', { period, tickers: naverFlow.entries.length });
         all = naverFlow.entries;
         trdDd = naverFlow.trdDd;
         dataSource = 'naver-fallback';
+        naverEffectiveDays = naverFlow.effectiveDays;
       } else {
         // Final fallback: Yahoo price data only
         const yahooEntries = await fetchYahooKoreaFallback();
@@ -456,17 +466,15 @@ export async function GET(req: Request) {
     logger.info('api.korea-flow', 'accumulated', { period, days: tradingDays.length, tickers: all.length });
 
     if (all.length === 0) {
-      // For multi-day, use Naver 1d as best available approximation.
-      // 중요: multi-day(1w/4w) 탭에서 Naver 1d 가 들어가면 "1주=5거래일" 라벨과 모순 →
-      // payload 에 fallback:true + effectiveTradingDays:1 + fallbackReason 명시.
-      const naverFlow = await fetchNaverForeignFlow();
+      // 2026-06-04: KRX multi-day 불가 시 Naver frgn.naver 테이블에서 period 만큼 일별 합산 →
+      //   진짜 multi-day 차별화 (이전엔 Naver 1일을 모든 period 에 써서 1d=1w=4w=13w 동일값 버그).
+      const naverFlow = await fetchNaverForeignFlow(cfg.tradingDays);
       if (naverFlow && naverFlow.entries.length > 0) {
-        logger.info('api.korea-flow', 'krx_empty_naver_1d_approx', { period });
+        logger.info('api.korea-flow', 'krx_empty_naver_multiday', { period, days: cfg.tradingDays, effectiveDays: naverFlow.effectiveDays });
         all = naverFlow.entries;
         trdDd = naverFlow.trdDd;
         dataSource = 'naver-fallback';
-        // multi-day 라벨 모순 방지용 메타 — buildPayload extra 로 전달됨
-        // (1d 코드 경로는 cfg.tradingDays === 1 라 영향 없음)
+        naverEffectiveDays = naverFlow.effectiveDays;
       } else {
         const yahooEntries = await fetchYahooKoreaFallback();
         logger.warn('api.korea-flow', 'krx_naver_empty_yahoo_fallback', { period });
@@ -487,14 +495,17 @@ export async function GET(req: Request) {
     }
   }
 
-  // multi-day(1w/4w) 탭이지만 Naver 1d fallback 으로 채워졌으면 effectiveTradingDays=1 로 라벨 모순 차단
-  const isNaverDayFallbackOnMultiDay = dataSource === 'naver-fallback' && cfg.tradingDays > 1;
+  // effectiveTradingDays: Naver 폴백은 실제 합산 거래일(naverEffectiveDays), KRX 는 목표 일수.
+  //   Naver 가 목표보다 적게 합산했으면(테이블 행 부족) fallback:true 로 라벨 모순 표시.
+  const effDays = dataSource === 'naver-fallback' ? naverEffectiveDays : cfg.tradingDays;
+  const naverShort = dataSource === 'naver-fallback' && cfg.tradingDays > 1 && naverEffectiveDays < cfg.tradingDays;
   const payload = buildPayload(all, trdDd, {
     period,
     source: dataSource,
-    ...(isNaverDayFallbackOnMultiDay
-      ? { fallback: true, effectiveTradingDays: 1, fallbackReason: `KRX ${cfg.tradingDays}-day accumulated unavailable — Naver 1-day approximation` }
-      : { effectiveTradingDays: cfg.tradingDays }),
+    effectiveTradingDays: effDays,
+    ...(naverShort
+      ? { fallback: true, fallbackReason: `KRX ${cfg.tradingDays}거래일 불가 — Naver ${effDays}거래일 누적` }
+      : {}),
   });
   await loggedRedisSet(redis, 'api.korea-flow', cfg.key, payload, { ex: cfg.ttl });
   if (!redis) KOREA_MEMORY_CACHE.set(period, { data: payload, expiresAt: Date.now() + (KOREA_MEMORY_TTLS[period] ?? 15 * 60 * 1000) });
