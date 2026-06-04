@@ -767,6 +767,22 @@ function getSession() {
  *
  * 보고서에 sessionFocus 메타 + prompt 에 inject — LLM 이 해당 시장 종목 비중 강화.
  */
+// 2026-06-05 (b) 세션 가중 context: 8B 가 세션 핵심 신호에 attention 집중하도록 dataPriority 추가.
+//   US 세션 = US SEC 신호(13F/Form4/13D-G/N-PORT/options) 우선, KR 세션 = KR 수급/공시/공급망 우선.
+//   모델 교체 없이(VRAM 무관) 프롬프트 attention 만 재가중 — 즉시 품질↑, 안전한 변경.
+const US_PRIORITY = [
+  'Institutional + Insider Signals (US 13F 누적 + Form4 집중매수)',
+  '13D/G 대량보유 변동 (액티비스트/대주주)',
+  'Unusual Options Flow (스마트머니 방향성)',
+  'Short Squeeze Candidates (숏 커버 촉매)',
+  'N-PORT 뮤추얼펀드 보유 변화',
+];
+const KR_PRIORITY = [
+  'Korea Flow — 기관·외국인 수급 (당일 순매수 방향)',
+  'KR 내부자/공시 신호 + 공급망 변화 (Supply Chain Signals)',
+  'Sector Valuations (KR 업종 밸류에이션)',
+  'Institutional 신호 (글로벌 13F — KR ADR/대형주 한정)',
+];
 function getSessionFocus(session) {
   switch (session) {
     case 'morning':
@@ -775,6 +791,7 @@ function getSessionFocus(session) {
         secondary: ['global'],
         label: 'US 장 마감 직후 (전일 close)',
         marketWeight: { us: 60, kr: 20, global: 20 },
+        dataPriority: US_PRIORITY,
       };
     case 'afternoon':
       return {
@@ -782,6 +799,7 @@ function getSessionFocus(session) {
         secondary: ['japan', 'china'],
         label: 'KR 장 마감 직후 + 아시아',
         marketWeight: { kr: 50, us: 25, asia: 25 },
+        dataPriority: KR_PRIORITY,
       };
     case 'evening':
       return {
@@ -789,6 +807,7 @@ function getSessionFocus(session) {
         secondary: ['premarket', 'global'],
         label: 'US 장 시작 직후 (premarket → open)',
         marketWeight: { us: 70, global: 20, kr: 10 },
+        dataPriority: US_PRIORITY,
       };
     case 'noon':
       // 12:00 KST = 03:00 UTC → KR 장중 + 아시아 활발, US 마감.
@@ -797,6 +816,7 @@ function getSessionFocus(session) {
         secondary: ['china', 'japan'],
         label: 'KR 장중 + 아시아 (점심)',
         marketWeight: { kr: 50, asia: 30, us: 20 },
+        dataPriority: KR_PRIORITY,
       };
     case 'midnight':
       // 00:00 KST = 15:00 UTC → US 장중(오전), 글로벌. KR 마감.
@@ -805,9 +825,10 @@ function getSessionFocus(session) {
         secondary: ['global'],
         label: 'US 장중 (자정)',
         marketWeight: { us: 65, global: 20, kr: 15 },
+        dataPriority: US_PRIORITY,
       };
     default:
-      return { primary: 'global', secondary: [], label: '글로벌', marketWeight: {} };
+      return { primary: 'global', secondary: [], label: '글로벌', marketWeight: {}, dataPriority: [...US_PRIORITY, ...KR_PRIORITY] };
   }
 }
 
@@ -4291,10 +4312,14 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
   // 2026-05-29 F24: 세션별 시장 focus inject — 해당 시장 종목 비중 강화
   const session = getSession();
   const focus = getSessionFocus(session);
+  const priorityLines = (focus.dataPriority ?? []).map((d, i) => `   ${i + 1}. ${d}`).join('\n');
   const focusBlock = `[Session Focus] ${session.toUpperCase()} (${focus.label})\n` +
     `Primary 시장: ${focus.primary} | 보조: ${focus.secondary.join('/')}\n` +
     `목표 비중: ${Object.entries(focus.marketWeight).map(([k,v])=>`${k.toUpperCase()} ${v}%`).join(' / ')}\n` +
-    `→ 이 세션은 위 primary 시장 종목을 우선 추천 (해당 시장 ≥${focus.marketWeight[focus.primary] ?? 50}%).`;
+    `→ 이 세션은 위 primary 시장 종목을 우선 추천 (해당 시장 ≥${focus.marketWeight[focus.primary] ?? 50}%).\n` +
+    // 2026-06-05 (b) 세션 가중: 8B attention 을 세션 핵심 신호에 집중시킴.
+    `[Session Data Priority — 아래 신호를 attention 최우선 순으로 가중. 종목 선정·entry·rationale 시 이 순서로 근거 채택, 그 외 블록은 보조 참고]\n` +
+    priorityLines;
   // 2026-05-29: Karpathy pathway 작동 검증 — prompt inject 여부 stdout 로 표시.
   if (qualityFeedback) {
     console.log('  [F19/SkillOpt] prompt 에 Quality Feedback inject ✓');
