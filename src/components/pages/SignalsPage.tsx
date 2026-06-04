@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { type InstitutionalSignal } from '@/data/institutional-signals';
-import { newsGapData } from '@/data/news-gap';
+import { type NewsGapEntry } from '@/data/news-gap';
 import { sectors } from '@/data/sectors';
 import dynamic from 'next/dynamic';
 const StockSupplyModal = dynamic(() => import('@/components/StockSupplyModal'), { ssr: false });
@@ -113,12 +113,20 @@ export default function SignalsPage({
     return result;
   }, [sectorFilter, actionFilter, institutionFilter, sortBy]);
 
-  // Pre-computed lookup map for newsGapData — avoids O(n²) in table render
-  const newsGapMap = useMemo(() => {
-    const map: Record<string, typeof newsGapData[number]> = {};
-    for (const entry of newsGapData) map[entry.ticker] = entry;
-    return map;
+  // 2026-06-04: 정적 newsGapData → 라이브 /api/news-gap (시계열, 정적 금지).
+  const [liveNewsGap, setLiveNewsGap] = useState<NewsGapEntry[]>([]);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/news-gap', { signal: ctrl.signal }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (!ctrl.signal.aborted && Array.isArray(d?.entries)) setLiveNewsGap(d.entries); }).catch(() => {});
+    return () => ctrl.abort();
   }, []);
+  // Pre-computed lookup map — avoids O(n²) in table render
+  const newsGapMap = useMemo(() => {
+    const map: Record<string, NewsGapEntry> = {};
+    for (const entry of liveNewsGap) map[entry.ticker] = entry;
+    return map;
+  }, [liveNewsGap]);
 
   // Reset to page 0 when filters/sort change
   const pagedSignals = useMemo(() => {

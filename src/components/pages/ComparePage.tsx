@@ -4,8 +4,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { allCompanies, type Company } from '@/data/companies';
-import { institutionalSignals } from '@/data/institutional-signals';
-import { newsGapData } from '@/data/news-gap';
+import { type InstitutionalSignal } from '@/data/institutional-signals';
+import { type NewsGapEntry } from '@/data/news-gap';
 import { cascadePatterns } from '@/data/cascades';
 import {
   BarChart,
@@ -69,8 +69,19 @@ function ScoreBar({ value, max = 100, color }: { value: number; max?: number; co
 function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'right' }) {
   const t = useTranslations('compare');
   const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
-  const signals = institutionalSignals.filter((s) => s.ticker === company.ticker).slice(0, 3);
-  const ngEntry = newsGapData.find((e) => e.ticker === company.ticker);
+  // 2026-06-04: 정적 institutionalSignals/newsGapData → 라이브 API (시계열, 정적 금지).
+  const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
+  const [liveNewsGap, setLiveNewsGap] = useState<NewsGapEntry[]>([]);
+  useEffect(() => {
+    const c = new AbortController();
+    fetch('/api/signals', { signal: c.signal }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (!c.signal.aborted && Array.isArray(d?.signals)) setLiveSignals(d.signals); }).catch(() => {});
+    fetch('/api/news-gap', { signal: c.signal }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (!c.signal.aborted && Array.isArray(d?.entries)) setLiveNewsGap(d.entries); }).catch(() => {});
+    return () => c.abort();
+  }, []);
+  const signals = liveSignals.filter((s) => s.ticker === company.ticker).slice(0, 3);
+  const ngEntry = liveNewsGap.find((e) => e.ticker === company.ticker);
   const cascades = cascadePatterns.filter((c) =>
     c.sequence.some((s) => s.ticker === company.ticker)
   );
@@ -354,6 +365,15 @@ export default function ComparePage({ slug }: { slug: string }) {
   const [ticker1, setTicker1] = useState(initialTicker1);
   const [ticker2, setTicker2] = useState(initialTicker2);
 
+  // 2026-06-04: 정적 newsGapData → 라이브 /api/news-gap.
+  const [liveNewsGap, setLiveNewsGap] = useState<NewsGapEntry[]>([]);
+  useEffect(() => {
+    const c = new AbortController();
+    fetch('/api/news-gap', { signal: c.signal }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (!c.signal.aborted && Array.isArray(d?.entries)) setLiveNewsGap(d.entries); }).catch(() => {});
+    return () => c.abort();
+  }, []);
+
   const company1 = allCompanies.find((c) => c.ticker.toUpperCase() === ticker1.toUpperCase());
   const company2 = allCompanies.find((c) => c.ticker.toUpperCase() === ticker2.toUpperCase());
 
@@ -373,8 +393,8 @@ export default function ComparePage({ slug }: { slug: string }) {
       }));
   }, [company1, company2]);
 
-  const ngEntry1 = newsGapData.find((e) => e.ticker === ticker1);
-  const ngEntry2 = newsGapData.find((e) => e.ticker === ticker2);
+  const ngEntry1 = liveNewsGap.find((e) => e.ticker === ticker1);
+  const ngEntry2 = liveNewsGap.find((e) => e.ticker === ticker2);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

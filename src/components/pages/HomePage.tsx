@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { sectors } from '@/data/sectors';
-import { institutionalSignals } from '@/data/institutional-signals';
+import { type InstitutionalSignal } from '@/data/institutional-signals';
 import {
   ArrowRight,
   Network,
@@ -649,9 +649,6 @@ const MINI_LINKS = [
   { from: 'AMD',  to: 'MSFT' },
 ];
 const MINI_NODE_MAP = Object.fromEntries(MINI_NODES.map((n) => [n.id, n]));
-const TOP_SIGNALS = institutionalSignals
-  .filter((s) => s.action === 'accumulating' || s.action === 'new_position')
-  .slice(0, 5);
 const STEP_MS = 500;
 const HOLD_MS = 1200;
 const FADE_MS = 800;
@@ -932,7 +929,18 @@ export default function HomePage() {
   const features = useInView();
   const howItWorks = useInView();
 
-  const topSignals = TOP_SIGNALS;
+  // 2026-06-04: 정적 institutionalSignals → 라이브 /api/signals (시계열, 정적 금지).
+  const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/signals', { signal: ctrl.signal }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (!ctrl.signal.aborted && Array.isArray(d?.signals)) setLiveSignals(d.signals); }).catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+  const topSignals = useMemo(
+    () => liveSignals.filter((s) => s.action === 'accumulating' || s.action === 'new_position').slice(0, 5),
+    [liveSignals]
+  );
 
   return (
     <div>
