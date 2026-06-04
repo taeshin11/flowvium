@@ -67,10 +67,20 @@ const checks = [
   {
     name: 'audit-company-pages',
     script: 'scripts/audit-company-pages.mjs',
-    args: CI ? ['8'] : ['20'], // CI 는 sample 8 로 속도 우선
-    desc: '1,210 종목 × 9 endpoint sample',
+    args: CI ? ['8'] : ['20'], // deep(9-API)는 표본 — 깊이 점검용. 전수는 company-coverage 가 담당.
+    desc: '종목 × 9 endpoint deep 표본 (깊이)',
     critical: false,
-    dimensions: ['1,210 종목 × 9 endpoint body 검증 (validator 정확)'],
+    dimensions: ['9 endpoint body 검증 (validator 정확) — 표본'],
+  },
+  {
+    // 2026-06-05: deep 표본(40종목)이 "94%"를 전수처럼 오해시킨 사각지대 → core 전수 보장 추가.
+    //   가장 가벼운 stock-price 를 1338 전종목 동시 핑(~1-2분) — 모든 /company 페이지 핵심데이터 보유 검증.
+    name: 'audit-company-coverage',
+    script: 'scripts/audit-company-coverage.mjs',
+    args: [],
+    desc: '전수 1338 종목 core(stock-price) 커버리지',
+    critical: false,
+    dimensions: ['전 종목 /company 핵심데이터 보유 (표본 아님, 전수)'],
   },
   {
     name: 'check-static-fallbacks',

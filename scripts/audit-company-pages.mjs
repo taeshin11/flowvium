@@ -16,23 +16,32 @@
 import { readFileSync } from 'node:fs';
 
 const BASE = process.env.AUDIT_BASE ?? 'https://flowvium.net';
-const SAMPLE_SIZE = parseInt(process.argv[2] ?? '40', 10); // 기본 40 ticker
 const TIMEOUT = 30000;  // DART API 가 ~15-20s 소요 — 12s 부족
 
 const candidates = JSON.parse(readFileSync('data/candidate-tickers.json', 'utf8'));
 const us = candidates.tickers.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ'));
 const kr = candidates.tickers.filter(t => t.endsWith('.KS') || t.endsWith('.KQ'));
+const POOL = us.length + kr.length;
 
-// 무작위 sample
+// 2026-06-05: 기본 *전수*(자가호스팅 부하 무관). 빠른 점검만 명시적 N. 사각지대 방지 — 표본이
+//   전수처럼 오해되지 않게 SCOPE 를 항상 출력(이전 기본 40 → "94%"가 3% 표본인 줄 안 보였음).
+const arg = process.argv[2];
+const FULL = !arg || arg === 'full' || (parseInt(arg, 10) >= POOL);
+const SAMPLE_SIZE = FULL ? POOL : parseInt(arg, 10);
+
 function pick(arr, n) {
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, n);
 }
-const usSample = pick(us, Math.ceil(SAMPLE_SIZE / 2));
-const krSample = pick(kr, Math.floor(SAMPLE_SIZE / 2));
+const usSample = FULL ? us : pick(us, Math.ceil(SAMPLE_SIZE / 2));
+const krSample = FULL ? kr : pick(kr, Math.floor(SAMPLE_SIZE / 2));
+const auditedN = usSample.length + krSample.length;
+const SCOPE = FULL
+  ? `전수 ${POOL} 종목 (US ${us.length} + KR ${kr.length})`
+  : `⚠️ 표본 ${auditedN} of ${POOL} (${Math.round(auditedN / POOL * 100)}% — 전수 아님, 전수는 인자 'full')`;
 
 console.log(`\n═══════════════════════════════════════════════════════════`);
-console.log(`  Company pages audit — US ${usSample.length} + KR ${krSample.length} = ${usSample.length + krSample.length} 종목`);
+console.log(`  Company pages audit — ${SCOPE}`);
 console.log(`  Base: ${BASE} | Timeout: ${TIMEOUT}ms`);
 console.log(`═══════════════════════════════════════════════════════════\n`);
 
@@ -128,5 +137,6 @@ for (const [api, s] of Object.entries(stats)) {
 
 const totalChecks = Object.values(stats).reduce((s, v) => s + v.ok + v.empty + v.error, 0);
 const okTotal = Object.values(stats).reduce((s, v) => s + v.ok, 0);
-console.log(`\n## 종합: ${okTotal}/${totalChecks} ok (${(okTotal/totalChecks*100).toFixed(0)}%)`);
+console.log(`\n## 종합: ${okTotal}/${totalChecks} ok (${(okTotal/totalChecks*100).toFixed(0)}%) — ${SCOPE}`);
+if (!FULL) console.log(`   ⚠️ 표본 검증임 — 전수 커버리지는 'node scripts/audit-company-pages.mjs full' (1338종목)`);
 process.exit(0);

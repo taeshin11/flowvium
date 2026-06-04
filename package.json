@@ -22,6 +22,8 @@
     "verify:report": "node scripts/verify-report.mjs",
     "verify:coverage": "node scripts/audit-coverage.mjs",
     "verify:company": "node scripts/audit-company-pages.mjs 30",
+    "verify:company:full": "node scripts/audit-company-pages.mjs full",
+    "verify:company:coverage": "node scripts/audit-company-coverage.mjs",
     "check:gitrisk": "node scripts/check-uncommitted-risk.mjs",
     "build:names": "node scripts/build-company-names.mjs",
     "build:universe": "node scripts/build-company-names.mjs && node scripts/build-universe-search.mjs",
