@@ -78,9 +78,14 @@ function translationSucceeded(orig: NewsWithCascade[], trans: NewsWithCascade[],
   // 제목이 원문과 하나라도 달라야 번역 시도 성공 (identity/실패 배제)
   const changed = sample.some((t, i) => (t.title ?? '').trim() !== (orig[i]?.title ?? '').trim());
   if (!changed) return false;
-  // CJK 로케일은 target script 존재까지 확인 (영어 캐시 오염 추가 차단)
+  // 2026-06-04: sample.some() 는 첫 5개 중 1개만 번역돼도 통과 → partial(40-50%) 이 캐시됨(ja/zh leak).
+  //   전체 제목의 ≥70% 가 target script 여야 성공으로 인정 → partial 캐시 차단(재번역 유도).
   const re = CJK_RE[locale];
-  if (re) return sample.some(t => re.test(t.title ?? ''));
+  if (re) {
+    const titles = trans.map(t => t.title ?? '').filter(Boolean);
+    if (!titles.length) return false;
+    return titles.filter(t => re.test(t)).length >= titles.length * 0.7;
+  }
   return true;
 }
 
