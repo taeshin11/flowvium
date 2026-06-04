@@ -5,8 +5,16 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3, Target, Shield, Layers } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
+
+// 2026-06-04: ticker → 회사명 (이름 우선 표시, 코드는 작게). stopLossRationale 등 name 없는 항목용 fallback.
+const TICKER_NAME: Record<string, string> = Object.fromEntries(UNIVERSE_SEARCH.map(c => [c.ticker, c.name]));
+function displayName(ticker: string, fallback?: string): string {
+  const n = (fallback && fallback !== ticker) ? fallback : (TICKER_NAME[ticker] ?? '');
+  return n || ticker;
+}
 
 // ── KPI types ─────────────────────────────────────────────────────────────────
 interface KpiState<T> { loading: boolean; error: boolean; value: T | null; }
@@ -157,7 +165,7 @@ function SellCard({ item }: { item: SellItem }) {
     <div className={`rounded-lg border p-2.5 ${urgencyColor}`}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="font-bold text-sm text-gray-900">
-          {urgencyTag} <Link href={`/${locale}/company/${item.ticker}`} className="text-violet-700 hover:text-violet-900 hover:underline">{item.ticker}</Link> <span className="text-[10px] font-normal text-gray-500">{item.name}</span>
+          {urgencyTag} <Link href={`/${locale}/company/${item.ticker}`} className="text-violet-700 hover:text-violet-900 hover:underline">{displayName(item.ticker, item.name)}</Link> <span className="text-[10px] font-normal text-gray-400 font-mono">{item.ticker}</span>
         </span>
         {item.pnlPct != null && (
           <span className={`text-xs font-semibold ${pnlColor}`}>
@@ -215,7 +223,8 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <Link href={`/${locale}/company/${item.ticker}`} className="font-bold text-violet-700 hover:text-violet-900 hover:underline">{item.ticker}</Link>
+                <Link href={`/${locale}/company/${item.ticker}`} className="font-bold text-violet-700 hover:text-violet-900 hover:underline">{displayName(item.ticker, item.name)}</Link>
+                <span className="text-[10px] font-normal text-gray-400 font-mono">{item.ticker}</span>
                 {item.action === 'buy' && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-500 text-white">{t('actionBuy')}</span>
                 )}
@@ -226,7 +235,7 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
                   {confidenceLabel}
                 </span>
               </div>
-              <p className="text-xs text-gray-500">{item.name} · {item.sector}</p>
+              <p className="text-xs text-gray-500">{item.sector}</p>
             </div>
           </div>
           <div className="text-right">
@@ -1033,7 +1042,7 @@ export default function ReportPage() {
                   <p className="text-[10px] font-bold text-red-700">{t('stopLossRationaleLabel')}</p>
                   {data.stopLossRationale.map((s, i) => (
                     <div key={i} className="flex gap-2 text-xs">
-                      <span className="font-bold text-red-800 min-w-[5.5rem] shrink-0">{s.ticker}</span>
+                      <span className="min-w-[6.5rem] shrink-0"><Link href={`/${locale}/company/${s.ticker}`} className="font-bold text-red-800 hover:underline">{displayName(s.ticker)}</Link> <span className="text-[9px] font-normal text-gray-400 font-mono">{s.ticker}</span></span>
                       <span className="text-gray-600">{s.rationale}</span>
                     </div>
                   ))}
@@ -1076,8 +1085,8 @@ export default function ReportPage() {
                     <div key={e.ticker} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
                       <div className="flex items-center justify-between mb-0.5">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <Link href={`/${locale}/company/${e.ticker}`} className="font-bold text-sm font-mono text-violet-700 hover:underline shrink-0">{e.ticker}</Link>
-                          <span className="text-[11px] text-gray-500 truncate">{e.name}</span>
+                          <Link href={`/${locale}/company/${e.ticker}`} className="font-bold text-sm text-violet-700 hover:underline shrink-0">{e.name}</Link>
+                          <span className="text-[10px] text-gray-400 font-mono truncate">{e.ticker}</span>
                           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${catCls}`}>{t(`etfCat_${e.category}`)}</span>
                         </div>
                         {e.price != null && (

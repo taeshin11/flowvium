@@ -274,17 +274,34 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string, tf
 
 // ── AI call ───────────────────────────────────────────────────────────────────
 // 통합 cascade(vLLM → GROQ → Gemini)로 위임. 자세한 체인 설명은 ai-providers.ts 참조.
+// 2026-06-04: 자가호스팅 — 로컬 Ollama 우선. cloud(callAIProvider)는 quota 소진으로 fallbackBrief(영어)
+//   만 나오던 문제(홈 daily-brief 가 한국어 미생성) 해결. 실패 시 cloud fallback.
+async function callOllamaBrief(prompt: string): Promise<string | null> {
+  try {
+    const res = await fetch('http://localhost:11434/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.6, max_tokens: 2500,
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+    if (!res.ok) return null;
+    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    let t = d.choices?.[0]?.message?.content?.trim() || '';
+    t = t.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    return t || null;
+  } catch { return null; }
+}
+
 export async function callAI(prompt: string): Promise<{ text: string; source: string; attempts?: unknown }> {
-  // maxTokens 1800 → 1200: 4-section JSON (title+content+3 bullets each) + outlook ≈ 400-700 tokens;
-  //   1800은 과도한 버퍼. 1200으로도 truncation 없이 충분 (실측 ~500-600 tokens).
-  // skipVllm=true: EXAONE-2.4B는 max_model_len=1024로 긴 JSON 생성에 부적합.
-  //   vLLM 터널이 살아있어도 GROQ 70b가 이 용도에 훨씬 적합.
+  // 1차: 로컬 Ollama (자가호스팅, cloud quota 무관)
+  const ollama = await callOllamaBrief(prompt);
+  if (ollama) return { text: ollama, source: 'ollama' };
+  // 2차: cloud 체인 (GROQ 70b 등)
   const r = await callAIProvider(prompt, {
-    tag: 'daily-brief',
-    maxTokens: 1200,
-    temperature: 0.7,
-    skipVllm: true,
-    timeoutMs: 30000,
+    tag: 'daily-brief', maxTokens: 1200, temperature: 0.7, skipVllm: true, timeoutMs: 30000,
   });
   return { text: r.text, source: r.source, attempts: r.attempts };
 }
@@ -585,8 +602,14 @@ function summariseSupply(): string {
 }
 
 // ── Build rich prompt covering every tab ─────────────────────────────────────
-export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
+const BRIEF_LANG: Record<string, string> = {
+  ko: 'Korean', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
+  es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', ru: 'Russian', ar: 'Arabic',
+  hi: 'Hindi', th: 'Thai', vi: 'Vietnamese', id: 'Indonesian', tr: 'Turkish',
+};
+export function buildPrompt(tf: Timeframe, ctx?: TabContext, locale = 'en'): string {
   const tfLabel = _TF[tf].label;
+  const lang = BRIEF_LANG[locale]; // 2026-06-04: 대상언어 생성 (ko 등). en 이면 undefined → 영어.
   const signals = ctx?.signals ?? [];
   const { buys, cuts } = summariseSignals(signals);
   const { stakes, gaps } = summariseNewsGap();
@@ -641,7 +664,8 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext): string {
     .map(([k, v]) => `[${k}] ${v}`)
     .join('\n');
   const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-  return `Flowvium ${tfLabel} report ${today} — live tab data below. Synthesize all tabs and return English JSON only.
+  const langInstr = lang ? `Write ALL text values (title, content, bullets, outlook) in ${lang}. Keep tickers/numbers/JSON keys unchanged.` : 'Return English JSON only.';
+  return `Flowvium ${tfLabel} report ${today} — live tab data below. Synthesize all tabs. ${langInstr}
 
 ${body}
 

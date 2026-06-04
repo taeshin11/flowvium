@@ -28,6 +28,9 @@ export async function GET(request: Request) {
   // 단일 소스 parseTimeframe 으로 정규화 — invalid tf 가 캐시 키 분기와 라벨/retKey 사이의
   // 모순을 만들지 않도록 경계에서 정제
   const tf: Timeframe = parseTimeframe(searchParams.get('tf'));
+  // 2026-06-04: locale 별 캐시/생성 — 이전엔 tf 만 키로 써서 영어 1개를 전 언어에 서빙(ko 미번역).
+  const locale = (searchParams.get('locale') || 'en').trim();
+  const lkey = locale === 'en' ? cacheKey(tf) : `${cacheKey(tf)}:${locale}`;
   const force = searchParams.get('force') === '1';
   const debug = searchParams.get('debug') === '1';
   // probe=1: return cached or data-fallback immediately without AI — used by verify-metrics
@@ -37,7 +40,7 @@ export async function GET(request: Request) {
   const redis = createRedis();
   if (redis && !force) {
     try {
-      const cached = await redis.get(cacheKey(tf));
+      const cached = await redis.get(lkey);
       if (cached) {
         logger.info('api.daily-brief', 'cache_hit', { tf });
         return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
@@ -106,7 +109,7 @@ export async function GET(request: Request) {
     },
   } : null;
 
-  const prompt = buildPrompt(tf, ctx);
+  const prompt = buildPrompt(tf, ctx, locale);
   let brief = null;
   let aiDiag: { source?: string; textLength?: number; textSample?: string; parsed?: boolean; error?: string; attempts?: unknown } = {};
   try {
@@ -145,7 +148,7 @@ export async function GET(request: Request) {
   if (redis && isFreshAi) {
     // Write both primary (date-keyed) and stale (date-free) keys.
     await Promise.allSettled([
-      loggedRedisSet(redis, 'api.daily-brief', cacheKey(tf), brief, { ex: 26 * 60 * 60 }),
+      loggedRedisSet(redis, 'api.daily-brief', lkey, brief, { ex: 26 * 60 * 60 }),
       loggedRedisSet(redis, 'api.daily-brief', staleCacheKey(tf), brief, { ex: 48 * 60 * 60 }),
     ]);
   } else if (!redis && isAiQuality) {

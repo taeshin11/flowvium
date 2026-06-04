@@ -3235,14 +3235,20 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
   for (const s of sectorAllocation) {
     if (s.stance === 'overweight') add(SECTOR_ETF[(s.sector || '').toLowerCase()], `${s.sector} 비중확대 — 섹터 ETF 분산 노출`, 'sector');
   }
-  // 3) 강세 지역 → 지역 ETF (최대 3)
-  let regionN = 0;
+  // 3) 국가별 ETF — 분석한 모든 국가(한국/중국/일본/대만/인도 등)를 스탠스와 함께 (2026-06-04 사용자 요청)
+  const KR_REGION_LABEL = { us: '미국', korea: '한국', japan: '일본', china: '중국', taiwan: '대만', india: '인도', brazil: '브라질', australia: '호주', europe: '유럽' };
   for (const [r, v] of Object.entries(regionStances)) {
-    if (v?.stance === 'bullish' && REGION_ETF[r] && regionN < 3) { add(REGION_ETF[r], `${r} 강세 — ${(v.thesis || '').slice(0, 28)}`, 'region'); regionN++; }
+    if (!REGION_ETF[r] || r === 'us') continue; // us 는 core(SPY/QQQ)로 이미 커버
+    const st = v?.stance;
+    const label = KR_REGION_LABEL[r] ?? r;
+    const note = st === 'bullish' ? `${label} 강세 — ${(v.thesis || '').slice(0, 24)}`
+      : st === 'bearish' ? `${label} 약세 — 비중축소 검토`
+      : `${label} 중립 — ${(v.thesis || '관망').slice(0, 24)}`;
+    add(REGION_ETF[r], note, 'region');
   }
   // 4) 방어 (고위험/약세)
   if (riskLevel === 'high' || stance === 'bearish') { add('TLT', '리스크 헤지 — 미국 장기국채', 'defensive'); add('GLD', '안전자산 — 금', 'defensive'); }
-  const list = [...picks.values()].slice(0, 8);
+  const list = [...picks.values()].slice(0, 16);  // core + sector + 국가별(8) + defensive 수용
   // 가격: livePrices 우선, 없으면 batch-prices 라이브
   const need = list.map(e => e.ticker).filter(t => !(livePrices?.get(t)?.price));
   let fetched = {};
