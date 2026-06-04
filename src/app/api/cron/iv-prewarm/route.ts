@@ -27,7 +27,9 @@ export const maxDuration = 60;
 const CACHE_TTL = 4 * 60 * 60;
 const STALE_TTL = 24 * 60 * 60;
 const NEG_CACHE_TTL = 60 * 60;
-const CONCURRENCY = 4;
+// 2026-06-04: 4→2 — 티커당 base+만기 병렬 요청이 4 워커와 곱해져 Yahoo 429(rate-limit) 유발.
+//   2 로 낮춰 peak 동시요청 절반. 만기 4개 축소(yahoo-chain)와 함께 429 회피.
+const CONCURRENCY = 2;
 
 interface PrewarmResult {
   ticker: string;

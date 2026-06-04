@@ -112,11 +112,13 @@ async function fetchExpirationDates(
   const params = crumb ? `?crumb=${encodeURIComponent(crumb)}` : '';
   const url = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(ticker)}${params}`;
   try {
-    const res = await fetch(url, {
-      headers: cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(8000),
-    });
+    const hdrs = cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA };
+    let res = await fetch(url, { headers: hdrs, cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    // 2026-06-04: Yahoo 429(rate-limit) 시 1회 백오프 재시도 — prewarm burst 로 자주 발생.
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 1200));
+      res = await fetch(url, { headers: hdrs, cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    }
     if (!res.ok) {
       logger.warn(SOURCE, 'fetch_failed', { ticker, status: res.status });
       return null;
@@ -142,11 +144,12 @@ async function fetchExpiry(
     : `?date=${expirationUnix}`;
   const url = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(ticker)}${params}`;
   try {
-    const res = await fetch(url, {
-      headers: cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(8000),
-    });
+    const hdrs = cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA };
+    let res = await fetch(url, { headers: hdrs, cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 1200));
+      res = await fetch(url, { headers: hdrs, cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    }
     if (!res.ok) return null;
     const json = await res.json();
     return json?.optionChain?.result?.[0] ?? null;
@@ -182,7 +185,8 @@ export async function fetchYahooOptionChain(ticker: string): Promise<OptionChain
     // 7~120일 비어있으면 가장 가까운 만기만이라도 사용
     targetUnix.push(allUnix[0]);
   }
-  const limited = targetUnix.slice(0, 6);
+  // 2026-06-04: 만기 6→4 축소 — 30d/90d ATM 보간엔 4개면 충분. 요청수 감소로 Yahoo 429 회피.
+  const limited = targetUnix.slice(0, 4);
 
   const expiries: OptionExpiry[] = [];
   // 첫 번째 응답에 이미 가까운 만기 calls/puts 가 있으면 활용
