@@ -237,5 +237,39 @@ for (const issue of issues) {
 
 console.log('📖 규칙: CLAUDE.md → "정적 데이터 폴백 금지 규칙" 참고\n');
 
+// ── [Pattern C] 페이지 컴포넌트의 정적 시계열 데이터 import (2026-06-04 신설) ──────────
+//   사각지대: 기존 스캔은 src/app/api + src/lib 만 봐서, 페이지가 직접 import 하는 정적
+//   시계열 데이터(institutional-signals=13F, news-gap=시장)가 무검증이었음 (cascade/institutionalSignals
+//   /newsGapData 가 사용자에게 "라이브"처럼 보이던 원인). 시계열 데이터는 라이브 API 로 받아야 함.
+//   구조/설정 데이터(sectors, sector-context, cascades 관계, macro-narratives)는 정적 허용.
+const PAGES_DIR = resolve(ROOT, 'src/components/pages');
+const TIME_SERIES_STATIC = ['institutional-signals', 'news-gap']; // 라이브여야 함(13F/시장 시계열)
+const pageStaticIssues = [];
+try {
+  for (const file of walkDir(PAGES_DIR)) {
+    const rel = getRelPath(file);
+    const content = readFileSync(file, 'utf8');
+    for (const m of content.matchAll(/^import\s+\{([^}]+)\}\s+from\s+'@\/data\/([a-z-]+)'/gm)) {
+      const mod = m[2];
+      if (!TIME_SERIES_STATIC.includes(mod)) continue;
+      // inline `type X` 명세 + 헬퍼 함수 제외 — 실제 정적 데이터 value binding 만 flag.
+      const bindings = m[1].split(',').map(s => s.trim()).filter(b => b && !b.startsWith('type '));
+      const dataBinding = bindings.find(b => /^(institutionalSignals|newsGapData)$/.test(b));
+      if (dataBinding) pageStaticIssues.push({ file: rel, mod, imports: dataBinding });
+    }
+  }
+} catch { /* PAGES_DIR 없음 */ }
+
+if (pageStaticIssues.length > 0) {
+  console.log(`🚨 [Pattern C] 페이지가 정적 시계열 데이터 직접 import (라이브 API 로 받아야 함): ${pageStaticIssues.length}건`);
+  for (const p of pageStaticIssues) {
+    console.log(`  📄 ${p.file} — { ${p.imports} } from '@/data/${p.mod}'`);
+    console.log(`     → /api 라이브 엔드포인트로 교체 (정적 시계열 = 사용자에게 stale '라이브' 위장)`);
+  }
+  console.log('');
+} else {
+  console.log('✅ [Pattern C] 페이지 정적 시계열 import 없음\n');
+}
+
 // 경고만 출력 (빌드 실패 아님)
 process.exit(0);
