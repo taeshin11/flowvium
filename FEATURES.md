@@ -1082,6 +1082,7 @@ ownership-alerts 적용).
 
 | 잡 경로 | 실행 시각 (KST) | 주요 작업 |
 |---------|----------------|----------|
+| `run-report.bat` (Windows Task Scheduler, 로컬) | **트리거 06:40·11:40·15:40·21:10·23:40 → 발간 07:00·12:00·16:00·21:30·00:00 KST** | AI 보고서 5슬롯 생성(midnight/morning/noon/afternoon/evening) → Ollama 다단계 → 정시 sleep 후 발간. 세션 단일소스 `data/report-sessions.json`, drift는 check-data-quality [J] 가 감지 (2026-06-04 noon/midnight 추가) |
 | `cron/update-all` | 07:10 · 16:00 · 21:10 KST | 13개 소스 병렬 워밍 → flow-analysis → daily-brief ×3 → stock-supply pre-warm → news-cascade |
 | `cron/update-signals` | 매일 02:00 UTC | EDGAR 13F 파싱 → Redis 저장 → Alpha Vantage 뉴스갭 갱신 → ISR revalidate |
 | `cron/update-credit-balance` | 스케줄 | FRED + TWSE 신용잔고 갱신 → ISR revalidate |
