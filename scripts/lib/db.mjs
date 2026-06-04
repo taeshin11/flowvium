@@ -749,10 +749,14 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
     for (const s of shortSqueeze) {
       const tkUp = (s.ticker ?? '').toUpperCase();
       const siEntry = shortByTicker[tkUp];
+      // 2026-06-05: rationale 100% NULL fix — LLM squeeze 항목엔 rationale 필드가 없고 timing/risk
+      //   텍스트만 있음 → score+timing+risk 로 합성. (siEntry/명시 rationale 우선.)
+      const synthRationale = [s.score != null ? `squeeze ${s.score}` : null, s.timing, s.risk].filter(Boolean).join(' · ') || null;
+      const rationale = s.rationale ?? siEntry?.rationale ?? synthRationale;
       sqStmt.run(reportId, now, s.ticker ?? '', s.score ?? null,
         s.shortRatio ?? siEntry?.shortRatio ?? null,
         s.shortPct ?? siEntry?.shortFloatPct ?? siEntry?.shortPct ?? null,
-        s.timing ?? null, s.risk ?? null, s.rationale ?? siEntry?.rationale ?? null);
+        s.timing ?? null, s.risk ?? null, rationale);
     }
     // 기업 실적 (companyChanges + company-financials snapshot 결합)
     const erStmt = db.prepare(`
@@ -940,11 +944,26 @@ export function saveRecommendations(report, reportId) {
 }
 
 /** Outcome 한 건 기록 (recommendation 평가 결과). */
+/**
+ * 2026-06-05: outcome 성과 기반 품질점수(0-100) — *per-outcome* 실제 품질.
+ *   추천이 시장(SPY) 대비 얼마나 잘했나 = alpha + 결과(target hit/stop) 보정.
+ *   기존엔 보고서 전체 quality_score 만 복사(추천별 변별 0) → outcome 학습이 무의미했음.
+ *   alpha 1%p = 2점, hit_target +15, stop_loss −15, sold/expired 중립. 50 중심 clamp.
+ */
+export function computeOutcomeQuality({ pnl_pct, spy_return, outcome }) {
+  if (pnl_pct == null) return null;
+  const alpha = pnl_pct - (spy_return ?? 0);
+  let score = 50 + alpha * 2;
+  if (outcome === 'hit_target') score += 15;
+  else if (outcome === 'stop_loss') score -= 15;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 export function saveOutcome(rec) {
   const db = openDb();
-  // 2026-05-30: quality_score 자동 inject — caller 가 안 주면 reports.quality_score 로 fallback.
-  //   100% NULL 결함 fix. outcome 학습 시 quality 별 hit rate 분석 가능.
-  let qs = rec.quality_score ?? null;
+  // 2026-06-05: per-outcome 품질을 성과(alpha)로 산출 — caller 값 > 성과계산 > 보고서점수 순.
+  //   (이전엔 보고서 전체 score 만 복사해 추천별 변별이 없었고, 그마저 join 실패로 100% NULL.)
+  let qs = rec.quality_score ?? computeOutcomeQuality(rec);
   if (qs == null) {
     const row = db.prepare(`SELECT r2.quality_score FROM recommendations r1 JOIN reports r2 ON r2.id=r1.report_id WHERE r1.id=?`).get(rec.recommendation_id);
     qs = row?.quality_score ?? null;
@@ -1096,10 +1115,11 @@ export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
     WHERE r.ticker = ? AND r.action = 'buy'
       AND r.id NOT IN (SELECT recommendation_id FROM recommendation_outcomes WHERE outcome IN ('sold','hit_target','stop_loss'))
   `);
+  // 2026-06-05: 'sold' 마감에도 quality_score 배선(이전 누락 → 100% NULL 원인 中 하나).
   const closeOutcome = db.prepare(`
-    INSERT INTO recommendation_outcomes (recommendation_id, evaluated_at, price_at_eval, outcome, pnl_pct, details_json)
-    VALUES (?, ?, ?, 'sold', ?, ?)
-    ON CONFLICT(recommendation_id, evaluated_at) DO UPDATE SET outcome='sold', pnl_pct=excluded.pnl_pct
+    INSERT INTO recommendation_outcomes (recommendation_id, evaluated_at, price_at_eval, outcome, pnl_pct, quality_score, details_json)
+    VALUES (?, ?, ?, 'sold', ?, ?, ?)
+    ON CONFLICT(recommendation_id, evaluated_at) DO UPDATE SET outcome='sold', pnl_pct=excluded.pnl_pct, quality_score=excluded.quality_score
   `);
   let n = 0;
   const txn = db.transaction((rows) => {
@@ -1108,7 +1128,8 @@ export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
       // 보유 종료 마감 — 해당 ticker 의 모든 open 매수추천을 'sold' 로
       try {
         for (const open of findAllOpenBuy.all(c.ticker)) {
-          closeOutcome.run(open.id, generatedAt, parseAmount(c.currentPrice), c.pnlPct ?? null,
+          const soldQs = computeOutcomeQuality({ pnl_pct: c.pnlPct ?? null, spy_return: c.spyReturn ?? null, outcome: 'sold' });
+          closeOutcome.run(open.id, generatedAt, parseAmount(c.currentPrice), c.pnlPct ?? null, soldQs,
             JSON.stringify({ closedBy: 'sell-recommendation', reportId, sellType: c.sellType ?? c.ruleId ?? null }));
         }
       } catch { /* non-fatal */ }

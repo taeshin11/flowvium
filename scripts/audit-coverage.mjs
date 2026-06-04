@@ -33,8 +33,9 @@ const STRUCTURAL_NULLS = {
   'news_archive.link': 'company-change 행은 기사 링크 없음 (news-cascade 행은 link 100%)',
   'asset_flow_archive.return_1d': 'capital-flows 가 1w/4w/13w 제공, 1d 미제공(소스 부재)',
   'hallucination_history.details_json': 'defect_type 별 details 유무 상이(일부 defect 본문 없음)',
-  'short_squeeze_archive.rationale': 'LLM squeeze 후보에 rationale 필드 없음(score/timing/risk 만)',
-  'recommendation_outcomes.quality_score': '백테스트 품질 scoring 미배선(분석용 옵션 컬럼)',
+  // 2026-06-05 배선 완료(더 이상 구조적 아님 → STRUCTURAL 에서 제외):
+  //   - recommendation_outcomes.quality_score: computeOutcomeQuality(alpha 기반) saveOutcome/closeOutcome 배선 + 역사 backfill(98%)
+  //   - short_squeeze_archive.rationale: score+timing+risk 합성 배선 + 역사 backfill(100%)
 };
 
 const tables = db.prepare(`
