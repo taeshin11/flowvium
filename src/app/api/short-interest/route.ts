@@ -237,6 +237,54 @@ async function fetchFinraShortVol(tickers: Set<string>): Promise<Map<string, num
   return map;
 }
 
+interface FinraSI { changePct: number | null; daysToCover: number | null; shortQty: number | null; }
+/**
+ * FINRA consolidatedShortInterest — 월간(bi-monthly) 공매도 잔고 + MoM 변화율(changePercent).
+ * 2026-06-04: 자가호스팅(주거 IP) 전환으로 api.finra.org 접근 가능(이전 Vercel IP 403 → shortChangeMonthly
+ *   영구 null 이던 것 해결). 종목별 최근 settlementDate 범위 쿼리 → 최신 기간 changePercent 추출.
+ */
+async function fetchFinraShortInterest(tickers: string[]): Promise<Map<string, FinraSI>> {
+  const map = new Map<string, FinraSI>();
+  const now = Date.now();
+  const startDate = new Date(now - 100 * 86400000).toISOString().slice(0, 10);
+  const endDate = new Date(now + 5 * 86400000).toISOString().slice(0, 10);
+  const queue = [...tickers];
+  const worker = async () => {
+    while (queue.length) {
+      const t = queue.shift();
+      if (!t) break;
+      try {
+        const body = {
+          limit: 8,
+          compareFilters: [{ compareType: 'EQUAL', fieldName: 'symbolCode', fieldValue: t }],
+          dateRangeFilters: [{ fieldName: 'settlementDate', startDate, endDate }],
+        };
+        const r = await fetch('https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(body),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!r.ok) continue;
+        const j = await r.json();
+        const arr = (Array.isArray(j) ? j : (j?.data ?? [])) as Array<Record<string, unknown>>;
+        if (!arr.length) continue;
+        arr.sort((a, b) => String(b.settlementDate).localeCompare(String(a.settlementDate)));
+        const x = arr[0];
+        map.set(t, {
+          changePct: typeof x.changePercent === 'number' ? Math.round(x.changePercent * 10) / 10 : null,
+          daysToCover: typeof x.daysToCoverQuantity === 'number' ? Math.round(x.daysToCoverQuantity * 100) / 100 : null,
+          shortQty: typeof x.currentShortPositionQuantity === 'number' ? x.currentShortPositionQuantity : null,
+        });
+      } catch { /* skip ticker */ }
+    }
+  };
+  await Promise.all(Array.from({ length: 8 }, worker));
+  logger.info('api.short-interest', 'finra_si_ok', { matched: map.size, of: tickers.length });
+  return map;
+}
+
 /** Fetch trailing P/E from Finnhub metric endpoint (one request per ticker) */
 async function fetchFinnhubPE(tickers: string[]): Promise<Map<string, number>> {
   const key = process.env.FINNHUB_KEY?.trim();
@@ -299,7 +347,7 @@ export async function GET(req: Request) {
   // Fetch FINRA short vol, Finnhub P/E, 13f-signals, and Yahoo shortFloat in parallel.
   // Yahoo path: crumb (shared with sector-pe) → v10 quoteSummary per ticker.
   // DTC (FINRA monthly): cdn.finra.org 403 from Vercel IPs; no free alternative — iter86
-  const [finraMap, peMap, redisSignals, shortDataResult] = await Promise.allSettled([
+  const [finraMap, peMap, redisSignals, shortDataResult, finraSiResult] = await Promise.allSettled([
     fetchFinraShortVol(tickerSet),
     fetchFinnhubPE(tickers),
     redis ? redis.get<InstitutionalSignal[]>('flowvium:13f-signals:v1') : Promise.resolve(null),
@@ -307,7 +355,9 @@ export async function GET(req: Request) {
       c ? fetchYahooShortData(tickers, c.crumb, c.cookie)
         : { floatMap: new Map<string, number>(), ratioMap: new Map<string, number>() }
     ),
+    fetchFinraShortInterest(tickers),
   ]);
+  const finraSiMap = finraSiResult.status === 'fulfilled' ? finraSiResult.value : new Map<string, FinraSI>();
   const shortVolMap = finraMap.status === 'fulfilled' ? finraMap.value : new Map<string, number>();
   const trailingPEMap = peMap.status === 'fulfilled' ? peMap.value : new Map<string, number>();
   const liveRaw = redisSignals.status === 'fulfilled' ? redisSignals.value : null;
@@ -341,7 +391,9 @@ export async function GET(req: Request) {
 
     const shortVolPct = shortVolMap.get(ticker) ?? null;
     const shortFloatPct = shortFloatMap.get(ticker) ?? null;
-    const shortRatio = shortRatioMap.get(ticker) ?? null;
+    const finraSi = finraSiMap.get(ticker);
+    // shortRatio: Yahoo daysToCover 우선, 없으면 FINRA daysToCover. shortChangeMonthly: FINRA MoM changePercent.
+    const shortRatio = shortRatioMap.get(ticker) ?? finraSi?.daysToCover ?? null;
     const trailingPE = trailingPEMap.get(ticker) ?? null;
     return {
       ticker,
@@ -350,7 +402,7 @@ export async function GET(req: Request) {
       shortFloatPct,
       shortVolPct,
       shortRatio,
-      shortChangeMonthly: null,
+      shortChangeMonthly: finraSi?.changePct ?? null,
       instAction,
       trailingPE,
       squeezeScore: calcSqueezeScore(shortFloatPct, shortVolPct, instAction),
