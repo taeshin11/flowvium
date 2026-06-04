@@ -324,9 +324,6 @@ async function main() {
   {
     const checks = [
       { name: 'macro-indicators', path: '/api/macro-indicators', live: 'liveCount', stat: 'staticCount', asOf: 'staticAsOf' },
-      // credit-balance: us(FRED)/tw(TWSE) live, kr static-estimated + jp/cn/eu/in null→static.
-      //   liveCount<=2/7 면 대부분 정적 — cn(SSE 엔드포인트 변경)/jp(xls 미파싱)/kr(BOK series) 회복 필요.
-      { name: 'credit-balance', path: '/api/credit-balance', live: 'liveCount', stat: 'staticCount', asOf: 'updatedAt' },
     ];
     for (const c of checks) {
       const r = await getJson(c.path, 20000);
@@ -337,6 +334,28 @@ async function main() {
         if (stat > live) issues.push(`[L] ${c.name} live ${live}/${total} (${pct}%) — 대부분 정적(${r.body?.[c.asOf] ?? '?'}), 외부소스 차단 의심`);
         else info.push(`[L] ${c.name} live ${live}/${total} (${pct}%)`);
       }
+    }
+  }
+
+  // [L2] credit-balance 국가별 recoverable vs structural 분류 (2026-06-05 신설).
+  //   "왜 최선의 방법(라이브 소스)을 시행 안 했나" 를 자동 포착 — 단순 ratio 가 아니라,
+  //   *fetcher 가 있는데 silent 하게 static 반환*(recoverable=즉시 fix 대상) 과
+  //   *무료 집계소스 부재*(structural=구조적 불가, 인지됨) 를 구분. 전자만 🚨, 후자는 ℹ️.
+  //   EXPECTED_LIVE = 작동 의도된 fetcher 보유. 이 중 "(static est.)" 면 회귀/소스사멸 → 결함.
+  {
+    const EXPECTED_LIVE = { us: 'FRED', tw: 'TWSE', cn: 'Eastmoney', kr: 'KRX/BOK' };
+    const STRUCTURAL = { jp: 'JPX .xls 미파싱', in: 'NSE 차단', eu: 'ESMA 단일집계 미발행' };
+    const r = await getJson('/api/credit-balance', 20000);
+    const countries = r.body?.countries;
+    if (Array.isArray(countries)) {
+      const isStatic = (c) => c.liveData === false || /static est\./i.test(c.source || '');
+      const recoverableBroken = countries.filter(c => EXPECTED_LIVE[c.id] && isStatic(c)).map(c => c.id);
+      const structuralStatic = countries.filter(c => STRUCTURAL[c.id] && isStatic(c)).map(c => c.id);
+      const liveOk = countries.filter(c => EXPECTED_LIVE[c.id] && !isStatic(c)).map(c => c.id);
+      if (recoverableBroken.length) {
+        issues.push(`[L2] credit-balance recoverable-but-static: ${recoverableBroken.map(id => `${id}(${EXPECTED_LIVE[id]})`).join(', ')} — fetcher 있는데 라이브 실패, 즉시 fix 대상`);
+      }
+      info.push(`[L2] credit-balance live ${liveOk.join('/')||'없음'}; structural-static(인지됨) ${structuralStatic.map(id => `${id}(${STRUCTURAL[id]})`).join(', ') || '없음'}`);
     }
   }
 

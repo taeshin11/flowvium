@@ -309,42 +309,32 @@ export async function fetchKR(): Promise<LiveCreditData | null> {
 
 export async function fetchCN(): Promise<LiveCreditData | null> {
   try {
-    // SSE publishes 融资融券 data at:
-    // https://www.sse.com.cn/market/othersdata/margin/sum/
-    // JSON endpoint: https://query.sse.com.cn/commonQuery.do?sqlId=COMMON_SSE_ZQPZ_RZRQ_MRGNSUM_SEARCH_L&isPagination=false
-    // Requires specific Referer header
-    const url = 'https://query.sse.com.cn/commonQuery.do?sqlId=COMMON_SSE_ZQPZ_RZRQ_MRGNSUM_SEARCH_L&isPagination=false';
+    // 東方財富(eastmoney) 沪深两市 融资融券 历史 — 시장 전체(SSE+SZSE) 집계 일별 시계열.
+    //   기존 query.sse.com.cn 엔드포인트는 응답구조 변경(result=null)으로 사멸 → eastmoney 로 교체.
+    //   RZYE = 融资余额(margin financing balance, 전체시장 CNY) — US FINRA margin debt 와 동일 개념(차입매수).
+    const url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_RZRQ_LSHJ&columns=DIM_DATE,RZYE&sortColumns=dim_date&sortTypes=-1&pageSize=1&pageNumber=1';
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(12000),
       cache: 'no-store',
       headers: {
         ...COMMON_HEADERS,
-        'Referer': 'https://www.sse.com.cn/',
+        'Referer': 'https://data.eastmoney.com/',
       },
     });
     if (!res.ok) return null;
     const json = await res.json();
-    const rows = json.result;
-    if (!Array.isArray(rows) || !rows.length) return null;
+    const row = json?.result?.data?.[0];
+    const rzyeCny = Number(row?.RZYE);   // 융자余额 (전체시장, CNY)
+    if (!rzyeCny || !isFinite(rzyeCny)) return null;
 
-    // Latest row — 融资余额(RZYE) + 融券余额(RQYE) in CNY
-    const last = rows[0];
-    const rzyeCny = parseFloat((last.rzye ?? '0').replace(/,/g, ''));   // 融资余额 (CNY)
-    if (!rzyeCny) return null;
-
-    // SSE is Shanghai only — multiply ~1.6x to estimate total (SSE + SZSE)
-    const totalCny = rzyeCny * 1.6;
-    const usdBillions = parseFloat((totalCny / 7.25 / 1_000_000_000).toFixed(1));
-    const date = last.opDate?.toString() ?? '';
-    const period = date.length === 8
-      ? `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`
-      : 'latest';
+    const usdBillions = parseFloat((rzyeCny / 7.25 / 1_000_000_000).toFixed(1));
+    const date = (row.DIM_DATE ?? '').toString().slice(0, 10);   // "2026-06-03 00:00:00" → "2026-06-03"
 
     return {
       balance: usdBillions,
-      balanceLocal: `¥${(totalCny / 1_000_000_000_000).toFixed(2)}조위안`,
-      period,
-      source: 'SSE 融资融券 (+SZSE 추정)',
+      balanceLocal: `¥${(rzyeCny / 1_000_000_000_000).toFixed(2)}조위안`,
+      period: date || 'latest',
+      source: 'Eastmoney 沪深两市 融资余额',
       fetchedAt: new Date().toISOString(),
     };
   } catch { return null; }

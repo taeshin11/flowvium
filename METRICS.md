@@ -265,7 +265,7 @@
 | 104 | 한국 신용잔고 (₩31조, KRW-basis ATH) | 📋 static | KRX MDCSTAT03701 시도 + BOK ECOS 901Y001 시도(현재 둘 다 실패) → static-estimated. source="KRX Margin Loan Statistics (static est.)", liveData=false (2026-06-05 정직표기) |
 | 105 | 일본 신용잔고 | 📋 static | fetchJP `return null` (JPX .xls 미파싱) → const DATA base, source="TSE (Tokyo Stock Exchange) (static est.)", liveData=false |
 | 106 | 대만 신용잔고 | ✅ live | TWSE MI_MARGN 실시간 fetch (2026-06-03 $17.76B) |
-| 106b | 중국 신용잔고 | 📋 static | SSE 융자융권 엔드포인트 응답구조 변경(result=null) → fetcher 실패, "(static est.)" |
+| 106b | 중국 신용잔고 | ✅ live | Eastmoney 沪深两市 융자余额(RPTA_RZRQ_LSHJ) 일별 실시간 — $399B (2026-06-05 SSE 엔드포인트 사멸→eastmoney 교체) |
 | 106c | EU/인도 신용잔고 | 📋 static | 무료 집계소스 없음(ESMA 단일집계 미발행/NSE 차단) → const DATA, "(static est.)" |
 | 107 | 글로벌 스냅샷 (총합) | 💾 cached | 자체계산 |
 | 108 | 국가별 장기 시계열 차트 | 💾 cached | FRED/외 |
