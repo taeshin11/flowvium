@@ -317,6 +317,26 @@ async function main() {
     else info.push(`[J] 세션 enum 정합 — ${sessionIds.length}슬롯(${sessionIds.join('/')}) critical ${cfg.criticalFiles.length}파일 모두 반영`);
   } catch (e) { info.push(`[J] 세션 drift 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
+  // [L] live/static 비율 — mixed-source 엔드포인트가 mostly-static 로 degrade 감지 (2026-06-04 신설).
+  //   사용자가 macro 탭 "정적" 발견 — macro-indicators 11/13 static(staticAsOf 한달전). endpoint 가
+  //   200·source 있어도 *대부분 stale static* 이면 사용자에겐 정적. liveCount/staticCount 보고하는
+  //   엔드포인트의 static 우위를 flag. (FRED/외부소스 차단 시 조용히 static fallback 되던 사각지대.)
+  {
+    const checks = [
+      { name: 'macro-indicators', path: '/api/macro-indicators', live: 'liveCount', stat: 'staticCount', asOf: 'staticAsOf' },
+    ];
+    for (const c of checks) {
+      const r = await getJson(c.path, 20000);
+      const live = r.body?.[c.live], stat = r.body?.[c.stat];
+      if (typeof live === 'number' && typeof stat === 'number') {
+        const total = live + stat;
+        const pct = total ? Math.round((live / total) * 100) : 0;
+        if (stat > live) issues.push(`[L] ${c.name} live ${live}/${total} (${pct}%) — 대부분 정적(${r.body?.[c.asOf] ?? '?'}), 외부소스 차단 의심`);
+        else info.push(`[L] ${c.name} live ${live}/${total} (${pct}%)`);
+      }
+    }
+  }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);
