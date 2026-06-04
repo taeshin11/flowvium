@@ -203,6 +203,26 @@ async function main() {
     else info.push(`[H] /osint sanctions ${sGroups} 그룹`);
   }
 
+  // [K] 파라미터 차별화/완전성 — period/country/tf 등 파라미터 엔드포인트가 *값마다* 비어있지 않고
+  //   서로 다른지 검사. 2026-06-04 신설: "기본 param 만 보던" 사각지대(heatmap country=US 만 OK,
+  //   KR/JP 빈값 / korea-flow 1d=4w 동일값)를 사용자가 먼저 발견 → 모든 param 값 전수 검증.
+  {
+    const paramSets = [
+      { name: 'market-heatmap', vals: ['US', 'KR', 'JP', 'CN', 'EU'], url: v => `/api/market-heatmap?country=${v}`, arr: b => b?.sectors, sig: b => (b?.sectors?.length ?? 0) },
+      { name: 'daily-brief', vals: ['1w', '4w', '13w'], url: v => `/api/daily-brief?tf=${v}`, arr: b => [b?.outlook], sig: b => String(b?.outlook ?? '').slice(0, 40) },
+      { name: 'korea-flow', vals: ['1d', '4w'], url: v => `/api/korea-flow?period=${v}`, arr: b => b?.topInstBuy, sig: b => b?.institutionNet ?? 0 },
+    ];
+    for (const ps of paramSets) {
+      const results = await Promise.all(ps.vals.map(async v => ({ v, body: (await getJson(ps.url(v), 30000)).body })));
+      const empties = results.filter(r => !(ps.arr(r.body)?.length)).map(r => r.v);
+      const sigs = results.map(r => String(ps.sig(r.body)));
+      const allSame = sigs.length > 1 && new Set(sigs).size === 1;
+      if (empties.length) issues.push(`[K] ${ps.name} 빈 param: ${empties.join('/')} (값마다 데이터 있어야 — 비US/특정 param 누락)`);
+      else if (allSame) issues.push(`[K] ${ps.name} 전 param 동일값 — 파라미터 무효(누적/필터 미작동)`);
+      else info.push(`[K] ${ps.name} param 차별화 OK (${ps.vals.length}값 비어있지않고 상이)`);
+    }
+  }
+
   // [I] 모니터 자가-커버리지 — "왜 사각지대가 반복됐나"의 근본 차단 (2026-06-04 신설).
   //     근본원인: 검증 프로브가 엔드포인트별 수동 추가 → 프로브 없는 페이지는 자동으로 사각지대였고,
   //     "무엇을 모니터해야 하나 vs 실제 모니터하나"를 대조하는 메커니즘이 없었음(news-gap·osint 사건).
