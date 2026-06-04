@@ -1,12 +1,11 @@
 name: Verify
+# 2026-06-04: 자가호스팅(CF→터널→RTX) 전환 후 GitHub Actions 클라우드 러너는 라이브 서버/DB/Ollama 에
+#   접근 불가 → verify-all(6 검증, 엔드포인트/DB/보고서 의존)이 매 push 실패해 스팸 이메일 발생.
+#   라이브 검증은 자가호스트가 담당: (1) 30분 주기 모니터(check-stall + check-data-quality [A]~[K])
+#   (2) git pre-push hook 의 npm run verify (3) cron 후 자동 verify-report.
+#   CI 정적 검사(lint/type/pattern audit)는 ci.yml 이 계속 수행. 이 워크플로는 수동 전용으로 보존.
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
-  schedule:
-    # 매일 KST 12:00 (UTC 03:00) — cron 결과 검증 + 학습 추세 추적
-    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 jobs:
   verify:
