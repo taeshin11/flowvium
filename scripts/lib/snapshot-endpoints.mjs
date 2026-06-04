@@ -43,6 +43,22 @@ export const TRACKED_ENDPOINTS = [
   '/api/osint/social',
   '/api/osint/sanctions',
   '/api/osint/crypto?address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045&chain=eth',
+  // 2026-06-05: 사용자 "모든 페이지/탭/엔드포인트가 업데이트마다 DB 저장돼야" — 무파라미터 데이터
+  //   엔드포인트 전수 추가. (per-ticker[stock-price/company-*/iv 등]은 portfolioTickers 로 별도 스냅샷.)
+  '/api/narratives',
+  '/api/market-movers',
+  '/api/news-gap',
+  '/api/options-flow',
+  '/api/block-trades',
+  '/api/portfolio-accuracy',
+  '/api/price-history',
+  '/api/satellite-signals',
+  '/api/signal-retrospective',
+  '/api/investment-strategy',
+  '/api/latest-updates',
+  '/api/flow-analysis',
+  '/api/earnings',
+  '/api/daily-brief',
 ];
 
 async function fetchOne(baseUrl, path, timeoutMs = 12000) {

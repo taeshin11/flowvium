@@ -454,6 +454,21 @@ export function saveSnapshot({ reportId, endpoint, status, response, capturedAt,
   const db = openDb();
   const sourceField = typeof response === 'object' && response !== null
     ? (response.source ?? response.dataSource ?? null) : null;
+  // 2026-06-05: 대용량 응답(news-gap 821KB 등)을 보고서마다 full 저장하면 DB 비대화 →
+  //   64KB 초과 시 메타(source/count/keys/size)만 보존. 시계열 추적은 유지, 본문은 trim.
+  let respJson = JSON.stringify(response ?? null);
+  if (respJson.length > 65536) {
+    respJson = JSON.stringify({
+      _truncated: true,
+      _sizeBytes: respJson.length,
+      source: sourceField,
+      count: response?.count ?? response?.entries?.length ?? response?.intensities?.length
+        ?? (Array.isArray(response) ? response.length : null),
+      keys: (response && typeof response === 'object' && !Array.isArray(response))
+        ? Object.keys(response).slice(0, 25) : null,
+      updatedAt: response?.updatedAt ?? null,
+    });
+  }
   db.prepare(`
     INSERT INTO endpoint_snapshots
       (report_id, endpoint, captured_at, http_status, source, ok, response_json, duration_ms)
@@ -462,7 +477,7 @@ export function saveSnapshot({ reportId, endpoint, status, response, capturedAt,
     reportId, endpoint, capturedAt ?? new Date().toISOString(),
     status ?? null, sourceField,
     response && (status === 200 || status === undefined) ? 1 : 0,
-    JSON.stringify(response ?? null),
+    respJson,
     durationMs ?? null,
   );
 }

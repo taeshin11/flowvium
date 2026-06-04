@@ -2721,7 +2721,7 @@ async function gatherContext() {
     capital, fearGreed, fedwatch, macro,
     creditBalance, insider, ownershipAlerts, koreaFlow,
     nport, shortInterest, newsCascade, econCal,
-    volatility, cot, commodity, supplyChainSignals,
+    volatility, cot, commodity, supplyChainSignals, narratives,
   ] = await Promise.all([
     namedFetch('capital',           `${base}/api/capital-flows`, 15000),
     namedFetch('fearGreed',         `${base}/api/fear-greed`, 12000),
@@ -2739,6 +2739,7 @@ async function gatherContext() {
     namedFetch('cot',               `${base}/api/cot-positions`, 10000),
     namedFetch('commodity',         `${base}/api/commodity-curve`, 10000),
     namedFetch('supplyChainSignals',`${base}/api/supply-chain-signals`, 10000),
+    namedFetch('narratives',        `${base}/api/narratives`, 10000),
   ]);
 
   // fear-greed returns { byCountry:[{id:'us',score}], byAsset:[...] }
@@ -2763,6 +2764,7 @@ async function gatherContext() {
     cot,
     commodity,
     supplyChainSignals: supplyChainSignals?.signals ?? [],
+    narratives,
   };
 }
 
@@ -2891,6 +2893,17 @@ function buildCtxSummary(ctx) {
         const wkStr = wk != null ? `(${wk > 0 ? '+' : ''}${Math.round(wk / 1000)}k wk)` : '';
         return `${e.id}:${e.sentiment}${e.netPosition > 0 ? '+' : ''}${Math.round(e.netPosition / 1000)}k${wkStr}`;
       }).join(', ');
+    }
+  } catch { /* ignore */ }
+
+  // Narratives — 구조적 힘 강도(heating/cooling). relatedTickers 모멘텀 + 섹터 ret4w 파생 라이브.
+  //   2026-06-05: intelligence narratives 탭 데이터를 보고서 macro 맥락에 주입(사용자 "전부 반영").
+  let narratives = '';
+  try {
+    const ni = ctx.narratives?.intensities ?? [];
+    if (ni.length) {
+      narratives = [...ni].sort((a, b) => b.intensity - a.intensity).slice(0, 5)
+        .map(n => `${n.id}:${n.intensity}${n.direction === 'heating' ? '↑' : n.direction === 'cooling' ? '↓' : ''}`).join(', ');
     }
   } catch { /* ignore */ }
 
@@ -3073,7 +3086,7 @@ function buildCtxSummary(ctx) {
     if (lines.length) supplyChain = lines.join('\n');
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, cot, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
+  return { macro, sentiment, flows, cot, narratives, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
 }
 
 // ── Cascade signals ────────────────────────────────────────────────────────────
@@ -3399,6 +3412,7 @@ function buildMacroPrompt(ctx, vix, session) {
     `[Credit Balance] ${ctx.credit || 'No data'}`,
     `[Upcoming High-Impact Events] ${ctx.econCal || 'No data'}`,
     `[COT Positioning] ${ctx.cot || 'No data'}`,
+    `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,
     `[Commodity Curves] ${ctx.commodity || 'No data'}`,
     `[News — 연준발언 우선] ${ctx.news || 'No data'}`,
     '',

@@ -397,6 +397,38 @@ async function main() {
     }
   }
 
+  // [N] 엔드포인트 DB 커버리지 (2026-06-05) — 사용자 "모든 페이지/탭/엔드포인트가 업데이트마다 DB 저장돼야".
+  //   route.ts 를 전수 열거 → TRACKED_ENDPOINTS(endpoint_snapshots 적재 목록)와 대조. 데이터 라우트인데
+  //   미추적이면 ❌(DB 시계열 누락 사각지대). 미래 신규 엔드포인트도 자동 포착 = "왜 검토 안 됐나" 방지.
+  //   제외: admin/cron(쓰기·대시보드)·유틸(ai/translate 등)·per-ticker([)·param 필수(ALLOW).
+  {
+    try {
+      const { readdirSync } = await import('fs');
+      const { fileURLToPath } = await import('url');
+      const { TRACKED_ENDPOINTS } = await import('./lib/snapshot-endpoints.mjs');
+      const apiDir = fileURLToPath(new URL('../src/app/api', import.meta.url));
+      const routes = [];
+      const walk = (dir, prefix) => {
+        for (const e of readdirSync(dir, { withFileTypes: true })) {
+          if (e.isDirectory()) walk(`${dir}/${e.name}`, `${prefix}/${e.name}`);
+          else if (e.name === 'route.ts') routes.push(prefix || '/');
+        }
+      };
+      walk(apiDir, '');
+      const trackedSet = new Set(TRACKED_ENDPOINTS.map(e => e.replace(/^\/api/, '').split('?')[0]));
+      // admin/cron(쓰기), 유틸, per-ticker([) 제외
+      const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices|satellite-image)$|\[/;
+      // param 필수(per-ticker 성격) 또는 시계열 불필요(list/history) — 의도적 미추적.
+      const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading']);
+      const untracked = routes.filter(r => !EXCLUDE.test(r) && !trackedSet.has(r) && !ALLOW_UNTRACKED.has(r));
+      if (untracked.length) {
+        issues.push(`[N] DB 미추적 데이터 엔드포인트 ${untracked.length}개: ${untracked.join(', ')} — TRACKED_ENDPOINTS 추가 필요`);
+      } else {
+        info.push(`[N] 엔드포인트 DB 커버리지 OK — 데이터 라우트 전부 TRACKED (${trackedSet.size} tracked / route ${routes.length}개, util·per-ticker 제외)`);
+      }
+    } catch (e) { info.push(`[N] 커버리지 점검 불가: ${String(e.message || e).slice(0, 60)}`); }
+  }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);
