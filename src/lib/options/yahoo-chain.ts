@@ -112,7 +112,7 @@ async function fetchExpirationDates(
   const params = crumb ? `?crumb=${encodeURIComponent(crumb)}` : '';
   const url = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(ticker)}${params}`;
   try {
-    const hdrs = cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA };
+    const hdrs: Record<string, string> = cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA };
     let res = await fetch(url, { headers: hdrs, cache: 'no-store', signal: AbortSignal.timeout(8000) });
     // 2026-06-04: Yahoo 429(rate-limit) 시 1회 백오프 재시도 — prewarm burst 로 자주 발생.
     if (res.status === 429) {
@@ -144,7 +144,7 @@ async function fetchExpiry(
     : `?date=${expirationUnix}`;
   const url = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(ticker)}${params}`;
   try {
-    const hdrs = cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA };
+    const hdrs: Record<string, string> = cookie ? { 'User-Agent': YF_UA, Cookie: cookie } : { 'User-Agent': YF_UA };
     let res = await fetch(url, { headers: hdrs, cache: 'no-store', signal: AbortSignal.timeout(8000) });
     if (res.status === 429) {
       await new Promise((r) => setTimeout(r, 1200));
