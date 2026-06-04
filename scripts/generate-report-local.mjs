@@ -2240,11 +2240,13 @@ function buildSignalDigest(ctx, technicalData, financialsText) {
     if (s.ticker && typeof s.squeezeScore === 'number') squeezeMap.set(s.ticker, s.squeezeScore);
   }
 
-  // Financials text: "NVDA: Q4 FY2026 $68.1B +73.2% YoY opMgn=64.9%"
+  // Financials text: "NVDA: Q1 FY2027 $81.6B +85.2% YoY opMgn=60.4% ROE=76.3% PE=44.6"
+  //   2026-06-05: 라벨이 "Q1 FY2027"(멀티워드)면 기존 (\S+)\s+(\S+) 가 깨져 US fin 이 silent null 이었음
+  //   → 라벨 non-greedy + revenue($X.XB) 앵커 + opMgn 은 후행 ROE/PE/netMgn 사이에서도 검색.
   const finMap = new Map();
   for (const part of (financialsText ?? '').split(' | ')) {
-    const m = part.match(/^(\S+):\s*(\S+)\s+(\S+)\s+([\+\-]?\d+\.?\d*%)\s+YoY(?:\s+opMgn=([\d.]+)%)?/);
-    if (m) finMap.set(m[1], { label: m[2], rev: m[3], yoy: m[4], margin: m[5] ?? null });
+    const m = part.match(/^(\S+):\s*(.+?)\s+(\$[\d.]+[BM])\s+([\+\-]?\d+\.?\d*%)\s+YoY(?:.*?opMgn=([\d.]+)%)?(?:.*?ROE=([\d.]+)%)?(?:.*?PE=([\d.]+))?/);
+    if (m) finMap.set(m[1], { label: m[2], rev: m[3], yoy: m[4], margin: m[5] ?? null, roe: m[6] ?? null, pe: m[7] ?? null });
   }
 
   // Combine all tickers
@@ -3210,13 +3212,24 @@ async function getRawEarnings() {
   } catch { return []; }
 }
 
-async function getCompanyFinancials(tickers) {
+async function getCompanyFinancials(tickers, livePrices = new Map()) {
   if (!tickers.length) return '';
   const fmtRev = (usd) => usd >= 1e9 ? `$${(usd / 1e9).toFixed(1)}B` : `$${(usd / 1e6).toFixed(0)}M`;
+  // 2026-06-05: ROE + PE 추가. 기존엔 매출/마진만 담겨 프롬프트는 "PE/PEG 인용"을 요구하는데
+  //   PE 가 데이터에 없어 LLM 이 환각(NVDA "43.0", POSCO·프로텍 둘 다 "26.1" 동일). 이제:
+  //   - ROE: latestAnnual.roePct (US/KR 둘 다 실측 제공).
+  //   - PE: US 만 price/EPS(diluted) 로 grounded 계산(DART KR 은 EPS 미제공 → PE 생략, netMargin 으로 대체).
+  const qual = (roePct, pe) => {
+    let s = '';
+    if (roePct != null && isFinite(roePct)) s += ` ROE=${roePct.toFixed(1)}%`;
+    if (pe != null && isFinite(pe) && pe > 0 && pe < 1000) s += ` PE=${pe.toFixed(1)}`;
+    return s;
+  };
   const results = await Promise.allSettled(
     // 2026-06-05: slice 8→16 (portfolio 9-12 전체 커버, 기존엔 후순위 KR 종목이 잘림).
     [...new Set(tickers.map(t => (t ?? '').toUpperCase()))].slice(0, 16).map(async ticker => {
       try {
+        const price = livePrices.get(ticker)?.price ?? livePrices.get(ticker) ?? null;
         // 2026-06-05 BUG fix: KR(.KS/.KQ) 은 company-financials 404 → 매출이 프롬프트 string 에서 전부
         //   누락돼 companyChanges revenueYoY=null (POSCO/NAVER/LG화학). company-kr(DART) 로 분기.
         const isKR = /\.(KS|KQ)$/.test(ticker);
@@ -3232,16 +3245,22 @@ async function getCompanyFinancials(tickers) {
             yoy = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% YoY`;
           }
           const margin = la.operatingMarginPct != null ? ` opMgn=${la.operatingMarginPct.toFixed(1)}%` : '';
+          const netMgn = la.netMarginPct != null ? ` netMgn=${la.netMarginPct.toFixed(1)}%` : '';
+          // KR: DART 에 EPS 없어 PE 미산출(환각 방지) → ROE/netMargin 으로 수익성 근거 제공.
           // YoY 없으면 signalDigest 정규식(YoY 필수)이 무시 → 0.0% YoY 로 최소 매칭 보장(매출은 전달).
-          return `${ticker}: FY${la.fiscalYear} ${fmtRev(la.revenueUSD)} ${yoy || '+0.0% YoY'}${margin}`;
+          return `${ticker}: FY${la.fiscalYear} ${fmtRev(la.revenueUSD)} ${yoy || '+0.0% YoY'}${margin}${qual(la.roePct, null)}${netMgn}`;
         }
         const d = await safeFetch(`${SITE}/api/company-financials/${ticker}`, 5000);
         if (!d) return null;
         const q = d.quarterlyRevenue?.[0];
         if (!q) return null;
+        const la = d.latestAnnual;
         const yoy = q.yoyPct != null ? `${q.yoyPct > 0 ? '+' : ''}${q.yoyPct.toFixed(1)}% YoY` : '';
-        const margin = d.latestAnnual?.operatingMarginPct != null ? ` opMgn=${d.latestAnnual.operatingMarginPct.toFixed(1)}%` : '';
-        return `${ticker}: ${q.label} ${fmtRev(q.revenueUSD)} ${yoy}${margin}`;
+        const margin = la?.operatingMarginPct != null ? ` opMgn=${la.operatingMarginPct.toFixed(1)}%` : '';
+        // US: PE = 현재가 / EPS(diluted, 연간) — grounded 계산. EPS/가격 없으면 PE 생략(환각 방지).
+        const eps = la?.epsDiluted;
+        const pe = (price > 0 && eps > 0) ? price / eps : null;
+        return `${ticker}: ${q.label} ${fmtRev(q.revenueUSD)} ${yoy}${margin}${qual(la?.roePct, pe)}`;
       } catch { return null; }
     })
   );
@@ -4615,7 +4634,8 @@ function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sect
     '',
     'For EACH stock, provide:',
     '- catalysts: 2-3 SPECIFIC near-term catalysts with numbers — MUST be company events or fundamental data (earnings beat/guidance raise, product launch, institutional 13F buying count, analyst upgrade, M&A announcement, margin expansion). PROHIBITED: RSI, MA levels, volume %, 52-week range, technical chart patterns — these are NOT catalysts.',
-    `- fundamentalBasis: ≤120 chars — use [Recent Company Financials] data; EPS/revenue growth%, operating margin, PE/PEG, institutional`,
+    `- fundamentalBasis: ≤120 chars — use [Recent Company Financials] data ONLY; revenue growth%, operating margin, ROE, PE (제공된 경우만).`,
+    `  ⚠️ PE/PEG/ROE 는 [Recent Company Financials] 에 명시된 값만 인용. 없으면 절대 지어내지 말고(메모리 PE 금지) ROE·마진·매출성장으로 근거. KR 은 보통 PE 미제공 → ROE/netMargin 사용.`,
     `- technicalBasis: ≤80 chars — MUST use [COMPUTED_TECH] values verbatim if provided; otherwise estimate MA/RSI/volume`,
     '- riskNote: ≤60 chars — single biggest downside risk',
     '',
@@ -4630,7 +4650,7 @@ function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sect
     '- Cross-check all tickers before responding: each ticker must have at least 2 catalysts that differ completely from every other ticker. Same catalyst text across tickers is an error.',
     '',
     'Respond in pure JSON (replace ALL placeholders with real data from context):',
-    `{"stockDetails":[{"ticker":"[TICKER_1]","catalysts":["[company-specific event+number]","[second event]","[third]"],"fundamentalBasis":"[YoY%, margin%, P/E or PEG]","technicalBasis":"[MA status, RSI, vol]","riskNote":"[TICKER_1-unique risk ≤60 chars]"},{"ticker":"[TICKER_2]","catalysts":["[DIFFERENT event for TICKER_2]","..."],"fundamentalBasis":"...","technicalBasis":"...","riskNote":"[TICKER_2-unique risk]"}]}`,
+    `{"stockDetails":[{"ticker":"[TICKER_1]","catalysts":["[company-specific event+number]","[second event]","[third]"],"fundamentalBasis":"[YoY%, margin%, ROE; PE만 제공시]","technicalBasis":"[MA status, RSI, vol]","riskNote":"[TICKER_1-unique risk ≤60 chars]"},{"ticker":"[TICKER_2]","catalysts":["[DIFFERENT event for TICKER_2]","..."],"fundamentalBasis":"...","technicalBasis":"...","riskNote":"[TICKER_2-unique risk]"}]}`,
     'Include ALL buy tickers. Pure JSON only.',
   ].join('\n');
 }
@@ -5162,7 +5182,7 @@ async function generateViaOllama() {
   const portfolioForFinancials = portfolioItems.map(p => p.ticker);
   // 재무 데이터 + OHLCV 기술 지표 병렬 수집
   const [companyFinancials, technicalData, financialsMap] = await Promise.all([
-    getCompanyFinancials(portfolioForFinancials),
+    getCompanyFinancials(portfolioForFinancials, livePrices),
     buildTechnicalData(buyStocks.map(s => s.ticker), livePrices),
     getFinancialsMap(portfolioForFinancials),  // 2026-06-03: earnings_archive 적재용 ticker-keyed 맵
   ]);
@@ -5336,7 +5356,7 @@ async function generateViaOllama() {
         '⚠️ RULES:',
         '- Catalysts MUST be specific to this ticker — NOT generic sector talk.',
         '- Each catalyst ≤ 60 chars. Cite actual signal (insider count / squeeze score / revenue % YoY).',
-        '- fundamentalBasis ≤ 80 chars — Revenue/margin/PE values from above signals only.',
+        '- fundamentalBasis ≤ 80 chars — Revenue/margin/ROE/PE values from above signals ONLY. PE 가 신호에 없으면 인용 금지(환각 방지).',
         '- NO speculation about future quarters. NO cross-ticker bleed (other ticker numbers).',
         `- ALL text in ${TARGET_LANG}. NO English fallback.`,
         '',

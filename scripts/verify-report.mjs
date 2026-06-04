@@ -337,6 +337,42 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (tbBad === 0) log('  ✅ 모든 buy 종목 technicalBasis + riskNote 채워짐');
 
+  // 6. PE 환각 detect (2026-06-05) — 프롬프트가 PE 인용을 요구하나 PE 가 fetch 데이터에 없으면
+  //    LLM 이 메모리/추측으로 지어냄. 검증체계가 없어 "왜 이게 검토 안 됐나"였던 사각지대.
+  //    Telltale 2종: (a) 서로 다른 종목에 동일 PE 값(POSCO·프로텍 둘 다 "26.1" = copy-paste 환각),
+  //    (b) KR(.KS/.KQ) 종목 PE 인용 — DART 는 EPS 미제공이라 KR PE 는 grounded 불가(인용=환각).
+  log('\n## PE 환각 (중복값 / KR PE — 2026-06-05)');
+  let peBad = 0;
+  const peByValue = new Map();
+  for (const p of (r.portfolio || [])) {
+    const m = (p.fundamentalBasis || '').match(/P\/?E[=:\s]*(\d+\.?\d*)/i);
+    if (!m) continue;
+    const pe = m[1];
+    const arr = peByValue.get(pe) ?? [];
+    arr.push(p.ticker);
+    peByValue.set(pe, arr);
+    if (/\.(KS|KQ)$/.test(p.ticker)) {
+      log(`  ⚠️ ${p.ticker} KR PE=${pe} — DART EPS 미제공, grounded 불가(환각 의심)`);
+      defects.push({
+        ticker: p.ticker, defect_type: 'pe_halluc',
+        llm_value: `KR PE=${pe}`, correct_value: 'KR PE 인용 금지 — ROE/netMargin 사용', severity: 'medium',
+      });
+      peBad++;
+    }
+  }
+  for (const [pe, tks] of peByValue) {
+    const uniq = [...new Set(tks)];
+    if (uniq.length >= 2) {
+      log(`  ⚠️ 동일 PE=${pe} → ${uniq.length}종목(${uniq.join(', ')}) — copy-paste 환각 의심`);
+      defects.push({
+        ticker: uniq.join('/'), defect_type: 'pe_halluc',
+        llm_value: `PE=${pe} ×${uniq.length}`, correct_value: '종목별 grounded PE(price/EPS)', severity: 'medium',
+      });
+      peBad++;
+    }
+  }
+  if (peBad === 0) log('  ✅ PE 중복/KR PE 환각 없음');
+
   log(`\n## 종합 — 결함 ${defects.length}건`);
   return { defects, total: (r.portfolio||[]).length };
 }
