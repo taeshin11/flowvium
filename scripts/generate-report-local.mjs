@@ -5899,6 +5899,25 @@ async function generateViaOllama() {
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
 
+  // 2026-06-05: KR(.KS/.KQ) 은 DART 가 EPS 미제공 → PE grounded 불가. 8B 가 프롬프트 지시("KR PE 인용
+  //   금지")를 무시하고 PE 환각(005930·000660 둘 다 "12.3") → 결정론적 strip(verify-report [6] 검출 +
+  //   Karpathy 루프에 더한 방어심층화). PE/PER/P/E 토큰만 제거, ROE/매출 등 grounded 근거는 보존.
+  {
+    let krPeStripped = 0;
+    for (const p of (finalReport.portfolio ?? [])) {
+      if (!/\.(KS|KQ)$/.test(p.ticker ?? '')) continue;
+      for (const f of ['fundamentalBasis', 'rationale']) {
+        if (typeof p[f] !== 'string') continue;
+        const before = p[f];
+        p[f] = p[f]
+          .replace(/[,;·]?\s*(?:P\/?E|PER)\s*[=:]?\s*\d+\.?\d*\s*(?:x|배|%)?/gi, '')
+          .replace(/\s{2,}/g, ' ').replace(/^[\s,;·]+|[\s,;·]+$/g, '').trim();
+        if (p[f] !== before) krPeStripped++;
+      }
+    }
+    if (krPeStripped > 0) console.log(`  [후처리] KR PE 환각 strip ${krPeStripped}건 (DART EPS 부재 → grounded 불가)`);
+  }
+
   // 고점 덤핑 징후 탐지 — riskNote에 경고 주입
   const { risks: peakRisksMap, macroGlobalWarning } = await detectPeakDumpRisk(finalReport.portfolio, livePrices, ctxRaw);
   if (peakRisksMap.size > 0 || macroGlobalWarning) {
