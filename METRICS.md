@@ -285,7 +285,8 @@
 
 | # | 지표 | 상태 | 소스 |
 |---|------|------|------|
-| 110 | RSS 헤드라인 (Yahoo/Reuters/CNBC/Bloomberg/MarketWatch) | 💾 cached | 5개 피드, 4h |
+| 110 | RSS 헤드라인 (US/글로벌 9피드 + 🇰🇷연합/한경/매경 🇯🇵Yahoo JP 🇨🇳SCMP) | 💾 cached | 14개 피드, region 쿼터(KR3/JP1/CN1), 4h |
+| 110b | 뉴스 국가 커버리지 (KR/JP/CN 네이티브) | ✅ live | check-data-quality [B2] 감지 (2026-06-05) |
 | 111 | 기사별 감성 배지 | 💾 cached | AI 분석 |
 | 112 | 기사별 중요도 닷 | 💾 cached | AI 분석 |
 | 113 | 기사별 캐스케이드 자산 (↑↓) | 💾 cached | AI 분석 |

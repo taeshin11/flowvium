@@ -275,7 +275,9 @@
 **컴포넌트**: `NewsCascadeTab`  
 **데이터**: `/api/news-cascade`
 
-- RSS 피드 헤드라인 (Yahoo Finance · Reuters · CNBC · Bloomberg · MarketWatch)
+- RSS 피드 헤드라인 (US/글로벌: MarketWatch · Investing.com · WSJ · Seeking Alpha · Yahoo · Reuters)
+  + **국가별 네이티브 (2026-06-05)**: 🇰🇷 연합뉴스·한국경제·매일경제 · 🇯🇵 Yahoo Japan · 🇨🇳 SCMP
+  — **region 쿼터 선택** (KR 3 / JP 1 / CN 1 / 나머지 US, 총 12) 으로 각 국가 뉴스 보장 (이전 US 영어만)
 - AI 분석 기사 카드:
   - 제목·소스·날짜·감성 배지(bullish/bearish/neutral)·중요도 닷
   - 캐스케이드 자산 필 (방향 화살표 ↑↓)

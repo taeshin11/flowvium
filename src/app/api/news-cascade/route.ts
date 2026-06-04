@@ -26,11 +26,14 @@ let NEWS_MEMORY_CACHE: { articles: any[]; expiresAt: number } | null = null;
 const NEWS_MEMORY_TTL_MS = 2 * 60 * 60 * 1000;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+type NewsRegion = 'us' | 'kr' | 'jp' | 'cn';
+
 interface RawNewsItem {
   title: string;
   link: string;
   pubDate: string;
   source: string;
+  region: NewsRegion;
 }
 
 export interface CascadeEffect {
@@ -283,19 +286,26 @@ function hashUrl(url: string): string {
 // pre-filter keeps only items matching at least one financial keyword before dedup.
 // 2026-05-07: Added Reuters Tech/Business + Yahoo sector ETF feeds to improve thematic coverage
 // beyond individual company earnings — catches AI/semiconductor, energy, global macro themes.
-const RSS_FEEDS = [
-  // Broad market
-  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch', requireFinancial: true },
-  { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com', requireFinancial: true },
-  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets', requireFinancial: false },
-  { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha', requireFinancial: false },
-  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance', requireFinancial: false },
+const RSS_FEEDS: Array<{ url: string; source: string; requireFinancial: boolean; region: NewsRegion }> = [
+  // Broad market (US/global)
+  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch', requireFinancial: true, region: 'us' },
+  { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com', requireFinancial: true, region: 'us' },
+  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets', requireFinancial: false, region: 'us' },
+  { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha', requireFinancial: false, region: 'us' },
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance', requireFinancial: false, region: 'us' },
   // Global thematic — Reuters (sector/macro/geopolitical)
-  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters Business', requireFinancial: true },
-  { url: 'https://feeds.reuters.com/reuters/technologyNews', source: 'Reuters Tech', requireFinancial: true },
+  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters Business', requireFinancial: true, region: 'us' },
+  { url: 'https://feeds.reuters.com/reuters/technologyNews', source: 'Reuters Tech', requireFinancial: true, region: 'us' },
   // Sector ETF headlines — captures semiconductor, energy, biotech moves
-  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=SOXX,SMH,NVDA,AMAT,ANET&region=US&lang=en-US', source: 'Yahoo Semis', requireFinancial: true },
-  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=XLE,XOM,LNG,CVX,NEE&region=US&lang=en-US', source: 'Yahoo Energy', requireFinancial: true },
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=SOXX,SMH,NVDA,AMAT,ANET&region=US&lang=en-US', source: 'Yahoo Semis', requireFinancial: true, region: 'us' },
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=XLE,XOM,LNG,CVX,NEE&region=US&lang=en-US', source: 'Yahoo Energy', requireFinancial: true, region: 'us' },
+  // 2026-06-05: 국가별 네이티브 뉴스 추가 — 보고서가 KR 종목 6개 포함하는데 KR/아시아 뉴스가 전무했음.
+  //   비영어 피드라 requireFinancial:false (FINANCIAL_SIGNAL 영어 키워드 매칭 불가). 이미 경제/증권 섹션.
+  { url: 'https://www.yna.co.kr/rss/economy.xml', source: '연합뉴스 경제', requireFinancial: false, region: 'kr' },
+  { url: 'https://www.hankyung.com/feed/economy', source: '한국경제', requireFinancial: false, region: 'kr' },
+  { url: 'https://www.mk.co.kr/rss/50200011/', source: '매일경제 증권', requireFinancial: false, region: 'kr' },
+  { url: 'https://news.yahoo.co.jp/rss/categories/business.xml', source: 'Yahoo Japan 경제', requireFinancial: false, region: 'jp' },
+  { url: 'https://www.scmp.com/rss/92/feed', source: 'SCMP Business', requireFinancial: false, region: 'cn' },
 ];
 
 // Minimum financial keyword signal required for requireFinancial feeds.
@@ -304,7 +314,7 @@ const RSS_FEEDS = [
 // False positives from prefix matches (stocking→stock) are acceptable in this pre-filter.
 const FINANCIAL_SIGNAL = /\b(stock|market|rate|bond|yield|fed|fomc|earning|gdp|inflation|cpi|pce|dollar|usd|euro|yen|equity|index|s&p|nasdaq|dow|trade|tariff|oil|gold|crypto|bitcoin|bank|econom|invest|etf|fund|sector|tech|growth|recession|debt|deficit|treasur|fiscal|monetar|interest|employment|jobs|payroll|retail|sales|profit|revenue|quarter|analyst|forecast|outlook|powell|ecb|boe|boj|imf|world bank|china|europe|emerging|hedge|risk|volatilit|vix|ipo|merger|acquisition|dividend|buyback|short|long|bull|bear|rally|sell-off|correction|commodit|copper|aluminum|energy|supply|demand|manufactur|pmi|ism|claims|unemploy|consumer|sentiment|housing|mortgage|credit|spread|oas|liquidit|capital|portfolio)/i;
 
-async function fetchRSS(feedUrl: string, source: string, requireFinancial = false): Promise<RawNewsItem[]> {
+async function fetchRSS(feedUrl: string, source: string, requireFinancial = false, region: NewsRegion = 'us'): Promise<RawNewsItem[]> {
   try {
     const res = await fetch(feedUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FlowviumBot/1.0)' },
@@ -331,7 +341,7 @@ async function fetchRSS(feedUrl: string, source: string, requireFinancial = fals
         // Global: skip crime/sports/accident news from all feeds (wastes AI tokens)
         if (NON_FINANCIAL_PATTERNS.test(title)) continue;
         if (!requireFinancial || FINANCIAL_SIGNAL.test(title)) {
-          items.push({ title, link, pubDate, source });
+          items.push({ title, link, pubDate, source, region });
         }
       }
       if (items.length >= 5) break; // max 5 per feed
@@ -788,7 +798,7 @@ export async function GET(request: Request) {
   // 2. Fetch all RSS feeds in parallel
   const rawArticles: RawNewsItem[] = [];
   const results = await Promise.allSettled(
-    RSS_FEEDS.map((f) => fetchRSS(f.url, f.source, f.requireFinancial))
+    RSS_FEEDS.map((f) => fetchRSS(f.url, f.source, f.requireFinancial, f.region))
   );
   for (const r of results) {
     if (r.status === 'fulfilled') rawArticles.push(...r.value);
@@ -802,17 +812,44 @@ export async function GET(request: Request) {
     return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
   });
 
-  // De-duplicate by title similarity (keep top 10 most recent)
+  // De-duplicate by title similarity
   const seen = new Set<string>();
-  const deduped: RawNewsItem[] = [];
+  const uniqueByRecency: RawNewsItem[] = [];
   for (const a of rawArticles) {
     const key = a.title.toLowerCase().slice(0, 40);
     if (!seen.has(key)) {
       seen.add(key);
-      deduped.push(a);
+      uniqueByRecency.push(a);
     }
-    if (deduped.length >= 10) break;
   }
+
+  // 2026-06-05: 지역 쿼터 선택 — 순수 recency top-10 은 US 뉴스 많은 날 KR/아시아를 밀어냄.
+  //   사용자 "각 국가 뉴스가 다 들어가나?" → 국가별 최소 슬롯 보장 후 나머지는 최신순.
+  //   각 region 내부는 이미 recency 정렬됨(uniqueByRecency). quota: kr 3 / jp 1 / cn 1 / 나머지 us.
+  const TOTAL_CAP = 12;
+  const QUOTA: Record<NewsRegion, number> = { kr: 3, jp: 1, cn: 1, us: 0 };
+  const byRegion: Record<NewsRegion, RawNewsItem[]> = { us: [], kr: [], jp: [], cn: [] };
+  for (const a of uniqueByRecency) byRegion[a.region].push(a);
+
+  const deduped: RawNewsItem[] = [];
+  const picked = new Set<string>();
+  // 1) 각 region 쿼터 우선 충족 (해당 국가 뉴스 보장)
+  for (const region of ['kr', 'jp', 'cn'] as NewsRegion[]) {
+    for (const a of byRegion[region].slice(0, QUOTA[region])) {
+      deduped.push(a);
+      picked.add(a.link);
+    }
+  }
+  // 2) 남은 슬롯은 전체 최신순으로 채움 (us 포함, 쿼터 초과분도 경합)
+  for (const a of uniqueByRecency) {
+    if (deduped.length >= TOTAL_CAP) break;
+    if (!picked.has(a.link)) { deduped.push(a); picked.add(a.link); }
+  }
+  // 최종 recency 재정렬 (쿼터로 앞당겨진 항목 포함 시간순 정돈)
+  deduped.sort((a, b) => {
+    const ta = new Date(a.pubDate).getTime(), tb = new Date(b.pubDate).getTime();
+    return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+  });
 
   if (deduped.length === 0) {
     // RSS hiccup 으로 0 article — lock leak 방지를 위해 즉시 release
@@ -857,7 +894,9 @@ export async function GET(request: Request) {
     }
   }
 
-  const settled = await Promise.allSettled(deduped.slice(0, 10).map(analyzeOne));
+  // deduped 는 이미 TOTAL_CAP(region 쿼터 포함) 으로 제한됨 — 여기서 다시 10 으로 자르면
+  //   쿼터로 넣은 KR/JP/CN(상대적으로 오래된) 항목이 recency 재정렬 후 잘려나가 커버리지 깨짐.
+  const settled = await Promise.allSettled(deduped.slice(0, TOTAL_CAP).map(analyzeOne));
   const analyzed: NewsWithCascade[] = settled
     .map(r => r.status === 'fulfilled' ? r.value : null)
     .filter((v): v is NewsWithCascade => v != null);

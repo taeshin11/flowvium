@@ -65,6 +65,25 @@ async function main() {
     }
   }
 
+  // [B2] 뉴스 국가 커버리지 (2026-06-05 신설) — 사용자 "각 국가 뉴스가 다 들어가나?".
+  //   news-cascade 가 US 영어 피드만이던 사각지대 → KR/JP/CN 네이티브 피드 추가 + region 쿼터.
+  //   article.source 로 region 판정: KR 소스 0건이면 KR 피드 끊김/쿼터 미작동 → 결함.
+  {
+    const r = await getJson('/api/news-cascade?locale=ko');
+    const arts = (r.body?.articles || []);
+    const srcs = arts.map(a => a.source || '');
+    const krN = srcs.filter(s => /연합|한국경제|매일경제|매경/.test(s)).length;
+    const jpN = srcs.filter(s => /Japan|日|Nikkei/i.test(s)).length;
+    const cnN = srcs.filter(s => /SCMP|China|中/i.test(s)).length;
+    if (arts.length === 0) {
+      info.push('[B2] news-cascade 기사 0 — 커버리지 점검 불가');
+    } else if (krN === 0) {
+      issues.push(`[B2] 뉴스 KR 커버리지 0 — 연합/한경/매경 피드 끊김 또는 region 쿼터 미작동 (총 ${arts.length}건, jp=${jpN} cn=${cnN})`);
+    } else {
+      info.push(`[B2] 뉴스 국가 커버리지 KR=${krN} JP=${jpN} CN=${cnN} (총 ${arts.length})`);
+    }
+  }
+
   // [C] contango / commodity 추정 표시
   {
     const r = await getJson('/api/commodity-curve');
