@@ -929,6 +929,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 | `SupplyChainMap` | ASCII 공급망 네트워크 뷰 | 기업 프로필 "터미널 뷰" 토글 |
 | `MiniGraph` | SVG 애니메이션 캐스케이드 그래프 | 홈페이지 |
 | `guru-methodologies` | 투자 구루 8명 매수/매도 원칙 DB + AI 프롬프트 주입 유틸 | `/api/investment-strategy` AI 포트폴리오 생성 시 |
+| `error.tsx` / `global-error.tsx` | 청크 로드 에러(재배포 후 해시 교체) 세션당 1회 자동 새로고침 복구 + 재시도 UI | 클라이언트 런타임 크래시 / ChunkLoadError |
 
 ---
 
