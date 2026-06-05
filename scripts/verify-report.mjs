@@ -292,8 +292,10 @@ export function verifyReport(file, { silent = false } = {}) {
   log('\n## 50MA-200MA (불가능 발산 >2.5x + 현재가 3x 이탈)');
   let maBad = 0;
   for (const p of (r.portfolio||[])) {
-    const m50 = (p.rationale||'').match(/50MA[^₩$\d]*[₩$]?([\d,.]+)/);
-    const m200 = (p.rationale||'').match(/200MA[^₩$\d]*[₩$]?([\d,.]+)/);
+    // 2026-06-06: ₩/$ 필수 + 근접(≤10자) — 종전 `[₩$]?`(통화 옵션)이 "50MA 돌파...매출 -4.9%"의
+    //   -4.9 를 50MA 로 오인(005490 false ❌). 실 MA 는 "50MA 위(₩410,710)"처럼 통화기호 동반.
+    const m50 = (p.rationale||'').match(/50MA[^₩$]{0,10}[₩$]([\d,.]+)/);
+    const m200 = (p.rationale||'').match(/200MA[^₩$]{0,10}[₩$]([\d,.]+)/);
     if (!m50 || !m200) continue;
     const v50 = parseFloat(m50[1].replace(/,/g, ''));
     const v200 = parseFloat(m200[1].replace(/,/g, ''));
