@@ -6289,6 +6289,27 @@ async function generateViaOllama() {
     }
   }
 
+  // 2026-06-05: 최종 name 게이트 (writeFileSync 직전 = 절대 마지막) — 중간(dedupedPortfolio 5551)
+  //   게이트 후 portfolio 가 6번 재할당(enrichRationales/map/validateEntryZones/enforceRotation/
+  //   buildLadders/cap)되고 critique 재머지로 일부 종목(TSLA/TSM)이 LLM 명("TSMC")으로 되돌아오던
+  //   사건(2026-06-05 evening). portfolio + companyChanges 둘 다 권위명으로 최종 확정.
+  {
+    const fixNames = (arr) => {
+      let n = 0;
+      for (const p of arr ?? []) {
+        const tk = p?.ticker?.toUpperCase();
+        if (!tk) continue;
+        const auth = US_NAME_LOOKUP[tk] ?? KR_NAMES_HARNESS[tk];
+        const expected = auth ?? (((!p.name || p.name === p.ticker) && CANDIDATE_META[tk]?.name) || null);
+        if (expected && p.name !== expected) { p.name = expected; n++; }
+      }
+      return n;
+    };
+    const np = fixNames(finalReport.portfolio);
+    const nc = fixNames(finalReport.companyChanges);
+    if (np + nc > 0) console.log(`  [name-gate/final] 발간직전 권위명 확정 portfolio ${np} + companyChanges ${nc}`);
+  }
+
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = getReportKstDate(session);  // midnight 은 발간일(익일)
   const filename = `report-${kstDate}-${session}-${localeArg}.json`;
