@@ -12,12 +12,15 @@ const PAD = (s, n) => String(s ?? '').padEnd(n);
 
 const SOURCES = [
   {
-    name: 'Stooq batch CSV',
-    critical: true,
+    // 2026-06-06: Stooq 가 JS/PoW 봇챌린지로 영구 차단 → critical 해제(보고서가 Yahoo v7 crumb 로 전환).
+    //   여전히 모니터링은 하되 실패해도 보고서 abort 안 함(Yahoo 가 primary).
+    name: 'Stooq batch CSV (deprecated — bot-blocked)',
+    critical: false,
     test: async () => {
       const r = await fetch('https://stooq.com/q/l/?s=nvda.us+msft.us&f=sd2t2ohlcv&h&e=csv', { signal: AbortSignal.timeout(10000) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const t = await r.text();
+      if (/JavaScript|noscript|__verify/.test(t)) throw new Error('JS 봇챌린지 (영구 차단 — Yahoo v7 로 대체됨)');
       const lines = t.trim().split('\n');
       if (lines.length < 3) throw new Error('CSV empty');
       const nvdaClose = parseFloat(lines[1].split(',')[6]);
@@ -38,13 +41,23 @@ const SOURCES = [
     },
   },
   {
-    name: 'Yahoo v7 quote (deprecated check)',
-    critical: false,
+    // 2026-06-06: Yahoo v7 quote batch(crumb 인증) — 보고서의 *주* US 가격 소스(Stooq 봇차단 대체).
+    //   crumb 없이는 401 이지만 crumb 로 우회. 이게 죽으면 US 가격 못 받음 → critical.
+    name: 'Yahoo v7 quote (crumb batch)',
+    critical: true,
     test: async () => {
-      const r = await fetch('https://query2.finance.yahoo.com/v7/finance/quote?symbols=NVDA&fields=regularMarketPrice', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
-      if (r.status === 401) throw new Error('401 Unauthorized (Yahoo v7 차단)');
+      const UA = { 'User-Agent': 'Mozilla/5.0' };
+      const fc = await fetch('https://fc.yahoo.com', { headers: UA, signal: AbortSignal.timeout(8000) });
+      const cookie = (fc.headers.getSetCookie?.() || []).map(c => c.split(';')[0]).join('; ');
+      const cr = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
+      const crumb = await cr.text();
+      if (!crumb || crumb.length > 30) throw new Error('crumb 획득 실패');
+      const r = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=NVDA,MSFT&crumb=${encodeURIComponent(crumb)}`, { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return `OK ${r.status}`;
+      const j = await r.json();
+      const px = j?.quoteResponse?.result?.[0]?.regularMarketPrice;
+      if (!px || px < 100 || px > 500) throw new Error(`NVDA price suspicious: ${px}`);
+      return `NVDA $${px} (crumb OK)`;
     },
   },
   {

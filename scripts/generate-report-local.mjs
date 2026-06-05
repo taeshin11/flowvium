@@ -1333,14 +1333,60 @@ async function fetchStooqBatch(tickers) {
   return out;
 }
 
+// 2026-06-06: Yahoo v7 quote batch (crumb 인증) — Stooq batch CSV 가 JS/PoW 봇챌린지로 영구 차단됨
+//   (NVDA NaN → 보고서 abort 사건). Yahoo v7 401 은 crumb 로 우회. 1요청 ~50심볼 배치 + 실 52w 동반.
+let _yCrumb = null;
+async function getYahooCrumb() {
+  if (_yCrumb) return _yCrumb;
+  const UA = { 'User-Agent': 'Mozilla/5.0' };
+  const r = await fetch('https://fc.yahoo.com', { headers: UA, signal: AbortSignal.timeout(8000) });
+  const cookie = (r.headers.getSetCookie?.() || []).map(c => c.split(';')[0]).join('; ');
+  const cr = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
+  _yCrumb = { crumb: await cr.text(), cookie };
+  return _yCrumb;
+}
+async function fetchYahooQuoteBatch(tickers) {
+  const out = new Map();
+  if (!tickers.length) return out;
+  let cr; try { cr = await getYahooCrumb(); } catch { return out; }
+  if (!cr.crumb || cr.crumb.length > 30) return out; // crumb 실패 시 빈 맵 (fallback 가 처리)
+  const UA = { 'User-Agent': 'Mozilla/5.0', Cookie: cr.cookie };
+  for (let i = 0; i < tickers.length; i += 50) {
+    const chunk = tickers.slice(i, i + 50);
+    const symMap = new Map(chunk.map(t => [t.replace(/\./g, '-'), t])); // BRK.B → BRK-B, 역매핑
+    try {
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${[...symMap.keys()].map(encodeURIComponent).join(',')}&crumb=${encodeURIComponent(cr.crumb)}`;
+      const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(12000) });
+      if (!r.ok) continue;
+      const j = await r.json();
+      for (const q of j?.quoteResponse?.result ?? []) {
+        const price = q.regularMarketPrice;
+        if (!price || !isFinite(price)) continue;
+        const orig = symMap.get(q.symbol) ?? q.symbol;
+        out.set(orig, {
+          price: Math.round(price * 100) / 100,
+          change1d: q.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 10) / 10 : null,
+          high52w: q.fiftyTwoWeekHigh ?? price * 1.3,   // 실 52w (Stooq 는 close*1.3 가짜였음)
+          low52w: q.fiftyTwoWeekLow ?? price * 0.7,
+        });
+      }
+    } catch { /* chunk failed */ }
+  }
+  return out;
+}
+
 async function getLivePrices() {
   const map = new Map();
-  // 1) Stooq batch — US/EU 종목 (Yahoo v7 401 차단됨). KR/일부는 N/D
-  // 2026-05-29: KOSDAQ (.KQ) 도 KR fetch path 로 처리 — Yahoo v8 chart 가 양쪽 지원.
+  // 1) US 종목 — Yahoo v7 quote 배치(crumb). 2026-06-06: Stooq 봇차단 → Yahoo 로 전환.
   const usTickers = CANDIDATE_TICKERS.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ'));
   const krTickers = CANDIDATE_TICKERS.filter(t => t.endsWith('.KS') || t.endsWith('.KQ'));
-  const stooqMap = await fetchStooqBatch(usTickers);
-  for (const [t, v] of stooqMap) map.set(t, v);
+  let usMap = await fetchYahooQuoteBatch(usTickers);
+  if (usMap.size < usTickers.length * 0.5) {
+    // Yahoo v7 실패/부분 → Stooq 잔존분 시도(봇차단이면 빈맵), 둘 다 합산
+    const stooqMap = await fetchStooqBatch(usTickers);
+    for (const [t, v] of stooqMap) if (!usMap.has(t)) usMap.set(t, v);
+  }
+  for (const [t, v] of usMap) map.set(t, v);
 
   // 2) KR ticker — Yahoo v8 chart 개별 (~29개, 동시 8개)
   const krBatch = async (slice) => {
@@ -1351,14 +1397,16 @@ async function getLivePrices() {
     await krBatch(krTickers.slice(i, i + 8));
   }
 
-  // 3) Stooq 누락 US ticker (N/D) — Yahoo v8 개별 fallback (50개 한도)
+  // 3) 누락 US ticker — Yahoo v8 개별 fallback (가드 완화: Stooq 전면 차단 대비)
   const missingUs = usTickers.filter(t => !map.has(t));
-  if (missingUs.length > 0 && missingUs.length < 100) {
-    const results = await Promise.all(missingUs.slice(0, 50).map(fetchOnePrice));
-    for (const [t, lp] of results) { if (lp) map.set(t, lp); }
+  if (missingUs.length > 0) {
+    for (let i = 0; i < Math.min(missingUs.length, 100); i += 8) {
+      const results = await Promise.all(missingUs.slice(i, i + 8).map(fetchOnePrice));
+      for (const [t, lp] of results) { if (lp) map.set(t, lp); }
+    }
   }
   const coverage = map.size / CANDIDATE_TICKERS.length;
-  console.log(`  [livePrices] ${map.size}/${CANDIDATE_TICKERS.length} 종목 확보 (${(coverage*100).toFixed(1)}%, Stooq US: ${stooqMap.size}, Yahoo v8 KR+fallback: ${map.size - stooqMap.size})`);
+  console.log(`  [livePrices] ${map.size}/${CANDIDATE_TICKERS.length} 종목 확보 (${(coverage*100).toFixed(1)}%, Yahoo v7 US: ${usMap.size}, KR+fallback: ${map.size - usMap.size})`);
 
   // 🚨 Fail-loud guard: 가격 source 50% 미만이면 환각 보고서 방지를 위해 abort
   // (Yahoo v7 차단 같은 silent failure 시 보고서 생성 중단)
