@@ -373,6 +373,43 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (peBad === 0) log('  ✅ PE 중복/KR PE 환각 없음');
 
+  // 7. 기술 일관성 — RSI/지지선 환각 detect (2026-06-05, 삼전 "RSI 45+과매도"(실제 58)·
+  //    "120,000 지지"(실제가 327k) 환각 사건). report 내부만으로 판정(외부 fetch 불필요):
+  //    (a) "RSI N" + "과매도"(N≥35) 또는 "과매수"(N≤65) 모순, (b) entryRationale 의 지지가격이
+  //    entryZone 과 >25% 이탈(지지선 환각).
+  log('\n## 기술 일관성 (RSI/지지선 환각 — 2026-06-05)');
+  let techBad = 0;
+  const parseWon = (s) => { const m = (s || '').replace(/[,₩\s]/g, '').match(/(\d{4,})/); return m ? +m[1] : null; };
+  for (const p of (r.portfolio || [])) {
+    const txt = `${p.technicalBasis || ''} ${p.entryRationale || ''} ${p.rationale || ''}`;
+    const rsiM = txt.match(/RSI\s*([0-9]{1,3})/i);
+    const rsi = rsiM ? +rsiM[1] : null;
+    const oversold = /과매도|oversold/i.test(txt), overbought = /과매수|overbought/i.test(txt);
+    if (rsi != null && oversold && rsi >= 35) {
+      log(`  ⚠️ ${p.ticker} "RSI ${rsi}" + "과매도" 모순 (과매도는 RSI<35)`);
+      defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: `RSI ${rsi}+과매도`, correct_value: 'RSI<35 만 과매도', severity: 'medium' });
+      techBad++;
+    } else if (rsi != null && overbought && rsi <= 65) {
+      log(`  ⚠️ ${p.ticker} "RSI ${rsi}" + "과매수" 모순 (과매수는 RSI>65)`);
+      defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: `RSI ${rsi}+과매수`, correct_value: 'RSI>65 만 과매수', severity: 'medium' });
+      techBad++;
+    } else if (oversold && rsi == null && /지지|과매도/.test(p.entryRationale || '')) {
+      // RSI 값 없이 "과매도" 단언 — 근거 없는 환각
+      log(`  ⚠️ ${p.ticker} RSI 값 없이 "과매도" 단언 (근거 미상)`);
+      defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: 'RSI값없이 과매도', correct_value: 'RSI 값 명시 또는 제거', severity: 'low' });
+      techBad++;
+    }
+    // 지지선 vs entryZone 이탈 — entryRationale 의 가격이 entryZone 과 >25% 차이면 지지선 환각
+    const ezLow = parseWon((p.entryZone || '').split(/[-~]/)[0]);
+    const supW = parseWon(p.entryRationale);
+    if (ezLow && supW && Math.abs(supW / ezLow - 1) > 0.25) {
+      log(`  ⚠️ ${p.ticker} 지지 "${supW}" vs entryZone(${ezLow}) ${Math.round((supW/ezLow-1)*100)}% 이탈 — 지지선 환각`);
+      defects.push({ ticker: p.ticker, defect_type: 'support_halluc', llm_value: `지지 ${supW} vs entry ${ezLow}`, correct_value: 'entryZone 기준 지지', severity: 'medium' });
+      techBad++;
+    }
+  }
+  if (techBad === 0) log('  ✅ RSI/지지선 일관성 정상');
+
   log(`\n## 종합 — 결함 ${defects.length}건`);
   return { defects, total: (r.portfolio||[]).length };
 }
