@@ -4379,23 +4379,30 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         insiderBuys: macroCtx.insider?.get(ticker)?.buys ?? null,
         insiderSellToBuyRatio: macroCtx.insider?.get(ticker) ? (macroCtx.insider.get(ticker).sells / Math.max(macroCtx.insider.get(ticker).buys, 1)) : null,
       };
-      let matchedRule = null, reason = null;
-      // 룰 순서 = JSON 순서. 첫 매칭 룰 채택 (priority = JSON 순서).
+      // 2026-06-06: 누적 점수화 (ChatGPT D3) — 첫 매칭 1개가 아니라 매칭 룰 *전부* 합산.
+      //   target_near 단독(7)과 target_near+RSI과매수+내부자매도(20)를 같은 7로 취급하던 비대칭 해소.
+      //   buy 후보 경합심사가 누적인데 sell 은 first-match 였던 비대칭도 정렬.
+      const sellHits = [];
       for (const rule of ruleSpec.rules) {
         const result = evaluateSellRule(rule, evalCtx);
-        if (result) { matchedRule = rule; reason = result; break; }
+        if (result) sellHits.push({ ruleId: rule.id, category: rule.category ?? null, score: rule.score ?? 0, urgency: rule.urgency, reason: result });
       }
-      if (!matchedRule) continue;
+      if (!sellHits.length) continue;
+      const totalScore = sellHits.reduce((s, h) => s + h.score, 0);
+      const URG_RANK = { high: 3, medium: 2, low: 1 };
+      const maxUrgency = sellHits.reduce((u, h) => (URG_RANK[h.urgency] ?? 0) > (URG_RANK[u] ?? 0) ? h.urgency : u, 'low');
+      const primary = [...sellHits].sort((a, b) => b.score - a.score)[0];
 
       const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
       candidates.push({
         ticker, name: r.name ?? ticker, sector: r.sector ?? 'Unknown',
         market: isKR ? 'kr' : 'us',
-        score: matchedRule.score,
-        ruleId: matchedRule.id,
-        category: matchedRule.category ?? null,
-        urgency: matchedRule.urgency,
-        reason,
+        score: totalScore,
+        ruleId: primary.ruleId,
+        category: primary.category,
+        urgency: maxUrgency,
+        sellHits,  // 양방향 심판/trail 용 — 매칭 룰 전체 보존
+        reason: sellHits.map(h => h.reason).join(' | '),
         currentPrice: fmt(price),
         entryPrice: r.price_at_gen ? fmt(r.price_at_gen) : null,
         target: target ? fmt(target) : null,
@@ -5465,6 +5472,10 @@ async function generateViaOllama() {
   //   cross-examine. 강한 매수신호(과매도 반등 / 골든크로스 추세유효)가 있으면 매도와 충돌 → 플래그.
   //   리스크관리 우선이라 매도 자체는 취소 안 하되, "전량매도 대신 부분매도/관망" 으로 충돌을 surface.
   //   buy→sell veto(경합심사 게이트)와 합쳐 양방향 합의 완성. sellSideReview 는 trail 에도 적재.
+  // 2026-06-06: adjudicateSellVsBuy (ChatGPT D3) — target_near winner 는 매수엔진 재평가로 "더 갈
+  //   여지" 판정. hard-sell(stop/dead cross/200MA/margin/내부자매도)은 매수신호 있어도 매도 우선(리스크관리).
+  const HARD_SELL = new Set(['price_stop_breach', 'stop_breach', 'tech_dead_cross', 'tech_200ma_breach', 'fund_margin_decline', 'micro_insider_selling']);
+  const TARGET_NEAR = new Set(['price_target_near', 'target_near', 'target_proximity']);
   let sellSideReview = [];
   for (const c of [...sellCands.us, ...sellCands.kr]) {
     const sig = macroCtx.signals?.get(c.ticker) ?? {};
@@ -5472,13 +5483,19 @@ async function generateViaOllama() {
     if (sig.rsi != null && sig.rsi <= 32) buyOpp.push(`RSI ${sig.rsi} 과매도(반등 가능)`);
     if (sig.sma50 != null && sig.sma200 != null && sig.sma50 > sig.sma200) buyOpp.push('50MA>200MA 추세 유효');
     if (sig.peg != null && sig.peg > 0 && sig.peg < 1) buyOpp.push(`PEG ${sig.peg.toFixed(2)} 저평가`);
-    if (buyOpp.length) {
-      c.buyConflict = `매수신호 상충: ${buyOpp.join(', ')} → 전량매도보다 부분매도/관망 고려`;
-      sellSideReview.push({ ticker: c.ticker, sellType: c.sellType ?? c.ruleId, buySignals: buyOpp });
-      console.log(`  [경합심사/양방향] ${c.ticker} 매도 but ${buyOpp.join('+')} → 충돌 플래그`);
-    }
+    if (!buyOpp.length) continue;
+    const hits = c.sellHits ?? [];
+    const hasHard = hits.some(h => HARD_SELL.has(h.ruleId));
+    const targetNearOnly = hits.some(h => TARGET_NEAR.has(h.ruleId)) && !hasHard;
+    let verdict;
+    if (hasHard) verdict = { action: 'sell', msg: `매수신호(${buyOpp.join(', ')}) 있으나 hard-sell 우선 — 매도 유지` };
+    else if (targetNearOnly && buyOpp.length >= 2) verdict = { action: 'hold_trailing', msg: `목표가 근접이나 추세 유효(${buyOpp.join(', ')}) — 전량매도 말고 trailing stop/추세추종` };
+    else verdict = { action: 'partial', msg: `매수신호 상충(${buyOpp.join(', ')}) → 부분익절+나머지 관망` };
+    c.buyConflict = verdict.msg;
+    sellSideReview.push({ ticker: c.ticker, sellType: c.sellType ?? c.ruleId, sellScore: c.score, buySignals: buyOpp, verdict: verdict.action });
+    console.log(`  [경합심사/양방향] ${c.ticker} 매도(${c.ruleId},score${c.score}) but ${buyOpp.join('+')} → ${verdict.action}`);
   }
-  if (sellSideReview.length) console.log(`  [경합심사/양방향] 매도 ${sellSideReview.length}건에 매수신호 상충 플래그`);
+  if (sellSideReview.length) console.log(`  [경합심사/양방향] 매도 ${sellSideReview.length}건 매수엔진 재평가(adjudicateSellVsBuy)`);
 
   const stockDetailMap = new Map();
   if (stockDetailRaw) {
