@@ -43,6 +43,18 @@ for (let i = 1; i <= 10; i++) {
   }
 }
 
+// 2026-06-05: 큐레이션 override — batch 추출에서 누락/오염된 주요 ticker 권위명 강제.
+//   TSLA 가 candidate meta.name="OEM & Other"(산업라벨)로 UI 노출되던 사건. batch 미수록 종목 보강.
+const CURATED = {
+  TSLA: 'Tesla, Inc.', NWSA: 'News Corporation', NWS: 'News Corporation',
+  GOOG: 'Alphabet Inc.', GOOGL: 'Alphabet Inc.', META: 'Meta Platforms, Inc.',
+  BRK_B: 'Berkshire Hathaway Inc.',
+};
+for (const [t, n] of Object.entries(CURATED)) out[t] = n;   // force override (권위 큐레이션)
+
 writeFileSync('data/company-names.json', JSON.stringify(out, null, 0) + '\n');
-console.log(`[build-company-names] ${Object.keys(out).length} tickers → data/company-names.json`);
+// 검증: name 이 산업라벨/Unknown 처럼 보이면 경고(향후 오염 사전 포착).
+const suspect = Object.entries(out).filter(([, n]) => /\b(& Other|Unknown|N\/A)\b/i.test(n));
+if (suspect.length) console.warn(`[build-company-names] ⚠️ 의심 name ${suspect.length}: ${suspect.slice(0, 5).map(([t, n]) => `${t}="${n}"`).join(', ')}`);
+console.log(`[build-company-names] ${Object.keys(out).length} tickers → data/company-names.json (curated ${Object.keys(CURATED).length})`);
 console.log(`  CPRT=${out.CPRT ?? '(missing)'} | NVDA=${out.NVDA ?? '?'} | AAPL=${out.AAPL ?? '?'}`);

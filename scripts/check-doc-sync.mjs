@@ -40,8 +40,24 @@ const CHECKS = [
   },
 ];
 
+// 2026-06-05: UNIVERSE_SEARCH 회사명 품질 — name 이 산업라벨("OEM & Other")/Unknown 이면 UI 에
+//   회사명 대신 분류 라벨이 노출됨(TSLA 사건). build 가 막지만 런타임 재검증으로 회귀 차단.
+const NAME_ISSUES = (() => {
+  try {
+    const us = readFileSync('src/data/universe-search.ts', 'utf8');
+    const entries = [...us.matchAll(/\{"ticker":"([^"]+)","name":"([^"]+)"/g)];
+    const garbage = entries.filter(([, , n]) => /\b(& Other|Unknown|N\/A)\b/i.test(n));
+    return { total: entries.length, garbage: garbage.map(m => `${m[1]}="${m[2]}"`) };
+  } catch { return null; }
+})();
+
 const issues = [];
 const ok = [];
+
+if (NAME_ISSUES) {
+  if (NAME_ISSUES.garbage.length) issues.push(`UNIVERSE_SEARCH 회사명 산업라벨 오염 ${NAME_ISSUES.garbage.length}: ${NAME_ISSUES.garbage.slice(0, 4).join(', ')} (build:universe 재실행/큐레이션 필요)`);
+  else ok.push(`UNIVERSE_SEARCH 회사명 정상 (산업라벨/Unknown 오염 0, ${NAME_ISSUES.total} entries)`);
+}
 for (const c of CHECKS) {
   const claims = [...DOCS.matchAll(c.docRe)].map(m => norm(m[1])).filter((v, i, a) => a.indexOf(v) === i && !isNaN(v));
   const bad = claims.filter(v => v !== c.code);

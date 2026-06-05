@@ -27,7 +27,11 @@ for (const t of tickers) {
   const m = meta[t] || meta[tk] || {};
   // US 는 실제명 우선; KR(.KS/.KQ) 은 meta.name(한글). 둘 다 없으면 meta.name → ticker.
   const isKR = /\.(KS|KQ)$/.test(t);
-  const name = (!isKR && realNames[tk]) ? realNames[tk] : (m.name && m.name !== tk ? m.name : tk);
+  // 2026-06-05: meta.name 이 산업라벨 garbage("OEM & Other"/Unknown 등)면 회사명으로 쓰지 않음(ticker 폴백).
+  //   TSLA meta.name="OEM & Other" 가 UI 회사명으로 노출되던 사건. 권위명(realNames) > 정상 meta.name > ticker.
+  const GARBAGE_NAME = /\b(& Other|Other|Unknown|N\/A|Industrials?|Materials?|Financials?)\b/i;
+  const cleanMeta = (m.name && m.name !== tk && !GARBAGE_NAME.test(m.name)) ? m.name : null;
+  const name = (!isKR && realNames[tk]) ? realNames[tk] : (cleanMeta ?? tk);
   const sector = m.sector || 'Unknown';
   rows.push({ ticker: t, name, sector });
 }
