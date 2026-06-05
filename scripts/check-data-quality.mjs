@@ -98,6 +98,22 @@ async function main() {
     }
   }
 
+  // [B3] 뉴스 신선도 (2026-06-06 신설) — 사용자 "주요뉴스가 왜 18h 전꺼야? 하네스에 안잡혀?".
+  //   최신 기사 age 점검. 주말(시장 휴장)엔 뉴스 sparse → 임계 완화(평일 18h / 주말 48h). genuinely
+  //   끊긴 피드(평일 18h+)는 잡되 주말 정상은 통과. age 를 info 로 항상 노출.
+  {
+    const r = await getJson('/api/news-cascade?locale=ko');
+    const arts = (r.body?.articles || []);
+    const times = arts.map(a => { const t = a.publishedAt || a.pubDate || a.date || a.isoDate; const ms = t ? Date.parse(t) : NaN; return Number.isFinite(ms) ? ms : null; }).filter(x => x != null);
+    if (times.length) {
+      const ageH = (Date.now() - Math.max(...times)) / 3600000;
+      const weekend = [0, 6].includes(new Date().getUTCDay());
+      const limit = weekend ? 48 : 18;
+      if (ageH > limit) issues.push(`[B3] 뉴스 최신 ${ageH.toFixed(0)}h 전 (>${limit}h, ${weekend ? '주말' : '평일'}) — 피드 갱신 정지 의심`);
+      else info.push(`[B3] 뉴스 신선도 OK (최신 ${ageH.toFixed(0)}h 전, ${weekend ? '주말' : '평일'} 임계 ${limit}h)`);
+    } else info.push('[B3] 뉴스 timestamp 파싱 불가 — 신선도 점검 skip');
+  }
+
   // [C] contango / commodity 추정 표시
   {
     const r = await getJson('/api/commodity-curve');

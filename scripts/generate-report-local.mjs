@@ -2027,19 +2027,21 @@ function enforceRotation(portfolio, livePrices) {
       // LLM 추천 종목은 이 필드들 채움 — rotation 신규 종목도 동등 정보 노출.
       const isFromPool = boost._fromPool === true;
       const sectorTag = isFromPool && boost.reason?.match(/sector=([^)]+)\)/)?.[1] || 'Unknown';
+      // 2026-06-06: boost/pool 종목 설명을 평이하게 (사용자 "이게 무슨 말이야" — boost-list 전문용어 +
+      //   catalysts↔fundamentalBasis 중복). boost = 과거 추천 트랙레코드 우수로 재선정, pool = 섹터 분산 신규.
+      const winPct = boost.evaluated ? Math.round((boost.hits ?? 0) / boost.evaluated * 100) : null;
       const baseRationale = isFromPool
-        ? `${boost.ticker} — ${sectorTag} 섹터 분산 (메가 편향 회피)`
-        : `BOOST: ${boostReason || boost.reason}`;
-      // 2026-05-29: catalysts 의 cross-ticker duplicate WARN 해결 — ticker/sector/price
-      // 변수 포함하여 entry 별 unique. rationaleDedup 가 catch 안 함.
+        ? `${sectorTag} 섹터 분산 신규 편입 (메가캡 편향 회피)`
+        : `과거 추천 성과 우수로 재선정 — 최근 ${boost.evaluated}회 추천 중 ${boost.hits ?? 0}회 목표 도달·${boost.stops ?? 0}회 손절, 평균 +${boost.avg_pnl}%`;
+      // 2026-05-29: catalysts 는 ticker/sector/price 포함해 entry 별 unique (cross-ticker dup WARN 회피).
       const baseCatalysts = isFromPool
         ? [
-            `${boost.ticker} (${sectorTag}) — Tech 비편향 sector 신규 노출`,
-            `시장가 ${fmt(actual)} 기준 mid/large-cap rotation pool 무작위 선택`,
+            `${sectorTag} 섹터 노출 확대 — 포트폴리오 분산`,
+            `시장가 ${fmt(actual)} 신규 편입 (추가 검증 후 진입 권장)`,
           ]
         : [
-            `${boost.ticker} 과거 ${boost.evaluated}건 평가, 평균 +${boost.avg_pnl}% (boost-list)`,
-            `${boost.hits ?? 0}건 target hit / ${boost.stops ?? 0}건 stop`,
+            `과거 추천 트랙레코드: ${boost.evaluated}회 중 ${boost.hits ?? 0}회 목표 도달${winPct != null ? `(승률 ${winPct}%)` : ''}`,
+            `손절 ${boost.stops ?? 0}회 · 평균 수익 +${boost.avg_pnl}% — 검증된 추천 이력`,
           ];
       updated[candidates[i].idx] = {
         ticker: boost.ticker,
@@ -2059,13 +2061,14 @@ function enforceRotation(portfolio, livePrices) {
         confidence: 'medium',
         action: 'buy',
         catalysts: baseCatalysts,
+        // fundamentalBasis: boost 는 트랙레코드가 catalysts 에 이미 있어 중복 금지 → 종목페이지 안내.
         fundamentalBasis: isFromPool
-          ? `Sector=${sectorTag}, 시장가 ${fmt(actual)} (cap rotation 후보)`
-          : `과거 성과 기반: ${boost.evaluated}건 평가, ${boost.hits ?? 0} hits`,
-        technicalBasis: `시장가 ${fmt(actual)} 기준 -3% stop / +10% target`,
+          ? `${sectorTag} 섹터 분산 목적 신규 — 펀더멘털 상세는 종목 페이지 참조`
+          : `재추천 종목 — 펀더멘털 상세는 종목 페이지 참조 (과거 추천 트랙레코드 기반 선정)`,
+        technicalBasis: `진입 ${fmt(actual)} · 손절 -7% · 1차 목표 +10%`,
         riskNote: isFromPool
-          ? `Rotation 신규 — 추가 검증 후 진입 권장 (catalysts 자동 생성)`
-          : `boost-list 기반 — 과거 데이터 의존, 미래 보장 X`,
+          ? `신규 편입 — 펀더멘털 추가 검증 후 진입 권장`
+          : `과거 성과 의존 — 펀더멘털 변화 시 재평가 필요(미래 수익 보장 아님)`,
       };
     }
     return updated;
@@ -6503,6 +6506,24 @@ async function generateViaOllama() {
       }
     }
     if (filled > 0) console.log(`  [completeness-gate] buy 종목 누락 필드 grounded 채움 ${filled}건 (F23)`);
+  }
+
+  // 2026-06-06: 최종 IV 주입 — 초기 IV 주입(dedupedPortfolio) 後 enforceRotation/pool-fill 이 추가한
+  //   종목(TSLA boost·ULTA pool)이 impliedVol=undefined 였음(유동 옵션주인데 IV 누락, 사용자 지적).
+  //   발간 직전 누락분(undefined) 재주입 — 이미 주입된(number/null) 건 skip.
+  {
+    let n = 0;
+    await Promise.all((finalReport.portfolio || []).map(async (p) => {
+      if (p.impliedVol !== undefined) return;
+      if (!p.ticker || /\.(KS|KQ)$/.test(p.ticker)) { p.impliedVol = null; return; }
+      try {
+        const iv = await safeFetch(`${SITE}/api/iv/${encodeURIComponent(p.ticker)}`, 8000);
+        p.impliedVol = (iv && typeof iv.atmIv30d === 'number') ? Math.round(iv.atmIv30d * 1000) / 10 : null;
+        p.ivSkew = (iv && typeof iv.skew25d === 'number') ? Math.round(iv.skew25d * 1000) / 10 : null;
+        n++;
+      } catch { p.impliedVol = null; }
+    }));
+    if (n) console.log(`  [IV/final] rotation/pool 추가 종목 IV 재주입 ${n}건`);
   }
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
