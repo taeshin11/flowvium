@@ -451,6 +451,23 @@ async function main() {
     } catch (e) { info.push(`[O] doc-sync 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
   }
 
+  // [P] FX 동적 소스 (2026-06-05) — USD/KRW 가 KR 추천 risk 핵심인데 macro 에 없던 갭(오늘 KR 급락
+  //   미감지 → Kia/POSCO 손실). Yahoo KRW=X 직접(외부 권위·하드코딩 아님) — 소스 alive 검증 +
+  //   원화 ±1.5% 급변 시 KR-risk surface(보고서 FX 반영 확인용).
+  {
+    try {
+      const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=1d&range=5d', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+      const m = (await r.json())?.chart?.result?.[0]?.meta;
+      const px = m?.regularMarketPrice, prev = m?.chartPreviousClose;
+      if (px == null) issues.push('[P] FX USD/KRW 소스 죽음 (Yahoo KRW=X null) — KR risk 미반영');
+      else {
+        const chg = prev ? (px - prev) / prev * 100 : 0;
+        if (Math.abs(chg) >= 1.5) info.push(`[P] ⚠️ USD/KRW=${Math.round(px)} ${chg > 0 ? '+' : ''}${chg.toFixed(1)}% 급변 — KR 주식 ${chg > 0 ? '약세압력(원화급락)' : '우호(원화강세)'}. 보고서 FX 반영 확인`);
+        else info.push(`[P] FX live USD/KRW=${Math.round(px)} (${chg > 0 ? '+' : ''}${chg.toFixed(1)}%)`);
+      }
+    } catch (e) { issues.push(`[P] FX 소스 점검 실패: ${String(e.message || e).slice(0, 40)}`); }
+  }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);

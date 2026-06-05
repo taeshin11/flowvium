@@ -2683,6 +2683,28 @@ async function safeFetch(url, timeoutMs = 10000) {
   } catch { return null; }
 }
 
+// 2026-06-05: FX 동적 소스 (Yahoo KRW=X = USD/KRW, DX-Y.NYB = DXY). 하드코딩 금지 — 매 실행 라이브.
+//   KR 추천 risk: 원화 급락(USD/KRW 급등)은 KR 주식 약세 신호. 오늘 +2.7% 급등이 KR 급락 동반했는데
+//   보고서가 못 봐 KR 매수 추천 → 손실. usdkrwChg = 전일 대비 %.
+async function fetchFX() {
+  const one = async (sym) => {
+    try {
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=5d`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) return null;
+      const m = (await r.json())?.chart?.result?.[0]?.meta;
+      const px = m?.regularMarketPrice, prev = m?.chartPreviousClose;
+      return px != null ? { px, chg: prev ? ((px - prev) / prev) * 100 : null } : null;
+    } catch { return null; }
+  };
+  const [krw, dxy] = await Promise.all([one('KRW=X'), one('DX-Y.NYB')]);
+  return {
+    usdkrw: krw?.px ?? null, usdkrwChg: krw?.chg ?? null,
+    dxy: dxy?.px ?? null, dxyChg: dxy?.chg ?? null,
+  };
+}
+
 async function gatherContext() {
   const base = SITE;
 
@@ -2742,10 +2764,14 @@ async function gatherContext() {
     namedFetch('narratives',        `${base}/api/narratives`, 10000),
   ]);
 
+  // 2026-06-05: FX 동적 수집 (Yahoo KRW=X/DXY — 외부 권위 소스, 하드코딩 아님). KR 추천 risk 핵심.
+  const fx = await fetchFX();
+
   // fear-greed returns { byCountry:[{id:'us',score}], byAsset:[...] }
   const fgByCountry = fearGreed?.byCountry ?? [];
   const fgByAsset = fearGreed?.byAsset ?? fearGreed?.assets ?? [];
   return {
+    fx,
     capital,
     fearGreed: fgByCountry.find(c => c.id === 'us') ?? fearGreed,
     fearGreedByCountry: fgByCountry,
@@ -2793,6 +2819,23 @@ function buildCtxSummary(ctx) {
       if (ig?.actual != null) parts.push(`IG_OAS=${ig.actual}%`);
       if (hy?.actual != null) parts.push(`HY_OAS=${hy.actual}%`);
       macro = parts.join(' ');
+    }
+  } catch { /* ignore */ }
+  // 2026-06-05: FX 동적 주입 (Yahoo KRW=X/DXY, 하드코딩 아님) — KR 추천 risk 핵심.
+  //   오늘 급락 때 USD/KRW +2.7%(원화 급락)을 보고서가 못 봐 KR 매수 추천 → 손실. 이제 macro 에
+  //   FX + KR-risk 플래그 주입(원화 ±1% 급변 시 KR 비중 주의/우호). buildContext 가 ctx.fx 사용.
+  try {
+    const fx = ctx.fx;
+    if (fx?.usdkrw != null) {
+      const chg = fx.usdkrwChg;
+      let fxStr = `USD/KRW=${Math.round(fx.usdkrw)}${chg != null ? `(${chg > 0 ? '+' : ''}${chg.toFixed(1)}%)` : ''}`;
+      if (fx.dxy != null) fxStr += ` DXY=${fx.dxy.toFixed(1)}`;
+      if (chg != null && Math.abs(chg) >= 1.0) {
+        fxStr += chg > 0
+          ? ` ⚠️KR-RISK:원화 ${chg.toFixed(1)}% 급락→KR 주식 약세압력, 비중 주의/방어`
+          : ` KR-우호:원화 ${Math.abs(chg).toFixed(1)}% 강세→KR 주식 우호`;
+      }
+      macro = macro ? `${macro} ${fxStr}` : fxStr;
     }
   } catch { /* ignore */ }
 
