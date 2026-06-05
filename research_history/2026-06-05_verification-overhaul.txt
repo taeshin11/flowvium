@@ -1,0 +1,23 @@
+2026-06-05 세션 — 검증체계 오버홀 + 정직성 (사용자 "자만하지 마라")
+
+핵심 교훈: 내 단일 계산/단일 소스가 연속 틀림 → 사용자가 매번 정확히 지적.
+- ETF 풀 62/실제 61, price-history 필드 오독, 삼전가 환각 의심(실제 정상)
+- RSI 보정이 깨진 technicalData(KR $202.92) 믿고 RSI 36 써넣음(실제 62)
+- 승률 "80%"가 churn 5.2x 중복 허수 → dedupe 실제 59%
+- entry "너무 보수적(+40.6%)"도 stale 데이터 artifact, "8B ja 한계"도 /no_think 누락
+
+→ 원칙: 2소스 cross-check + strip-when-uncertain. 거짓보다 공백.
+
+주요 커밋:
+- 발간前 보정: KR PE strip, RSI/지지선 strip, allocation 100 정규화(cap 후)
+- verify-report [6]pe_halluc [7]rsi/support_halluc [8]allocation_sum → Karpathy 적재
+- check-dq [N]DB커버리지 [O]doc-sync [P]FX(USD/KRW KR-risk) [B]임계 현실화
+- FX 동적(Yahoo KRW=X) — 오늘 +2.7% 급락이 KR 급락 신호였으나 보고서 미반영 갭
+- SEC company_tickers 동적 fetch → US 실종목 100% 권위명(실명 57→82%, 나머지 ETF)
+- ETF 풀 30→62(테마/스타일/배당), 뉴스 KR/JP/CN 피드, news /no_think
+- TSLA "OEM & Other"→"Tesla Inc"(meta.name 산업라벨 오염, garbage 196→0)
+
+미해결: sector=Unknown 105(BA/RTX/LMT/ORCL/TSLA), 2소스 grounding 게이트 통합,
+buildTechnicalData KR $ 버그, evaluate-recommendations position-level, ja/zh 번역 cron warm.
+
+투자 책임: 본인(투자자) — 면책 명시됨(report/home/footer 16언어). 도구는 참고용, 조언 아님.
