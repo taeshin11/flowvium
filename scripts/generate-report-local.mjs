@@ -2773,7 +2773,7 @@ async function gatherContext() {
       // Summarise key field so we can verify the data looks sensible
       let summary = '';
       if (name === 'fearGreed') summary = `us_score=${result?.byCountry?.find(c=>c.id==='us')?.score ?? result?.score ?? '?'}`;
-      else if (name === 'fedwatch') summary = `hold=${result?.probHold ?? '?'}% cut=${result?.probCut ?? '?'}%`;
+      else if (name === 'fedwatch') { const nm = result?.meetings?.find(m => new Date(m.date).getTime() > Date.now()) ?? result?.meetings?.[result.meetings.length - 1]; summary = nm ? `차기 ${nm.label} hold=${nm.probHold}% cut=${nm.probCut25}% (연말인하 ${result.totalImpliedCuts ?? '?'}회)` : 'n/a'; }
       else if (name === 'macro') summary = `indicators=${result?.indicators?.length ?? '?'}`;
       else if (name === 'insider') summary = `items=${result?.items?.length ?? 0}`;
       else if (name === 'ownershipAlerts') summary = `items=${result?.items?.length ?? result?.length ?? 0}`;
@@ -2898,10 +2898,15 @@ function buildCtxSummary(ctx) {
   try {
     const fg = ctx.fearGreed;
     if (fg?.score != null) sentiment = `F&G(US)=${Math.round(fg.score)}(${fg.level ?? fg.label ?? ''})`;
+    // 2026-06-06: meetings[0] 은 과거 회의일 수 있음(Apr 29 등) → 다음 *미래* 회의 선택. + 연말
+    //   누적인하/내재금리(FedWatch 반응) 추가 — 사용자 "fedwatch 반응도 고려되나".
     const meetings = ctx.fedWatch?.meetings ?? [];
     if (meetings.length) {
-      const next = meetings[0];
-      sentiment += ` FOMC ${next.label} cut_prob=${next.probCut25}%`;
+      const now = Date.now();
+      const next = meetings.find(m => new Date(m.date).getTime() > now) ?? meetings[meetings.length - 1];
+      const cut = next.probCut25 ?? next.probCut ?? 0;
+      sentiment += ` | FedWatch 차기 FOMC(${next.label}): 동결 ${next.probHold ?? '?'}%·인하 ${cut}%`;
+      if (ctx.fedWatch?.totalImpliedCuts != null) sentiment += ` 연말 내재인하 ${ctx.fedWatch.totalImpliedCuts}회(내재금리 ${ctx.fedWatch.yearEndImpliedRate ?? '?'}%)`;
     }
   } catch { /* ignore */ }
 
