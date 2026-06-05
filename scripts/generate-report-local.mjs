@@ -5533,24 +5533,64 @@ async function generateViaOllama() {
     });
     if (before !== dedupedPortfolio.length) console.log(`  [no-price] ${before} → ${dedupedPortfolio.length} (${before - dedupedPortfolio.length} 제거)`);
   }
-  // 2026-06-05: 매수-매도 정합성 게이트 — 매수 펀넬이 op margin YoY 악화 종목을 계속 picks 하는데
-  //   매도엔진은 같은 종목을 fund_margin_decline(opMarginDecline≥2pp)로 팔라 함 → "오전 사라 저녁
-  //   팔라" 모순(기아 000270 사건: 05-30~06-05 buy 반복 vs rotation_loss "op margin 악화" sell 반복).
-  //   매도룰과 동일 신호(fetchSellSignals)로 매수 portfolio 에서 펀더멘털 악화 종목 제외 → 두 엔진 합의.
-  //   cap 前이라 제외 슬롯은 남은 후보로 backfill.
+  let reconciliationLog = null; // 매수↔매도 경합심사 결과 (보고서 JSON + trail 에 보존)
+  // 2026-06-05: 매수↔매도 경합심사 게이트 (사용자 "양측 경합심사 기준") — 발간 前 매수 후보를 *매도룰
+  //   전체*로 cross-examine. 종목 고유 악화 신호(기본/기술/구루 카테고리)가 임계 score 이상이면
+  //   "매도 대상이 매수에 오른 모순"으로 보고 매수 탈락 → 두 엔진 합의. (기아 op margin -3.8%p "사라/팔라").
+  //   held-position 룰(가격/회전, ctx.stop/pnl/heldDays 필요)은 fresh buy 에 자연 미발동(포지션관리지 종목불량 아님).
+  //   기준(VETO_SCORE=7): 단일 강신호(dead_cross 9·200ma_breach 9·rsi_overbought 7·margin_decline 7)는
+  //   solo veto, 약신호(lynch 6·pe_expansion 5)는 누적 ≥7 시 veto. cap 前이라 탈락 슬롯 backfill.
   try {
+    const VETO_CATS = new Set(['fundamental', 'technical', 'guru']);
+    const vetoRules = (loadSellRules()?.rules ?? []).filter(r => VETO_CATS.has(r.category));
     const sellSig = await fetchSellSignals(dedupedPortfolio.map(p => p.ticker));
+    const VETO_SCORE = 7;
     const before = dedupedPortfolio.length;
+    // 2026-06-05: 합의 과정 전체를 trail 로 남겨 연구(사용자 "의견합의 과정을 로그로 남겨 연구").
+    //   reports/reconciliation/reconcile-{ts}.json — 후보별 매도신호·score·판정 보존. 추후 "veto 된
+    //   종목이 실제로 빠졌나 / pass 된 경미신호 종목 outcome" 분석 source.
+    const adjudication = { ts: new Date().toISOString(), session, vetoScore: VETO_SCORE, candidates: [] };
     dedupedPortfolio = dedupedPortfolio.filter(p => {
-      const dec = sellSig.get(p.ticker)?.opMarginDecline;
-      if (dec != null && dec >= 2) {
-        console.warn(`  [buy-sell 정합] ${p.ticker} 매수 제외 — op margin YoY -${dec.toFixed(1)}%p (매도룰 fund_margin_decline 충돌)`);
+      const sig = sellSig.get(p.ticker) ?? {};
+      const exCtx = {
+        price: livePrices.get(p.ticker)?.price ?? null,
+        rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
+        opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg,
+        sectorPe: sectorPeMap.get(String(p.sector ?? '').toLowerCase()) ?? null,
+        macroRiskLevel: macroData?.riskLevel ?? null,
+      };
+      const hits = [];
+      for (const rule of vetoRules) {
+        const reason = evaluateSellRule(rule, exCtx);
+        if (reason) hits.push({ id: rule.id, category: rule.category, score: rule.score ?? 0, reason });
+      }
+      const total = hits.reduce((s, h) => s + h.score, 0);
+      const verdict = total >= VETO_SCORE ? 'veto' : 'pass';
+      adjudication.candidates.push({
+        ticker: p.ticker, sector: p.sector ?? null, sellScore: total, verdict,
+        signals: { rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, price: exCtx.price },
+        hits,
+      });
+      if (verdict === 'veto') {
+        console.warn(`  [경합심사] ${p.ticker} 매수 탈락 (매도 score ${total}≥${VETO_SCORE}): ${hits.map(h => `${h.id}=${h.reason}`).join('; ')}`);
         return false;
       }
+      if (hits.length) console.log(`  [경합심사] ${p.ticker} 통과 (매도 score ${total}<${VETO_SCORE}, 경미): ${hits.map(h => h.id).join(',')}`);
       return true;
     });
-    if (before !== dedupedPortfolio.length) console.log(`  [buy-sell 정합] ${before}→${dedupedPortfolio.length} (펀더멘털 악화 = 매도 대상이므로 매수 제외)`);
-  } catch (e) { console.warn(`  [buy-sell 정합] skip: ${e.message}`); }
+    adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length };
+    if (before !== dedupedPortfolio.length) console.log(`  [경합심사] 매수 ${before}→${dedupedPortfolio.length} (매도룰 cross-exam 탈락)`);
+    // trail 영속화 (연구용)
+    try {
+      const reconDir = resolve(REPORTS_DIR, 'reconciliation');
+      if (!existsSync(reconDir)) mkdirSync(reconDir, { recursive: true });
+      const tsSafe = adjudication.ts.replace(/[:.]/g, '-');
+      writeFileSync(resolve(reconDir, `reconcile-${tsSafe}.json`), JSON.stringify(adjudication, null, 2));
+      console.log(`  [경합심사] trail 저장 → reports/reconciliation/reconcile-${tsSafe}.json (${adjudication.candidates.length} 후보)`);
+    } catch (e) { console.warn(`  [경합심사] trail 저장 실패: ${e.message}`); }
+    // 보고서 JSON 에도 요약 첨부(연구·UI 노출용)
+    reconciliationLog = adjudication;
+  } catch (e) { console.warn(`  [경합심사] skip: ${e.message}`); }
 
   // 2026-05-29: KR cap 6 강제 — buildPortfolio LLM 이 KR 11+ 출력하는 경우 차단.
   //   US 6 + KR 6 = 12 portfolio 가 목표. KR 종목수 cap 안 하면 비중 분산 + UI 표시 무너짐.
@@ -5634,6 +5674,7 @@ async function generateViaOllama() {
     stance: portfolioData.stance ?? 'neutral',
     thesis: macroData?.thesis ?? portfolioData.stance ?? 'neutral',
     portfolio: dedupedPortfolio,
+    buySellReconciliation: reconciliationLog,  // 매수↔매도 경합심사 요약 (연구·UI 노출용)
     sectorAllocation: sectorAllocationFallback,
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',
