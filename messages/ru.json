@@ -1254,7 +1254,9 @@
     "etfAction_buy": "ПОКУПАТЬ",
     "etfAction_watch": "НАБЛЮДАТЬ",
     "etfAction_avoid": "ИЗБЕГАТЬ",
-    "etfAction_hedge": "ХЕДЖ"
+    "etfAction_hedge": "ХЕДЖ",
+    "ivAnnualized": "год.",
+    "sellLadderTitle": "План поэтапной продажи"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

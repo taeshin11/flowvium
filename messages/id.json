@@ -1254,7 +1254,9 @@
     "etfAction_buy": "BELI",
     "etfAction_watch": "PANTAU",
     "etfAction_avoid": "HINDARI",
-    "etfAction_hedge": "LINDUNGI"
+    "etfAction_hedge": "LINDUNGI",
+    "ivAnnualized": "tahunan",
+    "sellLadderTitle": "Rencana Keluar Bertahap"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

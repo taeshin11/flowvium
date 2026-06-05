@@ -1254,7 +1254,9 @@
     "etfAction_buy": "買い",
     "etfAction_watch": "様子見",
     "etfAction_avoid": "回避",
-    "etfAction_hedge": "ヘッジ"
+    "etfAction_hedge": "ヘッジ",
+    "ivAnnualized": "年率",
+    "sellLadderTitle": "分割売却プラン"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

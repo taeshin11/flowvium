@@ -1254,7 +1254,9 @@
     "etfAction_buy": "खरीदें",
     "etfAction_watch": "देखें",
     "etfAction_avoid": "बचें",
-    "etfAction_hedge": "हेज"
+    "etfAction_hedge": "हेज",
+    "ivAnnualized": "वार्षिक",
+    "sellLadderTitle": "चरणबद्ध निकास योजना"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

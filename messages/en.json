@@ -1254,7 +1254,9 @@
     "etfAction_buy": "BUY",
     "etfAction_watch": "WATCH",
     "etfAction_avoid": "AVOID",
-    "etfAction_hedge": "HEDGE"
+    "etfAction_hedge": "HEDGE",
+    "ivAnnualized": "ann.",
+    "sellLadderTitle": "Scaled Exit Plan"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

@@ -1254,7 +1254,9 @@
     "etfAction_buy": "MUA",
     "etfAction_watch": "THEO DÕI",
     "etfAction_avoid": "TRÁNH",
-    "etfAction_hedge": "PHÒNG NGỪA"
+    "etfAction_hedge": "PHÒNG NGỪA",
+    "ivAnnualized": "hằng năm",
+    "sellLadderTitle": "Kế hoạch thoát lệnh từng phần"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

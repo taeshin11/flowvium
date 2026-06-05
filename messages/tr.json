@@ -1254,7 +1254,9 @@
     "etfAction_buy": "AL",
     "etfAction_watch": "İZLE",
     "etfAction_avoid": "KAÇIN",
-    "etfAction_hedge": "HEDGE"
+    "etfAction_hedge": "HEDGE",
+    "ivAnnualized": "yıllık",
+    "sellLadderTitle": "Kademeli Çıkış Planı"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

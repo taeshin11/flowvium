@@ -1254,7 +1254,9 @@
     "etfAction_buy": "KAUFEN",
     "etfAction_watch": "BEOBACHTEN",
     "etfAction_avoid": "MEIDEN",
-    "etfAction_hedge": "HEDGE"
+    "etfAction_hedge": "HEDGE",
+    "ivAnnualized": "annual.",
+    "sellLadderTitle": "Gestaffelter Ausstiegsplan"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

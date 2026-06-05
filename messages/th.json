@@ -1254,7 +1254,9 @@
     "etfAction_buy": "ซื้อ",
     "etfAction_watch": "เฝ้าดู",
     "etfAction_avoid": "หลีกเลี่ยง",
-    "etfAction_hedge": "ป้องกัน"
+    "etfAction_hedge": "ป้องกัน",
+    "ivAnnualized": "ต่อปี",
+    "sellLadderTitle": "แผนขายแบบแบ่งล็อต"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

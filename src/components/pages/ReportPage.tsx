@@ -156,6 +156,7 @@ type SellItem = {
 };
 function SellCard({ item }: { item: SellItem }) {
   const locale = useLocale();
+  const t = useTranslations('report');
   const urgencyColor = item.urgency === 'high' ? 'border-red-300 bg-red-50' :
                        item.urgency === 'medium' ? 'border-orange-300 bg-orange-50' :
                        'border-gray-200 bg-white';
@@ -186,6 +187,7 @@ function SellCard({ item }: { item: SellItem }) {
       </div>
       {Array.isArray(item.sellLadder) && item.sellLadder.length > 0 && (
         <div className="mt-1.5 pt-1.5 border-t border-gray-200 space-y-0.5">
+          <p className="text-[10px] font-bold text-gray-600 mb-0.5">📉 {t('sellLadderTitle')}</p>
           {item.sellLadder.map((step, i) => (
             <div key={i} className="flex items-center gap-1.5 text-[10px]">
               <span className="font-bold text-gray-700 min-w-[2.5rem]">{step.pct}%</span>
@@ -301,11 +303,16 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           const skewMsg = item.ivSkew == null ? null
             : item.ivSkew >= 1.5 ? t('ivSkewDown')
             : item.ivSkew <= -1.5 ? t('ivSkewUp') : t('ivSkewNeutral');
+          // 2026-06-06: 변동성 수준별 색상 + 연율 라벨(33.9% = 연율 기준임을 명시)
+          const ivColor = iv < 20 ? 'text-emerald-600' : iv < 35 ? 'text-sky-600' : iv < 55 ? 'text-amber-600' : 'text-red-600';
+          const ivBg = iv < 20 ? 'bg-emerald-50 border-emerald-200' : iv < 35 ? 'bg-sky-50 border-sky-200' : iv < 55 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
           return (
-            <div className="mt-1.5 flex items-start gap-1 text-[11px] text-gray-500 leading-relaxed">
+            <div className={`mt-1.5 inline-flex items-start gap-1 text-[11px] leading-relaxed border rounded px-1.5 py-0.5 ${ivBg}`}
+                 title="ATM 30일 옵션 내재변동성 (연율 기준). 옵션시장이 기대하는 향후 1년 변동폭 — 하루 환산 = IV÷√252.">
               <span className="shrink-0">📊</span>
-              <span>
-                {t('ivPlainVol')} <span className="font-semibold text-gray-700">{iv}%</span> ({level}) · {t('ivPlainDaily', { daily })}
+              <span className="text-gray-600">
+                {t('ivPlainVol')} <span className={`font-bold ${ivColor}`}>{iv}%</span>
+                <span className="text-gray-400"> {t('ivAnnualized')}</span> ({level}) · {t('ivPlainDaily', { daily })}
                 {skewMsg ? ` · ${skewMsg}` : ''}
               </span>
             </div>

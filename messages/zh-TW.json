@@ -1254,7 +1254,9 @@
     "etfAction_buy": "買入",
     "etfAction_watch": "觀望",
     "etfAction_avoid": "迴避",
-    "etfAction_hedge": "對沖"
+    "etfAction_hedge": "對沖",
+    "ivAnnualized": "年化",
+    "sellLadderTitle": "分批賣出計劃"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

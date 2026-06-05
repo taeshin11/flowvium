@@ -1254,7 +1254,9 @@
     "etfAction_buy": "ACHETER",
     "etfAction_watch": "SURVEILLER",
     "etfAction_avoid": "ÉVITER",
-    "etfAction_hedge": "COUVRIR"
+    "etfAction_hedge": "COUVRIR",
+    "ivAnnualized": "annu.",
+    "sellLadderTitle": "Plan de sortie échelonnée"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

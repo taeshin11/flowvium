@@ -1254,7 +1254,9 @@
     "etfAction_buy": "매수",
     "etfAction_watch": "관망",
     "etfAction_avoid": "회피",
-    "etfAction_hedge": "헤지"
+    "etfAction_hedge": "헤지",
+    "ivAnnualized": "연율",
+    "sellLadderTitle": "분할매도 계획"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

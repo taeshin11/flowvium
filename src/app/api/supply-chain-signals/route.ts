@@ -84,7 +84,7 @@ const CONTRACT_SIGNALS = [
 export interface SupplyChainSignal {
   ticker: string;
   companyName: string;
-  signalType: 'contract_win' | 'contract_loss' | 'order_momentum' | 'supply_expansion' | 'supply_risk' | 'partnership';
+  signalType: 'contract_win' | 'contract_loss' | 'order_momentum' | 'supply_expansion' | 'supply_risk' | 'partnership' | 'buyback';
   conviction: number;       // 0-100
   direction: 'positive' | 'negative' | 'neutral';
   headline: string;          // 원문 공시 제목 (증빙용)
@@ -100,22 +100,30 @@ export interface SupplyChainSignal {
 //   reportNm 원문 → {공급망 관련성, 평이 설명, 신호강도별 신뢰도, 방향}. 무관 공시는 null(제외).
 //   사용자 피드백: "[기재정정]주요사항보고서(자기주식취득신탁계약...)" 같은 게 떠서 무슨 내용인지 모름 +
 //   신뢰도 죄다 70. → 자사주/증자/합병 등 노이즈 제외 + 평문 + 차등 conviction.
-function classifyDartFiling(reportNm: string): { summary: string; conviction: number; signalType: 'contract_win' | 'contract_loss' } | null {
+function classifyDartFiling(reportNm: string): { summary: string; conviction: number; signalType: SupplyChainSignal['signalType']; direction: 'positive' | 'negative' | 'neutral' } | null {
   const nm = reportNm.replace(/^\[[^\]]*\]/, '').replace(/^주요사항보고서\s*\(/, '').replace(/\)\s*$/, '').trim();
-  // 1) 공급망 무관 노이즈 — "계약" 등 키워드가 있어도 제외 (자사주 신탁계약, 자본거래, 지배구조 등)
-  if (/자기주식|자사주|신탁계약|합병|분할|유상증자|무상증자|감자|전환사채|신주인수권|교환사채|차입|대출|배당|주주총회|임원|등기이사|스톡옵션|회사채|영업정지|소송|횡령|배임|관리종목|상장폐지/.test(nm)) return null;
-  // 2) 단일판매·공급계약 — 가장 강한 공급망 신호(매출 직결)
+  // 1) 자사주 매입(자기주식취득) — 회사가 자기 주식을 사들임 = 저평가 인식 + 주주환원, 내부자 매수에 준하는
+  //    긍정 corporate action (2026-06-06 사용자 "이건 내부자 매수건 아니야? 기업 변화로 잡아내야지").
+  if (/자기주식|자사주/.test(nm)) {
+    const end = /해지|해제|취소|처분|매각/.test(nm);
+    return end
+      ? { summary: '자사주 매입(신탁) 해지/처분 — 주주환원 축소 신호', conviction: 62, signalType: 'buyback', direction: 'negative' }
+      : { summary: '자사주 매입 결정 — 회사가 저평가 인식·주주환원(내부자 매수성 긍정 신호)', conviction: 72, signalType: 'buyback', direction: 'positive' };
+  }
+  // 2) 공급망 무관 노이즈 — "계약" 등 키워드가 있어도 제외 (자본거래, 지배구조 등)
+  if (/신탁계약|합병|분할|유상증자|무상증자|감자|전환사채|신주인수권|교환사채|차입|대출|배당|주주총회|임원|등기이사|스톡옵션|회사채|영업정지|소송|횡령|배임|관리종목|상장폐지/.test(nm)) return null;
+  // 3) 단일판매·공급계약 — 가장 강한 공급망 신호(매출 직결)
   if (/단일판매.{0,3}공급계약|공급계약|납품계약|장기공급|수주/.test(nm)) {
     const loss = /해지|해제|취소|중단|파기/.test(nm);
     return loss
-      ? { summary: '공급/수주 계약 해지·취소 — 매출 감소 신호', conviction: 74, signalType: 'contract_loss' }
-      : { summary: '신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜)', conviction: 82, signalType: 'contract_win' };
+      ? { summary: '공급/수주 계약 해지·취소 — 매출 감소 신호', conviction: 74, signalType: 'contract_loss', direction: 'negative' }
+      : { summary: '신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜)', conviction: 82, signalType: 'contract_win', direction: 'positive' };
   }
-  // 3) 합작/JV — 장기 협력(중간 신뢰도)
-  if (/합작|조인트벤처|합작법인|JV/.test(nm)) return { summary: '합작법인·JV 설립 — 장기 협력 시작', conviction: 72, signalType: 'contract_win' };
-  // 4) MOU/업무협약 — 구속력 낮은 초기 신호
-  if (/MOU|LOI|업무협약|상호협력|전략적\s*제휴|파트너십/.test(nm)) return { summary: '업무협약·MOU — 초기 협력 단계(구속력 낮음)', conviction: 58, signalType: 'contract_win' };
-  // 5) 그 외 — 공급망 신호로 보지 않음
+  // 4) 합작/JV — 장기 협력(중간 신뢰도)
+  if (/합작|조인트벤처|합작법인|JV/.test(nm)) return { summary: '합작법인·JV 설립 — 장기 협력 시작', conviction: 72, signalType: 'partnership', direction: 'positive' };
+  // 5) MOU/업무협약 — 구속력 낮은 초기 신호
+  if (/MOU|LOI|업무협약|상호협력|전략적\s*제휴|파트너십/.test(nm)) return { summary: '업무협약·MOU — 초기 협력 단계(구속력 낮음)', conviction: 58, signalType: 'partnership', direction: 'positive' };
+  // 6) 그 외 — 신호로 보지 않음
   return null;
 }
 
@@ -287,7 +295,7 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
       watchlistHits++;
 
       const signalType = cls.signalType;
-      const downstream = inferDownstream(ticker, signalType);
+      const downstream = signalType === 'buyback' ? { beneficiaries: [], risks: [] } : inferDownstream(ticker, signalType);
       logger.info('supply-chain-signals', 'dart_signal_found', {
         ticker, signalType, corp: item.corp_name,
         downstream: downstream.beneficiaries.join(','),
@@ -300,7 +308,7 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
         companyName: item.corp_name ?? '',
         signalType,
         conviction: cls.conviction,
-        direction: signalType === 'contract_loss' ? 'negative' : 'positive',
+        direction: cls.direction,
         headline: reportNm,
         summary: cls.summary,
         source: 'dart',

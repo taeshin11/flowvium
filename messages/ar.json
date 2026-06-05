@@ -1254,7 +1254,9 @@
     "etfAction_buy": "شراء",
     "etfAction_watch": "مراقبة",
     "etfAction_avoid": "تجنب",
-    "etfAction_hedge": "تحوط"
+    "etfAction_hedge": "تحوط",
+    "ivAnnualized": "سنوي",
+    "sellLadderTitle": "خطة بيع تدريجي"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",
