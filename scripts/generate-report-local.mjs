@@ -3886,6 +3886,12 @@ function evaluateSellRule(rule, ctx) {
         return `내부자 매도 ${ctx.insiderSells}건 (매수 ${ctx.insiderBuys ?? 0}건 대비 우위)`;
       }
       break;
+    // 2026-06-06: 13F 기관 이탈 (분기 수급 — 느린 신호).
+    case 'institutionalExit':
+      if (ctx.instReducers != null && (ctx.instReducers - (ctx.instAdders ?? 0)) >= (c.net_reducers_gte ?? 3) && (ctx.instNetShares ?? 0) < 0) {
+        return `13F 기관 순감소 (reducers ${ctx.instReducers} vs adders ${ctx.instAdders ?? 0}, 순주식 ${Math.round((ctx.instNetShares ?? 0) / 1e6)}M)`;
+      }
+      break;
     // ── 구루 ──────────────────────────────────────────────────────────────────
     case 'lynchPeg':
       if (ctx.peg != null && ctx.peg >= (c.peg_gte ?? 2)) return `Lynch PEG ${ctx.peg.toFixed(1)} 성장대비 고평가`;
@@ -4385,6 +4391,10 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         insiderSells: macroCtx.insider?.get(ticker)?.sells ?? null,
         insiderBuys: macroCtx.insider?.get(ticker)?.buys ?? null,
         insiderSellToBuyRatio: macroCtx.insider?.get(ticker) ? (macroCtx.insider.get(ticker).sells / Math.max(macroCtx.insider.get(ticker).buys, 1)) : null,
+        // 2026-06-06: 13F 기관 수급
+        instReducers: macroCtx.inst13f?.get(ticker)?.reducers ?? null,
+        instAdders: macroCtx.inst13f?.get(ticker)?.adders ?? null,
+        instNetShares: macroCtx.inst13f?.get(ticker)?.netShares ?? null,
       };
       // 2026-06-06: 누적 점수화 (ChatGPT D3) — 첫 매칭 1개가 아니라 매칭 룰 *전부* 합산.
       //   target_near 단독(7)과 target_near+RSI과매수+내부자매도(20)를 같은 7로 취급하던 비대칭 해소.
@@ -5417,12 +5427,21 @@ async function generateViaOllama() {
   // 2026-06-06: 내부자 매도 데이터 plumbing — signalDigest insider {buys,sells} → 매도엔진 ctx.
   const insiderDigest = new Map();
   for (const [t, d] of signalDigest) if (d.insider) insiderDigest.set(t, d.insider);
+  // 2026-06-06: 13F 기관 수급 digest (ChatGPT D3) — ctxRaw.signals(reducing/adding) → 매도엔진.
+  const inst13f = new Map();
+  for (const s of (ctxRaw?.signals ?? [])) {
+    const t = s.ticker; if (!t) continue;
+    const d = inst13f.get(t) ?? { reducers: 0, adders: 0, netShares: 0 };
+    if (/reduc|sell/i.test(s.action)) d.reducers++; else if (/add|buy/i.test(s.action)) d.adders++;
+    d.netShares += (s.sharesChanged ?? 0);
+    inst13f.set(t, d);
+  }
   const macroCtx = {
     riskLevel: macroData?.riskLevel ?? null,
     vix: ctxRaw?.volatility?.score ?? ctxRaw?.vix?.score ?? null,
     fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
     sectorPeMap, sectorStanceMap, regionStanceMap, newsSentimentMap,
-    insider: insiderDigest,
+    insider: insiderDigest, inst13f,
   };
   const sellCands = await buildSellCandidates(livePrices, excludeForSell, macroCtx);
   console.log(`  매도 후보: US ${sellCands.us.length} + KR ${sellCands.kr.length} = ${sellCands.total} (multi-factor)`);

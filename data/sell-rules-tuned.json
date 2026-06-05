@@ -218,6 +218,17 @@
       "description": "내부자 매도 cluster — 매수룰 micro_insider_buying 대칭(2026-06-06)"
     },
     {
+      "id": "micro_13f_distribution",
+      "score": 5,
+      "urgency": "low",
+      "category": "micro",
+      "condition": {
+        "type": "institutionalExit",
+        "net_reducers_gte": 3
+      },
+      "description": "13F 기관 순매도(분기 수급 이탈, 느린 신호) — 2026-06-06"
+    },
+    {
       "id": "rotation_neutral",
       "score": 3,
       "urgency": "low",
