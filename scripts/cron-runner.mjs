@@ -13,8 +13,9 @@
  *   → CRON_TZ 환경변수로 'Etc/UTC' 지정 시 기존 Vercel UTC 스케줄 그대로 유지.
  */
 import cron from 'node-cron';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { execSync } from 'child_process';
 
 // 2026-06-04: .env.local 로드 — pm2(plain node)는 next 와 달리 .env.local 자동 로드 안 함.
 //   CRON_SECRET 미로드 → Authorization 헤더 없이 호출 → web route(CRON_SECRET 보유)가 401 →
@@ -60,5 +61,26 @@ for (const c of crons) {
   scheduled++;
 }
 log(`스케줄 등록 ${scheduled}/${crons.length} (TZ=${TZ}, BASE=${BASE}). Ctrl+C 종료.`);
+
+// 2026-06-05: 자동 모니터 (촘촘히) — 수동 의존 제거. */20분 check-stall + check-data-quality 실행,
+//   execSync timeout 으로 hang 방지, 결과를 logs/monitor-status.json 에 기록(가시) + 결함 시 로그 강조.
+function runMonitor() {
+  const result = { ts: new Date().toISOString(), checks: {}, defects: [] };
+  for (const [key, script] of [['stall', 'scripts/check-stall.mjs'], ['dataQuality', 'scripts/check-data-quality.mjs']]) {
+    try {
+      execSync(`node ${script}`, { stdio: 'pipe', timeout: 170000 });   // timeout = hang 방지
+      result.checks[key] = 'OK';
+    } catch (e) {
+      const out = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
+      result.checks[key] = e.signal === 'SIGTERM' ? 'TIMEOUT(hang)' : 'DEFECT';
+      for (const l of out.split('\n')) if (l.includes('🚨')) result.defects.push(l.replace(/.*🚨\s*/, '').trim());
+    }
+  }
+  try { writeFileSync(resolve(process.cwd(), 'logs/monitor-status.json'), JSON.stringify(result, null, 2)); } catch { /* */ }
+  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
+}
+cron.schedule('*/20 * * * *', runMonitor, { timezone: TZ });
+log('자동 모니터 등록: */20분 (check-stall + check-data-quality, hang-protected, → logs/monitor-status.json)');
+
 // keep alive
 process.stdin.resume();
