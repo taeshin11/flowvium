@@ -54,20 +54,11 @@ function parseSdnCsv(csv: string): SdnEntry[] {
 }
 
 // ── Fetch and cache OFAC SDN CSV ───────────────────────────────────────────────
-async function getSdnData(redis: Redis | null): Promise<SdnEntry[] | null> {
-  const cacheKey = 'flowvium:osint:sanctions:v1:sdn-csv';
-  // 2026-06-05: 영구 last-good 키 — TTL 만료~OFAC 재조회 성공 사이 윈도우에 fetch 실패 시
-  //   빈 응답(0 그룹) 깜빡임 + 모니터 false 🚨 가 발생했음(check-data-quality [H]). 만료 없는
-  //   last-good 으로 stale-while-revalidate → 절대 빈 응답 안 함.
-  const lastGoodKey = 'flowvium:osint:sanctions:v1:sdn-csv:last-good';
+const SDN_CACHE_KEY = 'flowvium:osint:sanctions:v1:sdn-csv';
+const SDN_LASTGOOD_KEY = 'flowvium:osint:sanctions:v1:sdn-csv:last-good';
 
-  if (redis) {
-    try {
-      const cached = await redis.get<SdnEntry[]>(cacheKey);
-      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
-    } catch { /* non-fatal */ }
-  }
-
+// OFAC CSV fetch → parse → 캐시 기록. 성공 시 entries, 실패 시 null.
+async function refreshSdn(redis: Redis | null): Promise<SdnEntry[] | null> {
   try {
     const res = await fetch(OFAC_CSV_URL, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -75,27 +66,40 @@ async function getSdnData(redis: Redis | null): Promise<SdnEntry[] | null> {
       cache: 'no-store',
     });
     if (!res.ok) throw new Error(`OFAC HTTP ${res.status}`);
-
     const csv = await res.text();
     const entries = parseSdnCsv(csv);
     if (entries.length === 0) throw new Error('OFAC parse 0 entries');
-
     if (redis) {
-      await loggedRedisSet(redis, 'api.osint.sanctions', cacheKey, entries, { ex: CACHE_TTL });
-      await loggedRedisSet(redis, 'api.osint.sanctions', lastGoodKey, entries); // no TTL = 영구 last-good
+      await loggedRedisSet(redis, 'api.osint.sanctions', SDN_CACHE_KEY, entries, { ex: CACHE_TTL });
+      await loggedRedisSet(redis, 'api.osint.sanctions', SDN_LASTGOOD_KEY, entries); // no TTL = 영구 last-good
     }
-
     return entries;
   } catch {
-    // fresh fetch 실패 → 빈 응답 대신 last-good 으로 폴백 (절대 0 그룹 안 함)
-    if (redis) {
-      try {
-        const lastGood = await redis.get<SdnEntry[]>(lastGoodKey);
-        if (lastGood && Array.isArray(lastGood) && lastGood.length > 0) return lastGood;
-      } catch { /* non-fatal */ }
-    }
     return null;
   }
+}
+
+// 2026-06-05: stale-while-revalidate — 24h 캐시 만료 후 OFAC fetch 가 느리거나(최대 30s) 죽으면
+//   라우트가 30s 블록 → probe/client 타임아웃 → 빈 응답(0 그룹) false 🚨 (check-data-quality [H]).
+//   해결: 캐시 miss 라도 last-good 있으면 *즉시* 반환 + OFAC 갱신은 백그라운드(non-await). 콜드 스타트
+//   (캐시·last-good 둘 다 없음)만 await. → 엔드포인트 항상 빠르고 절대 0 그룹 안 됨.
+async function getSdnData(redis: Redis | null): Promise<SdnEntry[] | null> {
+  if (redis) {
+    try {
+      const cached = await redis.get<SdnEntry[]>(SDN_CACHE_KEY);
+      if (cached && Array.isArray(cached) && cached.length > 0) return cached; // fresh 캐시
+    } catch { /* non-fatal */ }
+    // 캐시 miss — last-good 있으면 즉시 반환 + 백그라운드 갱신(블록 안 함)
+    try {
+      const lastGood = await redis.get<SdnEntry[]>(SDN_LASTGOOD_KEY);
+      if (lastGood && Array.isArray(lastGood) && lastGood.length > 0) {
+        void refreshSdn(redis); // fire-and-forget (node 상시구동이라 완료됨)
+        return lastGood;
+      }
+    } catch { /* non-fatal */ }
+  }
+  // 콜드 스타트: 캐시·last-good 둘 다 없음 → OFAC await (최초 1회만)
+  return await refreshSdn(redis);
 }
 
 // ── Program code → Korean readable label ─────────────────────────────────────
