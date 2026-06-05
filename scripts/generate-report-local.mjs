@@ -5977,6 +5977,45 @@ async function generateViaOllama() {
     if (krPeStripped > 0) console.log(`  [후처리] KR PE 환각 strip ${krPeStripped}건 (DART EPS 부재 → grounded 불가)`);
   }
 
+  // 2026-06-05: RSI/지지선 환각 결정론적 보정 — LLM 이 technicalBasis/entryRationale 에 실제와 다른
+  //   RSI·"과매도"·지지가격을 환각(기아/포스코 잘못된 "과매도 눌림목 매수" 근거 → 손실) → COMPUTED_TECH
+  //   (buildTechnicalData)의 실제 RSI/진입지지선으로 강제 교체. verify-report [7] 검출에 더한 발간-전 차단.
+  {
+    let techFix = 0;
+    const parseNum = (s) => { const m = String(s).replace(/[,\s]/g, '').match(/(\d{3,})/); return m ? +m[1] : null; };
+    for (const p of (finalReport.portfolio ?? [])) {
+      const tech = technicalData.get(p.ticker) ?? technicalData.get((p.ticker ?? '').toUpperCase());
+      if (!tech) continue;
+      const rsiM = String(tech).match(/RSI\s*(\d+)/i);
+      const realRsi = rsiM ? parseInt(rsiM[1], 10) : null;
+      const ezLow = parseNum((p.entryZone ?? '').split(/[-~]/)[0]);
+      for (const f of ['technicalBasis', 'entryRationale', 'rationale']) {
+        if (typeof p[f] !== 'string') continue;
+        const before = p[f];
+        let v = p[f];
+        if (realRsi != null) {
+          v = v.replace(/RSI\s*\d+(?:\.\d+)?%?/gi, `RSI ${realRsi}`);   // 환각 RSI 값 → 실제
+          // 과매도/과매수 단언 보정: 실제 RSI 와 모순이면 교체.
+          if (realRsi >= 35) v = v.replace(/RSI\s*과매도/g, `RSI ${realRsi}`).replace(/과매도/g, realRsi >= 65 ? '과매수' : '중립');
+          if (realRsi <= 65) v = v.replace(/과매수/g, realRsi <= 35 ? '과매도' : '중립');
+        } else {
+          // RSI 미산출인데 "과매도/과매수" 단언 = 환각 → 제거
+          v = v.replace(/[,·]?\s*RSI\s*(?:과매도|과매수)/g, '').replace(/[,·]?\s*(?:과매도|과매수)\b/g, '');
+        }
+        // 지지가격 환각: entryRationale 의 "N 수준 지지" 가 entryZone 과 >25% 이탈 → 제거
+        if (f === 'entryRationale' && ezLow) {
+          const supW = parseNum(v.match(/([\d,]{4,})\s*(?:수준|선)?\s*지지/)?.[1] ?? '');
+          if (supW && Math.abs(supW / ezLow - 1) > 0.25) {
+            v = v.replace(/[,·]?\s*[\d,]{4,}\s*(?:수준|선)?\s*지지/g, '');
+          }
+        }
+        v = v.replace(/\s{2,}/g, ' ').replace(/^[\s,·]+|[\s,·]+$/g, '').trim();
+        if (v !== before) { p[f] = v; techFix++; }
+      }
+    }
+    if (techFix > 0) console.log(`  [후처리] RSI/지지선 환각 보정 ${techFix}건 (COMPUTED_TECH 실제값)`);
+  }
+
   // 고점 덤핑 징후 탐지 — riskNote에 경고 주입
   const { risks: peakRisksMap, macroGlobalWarning } = await detectPeakDumpRisk(finalReport.portfolio, livePrices, ctxRaw);
   if (peakRisksMap.size > 0 || macroGlobalWarning) {
