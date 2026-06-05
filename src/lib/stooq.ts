@@ -77,11 +77,66 @@ async function fetchStooqRaw(symbolMap: Map<string, string>): Promise<StooqQuote
   return out;
 }
 
+// 2026-06-06: Stooq 가 JS/PoW 봇챌린지로 영구 차단됨(CSV 대신 HTML 반환 → fetchStooqRaw 빈배열).
+//   narratives/market-heatmap/market-caps 등 모든 소비처 silent degrade. → Yahoo v7 quote(crumb 인증)
+//   폴백을 공유 lib 에 추가해 한 곳에서 전부 복구. v7 401 은 crumb 로 우회.
+let _yCrumb: { crumb: string; cookie: string } | null = null;
+async function getYahooCrumb(): Promise<{ crumb: string; cookie: string }> {
+  if (_yCrumb) return _yCrumb;
+  const UA = { 'User-Agent': 'Mozilla/5.0' };
+  const r = await fetch('https://fc.yahoo.com', { headers: UA, signal: AbortSignal.timeout(8000) });
+  const cookie = (r.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).join('; ');
+  const cr = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
+  _yCrumb = { crumb: await cr.text(), cookie };
+  return _yCrumb;
+}
+/** Yahoo v7 quote 배치(crumb) → StooqQuote 형태로 변환. Stooq 봇차단 폴백. */
+async function fetchYahooQuotesAsStooq(tickers: string[]): Promise<StooqQuote[]> {
+  const out: StooqQuote[] = [];
+  if (!tickers.length) return out;
+  let cr: { crumb: string; cookie: string };
+  try { cr = await getYahooCrumb(); } catch { return out; }
+  if (!cr.crumb || cr.crumb.length > 30) return out;
+  const UA = { 'User-Agent': 'Mozilla/5.0', Cookie: cr.cookie };
+  for (let i = 0; i < tickers.length; i += 50) {
+    const chunk = tickers.slice(i, i + 50);
+    const symMap = new Map(chunk.map(t => [t.replace(/\./g, '-').toUpperCase(), t.toUpperCase()]));
+    try {
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${Array.from(symMap.keys()).map(encodeURIComponent).join(',')}&crumb=${encodeURIComponent(cr.crumb)}`;
+      const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(12000) });
+      if (!res.ok) continue;
+      const j = await res.json() as { quoteResponse?: { result?: Array<Record<string, number | string>> } };
+      for (const q of j?.quoteResponse?.result ?? []) {
+        const close = q.regularMarketPrice as number | undefined;
+        if (close == null || !isFinite(close)) continue;
+        const open = (q.regularMarketOpen as number) ?? null;
+        const chg = q.regularMarketChangePercent as number | undefined;
+        out.push({
+          symbol: symMap.get(String(q.symbol)) ?? String(q.symbol),
+          date: null, time: null,
+          open, high: (q.regularMarketDayHigh as number) ?? null, low: (q.regularMarketDayLow as number) ?? null,
+          close, volume: (q.regularMarketVolume as number) ?? null,
+          changePct: chg != null ? parseFloat(chg.toFixed(2)) : (open && open > 0 ? parseFloat((((close - open) / open) * 100).toFixed(2)) : null),
+        });
+      }
+    } catch { /* skip chunk */ }
+  }
+  if (out.length) logger.info('stooq', 'yahoo_fallback', { requested: tickers.length, returned: out.length });
+  return out;
+}
+
 /** Fetch US stock quotes; tickers are plain symbols (AAPL, BRK-B, etc.) */
 export async function fetchStooqQuotes(tickers: string[]): Promise<StooqQuote[]> {
   if (!tickers.length) return [];
   const symbolMap = new Map(tickers.map(t => [`${t.toLowerCase()}.us`, t.toUpperCase()]));
-  return fetchStooqRaw(symbolMap);
+  const res = await fetchStooqRaw(symbolMap);
+  // Stooq 봇차단/부분실패 → Yahoo v7 crumb 폴백으로 누락분 보강
+  if (res.length < tickers.length * 0.5) {
+    const have = new Set(res.map(r => r.symbol));
+    const yh = await fetchYahooQuotesAsStooq(tickers);
+    for (const q of yh) if (!have.has(q.symbol)) res.push(q);
+  }
+  return res;
 }
 
 const STOOQ_SUFFIX: Record<string, string> = {
