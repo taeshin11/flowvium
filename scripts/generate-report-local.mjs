@@ -6034,30 +6034,40 @@ async function generateViaOllama() {
   {
     let techFix = 0;
     const parseNum = (s) => { const m = String(s).replace(/[,\s]/g, '').match(/(\d{3,})/); return m ? +m[1] : null; };
+    // 2026-06-05: 2소스 RSI grounding (제일 정확) — 발간 시점에 price-history(어제 Yahoo 직접과 ±0 일치
+    //   검증된 신뢰 소스)로 RSI 재계산해 검증값 확보. technicalData(buildTechnicalData)와 ±5 초과 불일치면
+    //   technicalData 버그 신호로 log. price-history 없으면 strip(틀린 값보다 공백). KR/US 통일.
+    const rsiFromCloses = (c) => { if (!c || c.length < 15) return null; let g = 0, l = 0; for (let i = c.length - 14; i < c.length; i++) { const d = c[i] - c[i - 1]; if (d > 0) g += d; else l -= d; } const ag = g / 14, al = l / 14; return al === 0 ? 100 : Math.round(100 - 100 / (1 + ag / al)); };
+    const verifiedRsi = new Map();
+    await Promise.all((finalReport.portfolio ?? []).map(async p => {
+      try {
+        const h = await safeFetch(`${SITE}/api/price-history?ticker=${encodeURIComponent(p.ticker)}`, 6000);
+        const r2 = rsiFromCloses((h?.points ?? []).map(x => x.close).filter(v => typeof v === 'number'));
+        if (r2 != null) {
+          verifiedRsi.set((p.ticker ?? '').toUpperCase(), r2);
+          const t = technicalData.get(p.ticker) ?? technicalData.get((p.ticker ?? '').toUpperCase());
+          const r1 = String(t ?? '').match(/RSI\s*(\d+)/i)?.[1];
+          if (r1 && Math.abs(+r1 - r2) > 5) console.warn(`  [rsi-2source] ${p.ticker} technicalData RSI ${r1} ≠ price-history ${r2} — technicalData 의심, price-history 채택`);
+        }
+      } catch { /* price-history 실패 → verifiedRsi 미설정 → strip */ }
+    }));
     for (const p of (finalReport.portfolio ?? [])) {
-      const tech = technicalData.get(p.ticker) ?? technicalData.get((p.ticker ?? '').toUpperCase());
-      if (!tech) continue;
-      const rsiM = String(tech).match(/RSI\s*(\d+)/i);
-      let realRsi = rsiM ? parseInt(rsiM[1], 10) : null;
-      // 2026-06-05: technicalData 가 KR 에서 깨진 신호 — KR(.KS/.KQ) 인데 $ 단위(₩여야 함, $202.92
-      //   3종목 동일 사건). 깨진 소스를 믿고 RSI 36(실제 62) 을 써넣던 것 → strip-when-uncertain:
-      //   검증 불가하면 교체 말고 *제거*(틀린 값보다 없는 값이 안전). US(정상 $)는 기존 substitute.
-      const techBroken = /\.(KS|KQ)$/.test(p.ticker ?? '') && /\$/.test(String(tech));
-      if (techBroken) realRsi = null;   // 깨진 KR 소스 → 신뢰 안 함
+      const realRsi = verifiedRsi.get((p.ticker ?? '').toUpperCase()) ?? null;   // 2소스 검증값(없으면 strip)
       const ezLow = parseNum((p.entryZone ?? '').split(/[-~]/)[0]);
       for (const f of ['technicalBasis', 'entryRationale', 'rationale']) {
         if (typeof p[f] !== 'string') continue;
         const before = p[f];
         let v = p[f];
-        if (realRsi != null && !techBroken) {
-          v = v.replace(/RSI\s*\d+(?:\.\d+)?%?/gi, `RSI ${realRsi}`);   // 환각 RSI 값 → 실제(검증된 US)
+        if (realRsi != null) {
+          v = v.replace(/RSI\s*\d+(?:\.\d+)?%?/gi, `RSI ${realRsi}`);   // LLM RSI 값 → 2소스 검증값
           if (realRsi >= 35) v = v.replace(/RSI\s*과매도/g, `RSI ${realRsi}`).replace(/과매도/g, realRsi >= 65 ? '과매수' : '중립');
           if (realRsi <= 65) v = v.replace(/과매수/g, realRsi <= 35 ? '과매도' : '중립');
         } else {
-          // 검증 불가(미산출 또는 KR 소스 깨짐) → RSI 값 + 과매도/과매수 + 깨진 $ MA 제거(strip)
+          // 2소스 검증값 없음(price-history 실패) → RSI 값 + 과매도/과매수 제거(strip-when-uncertain)
           v = v.replace(/[,·]?\s*RSI\s*\d+(?:\.\d+)?%?/gi, '').replace(/[,·]?\s*RSI\s*(?:과매도|과매수)/g, '').replace(/[,·]?\s*(?:과매도|과매수)\b/g, '');
-          if (techBroken) v = v.replace(/[,·]?\s*\d+MA[^,;·]*\$[\d,.]+\)?/g, '');
         }
+        // KR 종목에 $ 단위 MA(₩여야 함, technicalData 깨짐 잔재) 제거
+        if (/\.(KS|KQ)$/.test(p.ticker ?? '')) v = v.replace(/[,·]?\s*\d+MA[^,;·]*\$[\d,.]+\)?/g, '');
         // 지지가격 환각: entryRationale 의 "N 수준 지지" 가 entryZone 과 >25% 이탈 → 제거
         if (f === 'entryRationale' && ezLow) {
           const supW = parseNum(v.match(/([\d,]{4,})\s*(?:수준|선)?\s*지지/)?.[1] ?? '');
