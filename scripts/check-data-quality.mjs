@@ -114,6 +114,30 @@ async function main() {
     } else info.push('[B3] 뉴스 timestamp 파싱 불가 — 신선도 점검 skip');
   }
 
+  // [B4] RSS 피드 *소스* 건강도 (2026-06-06 신설) — "왜 사각지대?" 근본: 종전 검증은 "endpoint 200"
+  //   만 봤지 외부 RSS 소스가 *살아있는지/신선한지* 안 봤음. WSJ RSS 가 200+유효XML 이지만 Jan 2025
+  //   frozen, Reuters fetch fail 인데 못 잡았음(소스 decay 사각지대). → 각 피드 최신기사 age 직접 점검.
+  try {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/app/api/news-cascade/route.ts', 'utf8');
+    const m = src.match(/RSS_FEEDS[^=]*=\s*\[([\s\S]*?)\];/);
+    const feeds = [...(m?.[1] || '').matchAll(/url:\s*['"]([^'"]+)['"][^}]*source:\s*['"]([^'"]+)/g)].map(x => ({ url: x[1], src: x[2] }));
+    let dead = 0;
+    const deadList = [];
+    await Promise.all(feeds.map(async f => {
+      try {
+        const r = await fetch(f.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(10000) });
+        if (!r.ok) { dead++; deadList.push(`${f.src}(HTTP${r.status})`); return; }
+        const t = await r.text();
+        const ds = [...t.matchAll(/<pubDate>([^<]+)<\/pubDate>/g), ...t.matchAll(/<published>([^<]+)<\/published>/g)].map(x => Date.parse(x[1])).filter(Number.isFinite).sort((a, b) => b - a);
+        const ageH = ds.length ? (Date.now() - ds[0]) / 3600000 : null;
+        if (ageH == null || ageH > 168) { dead++; deadList.push(`${f.src}(${ageH == null ? '날짜X' : Math.round(ageH) + 'h'})`); }
+      } catch { dead++; deadList.push(`${f.src}(fetch실패)`); }
+    }));
+    if (dead > 0) issues.push(`[B4] RSS 죽은/stale 피드 ${dead}/${feeds.length}: ${deadList.join(', ')} — 소스 교체 필요`);
+    else info.push(`[B4] RSS 피드 ${feeds.length}개 전부 신선(≤7d)`);
+  } catch (e) { info.push(`[B4] RSS 피드 점검 skip: ${String(e.message).slice(0, 40)}`); }
+
   // [C] contango / commodity 추정 표시
   {
     const r = await getJson('/api/commodity-curve');
