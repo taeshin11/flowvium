@@ -1673,13 +1673,16 @@ async function buildTechnicalData(tickers, livePrices) {
       const isKR = ticker.endsWith('.KS');
       const ohlcv = await fetchOHLCV(ticker, isKR ? '1y' : '6mo');
       if (!ohlcv || ohlcv.closes.length < 21) return [ticker, null];
-      // 2026-05-31: split-adjust 안 된 closes 배열 detect.
-      //   원인: Yahoo OHLCV 가 액면분할 전후 가격 그대로 (예: 005930.KS ratio 5.7x).
-      //   sma200/52주 모두 환각으로 이어짐. ratio > 3x 시 그 데이터 전체 reject.
-      const cMax = Math.max(...ohlcv.closes);
-      const cMin = Math.min(...ohlcv.closes.filter(x => x > 0));
-      if (cMin > 0 && cMax / cMin > 3) {
-        console.warn(`  [ohlcv-split] ${ticker} closes ratio ${(cMax/cMin).toFixed(1)}x — split/unit mismatch, technical data skip`);
+      // 2026-06-05 FIX: 진짜 split 은 *하루 사이 불연속*(2:1 분할 = 하루 0.5x). 기존 전체 range>3x 는
+      //   변동성 큰 정상 종목(삼전 1년 6.3x, 일간 점프 1.14x)을 오판 reject → KR 기술데이터 null →
+      //   RSI/MA/지지선 환각(삼전 "RSI 45 $202.92" 사건). 일간 점프 >1.8x 로 실제 split 만 감지.
+      let maxJump = 1;
+      for (let i = 1; i < ohlcv.closes.length; i++) {
+        const a = ohlcv.closes[i], b = ohlcv.closes[i - 1];
+        if (a > 0 && b > 0) { const rr = a / b; if (rr > maxJump) maxJump = rr; if (1 / rr > maxJump) maxJump = 1 / rr; }
+      }
+      if (maxJump > 1.8) {
+        console.warn(`  [ohlcv-split] ${ticker} 일간 점프 ${maxJump.toFixed(1)}x — 실제 split/unit mismatch, skip`);
         return [ticker, null];
       }
       const { closes, volumes } = ohlcv;
