@@ -159,9 +159,12 @@ async function translateViaOllama(prompt: string): Promise<string | null> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
-        messages: [{ role: 'user', content: prompt }],
+        // 2026-06-05: /no_think 필수 — qwen3 는 thinking 모델이라 prefix 없으면 <think> 가 max_tokens 를
+        //   먹어 12기사 배치 JSON 이 잘림 → ja 8%/ko 부분번역. 직접 테스트로 /no_think 시 ko/ja/한국어→일본어
+        //   전부 완벽 번역 확인. (max_tokens 12000 은 증상 땜질이었음 — thinking 제거가 근본.)
+        messages: [{ role: 'user', content: `/no_think ${prompt}` }],
         temperature: 0.3,
-        max_tokens: 12000, // 2026-06-03: 4000 은 10기사 번역 JSON 을 잘라 뒤 기사 영어 잔존 → 12000
+        max_tokens: 12000,
       }),
       // 2026-06-03: 10기사 번역이 RTX 4050 6GB 에서 ~93s + 모델 cold-load(~15s) → 90s 에 근접해
       //   간헐 timeout → null → quota-dead cloud fallback → identity → gate 거부(영어 잔존). 240s 로 상향.
