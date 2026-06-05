@@ -77,6 +77,15 @@ const CURATED = {
 };
 for (const [t, n] of Object.entries(CURATED)) out[t] = n;   // force override (권위 큐레이션)
 
+// 2026-06-05: ETF 이름 (Yahoo longName, enrich 로 생성된 data/etf-names.json) 병합 — SEC 미수록 ETF 보강.
+try {
+  if (existsSync('data/etf-names.json')) {
+    const etf = JSON.parse(readFileSync('data/etf-names.json', 'utf8'));
+    let e = 0; for (const [t, n] of Object.entries(etf)) { if (!out[t] && n) { out[t] = n; e++; } }
+    console.log(`[build-company-names] ETF 이름 병합: ${e}`);
+  }
+} catch { /* non-fatal */ }
+
 writeFileSync('data/company-names.json', JSON.stringify(out, null, 0) + '\n');
 // 검증: name 이 산업라벨/Unknown 처럼 보이면 경고(향후 오염 사전 포착).
 const suspect = Object.entries(out).filter(([, n]) => /\b(& Other|Unknown|N\/A)\b/i.test(n));
