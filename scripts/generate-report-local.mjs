@@ -6207,6 +6207,29 @@ async function generateViaOllama() {
       stance: finalReport.stance, riskLevel: finalReport.riskLevel, livePrices,
     });
     console.log(`  [ETF] ${finalReport.etfStrategy.length} 추천 (${finalReport.etfStrategy.map(e => e.ticker).join(',')})`);
+    // 2026-06-06: ETF 경합심사 (사용자 "etf전략은 매수·매도 엔진이 상의하나?") — ETF 는 종전 stance 만
+    //   보고 매도룰 cross-exam 을 안 거쳤음(개별주만 경합심사). ETF 매수 신호도 *기술적* 매도신호
+    //   (dead cross·200MA 이탈·RSI 과매수)와 충돌하면 watch 로 강등. 펀더멘털 룰(opMargin/PE)은 ETF
+    //   바스켓이라 N/A — 기술 카테고리만 적용. fetchSellSignals(개별주 경합심사와 동일 신호) 재사용.
+    try {
+      const buyEtfs = (finalReport.etfStrategy || []).filter(e => e.action === 'buy');
+      if (buyEtfs.length) {
+        const techRules = (loadSellRules()?.rules ?? []).filter(r => r.category === 'technical');
+        const etfSig = await fetchSellSignals(buyEtfs.map(e => e.ticker));
+        let dg = 0;
+        for (const e of buyEtfs) {
+          const sig = etfSig.get(e.ticker) ?? {};
+          const ctx = { price: livePrices.get(e.ticker)?.price ?? null, rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct };
+          const hit = techRules.map(r => evaluateSellRule(r, ctx)).filter(Boolean);
+          if (hit.length) {
+            e.action = 'watch';
+            e.rationale = `${e.rationale} ⚖️ 기술적 매도신호(${hit[0]}) — 매수→관망 강등`;
+            dg++;
+          }
+        }
+        if (dg) console.log(`  [ETF 경합심사] 기술적 매도신호 충돌 ${dg}건 매수→관망`);
+      }
+    } catch (e) { console.warn('  [ETF 경합심사] skip:', e.message); }
   } catch (e) { finalReport.etfStrategy = []; console.warn('  [ETF] 실패:', e.message); }
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
