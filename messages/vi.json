@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "Theo dõi quan hệ pháp lý và tài chính qua SEC EDGAR (hồ sơ Mỹ), PACER (hồ sơ tòa án liên bang) và đăng ký doanh nghiệp trên toàn thế giới."
   },
   "report": {
+    "ivPlainVol": "Biến động",
+    "ivPlainDaily": "Dự kiến ±{daily}%/ngày",
+    "ivLevelLow": "Ổn định",
+    "ivLevelMid": "Trung bình",
+    "ivLevelHigh": "Cao",
+    "ivLevelExtreme": "Rất cao",
+    "ivSkewUp": "Quyền chọn nghiêng về tăng",
+    "ivSkewDown": "Quyền chọn thiên về phòng thủ",
+    "ivSkewNeutral": "Trung lập về hướng",
     "title": "Báo cáo AI",
     "subtitle": "Dòng tiền toàn cầu · Tín hiệu tổ chức · Phân tích công ty",
     "refresh": "Làm mới",

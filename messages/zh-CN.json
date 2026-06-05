@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "通过SEC EDGAR（美国披露）、PACER（联邦法院记录）、各国企业登记处了解法律和财务关系。"
   },
   "report": {
+    "ivPlainVol": "波动率",
+    "ivPlainDaily": "预计每日±{daily}%波动",
+    "ivLevelLow": "平稳",
+    "ivLevelMid": "中等",
+    "ivLevelHigh": "波动较大",
+    "ivLevelExtreme": "极大",
+    "ivSkewUp": "期权市场偏看涨",
+    "ivSkewDown": "期权市场偏防御",
+    "ivSkewNeutral": "方向中性",
     "title": "AI报告",
     "subtitle": "全球资金流动 · 机构信号 · 企业分析",
     "refresh": "刷新",

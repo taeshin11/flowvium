@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "透過SEC EDGAR（美國揭露）、PACER（聯邦法院記錄）、各國企業登記處了解法律和財務關係。"
   },
   "report": {
+    "ivPlainVol": "波動率",
+    "ivPlainDaily": "預計每日±{daily}%波動",
+    "ivLevelLow": "平穩",
+    "ivLevelMid": "中等",
+    "ivLevelHigh": "波動較大",
+    "ivLevelExtreme": "極大",
+    "ivSkewUp": "選擇權市場偏看漲",
+    "ivSkewDown": "選擇權市場偏防禦",
+    "ivSkewNeutral": "方向中性",
     "title": "AI報告",
     "subtitle": "全球資金流動 · 機構訊號 · 企業分析",
     "refresh": "重新整理",

@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "SEC EDGAR (ABD dosyaları), PACER (federal mahkeme kayıtları) ve dünya genelindeki kurumsal siciller aracılığıyla hukuki ve mali ilişkileri takip edin."
   },
   "report": {
+    "ivPlainVol": "Oynaklık",
+    "ivPlainDaily": "Günlük ±{daily}% bekleniyor",
+    "ivLevelLow": "Sakin",
+    "ivLevelMid": "Orta",
+    "ivLevelHigh": "Yüksek",
+    "ivLevelExtreme": "Çok yüksek",
+    "ivSkewUp": "Opsiyonlar yükseliş eğiliminde",
+    "ivSkewDown": "Opsiyonlar savunmada",
+    "ivSkewNeutral": "Yön nötr",
     "title": "AI Raporu",
     "subtitle": "Küresel para akışları · Kurumsal sinyaller · Şirket analizi",
     "refresh": "Yenile",

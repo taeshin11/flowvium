@@ -234,11 +234,6 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${confidenceBadge(item.confidence)}`}>
                   {confidenceLabel}
                 </span>
-                {item.impliedVol != null && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-sky-50 text-sky-700 border border-sky-200" title="ATM 30-day implied volatility">
-                    IV {item.impliedVol}%{item.ivSkew != null && item.ivSkew !== 0 ? ` · skew ${item.ivSkew > 0 ? '+' : ''}${item.ivSkew}` : ''}
-                  </span>
-                )}
               </div>
               <p className="text-xs text-gray-500">{item.sector}</p>
             </div>
@@ -292,6 +287,27 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
             </>
           )}
         </div>
+        {/* IV → 평이한 설명 (손절 칸 옆/아래). atmIv30d 연율 → 일간 기대등락(=IV/√252) + 변동 수준 + 옵션 skew 심리 */}
+        {item.impliedVol != null && (() => {
+          const iv = item.impliedVol as number;
+          const daily = (iv / 15.87).toFixed(1); // 연율 IV → 일간 (√252 ≈ 15.87)
+          const level = iv < 20 ? t('ivLevelLow')
+            : iv < 35 ? t('ivLevelMid')
+            : iv < 55 ? t('ivLevelHigh') : t('ivLevelExtreme');
+          // skew25d = σ(25Δ put) − σ(25Δ call): +면 하락 헤지 수요(방어), −면 콜 매수 우위(상승 기대)
+          const skewMsg = item.ivSkew == null ? null
+            : item.ivSkew >= 1.5 ? t('ivSkewDown')
+            : item.ivSkew <= -1.5 ? t('ivSkewUp') : t('ivSkewNeutral');
+          return (
+            <div className="mt-1.5 flex items-start gap-1 text-[11px] text-gray-500 leading-relaxed">
+              <span className="shrink-0">📊</span>
+              <span>
+                {t('ivPlainVol')} <span className="font-semibold text-gray-700">{iv}%</span> ({level}) · {t('ivPlainDaily', { daily })}
+                {skewMsg ? ` · ${skewMsg}` : ''}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Detail section — always visible */}

@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "Rastreie relações jurídicas e financeiras via SEC EDGAR (registros dos EUA), PACER (registros de tribunais federais) e registros corporativos em todo o mundo."
   },
   "report": {
+    "ivPlainVol": "Volatilidade",
+    "ivPlainDaily": "±{daily}%/dia esperado",
+    "ivLevelLow": "Estável",
+    "ivLevelMid": "Moderada",
+    "ivLevelHigh": "Alta",
+    "ivLevelExtreme": "Muito alta",
+    "ivSkewUp": "Opções inclinadas para alta",
+    "ivSkewDown": "Opções em modo defensivo",
+    "ivSkewNeutral": "Sem viés direcional",
     "title": "Relatório IA",
     "subtitle": "Fluxos globais de dinheiro · Sinais institucionais · Análise de empresas",
     "refresh": "Atualizar",

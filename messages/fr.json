@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "Suivez les relations juridiques et financières via SEC EDGAR (dépôts américains), PACER (archives des tribunaux fédéraux) et les registres des entreprises du monde entier."
   },
   "report": {
+    "ivPlainVol": "Volatilité",
+    "ivPlainDaily": "±{daily}%/jour attendu",
+    "ivLevelLow": "Calme",
+    "ivLevelMid": "Modérée",
+    "ivLevelHigh": "Élevée",
+    "ivLevelExtreme": "Très élevée",
+    "ivSkewUp": "Options orientées à la hausse",
+    "ivSkewDown": "Options en mode défensif",
+    "ivSkewNeutral": "Sans biais directionnel",
     "title": "Rapport IA",
     "subtitle": "Flux mondiaux de capitaux · Signaux institutionnels · Analyse d'entreprises",
     "refresh": "Actualiser",

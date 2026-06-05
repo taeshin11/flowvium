@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "SEC EDGAR(미국 공시), PACER(연방법원 기록), 각국 기업등기소를 통해 법적·재무 관계를 파악합니다."
   },
   "report": {
+    "ivPlainVol": "변동성",
+    "ivPlainDaily": "하루 ±{daily}% 등락 예상",
+    "ivLevelLow": "안정적",
+    "ivLevelMid": "보통",
+    "ivLevelHigh": "변동 큼",
+    "ivLevelExtreme": "매우 큼",
+    "ivSkewUp": "옵션시장 상승 기대 우위",
+    "ivSkewDown": "옵션시장 하락 대비 심리",
+    "ivSkewNeutral": "방향성 중립",
     "title": "AI 리포트",
     "subtitle": "글로벌 자금 흐름 · 기관 시그널 · 기업 분석",
     "refresh": "새로고침",

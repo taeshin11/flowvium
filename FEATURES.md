@@ -719,6 +719,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - **종목 티커 클릭 → `/{locale}/company/[ticker]` 기업 프로필 이동** (보라색 링크, 2026-06-03 — 매수·매도 카드 양쪽)
 - 🇺🇸 US Market / 🇰🇷 KR Market 시장별 분리 표시
 - 클릭 확장: 진입 구간 / 손절가 / 목표가 / Exit Ladder (entry/exit 분할)
+- **IV 평이 설명 (손절 칸 아래, 2026-06-05)** — 종전 `IV 45.1% · skew -2.7` 전문용어 배지를 손절 옆 평이한 한 줄로: 📊 변동성 N% (안정/보통/변동큼/매우큼) · 하루 ±X% 등락 예상(=IV/√252) · 옵션 skew 심리(상승 기대/하락 대비/중립). 16개 언어 i18n (`report.ivPlain*`/`ivLevel*`/`ivSkew*`)
 - 확신도 뱃지 (high/medium/low)
 - `buyCandidateScoring.top30` 메타 — score + 매칭 룰 ID 보존 (audit 가능)
 - 7 카테고리 31룰 multi-factor: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) + selflearn(2) (`data/buy-rules-tuned.json`)

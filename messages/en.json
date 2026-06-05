@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "Track legal and financial relationships via SEC EDGAR (U.S. filings), PACER (federal court records), and corporate registries worldwide."
   },
   "report": {
+    "ivPlainVol": "Volatility",
+    "ivPlainDaily": "±{daily}%/day expected",
+    "ivLevelLow": "Calm",
+    "ivLevelMid": "Moderate",
+    "ivLevelHigh": "Choppy",
+    "ivLevelExtreme": "Very high",
+    "ivSkewUp": "Options lean bullish",
+    "ivSkewDown": "Options lean defensive",
+    "ivSkewNeutral": "Direction-neutral",
     "title": "AI Report",
     "subtitle": "Global money flows · Institutional signals · Company analysis",
     "refresh": "Refresh",

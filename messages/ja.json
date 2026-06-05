@@ -1110,6 +1110,15 @@
     "guideMethod6Desc": "SEC EDGAR（米国開示）、PACER（連邦裁判所記録）、各国企業登記所を通じて法的・財務的関係を把握します。"
   },
   "report": {
+    "ivPlainVol": "変動率",
+    "ivPlainDaily": "1日±{daily}%の変動予想",
+    "ivLevelLow": "安定",
+    "ivLevelMid": "普通",
+    "ivLevelHigh": "変動大",
+    "ivLevelExtreme": "非常に大",
+    "ivSkewUp": "オプション市場は上昇期待優勢",
+    "ivSkewDown": "オプション市場は下落警戒",
+    "ivSkewNeutral": "方向感なし",
     "title": "AIレポート",
     "subtitle": "グローバル資金フロー · 機関シグナル · 企業分析",
     "refresh": "更新",
