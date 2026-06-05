@@ -5545,6 +5545,36 @@ async function generateViaOllama() {
     }
     dedupedPortfolio = [...usCap, ...krCap];
   }
+  // 2026-06-05: 최종 권위 name 게이트 (모든 진입 경로 커버) — applyLocalHarness 6f 는 LLM r.portfolio 에만
+  //   적용돼, 룰 기반 buy-candidate 펀넬로 들어온 종목(name=ticker)이 우회했음(DOC="DOC" 사건, 정답
+  //   "Healthpeak Properties, Inc."가 company-names.json 에 있었는데도 미적용). 발간 직전 전수 재보정.
+  {
+    const nameFixes = [];
+    for (const p of dedupedPortfolio) {
+      const tk = p.ticker?.toUpperCase();
+      if (!tk) continue;
+      const auth = US_NAME_LOOKUP[tk] ?? KR_NAMES_HARNESS[tk];                       // 권위 맵 우선
+      const expected = auth ?? (((!p.name || p.name === p.ticker) && CANDIDATE_META[tk]?.name) || null); // 없으면 meta(name=ticker 일 때만)
+      if (expected && p.name !== expected) { nameFixes.push(`${p.ticker}:"${p.name}"→"${expected}"`); p.name = expected; }
+    }
+    if (nameFixes.length) console.log(`  [name-gate] 권위 회사명 재보정 ${nameFixes.length}: ${nameFixes.slice(0, 8).join(', ')}`);
+  }
+  // 2026-06-05: PE prose 중복(=copy-paste 환각) strip — verify-report [6] 와 동일 기준. 동일 PE 값이
+  //   서로 다른 2+종목 fundamentalBasis 에 박히면 환각 확정 → 실제 PE 모르므로 제거(strip-when-uncertain).
+  {
+    const peRe = /PE\s*([\d.]+)x?/i;
+    const counts = {};
+    for (const p of dedupedPortfolio) { const m = (p.fundamentalBasis || '').match(peRe); if (m) counts[m[1]] = (counts[m[1]] || 0) + 1; }
+    const dup = new Set(Object.entries(counts).filter(([, c]) => c >= 2).map(([v]) => v));
+    if (dup.size) {
+      let stripped = 0;
+      for (const p of dedupedPortfolio) {
+        const m = (p.fundamentalBasis || '').match(peRe);
+        if (m && dup.has(m[1])) { p.fundamentalBasis = p.fundamentalBasis.replace(/[,，·]?\s*PE\s*[\d.]+x?/i, '').replace(/\s{2,}/g, ' ').trim(); stripped++; }
+      }
+      if (stripped) console.log(`  [pe-prose] 중복 PE(환각) strip ${stripped}건: 값 ${[...dup].join(',')}`);
+    }
+  }
   // 2026-06-04: 종목별 내재변동성(IV) 주입 (사용자 요청) — US 옵션 IV(atmIv30d). KR 은 옵션 IV 미제공 → null.
   await Promise.all(dedupedPortfolio.map(async (p) => {
     if (!p.ticker || /\.(KS|KQ)$/.test(p.ticker)) { p.impliedVol = null; return; }
