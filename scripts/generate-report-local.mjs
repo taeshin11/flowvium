@@ -1124,7 +1124,7 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '') {
 // ── Ollama 호출 with cloud fallback ────────────────────────────────────────────
 // 우선순위: vLLM/TabbyAPI (VLLM_URL) → Ollama → GROQ 70B → Gemini 2.0 Flash
 // 로컬 우선 + 실패/timeout 자동 cloud 폴백 = 항상 결과 반환 보장.
-async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = '') {
+async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = '', schema = null) {
   // 1. vLLM/TabbyAPI 우선 (VLLM_URL 설정된 경우만)
   const vllmText = await callVLLM(prompt, timeoutMs, label);
   if (vllmText) return vllmText;
@@ -1142,7 +1142,9 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = 
     model,
     messages: [{ role: 'user', content: prompt }],
     stream: false,
-    format: 'json',
+    // 2026-06-06: JSON Schema structured output (ChatGPT D1) — schema 주면 Ollama 가 그 구조로 강제.
+    //   stockDetail 등 ID-only 출력에 사용 → cross-ticker bleed/형식 환각 차단. 미지정 시 기존 json.
+    format: schema ?? 'json',
     options: { temperature: 0.4, num_predict: numPredict },
     ...(isQwen3 ? { think: false } : {}),
   };
@@ -5673,6 +5675,39 @@ async function generateViaOllama() {
       if (JSON.stringify(merged) !== JSON.stringify(p.catalysts)) { p.catalysts = merged; cg++; }
     }
     if (cg) console.log(`  [catalysts/deterministic] 숫자 catalyst 코드생성 + 정성 LLM 보충 ${cg}건`);
+  }
+
+  // 2026-06-06: whitelist validator (ChatGPT D1 1순위) — fundamentalBasis/catalysts/rationale 의 모든
+  //   %·x 숫자가 grounded(sig 실값/계산값/구조필드)인지 검증. whitelist 밖 숫자 = 환각 → 해당 clause
+  //   strip. fundamentalBasis/catalysts 는 이미 결정론적이라 통과, LLM rationale 의 단일 환각수치까지 차단.
+  {
+    let stripped = 0;
+    const CALIB = new Set([1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 50, 52, 100, 200]); // 흔한 계산상수(target/stop/MA기간)
+    for (const p of mergedPortfolio) {
+      const sig = signalDigest.get(p.ticker);
+      const allow = new Set(CALIB);
+      const addN = v => { const n = parseFloat(String(v).replace(/[^\d.-]/g, '')); if (Number.isFinite(n)) allow.add(Math.round(Math.abs(n) * 10) / 10); };
+      if (sig?.fin) { addN(sig.fin.yoy); addN(sig.fin.margin); addN(sig.fin.roe); addN(sig.fin.pe); }
+      if (sig?.tech) for (const m of String(sig.tech).matchAll(/(\d+\.?\d*)/g)) addN(m[1]);
+      if (sig?.insider) { addN(sig.insider.buys); addN(sig.insider.sells); }
+      if (sig?.squeeze != null) addN(sig.squeeze);
+      addN(p.impliedVol); addN(p.ivSkew); addN(p.allocation);
+      const lp = livePrices.get(p.ticker); if (lp) { addN(lp.price); addN(lp.high52w); addN(lp.low52w); }
+      const isAllowed = (numTok) => { const n = Math.abs(parseFloat(numTok)); if (!Number.isFinite(n)) return true; for (const a of allow) if (Math.abs(n - a) <= Math.max(0.3, a * 0.02)) return true; return false; };
+      const stripClause = (text) => {
+        let t = text, changed = false;
+        // %·x·배 suffix 숫자만 검사(가격·날짜 등 구조 숫자 제외 위해)
+        for (const m of [...String(text).matchAll(/([+-]?\d+\.?\d*)\s*(?:%|x|배)/g)]) {
+          if (!isAllowed(m[1])) { t = t.replace(new RegExp(`[^,，·|/]*${m[1].replace('.', '\\.')}\\s*(?:%|x|배)[^,，·|/]*`), ''); changed = true; }
+        }
+        return changed ? t.replace(/\s*[,，·|]\s*[,，·|]\s*/g, ', ').replace(/^[\s,，·|]+|[\s,，·|]+$/g, '').replace(/\s{2,}/g, ' ') : text;
+      };
+      for (const f of ['fundamentalBasis', 'rationale', 'riskNote']) {
+        if (typeof p[f] === 'string') { const nv = stripClause(p[f]); if (nv !== p[f]) { p[f] = nv; stripped++; } }
+      }
+      if (Array.isArray(p.catalysts)) { const before = p.catalysts.join('|'); p.catalysts = p.catalysts.map(stripClause).filter(c => c && c.length > 3); if (p.catalysts.join('|') !== before) stripped++; }
+    }
+    if (stripped) console.log(`  [whitelist-validator] ungrounded %·x 숫자 strip ${stripped}건 (sig 실값 외 환각 차단)`);
   }
 
   let dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
