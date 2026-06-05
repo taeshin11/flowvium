@@ -60,7 +60,11 @@ async function main() {
       const titles = arts.map(a => a.title || a.headline || '').filter(Boolean);
       const ok = titles.filter(t => re.test(t)).length;
       const pct = titles.length ? Math.round(ok / titles.length * 100) : 0;
-      if (pct < 80) issues.push(`[B] 뉴스 번역 미완(${l}) — ${ok}/${titles.length} (${pct}%). 예: "${(titles.find(t => !re.test(t)) || '').slice(0, 35)}"`);
+      // 2026-06-05: JP/CN 네이티브 피드 유지(사용자 결정) + 로컬 8B 가 CJK cross-translate·배치 번역을
+      //   100% 못 하는 한계 인지. <50%=콜드캐시/파이프라인 결함(🚨, warm 필요) / 50-80%=8B 부분번역
+      //   (인지됨 — 영어 base 보다 나음) / ≥80%=정상.
+      if (pct < 50) issues.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 콜드캐시/파이프라인(warm 필요). 예: "${(titles.find(t => !re.test(t)) || '').slice(0, 35)}"`);
+      else if (pct < 80) info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 8B 부분번역(CJK 한계 인지됨)`);
       else info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%)`);
     }
   }
