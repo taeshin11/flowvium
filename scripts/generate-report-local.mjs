@@ -5545,7 +5545,7 @@ async function generateViaOllama() {
         `Sector: ${p.sector ?? 'N/A'}`,
         sigDigest?.insider ? `Insider signals: ${sigDigest.insider}` : '',
         sigDigest?.squeeze ? `Squeeze score: ${sigDigest.squeeze}` : '',
-        sigDigest?.yoy ? `Last quarter YoY: ${sigDigest.yoy} (revenue) / margin ${sigDigest.margin ?? 'N/A'}` : '',
+        sigDigest?.fin?.yoy ? `Last quarter: revenue YoY ${sigDigest.fin.yoy}, opMargin ${sigDigest.fin.margin ?? 'N/A'}%, ROE ${sigDigest.fin.roe ?? 'N/A'}%, PE ${sigDigest.fin.pe ?? 'N/A'}` : '',
         '',
         '⚠️ RULES:',
         '- Catalysts MUST be specific to this ticker — NOT generic sector talk.',
@@ -5586,6 +5586,29 @@ async function generateViaOllama() {
     console.log(`  [F23/fact-check] ${replaced}/${mergedPortfolio.length} 종목 catalysts/fundamentalBasis 재생성 적용`);
   } catch (e) {
     console.warn('  [F23/fact-check] 실패 (기존 값 유지):', e.message);
+  }
+
+  // 2026-06-06: fundamentalBasis 결정론적 렌더 (ChatGPT 조언 — "숫자는 코드가, LLM은 문장만").
+  //   sig.fin(실 재무) 있으면 LLM 출력 대신 코드가 직접 렌더 → 매출/마진/ROE/PE 환각 구조적 차단
+  //   (GOOGL "35%" 같은 단일 환각도 막힘). fin 없으면 LLM/strip 값 유지.
+  {
+    const isKrT = (t) => /\.(KS|KQ)$/.test(t || '');
+    const renderFB = (fin, kr) => {
+      if (!fin) return null;
+      const parts = [];
+      if (fin.yoy) parts.push(`매출 ${String(fin.yoy).replace(/^\+?/, '')} YoY`);
+      if (fin.margin) parts.push(`영업이익률 ${fin.margin}%`);
+      if (fin.roe) parts.push(`ROE ${fin.roe}%`);
+      if (fin.pe && !kr) parts.push(`PE ${fin.pe}x`);  // KR 은 DART EPS 부재로 PE 인용 금지
+      return parts.length ? `${fin.label ?? '최근 실적'}: ${parts.join(' · ')}` : null;
+    };
+    let grounded = 0;
+    for (const p of mergedPortfolio) {
+      const fin = signalDigest.get(p.ticker)?.fin;
+      const rendered = renderFB(fin, isKrT(p.ticker));
+      if (rendered && rendered !== p.fundamentalBasis) { p.fundamentalBasis = rendered; grounded++; }
+    }
+    if (grounded) console.log(`  [fundamentalBasis/deterministic] 실재무 기반 렌더 ${grounded}건 (LLM 숫자 환각 차단)`);
   }
 
   let dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
