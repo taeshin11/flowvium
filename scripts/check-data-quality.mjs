@@ -17,7 +17,7 @@ const BASE = 'https://flowvium.net';
 const issues = [];
 const info = [];
 
-async function getJson(path, ms = 12000) {
+async function getJson(path, ms = 12000, retryOnConnFail = true) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -25,7 +25,17 @@ async function getJson(path, ms = 12000) {
     const text = await res.text();
     let body = null; try { body = JSON.parse(text); } catch { /* non-json */ }
     return { status: res.status, body, text };
-  } catch (e) { return { status: 0, body: null, text: String(e?.message || e) }; }
+  } catch (e) {
+    // 2026-06-05: HTTP 0 = 연결레벨 실패(타임아웃/리셋) — 순간 부하 시 endpoint 마다 false 🚨 churn
+    //   유발(yield-curve/economic-calendar 번갈아). 진짜 죽은 라우트는 4xx/5xx 반환하지 retry 도 실패.
+    //   → 연결실패 1회 한정 재시도(긴 타임아웃). 실제 장애는 여전히 잡음.
+    if (retryOnConnFail) {
+      clearTimeout(t);
+      await new Promise(r => setTimeout(r, 1500));
+      return getJson(path, Math.max(ms, 20000), false);
+    }
+    return { status: 0, body: null, text: String(e?.message || e) };
+  }
   finally { clearTimeout(t); }
 }
 
