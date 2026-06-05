@@ -45,9 +45,15 @@ const CHECKS = [
 const NAME_ISSUES = (() => {
   try {
     const us = readFileSync('src/data/universe-search.ts', 'utf8');
-    const entries = [...us.matchAll(/\{"ticker":"([^"]+)","name":"([^"]+)"/g)];
-    const garbage = entries.filter(([, , n]) => /\b(& Other|Unknown|N\/A)\b/i.test(n));
-    return { total: entries.length, garbage: garbage.map(m => `${m[1]}="${m[2]}"`) };
+    const entries = [...us.matchAll(/\{"ticker":"([^"]+)","name":"([^"]+)","sector":"([^"]+)"/g)].map(m => ({ t: m[1], n: m[2], s: m[3] }));
+    const usStk = entries.filter(e => !/\.(KS|KQ)$/.test(e.t));
+    return {
+      total: entries.length,
+      garbage: entries.filter(e => /\b(& Other|Unknown|N\/A)\b/i.test(e.n)).map(e => `${e.t}="${e.n}"`),
+      nameIsTicker: usStk.filter(e => e.n === e.t).length,      // 실명 없음(ticker 노출)
+      sectorUnknown: entries.filter(e => e.s === 'Unknown').length,
+      usStk: usStk.length,
+    };
   } catch { return null; }
 })();
 
@@ -56,7 +62,11 @@ const ok = [];
 
 if (NAME_ISSUES) {
   if (NAME_ISSUES.garbage.length) issues.push(`UNIVERSE_SEARCH 회사명 산업라벨 오염 ${NAME_ISSUES.garbage.length}: ${NAME_ISSUES.garbage.slice(0, 4).join(', ')} (build:universe 재실행/큐레이션 필요)`);
-  else ok.push(`UNIVERSE_SEARCH 회사명 정상 (산업라벨/Unknown 오염 0, ${NAME_ISSUES.total} entries)`);
+  else ok.push(`UNIVERSE_SEARCH 회사명 산업라벨 오염 0 (${NAME_ISSUES.total} entries)`);
+  // 커버리지 갭 가시화 (사각지대 추적 — 데이터 커버리지 부족도 surface)
+  const namePct = Math.round((1 - NAME_ISSUES.nameIsTicker / NAME_ISSUES.usStk) * 100);
+  const secPct = Math.round((1 - NAME_ISSUES.sectorUnknown / NAME_ISSUES.total) * 100);
+  ok.push(`UNIVERSE_SEARCH 커버리지: 실명 ${namePct}%(ticker노출 ${NAME_ISSUES.nameIsTicker}), 섹터 ${secPct}%(Unknown ${NAME_ISSUES.sectorUnknown}) — 데이터 보강 추적`);
 }
 for (const c of CHECKS) {
   const claims = [...DOCS.matchAll(c.docRe)].map(m => norm(m[1])).filter((v, i, a) => a.indexOf(v) === i && !isNaN(v));
