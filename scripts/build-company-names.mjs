@@ -43,9 +43,34 @@ for (let i = 1; i <= 10; i++) {
   }
 }
 
-// 2026-06-05: 큐레이션 override — batch 추출에서 누락/오염된 주요 ticker 권위명 강제.
-//   TSLA 가 candidate meta.name="OEM & Other"(산업라벨)로 UI 노출되던 사건. batch 미수록 종목 보강.
+// 2026-06-05: SEC company_tickers(권위 소스) 동적 fetch — batch 추출이 못 덮는 US 종목 전체 보강
+//   (실명 커버리지 57%→95%+). 사용자 "권위 소스로 1338 전체 커버". 회사명은 거의 안 바뀌어 안정적.
+const titleCase = (s) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+  .replace(/\b(Inc|Corp|Llc|Ltd|Plc|Lp|Co|Sa|Nv|Ag)\b/g, m => m === 'Llc' ? 'LLC' : m === 'Plc' ? 'PLC' : m === 'Lp' ? 'LP' : m === 'Nv' ? 'NV' : m === 'Sa' ? 'SA' : m === 'Ag' ? 'AG' : m)
+  .replace(/\/\w+$/, '');   // "GROUP INC/RI" → "Group Inc" 류 접미 코드 제거
+try {
+  const cand = JSON.parse(readFileSync('data/candidate-tickers.json', 'utf8'));
+  const usTickers = (cand.tickers || []).filter(t => !/\.(KS|KQ)$/.test(t)).map(t => t.toUpperCase());
+  const r = await fetch('https://www.sec.gov/files/company_tickers.json', {
+    headers: { 'User-Agent': 'flowvium research contact@flowvium.net' }, signal: AbortSignal.timeout(20000),
+  });
+  if (r.ok) {
+    const j = await r.json();
+    const sec = {}; for (const k in j) sec[j[k].ticker] = j[k].title;
+    let filled = 0;
+    for (const t of usTickers) { if (!out[t] && sec[t]) { out[t] = titleCase(sec[t]); filled++; } }
+    console.log(`[build-company-names] SEC 권위명 보강: ${filled} (예: AMP=${out['AMP'] ?? '?'})`);
+  } else console.warn(`[build-company-names] ⚠️ SEC fetch ${r.status} — batch 명만 사용`);
+} catch (e) { console.warn(`[build-company-names] ⚠️ SEC fetch 실패: ${String(e.message).slice(0, 50)} — batch 명만`); }
+
+// 2026-06-05: 큐레이션 override — batch/SEC 둘 다 못 덮는 주요 ticker(ETF 포함) 권위명 강제.
+//   TSLA 가 candidate meta.name="OEM & Other"(산업라벨)로 UI 노출되던 사건.
 const CURATED = {
+  // ETF (SEC company_tickers 미수록) — 주요 ETF 권위명
+  SPY: 'SPDR S&P 500 ETF', VOO: 'Vanguard S&P 500 ETF', IVV: 'iShares Core S&P 500 ETF',
+  VTI: 'Vanguard Total Stock Market ETF', QQQ: 'Invesco QQQ Trust', QQQM: 'Invesco NASDAQ 100 ETF',
+  IWM: 'iShares Russell 2000 ETF', DIA: 'SPDR Dow Jones Industrial Average ETF', ITOT: 'iShares Core S&P Total US Stock Market ETF',
+  IJR: 'iShares Core S&P Small-Cap ETF', SPLG: 'SPDR Portfolio S&P 500 ETF',
   TSLA: 'Tesla, Inc.', NWSA: 'News Corporation', NWS: 'News Corporation',
   GOOG: 'Alphabet Inc.', GOOGL: 'Alphabet Inc.', META: 'Meta Platforms, Inc.',
   BRK_B: 'Berkshire Hathaway Inc.',
