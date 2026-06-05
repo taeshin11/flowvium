@@ -410,6 +410,21 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (techBad === 0) log('  ✅ RSI/지지선 일관성 정상');
 
+  // 8. portfolio 정합성 — allocation 합 + 개수 (2026-06-05, allocation 합 74 발견. RULES "sum=100"
+  //    위반인데 검증 프로브 없던 사각지대). 합 95~105 벗어나면 결함.
+  log('\n## portfolio 정합성 (allocation 합/개수 — 2026-06-05)');
+  const port = r.portfolio || [];
+  const allocSum = Math.round(port.reduce((s, p) => s + (Number(p.allocation) || 0), 0));
+  if (port.length > 0 && (allocSum < 95 || allocSum > 105)) {
+    log(`  ⚠️ allocation 합 ${allocSum} (목표 100) — ${port.length}종목`);
+    defects.push({
+      ticker: 'PORTFOLIO', defect_type: 'allocation_sum',
+      llm_value: `합 ${allocSum}% (${port.length}종목)`, correct_value: 'allocation 합 = 100', severity: 'medium',
+    });
+  } else if (port.length > 0) {
+    log(`  ✅ allocation 합 ${allocSum} (${port.length}종목) 정상`);
+  }
+
   log(`\n## 종합 — 결함 ${defects.length}건`);
   return { defects, total: (r.portfolio||[]).length };
 }

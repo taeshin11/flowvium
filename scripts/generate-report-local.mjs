@@ -6059,6 +6059,22 @@ async function generateViaOllama() {
     if (techFix > 0) console.log(`  [후처리] RSI/지지선 환각 보정 ${techFix}건 (COMPUTED_TECH 실제값)`);
   }
 
+  // 2026-06-05: allocation 100 정규화 — LLM 이 합 74 처럼 미달/초과로 출력(RULES "sum=100" 위반,
+  //   verify-report [8] 발견). 결정론적으로 100 에 맞춰 스케일(반올림 잔차는 최대 항목에 흡수).
+  {
+    const port = finalReport.portfolio ?? [];
+    const sum = port.reduce((s, p) => s + (Number(p.allocation) || 0), 0);
+    if (port.length > 0 && sum > 0 && Math.abs(sum - 100) > 1) {
+      const f = 100 / sum;
+      let acc = 0;
+      port.forEach((p, i) => {
+        if (i === port.length - 1) p.allocation = Math.max(0, 100 - acc);   // 마지막 항목이 잔차 흡수 → 정확히 100
+        else { p.allocation = Math.round((Number(p.allocation) || 0) * f); acc += p.allocation; }
+      });
+      console.log(`  [후처리] allocation 정규화 ${sum}% → 100% (${port.length}종목)`);
+    }
+  }
+
   // 고점 덤핑 징후 탐지 — riskNote에 경고 주입
   const { risks: peakRisksMap, macroGlobalWarning } = await detectPeakDumpRisk(finalReport.portfolio, livePrices, ctxRaw);
   if (peakRisksMap.size > 0 || macroGlobalWarning) {
