@@ -6030,20 +6030,25 @@ async function generateViaOllama() {
       const tech = technicalData.get(p.ticker) ?? technicalData.get((p.ticker ?? '').toUpperCase());
       if (!tech) continue;
       const rsiM = String(tech).match(/RSI\s*(\d+)/i);
-      const realRsi = rsiM ? parseInt(rsiM[1], 10) : null;
+      let realRsi = rsiM ? parseInt(rsiM[1], 10) : null;
+      // 2026-06-05: technicalData 가 KR 에서 깨진 신호 — KR(.KS/.KQ) 인데 $ 단위(₩여야 함, $202.92
+      //   3종목 동일 사건). 깨진 소스를 믿고 RSI 36(실제 62) 을 써넣던 것 → strip-when-uncertain:
+      //   검증 불가하면 교체 말고 *제거*(틀린 값보다 없는 값이 안전). US(정상 $)는 기존 substitute.
+      const techBroken = /\.(KS|KQ)$/.test(p.ticker ?? '') && /\$/.test(String(tech));
+      if (techBroken) realRsi = null;   // 깨진 KR 소스 → 신뢰 안 함
       const ezLow = parseNum((p.entryZone ?? '').split(/[-~]/)[0]);
       for (const f of ['technicalBasis', 'entryRationale', 'rationale']) {
         if (typeof p[f] !== 'string') continue;
         const before = p[f];
         let v = p[f];
-        if (realRsi != null) {
-          v = v.replace(/RSI\s*\d+(?:\.\d+)?%?/gi, `RSI ${realRsi}`);   // 환각 RSI 값 → 실제
-          // 과매도/과매수 단언 보정: 실제 RSI 와 모순이면 교체.
+        if (realRsi != null && !techBroken) {
+          v = v.replace(/RSI\s*\d+(?:\.\d+)?%?/gi, `RSI ${realRsi}`);   // 환각 RSI 값 → 실제(검증된 US)
           if (realRsi >= 35) v = v.replace(/RSI\s*과매도/g, `RSI ${realRsi}`).replace(/과매도/g, realRsi >= 65 ? '과매수' : '중립');
           if (realRsi <= 65) v = v.replace(/과매수/g, realRsi <= 35 ? '과매도' : '중립');
         } else {
-          // RSI 미산출인데 "과매도/과매수" 단언 = 환각 → 제거
-          v = v.replace(/[,·]?\s*RSI\s*(?:과매도|과매수)/g, '').replace(/[,·]?\s*(?:과매도|과매수)\b/g, '');
+          // 검증 불가(미산출 또는 KR 소스 깨짐) → RSI 값 + 과매도/과매수 + 깨진 $ MA 제거(strip)
+          v = v.replace(/[,·]?\s*RSI\s*\d+(?:\.\d+)?%?/gi, '').replace(/[,·]?\s*RSI\s*(?:과매도|과매수)/g, '').replace(/[,·]?\s*(?:과매도|과매수)\b/g, '');
+          if (techBroken) v = v.replace(/[,·]?\s*\d+MA[^,;·]*\$[\d,.]+\)?/g, '');
         }
         // 지지가격 환각: entryRationale 의 "N 수준 지지" 가 entryZone 과 >25% 이탈 → 제거
         if (f === 'entryRationale' && ezLow) {
