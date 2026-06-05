@@ -301,12 +301,10 @@ const RSS_FEEDS: Array<{ url: string; source: string; requireFinancial: boolean;
   // Broad market (US/global)
   { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch', requireFinancial: true, region: 'us' },
   { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com', requireFinancial: true, region: 'us' },
-  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ Markets', requireFinancial: false, region: 'us' },
+  // 2026-06-06: WSJ(feeds.a.dj.com) frozen Jan 2025·Reuters RSS fetch 실패 — 죽은 피드 3개 제거.
+  //   (RSS 건강도 audit: WSJ 11859h前, Reuters 2개 fetch fail. MarketWatch/Yahoo/SA/연합 등은 0-2h 신선.)
   { url: 'https://seekingalpha.com/market_currents.xml', source: 'Seeking Alpha', requireFinancial: false, region: 'us' },
   { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US', source: 'Yahoo Finance', requireFinancial: false, region: 'us' },
-  // Global thematic — Reuters (sector/macro/geopolitical)
-  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters Business', requireFinancial: true, region: 'us' },
-  { url: 'https://feeds.reuters.com/reuters/technologyNews', source: 'Reuters Tech', requireFinancial: true, region: 'us' },
   // Sector ETF headlines — captures semiconductor, energy, biotech moves
   { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=SOXX,SMH,NVDA,AMAT,ANET&region=US&lang=en-US', source: 'Yahoo Semis', requireFinancial: true, region: 'us' },
   { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=XLE,XOM,LNG,CVX,NEE&region=US&lang=en-US', source: 'Yahoo Energy', requireFinancial: true, region: 'us' },
@@ -737,7 +735,7 @@ export async function GET(request: Request) {
             const translated = await translateArticles(cached, locale);
             // 2026-06-02: 실제 번역 성공일 때만 캐시 (영어 오염 차단). 실패 시 캐시 미작성 → 재시도 가능.
             if (translationSucceeded(cached, translated, locale)) {
-              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
+              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 6 * 60 * 60 });
               logger.info('api.news-cascade', 'sync_translation_done', { locale, count: translated.length });
               return NextResponse.json({ articles: translated, cached: true, locale, translated: true, source: 'cached-translated-sync' }, { headers: CDN_HEADERS });
             }
@@ -754,7 +752,7 @@ export async function GET(request: Request) {
             const translated = await translateArticles(cached, locale);
             // 2026-06-02: 실제 번역 성공일 때만 캐시 (영어 오염 차단).
             if (translationSucceeded(cached, translated, locale)) {
-              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
+              await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 6 * 60 * 60 });
               logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
             } else {
               logger.warn('api.news-cascade', 'bg_translation_identity', { locale });
@@ -931,7 +929,7 @@ export async function GET(request: Request) {
   const analyzedCount = sorted.filter(a => a.cascades.length > 0).length;
   const hasGoodCoverage = sorted.length > 0 && analyzedCount >= Math.ceil(sorted.length * 0.5);
   if (redis && sorted.length > 0) {
-    const ttl = hasGoodCoverage ? 12 * 60 * 60 : 60 * 60;
+    const ttl = hasGoodCoverage ? 4 * 60 * 60 : 60 * 60; // 2026-06-06: 12h→4h 신선도 우선(WSJ 등 죽은피드 제거 + 살아있는 소스 자주 재집계)
     await loggedRedisSet(redis, 'api.news-cascade', listKey(), sorted, { ex: ttl });
   }
 
@@ -953,7 +951,7 @@ export async function GET(request: Request) {
       try {
         const translated = await translateArticles(sorted, locale);
         if (redis && translated !== sorted) {
-          await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 24 * 60 * 60 });
+          await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 6 * 60 * 60 });
           logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
         }
       } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }
