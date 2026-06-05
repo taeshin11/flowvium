@@ -33,6 +33,7 @@ const STRUCTURAL_NULLS = {
   'news_archive.link': 'company-change 행은 기사 링크 없음 (news-cascade 행은 link 100%)',
   'asset_flow_archive.return_1d': 'capital-flows 가 1w/4w/13w 제공, 1d 미제공(소스 부재)',
   'hallucination_history.details_json': 'defect_type 별 details 유무 상이(일부 defect 본문 없음)',
+  'earnings_archive.pe_ratio': 'earnings 소스(estimate)가 PE 미제공 — PE 는 company page 에서 price/EPS 라이브 산출(21/579만 소스 동반). 아카이브 미저장이 정상',
   // 2026-06-05 배선 완료(더 이상 구조적 아님 → STRUCTURAL 에서 제외):
   //   - recommendation_outcomes.quality_score: computeOutcomeQuality(alpha 기반) saveOutcome/closeOutcome 배선 + 역사 backfill(98%)
   //   - short_squeeze_archive.rationale: score+timing+risk 합성 배선 + 역사 backfill(100%)
@@ -137,10 +138,17 @@ for (const at of archiveTables) {
   if (!ts) { warn(`${at.name}: timestamp column 없음`); continue; }
   const actual = db.prepare(`SELECT COUNT(*) c FROM ${at.name} WHERE ${ts} >= datetime('now','-7 days')`).get().c;
   const ratio = at.expected > 0 ? (actual / at.expected) * 100 : 0;
+  // 2026-06-05: recency-aware — 7일 비율이 낮아도 최근 2일 적재율이 정상이면 "과거 갭 회복"(자가호스팅
+  //   전환 중 fg_archive 05-29~06-02 중단 사건). 회복했는데 7일 윈도우가 과거 갭을 끌고가 false ❌ 방지.
+  const actual2 = db.prepare(`SELECT COUNT(*) c FROM ${at.name} WHERE ${ts} >= datetime('now','-2 days')`).get().c;
+  const expected2 = at.expected * 2 / 7;
+  const recovered = expected2 > 0 && (actual2 / expected2) >= 0.6;
   if (ratio >= 80) {
     ok(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — ${at.perReport}`);
   } else if (ratio >= 30) {
     warn(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — 부분 적재`);
+  } else if (recovered) {
+    warn(`${at.name.padEnd(28)} 7일 ${ratio.toFixed(0)}% but 최근2일 ${actual2}/${expected2.toFixed(0)} 정상 — 과거 갭 회복(aging out)`);
   } else {
     err(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — 적재 거의 안 됨`);
   }
@@ -218,11 +226,34 @@ for (const r of statusDist) {
   else if (r.http_status >= 400 && r.http_status < 500) e.err4 += r.c;
   else if (r.http_status >= 500) e.err5 += r.c;
 }
+// 2026-06-05: recency-aware 판정 — 7일 윈도우는 "이미 고친 라우트"의 과거 실패를 현재 건강과
+//   뭉뚱그려 false ❌ 를 냈음(BRK.B 05-30 fix 후에도 05-29~31 실패가 윈도우에 남아 57% 실패로 표시).
+//   → 가장 최근 스냅샷이 *여전히* 실패할 때만 "죽음" 으로 err; 최근 ok 면 회복중(warn)으로 강등.
+const latestStatus = db.prepare(`
+  SELECT s.endpoint, s.http_status, s.ok, s.response_json
+  FROM endpoint_snapshots s
+  JOIN (SELECT endpoint, MAX(captured_at) mx FROM endpoint_snapshots WHERE captured_at >= datetime('now','-7 days') GROUP BY endpoint) l
+    ON s.endpoint = l.endpoint AND s.captured_at = l.mx
+`).all();
+const latestOk = new Map(); // endpoint → { httpOk, bodyOk }
+const _isTopLevelErr = (rj) => { // 라우트 레벨 에러만(<60자) — per-item nested error 제외
+  if (typeof rj !== 'string') return false;
+  const idx = rj.search(/"error":\s*["{]/);
+  return idx >= 0 && idx < 60;
+};
+for (const r of latestStatus) {
+  const httpOk = r.http_status >= 200 && r.http_status < 300;
+  const bodyOk = !_isTopLevelErr(r.response_json);
+  latestOk.set(r.endpoint, { httpOk, bodyOk });
+}
 for (const [ep, s] of epStatus) {
   if (s.total < 3) continue; // 표본 부족
   const errPct = ((s.err4 + s.err5) / s.total) * 100;
-  if (errPct >= 50) {
+  const recovered = latestOk.get(ep)?.httpOk === true; // 최근 스냅샷 ok = 회복
+  if (errPct >= 50 && !recovered) {
     err(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — 라우트 죽음 의심`);
+  } else if (errPct >= 50 && recovered) {
+    warn(`${(ep ?? '?').padEnd(40)} 7일 ${errPct.toFixed(0)}% 실패였으나 최근 스냅샷 ok — 회복(과거 실패 aging out)`);
   } else if (errPct >= 20) {
     warn(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패)`);
   }
@@ -230,17 +261,28 @@ for (const [ep, s] of epStatus) {
 
 // 200 OK 인데 응답 본문에 error 필드 — silent failure
 // 2026-05-30: "error":" 패턴으로 강화 — "errorPolicy", "warning" 같은 false positive 차단.
-const errBodies = db.prepare(`
-  SELECT endpoint, COUNT(*) c
+// 2026-06-05: (1) top-level error 만 감지 — satellite 처럼 per-signal `"error":"no_sar_data"`(idx 202,
+//   배열 안 한 공장 데이터 미수신)는 라우트 silent failure 아님. 라우트 에러는 응답 앞부분(<60자)에 옴.
+//   (2) recency-aware — 최근 스냅샷이 정상이면 회복(warn).
+const errCandidates = db.prepare(`
+  SELECT endpoint, response_json
   FROM endpoint_snapshots
   WHERE captured_at >= datetime('now','-7 days')
     AND http_status = 200
     AND (response_json LIKE '%"error":"%' OR response_json LIKE '%"error":{%')
-  GROUP BY endpoint
-  HAVING c >= 2
 `).all();
-for (const r of errBodies) {
-  err(`${(r.endpoint ?? '?').padEnd(40)} 200 OK 인데 body 에 "error" 필드 ${r.c} 회 (silent failure)`);
+const topLevelErrCount = new Map(); // endpoint → top-level error 횟수
+for (const r of errCandidates) {
+  if (_isTopLevelErr(r.response_json)) topLevelErrCount.set(r.endpoint, (topLevelErrCount.get(r.endpoint) ?? 0) + 1);
+}
+for (const [ep, c] of topLevelErrCount) {
+  if (c < 2) continue;
+  const recovered = latestOk.get(ep)?.bodyOk === true; // 최근 스냅샷 body 정상 = 회복
+  if (recovered) {
+    warn(`${(ep ?? '?').padEnd(40)} 과거 top-level "error" ${c}회였으나 최근 스냅샷 정상 — 회복`);
+  } else {
+    err(`${(ep ?? '?').padEnd(40)} 200 OK 인데 top-level "error" ${c} 회 (silent failure)`);
+  }
 }
 
 // ═══════ Probe 3c: portfolio ticker ↔ snapshot 정합성 ═══════

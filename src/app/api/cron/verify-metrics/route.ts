@@ -1741,6 +1741,27 @@ async function verifySatellite(base: string): Promise<MetricItem[]> {
   return items;
 }
 
+// 2026-06-05: narratives probe — check-static-fallbacks 규칙(@/data import → source 필드 + verify probe).
+//   source='live'(시세 수신) vs 'static'(전부 실패, 정의만) 감지. liveCount/총 테마 비율도 본다.
+async function verifyNarratives(base: string): Promise<MetricItem[]> {
+  const r = await safeJson(base, '/api/narratives', 8000);
+  if (!r.ok) {
+    return [{ key: 'narratives.source', label: '내러티브 intensity API', group: 'narratives', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
+  }
+  const d = r.data as { source?: string; liveCount?: number; intensities?: unknown[] };
+  const source = d.source ?? 'unknown';
+  const total = Array.isArray(d.intensities) ? d.intensities.length : 0;
+  const live = typeof d.liveCount === 'number' ? d.liveCount : 0;
+  // source='static' = 전 테마 시세 수신 실패(정적 정의만) → error. live 인데 일부 테마 누락이면 degraded.
+  const status: MetricItem['status'] =
+    source !== 'live' ? 'error' :
+    (total > 0 && live < total) ? 'degraded' : 'ok';
+  return [{
+    key: 'narratives.source', label: '내러티브 intensity 라이브', group: 'narratives',
+    status, value: `${live}/${total} 테마 라이브`, source,
+  }];
+}
+
 // ── 메인 핸들러 ──────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -1750,7 +1771,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
-  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, iv, comm, strategy, missing, osint, satellite] = await Promise.all([
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, iv, comm, strategy, missing, osint, satellite, narratives] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -1776,9 +1797,10 @@ export async function GET(req: Request) {
     verifyMissingEndpoints(base).catch((e): MetricItem[] => [{ key: 'missing.ERR', label: 'Missing endpoints verify throw', group: 'brief', status: 'error', lastError: String(e) }]),
     verifyOsint(base).catch((e): MetricItem[] => [{ key: 'osint.ERR', label: 'OSINT verify throw', group: 'osint', status: 'error', lastError: String(e) }]),
     verifySatellite(base).catch((e): MetricItem[] => [{ key: 'satellite.ERR', label: 'Satellite verify throw', group: 'satellite', status: 'error', lastError: String(e) }]),
+    verifyNarratives(base).catch((e): MetricItem[] => [{ key: 'narratives.ERR', label: 'Narratives verify throw', group: 'narratives', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...iv, ...comm, ...strategy, ...missing, ...osint, ...satellite];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...iv, ...comm, ...strategy, ...missing, ...osint, ...satellite, ...narratives];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

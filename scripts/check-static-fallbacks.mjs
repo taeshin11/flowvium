@@ -37,6 +37,7 @@ const ALLOWED = new Set([
   'src/app/api/cron/log-cascade-events/route.ts', // cascadePatterns (관계 구조 설정)
   'src/lib/daily-brief.ts',                     // newsGapData → AI prompt 재료 (사용자 직접 노출 아님)
   'src/lib/news-gap-service.ts',                // source: 'static' 명시, getNewsGapData() 투명 처리
+  'src/lib/ishares-holdings.ts',                // UNIVERSE_SEARCH 는 ticker/name/sector(구조 메타)만 사용 — marketValue/weight/price 는 Naver 라이브 quote(없으면 skip), 정적 시세 폴백 아님 (2026-06-05 검증)
 ]);
 
 // type-only import 패턴 (문제 아님)
