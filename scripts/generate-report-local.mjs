@@ -3665,14 +3665,19 @@ function getRecentQualityFeedback() {
 function getPortfolioFeedback() {
   try {
     const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
-    // 최근 30일 buy 추천 중 outcome 측정된 entry
+    // 2026-06-05: 종목 dedupe — 같은 종목이 하루 5세션 추천돼 raw 행으로 승률 내면 5.2x 중복(POSCO 19회)
+    //   → "80% 승률"(실제 dedupe 59%) 허수를 LLM 에 주입하던 결함. ticker 별 최신 outcome 1개로 집계.
     const rows = db.prepare(`
-      SELECT r.ticker, o.outcome, o.pnl_pct
-      FROM recommendation_outcomes o
-      JOIN recommendations r ON r.id = o.recommendation_id
-      WHERE r.action = 'buy'
-        AND r.generated_at >= date('now', '-30 days')
-      ORDER BY o.evaluated_at DESC LIMIT 30
+      WITH ranked AS (
+        SELECT r.ticker, o.outcome, o.pnl_pct, o.evaluated_at,
+          ROW_NUMBER() OVER (PARTITION BY r.ticker ORDER BY o.evaluated_at DESC) rn
+        FROM recommendation_outcomes o
+        JOIN recommendations r ON r.id = o.recommendation_id
+        WHERE r.action = 'buy'
+          AND r.generated_at >= date('now', '-30 days')
+      )
+      SELECT ticker, outcome, pnl_pct FROM ranked WHERE rn = 1
+      ORDER BY evaluated_at DESC LIMIT 30
     `).all();
     // 만성 NE/stop ticker
     const chronicNE = db.prepare(`
