@@ -36,9 +36,9 @@
 
 - 데스크톱·모바일 반응형 메뉴
 - **글로벌 검색 오버레이** (단축키: `Cmd/Ctrl+K`)
-  - 전체 모니터링 유니버스 **1,210 종목** 실시간 자동완성 (회사명·티커·섹터·i18n명) — `UNIVERSE_SEARCH` (2026-06-03: allCompanies 637 → 1210 확장)
+  - 전체 모니터링 유니버스 **1,338 종목** 실시간 자동완성 (회사명·티커·섹터·i18n명) — `UNIVERSE_SEARCH` (2026-06-03: allCompanies 637 → 1338 확장)
   - 키보드 네비게이션 (↑↓, Enter) → `/company/[ticker]`
-- 종목 카운트 라벨: `UNIVERSE_COUNT`(1,210) — 정적 프로필 수(637)가 아닌 실제 모니터링 풀 표시
+- 종목 카운트 라벨: `UNIVERSE_COUNT`(1,338) — 정적 프로필 수(637)가 아닌 실제 모니터링 풀 표시
 - 다국어 언어 전환 (16개 언어)
 
 | 메뉴 레이블 | 경로 |
@@ -64,7 +64,7 @@
 **파일**: `src/components/pages/HomePage.tsx`
 
 ### 2-1. Hero + 검색
-- 회사 검색 인풋 (`HeroSearch`) — 전체 유니버스 **1,210 종목** (`UNIVERSE_SEARCH`), 라벨 "기업 직접 검색 — 1,210개 기업"
+- 회사 검색 인풋 (`HeroSearch`) — 전체 유니버스 **1,338 종목** (`UNIVERSE_SEARCH`), 라벨 "기업 직접 검색 — 1,338개 기업"
 - 자동완성 드롭다운 (회사명·티커·섹터·i18n명) → `/company/[ticker]`
 - 빠른 이동 버튼: AI 리포트 / 인텔리전스 / 히트맵 / 위성 추적 (가상계좌 제거됨 — 2026-05-08)
 
@@ -741,7 +741,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 보고서 stance/sectorAllocation/regionStances 에 grounded 한 ETF 추천 (환각 없음)
 - 카테고리(8): broad(코어) / sector(11 GICS+반도체) / **thematic(반도체·AI·청정에너지·바이오·우라늄·방위 등)** / **style(가치·성장·모멘텀·퀄리티·최소변동)** / **dividend(배당성장·귀족)** / region(강세지역 ≤5) / commodity(금·은·원유·종합) / bond(장단기·종합·회사채·물가연동)
 - 티커 클릭 → `/company/[ticker]`, 라이브 가격·등락% (livePrices/batch-prices)
-- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). **ETF 풀 62종**(2026-06-05 30→62 확장, 테마/스타일/배당 신설). stance/sectorAllocation/regionStances grounded 선택, 보고서당 ~18개 노출(8 카테고리)
+- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). **ETF 풀 61종**(2026-06-05 30→62 확장, 테마/스타일/배당 신설). stance/sectorAllocation/regionStances grounded 선택, 보고서당 ~18개 노출(8 카테고리)
 
 ### 13-4b. 위기 포착 (S4b: Crisis Alerts)
 - 🚨 패널: 내부자 매도 집중 / BB 4d4σ 극단 과매수 / 어닝스 미스 / 기관 이탈 / 가이던스 하향 / 매크로 리스크

@@ -675,7 +675,7 @@
 <!-- 12-T1~T4: 포트폴리오 트랙 레코드 hero card 제거 (2026-05-30, 사용자 요청). 데이터는 portfolioOutcomes 로 보고서 JSON 에 보존 — UI 만 제거. -->
 
 | 12-A1 | 섹터 배분 (비중확대/중립/비중축소) | 💾 cached | AI 생성 |
-| 12-A2 | ETF 전략 (broad/sector/thematic/style/dividend/region/commodity/bond, 가격) | ✅ live | `buildEtfStrategy` grounded(stance/sector/region) + batch-prices. 풀 62 ETF, 보고서당 ~18개·8카테고리 (2026-06-05 30→62 확장, 테마/스타일/배당 신설) |
+| 12-A2 | ETF 전략 (broad/sector/thematic/style/dividend/region/commodity/bond, 가격) | ✅ live | `buildEtfStrategy` grounded(stance/sector/region) + batch-prices. 풀 61 ETF, 보고서당 ~18개·8카테고리 (2026-06-05 30→62 확장, 테마/스타일/배당 신설) |
 | 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
 | 12-K1 | KPI: F&G (US) | 💾 cached | `/api/fear-greed` (CNN 4h) |
 | 12-K2 | KPI: SPY 1w 수익률 + sparkline | 💾 cached | `/api/capital-flows` |

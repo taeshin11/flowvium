@@ -429,6 +429,24 @@ async function main() {
     } catch (e) { info.push(`[N] 커버리지 점검 불가: ${String(e.message || e).slice(0, 60)}`); }
   }
 
+  // [O] 문서-코드 동기화 (2026-06-05) — 모니터가 런타임 데이터만 보고 *문서가 코드와 일치하는지* 는
+  //   안 보던 메타-사각지대(FEATURES "ETF 193"/실제 30, "1,210 종목"/실제 1338). check-doc-sync 스폰.
+  {
+    try {
+      const { execSync } = await import('child_process');
+      const { fileURLToPath } = await import('url');
+      const script = fileURLToPath(new URL('./check-doc-sync.mjs', import.meta.url));
+      try {
+        execSync(`node "${script}"`, { stdio: 'pipe' });
+        info.push('[O] 문서-코드 동기화 OK (UNIVERSE_COUNT/ETF/언어 일치)');
+      } catch (e) {
+        const out = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
+        const bad = out.split('\n').filter(l => l.includes('🚨')).map(l => l.replace(/.*🚨\s*/, '').trim());
+        issues.push(`[O] 문서-코드 불일치: ${bad.join(' | ') || '상세는 check-doc-sync 실행'}`);
+      }
+    } catch (e) { info.push(`[O] doc-sync 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
+  }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);

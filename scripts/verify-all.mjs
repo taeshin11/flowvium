@@ -90,6 +90,15 @@ const checks = [
     dimensions: ['정적 데이터 폴백 (실시간 위장 차단)'],
   },
   {
+    // 2026-06-05: 문서(FEATURES/METRICS) vs 코드 상수 불일치 — "ETF 풀 193"(실제 30)·"1,210 종목"
+    //   (실제 1338) 처럼 거짓 주장을 모니터가 못 잡던 메타-사각지대 → 권위 상수 대조.
+    name: 'check-doc-sync',
+    script: 'scripts/check-doc-sync.mjs',
+    desc: '문서-코드 상수 동기화 (거짓 주장 차단)',
+    critical: false,
+    dimensions: ['FEATURES/METRICS 수치 주장 ↔ 코드 상수(UNIVERSE_COUNT/ETF/언어)'],
+  },
+  {
     name: 'check-cron-cost',
     script: 'scripts/check-cron-cost.mjs',
     desc: 'Vercel cron 비용 폭증',

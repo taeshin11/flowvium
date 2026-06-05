@@ -36,7 +36,8 @@
     "review:logs": "node scripts/review-logs.mjs",
     "review:redis": "node scripts/review-logs.mjs --redis",
     "scan:satellite": "node scripts/satellite-factory-scan.mjs",
-    "scan:satellite:dry": "node scripts/satellite-factory-scan.mjs --dry-run"
+    "scan:satellite:dry": "node scripts/satellite-factory-scan.mjs --dry-run",
+    "verify:docsync": "node scripts/check-doc-sync.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.1",
