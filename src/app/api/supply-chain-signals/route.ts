@@ -87,12 +87,36 @@ export interface SupplyChainSignal {
   signalType: 'contract_win' | 'contract_loss' | 'order_momentum' | 'supply_expansion' | 'supply_risk' | 'partnership';
   conviction: number;       // 0-100
   direction: 'positive' | 'negative' | 'neutral';
-  headline: string;
+  headline: string;          // 원문 공시 제목 (증빙용)
+  summary?: string;          // 평이한 한 줄 설명 (사용자 가독 — 2026-06-06)
   source: 'sec-8k' | 'dart' | 'cascade-update' | 'cascade-inference' | 'satellite';
   date: string;
   downstreamBeneficiaries?: string[];   // 공급망 그래프에서 추론한 downstream 수혜 티커
   upstreamRisks?: string[];            // upstream 리스크 티커
   evidenceUrl?: string;
+}
+
+// ── DART 공시 제목 분류 (2026-06-06) ──────────────────────────────────────────
+//   reportNm 원문 → {공급망 관련성, 평이 설명, 신호강도별 신뢰도, 방향}. 무관 공시는 null(제외).
+//   사용자 피드백: "[기재정정]주요사항보고서(자기주식취득신탁계약...)" 같은 게 떠서 무슨 내용인지 모름 +
+//   신뢰도 죄다 70. → 자사주/증자/합병 등 노이즈 제외 + 평문 + 차등 conviction.
+function classifyDartFiling(reportNm: string): { summary: string; conviction: number; signalType: 'contract_win' | 'contract_loss' } | null {
+  const nm = reportNm.replace(/^\[[^\]]*\]/, '').replace(/^주요사항보고서\s*\(/, '').replace(/\)\s*$/, '').trim();
+  // 1) 공급망 무관 노이즈 — "계약" 등 키워드가 있어도 제외 (자사주 신탁계약, 자본거래, 지배구조 등)
+  if (/자기주식|자사주|신탁계약|합병|분할|유상증자|무상증자|감자|전환사채|신주인수권|교환사채|차입|대출|배당|주주총회|임원|등기이사|스톡옵션|회사채|영업정지|소송|횡령|배임|관리종목|상장폐지/.test(nm)) return null;
+  // 2) 단일판매·공급계약 — 가장 강한 공급망 신호(매출 직결)
+  if (/단일판매.{0,3}공급계약|공급계약|납품계약|장기공급|수주/.test(nm)) {
+    const loss = /해지|해제|취소|중단|파기/.test(nm);
+    return loss
+      ? { summary: '공급/수주 계약 해지·취소 — 매출 감소 신호', conviction: 74, signalType: 'contract_loss' }
+      : { summary: '신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜)', conviction: 82, signalType: 'contract_win' };
+  }
+  // 3) 합작/JV — 장기 협력(중간 신뢰도)
+  if (/합작|조인트벤처|합작법인|JV/.test(nm)) return { summary: '합작법인·JV 설립 — 장기 협력 시작', conviction: 72, signalType: 'contract_win' };
+  // 4) MOU/업무협약 — 구속력 낮은 초기 신호
+  if (/MOU|LOI|업무협약|상호협력|전략적\s*제휴|파트너십/.test(nm)) return { summary: '업무협약·MOU — 초기 협력 단계(구속력 낮음)', conviction: 58, signalType: 'contract_win' };
+  // 5) 그 외 — 공급망 신호로 보지 않음
+  return null;
 }
 
 // ── SEC EDGAR 8-K Atom 피드 파싱 ──────────────────────────────────────────────
@@ -246,7 +270,11 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
       const reportNm = item.report_nm ?? '';
       const corpName = (item.corp_name ?? '').toLowerCase();
 
-      if (!/계약|수주|공급|협약|협력|MOU|LOI|합작/i.test(reportNm)) continue;
+      // 2026-06-06: DART 공시 분류 — 종전 `/계약|수주.../` loose 필터가 "자기주식취득신탁계약"(자사주
+      //   매입, 공급망 무관)을 "계약" 으로 오매칭 + headline 원문만 표시(가독성 0) + conviction 75 하드코딩.
+      //   → classifyDartFiling 로 노이즈 제외 + 평이 설명 + 신호강도별 차등 신뢰도.
+      const cls = classifyDartFiling(reportNm);
+      if (!cls) continue;  // 공급망 무관(자기주식/신탁/증자/합병/배당 등) 또는 약신호 미달 → 제외
       contractCount++;
 
       // 2026-06-02: stock_code(6자리) 1순위 → KR 475 전부 매칭. 이름 substring 2순위. US 맵 fallback.
@@ -258,12 +286,12 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
       }
       watchlistHits++;
 
-      const signalType: SupplyChainSignal['signalType'] = /해제|취소|손실/i.test(reportNm) ? 'contract_loss' : 'contract_win';
+      const signalType = cls.signalType;
       const downstream = inferDownstream(ticker, signalType);
       logger.info('supply-chain-signals', 'dart_signal_found', {
         ticker, signalType, corp: item.corp_name,
         downstream: downstream.beneficiaries.join(','),
-        reportNm: reportNm.slice(0, 80),
+        reportNm: reportNm.slice(0, 80), summary: cls.summary, conviction: cls.conviction,
         date: item.rcept_dt,
       });
 
@@ -271,9 +299,10 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
         ticker,
         companyName: item.corp_name ?? '',
         signalType,
-        conviction: 75,
+        conviction: cls.conviction,
         direction: signalType === 'contract_loss' ? 'negative' : 'positive',
         headline: reportNm,
+        summary: cls.summary,
         source: 'dart',
         date: item.rcept_dt ?? '',
         downstreamBeneficiaries: downstream.beneficiaries,

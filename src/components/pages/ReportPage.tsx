@@ -1188,7 +1188,15 @@ export default function ReportPage() {
                         {s.date && <span className="text-[10px] opacity-60 font-mono">{fmtSignalDate(s.date)}</span>}
                         <span className="text-[10px] opacity-60">신뢰도 {s.conviction}</span>
                       </div>
-                      <p className="text-[11px] leading-relaxed">{s.headline}</p>
+                      {/* 2026-06-06: 평이 설명 우선, 원문 공시제목은 작게(증빙) */}
+                      {(s as { summary?: string }).summary ? (
+                        <>
+                          <p className="text-[11px] leading-relaxed font-medium">{(s as { summary?: string }).summary}</p>
+                          <p className="text-[10px] leading-relaxed opacity-50 mt-0.5">📄 {s.headline}</p>
+                        </>
+                      ) : (
+                        <p className="text-[11px] leading-relaxed">{s.headline}</p>
+                      )}
                       {s.downstreamBeneficiaries?.length ? (
                         <p className="text-[10px] mt-1 opacity-70">
                           ↘ 수혜: {s.downstreamBeneficiaries.join(', ')}
