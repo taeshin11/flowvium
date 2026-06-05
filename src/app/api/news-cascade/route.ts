@@ -191,6 +191,9 @@ async function translateArticles(
   }));
 
   const prompt = `Translate the following financial news fields to ${langName}.
+⚠️ Source titles may already be in English, Japanese(日本語), Chinese(中文), or Korean(한국어) —
+translate EVERY field to ${langName} REGARDLESS of its source language. Do NOT leave any
+Japanese/Chinese/Korean text untranslated; the output MUST be 100% ${langName}.
 Keep ticker symbols (NVDA, AAPL, CRM, etc.), asset names (S&P500, Bonds), and numbers/percentages unchanged.
 Tone: professional financial analyst.
 Return STRICT JSON array — same length, same order, same shape:
@@ -222,18 +225,23 @@ Output (JSON array only):`;
     const translated = JSON.parse(jsonMatch[0]) as Array<{
       i: number; title: string; summary: string; reasons?: Array<{ j: number; r: string }>;
     }>;
-    // 2026-05-30: 응답 검증 — AI 가 영어 prompt 받고 영어 그대로 답하는 케이스 detect.
-    //   샘플 title 이 원문과 같으면 (locale 이 en 이 아닌데도) 번역 실패로 간주.
-    const sampleOrig = articles[0]?.title ?? '';
-    const sampleTranslated = translated.find(t => t.i === 0)?.title ?? '';
-    if (locale !== 'en' && sampleOrig && sampleTranslated && sampleOrig.trim() === sampleTranslated.trim()) {
-      logger.warn('news-cascade.translate', 'identity_translation', {
-        locale, source: r.source, sample: sampleTranslated.slice(0, 60),
-      });
-      // 영어 그대로 → 번역 실패. timeframe 만 localize 후 반환.
+    const byIdx = new Map(translated.map(t => [t.i, t]));
+    // 응답 검증 — AI 가 번역 안 하고 원문 그대로 답하는 케이스 detect.
+    //   2026-06-05 fix: 이전엔 article[0] identity 만 봐서, KR/JP 네이티브 소스 기사가 [0]이면
+    //   (예: 한국어→한국어=identity) 전체 번역을 false-positive 로 abort → EN/타CJK 기사도 미번역
+    //   (multi-country 피드 추가 후 [B] 회귀). 이제 *원문이 target 언어가 아닌* 기사(번역 필요분)
+    //   중 하나라도 실제로 바뀌었는지로 판정 — 네이티브 identity 에 속지 않음.
+    const tgtRe = CJK_RE[locale];
+    const needTr = articles.map((a, i) => ({ a, i })).filter(({ a }) => !tgtRe || !tgtRe.test(a.title));
+    const anyTr = needTr.some(({ a, i }) => {
+      const tt = byIdx.get(i)?.title?.trim();
+      return tt && tt !== a.title.trim();
+    });
+    if (locale !== 'en' && needTr.length > 0 && !anyTr) {
+      logger.warn('news-cascade.translate', 'identity_translation', { locale, source: r.source });
+      // 번역 필요 기사가 하나도 안 바뀜 → 진짜 실패. timeframe 만 localize 후 반환.
       return articles.map(a => localizeTimeframesOnly(a, locale));
     }
-    const byIdx = new Map(translated.map(t => [t.i, t]));
     return articles.map((a, i) => {
       const t = byIdx.get(i);
       const cascades = a.cascades.map((c, j) => {
@@ -840,10 +848,16 @@ export async function GET(request: Request) {
       picked.add(a.link);
     }
   }
-  // 2) 남은 슬롯은 전체 최신순으로 채움 (us 포함, 쿼터 초과분도 경합)
+  // 2) 남은 슬롯은 전체 최신순으로 채움 (us 포함). 단 jp/cn 은 쿼터 초과분 제외 —
+  //    2026-06-05: 8B(Ollama)가 일본어/중국어 → ko·타locale 번역을 못 해 미번역 노출([B] 회귀).
+  //    jp/cn 은 쿼터(1)로 묶어 미번역 위험 ≤2 로 제한(us 번역 OK, kr 은 ko-view 네이티브 OK).
+  const regionCount: Record<NewsRegion, number> = { us: 0, kr: 0, jp: 0, cn: 0 };
+  for (const a of deduped) regionCount[a.region]++;
   for (const a of uniqueByRecency) {
     if (deduped.length >= TOTAL_CAP) break;
-    if (!picked.has(a.link)) { deduped.push(a); picked.add(a.link); }
+    if (picked.has(a.link)) continue;
+    if ((a.region === 'jp' || a.region === 'cn') && regionCount[a.region] >= QUOTA[a.region]) continue;
+    deduped.push(a); picked.add(a.link); regionCount[a.region]++;
   }
   // 최종 recency 재정렬 (쿼터로 앞당겨진 항목 포함 시간순 정돈)
   deduped.sort((a, b) => {
