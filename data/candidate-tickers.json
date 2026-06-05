@@ -1677,27 +1677,27 @@
     },
     "BA": {
       "name": "Airbus",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "RTX": {
       "name": "Delta / United / American Airlines",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "LMT": {
       "name": "Air carriers (aftermarket MRO)",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "NOC": {
       "name": "L3Harris",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "LHX": {
       "name": "Electric Actuator Systems (eActuation)",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "ALLE": {
@@ -3697,12 +3697,12 @@
     },
     "ORCL": {
       "name": "Gaming",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large"
     },
     "TSLA": {
       "name": "OEM & Other",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large"
     },
     "TSM": {
@@ -7855,7 +7855,7 @@
     },
     "AMP": {
       "name": "Ameriprise Financial",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -7867,43 +7867,43 @@
     },
     "APO": {
       "name": "Apollo Global Management",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "APTV": {
       "name": "Aptiv",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "ACGL": {
       "name": "Arch Capital Group",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "ADM": {
       "name": "Archer Daniels Midland",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "ARES": {
       "name": "Ares Management",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "AJG": {
       "name": "Arthur J. Gallagher &amp; Co.",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "AIZ": {
       "name": "Assurant",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -7915,73 +7915,73 @@
     },
     "BAX": {
       "name": "Baxter International",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "BX": {
       "name": "Blackstone Inc.",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "BNY": {
       "name": "BNY Mellon",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "BR": {
       "name": "Broadridge Financial Solutions",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large",
       "sp500": true
     },
     "BRO": {
       "name": "Brown &amp; Brown",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "BF-B": {
       "name": "Brown–Forman",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "BLDR": {
       "name": "Builders FirstSource",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "BG": {
       "name": "Bunge Global",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "CPB": {
       "name": "Campbell's Company (The)",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "CVNA": {
       "name": "Carvana",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "CASY": {
       "name": "Casey's",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "CBRE": {
       "name": "CBRE Group",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -7993,7 +7993,7 @@
     },
     "CRL": {
       "name": "Charles River Laboratories",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
@@ -8005,25 +8005,25 @@
     },
     "CINF": {
       "name": "Cincinnati Financial",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "CFG": {
       "name": "Citizens Financial Group",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "FIX": {
       "name": "Comfort Systems USA",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "CAG": {
       "name": "Conagra Brands",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
@@ -8041,19 +8041,19 @@
     },
     "CPAY": {
       "name": "Corpay",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large",
       "sp500": true
     },
     "CTVA": {
       "name": "Corteva",
-      "sector": "Unknown",
+      "sector": "materials",
       "cap": "large",
       "sp500": true
     },
     "CSGP": {
       "name": "CoStar Group",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8065,13 +8065,13 @@
     },
     "CMI": {
       "name": "Cummins",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "DVA": {
       "name": "DaVita",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
@@ -8089,7 +8089,7 @@
     },
     "EME": {
       "name": "Emcor",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8101,37 +8101,37 @@
     },
     "EFX": {
       "name": "Equifax",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "ERIE": {
       "name": "Erie Indemnity",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "EXE": {
       "name": "Expand Energy",
-      "sector": "Unknown",
+      "sector": "energy",
       "cap": "large",
       "sp500": true
     },
     "EXPE": {
       "name": "Expedia Group",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "EXPD": {
       "name": "Expeditors International",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "EXR": {
       "name": "Extra Space Storage",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8143,7 +8143,7 @@
     },
     "FDS": {
       "name": "FactSet",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8155,19 +8155,19 @@
     },
     "FRT": {
       "name": "Federal Realty Investment Trust",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
     "FIS": {
       "name": "Fidelity National Information Services",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large",
       "sp500": true
     },
     "FITB": {
       "name": "Fifth Third Bancorp",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8179,19 +8179,19 @@
     },
     "GEHC": {
       "name": "GE HealthCare",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "GEV": {
       "name": "GE Vernova",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "GL": {
       "name": "Globe Life",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8203,43 +8203,43 @@
     },
     "HAS": {
       "name": "Hasbro",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "DOC": {
       "name": "Healthpeak Properties",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
     "HRL": {
       "name": "Hormel Foods",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "HBAN": {
       "name": "Huntington Bancshares",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "IEX": {
       "name": "IDEX Corporation",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "IBKR": {
       "name": "Interactive Brokers",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "IRM": {
       "name": "Iron Mountain",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8251,49 +8251,49 @@
     },
     "JKHY": {
       "name": "Jack Henry &amp; Associates",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large",
       "sp500": true
     },
     "J": {
       "name": "Jacobs Solutions",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "JCI": {
       "name": "Johnson Controls",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "KVUE": {
       "name": "Kenvue",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "KEY": {
       "name": "KeyCorp",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "KKR": {
       "name": "KKR &amp; Co.",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "LH": {
       "name": "Labcorp",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "L": {
       "name": "Loews Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8305,31 +8305,31 @@
     },
     "LYB": {
       "name": "LyondellBasell",
-      "sector": "Unknown",
+      "sector": "materials",
       "cap": "large",
       "sp500": true
     },
     "MTB": {
       "name": "M&amp;T Bank",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "MRSH": {
       "name": "Marsh McLennan",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "MAS": {
       "name": "Masco",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "MKC": {
       "name": "McCormick &amp; Company",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
@@ -8341,7 +8341,7 @@
     },
     "MCO": {
       "name": "Moody's Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8359,19 +8359,19 @@
     },
     "NWSA": {
       "name": "NWSA",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "NWS": {
       "name": "NWS",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "NTRS": {
       "name": "Northern Trust",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8389,13 +8389,13 @@
     },
     "PSKY": {
       "name": "Paramount Skydance Corporation",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "PNR": {
       "name": "Pentair",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8407,13 +8407,13 @@
     },
     "PFG": {
       "name": "Principal Financial Group",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "PGR": {
       "name": "Progressive Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8425,7 +8425,7 @@
     },
     "DGX": {
       "name": "Quest Diagnostics",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
@@ -8437,25 +8437,25 @@
     },
     "RL": {
       "name": "Ralph Lauren Corporation",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "RF": {
       "name": "Regions Financial Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "RVTY": {
       "name": "Revvity",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "ROL": {
       "name": "Rollins, Inc.",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
@@ -8473,7 +8473,7 @@
     },
     "SBAC": {
       "name": "SBA Communications",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8491,31 +8491,31 @@
     },
     "STT": {
       "name": "State Street Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "STE": {
       "name": "Steris",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "SYF": {
       "name": "Synchrony Financial",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "TROW": {
       "name": "T. Rowe Price",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "TPR": {
       "name": "Tapestry, Inc.",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
@@ -8527,19 +8527,19 @@
     },
     "TPL": {
       "name": "Texas Pacific Land Corporation",
-      "sector": "Unknown",
+      "sector": "energy",
       "cap": "large",
       "sp500": true
     },
     "TKO": {
       "name": "TKO Group Holdings",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "TSCO": {
       "name": "Tractor Supply",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
@@ -8551,19 +8551,19 @@
     },
     "URI": {
       "name": "United Rentals",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "UHS": {
       "name": "Universal Health Services",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "VLTO": {
       "name": "Veralto",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8575,7 +8575,7 @@
     },
     "VRT": {
       "name": "Vertiv",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8587,37 +8587,37 @@
     },
     "WRB": {
       "name": "W. R. Berkley Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "GWW": {
       "name": "W. W. Grainger",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "WAB": {
       "name": "Wabtec",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "WY": {
       "name": "Weyerhaeuser",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
     "WSM": {
       "name": "Williams-Sonoma, Inc.",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "WTW": {
       "name": "Willis Towers Watson",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8629,13 +8629,13 @@
     },
     "XYL": {
       "name": "Xylem Inc.",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "ZBH": {
       "name": "Zimmer Biomet",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     }
