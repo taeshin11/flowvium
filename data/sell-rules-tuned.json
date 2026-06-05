@@ -3,14 +3,17 @@
   "source": "initial-seed-with-guru-tech-fund",
   "tunedAt": "2026-05-29T00:00:00.000Z",
   "sampleSize": 0,
-  "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합.",
+  "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합. | 2026-06-06: micro_insider_selling 추가(매수·매도 대칭).",
   "rules": [
     {
       "id": "price_stop_breach",
       "score": 10,
       "urgency": "high",
       "category": "price",
-      "condition": { "type": "stopBreach", "ratio_lt": 1.0 },
+      "condition": {
+        "type": "stopBreach",
+        "ratio_lt": 1
+      },
       "description": "price < stop_loss"
     },
     {
@@ -18,7 +21,9 @@
       "score": 9,
       "urgency": "high",
       "category": "technical",
-      "condition": { "type": "deadCross" },
+      "condition": {
+        "type": "deadCross"
+      },
       "description": "50MA < 200MA (golden→dead cross — 장기 추세 전환)"
     },
     {
@@ -26,7 +31,9 @@
       "score": 9,
       "urgency": "high",
       "category": "technical",
-      "condition": { "type": "ma200Breach" },
+      "condition": {
+        "type": "ma200Breach"
+      },
       "description": "price < 200MA (장기 지지선 하향 돌파)"
     },
     {
@@ -34,7 +41,10 @@
       "score": 8,
       "urgency": "high",
       "category": "price",
-      "condition": { "type": "stopProximity", "ratio_lte": 1.05 },
+      "condition": {
+        "type": "stopProximity",
+        "ratio_lte": 1.05
+      },
       "description": "price / stop ≤ 1.05 (손절 임박)"
     },
     {
@@ -42,7 +52,10 @@
       "score": 7,
       "urgency": "medium",
       "category": "technical",
-      "condition": { "type": "rsiOverbought", "rsi_gte": 75 },
+      "condition": {
+        "type": "rsiOverbought",
+        "rsi_gte": 75
+      },
       "description": "RSI ≥ 75 (과매수 익절 zone — Druckenmiller momentum exhaust)"
     },
     {
@@ -50,7 +63,10 @@
       "score": 7,
       "urgency": "medium",
       "category": "price",
-      "condition": { "type": "targetProximity", "ratio_gte": 0.9 },
+      "condition": {
+        "type": "targetProximity",
+        "ratio_gte": 0.9
+      },
       "description": "price / target ≥ 0.9 (목표 90%+ 도달)"
     },
     {
@@ -58,7 +74,10 @@
       "score": 7,
       "urgency": "medium",
       "category": "fundamental",
-      "condition": { "type": "opMarginDecline", "decline_pp_gte": 2 },
+      "condition": {
+        "type": "opMarginDecline",
+        "decline_pp_gte": 2
+      },
       "description": "operating margin YoY -2%p+ (수익성 악화 — Buffett moat 약화)"
     },
     {
@@ -66,7 +85,10 @@
       "score": 6,
       "urgency": "medium",
       "category": "guru",
-      "condition": { "type": "lynchPeg", "peg_gte": 2.0 },
+      "condition": {
+        "type": "lynchPeg",
+        "peg_gte": 2
+      },
       "description": "Lynch PEG ≥ 2 (성장 대비 고평가 — 익절)"
     },
     {
@@ -74,7 +96,11 @@
       "score": 6,
       "urgency": "medium",
       "category": "rotation",
-      "condition": { "type": "heldWithPnl", "min_days": 14, "pnl_gte": 10 },
+      "condition": {
+        "type": "heldWithPnl",
+        "min_days": 14,
+        "pnl_gte": 10
+      },
       "description": "held ≥ 14d AND pnl ≥ +10% (Druckenmiller 익절 회전)"
     },
     {
@@ -82,7 +108,10 @@
       "score": 5,
       "urgency": "low",
       "category": "fundamental",
-      "condition": { "type": "peVsSector", "premium_pct_gte": 30 },
+      "condition": {
+        "type": "peVsSector",
+        "premium_pct_gte": 30
+      },
       "description": "P/E sector 평균 대비 +30% (Klarman margin of safety 소실)"
     },
     {
@@ -90,7 +119,11 @@
       "score": 5,
       "urgency": "low",
       "category": "rotation",
-      "condition": { "type": "heldWithPnl", "min_days": 14, "pnl_lte": -5 },
+      "condition": {
+        "type": "heldWithPnl",
+        "min_days": 14,
+        "pnl_lte": -5
+      },
       "description": "held ≥ 14d AND pnl ≤ -5% (손절 회전)"
     },
     {
@@ -98,7 +131,11 @@
       "score": 4,
       "urgency": "low",
       "category": "technical",
-      "condition": { "type": "volumeDrop", "vol_pct_lte": -30, "price_drop_pct_lte": -3 },
+      "condition": {
+        "type": "volumeDrop",
+        "vol_pct_lte": -30,
+        "price_drop_pct_lte": -3
+      },
       "description": "volume -30%+ & price -3%+ (distribution 패턴)"
     },
     {
@@ -106,7 +143,10 @@
       "score": 8,
       "urgency": "high",
       "category": "macro",
-      "condition": { "type": "macroRisk", "risk_level": "high" },
+      "condition": {
+        "type": "macroRisk",
+        "risk_level": "high"
+      },
       "description": "macro riskLevel=high (VIX>25 / yield invert / credit stress → defensive 회전)"
     },
     {
@@ -114,7 +154,10 @@
       "score": 6,
       "urgency": "medium",
       "category": "macro",
-      "condition": { "type": "vixSpike", "vix_gte": 25 },
+      "condition": {
+        "type": "vixSpike",
+        "vix_gte": 25
+      },
       "description": "VIX ≥ 25 (변동성 급등 → cyclical 종목 익절)"
     },
     {
@@ -122,7 +165,10 @@
       "score": 5,
       "urgency": "low",
       "category": "macro",
-      "condition": { "type": "fgExtreme", "fg_lte": 20 },
+      "condition": {
+        "type": "fgExtreme",
+        "fg_lte": 20
+      },
       "description": "F&G ≤ 20 (extreme fear → 약세장 회피)"
     },
     {
@@ -130,7 +176,10 @@
       "score": 5,
       "urgency": "low",
       "category": "micro",
-      "condition": { "type": "sectorStance", "stance": "underweight" },
+      "condition": {
+        "type": "sectorStance",
+        "stance": "underweight"
+      },
       "description": "해당 sectorAllocation stance=underweight (sector 회전)"
     },
     {
@@ -138,7 +187,10 @@
       "score": 5,
       "urgency": "low",
       "category": "micro",
-      "condition": { "type": "regionStance", "stance": "bearish" },
+      "condition": {
+        "type": "regionStance",
+        "stance": "bearish"
+      },
       "description": "해당 market region stance=bearish"
     },
     {
@@ -146,15 +198,34 @@
       "score": 6,
       "urgency": "medium",
       "category": "micro",
-      "condition": { "type": "newsNegative", "neg_ratio_gte": 0.6, "min_articles": 3 },
+      "condition": {
+        "type": "newsNegative",
+        "neg_ratio_gte": 0.6,
+        "min_articles": 3
+      },
       "description": "최근 7d 해당 ticker news 부정 sentiment ≥ 60% (3+ articles)"
+    },
+    {
+      "id": "micro_insider_selling",
+      "score": 7,
+      "urgency": "medium",
+      "category": "micro",
+      "condition": {
+        "type": "insiderSell",
+        "sell_count_gte": 2,
+        "sell_to_buy_ratio_gte": 2
+      },
+      "description": "내부자 매도 cluster — 매수룰 micro_insider_buying 대칭(2026-06-06)"
     },
     {
       "id": "rotation_neutral",
       "score": 3,
       "urgency": "low",
       "category": "rotation",
-      "condition": { "type": "heldOnly", "min_days": 14 },
+      "condition": {
+        "type": "heldOnly",
+        "min_days": 14
+      },
       "description": "held ≥ 14d (회전 후보)"
     }
   ],

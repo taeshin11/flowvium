@@ -3872,6 +3872,13 @@ function evaluateSellRule(rule, ctx) {
         return `P/E ${ctx.peRatio.toFixed(1)} vs sector ${ctx.sectorPe.toFixed(1)} 고평가`;
       }
       break;
+    // 2026-06-06: 내부자 매도 (매수룰 micro_insider_buying 대칭) — Form4 매도 cluster.
+    case 'insiderSell':
+      if (ctx.insiderSells != null && ctx.insiderSells >= (c.sell_count_gte ?? 2) &&
+          (ctx.insiderSellToBuyRatio ?? 99) >= (c.sell_to_buy_ratio_gte ?? 2)) {
+        return `내부자 매도 ${ctx.insiderSells}건 (매수 ${ctx.insiderBuys ?? 0}건 대비 우위)`;
+      }
+      break;
     // ── 구루 ──────────────────────────────────────────────────────────────────
     case 'lynchPeg':
       if (ctx.peg != null && ctx.peg >= (c.peg_gte ?? 2)) return `Lynch PEG ${ctx.peg.toFixed(1)} 성장대비 고평가`;
@@ -4367,6 +4374,10 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         // 뉴스 sentiment
         newsNegRatio: macroCtx.newsSentimentMap?.get(ticker)?.negRatio ?? null,
         newsArticleCount: macroCtx.newsSentimentMap?.get(ticker)?.count ?? 0,
+        // 2026-06-06: 내부자 매도 (매수·매도 대칭) — signalDigest insider {buys,sells}
+        insiderSells: macroCtx.insider?.get(ticker)?.sells ?? null,
+        insiderBuys: macroCtx.insider?.get(ticker)?.buys ?? null,
+        insiderSellToBuyRatio: macroCtx.insider?.get(ticker) ? (macroCtx.insider.get(ticker).sells / Math.max(macroCtx.insider.get(ticker).buys, 1)) : null,
       };
       let matchedRule = null, reason = null;
       // 룰 순서 = JSON 순서. 첫 매칭 룰 채택 (priority = JSON 순서).
@@ -5389,11 +5400,15 @@ async function generateViaOllama() {
     }
   }
   for (const [t, v] of newsSentimentMap) v.negRatio = v.count ? v.neg / v.count : 0;
+  // 2026-06-06: 내부자 매도 데이터 plumbing — signalDigest insider {buys,sells} → 매도엔진 ctx.
+  const insiderDigest = new Map();
+  for (const [t, d] of signalDigest) if (d.insider) insiderDigest.set(t, d.insider);
   const macroCtx = {
     riskLevel: macroData?.riskLevel ?? null,
     vix: ctxRaw?.volatility?.score ?? ctxRaw?.vix?.score ?? null,
     fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
     sectorPeMap, sectorStanceMap, regionStanceMap, newsSentimentMap,
+    insider: insiderDigest,
   };
   const sellCands = await buildSellCandidates(livePrices, excludeForSell, macroCtx);
   console.log(`  매도 후보: US ${sellCands.us.length} + KR ${sellCands.kr.length} = ${sellCands.total} (multi-factor)`);
@@ -5609,6 +5624,33 @@ async function generateViaOllama() {
       if (rendered && rendered !== p.fundamentalBasis) { p.fundamentalBasis = rendered; grounded++; }
     }
     if (grounded) console.log(`  [fundamentalBasis/deterministic] 실재무 기반 렌더 ${grounded}건 (LLM 숫자 환각 차단)`);
+  }
+
+  // 2026-06-06: catalysts 결정론적 grounding (ChatGPT D1 — "숫자는 코드가, LLM은 문장만").
+  //   숫자 포함 catalyst 는 sig(실 insider/squeeze/fin)에서 코드가 직접 생성. LLM catalyst 는
+  //   *숫자 없는 정성적 이벤트*만 보충. → "insider 12.3%" copy-paste·"매출 35%" 환각 원천 차단.
+  {
+    const hasNum = (s) => /\d+\.?\d*\s*%|\d+\s*배|\$\s*\d|₩\s*\d|\d+\.?\d*x\b/.test(String(s || ''));
+    const detCatalysts = (sig) => {
+      if (!sig) return [];
+      const out = [];
+      const fin = sig.fin;
+      if (fin?.yoy) { const y = parseFloat(String(fin.yoy).replace(/[^\d.-]/g, '')); if (Number.isFinite(y) && Math.abs(y) >= 5) out.push(`매출 ${String(fin.yoy).replace(/^\+?/, '')} YoY ${y >= 0 ? '성장' : '감소'}`); }
+      if (sig.insider?.buys >= 2) out.push(`내부자 매수 ${sig.insider.buys}건${sig.insider.totalUsd ? ` ($${Math.round(sig.insider.totalUsd / 1000)}K)` : ''}`);
+      if (typeof sig.squeeze === 'number' && sig.squeeze >= 60) out.push(`공매도 스퀴즈 점수 ${sig.squeeze}`);
+      return out;
+    };
+    let cg = 0;
+    for (const p of mergedPortfolio) {
+      const sig = signalDigest.get(p.ticker);
+      const det = detCatalysts(sig);
+      if (!det.length) continue; // sig 데이터 없으면 기존 유지
+      // LLM catalyst 중 숫자 없는 정성적 항목만 보충
+      const qualitative = (Array.isArray(p.catalysts) ? p.catalysts : []).filter(c => !hasNum(c));
+      const merged = [...det, ...qualitative].slice(0, 3);
+      if (JSON.stringify(merged) !== JSON.stringify(p.catalysts)) { p.catalysts = merged; cg++; }
+    }
+    if (cg) console.log(`  [catalysts/deterministic] 숫자 catalyst 코드생성 + 정성 LLM 보충 ${cg}건`);
   }
 
   let dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
