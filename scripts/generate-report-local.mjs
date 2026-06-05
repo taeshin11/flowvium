@@ -5443,6 +5443,25 @@ async function generateViaOllama() {
     }
   }
 
+  // 2026-06-06: 양방향 경합심사 (사용자 "매도 후보를 매수신호로도 재심사") — 매도 추천을 *매수신호*로
+  //   cross-examine. 강한 매수신호(과매도 반등 / 골든크로스 추세유효)가 있으면 매도와 충돌 → 플래그.
+  //   리스크관리 우선이라 매도 자체는 취소 안 하되, "전량매도 대신 부분매도/관망" 으로 충돌을 surface.
+  //   buy→sell veto(경합심사 게이트)와 합쳐 양방향 합의 완성. sellSideReview 는 trail 에도 적재.
+  let sellSideReview = [];
+  for (const c of [...sellCands.us, ...sellCands.kr]) {
+    const sig = macroCtx.signals?.get(c.ticker) ?? {};
+    const buyOpp = [];
+    if (sig.rsi != null && sig.rsi <= 32) buyOpp.push(`RSI ${sig.rsi} 과매도(반등 가능)`);
+    if (sig.sma50 != null && sig.sma200 != null && sig.sma50 > sig.sma200) buyOpp.push('50MA>200MA 추세 유효');
+    if (sig.peg != null && sig.peg > 0 && sig.peg < 1) buyOpp.push(`PEG ${sig.peg.toFixed(2)} 저평가`);
+    if (buyOpp.length) {
+      c.buyConflict = `매수신호 상충: ${buyOpp.join(', ')} → 전량매도보다 부분매도/관망 고려`;
+      sellSideReview.push({ ticker: c.ticker, sellType: c.sellType ?? c.ruleId, buySignals: buyOpp });
+      console.log(`  [경합심사/양방향] ${c.ticker} 매도 but ${buyOpp.join('+')} → 충돌 플래그`);
+    }
+  }
+  if (sellSideReview.length) console.log(`  [경합심사/양방향] 매도 ${sellSideReview.length}건에 매수신호 상충 플래그`);
+
   const stockDetailMap = new Map();
   if (stockDetailRaw) {
     const sd = parseJson(stockDetailRaw, 'stockDetail');
@@ -5626,7 +5645,8 @@ async function generateViaOllama() {
       if (hits.length) console.log(`  [경합심사] ${p.ticker} 통과 (매도 score ${total}<${VETO_SCORE}, 경미): ${hits.map(h => h.id).join(',')}`);
       return true;
     });
-    adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length };
+    adjudication.sellSide = sellSideReview;  // 양방향: 매도 후보의 매수신호 상충 기록
+    adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length, sellConflicts: sellSideReview.length };
     if (before !== dedupedPortfolio.length) console.log(`  [경합심사] 매수 ${before}→${dedupedPortfolio.length} (매도룰 cross-exam 탈락)`);
     // trail 영속화 (연구용)
     try {
@@ -5681,6 +5701,48 @@ async function generateViaOllama() {
       }
       if (stripped) console.log(`  [pe-prose] 중복 PE(환각) strip ${stripped}건: 값 ${[...dup].join(',')}`);
     }
+  }
+  // 2026-06-06: 발간 前 copy-paste 환각 strip (사용자 "하네스가 왜 못 잡나"). verify-report [6b] 는
+  //   POST-발간 감지였음 → PRE-발간 strip 으로 이동. 소수%(정수%는 우연중복 흔함)가 2+종목 공유 시
+  //   fundamentalBasis+catalysts 에서 해당 clause 제거(strip-when-uncertain). 인사이더 12.3% 4종목 등.
+  {
+    const pctRe = /(\d+\.\d+)%/g;
+    const counts = {};
+    for (const p of dedupedPortfolio) {
+      const text = (p.fundamentalBasis || '') + ' ' + (Array.isArray(p.catalysts) ? p.catalysts.join(' ') : '');
+      for (const v of new Set([...text.matchAll(pctRe)].map(m => m[1]))) if (parseFloat(v) >= 1) counts[v] = (counts[v] || 0) + 1;
+    }
+    const dup = new Set(Object.entries(counts).filter(([, c]) => c >= 2).map(([v]) => v));
+    if (dup.size) {
+      let stripped = 0;
+      const stripDup = (text) => {
+        let t = text;
+        for (const v of dup) t = t.replace(new RegExp(`[^,，·|/]*${v.replace('.', '\\.')}%[^,，·|/]*`, 'g'), '');
+        return t.replace(/\s*[,，·|]\s*[,，·|]\s*/g, ', ').replace(/^[\s,，·|]+|[\s,，·|]+$/g, '').replace(/\s{2,}/g, ' ');
+      };
+      for (const p of dedupedPortfolio) {
+        const sig = (p.fundamentalBasis || '') + '|' + (Array.isArray(p.catalysts) ? p.catalysts.join('|') : '');
+        if (p.fundamentalBasis) p.fundamentalBasis = stripDup(p.fundamentalBasis);
+        if (Array.isArray(p.catalysts)) p.catalysts = p.catalysts.map(stripDup).filter(c => c && c.length > 4);
+        if (((p.fundamentalBasis || '') + '|' + (Array.isArray(p.catalysts) ? p.catalysts.join('|') : '')) !== sig) stripped++;
+      }
+      if (stripped) console.log(`  [dup-pct] 종목간 중복 %수치(환각) strip ${stripped}종목: 값 ${[...dup].join(',')}`);
+    }
+  }
+  // 2026-06-06: 매출 YoY grounding (사용자 GOOGL 35% vs 실제 21.8% 사건). "매출/revenue N%" 가
+  //   signalDigest 실 fin.yoy 와 >7%p 이탈 시 실값으로 교정(권위 grounding). "수익"(이익/매출 모호)·
+  //   "마진" 은 제외해 오교정 방지. fin.yoy 있는 종목만.
+  {
+    let grounded = 0;
+    for (const p of dedupedPortfolio) {
+      const real = parseFloat(signalDigest.get(p.ticker)?.fin?.yoy ?? '');
+      if (!Number.isFinite(real) || !p.fundamentalBasis) continue;
+      p.fundamentalBasis = p.fundamentalBasis.replace(/(매출|revenue)([^%]{0,4})([+-]?\d+\.?\d*)%/gi, (m, lbl, mid, num) => {
+        if (Math.abs(parseFloat(num) - real) > 7) { grounded++; return `${lbl}${mid}${real}%`; }
+        return m;
+      });
+    }
+    if (grounded) console.log(`  [rev-ground] 매출 YoY 실값 교정 ${grounded}건 (signalDigest fin.yoy 기준)`);
   }
   // 2026-06-04: 종목별 내재변동성(IV) 주입 (사용자 요청) — US 옵션 IV(atmIv30d). KR 은 옵션 IV 미제공 → null.
   await Promise.all(dedupedPortfolio.map(async (p) => {

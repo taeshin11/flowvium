@@ -151,7 +151,7 @@ type SellItem = {
   ticker: string; name?: string; sector?: string; market?: 'us' | 'kr';
   currentPrice?: string; entryPrice?: string | null; target?: string | null; stopLoss?: string | null;
   pnlPct?: number | null; heldDays?: number; score?: number;
-  rationale?: string; sellType?: string; urgency?: 'high' | 'medium' | 'low';
+  rationale?: string; sellType?: string; urgency?: 'high' | 'medium' | 'low'; buyConflict?: string;
   sellLadder?: { pct: number; price: string; label: string; action: string }[];
 };
 function SellCard({ item }: { item: SellItem }) {
@@ -174,6 +174,9 @@ function SellCard({ item }: { item: SellItem }) {
         )}
       </div>
       <p className="text-xs text-gray-700 mb-1.5 leading-snug">{item.rationale}</p>
+      {item.buyConflict && (
+        <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-1 mb-1.5 leading-snug">⚖️ {item.buyConflict}</p>
+      )}
       <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500 mb-2">
         <span>현재 {item.currentPrice}</span>
         {item.entryPrice && <span>· entry {item.entryPrice}</span>}
