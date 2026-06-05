@@ -56,6 +56,10 @@ function parseSdnCsv(csv: string): SdnEntry[] {
 // ── Fetch and cache OFAC SDN CSV ───────────────────────────────────────────────
 async function getSdnData(redis: Redis | null): Promise<SdnEntry[] | null> {
   const cacheKey = 'flowvium:osint:sanctions:v1:sdn-csv';
+  // 2026-06-05: 영구 last-good 키 — TTL 만료~OFAC 재조회 성공 사이 윈도우에 fetch 실패 시
+  //   빈 응답(0 그룹) 깜빡임 + 모니터 false 🚨 가 발생했음(check-data-quality [H]). 만료 없는
+  //   last-good 으로 stale-while-revalidate → 절대 빈 응답 안 함.
+  const lastGoodKey = 'flowvium:osint:sanctions:v1:sdn-csv:last-good';
 
   if (redis) {
     try {
@@ -70,17 +74,26 @@ async function getSdnData(redis: Redis | null): Promise<SdnEntry[] | null> {
       signal: AbortSignal.timeout(30000),
       cache: 'no-store',
     });
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error(`OFAC HTTP ${res.status}`);
 
     const csv = await res.text();
     const entries = parseSdnCsv(csv);
+    if (entries.length === 0) throw new Error('OFAC parse 0 entries');
 
-    if (redis && entries.length > 0) {
+    if (redis) {
       await loggedRedisSet(redis, 'api.osint.sanctions', cacheKey, entries, { ex: CACHE_TTL });
+      await loggedRedisSet(redis, 'api.osint.sanctions', lastGoodKey, entries); // no TTL = 영구 last-good
     }
 
     return entries;
   } catch {
+    // fresh fetch 실패 → 빈 응답 대신 last-good 으로 폴백 (절대 0 그룹 안 함)
+    if (redis) {
+      try {
+        const lastGood = await redis.get<SdnEntry[]>(lastGoodKey);
+        if (lastGood && Array.isArray(lastGood) && lastGood.length > 0) return lastGood;
+      } catch { /* non-fatal */ }
+    }
     return null;
   }
 }
