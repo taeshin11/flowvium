@@ -6310,6 +6310,31 @@ async function generateViaOllama() {
     if (np + nc > 0) console.log(`  [name-gate/final] 발간직전 권위명 확정 portfolio ${np} + companyChanges ${nc}`);
   }
 
+  // 2026-06-05: 완전성 게이트 (F23) — buy 종목이 technicalBasis/riskNote 없이 발간되던 사건(TSM).
+  //   원인: LLM 이 stockDetail 을 "TSMC" ticker 로 출력 → merge-by-ticker("TSM") miss(이름 TSM↔TSMC
+  //   불일치와 동일 뿌리). 빈 필드는 verify [F23] 실패 + UI 공백. grounded 데이터로만 채움(날조 금지):
+  //   technicalBasis=signalDigest 실 RSI/MA, riskNote=RSI 과매수/환율/섹터 등 실지표 기반.
+  {
+    let filled = 0;
+    for (const p of finalReport.portfolio ?? []) {
+      if (p.action !== 'buy') continue;
+      const sig = signalDigest.get(p.ticker);
+      if (!p.technicalBasis) {
+        p.technicalBasis = sig?.tech || `시장가 기준 보수적 진입 (기술 데이터 제한)`;
+        filled++;
+      }
+      if (!p.riskNote) {
+        const rsiM = (sig?.tech || '').match(/RSI\s*(\d+)/);
+        const isKr = /\.(KS|KQ)$/.test(p.ticker);
+        p.riskNote = (rsiM && +rsiM[1] >= 70) ? `RSI ${rsiM[1]} 과매수 — 단기 되돌림 위험`
+          : isKr ? `원화 변동성 + ${p.sector ?? '섹터'} 사이클 노출`
+          : `${p.sector ?? '섹터'} 사이클 변동성 + 밸류에이션 부담`;
+        filled++;
+      }
+    }
+    if (filled > 0) console.log(`  [completeness-gate] buy 종목 누락 필드 grounded 채움 ${filled}건 (F23)`);
+  }
+
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = getReportKstDate(session);  // midnight 은 발간일(익일)
   const filename = `report-${kstDate}-${session}-${localeArg}.json`;
