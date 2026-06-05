@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "SEC EDGAR（米国開示）、PACER（連邦裁判所記録）、各国企業登記所を通じて法的・財務的関係を把握します。"
   },
   "report": {
-    "ivPlainVol": "変動率",
+    "ivPlainVol": "予想変動率",
     "ivPlainDaily": "1日±{daily}%の変動予想",
     "ivLevelLow": "安定",
     "ivLevelMid": "普通",

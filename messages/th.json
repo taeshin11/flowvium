@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "ติดตามความสัมพันธ์ทางกฎหมายและการเงินผ่าน SEC EDGAR (การยื่นฟ้องของสหรัฐ), PACER (บันทึกศาลกลาง) และทะเบียนบริษัททั่วโลก"
   },
   "report": {
-    "ivPlainVol": "ความผันผวน",
+    "ivPlainVol": "ความผันผวนแฝง",
     "ivPlainDaily": "คาดว่า ±{daily}%/วัน",
     "ivLevelLow": "นิ่ง",
     "ivLevelMid": "ปานกลาง",

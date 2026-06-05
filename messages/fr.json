@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "Suivez les relations juridiques et financières via SEC EDGAR (dépôts américains), PACER (archives des tribunaux fédéraux) et les registres des entreprises du monde entier."
   },
   "report": {
-    "ivPlainVol": "Volatilité",
+    "ivPlainVol": "Volatilité implicite",
     "ivPlainDaily": "±{daily}%/jour attendu",
     "ivLevelLow": "Calme",
     "ivLevelMid": "Modérée",

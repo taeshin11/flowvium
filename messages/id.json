@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "Lacak hubungan hukum dan keuangan melalui SEC EDGAR (pengajuan AS), PACER (catatan pengadilan federal), dan daftar korporat di seluruh dunia."
   },
   "report": {
-    "ivPlainVol": "Volatilitas",
+    "ivPlainVol": "Volatilitas tersirat",
     "ivPlainDaily": "±{daily}%/hari diperkirakan",
     "ivLevelLow": "Tenang",
     "ivLevelMid": "Sedang",

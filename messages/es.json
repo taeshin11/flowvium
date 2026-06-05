@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "Rastree relaciones legales y financieras a través de SEC EDGAR (presentaciones de EE.UU.), PACER (registros de tribunales federales) y registros corporativos de todo el mundo."
   },
   "report": {
-    "ivPlainVol": "Volatilidad",
+    "ivPlainVol": "Volatilidad implícita",
     "ivPlainDaily": "±{daily}%/día esperado",
     "ivLevelLow": "Estable",
     "ivLevelMid": "Moderada",

@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "Track legal and financial relationships via SEC EDGAR (U.S. filings), PACER (federal court records), and corporate registries worldwide."
   },
   "report": {
-    "ivPlainVol": "Volatility",
+    "ivPlainVol": "Implied volatility",
     "ivPlainDaily": "±{daily}%/day expected",
     "ivLevelLow": "Calm",
     "ivLevelMid": "Moderate",

@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "تتبع العلاقات القانونية والمالية عبر SEC EDGAR (الإيداعات الأمريكية) وPACER (سجلات المحاكم الفيدرالية) وسجلات الشركات حول العالم."
   },
   "report": {
-    "ivPlainVol": "التقلب",
+    "ivPlainVol": "التقلب الضمني",
     "ivPlainDaily": "±{daily}% يوميًا متوقع",
     "ivLevelLow": "هادئ",
     "ivLevelMid": "معتدل",

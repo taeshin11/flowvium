@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "透過SEC EDGAR（美國揭露）、PACER（聯邦法院記錄）、各國企業登記處了解法律和財務關係。"
   },
   "report": {
-    "ivPlainVol": "波動率",
+    "ivPlainVol": "隱含波動率",
     "ivPlainDaily": "預計每日±{daily}%波動",
     "ivLevelLow": "平穩",
     "ivLevelMid": "中等",

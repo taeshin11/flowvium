@@ -1110,7 +1110,7 @@
     "guideMethod6Desc": "Theo dõi quan hệ pháp lý và tài chính qua SEC EDGAR (hồ sơ Mỹ), PACER (hồ sơ tòa án liên bang) và đăng ký doanh nghiệp trên toàn thế giới."
   },
   "report": {
-    "ivPlainVol": "Biến động",
+    "ivPlainVol": "Biến động ngụ ý",
     "ivPlainDaily": "Dự kiến ±{daily}%/ngày",
     "ivLevelLow": "Ổn định",
     "ivLevelMid": "Trung bình",
