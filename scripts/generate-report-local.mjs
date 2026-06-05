@@ -5533,6 +5533,25 @@ async function generateViaOllama() {
     });
     if (before !== dedupedPortfolio.length) console.log(`  [no-price] ${before} → ${dedupedPortfolio.length} (${before - dedupedPortfolio.length} 제거)`);
   }
+  // 2026-06-05: 매수-매도 정합성 게이트 — 매수 펀넬이 op margin YoY 악화 종목을 계속 picks 하는데
+  //   매도엔진은 같은 종목을 fund_margin_decline(opMarginDecline≥2pp)로 팔라 함 → "오전 사라 저녁
+  //   팔라" 모순(기아 000270 사건: 05-30~06-05 buy 반복 vs rotation_loss "op margin 악화" sell 반복).
+  //   매도룰과 동일 신호(fetchSellSignals)로 매수 portfolio 에서 펀더멘털 악화 종목 제외 → 두 엔진 합의.
+  //   cap 前이라 제외 슬롯은 남은 후보로 backfill.
+  try {
+    const sellSig = await fetchSellSignals(dedupedPortfolio.map(p => p.ticker));
+    const before = dedupedPortfolio.length;
+    dedupedPortfolio = dedupedPortfolio.filter(p => {
+      const dec = sellSig.get(p.ticker)?.opMarginDecline;
+      if (dec != null && dec >= 2) {
+        console.warn(`  [buy-sell 정합] ${p.ticker} 매수 제외 — op margin YoY -${dec.toFixed(1)}%p (매도룰 fund_margin_decline 충돌)`);
+        return false;
+      }
+      return true;
+    });
+    if (before !== dedupedPortfolio.length) console.log(`  [buy-sell 정합] ${before}→${dedupedPortfolio.length} (펀더멘털 악화 = 매도 대상이므로 매수 제외)`);
+  } catch (e) { console.warn(`  [buy-sell 정합] skip: ${e.message}`); }
+
   // 2026-05-29: KR cap 6 강제 — buildPortfolio LLM 이 KR 11+ 출력하는 경우 차단.
   //   US 6 + KR 6 = 12 portfolio 가 목표. KR 종목수 cap 안 하면 비중 분산 + UI 표시 무너짐.
   {

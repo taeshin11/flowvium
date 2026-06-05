@@ -363,6 +363,44 @@ try {
   warn(`buy/sell rule 카테고리 점검 실패: ${e.message}`);
 }
 
+// ═══════ Probe 5b: buy↔sell 모순 (같은 종목 매수+펀더멘털 매도 반복 = whipsaw) ═══════
+// 2026-06-05: 기아(000270) "오전 사라 저녁 팔라" 사건 — 매수 펀넬이 op margin 악화 종목을 계속
+//   picks 하는데 매도엔진은 fund_margin_decline 으로 팔라 함. 발간직전 정합 게이트로 매수 제외하지만,
+//   회귀 감지를 위해 최근 7일 내 같은 ticker 가 buy + (fundamental)sell 둘 다 나온 종목을 flag.
+console.log('\n## [5b] buy↔sell 모순 (동일 종목 매수/매도 반복 whipsaw)\n');
+try {
+  const conflicts = db.prepare(`
+    SELECT r.ticker,
+           COUNT(DISTINCT r.generated_at) buys,
+           COUNT(DISTINCT s.generated_at) sells
+    FROM recommendations r
+    JOIN sell_recommendations s ON r.ticker = s.ticker
+    WHERE r.generated_at >= datetime('now','-7 days')
+      AND s.generated_at >= datetime('now','-7 days')
+      AND (s.sell_type LIKE '%margin%' OR s.sell_type LIKE '%fund%' OR s.rationale LIKE '%악화%')
+    GROUP BY r.ticker
+    HAVING buys >= 1 AND sells >= 1
+  `).all();
+  if (conflicts.length === 0) {
+    ok('buy↔sell 모순 없음 (펀더멘털 매도 종목이 매수에 재등장 안 함)');
+  } else {
+    for (const c of conflicts) {
+      // 발간직전 정합 게이트(generate-report-local) 도입 後엔 신규 발생 안 해야 함 → 과거분은 warn, 최근은 err
+      const recentBoth = db.prepare(`
+        SELECT (SELECT MAX(generated_at) FROM recommendations WHERE ticker=? AND generated_at>=datetime('now','-2 days')) lastBuy,
+               (SELECT MAX(generated_at) FROM sell_recommendations WHERE ticker=? AND generated_at>=datetime('now','-2 days')) lastSell
+      `).get(c.ticker, c.ticker);
+      if (recentBoth.lastBuy && recentBoth.lastSell) {
+        err(`${c.ticker}: 최근2일 buy+펀더멘털sell 동시 (매수${c.buys}/매도${c.sells}) — 정합 게이트 우회 의심`);
+      } else {
+        warn(`${c.ticker}: 7일내 buy${c.buys}+펀더멘털sell${c.sells} (정합 게이트 도입前 과거분 — aging out)`);
+      }
+    }
+  }
+} catch (e) {
+  warn(`buy↔sell 모순 점검 실패: ${e.message}`);
+}
+
 // ═══════ Probe 6: buy_candidates 적재 (Karpathy source — 선택 12 외 후보 보존) ═══════
 console.log('\n## [6] buy_candidates 적재 — 선택 외 후보 보존 (Karpathy 학습 source)\n');
 try {
