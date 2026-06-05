@@ -375,6 +375,32 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (peBad === 0) log('  ✅ PE 중복/KR PE 환각 없음');
 
+  // 6b. 종목간 동일 %수치 (2026-06-06: 인사이더 12.3% 3종목·매출 28.7% 2종목 copy-paste 환각 사건).
+  //   PE 외 모든 % (인사이더/매출/마진 등)가 서로 다른 2+종목에 동일하면 환각. 소수%만(정수%는 우연중복 흔함).
+  log('\n## 종목간 동일 %수치 (copy-paste 환각 — 2026-06-06)');
+  let dupPctBad = 0;
+  const pctByValue = new Map();
+  for (const p of (r.portfolio || [])) {
+    const text = (p.fundamentalBasis || '') + ' ' + (Array.isArray(p.catalysts) ? p.catalysts.join(' ') : '');
+    const vals = new Set([...text.matchAll(/(\d+\.\d+)%/g)].map(m => m[1]));
+    for (const v of vals) {
+      if (parseFloat(v) < 1) continue; // 0.x% 잡음 제외
+      const arr = pctByValue.get(v) ?? []; arr.push(p.ticker); pctByValue.set(v, arr);
+    }
+  }
+  for (const [v, tks] of pctByValue) {
+    const uniq = [...new Set(tks)];
+    if (uniq.length >= 2) {
+      log(`  ⚠️ 동일 ${v}% → ${uniq.length}종목(${uniq.join(', ')}) — 서로 다른 기업 동일수치 = copy-paste 환각`);
+      defects.push({
+        ticker: uniq.join('/'), defect_type: 'dup_pct_halluc',
+        llm_value: `${v}% ×${uniq.length}`, correct_value: '종목별 실수치(인사이더/매출 grounded)', severity: 'medium',
+      });
+      dupPctBad++;
+    }
+  }
+  if (dupPctBad === 0) log('  ✅ 종목간 동일 %수치 없음');
+
   // 7. 기술 일관성 — RSI/지지선 환각 detect (2026-06-05, 삼전 "RSI 45+과매도"(실제 58)·
   //    "120,000 지지"(실제가 327k) 환각 사건). report 내부만으로 판정(외부 fetch 불필요):
   //    (a) "RSI N" + "과매도"(N≥35) 또는 "과매수"(N≤65) 모순, (b) entryRationale 의 지지가격이
