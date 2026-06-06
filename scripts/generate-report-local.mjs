@@ -849,9 +849,13 @@ function getPublishTarget(session) {
   else if (session === 'afternoon') { target.setUTCHours(16, 0, 0, 0); }
   else if (session === 'evening')   { target.setUTCHours(21, 30, 0, 0); }
   else if (session === 'midnight')  {
-    // 00:00 KST — 23:40 트리거 기준 익일 00:00. 이미 지났으면(자정 직후) +1일.
+    // 00:00 KST 발간. 2026-06-06 off-by-one fix: 기존 `target<=now → +1` 은 호출 시점 의존 —
+    //   23:40 트리거(전날 저녁)에 계산하면 +1=발간일(정답)이지만, gen 이 자정 넘겨 끝나
+    //   (00:xx~02:xx) getReportKstDate 가 재호출되면 또 +1 → 발간일+1 (06-07 오라벨).
+    //   → KST 시각으로 분기: 22~23시(발간 전날 저녁) 만 +1, 0~6시(이미 발간일 당일)는 그대로.
+    //   두 호출 시점(트리거 전·gen 후) 모두 동일 발간일 산출 → 결정론적.
     target.setUTCHours(0, 0, 0, 0);
-    if (target.getTime() <= kstNow.getTime()) target.setUTCDate(target.getUTCDate() + 1);
+    if (kstNow.getUTCHours() >= 22) target.setUTCDate(target.getUTCDate() + 1);
   }
   else                              { target.setUTCHours(21, 30, 0, 0); }
   // target 이 이미 지났으면 (보고서가 늦게 끝나서) wait 안 함
