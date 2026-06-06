@@ -2693,6 +2693,46 @@ function enrichStopLoss(stopLossRationale, livePrices, technicalData, locale = '
 }
 
 /**
+ * 2026-06-06: 거시 급락 조기경보 composite (사용자 "급락 데이터로 예측 힘들었나").
+ *   신용/변동성/금리커브/심리/FX/고용 선행지표를 결정론적 score 화 → LLM riskLevel 보완.
+ *   "endpoint alive ≠ 위험 감지" 처럼 데이터는 있는데 composite 가 없던 사각지대 해소.
+ */
+function computeMacroEarlyWarning(ctxRaw, fx = {}) {
+  const ind = ctxRaw?.macro?.indicators ?? [];
+  const get = (ids) => ind.find(i => ids.includes(i.id));
+  let score = 0; const drivers = [];
+  const add = (pts, msg) => { score += pts; drivers.push(msg); };
+  // 1. 신용 스프레드 — 확대(전분기 대비) 또는 절대 고위험
+  const hy = get(['hy_spread', 'hy_oas']);
+  if (hy?.actual != null) {
+    if (hy.previous != null && hy.actual > hy.previous + 0.5) add(20, `HY신용 스프레드 확대 ${hy.previous}→${hy.actual}%`);
+    if (hy.actual >= 5) add(20, `HY스프레드 ${hy.actual}% 절대고위험`);
+    else if (hy.actual >= 4) add(10, `HY스프레드 ${hy.actual}% 경계`);
+  }
+  const ig = get(['ig_spread', 'ig_oas']);
+  if (ig?.actual != null && ig.previous != null && ig.actual > ig.previous + 0.2) add(10, `IG신용 확대 ${ig.previous}→${ig.actual}%`);
+  // 2. VIX
+  const vix = get(['vix'])?.actual ?? ctxRaw?.volatility?.score;
+  if (vix != null) { if (vix >= 30) add(25, `VIX ${vix} 패닉`); else if (vix >= 25) add(15, `VIX ${vix} 급등`); else if (vix >= 20) add(8, `VIX ${vix} 경계`); }
+  // 3. 금리커브 역전 (10-2)
+  const y10 = get(['us10y', 'yield_10y', 'dgs10'])?.actual, y2 = get(['us2y', 'yield_2y', 'dgs2'])?.actual;
+  if (y10 != null && y2 != null) { const sp = y10 - y2; if (sp < 0) add(18, `장단기금리 역전 ${sp.toFixed(2)}%p`); else if (sp < 0.2) add(8, `금리커브 평탄 ${sp.toFixed(2)}%p`); }
+  // 4. 심리 극단 (탐욕 반전 / 공포 capitulation)
+  const fgScore = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? (ctxRaw?.fearGreed?.us?.score);
+  if (fgScore != null) { if (fgScore >= 80) add(15, `F&G ${fgScore} 극단탐욕(반전위험)`); else if (fgScore <= 20) add(10, `F&G ${fgScore} 극단공포`); }
+  // 5. FX 스트레스 (원화/DXY 급변)
+  if (fx.usdkrwChg != null && Math.abs(fx.usdkrwChg) >= 2) add(15, `USD/KRW ${fx.usdkrwChg > 0 ? '+' : ''}${fx.usdkrwChg}% 급변(자본유출 압력)`);
+  // 6. 고용 둔화 (jobless claims 상승 surprise) + PMI 위축
+  const jc = get(['jobless_claims', 'initial_claims']);
+  if (jc?.actual != null && jc.previous != null && jc.actual > jc.previous && jc.surprise === 'miss') add(10, `신규실업수당 증가 ${jc.previous}→${jc.actual}K`);
+  const pmi = get(['ism_pmi', 'ism_manufacturing']);
+  if (pmi?.actual != null && pmi.actual < 48) add(10, `ISM PMI ${pmi.actual} 위축`);
+  score = Math.min(100, score);
+  const level = score >= 70 ? 'severe' : score >= 45 ? 'high' : score >= 25 ? 'elevated' : 'low';
+  return { score, level, drivers, asOf: new Date().toISOString() };
+}
+
+/**
  * Post-processing: append key indicator snapshot to macroAnalysis if under 200 chars.
  */
 function enrichMacroAnalysis(macroAnalysis, ctxRaw, macroData, locale = 'ko') {
@@ -5929,6 +5969,7 @@ async function generateViaOllama() {
     thesis: macroData?.thesis ?? portfolioData.stance ?? 'neutral',
     portfolio: dedupedPortfolio,
     buySellReconciliation: reconciliationLog,  // 매수↔매도 경합심사 요약 (연구·UI 노출용)
+    earlyWarning: computeMacroEarlyWarning(ctxRaw, ctxRaw?.fx ?? {}),  // 거시 급락 조기경보 (결정론적 composite)
     sectorAllocation: sectorAllocationFallback,
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',

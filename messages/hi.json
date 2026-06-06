@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "बचें",
     "etfAction_hedge": "हेज",
     "ivAnnualized": "वार्षिक",
-    "sellLadderTitle": "चरणबद्ध निकास योजना"
+    "sellLadderTitle": "चरणबद्ध निकास योजना",
+    "ewTitle": "गिरावट जोखिम चेतावनी",
+    "ewSevere": "गंभीर",
+    "ewHigh": "उच्च",
+    "ewScore": "जोखिम स्कोर",
+    "ewNote": "अग्रणी संकेतक नियतात्मक समग्र · रक्षात्मक स्थिति/हेज पर विचार करें"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

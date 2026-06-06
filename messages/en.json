@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "AVOID",
     "etfAction_hedge": "HEDGE",
     "ivAnnualized": "ann.",
-    "sellLadderTitle": "Scaled Exit Plan"
+    "sellLadderTitle": "Scaled Exit Plan",
+    "ewTitle": "Crash Risk Alert",
+    "ewSevere": "Severe",
+    "ewHigh": "High",
+    "ewScore": "Risk score",
+    "ewNote": "Deterministic leading-indicator composite · Consider defensive positioning/hedge"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

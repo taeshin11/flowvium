@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "TRÁNH",
     "etfAction_hedge": "PHÒNG NGỪA",
     "ivAnnualized": "hằng năm",
-    "sellLadderTitle": "Kế hoạch thoát lệnh từng phần"
+    "sellLadderTitle": "Kế hoạch thoát lệnh từng phần",
+    "ewTitle": "Cảnh báo rủi ro sụt giảm",
+    "ewSevere": "Nghiêm trọng",
+    "ewHigh": "Cao",
+    "ewScore": "Điểm rủi ro",
+    "ewNote": "Tổ hợp xác định của chỉ báo dẫn dắt · Cân nhắc vị thế phòng thủ/phòng hộ"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

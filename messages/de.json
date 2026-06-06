@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "MEIDEN",
     "etfAction_hedge": "HEDGE",
     "ivAnnualized": "annual.",
-    "sellLadderTitle": "Gestaffelter Ausstiegsplan"
+    "sellLadderTitle": "Gestaffelter Ausstiegsplan",
+    "ewTitle": "Crash-Risiko-Alarm",
+    "ewSevere": "Schwer",
+    "ewHigh": "Hoch",
+    "ewScore": "Risikoscore",
+    "ewNote": "Deterministisches Frühindikator-Composite · Defensive Position/Hedge erwägen"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

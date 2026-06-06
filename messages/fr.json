@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "ÉVITER",
     "etfAction_hedge": "COUVRIR",
     "ivAnnualized": "annu.",
-    "sellLadderTitle": "Plan de sortie échelonnée"
+    "sellLadderTitle": "Plan de sortie échelonnée",
+    "ewTitle": "Alerte risque de krach",
+    "ewSevere": "Sévère",
+    "ewHigh": "Élevé",
+    "ewScore": "Score de risque",
+    "ewNote": "Composite déterministe d indicateurs avancés · Envisagez position défensive/couverture"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

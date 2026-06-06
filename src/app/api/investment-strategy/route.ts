@@ -166,6 +166,8 @@ export interface InvestmentStrategy {
   technicalAnalysis: string;
   fundamentalAnalysis: string;
   riskLevel: 'low' | 'medium' | 'high';
+  // 2026-06-06: 거시 급락 조기경보 (결정론적 composite — 신용/VIX/금리커브/심리/FX/고용)
+  earlyWarning?: { score: number; level: 'low' | 'elevated' | 'high' | 'severe'; drivers: string[]; asOf: string };
   // S4: 기회 신호
   shortSqueeze?: Array<{ ticker: string; score: number; timing: string; risk: string }>;
   insiderSignals?: Array<{ ticker: string; filings: number; dateRange?: string; significance: string; pattern: string }>;

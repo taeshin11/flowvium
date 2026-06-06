@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "تجنب",
     "etfAction_hedge": "تحوط",
     "ivAnnualized": "سنوي",
-    "sellLadderTitle": "خطة بيع تدريجي"
+    "sellLadderTitle": "خطة بيع تدريجي",
+    "ewTitle": "تنبيه مخاطر الانهيار",
+    "ewSevere": "خطير",
+    "ewHigh": "مرتفع",
+    "ewScore": "درجة المخاطر",
+    "ewNote": "مركب حتمي للمؤشرات الرائدة · فكر في وضع دفاعي/تحوط"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

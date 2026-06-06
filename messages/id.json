@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "HINDARI",
     "etfAction_hedge": "LINDUNGI",
     "ivAnnualized": "tahunan",
-    "sellLadderTitle": "Rencana Keluar Bertahap"
+    "sellLadderTitle": "Rencana Keluar Bertahap",
+    "ewTitle": "Peringatan Risiko Anjlok",
+    "ewSevere": "Parah",
+    "ewHigh": "Tinggi",
+    "ewScore": "Skor risiko",
+    "ewNote": "Komposit deterministik indikator utama · Pertimbangkan posisi defensif/lindung nilai"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

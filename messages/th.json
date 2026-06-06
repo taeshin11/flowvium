@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "หลีกเลี่ยง",
     "etfAction_hedge": "ป้องกัน",
     "ivAnnualized": "ต่อปี",
-    "sellLadderTitle": "แผนขายแบบแบ่งล็อต"
+    "sellLadderTitle": "แผนขายแบบแบ่งล็อต",
+    "ewTitle": "การแจ้งเตือนความเสี่ยงร่วง",
+    "ewSevere": "รุนแรง",
+    "ewHigh": "สูง",
+    "ewScore": "คะแนนความเสี่ยง",
+    "ewNote": "องค์ประกอบเชิงกำหนดของตัวชี้นำ · พิจารณาสถานะป้องกัน/ป้องกันความเสี่ยง"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

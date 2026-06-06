@@ -721,6 +721,26 @@ export default function ReportPage() {
 
       {data && (
         <>
+          {/* ── 2026-06-06: 급락 위험 조기경보 — 리스크 높을 때 시각적으로 강하게(사용자 요청) ── */}
+          {data.earlyWarning && ['high', 'severe'].includes(data.earlyWarning.level) && (
+            <div className={`rounded-2xl border-2 p-4 mb-5 ${data.earlyWarning.level === 'severe' ? 'border-red-500 bg-red-50 animate-pulse shadow-lg shadow-red-200' : 'border-orange-400 bg-orange-50'}`}>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="text-2xl">{data.earlyWarning.level === 'severe' ? '🚨' : '⚠️'}</span>
+                <span className={`font-extrabold text-lg ${data.earlyWarning.level === 'severe' ? 'text-red-700' : 'text-orange-700'}`}>
+                  {t('ewTitle')} — {data.earlyWarning.level === 'severe' ? t('ewSevere') : t('ewHigh')}
+                </span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${data.earlyWarning.level === 'severe' ? 'bg-red-600 text-white' : 'bg-orange-500 text-white'}`}>
+                  {t('ewScore')} {data.earlyWarning.score}/100
+                </span>
+              </div>
+              <ul className="space-y-0.5">
+                {data.earlyWarning.drivers.map((d, i) => (
+                  <li key={i} className="text-xs text-gray-800 flex items-start gap-1.5"><span className="text-red-500 mt-0.5 shrink-0">▸</span><span>{d}</span></li>
+                ))}
+              </ul>
+              <p className="text-[10px] text-gray-500 mt-2">{t('ewNote')}</p>
+            </div>
+          )}
           {/* ── Investment Stance Hero ─────────────────────────────────────── */}
           <div className={`rounded-2xl border p-5 mb-5 ${stanceCfg!.bg}`}>
             <div className="flex items-center gap-3 mb-2 flex-wrap">

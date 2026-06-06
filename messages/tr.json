@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "KAÇIN",
     "etfAction_hedge": "HEDGE",
     "ivAnnualized": "yıllık",
-    "sellLadderTitle": "Kademeli Çıkış Planı"
+    "sellLadderTitle": "Kademeli Çıkış Planı",
+    "ewTitle": "Çöküş Riski Uyarısı",
+    "ewSevere": "Ciddi",
+    "ewHigh": "Yüksek",
+    "ewScore": "Risk puanı",
+    "ewNote": "Öncü gösterge deterministik bileşik · Savunmacı pozisyon/hedge değerlendirin"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

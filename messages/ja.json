@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "回避",
     "etfAction_hedge": "ヘッジ",
     "ivAnnualized": "年率",
-    "sellLadderTitle": "分割売却プラン"
+    "sellLadderTitle": "分割売却プラン",
+    "ewTitle": "急落リスク警報",
+    "ewSevere": "深刻",
+    "ewHigh": "高",
+    "ewScore": "リスクスコア",
+    "ewNote": "先行指標の決定論的composite · 防御的ポジション・ヘッジ検討推奨"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

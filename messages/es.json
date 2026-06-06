@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "EVITAR",
     "etfAction_hedge": "CUBRIR",
     "ivAnnualized": "anual.",
-    "sellLadderTitle": "Plan de salida escalonada"
+    "sellLadderTitle": "Plan de salida escalonada",
+    "ewTitle": "Alerta de riesgo de caída",
+    "ewSevere": "Severo",
+    "ewHigh": "Alto",
+    "ewScore": "Puntuación de riesgo",
+    "ewNote": "Compuesto determinista de indicadores líderes · Considere posición defensiva/cobertura"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

@@ -1256,7 +1256,12 @@
     "etfAction_avoid": "回避",
     "etfAction_hedge": "对冲",
     "ivAnnualized": "年化",
-    "sellLadderTitle": "分批卖出计划"
+    "sellLadderTitle": "分批卖出计划",
+    "ewTitle": "暴跌风险警报",
+    "ewSevere": "严重",
+    "ewHigh": "高",
+    "ewScore": "风险评分",
+    "ewNote": "领先指标确定性综合 · 建议防御性配置/对冲"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",
