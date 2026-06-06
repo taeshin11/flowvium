@@ -5836,6 +5836,7 @@ async function generateViaOllama() {
     const adjudication = { ts: new Date().toISOString(), session, vetoScore: VETO_SCORE, candidates: [] };
     dedupedPortfolio = dedupedPortfolio.filter(p => {
       const sig = sellSig.get(p.ticker) ?? {};
+      if (sig.rsi != null) p._realRsi = sig.rsi;  // technicalBasis RSI 라벨 grounding 용 (발간직전 삭제)
       const exCtx = {
         price: livePrices.get(p.ticker)?.price ?? null,
         rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
@@ -5963,6 +5964,25 @@ async function generateViaOllama() {
       });
     }
     if (grounded) console.log(`  [rev-ground] 매출 YoY 실값 교정 ${grounded}건 (signalDigest fin.yoy 기준)`);
+  }
+  // 2026-06-06: technicalBasis RSI 라벨 grounding (사용자 "각기업 내용 틀린거 없어" + "숫자는 코드가").
+  //   LLM 이 technicalBasis 에 "RSI: Overbought" 를 RSI 실값(59/48=중립) 무시하고 환각(매 보고서 4종목
+  //   동일 copy-paste). verify probe[7]은 "RSI N+과매수" 모순만 잡고 숫자없는 "Overbought" 는 통과.
+  //   실 RSI(p._realRsi=계산값, 없으면 텍스트 "RSI N" 파싱)로 라벨 결정론적 교정: ≥70 과매수, ≤30 과매도, else 중립.
+  {
+    let tbg = 0;
+    for (const p of dedupedPortfolio) {
+      if (typeof p.technicalBasis !== 'string' || !/overbought|oversold|과매수|과매도/i.test(p.technicalBasis)) continue;
+      let rsi = (typeof p._realRsi === 'number') ? p._realRsi : null;
+      if (rsi == null) { const m = `${p.technicalBasis} ${p.entryRationale || ''} ${p.rationale || ''}`.match(/RSI[:\s]*([0-9]{1,3})/i); if (m) rsi = +m[1]; }
+      const en = rsi == null ? 'Neutral' : rsi >= 70 ? 'Overbought' : rsi <= 30 ? 'Oversold' : 'Neutral';
+      const ko = en === 'Overbought' ? '과매수' : en === 'Oversold' ? '과매도' : '중립';
+      const before = p.technicalBasis;
+      p.technicalBasis = p.technicalBasis.replace(/Overbought|Oversold/gi, en).replace(/과매수|과매도/g, ko);
+      if (p.technicalBasis !== before) tbg++;
+    }
+    for (const p of dedupedPortfolio) delete p._realRsi;
+    if (tbg) console.log(`  [tech-ground] technicalBasis RSI 라벨 실값 교정 ${tbg}건 (≥70 과매수/≤30 과매도/else 중립)`);
   }
   // 2026-06-04: 종목별 내재변동성(IV) 주입 (사용자 요청) — US 옵션 IV(atmIv30d). KR 은 옵션 IV 미제공 → null.
   await Promise.all(dedupedPortfolio.map(async (p) => {
