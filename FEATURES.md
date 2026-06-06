@@ -706,6 +706,11 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 리스크 레벨 (low/medium/high)
 - AI 한 줄 투자 전략 (thesis)
 
+### 13-1b. 🚨 거시 급락 조기경보 배너 (2026-06-06 신설)
+- `earlyWarning` 결정론적 composite — 신용 OAS(HY/IG 확대·고위험) / VIX 단계 / 금리커브 역전 / F&G 극단 / USD-KRW 급변 / jobless·PMI 위축 → 0-100 위험점수 + level(low/elevated/high/severe) + drivers.
+- level high/severe 시 보고서 **최상단 강한 시각 배너**(severe=빨강+animate-pulse+shadow, high=주황) + drivers 나열 + 위험점수. LLM riskLevel 과 독립(결정론적, 환각 무관).
+- 16개 언어 i18n (`report.ewTitle/ewSevere/ewHigh/ewScore/ewNote`).
+
 ### 13-2. 3단 분석 카드
 - 거시경제 분석 (파란색)
 - 기술적 분석 (보라색)
