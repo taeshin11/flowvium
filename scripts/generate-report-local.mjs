@@ -3965,6 +3965,10 @@ function evaluateSellRule(rule, ctx) {
     // ── 기본적 ────────────────────────────────────────────────────────────────
     case 'opMarginDecline':
       if (ctx.opMarginDecline != null && ctx.opMarginDecline >= (c.decline_pp_gte ?? 2)) {
+        // 2026-06-06 consensus 개선: 매출 hyper-growth(+25%↑) + 마진 완만하락(-5%p 미만)은 재투자/
+        //   램프 효과지 moat 약화 아님. NVDA(+65% rev, -2%p margin=Blackwell 램프)가 hard-veto(7)
+        //   되어 매수 탈락하던 사건. 심한 하락(-5%p↑)은 성장중에도 fire(진짜 수익성 붕괴).
+        if (ctx.revenueYoY != null && ctx.revenueYoY >= 25 && ctx.opMarginDecline < 5) return null;
         return `op margin YoY -${ctx.opMarginDecline.toFixed(1)}%p 악화`;
       }
       break;
@@ -4025,7 +4029,7 @@ async function fetchSellSignals(tickers) {
   const out = new Map();
   if (!tickers.length) return out;
   await Promise.all(tickers.slice(0, 24).map(async ticker => {
-    const sig = { rsi: null, sma50: null, sma200: null, volPct: null, opMarginDecline: null, peRatio: null, peg: null };
+    const sig = { rsi: null, sma50: null, sma200: null, volPct: null, opMarginDecline: null, peRatio: null, peg: null, revenueYoY: null };
     try {
       const oh = await fetchOHLCV(ticker, '1y');
       if (oh?.closes?.length) {
@@ -4050,6 +4054,7 @@ async function fetchSellSignals(tickers) {
         // PEG = P/E / growth rate
         const growth = d.revenueYoYPct ?? d.quarterlyRevenue?.[0]?.yoyPct;
         if (sig.peRatio && growth && growth > 0) sig.peg = sig.peRatio / growth;
+        if (growth != null && Number.isFinite(growth)) sig.revenueYoY = growth;  // margin-decline veto 의 hyper-growth context
       }
     } catch { /* skip */ }
     out.set(ticker, sig);
@@ -4468,7 +4473,7 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         // 기술
         rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
         // 기본
-        opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg,
+        opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
         sectorPe: macroCtx.sectorPeMap?.get(sectorKey) ?? null,
         // 거시
         macroRiskLevel: macroCtx.riskLevel ?? null,
@@ -5830,7 +5835,7 @@ async function generateViaOllama() {
       const exCtx = {
         price: livePrices.get(p.ticker)?.price ?? null,
         rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
-        opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg,
+        opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
         sectorPe: sectorPeMap.get(String(p.sector ?? '').toLowerCase()) ?? null,
         macroRiskLevel: macroData?.riskLevel ?? null,
       };
@@ -5843,7 +5848,7 @@ async function generateViaOllama() {
       const verdict = total >= VETO_SCORE ? 'veto' : 'pass';
       adjudication.candidates.push({
         ticker: p.ticker, sector: p.sector ?? null, sellScore: total, verdict,
-        signals: { rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, price: exCtx.price },
+        signals: { rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY, price: exCtx.price },
         hits,
       });
       if (verdict === 'veto') {
