@@ -507,7 +507,7 @@ async function main() {
   // Redis 결과 저장
   if (success > 0 && !dryRun) {
     const scanKey = `flowvium:satellite:v1:${today}`;
-    const ok = await redisSet(scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), 172800);
+    const ok = await redisSet(scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), 604800);  // 2026-06-06: 48h→7일, fallback 5일과 일치
     console.log(`\n────────────────────────────────────────────────────────────`);
     console.log(`✅ 완료: 성공 ${success} | 실패 ${failed}`);
     console.log(`  💾 Redis 저장: ${scanKey} → ${ok ? 'OK' : 'FAIL'}`);

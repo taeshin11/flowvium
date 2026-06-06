@@ -450,7 +450,9 @@ export async function GET(req: Request) {
   if (success > 0) {
     const scanKey = `flowvium:satellite:v1:${today}`;
     try {
-      await loggedRedisSet(redis, 'cron.satellite-scan', scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), { ex: 172800 });
+      // 2026-06-06: TTL 48h→7일(604800). 엔드포인트 fallback 이 5일치를 뒤지는데 48h TTL 이라
+      //   크론 2회 miss/저커버리지 시 빈데이터(satellite-signals 결함 발생). fallback 범위와 TTL 일치.
+      await loggedRedisSet(redis, 'cron.satellite-scan', scanKey, JSON.stringify({ results, updatedAt: new Date().toISOString(), mode: 'SAR' }), { ex: 604800 });
       logger.info('cron.satellite-scan', 'saved', { key: scanKey, success, failed, ms: Date.now() - start });
     } catch (e) {
       logger.error('cron.satellite-scan', 'result_save_failed', { error: String(e) });
