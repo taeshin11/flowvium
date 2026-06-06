@@ -950,9 +950,13 @@ export async function GET(request: Request) {
     backgroundTask(async () => {
       try {
         const translated = await translateArticles(sorted, locale);
-        if (redis && translated !== sorted) {
+        // 2026-06-06: ≥70% 게이트 필수 — 종전 `translated !== sorted`(참조비교)만 봐서 부분번역(33%)이
+        //   캐시 고착(ko 4/12 영어 leak 6h 지속) 버그. 다른 write(737/754)와 동일 게이트 적용.
+        if (redis && translated !== sorted && translationSucceeded(sorted, translated, locale)) {
           await loggedRedisSet(redis, 'api.news-cascade', translatedKey(locale), translated, { ex: 6 * 60 * 60 });
           logger.info('api.news-cascade', 'bg_translation_done', { locale, count: translated.length });
+        } else {
+          logger.warn('api.news-cascade', 'bg_translation_partial_not_cached', { locale, count: translated.length });
         }
       } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }
     });
