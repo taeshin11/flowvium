@@ -75,6 +75,19 @@ for (const c of CHECKS) {
   else ok.push(`${c.name}: 코드=${c.code} = 문서 (주장 ${claims.length ? claims.join(',') : '없음'})`);
 }
 
+// 2026-06-06: ETF_META 의 모든 cat 값이 i18n 키(report.etfCat_{cat})를 갖는지 점검.
+//   사건: thematic/style/dividend cat 은 ETF_META 에 있는데 messages 엔 키 없어 동적
+//   t(`etfCat_${cat}`) 가 원본키("report.etfCat_thematic") 그대로 UI 노출(사용자 스크린샷).
+//   "데이터값 추가 시 i18n 소비처 미동기화" 패턴 — 자동 감지로 재발 차단.
+{
+  const etfBlk = readFileSync('scripts/generate-report-local.mjs', 'utf8').match(/const ETF_META = \{[\s\S]*?\n\};/)?.[0] ?? '';
+  const cats = [...new Set([...etfBlk.matchAll(/cat:\s*'([a-z]+)'/g)].map(m => m[1]))];
+  const ko = JSON.parse(readFileSync('messages/ko.json', 'utf8'));
+  const missing = cats.filter(c => ko.report?.[`etfCat_${c}`] == null);
+  if (missing.length) issues.push(`ETF 카테고리 i18n 키 누락 ${missing.length}: ${missing.map(c => `etfCat_${c}`).join(', ')} — UI 에 원본키 노출(messages 16언어 추가 필요)`);
+  else ok.push(`ETF 카테고리 i18n 키 완비 (${cats.length} cat: ${cats.join(',')})`);
+}
+
 console.log(`\n[doc-sync ${new Date().toISOString().slice(0, 19)}]`);
 for (const s of ok) console.log('  ✅', s);
 for (const s of issues) console.log('  🚨', s);

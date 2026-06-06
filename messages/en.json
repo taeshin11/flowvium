@@ -1254,7 +1254,10 @@
     "ewSevere": "Severe",
     "ewHigh": "High",
     "ewScore": "Risk score",
-    "ewNote": "Deterministic leading-indicator composite · Consider defensive positioning/hedge"
+    "ewNote": "Deterministic leading-indicator composite · Consider defensive positioning/hedge",
+    "etfCat_thematic": "Thematic",
+    "etfCat_style": "Style",
+    "etfCat_dividend": "Dividend"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

@@ -1254,7 +1254,10 @@
     "ewSevere": "Severo",
     "ewHigh": "Alto",
     "ewScore": "Puntuación de riesgo",
-    "ewNote": "Compuesto determinista de indicadores líderes · Considere posición defensiva/cobertura"
+    "ewNote": "Compuesto determinista de indicadores líderes · Considere posición defensiva/cobertura",
+    "etfCat_thematic": "Temático",
+    "etfCat_style": "Estilo",
+    "etfCat_dividend": "Dividendo"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

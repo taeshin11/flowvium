@@ -1254,7 +1254,10 @@
     "ewSevere": "Schwer",
     "ewHigh": "Hoch",
     "ewScore": "Risikoscore",
-    "ewNote": "Deterministisches Frühindikator-Composite · Defensive Position/Hedge erwägen"
+    "ewNote": "Deterministisches Frühindikator-Composite · Defensive Position/Hedge erwägen",
+    "etfCat_thematic": "Thematisch",
+    "etfCat_style": "Stil",
+    "etfCat_dividend": "Dividende"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

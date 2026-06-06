@@ -1254,7 +1254,10 @@
     "ewSevere": "Ciddi",
     "ewHigh": "Yüksek",
     "ewScore": "Risk puanı",
-    "ewNote": "Öncü gösterge deterministik bileşik · Savunmacı pozisyon/hedge değerlendirin"
+    "ewNote": "Öncü gösterge deterministik bileşik · Savunmacı pozisyon/hedge değerlendirin",
+    "etfCat_thematic": "Tematik",
+    "etfCat_style": "Stil",
+    "etfCat_dividend": "Temettü"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

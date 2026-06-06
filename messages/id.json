@@ -1254,7 +1254,10 @@
     "ewSevere": "Parah",
     "ewHigh": "Tinggi",
     "ewScore": "Skor risiko",
-    "ewNote": "Komposit deterministik indikator utama · Pertimbangkan posisi defensif/lindung nilai"
+    "ewNote": "Komposit deterministik indikator utama · Pertimbangkan posisi defensif/lindung nilai",
+    "etfCat_thematic": "Tematik",
+    "etfCat_style": "Gaya",
+    "etfCat_dividend": "Dividen"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

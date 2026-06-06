@@ -1254,7 +1254,10 @@
     "ewSevere": "严重",
     "ewHigh": "高",
     "ewScore": "风险评分",
-    "ewNote": "领先指标确定性综合 · 建议防御性配置/对冲"
+    "ewNote": "领先指标确定性综合 · 建议防御性配置/对冲",
+    "etfCat_thematic": "主题",
+    "etfCat_style": "风格",
+    "etfCat_dividend": "红利"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

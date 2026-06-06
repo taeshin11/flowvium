@@ -1254,7 +1254,10 @@
     "ewSevere": "Nghiêm trọng",
     "ewHigh": "Cao",
     "ewScore": "Điểm rủi ro",
-    "ewNote": "Tổ hợp xác định của chỉ báo dẫn dắt · Cân nhắc vị thế phòng thủ/phòng hộ"
+    "ewNote": "Tổ hợp xác định của chỉ báo dẫn dắt · Cân nhắc vị thế phòng thủ/phòng hộ",
+    "etfCat_thematic": "Chủ đề",
+    "etfCat_style": "Phong cách",
+    "etfCat_dividend": "Cổ tức"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",
