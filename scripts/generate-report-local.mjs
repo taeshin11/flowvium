@@ -2733,6 +2733,40 @@ function computeMacroEarlyWarning(ctxRaw, fx = {}) {
 }
 
 /**
+ * 2026-06-06: whitelist validator (ChatGPT D1) — fundamentalBasis/catalysts/rationale/riskNote 의 모든
+ *   %·x 숫자가 grounded(sig 실값/계산/구조필드)인지 검증, whitelist 밖 = 환각 → clause strip.
+ *   *발간 직전 최종 게이트*에서 호출(rotation/pool 추가 종목까지 커버). 단일 함수(DRY — 산재 금지).
+ */
+function validateGroundedNumbers(portfolio, signalDigest, livePrices) {
+  const CALIB = new Set([1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 50, 52, 100, 200]);
+  let stripped = 0;
+  for (const p of (portfolio ?? [])) {
+    const sig = signalDigest.get(p.ticker);
+    const allow = new Set(CALIB);
+    const addN = v => { const n = parseFloat(String(v).replace(/[^\d.-]/g, '')); if (Number.isFinite(n)) allow.add(Math.round(Math.abs(n) * 10) / 10); };
+    if (sig?.fin) { addN(sig.fin.yoy); addN(sig.fin.margin); addN(sig.fin.roe); addN(sig.fin.pe); }
+    if (sig?.tech) for (const m of String(sig.tech).matchAll(/(\d+\.?\d*)/g)) addN(m[1]);
+    if (sig?.insider) { addN(sig.insider.buys); addN(sig.insider.sells); }
+    if (sig?.squeeze != null) addN(sig.squeeze);
+    addN(p.impliedVol); addN(p.ivSkew); addN(p.allocation);
+    const lp = livePrices.get(p.ticker); if (lp) { addN(lp.price); addN(lp.high52w); addN(lp.low52w); }
+    const isAllowed = (numTok) => { const n = Math.abs(parseFloat(numTok)); if (!Number.isFinite(n)) return true; for (const a of allow) if (Math.abs(n - a) <= Math.max(0.3, a * 0.02)) return true; return false; };
+    const stripClause = (text) => {
+      let t = text, changed = false;
+      for (const m of [...String(text).matchAll(/([+-]?\d+\.?\d*)\s*(?:%|x|배)/g)]) {
+        if (!isAllowed(m[1])) { t = t.replace(new RegExp(`[^,，·|/]*${m[1].replace('.', '\\.')}\\s*(?:%|x|배)[^,，·|/]*`), ''); changed = true; }
+      }
+      return changed ? t.replace(/\s*[,，·|]\s*[,，·|]\s*/g, ', ').replace(/^[\s,，·|]+|[\s,，·|]+$/g, '').replace(/\s{2,}/g, ' ') : text;
+    };
+    for (const f of ['fundamentalBasis', 'rationale', 'riskNote']) {
+      if (typeof p[f] === 'string') { const nv = stripClause(p[f]); if (nv !== p[f]) { p[f] = nv; stripped++; } }
+    }
+    if (Array.isArray(p.catalysts)) { const before = p.catalysts.join('|'); p.catalysts = p.catalysts.map(stripClause).filter(c => c && c.length > 3); if (p.catalysts.join('|') !== before) stripped++; }
+  }
+  return stripped;
+}
+
+/**
  * Post-processing: append key indicator snapshot to macroAnalysis if under 200 chars.
  */
 function enrichMacroAnalysis(macroAnalysis, ctxRaw, macroData, locale = 'ko') {
@@ -5736,38 +5770,8 @@ async function generateViaOllama() {
     if (cg) console.log(`  [catalysts/deterministic] 숫자 catalyst 코드생성 + 정성 LLM 보충 ${cg}건`);
   }
 
-  // 2026-06-06: whitelist validator (ChatGPT D1 1순위) — fundamentalBasis/catalysts/rationale 의 모든
-  //   %·x 숫자가 grounded(sig 실값/계산값/구조필드)인지 검증. whitelist 밖 숫자 = 환각 → 해당 clause
-  //   strip. fundamentalBasis/catalysts 는 이미 결정론적이라 통과, LLM rationale 의 단일 환각수치까지 차단.
-  {
-    let stripped = 0;
-    const CALIB = new Set([1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 50, 52, 100, 200]); // 흔한 계산상수(target/stop/MA기간)
-    for (const p of mergedPortfolio) {
-      const sig = signalDigest.get(p.ticker);
-      const allow = new Set(CALIB);
-      const addN = v => { const n = parseFloat(String(v).replace(/[^\d.-]/g, '')); if (Number.isFinite(n)) allow.add(Math.round(Math.abs(n) * 10) / 10); };
-      if (sig?.fin) { addN(sig.fin.yoy); addN(sig.fin.margin); addN(sig.fin.roe); addN(sig.fin.pe); }
-      if (sig?.tech) for (const m of String(sig.tech).matchAll(/(\d+\.?\d*)/g)) addN(m[1]);
-      if (sig?.insider) { addN(sig.insider.buys); addN(sig.insider.sells); }
-      if (sig?.squeeze != null) addN(sig.squeeze);
-      addN(p.impliedVol); addN(p.ivSkew); addN(p.allocation);
-      const lp = livePrices.get(p.ticker); if (lp) { addN(lp.price); addN(lp.high52w); addN(lp.low52w); }
-      const isAllowed = (numTok) => { const n = Math.abs(parseFloat(numTok)); if (!Number.isFinite(n)) return true; for (const a of allow) if (Math.abs(n - a) <= Math.max(0.3, a * 0.02)) return true; return false; };
-      const stripClause = (text) => {
-        let t = text, changed = false;
-        // %·x·배 suffix 숫자만 검사(가격·날짜 등 구조 숫자 제외 위해)
-        for (const m of [...String(text).matchAll(/([+-]?\d+\.?\d*)\s*(?:%|x|배)/g)]) {
-          if (!isAllowed(m[1])) { t = t.replace(new RegExp(`[^,，·|/]*${m[1].replace('.', '\\.')}\\s*(?:%|x|배)[^,，·|/]*`), ''); changed = true; }
-        }
-        return changed ? t.replace(/\s*[,，·|]\s*[,，·|]\s*/g, ', ').replace(/^[\s,，·|]+|[\s,，·|]+$/g, '').replace(/\s{2,}/g, ' ') : text;
-      };
-      for (const f of ['fundamentalBasis', 'rationale', 'riskNote']) {
-        if (typeof p[f] === 'string') { const nv = stripClause(p[f]); if (nv !== p[f]) { p[f] = nv; stripped++; } }
-      }
-      if (Array.isArray(p.catalysts)) { const before = p.catalysts.join('|'); p.catalysts = p.catalysts.map(stripClause).filter(c => c && c.length > 3); if (p.catalysts.join('|') !== before) stripped++; }
-    }
-    if (stripped) console.log(`  [whitelist-validator] ungrounded %·x 숫자 strip ${stripped}건 (sig 실값 외 환각 차단)`);
-  }
+  // 2026-06-06: whitelist validator 는 발간 직전 최종 게이트로 이동(아래 writeFileSync 前) — enforceRotation/
+  //   pool-fill 이 추가한 종목까지 커버. 여기(중간)서 돌리면 rotation 종목 우회(name-gate/IV 와 동일 패턴).
 
   let dedupedPortfolio = dedupCrossTickerCatalysts(mergedPortfolio);
   // 2026-05-29: price_at_gen=null (livePrices 못 받은 ticker) 제외 — NE 확정 차단.
@@ -6729,6 +6733,13 @@ async function generateViaOllama() {
       } catch { p.impliedVol = null; }
     }));
     if (n) console.log(`  [IV/final] rotation/pool 추가 종목 IV 재주입 ${n}건`);
+  }
+
+  // 2026-06-06: whitelist validator 최종 게이트 — 모든 portfolio 재할당(rotation/cap) 後 실행해
+  //   rotation/pool 추가 종목의 ungrounded 숫자까지 차단(중간 배치 버그 fix).
+  {
+    const sv = validateGroundedNumbers(finalReport.portfolio, signalDigest, livePrices);
+    if (sv) console.log(`  [whitelist-validator/final] ungrounded %·x 숫자 strip ${sv}건 (rotation 포함 전수)`);
   }
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
