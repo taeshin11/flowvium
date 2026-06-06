@@ -388,7 +388,9 @@ try {
       // 2026-06-06: recency-aware — 정합 게이트는 *신규* 매수를 막음(수시간 내). 따라서 최근 매수(<18h)가
       //   있을 때만 "게이트 우회"(❌). 18h+ 과거 매수는 게이트 도입 前 잔존이라 aging out(warn). 다른 프로브
       //   recency 패턴과 일관(scattered-invariant 교훈).
-      const recentBuy = db.prepare(`SELECT MAX(generated_at) lb FROM recommendations WHERE ticker=? AND generated_at>=datetime('now','-18 hours')`).get(c.ticker).lb;
+      // 2026-06-06: 저장 timestamp 는 ISO 'YYYY-MM-DDT...'(T), datetime('now')는 공백구분 → 같은 날 문자열비교
+      //   시 'T'(84)>' '(32)로 시간 뒤집힘. strftime ISO-T 로 양쪽 통일(format-mismatch 버그 fix).
+      const recentBuy = db.prepare(`SELECT MAX(generated_at) lb FROM recommendations WHERE ticker=? AND substr(generated_at,1,19) >= strftime('%Y-%m-%dT%H:%M:%S','now','-18 hours')`).get(c.ticker).lb;
       if (recentBuy) {
         err(`${c.ticker}: 최근18h buy(${recentBuy.slice(5, 16)})+펀더멘털sell — 정합 게이트 우회 의심`);
       } else {
