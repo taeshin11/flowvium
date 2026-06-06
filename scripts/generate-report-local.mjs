@@ -2987,6 +2987,18 @@ function buildCtxSummary(ctx) {
   } catch { /* ignore */ }
 
   // Capital flows
+  // 2026-06-06: 섹터 리더십 grounding (사용자 "반도체 주도가 맞어?" — thesis 가 live 섹터 성과 안 봐서
+  //   하락 섹터를 강세 주도로 오기재). ret1w 랭킹 + ret1w↔4w 반전(추세 꺾임) 명시 → thesis grounded.
+  let sectorLeadership = '';
+  try {
+    const sp = (ctx.capital?.sectorPerformance ?? []).filter(s => typeof s.ret1w === 'number');
+    if (sp.length) {
+      const ranked = [...sp].sort((a, b) => b.ret1w - a.ret1w);
+      const fmt = s => { const rev = (s.ret4w ?? 0) > 5 && s.ret1w < 0 ? '⚠️추세반전' : ''; return `${s.label} 1w${s.ret1w >= 0 ? '+' : ''}${s.ret1w.toFixed(1)}%/4w${(s.ret4w ?? 0) >= 0 ? '+' : ''}${(s.ret4w ?? 0).toFixed(1)}%${rev}`; };
+      sectorLeadership = `주도(1w강): ${ranked.slice(0, 3).map(fmt).join(', ')} | 부진(1w약): ${ranked.slice(-3).reverse().map(fmt).join(', ')}`;
+    }
+  } catch { /* */ }
+
   let flows = '';
   try {
     const cap = ctx.capital;
@@ -3264,7 +3276,7 @@ function buildCtxSummary(ctx) {
     if (lines.length) supplyChain = lines.join('\n');
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, cot, narratives, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
+  return { macro, sentiment, flows, sectorLeadership, cot, narratives, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
 }
 
 // ── Cascade signals ────────────────────────────────────────────────────────────
@@ -3650,6 +3662,7 @@ function buildMacroPrompt(ctx, vix, session) {
     `[Upcoming High-Impact Events] ${ctx.econCal || 'No data'}`,
     `[COT Positioning] ${ctx.cot || 'No data'}`,
     `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,
+    `[Sector Leadership — 실 섹터 성과 1w/4w] ${ctx.sectorLeadership || 'No data'}`,
     `[Commodity Curves] ${ctx.commodity || 'No data'}`,
     `[News — 연준발언 우선] ${ctx.news || 'No data'}`,
     '',
@@ -3658,6 +3671,7 @@ function buildMacroPrompt(ctx, vix, session) {
     '- 특정 인물 임명/잔류/사임 (예: Powell, Bessent) 같은 정치 인물 발언 금지 — 입력에 없으면 추측 X.',
     '- "파월 잔류", "트럼프 정책" 같은 정치 이벤트는 [News] 에 명시된 경우만 인용.',
     '- 추측/일반화 (예: "AI 인프라 확장") 보다 구체 수치 (예: "CPI 3.78%, NVDA Q1 +73%") 우선.',
+    '- ⚠️ thesis 의 "X 주도/강세" 주장은 [Sector Leadership] 와 일치해야 함 — 1w 부진(약세) 섹터를 "주도/강세"로 쓰지 말 것. ⚠️추세반전 표시 섹터는 "주도"가 아니라 "조정/반전"으로 기술.',
     '',
     `Write ALL text values in ${TARGET_LANG}. Respond ONLY in pure JSON, no markdown, no explanation:`,
     `{"macroAnalysis":"[${TARGET_LANG} text, ≤150 chars, include actual CPI/rate/spread numbers]",`,
