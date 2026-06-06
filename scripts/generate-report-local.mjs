@@ -5945,7 +5945,10 @@ async function generateViaOllama() {
     for (const p of dedupedPortfolio) {
       const real = parseFloat(signalDigest.get(p.ticker)?.fin?.yoy ?? '');
       if (!Number.isFinite(real) || !p.fundamentalBasis) continue;
-      p.fundamentalBasis = p.fundamentalBasis.replace(/(매출|revenue)([^%]{0,4})([+-]?\d+\.?\d*)%/gi, (m, lbl, mid, num) => {
+      // 2026-06-06 fix: 분리자 그룹 [^%]{0,4} 가 greedy 라 숫자 앞부분(" 16.")까지 삼켜 group3 가
+      //   "6" 만 매칭→parseFloat 6 이 real 16.6 과 >7 이탈→오교정 prepend "16.16.6%". 분리자에서
+      //   숫자·부호 제외([^%\d]) 해 숫자 침범 차단.
+      p.fundamentalBasis = p.fundamentalBasis.replace(/(매출|revenue)([^%\d]{0,4})([+-]?\d+\.?\d*)%/gi, (m, lbl, mid, num) => {
         if (Math.abs(parseFloat(num) - real) > 7) { grounded++; return `${lbl}${mid}${real}%`; }
         return m;
       });
