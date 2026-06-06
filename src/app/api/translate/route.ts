@@ -33,7 +33,10 @@ async function translateViaOllama(prompt: string): Promise<string | null> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
+        // 2026-06-06: qwen3:8b → exaone3.5:7.8b. qwen3 은 thinking 모드라 /v1 OpenAI-compat 에서
+        //   <think> 만 출력하고 본문 empty → translateViaOllama null → GROQ fallback → bulk(news 12×locale)
+        //   quota throttle → ko 33% 미번역. exaone3.5(LG, 한국어특화, thinking 없음)는 9s 클린번역.
+        model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
         max_tokens: 2048,

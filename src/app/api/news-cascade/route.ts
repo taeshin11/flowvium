@@ -158,11 +158,11 @@ async function translateViaOllama(prompt: string): Promise<string | null> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
-        // 2026-06-05: /no_think 필수 — qwen3 는 thinking 모델이라 prefix 없으면 <think> 가 max_tokens 를
-        //   먹어 12기사 배치 JSON 이 잘림 → ja 8%/ko 부분번역. 직접 테스트로 /no_think 시 ko/ja/한국어→일본어
-        //   전부 완벽 번역 확인. (max_tokens 12000 은 증상 땜질이었음 — thinking 제거가 근본.)
-        messages: [{ role: 'user', content: `/no_think ${prompt}` }],
+        // 2026-06-06: qwen3:8b → exaone3.5:7.8b. qwen3 은 /no_think 줘도 /v1 OpenAI-compat 에서
+        //   <think> 만 출력하고 본문 empty → 번역 실패 → news ko 33%/ja 8%. exaone3.5(LG 한국어특화,
+        //   thinking 없음)는 9s 클린 다국어 번역(ko/ja/zh 검증). /no_think prefix 불필요 → 제거.
+        model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b',
+        messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 12000,
       }),

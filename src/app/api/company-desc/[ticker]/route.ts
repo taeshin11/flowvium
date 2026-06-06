@@ -29,7 +29,7 @@ async function generateViaOllama(prompt: string): Promise<string | null> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b',
+        model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b',  // 2026-06-06: qwen3 thinking→empty 실패, exaone 클린번역
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,
         max_tokens: 1024,
