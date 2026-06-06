@@ -579,7 +579,8 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
   if (reportId) {
     try {
       const volRow = db.prepare(`SELECT response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint='/api/volatility'`).get(reportId);
-      if (volRow) snapVix = JSON.parse(volRow.response_json)?.vix ?? null;
+      // 2026-06-06: /api/volatility 응답은 .score(VIX) — 종전 .vix 만 읽어 항상 null(snapshot VIX 미저장 버그).
+      if (volRow) { const vj = JSON.parse(volRow.response_json); snapVix = vj?.score ?? vj?.vix ?? null; }
       const ycRow = db.prepare(`SELECT response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint='/api/yield-curve'`).get(reportId);
       if (ycRow) snapYields = JSON.parse(ycRow.response_json);
       const cfRow = db.prepare(`SELECT response_json FROM endpoint_snapshots WHERE report_id=? AND endpoint='/api/capital-flows'`).get(reportId);
@@ -599,6 +600,13 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
   })();
   const yc = ctxRaw?.yieldCurve ?? ctxRaw?.yield_curve;
   const yields = yc?.today ?? {};
+  // 2026-06-06: VIX/yield_spread snapshot 저장 갭 fix — VIX 는 ctxRaw.volatility.score(live) 우선,
+  //   yield_spread 는 endpoint spread 필드 없으면 10Y-2Y 직접 계산(early-warning trend 추적용).
+  const vixVal = findInd('vix') ?? ctxRaw?.volatility?.score ?? snapVix;
+  const y10v = findYield('10Y') ?? yields?.['10Y'] ?? yields?.['10y'] ?? null;
+  const y2v = findYield('2Y') ?? yields?.['2Y'] ?? yields?.['2y'] ?? null;
+  const spreadVal = snapYields?.spread2s10sCurrent ?? snapYields?.spread2s10s ?? yc?.spread10y2y
+    ?? ((y10v != null && y2v != null) ? Math.round((y10v - y2v) * 100) / 100 : null);
   db.prepare(`
     INSERT OR REPLACE INTO macro_snapshots
       (report_id, captured_at, fg_score, fg_label, vix, cpi, fed_rate,
@@ -609,14 +617,14 @@ export function saveMacroSnapshot({ reportId, capturedAt, ctxRaw, macroData }) {
     reportId, capturedAt ?? new Date().toISOString(),
     fgUs?.score ?? null,
     fgUs?.level ?? fgUs?.label ?? null,
-    // 2026-05-29: VIX 는 /api/volatility 응답, yields 는 /api/yield-curve.today 배열에서 찾기
-    findInd('vix') ?? snapVix,
+    // 2026-06-06: VIX = live volatility.score 우선 (위 vixVal 변수)
+    vixVal,
     findInd('cpi') ?? findInd('us_cpi'),
     // 2026-05-29 Codex 진단: macro-indicators route 의 실제 id 는 'fomc' / 'ig_spread'
     findInd('fed_rate') ?? findInd('fomc') ?? findInd('fedfunds'),
-    findYield('10Y') ?? yields?.['10Y'] ?? yields?.['10y'] ?? null,
-    findYield('2Y') ?? yields?.['2Y'] ?? yields?.['2y'] ?? null,
-    snapYields?.spread2s10sCurrent ?? snapYields?.spread2s10s ?? yc?.spread10y2y ?? null,
+    y10v,
+    y2v,
+    spreadVal,
     findInd('hy_oas') ?? findInd('hy_spread'),
     findInd('ig_oas') ?? findInd('ig_spread'),
     findInd('gdp') ?? findInd('gdp_growth'),
