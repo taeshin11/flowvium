@@ -72,6 +72,7 @@ const CURATED = {
   IWM: 'iShares Russell 2000 ETF', DIA: 'SPDR Dow Jones Industrial Average ETF', ITOT: 'iShares Core S&P Total US Stock Market ETF',
   IJR: 'iShares Core S&P Small-Cap ETF', SPLG: 'SPDR Portfolio S&P 500 ETF',
   TSLA: 'Tesla, Inc.', NWSA: 'News Corporation', NWS: 'News Corporation',
+  TSM: 'TSMC',  // 2026-06-06: SEC legal name(Taiwan Semiconductor Manufacturing Co Ltd) 대신 보편 표시명. gate↔verify 단일 권위.
   GOOG: 'Alphabet Inc.', GOOGL: 'Alphabet Inc.', META: 'Meta Platforms, Inc.',
   BRK_B: 'Berkshire Hathaway Inc.',
 };
