@@ -2760,7 +2760,11 @@ function validateGroundedNumbers(portfolio, signalDigest, livePrices) {
     const stripClause = (text) => {
       let t = text, changed = false;
       for (const m of [...String(text).matchAll(/([+-]?\d+\.?\d*)\s*(?:%|x|배)/g)]) {
-        if (!isAllowed(m[1])) { t = t.replace(new RegExp(`[^,，·|/]*${m[1].replace('.', '\\.')}\\s*(?:%|x|배)[^,，·|/]*`), ''); changed = true; }
+        // 2026-06-06 FATAL fix: m[1] 가 "+17.13" 처럼 부호 포함 시 기존 .replace('.','\\.') 는 "+" 미escape
+        //   → `[^,，·|/]*+17\.13` 의 `*+` = "Nothing to repeat" invalid regex → afternoon 보고서 gen crash.
+        //   정규식 특수문자 전체 escape. (rotation avg_pnl "+17.13%" 가 strip 대상이 되며 발생.)
+        const esc = m[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (!isAllowed(m[1])) { t = t.replace(new RegExp(`[^,，·|/]*${esc}\\s*(?:%|x|배)[^,，·|/]*`), ''); changed = true; }
       }
       return changed ? t.replace(/\s*[,，·|]\s*[,，·|]\s*/g, ', ').replace(/^[\s,，·|]+|[\s,，·|]+$/g, '').replace(/\s{2,}/g, ' ') : text;
     };
