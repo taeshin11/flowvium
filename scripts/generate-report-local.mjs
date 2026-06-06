@@ -210,9 +210,11 @@ const US_NAMES_HARNESS = {
   SPY: 'SPDR S&P 500 ETF', QQQ: 'Invesco QQQ', DELL: 'Dell Technologies',
 };
 
-// 권위 name 맵: company-names.json(~499 실제 프로필) base + 큐레이션(US_NAMES_HARNESS) override.
-//   CPRT 같은 비-테크 종목까지 전부 커버 → name 환각 차단(2026-06-03).
-const US_NAME_LOOKUP = { ...COMPANY_NAMES_JSON, ...US_NAMES_HARNESS };
+// 권위 name 맵: 2026-06-06 순서 flip — company-names.json(SEC 904, build:names 생성)이 *최종 권위*.
+//   US_NAMES_HARNESS(레거시 ~60 큐레이션)는 company-names.json 에 *없는* ticker 만 gap-fill.
+//   종전 harness override 라 TSM='TSMC' 가 SEC full name 을 덮어 verify-report(company-names.json 정답)와
+//   이중 권위 충돌(name-gate→TSMC vs verify→full name). company-names.json 우선으로 단일 권위 통일.
+const US_NAME_LOOKUP = { ...US_NAMES_HARNESS, ...COMPANY_NAMES_JSON };
 
 const ACTION_DOWNGRADE_PATTERNS_HARNESS = [
   /매수\s*자제/, /보유\s*권장/, /신규\s*매수\s*자제/, /고점\s*주의/,
