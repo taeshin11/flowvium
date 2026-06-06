@@ -78,6 +78,23 @@ function runMonitor() {
   }
   try { writeFileSync(resolve(process.cwd(), 'logs/monitor-status.json'), JSON.stringify(result, null, 2)); } catch { /* */ }
   log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
+
+  // 2026-06-06 cold-cache self-heal: 자가호스팅이라 cloud 번역 warm-cron(401) 부재 → 뉴스 새로고침
+  //   후 비-ko locale 이 cold 로 남아 모니터마다 [B] 결함 재발(수동 warm 반복). 감지 시 자동 warm
+  //   fetch 로 self-heal. 단일 ollama GPU → 직렬 warm(순차 fetch). "최선의 방법을 자동화" 요청 반영.
+  const coldLocales = [...new Set(result.defects
+    .map(d => d.match(/뉴스 번역\s+([a-zA-Z-]+)\s+\d+\/\d+/)?.[1])
+    .filter(Boolean))];
+  if (coldLocales.length) {
+    (async () => {
+      for (const loc of coldLocales) {
+        try {
+          await fetch(`${BASE}/api/news-cascade?locale=${loc}`, { signal: AbortSignal.timeout(150000) });
+          log(`[auto-warm] ${loc} 번역 warm 트리거 (cold-cache self-heal)`);
+        } catch { log(`[auto-warm] ${loc} warm 실패`); }
+      }
+    })();
+  }
 }
 cron.schedule('*/20 * * * *', runMonitor, { timezone: TZ });
 log('자동 모니터 등록: */20분 (check-stall + check-data-quality, hang-protected, → logs/monitor-status.json)');
