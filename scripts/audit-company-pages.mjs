@@ -88,10 +88,14 @@ const validators = {
   'iv':                 (b) => (typeof b?.iv === 'number' || b?.atmIv30d || b?.ivRank) ? { ok: true, summary: `iv=${b.iv ?? b.atmIv30d}` } : { ok: false, reason: 'no iv' },
 };
 
-// 병렬 8 = balance speed/rate-limit
-const CONCURRENCY = 8;
+// 병렬 12 = balance speed/rate-limit (2026-06-06: 8→12, full scan 가시성+속도)
+const CONCURRENCY = 12;
 
 async function runFor(name, tickers) {
+  // 2026-06-06: 진행 출력 — full scan(특히 company-kr=DART 15-20s/call×465) 이 silent black box 라
+  //   8분+ 무진행으로 보여 "hang" 오인 + 사실상 전수 검증 불가였음. 엔드포인트별 진행% surface.
+  const t0 = Date.now();
+  process.stdout.write(`  [${name}] ${tickers.length}종목 검증 중...`);
   for (let i = 0; i < tickers.length; i += CONCURRENCY) {
     const batch = tickers.slice(i, i + CONCURRENCY);
     const results = await Promise.all(batch.map(async t => {
@@ -110,6 +114,8 @@ async function runFor(name, tickers) {
       if (samples.length < 5) samples.push(`${r.ticker}(${r.detail})`);
     }
   }
+  const s = stats[name];
+  console.log(`\r  [${name}] ✓ ok=${s.ok} empty=${s.empty} err=${s.error} (${((Date.now() - t0) / 1000).toFixed(0)}s)          `);
 }
 
 // US 종목: company-financials + company-news + company-recs + 공통 7개
