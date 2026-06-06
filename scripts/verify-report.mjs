@@ -401,6 +401,31 @@ export function verifyReport(file, { silent = false } = {}) {
   }
   if (dupPctBad === 0) log('  ✅ 종목간 동일 %수치 없음');
 
+  // 6c. 망가진 숫자 (2026-06-06: rev-ground 정규식 greedy 분리자가 숫자 삼켜 "16.16.6%"/"21.21.8%"
+  //   생성 사건). 소수점 2개+("\d+\.\d+\.\d") 는 코드/LLM 의 숫자 조립 버그 — 사용자에게 깨진 수치 노출.
+  //   verify 사각지대였음(모든 % probe 가 첫 \d+\.\d+ 만 봐서 뒤 ".6" 무시). 전 텍스트필드 스캔.
+  log('\n## 망가진 숫자 (소수점 2개+ — 숫자조립 버그 — 2026-06-06)');
+  let malformedNum = 0;
+  for (const p of (r.portfolio || [])) {
+    const fields = {
+      fundamentalBasis: p.fundamentalBasis, technicalBasis: p.technicalBasis,
+      entryRationale: p.entryRationale, targetRationale: p.targetRationale, riskNote: p.riskNote,
+      catalysts: Array.isArray(p.catalysts) ? p.catalysts.join(' | ') : p.catalysts,
+    };
+    for (const [fld, txt] of Object.entries(fields)) {
+      const bad = String(txt || '').match(/\d+\.\d+\.\d+/g);
+      if (bad) {
+        log(`  ❌ ${p.ticker} ${fld}: 망가진 숫자 "${bad.join(', ')}" (소수점 2개+)`);
+        defects.push({
+          ticker: p.ticker, defect_type: 'malformed_number',
+          llm_value: bad.join(','), correct_value: '단일 소수점 숫자', severity: 'high',
+        });
+        malformedNum++;
+      }
+    }
+  }
+  if (malformedNum === 0) log('  ✅ 망가진 숫자 없음');
+
   // 7. 기술 일관성 — RSI/지지선 환각 detect (2026-06-05, 삼전 "RSI 45+과매도"(실제 58)·
   //    "120,000 지지"(실제가 327k) 환각 사건). report 내부만으로 판정(외부 fetch 불필요):
   //    (a) "RSI N" + "과매도"(N≥35) 또는 "과매수"(N≤65) 모순, (b) entryRationale 의 지지가격이
