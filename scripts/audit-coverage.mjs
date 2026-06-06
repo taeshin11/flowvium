@@ -385,15 +385,14 @@ try {
     ok('buy↔sell 모순 없음 (펀더멘털 매도 종목이 매수에 재등장 안 함)');
   } else {
     for (const c of conflicts) {
-      // 발간직전 정합 게이트(generate-report-local) 도입 後엔 신규 발생 안 해야 함 → 과거분은 warn, 최근은 err
-      const recentBoth = db.prepare(`
-        SELECT (SELECT MAX(generated_at) FROM recommendations WHERE ticker=? AND generated_at>=datetime('now','-2 days')) lastBuy,
-               (SELECT MAX(generated_at) FROM sell_recommendations WHERE ticker=? AND generated_at>=datetime('now','-2 days')) lastSell
-      `).get(c.ticker, c.ticker);
-      if (recentBoth.lastBuy && recentBoth.lastSell) {
-        err(`${c.ticker}: 최근2일 buy+펀더멘털sell 동시 (매수${c.buys}/매도${c.sells}) — 정합 게이트 우회 의심`);
+      // 2026-06-06: recency-aware — 정합 게이트는 *신규* 매수를 막음(수시간 내). 따라서 최근 매수(<18h)가
+      //   있을 때만 "게이트 우회"(❌). 18h+ 과거 매수는 게이트 도입 前 잔존이라 aging out(warn). 다른 프로브
+      //   recency 패턴과 일관(scattered-invariant 교훈).
+      const recentBuy = db.prepare(`SELECT MAX(generated_at) lb FROM recommendations WHERE ticker=? AND generated_at>=datetime('now','-18 hours')`).get(c.ticker).lb;
+      if (recentBuy) {
+        err(`${c.ticker}: 최근18h buy(${recentBuy.slice(5, 16)})+펀더멘털sell — 정합 게이트 우회 의심`);
       } else {
-        warn(`${c.ticker}: 7일내 buy${c.buys}+펀더멘털sell${c.sells} (정합 게이트 도입前 과거분 — aging out)`);
+        warn(`${c.ticker}: buy${c.buys}+sell${c.sells} but 최근 매수 18h+ 전 — 게이트 도입前 과거분 aging out`);
       }
     }
   }
