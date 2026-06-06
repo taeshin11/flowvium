@@ -178,7 +178,25 @@ async function translateViaOllama(prompt: string): Promise<string | null> {
   }
 }
 
+// 2026-06-06: 12-기사 strict-JSON 배치가 가용 모델(exaone 7.8B cold-load null·GROQ 70b 429·
+//   8b 부분응답)로는 불안정 → ja 등 특정 locale 이 매 사이클 cached-en 고착(self-heal warm 해도
+//   배치 파싱/게이트 실패). 4-기사 청크로 분할하면 작은 JSON 이라 모델이 안정적으로 생성 →
+//   청크별 독립 성공/실패(부분 성공도 70% 게이트 통과 기여). chunk 함수는 로컬 인덱스로 동작.
 async function translateArticles(
+  articles: NewsWithCascade[],
+  locale: string,
+): Promise<NewsWithCascade[]> {
+  if (locale === 'en' || !LOCALE_NAMES[locale]) return articles;
+  if (!articles.length) return articles;
+  const CHUNK = 4;
+  const out: NewsWithCascade[] = [];
+  for (let i = 0; i < articles.length; i += CHUNK) {
+    out.push(...await translateChunk(articles.slice(i, i + CHUNK), locale));
+  }
+  return out;
+}
+
+async function translateChunk(
   articles: NewsWithCascade[],
   locale: string,
 ): Promise<NewsWithCascade[]> {
