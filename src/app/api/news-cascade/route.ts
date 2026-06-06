@@ -236,12 +236,12 @@ Output (JSON array only):`;
     }
     if (!r.text) {
       logger.warn('news-cascade.translate', 'empty_ai_response', { locale, source: r.source });
-      return articles.map(a => localizeTimeframesOnly(a, locale));
+      return await translatePerField(articles, locale);
     }
     const jsonMatch = r.text.match(/\[\s*\{[\s\S]*\}\s*\]/);
     if (!jsonMatch) {
       logger.warn('news-cascade.translate', 'no_json_match', { locale, source: r.source, sample: r.text.slice(0, 100) });
-      return articles.map(a => localizeTimeframesOnly(a, locale));
+      return await translatePerField(articles, locale);
     }
     const translated = JSON.parse(jsonMatch[0]) as Array<{
       i: number; title: string; summary: string; reasons?: Array<{ j: number; r: string }>;
@@ -260,8 +260,8 @@ Output (JSON array only):`;
     });
     if (locale !== 'en' && needTr.length > 0 && !anyTr) {
       logger.warn('news-cascade.translate', 'identity_translation', { locale, source: r.source });
-      // 번역 필요 기사가 하나도 안 바뀜 → 진짜 실패. timeframe 만 localize 후 반환.
-      return articles.map(a => localizeTimeframesOnly(a, locale));
+      // 번역 필요 기사가 하나도 안 바뀜 → 배치 실패. 기사별 simple-prompt 폴백.
+      return await translatePerField(articles, locale);
     }
     return articles.map((a, i) => {
       const t = byIdx.get(i);
@@ -283,8 +283,35 @@ Output (JSON array only):`;
     });
   } catch (e) {
     logger.warn('news-cascade.translate', 'translation_failed', { locale, error: String(e).slice(0, 100) });
-    return articles.map(a => localizeTimeframesOnly(a, locale));
+    return await translatePerField(articles, locale);
   }
+}
+
+// 2026-06-06: 배치 JSON 번역 실패 시 기사별 simple-prompt 폴백. exaone3.5 는 JSON-array 출력은
+//   불안정(identity/malformed)하지만 단문 "Translate to X: ..." 는 안정적(실측). cloud 전멸
+//   (GROQ TPD 소진·OpenRouter/Gemini 429)이라 Ollama 가 유일 가용 → simple-prompt 가 유일하게
+//   신뢰 가능한 경로. 필드별 직렬 호출(GPU 단일). 이미 target 언어인 텍스트는 skip.
+async function translatePerField(articles: NewsWithCascade[], locale: string): Promise<NewsWithCascade[]> {
+  const langName = LOCALE_NAMES[locale];
+  if (!langName || locale === 'en') return articles.map(a => localizeTimeframesOnly(a, locale));
+  const tgtRe = CJK_RE[locale];
+  const tOne = async (text: string): Promise<string> => {
+    if (!text || !text.trim()) return text;
+    // 이미 target 언어(CJK) 이고 긴 영문 단어 없으면 번역 불필요 — 네이티브 기사 skip(비용 절감).
+    if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text)) return text;
+    const out = await translateViaOllama(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`);
+    return (out && out.trim() && out.trim() !== text.trim()) ? out.trim() : text;
+  };
+  const result: NewsWithCascade[] = [];
+  for (const a of articles) {
+    const title = await tOne(a.title);
+    const summary = await tOne(a.summary);
+    const cascades = [];
+    for (const c of a.cascades) cascades.push({ ...c, reason: await tOne(c.reason), timeframe: localizeTimeframe(c.timeframe, locale) });
+    result.push({ ...a, title, summary, cascades });
+  }
+  logger.info('news-cascade.translate', 'per_field_fallback_done', { locale, count: result.length });
+  return result;
 }
 
 // AI 번역 실패해도 timeframe 만은 정적 i18n 적용 — graceful degradation
