@@ -34,8 +34,6 @@
     "screenerDesc": "संस्थागत फ़िल्टर",
     "shortDesc": "शॉर्ट स्क्वीज़",
     "cascadeDesc": "लीडर→मिडकैप कैस्केड",
-    "satellite": "सैटेलाइट",
-    "satelliteDesc": "फ़ैक्टरी गतिविधि मॉनिटर",
     "volatility": "अंतर्निहित अस्थिरता",
     "volatilityDesc": "विकल्प IV · स्क्यू"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "शॉर्ट स्क्वीज़ उम्मीदवारों की पहचान के लिए Short Interest % of Float, Days to Cover और इंस्टीट्यूशनल संघर्ष विश्लेषण।",
     "watchlistTitle": "वॉचलिस्ट — Flowvium",
     "watchlistDescription": "अपनी वॉचलिस्ट में शेयर जोड़ें और रियल-टाइम कीमतों और दैनिक परिवर्तनों को एक नज़र में मॉनिटर करें।",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "अंतर्निहित अस्थिरता स्क्रीनर — Flowvium",
     "volatilityDescription": "ब्लूमबर्ग-स्टाइल विकल्प अंतर्निहित अस्थिरता: कॉल-पुट पैरिटी फॉरवर्ड एक्सट्रैक्शन + ब्रेंट इन्वर्शन। 30d/90d ATM IV, 25Δ स्क्यू, टर्म स्लोप, IV रैंक।"
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "तकनीकी विश्लेषण",
     "riskNoteLabel": "मुख्य जोखिम",
     "historyExpiredNote": "यह ऐतिहासिक रिपोर्ट समाप्त हो गई है और लोड नहीं हो सकती। नवीनतम रिपोर्ट देखें।",
-    "satelliteTitle": "उपग्रह कारखाना गतिविधि हाइलाइट्स",
-    "satelliteActive": "सक्रिय",
-    "satelliteNormal": "सामान्य",
     "newsTitle": "मुख्य समाचार",
     "newsSubtitle": "AI विश्लेषित प्रभावशाली शीर्षक",
     "newsLoading": "लोड हो रहा है...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "मुख्य कारक",
     "sevenDaysAgo": "7 दिन पहले",
     "current": "वर्तमान"
-  },
-  "satellite": {
-    "title": "सैटेलाइट सप्लाई चेन ट्रैकर",
-    "subtitle": "ESA Sentinel-2 इमेजरी + Claude Vision से प्रमुख फैक्ट्रियों की गतिविधि मॉनिटर करें।",
-    "noDataTitle": "कोई स्कैन डेटा नहीं",
-    "noDataDesc": "12 फैक्ट्रियों के लिए मुफ्त Copernicus अकाउंट से स्कैन चलाएं।",
-    "setupSteps": "सेटअप चरण",
-    "methodologyTitle": "पद्धति",
-    "methodologyDesc": "Sentinel-2 L2A (10m) को Claude Vision पार्किंग, लोडिंग और निर्माण के लिए विश्लेषण करता है।"
   },
   "volatility": {
     "title": "अंतर्निहित अस्थिरता स्क्रीनर",

@@ -34,8 +34,6 @@
     "screenerDesc": "Institutioneller Filter",
     "shortDesc": "Short-Squeeze-Kandidaten",
     "cascadeDesc": "Leader→Midcap-Kaskade",
-    "satellite": "Satellit",
-    "satelliteDesc": "Fabrikaktivitäts-Monitor",
     "volatility": "Volatilität",
     "volatilityDesc": "Optionen IV · Skew"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "Analysieren Sie Short Interest % of Float, Days to Cover und institutionelle Konflikte, um Short-Squeeze-Kandidaten zu identifizieren.",
     "watchlistTitle": "Watchlist — Flowvium",
     "watchlistDescription": "Fügen Sie Aktien zu Ihrer Watchlist hinzu und überwachen Sie Echtzeitkurse und tägliche Veränderungen auf einen Blick.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "Implizite Volatilität Screener — Flowvium",
     "volatilityDescription": "Implizite Volatilität nach Bloomberg-Art: Forward-Extraktion via Call-Put-Parität + Brent-Inversion. 30T/90T ATM IV, 25Δ Skew, Term-Slope, IV-Rang."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "Technisch",
     "riskNoteLabel": "Hauptrisiko",
     "historyExpiredNote": "Dieser historische Bericht ist abgelaufen und kann nicht geladen werden. Aktuellen Bericht anzeigen.",
-    "satelliteTitle": "Satelliten-Fabrikaktivitäts-Highlights",
-    "satelliteActive": "Aktiv",
-    "satelliteNormal": "Normal",
     "newsTitle": "Wichtige Nachrichten",
     "newsSubtitle": "KI-analysierte Schlagzeilen",
     "newsLoading": "Lade...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "Haupttreiber",
     "sevenDaysAgo": "Vor 7 Tagen",
     "current": "Aktuell"
-  },
-  "satellite": {
-    "title": "Satelliten-Lieferkettenüberwachung",
-    "subtitle": "Überwachen Sie die Fabrikaktivität mit ESA Sentinel-2 + Claude Vision.",
-    "noDataTitle": "Keine Scandaten vorhanden",
-    "noDataDesc": "Starten Sie einen Scan mit Ihrem kostenlosen Copernicus-Konto für 12 Fabriken.",
-    "setupSteps": "Einrichtungsschritte",
-    "methodologyTitle": "Methodik",
-    "methodologyDesc": "Sentinel-2 L2A (10m) Bilder werden von Claude Vision auf Parkhausdichte, Laden und Bau analysiert."
   },
   "volatility": {
     "title": "Implizite Volatilität",

@@ -34,8 +34,6 @@
     "screenerDesc": "기관·내부자 필터링",
     "shortDesc": "숏스퀴즈 후보",
     "cascadeDesc": "리더→중형주 연쇄",
-    "satellite": "위성 추적",
-    "satelliteDesc": "공장 활동 모니터",
     "volatility": "내재변동성",
     "volatilityDesc": "옵션 IV·skew·term"
   },
@@ -607,8 +605,6 @@
     "shortDescription": "Short Interest % of Float, Days to Cover, 기관 매집 충돌 분석으로 숏 스퀴즈 후보 종목을 발굴합니다.",
     "watchlistTitle": "관심 종목 — Flowvium",
     "watchlistDescription": "관심 종목을 추가하고 실시간 주가와 일간 변동률을 한 눈에 확인하세요.",
-    "satelliteTitle": "위성 공급망 추적 | FlowVium",
-    "satelliteDescription": "ESA Sentinel-2 위성사진으로 반도체·EV 공장 활동 지수를 모니터링합니다.",
     "volatilityTitle": "내재변동성 스크리너 — Flowvium",
     "volatilityDescription": "Bloomberg 식 옵션 내재변동성: 콜-풋 패리티로 forward 추출 + Brent 역산. 30d/90d ATM IV · 25Δ skew · term slope · IV rank."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "기술 분석",
     "riskNoteLabel": "핵심 리스크",
     "historyExpiredNote": "이전 보고서가 만료되어 조회할 수 없습니다. 최신 보고서를 확인하세요.",
-    "satelliteTitle": "위성 공장 활동 하이라이트",
-    "satelliteActive": "활발",
-    "satelliteNormal": "보통",
     "newsTitle": "주요 뉴스",
     "newsSubtitle": "AI 분석 영향 큰 헤드라인",
     "newsLoading": "뉴스 로딩 중...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "주요 원인",
     "sevenDaysAgo": "7일 전",
     "current": "현재"
-  },
-  "satellite": {
-    "title": "위성 공급망 추적",
-    "subtitle": "ESA Sentinel-2 위성사진 + Claude Vision으로 전 세계 주요 반도체·EV 공장의 활동 지수를 모니터링합니다.",
-    "noDataTitle": "아직 스캔 데이터가 없습니다",
-    "noDataDesc": "Copernicus 무료 계정으로 12개 공장을 한번에 스캔할 수 있습니다. 5일마다 새 위성사진이 제공됩니다.",
-    "setupSteps": "설정 방법",
-    "methodologyTitle": "분석 방법론",
-    "methodologyDesc": "Sentinel-2 L2A (10m 해상도) 이미지를 Claude Vision으로 주차장 밀도·하역 활동·신규 공사 여부를 분석합니다. 활동 지수 70+ = 활발, 30 이하 = 조용."
   },
   "volatility": {
     "title": "내재변동성 스크리너",

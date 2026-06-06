@@ -55,7 +55,6 @@
 | 뉴스 갭 | `/news-gap` |
 | 인텔리전스 | `/intelligence` |
 | OSINT | `/osint` |
-| 위성 추적 | `/satellite` |
 
 ---
 
@@ -66,7 +65,7 @@
 ### 2-1. Hero + 검색
 - 회사 검색 인풋 (`HeroSearch`) — 전체 유니버스 **1,338 종목** (`UNIVERSE_SEARCH`), 라벨 "기업 직접 검색 — 1,338개 기업"
 - 자동완성 드롭다운 (회사명·티커·섹터·i18n명) → `/company/[ticker]`
-- 빠른 이동 버튼: AI 리포트 / 인텔리전스 / 히트맵 / 위성 추적 (가상계좌 제거됨 — 2026-05-08)
+- 빠른 이동 버튼: AI 리포트 / 인텔리전스 / 히트맵 (위성 추적 제거 — 2026-06-06, 가상계좌 제거 — 2026-05-08)
 
 ### 2-2. AI 데일리 브리프 위젯
 - 타임프레임 탭: `1w` / `4w` / `13w`
@@ -1019,56 +1018,24 @@ ownership-alerts 적용).
 | `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
 | `/api/economic-calendar` | Finnhub 경제 캘린더 (실제값·예상치·이전값 포함, 정적 fallback) | 4h |
 | `/api/market-movers` | Yahoo Finance v7 batch — S&P 500 상위 50개 당일 급등·급락 Top 5 각 | 15m |
-| `/api/satellite-signals` | Redis `flowvium:satellite:v1:{date}` (5일 역스캔) — 공장 활동 지수 배열 반환 | Redis (scan 시 갱신) |
-| `/api/satellite-image?id={factoryId}` | Redis `flowvium:satellite:img:{id}` base64 PNG 반환 → `image/png` 응답 | Redis (scan 시 갱신, 7일 TTL) |
 
 ---
 
 ---
 
-## 19. 위성 공급망 추적 (`/satellite`) ← 신규 2026-05-08
+## 19. 위성 공급망 추적 — 전면 제거됨 (2026-06-06)
 
-**파일**: `src/components/pages/SatellitePage.tsx`  
-**데이터**: `/api/satellite-signals` → Redis `flowvium:satellite:v1:{date}`  
-**스캔 스크립트**: `scripts/satellite-factory-scan.mjs` (npm run scan:satellite)
-
-### 19-1. 헤더 + 배지
-- ESA Sentinel-2 · 10m 해상도 배지
-- Claude Vision 분석 배지
-- 마지막 스캔 날짜
-
-### 19-2. 통계 바 (4열)
-- 모니터링 공장 수 · 활발한 공장 수(점수≥70) · 핵심 시설 수 · 신규 공사 수
-
-### 19-3. 필터 탭
-- 전체 / 핵심 시설 / ⚠️ 활발(≥70) / 💤 조용(≤30)
-
-### 19-4. 공장 카드 그리드 (4열)
-각 카드: 국가 플래그·티커·중요도 배지 / 이름 / 활동 지수 바(0~100) / 차량·하역·구름 3열 / AI 요약 / 태그 칩 / 신규공사 배지
-
-### 19-5. 데이터 없음 상태
-- Copernicus 설정 가이드 3단계 + 외부 링크
-
-### 19-6. 방법론 노트
-- Sentinel-2 L2A 10m → Claude Vision 주차장·하역·공사 분석, 점수 70+=활발 / 30-=조용
-
-### 19-7. 스캔 로직 (scripts/satellite-factory-scan.mjs)
-- Copernicus OAuth2 → Sentinel Hub Process API → PNG 획득 → Claude/Gemini Vision 분석
-- STAC API로 최신 이미지 ID 체크 (중복 스캔 방지)
-- Redis LPUSH 히스토리(최대 10회) + baselineScore / deltaFromBaseline / zScore / trend 계산
-- OpenRouter(Claude) → Anthropic → Gemini 2.0 Flash Vision 폴백 체인
-
-### 19-8. 공급망 자동 주입
-- 활동 delta ≥±15 또는 절대값 ≥80/≤20 (critical 시설) → `/api/supply-chain-signals` satellite 소스로 자동 병합
-- → `/api/investment-strategy` supplyChainChanges 컨텍스트에 반영
-
-**추적 공장 12개**: TSMC 타이난/타이중, 삼성 평택/오스틴, SK하이닉스 이천, Micron 보이시, Intel 챈들러, ASML 펠트호번, Foxconn 정저우, CATL 닝더, Tesla 상하이/네바다
+**상태**: SAR/Sentinel 기반 공장 활동 추정이 **부정확**하여 기능 전체 제거(2026-06-06). nav 메뉴는
+2026-05-27 제거됐고, 잔여 백엔드(크론·`/api/satellite-signals`·`/api/satellite-image`·
+`/api/cron/satellite-scan`·`SatellitePage`·`scripts/satellite-factory-scan.mjs`·supply-chain
+satellite 소스 주입·i18n 16언어·vercel cron·`npm run scan:satellite`)까지 일괄 삭제.
+Copernicus 자격증명(.env.local)은 보존(추후 재활용 대비).
 
 ---
 
 ## 19b. 가상계좌 (Paper Trading) — 내비게이션에서 제거됨 (2026-05-08)
 
-**상태**: 코드 존재, 내비게이션·홈 Hero에서 제거됨. 위성 추적으로 교체.
+**상태**: 코드 존재, 내비게이션·홈 Hero에서 제거됨.
 
 ### 페이지: 
 

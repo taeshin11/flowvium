@@ -873,27 +873,10 @@
 
 ---
 
-## 15b. 위성 공급망 추적 (`/satellite`) ← 신규 2026-05-08
+## 15b. 위성 공급망 추적 — 전면 제거됨 (2026-06-06)
 
-| # | 지표 | 상태 | 소스 | 주기 |
-|---|------|------|------|------|
-| SAT-1 | 공장별 활동 지수 (0~100) | 🔄 cron | Sentinel-2 L2A + Claude/Gemini Vision | 수동 scan:satellite 실행 시 |
-| SAT-2 | 차량 밀도 (low/medium/high) | 🔄 cron | Claude/Gemini Vision | 스캔 시 |
-| SAT-3 | 하역 활동 (inactive/normal/busy) | 🔄 cron | Claude/Gemini Vision | 스캔 시 |
-| SAT-4 | 구름 피복 (clear/partial/heavy) | 🔄 cron | Sentinel-2 메타 | 스캔 시 |
-| SAT-5 | 신규 공사 가시 여부 | 🔄 cron | Claude/Gemini Vision | 스캔 시 |
-| SAT-6 | AI 요약 텍스트 | 🔄 cron | Claude/Gemini | 스캔 시 |
-| SAT-7 | 이미지 날짜 (Sentinel-2 촬영일) | 🔄 cron | STAC API | 스캔 시 |
-| SAT-8 | 베이스라인 점수 (최근 3~6회 평균) | 🔄 cron | Redis 히스토리 | 스캔 누적 시 |
-| SAT-9 | deltaFromBaseline (현재 - 베이스라인) | 🔄 cron | 자체계산 | 스캔 누적 시 |
-| SAT-10 | zScore (표준편차 기준 이상치) | 🔄 cron | 자체계산 | 스캔 누적 시 |
-| SAT-11 | 모니터링 공장 수 | 📋 static | 12개 (factory-locations.ts) | — |
-| SAT-12 | 활발한 공장 수 (점수 ≥70) | 🔄 cron | 집계 | 스캔 시 |
-| SAT-13 | 핵심 시설 수 (significance=critical) | 📋 static | 5개 (TSMC×2·삼성×1·SK하이닉스·Micron) | — |
-| SAT-14 | 공급망 신호 자동 주입 (delta≥±15 또는 절대≥80/≤20) | 🔄 cron | supply-chain-signals satellite source | 스캔 시 |
-| SAT-15 | Sentinel-2 위성사진 PNG 썸네일 (공장별) | 🔄 cron | Redis base64 → `/api/satellite-image` | 스캔 시 (7일 TTL) |
-
-**Redis 키**: `flowvium:satellite:v1:{YYYY-MM-DD}` (공장 배열), `flowvium:satellite:img:{id}` (base64 PNG, 7일), `flowvium:satellite:history:{id}` (LPUSH 최대 10), `flowvium:satellite:last-image:{id}` (중복 방지)
+SAR/Sentinel 기반 공장 활동 추정이 **부정확**하여 기능 전체 제거(SAT-1~SAT-15 폐기). nav 메뉴는
+2026-05-27, 백엔드 전체는 2026-06-06 삭제. 잔여 Redis 키(`flowvium:satellite:*`)는 TTL 만료로 자연 소멸.
 
 ---
 

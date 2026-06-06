@@ -52,7 +52,6 @@ export const TRACKED_ENDPOINTS = [
   '/api/block-trades',
   '/api/portfolio-accuracy',
   '/api/price-history',
-  '/api/satellite-signals',
   '/api/signal-retrospective',
   '/api/investment-strategy',
   '/api/latest-updates',

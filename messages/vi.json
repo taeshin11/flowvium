@@ -34,8 +34,6 @@
     "screenerDesc": "Bộ lọc tổ chức",
     "shortDesc": "Ứng viên short squeeze",
     "cascadeDesc": "Dẫn đầu→vốn trung",
-    "satellite": "Vệ tinh",
-    "satelliteDesc": "Theo dõi hoạt động nhà máy",
     "volatility": "Biến động ngụ ý",
     "volatilityDesc": "Quyền chọn IV · skew"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "Phân tích Short Interest % of Float, Days to Cover và xung đột tổ chức để xác định ứng viên short squeeze.",
     "watchlistTitle": "Danh Sách Theo Dõi — Flowvium",
     "watchlistDescription": "Thêm cổ phiếu vào danh sách theo dõi và giám sát giá thời gian thực và thay đổi hàng ngày trong nháy mắt.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "Bộ lọc Biến động ngụ ý — Flowvium",
     "volatilityDescription": "Biến động ngụ ý kiểu Bloomberg: trích xuất forward từ tương đồng call-put + đảo ngược Brent. ATM IV 30d/90d, skew 25Δ, độ dốc kỳ hạn, IV rank."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "Kỹ thuật",
     "riskNoteLabel": "Rủi ro chính",
     "historyExpiredNote": "Báo cáo lịch sử này đã hết hạn và không thể tải. Xem báo cáo mới nhất.",
-    "satelliteTitle": "Điểm Nổi Bật Hoạt Động Nhà Máy Vệ Tinh",
-    "satelliteActive": "Hoạt động",
-    "satelliteNormal": "Bình thường",
     "newsTitle": "Tin tức Quan trọng",
     "newsSubtitle": "Tiêu đề tác động cao phân tích bởi AI",
     "newsLoading": "Đang tải...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "Yếu tố chính",
     "sevenDaysAgo": "7 ngày trước",
     "current": "Hiện tại"
-  },
-  "satellite": {
-    "title": "Theo dõi Chuỗi Cung ứng Vệ tinh",
-    "subtitle": "Theo dõi hoạt động nhà máy quan trọng bằng hình ảnh ESA Sentinel-2 + Claude Vision.",
-    "noDataTitle": "Chưa có dữ liệu quét",
-    "noDataDesc": "Chạy quét với tài khoản Copernicus miễn phí cho 12 nhà máy.",
-    "setupSteps": "Các bước cài đặt",
-    "methodologyTitle": "Phương pháp",
-    "methodologyDesc": "Hình ảnh Sentinel-2 L2A (10m) được Claude Vision phân tích bãi đậu xe, bốc dỡ và xây dựng."
   },
   "volatility": {
     "title": "Bộ lọc Biến động",

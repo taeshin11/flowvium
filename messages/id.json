@@ -34,8 +34,6 @@
     "screenerDesc": "Filter institusional",
     "shortDesc": "Kandidat short squeeze",
     "cascadeDesc": "Pemimpin→midcap cascade",
-    "satellite": "Satelit",
-    "satelliteDesc": "Monitor aktivitas pabrik",
     "volatility": "Volatilitas",
     "volatilityDesc": "Opsi IV · skew"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "Analisis Short Interest % of Float, Days to Cover, dan konflik institusional untuk mengidentifikasi kandidat short squeeze.",
     "watchlistTitle": "Daftar Pantau — Flowvium",
     "watchlistDescription": "Tambahkan saham ke daftar pantau Anda dan pantau harga real-time serta perubahan harian sekilas.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "Pemindai Volatilitas Tersirat — Flowvium",
     "volatilityDescription": "Volatilitas tersirat ala Bloomberg: ekstraksi forward via paritas call-put + inversi Brent. ATM IV 30h/90h, skew 25Δ, kemiringan, IV rank."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "Teknikal",
     "riskNoteLabel": "Risiko Utama",
     "historyExpiredNote": "Laporan historis ini telah kedaluwarsa dan tidak dapat dimuat. Lihat laporan terbaru.",
-    "satelliteTitle": "Sorotan Aktivitas Pabrik Satelit",
-    "satelliteActive": "Aktif",
-    "satelliteNormal": "Normal",
     "newsTitle": "Berita Utama",
     "newsSubtitle": "Berita berdampak besar dianalisis AI",
     "newsLoading": "Memuat...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "Faktor utama",
     "sevenDaysAgo": "7 hari lalu",
     "current": "Saat ini"
-  },
-  "satellite": {
-    "title": "Pelacak Rantai Pasokan Satelit",
-    "subtitle": "Pantau aktivitas pabrik utama dengan citra ESA Sentinel-2 + Claude Vision.",
-    "noDataTitle": "Belum ada data pemindaian",
-    "noDataDesc": "Jalankan pemindaian dengan akun Copernicus gratis untuk 12 pabrik.",
-    "setupSteps": "Langkah penyiapan",
-    "methodologyTitle": "Metodologi",
-    "methodologyDesc": "Citra Sentinel-2 L2A (10m) dianalisis Claude Vision untuk parkir, bongkar muat, dan konstruksi."
   },
   "volatility": {
     "title": "Pemindai Volatilitas",

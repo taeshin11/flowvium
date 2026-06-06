@@ -34,8 +34,6 @@
     "screenerDesc": "Институциональный фильтр",
     "shortDesc": "Кандидаты шорт-сквиз",
     "cascadeDesc": "Лидер→средняя капитализация",
-    "satellite": "Спутник",
-    "satelliteDesc": "Мониторинг заводов",
     "volatility": "Волатильность",
     "volatilityDesc": "Опционы IV · скью"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "Анализируйте Short Interest % of Float, Days to Cover и институциональные конфликты для выявления кандидатов на шорт-сквиз.",
     "watchlistTitle": "Список Наблюдения — Flowvium",
     "watchlistDescription": "Добавляйте акции в список наблюдения и отслеживайте цены в реальном времени и дневные изменения.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "Скринер подразумеваемой волатильности — Flowvium",
     "volatilityDescription": "Подразумеваемая волатильность опционов в стиле Bloomberg: извлечение форвардной цены по паритету колл-пут + инверсия Брента. 30д/90д ATM IV, 25Δ скью, наклон, IV-ранг."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "Технический",
     "riskNoteLabel": "Ключевой Риск",
     "historyExpiredNote": "Этот исторический отчёт истёк и не может быть загружен. Просмотрите последний отчёт.",
-    "satelliteTitle": "Основные данные об активности заводов (спутник)",
-    "satelliteActive": "Активно",
-    "satelliteNormal": "Нормально",
     "newsTitle": "Главные новости",
     "newsSubtitle": "AI-анализ важных заголовков",
     "newsLoading": "Загрузка...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "Ключевой фактор",
     "sevenDaysAgo": "7 дней назад",
     "current": "Сейчас"
-  },
-  "satellite": {
-    "title": "Спутниковое отслеживание цепочки поставок",
-    "subtitle": "Мониторинг активности заводов с помощью снимков ESA Sentinel-2 + Claude Vision.",
-    "noDataTitle": "Нет данных сканирования",
-    "noDataDesc": "Запустите сканирование с бесплатным аккаунтом Copernicus для 12 заводов.",
-    "setupSteps": "Шаги настройки",
-    "methodologyTitle": "Методология",
-    "methodologyDesc": "Снимки Sentinel-2 L2A (10м) анализируются Claude Vision для парковки, погрузки и строительства."
   },
   "volatility": {
     "title": "Скринер волатильности",

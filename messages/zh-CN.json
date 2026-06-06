@@ -34,8 +34,6 @@
     "screenerDesc": "机构筛选",
     "shortDesc": "逼空候选",
     "cascadeDesc": "龙头→中型股传导",
-    "satellite": "卫星追踪",
-    "satelliteDesc": "工厂活动监测",
     "volatility": "隐含波动率",
     "volatilityDesc": "期权IV·偏度·期限"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "通过空头利率占流通股比例、回补天数和机构买入冲突分析发掘轧空候选股。",
     "watchlistTitle": "自选股 — Flowvium",
     "watchlistDescription": "添加股票到自选股，一目了然地监控实时股价和日涨跌幅。",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "隐含波动率筛选器 — Flowvium",
     "volatilityDescription": "彭博式期权隐含波动率：通过看涨看跌平价提取远期+布伦特反演。30/90日ATM IV、25Δ偏度、期限斜率、IV排名。"
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "技术面",
     "riskNoteLabel": "核心风险",
     "historyExpiredNote": "此历史报告已过期，无法加载。请查看最新报告。",
-    "satelliteTitle": "卫星工厂活动亮点",
-    "satelliteActive": "活跃",
-    "satelliteNormal": "正常",
     "newsTitle": "主要新闻",
     "newsSubtitle": "AI分析高影响头条",
     "newsLoading": "加载新闻...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "主要驱动因素",
     "sevenDaysAgo": "7天前",
     "current": "当前"
-  },
-  "satellite": {
-    "title": "卫星供应链追踪",
-    "subtitle": "使用ESA Sentinel-2卫星图像和Claude Vision AI监控全球主要半导体和电动车工厂活动指数。",
-    "noDataTitle": "暂无扫描数据",
-    "noDataDesc": "使用免费Copernicus账户可扫描12个工厂。每5天提供新卫星图像。",
-    "setupSteps": "设置步骤",
-    "methodologyTitle": "分析方法",
-    "methodologyDesc": "Sentinel-2 L2A（10m）图像由Claude Vision分析停车密度、装卸活动和建设情况。70+=活跃，30以下=安静。"
   },
   "volatility": {
     "title": "隐含波动率筛选器",

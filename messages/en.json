@@ -34,8 +34,6 @@
     "screenerDesc": "Institutional filter",
     "shortDesc": "Short squeeze picks",
     "cascadeDesc": "Leader→midcap cascade",
-    "satellite": "Satellite",
-    "satelliteDesc": "Factory activity monitor",
     "volatility": "Volatility",
     "volatilityDesc": "Options IV · skew · term"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "Short Interest % of Float, Days to Cover, and institutional conflict analysis to identify short squeeze candidates.",
     "watchlistTitle": "Watchlist — Flowvium",
     "watchlistDescription": "Add tickers to your watchlist and monitor real-time prices and daily changes at a glance.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "Implied Volatility Screener — Flowvium",
     "volatilityDescription": "Bloomberg-style options implied volatility: call-put parity forward extraction + Brent inversion. 30d/90d ATM IV, 25Δ skew, term slope, IV rank."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "Technical",
     "riskNoteLabel": "Key Risk",
     "historyExpiredNote": "This historical report has expired and cannot be loaded. View the latest report.",
-    "satelliteTitle": "Satellite Factory Activity Highlights",
-    "satelliteActive": "Active",
-    "satelliteNormal": "Normal",
     "newsTitle": "Key News",
     "newsSubtitle": "AI-analyzed high-impact headlines",
     "newsLoading": "Loading news...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "Key Driver",
     "sevenDaysAgo": "7 Days Ago",
     "current": "Current"
-  },
-  "satellite": {
-    "title": "Satellite Supply Chain Tracker",
-    "subtitle": "Monitor factory activity at key semiconductor & EV plants worldwide using ESA Sentinel-2 imagery + Claude Vision AI.",
-    "noDataTitle": "No scan data yet",
-    "noDataDesc": "Run a satellite scan with your free Copernicus account to monitor 12 factories. New imagery every 5 days.",
-    "setupSteps": "Setup Steps",
-    "methodologyTitle": "Methodology",
-    "methodologyDesc": "Sentinel-2 L2A (10m resolution) analyzed by Claude Vision for parking density, loading dock activity, and construction. Score 70+ = elevated, 30- = quiet."
   },
   "volatility": {
     "title": "Implied Volatility Screener",

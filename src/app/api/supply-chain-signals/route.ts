@@ -89,7 +89,7 @@ export interface SupplyChainSignal {
   direction: 'positive' | 'negative' | 'neutral';
   headline: string;          // 원문 공시 제목 (증빙용)
   summary?: string;          // 평이한 한 줄 설명 (사용자 가독 — 2026-06-06)
-  source: 'sec-8k' | 'dart' | 'cascade-update' | 'cascade-inference' | 'satellite';
+  source: 'sec-8k' | 'dart' | 'cascade-update' | 'cascade-inference';
   date: string;
   downstreamBeneficiaries?: string[];   // 공급망 그래프에서 추론한 downstream 수혜 티커
   upstreamRisks?: string[];            // upstream 리스크 티커
@@ -387,92 +387,6 @@ function inferDownstream(ticker: string, signalType: string): { beneficiaries: s
   };
 }
 
-// ── 위성 활동 신호 → SupplyChainSignal 변환 ─────────────────────────────────
-interface SatelliteResult {
-  id: string; ticker: string; name: string; country: string; tags: string[];
-  significance: string; activityScore: number | null; confidence: string | null;
-  deltaFromBaseline: number | null; baselineScore: number | null; trend: string | null;
-  constructionVisible: boolean | null; loadingActivity: string | null; summary: string | null;
-  imageDate: string | null;
-}
-
-async function fetchSatelliteSignals(redis: ReturnType<typeof createRedis>): Promise<SupplyChainSignal[]> {
-  const signals: SupplyChainSignal[] = [];
-  try {
-    // 최근 5일 데이터 탐색
-    for (let d = 0; d <= 5; d++) {
-      const date = new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
-      const key = `flowvium:satellite:v1:${date}`;
-      const raw = await redis?.get<string>(key);
-      if (!raw) continue;
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      const results: SatelliteResult[] = parsed.results ?? [];
-
-      for (const r of results) {
-        if (r.activityScore == null || r.confidence === 'low') continue;
-
-        // 방법 1: delta baseline (히스토리 충분할 때)
-        const absDelta = Math.abs(r.deltaFromBaseline ?? 0);
-        if (r.deltaFromBaseline != null && absDelta >= 15) {
-          const isPositive = r.deltaFromBaseline > 0;
-          const downstream = inferDownstream(r.ticker, isPositive ? 'supply_expansion' : 'supply_risk');
-          signals.push({
-            ticker: r.ticker,
-            companyName: r.name,
-            signalType: isPositive ? 'supply_expansion' : 'supply_risk',
-            conviction: Math.min(85, 45 + absDelta),
-            direction: isPositive ? 'positive' : 'negative',
-            headline: `[위성] ${r.name} 활동지수 ${r.deltaFromBaseline > 0 ? '+' : ''}${r.deltaFromBaseline}p vs 4주 평균 (현재 ${r.activityScore}/100)`,
-            source: 'satellite',
-            date: r.imageDate ?? date,
-            downstreamBeneficiaries: downstream.beneficiaries,
-            upstreamRisks: downstream.risks,
-            evidenceUrl: '/satellite',
-          });
-          continue;
-        }
-
-        // 방법 2: 절대 점수 기준 (히스토리 없을 때)
-        if (r.activityScore >= 80 && r.significance === 'critical') {
-          const downstream = inferDownstream(r.ticker, 'supply_expansion');
-          signals.push({
-            ticker: r.ticker,
-            companyName: r.name,
-            signalType: 'supply_expansion',
-            conviction: 55,
-            direction: 'positive',
-            headline: `[위성] ${r.name} 고활동 감지 (${r.activityScore}/100${r.constructionVisible ? ', 신규공사 확인' : ''})`,
-            source: 'satellite',
-            date: r.imageDate ?? date,
-            downstreamBeneficiaries: downstream.beneficiaries,
-            upstreamRisks: downstream.risks,
-            evidenceUrl: '/satellite',
-          });
-        } else if (r.activityScore <= 20 && r.significance === 'critical') {
-          const downstream = inferDownstream(r.ticker, 'supply_risk');
-          signals.push({
-            ticker: r.ticker,
-            companyName: r.name,
-            signalType: 'supply_risk',
-            conviction: 50,
-            direction: 'negative',
-            headline: `[위성] ${r.name} 저활동 감지 (${r.activityScore}/100) — 생산 둔화 가능성`,
-            source: 'satellite',
-            date: r.imageDate ?? date,
-            downstreamBeneficiaries: downstream.beneficiaries,
-            upstreamRisks: downstream.risks,
-            evidenceUrl: '/satellite',
-          });
-        }
-      }
-      break; // 최신 날짜 데이터 찾으면 종료
-    }
-  } catch (e) {
-    logger.warn('supply-chain-signals', 'satellite_fetch_failed', { error: String(e) });
-  }
-  return signals;
-}
-
 // ── GET 핸들러 ─────────────────────────────────────────────────────────────────
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -485,25 +399,23 @@ export async function GET(request: Request) {
     try {
       const cached = await redis.get(CACHE_KEY) as SupplyChainSignal[] | null;
       if (cached) {
-        const liveCount = cached.filter(s => s.source === 'sec-8k' || s.source === 'dart' || s.source === 'satellite').length;
+        const liveCount = cached.filter(s => s.source === 'sec-8k' || s.source === 'dart').length;
         const topSource = liveCount > 0 ? (liveCount === cached.length ? 'live' : 'mixed') : 'static';
         return NextResponse.json({ signals: cached, cached: true, source: topSource, liveCount, totalCount: cached.length }, { headers: CDN_HEADERS });
       }
     } catch { /* non-fatal */ }
   }
 
-  // 병렬 수집 (위성 신호 포함)
-  const [edgarAtomSignals, dartSignals, satelliteSignals] = await Promise.all([
+  // 병렬 수집
+  const [edgarAtomSignals, dartSignals] = await Promise.all([
     fetchEdgar8KAtom(),
     fetchDartSignals(),
-    fetchSatelliteSignals(redis),
   ]);
   const staticSignals = getStaticSignals();
 
   // 병합 + conviction 정렬 + 중복 제거
   const all = (edgarAtomSignals as SupplyChainSignal[])
     .concat(dartSignals)
-    .concat(satelliteSignals)  // 위성 신호
     .concat(staticSignals);
   const seen = new Set<string>();
   const deduped = all.filter(s => {
@@ -516,7 +428,6 @@ export async function GET(request: Request) {
   logger.info('supply-chain-signals', 'collected', {
     edgar: edgarAtomSignals.length,
     dart: dartSignals.length,
-    satellite: satelliteSignals.length,
     static: staticSignals.length,
     total: deduped.length,
   });
@@ -526,7 +437,7 @@ export async function GET(request: Request) {
   }
 
   // top-level source: live(전부 외부) / mixed(일부) / static(전부 cascade-update or cascade-inference)
-  const liveSignalCount = deduped.filter(s => s.source === 'sec-8k' || s.source === 'dart' || s.source === 'satellite').length;
+  const liveSignalCount = deduped.filter(s => s.source === 'sec-8k' || s.source === 'dart').length;
   const topSource = liveSignalCount > 0 ? (liveSignalCount === deduped.length ? 'live' : 'mixed') : 'static';
   return NextResponse.json({
     signals: deduped, cached: false, count: deduped.length,

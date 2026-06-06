@@ -329,10 +329,10 @@ async function main() {
       'analyst-target': '/api/analyst-target/AAPL', 'company-news': '/api/company-news?ticker=AAPL',
       'company-recs': '/api/company-recs/AAPL', 'company-desc': null, // Ollama 느림 — skip
       'investment-strategy': null, // 보고서 대형 — verify-report 가 별도 검증
-      'satellite-image': null, 'nport-holdings': '/api/nport-holdings?ticker=069500',
+      'nport-holdings': '/api/nport-holdings?ticker=069500',
       'iv': '/api/iv/AAPL',
     };
-    const SKIP = new Set(['company-desc', 'investment-strategy', 'satellite-image']);
+    const SKIP = new Set(['company-desc', 'investment-strategy']);
     const probeOne = async (ep) => {
       if (SKIP.has(ep)) return { ep, skip: true };
       const path = SAMPLE[ep] ?? `/api/${ep}`;
@@ -471,7 +471,7 @@ async function main() {
       walk(apiDir, '');
       const trackedSet = new Set(TRACKED_ENDPOINTS.map(e => e.replace(/^\/api/, '').split('?')[0]));
       // admin/cron(쓰기), 유틸, per-ticker([) 제외
-      const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices|satellite-image)$|\[/;
+      const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices)$|\[/;
       // param 필수(per-ticker 성격) 또는 시계열 불필요(list/history) — 의도적 미추적.
       const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading']);
       const untracked = routes.filter(r => !EXCLUDE.test(r) && !trackedSet.has(r) && !ALLOW_UNTRACKED.has(r));

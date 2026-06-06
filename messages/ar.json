@@ -34,8 +34,6 @@
     "screenerDesc": "فلتر مؤسسي",
     "shortDesc": "مرشحو الضغط القصير",
     "cascadeDesc": "قائد→شركات متوسطة",
-    "satellite": "الأقمار الصناعية",
-    "satelliteDesc": "مراقبة نشاط المصانع",
     "volatility": "التقلب",
     "volatilityDesc": "خيارات IV · انحراف"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "تحليل نسبة البيع على المكشوف وأيام التغطية والتعارض المؤسسي لتحديد مرشحي الضغط القصير.",
     "watchlistTitle": "قائمة المراقبة — Flowvium",
     "watchlistDescription": "أضف الأسهم إلى قائمة مراقبتك وراقب الأسعار في الوقت الفعلي والتغيرات اليومية.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "فاحص التقلب الضمني — Flowvium",
     "volatilityDescription": "التقلب الضمني للخيارات بأسلوب بلومبيرغ: استخراج الفورورد من تكافؤ كول-بوت + عكس برنت. 30/90 يوم ATM IV، انحراف 25 دلتا، ميل، رتبة IV."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "التحليل الفني",
     "riskNoteLabel": "المخاطر الرئيسية",
     "historyExpiredNote": "انتهت صلاحية هذا التقرير التاريخي ولا يمكن تحميله. عرض أحدث تقرير.",
-    "satelliteTitle": "أبرز نشاط المصانع عبر الأقمار الصناعية",
-    "satelliteActive": "نشط",
-    "satelliteNormal": "عادي",
     "newsTitle": "الأخبار الرئيسية",
     "newsSubtitle": "عناوين عالية التأثير محللة بالذكاء الاصطناعي",
     "newsLoading": "جار التحميل...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "العامل الرئيسي",
     "sevenDaysAgo": "منذ 7 أيام",
     "current": "الحالي"
-  },
-  "satellite": {
-    "title": "تتبع سلسلة التوريد بالأقمار الصناعية",
-    "subtitle": "مراقبة نشاط المصانع الرئيسية باستخدام صور Sentinel-2 + Claude Vision.",
-    "noDataTitle": "لا توجد بيانات مسح",
-    "noDataDesc": "قم بتشغيل مسح بحساب Copernicus المجاني لـ 12 مصنعاً.",
-    "setupSteps": "خطوات الإعداد",
-    "methodologyTitle": "المنهجية",
-    "methodologyDesc": "صور Sentinel-2 L2A (10م) يحللها Claude Vision لمواقف السيارات والتحميل والبناء."
   },
   "volatility": {
     "title": "فاحص التقلب الضمني",

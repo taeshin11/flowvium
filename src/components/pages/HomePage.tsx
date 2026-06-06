@@ -38,7 +38,6 @@ import {
   Activity,
   Brain,
   GitMerge,
-  Satellite,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import EmailCTA from '@/components/EmailCTA';

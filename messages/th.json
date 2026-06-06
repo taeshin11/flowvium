@@ -34,8 +34,6 @@
     "screenerDesc": "ตัวกรองสถาบัน",
     "shortDesc": "โอกาส short squeeze",
     "cascadeDesc": "หุ้นนำ→มิดแคป",
-    "satellite": "ดาวเทียม",
-    "satelliteDesc": "ติดตามกิจกรรมโรงงาน",
     "volatility": "ความผันผวน",
     "volatilityDesc": "ออปชั่น IV · skew"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "วิเคราะห์ Short Interest % of Float, Days to Cover และความขัดแย้งของสถาบันเพื่อระบุผู้สมัคร short squeeze",
     "watchlistTitle": "รายการเฝ้าดู — Flowvium",
     "watchlistDescription": "เพิ่มหุ้นในรายการเฝ้าดูและติดตามราคาแบบเรียลไทม์และการเปลี่ยนแปลงรายวันในมุมเดียว",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "เครื่องคัดกรองความผันผวนโดยนัย — Flowvium",
     "volatilityDescription": "ความผันผวนโดยนัยสไตล์ Bloomberg: ดึงค่าฟอร์เวิร์ดจากสมการ call-put parity + การแยกค่า Brent. ATM IV 30/90 วัน, สกิว 25Δ, ความชันเทอม, อันดับ IV."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "เทคนิคัล",
     "riskNoteLabel": "ความเสี่ยงหลัก",
     "historyExpiredNote": "รายงานประวัติศาสตร์นี้หมดอายุแล้วและไม่สามารถโหลดได้ ดูรายงานล่าสุด",
-    "satelliteTitle": "ไฮไลต์กิจกรรมโรงงานดาวเทียม",
-    "satelliteActive": "คึกคัก",
-    "satelliteNormal": "ปกติ",
     "newsTitle": "ข่าวสำคัญ",
     "newsSubtitle": "พาดหัวข่าวผลกระทบสูงวิเคราะห์ AI",
     "newsLoading": "กำลังโหลด...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "ปัจจัยหลัก",
     "sevenDaysAgo": "7 วันที่แล้ว",
     "current": "ปัจจุบัน"
-  },
-  "satellite": {
-    "title": "ติดตามห่วงโซ่อุปทานด้วยดาวเทียม",
-    "subtitle": "ติดตามกิจกรรมโรงงานหลักด้วยภาพ ESA Sentinel-2 + Claude Vision",
-    "noDataTitle": "ยังไม่มีข้อมูลการสแกน",
-    "noDataDesc": "เรียกใช้การสแกนด้วยบัญชี Copernicus ฟรีสำหรับ 12 โรงงาน",
-    "setupSteps": "ขั้นตอนการตั้งค่า",
-    "methodologyTitle": "วิธีการวิเคราะห์",
-    "methodologyDesc": "ภาพ Sentinel-2 L2A (10m) วิเคราะห์โดย Claude Vision สำหรับที่จอดรถ การขนส่ง และการก่อสร้าง"
   },
   "volatility": {
     "title": "เครื่องคัดกรองความผันผวน",

@@ -34,8 +34,6 @@
     "screenerDesc": "機関フィルター",
     "shortDesc": "ショートスクイーズ",
     "cascadeDesc": "リーダー→中型株連鎖",
-    "satellite": "衛星追跡",
-    "satelliteDesc": "工場活動モニター",
     "volatility": "内在ボラティリティ",
     "volatilityDesc": "オプションIV・スキュー"
   },
@@ -607,8 +605,6 @@
     "shortDescription": "Short Interest % of Float、Days to Cover、機関投資家買い集め衝突分析でショートスクイーズ候補を発掘。",
     "watchlistTitle": "ウォッチリスト — Flowvium",
     "watchlistDescription": "ウォッチリストに銘柄を追加し、リアルタイム株価と日次変動率を一目で確認。",
-    "satelliteTitle": "衛星サプライチェーン追跡 | FlowVium",
-    "satelliteDescription": "ESA Sentinel-2衛星画像で半導体・EV工場の活動指数をモニタリング。",
     "volatilityTitle": "内在ボラティリティ・スクリーナー — Flowvium",
     "volatilityDescription": "ブルームバーグ方式の内在ボラティリティ。コール・プット・パリティでフォワード抽出+ブレント逆算。30d/90d ATM IV、25デルタスキュー、期間傾斜、IVランク。"
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "テクニカル",
     "riskNoteLabel": "主要リスク",
     "historyExpiredNote": "この過去レポートは期限切れで読み込めません。最新レポートをご覧ください。",
-    "satelliteTitle": "衛星工場活動ハイライト",
-    "satelliteActive": "活発",
-    "satelliteNormal": "普通",
     "newsTitle": "主要ニュース",
     "newsSubtitle": "AI分析・影響大ヘッドライン",
     "newsLoading": "ニュース読込中...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "主な要因",
     "sevenDaysAgo": "7日前",
     "current": "現在"
-  },
-  "satellite": {
-    "title": "衛星サプライチェーン追跡",
-    "subtitle": "ESA Sentinel-2衛星画像とClaude Visionで主要半導体・EV工場の活動指数をモニタリング。",
-    "noDataTitle": "スキャンデータがありません",
-    "noDataDesc": "Copernicusの無料アカウントで12工場をスキャンできます。5日ごとに新しい衛星画像。",
-    "setupSteps": "設定手順",
-    "methodologyTitle": "分析手法",
-    "methodologyDesc": "Sentinel-2 L2A（10m）画像をClaude Visionで駐車場密度・荷積み・建設を分析。70+=活発、30以下=静止。"
   },
   "volatility": {
     "title": "内在ボラティリティ・スクリーナー",

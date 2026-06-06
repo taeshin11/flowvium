@@ -55,9 +55,6 @@
     "src/app/api/cron/signal-retrospective/route.ts": {
       "maxDuration": 60
     },
-    "src/app/api/cron/satellite-scan/route.ts": {
-      "maxDuration": 300
-    },
     "src/app/api/cron/portfolio-retrospective/route.ts": {
       "maxDuration": 60
     },
@@ -138,10 +135,6 @@
     {
       "path": "/api/cron/log-cascade-events",
       "schedule": "0 1 * * 0"
-    },
-    {
-      "path": "/api/cron/satellite-scan",
-      "schedule": "40 7 * * *"
     },
     {
       "path": "/api/cron/portfolio-retrospective",

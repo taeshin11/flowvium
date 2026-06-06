@@ -1335,34 +1335,6 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
     },
   ];
 
-  // 10. satellite-scan 신선도 — cron-only endpoint (manual trigger), Redis 직접 조회
-  //     /api/cron/satellite-scan 자체는 cron-only 라 verify-metrics 에서 호출 불가 — 결과 키만 확인
-  try {
-    const probeRedis = createRedis();
-    if (probeRedis) {
-      const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-      const scanKey = `flowvium:satellite:v1:${today}`;
-      const scan = await probeRedis.get(scanKey);
-      const isFresh = scan != null;
-      items.push({
-        key: 'accuracy.satellite-scan.freshness',
-        label: 'Satellite Scan 오늘자 결과',
-        group: 'accuracy',
-        // satellite-scan 은 수동 trigger 라 stale 이어도 'degraded' 로 보고
-        status: isFresh ? 'ok' : 'degraded',
-        value: isFresh ? `key=${scanKey} present` : `${scanKey} missing — 수동 scan 필요`,
-        details: { scanKey, hasResult: isFresh },
-      });
-    }
-  } catch (err) {
-    items.push({
-      key: 'accuracy.satellite-scan.freshness',
-      label: 'Satellite Scan 오늘자 결과',
-      group: 'accuracy',
-      status: 'error',
-      lastError: err instanceof Error ? err.message : String(err),
-    });
-  }
   for (const probe of sourceProbes) {
     try {
       const r = await safeJson(base, probe.path, 8000);
@@ -1701,45 +1673,6 @@ async function verifyOsint(base: string): Promise<MetricItem[]> {
   ]);
 }
 
-// ── 위성 스캔 헬스 ───────────────────────────────────────────────────────────
-async function verifySatellite(base: string): Promise<MetricItem[]> {
-  const r = await safeJson(base, '/api/satellite-signals', 8000);
-  if (!r.ok) {
-    return [{ key: 'satellite.signals', label: '위성 신호 API', group: 'satellite', status: 'error', lastError: r.error ?? `HTTP ${r.status}` }];
-  }
-  const d = r.data as { signals?: unknown[]; dataDate?: string };
-  const signals = Array.isArray(d.signals) ? d.signals : [];
-  const items: MetricItem[] = [];
-
-  if (signals.length === 0) {
-    items.push({ key: 'satellite.signals', label: '위성 공장 신호', group: 'satellite', status: 'degraded', value: '데이터 없음 (scan:satellite 실행 필요)', lastError: 'no scan data in Redis' });
-    return items;
-  }
-
-  const withScore = signals.filter((s): s is { activityScore: number } => typeof (s as Record<string, unknown>)['activityScore'] === 'number');
-  const dataDate = d.dataDate ?? null;
-  const dataAgeH = dataDate ? (Date.now() - new Date(dataDate).getTime()) / 3600000 : 999;
-
-  items.push({
-    key: 'satellite.signals',
-    label: '위성 공장 신호',
-    group: 'satellite',
-    status: signals.length >= 6 && dataAgeH <= 48 ? 'ok' : 'degraded',
-    value: `${signals.length}개 공장 (${withScore.length}개 점수 유효)`,
-    source: `scan date: ${dataDate ?? 'unknown'}`,
-  });
-
-  items.push({
-    key: 'satellite.freshness',
-    label: '위성 데이터 신선도',
-    group: 'satellite',
-    status: dataAgeH <= 48 ? 'ok' : dataAgeH <= 120 ? 'degraded' : 'error',
-    value: dataDate ? `${Math.round(dataAgeH)}h ago` : 'unknown',
-    lastError: dataAgeH > 120 ? `Data too old: ${Math.round(dataAgeH)}h` : undefined,
-  });
-
-  return items;
-}
 
 // 2026-06-05: narratives probe — check-static-fallbacks 규칙(@/data import → source 필드 + verify probe).
 //   source='live'(시세 수신) vs 'static'(전부 실패, 정의만) 감지. liveCount/총 테마 비율도 본다.
@@ -1771,7 +1704,7 @@ export async function GET(req: Request) {
   const redis = createRedis();
 
   // 모든 검증을 병렬 실행 (확장: per-ticker/sector/maturity 전체 커버리지)
-  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, iv, comm, strategy, missing, osint, satellite, narratives] = await Promise.all([
+  const [fg, cf, macro, credit, ai, insider, shorts, heatmap, caps, sectorpe, yc, fwDetail, cotDetail, krDetail, additional, earnings, caches, accuracy, vol, iv, comm, strategy, missing, osint, narratives] = await Promise.all([
     verifyFearGreed(base).catch((e): MetricItem[] => [{ key: 'fg.ERR', label: 'F&G verify throw', group: 'fear-greed', status: 'error', lastError: String(e) }]),
     verifyCapitalFlows(base).catch((e): MetricItem[] => [{ key: 'cf.ERR', label: 'CF verify throw', group: 'capital-flows', status: 'error', lastError: String(e) }]),
     verifyMacroIndicators(base).catch((e): MetricItem[] => [{ key: 'macro.ERR', label: 'Macro verify throw', group: 'macro', status: 'error', lastError: String(e) }]),
@@ -1796,11 +1729,10 @@ export async function GET(req: Request) {
     verifyInvestmentStrategy(base).catch((e): MetricItem[] => [{ key: 'strategy.ERR', label: 'Strategy verify throw', group: 'strategy', status: 'error', lastError: String(e) }]),
     verifyMissingEndpoints(base).catch((e): MetricItem[] => [{ key: 'missing.ERR', label: 'Missing endpoints verify throw', group: 'brief', status: 'error', lastError: String(e) }]),
     verifyOsint(base).catch((e): MetricItem[] => [{ key: 'osint.ERR', label: 'OSINT verify throw', group: 'osint', status: 'error', lastError: String(e) }]),
-    verifySatellite(base).catch((e): MetricItem[] => [{ key: 'satellite.ERR', label: 'Satellite verify throw', group: 'satellite', status: 'error', lastError: String(e) }]),
     verifyNarratives(base).catch((e): MetricItem[] => [{ key: 'narratives.ERR', label: 'Narratives verify throw', group: 'narratives', status: 'error', lastError: String(e) }]),
   ]);
 
-  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...iv, ...comm, ...strategy, ...missing, ...osint, ...satellite, ...narratives];
+  const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...iv, ...comm, ...strategy, ...missing, ...osint, ...narratives];
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

@@ -34,8 +34,6 @@
     "screenerDesc": "Filtre institutionnel",
     "shortDesc": "Candidats short squeeze",
     "cascadeDesc": "Leader→moyenne capitalisation",
-    "satellite": "Satellite",
-    "satelliteDesc": "Monitoring activité usine",
     "volatility": "Volatilité",
     "volatilityDesc": "Options IV · skew"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "Analysez Short Interest % of Float, Days to Cover et les conflits institutionnels pour identifier les candidats au short squeeze.",
     "watchlistTitle": "Liste de Suivi — Flowvium",
     "watchlistDescription": "Ajoutez des actions à votre liste de suivi et surveillez les prix en temps réel et les variations journalières.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "Outil de Volatilité Implicite — Flowvium",
     "volatilityDescription": "Volatilité implicite façon Bloomberg : extraction du forward par parité call-put + inversion Brent. IV ATM 30j/90j, skew 25Δ, pente de term, rang IV."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "Technique",
     "riskNoteLabel": "Risque Clé",
     "historyExpiredNote": "Ce rapport historique a expiré et ne peut pas être chargé. Voir le dernier rapport.",
-    "satelliteTitle": "Faits Saillants d'Activité Usine Satellite",
-    "satelliteActive": "Actif",
-    "satelliteNormal": "Normal",
     "newsTitle": "Actualités Clés",
     "newsSubtitle": "Titres à fort impact analysés par IA",
     "newsLoading": "Chargement...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "Facteur clé",
     "sevenDaysAgo": "Il y a 7 jours",
     "current": "Actuel"
-  },
-  "satellite": {
-    "title": "Suivi Satellitaire de la Chaîne d'Approvisionnement",
-    "subtitle": "Surveillez l'activité des usines clés avec les images ESA Sentinel-2 + Claude Vision.",
-    "noDataTitle": "Aucune donnée de scan",
-    "noDataDesc": "Lancez un scan avec votre compte Copernicus gratuit pour 12 usines.",
-    "setupSteps": "Étapes de configuration",
-    "methodologyTitle": "Méthodologie",
-    "methodologyDesc": "Images Sentinel-2 L2A (10m) analysées par Claude Vision pour la densité de stationnement, chargement et construction."
   },
   "volatility": {
     "title": "Volatilité Implicite",

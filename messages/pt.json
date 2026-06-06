@@ -34,8 +34,6 @@
     "screenerDesc": "Filtro institucional",
     "shortDesc": "Candidatos short squeeze",
     "cascadeDesc": "Líder→midcap cascata",
-    "satellite": "Satélite",
-    "satelliteDesc": "Monitor de atividade fabril",
     "volatility": "Volatilidade",
     "volatilityDesc": "Opções IV · skew"
   },
@@ -694,8 +692,6 @@
     "shortDescription": "Analise Short Interest % of Float, Days to Cover e conflitos institucionais para identificar candidatos a short squeeze.",
     "watchlistTitle": "Lista de Acompanhamento — Flowvium",
     "watchlistDescription": "Adicione ações à sua lista de acompanhamento e monitore preços em tempo real e variações diárias de um vistaço.",
-    "satelliteTitle": "Satellite Supply Chain Tracker | FlowVium",
-    "satelliteDescription": "Monitor factory activity at key semiconductor & EV plants using ESA Sentinel-2 satellite imagery + AI analysis.",
     "volatilityTitle": "Triagem de Volatilidade Implícita — Flowvium",
     "volatilityDescription": "Volatilidade implícita estilo Bloomberg: extração de forward por paridade call-put + inversão de Brent. IV ATM 30d/90d, skew 25Δ, inclinação, rank IV."
   },
@@ -1238,9 +1234,6 @@
     "technicalBasisLabel": "Técnico",
     "riskNoteLabel": "Risco Principal",
     "historyExpiredNote": "Este relatório histórico expirou e não pode ser carregado. Ver o relatório mais recente.",
-    "satelliteTitle": "Destaques de Atividade Fabril Satelital",
-    "satelliteActive": "Ativo",
-    "satelliteNormal": "Normal",
     "newsTitle": "Notícias Principais",
     "newsSubtitle": "Manchetes de alto impacto",
     "newsLoading": "Carregando...",
@@ -1815,15 +1808,6 @@
     "keyDriver": "Fator principal",
     "sevenDaysAgo": "Há 7 dias",
     "current": "Atual"
-  },
-  "satellite": {
-    "title": "Rastreador Satelital da Cadeia de Suprimentos",
-    "subtitle": "Monitore a atividade de fábricas com imagens ESA Sentinel-2 + Claude Vision.",
-    "noDataTitle": "Sem dados de varredura",
-    "noDataDesc": "Execute uma varredura com sua conta gratuita Copernicus para 12 fábricas.",
-    "setupSteps": "Etapas de configuração",
-    "methodologyTitle": "Metodologia",
-    "methodologyDesc": "Imagens Sentinel-2 L2A (10m) analisadas pelo Claude Vision para estacionamento, carga e construção."
   },
   "volatility": {
     "title": "Triagem de Volatilidade",

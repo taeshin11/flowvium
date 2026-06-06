@@ -49,7 +49,7 @@ const ENDPOINTS = [
   // 2026-05-29: live source 0건 시 명시적 WARN — static 데이터만 표시될 때 사용자에게 stale 인지시킴
   { path: '/api/supply-chain-signals', extract: j => {
     const sigs = j.signals ?? [];
-    const live = sigs.filter(s => ['sec-8k','dart','satellite'].includes(s.source)).length;
+    const live = sigs.filter(s => ['sec-8k','dart'].includes(s.source)).length;
     const liveRatio = sigs.length ? (live / sigs.length * 100).toFixed(0) : 0;
     let src = `${j.source ?? '-'} (live=${live}/${sigs.length}, ${liveRatio}%)`;
     if (live === 0 && sigs.length > 0) src += ' [STALE 정적만]';
