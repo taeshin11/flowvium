@@ -142,7 +142,7 @@ async function extractForTicker(ticker, cikMap) {
     const sum = rows.reduce((s, x) => s + x.amount, 0);
     if (Math.abs(sum - total) / total > 0.08) return { ticker, error: `sum-mismatch(${Math.round(sum/1e3)}k vs ${Math.round(total/1e3)}k)` };
     seg = { total, segments: rows.map(x => ({ name: x.name, amount: x.amount, pct: Math.round(x.amount / total * 1000) / 10 })).sort((a, b) => b.pct - a.pct) };
-    method = 'exaone';
+    method = 'llm';
   }
   return { ticker, ...seg, asOf: filing.date, source: `10-K/${method}`, url };
 }
