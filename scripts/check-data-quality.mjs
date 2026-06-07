@@ -331,6 +331,7 @@ async function main() {
       'investment-strategy': null, // 보고서 대형 — verify-report 가 별도 검증
       'nport-holdings': '/api/nport-holdings?ticker=069500',
       'iv': '/api/iv/AAPL',
+      'company-business': '/api/company-business/AAPL',  // 2026-06-07: [ticker] 동적 라우트 sample
     };
     const SKIP = new Set(['company-desc', 'investment-strategy']);
     const probeOne = async (ep) => {
