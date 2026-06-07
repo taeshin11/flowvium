@@ -720,6 +720,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 4-stage scoring: light (모든 ticker) → OHLCV top 100 → financials top 50 → LLM top 30 중 12 선택
 - 룰 카테고리: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) / selflearn(2)
 - 종목명, 섹터, 비중(%), 매수 근거
+- **주력 사업/매출상품 (확장 최상단, 2026-06-07)** — "무슨 사업으로 매출 내는지" 표시. `data/company-business.json`(build:business 가 companies-batch `products[]`(name+revenueShare)+description 추출, 619 ticker + KR 대형주 CURATED) → 발간직전 `businessSummary`(예: "iPhone 52% · Services 22%")+`businessDesc` 주입. LLM 생성 아닌 큐레이션 권위소스. i18n `report.businessLabel`(주력 사업) 16언어
 - **종목 티커 클릭 → `/{locale}/company/[ticker]` 기업 프로필 이동** (보라색 링크, 2026-06-03 — 매수·매도 카드 양쪽)
 - 🇺🇸 US Market / 🇰🇷 KR Market 시장별 분리 표시
 - 클릭 확장: 진입 구간 / 손절가 / 목표가 / Exit Ladder (entry/exit 분할)
