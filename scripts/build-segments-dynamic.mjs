@@ -13,7 +13,7 @@
  * 출력: data/company-segments-dynamic.json { TICKER: { segments:[{name,amount,pct}], total, asOf, fy, source } }
  * 사용: node scripts/build-segments-dynamic.mjs AAPL MSFT NVDA   (인자 없으면 portfolio+주요)
  */
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 import { saveSegments, getSegmentTickersToRefresh } from './lib/db.mjs';
 
 const UA = { 'User-Agent': 'flowvium research contact@flowvium.net' };
@@ -161,15 +161,14 @@ if (refreshArg) {
 if (!tickers.length) { console.log('사용: node scripts/build-segments-dynamic.mjs AAPL MSFT ...  또는  --refresh=8'); process.exit(0); }
 
 const cikMap = await loadCikMap();
-const out = existsSync('data/company-segments-dynamic.json') ? JSON.parse(readFileSync('data/company-segments-dynamic.json', 'utf8')) : {};
+// DB-only 저장(flowvium.db = cron checkout wipe 경로 밖, 영속). data/*.json 은 wipe 경로 + refresh
+//   마다 dirty → wipe-risk 유발하므로 미사용(2026-06-07 churn 제거).
 let ok = 0, fail = 0;
 for (const t of tickers) {
   try {
     const r = await extractForTicker(t, cikMap);
     if (r.error) { console.log(`  ✗ ${t}: ${r.error}`); fail++; }
     else {
-      out[t] = { segments: r.segments, total: r.total, asOf: r.asOf, source: r.source };
-      // DB 적재(cron checkout wipe 안전 — flowvium.db 는 wipe 경로 외) + JSON 베이스라인.
       try { saveSegments(t, { segments: r.segments, total: r.total, asOf: r.asOf, source: r.source, fetchedAt: new Date().toISOString() }); } catch (e) { console.warn(`    [db] ${t} 적재 실패: ${e.message}`); }
       console.log(`  ✓ ${t} (asOf ${r.asOf}, ${r.source}): ${r.segments.slice(0, 4).map(s => `${s.name} ${s.pct}%`).join(' · ')}`);
       ok++;
@@ -177,5 +176,4 @@ for (const t of tickers) {
   } catch (e) { console.log(`  ✗ ${t}: ${String(e.message).slice(0, 50)}`); fail++; }
   await sleep(250); // SEC rate-limit 예의
 }
-writeFileSync('data/company-segments-dynamic.json', JSON.stringify(out, null, 0) + '\n');
-console.log(`\n[build-segments-dynamic] ✓ ${ok} / ✗ ${fail} → DB company_segments + data/company-segments-dynamic.json (${Object.keys(out).length} 누적)`);
+console.log(`\n[build-segments-dynamic] ✓ ${ok} / ✗ ${fail} → DB company_segments (영속, wipe 안전)`);
