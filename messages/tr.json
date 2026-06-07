@@ -1257,7 +1257,8 @@
     "ewNote": "Öncü gösterge deterministik bileşik · Savunmacı pozisyon/hedge değerlendirin",
     "etfCat_thematic": "Tematik",
     "etfCat_style": "Stil",
-    "etfCat_dividend": "Temettü"
+    "etfCat_dividend": "Temettü",
+    "businessLabel": "İş Kolu"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

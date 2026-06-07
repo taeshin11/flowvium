@@ -1257,7 +1257,8 @@
     "ewNote": "先行指標の決定論的composite · 防御的ポジション・ヘッジ検討推奨",
     "etfCat_thematic": "テーマ",
     "etfCat_style": "スタイル",
-    "etfCat_dividend": "配当"
+    "etfCat_dividend": "配当",
+    "businessLabel": "主力事業"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

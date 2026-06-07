@@ -1257,7 +1257,8 @@
     "ewNote": "Compuesto determinista de indicadores líderes · Considere posición defensiva/cobertura",
     "etfCat_thematic": "Temático",
     "etfCat_style": "Estilo",
-    "etfCat_dividend": "Dividendo"
+    "etfCat_dividend": "Dividendo",
+    "businessLabel": "Negocio"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

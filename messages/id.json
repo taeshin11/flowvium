@@ -1257,7 +1257,8 @@
     "ewNote": "Komposit deterministik indikator utama · Pertimbangkan posisi defensif/lindung nilai",
     "etfCat_thematic": "Tematik",
     "etfCat_style": "Gaya",
-    "etfCat_dividend": "Dividen"
+    "etfCat_dividend": "Dividen",
+    "businessLabel": "Bisnis"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

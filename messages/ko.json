@@ -1257,7 +1257,8 @@
     "ewNote": "선행지표 결정론적 composite · 방어적 포지션·헤지 검토 권장",
     "etfCat_thematic": "테마",
     "etfCat_style": "스타일",
-    "etfCat_dividend": "배당"
+    "etfCat_dividend": "배당",
+    "businessLabel": "주력 사업"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

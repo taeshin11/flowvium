@@ -1257,7 +1257,8 @@
     "ewNote": "Composto determinístico de indicadores líderes · Considere posição defensiva/hedge",
     "etfCat_thematic": "Temático",
     "etfCat_style": "Estilo",
-    "etfCat_dividend": "Dividendo"
+    "etfCat_dividend": "Dividendo",
+    "businessLabel": "Negócio"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

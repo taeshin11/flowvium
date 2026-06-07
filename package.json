@@ -26,6 +26,7 @@
     "verify:company:coverage": "node scripts/audit-company-coverage.mjs",
     "check:gitrisk": "node scripts/check-uncommitted-risk.mjs",
     "build:names": "node scripts/build-company-names.mjs",
+    "build:business": "node scripts/build-company-business.mjs",
     "build:universe": "node scripts/build-company-names.mjs && node scripts/build-universe-search.mjs",
     "setup:hooks": "bash scripts/install-hooks.sh",
     "check:timeframes": "node scripts/check-timeframes.mjs",

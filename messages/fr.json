@@ -1257,7 +1257,8 @@
     "ewNote": "Composite déterministe d indicateurs avancés · Envisagez position défensive/couverture",
     "etfCat_thematic": "Thématique",
     "etfCat_style": "Style",
-    "etfCat_dividend": "Dividende"
+    "etfCat_dividend": "Dividende",
+    "businessLabel": "Activité"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

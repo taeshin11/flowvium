@@ -1257,7 +1257,8 @@
     "ewNote": "مركب حتمي للمؤشرات الرائدة · فكر في وضع دفاعي/تحوط",
     "etfCat_thematic": "موضوعي",
     "etfCat_style": "نمط",
-    "etfCat_dividend": "توزيعات"
+    "etfCat_dividend": "توزيعات",
+    "businessLabel": "النشاط"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

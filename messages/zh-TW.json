@@ -1257,7 +1257,8 @@
     "ewNote": "領先指標確定性綜合 · 建議防禦性配置/對沖",
     "etfCat_thematic": "主題",
     "etfCat_style": "風格",
-    "etfCat_dividend": "股息"
+    "etfCat_dividend": "股息",
+    "businessLabel": "主營業務"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

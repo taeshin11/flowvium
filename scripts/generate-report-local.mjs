@@ -83,6 +83,15 @@ try {
   console.log(`[startup] company-names.json 로드: ${Object.keys(COMPANY_NAMES_JSON).length} 실제 회사명 (name 환각 override 권위 소스)`);
 } catch { /* build-company-names.mjs 미실행 — US_NAMES_HARNESS 만 사용 */ }
 
+// 2026-06-07: 주력 매출상품/사업개요 (사용자 "뭐로 매출 내는 기업인지 모르겠다 — 보고서에 적어줘").
+//   build-company-business.mjs 가 companies-batch products[](name+revenueShare)+description 추출.
+//   LLM 생성(환각위험) 아닌 큐레이션 권위 소스. 보고서 portfolio 에 businessSummary 로 주입.
+let COMPANY_BUSINESS_JSON = {};
+try {
+  COMPANY_BUSINESS_JSON = JSON.parse(readFileSync(resolve(ROOT, 'data/company-business.json'), 'utf8'));
+  console.log(`[startup] company-business.json 로드: ${Object.keys(COMPANY_BUSINESS_JSON).length} 사업/주력제품`);
+} catch { /* build-company-business.mjs 미실행 */ }
+
 CANDIDATE_TICKERS ??= [
   // Fallback (build-candidate-tickers.mjs 미실행 시)
   // Mag7 + 메가 Tech
@@ -5983,6 +5992,21 @@ async function generateViaOllama() {
     }
     for (const p of dedupedPortfolio) delete p._realRsi;
     if (tbg) console.log(`  [tech-ground] technicalBasis RSI 라벨 실값 교정 ${tbg}건 (≥70 과매수/≤30 과매도/else 중립)`);
+  }
+  // 2026-06-07: 주력 매출상품/사업개요 주입 (사용자 "뭐로 매출 내는지 보고서에 적어줘").
+  //   company-business.json(큐레이션 products+desc) 권위 소스. KR 6자리는 suffix 제거 후 lookup.
+  {
+    let biz = 0;
+    for (const p of dedupedPortfolio) {
+      const key = String(p.ticker || '').replace(/\.(KS|KQ)$/, '');
+      const b = COMPANY_BUSINESS_JSON[p.ticker] || COMPANY_BUSINESS_JSON[key];
+      if (b && (b.products || b.desc)) {
+        p.businessSummary = b.products || '';
+        p.businessDesc = b.desc || '';
+        biz++;
+      }
+    }
+    console.log(`  [business] 주력 매출상품 주입: ${biz}/${dedupedPortfolio.length}`);
   }
   // 2026-06-04: 종목별 내재변동성(IV) 주입 (사용자 요청) — US 옵션 IV(atmIv30d). KR 은 옵션 IV 미제공 → null.
   await Promise.all(dedupedPortfolio.map(async (p) => {

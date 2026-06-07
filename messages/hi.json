@@ -1257,7 +1257,8 @@
     "ewNote": "अग्रणी संकेतक नियतात्मक समग्र · रक्षात्मक स्थिति/हेज पर विचार करें",
     "etfCat_thematic": "थीमैटिक",
     "etfCat_style": "स्टाइल",
-    "etfCat_dividend": "डिविडेंड"
+    "etfCat_dividend": "डिविडेंड",
+    "businessLabel": "व्यवसाय"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

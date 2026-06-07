@@ -321,8 +321,15 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
       </div>
 
       {/* Detail section — always visible */}
-      {(item.action === 'buy' || isWatch) && (item.catalysts?.length || item.fundamentalBasis || item.technicalBasis || item.riskNote || item.entryRationale || item.targetRationale || item.critiqueNote) && (
+      {(item.action === 'buy' || isWatch) && (item.businessSummary || item.businessDesc || item.catalysts?.length || item.fundamentalBasis || item.technicalBasis || item.riskNote || item.entryRationale || item.targetRationale || item.critiqueNote) && (
         <div className={`border-t px-4 py-3 space-y-2.5 ${isWatch ? 'border-orange-200 bg-orange-50/60' : 'border-gray-100 bg-gray-50'}`}>
+          {(item.businessSummary || item.businessDesc) && (
+            <div className="bg-white rounded-lg border border-violet-100 px-2.5 py-1.5">
+              <p className="text-[10px] font-bold text-violet-700 mb-0.5">{t('businessLabel')}</p>
+              {item.businessSummary && <p className="text-xs text-gray-800 font-medium leading-relaxed">{item.businessSummary}</p>}
+              {item.businessDesc && <p className="text-[11px] text-gray-500 leading-relaxed mt-0.5">{item.businessDesc}</p>}
+            </div>
+          )}
           {item.catalysts && item.catalysts.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">{t('catalystsLabel')}</p>

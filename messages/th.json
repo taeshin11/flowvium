@@ -1257,7 +1257,8 @@
     "ewNote": "องค์ประกอบเชิงกำหนดของตัวชี้นำ · พิจารณาสถานะป้องกัน/ป้องกันความเสี่ยง",
     "etfCat_thematic": "ธีม",
     "etfCat_style": "สไตล์",
-    "etfCat_dividend": "เงินปันผล"
+    "etfCat_dividend": "เงินปันผล",
+    "businessLabel": "ธุรกิจหลัก"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

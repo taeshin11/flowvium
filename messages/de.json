@@ -1257,7 +1257,8 @@
     "ewNote": "Deterministisches Frühindikator-Composite · Defensive Position/Hedge erwägen",
     "etfCat_thematic": "Thematisch",
     "etfCat_style": "Stil",
-    "etfCat_dividend": "Dividende"
+    "etfCat_dividend": "Dividende",
+    "businessLabel": "Geschäft"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

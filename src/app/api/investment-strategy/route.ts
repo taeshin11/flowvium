@@ -121,6 +121,8 @@ export interface PortfolioItem {
   fundamentalBasis?: string;     // EPS/PE/margin + institutional signal (≤120 chars)
   technicalBasis?: string;       // MA position, RSI, volume trend (≤80 chars)
   riskNote?: string;             // main downside risk to thesis (≤60 chars)
+  businessSummary?: string;      // 주력 매출상품 (company-business.json products, e.g. "iPhone 52% · Services 22%")
+  businessDesc?: string;         // 사업 개요 1-2문장 (company-business.json desc)
   critiqueNote?: string;         // post-hoc critique annotation (display only)
   impliedVol?: number | null;    // ATM 30일 내재변동성 % (US 옵션, KR 은 null) — 2026-06-04
   ivSkew?: number | null;        // 25-delta skew % (put-call skew)
