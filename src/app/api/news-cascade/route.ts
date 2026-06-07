@@ -11,7 +11,7 @@ function backgroundTask(fn: () => Promise<unknown>): void {
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
-import { localChat, hasChineseBleed } from '@/lib/llm-local';
+import { localChat, localChatNoBleed } from '@/lib/llm-local';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -280,9 +280,9 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     if (!text || !text.trim()) return text;
     // 이미 target 언어(CJK) 이고 긴 영문 단어 없으면 번역 불필요 — 네이티브 기사 skip(비용 절감).
     if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text)) return text;
-    const out = await translateViaOllama(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text. Do NOT use Chinese characters unless the target language is Chinese.\n\n${text}`);
-    // bleed 하네스: 중국어 누출 시 원문 유지(틀린 언어보다 영어가 나음).
-    return (out && out.trim() && out.trim() !== text.trim() && !hasChineseBleed(out, locale)) ? out.trim() : text;
+    // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → 원문 유지(틀린언어 차단).
+    const out = await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: 60000 });
+    return (out && out.trim() && out.trim() !== text.trim()) ? out.trim() : text;
   };
   const result: NewsWithCascade[] = [];
   for (const a of articles) {

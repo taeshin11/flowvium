@@ -4,7 +4,7 @@ import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
-import { localChat, hasChineseBleed } from '@/lib/llm-local';
+import { localChatNoBleed } from '@/lib/llm-local';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,11 +26,6 @@ const localeNames: Record<string, string> = {
   tr: 'Turkish',
 };
 
-// 2026-06-07: 모델 통일 — 보고서와 동일 qwen3:8b 네이티브(/api/chat, think:false) 단일 진입점 localChat.
-//   종전 /v1 + exaone 이중모델 → GPU 스왑 경합. 단일화로 제거. (src/lib/llm-local)
-async function translateViaOllama(prompt: string): Promise<string | null> {
-  return localChat(prompt, { maxTokens: 2048, timeoutMs: 60000 });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,9 +53,9 @@ export async function POST(request: NextRequest) {
     // 2026-06-03: 로컬 Ollama 우선 (cloud quota 무관). 실패/원문동일 시 cloud callAI fallback.
     let translated = '';
     let source = 'ollama';
-    const ollamaTxt = await translateViaOllama(prompt);
-    // bleed 하네스: qwen 중국어 누출 시 거부 → cloud fallback (틀린 언어 노출 방지).
-    if (ollamaTxt && ollamaTxt.trim() !== text.trim() && !hasChineseBleed(ollamaTxt, targetLocale)) {
+    // localChatNoBleed: qwen3 네이티브 + bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud fallback.
+    const ollamaTxt = await localChatNoBleed(prompt, targetLocale, { maxTokens: 2048, timeoutMs: 60000 });
+    if (ollamaTxt && ollamaTxt.trim() !== text.trim()) {
       translated = ollamaTxt.trim();
     } else {
       const aiRes = await callAI(prompt, {

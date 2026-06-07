@@ -36,26 +36,60 @@ export async function localChat(
   }
 }
 
-// ── 중국어 bleeding 하네스 ───────────────────────────────────────────────────────
-const HAN = /[一-鿿]/;          // CJK 한자(중국어/일본어 한자/한국 한자 공통)
-const HANGUL = /[가-힣]/;
-const KANA = /[぀-ヿ]/;
+// ── 외국문자 bleeding 하네스 (2026-06-07: 타 프로그램 vLLM logit_bias 기법 차용) ─────────────
+//   vLLM 은 디코딩단계 logit_bias=-100 로 외국문자 토큰 자체를 차단. Ollama(0.21.2)는 logit_bias
+//   미지원 → 생성 후 *결정론적 검사*로 동등 효과(감지 시 재생성/거부). 그쪽의 포괄적 스크립트 범위를
+//   locale-aware 로 차용: 각 locale 의 "기대 스크립트" 외 외국문자 출현 = bleed.
+const SCRIPTS = {
+  han: /[㐀-鿿]/g,          // CJK 한자(중국어·일어한자·한국한자 공통)
+  hangul: /[가-힣]/,        // 한글
+  kana: /[぀-ヿ]/,          // 히라가나·가타카나
+  cyrillic: /[Ѐ-ӿ]/,      // 키릴(러시아)
+  thai: /[฀-๿]/,          // 태국
+  arabic: /[؀-ۿ]/,        // 아랍
+  devanagari: /[ऀ-ॿ]/,    // 데바나가리(힌디)
+};
 /**
- * 출력에 target locale 에 부적절한 CJK 가 샜는지(qwen 중국어 누출) 감지.
- *   ko: 한자 2개+ (현대 한국어 뉴스는 한글 — 한자 누출=bleed; 소수 고유명사 허용 위해 임계 2)
- *   ja: 한글 출현 (일본어 한자/가나는 정상)
- *   zh-CN/zh-TW: 정상(false)
- *   기타(Latin/Cyrillic/Arabic/…): CJK 아무거나 = bleed
+ * target locale 에 부적절한 외국 스크립트가 샜는지 결정론적 감지(qwen 누출).
+ *   locale 별 허용 스크립트만 통과 — 나머지 스크립트 출현 시 bleed=true.
+ *   한자는 고유명사 1개 허용 위해 ko/en 에서 2개+ 만 bleed(나머지 스크립트는 1개라도).
  */
 export function hasChineseBleed(text: string, locale: string): boolean {
   if (!text) return false;
-  if (locale === 'zh-CN' || locale === 'zh-TW' || locale === 'en') {
-    // en 도 보통 CJK 없어야 하나 ticker/회사명 한자 드묾 — han 2개+ 만 bleed.
-    if (locale === 'en') return (text.match(HAN_G) || []).length >= 2 || HANGUL.test(text) || KANA.test(text);
-    return false;
+  const hanCount = (text.match(SCRIPTS.han) || []).length;
+  switch (locale) {
+    case 'zh-CN': case 'zh-TW':
+      return SCRIPTS.hangul.test(text) || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
+    case 'ja':  // 한자·가나 정상, 한글/기타 = bleed
+      return SCRIPTS.hangul.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
+    case 'ko':  // 한글 정상, 한자 2개+/기타 스크립트 = bleed
+      return hanCount >= 2 || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
+    case 'ru':  // 키릴 정상
+      return hanCount >= 2 || SCRIPTS.hangul.test(text) || SCRIPTS.kana.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
+    case 'ar':
+      return hanCount >= 2 || SCRIPTS.hangul.test(text) || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.devanagari.test(text);
+    case 'hi':
+      return hanCount >= 2 || SCRIPTS.hangul.test(text) || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text);
+    case 'th':
+      return hanCount >= 2 || SCRIPTS.hangul.test(text) || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
+    default:    // Latin 계열(en/es/fr/de/pt/id/tr/vi): 모든 비-Latin 스크립트 = bleed (한자 2개+)
+      return hanCount >= 2 || SCRIPTS.hangul.test(text) || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
   }
-  if (locale === 'ja') return HANGUL.test(text);
-  if (locale === 'ko') return (text.match(HAN_G) || []).length >= 2;
-  return HAN.test(text) || HANGUL.test(text) || KANA.test(text);
 }
-const HAN_G = /[一-鿿]/g;
+
+/**
+ * bleed-free 번역 — localChat 호출 후 bleed 감지 시 1회 재생성(강한 제약). vLLM logit_bias 의
+ *   Ollama 대체(디코딩 마스킹 불가 → 생성후 검사+재시도). 끝까지 bleed 면 null(상위서 fallback).
+ */
+export async function localChatNoBleed(
+  prompt: string,
+  locale: string,
+  opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {},
+): Promise<string | null> {
+  let out = await localChat(prompt, opts);
+  if (out && !hasChineseBleed(out, locale)) return out;
+  // 재시도 — 외국문자 금지 명시 강화.
+  const strict = `${prompt}\n\nIMPORTANT: Output ONLY in the target language. Do NOT include Chinese characters, Cyrillic, kana, or any other foreign script.`;
+  out = await localChat(strict, { ...opts, temperature: 0 });
+  return out && !hasChineseBleed(out, locale) ? out : null;
+}
