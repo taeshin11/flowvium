@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { loggedRedisSet, logger } from '@/lib/logger';
+import { localChat } from '@/lib/llm-local';
 import { fetchDartFinancials } from '@/lib/dart-financials';
 
 export const dynamic = 'force-dynamic';
@@ -23,29 +24,13 @@ const LOCALE_NAMES: Record<string, string> = {
   vi: 'Vietnamese', id: 'Indonesian', tr: 'Turkish',
 };
 
+// 2026-06-07: 모델 통일 — qwen3:8b 네이티브(think:false) localChat. 종전 /v1+exaone 제거.
 async function generateViaOllama(prompt: string): Promise<string | null> {
-  try {
-    const res = await fetch('http://localhost:11434/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b',  // 2026-06-06: qwen3 thinking→empty 실패, exaone 클린번역
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-        max_tokens: 1024,
-      }),
-      signal: AbortSignal.timeout(60000),
-    });
-    if (!res.ok) return null;
-    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    let txt = d.choices?.[0]?.message?.content?.trim() || '';
-    txt = txt.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    // 따옴표/머리말 제거
-    txt = txt.replace(/^["'「『]|["'」』]$/g, '').replace(/^(요약|사업\s*개요)\s*[:：]\s*/i, '').trim();
-    return txt || null;
-  } catch {
-    return null;
-  }
+  let txt = await localChat(prompt, { temperature: 0.2, maxTokens: 1024, timeoutMs: 60000 });
+  if (!txt) return null;
+  // 따옴표/머리말 제거
+  txt = txt.replace(/^["'「『]|["'」』]$/g, '').replace(/^(요약|사업\s*개요)\s*[:：]\s*/i, '').trim();
+  return txt || null;
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { ticker: string } }) {

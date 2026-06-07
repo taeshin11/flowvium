@@ -4,6 +4,7 @@ import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
+import { localChat, hasChineseBleed } from '@/lib/llm-local';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,32 +26,10 @@ const localeNames: Record<string, string> = {
   tr: 'Turkish',
 };
 
-// 2026-06-03: 자가호스팅 로컬 Ollama 우선 번역. cloud callAI 가 groq/gemini quota 소진으로
-//   원문(영어) 그대로 반환 → 회사/Cascade/Explore 페이지 미번역. news-cascade 와 동일 root cause.
+// 2026-06-07: 모델 통일 — 보고서와 동일 qwen3:8b 네이티브(/api/chat, think:false) 단일 진입점 localChat.
+//   종전 /v1 + exaone 이중모델 → GPU 스왑 경합. 단일화로 제거. (src/lib/llm-local)
 async function translateViaOllama(prompt: string): Promise<string | null> {
-  try {
-    const res = await fetch('http://localhost:11434/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // 2026-06-06: qwen3:8b → exaone3.5:7.8b. qwen3 은 thinking 모드라 /v1 OpenAI-compat 에서
-        //   <think> 만 출력하고 본문 empty → translateViaOllama null → GROQ fallback → bulk(news 12×locale)
-        //   quota throttle → ko 33% 미번역. exaone3.5(LG, 한국어특화, thinking 없음)는 9s 클린번역.
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 2048,
-      }),
-      signal: AbortSignal.timeout(60000),
-    });
-    if (!res.ok) return null;
-    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    let txt = d.choices?.[0]?.message?.content?.trim() || '';
-    txt = txt.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    return txt || null;
-  } catch {
-    return null;
-  }
+  return localChat(prompt, { maxTokens: 2048, timeoutMs: 60000 });
 }
 
 export async function POST(request: NextRequest) {
@@ -80,7 +59,8 @@ export async function POST(request: NextRequest) {
     let translated = '';
     let source = 'ollama';
     const ollamaTxt = await translateViaOllama(prompt);
-    if (ollamaTxt && ollamaTxt.trim() !== text.trim()) {
+    // bleed 하네스: qwen 중국어 누출 시 거부 → cloud fallback (틀린 언어 노출 방지).
+    if (ollamaTxt && ollamaTxt.trim() !== text.trim() && !hasChineseBleed(ollamaTxt, targetLocale)) {
       translated = ollamaTxt.trim();
     } else {
       const aiRes = await callAI(prompt, {

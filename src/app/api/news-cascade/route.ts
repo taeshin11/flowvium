@@ -11,6 +11,7 @@ function backgroundTask(fn: () => Promise<unknown>): void {
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
+import { localChat, hasChineseBleed } from '@/lib/llm-local';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -152,30 +153,10 @@ function localizeTimeframe(tf: string, locale: string): string {
  */
 // 2026-06-03: 자가호스팅 로컬 Ollama 번역 (격리 — core callAI 안 건드림). localhost:11434/v1.
 //   클라우드 rate-limit 무관, 무료. 모델은 OLLAMA_TRANSLATE_MODEL(기본 qwen3:8b — 한국어 양호).
+// 2026-06-07: 모델 통일 — 보고서와 동일 qwen3:8b 네이티브(think:false) localChat. 종전 /v1+exaone
+//   이중모델 GPU 스왑 제거. 청크(4기사)라 240s 충분.
 async function translateViaOllama(prompt: string): Promise<string | null> {
-  try {
-    const res = await fetch('http://localhost:11434/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // 2026-06-06: qwen3:8b → exaone3.5:7.8b. qwen3 은 /no_think 줘도 /v1 OpenAI-compat 에서
-        //   <think> 만 출력하고 본문 empty → 번역 실패 → news ko 33%/ja 8%. exaone3.5(LG 한국어특화,
-        //   thinking 없음)는 9s 클린 다국어 번역(ko/ja/zh 검증). /no_think prefix 불필요 → 제거.
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 12000,
-      }),
-      // 2026-06-03: 10기사 번역이 RTX 4050 6GB 에서 ~93s + 모델 cold-load(~15s) → 90s 에 근접해
-      //   간헐 timeout → null → quota-dead cloud fallback → identity → gate 거부(영어 잔존). 240s 로 상향.
-      signal: AbortSignal.timeout(240000),
-    });
-    if (!res.ok) return null;
-    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return d.choices?.[0]?.message?.content?.trim() || null;
-  } catch {
-    return null;
-  }
+  return localChat(prompt, { temperature: 0.3, maxTokens: 12000, timeoutMs: 240000 });
 }
 
 // 2026-06-06: 12-기사 strict-JSON 배치가 가용 모델(exaone 7.8B cold-load null·GROQ 70b 429·
@@ -299,8 +280,9 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     if (!text || !text.trim()) return text;
     // 이미 target 언어(CJK) 이고 긴 영문 단어 없으면 번역 불필요 — 네이티브 기사 skip(비용 절감).
     if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text)) return text;
-    const out = await translateViaOllama(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`);
-    return (out && out.trim() && out.trim() !== text.trim()) ? out.trim() : text;
+    const out = await translateViaOllama(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text. Do NOT use Chinese characters unless the target language is Chinese.\n\n${text}`);
+    // bleed 하네스: 중국어 누출 시 원문 유지(틀린 언어보다 영어가 나음).
+    return (out && out.trim() && out.trim() !== text.trim() && !hasChineseBleed(out, locale)) ? out.trim() : text;
   };
   const result: NewsWithCascade[] = [];
   for (const a of articles) {

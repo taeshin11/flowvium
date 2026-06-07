@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { logger } from './logger';
 import { callAI as callAIProvider } from './ai-providers';
+import { localChat } from './llm-local';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { allCompanies } from '@/data/companies';
@@ -276,23 +277,9 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string, tf
 // 통합 cascade(vLLM → GROQ → Gemini)로 위임. 자세한 체인 설명은 ai-providers.ts 참조.
 // 2026-06-04: 자가호스팅 — 로컬 Ollama 우선. cloud(callAIProvider)는 quota 소진으로 fallbackBrief(영어)
 //   만 나오던 문제(홈 daily-brief 가 한국어 미생성) 해결. 실패 시 cloud fallback.
+// 2026-06-07: 모델 통일 — qwen3:8b 네이티브(think:false) localChat. 종전 /v1+exaone 제거.
 async function callOllamaBrief(prompt: string): Promise<string | null> {
-  try {
-    const res = await fetch('http://localhost:11434/v1/chat/completions', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b',  // 2026-06-06: qwen3 thinking→empty 실패, exaone 클린번역
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.6, max_tokens: 2500,
-      }),
-      signal: AbortSignal.timeout(120000),
-    });
-    if (!res.ok) return null;
-    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    let t = d.choices?.[0]?.message?.content?.trim() || '';
-    t = t.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    return t || null;
-  } catch { return null; }
+  return localChat(prompt, { temperature: 0.6, maxTokens: 2500, timeoutMs: 120000 });
 }
 
 export async function callAI(prompt: string): Promise<{ text: string; source: string; attempts?: unknown }> {

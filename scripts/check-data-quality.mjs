@@ -76,6 +76,13 @@ async function main() {
       if (pct < 50) issues.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 콜드캐시/파이프라인(warm 필요). 예: "${(titles.find(t => !re.test(t)) || '').slice(0, 35)}"`);
       else if (pct < 80) info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 8B 부분번역(CJK 한계 인지됨)`);
       else info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%)`);
+      // [B5] 중국어 bleeding 하네스 (2026-06-07): qwen(중국계)이 ko 출력에 한자 누출. ko 제목에
+      //   한자 2개+ 있으면 bleed. (ja 는 한자 정상이라 제외. zh 는 중국어 정상.)
+      if (l === 'ko') {
+        const bleeds = titles.filter(t => (t.match(/[一-鿿]/g) || []).length >= 2);
+        if (bleeds.length) issues.push(`[B5] 중국어 bleeding ko ${bleeds.length}건 — qwen 한자 누출. 예: "${bleeds[0].slice(0, 30)}"`);
+        else info.push('[B5] 중국어 bleeding 없음 (ko 한자누출 0)');
+      }
     }
   }
 
