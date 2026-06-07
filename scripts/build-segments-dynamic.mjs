@@ -36,6 +36,38 @@ async function latest10K(cik) {
   return { accession: f.accessionNumber[idx].replace(/-/g, ''), doc: f.primaryDocument[idx], date: f.filingDate[idx], cik: cik.replace(/^0+/, '') };
 }
 
+// exaone grounded 추출 — region 텍스트에서 "NAME | NUMBER" 라인. 포맷무관(번역 per-field 와 동일
+//   원리: 소형모델은 구조화JSON 불안정하나 단순 grounded 추출은 안정). filing 실수치만 reformat → 환각無.
+async function exaoneExtract(region) {
+  try {
+    const prompt = `From the financial text below, extract each business segment/product and its MOST RECENT year revenue (in millions, the first number after each name). Output ONLY lines formatted exactly as: NAME | NUMBER. Exclude any "Total" row. No commentary, no other text.\n\n${region}`;
+    const r = await fetch('http://localhost:11434/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: process.env.OLLAMA_TRANSLATE_MODEL || 'exaone3.5:7.8b', messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 400 }),
+      signal: AbortSignal.timeout(90000),
+    });
+    if (!r.ok) return [];
+    const d = await r.json();
+    const txt = (d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '');
+    const rows = [];
+    for (const line of txt.split('\n')) {
+      const m = line.match(/^\s*[-*•]?\s*([A-Za-z][A-Za-z0-9,&'’.\/ ()-]{1,45}?)\s*[|:]\s*\$?\s*([\d][\d,]{2,})/);
+      if (m) {
+        const name = m[1].trim().replace(/\s+/g, ' ');
+        const amt = +m[2].replace(/,/g, '');
+        if (!/^total/i.test(name) && amt >= 50 && !rows.find(x => x.name === name)) rows.push({ name, amount: amt });
+      }
+    }
+    return rows.slice(0, 8);
+  } catch { return []; }
+}
+
+function findTotal(region) {
+  // "Total [words] $ 215,938" / "Total net sales $ 416,161" — Total 직후 첫 큰 숫자
+  const m = region.match(/Total\b[^$\d]{0,25}\$?\s*([\d,]{4,})/i);
+  return m ? +m[1].replace(/,/g, '') : null;
+}
+
 // 10-K 본문에서 매출 테이블 영역 추출 + 결정론적 파싱
 function parseSegments(txt) {
   // 제품/카테고리 테이블 우선(사용자 "주력 매출상품"), 없으면 사업/지역 세그먼트.
@@ -75,6 +107,17 @@ function parseSegments(txt) {
   };
 }
 
+// 매출 breakdown 테이블 영역 찾기 — 제품 > 세그먼트 > 엔드마켓 우선순위(broad).
+function findRegion(txt) {
+  const KWS = [
+    /Products and Services Performance|Net sales by category|Net (?:sales|revenues?) by (?:major )?(?:product|category|offering|type)|Disaggregation of Revenue/i,
+    /Revenue by Reportable Segments?|Net sales by (?:reportable )?segments?|Segment Operating Performance|Segment Results|Revenues? by (?:reportable )?segments?/i,
+    /Revenue by End Market|by end market|Revenue by Market|Revenue by geograph/i,
+  ];
+  for (const re of KWS) { const i = txt.search(re); if (i >= 0) return txt.slice(i, i + 900); }
+  return null;
+}
+
 async function extractForTicker(ticker, cikMap) {
   const cik = cikMap[ticker.toUpperCase()];
   if (!cik) return { ticker, error: 'no-cik' };
@@ -85,9 +128,21 @@ async function extractForTicker(ticker, cikMap) {
   if (!r.ok) return { ticker, error: `filing-http-${r.status}` };
   const html = await r.text();
   const txt = html.replace(/<[^>]+>/g, ' ').replace(/&#160;|&nbsp;/g, ' ').replace(/&#8217;|&#8216;/g, "'").replace(/&#8212;/g, '-').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
-  const seg = parseSegments(txt);
-  if (!seg) return { ticker, error: 'no-segment-table' };
-  return { ticker, ...seg, asOf: filing.date, source: '10-K', url };
+  // 1) 결정론 파싱(빠름, 클린 포맷). 2) 실패 시 region+exaone grounded 추출(포맷무관).
+  let seg = parseSegments(txt);
+  let method = 'regex';
+  if (!seg) {
+    const region = findRegion(txt);
+    if (!region) return { ticker, error: 'no-region' };
+    const total = findTotal(region);
+    const rows = await exaoneExtract(region);
+    if (!total || rows.length < 2) return { ticker, error: 'exaone-no-rows' };
+    const sum = rows.reduce((s, x) => s + x.amount, 0);
+    if (Math.abs(sum - total) / total > 0.08) return { ticker, error: `sum-mismatch(${Math.round(sum/1e3)}k vs ${Math.round(total/1e3)}k)` };
+    seg = { total, segments: rows.map(x => ({ name: x.name, amount: x.amount, pct: Math.round(x.amount / total * 1000) / 10 })).sort((a, b) => b.pct - a.pct) };
+    method = 'exaone';
+  }
+  return { ticker, ...seg, asOf: filing.date, source: `10-K/${method}`, url };
 }
 
 const args = process.argv.slice(2).map(s => s.toUpperCase());
