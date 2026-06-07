@@ -407,6 +407,22 @@ export function getSegments(ticker) {
   try { return { ticker: r.ticker, segments: JSON.parse(r.segments_json), total: r.total, asOf: r.as_of, source: r.source, fetchedAt: r.fetched_at }; }
   catch { return null; }
 }
+// 전 종목 동적 세그먼트 커버리지/신선도 통계 (모니터 [R] probe 용 — "1300+ 다 동적검토").
+export function getSegmentCoverageStats() {
+  const db = openDb();
+  const rows = db.prepare('SELECT source, fetched_at FROM company_segments').all();
+  const now = Date.now();
+  const ages = rows.map(r => (now - new Date(r.fetched_at).getTime()) / 86400000).filter(a => Number.isFinite(a));
+  const bySource = {};
+  for (const r of rows) { const s = (r.source || '?').replace('10-K/', ''); bySource[s] = (bySource[s] || 0) + 1; }
+  return {
+    covered: rows.length,
+    stale: ages.filter(a => a > 35).length,        // 35일+ 미갱신
+    bySource,
+    oldestDays: ages.length ? Math.round(Math.max(...ages)) : 0,
+  };
+}
+
 // refresh 우선순위: 미보유 또는 가장 오래된 fetched_at (cron rotating refresh 용)
 export function getSegmentTickersToRefresh(candidateTickers, n = 5, maxAgeDays = 30) {
   const db = openDb();

@@ -519,6 +519,19 @@ async function main() {
     } catch (e) { issues.push(`[P] FX 소스 점검 실패: ${String(e.message || e).slice(0, 40)}`); }
   }
 
+  // [R] 동적 세그먼트 커버리지 — 전 종목(US 873) 동적 데이터 검토 (2026-06-07 "1300+ 다 동적검토").
+  //   cron(2h/6) 이 DB company_segments 를 점진 확장. 모니터가 매 사이클 커버리지/신선도 surface.
+  try {
+    const { getSegmentCoverageStats } = await import('./lib/db.mjs');
+    const { readFileSync: rfs } = await import('fs');
+    const cand = JSON.parse(rfs('data/candidate-tickers.json', 'utf8')).tickers || [];
+    const usN = cand.filter(t => !/\.(KS|KQ)$/.test(t)).length || 873;
+    const st = getSegmentCoverageStats();
+    const pct = Math.round(st.covered / usN * 100);
+    if (st.covered === 0) issues.push('[R] 동적 세그먼트 0 — 추출 파이프라인 정지 의심(cron segments-refresh 확인)');
+    else info.push(`[R] 동적 세그먼트 커버리지 ${st.covered}/${usN} (${pct}%) · stale>35d ${st.stale} · ${JSON.stringify(st.bySource)} · cron 매시6 확장중`);
+  } catch (e) { info.push(`[R] 세그먼트 커버리지 점검 skip: ${String(e.message || e).slice(0, 40)}`); }
+
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
   for (const i of info) console.log('  ✅', i);

@@ -109,8 +109,8 @@ function runSegmentRefresh() {
     log(`[segments-refresh] ${m ? `✓${m[1]} ✗${m[2]}` : 'done'} (DB company_segments)`);
   } catch (e) { log(`[segments-refresh] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 60)}`); }
 }
-cron.schedule('30 */2 * * *', runSegmentRefresh, { timezone: TZ });
-log('동적 세그먼트 refresh 등록: 2시간마다 6 ticker rotating (DB company_segments, 10-K 추출)');
+cron.schedule('30 * * * *', runSegmentRefresh, { timezone: TZ });
+log('동적 세그먼트 refresh 등록: 매시 6 ticker rotating (DB company_segments, 10-K 추출 — 873 US 약 6일 1순회)');
 
 // keep alive
 process.stdin.resume();
