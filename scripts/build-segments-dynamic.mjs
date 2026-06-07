@@ -14,6 +14,7 @@
  * 사용: node scripts/build-segments-dynamic.mjs AAPL MSFT NVDA   (인자 없으면 portfolio+주요)
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { saveSegments, getSegmentTickersToRefresh } from './lib/db.mjs';
 
 const UA = { 'User-Agent': 'flowvium research contact@flowvium.net' };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -145,13 +146,19 @@ async function extractForTicker(ticker, cikMap) {
   return { ticker, ...seg, asOf: filing.date, source: `10-K/${method}`, url };
 }
 
-const args = process.argv.slice(2).map(s => s.toUpperCase());
-let tickers = args;
-if (!tickers.length) {
-  // 기본: candidate-tickers 의 US 대형 일부 (테스트는 인자 권장)
-  try { tickers = (JSON.parse(readFileSync('data/candidate-tickers.json', 'utf8')).tickers || []).filter(t => !/\.(KS|KQ)$/.test(t)).slice(0, 0); } catch { tickers = []; }
+const rawArgs = process.argv.slice(2);
+const refreshArg = rawArgs.find(a => /^--refresh=\d+$/.test(a));
+let tickers;
+if (refreshArg) {
+  // cron 주기 refresh — 미보유/가장 오래된 US ticker N개 자동선택(rotating). 모니터링시 점진 갱신.
+  const n = +refreshArg.split('=')[1];
+  const cand = (() => { try { return JSON.parse(readFileSync('data/candidate-tickers.json', 'utf8')).tickers || []; } catch { return []; } })();
+  tickers = getSegmentTickersToRefresh(cand, n);
+  console.log(`[build-segments-dynamic] refresh 모드 — 갱신 대상 ${tickers.length}: ${tickers.join(', ') || '(없음, 전부 최신)'}`);
+} else {
+  tickers = rawArgs.map(s => s.toUpperCase());
 }
-if (!tickers.length) { console.log('사용: node scripts/build-segments-dynamic.mjs AAPL MSFT ...'); process.exit(0); }
+if (!tickers.length) { console.log('사용: node scripts/build-segments-dynamic.mjs AAPL MSFT ...  또는  --refresh=8'); process.exit(0); }
 
 const cikMap = await loadCikMap();
 const out = existsSync('data/company-segments-dynamic.json') ? JSON.parse(readFileSync('data/company-segments-dynamic.json', 'utf8')) : {};
@@ -162,11 +169,13 @@ for (const t of tickers) {
     if (r.error) { console.log(`  ✗ ${t}: ${r.error}`); fail++; }
     else {
       out[t] = { segments: r.segments, total: r.total, asOf: r.asOf, source: r.source };
-      console.log(`  ✓ ${t} (asOf ${r.asOf}): ${r.segments.slice(0, 4).map(s => `${s.name} ${s.pct}%`).join(' · ')}`);
+      // DB 적재(cron checkout wipe 안전 — flowvium.db 는 wipe 경로 외) + JSON 베이스라인.
+      try { saveSegments(t, { segments: r.segments, total: r.total, asOf: r.asOf, source: r.source, fetchedAt: new Date().toISOString() }); } catch (e) { console.warn(`    [db] ${t} 적재 실패: ${e.message}`); }
+      console.log(`  ✓ ${t} (asOf ${r.asOf}, ${r.source}): ${r.segments.slice(0, 4).map(s => `${s.name} ${s.pct}%`).join(' · ')}`);
       ok++;
     }
   } catch (e) { console.log(`  ✗ ${t}: ${String(e.message).slice(0, 50)}`); fail++; }
   await sleep(250); // SEC rate-limit 예의
 }
 writeFileSync('data/company-segments-dynamic.json', JSON.stringify(out, null, 0) + '\n');
-console.log(`\n[build-segments-dynamic] ✓ ${ok} / ✗ ${fail} → data/company-segments-dynamic.json (${Object.keys(out).length} 누적)`);
+console.log(`\n[build-segments-dynamic] ✓ ${ok} / ✗ ${fail} → DB company_segments + data/company-segments-dynamic.json (${Object.keys(out).length} 누적)`);

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import Database from 'better-sqlite3';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,17 +22,41 @@ function load(): Record<string, { products?: string; desc?: string }> {
   return CACHE!;
 }
 
+// 동적 세그먼트(DB company_segments, cron 갱신, cron checkout wipe 안전) — 정적보다 우선.
+interface DynSeg { segments: { name: string; amount: number; pct: number }[]; asOf: string | null; source: string | null; fetchedAt: string }
+function dbSegments(ticker: string): DynSeg | null {
+  let db: Database.Database | null = null;
+  try {
+    db = new Database(resolve(process.cwd(), 'data/flowvium.db'), { readonly: true, fileMustExist: true });
+    const r = db.prepare('SELECT segments_json, as_of, source, fetched_at FROM company_segments WHERE ticker = ?').get(ticker.toUpperCase()) as
+      { segments_json: string; as_of: string | null; source: string | null; fetched_at: string } | undefined;
+    if (!r) return null;
+    return { segments: JSON.parse(r.segments_json), asOf: r.as_of, source: r.source, fetchedAt: r.fetched_at };
+  } catch { return null; }
+  finally { try { db?.close(); } catch { /* */ } }
+}
+
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
   const t = (ticker || '').toUpperCase();
   const db = load();
   // US(AAPL) / KR(005380.KS) / suffix 제거(005380) 순 lookup
   const hit = db[t] || db[ticker] || db[t.replace(/\.(KS|KQ)$/, '')] || db[`${t}.KS`] || db[`${t}.KQ`];
-  if (!hit || (!hit.products && !hit.desc)) {
+  // 동적 세그먼트(DB) — 있으면 정적 products 대신 동적 비중%(as-of) 우선.
+  const dyn = dbSegments(t);
+  const dynProducts = dyn ? dyn.segments.slice(0, 5).map(s => `${s.name} ${s.pct}%`).join(' · ') : null;
+  const products = dynProducts || hit?.products || null;
+  const desc = hit?.desc || null;
+  if (!products && !desc) {
     return NextResponse.json({ ticker: t, products: null, desc: null, source: 'none' });
   }
   return NextResponse.json(
-    { ticker: t, products: hit.products ?? null, desc: hit.desc ?? null, source: 'company-business' },
+    {
+      ticker: t, products, desc,
+      source: dynProducts ? `dynamic:${dyn!.source}` : 'company-business',
+      asOf: dyn?.asOf ?? null,                          // 동적이면 filing date(신선도)
+      segments: dyn?.segments ?? null,
+    },
     { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=43200' } },
   );
 }

@@ -99,5 +99,18 @@ function runMonitor() {
 cron.schedule('*/20 * * * *', runMonitor, { timezone: TZ });
 log('자동 모니터 등록: */20분 (check-stall + check-data-quality, hang-protected, → logs/monitor-status.json)');
 
+// 2026-06-07: 동적 제품/세그먼트 매출 주기 refresh (사용자 "모니터링시 업데이트 + db + 로그").
+//   2시간마다 미보유/오래된 US ticker 6개 rotating → SEC 10-K 추출 → DB company_segments 적재
+//   (cron checkout wipe 안전). 정적 stale 문제 점진 해소. hang 방지 timeout 300s.
+function runSegmentRefresh() {
+  try {
+    const out = execSync('node scripts/build-segments-dynamic.mjs --refresh=6', { stdio: 'pipe', timeout: 300000 }).toString();
+    const m = out.match(/✓ (\d+) \/ ✗ (\d+)/);
+    log(`[segments-refresh] ${m ? `✓${m[1]} ✗${m[2]}` : 'done'} (DB company_segments)`);
+  } catch (e) { log(`[segments-refresh] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 60)}`); }
+}
+cron.schedule('30 */2 * * *', runSegmentRefresh, { timezone: TZ });
+log('동적 세그먼트 refresh 등록: 2시간마다 6 ticker rotating (DB company_segments, 10-K 추출)');
+
 // keep alive
 process.stdin.resume();

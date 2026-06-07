@@ -366,13 +366,13 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [ticker, locale, company]);
   // 2026-06-07: 주력 매출상품/사업개요 (company-business.json 큐레이션) — minimal page(companies-batch
   //   미수록 APH·KR 등) 에 "주력 사업" 표시. LLM 생성(company-desc) 보다 신뢰 가능한 큐레이션 소스.
-  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null } | null>(null);
+  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null; asOf?: string | null; source?: string | null } | null>(null);
   useEffect(() => {
     if (!ticker || company) return; // 정적 프로필 있으면 풀페이지가 이미 풍부
     const ctrl = new AbortController();
     fetch(`/api/company-business/${encodeURIComponent(ticker.toUpperCase())}`, { signal: ctrl.signal })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d && !ctrl.signal.aborted && (d.products || d.desc)) setBizInfo({ products: d.products, desc: d.desc }); })
+      .then(d => { if (d && !ctrl.signal.aborted && (d.products || d.desc)) setBizInfo({ products: d.products, desc: d.desc, asOf: d.asOf, source: d.source }); })
       .catch(() => undefined);
     return () => ctrl.abort();
   }, [ticker, company]);
@@ -584,6 +584,9 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             <h2 className="text-sm font-bold text-cf-text-primary mb-2">주력 사업 / 매출상품</h2>
             {bizInfo.products && <p className="text-sm text-cf-text-primary font-medium leading-relaxed">{bizInfo.products}</p>}
             {bizInfo.desc && <p className="text-xs text-cf-text-secondary leading-relaxed mt-1.5">{bizInfo.desc}</p>}
+            {bizInfo.source?.startsWith('dynamic') && bizInfo.asOf && (
+              <p className="text-[10px] text-cf-text-secondary/50 mt-2">SEC 10-K {bizInfo.asOf} 기준 · 매출비중 동적 추출</p>
+            )}
           </div>
         )}
         {/* 사업 개요 (LLM 생성, 라이브 DART grounded — 정적 아님, Redis TTL 캐시) */}

@@ -359,6 +359,19 @@ CREATE TABLE IF NOT EXISTS hallucination_history (
 CREATE INDEX IF NOT EXISTS idx_halluc_ticker     ON hallucination_history(ticker);
 CREATE INDEX IF NOT EXISTS idx_halluc_type       ON hallucination_history(defect_type);
 CREATE INDEX IF NOT EXISTS idx_halluc_detected   ON hallucination_history(detected_at DESC);
+
+-- 2026-06-07: 회사 제품/세그먼트별 매출 *동적* 추출 (SEC 10-K). 사용자 "정적 stale — 사업보고 따라
+--   동적으로". build-segments-dynamic.mjs(cron 주기 refresh) 가 적재. as_of=filing date, Σ≈total 검증
+--   통과분만(틀린데이터 0). company-business API 가 동적 우선 읽기, 정적(company-business.json) fallback.
+CREATE TABLE IF NOT EXISTS company_segments (
+  ticker        TEXT PRIMARY KEY,
+  segments_json TEXT NOT NULL,        -- [{ name, amount, pct }] (pct desc)
+  total         REAL,                 -- 검증된 total revenue (millions)
+  as_of         TEXT,                 -- 10-K filing date
+  source        TEXT,                 -- '10-K/regex' | '10-K/exaone'
+  fetched_at    TEXT NOT NULL         -- 추출 시각 (staleness 추적)
+);
+CREATE INDEX IF NOT EXISTS idx_segments_fetched ON company_segments(fetched_at);
 `;
 
 let _dbInstance = null;
@@ -376,6 +389,33 @@ export function openDb() {
 
 export function closeDb() {
   if (_dbInstance) { _dbInstance.close(); _dbInstance = null; }
+}
+
+// ── company_segments (동적 제품/세그먼트 매출, 2026-06-07) ──────────────────────────
+export function saveSegments(ticker, { segments, total, asOf, source, fetchedAt }) {
+  const db = openDb();
+  db.prepare(`INSERT INTO company_segments (ticker, segments_json, total, as_of, source, fetched_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(ticker) DO UPDATE SET segments_json=excluded.segments_json, total=excluded.total,
+      as_of=excluded.as_of, source=excluded.source, fetched_at=excluded.fetched_at`)
+    .run(ticker.toUpperCase(), JSON.stringify(segments), total ?? null, asOf ?? null, source ?? null, fetchedAt ?? new Date().toISOString());
+}
+export function getSegments(ticker) {
+  const db = openDb();
+  const r = db.prepare('SELECT * FROM company_segments WHERE ticker = ?').get(ticker.toUpperCase());
+  if (!r) return null;
+  try { return { ticker: r.ticker, segments: JSON.parse(r.segments_json), total: r.total, asOf: r.as_of, source: r.source, fetchedAt: r.fetched_at }; }
+  catch { return null; }
+}
+// refresh 우선순위: 미보유 또는 가장 오래된 fetched_at (cron rotating refresh 용)
+export function getSegmentTickersToRefresh(candidateTickers, n = 5, maxAgeDays = 30) {
+  const db = openDb();
+  const cutoff = new Date(Date.now() - maxAgeDays * 86400000).toISOString();
+  const have = new Map(db.prepare('SELECT ticker, fetched_at FROM company_segments').all().map(r => [r.ticker, r.fetched_at]));
+  const us = candidateTickers.filter(t => !/\.(KS|KQ)$/.test(t)).map(t => t.toUpperCase());
+  const missing = us.filter(t => !have.has(t));
+  const stale = us.filter(t => have.has(t) && have.get(t) < cutoff).sort((a, b) => (have.get(a) || '').localeCompare(have.get(b) || ''));
+  return [...missing, ...stale].slice(0, n);
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
