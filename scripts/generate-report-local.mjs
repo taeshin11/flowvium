@@ -6811,6 +6811,24 @@ async function generateViaOllama() {
     if (n) console.log(`  [IV/final] rotation/pool 추가 종목 IV 재주입 ${n}건`);
   }
 
+  // 2026-06-11: 최종 businessSummary 주입 — [5.5/7] 주입 後 enforceRotation 이 교체 투입한 종목
+  //   (BDX/PPL/TSLA 사건: JSON 에 있는데도 발간본 누락)이 빈 채 발간되던 산재-불변식 결함.
+  //   name-gate/IV/final 과 같은 발간직전 chokepoint 에서 누락분만 재주입.
+  {
+    let n = 0;
+    for (const p of finalReport.portfolio || []) {
+      if (p.businessSummary !== undefined) continue;
+      const key = String(p.ticker || '').replace(/\.(KS|KQ)$/, '');
+      const b = COMPANY_BUSINESS_JSON[p.ticker] || COMPANY_BUSINESS_JSON[key];
+      if (b && (b.products || b.desc)) {
+        p.businessSummary = b.products || '';
+        p.businessDesc = b.desc || '';
+        n++;
+      }
+    }
+    if (n) console.log(`  [business/final] rotation/pool 추가 종목 주력사업 재주입 ${n}건`);
+  }
+
   // 2026-06-06: whitelist validator 최종 게이트 — 모든 portfolio 재할당(rotation/cap) 後 실행해
   //   rotation/pool 추가 종목의 ungrounded 숫자까지 차단(중간 배치 버그 fix).
   {
