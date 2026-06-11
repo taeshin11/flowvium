@@ -11,6 +11,7 @@
  * 소비: /api/company-business/[ticker] (profile 필드) → CompanyPage 폴백 렌더.
  * 사용: node scripts/build-company-profiles.mjs          (전체 갱신 — 기존 항목도 재수집)
  *       node scripts/build-company-profiles.mjs --missing (미보유분만)
+ *       node scripts/build-company-profiles.mjs --tickers=WDAY,APH (특정 종목 — 보고서 신규 종목 hook)
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 
@@ -34,8 +35,14 @@ try {
 const targets = candArr.filter(t => !/\.(KS|KQ)$/.test(t) && !batch.has(t));
 
 const prev = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : {};
-const todo = onlyMissing ? targets.filter(t => !prev[t]) : targets;
-console.log(`[profiles] 대상 ${targets.length} (US 폴백) / 수집 ${todo.length}${onlyMissing ? ' (--missing)' : ''}`);
+// 2026-06-12: --tickers= 모드 — 보고서 파이프라인이 portfolio 신규 종목을 즉석 보강 (사용자
+//   "보고서에 새 종목 잡힐 때마다 풀페이지"). 후보 풀 제약 없이 명시 종목 수집.
+const tickersArg = process.argv.find(a => a.startsWith('--tickers='));
+const todo = tickersArg
+  ? tickersArg.split('=')[1].split(',').map(t => t.trim().toUpperCase()).filter(t => t && !/\.(KS|KQ)$/.test(t))
+  : onlyMissing ? targets.filter(t => !prev[t]) : targets;
+console.log(`[profiles] 대상 ${tickersArg ? todo.length + ' (--tickers)' : targets.length + ' (US 폴백)'} / 수집 ${todo.length}${onlyMissing ? ' (--missing)' : ''}`);
+if (!todo.length) { console.log('[profiles] 수집 대상 없음'); process.exit(0); }
 
 async function getCrumb() {
   const r = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });

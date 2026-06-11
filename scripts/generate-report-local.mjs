@@ -2730,6 +2730,15 @@ function computeMacroEarlyWarning(ctxRaw, fx = {}, extras = {}) {
   //   필드 → 6/5 VIX +40% 급등에도 항상 null로 침묵. .score 가 있었어도 0-100 합성점수라 오스케일).
   const vix = get(['vix'])?.actual ?? ctxRaw?.volatility?.vix;
   if (vix != null) { if (vix >= 30) add(25, `VIX ${vix} 패닉`); else if (vix >= 25) add(15, `VIX ${vix} 급등`); else if (vix >= 20) add(8, `VIX ${vix} 경계`); }
+  // 2c. VIX 기간구조 + VVIX (2026-06-12 신설) — 스냅샷 백테스트: 6/5 폭락은 쇼크형이라 선행 못함
+  //   (6/5 장전까지 contango), 단 6/6~6/11 역전 지속 = "스트레스 진행 중" 확인 신호로 유효.
+  const vol = ctxRaw?.volatility;
+  if (vol?.vxst != null && vol?.vix != null && vol.vxst > vol.vix) {
+    add(12, `VIX 기간구조 역전(VXST ${(+vol.vxst).toFixed(1)}>VIX ${(+vol.vix).toFixed(1)}) — 단기 스트레스 지속`);
+  } else if (vol?.regime === 'backwardation') {
+    add(12, `VIX 선물 백워데이션 — 스트레스 구간`);
+  }
+  if (vol?.vvix != null && vol.vvix >= 110) add(8, `VVIX ${Math.round(vol.vvix)} — 변동성의 변동성 고조`);
   // 2b. 지수 모멘텀 (2026-06-12 신설) — capital-flows 주식군 1주 수익률. 6/5~6/10 급락(-4~-12%)에
   //   가격 기반 입력이 전무해 score 0 이던 결함. 폭락 "예측"은 불가해도 "진행 감지"는 필수.
   const eqAssets = (ctxRaw?.capital?.assets ?? []).filter(a => ['us-stocks', 'us-tech', 'em-stocks', 'eu-stocks'].includes(a.id) && typeof a.ret1w === 'number');
@@ -2760,6 +2769,26 @@ function computeMacroEarlyWarning(ctxRaw, fx = {}, extras = {}) {
   score = Math.min(100, score);
   const level = score >= 70 ? 'severe' : score >= 45 ? 'high' : score >= 25 ? 'elevated' : 'low';
   return { score, level, drivers, asOf: new Date().toISOString() };
+}
+
+// 2026-06-12: 반등관찰(상승 신호) — 사용자 "위험신호나 상승신호 예측". 결정론 3조건 중 2+ 면 'watch':
+//   ① 심리 공포(F&G≤30) ② 최근 급락 흔적(주식군 1주 ≤-4%) ③ VIX 기간구조 정상화(VXST<VIX 인데
+//   VIX 는 아직 ≥18 = 스트레스 피크아웃 진행). 매수 단정 아님 — 과매도 반등 "관찰" 신호.
+//   (6/9 KOSPI +8.2% 류 반등의 사후 백테스트는 6/7~6/11 머신다운으로 스냅샷 부재 — 보수적 watch 만)
+function computeReboundWatch(ctxRaw) {
+  const drivers = [];
+  const fg = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? null;
+  if (fg != null && fg <= 30) drivers.push(`F&G ${fg} 공포 구간`);
+  const eq = (ctxRaw?.capital?.assets ?? []).filter(a => ['us-stocks', 'us-tech', 'em-stocks', 'eu-stocks'].includes(a.id) && typeof a.ret1w === 'number');
+  if (eq.length) {
+    const worst = eq.reduce((m, a) => (a.ret1w < m.ret1w ? a : m));
+    if (worst.ret1w <= -4) drivers.push(`${worst.label ?? worst.id} 1주 ${worst.ret1w}% 과매도권`);
+  }
+  const vol = ctxRaw?.volatility;
+  if (vol?.vxst != null && vol?.vix != null && vol.vxst < vol.vix && vol.vix >= 18) {
+    drivers.push(`VIX 기간구조 정상화(VXST<VIX, VIX ${(+vol.vix).toFixed(1)}) — 스트레스 피크아웃 가능`);
+  }
+  return { level: drivers.length >= 2 ? 'watch' : 'none', drivers, asOf: new Date().toISOString() };
 }
 
 /**
@@ -6065,6 +6094,8 @@ async function generateViaOllama() {
   let prevFgScore = null;
   try { prevFgScore = getPreviousFearGreedScore(); } catch { /* DB 미가용 시 변화율 입력만 생략 */ }
   const earlyWarning = computeMacroEarlyWarning(ctxRaw, ctxRaw?.fx ?? {}, { prevFgScore });
+  const reboundWatch = computeReboundWatch(ctxRaw);
+  if (reboundWatch.level === 'watch') console.log(`  [rebound-watch] 반등관찰: ${reboundWatch.drivers.join(' | ')}`);
   let gatedStance = portfolioData.stance ?? 'neutral';
   let gatedRiskLevel = macroData?.riskLevel ?? 'medium';
   if (earlyWarning.level === 'severe') {
@@ -6084,6 +6115,7 @@ async function generateViaOllama() {
     portfolio: dedupedPortfolio,
     buySellReconciliation: reconciliationLog,  // 매수↔매도 경합심사 요약 (연구·UI 노출용)
     earlyWarning,  // 거시 급락 조기경보 (결정론적 composite)
+    reboundWatch,  // 과매도 반등 관찰 신호 (결정론, 매수 단정 아님 — 2026-06-12)
     sectorAllocation: sectorAllocationFallback,
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',
@@ -6865,6 +6897,12 @@ async function generateViaOllama() {
     if (noBiz.length) console.warn(`  ⚠️ [business/final] company-business.json 미수록 ${noBiz.length}종: ${noBiz.join(', ')} — build-company-business.mjs CURATED 보강 필요`);
   }
 
+  // 2026-06-12: 반등관찰 신호를 보고서 본문(macroAnalysis)에도 결정론 문장으로 반영 — UI 배너 없이도
+  //   사용자가 텍스트에서 확인 가능. LLM 생성 아닌 코드 생성 문장(환각 0).
+  if (finalReport.reboundWatch?.level === 'watch' && typeof finalReport.macroAnalysis === 'string') {
+    finalReport.macroAnalysis += ` | [반등관찰] ${finalReport.reboundWatch.drivers.join(' · ')} — 과매도 반등 가능성 관찰 구간 (매수 단정 아님)`;
+  }
+
   // 2026-06-06: whitelist validator 최종 게이트 — 모든 portfolio 재할당(rotation/cap) 後 실행해
   //   rotation/pool 추가 종목의 ungrounded 숫자까지 차단(중간 배치 버그 fix).
   {
@@ -6974,6 +7012,35 @@ async function generateViaOllama() {
     console.log(`[db] ✅ 스냅샷 완료: ${okCount}/${snapResults.length} ok, ${Date.now() - snapStart}ms`);
     const failed = snapResults.filter(r => !r.ok).map(r => r.endpoint);
     if (failed.length) console.log(`[db] ⚠️  실패: ${failed.join(', ')}`);
+
+    // 2026-06-12: 보고서 신규 종목 풀페이지 보장 (사용자 "새 종목 잡힐 때마다 풀페이지. KS 도").
+    //   US: Yahoo 프로필(company-profiles.json) + XBRL 세그먼트(DB) 미보유분 즉석 보강.
+    //   KR: 회사페이지가 DART 라이브(company-kr/company-desc)로 이미 동적 커버 — 별도 수집 불필요.
+    try {
+      const { execFile: efRaw } = await import('child_process');
+      const efAsync = (await import('util')).promisify(efRaw);
+      const usTickers = portfolioTickers.filter((t) => !/\.(KS|KQ)$/.test(t));
+      let profJson = {};
+      try { profJson = JSON.parse(readFileSync(resolve(ROOT, 'data/company-profiles.json'), 'utf8')); } catch { /* 미생성 */ }
+      const needProfile = usTickers.filter((t) => !profJson[t]);
+      const DatabaseCtor = (await import('better-sqlite3')).default;
+      const segDb = new DatabaseCtor(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+      const segSet = new Set(segDb.prepare('SELECT ticker FROM company_segments').all().map((r) => r.ticker));
+      segDb.close();
+      const needSeg = usTickers.filter((t) => !segSet.has(t));
+      if (needProfile.length) {
+        await efAsync('node', ['scripts/build-company-profiles.mjs', `--tickers=${needProfile.join(',')}`], { timeout: 120000, windowsHide: true });
+        console.log(`[fullpage] 신규 종목 프로필 수집: ${needProfile.join(', ')}`);
+      }
+      if (needSeg.length) {
+        const { stdout: segOut } = await efAsync('node', ['scripts/build-segments-dynamic.mjs', ...needSeg], { timeout: 300000, windowsHide: true, maxBuffer: 5 * 1024 * 1024 });
+        const segOk = (segOut.match(/✓/g) || []).length;
+        console.log(`[fullpage] 신규 종목 세그먼트 추출 시도 ${needSeg.length} → 성공 ${segOk} (검증 미통과는 큐레이션/미표시 유지)`);
+      }
+      if (!needProfile.length && !needSeg.length) console.log('[fullpage] portfolio 전 종목 풀페이지 데이터 보유 ✅');
+    } catch (e) {
+      console.warn(`[fullpage] ⚠️ 신규 종목 보강 실패 (non-fatal): ${String(e?.message).slice(0, 80)}`);
+    }
 
     // 2026-05-30: Karpathy closed loop — 보고서 발간 직후 verify-report 자동 실행
     //   결함 detect → hallucination_history 적재 → 다음 보고서 prompt 에 anti-pattern inject.
