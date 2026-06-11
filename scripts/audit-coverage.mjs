@@ -8,7 +8,7 @@
  * 매주 또는 매 fix push 후 실행 권장.
  */
 import Database from 'better-sqlite3';
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 const ROOT = 'C:/NoAddsMakingApps/FlowVium';
 const db = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
 
@@ -659,10 +659,52 @@ try {
   const inManifestNotCode = [...manifestEps].filter(e => !refEndpoints.has(e));
   console.log(`  코드 참조 endpoint: ${refEndpoints.size} 개 / 하드코딩 manifest: ${manifestEps.size} 개`);
   if (inManifestNotCode.length) warn(`manifest 에만 있고 코드에 없음 (${inManifestNotCode.length}): ${inManifestNotCode.join(', ')}`);
-  // manifest 가 추적하는 핵심 endpoint 중 코드 참조되는데 최근 3일 snapshot 없는 것
-  const refNotCaptured = [...refEndpoints].filter(e => manifestEps.has(e) && !capNormSet.has(e));
+  // manifest 가 추적하는 핵심 endpoint 중 코드 참조되는데 최근 3일 snapshot 없는 것.
+  //   2026-06-12: prefix 매칭 — per-ticker 적재(/api/company-kr/005930)는 base(/api/company-kr) 커버로 인정.
+  const capCovers = (e) => capNormSet.has(e) || [...capNormSet].some(c => c.startsWith(`${e}/`) || c.startsWith(`${e}?`));
+  const refNotCaptured = [...refEndpoints].filter(e => manifestEps.has(e) && !capCovers(e));
   if (refNotCaptured.length) warn(`manifest 핵심 endpoint 코드 참조하나 3일 snapshot 없음 (${refNotCaptured.length}): ${refNotCaptured.slice(0, 8).join(', ')}`);
-  if (!inManifestNotCode.length && !refNotCaptured.length) ok(`manifest ↔ 코드 ↔ snapshot 정합 (코드 ${refEndpoints.size} endpoint 추적)`);
+
+  // 2026-06-12: inCodeNotManifest 가 계산만 되고 한 번도 보고 안 되던 결함 fix (사각지대 탐지기의
+  //   사각지대 — 23개 미추적인데 "정합 ✅" 출력). 타 검증이 커버하는 것을 빼고 진짜 미커버만 표출:
+  //   - audit-company-pages 가 1,210×9 로 커버하는 9종
+  //   - endpoint_snapshots 최근 3일 적재분 (Probe [3b] 가 status/error 검사)
+  const COVERED_BY_COMPANY_PAGES = new Set(['/api/company-financials', '/api/company-kr', '/api/company-news',
+    '/api/company-recs', '/api/stock-price', '/api/market-caps', '/api/price-history', '/api/analyst-target', '/api/iv']);
+  // check-data-quality 가 기능 probe 로 커버 ([E] translate 한글출력, [B] news-cascade locale)
+  const COVERED_BY_DQ = new Set(['/api/translate', '/api/news-cascade']);
+  // 의도적 미커버 (사유 명시 — silent 금지): POST 전용 + 호출비용/상호작용성이라 주기 probe 부적합
+  const KNOWN_UNCOVERED = {
+    '/api/ai': 'POST 전용 + LLM 토큰 비용',
+    '/api/paper-trading': 'POST 상호작용(모의투자 주문)',
+    '/api/institutional-refresh': '갱신 트리거(부수효과) — 주기 probe 부적합',
+  };
+  // 템플릿 문자열 아티팩트 제외: `/api/admin/${x}` 류는 단일세그먼트 regex 가 '/api/admin' 으로 캡처하나
+  //   route.ts 없는 부모 디렉토리 = 실 endpoint 아님 (admin/* 은 x-admin-secret 필요 — 관리자 전용 미커버 의도)
+  const isParentPrefix = (e) => {
+    const seg = e.replace('/api/', '');
+    return existsSync(`${ROOT}/src/app/api/${seg}`) && !existsSync(`${ROOT}/src/app/api/${seg}/route.ts`);
+  };
+  const trulyUncovered = inCodeNotManifest.filter(e =>
+    !capCovers(e) && !COVERED_BY_COMPANY_PAGES.has(e) && !COVERED_BY_DQ.has(e) && !KNOWN_UNCOVERED[e] && !isParentPrefix(e));
+  if (trulyUncovered.length) {
+    // 파라미터 없이 GET 가능한 것은 즉석 body 검사. 400/404/405 = 파라미터필요/POST전용(살아있음 — info),
+    //   5xx 또는 200+빈body 만 결함 의심.
+    const results = [];
+    for (const ep of trulyUncovered) {
+      try {
+        const res = await fetch(`http://localhost:${process.env.PORT || 3000}${ep}`, { signal: AbortSignal.timeout(10000) });
+        const body = await res.text();
+        const emptyish = body.length < 30 || /"error"\s*:/.test(body.slice(0, 200));
+        const needsArgs = [400, 404, 405].includes(res.status);
+        results.push(`${ep}=${res.status}${needsArgs ? '(args필요)' : emptyish ? '(빈body)' : ''}`);
+        if (res.status >= 500 || (res.status === 200 && emptyish)) warn(`미추적 endpoint 결함 의심: ${ep} → ${res.status}, body ${body.slice(0, 80)}`);
+      } catch { results.push(`${ep}=unreachable`); }
+    }
+    warn(`코드 참조하나 어떤 검증도 미커버 (${trulyUncovered.length}) — 즉석 probe: ${results.join(', ')}`);
+    console.log(`    → 영구 커버: snapshot-endpoints TRACKED_ENDPOINTS 에 (args 포함) 추가`);
+  }
+  if (!inManifestNotCode.length && !refNotCaptured.length && !trulyUncovered.length) ok(`manifest ↔ 코드 ↔ snapshot 정합 (코드 ${refEndpoints.size} endpoint 전부 검증 커버, 의도적 미커버 ${Object.keys(KNOWN_UNCOVERED).length}건 사유명시)`);
 } catch (e) { warn(`manifest drift 점검 실패: ${e.message}`); }
 
 // ═══════ 종합 ═══════

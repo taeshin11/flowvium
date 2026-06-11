@@ -58,6 +58,11 @@ export const TRACKED_ENDPOINTS = [
   '/api/flow-analysis',
   '/api/earnings',
   '/api/daily-brief',
+  // 2026-06-12: Probe [12] 미커버 표출분 — 페이지가 쓰는데 어떤 검증도 args 넣어 검사 안 하던 4종
+  '/api/stock-supply?ticker=AAPL',
+  '/api/batch-prices?tickers=AAPL,MSFT,NVDA',
+  '/api/company-desc/AAPL',
+  '/api/company-business/AAPL',
 ];
 
 async function fetchOne(baseUrl, path, timeoutMs = 12000) {
