@@ -509,6 +509,13 @@ export async function verifyReport(file, { silent = false } = {}) {
       } else {
         log('  ✅ earlyWarning ↔ 외부 실측 정합');
       }
+      // 2026-06-12: 과대경보 방향 (6/12 morning VIX 하루 stale 사건 — 실측은 진정됐는데 high 발간).
+      //   실측이 평온(VIX<20 & S&P 5d>-2.5%)한데 score 45+ 면 stale 입력 의심.
+      if (vixNow != null && spx5d != null && vixNow < 20 && spx5d > -2.5 && ew.score >= 45) {
+        defects.push({ ticker: 'MACRO', defect_type: 'early_warning_overalarm',
+          llm_value: `score ${ew.score}/${ew.level}`, correct_value: `실측 평온(VIX ${vixNow.toFixed(1)}, S&P5d ${spx5d.toFixed(1)}%) — stale 입력 의심`, severity: 'medium' });
+        log(`  ⚠️ 실측 평온인데 earlyWarning ${ew.score} — stale 입력 의심`);
+      }
       if ((ew.level === 'high' || ew.level === 'severe') && r.stance === 'bullish') {
         defects.push({ ticker: 'MACRO', defect_type: 'stance_gate_violation',
           llm_value: `stance bullish + ew ${ew.level}`, correct_value: 'stance-gate 가 cap 했어야 함', severity: 'high' });
