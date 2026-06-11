@@ -42,3 +42,21 @@
 - 부팅 시 자동 복구: pm2 resurrect (검증됨) + Task Scheduler catch-up (신설)
 - 미해결: freeze 자체의 하드웨어 원인 (커널 로그 무흔적 — GPU 드라이버/전원/발열 의심.
   소프트웨어로 더 줄일 여지 제한적. 재발 시 발열/드라이버 버전 점검 권장)
+
+## (추가) 복구 run 에서 발견된 2차 결함과 fix
+
+### A. Wave1 전멸 → 원인 GPU 경합 (commit 51e8ad4)
+1차 복구 run 의 Wave1 5병렬 Ollama 호출 전멸(fetch failed) — web 서버의 뉴스번역 백로그가
+GPU 83C/96% 점유(60s client timeout 후에도 서버 계속 처리 → thrashing). web 재시작으로 해소.
+cron-runner 에 보고서 lock 감지 시 auto-warm/segments-refresh skip 가드 추가.
+별건: cloud 폴백 전멸 — GROQ 401 invalid_api_key + Gemini 400 (.env.local 키 재발급 필요).
+
+### B. rotation 교체 종목 businessSummary 누락 (commit b8ee5ae)
+[5.5/7] 주입 후 [6/7] enforceRotation 교체 투입 종목(BDX/PPL/TSLA)이 빈 채 발간.
+발간직전 chokepoint(name-gate/IV/final 옆)에 재주입 + 미수록 ticker WARN 로그 추가.
+IEX 큐레이션 추가 (629→630).
+
+### 최종 상태
+- 6/11 afternoon 보고서 100/100 발간·업로드 (사이트 4일 stale 해소)
+- verify-all: fail 0 / warn 4 (기존 추적 항목)
+- 다음 cron: evening 21:10 KST (Task Scheduler 정상)

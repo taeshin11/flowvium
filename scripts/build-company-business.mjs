@@ -58,6 +58,7 @@ const CURATED = {
   SBAC: { products: '무선통신 타워 임대 · 사이트 개발 서비스', desc: 'SBA Communications — 통신타워 리츠(REIT). 미주 중심 39,000+ 타워를 통신사에 장기 임대.' },
   WTW: { products: '보험중개·리스크 자문 · HR/복리후생 컨설팅', desc: 'Willis Towers Watson — 글로벌 보험중개 및 리스크·인사·복리후생 컨설팅.' },
   '053610.KQ': { products: '반도체 후공정 장비(디스펜서·다이본더) · 공압 실린더', desc: '프로텍 — 반도체 패키징(후공정) 디스펜서·본더 장비 및 공압기기 제조. (DART corpCode 00325112)' },
+  IEX: { products: '유체·계량 기술(펌프·미터) · 헬스&사이언스 정밀부품 · 소방/안전 장비', desc: 'IDEX Corporation — 산업용 정밀 펌프·유체계량, 생명과학/반도체용 정밀부품, 소방·구조 장비 제조 (FMT/HST/FSDP 3개 세그먼트).' },
   // KR 대형주 — companies-batch 미수록(배치가 US 위주). 공개 사실 기반 주력사업(가짜% 금지).
   //   .KS/.KQ 키로 저장(보고서 ticker 가 6자리.KS 형식, lookup 시 양쪽 시도).
   '005380.KS': { products: '완성차(승용·SUV·제네시스) · 금융 · AS/부품', desc: '현대자동차 — 완성차 제조·판매(내연·하이브리드·EV) 및 자동차할부금융. 글로벌 5위권 완성차 그룹.' },

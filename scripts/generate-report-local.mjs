@@ -6827,6 +6827,8 @@ async function generateViaOllama() {
       }
     }
     if (n) console.log(`  [business/final] rotation/pool 추가 종목 주력사업 재주입 ${n}건`);
+    const noBiz = (finalReport.portfolio || []).filter((p) => !p.businessSummary && !p.businessDesc).map((p) => p.ticker);
+    if (noBiz.length) console.warn(`  ⚠️ [business/final] company-business.json 미수록 ${noBiz.length}종: ${noBiz.join(', ')} — build-company-business.mjs CURATED 보강 필요`);
   }
 
   // 2026-06-06: whitelist validator 최종 게이트 — 모든 portfolio 재할당(rotation/cap) 後 실행해
