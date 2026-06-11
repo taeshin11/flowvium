@@ -366,7 +366,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [ticker, locale, company]);
   // 2026-06-07: 주력 매출상품/사업개요 (company-business.json 큐레이션) — minimal page(companies-batch
   //   미수록 APH·KR 등) 에 "주력 사업" 표시. LLM 생성(company-desc) 보다 신뢰 가능한 큐레이션 소스.
-  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null; asOf?: string | null; source?: string | null; name?: string | null; profile?: { sector?: string | null; industry?: string | null; employees?: number | null; website?: string | null; summary?: string | null } | null } | null>(null);
+  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null; asOf?: string | null; source?: string | null; name?: string | null; segments?: { name: string; amount: number; pct: number }[] | null; profile?: { sector?: string | null; industry?: string | null; employees?: number | null; website?: string | null; summary?: string | null } | null } | null>(null);
   useEffect(() => {
     if (!ticker || company) return; // 정적 프로필 있으면 풀페이지가 이미 풍부
     const ctrl = new AbortController();
@@ -782,19 +782,104 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             </div>
           </div>
         )}
-        {/* Live financials if available */}
-        {liveFinancials?.revenueFormatted && (
+        {/* 매출 구성 — 검증형 동적 추출 (DB company_segments, SEC 10-K) — 2026-06-12 "전부 동적" */}
+        {bizInfo?.segments && bizInfo.segments.length > 0 && (
           <div className="cf-card p-4 mb-4">
-            <h2 className="text-sm font-bold text-cf-text-primary mb-3">재무 심화 — {liveFinancials.fiscalYear}</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {liveFinancials.latestAnnual?.revenueUSD != null && (
-                <div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">매출</p><p className="text-sm font-bold">{liveFinancials.revenueFormatted}</p></div>
-              )}
-              {liveFinancials.latestAnnual?.netIncomeUSD != null && (
-                <div className="cf-card p-3"><p className="text-[10px] text-cf-text-secondary">순이익</p><p className="text-sm font-bold">${(liveFinancials.latestAnnual.netIncomeUSD / 1e6).toFixed(0)}M</p></div>
-              )}
+            <h2 className="text-sm font-bold text-cf-text-primary mb-3">매출 구성</h2>
+            <div className="h-44">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={bizInfo.segments.map(s => ({ name: s.name, value: s.pct }))} dataKey="value" nameKey="name" innerRadius={42} outerRadius={68} paddingAngle={2}>
+                    {bizInfo.segments.map((s, i) => <Cell key={s.name} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => `${v}%`} contentStyle={{ fontSize: '11px', padding: '4px 8px' }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-            <p className="text-[10px] text-cf-text-secondary/50 mt-2">{liveFinancials.source} · {liveFinancials.periodEnd}</p>
+            <div className="space-y-1.5 mt-2">
+              {bizInfo.segments.map((s, i) => (
+                <div key={s.name} className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 text-cf-text-primary font-medium">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />{s.name}
+                  </span>
+                  <span className="text-cf-text-secondary tabular-nums">{fmtUsd(s.amount)} · {s.pct}%</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-emerald-600/80 mt-2">SEC EDGAR 10-K {bizInfo.asOf ?? ''} · 매출비중 동적 추출 (Σ검증 통과)</p>
+          </div>
+        )}
+        {/* 재무 심화 (SEC EDGAR XBRL — 풀 페이지와 동일 깊이, 2026-06-12 패리티) */}
+        {liveFinancials?.latestAnnual && (
+          <div className="cf-card p-4 mb-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+              <h2 className="text-sm font-bold text-cf-text-primary">재무 심화 — FY{liveFinancials.fiscalYear}</h2>
+              <span className="text-[10px] text-emerald-600">{liveFinancials.source} · {liveFinancials.periodEnd}</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+              {[
+                { label: '매출', val: fmtUsd(liveFinancials.latestAnnual.revenueUSD) },
+                { label: '영업이익', val: fmtUsd(liveFinancials.latestAnnual.operatingIncomeUSD) },
+                { label: '순이익', val: fmtUsd(liveFinancials.latestAnnual.netIncomeUSD) },
+                { label: 'EPS(희석)', val: liveFinancials.latestAnnual.epsDiluted != null ? `$${liveFinancials.latestAnnual.epsDiluted.toFixed(2)}` : '-' },
+                { label: '영업이익률', val: liveFinancials.latestAnnual.operatingMarginPct != null ? `${liveFinancials.latestAnnual.operatingMarginPct}%` : '-' },
+                { label: 'ROE', val: liveFinancials.latestAnnual.roePct != null ? `${liveFinancials.latestAnnual.roePct}%` : '-' },
+                { label: 'ROA', val: liveFinancials.latestAnnual.roaPct != null ? `${liveFinancials.latestAnnual.roaPct}%` : '-' },
+                { label: '부채비율', val: liveFinancials.latestAnnual.debtRatioPct != null ? `${liveFinancials.latestAnnual.debtRatioPct}%` : '-' },
+              ].map(m => (
+                <div key={m.label} className="bg-gray-50 rounded-lg p-2.5">
+                  <p className="text-[10px] text-cf-text-secondary mb-0.5">{m.label}</p>
+                  <p className="text-sm font-bold text-cf-text-primary">{m.val}</p>
+                </div>
+              ))}
+            </div>
+            {liveFinancials.annuals.length > 1 && (
+              <div className="mb-4">
+                <p className="text-[11px] font-bold text-cf-text-secondary mb-1.5">연간 매출·순이익 추이</p>
+                <div className="h-32">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[...liveFinancials.annuals].reverse().map(a => ({
+                      fy: `FY${a.fy}`,
+                      rev: a.revenueUSD != null ? parseFloat((a.revenueUSD / 1e9).toFixed(1)) : null,
+                      net: a.netIncomeUSD != null ? parseFloat((a.netIncomeUSD / 1e9).toFixed(1)) : null,
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="fy" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} unit="B" width={34} />
+                      <Tooltip formatter={(v) => `$${v}B`} />
+                      <Bar dataKey="rev" name="매출" fill="#4F8FBF" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="net" name="순이익" fill="#5CB88A" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-1.5">대차대조표</p>
+                <div className="space-y-1">
+                  {[
+                    { label: '총자산', val: fmtUsd(liveFinancials.latestAnnual.totalAssetsUSD) },
+                    { label: '총부채', val: fmtUsd(liveFinancials.latestAnnual.totalLiabilitiesUSD) },
+                    { label: '자기자본', val: fmtUsd(liveFinancials.latestAnnual.equityUSD) },
+                  ].map(m => (
+                    <div key={m.label} className="flex justify-between text-xs"><span className="text-cf-text-secondary">{m.label}</span><span className="font-medium text-cf-text-primary">{m.val}</span></div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-1.5">현금흐름</p>
+                <div className="space-y-1">
+                  {[
+                    { label: '영업', val: fmtUsd(liveFinancials.latestAnnual.operatingCFUSD) },
+                    { label: '투자', val: fmtUsd(liveFinancials.latestAnnual.investingCFUSD) },
+                    { label: '재무', val: fmtUsd(liveFinancials.latestAnnual.financingCFUSD) },
+                  ].map(m => (
+                    <div key={m.label} className="flex justify-between text-xs"><span className="text-cf-text-secondary">{m.label}</span><span className="font-medium text-cf-text-primary">{m.val}</span></div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
         {/* News if available */}
@@ -830,10 +915,15 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     );
   }
 
-  const pieData = company.revenue.segments.map((s) => ({
-    name: s.name,
-    value: s.percentage,
-  }));
+  // 2026-06-12 "전부 동적 추출": 검증형 동적 세그먼트(DB company_segments, SEC 10-K Σ검증)가 있으면
+  //   정적 큐레이션 %(stale 위험 — AAPL 52% vs 실제 50.4% 사건) 대신 동적 % 우선.
+  const dynSegs = bizInfo?.segments && bizInfo.segments.length > 0 ? bizInfo.segments : null;
+  const pieData = dynSegs
+    ? dynSegs.map((s) => ({ name: s.name, value: s.pct }))
+    : company.revenue.segments.map((s) => ({
+        name: s.name,
+        value: s.percentage,
+      }));
 
   const productBarData = company.products.map((p) => ({
     name: p.name.length > 15 ? p.name.slice(0, 15) + '...' : p.name,
@@ -1041,10 +1131,15 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 <h3 className="text-sm font-bold text-cf-text-primary mb-1">
                   {t('revenueBreakdown')} ({liveFinancials?.revenueFormatted ?? company.revenue.total})
                 </h3>
-                {liveFinancials ? (
+                {dynSegs ? (
                   <p className="text-[10px] text-emerald-600 mb-3 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    FY{liveFinancials.fiscalYear} · {liveFinancials.periodEnd} · {liveFinancials.source}
+                    SEC EDGAR 10-K {bizInfo?.asOf ?? ''} · 매출비중 동적 추출 (Σ검증 통과)
+                  </p>
+                ) : liveFinancials ? (
+                  <p className="text-[10px] text-emerald-600 mb-3 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    FY{liveFinancials.fiscalYear} · {liveFinancials.periodEnd} · {liveFinancials.source} <span className="text-cf-text-secondary/60">· 비중% 큐레이션</span>
                   </p>
                 ) : (
                   <p className="text-[10px] text-cf-text-secondary/60 mb-3">{t('staticDataFinancials')}</p>

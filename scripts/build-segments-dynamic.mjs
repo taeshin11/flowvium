@@ -13,11 +13,28 @@
  * 출력: data/company-segments-dynamic.json { TICKER: { segments:[{name,amount,pct}], total, asOf, fy, source } }
  * 사용: node scripts/build-segments-dynamic.mjs AAPL MSFT NVDA   (인자 없으면 portfolio+주요)
  */
-import { readFileSync } from 'fs';
+import { readFileSync, statSync } from 'fs';
 import { saveSegments, getSegmentTickersToRefresh } from './lib/db.mjs';
 
 const UA = { 'User-Agent': 'flowvium research contact@flowvium.net' };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// 2026-06-12: 보고서 파이프라인 lock 양보 — 벌크 sweep 이 보고서 cron(Wave1 GPU 독점 필요)과
+//   겹치면 6/11 Wave1 전멸 사건 재발. lock(90min 미만) 감지 시 대기 후 재개. cron-runner 의
+//   segments-refresh skip 가드와 동일 원리(단일 GPU 규칙) — 장시간 sweep 은 skip 아닌 wait.
+async function waitIfReportRunning() {
+  for (;;) {
+    try {
+      const st = statSync('logs/report-pipeline.lock');
+      if (Date.now() - st.ctimeMs < 90 * 60 * 1000) {
+        console.log('  [lock] 보고서 파이프라인 실행 중 — 120s 대기 (GPU 양보)');
+        await sleep(120000);
+        continue;
+      }
+    } catch { /* lock 없음 */ }
+    return;
+  }
+}
 
 // ticker → CIK (SEC company_tickers.json)
 async function loadCikMap() {
@@ -166,6 +183,7 @@ const cikMap = await loadCikMap();
 //   마다 dirty → wipe-risk 유발하므로 미사용(2026-06-07 churn 제거).
 let ok = 0, fail = 0;
 for (const t of tickers) {
+  await waitIfReportRunning();
   try {
     const r = await extractForTicker(t, cikMap);
     if (r.error) { console.log(`  ✗ ${t}: ${r.error}`); fail++; }
