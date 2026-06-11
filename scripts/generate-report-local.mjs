@@ -7047,7 +7047,8 @@ async function generateViaOllama() {
         console.log(`[fullpage] 신규 종목 프로필 수집: ${needProfile.join(', ')}`);
       }
       if (needSeg.length) {
-        const { stdout: segOut } = await efAsync('node', ['scripts/build-segments-dynamic.mjs', ...needSeg], { timeout: 300000, windowsHide: true, maxBuffer: 5 * 1024 * 1024 });
+        // timeout 종목 수 비례 (LLM 폴백 최대 90s/종목 — 6/12 고정 300s 가 3종목에 SIGTERM 났던 사건)
+        const { stdout: segOut } = await efAsync('node', ['scripts/build-segments-dynamic.mjs', ...needSeg], { timeout: Math.max(300000, needSeg.length * 150000), windowsHide: true, maxBuffer: 5 * 1024 * 1024 });
         const segOk = (segOut.match(/✓/g) || []).length;
         console.log(`[fullpage] 신규 종목 세그먼트 추출 시도 ${needSeg.length} → 성공 ${segOk} (검증 미통과는 큐레이션/미표시 유지)`);
       }
