@@ -802,7 +802,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   <span className="flex items-center gap-1.5 text-cf-text-primary font-medium">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />{s.name}
                   </span>
-                  <span className="text-cf-text-secondary tabular-nums">{fmtUsd(s.amount)} · {s.pct}%</span>
+                  {/* 금액은 필링별 단위(천/백만) 편차로 스케일 모호 — 검증된 pct 만 표시 (정확성 우선) */}
+                  <span className="text-cf-text-secondary tabular-nums">{s.pct}%</span>
                 </div>
               ))}
             </div>

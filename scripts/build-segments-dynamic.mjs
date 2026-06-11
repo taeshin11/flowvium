@@ -49,9 +49,101 @@ async function latest10K(cik) {
   const r = await fetch(`https://data.sec.gov/submissions/CIK${cik}.json`, { headers: UA, signal: AbortSignal.timeout(20000) });
   const j = await r.json();
   const f = j.filings.recent;
-  const idx = f.form.findIndex(x => x === '10-K');
+  // 2026-06-12: ADR(TSM 등) 20-F/40-F 도 허용 — 벌크 sweep no-10k 28건 해소
+  const idx = f.form.findIndex(x => x === '10-K' || x === '20-F' || x === '40-F');
   if (idx < 0) return null;
-  return { accession: f.accessionNumber[idx].replace(/-/g, ''), doc: f.primaryDocument[idx], date: f.filingDate[idx], cik: cik.replace(/^0+/, '') };
+  return { accession: f.accessionNumber[idx].replace(/-/g, ''), doc: f.primaryDocument[idx], date: f.filingDate[idx], form: f.form[idx], cik: cik.replace(/^0+/, '') };
+}
+
+// ═══ 2026-06-12 엔진 v2 — XBRL 인스턴스 dimension 추출 (1차 방법) ═══
+// 배경: 벌크 sweep 통과율 8.7% + PM(필립모리스) "Software 50.8%" 오염 통과 사건.
+//   LLM 이 region 의 total 을 보고 합이 맞는 분할을 지어내면 Σ검증이 무력화됨(구조 결함).
+//   XBRL 인스턴스의 ProductOrServiceAxis/StatementBusinessSegmentsAxis dimension fact 는
+//   회사가 직접 태깅한 구조화 수치 — 결정론·무LLM·무환각. (d7 진단 때 companyfacts API 가
+//   dimension 미제공이라 포기했으나, *인스턴스 XML 원문*엔 dimension fact 가 있음 — 이게 최선)
+
+function cleanMemberName(qname) {
+  let n = qname.split(':').pop().replace(/(Segment)?Member$/, '');
+  // CamelCase → 공백 (소문자/숫자→대문자 경계만; 연속 대문자 약어 보존)
+  n = n.replace(/([a-z\d])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return n.trim();
+}
+
+async function xbrlExtract(filing) {
+  // 1. 인스턴스 문서 찾기 (*_htm.xml 관행, 없으면 linkbase 제외 최대 .xml)
+  const base = `https://www.sec.gov/Archives/edgar/data/${filing.cik}/${filing.accession}`;
+  const idxR = await fetch(`${base}/index.json`, { headers: UA, signal: AbortSignal.timeout(20000) });
+  if (!idxR.ok) return null;
+  const items = (await idxR.json()).directory?.item ?? [];
+  let inst = items.find(i => /_htm\.xml$/i.test(i.name));
+  if (!inst) {
+    inst = items.filter(i => /\.xml$/i.test(i.name) && !/(_cal|_def|_lab|_pre|FilingSummary|MetaLinks)/i.test(i.name))
+      .sort((a, b) => (+b.size || 0) - (+a.size || 0))[0];
+  }
+  if (!inst) return null;
+  const xr = await fetch(`${base}/${inst.name}`, { headers: UA, signal: AbortSignal.timeout(60000) });
+  if (!xr.ok) return null;
+  const xml = await xr.text();
+
+  // 2. duration 컨텍스트 파싱 (id → 기간 + 명시적 dimension)
+  const ctxs = new Map();
+  const ctxRe = /<(?:xbrli:)?context id="([^"]+)"[^>]*>([\s\S]*?)<\/(?:xbrli:)?context>/g;
+  let m;
+  while ((m = ctxRe.exec(xml)) !== null) {
+    const body = m[2];
+    const start = body.match(/<(?:xbrli:)?startDate>([\d-]+)</)?.[1];
+    const end = body.match(/<(?:xbrli:)?endDate>([\d-]+)</)?.[1];
+    if (!start || !end) continue;
+    const dims = [...body.matchAll(/<xbrldi:explicitMember dimension="([^"]+)"\s*>([^<]+)</g)]
+      .map(x => ({ axis: x[1].trim(), member: x[2].trim() }));
+    ctxs.set(m[1], { start, end, dims });
+  }
+  if (!ctxs.size) return null;
+
+  // 3. revenue 개념 fact 수집
+  const CONCEPTS = ['RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenueFromContractWithCustomerIncludingAssessedTax', 'Revenues', 'SalesRevenueNet'];
+  const facts = [];
+  for (const c of CONCEPTS) {
+    const fRe = new RegExp(`<us-gaap:${c}\\b[^>]*contextRef="([^"]+)"[^>]*>([\\d.]+)</`, 'g');
+    let fm;
+    while ((fm = fRe.exec(xml)) !== null) {
+      const ctx = ctxs.get(fm[1]);
+      if (!ctx) continue;
+      const days = (new Date(ctx.end) - new Date(ctx.start)) / 86400000;
+      if (days < 330 || days > 400) continue;          // 연간만
+      facts.push({ concept: c, ctx, val: +fm[2] });
+    }
+  }
+  if (!facts.length) return null;
+  const latestEnd = facts.map(f => f.ctx.end).sort().at(-1);
+
+  // 4. 개념 × 축 우선순위로 멤버 분해 — Σ≈total ±6% 인 첫 조합 채택
+  const AXES = ['srt:ProductOrServiceAxis', 'us-gaap:StatementBusinessSegmentsAxis', 'srt:StatementBusinessSegmentsAxis'];
+  for (const concept of CONCEPTS) {
+    const cf = facts.filter(f => f.concept === concept && f.ctx.end === latestEnd);
+    const total = cf.find(f => f.ctx.dims.length === 0)?.val;
+    if (!total) continue;
+    for (const axis of AXES) {
+      const seen = new Map();
+      for (const f of cf) {
+        const d = f.ctx.dims;
+        if (d.length !== 1 || d[0].axis !== axis) continue;
+        const name = cleanMemberName(d[0].member);
+        if (/intersegment|elimination|corporate|reconcil|allother/i.test(name.replace(/\s/g, ''))) continue;
+        if (!seen.has(name)) seen.set(name, f.val);
+      }
+      if (seen.size < 2) continue;
+      const rows = [...seen.entries()].map(([name, amount]) => ({ name, amount }));
+      const sum = rows.reduce((s, r) => s + r.amount, 0);
+      if (Math.abs(sum - total) / total > 0.06) continue;
+      return {
+        total,
+        segments: rows.map(r => ({ name: r.name, amount: Math.round(r.amount / 1e6), pct: Math.round(r.amount / total * 1000) / 10 }))
+          .sort((a, b) => b.pct - a.pct).slice(0, 8),
+      };
+    }
+  }
+  return null;
 }
 
 // exaone grounded 추출 — region 텍스트에서 "NAME | NUMBER" 라인. 포맷무관(번역 per-field 와 동일
@@ -142,12 +234,17 @@ async function extractForTicker(ticker, cikMap) {
   if (!cik) return { ticker, error: 'no-cik' };
   const filing = await latest10K(cik);
   if (!filing) return { ticker, error: 'no-10k' };
+  // 0) XBRL dimension (1차 — 결정론·무LLM·회사 자체 태깅. PM 오염 사건 후 v2 primary)
+  try {
+    const xb = await xbrlExtract(filing);
+    if (xb) return { ticker, ...xb, asOf: filing.date, source: `${filing.form}/xbrl` };
+  } catch { /* XBRL 실패 → 텍스트 경로 */ }
   const url = `https://www.sec.gov/Archives/edgar/data/${filing.cik}/${filing.accession}/${filing.doc}`;
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(40000) });
   if (!r.ok) return { ticker, error: `filing-http-${r.status}` };
   const html = await r.text();
   const txt = html.replace(/<[^>]+>/g, ' ').replace(/&#160;|&nbsp;/g, ' ').replace(/&#8217;|&#8216;/g, "'").replace(/&#8212;/g, '-').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
-  // 1) 결정론 파싱(빠름, 클린 포맷). 2) 실패 시 region+exaone grounded 추출(포맷무관).
+  // 1) 결정론 파싱(빠름, 클린 포맷). 2) 실패 시 region+LLM grounded 추출(포맷무관).
   let seg = parseSegments(txt);
   let method = 'regex';
   if (!seg) {
@@ -156,12 +253,16 @@ async function extractForTicker(ticker, cikMap) {
     const total = findTotal(region);
     const rows = await exaoneExtract(region);
     if (!total || rows.length < 2) return { ticker, error: 'exaone-no-rows' };
+    // 2026-06-12 fabrication 가드 (PM "Software 50.8%" 사건): LLM 이 region 의 total 을 보고
+    //   합이 맞는 분할을 지어낼 수 있음 — 추출된 모든 금액이 region 원문에 실제(콤마포맷) 존재해야 채택.
+    const inText = rows.every(x => region.includes(x.amount.toLocaleString('en-US')) || region.includes(String(x.amount)));
+    if (!inText) return { ticker, error: 'llm-fabrication-guard' };
     const sum = rows.reduce((s, x) => s + x.amount, 0);
     if (Math.abs(sum - total) / total > 0.08) return { ticker, error: `sum-mismatch(${Math.round(sum/1e3)}k vs ${Math.round(total/1e3)}k)` };
     seg = { total, segments: rows.map(x => ({ name: x.name, amount: x.amount, pct: Math.round(x.amount / total * 1000) / 10 })).sort((a, b) => b.pct - a.pct) };
     method = 'llm';
   }
-  return { ticker, ...seg, asOf: filing.date, source: `10-K/${method}`, url };
+  return { ticker, ...seg, asOf: filing.date, source: `${filing.form}/${method}`, url };
 }
 
 const rawArgs = process.argv.slice(2);
