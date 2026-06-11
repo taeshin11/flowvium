@@ -1,0 +1,44 @@
+# 2026-06-11 — 6/7 hang 4일 다운 복구 + 부팅 catch-up 체계 + businessSummary 갭 보강
+
+## 사건 타임라인 (이벤트 로그로 특정)
+- 6/7 12:00:01 noon 보고서 발간 [SUCCESS] (report.log)
+- 6/7 12:01:39 System 이벤트 로그 마지막 기록 — **이 직후 하드 freeze** (커널 오류 기록 0건,
+  Kernel-Power 41 + EventLog 6008. 전형적 하드웨어/드라이버 레벨 hang — 원인 미특정)
+- 당시 진행 중: Claude 세션(APH 사업개요 작업 시작 직후) + noon 발간 직후 + cron-runner 모니터
+- 6/7 12:01 ~ 6/11 16:30 머신 꺼진 상태 (4일 보고서 공백, 사이트 6/7 noon stale)
+- 6/11 16:30 부팅 — pm2 3 프로세스(web/cron/tunnel) 자동 resurrect 정상, Task Scheduler 5 작업 정상
+
+## 유실 점검 (결론: 유실 없음)
+- check-uncommitted-risk: wipe-path 미커밋 0, origin/master 동기화 (ahead 0)
+- 중단됐던 작업(보고서 종목별 사업개요/주력 사업)은 이전 세션이 hang 전에 완료+커밋+푸시했음:
+  - build-company-business.mjs + data/company-business.json (619종)
+  - generate-report-local.mjs businessSummary 주입 (:5997)
+  - ReportPage.tsx 렌더 + 6/7 noon 보고서에 실제 표시 확인 (NVDA/TSM/ASML/GOOGL/005930.KS 등)
+
+## 이번 세션 fix 3건
+
+### 1. businessSummary 큐레이션 갭 10종 보강 (commit 42f949c)
+6/4~6/7 보고서 portfolio 스캔으로 누락 발견: VRSN ADM GDDY DOC UVXY VRT TSCO SBAC WTW 053610.KQ.
+- 이름은 권위 소스 대조 (company-names.json / DART corpCode — 프로텍 00325112)
+- 가짜 % 금지 원칙: share 불확실 종목은 제품명만 (CPRT="Cypress" 사건 교훈)
+- 619 → 629 keys. TSLA 는 이미 보강돼 있었음 (6/7 noon 보고서 생성 후 데이터 추가된 것)
+
+### 2. 부팅 missed-run 자동 catch-up (commit 5c62bac + 스케줄러 설정)
+- FlowVium-{Morning,Noon,Afternoon,Evening,Midnight} 5 작업 StartWhenAvailable=True
+  → 머신이 꺼졌다 켜지면 놓친 보고서 자동 실행 (이번처럼 4일 stale 방지)
+- run-report.bat 에 atomic mkdir mutex (logs/report-pipeline.lock):
+  - 부팅 직후 5 task 동시 발화 시 1개만 실행, 나머지 [SKIP] (GPU 1개 경합/hang 위험 차단)
+  - stale lock: age>=5min AND generate-report-local 프로세스 부재 시 자동 steal
+    (hang 잔존 lock 으로 영구 skip 되는 2차 failure mode 차단)
+- 모든 exit 경로에서 rmdir lock 해제
+
+### 3. 4일 공백 수동 복구
+- run-report.bat 수동 1회 (mutex 의 첫 실사용) — 진행 로그 logs/report.log
+
+## hang 재발 방지 현황
+- execSync→execFile async (이전 commit 30c5225) — cron-runner 블로킹/hang 해소
+- 모니터/세그먼트 refresh 전부 timeout 보호 (170s/300s)
+- 보고서 파이프라인 동시 실행 차단 (이번 mutex)
+- 부팅 시 자동 복구: pm2 resurrect (검증됨) + Task Scheduler catch-up (신설)
+- 미해결: freeze 자체의 하드웨어 원인 (커널 로그 무흔적 — GPU 드라이버/전원/발열 의심.
+  소프트웨어로 더 줄일 여지 제한적. 재발 시 발열/드라이버 버전 점검 권장)

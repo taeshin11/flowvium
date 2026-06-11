@@ -13,7 +13,7 @@
  *   → CRON_TZ 환경변수로 'Etc/UTC' 지정 시 기존 Vercel UTC 스케줄 그대로 유지.
  */
 import cron from 'node-cron';
-import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, statSync } from 'fs';
 import { resolve } from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -59,6 +59,15 @@ async function runJob(path) {
   }
 }
 
+// 2026-06-11: 보고서 파이프라인 실행 감지 — run-report.bat 의 mutex lock 디렉토리 기준.
+//   age>=90min 은 stale(hang 잔존)로 간주해 false (영구 skip 방지). 비용 0 (fs stat).
+async function isReportPipelineRunning() {
+  try {
+    const st = statSync(resolve(process.cwd(), 'logs/report-pipeline.lock'));
+    return (Date.now() - st.ctimeMs) < 90 * 60 * 1000;
+  } catch { return false; }
+}
+
 let scheduled = 0;
 for (const c of crons) {
   if (!c.path || !c.schedule) continue;
@@ -95,7 +104,12 @@ async function runMonitor() {
   const coldLocales = [...new Set(result.defects
     .map(d => d.match(/뉴스 번역\s+([a-zA-Z-]+)\s+\d+\/\d+/)?.[1])
     .filter(Boolean))];
-  if (coldLocales.length) {
+  // 2026-06-11: 보고서 파이프라인 실행 중엔 warm skip — 단일 6GB GPU 에서 번역(exaone 모델 스왑)과
+  //   Wave1(qwen3 5병렬)이 경합하면 Ollama 연결 드롭("fetch failed", 6/11 afternoon Wave1 전멸 사건)
+  //   + GPU 83°C 지속(6/7 hard freeze 기여 의심). 보고서가 GPU 우선권.
+  if (coldLocales.length && await isReportPipelineRunning()) {
+    log(`[auto-warm] skip — 보고서 파이프라인 실행 중 (GPU 경합 방지): ${coldLocales.join(',')}`);
+  } else if (coldLocales.length) {
     (async () => {
       for (const loc of coldLocales) {
         try {
@@ -116,6 +130,7 @@ log('자동 모니터 등록: */20분 (check-stall + check-data-quality, hang-pr
 let segmentRefreshRunning = false;
 async function runSegmentRefresh() {
   if (segmentRefreshRunning) { log('[segments-refresh] 이전 실행 진행 중 — skip (중복 실행 방지)'); return; }
+  if (await isReportPipelineRunning()) { log('[segments-refresh] skip — 보고서 파이프라인 실행 중 (GPU 경합 방지)'); return; }
   segmentRefreshRunning = true;
   try {
     const { stdout } = await execFileAsync('node', ['scripts/build-segments-dynamic.mjs', '--refresh=6'], { timeout: 300000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
