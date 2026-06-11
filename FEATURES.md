@@ -1019,7 +1019,6 @@ ownership-alerts 적용).
 | `/api/osint/crypto` | Blockchain.info / Etherscan | 캐시 |
 | `/api/osint/sanctions` | OFAC SDN XML | 캐시 |
 | `/api/osint/corporate` | OpenCorporates | 캐시 |
-| `/api/collect` | Google Sheets Webhook | — |
 | `/api/admin/logs` | Redis `flowvium:log:recent` | — |
 | `/api/admin/health` | Redis probe + env 검사 | — |
 | `/api/admin/metrics-health` | Redis `flowvium:metrics-health:v1` | 2h |
