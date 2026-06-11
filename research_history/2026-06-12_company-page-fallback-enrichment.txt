@@ -1,0 +1,31 @@
+# 2026-06-12 — 회사페이지 "WDAY 부실" 전수조사 + 폴백 페이지 보강
+
+## 사용자 지적
+"AAPL 은 엄청 자세한데 WDAY 는 왜 부실? 이런 페이지 많을 것 — 전수조사해" (모바일 스크린샷 3장)
+
+## 전수조사 결과 (scripts/tmp-company-census 일회성)
+- 후보 1,338 (US 873 / KR 465)
+- 큐레이션 풀페이지(allCompanies/companies-batch): 602종
+- **US: 풀 544 / 폴백 329 (38%)** — WDAY 등. 그중 316종은 주력사업(biz) 카드도 없음
+- KR: 99% 폴백이나 DART 동적 프로필(재무/개요/공급망 큐레이션)로 별도 보강된 설계
+- 동적 세그먼트 DB(company_segments): 10종 (검증형 엔진, 매시 6종 rotating — coverage 성장 중)
+- 구조: CompanyPage.tsx 가 allCompanies.find 실패 시 minimal 폴백 렌더 (라인 532)
+
+## fix (이번 세션)
+1. **scripts/build-company-profiles.mjs 신설** — Yahoo assetProfile(권위 소스, enrich-sectors 와
+   동일 crumb 패턴)에서 name/sector/industry/직원수/website/longBusinessSummary 수집.
+   327/329 성공 → data/company-profiles.json. LLM 생성 아닌 사실 데이터만.
+2. **/api/company-business/[ticker]**: name(Yahoo longName→company-names.json) + profile 필드 추가.
+3. **CompanyPage 폴백**: ① h1 에 실제 회사명("WDAY"→"Workday, Inc.") ② 기업 프로필 카드
+   (섹터·업종·직원수·웹사이트·사업요약, <T> 번역) ③ 사업개요 라벨 US="SEC 기업정보 기반" fix
+   (이전엔 US 도 "DART 기반" 오표기).
+4. FEATURES.md 5-0b / METRICS.md 12-P5d 추가.
+
+## 의도적 잔여 갭 (사유)
+- 폴백 페이지 매출 세그먼트 도넛: 검증형 동적 엔진(Σ±6% 통과시만 채택) coverage 가 10종 —
+  가짜 % 금지 원칙상 LLM 생성 불가, 엔진 rotating 성장 대기 (매시 6종)
+- KR 폴백 444종 주력사업 카드: DART 사업보고서 추출 별도 파이프라인 필요
+- 2종 수집 실패 (Yahoo 미보유 추정) — --missing 재실행으로 재시도 가능
+
+## 갱신 방법
+node scripts/build-company-profiles.mjs --missing   (신규 종목 추가 시)

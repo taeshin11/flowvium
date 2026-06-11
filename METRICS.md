@@ -666,7 +666,8 @@
 | 12-P4 | 종목별 목표가 | 💾 cached | AI 생성 |
 | 12-P5 | 종목별 확신도 (high/medium/low) | 💾 cached | AI 생성 |
 | 12-P5b | 종목별 IV 평이 설명 (변동성%·일간기대등락·skew 심리) | 💾 cached | `/api/iv/[ticker]` atmIv30d/skew25d → 손절 칸 아래 평문 (US만, KR null) ← 2026-06-05 |
-| 12-P5c | 종목별 주력 사업/매출상품 (businessSummary+desc) | 📋 static | `data/company-business.json` (build:business, companies-batch products[]+desc 619+KR CURATED) → 발간직전 주입 ← 2026-06-07 |
+| 12-P5c | 종목별 주력 사업/매출상품 (businessSummary+desc) | 📋 static | `data/company-business.json` (build:business, companies-batch products[]+desc 632+KR CURATED) → 발간직전 주입 ← 2026-06-07 |
+| 12-P5d | US 폴백 종목 기업 프로필 (섹터·업종·직원수·사업요약·회사명) | 📋 static | `data/company-profiles.json` (build-company-profiles.mjs, Yahoo assetProfile, 폴백 327/329) → `/api/company-business` profile 필드 → CompanyPage 폴백 카드 ← 2026-06-12 WDAY 전수조사 |
 | 12-P6 | 종목별 매수 액션 (buy/hold/watch) | 💾 cached | AI 생성 ← iter210 |
 | 12-S1 | 📤 매도 추천 (US 6 + KR 6, multi-factor) | 🔄 cron | sell-rules-tuned.json (가격/tech/fund/구루/거시/미시/회전) ← 2026-05-29 |
 | 12-S2 | 매도 type (19 룰, 7 카테고리, JSON 정의) | 🔄 cron | sell-rules-tuned.json (하드코딩 X), category 필드 보존 |

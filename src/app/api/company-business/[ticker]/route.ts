@@ -22,6 +22,28 @@ function load(): Record<string, { products?: string; desc?: string }> {
   return CACHE!;
 }
 
+// 2026-06-12: 폴백 329종 사실 프로필 (Yahoo assetProfile — build-company-profiles.mjs 권위 소스).
+//   "WDAY 부실" 전수조사 후속 — 미큐레이션 종목도 업종/직원수/사업요약 표시.
+interface Profile { name?: string | null; sector?: string | null; industry?: string | null; employees?: number | null; website?: string | null; summary?: string | null; asOf?: string }
+let PROFILES: Record<string, Profile> | null = null;
+function loadProfiles(): Record<string, Profile> {
+  if (PROFILES) return PROFILES;
+  try {
+    PROFILES = JSON.parse(readFileSync(resolve(process.cwd(), 'data/company-profiles.json'), 'utf8'));
+  } catch { PROFILES = {}; }
+  return PROFILES!;
+}
+
+// 회사명 권위 소스 (company-names.json — CPRT 사건 후 SEC 추출)
+let NAMES: Record<string, string> | null = null;
+function loadNames(): Record<string, string> {
+  if (NAMES) return NAMES;
+  try {
+    NAMES = JSON.parse(readFileSync(resolve(process.cwd(), 'data/company-names.json'), 'utf8'));
+  } catch { NAMES = {}; }
+  return NAMES!;
+}
+
 // 동적 세그먼트(DB company_segments, cron 갱신, cron checkout wipe 안전) — 정적보다 우선.
 interface DynSeg { segments: { name: string; amount: number; pct: number }[]; asOf: string | null; source: string | null; fetchedAt: string }
 function dbSegments(ticker: string): DynSeg | null {
@@ -47,13 +69,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   const dynProducts = dyn ? dyn.segments.slice(0, 5).map(s => `${s.name} ${s.pct}%`).join(' · ') : null;
   const products = dynProducts || hit?.products || null;
   const desc = hit?.desc || null;
-  if (!products && !desc) {
-    return NextResponse.json({ ticker: t, products: null, desc: null, source: 'none' });
+  const profile = loadProfiles()[t] ?? null;
+  const name = profile?.name ?? loadNames()[t] ?? null;
+  if (!products && !desc && !profile) {
+    return NextResponse.json({ ticker: t, name, products: null, desc: null, profile: null, source: 'none' });
   }
   return NextResponse.json(
     {
-      ticker: t, products, desc,
-      source: dynProducts ? `dynamic:${dyn!.source}` : 'company-business',
+      ticker: t, name, products, desc,
+      profile,                                          // Yahoo assetProfile 사실 데이터 (폴백 페이지 보강)
+      source: dynProducts ? `dynamic:${dyn!.source}` : hit ? 'company-business' : 'profile',
       asOf: dyn?.asOf ?? null,                          // 동적이면 filing date(신선도)
       segments: dyn?.segments ?? null,
     },

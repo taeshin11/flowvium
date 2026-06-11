@@ -366,7 +366,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [ticker, locale, company]);
   // 2026-06-07: 주력 매출상품/사업개요 (company-business.json 큐레이션) — minimal page(companies-batch
   //   미수록 APH·KR 등) 에 "주력 사업" 표시. LLM 생성(company-desc) 보다 신뢰 가능한 큐레이션 소스.
-  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null; asOf?: string | null; source?: string | null } | null>(null);
+  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null; asOf?: string | null; source?: string | null; name?: string | null; profile?: { sector?: string | null; industry?: string | null; employees?: number | null; website?: string | null; summary?: string | null } | null } | null>(null);
   useEffect(() => {
     if (!ticker || company) return; // 정적 프로필 있으면 풀페이지가 이미 풍부
     const ctrl = new AbortController();
@@ -532,7 +532,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   if (!company) {
     // Minimal live page for tickers not in static dataset (IPX, AMRZ, KR .KS/.KQ 등).
     const isKRTicker = /\.(KS|KQ)$/i.test(ticker);
-    const liveCompanyName = krProfile?.corpName ?? ticker.toUpperCase();
+    // 2026-06-12: US 폴백도 ticker 대신 실제 회사명 (company-business API 의 name — Yahoo/company-names 권위)
+    const liveCompanyName = krProfile?.corpName ?? bizInfo?.name ?? ticker.toUpperCase();
     const fmtKRW = (n: number) => `₩${Math.round(n).toLocaleString()}`;
     // 조/억 단위 compact (333,605,938,000,000 → 333.6조)
     const fmtKRWc = (n: number) => {
@@ -589,12 +590,32 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             )}
           </div>
         )}
-        {/* 사업 개요 (LLM 생성, 라이브 DART grounded — 정적 아님, Redis TTL 캐시) */}
+        {/* 기업 프로필 (Yahoo assetProfile 사실 데이터 — 2026-06-12 "WDAY 부실" 전수조사 후속) */}
+        {bizInfo?.profile && (bizInfo.profile.industry || bizInfo.profile.summary) && (
+          <div className="cf-card p-4 mb-4">
+            <h2 className="text-sm font-bold text-cf-text-primary mb-2">기업 프로필</h2>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-cf-text-secondary mb-2">
+              {bizInfo.profile.sector && <span>섹터: <span className="text-cf-text-primary font-medium"><T text={bizInfo.profile.sector} /></span></span>}
+              {bizInfo.profile.industry && <span>업종: <span className="text-cf-text-primary font-medium"><T text={bizInfo.profile.industry} /></span></span>}
+              {bizInfo.profile.employees != null && <span>직원 {bizInfo.profile.employees.toLocaleString()}명</span>}
+              {bizInfo.profile.website && (
+                <a href={bizInfo.profile.website} target="_blank" rel="noopener noreferrer" className="text-cf-accent hover:underline inline-flex items-center gap-0.5">
+                  웹사이트 <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+            {bizInfo.profile.summary && (
+              <p className="text-sm text-cf-text-secondary leading-relaxed"><T text={bizInfo.profile.summary} /></p>
+            )}
+            <p className="text-[10px] text-cf-text-secondary/50 mt-2">Yahoo Finance 기업 프로필 · 사실 데이터</p>
+          </div>
+        )}
+        {/* 사업 개요 (LLM 생성, 라이브 공시 grounded — 정적 아님, Redis TTL 캐시) */}
         {krDesc && (
           <div className="cf-card p-4 mb-4">
             <h2 className="text-sm font-bold text-cf-text-primary mb-2">사업 개요</h2>
             <p className="text-sm text-cf-text-secondary leading-relaxed">{krDesc}</p>
-            <p className="text-[10px] text-cf-text-secondary/50 mt-2">AI 요약 (DART 기업정보 기반) · 자동 갱신</p>
+            <p className="text-[10px] text-cf-text-secondary/50 mt-2">AI 요약 ({isKRTicker ? 'DART' : 'SEC'} 기업정보 기반) · 자동 갱신</p>
           </div>
         )}
         {/* 기업 정보 (DART company.json 라이브 — 본사/설립/대표/홈페이지) */}
