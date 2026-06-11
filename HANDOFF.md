@@ -22,6 +22,7 @@ cd C:\NoAddsMakingApps\FlowVium; npm install
 copy "G:\내 드라이브\FlowVium-backup\secrets\.env.local" .
 copy "G:\내 드라이브\FlowVium-backup\secrets\.cf-tunnel-token" .
 copy "G:\내 드라이브\FlowVium-backup\flowvium-<최신날짜>.db" data\flowvium.db
+copy "G:\내 드라이브\FlowVium-backup\company-profiles.json" data\company-profiles.json
 robocopy "G:\내 드라이브\FlowVium-backup\reports" reports /E
 robocopy "G:\내 드라이브\FlowVium-backup\research_history" research_history /E
 # 3. LLM

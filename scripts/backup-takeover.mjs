@@ -48,10 +48,11 @@ for (const f of ['.env.local', '.cf-tunnel-token']) {
   if (existsSync(src)) { copyFileSync(src, join(secretsDir, f)); log(`시크릿 → secrets/${f}`); }
 }
 
-// 2b. 복구 문서 — clone 전(폰/웹)에서도 runbook·인계 프롬프트를 볼 수 있게 Drive 에 동봉
-for (const f of ['HANDOFF.md', 'CLAUDE.md']) {
+// 2b. 복구 문서 + 런타임 데이터 산출물 — clone 전(폰/웹)에서도 runbook 열람 + git 미추적
+//   data 파일(profiles 는 fullpage hook 이 발간마다 갱신 — 2026-06-12 untrack) 보존
+for (const f of ['HANDOFF.md', 'CLAUDE.md', 'data/company-profiles.json']) {
   const src = resolve(ROOT, f);
-  if (existsSync(src)) { copyFileSync(src, join(DEST, f)); log(`문서 → ${f}`); }
+  if (existsSync(src)) { copyFileSync(src, join(DEST, f.split('/').pop())); log(`문서/데이터 → ${f.split('/').pop()}`); }
 }
 
 // 3. reports / research_history 미러 — Google Drive FS 가 recursive cp 중 간헐 lock 에러를
