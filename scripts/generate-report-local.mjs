@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
@@ -2712,7 +2712,7 @@ function enrichStopLoss(stopLossRationale, livePrices, technicalData, locale = '
  *   신용/변동성/금리커브/심리/FX/고용 선행지표를 결정론적 score 화 → LLM riskLevel 보완.
  *   "endpoint alive ≠ 위험 감지" 처럼 데이터는 있는데 composite 가 없던 사각지대 해소.
  */
-function computeMacroEarlyWarning(ctxRaw, fx = {}) {
+function computeMacroEarlyWarning(ctxRaw, fx = {}, extras = {}) {
   const ind = ctxRaw?.macro?.indicators ?? [];
   const get = (ids) => ind.find(i => ids.includes(i.id));
   let score = 0; const drivers = [];
@@ -2726,15 +2726,30 @@ function computeMacroEarlyWarning(ctxRaw, fx = {}) {
   }
   const ig = get(['ig_spread', 'ig_oas']);
   if (ig?.actual != null && ig.previous != null && ig.actual > ig.previous + 0.2) add(10, `IG신용 확대 ${ig.previous}→${ig.actual}%`);
-  // 2. VIX
-  const vix = get(['vix'])?.actual ?? ctxRaw?.volatility?.score;
+  // 2. VIX — 2026-06-12 fix: /api/volatility 응답 필드는 `.vix` (이전 `.score` 는 존재하지 않는
+  //   필드 → 6/5 VIX +40% 급등에도 항상 null로 침묵. .score 가 있었어도 0-100 합성점수라 오스케일).
+  const vix = get(['vix'])?.actual ?? ctxRaw?.volatility?.vix;
   if (vix != null) { if (vix >= 30) add(25, `VIX ${vix} 패닉`); else if (vix >= 25) add(15, `VIX ${vix} 급등`); else if (vix >= 20) add(8, `VIX ${vix} 경계`); }
+  // 2b. 지수 모멘텀 (2026-06-12 신설) — capital-flows 주식군 1주 수익률. 6/5~6/10 급락(-4~-12%)에
+  //   가격 기반 입력이 전무해 score 0 이던 결함. 폭락 "예측"은 불가해도 "진행 감지"는 필수.
+  const eqAssets = (ctxRaw?.capital?.assets ?? []).filter(a => ['us-stocks', 'us-tech', 'em-stocks', 'eu-stocks'].includes(a.id) && typeof a.ret1w === 'number');
+  if (eqAssets.length) {
+    const worst = eqAssets.reduce((m, a) => (a.ret1w < m.ret1w ? a : m));
+    if (worst.ret1w <= -7) add(25, `${worst.label ?? worst.id} 1주 ${worst.ret1w}% 폭락`);
+    else if (worst.ret1w <= -4) add(15, `${worst.label ?? worst.id} 1주 ${worst.ret1w}% 급락`);
+    else if (worst.ret1w <= -2.5) add(8, `${worst.label ?? worst.id} 1주 ${worst.ret1w}% 하락`);
+  }
   // 3. 금리커브 역전 (10-2)
   const y10 = get(['us10y', 'yield_10y', 'dgs10'])?.actual, y2 = get(['us2y', 'yield_2y', 'dgs2'])?.actual;
   if (y10 != null && y2 != null) { const sp = y10 - y2; if (sp < 0) add(18, `장단기금리 역전 ${sp.toFixed(2)}%p`); else if (sp < 0.2) add(8, `금리커브 평탄 ${sp.toFixed(2)}%p`); }
   // 4. 심리 극단 (탐욕 반전 / 공포 capitulation)
   const fgScore = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? (ctxRaw?.fearGreed?.us?.score);
-  if (fgScore != null) { if (fgScore >= 80) add(15, `F&G ${fgScore} 극단탐욕(반전위험)`); else if (fgScore <= 20) add(10, `F&G ${fgScore} 극단공포`); }
+  if (fgScore != null) {
+    if (fgScore >= 80) add(15, `F&G ${fgScore} 극단탐욕(반전위험)`); else if (fgScore <= 20) add(10, `F&G ${fgScore} 극단공포`);
+    // 4b. F&G 급랭 (2026-06-12 신설) — 절대 임계(≤20)만으론 42→27 급랭(4일)을 못 봄. 변화 속도 반영.
+    const prev = extras.prevFgScore;
+    if (typeof prev === 'number' && prev - fgScore >= 15) add(12, `F&G 급랭 ${prev}→${fgScore} (심리 이탈 가속)`);
+  }
   // 5. FX 스트레스 (원화/DXY 급변)
   if (fx.usdkrwChg != null && Math.abs(fx.usdkrwChg) >= 2) add(15, `USD/KRW ${fx.usdkrwChg > 0 ? '+' : ''}${fx.usdkrwChg}% 급변(자본유출 압력)`);
   // 6. 고용 둔화 (jobless claims 상승 surprise) + PMI 위축
@@ -6044,18 +6059,37 @@ async function generateViaOllama() {
     console.log(`  [sectorAllocation/fallback] LLM 누락 → portfolio.sector 합산 ${rows.length}건 자동 생성`);
     return rows;
   })();
+  // 2026-06-12: stance 결정론 게이트 — 6/5~6/10 급락(NASDAQ -7%/KOSPI -12%) 동안 LLM stance 가
+  //   bullish 관성 유지("왜 예측 못했어" 사건). 경보가 높으면 LLM 의견과 무관하게 cap:
+  //   elevated → bullish 금지(neutral) · high → neutral cap + risk high · severe → bearish + high.
+  let prevFgScore = null;
+  try { prevFgScore = getPreviousFearGreedScore(); } catch { /* DB 미가용 시 변화율 입력만 생략 */ }
+  const earlyWarning = computeMacroEarlyWarning(ctxRaw, ctxRaw?.fx ?? {}, { prevFgScore });
+  let gatedStance = portfolioData.stance ?? 'neutral';
+  let gatedRiskLevel = macroData?.riskLevel ?? 'medium';
+  if (earlyWarning.level === 'severe') {
+    if (gatedStance !== 'bearish' || gatedRiskLevel !== 'high') console.log(`  [stance-gate] earlyWarning severe(${earlyWarning.score}) → stance ${gatedStance}→bearish, risk ${gatedRiskLevel}→high`);
+    gatedStance = 'bearish'; gatedRiskLevel = 'high';
+  } else if (earlyWarning.level === 'high') {
+    if (gatedStance === 'bullish') { console.log(`  [stance-gate] earlyWarning high(${earlyWarning.score}) → stance bullish→neutral`); gatedStance = 'neutral'; }
+    if (gatedRiskLevel !== 'high') { console.log(`  [stance-gate] earlyWarning high(${earlyWarning.score}) → risk ${gatedRiskLevel}→high`); gatedRiskLevel = 'high'; }
+  } else if (earlyWarning.level === 'elevated' && gatedStance === 'bullish') {
+    console.log(`  [stance-gate] earlyWarning elevated(${earlyWarning.score}) → stance bullish→neutral`);
+    gatedStance = 'neutral';
+    if (gatedRiskLevel === 'low') gatedRiskLevel = 'medium';
+  }
   const finalReport = {
-    stance: portfolioData.stance ?? 'neutral',
-    thesis: macroData?.thesis ?? portfolioData.stance ?? 'neutral',
+    stance: gatedStance,
+    thesis: macroData?.thesis ?? gatedStance,
     portfolio: dedupedPortfolio,
     buySellReconciliation: reconciliationLog,  // 매수↔매도 경합심사 요약 (연구·UI 노출용)
-    earlyWarning: computeMacroEarlyWarning(ctxRaw, ctxRaw?.fx ?? {}),  // 거시 급락 조기경보 (결정론적 composite)
+    earlyWarning,  // 거시 급락 조기경보 (결정론적 composite)
     sectorAllocation: sectorAllocationFallback,
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',
     technicalAnalysis: macroData?.technicalAnalysis ?? '',
     fundamentalAnalysis: macroData?.fundamentalAnalysis ?? '',
-    riskLevel: macroData?.riskLevel ?? 'medium',
+    riskLevel: gatedRiskLevel,
     regionStances: regionalData?.regionStances ?? {},
     shortSqueeze: opportunityData?.shortSqueeze ?? [],
     insiderSignals: (opportunityData?.insiderSignals ?? []).filter(s => (s.filings ?? 0) > 0),
@@ -6947,7 +6981,7 @@ async function generateViaOllama() {
     try {
       const verifyMod = await import('./verify-report.mjs');
       const { saveHallucinationHistory } = await import('./lib/db.mjs');
-      const { defects } = verifyMod.verifyReport(filepath, { silent: true });
+      const { defects } = await verifyMod.verifyReport(filepath, { silent: true });
       if (defects.length > 0) {
         const n = saveHallucinationHistory(reportId, defects);
         console.log(`[verify-loop] 🎯 결함 ${defects.length}건 detect → hallucination_history ${n}건 적재 (다음 보고서 prompt 에 inject 예정)`);

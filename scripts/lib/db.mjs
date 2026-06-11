@@ -1369,6 +1369,20 @@ export function getTickerStats() {
  * Ticker 별 NE / hit 패턴 + entry 부족분 — 환각 prevention prompt feedback 용.
  * "이 ticker는 entry 너무 낮게 잡음, X% 올려야 함" 같은 cue 를 LLM 에 주입.
  */
+// 2026-06-12: earlyWarning F&G 급랭(변화율) 입력 — 12h~7d 전 US F&G 직전값.
+//   6/5~6/10 급락 때 F&G 42→27 (절대 임계 ≤20 미달로 침묵) — 변화 속도가 신호였음.
+export function getPreviousFearGreedScore(hoursMin = 12, daysMax = 7) {
+  const db = openDb();
+  const row = db.prepare(`
+    SELECT score FROM fg_archive
+    WHERE country='us'
+      AND captured_at <= datetime('now', '-' || ? || ' hours')
+      AND captured_at >= datetime('now', '-' || ? || ' days')
+    ORDER BY captured_at DESC LIMIT 1
+  `).get(hoursMin, daysMax);
+  return row?.score ?? null;
+}
+
 export function getEntryFeedbackStats() {
   const db = openDb();
   return db.prepare(`

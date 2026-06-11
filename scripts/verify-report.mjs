@@ -137,7 +137,7 @@ export function mismatchedIndustryTerm(text, sectorLower) {
   return null;
 }
 
-export function verifyReport(file, { silent = false } = {}) {
+export async function verifyReport(file, { silent = false } = {}) {
   const log = silent ? () => {} : console.log;
   const r = JSON.parse(fs.readFileSync(file, 'utf8'));
   const defects = [];
@@ -478,6 +478,49 @@ export function verifyReport(file, { silent = false } = {}) {
     log(`  ✅ allocation 합 ${allocSum} (${port.length}종목) 정상`);
   }
 
+  // 9. earlyWarning 침묵 probe (2026-06-12 신설 — 외부 실값 대조 의무).
+  //    6/5~6/10 급락 때 earlyWarning 이 VIX 입력 결함(.score 오필드)으로 score 0 침묵 — 폭락 진행
+  //    중에도 어떤 검증도 "경보가 죽어있다"를 못 잡았음. "최선(경보)이 미시행"인 상태 자체를 잡는 probe:
+  //    보고서의 경보 점수를 Yahoo 실측 VIX·S&P500 5일 수익률과 대조. endpoint alive ≠ value accurate.
+  log('\n## earlyWarning 침묵 probe (Yahoo 실측 대조)');
+  try {
+    const ew = r.earlyWarning;
+    if (ew && typeof ew.score === 'number') {
+      const yahoo = async (sym) => {
+        const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=10d&interval=1d`,
+          { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(10000) });
+        const j = await res.json();
+        return (j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? []).filter(c => c != null);
+      };
+      const [vixCloses, spxCloses] = await Promise.all([yahoo('^VIX'), yahoo('^GSPC')]);
+      const vixNow = vixCloses.at(-1);
+      const spx5d = spxCloses.length >= 6 ? ((spxCloses.at(-1) / spxCloses.at(-6)) - 1) * 100 : null;
+      log(`  [accuracy probe] metric=earlyWarning source=Yahoo vix=${vixNow?.toFixed(1)} spx5d=${spx5d?.toFixed(2)}% our_score=${ew.score} our_level=${ew.level}`);
+      const stress = (vixNow != null && vixNow >= 25) || (spx5d != null && spx5d <= -4);
+      const mildStress = (vixNow != null && vixNow >= 20) || (spx5d != null && spx5d <= -2.5);
+      if (stress && ew.score < 25) {
+        defects.push({ ticker: 'MACRO', defect_type: 'early_warning_silent',
+          llm_value: `score ${ew.score}/${ew.level}`, correct_value: `VIX ${vixNow?.toFixed(1)}/S&P5d ${spx5d?.toFixed(1)}% 스트레스인데 경보 침묵`, severity: 'high' });
+        log(`  ❌ 시장 스트레스인데 earlyWarning ${ew.score} — 입력/임계 결함 의심`);
+      } else if (mildStress && ew.score === 0) {
+        defects.push({ ticker: 'MACRO', defect_type: 'early_warning_silent',
+          llm_value: `score 0`, correct_value: `VIX ${vixNow?.toFixed(1)} 경계인데 score 0 — 입력 누락 의심`, severity: 'medium' });
+        log(`  ⚠️ 경계 스트레스인데 score 0`);
+      } else {
+        log('  ✅ earlyWarning ↔ 외부 실측 정합');
+      }
+      if ((ew.level === 'high' || ew.level === 'severe') && r.stance === 'bullish') {
+        defects.push({ ticker: 'MACRO', defect_type: 'stance_gate_violation',
+          llm_value: `stance bullish + ew ${ew.level}`, correct_value: 'stance-gate 가 cap 했어야 함', severity: 'high' });
+        log(`  ❌ stance-gate 위반: ew=${ew.level} 인데 stance=bullish`);
+      }
+    } else {
+      log('  ⚠️ earlyWarning 필드 없음 (구버전 보고서?)');
+    }
+  } catch (e) {
+    log(`  ⚠️ probe skip (Yahoo 미가용): ${e?.message}`);
+  }
+
   log(`\n## 종합 — 결함 ${defects.length}건`);
   return { defects, total: (r.portfolio||[]).length };
 }
@@ -494,12 +537,15 @@ if (isCLI) {
     process.exit(1);
   }
   console.log(`검증 대상: ${file}`);
-  const { defects } = verifyReport(file);
+  const { defects } = await verifyReport(file);
   // verify-all.mjs 의 grep ❌/FAIL pattern 이 caller stdout 에 들어가도록 명시.
   if (defects.length > 0) {
     console.log(`\n❌ FAIL — ${defects.length} defects detected. Run \`node ${process.argv[1]} <file>\` for details.`);
   } else {
     console.log(`\n✅ PASS — 0 defects.`);
   }
-  process.exit(defects.length > 0 ? 1 : 0);
+  // 2026-06-12: process.exit() 금지 — probe 의 fetch keep-alive 소켓이 닫히기 전 exit 하면
+  //   Windows libuv assertion crash (UV_HANDLE_CLOSING, exit -1073740791) → PASS 도 비정상 종료로 위장.
+  //   exitCode 설정 후 자연 종료 (keep-alive ~4s 후 드레인).
+  process.exitCode = defects.length > 0 ? 1 : 0;
 }

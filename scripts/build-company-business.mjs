@@ -59,6 +59,9 @@ const CURATED = {
   WTW: { products: '보험중개·리스크 자문 · HR/복리후생 컨설팅', desc: 'Willis Towers Watson — 글로벌 보험중개 및 리스크·인사·복리후생 컨설팅.' },
   '053610.KQ': { products: '반도체 후공정 장비(디스펜서·다이본더) · 공압 실린더', desc: '프로텍 — 반도체 패키징(후공정) 디스펜서·본더 장비 및 공압기기 제조. (DART corpCode 00325112)' },
   IEX: { products: '유체·계량 기술(펌프·미터) · 헬스&사이언스 정밀부품 · 소방/안전 장비', desc: 'IDEX Corporation — 산업용 정밀 펌프·유체계량, 생명과학/반도체용 정밀부품, 소방·구조 장비 제조 (FMT/HST/FSDP 3개 세그먼트).' },
+  // 2026-06-12: 발간 WARN 라인이 표출한 미수록 2종 (6/11 evening EXE, 6/12 midnight STE).
+  EXE: { products: '천연가스 탐사·생산(E&P) · 애팔래치아/헤인즈빌 셰일', desc: 'Expand Energy — 미국 최대급 천연가스 생산기업 (Chesapeake + Southwestern 2024 합병).' },
+  STE: { products: '멸균 서비스(AST) · 헬스케어 감염방지 장비·소모품 · 생명과학 멸균', desc: 'STERIS — 병원·제약용 멸균/감염방지 장비, 소모품, 위탁 멸균 서비스.' },
   // KR 대형주 — companies-batch 미수록(배치가 US 위주). 공개 사실 기반 주력사업(가짜% 금지).
   //   .KS/.KQ 키로 저장(보고서 ticker 가 6자리.KS 형식, lookup 시 양쪽 시도).
   '005380.KS': { products: '완성차(승용·SUV·제네시스) · 금융 · AS/부품', desc: '현대자동차 — 완성차 제조·판매(내연·하이브리드·EV) 및 자동차할부금융. 글로벌 5위권 완성차 그룹.' },
