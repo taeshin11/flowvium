@@ -29,3 +29,29 @@
 
 ## 갱신 방법
 node scripts/build-company-profiles.mjs --missing   (신규 종목 추가 시)
+
+## (추가) "전부 풀 페이지 + 전부 동적 추출" — 엔진 v2 와 벌크 sweep 결과
+
+### 페이지 (commit f544fee, 64cdd30 — 배포완료)
+- 폴백 페이지 풀 패리티: 재무심화 8 KPI+연간추이+BS/CF (SEC XBRL) + 동적 세그먼트 도넛
+- 풀 페이지 도넛 동적 우선: DB 동적 % > 정적 큐레이션 % (출처 배지로 정직 표기)
+- 세그먼트 금액 표시 제거 — 필링별 단위 편차로 스케일 모호, 검증된 pct 만
+
+### PM 오염 사건 → 엔진 v2 (XBRL dimension)
+- sweep v1: 통과 8.7% + PM(필립모리스) "Software 50.8%" 오염이 Σ검증 통과 —
+  LLM 이 region 의 total 을 보고 합 맞는 분할을 지어내면 검증 무력화 (구조 결함)
+- 대응: llm/exaone 적재 51행 전부 purge → v2 = XBRL 인스턴스 dimension 추출 1차
+  (ProductOrServiceAxis/StatementBusinessSegmentsAxis — 회사 자체 태깅, 무LLM)
+  + LLM 폴백 fabrication 가드(금액이 원문에 실존해야) + 20-F/40-F 지원
+- 스모크: PM=Combustible 58.5/SmokeFree 41.5 (정확), JNJ·MSFT·NKE 공시 일치
+
+### sweep v2 최종 (US 860 대상, 보고서 lock 양보 동작)
+- 성공 352 (xbrl 326 + llm가드 26) → DB company_segments 364종 (아침 10종 → 36배)
+- 실패: no-cik 175 / no-region 149 / exaone-no-rows 134 / sum-mismatch 46 / no-10k 4
+- 잔여는 매시 cron(6종 rotating)이 계속 재시도
+
+### 발견된 별도 이슈 — candidate 풀 stale 티커 (다음 세션 과제)
+no-cik 175 분석: ETF(VOO/IVV/VTI — 10-K 없음 정당) + **티커 변경**(GPS→GAP, FI→FISV,
+MMC→MRSH) + **SEC 등록 소멸**(HOLX/CTRA/PSTG/SEE/EXAS — 상폐/피인수 추정).
+candidate-tickers.json(1,338) 유니버스가 drift — 매수 퍼널 scoring 에 죽은 티커 포함될 수
+있음 (livePrices 필터가 발간단엔 안전망). → build:universe 재구축 + 상폐 감지 probe 필요.
