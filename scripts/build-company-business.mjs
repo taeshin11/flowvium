@@ -47,6 +47,17 @@ for (const f of files) {
 //   share% 불확실하면 제품명만(가짜 % 금지 — 환각 방지). 발견 시 추가.
 const CURATED = {
   APH: { products: '커넥터·인터커넥트 · 센서 · 안테나/케이블', desc: 'Amphenol — 전기/전자 커넥터, 인터커넥트 시스템, 센서, 안테나, 케이블 제조. IT/데이터센터·모바일·자동차·산업·방산·브로드밴드 시장 공급.' },
+  // 2026-06-11: 6/4~6/7 보고서 portfolio 에서 businessSummary 누락 발견된 10종 보강 (이름은 company-names.json/DART 대조).
+  VRSN: { products: '.com/.net 도메인 레지스트리 · DNS 인프라', desc: 'VeriSign — .com/.net 최상위 도메인 등록관리(레지스트리) 독점 운영 및 글로벌 DNS 인프라.' },
+  ADM: { products: '농산물 가공·유통(곡물·유지종자) · 탄수화물솔루션(감미료·전분) · 영양(Nutrition)', desc: 'Archer-Daniels-Midland — 세계 최대급 농산물 가공·트레이딩(곡물·대두) 및 식품원료·영양 소재.' },
+  GDDY: { products: '도메인 등록 · 웹호스팅/웹사이트빌더 · 커머스/결제', desc: 'GoDaddy — 세계 최대 도메인 등록업체. 중소사업자용 웹사이트·호스팅·커머스 도구.' },
+  DOC: { products: '외래의료 오피스 임대 · 랩(생명과학) 시설 · 시니어주택(CCRC)', desc: 'Healthpeak Properties — 헬스케어 부동산 리츠(REIT). 외래의료센터·생명과학 랩·시니어주택 보유 임대.' },
+  UVXY: { products: 'VIX 단기선물 1.5x 레버리지 ETF', desc: 'ProShares Ultra VIX Short-Term Futures ETF — S&P500 VIX 단기선물지수 1.5배 레버리지 추종. 기업이 아닌 변동성 ETF(장기보유 시 롤오버 손실).' },
+  VRT: { products: '데이터센터 전력관리(UPS·배전) · 열관리(냉각) · IT 인프라 서비스', desc: 'Vertiv — 데이터센터·통신망 전력/냉각 인프라 장비. AI 데이터센터 수혜 핵심 기업.' },
+  TSCO: { products: '농촌 라이프스타일 소매(농자재·사료·반려동물·공구)', desc: 'Tractor Supply — 미국 최대 농촌 라이프스타일 소매체인(2,200+ 매장). 농장·목장용품, 사료, 반려동물 용품.' },
+  SBAC: { products: '무선통신 타워 임대 · 사이트 개발 서비스', desc: 'SBA Communications — 통신타워 리츠(REIT). 미주 중심 39,000+ 타워를 통신사에 장기 임대.' },
+  WTW: { products: '보험중개·리스크 자문 · HR/복리후생 컨설팅', desc: 'Willis Towers Watson — 글로벌 보험중개 및 리스크·인사·복리후생 컨설팅.' },
+  '053610.KQ': { products: '반도체 후공정 장비(디스펜서·다이본더) · 공압 실린더', desc: '프로텍 — 반도체 패키징(후공정) 디스펜서·본더 장비 및 공압기기 제조. (DART corpCode 00325112)' },
   // KR 대형주 — companies-batch 미수록(배치가 US 위주). 공개 사실 기반 주력사업(가짜% 금지).
   //   .KS/.KQ 키로 저장(보고서 ticker 가 6자리.KS 형식, lookup 시 양쪽 시도).
   '005380.KS': { products: '완성차(승용·SUV·제네시스) · 금융 · AS/부품', desc: '현대자동차 — 완성차 제조·판매(내연·하이브리드·EV) 및 자동차할부금융. 글로벌 5위권 완성차 그룹.' },
