@@ -1,6 +1,23 @@
 @echo off
 cd /d "C:\NoAddsMakingApps\FlowVium"
 set "LOG_FILE=C:\NoAddsMakingApps\FlowVium\logs\report.log"
+set "LOCK_DIR=C:\NoAddsMakingApps\FlowVium\logs\report-pipeline.lock"
+
+:: 0-pre. 동시 실행 방지 mutex (2026-06-11 신설 — 6/7 hang 4일 다운 사건 후 StartWhenAvailable
+::    부팅 catch-up 활성화. 부팅 직후 5 세션 task 가 missed run 을 동시 발화하면 파이프라인 5개가
+::    한 GPU 에서 경합 → 과부하/hang 위험. atomic mkdir lock + 5분 미만 또는 살아있는 파이프라인
+::    있으면 skip(부팅 후 fresh 보고서 1개면 충분). hang 잔존 lock 은 시간+프로세스 검사로 자동 steal.
+mkdir "%LOCK_DIR%" 2>nul
+if errorlevel 1 (
+  powershell -NoProfile -Command "$d = Get-Item '%LOCK_DIR%' -ErrorAction SilentlyContinue; $age = if ($d) { ((Get-Date) - $d.CreationTime).TotalMinutes } else { 999 }; $alive = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -match 'generate-report-local' }; if ($age -lt 5 -or $alive) { exit 1 } else { exit 0 }" >nul 2>&1
+  if errorlevel 1 (
+    echo [%DATE% %TIME%] [SKIP] another report pipeline running or just started - skip this session >> "%LOG_FILE%"
+    exit /b 0
+  )
+  echo [%DATE% %TIME%] [WARN] stale pipeline lock detected - stealing >> "%LOG_FILE%"
+  rmdir "%LOCK_DIR%" 2>nul
+  mkdir "%LOCK_DIR%" 2>nul
+)
 
 :: 0. git fetch + 코드 파일만 selective checkout (2026-05-29 신설).
 ::    batch 가 옛 코드로 실행되어 snapshot/DART 로직 한 사이클 lag 사건 재발 방지.
@@ -16,6 +33,7 @@ if errorlevel 1 (
 ollama list >nul 2>&1
 if errorlevel 1 (
   echo [%DATE% %TIME%] [ERROR] Ollama is not running >> "%LOG_FILE%"
+  rmdir "%LOCK_DIR%" 2>nul
   exit /b 1
 )
 
@@ -23,6 +41,7 @@ if errorlevel 1 (
 ollama list | findstr /I /C:"qwen3:8b" >nul 2>&1
 if errorlevel 1 (
   echo [%DATE% %TIME%] [ERROR] Model qwen3:8b not found in ollama list >> "%LOG_FILE%"
+  rmdir "%LOCK_DIR%" 2>nul
   exit /b 1
 )
 
@@ -31,6 +50,7 @@ echo [%DATE% %TIME%] [INFO] Pre-flight: data source health check... >> "%LOG_FIL
 "C:\Program Files\nodejs\node.exe" "C:\NoAddsMakingApps\FlowVium\scripts\audit-data-sources.mjs" >> "%LOG_FILE%" 2>&1
 if errorlevel 2 (
   echo [%DATE% %TIME%] [FATAL] Critical data source failed — aborting report generation >> "%LOG_FILE%"
+  rmdir "%LOCK_DIR%" 2>nul
   exit /b 2
 )
 
@@ -46,4 +66,5 @@ if "%PIPE_EXIT%"=="0" (
   echo [%DATE% %TIME%] [ERROR] Report pipeline failed with exit code %PIPE_EXIT% >> "%LOG_FILE%"
 )
 
+rmdir "%LOCK_DIR%" 2>nul
 exit /b %PIPE_EXIT%
