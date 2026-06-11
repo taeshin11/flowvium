@@ -47,14 +47,21 @@ export interface VolatilityData {
 const YF_HEADERS = YAHOO_HEADERS;
 
 async function fetchCurrentPrice(symbol: string): Promise<number | null> {
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
-    const res = await fetch(url, { headers: YF_HEADERS, cache: 'no-store', signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return typeof price === 'number' ? price : null;
-  } catch { return null; }
+  // 2026-06-12: query1 → query2 재시도. 보고서 배치(1,329종 시세)가 query1 을 rate-limit 시키면
+  //   CBOE CSV 폴백이 발동하는데, CBOE 일별 CSV 는 전일치까지만 — 전일 VIX 가 'current' 로 silent
+  //   제공돼 earlyWarning 이 stale 입력을 받던 사건 (6/12 morning VIX 22.2[6/10] vs 실측 19.4[6/11]).
+  for (const host of ['query1', 'query2']) {
+    try {
+      const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
+      // chart v8 은 무인증 — 공유 YAHOO_HEADERS(쿠키/크럼)가 만료 시 오히려 거부됨 → 플레인 UA
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store', signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (typeof price === 'number') return price;
+    } catch { /* 다음 host */ }
+  }
+  return null;
 }
 
 // CBOE CDN is not subject to Yahoo Finance IP rate-limits on Vercel cloud IPs.
@@ -118,7 +125,7 @@ async function fetchVixFromCBOE(): Promise<{ current: number | null; history: Vo
 async function fetchHistory(symbol: string, range = '3mo'): Promise<VolPoint[]> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`;
-    const res = await fetch(url, { headers: YF_HEADERS, cache: 'no-store', signal: AbortSignal.timeout(10000) });
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store', signal: AbortSignal.timeout(10000) });
     if (!res.ok) return [];
     const json = await res.json();
     const result = json?.chart?.result?.[0];
@@ -178,9 +185,9 @@ export async function GET() {
 
   const start = Date.now();
   const [vxst, vix, vxmt, vvix, history] = await Promise.all([
-    fetchCurrentPrice('^VXST'),
-    fetchCurrentPrice('^VIX'),
-    fetchCurrentPrice('^VXMT'),
+    fetchCurrentPrice('^VIX9D'),   // 2026-06-12: ^VXST 는 2021 폐지 심볼 — Yahoo 가 죽은 quote(10.84) 반환.
+    fetchCurrentPrice('^VIX'),     //   그간 Yahoo 실패→CBOE 폴백이 우연히 정상값을 줘서 가려졌던 잠복 버그.
+    fetchCurrentPrice('^VIX6M'),   // ^VXMT 도 동일 (현행 ^VIX6M)
     fetchCurrentPrice('^VVIX'),
     fetchHistory('^VIX', '3mo'),
   ]);
@@ -192,9 +199,11 @@ export async function GET() {
   let cboeUsed = false;
   if (vixFinal == null || histFinal.length < 10) {
     const cboe = await fetchVixFromCBOE();
-    if (cboe.current != null) { vixFinal = cboe.current; cboeUsed = true; }
-    if (cboe.history.length >= 10) { histFinal = cboe.history; cboeUsed = true; }
-    if (cboe.current != null) logger.info('volatility', 'cboe_fallback', { vix: cboe.current, histLen: cboe.history.length });
+    // 2026-06-12 fix: history 만 실패해도 신선한 Yahoo VIX 를 CBOE 전일값으로 무조건 덮어쓰던 버그
+    //   (CBOE 일별 CSV 는 전일치까지 — earlyWarning 이 하루 stale VIX 22.2 를 받은 사건의 직접 원인)
+    if (cboe.current != null && vixFinal == null) { vixFinal = cboe.current; cboeUsed = true; }
+    if (cboe.history.length >= 10 && histFinal.length < 10) { histFinal = cboe.history; cboeUsed = true; }
+    if (cboeUsed) logger.info('volatility', 'cboe_fallback', { vix: cboe.current, histLen: cboe.history.length });
   }
 
   // CBOE fallback for VXST (VIX9D), VXMT (VIX6M), VVIX — Yahoo Finance blocked on Vercel
