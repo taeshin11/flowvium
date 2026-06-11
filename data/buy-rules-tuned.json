@@ -9,217 +9,330 @@
       "id": "price_oversold_gap",
       "score": 3,
       "category": "price",
-      "condition": { "type": "priceGapDown", "change1d_lte": -3 },
+      "condition": {
+        "type": "priceGapDown",
+        "change1d_lte": -3
+      },
       "description": "1d -3%+ drop — dead cat bounce 후보 (mean reversion 진입)"
     },
     {
       "id": "price_support_bounce",
       "score": 5,
       "category": "price",
-      "condition": { "type": "near52wLow", "above_pct_lte": 5 },
+      "condition": {
+        "type": "near52wLow",
+        "above_pct_lte": 5
+      },
       "description": "52주 저점 5% 이내 — 지지 반등 매수 zone (Marks contrarian)"
     },
     {
       "id": "price_pullback_50ma",
       "score": 4,
       "category": "price",
-      "condition": { "type": "near50MA", "deviation_pct_lte": 2 },
+      "condition": {
+        "type": "near50MA",
+        "deviation_pct_lte": 2
+      },
       "description": "50MA ±2% — 지지선 pullback 매수 (Druckenmiller MA confirmation)"
     },
     {
       "id": "price_mean_reversion",
       "score": 4,
       "category": "price",
-      "condition": { "type": "below200MA", "below_pct_gte": 5 },
+      "condition": {
+        "type": "below200MA",
+        "below_pct_gte": 5
+      },
       "description": "200MA -5% 이하 — 평균 회귀 매수 (over-sold contrarian)"
     },
     {
       "id": "price_breakout_high",
       "score": 5,
       "category": "price",
-      "condition": { "type": "above20dHigh" },
+      "condition": {
+        "type": "above20dHigh"
+      },
       "description": "20일 고가 돌파 — momentum breakout (Druckenmiller liquidity)"
     },
     {
       "id": "rotation_sector_in",
       "score": 4,
       "category": "rotation",
-      "condition": { "type": "sectorRotateIn", "stance": "overweight", "pe_discount_pct_gte": 10 },
+      "condition": {
+        "type": "sectorRotateIn",
+        "stance": "overweight",
+        "pe_discount_pct_gte": 10
+      },
       "description": "sector stance=overweight AND P/E 섹터 대비 -10%+ — sector rotation 진입"
     },
     {
       "id": "rotation_defensive",
       "score": 4,
       "category": "rotation",
-      "condition": { "type": "defensiveRotation", "risk_level": "high", "sectors": ["Utilities", "Consumer Staples", "Health Care", "유틸리티", "필수소비재", "헬스케어"] },
+      "condition": {
+        "type": "defensiveRotation",
+        "risk_level": "high",
+        "sectors": [
+          "Utilities",
+          "Consumer Staples",
+          "Health Care",
+          "유틸리티",
+          "필수소비재",
+          "헬스케어"
+        ]
+      },
       "description": "macro riskLevel=high AND defensive sector (XLU/XLP/XLV) — defensive 회전"
     },
     {
       "id": "rotation_new_high_after_consolidation",
       "score": 5,
       "category": "rotation",
-      "condition": { "type": "newHighAfterFlat", "consolidation_weeks_gte": 4 },
+      "condition": {
+        "type": "newHighAfterFlat",
+        "consolidation_weeks_gte": 4
+      },
       "description": "4주+ 횡보 후 신고가 — Stage 2 advance (Stan Weinstein 트렌드 stage 진입)"
     },
     {
       "id": "tech_rsi_oversold",
       "score": 4,
       "category": "technical",
-      "condition": { "type": "rsiOversold", "rsi_lte": 35 },
+      "condition": {
+        "type": "rsiOversold",
+        "rsi_lte": 35
+      },
       "description": "RSI ≤ 35 — 과매도 (Marks contrarian entry)"
     },
     {
       "id": "tech_ma_golden_cross",
       "score": 5,
       "category": "technical",
-      "condition": { "type": "goldenCross" },
+      "condition": {
+        "type": "goldenCross"
+      },
       "description": "50MA > 200MA — 장기 상승 추세"
     },
     {
       "id": "tech_200ma_reclaim",
       "score": 4,
       "category": "technical",
-      "condition": { "type": "ma200Reclaim", "above_pct_lte": 5 },
+      "condition": {
+        "type": "ma200Reclaim",
+        "above_pct_lte": 5
+      },
       "description": "price > 200MA AND 200MA 도 5% 이내 — 추세 복원"
     },
     {
       "id": "tech_volume_surge",
       "score": 3,
       "category": "technical",
-      "condition": { "type": "volumeSurge", "vol_pct_gte": 50, "price_up_gte": 2 },
+      "condition": {
+        "type": "volumeSurge",
+        "vol_pct_gte": 50,
+        "price_up_gte": 2
+      },
       "description": "volume +50%+ & price +2%+ — accumulation 패턴"
     },
     {
       "id": "fund_high_roe",
       "score": 5,
       "category": "fundamental",
-      "condition": { "type": "roeAbove", "roe_pct_gte": 15 },
+      "condition": {
+        "type": "roeAbove",
+        "roe_pct_gte": 15
+      },
       "description": "ROE ≥ 15% (Buffett 우량 기업)"
     },
     {
       "id": "fund_op_margin_expansion",
       "score": 4,
       "category": "fundamental",
-      "condition": { "type": "opMarginExpand", "expand_pp_gte": 2 },
+      "condition": {
+        "type": "opMarginExpand",
+        "expand_pp_gte": 2
+      },
       "description": "op margin YoY +2%p+ — 수익성 확대"
     },
     {
       "id": "fund_pe_below_sector",
       "score": 4,
       "category": "fundamental",
-      "condition": { "type": "peBelowSector", "discount_pct_gte": 20 },
+      "condition": {
+        "type": "peBelowSector",
+        "discount_pct_gte": 20
+      },
       "description": "P/E sector 평균 대비 -20%+ — 상대 저평가"
     },
     {
       "id": "fund_revenue_growth",
       "score": 3,
       "category": "fundamental",
-      "condition": { "type": "revenueYoY", "growth_pct_gte": 15 },
+      "condition": {
+        "type": "revenueYoY",
+        "growth_pct_gte": 15
+      },
       "description": "revenue YoY ≥ 15% — 성장세"
     },
     {
       "id": "guru_lynch_peg_low",
       "score": 5,
       "category": "guru",
-      "condition": { "type": "lynchPeg", "peg_lte": 1.0 },
+      "condition": {
+        "type": "lynchPeg",
+        "peg_lte": 1
+      },
       "description": "Lynch PEG ≤ 1 — 성장 대비 저평가"
     },
     {
       "id": "guru_buffett_moat",
       "score": 6,
       "category": "guru",
-      "condition": { "type": "buffettMoat", "roe_pct_gte": 15, "op_margin_pct_gte": 20 },
+      "condition": {
+        "type": "buffettMoat",
+        "roe_pct_gte": 15,
+        "op_margin_pct_gte": 20
+      },
       "description": "ROE ≥ 15% AND op margin ≥ 20% — Buffett moat 신호"
     },
     {
       "id": "guru_greenblatt_magic",
       "score": 6,
       "category": "guru",
-      "condition": { "type": "greenblattMagic", "earnings_yield_gte": 10, "roic_pct_gte": 25 },
+      "condition": {
+        "type": "greenblattMagic",
+        "earnings_yield_gte": 10,
+        "roic_pct_gte": 25
+      },
       "description": "EBIT/EV ≥ 10% AND ROIC ≥ 25% — Magic Formula"
     },
     {
       "id": "guru_graham_value",
       "score": 4,
       "category": "guru",
-      "condition": { "type": "grahamValue", "pe_lte": 15, "pb_lte": 1.5 },
+      "condition": {
+        "type": "grahamValue",
+        "pe_lte": 15,
+        "pb_lte": 1.5
+      },
       "description": "P/E ≤ 15 AND P/B ≤ 1.5 — Graham deep value"
     },
     {
       "id": "macro_low_risk",
       "score": 3,
       "category": "macro",
-      "condition": { "type": "macroRisk", "risk_level": "low" },
+      "condition": {
+        "type": "macroRisk",
+        "risk_level": "low"
+      },
       "description": "macro riskLevel=low (cyclical 종목 가중)"
     },
     {
       "id": "macro_vix_low",
       "score": 2,
       "category": "macro",
-      "condition": { "type": "vixLow", "vix_lte": 14 },
+      "condition": {
+        "type": "vixLow",
+        "vix_lte": 14
+      },
       "description": "VIX ≤ 14 — risk-on 환경"
     },
     {
       "id": "macro_fg_recovery",
       "score": 3,
       "category": "macro",
-      "condition": { "type": "fgRecovery", "fg_gte": 25, "fg_lte": 50 },
+      "condition": {
+        "type": "fgRecovery",
+        "fg_gte": 25,
+        "fg_lte": 50
+      },
       "description": "F&G 25~50 (extreme fear → 회복기 진입)"
     },
     {
       "id": "micro_sector_overweight",
       "score": 4,
       "category": "micro",
-      "condition": { "type": "sectorStance", "stance": "overweight" },
+      "condition": {
+        "type": "sectorStance",
+        "stance": "overweight"
+      },
       "description": "해당 sectorAllocation stance=overweight"
     },
     {
       "id": "micro_region_bullish",
       "score": 4,
       "category": "micro",
-      "condition": { "type": "regionStance", "stance": "bullish" },
+      "condition": {
+        "type": "regionStance",
+        "stance": "bullish"
+      },
       "description": "해당 region stance=bullish"
     },
     {
       "id": "micro_news_positive",
       "score": 5,
       "category": "micro",
-      "condition": { "type": "newsPositive", "pos_ratio_gte": 0.6, "min_articles": 3 },
+      "condition": {
+        "type": "newsPositive",
+        "pos_ratio_gte": 0.6,
+        "min_articles": 3
+      },
       "description": "최근 7d 해당 ticker news 긍정 sentiment ≥ 60% (3+ articles)"
+    },
+    {
+      "id": "micro_news_gap",
+      "score": 6,
+      "category": "micro",
+      "condition": {
+        "type": "newsGap",
+        "gap_score_gte": 60
+      },
+      "description": "news-gap: 기관(IB) 활동 高 + 미디어 저커버리지 (gapScore>=60) — 정보 비대칭 선행 매수 시그널 (2026-06-12)"
     },
     {
       "id": "micro_insider_buying",
       "score": 6,
       "category": "micro",
-      "condition": { "type": "insiderBuy", "filings_gte": 3 },
+      "condition": {
+        "type": "insiderBuy",
+        "filings_gte": 3
+      },
       "description": "최근 30d insider 매수 filing ≥ 3건 (13D/Form 4)"
     },
     {
       "id": "micro_squeeze_score",
       "score": 4,
       "category": "micro",
-      "condition": { "type": "squeezeScore", "score_gte": 50 },
+      "condition": {
+        "type": "squeezeScore",
+        "score_gte": 50
+      },
       "description": "short squeeze score ≥ 50 (high SI + low DTC)"
     },
     {
       "id": "micro_cascade_upstream",
       "score": 5,
       "category": "micro",
-      "condition": { "type": "cascadeUpstream" },
+      "condition": {
+        "type": "cascadeUpstream"
+      },
       "description": "최근 cascade signal 의 upstream beneficiary (supply chain)"
     },
     {
       "id": "selflearn_boost_list",
       "score": 5,
       "category": "selflearn",
-      "condition": { "type": "boostList" },
+      "condition": {
+        "type": "boostList"
+      },
       "description": "boost-list 멤버 (과거 avg_pnl ≥ 5%)"
     },
     {
       "id": "selflearn_ban_list_penalty",
       "score": -100,
       "category": "selflearn",
-      "condition": { "type": "banList" },
+      "condition": {
+        "type": "banList"
+      },
       "description": "ban-list 멤버 → 제외 (2+ stops / 0 hits)"
     }
   ],

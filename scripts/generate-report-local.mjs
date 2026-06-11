@@ -2937,6 +2937,7 @@ async function gatherContext() {
     creditBalance, insider, ownershipAlerts, koreaFlow,
     nport, shortInterest, newsCascade, econCal,
     volatility, cot, commodity, supplyChainSignals, narratives,
+    newsGap,
   ] = await Promise.all([
     namedFetch('capital',           `${base}/api/capital-flows`, 15000),
     namedFetch('fearGreed',         `${base}/api/fear-greed`, 12000),
@@ -2955,6 +2956,7 @@ async function gatherContext() {
     namedFetch('commodity',         `${base}/api/commodity-curve`, 10000),
     namedFetch('supplyChainSignals',`${base}/api/supply-chain-signals`, 10000),
     namedFetch('narratives',        `${base}/api/narratives`, 10000),
+    namedFetch('newsGap',           `${base}/api/news-gap`, 8000),  // 2026-06-12: 기관활동↔미디어 갭 (매수 stage-1 입력)
   ]);
 
   // 2026-06-05: FX 동적 수집 (Yahoo KRW=X/DXY — 외부 권위 소스, 하드코딩 아님). KR 추천 risk 핵심.
@@ -2984,6 +2986,7 @@ async function gatherContext() {
     commodity,
     supplyChainSignals: supplyChainSignals?.signals ?? [],
     narratives,
+    newsGap: newsGap?.entries ?? [],
   };
 }
 
@@ -4271,6 +4274,13 @@ function evaluateBuyRule(rule, ctx) {
         return `news +${(ctx.newsPosRatio * 100).toFixed(0)}% (${ctx.newsArticleCount}건)`;
       }
       break;
+    case 'newsGap':
+      // 2026-06-12: /api/news-gap (기관 IB활동 高 + 미디어 저커버 = 정보 갭) — 사용자 "뉴스갭
+      //   종목 매수엔진 반영". gapScore 는 결정론 산출(ibActivityScore-mediaScore 계열).
+      if (ctx.newsGapScore != null && ctx.newsGapScore >= (c.gap_score_gte ?? 60)) {
+        return `news-gap ${ctx.newsGapScore} (기관활동 高·미디어 저커버)`;
+      }
+      break;
     case 'insiderBuy':
       if (ctx.insiderFilings != null && ctx.insiderFilings >= (c.filings_gte ?? 3)) {
         return `insider ${ctx.insiderFilings}건 매수`;
@@ -4407,6 +4417,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       regionStance: macroCtx.regionStanceMap?.get(isKR ? 'kr' : 'us'),
       newsPosRatio: macroCtx.newsSentimentMap?.get(ticker)?.posRatio ?? null,
       newsArticleCount: macroCtx.newsSentimentMap?.get(ticker)?.count ?? 0,
+      newsGapScore: macroCtx.newsGapMap?.get(ticker) ?? null,
       insiderFilings: macroCtx.insiderMap?.get(ticker) ?? 0,
       squeezeScore: macroCtx.squeezeMap?.get(ticker) ?? null,
       cascadeUpstream: macroCtx.cascadeUpstreamSet?.has(ticker) ?? false,
@@ -5355,7 +5366,9 @@ async function generateViaOllama() {
   console.log('\n[1.5/7] 매수 후보 4-stage scoring (1,200+ ticker)...');
   const buyMacroCtx = {
     riskLevel: null, // Wave 1 macroData 가 아직 없음 — fg/vix 만 활용
-    vix: ctxRaw?.volatility?.score ?? ctxRaw?.vix?.score ?? null,
+    // 2026-06-12 fix: volatility 응답 필드는 .vix (.score 는 미존재 — earlyWarning 과 동일 오필드 버그.
+    //   매수 룰의 ctx.vix 가 항상 null 이라 VIX 조건 룰이 한 번도 발화 못 하던 상태)
+    vix: ctxRaw?.volatility?.vix ?? null,
     fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
     sectorPeMap: new Map((sectorPeRaw ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio])),
     sectorStanceMap: new Map(), // Wave1 후 채워질 데이터 — Stage 1 에는 빈 Map
@@ -5377,6 +5390,7 @@ async function generateViaOllama() {
       return m;
     })(),
     insiderMap: new Map((ctxRaw?.insider ?? []).map(i => [i.ticker, i.filings ?? i.count ?? 1])),
+    newsGapMap: new Map((ctxRaw?.newsGap ?? []).filter(g => g.ticker && typeof g.gapScore === 'number').map(g => [g.ticker, g.gapScore])),  // 2026-06-12
     squeezeMap: new Map((ctxRaw?.shorts ?? ctxRaw?.shortSqueeze ?? []).map(s => [s.ticker, s.score ?? s.squeezeScore])),
     cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
   };
