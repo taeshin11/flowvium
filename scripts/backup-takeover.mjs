@@ -48,6 +48,12 @@ for (const f of ['.env.local', '.cf-tunnel-token']) {
   if (existsSync(src)) { copyFileSync(src, join(secretsDir, f)); log(`시크릿 → secrets/${f}`); }
 }
 
+// 2b. 복구 문서 — clone 전(폰/웹)에서도 runbook·인계 프롬프트를 볼 수 있게 Drive 에 동봉
+for (const f of ['HANDOFF.md', 'CLAUDE.md']) {
+  const src = resolve(ROOT, f);
+  if (existsSync(src)) { copyFileSync(src, join(DEST, f)); log(`문서 → ${f}`); }
+}
+
 // 3. reports / research_history 미러 — Google Drive FS 가 recursive cp 중 간헐 lock 에러를
 //    내므로(2026-06-12 첫 실행 crash) 파일 단위 + 신규/변경분만 + per-file try/catch.
 function mirrorDir(rel) {
