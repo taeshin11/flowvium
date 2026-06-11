@@ -46,6 +46,33 @@ node scripts/check-uncommitted-risk.mjs
 
 주의: 이전 머신이 살아있는 채로 새 머신을 띄우면 **터널/cron 이중 가동** — 반드시 한쪽만.
 
+## 새 머신의 Claude Code 에게 줄 인계 프롬프트 (복붙용)
+
+> 새 클로드는 이전 머신 클로드의 메모리/대화가 없다. 저장소 문서가 유일한 컨텍스트 — 아래를 그대로 붙여넣기:
+
+```
+FlowVium 자가호스팅 서버 머신이 죽어서 이 컴퓨터로 인수한다. 너는 이전 머신의 클로드 메모리가 없으니
+저장소 문서로 컨텍스트를 복원해라. 순서:
+
+1. CLAUDE.md (프로젝트 규칙 — 특히 "커밋+푸시 의무", "verify 의무", "정적 폴백 금지") 숙지.
+2. HANDOFF.md 최상단 "인수인계 runbook" 그대로 실행해 서비스 복구
+   (백업: G:\내 드라이브\FlowVium-backup — 최신 flowvium-*.db, secrets/.env.local, .cf-tunnel-token).
+   ⚠️ 구 머신이 혹시 살아있으면 터널/cron 이중가동 금지 — 먼저 구 머신 pm2/Task Scheduler 정지 확인.
+3. research_history/ 를 날짜 역순으로 최근 5개 읽고 마지막 작업 상태 파악
+   (특히 2026-06-12_crash-detection-overhaul-and-takeover.txt = 마지막 세션 기록).
+4. 복구 완료 기준 (happy-path 만으론 불완료):
+   - npm run verify 에서 fail 0
+   - node scripts/check-uncommitted-risk.mjs OK
+   - 보고서 1회 수동 발간 성공 (scripts/run-report.bat) + flowvium.net/ko/report 에 fresh 반영
+   - Task Scheduler 5개(보고서) + FlowVium-Backup 등록 + StartWhenAvailable=True 확인
+5. 복구 후 research_history/{날짜}_takeover-recovery.txt 에 인수 기록 남기고 커밋+푸시.
+
+환경 요약: RTX GPU + Ollama qwen3:8b(보고서)/exaone3.5(번역), pm2(web 3000/cron-runner/tunnel),
+Task Scheduler 가 run-report.bat 를 하루 5회(06:40/11:40/15:40/21:10/23:40 KST) 실행.
+GPU 단일 자원 — 보고서 lock(logs/report-pipeline.lock) 중 무거운 LLM 작업 금지.
+cloud LLM 폴백은 GROQ 키 무효(401) 상태라 로컬 Ollama 가 유일한 LLM — Ollama 헬스 최우선.
+```
+
 ---
 
 # 📋 FlowVium 인계장 — 2026-05-31 21:30 KST
