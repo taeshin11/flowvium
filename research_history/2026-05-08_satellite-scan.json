@@ -11,15 +11,25 @@
       "foundry"
     ],
     "significance": "critical",
-    "activityScore": 45,
-    "vehicleDensity": "low",
-    "cloudCoverage": "heavy",
+    "activityScore": 62,
+    "vv_db": -6.6,
+    "vh_db": -12.3,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "medium",
+    "cloudCoverage": "clear",
     "loadingActivity": "normal",
-    "constructionVisible": false,
+    "constructionVisible": true,
     "confidence": "low",
-    "summary": "구름 덮임이 심각하여 정확한 활동 분석이 제한되나, 가시적인 농업 지역과 일부 건물 구조가 관찰됩니다.",
-    "scannedAt": "2026-05-08T02:48:58.082Z",
-    "imageDate": "2026-05-08"
+    "summary": "VV -6.6dB · VH -12.3dB (베이스라인 축적 중 0/5회). 정상 산업단지 수준",
+    "scannedAt": "2026-05-08T06:08:21.795Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -6.6,
+      "vh_db": -12.3,
+      "samples": 40000
+    }
   },
   {
     "id": "tsmc-taichung",
@@ -33,15 +43,25 @@
       "foundry"
     ],
     "significance": "critical",
-    "activityScore": 72,
-    "vehicleDensity": "medium",
-    "cloudCoverage": "partial",
-    "loadingActivity": "normal",
-    "constructionVisible": false,
-    "confidence": "medium",
-    "summary": "중간 수준의 차량 밀도와 정상적인 물류 활동이 관찰되며, 부분적 구름으로 인해 분석 정확도가 제한됩니다.",
-    "scannedAt": "2026-05-08T02:49:07.222Z",
-    "imageDate": "2026-05-08"
+    "activityScore": 78,
+    "vv_db": -1,
+    "vh_db": -9.2,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -1dB · VH -9.2dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:08:25.880Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -1,
+      "vh_db": -9.2,
+      "samples": 22500
+    }
   },
   {
     "id": "samsung-pyeongtaek",
@@ -55,15 +75,25 @@
       "memory"
     ],
     "significance": "critical",
-    "activityScore": 75,
+    "activityScore": 78,
+    "vv_db": -0.2,
+    "vh_db": -8.6,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
     "vehicleDensity": "high",
     "cloudCoverage": "clear",
     "loadingActivity": "busy",
     "constructionVisible": true,
-    "confidence": "high",
-    "summary": "삼성 평택 캠퍼스는 높은 차량 밀도와 활발한 건설 활동이 관찰되며, 주차장과 로딩 구역에서 활발한 운영 징후가 명확히 보입니다.",
-    "scannedAt": "2026-05-08T02:49:17.675Z",
-    "imageDate": "2026-05-08"
+    "confidence": "low",
+    "summary": "VV -0.2dB · VH -8.6dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:08:31.969Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -0.2,
+      "vh_db": -8.6,
+      "samples": 62500
+    }
   },
   {
     "id": "skhynix-icheon",
@@ -77,15 +107,25 @@
       "memory"
     ],
     "significance": "critical",
-    "activityScore": 72,
-    "vehicleDensity": "medium",
+    "activityScore": 78,
+    "vv_db": 1.5,
+    "vh_db": -8.8,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
     "cloudCoverage": "clear",
-    "loadingActivity": "normal",
-    "constructionVisible": true,
-    "confidence": "high",
-    "summary": "SK하이닉스 이천 캠퍼스는 중간 수준의 차량 밀도와 명확한 건설 활동이 관찰되며, 정상적인 생산 가동 상태를 보이고 있습니다.",
-    "scannedAt": "2026-05-08T02:49:26.895Z",
-    "imageDate": "2026-05-08"
+    "loadingActivity": "busy",
+    "constructionVisible": false,
+    "confidence": "low",
+    "summary": "VV 1.5dB · VH -8.8dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:08:36.476Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 1.5,
+      "vh_db": -8.8,
+      "samples": 40000
+    }
   },
   {
     "id": "micron-boise",
@@ -98,15 +138,25 @@
       "memory"
     ],
     "significance": "major",
-    "activityScore": 72,
+    "activityScore": 78,
+    "vv_db": -3.1,
+    "vh_db": -10.1,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
     "vehicleDensity": "high",
     "cloudCoverage": "clear",
-    "loadingActivity": "normal",
+    "loadingActivity": "busy",
     "constructionVisible": true,
-    "confidence": "high",
-    "summary": "마이크론 보이시 반도체 공장은 주차장 차량 밀도가 높고 상단 우측에 건설 활동이 보이며 정상적인 가동 수준을 나타냅니다.",
-    "scannedAt": "2026-05-08T02:49:35.844Z",
-    "imageDate": "2026-05-08"
+    "confidence": "low",
+    "summary": "VV -3.1dB · VH -10.1dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:08:40.383Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -3.1,
+      "vh_db": -10.1,
+      "samples": 22500
+    }
   },
   {
     "id": "intel-chandler",
@@ -118,15 +168,25 @@
       "logic"
     ],
     "significance": "major",
-    "activityScore": 72,
-    "vehicleDensity": "medium",
+    "activityScore": 78,
+    "vv_db": -4.9,
+    "vh_db": -13.7,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
     "cloudCoverage": "clear",
-    "loadingActivity": "normal",
+    "loadingActivity": "busy",
     "constructionVisible": true,
-    "confidence": "high",
-    "summary": "인텔 챈들러 팹 시설에서 중간 수준의 차량 밀도와 여러 건설/확장 구역이 관찰되며, 정상적인 운영 활동이 진행 중입니다.",
-    "scannedAt": "2026-05-08T02:49:45.858Z",
-    "imageDate": "2026-05-08"
+    "confidence": "low",
+    "summary": "VV -4.9dB · VH -13.7dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:08:44.646Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -4.9,
+      "vh_db": -13.7,
+      "samples": 22500
+    }
   },
   {
     "id": "asml-veldhoven",
@@ -135,19 +195,28 @@
     "country": "NL",
     "tags": [
       "EUV",
-      "lithography",
-      "supply-chain"
+      "lithography"
     ],
     "significance": "critical",
-    "activityScore": 72,
+    "activityScore": 78,
+    "vv_db": -2,
+    "vh_db": -6.8,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
     "vehicleDensity": "high",
     "cloudCoverage": "clear",
-    "loadingActivity": "normal",
-    "constructionVisible": false,
-    "confidence": "medium",
-    "summary": "ASML 본사 시설의 주차장에서 높은 차량 밀도가 관찰되며, 정상적인 운영 활동 수준을 보이고 있습니다.",
-    "scannedAt": "2026-05-08T02:49:53.475Z",
-    "imageDate": "2026-05-08"
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -2dB · VH -6.8dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:08:47.980Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -2,
+      "vh_db": -6.8,
+      "samples": 10000
+    }
   },
   {
     "id": "foxconn-zhengzhou",
@@ -160,15 +229,25 @@
       "iPhone"
     ],
     "significance": "critical",
-    "activityScore": 72,
+    "activityScore": 78,
+    "vv_db": 0.7,
+    "vh_db": -7.3,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
     "vehicleDensity": "high",
     "cloudCoverage": "clear",
     "loadingActivity": "busy",
     "constructionVisible": true,
-    "confidence": "high",
-    "summary": "정저우 폭스콘 아이폰 시티는 높은 차량 밀도와 활발한 물류 활동을 보이며, 일부 확장 공사가 진행 중인 것으로 보입니다.",
-    "scannedAt": "2026-05-08T02:50:07.083Z",
-    "imageDate": "2026-05-08"
+    "confidence": "low",
+    "summary": "VV 0.7dB · VH -7.3dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:08:55.889Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 0.7,
+      "vh_db": -7.3,
+      "samples": 89401
+    }
   },
   {
     "id": "catl-ningde",
@@ -181,15 +260,25 @@
       "TSLA"
     ],
     "significance": "major",
-    "activityScore": 75,
+    "activityScore": 78,
+    "vv_db": -3.2,
+    "vh_db": -11.2,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
     "vehicleDensity": "high",
     "cloudCoverage": "clear",
     "loadingActivity": "busy",
     "constructionVisible": true,
-    "confidence": "high",
-    "summary": "CATL 닝더 본사 공장은 주차장 및 적재 구역에서 높은 차량 밀도와 활발한 물류 활동이 관찰되며, 확장 공사가 진행 중입니다.",
-    "scannedAt": "2026-05-08T02:50:15.614Z",
-    "imageDate": "2026-05-08"
+    "confidence": "low",
+    "summary": "VV -3.2dB · VH -11.2dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:01.413Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -3.2,
+      "vh_db": -11.2,
+      "samples": 40000
+    }
   },
   {
     "id": "tesla-shanghai",
@@ -202,15 +291,25 @@
       "assembly"
     ],
     "significance": "major",
-    "activityScore": 25,
-    "vehicleDensity": "low",
-    "cloudCoverage": "heavy",
-    "loadingActivity": "inactive",
-    "constructionVisible": false,
+    "activityScore": 78,
+    "vv_db": -5.2,
+    "vh_db": -12.5,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
     "confidence": "low",
-    "summary": "구름으로 인해 대부분의 공장 시설이 가려져 있어 정확한 활동 수준 분석이 불가능하며, 보이는 일부 지역에서는 낮은 차량 밀도가 관찰됩니다.",
-    "scannedAt": "2026-05-08T02:50:25.046Z",
-    "imageDate": "2026-05-08"
+    "summary": "VV -5.2dB · VH -12.5dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:06.616Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -5.2,
+      "vh_db": -12.5,
+      "samples": 40000
+    }
   },
   {
     "id": "tesla-nevada",
@@ -223,15 +322,25 @@
       "TSLA"
     ],
     "significance": "moderate",
-    "activityScore": 65,
-    "vehicleDensity": "medium",
+    "activityScore": 28,
+    "vv_db": -15.3,
+    "vh_db": -23,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "low",
     "cloudCoverage": "clear",
-    "loadingActivity": "normal",
-    "constructionVisible": false,
-    "confidence": "medium",
-    "summary": "테슬라 기가팩토리 네바다는 주차장에 중간 수준의 차량 밀도와 정상적인 물류 활동을 보이며, 명확한 확장 공사는 관찰되지 않습니다.",
-    "scannedAt": "2026-05-08T02:50:36.167Z",
-    "imageDate": "2026-05-08"
+    "loadingActivity": "inactive",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -15.3dB · VH -23dB (베이스라인 축적 중 0/5회). 저강도 — 야간·휴일 또는 커버리지 제한",
+    "scannedAt": "2026-05-08T06:09:11.058Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -15.3,
+      "vh_db": -23,
+      "samples": 40000
+    }
   },
   {
     "id": "samsung-austin",
@@ -243,14 +352,388 @@
       "logic"
     ],
     "significance": "moderate",
-    "activityScore": 72,
+    "activityScore": 62,
+    "vv_db": -7.5,
+    "vh_db": -13.2,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
     "vehicleDensity": "medium",
     "cloudCoverage": "clear",
     "loadingActivity": "normal",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -7.5dB · VH -13.2dB (베이스라인 축적 중 0/5회). 정상 산업단지 수준",
+    "scannedAt": "2026-05-08T06:09:14.821Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -7.5,
+      "vh_db": -13.2,
+      "samples": 22500
+    }
+  },
+  {
+    "id": "yangshan-port",
+    "ticker": "SHCOMP",
+    "name": "Yangshan Deep-Water Port / Shanghai",
+    "country": "CN",
+    "tags": [
+      "port",
+      "logistics",
+      "shipping"
+    ],
+    "significance": "critical",
+    "activityScore": 78,
+    "vv_db": 2.7,
+    "vh_db": -11.3,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
     "constructionVisible": false,
-    "confidence": "high",
-    "summary": "삼성 오스틴 반도체 공장은 주차장 차량 밀도가 중간 수준이며 정상적인 가동 상태를 보이고 있습니다.",
-    "scannedAt": "2026-05-08T02:50:46.051Z",
-    "imageDate": "2026-05-08"
+    "confidence": "low",
+    "summary": "VV 2.7dB · VH -11.3dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:19.970Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 2.7,
+      "vh_db": -11.3,
+      "samples": 121801
+    }
+  },
+  {
+    "id": "rotterdam-port",
+    "ticker": "AH.AS",
+    "name": "Port of Rotterdam Maasvlakte",
+    "country": "NL",
+    "tags": [
+      "port",
+      "logistics",
+      "shipping"
+    ],
+    "significance": "critical",
+    "activityScore": 78,
+    "vv_db": 2.5,
+    "vh_db": -8.3,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": false,
+    "confidence": "low",
+    "summary": "VV 2.5dB · VH -8.3dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:24.641Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 2.5,
+      "vh_db": -8.3,
+      "samples": 89401
+    }
+  },
+  {
+    "id": "longbeach-port",
+    "ticker": "UPS",
+    "name": "Port of Long Beach",
+    "country": "US",
+    "tags": [
+      "port",
+      "logistics",
+      "shipping"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": 1.7,
+    "vh_db": -11.2,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": false,
+    "confidence": "low",
+    "summary": "VV 1.7dB · VH -11.2dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:29.582Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 1.7,
+      "vh_db": -11.2,
+      "samples": 89401
+    }
+  },
+  {
+    "id": "boeing-renton",
+    "ticker": "BA",
+    "name": "Boeing Renton Factory (737 MAX)",
+    "country": "US",
+    "tags": [
+      "aerospace",
+      "BA"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": -5.1,
+    "vh_db": -13.9,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -5.1dB · VH -13.9dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:33.665Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -5.1,
+      "vh_db": -13.9,
+      "samples": 40000
+    }
+  },
+  {
+    "id": "airbus-toulouse",
+    "ticker": "AIR.PA",
+    "name": "Airbus Final Assembly Line / Toulouse",
+    "country": "FR",
+    "tags": [
+      "aerospace",
+      "AIR"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": 0.1,
+    "vh_db": -10.8,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": false,
+    "confidence": "low",
+    "summary": "VV 0.1dB · VH -10.8dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:39.475Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 0.1,
+      "vh_db": -10.8,
+      "samples": 62500
+    }
+  },
+  {
+    "id": "hyundai-ulsan",
+    "ticker": "005380.KS",
+    "name": "Hyundai Motor Ulsan Plant",
+    "country": "KR",
+    "tags": [
+      "auto",
+      "EV",
+      "HEV"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": 1.3,
+    "vh_db": -7.8,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV 1.3dB · VH -7.8dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:44.731Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 1.3,
+      "vh_db": -7.8,
+      "samples": 89401
+    }
+  },
+  {
+    "id": "toyota-tsutsumi",
+    "ticker": "7203.T",
+    "name": "Toyota Tsutsumi Plant / Aichi",
+    "country": "JP",
+    "tags": [
+      "auto",
+      "HEV"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": -3,
+    "vh_db": -12.2,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -3dB · VH -12.2dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:49.576Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -3,
+      "vh_db": -12.2,
+      "samples": 40000
+    }
+  },
+  {
+    "id": "longi-xian",
+    "ticker": "601012.SS",
+    "name": "LONGi Solar / Xi'an Base",
+    "country": "CN",
+    "tags": [
+      "solar",
+      "renewable"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": 1.7,
+    "vh_db": -7.4,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV 1.7dB · VH -7.4dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:54.224Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 1.7,
+      "vh_db": -7.4,
+      "samples": 40000
+    }
+  },
+  {
+    "id": "jinko-shangrao",
+    "ticker": "JKS",
+    "name": "JinkoSolar Shangrao Base",
+    "country": "CN",
+    "tags": [
+      "solar",
+      "renewable"
+    ],
+    "significance": "moderate",
+    "activityScore": 78,
+    "vv_db": -2.1,
+    "vh_db": -9.4,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -2.1dB · VH -9.4dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:09:59.135Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -2.1,
+      "vh_db": -9.4,
+      "samples": 40000
+    }
+  },
+  {
+    "id": "posco-pohang",
+    "ticker": "005490.KS",
+    "name": "POSCO Pohang Works",
+    "country": "KR",
+    "tags": [
+      "steel",
+      "materials"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": 1.6,
+    "vh_db": -7.6,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV 1.6dB · VH -7.6dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:10:04.657Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 1.6,
+      "vh_db": -7.6,
+      "samples": 89401
+    }
+  },
+  {
+    "id": "baosteel-baoshan",
+    "ticker": "600019.SS",
+    "name": "Baowu Baosteel Baoshan Works",
+    "country": "CN",
+    "tags": [
+      "steel",
+      "materials"
+    ],
+    "significance": "major",
+    "activityScore": 78,
+    "vv_db": 0.4,
+    "vh_db": -9.5,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "high",
+    "cloudCoverage": "clear",
+    "loadingActivity": "busy",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV 0.4dB · VH -9.5dB (베이스라인 축적 중 0/5회). 고강도 산업 반사 감지",
+    "scannedAt": "2026-05-08T06:10:10.502Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": 0.4,
+      "vh_db": -9.5,
+      "samples": 89401
+    }
+  },
+  {
+    "id": "sabine-pass-lng",
+    "ticker": "LNG",
+    "name": "Sabine Pass LNG Terminal / Louisiana",
+    "country": "US",
+    "tags": [
+      "LNG",
+      "energy"
+    ],
+    "significance": "major",
+    "activityScore": 62,
+    "vv_db": -6.9,
+    "vh_db": -15.4,
+    "vv_delta_db": null,
+    "vh_delta_db": null,
+    "vehicleDensity": "medium",
+    "cloudCoverage": "clear",
+    "loadingActivity": "normal",
+    "constructionVisible": true,
+    "confidence": "low",
+    "summary": "VV -6.9dB · VH -15.4dB (베이스라인 축적 중 0/5회). 정상 산업단지 수준",
+    "scannedAt": "2026-05-08T06:10:15.735Z",
+    "imageDate": "2026-05-08",
+    "source": "SAR",
+    "sar_raw": {
+      "vv_db": -6.9,
+      "vh_db": -15.4,
+      "samples": 62500
+    }
   }
 ]

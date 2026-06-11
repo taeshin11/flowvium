@@ -1,0 +1,46 @@
+# 2026-06-12 — 폭락 미감지 근본수술 + 인수인계 체계 + 시스템 점검 (자율 세션)
+
+## 배경 (사용자 질문 "폭락을 돈의 흐름으로 왜 예측 못했어?")
+6/5~6/10 급락 (NASDAQ -7%, KOSPI -12%, VIX +40%) 동안:
+- 6/5 당일 보고서 bullish/medium 유지, 6/7 earlyWarning 15/low, 6/11 폭락 후에도 score 0
+- 구조적 한계(13F 45일/Form4 2일 lag, 크레딧 무반응형 인플레쇼크)는 사실이나
+  "진행 중 감지" 실패는 시스템 결함이었음
+
+## 핵심 fix (commit 5d20046) — earlyWarning 3중 결함
+1. VIX 입력 오필드: volatility 응답 `.vix` 인데 `.score`(미존재) 읽음 → 항상 null
+   ※ 메모리에 "미해결: VIX snapshot"으로 4일째 기록만 돼 있던 게으른 미루기 — probe 없이는 아무도 안 잡음
+2. 가격 모멘텀 입력 전무 → capital-flows 주식군 ret1w 최악값 가점(-2.5/-4/-7%) 신설
+3. F&G 절대임계(≤20)만 → fg_archive 직전값 대비 ≥15p 급랭 가점 (getPreviousFearGreedScore 신설)
++ stance 결정론 게이트: elevated→bullish금지 / high→risk high / severe→bearish
+
+## 검증 (happy-path 외 포함)
+- 비-happy-path: 새 probe를 구버전 midnight 보고서에 실행 → early_warning_silent 정확히 FAIL 잡음 확인
+  (이 과정에서 process.exit + fetch keep-alive → libuv crash 추가 결함 발견·수정)
+- happy-path: fix 적용 재발간 → 동일 시장조건이 score 45/high (VIX 22.22 + EM -7.52% + F&G 급랭 42→27),
+  stance-gate bullish→neutral·risk→high 발간물 반영, verify-report PASS (Yahoo 실측 대조)
+- "왜 최선 미시행" 검증체계: verify-report [9] earlyWarning 침묵 probe — Yahoo VIX/S&P 5d 실측 vs
+  보고서 경보점수 대조, 침묵 시 early_warning_silent/stance_gate_violation defect → Karpathy 적재
+
+## 인수인계 체계 (사용자 "컴퓨터 꺼지면 다른 컴퓨터에서")
+- scripts/backup-takeover.mjs: DB 정합백업(7일 보관) + secrets + reports/research_history 미러
+  → G:\내 드라이브\FlowVium-backup (첫 실행 검증: DB 41MB + 150 reports + 360 research)
+- Task Scheduler FlowVium-Backup 매일 04:35 + StartWhenAvailable
+- HANDOFF.md 최상단 "새 머신 복구 절차 ~30분" runbook (이중가동 주의 포함)
+- Google Drive FS recursive cp 간헐 crash → 파일단위 내결함 미러로 수정
+
+## 시스템 점검 결과
+- 지난밤 cron: evening/midnight 정상 발간 (catch-up 체계 가동 첫날)
+- Karpathy loop: detect→persist→inject(max injected 54)→trail 전부 작동 증거, 최근 사이클 결함 0 추세
+- 좀비: orphan powershell 1개는 admin 소유(접근거부)라 보존 — cmd 16308은 좀비 아닌 Ollama 런처 체인(보존)
+- GPU: FA2+KV q8_0 적용 확인, NUM_PARALLEL=1이 6GB 정답. 속도의 본질은 경합 제거(호출 304s 실패→30-60s)
+- 정리: build/debug 로그 150파일 삭제 (디스크는 1.4TB 여유 — 용량 문제는 원래 없었음, 클러터 제거 목적)
+- 일시 결함: verify 중 company-financials 4/6 실패 = Yahoo 429 rate limit (검증과 파이프라인 동시 실행
+  시 자기유발 — 이후 단독 재확인 200 정상)
+
+## 미해결 (정당한 미루기 — 사유 명시)
+- GROQ 401 invalid_api_key + Gemini 400: 키 재발급은 사용자만 가능
+- [B4] 매일경제 RSS 403: 대체 소스 선정 필요 (모니터 추적 중)
+- [D] supplyChain KR / [L2] credit-balance static: 기존 추적 항목, 별도 세션 스코프
+- 6/7 freeze 하드웨어 원인: 커널 로그 무흔적 — 소프트웨어로 진단 불가, 쿨링/드라이버 점검 권장
+- web 번역경로 큐 cap/서킷브레이커: Next.js 레이어 설계 필요 — 현재 mitigation(보고서 중 warm skip)으로
+  급한 불 껐고, 재발 시 모니터가 GPU 지속부하로 표출

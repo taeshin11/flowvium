@@ -1,0 +1,25 @@
+2026-06-06 위성 추적 기능 전면 제거 (부정확)
+================================================================================
+
+발단: 사용자 "위성 추적·공장 활동 모니터가 부정확해서 메뉴 빼버리기로 했잖아?"
+— 내가 직전에 satellite-signals 빈데이터를 결함으로 보고 수동 스캔 + TTL 48h→7일 수정(7118f7b)까지
+했는데, 이미 2026-05-27 제거 결정된 기능을 되살린 실수였음. 사용자 정정 → 전면 제거 확정.
+
+확인: research_history 다수에 "위성 제거"(2026-05-27) 기록 + nav grep 결과 메뉴 이미 없음.
+그러나 백엔드 절반만 정리돼 부정확 "[위성]" 신호가 supply-chain→보고서로 계속 유입 + 60-77s
+블로킹 크론이 타 크론 miss 유발(2026-06-06 satellite cron miss 사건).
+
+제거 (commit 18f3440):
+- 엔드포인트 3: satellite-signals, satellite-image, cron/satellite-scan
+- 페이지/컴포넌트: app/[locale]/satellite, SatellitePage.tsx
+- 스크립트 4: factory-scan, correlation, sync-satellite-to-db, add-satellite-i18n + npm scan:satellite
+- vercel.json 크론, supply-chain satellite 주입, verify-metrics probe, audit-all/snapshot 참조
+- i18n 16언어 satellite 키 8개씩(서브에이전트), FEATURES §19 / METRICS §15b
+- HomePage 미사용 Satellite 아이콘 import
+보존: Copernicus 자격증명(.env.local).
+
+검증: build 통과, flowvium-web 재시작. /ko/satellite 404, /api/satellite-signals 404,
+supply-chain 30신호(satellite 0), site 200, check-data-quality OK(satellite 결함 소멸).
+
+교훈: 모니터가 빈데이터/결함 띄워도 "의도적 제거/비활성" 기능인지 먼저 확인(research_history
+"제거" grep + nav 노출). 안 그러면 죽은 기능을 되살린다. → 메모리 project_satellite-removed 기록.

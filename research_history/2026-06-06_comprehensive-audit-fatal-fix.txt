@@ -1,0 +1,42 @@
+2026-06-06 종합감사 — FATAL gen-crash 포함 7결함 fix + 검증 사각지대 폐쇄
+================================================================================
+
+발단: 사용자 종합감사 요청(19항목 체크리스트) — 이전 보고서 검증, 엔드포인트/DB, 매수매도 합의,
+경합심사 기준, 1300+ company 페이지, 보고서 전략, 사각지대 능동검증, "지금이 최선? 왜 안했나 검증체계".
+
+■ 발견·수정 (커밋순)
+1. 0b08859  TSM='TSMC' 단일권위 — gate(US_NAME_LOOKUP flip)↔verify(company-names.json) 일치, 클린표시명.
+2. 17004cc  midnight 날짜 off-by-one — getReportKstDate 의 `target<=now→+1` 이 호출시점 의존.
+            gen 이 자정넘겨 끝나(02:08 KST) 재계산되면 또 +1 → 06-07 오라벨 → pickLatestReport 가
+            13h stale 보고서를 "최신"으로 오선택, verify-all 이 엉뚱한 파일 검증. KST시각 분기로 결정론화.
+3. fd10085  rev-ground greedy regex — (매출)([^%]{0,4})(\d+\.?\d*)% 의 분리자가 greedy 라 " 16." 삼켜
+            group3="6"→real 16.6 과 >7 이탈→오교정 prepend → "16.16.6%". 분리자에서 숫자제외([^%\d]).
+4. 7740457  verify-report [6c] 망가진숫자 probe — \d+\.\d+\.\d+ 감지(기존 probe 는 첫 \d+\.\d+ 만 봐서 통과).
+5. 366e483  consensus margin-veto — fund_margin_decline(7=veto) 이 매출성장 무시. NVDA(+65% rev, -2pp
+            margin=Blackwell 램프)가 hard-veto. 가드: 매출≥25% AND 마진<5pp 면 veto안함(재투자), 심한붕괴
+            (≥5pp)·저성장·무데이터는 veto 유지. revenueYoY 를 sig→evalCtx·exCtx·trail 까지 wiring.
+6. 113e6e5  ★FATAL★ stripClause 정규식 부호 미escape → afternoon 보고서 gen CRASH(exit1, 발간실패).
+            rotation TSLA avg_pnl "+17.13%" 가 strip대상→m[1]="+17.13"→`*+` invalid regex→throw.
+            morning/noon 은 strip대상에 부호숫자 없어 우연 생존. 정규식 특수문자 전체 escape.
+7. a9545fa  tech-ground RSI 라벨 — technicalBasis "RSI: Overbought" 가 매보고서 4종목 copy-paste 환각
+            (실 RSI 59/48=중립). verify[7]은 "RSI N+과매수" 숫자모순만 잡고 숫자없는 "Overbought" 통과.
+            실RSI(p._realRsi=sellSig.rsi, 없으면 텍스트파싱)로 ≥70/≤30/else 결정론적 교정.
+
+■ 라이브 조치
+- noon 보고서: 16.16.6%/21.21.8% 수동패치+재발간 → AAPL "매출 16.6%", GOOGL "21.8%" 라이브 확인.
+- afternoon 보고서: gen crash 였음 → FATAL fix 후 재생성(전 코드fix 적용, smoke test 겸). 0 defects.
+  RSI 라벨 4건 수동패치 후 발간. 라이브 = afternoon 8종목.
+- 경합심사 재실증: 000270(기아) -3.8pp margin veto, 035420/207940 dead-cross veto → 14→11.
+
+■ 검증 결과 (verify-all)
+- audit-coverage 0 err(NULL자동/manifest/alias[11]/Karpathy 전부 pass). 13 warn 비critical.
+- US company 페이지 정상(200, ~0.5s, /company/NVDA "NVIDIA" 렌더). KR 404 = 알려진 DART corp_code 한계.
+- audit-data-sources: Stooq(deprecated 인지)·FRED timeout(일시)·CNN 418(봇차단) — critical 0.
+
+■ 좀비 정리: 동시 audit-company-pages 4개 hung(busy 사이트 30s timeout) kill. afternoon gen 좀비 없음 확인.
+
+■ 메타(왜 이런 사각지대가): 전부 "검증 프로브가 산출물의 한 형태만 본다" 패턴.
+  - 망가진숫자: probe 가 첫 소수점만 파싱 → 둘째 무시.
+  - RSI라벨: probe 가 숫자동반 모순만 → 숫자없는 영어라벨 통과.
+  - FATAL: node --check 는 동적 RegExp 조립 런타임 못 잡음(CLAUDE.md smoke-test 규칙 재확인).
+  해법: 산출물 "모든 표현형태"를 보는 probe + 신규 동적정규식엔 1회 실행 smoke test. [[feedback_scattered-invariant-chokepoint]]
