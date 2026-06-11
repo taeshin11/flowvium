@@ -142,5 +142,21 @@ async function runSegmentRefresh() {
 cron.schedule('30 * * * *', runSegmentRefresh, { timezone: TZ });
 log('동적 세그먼트 refresh 등록: 매시 6 ticker rotating (DB company_segments, 10-K 추출 — 873 US 약 6일 1순회)');
 
+// 2026-06-12: 사라진 유지보수 작업 복원 — 이전 Windows Task Scheduler 의 DART-CorpCodes(02:00)/
+//   DART-Prefetch(03:00)/Tune-Rules(일 04:00) 가 머신 재구성 중 소멸돼 silent 미시행 상태였음
+//   (백엔드 census 중 발견). 자가호스팅 일원화 원칙대로 cron-runner 에 재배선.
+async function runMaintenance(label, script, timeoutMs) {
+  if (await isReportPipelineRunning()) { log(`[${label}] skip — 보고서 파이프라인 실행 중`); return; }
+  try {
+    await execFileAsync('node', [script], { timeout: timeoutMs, windowsHide: true, maxBuffer: 20 * 1024 * 1024 });
+    log(`[${label}] 완료`);
+  } catch (e) { log(`[${label}] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 80)}`); }
+}
+cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetch-dart-corp-codes.mjs', 300000), { timezone: TZ });   // 02:05 KST
+cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
+cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs', 600000), { timezone: TZ });        // 일 04:05 KST
+cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs', 600000), { timezone: TZ });         // 일 04:20 KST
+log('유지보수 cron 복원: DART corp-codes(02:05)/prefetch(03:05) 매일 + buy/sell rules 튜닝(일 04:05/04:20 KST)');
+
 // keep alive
 process.stdin.resume();
