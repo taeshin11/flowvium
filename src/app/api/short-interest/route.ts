@@ -1,4 +1,4 @@
-import { logger, loggedRedisSet } from '@/lib/logger';
+﻿import { logger, loggedRedisSet } from '@/lib/logger';
 /**
  * /api/short-interest
  *
@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
 
-const CACHE_KEY = 'flowvium:short-interest:v5';
+const CACHE_KEY = 'flowvium:short-interest:v6'; // v6: {entries, updatedAt} 래퍼 (신선도 표기 - alive!=fresh)
 const CACHE_TTL = 4 * 60 * 60; // 4 hours
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
 // Redis-less fallback — 30min TTL (short-interest changes twice daily but we
@@ -325,10 +325,11 @@ export async function GET(req: Request) {
     try {
       const cached = await redis.get(CACHE_KEY);
       if (cached) {
-        const cachedEntries = cached as Array<{ instAction?: string | null }>;
-        const cachedInstSource = Array.isArray(cachedEntries) && cachedEntries.some(e => e.instAction != null) ? 'live' : 'empty';
-        logger.info('api.short-interest', 'cache_hit', { cachedEntries: Array.isArray(cachedEntries) ? cachedEntries.length : -1 });
-        return NextResponse.json({ entries: cached, instSource: cachedInstSource, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
+        const wrap = cached as { entries?: Array<{ instAction?: string | null }>; updatedAt?: string };
+        const cachedEntries = Array.isArray(cached) ? cached as Array<{ instAction?: string | null }> : (wrap.entries ?? []);
+        const cachedInstSource = cachedEntries.some(e => e.instAction != null) ? 'live' : 'empty';
+        logger.info('api.short-interest', 'cache_hit', { cachedEntries: cachedEntries.length });
+        return NextResponse.json({ entries: cachedEntries, updatedAt: Array.isArray(cached) ? null : (wrap.updatedAt ?? null), instSource: cachedInstSource, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.short-interest', 'cache_read_error', { error: err }); }
   } else if (!redis && !forceRefresh) {
@@ -412,7 +413,7 @@ export async function GET(req: Request) {
   // Sort: highest squeeze score first
   entries.sort((a, b) => b.squeezeScore - a.squeezeScore);
 
-  await loggedRedisSet(redis, 'api.short-interest', CACHE_KEY, entries, { ex: CACHE_TTL });
+  await loggedRedisSet(redis, 'api.short-interest', CACHE_KEY, { entries, updatedAt: new Date().toISOString() }, { ex: CACHE_TTL });
   if (!redis && entries.length > 0) MEMORY_CACHE.set(MEM_KEY, entries);
   logger.info('api.short-interest', 'served', {
     tickers: tickers.length,
@@ -423,5 +424,5 @@ export async function GET(req: Request) {
   });
 
   const liveSource = entries.length === 0 ? 'empty' : 'live';
-  return NextResponse.json({ entries, instSource, cached: false, source: liveSource }, { headers: CDN_HEADERS });
+  return NextResponse.json({ entries, updatedAt: new Date().toISOString(), instSource, cached: false, source: liveSource }, { headers: CDN_HEADERS });
 }

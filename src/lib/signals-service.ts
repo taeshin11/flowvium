@@ -1,6 +1,6 @@
 import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { logger } from '@/lib/logger';
-import { fetchNewsData, computeNewsGapScore } from '@/lib/alpha-vantage';
+import { computeNewsGapScore, type NewsArticle } from '@/lib/alpha-vantage';
 import {
   getNewsGapCache,
   setNewsGapCache,
@@ -57,27 +57,47 @@ export interface SignalsResult {
   source: 'live' | 'cached' | 'static';
 }
 
-/**
- * Fetch fresh news counts for all US tickers and return a gap cache map.
- * Fires in parallel but respects Alpha Vantage's 5 req/min limit via batching.
- */
-async function refreshNewsGaps(
-  apiKey: string
-): Promise<Record<string, TickerNewsCache>> {
+// 2026-06-13: Alpha Vantage(25콜/일 쿼터) → Yahoo 티커별 RSS 교체 (사용자 "사각지대 미루지 말고
+//   개선해" — AV 쿼터를 25종목이 단독 소진해 매일 5/25 만 갱신되던 구조 한계, Finnhub company-news
+//   는 유료화 401 실측). RSS 는 무인증·무쿼터, 단 전 종목 20개 캡이라 카운트 대신 *기사 밀도*
+//   (pubDate 스팬 기반 일당 기사수 × 30 = 30일 환산 카운트)로 변별 — 실측: NVDA 40/일 vs CW 1.1/일.
+async function fetchNewsRateRss(ticker: string): Promise<{ count: number; articles: NewsArticle[] } | null> {
+  try {
+    const r = await fetch(
+      `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(ticker)}&region=US&lang=en-US`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000), cache: 'no-store' },
+    );
+    if (!r.ok) return null;
+    const xml = await r.text();
+    const items = Array.from(xml.matchAll(/<item>([\s\S]*?)<\/item>/g));
+    if (!items.length) return { count: 0, articles: [] };
+    const dates = items
+      .map(m => Date.parse(m[1].match(/<pubDate>([^<]+)<\/pubDate>/)?.[1] ?? ''))
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b);
+    const spanDays = dates.length >= 2 ? Math.max((dates[dates.length - 1] - dates[0]) / 86400000, 0.5) : 30;
+    const ratePerDay = items.length / spanDays;
+    const count30d = Math.round(ratePerDay * 30);
+    const articles: NewsArticle[] = items.slice(0, 5).map(m => ({
+      title: m[1].match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1]?.trim() ?? '',
+      date: m[1].match(/<pubDate>([^<]+)<\/pubDate>/)?.[1]?.slice(0, 16) ?? '',
+      source: 'Yahoo Finance',
+      url: m[1].match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() ?? '',
+    }));
+    return { count: count30d, articles };
+  } catch { return null; }
+}
+
+/** Fetch fresh news-rate gap scores for all US tickers (Yahoo RSS — no quota). */
+async function refreshNewsGaps(): Promise<Record<string, TickerNewsCache>> {
   const now = new Date().toISOString();
   const result: Record<string, TickerNewsCache> = {};
-
-  // AV free tier: 5 req/min — process in batches of 5 with 12s gap
   const BATCH = 5;
-  const DELAY_MS = 12_000;
+  const DELAY_MS = 1_000; // RSS 는 쿼터 없음 — 예의상 소짧은 간격만
 
   for (let i = 0; i < US_TICKERS_BY_PRIORITY.length; i += BATCH) {
     const batch = US_TICKERS_BY_PRIORITY.slice(i, i + BATCH);
-
-    const results = await Promise.allSettled(
-      batch.map((ticker) => fetchNewsData(ticker, apiKey))
-    );
-
+    const results = await Promise.allSettled(batch.map((ticker) => fetchNewsRateRss(ticker)));
     for (let j = 0; j < batch.length; j++) {
       const ticker = batch[j];
       const r = results[j];
@@ -93,13 +113,10 @@ async function refreshNewsGaps(
         };
       }
     }
-
-    // Wait between batches (skip delay after last batch)
     if (i + BATCH < US_TICKERS_BY_PRIORITY.length) {
       await new Promise((res) => setTimeout(res, DELAY_MS));
     }
   }
-
   return result;
 }
 
@@ -182,11 +199,6 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
     _signalsMemCache = { data: r, expiresAt: Date.now() + SIGNALS_MEM_TTL };
     return r;
   };
-  const apiKey =
-    process.env.ALPHA_VANTAGE_KEY ??
-    process.env.NEXT_PUBLIC_ALPHA_VANTAGE_KEY ??
-    '';
-
   const lastUpdated = new Date().toISOString();
 
   // === 1. EDGAR 13F Redis 데이터 우선 사용 ===
@@ -195,16 +207,7 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
   // 크론이 한 번도 안 돌았거나 Redis 비어있으면 빈 배열 반환 (투명한 실패).
   // EDGAR 13F는 자회사/계좌별 행 분리 → (institution, ticker) 기준으로 집계
   const baseSignals = aggregateByInstitutionTicker(liveSignals ?? []);
-
-  // === No API key → EDGAR 또는 empty ===
-  if (!apiKey) {
-    return _cache({
-      signals: baseSignals,
-      lastUpdated,
-      updatedTickers: 0,
-      source: liveSignals ? 'live' : 'static',
-    });
-  }
+  // 2026-06-13: 뉴스갭 소스가 Yahoo RSS(무키) 전환 — AV 키 게이트 제거.
 
   // === Try Redis cache ===
   const cached = await getNewsGapCache();
@@ -228,7 +231,7 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
     // fire-and-forget — Promise 버려도 serverless runtime 이 완료까지 유지 (best-effort)
     (async () => {
       try {
-        const fresh = await refreshNewsGaps(apiKey);
+        const fresh = await refreshNewsGaps();
         const merged = mergeNewsGapCache(cached, fresh);
         await setNewsGapCache(merged);
         logger.info('signals.service', 'background_refresh_ok', { updatedTickers: Object.keys(fresh).length });
