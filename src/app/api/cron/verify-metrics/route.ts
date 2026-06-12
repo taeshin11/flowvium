@@ -845,6 +845,22 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       lastError: err instanceof Error ? err.message : String(err) });
   }
 
+  // 1b. company-business source 필드 — UNIVERSE_SEARCH(이름 메타, 정적 허용) import 라우트.
+  //   probe 대상: /api/company-business/[ticker] (check-static-fallbacks 매칭 경로)
+  //   source='none' 이 대형주(AAPL)에서 나오면 데이터 파일 로드 실패 회귀 (2026-06-12 신설).
+  try {
+    const cbRes = await fetch(`${base}/api/company-business/AAPL`, { signal: AbortSignal.timeout(6000), cache: 'no-store' });
+    const cb = cbRes.ok ? await cbRes.json() as { source?: string; name?: string } : null;
+    items.push({
+      key: 'accuracy.company-business.source', label: 'company-business source 필드', group: 'accuracy',
+      status: cb?.source && cb.source !== 'none' && cb?.name ? 'ok' : 'error',
+      value: `AAPL source=${cb?.source ?? `HTTP ${cbRes.status}`} name=${cb?.name ?? 'null'}`,
+    });
+  } catch (err) {
+    items.push({ key: 'accuracy.company-business.source', label: 'company-business source 필드', group: 'accuracy',
+      status: 'error', lastError: err instanceof Error ? err.message : String(err) });
+  }
+
   // 2. FRED 10Y-2Y Treasury spread — T10Y2Y series = 공식 spread value
   try {
     const t0 = Date.now();
