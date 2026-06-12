@@ -174,10 +174,23 @@ function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
 type SellItem = {
   ticker: string; name?: string; sector?: string; market?: 'us' | 'kr';
   currentPrice?: string; entryPrice?: string | null; target?: string | null; stopLoss?: string | null;
-  pnlPct?: number | null; heldDays?: number; score?: number;
+  pnlPct?: number | null; heldDays?: number; score?: number; ruleId?: string;
   rationale?: string; sellType?: string; urgency?: 'high' | 'medium' | 'low'; buyConflict?: string;
   sellLadder?: { pct: number; price: string; label: string; action: string }[];
 };
+
+// 2026-06-12: 매도 유형 배지 (사용자 "익절인지 위험이탈인지 구분 안 됨" — POSCO 익절 사건).
+//   ruleId 기반 결정론 분류 — 🟢 익절 / 🔴 손절·방어 / 🟠 종목 악화 / 🔵 시장 환경.
+function sellKind(ruleId?: string): { key: string; cls: string; icon: string } | null {
+  if (!ruleId) return null;
+  if (ruleId === 'price_target_near' || ruleId === 'rotation_profit')
+    return { key: 'sellKindProfit', cls: 'text-green-700 bg-green-50 border-green-200', icon: '🟢' };
+  if (ruleId.startsWith('price_stop') || ruleId === 'rotation_loss')
+    return { key: 'sellKindStop', cls: 'text-red-700 bg-red-50 border-red-200', icon: '🔴' };
+  if (/^(tech_|fund_|guru_)/.test(ruleId) || ['micro_news_negative', 'micro_insider_selling', 'micro_13f_distribution'].includes(ruleId))
+    return { key: 'sellKindWeak', cls: 'text-orange-700 bg-orange-50 border-orange-200', icon: '🟠' };
+  return { key: 'sellKindMacro', cls: 'text-blue-700 bg-blue-50 border-blue-200', icon: '🔵' };
+}
 function SellCard({ item }: { item: SellItem }) {
   const locale = useLocale();
   const t = useTranslations('report');
@@ -192,11 +205,16 @@ function SellCard({ item }: { item: SellItem }) {
         <span className="font-bold text-sm text-gray-900">
           {urgencyTag} <Link href={`/${locale}/company/${item.ticker}`} className="text-violet-700 hover:text-violet-900 hover:underline">{displayName(item.ticker, item.name)}</Link> <span className="text-[10px] font-normal text-gray-400 font-mono">{item.ticker}</span>
         </span>
-        {item.pnlPct != null && (
-          <span className={`text-xs font-semibold ${pnlColor}`}>
-            {item.pnlPct >= 0 ? '+' : ''}{item.pnlPct.toFixed(1)}%
-          </span>
-        )}
+        <span className="flex items-center gap-1.5">
+          {(() => { const k = sellKind(item.ruleId); return k ? (
+            <span className={`text-[10px] font-bold border rounded px-1.5 py-0.5 ${k.cls}`}>{k.icon} {t(k.key)}</span>
+          ) : null; })()}
+          {item.pnlPct != null && (
+            <span className={`text-xs font-semibold ${pnlColor}`}>
+              {item.pnlPct >= 0 ? '+' : ''}{item.pnlPct.toFixed(1)}%
+            </span>
+          )}
+        </span>
       </div>
       <p className="text-xs text-gray-700 mb-1.5 leading-snug">{item.rationale}</p>
       {item.buyConflict && (

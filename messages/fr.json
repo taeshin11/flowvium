@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "Thématique",
     "etfCat_style": "Style",
     "etfCat_dividend": "Dividende",
-    "businessLabel": "Activité"
+    "businessLabel": "Activité",
+    "sellKindProfit": "Prise de profits",
+    "sellKindStop": "Stop de protection",
+    "sellKindWeak": "Détérioration",
+    "sellKindMacro": "Environnement de marché"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

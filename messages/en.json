@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "Thematic",
     "etfCat_style": "Style",
     "etfCat_dividend": "Dividend",
-    "businessLabel": "Business"
+    "businessLabel": "Business",
+    "sellKindProfit": "Profit-taking",
+    "sellKindStop": "Stop-loss",
+    "sellKindWeak": "Deterioration",
+    "sellKindMacro": "Market regime"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

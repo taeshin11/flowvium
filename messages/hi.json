@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "थीमैटिक",
     "etfCat_style": "स्टाइल",
     "etfCat_dividend": "डिविडेंड",
-    "businessLabel": "व्यवसाय"
+    "businessLabel": "व्यवसाय",
+    "sellKindProfit": "मुनाफ़ा वसूली",
+    "sellKindStop": "स्टॉप-लॉस",
+    "sellKindWeak": "गिरावट",
+    "sellKindMacro": "बाज़ार माहौल"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "主题",
     "etfCat_style": "风格",
     "etfCat_dividend": "红利",
-    "businessLabel": "主营业务"
+    "businessLabel": "主营业务",
+    "sellKindProfit": "止盈",
+    "sellKindStop": "止损",
+    "sellKindWeak": "基本面恶化",
+    "sellKindMacro": "市场环境"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

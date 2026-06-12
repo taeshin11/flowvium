@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "موضوعي",
     "etfCat_style": "نمط",
     "etfCat_dividend": "توزيعات",
-    "businessLabel": "النشاط"
+    "businessLabel": "النشاط",
+    "sellKindProfit": "جني الأرباح",
+    "sellKindStop": "وقف الخسارة",
+    "sellKindWeak": "تدهور",
+    "sellKindMacro": "بيئة السوق"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

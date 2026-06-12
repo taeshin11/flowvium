@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "ธีม",
     "etfCat_style": "สไตล์",
     "etfCat_dividend": "เงินปันผล",
-    "businessLabel": "ธุรกิจหลัก"
+    "businessLabel": "ธุรกิจหลัก",
+    "sellKindProfit": "ขายทำกำไร",
+    "sellKindStop": "ตัดขาดทุน",
+    "sellKindWeak": "สัญญาณแย่ลง",
+    "sellKindMacro": "สภาวะตลาด"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

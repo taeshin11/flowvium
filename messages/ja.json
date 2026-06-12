@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "テーマ",
     "etfCat_style": "スタイル",
     "etfCat_dividend": "配当",
-    "businessLabel": "主力事業"
+    "businessLabel": "主力事業",
+    "sellKindProfit": "利益確定",
+    "sellKindStop": "損切り",
+    "sellKindWeak": "悪化シグナル",
+    "sellKindMacro": "市場環境"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

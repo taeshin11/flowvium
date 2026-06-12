@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "Tematik",
     "etfCat_style": "Stil",
     "etfCat_dividend": "Temettü",
-    "businessLabel": "İş Kolu"
+    "businessLabel": "İş Kolu",
+    "sellKindProfit": "Kâr realizasyonu",
+    "sellKindStop": "Zarar kes",
+    "sellKindWeak": "Bozulma",
+    "sellKindMacro": "Piyasa ortamı"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

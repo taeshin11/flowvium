@@ -1258,7 +1258,11 @@
     "etfCat_thematic": "Tematik",
     "etfCat_style": "Gaya",
     "etfCat_dividend": "Dividen",
-    "businessLabel": "Bisnis"
+    "businessLabel": "Bisnis",
+    "sellKindProfit": "Ambil untung",
+    "sellKindStop": "Stop rugi",
+    "sellKindWeak": "Memburuk",
+    "sellKindMacro": "Kondisi pasar"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",
