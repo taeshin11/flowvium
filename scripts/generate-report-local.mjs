@@ -4692,6 +4692,17 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         outcome: r.outcome ?? 'open',
       });
     }
+    // 2026-06-12: 매도권장 시작일 (사용자 "분할익절 이전 권장했던 날짜도") — 같은 종목·같은 유형의
+    //   첫 권장일을 DB 에서 조회. 권고가 며칠째 이어지는지 타임라인 명시 (오늘 처음이면 오늘 날짜).
+    try {
+      const fdb = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });  // 위 db 는 이미 close 됨
+      const firstSellStmt = fdb.prepare(`SELECT MIN(generated_at) mn FROM sell_recommendations WHERE ticker = ? AND sell_type = ?`);
+      for (const c of candidates) {
+        const mn = firstSellStmt.get(c.ticker, c.ruleId)?.mn;
+        if (mn) c.firstSellDate = new Date(new Date(mn + (String(mn).endsWith('Z') ? '' : 'Z')).getTime() + 9 * 3600000).toISOString().slice(0, 10);
+      }
+      fdb.close();
+    } catch { /* 표시 누락만 — non-fatal */ }
     // 각 후보에 Exit Ladder (Klarman 부분 매도) 자동 생성
     for (const c of candidates) buildExitLadder(c);
     // score desc, then pnl desc

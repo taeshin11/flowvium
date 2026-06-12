@@ -174,7 +174,7 @@ function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
 type SellItem = {
   ticker: string; name?: string; sector?: string; market?: 'us' | 'kr';
   currentPrice?: string; entryPrice?: string | null; target?: string | null; stopLoss?: string | null;
-  pnlPct?: number | null; heldDays?: number; score?: number; ruleId?: string; entryDate?: string | null;
+  pnlPct?: number | null; heldDays?: number; score?: number; ruleId?: string; entryDate?: string | null; firstSellDate?: string | null;
   rationale?: string; sellType?: string; urgency?: 'high' | 'medium' | 'low'; buyConflict?: string;
   sellLadder?: { pct: number; price: string; label: string; action: string }[];
 };
@@ -225,6 +225,7 @@ function SellCard({ item }: { item: SellItem }) {
         {item.target && <span>· target {item.target}</span>}
         {item.stopLoss && <span>· stop {item.stopLoss}</span>}
         <span>· 보유 {item.heldDays}일</span>
+        {item.firstSellDate && <span>· 매도권장 {item.firstSellDate.slice(5).replace('-', '/')}부터</span>}
       </div>
       {Array.isArray(item.sellLadder) && item.sellLadder.length > 0 && (
         <div className="mt-1.5 pt-1.5 border-t border-gray-200 space-y-0.5">
