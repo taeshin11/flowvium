@@ -745,6 +745,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 매칭 룰 category 메타 보존 (sell_recommendations.matched_rules) — audit-coverage Probe [5] 가 buy/sell 카테고리 대칭 자동 점검
 - Exit Ladder 자동 생성 (Klarman 부분 매도): stop_breach=즉시전량 / target_near=1/3/1/3/1/3 trailing / rotation_profit=1/3 + breakeven lock
 - urgency 배지 (🔴 high / 🟠 medium / ⚪ low) — JSON 룰 메타에서 직접 (하드코딩 X)
+- **유형 배지 (2026-06-12, POSCO 익절 혼란 사건)**: ruleId 결정론 분류 — 🟢 익절 분할(target_near·rotation_profit) / 🔴 손절·방어(stop*·rotation_loss) / 🟠 종목 악화(tech/fund/guru/내부자/13F) / 🔵 시장 환경(macro/sector/region). i18n 4키 × 16언어
 - `sell_recommendations` + `sell_outcomes` DB 적재 → `tune-sell-rules.mjs` weekly grid search 학습
 - Wave 2 LLM rationale (240s timeout) — 구루 framework + tech/fund/macro 신호 inject
 
