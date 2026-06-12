@@ -226,6 +226,22 @@ async function main() {
     }
   } catch (e) { info.push(`[D] coverage 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
+  // [G0] 히트맵 시총 진위 (2026-06-13 신설 — "가짜 시총" 사건): Wikipedia 폴백이 알파벳 proxy 시총을
+  //     부여해 빅테크 탈락 + 타일 균일. 검출: ① NVDA/AAPL/MSFT 중 2+ 부재 ② 상위-하위 시총 격차 <15%
+  //     (실제 S&P500 은 NVDA ~5T vs 200위 ~50B = 100배). 둘 다 "200 OK + 데이터 있음" 인데 가짜인 형태.
+  {
+    const hm = await getJson('/api/market-heatmap?country=US', 60000);
+    const stocks = (hm.body?.sectors ?? []).flatMap(s => s.stocks ?? []);
+    if (stocks.length >= 50) {
+      const mega = ['NVDA', 'AAPL', 'MSFT'].filter(t => stocks.some(s => s.ticker === t)).length;
+      const caps = stocks.map(s => s.marketCap).filter(Number.isFinite).sort((a, b) => b - a);
+      const spread = caps.length > 10 ? (caps[0] - caps[caps.length - 1]) / caps[0] : 1;
+      if (mega < 2) issues.push(`[G0] 히트맵 US 메가캡 부재 (NVDA/AAPL/MSFT 중 ${mega}개) — 구성종목 폴백 알파벳 잘림 의심`);
+      else if (spread < 0.15) issues.push(`[G0] 히트맵 US 시총 균일(상하위 격차 ${(spread * 100).toFixed(0)}%) — proxy 가짜 시총 의심`);
+      else info.push(`[G0] 히트맵 US 시총 진위 OK (메가캡 ${mega}/3, 격차 ${(spread * 100).toFixed(0)}%)`);
+    }
+  }
+
   // [G] 페이지 필드 완전성 — "endpoint 200 ≠ 필드 채워짐" 사각지대. 2026-06-04 신설.
   //     사용자가 직접 발견하던 빈칸(/earnings estimate, /insider 한국 기관)을 모니터가 사전 포착.
   //     원칙: 페이지가 *표시하는* 행의 핵심 필드 채움률이 임계 미만이면 결함.
