@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
@@ -342,7 +342,7 @@ export default function CascadeDetailPage({ sector }: { sector: string }) {
                         <span className="text-xs font-bold text-cf-text-secondary">{ev.leader}</span>
                         <span className="text-sm font-bold text-cf-primary">{ev.leaderMove}</span>
                       </div>
-                      <p className="text-sm text-cf-text-secondary leading-relaxed">{ev.description}</p>
+                      <p className="text-sm text-cf-text-secondary leading-relaxed"><T text={ev.description} /></p>
                     </div>
                   ))}
                 </div>
