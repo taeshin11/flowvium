@@ -1262,9 +1262,7 @@
     "sellKindProfit": "建議分批停利",
     "sellKindStop": "建議停損",
     "sellKindWeak": "惡化 — 考慮減持",
-    "sellKindMacro": "市場風險 — 降低部位",
-    "engineReviewTitle": "引擎覆盤 — 買賣對抗審查與前瞻績效",
-    "engineReviewNote": "由程式計算的實測統計（非AI生成）。"
+    "sellKindMacro": "市場風險 — 降低部位"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

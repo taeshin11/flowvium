@@ -1262,9 +1262,7 @@
     "sellKindProfit": "Teilgewinne mitnehmen",
     "sellKindStop": "Verluste begrenzen",
     "sellKindWeak": "Verschlechterung — Ausstieg prüfen",
-    "sellKindMacro": "Marktrisiko — Exposure reduzieren",
-    "engineReviewTitle": "Engine-Review — Abgleich & prospektive Performance",
-    "engineReviewNote": "Deterministische Statistiken aus erfassten Ergebnissen (nicht KI-generiert)."
+    "sellKindMacro": "Marktrisiko — Exposure reduzieren"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

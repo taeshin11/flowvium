@@ -1964,9 +1964,7 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
  * 강제 rotation — 최근 5개 보고서 ticker와 5개+ 겹치면 boost-list에서 신규 ticker 강제 추가.
  * "맨날 같은 종목" 문제 해결 (NVDA/TSM/ASML/000660 가 100% 반복되는 현상).
  */
-let LAST_ROTATION_VETOES = [];  // 2026-06-12: engineReview 섹션용 — 직전 run 의 투입 거부 기록
 async function enforceRotation(portfolio, livePrices) {
-  LAST_ROTATION_VETOES = [];
   try {
     const dir = resolve(import.meta.dirname ?? '.', '..', 'reports');
     const files = readdirSync(dir).filter(f => f.endsWith('-ko.json')).sort().slice(-5);
@@ -2040,7 +2038,6 @@ async function enforceRotation(portfolio, livePrices) {
         const total = hits.reduce((s, x) => s + (x.r.score ?? 0), 0);
         if (total >= 7) {
           console.warn(`  [rotation-veto] ${b.ticker} 투입 거부 (매도 score ${total}≥7: ${hits.map((x) => x.r.id).join(',')})`);
-          LAST_ROTATION_VETOES.push({ ticker: b.ticker, score: total, rules: hits.map((x) => x.r.id) });
           return false;
         }
         return true;
@@ -7128,41 +7125,8 @@ async function generateViaOllama() {
     if (sv) console.log(`  [whitelist-validator/final] ungrounded %·x 숫자 strip ${sv}건 (rotation 포함 전수)`);
   }
 
-  // 2026-06-12: 엔진 리뷰 섹션 (사용자 "경합 과정과 전향적 연구 결과를 보고서 맨 마지막에") —
-  //   전부 코드 생성 (LLM 무관, 환각 0). 경합심사 trail + rotation 거부 + 양쪽 모순 재심 +
-  //   매수/매도 엔진의 실측 성과(recommendation_outcomes/sell_outcomes).
-  try {
-    const DatabaseER = (await import('better-sqlite3')).default;
-    const rdb = new DatabaseER(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
-    const sellStats = rdb.prepare(`
-      SELECT r.sell_type, COUNT(*) n,
-        SUM(CASE WHEN o.outcome='good_call' THEN 1 ELSE 0 END) good,
-        SUM(CASE WHEN o.outcome='missed_upside' THEN 1 ELSE 0 END) missed,
-        ROUND(AVG(o.price_delta_pct),1) avg_delta
-      FROM sell_outcomes o JOIN sell_recommendations r ON r.id = o.sell_rec_id
-      GROUP BY r.sell_type ORDER BY n DESC LIMIT 5`).all();
-    rdb.close();
-    const recon = finalReport.buySellReconciliation;
-    const lines = [];
-    if (recon?.summary) {
-      lines.push(`경합심사: 매수 후보 ${recon.summary.evaluated}종을 매도룰 전체로 교차심문 — ${recon.summary.vetoed}종 탈락, ${recon.summary.passed}종 통과${recon.summary.sellConflicts ? ` · 매도 후보 ${recon.summary.sellConflicts}종에 매수신호 상충 플래그` : ''}.`);
-      const vetoNames = (recon.candidates ?? []).filter((c) => c.verdict === 'veto').map((c) => `${c.ticker}(${(c.hits ?? []).map((h) => h.id).join('/')})`);
-      if (vetoNames.length) lines.push(`매수 탈락 상세: ${vetoNames.join(', ')}`);
-    }
-    if (LAST_ROTATION_VETOES.length) lines.push(`로테이션 투입 사전거부: ${LAST_ROTATION_VETOES.map((v) => `${v.ticker}(매도신호 ${v.score}: ${v.rules.join('/')})`).join(', ')}`);
-    if (recon?.finalOverlap?.length) lines.push(`발간직전 매수∩매도 모순 재심: ${recon.finalOverlap.map((d) => `${d.ticker}→${d.verdict === 'buy-removed' ? '매수 제거' : '매도 제거'}(매도신호 ${d.sellScore})`).join(', ')}`);
-    const po = finalReport.portfolioOutcomes;
-    if (po?.closed) lines.push(`매수엔진 전향 성과(최근 30일 ${po.total}종 추적): 종결 ${po.closed}건 승률 ${po.winRate}% — 목표도달 ${po.hit_target} · 매도청산 ${po.sold}${po.soldAvg != null ? `(평균 ${po.soldAvg >= 0 ? '+' : ''}${po.soldAvg}%)` : ''} · 손절 ${po.stop_loss} · 미진입 ${po.not_entered}.`);
-    if (sellStats.length) {
-      const tot = sellStats.reduce((s, x) => s + x.n, 0);
-      const good = sellStats.reduce((s, x) => s + x.good, 0);
-      lines.push(`매도엔진 전향 성과(평가 ${tot}건): 적중 ${good}건(${Math.round((good / tot) * 100)}%) — ${sellStats.slice(0, 3).map((s) => `${s.sell_type} ${s.good}/${s.n}(매도 후 평균 ${s.avg_delta}%)`).join(' · ')}. (음수=매도가 하락을 회피)`);
-    }
-    if (lines.length) {
-      finalReport.engineReview = { lines, asOf: new Date().toISOString(), source: 'deterministic' };
-      console.log(`  [engine-review] 엔진 리뷰 섹션 ${lines.length}줄 생성`);
-    }
-  } catch (e) { console.warn(`  [engine-review] skip: ${String(e?.message).slice(0, 60)}`); }
+  // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").
+  //   경합심사/rotation-veto/모순 재심 trail 은 콘솔 로그 + buySellReconciliation 필드로 유지.
 
   if (!existsSync(REPORTS_DIR)) mkdirSync(REPORTS_DIR, { recursive: true });
   const kstDate = getReportKstDate(session);  // midnight 은 발간일(익일)

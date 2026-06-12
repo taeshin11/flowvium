@@ -1262,9 +1262,7 @@
     "sellKindProfit": "Chốt lời từng phần",
     "sellKindStop": "Cắt lỗ ngay",
     "sellKindWeak": "Suy yếu — cân nhắc thoát",
-    "sellKindMacro": "Rủi ro thị trường — giảm tỷ trọng",
-    "engineReviewTitle": "Đánh giá Engine — Đối soát & hiệu suất tiền cứu",
-    "engineReviewNote": "Thống kê xác định từ kết quả theo dõi (không do AI tạo)."
+    "sellKindMacro": "Rủi ro thị trường — giảm tỷ trọng"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

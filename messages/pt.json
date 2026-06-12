@@ -1262,9 +1262,7 @@
     "sellKindProfit": "Realize lucros parciais",
     "sellKindStop": "Corte as perdas",
     "sellKindWeak": "Deterioração — considere sair",
-    "sellKindMacro": "Risco de mercado — reduza exposição",
-    "engineReviewTitle": "Revisão do motor — Reconciliação e desempenho prospetivo",
-    "engineReviewNote": "Estatísticas determinísticas de resultados rastreados (não geradas por IA)."
+    "sellKindMacro": "Risco de mercado — reduza exposição"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

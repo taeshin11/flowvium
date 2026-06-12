@@ -1262,9 +1262,7 @@
     "sellKindProfit": "分割利確を",
     "sellKindStop": "損切りを",
     "sellKindWeak": "悪化 — 売却検討を",
-    "sellKindMacro": "市場リスク — 比重縮小を",
-    "engineReviewTitle": "エンジンレビュー — 売買照合・実績統計",
-    "engineReviewNote": "コードが算出した実測統計です（AI生成ではありません）。"
+    "sellKindMacro": "市場リスク — 比重縮小を"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",
