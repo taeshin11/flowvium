@@ -93,7 +93,7 @@ async function main() {
     const r = await getJson('/api/news-cascade?locale=ko');
     const arts = (r.body?.articles || []);
     const srcs = arts.map(a => a.source || '');
-    const krN = srcs.filter(s => /연합|한국경제|매일경제|매경/.test(s)).length;
+    const krN = srcs.filter(s => /연합|한국경제|매일경제|매경|머니투데이/.test(s)).length;
     const jpN = srcs.filter(s => /Japan|日|Nikkei/i.test(s)).length;
     const cnN = srcs.filter(s => /SCMP|China|中/i.test(s)).length;
     if (arts.length === 0) {

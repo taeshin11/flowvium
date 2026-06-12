@@ -345,7 +345,7 @@ function hashUrl(url: string): string {
 // pre-filter keeps only items matching at least one financial keyword before dedup.
 // 2026-05-07: Added Reuters Tech/Business + Yahoo sector ETF feeds to improve thematic coverage
 // beyond individual company earnings — catches AI/semiconductor, energy, global macro themes.
-const RSS_FEEDS: Array<{ url: string; source: string; requireFinancial: boolean; region: NewsRegion }> = [
+const RSS_FEEDS: Array<{ url: string; source: string; requireFinancial: boolean; region: NewsRegion; titleFilter?: RegExp }> = [
   // Broad market (US/global)
   { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', source: 'MarketWatch', requireFinancial: true, region: 'us' },
   { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com', requireFinancial: true, region: 'us' },
@@ -360,7 +360,9 @@ const RSS_FEEDS: Array<{ url: string; source: string; requireFinancial: boolean;
   //   비영어 피드라 requireFinancial:false (FINANCIAL_SIGNAL 영어 키워드 매칭 불가). 이미 경제/증권 섹션.
   { url: 'https://www.yna.co.kr/rss/economy.xml', source: '연합뉴스 경제', requireFinancial: false, region: 'kr' },
   { url: 'https://www.hankyung.com/feed/economy', source: '한국경제', requireFinancial: false, region: 'kr' },
-  { url: 'https://www.mk.co.kr/rss/50200011/', source: '매일경제 증권', requireFinancial: false, region: 'kr' },
+  // 2026-06-12: 매일경제(mk.co.kr) 전 RSS 봇차단(HTTP 403) → 머니투데이 교체. 전체뉴스 피드뿐이라
+  //   (섹션 피드 404 실측) titleFilter 로 금융 기사만 통과 — curl 검증: FlowviumBot UA 200, 100건, 분단위 fresh.
+  { url: 'https://rss.mt.co.kr/mt_news.xml', source: '머니투데이', requireFinancial: false, region: 'kr', titleFilter: /증시|주가|주식|코스피|코스닥|증권|상장|공모|실적|영업이익|금리|환율|반도체|수출|매출|배당|연준|관세|환제|유가|채권|펀드|ETF|IPO/ },
   { url: 'https://news.yahoo.co.jp/rss/categories/business.xml', source: 'Yahoo Japan 경제', requireFinancial: false, region: 'jp' },
   { url: 'https://www.scmp.com/rss/92/feed', source: 'SCMP Business', requireFinancial: false, region: 'cn' },
 ];
@@ -371,7 +373,7 @@ const RSS_FEEDS: Array<{ url: string; source: string; requireFinancial: boolean;
 // False positives from prefix matches (stocking→stock) are acceptable in this pre-filter.
 const FINANCIAL_SIGNAL = /\b(stock|market|rate|bond|yield|fed|fomc|earning|gdp|inflation|cpi|pce|dollar|usd|euro|yen|equity|index|s&p|nasdaq|dow|trade|tariff|oil|gold|crypto|bitcoin|bank|econom|invest|etf|fund|sector|tech|growth|recession|debt|deficit|treasur|fiscal|monetar|interest|employment|jobs|payroll|retail|sales|profit|revenue|quarter|analyst|forecast|outlook|powell|ecb|boe|boj|imf|world bank|china|europe|emerging|hedge|risk|volatilit|vix|ipo|merger|acquisition|dividend|buyback|short|long|bull|bear|rally|sell-off|correction|commodit|copper|aluminum|energy|supply|demand|manufactur|pmi|ism|claims|unemploy|consumer|sentiment|housing|mortgage|credit|spread|oas|liquidit|capital|portfolio)/i;
 
-async function fetchRSS(feedUrl: string, source: string, requireFinancial = false, region: NewsRegion = 'us'): Promise<RawNewsItem[]> {
+async function fetchRSS(feedUrl: string, source: string, requireFinancial = false, region: NewsRegion = 'us', titleFilter?: RegExp): Promise<RawNewsItem[]> {
   try {
     const res = await fetch(feedUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FlowviumBot/1.0)' },
@@ -397,6 +399,8 @@ async function fetchRSS(feedUrl: string, source: string, requireFinancial = fals
       if (title && link) {
         // Global: skip crime/sports/accident news from all feeds (wastes AI tokens)
         if (NON_FINANCIAL_PATTERNS.test(title)) continue;
+        // 2026-06-12: 비영어 일반 피드용 키워드 필터 (머니투데이 전체뉴스 — 금융 기사만 통과)
+        if (titleFilter && !titleFilter.test(title)) continue;
         if (!requireFinancial || FINANCIAL_SIGNAL.test(title)) {
           items.push({ title, link, pubDate, source, region });
         }
@@ -855,7 +859,7 @@ export async function GET(request: Request) {
   // 2. Fetch all RSS feeds in parallel
   const rawArticles: RawNewsItem[] = [];
   const results = await Promise.allSettled(
-    RSS_FEEDS.map((f) => fetchRSS(f.url, f.source, f.requireFinancial, f.region))
+    RSS_FEEDS.map((f) => fetchRSS(f.url, f.source, f.requireFinancial, f.region, f.titleFilter))
   );
   for (const r of results) {
     if (r.status === 'fulfilled') rawArticles.push(...r.value);
