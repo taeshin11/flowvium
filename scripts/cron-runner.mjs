@@ -80,6 +80,8 @@ log(`스케줄 등록 ${scheduled}/${crons.length} (TZ=${TZ}, BASE=${BASE}). Ctr
 // 2026-06-05: 자동 모니터 (촘촘히) — 수동 의존 제거. */20분 check-stall + check-data-quality 실행,
 //   execSync timeout 으로 hang 방지, 결과를 logs/monitor-status.json 에 기록(가시) + 결함 시 로그 강조.
 let monitorRunning = false;
+const warmLast = new Map();  // 2026-06-12: auto-warm per-locale 쿨다운 (중복 트리거 방지)
+const WARM_COOLDOWN_MS = 45 * 60 * 1000;  // 번역 1 locale 완주가 20분+ 걸릴 수 있어 모니터 주기(20분)보다 길게
 async function runMonitor() {
   if (monitorRunning) { log('[auto-monitor] 이전 사이클 진행 중 — skip (중복 실행 방지)'); return; }
   monitorRunning = true;
@@ -112,6 +114,10 @@ async function runMonitor() {
   } else if (coldLocales.length) {
     (async () => {
       for (const loc of coldLocales) {
+        // 2026-06-12: per-locale 쿨다운 — 번역이 모니터 주기(20분) 내 못 끝나면 다음 사이클이
+        //   같은 locale 을 중복 트리거해 큐 누적(GPU 27분+ 고부하 사건). 45분 내 재트리거 금지.
+        if (Date.now() - (warmLast.get(loc) ?? 0) < WARM_COOLDOWN_MS) { log(`[auto-warm] ${loc} 쿨다운 중 — 중복 트리거 skip`); continue; }
+        warmLast.set(loc, Date.now());
         try {
           await fetch(`${BASE}/api/news-cascade?locale=${loc}`, { signal: AbortSignal.timeout(150000) });
           log(`[auto-warm] ${loc} 번역 warm 트리거 (cold-cache self-heal)`);
