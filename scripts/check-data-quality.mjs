@@ -204,10 +204,12 @@ async function main() {
   //     companyChanges/supplyChain 에 KR 이 0 이면 침묵이 아니라 결함으로 surface.
   //     (US-우선 파이프라인이 KR 을 조용히 누락하던 사각지대 자동 감지.)
   try {
-    const { readdirSync, readFileSync } = await import('fs');
+    const { readdirSync, readFileSync, statSync } = await import('fs');
     const dir = 'C:/NoAddsMakingApps/FlowVium/reports';
-    const files = readdirSync(dir).filter(f => /^report-\d{4}-\d{2}-\d{2}-(midnight|morning|noon|afternoon|evening)-[a-z-]+\.json$/.test(f)).sort();
-    const latest = files[files.length - 1];
+    // 2026-06-12: "최신" 을 이름 sort 로 뽑던 버그 — 알파벳상 noon 이 항상 마지막이라 evening/afternoon
+    //   발간 후에도 noon 을 검사 ([D] supplyChain KR 이 fix 후에도 stale 하게 재발하던 원인). mtime 기준.
+    const files = readdirSync(dir).filter(f => /^report-\d{4}-\d{2}-\d{2}-(midnight|morning|noon|afternoon|evening)-[a-z-]+\.json$/.test(f));
+    const latest = files.map(f => ({ f, m: statSync(`${dir}/${f}`).mtimeMs })).sort((a, b) => b.m - a.m)[0]?.f;
     if (latest) {
       const d = JSON.parse(readFileSync(`${dir}/${latest}`, 'utf8'));
       const isKR = t => /\.(KS|KQ)$/.test(t || '');
