@@ -1,14 +1,10 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { RefreshCw, Loader2 } from 'lucide-react';
-import { Treemap, ResponsiveContainer } from 'recharts';
-import { Link } from '@/i18n/routing';
-import type { HeatmapData, HeatmapStock, HeatmapSector } from '@/app/api/market-heatmap/route';
-// module-level sector bounds cache — populated during Treemap render, read by SVG overlay
-const _sectorBoundsCache = new Map<string, {x:number;y:number;w:number;h:number;color:string}>();
-
+import { useRouter } from '@/i18n/routing';
+import type { HeatmapData, HeatmapSector, HeatmapStock } from '@/app/api/market-heatmap/route';
 
 // ── Color scale: green for positive, red for negative, gray for neutral/null
 function pctColor(pct: number | null): string {
@@ -16,164 +12,163 @@ function pctColor(pct: number | null): string {
   if (pct >= 3)    return '#047857';
   if (pct >= 1.5)  return '#059669';
   if (pct >= 0.5)  return '#10b981';
-  if (pct >= 0)    return '#166534';  // was #14532d — slightly brighter for contrast
-  if (pct > -0.5)  return '#4c1d1d';  // was #3f1d1d — slightly brighter
+  if (pct >= 0)    return '#166534';
+  if (pct > -0.5)  return '#4c1d1d';
   if (pct > -1.5)  return '#ef4444';
   if (pct > -3)    return '#dc2626';
   return '#991b1b';
 }
 
-function textColor(pct: number | null): string {
-  return pct == null || Math.abs(pct) < 0.3 ? '#94a3b8' : '#fff';
+// ── 2026-06-12: Recharts 중첩 Treemap 이 200종목에서 세로 슬리버(라벨 0개 가시)로 붕괴
+//    (사용자 "finviz 랑 똑같이 만들어봐. 지금 하나도 안 보인다") → squarified(Bruls) 직접 구현.
+//    div 타일 + 자동 폰트 스케일 + 섹터 헤더 스트립 — Finviz 와 동일 구조.
+interface Rect { x: number; y: number; w: number; h: number }
+interface Sized { size: number }
+
+function squarify<T extends Sized>(items: T[], rect: Rect): Array<{ item: T; x: number; y: number; w: number; h: number }> {
+  const out: Array<{ item: T; x: number; y: number; w: number; h: number }> = [];
+  const positive = items.filter(i => i.size > 0);
+  const total = positive.reduce((s, i) => s + i.size, 0);
+  if (total <= 0 || rect.w <= 1 || rect.h <= 1) return out;
+  const scale = (rect.w * rect.h) / total;
+  let { x, y, w, h } = rect;
+  let row: T[] = [];
+
+  const worstRatio = (candidate: T[], side: number): number => {
+    if (!candidate.length || side <= 0) return Infinity;
+    const areas = candidate.map(r => r.size * scale);
+    const sum = areas.reduce((a, b) => a + b, 0);
+    const mx = Math.max(...areas), mn = Math.min(...areas);
+    if (sum <= 0 || mn <= 0) return Infinity;
+    const s2 = sum * sum, side2 = side * side;
+    return Math.max((side2 * mx) / s2, s2 / (side2 * mn));
+  };
+
+  const layoutRow = (r: T[]) => {
+    const sum = r.reduce((a, it) => a + it.size * scale, 0);
+    if (sum <= 0) return;
+    if (w >= h) {
+      // 세로 컬럼으로 배치 (왼쪽부터 채움)
+      const colW = Math.min(sum / h, w);
+      let cy = y;
+      for (const it of r) { const ih = (it.size * scale) / colW; out.push({ item: it, x, y: cy, w: colW, h: ih }); cy += ih; }
+      x += colW; w -= colW;
+    } else {
+      const rowH = Math.min(sum / w, h);
+      let cx = x;
+      for (const it of r) { const iw = (it.size * scale) / rowH; out.push({ item: it, x: cx, y, w: iw, h: rowH }); cx += iw; }
+      y += rowH; h -= rowH;
+    }
+  };
+
+  const sorted = [...positive].sort((a, b) => b.size - a.size);
+  for (const it of sorted) {
+    const side = Math.min(w, h);
+    if (worstRatio([...row, it], side) <= worstRatio(row, side)) row.push(it);
+    else { layoutRow(row); row = [it]; }
+  }
+  if (row.length) layoutRow(row);
+  return out;
 }
 
-// ── Recharts Treemap content — one box per stock
-interface BoxProps {
-  x?: number; y?: number; width?: number; height?: number;
-  ticker?: string; changePct?: number | null; name?: string; fullName?: string;
-}
-function StockBox(props: BoxProps) {
-  const { x = 0, y = 0, width = 0, height = 0, ticker, changePct, fullName } = props;
-  if (width < 1 || height < 1) return null;
-  const bg = pctColor(changePct ?? null);
-  const tc = textColor(changePct ?? null);
-  const pctStr = changePct != null
-    ? `${changePct > 0 ? '+' : ''}${changePct.toFixed(2)}%`
-    : '-';
-
-  // Display: prefer fullName (company name) over ticker for non-US / numeric tickers
-  const isNumericTicker = ticker != null && /^\d+$/.test(ticker);
-  const displayLabel = isNumericTicker && fullName ? fullName : (ticker ?? '');
-  // Short version for large labels — 16 chars before truncating (was 12)
-  const shortLabel = displayLabel.length > 16 ? displayLabel.slice(0, 14) + '…' : displayLabel;
-
-  const tickerFont = Math.min(Math.max(width / 5, 9), 32);
-  const pctFont = Math.min(Math.max(width / 7, 8), 20);
-  const showText = width > 22 && height > 14;
-  const showPct = width > 36 && height > 28;
-  const showCompany = width > 85 && height > 60 && fullName && !isNumericTicker;
-
-  // SVG text-shadow via paint-order (stroke behind fill) for readability
-  const textProps = { paintOrder: 'stroke' as const, stroke: bg, strokeWidth: 3, strokeLinejoin: 'round' as const };
-
+// ── 종목 타일 (div) — Finviz 식: 티커 볼드 + 등락% , 타일 크기에 폰트 자동 스케일
+function StockTile({ s, x, y, w, h, onClick }: { s: HeatmapStock; x: number; y: number; w: number; h: number; onClick: (t: string) => void }) {
+  const isNumeric = /^\d+$/.test(s.ticker);
+  const label = isNumeric && s.name ? s.name : s.ticker;
+  const short = label.length > 12 ? label.slice(0, 11) + '…' : label;
+  const pctStr = s.changePct != null ? `${s.changePct > 0 ? '+' : ''}${s.changePct.toFixed(2)}%` : '-';
+  // 폰트: 너비(글자수 비례)와 높이 모두에 맞춤
+  const fontByW = (w - 6) / Math.max(short.length * 0.62, 1);
+  const fontSize = Math.max(7, Math.min(fontByW, h * 0.32, 26));
+  const showLabel = w >= 26 && h >= 14 && fontSize >= 7;
+  const showPct = showLabel && h >= fontSize * 2.4 && w >= 34;
   return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill={bg} stroke="#0f172a" strokeWidth={1.5} rx={1} />
-      {showText && (
-        <text x={x + width / 2} y={y + height / 2 + (showPct ? -4 : 4)}
-              textAnchor="middle" fill={tc} fontSize={tickerFont} fontWeight={700} {...textProps}>
-          {shortLabel}
-        </text>
+    <div
+      onClick={() => onClick(s.ticker)}
+      title={`${s.name ?? s.ticker} (${s.ticker}) ${pctStr}`}
+      style={{
+        position: 'absolute', left: x, top: y, width: Math.max(w - 1, 1), height: Math.max(h - 1, 1),
+        backgroundColor: pctColor(s.changePct), outline: '1px solid rgba(15,23,42,0.9)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden', cursor: 'pointer',
+      }}
+      className="hover:brightness-125 transition-[filter]"
+    >
+      {showLabel && (
+        <span style={{ fontSize, lineHeight: 1.05, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.55)', whiteSpace: 'nowrap' }}>
+          {short}
+        </span>
       )}
       {showPct && (
-        <text x={x + width / 2} y={y + height / 2 + tickerFont / 2 + 4}
-              textAnchor="middle" fill={tc} fontSize={pctFont} fontWeight={500} {...textProps}>
+        <span style={{ fontSize: Math.max(7, fontSize * 0.72), lineHeight: 1.1, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
           {pctStr}
-        </text>
+        </span>
       )}
-      {showCompany && (
-        <text x={x + width / 2} y={y + height - 6}
-              textAnchor="middle" fill={tc} fontSize={Math.min(pctFont * 0.7, 11)} opacity={0.75} {...textProps}>
-          {fullName!.length > 20 ? fullName!.slice(0, 18) + '…' : fullName}
-        </text>
-      )}
-    </g>
+    </div>
   );
 }
 
-// ── Finviz-style: depth=1 fills sector color as background "grout", depth=2 stocks are inset
-interface SectorContentProps {
-  x?: number; y?: number; width?: number; height?: number;
-  depth?: number; name?: string; sectorColor?: string;
-  ticker?: string; changePct?: number | null; fullName?: string;
-}
-function SectorTreemapContent(props: SectorContentProps) {
-  const { x = 0, y = 0, width = 0, height = 0, depth, name, sectorColor, ticker, changePct, fullName } = props;
-  if (width < 1 || height < 1) return null;
+// ── Finviz 트리맵: 섹터 squarify → 섹터 내부 종목 squarify + 섹터 헤더 스트립
+function FinvizTreemap({ sectors, height, showSectorHeader = true }: { sectors: HeatmapSector[]; height: number; showSectorHeader?: boolean }) {
+  const router = useRouter();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const measure = () => setWidth(wrapRef.current?.clientWidth ?? 0);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
-  if (depth === 1) {
-    // Sector 배경 — 사용자 피드백: 'boundary 안 보임' (2026-05-24)
-    // opacity 0.85 → 1.0 + 굵은 stroke 추가로 sector 경계 명확화
-    const color = sectorColor ?? '#475569';
-    _sectorBoundsCache.set(name ?? '', { x, y, w: width, h: height, color });
-    return (
-      <g>
-        <rect x={x} y={y} width={width} height={height} fill={color} opacity={1.0} />
-        {/* Sector border — 검은 외곽선 3px + sector color 자체로 시각적 분리 */}
-        <rect x={x} y={y} width={width} height={height} fill="none" stroke="#000" strokeWidth={3} />
-      </g>
+  const layout = useMemo(() => {
+    if (width < 10) return [];
+    const secRects = squarify(
+      sectors.map(s => ({ size: Math.max(s.totalMarketCap, 0.0001), sector: s })),
+      { x: 0, y: 0, w: width, h: height },
     );
-  }
+    return secRects.map(({ item, x, y, w, h }) => {
+      const HEADER = showSectorHeader && h >= 52 && w >= 56 ? 15 : 0;
+      const PAD = 1.5;
+      const inner: Rect = { x: x + PAD, y: y + HEADER + PAD, w: w - PAD * 2, h: h - HEADER - PAD * 2 };
+      const tiles = squarify(
+        item.sector.stocks.map(st => ({ size: Math.max(st.marketCap, 0.0001), stock: st })),
+        inner,
+      );
+      return { sector: item.sector, x, y, w, h, HEADER, tiles };
+    });
+  }, [sectors, width, height, showSectorHeader]);
 
-  if (depth === 2) {
-    // GAP 2 → 6: sector 색 grout 6px 노출 (이전 2px 은 거의 안 보임)
-    const GAP = 6;
-    return <StockBox x={x + GAP} y={y + GAP} width={width - GAP * 2} height={height - GAP * 2}
-                     ticker={ticker} changePct={changePct} fullName={fullName} />;
-  }
-
-  return null;
-}
-
-// ── Sector block: internal treemap of its constituent stocks
-function SectorBlock({ sector }: { sector: HeatmapSector }) {
-  const t = useTranslations('heatmap');
-  const avgColor = pctColor(sector.avgChangePct);
-  const treeData = sector.stocks.map(s => ({
-    name: s.ticker,
-    size: s.marketCap,
-    ticker: s.ticker,
-    changePct: s.changePct,
-    fullName: s.name,
-  }));
+  const go = (ticker: string) => {
+    const t = /^\d{6}$/.test(ticker) ? `${ticker}.KS` : ticker;
+    router.push(`/company/${t}`);
+  };
 
   return (
-    <div
-      className="cf-card relative overflow-hidden"
-      style={{
-        backgroundColor: '#0f172a',
-        borderColor: sector.color,
-        borderWidth: '1px',
-        borderStyle: 'solid',
-      }}
-    >
-      {/* Sector color band — 카드 상단 전체 너비 (4px) */}
-      <div
-        className="absolute top-0 left-0 right-0 h-1"
-        style={{ backgroundColor: sector.color }}
-      />
-      <div className="p-3 pt-3.5">
-        <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-2 h-7 rounded" style={{ backgroundColor: sector.color }} />
-            <div>
-              <h3 className="text-base font-extrabold text-white tracking-tight leading-tight">{sector.sector}</h3>
-              <span className="text-[10px] text-slate-500 font-mono">{sector.stocks.length}{t('stockUnit')}</span>
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height, backgroundColor: '#0f172a' }}>
+      {layout.map(({ sector, x, y, w, h, HEADER, tiles }) => (
+        <div key={sector.sector}>
+          {/* 섹터 경계 + 헤더 스트립 */}
+          <div style={{ position: 'absolute', left: x, top: y, width: w, height: h, outline: `1.5px solid ${sector.color}`, pointerEvents: 'none', zIndex: 2 }} />
+          {HEADER > 0 && (
+            <div style={{
+              position: 'absolute', left: x, top: y, width: w, height: HEADER,
+              backgroundColor: sector.color, color: '#fff', fontSize: 9.5, fontWeight: 800,
+              padding: '1px 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              textTransform: 'uppercase', letterSpacing: '0.02em', zIndex: 1,
+            }}>
+              {sector.sector}
+              {sector.avgChangePct != null && (
+                <span style={{ marginLeft: 5, fontWeight: 600, opacity: 0.9 }}>
+                  {sector.avgChangePct > 0 ? '+' : ''}{sector.avgChangePct.toFixed(1)}%
+                </span>
+              )}
             </div>
-          </div>
-          {sector.avgChangePct != null && (
-            <span
-              className="text-sm font-bold px-2.5 py-1 rounded font-mono"
-              style={{ backgroundColor: avgColor + '40', color: sector.avgChangePct >= 0 ? '#10b981' : '#ef4444' }}
-            >
-              {sector.avgChangePct > 0 ? '+' : ''}{sector.avgChangePct.toFixed(2)}%
-            </span>
           )}
+          {tiles.map(({ item, x: tx, y: ty, w: tw, h: th }) => (
+            <StockTile key={item.stock.ticker} s={item.stock} x={tx} y={ty} w={tw} h={th} onClick={go} />
+          ))}
         </div>
-        <div style={{ height: Math.max(180, Math.min(420, 80 + sector.stocks.length * 22)) }}>
-          <ResponsiveContainer>
-            <Treemap
-              data={treeData}
-              dataKey="size"
-              aspectRatio={1.4}
-              stroke="#0f172a"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              content={<StockBox /> as any}
-              animationDuration={400}
-            />
-          </ResponsiveContainer>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
@@ -195,6 +190,15 @@ function IndexBar({ label, changePct, close }: { label: string; changePct: numbe
   );
 }
 
+// 2026-06-12: 섹터명이 API 에서 한국어 고정 — 비-ko locale 은 영문 라벨 (금융 용어라 EN 공용)
+const SECTOR_EN: Record<string, string> = {
+  '반도체': 'Semiconductors', '소프트웨어': 'Software', '전자상거래': 'E-Commerce',
+  '스트리밍': 'Streaming', 'EV·배터리': 'EV & Battery', '금융': 'Financials',
+  '제약·바이오': 'Pharma & Biotech', '헬스케어': 'Healthcare', '소비재': 'Consumer',
+  '에너지': 'Energy', '방산': 'Defense', '산업재': 'Industrials', '통신': 'Telecom',
+  '암호화폐': 'Crypto', '유틸리티': 'Utilities', '소재': 'Materials',
+};
+
 const COUNTRY_FLAGS: Record<string, string> = {
   US: '🇺🇸', KR: '🇰🇷', JP: '🇯🇵', CN: '🇨🇳', EU: '🇪🇺', IN: '🇮🇳', TW: '🇹🇼',
 };
@@ -202,6 +206,7 @@ const COUNTRY_IDS = ['US', 'KR', 'JP', 'CN', 'EU', 'IN', 'TW'] as const;
 
 export default function HeatmapPage() {
   const t = useTranslations('heatmap');
+  const locale = useLocale();
   const [data, setData] = useState<HeatmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -252,6 +257,12 @@ export default function HeatmapPage() {
       total: all.length,
     };
   }, [data]);
+
+  // 비-ko locale 섹터명 영문화 (데이터 자체는 동일 — 라벨만)
+  const sectorsView = useMemo(() => {
+    if (!data) return [];
+    return locale === 'ko' ? data.sectors : data.sectors.map(s => ({ ...s, sector: SECTOR_EN[s.sector] ?? s.sector }));
+  }, [data, locale]);
 
   if (loading) {
     return (
@@ -345,61 +356,35 @@ export default function HeatmapPage() {
         ))}
       </div>
 
-      {/* Treemap view */}
+      {/* Treemap view — squarified custom (Finviz-style) */}
       {viewMode === 'overview' ? (
-        <div className="cf-card p-3" style={{ backgroundColor: '#0f172a', borderColor: '#1e293b' }}>
-          <div className="flex items-center gap-3 mb-2">
+        <div className="cf-card p-2 overflow-hidden" style={{ backgroundColor: '#0f172a', borderColor: '#1e293b' }}>
+          <div className="flex items-center gap-3 mb-2 px-1">
             <span className="text-sm font-bold text-white">{t('totalMarket', { count: data.totalStocks })}</span>
-            <span className="text-[10px] text-slate-500">섹터 경계선 색상 = 섹터 구분</span>
           </div>
-          {/* Clear sector bounds cache before each render so overlay reads fresh data */}
-          {(() => { _sectorBoundsCache.clear(); return null; })()}
-          <div style={{ position: 'relative', height: Math.min(650, Math.max(460, data.totalStocks * 2.5)) }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <Treemap
-                data={data.sectors.map(s => ({
-                  name: s.sector,
-                  size: s.totalMarketCap,
-                  sectorColor: s.color,
-                  children: s.stocks.map(st => ({
-                    name: st.ticker,
-                    size: st.marketCap,
-                    ticker: st.ticker,
-                    changePct: st.changePct,
-                    fullName: st.name,
-                    sectorColor: s.color,
-                  })),
-                }))}
-                dataKey="size"
-                aspectRatio={1.6}
-                stroke="#0f172a"
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                content={<SectorTreemapContent /> as any}
-                animationDuration={300}
-              />
-            </ResponsiveContainer>
-            {/* Sector label overlay — drawn after Treemap so labels appear on top */}
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-              {Array.from(_sectorBoundsCache.entries()).map(([sName, b]) =>
-                b.w > 70 && b.h > 20 ? (
-                  <g key={sName}>
-                    <text x={b.x + 6} y={b.y + 14} fill="rgba(0,0,0,0.6)"
-                          fontSize={11} fontWeight={800} style={{ userSelect: 'none' }}>
-                      {sName.toUpperCase()}
-                    </text>
-                    <text x={b.x + 5} y={b.y + 13} fill="white"
-                          fontSize={11} fontWeight={800} style={{ userSelect: 'none' }}>
-                      {sName.toUpperCase()}
-                    </text>
-                  </g>
-                ) : null
-              )}
-            </svg>
-          </div>
+          <FinvizTreemap sectors={sectorsView} height={Math.min(720, Math.max(480, data.totalStocks * 3))} />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {data.sectors.map(s => <SectorBlock key={s.sector} sector={s} />)}
+          {sectorsView.map(s => (
+            <div key={s.sector} className="cf-card overflow-hidden" style={{ backgroundColor: '#0f172a', borderColor: s.color, borderWidth: 1 }}>
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-5 rounded" style={{ backgroundColor: s.color }} />
+                  <h3 className="text-sm font-extrabold text-white">{s.sector}</h3>
+                  <span className="text-[10px] text-slate-500 font-mono">{s.stocks.length}{t('stockUnit')}</span>
+                </div>
+                {s.avgChangePct != null && (
+                  <span className="text-xs font-bold font-mono" style={{ color: s.avgChangePct >= 0 ? '#10b981' : '#ef4444' }}>
+                    {s.avgChangePct > 0 ? '+' : ''}{s.avgChangePct.toFixed(2)}%
+                  </span>
+                )}
+              </div>
+              <div className="p-1">
+                <FinvizTreemap sectors={[s]} height={Math.max(160, Math.min(380, 60 + s.stocks.length * 18))} showSectorHeader={false} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
