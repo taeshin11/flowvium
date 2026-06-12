@@ -276,20 +276,32 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
   const langName = LOCALE_NAMES[locale];
   if (!langName || locale === 'en') return articles.map(a => localizeTimeframesOnly(a, locale));
   const tgtRe = CJK_RE[locale];
+  // 2026-06-12: 필드 단위 증분 캐시 (/api/translate 와 동일 키 공유) — 종전엔 70% 게이트 미달 시
+  //   매 사이클 0에서 재번역(all-or-nothing)이라 콜드캐시가 영영 안 채워짐 (ja/zh 1/12 고착 실측).
+  //   성공 필드를 30d 캐시에 누적 → 사이클마다 수렴, 결국 게이트 통과.
+  const pfRedis = createRedis();
+  const trCacheKey = (text: string) => `flowvium:tr:v1:${locale}:${text.substring(0, 100).replace(/\s+/g, ' ')}`;
   const tOne = async (text: string): Promise<string> => {
     if (!text || !text.trim()) return text;
     // 이미 target 언어(CJK) 이고 긴 영문 단어 없으면 번역 불필요 — 네이티브 기사 skip(비용 절감).
     if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text)) return text;
+    if (pfRedis) {
+      try { const c = await pfRedis.get<string>(trCacheKey(text)); if (c && typeof c === 'string' && c.trim()) return c; } catch { /* miss */ }
+    }
+    const keep = async (v: string) => {
+      if (pfRedis && v !== text) { try { await loggedRedisSet(pfRedis, 'news-cascade.per-field', trCacheKey(text), v, { ex: 30 * 24 * 60 * 60 }); } catch { /* non-fatal */ } }
+      return v;
+    };
     // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud 폴백.
     const out = await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: 60000 });
-    if (out && out.trim() && out.trim() !== text.trim()) return out.trim();
+    if (out && out.trim() && out.trim() !== text.trim()) return keep(out.trim());
     // 2026-06-12: ja→ko 에서 qwen 출력의 고유명사 한자 잔존이 bleed-guard(한자2+)에 막혀
     //   일본어 원문이 그대로 발행·캐시되던 사건 (Viking cruise 제목, 사용자 "아직도 번역 안 되네").
     //   cloud(GROQ 8b 등) 폴백 — target script 포함 검증 후만 채택, 아니면 원문 유지.
     try {
       const ai = await callAI(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes.\n\n${text}`, { maxTokens: 800, temperature: 0.1, skipVllm: true, preferSmallModel: true, timeoutMs: 15000, tag: 'news-cascade.per-field' });
       const t2 = ai.text?.trim();
-      if (t2 && t2 !== text.trim() && (!tgtRe || tgtRe.test(t2))) return t2;
+      if (t2 && t2 !== text.trim() && (!tgtRe || tgtRe.test(t2))) return keep(t2);
     } catch { /* 원문 유지 */ }
     return text;
   };
