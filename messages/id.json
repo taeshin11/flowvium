@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Pelacakan Aset Fisik",
     "guideMethod5Desc": "Pemilik real estate, kapal pesiar, dan jet pribadi dapat diidentifikasi melalui catatan publik dan data pelacakan AIS/penerbangan.",
     "guideMethod6Title": "Catatan Publik",
-    "guideMethod6Desc": "Lacak hubungan hukum dan keuangan melalui SEC EDGAR (pengajuan AS), PACER (catatan pengadilan federal), dan daftar korporat di seluruh dunia."
+    "guideMethod6Desc": "Lacak hubungan hukum dan keuangan melalui SEC EDGAR (pengajuan AS), PACER (catatan pengadilan federal), dan daftar korporat di seluruh dunia.",
+    "sancRUSSIA": "Sanksi Rusia",
+    "sancIRAN": "Sanksi Iran",
+    "sancDPRK": "Sanksi Korea Utara",
+    "sancSDGT": "Dukungan Terorisme",
+    "sancCYBER2": "Serangan Siber",
+    "sancCMIC": "Sanksi Tiongkok"
   },
   "report": {
     "ivPlainVol": "Volatilitas tersirat",

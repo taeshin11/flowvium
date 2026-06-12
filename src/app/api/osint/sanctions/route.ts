@@ -20,6 +20,26 @@ interface SdnEntry {
   remarks: string;
 }
 
+// 2026-06-13: 실제 SDN CSV 는 혼합 인용 (`36,"NAME",-0- ,"CUBA",...` — ent_num 비인용, null=-0-).
+//   종전 split('","') 가 전 행 컬럼 시프트 (name="individual", type="DRCONGO" 오파싱 실측,
+//   러시아 그룹에 콩고 항목 혼입). 인용 인지 파서로 교체 + '-0-' null 처리.
+function splitCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') inQ = !inQ;
+    else if (ch === ',' && !inQ) { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(s => {
+    const v = s.trim().replace(/^"|"$/g, '').trim();
+    return v === '-0-' ? '' : v;
+  });
+}
+
 function parseSdnCsv(csv: string): SdnEntry[] {
   const lines = csv.split('\n');
   const entries: SdnEntry[] = [];
@@ -27,26 +47,17 @@ function parseSdnCsv(csv: string): SdnEntry[] {
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
-
-    // Remove leading/trailing outer quote if present then split by ","
-    const stripped = line.startsWith('"') && line.endsWith('"')
-      ? line.slice(1, -1)
-      : line;
-
-    const cols = stripped.split('","');
-
-    // Need at least 4 columns: ent_num, SDN_Name, SDN_Type, Program
+    const cols = splitCsvLine(line);
+    // ent_num, SDN_Name, SDN_Type, Program 최소 4컬럼
     if (cols.length < 4) continue;
 
-    const entNum = cols[0].replace(/^"|"$/g, '').trim();
-    const name = cols[1].replace(/^"|"$/g, '').trim();
-    const type = cols[2].replace(/^"|"$/g, '').trim();
-    const program = cols[3].replace(/^"|"$/g, '').trim();
-    const remarks = cols[11] ? cols[11].replace(/^"|"$/g, '').trim() : '';
+    const entNum = cols[0];
+    const name = cols[1];
+    const type = cols[2] || 'entity';
+    const program = cols[3];
+    const remarks = cols[11] ?? '';
 
-    // Skip header or empty name rows
-    if (!name || name === 'SDN_Name' || name === '-0-') continue;
-
+    if (!name || name === 'SDN_Name') continue;
     entries.push({ entNum, name, type, program, remarks });
   }
 

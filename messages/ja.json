@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "実物資産追跡",
     "guideMethod5Desc": "不動産・ヨット・プライベートジェットの所有者は公開登記・航跡データで確認できます。",
     "guideMethod6Title": "公開記録の活用",
-    "guideMethod6Desc": "SEC EDGAR（米国開示）、PACER（連邦裁判所記録）、各国企業登記所を通じて法的・財務的関係を把握します。"
+    "guideMethod6Desc": "SEC EDGAR（米国開示）、PACER（連邦裁判所記録）、各国企業登記所を通じて法的・財務的関係を把握します。",
+    "sancRUSSIA": "ロシア制裁",
+    "sancIRAN": "イラン制裁",
+    "sancDPRK": "北朝鮮制裁",
+    "sancSDGT": "テロ支援",
+    "sancCYBER2": "サイバー攻撃",
+    "sancCMIC": "中国制裁"
   },
   "report": {
     "ivPlainVol": "予想変動率",

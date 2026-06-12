@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "实物资产追踪",
     "guideMethod5Desc": "房产、游艇、私人飞机的所有者可通过公开登记/航迹数据查询确认。",
     "guideMethod6Title": "公开记录利用",
-    "guideMethod6Desc": "通过SEC EDGAR（美国披露）、PACER（联邦法院记录）、各国企业登记处了解法律和财务关系。"
+    "guideMethod6Desc": "通过SEC EDGAR（美国披露）、PACER（联邦法院记录）、各国企业登记处了解法律和财务关系。",
+    "sancRUSSIA": "俄罗斯制裁",
+    "sancIRAN": "伊朗制裁",
+    "sancDPRK": "朝鲜制裁",
+    "sancSDGT": "恐怖主义支持",
+    "sancCYBER2": "网络攻击",
+    "sancCMIC": "中国制裁"
   },
   "report": {
     "ivPlainVol": "隐含波动率",

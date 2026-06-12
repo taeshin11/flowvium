@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Physisches Vermögens-Tracking",
     "guideMethod5Desc": "Eigentümer von Immobilien, Yachten und Privatjets können über öffentliche Register und AIS-/Flugverfolgungsdaten identifiziert werden.",
     "guideMethod6Title": "Öffentliche Aufzeichnungen",
-    "guideMethod6Desc": "Verfolgen Sie rechtliche und finanzielle Beziehungen über SEC EDGAR (US-Einreichungen), PACER (Bundesgerichtsakten) und Unternehmensregister weltweit."
+    "guideMethod6Desc": "Verfolgen Sie rechtliche und finanzielle Beziehungen über SEC EDGAR (US-Einreichungen), PACER (Bundesgerichtsakten) und Unternehmensregister weltweit.",
+    "sancRUSSIA": "Russland-Sanktionen",
+    "sancIRAN": "Iran-Sanktionen",
+    "sancDPRK": "Nordkorea-Sanktionen",
+    "sancSDGT": "Terrorunterstützung",
+    "sancCYBER2": "Cyberangriffe",
+    "sancCMIC": "China-Sanktionen"
   },
   "report": {
     "ivPlainVol": "Implizite Volatilität",

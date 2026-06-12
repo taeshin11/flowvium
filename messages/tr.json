@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Fiziksel Varlık Takibi",
     "guideMethod5Desc": "Gayrimenkul, yat ve özel jet sahipleri, kamu sicilleri ve AIS/uçuş takip verileri aracılığıyla tespit edilebilir.",
     "guideMethod6Title": "Kamu Kayıtları",
-    "guideMethod6Desc": "SEC EDGAR (ABD dosyaları), PACER (federal mahkeme kayıtları) ve dünya genelindeki kurumsal siciller aracılığıyla hukuki ve mali ilişkileri takip edin."
+    "guideMethod6Desc": "SEC EDGAR (ABD dosyaları), PACER (federal mahkeme kayıtları) ve dünya genelindeki kurumsal siciller aracılığıyla hukuki ve mali ilişkileri takip edin.",
+    "sancRUSSIA": "Rusya Yaptırımları",
+    "sancIRAN": "İran Yaptırımları",
+    "sancDPRK": "Kuzey Kore Yaptırımları",
+    "sancSDGT": "Terör Desteği",
+    "sancCYBER2": "Siber Saldırılar",
+    "sancCMIC": "Çin Yaptırımları"
   },
   "report": {
     "ivPlainVol": "Örtük oynaklık",

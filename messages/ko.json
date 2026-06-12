@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "실물자산 추적",
     "guideMethod5Desc": "부동산·요트·전용기 소유자는 공개 등기/항적 데이터로 확인 가능합니다.",
     "guideMethod6Title": "공개 기록 활용",
-    "guideMethod6Desc": "SEC EDGAR(미국 공시), PACER(연방법원 기록), 각국 기업등기소를 통해 법적·재무 관계를 파악합니다."
+    "guideMethod6Desc": "SEC EDGAR(미국 공시), PACER(연방법원 기록), 각국 기업등기소를 통해 법적·재무 관계를 파악합니다.",
+    "sancRUSSIA": "러시아 제재",
+    "sancIRAN": "이란 제재",
+    "sancDPRK": "북한 제재",
+    "sancSDGT": "테러 지원",
+    "sancCYBER2": "사이버 공격",
+    "sancCMIC": "중국 제재"
   },
   "report": {
     "ivPlainVol": "내재변동성",

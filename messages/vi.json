@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Theo Dõi Tài Sản Vật Chất",
     "guideMethod5Desc": "Chủ sở hữu bất động sản, du thuyền và máy bay riêng có thể được xác định qua hồ sơ công khai và dữ liệu theo dõi AIS/chuyến bay.",
     "guideMethod6Title": "Hồ Sơ Công Khai",
-    "guideMethod6Desc": "Theo dõi quan hệ pháp lý và tài chính qua SEC EDGAR (hồ sơ Mỹ), PACER (hồ sơ tòa án liên bang) và đăng ký doanh nghiệp trên toàn thế giới."
+    "guideMethod6Desc": "Theo dõi quan hệ pháp lý và tài chính qua SEC EDGAR (hồ sơ Mỹ), PACER (hồ sơ tòa án liên bang) và đăng ký doanh nghiệp trên toàn thế giới.",
+    "sancRUSSIA": "Trừng phạt Nga",
+    "sancIRAN": "Trừng phạt Iran",
+    "sancDPRK": "Trừng phạt Triều Tiên",
+    "sancSDGT": "Hỗ trợ khủng bố",
+    "sancCYBER2": "Tấn công mạng",
+    "sancCMIC": "Trừng phạt Trung Quốc"
   },
   "report": {
     "ivPlainVol": "Biến động ngụ ý",

@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Physical Asset Tracking",
     "guideMethod5Desc": "Owners of real estate, yachts, and private jets can be identified through public registry and AIS/flight tracking data.",
     "guideMethod6Title": "Public Records",
-    "guideMethod6Desc": "Track legal and financial relationships via SEC EDGAR (U.S. filings), PACER (federal court records), and corporate registries worldwide."
+    "guideMethod6Desc": "Track legal and financial relationships via SEC EDGAR (U.S. filings), PACER (federal court records), and corporate registries worldwide.",
+    "sancRUSSIA": "Russia Sanctions",
+    "sancIRAN": "Iran Sanctions",
+    "sancDPRK": "North Korea Sanctions",
+    "sancSDGT": "Terrorism Support",
+    "sancCYBER2": "Cyber Attacks",
+    "sancCMIC": "China Sanctions"
   },
   "report": {
     "ivPlainVol": "Implied volatility",

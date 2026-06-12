@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Suivi d'Actifs Physiques",
     "guideMethod5Desc": "Les propriétaires de biens immobiliers, yachts et jets privés peuvent être identifiés via les registres publics et les données de suivi AIS/vol.",
     "guideMethod6Title": "Archives Publiques",
-    "guideMethod6Desc": "Suivez les relations juridiques et financières via SEC EDGAR (dépôts américains), PACER (archives des tribunaux fédéraux) et les registres des entreprises du monde entier."
+    "guideMethod6Desc": "Suivez les relations juridiques et financières via SEC EDGAR (dépôts américains), PACER (archives des tribunaux fédéraux) et les registres des entreprises du monde entier.",
+    "sancRUSSIA": "Sanctions Russie",
+    "sancIRAN": "Sanctions Iran",
+    "sancDPRK": "Sanctions Corée du Nord",
+    "sancSDGT": "Soutien au terrorisme",
+    "sancCYBER2": "Cyberattaques",
+    "sancCMIC": "Sanctions Chine"
   },
   "report": {
     "ivPlainVol": "Volatilité implicite",

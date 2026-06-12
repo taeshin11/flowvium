@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Rastreamento de Ativos Físicos",
     "guideMethod5Desc": "Os proprietários de imóveis, iates e jatos privados podem ser identificados por meio de registros públicos e dados de rastreamento AIS/voo.",
     "guideMethod6Title": "Registros Públicos",
-    "guideMethod6Desc": "Rastreie relações jurídicas e financeiras via SEC EDGAR (registros dos EUA), PACER (registros de tribunais federais) e registros corporativos em todo o mundo."
+    "guideMethod6Desc": "Rastreie relações jurídicas e financeiras via SEC EDGAR (registros dos EUA), PACER (registros de tribunais federais) e registros corporativos em todo o mundo.",
+    "sancRUSSIA": "Sanções à Rússia",
+    "sancIRAN": "Sanções ao Irã",
+    "sancDPRK": "Sanções à Coreia do Norte",
+    "sancSDGT": "Apoio ao terrorismo",
+    "sancCYBER2": "Ciberataques",
+    "sancCMIC": "Sanções à China"
   },
   "report": {
     "ivPlainVol": "Volatilidade implícita",

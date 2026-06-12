@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "Seguimiento de Activos Físicos",
     "guideMethod5Desc": "Los propietarios de bienes raíces, yates y jets privados pueden identificarse mediante registros públicos y datos de seguimiento AIS/vuelos.",
     "guideMethod6Title": "Registros Públicos",
-    "guideMethod6Desc": "Rastree relaciones legales y financieras a través de SEC EDGAR (presentaciones de EE.UU.), PACER (registros de tribunales federales) y registros corporativos de todo el mundo."
+    "guideMethod6Desc": "Rastree relaciones legales y financieras a través de SEC EDGAR (presentaciones de EE.UU.), PACER (registros de tribunales federales) y registros corporativos de todo el mundo.",
+    "sancRUSSIA": "Sanciones a Rusia",
+    "sancIRAN": "Sanciones a Irán",
+    "sancDPRK": "Sanciones a Corea del Norte",
+    "sancSDGT": "Apoyo al terrorismo",
+    "sancCYBER2": "Ciberataques",
+    "sancCMIC": "Sanciones a China"
   },
   "report": {
     "ivPlainVol": "Volatilidad implícita",

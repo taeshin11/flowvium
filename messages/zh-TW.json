@@ -1104,7 +1104,13 @@
     "guideMethod5Title": "實物資產追蹤",
     "guideMethod5Desc": "房產、遊艇、私人飛機的所有者可透過公開登記/航跡資料查詢確認。",
     "guideMethod6Title": "公開記錄運用",
-    "guideMethod6Desc": "透過SEC EDGAR（美國揭露）、PACER（聯邦法院記錄）、各國企業登記處了解法律和財務關係。"
+    "guideMethod6Desc": "透過SEC EDGAR（美國揭露）、PACER（聯邦法院記錄）、各國企業登記處了解法律和財務關係。",
+    "sancRUSSIA": "俄羅斯制裁",
+    "sancIRAN": "伊朗制裁",
+    "sancDPRK": "北韓制裁",
+    "sancSDGT": "恐怖主義支持",
+    "sancCYBER2": "網路攻擊",
+    "sancCMIC": "中國制裁"
   },
   "report": {
     "ivPlainVol": "隱含波動率",
