@@ -40,7 +40,7 @@
   "hero": {
     "title": "Temukan Risiko Rantai Pasok Tersembunyi",
     "subtitle": "Sebelum Menjadi Berita Utama",
-    "description": "Flowvium memetakan koneksi tak terlihat antara perusahaan, pemasok, dan peristiwa global — memberi Anda keunggulan untuk mengantisipasi gangguan sebelum merambat.",
+    "description": "AI menganalisis 1.300+ saham (rantai pasok, berita, aliran dana, sinyal makro) dan otomatis memberikan rekomendasi beli/jual, peringatan dini risiko, dan 5 laporan pasar per hari.",
     "cta": "Mulai Jelajahi",
     "ctaSecondary": "Lihat Demo",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "Kepemilikan institusional (EDGAR 13F) — Cron harian 02:00 UTC · Liputan media (Alpha Vantage) — 25 ticker/hari · Data dasar: penelitian 2026-Q1"
   },
   "home": {
-    "heroHeadline": "Lacak ke mana <accent>uang pintar</accent> mengalir melalui rantai pasok",
+    "heroHeadline": "<accent>AI</accent> melacak aliran smart money dan menulis laporan investasi harian Anda",
     "exploreSupplyChains": "Jelajahi Rantai Pasok",
     "viewSignals": "Lacak Akumulasi Institusional",
     "livePreview": "Pratinjau Langsung",

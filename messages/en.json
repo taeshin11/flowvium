@@ -40,7 +40,7 @@
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
     "subtitle": "Before They Become Headlines",
-    "description": "Flowvium maps the invisible connections between companies, suppliers, and global events — giving you the edge to anticipate disruptions before they cascade.",
+    "description": "AI analyzes 1,300+ stocks across supply chains, news, flows and macro signals — and automatically delivers buy/sell picks, early risk warnings, and 5 market reports a day.",
     "cta": "Start Exploring",
     "ctaSecondary": "Watch Demo",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "Institutional holdings (EDGAR 13F) — Daily 02:00 UTC cron · Media coverage (Alpha Vantage) — 25 tickers/day · Static baseline: 2026-Q1 research"
   },
   "home": {
-    "heroHeadline": "Track where <accent>smart money</accent> flows through the supply chain",
+    "heroHeadline": "<accent>AI</accent> tracks smart money flows and writes your daily investment report",
     "exploreSupplyChains": "Explore Supply Chains",
     "viewSignals": "Track Institutional Accumulation",
     "livePreview": "Live Supply Chain Preview",

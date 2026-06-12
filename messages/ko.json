@@ -40,7 +40,7 @@
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",
     "subtitle": "뉴스에 나오기 전에",
-    "description": "Flowvium는 기업, 공급업체, 글로벌 이벤트 사이의 보이지 않는 연결고리를 추적하여 연쇄적 혼란이 발생하기 전에 선제적으로 대응할 수 있도록 합니다.",
+    "description": "AI가 1,300+ 종목과 공급망·뉴스·수급·거시 지표를 종합 분석해 매수·매도 추천, 위험 조기경보, 일 5회 시장 리포트를 자동으로 만들어 드립니다.",
     "cta": "탐색 시작하기",
     "ctaSecondary": "데모 보기",
     "features": {
@@ -651,7 +651,7 @@
     "contactText": "질문이 있거나 파트너십을 원하시면 언제든 연락주세요."
   },
   "home": {
-    "heroHeadline": "<accent>스마트 머니</accent>가 공급망을 통해 어디로 흐르는지 추적하세요",
+    "heroHeadline": "<accent>AI</accent>가 스마트 머니의 흐름을 추적하고 매일 투자 리포트까지 써 드립니다",
     "exploreSupplyChains": "공급망 탐색하기",
     "viewSignals": "기관 매집 추적",
     "livePreview": "실시간 공급망 미리보기",

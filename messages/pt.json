@@ -40,7 +40,7 @@
   "hero": {
     "title": "Descubra Riscos Ocultos na Cadeia de Suprimentos",
     "subtitle": "Antes Que Virem Manchete",
-    "description": "O Flowvium mapeia as conexões invisíveis entre empresas, fornecedores e eventos globais — oferecendo a vantagem de antecipar interrupções antes que se propaguem.",
+    "description": "A IA analisa mais de 1.300 ações (cadeias de suprimento, notícias, fluxos e sinais macro) e entrega automaticamente recomendações, alertas antecipados de risco e 5 relatórios de mercado por dia.",
     "cta": "Começar a Explorar",
     "ctaSecondary": "Ver Demonstração",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "Posições institucionais (EDGAR 13F) — Cron diário 02:00 UTC · Cobertura de mídia (Alpha Vantage) — 25 tickers/dia · Dados base: pesquisa 2026-Q1"
   },
   "home": {
-    "heroHeadline": "Rastreie para onde flui o <accent>smart money</accent> através da cadeia de suprimentos",
+    "heroHeadline": "A <accent>IA</accent> rastreia os fluxos de smart money e escreve seu relatório diário de investimentos",
     "exploreSupplyChains": "Explorar cadeias de suprimentos",
     "viewSignals": "Rastrear Acumulação Institucional",
     "livePreview": "Preview ao vivo",

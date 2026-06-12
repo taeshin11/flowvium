@@ -40,7 +40,7 @@
   "hero": {
     "title": "Verborgene Lieferkettenrisiken aufdecken",
     "subtitle": "Bevor sie Schlagzeilen machen",
-    "description": "Flowvium kartiert die unsichtbaren Verbindungen zwischen Unternehmen, Zulieferern und globalen Ereignissen — und verschafft Ihnen den Vorsprung, Störungen vorherzusehen, bevor sie sich ausbreiten.",
+    "description": "Die KI analysiert über 1.300 Aktien (Lieferketten, Nachrichten, Kapitalflüsse, Makrosignale) und liefert automatisch Kauf-/Verkaufsempfehlungen, Frühwarnungen und 5 Marktberichte pro Tag.",
     "cta": "Jetzt erkunden",
     "ctaSecondary": "Demo ansehen",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "Institutionelle Positionen (EDGAR 13F) — Täglich 02:00 UTC Cron · Medienberichterstattung (Alpha Vantage) — 25 Ticker/Tag · Basisdaten: 2026-Q1 Forschung"
   },
   "home": {
-    "heroHeadline": "Verfolgen Sie, wohin <accent>Smart Money</accent> durch die Lieferkette fließt",
+    "heroHeadline": "Die <accent>KI</accent> verfolgt Smart-Money-Ströme und schreibt Ihren täglichen Anlagebericht",
     "exploreSupplyChains": "Lieferketten erkunden",
     "viewSignals": "Institutionelle Akkumulation verfolgen",
     "livePreview": "Live-Vorschau der Lieferkette",

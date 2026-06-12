@@ -40,7 +40,7 @@
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",
     "subtitle": "Trước khi chúng trở thành tin nóng",
-    "description": "Flowvium lập bản đồ các mối liên kết vô hình giữa doanh nghiệp, nhà cung cấp và sự kiện toàn cầu — giúp bạn dự đoán gián đoạn trước khi chúng lan rộng.",
+    "description": "AI phân tích hơn 1.300 cổ phiếu qua chuỗi cung ứng, tin tức, dòng tiền và tín hiệu vĩ mô — tự động đưa ra khuyến nghị mua/bán, cảnh báo rủi ro sớm và 5 báo cáo thị trường mỗi ngày.",
     "cta": "Bắt đầu khám phá",
     "ctaSecondary": "Xem demo",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "Nắm giữ thể chế (EDGAR 13F) — Cron hàng ngày 02:00 UTC · Phủ sóng truyền thông (Alpha Vantage) — 25 ticker/ngày · Dữ liệu cơ sở: nghiên cứu 2026-Q1"
   },
   "home": {
-    "heroHeadline": "Theo dõi <accent>tiền thông minh</accent> chảy qua chuỗi cung ứng",
+    "heroHeadline": "<accent>AI</accent> theo dõi dòng tiền thông minh và viết báo cáo đầu tư hằng ngày cho bạn",
     "exploreSupplyChains": "Khám phá chuỗi cung ứng",
     "viewSignals": "Theo dõi tích lũy tổ chức",
     "livePreview": "Xem trước trực tiếp",

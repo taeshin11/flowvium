@@ -40,7 +40,7 @@
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",
     "subtitle": "Avant qu'ils ne fassent la une",
-    "description": "Flowvium cartographie les connexions invisibles entre les entreprises, les fournisseurs et les événements mondiaux — vous donnant l'avantage d'anticiper les perturbations avant qu'elles ne se propagent.",
+    "description": "L'IA analyse plus de 1 300 actions (chaînes d'approvisionnement, actualités, flux, signaux macro) et fournit automatiquement des recommandations, des alertes précoces et 5 rapports de marché par jour.",
     "cta": "Commencer l'exploration",
     "ctaSecondary": "Voir la démo",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "Positions institutionnelles (EDGAR 13F) — Cron quotidien 02:00 UTC · Couverture médias (Alpha Vantage) — 25 tickers/jour · Données base: recherche 2026-Q1"
   },
   "home": {
-    "heroHeadline": "Suivez où le <accent>smart money</accent> circule dans la chaîne d'approvisionnement",
+    "heroHeadline": "L'<accent>IA</accent> suit les flux de smart money et rédige votre rapport d'investissement quotidien",
     "exploreSupplyChains": "Explorer les chaînes d'approvisionnement",
     "viewSignals": "Suivre l'accumulation institutionnelle",
     "livePreview": "Aperçu en direct de la chaîne d'approvisionnement",

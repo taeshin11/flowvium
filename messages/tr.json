@@ -40,7 +40,7 @@
   "hero": {
     "title": "Gizli Tedarik Zinciri Risklerini Keşfedin",
     "subtitle": "Manşetlere Çıkmadan Önce",
-    "description": "Flowvium, şirketler, tedarikçiler ve küresel olaylar arasındaki görünmez bağlantıları haritalandırır — aksaklıklar yayılmadan önce öngörmenizi sağlar.",
+    "description": "Yapay zeka 1.300+ hisseyi tedarik zinciri, haber, akış ve makro sinyallerle analiz eder; alım/satım önerileri, erken risk uyarıları ve günde 5 piyasa raporunu otomatik sunar.",
     "cta": "Keşfetmeye Başla",
     "ctaSecondary": "Demoyu İzle",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "Kurumsal pozisyonlar (EDGAR 13F) — Günlük 02:00 UTC cron · Medya kapsamı (Alpha Vantage) — 25 ticker/gün · Temel veriler: 2026-Q1 araştırma"
   },
   "home": {
-    "heroHeadline": "<accent>Akıllı paranın</accent> tedarik zincirinde nereye aktığını takip edin",
+    "heroHeadline": "<accent>Yapay zeka</accent> akıllı para akışlarını izler ve günlük yatırım raporunuzu yazar",
     "exploreSupplyChains": "Tedarik Zincirlerini Keşfedin",
     "viewSignals": "Kurumsal Birikimi Takip Et",
     "livePreview": "Canlı Önizleme",

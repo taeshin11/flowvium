@@ -40,7 +40,7 @@
   "hero": {
     "title": "发现隐藏的供应链风险",
     "subtitle": "在成为新闻之前",
-    "description": "Flowvium 追踪企业、供应商和全球事件之间的隐形关联，帮助您在连锁冲击发生之前提前预判。",
+    "description": "AI综合分析1,300+只股票的供应链、新闻、资金流与宏观信号，自动提供买卖建议、风险预警和每日5次市场报告。",
     "cta": "开始探索",
     "ctaSecondary": "观看演示",
     "features": {
@@ -480,7 +480,7 @@
     "dataScheduleDetail": "机构持仓（EDGAR 13F）— 每日02:00 UTC定时 · 媒体报道（Alpha Vantage）— 每日25个标的 · 静态基准：2026-Q1研究"
   },
   "home": {
-    "heroHeadline": "追踪<accent>聪明资金</accent>在供应链中的流向",
+    "heroHeadline": "<accent>AI</accent>追踪聪明钱的流向，并为您撰写每日投资报告",
     "exploreSupplyChains": "探索供应链",
     "viewSignals": "追踪机构建仓",
     "livePreview": "实时供应链预览",
