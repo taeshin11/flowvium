@@ -82,6 +82,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ translated: text, source: 'garbage-fallback' });
     }
 
+    // 2026-06-12 instruction-echo 가드 (ALLE "출력은 목표 언어만으로 하세요" 사건): 짧은 입력에서
+    //   소형 모델이 프롬프트 지시문을 번역해 echo — 출력이 전부 한글이라 bleed 검사를 통과하고
+    //   30d 캐시에 오염 저장됨. 지시문 조각 검출 또는 비정상 길이 팽창(4x+40) 시 원문 fallback.
+    const ECHO_FRAGMENTS = /목표 언어|포함하지 마세요|外国|문자를 포함|Output ONLY|target language|foreign script|no explanations|번역만|Translate the following/i;
+    if (ECHO_FRAGMENTS.test(translated) || translated.length > text.length * 4 + 40) {
+      logger.warn('api.translate', 'instruction_echo_detected', { targetLocale, inLen: text.length, outLen: translated.length, sample: translated.slice(0, 80) });
+      return NextResponse.json({ translated: text, source: 'echo-fallback' });
+    }
+
     // 3. Store in Redis (loggedRedisSet 사용 — CLAUDE.md 규칙)
     if (redis && translated) {
       try {
