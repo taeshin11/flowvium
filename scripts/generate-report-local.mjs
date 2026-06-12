@@ -995,7 +995,9 @@ async function uploadFromFile(filePath) {
 
 // ── 업로드 검증 ────────────────────────────────────────────────────────────────
 async function verifyUploadSource(locale) {
-  const APP_BASE_URL = (env.NEXT_PUBLIC_APP_URL || env.NEXT_PUBLIC_SITE_URL || 'https://flowvium.vercel.app')
+  // 2026-06-12: 기본값 vercel.app(사망 배포) → localhost — 자가호스팅 후 매 발간 404 로
+  //   업로드 검증이 죽어 있었음 (검증 프로브 자체가 stale 인프라를 가리키던 사각지대).
+  const APP_BASE_URL = (env.NEXT_PUBLIC_APP_URL || env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
     .replace(/\s+/g, '').replace(/\/+$/, '');
   try {
     const res = await fetch(
@@ -4695,10 +4697,23 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
     // 2026-06-12: 매도권장 시작일 (사용자 "분할익절 이전 권장했던 날짜도") — 같은 종목·같은 유형의
     //   첫 권장일을 DB 에서 조회. 권고가 며칠째 이어지는지 타임라인 명시 (오늘 처음이면 오늘 날짜).
     try {
+      // 주의: DB sell_type 은 후단 LLM override(c.sellType)라 ruleId 와 자주 불일치 (PVH:
+      //   ruleId=price_target_near 가 stop_breach 로 적재된 실측). 정확 일치 대신 UI sellKind 와
+      //   동일한 4그룹(익절/손절/신호악화/매크로)으로 묶어 "같은 성격의 권고가 언제 시작됐나" 매칭.
+      const sellKindGroup = (t) => {
+        if (!t) return 'macro';
+        if (t === 'price_target_near' || t === 'target_near' || t === 'rotation_profit') return 'profit';
+        if (t.startsWith('price_stop') || t.startsWith('stop_') || t === 'rotation_loss') return 'stop';
+        if (/^(tech_|fund_|guru_)/.test(t) || t === 'dead_cross' || t === 'RSI_overbought'
+          || ['micro_news_negative', 'micro_insider_selling', 'micro_13f_distribution'].includes(t)) return 'weak';
+        return 'macro';
+      };
       const fdb = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });  // 위 db 는 이미 close 됨
-      const firstSellStmt = fdb.prepare(`SELECT MIN(generated_at) mn FROM sell_recommendations WHERE ticker = ? AND sell_type = ?`);
+      const rowsStmt = fdb.prepare(`SELECT sell_type, generated_at FROM sell_recommendations WHERE ticker = ?`);
       for (const c of candidates) {
-        const mn = firstSellStmt.get(c.ticker, c.ruleId)?.mn;
+        const grp = sellKindGroup(c.ruleId);
+        const mins = rowsStmt.all(c.ticker).filter((r) => sellKindGroup(r.sell_type) === grp).map((r) => r.generated_at).sort();
+        const mn = mins[0];
         if (mn) c.firstSellDate = new Date(new Date(mn + (String(mn).endsWith('Z') ? '' : 'Z')).getTime() + 9 * 3600000).toISOString().slice(0, 10);
       }
       fdb.close();
@@ -5782,7 +5797,10 @@ async function generateViaOllama() {
     for (const c of [...sellCands.us, ...sellCands.kr]) {
       const llm = recMap.get(c.ticker.toUpperCase());
       c.rationale = llm?.rationale ?? c.reason;
-      c.sellType = llm?.sellType ?? c.ruleId; // LLM 이 override 안 하면 룰 ID 그대로
+      // 2026-06-12: LLM sellType override 제거 — 분류는 룰엔진의 결정론 사실 ("숫자는 코드가").
+      //   실측: PVH ruleId=price_target_near 를 LLM 이 stop_breach 로 오분류 적재 → firstSellDate
+      //   kind-group 매칭 실패. LLM 은 rationale 문장만 담당.
+      c.sellType = c.ruleId;
       // urgency 는 룰에서 정의된 값 사용 (LLM override 허용)
       if (llm?.urgency) c.urgency = llm.urgency;
     }

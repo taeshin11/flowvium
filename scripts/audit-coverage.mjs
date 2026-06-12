@@ -392,7 +392,15 @@ try {
       //   시 'T'(84)>' '(32)로 시간 뒤집힘. strftime ISO-T 로 양쪽 통일(format-mismatch 버그 fix).
       const recentBuy = db.prepare(`SELECT MAX(generated_at) lb FROM recommendations WHERE ticker=? AND substr(generated_at,1,19) >= strftime('%Y-%m-%dT%H:%M:%S','now','-18 hours')`).get(c.ticker).lb;
       if (recentBuy) {
-        err(`${c.ticker}: 최근18h buy(${recentBuy.slice(5, 16)})+펀더멘털sell — 정합 게이트 우회 의심`);
+        // 2026-06-12: 순서 인지 — "우회"는 매수가 *기존* 펀더멘털 sell 신호를 무시하고 나온 경우만
+        //   (sell 이 매수보다 먼저 존재). sell 이 매수 이후 등장한 건 신규 정보 도착(whipsaw 모니터링
+        //   대상, warn)이지 게이트 결함이 아님. 실측: FTV/MOH 둘 다 sell-after-buy 인데 ❌ 오탐.
+        const priorSell = db.prepare(`SELECT MAX(generated_at) ls FROM sell_recommendations WHERE ticker=? AND (sell_type LIKE '%margin%' OR sell_type LIKE '%fund%' OR rationale LIKE '%악화%') AND generated_at < ?`).get(c.ticker, recentBuy).ls;
+        if (priorSell) {
+          err(`${c.ticker}: buy(${recentBuy.slice(5, 16)})가 기존 펀더멘털sell(${priorSell.slice(5, 16)}) 무시 — 정합 게이트 우회`);
+        } else {
+          warn(`${c.ticker}: buy(${recentBuy.slice(5, 16)}) 후 펀더멘털sell 등장 — whipsaw 추적 (게이트 결함 아님, 신규 정보)`);
+        }
       } else {
         warn(`${c.ticker}: buy${c.buys}+sell${c.sells} but 최근 매수 18h+ 전 — 게이트 도입前 과거분 aging out`);
       }
