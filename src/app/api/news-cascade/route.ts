@@ -11,7 +11,7 @@ function backgroundTask(fn: () => Promise<unknown>): void {
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
-import { localChat, localChatNoBleed } from '@/lib/llm-local';
+import { localChat, localChatNoBleed, hasChineseBleed } from '@/lib/llm-local';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -301,7 +301,9 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     try {
       const ai = await callAI(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes.\n\n${text}`, { maxTokens: 800, temperature: 0.1, skipVllm: true, preferSmallModel: true, timeoutMs: 15000, tag: 'news-cascade.per-field' });
       const t2 = ai.text?.trim();
-      if (t2 && t2 !== text.trim() && (!tgtRe || tgtRe.test(t2))) return keep(t2);
+      // 2026-06-13: 한글 포함만 검사하던 구멍 — 반쪽 번역(ザ 랜드마크 名古屋栄의…, 가나/한자 잔존
+      //   +한글 혼합)이 통과해 30d 증분 캐시에 오염 저장된 사건. bleed 검사 동반 필수.
+      if (t2 && t2 !== text.trim() && (!tgtRe || tgtRe.test(t2)) && !hasChineseBleed(t2, locale)) return keep(t2);
     } catch { /* 원문 유지 */ }
     return text;
   };
