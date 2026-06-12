@@ -4374,6 +4374,16 @@ async function fetchBuyFundSignals(tickers) {
   return out;
 }
 
+// 2026-06-12: 레버리지/인버스 ETF 식별 — 추천은 허용(사용자 "레버리지도 추천해도 되"), 단
+//   선물 롤오버/일일 리밸런싱 가치소멸 특성을 발간물 riskNote 에 결정론 경고로 자동 부착.
+const LEVERAGED_ETF_SET = new Set(['UVXY', 'UVIX', 'SVXY', 'VIXY', 'TQQQ', 'SQQQ', 'SPXU', 'UPRO', 'SOXL', 'SOXS', 'SDOW', 'UDOW', 'TZA', 'TNA', 'LABU', 'LABD', 'FAS', 'FAZ']);
+let NAMES_FOR_ETF = {};
+try { NAMES_FOR_ETF = JSON.parse(readFileSync(resolve(ROOT, 'data/company-names.json'), 'utf8')); } catch { /* */ }
+function isLeveragedEtf(t) {
+  return LEVERAGED_ETF_SET.has(t) ||
+    /\b(ultra|2x|3x|-1x|inverse|leveraged|daily (bull|bear)|short (vix|s&p|qqq|dow))\b/i.test(NAMES_FOR_ETF[t] ?? '');
+}
+
 // 2026-06-12: 시장별 쿼터 슬라이스 — 사용자 "KR 350+ 전 종목 다 고려?" 실측: stage-1 신호
 //   (insider=SEC Form4·squeeze=US 공매도·뉴스갭=US IB)가 미국 위주라 KR(풀 35%)이 주간 top30 의
 //   2%만 진입 — 룰 경쟁에서 구조적 배제. 시장 내 점수순으로 KR 슬롯을 보장해 시장중립 룰
@@ -4407,26 +4417,15 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     catch { return { meta: {} }; }
   })();
 
-  // 2026-06-12(v2, 사용자 피드백 "ETF 추천해도 되"): 일반 ETF(SPY/QQQ/섹터)는 퍼널 유지 — 기술/
-  //   가격/회전/거시 룰은 ETF 에도 유효, 재무/내부자 룰은 데이터 부재 시 자연 미발화라 평가 공정.
-  //   **레버리지/인버스 ETF 만 제외** (UVXY 사건의 본질): 선물 롤오버/일일 리밸런싱 복리붕괴로
-  //   장기보유 시 구조적 가치소멸 — "보유 전제 매수추천+목표가" 프레임 부적합 (단기 트레이딩 전용 상품).
-  const LEVERAGED_EXPLICIT = new Set(['UVXY', 'UVIX', 'SVXY', 'VIXY', 'TQQQ', 'SQQQ', 'SPXU', 'UPRO', 'SOXL', 'SOXS', 'SDOW', 'UDOW', 'TZA', 'TNA', 'LABU', 'LABD', 'FAS', 'FAZ']);
-  const namesForEtf = (() => {
-    try { return JSON.parse(readFileSync(resolve(ROOT, 'data/company-names.json'), 'utf8')); }
-    catch { return {}; }
-  })();
-  const isLeveragedEtf = (t) => LEVERAGED_EXPLICIT.has(t) ||
-    /\b(ultra|2x|3x|-1x|inverse|leveraged|daily (bull|bear)|short (vix|s&p|qqq|dow))\b/i.test(namesForEtf[t] ?? '');
+  // 2026-06-12(v3, 사용자 "레버리지도 추천해도 되"): 제외 없음 — 전 상품 퍼널 참여.
+  //   레버리지/인버스는 발간직전 게이트에서 결정론 경고 라벨만 부착 (isLeveragedEtf, 모듈 스코프).
 
   // ── Stage 1 (light): 모든 livePrices ticker 에 대해 macro/sector/region/insider/squeeze/news/boost ──
   const allTickers = [...livePrices.keys()];
   console.log(`  [buy-cand Stage 1] ${allTickers.length} ticker 가벼운 score 계산...`);
   const stage1Scored = [];
-  let etfSkipped = 0;
   for (const ticker of allTickers) {
     if (banList.has(ticker)) continue;
-    if (isLeveragedEtf(ticker)) { etfSkipped++; continue; }  // 레버리지/인버스만 제외 (장기보유 부적합)
     const pd = livePrices.get(ticker);
     if (!pd?.price) continue;
     const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
@@ -4465,7 +4464,6 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     if (cumScore <= -50) continue; // ban
     if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price });
   }
-  if (etfSkipped) console.log(`  [buy-cand] 레버리지/인버스 ETF ${etfSkipped}종 제외 (롤오버 가치소멸 — 보유전제 추천 부적합. 일반 ETF 는 퍼널 유지)`);
   stage1Scored.sort((a, b) => b.stage1Score - a.stage1Score);
   const stage2Cands = sliceWithKrQuota(stage1Scored, 100, 30); // top 100 → Stage 2 (KR 30 슬롯 보장)
 
@@ -6936,6 +6934,15 @@ async function generateViaOllama() {
     if (n) console.log(`  [business/final] rotation/pool 추가 종목 주력사업 재주입 ${n}건`);
     const noBiz = (finalReport.portfolio || []).filter((p) => !p.businessSummary && !p.businessDesc).map((p) => p.ticker);
     if (noBiz.length) console.warn(`  ⚠️ [business/final] company-business.json 미수록 ${noBiz.length}종: ${noBiz.join(', ')} — build-company-business.mjs CURATED 보강 필요`);
+  }
+
+  // 2026-06-12: 레버리지/인버스 ETF 경고 라벨 (추천 허용 + 상품 특성 정직 고지 — 결정론, LLM 무관)
+  for (const p of finalReport.portfolio ?? []) {
+    if (p.ticker && isLeveragedEtf(p.ticker)) {
+      const warn = '⚠️ 레버리지/인버스 ETF — 일일 리밸런싱·선물 롤오버로 장기보유 시 가치소멸, 단기 트레이딩 전용 상품.';
+      if (!String(p.riskNote ?? '').includes('레버리지/인버스')) p.riskNote = `${warn} ${p.riskNote ?? ''}`.trim();
+      console.log(`  [leveraged-label] ${p.ticker} 경고 라벨 부착`);
+    }
   }
 
   // 2026-06-12: [reconcile/final] 매수∩매도 겹침 최종 게이트 — 경합심사는 rotation 前 실행이라
