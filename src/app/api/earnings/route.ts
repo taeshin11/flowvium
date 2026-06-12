@@ -1,4 +1,4 @@
-/**
+﻿/**
  * /api/earnings
  *
  * Primary: Finnhub 실적 캘린더 (무료 티어 60 req/min, FINNHUB_KEY 필요).
@@ -27,6 +27,52 @@ const UNIVERSE_US = new Set(
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
+// ── 2026-06-13: KR 실적 일정 (사용자 "/earnings KR 0건 — 미루지 말고 개선"). 무료 예정 캘린더
+//    API 부재 → 자본시장법 정기보고서 법정 제출기한으로 결정론 추정 (하드코딩 일정/추측 금지 원칙
+//    내에서 법규 기반): 분기·반기보고서 = 분기말+45일, 사업보고서 = 사업연도말+90일.
+//    estimate/actual 없음 + hour='deadline' 라벨로 "추정 기한"임을 명시. 대상은 KR 대형주만
+//    (allCompanies 의 .KS 보유 + 보고서 portfolio 류 — 전 universe 475개 같은 날 폭주 방지).
+const KR_MAJORS: Array<{ ticker: string; name: string }> = (() => {
+  try {
+    const meta = (candidateTickers as { meta?: Record<string, { name?: string; sector?: string }> }).meta ?? {};
+    // KOSPI(.KS) 중 meta name 보유 — 상위 노이즈 제한 위해 대형 섹터 우선 60개 cap
+    return Object.entries(meta)
+      .filter(([t]) => /\.KS$/.test(t))
+      .slice(0, 60)
+      .map(([t, m]) => ({ ticker: t, name: m.name ?? t }));
+  } catch { return []; }
+})();
+
+function krDeadlineEvents(from: string, to: string): EarningRow[] {
+  const year = new Date(from).getFullYear();
+  // (기한일, 분기, 라벨연도) — 해당 연도와 전후 연도 경계 커버
+  const deadlines: Array<{ date: string; quarter: number; year: number }> = [];
+  for (const y of [year - 1, year, year + 1]) {
+    deadlines.push(
+      { date: `${y}-05-15`, quarter: 1, year: y },
+      { date: `${y}-08-14`, quarter: 2, year: y },
+      { date: `${y}-11-14`, quarter: 3, year: y },
+      { date: `${y}-03-31`, quarter: 4, year: y - 1 },   // 사업보고서 (전년 결산)
+    );
+  }
+  const inRange = deadlines.filter(d => d.date >= from && d.date <= to);
+  if (!inRange.length) return [];
+  const rows: EarningRow[] = [];
+  for (const d of inRange) {
+    for (const k of KR_MAJORS) {
+      rows.push({
+        date: d.date, symbol: k.ticker, companyName: k.name,
+        epsActual: null, epsEstimate: null, revenueActual: null, revenueEstimate: null,
+        epsSurprise: null, revenueSurprise: null,
+        hour: '',
+        session: 'deadline',
+        quarter: d.quarter, year: d.year,
+      } as unknown as EarningRow);
+    }
+  }
+  return rows;
+}
 
 const CACHE_TTL = 2 * 60 * 60; // 2h
 const ALLOWED_SPAN_DAYS = 30;
@@ -375,6 +421,7 @@ export async function GET(req: Request) {
     const symbols = Array.from(new Set(raw.map(e => e.symbol)));
     const nameMap = await resolveCompanyNames(redis, key, symbols);
     const enriched = raw.map(e => enrichRow(e, nameMap[e.symbol] ?? null))
+      .concat(krDeadlineEvents(from, to))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // 커버리지 메타 — estimate 채움률(미래 실적은 actual 자연 NULL 이므로 estimate 기준).

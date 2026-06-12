@@ -203,6 +203,46 @@ const out = {
   krNames: KR_TICKERS,
 };
 
+// ── 2026-06-13: 라이브 시총 재분류 (사용자 "티어 stale — 미루지 말고 개선"). 정적 enum 은
+//    2026년초 스냅샷이라 종목 성장/축소 시 어긋남 (rotation pool 의 티어 랭킹/분산에 사용됨).
+//    Yahoo v7 crumb 배치로 US 후보 전량 실시총 조회 → 임계 재분류. 실패 종목은 정적 유지.
+async function retierWithLiveCaps(metaObj) {
+  const usTickers = Object.keys(metaObj).filter(t => !/\.(KS|KQ)$/.test(t) && metaObj[t].cap !== 'etf');
+  if (!usTickers.length) return 0;
+  try {
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+    const cr = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': ua }, signal: AbortSignal.timeout(8000) });
+    const cookie = (cr.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).join('; ');
+    const crumb = await (await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(8000) })).text();
+    if (!crumb || crumb.includes('<')) { console.warn('  [retier] crumb 실패 — 정적 티어 유지'); return 0; }
+    let changed = 0;
+    for (let i = 0; i < usTickers.length; i += 100) {
+      const batch = usTickers.slice(i, i + 100).map(t => t.replace(/\./g, '-'));
+      const u = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(batch.join(','))}&fields=marketCap&crumb=${encodeURIComponent(crumb)}`;
+      const r = await fetch(u, { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(12000) });
+      if (!r.ok) continue;
+      const j = await r.json();
+      for (const q of j?.quoteResponse?.result ?? []) {
+        const t = q.symbol?.replace(/-/g, '.');
+        const cap = q.marketCap;
+        if (!t || !metaObj[t] || !cap) continue;
+        const tier = cap >= 1e12 ? 'titan' : cap >= 2e11 ? 'mega' : cap >= 1e10 ? 'large' : cap >= 2e9 ? 'mid' : 'small';
+        if (metaObj[t].cap !== tier) { metaObj[t].cap = tier; changed++; }
+      }
+      await new Promise(res => setTimeout(res, 300));
+    }
+    return changed;
+  } catch (e) { console.warn(`  [retier] 실패(정적 유지): ${String(e?.message).slice(0, 60)}`); return 0; }
+}
+const retiered = await retierWithLiveCaps(out.meta);
+if (retiered) {
+  // byBand 재집계 (meta 기준)
+  const counts = { titan: 0, mega: 0, large: 0, mid: 0, small: 0 };
+  for (const m of Object.values(out.meta)) if (counts[m.cap] != null) counts[m.cap]++;
+  out.byBand = { ...out.byBand, ...counts };
+  console.log(`  [retier] 라이브 시총 재분류 ${retiered}건`);
+}
+
 const outPath = resolve(ROOT, 'data/candidate-tickers.json');
 writeFileSync(outPath, JSON.stringify(out, null, 2), 'utf8');
 

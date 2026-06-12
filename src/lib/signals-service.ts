@@ -205,8 +205,16 @@ export async function getSignals(forceRefresh = false): Promise<SignalsResult> {
   const liveSignals = await get13FSignals();
   // 하드코딩 institutionalSignals 폴백 제거 — stale 데이터가 실데이터처럼 보이는 문제 방지.
   // 크론이 한 번도 안 돌았거나 Redis 비어있으면 빈 배열 반환 (투명한 실패).
+  // 2026-06-13: 구분기 filing 필터 (사용자 /signals 감사 "16개월 전 accumulating 이 현재 신호처럼
+  //   읽힘") — 13F 는 분기 공시라 2분기(190d) 이전 행은 현재 수급 신호로 무의미 → 제외.
+  //   실측: 2024-08~ filing 139행이 2026-05 행과 혼재 표시되던 것.
+  const FILING_MAX_AGE_MS = 190 * 86400000;
+  const freshSignals = (liveSignals ?? []).filter(s => {
+    const t = Date.parse(s.filingDate ?? '');
+    return Number.isFinite(t) && Date.now() - t <= FILING_MAX_AGE_MS;
+  });
   // EDGAR 13F는 자회사/계좌별 행 분리 → (institution, ticker) 기준으로 집계
-  const baseSignals = aggregateByInstitutionTicker(liveSignals ?? []);
+  const baseSignals = aggregateByInstitutionTicker(freshSignals);
   // 2026-06-13: 뉴스갭 소스가 Yahoo RSS(무키) 전환 — AV 키 게이트 제거.
 
   // === Try Redis cache ===
