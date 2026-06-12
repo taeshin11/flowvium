@@ -528,6 +528,20 @@ export async function verifyReport(file, { silent = false } = {}) {
     log(`  ⚠️ probe skip (Yahoo 미가용): ${e?.message}`);
   }
 
+  // 9b. 비현실 수익률 % (2026-06-12 KLAC "+1150.1% 급등" 사건 — Yahoo OHLCV 오염틱이 계산 통과)
+  //    발간물 전체에서 ±60% 초과 "급등/급락/%" 패턴 검출 — 데이터 오류가 표시문에 도달했는지 최종 검증.
+  log('\n## 비현실 수익률 % (±60% 초과)');
+  {
+    const flat = JSON.stringify(r);
+    const crazy = [...flat.matchAll(/[+\-](\d{2,4}(?:\.\d+)?)%\s*(?:급등|급락|surge|plunge)/g)]
+      .filter(m => parseFloat(m[1]) > 60).map(m => m[0]);
+    if (crazy.length) {
+      defects.push({ ticker: 'DATA', defect_type: 'unreal_return_pct',
+        llm_value: crazy.slice(0, 3).join(', '), correct_value: '±60% 초과 = 데이터 오류 (OHLCV 오염/분할 미조정)', severity: 'high' });
+      log(`  ❌ ${crazy.join(', ')}`);
+    } else log('  ✅ 없음');
+  }
+
   // 10. 매수∩매도 겹침 (2026-06-12 TSLA 양쪽 발간 사건 — rotation 이 경합심사 後 투입돼 미재심)
   log('\n## 매수∩매도 겹침 (양쪽 동시 발간 모순)');
   {

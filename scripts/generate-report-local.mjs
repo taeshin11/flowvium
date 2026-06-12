@@ -2528,6 +2528,17 @@ async function enrichSqueezePostEarnings(shortSqueeze, rawEarnings, livePrices, 
       const ohlcv = await fetchOHLCV(s.ticker, '5d');
       if (ohlcv?.closes?.length >= 2) {
         const closes = ohlcv.closes;
+        // 2026-06-12: OHLCV 무결성 가드 (KLAC "+1150.1% 급등" 사건 — Yahoo 시계열에 분할이벤트 없는
+        //   11배 점프 오염틱). 인접 종가 비율 1.8x 초과 = 데이터 오류 → 이 ticker 의 timing 갱신 skip.
+        //   (52w/MA 경로의 split 가드와 동일 원리 — 이 경로만 누락돼 있던 산재 불변식)
+        let corrupt = false;
+        for (let i = 1; i < closes.length; i++) {
+          if (closes[i - 1] > 0 && (closes[i] / closes[i - 1] > 1.8 || closes[i] / closes[i - 1] < 0.55)) { corrupt = true; break; }
+        }
+        if (corrupt) {
+          console.warn(`  [후처리] ${ticker} OHLCV 인접비율 이상(분할/오염틱 의심) → post-earnings 계산 skip`);
+          result.push(s); continue;
+        }
 
         if (earnInfo) {
           // 방법 A: 실적일 이후 누적 수익률
@@ -2566,6 +2577,11 @@ async function enrichSqueezePostEarnings(shortSqueeze, rawEarnings, livePrices, 
     // 실적 이벤트 없으면 그냥 통과
     if (!earnInfo) { result.push(s); continue; }
 
+    // 비현실 수익률 상한 — |60%| 초과는 데이터 오류로 간주 (밈주 극단도 ~40%대)
+    if (postReturn != null && Math.abs(postReturn) > 60) {
+      console.warn(`  [후처리] ${ticker} post-earnings ${postReturn}% 비현실 → 데이터 오류로 폐기`);
+      postReturn = null;
+    }
     const retStr = postReturn != null ? `${postReturn >= 0 ? '+' : ''}${postReturn}%` : null;
 
     if (postReturn != null && postReturn <= -5) {
@@ -4972,6 +4988,8 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     '- BAD why: "전환기의 투자 유입 증가" (too vague — no numbers, no named metrics, no events)',
     '- If no specific data point exists in context, write exactly: N/A',
     '- hotThemes: array of 2-4 strings, each ≤15 chars, in ${TARGET_LANG}, specific sector/technology names only.',
+    // 2026-06-12: "미국-이라의 평화협정" 사건 — 뉴스의 약어(US-IR)를 절단된 국가명으로 출력.
+    '- Country names: NEVER abbreviate or truncate. Write full names (이란/이라크/사우디아라비아, NOT 이라/IR/사우디아). If unsure of the country, omit it.',
     'Pure JSON only.',
   ].join('\n');
 }
