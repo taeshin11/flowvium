@@ -66,6 +66,16 @@ function T({ text }: { text: string }) {
   return <>{translated}</>;
 }
 
+// 2026-06-12: 관련 종목 이름 표시 (사용자 "다 숫자코드로만 나와서 어딘지도 모르겠다" — KT&G 사건).
+//   UNIVERSE_SEARCH 권위 소스 (KR 한글명 포함, 1338종) — ReportPage displayName 과 동일 패턴.
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
+const TICKER_NAME: Record<string, string> = Object.fromEntries(UNIVERSE_SEARCH.map((c) => [c.ticker, c.name]));
+
+// RSS 제목의 HTML 엔티티 디코드 (&quot; 등이 그대로 노출되던 결함)
+function decodeEntities(s: string): string {
+  return s.replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ');
+}
+
 const COLORS = ['#4F8FBF', '#6CB4A8', '#E8A945', '#D97171', '#5CB88A', '#7C5CFC'];
 
 const relationshipColors: Record<string, string> = {
@@ -775,7 +785,10 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             <div className="space-y-1">
               {recs.slice(0, 6).map((rec) => (
                 <Link key={rec.symbol} href={`/company/${rec.symbol}`} className="flex items-center justify-between p-1.5 rounded hover:bg-white/5 transition-colors group">
-                  <span className="text-xs font-mono font-bold text-cf-text-primary group-hover:text-cf-primary">{rec.symbol}</span>
+                  <span className="text-xs text-cf-text-primary group-hover:text-cf-primary">
+                    <span className="font-bold">{TICKER_NAME[rec.symbol] ?? rec.symbol}</span>
+                    {TICKER_NAME[rec.symbol] && <span className="ml-1.5 text-[10px] font-mono text-cf-text-secondary opacity-70">{rec.symbol}</span>}
+                  </span>
                   {rec.changePct != null && (<span className={`text-[11px] font-semibold ${rec.changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>{rec.changePct >= 0 ? '+' : ''}{rec.changePct.toFixed(2)}%</span>)}
                 </Link>
               ))}
@@ -897,8 +910,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             <div className="space-y-2">
               {companyNews.news.slice(0, 5).map((n, i) =>
                 n.link
-                  ? <a key={i} href={n.link} target="_blank" rel="noopener noreferrer" className="block text-xs text-cf-text-primary hover:text-cf-accent truncate">{n.title}</a>
-                  : <span key={i} className="block text-xs text-cf-text-secondary truncate">{n.title}</span>
+                  ? <a key={i} href={n.link} target="_blank" rel="noopener noreferrer" className="block text-xs text-cf-text-primary hover:text-cf-accent truncate">{decodeEntities(n.title)}</a>
+                  : <span key={i} className="block text-xs text-cf-text-secondary truncate">{decodeEntities(n.title)}</span>
               )}
             </div>
           </div>
@@ -1750,9 +1763,9 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                       className="block p-3 rounded-lg hover:bg-white/5 transition-colors group border border-transparent hover:border-white/10">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-cf-text-primary leading-snug group-hover:text-cf-primary transition-colors line-clamp-2">{item.title}</p>
+                          <p className="text-sm font-semibold text-cf-text-primary leading-snug group-hover:text-cf-primary transition-colors line-clamp-2">{decodeEntities(item.title)}</p>
                           {item.description && (
-                            <p className="text-xs text-cf-text-secondary mt-0.5 line-clamp-1">{item.description}</p>
+                            <p className="text-xs text-cf-text-secondary mt-0.5 line-clamp-1">{decodeEntities(item.description)}</p>
                           )}
                         </div>
                         <span className="text-[10px] text-cf-text-secondary/60 flex-shrink-0 whitespace-nowrap">{item.source}</span>

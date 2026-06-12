@@ -10,6 +10,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import Database from 'better-sqlite3';
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
+
+// 2026-06-12: KR 이름 폴백 — company-names.json 은 SEC(US) 추출이라 KR 미커버 (KT&G name null 사건)
+const UNIV_NAME: Record<string, string> = Object.fromEntries(UNIVERSE_SEARCH.map((c) => [c.ticker, c.name]));
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +75,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   const products = dynProducts || hit?.products || null;
   const desc = hit?.desc || null;
   const profile = loadProfiles()[t] ?? null;
-  const name = profile?.name ?? loadNames()[t] ?? null;
+  const name = profile?.name ?? loadNames()[t] ?? UNIV_NAME[t] ?? null;
   if (!products && !desc && !profile) {
     return NextResponse.json({ ticker: t, name, products: null, desc: null, profile: null, source: 'none' });
   }

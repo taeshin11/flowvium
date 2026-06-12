@@ -38,8 +38,10 @@ const prev = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : {};
 // 2026-06-12: --tickers= 모드 — 보고서 파이프라인이 portfolio 신규 종목을 즉석 보강 (사용자
 //   "보고서에 새 종목 잡힐 때마다 풀페이지"). 후보 풀 제약 없이 명시 종목 수집.
 const tickersArg = process.argv.find(a => a.startsWith('--tickers='));
+// 2026-06-12: --tickers 모드는 KR(.KS/.KQ) 도 허용 — Yahoo assetProfile 이 KR 도 지원하는데
+//   "KR 은 DART 가 커버" 가정으로 제외했더니 KT&G 페이지 사업설명 전무 (사용자 "AAPL 에 비해 부실").
 const todo = tickersArg
-  ? tickersArg.split('=')[1].split(',').map(t => t.trim().toUpperCase()).filter(t => t && !/\.(KS|KQ)$/.test(t))
+  ? tickersArg.split('=')[1].split(',').map(t => t.trim().toUpperCase()).filter(Boolean)
   : onlyMissing ? targets.filter(t => !prev[t]) : targets;
 console.log(`[profiles] 대상 ${tickersArg ? todo.length + ' (--tickers)' : targets.length + ' (US 폴백)'} / 수집 ${todo.length}${onlyMissing ? ' (--missing)' : ''}`);
 if (!todo.length) { console.log('[profiles] 수집 대상 없음'); process.exit(0); }

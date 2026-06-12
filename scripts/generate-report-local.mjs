@@ -7232,15 +7232,15 @@ async function generateViaOllama() {
     if (failed.length) console.log(`[db] ⚠️  실패: ${failed.join(', ')}`);
 
     // 2026-06-12: 보고서 신규 종목 풀페이지 보장 (사용자 "새 종목 잡힐 때마다 풀페이지. KS 도").
-    //   US: Yahoo 프로필(company-profiles.json) + XBRL 세그먼트(DB) 미보유분 즉석 보강.
-    //   KR: 회사페이지가 DART 라이브(company-kr/company-desc)로 이미 동적 커버 — 별도 수집 불필요.
+    //   프로필: US+KR 전부 — Yahoo assetProfile 이 .KS 도 지원 ("KR 은 DART 커버" 가정은 사업설명
+    //   전무로 반증됨, KT&G 사건). 세그먼트(XBRL)는 US 만 (KR 은 DART 파싱 — 차기).
     try {
       const { execFile: efRaw } = await import('child_process');
       const efAsync = (await import('util')).promisify(efRaw);
       const usTickers = portfolioTickers.filter((t) => !/\.(KS|KQ)$/.test(t));
       let profJson = {};
       try { profJson = JSON.parse(readFileSync(resolve(ROOT, 'data/company-profiles.json'), 'utf8')); } catch { /* 미생성 */ }
-      const needProfile = usTickers.filter((t) => !profJson[t]);
+      const needProfile = portfolioTickers.filter((t) => !profJson[t]);
       const DatabaseCtor = (await import('better-sqlite3')).default;
       const segDb = new DatabaseCtor(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
       const segSet = new Set(segDb.prepare('SELECT ticker FROM company_segments').all().map((r) => r.ticker));
