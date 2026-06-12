@@ -35,6 +35,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ translated: text });
     }
 
+    // 2026-06-12 GPU 폭주 사건: ko 보고서의 한국어 원문(engineReview 줄 등)이 ko→ko 로
+    //   qwen 20s×N 왕복 — 보고서 발간(5회/일)마다 캐시 무효화돼 GPU 수십분 점유. 원문이
+    //   이미 목표 언어(한글 실질 포함)면 결정론 검사로 LLM/Redis 전부 우회.
+    if (targetLocale === 'ko') {
+      const hangul = (text.match(/[가-힣]/g) ?? []).length;
+      if (hangul >= 4) {
+        return NextResponse.json({ translated: text, source: 'already-target' });
+      }
+    }
+
     // 1. Check Redis cache
     const redis = createRedis();
     const key = cacheKey(targetLocale, text);
