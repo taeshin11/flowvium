@@ -183,14 +183,27 @@ log('동적 세그먼트 refresh 등록: 매시 6 ticker rotating (DB company_se
 // 2026-06-12: 사라진 유지보수 작업 복원 — 이전 Windows Task Scheduler 의 DART-CorpCodes(02:00)/
 //   DART-Prefetch(03:00)/Tune-Rules(일 04:00) 가 머신 재구성 중 소멸돼 silent 미시행 상태였음
 //   (백엔드 census 중 발견). 자가호스팅 일원화 원칙대로 cron-runner 에 재배선.
-async function runMaintenance(label, script, timeoutMs) {
+async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
   if (await isReportPipelineRunning()) { log(`[${label}] skip — 보고서 파이프라인 실행 중`); return; }
   try {
     await execFileAsync('node', [script], { timeout: timeoutMs, windowsHide: true, maxBuffer: 20 * 1024 * 1024 });
     log(`[${label}] 완료`);
+    // 2026-06-13: 산출물이 tracked 파일이면 자동 커밋+푸시 — 매일 02:05 갱신분이 미커밋으로 남아
+    //   wipe-risk 경보 + run-report checkout revert 위험이 반복되던 것 (수동 커밋 toil 제거).
+    if (commitPaths.length) {
+      try {
+        const { stdout: st } = await execFileAsync('git', ['status', '--porcelain', '--', ...commitPaths], { timeout: 15000, windowsHide: true });
+        if (st.trim()) {
+          await execFileAsync('git', ['add', ...commitPaths], { timeout: 15000, windowsHide: true });
+          await execFileAsync('git', ['commit', '-m', `chore(${label}): cron 산출 데이터 자동 커밋`], { timeout: 15000, windowsHide: true });
+          await execFileAsync('git', ['push', 'origin', 'master'], { timeout: 60000, windowsHide: true });
+          log(`[${label}] 산출물 자동 커밋+푸시 (${commitPaths.join(',')})`);
+        }
+      } catch (e) { log(`[${label}] 자동 커밋 실패(수동 필요): ${String(e?.message).slice(0, 60)}`); }
+    }
   } catch (e) { log(`[${label}] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 80)}`); }
 }
-cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetch-dart-corp-codes.mjs', 300000), { timezone: TZ });   // 02:05 KST
+cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetch-dart-corp-codes.mjs', 300000, ['data/dart-corp-codes.json']), { timezone: TZ });   // 02:05 KST
 cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
 cron.schedule('35 18 * * *', () => runMaintenance('sell-outcomes', 'scripts/evaluate-sell-outcomes.mjs', 600000), { timezone: TZ });  // 03:35 KST — 매도 성과평가 (2026-06-12 신설, 튜닝 ground truth)
 cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs', 600000), { timezone: TZ });        // 일 04:05 KST
