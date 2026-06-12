@@ -39,3 +39,10 @@
 단일 게이트(name/IV/business/whitelist/stance) ④발간후 verify→hallucination_history→inject(Karpathy)
 ⑤LLM 추출엔 fabrication 가드(산출값이 원문에 실존해야 채택 — PM 사건 교훈) ⑥검증은 권위소스 전체와.
 신규 LLM 필드 추가 시 ②③④ 3종 세트 의무 (CLAUDE.md 기존 규칙).
+
+## (추가) 시장 쇼크 즉시 감지 (사용자 "트럼프 트윗/기사 즉각 고려" — commit f10251d)
+- check-market-shock.mjs: 결정론 3채널 (속보 키워드 가중스코어 90분 윈도우 / VIX 인트라데이 /
+  KOSPI·원화) — 트윗 원문 실시간은 유료 X API 라 기사화(수분 lag)가 무료 최선 프록시임을 명시
+- cron-runner */10분 → score>=4 시 비정기 run-report 트리거 (2h 쿨다운 + mutex 2중)
+- 스모크: 평온장 score 0 (거짓양성 없음). 같은 날 발견·수정: auto-warm 중복트리거 쿨다운(00ea7c4),
+  VIX 하루 stale 3중 버그(e8691c5), 과대경보 probe(f4d72e8)
