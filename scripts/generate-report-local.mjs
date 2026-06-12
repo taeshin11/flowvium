@@ -4330,6 +4330,13 @@ function evaluateBuyRule(rule, ctx) {
         return `news +${(ctx.newsPosRatio * 100).toFixed(0)}% (${ctx.newsArticleCount}건)`;
       }
       break;
+    case 'near52wHigh':
+      // 2026-06-12 (한미반도체 미포착 사건): 시장중립 모멘텀 — 52주 고가 3% 이내 = 추세 주도주.
+      //   stage-1 평가 가능(livePrices 52w 데이터) → KR 모멘텀주도 stage-2 기술룰 진입 기회 확보.
+      if (ctx.high52w && ctx.price && ctx.price >= ctx.high52w * (1 - (c.within_pct ?? 3) / 100)) {
+        return `52주 신고가 ${(((ctx.high52w / ctx.price) - 1) * 100).toFixed(1)}% 이내 (추세 주도)`;
+      }
+      break;
     case 'newsGap':
       // 2026-06-12: /api/news-gap (기관 IB활동 高 + 미디어 저커버 = 정보 갭) — 사용자 "뉴스갭
       //   종목 매수엔진 반영". gapScore 는 결정론 산출(ibActivityScore-mediaScore 계열).
@@ -4489,6 +4496,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     const sectorKey = String(meta.sector ?? '').toLowerCase();
     const ctx = {
       ticker, price: pd.price, change1d: pd.change1d, sector: meta.sector,
+      high52w: pd.high52w ?? null,  // 2026-06-12: stage-1 모멘텀 룰용 (시장중립 — KR 도 동작)
       market: isKR ? 'kr' : 'us',
       macroRiskLevel: macroCtx.riskLevel,
       vix: macroCtx.vix,
@@ -4512,7 +4520,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       // price_oversold_gap 은 change1d 만 필요 — Stage 1 가능.
       // rotation_defensive 도 sector 만 필요 — Stage 1 가능.
       if (['technical', 'fundamental', 'guru'].includes(rule.category)) continue;
-      if (rule.category === 'price' && rule.id !== 'price_oversold_gap') continue; // 나머지 가격은 Stage 2
+      if (rule.category === 'price' && !['price_oversold_gap', 'price_momentum_52w_high'].includes(rule.id)) continue; // 나머지 가격은 Stage 2
       if (rule.category === 'rotation' && !['rotation_defensive'].includes(rule.id)) continue; // 나머지 회전은 Stage 3
       const r = evaluateBuyRule(rule, ctx);
       if (r) { cumScore += rule.score; reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }

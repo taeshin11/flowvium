@@ -16,6 +16,16 @@
       "description": "1d -3%+ drop — dead cat bounce 후보 (mean reversion 진입)"
     },
     {
+      "id": "price_momentum_52w_high",
+      "score": 5,
+      "category": "price",
+      "condition": {
+        "type": "near52wHigh",
+        "within_pct": 3
+      },
+      "description": "52주 신고가 3% 이내 — 추세 주도주 모멘텀 (시장중립, KR 모멘텀 미포착 fix 2026-06-12)"
+    },
+    {
       "id": "price_support_bounce",
       "score": 5,
       "category": "price",
