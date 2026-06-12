@@ -255,26 +255,35 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
   const t0 = Date.now();
   try {
     const bgn = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
-    const url = `https://opendart.fss.or.kr/api/list.json?crtfc_key=${dartKey}&bgn_de=${bgn}&pblntf_ty=B&page_count=40`;
+    // 2026-06-12: pblntf_ty B(주요사항보고) → I(거래소공시) — 단일판매ㆍ공급계약체결은 I 형에만 있음.
+    //   실측: 3일간 B형 공급계약 0건 vs I형 66건(universe 매칭 10건: 한화오션·대우건설·포스코인터·KAI 등).
+    //   B만 보던 종전 코드는 구조적으로 항상 KR 0건 ([D] supplyChain KR 0건의 root cause).
+    //   I형은 3일 650건+라 페이지네이션 필수 (100/page, 최대 7p).
     logger.info('supply-chain-signals', 'dart_start', { bgn });
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
-    if (!res.ok) {
-      logger.warn('supply-chain-signals', 'dart_http_error', { status: res.status, ms: Date.now() - t0 });
-      return [];
+    type DartItem = { corp_name?: string; stock_code?: string; report_nm?: string; rcept_dt?: string; rcept_no?: string };
+    const list: DartItem[] = [];
+    let pageNo = 1, totalPage = 1;
+    while (pageNo <= totalPage && pageNo <= 7) {
+      const url = `https://opendart.fss.or.kr/api/list.json?crtfc_key=${dartKey}&bgn_de=${bgn}&pblntf_ty=I&page_count=100&page_no=${pageNo}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+      if (!res.ok) {
+        logger.warn('supply-chain-signals', 'dart_http_error', { status: res.status, page: pageNo, ms: Date.now() - t0 });
+        break;
+      }
+      const data = await res.json() as { status?: string; message?: string; total_page?: number; list?: DartItem[] };
+      if (data.status && data.status !== '000') {
+        logger.warn('supply-chain-signals', 'dart_api_error', { status: data.status, message: data.message });
+        break;
+      }
+      totalPage = data.total_page ?? 1;
+      list.push(...(data.list ?? []));
+      pageNo++;
     }
-    const data = await res.json() as { status?: string; message?: string; list?: Array<{ corp_name?: string; stock_code?: string; report_nm?: string; rcept_dt?: string; rcept_no?: string }> };
-
-    if (data.status && data.status !== '000') {
-      logger.warn('supply-chain-signals', 'dart_api_error', { status: data.status, message: data.message });
-      return [];
-    }
-
-    const list = data.list ?? [];
-    logger.info('supply-chain-signals', 'dart_fetched', { total: list.length, ms: Date.now() - t0 });
+    logger.info('supply-chain-signals', 'dart_fetched', { total: list.length, pages: pageNo - 1, ms: Date.now() - t0 });
 
     let contractCount = 0;
     let watchlistHits = 0;
-    for (const item of list.slice(0, 30)) {
+    for (const item of list) {
       const reportNm = item.report_nm ?? '';
       const corpName = (item.corp_name ?? '').toLowerCase();
 
