@@ -20,7 +20,10 @@ export default function LocaleError({ error, reset }: { error: Error & { digest?
       // 최근 12초 내 이미 새로고침했으면 루프 방지 — UI 표시로 폴백.
       if (Date.now() - last > 12000) {
         sessionStorage.setItem('chunkReloadAt', String(Date.now()));
-        window.location.reload();
+        // 2026-06-13: reload() 는 캐시된 HTML(옛 청크 참조)을 재사용해 루프 재발 — 쿼리 버스터로 우회.
+        const u = new URL(window.location.href);
+        u.searchParams.set('_v', String(Date.now()));
+        window.location.replace(u.toString());
       }
     } catch {
       window.location.reload();
