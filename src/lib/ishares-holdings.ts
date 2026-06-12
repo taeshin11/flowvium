@@ -144,6 +144,36 @@ async function nonUSHoldingsFallback(country: string): Promise<IShareHolding[]> 
   return [];
 }
 
+// 2026-06-13: Wikipedia 폴백의 proxy 시총(위키 표 순서 = 알파벳) 이 "S&P500 에 빅테크가 없다" 사건의
+//   root cause — 알파벳 앞 200개만 잔류(NVDA/MSFT/GOOGL/META/TSLA 탈락) + 타일 크기 균일.
+//   Yahoo v7 quote 배치(crumb)로 실시총 결합. 실패 시 proxy 유지(완전 공백보단 낫다) + 로그.
+async function fetchYahooMarketCaps(tickers: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  try {
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+    const cr = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': ua }, signal: AbortSignal.timeout(8000) });
+    const cookie = (cr.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).join('; ');
+    const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
+    const crumb = await crumbRes.text();
+    if (!crumb || crumb.includes('<')) return out;
+    const ySyms = tickers.map(t => t.replace(/\./g, '-'));
+    for (let i = 0; i < ySyms.length; i += 100) {
+      const batch = ySyms.slice(i, i + 100);
+      const u = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(batch.join(','))}&fields=marketCap&crumb=${encodeURIComponent(crumb)}`;
+      const r = await fetch(u, { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(10000) });
+      if (!r.ok) continue;
+      const j = await r.json() as { quoteResponse?: { result?: Array<{ symbol?: string; marketCap?: number }> } };
+      for (const q of j.quoteResponse?.result ?? []) {
+        if (q.symbol && q.marketCap) out.set(q.symbol.replace(/-/g, '.'), q.marketCap);
+      }
+    }
+    logger.info('ishares', 'wiki_yahoo_caps', { requested: tickers.length, got: out.size });
+  } catch (err) {
+    logger.warn('ishares', 'wiki_yahoo_caps_failed', { error: String(err).slice(0, 80) });
+  }
+  return out;
+}
+
 // 2026-05: iShares CSV URL이 JS challenge로 차단 — Wikipedia S&P 500 list 폴백.
 async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
   const start = Date.now();
@@ -157,7 +187,9 @@ async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
     const html = await res.text();
     // Wikipedia constituents table parsing (2026-05 구조).
     // ticker link 은 nasdaq.com 또는 nyse.com — 둘 다 외부 link (class="external text")
-    const rowRe = /<a[^>]*class="external text"[^>]*href="https:\/\/www\.(?:nasdaq|nyse)\.com[^"]*">([A-Z][A-Z0-9.\-]{0,5})<\/a>[^<]*<\/td>\s*<td><a[^>]*>([^<]+)<\/a><\/td>\s*<td>([^<]+)<\/td>/g;
+    // 2026-06-13: 이름 셀의 "(Class A)" 등 링크 뒤 잔여 텍스트 허용 ([^<]* 추가) — 종전 regex 가
+    //   듀얼클래스(GOOGL/GOOG "(Class A/C)")를 통째로 누락시키던 결함 (빅테크 부재 사건의 2차 원인).
+    const rowRe = /<a[^>]*class="external text"[^>]*href="https:\/\/www\.(?:nasdaq|nyse)\.com[^"]*">([A-Z][A-Z0-9.\-]{0,5})<\/a>[^<]*<\/td>\s*<td><a[^>]*>([^<]+)<\/a>[^<]*<\/td>\s*<td>([^<]+)<\/td>/g;
     const holdings: IShareHolding[] = [];
     let m: RegExpExecArray | null;
     while ((m = rowRe.exec(html)) !== null) {
@@ -167,12 +199,15 @@ async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
       holdings.push({
         ticker, name,
         sector: SECTOR_KO[sectorEn] ?? sectorEn ?? '기타',
-        marketValue: 1e10 - holdings.length * 1e7, // proxy 정렬용 (실제 가중치 없음 → top 200 위주)
+        marketValue: 0, // 아래에서 Yahoo 실시총 결합 (proxy 알파벳 정렬 금지 — 빅테크 탈락 사건)
         weight: 0, price: 0, location: 'US', currency: 'USD',
       });
       if (holdings.length >= 500) break;
     }
-    logger.info('ishares', 'wikipedia_fallback', { holdings: holdings.length, durationMs: Date.now() - start });
+    // 실시총 결합 — 실패 종목은 1e8(소형 취급, tail 정렬). 전체 실패 시에도 최소한 전 종목 유지.
+    const caps = await fetchYahooMarketCaps(holdings.map(h => h.ticker));
+    for (const h of holdings) h.marketValue = caps.get(h.ticker) ?? 1e8;
+    logger.info('ishares', 'wikipedia_fallback', { holdings: holdings.length, capsMatched: caps.size, durationMs: Date.now() - start });
     return holdings;
   } catch (err) {
     logger.warn('ishares', 'wikipedia_failed', { error: String(err), durationMs: Date.now() - start });
