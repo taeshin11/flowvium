@@ -115,7 +115,9 @@ async function xbrlExtract(filing) {
     }
   }
   if (!facts.length) return null;
-  const latestEnd = facts.map(f => f.ctx.end).sort().at(-1);
+  const annualEnds = [...new Set(facts.map(f => f.ctx.end))].sort();
+  const latestEnd = annualEnds.at(-1);
+  const prevEnd = annualEnds.at(-2) ?? null;  // 2026-06-12: 전년 비교치 (10-K 가 2-3개년 태깅) — 세그먼트별 YoY
 
   // 4. 개념 × 축 우선순위로 멤버 분해 — Σ≈total ±6% 인 첫 조합 채택
   const AXES = ['srt:ProductOrServiceAxis', 'us-gaap:StatementBusinessSegmentsAxis', 'srt:StatementBusinessSegmentsAxis'];
@@ -136,10 +138,28 @@ async function xbrlExtract(filing) {
       const rows = [...seen.entries()].map(([name, amount]) => ({ name, amount }));
       const sum = rows.reduce((s, r) => s + r.amount, 0);
       if (Math.abs(sum - total) / total > 0.06) continue;
+      // 전년 동일 axis 멤버 값 → 세그먼트별 YoY (사용자 "매출이 어느 항목에서 늘었는지").
+      //   같은 태깅 사실값 그대로 — 환각 0. 전년 미태깅 멤버는 yoy null.
+      const prevMap = new Map();
+      if (prevEnd) {
+        for (const f of facts.filter(x => x.concept === concept && x.ctx.end === prevEnd)) {
+          const d = f.ctx.dims;
+          if (d.length !== 1 || d[0].axis !== axis) continue;
+          const name = cleanMemberName(d[0].member);
+          if (!prevMap.has(name)) prevMap.set(name, f.val);
+        }
+      }
       return {
         total,
-        segments: rows.map(r => ({ name: r.name, amount: Math.round(r.amount / 1e6), pct: Math.round(r.amount / total * 1000) / 10 }))
-          .sort((a, b) => b.pct - a.pct).slice(0, 8),
+        segments: rows.map(r => {
+          const prev = prevMap.get(r.name) ?? null;
+          return {
+            name: r.name,
+            amount: Math.round(r.amount / 1e6),
+            pct: Math.round(r.amount / total * 1000) / 10,
+            yoyPct: prev ? Math.round((r.amount / prev - 1) * 1000) / 10 : null,
+          };
+        }).sort((a, b) => b.pct - a.pct).slice(0, 8),
       };
     }
   }

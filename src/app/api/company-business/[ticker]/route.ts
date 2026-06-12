@@ -45,7 +45,7 @@ function loadNames(): Record<string, string> {
 }
 
 // 동적 세그먼트(DB company_segments, cron 갱신, cron checkout wipe 안전) — 정적보다 우선.
-interface DynSeg { segments: { name: string; amount: number; pct: number }[]; asOf: string | null; source: string | null; fetchedAt: string }
+interface DynSeg { segments: { name: string; amount: number; pct: number; yoyPct?: number | null }[]; asOf: string | null; source: string | null; fetchedAt: string }
 function dbSegments(ticker: string): DynSeg | null {
   let db: Database.Database | null = null;
   try {
@@ -66,7 +66,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   const hit = db[t] || db[ticker] || db[t.replace(/\.(KS|KQ)$/, '')] || db[`${t}.KS`] || db[`${t}.KQ`];
   // 동적 세그먼트(DB) — 있으면 정적 products 대신 동적 비중%(as-of) 우선.
   const dyn = dbSegments(t);
-  const dynProducts = dyn ? dyn.segments.slice(0, 5).map(s => `${s.name} ${s.pct}%`).join(' · ') : null;
+  // 2026-06-12: 세그먼트별 YoY 동봉 (사용자 "매출이 어느 항목에서 늘었는지") — XBRL 전년 비교치 기반
+  const dynProducts = dyn ? dyn.segments.slice(0, 5).map(s => `${s.name} ${s.pct}%${s.yoyPct != null ? ` (YoY ${s.yoyPct > 0 ? '+' : ''}${s.yoyPct}%)` : ''}`).join(' · ') : null;
   const products = dynProducts || hit?.products || null;
   const desc = hit?.desc || null;
   const profile = loadProfiles()[t] ?? null;

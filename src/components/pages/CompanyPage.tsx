@@ -366,7 +366,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [ticker, locale, company]);
   // 2026-06-07: 주력 매출상품/사업개요 (company-business.json 큐레이션) — minimal page(companies-batch
   //   미수록 APH·KR 등) 에 "주력 사업" 표시. LLM 생성(company-desc) 보다 신뢰 가능한 큐레이션 소스.
-  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null; asOf?: string | null; source?: string | null; name?: string | null; segments?: { name: string; amount: number; pct: number }[] | null; profile?: { sector?: string | null; industry?: string | null; employees?: number | null; website?: string | null; summary?: string | null } | null } | null>(null);
+  const [bizInfo, setBizInfo] = useState<{ products?: string | null; desc?: string | null; asOf?: string | null; source?: string | null; name?: string | null; segments?: { name: string; amount: number; pct: number; yoyPct?: number | null }[] | null; profile?: { sector?: string | null; industry?: string | null; employees?: number | null; website?: string | null; summary?: string | null } | null } | null>(null);
   useEffect(() => {
     if (!ticker || company) return; // 정적 프로필 있으면 풀페이지가 이미 풍부
     const ctrl = new AbortController();
@@ -802,8 +802,15 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   <span className="flex items-center gap-1.5 text-cf-text-primary font-medium">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />{s.name}
                   </span>
-                  {/* 금액은 필링별 단위(천/백만) 편차로 스케일 모호 — 검증된 pct 만 표시 (정확성 우선) */}
-                  <span className="text-cf-text-secondary tabular-nums">{s.pct}%</span>
+                  {/* 금액은 필링별 단위(천/백만) 편차로 스케일 모호 — 검증된 pct + 세그먼트별 YoY (XBRL 전년 비교치) */}
+                  <span className="text-cf-text-secondary tabular-nums">
+                    {s.pct}%
+                    {s.yoyPct != null && (
+                      <span className={`ml-1.5 font-semibold ${s.yoyPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        YoY {s.yoyPct >= 0 ? '+' : ''}{s.yoyPct}%
+                      </span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
