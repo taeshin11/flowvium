@@ -4407,12 +4407,24 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     catch { return { meta: {} }; }
   })();
 
+  // 2026-06-12: ETF 는 개별주 퍼널에서 제외 (UVXY 가 매수추천 발간된 사건 — 변동성 ETF 를 개별주
+  //   룰로 평가 불가). ETF 노출은 buildEtfStrategy 전용 섹션이 담당. 식별: company-names 의
+  //   발행사/ETF 어휘(정제 — REIT/신탁은행의 'Trust' 단독은 제외) + 명시 리스트.
+  const ETF_EXPLICIT = new Set(['SPY', 'VOO', 'IVV', 'VTI', 'ITOT', 'SPLG', 'QQQ', 'QQQM', 'UVXY', 'DIA', 'IWM', 'GLD', 'SLV', 'TLT', 'HYG', 'LQD', 'EFA', 'EEM']);
+  const namesForEtf = (() => {
+    try { return JSON.parse(readFileSync(resolve(ROOT, 'data/company-names.json'), 'utf8')); }
+    catch { return {}; }
+  })();
+  const isEtf = (t) => ETF_EXPLICIT.has(t) || /\b(etf|ishares|proshares|vanguard|spdr|invesco qqq|direxion)\b/i.test(namesForEtf[t] ?? '');
+
   // ── Stage 1 (light): 모든 livePrices ticker 에 대해 macro/sector/region/insider/squeeze/news/boost ──
   const allTickers = [...livePrices.keys()];
   console.log(`  [buy-cand Stage 1] ${allTickers.length} ticker 가벼운 score 계산...`);
   const stage1Scored = [];
+  let etfSkipped = 0;
   for (const ticker of allTickers) {
     if (banList.has(ticker)) continue;
+    if (isEtf(ticker)) { etfSkipped++; continue; }  // ETF 는 ETF 전략 섹션 전용
     const pd = livePrices.get(ticker);
     if (!pd?.price) continue;
     const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
@@ -4451,6 +4463,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     if (cumScore <= -50) continue; // ban
     if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price });
   }
+  if (etfSkipped) console.log(`  [buy-cand] ETF ${etfSkipped}종 개별주 퍼널 제외 (ETF 전략 섹션 전용)`);
   stage1Scored.sort((a, b) => b.stage1Score - a.stage1Score);
   const stage2Cands = sliceWithKrQuota(stage1Scored, 100, 30); // top 100 → Stage 2 (KR 30 슬롯 보장)
 

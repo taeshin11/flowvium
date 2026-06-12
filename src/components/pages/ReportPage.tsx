@@ -6,6 +6,30 @@ import { useTranslations, useLocale } from 'next-intl';
 import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3, Target, Shield, Layers } from 'lucide-react';
 import Sparkline from '@/components/Sparkline';
 import { UNIVERSE_SEARCH } from '@/data/universe-search';
+import { useTranslatedText } from '@/hooks/useTranslatedText';
+
+// 2026-06-12: 주력사업 세그먼트명 번역 (사용자 "번역이 안 되는 경우") — XBRL 추출 세그먼트명은
+//   영문. 숫자(%·YoY)는 번역 LLM 에 노출하지 않고 이름부만 번역 — 숫자 환각/훼손 원천 차단.
+function TName({ text }: { text: string }) {
+  const translated = useTranslatedText(text);
+  return <>{translated}</>;
+}
+function TBizSummary({ text }: { text: string }) {
+  const parts = String(text).split(' · ');
+  return (
+    <>
+      {parts.map((p, i) => {
+        const m = p.match(/^(.*?)(\s+\d[\d.,]*%.*)$/);  // "Name 37.7% (YoY +21.5%)" → 이름 / 숫자부 분리
+        return (
+          <span key={i}>
+            {i > 0 && ' · '}
+            {m ? <><TName text={m[1].trim()} />{m[2]}</> : <TName text={p} />}
+          </span>
+        );
+      })}
+    </>
+  );
+}
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
 
@@ -326,8 +350,8 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
           {(item.businessSummary || item.businessDesc) && (
             <div className="bg-white rounded-lg border border-violet-100 px-2.5 py-1.5">
               <p className="text-[10px] font-bold text-violet-700 mb-0.5">{t('businessLabel')}</p>
-              {item.businessSummary && <p className="text-xs text-gray-800 font-medium leading-relaxed">{item.businessSummary}</p>}
-              {item.businessDesc && <p className="text-[11px] text-gray-500 leading-relaxed mt-0.5">{item.businessDesc}</p>}
+              {item.businessSummary && <p className="text-xs text-gray-800 font-medium leading-relaxed"><TBizSummary text={item.businessSummary} /></p>}
+              {item.businessDesc && <p className="text-[11px] text-gray-500 leading-relaxed mt-0.5"><TName text={item.businessDesc} /></p>}
             </div>
           )}
           {item.catalysts && item.catalysts.length > 0 && (
