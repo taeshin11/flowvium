@@ -164,5 +164,29 @@ cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tun
 cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs', 600000), { timezone: TZ });         // 일 04:20 KST
 log('유지보수 cron 복원: DART corp-codes(02:05)/prefetch(03:05) 매일 + buy/sell rules 튜닝(일 04:05/04:20 KST)');
 
+// 2026-06-12: 시장 쇼크 즉시 감지 (사용자 "트럼프 트윗/기사 영향 즉각 고려") — 10분마다
+//   check-market-shock(속보 키워드/VIX 인트라데이/KOSPI·원화 — 전부 결정론). 임계 초과 시
+//   비정기 보고서 트리거 → earlyWarning/stance 가 신선 데이터로 즉각 재발간. 과발간 방지:
+//   2시간 쿨다운 + 보고서 lock 시 skip (run-report.bat 자체 mutex 가 동시성 2중 보호).
+let lastShockTrigger = 0;
+const SHOCK_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+async function runShockCheck() {
+  try {
+    const { stdout } = await execFileAsync('node', ['scripts/check-market-shock.mjs'], { timeout: 90000, windowsHide: true, maxBuffer: 1024 * 1024 });
+    const r = JSON.parse(stdout.trim().split('\n').at(-1));
+    if (!r.shock) return;
+    log(`[shock] 🚨 시장 쇼크 감지 (score ${r.score}): ${r.signals.join(' | ')}`);
+    if (Date.now() - lastShockTrigger < SHOCK_COOLDOWN_MS) { log('[shock] 쿨다운 중 — 보고서 트리거 skip'); return; }
+    if (await isReportPipelineRunning()) { log('[shock] 보고서 이미 실행 중 — skip'); return; }
+    lastShockTrigger = Date.now();
+    log('[shock] 비정기 보고서 트리거 → run-report.bat');
+    execFileAsync('cmd', ['/c', 'scripts\\run-report.bat'], { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 })
+      .then(() => log('[shock] 비정기 보고서 완료'))
+      .catch((e) => log(`[shock] 비정기 보고서 실패: ${String(e.message).slice(0, 60)}`));
+  } catch (e) { log(`[shock] 점검 실패: ${String(e.message).slice(0, 60)}`); }
+}
+cron.schedule('*/10 * * * *', runShockCheck, { timezone: TZ });
+log('시장 쇼크 모니터 등록: */10분 (속보 키워드 + VIX 인트라데이 + KOSPI/원화 → 임계시 비정기 발간, 2h 쿨다운)');
+
 // keep alive
 process.stdin.resume();
