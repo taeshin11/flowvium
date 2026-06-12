@@ -2886,8 +2886,31 @@ async function computeHistoricalAnalog(ctxRaw) {
       episodes.push({ date: r.d, fwd1m: f1 != null ? +f1.toFixed(1) : null, fwd3m: +f3.toFixed(1), fwd6m: f6 != null ? +f6.toFixed(1) : null });
       lastIdx = r.i;
     }
-    if (!episodes.length) return { matches: 0, fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) } };
     const med = (arr) => { const s = arr.filter(x => x != null).sort((a, b) => a - b); return s.length ? +s[Math.floor(s.length / 2)].toFixed(1) : null; };
+    // 2026-06-12 보강(사용자 승인 tier-1): ① 지수 추세 — SPX 200일선 위/아래 (공포매수도 장기추세
+    //   위에서 성공률 높음) ② 계절성 — 현재 월의 역사적 1개월 forward 중앙값 (실측, 하드코딩 금지)
+    //   ③ 시장 폭 프록시 — RSP(동일가중) vs SPX 20일 상대수익. 좁은 주도(음수) = 취약 신호.
+    const last = spx[spx.length - 1];
+    let sma200 = null;
+    if (spx.length >= 200) { let s = 0; for (let j = spx.length - 200; j < spx.length; j++) s += spx[j].c; sma200 = s / 200; }
+    const trend = sma200 ? { above200: last.c > sma200, distPct: +((last.c / sma200 - 1) * 100).toFixed(1) } : null;
+    const curMonth = new Date().getUTCMonth();
+    const seasonFwd = [];
+    for (let i = 0; i + 21 < spx.length; i += 5) {
+      if (new Date(spx[i].d).getUTCMonth() === curMonth) seasonFwd.push((spx[i + 21].c / spx[i].c - 1) * 100);
+    }
+    const seasonality = seasonFwd.length >= 30 ? { month: curMonth + 1, med1m: med(seasonFwd), n: seasonFwd.length } : null;
+    let breadth = null;
+    try {
+      const rsp = await hist('RSP');
+      if (rsp?.length > 21) {
+        const r20rsp = (rsp[rsp.length - 1].c / rsp[rsp.length - 21].c - 1) * 100;
+        const r20spx = (spx[spx.length - 1].c / spx[spx.length - 21].c - 1) * 100;
+        breadth = { divergencePp: +(r20rsp - r20spx).toFixed(1) };  // 음수 = 소수 대형주 주도(취약)
+      }
+    } catch { /* breadth 미산출 — non-fatal */ }
+    const base = { fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) }, trend, seasonality, breadth, source: 'yahoo-^GSPC/^VIX/RSP-1990~' };
+    if (!episodes.length) return { matches: 0, ...base };
     return {
       matches: episodes.length,
       med1m: med(episodes.map(e => e.fwd1m)),
@@ -2895,8 +2918,7 @@ async function computeHistoricalAnalog(ctxRaw) {
       med6m: med(episodes.map(e => e.fwd6m)),
       posRate3m: Math.round(episodes.filter(e => e.fwd3m > 0).length / episodes.length * 100),
       recent: episodes.slice(-5).reverse(),                        // 최근 유사사례 5건 (날짜·실측)
-      fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) },
-      source: 'yahoo-^GSPC/^VIX-1990~',
+      ...base,
     };
   } catch (e) { console.warn(`  [analog] 과거 유사국면 계산 실패: ${String(e?.message).slice(0, 60)}`); return null; }
 }
@@ -2956,6 +2978,34 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
     verdict = 'neutral';
     reasons.push('하락·상승 전조 모두 뚜렷하지 않음 — 기존 포지션 유지');
   }
+  // 2026-06-12 tier-1 보정(사용자 승인): 지수 추세·시장 폭·안전자산 동시이동으로 한 단계 가감.
+  const downgrade = { buy_dip: 'accumulate', accumulate: 'neutral_ready', neutral_ready: 'neutral' };
+  if (analog?.trend && !analog.trend.above200 && (verdict === 'buy_dip' || verdict === 'accumulate')) {
+    verdict = downgrade[verdict];
+    reasons.push(`지수가 200일선 아래(${analog.trend.distPct}%) — 장기 추세 미회복, 매수 강도 한 단계 하향`);
+  } else if (analog?.trend?.above200 && (verdict === 'buy_dip' || verdict === 'accumulate')) {
+    reasons.push(`지수 200일선 위(+${analog.trend.distPct}%) — 장기 추세 유효 (공포매수 성공률 우호 조건)`);
+  }
+  if (analog?.breadth?.divergencePp != null) {
+    if (analog.breadth.divergencePp <= -1.5) {
+      reasons.push(`시장 폭 취약: 동일가중(RSP)이 시총가중 대비 20일 ${analog.breadth.divergencePp}%p 열위 — 소수 대형주 주도`);
+      if (verdict === 'neutral_ready') verdict = 'neutral';
+    } else if (analog.breadth.divergencePp >= 1.5) {
+      reasons.push(`시장 폭 양호: 동일가중이 +${analog.breadth.divergencePp}%p 우위 — 광범위 참여`);
+    }
+  }
+  {
+    const assets = ctxRaw?.capital?.assets ?? [];
+    const aw = (id) => { const a = assets.find(x => x.id === id); return typeof a?.ret1w === 'number' ? a.ret1w : null; };
+    const gold = aw('gold'), tlt = aw('us-bonds-lt');
+    const eqW = assets.filter(a => ['us-stocks', 'us-tech', 'em-stocks', 'eu-stocks'].includes(a.id) && typeof a.ret1w === 'number');
+    const eqWorst = eqW.length ? Math.min(...eqW.map(a => a.ret1w)) : null;
+    if (gold != null && tlt != null && eqWorst != null && gold >= 1 && tlt >= 0.5 && eqWorst <= -1) {
+      reasons.push(`안전자산 동시 유입(금 +${gold}% · 장기채 +${tlt}% · 주식 ${eqWorst}%) — risk-off 진행 중`);
+      if (verdict in downgrade) verdict = downgrade[verdict];
+    }
+  }
+  if (analog?.seasonality) reasons.push(`계절성(${analog.seasonality.month}월, 1990~ ${analog.seasonality.n}표본): 1개월 forward 중앙값 ${analog.seasonality.med1m > 0 ? '+' : ''}${analog.seasonality.med1m}%`);
   if (analogLine) reasons.push(analogLine);
   return { verdict, reasons, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
 }

@@ -87,6 +87,16 @@ async function runMonitor() {
   if (monitorRunning) { log('[auto-monitor] 이전 사이클 진행 중 — skip (중복 실행 방지)'); return; }
   monitorRunning = true;
   try {
+  // 2026-06-12: 배포 재시작 직후 프로브 오탐 가드 — pm2 web uptime < 2분이면 이번 사이클 skip.
+  //   사건: verdict 빌드 배포 순간 모니터가 닿아 14 엔드포인트 DEAD(HTTP 500) 대량 오탐.
+  try {
+    const { stdout } = await execFileAsync('pm2.cmd', ['jlist'], { timeout: 15000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
+    const web = JSON.parse(stdout).find((p) => p.name === 'flowvium-web');
+    if (web?.pm2_env?.pm_uptime && Date.now() - web.pm2_env.pm_uptime < 120000) {
+      log('[auto-monitor] 웹 재시작 직후(uptime<2분) — 오탐 방지 위해 이번 사이클 skip');
+      return;
+    }
+  } catch { /* pm2 조회 실패 — 모니터는 정상 진행 */ }
   const result = { ts: new Date().toISOString(), checks: {}, defects: [] };
   for (const [key, script] of [['stall', 'scripts/check-stall.mjs'], ['dataQuality', 'scripts/check-data-quality.mjs']]) {
     try {
