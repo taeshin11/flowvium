@@ -5465,19 +5465,41 @@ async function generateViaOllama() {
     sectorStanceMap: new Map(), // Wave1 후 채워질 데이터 — Stage 1 에는 빈 Map
     regionStanceMap: new Map(),
     newsSentimentMap: (() => {
+      // 2026-06-12 죽은 신호 복원: ① 기사 스키마에 tickers 필드 부재 ② 필드명도 ctxRaw.news(미존재,
+      //   실제는 cascade) — micro_news_positive 가 개통 이래 0 발화. 제목/요약 ↔ 종목명·티커
+      //   결정론 매칭으로 복원 (KR 은 한글 종목명 — KR 뉴스 신호맹 부분 해소).
       const m = new Map();
-      for (const a of (ctxRaw?.news?.articles ?? [])) {
-        for (const t of (a.tickers ?? [])) {
+      const articles = ctxRaw?.cascade ?? [];
+      if (!articles.length) return m;
+      let candMeta = {}; let usNames = {};
+      try { candMeta = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8')); } catch { /* */ }
+      try { usNames = JSON.parse(readFileSync(resolve(ROOT, 'data/company-names.json'), 'utf8')); } catch { /* */ }
+      const texts = articles.map((a) => ({ text: `${a.title ?? ''} ${a.summary ?? ''}`, sentiment: a.sentiment }));
+      for (const t of candMeta.tickers ?? []) {
+        const isKR = /\.(KS|KQ)$/.test(t);
+        const needles = [];
+        const metaName = candMeta.meta?.[t]?.name;
+        if (isKR) { if (metaName && metaName.length >= 2 && /[가-힣]/.test(metaName)) needles.push(metaName); }
+        else {
+          if (t.length >= 3) needles.push(new RegExp(`\\b${t.replace(/[.\-]/g, '\\$&')}\\b`));  // 티커 심볼 (대문자 그대로)
+          const full = String(usNames[t] ?? '').replace(/,? (inc|corp|co|plc|ltd|holdings?|group)\.?$/i, '').trim();
+          if (full.length >= 5) needles.push(new RegExp(`\\b${full.replace(/[.*+?^${'$'}{}()|[\\]\\\\]/g, '\\$&')}\\b`, 'i'));
+        }
+        if (!needles.length) continue;
+        for (const { text, sentiment } of texts) {
+          const hit = needles.some((n) => typeof n === 'string' ? text.includes(n) : n.test(text));
+          if (!hit) continue;
           if (!m.has(t)) m.set(t, { pos: 0, neg: 0, count: 0 });
           const s = m.get(t); s.count++;
-          if (a.sentiment === 'positive' || a.sentiment === 'bullish') s.pos++;
-          else if (a.sentiment === 'negative' || a.sentiment === 'bearish') s.neg++;
+          if (sentiment === 'positive' || sentiment === 'bullish') s.pos++;
+          else if (sentiment === 'negative' || sentiment === 'bearish') s.neg++;
         }
       }
       for (const [, v] of m) {
         v.posRatio = v.count ? v.pos / v.count : 0;
         v.negRatio = v.count ? v.neg / v.count : 0;
       }
+      if (m.size) console.log(`  [news-match] 기사↔종목 매칭 ${m.size}종 (뉴스 sentiment 신호 복원)`);
       return m;
     })(),
     insiderMap: new Map((ctxRaw?.insider ?? []).map(i => [i.ticker, i.filings ?? i.count ?? 1])),
