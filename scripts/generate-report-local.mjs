@@ -2834,6 +2834,132 @@ function computeReboundWatch(ctxRaw) {
   return { level: drivers.length >= 2 ? 'watch' : 'none', drivers, asOf: new Date().toISOString() };
 }
 
+// ── 2026-06-12: 종합 판정 엔진 (사용자 "하락 전조·상승 전조·공포 매수·구루 방식·과거 유사상황
+//    다 고려해서 관망/매수/중립 결정") — 전부 결정론(LLM 무관). ─────────────────────────────
+//
+// [1] 과거 유사국면: ^GSPC+^VIX 전체 히스토리(1990~)를 매 발간 라이브 fetch, 현재 지문
+//     (VIX·고점대비 낙폭·20일 수익률)과 유사한 과거 시점을 찾아 그 후 1/3/6개월 실측 수익률 산출.
+//     하드코딩 사례표 금지(기억 기반 수치 = 환각 위험) — 데이터에서 직접 계산.
+async function computeHistoricalAnalog(ctxRaw) {
+  const hist = async (sym) => {
+    // range=max 는 일봉 무시하고 월봉 반환 (스모크 실측 168개) — period1/period2 명시 필수.
+    const p1 = Math.floor(Date.UTC(1990, 0, 1) / 1000), p2 = Math.floor(Date.now() / 1000);
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${p1}&period2=${p2}`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) });
+    if (!res.ok) return null;
+    const r = (await res.json())?.chart?.result?.[0];
+    if (!r?.timestamp) return null;
+    const closes = r.indicators?.quote?.[0]?.close ?? [];
+    const out = [];
+    for (let i = 0; i < r.timestamp.length; i++) {
+      if (closes[i] != null && closes[i] > 0) out.push({ d: new Date(r.timestamp[i] * 1000).toISOString().slice(0, 10), c: closes[i] });
+    }
+    return out;
+  };
+  try {
+    const [spx, vix] = await Promise.all([hist('^GSPC'), hist('^VIX')]);
+    if (!spx?.length || !vix?.length) return null;
+    const vixByDate = new Map(vix.map(p => [p.d, p.c]));
+    // 시계열 지표: 고점대비 낙폭(252d trailing) + 20일 수익률, VIX 정렬
+    const rows = [];
+    for (let i = 252; i < spx.length; i++) {
+      const v = vixByDate.get(spx[i].d);
+      if (v == null) continue;
+      let hi = 0; for (let j = i - 252; j <= i; j++) if (spx[j].c > hi) hi = spx[j].c;
+      rows.push({ i, d: spx[i].d, c: spx[i].c, vix: v, dd: (spx[i].c / hi - 1) * 100, r20: i >= 20 ? (spx[i].c / spx[i - 20].c - 1) * 100 : 0 });
+    }
+    if (rows.length < 500) return null;
+    const now = rows[rows.length - 1];
+    // 현재 VIX 는 라이브 값 우선 (Yahoo ^VIX 마지막 봉이 전일일 수 있음)
+    const liveVix = ctxRaw?.volatility?.vix;
+    const fp = { vix: liveVix != null ? +liveVix : now.vix, dd: now.dd, r20: now.r20 };
+    const vixTol = Math.max(2.5, fp.vix * 0.15), ddTol = 4, r20Tol = 5;
+    const episodes = [];
+    let lastIdx = -9999;
+    for (const r of rows) {
+      if (r.i >= rows[rows.length - 1].i - 126) break;             // 최근 6개월 제외(forward 미완성)
+      if (r.i - lastIdx < 21) continue;                            // 같은 국면 중복 제거(에피소드화)
+      if (Math.abs(r.vix - fp.vix) > vixTol || Math.abs(r.dd - fp.dd) > ddTol || Math.abs(r.r20 - fp.r20) > r20Tol) continue;
+      const at = (k) => { const f = spx[r.i + k]; return f ? (f.c / r.c - 1) * 100 : null; };
+      const f1 = at(21), f3 = at(63), f6 = at(126);
+      if (f3 == null) continue;
+      episodes.push({ date: r.d, fwd1m: f1 != null ? +f1.toFixed(1) : null, fwd3m: +f3.toFixed(1), fwd6m: f6 != null ? +f6.toFixed(1) : null });
+      lastIdx = r.i;
+    }
+    if (!episodes.length) return { matches: 0, fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) } };
+    const med = (arr) => { const s = arr.filter(x => x != null).sort((a, b) => a - b); return s.length ? +s[Math.floor(s.length / 2)].toFixed(1) : null; };
+    return {
+      matches: episodes.length,
+      med1m: med(episodes.map(e => e.fwd1m)),
+      med3m: med(episodes.map(e => e.fwd3m)),
+      med6m: med(episodes.map(e => e.fwd6m)),
+      posRate3m: Math.round(episodes.filter(e => e.fwd3m > 0).length / episodes.length * 100),
+      recent: episodes.slice(-5).reverse(),                        // 최근 유사사례 5건 (날짜·실측)
+      fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) },
+      source: 'yahoo-^GSPC/^VIX-1990~',
+    };
+  } catch (e) { console.warn(`  [analog] 과거 유사국면 계산 실패: ${String(e?.message).slice(0, 60)}`); return null; }
+}
+
+// [2] 공포 매수 신호 (구루 원칙의 결정론화): F&G 공포 + 낙폭 + VIX 급등 조합 = 역발상 매수 구간.
+function computeFearBuy(ctxRaw, analog) {
+  const fg = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? null;
+  const vix = ctxRaw?.volatility?.vix != null ? +ctxRaw.volatility.vix : null;
+  const dd = analog?.fingerprint?.drawdownPct ?? null;
+  let score = 0; const drivers = []; const gurus = [];
+  if (fg != null && fg <= 25) { score += fg <= 10 ? 3 : 2; drivers.push(`F&G ${fg} ${fg <= 10 ? '극단' : ''}공포`); }
+  if (dd != null && dd <= -5) { score += dd <= -10 ? 2 : 1; drivers.push(`S&P 고점대비 ${dd.toFixed(1)}% 낙폭`); }
+  if (vix != null && vix >= 25) { score += vix >= 35 ? 2 : 1; drivers.push(`VIX ${vix} 급등(프리미엄 과대)`); }
+  if (score >= 3) {
+    gurus.push('버핏: 남들이 두려워할 때 탐욕스럽게', '템플턴: 비관 극대점이 최적 매수점');
+    if (vix != null && vix >= 35) gurus.push('하워드 막스: 사이클 극단에서 역발상');
+  }
+  return { score, active: score >= 3, drivers, gurus };
+}
+
+// [3] 종합 판정: 하락전조(earlyWarning) vs 상승전조(reboundWatch) vs 공포매수 vs 과거 유사국면
+//     → 매수 확대 / 분할 매수 / 중립(매수 준비) / 중립 / 관망 / 방어. 사용자 "수익 내는 방향으로
+//     더 노력" — 근거가 받쳐주면 중립 디폴트 대신 기회 쪽으로 기우는 룰셋.
+function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRaw) {
+  const fg = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? null;
+  const reasons = [];
+  const analogLine = analog?.matches
+    ? `과거 유사국면 ${analog.matches}회(1990~, VIX ${analog.fingerprint.vix}·낙폭 ${analog.fingerprint.drawdownPct}% 지문): 3개월 후 중앙값 ${analog.med3m > 0 ? '+' : ''}${analog.med3m}% · 상승확률 ${analog.posRate3m}%`
+    : null;
+  let verdict;
+  if (earlyWarning.level === 'severe') {
+    verdict = 'defensive';
+    reasons.push(`하락 전조 심각(경보 ${earlyWarning.score}): ${earlyWarning.drivers.slice(0, 3).join(' · ')}`);
+  } else if (earlyWarning.level === 'high') {
+    verdict = 'wait';
+    reasons.push(`하락 전조 고조(경보 ${earlyWarning.score}) — 신규 진입 보류`);
+  } else if (fearBuy.score >= 4) {
+    verdict = 'buy_dip';
+    reasons.push(`공포 매수 구간: ${fearBuy.drivers.join(' · ')}`);
+    reasons.push(...fearBuy.gurus.slice(0, 2));
+  } else if (fearBuy.active && reboundWatch.level === 'watch') {
+    verdict = 'accumulate';
+    reasons.push(`공포 신호(${fearBuy.drivers.join('·')}) + 반등 관찰(${reboundWatch.drivers.length}조건) 동시 충족 — 분할 매수`);
+  } else if (reboundWatch.level === 'watch' && analog?.matches >= 5 && analog.med3m >= 4 && analog.posRate3m >= 65) {
+    verdict = 'accumulate';
+    reasons.push(`상승 전조 관찰(${reboundWatch.drivers.slice(0, 2).join(' · ')}) + 과거 유사국면 우호적`);
+  } else if (earlyWarning.level === 'elevated') {
+    verdict = 'wait';
+    reasons.push(`경보 상승 구간(${earlyWarning.score}) — ${earlyWarning.drivers.slice(0, 2).join(' · ')}`);
+  } else if (analog?.matches >= 5 && analog.med3m >= 4 && fg != null && fg <= 50) {
+    verdict = 'neutral_ready';
+    reasons.push(`심리 비과열(F&G ${fg}) + 과거 유사국면 3개월 기대 양호 — 조정 시 매수 준비`);
+  } else if (analog?.matches >= 5 && analog.med3m <= -2) {
+    verdict = 'wait';
+    reasons.push(`과거 유사국면의 3개월 기대수익 음수 — 보수적 접근`);
+  } else {
+    verdict = 'neutral';
+    reasons.push('하락·상승 전조 모두 뚜렷하지 않음 — 기존 포지션 유지');
+  }
+  if (analogLine) reasons.push(analogLine);
+  return { verdict, reasons, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
+}
+
 /**
  * 2026-06-06: whitelist validator (ChatGPT D1) — fundamentalBasis/catalysts/rationale/riskNote 의 모든
  *   %·x 숫자가 grounded(sig 실값/계산/구조필드)인지 검증, whitelist 밖 = 환각 → clause strip.
@@ -6256,6 +6382,11 @@ async function generateViaOllama() {
   const earlyWarning = computeMacroEarlyWarning(ctxRaw, ctxRaw?.fx ?? {}, { prevFgScore });
   const reboundWatch = computeReboundWatch(ctxRaw);
   if (reboundWatch.level === 'watch') console.log(`  [rebound-watch] 반등관찰: ${reboundWatch.drivers.join(' | ')}`);
+  // 2026-06-12: 종합 판정 (하락전조+상승전조+공포매수+과거 유사국면 → 관망/매수/중립 결정)
+  const analogData = await computeHistoricalAnalog(ctxRaw);
+  const fearBuySig = computeFearBuy(ctxRaw, analogData);
+  const marketVerdict = computeMarketVerdict(earlyWarning, reboundWatch, fearBuySig, analogData, ctxRaw);
+  console.log(`  [verdict] ${marketVerdict.verdict} — ${marketVerdict.reasons[0] ?? ''}${analogData?.matches ? ` (유사국면 ${analogData.matches}회, 3m 중앙값 ${analogData.med3m}%)` : ''}`);
   let gatedStance = portfolioData.stance ?? 'neutral';
   let gatedRiskLevel = macroData?.riskLevel ?? 'medium';
   if (earlyWarning.level === 'severe') {
@@ -6276,6 +6407,7 @@ async function generateViaOllama() {
     buySellReconciliation: reconciliationLog,  // 매수↔매도 경합심사 요약 (연구·UI 노출용)
     earlyWarning,  // 거시 급락 조기경보 (결정론적 composite)
     reboundWatch,  // 과매도 반등 관찰 신호 (결정론, 매수 단정 아님 — 2026-06-12)
+    marketVerdict, // 종합 판정: 전조+공포매수+과거 유사국면 → 관망/매수/중립 (결정론 — 2026-06-12)
     sectorAllocation: sectorAllocationFallback,
     riskEvents: macroData?.riskEvents ?? [],
     macroAnalysis: macroData?.macroAnalysis ?? '',

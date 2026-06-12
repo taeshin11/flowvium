@@ -1262,7 +1262,15 @@
     "sellKindProfit": "Tome ganancias parciales",
     "sellKindStop": "Corte pérdidas",
     "sellKindWeak": "Deterioro — considere salir",
-    "sellKindMacro": "Riesgo de mercado — reduzca exposición"
+    "sellKindMacro": "Riesgo de mercado — reduzca exposición",
+    "verdictTitle": "Veredicto general",
+    "verdict_buy_dip": "Comprar el miedo (entrada escalonada)",
+    "verdict_accumulate": "Acumular gradualmente",
+    "verdict_neutral_ready": "Neutral — listo para comprar",
+    "verdict_neutral": "Neutral",
+    "verdict_wait": "Esperar",
+    "verdict_defensive": "Defensivo (aumentar efectivo)",
+    "verdictNote": "Síntesis determinista de precursores de caída/subida, señales de compra en pánico y retornos medidos de regímenes similares desde 1990. No es asesoramiento de inversión."
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

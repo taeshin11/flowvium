@@ -1262,7 +1262,15 @@
     "sellKindProfit": "建議分批停利",
     "sellKindStop": "建議停損",
     "sellKindWeak": "惡化 — 考慮減持",
-    "sellKindMacro": "市場風險 — 降低部位"
+    "sellKindMacro": "市場風險 — 降低部位",
+    "verdictTitle": "綜合判斷",
+    "verdict_buy_dip": "恐慌買入（分批建倉）",
+    "verdict_accumulate": "分批買入",
+    "verdict_neutral_ready": "中性 — 準備買入",
+    "verdict_neutral": "中性",
+    "verdict_wait": "觀望",
+    "verdict_defensive": "防禦（提高現金比例）",
+    "verdictNote": "基於下跌/上漲前兆、恐慌買入訊號及1990年以來類似行情的實測回報的確定性綜合判斷。非投資建議。"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

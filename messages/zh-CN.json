@@ -1262,7 +1262,15 @@
     "sellKindProfit": "建议分批止盈",
     "sellKindStop": "建议止损",
     "sellKindWeak": "恶化 — 考虑减持",
-    "sellKindMacro": "市场风险 — 降低仓位"
+    "sellKindMacro": "市场风险 — 降低仓位",
+    "verdictTitle": "综合判断",
+    "verdict_buy_dip": "恐慌买入（分批建仓）",
+    "verdict_accumulate": "分批买入",
+    "verdict_neutral_ready": "中性 — 准备买入",
+    "verdict_neutral": "中性",
+    "verdict_wait": "观望",
+    "verdict_defensive": "防御（提高现金比例）",
+    "verdictNote": "基于下跌/上涨前兆、恐慌买入信号及1990年以来类似行情的实测回报的确定性综合判断。非投资建议。"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

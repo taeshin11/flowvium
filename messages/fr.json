@@ -1262,7 +1262,15 @@
     "sellKindProfit": "Prenez des profits partiels",
     "sellKindStop": "Coupez les pertes",
     "sellKindWeak": "Détérioration — envisagez de sortir",
-    "sellKindMacro": "Risque de marché — réduisez l’exposition"
+    "sellKindMacro": "Risque de marché — réduisez l’exposition",
+    "verdictTitle": "Verdict global",
+    "verdict_buy_dip": "Acheter la peur (entrée progressive)",
+    "verdict_accumulate": "Accumuler progressivement",
+    "verdict_neutral_ready": "Neutre — prêt à acheter",
+    "verdict_neutral": "Neutre",
+    "verdict_wait": "Attendre",
+    "verdict_defensive": "Défensif (augmenter le cash)",
+    "verdictNote": "Synthèse déterministe des signes avant-coureurs de baisse/hausse, des signaux d’achat de panique et des rendements mesurés de régimes similaires depuis 1990. Pas un conseil en investissement."
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

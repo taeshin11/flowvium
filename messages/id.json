@@ -1262,7 +1262,15 @@
     "sellKindProfit": "Ambil untung sebagian",
     "sellKindStop": "Batasi kerugian",
     "sellKindWeak": "Memburuk — pertimbangkan keluar",
-    "sellKindMacro": "Risiko pasar — kurangi eksposur"
+    "sellKindMacro": "Risiko pasar — kurangi eksposur",
+    "verdictTitle": "Putusan keseluruhan",
+    "verdict_buy_dip": "Beli saat panik (masuk bertahap)",
+    "verdict_accumulate": "Akumulasi bertahap",
+    "verdict_neutral_ready": "Netral — siap beli",
+    "verdict_neutral": "Netral",
+    "verdict_wait": "Tunggu dan amati",
+    "verdict_defensive": "Defensif (tambah kas)",
+    "verdictNote": "Sintesis deterministik dari sinyal awal penurunan/kenaikan, sinyal beli saat panik, dan imbal hasil terukur dari kondisi serupa sejak 1990. Bukan saran investasi."
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

@@ -810,6 +810,35 @@ export default function ReportPage() {
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
           </div>
 
+          {/* ── 종합 판단 (2026-06-12): 하락·상승 전조 + 공포매수 + 과거 유사국면 → 관망/매수/중립 ── */}
+          {(() => {
+            const mv = (data as unknown as { marketVerdict?: { verdict: string; reasons: string[] } }).marketVerdict;
+            if (!mv?.verdict) return null;
+            const cfg: Record<string, { icon: string; cls: string }> = {
+              buy_dip:       { icon: '🟢', cls: 'border-emerald-400 bg-emerald-50 text-emerald-800' },
+              accumulate:    { icon: '🟩', cls: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
+              neutral_ready: { icon: '🟡', cls: 'border-amber-300 bg-amber-50 text-amber-800' },
+              neutral:       { icon: '⚪', cls: 'border-gray-300 bg-gray-50 text-gray-700' },
+              wait:          { icon: '🟠', cls: 'border-orange-300 bg-orange-50 text-orange-800' },
+              defensive:     { icon: '🔴', cls: 'border-red-400 bg-red-50 text-red-800' },
+            };
+            const c = cfg[mv.verdict] ?? cfg.neutral;
+            return (
+              <div className={`rounded-xl border-2 p-4 mb-5 ${c.cls}`}>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-lg">{c.icon}</span>
+                  <span className="font-extrabold text-base">{t('verdictTitle')}: {t(`verdict_${mv.verdict}`)}</span>
+                </div>
+                <ul className="space-y-1">
+                  {mv.reasons.map((r, i) => (
+                    <li key={i} className="text-xs leading-relaxed flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span><TName text={r} /></span></li>
+                  ))}
+                </ul>
+                <p className="text-[10px] opacity-60 mt-2">{t('verdictNote')}</p>
+              </div>
+            );
+          })()}
+
           {/* ── S6: 시장 내러티브 (Why + Watch + Story) ─────────────────────── */}
           {data.marketNarrative && (
             <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 p-4">

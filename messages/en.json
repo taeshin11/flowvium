@@ -1262,7 +1262,15 @@
     "sellKindProfit": "Take partial profits",
     "sellKindStop": "Cut losses now",
     "sellKindWeak": "Weakening — consider exiting",
-    "sellKindMacro": "Market risk — reduce exposure"
+    "sellKindMacro": "Market risk — reduce exposure",
+    "verdictTitle": "Overall Verdict",
+    "verdict_buy_dip": "Buy the fear (staged entry)",
+    "verdict_accumulate": "Accumulate gradually",
+    "verdict_neutral_ready": "Neutral — ready to buy",
+    "verdict_neutral": "Neutral",
+    "verdict_wait": "Wait and see",
+    "verdict_defensive": "Defensive (raise cash)",
+    "verdictNote": "Deterministic synthesis of downturn/upturn precursors, fear-buy signals, and measured returns of similar regimes since 1990. Not investment advice."
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

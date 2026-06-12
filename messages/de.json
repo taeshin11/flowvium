@@ -1262,7 +1262,15 @@
     "sellKindProfit": "Teilgewinne mitnehmen",
     "sellKindStop": "Verluste begrenzen",
     "sellKindWeak": "Verschlechterung — Ausstieg prüfen",
-    "sellKindMacro": "Marktrisiko — Exposure reduzieren"
+    "sellKindMacro": "Marktrisiko — Exposure reduzieren",
+    "verdictTitle": "Gesamturteil",
+    "verdict_buy_dip": "Angst kaufen (gestaffelter Einstieg)",
+    "verdict_accumulate": "Schrittweise aufstocken",
+    "verdict_neutral_ready": "Neutral — kaufbereit",
+    "verdict_neutral": "Neutral",
+    "verdict_wait": "Abwarten",
+    "verdict_defensive": "Defensiv (Cash erhöhen)",
+    "verdictNote": "Deterministische Synthese aus Abwärts-/Aufwärtsvorboten, Angstkauf-Signalen und gemessenen Renditen ähnlicher Marktphasen seit 1990. Keine Anlageberatung."
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

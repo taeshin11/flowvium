@@ -1262,7 +1262,15 @@
     "sellKindProfit": "分割利確を",
     "sellKindStop": "損切りを",
     "sellKindWeak": "悪化 — 売却検討を",
-    "sellKindMacro": "市場リスク — 比重縮小を"
+    "sellKindMacro": "市場リスク — 比重縮小を",
+    "verdictTitle": "総合判断",
+    "verdict_buy_dip": "恐怖時の買い（分割エントリー）",
+    "verdict_accumulate": "分割買い",
+    "verdict_neutral_ready": "中立 — 買い準備",
+    "verdict_neutral": "中立",
+    "verdict_wait": "様子見",
+    "verdict_defensive": "防御（現金比率拡大）",
+    "verdictNote": "下落・上昇の前兆、恐怖買いシグナル、1990年以降の類似局面の実測リターンを決定論的に統合した判断です。投資勧誘ではありません。"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

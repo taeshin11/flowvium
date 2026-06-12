@@ -1262,7 +1262,15 @@
     "sellKindProfit": "Kademeli kâr alın",
     "sellKindStop": "Zararı kesin",
     "sellKindWeak": "Bozulma — çıkışı değerlendirin",
-    "sellKindMacro": "Piyasa riski — pozisyonu azaltın"
+    "sellKindMacro": "Piyasa riski — pozisyonu azaltın",
+    "verdictTitle": "Genel karar",
+    "verdict_buy_dip": "Korkuda al (kademeli giriş)",
+    "verdict_accumulate": "Kademeli biriktir",
+    "verdict_neutral_ready": "Nötr — alıma hazır",
+    "verdict_neutral": "Nötr",
+    "verdict_wait": "Bekle-gör",
+    "verdict_defensive": "Savunmacı (nakit artır)",
+    "verdictNote": "Düşüş/yükseliş öncü sinyalleri, korku alım sinyalleri ve 1990 sonrası benzer rejimlerin ölçülmüş getirilerinin deterministik sentezi. Yatırım tavsiyesi değildir."
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

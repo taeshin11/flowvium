@@ -719,6 +719,11 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - level high/severe 시 보고서 **최상단 강한 시각 배너**(severe=빨강+animate-pulse+shadow, high=주황) + drivers 나열 + 위험점수. LLM riskLevel 과 독립(결정론적, 환각 무관).
 - 16개 언어 i18n (`report.ewTitle/ewSevere/ewHigh/ewScore/ewNote`).
 
+### 13-1c. 📍 종합 판단 카드 (2026-06-12 신설 — 사용자 "관망/매수/중립 결정이 되야")
+- `marketVerdict` 결정론 판정: 하락 전조(earlyWarning) + 상승 전조(reboundWatch) + **공포 매수**(F&G≤25·낙폭≥5%·VIX≥25 조합, 버핏/템플턴/막스 원칙) + **과거 유사국면**(^GSPC+^VIX 1990~ 일봉 라이브 fetch, VIX·낙폭·20일수익률 지문 매칭 → 1/3/6개월 forward 중앙값·상승확률 실측) 종합.
+- verdict 6단계: buy_dip(공포 매수)/accumulate(분할 매수)/neutral_ready(중립-매수준비)/neutral/wait(관망)/defensive(방어) + 근거 reasons[] 전부 코드 생성 (LLM 무관, 하드코딩 사례표 금지 — 데이터에서 직접 계산).
+- stance hero 바로 아래 카드, verdict 별 색상. i18n `report.verdictTitle/verdict_*/verdictNote` 16언어.
+
 ### 13-2. 3단 분석 카드
 - 거시경제 분석 (파란색)
 - 기술적 분석 (보라색)

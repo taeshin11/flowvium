@@ -1262,7 +1262,15 @@
     "sellKindProfit": "Chốt lời từng phần",
     "sellKindStop": "Cắt lỗ ngay",
     "sellKindWeak": "Suy yếu — cân nhắc thoát",
-    "sellKindMacro": "Rủi ro thị trường — giảm tỷ trọng"
+    "sellKindMacro": "Rủi ro thị trường — giảm tỷ trọng",
+    "verdictTitle": "Phán quyết tổng thể",
+    "verdict_buy_dip": "Mua khi sợ hãi (vào lệnh từng phần)",
+    "verdict_accumulate": "Tích lũy dần",
+    "verdict_neutral_ready": "Trung lập — sẵn sàng mua",
+    "verdict_neutral": "Trung lập",
+    "verdict_wait": "Quan sát",
+    "verdict_defensive": "Phòng thủ (tăng tiền mặt)",
+    "verdictNote": "Tổng hợp xác định từ dấu hiệu báo trước giảm/tăng, tín hiệu mua khi hoảng loạn và lợi nhuận thực đo của các giai đoạn tương tự từ 1990. Không phải lời khuyên đầu tư."
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",
