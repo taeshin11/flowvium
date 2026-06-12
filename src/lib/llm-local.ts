@@ -10,10 +10,41 @@
 const OLLAMA_CHAT = 'http://localhost:11434/api/chat';
 export const LOCAL_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b';
 
+// ── 2026-06-12 GPU 과부하 보호 (사용자 "컴퓨터 꺼지지 않게 조치 철저히") ─────────────────
+//   웹 경유 Ollama 호출은 트래픽 비례 무한 큐 적체 가능(6/12 16:00~16:28 /api/chat 516건,
+//   GPU 96%/82°C 28분 — 6/7 hard freeze 기여 의심 패턴). 동시 2 + 대기 8 + 대기 15s 상한.
+//   초과분은 즉시 null → 상위(callAI cloud / 원문 fallback)가 처리. GPU 는 보고서가 우선.
+const OLLAMA_MAX_CONCURRENT = 2;
+const OLLAMA_MAX_WAITING = 8;
+const OLLAMA_WAIT_MS = 15000;
+let ollamaActive = 0;
+const ollamaWaiters: Array<() => void> = [];
+async function ollamaAcquire(): Promise<boolean> {
+  if (ollamaActive < OLLAMA_MAX_CONCURRENT) { ollamaActive++; return true; }
+  if (ollamaWaiters.length >= OLLAMA_MAX_WAITING) return false;
+  const ok = await new Promise<boolean>((res) => {
+    const waiter = () => { clearTimeout(timer); res(true); };
+    const timer = setTimeout(() => {
+      const i = ollamaWaiters.indexOf(waiter);
+      if (i >= 0) ollamaWaiters.splice(i, 1);
+      res(false);
+    }, OLLAMA_WAIT_MS);
+    ollamaWaiters.push(waiter);
+  });
+  if (ok) ollamaActive++;
+  return ok;
+}
+function ollamaRelease(): void {
+  ollamaActive--;
+  const next = ollamaWaiters.shift();
+  if (next) next();
+}
+
 export async function localChat(
   prompt: string,
   opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {},
 ): Promise<string | null> {
+  if (!(await ollamaAcquire())) return null; // GPU 포화 — cloud/원문 fallback 에 위임
   try {
     const res = await fetch(OLLAMA_CHAT, {
       method: 'POST',
@@ -33,6 +64,8 @@ export async function localChat(
     return t || null;
   } catch {
     return null;
+  } finally {
+    ollamaRelease();
   }
 }
 

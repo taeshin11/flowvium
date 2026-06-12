@@ -80,6 +80,7 @@ log(`스케줄 등록 ${scheduled}/${crons.length} (TZ=${TZ}, BASE=${BASE}). Ctr
 // 2026-06-05: 자동 모니터 (촘촘히) — 수동 의존 제거. */20분 check-stall + check-data-quality 실행,
 //   execSync timeout 으로 hang 방지, 결과를 logs/monitor-status.json 에 기록(가시) + 결함 시 로그 강조.
 let monitorRunning = false;
+const LOCAL_MODEL_NAME = process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b';  // gpu-watchdog 언로드 대상
 const warmLast = new Map();  // 2026-06-12: auto-warm per-locale 쿨다운 (중복 트리거 방지)
 const WARM_COOLDOWN_MS = 45 * 60 * 1000;  // 번역 1 locale 완주가 20분+ 걸릴 수 있어 모니터 주기(20분)보다 길게
 async function runMonitor() {
@@ -97,8 +98,26 @@ async function runMonitor() {
       for (const l of out.split('\n')) if (l.includes('🚨')) result.defects.push(l.replace(/.*🚨\s*/, '').trim());
     }
   }
+  // 2026-06-12 GPU 열 감시 (사용자 "GPU 96%/82°C — 컴퓨터 꺼지지 않게 조치 철저히"; 6/7 hard
+  //   freeze 기여 의심): 83°C+ 결함 표면화, 87°C+ 이고 보고서 파이프라인이 아니면 ollama 모델
+  //   강제 언로드(load shed). 웹측 semaphore(llm-local)와 이중 방어.
+  try {
+    const { stdout } = await execFileAsync('nvidia-smi', ['--query-gpu=temperature.gpu,utilization.gpu', '--format=csv,noheader,nounits'], { timeout: 10000, windowsHide: true });
+    const [temp, util] = stdout.trim().split(',').map((s) => parseInt(s.trim(), 10));
+    result.checks.gpu = `${temp}C/${util}%`;
+    if (temp >= 83) {
+      result.defects.push(`[GPU] ${temp}°C util ${util}% — 과열 주의 (freeze 위험)`);
+      if (temp >= 87 && !(await isReportPipelineRunning())) {
+        try {
+          await execFileAsync('ollama', ['stop', LOCAL_MODEL_NAME], { timeout: 30000, windowsHide: true });
+          result.defects.push(`[GPU] ${temp}°C 비상 — ollama ${LOCAL_MODEL_NAME} 강제 언로드 (load shed)`);
+          log(`[gpu-watchdog] 🚨 ${temp}°C — ollama ${LOCAL_MODEL_NAME} 언로드 실행`);
+        } catch { log('[gpu-watchdog] ollama stop 실패'); }
+      }
+    }
+  } catch { /* nvidia-smi 부재/실패 — skip */ }
   try { writeFileSync(resolve(process.cwd(), 'logs/monitor-status.json'), JSON.stringify(result, null, 2)); } catch { /* */ }
-  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
+  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
 
   // 2026-06-06 cold-cache self-heal: 자가호스팅이라 cloud 번역 warm-cron(401) 부재 → 뉴스 새로고침
   //   후 비-ko locale 이 cold 로 남아 모니터마다 [B] 결함 재발(수동 warm 반복). 감지 시 자동 warm
