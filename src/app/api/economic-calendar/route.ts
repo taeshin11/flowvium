@@ -39,7 +39,7 @@ export interface EconCalResponse {
   to: string;
   country: string;
   cached: boolean;
-  source: 'finnhub' | 'empty';
+  source: 'finnhub' | 'fred-schedule' | 'empty';
   updatedAt: string;
 }
 
@@ -70,6 +70,36 @@ async function fetchFredActualRate(): Promise<number | null> {
     const val = parseFloat(d?.observations?.[0]?.value ?? '');
     return isNaN(val) ? null : val;
   } catch { return null; }
+}
+
+// 2026-06-12: Finnhub 이 economic calendar 를 유료화(키 유효한데 이 endpoint 만 401, earnings 는 정상)
+//   → FRED release/dates API(무료, 보유 키)로 주요 지표 발표 *일정* 폴백. actual/estimate 는 없지만
+//   "언제 무엇이 나오나"는 결정론 제공 — 빈 캘린더보다 훨씬 낫다. curl 검증: GDP 6/25, 소매판매 6/17.
+const FRED_RELEASES: Array<{ id: number; event: string }> = [
+  { id: 10, event: 'CPI (Consumer Price Index)' },
+  { id: 46, event: 'PPI (Producer Price Index)' },
+  { id: 50, event: 'Employment Situation (Nonfarm Payrolls)' },
+  { id: 53, event: 'GDP' },
+  { id: 9, event: 'Advance Retail Sales' },
+];
+async function fetchFredReleaseEvents(from: string, to: string): Promise<EconCalEvent[]> {
+  const fredKey = process.env.FRED_API_KEY?.trim();
+  if (!fredKey) return [];
+  const out: EconCalEvent[] = [];
+  await Promise.all(FRED_RELEASES.map(async ({ id, event }) => {
+    try {
+      const u = `https://api.stlouisfed.org/fred/release/dates?release_id=${id}&api_key=${fredKey}&file_type=json&include_release_dates_with_no_data=true&realtime_start=${from}&realtime_end=${to}&sort_order=asc&limit=10`;
+      const res = await fetch(u, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
+      if (!res.ok) return;
+      const d = await res.json() as { release_dates?: Array<{ date: string }> };
+      for (const rd of d.release_dates ?? []) {
+        if (rd.date >= from && rd.date <= to) {
+          out.push({ date: rd.date, time: null, country: 'US', event, impact: 'high', actual: null, estimate: null, prev: null, unit: null });
+        }
+      }
+    } catch { /* 폴백 실패 — FOMC 주입만으로 진행 */ }
+  }));
+  return out;
 }
 
 function injectFomcEvents(events: EconCalEvent[], from: string, to: string, currentRate: number | null): EconCalEvent[] {
@@ -145,8 +175,9 @@ export async function GET(req: Request) {
 
   if (!apiKey) {
     logger.warn('api.economic-calendar', 'no_finnhub_key');
+    const fredEvents = await fetchFredReleaseEvents(from, to);
     const empty: EconCalResponse = {
-      events: injectFomcEvents([], from, to, currentRate), from, to, country, cached: false, source: 'empty',
+      events: injectFomcEvents(fredEvents, from, to, currentRate), from, to, country, cached: false, source: 'empty',
       updatedAt: new Date().toISOString(),
     };
     return NextResponse.json(empty, { headers: CDN_HEADERS });
@@ -161,9 +192,12 @@ export async function GET(req: Request) {
     });
 
     if (!res.ok) {
+      // 2026-06-12: Finnhub 401(키 만료) 동안 캘린더 전체가 빈 화면이던 결함 — 에러 경로도
+      //   FOMC 결정론 일정(+FRED 실금리)은 주입 (no-key 경로와 동일 graceful degradation).
       logger.warn('api.economic-calendar', `finnhub_error_${res.status}`);
+      const fredEvents = await fetchFredReleaseEvents(from, to);
       const empty: EconCalResponse = {
-        events: [], from, to, country, cached: false, source: 'empty',
+        events: injectFomcEvents(fredEvents, from, to, currentRate), from, to, country, cached: false, source: 'fred-schedule',
         updatedAt: new Date().toISOString(),
       };
       return NextResponse.json(empty, { headers: CDN_HEADERS });
