@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -542,7 +542,7 @@ function SanctionsTab() {
                     ? `${BADGE_STYLE[PROG_COLOR[key] ?? 'red']} font-semibold`
                     : 'bg-white border-cf-border text-cf-text-secondary hover:border-cf-primary/30'
                 }`}>
-                {g.label} ({g.entries.length})
+                {(() => { try { return t(`sanc${key}`); } catch { return g.label; } })()} ({g.entries.length})
               </button>
             ))}
           </div>
