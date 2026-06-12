@@ -525,7 +525,7 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
         </div>
         {selectedCap === 'all' && (
           <div className="mt-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800">
-            ⚠️ 전체 600+개 종목 표시 — 그래프 매우 혼잡. <strong>메가 ($200B+)</strong> 또는 섹터 필터 권장.
+            ⚠️ {t('allCapWarning')}
           </div>
         )}
       </div>

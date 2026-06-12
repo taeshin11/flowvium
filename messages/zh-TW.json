@@ -132,7 +132,8 @@
     "hideIsolated": "隱藏無關聯",
     "viewTable": "TABLE",
     "viewGraph": "GRAPH",
-    "topNlimit": "前 {n} 個 (共 {total}) — 請篩選"
+    "topNlimit": "前 {n} 個 (共 {total}) — 請篩選",
+    "allCapWarning": "顯示全部600+檔股票 — 圖表非常擁擠。建議使用超大型($200B+)或產業篩選。"
   },
   "company": {
     "overview": "總覽",

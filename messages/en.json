@@ -132,7 +132,8 @@
     "hideIsolated": "Hide unconnected",
     "viewTable": "TABLE",
     "viewGraph": "GRAPH",
-    "topNlimit": "Top {n} shown of {total} — narrow with filter"
+    "topNlimit": "Top {n} shown of {total} — narrow with filter",
+    "allCapWarning": "Showing all 600+ stocks — graph is very dense. Mega ($200B+) or sector filter recommended."
   },
   "company": {
     "overview": "Overview",

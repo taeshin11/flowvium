@@ -132,7 +132,8 @@
     "hideIsolated": "Verbindungslose ausblenden",
     "viewTable": "TABELLE",
     "viewGraph": "GRAPH",
-    "topNlimit": "Top {n} von {total} — filtern"
+    "topNlimit": "Top {n} von {total} — filtern",
+    "allCapWarning": "Alle 600+ Aktien angezeigt — Graph sehr dicht. Mega-($200B+)- oder Sektorfilter empfohlen."
   },
   "company": {
     "overview": "Überblick",

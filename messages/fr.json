@@ -132,7 +132,8 @@
     "hideIsolated": "Masquer non connectes",
     "viewTable": "TABLEAU",
     "viewGraph": "GRAPHE",
-    "topNlimit": "Top {n} sur {total} — filtrer"
+    "topNlimit": "Top {n} sur {total} — filtrer",
+    "allCapWarning": "Affichage de 600+ actions — graphique très dense. Filtre Mega ($200B+) ou sectoriel recommandé."
   },
   "company": {
     "overview": "Vue d'ensemble",

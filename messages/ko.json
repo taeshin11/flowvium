@@ -132,7 +132,8 @@
     "hideIsolated": "관계 없는 종목 숨김",
     "viewTable": "TABLE",
     "viewGraph": "GRAPH",
-    "topNlimit": "상위 {n}건 표시 ({total} 종목 중) — 필터로 좁히세요"
+    "topNlimit": "상위 {n}건 표시 ({total} 종목 중) — 필터로 좁히세요",
+    "allCapWarning": "전체 600+개 종목 표시 — 그래프 매우 혼잡. 메가($200B+) 또는 섹터 필터 권장."
   },
   "company": {
     "overview": "개요",

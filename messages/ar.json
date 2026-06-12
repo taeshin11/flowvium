@@ -132,7 +132,8 @@
     "hideIsolated": "اخفاء غير متصل",
     "viewTable": "جدول",
     "viewGraph": "رسم",
-    "topNlimit": "اعلى {n} من {total}"
+    "topNlimit": "اعلى {n} من {total}",
+    "allCapWarning": "عرض أكثر من 600 سهم — الرسم مزدحم جداً. يُنصح بفلتر ميجا ($200B+) أو القطاع."
   },
   "company": {
     "overview": "نظرة عامة",

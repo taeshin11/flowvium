@@ -132,7 +132,8 @@
     "hideIsolated": "असंबद्ध छुपाएं",
     "viewTable": "टेबल",
     "viewGraph": "ग्राफ",
-    "topNlimit": "शीर्ष {n} of {total}"
+    "topNlimit": "शीर्ष {n} of {total}",
+    "allCapWarning": "600+ स्टॉक दिखाए जा रहे हैं — ग्राफ बहुत घना है। मेगा ($200B+) या सेक्टर फ़िल्टर अनुशंसित।"
   },
   "company": {
     "overview": "अवलोकन",

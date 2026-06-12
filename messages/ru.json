@@ -132,7 +132,8 @@
     "hideIsolated": "Скрыть без связей",
     "viewTable": "ТАБЛИЦА",
     "viewGraph": "ГРАФ",
-    "topNlimit": "Топ {n} из {total} — фильтр"
+    "topNlimit": "Топ {n} из {total} — фильтр",
+    "allCapWarning": "Показаны 600+ акций — график очень плотный. Рекомендуется фильтр Mega ($200B+) или по сектору."
   },
   "company": {
     "overview": "Обзор",

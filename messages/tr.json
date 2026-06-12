@@ -132,7 +132,8 @@
     "hideIsolated": "Baglantisizlari gizle",
     "viewTable": "TABLO",
     "viewGraph": "GRAF",
-    "topNlimit": "Ilk {n}/{total} — filtre"
+    "topNlimit": "Ilk {n}/{total} — filtre",
+    "allCapWarning": "600+ hisse gösteriliyor — grafik çok yoğun. Mega ($200B+) veya sektör filtresi önerilir."
   },
   "company": {
     "overview": "Genel Bakış",

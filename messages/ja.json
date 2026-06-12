@@ -132,7 +132,8 @@
     "hideIsolated": "関係なし非表示",
     "viewTable": "TABLE",
     "viewGraph": "GRAPH",
-    "topNlimit": "上位{n}件表示 ({total}社中) — フィルター推奨"
+    "topNlimit": "上位{n}件表示 ({total}社中) — フィルター推奨",
+    "allCapWarning": "全600以上の銘柄を表示中 — グラフが非常に混雑。メガ($200B+)またはセクターフィルター推奨。"
   },
   "company": {
     "overview": "概要",

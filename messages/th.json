@@ -132,7 +132,8 @@
     "hideIsolated": "ซ่อนไม่เชื่อมโยง",
     "viewTable": "ตาราง",
     "viewGraph": "กราฟ",
-    "topNlimit": "อันดับ {n}/{total}"
+    "topNlimit": "อันดับ {n}/{total}",
+    "allCapWarning": "แสดงหุ้นทั้งหมด 600+ ตัว — กราฟหนาแน่นมาก แนะนำฟิลเตอร์ Mega ($200B+) หรือตามเซกเตอร์"
   },
   "company": {
     "overview": "ภาพรวม",

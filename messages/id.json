@@ -132,7 +132,8 @@
     "hideIsolated": "Sembunyikan tak terhubung",
     "viewTable": "TABEL",
     "viewGraph": "GRAFIK",
-    "topNlimit": "Top {n} dari {total} — gunakan filter"
+    "topNlimit": "Top {n} dari {total} — gunakan filter",
+    "allCapWarning": "Menampilkan 600+ saham — grafik sangat padat. Disarankan filter Mega ($200B+) atau sektor."
   },
   "company": {
     "overview": "Ringkasan",

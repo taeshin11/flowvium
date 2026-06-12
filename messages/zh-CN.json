@@ -132,7 +132,8 @@
     "hideIsolated": "隐藏无关联",
     "viewTable": "TABLE",
     "viewGraph": "GRAPH",
-    "topNlimit": "前 {n} 个 (共 {total}) — 请筛选"
+    "topNlimit": "前 {n} 个 (共 {total}) — 请筛选",
+    "allCapWarning": "显示全部600+只股票 — 图表非常拥挤。建议使用超大盘($200B+)或行业筛选。"
   },
   "company": {
     "overview": "概览",

@@ -132,7 +132,8 @@
     "hideIsolated": "An khong ket noi",
     "viewTable": "BANG",
     "viewGraph": "BIEU DO",
-    "topNlimit": "Top {n}/{total}"
+    "topNlimit": "Top {n}/{total}",
+    "allCapWarning": "Hiển thị 600+ cổ phiếu — đồ thị rất dày. Khuyên dùng bộ lọc Mega ($200B+) hoặc theo ngành."
   },
   "company": {
     "overview": "Tổng quan",
