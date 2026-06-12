@@ -65,3 +65,12 @@
   - stop_breach 145건: good 93 / missed 22 / avg -3.4% -> 손절 유효
   - rotation_loss avg -10.6% -> 매우 정당
 - 이제 tune-sell-rules(일요 grid search)가 실제 ground truth 로 학습 가능
+
+## (추가) 역방향 사각지대 사냥 — 상승종목 미포착 전수 (사용자 "이런 거 더 없어?")
+- audit-missed-winners.mjs (보존 — 분기 1회 권장): 풀 전체 3개월 수익률 실측 vs top30/추천 이력
+- 결과: +25% 이상 winner 251종 중 엔진 포착 56종(22%) — 78% 미포착
+  - KR 신호맹 111종: 삼성전기 +348/LG이노텍 +326/주성엔지 +268 등 반도체 사이클 통째 누락
+  - US 신호조용 84종: ARM +196/SNDK +184/STM/STX/WDC — 모멘텀 무시(mean-reversion 편중)
+- 당일 교정 3종이 이 클래스 겨냥: KR 쿼터 / price_momentum_52w_high(stage-1 시장중립) /
+  뉴스 sentiment 복원(이중결함 — tickers 필드 부재+필드명 오류로 개통 이래 0발화, 한글명 매칭 복원)
+- 측정: 15:40 발간부터 top30 구성 변화 관찰. F22 sold 누락 fix(4fe715d)도 동일 세션.
