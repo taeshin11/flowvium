@@ -117,7 +117,8 @@ export async function getNewsGapData(): Promise<NewsGapResult> {
         ibActivityScore,
         mediaScore,
         gapScore,
-        topInstitutions: ownership.map(o => o.institution).slice(0, 3),
+        // 2026-06-13: 13F 자회사 분리행으로 같은 기관 중복 노출 (BlackRock×3 실측) — unique
+        topInstitutions: Array.from(new Set(ownership.map(o => o.institution))).slice(0, 3),
         recentArticles: live?.recentArticles?.length ? live.recentArticles : (stat?.recentArticles ?? []),
         ibActions: stat?.ibActions ?? [],
         ownershipData: ownership,
