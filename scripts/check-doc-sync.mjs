@@ -9,8 +9,7 @@
  *
  * 사용: node scripts/check-doc-sync.mjs   (exit 1 = 문서-코드 불일치)
  */
-import { readFileSync } from 'fs';
-import { execSync } from 'child_process';
+import { readFileSync, readdirSync } from 'fs';
 
 const DOCS = ['FEATURES.md', 'METRICS.md'].map(f => readFileSync(f, 'utf8')).join('\n');
 const norm = (s) => parseInt(String(s).replace(/[,\s]/g, ''), 10);
@@ -35,7 +34,7 @@ const CHECKS = [
   },
   {
     name: '지원 언어 수',
-    code: execSync('ls messages/*.json').toString().trim().split('\n').length,
+    code: readdirSync('messages').filter(f => f.endsWith('.json')).length,
     docRe: /([0-9]+)\s*개?\s*(?:국어|언어)\b/g,
   },
 ];
