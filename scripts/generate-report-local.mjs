@@ -1962,7 +1962,7 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
  * 강제 rotation — 최근 5개 보고서 ticker와 5개+ 겹치면 boost-list에서 신규 ticker 강제 추가.
  * "맨날 같은 종목" 문제 해결 (NVDA/TSM/ASML/000660 가 100% 반복되는 현상).
  */
-function enforceRotation(portfolio, livePrices) {
+async function enforceRotation(portfolio, livePrices) {
   try {
     const dir = resolve(import.meta.dirname ?? '.', '..', 'reports');
     const files = readdirSync(dir).filter(f => f.endsWith('-ko.json')).sort().slice(-5);
@@ -2017,6 +2017,31 @@ function enforceRotation(portfolio, livePrices) {
     } catch { /* skip */ }
 
     if (!boostList.length) return portfolio;
+
+    // 2026-06-12: rotation 투입 사전 매도룰 심사 (TSLA 오전매수→정오매도 whipsaw 사건).
+    //   boost/pool 후보가 매도룰 강신호(데드크로스·200MA 이탈·마진악화 등 score≥7) 보유 시
+    //   투입 자체를 거부 — 경합심사가 rotation 前에 실행되는 순서 구멍의 원천 봉합.
+    try {
+      const vetoRulesR = (loadSellRules()?.rules ?? []).filter((r) => ['fundamental', 'technical', 'guru'].includes(r.category));
+      const sigR = await fetchSellSignals(boostList.map((b) => b.ticker));
+      boostList = boostList.filter((b) => {
+        const sig = sigR.get(b.ticker) ?? {};
+        const exCtx = {
+          price: livePrices.get(b.ticker)?.price ?? null,
+          rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
+          opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
+          sectorPe: null, macroRiskLevel: null,
+        };
+        const hits = vetoRulesR.map((r) => ({ r, reason: evaluateSellRule(r, exCtx) })).filter((x) => x.reason);
+        const total = hits.reduce((s, x) => s + (x.r.score ?? 0), 0);
+        if (total >= 7) {
+          console.warn(`  [rotation-veto] ${b.ticker} 투입 거부 (매도 score ${total}≥7: ${hits.map((x) => x.r.id).join(',')})`);
+          return false;
+        }
+        return true;
+      });
+      if (!boostList.length) return portfolio;
+    } catch (e) { console.warn(`  [rotation-veto] 심사 skip: ${String(e?.message).slice(0, 60)}`); }
 
     // 가장 약한 종목 1-2개를 boost-list 종목으로 교체
     // 약한 종목 = action=watch + 최근 5보고서 모두 출현 + allocation 작음
@@ -6799,8 +6824,8 @@ async function generateViaOllama() {
   finalReport.harnessAudit = applyLocalHarness(finalReport, livePrices);
   // 2차 클램프: harness 가 zone 을 덮어쓴 경우 다시 시장가 기준으로 보정 (도달 불가 zone 방지).
   finalReport.portfolio = validateEntryZones(finalReport.portfolio, livePrices);
-  // 강제 rotation — 최근 5보고서와 5+ 종목 겹치면 boost-list 종목으로 교체
-  finalReport.portfolio = enforceRotation(finalReport.portfolio, livePrices);
+  // 강제 rotation — 최근 5보고서와 5+ 종목 겹치면 boost-list 종목으로 교체 (투입 전 매도룰 사전심사 포함)
+  finalReport.portfolio = await enforceRotation(finalReport.portfolio, livePrices);
   // 구루 분할 매매 ladder 자동 생성 (entry 30/40/30 + exit 33/33/34 + trailing)
   finalReport.portfolio = buildLadders(finalReport.portfolio, livePrices);
   // 2026-05-31: enforceRotation/buildLadders 가 postProcessPortfolio(line 4934) 이후 실행 →
