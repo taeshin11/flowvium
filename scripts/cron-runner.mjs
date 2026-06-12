@@ -90,13 +90,16 @@ async function runMonitor() {
   // 2026-06-12: 배포 재시작 직후 프로브 오탐 가드 — pm2 web uptime < 2분이면 이번 사이클 skip.
   //   사건: verdict 빌드 배포 순간 모니터가 닿아 14 엔드포인트 DEAD(HTTP 500) 대량 오탐.
   try {
-    const { stdout } = await execFileAsync('pm2.cmd', ['jlist'], { timeout: 15000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
-    const web = JSON.parse(stdout).find((p) => p.name === 'flowvium-web');
-    if (web?.pm2_env?.pm_uptime && Date.now() - web.pm2_env.pm_uptime < 120000) {
-      log('[auto-monitor] 웹 재시작 직후(uptime<2분) — 오탐 방지 위해 이번 사이클 skip');
+    // Node 20.12+ 의 .cmd spawn 보안 변경으로 shell 필수 (spawn EINVAL — 가드 silent 실패 사건).
+    const { stdout } = await execFileAsync('pm2', ['jlist'], { timeout: 15000, windowsHide: true, shell: true, maxBuffer: 10 * 1024 * 1024 });
+    const webs = JSON.parse(stdout).filter((p) => p.name === 'flowvium-web');
+    // cluster 다중 인스턴스 — 가장 최근 재시작 기준 (rolling reload 중이면 skip)
+    const newest = Math.max(...webs.map((w) => w?.pm2_env?.pm_uptime ?? 0));
+    if (newest && Date.now() - newest < 180000) {
+      log('[auto-monitor] 웹 재시작/reload 직후(uptime<3분) — 오탐 방지 위해 이번 사이클 skip');
       return;
     }
-  } catch { /* pm2 조회 실패 — 모니터는 정상 진행 */ }
+  } catch (e) { log(`[auto-monitor] pm2 uptime 조회 실패(가드 미적용): ${String(e?.message).slice(0, 40)}`); }
   const result = { ts: new Date().toISOString(), checks: {}, defects: [] };
   for (const [key, script] of [['stall', 'scripts/check-stall.mjs'], ['dataQuality', 'scripts/check-data-quality.mjs']]) {
     try {

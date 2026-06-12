@@ -4840,10 +4840,18 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         if (result) sellHits.push({ ruleId: rule.id, category: rule.category ?? null, score: rule.score ?? 0, urgency: rule.urgency, reason: result });
       }
       if (!sellHits.length) continue;
-      const totalScore = sellHits.reduce((s, h) => s + h.score, 0);
+      // 2026-06-12: 익절류 룰의 무수익 발화 차단 (사용자 "0.0%인데 분할익절하라고?" — 당일 추천
+      //   종목이 target 근접만으로 pnl 0% 에 분할익절 카드 발행). 익절 권고는 실수익 ≥2% 또는
+      //   보유 1일+ 일 때만 의미 — 미달이면 해당 hit 제거 (다른 신호는 유지).
+      const PROFIT_RULES = new Set(['price_target_near', 'rotation_profit']);
+      const realizedPnl = pnl != null ? pnl : 0;
+      const filteredHits = sellHits.filter(h => !PROFIT_RULES.has(h.ruleId) || realizedPnl >= 2 || heldDays >= 1);
+      if (filteredHits.length !== sellHits.length) console.log(`  [sell-cand] ${ticker} 익절 hit 제거 (pnl ${realizedPnl.toFixed(1)}% < 2% & 보유 ${Math.round(heldDays)}일)`);
+      if (!filteredHits.length) continue;
+      const totalScore = filteredHits.reduce((s, h) => s + h.score, 0);
       const URG_RANK = { high: 3, medium: 2, low: 1 };
-      const maxUrgency = sellHits.reduce((u, h) => (URG_RANK[h.urgency] ?? 0) > (URG_RANK[u] ?? 0) ? h.urgency : u, 'low');
-      const primary = [...sellHits].sort((a, b) => b.score - a.score)[0];
+      const maxUrgency = filteredHits.reduce((u, h) => (URG_RANK[h.urgency] ?? 0) > (URG_RANK[u] ?? 0) ? h.urgency : u, 'low');
+      const primary = [...filteredHits].sort((a, b) => b.score - a.score)[0];
 
       const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
       candidates.push({
@@ -4853,8 +4861,8 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         ruleId: primary.ruleId,
         category: primary.category,
         urgency: maxUrgency,
-        sellHits,  // 양방향 심판/trail 용 — 매칭 룰 전체 보존
-        reason: sellHits.map(h => h.reason).join(' | '),
+        sellHits: filteredHits,  // 양방향 심판/trail 용 — 매칭 룰 전체 보존 (무수익 익절 hit 제외 후)
+        reason: filteredHits.map(h => h.reason).join(' | '),
         currentPrice: fmt(price),
         entryPrice: r.price_at_gen ? fmt(r.price_at_gen) : null,
         target: target ? fmt(target) : null,
