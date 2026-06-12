@@ -912,7 +912,7 @@ export default function ReportPage() {
               <span className="text-xs font-bold text-emerald-700 shrink-0">{t('buyNow')}</span>
               {data.portfolio.filter(p => p.action === 'buy').map(p => (
                 <span key={p.ticker} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-600 text-white px-2.5 py-1 rounded-full">
-                  {p.ticker}
+                  {displayName(p.ticker, p.name)}
                   <span className="font-normal opacity-80 text-[10px]">{p.allocation}%</span>
                 </span>
               ))}
@@ -962,7 +962,7 @@ export default function ReportPage() {
                     <p className="text-xs font-bold text-orange-700 mb-2">🔥 {t('shortSqueezeLabel')}</p>
                     {data.shortSqueeze.map((s, i) => (
                       <div key={i} className="mb-2 text-xs">
-                        <span className="font-bold text-orange-800">{s.ticker}</span>
+                        <span className="font-bold text-orange-800">{displayName(s.ticker)}</span>
                         <span className="text-orange-600 ml-1">score={s.score}</span>
                         <p className="text-gray-600 mt-0.5">{s.timing}</p>
                         <p className="text-red-500 text-[10px]">{t('riskLabel')}: {s.risk}</p>
@@ -975,7 +975,7 @@ export default function ReportPage() {
                     <p className="text-xs font-bold text-orange-700 mb-2">👤 {t('insiderSignalsLabel')}</p>
                     {data.insiderSignals.map((s, i) => (
                       <div key={i} className="mb-2 text-xs">
-                        <span className="font-bold text-orange-800">{s.ticker}</span>
+                        <span className="font-bold text-orange-800">{displayName(s.ticker)}</span>
                         <span className="text-orange-600 ml-1">{s.filings}{t('filingUnit')}</span>
                         {s.dateRange && (
                           <span className="text-gray-400 ml-1 text-[10px]">({s.dateRange})</span>
@@ -1021,7 +1021,7 @@ export default function ReportPage() {
                     <div key={i} className={`rounded-lg border p-2.5 ${rowBg}`}>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${severityBadge}`}>{severityLabel}</span>
-                        <span className="text-xs font-bold text-gray-900 font-mono">{s.ticker}</span>
+                        <span className="text-xs font-bold text-gray-900">{displayName(s.ticker)} <span className="text-[10px] font-normal text-gray-400 font-mono">{s.ticker}</span></span>
                         <span className="text-[10px] text-gray-500 bg-white/70 rounded px-1.5 py-0.5 border border-gray-200">{typeLabel}</span>
                       </div>
                       <p className="text-xs text-gray-800 font-medium leading-snug">{s.signal}</p>

@@ -280,9 +280,18 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     if (!text || !text.trim()) return text;
     // 이미 target 언어(CJK) 이고 긴 영문 단어 없으면 번역 불필요 — 네이티브 기사 skip(비용 절감).
     if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text)) return text;
-    // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → 원문 유지(틀린언어 차단).
+    // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud 폴백.
     const out = await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: 60000 });
-    return (out && out.trim() && out.trim() !== text.trim()) ? out.trim() : text;
+    if (out && out.trim() && out.trim() !== text.trim()) return out.trim();
+    // 2026-06-12: ja→ko 에서 qwen 출력의 고유명사 한자 잔존이 bleed-guard(한자2+)에 막혀
+    //   일본어 원문이 그대로 발행·캐시되던 사건 (Viking cruise 제목, 사용자 "아직도 번역 안 되네").
+    //   cloud(GROQ 8b 등) 폴백 — target script 포함 검증 후만 채택, 아니면 원문 유지.
+    try {
+      const ai = await callAI(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes.\n\n${text}`, { maxTokens: 800, temperature: 0.1, skipVllm: true, preferSmallModel: true, timeoutMs: 15000, tag: 'news-cascade.per-field' });
+      const t2 = ai.text?.trim();
+      if (t2 && t2 !== text.trim() && (!tgtRe || tgtRe.test(t2))) return t2;
+    } catch { /* 원문 유지 */ }
+    return text;
   };
   const result: NewsWithCascade[] = [];
   for (const a of articles) {
