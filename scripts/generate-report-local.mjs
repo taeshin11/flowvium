@@ -6258,6 +6258,68 @@ async function generateViaOllama() {
     adjudication.sellSide = sellSideReview;  // 양방향: 매도 후보의 매수신호 상충 기록
     adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length, sellConflicts: sellSideReview.length };
     if (before !== dedupedPortfolio.length) console.log(`  [경합심사] 매수 ${before}→${dedupedPortfolio.length} (매도룰 cross-exam 탈락)`);
+
+    // 2026-06-12: 탈락 시장 재충원 (사용자 "kr종목이 없네 의도적인가?" — 17:33 발간 실측: 탈락 6종
+    //   전원 KR(RSI 과열) → KR 0 발간). 탈락 자체는 정당하나 차순위 재심 없이 시장 전체가 침묵 소실되는
+    //   건 구조 공백(종전 6218 주석의 "backfill"은 미구현이었음). 룰 점수 차순위 buyCandidates 를
+    //   같은 veto 게이트로 재심해 시장별 최소 2석 충원. 전원 저촉 시 명시 노트(침묵 금지).
+    const MIN_PER_MARKET = 2;
+    const isKRt = (t) => /\.(KS|KQ)$/.test(t ?? '');
+    for (const mkt of ['kr', 'us']) {
+      const want = mkt === 'kr';
+      const inMkt = dedupedPortfolio.filter(p => isKRt(p.ticker) === want).length;
+      const hadCands = adjudication.candidates.some(c => isKRt(c.ticker) === want);
+      if (inMkt >= MIN_PER_MARKET || !hadCands) continue;
+      const have = new Set(dedupedPortfolio.map(p => p.ticker));
+      const tried = new Set(adjudication.candidates.map(c => c.ticker));
+      const pool = (buyCandidates ?? []).filter(c => isKRt(c.ticker) === want && !have.has(c.ticker) && !tried.has(c.ticker) && livePrices.get(c.ticker)?.price).slice(0, 8);
+      if (!pool.length) continue;
+      const refillSig = await fetchSellSignals(pool.map(c => c.ticker));
+      let added = 0;
+      for (const cand of pool) {
+        if (inMkt + added >= MIN_PER_MARKET) break;
+        const sig = refillSig.get(cand.ticker) ?? {};
+        const exCtx = {
+          price: livePrices.get(cand.ticker)?.price ?? null,
+          rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
+          opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
+          sectorPe: sectorPeMap.get(String(cand.sector ?? '').toLowerCase()) ?? null,
+          macroRiskLevel: macroData?.riskLevel ?? null,
+        };
+        const hits = [];
+        for (const rule of vetoRules) { const reason = evaluateSellRule(rule, exCtx); if (reason) hits.push({ id: rule.id, category: rule.category, score: rule.score ?? 0, reason }); }
+        const total = hits.reduce((s, h) => s + h.score, 0);
+        adjudication.candidates.push({ ticker: cand.ticker, sector: cand.sector ?? null, sellScore: total, verdict: total >= VETO_SCORE ? 'refill-veto' : 'refill-pass', hits, refill: true });
+        if (total >= VETO_SCORE) { console.log(`  [경합심사/재충원] ${cand.ticker} 재심 탈락 (score ${total})`); continue; }
+        const actual = livePrices.get(cand.ticker).price;
+        const fmt = (n) => want ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
+        dedupedPortfolio.push({
+          ticker: cand.ticker, name: cand.ticker,
+          sector: CANDIDATE_META[cand.ticker]?.sector ?? cand.sector ?? 'Unknown',
+          market: want ? 'korea' : 'us',
+          rationale: `룰 점수 상위 차순위 재충원 — 상위 후보들이 과열/매도신호로 탈락한 자리, 매도룰 재심 통과(score ${total}<${VETO_SCORE})`,
+          allocation: 8,
+          entryZone: `${fmt(actual * 0.98)}-${fmt(actual * 1.01)}`,
+          entryRationale: '시장가 -2%~+1% 진입 (재충원 신규)',
+          stopLoss: fmt(actual * 0.93),
+          target: fmt(actual * 1.10),
+          targetBull: fmt(actual * 1.20),
+          targetRationale: '시장가 +10% 보수적 target',
+          confidence: 'medium',
+          action: 'buy',
+          catalysts: [`룰 기반 점수 ${cand.stage1Score ?? '?'}점 차순위 후보`, `시장가 ${fmt(actual)} 신규 편입 (추가 검증 후 진입 권장)`],
+          fundamentalBasis: '재충원 신규 — 펀더멘털 상세는 종목 페이지 참조',
+          technicalBasis: `진입 ${fmt(actual)} · 손절 -7% · 1차 목표 +10%`,
+          riskNote: '상위 후보 과열 탈락 후 차순위 편입 — 추가 검증 후 진입 권장',
+        });
+        added++;
+        console.log(`  [경합심사/재충원] ${cand.ticker} 편입 (${mkt} ${inMkt}+${added}석, 재심 score ${total})`);
+      }
+      if (inMkt + added === 0) {
+        adjudication.summary[`${mkt}Note`] = `${mkt.toUpperCase()} 전 후보가 매도룰 저촉(과열 등) — 이번 세션 ${mkt.toUpperCase()} 매수 추천 의도적 공석`;
+        console.log(`  [경합심사/재충원] ${mkt} 후보 전원 재심 탈락 — 명시적 공석 처리`);
+      }
+    }
     // trail 영속화 (연구용)
     try {
       const reconDir = resolve(REPORTS_DIR, 'reconciliation');
