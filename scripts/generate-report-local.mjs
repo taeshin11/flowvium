@@ -4374,6 +4374,17 @@ async function fetchBuyFundSignals(tickers) {
   return out;
 }
 
+// 2026-06-12: 시장별 쿼터 슬라이스 — 사용자 "KR 350+ 전 종목 다 고려?" 실측: stage-1 신호
+//   (insider=SEC Form4·squeeze=US 공매도·뉴스갭=US IB)가 미국 위주라 KR(풀 35%)이 주간 top30 의
+//   2%만 진입 — 룰 경쟁에서 구조적 배제. 시장 내 점수순으로 KR 슬롯을 보장해 시장중립 룰
+//   (기술/기본 — Stage 2/3, KR 도 Yahoo OHLCV/재무 평가 가능)에서 공정 경쟁시킴. 미달 시 US backfill.
+function sliceWithKrQuota(sorted, total, krSlots) {
+  const kr = sorted.filter(c => c.market === 'kr').slice(0, krSlots);
+  const picked = new Set(kr.map(c => c.ticker));
+  const rest = sorted.filter(c => !picked.has(c.ticker)).slice(0, total - kr.length);
+  return [...rest, ...kr].sort((a, b) => b.stage1Score - a.stage1Score);
+}
+
 async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   const ruleSpec = loadBuyRules();
   if (!ruleSpec?.rules?.length) return [];
@@ -4441,7 +4452,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price });
   }
   stage1Scored.sort((a, b) => b.stage1Score - a.stage1Score);
-  const stage2Cands = stage1Scored.slice(0, 100); // top 100 → Stage 2
+  const stage2Cands = sliceWithKrQuota(stage1Scored, 100, 30); // top 100 → Stage 2 (KR 30 슬롯 보장)
 
   // ── Stage 2 (OHLCV): top 100 의 기술 + 가격 (52w/MA/20d high) ──
   console.log(`  [buy-cand Stage 2] top ${stage2Cands.length} OHLCV fetch...`);
@@ -4460,7 +4471,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     }
   }
   stage2Cands.sort((a, b) => b.stage1Score - a.stage1Score);
-  const stage3Cands = stage2Cands.slice(0, 50);
+  const stage3Cands = sliceWithKrQuota(stage2Cands, 50, 15); // KR 15 슬롯 보장
 
   // ── Stage 3 (financials): top 50 의 기본/구루 + 회전 sector_in (P/E discount 필요) ──
   console.log(`  [buy-cand Stage 3] top ${stage3Cands.length} company-financials fetch...`);
@@ -4481,8 +4492,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     }
   }
   stage3Cands.sort((a, b) => b.stage1Score - a.stage1Score);
-  const finalCands = stage3Cands.slice(0, topN);
-  console.log(`  [buy-cand 최종] top ${finalCands.length}: ${finalCands.slice(0, 8).map(c => `${c.ticker}(${c.stage1Score})`).join(' ')}...`);
+  const finalCands = sliceWithKrQuota(stage3Cands, topN, Math.round(topN * 0.3)); // KR ~30% 슬롯 보장
+  const krN = finalCands.filter(c => c.market === 'kr').length;
+  console.log(`  [buy-cand 최종] top ${finalCands.length} (KR ${krN}): ${finalCands.slice(0, 8).map(c => `${c.ticker}(${c.stage1Score})`).join(' ')}...`);
   return finalCands;
 }
 
