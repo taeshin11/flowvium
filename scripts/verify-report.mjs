@@ -546,12 +546,19 @@ export async function verifyReport(file, { silent = false } = {}) {
   log('\n## 매수∩매도 겹침 (양쪽 동시 발간 모순)');
   {
     const sellsAll = [...(r.sellRecommendations?.us ?? []), ...(r.sellRecommendations?.kr ?? [])].map(s => s.ticker);
-    const ov = (r.portfolio ?? []).map(p => p.ticker).filter(t => sellsAll.includes(t));
+    // 2026-06-12 v2: 파생 필드(portfolioByMarket)까지 검사 — 게이트가 portfolio 만 고치고 파생 필드에
+    //   TSLA 잔존해 UI 가 양쪽 표시한 사건 (probe 가 portfolio 만 봐서 PASS 했던 자기결함 fix)
+    const buyAll = new Set([
+      ...(r.portfolio ?? []).map(p => p.ticker),
+      ...(r.portfolioByMarket?.us ?? []).map(p => p.ticker),
+      ...(r.portfolioByMarket?.kr ?? []).map(p => p.ticker),
+    ]);
+    const ov = [...buyAll].filter(t => sellsAll.includes(t));
     if (ov.length) {
       defects.push({ ticker: ov.join(','), defect_type: 'buy_sell_overlap',
-        llm_value: `매수+매도 양쪽 발간 ${ov.length}건`, correct_value: 'reconcile/final 게이트가 한쪽 제거했어야', severity: 'high' });
+        llm_value: `매수(파생필드 포함)+매도 양쪽 발간 ${ov.length}건`, correct_value: 'reconcile/final 게이트+재파생이 처리했어야', severity: 'high' });
       log(`  ❌ 겹침: ${ov.join(', ')}`);
-    } else log('  ✅ 겹침 없음');
+    } else log('  ✅ 겹침 없음 (portfolio + portfolioByMarket 전수)');
   }
 
   log(`\n## 종합 — 결함 ${defects.length}건`);

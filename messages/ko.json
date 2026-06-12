@@ -1262,7 +1262,9 @@
     "sellKindProfit": "분할 익절 하세요",
     "sellKindStop": "손절 하세요",
     "sellKindWeak": "악화 — 정리 검토하세요",
-    "sellKindMacro": "시장 위험 — 비중 축소하세요"
+    "sellKindMacro": "시장 위험 — 비중 축소하세요",
+    "engineReviewTitle": "엔진 리뷰 — 경합심사 과정 · 전향적 성과",
+    "engineReviewNote": "코드가 직접 산출한 실측 통계입니다 (AI 생성 아님). 음수 = 매도 후 하락(매도 적중)."
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

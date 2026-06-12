@@ -91,6 +91,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ translated: text, source: 'echo-fallback' });
     }
 
+    // 2026-06-12 혼종단어 가드 ("에타ching" 사건): 한글 음절 바로 뒤에 영문 소문자가 붙은 단어 =
+    //   반쪽 번역(소형모델이 단어 중간에서 언어 전환). 오염 번역보다 원문이 낫다 — fallback + 캐시 금지.
+    if (targetLocale === 'ko' && /[가-힣][a-z]/.test(translated)) {
+      logger.warn('api.translate', 'mixed_word_detected', { targetLocale, sample: translated.slice(0, 80) });
+      return NextResponse.json({ translated: text, source: 'mixed-fallback' });
+    }
+
     // 3. Store in Redis (loggedRedisSet 사용 — CLAUDE.md 규칙)
     if (redis && translated) {
       try {

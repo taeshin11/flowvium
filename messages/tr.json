@@ -1262,7 +1262,9 @@
     "sellKindProfit": "Kademeli kâr alın",
     "sellKindStop": "Zararı kesin",
     "sellKindWeak": "Bozulma — çıkışı değerlendirin",
-    "sellKindMacro": "Piyasa riski — pozisyonu azaltın"
+    "sellKindMacro": "Piyasa riski — pozisyonu azaltın",
+    "engineReviewTitle": "Motor İncelemesi — Mutabakat ve İleriye Dönük Performans",
+    "engineReviewNote": "İzlenen sonuçlardan deterministik istatistikler (YZ üretimi değildir)."
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

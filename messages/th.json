@@ -1262,7 +1262,9 @@
     "sellKindProfit": "ทยอยขายทำกำไร",
     "sellKindStop": "ตัดขาดทุน",
     "sellKindWeak": "แย่ลง — พิจารณาขาย",
-    "sellKindMacro": "ความเสี่ยงตลาด — ลดสัดส่วน"
+    "sellKindMacro": "ความเสี่ยงตลาด — ลดสัดส่วน",
+    "engineReviewTitle": "รีวิวเอนจิน — การตรวจทานซื้อขายและผลงานเชิงคาดการณ์",
+    "engineReviewNote": "สถิติจริงที่คำนวณโดยโค้ด (ไม่ใช่ AI สร้าง)"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

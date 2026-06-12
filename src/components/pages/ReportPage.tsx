@@ -1307,6 +1307,24 @@ export default function ReportPage() {
             </div>
           )}
 
+          {/* ── 엔진 리뷰 (2026-06-12, 사용자 "경합 과정·전향적 연구 결과를 맨 마지막에") ── */}
+          {(data as unknown as { engineReview?: { lines?: string[] } }).engineReview?.lines?.length ? (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <h2 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                🔬 {t('engineReviewTitle')}
+              </h2>
+              <ul className="space-y-1.5">
+                {((data as unknown as { engineReview: { lines: string[] } }).engineReview.lines).map((l, i) => (
+                  <li key={i} className="text-xs text-slate-700 leading-relaxed flex items-start gap-1.5">
+                    <span className="text-slate-400 mt-0.5 shrink-0">▸</span>
+                    <span><TName text={l} /></span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10px] text-slate-400 mt-2">{t('engineReviewNote')}</p>
+            </div>
+          ) : null}
+
           {/* ── Disclaimer ────────────────────────────────────────────────── */}
           <p className="text-[10px] text-gray-400 mt-4 leading-relaxed">
             {t('disclaimer')}

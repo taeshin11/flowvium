@@ -1262,7 +1262,9 @@
     "sellKindProfit": "Ambil untung sebagian",
     "sellKindStop": "Batasi kerugian",
     "sellKindWeak": "Memburuk — pertimbangkan keluar",
-    "sellKindMacro": "Risiko pasar — kurangi eksposur"
+    "sellKindMacro": "Risiko pasar — kurangi eksposur",
+    "engineReviewTitle": "Tinjauan Mesin — Rekonsiliasi & Kinerja Prospektif",
+    "engineReviewNote": "Statistik deterministik dari hasil terlacak (bukan buatan AI)."
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

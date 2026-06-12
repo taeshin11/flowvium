@@ -1262,7 +1262,9 @@
     "sellKindProfit": "Take partial profits",
     "sellKindStop": "Cut losses now",
     "sellKindWeak": "Weakening — consider exiting",
-    "sellKindMacro": "Market risk — reduce exposure"
+    "sellKindMacro": "Market risk — reduce exposure",
+    "engineReviewTitle": "Engine Review — Reconciliation & Prospective Performance",
+    "engineReviewNote": "Deterministic statistics computed from tracked outcomes (not AI-generated)."
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

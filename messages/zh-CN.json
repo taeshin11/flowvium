@@ -1262,7 +1262,9 @@
     "sellKindProfit": "建议分批止盈",
     "sellKindStop": "建议止损",
     "sellKindWeak": "恶化 — 考虑减持",
-    "sellKindMacro": "市场风险 — 降低仓位"
+    "sellKindMacro": "市场风险 — 降低仓位",
+    "engineReviewTitle": "引擎复盘 — 买卖对抗审查与前瞻绩效",
+    "engineReviewNote": "由代码计算的实测统计（非AI生成）。"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",
