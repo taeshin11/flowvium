@@ -1259,10 +1259,10 @@
     "etfCat_style": "Style",
     "etfCat_dividend": "Dividende",
     "businessLabel": "Activité",
-    "sellKindProfit": "Prise de profits",
-    "sellKindStop": "Stop de protection",
-    "sellKindWeak": "Détérioration",
-    "sellKindMacro": "Environnement de marché"
+    "sellKindProfit": "Prenez des profits partiels",
+    "sellKindStop": "Coupez les pertes",
+    "sellKindWeak": "Détérioration — envisagez de sortir",
+    "sellKindMacro": "Risque de marché — réduisez l’exposition"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

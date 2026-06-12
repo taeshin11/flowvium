@@ -1259,10 +1259,10 @@
     "etfCat_style": "สไตล์",
     "etfCat_dividend": "เงินปันผล",
     "businessLabel": "ธุรกิจหลัก",
-    "sellKindProfit": "ขายทำกำไร",
+    "sellKindProfit": "ทยอยขายทำกำไร",
     "sellKindStop": "ตัดขาดทุน",
-    "sellKindWeak": "สัญญาณแย่ลง",
-    "sellKindMacro": "สภาวะตลาด"
+    "sellKindWeak": "แย่ลง — พิจารณาขาย",
+    "sellKindMacro": "ความเสี่ยงตลาด — ลดสัดส่วน"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

@@ -205,17 +205,16 @@ function SellCard({ item }: { item: SellItem }) {
         <span className="font-bold text-sm text-gray-900">
           {urgencyTag} <Link href={`/${locale}/company/${item.ticker}`} className="text-violet-700 hover:text-violet-900 hover:underline">{displayName(item.ticker, item.name)}</Link> <span className="text-[10px] font-normal text-gray-400 font-mono">{item.ticker}</span>
         </span>
-        <span className="flex items-center gap-1.5">
-          {(() => { const k = sellKind(item.ruleId); return k ? (
-            <span className={`text-[10px] font-bold border rounded px-1.5 py-0.5 ${k.cls}`}>{k.icon} {t(k.key)}</span>
-          ) : null; })()}
-          {item.pnlPct != null && (
-            <span className={`text-xs font-semibold ${pnlColor}`}>
-              {item.pnlPct >= 0 ? '+' : ''}{item.pnlPct.toFixed(1)}%
-            </span>
-          )}
-        </span>
+        {item.pnlPct != null && (
+          <span className={`text-xs font-semibold ${pnlColor}`}>
+            {item.pnlPct >= 0 ? '+' : ''}{item.pnlPct.toFixed(1)}%
+          </span>
+        )}
       </div>
+      {/* 2026-06-12 v2 (사용자 "잘 보이게 분할 익절 하세요 식으로"): 행동 지시 스트립 — 카드 상단 전폭 */}
+      {(() => { const k = sellKind(item.ruleId); return k ? (
+        <p className={`text-[11px] font-bold border rounded-md px-2 py-1 mb-1.5 ${k.cls}`}>{k.icon} {t(k.key)}</p>
+      ) : null; })()}
       <p className="text-xs text-gray-700 mb-1.5 leading-snug">{item.rationale}</p>
       {item.buyConflict && (
         <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-1 mb-1.5 leading-snug">⚖️ {item.buyConflict}</p>

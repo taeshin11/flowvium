@@ -1259,10 +1259,10 @@
     "etfCat_style": "نمط",
     "etfCat_dividend": "توزيعات",
     "businessLabel": "النشاط",
-    "sellKindProfit": "جني الأرباح",
-    "sellKindStop": "وقف الخسارة",
-    "sellKindWeak": "تدهور",
-    "sellKindMacro": "بيئة السوق"
+    "sellKindProfit": "جنِ أرباحًا جزئية",
+    "sellKindStop": "أوقف الخسارة الآن",
+    "sellKindWeak": "تدهور — فكّر في الخروج",
+    "sellKindMacro": "مخاطر السوق — قلّل التعرض"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

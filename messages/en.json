@@ -1259,10 +1259,10 @@
     "etfCat_style": "Style",
     "etfCat_dividend": "Dividend",
     "businessLabel": "Business",
-    "sellKindProfit": "Profit-taking",
-    "sellKindStop": "Stop-loss",
-    "sellKindWeak": "Deterioration",
-    "sellKindMacro": "Market regime"
+    "sellKindProfit": "Take partial profits",
+    "sellKindStop": "Cut losses now",
+    "sellKindWeak": "Weakening — consider exiting",
+    "sellKindMacro": "Market risk — reduce exposure"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

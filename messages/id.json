@@ -1259,10 +1259,10 @@
     "etfCat_style": "Gaya",
     "etfCat_dividend": "Dividen",
     "businessLabel": "Bisnis",
-    "sellKindProfit": "Ambil untung",
-    "sellKindStop": "Stop rugi",
-    "sellKindWeak": "Memburuk",
-    "sellKindMacro": "Kondisi pasar"
+    "sellKindProfit": "Ambil untung sebagian",
+    "sellKindStop": "Batasi kerugian",
+    "sellKindWeak": "Memburuk — pertimbangkan keluar",
+    "sellKindMacro": "Risiko pasar — kurangi eksposur"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

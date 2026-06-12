@@ -1259,10 +1259,10 @@
     "etfCat_style": "Стиль",
     "etfCat_dividend": "Дивиденды",
     "businessLabel": "Бизнес",
-    "sellKindProfit": "Фиксация прибыли",
-    "sellKindStop": "Стоп-лосс",
-    "sellKindWeak": "Ухудшение",
-    "sellKindMacro": "Рыночная среда"
+    "sellKindProfit": "Зафиксируйте часть прибыли",
+    "sellKindStop": "Зафиксируйте убыток",
+    "sellKindWeak": "Ухудшение — рассмотрите выход",
+    "sellKindMacro": "Рыночный риск — снизьте долю"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

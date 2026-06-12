@@ -1259,10 +1259,10 @@
     "etfCat_style": "Stil",
     "etfCat_dividend": "Temettü",
     "businessLabel": "İş Kolu",
-    "sellKindProfit": "Kâr realizasyonu",
-    "sellKindStop": "Zarar kes",
-    "sellKindWeak": "Bozulma",
-    "sellKindMacro": "Piyasa ortamı"
+    "sellKindProfit": "Kademeli kâr alın",
+    "sellKindStop": "Zararı kesin",
+    "sellKindWeak": "Bozulma — çıkışı değerlendirin",
+    "sellKindMacro": "Piyasa riski — pozisyonu azaltın"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

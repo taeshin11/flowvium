@@ -1259,10 +1259,10 @@
     "etfCat_style": "Phong cách",
     "etfCat_dividend": "Cổ tức",
     "businessLabel": "Hoạt động",
-    "sellKindProfit": "Chốt lời",
-    "sellKindStop": "Cắt lỗ",
-    "sellKindWeak": "Suy yếu",
-    "sellKindMacro": "Môi trường thị trường"
+    "sellKindProfit": "Chốt lời từng phần",
+    "sellKindStop": "Cắt lỗ ngay",
+    "sellKindWeak": "Suy yếu — cân nhắc thoát",
+    "sellKindMacro": "Rủi ro thị trường — giảm tỷ trọng"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

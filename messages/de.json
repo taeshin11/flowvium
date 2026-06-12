@@ -1259,10 +1259,10 @@
     "etfCat_style": "Stil",
     "etfCat_dividend": "Dividende",
     "businessLabel": "Geschäft",
-    "sellKindProfit": "Gewinnmitnahme",
-    "sellKindStop": "Verlustbegrenzung",
-    "sellKindWeak": "Verschlechterung",
-    "sellKindMacro": "Marktumfeld"
+    "sellKindProfit": "Teilgewinne mitnehmen",
+    "sellKindStop": "Verluste begrenzen",
+    "sellKindWeak": "Verschlechterung — Ausstieg prüfen",
+    "sellKindMacro": "Marktrisiko — Exposure reduzieren"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

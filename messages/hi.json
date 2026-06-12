@@ -1259,10 +1259,10 @@
     "etfCat_style": "स्टाइल",
     "etfCat_dividend": "डिविडेंड",
     "businessLabel": "व्यवसाय",
-    "sellKindProfit": "मुनाफ़ा वसूली",
-    "sellKindStop": "स्टॉप-लॉस",
-    "sellKindWeak": "गिरावट",
-    "sellKindMacro": "बाज़ार माहौल"
+    "sellKindProfit": "आंशिक मुनाफ़ा बुक करें",
+    "sellKindStop": "नुकसान काटें",
+    "sellKindWeak": "कमज़ोरी — निकासी पर विचार करें",
+    "sellKindMacro": "बाज़ार जोखिम — एक्सपोज़र घटाएँ"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

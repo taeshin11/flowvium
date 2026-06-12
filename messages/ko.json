@@ -1259,10 +1259,10 @@
     "etfCat_style": "스타일",
     "etfCat_dividend": "배당",
     "businessLabel": "주력 사업",
-    "sellKindProfit": "익절 분할",
-    "sellKindStop": "손절/방어",
-    "sellKindWeak": "종목 악화",
-    "sellKindMacro": "시장 환경"
+    "sellKindProfit": "분할 익절 하세요",
+    "sellKindStop": "손절 하세요",
+    "sellKindWeak": "악화 — 정리 검토하세요",
+    "sellKindMacro": "시장 위험 — 비중 축소하세요"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

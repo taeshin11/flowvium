@@ -1259,10 +1259,10 @@
     "etfCat_style": "风格",
     "etfCat_dividend": "红利",
     "businessLabel": "主营业务",
-    "sellKindProfit": "止盈",
-    "sellKindStop": "止损",
-    "sellKindWeak": "基本面恶化",
-    "sellKindMacro": "市场环境"
+    "sellKindProfit": "建议分批止盈",
+    "sellKindStop": "建议止损",
+    "sellKindWeak": "恶化 — 考虑减持",
+    "sellKindMacro": "市场风险 — 降低仓位"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

@@ -1259,10 +1259,10 @@
     "etfCat_style": "風格",
     "etfCat_dividend": "股息",
     "businessLabel": "主營業務",
-    "sellKindProfit": "停利",
-    "sellKindStop": "停損",
-    "sellKindWeak": "基本面惡化",
-    "sellKindMacro": "市場環境"
+    "sellKindProfit": "建議分批停利",
+    "sellKindStop": "建議停損",
+    "sellKindWeak": "惡化 — 考慮減持",
+    "sellKindMacro": "市場風險 — 降低部位"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",
