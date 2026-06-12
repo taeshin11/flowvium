@@ -3954,10 +3954,14 @@ function getPortfolioFeedback() {
     db.close();
     if (!rows.length) return { feedback: '', summary: null };
 
-    const counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, unknown: 0 };
+    // 2026-06-12: 'sold'(매도엔진 청산) 집계 누락 fix — 매도엔진 가동(5/29) 후 최신 outcome 이
+    //   대부분 sold 인데 hit/stop/NE 만 세서 "hit 0/stop 0" 죽은 피드백을 LLM 에 주입하던 결함.
+    const counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, sold: 0, unknown: 0 };
     const tickerPnl = {};
+    let soldPnlSum = 0, soldPnlN = 0, soldWins = 0;
     for (const r of rows) {
       counts[r.outcome] = (counts[r.outcome] ?? 0) + 1;
+      if (r.outcome === 'sold' && r.pnl_pct != null) { soldPnlSum += r.pnl_pct; soldPnlN++; if (r.pnl_pct > 0) soldWins++; }
       if (r.pnl_pct != null) {
         if (!tickerPnl[r.ticker]) tickerPnl[r.ticker] = { sum: 0, n: 0 };
         tickerPnl[r.ticker].sum += r.pnl_pct;
@@ -3965,6 +3969,9 @@ function getPortfolioFeedback() {
       }
     }
     const total = rows.length;
+    const closed = counts.hit_target + counts.stop_loss + counts.sold;
+    const winRate = closed ? Math.round(((counts.hit_target + soldWins) / closed) * 100) : 0;
+    const soldAvg = soldPnlN ? Math.round((soldPnlSum / soldPnlN) * 10) / 10 : null;
     const hitRate = ((counts.hit_target / total) * 100).toFixed(0);
     const neRate = ((counts.not_entered / total) * 100).toFixed(0);
     // 2026-05-29: hero card 용 통계 — top/bottom 3, 평균 PnL, alpha
@@ -3988,7 +3995,7 @@ function getPortfolioFeedback() {
     dbA.close();
     const text =
       `[Portfolio Feedback — 최근 30일 ${total}건 buy 추천 평가]\n` +
-      `hit ${counts.hit_target} (${hitRate}%) / stop ${counts.stop_loss} / NE ${counts.not_entered} (${neRate}%) / holding ${counts.still_holding}\n` +
+      `종결 승률 ${winRate}% (${closed}건) | hit ${counts.hit_target} / sold ${counts.sold}${soldAvg != null ? ` (avg ${soldAvg >= 0 ? '+' : ''}${soldAvg}%)` : ''} / stop ${counts.stop_loss} / NE ${counts.not_entered} (${neRate}%) / holding ${counts.still_holding}\n` +
       `평균 PnL ${avgPnl ?? '-'}% / SPY alpha ${alphaRow?.alpha ?? '-'}% / beat ${alphaRow?.beat ?? 0}/${alphaRow?.n ?? 0}\n` +
       (chronicNE.length ? `만성 NE 회피 (entry zone 시장가 위 자제): ${chronicNE.map(c => `${c.ticker}(${c.cnt}회)`).join(', ')}\n` : '');
     const summary = {
