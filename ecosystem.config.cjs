@@ -12,6 +12,10 @@ module.exports = {
       env: { NODE_ENV: 'production', PORT: '3000' },
       autorestart: true,
       max_restarts: 20,
+      // 2026-06-12: 무중단 배포 — fork 단일이라 restart 마다 수초 공백(사용자가 500 직접 목격).
+      //   cluster 2 instance + `pm2 reload flowvium-web`(rolling) 으로 공백 0. 배포 시 restart 금지.
+      exec_mode: 'cluster',
+      instances: 2,
     },
     {
       name: 'flowvium-cron',
