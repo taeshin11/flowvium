@@ -4887,7 +4887,10 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         const grp = sellKindGroup(c.ruleId);
         const mins = rowsStmt.all(c.ticker).filter((r) => sellKindGroup(r.sell_type) === grp).map((r) => r.generated_at).sort();
         const mn = mins[0];
-        if (mn) c.firstSellDate = new Date(new Date(mn + (String(mn).endsWith('Z') ? '' : 'Z')).getTime() + 9 * 3600000).toISOString().slice(0, 10);
+        // 선행 행 없음 = 이 보고서가 첫 권고 → 오늘(KST). (TSM 빈 값 실측 — 같은 발간 내 일관성)
+        c.firstSellDate = mn
+          ? new Date(new Date(mn + (String(mn).endsWith('Z') ? '' : 'Z')).getTime() + 9 * 3600000).toISOString().slice(0, 10)
+          : new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
       }
       fdb.close();
     } catch { /* 표시 누락만 — non-fatal */ }
