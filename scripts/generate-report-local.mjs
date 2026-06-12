@@ -3589,6 +3589,9 @@ const ETF_META = {
   MCHI: { name: '중국 전체', cat: 'region' }, VGK: { name: '유럽', cat: 'region' }, INDA: { name: '인도', cat: 'region' },
   EWT: { name: '대만', cat: 'region' }, EWZ: { name: '브라질', cat: 'region' }, EWA: { name: '호주', cat: 'region' },
   EWG: { name: '독일', cat: 'region' }, EWU: { name: '영국', cat: 'region' }, EEM: { name: '신흥국', cat: 'region' },
+  // region leveraged (2026-06-12, 사용자 "KORU 같은것도") — 강세 지역에서만 단기 트레이딩용 제안
+  KORU: { name: '한국 3x (단기)', cat: 'region' }, YINN: { name: '중국 3x (단기)', cat: 'region' },
+  EDC: { name: '신흥국 3x (단기)', cat: 'region' }, INDL: { name: '인도 2x (단기)', cat: 'region' },
   // commodity (원자재)
   GLD: { name: '금', cat: 'commodity' }, SLV: { name: '은', cat: 'commodity' }, DBC: { name: '원자재 종합', cat: 'commodity' },
   USO: { name: '원유(WTI)', cat: 'commodity' }, PDBC: { name: '원자재(무K-1)', cat: 'commodity' },
@@ -3656,6 +3659,8 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
   const regionEntries = Object.entries(regionStances)
     .filter(([r]) => REGION_ETF[r] && r !== 'us')
     .sort((a, b) => rRank(a[1]?.stance) - rRank(b[1]?.stance));
+  // 강세 지역 → 레버리지 변형 추가 제안 (2026-06-12, 사용자 "KORU 같은것도") — 단기 트레이딩 명시
+  const REGION_ETF_LEV = { korea: 'KORU', china: 'YINN', india: 'INDL' };
   for (const [r, v] of regionEntries.slice(0, 5)) {
     const st = v?.stance;
     const label = KR_REGION_LABEL[r] ?? r;
@@ -3664,6 +3669,9 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
       : st === 'bearish' ? `${label} 약세 — 비중축소`
       : `${label} 중립 — 관망 ${(v.thesis || '').slice(0, 18)}`;
     add(REGION_ETF[r], note, 'region', action);
+    if (st === 'bullish' && REGION_ETF_LEV[r]) {
+      add(REGION_ETF_LEV[r], `${label} 강세 레버리지 — ⚠️ 단기 트레이딩 전용(장기보유 가치소멸)`, 'region', 'watch');
+    }
   }
   // 4) 분산 자산 — commodity + bond (상시 분산 슬리브, 방어 전용 아님 → 이전엔 고위험/약세일 때만 나옴)
   const defensive = riskLevel === 'high' || stance === 'bearish';
