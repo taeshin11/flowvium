@@ -4686,6 +4686,9 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         stopLoss: stop ? fmt(stop) : null,
         pnlPct: pnl != null ? Math.round(pnl * 10) / 10 : null,
         heldDays: Math.round(heldDays),
+        // 2026-06-12: 매수추천일 명시 (사용자 "분할매도 권장 날짜도 적어줘야지 안 그럼 오해함" —
+        //   어제 산 종목의 익절인지 오래 보유한 종목의 이탈인지 타임라인이 안 보이던 문제)
+        entryDate: r.generated_at ? new Date(new Date(r.generated_at + (String(r.generated_at).endsWith('Z') ? '' : 'Z')).getTime() + 9 * 3600000).toISOString().slice(0, 10) : null,
         outcome: r.outcome ?? 'open',
       });
     }

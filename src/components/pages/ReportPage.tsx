@@ -174,7 +174,7 @@ function Pill({ loading, error, label, body, cls, sparkline, tooltip }: {
 type SellItem = {
   ticker: string; name?: string; sector?: string; market?: 'us' | 'kr';
   currentPrice?: string; entryPrice?: string | null; target?: string | null; stopLoss?: string | null;
-  pnlPct?: number | null; heldDays?: number; score?: number; ruleId?: string;
+  pnlPct?: number | null; heldDays?: number; score?: number; ruleId?: string; entryDate?: string | null;
   rationale?: string; sellType?: string; urgency?: 'high' | 'medium' | 'low'; buyConflict?: string;
   sellLadder?: { pct: number; price: string; label: string; action: string }[];
 };
@@ -221,7 +221,7 @@ function SellCard({ item }: { item: SellItem }) {
       )}
       <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500 mb-2">
         <span>현재 {item.currentPrice}</span>
-        {item.entryPrice && <span>· entry {item.entryPrice}</span>}
+        {item.entryPrice && <span>· entry {item.entryPrice}{item.entryDate ? ` (매수추천 ${item.entryDate.slice(5).replace('-', '/')})` : ''}</span>}
         {item.target && <span>· target {item.target}</span>}
         {item.stopLoss && <span>· stop {item.stopLoss}</span>}
         <span>· 보유 {item.heldDays}일</span>
