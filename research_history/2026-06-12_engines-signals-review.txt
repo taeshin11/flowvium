@@ -56,3 +56,12 @@
 - 제약: 465개 KR 기업 포맷 편차 (10-K 와 동일 문제) — regex 다중 핸들러 + fabrication 가드 필수
 - quick-win 후보(엔진 전): KR fundamentalBasis 에 DART 영업이익률 변화·순이익 YoY 추가
   (이미 수집 중인 company-kr annuals 데이터 — 세그먼트는 아니지만 "왜"의 일부)
+
+## (추가) 매도 성과평가기 구축 완료 — 매도엔진 학습루프 개통 (commit 진행)
+- evaluate-sell-outcomes.mjs: 매도시점가 대비 이후 실가격 경로(Yahoo 일봉) — delta<=-3% good_call /
+  >=+5% missed_upside. KLAC류 가격 불연속(분할/오염) skip 가드 내장. cron 매일 03:35.
+- 백필 241/246건 평가. 핵심 발견 (사용자 "93% 익절 너무 이르지 않나"에 데이터 답):
+  - target_near(익절) 44건: good 21 / missed 4 / avg -2.9% -> 익절 타이밍 통계적으로 정당
+  - stop_breach 145건: good 93 / missed 22 / avg -3.4% -> 손절 유효
+  - rotation_loss avg -10.6% -> 매우 정당
+- 이제 tune-sell-rules(일요 grid search)가 실제 ground truth 로 학습 가능

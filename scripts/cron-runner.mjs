@@ -160,6 +160,7 @@ async function runMaintenance(label, script, timeoutMs) {
 }
 cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetch-dart-corp-codes.mjs', 300000), { timezone: TZ });   // 02:05 KST
 cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
+cron.schedule('35 18 * * *', () => runMaintenance('sell-outcomes', 'scripts/evaluate-sell-outcomes.mjs', 600000), { timezone: TZ });  // 03:35 KST — 매도 성과평가 (2026-06-12 신설, 튜닝 ground truth)
 cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs', 600000), { timezone: TZ });        // 일 04:05 KST
 cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs', 600000), { timezone: TZ });         // 일 04:20 KST
 log('유지보수 cron 복원: DART corp-codes(02:05)/prefetch(03:05) 매일 + buy/sell rules 튜닝(일 04:05/04:20 KST)');
