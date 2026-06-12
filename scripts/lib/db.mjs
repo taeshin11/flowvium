@@ -1003,7 +1003,8 @@ export function saveRecommendations(report, reportId) {
         generated_at: gen,
         ticker: p.ticker,
         name: p.name ?? null,
-        market: p.market ?? null,
+        // 2026-06-12: market 은 ticker 가 결정 (LLM 출력 'korea'/'ks'/'global' 표기 분산으로 연구통계 왜곡)
+        market: /\.(KS|KQ)$/i.test(p.ticker ?? '') ? 'kr' : 'us',
         sector: p.sector ?? null,
         action: p.action ?? 'watch',
         confidence: p.confidence ?? null,
