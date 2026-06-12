@@ -1,51 +1,61 @@
 /**
  * /api/options-flow
  *
- * Institutional options flow via Unusual Whales (requires UNUSUAL_WHALES_KEY
- * env — $48/mo personal tier). When unset the endpoint returns an empty
- * list with `configured: false` so the UI can show a "upgrade locked" state
- * without crashing.
- *
- * Why this exists: options flow is the closest retail-accessible proxy for
- * real-time institutional positioning. A big call-sweep on SMCI before earnings
- * is visible here — in 13F you'd see it 45 days later.
- *
- * Redis cache: 10 minutes (flow data updates continuously intraday).
+ * 2026-06-13: Unusual Whales 유료 의존 제거 (사용자 "후원 안 받고 무료 정보로 우회 못 하나").
+ * Yahoo 옵션 체인(iv-screener 가 이미 fetch·캐시하는 flowvium:iv:v1:{T})의 계약별
+ * volume / openInterest 비율로 unusual activity 를 파생 — 추가 fetch 비용 0.
+ *   - vol/OI ≥ 2 & volume ≥ 300 = 당일 신규 포지셔닝 의심 (고전적 무료 UOA 스크린)
+ *   - call=bullish / put=bearish 근사 (sweep 방향(ask/bid)은 무료 데이터에 없음 → side='mid')
+ *   - Yahoo 시세는 ~15-20분 지연 — source 라벨로 명시.
+ * 종전 유료 게이트(configured:false → 잠금 UI)는 제거 — 이제 상시 데이터.
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
-import type { Redis } from '@upstash/redis';
-import { fetchOptionsFlow, unusualWhalesKey, type OptionsFlowAlert } from '@/lib/unusual-whales';
-import { logger, loggedRedisSet } from '@/lib/logger';
+import type { OptionsFlowAlert } from '@/lib/unusual-whales';
+import type { IvSummary } from '@/lib/options/iv-summary';
+import { SCREENER_TICKERS } from '@/lib/options/screener-tickers';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_KEY = 'flowvium:options-flow:v1';
-const CACHE_TTL = 10 * 60;
-const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=480, stale-while-revalidate=60' };
+const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=120' };
 
-export async function GET(req: Request) {
-  const reqStart = Date.now();
-  const configured = unusualWhalesKey() != null;
-  if (!configured) {
-    logger.info('api.options-flow', 'unconfigured');
-    return NextResponse.json({ items: [], configured: false, total: 0 });
-  }
-
+export async function GET() {
+  const t0 = Date.now();
   const redis = createRedis();
-  const force = new URL(req.url).searchParams.get('refresh') === '1';
-  if (redis && !force) {
-    try {
-      const cached = await redis.get<OptionsFlowAlert[]>(CACHE_KEY);
-      if (cached) {
-        logger.info('api.options-flow', 'cache_hit', { total: cached.length });
-        return NextResponse.json({ items: cached, configured: true, cached: true, total: cached.length }, { headers: CDN_HEADERS });
-      }
-    } catch (err) { logger.warn('api.options-flow', 'cache_read_error', { error: err }); }
+  if (!redis) {
+    return NextResponse.json({ items: [], configured: true, total: 0, source: 'yahoo-chain-derived', note: 'redis unavailable' });
   }
-
-  const items = await fetchOptionsFlow(60);
-  await loggedRedisSet(redis, 'api.options-flow', CACHE_KEY, items, { ex: CACHE_TTL });
-  logger.info('api.options-flow', 'served', { total: items.length, durationMs: Date.now() - reqStart });
-  return NextResponse.json({ items, configured: true, cached: false, total: items.length }, { headers: CDN_HEADERS });
+  try {
+    const keys = SCREENER_TICKERS.map((t) => `flowvium:iv:v1:${t}`);
+    const summaries = await redis.mget<(IvSummary | null)[]>(...keys);
+    const items: OptionsFlowAlert[] = [];
+    for (const s of summaries) {
+      if (!s || !Array.isArray(s.unusual)) continue;
+      for (const u of s.unusual) {
+        items.push({
+          id: `${s.ticker}-${u.expiry}-${u.optionType}-${u.strike}`,
+          timestamp: s.asOf,
+          ticker: s.ticker,
+          optionType: u.optionType,
+          strike: u.strike,
+          expiry: u.expiry,
+          size: u.volume,
+          premiumUsd: u.premiumUsd,
+          side: 'mid',                       // 무료 데이터엔 sweep 방향 없음 — 중립 표기
+          isUnusual: true,
+          sentiment: u.optionType === 'call' ? 'bullish' : 'bearish',
+        });
+      }
+    }
+    items.sort((a, b) => (b.premiumUsd ?? 0) - (a.premiumUsd ?? 0));
+    logger.info('api.options-flow', 'derived_ok', { total: items.length, tickers: SCREENER_TICKERS.length, durationMs: Date.now() - t0 });
+    return NextResponse.json(
+      { items: items.slice(0, 50), configured: true, total: items.length, source: 'yahoo-chain-derived (vol/OI>=2, ~15-20min delayed)', updatedAt: new Date().toISOString() },
+      { headers: CDN_HEADERS },
+    );
+  } catch (err) {
+    logger.error('api.options-flow', 'derive_failed', { error: err instanceof Error ? err.message : String(err) });
+    return NextResponse.json({ items: [], configured: true, total: 0, error: 'derive failed' }, { status: 502 });
+  }
 }

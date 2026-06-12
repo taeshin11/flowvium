@@ -48,6 +48,18 @@ export interface IvSummary {
     atmIv: number | null;
     sampleCount: number;
   }>;
+  // 2026-06-13: unusual options activity (사용자 "유료 API 우회 무료로") — 같은 체인에서
+  //   계약별 volume/OI 비율로 파생 (Unusual Whales 류의 무료 근사). 추가 fetch 비용 0.
+  unusual?: Array<{
+    optionType: 'call' | 'put';
+    strike: number;
+    expiry: string;            // YYYY-MM-DD
+    volume: number;
+    openInterest: number;
+    volOiRatio: number;
+    lastPrice: number | null;
+    premiumUsd: number | null; // volume × lastPrice × 100 근사
+  }>;
 }
 
 interface FilteredContract {
@@ -268,6 +280,30 @@ export function summarizeIv(chain: OptionChain): IvSummary {
     base.source = 'error';
     base.errorReason = 'no_valid_expiries';
     return base;
+  }
+
+  // 2026-06-13: unusual activity 추출 — volume ≥ 300 & vol/OI ≥ 2 (OI 1+) 계약, 비율 상위 5.
+  //   (체인은 이미 fetch 됨 — 추가 비용 0. Yahoo 는 ~15-20분 지연이므로 소비처가 라벨 명시.)
+  {
+    const flags: NonNullable<IvSummary['unusual']> = [];
+    for (const exp of chain.expiries) {
+      for (const [optionType, contracts] of [['call', exp.calls], ['put', exp.puts]] as const) {
+        for (const c of contracts) {
+          const vol = c.volume ?? 0;
+          const oi = c.openInterest ?? 0;
+          if (vol < 300 || oi < 1 || c.strike == null) continue;
+          const ratio = vol / oi;
+          if (ratio < 2) continue;
+          flags.push({
+            optionType, strike: c.strike, expiry: exp.expirationDate,
+            volume: vol, openInterest: oi, volOiRatio: Math.round(ratio * 10) / 10,
+            lastPrice: c.lastPrice ?? null,
+            premiumUsd: c.lastPrice != null ? Math.round(vol * c.lastPrice * 100) : null,
+          });
+        }
+      }
+    }
+    if (flags.length) base.unusual = flags.sort((a, b) => b.volOiRatio - a.volOiRatio).slice(0, 5);
   }
 
   // 30d & 90d ATM IV

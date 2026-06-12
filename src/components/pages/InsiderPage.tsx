@@ -17,7 +17,9 @@ import type { NPortFundSnapshot, NPortTickerAggregate } from '@/lib/edgar-nport'
 import type { BlockTrade } from '@/lib/polygon';
 
 // options / blocks 탭은 유료 API 의존 → 비활성. UI 컴포넌트만 유지 (재활성 옵션).
-type Tab = 'insider' | 'ownership' | 'korea' | 'nport';
+// 2026-06-13: options/blocks 탭 재활성 — 유료 API(UW/Polygon) 대신 무료 파생 소스로 전환
+//   (options-flow = Yahoo 체인 vol/OI, block-trades = 5분봉 거래량 버스트 proxy).
+type Tab = 'insider' | 'ownership' | 'korea' | 'nport' | 'options' | 'blocks';
 
 interface KoreaFlowPayload {
   updatedAt: string;
@@ -185,6 +187,8 @@ export default function InsiderPage() {
     { id: 'korea',     label: t('tabKorea'),     icon: <Globe className="w-4 h-4" />,          count: korea ? (korea.topForeignBuy.length + korea.topForeignSell.length) : 0 },
     { id: 'ownership', label: t('tabOwnership'), icon: <AlertTriangle className="w-4 h-4" />, count: ownership.length },
     { id: 'nport',     label: t('tabNport'),     icon: <Building2 className="w-4 h-4" />,     count: nportFunds.length },
+    { id: 'options',   label: t('tabOptions'),   icon: <Zap className="w-4 h-4" />,           count: options.length },
+    { id: 'blocks',    label: t('tabBlocks'),    icon: <DollarSign className="w-4 h-4" />,    count: blocks.length },
   ];
 
   // ── Filter + cluster insider transactions by ticker ─────────────────────
@@ -512,6 +516,92 @@ export default function InsiderPage() {
       )}
       {tab === 'korea' && !korea && (
         <div className="cf-card p-8 text-center text-sm text-cf-text-secondary">{t('empty')}</div>
+      )}
+
+      {/* Options flow — Yahoo 체인 vol/OI 파생 (무료, ~15-20분 지연) */}
+      {tab === 'options' && (
+        <div className="cf-card overflow-x-auto">
+          <p className="px-3 pt-2 text-[10px] text-cf-text-secondary/60">vol/OI ≥ 2 · volume ≥ 300 — Yahoo chain (~15-20min delay)</p>
+          <table className="w-full text-sm">
+            <thead className="border-b border-white/5">
+              <tr className="text-[10px] text-cf-text-secondary">
+                <th className="px-3 py-2 text-left">{t('th.ticker')}</th>
+                <th className="px-3 py-2 text-left">Type</th>
+                <th className="px-3 py-2 text-right">Strike</th>
+                <th className="px-3 py-2 text-left">Expiry</th>
+                <th className="px-3 py-2 text-right">Vol</th>
+                <th className="px-3 py-2 text-right">OI</th>
+                <th className="px-3 py-2 text-right">Vol/OI</th>
+                <th className="px-3 py-2 text-right">Premium</th>
+              </tr>
+            </thead>
+            <tbody>
+              {options.map(o => (
+                <tr key={o.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <td className="px-3 py-2.5">
+                    <Link href={`/company/${o.ticker}` as Parameters<typeof Link>[0]['href']} className="font-bold text-cf-accent hover:underline">{o.ticker}</Link>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${o.optionType === 'call' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                      {o.optionType.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right">{o.strike != null ? `$${o.strike}` : '-'}</td>
+                  <td className="px-3 py-2.5 font-mono text-[11px] text-cf-text-secondary">{o.expiry ?? '-'}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right">{o.size?.toLocaleString() ?? '-'}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right text-cf-text-secondary">
+                    {(o as unknown as { openInterest?: number }).openInterest?.toLocaleString?.() ?? '-'}
+                  </td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right font-bold text-cf-accent">
+                    {o.size != null && (o as unknown as { openInterest?: number }).openInterest ? (o.size / (o as unknown as { openInterest?: number }).openInterest!).toFixed(1) : '-'}
+                  </td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right">
+                    {o.premiumUsd != null ? `$${(o.premiumUsd / 1e6).toFixed(2)}M` : '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {options.length === 0 && <div className="py-12 text-center text-sm text-cf-text-secondary">{t('empty')}</div>}
+        </div>
+      )}
+
+      {/* Block trades — 5분봉 거래량 버스트 proxy (무료) */}
+      {tab === 'blocks' && (
+        <div className="cf-card overflow-x-auto">
+          <p className="px-3 pt-2 text-[10px] text-cf-text-secondary/60">5m volume burst ≥ 4× avg · notional ≥ $3M — proxy (actual prints 아님)</p>
+          <table className="w-full text-sm">
+            <thead className="border-b border-white/5">
+              <tr className="text-[10px] text-cf-text-secondary">
+                <th className="px-3 py-2 text-left">{t('th.ticker')}</th>
+                <th className="px-3 py-2 text-left">Time</th>
+                <th className="px-3 py-2 text-right">Price</th>
+                <th className="px-3 py-2 text-right">Volume</th>
+                <th className="px-3 py-2 text-right">Notional</th>
+                <th className="px-3 py-2 text-left">Dir</th>
+              </tr>
+            </thead>
+            <tbody>
+              {blocks.map(b => (
+                <tr key={b.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <td className="px-3 py-2.5">
+                    <Link href={`/company/${b.ticker}` as Parameters<typeof Link>[0]['href']} className="font-bold text-cf-accent hover:underline">{b.ticker}</Link>
+                  </td>
+                  <td className="px-3 py-2.5 font-mono text-[11px] text-cf-text-secondary whitespace-nowrap">{fmtTime(b.timestamp)}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right">${b.price}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right">{b.size.toLocaleString()}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-right font-bold text-cf-accent">${(b.valueUsd / 1e6).toFixed(1)}M</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${b.exchange === 'burst-up' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                      {b.exchange === 'burst-up' ? '▲' : '▼'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {blocks.length === 0 && <div className="py-12 text-center text-sm text-cf-text-secondary">{t('empty')}</div>}
+        </div>
       )}
 
       <p className="text-[10px] text-cf-text-secondary/40 mt-4">{t('sources')}</p>
