@@ -1,8 +1,15 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Loader2, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Users, AlertTriangle, Zap, Globe, Building2, DollarSign, Filter, X, Flame } from 'lucide-react';
+import { UNIVERSE_SEARCH } from '@/data/universe-search';
+
+// 2026-06-12: korea-flow 종목명이 Naver 영어명("SK Hynix")으로 옴 — ko 사용자에겐 한글명 표시
+//   (UNIVERSE_SEARCH 권위 소스, 6자리 코드 매핑). 비-ko locale 은 영어명 유지.
+const KR_NAME_BY_CODE: Record<string, string> = Object.fromEntries(
+  UNIVERSE_SEARCH.filter(c => /\.(KS|KQ)$/.test(c.ticker)).map(c => [c.ticker.slice(0, 6), c.name]),
+);
 import { Link } from '@/i18n/routing';
 import type { InsiderTransaction, OwnershipAlert } from '@/lib/edgar-insider';
 import type { OptionsFlowAlert } from '@/lib/unusual-whales';
@@ -519,6 +526,7 @@ function KoreaTable({ title, rows, field, positive, fallback }: {
   positive?: boolean;
   fallback?: boolean;
 }) {
+  const locale = useLocale();
   return (
     <div className="cf-card overflow-hidden">
       <p className="text-xs font-bold text-cf-text-primary px-3 py-2 border-b border-white/5">{title}</p>
@@ -528,7 +536,7 @@ function KoreaTable({ title, rows, field, positive, fallback }: {
             <tr key={r.ticker} className="border-b border-white/5 last:border-0">
               <td className="px-3 py-2 text-[11px] text-cf-text-secondary w-6 text-right">{i + 1}</td>
               <td className="px-3 py-2">
-                <span className="text-[12px] font-semibold text-cf-text-primary">{r.name}</span>
+                <span className="text-[12px] font-semibold text-cf-text-primary">{locale === 'ko' ? (KR_NAME_BY_CODE[r.ticker] ?? r.name) : r.name}</span>
                 <span className="ml-1.5 text-[9px] font-mono text-cf-text-secondary/50">{r.ticker}</span>
               </td>
               <td className="px-3 py-2 text-[9px] text-cf-text-secondary/60 hidden sm:table-cell">{r.market}</td>
