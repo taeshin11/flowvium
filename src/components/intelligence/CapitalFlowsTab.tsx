@@ -1,8 +1,17 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { useTranslatedText } from '@/hooks/useTranslatedText';
+
+// 2026-06-12: flow-analysis AI 텍스트(GROQ 영어 생성)가 전 locale 에 영어 그대로 노출되던 결함
+//   (사용자 "다른 언어로 들어와도 다 번역되지?"). 동적 텍스트는 <T> 경유 — /api/translate 가
+//   en 타깃 한글없는 원문은 skip 하므로 en 은 무비용.
+function T({ text }: { text: string }) {
+  const translated = useTranslatedText(text);
+  return <>{translated}</>;
+}
 import {
   Loader2, BarChart3, ArrowUpRight, ArrowDownRight, Globe,
   ArrowRight, GitMerge, Zap, RefreshCw,
@@ -428,7 +437,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
         {analysis.mainTheme && (
           <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
             <span className="text-amber-500">⚡</span>
-            <span className="text-xs font-bold text-amber-700">{t('cfAiTheme')}: {analysis.mainTheme}</span>
+            <span className="text-xs font-bold text-amber-700">{t('cfAiTheme')}: <T text={analysis.mainTheme} /></span>
           </div>
         )}
       </div>
@@ -436,7 +445,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
       <div className="p-4 space-y-4">
         <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
           <p className="text-xs font-bold text-blue-700 mb-1">{t('cfAiSummary')}</p>
-          <p className="text-xs text-blue-700 leading-relaxed">{analysis.summary}</p>
+          <p className="text-xs text-blue-700 leading-relaxed"><T text={analysis.summary} /></p>
         </div>
 
         {analysis.countries && analysis.countries.length > 0 && (
@@ -459,14 +468,14 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
                     {c.causes?.map((cause, j) => (
                       <li key={j} className={`flex items-start gap-1 ${c.direction === 'inflow' ? 'text-green-700' : 'text-red-700'}`}>
                         <span className="flex-shrink-0 mt-0.5">•</span>
-                        <span className="leading-snug">{cause}</span>
+                        <span className="leading-snug"><T text={cause} /></span>
                       </li>
                     ))}
                   </ul>
                   {c.risk && (
                     <div className="flex items-start gap-1 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
                       <span className="flex-shrink-0">⚠</span>
-                      <span className="leading-snug">{c.risk}</span>
+                      <span className="leading-snug"><T text={c.risk} /></span>
                     </div>
                   )}
                 </div>
@@ -488,7 +497,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
                     <ArrowRight className="w-3 h-3" />
                     <span>{r.to}</span>
                   </div>
-                  <span className="text-violet-700 leading-snug">{r.reason}</span>
+                  <span className="text-violet-700 leading-snug"><T text={r.reason} /></span>
                 </div>
               ))}
             </div>
@@ -502,7 +511,7 @@ function FlowAnalysisPanel({ tf }: { tf: Timeframe }) {
               {analysis.keyWatchpoints.map((pt, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
                   <span className="font-bold text-slate-400 flex-shrink-0">{i + 1}.</span>
-                  <span className="leading-snug">{pt}</span>
+                  <span className="leading-snug"><T text={pt} /></span>
                 </li>
               ))}
             </ul>
