@@ -2857,8 +2857,23 @@ async function computeHistoricalAnalog(ctxRaw) {
     return out;
   };
   try {
-    const [spx, vix] = await Promise.all([hist('^GSPC'), hist('^VIX')]);
+    const [spx, vix, kospi] = await Promise.all([hist('^GSPC'), hist('^VIX'), hist('^KS11')]);
     if (!spx?.length || !vix?.length) return null;
+    // 2026-06-13: KR 차원 (사용자 "이것도 미국장만 분석한듯?") — 포트폴리오 절반이 KR인데 판정
+    //   입력이 전부 US 였음. KOSPI 낙폭/20일/200일선 추세를 결정론 산출해 판정 근거에 동봉.
+    let kr = null;
+    if (kospi?.length > 260) {
+      const lastK = kospi[kospi.length - 1];
+      let hiK = 0; for (let j = kospi.length - 253; j < kospi.length; j++) if (kospi[j].c > hiK) hiK = kospi[j].c;
+      let sK = 0; for (let j = kospi.length - 200; j < kospi.length; j++) sK += kospi[j].c;
+      const smaK = sK / 200;
+      kr = {
+        dd: +((lastK.c / hiK - 1) * 100).toFixed(1),
+        r20: +((lastK.c / kospi[kospi.length - 21].c - 1) * 100).toFixed(1),
+        above200: lastK.c > smaK,
+        distPct: +((lastK.c / smaK - 1) * 100).toFixed(1),
+      };
+    }
     const vixByDate = new Map(vix.map(p => [p.d, p.c]));
     // 시계열 지표: 고점대비 낙폭(252d trailing) + 20일 수익률, VIX 정렬
     const rows = [];
@@ -2909,7 +2924,7 @@ async function computeHistoricalAnalog(ctxRaw) {
         breadth = { divergencePp: +(r20rsp - r20spx).toFixed(1) };  // 음수 = 소수 대형주 주도(취약)
       }
     } catch { /* breadth 미산출 — non-fatal */ }
-    const base = { fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) }, trend, seasonality, breadth, source: 'yahoo-^GSPC/^VIX/RSP-1990~' };
+    const base = { fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) }, trend, seasonality, breadth, kr, source: 'yahoo-^GSPC/^VIX/RSP/^KS11-1990~' };
     if (!episodes.length) return { matches: 0, ...base };
     return {
       matches: episodes.length,
@@ -3006,6 +3021,13 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
     }
   }
   if (analog?.seasonality) reasons.push(`계절성(${analog.seasonality.month}월, 1990~ ${analog.seasonality.n}표본): 1개월 forward 중앙값 ${analog.seasonality.med1m > 0 ? '+' : ''}${analog.seasonality.med1m}%`);
+  // 2026-06-13: KR 시장 차원 (사용자 "미국장만 분석한듯") — KOSPI 상태 + 시장별 차등 코멘트.
+  if (analog?.kr) {
+    const k = analog.kr;
+    reasons.push(`KOSPI: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`);
+    if (k.r20 >= 12) reasons.push('KR 단기 과열 구간 — KR 신규 진입은 분할·보수적 권장 (경합심사가 과열 종목 자동 차단 중)');
+    else if (k.dd <= -8 && earlyWarning.level === 'low') reasons.push('KR 낙폭 과대 + 경보 낮음 — KR 분할 매수 관찰 구간');
+  }
   if (analogLine) reasons.push(analogLine);
   return { verdict, reasons, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
 }
