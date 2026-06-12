@@ -79,9 +79,12 @@ async function main() {
       // [B5] 중국어 bleeding 하네스 (2026-06-07): qwen(중국계)이 ko 출력에 한자 누출. ko 제목에
       //   한자 2개+ 있으면 bleed. (ja 는 한자 정상이라 제외. zh 는 중국어 정상.)
       if (l === 'ko') {
-        const bleeds = titles.filter(t => (t.match(/[一-鿿]/g) || []).length >= 2);
-        if (bleeds.length) issues.push(`[B5] 중국어 bleeding ko ${bleeds.length}건 — qwen 한자 누출. 예: "${bleeds[0].slice(0, 30)}"`);
-        else info.push('[B5] 중국어 bleeding 없음 (ko 한자누출 0)');
+        // 2026-06-13: bleed = *한글과 한자/가나가 혼재*하는 반쪽 번역만 (qwen 누출의 실형태).
+        //   순수 외국어 원문(번역 실패 시 정직한 원문 유지)은 bleed 가 아니라 [B] 커버리지 소관 —
+        //   나고야 기사(순수 일어)가 "qwen 누출"로 오분류되던 것 교정.
+        const bleeds = titles.filter(t => /[가-힣]/.test(t) && ((t.match(/[一-鿿]/g) || []).length >= 2 || /[ぁ-ヿ]/.test(t)));
+        if (bleeds.length) issues.push(`[B5] 혼종 번역(bleed) ko ${bleeds.length}건 — 한글+한자/가나 혼재. 예: "${bleeds[0].slice(0, 30)}"`);
+        else info.push('[B5] 혼종 번역 없음 (ko bleed 0)');
       }
     }
   }
