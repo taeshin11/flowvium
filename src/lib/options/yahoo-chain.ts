@@ -185,8 +185,21 @@ export async function fetchYahooOptionChain(ticker: string): Promise<OptionChain
     // 7~120일 비어있으면 가장 가까운 만기만이라도 사용
     targetUnix.push(allUnix[0]);
   }
-  // 2026-06-04: 만기 6→4 축소 — 30d/90d ATM 보간엔 4개면 충분. 요청수 감소로 Yahoo 429 회피.
-  const limited = targetUnix.slice(0, 4);
+  // 2026-06-13: slice(0,4) 가 위클리 종목에서 7/14/21/28d 만 선택 → 90d 보간이 평탄 외삽
+  //   (NVDA 등 14종 iv30==iv90, termSlope 가짜 0 실측 — /volatility 감사). 타깃 DTE [14,30,60,90]
+  //   최근접 만기를 고르면 같은 4요청으로 term structure 전 구간 커버.
+  const TARGET_DTES = [14, 30, 60, 90];
+  const picked = new Set<number>();
+  for (const tgtDte of TARGET_DTES) {
+    let best: number | null = null;
+    let bestDiff = Infinity;
+    for (const u of targetUnix) {
+      const diff = Math.abs((u - nowSec) / 86400 - tgtDte);
+      if (diff < bestDiff) { bestDiff = diff; best = u; }
+    }
+    if (best != null) picked.add(best);
+  }
+  const limited = Array.from(picked).sort((a, b) => a - b);
 
   const expiries: OptionExpiry[] = [];
   // 첫 번째 응답에 이미 가까운 만기 calls/puts 가 있으면 활용
