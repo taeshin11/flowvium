@@ -6911,6 +6911,44 @@ async function generateViaOllama() {
     if (noBiz.length) console.warn(`  ⚠️ [business/final] company-business.json 미수록 ${noBiz.length}종: ${noBiz.join(', ')} — build-company-business.mjs CURATED 보강 필요`);
   }
 
+  // 2026-06-12: [reconcile/final] 매수∩매도 겹침 최종 게이트 — 경합심사는 rotation 前 실행이라
+  //   rotation 투입 종목이 매도룰 cross-exam 을 안 거친 채 양쪽 동시 발간(TSLA buy+tech_dead_cross
+  //   sell 사건). 발간직전 겹침을 결정론 재심: 매도 score>=7 → 매수 제거, <7 → 매도 제거(약신호).
+  try {
+    const sellArr = [...(finalReport.sellRecommendations?.us ?? []), ...(finalReport.sellRecommendations?.kr ?? [])];
+    const sellTickers = new Set(sellArr.map((s) => s.ticker));
+    const overlap = (finalReport.portfolio ?? []).filter((p) => sellTickers.has(p.ticker)).map((p) => p.ticker);
+    if (overlap.length) {
+      const vetoRulesF = (loadSellRules()?.rules ?? []).filter((r) => ['fundamental', 'technical', 'guru'].includes(r.category));
+      const sigF = await fetchSellSignals(overlap);
+      const decisions = [];
+      for (const t of overlap) {
+        const sig = sigF.get(t) ?? {};
+        const exCtx = {
+          price: livePrices.get(t)?.price ?? null,
+          rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
+          opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
+          sectorPe: sectorPeMap.get(String((finalReport.portfolio.find((p) => p.ticker === t)?.sector ?? '')).toLowerCase()) ?? null,
+          macroRiskLevel: macroData?.riskLevel ?? null,
+        };
+        const hits = vetoRulesF.map((r) => ({ r, reason: evaluateSellRule(r, exCtx) })).filter((x) => x.reason);
+        const total = hits.reduce((s, x) => s + (x.r.score ?? 0), 0);
+        if (total >= 7) {
+          finalReport.portfolio = finalReport.portfolio.filter((p) => p.ticker !== t);
+          decisions.push({ ticker: t, verdict: 'buy-removed', sellScore: total, hits: hits.map((x) => x.r.id) });
+          console.warn(`  [reconcile/final] ${t} 양쪽 발간 모순 → 매수 제거 (매도 score ${total}≥7: ${hits.map((x) => x.r.id).join(',')})`);
+        } else {
+          for (const side of ['us', 'kr']) {
+            if (finalReport.sellRecommendations?.[side]) finalReport.sellRecommendations[side] = finalReport.sellRecommendations[side].filter((s) => s.ticker !== t);
+          }
+          decisions.push({ ticker: t, verdict: 'sell-removed', sellScore: total, hits: hits.map((x) => x.r.id) });
+          console.warn(`  [reconcile/final] ${t} 양쪽 발간 모순 → 매도 제거 (score ${total}<7 약신호, 매수 유지)`);
+        }
+      }
+      if (finalReport.buySellReconciliation) finalReport.buySellReconciliation.finalOverlap = decisions;
+    }
+  } catch (e) { console.warn(`  [reconcile/final] skip: ${e.message}`); }
+
   // 2026-06-12: 반등관찰 신호를 보고서 본문(macroAnalysis)에도 결정론 문장으로 반영 — UI 배너 없이도
   //   사용자가 텍스트에서 확인 가능. LLM 생성 아닌 코드 생성 문장(환각 0).
   if (finalReport.reboundWatch?.level === 'watch' && typeof finalReport.macroAnalysis === 'string') {

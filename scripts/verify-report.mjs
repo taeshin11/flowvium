@@ -528,6 +528,18 @@ export async function verifyReport(file, { silent = false } = {}) {
     log(`  ⚠️ probe skip (Yahoo 미가용): ${e?.message}`);
   }
 
+  // 10. 매수∩매도 겹침 (2026-06-12 TSLA 양쪽 발간 사건 — rotation 이 경합심사 後 투입돼 미재심)
+  log('\n## 매수∩매도 겹침 (양쪽 동시 발간 모순)');
+  {
+    const sellsAll = [...(r.sellRecommendations?.us ?? []), ...(r.sellRecommendations?.kr ?? [])].map(s => s.ticker);
+    const ov = (r.portfolio ?? []).map(p => p.ticker).filter(t => sellsAll.includes(t));
+    if (ov.length) {
+      defects.push({ ticker: ov.join(','), defect_type: 'buy_sell_overlap',
+        llm_value: `매수+매도 양쪽 발간 ${ov.length}건`, correct_value: 'reconcile/final 게이트가 한쪽 제거했어야', severity: 'high' });
+      log(`  ❌ 겹침: ${ov.join(', ')}`);
+    } else log('  ✅ 겹침 없음');
+  }
+
   log(`\n## 종합 — 결함 ${defects.length}건`);
   return { defects, total: (r.portfolio||[]).length };
 }
