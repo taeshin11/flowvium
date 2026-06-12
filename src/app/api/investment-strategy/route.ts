@@ -1393,6 +1393,17 @@ export async function GET(request: Request) {
 
   if (redis) {
     try {
+      // 2026-06-12: 비-ko 는 ko 로컬 발간본이 단일 진실 (사용자 "/report 와 /ko/report 종목이
+      //   왜 달라? 번역만 되는거 아니었어?"). 자가호스팅 후 cloud quota 전멸로 en/ja/zh 자체
+      //   생성이 전부 generic fallback(SPY/QQQ)을 캐시·서빙하던 결함. 같은 세션의 ko 보고서를
+      //   우선 서빙 — 종목/숫자 동일 보장, 텍스트 번역은 UI <T> 계층(/api/translate) 담당.
+      if (!force && locale !== 'ko') {
+        const koCached = await redis.get(cacheKey(session, 'ko'));
+        if (koCached && isSchemaCompatible(koCached as Record<string, unknown>)) {
+          logger.info('api.investment-strategy', 'ko_authoritative_hit', { locale, session });
+          return NextResponse.json({ ...(koCached as object), cached: true, localeFallback: true, sourceLocale: 'ko' }, { headers: CDN_HEADERS });
+        }
+      }
       // 1. Current session cache (force=1 bypasses for fresh cron regeneration)
       if (!force) {
         const cached = await redis.get(key);

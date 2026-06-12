@@ -10,7 +10,9 @@ export function useTranslatedText(text: string | undefined): string {
   const [translated, setTranslated] = useState(text || '');
 
   useEffect(() => {
-    if (!text || locale === 'en') {
+    // 2026-06-12: en 도 한글 원문이면 번역 필요 — 보고서가 ko 로컬 발간 단일 진실이 되면서
+    //   en 페이지가 한국어 텍스트를 받게 됨 (종전 무조건 skip 은 영어 원문 가정).
+    if (!text || (locale === 'en' && !/[가-힣]/.test(text))) {
       setTranslated(text || '');
       return;
     }
@@ -46,7 +48,7 @@ export function useTranslatedTexts(texts: Record<string, string>): Record<string
   const [translated, setTranslated] = useState(texts);
 
   useEffect(() => {
-    if (locale === 'en') {
+    if (locale === 'en' && !Object.values(texts).some((t) => /[가-힣]/.test(t))) {
       setTranslated(texts);
       return;
     }

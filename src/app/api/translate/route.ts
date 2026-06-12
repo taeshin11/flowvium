@@ -31,7 +31,9 @@ export async function POST(request: NextRequest) {
   try {
     const { text, targetLocale } = await request.json() as { text: string; targetLocale: string };
 
-    if (!text || !targetLocale || targetLocale === 'en') {
+    // 2026-06-12: en 무조건 skip → 한글 미포함 시만 skip. 보고서가 ko 로컬 발간 단일 진실이
+    //   되면서 en 사용자도 한국어 원문(rationale 등)을 번역해 봐야 함.
+    if (!text || !targetLocale || (targetLocale === 'en' && !/[가-힣]/.test(text))) {
       return NextResponse.json({ translated: text });
     }
 
