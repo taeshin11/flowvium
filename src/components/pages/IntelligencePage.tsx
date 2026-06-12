@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { useTranslatedText } from '@/hooks/useTranslatedText';
 import { Link } from '@/i18n/routing';
 import { macroNarratives, type MacroNarrative } from '@/data/macro-narratives';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
@@ -60,6 +61,16 @@ const categoryColorMap: Record<string, string> = {
   information: 'bg-purple-50 text-purple-700 border-purple-200',
   regulatory: 'bg-amber-50 text-amber-700 border-amber-200',
 };
+
+// 2026-06-13: 내러티브 제목/요약이 영어 필드만 렌더돼 ko 사용자도 영어를 보던 결함 — 데이터에
+//   titleKo/summaryKo 가 이미 있는데 미사용 (/intelligence 재감사). ko=Ko필드, en=영문, 그 외=<T> 번역.
+function NarrText({ en, ko }: { en: string; ko?: string }) {
+  const locale = useLocale();
+  const translated = useTranslatedText(locale === 'ko' || locale === 'en' ? '' : en);
+  if (locale === 'ko' && ko) return <>{ko}</>;
+  if (locale === 'en' || locale === 'ko') return <>{en}</>;
+  return <>{translated || en}</>;
+}
 
 function categoryLabel(cat: MacroNarrative['category'], t: ReturnType<typeof useTranslations<'intelligence'>>): string {
   const map: Record<MacroNarrative['category'], string> = {
@@ -355,7 +366,7 @@ function NarrativeCard({ n, t, intensity }: { n: MacroNarrative; t: ReturnType<t
               </span>
             )}
           </div>
-          <h3 className="text-base font-heading font-bold text-cf-text-primary leading-tight">{n.title}</h3>
+          <h3 className="text-base font-heading font-bold text-cf-text-primary leading-tight"><NarrText en={n.title} ko={n.titleKo} /></h3>
         </div>
       </div>
       {intensity?.liveData && (
@@ -369,7 +380,7 @@ function NarrativeCard({ n, t, intensity }: { n: MacroNarrative; t: ReturnType<t
           </div>
         </div>
       )}
-      <p className="text-sm text-cf-text-secondary leading-relaxed mb-3">{n.summary}</p>
+      <p className="text-sm text-cf-text-secondary leading-relaxed mb-3"><NarrText en={n.summary} ko={n.summaryKo} /></p>
       <div className="flex flex-wrap gap-1.5 mb-4">
         {n.keyConceptsEn.slice(0, 4).map((kc) => (
           <span key={kc} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
