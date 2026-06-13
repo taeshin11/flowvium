@@ -5,6 +5,7 @@ import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { localChatNoBleed } from '@/lib/llm-local';
+import { createHash } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,11 @@ export const maxDuration = 60;
 const CACHE_TTL = 30 * 24 * 60 * 60;
 
 function cacheKey(locale: string, text: string): string {
-  // Use first 100 chars as key discriminator
-  return `flowvium:tr:v1:${locale}:${text.substring(0, 100).replace(/\s+/g, ' ')}`;
+  // 2026-06-14 (ChatGPT D0-8 차용): 앞 100자 discriminator → 긴 문단이 앞부분만 같으면 다른 번역인데
+  //   같은 키 충돌(서로 다른 종목 rationale 가 같은 도입부면 한쪽 번역이 다른쪽에 적용). 전체 텍스트
+  //   sha256 해시로 교체 (v1→v2, 기존 캐시 자연 재생성).
+  const hash = createHash('sha256').update(text).digest('base64url').slice(0, 24);
+  return `flowvium:tr:v2:${locale}:${hash}`;
 }
 
 const localeNames: Record<string, string> = {

@@ -188,7 +188,9 @@ function isGarbage(text, minLen = 15) {
   if (t.length < minLen) return true;
   if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t)) return true;
   if (t.length < 80 && /^[^\n+]{3,}\+[^\n+]{3,}$/.test(t) && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true;
-  if (/^[^\n/|→]+([/|→][^\n/|→]+){2,}$/.test(t) && t.length < 80) return true;
+  // 2026-06-14 (ChatGPT D1 차용): →/|/ 체인이라도 실수치(%·소수·$)를 담으면 substance 있는 thesis →
+  //   garbage 아님 (예 "AI 인프라 MSFT→NVDA→AMAT→LRCX — CPI 4.17%…" 오탐으로 발간 차단되던 건).
+  if (/^[^\n/|→]+([/|→][^\n/|→]+){2,}$/.test(t) && t.length < 80 && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true;
   const tokens = t.split(/[\s,+|/·→]+/).filter(w => w.length > 1);
   if (tokens.length >= 4) {
     const freq = new Map();
@@ -4977,6 +4979,13 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       revenueYoY: macroCtx.finCacheMap?.get(ticker)?.revYoYPct ?? null,
       opMarginPct: macroCtx.finCacheMap?.get(ticker)?.opMarginPct ?? null,
       roePct: macroCtx.finCacheMap?.get(ticker)?.roePct ?? null,
+      // 2026-06-14 (ChatGPT D0-5 차용): evaluateBuyRule 은 ctx.roe/opMargin/revenueGrowth 를 읽는데
+      //   위 *Pct 이름과 불일치 → stage-1 fundamental 룰(roeAbove/revenueGrowth/buffettMoat)이 silent
+      //   미발화였음. alias 로 정합(전 종목 0비용 펀더멘털 평가 목표 달성). opMarginExpand/peg 는
+      //   financials.json 에 YoY-pp/peg 미수록 → Stage3 fetchBuyFundSignals 가 계속 담당.
+      roe: macroCtx.finCacheMap?.get(ticker)?.roePct ?? null,
+      opMargin: macroCtx.finCacheMap?.get(ticker)?.opMarginPct ?? null,
+      revenueGrowth: macroCtx.finCacheMap?.get(ticker)?.revYoYPct ?? null,
       insiderFilings: macroCtx.insiderMap?.get(ticker) ?? 0,
       squeezeScore: macroCtx.squeezeMap?.get(ticker) ?? null,
       cascadeUpstream: macroCtx.cascadeUpstreamSet?.has(ticker) ?? false,
@@ -6366,30 +6375,52 @@ async function generateViaOllama() {
   //   cross-examine. 강한 매수신호(과매도 반등 / 골든크로스 추세유효)가 있으면 매도와 충돌 → 플래그.
   //   리스크관리 우선이라 매도 자체는 취소 안 하되, "전량매도 대신 부분매도/관망" 으로 충돌을 surface.
   //   buy→sell veto(경합심사 게이트)와 합쳐 양방향 합의 완성. sellSideReview 는 trail 에도 적재.
-  // 2026-06-06: adjudicateSellVsBuy (ChatGPT D3) — target_near winner 는 매수엔진 재평가로 "더 갈
-  //   여지" 판정. hard-sell(stop/dead cross/200MA/margin/내부자매도)은 매수신호 있어도 매도 우선(리스크관리).
-  const HARD_SELL = new Set(['price_stop_breach', 'stop_breach', 'tech_dead_cross', 'tech_200ma_breach', 'fund_margin_decline', 'micro_insider_selling']);
-  const TARGET_NEAR = new Set(['price_target_near', 'target_near', 'target_proximity']);
+  // 2026-06-14 (ChatGPT D1 차용): adjudicateSellVsBuy 전면 강화.
+  //   ① 기존엔 macroCtx.signals(미정의)→sig={}→buyOpp 항상 공백 → 역심판이 사실상 inert 였음.
+  //      sell 후보 tech 를 fetchSellSignals 로 실측 + evaluateBuyRule(전체 buy 엔진)으로 buyScore 산출.
+  //   ② 3개 하드코딩(RSI/골든크로스/PEG) → 전체 buy-rule 엔진 평가(데이터 가용 룰 발화).
+  //   ③ target_near 를 sell/partial_take_profit/trail/hold action ladder 로 분리(매수score vs 매도score).
+  const HARD_SELL = new Set(['price_stop_breach', 'tech_dead_cross', 'tech_200ma_breach', 'fund_margin_decline', 'micro_insider_selling', 'micro_supply_contract_loss']);
+  const TARGET_NEAR = new Set(['price_target_near']);
+  const buyRulesForReview = loadBuyRules()?.rules ?? [];
   let sellSideReview = [];
-  for (const c of [...sellCands.us, ...sellCands.kr]) {
-    const sig = macroCtx.signals?.get(c.ticker) ?? {};
-    const buyOpp = [];
-    if (sig.rsi != null && sig.rsi <= 32) buyOpp.push(`RSI ${sig.rsi} 과매도(반등 가능)`);
-    if (sig.sma50 != null && sig.sma200 != null && sig.sma50 > sig.sma200) buyOpp.push('50MA>200MA 추세 유효');
-    if (sig.peg != null && sig.peg > 0 && sig.peg < 1) buyOpp.push(`PEG ${sig.peg.toFixed(2)} 저평가`);
-    if (!buyOpp.length) continue;
+  const sellListAll = [...sellCands.us, ...sellCands.kr];
+  const revSig = sellListAll.length ? await fetchSellSignals(sellListAll.map(c => c.ticker)) : new Map();
+  for (const c of sellListAll) {
+    const s = revSig.get(c.ticker) ?? {};
+    const isKR = /\.(KS|KQ)$/.test(c.ticker);
+    const sectorKey = String(c.sector ?? '').toLowerCase();
+    // 매수 엔진 재평가 ctx (evaluateBuyRule). fetchSellSignals 필드 → buy-rule 기대명 alias.
+    const buyCtx = {
+      price: livePrices.get(c.ticker)?.price ?? null,
+      rsi: s.rsi, sma50: s.sma50, sma200: s.sma200,
+      revenueGrowth: s.revenueYoY ?? null, peg: s.peg ?? null, peRatio: s.peRatio ?? null,
+      sectorPe: macroCtx.sectorPeMap?.get(sectorKey) ?? null,
+      sectorStance: macroCtx.sectorStanceMap?.get(sectorKey) ?? null,
+      regionStance: macroCtx.regionStanceMap?.get(isKR ? 'kr' : 'us') ?? null,
+      insiderBuys: macroCtx.insider?.get(c.ticker)?.buys ?? null,
+      newsSentiment: macroCtx.newsSentimentMap?.get(c.ticker)?.negRatio != null ? (1 - macroCtx.newsSentimentMap.get(c.ticker).negRatio) : null,
+    };
+    const buyHits = [];
+    for (const rule of buyRulesForReview) { const r = evaluateBuyRule(rule, buyCtx); if (r) buyHits.push({ id: rule.id, score: rule.score ?? 0, reason: r }); }
+    const buyScore = buyHits.reduce((a, h) => a + h.score, 0);
+    const sellScore = c.score ?? 0;
     const hits = c.sellHits ?? [];
     const hasHard = hits.some(h => HARD_SELL.has(h.ruleId));
     const targetNearOnly = hits.some(h => TARGET_NEAR.has(h.ruleId)) && !hasHard;
-    let verdict;
-    if (hasHard) verdict = { action: 'sell', msg: `매수신호(${buyOpp.join(', ')}) 있으나 hard-sell 우선 — 매도 유지` };
-    else if (targetNearOnly && buyOpp.length >= 2) verdict = { action: 'hold_trailing', msg: `목표가 근접이나 추세 유효(${buyOpp.join(', ')}) — 전량매도 말고 trailing stop/추세추종` };
-    else verdict = { action: 'partial', msg: `매수신호 상충(${buyOpp.join(', ')}) → 부분익절+나머지 관망` };
-    c.buyConflict = verdict.msg;
-    sellSideReview.push({ ticker: c.ticker, sellType: c.sellType ?? c.ruleId, sellScore: c.score, buySignals: buyOpp, verdict: verdict.action });
-    console.log(`  [경합심사/양방향] ${c.ticker} 매도(${c.ruleId},score${c.score}) but ${buyOpp.join('+')} → ${verdict.action}`);
+    let action, size, msg;
+    if (hasHard) { action = 'sell'; size = 1.0; msg = `hard-sell 우선 — 전량매도 (매수score ${buyScore} 무시, 리스크관리)`; }
+    else if (targetNearOnly && buyScore >= sellScore + 3) { action = 'trail'; size = 0.0; msg = `목표가 근접이나 매수신호 우세(buy ${buyScore}>sell ${sellScore}) — 전량매도 말고 trailing stop`; }
+    else if (targetNearOnly && buyScore >= sellScore - 2) { action = 'partial_take_profit'; size = 0.33; msg = `목표가 근접+추세 일부 유지(buy ${buyScore}~sell ${sellScore}) — 1/3 부분익절`; }
+    else if (sellScore >= buyScore + 3) { action = 'sell'; size = 0.5; msg = `매도 우세(sell ${sellScore}>buy ${buyScore}) — 절반 매도`; }
+    else { action = 'watch'; size = 0.0; msg = `신호 혼재(buy ${buyScore} vs sell ${sellScore}) — 관망`; }
+    c.adjudicatedAction = action; c.adjudicatedSize = size; c.buyConflict = msg;
+    if (buyHits.length || hasHard || targetNearOnly) {
+      sellSideReview.push({ ticker: c.ticker, sellType: c.sellType ?? c.ruleId, sellScore, buyScore, buyHits: buyHits.map(h => h.id), action, size });
+      console.log(`  [역심판] ${c.ticker} sell${sellScore}/buy${buyScore} → ${action}${size ? `(${Math.round(size * 100)}%)` : ''}: ${msg}`);
+    }
   }
-  if (sellSideReview.length) console.log(`  [경합심사/양방향] 매도 ${sellSideReview.length}건 매수엔진 재평가(adjudicateSellVsBuy)`);
+  if (sellSideReview.length) console.log(`  [역심판] 매도 ${sellSideReview.length}건 buy-rule 엔진 재평가 + action ladder 적용`);
 
   const stockDetailMap = new Map();
   if (stockDetailRaw) {
@@ -6620,16 +6651,29 @@ async function generateViaOllama() {
     dedupedPortfolio = dedupedPortfolio.filter(p => {
       const sig = sellSig.get(p.ticker) ?? {};
       if (sig.rsi != null) p._realRsi = sig.rsi;  // technicalBasis RSI 라벨 grounding 용 (발간직전 삭제)
-      const uoa = buyMacroCtx.uoaMap?.get(p.ticker);
-      const news = buyMacroCtx.newsSentimentMap?.get(p.ticker);
+      // 2026-06-14 (ChatGPT D0-7/D1 차용): 게이트 exCtx 를 sell 후보와 동일한 rich macroCtx 로 정합.
+      //   기존엔 buyMacroCtx 의 옵션/뉴스만 봐 micro_insider_selling(hard)·micro_13f_distribution·계약해지·
+      //   sector/region stance 가 게이트에서 silent 미발화. macroCtx 는 insider{buys,sells}/inst13f/
+      //   contractMap/sector·regionStanceMap 보유 → 내부자매도가 실제 hard-veto 로 작동.
+      const news = macroCtx.newsSentimentMap?.get(p.ticker);
+      const ins = macroCtx.insider?.get(p.ticker);
+      const i13f = macroCtx.inst13f?.get(p.ticker);
+      const isKRt = /\.(KS|KQ)$/.test(p.ticker);
+      const sectorKey = String(p.sector ?? '').toLowerCase();
       const exCtx = {
-        price: livePrices.get(p.ticker)?.price ?? null,
+        price: livePrices.get(p.ticker)?.price ?? null, market: isKRt ? 'kr' : 'us', sector: p.sector ?? null,
         rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
         opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
-        sectorPe: sectorPeMap.get(String(p.sector ?? '').toLowerCase()) ?? null,
-        macroRiskLevel: macroData?.riskLevel ?? null, vix: buyMacroCtx.vix,
-        optionsCallPrem: uoa?.callPrem ?? 0, optionsPutPrem: uoa?.putPrem ?? 0,     // micro: 옵션 풋편중
-        newsNegRatio: news?.negRatio ?? null, newsArticleCount: news?.count ?? 0,    // micro: 부정뉴스
+        sectorPe: macroCtx.sectorPeMap?.get(sectorKey) ?? sectorPeMap.get(sectorKey) ?? null,
+        macroRiskLevel: macroData?.riskLevel ?? null, vix: macroCtx.vix, fgScore: macroCtx.fgScore,
+        optionsCallPrem: macroCtx.uoaMap?.get(p.ticker)?.callPrem ?? 0, optionsPutPrem: macroCtx.uoaMap?.get(p.ticker)?.putPrem ?? 0,
+        newsNegRatio: news?.negRatio ?? null, newsArticleCount: news?.count ?? 0,
+        insiderSells: ins?.sells ?? null, insiderBuys: ins?.buys ?? null,
+        insiderSellToBuyRatio: ins ? (ins.sells / Math.max(ins.buys, 1)) : null,
+        instReducers: i13f?.reducers ?? null, instAdders: i13f?.adders ?? null, instNetShares: i13f?.netShares ?? null,
+        contractLoss: macroCtx.contractMap?.get(p.ticker)?.type === 'contract_loss' ? macroCtx.contractMap.get(p.ticker) : null,
+        sectorStance: macroCtx.sectorStanceMap?.get(sectorKey) ?? null,
+        regionStance: macroCtx.regionStanceMap?.get(isKRt ? 'kr' : 'us') ?? null,
       };
       const hits = [];
       for (const rule of vetoRules) {
@@ -7805,10 +7849,26 @@ async function generateViaOllama() {
   const kstDate = getReportKstDate(session);  // midnight 은 발간일(익일)
   const filename = `report-${kstDate}-${session}-${localeArg}.json`;
   const filepath = resolve(REPORTS_DIR, filename);
+
+  // 2026-06-14 (ChatGPT D0-1 차용): **품질 게이트를 DB 적재·학습 루프 이전으로 이동.**
+  //   기존엔 qualityCheck ok=false 여도 saveRecommendations/saveSellRecommendations/saveBuyCandidates
+  //   /snapshot/verify-report 가 먼저 실행되고 마지막 업로드만 skip → **발간 안 된 불량 보고서가
+  //   outcome 평가·tune-rules·hallucination_history 학습 루프에 섞이는 순환오염**. 게이트 실패 시
+  //   격리 파일만 남기고 DB 적재·학습·업로드 전부 SKIP (published 만 학습 대상).
+  if (!ok) {
+    const qDir = resolve(REPORTS_DIR, 'quarantine');
+    if (!existsSync(qDir)) mkdirSync(qDir, { recursive: true });
+    const qPath = resolve(qDir, filename);
+    writeFileSync(qPath, JSON.stringify({ ...finalReport, _quarantine: { ts: new Date().toISOString(), issues } }, null, 2), 'utf8');
+    console.error(`\n🚫 [발간 차단] 품질 게이트 실패 → DB 적재·학습 루프 오염 방지 위해 추천/스냅샷/verify/업로드 전부 SKIP.`);
+    console.error(`   issues: ${issues.join(' | ')}`);
+    console.error(`   격리: reports/quarantine/${filename} (검토용 — 발간·학습 제외)`);
+    return;
+  }
   writeFileSync(filepath, JSON.stringify(finalReport, null, 2), 'utf8');
 
   // ── 로컬 SQLite 적재 (data/flowvium.db) — 보고서 + 추천 + 엔드포인트 스냅샷 ──
-  // 전향적 추천 평가의 컨텍스트로 사용. 실패해도 보고서 저장 자체는 영향 없음.
+  // 전향적 추천 평가의 컨텍스트로 사용. 실패해도 보고서 저장 자체는 영향 없음. (품질 ok 일 때만 도달 — 위 게이트.)
   try {
     finalReport.generatedAt = finalReport.generatedAt ?? new Date().toISOString();
     finalReport.session = finalReport.session ?? session;

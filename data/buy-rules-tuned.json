@@ -1,8 +1,8 @@
 {
   "version": 1,
   "source": "initial-seed-with-guru-tech-fund-macro-micro",
-  "tunedAt": "2026-05-29T00:00:00.000Z",
-  "sampleSize": 0,
+  "tunedAt": "2026-06-13T19:20:00.135Z",
+  "sampleSize": 153,
   "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력).",
   "rules": [
     {
@@ -388,5 +388,84 @@
       "description": "수주잔고(SEC RPO) YoY 10%+ — 향후 매출 가시성 (방산/건설/제조/SaaS, 2026-06-13)"
     }
   ],
-  "outcomeStats": {}
+  "outcomeStats": {
+    "total": 153,
+    "hits": 31,
+    "stops": 9,
+    "ne": 56,
+    "holding": 57,
+    "hitRate": 77.5,
+    "avgPnl": 26.1,
+    "avgAlpha": 25.3,
+    "bySector": [
+      {
+        "sector": "Technology",
+        "hit": 18,
+        "stop": 5,
+        "total": 124,
+        "hitRate": 78.26086956521739
+      },
+      {
+        "sector": "Materials",
+        "hit": 4,
+        "stop": 2,
+        "total": 8,
+        "hitRate": 66.66666666666666
+      }
+    ],
+    "bestTickers": [
+      {
+        "ticker": "TSM",
+        "avg": 126.49181818181819,
+        "n": 11
+      },
+      {
+        "ticker": "005490.KS",
+        "avg": 51.98333333333334,
+        "n": 6
+      },
+      {
+        "ticker": "000660.KS",
+        "avg": 27.13,
+        "n": 6
+      },
+      {
+        "ticker": "TSLA",
+        "avg": 16.608333333333334,
+        "n": 6
+      },
+      {
+        "ticker": "005930.KS",
+        "avg": 15.827777777777776,
+        "n": 9
+      }
+    ],
+    "worstTickers": [
+      {
+        "ticker": "SMCI",
+        "avg": -37.61,
+        "n": 2
+      },
+      {
+        "ticker": "051910.KS",
+        "avg": 1.7974999999999999,
+        "n": 4
+      },
+      {
+        "ticker": "META",
+        "avg": 3.25,
+        "n": 2
+      },
+      {
+        "ticker": "XLE",
+        "avg": 3.95,
+        "n": 2
+      },
+      {
+        "ticker": "035420.KS",
+        "avg": 4.63,
+        "n": 4
+      }
+    ]
+  }
 }
