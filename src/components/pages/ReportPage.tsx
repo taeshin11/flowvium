@@ -819,9 +819,9 @@ export default function ReportPage() {
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
           </div>
 
-          {/* ── 종합 판단 (2026-06-12): 하락·상승 전조 + 공포매수 + 과거 유사국면 → 관망/매수/중립 ── */}
+          {/* ── 종합 판단 (2026-06-13): US·거시 / KR 별도 박스, 각자 독립 stance ── */}
           {(() => {
-            const mv = (data as unknown as { marketVerdict?: { verdict: string; reasons: string[]; reasonRegions?: string[] } }).marketVerdict;
+            const mv = (data as unknown as { marketVerdict?: { verdict: string; reasons: string[]; reasonRegions?: string[]; krVerdict?: { verdict: string; reasons: string[] } } }).marketVerdict;
             if (!mv?.verdict) return null;
             const cfg: Record<string, { icon: string; cls: string }> = {
               buy_dip:       { icon: '🟢', cls: 'border-emerald-400 bg-emerald-50 text-emerald-800' },
@@ -831,47 +831,50 @@ export default function ReportPage() {
               wait:          { icon: '🟠', cls: 'border-orange-300 bg-orange-50 text-orange-800' },
               defensive:     { icon: '🔴', cls: 'border-red-400 bg-red-50 text-red-800' },
             };
-            const c = cfg[mv.verdict] ?? cfg.neutral;
-            return (
-              <div className={`rounded-xl border-2 p-4 mb-5 ${c.cls}`}>
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="text-lg">{c.icon}</span>
-                  <span className="font-extrabold text-base">{t('verdictTitle')}: {t(`verdict_${mv.verdict}`)}</span>
-                </div>
-                {(() => {
-                  // 2026-06-13: 사용자 "US, KR 분리" — reasonRegions 있으면 global/us/kr 그룹별 렌더.
-                  const regions = Array.isArray(mv.reasonRegions) && mv.reasonRegions.length === mv.reasons.length ? mv.reasonRegions : null;
-                  const renderList = (items: string[]) => (
-                    <ul className="space-y-1">
-                      {items.map((r, i) => (
-                        <li key={i} className="text-xs leading-relaxed flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span><TName text={r} /></span></li>
-                      ))}
-                    </ul>
-                  );
-                  if (!regions) return renderList(mv.reasons);
-                  const groups: { key: string; label: string; items: string[] }[] = [
-                    { key: 'global', label: t('verdictRegionGlobal'), items: [] },
-                    { key: 'us', label: `🇺🇸 ${t('verdictRegionUs')}`, items: [] },
-                    { key: 'kr', label: `🇰🇷 ${t('verdictRegionKr')}`, items: [] },
-                  ];
-                  mv.reasons.forEach((r, i) => {
-                    const g = groups.find(x => x.key === (regions[i] || 'global')) ?? groups[0];
-                    g.items.push(r);
-                  });
-                  return (
-                    <div className="space-y-2.5">
-                      {groups.filter(g => g.items.length > 0).map(g => (
-                        <div key={g.key}>
-                          <p className="text-[11px] font-bold opacity-70 mb-0.5">{g.label}</p>
-                          {renderList(g.items)}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-                <p className="text-[10px] opacity-60 mt-2">{t('verdictNote')}</p>
-              </div>
+            const renderList = (items: string[]) => (
+              <ul className="space-y-1">
+                {items.map((r, i) => (
+                  <li key={i} className="text-xs leading-relaxed flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span><TName text={r} /></span></li>
+                ))}
+              </ul>
             );
+            const box = (title: string, verdict: string, body: React.ReactNode) => {
+              const c = cfg[verdict] ?? cfg.neutral;
+              return (
+                <div className={`rounded-xl border-2 p-4 ${c.cls}`}>
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className="text-lg">{c.icon}</span>
+                    <span className="font-extrabold text-base">{title}: {t(`verdict_${verdict}`)}</span>
+                  </div>
+                  {body}
+                  <p className="text-[10px] opacity-60 mt-2">{t('verdictNote')}</p>
+                </div>
+              );
+            };
+            const hasKr = mv.krVerdict?.verdict && Array.isArray(mv.krVerdict.reasons);
+            if (hasKr) {
+              // 두 박스: 🇺🇸 미국·거시 / 🇰🇷 한국 — 각자 독립 stance (사용자 "다른 박스로 종합판단 따로")
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+                  {box(`🇺🇸 ${t('verdictUsTitle')}`, mv.verdict, renderList(mv.reasons))}
+                  {box(`🇰🇷 ${t('verdictKrTitle')}`, mv.krVerdict!.verdict, renderList(mv.krVerdict!.reasons))}
+                </div>
+              );
+            }
+            // 구버전 보고서(krVerdict 없음): 단일 박스 + reasonRegions 그룹 fallback
+            const regions = Array.isArray(mv.reasonRegions) && mv.reasonRegions.length === mv.reasons.length ? mv.reasonRegions : null;
+            let body: React.ReactNode;
+            if (!regions) body = renderList(mv.reasons);
+            else {
+              const groups: { key: string; label: string; items: string[] }[] = [
+                { key: 'global', label: t('verdictRegionGlobal'), items: [] },
+                { key: 'us', label: `🇺🇸 ${t('verdictRegionUs')}`, items: [] },
+                { key: 'kr', label: `🇰🇷 ${t('verdictRegionKr')}`, items: [] },
+              ];
+              mv.reasons.forEach((r, i) => { (groups.find(x => x.key === (regions[i] || 'global')) ?? groups[0]).items.push(r); });
+              body = <div className="space-y-2.5">{groups.filter(g => g.items.length > 0).map(g => (<div key={g.key}><p className="text-[11px] font-bold opacity-70 mb-0.5">{g.label}</p>{renderList(g.items)}</div>))}</div>;
+            }
+            return <div className="mb-5">{box(t('verdictTitle'), mv.verdict, body)}</div>;
           })()}
 
           {/* ── 2026-06-13: 장중 보고서 회원 게이트 (사용자 "장중 보고서는 회원가입 해야") ──

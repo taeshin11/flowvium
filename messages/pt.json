@@ -1297,7 +1297,9 @@
     "gateFreeNote": "Sem spam · cancele quando quiser · sem senha",
     "verdictRegionGlobal": "Global / Macro",
     "verdictRegionUs": "Mercado EUA",
-    "verdictRegionKr": "Mercado Coreia"
+    "verdictRegionKr": "Mercado Coreia",
+    "verdictUsTitle": "Veredicto EUA e Macro",
+    "verdictKrTitle": "Veredicto Coreia"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

@@ -1297,7 +1297,9 @@
     "gateFreeNote": "Kein Spam · jederzeit abbestellbar · kein Passwort nötig",
     "verdictRegionGlobal": "Global / Makro",
     "verdictRegionUs": "US-Markt",
-    "verdictRegionKr": "Korea-Markt"
+    "verdictRegionKr": "Korea-Markt",
+    "verdictUsTitle": "US- & Makro-Urteil",
+    "verdictKrTitle": "Korea-Urteil"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

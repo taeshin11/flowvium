@@ -3064,26 +3064,39 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
   }
   if (analog?.seasonality) add(`S&P500 계절성(${analog.seasonality.month}월, 1990~ ${analog.seasonality.n}표본): 1개월 forward 중앙값 ${analog.seasonality.med1m > 0 ? '+' : ''}${analog.seasonality.med1m}%`, 'us');
   if (analogLine) add(analogLine, 'us');
-  // 2026-06-13: KR 시장 차원 (사용자 "미국장만 분석한듯") — KOSPI 상태 + 시장별 차등 코멘트.
-  if (analog?.kr) {
-    const k = analog.kr;
-    add(`KOSPI 추세: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`, 'kr');
-    // US 와 동일 깊이 — KR 시장 폭·계절성·과거 유사국면 (전부 동적 KOSPI/KOSDAQ 실측)
-    if (k.breadth?.divergencePp != null) {
-      if (k.breadth.divergencePp >= 1.5) add(`KR 시장 폭 양호: KOSDAQ(소형주)이 KOSPI 대비 20일 +${k.breadth.divergencePp}%p 우위 — 광범위 참여`, 'kr');
-      else if (k.breadth.divergencePp <= -1.5) add(`KR 시장 폭 취약: KOSDAQ이 KOSPI 대비 20일 ${k.breadth.divergencePp}%p 열위 — 대형주 편중`, 'kr');
-    }
-    if (k.analog?.matches >= 5) add(`KR 과거 유사국면 ${k.analog.matches}회(KOSPI 낙폭 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}% 지문): 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`, 'kr');
-    if (k.seasonality) add(`KOSPI 계절성(${k.seasonality.month}월, ${k.seasonality.n}표본): 1개월 forward 중앙값 ${k.seasonality.med1m > 0 ? '+' : ''}${k.seasonality.med1m}%`, 'kr');
-    if (k.r20 >= 12) add('KR 단기 과열 구간 — KR 신규 진입은 분할·보수적 권장 (경합심사가 과열 종목 자동 차단 중)', 'kr');
-    else if (k.dd <= -8 && earlyWarning.level === 'low') add('KR 낙폭 과대 + 경보 낮음 — KR 분할 매수 관찰 구간', 'kr');
+  // 2026-06-13: KR 종합 판단 *별도 박스* (사용자 "아예 다른 박스로, 종합판단도 따로"). KR 신호 +
+  //   글로벌 거시 게이트로 독립 stance 산출 — US 판정과 분리. krVerdict.reasons 는 자체 배열.
+  const krVerdict = computeKrVerdict(analog?.kr, earlyWarning);
+  // 검증체계(2026-06-13): region 누락/desync 자동 포착 — add() 우회 reasons.push() 직접 시 길이 어긋남
+  //   → flat fallback 으로 회귀 silent. 여기서 warn. (US 박스 내부 global/us 서브그룹용)
+  if (reasons.length !== regions.length) console.warn(`  [verdict] ⚠️ reasons(${reasons.length})≠reasonRegions(${regions.length}) — add() 우회 의심`);
+  const badRegion = regions.find(r => !['global', 'us'].includes(r));
+  if (badRegion) console.warn(`  [verdict] ⚠️ 미지정 region '${badRegion}' — KR 은 krVerdict 로 분리됨, main 은 global/us 만`);
+  return { verdict, reasons, reasonRegions: regions, krVerdict, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
+}
+
+// 2026-06-13: KR 독립 종합 판단 (별도 박스). KOSPI 추세/breadth/계절성/유사국면 + 글로벌 거시 게이트.
+//   US 와 동일 tier(defensive/wait/neutral/neutral_ready/accumulate/buy_dip), 전부 동적 KOSPI/KOSDAQ 실측.
+function computeKrVerdict(k, earlyWarning) {
+  if (!k) return null;
+  const reasons = [];
+  let verdict;
+  if (earlyWarning.level === 'severe') { verdict = 'defensive'; reasons.push('글로벌 하락 전조 심각 — KR 포함 방어적 포지션'); }
+  else if (earlyWarning.level === 'high') { verdict = 'wait'; reasons.push('글로벌 경보 고조 — KR 신규 진입 보류'); }
+  else if (k.r20 >= 12) { verdict = 'neutral'; reasons.push(`KR 단기 과열(20일 +${k.r20}%) — 분할·보수적, 추격 자제`); }
+  else if (k.dd <= -8 && earlyWarning.level === 'low') { verdict = 'accumulate'; reasons.push(`KR 낙폭 과대(고점대비 ${k.dd}%) + 경보 낮음 — 분할 매수 관찰`); }
+  else if (k.analog?.matches >= 5 && k.analog.med3m >= 3 && k.analog.posRate3m >= 60 && k.above200) { verdict = 'neutral_ready'; reasons.push(`KR 유사국면 우호(3개월 +${k.analog.med3m}%, 상승확률 ${k.analog.posRate3m}%) + 200일선 위 — 조정 시 매수 준비`); }
+  else if (k.analog?.matches >= 5 && k.analog.med3m <= -2) { verdict = 'wait'; reasons.push('KR 과거 유사국면 3개월 기대 음수 — 보수적 접근'); }
+  else { verdict = 'neutral'; reasons.push('KR 뚜렷한 전조 없음 — 기존 포지션 유지'); }
+  // 근거 디테일 (US 박스와 동일 깊이)
+  reasons.push(`KOSPI 추세: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`);
+  if (k.breadth?.divergencePp != null) {
+    if (k.breadth.divergencePp >= 1.5) reasons.push(`KR 시장 폭 양호: KOSDAQ이 KOSPI 대비 20일 +${k.breadth.divergencePp}%p 우위 — 광범위 참여`);
+    else if (k.breadth.divergencePp <= -1.5) reasons.push(`KR 시장 폭 취약: KOSDAQ이 KOSPI 대비 20일 ${k.breadth.divergencePp}%p 열위 — 대형주 편중`);
   }
-  // 검증체계(2026-06-13): region 누락/desync 자동 포착 — 누군가 add() 우회해 reasons.push() 직접
-  //   하면 길이 어긋남 → flat fallback 으로 'US/KR 혼재' 회귀가 silent. 여기서 warn 으로 surface.
-  if (reasons.length !== regions.length) console.warn(`  [verdict] ⚠️ reasons(${reasons.length})≠reasonRegions(${regions.length}) — add() 우회 의심, US/KR 분리 회귀 위험`);
-  const badRegion = regions.find(r => !['global', 'us', 'kr'].includes(r));
-  if (badRegion) console.warn(`  [verdict] ⚠️ 미지정 region '${badRegion}' — global/us/kr 중 하나여야`);
-  return { verdict, reasons, reasonRegions: regions, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
+  if (k.analog?.matches >= 5) reasons.push(`KR 과거 유사국면 ${k.analog.matches}회(KOSPI 낙폭 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}% 지문): 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`);
+  if (k.seasonality) reasons.push(`KOSPI 계절성(${k.seasonality.month}월, ${k.seasonality.n}표본): 1개월 forward 중앙값 ${k.seasonality.med1m > 0 ? '+' : ''}${k.seasonality.med1m}%`);
+  return { verdict, reasons };
 }
 
 /**

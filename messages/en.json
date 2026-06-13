@@ -1297,7 +1297,9 @@
     "gateFreeNote": "No spam · unsubscribe anytime · no password needed",
     "verdictRegionGlobal": "Global / Macro",
     "verdictRegionUs": "US Market",
-    "verdictRegionKr": "Korea Market"
+    "verdictRegionKr": "Korea Market",
+    "verdictUsTitle": "US & Macro Verdict",
+    "verdictKrTitle": "Korea Verdict"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

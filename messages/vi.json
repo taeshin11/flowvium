@@ -1297,7 +1297,9 @@
     "gateFreeNote": "Không spam · hủy bất cứ lúc nào · không cần mật khẩu",
     "verdictRegionGlobal": "Chung / Vĩ mô",
     "verdictRegionUs": "Thị trường Mỹ",
-    "verdictRegionKr": "Thị trường Hàn"
+    "verdictRegionKr": "Thị trường Hàn",
+    "verdictUsTitle": "Phán định Mỹ & Vĩ mô",
+    "verdictKrTitle": "Phán định Hàn Quốc"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

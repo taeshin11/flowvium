@@ -1297,7 +1297,9 @@
     "gateFreeNote": "بدون رسائل مزعجة · إلغاء في أي وقت · بدون كلمة مرور",
     "verdictRegionGlobal": "عام / كلي",
     "verdictRegionUs": "السوق الأمريكي",
-    "verdictRegionKr": "السوق الكوري"
+    "verdictRegionKr": "السوق الكوري",
+    "verdictUsTitle": "حكم الولايات المتحدة والكلي",
+    "verdictKrTitle": "حكم كوريا"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

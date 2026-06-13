@@ -1297,7 +1297,9 @@
     "gateFreeNote": "कोई स्पैम नहीं · कभी भी अनसब्सक्राइब · पासवर्ड की जरूरत नहीं",
     "verdictRegionGlobal": "सामान्य / मैक्रो",
     "verdictRegionUs": "अमेरिकी बाज़ार",
-    "verdictRegionKr": "कोरिया बाज़ार"
+    "verdictRegionKr": "कोरिया बाज़ार",
+    "verdictUsTitle": "अमेरिका और मैक्रो निर्णय",
+    "verdictKrTitle": "कोरिया निर्णय"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

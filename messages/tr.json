@@ -1297,7 +1297,9 @@
     "gateFreeNote": "Spam yok · istediğiniz zaman iptal · şifre gerekmez",
     "verdictRegionGlobal": "Genel / Makro",
     "verdictRegionUs": "ABD Piyasası",
-    "verdictRegionKr": "Kore Piyasası"
+    "verdictRegionKr": "Kore Piyasası",
+    "verdictUsTitle": "ABD & Makro Kararı",
+    "verdictKrTitle": "Kore Kararı"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

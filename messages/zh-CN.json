@@ -1297,7 +1297,9 @@
     "gateFreeNote": "无垃圾邮件 · 随时退订 · 无需密码",
     "verdictRegionGlobal": "综合 / 宏观",
     "verdictRegionUs": "美国市场",
-    "verdictRegionKr": "韩国市场"
+    "verdictRegionKr": "韩国市场",
+    "verdictUsTitle": "美国·宏观综合判断",
+    "verdictKrTitle": "韩国综合判断"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

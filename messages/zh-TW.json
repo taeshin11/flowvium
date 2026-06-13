@@ -1297,7 +1297,9 @@
     "gateFreeNote": "無垃圾郵件 · 隨時退訂 · 無需密碼",
     "verdictRegionGlobal": "綜合 / 宏觀",
     "verdictRegionUs": "美國市場",
-    "verdictRegionKr": "韓國市場"
+    "verdictRegionKr": "韓國市場",
+    "verdictUsTitle": "美國·宏觀綜合判斷",
+    "verdictKrTitle": "韓國綜合判斷"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

@@ -1297,7 +1297,9 @@
     "gateFreeNote": "Tanpa spam · berhenti kapan saja · tanpa kata sandi",
     "verdictRegionGlobal": "Umum / Makro",
     "verdictRegionUs": "Pasar AS",
-    "verdictRegionKr": "Pasar Korea"
+    "verdictRegionKr": "Pasar Korea",
+    "verdictUsTitle": "Putusan AS & Makro",
+    "verdictKrTitle": "Putusan Korea"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

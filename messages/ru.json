@@ -1297,7 +1297,9 @@
     "gateFreeNote": "Без спама · отписка в любой момент · без пароля",
     "verdictRegionGlobal": "Общее / Макро",
     "verdictRegionUs": "Рынок США",
-    "verdictRegionKr": "Рынок Кореи"
+    "verdictRegionKr": "Рынок Кореи",
+    "verdictUsTitle": "Вердикт США и макро",
+    "verdictKrTitle": "Вердикт Корея"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

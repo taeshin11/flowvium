@@ -1297,7 +1297,9 @@
     "gateFreeNote": "スパムなし · いつでも解除 · パスワード不要",
     "verdictRegionGlobal": "共通 / マクロ",
     "verdictRegionUs": "米国市場",
-    "verdictRegionKr": "韓国市場"
+    "verdictRegionKr": "韓国市場",
+    "verdictUsTitle": "米国・マクロ総合判断",
+    "verdictKrTitle": "韓国 総合判断"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

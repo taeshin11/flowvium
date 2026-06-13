@@ -1297,7 +1297,9 @@
     "gateFreeNote": "ไม่มีสแปม · ยกเลิกได้ทุกเมื่อ · ไม่ต้องใช้รหัสผ่าน",
     "verdictRegionGlobal": "รวม / มหภาค",
     "verdictRegionUs": "ตลาดสหรัฐ",
-    "verdictRegionKr": "ตลาดเกาหลี"
+    "verdictRegionKr": "ตลาดเกาหลี",
+    "verdictUsTitle": "คำตัดสินสหรัฐและมหภาค",
+    "verdictKrTitle": "คำตัดสินเกาหลี"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",
