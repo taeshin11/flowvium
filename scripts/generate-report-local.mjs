@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
@@ -6606,27 +6606,32 @@ async function generateViaOllama() {
   //   숫자 포함 catalyst 는 sig(실 insider/squeeze/fin)에서 코드가 직접 생성. LLM catalyst 는
   //   *숫자 없는 정성적 이벤트*만 보충. → "insider 12.3%" copy-paste·"매출 35%" 환각 원천 차단.
   {
-    const hasNum = (s) => /\d+\.?\d*\s*%|\d+\s*배|\$\s*\d|₩\s*\d|\d+\.?\d*x\b/.test(String(s || ''));
-    const detCatalysts = (sig) => {
-      if (!sig) return [];
+    const hasNum = (s) => /\d+\.?\d*\s*%|\d+\s*배|\$\s*\d|₩\s*\d|\d+\.?\d*x\b|\d+\s*건/.test(String(s || ''));
+    // 2026-06-14 (Task28 D7 step3): evidence_claims(993종, SEC XBRL/DART/Form4) 우선 + signalDigest fallback.
+    //   숫자 catalyst 는 evidence value_num 으로 코드가 렌더 → LLM 숫자 완전 배제.
+    const detCatalysts = (ticker, sig) => {
       const out = [];
-      const fin = sig.fin;
-      if (fin?.yoy) { const y = parseFloat(String(fin.yoy).replace(/[^\d.-]/g, '')); if (Number.isFinite(y) && Math.abs(y) >= 5) out.push(`매출 ${String(fin.yoy).replace(/^\+?/, '')} YoY ${y >= 0 ? '성장' : '감소'}`); }
-      if (sig.insider?.buys >= 2) out.push(`내부자 매수 ${sig.insider.buys}건${sig.insider.totalUsd ? ` ($${Math.round(sig.insider.totalUsd / 1000)}K)` : ''}`);
-      if (typeof sig.squeeze === 'number' && sig.squeeze >= 60) out.push(`공매도 스퀴즈 점수 ${sig.squeeze}`);
-      return out;
+      const ev = getEvidenceClaims(ticker) ?? {};
+      const finYoy = sig?.fin?.yoy != null ? parseFloat(String(sig.fin.yoy).replace(/[^\d.-]/g, '')) : null;
+      const rev = ev.revenueYoYPct?.value_num ?? (Number.isFinite(finYoy) ? finYoy : null);
+      if (rev != null && Math.abs(rev) >= 5) out.push(`매출 ${rev >= 0 ? '+' : ''}${rev.toFixed(1)}% YoY ${rev >= 0 ? '성장' : '감소'}`);
+      const opm = ev.opMarginPct?.value_num;
+      if (opm != null && opm >= 15) out.push(`영업이익률 ${opm.toFixed(0)}%`);
+      const ibuy = ev.insiderBuyCount30d?.value_num ?? (sig?.insider?.buys ?? 0);
+      if (ibuy >= 2) out.push(`내부자 공개시장 매수 ${ibuy}건`);
+      if (typeof sig?.squeeze === 'number' && sig.squeeze >= 60) out.push(`공매도 스퀴즈 점수 ${sig.squeeze}`);
+      return out.slice(0, 3);
     };
     let cg = 0;
     for (const p of mergedPortfolio) {
-      const sig = signalDigest.get(p.ticker);
-      const det = detCatalysts(sig);
-      if (!det.length) continue; // sig 데이터 없으면 기존 유지
-      // LLM catalyst 중 숫자 없는 정성적 항목만 보충
+      const det = detCatalysts(p.ticker, signalDigest.get(p.ticker));
+      // ChatGPT P0-3: det 없어도 LLM 숫자 catalyst 제거(정성만 유지) — sig-less 종목 숫자 환각 차단.
       const qualitative = (Array.isArray(p.catalysts) ? p.catalysts : []).filter(c => !hasNum(c));
-      const merged = [...det, ...qualitative].slice(0, 3);
+      let merged = [...det, ...qualitative].slice(0, 3);
+      if (!merged.length) merged = ['가격·리스크 게이트 통과 기준 편입 (정량 catalyst 미확인)'];
       if (JSON.stringify(merged) !== JSON.stringify(p.catalysts)) { p.catalysts = merged; cg++; }
     }
-    if (cg) console.log(`  [catalysts/deterministic] 숫자 catalyst 코드생성 + 정성 LLM 보충 ${cg}건`);
+    if (cg) console.log(`  [catalysts/deterministic] evidence_claims 기반 숫자 catalyst + 정성 LLM 보충, LLM 숫자 제거 ${cg}건`);
   }
 
   // 2026-06-06: whitelist validator 는 발간 직전 최종 게이트로 이동(아래 writeFileSync 前) — enforceRotation/
