@@ -105,7 +105,8 @@
 - 10,000+ 투자자 · 137+ 추적 기업 · 16개 섹터 · $48B+ 흐름
 
 ### 2-4. 주요 섹터 그리드 (5열)
-- 섹터 카드: 아이콘·이름·기업 수 → `/explore/{sector.id}`
+- 섹터 카드: 아이콘·이름·기업 수 → `/explore/{sector.id}` (18개 섹터)
+- **기업 수 동적 계산 (2026-06-13)**: `sectors.ts` 가 `allCompanies` 에서 `c.sector` 별 count — 하드코딩 drift 제거(explore 필터와 동일 기준). technology(NetEase·MSTR/MARA 등)·automotive(HMC/STLA/LI/LKQ) 카드 추가로 orphan 25종목 노출.
 
 ### 2-5. 최신 기관 신호 (Top 5)
 - 티커·기업명·기관명·액션 아이콘·추정가치·공시일
@@ -735,7 +736,13 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 ### 13-1c. 📍 종합 판단 카드 (2026-06-12 신설 — 사용자 "관망/매수/중립 결정이 되야")
 - `marketVerdict` 결정론 판정: 하락 전조(earlyWarning) + 상승 전조(reboundWatch) + **공포 매수**(F&G≤25·낙폭≥5%·VIX≥25 조합, 버핏/템플턴/막스 원칙) + **과거 유사국면**(^GSPC+^VIX 1990~ 일봉 라이브 fetch, VIX·낙폭·20일수익률 지문 매칭 → 1/3/6개월 forward 중앙값·상승확률 실측) 종합.
 - verdict 6단계: buy_dip(공포 매수)/accumulate(분할 매수)/neutral_ready(중립-매수준비)/neutral/wait(관망)/defensive(방어) + 근거 reasons[] 전부 코드 생성 (LLM 무관, 하드코딩 사례표 금지 — 데이터에서 직접 계산).
+- **US / KR 별도 박스 + 독립 종합판단 (2026-06-13, 사용자 "다른 박스로 종합판단 따로")**: 🇺🇸 미국·거시 박스(global+us 근거) / 🇰🇷 한국 박스(`krVerdict` — KOSPI 추세+계절성+breadth(KOSDAQ vs KOSPI)+과거유사국면, 글로벌 거시 게이트 적용, US 동일 tier). KR 도 전부 동적(^KS11/^KQ11 라이브). i18n `verdictUsTitle/verdictKrTitle/verdictRegion*` 16언어.
 - stance hero 바로 아래 카드, verdict 별 색상. i18n `report.verdictTitle/verdict_*/verdictNote` 16언어.
+
+### 13-1d. 🚨 작전주(펌프&덤프) 의심 — manipulation-risk (2026-06-13 신설)
+- `/api/manipulation-risk/[ticker]` 결정론 스코어 0-100: 단기급등(20일)+거래량폭발(5d vs 평소)+저유동성(일거래대금 USD환산)+펀더갭(급등하나 매출역성장/부재) 동시발화 가중. 2개+ 동시발화 미달이면 25 캡(단일신호≠작전주). tier low/elevated/high/severe.
+- **사전 포착(phase 'accumulation')**: 급등은 후행 → 거래량 선반영+가격평탄+저유동성 = 매집 의심(급등 前). 'markup'=급등중.
+- 전부 동적(Yahoo 일봉+financials.json). CompanyPage 에 ⚠️ 경고 배너(tier elevated+, phase별 제목). KRX 시장경보 권위대조는 anti-bot LOGOUT 으로 미적용(결정론 1차). i18n `company.manip*` 16언어.
 
 ### 13-2. 3단 분석 카드
 - 거시경제 분석 (파란색)
@@ -1028,6 +1035,7 @@ ownership-alerts 적용).
 | `/api/stock-supply` | (ticker별 on-demand) Yahoo v8 + EDGAR Form 4 + Redis 13F live overlay; `source: live\|price-only\|ownership-only\|static` | 1h Redis (3h→1h: 가격/거래량 신선도) |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
 | `/api/company-signals/[ticker]` | 종목별 시그널 통합 (UOA Redis `flowvium:iv:v1` unusual[] · 거래량 버스트 Yahoo 5분봉 라이브 · 공급계약 Redis `supply-chain-signals:v1` ticker 필터 금액·매출대비% · 수주잔고 `data/backlog.json` SEC RPO; KR 은 표준 수주잔고 부재→계약 flow 대체) — 전 1338 company page 노출 (2026-06-13) | 10min CDN |
+| `/api/manipulation-risk/[ticker]` | 작전주(펌프&덤프) 의심 결정론 스코어 0-100 — 급등+거래량폭발+저유동성+펀더갭 동시발화 + 사전 매집(accumulation) 단계. Yahoo 일봉+financials.json (2026-06-13) | 10min CDN |
 | `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll 연결재무제표 + company.json 기업메타: 영문명/대표/설립일/본사/홈페이지/업종 — 2026-06-03) | 24h Redis (corp-code 30d) |
 | `/api/company-kr/list` | DART CORPCODE.xml + company.json (companies-kr.ts 기반) | 7일 Redis |
 | `/api/company-desc/[ticker]` | 사업개요 동적 생성 — DART grounded → 로컬 Ollama(qwen3:8b), 환각방지 프롬프트. **정적 하드코딩 금지**(2026-06-03) | 45일 Redis |
