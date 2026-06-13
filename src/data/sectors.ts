@@ -1,9 +1,14 @@
+import { allCompanies } from "./companies";
+
 export interface Sector {
   id: string;
   name: string;
   description: string;
   icon: string;
   color: string;
+  /** 2026-06-13: 동적 계산값 — 아래 리터럴은 무시되고 allCompanies 실제 count 로 덮어씀.
+   *  (하드코딩 count 가 universe 1210+ 성장과 drift: semiconductors 15→실제 35 등 전부 과소표기.
+   *   "권위 소스 파생물 손으로 나열 금지" — explore 페이지 c.sector===id 필터와 동일 기준.) */
   companyCount: number;
   leaderTicker: string;
 }
@@ -170,6 +175,14 @@ export const sectors: Sector[] = [
     leaderTicker: "AAPL",
   },
 ];
+
+// 2026-06-13: companyCount 를 allCompanies 권위 소스에서 동적 계산 — 하드코딩 리터럴 덮어씀.
+//   explore/[sector] 의 `c.sector === id` 필터와 정확히 같은 기준이라 카드 숫자=상세페이지 종목수 일치.
+{
+  const counts: Record<string, number> = {};
+  for (const c of allCompanies) counts[c.sector] = (counts[c.sector] ?? 0) + 1;
+  for (const s of sectors) s.companyCount = counts[s.id] ?? 0;
+}
 
 export function getSectorById(id: string): Sector | undefined {
   return sectors.find((s) => s.id === id);
