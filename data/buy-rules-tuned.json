@@ -365,6 +365,17 @@
         "notional_gte": 50000000
       },
       "description": "5분봉 거래량 버스트 상방 $50M+ — 기관성 매집 proxy (2026-06-13)"
+    },
+    {
+      "id": "micro_supply_contract",
+      "score": 5,
+      "category": "micro",
+      "condition": {
+        "type": "supplyContractWin",
+        "revenue_pct_gte": 5,
+        "conviction_gte": 82
+      },
+      "description": "신규 공급계약 — 연매출 대비 5%+ 영향 (DART KR/SEC US). 매출대비%가 핵심, 거대기업 소액계약 노이즈 차단 (2026-06-13)"
     }
   ],
   "outcomeStats": {}

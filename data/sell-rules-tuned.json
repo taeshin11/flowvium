@@ -250,6 +250,17 @@
       },
       "description": "보유 종목 옵션 풋 편중 — 하방 베팅 증가 (vol/OI 파생, 2026-06-13)",
       "urgency": "medium"
+    },
+    {
+      "id": "micro_supply_contract_loss",
+      "score": 5,
+      "category": "micro",
+      "condition": {
+        "type": "supplyContractLoss",
+        "conviction_gte": 70
+      },
+      "description": "공급·수주 계약 해지·취소 — 매출 감소 신호 (2026-06-13)",
+      "urgency": "medium"
     }
   ],
   "outcomeStats": {}

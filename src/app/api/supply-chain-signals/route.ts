@@ -94,6 +94,9 @@ export interface SupplyChainSignal {
   downstreamBeneficiaries?: string[];   // 공급망 그래프에서 추론한 downstream 수혜 티커
   upstreamRisks?: string[];            // upstream 리스크 티커
   evidenceUrl?: string;
+  contractAmountWon?: number;          // 2026-06-13: DART 본문 추출 계약금액(원) — 종목선정 입력
+  contractCounterparty?: string;       // 계약상대
+  contractRevenuePct?: number;         // 연매출 대비 % — 계약의 *영향도* (종목선정 가중 핵심)
 }
 
 // ── DART 공시 제목 분류 (2026-06-06) ──────────────────────────────────────────
@@ -263,7 +266,7 @@ function unzipFirstEntry(buf: Buffer): string | null {
     return null;
   } catch { return null; }
 }
-async function fetchContractDetail(dartKey: string, rceptNo: string): Promise<{ amountWon: number | null; counterparty: string | null } | null> {
+async function fetchContractDetail(dartKey: string, rceptNo: string): Promise<{ amountWon: number | null; counterparty: string | null; revenuePct: number | null } | null> {
   try {
     const r = await fetch(`https://opendart.fss.or.kr/api/document.xml?crtfc_key=${dartKey}&rcept_no=${rceptNo}`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return null;
@@ -272,10 +275,13 @@ async function fetchContractDetail(dartKey: string, rceptNo: string): Promise<{ 
     const text = xml.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
     const amtStr = text.match(/계약\s*금액[^0-9]{0,20}([0-9,]{4,})/)?.[1];
     const amountWon = amtStr ? parseInt(amtStr.replace(/,/g, ''), 10) : null;
+    // 2026-06-13: "매출액 대비 %"(사용자 "계약 자체보다 영향이 고려돼야") — 계약규모/연매출 = 영향도.
+    //   DART 단일판매공급계약 의무 기재. 라벨 "매출액 대비(%)" 또는 "매출액대비(%)".
+    const ratioStr = text.match(/매출액?\s*대비\s*\(?%?\)?[^0-9]{0,8}([0-9.]{1,7})/)?.[1];
+    const revenuePct = ratioStr ? parseFloat(ratioStr) : null;
     let counterparty = text.match(/계약\s*상대(?:방|회사)?[\s:]*([가-힣A-Za-z()·\s]{2,30}?)\s/)?.[1]?.trim() ?? null;
-    // "의 영업비밀"/"비공개" 류 → 비공개 정규화 (불완전 추출 노출 방지)
     if (counterparty && /영업비밀|비공개|미공개|^의\s/.test(counterparty)) counterparty = '비공개(영업비밀)';
-    return { amountWon, counterparty };
+    return { amountWon, counterparty, revenuePct: Number.isFinite(revenuePct) ? revenuePct : null };
   } catch { return null; }
 }
 function fmtWon(won: number): string {
@@ -350,13 +356,24 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
       // 2026-06-13: 계약 상세(금액·상대) 본문 추출 — 공급/수주 계약만 (자사주 등 제외). 상위 12건 cap
       //   (document fetch 비용 — watchlistHits 순). 실패 시 기존 summary 유지(graceful).
       let detailSummary = cls.summary;
+      let contractAmountWon: number | undefined;
+      let contractCounterparty: string | undefined;
+      let contractRevenuePct: number | undefined;
+      let convictionAdj = cls.conviction;
       if ((signalType === 'contract_win' || signalType === 'contract_loss') && watchlistHits <= 12 && item.rcept_no) {
         const detail = await fetchContractDetail(dartKey, item.rcept_no);
-        if (detail?.amountWon || detail?.counterparty) {
+        if (detail?.amountWon || detail?.counterparty || detail?.revenuePct) {
           const parts: string[] = [];
-          if (detail.amountWon) parts.push(`계약금액 ${fmtWon(detail.amountWon)}`);
-          if (detail.counterparty) parts.push(`계약상대 ${detail.counterparty}`);
+          if (detail.amountWon) { parts.push(`계약금액 ${fmtWon(detail.amountWon)}`); contractAmountWon = detail.amountWon; }
+          if (detail.revenuePct != null) { parts.push(`연매출 대비 ${detail.revenuePct}%`); contractRevenuePct = detail.revenuePct; }
+          if (detail.counterparty) { parts.push(`계약상대 ${detail.counterparty}`); contractCounterparty = detail.counterparty; }
           detailSummary = `${cls.summary} (${parts.join(' · ')})`;
+          // 영향도 기반 conviction 조정: 매출대비 ≥30% 전환적(+10), ≥10% 유의미(+5), <3% 경미(-15)
+          if (detail.revenuePct != null) {
+            if (detail.revenuePct >= 30) convictionAdj = Math.min(100, cls.conviction + 10);
+            else if (detail.revenuePct >= 10) convictionAdj = Math.min(100, cls.conviction + 5);
+            else if (detail.revenuePct < 3) convictionAdj = Math.max(40, cls.conviction - 15);
+          }
         }
       }
 
@@ -371,7 +388,7 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
         ticker,
         companyName: item.corp_name ?? '',
         signalType,
-        conviction: cls.conviction,
+        conviction: convictionAdj,
         direction: cls.direction,
         headline: reportNm,
         summary: detailSummary,
@@ -379,6 +396,7 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
         date: item.rcept_dt ?? '',
         downstreamBeneficiaries: downstream.beneficiaries,
         evidenceUrl: `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${item.rcept_no}`,
+        contractAmountWon, contractCounterparty, contractRevenuePct,
       });
     }
     logger.info('supply-chain-signals', 'dart_done', { contractCount, watchlistHits, signals: signals.length, ms: Date.now() - t0 });

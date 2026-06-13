@@ -4250,6 +4250,12 @@ function loadSellRules() {
 function evaluateSellRule(rule, ctx) {
   const c = rule.condition;
   switch (c.type) {
+    // 2026-06-13: 공급·수주 계약 해지/취소 (DART KR / SEC US) — 매출 감소 신호
+    case 'supplyContractLoss':
+      if (ctx.contractLoss && (ctx.contractLoss.conviction ?? 0) >= (c.conviction_gte ?? 70)) {
+        return '공급·수주 계약 해지·취소 (매출 감소 신호)';
+      }
+      break;
     // 2026-06-13: UOA put 편중 (보유 종목에 풋 프리미엄 집중 = 하방 베팅 증가)
     case 'optionsPutFlow': {
       const tot = (ctx.optionsCallPrem ?? 0) + (ctx.optionsPutPrem ?? 0);
@@ -4583,6 +4589,22 @@ function evaluateBuyRule(rule, ctx) {
         return `거래량 버스트 $${(ctx.burstUpNotional / 1e6).toFixed(0)}M (상방)`;
       }
       break;
+    case 'supplyContractWin': {
+      // 2026-06-13: 신규 공급·수주 계약 — *영향도*(연매출 대비 %)가 핵심 (사용자 "계약 자체보다
+      //   어떤 영향인지"). 매출대비 ≥ 임계(기본 5%) 일 때만 발화 — 거대기업의 소액계약 노이즈 차단.
+      const cw = ctx.contractWin;
+      if (!cw) break;
+      const rev = cw.revenuePct;
+      // 매출대비 추출됐으면 임계로 판정; 미추출이면 conviction fallback(보수적, 약신호)
+      if (rev != null) {
+        if (rev < (c.revenue_pct_gte ?? 5)) break;  // 영향 미미 → 미발화
+        const a = cw.amountWon;
+        const amt = a ? ` ${a >= 1e12 ? (a / 1e12).toFixed(1) + '조' : Math.round(a / 1e8) + '억'}원` : '';
+        return `신규 공급계약${amt} — 연매출 대비 ${rev}% (${rev >= 30 ? '전환적' : rev >= 10 ? '유의미' : '보강'} 매출 기여)`;
+      }
+      if ((cw.conviction ?? 0) >= (c.conviction_gte ?? 82)) return `신규 공급·수주 계약 체결 (매출 기여, 규모 미공개)`;
+      break;
+    }
     case 'insiderBuy':
       if (ctx.insiderFilings != null && ctx.insiderFilings >= (c.filings_gte ?? 3)) {
         return `insider ${ctx.insiderFilings}건 매수`;
@@ -4748,6 +4770,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       optionsCallPrem: macroCtx.uoaMap?.get(ticker)?.callPrem ?? 0,    // 2026-06-13 UOA
       optionsPutPrem: macroCtx.uoaMap?.get(ticker)?.putPrem ?? 0,
       burstUpNotional: macroCtx.burstMap?.get(ticker)?.dir === 'up' ? macroCtx.burstMap.get(ticker).notional : 0,
+      contractWin: macroCtx.contractMap?.get(ticker)?.type === 'contract_win' ? macroCtx.contractMap.get(ticker) : null,  // 2026-06-13 공급계약
       insiderFilings: macroCtx.insiderMap?.get(ticker) ?? 0,
       squeezeScore: macroCtx.squeezeMap?.get(ticker) ?? null,
       cascadeUpstream: macroCtx.cascadeUpstreamSet?.has(ticker) ?? false,
@@ -4896,6 +4919,7 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         // 2026-06-13: UOA put 편중 (보유 종목 하방 베팅 감지)
         optionsCallPrem: macroCtx.uoaMap?.get(ticker)?.callPrem ?? 0,
         optionsPutPrem: macroCtx.uoaMap?.get(ticker)?.putPrem ?? 0,
+        contractLoss: macroCtx.contractMap?.get(ticker)?.type === 'contract_loss' ? macroCtx.contractMap.get(ticker) : null,  // 공급계약 해지
       };
       // 2026-06-06: 누적 점수화 (ChatGPT D3) — 첫 매칭 1개가 아니라 매칭 룰 *전부* 합산.
       //   target_near 단독(7)과 target_near+RSI과매수+내부자매도(20)를 같은 7로 취급하던 비대칭 해소.
@@ -5789,6 +5813,19 @@ async function generateViaOllama() {
     newsGapMap: new Map((ctxRaw?.newsGap ?? []).filter(g => g.ticker && typeof g.gapScore === 'number').map(g => [g.ticker, g.gapScore])),  // 2026-06-12
     squeezeMap: new Map((ctxRaw?.shorts ?? ctxRaw?.shortSqueeze ?? []).map(s => [s.ticker, s.score ?? s.squeezeScore])),
     cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
+    // 2026-06-13: 공급망 계약 신호 (사용자 "계약 상세가 종목선정에 반영돼야 — US·KR 둘다") — DART(KR)
+    //   +SEC 8-K(US) 계약 win/loss 를 ticker별 매핑. 금액(원) 있으면 동봉 → 룰이 규모 가중.
+    contractMap: (() => {
+      const m = new Map();
+      for (const s of (ctxRaw?.supplyChainSignals ?? [])) {
+        if (!s.ticker || (s.signalType !== 'contract_win' && s.signalType !== 'contract_loss')) continue;
+        const e = m.get(s.ticker);
+        const cand = { type: s.signalType, conviction: s.conviction ?? 0, amountWon: s.contractAmountWon ?? null, revenuePct: s.contractRevenuePct ?? null, summary: s.summary ?? '' };
+        if (!e || cand.conviction > e.conviction) m.set(s.ticker, cand);
+      }
+      if (m.size) console.log(`  [contract] 공급망 계약 신호 ${m.size}종 매핑 (종목선정 입력)`);
+      return m;
+    })(),
     // 2026-06-13: UOA·버스트 micro 신호 (사용자 "옵션플로우/블록트레이드도 보고서 참고되나") —
     //   ticker별 call/put 프리미엄 합산 + 최대 버스트 (둘 다 무료 파생 라이브, 결정론).
     uoaMap: (() => {
@@ -6032,6 +6069,7 @@ async function generateViaOllama() {
     sectorPeMap, sectorStanceMap, regionStanceMap, newsSentimentMap,
     insider: insiderDigest, inst13f,
     uoaMap: buyMacroCtx.uoaMap,  // 2026-06-13: UOA put 편중 매도 신호 (매수와 동일 소스)
+    contractMap: buyMacroCtx.contractMap,  // 2026-06-13: 공급계약 해지 매도 신호
   };
   const sellCands = await buildSellCandidates(livePrices, excludeForSell, macroCtx);
   console.log(`  매도 후보: US ${sellCands.us.length} + KR ${sellCands.kr.length} = ${sellCands.total} (multi-factor)`);
