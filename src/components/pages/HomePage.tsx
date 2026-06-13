@@ -967,7 +967,7 @@ export default function HomePage() {
               {/* 핵심 CTA — 추천 종목으로 직행 (2026-06-13 사용자 "추천종목 보도록 유도하는 메세지 없어") */}
               <Link
                 href="/report"
-                className="group inline-flex items-center gap-3 mb-8 px-6 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 hover:from-violet-500 hover:to-purple-600 transition-all"
+                className="group inline-flex items-center gap-3 mb-8 px-6 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-bold ring-2 ring-rose-300/60 shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:from-orange-400 hover:via-rose-400 hover:to-pink-500 transition-all"
               >
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
@@ -1306,7 +1306,7 @@ export default function HomePage() {
             ))}
           </div>
           <div className="text-center mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/report" className="inline-flex items-center text-base px-10 py-3.5 gap-2 rounded-2xl font-bold text-white bg-gradient-to-r from-violet-600 to-purple-700 shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 hover:from-violet-500 hover:to-purple-600 transition-all">
+            <Link href="/report" className="inline-flex items-center text-base px-10 py-3.5 gap-2 rounded-2xl font-bold text-white bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 ring-2 ring-rose-300/60 shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:from-orange-400 hover:via-rose-400 hover:to-pink-500 transition-all">
               {tHome('ctaSeeRecs')}
               <ArrowRight className="w-5 h-5" />
             </Link>
