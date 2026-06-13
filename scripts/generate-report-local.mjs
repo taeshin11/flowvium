@@ -1199,6 +1199,13 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = 
     console.warn(`  ${tag} ${elapsed}s ${e.name}: ${e.message?.slice(0, 80)} — cloud 폴백`);
   }
 
+  // 2026-06-13: Ollama-only 모드 (사용자 선택) — 클라우드 키 revoked 상태에서 GROQ(60s)+Gemini(60s)
+  //   폴백 = 120s 순낭비 + 로그 spam. 플래그 ON 시 즉시 빈 문자열(parser fallback). 키 복구 시 해제.
+  if (env.LLM_LOCAL_ONLY?.trim() === '1') {
+    console.error(`  ${tag} 로컬 실패 + LLM_LOCAL_ONLY — 클라우드 폴백 skip, 빈 문자열 반환`);
+    return '';
+  }
+
   // 3. GROQ 70B 폴백 (로컬 실패/timeout 시)
   const groqText = await callGroq(prompt, 60000, label);
   if (groqText) return groqText;
