@@ -78,6 +78,14 @@ const buyOutcomes = db.prepare(`
 console.log(`  ${buyOutcomes.length} buy 평가 완료 데이터 활용`);
 
 // target_near 임계값 grid: 0.85 / 0.88 / 0.9 / 0.92 / 0.95
+// 2026-06-14 (ChatGPT D30 차용): 소표본 과적합 방지. 관측 정밀도 대신 Wilson lower bound 사용 +
+//   최소 발화수 미달 시 임계 변경 금지(노이즈로 임계 튀는 것 차단). n 작을수록 LB 가 보수적으로 내려감.
+function wilsonLB(wins, n, z = 1.96) {
+  if (n <= 0) return 0;
+  const p = wins / n;
+  return (p + z * z / (2 * n) - z * Math.sqrt((p * (1 - p) + z * z / (4 * n)) / n)) / (1 + z * z / n);
+}
+const MIN_FIRE = 8;  // truePos+falsePos < 8 = 표본부족 → 임계 변경 신뢰 불가
 function evalTargetNearThreshold(threshold) {
   let truePos = 0, falsePos = 0, missed = 0;
   for (const r of buyOutcomes) {
@@ -101,12 +109,15 @@ for (const e of targetEval) {
   const f1 = (2 * e.precision * e.recall) / Math.max(0.001, e.precision + e.recall);
   console.log(`    ${e.threshold} → P=${(e.precision*100).toFixed(0)}% R=${(e.recall*100).toFixed(0)}% F1=${(f1*100).toFixed(0)}% (tp=${e.truePos} fp=${e.falsePos} miss=${e.missed})`);
 }
-const bestTarget = targetEval.reduce((a, b) => {
-  const f1a = (2 * a.precision * a.recall) / Math.max(0.001, a.precision + a.recall);
-  const f1b = (2 * b.precision * b.recall) / Math.max(0.001, b.precision + b.recall);
-  return f1b > f1a ? b : a;
-});
-console.log(`  → 최적 target_near 임계값: ${bestTarget.threshold}`);
+// Wilson-LB(precision) × recall 로 선택 — 소표본 정밀도 거품 제거.
+const wScore = e => wilsonLB(e.truePos, e.truePos + e.falsePos) * e.recall;
+let bestTarget = targetEval.reduce((a, b) => wScore(b) > wScore(a) ? b : a);
+const targetFires = bestTarget.truePos + bestTarget.falsePos;
+if (targetFires < MIN_FIRE) {
+  console.log(`  ⚠️ target_near 발화 ${targetFires} < ${MIN_FIRE} (표본부족) → 임계 변경 보류(기존 유지). Wilson-LB 신뢰 불가.`);
+  bestTarget = { ...bestTarget, threshold: null, lowConfidence: true };
+}
+console.log(`  → 최적 target_near 임계값: ${bestTarget.threshold ?? '(표본부족 — 미변경)'} (Wilson-LB P=${(wilsonLB(bestTarget.truePos, targetFires) * 100).toFixed(0)}%)`);
 
 // stop_near 임계값 grid: 1.02 / 1.05 / 1.08 / 1.10
 function evalStopNearThreshold(threshold) {
@@ -130,24 +141,26 @@ for (const e of stopEval) {
   const f1 = (2 * e.precision * e.recall) / Math.max(0.001, e.precision + e.recall);
   console.log(`    ${e.threshold} → P=${(e.precision*100).toFixed(0)}% R=${(e.recall*100).toFixed(0)}% F1=${(f1*100).toFixed(0)}%`);
 }
-const bestStop = stopEval.reduce((a, b) => {
-  const f1a = (2 * a.precision * a.recall) / Math.max(0.001, a.precision + a.recall);
-  const f1b = (2 * b.precision * b.recall) / Math.max(0.001, b.precision + b.recall);
-  return f1b > f1a ? b : a;
-});
-console.log(`  → 최적 stop_near 임계값: ${bestStop.threshold}`);
+let bestStop = stopEval.reduce((a, b) => wScore(b) > wScore(a) ? b : a);
+const stopFires = bestStop.truePos + bestStop.falsePos;
+if (stopFires < MIN_FIRE) {
+  console.log(`  ⚠️ stop_near 발화 ${stopFires} < ${MIN_FIRE} (표본부족) → 임계 변경 보류(기존 유지).`);
+  bestStop = { ...bestStop, threshold: null, lowConfidence: true };
+}
+console.log(`  → 최적 stop_near 임계값: ${bestStop.threshold ?? '(표본부족 — 미변경)'} (Wilson-LB P=${(wilsonLB(bestStop.truePos, stopFires) * 100).toFixed(0)}%)`);
 
 // ── [3] sell-rules-tuned.json 업데이트 ──────────────────────────────────────────
 let updated = 0;
 for (const r of spec.rules) {
-  if (r.id === 'price_target_near' && bestTarget.recall > 0) {
+  // 2026-06-14: threshold==null(표본부족/lowConfidence) 이면 변경 금지 — 기존 값 유지.
+  if (r.id === 'price_target_near' && bestTarget.threshold != null && bestTarget.recall > 0) {
     if (r.condition.ratio_gte !== bestTarget.threshold) {
       console.log(`  ◇ price_target_near: ${r.condition.ratio_gte} → ${bestTarget.threshold}`);
       r.condition.ratio_gte = bestTarget.threshold;
       updated++;
     }
   }
-  if (r.id === 'price_stop_near' && bestStop.recall > 0) {
+  if (r.id === 'price_stop_near' && bestStop.threshold != null && bestStop.recall > 0) {
     if (r.condition.ratio_lte !== bestStop.threshold) {
       console.log(`  ◇ price_stop_near: ${r.condition.ratio_lte} → ${bestStop.threshold}`);
       r.condition.ratio_lte = bestStop.threshold;

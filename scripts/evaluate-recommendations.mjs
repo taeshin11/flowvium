@@ -95,9 +95,16 @@ function judgeOutcome(rec, ohlc) {
     return { outcome: 'unknown', detail: `invalid OHLC: high=${highSeen} low=${lowSeen}`, highSeen, lowSeen, lastClose };
   }
   if (!entered) {
+    // 2026-06-14 (ChatGPT D30 차용): NE 를 단일 실패로 보지 말고 세분 — buy 룰 정확성 vs entry calibration
+    //   오염 방지. 이 로직의 NE = 진입가를 시장가 아래로 잡아 pullback 안 온 경우(low 가 entry_high 까지 안 내려옴).
+    //   ① 진입만 됐으면 target 도달(highSeen≥target) = 룰은 맞았는데 entry 너무 보수적 → NE_WINNER_MISSED
+    //   ② entry 위로 드리프트했으나 target 미달 = 부분 미스 → NE_UP_DRIFT  ③ entry 부근 횡보 → NE_NO_FILL
+    const ranToTarget = rec.target != null && highSeen >= rec.target * 0.98;
+    const roseAboveEntry = entryHigh != null && highSeen > entryHigh * 1.02;
+    const neClass = ranToTarget ? 'NE_WINNER_MISSED' : roseAboveEntry ? 'NE_UP_DRIFT' : 'NE_NO_FILL';
     return {
-      outcome: 'not_entered',
-      detail: `low_seen=${lowSeen} > entry_high=${entryHigh}`,
+      outcome: 'not_entered', neClass,
+      detail: `${neClass}: low_seen=${lowSeen} > entry_high=${entryHigh}, high_seen=${highSeen}${rec.target ? ` (target ${rec.target})` : ''}`,
       highSeen, lowSeen, lastClose,
     };
   }
@@ -137,12 +144,14 @@ async function main() {
   console.log(`SPY ${oldestGen.slice(0,10)} → now: ${spyRet}%\n`);
 
   let counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, unknown: 0, skipped_watch: 0 };
+  const neClasses = { NE_WINNER_MISSED: 0, NE_UP_DRIFT: 0, NE_NO_FILL: 0 };  // 2026-06-14 NE 세분
   for (const rec of queue) {
     // watch 추천은 "대기" 의미 — outcome 평가에서 제외 (not_entered 통계 오염 방지)
     if (rec.action === 'watch') { counts.skipped_watch++; continue; }
     const ohlc = await fetchYahooOHLC(rec.ticker, rec.generated_at, nowIso);
     const judge = judgeOutcome(rec, ohlc);
     counts[judge.outcome]++;
+    if (judge.neClass && neClasses[judge.neClass] != null) neClasses[judge.neClass]++;
 
     const entry = rec.entry_low ?? rec.price_at_gen;
     const pnl = entry && judge.lastClose
@@ -170,7 +179,8 @@ async function main() {
   console.log(`\n=== 합계 (${queue.length}) ===`);
   console.log(`  ✅ hit_target:     ${counts.hit_target}`);
   console.log(`  ❌ stop_loss:      ${counts.stop_loss}`);
-  console.log(`  ⏸  not_entered:    ${counts.not_entered}`);
+  console.log(`  ⏸  not_entered:    ${counts.not_entered}  [WINNER_MISSED ${neClasses.NE_WINNER_MISSED} (entry 과보수→손실) · UP_DRIFT ${neClasses.NE_UP_DRIFT} · NO_FILL ${neClasses.NE_NO_FILL}]`);
+  if (neClasses.NE_WINNER_MISSED >= 3) console.log(`     ⚠️ WINNER_MISSED ${neClasses.NE_WINNER_MISSED}건 — entry zone 너무 보수적(시장가 아래)로 winner 놓침. entry calibration 완화 검토 (buy 룰은 정확).`);
   console.log(`  📊 still_holding:  ${counts.still_holding}`);
   console.log(`  ?  unknown:        ${counts.unknown}`);
   if (counts.skipped_watch) console.log(`  👁  watch(skip):    ${counts.skipped_watch}`);

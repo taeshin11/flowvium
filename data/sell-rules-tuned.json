@@ -1,7 +1,7 @@
 {
   "version": 2,
   "source": "initial-seed-with-guru-tech-fund",
-  "tunedAt": "2026-06-13T19:05:00.117Z",
+  "tunedAt": "2026-06-13T19:52:28.302Z",
   "sampleSize": 40,
   "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합. | 2026-06-06: micro_insider_selling 추가(매수·매도 대칭).",
   "rules": [
@@ -388,8 +388,8 @@
       }
     ],
     "best": {
-      "target_near": 0.95,
-      "stop_near": 1.02
+      "target_near": null,
+      "stop_near": null
     }
   }
 }
