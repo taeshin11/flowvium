@@ -714,6 +714,11 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 리스크 레벨 (low/medium/high)
 - AI 한 줄 투자 전략 (thesis)
 
+### 13-0. 🔓 장중 보고서 회원 게이트 (2026-06-13 신설)
+- noon/afternoon/evening/midnight 세션 보고서는 비회원에게 stance·종합판단까지만 + 이메일 가입 카드 (morning 은 전체 무료 맛보기)
+- `/api/member` POST {email} → Redis `flowvium:members:emails` SADD + HMAC 쿠키(fv_member, 1년). 비밀번호/결제 없음
+- i18n `report.gate*` 6키 ×16. 한계(인지): UI 게이트 v1 — API 직접 호출 미차단 (가입 유도 목적)
+
 ### 13-1b. 🚨 거시 급락 조기경보 배너 (2026-06-06 신설)
 - `earlyWarning` 결정론적 composite — 신용 OAS(HY/IG 확대·고위험) / VIX 단계 / 금리커브 역전 / F&G 극단 / USD-KRW 급변 / jobless·PMI 위축 → 0-100 위험점수 + level(low/elevated/high/severe) + drivers.
 - level high/severe 시 보고서 **최상단 강한 시각 배너**(severe=빨강+animate-pulse+shadow, high=주황) + drivers 나열 + 위험점수. LLM riskLevel 과 독립(결정론적, 환각 무관).

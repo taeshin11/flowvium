@@ -1278,7 +1278,13 @@
     "verdict_wait": "Tunggu dan amati",
     "verdict_defensive": "Defensif (tambah kas)",
     "verdictNote": "Sintesis deterministik dari sinyal awal penurunan/kenaikan, sinyal beli saat panik, dan imbal hasil terukur dari kondisi serupa sejak 1990. Bukan saran investasi.",
-    "etfCat_crypto": "Kripto"
+    "etfCat_crypto": "Kripto",
+    "gateTitle": "Laporan intraday khusus anggota",
+    "gateBody": "Daftarkan email Anda untuk membuka semua laporan AI intraday secara gratis. Laporan pagi gratis untuk semua.",
+    "gateEmailPlaceholder": "Alamat email",
+    "gateSubmit": "Buka gratis",
+    "gateError": "Masukkan email yang valid.",
+    "gateFreeNote": "Tanpa spam · berhenti kapan saja · tanpa kata sandi"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

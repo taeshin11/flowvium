@@ -1278,7 +1278,13 @@
     "verdict_wait": "Abwarten",
     "verdict_defensive": "Defensiv (Cash erhöhen)",
     "verdictNote": "Deterministische Synthese aus Abwärts-/Aufwärtsvorboten, Angstkauf-Signalen und gemessenen Renditen ähnlicher Marktphasen seit 1990. Keine Anlageberatung.",
-    "etfCat_crypto": "Krypto"
+    "etfCat_crypto": "Krypto",
+    "gateTitle": "Intraday-Berichte nur für Mitglieder",
+    "gateBody": "Registrieren Sie Ihre E-Mail und schalten Sie alle Intraday-KI-Berichte kostenlos frei. Der Morgenbericht ist für alle kostenlos.",
+    "gateEmailPlaceholder": "E-Mail-Adresse",
+    "gateSubmit": "Kostenlos freischalten",
+    "gateError": "Bitte gültige E-Mail eingeben.",
+    "gateFreeNote": "Kein Spam · jederzeit abbestellbar · kein Passwort nötig"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

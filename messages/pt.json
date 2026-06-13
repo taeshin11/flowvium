@@ -1278,7 +1278,13 @@
     "verdict_wait": "Aguardar",
     "verdict_defensive": "Defensivo (aumentar caixa)",
     "verdictNote": "Síntese determinística de precursores de queda/alta, sinais de compra no pânico e retornos medidos de regimes semelhantes desde 1990. Não é recomendação de investimento.",
-    "etfCat_crypto": "Cripto"
+    "etfCat_crypto": "Cripto",
+    "gateTitle": "Relatórios intradiários são exclusivos para membros",
+    "gateBody": "Registre seu e-mail para desbloquear gratuitamente todos os relatórios intradiários de IA. O relatório matinal é gratuito para todos.",
+    "gateEmailPlaceholder": "Endereço de e-mail",
+    "gateSubmit": "Desbloquear grátis",
+    "gateError": "Insira um e-mail válido.",
+    "gateFreeNote": "Sem spam · cancele quando quiser · sem senha"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

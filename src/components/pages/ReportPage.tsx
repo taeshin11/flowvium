@@ -522,6 +522,15 @@ export default function ReportPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
 
+  // 2026-06-13: 장중 보고서 회원 게이트 — null=확인중(게이트 미적용, 깜빡임 방지), true/false 확정
+  const [member, setMember] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch('/api/member').then(r => r.json()).then(d => setMember(!!d.member)).catch(() => setMember(false));
+  }, []);
+  const GATED_SESSIONS = ['noon', 'afternoon', 'evening', 'midnight'];
+  const dataSession = (data as unknown as { session?: string } | null)?.session;
+  const gated = member === false && !!dataSession && GATED_SESSIONS.includes(dataSession);
+
   const fetchStrategy = useCallback(async (force = false) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -839,6 +848,13 @@ export default function ReportPage() {
             );
           })()}
 
+          {/* ── 2026-06-13: 장중 보고서 회원 게이트 (사용자 "장중 보고서는 회원가입 해야") ──
+              noon/afternoon/evening/midnight = 비회원에게 stance·종합판단까지만 + 가입 카드.
+              morning(07:00)은 전체 무료(맛보기). 이메일 등록 즉시 해제 (쿠키 1년). */}
+          {gated ? (
+            <MemberGate onUnlock={() => setMember(true)} t={t} />
+          ) : (
+          <>
           {/* ── S6: 시장 내러티브 (Why + Watch + Story) ─────────────────────── */}
           {data.marketNarrative && (
             <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 p-4">
@@ -1337,12 +1353,52 @@ export default function ReportPage() {
             </div>
           )}
 
+          </>
+          )}
+
           {/* ── Disclaimer ────────────────────────────────────────────────── */}
           <p className="text-[10px] text-gray-400 mt-4 leading-relaxed">
             {t('disclaimer')}
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+// ── 회원 게이트 카드 (2026-06-13) — 이메일 등록 = 즉시 해제 ─────────────────────
+function MemberGate({ onUnlock, t }: { onUnlock: () => void; t: Tr }) {
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(false);
+  const submit = async () => {
+    if (busy) return;
+    setBusy(true); setErr(false);
+    try {
+      const r = await fetch('/api/member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      if (r.ok) onUnlock(); else setErr(true);
+    } catch { setErr(true); }
+    setBusy(false);
+  };
+  return (
+    <div className="my-6 rounded-2xl border-2 border-violet-200 bg-gradient-to-b from-violet-50 to-white p-8 text-center">
+      <p className="text-2xl mb-2">🔓</p>
+      <h2 className="text-lg font-bold text-gray-900 mb-1.5">{t('gateTitle')}</h2>
+      <p className="text-sm text-gray-600 mb-5 max-w-md mx-auto leading-relaxed">{t('gateBody')}</p>
+      <div className="flex gap-2 max-w-sm mx-auto">
+        <input
+          type="email" value={email} onChange={e => setEmail(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && submit()}
+          placeholder={t('gateEmailPlaceholder')}
+          className="flex-1 px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+        />
+        <button onClick={submit} disabled={busy}
+          className="px-4 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 disabled:opacity-50 whitespace-nowrap">
+          {t('gateSubmit')}
+        </button>
+      </div>
+      {err && <p className="text-xs text-red-500 mt-2">{t('gateError')}</p>}
+      <p className="text-[10px] text-gray-400 mt-4">{t('gateFreeNote')}</p>
     </div>
   );
 }

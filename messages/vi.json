@@ -1278,7 +1278,13 @@
     "verdict_wait": "Quan sát",
     "verdict_defensive": "Phòng thủ (tăng tiền mặt)",
     "verdictNote": "Tổng hợp xác định từ dấu hiệu báo trước giảm/tăng, tín hiệu mua khi hoảng loạn và lợi nhuận thực đo của các giai đoạn tương tự từ 1990. Không phải lời khuyên đầu tư.",
-    "etfCat_crypto": "Crypto"
+    "etfCat_crypto": "Crypto",
+    "gateTitle": "Báo cáo trong phiên chỉ dành cho thành viên",
+    "gateBody": "Đăng ký email để mở khóa miễn phí toàn bộ báo cáo AI trong phiên. Báo cáo buổi sáng miễn phí cho mọi người.",
+    "gateEmailPlaceholder": "Địa chỉ email",
+    "gateSubmit": "Mở khóa miễn phí",
+    "gateError": "Vui lòng nhập email hợp lệ.",
+    "gateFreeNote": "Không spam · hủy bất cứ lúc nào · không cần mật khẩu"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

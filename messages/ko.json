@@ -1278,7 +1278,13 @@
     "verdict_wait": "관망",
     "verdict_defensive": "방어 (현금 비중 확대)",
     "verdictNote": "하락·상승 전조, 공포 매수 신호, 1990년 이후 유사 국면의 실측 수익률을 결정론적으로 종합한 판단입니다. 투자 권유가 아닙니다.",
-    "etfCat_crypto": "크립토"
+    "etfCat_crypto": "크립토",
+    "gateTitle": "장중 보고서는 회원 전용입니다",
+    "gateBody": "이메일만 등록하면 장중·실시간 AI 보고서 전체를 무료로 볼 수 있어요. 아침 보고서는 누구나 무료입니다.",
+    "gateEmailPlaceholder": "이메일 주소",
+    "gateSubmit": "무료로 보기",
+    "gateError": "올바른 이메일을 입력해 주세요.",
+    "gateFreeNote": "스팸 없음 · 언제든 해지 · 비밀번호 불필요"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

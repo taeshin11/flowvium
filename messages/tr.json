@@ -1278,7 +1278,13 @@
     "verdict_wait": "Bekle-gör",
     "verdict_defensive": "Savunmacı (nakit artır)",
     "verdictNote": "Düşüş/yükseliş öncü sinyalleri, korku alım sinyalleri ve 1990 sonrası benzer rejimlerin ölçülmüş getirilerinin deterministik sentezi. Yatırım tavsiyesi değildir.",
-    "etfCat_crypto": "Kripto"
+    "etfCat_crypto": "Kripto",
+    "gateTitle": "Gün içi raporlar yalnızca üyelere özel",
+    "gateBody": "E-postanızı kaydedin, tüm gün içi yapay zekâ raporlarını ücretsiz açın. Sabah raporu herkese ücretsizdir.",
+    "gateEmailPlaceholder": "E-posta adresi",
+    "gateSubmit": "Ücretsiz aç",
+    "gateError": "Geçerli bir e-posta girin.",
+    "gateFreeNote": "Spam yok · istediğiniz zaman iptal · şifre gerekmez"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

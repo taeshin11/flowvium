@@ -1278,7 +1278,13 @@
     "verdict_wait": "观望",
     "verdict_defensive": "防御（提高现金比例）",
     "verdictNote": "基于下跌/上涨前兆、恐慌买入信号及1990年以来类似行情的实测回报的确定性综合判断。非投资建议。",
-    "etfCat_crypto": "加密货币"
+    "etfCat_crypto": "加密货币",
+    "gateTitle": "盘中报告仅限会员",
+    "gateBody": "只需注册邮箱即可免费解锁全部盘中AI报告。早间报告对所有人免费。",
+    "gateEmailPlaceholder": "邮箱地址",
+    "gateSubmit": "免费解锁",
+    "gateError": "请输入有效的邮箱。",
+    "gateFreeNote": "无垃圾邮件 · 随时退订 · 无需密码"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

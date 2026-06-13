@@ -1278,7 +1278,13 @@
     "verdict_wait": "Wait and see",
     "verdict_defensive": "Defensive (raise cash)",
     "verdictNote": "Deterministic synthesis of downturn/upturn precursors, fear-buy signals, and measured returns of similar regimes since 1990. Not investment advice.",
-    "etfCat_crypto": "Crypto"
+    "etfCat_crypto": "Crypto",
+    "gateTitle": "Intraday reports are members-only",
+    "gateBody": "Register your email to unlock all intraday AI reports for free. The morning report is free for everyone.",
+    "gateEmailPlaceholder": "Email address",
+    "gateSubmit": "Unlock free",
+    "gateError": "Please enter a valid email.",
+    "gateFreeNote": "No spam · unsubscribe anytime · no password needed"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

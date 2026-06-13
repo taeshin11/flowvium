@@ -1278,7 +1278,13 @@
     "verdict_wait": "觀望",
     "verdict_defensive": "防禦（提高現金比例）",
     "verdictNote": "基於下跌/上漲前兆、恐慌買入訊號及1990年以來類似行情的實測回報的確定性綜合判斷。非投資建議。",
-    "etfCat_crypto": "加密貨幣"
+    "etfCat_crypto": "加密貨幣",
+    "gateTitle": "盤中報告僅限會員",
+    "gateBody": "只需註冊信箱即可免費解鎖全部盤中AI報告。早間報告對所有人免費。",
+    "gateEmailPlaceholder": "信箱地址",
+    "gateSubmit": "免費解鎖",
+    "gateError": "請輸入有效的信箱。",
+    "gateFreeNote": "無垃圾郵件 · 隨時退訂 · 無需密碼"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",
