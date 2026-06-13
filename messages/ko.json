@@ -285,7 +285,12 @@
     "signalsContractWin": "공급계약 수주",
     "signalsContractLoss": "공급계약 실주",
     "signalsRevImpact": "매출 대비",
-    "signalsBacklog": "수주잔고 (RPO)"
+    "signalsBacklog": "수주잔고 (RPO)",
+    "manipTitle": "작전주 의심",
+    "manipDesc": "급등·거래량 폭발·저유동성·펀더멘털 괴리 동시 발화 — 결정론 스코어(투자 권유/단정 아님)",
+    "manipTier_elevated": "주의",
+    "manipTier_high": "경고",
+    "manipTier_severe": "위험"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",

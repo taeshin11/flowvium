@@ -285,7 +285,12 @@
     "signalsContractWin": "अनुबंध जीता",
     "signalsContractLoss": "अनुबंध खोया",
     "signalsRevImpact": "राजस्व का",
-    "signalsBacklog": "बैकलॉग (RPO)"
+    "signalsBacklog": "बैकलॉग (RPO)",
+    "manipTitle": "हेरफेर जोखिम",
+    "manipDesc": "तेज़ी, वॉल्यूम विस्फोट, कम तरलता व फंडामेंटल अंतर एक साथ — निर्धारक स्कोर (सलाह नहीं)",
+    "manipTier_elevated": "सावधानी",
+    "manipTier_high": "चेतावनी",
+    "manipTier_severe": "खतरा"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",

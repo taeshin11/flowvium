@@ -285,7 +285,12 @@
     "signalsContractWin": "得標合約",
     "signalsContractLoss": "失標合約",
     "signalsRevImpact": "佔營收",
-    "signalsBacklog": "在手訂單 (RPO)"
+    "signalsBacklog": "在手訂單 (RPO)",
+    "manipTitle": "炒作嫌疑",
+    "manipDesc": "暴漲·成交量爆發·低流動性·基本面背離同時出現 — 確定性評分(非投資建議)",
+    "manipTier_elevated": "注意",
+    "manipTier_high": "警告",
+    "manipTier_severe": "危險"
   },
   "cascade": {
     "title": "連鎖影響視覺化",

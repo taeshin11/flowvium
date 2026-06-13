@@ -285,7 +285,12 @@
     "signalsContractWin": "فوز بعقد",
     "signalsContractLoss": "خسارة عقد",
     "signalsRevImpact": "من الإيرادات",
-    "signalsBacklog": "الطلبات المتراكمة (RPO)"
+    "signalsBacklog": "الطلبات المتراكمة (RPO)",
+    "manipTitle": "خطر التلاعب",
+    "manipDesc": "ارتفاع وانفجار حجم وضعف سيولة وفجوة أساسية متزامنة — درجة حتمية (ليست نصيحة)",
+    "manipTier_elevated": "تنبيه",
+    "manipTier_high": "تحذير",
+    "manipTier_severe": "خطر"
   },
   "cascade": {
     "title": "مصوّر التأثير المتسلسل",

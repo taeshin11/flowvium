@@ -285,7 +285,12 @@
     "signalsContractWin": "受注獲得",
     "signalsContractLoss": "受注失注",
     "signalsRevImpact": "売上比",
-    "signalsBacklog": "受注残高 (RPO)"
+    "signalsBacklog": "受注残高 (RPO)",
+    "manipTitle": "仕手株の疑い",
+    "manipDesc": "急騰・出来高急増・低流動性・ファンダ乖離の同時発生 — 決定論スコア(投資助言ではない)",
+    "manipTier_elevated": "注意",
+    "manipTier_high": "警告",
+    "manipTier_severe": "危険"
   },
   "cascade": {
     "title": "カスケード・ビジュアライザー",

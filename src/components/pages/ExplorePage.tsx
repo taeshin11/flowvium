@@ -44,6 +44,8 @@ const sectorColorMap: Record<string, string> = {
   'ev-battery': '#22c55e',
   defense: '#ef4444',
   'pharma-biotech': '#a855f7',
+  technology: '#14b8a6',
+  automotive: '#f97316',
 };
 
 const relationshipColors: Record<string, string> = {

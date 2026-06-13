@@ -285,7 +285,12 @@
     "signalsContractWin": "Kontrak Menang",
     "signalsContractLoss": "Kontrak Kalah",
     "signalsRevImpact": "dari pendapatan",
-    "signalsBacklog": "Backlog (RPO)"
+    "signalsBacklog": "Backlog (RPO)",
+    "manipTitle": "Risiko Manipulasi",
+    "manipDesc": "Lonjakan, ledakan volume, likuiditas rendah & kesenjangan fundamental bersamaan — skor deterministik (bukan saran)",
+    "manipTier_elevated": "Hati-hati",
+    "manipTier_high": "Peringatan",
+    "manipTier_severe": "Bahaya"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",

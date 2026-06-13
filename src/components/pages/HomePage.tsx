@@ -31,6 +31,7 @@ import {
   ShoppingBag,
   Monitor,
   ShoppingCart,
+  Car,
   GitCompare,
   Search,
   X,
@@ -392,6 +393,7 @@ const sectorIcons: Record<string, React.ReactNode> = {
   ShoppingBag: <ShoppingBag className="w-6 h-6" />,
   Monitor: <Monitor className="w-6 h-6" />,
   ShoppingCart: <ShoppingCart className="w-6 h-6" />,
+  Car: <Car className="w-6 h-6" />,
 };
 
 const actionIcons: Record<string, React.ReactNode> = {

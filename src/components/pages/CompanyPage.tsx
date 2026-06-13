@@ -561,6 +561,42 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     return () => controller.abort();
   }, [ticker]);
 
+  // 작전주(펌프&덤프) 의심 스코어 — 2026-06-13. 독립 경고 배너(시그널 카드와 별개).
+  interface ManipRisk { score: number | null; tier: string; coFire?: number; flags?: string[]; metrics?: { runup20dPct?: number; volSpikeX?: number; medDollarVolUsd?: number } }
+  const [manipRisk, setManipRisk] = useState<ManipRisk | null>(null);
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    fetch(`/api/manipulation-risk/${ticker.toUpperCase()}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!controller.signal.aborted && d && d.score != null && d.tier !== 'low') setManipRisk(d); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ticker]);
+
+  // 작전주 경고 배너 — tier elevated/high/severe 일 때만. 두 렌더 경로 공용.
+  const manipBanner = (() => {
+    if (!manipRisk || manipRisk.tier === 'low' || manipRisk.score == null) return null;
+    const sev = manipRisk.tier === 'severe' || manipRisk.tier === 'high';
+    const cls = sev ? 'border-red-400 bg-red-50 text-red-800' : 'border-amber-300 bg-amber-50 text-amber-800';
+    return (
+      <div className={`rounded-xl border-2 p-4 ${cls}`}>
+        <div className="flex items-center gap-2 mb-1.5">
+          <AlertTriangle className="w-4 h-4" />
+          <span className="font-extrabold text-sm">{t('manipTitle')}: {t(`manipTier_${manipRisk.tier}`)} ({manipRisk.score}/100)</span>
+        </div>
+        <p className="text-[11px] opacity-80 mb-1.5">{t('manipDesc')}</p>
+        {manipRisk.flags && manipRisk.flags.length > 0 && (
+          <ul className="space-y-0.5">
+            {manipRisk.flags.map((f, i) => (
+              <li key={i} className="text-[11px] flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span>{f}</span></li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  })();
+
   // 두 렌더 경로(static company / live-only fallback) 공용 — 1338 종목 전부 노출
   const signalsCard = (() => {
     if (!sigData) return null;
@@ -824,6 +860,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           </div>
         )}
         {/* 종목 시그널 통합 (UOA·버스트·공급계약·수주잔고) — live-only 폴백 경로 */}
+        {manipBanner && <div className="mb-4">{manipBanner}</div>}
         {signalsCard && <div className="mb-4">{signalsCard}</div>}
         {/* 90일 주가 차트 (KR Naver/US Yahoo) */}
         {priceHistory.length > 1 && (() => {
@@ -2257,6 +2294,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           )}
 
           {/* 종목 시그널 통합 (UOA·버스트·공급계약·수주잔고) */}
+          {manipBanner}
           {signalsCard}
 
           {/* 섹터 현황 */}

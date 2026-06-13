@@ -285,7 +285,12 @@
     "signalsContractWin": "Contract Win",
     "signalsContractLoss": "Contract Loss",
     "signalsRevImpact": "Rev impact",
-    "signalsBacklog": "Backlog (RPO)"
+    "signalsBacklog": "Backlog (RPO)",
+    "manipTitle": "Manipulation Risk",
+    "manipDesc": "Simultaneous surge, volume blow-off, illiquidity & fundamental gap — deterministic score (not advice)",
+    "manipTier_elevated": "Caution",
+    "manipTier_high": "Warning",
+    "manipTier_severe": "Danger"
   },
   "cascade": {
     "title": "Cascade Visualizer",

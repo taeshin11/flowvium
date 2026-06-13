@@ -285,7 +285,12 @@
     "signalsContractWin": "ได้สัญญา",
     "signalsContractLoss": "เสียสัญญา",
     "signalsRevImpact": "ต่อรายได้",
-    "signalsBacklog": "งานค้างส่ง (RPO)"
+    "signalsBacklog": "งานค้างส่ง (RPO)",
+    "manipTitle": "ความเสี่ยงปั่นหุ้น",
+    "manipDesc": "ราคาพุ่ง ปริมาณระเบิด สภาพคล่องต่ำ และพื้นฐานสวนทางพร้อมกัน — คะแนนเชิงกำหนด (ไม่ใช่คำแนะนำ)",
+    "manipTier_elevated": "ระวัง",
+    "manipTier_high": "เตือน",
+    "manipTier_severe": "อันตราย"
   },
   "cascade": {
     "title": "เครื่องมือแสดงผลลูกโซ่",

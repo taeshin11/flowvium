@@ -285,7 +285,12 @@
     "signalsContractWin": "中标合同",
     "signalsContractLoss": "失标合同",
     "signalsRevImpact": "占营收",
-    "signalsBacklog": "在手订单 (RPO)"
+    "signalsBacklog": "在手订单 (RPO)",
+    "manipTitle": "操纵嫌疑",
+    "manipDesc": "暴涨·成交量爆发·低流动性·基本面背离同时出现 — 确定性评分(非投资建议)",
+    "manipTier_elevated": "注意",
+    "manipTier_high": "警告",
+    "manipTier_severe": "危险"
   },
   "cascade": {
     "title": "连锁影响可视化",

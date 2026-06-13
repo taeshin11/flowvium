@@ -285,7 +285,12 @@
     "signalsContractWin": "Contrat gagné",
     "signalsContractLoss": "Contrat perdu",
     "signalsRevImpact": "Sur le CA",
-    "signalsBacklog": "Carnet (RPO)"
+    "signalsBacklog": "Carnet (RPO)",
+    "manipTitle": "Risque de manipulation",
+    "manipDesc": "Flambée, explosion du volume, illiquidité et écart fondamental simultanés — score déterministe (pas un conseil)",
+    "manipTier_elevated": "Prudence",
+    "manipTier_high": "Avertissement",
+    "manipTier_severe": "Danger"
   },
   "cascade": {
     "title": "Visualiseur de cascades",

@@ -285,7 +285,12 @@
     "signalsContractWin": "Contrato ganho",
     "signalsContractLoss": "Contrato perdido",
     "signalsRevImpact": "sobre receita",
-    "signalsBacklog": "Carteira (RPO)"
+    "signalsBacklog": "Carteira (RPO)",
+    "manipTitle": "Risco de manipulação",
+    "manipDesc": "Alta, explosão de volume, iliquidez e lacuna fundamental simultâneas — pontuação determinística (não é conselho)",
+    "manipTier_elevated": "Cautela",
+    "manipTier_high": "Aviso",
+    "manipTier_severe": "Perigo"
   },
   "cascade": {
     "title": "Visualizador de Cascata",

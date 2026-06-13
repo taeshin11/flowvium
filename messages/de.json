@@ -285,7 +285,12 @@
     "signalsContractWin": "Auftragsgewinn",
     "signalsContractLoss": "Auftragsverlust",
     "signalsRevImpact": "vom Umsatz",
-    "signalsBacklog": "Auftragsbestand (RPO)"
+    "signalsBacklog": "Auftragsbestand (RPO)",
+    "manipTitle": "Manipulationsrisiko",
+    "manipDesc": "Gleichzeitig Kursanstieg, Volumenexplosion, Illiquidität & Fundamentallücke — deterministischer Score (keine Beratung)",
+    "manipTier_elevated": "Vorsicht",
+    "manipTier_high": "Warnung",
+    "manipTier_severe": "Gefahr"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",

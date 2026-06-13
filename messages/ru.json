@@ -285,7 +285,12 @@
     "signalsContractWin": "Выигран контракт",
     "signalsContractLoss": "Потерян контракт",
     "signalsRevImpact": "от выручки",
-    "signalsBacklog": "Портфель заказов (RPO)"
+    "signalsBacklog": "Портфель заказов (RPO)",
+    "manipTitle": "Риск манипуляции",
+    "manipDesc": "Одновременно рост, всплеск объёма, неликвидность и фундаментальный разрыв — детерминированный балл (не совет)",
+    "manipTier_elevated": "Осторожно",
+    "manipTier_high": "Предупреждение",
+    "manipTier_severe": "Опасно"
   },
   "cascade": {
     "title": "Визуализатор каскада",

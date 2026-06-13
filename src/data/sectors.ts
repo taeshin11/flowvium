@@ -174,6 +174,27 @@ export const sectors: Sector[] = [
     companyCount: 28,
     leaderTicker: "AAPL",
   },
+  {
+    // 2026-06-13: 데이터에 있으나 카드 없던 sector — orphan 25종목 노출 (사용자 "처리").
+    id: "technology",
+    name: "Technology",
+    description:
+      "Broad technology — Chinese internet platforms (NetEase, Bilibili, KE Holdings), crypto-adjacent (MicroStrategy, MARA, RIOT), IT hardware & enterprise software (Logitech, PTC, Pure Storage, Tenable). Spans growth, sentiment-driven, and infrastructure tech.",
+    icon: "Cpu",
+    color: "#14b8a6",
+    companyCount: 21,
+    leaderTicker: "NTES",
+  },
+  {
+    id: "automotive",
+    name: "Automotive",
+    description:
+      "Global automakers and auto-parts — legacy OEMs (Honda, Stellantis), Chinese EV (Li Auto), and aftermarket parts (LKQ). Cyclical demand tied to rates, fuel, and consumer credit.",
+    icon: "Car",
+    color: "#f97316",
+    companyCount: 4,
+    leaderTicker: "HMC",
+  },
 ];
 
 // 2026-06-13: companyCount 를 allCompanies 권위 소스에서 동적 계산 — 하드코딩 리터럴 덮어씀.

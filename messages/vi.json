@@ -285,7 +285,12 @@
     "signalsContractWin": "Thắng hợp đồng",
     "signalsContractLoss": "Mất hợp đồng",
     "signalsRevImpact": "so với doanh thu",
-    "signalsBacklog": "Đơn hàng tồn (RPO)"
+    "signalsBacklog": "Đơn hàng tồn (RPO)",
+    "manipTitle": "Rủi ro thao túng",
+    "manipDesc": "Tăng vọt, bùng nổ khối lượng, kém thanh khoản & lệch cơ bản đồng thời — điểm xác định (không phải lời khuyên)",
+    "manipTier_elevated": "Thận trọng",
+    "manipTier_high": "Cảnh báo",
+    "manipTier_severe": "Nguy hiểm"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",
