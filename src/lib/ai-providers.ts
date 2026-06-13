@@ -438,6 +438,11 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
   const start = Date.now();
   const preferGroq = process.env.AI_PREFER?.trim().toLowerCase() === 'groq';
   const skipVllm = opts.skipVllm || preferGroq;
+  // 2026-06-13: 자가호스팅 Ollama-only 모드 (사용자 선택). 모든 클라우드 키 revoked 상태에서
+  //   클라우드 폴백을 매번 시도하면 401/400 round-trip 낭비 + 로그 spam + 번역 지연. 플래그 ON 시
+  //   클라우드 전부 skip → 로컬(vLLM/Ollama)만. translation(skipVllm)이면 빈 결과 → 호출측이
+  //   per-field Ollama 로 처리. 키 복구 시 플래그 해제하면 클라우드 폴백 부활(비파괴적).
+  const localOnly = process.env.LLM_LOCAL_ONLY?.trim() === '1';
 
   const attempts: ProviderAttempt[] = [];
 
@@ -445,6 +450,12 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
   if (!skipVllm) {
     const t = await callVLLM(prompt, opts, attempts);
     if (t) return { text: t, source: 'EXAONE-3.5', durationMs: Date.now() - start };
+  }
+
+  if (localOnly) {
+    // 클라우드 전부 skip — 로컬 전용. 번역 등 skipVllm 경로는 빈 결과로 호출측 로컬 폴백 유도.
+    logger.info(opts.tag ?? 'ai', 'local_only_skip_cloud', { durationMs: Date.now() - start });
+    return { text: '', source: 'fallback', durationMs: Date.now() - start, attempts };
   }
 
   // 2. GROQ (무료 티어 — TPD 소진 시 Redis guard로 즉시 스킵)
@@ -458,7 +469,7 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
   const cl = await callClaude(prompt, opts, attempts);
   if (cl) return { text: cl, source: 'claude-haiku-4-5', durationMs: Date.now() - start };
 
-  // 4. OpenRouter cascade (DeepSeek-V3 → GPT-OSS → Qwen3)
+  // 4. OpenRouter cascade (GPT-OSS → Qwen3 등)
   const qw = await callQwen(prompt, opts, attempts);
   if (qw) {
     // 실제 성공 모델명을 source에 포함 — isKnownSource() 통과 보장을 위해 prefix 사용
