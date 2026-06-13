@@ -2421,7 +2421,7 @@ function deduplicateRationales(portfolioItems, signalDigest) {
         parts.push(`insider ${sig.insider.buys}건 매수 $${Math.round(sig.insider.totalUsd / 1000)}K`);
       if (sig?.fin?.yoy) parts.push(`매출 ${sig.fin.yoy} YoY(${sig.fin.label})`);
       if (sig?.fin?.margin) parts.push(`영업이익률 ${sig.fin.margin}%`);
-      if (sig?.squeeze != null) parts.push(`squeeze ${sig.squeeze}`);
+      if (sig?.squeeze > 0) parts.push(`squeeze ${sig.squeeze}`);  // 2026-06-14 (ChatGPT): 0 은 신호 아닌 '없음' — 제외
       if (sig?.tech) parts.push(sig.tech);
       if (parts.length) {
         item.rationale = parts.slice(0, 3).join(', ');
@@ -2747,7 +2747,7 @@ function enrichRationales(portfolioItems, signalDigest, locale = 'ko') {
     }
     if (sig.fin?.yoy) parts.push(isEn ? `rev ${sig.fin.yoy} YoY` : `매출 ${sig.fin.yoy} YoY`);
     if (sig.fin?.margin) parts.push(isEn ? `op mgn ${sig.fin.margin}%` : `영업이익률 ${sig.fin.margin}%`);
-    if (sig.squeeze != null) parts.push(`squeeze ${sig.squeeze}`);
+    if (sig.squeeze > 0) parts.push(`squeeze ${sig.squeeze}`);  // 2026-06-14 (ChatGPT): squeeze 0 = 비신호 제외
     if (sig.tech) parts.push(sig.tech);
     if (parts.length === 0) continue;
     const append = parts.slice(0, 3).join(', ');
@@ -6300,7 +6300,7 @@ async function generateViaOllama() {
       if (a.sentiment === 'negative' || a.sentiment === 'bearish') s.neg++;
     }
   }
-  for (const [t, v] of newsSentimentMap) v.negRatio = v.count ? v.neg / v.count : 0;
+  for (const [t, v] of newsSentimentMap) { v.negRatio = v.count ? v.neg / v.count : 0; v.posRatio = v.count ? v.pos / v.count : 0; }  // 2026-06-14: posRatio 추가 — micro_news_positive 가 posRatio 읽는데 sell경로 맵엔 없어 0-발화였음
   // 2026-06-06: 내부자 매도 데이터 plumbing — signalDigest insider {buys,sells} → 매도엔진 ctx.
   const insiderDigest = new Map();
   for (const [t, d] of signalDigest) if (d.insider) insiderDigest.set(t, d.insider);
@@ -6403,8 +6403,11 @@ async function generateViaOllama() {
       sectorPe: macroCtx.sectorPeMap?.get(sectorKey) ?? null,
       sectorStance: macroCtx.sectorStanceMap?.get(sectorKey) ?? null,
       regionStance: macroCtx.regionStanceMap?.get(isKR ? 'kr' : 'us') ?? null,
-      insiderBuys: macroCtx.insider?.get(c.ticker)?.buys ?? null,
-      newsSentiment: macroCtx.newsSentimentMap?.get(c.ticker)?.negRatio != null ? (1 - macroCtx.newsSentimentMap.get(c.ticker).negRatio) : null,
+      // 2026-06-14 (ChatGPT P1-3 차용): evaluateBuyRule 은 ctx.insiderFilings / newsPosRatio / newsArticleCount
+      //   를 읽음 — 종전 insiderBuys/newsSentiment 는 오필드라 insiderBuy·newsPositive 룰 역심판 미발화.
+      insiderFilings: macroCtx.insider?.get(c.ticker)?.buys ?? null,
+      newsPosRatio: macroCtx.newsSentimentMap?.get(c.ticker)?.posRatio ?? null,
+      newsArticleCount: macroCtx.newsSentimentMap?.get(c.ticker)?.count ?? null,
     };
     const buyHits = [];
     for (const rule of buyRulesForReview) { const r = evaluateBuyRule(rule, buyCtx); if (r) buyHits.push({ id: rule.id, score: rule.score ?? 0, reason: r }); }
@@ -6983,6 +6986,45 @@ async function generateViaOllama() {
     gatedStance = 'neutral';
     if (gatedRiskLevel === 'low') gatedRiskLevel = 'medium';
   }
+  // 2026-06-14 (Task26): insiderSignals 결정론 빌드 — 종전엔 opportunity LLM 이 재생성(buy 집중 위주)이라
+  //   데이터가 전부 sell 이면 빈 섹션(사용자 공백) + 룰발화 0. ctxRaw.insider(SEC Form4, edgar-insider.ts 가
+  //   이미 P=buy/S=sell 분류, A/M/F 제외)에서 ticker별 집계 → buy/sell 클러스터 직접 렌더. "숫자는 코드가".
+  const insiderSignalsGrounded = (() => {
+    const arr = Array.isArray(ctxRaw?.insider) ? ctxRaw.insider : [];
+    if (!arr.length) return [];
+    const byT = new Map();
+    for (const it of arr) {
+      const t = (it.ticker || '').toUpperCase(); if (!t) continue;
+      const e = byT.get(t) ?? { ticker: t, buys: 0, sells: 0, buyUsd: 0, sellUsd: 0, dates: [] };
+      if (it.direction === 'buy') { e.buys++; e.buyUsd += it.transactionValueUsd || 0; }
+      else if (it.direction === 'sell') { e.sells++; e.sellUsd += it.transactionValueUsd || 0; }
+      else continue;  // 'other'(A/M/F/G) 제외 (이미 route 에서 걸러지나 방어)
+      if (it.transactionDate) e.dates.push(it.transactionDate);
+      byT.set(t, e);
+    }
+    const fmtUsd = (v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${Math.round(v)}`;
+    const out = [];
+    for (const e of byT.values()) {
+      const net = e.buys - e.sells;
+      const dom = e.buys >= e.sells ? 'buy' : 'sell';
+      const filings = Math.max(e.buys, e.sells);
+      if (filings < 1) continue;
+      const dates = e.dates.sort();
+      const dateRange = dates.length ? (dates[0] === dates.at(-1) ? dates[0] : `${dates[0]}~${dates.at(-1)}`) : '';
+      const significance = dom === 'buy'
+        ? `내부자 공개시장 매수 ${e.buys}건${e.buyUsd ? ` (${fmtUsd(e.buyUsd)})` : ''} — 내부자 자신감 신호`
+        : `내부자 공개시장 매도 ${e.sells}건${e.sellUsd ? ` (${fmtUsd(e.sellUsd)})` : ''} — 수급 경계`;
+      out.push({ ticker: e.ticker, direction: dom, filings, dateRange, significance, pattern: `매수 ${e.buys} / 매도 ${e.sells} (순 ${net >= 0 ? '+' : ''}${net})`, _net: net });
+    }
+    // 매수 클러스터(net+) 우선, 그다음 매도 강도순. 상위 8.
+    out.sort((a, b) => (b._net - a._net) || (b.filings - a.filings));
+    for (const o of out) delete o._net;
+    return out.slice(0, 8);
+  })();
+  {
+    const llmIns = (opportunityData?.insiderSignals ?? []).filter(s => (s.filings ?? 0) > 0);
+    console.log(`  [insiderSignals] 결정론 ${insiderSignalsGrounded.length}건 (Form4 P/S 집계) vs LLM ${llmIns.length}건 → 결정론 우선(grounding)`);
+  }
   const finalReport = {
     stance: gatedStance,
     thesis: macroData?.thesis ?? gatedStance,
@@ -6999,7 +7041,7 @@ async function generateViaOllama() {
     riskLevel: gatedRiskLevel,
     regionStances: regionalData?.regionStances ?? {},
     shortSqueeze: opportunityData?.shortSqueeze ?? [],
-    insiderSignals: (opportunityData?.insiderSignals ?? []).filter(s => (s.filings ?? 0) > 0),
+    insiderSignals: insiderSignalsGrounded.length ? insiderSignalsGrounded : (opportunityData?.insiderSignals ?? []).filter(s => (s.filings ?? 0) > 0),
     topOpportunity: opportunityData?.topOpportunity ?? '',
     stopLossRationale: riskData?.stopLossRationale ?? [],
     hedgingSuggestion: riskData?.hedgingSuggestion ?? '',
@@ -7860,13 +7902,19 @@ async function generateViaOllama() {
   //   /snapshot/verify-report 가 먼저 실행되고 마지막 업로드만 skip → **발간 안 된 불량 보고서가
   //   outcome 평가·tune-rules·hallucination_history 학습 루프에 섞이는 순환오염**. 게이트 실패 시
   //   격리 파일만 남기고 DB 적재·학습·업로드 전부 SKIP (published 만 학습 대상).
-  if (!ok) {
+  // 2026-06-14 (ChatGPT P0-1 차용): 7624 의 ok 는 *최종 변형 전* 값 — 이후 완전성 fill·whitelist strip·
+  //   business/IV 주입·overlap gate 가 보고서를 계속 변형하므로 stale. DB/학습/업로드 직전 **최종 게이트
+  //   재계산** → 최종 산출물 기준으로 차단 판정(늦은 변형이 만든 hard issue 도 반영).
+  const finalGate = qualityCheck(finalReport);
+  finalReport.qualityScore = finalGate.score;
+  if (finalGate.ok !== ok) console.log(`  [최종게이트] 중간 ok=${ok}(score ${score}) → 최종 ok=${finalGate.ok}(score ${finalGate.score}) — 변형 후 재평가`);
+  if (!finalGate.ok) {
     const qDir = resolve(REPORTS_DIR, 'quarantine');
     if (!existsSync(qDir)) mkdirSync(qDir, { recursive: true });
     const qPath = resolve(qDir, filename);
-    writeFileSync(qPath, JSON.stringify({ ...finalReport, _quarantine: { ts: new Date().toISOString(), issues } }, null, 2), 'utf8');
-    console.error(`\n🚫 [발간 차단] 품질 게이트 실패 → DB 적재·학습 루프 오염 방지 위해 추천/스냅샷/verify/업로드 전부 SKIP.`);
-    console.error(`   issues: ${issues.join(' | ')}`);
+    writeFileSync(qPath, JSON.stringify({ ...finalReport, _quarantine: { ts: new Date().toISOString(), issues: finalGate.issues, preGateIssues: issues } }, null, 2), 'utf8');
+    console.error(`\n🚫 [발간 차단/최종] 최종 품질 게이트 실패 → DB 적재·학습·업로드 전부 SKIP (순환오염 방지).`);
+    console.error(`   최종 issues: ${finalGate.issues.join(' | ')}`);
     console.error(`   격리: reports/quarantine/${filename} (검토용 — 발간·학습 제외)`);
     return;
   }
