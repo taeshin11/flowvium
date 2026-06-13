@@ -337,7 +337,7 @@ async function main() {
     const PAGES_DIR = 'C:/NoAddsMakingApps/FlowVium/src/components/pages';
     const SELF = 'C:/NoAddsMakingApps/FlowVium/scripts/check-data-quality.mjs';
     // 동적성/완전성 프로브가 불필요한 인프라/유틸 (존재만으로 충분하거나 사용자 비노출).
-    const EXCLUDE = new Set(['admin', 'cron', 'ai', 'batch-prices', 'translate', 'osint']); // osint 는 [H] 가 하위경로로 커버
+    const EXCLUDE = new Set(['admin', 'cron', 'ai', 'batch-prices', 'translate', 'osint', 'member']); // osint 는 [H] 가 하위경로로 커버; member 는 인증(데이터 소스 아님)
     const epRe = /\/api\/([a-z0-9][a-z0-9-]*)/g;
     const pageEndpoints = new Set();
     for (const f of readdirSync(PAGES_DIR).filter(x => x.endsWith('.tsx'))) {
@@ -500,7 +500,7 @@ async function main() {
       walk(apiDir, '');
       const trackedSet = new Set(TRACKED_ENDPOINTS.map(e => e.replace(/^\/api/, '').split('?')[0]));
       // admin/cron(쓰기), 유틸, per-ticker([) 제외
-      const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices)$|\[/;
+      const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices|member)$|\[/;
       // param 필수(per-ticker 성격) 또는 시계열 불필요(list/history) — 의도적 미추적.
       const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading']);
       const untracked = routes.filter(r => !EXCLUDE.test(r) && !trackedSet.has(r) && !ALLOW_UNTRACKED.has(r));
