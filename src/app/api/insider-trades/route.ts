@@ -57,11 +57,15 @@ export async function GET(req: Request) {
   // snapshot. Only overwrite when we have entries; on empty, keep prior cache.
   if (transactions.length > 0) {
     await loggedRedisSet(redis, 'api.insider-trades', CACHE_KEY, transactions, { ex: CACHE_TTL });
+    // 2026-06-13: last-good 3일 보존 — 30분 TTL 만으론 주말 무접수(금 마감~월 개장) 동안 prior 가
+    //   소멸해 토/일 내내 빈 화면 (모니터 [I] 빈데이터 실측). 주말엔 금요일 스냅샷 표시가 정직.
+    await loggedRedisSet(redis, 'api.insider-trades', `${CACHE_KEY}:last-good`, transactions, { ex: 3 * 24 * 60 * 60 });
     if (!redis) INSIDER_MEMORY_CACHE = { items: transactions, expiresAt: Date.now() + INSIDER_MEMORY_TTL_MS };
   } else if (redis) {
     logger.info('api.insider-trades', 'empty_fetch_preserving_prior');
     try {
-      const prior = await redis.get<InsiderTransaction[]>(CACHE_KEY);
+      const prior = (await redis.get<InsiderTransaction[]>(CACHE_KEY))
+        ?? (await redis.get<InsiderTransaction[]>(`${CACHE_KEY}:last-good`));
       if (prior && Array.isArray(prior) && prior.length > 0) {
         const priorFiltered = tickerFilter ? prior.filter(t => t.ticker === tickerFilter) : prior;
         return NextResponse.json({
