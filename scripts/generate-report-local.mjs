@@ -1999,7 +1999,7 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
  * 강제 rotation — 최근 5개 보고서 ticker와 5개+ 겹치면 boost-list에서 신규 ticker 강제 추가.
  * "맨날 같은 종목" 문제 해결 (NVDA/TSM/ASML/000660 가 100% 반복되는 현상).
  */
-async function enforceRotation(portfolio, livePrices) {
+async function enforceRotation(portfolio, livePrices, macroCtx = {}) {
   try {
     const dir = resolve(import.meta.dirname ?? '.', '..', 'reports');
     const files = readdirSync(dir).filter(f => f.endsWith('-ko.json')).sort().slice(-5);
@@ -2059,16 +2059,13 @@ async function enforceRotation(portfolio, livePrices) {
     //   boost/pool 후보가 매도룰 강신호(데드크로스·200MA 이탈·마진악화 등 score≥7) 보유 시
     //   투입 자체를 거부 — 경합심사가 rotation 前에 실행되는 순서 구멍의 원천 봉합.
     try {
-      const vetoRulesR = (loadSellRules()?.rules ?? []).filter((r) => ['fundamental', 'technical', 'guru'].includes(r.category));
+      // 2026-06-14 (ChatGPT P1, Task24): rotation 은 main 게이트 *후* 실행돼 boost 투입이 micro veto 를
+      //   우회할 수 있었음(insider매도·13F·계약해지). 공용 buildSellEvalCtx + micro 포함으로 봉합.
+      const vetoRulesR = (loadSellRules()?.rules ?? []).filter((r) => ['fundamental', 'technical', 'guru', 'micro'].includes(r.category));
       const sigR = await fetchSellSignals(boostList.map((b) => b.ticker));
       boostList = boostList.filter((b) => {
         const sig = sigR.get(b.ticker) ?? {};
-        const exCtx = {
-          price: livePrices.get(b.ticker)?.price ?? null,
-          rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
-          opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
-          sectorPe: null, macroRiskLevel: null,
-        };
+        const exCtx = buildSellEvalCtx(b.ticker, { price: livePrices.get(b.ticker)?.price ?? null, sector: b.sector }, macroCtx, sig);
         const hits = vetoRulesR.map((r) => ({ r, reason: evaluateSellRule(r, exCtx) })).filter((x) => x.reason);
         const total = hits.reduce((s, x) => s + (x.r.score ?? 0), 0);
         if (total >= 7) {
@@ -5065,6 +5062,35 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   return finalCands;
 }
 
+// 2026-06-14 (ChatGPT P1, Task24): 매도룰 평가 ctx 단일 빌더 — buildSellCandidates·buy→sell 게이트·
+//   refill·final-overlap 4경로가 동일 ctx 사용해야 같은 종목이 경로마다 다른 판정 받는 것을 방지.
+//   종전 refill/final-overlap 은 tech/fund 만 넣어 micro(insider매도·13F이탈·계약해지·풋편중·부정뉴스)
+//   hard-veto 를 우회했음. mc=rich macroCtx(insider/inst13f/uoa/contract/news/sector/region maps), sig=tech(fetchSellSignals).
+function buildSellEvalCtx(ticker, pos, mc, sig) {
+  const isKR = /\.(KS|KQ)$/.test(ticker);
+  const sectorKey = String(pos?.sector ?? '').toLowerCase();
+  const ins = mc?.insider?.get(ticker);
+  const i13f = mc?.inst13f?.get(ticker);
+  const news = mc?.newsSentimentMap?.get(ticker);
+  sig = sig ?? {};
+  return {
+    price: pos?.price ?? null, market: isKR ? 'kr' : 'us', sector: pos?.sector ?? null,
+    stop: pos?.stop ?? null, target: pos?.target ?? null, heldDays: pos?.heldDays ?? null, pnl: pos?.pnl ?? null, change1d: pos?.change1d ?? null,
+    rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
+    opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
+    sectorPe: mc?.sectorPeMap?.get(sectorKey) ?? null,
+    macroRiskLevel: mc?.riskLevel ?? null, vix: mc?.vix ?? null, fgScore: mc?.fgScore ?? null,
+    sectorStance: mc?.sectorStanceMap?.get(sectorKey) ?? null,
+    regionStance: mc?.regionStanceMap?.get(isKR ? 'kr' : 'us') ?? null,
+    newsNegRatio: news?.negRatio ?? null, newsArticleCount: news?.count ?? 0,
+    insiderSells: ins?.sells ?? null, insiderBuys: ins?.buys ?? null,
+    insiderSellToBuyRatio: ins ? (ins.sells / Math.max(ins.buys, 1)) : null,
+    instReducers: i13f?.reducers ?? null, instAdders: i13f?.adders ?? null, instNetShares: i13f?.netShares ?? null,
+    optionsCallPrem: mc?.uoaMap?.get(ticker)?.callPrem ?? 0, optionsPutPrem: mc?.uoaMap?.get(ticker)?.putPrem ?? 0,
+    contractLoss: mc?.contractMap?.get(ticker)?.type === 'contract_loss' ? mc.contractMap.get(ticker) : null,
+  };
+}
+
 async function buildSellCandidates(livePrices, excludeTickers = new Set(), macroCtx = {}) {
   const ruleSpec = loadSellRules();
   if (!ruleSpec?.rules?.length) return { us: [], kr: [], total: 0 };
@@ -6743,13 +6769,8 @@ async function generateViaOllama() {
       for (const cand of pool) {
         if (inMkt + added >= MIN_PER_MARKET) break;
         const sig = refillSig.get(cand.ticker) ?? {};
-        const exCtx = {
-          price: livePrices.get(cand.ticker)?.price ?? null,
-          rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
-          opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
-          sectorPe: sectorPeMap.get(String(cand.sector ?? '').toLowerCase()) ?? null,
-          macroRiskLevel: macroData?.riskLevel ?? null,
-        };
+        // 2026-06-14 (Task24): 공용 ctx — refill 도 insider/13f/contract/news micro 평가(종전 우회 봉합).
+        const exCtx = buildSellEvalCtx(cand.ticker, { price: livePrices.get(cand.ticker)?.price ?? null, sector: cand.sector }, macroCtx, sig);
         const hits = [];
         for (const rule of vetoRules) { const reason = evaluateSellRule(rule, exCtx); if (reason) hits.push({ id: rule.id, category: rule.category, score: rule.score ?? 0, reason }); }
         const total = hits.reduce((s, h) => s + h.score, 0);
@@ -7659,7 +7680,7 @@ async function generateViaOllama() {
   // 2차 클램프: harness 가 zone 을 덮어쓴 경우 다시 시장가 기준으로 보정 (도달 불가 zone 방지).
   finalReport.portfolio = validateEntryZones(finalReport.portfolio, livePrices);
   // 강제 rotation — 최근 5보고서와 5+ 종목 겹치면 boost-list 종목으로 교체 (투입 전 매도룰 사전심사 포함)
-  finalReport.portfolio = await enforceRotation(finalReport.portfolio, livePrices);
+  finalReport.portfolio = await enforceRotation(finalReport.portfolio, livePrices, macroCtx);
   // 구루 분할 매매 ladder 자동 생성 (entry 30/40/30 + exit 33/33/34 + trailing)
   finalReport.portfolio = buildLadders(finalReport.portfolio, livePrices);
   // 2026-05-31: enforceRotation/buildLadders 가 postProcessPortfolio(line 4934) 이후 실행 →
@@ -7838,18 +7859,15 @@ async function generateViaOllama() {
     const sellTickers = new Set(sellArr.map((s) => s.ticker));
     const overlap = (finalReport.portfolio ?? []).filter((p) => sellTickers.has(p.ticker)).map((p) => p.ticker);
     if (overlap.length) {
-      const vetoRulesF = (loadSellRules()?.rules ?? []).filter((r) => ['fundamental', 'technical', 'guru'].includes(r.category));
+      // 2026-06-14 (ChatGPT P1, Task24): final-overlap 도 micro 포함 전체 매도룰 + 공용 ctx — 종전
+      //   fund/tech/guru 만 봐 내부자매도·13F·계약해지·뉴스악재가 최종단계서 우회되던 구멍 봉합.
+      const vetoRulesF = (loadSellRules()?.rules ?? []).filter((r) => ['fundamental', 'technical', 'guru', 'micro'].includes(r.category));
       const sigF = await fetchSellSignals(overlap);
       const decisions = [];
       for (const t of overlap) {
         const sig = sigF.get(t) ?? {};
-        const exCtx = {
-          price: livePrices.get(t)?.price ?? null,
-          rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
-          opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
-          sectorPe: sectorPeMap.get(String((finalReport.portfolio.find((p) => p.ticker === t)?.sector ?? '')).toLowerCase()) ?? null,
-          macroRiskLevel: macroData?.riskLevel ?? null,
-        };
+        const pSec = finalReport.portfolio.find((p) => p.ticker === t)?.sector;
+        const exCtx = buildSellEvalCtx(t, { price: livePrices.get(t)?.price ?? null, sector: pSec }, macroCtx, sig);
         const hits = vetoRulesF.map((r) => ({ r, reason: evaluateSellRule(r, exCtx) })).filter((x) => x.reason);
         const total = hits.reduce((s, x) => s + (x.r.score ?? 0), 0);
         if (total >= 7) {
