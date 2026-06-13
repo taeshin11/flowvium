@@ -171,10 +171,16 @@ interface QuoteStats {
 async function fetchQuoteStats(ticker: string): Promise<QuoteStats> {
   const empty: QuoteStats = { instHeld: null, insiderHeld: null, shortPct: null, shortRatio: null, marketCap: null, sharesOutstanding: null };
   try {
+    // 2026-06-13: v7 quote 는 이제 crumb 필수(미인증 401 → marketCap/sharesOutstanding 전부 null →
+    //   지분율 0% 사건). fc.yahoo.com 쿠키+crumb 획득 후 호출 (ishares-holdings 와 동일 패턴).
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+    const cr = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': ua }, signal: AbortSignal.timeout(6000) });
+    const cookie = (cr.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).join('; ');
+    const crumb = await (await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(6000) })).text();
     const fields = 'marketCap,shortRatio,shortPercentOfFloat,heldPercentInstitutions,heldPercentInsiders,sharesOutstanding';
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&fields=${fields}`;
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&fields=${fields}${crumb && !crumb.includes('<') ? `&crumb=${encodeURIComponent(crumb)}` : ''}`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      headers: { 'User-Agent': ua, Cookie: cookie },
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });
@@ -272,7 +278,7 @@ export async function GET(request: Request) {
   if (!ticker || ticker.length > 10) return NextResponse.json({ error: 'Invalid or missing ticker' }, { status: 400 });
 
   const redis = createRedis();
-  const cacheKey = `flowvium:stock-supply:v5:${ticker}`;
+  const cacheKey = `flowvium:stock-supply:v6:${ticker}`;  // v6: 13F 기관 합산 + pctOfShares 계산 + crumb
 
   if (redis) {
     try {
@@ -320,6 +326,27 @@ export async function GET(request: Request) {
   if (volData?.ret1w != null) {
     if (volData.ret1w > 5) { supplyScore += 8; factors.push(`1주 +${volData.ret1w.toFixed(1)}% 강세`); }
     else if (volData.ret1w < -5) { supplyScore -= 8; factors.push(`1주 ${volData.ret1w.toFixed(1)}% 약세`); }
+  }
+
+  // 2026-06-13: pctOfShares 표시단 계산 (사용자 "지분율 0.00% 안 맞음"). 적재 cron 은 발행주식수가
+  //   없어 0 으로 저장 — 여기선 quoteStats.sharesOutstanding 으로 실제 % 계산. 또 같은 기관 중복행을
+  //   (institution) 기준 합산(파서 CUSIP 합산의 2차 방어). prevPct 0(미지) 은 undefined 로 — UI 가
+  //   "전분기 0.00%/+0.00%p" 가짜 표시 안 하도록.
+  {
+    const so = quoteStats.sharesOutstanding ?? null;
+    const merged = new Map<string, OwnershipRecord>();
+    for (const o of ownership13F) {
+      const e = merged.get(o.institution);
+      if (e) { e.sharesM = +(((e.sharesM ?? 0) + (o.sharesM ?? 0)).toFixed(2)); e.valueM += o.valueM; }
+      else merged.set(o.institution, { ...o });
+    }
+    ownership13F = Array.from(merged.values())
+      .map(o => ({
+        ...o,
+        pctOfShares: so && so > 0 ? +(((o.sharesM ?? 0) * 1_000_000) / so * 100).toFixed(2) : 0,
+        prevPct: undefined,  // 전분기 비교 데이터 미적재 — 가짜 0 표시 차단 (차기: prior-quarter 적재)
+      }))
+      .sort((a, b) => b.valueM - a.valueM);
   }
 
   // 13F accumulation from static data

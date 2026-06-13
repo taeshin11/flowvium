@@ -341,7 +341,16 @@ function extractPositions(xml: string): Position13F[] {
       shares,
     });
   }
-  return positions;
+  // 2026-06-13: CUSIP 별 합산 (사용자 "AAPL 에 Berkshire 가 13행으로 분리·금액 안 맞음"). 13F 는
+  //   한 종목 보유를 운용재량(Sole/Shared/None)·계좌별로 여러 infoTable 로 쪼개 보고 — 같은 CUSIP
+  //   행을 합치지 않으면 같은 기관이 분수 지분(0.7M/3.8M…)으로 N번 표시됨. 합산이 진짜 보유량.
+  const byCusip = new Map<string, Position13F>();
+  for (const p of positions) {
+    const e = byCusip.get(p.cusip);
+    if (e) { e.shares += p.shares; e.valueThousands += p.valueThousands; }
+    else byCusip.set(p.cusip, { ...p });
+  }
+  return Array.from(byCusip.values());
 }
 
 /** 기관 하나의 최신 + 직전 분기 13F 데이터 취득 */
