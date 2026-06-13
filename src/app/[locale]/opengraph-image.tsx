@@ -1,7 +1,7 @@
-import { ImageResponse } from 'next/og';
+﻿import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Flowvium — Supply Chain Intelligence Platform';
+export const alt = 'Flowvium ??Supply Chain Intelligence Platform';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -55,7 +55,7 @@ export default function OGImage() {
             maxWidth: 900,
           }}
         >
-          Supply Chain Intelligence Platform
+          AI That Researches the Market For You
         </div>
         {/* Subtext */}
         <div
@@ -66,7 +66,7 @@ export default function OGImage() {
             maxWidth: 800,
           }}
         >
-          Track where smart money flows. Institutional signals, cascade analysis, free.
+          AI tracks smart money, flags risks early, and writes 5 market reports a day. Free.
         </div>
         {/* URL badge */}
         <div
