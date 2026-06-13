@@ -328,7 +328,7 @@ function applyLocalHarness(r, livePrices) {
     const st = parseFirstPriceMjs(p.stopLoss);
     if (!e || !st || e <= 0) continue;
     if (st < e * 1.05) continue; // 정상 (stop < entry)
-    const isKR = p.ticker?.endsWith('.KS');
+    const isKR = /\.(KS|KQ)$/.test(p.ticker ?? '');  // 2026-06-13: .KQ(KOSDAQ) 포함 — ₩.00 데시멀 버그 fix
     const sym = isKR ? '₩' : (p.stopLoss?.match(/^[₩$€]/)?.[0] ?? '$');
     const newStop = e * 0.93;
     const fmt = isKR
@@ -1551,7 +1551,7 @@ async function fetchOHLCVMulti(ticker, interval) {
 
     if (interval === '1h') {
 
-      const isKR = ticker.endsWith('.KS');
+      const isKR = /\.(KS|KQ)$/.test(ticker);
 
       if (isKR && closes.length < 5) return null;
 
@@ -1737,7 +1737,7 @@ async function analyzeMultiTimeframeTrend(ticker) {
 async function buildTechnicalData(tickers, livePrices) {
   const results = await Promise.allSettled(
     tickers.map(async ticker => {
-      const isKR = ticker.endsWith('.KS');
+      const isKR = /\.(KS|KQ)$/.test(ticker);
       const ohlcv = await fetchOHLCV(ticker, isKR ? '1y' : '6mo');
       if (!ohlcv || ohlcv.closes.length < 21) return [ticker, null];
       // 2026-06-05 FIX: 진짜 split 은 *하루 사이 불연속*(2:1 분할 = 하루 0.5x). 기존 전체 range>3x 는
@@ -2129,7 +2129,7 @@ function buildLadders(portfolioItems, livePrices) {
     const pd = livePrices.get(p.ticker);
     if (!pd?.price) return p;
     const actual = pd.price;
-    const isKR = p.ticker.endsWith('.KS');
+    const isKR = /\.(KS|KQ)$/.test(p.ticker);
     const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
     const extract = s => (s ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(n => n > 0) ?? [];
 
@@ -2174,7 +2174,7 @@ function computePricesFromPlan(portfolioItems, livePrices) {
 
   return portfolioItems.map(p => {
     const pd = livePrices.get(p.ticker);
-    const isKR = p.ticker.endsWith('.KS');
+    const isKR = /\.(KS|KQ)$/.test(p.ticker);
     const fmt = n => isKR ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
     const actual = pd?.price ?? null;
 
@@ -2258,7 +2258,7 @@ function validateEntryZones(portfolioItems, livePrices) {
     const pd = livePrices.get(p.ticker);
     if (!pd) return p;
     const actual = pd.price;
-    const isKR = p.ticker.endsWith('.KS');
+    const isKR = /\.(KS|KQ)$/.test(p.ticker);
     const curr = isKR ? '₩' : '$';
     const fmt = n => isKR ? `${curr}${Math.round(n).toLocaleString()}` : `${curr}${n.toFixed(2)}`;
     const extractNums = str => (str ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(n => n > 0) ?? [];
