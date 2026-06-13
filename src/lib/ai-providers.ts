@@ -252,22 +252,17 @@ async function callQwen(prompt: string, opts: AICallOptions, diag?: ProviderAtte
 
   const tag = opts.tag ?? 'ai';
   // 품질 기반 우선순위 (2026-05 벤치마크 기준, JSON accuracy 내림차순)
+  // 2026-06-13: OpenRouter /models 권위 검증으로 무효 ID 4개 제거 — deepseek-v3:free(첫순위였음→매
+  //   호출 400 낭비 후 다음으로)·qwen-2.5-72b·llama-3.1-8b·mistral-7b 모두 :free 미제공(400). 무효
+  //   모델이 폴백 앞에 있어 번역이 클라우드 폴백 못 타고 Ollama 로 떨어져 GPU 루프 유발하던 원인 일부.
   const FREE_MODELS = [
-    // Tier 1: 87-93% JSON accuracy, instruction following 최상급
-    'deepseek/deepseek-v3:free',             // DeepSeek-V3 — RL 최적화, 87%+ JSON
     'openai/gpt-oss-120b:free',              // GPT-class 120B
-    // Tier 2: 70-80B급, MMLU 85-86%
     'qwen/qwen3-next-80b-a3b-instruct:free', // Qwen3 80B — 한국어 우수
     'nvidia/nemotron-3-super-120b-a12b:free',// NVIDIA 120B
-    // Tier 3: 26-31B급
     'google/gemma-4-31b-it:free',            // Gemma 4 31B — structured output 강점
     'nvidia/nemotron-3-nano-30b-a3b:free',   // NVIDIA 30B
     'google/gemma-4-26b-a4b-it:free',        // Gemma 4 26B
     'openrouter/free',                        // OpenRouter 자동선택
-    // 레거시 fallback
-    'qwen/qwen-2.5-72b-instruct:free',
-    'meta-llama/llama-3.1-8b-instruct:free',
-    'mistralai/mistral-7b-instruct:free',
   ];
   const messages: Array<{ role: string; content: string }> = [];
   if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
