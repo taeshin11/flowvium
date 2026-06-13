@@ -3033,6 +3033,11 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
     if (k.r20 >= 12) add('KR 단기 과열 구간 — KR 신규 진입은 분할·보수적 권장 (경합심사가 과열 종목 자동 차단 중)', 'kr');
     else if (k.dd <= -8 && earlyWarning.level === 'low') add('KR 낙폭 과대 + 경보 낮음 — KR 분할 매수 관찰 구간', 'kr');
   }
+  // 검증체계(2026-06-13): region 누락/desync 자동 포착 — 누군가 add() 우회해 reasons.push() 직접
+  //   하면 길이 어긋남 → flat fallback 으로 'US/KR 혼재' 회귀가 silent. 여기서 warn 으로 surface.
+  if (reasons.length !== regions.length) console.warn(`  [verdict] ⚠️ reasons(${reasons.length})≠reasonRegions(${regions.length}) — add() 우회 의심, US/KR 분리 회귀 위험`);
+  const badRegion = regions.find(r => !['global', 'us', 'kr'].includes(r));
+  if (badRegion) console.warn(`  [verdict] ⚠️ 미지정 region '${badRegion}' — global/us/kr 중 하나여야`);
   return { verdict, reasons, reasonRegions: regions, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
 }
 
