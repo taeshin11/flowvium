@@ -372,6 +372,48 @@ CREATE TABLE IF NOT EXISTS company_segments (
   fetched_at    TEXT NOT NULL         -- 추출 시각 (staleness 추적)
 );
 CREATE INDEX IF NOT EXISTS idx_segments_fetched ON company_segments(fetched_at);
+
+-- 2026-06-14 (Task28 D7): evidence warehouse — 정량 claim 의 point-in-time 출처 저장소.
+--   원칙 "숫자는 DB 가 쓰고 LLM 은 evidenceId 만 고른다". catalyst/fundamentalBasis 렌더러가 이 테이블의
+--   value_num 으로 문장 생성 → LLM numeric 환각 통로 제거. SEC EDGAR(XBRL)/OpenDART 가 1차 source.
+--   D7 단계: ①스키마(now) ②수집 collector ③렌더러 consume ④Ollama schema 강제.
+CREATE TABLE IF NOT EXISTS evidence_claims (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticker       TEXT NOT NULL,
+  claim_id     TEXT NOT NULL,            -- 'revenueYoYPct' | 'opMarginPct' | 'roePct' | 'peRatio' |
+                                         --   'insiderBuyCount30d' | 'insiderSellCount30d' | 'inst13fQoqPct' | ...
+  value_num    REAL,                     -- 정량값 (렌더러가 fmtPct 등으로 문장화)
+  value_text   TEXT,                     -- 비정량(기간/통화표기 등)
+  unit         TEXT,                     -- '%' | '%p' | 'x' | 'USD' | 'count' | ...
+  period       TEXT,                     -- '2026Q1' | 'FY2025' | '30d' 등
+  as_of        TEXT,                     -- 데이터 기준 시점(filing date 등)
+  source       TEXT NOT NULL,            -- 'sec-xbrl' | 'opendart' | 'yahoo' | 'edgar-form4' | '13f'
+  source_ref   TEXT,                     -- accession/rcept_no/url
+  confidence   TEXT,                     -- 'confirmed' | 'single_source' | 'derived'
+  evidence_hash TEXT,                    -- 원자료 해시 (변경 감지)
+  fetched_at   TEXT NOT NULL,
+  UNIQUE(ticker, claim_id, period, source)
+);
+CREATE INDEX IF NOT EXISTS idx_evidence_ticker ON evidence_claims(ticker, claim_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_fetched ON evidence_claims(fetched_at);
+
+-- 내부자 거래 point-in-time (Form4 transaction code 보존 — P/S/F/M/A 분리 집계용).
+CREATE TABLE IF NOT EXISTS insider_transactions (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticker           TEXT NOT NULL,
+  filed_at         TEXT,
+  transaction_date TEXT,
+  insider_name     TEXT,
+  transaction_code TEXT,                 -- P/S/A/M/F/G/D (edgar-insider TransactionCode)
+  direction        TEXT,                 -- buy/sell/other (codeToDirection)
+  shares           REAL,
+  price            REAL,
+  value_usd        REAL,
+  source_accession TEXT,
+  fetched_at       TEXT NOT NULL,
+  UNIQUE(ticker, source_accession, transaction_date, transaction_code, shares)
+);
+CREATE INDEX IF NOT EXISTS idx_insider_tx_ticker ON insider_transactions(ticker, transaction_date);
 `;
 
 let _dbInstance = null;
