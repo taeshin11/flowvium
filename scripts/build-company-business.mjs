@@ -26,7 +26,14 @@ for (const f of files) {
   while ((m = tickerRe.exec(src)) !== null) {
     const ticker = m[1];
     if (out[ticker]) continue;
-    const win = src.slice(m.index, m.index + 3500);
+    // 2026-06-14 (ChatGPT cross-bleed 사건): 고정 3500자 윈도우가 *다음 회사 블록*으로 bleed →
+    //   AMZN/MSFT desc 가 AMD 설명, CSCO 가 IBM 설명. 윈도우를 다음 ticker 경계까지로 제한 → 다른
+    //   회사 description 을 못 잡음(최악도 빈 desc, 절대 wrong company 아님 → profiles.json fallback).
+    const nextRe = /ticker:\s*["'][A-Z0-9.\-]+["']/g;
+    nextRe.lastIndex = m.index + m[0].length;
+    const nextM = nextRe.exec(src);
+    const end = Math.min(m.index + 3500, nextM ? nextM.index : src.length);
+    const win = src.slice(m.index, end);
     // products: [ ... ] (관계 relationships 의 products 와 구분 — 첫 products 블록만)
     const prodBlock = win.match(/products:\s*\[([\s\S]*?)\]/)?.[1] ?? '';
     const prods = [...prodBlock.matchAll(/name:\s*["']([^"']+)["'][\s\S]{0,260}?revenueShare:\s*(\d+)/g)]
@@ -84,6 +91,29 @@ const CURATED = {
   '028260.KS': { products: '건설 · 상사 · 패션 · 리조트 · 바이오(지분)', desc: '삼성물산 — 건설·상사·패션·리조트 + 삼성그룹 지배구조 핵심(바이오 지분).' },
 };
 for (const [t, v] of Object.entries(CURATED)) { if (!out[t]) { out[t] = v; n++; } }
+
+// 2026-06-14 (ChatGPT cross-bleed 가드): desc 가 *다른 회사명*으로 시작하면 추출오류(GOOG←Intel 잔존
+//   사건). company-names.json 권위 대조 — desc 첫 단어가 다른 ticker 의 회사명 첫 단어면 desc 제거
+//   (products 는 유지). 빈 desc 는 생성기가 company-profiles.json(Yahoo) 로 fallback → 정확.
+try {
+  const names = JSON.parse(readFileSync('data/company-names.json', 'utf8'));
+  const firstWord = (s) => String(s || '').trim().toLowerCase().split(/[\s,.]+/)[0];
+  const knownFW = new Set(Object.values(names).map(firstWord).filter(w => w && w.length >= 3));
+  let blanked = 0;
+  for (const [t, v] of Object.entries(out)) {
+    if (!v.desc) continue;
+    const descFW = firstWord(v.desc);
+    // 자기 회사명의 *모든 단어* 집합 (The/Charles 등 접두어·풀네임 대응 — first-word 만 보면 WMB="The
+    //   Williams"·SCHW="Charles Schwab" 오탐). descFW 가 자기명 어디에도 없고 + 다른 회사명이면 cross-bleed.
+    const ownName = names[t] ?? names[t?.replace(/\.(KS|KQ)$/, '')] ?? '';
+    const ownWords = new Set(String(ownName).toLowerCase().split(/[\s,.]+/).filter(Boolean));  // firstWord 와 동일 토크나이저(& 유지) — AT&T/H&R/S&P 오탐 방지
+    if (descFW && !ownWords.has(descFW) && knownFW.has(descFW)) {
+      v.desc = ''; blanked++;
+      console.warn(`  [cross-bleed] ${t}("${ownName}") desc 가 타사명 "${descFW}…" 로 시작 → 제거`);
+    }
+  }
+  if (blanked) console.log(`  [cross-bleed 가드] ${blanked}건 wrong-company desc 제거 (profiles fallback 전환)`);
+} catch (e) { console.warn('  [cross-bleed 가드] company-names.json 미로드 — skip:', e.message); }
 
 writeFileSync('data/company-business.json', JSON.stringify(out, null, 0) + '\n');
 console.log(`[build-company-business] ${n} tickers → data/company-business.json`);
