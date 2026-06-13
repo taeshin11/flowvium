@@ -243,6 +243,47 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
   return signals;
 }
 
+// ── 2026-06-13: DART 공시 본문에서 계약 상세 추출 (사용자 "무슨 계약인지 알려줘야지") ──────
+//    document.xml = ZIP(streaming) → central directory 에서 실제 크기 읽어 inflateRaw → 텍스트.
+//    계약금액·계약상대만 안정 추출(실측). zlib 내장 사용(추가 의존 0).
+import zlib from 'node:zlib';
+function unzipFirstEntry(buf: Buffer): string | null {
+  try {
+    const cd = buf.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+    if (cd < 0) return null;
+    const method = buf.readUInt16LE(cd + 10);
+    const compSize = buf.readUInt32LE(cd + 20);
+    const lho = buf.readUInt32LE(cd + 42);
+    const nameLen = buf.readUInt16LE(lho + 26);
+    const extraLen = buf.readUInt16LE(lho + 28);
+    const start = lho + 30 + nameLen + extraLen;
+    const data = buf.subarray(start, start + compSize);
+    if (method === 0) return data.toString('utf8');
+    if (method === 8) return zlib.inflateRawSync(data).toString('utf8');
+    return null;
+  } catch { return null; }
+}
+async function fetchContractDetail(dartKey: string, rceptNo: string): Promise<{ amountWon: number | null; counterparty: string | null } | null> {
+  try {
+    const r = await fetch(`https://opendart.fss.or.kr/api/document.xml?crtfc_key=${dartKey}&rcept_no=${rceptNo}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const xml = unzipFirstEntry(Buffer.from(await r.arrayBuffer()));
+    if (!xml) return null;
+    const text = xml.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
+    const amtStr = text.match(/계약\s*금액[^0-9]{0,20}([0-9,]{4,})/)?.[1];
+    const amountWon = amtStr ? parseInt(amtStr.replace(/,/g, ''), 10) : null;
+    let counterparty = text.match(/계약\s*상대(?:방|회사)?[\s:]*([가-힣A-Za-z()·\s]{2,30}?)\s/)?.[1]?.trim() ?? null;
+    // "의 영업비밀"/"비공개" 류 → 비공개 정규화 (불완전 추출 노출 방지)
+    if (counterparty && /영업비밀|비공개|미공개|^의\s/.test(counterparty)) counterparty = '비공개(영업비밀)';
+    return { amountWon, counterparty };
+  } catch { return null; }
+}
+function fmtWon(won: number): string {
+  if (won >= 1e12) return `${(won / 1e12).toFixed(2)}조원`;
+  if (won >= 1e8) return `${Math.round(won / 1e8).toLocaleString()}억원`;
+  return `${Math.round(won / 1e4).toLocaleString()}만원`;
+}
+
 // ── DART 수시공시 (계약체결/수주 공시) ─────────────────────────────────────────
 async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
   const dartKey = process.env.DART_API_KEY;
@@ -305,10 +346,24 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
 
       const signalType = cls.signalType;
       const downstream = signalType === 'buyback' ? { beneficiaries: [], risks: [] } : inferDownstream(ticker, signalType);
+
+      // 2026-06-13: 계약 상세(금액·상대) 본문 추출 — 공급/수주 계약만 (자사주 등 제외). 상위 12건 cap
+      //   (document fetch 비용 — watchlistHits 순). 실패 시 기존 summary 유지(graceful).
+      let detailSummary = cls.summary;
+      if ((signalType === 'contract_win' || signalType === 'contract_loss') && watchlistHits <= 12 && item.rcept_no) {
+        const detail = await fetchContractDetail(dartKey, item.rcept_no);
+        if (detail?.amountWon || detail?.counterparty) {
+          const parts: string[] = [];
+          if (detail.amountWon) parts.push(`계약금액 ${fmtWon(detail.amountWon)}`);
+          if (detail.counterparty) parts.push(`계약상대 ${detail.counterparty}`);
+          detailSummary = `${cls.summary} (${parts.join(' · ')})`;
+        }
+      }
+
       logger.info('supply-chain-signals', 'dart_signal_found', {
         ticker, signalType, corp: item.corp_name,
         downstream: downstream.beneficiaries.join(','),
-        reportNm: reportNm.slice(0, 80), summary: cls.summary, conviction: cls.conviction,
+        reportNm: reportNm.slice(0, 80), summary: detailSummary, conviction: cls.conviction,
         date: item.rcept_dt,
       });
 
@@ -319,7 +374,7 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
         conviction: cls.conviction,
         direction: cls.direction,
         headline: reportNm,
-        summary: cls.summary,
+        summary: detailSummary,
         source: 'dart',
         date: item.rcept_dt ?? '',
         downstreamBeneficiaries: downstream.beneficiaries,
