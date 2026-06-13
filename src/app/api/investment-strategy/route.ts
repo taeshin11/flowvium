@@ -1464,13 +1464,20 @@ export async function GET(request: Request) {
           try { await redis.del(staleKey(locale)); } catch { /* best-effort */ }
         }
         // 3. Any previous session's report from today or yesterday (A1 fix)
+        //   2026-06-13 fix: 키에 :${locale} 누락(cacheKey 는 포함) → 직전세션 폴백이 *항상* miss →
+        //   세션경계(afternoon→evening, evening 리포트 미생성)서 generic fallback 으로 떨어지던 근본.
+        //   locale 우선, 없으면 ko(단일 진실)로 폴백 — 둘 다 시도.
         const yesterday = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
-        for (const dateStr of [new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), yesterday]) {
-          for (const s of ['midnight', 'morning', 'noon', 'afternoon', 'evening'] as const) {
-            if (dateStr === new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10) && s === session) continue;
-            const alt = await redis.get(`flowvium:investment-strategy:v${SCHEMA_VERSION}:${dateStr}:${s}`);
-            if (alt && isSchemaCompatible(alt as Record<string, unknown>)) {
-              return NextResponse.json({ ...(alt as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+        const today2 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+        for (const dateStr of [today2, yesterday]) {
+          for (const s of ['evening', 'afternoon', 'noon', 'morning', 'midnight'] as const) {
+            if (dateStr === today2 && s === session) continue;
+            for (const loc of [locale, 'ko']) {
+              const alt = await redis.get(`flowvium:investment-strategy:v${SCHEMA_VERSION}:${dateStr}:${s}:${loc}`);
+              if (alt && isSchemaCompatible(alt as Record<string, unknown>)) {
+                rememberGood(locale, alt);
+                return NextResponse.json({ ...(alt as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+              }
             }
           }
         }

@@ -4792,6 +4792,17 @@ function isLeveragedEtf(t) {
     /\b(ultra|2x|3x|-1x|inverse|leveraged|daily (bull|bear)|short (vix|s&p|qqq|dow))\b/i.test(NAMES_FOR_ETF[t] ?? '');
 }
 
+// 2026-06-13: 현금성/금리 ETF 제외 (사용자 "KODEX CD금리액티브가 전기차 관련주?" — deadCross fix 가
+//   평탄MA 금리ETF 를 언블록해 포트폴리오 유입 + LLM 이 "전기차 수요" 등 환각 근거 부착). MMF/CD/KOFR/
+//   통안/단기금융 = 주차용 현금성 — 매수 추천 프레임 부적합(레버리지/인버스와 동일 취지). 이름패턴 +
+//   초저변동(52주 레인지<5% = 현금성) 2중 감지.
+function isCashLikeEtf(name, hi52, lo52) {
+  const n = String(name ?? '');
+  if (/금리|KOFR|\bCD\b|MMF|머니\s*마켓|머니마켓|통안|단기\s*금융|초단기|현금성|단기통안|파킹|양도성예금/i.test(n)) return true;
+  if (hi52 > 0 && lo52 > 0 && (hi52 / lo52 - 1) < 0.05) return true; // 52주 레인지 <5% = 현금성(금리ETF)
+  return false;
+}
+
 // 2026-06-12: 시장별 쿼터 슬라이스 — 사용자 "KR 350+ 전 종목 다 고려?" 실측: stage-1 신호
 //   (insider=SEC Form4·squeeze=US 공매도·뉴스갭=US IB)가 미국 위주라 KR(풀 35%)이 주간 top30 의
 //   2%만 진입 — 룰 경쟁에서 구조적 배제. 시장 내 점수순으로 KR 슬롯을 보장해 시장중립 룰
@@ -4838,6 +4849,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     if (!pd?.price) continue;
     const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
     const meta = tickerMeta.meta?.[ticker] ?? {};
+    // 2026-06-13: 현금성/금리 ETF 제외 — KODEX CD금리/KOFR 등 (사용자 "전기차/국방 관련주 맞냐" — 환각근거).
+    //   주차용 현금성이라 매수 추천 부적합. 이름 + 초저변동(52주<5%) 감지.
+    if (isCashLikeEtf(meta.name, pd.high52w, pd.low52w)) continue;
     const sectorKey = String(meta.sector ?? '').toLowerCase();
     const ctx = {
       ticker, price: pd.price, change1d: pd.change1d, sector: meta.sector,
