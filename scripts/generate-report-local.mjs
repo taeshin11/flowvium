@@ -4807,6 +4807,19 @@ function isCashLikeEtf(name, hi52, lo52) {
   return false;
 }
 
+// 2026-06-14: 일반 ETF 식별 — 사용자 "ETF는 ETF 섹션에서 다뤄, 매수추천(종목 포트폴리오)에선 빼.
+//   US/KR 나눠서". 종목 풀(KOSPI/KOSDAQ·미국주식)에 ETF(TIGER 미국배당·KODEX 200·미국지수추종 등)가
+//   섞여 환각근거 붙던 문제. US=cap'etf', KR=브랜드명(meta cap 은 'kr' 이라 이름으로). ETF 는 etfStrategy
+//   섹션이 별도 담당. (과거 '일반ETF 추천허용' 지시를 사용자가 명시 변경 — [[feedback_etf-recommendation-ok]])
+const KR_ETF_BRAND = /^(TIGER|KODEX|KBSTAR|ARIRANG|ACE|SOL|KINDEX|HANARO|PLUS|RISE|KOSEF|TIMEFOLIO|KCGI|마이티|히어로즈|마이다스|파워|FOCUS|포커스|WON|TREX|BNK|에셋플러스|마이다스)\b/i;
+function isEtf(ticker, meta) {
+  if (/etf/i.test(meta?.cap ?? '')) return true;            // US ETF (cap 밴드)
+  const n = String(meta?.name ?? '');
+  if (KR_ETF_BRAND.test(n)) return true;                    // KR ETF 브랜드 prefix
+  if (/레버리지|인버스|\bETF\b|미국\s*(S&P|S\&P|나스닥|다우|배당)|채권|국채|회사채/i.test(n)) return true;
+  return false;
+}
+
 // 2026-06-12: 시장별 쿼터 슬라이스 — 사용자 "KR 350+ 전 종목 다 고려?" 실측: stage-1 신호
 //   (insider=SEC Form4·squeeze=US 공매도·뉴스갭=US IB)가 미국 위주라 KR(풀 35%)이 주간 top30 의
 //   2%만 진입 — 룰 경쟁에서 구조적 배제. 시장 내 점수순으로 KR 슬롯을 보장해 시장중립 룰
@@ -4853,9 +4866,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     if (!pd?.price) continue;
     const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
     const meta = tickerMeta.meta?.[ticker] ?? {};
-    // 2026-06-13: 현금성/금리 ETF 제외 — KODEX CD금리/KOFR 등 (사용자 "전기차/국방 관련주 맞냐" — 환각근거).
-    //   주차용 현금성이라 매수 추천 부적합. 이름 + 초저변동(52주<5%) 감지.
-    if (isCashLikeEtf(meta.name, pd.high52w, pd.low52w)) continue;
+    // 2026-06-14: ETF 전부 제외 (사용자 "ETF는 ETF 섹션에서, 종목 추천엔 빼") — US cap'etf' + KR 브랜드.
+    //   현금성/금리 ETF(52주<5%)도 포함. ETF 는 etfStrategy 섹션이 US/KR 분리 담당.
+    if (isEtf(ticker, meta) || isCashLikeEtf(meta.name, pd.high52w, pd.low52w)) continue;
     const sectorKey = String(meta.sector ?? '').toLowerCase();
     const ctx = {
       ticker, price: pd.price, change1d: pd.change1d, sector: meta.sector,
