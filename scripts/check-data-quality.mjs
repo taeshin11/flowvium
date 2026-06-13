@@ -380,6 +380,7 @@ async function main() {
       'nport-holdings': '/api/nport-holdings?ticker=069500',
       'iv': '/api/iv/AAPL',
       'company-business': '/api/company-business/AAPL',  // 2026-06-07: [ticker] 동적 라우트 sample
+      'company-signals': '/api/company-signals/NVDA',    // 2026-06-13: [ticker] 동적 — base path 는 404
     };
     const SKIP = new Set(['company-desc', 'investment-strategy']);
     const probeOne = async (ep) => {
@@ -404,6 +405,10 @@ async function main() {
       const objKeys = ['market', 'outlook', 'capital', 'company', 'summary', 'consensus', 'byCountry', 'byAsset'];
       const hasObj = objKeys.some(k => b[k] != null && (typeof b[k] !== 'object' || Object.keys(b[k]).length > 0));
       const hasScalar = b.score != null || b.value != null || b.probability != null || b.balance != null || b.total > 0 || typeof b.updatedAt === 'string' || typeof b.generatedAt === 'string';
+      // company-signals: ticker별 시그널 — 조용한 종목은 uoa/burst/contract 전부 비어도 *정상*(잘못 아님).
+      //   200 + 정상 shape(ticker echo + uoa 배열 키 존재)면 alive 로 인정 (empty≠dead).
+      const hasSignalShape = typeof b.ticker === 'string' && 'uoa' in b && Array.isArray(b.uoa);
+      if (hasSignalShape) return { ep, ok: true };
       if (arrLen === 0 && !hasScalar && !hasObj && !Array.isArray(b)) return { ep, weak: '빈 배열/스칼라/구조 없음 — 정적/정지 의심' };
       return { ep, ok: true };
     };
