@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "E-posta adresi",
     "gateSubmit": "Ücretsiz aç",
     "gateError": "Geçerli bir e-posta girin.",
-    "gateFreeNote": "Spam yok · istediğiniz zaman iptal · şifre gerekmez"
+    "gateFreeNote": "Spam yok · istediğiniz zaman iptal · şifre gerekmez",
+    "verdictRegionGlobal": "Genel / Makro",
+    "verdictRegionUs": "ABD Piyasası",
+    "verdictRegionKr": "Kore Piyasası"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

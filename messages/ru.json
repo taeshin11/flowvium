@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "Email",
     "gateSubmit": "Открыть бесплатно",
     "gateError": "Введите корректный email.",
-    "gateFreeNote": "Без спама · отписка в любой момент · без пароля"
+    "gateFreeNote": "Без спама · отписка в любой момент · без пароля",
+    "verdictRegionGlobal": "Общее / Макро",
+    "verdictRegionUs": "Рынок США",
+    "verdictRegionKr": "Рынок Кореи"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

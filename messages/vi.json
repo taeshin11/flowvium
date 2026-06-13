@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "Địa chỉ email",
     "gateSubmit": "Mở khóa miễn phí",
     "gateError": "Vui lòng nhập email hợp lệ.",
-    "gateFreeNote": "Không spam · hủy bất cứ lúc nào · không cần mật khẩu"
+    "gateFreeNote": "Không spam · hủy bất cứ lúc nào · không cần mật khẩu",
+    "verdictRegionGlobal": "Chung / Vĩ mô",
+    "verdictRegionUs": "Thị trường Mỹ",
+    "verdictRegionKr": "Thị trường Hàn"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

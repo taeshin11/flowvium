@@ -2960,53 +2960,57 @@ function computeFearBuy(ctxRaw, analog) {
 function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRaw) {
   const fg = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? null;
   const reasons = [];
+  // 2026-06-13: 사용자 "US, KR 분리" — 각 근거에 region 태그(global/us/kr). reasonRegions 는
+  //   reasons 와 1:1 평행 배열(문자열 미변경 → 번역/probe 무영향). ReportPage 가 region 별 그룹 렌더.
+  const regions = [];
+  const add = (text, region) => { reasons.push(text); regions.push(region); };
   const analogLine = analog?.matches
     ? `과거 유사국면 ${analog.matches}회(1990~, VIX ${analog.fingerprint.vix}·낙폭 ${analog.fingerprint.drawdownPct}% 지문): 3개월 후 중앙값 ${analog.med3m > 0 ? '+' : ''}${analog.med3m}% · 상승확률 ${analog.posRate3m}%`
     : null;
   let verdict;
   if (earlyWarning.level === 'severe') {
     verdict = 'defensive';
-    reasons.push(`하락 전조 심각(경보 ${earlyWarning.score}): ${earlyWarning.drivers.slice(0, 3).join(' · ')}`);
+    add(`하락 전조 심각(경보 ${earlyWarning.score}): ${earlyWarning.drivers.slice(0, 3).join(' · ')}`, 'global');
   } else if (earlyWarning.level === 'high') {
     verdict = 'wait';
-    reasons.push(`하락 전조 고조(경보 ${earlyWarning.score}) — 신규 진입 보류`);
+    add(`하락 전조 고조(경보 ${earlyWarning.score}) — 신규 진입 보류`, 'global');
   } else if (fearBuy.score >= 4) {
     verdict = 'buy_dip';
-    reasons.push(`공포 매수 구간: ${fearBuy.drivers.join(' · ')}`);
-    reasons.push(...fearBuy.gurus.slice(0, 2));
+    add(`공포 매수 구간: ${fearBuy.drivers.join(' · ')}`, 'global');
+    for (const g of fearBuy.gurus.slice(0, 2)) add(g, 'global');
   } else if (fearBuy.active && reboundWatch.level === 'watch') {
     verdict = 'accumulate';
-    reasons.push(`공포 신호(${fearBuy.drivers.join('·')}) + 반등 관찰(${reboundWatch.drivers.length}조건) 동시 충족 — 분할 매수`);
+    add(`공포 신호(${fearBuy.drivers.join('·')}) + 반등 관찰(${reboundWatch.drivers.length}조건) 동시 충족 — 분할 매수`, 'global');
   } else if (reboundWatch.level === 'watch' && analog?.matches >= 5 && analog.med3m >= 4 && analog.posRate3m >= 65) {
     verdict = 'accumulate';
-    reasons.push(`상승 전조 관찰(${reboundWatch.drivers.slice(0, 2).join(' · ')}) + 과거 유사국면 우호적`);
+    add(`상승 전조 관찰(${reboundWatch.drivers.slice(0, 2).join(' · ')}) + 과거 유사국면 우호적`, 'global');
   } else if (earlyWarning.level === 'elevated') {
     verdict = 'wait';
-    reasons.push(`경보 상승 구간(${earlyWarning.score}) — ${earlyWarning.drivers.slice(0, 2).join(' · ')}`);
+    add(`경보 상승 구간(${earlyWarning.score}) — ${earlyWarning.drivers.slice(0, 2).join(' · ')}`, 'global');
   } else if (analog?.matches >= 5 && analog.med3m >= 4 && fg != null && fg <= 50) {
     verdict = 'neutral_ready';
-    reasons.push(`심리 비과열(F&G ${fg}) + 과거 유사국면 3개월 기대 양호 — 조정 시 매수 준비`);
+    add(`심리 비과열(F&G ${fg}) + 과거 유사국면 3개월 기대 양호 — 조정 시 매수 준비`, 'global');
   } else if (analog?.matches >= 5 && analog.med3m <= -2) {
     verdict = 'wait';
-    reasons.push(`과거 유사국면의 3개월 기대수익 음수 — 보수적 접근`);
+    add(`과거 유사국면의 3개월 기대수익 음수 — 보수적 접근`, 'global');
   } else {
     verdict = 'neutral';
-    reasons.push('하락·상승 전조 모두 뚜렷하지 않음 — 기존 포지션 유지');
+    add('하락·상승 전조 모두 뚜렷하지 않음 — 기존 포지션 유지', 'global');
   }
   // 2026-06-12 tier-1 보정(사용자 승인): 지수 추세·시장 폭·안전자산 동시이동으로 한 단계 가감.
   const downgrade = { buy_dip: 'accumulate', accumulate: 'neutral_ready', neutral_ready: 'neutral' };
   if (analog?.trend && !analog.trend.above200 && (verdict === 'buy_dip' || verdict === 'accumulate')) {
     verdict = downgrade[verdict];
-    reasons.push(`지수가 200일선 아래(${analog.trend.distPct}%) — 장기 추세 미회복, 매수 강도 한 단계 하향`);
+    add(`S&P500 200일선 아래(${analog.trend.distPct}%) — 장기 추세 미회복, 매수 강도 한 단계 하향`, 'us');
   } else if (analog?.trend?.above200 && (verdict === 'buy_dip' || verdict === 'accumulate')) {
-    reasons.push(`지수 200일선 위(+${analog.trend.distPct}%) — 장기 추세 유효 (공포매수 성공률 우호 조건)`);
+    add(`S&P500 200일선 위(+${analog.trend.distPct}%) — 장기 추세 유효 (공포매수 성공률 우호 조건)`, 'us');
   }
   if (analog?.breadth?.divergencePp != null) {
     if (analog.breadth.divergencePp <= -1.5) {
-      reasons.push(`시장 폭 취약: 동일가중(RSP)이 시총가중 대비 20일 ${analog.breadth.divergencePp}%p 열위 — 소수 대형주 주도`);
+      add(`시장 폭 취약: 동일가중(RSP)이 시총가중 대비 20일 ${analog.breadth.divergencePp}%p 열위 — 소수 대형주 주도`, 'us');
       if (verdict === 'neutral_ready') verdict = 'neutral';
     } else if (analog.breadth.divergencePp >= 1.5) {
-      reasons.push(`시장 폭 양호: 동일가중이 +${analog.breadth.divergencePp}%p 우위 — 광범위 참여`);
+      add(`시장 폭 양호: 동일가중이 +${analog.breadth.divergencePp}%p 우위 — 광범위 참여`, 'us');
     }
   }
   {
@@ -3016,20 +3020,20 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
     const eqW = assets.filter(a => ['us-stocks', 'us-tech', 'em-stocks', 'eu-stocks'].includes(a.id) && typeof a.ret1w === 'number');
     const eqWorst = eqW.length ? Math.min(...eqW.map(a => a.ret1w)) : null;
     if (gold != null && tlt != null && eqWorst != null && gold >= 1 && tlt >= 0.5 && eqWorst <= -1) {
-      reasons.push(`안전자산 동시 유입(금 +${gold}% · 장기채 +${tlt}% · 주식 ${eqWorst}%) — risk-off 진행 중`);
+      add(`안전자산 동시 유입(금 +${gold}% · 장기채 +${tlt}% · 주식 ${eqWorst}%) — risk-off 진행 중`, 'global');
       if (verdict in downgrade) verdict = downgrade[verdict];
     }
   }
-  if (analog?.seasonality) reasons.push(`계절성(${analog.seasonality.month}월, 1990~ ${analog.seasonality.n}표본): 1개월 forward 중앙값 ${analog.seasonality.med1m > 0 ? '+' : ''}${analog.seasonality.med1m}%`);
+  if (analog?.seasonality) add(`S&P500 계절성(${analog.seasonality.month}월, 1990~ ${analog.seasonality.n}표본): 1개월 forward 중앙값 ${analog.seasonality.med1m > 0 ? '+' : ''}${analog.seasonality.med1m}%`, 'us');
+  if (analogLine) add(analogLine, 'us');
   // 2026-06-13: KR 시장 차원 (사용자 "미국장만 분석한듯") — KOSPI 상태 + 시장별 차등 코멘트.
   if (analog?.kr) {
     const k = analog.kr;
-    reasons.push(`KOSPI: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`);
-    if (k.r20 >= 12) reasons.push('KR 단기 과열 구간 — KR 신규 진입은 분할·보수적 권장 (경합심사가 과열 종목 자동 차단 중)');
-    else if (k.dd <= -8 && earlyWarning.level === 'low') reasons.push('KR 낙폭 과대 + 경보 낮음 — KR 분할 매수 관찰 구간');
+    add(`KOSPI: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`, 'kr');
+    if (k.r20 >= 12) add('KR 단기 과열 구간 — KR 신규 진입은 분할·보수적 권장 (경합심사가 과열 종목 자동 차단 중)', 'kr');
+    else if (k.dd <= -8 && earlyWarning.level === 'low') add('KR 낙폭 과대 + 경보 낮음 — KR 분할 매수 관찰 구간', 'kr');
   }
-  if (analogLine) reasons.push(analogLine);
-  return { verdict, reasons, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
+  return { verdict, reasons, reasonRegions: regions, fearBuy: { score: fearBuy.score, active: fearBuy.active }, analog, asOf: new Date().toISOString(), source: 'deterministic' };
 }
 
 /**

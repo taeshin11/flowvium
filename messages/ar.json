@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "البريد الإلكتروني",
     "gateSubmit": "افتح مجاناً",
     "gateError": "يرجى إدخال بريد إلكتروني صحيح.",
-    "gateFreeNote": "بدون رسائل مزعجة · إلغاء في أي وقت · بدون كلمة مرور"
+    "gateFreeNote": "بدون رسائل مزعجة · إلغاء في أي وقت · بدون كلمة مرور",
+    "verdictRegionGlobal": "عام / كلي",
+    "verdictRegionUs": "السوق الأمريكي",
+    "verdictRegionKr": "السوق الكوري"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

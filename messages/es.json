@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "Correo electrónico",
     "gateSubmit": "Desbloquear gratis",
     "gateError": "Introduce un correo válido.",
-    "gateFreeNote": "Sin spam · cancela cuando quieras · sin contraseña"
+    "gateFreeNote": "Sin spam · cancela cuando quieras · sin contraseña",
+    "verdictRegionGlobal": "Global / Macro",
+    "verdictRegionUs": "Mercado EE.UU.",
+    "verdictRegionKr": "Mercado Corea"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

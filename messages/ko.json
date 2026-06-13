@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "이메일 주소",
     "gateSubmit": "무료로 보기",
     "gateError": "올바른 이메일을 입력해 주세요.",
-    "gateFreeNote": "스팸 없음 · 언제든 해지 · 비밀번호 불필요"
+    "gateFreeNote": "스팸 없음 · 언제든 해지 · 비밀번호 불필요",
+    "verdictRegionGlobal": "공통 / 거시",
+    "verdictRegionUs": "미국 증시",
+    "verdictRegionKr": "한국 증시"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

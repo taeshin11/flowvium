@@ -821,7 +821,7 @@ export default function ReportPage() {
 
           {/* ── 종합 판단 (2026-06-12): 하락·상승 전조 + 공포매수 + 과거 유사국면 → 관망/매수/중립 ── */}
           {(() => {
-            const mv = (data as unknown as { marketVerdict?: { verdict: string; reasons: string[] } }).marketVerdict;
+            const mv = (data as unknown as { marketVerdict?: { verdict: string; reasons: string[]; reasonRegions?: string[] } }).marketVerdict;
             if (!mv?.verdict) return null;
             const cfg: Record<string, { icon: string; cls: string }> = {
               buy_dip:       { icon: '🟢', cls: 'border-emerald-400 bg-emerald-50 text-emerald-800' },
@@ -838,11 +838,37 @@ export default function ReportPage() {
                   <span className="text-lg">{c.icon}</span>
                   <span className="font-extrabold text-base">{t('verdictTitle')}: {t(`verdict_${mv.verdict}`)}</span>
                 </div>
-                <ul className="space-y-1">
-                  {mv.reasons.map((r, i) => (
-                    <li key={i} className="text-xs leading-relaxed flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span><TName text={r} /></span></li>
-                  ))}
-                </ul>
+                {(() => {
+                  // 2026-06-13: 사용자 "US, KR 분리" — reasonRegions 있으면 global/us/kr 그룹별 렌더.
+                  const regions = Array.isArray(mv.reasonRegions) && mv.reasonRegions.length === mv.reasons.length ? mv.reasonRegions : null;
+                  const renderList = (items: string[]) => (
+                    <ul className="space-y-1">
+                      {items.map((r, i) => (
+                        <li key={i} className="text-xs leading-relaxed flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span><TName text={r} /></span></li>
+                      ))}
+                    </ul>
+                  );
+                  if (!regions) return renderList(mv.reasons);
+                  const groups: { key: string; label: string; items: string[] }[] = [
+                    { key: 'global', label: t('verdictRegionGlobal'), items: [] },
+                    { key: 'us', label: `🇺🇸 ${t('verdictRegionUs')}`, items: [] },
+                    { key: 'kr', label: `🇰🇷 ${t('verdictRegionKr')}`, items: [] },
+                  ];
+                  mv.reasons.forEach((r, i) => {
+                    const g = groups.find(x => x.key === (regions[i] || 'global')) ?? groups[0];
+                    g.items.push(r);
+                  });
+                  return (
+                    <div className="space-y-2.5">
+                      {groups.filter(g => g.items.length > 0).map(g => (
+                        <div key={g.key}>
+                          <p className="text-[11px] font-bold opacity-70 mb-0.5">{g.label}</p>
+                          {renderList(g.items)}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
                 <p className="text-[10px] opacity-60 mt-2">{t('verdictNote')}</p>
               </div>
             );

@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "Email address",
     "gateSubmit": "Unlock free",
     "gateError": "Please enter a valid email.",
-    "gateFreeNote": "No spam · unsubscribe anytime · no password needed"
+    "gateFreeNote": "No spam · unsubscribe anytime · no password needed",
+    "verdictRegionGlobal": "Global / Macro",
+    "verdictRegionUs": "US Market",
+    "verdictRegionKr": "Korea Market"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

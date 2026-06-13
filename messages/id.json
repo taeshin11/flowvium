@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "Alamat email",
     "gateSubmit": "Buka gratis",
     "gateError": "Masukkan email yang valid.",
-    "gateFreeNote": "Tanpa spam · berhenti kapan saja · tanpa kata sandi"
+    "gateFreeNote": "Tanpa spam · berhenti kapan saja · tanpa kata sandi",
+    "verdictRegionGlobal": "Umum / Makro",
+    "verdictRegionUs": "Pasar AS",
+    "verdictRegionKr": "Pasar Korea"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

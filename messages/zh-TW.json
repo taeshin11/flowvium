@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "信箱地址",
     "gateSubmit": "免費解鎖",
     "gateError": "請輸入有效的信箱。",
-    "gateFreeNote": "無垃圾郵件 · 隨時退訂 · 無需密碼"
+    "gateFreeNote": "無垃圾郵件 · 隨時退訂 · 無需密碼",
+    "verdictRegionGlobal": "綜合 / 宏觀",
+    "verdictRegionUs": "美國市場",
+    "verdictRegionKr": "韓國市場"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

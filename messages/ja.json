@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "メールアドレス",
     "gateSubmit": "無料で見る",
     "gateError": "正しいメールアドレスを入力してください。",
-    "gateFreeNote": "スパムなし · いつでも解除 · パスワード不要"
+    "gateFreeNote": "スパムなし · いつでも解除 · パスワード不要",
+    "verdictRegionGlobal": "共通 / マクロ",
+    "verdictRegionUs": "米国市場",
+    "verdictRegionKr": "韓国市場"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

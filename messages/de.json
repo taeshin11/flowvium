@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "E-Mail-Adresse",
     "gateSubmit": "Kostenlos freischalten",
     "gateError": "Bitte gültige E-Mail eingeben.",
-    "gateFreeNote": "Kein Spam · jederzeit abbestellbar · kein Passwort nötig"
+    "gateFreeNote": "Kein Spam · jederzeit abbestellbar · kein Passwort nötig",
+    "verdictRegionGlobal": "Global / Makro",
+    "verdictRegionUs": "US-Markt",
+    "verdictRegionKr": "Korea-Markt"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

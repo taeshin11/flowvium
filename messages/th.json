@@ -1294,7 +1294,10 @@
     "gateEmailPlaceholder": "อีเมล",
     "gateSubmit": "ปลดล็อกฟรี",
     "gateError": "กรุณากรอกอีเมลที่ถูกต้อง",
-    "gateFreeNote": "ไม่มีสแปม · ยกเลิกได้ทุกเมื่อ · ไม่ต้องใช้รหัสผ่าน"
+    "gateFreeNote": "ไม่มีสแปม · ยกเลิกได้ทุกเมื่อ · ไม่ต้องใช้รหัสผ่าน",
+    "verdictRegionGlobal": "รวม / มหภาค",
+    "verdictRegionUs": "ตลาดสหรัฐ",
+    "verdictRegionKr": "ตลาดเกาหลี"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",
