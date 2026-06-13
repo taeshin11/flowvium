@@ -666,8 +666,9 @@
 | 12-P4 | 종목별 목표가 | 💾 cached | AI 생성 |
 | 12-P5 | 종목별 확신도 (high/medium/low) | 💾 cached | AI 생성 |
 | 12-P5b | 종목별 IV 평이 설명 (변동성%·일간기대등락·skew 심리) | 💾 cached | `/api/iv/[ticker]` atmIv30d/skew25d → 손절 칸 아래 평문 (US만, KR null) ← 2026-06-05 |
-| 12-P5c | 종목별 주력 사업/매출상품 (businessSummary+desc) | 📋 static | `data/company-business.json` (build:business, companies-batch products[]+desc 632+KR CURATED) → 발간직전 주입 ← 2026-06-07 |
-| 12-P5d | US 폴백 종목 기업 프로필 (섹터·업종·직원수·사업요약·회사명) | 📋 static | `data/company-profiles.json` (build-company-profiles.mjs, Yahoo assetProfile, 폴백 327/329) → `/api/company-business` profile 필드 → CompanyPage 폴백 카드 ← 2026-06-12 WDAY 전수조사 |
+| 12-P5c | 종목별 주력 사업/매출상품 (businessSummary+desc) | 📋 static | `data/company-business.json` (build:business, companies-batch products[]+desc 632+KR CURATED) + **2026-06-14 미수록은 `company-profiles.json` summary fallback** → 발간직전 주입. 제품명 raw(번역X) ← 2026-06-07 |
+| 12-P5d | US+**KR** 종목 기업 프로필 (섹터·업종·직원수·사업요약·회사명) | 📋 static | `data/company-profiles.json` (build-company-profiles.mjs, Yahoo assetProfile, 706건 **KR 348 포함**) → `/api/company-business` profile + 매수후보 grounding ← 2026-06-12 / 2026-06-14 KR 확장 |
+| 12-P5e | 후보풀 sector 메타 보강 (US+KR, 환각 grounding) | ✅ live | `enrich-sectors.mjs` (US+KR 전체) — company-profiles seed → Yahoo crumb → **Naver WICS 업종** 3단. 비ETF 미상 0(US 873/KR 427), ETF 38만 잔여. `meta.sector` 'KR'/'Unknown' 제거 ← 2026-06-14 |
 | 12-P5e | 회사페이지 매출 구성 % (전 종목, 동적 우선) | 🔄 cron | DB `company_segments` (build-segments-dynamic, 10-K Σ±6% 검증 통과만 적재, 매시 6종 + 벌크 sweep) → 풀/폴백 양쪽 도넛. 미통과 종목은 풀=정적 큐레이션 표기·폴백=미표시 ← 2026-06-12 |
 | 12-P5f | 폴백 페이지 재무 심화 (8 KPI+추이+BS/CF) | ✅ live | `/api/company-financials` SEC XBRL (풀 페이지와 동일 데이터, 렌더만 2칸→풀 패리티) ← 2026-06-12 |
 | 12-P6 | 종목별 매수 액션 (buy/hold/watch) | 💾 cached | AI 생성 ← iter210 |

@@ -1678,27 +1678,27 @@
     },
     "BA": {
       "name": "Airbus",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "RTX": {
       "name": "Delta / United / American Airlines",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "mega"
     },
     "LMT": {
       "name": "Air carriers (aftermarket MRO)",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "NOC": {
       "name": "L3Harris",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "LHX": {
       "name": "Electric Actuator Systems (eActuation)",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large"
     },
     "ALLE": {
@@ -3698,12 +3698,12 @@
     },
     "ORCL": {
       "name": "Gaming",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "mega"
     },
     "TSLA": {
       "name": "OEM & Other",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "titan"
     },
     "TSM": {
@@ -6428,37 +6428,37 @@
     },
     "402340.KS": {
       "name": "SK스퀘어",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kospi"
     },
     "005935.KS": {
       "name": "삼성전자우",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "329180.KS": {
       "name": "HD현대중공업",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "010120.KS": {
       "name": "LS ELECTRIC",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "006800.KS": {
       "name": "미래에셋증권",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "298040.KS": {
       "name": "효성중공업",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6470,19 +6470,19 @@
     },
     "009540.KS": {
       "name": "HD한국조선해양",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "000150.KS": {
       "name": "두산",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "307950.KS": {
       "name": "현대오토에버",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6500,19 +6500,19 @@
     },
     "278470.KS": {
       "name": "에이피알",
-      "sector": "KR",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "006260.KS": {
       "name": "LS",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "259960.KS": {
       "name": "크래프톤",
-      "sector": "KR",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6530,13 +6530,13 @@
     },
     "064400.KS": {
       "name": "LG씨엔에스",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "005940.KS": {
       "name": "NH투자증권",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6548,13 +6548,13 @@
     },
     "323410.KS": {
       "name": "카카오뱅크",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "443060.KS": {
       "name": "HD현대마린솔루션",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6566,25 +6566,25 @@
     },
     "007660.KS": {
       "name": "이수페타시스",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "039490.KS": {
       "name": "키움증권",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "000880.KS": {
       "name": "한화",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "005387.KS": {
       "name": "현대차2우B",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6596,19 +6596,19 @@
     },
     "353200.KS": {
       "name": "대덕전자",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "001440.KS": {
       "name": "대한전선",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "005830.KS": {
       "name": "DB손해보험",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6632,7 +6632,7 @@
     },
     "034220.KS": {
       "name": "LG디스플레이",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6644,37 +6644,37 @@
     },
     "062040.KS": {
       "name": "산일전기",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "267270.KS": {
       "name": "HD건설기계",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "010060.KS": {
       "name": "OCI홀딩스",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "066970.KS": {
       "name": "엘앤에프",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "454910.KS": {
       "name": "두산로보틱스",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "336260.KS": {
       "name": "두산퓨얼셀",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6686,13 +6686,13 @@
     },
     "128940.KS": {
       "name": "한미약품",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kospi"
     },
     "005385.KS": {
       "name": "현대차우",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6710,37 +6710,37 @@
     },
     "377300.KS": {
       "name": "카카오페이",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "018880.KS": {
       "name": "한온시스템",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "000500.KS": {
       "name": "가온전선",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "029780.KS": {
       "name": "삼성카드",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "088980.KS": {
       "name": "맥쿼리인프라",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "138930.KS": {
       "name": "BNK금융지주",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6752,13 +6752,13 @@
     },
     "011790.KS": {
       "name": "SKC",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "052690.KS": {
       "name": "한전기술",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6770,19 +6770,19 @@
     },
     "004170.KS": {
       "name": "신세계",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "022100.KS": {
       "name": "포스코DX",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "002380.KS": {
       "name": "KCC",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6800,7 +6800,7 @@
     },
     "450080.KS": {
       "name": "에코프로머티",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6818,7 +6818,7 @@
     },
     "103590.KS": {
       "name": "일진전기",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6830,7 +6830,7 @@
     },
     "088350.KS": {
       "name": "한화생명",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6848,7 +6848,7 @@
     },
     "023530.KS": {
       "name": "롯데쇼핑",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6878,7 +6878,7 @@
     },
     "111770.KS": {
       "name": "영원무역",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6890,25 +6890,25 @@
     },
     "012510.KS": {
       "name": "더존비즈온",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "005850.KS": {
       "name": "에스엘",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "011170.KS": {
       "name": "롯데케미칼",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "489790.KS": {
       "name": "한화비전",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6920,13 +6920,13 @@
     },
     "302440.KS": {
       "name": "SK바이오사이언스",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kospi"
     },
     "035250.KS": {
       "name": "강원랜드",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6950,25 +6950,25 @@
     },
     "014680.KS": {
       "name": "한솔케미칼",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "031210.KS": {
       "name": "서울보증보험",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "017800.KS": {
       "name": "현대엘리베이터",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "020150.KS": {
       "name": "롯데에너지머티리얼즈",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6980,49 +6980,49 @@
     },
     "204320.KS": {
       "name": "HL만도",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "457190.KS": {
       "name": "이수스페셜티케미컬",
-      "sector": "KR",
+      "sector": "Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "375500.KS": {
       "name": "DL이앤씨",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "028670.KS": {
       "name": "팬오션",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "001720.KS": {
       "name": "신영증권",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "139130.KS": {
       "name": "iM금융지주",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "007810.KS": {
       "name": "코리아써키트",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "383220.KS": {
       "name": "F&F",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -7034,19 +7034,19 @@
     },
     "012750.KS": {
       "name": "에스원",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "009970.KS": {
       "name": "영원무역홀딩스",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "007340.KS": {
       "name": "DN오토모티브",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -7058,7 +7058,7 @@
     },
     "456600.KS": {
       "name": "TIME 글로벌AI인공지능액티브",
-      "sector": "KR",
+      "sector": "기타",
       "cap": "kr",
       "market": "kospi"
     },
@@ -7070,19 +7070,19 @@
     },
     "006360.KS": {
       "name": "GS건설",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "026960.KS": {
       "name": "동서",
-      "sector": "KR",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "011210.KS": {
       "name": "현대위아",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -7094,745 +7094,745 @@
     },
     "483650.KS": {
       "name": "달바글로벌",
-      "sector": "KR",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "277810.KQ": {
       "name": "레인보우로보틱스",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "036930.KQ": {
       "name": "주성엔지니어링",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "950160.KQ": {
       "name": "코오롱티슈진",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "000250.KQ": {
       "name": "삼천당제약",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "087010.KQ": {
       "name": "펩트론",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "028300.KQ": {
       "name": "HLB",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "298380.KQ": {
       "name": "에이비엘바이오",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "440110.KQ": {
       "name": "파두",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "141080.KQ": {
       "name": "리가켐바이오",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "240810.KQ": {
       "name": "원익IPS",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "310210.KQ": {
       "name": "보로노이",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "214370.KQ": {
       "name": "케어젠",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "178320.KQ": {
       "name": "서진시스템",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "222800.KQ": {
       "name": "심텍",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "347850.KQ": {
       "name": "디앤디파마텍",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "319400.KQ": {
       "name": "현대무벡스",
-      "sector": "KR",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "095340.KQ": {
       "name": "ISC",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "403870.KQ": {
       "name": "HPSP",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "010170.KQ": {
       "name": "대한광통신",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "080220.KQ": {
       "name": "제주반도체",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "226950.KQ": {
       "name": "올릭스",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "084370.KQ": {
       "name": "유진테크",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "005290.KQ": {
       "name": "동진쎄미켐",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "319660.KQ": {
       "name": "피에스케이",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "263750.KQ": {
       "name": "펄어비스",
-      "sector": "KR",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "067310.KQ": {
       "name": "하나마이크론",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "100790.KQ": {
       "name": "미래에셋벤처투자",
-      "sector": "KR",
+      "sector": "창업투자",
       "cap": "kr",
       "market": "kosdaq"
     },
     "032820.KQ": {
       "name": "우리기술",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "058610.KQ": {
       "name": "에스피지",
-      "sector": "KR",
+      "sector": "전기제품",
       "cap": "kr",
       "market": "kosdaq"
     },
     "082920.KQ": {
       "name": "비츠로셀",
-      "sector": "KR",
+      "sector": "전기제품",
       "cap": "kr",
       "market": "kosdaq"
     },
     "043260.KQ": {
       "name": "성호전자",
-      "sector": "KR",
+      "sector": "전기제품",
       "cap": "kr",
       "market": "kosdaq"
     },
     "218410.KQ": {
       "name": "RFHIC",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "095610.KQ": {
       "name": "테스",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "257720.KQ": {
       "name": "실리콘투",
-      "sector": "KR",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kosdaq"
     },
     "031980.KQ": {
       "name": "피에스케이홀딩스",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "083650.KQ": {
       "name": "비에이치아이",
-      "sector": "KR",
+      "sector": "Energy",
       "cap": "kr",
       "market": "kosdaq"
     },
     "030530.KQ": {
       "name": "원익홀딩스",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "131290.KQ": {
       "name": "티에스이",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "068760.KQ": {
       "name": "셀트리온제약",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "290650.KQ": {
       "name": "엘앤씨바이오",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "347700.KQ": {
       "name": "스피어",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "035900.KQ": {
       "name": "JYP Ent.",
-      "sector": "KR",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "140410.KQ": {
       "name": "메지온",
-      "sector": "KR",
+      "sector": "Consumer Staples",
       "cap": "kr",
       "market": "kosdaq"
     },
     "140860.KQ": {
       "name": "파크시스템스",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "089030.KQ": {
       "name": "테크윙",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "420770.KQ": {
       "name": "기가비스",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "476830.KQ": {
       "name": "알지노믹스",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "323280.KQ": {
       "name": "태성",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "060370.KQ": {
       "name": "LS마린솔루션",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "437730.KQ": {
       "name": "삼현",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "445680.KQ": {
       "name": "큐리옥스바이오시스템즈",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "096530.KQ": {
       "name": "씨젠",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "099320.KQ": {
       "name": "쎄트렉아이",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "189300.KQ": {
       "name": "인텔리안테크",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "031330.KQ": {
       "name": "에스에이엠티",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "027360.KQ": {
       "name": "아주IB투자",
-      "sector": "KR",
+      "sector": "창업투자",
       "cap": "kr",
       "market": "kosdaq"
     },
     "397030.KQ": {
       "name": "에이프릴바이오",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "089970.KQ": {
       "name": "브이엠",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "417200.KQ": {
       "name": "LS머트리얼즈",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "127120.KQ": {
       "name": "제이에스링크",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "475830.KQ": {
       "name": "오름테라퓨틱",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "101490.KQ": {
       "name": "에스앤에스텍",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "490470.KQ": {
       "name": "세미파이브",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "232140.KQ": {
       "name": "와이씨",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "491000.KQ": {
       "name": "리브스메드",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "295310.KQ": {
       "name": "에이치브이엠",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "038500.KQ": {
       "name": "삼표시멘트",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "166090.KQ": {
       "name": "하나머티리얼즈",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "195940.KQ": {
       "name": "HK이노엔",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "090710.KQ": {
       "name": "휴림로봇",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "003380.KQ": {
       "name": "하림지주",
-      "sector": "KR",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kosdaq"
     },
     "439960.KQ": {
       "name": "코스모로보틱스",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "328130.KQ": {
       "name": "루닛",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "204270.KQ": {
       "name": "제이앤티씨",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "085660.KQ": {
       "name": "차바이오텍",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "065350.KQ": {
       "name": "신성델타테크",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
     "281740.KQ": {
       "name": "레이크머티리얼즈",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "356860.KQ": {
       "name": "티엘비",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "458870.KQ": {
       "name": "씨어스",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "466100.KQ": {
       "name": "클로봇",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "124500.KQ": {
       "name": "아이티센글로벌",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "126340.KQ": {
       "name": "비나텍",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "137400.KQ": {
       "name": "피엔티",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "115180.KQ": {
       "name": "큐리언트",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "161580.KQ": {
       "name": "필옵틱스",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "052020.KQ": {
       "name": "에스티큐브",
-      "sector": "KR",
+      "sector": "판매업체",
       "cap": "kr",
       "market": "kosdaq"
     },
     "388210.KQ": {
       "name": "씨엠티엑스",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "036830.KQ": {
       "name": "솔브레인홀딩스",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "388720.KQ": {
       "name": "유일로보틱스",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "083450.KQ": {
       "name": "GST",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "456160.KQ": {
       "name": "지투지바이오",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "183300.KQ": {
       "name": "코미코",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "213420.KQ": {
       "name": "덕산네오룩스",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "056190.KQ": {
       "name": "에스에프에이",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "358570.KQ": {
       "name": "지아이이노베이션",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "160190.KQ": {
       "name": "하이젠알앤엠",
-      "sector": "KR",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
     "033100.KQ": {
       "name": "제룡전기",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "086450.KQ": {
       "name": "동국제약",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "033790.KQ": {
       "name": "피노",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "074600.KQ": {
       "name": "원익QnC",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "476060.KQ": {
       "name": "온코닉테라퓨틱스",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "121600.KQ": {
       "name": "나노신소재",
-      "sector": "KR",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "094170.KQ": {
       "name": "동운아나텍",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "023160.KQ": {
       "name": "태광",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "171090.KQ": {
       "name": "선익시스템",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "090360.KQ": {
       "name": "로보스타",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "014620.KQ": {
       "name": "성광벤드",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "052400.KQ": {
       "name": "코나아이",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "376900.KQ": {
       "name": "로킷헬스케어",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "365340.KQ": {
       "name": "성일하이텍",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "253450.KQ": {
       "name": "스튜디오드래곤",
-      "sector": "KR",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "033640.KQ": {
       "name": "네패스",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "056080.KQ": {
       "name": "유진로봇",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "032190.KQ": {
       "name": "다우데이타",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "348370.KQ": {
       "name": "엔켐",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "046890.KQ": {
       "name": "서울반도체",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "252990.KQ": {
       "name": "샘씨엔에스",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
     "336570.KQ": {
       "name": "원텍",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "174900.KQ": {
       "name": "앱클론",
-      "sector": "KR",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "044490.KQ": {
       "name": "태웅",
-      "sector": "KR",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "241710.KQ": {
       "name": "코스메카코리아",
-      "sector": "KR",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kosdaq"
     },
     "037460.KQ": {
       "name": "삼지전자",
-      "sector": "KR",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "053610.KQ": {
       "name": "프로텍",
-      "sector": "KR",
+      "sector": "Semiconductors",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7856,7 +7856,7 @@
     },
     "AMP": {
       "name": "Ameriprise Financial",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -7868,43 +7868,43 @@
     },
     "APO": {
       "name": "Apollo Global Management",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "APTV": {
       "name": "Aptiv",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "ACGL": {
       "name": "Arch Capital Group",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "ADM": {
       "name": "Archer Daniels Midland",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "ARES": {
       "name": "Ares Management",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "AJG": {
       "name": "Arthur J. Gallagher &amp; Co.",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "AIZ": {
       "name": "Assurant",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -7916,73 +7916,73 @@
     },
     "BAX": {
       "name": "Baxter International",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "BX": {
       "name": "Blackstone Inc.",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "BNY": {
       "name": "BNY Mellon",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "BR": {
       "name": "Broadridge Financial Solutions",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large",
       "sp500": true
     },
     "BRO": {
       "name": "Brown &amp; Brown",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "BF-B": {
       "name": "Brown–Forman",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "BLDR": {
       "name": "Builders FirstSource",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "mid",
       "sp500": true
     },
     "BG": {
       "name": "Bunge Global",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "CPB": {
       "name": "Campbell's Company (The)",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "mid",
       "sp500": true
     },
     "CVNA": {
       "name": "Carvana",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "CASY": {
       "name": "Casey's",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "CBRE": {
       "name": "CBRE Group",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -7994,7 +7994,7 @@
     },
     "CRL": {
       "name": "Charles River Laboratories",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "mid",
       "sp500": true
     },
@@ -8006,25 +8006,25 @@
     },
     "CINF": {
       "name": "Cincinnati Financial",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "CFG": {
       "name": "Citizens Financial Group",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "FIX": {
       "name": "Comfort Systems USA",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "CAG": {
       "name": "Conagra Brands",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "mid",
       "sp500": true
     },
@@ -8042,19 +8042,19 @@
     },
     "CPAY": {
       "name": "Corpay",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large",
       "sp500": true
     },
     "CTVA": {
       "name": "Corteva",
-      "sector": "Unknown",
+      "sector": "materials",
       "cap": "large",
       "sp500": true
     },
     "CSGP": {
       "name": "CoStar Group",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8066,13 +8066,13 @@
     },
     "CMI": {
       "name": "Cummins",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "DVA": {
       "name": "DaVita",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
@@ -8090,7 +8090,7 @@
     },
     "EME": {
       "name": "Emcor",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8102,37 +8102,37 @@
     },
     "EFX": {
       "name": "Equifax",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "ERIE": {
       "name": "Erie Indemnity",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "EXE": {
       "name": "Expand Energy",
-      "sector": "Unknown",
+      "sector": "energy",
       "cap": "large",
       "sp500": true
     },
     "EXPE": {
       "name": "Expedia Group",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "EXPD": {
       "name": "Expeditors International",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "EXR": {
       "name": "Extra Space Storage",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8144,7 +8144,7 @@
     },
     "FDS": {
       "name": "FactSet",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "mid",
       "sp500": true
     },
@@ -8156,19 +8156,19 @@
     },
     "FRT": {
       "name": "Federal Realty Investment Trust",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
     "FIS": {
       "name": "Fidelity National Information Services",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "large",
       "sp500": true
     },
     "FITB": {
       "name": "Fifth Third Bancorp",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8180,19 +8180,19 @@
     },
     "GEHC": {
       "name": "GE HealthCare",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "GEV": {
       "name": "GE Vernova",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "mega",
       "sp500": true
     },
     "GL": {
       "name": "Globe Life",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8204,43 +8204,43 @@
     },
     "HAS": {
       "name": "Hasbro",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "DOC": {
       "name": "Healthpeak Properties",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
     "HRL": {
       "name": "Hormel Foods",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "HBAN": {
       "name": "Huntington Bancshares",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "IEX": {
       "name": "IDEX Corporation",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "IBKR": {
       "name": "Interactive Brokers",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "IRM": {
       "name": "Iron Mountain",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8252,49 +8252,49 @@
     },
     "JKHY": {
       "name": "Jack Henry &amp; Associates",
-      "sector": "Unknown",
+      "sector": "technology",
       "cap": "mid",
       "sp500": true
     },
     "J": {
       "name": "Jacobs Solutions",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "JCI": {
       "name": "Johnson Controls",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "KVUE": {
       "name": "Kenvue",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
     "KEY": {
       "name": "KeyCorp",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "KKR": {
       "name": "KKR &amp; Co.",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "LH": {
       "name": "Labcorp",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "L": {
       "name": "Loews Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8306,31 +8306,31 @@
     },
     "LYB": {
       "name": "LyondellBasell",
-      "sector": "Unknown",
+      "sector": "materials",
       "cap": "large",
       "sp500": true
     },
     "MTB": {
       "name": "M&amp;T Bank",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "MRSH": {
       "name": "Marsh McLennan",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "MAS": {
       "name": "Masco",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "MKC": {
       "name": "McCormick &amp; Company",
-      "sector": "Unknown",
+      "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
     },
@@ -8342,7 +8342,7 @@
     },
     "MCO": {
       "name": "Moody's Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8360,19 +8360,19 @@
     },
     "NWSA": {
       "name": "NWSA",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "NWS": {
       "name": "NWS",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "NTRS": {
       "name": "Northern Trust",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8390,13 +8390,13 @@
     },
     "PSKY": {
       "name": "Paramount Skydance Corporation",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "PNR": {
       "name": "Pentair",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8408,13 +8408,13 @@
     },
     "PFG": {
       "name": "Principal Financial Group",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "PGR": {
       "name": "Progressive Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8426,7 +8426,7 @@
     },
     "DGX": {
       "name": "Quest Diagnostics",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
@@ -8438,25 +8438,25 @@
     },
     "RL": {
       "name": "Ralph Lauren Corporation",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "RF": {
       "name": "Regions Financial Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "RVTY": {
       "name": "Revvity",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "ROL": {
       "name": "Rollins, Inc.",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
@@ -8474,7 +8474,7 @@
     },
     "SBAC": {
       "name": "SBA Communications",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
@@ -8492,31 +8492,31 @@
     },
     "STT": {
       "name": "State Street Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "STE": {
       "name": "Steris",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     },
     "SYF": {
       "name": "Synchrony Financial",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "TROW": {
       "name": "T. Rowe Price",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "TPR": {
       "name": "Tapestry, Inc.",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
@@ -8528,19 +8528,19 @@
     },
     "TPL": {
       "name": "Texas Pacific Land Corporation",
-      "sector": "Unknown",
+      "sector": "energy",
       "cap": "large",
       "sp500": true
     },
     "TKO": {
       "name": "TKO Group Holdings",
-      "sector": "Unknown",
+      "sector": "communication-services",
       "cap": "large",
       "sp500": true
     },
     "TSCO": {
       "name": "Tractor Supply",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
@@ -8552,19 +8552,19 @@
     },
     "URI": {
       "name": "United Rentals",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "UHS": {
       "name": "Universal Health Services",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "mid",
       "sp500": true
     },
     "VLTO": {
       "name": "Veralto",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8576,7 +8576,7 @@
     },
     "VRT": {
       "name": "Vertiv",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
@@ -8588,37 +8588,37 @@
     },
     "WRB": {
       "name": "W. R. Berkley Corporation",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
     "GWW": {
       "name": "W. W. Grainger",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "WAB": {
       "name": "Wabtec",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "WY": {
       "name": "Weyerhaeuser",
-      "sector": "Unknown",
+      "sector": "real-estate",
       "cap": "large",
       "sp500": true
     },
     "WSM": {
       "name": "Williams-Sonoma, Inc.",
-      "sector": "Unknown",
+      "sector": "consumer-discretionary",
       "cap": "large",
       "sp500": true
     },
     "WTW": {
       "name": "Willis Towers Watson",
-      "sector": "Unknown",
+      "sector": "financials",
       "cap": "large",
       "sp500": true
     },
@@ -8630,13 +8630,13 @@
     },
     "XYL": {
       "name": "Xylem Inc.",
-      "sector": "Unknown",
+      "sector": "industrials",
       "cap": "large",
       "sp500": true
     },
     "ZBH": {
       "name": "Zimmer Biomet",
-      "sector": "Unknown",
+      "sector": "healthcare",
       "cap": "large",
       "sp500": true
     }

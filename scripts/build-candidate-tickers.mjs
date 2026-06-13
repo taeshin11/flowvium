@@ -244,6 +244,19 @@ if (retiered) {
 }
 
 const outPath = resolve(ROOT, 'data/candidate-tickers.json');
+// 2026-06-14: enrich-sectors.mjs 가 채운 실제 sector 를 재빌드 시 보존 (덮어쓰기 방지).
+//   재빌드는 KR_META 미수록 KR 을 sector:'KR' generic 으로 되돌리는데, 그러면 enrich 결과가 wipe 되어
+//   LLM 환각(HPSP="차량") 이 재발 → 사용자 "왜 자꾸 사각지대". 기존 real sector 면 유지.
+try {
+  const prev = JSON.parse(readFileSync(outPath, 'utf8'));
+  const generic = s => !s || s === 'KR' || s === 'kr' || s === 'Unknown' || s === '';
+  let kept = 0;
+  for (const [t, m] of Object.entries(out.meta)) {
+    const ps = prev.meta?.[t]?.sector;
+    if (generic(m.sector) && !generic(ps)) { m.sector = ps; kept++; }
+  }
+  if (kept) console.log(`  [sector-preserve] enrich 결과 ${kept}건 유지 (재빌드 generic 되돌림 방지)`);
+} catch { /* 최초 빌드 — prev 없음 */ }
 writeFileSync(outPath, JSON.stringify(out, null, 2), 'utf8');
 
 console.log(`✅ ${candidate.length} candidates → ${outPath}`);

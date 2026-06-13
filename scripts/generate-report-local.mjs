@@ -92,6 +92,28 @@ try {
   console.log(`[startup] company-business.json 로드: ${Object.keys(COMPANY_BUSINESS_JSON).length} 사업/주력제품`);
 } catch { /* build-company-business.mjs 미실행 */ }
 
+// 2026-06-14: company-profiles.json (Yahoo assetProfile summary/sector/industry, build-company-profiles.mjs +
+//   enrich-sectors.mjs 수집). KR 포함 700+. company-business 미커버 종목의 사업 grounding 소스 —
+//   프롬프트 BUY CANDIDATES 블록에 한줄 주입해 LLM 환각(HPSP="차량") 차단 + businessSummary fallback.
+let COMPANY_PROFILES_JSON = {};
+try {
+  COMPANY_PROFILES_JSON = JSON.parse(readFileSync(resolve(ROOT, 'data/company-profiles.json'), 'utf8'));
+  console.log(`[startup] company-profiles.json 로드: ${Object.keys(COMPANY_PROFILES_JSON).length} 사업개요/업종`);
+} catch { /* build-company-profiles.mjs 미실행 */ }
+/** ticker(suffix 포함/제거 모두) → 사업 한줄(grounding). company-business products 우선, 없으면 profiles summary 1문장. */
+function businessOneLiner(ticker) {
+  const key = String(ticker || '').replace(/\.(KS|KQ)$/, '');
+  const b = COMPANY_BUSINESS_JSON[ticker] || COMPANY_BUSINESS_JSON[key];
+  if (b?.products) return String(b.products).slice(0, 100);
+  if (b?.desc) return String(b.desc).slice(0, 100);
+  const p = COMPANY_PROFILES_JSON[ticker] || COMPANY_PROFILES_JSON[key];
+  // 약어 마침표("Co.")로 문장 분리하면 사업 핵심("semiconductor equipment")이 잘려 grounding 무용 →
+  //   문장분리 대신 100자 truncate (앞부분에 업종/제품 키워드가 충분히 들어옴).
+  if (p?.summary) return String(p.summary).slice(0, 100);
+  if (p?.industry) return String(p.industry).slice(0, 60);
+  return '';
+}
+
 CANDIDATE_TICKERS ??= [
   // Fallback (build-candidate-tickers.mjs 미실행 시)
   // Mag7 + 메가 Tech
@@ -2868,38 +2890,79 @@ async function computeHistoricalAnalog(ctxRaw) {
     return out;
   };
   try {
-    const [spx, vix, kospi] = await Promise.all([hist('^GSPC'), hist('^VIX'), hist('^KS11')]);
+    // 2026-06-14 다요인 확장(사용자 "거시·미시 다 조합"): 가격/변동성 3지문 → 거시 추가(10Y 금리·
+    //   수익률곡선 기울기·금리 3개월 모멘텀). ^TNX(10Y)/^IRX(13주)는 Yahoo 장기 이력(1990↑) 보유 →
+    //   과거 국면 매칭에 사용 가능. (신용스프레드·F&G 는 장기 이력 부재 → 현재상태 overlay 로만 활용.)
+    const [spx, vix, kospi, tnx, irx] = await Promise.all([hist('^GSPC'), hist('^VIX'), hist('^KS11'), hist('^TNX').catch(() => null), hist('^IRX').catch(() => null)]);
     if (!spx?.length || !vix?.length) return null;
+    const tnxByDate = new Map((tnx ?? []).map(p => [p.d, p.c]));
+    const irxByDate = new Map((irx ?? []).map(p => [p.d, p.c]));
+    const haveMacro = tnxByDate.size > 500 && irxByDate.size > 500;
     // 2026-06-13: KR 차원 — breadth 블록 뒤에서 계산(med/curMonth 의존). US 와 동일 깊이(추세+계절성+
     //   유사국면+breadth) 부여 — 사용자 "us랑 kr 왤케 달라? kr 부실". 전부 동적(라이브 Yahoo).
     let kr = null;
     const vixByDate = new Map(vix.map(p => [p.d, p.c]));
-    // 시계열 지표: 고점대비 낙폭(252d trailing) + 20일 수익률, VIX 정렬
+    // 시계열 지표: 고점대비 낙폭(252d trailing) + 20일 수익률 + (거시) 10Y 금리·수익률곡선 기울기, VIX 정렬
     const rows = [];
     for (let i = 252; i < spx.length; i++) {
       const v = vixByDate.get(spx[i].d);
       if (v == null) continue;
       let hi = 0; for (let j = i - 252; j <= i; j++) if (spx[j].c > hi) hi = spx[j].c;
-      rows.push({ i, d: spx[i].d, c: spx[i].c, vix: v, dd: (spx[i].c / hi - 1) * 100, r20: i >= 20 ? (spx[i].c / spx[i - 20].c - 1) * 100 : 0 });
+      const ty = tnxByDate.get(spx[i].d);            // 10Y 금리 (%)
+      const bill = irxByDate.get(spx[i].d);          // 13주 T-bill (%)
+      rows.push({
+        i, d: spx[i].d, c: spx[i].c, vix: v,
+        dd: (spx[i].c / hi - 1) * 100,
+        r20: i >= 20 ? (spx[i].c / spx[i - 20].c - 1) * 100 : 0,
+        ty: ty != null ? ty : null,
+        slope: (ty != null && bill != null) ? (ty - bill) : null,  // 10Y−13wk (수익률곡선 기울기; 음수=역전)
+      });
     }
     if (rows.length < 500) return null;
-    const now = rows[rows.length - 1];
-    // 현재 VIX 는 라이브 값 우선 (Yahoo ^VIX 마지막 봉이 전일일 수 있음)
-    const liveVix = ctxRaw?.volatility?.vix;
-    const fp = { vix: liveVix != null ? +liveVix : now.vix, dd: now.dd, r20: now.r20 };
-    const vixTol = Math.max(2.5, fp.vix * 0.15), ddTol = 4, r20Tol = 5;
-    const episodes = [];
-    let lastIdx = -9999;
-    for (const r of rows) {
-      if (r.i >= rows[rows.length - 1].i - 126) break;             // 최근 6개월 제외(forward 미완성)
-      if (r.i - lastIdx < 21) continue;                            // 같은 국면 중복 제거(에피소드화)
-      if (Math.abs(r.vix - fp.vix) > vixTol || Math.abs(r.dd - fp.dd) > ddTol || Math.abs(r.r20 - fp.r20) > r20Tol) continue;
-      const at = (k) => { const f = spx[r.i + k]; return f ? (f.c / r.c - 1) * 100 : null; };
-      const f1 = at(21), f3 = at(63), f6 = at(126);
-      if (f3 == null) continue;
-      episodes.push({ date: r.d, fwd1m: f1 != null ? +f1.toFixed(1) : null, fwd3m: +f3.toFixed(1), fwd6m: f6 != null ? +f6.toFixed(1) : null });
-      lastIdx = r.i;
+    // 금리 3개월(≈63행) 모멘텀 — 같은 rows 배열에서 lookback
+    for (let k = 0; k < rows.length; k++) {
+      const prev = rows[k - 63];
+      rows[k].tyChg3m = (rows[k].ty != null && prev?.ty != null) ? +(rows[k].ty - prev.ty).toFixed(2) : null;
     }
+    const now = rows[rows.length - 1];
+    // 현재값은 라이브 우선 (Yahoo 마지막 봉이 전일일 수 있음)
+    const liveVix = ctxRaw?.volatility?.vix;
+    const fp = {
+      vix: liveVix != null ? +liveVix : now.vix, dd: now.dd, r20: now.r20,
+      ty: now.ty, slope: now.slope, tyChg3m: now.tyChg3m,
+    };
+    // ── 다요인 가중 거리 매칭 (hard AND-게이트 → 정규화 가중 유클리드). 거시값 결측 행은 해당 차원 skip.
+    //   scale=대략적 표준편차, weight=차원 중요도(가격/변동성 우위, 거시 보조). 임계는 적응형(매칭 8건 목표).
+    const DIMS = haveMacro
+      ? [['vix', 7, 1.0], ['dd', 6, 1.0], ['r20', 5, 0.9], ['ty', 1.5, 0.7], ['slope', 1.0, 0.7], ['tyChg3m', 1.0, 0.6]]
+      : [['vix', 7, 1.0], ['dd', 6, 1.0], ['r20', 5, 0.9]];
+    const distOf = (r) => {
+      let sumSq = 0, wSq = 0;
+      for (const [key, scale, w] of DIMS) {
+        if (fp[key] == null || r[key] == null) continue;          // 결측 차원 제외(가중 정규화로 보정)
+        const z = ((r[key] - fp[key]) / scale) * w;
+        sumSq += z * z; wSq += w * w;
+      }
+      return wSq > 0 ? Math.sqrt(sumSq / wSq) : Infinity;           // 차원수 무관 비교 위해 weight 정규화
+    };
+    const buildEpisodes = (thresh) => {
+      const eps = []; let lastIdx = -9999;
+      for (const r of rows) {
+        if (r.i >= rows[rows.length - 1].i - 126) break;          // 최근 6개월 제외(forward 미완성)
+        if (r.i - lastIdx < 21) continue;                         // 같은 국면 중복 제거(에피소드화)
+        if (distOf(r) > thresh) continue;
+        const at = (k) => { const f = spx[r.i + k]; return f ? (f.c / r.c - 1) * 100 : null; };
+        const f1 = at(21), f3 = at(63), f6 = at(126);
+        if (f3 == null) continue;
+        eps.push({ date: r.d, dist: +distOf(r).toFixed(2), fwd1m: f1 != null ? +f1.toFixed(1) : null, fwd3m: +f3.toFixed(1), fwd6m: f6 != null ? +f6.toFixed(1) : null });
+        lastIdx = r.i;
+      }
+      return eps;
+    };
+    // 적응형 임계: 좁게 시작해 8건 미만이면 단계적 완화 (과적합 방지 + 항상 표본 확보)
+    let episodes = [], usedThresh = null;
+    for (const th of [0.6, 0.85, 1.1, 1.4]) { episodes = buildEpisodes(th); usedThresh = th; if (episodes.length >= 8) break; }
+    episodes.sort((a, b) => a.dist - b.dist);                      // 가까운 국면 우선
     const med = (arr) => { const s = arr.filter(x => x != null).sort((a, b) => a - b); return s.length ? +s[Math.floor(s.length / 2)].toFixed(1) : null; };
     // 2026-06-12 보강(사용자 승인 tier-1): ① 지수 추세 — SPX 200일선 위/아래 (공포매수도 장기추세
     //   위에서 성공률 높음) ② 계절성 — 현재 월의 역사적 1개월 forward 중앙값 (실측, 하드코딩 금지)
@@ -2973,7 +3036,29 @@ async function computeHistoricalAnalog(ctxRaw) {
         breadth: krBreadth,
       };
     }
-    const base = { fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) }, trend, seasonality, breadth, kr, source: 'yahoo-^GSPC/^VIX/RSP/^KS11/^KQ11-1990~' };
+    // 거시 현재상태 overlay — 과거 장기이력 부재(신용스프레드·F&G)는 매칭 차원 아님, 현재 국면 해석용.
+    //   computeMacroEarlyWarning 과 동일 ctxRaw 소스. UI/판정이 "지금 거시가 우호/적대인가" 표시.
+    const macroContext = {
+      ty10: fp.ty != null ? +fp.ty.toFixed(2) : null,              // 10Y 금리 (매칭 차원)
+      curveSlopePp: fp.slope != null ? +fp.slope.toFixed(2) : null, // 수익률곡선 기울기 (매칭 차원, 음수=역전)
+      rate3moChgPp: fp.tyChg3m != null ? fp.tyChg3m : null,         // 금리 3개월 변화 (매칭 차원)
+      fearGreed: (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? null,  // 현재 overlay (미스 시 null)
+      creditSpread: ctxRaw?.credit?.hyOasPct ?? ctxRaw?.creditSpread ?? null, // 현재 overlay
+    };
+    const base = {
+      fingerprint: {
+        vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1),
+        ...(fp.ty != null ? { ty10: +fp.ty.toFixed(2) } : {}),
+        ...(fp.slope != null ? { curveSlopePp: +fp.slope.toFixed(2) } : {}),
+        ...(fp.tyChg3m != null ? { rate3moChgPp: fp.tyChg3m } : {}),
+      },
+      factorsUsed: DIMS.map(d => d[0]),                            // 매칭에 쓴 차원 (거시 포함 여부 투명화)
+      matchTightness: usedThresh,                                  // 적응형 임계 (작을수록 정밀 매칭)
+      macroContext, trend, seasonality, breadth, kr,
+      source: haveMacro
+        ? 'yahoo-^GSPC/^VIX/^TNX/^IRX/RSP/^KS11/^KQ11-1990~ (다요인 가중매칭)'
+        : 'yahoo-^GSPC/^VIX/RSP/^KS11/^KQ11-1990~ (금리 결측→3지문)',
+    };
     if (!episodes.length) return { matches: 0, ...base };
     return {
       matches: episodes.length,
@@ -2981,7 +3066,7 @@ async function computeHistoricalAnalog(ctxRaw) {
       med3m: med(episodes.map(e => e.fwd3m)),
       med6m: med(episodes.map(e => e.fwd6m)),
       posRate3m: Math.round(episodes.filter(e => e.fwd3m > 0).length / episodes.length * 100),
-      recent: episodes.slice(-5).reverse(),                        // 최근 유사사례 5건 (날짜·실측)
+      recent: episodes.slice(0, 5),                                // 가장 가까운 유사사례 5건 (거리순, 날짜·실측)
       ...base,
     };
   } catch (e) { console.warn(`  [analog] 과거 유사국면 계산 실패: ${String(e?.message).slice(0, 60)}`); return null; }
@@ -5367,9 +5452,11 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     buyCandidates.length ? [
       '[BUY CANDIDATES — 1,200+ ticker 4-stage scoring 결과 top 30]',
       '(score = cumulative sum of 23 rules: tech/fund/구루/macro/micro/selflearn)',
-      ...buyCandidates.slice(0, 30).map((c, i) =>
-        `  ${(i + 1).toString().padStart(2)}. ${c.ticker.padEnd(11)} score=${c.stage1Score} (${c.market}/${c.sector}) — ${c.reasons.slice(0, 3).map(r => r.ruleId).join(', ')}`
-      ),
+      '(괄호 뒤 → = 실제 사업/주력제품. rationale 은 이 사업 사실에만 근거할 것. 모르는 종목 추측 금지.)',
+      ...buyCandidates.slice(0, 30).map((c, i) => {
+        const biz = businessOneLiner(c.ticker);
+        return `  ${(i + 1).toString().padStart(2)}. ${c.ticker.padEnd(11)} score=${c.stage1Score} (${c.market}/${c.sector})${biz ? ` → ${biz}` : ''} — ${c.reasons.slice(0, 3).map(r => r.ruleId).join(', ')}`;
+      }),
       'GUIDANCE: 위 score 는 정량 룰 결과. LLM 은 이 candidate pool 안에서 최종 12개 선택 — score 높은 것 우선.',
       'KR 6개 / US 6개 균등 강제는 score 와 무관하게 적용. KR candidate 가 6 미만이면 score 낮아도 추가.',
       '',
@@ -6725,19 +6812,26 @@ async function generateViaOllama() {
     if (tbg) console.log(`  [tech-ground] technicalBasis RSI 라벨 실값 교정 ${tbg}건 (≥70 과매수/≤30 과매도/else 중립)`);
   }
   // 2026-06-07: 주력 매출상품/사업개요 주입 (사용자 "뭐로 매출 내는지 보고서에 적어줘").
-  //   company-business.json(큐레이션 products+desc) 권위 소스. KR 6자리는 suffix 제거 후 lookup.
+  //   company-business.json(큐레이션 products+desc) 1차. 2026-06-14: 미커버 종목(KR 대부분/US 폴백)은
+  //   company-profiles.json(Yahoo summary) 로 보강 — businessDesc 공백 방지(사용자 "주력 사업 왜 비어/안나와").
   {
-    let biz = 0;
+    let biz = 0, fromProfile = 0;
     for (const p of dedupedPortfolio) {
       const key = String(p.ticker || '').replace(/\.(KS|KQ)$/, '');
       const b = COMPANY_BUSINESS_JSON[p.ticker] || COMPANY_BUSINESS_JSON[key];
+      const prof = COMPANY_PROFILES_JSON[p.ticker] || COMPANY_PROFILES_JSON[key];
       if (b && (b.products || b.desc)) {
         p.businessSummary = b.products || '';
-        p.businessDesc = b.desc || '';
+        p.businessDesc = b.desc || (prof?.summary ? String(prof.summary).split(/(?<=[.。])\s/).slice(0, 2).join(' ').slice(0, 240) : '');
         biz++;
+      } else if (prof?.summary) {
+        // 큐레이션 미수록 → Yahoo 사업개요 첫 2문장(영문 — ReportPage <T> 가 로케일 번역).
+        p.businessDesc = String(prof.summary).split(/(?<=[.。])\s/).slice(0, 2).join(' ').slice(0, 240);
+        if (prof.industry) p.businessSummary = String(prof.industry); // 주력 라벨에 업종 표기
+        fromProfile++;
       }
     }
-    console.log(`  [business] 주력 매출상품 주입: ${biz}/${dedupedPortfolio.length}`);
+    console.log(`  [business] 주력 매출상품 주입: 큐레이션 ${biz} + 프로필 ${fromProfile} = ${biz + fromProfile}/${dedupedPortfolio.length}`);
   }
   // 2026-06-04: 종목별 내재변동성(IV) 주입 (사용자 요청) — US 옵션 IV(atmIv30d). KR 은 옵션 IV 미제공 → null.
   await Promise.all(dedupedPortfolio.map(async (p) => {

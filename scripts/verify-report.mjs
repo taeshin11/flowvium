@@ -68,7 +68,7 @@ export const SECTOR_FORBID = {
 //   positive 방식 — sector 별 *허용* 산업어휘. 산업어가 "수요/시장/성장" 맥락으로 등장하는데
 //   해당 sector 허용 어휘에 없으면 cross-sector thesis 환각으로 판정. 나열 안 한 산업어도 자동 차단.
 export const INDUSTRY_TERMS = [
-  '자동차','모빌리티','전기차','수소차','완성차',
+  '자동차','차량','모빌리티','전기차','수소차','완성차',
   '반도체','메모리','파운드리','d램','낸드','hbm',
   '바이오','제약','신약','헬스케어','의료','진단','백신',
   '건설','부동산','리츠','시멘트',
@@ -86,9 +86,9 @@ export const INDUSTRY_TERMS = [
   '물류','해운','태양광','풍력','수소','원전','로봇','우주','제지','섬유','농업','축산',
 ];
 export const SECTOR_VOCAB = {
-  'automotive': ['자동차','모빌리티','전기차','수소차','완성차','배터리','2차전지','이차전지'],
-  'transportation equipment': ['자동차','모빌리티','전기차','완성차','조선','항공','기계'],
-  'transportation': ['항공','조선','자동차'],
+  'automotive': ['자동차','차량','모빌리티','전기차','수소차','완성차','배터리','2차전지','이차전지'],
+  'transportation equipment': ['자동차','차량','모빌리티','전기차','완성차','조선','항공','기계'],
+  'transportation': ['항공','조선','자동차','차량'],
   'semiconductors': ['반도체','메모리','파운드리','d램','낸드','hbm'],
   'semiconductor': ['반도체','메모리','파운드리','d램','낸드','hbm'],
   'technology': ['반도체','it','소프트웨어','클라우드','전자','통신','가전','디스플레이'],
@@ -111,8 +111,8 @@ export const SECTOR_VOCAB = {
   'metals/mining': ['철강','광물','금속','비철','소재'],
   'industrials': ['기계','조선','항공','방산','국방','건설','로봇','우주','물류','해운'],
   'defense': ['방산','국방','항공','기계'],
-  'consumer-discretionary': ['자동차','의류','패션','화장품','뷰티','유통','이커머스','게임','엔터','면세'],
-  'consumer discretionary': ['자동차','의류','패션','화장품','뷰티','유통','게임','엔터'],
+  'consumer-discretionary': ['자동차','차량','의류','패션','화장품','뷰티','유통','이커머스','게임','엔터','면세'],
+  'consumer discretionary': ['자동차','차량','의류','패션','화장품','뷰티','유통','게임','엔터'],
   'consumer-defensive': ['식품','음료','담배','유통'],
   'consumer staples': ['식품','음료','담배','유통'],
   'wholesale': ['유통','이커머스','식품'],
@@ -121,10 +121,21 @@ export const SECTOR_VOCAB = {
   'real-estate': ['부동산','리츠','건설'],
 };
 const DEMAND_CTX = /(수요|시장|성장|업황|호황|특수|확대|반등|회복|모멘텀|테마|수혜)/;
+// 2026-06-14: KR sector 보강(enrich-sectors)으로 Yahoo-raw 라벨(Consumer Cyclical/Basic Materials/
+//   Communication Services/Real Estate/Financial Services/Consumer Defensive)이 meta 에 들어옴.
+//   SECTOR_VOCAB 키(하이픈/축약형)와 달라 grounding 프로브가 silent skip → 별칭 정규화로 흡수.
+const SECTOR_ALIAS = {
+  'consumer cyclical': 'consumer-discretionary', 'consumer discretionary': 'consumer-discretionary',
+  'consumer defensive': 'consumer-defensive', 'consumer staples': 'consumer-defensive',
+  'basic materials': 'materials', 'financial services': 'financials',
+  'communication services': 'communication-services', 'real estate': 'real-estate',
+  'industrials': 'industrials', 'semiconductors': 'semiconductors', 'technology': 'technology',
+};
 /** text 의 산업어 중 sector 허용 어휘에 없고 demand 맥락인 첫 항목 반환 (cross-sector thesis 환각). 없으면 null. */
 export function mismatchedIndustryTerm(text, sectorLower) {
   if (typeof text !== 'string' || !text) return null;
-  const allowed = SECTOR_VOCAB[sectorLower];
+  const key = SECTOR_ALIAS[sectorLower] ?? sectorLower;
+  const allowed = SECTOR_VOCAB[key];
   if (!allowed) return null; // 미등록 sector → 판단 보류 (false positive 방지)
   for (const term of INDUSTRY_TERMS) {
     const t = term.toLowerCase();

@@ -110,6 +110,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ translated: text, source: 'mixed-fallback' });
     }
 
+    // 2026-06-14 모지바케 가드 (NVDA "H100/H200 GPUs"→"¶4◇¦��c◆" 사건): 로컬 모델이 영숫자
+    //   제품코드 토큰 번역 시 깨진 바이트(U+FFFD `�`) 또는 기호 blob 을 출력 — 기존 garbage/echo/
+    //   mixed 가드가 못 잡음. 원문에 없는 치환문자/기호 밀집 검출 시 원문 fallback(캐시 금지).
+    const replacementCount = (translated.match(/�/g) ?? []).length;
+    // 번역 결과의 "정상 문자"(글자/숫자/공백/일반 구두점) 외 기호 비율
+    const oddSymbols = (translated.match(/[^\p{L}\p{N}\s.,%·()/:+\-–—'"&]/gu) ?? []).length;
+    const oddRatio = translated.length ? oddSymbols / translated.length : 0;
+    if (replacementCount > 0 || (translated.length >= 4 && oddRatio > 0.25)) {
+      logger.warn('api.translate', 'mojibake_detected', { targetLocale, replacementCount, oddRatio: oddRatio.toFixed(2), sample: translated.slice(0, 80) });
+      return NextResponse.json({ translated: text, source: 'mojibake-fallback' });
+    }
+
     // 3. Store in Redis (loggedRedisSet 사용 — CLAUDE.md 규칙)
     if (redis && translated) {
       try {

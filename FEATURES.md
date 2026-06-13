@@ -734,7 +734,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 16개 언어 i18n (`report.ewTitle/ewSevere/ewHigh/ewScore/ewNote`).
 
 ### 13-1c. 📍 종합 판단 카드 (2026-06-12 신설 — 사용자 "관망/매수/중립 결정이 되야")
-- `marketVerdict` 결정론 판정: 하락 전조(earlyWarning) + 상승 전조(reboundWatch) + **공포 매수**(F&G≤25·낙폭≥5%·VIX≥25 조합, 버핏/템플턴/막스 원칙) + **과거 유사국면**(^GSPC+^VIX 1990~ 일봉 라이브 fetch, VIX·낙폭·20일수익률 지문 매칭 → 1/3/6개월 forward 중앙값·상승확률 실측) 종합.
+- `marketVerdict` 결정론 판정: 하락 전조(earlyWarning) + 상승 전조(reboundWatch) + **공포 매수**(F&G≤25·낙폭≥5%·VIX≥25 조합, 버핏/템플턴/막스 원칙) + **과거 유사국면**(^GSPC+^VIX+**^TNX(10Y)+^IRX(13주)**+RSP 1990~ 일봉 라이브 fetch, **다요인 가중거리 매칭** — VIX·낙폭·20일수익률 + **거시(10Y 금리·수익률곡선 기울기·금리 3개월 모멘텀)** 정규화 가중 유클리드, 적응형 임계(8건 목표) → 1/3/6개월 forward 중앙값·상승확률 실측. `macroContext`(F&G·신용스프레드 현재 overlay)·`factorsUsed`·`matchTightness` 투명화. 2026-06-14 다요인 확장) 종합.
 - verdict 6단계: buy_dip(공포 매수)/accumulate(분할 매수)/neutral_ready(중립-매수준비)/neutral/wait(관망)/defensive(방어) + 근거 reasons[] 전부 코드 생성 (LLM 무관, 하드코딩 사례표 금지 — 데이터에서 직접 계산).
 - **US / KR 별도 박스 + 독립 종합판단 (2026-06-13, 사용자 "다른 박스로 종합판단 따로")**: 🇺🇸 미국·거시 박스(global+us 근거) / 🇰🇷 한국 박스(`krVerdict` — KOSPI 추세+계절성+breadth(KOSDAQ vs KOSPI)+과거유사국면, 글로벌 거시 게이트 적용, US 동일 tier). KR 도 전부 동적(^KS11/^KQ11 라이브). i18n `verdictUsTitle/verdictKrTitle/verdictRegion*` 16언어.
 - stance hero 바로 아래 카드, verdict 별 색상. i18n `report.verdictTitle/verdict_*/verdictNote` 16언어.
@@ -755,6 +755,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 룰 카테고리: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) / selflearn(2)
 - 종목명, 섹터, 비중(%), 매수 근거
 - **주력 사업/매출상품 (확장 최상단, 2026-06-07)** — "무슨 사업으로 매출 내는지" 표시. `data/company-business.json`(build:business 가 companies-batch `products[]`(name+revenueShare)+description 추출, 619 ticker + KR 대형주 CURATED) → 발간직전 `businessSummary`(예: "iPhone 52% · Services 22%")+`businessDesc` 주입. LLM 생성 아닌 큐레이션 권위소스. i18n `report.businessLabel`(주력 사업) 16언어
+  - **2026-06-14 grounding 보강**: 큐레이션 미수록 종목(KR 대부분·US 폴백)은 `company-profiles.json`(Yahoo summary) 로 `businessDesc` fallback 주입(공백 방지). 또 `businessOneLiner()` 가 매수후보 프롬프트(BUY CANDIDATES 블록)에 종목별 사업 한줄 주입 → LLM rationale 환각(HPSP="차량"·KODEX="국방") 차단. **제품명/코드(H100·PECVD·GeForce)는 번역 안 함**(`TBizSummary` raw 렌더 — 로컬모델 모지바케 `¶4◇¦��c◆` 방지, 결정론·GPU 0). `<T>` 모지바케 가드(U+FFFD/기호밀집→원문 fallback).
 - **종목 티커 클릭 → `/{locale}/company/[ticker]` 기업 프로필 이동** (보라색 링크, 2026-06-03 — 매수·매도 카드 양쪽)
 - 🇺🇸 US Market / 🇰🇷 KR Market 시장별 분리 표시
 - 클릭 확장: 진입 구간 / 손절가 / 목표가 / Exit Ladder (entry/exit 분할)

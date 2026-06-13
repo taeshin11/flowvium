@@ -14,21 +14,12 @@ function TName({ text }: { text: string }) {
   const translated = useTranslatedText(text);
   return <>{translated}</>;
 }
+// 2026-06-14: 주력제품 목록은 제품명(고유명사/코드: H100·PECVD·GeForce RTX)을 **번역 안 함**.
+//   배경(사용자 "이런거 깨지는건 왜 이래?"): 로컬 모델이 영숫자 코드 토큰을 번역하려다 모지바케
+//   (¶4◇¦��c◆) 출력. 제품코드는 한/영 공통이라 번역 무의미 — 원문 그대로가 정확·결정론적·GPU 0.
+//   퍼센트/연결자는 그대로. (산문 설명은 businessDesc 가 담당, 그쪽은 번역.)
 function TBizSummary({ text }: { text: string }) {
-  const parts = String(text).split(' · ');
-  return (
-    <>
-      {parts.map((p, i) => {
-        const m = p.match(/^(.*?)(\s+\d[\d.,]*%.*)$/);  // "Name 37.7% (YoY +21.5%)" → 이름 / 숫자부 분리
-        return (
-          <span key={i}>
-            {i > 0 && ' · '}
-            {m ? <><TName text={m[1].trim()} />{m[2]}</> : <TName text={p} />}
-          </span>
-        );
-      })}
-    </>
-  );
+  return <>{String(text)}</>;
 }
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
