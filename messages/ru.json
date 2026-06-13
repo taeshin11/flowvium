@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "Рынок США",
     "verdictRegionKr": "Рынок Кореи",
     "verdictUsTitle": "Вердикт США и макро",
-    "verdictKrTitle": "Вердикт Корея"
+    "verdictKrTitle": "Вердикт Корея",
+    "contractCounterparty": "с",
+    "contractRevImpact": "от выручки"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

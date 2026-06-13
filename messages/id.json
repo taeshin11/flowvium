@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "Pasar AS",
     "verdictRegionKr": "Pasar Korea",
     "verdictUsTitle": "Putusan AS & Makro",
-    "verdictKrTitle": "Putusan Korea"
+    "verdictKrTitle": "Putusan Korea",
+    "contractCounterparty": "dgn",
+    "contractRevImpact": "dr pendapatan"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "US Market",
     "verdictRegionKr": "Korea Market",
     "verdictUsTitle": "US & Macro Verdict",
-    "verdictKrTitle": "Korea Verdict"
+    "verdictKrTitle": "Korea Verdict",
+    "contractCounterparty": "with",
+    "contractRevImpact": "rev impact"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

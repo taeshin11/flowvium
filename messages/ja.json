@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "米国市場",
     "verdictRegionKr": "韓国市場",
     "verdictUsTitle": "米国・マクロ総合判断",
-    "verdictKrTitle": "韓国 総合判断"
+    "verdictKrTitle": "韓国 総合判断",
+    "contractCounterparty": "相手",
+    "contractRevImpact": "売上比"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

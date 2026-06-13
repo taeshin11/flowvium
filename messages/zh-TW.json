@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "美國市場",
     "verdictRegionKr": "韓國市場",
     "verdictUsTitle": "美國·宏觀綜合判斷",
-    "verdictKrTitle": "韓國綜合判斷"
+    "verdictKrTitle": "韓國綜合判斷",
+    "contractCounterparty": "對方",
+    "contractRevImpact": "佔營收"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

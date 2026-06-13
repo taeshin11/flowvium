@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "미국 증시",
     "verdictRegionKr": "한국 증시",
     "verdictUsTitle": "미국·거시 종합 판단",
-    "verdictKrTitle": "한국 종합 판단"
+    "verdictKrTitle": "한국 종합 판단",
+    "contractCounterparty": "상대",
+    "contractRevImpact": "매출대비"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

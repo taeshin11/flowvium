@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "Marché US",
     "verdictRegionKr": "Marché Corée",
     "verdictUsTitle": "Verdict US et Macro",
-    "verdictKrTitle": "Verdict Corée"
+    "verdictKrTitle": "Verdict Corée",
+    "contractCounterparty": "avec",
+    "contractRevImpact": "sur CA"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

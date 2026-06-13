@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "السوق الأمريكي",
     "verdictRegionKr": "السوق الكوري",
     "verdictUsTitle": "حكم الولايات المتحدة والكلي",
-    "verdictKrTitle": "حكم كوريا"
+    "verdictKrTitle": "حكم كوريا",
+    "contractCounterparty": "مع",
+    "contractRevImpact": "من الإيرادات"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

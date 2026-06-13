@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "ตลาดสหรัฐ",
     "verdictRegionKr": "ตลาดเกาหลี",
     "verdictUsTitle": "คำตัดสินสหรัฐและมหภาค",
-    "verdictKrTitle": "คำตัดสินเกาหลี"
+    "verdictKrTitle": "คำตัดสินเกาหลี",
+    "contractCounterparty": "กับ",
+    "contractRevImpact": "ต่อรายได้"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

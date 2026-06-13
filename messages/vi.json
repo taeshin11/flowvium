@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "Thị trường Mỹ",
     "verdictRegionKr": "Thị trường Hàn",
     "verdictUsTitle": "Phán định Mỹ & Vĩ mô",
-    "verdictKrTitle": "Phán định Hàn Quốc"
+    "verdictKrTitle": "Phán định Hàn Quốc",
+    "contractCounterparty": "với",
+    "contractRevImpact": "so doanh thu"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

@@ -6799,6 +6799,12 @@ async function generateViaOllama() {
         downstreamBeneficiaries: s.downstreamBeneficiaries ?? [],
         upstreamRisks: s.upstreamRisks ?? [],
         evidenceUrl: s.evidenceUrl ?? null,
+        // 2026-06-13: 계약 상세 (사용자 "여전히 내용 안나오네") — DART 본문 추출 금액·상대방·매출대비%.
+        //   이전엔 headline(reportNm)만 실어 UI 가 "단일판매·공급계약체결" 만 표시. summary 는 영향도 문장.
+        summary: s.summary ?? null,
+        contractAmountWon: s.contractAmountWon ?? null,
+        contractCounterparty: s.contractCounterparty ?? null,
+        contractRevenuePct: s.contractRevenuePct ?? null,
       })),
     // 2026-05-29 F22: 이전 portfolio outcome 통계 — 사용자 가시 (ReportPage 표시 예정)
     portfolioOutcomes: getPortfolioFeedback().summary,

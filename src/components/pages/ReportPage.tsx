@@ -1350,6 +1350,18 @@ export default function ReportPage() {
                       ) : (
                         <p className="text-[11px] leading-relaxed">{s.headline}</p>
                       )}
+                      {/* 2026-06-13: 계약 상세 (금액·상대방·매출대비%) — 사용자 "내용 안나오네" */}
+                      {(() => {
+                        const c = s as { contractAmountWon?: number | null; contractCounterparty?: string | null; contractRevenuePct?: number | null };
+                        const parts: string[] = [];
+                        if (c.contractAmountWon != null) {
+                          const w = c.contractAmountWon;
+                          parts.push(w >= 1e12 ? `₩${(w / 1e12).toFixed(2)}조` : w >= 1e8 ? `₩${Math.round(w / 1e8).toLocaleString()}억` : `₩${Math.round(w).toLocaleString()}`);
+                        }
+                        if (c.contractCounterparty) parts.push(`${t('contractCounterparty')} ${c.contractCounterparty}`);
+                        if (c.contractRevenuePct != null) parts.push(`${t('contractRevImpact')} ${c.contractRevenuePct}%`);
+                        return parts.length ? <p className="text-[10px] mt-1 font-semibold opacity-90">💰 {parts.join(' · ')}</p> : null;
+                      })()}
                       {s.downstreamBeneficiaries?.length ? (
                         <p className="text-[10px] mt-1 opacity-70">
                           ↘ 수혜: {s.downstreamBeneficiaries.join(', ')}

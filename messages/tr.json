@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "ABD Piyasası",
     "verdictRegionKr": "Kore Piyasası",
     "verdictUsTitle": "ABD & Makro Kararı",
-    "verdictKrTitle": "Kore Kararı"
+    "verdictKrTitle": "Kore Kararı",
+    "contractCounterparty": "ile",
+    "contractRevImpact": "gelire"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

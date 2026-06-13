@@ -1305,7 +1305,9 @@
     "verdictRegionUs": "अमेरिकी बाज़ार",
     "verdictRegionKr": "कोरिया बाज़ार",
     "verdictUsTitle": "अमेरिका और मैक्रो निर्णय",
-    "verdictKrTitle": "कोरिया निर्णय"
+    "verdictKrTitle": "कोरिया निर्णय",
+    "contractCounterparty": "साथ",
+    "contractRevImpact": "राजस्व का"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",
