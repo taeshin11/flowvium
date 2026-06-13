@@ -381,6 +381,7 @@ async function main() {
       'iv': '/api/iv/AAPL',
       'company-business': '/api/company-business/AAPL',  // 2026-06-07: [ticker] 동적 라우트 sample
       'company-signals': '/api/company-signals/NVDA',    // 2026-06-13: [ticker] 동적 — base path 는 404
+      'manipulation-risk': '/api/manipulation-risk/NVDA', // 2026-06-13: [ticker] 동적 작전주 스코어
     };
     const SKIP = new Set(['company-desc', 'investment-strategy']);
     const probeOne = async (ep) => {
