@@ -1,7 +1,7 @@
 ﻿import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Flowvium ??Supply Chain Intelligence Platform';
+export const alt = 'Flowvium — AI picks the stocks. Daily buy/sell recommendations.';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -55,7 +55,7 @@ export default function OGImage() {
             maxWidth: 900,
           }}
         >
-          AI That Researches the Market For You
+          AI Picks the Stocks. Every Day.
         </div>
         {/* Subtext */}
         <div
@@ -63,10 +63,25 @@ export default function OGImage() {
             fontSize: 26,
             color: '#94a3b8',
             marginTop: 24,
-            maxWidth: 800,
+            maxWidth: 820,
           }}
         >
-          AI tracks smart money, flags risks early, and writes 5 market reports a day. Free.
+          Daily AI buy/sell recommendations with entry, stop & target — backed by smart-money flows, supply-chain & macro signals. Free.
+        </div>
+        {/* CTA pill */}
+        <div
+          style={{
+            display: 'flex',
+            marginTop: 36,
+            padding: '14px 28px',
+            borderRadius: 14,
+            background: 'linear-gradient(90deg, #7c3aed, #6d28d9)',
+            color: '#ffffff',
+            fontSize: 24,
+            fontWeight: 700,
+          }}
+        >
+          See today's picks →
         </div>
         {/* URL badge */}
         <div

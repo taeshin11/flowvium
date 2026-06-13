@@ -278,7 +278,14 @@
     "analystSell": "Продавать",
     "standardView": "Стандартный вид",
     "terminalView": "Терминальный вид",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "Сигналы по акции",
+    "signalsUoa": "Необычная активность опционов",
+    "signalsBurst": "Всплеск объёма",
+    "signalsContractWin": "Выигран контракт",
+    "signalsContractLoss": "Потерян контракт",
+    "signalsRevImpact": "от выручки",
+    "signalsBacklog": "Портфель заказов (RPO)"
   },
   "cascade": {
     "title": "Визуализатор каскада",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "Отслеживание позиций 13F",
     "secretMoneyTrackDesc": "Анализ потоков капитала ИИ",
     "newsGapScanDesc": "Ценовой разрыв + новости",
-    "aiReportDesc": "Ежедневный ИИ-обзор рынка",
-    "fundTrackingDesc": "Отслеживание капитала SEC"
+    "aiReportDesc": "Рекомендуемые акции",
+    "fundTrackingDesc": "Отслеживание капитала SEC",
+    "ctaSeeRecs": "AI-акции на сегодня",
+    "ctaSeeRecsDesc": "Покупка/продажа · вход · стоп и цель"
   },
   "feedback": {
     "title": "Отправить отзыв",

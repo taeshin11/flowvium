@@ -278,7 +278,14 @@
     "analystSell": "売り",
     "standardView": "標準表示",
     "terminalView": "端末表示",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "銘柄シグナル",
+    "signalsUoa": "異常オプション活動 (UOA)",
+    "signalsBurst": "出来高バースト",
+    "signalsContractWin": "受注獲得",
+    "signalsContractLoss": "受注失注",
+    "signalsRevImpact": "売上比",
+    "signalsBacklog": "受注残高 (RPO)"
   },
   "cascade": {
     "title": "カスケード・ビジュアライザー",
@@ -726,8 +733,10 @@
     "viewSignalsDesc": "機関13Fポジション追跡",
     "secretMoneyTrackDesc": "グローバル資金フローAI分析",
     "newsGapScanDesc": "ギャップ銘柄+ニュース連携",
-    "aiReportDesc": "日次AIマーケットレポート",
-    "fundTrackingDesc": "SEC開示資金追跡"
+    "aiReportDesc": "売買推奨銘柄",
+    "fundTrackingDesc": "SEC開示資金追跡",
+    "ctaSeeRecs": "今日のAI推奨銘柄を見る",
+    "ctaSeeRecsDesc": "売買推奨 · エントリー · 損切り/目標"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",

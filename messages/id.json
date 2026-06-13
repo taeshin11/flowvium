@@ -278,7 +278,14 @@
     "analystSell": "Jual",
     "standardView": "Tampilan standar",
     "terminalView": "Tampilan terminal",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "Sinyal Saham",
+    "signalsUoa": "Aktivitas Opsi Tidak Biasa",
+    "signalsBurst": "Lonjakan Volume",
+    "signalsContractWin": "Kontrak Menang",
+    "signalsContractLoss": "Kontrak Kalah",
+    "signalsRevImpact": "dari pendapatan",
+    "signalsBacklog": "Backlog (RPO)"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "Lacak posisi 13F institusi",
     "secretMoneyTrackDesc": "Analisis aliran modal global AI",
     "newsGapScanDesc": "Gap harga + korelasi berita",
-    "aiReportDesc": "Laporan pasar AI harian",
-    "fundTrackingDesc": "Pelacak modal SEC"
+    "aiReportDesc": "Saham rekomendasi",
+    "fundTrackingDesc": "Pelacak modal SEC",
+    "ctaSeeRecs": "Lihat saham pilihan AI hari ini",
+    "ctaSeeRecsDesc": "Beli/jual · entri · stop & target"
   },
   "feedback": {
     "title": "Kirim Masukan",

@@ -278,7 +278,14 @@
     "analystSell": "ขาย",
     "standardView": "มุมมองมาตรฐาน",
     "terminalView": "มุมมองเทอร์มินัล",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "สัญญาณหุ้น",
+    "signalsUoa": "กิจกรรมออปชันผิดปกติ",
+    "signalsBurst": "ปริมาณพุ่ง",
+    "signalsContractWin": "ได้สัญญา",
+    "signalsContractLoss": "เสียสัญญา",
+    "signalsRevImpact": "ต่อรายได้",
+    "signalsBacklog": "งานค้างส่ง (RPO)"
   },
   "cascade": {
     "title": "เครื่องมือแสดงผลลูกโซ่",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "ติดตามตำแหน่ง 13F สถาบัน",
     "secretMoneyTrackDesc": "วิเคราะห์กระแสเงินทุนทั่วโลก AI",
     "newsGapScanDesc": "ช่องว่างราคา + ข่าว",
-    "aiReportDesc": "รายงาน AI รายวัน",
-    "fundTrackingDesc": "ติดตามทุน SEC"
+    "aiReportDesc": "หุ้นแนะนำซื้อ/ขาย",
+    "fundTrackingDesc": "ติดตามทุน SEC",
+    "ctaSeeRecs": "ดูหุ้นแนะนำจาก AI วันนี้",
+    "ctaSeeRecsDesc": "ซื้อ/ขาย · จุดเข้า · จุดตัด/เป้า"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",

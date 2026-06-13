@@ -278,7 +278,14 @@
     "analystSell": "بيع",
     "standardView": "العرض القياسي",
     "terminalView": "عرض المحطة",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "إشارات السهم",
+    "signalsUoa": "نشاط خيارات غير عادي",
+    "signalsBurst": "انفجار الحجم",
+    "signalsContractWin": "فوز بعقد",
+    "signalsContractLoss": "خسارة عقد",
+    "signalsRevImpact": "من الإيرادات",
+    "signalsBacklog": "الطلبات المتراكمة (RPO)"
   },
   "cascade": {
     "title": "مصوّر التأثير المتسلسل",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "تتبع مراكز المؤسسات 13F",
     "secretMoneyTrackDesc": "تحليل تدفق رأس المال بالذكاء الاصطناعي",
     "newsGapScanDesc": "الفجوة السعرية + الأخبار",
-    "aiReportDesc": "تقرير الذكاء الاصطناعي اليومي",
-    "fundTrackingDesc": "متتبع رأس المال SEC"
+    "aiReportDesc": "أسهم موصى بها",
+    "fundTrackingDesc": "متتبع رأس المال SEC",
+    "ctaSeeRecs": "أسهم اليوم المختارة بالذكاء الاصطناعي",
+    "ctaSeeRecsDesc": "شراء/بيع · الدخول · وقف وهدف"
   },
   "feedback": {
     "title": "إرسال ملاحظات",

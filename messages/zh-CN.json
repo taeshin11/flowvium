@@ -278,7 +278,14 @@
     "analystSell": "卖出",
     "standardView": "标准视图",
     "terminalView": "终端视图",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "个股信号",
+    "signalsUoa": "异常期权活动 (UOA)",
+    "signalsBurst": "成交量爆发",
+    "signalsContractWin": "中标合同",
+    "signalsContractLoss": "失标合同",
+    "signalsRevImpact": "占营收",
+    "signalsBacklog": "在手订单 (RPO)"
   },
   "cascade": {
     "title": "连锁影响可视化",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "追踪机构13F持仓",
     "secretMoneyTrackDesc": "全球资金流向AI分析",
     "newsGapScanDesc": "缺口股票+新闻关联",
-    "aiReportDesc": "每日AI市场报告",
-    "fundTrackingDesc": "SEC申报资金追踪"
+    "aiReportDesc": "买卖推荐个股",
+    "fundTrackingDesc": "SEC申报资金追踪",
+    "ctaSeeRecs": "查看今日AI推荐个股",
+    "ctaSeeRecsDesc": "买卖标的 · 入场价 · 止损/目标"
   },
   "feedback": {
     "title": "发送反馈",

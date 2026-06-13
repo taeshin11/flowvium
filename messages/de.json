@@ -278,7 +278,14 @@
     "analystSell": "Verkaufen",
     "standardView": "Standardansicht",
     "terminalView": "Terminalansicht",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "Aktiensignale",
+    "signalsUoa": "Ungewöhnliche Optionsaktivität",
+    "signalsBurst": "Volumen-Burst",
+    "signalsContractWin": "Auftragsgewinn",
+    "signalsContractLoss": "Auftragsverlust",
+    "signalsRevImpact": "vom Umsatz",
+    "signalsBacklog": "Auftragsbestand (RPO)"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "Institutionelle 13F-Positionen verfolgen",
     "secretMoneyTrackDesc": "Globale Kapitalfluss-KI-Analyse",
     "newsGapScanDesc": "Preislücke + Nachrichten",
-    "aiReportDesc": "Täglicher KI-Marktbericht",
-    "fundTrackingDesc": "SEC-Kapitalverfolger"
+    "aiReportDesc": "Kauf/Verkauf-Aktientipps",
+    "fundTrackingDesc": "SEC-Kapitalverfolger",
+    "ctaSeeRecs": "KI-Aktientipps von heute",
+    "ctaSeeRecsDesc": "Kauf/Verkauf · Einstieg · Stop & Ziel"
   },
   "feedback": {
     "title": "Feedback senden",

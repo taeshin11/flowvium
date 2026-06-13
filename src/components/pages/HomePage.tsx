@@ -961,9 +961,24 @@ export default function HomePage() {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-cf-text-primary leading-tight mb-6">
                 {tHome.rich('heroHeadline', { accent: (chunks) => <span className="text-transparent bg-clip-text bg-gradient-to-r from-cf-primary to-cf-secondary">{chunks}</span> })}
               </h1>
-              <p className="text-lg md:text-xl text-cf-text-secondary mb-8 max-w-lg">
+              <p className="text-lg md:text-xl text-cf-text-secondary mb-6 max-w-lg">
                 {t('description')}
               </p>
+              {/* 핵심 CTA — 추천 종목으로 직행 (2026-06-13 사용자 "추천종목 보도록 유도하는 메세지 없어") */}
+              <Link
+                href="/report"
+                className="group inline-flex items-center gap-3 mb-8 px-6 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 hover:from-violet-500 hover:to-purple-600 transition-all"
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                </span>
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-base md:text-lg">{tHome('ctaSeeRecs')}</span>
+                  <span className="text-[11px] font-normal opacity-80">{tHome('ctaSeeRecsDesc')}</span>
+                </span>
+                <ArrowRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
+              </Link>
               {/* 통합 3열 그리드 — 모든 버튼 동일 크기 */}
               <div className="grid grid-cols-3 gap-2">
                 {([
@@ -1290,8 +1305,12 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <div className="text-center mt-10">
-            <Link href="/explore" className="cf-btn-primary text-base px-10 py-3.5 gap-2 shadow-lg shadow-cf-primary/25">
+          <div className="text-center mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/report" className="inline-flex items-center text-base px-10 py-3.5 gap-2 rounded-2xl font-bold text-white bg-gradient-to-r from-violet-600 to-purple-700 shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 hover:from-violet-500 hover:to-purple-600 transition-all">
+              {tHome('ctaSeeRecs')}
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link href="/explore" className="cf-btn-secondary text-base px-8 py-3.5 gap-2">
               {tHome('startExploringNow')}
               <ArrowRight className="w-5 h-5" />
             </Link>

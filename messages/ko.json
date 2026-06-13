@@ -278,7 +278,14 @@
     "analystSell": "매도",
     "standardView": "기본 보기",
     "terminalView": "터미널 보기",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "종목 시그널",
+    "signalsUoa": "비정상 옵션 활동 (UOA)",
+    "signalsBurst": "거래량 버스트",
+    "signalsContractWin": "공급계약 수주",
+    "signalsContractLoss": "공급계약 실주",
+    "signalsRevImpact": "매출 대비",
+    "signalsBacklog": "수주잔고 (RPO)"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",
@@ -726,8 +733,10 @@
     "viewSignalsDesc": "13F 기관 포지션 추적",
     "secretMoneyTrackDesc": "글로벌 자금 흐름 AI 분석",
     "newsGapScanDesc": "갭 발생 종목 뉴스 연결",
-    "aiReportDesc": "일간 AI 시장 리포트",
-    "fundTrackingDesc": "SEC 공시 자금 추적"
+    "aiReportDesc": "매수·매도 추천 종목",
+    "fundTrackingDesc": "SEC 공시 자금 추적",
+    "ctaSeeRecs": "오늘의 AI 추천 종목 보기",
+    "ctaSeeRecsDesc": "매수·매도 픽 · 진입가 · 손절·목표가"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",

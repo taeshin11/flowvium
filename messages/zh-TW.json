@@ -278,7 +278,14 @@
     "analystSell": "賣出",
     "standardView": "標準視圖",
     "terminalView": "終端視圖",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "個股訊號",
+    "signalsUoa": "異常選擇權活動 (UOA)",
+    "signalsBurst": "成交量爆發",
+    "signalsContractWin": "得標合約",
+    "signalsContractLoss": "失標合約",
+    "signalsRevImpact": "佔營收",
+    "signalsBacklog": "在手訂單 (RPO)"
   },
   "cascade": {
     "title": "連鎖影響視覺化",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "追蹤機構13F持倉",
     "secretMoneyTrackDesc": "全球資金流向AI分析",
     "newsGapScanDesc": "缺口股票+新聞關聯",
-    "aiReportDesc": "每日AI市場報告",
-    "fundTrackingDesc": "SEC申報資金追蹤"
+    "aiReportDesc": "買賣推薦個股",
+    "fundTrackingDesc": "SEC申報資金追蹤",
+    "ctaSeeRecs": "查看今日AI推薦個股",
+    "ctaSeeRecsDesc": "買賣標的 · 進場價 · 停損/目標"
   },
   "feedback": {
     "title": "傳送意見回饋",

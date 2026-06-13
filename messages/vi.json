@@ -278,7 +278,14 @@
     "analystSell": "Bán",
     "standardView": "Chế độ xem chuẩn",
     "terminalView": "Chế độ xem terminal",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "Tín hiệu cổ phiếu",
+    "signalsUoa": "Hoạt động quyền chọn bất thường",
+    "signalsBurst": "Bùng nổ khối lượng",
+    "signalsContractWin": "Thắng hợp đồng",
+    "signalsContractLoss": "Mất hợp đồng",
+    "signalsRevImpact": "so với doanh thu",
+    "signalsBacklog": "Đơn hàng tồn (RPO)"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "Theo dõi vị thế 13F tổ chức",
     "secretMoneyTrackDesc": "Phân tích luồng vốn toàn cầu AI",
     "newsGapScanDesc": "Khoảng giá + tin tức",
-    "aiReportDesc": "Báo cáo thị trường AI hàng ngày",
-    "fundTrackingDesc": "Bộ theo dõi vốn SEC"
+    "aiReportDesc": "Cổ phiếu khuyến nghị",
+    "fundTrackingDesc": "Bộ theo dõi vốn SEC",
+    "ctaSeeRecs": "Xem cổ phiếu AI chọn hôm nay",
+    "ctaSeeRecsDesc": "Mua/bán · điểm vào · cắt lỗ & mục tiêu"
   },
   "feedback": {
     "title": "Gửi phản hồi",

@@ -278,7 +278,14 @@
     "analystSell": "Sell",
     "standardView": "Standard View",
     "terminalView": "Terminal View",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "Stock Signals",
+    "signalsUoa": "Unusual Options Activity",
+    "signalsBurst": "Volume Burst",
+    "signalsContractWin": "Contract Win",
+    "signalsContractLoss": "Contract Loss",
+    "signalsRevImpact": "Rev impact",
+    "signalsBacklog": "Backlog (RPO)"
   },
   "cascade": {
     "title": "Cascade Visualizer",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "Track institutional 13F positions",
     "secretMoneyTrackDesc": "Global capital flow AI analysis",
     "newsGapScanDesc": "Price gap + news correlation",
-    "aiReportDesc": "Daily AI market report",
-    "fundTrackingDesc": "SEC filing capital tracker"
+    "aiReportDesc": "Buy/sell stock picks",
+    "fundTrackingDesc": "SEC filing capital tracker",
+    "ctaSeeRecs": "See today's AI stock picks",
+    "ctaSeeRecsDesc": "Buy/sell picks · entry · stop & target"
   },
   "feedback": {
     "title": "Send Feedback",

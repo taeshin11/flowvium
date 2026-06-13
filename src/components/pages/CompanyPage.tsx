@@ -41,6 +41,7 @@ import {
   LogOut,
   Sparkles,
   Gauge,
+  Activity,
   Loader2,
   AlertTriangle,
   Zap,
@@ -539,6 +540,103 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     return () => controller.abort();
   }, [ticker]);
 
+  // ── 종목 시그널 통합 (UOA·거래량 버스트·공급계약 영향도·수주잔고) — 2026-06-13 ────────
+  interface SignalsData {
+    uoa: Array<{ optionType: string; strike: number; expiry: string; volOiRatio: number; premiumUsd: number | null }>;
+    burst: { time: string; price: number; volume: number; notional: number; dir: string } | null;
+    contract: { type: string; summary?: string; amountWon: number | null; revenuePct: number | null; date: string | null } | null;
+    backlog: { rpoUsd: number; rpoYoYPct: number | null; end: string; tag: string } | null;
+    backlogNote: string | null;
+  }
+  const [sigData, setSigData] = useState<SignalsData | null>(null);
+  useEffect(() => {
+    if (!ticker) return;
+    const controller = new AbortController();
+    fetch(`/api/company-signals/${ticker.toUpperCase()}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!controller.signal.aborted && d && (d.uoa?.length || d.burst || d.contract || d.backlog || d.backlogNote)) setSigData(d);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ticker]);
+
+  // 두 렌더 경로(static company / live-only fallback) 공용 — 1338 종목 전부 노출
+  const signalsCard = (() => {
+    if (!sigData) return null;
+    const { uoa, burst, contract, backlog: bl, backlogNote } = sigData;
+    if (!uoa?.length && !burst && !contract && !bl && !backlogNote) return null;
+    const fmtBig = (v: number) => v >= 1e12 ? `$${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${v.toFixed(0)}`;
+    const fmtWon = (v: number) => v >= 1e12 ? `₩${(v / 1e12).toFixed(2)}조` : v >= 1e8 ? `₩${(v / 1e8).toFixed(0)}억` : `₩${Math.round(v).toLocaleString()}`;
+    return (
+      <div className="cf-card p-5">
+        <h3 className="text-base font-heading font-bold text-cf-text-primary mb-3 flex items-center gap-2">
+          <Activity className="w-4 h-4 text-cf-primary" />
+          {t('signalsTitle')}
+        </h3>
+        <div className="space-y-3 text-xs">
+          {uoa?.length > 0 && (
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-1.5">{t('signalsUoa')}</p>
+              <ul className="space-y-1">
+                {uoa.slice(0, 3).map((o, i) => (
+                  <li key={i} className="flex items-center justify-between gap-2">
+                    <span className={`font-bold ${o.optionType?.toLowerCase() === 'call' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {o.optionType?.toUpperCase()} ${o.strike} {o.expiry}
+                    </span>
+                    <span className="tabular-nums text-cf-text-secondary">
+                      Vol/OI {o.volOiRatio?.toFixed(1)}×{o.premiumUsd != null ? ` · ${fmtBig(o.premiumUsd)}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {burst && (
+            <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-0.5">{t('signalsBurst')}</p>
+                <p className={`font-bold ${burst.dir === 'up' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {burst.dir === 'up' ? '▲' : '▼'} {fmtBig(burst.notional)} @ ${burst.price}
+                </p>
+              </div>
+              <span className="text-[10px] text-cf-text-secondary">{new Date(burst.time).toLocaleTimeString()}</span>
+            </div>
+          )}
+          {contract && (
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-0.5">
+                {contract.type === 'contract_win' ? t('signalsContractWin') : t('signalsContractLoss')}
+              </p>
+              {contract.summary && <p className="text-cf-text-primary leading-snug mb-1">{contract.summary}</p>}
+              <p className="text-[11px] text-cf-text-secondary tabular-nums">
+                {contract.amountWon != null ? fmtWon(contract.amountWon) : ''}
+                {contract.revenuePct != null ? ` · ${t('signalsRevImpact')} ${contract.revenuePct.toFixed(1)}%` : ''}
+                {contract.date ? ` · ${contract.date.slice(0, 10)}` : ''}
+              </p>
+            </div>
+          )}
+          {bl && (
+            <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-0.5">{t('signalsBacklog')}</p>
+                <p className="font-bold text-cf-text-primary tabular-nums">{fmtBig(bl.rpoUsd)}</p>
+              </div>
+              {bl.rpoYoYPct != null && (
+                <span className={`text-sm font-bold tabular-nums ${bl.rpoYoYPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {bl.rpoYoYPct >= 0 ? '+' : ''}{bl.rpoYoYPct.toFixed(1)}% YoY
+                </span>
+              )}
+            </div>
+          )}
+          {backlogNote && !bl && (
+            <p className="text-[10px] text-cf-text-secondary italic">{backlogNote}</p>
+          )}
+        </div>
+      </div>
+    );
+  })();
+
   if (!company) {
     // Minimal live page for tickers not in static dataset (IPX, AMRZ, KR .KS/.KQ 등).
     const isKRTicker = /\.(KS|KQ)$/i.test(ticker);
@@ -725,6 +823,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             <p className="text-[10px] text-cf-text-secondary/50 mt-2">주요 공급사·고객사·경쟁사 · 구조 데이터(공개 사실)</p>
           </div>
         )}
+        {/* 종목 시그널 통합 (UOA·버스트·공급계약·수주잔고) — live-only 폴백 경로 */}
+        {signalsCard && <div className="mb-4">{signalsCard}</div>}
         {/* 90일 주가 차트 (KR Naver/US Yahoo) */}
         {priceHistory.length > 1 && (() => {
           const first = priceHistory[0].close;
@@ -2155,6 +2255,9 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               </div>
             </div>
           )}
+
+          {/* 종목 시그널 통합 (UOA·버스트·공급계약·수주잔고) */}
+          {signalsCard}
 
           {/* 섹터 현황 */}
           {(() => {

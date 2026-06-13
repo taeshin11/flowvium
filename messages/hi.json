@@ -278,7 +278,14 @@
     "analystSell": "बेचें",
     "standardView": "मानक दृश्य",
     "terminalView": "टर्मिनल दृश्य",
-    "finnhubPeriod": "Finnhub · {period}"
+    "finnhubPeriod": "Finnhub · {period}",
+    "signalsTitle": "स्टॉक संकेत",
+    "signalsUoa": "असामान्य ऑप्शन गतिविधि",
+    "signalsBurst": "वॉल्यूम बर्स्ट",
+    "signalsContractWin": "अनुबंध जीता",
+    "signalsContractLoss": "अनुबंध खोया",
+    "signalsRevImpact": "राजस्व का",
+    "signalsBacklog": "बैकलॉग (RPO)"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",
@@ -555,8 +562,10 @@
     "viewSignalsDesc": "13F संस्थागत स्थिति ट्रैक",
     "secretMoneyTrackDesc": "वैश्विक पूंजी प्रवाह AI विश्लेषण",
     "newsGapScanDesc": "मूल्य गैप + समाचार",
-    "aiReportDesc": "दैनिक AI बाजार रिपोर्ट",
-    "fundTrackingDesc": "SEC पूंजी ट्रैकर"
+    "aiReportDesc": "अनुशंसित स्टॉक",
+    "fundTrackingDesc": "SEC पूंजी ट्रैकर",
+    "ctaSeeRecs": "आज के AI स्टॉक चुनाव देखें",
+    "ctaSeeRecsDesc": "खरीद/बिक्री · एंट्री · स्टॉप व लक्ष्य"
   },
   "feedback": {
     "title": "फ़ीडबैक भेजें",
