@@ -4358,8 +4358,11 @@ function evaluateSellRule(rule, ctx) {
       break;
     // ── 기술적 ────────────────────────────────────────────────────────────────
     case 'deadCross':
-      if (ctx.sma50 && ctx.sma200 && ctx.sma50 < ctx.sma200) {
-        return `50MA(${ctx.sma50.toFixed(2)}) < 200MA(${ctx.sma200.toFixed(2)}) dead cross`;
+      // 2026-06-13 fix: 최소 갭 요건 — 50MA 가 200MA 보다 *1% 이상* 아래일 때만 dead cross.
+      //   기존엔 0.008% 차이(50MA 1,022,573 vs 200MA 1,022,661, 사실상 동일=추세 평탄)도 dead cross
+      //   판정 → 경합심사가 KR 후보 전원 spurious 탈락(noon 보고서 KR 0 사건). flat MA = 노이즈, 추세 아님.
+      if (ctx.sma50 && ctx.sma200 && ctx.sma50 < ctx.sma200 * 0.99) {
+        return `50MA(${ctx.sma50.toFixed(2)}) < 200MA(${ctx.sma200.toFixed(2)}) dead cross (${((ctx.sma50 / ctx.sma200 - 1) * 100).toFixed(1)}%)`;
       }
       break;
     case 'ma200Breach':
@@ -4546,7 +4549,8 @@ function evaluateBuyRule(rule, ctx) {
       if (ctx.rsi != null && ctx.rsi <= (c.rsi_lte ?? 35)) return `RSI ${ctx.rsi} 과매도`;
       break;
     case 'goldenCross':
-      if (ctx.sma50 && ctx.sma200 && ctx.sma50 > ctx.sma200) return `50MA > 200MA golden cross`;
+      // 2026-06-13: deadCross 와 대칭 — 최소 1% 갭 (flat MA 노이즈 제외)
+      if (ctx.sma50 && ctx.sma200 && ctx.sma50 > ctx.sma200 * 1.01) return `50MA > 200MA golden cross`;
       break;
     case 'ma200Reclaim':
       if (ctx.sma200 && ctx.price > ctx.sma200 &&
