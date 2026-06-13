@@ -4589,6 +4589,12 @@ function evaluateBuyRule(rule, ctx) {
         return `거래량 버스트 $${(ctx.burstUpNotional / 1e6).toFixed(0)}M (상방)`;
       }
       break;
+    case 'backlogGrowth':
+      // 2026-06-13: 수주잔고(RPO) 증가 — 향후 매출 가시성 (방산·건설·제조·SaaS). YoY 임계.
+      if (ctx.backlogYoYPct != null && ctx.backlogYoYPct >= (c.yoy_pct_gte ?? 10)) {
+        return `수주잔고 YoY +${ctx.backlogYoYPct}% (향후 매출 가시성↑)`;
+      }
+      break;
     case 'supplyContractWin': {
       // 2026-06-13: 신규 공급·수주 계약 — *영향도*(연매출 대비 %)가 핵심 (사용자 "계약 자체보다
       //   어떤 영향인지"). 매출대비 ≥ 임계(기본 5%) 일 때만 발화 — 거대기업의 소액계약 노이즈 차단.
@@ -4771,6 +4777,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       optionsPutPrem: macroCtx.uoaMap?.get(ticker)?.putPrem ?? 0,
       burstUpNotional: macroCtx.burstMap?.get(ticker)?.dir === 'up' ? macroCtx.burstMap.get(ticker).notional : 0,
       contractWin: macroCtx.contractMap?.get(ticker)?.type === 'contract_win' ? macroCtx.contractMap.get(ticker) : null,  // 2026-06-13 공급계약
+      backlogYoYPct: macroCtx.backlogMap?.get(ticker)?.rpoYoYPct ?? null,  // 2026-06-13 수주잔고 증가율
       insiderFilings: macroCtx.insiderMap?.get(ticker) ?? 0,
       squeezeScore: macroCtx.squeezeMap?.get(ticker) ?? null,
       cascadeUpstream: macroCtx.cascadeUpstreamSet?.has(ticker) ?? false,
@@ -5813,6 +5820,16 @@ async function generateViaOllama() {
     newsGapMap: new Map((ctxRaw?.newsGap ?? []).filter(g => g.ticker && typeof g.gapScore === 'number').map(g => [g.ticker, g.gapScore])),  // 2026-06-12
     squeezeMap: new Map((ctxRaw?.shorts ?? ctxRaw?.shortSqueeze ?? []).map(s => [s.ticker, s.score ?? s.squeezeScore])),
     cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
+    // 2026-06-13: 수주잔고 (사용자 "전종목 할수있는법") — SEC RPO(ASC606 표준태그) build-backlog 산출.
+    //   잔고 레벨 + YoY(증가율 = 향후 매출 가시성). 주문기반 산업만 보유(은행/소매 null=정상).
+    backlogMap: (() => {
+      try {
+        const bl = JSON.parse(readFileSync(resolve(ROOT, 'data/backlog.json'), 'utf8'));
+        const m = new Map(Object.entries(bl));
+        if (m.size) console.log(`  [backlog] 수주잔고(RPO) ${m.size}종 로드 (종목선정 입력)`);
+        return m;
+      } catch { return new Map(); }
+    })(),
     // 2026-06-13: 공급망 계약 신호 (사용자 "계약 상세가 종목선정에 반영돼야 — US·KR 둘다") — DART(KR)
     //   +SEC 8-K(US) 계약 win/loss 를 ticker별 매핑. 금액(원) 있으면 동봉 → 룰이 규모 가중.
     contractMap: (() => {

@@ -376,6 +376,16 @@
         "conviction_gte": 82
       },
       "description": "신규 공급계약 — 연매출 대비 5%+ 영향 (DART KR/SEC US). 매출대비%가 핵심, 거대기업 소액계약 노이즈 차단 (2026-06-13)"
+    },
+    {
+      "id": "fund_backlog_growth",
+      "score": 4,
+      "category": "fundamental",
+      "condition": {
+        "type": "backlogGrowth",
+        "yoy_pct_gte": 10
+      },
+      "description": "수주잔고(SEC RPO) YoY 10%+ — 향후 매출 가시성 (방산/건설/제조/SaaS, 2026-06-13)"
     }
   ],
   "outcomeStats": {}
