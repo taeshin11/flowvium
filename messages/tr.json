@@ -1277,7 +1277,8 @@
     "verdict_neutral": "Nötr",
     "verdict_wait": "Bekle-gör",
     "verdict_defensive": "Savunmacı (nakit artır)",
-    "verdictNote": "Düşüş/yükseliş öncü sinyalleri, korku alım sinyalleri ve 1990 sonrası benzer rejimlerin ölçülmüş getirilerinin deterministik sentezi. Yatırım tavsiyesi değildir."
+    "verdictNote": "Düşüş/yükseliş öncü sinyalleri, korku alım sinyalleri ve 1990 sonrası benzer rejimlerin ölçülmüş getirilerinin deterministik sentezi. Yatırım tavsiyesi değildir.",
+    "etfCat_crypto": "Kripto"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

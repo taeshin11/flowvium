@@ -1,4 +1,4 @@
-# FlowVium — 기능 명세서
+﻿# FlowVium — 기능 명세서
 
 > **⚠️ 유지 의무**: 기능 추가·수정·삭제 시 이 파일을 **같은 커밋**에 반드시 업데이트할 것.  
 > 규칙 전문 → `CLAUDE.md` 참조  
@@ -762,7 +762,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 보고서 stance/sectorAllocation/regionStances 에 grounded 한 ETF 추천 (환각 없음)
 - 카테고리(8): broad(코어) / sector(11 GICS+반도체) / **thematic(반도체·AI·청정에너지·바이오·우라늄·방위 등)** / **style(가치·성장·모멘텀·퀄리티·최소변동)** / **dividend(배당성장·귀족)** / region(강세지역 ≤5) / commodity(금·은·원유·종합) / bond(장단기·종합·회사채·물가연동)
 - 티커 클릭 → `/company/[ticker]`, 라이브 가격·등락% (livePrices/batch-prices)
-- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). **ETF 풀 65종**(2026-06-05 30→62 테마/스타일/배당 신설, 2026-06-12 국가 ETF KORU/YINN/EDC/INDL 추가). stance/sectorAllocation/regionStances grounded 선택, 보고서당 ~18개 노출(8 카테고리)
+- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). **ETF 풀 67종**(2026-06-05 30→62 테마/스타일/배당, 06-12 국가 ETF 4종, 06-13 크립토 IBIT/ETHA 신설). stance/sectorAllocation/regionStances grounded 선택, 보고서당 ~18개 노출(8 카테고리)
 
 ### 13-4b. 위기 포착 (S4b: Crisis Alerts)
 - 🚨 패널: 내부자 매도 집중 / BB 4d4σ 극단 과매수 / 어닝스 미스 / 기관 이탈 / 가이던스 하향 / 매크로 리스크

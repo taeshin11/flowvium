@@ -3840,6 +3840,8 @@ const ETF_META = {
   TLT: { name: '미국 장기국채(20년+)', cat: 'bond' }, SHY: { name: '미국 단기국채(1-3년)', cat: 'bond' },
   AGG: { name: '미국 종합채권', cat: 'bond' }, LQD: { name: '투자등급 회사채', cat: 'bond' }, HYG: { name: '하이일드 회사채', cat: 'bond' },
   TIP: { name: '물가연동국채', cat: 'bond' },
+  // 2026-06-13: 크립토 현물 ETF (사용자 "etf전략에 코인도 들어가나?") — capital-flows bitcoin 모멘텀 grounded
+  IBIT: { name: '비트코인 현물(블랙록)', cat: 'crypto' }, ETHA: { name: '이더리움 현물(블랙록)', cat: 'crypto' },
 };
 // 테마 ETF — 핫한 섹터/내러티브에 매핑 (hot 신호 시 노출)
 const THEMATIC_ETF = {
@@ -3856,7 +3858,7 @@ const SECTOR_ETF = {
 };
 const REGION_ETF = { us: 'SPY', korea: 'EWY', japan: 'EWJ', china: 'FXI', europe: 'VGK', india: 'INDA', taiwan: 'EWT', brazil: 'EWZ', australia: 'EWA' };
 
-async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, stance = 'neutral', riskLevel = 'medium', livePrices }) {
+async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, stance = 'neutral', riskLevel = 'medium', livePrices, capitalAssets = [] }) {
   const picks = new Map();
   // action: 'buy'(매수/비중확대) | 'watch'(관망/중립) | 'avoid'(회피/비중축소) | 'hedge'(헤지) — 명확한 신호
   const add = (t, rationale, tag, action) => {
@@ -3919,7 +3921,17 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
   add('GLD', defensive ? '안전자산 — 금(리스크 헤지)' : '포트폴리오 분산 — 금(주식 무상관)', 'diversifier', defensive ? 'buy' : 'watch');
   add('SLV', '분산 — 은(산업+귀금속 혼합)', 'diversifier', 'watch');
   add(defensive ? 'TLT' : 'SHY', defensive ? '장기국채 — 리스크 헤지' : '단기국채 — 현금성 분산', 'bond', defensive ? 'hedge' : 'watch');
-  const list = [...picks.values()].slice(0, 24);  // broad+sector+thematic+style+dividend+region(≤5)+commodity+bond 전 카테고리
+  // 5) 크립토 (2026-06-13, 사용자 "코인도 들어가나?") — capital-flows bitcoin 모멘텀 grounded.
+  //    4주 +5%↑=매수 / -8%↓=회피 / 그 외 관망. 고변동 경고 라벨 상시 (레버리지 ETF 라벨 패턴).
+  {
+    const btc = capitalAssets.find(a => a.id === 'bitcoin');
+    const r4 = typeof btc?.ret4w === 'number' ? btc.ret4w : null;
+    const action = r4 == null ? 'watch' : r4 >= 5 ? 'buy' : r4 <= -8 ? 'avoid' : 'watch';
+    const momTxt = r4 != null ? `4주 ${r4 > 0 ? '+' : ''}${r4}%` : '모멘텀 데이터 없음';
+    add('IBIT', `비트코인 ${momTxt} — ⚠️ 고변동 자산, 소액 분산 전용`, 'crypto', action);
+    if (r4 != null && r4 >= 5) add('ETHA', `이더리움 — 크립토 모멘텀 동반(${momTxt}) ⚠️ 고변동`, 'crypto', 'watch');
+  }
+  const list = [...picks.values()].slice(0, 26);  // broad+sector+thematic+style+dividend+region(≤5)+commodity+bond+crypto 전 카테고리
   // 가격: livePrices 우선, 없으면 batch-prices 라이브
   const need = list.map(e => e.ticker).filter(t => !(livePrices?.get(t)?.price));
   let fetched = {};
@@ -6970,6 +6982,7 @@ async function generateViaOllama() {
     finalReport.etfStrategy = await buildEtfStrategy({
       sectorAllocation: finalReport.sectorAllocation, regionStances: finalReport.regionStances,
       stance: finalReport.stance, riskLevel: finalReport.riskLevel, livePrices,
+      capitalAssets: ctxRaw?.capital?.assets ?? [],
     });
     console.log(`  [ETF] ${finalReport.etfStrategy.length} 추천 (${finalReport.etfStrategy.map(e => e.ticker).join(',')})`);
     // 2026-06-06: ETF 경합심사 (사용자 "etf전략은 매수·매도 엔진이 상의하나?") — ETF 는 종전 stance 만

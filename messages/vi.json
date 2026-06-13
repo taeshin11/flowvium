@@ -1277,7 +1277,8 @@
     "verdict_neutral": "Trung lập",
     "verdict_wait": "Quan sát",
     "verdict_defensive": "Phòng thủ (tăng tiền mặt)",
-    "verdictNote": "Tổng hợp xác định từ dấu hiệu báo trước giảm/tăng, tín hiệu mua khi hoảng loạn và lợi nhuận thực đo của các giai đoạn tương tự từ 1990. Không phải lời khuyên đầu tư."
+    "verdictNote": "Tổng hợp xác định từ dấu hiệu báo trước giảm/tăng, tín hiệu mua khi hoảng loạn và lợi nhuận thực đo của các giai đoạn tương tự từ 1990. Không phải lời khuyên đầu tư.",
+    "etfCat_crypto": "Crypto"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

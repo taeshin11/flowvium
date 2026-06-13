@@ -1277,7 +1277,8 @@
     "verdict_neutral": "Neutral",
     "verdict_wait": "Abwarten",
     "verdict_defensive": "Defensiv (Cash erhöhen)",
-    "verdictNote": "Deterministische Synthese aus Abwärts-/Aufwärtsvorboten, Angstkauf-Signalen und gemessenen Renditen ähnlicher Marktphasen seit 1990. Keine Anlageberatung."
+    "verdictNote": "Deterministische Synthese aus Abwärts-/Aufwärtsvorboten, Angstkauf-Signalen und gemessenen Renditen ähnlicher Marktphasen seit 1990. Keine Anlageberatung.",
+    "etfCat_crypto": "Krypto"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

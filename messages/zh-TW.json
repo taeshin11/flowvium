@@ -1277,7 +1277,8 @@
     "verdict_neutral": "中性",
     "verdict_wait": "觀望",
     "verdict_defensive": "防禦（提高現金比例）",
-    "verdictNote": "基於下跌/上漲前兆、恐慌買入訊號及1990年以來類似行情的實測回報的確定性綜合判斷。非投資建議。"
+    "verdictNote": "基於下跌/上漲前兆、恐慌買入訊號及1990年以來類似行情的實測回報的確定性綜合判斷。非投資建議。",
+    "etfCat_crypto": "加密貨幣"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

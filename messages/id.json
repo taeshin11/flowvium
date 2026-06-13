@@ -1277,7 +1277,8 @@
     "verdict_neutral": "Netral",
     "verdict_wait": "Tunggu dan amati",
     "verdict_defensive": "Defensif (tambah kas)",
-    "verdictNote": "Sintesis deterministik dari sinyal awal penurunan/kenaikan, sinyal beli saat panik, dan imbal hasil terukur dari kondisi serupa sejak 1990. Bukan saran investasi."
+    "verdictNote": "Sintesis deterministik dari sinyal awal penurunan/kenaikan, sinyal beli saat panik, dan imbal hasil terukur dari kondisi serupa sejak 1990. Bukan saran investasi.",
+    "etfCat_crypto": "Kripto"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",
