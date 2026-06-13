@@ -71,6 +71,16 @@ function lastGood(locale: string) {
   const g = LAST_GOOD.get(locale) ?? LAST_GOOD.get('ko'); // ko = 단일 진실, 모든 locale 폴백
   return g && Date.now() < g.expiresAt ? g.data : null;
 }
+// 2026-06-13: Upstash blip 재시도 — throw(일시 네트워크) 시 1회 재시도(miss=null 은 재시도 안 함).
+//   cold-start(메모리 비었을 때) 첫 blip 이 generic fallback 으로 새던 마지막 구멍 봉합.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function redisGetRetry(redis: any, key: string, tries = 2): Promise<unknown> {
+  for (let i = 0; i < tries; i++) {
+    try { return await redis.get(key); }
+    catch (e) { if (i === tries - 1) throw e; await new Promise(r => setTimeout(r, 120)); }
+  }
+  return null;
+}
 
 /** KST 세션 구분:
  *  morning   = 07:00–15:59 KST (미국장 마감 후 분석)
@@ -1415,7 +1425,7 @@ export async function GET(request: Request) {
       //   생성이 전부 generic fallback(SPY/QQQ)을 캐시·서빙하던 결함. 같은 세션의 ko 보고서를
       //   우선 서빙 — 종목/숫자 동일 보장, 텍스트 번역은 UI <T> 계층(/api/translate) 담당.
       if (!force && locale !== 'ko') {
-        const koCached = await redis.get(cacheKey(session, 'ko'));
+        const koCached = await redisGetRetry(redis, cacheKey(session, 'ko'));
         if (koCached && isSchemaCompatible(koCached as Record<string, unknown>)) {
           logger.info('api.investment-strategy', 'ko_authoritative_hit', { locale, session });
           rememberGood('ko', koCached); rememberGood(locale, koCached);
@@ -1424,7 +1434,7 @@ export async function GET(request: Request) {
       }
       // 1. Current session cache (force=1 bypasses for fresh cron regeneration)
       if (!force) {
-        const cached = await redis.get(key);
+        const cached = await redisGetRetry(redis, key);
         if (cached) {
           logger.info('api.investment-strategy', 'cache_hit', { locale, session });
           rememberGood(locale, cached);
