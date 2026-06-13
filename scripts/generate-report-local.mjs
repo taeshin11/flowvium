@@ -1,4 +1,4 @@
-/**
+﻿/**
  * generate-report-local.mjs — 로컬 AI 보고서 생성 + 업로드 도구
  *
  * 프로덕션 route.ts와 동일한 다단계 구조:
@@ -3178,7 +3178,7 @@ async function gatherContext() {
     creditBalance, insider, ownershipAlerts, koreaFlow,
     nport, shortInterest, newsCascade, econCal,
     volatility, cot, commodity, supplyChainSignals, narratives,
-    newsGap,
+    newsGap, optionsFlow, blockTrades,
   ] = await Promise.all([
     namedFetch('capital',           `${base}/api/capital-flows`, 15000),
     namedFetch('fearGreed',         `${base}/api/fear-greed`, 12000),
@@ -3198,6 +3198,8 @@ async function gatherContext() {
     namedFetch('supplyChainSignals',`${base}/api/supply-chain-signals`, 10000),
     namedFetch('narratives',        `${base}/api/narratives`, 10000),
     namedFetch('newsGap',           `${base}/api/news-gap`, 8000),  // 2026-06-12: 기관활동↔미디어 갭 (매수 stage-1 입력)
+    namedFetch('optionsFlow',       `${base}/api/options-flow`, 10000),   // 2026-06-13: UOA vol/OI 파생 (매수·매도 micro 신호)
+    namedFetch('blockTrades',       `${base}/api/block-trades`, 15000),   // 2026-06-13: 5분봉 버스트 proxy
   ]);
 
   // 2026-06-05: FX 동적 수집 (Yahoo KRW=X/DXY — 외부 권위 소스, 하드코딩 아님). KR 추천 risk 핵심.
@@ -3228,6 +3230,8 @@ async function gatherContext() {
     supplyChainSignals: supplyChainSignals?.signals ?? [],
     narratives,
     newsGap: newsGap?.entries ?? [],
+    optionsFlow: optionsFlow?.items ?? [],   // 2026-06-13: UOA (call/put 프리미엄 micro 신호)
+    blockTrades: blockTrades?.items ?? [],   // 2026-06-13: 거래량 버스트 proxy
   };
 }
 
@@ -4246,6 +4250,14 @@ function loadSellRules() {
 function evaluateSellRule(rule, ctx) {
   const c = rule.condition;
   switch (c.type) {
+    // 2026-06-13: UOA put 편중 (보유 종목에 풋 프리미엄 집중 = 하방 베팅 증가)
+    case 'optionsPutFlow': {
+      const tot = (ctx.optionsCallPrem ?? 0) + (ctx.optionsPutPrem ?? 0);
+      if (tot >= (c.total_prem_gte ?? 2e6) && (ctx.optionsPutPrem ?? 0) / tot >= (c.put_share_gte ?? 0.7)) {
+        return `옵션 풋 편중 $${((ctx.optionsPutPrem) / 1e6).toFixed(1)}M (${Math.round((ctx.optionsPutPrem / tot) * 100)}%)`;
+      }
+      break;
+    }
     // ── 가격 ──────────────────────────────────────────────────────────────────
     case 'stopBreach':
       if (ctx.stop && ctx.price < ctx.stop * (c.ratio_lt ?? 1.0)) {
@@ -4557,6 +4569,20 @@ function evaluateBuyRule(rule, ctx) {
         return `news-gap ${ctx.newsGapScore} (기관활동 高·미디어 저커버)`;
       }
       break;
+    case 'optionsCallFlow': {
+      // 2026-06-13: UOA call 편중 (Yahoo 체인 vol/OI 파생) — 콜 프리미엄 절대량 + 콜 비중
+      const tot = (ctx.optionsCallPrem ?? 0) + (ctx.optionsPutPrem ?? 0);
+      if (tot >= (c.total_prem_gte ?? 2e6) && (ctx.optionsCallPrem ?? 0) / tot >= (c.call_share_gte ?? 0.7)) {
+        return `옵션 콜 편중 $${((ctx.optionsCallPrem) / 1e6).toFixed(1)}M (${Math.round((ctx.optionsCallPrem / tot) * 100)}%)`;
+      }
+      break;
+    }
+    case 'volumeBurst':
+      // 2026-06-13: 5분봉 거래량 버스트(상방) — 기관성 매집 의심 proxy
+      if ((ctx.burstUpNotional ?? 0) >= (c.notional_gte ?? 5e7)) {
+        return `거래량 버스트 $${(ctx.burstUpNotional / 1e6).toFixed(0)}M (상방)`;
+      }
+      break;
     case 'insiderBuy':
       if (ctx.insiderFilings != null && ctx.insiderFilings >= (c.filings_gte ?? 3)) {
         return `insider ${ctx.insiderFilings}건 매수`;
@@ -4719,6 +4745,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       newsPosRatio: macroCtx.newsSentimentMap?.get(ticker)?.posRatio ?? null,
       newsArticleCount: macroCtx.newsSentimentMap?.get(ticker)?.count ?? 0,
       newsGapScore: macroCtx.newsGapMap?.get(ticker) ?? null,
+      optionsCallPrem: macroCtx.uoaMap?.get(ticker)?.callPrem ?? 0,    // 2026-06-13 UOA
+      optionsPutPrem: macroCtx.uoaMap?.get(ticker)?.putPrem ?? 0,
+      burstUpNotional: macroCtx.burstMap?.get(ticker)?.dir === 'up' ? macroCtx.burstMap.get(ticker).notional : 0,
       insiderFilings: macroCtx.insiderMap?.get(ticker) ?? 0,
       squeezeScore: macroCtx.squeezeMap?.get(ticker) ?? null,
       cascadeUpstream: macroCtx.cascadeUpstreamSet?.has(ticker) ?? false,
@@ -4864,6 +4893,9 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         instReducers: macroCtx.inst13f?.get(ticker)?.reducers ?? null,
         instAdders: macroCtx.inst13f?.get(ticker)?.adders ?? null,
         instNetShares: macroCtx.inst13f?.get(ticker)?.netShares ?? null,
+        // 2026-06-13: UOA put 편중 (보유 종목 하방 베팅 감지)
+        optionsCallPrem: macroCtx.uoaMap?.get(ticker)?.callPrem ?? 0,
+        optionsPutPrem: macroCtx.uoaMap?.get(ticker)?.putPrem ?? 0,
       };
       // 2026-06-06: 누적 점수화 (ChatGPT D3) — 첫 매칭 1개가 아니라 매칭 룰 *전부* 합산.
       //   target_near 단독(7)과 target_near+RSI과매수+내부자매도(20)를 같은 7로 취급하던 비대칭 해소.
@@ -5757,6 +5789,29 @@ async function generateViaOllama() {
     newsGapMap: new Map((ctxRaw?.newsGap ?? []).filter(g => g.ticker && typeof g.gapScore === 'number').map(g => [g.ticker, g.gapScore])),  // 2026-06-12
     squeezeMap: new Map((ctxRaw?.shorts ?? ctxRaw?.shortSqueeze ?? []).map(s => [s.ticker, s.score ?? s.squeezeScore])),
     cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
+    // 2026-06-13: UOA·버스트 micro 신호 (사용자 "옵션플로우/블록트레이드도 보고서 참고되나") —
+    //   ticker별 call/put 프리미엄 합산 + 최대 버스트 (둘 다 무료 파생 라이브, 결정론).
+    uoaMap: (() => {
+      const m = new Map();
+      for (const o of (ctxRaw?.optionsFlow ?? [])) {
+        if (!o.ticker || !o.premiumUsd) continue;
+        const e = m.get(o.ticker) ?? { callPrem: 0, putPrem: 0 };
+        if (o.optionType === 'call') e.callPrem += o.premiumUsd; else e.putPrem += o.premiumUsd;
+        m.set(o.ticker, e);
+      }
+      if (m.size) console.log(`  [uoa] 옵션 unusual activity ${m.size}종 매핑`);
+      return m;
+    })(),
+    burstMap: (() => {
+      const m = new Map();
+      for (const b of (ctxRaw?.blockTrades ?? [])) {
+        if (!b.ticker || !b.valueUsd) continue;
+        const e = m.get(b.ticker);
+        if (!e || b.valueUsd > e.notional) m.set(b.ticker, { notional: b.valueUsd, dir: b.exchange === 'burst-up' ? 'up' : 'down' });
+      }
+      if (m.size) console.log(`  [burst] 거래량 버스트 ${m.size}종 매핑`);
+      return m;
+    })(),
   };
   const buyCandidates = await buildBuyCandidates(livePrices, buyMacroCtx, 30);
 
@@ -5976,6 +6031,7 @@ async function generateViaOllama() {
     fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
     sectorPeMap, sectorStanceMap, regionStanceMap, newsSentimentMap,
     insider: insiderDigest, inst13f,
+    uoaMap: buyMacroCtx.uoaMap,  // 2026-06-13: UOA put 편중 매도 신호 (매수와 동일 소스)
   };
   const sellCands = await buildSellCandidates(livePrices, excludeForSell, macroCtx);
   console.log(`  매도 후보: US ${sellCands.us.length} + KR ${sellCands.kr.length} = ${sellCands.total} (multi-factor)`);
