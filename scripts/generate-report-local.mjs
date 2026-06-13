@@ -6590,47 +6590,86 @@ async function generateViaOllama() {
   //   기준(VETO_SCORE=7): 단일 강신호(dead_cross 9·200ma_breach 9·rsi_overbought 7·margin_decline 7)는
   //   solo veto, 약신호(lynch 6·pe_expansion 5)는 누적 ≥7 시 veto. cap 前이라 탈락 슬롯 backfill.
   try {
-    const VETO_CATS = new Set(['fundamental', 'technical', 'guru']);
+    // 2026-06-14: 양면 등급제 심판 (사용자 "심판 엔진 논리 빈약"). 일방향 veto(매도score≥7 단일컷) →
+    //   ① 매수확신(stage1Score) vs 매도확신을 net 으로 저울질(강한 매수는 soft 매도신호 상쇄)
+    //   ② micro 카테고리(옵션 풋편중·부정뉴스) 편입 — 종전 fund/tech/guru 3개만 봐 내부자/수급 사각
+    //   ③ 신호크기 가중(RSI 과열도·PE 프리미엄·마진하락폭) ④ 등급제: hard/high→탈락,
+    //      mid→감점보류(보유+확신강등+비중축소+경고노트), 약→통과. macro 국면 위험 시 임계 하향(엄격).
+    const VETO_CATS = new Set(['fundamental', 'technical', 'guru', 'micro']);
     const vetoRules = (loadSellRules()?.rules ?? []).filter(r => VETO_CATS.has(r.category));
+    // hard-sell: 매수확신 무관 즉시 탈락(리스크관리 우선). 나머지 soft 는 매수확신으로 상쇄 가능.
+    const HARD_IDS = new Set(['price_stop_breach', 'tech_dead_cross', 'tech_200ma_breach', 'fund_margin_decline', 'micro_insider_selling', 'micro_supply_contract_loss']);
     const sellSig = await fetchSellSignals(dedupedPortfolio.map(p => p.ticker));
-    const VETO_SCORE = 7;
+    const buyScoreOf = new Map((buyCandidates ?? []).map(c => [c.ticker, c.stage1Score ?? 0]));
+    // 신호크기 가중: 정의 명확한 신호만 magnitude bump(최대 +3). 과추정 방지 위해 보수적.
+    const weightedScore = (rule, ex) => {
+      let s = rule.score ?? 0;
+      const t = rule.condition?.type;
+      if (t === 'rsiOverbought' && ex.rsi != null) s += Math.min(3, Math.max(0, (ex.rsi - 75) / 5));
+      else if (t === 'peVsSector' && ex.peRatio && ex.sectorPe) s += Math.min(3, Math.max(0, ((ex.peRatio / ex.sectorPe - 1) * 100 - 30) / 20));
+      else if (t === 'opMarginDecline' && ex.opMarginDecline != null) s += Math.min(3, Math.max(0, (ex.opMarginDecline - 2) / 2));
+      return s;
+    };
+    // 거시 국면 modifier — 위험 regime 일수록 심판 엄격(임계 하향). earlyWarning 은 이 시점 미산출 →
+    //   Wave1 macroData.riskLevel 사용(가용). high → 임계 −1.
+    const macroTighten = macroData?.riskLevel === 'high' ? 1 : 0;
+    const HIGH = 7 - macroTighten, MID = 4 - macroTighten, VETO_SCORE = HIGH;  // VETO_SCORE: refill 호환 alias
     const before = dedupedPortfolio.length;
-    // 2026-06-05: 합의 과정 전체를 trail 로 남겨 연구(사용자 "의견합의 과정을 로그로 남겨 연구").
-    //   reports/reconciliation/reconcile-{ts}.json — 후보별 매도신호·score·판정 보존. 추후 "veto 된
-    //   종목이 실제로 빠졌나 / pass 된 경미신호 종목 outcome" 분석 source.
-    const adjudication = { ts: new Date().toISOString(), session, vetoScore: VETO_SCORE, candidates: [] };
+    // 합의 과정 trail (reports/reconciliation/) — veto/감점/통과 + net 점수 보존(연구용).
+    const adjudication = { ts: new Date().toISOString(), session, thresholds: { HIGH, MID, macroTighten }, candidates: [], downgraded: [] };
     dedupedPortfolio = dedupedPortfolio.filter(p => {
       const sig = sellSig.get(p.ticker) ?? {};
       if (sig.rsi != null) p._realRsi = sig.rsi;  // technicalBasis RSI 라벨 grounding 용 (발간직전 삭제)
+      const uoa = buyMacroCtx.uoaMap?.get(p.ticker);
+      const news = buyMacroCtx.newsSentimentMap?.get(p.ticker);
       const exCtx = {
         price: livePrices.get(p.ticker)?.price ?? null,
         rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
         opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
         sectorPe: sectorPeMap.get(String(p.sector ?? '').toLowerCase()) ?? null,
-        macroRiskLevel: macroData?.riskLevel ?? null,
+        macroRiskLevel: macroData?.riskLevel ?? null, vix: buyMacroCtx.vix,
+        optionsCallPrem: uoa?.callPrem ?? 0, optionsPutPrem: uoa?.putPrem ?? 0,     // micro: 옵션 풋편중
+        newsNegRatio: news?.negRatio ?? null, newsArticleCount: news?.count ?? 0,    // micro: 부정뉴스
       };
       const hits = [];
       for (const rule of vetoRules) {
         const reason = evaluateSellRule(rule, exCtx);
-        if (reason) hits.push({ id: rule.id, category: rule.category, score: rule.score ?? 0, reason });
+        if (reason) hits.push({ id: rule.id, category: rule.category, score: +weightedScore(rule, exCtx).toFixed(1), hard: HARD_IDS.has(rule.id), reason });
       }
-      const total = hits.reduce((s, h) => s + h.score, 0);
-      const verdict = total >= VETO_SCORE ? 'veto' : 'pass';
+      const buyConviction = buyScoreOf.get(p.ticker) ?? 20;
+      const buyDiscount = Math.max(0, Math.min(4, (buyConviction - 25) / 5));        // 강한 매수일수록 soft 매도 상쇄
+      const hardHit = hits.find(h => h.hard);
+      const softScore = hits.filter(h => !h.hard).reduce((s, h) => s + h.score, 0);
+      const netSoft = +(softScore - buyDiscount).toFixed(1);
+      const tier = hardHit ? 'veto' : netSoft >= HIGH ? 'veto' : netSoft >= MID ? 'downgrade' : 'pass';
       adjudication.candidates.push({
-        ticker: p.ticker, sector: p.sector ?? null, sellScore: total, verdict,
-        signals: { rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY, price: exCtx.price },
+        ticker: p.ticker, sector: p.sector ?? null, buyConviction, buyDiscount: +buyDiscount.toFixed(1),
+        softScore: +softScore.toFixed(1), netSoft, hardHit: hardHit?.id ?? null, tier,
+        signals: { rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY, price: exCtx.price, putPrem: exCtx.optionsPutPrem, newsNegRatio: exCtx.newsNegRatio },
         hits,
       });
-      if (verdict === 'veto') {
-        console.warn(`  [경합심사] ${p.ticker} 매수 탈락 (매도 score ${total}≥${VETO_SCORE}): ${hits.map(h => `${h.id}=${h.reason}`).join('; ')}`);
+      if (tier === 'veto') {
+        console.warn(`  [심판] ${p.ticker} 탈락 (${hardHit ? `hard:${hardHit.id}` : `netSoft ${netSoft}≥${HIGH} 매수확신${buyConviction}`}): ${hits.map(h => h.id).join(',')}`);
         return false;
       }
-      if (hits.length) console.log(`  [경합심사] ${p.ticker} 통과 (매도 score ${total}<${VETO_SCORE}, 경미): ${hits.map(h => h.id).join(',')}`);
+      if (tier === 'downgrade') {
+        const downConf = p.confidence === 'high' ? 'medium' : 'low';
+        const tags = hits.map(h => h.id.replace(/^[a-z]+_/, '')).join('·');
+        const caution = `⚠️ 경합심사 감점(매도신호 ${tags}, netSoft ${netSoft}) — 비중 축소·확신 강등`;
+        p.confidence = downConf;
+        p.allocation = Math.max(3, Math.round((p.allocation ?? 8) * 0.6));
+        p.riskNote = p.riskNote ? `${caution}. ${p.riskNote}` : caution;
+        p.adjudicationTier = 'downgrade';
+        adjudication.downgraded.push({ ticker: p.ticker, netSoft, hits: hits.map(h => h.id) });
+        console.log(`  [심판] ${p.ticker} 감점보류 (netSoft ${netSoft}∈[${MID},${HIGH}) 매수확신${buyConviction} → 비중↓·확신→${downConf}): ${hits.map(h => h.id).join(',')}`);
+        return true;
+      }
+      if (hits.length) console.log(`  [심판] ${p.ticker} 통과 (netSoft ${netSoft}<${MID} 매수확신${buyConviction} 우위): ${hits.map(h => h.id).join(',')}`);
       return true;
     });
     adjudication.sellSide = sellSideReview;  // 양방향: 매도 후보의 매수신호 상충 기록
-    adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length, sellConflicts: sellSideReview.length };
-    if (before !== dedupedPortfolio.length) console.log(`  [경합심사] 매수 ${before}→${dedupedPortfolio.length} (매도룰 cross-exam 탈락)`);
+    adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length, downgraded: adjudication.downgraded.length, sellConflicts: sellSideReview.length };
+    if (before !== dedupedPortfolio.length || adjudication.downgraded.length) console.log(`  [심판] 매수 ${before}→${dedupedPortfolio.length} (탈락 ${before - dedupedPortfolio.length}, 감점보류 ${adjudication.downgraded.length})`);
 
     // 2026-06-12: 탈락 시장 재충원 (사용자 "kr종목이 없네 의도적인가?" — 17:33 발간 실측: 탈락 6종
     //   전원 KR(RSI 과열) → KR 0 발간). 탈락 자체는 정당하나 차순위 재심 없이 시장 전체가 침묵 소실되는
