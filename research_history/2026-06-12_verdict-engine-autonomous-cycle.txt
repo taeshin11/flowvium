@@ -1,0 +1,29 @@
+2026-06-12 17:00~18:10 KST — 종합판정 엔진 + 자율 사이클 (커밋 ae7bb9d/8db37af/66dede4/70285b8 외)
+
+## 종합판정 엔진 (사용자: "하락전조+상승전조+공포매수+구루+과거유사상황 → 관망/매수/중립 결정")
+- computeHistoricalAnalog: ^GSPC+^VIX 1990~ 일봉 라이브(period1/period2 — range=max 는 월봉 함정),
+  현재 지문(VIX/낙폭/20일) 유사국면 매칭 → 1/3/6개월 forward 실측. 첫 발간: 189회, 3m +3.4%, 74%.
+- computeFearBuy: F&G≤25/낙폭≥5%/VIX≥25 조합 — 버핏/템플턴/막스 원칙 결정론화.
+- computeMarketVerdict: 6단계(buy_dip/accumulate/neutral_ready/neutral/wait/defensive)+근거.
+- tier-1 보강(사용자 승인): 지수 200일선 추세 가감, RSP-SPX 폭 프록시, 안전자산 동시유입 하향,
+  계절성(현재월 실측). 스모크: 추세 +7.5% 위 / 6월 +1.6%(n154) / 폭 +4.0pp.
+- 17:33 재발간 검증: verdict=wait(경보 35: VIX 기간구조 역전+US Tech -3.17%), verify-loop 결함 0.
+- UI: stance 아래 카드, i18n 8키×16. 홈 베타 배지 제거 동시 처리.
+
+## 매도카드 날짜 완성
+- entryDate(매수추천일)+firstSellDate(매도권장 시작일) 첫 실발간 확인 (TSM entry 6/12, 005490 firstSell 6/12).
+- TSM firstSell 빈 값 실측 → 첫 권고 시 오늘 날짜 폴백 (66dede4).
+
+## 자율 사이클 항목
+- TabbyAPI 14.3GB 삭제 (5/15 후 미사용, VLLM_URL 미설정, setup 스크립트 보존). 루트 build 로그 24+
+  llm-raw 45 + 빌드/audit 잔존 정리.
+- 모니터 배포 재시작 가드: pm2 web uptime<2분 → 사이클 skip (14 엔드포인트 DEAD 대량 오탐 사건).
+- Karpathy 루프 확인: hallucination_history 50건, F26 inject 가동, 최근 3일 결함 1건, 품질 99/100.
+- check-static-fallbacks fail→pass: company-business 의 UNIVERSE_SEARCH import 에 verify-metrics
+  probe 의무 이행 (accuracy.company-business.source).
+- 좀비 0 (전 프로세스 현역 확인).
+
+## 잔여 (사유 명시 — 게으른 미루기 아님)
+- 매일경제 RSS 403 (새 외부소스 검증 의무 풀세트), supplyChain KR 0건 (DART 설계 필요),
+  FOMC 이벤트 근접성 팩터 (캘린더 소스 검증 필요), tier-2 (풋콜/AAII/버핏지표 — 신규 소스).
+- audit-data-sources err 5 / audit-company-pages err 9 (warn 등급, 기존 — 차기 사이클).

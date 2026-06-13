@@ -1,0 +1,54 @@
+2026-06-13 세션 — 종합 판단 US/KR 분리 + 종목 시그널 카드 + financials 값진위 fix + 홈 CTA + 자율 헬스/정리
+
+[기능]
+1. 종합 판단(marketVerdict) US/KR 분리 (사용자 "US, KR 관련 내용 분리해야할듯")
+   - computeMarketVerdict: 각 근거에 region 태그(global/us/kr). reasonRegions[] = reasons[] 1:1 평행배열
+     (문자열 미변경 → 클라 번역/probe 무영향). add(text,region) 헬퍼로 동기 보장.
+   - ReportPage: 공통/거시 · 🇺🇸 미국 증시 · 🇰🇷 한국 증시 그룹 헤더 렌더. 길이 불일치/구버전=flat fallback.
+   - i18n verdictRegion* 16언어. 커밋 ad2d865.
+   - 검증체계: region desync/미지정 자동 warn guard (add() 우회 회귀 surface). 커밋 (verdict guard).
+   - smoke test: 사용자 스크린샷 시나리오 재현 — groups global:1/us:3/kr:1, length SYNCED 확인.
+
+2. 종목 시그널 통합 카드 — 전 1338 company page (UOA·버스트·공급계약 영향도·수주잔고 US+KR)
+   - NEW /api/company-signals/[ticker], CompanyPage static+live-only 양쪽 경로 렌더. 커밋 fe661ad.
+
+3. financials.json 값진위 fix (내가 만든 "형태 아닌 내용" 교훈 위반 자가교정)
+   - XBRL 태그 split(최신FY=Revenues/과거=RevenueFromContract) → annualByEnd 전태그 병합+최신end.
+   - staleness guard(2년+ stale 방출금지) 22→0, 은행/유틸 태그확장, KR sanity clamp 13→0. 989종 전수 통과.
+
+4. 홈 추천종목 유도 CTA (사용자 "추천종목 보도록 유도하는 메세지 없어")
+   - 히어로+닫는섹션 "오늘의 AI 추천 종목 보기"→/report. OG "AI Picks the Stocks"+"See today's picks". 커밋 fe661ad.
+
+[자율 헬스/정리]
+- 모니터 결함 company-signals(404) = 오탐(제네릭 프로브가 [ticker] base path 찔러 404). NVDA 샘플 등록
+  + 조용한 종목 empty=alive 인식. dead 0 확인. 커밋 8731840.
+- 좀비: 고아 cmd 16308 kill. 고아 powershell 21852 = elevated(Access denied, SYSTEM 추정) — 무해(idle), 재부팅/관리자 필요.
+- node 42개는 빌드 워커 transient, 영구 5개(pm2 스택) 정상. GPU 61°C/0%/0MiB idle.
+- 디스크 1.4TB free — 압박 없음. llm-raw 전부 3일내(prune 불필요), 감사 trail(reports/reconciliation/db) 보존.
+- Karpathy closed loop 정상: 환각 0.0 vs 직전 0.3(개선), verify-loop 3.2h, 48 trail, 최신 verify 0 defect.
+- check-stall: stall 없음, git wipe-risk 없음(전부 push).
+
+5. 홈 추천종목 CTA 색상 (사용자 "눈에 띄게") — violet(아래 AI리포트 카드와 동일색이라 묻힘)→
+   오렌지→로즈→핑크 그라데이션+글로우 ring. 히어로+닫는섹션 둘다. 배포·확인.
+
+6. 주요 섹터 'N개 기업' 카운트 동적화 (사용자 "개수 다 맞어?") — 하드코딩이 universe 1210+ 성장과
+   drift: semi 15→실제35, financials 35→58, healthcare 30→58 등 전부 과소. sectors.ts 가 allCompanies
+   에서 c.sector별 동적 count(explore/[sector] 필터와 동일 기준). 16카드 라이브 확인.
+   주의(사각지대): data 에 technology(21)·automotive(4) 섹터값 있으나 sector 카드 없음 — 25종목이
+   카드로 미노출(검색/explore-all 로만 도달). 재매핑 or 카드추가는 큐레이션 필요 → 사용자 결정 surface.
+
+7. 작전주(펌프&덤프) 탐지기 (사용자 greenlight) — /api/manipulation-risk/[ticker] 결정론 스코어
+   급등+거래량폭발+저유동성+펀더갭 동시발화 0-100, 2개+ 미달이면 25캡(단일신호≠작전주). 검증:
+   082800.KQ score66 high(+46%/3.2×/$0.8M/매출-32%), 대형주 0, 저유동성-only 캡. CompanyPage ⚠️배너
+   (16언어). 사전포착 phase 'accumulation'(거래량 선반영+가격평탄=급등前 매집, 사용자 "오르기前 판별").
+   KRX 시장경보 권위대조는 anti-bot LOGOUT 확인 → 미적용(결정론 1차, 정당한 deferral).
+
+8. noon/afternoon KR 0 종목 근본원인 fix (사용자 "왜 KR이 없나") — 경합심사 deadCross 룰이 임계값
+   없어 50MA가 200MA보다 0.008%(1,022,573 vs 1,022,661=사실상 동일=평탄) 아래도 dead cross 판정
+   → KR 후보 13→0 전원 spurious 탈락. fix: sma50<sma200*0.99(1%+갭)만. golden cross 대칭. 직접
+   regen 검증: KR 0→4 복귀(459580/423160/481050.KS=이전 spurious 탈락분 생존). isKR .KQ 누락(₩.00
+   데시멀) 도 fix.
+
+[사각지대/제안]
+- 작전주 탐지: 부품(burst/financials/news-gap/short/korea-flow 동적) 다 있으나 통합 스코어 부재 + market-caps
+  정밀시총이 ~30종목만 live(band enum은 정적). 동적시총=주식수×현재가로 메꿔 작전주 탐지기 제안(사용자 결정 대기).

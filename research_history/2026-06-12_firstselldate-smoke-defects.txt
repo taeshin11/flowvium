@@ -1,0 +1,32 @@
+2026-06-12 16:00~17:15 KST — firstSellDate 스모크 테스트로 3중 결함 발굴·교정 + 프로브 오탐 제거
+
+## 배경
+f4da08b(매도권장 시작일)가 커밋만 되고 한 번도 실행 안 된 상태(15:40 cron 이 구코드 로드 — race).
+CLAUDE.md 스모크 의무에 따라 실 DB 대상 직접 실행 → 즉시 결함 3건 발굴.
+
+## 발굴 결함 (스모크가 없었으면 전부 silent)
+1. firstSellDate 쿼리가 sell_type = ruleId 정확일치 가정 → DB 실측 불일치.
+   PVH: 보고서 ruleId=price_target_near 인데 DB 적재는 stop_breach. → MIN() 항상 null, 기능 사산(死産).
+   교정: UI sellKind 와 동일 4그룹(익절/손절/신호악화/매크로) 매칭. 스모크 검증:
+   TSLA→2026-06-11, 000660.KS→2026-05-29 정상 / legacy·신규 vocabulary 양쪽 커버.
+2. 근본원인: db.mjs 적재 시 sell_type = LLM override(c.sellType) 우선 → LLM 이 price_target_near 를
+   stop_breach 로 오분류. "숫자는 코드가, LLM 은 문장만" 위반. → override 제거, sellType = ruleId 결정론.
+   6/12 15:10 발간분 오분류 4행(PVH/GOOGL/030200.KS/000660.KS) 백필.
+3. verifyUploadSource 기본 URL 이 사망한 flowvium.vercel.app → 자가호스팅 이후 매 발간 [UPLOAD VERIFY] 404.
+   검증 프로브 자체가 stale 인프라를 가리키던 사각지대. localhost:3000 교정, source=local-qwen3:8b 확인.
+
+## 프로브 오탐 (verify-all fail → pass)
+- audit-coverage [5b]: FTV/MOH ❌ "게이트 우회 의심" → 실측 둘 다 sell-after-buy (매수 후 신호 등장 =
+  신규 정보 도착, 게이트 결함 아님. 매수 시점은 rotation-veto 커밋 13:37 이전이기도 함).
+  순서 인지 교정: 기존 sell 무시한 buy 만 err, sell-after-buy 는 whipsaw warn.
+- check-doc-sync: ETF 풀 65 문서 동기화 + Windows 비호환(execSync ls → readdirSync).
+
+## 발간 확인
+- 16:00 afternoon 발간 성공 (8c4c46b 코드 — race 로 날짜 필드 미포함이나, 이번 발간 매도카드 0건이라 무영향).
+- engineReview 첫 발간 확인: 6줄 (경합심사 6탈락, rotation-veto 4건 — TSLA 매도신호 25 거부 포함,
+  TSM 모순 재심 제거, 매수 승률 33%, 매도 적중 55%).
+- buy∩sell overlap 없음 (portfolio + portfolioByMarket union 기준).
+- entryDate/firstSellDate 실발간 확인은 21:30 evening (ad95a3e 코드 + 매도카드 존재 시) — 스모크 증거는 확보.
+
+## 커밋
+- d519e5f fix(doc-sync), ad95a3e fix(report+audit). origin 동기화, wipe-risk 0.
