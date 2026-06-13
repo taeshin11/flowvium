@@ -35,7 +35,8 @@
     "shortDesc": "Short squeeze picks",
     "cascadeDesc": "Leader→midcap cascade",
     "volatility": "Volatility",
-    "volatilityDesc": "Options IV · skew · term"
+    "volatilityDesc": "Options IV · skew · term",
+    "memberLoggedIn": "Logged in"
   },
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",

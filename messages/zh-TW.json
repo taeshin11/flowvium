@@ -35,7 +35,8 @@
     "shortDesc": "軋空候選",
     "cascadeDesc": "龍頭→中型股傳導",
     "volatility": "隱含波動率",
-    "volatilityDesc": "選擇權IV·偏度·期限"
+    "volatilityDesc": "選擇權IV·偏度·期限",
+    "memberLoggedIn": "已登入"
   },
   "hero": {
     "title": "發掘隱藏的供應鏈風險",

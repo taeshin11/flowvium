@@ -35,7 +35,8 @@
     "shortDesc": "โอกาส short squeeze",
     "cascadeDesc": "หุ้นนำ→มิดแคป",
     "volatility": "ความผันผวน",
-    "volatilityDesc": "ออปชั่น IV · skew"
+    "volatilityDesc": "ออปชั่น IV · skew",
+    "memberLoggedIn": "เข้าสู่ระบบแล้ว"
   },
   "hero": {
     "title": "ค้นพบความเสี่ยงที่ซ่อนอยู่ในห่วงโซ่อุปทาน",

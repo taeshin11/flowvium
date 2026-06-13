@@ -35,7 +35,8 @@
     "shortDesc": "逼空候选",
     "cascadeDesc": "龙头→中型股传导",
     "volatility": "隐含波动率",
-    "volatilityDesc": "期权IV·偏度·期限"
+    "volatilityDesc": "期权IV·偏度·期限",
+    "memberLoggedIn": "已登录"
   },
   "hero": {
     "title": "发现隐藏的供应链风险",

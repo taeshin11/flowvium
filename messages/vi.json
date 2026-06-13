@@ -35,7 +35,8 @@
     "shortDesc": "Ứng viên short squeeze",
     "cascadeDesc": "Dẫn đầu→vốn trung",
     "volatility": "Biến động ngụ ý",
-    "volatilityDesc": "Quyền chọn IV · skew"
+    "volatilityDesc": "Quyền chọn IV · skew",
+    "memberLoggedIn": "Đã đăng nhập"
   },
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",

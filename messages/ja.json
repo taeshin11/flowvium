@@ -35,7 +35,8 @@
     "shortDesc": "ショートスクイーズ",
     "cascadeDesc": "リーダー→中型株連鎖",
     "volatility": "内在ボラティリティ",
-    "volatilityDesc": "オプションIV・スキュー"
+    "volatilityDesc": "オプションIV・スキュー",
+    "memberLoggedIn": "ログイン中"
   },
   "hero": {
     "title": "隠れたサプライチェーンリスクを発見",

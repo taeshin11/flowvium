@@ -35,7 +35,8 @@
     "shortDesc": "숏스퀴즈 후보",
     "cascadeDesc": "리더→중형주 연쇄",
     "volatility": "내재변동성",
-    "volatilityDesc": "옵션 IV·skew·term"
+    "volatilityDesc": "옵션 IV·skew·term",
+    "memberLoggedIn": "로그인됨"
   },
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",

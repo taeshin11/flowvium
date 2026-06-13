@@ -35,7 +35,8 @@
     "shortDesc": "Кандидаты шорт-сквиз",
     "cascadeDesc": "Лидер→средняя капитализация",
     "volatility": "Волатильность",
-    "volatilityDesc": "Опционы IV · скью"
+    "volatilityDesc": "Опционы IV · скью",
+    "memberLoggedIn": "Вы вошли"
   },
   "hero": {
     "title": "Обнаружьте скрытые риски цепочки поставок",

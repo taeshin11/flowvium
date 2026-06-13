@@ -35,7 +35,8 @@
     "shortDesc": "Short-Squeeze-Kandidaten",
     "cascadeDesc": "Leader→Midcap-Kaskade",
     "volatility": "Volatilität",
-    "volatilityDesc": "Optionen IV · Skew"
+    "volatilityDesc": "Optionen IV · Skew",
+    "memberLoggedIn": "Angemeldet"
   },
   "hero": {
     "title": "Verborgene Lieferkettenrisiken aufdecken",

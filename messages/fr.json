@@ -35,7 +35,8 @@
     "shortDesc": "Candidats short squeeze",
     "cascadeDesc": "Leader→moyenne capitalisation",
     "volatility": "Volatilité",
-    "volatilityDesc": "Options IV · skew"
+    "volatilityDesc": "Options IV · skew",
+    "memberLoggedIn": "Connecté"
   },
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",

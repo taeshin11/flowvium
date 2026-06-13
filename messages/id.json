@@ -35,7 +35,8 @@
     "shortDesc": "Kandidat short squeeze",
     "cascadeDesc": "Pemimpin→midcap cascade",
     "volatility": "Volatilitas",
-    "volatilityDesc": "Opsi IV · skew"
+    "volatilityDesc": "Opsi IV · skew",
+    "memberLoggedIn": "Masuk"
   },
   "hero": {
     "title": "Temukan Risiko Rantai Pasok Tersembunyi",

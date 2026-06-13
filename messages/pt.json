@@ -35,7 +35,8 @@
     "shortDesc": "Candidatos short squeeze",
     "cascadeDesc": "Líder→midcap cascata",
     "volatility": "Volatilidade",
-    "volatilityDesc": "Opções IV · skew"
+    "volatilityDesc": "Opções IV · skew",
+    "memberLoggedIn": "Conectado"
   },
   "hero": {
     "title": "Descubra Riscos Ocultos na Cadeia de Suprimentos",

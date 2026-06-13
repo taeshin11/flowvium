@@ -36,7 +36,9 @@ function verify(token: string | undefined): string | null {
 
 export async function GET(req: NextRequest) {
   const email = verify(req.cookies.get(COOKIE)?.value);
-  return NextResponse.json({ member: !!email });
+  // 이메일 일부 마스킹해 프로필 표시용 반환 (a***@domain)
+  const masked = email ? email.replace(/^(.).*(@.*)$/, (_, a, d) => `${a}***${d}`) : null;
+  return NextResponse.json({ member: !!email, email: masked });
 }
 
 export async function POST(req: NextRequest) {

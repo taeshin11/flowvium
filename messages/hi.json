@@ -35,7 +35,8 @@
     "shortDesc": "शॉर्ट स्क्वीज़",
     "cascadeDesc": "लीडर→मिडकैप कैस्केड",
     "volatility": "अंतर्निहित अस्थिरता",
-    "volatilityDesc": "विकल्प IV · स्क्यू"
+    "volatilityDesc": "विकल्प IV · स्क्यू",
+    "memberLoggedIn": "लॉग इन"
   },
   "hero": {
     "title": "छिपे हुए सप्लाई चेन जोखिम उजागर करें",

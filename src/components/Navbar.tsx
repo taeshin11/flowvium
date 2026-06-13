@@ -148,6 +148,12 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // 2026-06-13: 회원 로그인 상태 (사용자 "가입했으면 로그인 유지·프로필 보이게"). 쿠키 1년 →
+  //   재방문 시 자동 로그인 상태. GET /api/member 로 쿠키 검증.
+  const [memberEmail, setMemberEmail] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/member').then(r => r.json()).then(d => setMemberEmail(d.member ? (d.email ?? '회원') : null)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -223,6 +229,13 @@ export default function Navbar() {
                 <MessageCircle className="w-3 h-3" />
                 {t('feedback')}
               </a>
+              {/* 2026-06-13: 회원 프로필 배지 (로그인 상태 = 쿠키 1년 자동 유지) */}
+              {memberEmail && (
+                <span className="ml-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200 flex items-center gap-1.5" title={t('memberLoggedIn')}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                  {memberEmail}
+                </span>
+              )}
             </div>
 
             {/* Mobile: search icon + hamburger */}

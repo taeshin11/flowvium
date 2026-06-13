@@ -35,7 +35,8 @@
     "shortDesc": "Short squeeze adayları",
     "cascadeDesc": "Lider→orta ölçekli cascade",
     "volatility": "Oynaklık",
-    "volatilityDesc": "Opsiyon IV · çarpıklık"
+    "volatilityDesc": "Opsiyon IV · çarpıklık",
+    "memberLoggedIn": "Giriş yapıldı"
   },
   "hero": {
     "title": "Gizli Tedarik Zinciri Risklerini Keşfedin",

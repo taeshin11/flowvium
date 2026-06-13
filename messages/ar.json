@@ -35,7 +35,8 @@
     "shortDesc": "مرشحو الضغط القصير",
     "cascadeDesc": "قائد→شركات متوسطة",
     "volatility": "التقلب",
-    "volatilityDesc": "خيارات IV · انحراف"
+    "volatilityDesc": "خيارات IV · انحراف",
+    "memberLoggedIn": "تم تسجيل الدخول"
   },
   "hero": {
     "title": "اكتشف مخاطر سلسلة التوريد الخفية",
