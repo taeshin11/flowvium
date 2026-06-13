@@ -654,8 +654,8 @@
     "about": "À propos",
     "donationTitle": "Flowvium est gratuit et sans publicité",
     "donationDesc": "Bloomberg Terminal coûte 2 000 $/mois — ici c'est gratuit. Un don au prix d'un café aide à couvrir les coûts du serveur.",
-    "donationGoalTitle": "🎯 À 200 $/mois, l'analyse de flux en temps réel se débloque",
-    "donationGoalDesc": "Prévu: cotations en temps réel Polygon + flux d'options institutionnelles Unusual Whales + impressions dark pool. Actuellement sur Yahoo gratuit (15 min de retard) · Merci de nous aider 🙏",
+    "donationGoalTitle": "🎯 À 200 $/mois, passage aux données en temps réel (sans délai)",
+    "donationGoalDesc": "Recommandations, flux d'options, blocs et flux institutionnels sont déjà gratuits. Les dons font passer le délai de 15 min de Yahoo au temps réel et financent le serveur 🙏",
     "donationBankLabel": "🇰🇷 Kakao Bank",
     "donationAccountHolder": "Titulaire du compte: Kim Taeshin"
   },

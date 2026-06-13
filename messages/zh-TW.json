@@ -654,8 +654,8 @@
     "about": "關於",
     "donationTitle": "Flowvium 無廣告免費提供",
     "donationDesc": "Bloomberg Terminal 每月 $2,000,這裡免費。一杯咖啡價格的贊助對伺服器維護是巨大的幫助。",
-    "donationGoalTitle": "🎯 每月達到 $200 將開啟即時資金流分析",
-    "donationGoalDesc": "計劃整合: Polygon 即時報價 + Unusual Whales 機構選擇權流 + 暗池成交。目前使用 Yahoo 免費版(15分鐘延遲) · 請支持 🙏",
+    "donationGoalTitle": "🎯 每月$200達成即升級為即時(無延遲)數據",
+    "donationGoalDesc": "買賣建議、選擇權flow、大宗交易、機構資金流皆已免費。捐助用於將Yahoo的15分鐘延遲升級為即時數據並支付伺服器費用 🙏",
     "donationBankLabel": "🇰🇷 Kakao Bank",
     "donationAccountHolder": "開戶人: 金太信"
   },

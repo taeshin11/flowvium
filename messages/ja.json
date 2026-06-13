@@ -576,8 +576,8 @@
     "about": "概要",
     "donationTitle": "Flowviumは広告なしで無料で提供されます",
     "donationDesc": "Bloomberg Terminalは月$2,000ですが、ここでは無料です。サーバー費用の支援として、コーヒー一杯分の寄付が大きな力になります。",
-    "donationGoalTitle": "🎯 月$200集まればリアルタイム資金フロー分析が解放されます",
-    "donationGoalDesc": "予定: Polygonリアルタイム株価 + Unusual Whales機関投資家オプションフロー + ダークプールプリント統合。現在はYahoo無料ティア(15分遅延)運用中 · ご支援お願いします 🙏",
+    "donationGoalTitle": "🎯 月$200 集まればリアルタイム(遅延なし)データに",
+    "donationGoalDesc": "売買推奨・オプションflow・ブロック取引・機関需給はすべて既に無料。寄付はYahoo15分遅延をリアルタイムに引き上げ、サーバー費に充てます 🙏",
     "donationBankLabel": "🇰🇷 カカオバンク",
     "donationAccountHolder": "口座名義: キム・テシン"
   },

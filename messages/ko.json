@@ -576,8 +576,8 @@
     "about": "소개",
     "donationTitle": "Flowvium은 광고 없이 무료로 제공됩니다",
     "donationDesc": "Bloomberg Terminal이 월 $2,000인데 여기선 공짜예요. 서버 비용에 보탬이 된다면 커피 한 잔 가격의 후원이 큰 힘이 됩니다.",
-    "donationGoalTitle": "🎯 월 $200 모이면 실시간 수급 분석이 열립니다",
-    "donationGoalDesc": "Polygon 실시간 주가 + Unusual Whales 기관 옵션 flow + 다크풀 프린트 통합 예정. 현재는 Yahoo 무료 티어(15분 지연)로 운영 중 · 도와주십쇼 🙏",
+    "donationGoalTitle": "🎯 월 $200 모이면 실시간(무지연) 데이터로 업그레이드됩니다",
+    "donationGoalDesc": "매수·매도 추천, 옵션 flow, 블록 트레이드, 기관 수급까지 전부 이미 무료로 제공 중입니다. 후원금은 Yahoo 15분 지연을 실시간(무지연) 데이터로 올리고 서버 비용에 쓰입니다 · 도와주십쇼 🙏",
     "donationBankLabel": "🇰🇷 카카오뱅크",
     "donationAccountHolder": "예금주: 김태신"
   },

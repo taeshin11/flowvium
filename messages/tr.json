@@ -654,8 +654,8 @@
     "about": "Hakkımızda",
     "donationTitle": "Flowvium reklamsız ve tamamen ücretsiz",
     "donationDesc": "Bloomberg Terminal aylık $2.000 — burada ücretsiz. Bir kahve fiyatına bağış sunucu maliyetlerine büyük yardım.",
-    "donationGoalTitle": "🎯 Aylık $200 ile gerçek zamanlı akış analizi açılır",
-    "donationGoalDesc": "Planlanan: Polygon canlı fiyatlar + Unusual Whales kurumsal opsiyon akışı + dark-pool printleri. Şu an Yahoo ücretsiz (15 dk gecikmeli) · Yardımınız lütfen 🙏",
+    "donationGoalTitle": "🎯 Ayda $200’da gerçek zamanlı (gecikmesiz) veriye geçiyoruz",
+    "donationGoalDesc": "Öneriler, opsiyon akışı, blok işlemler ve kurumsal akışlar zaten ücretsiz. Bağışlar Yahoo’nun 15 dk gecikmesini gerçek zamana yükseltir ve sunucu giderini karşılar 🙏",
     "donationBankLabel": "🇰🇷 Kakao Bank",
     "donationAccountHolder": "Hesap sahibi: Kim Taeshin"
   },
