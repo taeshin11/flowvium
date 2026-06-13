@@ -55,6 +55,23 @@ const PRIORITY_LOCALES = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW']);
 let STRATEGY_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const STRATEGY_MEMORY_TTL_MS = 23 * 60 * 60 * 1000; // 23h — survive most of the day within one Lambda instance
 
+// 2026-06-13: locale별 last-good 메모리 캐시 — Upstash Redis 일시적 read 실패(blip) 시 generic
+//   fallback(중립/분산ETF) 을 서빙하던 사건 fix(사용자 "리포트가 이상/원래 나오던게 안나와"). 직전
+//   성공 읽기(local-* source)를 기억해, Redis 실패/세션경계 미스 때 generic 대신 last-good 서빙.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LAST_GOOD = new Map<string, { data: any; expiresAt: number }>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rememberGood(locale: string, data: any) {
+  const src = String((data && data.source) || '');
+  if (data && (src.startsWith('local-') || src.startsWith('vllm') || src === 'cron')) {
+    LAST_GOOD.set(locale, { data, expiresAt: Date.now() + 8 * 60 * 60 * 1000 }); // 8h — stale-good ≫ generic
+  }
+}
+function lastGood(locale: string) {
+  const g = LAST_GOOD.get(locale) ?? LAST_GOOD.get('ko'); // ko = 단일 진실, 모든 locale 폴백
+  return g && Date.now() < g.expiresAt ? g.data : null;
+}
+
 /** KST 세션 구분:
  *  morning   = 07:00–15:59 KST (미국장 마감 후 분석)
  *  afternoon = 16:00–21:59 KST (아시아장 마감, 유럽장 진행)
@@ -1401,6 +1418,7 @@ export async function GET(request: Request) {
         const koCached = await redis.get(cacheKey(session, 'ko'));
         if (koCached && isSchemaCompatible(koCached as Record<string, unknown>)) {
           logger.info('api.investment-strategy', 'ko_authoritative_hit', { locale, session });
+          rememberGood('ko', koCached); rememberGood(locale, koCached);
           return NextResponse.json({ ...(koCached as object), cached: true, localeFallback: true, sourceLocale: 'ko' }, { headers: CDN_HEADERS });
         }
       }
@@ -1409,6 +1427,7 @@ export async function GET(request: Request) {
         const cached = await redis.get(key);
         if (cached) {
           logger.info('api.investment-strategy', 'cache_hit', { locale, session });
+          rememberGood(locale, cached);
           return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
         }
       }
@@ -1445,13 +1464,27 @@ export async function GET(request: Request) {
             }
           }
         }
-        // 4. No data at all — return minimal static fallback (no AI)
+        // 4. No data at all — last-good(메모리) 우선, 없으면 minimal static fallback
+        const lgMiss = lastGood(locale);
+        if (lgMiss && !probe) { logger.info('api.investment-strategy', 'served_last_good_on_miss', { locale }); return NextResponse.json({ ...lgMiss, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
         if (probe) {
           return NextResponse.json(fallbackStrategy(locale), { headers: { 'Cache-Control': 'no-store' } });
         }
         return NextResponse.json({ ...fallbackStrategy(locale), stale: true, noData: true }, { headers: { 'Cache-Control': 'public, s-maxage=60' } });
       }
-    } catch (e) { logger.warn('api.investment-strategy', 'cache_read_error', { error: e }); }
+    } catch (e) {
+      logger.warn('api.investment-strategy', 'cache_read_error', { error: e });
+      // 2026-06-13: Redis read 실패 시 generic 대신 last-good 서빙 (있으면) — blip 으로 리포트가
+      //   '중립/분산ETF' fallback 으로 깜빡이던 사건 fix.
+      const lg = lastGood(locale);
+      if (lg) { logger.info('api.investment-strategy', 'served_last_good_on_redis_error', { locale }); return NextResponse.json({ ...lg, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
+    }
+  }
+
+  // generic fallback 직전 — last-good 있으면 우선 (세션경계 미스/Redis 실패 공통 안전망)
+  {
+    const lg = lastGood(locale);
+    if (lg && !force) { logger.info('api.investment-strategy', 'served_last_good_prefallback', { locale }); return NextResponse.json({ ...lg, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
   }
 
   if (probe) {
