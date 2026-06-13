@@ -55,7 +55,10 @@ export async function GET() {
       { headers: CDN_HEADERS },
     );
   } catch (err) {
+    // 2026-06-13: 일시적 Redis(mget 31키) 에러를 502(=DEAD)로 내보내던 버그 — !redis 경로(200)와
+    //   불일치. endpoint 자체는 정상, Redis 가 순간 hiccup 한 것 → degraded 200(빈 items + note)로
+    //   통일. 모니터 auto-probe 가 transient blip 을 "죽음"으로 오탐하던 것 차단.
     logger.error('api.options-flow', 'derive_failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ items: [], configured: true, total: 0, error: 'derive failed' }, { status: 502 });
+    return NextResponse.json({ items: [], configured: true, total: 0, source: 'yahoo-chain-derived', degraded: true, note: 'redis transient error' }, { headers: CDN_HEADERS });
   }
 }

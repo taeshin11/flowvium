@@ -396,7 +396,10 @@ async function main() {
       }
       if (r.status >= 400) return { ep, dead: `HTTP ${r.status}` };
       const b = r.body;
-      if (b == null || (typeof b === 'object' && Object.keys(b).length === 0)) return { ep, dead: 'empty body' };
+      // 2026-06-13: 빈 배열 []는 dead 아님 — 리스트 엔드포인트(cascade-events 등)의 정상 '데이터 없음'
+      //   상태. Object.keys([]).length===0 이 [] 를 'empty body' 로 오탐하던 것 차단(아래 weak 검사가
+      //   !Array.isArray 로 이미 배열 면제). {} (빈 객체)만 dead.
+      if (b == null || (typeof b === 'object' && !Array.isArray(b) && Object.keys(b).length === 0)) return { ep, dead: 'empty body' };
       if (b.error && !b.entries && !b.data) return { ep, dead: `error: ${String(b.error).slice(0, 30)}` };
       // configured===false = 유료 API 대기/미설정 (의도된 잠금, 결함 아님 — locked 로 분류).
       if (b.configured === false) return { ep, locked: true };
