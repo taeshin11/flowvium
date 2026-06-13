@@ -2859,21 +2859,9 @@ async function computeHistoricalAnalog(ctxRaw) {
   try {
     const [spx, vix, kospi] = await Promise.all([hist('^GSPC'), hist('^VIX'), hist('^KS11')]);
     if (!spx?.length || !vix?.length) return null;
-    // 2026-06-13: KR 차원 (사용자 "이것도 미국장만 분석한듯?") — 포트폴리오 절반이 KR인데 판정
-    //   입력이 전부 US 였음. KOSPI 낙폭/20일/200일선 추세를 결정론 산출해 판정 근거에 동봉.
+    // 2026-06-13: KR 차원 — breadth 블록 뒤에서 계산(med/curMonth 의존). US 와 동일 깊이(추세+계절성+
+    //   유사국면+breadth) 부여 — 사용자 "us랑 kr 왤케 달라? kr 부실". 전부 동적(라이브 Yahoo).
     let kr = null;
-    if (kospi?.length > 260) {
-      const lastK = kospi[kospi.length - 1];
-      let hiK = 0; for (let j = kospi.length - 253; j < kospi.length; j++) if (kospi[j].c > hiK) hiK = kospi[j].c;
-      let sK = 0; for (let j = kospi.length - 200; j < kospi.length; j++) sK += kospi[j].c;
-      const smaK = sK / 200;
-      kr = {
-        dd: +((lastK.c / hiK - 1) * 100).toFixed(1),
-        r20: +((lastK.c / kospi[kospi.length - 21].c - 1) * 100).toFixed(1),
-        above200: lastK.c > smaK,
-        distPct: +((lastK.c / smaK - 1) * 100).toFixed(1),
-      };
-    }
     const vixByDate = new Map(vix.map(p => [p.d, p.c]));
     // 시계열 지표: 고점대비 낙폭(252d trailing) + 20일 수익률, VIX 정렬
     const rows = [];
@@ -2924,7 +2912,57 @@ async function computeHistoricalAnalog(ctxRaw) {
         breadth = { divergencePp: +(r20rsp - r20spx).toFixed(1) };  // 음수 = 소수 대형주 주도(취약)
       }
     } catch { /* breadth 미산출 — non-fatal */ }
-    const base = { fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) }, trend, seasonality, breadth, kr, source: 'yahoo-^GSPC/^VIX/RSP/^KS11-1990~' };
+    // ── KR 차원: US 와 동일 깊이 (추세 + 계절성 + 유사국면 + breadth), 전부 동적 ───────────────
+    if (kospi?.length > 260) {
+      const lastK = kospi[kospi.length - 1];
+      let hiK = 0; for (let j = kospi.length - 253; j < kospi.length; j++) if (kospi[j].c > hiK) hiK = kospi[j].c;
+      let sK = 0; for (let j = kospi.length - 200; j < kospi.length; j++) sK += kospi[j].c;
+      const smaK = sK / 200;
+      // KR 계절성 — KOSPI 현재 월 1개월 forward 중앙값 (US seasonality 와 동일 알고리즘, 실측)
+      const ksSeasonFwd = [];
+      for (let i = 0; i + 21 < kospi.length; i += 5) {
+        if (new Date(kospi[i].d).getUTCMonth() === curMonth) ksSeasonFwd.push((kospi[i + 21].c / kospi[i].c - 1) * 100);
+      }
+      // KR 과거 유사국면 — KOSPI 낙폭(252d)+20일 지문 → 3개월 forward 중앙값·상승확률.
+      //   KR 은 VIX 등가 라이브 인덱스 부재 → 낙폭+모멘텀 2지문으로 매칭(US 는 VIX 포함 3지문).
+      const ksRows = [];
+      for (let i = 252; i < kospi.length; i++) {
+        let hi = 0; for (let j = i - 252; j <= i; j++) if (kospi[j].c > hi) hi = kospi[j].c;
+        ksRows.push({ i, dd: (kospi[i].c / hi - 1) * 100, r20: i >= 20 ? (kospi[i].c / kospi[i - 20].c - 1) * 100 : 0 });
+      }
+      const ksNow = ksRows[ksRows.length - 1];
+      const ksEp = [];
+      let lk = -9999;
+      for (const r of ksRows) {
+        if (r.i >= ksRows[ksRows.length - 1].i - 126) break;
+        if (r.i - lk < 21) continue;
+        if (Math.abs(r.dd - ksNow.dd) > 4 || Math.abs(r.r20 - ksNow.r20) > 5) continue;
+        const f = kospi[r.i + 63];
+        if (!f) continue;
+        ksEp.push((f.c / kospi[r.i].c - 1) * 100);
+        lk = r.i;
+      }
+      // KR breadth — KOSDAQ(^KQ11) vs KOSPI 20일 상대수익 (소형주 참여도; 양수=광범위 참여).
+      let krBreadth = null;
+      try {
+        const kq = await hist('^KQ11');
+        if (kq?.length > 21) {
+          const r20kq = (kq[kq.length - 1].c / kq[kq.length - 21].c - 1) * 100;
+          const r20ks = (lastK.c / kospi[kospi.length - 21].c - 1) * 100;
+          krBreadth = { divergencePp: +(r20kq - r20ks).toFixed(1) };  // 양수 = KOSDAQ(소형주) 주도, 광범위
+        }
+      } catch { /* non-fatal */ }
+      kr = {
+        dd: +((lastK.c / hiK - 1) * 100).toFixed(1),
+        r20: +((lastK.c / kospi[kospi.length - 21].c - 1) * 100).toFixed(1),
+        above200: lastK.c > smaK,
+        distPct: +((lastK.c / smaK - 1) * 100).toFixed(1),
+        seasonality: ksSeasonFwd.length >= 30 ? { month: curMonth + 1, med1m: med(ksSeasonFwd), n: ksSeasonFwd.length } : null,
+        analog: ksEp.length >= 5 ? { matches: ksEp.length, med3m: med(ksEp), posRate3m: Math.round(ksEp.filter(x => x > 0).length / ksEp.length * 100) } : null,
+        breadth: krBreadth,
+      };
+    }
+    const base = { fingerprint: { vix: +fp.vix.toFixed(1), drawdownPct: +fp.dd.toFixed(1), ret20d: +fp.r20.toFixed(1) }, trend, seasonality, breadth, kr, source: 'yahoo-^GSPC/^VIX/RSP/^KS11/^KQ11-1990~' };
     if (!episodes.length) return { matches: 0, ...base };
     return {
       matches: episodes.length,
@@ -3029,7 +3067,14 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
   // 2026-06-13: KR 시장 차원 (사용자 "미국장만 분석한듯") — KOSPI 상태 + 시장별 차등 코멘트.
   if (analog?.kr) {
     const k = analog.kr;
-    add(`KOSPI: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`, 'kr');
+    add(`KOSPI 추세: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`, 'kr');
+    // US 와 동일 깊이 — KR 시장 폭·계절성·과거 유사국면 (전부 동적 KOSPI/KOSDAQ 실측)
+    if (k.breadth?.divergencePp != null) {
+      if (k.breadth.divergencePp >= 1.5) add(`KR 시장 폭 양호: KOSDAQ(소형주)이 KOSPI 대비 20일 +${k.breadth.divergencePp}%p 우위 — 광범위 참여`, 'kr');
+      else if (k.breadth.divergencePp <= -1.5) add(`KR 시장 폭 취약: KOSDAQ이 KOSPI 대비 20일 ${k.breadth.divergencePp}%p 열위 — 대형주 편중`, 'kr');
+    }
+    if (k.analog?.matches >= 5) add(`KR 과거 유사국면 ${k.analog.matches}회(KOSPI 낙폭 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}% 지문): 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`, 'kr');
+    if (k.seasonality) add(`KOSPI 계절성(${k.seasonality.month}월, ${k.seasonality.n}표본): 1개월 forward 중앙값 ${k.seasonality.med1m > 0 ? '+' : ''}${k.seasonality.med1m}%`, 'kr');
     if (k.r20 >= 12) add('KR 단기 과열 구간 — KR 신규 진입은 분할·보수적 권장 (경합심사가 과열 종목 자동 차단 중)', 'kr');
     else if (k.dd <= -8 && earlyWarning.level === 'low') add('KR 낙폭 과대 + 경보 낮음 — KR 분할 매수 관찰 구간', 'kr');
   }
