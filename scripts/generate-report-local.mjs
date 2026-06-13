@@ -3203,7 +3203,10 @@ function computeKrVerdict(k, earlyWarning) {
  *   *발간 직전 최종 게이트*에서 호출(rotation/pool 추가 종목까지 커버). 단일 함수(DRY — 산재 금지).
  */
 function validateGroundedNumbers(portfolio, signalDigest, livePrices) {
-  const CALIB = new Set([1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 50, 52, 100, 200]);
+  // 2026-06-14 (ChatGPT D0-4 차용): MA/RSI 주기 상수(30/50/52/100/200)를 전역 허용하면 fundamentalBasis/
+  //   catalysts 의 "내부자 30%"·"50% 성장" 환각이 calibration 으로 통과. 이 함수는 technicalBasis 를
+  //   건드리지 않으므로(MA 주기는 거기 속함) 주기 상수 제거 — entry discount/allocation/소비율만 허용.
+  const CALIB = new Set([1, 2, 3, 5, 7, 8, 10, 12, 15, 20, 25]);
   let stripped = 0;
   for (const p of (portfolio ?? [])) {
     const sig = signalDigest.get(p.ticker);
@@ -3218,12 +3221,14 @@ function validateGroundedNumbers(portfolio, signalDigest, livePrices) {
     const isAllowed = (numTok) => { const n = Math.abs(parseFloat(numTok)); if (!Number.isFinite(n)) return true; for (const a of allow) if (Math.abs(n - a) <= Math.max(0.3, a * 0.02)) return true; return false; };
     const stripClause = (text) => {
       let t = text, changed = false;
-      for (const m of [...String(text).matchAll(/([+-]?\d+\.?\d*)\s*(?:%|x|배)/g)]) {
+      // 2026-06-14 (ChatGPT D0-4): %p(마진/금리 변화폭)·건(내부자/공시 건수) 추가 — 종전 %/x/배만 봐
+      //   "+2.1%p 마진개선"·"내부자 5건" 형식 환각이 그대로 통과하던 갭. (%p 를 % 보다 먼저 매칭.)
+      for (const m of [...String(text).matchAll(/([+-]?\d+\.?\d*)\s*(?:%p|%|x|배|건)/g)]) {
         // 2026-06-06 FATAL fix: m[1] 가 "+17.13" 처럼 부호 포함 시 기존 .replace('.','\\.') 는 "+" 미escape
         //   → `[^,，·|/]*+17\.13` 의 `*+` = "Nothing to repeat" invalid regex → afternoon 보고서 gen crash.
         //   정규식 특수문자 전체 escape. (rotation avg_pnl "+17.13%" 가 strip 대상이 되며 발생.)
         const esc = m[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        if (!isAllowed(m[1])) { t = t.replace(new RegExp(`[^,，·|/]*${esc}\\s*(?:%|x|배)[^,，·|/]*`), ''); changed = true; }
+        if (!isAllowed(m[1])) { t = t.replace(new RegExp(`[^,，·|/]*${esc}\\s*(?:%p|%|x|배|건)[^,，·|/]*`), ''); changed = true; }
       }
       return changed ? t.replace(/\s*[,，·|]\s*[,，·|]\s*/g, ', ').replace(/^[\s,，·|]+|[\s,，·|]+$/g, '').replace(/\s{2,}/g, ' ') : text;
     };
@@ -6500,7 +6505,7 @@ async function generateViaOllama() {
         `Ticker: ${p.ticker}${p.name && p.name !== p.ticker ? ' (' + p.name + ')' : ''}`,
         `Live price: ${ccy}${lp ?? 'N/A'}`,
         `Sector: ${p.sector ?? 'N/A'}`,
-        sigDigest?.insider ? `Insider signals: ${sigDigest.insider}` : '',
+        sigDigest?.insider ? `Insider signals: 매수 ${sigDigest.insider.buys ?? 0}건 / 매도 ${sigDigest.insider.sells ?? 0}건` : '',  // 2026-06-14 (ChatGPT): {buys,sells} 객체 → "[object Object]" 환각 입력 fix
         sigDigest?.squeeze ? `Squeeze score: ${sigDigest.squeeze}` : '',
         sigDigest?.fin?.yoy ? `Last quarter: revenue YoY ${sigDigest.fin.yoy}, opMargin ${sigDigest.fin.margin ?? 'N/A'}%, ROE ${sigDigest.fin.roe ?? 'N/A'}%, PE ${sigDigest.fin.pe ?? 'N/A'}` : '',
         '',
