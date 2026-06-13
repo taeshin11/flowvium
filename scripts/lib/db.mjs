@@ -449,6 +449,25 @@ export function getSegments(ticker) {
   try { return { ticker: r.ticker, segments: JSON.parse(r.segments_json), total: r.total, asOf: r.as_of, source: r.source, fetchedAt: r.fetched_at }; }
   catch { return null; }
 }
+// 2026-06-14 (Task28 D7): evidence_claims 적재/조회. UNIQUE(ticker,claim_id,period,source) upsert.
+export function saveEvidenceClaim({ ticker, claimId, valueNum = null, valueText = null, unit = null, period = null, asOf = null, source, sourceRef = null, confidence = null, evidenceHash = null, fetchedAt = null }) {
+  const db = openDb();
+  db.prepare(`INSERT INTO evidence_claims (ticker, claim_id, value_num, value_text, unit, period, as_of, source, source_ref, confidence, evidence_hash, fetched_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(ticker, claim_id, period, source) DO UPDATE SET value_num=excluded.value_num, value_text=excluded.value_text,
+      unit=excluded.unit, as_of=excluded.as_of, source_ref=excluded.source_ref, confidence=excluded.confidence,
+      evidence_hash=excluded.evidence_hash, fetched_at=excluded.fetched_at`)
+    .run(String(ticker).toUpperCase(), claimId, valueNum, valueText, unit, period, asOf, source, sourceRef, confidence, evidenceHash, fetchedAt ?? new Date().toISOString());
+}
+// ticker 의 claim_id → 최신(fetched_at desc) row 맵. 렌더러가 value_num 으로 문장 생성.
+export function getEvidenceClaims(ticker) {
+  const db = openDb();
+  const rows = db.prepare('SELECT claim_id, value_num, value_text, unit, period, as_of, source, confidence FROM evidence_claims WHERE ticker = ? ORDER BY fetched_at DESC').all(String(ticker).toUpperCase());
+  const out = {};
+  for (const r of rows) if (!(r.claim_id in out)) out[r.claim_id] = r;  // claim_id 당 최신 1개
+  return out;
+}
+
 // 전 종목 동적 세그먼트 커버리지/신선도 통계 (모니터 [R] probe 용 — "1300+ 다 동적검토").
 export function getSegmentCoverageStats() {
   const db = openDb();
