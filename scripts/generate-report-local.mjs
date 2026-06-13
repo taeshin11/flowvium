@@ -679,7 +679,11 @@ function qualityCheck(report) {
   if (!report.portfolio?.length) issues.push('portfolio EMPTY');
   if (!report.marketNarrative) issues.push('marketNarrative MISSING');
   if (!report.regionStances || Object.keys(report.regionStances).length === 0) issues.push('regionStances MISSING');
-  if (!report.shortSqueeze?.length) issues.push('shortSqueeze MISSING');
+  // 2026-06-13: shortSqueeze 는 외부 데이터(공매도/스퀴즈) 소스 의존 — 일시 down 시 빈 섹션이 *완벽한*
+  //   리포트(포트폴리오·verdict·계약상세 정상, verify 0결함)를 hard-fail 시켜 더 나쁜 옛 리포트가
+  //   라이브 잔존하던 사건 fix. 핵심(thesis/portfolio/narrative/regionStances) 아니므로 warning 으로
+  //   강등 — 점수 페널티는 받되 발간 차단은 안 함. 소스 복구 시 자동 재출현.
+  if (!report.shortSqueeze?.length) warnings.push('shortSqueeze MISSING (외부 소스 일시 down — 비차단)');
 
   // Ticker duplicate check — catches NVDA + NVIDIA both surviving dedup
   if (Array.isArray(report.portfolio) && report.portfolio.length > 0) {
