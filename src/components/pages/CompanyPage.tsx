@@ -562,7 +562,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
   }, [ticker]);
 
   // 작전주(펌프&덤프) 의심 스코어 — 2026-06-13. 독립 경고 배너(시그널 카드와 별개).
-  interface ManipRisk { score: number | null; tier: string; coFire?: number; flags?: string[]; metrics?: { runup20dPct?: number; volSpikeX?: number; medDollarVolUsd?: number } }
+  interface ManipRisk { score: number | null; tier: string; phase?: string; coFire?: number; flags?: string[]; metrics?: { runup20dPct?: number; volSpikeX?: number; medDollarVolUsd?: number } }
   const [manipRisk, setManipRisk] = useState<ManipRisk | null>(null);
   useEffect(() => {
     if (!ticker) return;
@@ -583,13 +583,13 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
       <div className={`rounded-xl border-2 p-4 ${cls}`}>
         <div className="flex items-center gap-2 mb-1.5">
           <AlertTriangle className="w-4 h-4" />
-          <span className="font-extrabold text-sm">{t('manipTitle')}: {t(`manipTier_${manipRisk.tier}`)} ({manipRisk.score}/100)</span>
+          <span className="font-extrabold text-sm">{manipRisk.phase === 'accumulation' ? t('manipAccumTitle') : t('manipTitle')}: {t(`manipTier_${manipRisk.tier}`)} ({manipRisk.score}/100)</span>
         </div>
         <p className="text-[11px] opacity-80 mb-1.5">{t('manipDesc')}</p>
         {manipRisk.flags && manipRisk.flags.length > 0 && (
           <ul className="space-y-0.5">
             {manipRisk.flags.map((f, i) => (
-              <li key={i} className="text-[11px] flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span>{f}</span></li>
+              <li key={i} className="text-[11px] flex items-start gap-1.5"><span className="opacity-50 mt-0.5 shrink-0">▸</span><span><T text={f} /></span></li>
             ))}
           </ul>
         )}

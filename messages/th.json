@@ -290,7 +290,8 @@
     "manipDesc": "ราคาพุ่ง ปริมาณระเบิด สภาพคล่องต่ำ และพื้นฐานสวนทางพร้อมกัน — คะแนนเชิงกำหนด (ไม่ใช่คำแนะนำ)",
     "manipTier_elevated": "ระวัง",
     "manipTier_high": "เตือน",
-    "manipTier_severe": "อันตราย"
+    "manipTier_severe": "อันตราย",
+    "manipAccumTitle": "สะสมหุ้น (ก่อนพุ่ง)"
   },
   "cascade": {
     "title": "เครื่องมือแสดงผลลูกโซ่",

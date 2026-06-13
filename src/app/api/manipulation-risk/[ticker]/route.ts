@@ -86,12 +86,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   const coFire = [sRun > 0, sVol > 0, sLiq >= 15].filter(Boolean).length;
   if (coFire < 2) score = Math.min(score, 25); // 동시발화 미달 → 경고 등급 이하로 캡
 
+  // ── 사전 포착 (pre-pump / 매집 단계) — 사용자 "오르기 전에 판별할 수 없나" ──────────────
+  //   마크업(급등) 前 단계: 거래량이 먼저 붙는데 가격은 아직 평탄 + 저유동성 = 조용한 매집 의심.
+  //   리딩 인디케이터(가격 급등은 후행). markup 확정 전 *경고* 성격.
+  const isMarkup = sRun > 0;           // 이미 급등 진행(후행)
+  const stealthAccum = !isMarkup && volSpike >= 2.5 && runup20d < 15 && runup20d > -12 && medDollarVol < 8e6;
+  let phase: 'markup' | 'accumulation' | 'none' = isMarkup ? 'markup' : 'none';
+  if (stealthAccum) {
+    phase = 'accumulation';
+    flags.push(`매집 의심(사전): 거래량 ${volSpike.toFixed(1)}× 선반영되나 가격 아직 평탄(20일 ${runup20d >= 0 ? '+' : ''}${runup20d.toFixed(0)}%) — 급등 前 단계`);
+    // 사전 단계는 score 가 markup 만큼 높지 않게(아직 미확정) — 거래량+저유동성으로 elevated 권역까지만.
+    score = Math.max(score, sVol + sLiq >= 30 ? 45 : 32);
+  }
+
   const tier = score >= 75 ? 'severe' : score >= 55 ? 'high' : score >= 30 ? 'elevated' : 'low';
 
   return NextResponse.json({
     ticker: t,
     score,
     tier,
+    phase,        // 'accumulation'(급등 前 매집 의심) | 'markup'(급등 진행) | 'none'
     coFire,
     metrics: {
       runup5dPct: +runup5d.toFixed(1), runup20dPct: +runup20d.toFixed(1),

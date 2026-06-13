@@ -290,7 +290,8 @@
     "manipDesc": "Gleichzeitig Kursanstieg, Volumenexplosion, Illiquidität & Fundamentallücke — deterministischer Score (keine Beratung)",
     "manipTier_elevated": "Vorsicht",
     "manipTier_high": "Warnung",
-    "manipTier_severe": "Gefahr"
+    "manipTier_severe": "Gefahr",
+    "manipAccumTitle": "Akkumulation (vor Anstieg)"
   },
   "cascade": {
     "title": "Kaskaden-Visualisierung",

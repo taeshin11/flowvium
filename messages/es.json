@@ -290,7 +290,8 @@
     "manipDesc": "Subida, explosión de volumen, iliquidez y brecha fundamental simultáneas — puntuación determinista (no es consejo)",
     "manipTier_elevated": "Precaución",
     "manipTier_high": "Advertencia",
-    "manipTier_severe": "Peligro"
+    "manipTier_severe": "Peligro",
+    "manipAccumTitle": "Acumulación (pre-subida)"
   },
   "cascade": {
     "title": "Visualizador de Cascadas",

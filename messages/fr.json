@@ -290,7 +290,8 @@
     "manipDesc": "Flambée, explosion du volume, illiquidité et écart fondamental simultanés — score déterministe (pas un conseil)",
     "manipTier_elevated": "Prudence",
     "manipTier_high": "Avertissement",
-    "manipTier_severe": "Danger"
+    "manipTier_severe": "Danger",
+    "manipAccumTitle": "Accumulation (pré-flambée)"
   },
   "cascade": {
     "title": "Visualiseur de cascades",

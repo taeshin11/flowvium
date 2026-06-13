@@ -290,7 +290,8 @@
     "manipDesc": "Tăng vọt, bùng nổ khối lượng, kém thanh khoản & lệch cơ bản đồng thời — điểm xác định (không phải lời khuyên)",
     "manipTier_elevated": "Thận trọng",
     "manipTier_high": "Cảnh báo",
-    "manipTier_severe": "Nguy hiểm"
+    "manipTier_severe": "Nguy hiểm",
+    "manipAccumTitle": "Gom hàng (trước khi tăng)"
   },
   "cascade": {
     "title": "Trực quan hóa lan truyền",

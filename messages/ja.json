@@ -290,7 +290,8 @@
     "manipDesc": "急騰・出来高急増・低流動性・ファンダ乖離の同時発生 — 決定論スコア(投資助言ではない)",
     "manipTier_elevated": "注意",
     "manipTier_high": "警告",
-    "manipTier_severe": "危険"
+    "manipTier_severe": "危険",
+    "manipAccumTitle": "仕込み疑い(急騰前)"
   },
   "cascade": {
     "title": "カスケード・ビジュアライザー",

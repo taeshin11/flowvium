@@ -290,7 +290,8 @@
     "manipDesc": "Simultaneous surge, volume blow-off, illiquidity & fundamental gap — deterministic score (not advice)",
     "manipTier_elevated": "Caution",
     "manipTier_high": "Warning",
-    "manipTier_severe": "Danger"
+    "manipTier_severe": "Danger",
+    "manipAccumTitle": "Accumulation Watch (pre-pump)"
   },
   "cascade": {
     "title": "Cascade Visualizer",

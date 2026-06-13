@@ -290,7 +290,8 @@
     "manipDesc": "तेज़ी, वॉल्यूम विस्फोट, कम तरलता व फंडामेंटल अंतर एक साथ — निर्धारक स्कोर (सलाह नहीं)",
     "manipTier_elevated": "सावधानी",
     "manipTier_high": "चेतावनी",
-    "manipTier_severe": "खतरा"
+    "manipTier_severe": "खतरा",
+    "manipAccumTitle": "संचय निगरानी (तेज़ी से पूर्व)"
   },
   "cascade": {
     "title": "कैस्केड विज़ुअलाइज़र",

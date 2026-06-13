@@ -290,7 +290,8 @@
     "manipDesc": "Alta, explosão de volume, iliquidez e lacuna fundamental simultâneas — pontuação determinística (não é conselho)",
     "manipTier_elevated": "Cautela",
     "manipTier_high": "Aviso",
-    "manipTier_severe": "Perigo"
+    "manipTier_severe": "Perigo",
+    "manipAccumTitle": "Acumulação (pré-alta)"
   },
   "cascade": {
     "title": "Visualizador de Cascata",

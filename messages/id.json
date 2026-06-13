@@ -290,7 +290,8 @@
     "manipDesc": "Lonjakan, ledakan volume, likuiditas rendah & kesenjangan fundamental bersamaan — skor deterministik (bukan saran)",
     "manipTier_elevated": "Hati-hati",
     "manipTier_high": "Peringatan",
-    "manipTier_severe": "Bahaya"
+    "manipTier_severe": "Bahaya",
+    "manipAccumTitle": "Akumulasi (pra-lonjakan)"
   },
   "cascade": {
     "title": "Visualisasi Kaskade",

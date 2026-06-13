@@ -290,7 +290,8 @@
     "manipDesc": "暴漲·成交量爆發·低流動性·基本面背離同時出現 — 確定性評分(非投資建議)",
     "manipTier_elevated": "注意",
     "manipTier_high": "警告",
-    "manipTier_severe": "危險"
+    "manipTier_severe": "危險",
+    "manipAccumTitle": "吸籌嫌疑(暴漲前)"
   },
   "cascade": {
     "title": "連鎖影響視覺化",

@@ -290,7 +290,8 @@
     "manipDesc": "Eşzamanlı yükseliş, hacim patlaması, likidite azlığı ve temel uçurum — deterministik skor (tavsiye değil)",
     "manipTier_elevated": "Dikkat",
     "manipTier_high": "Uyarı",
-    "manipTier_severe": "Tehlike"
+    "manipTier_severe": "Tehlike",
+    "manipAccumTitle": "Toplama (yükseliş öncesi)"
   },
   "cascade": {
     "title": "Kaskad Görselleştirici",
