@@ -229,6 +229,26 @@ async function main() {
     }
   } catch (e) { info.push(`[D] coverage 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
+  // [G0b] 13F 기관 지분율 무결성 (2026-06-13 신설 — "AAPL Berkshire 13행/지분 0%" 사건). root cause:
+  //   pctOfShares 가 placeholder 0 으로 *적재 후 표시단에서 채워지지 않던* 안티패턴 + CUSIP 미합산
+  //   중복행 + v7 crumb 누락. 검출: 같은 기관 중복행 / pctOfShares 전부 0 / 합 비현실(>100%).
+  try {
+    const r = await getJson('/api/stock-supply?ticker=AAPL', 30000);
+    const o = r.body?.ownership13F ?? [];
+    if (o.length === 0) {
+      info.push('[G0b] 13F 지분율: AAPL 데이터 없음 (라이브 미적재 — cron 점검)');
+    } else {
+      const insts = o.map(x => x.institution);
+      const dup = insts.length - new Set(insts).size;
+      const pctSum = o.reduce((s, x) => s + (x.pctOfShares ?? 0), 0);
+      const allZero = o.every(x => !x.pctOfShares);
+      if (dup > 0) issues.push(`[G0b] 13F 같은 기관 중복행 ${dup}건 (CUSIP/기관 미합산 회귀)`);
+      else if (allZero) issues.push('[G0b] 13F pctOfShares 전부 0 (sharesOutstanding 누락/placeholder 회귀)');
+      else if (pctSum > 100) issues.push(`[G0b] 13F 지분율 합 ${pctSum.toFixed(0)}% (비현실 — 발행주식수 오류)`);
+      else info.push(`[G0b] 13F 지분율 무결 OK (AAPL ${o.length}기관, 합 ${pctSum.toFixed(1)}%)`);
+    }
+  } catch (e) { info.push(`[G0b] 13F 지분율 점검 불가: ${String(e.message || e).slice(0, 40)}`); }
+
   // [G0] 히트맵 시총 진위 (2026-06-13 신설 — "가짜 시총" 사건): Wikipedia 폴백이 알파벳 proxy 시총을
   //     부여해 빅테크 탈락 + 타일 균일. 검출: ① NVDA/AAPL/MSFT 중 2+ 부재 ② 상위-하위 시총 격차 <15%
   //     (실제 S&P500 은 NVDA ~5T vs 200위 ~50B = 100배). 둘 다 "200 OK + 데이터 있음" 인데 가짜인 형태.

@@ -290,9 +290,11 @@ export async function GET(request: Request) {
   // company name lookup (static scaffold — used for companyName fallback only)
   const staticEntry = newsGapData.find(n => n.ticker === ticker);
 
-  // 13F ownership: Redis EDGAR 파싱 데이터 우선, 없으면 static fallback
-  let ownership13F: OwnershipRecord[] = staticEntry?.ownershipData ?? [];
-  let ownership13FSource = 'static';
+  // 2026-06-13: 13F ownership 은 시계열 기관 데이터 → CLAUDE.md "정적 폴백 금지" 적용 (사용자
+  //   "동적소스로, 하드코딩하지마"). 종전 staticEntry.ownershipData(news-gap.ts 하드코딩) 폴백 제거.
+  //   라이브(EDGAR Redis) 있으면 사용, 없으면 빈 배열(투명한 미보유).
+  let ownership13F: OwnershipRecord[] = [];
+  let ownership13FSource = 'none';
   if (redis) {
     try {
       const liveOwnership = await redis.get<Record<string, OwnershipRecord[]>>('flowvium:13f-ownership:v1');
