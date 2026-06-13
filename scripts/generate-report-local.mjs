@@ -4778,6 +4778,11 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       burstUpNotional: macroCtx.burstMap?.get(ticker)?.dir === 'up' ? macroCtx.burstMap.get(ticker).notional : 0,
       contractWin: macroCtx.contractMap?.get(ticker)?.type === 'contract_win' ? macroCtx.contractMap.get(ticker) : null,  // 2026-06-13 공급계약
       backlogYoYPct: macroCtx.backlogMap?.get(ticker)?.rpoYoYPct ?? null,  // 2026-06-13 수주잔고 증가율
+      // 2026-06-13: 사전수집 재무 (사용자 "미리 수집") — 전 종목 stage-1 에서 펀더멘털 평가 (top-50
+      //   깔때기 제약 제거). financials.json(US SEC + KR DART). revenueYoY/opMargin/roe.
+      revenueYoY: macroCtx.finCacheMap?.get(ticker)?.revYoYPct ?? null,
+      opMarginPct: macroCtx.finCacheMap?.get(ticker)?.opMarginPct ?? null,
+      roePct: macroCtx.finCacheMap?.get(ticker)?.roePct ?? null,
       insiderFilings: macroCtx.insiderMap?.get(ticker) ?? 0,
       squeezeScore: macroCtx.squeezeMap?.get(ticker) ?? null,
       cascadeUpstream: macroCtx.cascadeUpstreamSet?.has(ticker) ?? false,
@@ -4786,12 +4791,14 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     };
     let cumScore = 0;
     const reasons = [];
+    // 2026-06-13: 사전수집 재무가 있으면 fundamental 룰을 stage-1 에서 평가 (top-50 깔때기 제거).
+    //   ctx.revenueYoY/opMargin/roe 가 finCache 에서 채워진 종목만 — 나머지는 종전대로 stage-3.
+    const hasFinCache = ctx.revenueYoY != null || ctx.opMarginPct != null || ctx.roePct != null;
     for (const rule of ruleSpec.rules) {
-      // Stage 1 = 데이터 없이 평가 가능한 룰만 (macro/micro/selflearn/일부 가격/일부 회전).
-      // technical / fundamental / guru 는 Stage 2/3 에서 OHLCV/financials fetch 후 평가.
-      // price_oversold_gap 은 change1d 만 필요 — Stage 1 가능.
-      // rotation_defensive 도 sector 만 필요 — Stage 1 가능.
-      if (['technical', 'fundamental', 'guru'].includes(rule.category)) continue;
+      // Stage 1 = 데이터 없이 평가 가능한 룰 + (사전수집 있으면) fundamental.
+      // technical / guru 는 Stage 2/3 에서 OHLCV/financials fetch 후 평가.
+      if (['technical', 'guru'].includes(rule.category)) continue;
+      if (rule.category === 'fundamental' && !hasFinCache) continue;  // 사전수집 없으면 stage-3 로
       if (rule.category === 'price' && !['price_oversold_gap', 'price_momentum_52w_high'].includes(rule.id)) continue; // 나머지 가격은 Stage 2
       if (rule.category === 'rotation' && !['rotation_defensive'].includes(rule.id)) continue; // 나머지 회전은 Stage 3
       const r = evaluateBuyRule(rule, ctx);
@@ -4834,8 +4841,11 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       sectorPe: sectorPeMap.get(sectorKey) ?? null,
       sectorStance: macroCtx.sectorStanceMap?.get(sectorKey) ?? null,
     };
+    // 2026-06-13: stage-1 에서 이미 사전수집 재무로 평가된 fundamental 룰은 재평가 금지(이중 가산 방지).
+    const alreadyScored = new Set((c.reasons ?? []).map(r => r.ruleId));
     for (const rule of ruleSpec.rules) {
       if (!['fundamental', 'guru'].includes(rule.category) && rule.id !== 'rotation_sector_in') continue;
+      if (alreadyScored.has(rule.id)) continue;
       const r = evaluateBuyRule(rule, ctx);
       if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
@@ -5820,6 +5830,16 @@ async function generateViaOllama() {
     newsGapMap: new Map((ctxRaw?.newsGap ?? []).filter(g => g.ticker && typeof g.gapScore === 'number').map(g => [g.ticker, g.gapScore])),  // 2026-06-12
     squeezeMap: new Map((ctxRaw?.shorts ?? ctxRaw?.shortSqueeze ?? []).map(s => [s.ticker, s.score ?? s.squeezeScore])),
     cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
+    // 2026-06-13: 전 종목 사전수집 재무 (사용자 "미리미리 수집") — build-financials-cache 산출.
+    //   stage-1 에서 전 종목 펀더멘털(매출YoY/영업이익률/ROE) 평가 → top-50 깔때기 제약 제거.
+    finCacheMap: (() => {
+      try {
+        const fc = JSON.parse(readFileSync(resolve(ROOT, 'data/financials.json'), 'utf8'));
+        const m = new Map(Object.entries(fc));
+        if (m.size) console.log(`  [fin-cache] 사전수집 재무 ${m.size}종 로드 (전 종목 펀더멘털 stage-1)`);
+        return m;
+      } catch { return new Map(); }
+    })(),
     // 2026-06-13: 수주잔고 (사용자 "전종목 할수있는법") — SEC RPO(ASC606 표준태그) build-backlog 산출.
     //   잔고 레벨 + YoY(증가율 = 향후 매출 가시성). 주문기반 산업만 보유(은행/소매 null=정상).
     backlogMap: (() => {

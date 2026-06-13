@@ -214,6 +214,8 @@ cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tun
 cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs', 600000), { timezone: TZ });         // 일 04:20 KST
 // 2026-06-13: 수주잔고(SEC RPO) 주간 갱신 — 10-K/Q 분기 보고라 주 1회면 충분. 산출물 자동 커밋.
 cron.schedule('5 20 * * 6', () => runMaintenance('build-backlog', 'scripts/build-backlog.mjs', 1200000, ['data/backlog.json']), { timezone: TZ }); // 일 05:05 KST
+// 2026-06-13: 전 종목 재무 사전수집 (사용자 "미리미리 수집") — 매일 04:35 KST (분기보고라 일 1회).
+cron.schedule('35 19 * * *', () => runMaintenance('build-financials', 'scripts/build-financials-cache.mjs', 1500000, ['data/financials.json']), { timezone: TZ });
 log('유지보수 cron 복원: DART corp-codes(02:05)/prefetch(03:05) 매일 + buy/sell rules 튜닝(일 04:05/04:20) + backlog(일 05:05 KST)');
 
 // 2026-06-12: 시장 쇼크 즉시 감지 (사용자 "트럼프 트윗/기사 영향 즉각 고려") — 10분마다
