@@ -5011,6 +5011,10 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
       const target = r.target;
       const stop = r.stop_loss;
       const heldDays = (now - new Date(r.generated_at).getTime()) / 86400000;
+      // 2026-06-14: 보유 1일 미만(직전 리포트 ~몇시간 전 추천) 제외 — 사용자 "매도추천 다 0.0%인데 맞아?".
+      //   price_at_gen≈현재가라 P&L 0%·보유 0일 = "방금 산 걸 0%에 팔라"는 무의미 추천. 의미있는 P&L 가진
+      //   포지션만 매도 평가. (5회/일 cadence 라 직전세션 추천이 sell 후보로 잡히던 노이즈 제거.)
+      if (heldDays < 1) continue;
       const pnl = r.pnl_pct ?? (r.price_at_gen ? ((price - r.price_at_gen) / r.price_at_gen) * 100 : null);
 
       const sig = macroCtx.signals?.get(ticker) ?? {};
