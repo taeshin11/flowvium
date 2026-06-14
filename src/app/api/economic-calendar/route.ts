@@ -75,27 +75,44 @@ async function fetchFredActualRate(): Promise<number | null> {
 // 2026-06-12: Finnhub 이 economic calendar 를 유료화(키 유효한데 이 endpoint 만 401, earnings 는 정상)
 //   → FRED release/dates API(무료, 보유 키)로 주요 지표 발표 *일정* 폴백. actual/estimate 는 없지만
 //   "언제 무엇이 나오나"는 결정론 제공 — 빈 캘린더보다 훨씬 낫다. curl 검증: GDP 6/25, 소매판매 6/17.
-const FRED_RELEASES: Array<{ id: number; event: string }> = [
-  { id: 10, event: 'CPI (Consumer Price Index)' },
-  { id: 46, event: 'PPI (Producer Price Index)' },
-  { id: 50, event: 'Employment Situation (Nonfarm Payrolls)' },
-  { id: 53, event: 'GDP' },
-  { id: 9, event: 'Advance Retail Sales' },
+// 2026-06-14: 각 release 의 *직전 실제값*(prev) 을 FRED series 에서 정확 단위로 조회(units 변환 — 서버계산).
+//   forward 컨센서스(estimate)는 무료 소스 부재(Finnhub econ-cal=premium)지만, 직전값+서프라이즈 방향으로
+//   "예상 대비" 비교 앵커 제공. unit 라벨로 % YoY / 연율 / MoM / K 명시(오해 방지).
+const FRED_RELEASES: Array<{ id: number; event: string; series?: string; units?: string; unit?: string }> = [
+  { id: 10, event: 'CPI (Consumer Price Index)', series: 'CPIAUCSL', units: 'pc1', unit: '% YoY' },
+  { id: 46, event: 'PPI (Producer Price Index)', series: 'PPIACO', units: 'pc1', unit: '% YoY' },
+  { id: 50, event: 'Employment Situation (Nonfarm Payrolls)', series: 'PAYEMS', units: 'chg', unit: 'K' },
+  { id: 53, event: 'GDP', series: 'A191RL1Q225SBEA', units: 'lin', unit: '% 연율' },
+  { id: 9, event: 'Advance Retail Sales', series: 'RSAFS', units: 'pch', unit: '% MoM' },
 ];
+// FRED series 최신 관측치(직전 실제값) — units 변환(pc1=YoY%, pch=MoM%, chg=증감)으로 헤드라인 단위.
+async function fetchFredLatest(series: string, units: string, fredKey: string): Promise<number | null> {
+  try {
+    const u = `https://api.stlouisfed.org/fred/series/observations?series_id=${series}&api_key=${fredKey}&units=${units}&sort_order=desc&limit=1&file_type=json`;
+    const res = await fetch(u, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const d = await res.json() as { observations?: Array<{ value?: string }> };
+    const v = parseFloat(d.observations?.[0]?.value ?? '');
+    if (!Number.isFinite(v)) return null;
+    return units === 'chg' ? Math.round(v) : Math.round(v * 10) / 10;  // K 는 정수, % 는 소수1
+  } catch { return null; }
+}
 async function fetchFredReleaseEvents(from: string, to: string): Promise<EconCalEvent[]> {
   const fredKey = process.env.FRED_API_KEY?.trim();
   if (!fredKey) return [];
   const out: EconCalEvent[] = [];
-  await Promise.all(FRED_RELEASES.map(async ({ id, event }) => {
+  await Promise.all(FRED_RELEASES.map(async ({ id, event, series, units, unit }) => {
     try {
       const u = `https://api.stlouisfed.org/fred/release/dates?release_id=${id}&api_key=${fredKey}&file_type=json&include_release_dates_with_no_data=true&realtime_start=${from}&realtime_end=${to}&sort_order=asc&limit=10`;
       const res = await fetch(u, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
       if (!res.ok) return;
       const d = await res.json() as { release_dates?: Array<{ date: string }> };
-      for (const rd of d.release_dates ?? []) {
-        if (rd.date >= from && rd.date <= to) {
-          out.push({ date: rd.date, time: null, country: 'US', event, impact: 'high', actual: null, estimate: null, prev: null, unit: null });
-        }
+      const upcoming = (d.release_dates ?? []).filter(rd => rd.date >= from && rd.date <= to);
+      if (!upcoming.length) return;
+      // 직전 실제값 1회 조회(release 당) → 같은 release 의 모든 upcoming 일정에 prev 로 부여
+      const prev = (series && units) ? await fetchFredLatest(series, units, fredKey) : null;
+      for (const rd of upcoming) {
+        out.push({ date: rd.date, time: null, country: 'US', event, impact: 'high', actual: null, estimate: null, prev, unit: unit ?? null });
       }
     } catch { /* 폴백 실패 — FOMC 주입만으로 진행 */ }
   }));

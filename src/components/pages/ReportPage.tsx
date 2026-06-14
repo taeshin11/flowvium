@@ -460,11 +460,15 @@ function RiskEventRow({ event }: { event: RiskEvent }) {
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{event.watchFor}</p>
-        {/* 2026-06-14: 예상치(consensus) + 예상 대비 서프라이즈 영향 */}
+        {/* 2026-06-14: 예상치(consensus, FOMC 등) — 없으면 직전 실제값(FRED)을 비교 앵커로 */}
         {event.estimate ? (
           <p className="text-[11px] text-gray-700 mt-1 leading-relaxed">
             📊 {t('riskEstimate')}: <span className="font-semibold">{event.estimate}</span>
             {event.previous ? <span className="opacity-60"> ({t('riskPrev')} {event.previous})</span> : null}
+          </p>
+        ) : event.previous ? (
+          <p className="text-[11px] text-gray-700 mt-1 leading-relaxed">
+            📊 {t('riskPrev')}: <span className="font-semibold">{event.previous}</span>
           </p>
         ) : null}
         {event.surpriseHigh ? (

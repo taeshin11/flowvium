@@ -728,7 +728,7 @@ function qualityCheck(report) {
 
   // Portfolio count warnings (not gate-failures, but score penalties)
   const portLen = report.portfolio?.length ?? 0;
-  if (portLen > 0 && portLen < 12) warnings.push(`portfolio COUNT LOW: ${portLen} (target=12: US 6 + KR 6)`);
+  if (portLen > 0 && portLen < 4) warnings.push(`portfolio COUNT LOW: ${portLen} (생성부실 의심 — 고확신만이면 정상, 12 강제 폐지 2026-06-14)`);
   if (portLen >= 6) {
     const krLen = report.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')).length;
     const usLen = portLen - krLen;
@@ -2595,6 +2595,9 @@ function fmtEst(v, unit) { return v == null ? null : `${v}${unit === '%' ? '%' :
 function enrichRiskEvents(riskEvents, portfolio, econCalEvents = []) {
   const holds = (portfolio ?? []).filter(p => p?.ticker);
   const cal = Array.isArray(econCalEvents) ? econCalEvents : [];
+  // 노출종목 표시: KR(.KS/.KQ)은 회사명(사용자 "KS종목은 이름으로"), US 는 ticker 유지(NVDA 등 식별가능).
+  const nameByTicker = new Map(holds.map(p => [p.ticker, p.name]));
+  const displayTk = (t) => (/\.(KS|KQ)$/.test(t) && nameByTicker.get(t)) ? nameByTicker.get(t) : t;
   let n = 0;
   for (const e of (riskEvents ?? [])) {
     if (!e || typeof e !== 'object' || e.affectedPortfolio || e.action) continue;
@@ -2606,13 +2609,17 @@ function enrichRiskEvents(riskEvents, portfolio, econCalEvents = []) {
     }
     if (!affected.length) affected = [...holds].sort((a, b) => (b.allocation ?? 0) - (a.allocation ?? 0)).slice(0, 3).map(p => p.ticker);  // 섹터 미매칭 광범위 이벤트 → 최대 비중 보유
     e.exposureChannel = prof?.label ?? '광범위';
-    e.affectedPortfolio = affected.slice(0, 5);
+    e.affectedPortfolio = affected.slice(0, 5).map(displayTk);  // KR → 회사명
     e.action = e.impact === 'high' ? '노출 종목 비중·헤지 점검(발표 전)' : e.impact === 'medium' ? '관망 — 발표 후 노출 종목 재평가' : '영향 제한적 — 모니터';
-    // 예상치(consensus) — econCal(estimate/prev) 매칭. 날짜+*유형 일치*까지 요구(같은 날 FOMC 3.75%가 소매판매에
-    //   잘못 붙는 cross-contamination 방지). 유형 = 동일 RISK_EVENT_EXPOSURE 프로파일. 숫자는 데이터 소스, 없으면 null.
-    const match = cal.find(c => c.date === e.date && c.estimate != null
-      && RISK_EVENT_EXPOSURE.find(p => p.re.test(String(c.event ?? ''))) === prof);
-    if (match) { e.estimate = fmtEst(match.estimate, match.unit); e.previous = fmtEst(match.prev, match.unit); }
+    // 예상치/직전값 — econCal 을 날짜+*유형 일치*로 매칭(같은 날 FOMC 3.75%가 소매판매에 붙는 cross-contamination
+    //   방지). estimate(forecast)는 FOMC 등 일부만, prev(직전 실제값, FRED units 변환)는 대부분 가용. 둘 다 독립 부착.
+    const match = cal.find(c => c.date === e.date
+      && RISK_EVENT_EXPOSURE.find(p => p.re.test(String(c.event ?? ''))) === prof
+      && (c.estimate != null || c.prev != null));
+    if (match) {
+      if (match.estimate != null) e.estimate = fmtEst(match.estimate, match.unit);
+      if (match.prev != null) e.previous = fmtEst(match.prev, match.unit);
+    }
     // 예상 대비 서프라이즈 영향(방향성) — 이벤트 유형 결정론.
     if (prof?.high) { e.surpriseHigh = prof.high; e.surpriseLow = prof.low; }
     n++;
@@ -4434,7 +4441,7 @@ function getRecentQualityFeedback() {
         if (!d.thesis || d.thesis.length <= 20) missingCounts.thesis = (missingCounts.thesis ?? 0) + 1;
         if (!d.macroAnalysis || d.macroAnalysis.length <= 30) missingCounts.macroAnalysis = (missingCounts.macroAnalysis ?? 0) + 1;
         if (!d.technicalAnalysis || d.technicalAnalysis.length <= 15) missingCounts.technicalAnalysis = (missingCounts.technicalAnalysis ?? 0) + 1;
-        if ((d.portfolio?.length ?? 0) < 12) missingCounts.portfolioSize = (missingCounts.portfolioSize ?? 0) + 1;
+        if ((d.portfolio?.length ?? 0) < 4) missingCounts.portfolioSize = (missingCounts.portfolioSize ?? 0) + 1;  // 2026-06-14: 12→4 (개수 강제 폐지, 고확신만 — 적은 건 정상, 생성부실만 패널티)
         if ((d.shortSqueeze?.length ?? 0) === 0) missingCounts.shortSqueeze = (missingCounts.shortSqueeze ?? 0) + 1;
         if ((d.insiderSignals?.length ?? 0) === 0) missingCounts.insiderSignals = (missingCounts.insiderSignals ?? 0) + 1;
         if ((d.companyChanges?.length ?? 0) === 0) missingCounts.companyChanges = (missingCounts.companyChanges ?? 0) + 1;
@@ -5659,8 +5666,9 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     ' **',
     '',
     'RULES:',
-    '1. EXACTLY 12 items: 6 US + 6 KR (KR ticker MUST end with .KS or .KQ). ONLY pick tickers in [Live Prices].',
-    '   US 6개 < 6 또는 KR 6개 < 6 이면 보고서 reject. Sector ETF 는 US 6 안에 포함 가능 (.KS/.KQ 제외).',
+    '1. HIGH-CONVICTION ONLY — 고확신 종목만 선별. 개수 채우기 금지: 최대 US 6 + KR 6(≤12) 이되 *확신 있는 만큼만*,',
+    '   부족하면 적게(예: US 4 + KR 5) 내라. 억지로 12 채우지 마라. KR ticker 는 .KS/.KQ. ONLY [Live Prices] 의 종목.',
+    '   Sector ETF 는 US 측에 포함 가능 (.KS/.KQ 제외). 신호 약한 종목으로 padding 금지.',
     '   Rank by signal: (1) insider 집중매수/13D, (2) squeeze score, (3) 13F accumulation, (4) options flow, (5) capital-flow momentum',
     '2. "market" field = us/korea/japan/china/europe/india/taiwan/global',
     '3. entryZone/stopLoss/target: SYNTHESIZE from technical + fundamental + guru analysis.',
@@ -5719,8 +5727,8 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
         const biz = businessOneLiner(c.ticker);
         return `  ${(i + 1).toString().padStart(2)}. ${c.ticker.padEnd(11)} score=${c.stage1Score} (${c.market}/${c.sector})${biz ? ` → ${biz}` : ''} — ${c.reasons.slice(0, 3).map(r => r.ruleId).join(', ')}`;
       }),
-      'GUIDANCE: 위 score 는 정량 룰 결과. LLM 은 이 candidate pool 안에서 최종 12개 선택 — score 높은 것 우선.',
-      'KR 6개 / US 6개 균등 강제는 score 와 무관하게 적용. KR candidate 가 6 미만이면 score 낮아도 추가.',
+      'GUIDANCE: 위 score 는 정량 룰 결과. LLM 은 이 candidate pool 안에서 *고확신* 종목만 선택 — score 높은 것 우선.',
+      'US/KR 균형은 권장이나 강제 아님. 확신 있는 후보가 적으면 적게 내라(개수 채우기·억지 추가 금지).',
       '',
     ].join('\n') : '',
     'Your entryZone/stopLoss/target MUST be anchored to the LIVE PRICES above.',
@@ -5736,7 +5744,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     `"stopLoss":"$Z","target":"$A","targetBull":"$B","targetRationale":"[≤80 chars in ${TARGET_LANG}, fundamentals-first]",`,
     '"confidence":"high","action":"buy"}],',
     `"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"[≤40 chars in ${TARGET_LANG}]"}]}`,
-    'EXACTLY 12 portfolio items (US 6 + KR 6), 5 sectorAllocation items. Pure JSON only.',
+    '고확신 portfolio items (최대 US 6 + KR 6, 부족하면 적게 — 12 강제 금지), 5 sectorAllocation items. Pure JSON only.',
     '⚠️ entryZone MUST be based on [Live Prices] + analysis. entryPlan is a BACKUP — system uses it only if entryZone is hallucinated.',
     '🚫 rationale/entryRationale/targetRationale 는 해당 종목의 실제 sector 사업에만 근거. 무관한 산업의 "수요/시장/성장" thesis 금지 (예: 자동차주에 "바이오 수요", 반도체주에 "건설 수요"). 모르면 기술적/재무 신호만 인용.',
   ].join('\n');
@@ -6395,86 +6403,33 @@ async function generateViaOllama() {
   console.log(`  macro=${!!macroData}(riskLevel:${macroData?.riskLevel ?? 'N/A'}), portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}(${Object.keys(regionalData?.regionStances ?? {}).length}지역)`);
   console.log(`  opportunity=${!!opportunityData}(squeeze:${opportunityData?.shortSqueeze?.length ?? 0}), narrative=${!!narrativeData}`);
 
-  // Portfolio US 6 + KR 6 강제 — 2 retry → 부족 시 candidate pool padding
+  // Portfolio — 고확신 종목만(개수 강제 X). 2026-06-14 사용자 지시 "12 꽉 채우지 마, 없을수도 많을수도 — 품질만".
+  //   종전: US6+KR6 강제 retry + candidate pool 합성 padding('Auto-pad 추가검증 권장' 가짜 종목 주입)으로
+  //   매 보고서 12 강제 → 신호 약한 filler 오염. retry 는 *생성부실*(파싱실패/total<4)일 때만, padding 전면 제거.
   const countByMarket = (arr) => {
     const items = arr ?? [];
     const kr = items.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')).length;
     const us = items.length - kr;
     return { us, kr, total: items.length };
   };
-  const pickBetter = (a, b) => {
-    const ca = countByMarket(a?.portfolio), cb = countByMarket(b?.portfolio);
-    const scoreA = Math.min(ca.us, 6) + Math.min(ca.kr, 6);
-    const scoreB = Math.min(cb.us, 6) + Math.min(cb.kr, 6);
-    return scoreB > scoreA ? b : a;
+  const pickBetter = (a, b) => {  // 더 많은 *유효* 종목을 낸 쪽(품질 후보 수) 선택
+    return countByMarket(b?.portfolio).total > countByMarket(a?.portfolio).total ? b : a;
   };
   let portfolioCounts = countByMarket(portfolioData?.portfolio);
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    if (portfolioCounts.us >= 6 && portfolioCounts.kr >= 6) break;
-    console.log(`  portfolio US ${portfolioCounts.us}/6 + KR ${portfolioCounts.kr}/6 — retry ${attempt}/2 ...`);
-    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 360000, `portfolio-retry-${attempt}`);
-    const portfolioRetryData = parseJson(portfolioRetry, `portfolio-retry-${attempt}`);
+  // 생성부실(total < 4)일 때만 1회 retry — 6+6 채우기용 아님(품질 후보가 적은 건 정상).
+  if (portfolioCounts.total < 4) {
+    console.log(`  portfolio total ${portfolioCounts.total} (<4) — 생성부실 의심, 1회 retry (개수강제 아님)...`);
+    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 360000, 'portfolio-retry-1');
+    const portfolioRetryData = parseJson(portfolioRetry, 'portfolio-retry-1');
     portfolioData = pickBetter(portfolioData, portfolioRetryData);
     portfolioCounts = countByMarket(portfolioData?.portfolio);
-    console.log(`  retry ${attempt} 결과 (best so far): US ${portfolioCounts.us} + KR ${portfolioCounts.kr} = ${portfolioCounts.total}`);
   }
-  if (portfolioCounts.total < 6) {
-    console.error('❌ Wave1 포트폴리오 생성 실패 (3회, total < 6). 종료합니다.');
+  console.log(`  portfolio 확정: US ${portfolioCounts.us} + KR ${portfolioCounts.kr} = ${portfolioCounts.total} (고확신 기준, 개수 강제 없음)`);
+  if (portfolioCounts.total < 1) {
+    console.error('❌ Wave1 포트폴리오 생성 실패 (total 0). 종료합니다.');
     process.exit(1);
   }
-  // candidate pool 에서 부족분 자동 padding (US/KR 별도)
-  if (portfolioCounts.us < 6 || portfolioCounts.kr < 6) {
-    try {
-      const tickerMeta = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8'));
-      const existing = new Set((portfolioData.portfolio ?? []).map(p => p.ticker));
-      const isKR = (t) => t.endsWith('.KS') || t.endsWith('.KQ');
-      const pad = (need, krFilter) => {
-        const pool = (tickerMeta.tickers ?? []).filter(t =>
-          livePrices.has(t) && !existing.has(t) && (krFilter ? isKR(t) : !isKR(t))
-        );
-        // 시총 우선: titan/mega/large 먼저, mid/kr 그 다음
-        const rank = (t) => ({ titan: 0, mega: 1, large: 2, mid: 3, kr: 2, etf: 4 }[tickerMeta.meta?.[t]?.cap] ?? 5);
-        pool.sort((a, b) => rank(a) - rank(b));
-        const picks = pool.slice(0, need);
-        const padded = picks.map(t => {
-          const pd = livePrices.get(t);
-          const isK = isKR(t);
-          const fmt = n => isK ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
-          const meta = tickerMeta.meta?.[t] ?? {};
-          const actual = pd?.price ?? 100;
-          existing.add(t);
-          return {
-            ticker: t, name: meta.name ?? t, sector: meta.sector ?? 'Unknown',
-            market: isK ? 'korea' : 'us',
-            rationale: `${t} — ${meta.sector ?? '섹터'} 분산 (US/KR 균형 자동 보충)`,
-            allocation: 8,
-            entryZone: `${fmt(actual * 0.98)}-${fmt(actual * 1.01)}`,
-            entryRationale: `시장가 -1% 진입 (auto-pad)`,
-            stopLoss: fmt(actual * 0.93),
-            target: fmt(actual * 1.10),
-            targetBull: fmt(actual * 1.20),
-            targetRationale: '시장가 +10% 보수적 target',
-            confidence: 'medium',
-            action: 'buy',
-            catalysts: [`${t} cap=${meta.cap ?? '?'} candidate pool top-rank pick`, `시장가 ${fmt(actual)} 기준 ±10% band`],
-            fundamentalBasis: `Sector=${meta.sector ?? '?'}, 시장가 ${fmt(actual)}`,
-            technicalBasis: `시장가 ${fmt(actual)} 기준 -7% stop / +10% target`,
-            riskNote: `Auto-pad — 추가 검증 후 진입 권장`,
-          };
-        });
-        return padded;
-      };
-      const usNeed = Math.max(0, 6 - portfolioCounts.us);
-      const krNeed = Math.max(0, 6 - portfolioCounts.kr);
-      const addUs = usNeed > 0 ? pad(usNeed, false) : [];
-      const addKr = krNeed > 0 ? pad(krNeed, true) : [];
-      portfolioData.portfolio = [...(portfolioData.portfolio ?? []), ...addUs, ...addKr];
-      const after = countByMarket(portfolioData.portfolio);
-      console.log(`  ➕ auto-pad: +US ${addUs.length} +KR ${addKr.length} → US ${after.us} + KR ${after.kr} = ${after.total}`);
-    } catch (e) {
-      console.warn(`  ⚠️ auto-pad 실패: ${e.message}`);
-    }
-  }
+  // auto-pad 제거 — 합성 종목 금지(사용자 지시). 품질 후보만 그대로 사용.
 
   // ── [3/7] Wave 2: 3섹션 병렬 ─────────────────────────────────────────────────
   console.log('\n[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...');

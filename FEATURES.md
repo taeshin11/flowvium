@@ -758,9 +758,10 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 기술적 분석 (보라색)
 - 기본적 분석 (초록색)
 
-### 13-3. AI 추천 포트폴리오 (US 6 + KR 6 = 12종목, 룰+LLM ensemble)
+### 13-3. AI 추천 포트폴리오 (고확신 종목만, 최대 US 6 + KR 6, 룰+LLM ensemble)
+- **2026-06-14 개수 강제 폐지**(사용자 "12 꽉 채우지 마, 없을수도 많을수도 — 품질만"): 종전 US6+KR6 강제 retry + candidate pool 합성 padding('Auto-pad 추가검증 권장' 가짜 종목 주입) 제거. 이제 *고확신 종목만* 선별(적으면 적게). retry 는 생성부실(total<4)일 때만, 품질패널티 12→4 floor.
 - 31개 룰 multi-factor scoring (`data/buy-rules-tuned.json`) — 8 카테고리 전부 커버
-- 4-stage scoring: light (모든 ticker) → OHLCV top 100 → financials top 50 → LLM top 30 중 12 선택
+- 4-stage scoring: light (모든 ticker) → OHLCV top 100 → financials top 50 → LLM top 30 중 고확신 선택
 - 룰 카테고리: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) / selflearn(2)
 - 종목명, 섹터, 비중(%), 매수 근거
 - **주력 사업/매출상품 (확장 최상단, 2026-06-07)** — "무슨 사업으로 매출 내는지" 표시. `data/company-business.json`(build:business 가 companies-batch `products[]`(name+revenueShare)+description 추출, 619 ticker + KR 대형주 CURATED) → 발간직전 `businessSummary`(예: "iPhone 52% · Services 22%")+`businessDesc` 주입. LLM 생성 아닌 큐레이션 권위소스. i18n `report.businessLabel`(주력 사업) 16언어
@@ -812,7 +813,8 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 
 ### 13-5. 주요 리스크 이벤트 (2026-06-14 포트폴리오 민감도 + 예상치/서프라이즈 격상)
 - 날짜, 이벤트명, 위험도, 주목 포인트
-- **📊 예상치(estimate)/전월(prev)**: economic-calendar(FRED) estimate/prev 를 **날짜+이벤트 유형 일치**로 매칭(같은 날 FOMC 3.75%가 소매판매에 붙는 cross-contamination 방지). 소스 미제공 시 null(환각 금지).
+- **📊 예상치(estimate)/직전값(prev)**: economic-calendar estimate/prev 를 **날짜+이벤트 유형 일치**로 매칭(FOMC 3.75%가 소매판매에 붙는 cross-contamination 방지). forward 컨센서스는 FOMC 등 일부만(Finnhub econ-cal=premium 불가), **직전 실제값은 FRED series units 변환으로 정확단위 제공**(2026-06-14): CPI=%YoY, GDP=%연율, 소매=%MoM, NFP=K. 예상 없으면 직전값을 비교 앵커로 표시. 환각 금지(소스값만).
+- **🎯 노출종목 KR 회사명**(2026-06-14 사용자 "KS종목은 이름으로"): affectedPortfolio 의 .KS/.KQ 는 회사명 표시(포트폴리오 name 매핑), US 는 ticker 유지.
 - **▲예상 상회/▼하회 영향(surprise)**: 이벤트 유형별 방향성 결정론(FOMC 매파→성장·반도체 압박, CPI 상회→인하 지연, 소매 상회→소비재 수혜 등). 사용자 "예상보다 높/낮을시 영향 알려줘야".
 - **🎯 포트폴리오 노출(affectedPortfolio)**: 거시 이벤트 키워드 → 민감 섹터 → 보유 종목 결정론 매핑(FOMC→반도체/성장, CPI→소비/에너지 등). exposureChannel 라벨.
 - **▶ 액션**: impact 별 결정론(high=노출종목 비중·헤지 점검 / medium=관망·재평가 / low=모니터). "단순 경제일정 나열" 탈피 — audit-section-richness ⚠️ 해소.
