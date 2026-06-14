@@ -121,15 +121,24 @@ const checks = [
     critical: !CI, // CI 는 reports/ 비어있어 skip 정상
     dimensions: ['LLM 환각 (sector/52w/MA/fact-check/sector-keyword)'],
   },
+  {
+    // 2026-06-14 (ChatGPT 리뷰 §3-1): 섹션 "공허함"(템플릿화) 감사. advisory(non-critical) — event-기반
+    //   격상(D3) 전까지 warn 으로 가시화만. 섹션이 단순 재무요약/계약나열/캘린더 나열이면 ❌ surface.
+    name: 'audit-section-richness',
+    script: 'scripts/audit-section-richness.mjs',
+    desc: '섹션 밀도(템플릿화 vs 분석) — advisory',
+    critical: false,
+    dimensions: ['companyChanges/supplyChain/riskEvents/ETF 분석 깊이'],
+  },
 ];
 
 console.log('═══════════════════════════════════════════════════════════');
 console.log('  Verify-All — 모든 검증 병렬 실행');
 console.log('═══════════════════════════════════════════════════════════\n');
 
-// 병렬 실행 — 6 spawn 동시
+// 병렬 실행 — 7 spawn 동시
 const startedAt = Date.now();
-console.log(`▶ 6 script 병렬 실행 시작...`);
+console.log(`▶ 7 script 병렬 실행 시작...`);
 
 const promises = checks.map(c => {
   if (!existsSync(resolve(ROOT, c.script))) {
@@ -161,7 +170,7 @@ const promises = checks.map(c => {
 
 const results = await Promise.all(promises);
 const elapsedMs = Date.now() - startedAt;
-console.log(`\n▶ 6 script 완료 — ${(elapsedMs/1000).toFixed(1)}s\n`);
+console.log(`\n▶ 7 script 완료 — ${(elapsedMs/1000).toFixed(1)}s\n`);
 for (const r of results) {
   const icon = r.status === 'pass' ? '✅' : r.status === 'warn' ? '⚠️ ' : r.status === 'skip' ? '⏭️ ' : '❌';
   console.log(`${icon} ${r.name.padEnd(25)} (${(r.durationMs/1000).toFixed(1)}s) exit=${r.exitCode ?? '-'} err=${r.errCount ?? 0} warn=${r.warnCount ?? 0} ok=${r.okCount ?? 0}`);
