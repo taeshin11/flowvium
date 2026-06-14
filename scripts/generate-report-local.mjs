@@ -7911,6 +7911,31 @@ async function generateViaOllama() {
     const sv = validateGroundedNumbers(finalReport.portfolio, signalDigest, livePrices);
     if (sv) console.log(`  [whitelist-validator/final] ungrounded %·x 숫자 strip ${sv}건 (rotation 포함 전수)`);
   }
+  // 2026-06-14 (Task28 D7 step5, ChatGPT P0-4): top-level fundamentalAnalysis 숫자 grounding —
+  //   validateGroundedNumbers 는 portfolio 필드만 봐 "기관 매수 28%" 류 top-level 환각이 통과. global
+  //   allow-set(macro 지표 + 전 portfolio 실 fin + calib) 외 %/배/건/bp 숫자 strip. macroAnalysis 는
+  //   이미 FRED fact-check, technicalAnalysis 는 VIX/yield grounded → fundamentalAnalysis 만 대상(보수적).
+  {
+    // 2026-06-14: 둥근수(40/50/60/70/100)를 calib 로 전역허용하면 "주가 40% 상승"·"30% 성장" 환각이
+    //   통과(ChatGPT calib 거품 경고). ≤25 소규모만 calib, 큰 값은 macro/fin 실값(addN)으로만 허용.
+    const allow = new Set([1, 2, 3, 5, 7, 8, 10, 12, 15, 20, 25]);
+    const addN = (v) => { const n = parseFloat(String(v).replace(/[^\d.-]/g, '')); if (Number.isFinite(n)) allow.add(Math.round(Math.abs(n) * 10) / 10); };
+    for (const i of (ctxRaw?.macro?.indicators ?? [])) addN(i.actual);
+    addN(ctxRaw?.fearGreed?.score); addN(ctxRaw?.volatility?.vix);
+    for (const p of finalReport.portfolio ?? []) { const f = signalDigest.get(p.ticker)?.fin; if (f) { addN(f.yoy); addN(f.margin); addN(f.roe); addN(f.pe); } }
+    const isAllowed = (n) => { const x = Math.abs(parseFloat(n)); if (!Number.isFinite(x)) return true; for (const a of allow) if (Math.abs(x - a) <= Math.max(0.3, a * 0.02)) return true; return false; };
+    const fa = finalReport.fundamentalAnalysis;
+    if (typeof fa === 'string' && fa) {
+      let t = fa;
+      for (const m of [...fa.matchAll(/([+-]?\d+\.?\d*)\s*(?:%p|%|배|건|bp)/g)]) {
+        if (isAllowed(m[1])) continue;
+        const esc = m[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        t = t.replace(new RegExp(`[^,，·|]*${esc}\\s*(?:%p|%|배|건|bp)[^,，·|]*`), '');
+      }
+      t = t.replace(/\s*[,，·|]\s*[,，·|]\s*/g, ', ').replace(/^[\s,，·|]+|[\s,，·|]+$/g, '').replace(/\s{2,}/g, ' ');
+      if (t !== fa) { finalReport.fundamentalAnalysis = t; console.log(`  [global-validator] fundamentalAnalysis ungrounded 숫자 strip: "${fa.slice(0, 40)}" → "${t.slice(0, 40)}"`); }
+    }
+  }
 
   // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").
   //   경합심사/rotation-veto/모순 재심 trail 은 콘솔 로그 + buySellReconciliation 필드로 유지.
