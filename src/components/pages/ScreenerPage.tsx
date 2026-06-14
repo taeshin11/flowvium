@@ -114,6 +114,7 @@ function isCsuiteTitle(title: string | null): boolean {
 }
 
 interface MarketAlertRow {
+  region?: 'KR' | 'US';
   category: 'caution' | 'warning' | 'risk';
   name: string; ticker: string | null; market: string | null;
   reason: string | null; fewAccount: boolean; designatedDate: string | null;
@@ -570,7 +571,7 @@ export default function ScreenerPage() {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {survSorted.map((row, i) => (
-                      <SurvChip key={`${row.ticker}-${i}`} ticker={row.ticker} name={row.name}
+                      <SurvChip key={`${row.ticker}-${i}`} ticker={row.ticker} name={`${row.region === 'US' ? '🇺🇸 ' : '🇰🇷 '}${row.name}`}
                         badge={row.fewAccount ? t('fewAccountBadge') : t(`alertCat_${row.category}`)}
                         badgeCls={row.fewAccount ? 'bg-red-500/30 text-red-300' : row.category === 'risk' ? 'bg-red-500/20 text-red-300' : row.category === 'warning' ? 'bg-orange-500/20 text-orange-300' : 'bg-amber-500/20 text-amber-300'}
                         sub={[row.reason, row.designatedDate].filter(Boolean).join(' · ')} />

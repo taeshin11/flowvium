@@ -18,6 +18,7 @@ import { loggedRedisSet } from '@/lib/logger';
 export type AlertCategory = 'caution' | 'warning' | 'risk';
 
 export interface MarketAlert {
+  region?: 'KR' | 'US';          // 2026-06-14: US 병합 후 구분 (기본 KR)
   category: AlertCategory;        // caution=투자주의, warning=투자경고, risk=투자위험
   name: string;                  // 회사명(한글)
   ticker: string | null;         // 6자리.KS/.KQ (해소 시) | null
@@ -91,7 +92,7 @@ async function fetchTab(tab: typeof TABS[number], cookie: string, startDate: str
     const dates = tds.map(stripTags).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x));
     const reason = tab.category === 'caution' ? stripTags(tds[2] ?? '') || null : null;
     out.push({
-      category: tab.category, name, ticker: null, market,
+      region: 'KR', category: tab.category, name, ticker: null, market,
       // 소수/단일 계좌 집중 + 매매관여 과다 = 거래소가 집계한 소수계좌 거래집중 계열(작전주 선행 flag)
       reason, fewAccount: tab.category === 'caution' && /소수\s*지점|소수\s*계좌|계좌\s*집중|단일\s*계좌|관여\s*과다/.test(reason || ''),
       designatedDate: dates[0] ?? null, releaseDate: dates[dates.length - 1] ?? null,

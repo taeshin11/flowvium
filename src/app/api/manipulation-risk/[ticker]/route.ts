@@ -13,6 +13,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { createRedis } from '@/lib/redis';
 import { peekMarketAlerts, fetchMarketAlertsRaw, type MarketAlert } from '@/lib/market-alerts';
+import { peekUsMarketAlerts, fetchUsMarketAlertsRaw, type UsMarketAlert } from '@/lib/us-market-alerts';
 
 export const dynamic = 'force-dynamic';
 const CDN = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=120' };
@@ -71,6 +72,16 @@ async function matchSurveillance(ticker: string, name: string | null): Promise<M
     if (!name) return null;
     const raw = await fetchMarketAlertsRaw(10);   // 캐시 miss: 경량 raw(ticker 미해소) → 이름 매칭
     return raw.find((a) => a.name === name) ?? null;
+  } catch { return null; }
+}
+
+// 2026-06-14: US 공식 surveillance(SEC 거래정지/Reg SHO/거래소 halts) 매칭. KRX 소수계좌의 US 대응.
+async function matchUsSurveillance(ticker: string): Promise<UsMarketAlert | null> {
+  try {
+    const redis = createRedis();
+    const peek = await peekUsMarketAlerts(redis);
+    const list = peek?.alerts ?? await fetchUsMarketAlertsRaw();
+    return list.find((a) => a.ticker === ticker) ?? null;
   } catch { return null; }
 }
 
@@ -194,6 +205,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
         flags.push(`🔴 거래소 투자위험 지정 — 매매정지 가능 최고위험 공식 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
       }
     }
+  } else {
+    // US 공식 surveillance — SEC 거래정지/Reg SHO 결제실패/거래소 halts (KRX 소수계좌의 US 대응)
+    const ua = await matchUsSurveillance(t);
+    if (ua) {
+      surveillance = { category: ua.category, reason: ua.reason, fewAccount: false, designatedDate: ua.date };
+      if (ua.type === 'sec_suspension') {
+        score = Math.max(score, 90);
+        flags.push(`🔴 SEC 거래정지 — 사기·조작 의심 공식 정지${ua.date ? ` [${ua.date}]` : ''}`);
+      } else if (ua.type === 'halt') {
+        score = Math.max(score, ua.category === 'risk' ? 80 : ua.category === 'warning' ? 65 : 45);
+        flags.push(`${ua.category === 'caution' ? '⚠️' : '🔴'} 거래소 ${ua.reason}${ua.date ? ` [${ua.date}]` : ''}`);
+      } else if (ua.type === 'reg_sho_threshold') {
+        score = Math.min(100, score + 12);
+        flags.push(`⚠️ Reg SHO 결제실패(FTD) 지속 — 공매도/조작 감시 종목${ua.date ? ` [${ua.date}]` : ''}`);
+      }
+    }
   }
 
   const tier = score >= 75 ? 'severe' : score >= 55 ? 'high' : score >= 30 ? 'elevated' : 'low';
@@ -212,7 +239,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
     },
     surveillance,   // 거래소 공식 시장경보 {category, reason, fewAccount, designatedDate} (KR) | null
     flags,
-    note: isKR ? 'KR: 결정론 4시그니처 + 투자자 수급 분산(개인 vs 기관·외인) + 거래소 공식 시장경보(투자주의/경고/위험·소수계좌 거래집중, KIND 라이브).' : null,
-    source: isKR ? 'deterministic-yahoo-daily+financials+naver-flow+krx-market-alert' : 'deterministic-yahoo-daily+financials',
+    note: isKR ? 'KR: 결정론 4시그니처 + 투자자 수급 분산(개인 vs 기관·외인) + 거래소 공식 시장경보(투자주의/경고/위험·소수계좌 거래집중, KIND 라이브).'
+      : 'US: 결정론 4시그니처 + 매집 선행 + 공식 surveillance(SEC 거래정지·Reg SHO 결제실패·거래소 halts).',
+    source: isKR ? 'deterministic-yahoo-daily+financials+naver-flow+krx-market-alert' : 'deterministic-yahoo-daily+financials+us-surveillance',
   }, { headers: CDN });
 }

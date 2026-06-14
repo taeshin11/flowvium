@@ -9,7 +9,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
-import { getMarketAlerts, type AlertCategory } from '@/lib/market-alerts';
+import { getMarketAlerts, type AlertCategory, type MarketAlert } from '@/lib/market-alerts';
+import { getUsMarketAlerts } from '@/lib/us-market-alerts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -21,8 +22,21 @@ export async function GET(req: NextRequest) {
   const onlyFewAccount = sp.get('fewAccount') === '1';
   const category = sp.get('category') as AlertCategory | null;
   const ticker = (sp.get('ticker') || '').toUpperCase() || null;
+  const region = sp.get('region');  // 'KR' | 'US' | null(둘 다)
 
-  const { alerts, source, asOf } = await getMarketAlerts(redis);
+  // KR(KIND) + US(SEC정지/RegSHO/halts) 병렬. 부분 실패 허용.
+  const [kr, us] = await Promise.all([
+    region === 'US' ? Promise.resolve(null) : getMarketAlerts(redis),
+    region === 'KR' ? Promise.resolve(null) : getUsMarketAlerts(redis),
+  ]);
+  const krAlerts: MarketAlert[] = kr?.alerts ?? [];
+  // US alert → 공통 MarketAlert 형태로 매핑(screener/보고서 단일 렌더).
+  const usMapped: MarketAlert[] = (us?.alerts ?? []).map((a) => ({
+    region: 'US', category: a.category, name: a.name, ticker: a.ticker,
+    market: null, reason: a.reason, fewAccount: false, designatedDate: a.date, releaseDate: null,
+  }));
+  const alerts = [...krAlerts, ...usMapped];
+
   let filtered = alerts;
   if (onlyFewAccount) filtered = filtered.filter((a) => a.fewAccount);
   if (category) filtered = filtered.filter((a) => a.category === category);
@@ -33,7 +47,10 @@ export async function GET(req: NextRequest) {
     warning: alerts.filter((a) => a.category === 'warning').length,
     risk: alerts.filter((a) => a.category === 'risk').length,
     fewAccount: alerts.filter((a) => a.fewAccount).length,
+    kr: krAlerts.length, us: usMapped.length,
   };
+  const source = { kr: kr?.source ?? 'skipped', us: us?.source ?? 'skipped' };
+  const asOf = kr?.asOf ?? us?.asOf ?? new Date().toISOString();
 
   return NextResponse.json({ alerts: filtered, counts, source, asOf }, { headers: CDN });
 }
