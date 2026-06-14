@@ -1,0 +1,47 @@
+2026-06-14 — 대규모 세션: 섹션 공허함 격상 + 사용자 발견 결함 다수 + 이전 준비
+====================================================================================
+
+[A] company-kr 404 전수 해소 (bf6abb6)
+  - HPSP(403870): 연결재무제표(CFS) 없는 단일법인 → CFS→OFS 폴백. 005930/000660 회귀없음.
+  - 4 ETF(423160/458730/459580/481050): DART 법인 아님 → isDartFilingCorp() → notApplicable 200.
+
+[B] 섹션 공허함 4섹션 event 분석 격상 ("숫자는 코드가, LLM은 문장만")
+  - companyChanges(0301ddc): eventType(코드 결정론 13종)+held + whyMatters/nextCheck(LLM). audit 정밀화.
+  - supplyChain(a11408e): contractWhyMatters(revenuePct materiality) + summary materiality-led(반복 prefix 제거).
+  - riskEvents(a11408e): 이벤트키워드→민감섹터→보유종목 매핑 + impact별 action.
+  - etfStrategy(a11408e): tag→사이징, action→무효화조건(exposure map 격상).
+  - 실보고서 richness fail 0/warn 0 검증.
+
+[C] 사용자 라이브 발견 결함 (923891f, 2b5a6ce, 48158a3)
+  - semiconductors 중복·모순 stance: portfolio.sector 두 어휘(Yahoo 'Semiconductors'+kebab) case-sensitive
+    Map 중복. canonicalizeSectorAllocation chokepoint(섹터 1회·1 stance). + 불변식 probe 신설(c0601cf).
+  - 합산정규화 후 stance 미재계산(Industrials 29%/neutral): 표시 pct 로 stance 재계산(48158a3). probe가 포착.
+  - riskEvents 예상치: Finnhub econ-cal=premium(키 401) → FRED units 변환으로 직전 실제값(CPI %YoY/GDP
+    %연율/소매 %MoM/NFP K). econCal 윈도우 14→30일 + ±2일 매칭(고용/CPI 커버). cross-contamination 방지.
+
+[D] 포트폴리오 12 강제 폐지 (670c987) — 사용자 "12 꽉 채우지 마, 없을수도 많을수도, 품질만"
+  - US6+KR6 강제 retry + candidate pool 합성 padding('Auto-pad 가짜종목') 전면 제거. 고확신만(적으면 적게).
+  - retry 는 생성부실(total<4)일 때만. 품질패널티 floor 12→4. 검증: 실보고서 6종목(US2+KR4) padding 0.
+
+[E] 노출종목/공급망 KS 회사명 (670c987, 2fb6fa7) — krDisplay(KR_NAMES→candidate meta)
+  - 000660.KS → SK하이닉스. riskEvents affectedPortfolio + 공급망 upstream/downstream.
+
+[F] 일본어 뉴스 제목 번역 (2fb6fa7) — KO 페이지에 일본어 제목 잔존("3年目に突入した「新NISA」")
+  - 배치 검증(anyTr)이 일부만 바뀌어도 통과 → 미번역 슬립. residualForeign(가나/한글 스크립트 불일치) sweep
+    → 해당 기사만 per-field 재번역.
+
+[G] 유사상황 판단기준 설명 보강 (1899f93) — analog 6요인 가중매칭인데 'VIX·낙폭' 2개만 노출
+  - reason: "현재 지문(VIX·낙폭·20일·10Y·금리커브)을 1990~ 전영업일과 6요인 가중거리 비교" 명시. verdictNote 16언어.
+
+[H] 이메일 (2fb6fa7): Business Inquiries spinaiceo@gmail.com → taeshinkim11@gmail.com (about/how-to-use).
+
+[I] 비용 감사: Railway 없음. flowvium은 Vercel에서 이미 삭제됨(과금 0). cloudflared 자가호스팅. 잔존 vercel.json
+    크론 22개·.vercel/·VERCEL_* env 는 배포 없어 무해. → Vercel 요금제(Pro $20/월) 다운그레이드 검토 권장(대시보드).
+
+[J] D7 evidence warehouse: 데이터 적재 완료(3712 claims/993종목, SEC XBRL+DART+Form4). LLM evidenceId schema 는
+    미완이나 *불필요 판정* — 숫자 이미 grounded+기간 라벨(85.2% 분기 vs 65.5% 연간 둘 다 정확). 핵심 파이프라인
+    대수술 대비 한계이득 작아 보류. 환각 버그 발생 시 재고.
+
+검증체계: audit-section-richness 에 sectorAllocation 불변식 probe(중복+stance↔pct) 추가 — 사용자가 잡던 사각지대 자동화.
+모니터: 11분 세션 스팟체크(check-stall) 정상. /loop 없음. hang-mutex 가동.
+전 커밋 push 완료. 라이브 검증: analog 설명·공급망 SK하이닉스·riskEvents 직전값·이메일 전부 flowvium.net 반영 확인.
