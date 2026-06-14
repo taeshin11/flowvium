@@ -167,6 +167,10 @@ export interface RiskEvent {
   event: string;
   impact: 'high' | 'medium' | 'low';
   watchFor: string;
+  // 2026-06-14: 포트폴리오 민감도 (결정론 — 이벤트→민감섹터→보유종목 매핑). 단순 경제일정 나열 탈피.
+  affectedPortfolio?: string[];
+  exposureChannel?: string;
+  action?: string;
 }
 
 export interface RegionStance {
@@ -189,6 +193,8 @@ export interface InvestmentStrategy {
     tag: 'core' | 'sector' | 'region' | 'defensive';
     action?: 'buy' | 'watch' | 'avoid' | 'hedge';
     rationale: string; price: number | null; changePct: number | null;
+    // 2026-06-14: exposure map 격상 — 사이징/무효화조건 (결정론)
+    sizingHint?: string; invalidation?: string;
   }>;
   riskEvents: RiskEvent[];
   macroAnalysis: string;
@@ -232,6 +238,7 @@ export interface InvestmentStrategy {
     date?: string;
     downstreamBeneficiaries?: string[];
     upstreamRisks?: string[];
+    whyMatters?: string | null;   // 2026-06-14: 파급분석(매출가시성·반복성·리스크) 결정론
     evidenceUrl?: string | null;
   }>;
   // S4b: 위기 포착

@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "Positiv",
     "eventType_negative_development": "Negativ",
     "companyChangesHeld": "Gehalten",
-    "companyChangesNextCheck": "Nächste Prüfung"
+    "companyChangesNextCheck": "Nächste Prüfung",
+    "riskExposure": "Betroffen",
+    "etfInvalidation": "Invalidierung"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

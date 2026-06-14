@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "Positivo",
     "eventType_negative_development": "Negativo",
     "companyChangesHeld": "En cartera",
-    "companyChangesNextCheck": "Próx. revisión"
+    "companyChangesNextCheck": "Próx. revisión",
+    "riskExposure": "Expuestos",
+    "etfInvalidation": "Invalidación"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

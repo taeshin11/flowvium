@@ -2569,6 +2569,64 @@ function enrichCompanyChangeEvents(companyChanges, heldSet) {
 }
 
 /**
+ * 2026-06-14: riskEvents 포트폴리오 민감도 결정론 주입 — audit-section-richness 가 "단순 경제일정 나열
+ * (노출종목/임계/액션 부재)" 으로 ⚠️ 하던 섹션. 거시 이벤트 → 영향채널(노출 섹터) → 보유 종목 매핑.
+ *   "숫자/매핑은 코드가": 이벤트 키워드 → 민감 섹터 → 보유 portfolio.sector 교차 → affectedPortfolio.
+ */
+const RISK_EVENT_EXPOSURE = [
+  { re: /금리|FOMC|fed|기준금리|\brate\b|연준|금통위|국채|수익률|treasury|yield/i, sectors: ['semiconductors', 'technology', 'software', 'growth', 'real estate', 'reits', 'utilities'], label: '금리민감(성장·장기듀레이션)' },
+  { re: /CPI|인플레|물가|PCE|소비자물가|inflation/i, sectors: ['consumer', 'retail', 'energy', 'materials', 'consumer discretionary', 'consumer staples'], label: '인플레민감(소비·에너지)' },
+  { re: /소비|소매|retail|consumer|판매|sales/i, sectors: ['consumer', 'retail', 'consumer discretionary', 'consumer staples'], label: '소비섹터' },
+  { re: /GDP|성장률|제조업|PMI|생산|industrial|manufactur/i, sectors: ['industrials', 'materials', 'semiconductors', 'energy'], label: '경기민감(시클리컬)' },
+  { re: /BOJ|ECB|중앙은행|환율|달러|\bFX\b|위안|\byen\b|currency/i, sectors: ['technology', 'semiconductors', 'automotive', 'auto manufacturers'], label: '환율·수출' },
+  { re: /고용|실업|payroll|NFP|jobs|일자리|employment/i, sectors: [], label: '광범위 위험선호' },
+];
+function enrichRiskEvents(riskEvents, portfolio) {
+  const holds = (portfolio ?? []).filter(p => p?.ticker);
+  let n = 0;
+  for (const e of (riskEvents ?? [])) {
+    if (!e || typeof e !== 'object' || e.affectedPortfolio || e.action) continue;
+    const text = `${e.event ?? ''} ${e.watchFor ?? ''}`;
+    const prof = RISK_EVENT_EXPOSURE.find(p => p.re.test(text));
+    let affected = [];
+    if (prof && prof.sectors.length) {
+      affected = holds.filter(p => prof.sectors.some(s => String(p.sector ?? '').toLowerCase().includes(s))).map(p => p.ticker);
+    }
+    if (!affected.length) affected = [...holds].sort((a, b) => (b.allocation ?? 0) - (a.allocation ?? 0)).slice(0, 3).map(p => p.ticker);  // 섹터 미매칭 광범위 이벤트 → 최대 비중 보유
+    e.exposureChannel = prof?.label ?? '광범위';
+    e.affectedPortfolio = affected.slice(0, 5);
+    e.action = e.impact === 'high' ? '노출 종목 비중·헤지 점검(발표 전)' : e.impact === 'medium' ? '관망 — 발표 후 노출 종목 재평가' : '영향 제한적 — 모니터';
+    n++;
+  }
+  if (n > 0) console.log(`  [후처리] riskEvents 포트폴리오 민감도 ${n}개 주입`);
+  return riskEvents;
+}
+
+/**
+ * 2026-06-14: etfStrategy 를 'ETF 추천' → exposure map 으로 격상 — audit ⚠️(무효화조건/사이징 전무 +
+ * rationale 중복) 해소. tag(core/satellite)→사이징, action→무효화조건 결정론 파생. rationale 에 역할 부가로 distinct.
+ */
+function enrichEtfStrategy(etfStrategy) {
+  let n = 0;
+  for (const e of (etfStrategy ?? [])) {
+    if (!e || typeof e !== 'object') continue;
+    const tag = String(e.tag ?? '').toLowerCase();
+    const act = String(e.action ?? '').toLowerCase();
+    if (!e.sizingHint) {
+      e.sizingHint = tag === 'core' ? '코어 5–10% 비중' : tag === 'satellite' ? '위성 2–4% 비중' : '전술 1–3% 비중';
+    }
+    if (!e.invalidation) {
+      e.invalidation = (act === 'reduce' || act === 'sell') ? '스탠스 강세 전환 또는 주요 지지선 회복 시 재진입 검토'
+        : act === 'hold' ? '주간 종가 200일선 -8% 이탈 시 비중 재평가'
+        : '주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소';  // buy 등
+    }
+    n++;
+  }
+  if (n > 0) console.log(`  [후처리] etfStrategy 사이징/무효화조건 ${n}개 주입`);
+  return etfStrategy;
+}
+
+/**
  * Post-processing: post-earnings 자체 판단.
  * 최근 7일 내 실적발표가 있는 squeeze 후보는:
  *   - 발표 후 OHLCV 기반 누적 수익률 계산
@@ -7204,6 +7262,7 @@ async function generateViaOllama() {
         conviction: s.conviction,
         downstreamBeneficiaries: s.downstreamBeneficiaries ?? [],
         upstreamRisks: s.upstreamRisks ?? [],
+        whyMatters: s.whyMatters ?? null,  // 2026-06-14: 파급분석(매출가시성·반복성·리스크) 결정론
         evidenceUrl: s.evidenceUrl ?? null,
         // 2026-06-13: 계약 상세 (사용자 "여전히 내용 안나오네") — DART 본문 추출 금액·상대방·매출대비%.
         //   이전엔 headline(reportNm)만 실어 UI 가 "단일판매·공급계약체결" 만 표시. summary 는 영향도 문장.
@@ -7623,12 +7682,15 @@ async function generateViaOllama() {
       }
     } catch (e) { console.warn('  [ETF 경합심사] skip:', e.message); }
   } catch (e) { finalReport.etfStrategy = []; console.warn('  [ETF] 실패:', e.message); }
+  finalReport.etfStrategy = enrichEtfStrategy(finalReport.etfStrategy);  // 사이징/무효화조건(exposure map 격상)
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   // 결정론 event 분류(eventType) + 보유맥락(held) — whyMatters/nextCheck 산문은 LLM(prompt) 작성.
   finalReport.companyChanges = enrichCompanyChangeEvents(
     finalReport.companyChanges,
     new Set((finalReport.portfolio ?? []).map(p => p.ticker)),
   );
+  // riskEvents 포트폴리오 민감도(노출종목/액션) 결정론 주입 — 단순 경제일정 나열 탈피.
+  finalReport.riskEvents = enrichRiskEvents(finalReport.riskEvents, finalReport.portfolio);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
 

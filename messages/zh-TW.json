@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "利多",
     "eventType_negative_development": "利空",
     "companyChangesHeld": "持有",
-    "companyChangesNextCheck": "下次關注"
+    "companyChangesNextCheck": "下次關注",
+    "riskExposure": "受影響標的",
+    "etfInvalidation": "失效條件"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

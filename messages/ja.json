@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "好材料",
     "eventType_negative_development": "悪材料",
     "companyChangesHeld": "保有",
-    "companyChangesNextCheck": "次の確認"
+    "companyChangesNextCheck": "次の確認",
+    "riskExposure": "影響銘柄",
+    "etfInvalidation": "無効化"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

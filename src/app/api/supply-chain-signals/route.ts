@@ -102,6 +102,19 @@ export interface SupplyChainSignal {
   contractAmountWon?: number;          // 2026-06-13: DART 본문 추출 계약금액(원) — 종목선정 입력
   contractCounterparty?: string;       // 계약상대
   contractRevenuePct?: number;         // 연매출 대비 % — 계약의 *영향도* (종목선정 가중 핵심)
+  whyMatters?: string;                 // 2026-06-14: 파급분석(매출가시성·반복성·리스크) — '계약 있음' 나열 탈피(결정론)
+}
+
+// 2026-06-14: 계약 영향도 결정론 분석 — audit-section-richness '계약나열(파급분석 아님)' fail 해소.
+//   revenuePct(연매출 대비)가 핵심 materiality. 숫자는 코드가 판단, 문장도 결정론(LLM 없는 라우트).
+function contractWhyMatters(revenuePct: number | undefined, counterparty: string | undefined, signalType: string): string {
+  const dir = signalType === 'contract_loss' ? '감소' : '발생';
+  const cp = counterparty ? ` · 상대 ${counterparty}` : '';
+  if (revenuePct == null) return counterparty ? `계약상대 ${counterparty} — 금액 미공개로 영향도 미상` : '계약 금액 미공개 — 실적 영향도 미상';
+  if (revenuePct >= 30) return `초대형 계약(연매출 ${revenuePct}%) — 단기 실적 ${dir} 가시성 급증, 일회성·고객집중 리스크 점검${cp}`;
+  if (revenuePct >= 10) return `유의미 수주(연매출 ${revenuePct}%) — 매출 가시성 개선, 반복성 확인 필요${cp}`;
+  if (revenuePct >= 3)  return `통상 규모 수주(연매출 ${revenuePct}%) — 점진 기여${cp}`;
+  return `경미한 계약(연매출 ${revenuePct}%) — 실적 영향 제한적${cp}`;
 }
 
 // ── DART 공시 제목 분류 (2026-06-06) ──────────────────────────────────────────
@@ -185,6 +198,8 @@ async function fetchEdgar8K(): Promise<SupplyChainSignal[]> {
         date: fileDate,
         downstreamBeneficiaries: downstream.beneficiaries,
         upstreamRisks: downstream.risks,
+        whyMatters: downstream.beneficiaries.length ? `downstream 수혜: ${downstream.beneficiaries.slice(0, 3).join(', ')}`
+          : downstream.risks.length ? `upstream 리스크: ${downstream.risks.slice(0, 3).join(', ')}` : undefined,
         evidenceUrl: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&filenum=${filingId}&type=8-K&output=atom`,
       });
     }
@@ -245,6 +260,8 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
           date: fileDate,
           downstreamBeneficiaries: downstream.beneficiaries,
           upstreamRisks: downstream.risks,
+          whyMatters: downstream.beneficiaries.length ? `downstream 수혜: ${downstream.beneficiaries.slice(0, 3).join(', ')}`
+            : downstream.risks.length ? `upstream 리스크: ${downstream.risks.slice(0, 3).join(', ')}` : undefined,
           evidenceUrl: hit._id ? `https://www.sec.gov/Archives/edgar/data/${hit._id.split(':')[0]}` : undefined,
         });
         if (signals.length >= 10) break;
@@ -371,6 +388,7 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
       let contractAmountWon: number | undefined;
       let contractCounterparty: string | undefined;
       let contractRevenuePct: number | undefined;
+      let signalWhyMatters: string | undefined;
       let convictionAdj = cls.conviction;
       if ((signalType === 'contract_win' || signalType === 'contract_loss') && watchlistHits <= 12 && item.rcept_no) {
         const detail = await fetchContractDetail(dartKey, item.rcept_no);
@@ -379,14 +397,25 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
           if (detail.amountWon) { parts.push(`계약금액 ${fmtWon(detail.amountWon)}`); contractAmountWon = detail.amountWon; }
           if (detail.revenuePct != null) { parts.push(`연매출 대비 ${detail.revenuePct}%`); contractRevenuePct = detail.revenuePct; }
           if (detail.counterparty) { parts.push(`계약상대 ${detail.counterparty}`); contractCounterparty = detail.counterparty; }
-          detailSummary = `${cls.summary} (${parts.join(' · ')})`;
+          // materiality-led summary — 반복 prefix 제거(매출대비%/금액이 앞서 항목별로 distinct). audit 반복탐지 회피.
+          const lead = detail.revenuePct != null ? `연매출 ${detail.revenuePct}% 규모 ` : (detail.amountWon ? `${fmtWon(detail.amountWon)} ` : '');
+          detailSummary = `${lead}${cls.summary} (${parts.join(' · ')})`;
+          signalWhyMatters = contractWhyMatters(detail.revenuePct ?? undefined, detail.counterparty ?? undefined, signalType);
           // 영향도 기반 conviction 조정: 매출대비 ≥30% 전환적(+10), ≥10% 유의미(+5), <3% 경미(-15)
           if (detail.revenuePct != null) {
             if (detail.revenuePct >= 30) convictionAdj = Math.min(100, cls.conviction + 10);
             else if (detail.revenuePct >= 10) convictionAdj = Math.min(100, cls.conviction + 5);
             else if (detail.revenuePct < 3) convictionAdj = Math.max(40, cls.conviction - 15);
           }
+        } else {
+          // 본문 금액 미추출 — 여전히 파급분석 제공(영향도 미상 명시, '계약 있음'만 표기 탈피)
+          signalWhyMatters = contractWhyMatters(undefined, undefined, signalType);
         }
+      }
+      // 비계약 신호(supply_risk/expansion/partnership 등)도 파급경로 문장 부여 — 수혜/리스크 티커 기반.
+      if (!signalWhyMatters) {
+        if (downstream.beneficiaries.length) signalWhyMatters = `downstream 수혜: ${downstream.beneficiaries.slice(0, 3).join(', ')}`;
+        else if (downstream.risks.length) signalWhyMatters = `upstream 리스크: ${downstream.risks.slice(0, 3).join(', ')}`;
       }
 
       logger.info('supply-chain-signals', 'dart_signal_found', {
@@ -407,8 +436,10 @@ async function fetchDartSignals(): Promise<SupplyChainSignal[]> {
         source: 'dart',
         date: item.rcept_dt ?? '',
         downstreamBeneficiaries: downstream.beneficiaries,
+        upstreamRisks: downstream.risks,
         evidenceUrl: `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${item.rcept_no}`,
         contractAmountWon, contractCounterparty, contractRevenuePct,
+        whyMatters: signalWhyMatters,
       });
     }
     logger.info('supply-chain-signals', 'dart_done', { contractCount, watchlistHits, signals: signals.length, ms: Date.now() - t0 });
@@ -443,6 +474,9 @@ function getStaticSignals(): SupplyChainSignal[] {
         source: 'cascade-update',
         date: u.date,
         downstreamBeneficiaries: downstream.beneficiaries,
+        upstreamRisks: downstream.risks,
+        whyMatters: downstream.beneficiaries.length ? `downstream 수혜: ${downstream.beneficiaries.slice(0, 3).join(', ')}`
+          : downstream.risks.length ? `upstream 리스크: ${downstream.risks.slice(0, 3).join(', ')}` : undefined,
       });
     }
   }

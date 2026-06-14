@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "Olumlu",
     "eventType_negative_development": "Olumsuz",
     "companyChangesHeld": "Portföyde",
-    "companyChangesNextCheck": "Sonraki kontrol"
+    "companyChangesNextCheck": "Sonraki kontrol",
+    "riskExposure": "Etkilenen",
+    "etfInvalidation": "Geçersizleşme"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

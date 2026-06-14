@@ -460,6 +460,14 @@ function RiskEventRow({ event }: { event: RiskEvent }) {
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{event.watchFor}</p>
+        {/* 2026-06-14: 포트폴리오 민감도 (노출 종목·영향채널·액션) */}
+        {event.affectedPortfolio?.length ? (
+          <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
+            🎯 {t('riskExposure')}: <span className="font-mono">{event.affectedPortfolio.join(', ')}</span>
+            {event.exposureChannel ? <span className="opacity-60"> ({event.exposureChannel})</span> : null}
+          </p>
+        ) : null}
+        {event.action ? <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">▶ {event.action}</p> : null}
       </div>
     </div>
   );
@@ -1310,6 +1318,13 @@ export default function ReportPage() {
                         )}
                       </div>
                       <p className="text-[11px] text-gray-600 leading-snug">{e.rationale}</p>
+                      {/* 2026-06-14: exposure map — 사이징/무효화조건 */}
+                      {(e.sizingHint || e.invalidation) && (
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                          {e.sizingHint && <span className="text-[10px] text-gray-500">📐 {e.sizingHint}</span>}
+                          {e.invalidation && <span className="text-[10px] text-gray-500">⛔ {t('etfInvalidation')}: {e.invalidation}</span>}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1406,6 +1421,10 @@ export default function ReportPage() {
                         if (c.contractRevenuePct != null) parts.push(`${t('contractRevImpact')} ${c.contractRevenuePct}%`);
                         return parts.length ? <p className="text-[10px] mt-1 font-semibold opacity-90">💰 {parts.join(' · ')}</p> : null;
                       })()}
+                      {/* 2026-06-14: 파급분석(매출가시성·반복성·리스크) — '계약 있음' 나열 탈피 */}
+                      {(s as { whyMatters?: string | null }).whyMatters ? (
+                        <p className="text-[11px] leading-relaxed mt-1 font-medium opacity-90">💡 {(s as { whyMatters?: string | null }).whyMatters}</p>
+                      ) : null}
                       {s.downstreamBeneficiaries?.length ? (
                         <p className="text-[10px] mt-1 opacity-70">
                           ↘ 수혜: {s.downstreamBeneficiaries.join(', ')}

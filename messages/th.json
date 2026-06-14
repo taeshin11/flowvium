@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "บวก",
     "eventType_negative_development": "ลบ",
     "companyChangesHeld": "ถือครอง",
-    "companyChangesNextCheck": "ตรวจถัดไป"
+    "companyChangesNextCheck": "ตรวจถัดไป",
+    "riskExposure": "ที่ได้รับผลกระทบ",
+    "etfInvalidation": "เงื่อนไขยกเลิก"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

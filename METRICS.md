@@ -682,7 +682,10 @@
 
 | 12-A1 | 섹터 배분 (비중확대/중립/비중축소) | 💾 cached | AI 생성 |
 | 12-A2 | ETF 전략 (broad/sector/thematic/style/dividend/region/commodity/bond, 가격) | ✅ live | `buildEtfStrategy` grounded(stance/sector/region) + batch-prices. 풀 61 ETF, 보고서당 ~18개·8카테고리 (2026-06-05 30→62 확장, 테마/스타일/배당 신설) |
+| 12-A3 | ETF 사이징(sizingHint)/무효화조건(invalidation) — exposure map 격상 | ✅ live | enrichEtfStrategy 결정론(tag→사이징, action→무효화) ← 2026-06-14 |
 | 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
+| 12-R2 | 리스크 이벤트 포트폴리오 노출(affectedPortfolio·exposureChannel·action) | ✅ live | enrichRiskEvents 결정론(이벤트 키워드→민감섹터→보유 portfolio.sector 매핑) ← 2026-06-14 |
+| 12-SC1 | 공급망 변화 whyMatters (매출가시성·반복성·고객집중 리스크) | ✅ live | `/api/supply-chain-signals` contractWhyMatters 결정론(contractRevenuePct materiality) + summary materiality-led(반복 prefix 제거) ← 2026-06-14 |
 | 12-CC1 | 기업 변화 eventType (가이던스/매출/M&A/소송/규제/계약/임원…) | ✅ live | **코드 결정론 분류**(guidance/revenueYoY/sentiment) enrichCompanyChangeEvents, 환각/슬롭 불가 ← 2026-06-14 |
 | 12-CC2 | 기업 변화 whyMatters (투자자 영향 ≤70자) | 💾 cached | LLM 산문 (Wave2 companyChanges prompt) — boilerplate 고유성 audit ← 2026-06-14 |
 | 12-CC3 | 기업 변화 nextCheck (다음 catalyst ≤40자) | 💾 cached | LLM (실제 날짜 없으면 null, 환각 금지) ← 2026-06-14 |

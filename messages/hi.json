@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "सकारात्मक",
     "eventType_negative_development": "नकारात्मक",
     "companyChangesHeld": "धारित",
-    "companyChangesNextCheck": "अगली जाँच"
+    "companyChangesNextCheck": "अगली जाँच",
+    "riskExposure": "प्रभावित",
+    "etfInvalidation": "अमान्यकरण"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

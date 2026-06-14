@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "Позитив",
     "eventType_negative_development": "Негатив",
     "companyChangesHeld": "В портфеле",
-    "companyChangesNextCheck": "След. проверка"
+    "companyChangesNextCheck": "След. проверка",
+    "riskExposure": "Затронуто",
+    "etfInvalidation": "Отмена"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

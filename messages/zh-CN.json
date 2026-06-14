@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "利好",
     "eventType_negative_development": "利空",
     "companyChangesHeld": "持有",
-    "companyChangesNextCheck": "下次关注"
+    "companyChangesNextCheck": "下次关注",
+    "riskExposure": "受影响标的",
+    "etfInvalidation": "失效条件"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

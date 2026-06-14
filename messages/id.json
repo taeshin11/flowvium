@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "Positif",
     "eventType_negative_development": "Negatif",
     "companyChangesHeld": "Dimiliki",
-    "companyChangesNextCheck": "Cek berikutnya"
+    "companyChangesNextCheck": "Cek berikutnya",
+    "riskExposure": "Terdampak",
+    "etfInvalidation": "Invalidasi"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

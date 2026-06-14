@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "Positif",
     "eventType_negative_development": "Négatif",
     "companyChangesHeld": "Détenu",
-    "companyChangesNextCheck": "Prochain point"
+    "companyChangesNextCheck": "Prochain point",
+    "riskExposure": "Exposés",
+    "etfInvalidation": "Invalidation"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

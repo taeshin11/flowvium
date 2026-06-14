@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "إيجابي",
     "eventType_negative_development": "سلبي",
     "companyChangesHeld": "محتفظ به",
-    "companyChangesNextCheck": "الفحص التالي"
+    "companyChangesNextCheck": "الفحص التالي",
+    "riskExposure": "المعرّضة",
+    "etfInvalidation": "الإبطال"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

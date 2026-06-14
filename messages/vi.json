@@ -1328,7 +1328,9 @@
     "eventType_positive_development": "Tích cực",
     "eventType_negative_development": "Tiêu cực",
     "companyChangesHeld": "Đang nắm giữ",
-    "companyChangesNextCheck": "Kiểm tra tiếp"
+    "companyChangesNextCheck": "Kiểm tra tiếp",
+    "riskExposure": "Bị ảnh hưởng",
+    "etfInvalidation": "Vô hiệu hóa"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",
