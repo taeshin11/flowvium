@@ -8369,6 +8369,14 @@ async function generateViaOllama() {
     // 2026-05-29: 정시 발간 — target 시간까지 sleep 후 업로드
     await sleepUntilPublishTarget(session);
     await uploadFromFile(filepath);
+    // 2026-06-14: 발간 후 자동 시각 캡쳐 (사용자 "발간 후 창 띄워 캡쳐 검증") — reports/preview/latest-<locale>.png.
+    //   Claude 가 스팟체크마다 Read 로 육안 검증 → 이상 시 개선·재업로드(C3). best-effort(실패해도 발간 영향 없음).
+    try {
+      const { spawnSync } = await import('child_process');
+      const shot = resolve(ROOT, `reports/preview/latest-${localeArg}.png`);
+      const sc = spawnSync(process.execPath, [resolve(ROOT, 'scripts/screenshot-report.mjs'), localeArg, shot], { timeout: 70000, stdio: 'ignore' });
+      console.log(existsSync(shot) && !sc.error ? `  [시각 캡쳐] 발간본 → ${shot} (Claude 검증용)` : '  [시각 캡쳐] skip(캡쳐 실패 — 발간엔 영향 없음)');
+    } catch (e) { console.warn('  [시각 캡쳐] skip:', e?.message); }
   } else {
     console.log('\n✅ 생성 완료. 내용 확인 후 업로드:');
     console.log(`   node scripts/generate-report-local.mjs --upload=reports/${filename}`);

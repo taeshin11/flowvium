@@ -49,7 +49,17 @@ try {
   await page.waitForSelector('text/AI 투자 전략', { timeout: 8000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 3500));   // 차트/지연 fetch 여유
   await page.screenshot({ path: out, fullPage: true });
-  console.log(`✅ 풀페이지 캡쳐: ${out}`);
+  // 2026-06-14: 섹션 분할 캡쳐 — 풀페이지는 Read 시 과축소로 텍스트 판독 불가. Claude 검증 위해
+  //   세로 2200px 단위로 잘라 읽기가능 PNG 생성(out 베이스명-s1/s2/...). 검증은 이 조각들을 Read.
+  const SECT = 2200;
+  const full = await page.evaluate(() => document.body.scrollHeight);
+  const n = Math.min(6, Math.ceil(full / SECT));   // 최대 6조각
+  const base = out.replace(/\.png$/, '');
+  for (let i = 0; i < n; i++) {
+    const h = Math.min(SECT, full - i * SECT); if (h <= 0) break;
+    await page.screenshot({ path: `${base}-s${i + 1}.png`, clip: { x: 0, y: i * SECT, width: 1280, height: h } });
+  }
+  console.log(`✅ 캡쳐: 풀 ${out} + 섹션 ${n}조각 (${base}-s1..s${n}.png, 판독용)`);
 } finally {
   await browser.close();
 }
