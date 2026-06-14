@@ -123,14 +123,17 @@ export async function snapshotAllEndpoints(reportId, opts = {}) {
     const batch = allEndpoints.slice(i, i + concurrency);
     const settled = await Promise.all(batch.map(async ep => {
       const r = await fetchOne(baseUrl, ep);
-      saveSnapshot({
-        reportId,
-        endpoint: ep,
-        status: r.status,
-        response: r.body,
-        durationMs: r.durationMs,
-      });
-      return { endpoint: ep, ok: r.ok, status: r.status, durationMs: r.durationMs };
+      // 2026-06-15: saveSnapshot 한 건 실패가 Promise.all 을 reject → snapshotAllEndpoints 전체가 throw
+      //   → 뒤따르는 verify-loop(Karpathy 폐루프)까지 스킵되던 구조(market-alerts 객체-source 사건).
+      //   per-endpoint 격리 — 한 엔드포인트 적재 실패가 폐루프를 죽이지 않게 한다.
+      let saveOk = true;
+      try {
+        saveSnapshot({ reportId, endpoint: ep, status: r.status, response: r.body, durationMs: r.durationMs });
+      } catch (e) {
+        saveOk = false;
+        console.warn(`[snapshot] ⚠️ ${ep} 적재 실패(격리, 비차단): ${String(e?.message ?? e).slice(0, 90)}`);
+      }
+      return { endpoint: ep, ok: r.ok && saveOk, status: r.status, durationMs: r.durationMs };
     }));
     results.push(...settled);
   }

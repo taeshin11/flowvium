@@ -569,8 +569,13 @@ export function saveReport(report) {
 /** 엔드포인트 응답 스냅샷 한 건 저장. response 객체 그대로 받음. */
 export function saveSnapshot({ reportId, endpoint, status, response, capturedAt, durationMs }) {
   const db = openDb();
-  const sourceField = typeof response === 'object' && response !== null
+  let sourceField = typeof response === 'object' && response !== null
     ? (response.source ?? response.dataSource ?? null) : null;
+  // 2026-06-15: source 가 객체({kr,us} 등 — market-alerts 신설 엔드포인트)면 better-sqlite3 가
+  //   .run() 위치인자의 객체를 *named-params 묶음*으로 오해 → 익명 ? 값이 줄어 "Too few parameter
+  //   values" throw. 그 결과 snapshotAllEndpoints 가 죽고 뒤따르는 verify-loop(Karpathy 폐루프)이
+  //   ~24h 스킵됐다. bindable primitive(string|null) 로 강제 — 모든 객체-source 엔드포인트 방어.
+  if (sourceField !== null && typeof sourceField !== 'string') sourceField = JSON.stringify(sourceField);
   // 2026-06-05: 대용량 응답(news-gap 821KB 등)을 보고서마다 full 저장하면 DB 비대화 →
   //   64KB 초과 시 메타(source/count/keys/size)만 보존. 시계열 추적은 유지, 본문은 trim.
   let respJson = JSON.stringify(response ?? null);
