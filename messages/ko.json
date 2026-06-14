@@ -1334,7 +1334,8 @@
     "riskEstimate": "예상",
     "riskPrev": "전월",
     "riskHigher": "예상 상회 시",
-    "riskLower": "예상 하회 시"
+    "riskLower": "예상 하회 시",
+    "manipWatchTierWatch": "관찰"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

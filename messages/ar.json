@@ -1334,7 +1334,8 @@
     "riskEstimate": "متوقع",
     "riskPrev": "سابق",
     "riskHigher": "إذا أعلى",
-    "riskLower": "إذا أقل"
+    "riskLower": "إذا أقل",
+    "manipWatchTierWatch": "مراقبة"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

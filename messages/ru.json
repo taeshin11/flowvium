@@ -1334,7 +1334,8 @@
     "riskEstimate": "Прогноз",
     "riskPrev": "пред.",
     "riskHigher": "Если выше",
-    "riskLower": "Если ниже"
+    "riskLower": "Если ниже",
+    "manipWatchTierWatch": "Наблюдение"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

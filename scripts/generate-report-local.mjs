@@ -5285,20 +5285,25 @@ function buildManipulationWatch() {
     const stale = ageH > 36;
     const items = (raw.watchlist ?? []).slice(0, 12).map((w) => ({
       ticker: w.ticker, name: w.name,
+      tier: w.tier ?? 'strong',                // 2026-06-14: 'strong'(고확신 매집)|'watch'(관찰 약신호)
       phase: 'pre_pump_accumulation',          // 오르기 前 매집 의심 (급등 후행 아님)
       score: w.score,
       signals: w.lead ?? [],
       official: w.official ?? null,            // KRX 공식 시장경보 매칭 {category,reason,fewAccount,designatedDate} | null
       runup20dPct: w.runup20dPct ?? null,
+      runup5dPct: w.runup5dPct ?? null,
       action: 'watch_only',                    // 신규 매수 추천 아님 — 관찰만
       reason: w.official?.fewAccount ? '거래소 소수계좌 거래집중 + 매집 선행조짐 — 관찰 우선(추천 아님)'
-        : '가격 급등 前 매집 의심 선행조짐 — 관찰 우선(추천 아님)',
+        : (w.tier === 'watch' ? '세력매집 동반 약한 선행조짐 — 관찰(낮은 확신)'
+          : '가격 급등 前 매집 의심 선행조짐 — 관찰 우선(추천 아님)'),
     }));
     return {
       asOf: raw.generatedAt ?? null,
       universe: raw.universe ?? 'KOSDAQ',
       scanned: raw.scanned ?? null,
       officialFewAccount: raw.officialFewAccount ?? 0,  // 매집∩거래소 소수계좌 교차검증 건수
+      strongCount: raw.strongCount ?? items.filter(x => x.tier === 'strong').length,
+      watchCount: raw.watchCount ?? items.filter(x => x.tier === 'watch').length,
       stale,                                            // 36h 초과 = 스크리너 재실행 필요
       source: stale ? 'stale' : 'live',
       items,

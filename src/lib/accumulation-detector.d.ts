@@ -17,3 +17,8 @@ export function isAccumulation(
   sig: AccumulationSignals,
   ctx?: { strongSmart?: boolean; officialFewAccount?: boolean; isMarkup?: boolean },
 ): boolean;
+
+export function accumulationTier(
+  sig: AccumulationSignals,
+  ctx?: { strongSmart?: boolean; officialFewAccount?: boolean; isMarkup?: boolean },
+): 'strong' | 'watch' | null;

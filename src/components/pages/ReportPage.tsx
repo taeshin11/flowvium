@@ -1144,7 +1144,7 @@ export default function ReportPage() {
 
           {/* ── 작전주 매집 감시 (2026-06-14): 기회포착 다음 배치(사용자 지정). 오르기 前 매집 + KRX 소수계좌 ── */}
           {(() => {
-            const mw = (data as unknown as { manipulationWatch?: { items?: Array<{ ticker: string; name: string; score: number; signals?: string[]; official?: { fewAccount?: boolean; reason?: string | null } | null; runup20dPct?: number | null }>; officialFewAccount?: number; stale?: boolean } }).manipulationWatch;
+            const mw = (data as unknown as { manipulationWatch?: { items?: Array<{ ticker: string; name: string; tier?: 'strong' | 'watch'; score: number; signals?: string[]; official?: { fewAccount?: boolean; reason?: string | null } | null; runup20dPct?: number | null }>; officialFewAccount?: number; stale?: boolean } }).manipulationWatch;
             if (!mw) return null;                         // 필드 자체 없는 구버전 보고서만 숨김
             const items = mw.items ?? [];
             return (
@@ -1160,10 +1160,14 @@ export default function ReportPage() {
                     {items.slice(0, 8).map((it, i) => (
                       <Link key={`${it.ticker}-${i}`} href={`/${locale}/company/${it.ticker}`} className="block rounded-lg bg-white border border-rose-200 p-2.5 hover:border-rose-400 transition-colors">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="font-bold text-sm text-gray-800 truncate">{it.name} <span className="font-mono text-[10px] text-gray-400">{it.ticker}</span></span>
+                          <span className="font-bold text-sm text-gray-800 truncate">
+                            {/* 2026-06-14: 2-tier — 관찰(watch)은 amber, 강한 매집(strong)은 rose */}
+                            {it.tier === 'watch' && <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-bold mr-1">{t('manipWatchTierWatch')}</span>}
+                            {it.name} <span className="font-mono text-[10px] text-gray-400">{it.ticker}</span>
+                          </span>
                           {it.official?.fewAccount
                             ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500 text-white font-bold shrink-0">{t('manipWatchFewAccount')}</span>
-                            : <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-700 font-bold shrink-0 tabular-nums">{it.score}</span>}
+                            : <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 tabular-nums ${it.tier === 'watch' ? 'bg-amber-100 text-amber-700' : 'bg-rose-200 text-rose-700'}`}>{it.score}</span>}
                         </div>
                         <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{(it.signals ?? []).slice(0, 3).join(' · ')}</p>
                       </Link>

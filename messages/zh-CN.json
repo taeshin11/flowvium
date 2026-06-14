@@ -1334,7 +1334,8 @@
     "riskEstimate": "预期",
     "riskPrev": "前值",
     "riskHigher": "高于预期",
-    "riskLower": "低于预期"
+    "riskLower": "低于预期",
+    "manipWatchTierWatch": "观察"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

@@ -1334,7 +1334,8 @@
     "riskEstimate": "予想",
     "riskPrev": "前回",
     "riskHigher": "予想超なら",
-    "riskLower": "予想割れなら"
+    "riskLower": "予想割れなら",
+    "manipWatchTierWatch": "監視"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

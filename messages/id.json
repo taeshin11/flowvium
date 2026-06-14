@@ -1334,7 +1334,8 @@
     "riskEstimate": "Perkiraan",
     "riskPrev": "sblm",
     "riskHigher": "Jika lebih tinggi",
-    "riskLower": "Jika lebih rendah"
+    "riskLower": "Jika lebih rendah",
+    "manipWatchTierWatch": "Pantau"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

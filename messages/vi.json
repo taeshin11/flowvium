@@ -1334,7 +1334,8 @@
     "riskEstimate": "Dự báo",
     "riskPrev": "trước",
     "riskHigher": "Nếu cao hơn",
-    "riskLower": "Nếu thấp hơn"
+    "riskLower": "Nếu thấp hơn",
+    "manipWatchTierWatch": "Theo dõi"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

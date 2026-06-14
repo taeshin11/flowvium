@@ -1,8 +1,28 @@
 {
-  "generatedAt": "2026-06-14T03:51:49.296Z",
+  "generatedAt": "2026-06-14T09:27:31.116Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 0,
+  "count": 1,
+  "strongCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "030520.KQ",
+      "name": "한글과컴퓨터",
+      "tier": "watch",
+      "score": 25,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 60%",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 0.6,
+      "runup5dPct": 3.5,
+      "medDollarVolUsd": 2042495,
+      "smartAccum": true,
+      "official": null
+    }
+  ]
 }

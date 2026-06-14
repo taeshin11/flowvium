@@ -1334,7 +1334,8 @@
     "riskEstimate": "Est.",
     "riskPrev": "ant.",
     "riskHigher": "Si mayor",
-    "riskLower": "Si menor"
+    "riskLower": "Si menor",
+    "manipWatchTierWatch": "Vigilar"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

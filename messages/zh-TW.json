@@ -1334,7 +1334,8 @@
     "riskEstimate": "預期",
     "riskPrev": "前值",
     "riskHigher": "高於預期",
-    "riskLower": "低於預期"
+    "riskLower": "低於預期",
+    "manipWatchTierWatch": "觀察"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

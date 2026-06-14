@@ -76,3 +76,21 @@ export function isAccumulation(sig, ctx = {}) {
   const minScore = ctx.officialFewAccount ? 24 : 32;
   return sig.accumCoFire >= requiredCoFire && sig.accumScore >= minScore;
 }
+
+/**
+ * 2026-06-14: 2-tier 분류 (사용자 "관찰 목적 살리되 false 작전주 막기"). 'strong'=고확신 매집 의심,
+ * 'watch'=관찰(세력매집/공식 corroboration 있는 약신호), null=제외.
+ *   5일 급등 가드: runup5d≥15% 면 이미 markup 진입('오르기 前' 아님 — 솔브레인 +21.6% 케이스) → null.
+ * @param {ReturnType<typeof computeAccumulationSignals>} sig
+ * @param {{strongSmart?:boolean, officialFewAccount?:boolean, isMarkup?:boolean}} [ctx]
+ * @returns {'strong'|'watch'|null}
+ */
+export function accumulationTier(sig, ctx = {}) {
+  if (ctx.isMarkup || !sig.priceFlat || !sig.liquidityOk) return null;
+  if (sig.runup5d >= 15) return null;                                  // 단기 급등 = markup 진입(선행 아님)
+  if (isAccumulation(sig, ctx)) return 'strong';                       // 고확신(기존 게이트)
+  // 관찰: 세력매집(기관·외인 순매수) 또는 공식 소수계좌 corroboration + 최소 동시발화/점수
+  const strong = ctx.strongSmart || ctx.officialFewAccount;
+  if (strong && sig.accumCoFire >= 2 && sig.accumScore >= 14) return 'watch';
+  return null;
+}

@@ -1334,7 +1334,8 @@
     "riskEstimate": "คาดการณ์",
     "riskPrev": "ก่อนหน้า",
     "riskHigher": "หากสูงกว่า",
-    "riskLower": "หากต่ำกว่า"
+    "riskLower": "หากต่ำกว่า",
+    "manipWatchTierWatch": "เฝ้าดู"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

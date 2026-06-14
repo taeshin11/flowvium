@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { fetchMarketAlerts, resolveTickerByName } from './lib/krx-market-alert.mjs';
-import { computeAccumulationSignals, isAccumulation } from '../src/lib/accumulation-detector.mjs';  // route 와 단일소스(drift 제거)
+import { computeAccumulationSignals, accumulationTier } from '../src/lib/accumulation-detector.mjs';  // route 와 단일소스(drift 제거)
 
 const ROOT = resolve(import.meta.dirname, '..');
 const ALL = process.argv.includes('--all');
@@ -68,8 +68,8 @@ for (let i = 0; i < tickers.length; i += CONC) {
   const res = await Promise.all(batch.map(async (t) => {
     const rows = await dailyChart(t); if (!rows) return null;
     const sig = computeAccumulationSignals(rows, { krwPerUsd: KRW_PER_USD, isKR: true });  // route 와 동일 모듈
-    // prelim 후보: 가격평탄 + 유동성 + coFire>=2 + score>=24 (최종은 수급/공식 맥락으로 아래 게이트)
-    if (!(sig.priceFlat && sig.liquidityOk && sig.accumCoFire >= 2 && sig.accumScore >= 24)) return null;
+    // prelim 후보: 가격평탄 + 유동성 + coFire>=2 + score>=14 (watch tier 하한; 최종 tier 는 아래 accumulationTier)
+    if (!(sig.priceFlat && sig.liquidityOk && sig.accumCoFire >= 2 && sig.accumScore >= 14)) return null;
     const nm = cand.meta?.[t]?.name ?? t;
     const lead = [...sig.lead];
     const flow = await naverFlow(t.replace(/\.(KS|KQ)$/, ''));
@@ -83,17 +83,23 @@ for (let i = 0; i < tickers.length; i += CONC) {
       if (alert.fewAccount) { officialBoost = 25; lead.push(`🚨 거래소 소수계좌 거래집중(공식 ${alert.designatedDate ?? ''})`); }
       else if (alert.category === 'caution') { officialBoost = 12; lead.push(`⚠️ 거래소 투자주의: ${alert.reason ?? ''}`); }
     }
-    // 최종 게이트(공용 isAccumulation) — 강한 수급 또는 공식 소수계좌면 coFire>=2, 아니면 >=3 + score>=32.
-    if (!isAccumulation(sig, { strongSmart: smartAccum, officialFewAccount: !!alert?.fewAccount, isMarkup: false })) return null;
-    return { ticker: t, name: nm, score: sig.accumScore + (smartAccum ? 10 : 0) + officialBoost, coFire: sig.accumCoFire, lead, runup20dPct: +sig.runup20d.toFixed(1), medDollarVolUsd: Math.round(sig.medDollarVol), smartAccum, official };
+    // 2-tier 게이트(공용 accumulationTier) — 'strong'=고확신 매집, 'watch'=관찰(세력매집 corroboration 약신호),
+    //   null=제외(5일 급등=markup 포함). 사용자 "관찰 목적 살리되 false 작전주 막기".
+    const tier = accumulationTier(sig, { strongSmart: smartAccum, officialFewAccount: !!alert?.fewAccount, isMarkup: false });
+    if (!tier) return null;
+    return { ticker: t, name: nm, tier, score: sig.accumScore + (smartAccum ? 10 : 0) + officialBoost, coFire: sig.accumCoFire, lead, runup20dPct: +sig.runup20d.toFixed(1), runup5dPct: +sig.runup5d.toFixed(1), medDollarVolUsd: Math.round(sig.medDollarVol), smartAccum, official };
   }));
   for (const r of res) if (r) watch.push(r);
   if (i % 50 === 0) console.log(`  ... ${i + batch.length}/${tickers.length} (포착 ${watch.length})`);
   await new Promise(s => setTimeout(s, 200));
 }
-watch.sort((a, b) => b.score - a.score);
+// tier 우선(strong 먼저) → 점수순. count 는 tier별 분리 노출.
+const tierRank = (t) => (t === 'strong' ? 0 : 1);
+watch.sort((a, b) => tierRank(a.tier) - tierRank(b.tier) || b.score - a.score);
 const officialCount = watch.filter(w => w.official?.fewAccount).length;
-const out = { generatedAt: new Date().toISOString(), universe: ALL ? 'KR' : 'KOSDAQ', scanned: tickers.length, count: watch.length, officialFewAccount: officialCount, watchlist: watch.slice(0, 40) };
+const strongCount = watch.filter(w => w.tier === 'strong').length;
+const watchCount = watch.filter(w => w.tier === 'watch').length;
+const out = { generatedAt: new Date().toISOString(), universe: ALL ? 'KR' : 'KOSDAQ', scanned: tickers.length, count: watch.length, strongCount, watchCount, officialFewAccount: officialCount, watchlist: watch.slice(0, 40) };
 writeFileSync(resolve(ROOT, 'data/accumulation-watchlist.json'), JSON.stringify(out, null, 2) + '\n');
-console.log(`\n✅ 매집 의심(오르기 前) ${watch.length}종 → data/accumulation-watchlist.json`);
-for (const w of watch.slice(0, 12)) console.log(`  ${w.ticker.padEnd(11)} ${String(w.name).slice(0, 10).padEnd(11)} score=${w.score} (20d ${w.runup20dPct >= 0 ? '+' : ''}${w.runup20dPct}%, $${(w.medDollarVolUsd / 1e6).toFixed(1)}M): ${w.lead.join('·')}`);
+console.log(`\n✅ 매집 ${watch.length}종 (강한 ${strongCount} + 관찰 ${watchCount}) → data/accumulation-watchlist.json`);
+for (const w of watch.slice(0, 12)) console.log(`  [${w.tier === 'strong' ? '강' : '관'}] ${w.ticker.padEnd(11)} ${String(w.name).slice(0, 10).padEnd(11)} score=${w.score} (20d ${w.runup20dPct >= 0 ? '+' : ''}${w.runup20dPct}%, 5d ${w.runup5dPct >= 0 ? '+' : ''}${w.runup5dPct}%): ${w.lead.join('·')}`);
