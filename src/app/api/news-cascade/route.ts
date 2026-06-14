@@ -630,16 +630,25 @@ function hasChineseLeak(text: string): boolean {
 }
 
 async function callCascadeAI(prompt: string): Promise<string> {
-  const r = await callAI(prompt, {
-    systemPrompt: CASCADE_SYSTEM_PROMPT,
-    maxTokens: 600, // 5 cascade items × ~100 tokens + envelope ≈ 550; 400 caused JSON truncation
-    temperature: 0.5,
-    skipVllm: true,
-    preferSmallModel: true, // 8b preserves 70b quota for strategy/daily-brief
-    timeoutMs: 18000,
-    tag: 'news-cascade',
-  });
-  return r.text;
+  // 2026-06-15: 로컬 Ollama 우선 (자가호스팅 — cloud 키 전무로 callAI 가 전부 실패해 cascade 가
+  //   keyword fallback 만 남고 대부분 빈 배열이던 회귀; 사용자 "케스케이드 종목 안 나오네").
+  //   qwen3 가 cascade JSON 양호 생성(실측). GPU 포화/실패 시 cloud(callAI) fallback.
+  try {
+    const local = await localChat(`${CASCADE_SYSTEM_PROMPT}\n\n${prompt}`, { temperature: 0.4, maxTokens: 700, timeoutMs: 30000 });
+    if (local && local.trim()) return local;
+  } catch { /* 로컬 실패 → cloud fallback */ }
+  try {
+    const r = await callAI(prompt, {
+      systemPrompt: CASCADE_SYSTEM_PROMPT,
+      maxTokens: 600, // 5 cascade items × ~100 tokens + envelope ≈ 550; 400 caused JSON truncation
+      temperature: 0.5,
+      skipVllm: true,
+      preferSmallModel: true, // 8b preserves 70b quota for strategy/daily-brief
+      timeoutMs: 18000,
+      tag: 'news-cascade',
+    });
+    return r.text;
+  } catch { return ''; }
 }
 
 // ── Supply chain lookup — cascadePatterns를 company name/ticker 기준으로 역인덱싱 ──

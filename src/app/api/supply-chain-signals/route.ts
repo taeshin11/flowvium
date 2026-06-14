@@ -250,6 +250,7 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
   const WINDOW_DAYS = 45;
   const cutoff = new Date(Date.now() - WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
   let scanned = 0, httpFails = 0;
+  const candidates: Array<{ ticker: string; name: string; date: string; cikNum: string; accNo: string; doc: string }> = [];
   try {
     const cikMap = await getCikMap();
     const entries = Object.entries(cikMap);
@@ -274,42 +275,103 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
       for (const r of batchRes) {
         if (!r?.recent) continue;
         scanned++;
-        const { form, items, filingDate, accessionNumber } = r.recent;
+        const { form, items, filingDate, accessionNumber, primaryDocument } = r.recent;
         for (let i = 0; i < form.length && filingDate[i] >= cutoff; i++) {
           if (form[i] !== '8-K') continue;
           const itm = items[i] || '';
           if (!itm.includes('1.01')) continue;   // Material Definitive Agreement 만
-          // 1.01+2.03(직접 재무의무 발생) = 차입/신용약정 → 공급망 신호 아님(financing). 정직하게 제외.
-          //   순수 사업계약(인수·공급·파트너십·라이선스)만 surface. US 엔 KR DART 수주공시 등가물이 없어
-          //   본질적으로 희소 — 없으면 빈 게 정직(garbage 로 채우지 않음).
-          if (itm.includes('2.03')) continue;
-          const cikNum = String(parseInt(r.cik, 10));
-          const accNo = (accessionNumber[i] || '').replace(/-/g, '');
-          signals.push({
+          candidates.push({
             ticker: r.ticker,
-            companyName: r.name,
-            signalType: 'contract_win',
-            conviction: 66,
-            direction: 'neutral',
-            headline: `8-K: ${r.name} — 주요 계약 체결(Material Definitive Agreement, Item 1.01)`,
-            source: 'sec-8k',
+            name: r.name,
             date: filingDate[i],
-            downstreamBeneficiaries: [],
-            upstreamRisks: [],
-            whyMatters: '주요 계약 공시 — 인수·공급·파트너십 등 사업 변화 가능(8-K 본문 확인 권장)',
-            evidenceUrl: accNo
-              ? `https://www.sec.gov/Archives/edgar/data/${cikNum}/${accNo}/`
-              : `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${r.cik}&type=8-K`,
+            cikNum: String(parseInt(r.cik, 10)),
+            accNo: (accessionNumber[i] || '').replace(/-/g, ''),
+            doc: primaryDocument?.[i] ?? '',
           });
           break;   // 회사당 최신 1건만(중복·도배 방지)
         }
       }
     }
-    logger.info('supply-chain-signals', 'edgar_submissions_done', { monitored: entries.length, scanned, httpFails, signals: signals.length, ms: Date.now() - t0 });
+    // 2026-06-15 (사용자 "us 는 자세한 내용 없고 본문확인하라고만"): 실제 8-K 본문을 fetch 해 계약 유형·
+    //   상대방·금액 추출 + 정직 분류(자본조달/사업계약). 종전엔 메타데이터만 써 generic "본문 확인 권장" 이었음.
+    //   회사당 1건, 소수라 순차 fetch(SEC rate-limit 안전).
+    for (const c of candidates.slice(0, 8)) {
+      const detail = await fetchEightKDetail(c.cikNum, c.accNo, c.doc);
+      const kindLabel = detail.kind === 'financing' ? '자본조달'
+        : detail.kind === 'ma' ? 'M&A'
+        : detail.kind === 'business' ? '사업계약' : '주요계약';
+      const parts = [];
+      if (detail.agreementType) parts.push(detail.agreementType);
+      if (detail.counterparty) parts.push(`상대: ${detail.counterparty}`);
+      if (detail.amount) parts.push(detail.amount);
+      const detailStr = parts.join(' · ');
+      signals.push({
+        ticker: c.ticker,
+        companyName: c.name,
+        signalType: detail.kind === 'financing' ? 'supply_risk' : 'contract_win',
+        // 자본조달은 공급망 직결 아님 → 낮은 conviction. 사업계약/M&A 는 66.
+        conviction: detail.kind === 'financing' ? 52 : 66,
+        direction: 'neutral',
+        headline: `8-K [${kindLabel}]: ${c.name}${detailStr ? ' — ' + detailStr : ' — 주요 계약(Item 1.01)'}`,
+        source: 'sec-8k',
+        date: c.date,
+        downstreamBeneficiaries: [],
+        upstreamRisks: [],
+        whyMatters: detail.summary
+          || (detail.kind === 'financing' ? '자본조달 공시(지분/채권) — 재무구조 변화, 매출 직결 아님'
+            : '사업 계약 공시 — 인수·공급·파트너십 등 사업 변화 신호'),
+        evidenceUrl: c.accNo
+          ? `https://www.sec.gov/Archives/edgar/data/${c.cikNum}/${c.accNo}/${c.doc || ''}`
+          : `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${c.cikNum}&type=8-K`,
+      });
+    }
+    logger.info('supply-chain-signals', 'edgar_submissions_done', { monitored: entries.length, scanned, httpFails, candidates: candidates.length, signals: signals.length, ms: Date.now() - t0 });
   } catch (e) {
     logger.warn('supply-chain-signals', 'edgar_submissions_failed', { error: String(e), ms: Date.now() - t0 });
   }
   return signals;
+}
+
+/**
+ * 8-K Item 1.01 본문에서 계약 유형·상대방·금액 추출 + 분류 (financing/business/ma).
+ * SEC 8-K 는 DART 처럼 구조화 필드가 없어 narrative 에서 휴리스틱 추출. 실패해도 비차단(빈 detail).
+ */
+async function fetchEightKDetail(cikNum: string, accNo: string, doc: string): Promise<{
+  agreementType?: string; counterparty?: string; amount?: string; summary?: string;
+  kind: 'financing' | 'business' | 'ma' | 'unknown';
+}> {
+  if (!cikNum || !accNo || !doc) return { kind: 'unknown' };
+  try {
+    const url = `https://www.sec.gov/Archives/edgar/data/${cikNum}/${accNo}/${doc}`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'FlowVium research@flowvium.net' }, signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    if (!res.ok) return { kind: 'unknown' };
+    const html = await res.text();
+    const text = html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;|&#8201;/g, ' ')
+      .replace(/&amp;/g, '&').replace(/&#8217;|&#146;/g, "'").replace(/&#8220;|&#8221;|&#147;|&#148;/g, '"')
+      .replace(/\s+/g, ' ').trim();
+    // Item 1.01 narrative 영역(다음 Item 직전까지)
+    const idx = text.search(/Item\s*1\.01/i);
+    const region = idx >= 0 ? text.slice(idx, idx + 1500) : text.slice(0, 1500);
+    // 계약 유형: "...Agreement" 명사구 — 단, 섹션 헤더 보일러플레이트 'Material Definitive Agreement' 제외.
+    const agTypes = Array.from(region.matchAll(/\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3}\s+Agreement)\b/g))
+      .map(m => m[1]).filter(a => !/material definitive agreement/i.test(a));
+    const agreementType = agTypes[0]?.slice(0, 50);
+    // 상대방: with/among 다음 고유명사
+    const cpMatch = region.match(/\b(?:with|among|by and among)\s+([A-Z][A-Za-z][\w&.,\- ]{3,45}?)(?:[,.;]|\s+(?:dated|to|for|pursuant|\())/);
+    let counterparty = cpMatch?.[1]?.trim();
+    if (counterparty && /^(the|a|an|its|each)\b/i.test(counterparty)) counterparty = undefined;
+    // 금액: 액면가($0.001 등) 노이즈 제외 — million/billion 단위 또는 7자리($1,000,000)+ 만 채택.
+    const amtMatch = Array.from(region.matchAll(/\$\s?([\d,]+(?:\.\d+)?)\s*(million|billion|bn)?/ig))
+      .find(m => m[2] || parseFloat(m[1].replace(/,/g, '')) >= 1_000_000);
+    const amount = amtMatch?.[0]?.replace(/\s+/g, '');
+    // 분류 — 전체 region 기준(첫 400자만 보면 핵심어 누락). financing(자본조달) 우선 차단.
+    const blob = region.toLowerCase();
+    let kind: 'financing' | 'business' | 'ma' | 'unknown' = 'unknown';
+    if (/\b(merger|acquisition|acquire|business combination|tender offer)\b/.test(blob)) kind = 'ma';
+    else if (/\b(equity distribution|at.the.market|atm program|preferred stock|depositary shares|senior notes|indenture|credit agreement|term loan|revolving credit|underwriting|securities purchase|note purchase|debenture|warrant)\b/.test(blob)) kind = 'financing';
+    else if (/\b(supply|offtake|manufacturing|license|collaboration|partnership|joint venture|master services|reseller|development agreement)\b/.test(blob)) kind = 'business';
+    return { agreementType, counterparty, amount, kind };
+  } catch { return { kind: 'unknown' }; }
 }
 
 // ── 2026-06-13: DART 공시 본문에서 계약 상세 추출 (사용자 "무슨 계약인지 알려줘야지") ──────
