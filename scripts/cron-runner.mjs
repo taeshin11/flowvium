@@ -155,8 +155,11 @@ async function runMonitor() {
         if (Date.now() - (warmLast.get(loc) ?? 0) < WARM_COOLDOWN_MS) { log(`[auto-warm] ${loc} 쿨다운 중 — 중복 트리거 skip`); continue; }
         warmLast.set(loc, Date.now());
         try {
-          await fetch(`${BASE}/api/news-cascade?locale=${loc}`, { signal: AbortSignal.timeout(150000) });
-          log(`[auto-warm] ${loc} 번역 warm 트리거 (cold-cache self-heal)`);
+          // 2026-06-14: wait=1 필수 — 없으면 background fire-and-forget 경로라 번역이 캐시에 persist
+          //   안 돼 cold-cache 무수렴(모니터 상시 flag). wait=1 = sync 경로(번역+translatedKey 캐시 저장 확실).
+          const res = await fetch(`${BASE}/api/news-cascade?locale=${loc}&wait=1`, { signal: AbortSignal.timeout(150000) });
+          const j = await res.json().catch(() => ({}));
+          log(`[auto-warm] ${loc} 번역 warm (sync) — source=${j.source ?? '?'} translated=${j.translated ?? '?'}`);
         } catch { log(`[auto-warm] ${loc} warm 실패`); }
       }
     })();
