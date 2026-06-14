@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { loggedRedisSet, logger } from '@/lib/logger';
-import { fetchDartFinancials } from '@/lib/dart-financials';
+import { fetchDartFinancials, isDartFilingCorp } from '@/lib/dart-financials';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -40,6 +40,15 @@ export async function GET(
   const redis = createRedis();
 
   try {
+    // ETF/ETN/펀드(예: 458730 TIGER…, 459580 KODEX…)는 DART 법인이 아니라 corp_code 자체가 없음 →
+    //   재무제표 부재가 정상. 404(라우트 죽음 오탐) 대신 notApplicable 200 으로 명시(audit [3b] 결함 제외).
+    if (!isDartFilingCorp(stockCode)) {
+      return NextResponse.json(
+        { notApplicable: true, reason: 'not_a_dart_filing_corp', message: 'DART 사업보고서 제출 법인이 아닙니다(ETF/ETN/펀드 등)', stockCode, source: 'dart' },
+        { headers: CDN_HEADERS }
+      );
+    }
+
     const data = await fetchDartFinancials(stockCode, redis);
 
     if (!data) {

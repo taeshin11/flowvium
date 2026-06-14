@@ -1047,7 +1047,7 @@ ownership-alerts 적용).
 | `/api/company-signals/[ticker]` | 종목별 시그널 통합 (UOA Redis `flowvium:iv:v1` unusual[] · 거래량 버스트 Yahoo 5분봉 라이브 · 공급계약 Redis `supply-chain-signals:v1` ticker 필터 금액·매출대비% · 수주잔고 `data/backlog.json` SEC RPO; KR 은 표준 수주잔고 부재→계약 flow 대체) — 전 1338 company page 노출 (2026-06-13) | 10min CDN |
 | `/api/manipulation-risk/[ticker]` | 작전주(펌프&덤프) 의심 결정론 스코어 0-100 — 급등+거래량폭발+저유동성+펀더갭 동시발화 + 사전 매집(accumulation) + 투자자 수급분산(Naver) + **거래소 공식 시장경보 매칭(KR, surveillance 필드 — 소수계좌 거래집중=선행 flag)**. Yahoo 일봉+financials.json+KIND 시장경보 (2026-06-14) | 10min CDN |
 | `/api/market-alerts` | **KR+US 공식 시장경보 병합** 라이브. KR=KIND 투자주의/경고/위험·소수계좌. US=SEC 거래정지(EDGAR FTS)+FINRA Reg SHO threshold(FTD)+Nasdaq/UTP halts(LULD/T12/H10). `?region=KR\|US`·`?fewAccount=1`·`?category=`·`?ticker=`. counts{kr,us}, source{kr,us} (2026-06-14) | KR 3h·US 2h Redis |
-| `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll 연결재무제표 + company.json 기업메타: 영문명/대표/설립일/본사/홈페이지/업종 — 2026-06-03) | 24h Redis (corp-code 30d) |
+| `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll **연결(CFS)→개별(OFS) 폴백** — 자회사 없는 단일법인(HPSP 등) 복구 2026-06-14 + company.json 기업메타: 영문명/대표/설립일/본사/홈페이지/업종 2026-06-03). ETF/ETN/펀드는 DART 법인 아님 → `notApplicable` 200(404 오탐 제거) | 24h Redis (corp-code 30d) |
 | `/api/company-kr/list` | DART CORPCODE.xml + company.json (companies-kr.ts 기반) | 7일 Redis |
 | `/api/company-desc/[ticker]` | 사업개요 동적 생성 — DART grounded → 로컬 Ollama(qwen3:8b), 환각방지 프롬프트. **정적 하드코딩 금지**(2026-06-03) | 45일 Redis |
 | `/api/company-recs/[ticker]` | Yahoo Finance v6 recommendationsbysymbol + v7 quote | 1h CDN |

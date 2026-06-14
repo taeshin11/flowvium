@@ -359,7 +359,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     const code = ticker.replace(/\.(KS|KQ)$/i, '');
     fetch(`/api/company-kr/${code}`, { signal: ctrl.signal })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d && !d.error && !ctrl.signal.aborted) setKrProfile(d); })
+      .then(d => { if (d && !d.error && !d.notApplicable && !ctrl.signal.aborted) setKrProfile(d); })  // ETF/펀드(notApplicable)는 재무 섹션 skip
       .catch(() => undefined);
     return () => ctrl.abort();
   }, [ticker]);

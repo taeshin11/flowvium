@@ -21,6 +21,15 @@ import dartCorpCodes from '../../data/dart-corp-codes.json';
 
 const CORP_CODE_LOOKUP = (dartCorpCodes as { map: Record<string, { corpCode: string; corpName: string }> }).map;
 
+/**
+ * DART 에 사업보고서를 제출하는 상장 *법인* 인가? (corpCode.xml 의 authoritative 매핑 기준)
+ * ETF/ETN/펀드(예: 458730 TIGER…, 459580 KODEX…)는 법인이 아니라 DART corp_code 가 없음 →
+ * company-kr 재무제표 부재가 정상(결함 아님). route 가 404(라우트 죽음) 대신 notApplicable 로 응답하도록 판별.
+ */
+export function isDartFilingCorp(stockCode: string): boolean {
+  return !!CORP_CODE_LOOKUP[stockCode.replace(/\.(KS|KQ)$/i, '').trim()];
+}
+
 const DART_BASE = 'https://opendart.fss.or.kr/api';
 const CORP_CODE_TTL  = 30 * 24 * 3600;  // 30 days
 const FINANCIALS_TTL = 24 * 3600;        // 24 hours
@@ -32,7 +41,9 @@ const KRW_USD = 1 / 1450;
 
 // DART 재무제표 구분
 const REPORT_CODE_ANNUAL = '11011'; // 사업보고서 (4Q / annual)
-const FS_DIV_CONSOLIDATED = 'CFS';  // 연결재무제표
+// 2026-06-14: 연결(CFS) → 개별(OFS) 폴백. 자회사 없는 중소형주(예: HPSP 403870)는 DART 에 연결재무제표가
+//   없고 개별재무제표만 제출 → CFS 만 조회하면 status=013(데이터 없음)으로 404. OFS 폴백으로 복구.
+const FS_DIV_ORDER = ['CFS', 'OFS'] as const;  // 연결 우선, 없으면 개별
 
 // IFRS / K-IFRS 계정과목 ID (대표 값 + 한국 변형 포함)
 const ACCOUNT_IDS = {
@@ -285,6 +296,23 @@ export async function fetchDartFinancials(
   const currentYear = new Date().getFullYear();
   const yearsToTry = [currentYear - 1, currentYear - 2];
 
+  // 연결(CFS) → 개별(OFS) 폴백: CFS 로 최신 연도 데이터가 잡히면 CFS 고정, 아니면 OFS 로 전체 재시도.
+  //   (자회사 없는 단일법인은 CFS 자체가 없어 status=013 → OFS 만 존재. 두 fs_div 혼용 방지 위해 연도 루프 밖에서 결정.)
+  let fsDiv: typeof FS_DIV_ORDER[number] = FS_DIV_ORDER[0];
+  for (const candidate of FS_DIV_ORDER) {
+    const probe = await dartFetch('fnlttSinglAcntAll.json', {
+      corp_code: corpInfo.corpCode, bsns_year: String(yearsToTry[0]),
+      reprt_code: REPORT_CODE_ANNUAL, fs_div: candidate,
+    }) as { list?: unknown[] } | null;
+    if (probe?.list?.length) { fsDiv = candidate; break; }
+    // 최신 연도가 비면 직전 연도도 probe (당해 사업보고서 미제출 시점 대비)
+    const probe2 = await dartFetch('fnlttSinglAcntAll.json', {
+      corp_code: corpInfo.corpCode, bsns_year: String(yearsToTry[1]),
+      reprt_code: REPORT_CODE_ANNUAL, fs_div: candidate,
+    }) as { list?: unknown[] } | null;
+    if (probe2?.list?.length) { fsDiv = candidate; break; }
+  }
+
   const annuals: DartAnnualFinancials[] = [];
 
   for (const year of yearsToTry) {
@@ -292,7 +320,7 @@ export async function fetchDartFinancials(
       corp_code: corpInfo.corpCode,
       bsns_year: String(year),
       reprt_code: REPORT_CODE_ANNUAL,
-      fs_div: FS_DIV_CONSOLIDATED,
+      fs_div: fsDiv,
     }) as { list?: Array<{ account_id?: string; account_nm?: string; thstrm_amount?: string }> } | null;
 
     if (!raw?.list?.length) continue;
