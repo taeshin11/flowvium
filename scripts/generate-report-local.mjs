@@ -5062,6 +5062,45 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   return finalCands;
 }
 
+// 2026-06-14 (Task29): 가격 2소스 quorum — 무료키 없이(keyless). Yahoo(Tier1, livePrices) 대비 독립 2nd:
+//   US=Nasdaq public(api.nasdaq.com), KR=Naver. portfolio ~12종만 cross-check(저볼륨→rate-limit 무관).
+//   편차>1.5%→conflicted, 일치→confirmed, 2nd 부재→single_source. audit 필드(priceConfidence) — 단일
+//   Yahoo 의존(rate-limit/bad-data) 리스크 surface. 가격 자체는 Tier1 유지(flag 만).
+async function fetchSecondSourcePrice(ticker) {
+  try {
+    if (/\.(KS|KQ)$/.test(ticker)) {
+      const code = ticker.replace(/\.(KS|KQ)$/, '');
+      const r = await fetch(`https://m.stock.naver.com/api/stock/${code}/integration`, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+      if (!r.ok) return null;
+      const cp = (await r.json())?.dealTrendInfos?.[0]?.closePrice;
+      const n = parseFloat(String(cp).replace(/[^\d.]/g, ''));
+      return Number.isFinite(n) && n > 0 ? { price: n, source: 'naver' } : null;
+    }
+    const r = await fetch(`https://api.nasdaq.com/api/quote/${encodeURIComponent(ticker)}/info?assetclass=stocks`, { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const ls = (await r.json())?.data?.primaryData?.lastSalePrice;
+    const n = parseFloat(String(ls).replace(/[^\d.]/g, ''));
+    return Number.isFinite(n) && n > 0 ? { price: n, source: 'nasdaq' } : null;
+  } catch { return null; }
+}
+async function crossCheckPortfolioPrices(portfolio, livePrices) {
+  let confirmed = 0, conflicted = 0, single = 0;
+  const CONC = 4;
+  for (let i = 0; i < portfolio.length; i += CONC) {
+    await Promise.all(portfolio.slice(i, i + CONC).map(async (p) => {
+      const y = livePrices.get(p.ticker)?.price;
+      if (!y) { p.priceConfidence = 'single_source'; single++; return; }
+      const sec = await fetchSecondSourcePrice(p.ticker);
+      if (!sec) { p.priceConfidence = 'single_source'; p.priceSources = ['yahoo']; single++; return; }
+      const devPct = Math.abs(sec.price / y - 1) * 100;
+      p.priceSources = ['yahoo', sec.source]; p.priceDevPct = +devPct.toFixed(2);
+      if (devPct > 1.5) { p.priceConfidence = 'conflicted'; conflicted++; console.warn(`  [price-quorum] ⚠️ ${p.ticker} Yahoo ${y} vs ${sec.source} ${sec.price} (${devPct.toFixed(1)}% 괴리)`); }
+      else { p.priceConfidence = 'confirmed'; confirmed++; }
+    }));
+  }
+  console.log(`  [price-quorum] confirmed ${confirmed} / conflicted ${conflicted} / single ${single} (Yahoo + Nasdaq/Naver keyless 교차검증)`);
+}
+
 // 2026-06-14 (ChatGPT P1, Task24): 매도룰 평가 ctx 단일 빌더 — buildSellCandidates·buy→sell 게이트·
 //   refill·final-overlap 4경로가 동일 ctx 사용해야 같은 종목이 경로마다 다른 판정 받는 것을 방지.
 //   종전 refill/final-overlap 은 tech/fund 만 넣어 micro(insider매도·13F이탈·계약해지·풋편중·부정뉴스)
@@ -6960,6 +6999,8 @@ async function generateViaOllama() {
     } catch { p.impliedVol = null; }
   }));
   console.log(`  [IV] 내재변동성 주입: ${dedupedPortfolio.filter(p => p.impliedVol != null).length}/${dedupedPortfolio.length} (US 옵션 IV)`);
+  // 2026-06-14 (Task29): 가격 2소스 quorum cross-check — portfolio 종목만(저볼륨) Yahoo vs Nasdaq/Naver(keyless).
+  try { await crossCheckPortfolioPrices(dedupedPortfolio, livePrices); } catch (e) { console.warn('  [price-quorum] skip:', e.message); }
   // Quality pre-flight
   {
     const { ok: qOk, issues: qIssues, warnings: qWarnings, score: qScore } = qualityCheck({ ...{}, portfolio: dedupedPortfolio, regionStances: regionalData?.regionStances ?? {}, shortSqueeze: opportunityData?.shortSqueeze ?? [], marketNarrative: narrativeData ?? {}, thesis: macroData?.thesis ?? '', macroAnalysis: macroData?.macroAnalysis ?? '', technicalAnalysis: macroData?.technicalAnalysis ?? '' });
@@ -7032,17 +7073,15 @@ async function generateViaOllama() {
     const out = [];
     for (const e of byT.values()) {
       const net = e.buys - e.sells;
-      const dom = e.buys >= e.sells ? 'buy' : 'sell';
-      const filings = Math.max(e.buys, e.sells);
-      if (filings < 1) continue;
+      // 2026-06-14 (사용자 "매도 신호가 기회 포착으로 표시 이상"): insiderSignals 는 "기회 신호"(강세) 섹션 →
+      //   내부자 *매수 우위*(net>0)만 표시. 매도 우위는 약세/수급경계라 sell·심판 엔진(macroCtx.insider, Task24)
+      //   으로만 흐르고 기회 섹션엔 미표시. (매수 기회 없으면 정직하게 공백 — broken empty 아님.)
+      if (net <= 0 || e.buys < 1) continue;
       const dates = e.dates.sort();
       const dateRange = dates.length ? (dates[0] === dates.at(-1) ? dates[0] : `${dates[0]}~${dates.at(-1)}`) : '';
-      const significance = dom === 'buy'
-        ? `내부자 공개시장 매수 ${e.buys}건${e.buyUsd ? ` (${fmtUsd(e.buyUsd)})` : ''} — 내부자 자신감 신호`
-        : `내부자 공개시장 매도 ${e.sells}건${e.sellUsd ? ` (${fmtUsd(e.sellUsd)})` : ''} — 수급 경계`;
-      out.push({ ticker: e.ticker, direction: dom, filings, dateRange, significance, pattern: `매수 ${e.buys} / 매도 ${e.sells} (순 ${net >= 0 ? '+' : ''}${net})`, _net: net });
+      const significance = `내부자 공개시장 매수 ${e.buys}건${e.buyUsd ? ` (${fmtUsd(e.buyUsd)})` : ''} — 내부자 자신감 신호`;
+      out.push({ ticker: e.ticker, direction: 'buy', filings: e.buys, dateRange, significance, pattern: `매수 ${e.buys} / 매도 ${e.sells} (순 +${net})`, _net: net });
     }
-    // 매수 클러스터(net+) 우선, 그다음 매도 강도순. 상위 8.
     out.sort((a, b) => (b._net - a._net) || (b.filings - a.filings));
     for (const o of out) delete o._net;
     return out.slice(0, 8);
