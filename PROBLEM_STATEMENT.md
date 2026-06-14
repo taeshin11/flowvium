@@ -147,34 +147,48 @@ hallucination_history / company_segments.
 
 ---
 
-## 8. 현재 남은 문제 (외부 AI 가 우선순위·개선안을 제시해 주길 바라는 지점)
+## 8. 현재 상태 + 남은 문제 (2026-06-14 대규모 개선 後)
 
-1. **단일 8B 로컬 모델 의존**: 모든 생성+번역이 qwen3:8b 1개. GPU 6GB 한계로 동시성 낮고, 보고서 발간 5회/일 +
-   페이지뷰 번역이 GPU 경합. cloud quota 소진으로 폴백도 막힘. → 모델 라우팅/양자화/배치 전략?
+### 8-0. 2026-06-14 해결됨 (이번 검토에서 중복 지적 말 것)
+- **정량환각(catalyst/fundamentalBasis/fundamentalAnalysis)**: evidence_claims warehouse(SEC XBRL/DART/Form4
+  3712 claims) + 결정론 렌더러 → catalyst 숫자는 코드가 evidence value_num 으로 생성, LLM 숫자 배제.
+  fundamentalAnalysis 도 global allow-set strip. ("매출 +15.1% YoY"=실값.)
+- **심판 4경로 정합**: buildSellEvalCtx 단일 ctx → main/refill/final-overlap/rotation 전부 micro(내부자매도/
+  13F/계약해지/풋편중/뉴스) 평가. 역심판도 전체 evaluateBuyRule.
+- **품질게이트 순서**: 최종 변형 後 재계산 → 불량보고서 DB/학습 오염 차단(quarantine).
+- **business cross-bleed**: AMZN←AMD/CSCO←IBM/GOOG←Intel 빌더 윈도우 bleed + 권위 가드로 수정.
+- **가격 quorum**: Yahoo + Nasdaq(US)/Naver(KR) keyless 동적 교차검증(priceConfidence).
+- **US 공급망 복구**: EDGAR FTS URL/필드 버그 fix + watchlist data-driven.
+- **모지바케/번역 배포**: TBizSummary raw + U+FFFD 가드(웹 재빌드 배포).
+- **메타검증 신설**: check-rule-firing(룰 발화) + audit-report-sections(섹션) — "정의≠작동" 자동탐지.
 
-2. **비-가격 정량필드 환각 잔존 (최대 난제)**: 가격/기술(RSI/MA)은 실값 주입+verbatim 으로 grounded 이나,
-   fundamentalBasis/catalysts 의 매출 YoY%·영업이익률%·내부자% 등은 LLM 자유생성 → 단일(비중복) 환각은
-   실값 대조가 없음. 근본책 = 모든 정량필드를 [COMPUTED] 실값으로 주고 verbatim 강제(기술지표처럼).
-   과거 사례: GOOGL 매출 "35% YoY"(실제 21.8%), "12.3% 인사이더"가 4종목 copy-paste.
+### 8-1. 섹션 콘텐츠 부실 (사용자 2026-06-14 지적 — 이번 검토 핵심)
+실제 발간 보고서에서 **여러 섹션이 formulaic/공허**:
+- **기업 변화 모니터링(companyChanges)**: 전 종목이 "매출 X% YoY 증가, 영업이익률 Y% → 가이던스 maintained"
+  같은 **동일 템플릿**. 실제 "변화"(가이던스 상/하향·신제품·M&A·소송) 탐지 없이 재무수치+generic 문구만.
+- **공급망 변화(supplyChainChanges)**: 전부 "신규 공급·수주 계약 체결 — 매출 발생" 동일 문장 + (US fix 前)
+  KR DART 만. 계약의 *의미/파급*(다운스트림 수혜·경쟁 영향) 분석 빈약.
+- **주요 리스크 이벤트(riskEvents)**: 경제 캘린더 나열 + "실물 경기 약세 신호" 류 generic 한 줄.
+- **ETF 전략**: "강세 스탠스 — 성장주 핵심 노출" 류 짧은 formulaic 근거.
+→ 공통 근본: 이 섹션들이 **LLM 1줄 생성 or 단순 템플릿**이라 깊이/차별성 부족. evidence 기반 *분석*(왜 중요한지,
+  무엇이 바뀌었는지, 파급은)으로 격상 필요.
 
-3. **심판 엔진(§4) 추가 개선 여지**: 양면 등급제로 개편했으나 — (a) sell→buy 역심판이 아직 3개 하드코딩
-   신호(RSI/골든크로스/PEG)뿐, 매수 룰 엔진 전체 미사용. (b) micro veto 가 옵션·뉴스만 — 내부자매도/13F는
-   방향 데이터 신뢰도 문제로 hard 목록에만. (c) buyDiscount·임계(HIGH7/MID4)가 경험적 — outcome 기반 튜닝 부재.
+### 8-2. 작전주(펌프&덤프) 사전탐지 — 신규(2026-06-14)
+- `/api/manipulation-risk/[ticker]`: 4시그니처(급등/거래량/저유동성/펀더갭) + **accumulation 사전포착**(가격
+  평탄한데 거래량추세↑·변동성수축·종가상단·세력 수급 = 오르기 前 매집) + 투자자 수급 분산(개인 FOMO vs 기관/외인).
+- `scan-accumulation.mjs`: KOSDAQ 풀 스캔 → accumulation 워치리스트(실증: 한컴/솔브레인 매집 포착).
+- **미해결**: KRX 소수계좌 거래집중(가장 직접적 선행)은 OTP 토큰 발급되나 surveillance bld 5종 HTML 에러 →
+  투자자 수급 proxy. 워치리스트의 보고서/UI surfacing 미구현(현재 JSON 만).
 
-4. **포트폴리오 수 부족·품질게이트 차단**: US6+KR6=12 목표가 자주 10으로 미달(후보 부족/심판 탈락).
-   thesis 가 화살표체인("MSFT→NVDA→AMAT→LRCX")이면 isGarbage 오탐으로 발간 차단되는 false-positive 도 있음.
+### 8-3. 잔존 난제
+1. **단일 8B 로컬 모델**: 생성+번역 모두 qwen3:8b, GPU 6GB 경합. cloud quota 소진.
+2. **outcome 표본 부족**: 승률 30%(30건), NE 다수 → 룰튜닝 신뢰구간 큼(Wilson 가드는 넣음).
+3. **Ollama schema 미적용**: callOllama schema hook 있으나 stockDetail/portfolio 프롬프트에 미강제(③+⑤가
+   숫자 strip 하므로 한계효용 낮으나 belt-and-suspenders).
+4. **포트폴리오 수**: US6+KR6=12 목표 자주 10 미달(후보 부족/심판 탈락) — intentionalVacancies 미구현.
 
-5. **번역 신뢰성**: 보고서는 ko 단일 발간 → 16개 언어는 클라이언트 `<T>`(/api/translate, 로컬 qwen)로 번역.
-   GPU 경합 시 실패→원문 노출. 제품코드 모지바케는 가드 추가했으나 산문 번역 실패는 잔존.
-
-6. **데이터 소스 단일성**: 가격은 Yahoo v7(crumb) 단일 의존(Stooq 봇차단 후). KR 소형주는 Yahoo
-   assetProfile 404 → Naver WICS 폴백. 옵션 IV·DART EPS 는 KR 미제공.
-
-7. **outcome 표본 부족**: 종결 승률 30%(30건) 수준 — 표본이 작고 NE(미진입)가 많아 룰 튜닝 신뢰구간이 큼.
-   전향적 학습이 통계적으로 유의해지려면 누적 표본·기간 필요.
-
-**요청**: 위 구조에서 (1) 논리적 결함·순환참조·사각지대, (2) 8B 로컬 제약 하의 현실적 개선 우선순위,
-(3) 매수/매도/심판 3엔진의 정량적 엄밀성 강화 방안을 근거와 함께 제시해 달라.
+**요청**: (1) §8-1 부실 섹션을 evidence 기반 *분석*으로 격상하는 구체적 방법(특히 기업변화·공급망), (2) 작전주
+사전탐지 선행지표 추가·정밀화(KRX 우회 포함), (3) 논리 결함·사각지대·우선순위. 근거와 함께.
 
 ---
 
@@ -189,5 +203,10 @@ hallucination_history / company_segments.
 - `src/app/api/investment-strategy/route.ts` — 보고서 타입·서빙.
 - `src/components/pages/ReportPage.tsx` — 보고서 렌더링.
 - `src/app/api/translate/route.ts` — 번역(모지바케 가드).
+- `scripts/build-evidence-claims.mjs` + evidence 스키마(db.mjs) — 정량 evidence warehouse(§8-0).
+- `src/app/api/manipulation-risk/[ticker]/route.ts` + `scripts/scan-accumulation.mjs` — 작전주 사전탐지(§8-2).
+- `src/app/api/supply-chain-signals/route.ts` — 공급망(§8-1 부실 대상, US 8-K + KR DART).
+- `scripts/check-rule-firing.mjs` + `scripts/audit-report-sections.mjs` — 메타검증.
+- `reports/report-2026-06-14-morning-ko.json` — 실제 발간 보고서(섹션 콘텐츠 실물 — §8-1 검토용).
 - `CLAUDE.md` — 프로젝트 규칙(동적소스·검증의무·grounding 원칙).
 - `FEATURES.md` / `METRICS.md` — 기능·지표 카탈로그.
