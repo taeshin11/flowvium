@@ -41,7 +41,7 @@
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",
     "subtitle": "뉴스에 나오기 전에",
-    "description": "AI가 1,300+ 종목을 공급망·뉴스·수급·거시에 더해 한국·미국 거래소 공식 시장경보(소수계좌 거래집중·SEC 거래정지)까지 종합 분석해, 세력 매집을 오르기 前에 감지하고 매수·매도 추천·위험 조기경보·일 5회 리포트를 자동으로 만들어 드립니다.",
+    "description": "🔓 차세대 AI Fable로 지난 일주일, KRX 소수계좌 거래집중·SEC 거래정지 등 막혀 있던 정보 장벽을 전부 뚫었습니다. 이제 1,300+ 종목을 공급망·뉴스·수급·거시와 한·미 거래소 공식 시장경보까지 분석해 작전주를 오르기 전에 잡아냅니다 — 매수·매도 추천, 위험 조기경보, 일 5회 리포트 자동 생성.",
     "cta": "탐색 시작하기",
     "ctaSecondary": "데모 보기",
     "features": {
@@ -291,7 +291,7 @@
     "manipTier_elevated": "주의",
     "manipTier_high": "경고",
     "manipTier_severe": "위험",
-    "manipAccumTitle": "매집 의심 (급등 前)"
+    "manipAccumTitle": "매집 의심 (급등 전)"
   },
   "cascade": {
     "title": "연쇄 영향 시각화",
@@ -665,7 +665,7 @@
     "contactText": "질문이 있거나 파트너십을 원하시면 언제든 연락주세요."
   },
   "home": {
-    "heroHeadline": "<accent>AI</accent>가 스마트 머니의 흐름과 세력 매집을 오르기 前에 포착해 매일 투자 리포트까지 써 드립니다",
+    "heroHeadline": "<accent>AI</accent>가 스마트 머니의 흐름과 세력 매집을 오르기 전에 포착해 매일 투자 리포트까지 써 드립니다",
     "exploreSupplyChains": "공급망 탐색하기",
     "viewSignals": "기관 매집 추적",
     "livePreview": "실시간 공급망 미리보기",
@@ -1309,11 +1309,11 @@
     "contractCounterparty": "상대",
     "contractRevImpact": "매출대비",
     "manipWatchTitle": "작전주 매집 감시",
-    "manipWatchSubtitle": "오르기 前 매집 의심 (관찰 우선·추천 아님)",
+    "manipWatchSubtitle": "오르기 전 매집 의심 (관찰 우선·추천 아님)",
     "manipWatchNote": "KOSDAQ 스크리너 + 한국거래소 공식 소수계좌 거래집중 교차검증. 매수 추천이 아닌 위험 관찰용.",
     "manipWatchFewAccount": "소수계좌",
     "opportunityEmpty": "현재 포착된 기회 신호 없음 — 숏스퀴즈·내부자 매수 클러스터 미발생. 다음 갱신에서 재탐지.",
-    "manipWatchEmpty": "현재 매집 의심(오르기 前) 종목 없음 — 고정밀 필터(강한 선행조짐만 통과). 강한 셋업 포착 시 표시."
+    "manipWatchEmpty": "현재 매집 의심(오르기 전) 종목 없음 — 고정밀 필터(강한 선행조짐만 통과). 강한 셋업 포착 시 표시."
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",
@@ -1730,8 +1730,8 @@
     "dataDateInsider": "Form 4 · 최근 {days}일 · D+2 시차",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze 후보 — Form 4 기반",
     "topInsiderSqueezeSubtitle": "내부자 매수 + 숏 인터레스트 결합",
-    "topAccumTitle": "🚨 매집 의심 — 오르기 前",
-    "topAccumSubtitle": "급등 前 매집 선행조짐 (관찰 우선·추천 아님)",
+    "topAccumTitle": "🚨 매집 의심 — 오르기 전",
+    "topAccumSubtitle": "급등 전 매집 선행조짐 (관찰 우선·추천 아님)",
     "accumNote": "KOSDAQ 스크리너 + 한국거래소 공식 소수계좌 거래집중 교차검증 · 관찰용",
     "marketAlertTitle": "⚠️ 거래소 시장경보",
     "marketAlertSubtitle": "투자주의/경고/위험 + 소수계좌 거래집중 (KRX 공식)",
