@@ -104,9 +104,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   // 유동성: 일 거래대금 중앙값 (USD 환산). 낮을수록 작전 표적.
   const dollarVols = rows.map(r => r.c * r.v / (isKR ? KRW_PER_USD : 1));
   const medDollarVol = median(dollarVols);
-  // 펀더멘털 괴리: 급등(20일 +30%↑)인데 매출 역성장/부재
+  // 펀더멘털 괴리: 급등(20일 +30%↑)인데 매출 *역성장*. 2026-06-14(ChatGPT §2-4): "데이터 부재"≠"괴리".
+  //   f==null 을 full penalty 로 쓰면 microcap/KR 소형주 false positive ↑ → 괴리는 실데이터 역성장만.
   const f = fin(t);
-  const fundamentalGap = runup20d >= 30 && (f == null || (f.revYoYPct != null && f.revYoYPct < 0));
+  const fundamentalUnknown = f == null;
+  const fundamentalGap = runup20d >= 30 && f != null && f.revYoYPct != null && f.revYoYPct < 0;
 
   // ── 결정론 스코어 (0-100): 동시 발화 가중 ───────────────────────────────────
   const flags: string[] = [];
@@ -123,9 +125,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   let sLiq = 0;
   if (medDollarVol < 1e6) sLiq = 25; else if (medDollarVol < 5e6) sLiq = 15; else if (medDollarVol < 2e7) sLiq = 7;
   if (sLiq >= 15) flags.push(`저유동성 일거래대금 $${(medDollarVol / 1e6).toFixed(1)}M (작전 표적군)`);
-  // ④ 펀더멘털 괴리 (max 15)
+  // ④ 펀더멘털 괴리 (max 15) — 실데이터 역성장만 full. 부재는 confidence penalty(5)만.
   let sFun = 0;
-  if (fundamentalGap) { sFun = 15; flags.push(f == null ? '급등하나 펀더멘털 데이터 부재' : `급등하나 매출 역성장(${f.revYoYPct}%)`); }
+  if (fundamentalGap) { sFun = 15; flags.push(`급등하나 매출 역성장(${f!.revYoYPct}%)`); }
+  else if (runup20d >= 50 && fundamentalUnknown) { sFun = 5; flags.push('급등하나 재무 데이터 미확인 — 펀더 괴리 단정 불가'); }
 
   score = sRun + sVol + sLiq + sFun;
   // 핵심: 급등·거래량·저유동성 중 2개+ 동시 발화해야 의미 (단일 신호는 작전주 아님)
@@ -149,17 +152,23 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   const volContraction = atrPrior > 0 && atrRecent < atrPrior * 0.7;                     // 변동성 수축
   const closeStrength = rows.slice(-10).filter(r => (r.h - r.l) > 0 && (r.c - r.l) / (r.h - r.l) > 0.6).length / 10; // 종가 상단 비율
   const priceFlat = runup20d < 12 && runup20d > -15;                                     // 아직 안 오름
+  // 2026-06-14(ChatGPT §2-1~2-3): 유동성 tiering($5M 기본·$5~15M 은 거래량추세 있을 때만) + per-signal
+  //   점수 하향(1.5× 추세 단독 과탐 방지) + 기본 coFire>=3 고정밀. 공식 소수계좌(가격평탄)일 때만 >=2 허용(후단).
+  const liquidityOk = medDollarVol < 5e6 || (medDollarVol < 1.5e7 && volTrendUp);
   let accumScore = 0; const accumLead: string[] = [];
-  if (!isMarkup && priceFlat && medDollarVol < 1.5e7) {                                  // 저~중유동성(작전 표적) + 가격평탄
-    if (volTrendUp) { accumScore += 18; accumLead.push(`거래량 추세 ${(vol10 / vol30).toFixed(1)}× 상승(지속 매집)`); }
-    if (volSpike >= 2.5) { accumScore += 10; accumLead.push(`거래량 ${volSpike.toFixed(1)}× 급증(가격 평탄)`); }
-    if (volContraction) { accumScore += 14; accumLead.push(`변동성 수축(coiling) — 돌파 압축`); }
-    if (closeStrength >= 0.6) { accumScore += 12; accumLead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%(매수 흡수)`); }
+  if (!isMarkup && priceFlat && liquidityOk) {
+    if (vol30 > 0 && vol10 / vol30 >= 2.0) { accumScore += 16; accumLead.push(`거래량 추세 ${(vol10 / vol30).toFixed(1)}× 상승(지속 매집)`); }
+    else if (volTrendUp) { accumScore += 9; accumLead.push(`거래량 추세 ${(vol10 / vol30).toFixed(1)}× 상승`); }
+    if (volSpike >= 4.0) accumScore += 12; else if (volSpike >= 2.5) accumScore += 7;
+    if (volSpike >= 2.5) accumLead.push(`거래량 ${volSpike.toFixed(1)}× 급증(가격 평탄)`);
+    if (volContraction) { accumScore += 10; accumLead.push(`변동성 수축(coiling) — 돌파 압축`); }
+    if (closeStrength >= 0.7) { accumScore += 10; accumLead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%(강한 매수 흡수)`); }
+    else if (closeStrength >= 0.6) { accumScore += 6; accumLead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%`); }
   }
   const accumCoFire = [volTrendUp, volSpike >= 2.5, volContraction, closeStrength >= 0.6].filter(Boolean).length;
-  if (!isMarkup && priceFlat && accumCoFire >= 2 && accumScore >= 24) {
+  if (!isMarkup && priceFlat && liquidityOk && accumCoFire >= 3 && accumScore >= 32) {
     phase = 'accumulation';
-    flags.push(`🔍 매집(오르기 前) 선행조짐 ${accumCoFire}개 동시: ${accumLead.join(' · ')} — 급등 전 단계`);
+    flags.push(`🔍 매집(오르기 前) 선행조짐 ${accumCoFire}개 동시: ${accumLead.join(' · ')} — 급등 前 단계`);
     score = Math.max(score, Math.min(60, accumScore));  // 사전단계는 high 권역까지(severe 는 markup 확정 시만)
   }
 
@@ -168,17 +177,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   //   accumulation 단계: 세력 순매수 + 개인 비관심 = 매집 확인(사전 신호 강화). 권위 거래소 수급.
   let investorFlow: { indiv: number; foreign: number; organ: number; name: string | null } | null = null;
   let krName: string | null = null;
+  // 2026-06-14(ChatGPT §4): 방향만으론 1주 순매수도 발화 → 최근 거래량 대비 *규모*로 정규화 + 가격위치 결합.
+  //   고점 실패(장중 고점 만들고 하단 마감) = 분배 보조 신호.
+  const highCloseFailure = rows.slice(-5).filter(r => ((r.c - r.l) / Math.max(r.h - r.l, 1e-9)) < 0.35).length / 5;
   if (isKR) {
     investorFlow = await fetchKrInvestorFlow(t.replace(/\.(KS|KQ)$/, ''));
     if (investorFlow) {
       krName = investorFlow.name;
-      const smart = investorFlow.foreign + investorFlow.organ;  // 기관+외인 = 세력 프록시
-      if (isMarkup && investorFlow.indiv > 0 && smart < 0) {
-        score = Math.min(100, score + 18);
-        flags.push('수급 분산: 개인 순매수 흡수 / 기관·외인 순매도 — 펌프&덤프 분산(덤프 임박) 정황');
-      } else if (phase === 'accumulation' && smart > 0 && investorFlow.indiv <= 0) {
-        score = Math.min(100, score + 10);
-        flags.push('매집 확인: 기관·외인 순매수 / 개인 비관심 — 세력 매집 정황(사전)');
+      const recentVol5 = rows.slice(-5).reduce((s, r) => s + r.v, 0) / 5;
+      const smartRatio = (investorFlow.foreign + investorFlow.organ) / Math.max(recentVol5, 1);  // 세력 순매수 규모/거래량
+      const retailRatio = investorFlow.indiv / Math.max(recentVol5, 1);
+      if (isMarkup && retailRatio >= 0.05 && smartRatio <= -0.03 && highCloseFailure >= 0.4) {
+        score = Math.min(100, score + 15);
+        flags.push('수급 분산: 개인 순매수 흡수(규모) / 기관·외인 순매도 + 고점 실패 — 덤프 임박 정황');
+      } else if (phase === 'accumulation' && smartRatio >= 0.03 && retailRatio <= 0 && closeStrength >= 0.6) {
+        score = Math.min(100, score + 8);
+        flags.push('매집 확인: 기관·외인 순매수 규모(거래량 3%+) / 개인 부재 — 세력 매집 정황(사전)');
       }
     }
   }
@@ -186,50 +200,86 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   // ── 거래소 공식 시장경보 매칭 (KR, 권위 surveillance) — 사용자 "KRX 소수계좌 거래집중 뚫어봐" ──────
   //   '소수지점/계좌' 투자주의 = 거래소가 직접 집계한 소수계좌 거래집중 → 작전주 *선행*(오르기 前) flag.
   //   투자경고/위험 = 이미 급등 진행(후행) 위험 flag. 결정론 스코어를 공식 데이터로 ground-truth 보강.
-  let surveillance: { category: string; reason: string | null; fewAccount: boolean; designatedDate: string | null } | null = null;
+  // 2026-06-14(ChatGPT §1, 사용자 "무조건 사전 감지"): 공식 surveillance 를 leading(사전) vs lagging(이미/확인)
+  //   로 분리. 진짜 leading = 소수계좌 거래집중 + 가격 아직 평탄. '15일간 상승·관여 과다'·투자경고/위험·
+  //   halt·SEC정지·RegSHO 는 전부 lagging(이미 진행/사후 확인). 가격위치(runup20d)로 phase 결정.
+  let surveillance: { region: string; category: string; type?: string; reason: string | null; reasonCode?: string | null; fewAccount: boolean; designatedDate: string | null; leadLag: 'leading' | 'lagging' } | null = null;
   if (isKR) {
     const alert = await matchSurveillance(t, krName);
     if (alert) {
-      surveillance = { category: alert.category, reason: alert.reason, fewAccount: alert.fewAccount, designatedDate: alert.designatedDate };
-      if (alert.fewAccount) {                              // 소수계좌 거래집중 = 최강 선행 flag
-        score = Math.max(score, 60); if (phase === 'none') phase = 'accumulation';
-        flags.push(`🚨 거래소 시장경보: 소수계좌(소수지점) 거래집중 — 작전주 선행(오르기 前) 공식 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
-      } else if (alert.category === 'caution') {
-        score = Math.min(100, score + 15);
-        flags.push(`⚠️ 거래소 투자주의 지정: ${alert.reason || '사유 미상'}${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+      const r = alert.reason ?? '';
+      const risenContext = isMarkup || runup20d >= 25 || /15일간\s*상승|상승종목|관여\s*과다/.test(r);  // 이미 상승 후 맥락
+      const base = { region: 'KR', category: alert.category, reason: alert.reason, fewAccount: alert.fewAccount, designatedDate: alert.designatedDate };
+      if (alert.category === 'risk') {
+        score = Math.max(score, 90); phase = 'markup';
+        surveillance = { ...base, leadLag: 'lagging' };
+        flags.push(`🔴 거래소 투자위험 — 매매정지 가능 최고위험(이미 진행·후행)${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
       } else if (alert.category === 'warning') {
-        score = Math.max(score, 70);
-        flags.push(`🔴 거래소 투자경고 지정 — 이미 급등 진행(과열) 공식 위험 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
-      } else if (alert.category === 'risk') {
-        score = Math.max(score, 85);
-        flags.push(`🔴 거래소 투자위험 지정 — 매매정지 가능 최고위험 공식 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+        score = Math.max(score, 75); phase = 'markup';
+        surveillance = { ...base, leadLag: 'lagging' };
+        flags.push(`🔴 거래소 투자경고 — 이미 급등 진행(과열·후행)${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+      } else if (alert.fewAccount && !risenContext && priceFlat) {
+        // ★ 진짜 사전(leading): 소수계좌 거래집중 + 가격 아직 평탄 → 매집 phase 확정(coFire>=2 허용)
+        score = Math.max(score, 58); if (phase !== 'markup') phase = 'accumulation';
+        surveillance = { ...base, leadLag: 'leading' };
+        flags.push(`🚨 거래소 소수계좌 거래집중 + 가격 평탄 — 작전주 *사전*(오르기 前) 공식 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+      } else if (alert.fewAccount) {
+        // 이미 상승 후 소수계좌/관여 과다 → 후행(markup·분배 경계)
+        score = Math.max(score, 58); phase = 'markup';
+        surveillance = { ...base, leadLag: 'lagging' };
+        flags.push(`⚠️ 거래소 소수계좌/매매관여 과다 — 이미 상승 후(후행·분배 경계)${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+      } else {
+        // 일반 투자주의(종가급변 등) — 약한 보강만(+8)
+        score = Math.min(100, score + 8);
+        surveillance = { ...base, leadLag: 'lagging' };
+        flags.push(`⚠️ 거래소 투자주의: ${alert.reason || '사유 미상'}${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
       }
     }
   } else {
-    // US 공식 surveillance — SEC 거래정지/Reg SHO 결제실패/거래소 halts (KRX 소수계좌의 US 대응)
+    // US 공식 surveillance — 전부 lagging(이미 조치/사후 확인). halt code 별 재분류(LUDP/T5=변동성 후행).
     const ua = await matchUsSurveillance(t);
     if (ua) {
-      surveillance = { category: ua.category, reason: ua.reason, fewAccount: false, designatedDate: ua.date };
+      const code = (ua.reasonCode ?? '').toUpperCase();
+      const base = { region: 'US', category: ua.category, type: ua.type, reason: ua.reason, reasonCode: ua.reasonCode ?? null, fewAccount: false, designatedDate: ua.date, leadLag: 'lagging' as const };
       if (ua.type === 'sec_suspension') {
-        score = Math.max(score, 90);
-        flags.push(`🔴 SEC 거래정지 — 사기·조작 의심 공식 정지${ua.date ? ` [${ua.date}]` : ''}`);
+        // 활성(≤14일)=95, 사후(≤40)=78, 과거(≤90)=55 — 오래된 정지는 점수 감쇠(§1-3)
+        const ageDays = ua.date ? (Date.now() - Date.parse(ua.date)) / 864e5 : 999;
+        const sScore = ageDays <= 14 ? 95 : ageDays <= 40 ? 78 : 55;
+        score = Math.max(score, sScore); phase = 'markup';
+        surveillance = base;
+        flags.push(`🔴 SEC 거래정지 — 사기·조작 의심 공식 정지(${ageDays <= 14 ? '활성' : '과거'}·후행)${ua.date ? ` [${ua.date}]` : ''}`);
       } else if (ua.type === 'halt') {
-        score = Math.max(score, ua.category === 'risk' ? 80 : ua.category === 'warning' ? 65 : 45);
-        flags.push(`${ua.category === 'caution' ? '⚠️' : '🔴'} 거래소 ${ua.reason}${ua.date ? ` [${ua.date}]` : ''}`);
+        let hScore = 38;
+        if (['H10', 'H11'].includes(code)) hScore = 90;
+        else if (['T12', 'H4', 'H9', 'D'].includes(code)) hScore = 70;
+        else if (['T1', 'T2', 'T6'].includes(code)) hScore = 40;
+        else if (['LUDP', 'LUDS', 'T5', 'M'].includes(code)) hScore = 40;       // 변동성 pause = 이미 급변 후
+        else if (/^MWC/.test(code)) hScore = 0;                                  // 시장전체 서킷 — 개별 작전주 제외
+        if (hScore > 0) {
+          score = Math.max(score, hScore); if (hScore >= 45) phase = 'markup';
+          surveillance = base;
+          flags.push(`${hScore >= 70 ? '🔴' : '⚠️'} 거래소 ${ua.reason} — 이미 급변/조치(후행)${ua.date ? ` [${ua.date}]` : ''}`);
+        }
       } else if (ua.type === 'reg_sho_threshold') {
-        score = Math.min(100, score + 12);
-        flags.push(`⚠️ Reg SHO 결제실패(FTD) 지속 — 공매도/조작 감시 종목${ua.date ? ` [${ua.date}]` : ''}`);
+        // FTD 지속 = 후행/확인(정상 사유도 있음). 저유동성+급등 겹칠 때만 약가중.
+        let add = 6; if (isMarkup && medDollarVol < 5e6) add += 4;
+        score = Math.min(100, score + add);
+        surveillance = base;
+        flags.push(`⚠️ Reg SHO 결제실패(FTD) 지속 — 공매도/조작 확인(후행)${ua.date ? ` [${ua.date}]` : ''}`);
       }
     }
   }
 
+  // 사전 감지 여부: 매집 phase 또는 leading surveillance 만 "사전". 나머지는 이미 진행/사후.
+  const preDetection = phase === 'accumulation' || surveillance?.leadLag === 'leading';
   const tier = score >= 75 ? 'severe' : score >= 55 ? 'high' : score >= 30 ? 'elevated' : 'low';
 
   return NextResponse.json({
     ticker: t,
     score,
     tier,
-    phase,        // 'accumulation'(급등 前 매집 의심) | 'markup'(급등 진행) | 'none'
+    phase,            // 'accumulation'(급등 前 매집 의심·사전) | 'markup'(이미 급등 진행) | 'none'
+    preDetection,     // true = 오르기 前 사전 감지 / false = 이미 진행·사후 확인 (사용자 핵심 구분)
     coFire,
     metrics: {
       runup5dPct: +runup5d.toFixed(1), runup20dPct: +runup20d.toFixed(1),

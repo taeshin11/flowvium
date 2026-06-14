@@ -140,7 +140,9 @@ export async function resolveTicker(name: string, redis: Redis | null): Promise<
 const CACHE_KEY = 'market-alerts:v1';
 const TTL = 60 * 60 * 3; // 3h
 
-export interface MarketAlertsResult { alerts: MarketAlert[]; source: 'live' | 'cache' | 'empty'; asOf: string }
+// 2026-06-14(ChatGPT §7-1): fetch 실패('fetch_error')와 진짜 경보 없음('no_alerts') 분리 —
+//   조회 실패를 "위험 없음"으로 처리하면 안 됨(소비처는 fetch_error 를 unknown 으로 다뤄야).
+export interface MarketAlertsResult { alerts: MarketAlert[]; source: 'live' | 'cache' | 'no_alerts' | 'fetch_error'; asOf: string; error?: string }
 
 /** 캐시만 읽음(라이브 fetch 안 함). per-ticker 핫패스(manipulation-risk)용 — cold penalty 회피. */
 export async function peekMarketAlerts(redis: Redis | null): Promise<MarketAlertsResult | null> {
@@ -160,8 +162,9 @@ export async function getMarketAlerts(redis: Redis | null, opts?: { resolveTicke
     } catch { /* fall through to live */ }
   }
   let alerts: MarketAlert[] = [];
-  try { alerts = await fetchMarketAlertsRaw(10); } catch { alerts = []; }
-  if (!alerts.length) return { alerts: [], source: 'empty', asOf: new Date().toISOString() };
+  try { alerts = await fetchMarketAlertsRaw(10); }
+  catch (e) { return { alerts: [], source: 'fetch_error', asOf: new Date().toISOString(), error: String((e as Error)?.message ?? e) }; }
+  if (!alerts.length) return { alerts: [], source: 'no_alerts', asOf: new Date().toISOString() };
 
   if (opts?.resolveTickers !== false) {
     // 고유 회사명만 해소 (중복 dedupe), conc 8, Redis memo 로 cold 만 Naver 타격.

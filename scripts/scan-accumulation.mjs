@@ -55,15 +55,21 @@ function detectAccumulation(rows) {
   const volContraction = atr(rows.slice(-30, -10)) > 0 && atr(rows.slice(-10)) < atr(rows.slice(-30, -10)) * 0.7;
   const closeStrength = rows.slice(-10).filter(r => (r.h - r.l) > 0 && (r.c - r.l) / (r.h - r.l) > 0.6).length / 10;
   const priceFlat = runup20d < 12 && runup20d > -15;
+  // 2026-06-14(ChatGPT §2): route 와 동일 정밀화 — 유동성 tiering + per-signal 점수 하향 + coFire>=3.
+  const liquidityOk = medDollarVol < 5e6 || (medDollarVol < 1.5e7 && volTrendUp);
   const lead = []; let score = 0;
-  if (priceFlat && medDollarVol < 1.5e7) {
-    if (volTrendUp) { score += 18; lead.push(`거래량추세 ${(vol10 / vol30).toFixed(1)}×`); }
-    if (volSpike >= 2.5) { score += 10; lead.push(`거래량 ${volSpike.toFixed(1)}×급증`); }
-    if (volContraction) { score += 14; lead.push('변동성수축'); }
-    if (closeStrength >= 0.6) { score += 12; lead.push(`종가상단 ${Math.round(closeStrength * 100)}%`); }
+  if (priceFlat && liquidityOk) {
+    if (vol30 > 0 && vol10 / vol30 >= 2.0) { score += 16; lead.push(`거래량추세 ${(vol10 / vol30).toFixed(1)}×`); }
+    else if (volTrendUp) { score += 9; lead.push(`거래량추세 ${(vol10 / vol30).toFixed(1)}×`); }
+    if (volSpike >= 4.0) score += 12; else if (volSpike >= 2.5) score += 7;
+    if (volSpike >= 2.5) lead.push(`거래량 ${volSpike.toFixed(1)}×급증`);
+    if (volContraction) { score += 10; lead.push('변동성수축'); }
+    if (closeStrength >= 0.7) { score += 10; lead.push(`종가상단 ${Math.round(closeStrength * 100)}%`); }
+    else if (closeStrength >= 0.6) { score += 6; lead.push(`종가상단 ${Math.round(closeStrength * 100)}%`); }
   }
   const coFire = [volTrendUp, volSpike >= 2.5, volContraction, closeStrength >= 0.6].filter(Boolean).length;
-  return { isAccum: priceFlat && coFire >= 2 && score >= 24, score, coFire, lead, runup20d: +runup20d.toFixed(1), medDollarVol: Math.round(medDollarVol) };
+  // prelim 후보 게이트(coFire>=2): 최종 isAccum 은 loop 에서 수급/공식 맥락으로 결정(requiredCoFire 완화).
+  return { isCandidate: priceFlat && liquidityOk && coFire >= 2 && score >= 24, score, coFire, lead, runup20d: +runup20d.toFixed(1), medDollarVol: Math.round(medDollarVol) };
 }
 
 const cand = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8'));
@@ -91,7 +97,7 @@ for (let i = 0; i < tickers.length; i += CONC) {
   const batch = tickers.slice(i, i + CONC);
   const res = await Promise.all(batch.map(async (t) => {
     const rows = await dailyChart(t); if (!rows) return null;
-    const a = detectAccumulation(rows); if (!a.isAccum) return null;
+    const a = detectAccumulation(rows); if (!a.isCandidate) return null;   // prelim 후보(coFire>=2)
     const nm = cand.meta?.[t]?.name ?? t;
     const flow = await naverFlow(t.replace(/\.(KS|KQ)$/, ''));
     let smartAccum = false;
@@ -104,6 +110,12 @@ for (let i = 0; i < tickers.length; i += CONC) {
       if (alert.fewAccount) { officialBoost = 25; a.lead.push(`🚨 거래소 소수계좌 거래집중(공식 ${alert.designatedDate ?? ''})`); }
       else if (alert.category === 'caution') { officialBoost = 12; a.lead.push(`⚠️ 거래소 투자주의: ${alert.reason ?? ''}`); }
     }
+    // 2026-06-14(ChatGPT §2-1): 최종 게이트 — 강한 수급(세력 매집) 또는 공식 소수계좌면 coFire>=2 허용,
+    //   둘 다 없으면 coFire>=3 + score>=32 요구(false positive 차단). 사전 감지 정밀도 우선.
+    const strong = smartAccum || alert?.fewAccount;
+    const requiredCoFire = strong ? 2 : 3;
+    const minScore = alert?.fewAccount ? 24 : 32;
+    if (a.coFire < requiredCoFire || a.score < minScore) return null;
     return { ticker: t, name: nm, score: a.score + (smartAccum ? 10 : 0) + officialBoost, coFire: a.coFire, lead: a.lead, runup20dPct: a.runup20d, medDollarVolUsd: a.medDollarVol, smartAccum, official };
   }));
   for (const r of res) if (r) watch.push(r);

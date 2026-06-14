@@ -124,7 +124,9 @@ export async function fetchUsMarketAlertsRaw(): Promise<UsMarketAlert[]> {
 }
 
 const CACHE_KEY = 'us-market-alerts:v1';
-const TTL = 60 * 60 * 2; // 2h
+// 2026-06-14(ChatGPT §1-2): halt 는 장중 재개되면 빨리 stale → 2h 는 너무 김. halts 가 섞여 있어
+//   통합 TTL 을 10분으로 하향(재개된 halt 가 active 처럼 보이는 창 최소화). RegSHO/SEC 는 재fetch 저렴.
+const TTL = 60 * 10; // 10min
 
 export interface UsAlertsResult { alerts: UsMarketAlert[]; source: 'live' | 'cache' | 'empty'; asOf: string }
 
