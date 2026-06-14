@@ -63,6 +63,8 @@ export const TRACKED_ENDPOINTS = [
   '/api/batch-prices?tickers=AAPL,MSFT,NVDA',
   '/api/company-desc/AAPL',
   '/api/company-business/AAPL',
+  // 2026-06-14: KRX 시장경보(투자주의/경고/위험·소수계좌 거래집중) 라이브 — DB 시계열 적재.
+  '/api/market-alerts',
 ];
 
 async function fetchOne(baseUrl, path, timeoutMs = 12000) {
