@@ -12,6 +12,7 @@ import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
 import { localChat, localChatNoBleed, hasChineseBleed } from '@/lib/llm-local';
+import { kanaToHangul } from '@/lib/kana-to-hangul';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -185,7 +186,14 @@ async function translateArticles(
   for (let i = 0; i < articles.length; i += CHUNK) {
     out.push(...await translateChunk(articles.slice(i, i + CHUNK), locale));
   }
-  return out;
+  // 2026-06-14: 번역 실패(제목에 외국어 잔존) 기사는 피드에서 제거 — 로컬 모델이 JA→KO 를 못 하고
+  //   클라우드 키도 없어 미번역 일본어가 그대로 표시되던 사건(사용자 "이런건 왜 번역 안 해"). 번역 못 한
+  //   기사를 보여주느니 빼는 게 정직. (ko 잔존 가나는 tOne 이 이미 음차 시도 후라, 여기 남으면 진짜 실패)
+  const kept = out.filter((a) => !residualForeign(a.title, locale));
+  if (kept.length < out.length) {
+    logger.warn('news-cascade.translate', 'dropped_untranslatable', { locale, dropped: out.length - kept.length, kept: kept.length });
+  }
+  return kept;
 }
 
 async function translateChunk(
@@ -305,7 +313,9 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
   const tOne = async (text: string): Promise<string> => {
     if (!text || !text.trim()) return text;
     // 이미 target 언어(CJK) 이고 긴 영문 단어 없으면 번역 불필요 — 네이티브 기사 skip(비용 절감).
-    if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text)) return text;
+    // 2026-06-14: 단, 잔존 타-스크립트 외국어(ko 제목 속 카타카나 "ロンジン" 등)가 있으면 skip 금지 —
+    //   종전엔 한글이 섞여만 있으면 미번역 고유명사를 그대로 통과시켜 sweep 이 무력화되던 버그.
+    if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text) && !residualForeign(text, locale)) return text;
     if (pfRedis) {
       try { const c = await pfRedis.get<string>(trCacheKey(text)); if (c && typeof c === 'string' && c.trim()) return c; } catch { /* miss */ }
     }
@@ -313,18 +323,34 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
       if (pfRedis && v !== text) { try { await loggedRedisSet(pfRedis, 'news-cascade.per-field', trCacheKey(text), v, { ex: 30 * 24 * 60 * 60 }); } catch { /* non-fatal */ } }
       return v;
     };
+    // 2026-06-14: ko 타겟에 가나가 잔존하나 *대부분 한국어* 면(브랜드/고유명사 1~2개) — 로컬 LLM
+    //   (qwen3:8b)이 혼합스크립트에 환각(무관문장·중국어)을 내 신뢰 불가[실측]. 이미 번역된 한국어는
+    //   보존하고 가나 런만 결정론적으로 한글 음차(ロンジン→론진). 의미손실 없는 표기 정규화.
+    if (locale === 'ko' && residualForeign(text, locale)) {
+      const kana = (text.match(/[ぁ-ゖァ-ヺ]/g) || []).length;
+      const hangul = (text.match(/[가-힣]/g) || []).length;
+      if (hangul > kana) return keep(kanaToHangul(text));   // 가나과다=진짜 미번역 → 아래 LLM 경로
+    }
+    // 2026-06-14: 여기 도달 = ko 인데 가나≥한글(대부분 일본어). 로컬 qwen3 는 JA→KO 를 못 해 환각
+    //   (무관 한국어 문장)을 내는데 script 검사를 통과해 garbage 가 캐시되던 위험 — 실측됨. 로컬 skip,
+    //   클라우드만 시도(키 없으면 원문 유지 → 피드 필터가 미번역 외국어 기사를 drop).
+    const skipLocal = locale === 'ko' && residualForeign(text, locale);
     // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud 폴백.
-    const out = await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: 60000 });
-    if (out && out.trim() && out.trim() !== text.trim()) return keep(out.trim());
+    const out = skipLocal ? null : await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: 60000 });
+    // 2026-06-14: ko 는 출력의 잔존 가나를 결정론 음차로 정리. 그래도 잔존-외국어면 캐시 거부 → 폴백.
+    let outT = out?.trim();
+    if (outT && locale === 'ko') outT = kanaToHangul(outT);
+    if (outT && outT !== text.trim() && !residualForeign(outT, locale)) return keep(outT);
     // 2026-06-12: ja→ko 에서 qwen 출력의 고유명사 한자 잔존이 bleed-guard(한자2+)에 막혀
     //   일본어 원문이 그대로 발행·캐시되던 사건 (Viking cruise 제목, 사용자 "아직도 번역 안 되네").
     //   cloud(GROQ 8b 등) 폴백 — target script 포함 검증 후만 채택, 아니면 원문 유지.
     try {
       const ai = await callAI(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes.\n\n${text}`, { maxTokens: 800, temperature: 0.1, skipVllm: true, preferSmallModel: true, timeoutMs: 15000, tag: 'news-cascade.per-field' });
-      const t2 = ai.text?.trim();
+      let t2 = ai.text?.trim();
+      if (t2 && locale === 'ko') t2 = kanaToHangul(t2);   // 2026-06-14: 잔존 가나 결정론 음차 정리
       // 2026-06-13: 한글 포함만 검사하던 구멍 — 반쪽 번역(ザ 랜드마크 名古屋栄의…, 가나/한자 잔존
-      //   +한글 혼합)이 통과해 30d 증분 캐시에 오염 저장된 사건. bleed 검사 동반 필수.
-      if (t2 && t2 !== text.trim() && (!tgtRe || tgtRe.test(t2)) && !hasChineseBleed(t2, locale)) return keep(t2);
+      //   +한글 혼합)이 통과해 30d 증분 캐시에 오염 저장된 사건. bleed + 잔존외국어 검사 동반 필수.
+      if (t2 && t2 !== text.trim() && (!tgtRe || tgtRe.test(t2)) && !hasChineseBleed(t2, locale) && !residualForeign(t2, locale)) return keep(t2);
     } catch { /* 원문 유지 */ }
     return text;
   };

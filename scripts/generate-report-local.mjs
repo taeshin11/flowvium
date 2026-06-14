@@ -172,6 +172,11 @@ function krDisplay(t) {
   if (!t || !/\.(KS|KQ)$/.test(t)) return t;
   return KR_NAMES[t] || CANDIDATE_META[t]?.name || t;
 }
+// 2026-06-14: 자유 텍스트 안의 KR ticker(\d{6}.KS/.KQ)도 회사명으로 — 사용자 "ks종목 이름으로 안나오지?"
+//   (whyMatters/summary 등 산문에 ticker 가 박혀 나오던 사각지대. krDisplay 는 단일 토큰 전용이라 누락됐음.)
+function krText(str) {
+  return typeof str === 'string' ? str.replace(/\b\d{6}\.(KS|KQ)\b/g, (m) => krDisplay(m)) : str;
+}
 const INDEX_TICKERS = new Set([
   '^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11',
   'KS','KR','JP','CN','EU','US','UK','KOSPI200','KOSPI100','KOSPI50','KOSDAQ150','KRX300',
@@ -2799,8 +2804,14 @@ async function enrichSqueezePostEarnings(shortSqueeze, rawEarnings, livePrices, 
       postReturn = lp?.change1d ?? null;
     }
 
-    // 실적 이벤트 없으면 그냥 통과
-    if (!earnInfo) { result.push(s); continue; }
+    // 실적 이벤트 없으면: 막연한 'XX 섹터 강세' 류 LLM 주장은 제거 — squeeze 근거가 아니고 분류 환각 위험.
+    //   2026-06-14: COIN "테크 섹터 강세" 사건 (Coinbase=GICS 금융인데 테크로 오분류). squeeze 섹션은
+    //   코드가 검증 가능한 구체 카탈리스트(실적 급등·공매도 수치)만 — LLM 의 섹터 분류 주장은 신뢰 불가.
+    if (!earnInfo) {
+      const vagueSector = /(섹터|sector)\s*(강세|강도|모멘텀|상승|strength|momentum)/i.test(timing) && !/(공매도|short|%|\d)/i.test(timing);
+      if (vagueSector) { console.log(`  [후처리] ${ticker} 막연한 섹터주장 "${timing}" (squeeze 근거 부재·검증 불가) → 제거`); continue; }
+      result.push(s); continue;
+    }
 
     // 비현실 수익률 상한 — |60%| 초과는 데이터 오류로 간주 (밈주 극단도 ~40%대)
     if (postReturn != null && Math.abs(postReturn) > 60) {
@@ -7294,7 +7305,11 @@ async function generateViaOllama() {
         conviction: s.conviction,
         downstreamBeneficiaries: (s.downstreamBeneficiaries ?? []).map(krDisplay),  // KR → 회사명
         upstreamRisks: (s.upstreamRisks ?? []).map(krDisplay),                       // KR → 회사명
-        whyMatters: s.whyMatters ?? null,  // 2026-06-14: 파급분석(매출가시성·반복성·리스크) 결정론
+        // 2026-06-14: upstream/downstream 재진술 whyMatters 는 전용 라인(↗위험/↘수혜)과 중복 → 제거.
+        //   그 외 산문은 유지하되 KR ticker 를 회사명으로 치환(사용자 "ks종목 이름으로").
+        whyMatters: (s.whyMatters && /^(upstream 리스크|downstream)/i.test(s.whyMatters.trim()))
+          ? null
+          : krText(s.whyMatters ?? null),
         evidenceUrl: s.evidenceUrl ?? null,
         // 2026-06-13: 계약 상세 (사용자 "여전히 내용 안나오네") — DART 본문 추출 금액·상대방·매출대비%.
         //   이전엔 headline(reportNm)만 실어 UI 가 "단일판매·공급계약체결" 만 표시. summary 는 영향도 문장.
