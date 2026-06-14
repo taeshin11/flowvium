@@ -1,39 +1,8 @@
 {
-  "generatedAt": "2026-06-14T02:06:29.286Z",
+  "generatedAt": "2026-06-14T03:51:49.296Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 0,
   "officialFewAccount": 0,
-  "watchlist": [
-    {
-      "ticker": "030520.KQ",
-      "name": "한글과컴퓨터",
-      "score": 40,
-      "coFire": 2,
-      "lead": [
-        "거래량추세 1.5×",
-        "종가상단 60%",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 0.6,
-      "medDollarVolUsd": 2042495,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "357780.KQ",
-      "name": "솔브레인",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량추세 2.4×",
-        "거래량 3.5×급증",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -7.2,
-      "medDollarVolUsd": 14766348,
-      "smartAccum": true,
-      "official": null
-    }
-  ]
+  "watchlist": []
 }
