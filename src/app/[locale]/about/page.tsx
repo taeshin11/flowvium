@@ -290,11 +290,11 @@ export default function AboutPage() {
             <div>
               <h3 className="font-medium text-cf-text-primary mb-1">Business Inquiries</h3>
               <a
-                href="mailto:spinaiceo@gmail.com"
+                href="mailto:taeshinkim11@gmail.com"
                 className="text-cf-primary hover:underline flex items-center gap-1 text-sm"
               >
                 <Mail className="w-4 h-4" />
-                spinaiceo@gmail.com
+                taeshinkim11@gmail.com
               </a>
             </div>
           </div>

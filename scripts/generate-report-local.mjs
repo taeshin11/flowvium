@@ -166,6 +166,12 @@ const KR_NAMES = {
   '012450.KS':'한화에어로스페이스','009150.KS':'삼성전기','032830.KS':'삼성생명',
   '015760.KS':'한국전력','006400.KS':'삼성SDI','017670.KS':'SK텔레콤',
 };
+// KR(.KS/.KQ) ticker → 회사명 표시 (KR_NAMES 큐레이션 → candidate meta → ticker). US 는 ticker 유지.
+//   2026-06-14 사용자 "KS종목은 이름으로" — riskEvents 노출종목 + supplyChain upstream/downstream 공용.
+function krDisplay(t) {
+  if (!t || !/\.(KS|KQ)$/.test(t)) return t;
+  return KR_NAMES[t] || CANDIDATE_META[t]?.name || t;
+}
 const INDEX_TICKERS = new Set([
   '^KS11','^N225','^GSPC','^DJI','^IXIC','KOSPI','NIKKEI','KOSDAQ','^KQ11',
   'KS','KR','JP','CN','EU','US','UK','KOSPI200','KOSPI100','KOSPI50','KOSDAQ150','KRX300',
@@ -7275,8 +7281,8 @@ async function generateViaOllama() {
         date: s.date ?? null,
         signalType: s.signalType ?? null,
         conviction: s.conviction,
-        downstreamBeneficiaries: s.downstreamBeneficiaries ?? [],
-        upstreamRisks: s.upstreamRisks ?? [],
+        downstreamBeneficiaries: (s.downstreamBeneficiaries ?? []).map(krDisplay),  // KR → 회사명
+        upstreamRisks: (s.upstreamRisks ?? []).map(krDisplay),                       // KR → 회사명
         whyMatters: s.whyMatters ?? null,  // 2026-06-14: 파급분석(매출가시성·반복성·리스크) 결정론
         evidenceUrl: s.evidenceUrl ?? null,
         // 2026-06-13: 계약 상세 (사용자 "여전히 내용 안나오네") — DART 본문 추출 금액·상대방·매출대비%.

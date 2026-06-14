@@ -339,7 +339,7 @@ export default function HowToUsePage() {
               platform as a source. However, systematic scraping, bulk downloading, redistribution, or
               commercial resale of Flowvium data is prohibited under our Terms of Service. For
               commercial data licensing inquiries or API access for institutional use, please contact
-              us at spinaiceo@gmail.com.
+              us at taeshinkim11@gmail.com.
             </p>
           </div>
 
@@ -353,7 +353,7 @@ export default function HowToUsePage() {
               the bottom-right corner of the screen) to quickly submit bug reports, feature requests,
               or general feedback. Alternatively, you can email us directly at taeshinkim11@gmail.com.
               We review every submission and prioritize improvements based on user feedback. If you have
-              a business or partnership inquiry, please reach out to spinaiceo@gmail.com instead.
+              a business or partnership inquiry, please reach out to taeshinkim11@gmail.com instead.
             </p>
           </div>
         </div>

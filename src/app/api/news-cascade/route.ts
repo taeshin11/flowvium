@@ -73,6 +73,17 @@ function translatedKey(locale: string): string {
 // 2026-06-02: 번역 성공 여부 검증. 이전엔 caller 가 `translated !== cached`(참조비교)로 판정 →
 //   translateArticles 가 실패 시 .map() 으로 새 영어 배열 반환 → 항상 "성공"으로 오판 →
 //   영어를 translated:true 로 24h 캐시 = ko 영어 오염 고착. 실제 언어로 검증해 오염 차단.
+// 2026-06-14: 배치 번역 후 *잔존 외국어* 감지 — 타겟과 다른 CJK 스크립트(가나/한글 불일치)가 남았으면
+//   미번역(예: ko 타겟인데 일본어 가나 잔존 — "3年目に突入した「新NISA」" 사건). han 한자는 공유라 제외(오탐방지).
+function residualForeign(text: string, locale: string): boolean {
+  if (!text) return false;
+  const hasKana = /[ぁ-んァ-ヶ]/.test(text);   // 일본어 전용
+  const hasHangul = /[가-힣]/.test(text);       // 한국어 전용
+  if (locale === 'ja') return hasHangul;
+  if (locale === 'ko') return hasKana;
+  if (locale === 'zh-CN' || locale === 'zh-TW') return hasKana || hasHangul;
+  return /[ぁ-んァ-ヶ가-힣一-龯]/.test(text);   // 비-CJK 타겟(en/es/…): 어떤 CJK 잔존도 미번역
+}
 const CJK_RE: Record<string, RegExp> = {
   ko: /[가-힣]/, ja: /[ぁ-んァ-ヶ一-龯]/, 'zh-CN': /[一-龥]/, 'zh-TW': /[一-龥]/,
 };
@@ -244,7 +255,7 @@ Output (JSON array only):`;
       // 번역 필요 기사가 하나도 안 바뀜 → 배치 실패. 기사별 simple-prompt 폴백.
       return await translatePerField(articles, locale);
     }
-    return articles.map((a, i) => {
+    const merged = articles.map((a, i) => {
       const t = byIdx.get(i);
       const cascades = a.cascades.map((c, j) => {
         const tr = t?.reasons?.find(x => x.j === j);
@@ -262,6 +273,16 @@ Output (JSON array only):`;
         cascades,
       };
     });
+    // 2026-06-14: 배치 후 *잔존 외국어* sweep — 배치 검증(anyTr)은 일부만 바뀌어도 통과하므로, LLM 이
+    //   특정 제목을 안 바꾼 채(예: 일본어 新NISA) 슬립. 해당 기사만 per-field 재번역(tOne 이 이미-타겟 필드 skip).
+    const needFix: number[] = [];
+    merged.forEach((m, i) => { if (residualForeign(m.title, locale) || residualForeign(m.summary, locale)) needFix.push(i); });
+    if (needFix.length) {
+      logger.warn('news-cascade.translate', 'residual_foreign_sweep', { locale, count: needFix.length });
+      const fixed = await translatePerField(needFix.map(i => merged[i]), locale);
+      needFix.forEach((idx, k) => { merged[idx] = fixed[k]; });
+    }
+    return merged;
   } catch (e) {
     logger.warn('news-cascade.translate', 'translation_failed', { locale, error: String(e).slice(0, 100) });
     return await translatePerField(articles, locale);
