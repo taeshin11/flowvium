@@ -2613,9 +2613,13 @@ function enrichRiskEvents(riskEvents, portfolio, econCalEvents = []) {
     e.action = e.impact === 'high' ? '노출 종목 비중·헤지 점검(발표 전)' : e.impact === 'medium' ? '관망 — 발표 후 노출 종목 재평가' : '영향 제한적 — 모니터';
     // 예상치/직전값 — econCal 을 날짜+*유형 일치*로 매칭(같은 날 FOMC 3.75%가 소매판매에 붙는 cross-contamination
     //   방지). estimate(forecast)는 FOMC 등 일부만, prev(직전 실제값, FRED units 변환)는 대부분 가용. 둘 다 독립 부착.
-    const match = cal.find(c => c.date === e.date
-      && RISK_EVENT_EXPOSURE.find(p => p.re.test(String(c.event ?? ''))) === prof
-      && (c.estimate != null || c.prev != null));
+    // 날짜 ±2일 허용(LLM 이벤트 날짜가 FRED 발표일과 근사 — 고용/CPI 등 매칭 누락 보완). 유형 일치라
+    //   cross-contamination 안전(employment econCal 은 employment riskEvent 에만). 정확일치 우선 정렬.
+    const dayDiff = (a, b) => Math.abs((new Date(a + 'T00:00:00Z') - new Date(b + 'T00:00:00Z')) / 86400000);
+    const match = cal
+      .filter(c => RISK_EVENT_EXPOSURE.find(p => p.re.test(String(c.event ?? ''))) === prof
+        && (c.estimate != null || c.prev != null) && c.date && dayDiff(c.date, e.date) <= 2)
+      .sort((a, b) => dayDiff(a.date, e.date) - dayDiff(b.date, e.date))[0];
     if (match) {
       if (match.estimate != null) e.estimate = fmtEst(match.estimate, match.unit);
       if (match.prev != null) e.previous = fmtEst(match.prev, match.unit);
@@ -3514,7 +3518,8 @@ async function gatherContext() {
     namedFetch('nport',             `${base}/api/nport-holdings`, 15000),
     namedFetch('shortInterest',     `${base}/api/short-interest`, 12000),
     namedFetch('newsCascade',       `${base}/api/news-cascade`, 15000),
-    namedFetch('econCal',           `${base}/api/economic-calendar?country=US`, 8000),
+    // 2026-06-14: 윈도우 30일(라우트 max, 기본 14)로 확대 — 월간 지표(NFP/CPI 다음 발표가 14일 밖)도 직전값(prev) 매칭.
+    namedFetch('econCal',           `${base}/api/economic-calendar?country=US&to=${new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)}`, 9000),
     namedFetch('volatility',        `${base}/api/volatility`, 8000),
     namedFetch('cot',               `${base}/api/cot-positions`, 10000),
     namedFetch('commodity',         `${base}/api/commodity-curve`, 10000),
