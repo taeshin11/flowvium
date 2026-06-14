@@ -868,36 +868,6 @@ export default function ReportPage() {
             return <div className="mb-5">{box(t('verdictTitle'), mv.verdict, body)}</div>;
           })()}
 
-          {/* ── 작전주 매집 감시 (2026-06-14): 오르기 前 매집 의심 + KRX 공식 소수계좌 거래집중 ── */}
-          {(() => {
-            const mw = (data as unknown as { manipulationWatch?: { items?: Array<{ ticker: string; name: string; score: number; signals?: string[]; official?: { fewAccount?: boolean; reason?: string | null } | null; runup20dPct?: number | null }>; officialFewAccount?: number; stale?: boolean } }).manipulationWatch;
-            if (!mw?.items?.length) return null;
-            return (
-              <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 mb-5">
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="text-xl">🚨</span>
-                  <span className="font-extrabold text-base text-rose-800">{t('manipWatchTitle')}</span>
-                  <span className="text-[11px] font-medium text-rose-600">{t('manipWatchSubtitle')}</span>
-                  {mw.stale && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">stale</span>}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {mw.items.slice(0, 8).map((it, i) => (
-                    <a key={`${it.ticker}-${i}`} href={`/company/${it.ticker}`} className="block rounded-lg bg-white border border-rose-200 p-2.5 hover:border-rose-400 transition-colors">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="font-bold text-sm text-gray-800 truncate">{it.name} <span className="font-mono text-[10px] text-gray-400">{it.ticker}</span></span>
-                        {it.official?.fewAccount
-                          ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500 text-white font-bold shrink-0">{t('manipWatchFewAccount')}</span>
-                          : <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-700 font-bold shrink-0 tabular-nums">{it.score}</span>}
-                      </div>
-                      <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{(it.signals ?? []).slice(0, 3).join(' · ')}</p>
-                    </a>
-                  ))}
-                </div>
-                <p className="text-[10px] text-rose-600/70 mt-2">{t('manipWatchNote')}</p>
-              </div>
-            );
-          })()}
-
           {/* ── 2026-06-13: 장중 보고서 회원 게이트 (사용자 "장중 보고서는 회원가입 해야") ──
               noon/afternoon/evening/midnight = 비회원에게 stance·종합판단까지만 + 가입 카드.
               morning(07:00)은 전체 무료(맛보기). 이메일 등록 즉시 해제 (쿠키 1년). */}
@@ -1045,7 +1015,7 @@ export default function ReportPage() {
           </div>
 
           {/* ── S4: 기회 신호 (숏스퀴즈 + 내부자) ──────────────────────────── */}
-          {(data.shortSqueeze?.length || data.insiderSignals?.length) && (
+          {((data.shortSqueeze?.length ?? 0) > 0 || (data.insiderSignals?.length ?? 0) > 0) && (
             <div className="mb-5 rounded-xl border border-orange-100 bg-orange-50 p-4">
               <p className="text-sm font-bold text-orange-800 mb-3">⚡ {t('opportunitySignalsTitle')}</p>
               {data.topOpportunity && (
@@ -1138,6 +1108,36 @@ export default function ReportPage() {
               </div>
             </div>
           ) : null}
+
+          {/* ── 작전주 매집 감시 (2026-06-14): 기회포착 다음 배치(사용자 지정). 오르기 前 매집 + KRX 소수계좌 ── */}
+          {(() => {
+            const mw = (data as unknown as { manipulationWatch?: { items?: Array<{ ticker: string; name: string; score: number; signals?: string[]; official?: { fewAccount?: boolean; reason?: string | null } | null; runup20dPct?: number | null }>; officialFewAccount?: number; stale?: boolean } }).manipulationWatch;
+            if (!mw?.items?.length) return null;
+            return (
+              <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 mb-5">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-xl">🚨</span>
+                  <span className="font-extrabold text-base text-rose-800">{t('manipWatchTitle')}</span>
+                  <span className="text-[11px] font-medium text-rose-600">{t('manipWatchSubtitle')}</span>
+                  {mw.stale && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">stale</span>}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {mw.items.slice(0, 8).map((it, i) => (
+                    <Link key={`${it.ticker}-${i}`} href={`/${locale}/company/${it.ticker}`} className="block rounded-lg bg-white border border-rose-200 p-2.5 hover:border-rose-400 transition-colors">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="font-bold text-sm text-gray-800 truncate">{it.name} <span className="font-mono text-[10px] text-gray-400">{it.ticker}</span></span>
+                        {it.official?.fewAccount
+                          ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500 text-white font-bold shrink-0">{t('manipWatchFewAccount')}</span>
+                          : <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-700 font-bold shrink-0 tabular-nums">{it.score}</span>}
+                      </div>
+                      <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{(it.signals ?? []).slice(0, 3).join(' · ')}</p>
+                    </Link>
+                  ))}
+                </div>
+                <p className="text-[10px] text-rose-600/70 mt-2">{t('manipWatchNote')}</p>
+              </div>
+            );
+          })()}
 
           {/* ── Portfolio (시장별 분리 — F25) ────────────────────────────── */}
           {data.portfolio.length > 0 && (() => {
