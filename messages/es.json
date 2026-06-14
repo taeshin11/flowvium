@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "Veredicto EE.UU. y Macro",
     "verdictKrTitle": "Veredicto Corea",
     "contractCounterparty": "con",
-    "contractRevImpact": "s/ingresos"
+    "contractRevImpact": "s/ingresos",
+    "manipWatchTitle": "Vigilancia de acumulación",
+    "manipWatchSubtitle": "Sospecha de acumulación pre-subida (solo observación, no recomendación)",
+    "manipWatchNote": "Cribador KOSDAQ + concentración oficial KRX en pocas cuentas. Para observación de riesgo, no recomendación de compra.",
+    "manipWatchFewAccount": "Pocas ctas"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "Insider + short interest"
+    "topInsiderSqueezeSubtitle": "Insider + short interest",
+    "topAccumTitle": "🚨 Vigilancia de acumulación — Pre-subida",
+    "topAccumSubtitle": "Señales de acumulación antes de una subida (solo observación, no recomendación)",
+    "accumNote": "Cribador KOSDAQ + concentración oficial en pocas cuentas de KRX · para observación",
+    "marketAlertTitle": "⚠️ Alertas de mercado del exchange",
+    "marketAlertSubtitle": "Precaución/Advertencia/Peligro + concentración en pocas cuentas (oficial KRX)",
+    "marketAlertNote": "KRX KIND en vivo · concentración en pocas cuentas = señal anticipada de trading anómalo",
+    "fewAccountBadge": "Pocas ctas",
+    "alertCat_caution": "Precaución",
+    "alertCat_warning": "Advertencia",
+    "alertCat_risk": "Peligro"
   },
   "short": {
     "title": "Ventas en corto · Squeeze",

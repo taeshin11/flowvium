@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "Phán định Mỹ & Vĩ mô",
     "verdictKrTitle": "Phán định Hàn Quốc",
     "contractCounterparty": "với",
-    "contractRevImpact": "so doanh thu"
+    "contractRevImpact": "so doanh thu",
+    "manipWatchTitle": "Theo dõi gom hàng",
+    "manipWatchSubtitle": "Nghi ngờ gom hàng trước khi tăng (chỉ để quan sát, không phải khuyến nghị)",
+    "manipWatchNote": "Bộ lọc KOSDAQ + tập trung ít tài khoản chính thức của KRX. Để quan sát rủi ro, không phải khuyến nghị mua.",
+    "manipWatchFewAccount": "Ít TK"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "Mua nội bộ + short interest"
+    "topInsiderSqueezeSubtitle": "Mua nội bộ + short interest",
+    "topAccumTitle": "🚨 Theo dõi gom hàng — Trước khi tăng",
+    "topAccumSubtitle": "Dấu hiệu gom hàng trước khi tăng (chỉ để quan sát, không phải khuyến nghị)",
+    "accumNote": "Bộ lọc KOSDAQ + tập trung ít tài khoản chính thức của KRX đối chiếu · để quan sát",
+    "marketAlertTitle": "⚠️ Cảnh báo thị trường của sàn",
+    "marketAlertSubtitle": "Lưu ý/Cảnh báo/Nguy hiểm + tập trung ít tài khoản (KRX chính thức)",
+    "marketAlertNote": "KRX KIND trực tiếp · tập trung ít tài khoản = tín hiệu dẫn báo giao dịch bất thường",
+    "fewAccountBadge": "Ít TK",
+    "alertCat_caution": "Lưu ý",
+    "alertCat_warning": "Cảnh báo",
+    "alertCat_risk": "Nguy hiểm"
   },
   "short": {
     "title": "Bán khống · Short Squeeze",

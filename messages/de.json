@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "US- & Makro-Urteil",
     "verdictKrTitle": "Korea-Urteil",
     "contractCounterparty": "mit",
-    "contractRevImpact": "vom Umsatz"
+    "contractRevImpact": "vom Umsatz",
+    "manipWatchTitle": "Akkumulations-Überwachung",
+    "manipWatchSubtitle": "Verdacht auf Akkumulation vor Anstieg (nur Beobachtung, keine Empfehlung)",
+    "manipWatchNote": "KOSDAQ-Screener + offizielle KRX-Konzentration auf wenige Konten. Zur Risikobeobachtung, keine Kaufempfehlung.",
+    "manipWatchFewAccount": "Wen. Konten"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "Insider-Kauf + Short-Interest"
+    "topInsiderSqueezeSubtitle": "Insider-Kauf + Short-Interest",
+    "topAccumTitle": "🚨 Akkumulations-Watch — Vor Anstieg",
+    "topAccumSubtitle": "Akkumulationssignale vor einem Anstieg (nur Beobachtung, keine Empfehlung)",
+    "accumNote": "KOSDAQ-Screener + offizielle KRX-Konzentration auf wenige Konten · zur Beobachtung",
+    "marketAlertTitle": "⚠️ Börsen-Marktwarnungen",
+    "marketAlertSubtitle": "Vorsicht/Warnung/Gefahr + Konzentration auf wenige Konten (KRX offiziell)",
+    "marketAlertNote": "KRX KIND live · Konzentration auf wenige Konten = Frühsignal für auffälligen Handel",
+    "fewAccountBadge": "Wen. Konten",
+    "alertCat_caution": "Vorsicht",
+    "alertCat_warning": "Warnung",
+    "alertCat_risk": "Gefahr"
   },
   "short": {
     "title": "Leerverkäufe · Short Squeeze",

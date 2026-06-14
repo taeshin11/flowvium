@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "미국·거시 종합 판단",
     "verdictKrTitle": "한국 종합 판단",
     "contractCounterparty": "상대",
-    "contractRevImpact": "매출대비"
+    "contractRevImpact": "매출대비",
+    "manipWatchTitle": "작전주 매집 감시",
+    "manipWatchSubtitle": "오르기 前 매집 의심 (관찰 우선·추천 아님)",
+    "manipWatchNote": "KOSDAQ 스크리너 + 한국거래소 공식 소수계좌 거래집중 교차검증. 매수 추천이 아닌 위험 관찰용.",
+    "manipWatchFewAccount": "소수계좌"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 기준 (제출 2026-02-14)",
     "dataDateInsider": "Form 4 · 최근 {days}일 · D+2 시차",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze 후보 — Form 4 기반",
-    "topInsiderSqueezeSubtitle": "내부자 매수 + 숏 인터레스트 결합"
+    "topInsiderSqueezeSubtitle": "내부자 매수 + 숏 인터레스트 결합",
+    "topAccumTitle": "🚨 매집 의심 — 오르기 前",
+    "topAccumSubtitle": "급등 前 매집 선행조짐 (관찰 우선·추천 아님)",
+    "accumNote": "KOSDAQ 스크리너 + 한국거래소 공식 소수계좌 거래집중 교차검증 · 관찰용",
+    "marketAlertTitle": "⚠️ 거래소 시장경보",
+    "marketAlertSubtitle": "투자주의/경고/위험 + 소수계좌 거래집중 (KRX 공식)",
+    "marketAlertNote": "한국거래소 KIND 라이브 · 소수계좌 거래집중 = 작전주 선행 신호",
+    "fewAccountBadge": "소수계좌",
+    "alertCat_caution": "투자주의",
+    "alertCat_warning": "투자경고",
+    "alertCat_risk": "투자위험"
   },
   "short": {
     "title": "공매도 · 숏 스퀴즈",

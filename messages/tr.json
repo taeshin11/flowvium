@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "ABD & Makro Kararı",
     "verdictKrTitle": "Kore Kararı",
     "contractCounterparty": "ile",
-    "contractRevImpact": "gelire"
+    "contractRevImpact": "gelire",
+    "manipWatchTitle": "Toplama İzleme",
+    "manipWatchSubtitle": "Yükseliş öncesi toplama şüphesi (yalnızca gözlem, tavsiye değil)",
+    "manipWatchNote": "KOSDAQ tarayıcı + KRX resmi az-hesap yoğunlaşması çapraz kontrolü. Risk gözlemi için, alım tavsiyesi değil.",
+    "manipWatchFewAccount": "Az hesap"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "Insider + kısa pozisyon"
+    "topInsiderSqueezeSubtitle": "Insider + kısa pozisyon",
+    "topAccumTitle": "🚨 Toplama İzleme — Yükseliş Öncesi",
+    "topAccumSubtitle": "Yükseliş öncesi toplama sinyalleri (yalnızca gözlem, tavsiye değil)",
+    "accumNote": "KOSDAQ tarayıcı + KRX resmi az-hesap yoğunlaşması çapraz kontrolü · gözlem için",
+    "marketAlertTitle": "⚠️ Borsa Piyasa Uyarıları",
+    "marketAlertSubtitle": "Dikkat/Uyarı/Tehlike + az hesap yoğunlaşması (KRX resmi)",
+    "marketAlertNote": "KRX KIND canlı · az hesap yoğunlaşması = anormal işlemin öncü sinyali",
+    "fewAccountBadge": "Az hesap",
+    "alertCat_caution": "Dikkat",
+    "alertCat_warning": "Uyarı",
+    "alertCat_risk": "Tehlike"
   },
   "short": {
     "title": "Açığa Satış · Short Squeeze",

@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "Veredicto EUA e Macro",
     "verdictKrTitle": "Veredicto Coreia",
     "contractCounterparty": "com",
-    "contractRevImpact": "s/receita"
+    "contractRevImpact": "s/receita",
+    "manipWatchTitle": "Vigilância de acumulação",
+    "manipWatchSubtitle": "Suspeita de acumulação pré-alta (apenas observação, não recomendação)",
+    "manipWatchNote": "Screener KOSDAQ + concentração oficial KRX em poucas contas. Para observação de risco, não recomendação de compra.",
+    "manipWatchFewAccount": "Poucas ctas"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "Insider + short interest"
+    "topInsiderSqueezeSubtitle": "Insider + short interest",
+    "topAccumTitle": "🚨 Vigilância de acumulação — Pré-alta",
+    "topAccumSubtitle": "Sinais de acumulação antes de uma alta (apenas observação, não recomendação)",
+    "accumNote": "Screener KOSDAQ + concentração oficial KRX em poucas contas · para observação",
+    "marketAlertTitle": "⚠️ Alertas de mercado da bolsa",
+    "marketAlertSubtitle": "Cautela/Aviso/Perigo + concentração em poucas contas (KRX oficial)",
+    "marketAlertNote": "KRX KIND ao vivo · concentração em poucas contas = sinal antecipado de negociação anômala",
+    "fewAccountBadge": "Poucas ctas",
+    "alertCat_caution": "Cautela",
+    "alertCat_warning": "Aviso",
+    "alertCat_risk": "Perigo"
   },
   "short": {
     "title": "Venda a descoberto · Squeeze",

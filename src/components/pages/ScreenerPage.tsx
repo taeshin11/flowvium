@@ -113,6 +113,16 @@ function isCsuiteTitle(title: string | null): boolean {
     upper.includes('PRESIDENT') || upper.includes('CHAIRMAN') || upper.includes('DIRECTOR');
 }
 
+interface MarketAlertRow {
+  category: 'caution' | 'warning' | 'risk';
+  name: string; ticker: string | null; market: string | null;
+  reason: string | null; fewAccount: boolean; designatedDate: string | null;
+}
+interface AccumRow {
+  ticker: string; name: string; score: number; signals: string[];
+  official: { fewAccount?: boolean; reason?: string | null } | null; runup20dPct: number | null;
+}
+
 export default function ScreenerPage() {
   const t = useTranslations('screener');
   const [tf, setTf] = useState<Timeframe>('13w');
@@ -129,6 +139,10 @@ export default function ScreenerPage() {
 
   const [priceMap, setPriceMap] = useState<Map<string, TopPrice>>(new Map());
   const [pricesLoaded, setPricesLoaded] = useState(false);
+
+  // 2026-06-14: KRX 시장경보(소수계좌 거래집중) + 작전주 매집 워치리스트 (오르기 前). KR 이상거래 감시.
+  const [marketAlerts, setMarketAlerts] = useState<MarketAlertRow[]>([]);
+  const [accumWatch, setAccumWatch] = useState<AccumRow[]>([]);
 
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
@@ -209,6 +223,29 @@ export default function ScreenerPage() {
       .catch(() => { if (!ctrl.signal.aborted) { setInsiderLoaded(true); setLoadingInsider(false); } });
     return () => ctrl.abort();
   }, [tf, insiderLoaded]);
+
+  // 2026-06-14: KR 이상거래 감시 — 거래소 시장경보 + 작전주 매집(오르기 前). 마운트 1회.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/market-alerts', { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !ctrl.signal.aborted) setMarketAlerts((d.alerts ?? []) as MarketAlertRow[]); })
+      .catch(() => {});
+    fetch('/api/accumulation-watch', { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !ctrl.signal.aborted) setAccumWatch((d.items ?? []) as AccumRow[]); })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
+  // 소수계좌 거래집중 우선 정렬 (선행 flag) → 위험 > 경고 > 주의
+  const survSorted = useMemo(() => {
+    const rank: Record<string, number> = { risk: 0, warning: 1, caution: 2 };
+    return [...marketAlerts]
+      .filter(a => a.ticker)
+      .sort((x, y) => (Number(y.fewAccount) - Number(x.fewAccount)) || (rank[x.category] - rank[y.category]))
+      .slice(0, 12);
+  }, [marketAlerts]);
 
   const shortMap = useMemo(() => new Map(shortData.map(s => [s.ticker, s])), [shortData]);
 
@@ -401,6 +438,23 @@ export default function ScreenerPage() {
     );
   };
 
+  // 2026-06-14: KR 이상거래 감시 칩 (자체완결 — priceMap US-centric 의존 안 함). 종목명+티커+배지+사유.
+  const SurvChip = ({ ticker, name, badge, badgeCls, sub }: { ticker: string | null; name: string; badge: string; badgeCls: string; sub?: string }) => {
+    const inner = (
+      <>
+        <div className="flex items-center justify-between mb-1 gap-1">
+          <span className="font-bold text-xs text-cf-text-primary truncate">{name}</span>
+          <span className={`text-[9px] px-1 py-0.5 rounded font-bold shrink-0 ${badgeCls}`}>{badge}</span>
+        </div>
+        {ticker && <p className="font-mono text-[10px] text-cf-primary">{ticker}</p>}
+        {sub && <p className="text-[9px] text-cf-text-secondary/60 mt-1 line-clamp-2 leading-tight">{sub}</p>}
+      </>
+    );
+    return ticker
+      ? <Link href={`/company/${ticker}` as Parameters<typeof Link>[0]['href']} className="flex-1 min-w-[120px] max-w-[170px] bg-white/5 rounded-xl p-3 hover:bg-white/10 transition-all">{inner}</Link>
+      : <div className="flex-1 min-w-[120px] max-w-[170px] bg-white/5 rounded-xl p-3">{inner}</div>;
+  };
+
   const loading = tf === '13w' ? loading13F : loadingInsider;
   const dataDate13F = t('dataDate13F');
   const insiderDays = tf === '1w' ? 7 : 28;
@@ -451,7 +505,7 @@ export default function ScreenerPage() {
       {/* ── 13w view ─────────────────────────────────────────────────────── */}
       {tf === '13w' && (
         <>
-          {(top5Squeeze.length > 0 || top5NewPosition.length > 0 || top5Underradar.length > 0) && (
+          {(top5Squeeze.length > 0 || top5NewPosition.length > 0 || top5Underradar.length > 0 || accumWatch.length > 0 || survSorted.length > 0) && (
             <div className="space-y-3 mb-4">
               {top5Squeeze.length > 0 && (
                 <div className="cf-card p-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/10">
@@ -487,6 +541,42 @@ export default function ScreenerPage() {
                     {top5Underradar.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={t('newsScore', { score: row.newsGapScore })} badgeCls="bg-purple-500/20 text-purple-300" sub={sectorLabels[row.sector] ?? row.sector} />)}
                   </div>
                   <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('instPosition', { date: dataDate13F })}</p>
+                </div>
+              )}
+              {/* 2026-06-14: 작전주 매집(오르기 前) — KRX 소수계좌 교차검증 */}
+              {accumWatch.length > 0 && (
+                <div className="cf-card p-4 bg-gradient-to-r from-rose-500/5 to-red-500/5 border border-rose-500/15">
+                  <p className="text-[10px] font-bold text-rose-400 mb-3 flex items-center gap-1.5">
+                    {t('topAccumTitle')}
+                    <span className="font-normal text-cf-text-secondary">{t('topAccumSubtitle')}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {accumWatch.slice(0, 10).map(row => (
+                      <SurvChip key={row.ticker} ticker={row.ticker} name={String(row.name)}
+                        badge={row.official?.fewAccount ? t('fewAccountBadge') : String(row.score)}
+                        badgeCls={row.official?.fewAccount ? 'bg-red-500/30 text-red-300' : 'bg-rose-500/20 text-rose-300'}
+                        sub={(row.signals ?? []).slice(0, 2).join(' · ')} />
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('accumNote')}</p>
+                </div>
+              )}
+              {/* 2026-06-14: 거래소 공식 시장경보 (투자주의/경고/위험 + 소수계좌 거래집중) */}
+              {survSorted.length > 0 && (
+                <div className="cf-card p-4 bg-gradient-to-r from-orange-500/5 to-amber-500/5 border border-orange-500/15">
+                  <p className="text-[10px] font-bold text-orange-400 mb-3 flex items-center gap-1.5">
+                    {t('marketAlertTitle')}
+                    <span className="font-normal text-cf-text-secondary">{t('marketAlertSubtitle')}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {survSorted.map((row, i) => (
+                      <SurvChip key={`${row.ticker}-${i}`} ticker={row.ticker} name={row.name}
+                        badge={row.fewAccount ? t('fewAccountBadge') : t(`alertCat_${row.category}`)}
+                        badgeCls={row.fewAccount ? 'bg-red-500/30 text-red-300' : row.category === 'risk' ? 'bg-red-500/20 text-red-300' : row.category === 'warning' ? 'bg-orange-500/20 text-orange-300' : 'bg-amber-500/20 text-amber-300'}
+                        sub={[row.reason, row.designatedDate].filter(Boolean).join(' · ')} />
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('marketAlertNote')}</p>
                 </div>
               )}
             </div>

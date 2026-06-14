@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "米国・マクロ総合判断",
     "verdictKrTitle": "韓国 総合判断",
     "contractCounterparty": "相手",
-    "contractRevImpact": "売上比"
+    "contractRevImpact": "売上比",
+    "manipWatchTitle": "仕込み監視",
+    "manipWatchSubtitle": "急騰前の仕込み疑い（観察優先・推奨ではない）",
+    "manipWatchNote": "KOSDAQスクリーナー + 韓国取引所公式の少数口座取引集中クロスチェック。買い推奨ではなくリスク観察用。",
+    "manipWatchFewAccount": "少数口座"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Squeeze候補 — Form 4",
-    "topInsiderSqueezeSubtitle": "インサイダー買い×空売り"
+    "topInsiderSqueezeSubtitle": "インサイダー買い×空売り",
+    "topAccumTitle": "🚨 仕込み疑い — 急騰前",
+    "topAccumSubtitle": "急騰前の仕込み先行兆候（観察優先・推奨ではない）",
+    "accumNote": "KOSDAQスクリーナー + 韓国取引所公式の少数口座取引集中クロスチェック・観察用",
+    "marketAlertTitle": "⚠️ 取引所マーケットアラート",
+    "marketAlertSubtitle": "投資注意/警告/危険 + 少数口座取引集中（KRX公式）",
+    "marketAlertNote": "韓国取引所KINDライブ・少数口座集中=異常取引の先行シグナル",
+    "fewAccountBadge": "少数口座",
+    "alertCat_caution": "投資注意",
+    "alertCat_warning": "投資警告",
+    "alertCat_risk": "投資危険"
   },
   "short": {
     "title": "空売り · ショートスクイーズ",

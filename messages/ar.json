@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "حكم الولايات المتحدة والكلي",
     "verdictKrTitle": "حكم كوريا",
     "contractCounterparty": "مع",
-    "contractRevImpact": "من الإيرادات"
+    "contractRevImpact": "من الإيرادات",
+    "manipWatchTitle": "مراقبة التجميع",
+    "manipWatchSubtitle": "اشتباه بتجميع قبل الارتفاع (للمراقبة فقط، ليست توصية)",
+    "manipWatchNote": "فاحص KOSDAQ + تركّز رسمي من KRX في حسابات قليلة. لمراقبة المخاطر، وليست توصية شراء.",
+    "manipWatchFewAccount": "حسابات قليلة"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "شراء داخلي + اهتمام قصير"
+    "topInsiderSqueezeSubtitle": "شراء داخلي + اهتمام قصير",
+    "topAccumTitle": "🚨 مراقبة التجميع — قبل الارتفاع",
+    "topAccumSubtitle": "علامات تجميع قبل الارتفاع (للمراقبة فقط، ليست توصية)",
+    "accumNote": "فاحص KOSDAQ + تركّز رسمي من KRX في حسابات قليلة · للمراقبة",
+    "marketAlertTitle": "⚠️ تنبيهات سوق البورصة",
+    "marketAlertSubtitle": "تنبيه/تحذير/خطر + تركّز في حسابات قليلة (KRX رسمي)",
+    "marketAlertNote": "KRX KIND مباشر · التركّز في حسابات قليلة = إشارة مبكرة لتداول غير طبيعي",
+    "fewAccountBadge": "حسابات قليلة",
+    "alertCat_caution": "تنبيه",
+    "alertCat_warning": "تحذير",
+    "alertCat_risk": "خطر"
   },
   "short": {
     "title": "البيع على المكشوف · ضغط الشورت",

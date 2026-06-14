@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "Putusan AS & Makro",
     "verdictKrTitle": "Putusan Korea",
     "contractCounterparty": "dgn",
-    "contractRevImpact": "dr pendapatan"
+    "contractRevImpact": "dr pendapatan",
+    "manipWatchTitle": "Pantauan Akumulasi",
+    "manipWatchSubtitle": "Dugaan akumulasi pra-lonjakan (hanya pengamatan, bukan rekomendasi)",
+    "manipWatchNote": "Penyaring KOSDAQ + konsentrasi resmi KRX pada sedikit akun. Untuk pengamatan risiko, bukan rekomendasi beli.",
+    "manipWatchFewAccount": "Sdkt akun"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "Insider + minat short"
+    "topInsiderSqueezeSubtitle": "Insider + minat short",
+    "topAccumTitle": "🚨 Pantauan Akumulasi — Pra-lonjakan",
+    "topAccumSubtitle": "Tanda akumulasi sebelum lonjakan (hanya pengamatan, bukan rekomendasi)",
+    "accumNote": "Penyaring KOSDAQ + konsentrasi resmi KRX pada sedikit akun · untuk pengamatan",
+    "marketAlertTitle": "⚠️ Peringatan Pasar Bursa",
+    "marketAlertSubtitle": "Perhatian/Peringatan/Bahaya + konsentrasi sedikit akun (resmi KRX)",
+    "marketAlertNote": "KRX KIND langsung · konsentrasi sedikit akun = sinyal awal perdagangan tidak wajar",
+    "fewAccountBadge": "Sdkt akun",
+    "alertCat_caution": "Perhatian",
+    "alertCat_warning": "Peringatan",
+    "alertCat_risk": "Bahaya"
   },
   "short": {
     "title": "Short Selling · Short Squeeze",

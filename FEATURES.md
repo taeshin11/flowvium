@@ -749,7 +749,8 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - `/api/market-alerts` — 거래소 공식 투자주의/경고/위험 라이브 목록. KIND investattentwarnrisky.do 크랙(세션쿠키 GET + method=investattentwarnriskySub + forward=invstcautnisu_sub + startDate=endDate). 회사명→6자리 ticker Naver autocomplete 해소.
 - 응답 `{alerts[], counts{caution/warning/risk/fewAccount}, source('live'|'cache'|'empty'), asOf}`. 쿼리 `?fewAccount=1`(소수계좌만)·`?category=`·`?ticker=`. Redis 캐시 3h, miss 폴백 `[]`(정적 금지 — 시계열 surveillance). `source` 필드로 라이브/캐시 구분.
 - 작전주 매집 스크리너(`scripts/scan-accumulation.mjs`)가 교차검증: 매집 탐지 ∩ 공식 소수계좌 flag = 최고신뢰(score +25, `officialFewAccount` 카운트).
-- **보고서 `manipulationWatch` 필드(2026-06-14)**: 매집 워치리스트를 보고서 데이터에 surfacing(`buildManipulationWatch` — accumulation-watchlist.json 읽기, 36h 신선도 가드). 각 item `{ticker, name, phase:'pre_pump_accumulation', score, signals, official(KRX매칭), action:'watch_only', reason}`. "추천 아님 — 관찰 우선". (ReportPage UI 섹션·portfolio 게이트는 후속.)
+- **보고서 `manipulationWatch` 필드(2026-06-14)**: 매집 워치리스트를 보고서 데이터에 surfacing(`buildManipulationWatch` — accumulation-watchlist.json 읽기, 36h 신선도 가드). 각 item `{ticker, name, phase:'pre_pump_accumulation', score, signals, official(KRX매칭), action:'watch_only', reason}`. "추천 아님 — 관찰 우선".
+- **UI 노출(2026-06-14)**: `/screener` 에 2개 카드 — 🚨 매집 의심(오르기 前) + ⚠️ 거래소 시장경보(투자주의/경고/위험·소수계좌). 소수계좌 flag red 배지 우선정렬. ReportPage(`manipulationWatch` 섹션, 16-lang). 회사명→/company 링크. `/api/accumulation-watch` 신설(워치리스트 노출, 36h 신선도·source 필드).
 
 ### 13-2. 3단 분석 카드
 - 거시경제 분석 (파란색)

@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "美国·宏观综合判断",
     "verdictKrTitle": "韩国综合判断",
     "contractCounterparty": "对方",
-    "contractRevImpact": "占营收"
+    "contractRevImpact": "占营收",
+    "manipWatchTitle": "吸筹监视",
+    "manipWatchSubtitle": "拉升前吸筹嫌疑（仅供观察，非推荐）",
+    "manipWatchNote": "KOSDAQ筛选 + 韩国交易所官方少数账户交易集中交叉验证。仅供风险观察，非买入推荐。",
+    "manipWatchFewAccount": "少数账户"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 轧空候选 — 内部人买入",
-    "topInsiderSqueezeSubtitle": "内部人买入+空头兴趣"
+    "topInsiderSqueezeSubtitle": "内部人买入+空头兴趣",
+    "topAccumTitle": "🚨 吸筹嫌疑 — 拉升前",
+    "topAccumSubtitle": "拉升前的吸筹先行迹象（仅供观察，非推荐）",
+    "accumNote": "KOSDAQ筛选 + 韩国交易所官方少数账户交易集中交叉验证·仅供观察",
+    "marketAlertTitle": "⚠️ 交易所市场警报",
+    "marketAlertSubtitle": "投资注意/警告/危险 + 少数账户交易集中（KRX官方）",
+    "marketAlertNote": "韩国交易所KIND实时·少数账户集中=异常交易先行信号",
+    "fewAccountBadge": "少数账户",
+    "alertCat_caution": "投资注意",
+    "alertCat_warning": "投资警告",
+    "alertCat_risk": "投资危险"
   },
   "short": {
     "title": "做空 · 空头逼仓",

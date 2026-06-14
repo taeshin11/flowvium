@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "Вердикт США и макро",
     "verdictKrTitle": "Вердикт Корея",
     "contractCounterparty": "с",
-    "contractRevImpact": "от выручки"
+    "contractRevImpact": "от выручки",
+    "manipWatchTitle": "Наблюдение за накоплением",
+    "manipWatchSubtitle": "Подозрение на накопление до роста (только наблюдение, не рекомендация)",
+    "manipWatchNote": "Скринер KOSDAQ + официальная концентрация KRX на немногих счетах. Для наблюдения за риском, не рекомендация к покупке.",
+    "manipWatchFewAccount": "Неск. сч."
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Топ Сквиз — Form 4",
-    "topInsiderSqueezeSubtitle": "Инсайдеры + шорт интерес"
+    "topInsiderSqueezeSubtitle": "Инсайдеры + шорт интерес",
+    "topAccumTitle": "🚨 Наблюдение за накоплением — до роста",
+    "topAccumSubtitle": "Признаки накопления до роста (только наблюдение, не рекомендация)",
+    "accumNote": "Скринер KOSDAQ + официальная концентрация KRX на немногих счетах · для наблюдения",
+    "marketAlertTitle": "⚠️ Рыночные предупреждения биржи",
+    "marketAlertSubtitle": "Внимание/Предупреждение/Опасность + концентрация на немногих счетах (офиц. KRX)",
+    "marketAlertNote": "KRX KIND в реальном времени · концентрация на немногих счетах = опережающий сигнал аномальной торговли",
+    "fewAccountBadge": "Неск. сч.",
+    "alertCat_caution": "Внимание",
+    "alertCat_warning": "Предупреждение",
+    "alertCat_risk": "Опасность"
   },
   "short": {
     "title": "Короткие позиции · Short Squeeze",

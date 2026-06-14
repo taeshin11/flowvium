@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "美國·宏觀綜合判斷",
     "verdictKrTitle": "韓國綜合判斷",
     "contractCounterparty": "對方",
-    "contractRevImpact": "佔營收"
+    "contractRevImpact": "佔營收",
+    "manipWatchTitle": "吸籌監視",
+    "manipWatchSubtitle": "拉升前吸籌嫌疑（僅供觀察，非推薦）",
+    "manipWatchNote": "KOSDAQ篩選 + 韓國交易所官方少數帳戶交易集中交叉驗證。僅供風險觀察，非買入推薦。",
+    "manipWatchFewAccount": "少數帳戶"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 軋空候選 — 內部人買進",
-    "topInsiderSqueezeSubtitle": "內部人買進+空頭興趣"
+    "topInsiderSqueezeSubtitle": "內部人買進+空頭興趣",
+    "topAccumTitle": "🚨 吸籌嫌疑 — 拉升前",
+    "topAccumSubtitle": "拉升前的吸籌先行跡象（僅供觀察，非推薦）",
+    "accumNote": "KOSDAQ篩選 + 韓國交易所官方少數帳戶交易集中交叉驗證·僅供觀察",
+    "marketAlertTitle": "⚠️ 交易所市場警報",
+    "marketAlertSubtitle": "投資注意/警告/危險 + 少數帳戶交易集中（KRX官方）",
+    "marketAlertNote": "韓國交易所KIND即時·少數帳戶集中=異常交易先行訊號",
+    "fewAccountBadge": "少數帳戶",
+    "alertCat_caution": "投資注意",
+    "alertCat_warning": "投資警告",
+    "alertCat_risk": "投資危險"
   },
   "short": {
     "title": "放空 · 軋空",

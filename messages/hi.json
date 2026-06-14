@@ -1307,7 +1307,11 @@
     "verdictUsTitle": "अमेरिका और मैक्रो निर्णय",
     "verdictKrTitle": "कोरिया निर्णय",
     "contractCounterparty": "साथ",
-    "contractRevImpact": "राजस्व का"
+    "contractRevImpact": "राजस्व का",
+    "manipWatchTitle": "संचयन निगरानी",
+    "manipWatchSubtitle": "उछाल से पहले संचयन का संदेह (केवल अवलोकन, सिफारिश नहीं)",
+    "manipWatchNote": "KOSDAQ स्क्रीनर + KRX आधिकारिक कुछ-खाता संकेंद्रण क्रॉस-चेक। जोखिम अवलोकन हेतु, खरीद सिफारिश नहीं।",
+    "manipWatchFewAccount": "कुछ खाते"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",
@@ -1723,7 +1727,17 @@
     "dataDate13F": "SEC 13F Q4 2025 (Filed 2026-02-14)",
     "dataDateInsider": "Form 4 · Last {days} days · D+2 lag",
     "topInsiderSqueezeTitle": "🔥 Top Squeeze — Form 4",
-    "topInsiderSqueezeSubtitle": "इनसाइडर + शॉर्ट इंटरेस्ट"
+    "topInsiderSqueezeSubtitle": "इनसाइडर + शॉर्ट इंटरेस्ट",
+    "topAccumTitle": "🚨 संचयन निगरानी — उछाल से पहले",
+    "topAccumSubtitle": "उछाल से पहले संचयन के अग्रिम संकेत (केवल अवलोकन, सिफारिश नहीं)",
+    "accumNote": "KOSDAQ स्क्रीनर + KRX आधिकारिक कुछ-खाता संकेंद्रण क्रॉस-चेक · अवलोकन हेतु",
+    "marketAlertTitle": "⚠️ एक्सचेंज मार्केट अलर्ट",
+    "marketAlertSubtitle": "सावधानी/चेतावनी/खतरा + कुछ-खाता संकेंद्रण (KRX आधिकारिक)",
+    "marketAlertNote": "KRX KIND लाइव · कुछ-खाता संकेंद्रण = असामान्य ट्रेडिंग का अग्रिम संकेत",
+    "fewAccountBadge": "कुछ खाते",
+    "alertCat_caution": "सावधानी",
+    "alertCat_warning": "चेतावनी",
+    "alertCat_risk": "खतरा"
   },
   "short": {
     "title": "शॉर्ट सेलिंग · स्क्वीज़",
