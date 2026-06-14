@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { fetchMarketAlerts, resolveTickerByName } from './lib/krx-market-alert.mjs';
+import { computeAccumulationSignals, isAccumulation } from '../src/lib/accumulation-detector.mjs';  // route 와 단일소스(drift 제거)
 
 const ROOT = resolve(import.meta.dirname, '..');
 const ALL = process.argv.includes('--all');
@@ -39,38 +40,7 @@ async function naverFlow(code) {
     return { indiv: n(d.individualPureBuyQuant), foreign: n(d.foreignerPureBuyQuant), organ: n(d.organPureBuyQuant) };
   } catch { return null; }
 }
-const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
-
-function detectAccumulation(rows) {
-  const n = rows.length, last = rows[n - 1].c;
-  const runup20d = n >= 21 ? (last / rows[n - 21].c - 1) * 100 : 0;
-  const recentVol = rows.slice(-5).reduce((s, r) => s + r.v, 0) / 5;
-  const prior = rows.slice(0, n - 5); const priorVol = prior.reduce((s, r) => s + r.v, 0) / prior.length;
-  const volSpike = priorVol > 0 ? recentVol / priorVol : 1;
-  const medDollarVol = median(rows.map(r => r.c * r.v / KRW_PER_USD));
-  const atr = (sl) => sl.length ? sl.reduce((s, r) => s + (r.h - r.l) / Math.max(r.c, 1e-9), 0) / sl.length : 0;
-  const vol10 = rows.slice(-10).reduce((s, r) => s + r.v, 0) / 10;
-  const p30 = rows.slice(-40, -10); const vol30 = p30.length ? p30.reduce((s, r) => s + r.v, 0) / p30.length : 0;
-  const volTrendUp = vol30 > 0 && vol10 > vol30 * 1.5;
-  const volContraction = atr(rows.slice(-30, -10)) > 0 && atr(rows.slice(-10)) < atr(rows.slice(-30, -10)) * 0.7;
-  const closeStrength = rows.slice(-10).filter(r => (r.h - r.l) > 0 && (r.c - r.l) / (r.h - r.l) > 0.6).length / 10;
-  const priceFlat = runup20d < 12 && runup20d > -15;
-  // 2026-06-14(ChatGPT §2): route 와 동일 정밀화 — 유동성 tiering + per-signal 점수 하향 + coFire>=3.
-  const liquidityOk = medDollarVol < 5e6 || (medDollarVol < 1.5e7 && volTrendUp);
-  const lead = []; let score = 0;
-  if (priceFlat && liquidityOk) {
-    if (vol30 > 0 && vol10 / vol30 >= 2.0) { score += 16; lead.push(`거래량추세 ${(vol10 / vol30).toFixed(1)}×`); }
-    else if (volTrendUp) { score += 9; lead.push(`거래량추세 ${(vol10 / vol30).toFixed(1)}×`); }
-    if (volSpike >= 4.0) score += 12; else if (volSpike >= 2.5) score += 7;
-    if (volSpike >= 2.5) lead.push(`거래량 ${volSpike.toFixed(1)}×급증`);
-    if (volContraction) { score += 10; lead.push('변동성수축'); }
-    if (closeStrength >= 0.7) { score += 10; lead.push(`종가상단 ${Math.round(closeStrength * 100)}%`); }
-    else if (closeStrength >= 0.6) { score += 6; lead.push(`종가상단 ${Math.round(closeStrength * 100)}%`); }
-  }
-  const coFire = [volTrendUp, volSpike >= 2.5, volContraction, closeStrength >= 0.6].filter(Boolean).length;
-  // prelim 후보 게이트(coFire>=2): 최종 isAccum 은 loop 에서 수급/공식 맥락으로 결정(requiredCoFire 완화).
-  return { isCandidate: priceFlat && liquidityOk && coFire >= 2 && score >= 24, score, coFire, lead, runup20d: +runup20d.toFixed(1), medDollarVol: Math.round(medDollarVol) };
-}
+// median/detectAccumulation → 공용 모듈 computeAccumulationSignals(accumulation-detector.mjs) 로 대체
 
 const cand = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'), 'utf8'));
 const tickers = (cand.tickers ?? []).filter(t => ALL ? /\.(KS|KQ)$/.test(t) : /\.KQ$/.test(t));
@@ -97,26 +67,25 @@ for (let i = 0; i < tickers.length; i += CONC) {
   const batch = tickers.slice(i, i + CONC);
   const res = await Promise.all(batch.map(async (t) => {
     const rows = await dailyChart(t); if (!rows) return null;
-    const a = detectAccumulation(rows); if (!a.isCandidate) return null;   // prelim 후보(coFire>=2)
+    const sig = computeAccumulationSignals(rows, { krwPerUsd: KRW_PER_USD, isKR: true });  // route 와 동일 모듈
+    // prelim 후보: 가격평탄 + 유동성 + coFire>=2 + score>=24 (최종은 수급/공식 맥락으로 아래 게이트)
+    if (!(sig.priceFlat && sig.liquidityOk && sig.accumCoFire >= 2 && sig.accumScore >= 24)) return null;
     const nm = cand.meta?.[t]?.name ?? t;
+    const lead = [...sig.lead];
     const flow = await naverFlow(t.replace(/\.(KS|KQ)$/, ''));
     let smartAccum = false;
-    if (flow) { const smart = flow.foreign + flow.organ; smartAccum = smart > 0 && flow.indiv <= 0; if (smartAccum) a.lead.push('세력 매집(기관·외인 순매수)'); }
+    if (flow) { const smart = flow.foreign + flow.organ; smartAccum = smart > 0 && flow.indiv <= 0; if (smartAccum) lead.push('세력 매집(기관·외인 순매수)'); }
     // 거래소 공식 시장경보 교차검증 — 매집 ∩ 소수계좌 = 최고신뢰(오르기 前)
     const alert = surveillanceFor(t, nm);
     let officialBoost = 0, official = null;
     if (alert) {
       official = { category: alert.category, reason: alert.reason, fewAccount: alert.fewAccount, designatedDate: alert.designatedDate };
-      if (alert.fewAccount) { officialBoost = 25; a.lead.push(`🚨 거래소 소수계좌 거래집중(공식 ${alert.designatedDate ?? ''})`); }
-      else if (alert.category === 'caution') { officialBoost = 12; a.lead.push(`⚠️ 거래소 투자주의: ${alert.reason ?? ''}`); }
+      if (alert.fewAccount) { officialBoost = 25; lead.push(`🚨 거래소 소수계좌 거래집중(공식 ${alert.designatedDate ?? ''})`); }
+      else if (alert.category === 'caution') { officialBoost = 12; lead.push(`⚠️ 거래소 투자주의: ${alert.reason ?? ''}`); }
     }
-    // 2026-06-14(ChatGPT §2-1): 최종 게이트 — 강한 수급(세력 매집) 또는 공식 소수계좌면 coFire>=2 허용,
-    //   둘 다 없으면 coFire>=3 + score>=32 요구(false positive 차단). 사전 감지 정밀도 우선.
-    const strong = smartAccum || alert?.fewAccount;
-    const requiredCoFire = strong ? 2 : 3;
-    const minScore = alert?.fewAccount ? 24 : 32;
-    if (a.coFire < requiredCoFire || a.score < minScore) return null;
-    return { ticker: t, name: nm, score: a.score + (smartAccum ? 10 : 0) + officialBoost, coFire: a.coFire, lead: a.lead, runup20dPct: a.runup20d, medDollarVolUsd: a.medDollarVol, smartAccum, official };
+    // 최종 게이트(공용 isAccumulation) — 강한 수급 또는 공식 소수계좌면 coFire>=2, 아니면 >=3 + score>=32.
+    if (!isAccumulation(sig, { strongSmart: smartAccum, officialFewAccount: !!alert?.fewAccount, isMarkup: false })) return null;
+    return { ticker: t, name: nm, score: sig.accumScore + (smartAccum ? 10 : 0) + officialBoost, coFire: sig.accumCoFire, lead, runup20dPct: +sig.runup20d.toFixed(1), medDollarVolUsd: Math.round(sig.medDollarVol), smartAccum, official };
   }));
   for (const r of res) if (r) watch.push(r);
   if (i % 50 === 0) console.log(`  ... ${i + batch.length}/${tickers.length} (포착 ${watch.length})`);

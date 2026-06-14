@@ -14,6 +14,7 @@ import { resolve } from 'path';
 import { createRedis } from '@/lib/redis';
 import { peekMarketAlerts, fetchMarketAlertsRaw, type MarketAlert } from '@/lib/market-alerts';
 import { peekUsMarketAlerts, fetchUsMarketAlertsRaw, type UsMarketAlert } from '@/lib/us-market-alerts';
+import { computeAccumulationSignals, isAccumulation } from '@/lib/accumulation-detector';
 
 export const dynamic = 'force-dynamic';
 const CDN = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=120' };
@@ -42,7 +43,6 @@ async function dailyChart(ticker: string) {
   return rows.length >= 25 ? rows : null;
 }
 
-function median(arr: number[]) { const s = [...arr].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; }
 
 // 2026-06-14 (사용자 "4 시그니처가 최선? 더 나은 방법?"): KR 투자자 수급(Naver, keyless) — 개인/기관/외인
 //   순매수. 펌프&덤프 = 세력(기관+외인) 분산매도를 개인 FOMO 가 흡수하는 패턴. 권위 거래소 수급데이터.
@@ -92,20 +92,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   const rows = await dailyChart(t);
   if (!rows) return NextResponse.json({ ticker: t, score: null, tier: 'unknown', reason: 'insufficient_data', flags: [] }, { headers: CDN });
 
-  const n = rows.length;
-  const last = rows[n - 1].c;
-  const runup5d = n >= 6 ? (last / rows[n - 6].c - 1) * 100 : 0;
-  const runup20d = n >= 21 ? (last / rows[n - 21].c - 1) * 100 : 0;
-  // 거래량 폭발: 최근 5일 평균 / 직전 기간(~55일) 평균
-  const recentVol = rows.slice(-5).reduce((s, r) => s + r.v, 0) / Math.min(5, n);
-  const priorRows = rows.slice(0, Math.max(1, n - 5));
-  const priorVol = priorRows.reduce((s, r) => s + r.v, 0) / priorRows.length;
-  const volSpike = priorVol > 0 ? recentVol / priorVol : 1;
-  // 유동성: 일 거래대금 중앙값 (USD 환산). 낮을수록 작전 표적.
-  const dollarVols = rows.map(r => r.c * r.v / (isKR ? KRW_PER_USD : 1));
-  const medDollarVol = median(dollarVols);
-  // 펀더멘털 괴리: 급등(20일 +30%↑)인데 매출 *역성장*. 2026-06-14(ChatGPT §2-4): "데이터 부재"≠"괴리".
-  //   f==null 을 full penalty 로 쓰면 microcap/KR 소형주 false positive ↑ → 괴리는 실데이터 역성장만.
+  // 2026-06-14(ChatGPT §2-1): 매집 선행신호 = 공용 모듈(accumulation-detector.mjs). scanner 와 단일소스
+  //   → drift 제거. runup/volSpike/medDollarVol/매집점수·coFire 전부 동일 가중.
+  const sig = computeAccumulationSignals(rows, { krwPerUsd: KRW_PER_USD, isKR });
+  const { runup5d, runup20d, volSpike, medDollarVol, closeStrength, priceFlat, accumScore, accumCoFire, lead: accumLead } = sig;
+  // 펀더멘털 괴리: 급등(20일 +30%↑)인데 매출 *역성장*. "데이터 부재"≠"괴리"(microcap false positive 차단).
   const f = fin(t);
   const fundamentalUnknown = f == null;
   const fundamentalGap = runup20d >= 30 && f != null && f.revYoYPct != null && f.revYoYPct < 0;
@@ -135,38 +126,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   const coFire = [sRun > 0, sVol > 0, sLiq >= 15].filter(Boolean).length;
   if (coFire < 2) score = Math.min(score, 25); // 동시발화 미달 → 경고 등급 이하로 캡
 
-  // ── 사전 포착 (pre-pump / 매집 단계) — 사용자 "오르기 전에 판별할 수 없나" ──────────────
-  //   마크업(급등) 前 단계: 거래량이 먼저 붙는데 가격은 아직 평탄 + 저유동성 = 조용한 매집 의심.
-  //   리딩 인디케이터(가격 급등은 후행). markup 확정 전 *경고* 성격.
-  const isMarkup = sRun > 0;           // 이미 급등 진행(후행 — 사용자가 원치 않는 "이미 오른" 케이스)
+  // ── 사전 포착 (pre-pump / 매집) — 가격 평탄한데 거래량·변동성·종가가 직전 대비 달라지나(선행) ──
+  const isMarkup = sRun > 0;           // 이미 급등 진행(후행 — "이미 오른" 케이스)
   let phase: 'markup' | 'accumulation' | 'none' = isMarkup ? 'markup' : 'none';
-  // 2026-06-14 (사용자 "이미 오른 게 아니라 *오르기 전 조짐*을 포착하라"): 가격이 아직 평탄한 구간에서
-  //   *선행지표* 다중 발화로 매집 단계 조기탐지. 가격 급등(후행)에 의존 안 함.
-  //   ① 거래량 추세 상승(누적 매집 — 1일 blip 아닌 지속) ② 변동성 수축(coiling — 돌파 압축)
-  //   ③ 종가 일중 상단(매수 흡수) ④ 거래량 급증(가격 평탄). 2개+ 동시발화 = accumulation.
-  const atrNorm = (sl: typeof rows) => sl.length ? sl.reduce((s, r) => s + (r.h - r.l) / Math.max(r.c, 1e-9), 0) / sl.length : 0;
-  const atrRecent = atrNorm(rows.slice(-10)), atrPrior = atrNorm(rows.slice(-30, -10));
-  const vol10 = rows.slice(-10).reduce((s, r) => s + r.v, 0) / 10;
-  const priorSlice = rows.slice(-40, -10); const vol30 = priorSlice.length ? priorSlice.reduce((s, r) => s + r.v, 0) / priorSlice.length : 0;
-  const volTrendUp = vol30 > 0 && vol10 > vol30 * 1.5;                                   // 거래량 추세 ↑
-  const volContraction = atrPrior > 0 && atrRecent < atrPrior * 0.7;                     // 변동성 수축
-  const closeStrength = rows.slice(-10).filter(r => (r.h - r.l) > 0 && (r.c - r.l) / (r.h - r.l) > 0.6).length / 10; // 종가 상단 비율
-  const priceFlat = runup20d < 12 && runup20d > -15;                                     // 아직 안 오름
-  // 2026-06-14(ChatGPT §2-1~2-3): 유동성 tiering($5M 기본·$5~15M 은 거래량추세 있을 때만) + per-signal
-  //   점수 하향(1.5× 추세 단독 과탐 방지) + 기본 coFire>=3 고정밀. 공식 소수계좌(가격평탄)일 때만 >=2 허용(후단).
-  const liquidityOk = medDollarVol < 5e6 || (medDollarVol < 1.5e7 && volTrendUp);
-  let accumScore = 0; const accumLead: string[] = [];
-  if (!isMarkup && priceFlat && liquidityOk) {
-    if (vol30 > 0 && vol10 / vol30 >= 2.0) { accumScore += 16; accumLead.push(`거래량 추세 ${(vol10 / vol30).toFixed(1)}× 상승(지속 매집)`); }
-    else if (volTrendUp) { accumScore += 9; accumLead.push(`거래량 추세 ${(vol10 / vol30).toFixed(1)}× 상승`); }
-    if (volSpike >= 4.0) accumScore += 12; else if (volSpike >= 2.5) accumScore += 7;
-    if (volSpike >= 2.5) accumLead.push(`거래량 ${volSpike.toFixed(1)}× 급증(가격 평탄)`);
-    if (volContraction) { accumScore += 10; accumLead.push(`변동성 수축(coiling) — 돌파 압축`); }
-    if (closeStrength >= 0.7) { accumScore += 10; accumLead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%(강한 매수 흡수)`); }
-    else if (closeStrength >= 0.6) { accumScore += 6; accumLead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%`); }
-  }
-  const accumCoFire = [volTrendUp, volSpike >= 2.5, volContraction, closeStrength >= 0.6].filter(Boolean).length;
-  if (!isMarkup && priceFlat && liquidityOk && accumCoFire >= 3 && accumScore >= 32) {
+  if (isAccumulation(sig, { isMarkup })) {   // 공용 게이트(기본 coFire>=3·score>=32)
     phase = 'accumulation';
     flags.push(`🔍 매집(오르기 前) 선행조짐 ${accumCoFire}개 동시: ${accumLead.join(' · ')} — 급등 前 단계`);
     score = Math.max(score, Math.min(60, accumScore));  // 사전단계는 high 권역까지(severe 는 markup 확정 시만)
