@@ -6355,32 +6355,30 @@ async function generateViaOllama() {
   const sectorPeMap = new Map((sectorPeRaw ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio]));
   const sectorStanceMap = new Map((portfolioData?.sectorAllocation ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.stance]));
   const regionStanceMap = new Map(Object.entries(regionalData?.regionStances ?? {}).map(([k, v]) => [k === 'korea' ? 'kr' : k, v?.stance]));
-  // 뉴스 sentiment ticker 별 집계
-  const newsSentimentMap = new Map();
-  for (const a of (ctx.news?.articles ?? ctxRaw?.news?.articles ?? [])) {
-    for (const t of (a.tickers ?? [])) {
-      if (!newsSentimentMap.has(t)) newsSentimentMap.set(t, { neg: 0, count: 0 });
-      const s = newsSentimentMap.get(t);
-      s.count++;
-      if (a.sentiment === 'negative' || a.sentiment === 'bearish') s.neg++;
-    }
-  }
-  for (const [t, v] of newsSentimentMap) { v.negRatio = v.count ? v.neg / v.count : 0; v.posRatio = v.count ? v.pos / v.count : 0; }  // 2026-06-14: posRatio 추가 — micro_news_positive 가 posRatio 읽는데 sell경로 맵엔 없어 0-발화였음
+  // 2026-06-14 죽은 신호 배선 복원 (ChatGPT 리뷰 §3-2 검증 결과 — sell macroCtx 의 3개 맵이 미존재
+  //   필드를 읽어 micro_news_*/micro_13f_distribution/macro_vix_spike 가 silently inert 였음):
+  //   ① newsSentimentMap: ctx.news?.articles(미존재) → buyMacroCtx 의 cascade-기반 정상 맵 재사용
+  //      (uoaMap/contractMap 과 동일 패턴, 종목↔기사 결정론 매칭 + pos/neg/posRatio/negRatio 포함).
+  const newsSentimentMap = buyMacroCtx.newsSentimentMap ?? new Map();
   // 2026-06-06: 내부자 매도 데이터 plumbing — signalDigest insider {buys,sells} → 매도엔진 ctx.
   const insiderDigest = new Map();
   for (const [t, d] of signalDigest) if (d.insider) insiderDigest.set(t, d.insider);
-  // 2026-06-06: 13F 기관 수급 digest (ChatGPT D3) — ctxRaw.signals(reducing/adding) → 매도엔진.
+  //   ② inst13f: ctxRaw.signals(미존재) → 실제 기관수급 소스 ctxRaw.ownership(13D/G 지분변동)에서
+  //      changePct 부호로 reducers/adders 산출. nport(N-PORT) positionsChange 보강.
   const inst13f = new Map();
-  for (const s of (ctxRaw?.signals ?? [])) {
-    const t = s.ticker; if (!t) continue;
+  const bump13f = (t, pct, shares) => {
+    if (!t) return;
     const d = inst13f.get(t) ?? { reducers: 0, adders: 0, netShares: 0 };
-    if (/reduc|sell/i.test(s.action)) d.reducers++; else if (/add|buy/i.test(s.action)) d.adders++;
-    d.netShares += (s.sharesChanged ?? 0);
+    if (pct < 0) d.reducers++; else if (pct > 0) d.adders++;
+    d.netShares += (Number(shares) || 0);
     inst13f.set(t, d);
-  }
+  };
+  for (const o of (Array.isArray(ctxRaw?.ownership) ? ctxRaw.ownership : [])) bump13f(o.ticker, Number(o.changePct ?? o.pct ?? 0), o.sharesChanged ?? 0);
+  for (const p of (Array.isArray(ctxRaw?.nport?.positions) ? ctxRaw.nport.positions : (Array.isArray(ctxRaw?.nport) ? ctxRaw.nport : []))) bump13f(p.ticker, Number(p.changePct ?? p.deltaPct ?? 0), p.sharesChanged ?? p.shareChange ?? 0);
   const macroCtx = {
     riskLevel: macroData?.riskLevel ?? null,
-    vix: ctxRaw?.volatility?.score ?? ctxRaw?.vix?.score ?? null,
+    //   ③ vix: .score(미존재) → .vix (buy 경로 line 6065 와 동일, earlyWarning 과 같은 오필드 버그였음)
+    vix: ctxRaw?.volatility?.vix ?? null,
     fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
     sectorPeMap, sectorStanceMap, regionStanceMap, newsSentimentMap,
     insider: insiderDigest, inst13f,
