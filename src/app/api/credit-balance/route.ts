@@ -483,13 +483,22 @@ export async function GET() {
     } catch { /* non-fatal */ }
   }
 
-  // Read Redis live data (populated by cron) + direct live fetch as fallback for freshness
-  const [liveFromRedis, liveNow] = await Promise.all([
-    readLiveCreditData(redis),
-    // If Redis has no data, fetch immediately (slow path for first request)
-    redis ? Promise.resolve(null) : fetchAllCreditData(),
-  ]);
-  const live = liveNow ?? liveFromRedis;
+  // 2026-06-14: self-host 전환 후 update-credit-balance cron 미실행 → Redis live 키 비어 전부 static
+  //   위장(모니터 [L2] us/cn/tw). 종전엔 redis 존재 시 on-demand fetch 를 skip 해 cron 의존 → cron
+  //   안 돌면 영구 static. 수정: Redis live 가 비었으면(genuinely-live 0건) on-demand 직접 fetch +
+  //   live 키 populate(self-healing, cron 불요). 첫 요청만 slow, 이후 캐시.
+  let live = await readLiveCreditData(redis);
+  const redisLiveCount = Object.values(live).filter((v) => v && v.source !== 'static-estimated').length;
+  if (redisLiveCount === 0) {
+    try {
+      const liveNow = await fetchAllCreditData();
+      const freshCount = Object.values(liveNow).filter((v) => v && v.source !== 'static-estimated').length;
+      if (freshCount > 0) {
+        live = liveNow;
+        if (redis) { try { await loggedRedisSet(redis, 'api.credit-balance', REDIS_KEY_LIVE, liveNow, { ex: 26 * 60 * 60 }); } catch { /* non-fatal */ } }
+      }
+    } catch (e) { logger.warn('api.credit-balance', 'ondemand_live_fetch_failed', { error: e }); }
+  }
 
   const countries = COUNTRY_DATA.map(c => {
     const liveEntry = live[c.id] ?? null;
