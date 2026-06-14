@@ -28,11 +28,12 @@ async function dailyChart(ticker: string) {
   if (!r.ok) return null;
   const res = (await r.json())?.chart?.result?.[0];
   const q = res?.indicators?.quote?.[0] ?? {};
-  const closes: number[] = (q.close ?? []).filter((x: number) => x != null && x > 0);
-  const rows: { c: number; v: number }[] = [];
+  const rows: { c: number; v: number; h: number; l: number }[] = [];
   const ts: number[] = res?.timestamp ?? [];
   for (let i = 0; i < ts.length; i++) {
-    if (q.close?.[i] != null && q.close[i] > 0 && q.volume?.[i] != null) rows.push({ c: q.close[i], v: q.volume[i] });
+    if (q.close?.[i] != null && q.close[i] > 0 && q.volume?.[i] != null) {
+      rows.push({ c: q.close[i], v: q.volume[i], h: q.high?.[i] ?? q.close[i], l: q.low?.[i] ?? q.close[i] });
+    }
   }
   return rows.length >= 25 ? rows : null;
 }
@@ -102,14 +103,32 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   // ── 사전 포착 (pre-pump / 매집 단계) — 사용자 "오르기 전에 판별할 수 없나" ──────────────
   //   마크업(급등) 前 단계: 거래량이 먼저 붙는데 가격은 아직 평탄 + 저유동성 = 조용한 매집 의심.
   //   리딩 인디케이터(가격 급등은 후행). markup 확정 전 *경고* 성격.
-  const isMarkup = sRun > 0;           // 이미 급등 진행(후행)
-  const stealthAccum = !isMarkup && volSpike >= 2.5 && runup20d < 15 && runup20d > -12 && medDollarVol < 8e6;
+  const isMarkup = sRun > 0;           // 이미 급등 진행(후행 — 사용자가 원치 않는 "이미 오른" 케이스)
   let phase: 'markup' | 'accumulation' | 'none' = isMarkup ? 'markup' : 'none';
-  if (stealthAccum) {
+  // 2026-06-14 (사용자 "이미 오른 게 아니라 *오르기 전 조짐*을 포착하라"): 가격이 아직 평탄한 구간에서
+  //   *선행지표* 다중 발화로 매집 단계 조기탐지. 가격 급등(후행)에 의존 안 함.
+  //   ① 거래량 추세 상승(누적 매집 — 1일 blip 아닌 지속) ② 변동성 수축(coiling — 돌파 압축)
+  //   ③ 종가 일중 상단(매수 흡수) ④ 거래량 급증(가격 평탄). 2개+ 동시발화 = accumulation.
+  const atrNorm = (sl: typeof rows) => sl.length ? sl.reduce((s, r) => s + (r.h - r.l) / Math.max(r.c, 1e-9), 0) / sl.length : 0;
+  const atrRecent = atrNorm(rows.slice(-10)), atrPrior = atrNorm(rows.slice(-30, -10));
+  const vol10 = rows.slice(-10).reduce((s, r) => s + r.v, 0) / 10;
+  const priorSlice = rows.slice(-40, -10); const vol30 = priorSlice.length ? priorSlice.reduce((s, r) => s + r.v, 0) / priorSlice.length : 0;
+  const volTrendUp = vol30 > 0 && vol10 > vol30 * 1.5;                                   // 거래량 추세 ↑
+  const volContraction = atrPrior > 0 && atrRecent < atrPrior * 0.7;                     // 변동성 수축
+  const closeStrength = rows.slice(-10).filter(r => (r.h - r.l) > 0 && (r.c - r.l) / (r.h - r.l) > 0.6).length / 10; // 종가 상단 비율
+  const priceFlat = runup20d < 12 && runup20d > -15;                                     // 아직 안 오름
+  let accumScore = 0; const accumLead: string[] = [];
+  if (!isMarkup && priceFlat && medDollarVol < 1.5e7) {                                  // 저~중유동성(작전 표적) + 가격평탄
+    if (volTrendUp) { accumScore += 18; accumLead.push(`거래량 추세 ${(vol10 / vol30).toFixed(1)}× 상승(지속 매집)`); }
+    if (volSpike >= 2.5) { accumScore += 10; accumLead.push(`거래량 ${volSpike.toFixed(1)}× 급증(가격 평탄)`); }
+    if (volContraction) { accumScore += 14; accumLead.push(`변동성 수축(coiling) — 돌파 압축`); }
+    if (closeStrength >= 0.6) { accumScore += 12; accumLead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%(매수 흡수)`); }
+  }
+  const accumCoFire = [volTrendUp, volSpike >= 2.5, volContraction, closeStrength >= 0.6].filter(Boolean).length;
+  if (!isMarkup && priceFlat && accumCoFire >= 2 && accumScore >= 24) {
     phase = 'accumulation';
-    flags.push(`매집 의심(사전): 거래량 ${volSpike.toFixed(1)}× 선반영되나 가격 아직 평탄(20일 ${runup20d >= 0 ? '+' : ''}${runup20d.toFixed(0)}%) — 급등 前 단계`);
-    // 사전 단계는 score 가 markup 만큼 높지 않게(아직 미확정) — 거래량+저유동성으로 elevated 권역까지만.
-    score = Math.max(score, sVol + sLiq >= 30 ? 45 : 32);
+    flags.push(`🔍 매집(오르기 前) 선행조짐 ${accumCoFire}개 동시: ${accumLead.join(' · ')} — 급등 전 단계`);
+    score = Math.max(score, Math.min(60, accumScore));  // 사전단계는 high 권역까지(severe 는 markup 확정 시만)
   }
 
   // ── 투자자 수급 분산 신호 (KR, 5번째 시그니처) — 사용자 "더 나은 방법" ────────────────────
