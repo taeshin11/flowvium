@@ -3263,9 +3263,15 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
   //   reasons 와 1:1 평행 배열(문자열 미변경 → 번역/probe 무영향). ReportPage 가 region 별 그룹 렌더.
   const regions = [];
   const add = (text, region) => { reasons.push(text); regions.push(region); };
-  const analogLine = analog?.matches
-    ? `과거 유사국면 ${analog.matches}회(1990~, VIX ${analog.fingerprint.vix}·낙폭 ${analog.fingerprint.drawdownPct}% 지문): 3개월 후 중앙값 ${analog.med3m > 0 ? '+' : ''}${analog.med3m}% · 상승확률 ${analog.posRate3m}%`
-    : null;
+  // 유사국면 판단기준 명시(사용자 "판단기준 설명 빈약") — 현재 지문(다요인) + 매칭방법 + 결과를 한 문장에.
+  const analogLine = (() => {
+    if (!analog?.matches) return null;
+    const f = analog.fingerprint ?? {};
+    const fp = [`VIX ${f.vix}`, `고점대비 ${f.drawdownPct}%`, f.ret20d != null ? `20일 ${f.ret20d > 0 ? '+' : ''}${f.ret20d}%` : null,
+      f.ty10 != null ? `10Y ${f.ty10}%` : null, f.curveSlopePp != null ? `금리커브 ${f.curveSlopePp}p` : null].filter(Boolean).join('·');
+    const nf = analog.factorsUsed?.length ?? 3;
+    return `과거 유사국면 ${analog.matches}회 — 현재 지문(${fp})을 1990년 이후 전 영업일과 ${nf}요인 가중거리로 비교해 가장 가까운 국면들: 3개월 후 중앙값 ${analog.med3m > 0 ? '+' : ''}${analog.med3m}% · 상승확률 ${analog.posRate3m}%`;
+  })();
   let verdict;
   if (earlyWarning.level === 'severe') {
     verdict = 'defensive';
@@ -3355,7 +3361,7 @@ function computeKrVerdict(k, earlyWarning) {
     if (k.breadth.divergencePp >= 1.5) reasons.push(`KR 시장 폭 양호: KOSDAQ이 KOSPI 대비 20일 +${k.breadth.divergencePp}%p 우위 — 광범위 참여`);
     else if (k.breadth.divergencePp <= -1.5) reasons.push(`KR 시장 폭 취약: KOSDAQ이 KOSPI 대비 20일 ${k.breadth.divergencePp}%p 열위 — 대형주 편중`);
   }
-  if (k.analog?.matches >= 5) reasons.push(`KR 과거 유사국면 ${k.analog.matches}회(KOSPI 낙폭 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}% 지문): 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`);
+  if (k.analog?.matches >= 5) reasons.push(`KR 과거 유사국면 ${k.analog.matches}회 — 현재 지문(KOSPI 고점대비 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%)을 KOSPI 전 역사와 거리매칭한 가장 가까운 국면들: 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`);
   if (k.seasonality) reasons.push(`KOSPI 계절성(${k.seasonality.month}월, ${k.seasonality.n}표본): 1개월 forward 중앙값 ${k.seasonality.med1m > 0 ? '+' : ''}${k.seasonality.med1m}%`);
   return { verdict, reasons };
 }

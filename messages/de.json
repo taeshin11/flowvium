@@ -1293,7 +1293,7 @@
     "verdict_neutral": "Neutral",
     "verdict_wait": "Abwarten",
     "verdict_defensive": "Defensiv (Cash erhöhen)",
-    "verdictNote": "Deterministische Synthese aus Abwärts-/Aufwärtsvorboten, Angstkauf-Signalen und gemessenen Renditen ähnlicher Marktphasen seit 1990. Keine Anlageberatung.",
+    "verdictNote": "Eine deterministische Einschätzung aus Abwärts-/Aufwärtsvorboten, Angst-Kauf-Signalen und der Methode historischer Analogien: der heutige Mehrfaktor-\"Fingerabdruck\" (Volatilität/VIX, Rückgang vom Hoch, kurzfristiges Momentum, Zinsen, Zinskurve) wird per gewichtetem Abstand mit der gesamten Historie seit 1990 abgeglichen und die realisierten Renditen der nächstgelegenen Analog-Phasen aggregiert. Keine Anlageberatung.",
     "etfCat_crypto": "Krypto",
     "gateTitle": "Intraday-Berichte nur für Mitglieder",
     "gateBody": "Registrieren Sie Ihre E-Mail und schalten Sie alle Intraday-KI-Berichte kostenlos frei. Der Morgenbericht ist für alle kostenlos.",

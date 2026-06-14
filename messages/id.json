@@ -1293,7 +1293,7 @@
     "verdict_neutral": "Netral",
     "verdict_wait": "Tunggu dan amati",
     "verdict_defensive": "Defensif (tambah kas)",
-    "verdictNote": "Sintesis deterministik dari sinyal awal penurunan/kenaikan, sinyal beli saat panik, dan imbal hasil terukur dari kondisi serupa sejak 1990. Bukan saran investasi.",
+    "verdictNote": "Penilaian deterministik yang menggabungkan prekursor turun/naik, sinyal beli karena takut, dan metode analog historis: \"sidik jari\" multifaktor saat ini (volatilitas/VIX, penurunan dari puncak, momentum jangka pendek, suku bunga, kurva imbal hasil) dicocokkan dengan jarak terbobot terhadap seluruh sejarah sejak 1990, menggabungkan imbal hasil nyata dari rezim analog terdekat. Bukan nasihat investasi.",
     "etfCat_crypto": "Kripto",
     "gateTitle": "Laporan intraday khusus anggota",
     "gateBody": "Daftarkan email Anda untuk membuka semua laporan AI intraday secara gratis. Laporan pagi gratis untuk semua.",

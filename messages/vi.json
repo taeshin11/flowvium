@@ -1293,7 +1293,7 @@
     "verdict_neutral": "Trung lập",
     "verdict_wait": "Quan sát",
     "verdict_defensive": "Phòng thủ (tăng tiền mặt)",
-    "verdictNote": "Tổng hợp xác định từ dấu hiệu báo trước giảm/tăng, tín hiệu mua khi hoảng loạn và lợi nhuận thực đo của các giai đoạn tương tự từ 1990. Không phải lời khuyên đầu tư.",
+    "verdictNote": "Một đánh giá tất định kết hợp tín hiệu báo trước giảm/tăng, tín hiệu mua khi sợ hãi và phương pháp giai đoạn tương tự trong lịch sử: \"dấu vân tay\" đa yếu tố hiện tại (biến động/VIX, mức giảm từ đỉnh, động lượng ngắn hạn, lãi suất, đường cong lợi suất) được khớp theo khoảng cách có trọng số với toàn bộ lịch sử từ năm 1990, tổng hợp lợi suất thực tế của các giai đoạn tương tự gần nhất. Không phải lời khuyên đầu tư.",
     "etfCat_crypto": "Crypto",
     "gateTitle": "Báo cáo trong phiên chỉ dành cho thành viên",
     "gateBody": "Đăng ký email để mở khóa miễn phí toàn bộ báo cáo AI trong phiên. Báo cáo buổi sáng miễn phí cho mọi người.",

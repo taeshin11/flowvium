@@ -1293,7 +1293,7 @@
     "verdict_neutral": "Nötr",
     "verdict_wait": "Bekle-gör",
     "verdict_defensive": "Savunmacı (nakit artır)",
-    "verdictNote": "Düşüş/yükseliş öncü sinyalleri, korku alım sinyalleri ve 1990 sonrası benzer rejimlerin ölçülmüş getirilerinin deterministik sentezi. Yatırım tavsiyesi değildir.",
+    "verdictNote": "Düşüş/yükseliş öncülerini, korku-alım sinyallerini ve tarihsel benzer dönem yöntemini birleştiren belirlenimci bir değerlendirme: bugünkü çok faktörlü \"parmak izi\" (oynaklık/VIX, zirveden düşüş, kısa vadeli momentum, faizler, getiri eğrisi) 1990'dan bu yana tüm tarihle ağırlıklı mesafeyle eşleştirilir ve en yakın benzer dönemlerin gerçekleşen getirileri toplanır. Yatırım tavsiyesi değildir.",
     "etfCat_crypto": "Kripto",
     "gateTitle": "Gün içi raporlar yalnızca üyelere özel",
     "gateBody": "E-postanızı kaydedin, tüm gün içi yapay zekâ raporlarını ücretsiz açın. Sabah raporu herkese ücretsizdir.",

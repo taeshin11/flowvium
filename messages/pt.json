@@ -1293,7 +1293,7 @@
     "verdict_neutral": "Neutro",
     "verdict_wait": "Aguardar",
     "verdict_defensive": "Defensivo (aumentar caixa)",
-    "verdictNote": "Síntese determinística de precursores de queda/alta, sinais de compra no pânico e retornos medidos de regimes semelhantes desde 1990. Não é recomendação de investimento.",
+    "verdictNote": "Uma leitura determinística combinando precursores de baixa/alta, sinais de compra por medo e o método de análogos históricos: a \"impressão digital\" multifator atual (volatilidade/VIX, queda desde a máxima, momento de curto prazo, juros, curva de juros) é comparada por distância ponderada com todo o histórico desde 1990, agregando os retornos reais dos regimes análogos mais próximos. Não é recomendação de investimento.",
     "etfCat_crypto": "Cripto",
     "gateTitle": "Relatórios intradiários são exclusivos para membros",
     "gateBody": "Registre seu e-mail para desbloquear gratuitamente todos os relatórios intradiários de IA. O relatório matinal é gratuito para todos.",
