@@ -13,11 +13,24 @@
  */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { createHash } from 'crypto';
 import { saveEvidenceClaim, openDb } from './lib/db.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const now = new Date().toISOString();
 const SITE = process.env.SITE_URL || 'http://localhost:3000';
+
+// 2026-06-14: source_ref(provenance) + evidence_hash(변경감지) 적재 — 종전 미설정으로 3컬럼 100% NULL
+//   (audit-coverage 가 잡던 결함). source_ref=구조화 출처, evidence_hash=값/기간/소스 sha1 12자.
+const base = (t) => t.replace(/\.(KS|KQ)$/, '');
+const evHash = (...parts) => createHash('sha1').update(parts.map(String).join('|')).digest('hex').slice(0, 12);
+// value_text = 렌더러용 표시문자열(value_num 의 사람이 읽는 형태). 종전 NULL → audit 가 잡던 폴리모픽 컬럼.
+const fmtVal = (v, unit) => unit === '%' ? `${(+v).toFixed(1)}%`
+  : unit === 'USD' ? (Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : Math.abs(v) >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v)}`)
+  : unit === 'count' ? `${v}건` : String(v);
+const finRef = (src, t, period) => src === 'sec-xbrl'
+  ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${base(t)}&type=10-K`   // EDGAR(ticker→CIK 리다이렉트)
+  : `opendart:${base(t)}:${period ?? 'latest'}`;                                            // KR DART (corp_code 기반, 구조화)
 
 // ── ① 펀더멘털 (financials.json) ──────────────────────────────────────────────
 let fin = {};
@@ -34,7 +47,9 @@ for (const [ticker, f] of Object.entries(fin)) {
   ];
   for (const [claimId, v, unit] of claims) {
     if (v == null || !Number.isFinite(v)) continue;
-    saveEvidenceClaim({ ticker, claimId, valueNum: v, unit, period, asOf: period, source: src, confidence: 'confirmed', fetchedAt: now });
+    saveEvidenceClaim({ ticker, claimId, valueNum: v, valueText: fmtVal(v, unit), unit, period, asOf: period, source: src,
+      sourceRef: finRef(src, ticker, period), evidenceHash: evHash(ticker, claimId, v, period, src),
+      confidence: 'confirmed', fetchedAt: now });
     finN++;
   }
 }
@@ -54,16 +69,21 @@ try {
     const t = (it.ticker || '').toUpperCase(); if (!t) continue;
     insertTx.run(t, it.filedAt ?? null, it.transactionDate ?? null, it.insiderName ?? null, it.transactionCode ?? null, it.direction ?? null, it.shares ?? null, it.pricePerShare ?? null, it.transactionValueUsd ?? null, (it.id || '').split('-').slice(0, 3).join('-') || null, now);
     txN++;
-    const e = agg.get(t) ?? { buys: 0, sells: 0, buyUsd: 0, sellUsd: 0 };
+    const e = agg.get(t) ?? { buys: 0, sells: 0, buyUsd: 0, sellUsd: 0, acc: null, accDate: '' };
     if (it.direction === 'buy') { e.buys++; e.buyUsd += it.transactionValueUsd || 0; }
     else if (it.direction === 'sell') { e.sells++; e.sellUsd += it.transactionValueUsd || 0; }
+    const acc = (it.id || '').split('-').slice(0, 3).join('-');                 // accession (실제 Form4 출처)
+    if (acc && (it.filedAt ?? '') >= e.accDate) { e.acc = acc; e.accDate = it.filedAt ?? ''; }  // 최신 filing
     agg.set(t, e);
   }
   for (const [t, e] of agg) {
-    saveEvidenceClaim({ ticker: t, claimId: 'insiderBuyCount30d', valueNum: e.buys, unit: 'count', period: '30d', source: 'edgar-form4', confidence: 'confirmed', fetchedAt: now });
-    saveEvidenceClaim({ ticker: t, claimId: 'insiderSellCount30d', valueNum: e.sells, unit: 'count', period: '30d', source: 'edgar-form4', confidence: 'confirmed', fetchedAt: now });
-    if (e.buyUsd) saveEvidenceClaim({ ticker: t, claimId: 'insiderBuyUsd30d', valueNum: e.buyUsd, unit: 'USD', period: '30d', source: 'edgar-form4', confidence: 'confirmed', fetchedAt: now });
-    if (e.sellUsd) saveEvidenceClaim({ ticker: t, claimId: 'insiderSellUsd30d', valueNum: e.sellUsd, unit: 'USD', period: '30d', source: 'edgar-form4', confidence: 'confirmed', fetchedAt: now });
+    // source_ref = 최신 Form4 accession EDGAR 링크(실 provenance), 없으면 구조화 태그
+    const ref = e.acc ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&filenum=${e.acc}` : `edgar-form4:${base(t)}:30d`;
+    const ins = (claimId, v, unit) => saveEvidenceClaim({ ticker: t, claimId, valueNum: v, valueText: fmtVal(v, unit), unit, period: '30d', source: 'edgar-form4', sourceRef: ref, evidenceHash: evHash(t, claimId, v, '30d', 'edgar-form4'), confidence: 'confirmed', fetchedAt: now });
+    ins('insiderBuyCount30d', e.buys, 'count');
+    ins('insiderSellCount30d', e.sells, 'count');
+    if (e.buyUsd) ins('insiderBuyUsd30d', e.buyUsd, 'USD');
+    if (e.sellUsd) ins('insiderSellUsd30d', e.sellUsd, 'USD');
     insN += 2;
   }
 } catch (e) { console.warn('[evidence] insider 적재 skip:', e.message); }
