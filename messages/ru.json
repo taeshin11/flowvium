@@ -1313,7 +1313,22 @@
     "manipWatchNote": "Скринер KOSDAQ + официальная концентрация KRX на немногих счетах. Для наблюдения за риском, не рекомендация к покупке.",
     "manipWatchFewAccount": "Неск. сч.",
     "opportunityEmpty": "Сейчас нет сигналов возможностей — нет шорт-сквиза или покупок инсайдеров. Пересканируется при каждом обновлении.",
-    "manipWatchEmpty": "Сейчас нет подозрений на накопление до роста — высокоточный фильтр (только сильные сигналы). Показывается при сильной настройке."
+    "manipWatchEmpty": "Сейчас нет подозрений на накопление до роста — высокоточный фильтр (только сильные сигналы). Показывается при сильной настройке.",
+    "eventType_guidance_raise": "Прогноз↑",
+    "eventType_guidance_cut": "Прогноз↓",
+    "eventType_revenue_surge": "Скачок выручки",
+    "eventType_revenue_growth": "Рост выручки",
+    "eventType_revenue_decline": "Спад выручки",
+    "eventType_mna": "Слияние",
+    "eventType_litigation": "Суд. иск",
+    "eventType_product_launch": "Новый продукт",
+    "eventType_regulatory": "Регулирование",
+    "eventType_contract": "Контракт",
+    "eventType_executive_change": "Смена руковод.",
+    "eventType_positive_development": "Позитив",
+    "eventType_negative_development": "Негатив",
+    "companyChangesHeld": "В портфеле",
+    "companyChangesNextCheck": "След. проверка"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

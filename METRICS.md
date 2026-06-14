@@ -683,6 +683,10 @@
 | 12-A1 | 섹터 배분 (비중확대/중립/비중축소) | 💾 cached | AI 생성 |
 | 12-A2 | ETF 전략 (broad/sector/thematic/style/dividend/region/commodity/bond, 가격) | ✅ live | `buildEtfStrategy` grounded(stance/sector/region) + batch-prices. 풀 61 ETF, 보고서당 ~18개·8카테고리 (2026-06-05 30→62 확장, 테마/스타일/배당 신설) |
 | 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
+| 12-CC1 | 기업 변화 eventType (가이던스/매출/M&A/소송/규제/계약/임원…) | ✅ live | **코드 결정론 분류**(guidance/revenueYoY/sentiment) enrichCompanyChangeEvents, 환각/슬롭 불가 ← 2026-06-14 |
+| 12-CC2 | 기업 변화 whyMatters (투자자 영향 ≤70자) | 💾 cached | LLM 산문 (Wave2 companyChanges prompt) — boilerplate 고유성 audit ← 2026-06-14 |
+| 12-CC3 | 기업 변화 nextCheck (다음 catalyst ≤40자) | 💾 cached | LLM (실제 날짜 없으면 null, 환각 금지) ← 2026-06-14 |
+| 12-CC4 | 기업 변화 held (포트폴리오 보유 배지) | ✅ live | 코드 단정 (finalReport.portfolio 교차) ← 2026-06-14 |
 | 12-K1 | KPI: F&G (US) | 💾 cached | `/api/fear-greed` (CNN 4h) |
 | 12-K2 | KPI: SPY 1w 수익률 + sparkline | 💾 cached | `/api/capital-flows` |
 | 12-K3 | KPI: 10Y-2Y 스프레드 bp | 💾 cached | `/api/yield-curve` |

@@ -1313,7 +1313,22 @@
     "manipWatchNote": "KOSDAQ tarayıcı + KRX resmi az-hesap yoğunlaşması çapraz kontrolü. Risk gözlemi için, alım tavsiyesi değil.",
     "manipWatchFewAccount": "Az hesap",
     "opportunityEmpty": "Şu anda fırsat sinyali yok — short squeeze veya içeriden alım yoğunluğu yok. Her güncellemede yeniden taranır.",
-    "manipWatchEmpty": "Şu anda yükseliş öncesi toplama şüphesi yok — yüksek hassasiyetli filtre (yalnızca güçlü öncü sinyaller). Güçlü kurulumda gösterilir."
+    "manipWatchEmpty": "Şu anda yükseliş öncesi toplama şüphesi yok — yüksek hassasiyetli filtre (yalnızca güçlü öncü sinyaller). Güçlü kurulumda gösterilir.",
+    "eventType_guidance_raise": "Beklenti↑",
+    "eventType_guidance_cut": "Beklenti↓",
+    "eventType_revenue_surge": "Gelir Sıçraması",
+    "eventType_revenue_growth": "Gelir Büyümesi",
+    "eventType_revenue_decline": "Gelir Düşüşü",
+    "eventType_mna": "Birleşme",
+    "eventType_litigation": "Dava",
+    "eventType_product_launch": "Ürün Lansmanı",
+    "eventType_regulatory": "Düzenleme",
+    "eventType_contract": "Sözleşme",
+    "eventType_executive_change": "Yönetici Değişimi",
+    "eventType_positive_development": "Olumlu",
+    "eventType_negative_development": "Olumsuz",
+    "companyChangesHeld": "Portföyde",
+    "companyChangesNextCheck": "Sonraki kontrol"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

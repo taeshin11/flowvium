@@ -2533,6 +2533,42 @@ function fillCompanyChangesYoY(companyChanges, signalDigest) {
 }
 
 /**
+ * 2026-06-14: companyChanges 결정론 event 분류 — "숫자는 코드가, LLM은 문장만".
+ * audit-section-richness 가 "단순 재무요약 템플릿(eventType/whyMatters 부재)" 으로 fail 하던 섹션.
+ *   eventType 은 기존 필드(guidance/revenueYoY/sentiment)에서 코드가 결정론 분류(라벨이라 환각/슬롭 불가).
+ *   whyMatters/nextCheck 산문은 LLM 이 작성(prompt 스키마) — 코드는 분류만, LLM 은 문장만.
+ *   eventType 우선순위: 가이던스 변경 > 매출 급변 > 센티먼트. heldSet 으로 보유/관찰 맥락 부여.
+ */
+function classifyEventType(c) {
+  const g = String(c.guidance ?? '').toLowerCase();
+  if (g === 'raised') return 'guidance_raise';
+  if (g === 'lowered') return 'guidance_cut';
+  const rev = typeof c.revenueYoY === 'number' ? c.revenueYoY : (c.revenueYoY != null && !isNaN(parseFloat(c.revenueYoY)) ? parseFloat(c.revenueYoY) : null);
+  if (rev != null) {
+    if (rev >= 25) return 'revenue_surge';
+    if (rev >= 10) return 'revenue_growth';
+    if (rev <= -10) return 'revenue_decline';
+  }
+  const s = String(c.sentiment ?? '').toLowerCase();
+  if (s === 'positive') return 'positive_development';
+  if (s === 'negative') return 'negative_development';
+  return 'update';
+}
+function enrichCompanyChangeEvents(companyChanges, heldSet) {
+  let n = 0;
+  for (const c of (companyChanges ?? [])) {
+    if (!c || typeof c !== 'object') continue;
+    // eventType: LLM 이 유효 라벨을 줬으면 존중, 아니면 코드 결정론 분류
+    const VALID = new Set(['guidance_raise', 'guidance_cut', 'revenue_surge', 'revenue_growth', 'revenue_decline', 'positive_development', 'negative_development', 'mna', 'litigation', 'product_launch', 'regulatory', 'contract', 'executive_change', 'update']);
+    if (!c.eventType || !VALID.has(String(c.eventType))) { c.eventType = classifyEventType(c); n++; }
+    // held 맥락 — whyMatters 가 비었을 때만 결정론 fallback(LLM 산문 우선). 보유 여부는 코드가 단정.
+    c.held = heldSet?.has(c.ticker) ?? false;
+  }
+  if (n > 0) console.log(`  [후처리] companyChanges eventType ${n}개 결정론 분류`);
+  return companyChanges;
+}
+
+/**
  * Post-processing: post-earnings 자체 판단.
  * 최근 7일 내 실적발표가 있는 squeeze 후보는:
  *   - 발표 후 OHLCV 기반 누적 수익률 계산
@@ -5711,10 +5747,13 @@ function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news
     '- "Notable change" means: earnings beat/miss, guidance revision, institutional large buy/sell, M&A, product launch, regulatory event.',
     '- SKIP companies with no material recent update — do NOT pad with tickers that have no news.',
     '- revenueYoY: use actual number from [Recent Financials]. Use null if missing (NEVER invent).',
-    '- keyChange: write a specific, data-driven sentence ≤60 chars — include actual numbers when available.',
+    '- keyChange: describe the EVENT, not just a financial recitation. ≤60 chars, include actual numbers. (avoid bare "매출 +X%, 영업이익률 Y%" with no event framing.)',
+    '- eventType: classify the change — one of: guidance_raise, guidance_cut, revenue_surge, revenue_growth, revenue_decline, mna, litigation, product_launch, regulatory, contract, executive_change, positive_development, negative_development, update.',
+    `- whyMatters: ${TARGET_LANG}, ≤70 chars — WHY this matters for an investor holding/watching it (thesis impact, what it confirms/threatens). NOT a restatement of keyChange.`,
+    `- nextCheck: ${TARGET_LANG}, ≤40 chars — the specific NEXT thing to watch (next earnings, guidance update, catalyst). null if genuinely unknown — do NOT invent dates.`,
     '',
     'Respond in pure JSON:',
-    `{"companyChanges":[{"ticker":"[ACTUAL_TICKER]","name":"[Company Name]","revenueYoY":null,"latestQuarter":"[Q# FYYYY]","keyChange":"[${TARGET_LANG}: specific change with data ≤60 chars]","guidance":"raised|maintained|lowered|unknown","sentiment":"positive|neutral|negative"}]}`,
+    `{"companyChanges":[{"ticker":"[ACTUAL_TICKER]","name":"[Company Name]","revenueYoY":null,"latestQuarter":"[Q# FYYYY]","keyChange":"[${TARGET_LANG}: event with data ≤60 chars]","eventType":"[one of the enum]","guidance":"raised|maintained|lowered|unknown","sentiment":"positive|neutral|negative","whyMatters":"[${TARGET_LANG}: portfolio impact ≤70 chars]","nextCheck":"[${TARGET_LANG}: next catalyst ≤40 chars, or null]"}]}`,
     'Pure JSON only.',
   ].join('\n');
 }
@@ -7585,6 +7624,11 @@ async function generateViaOllama() {
     } catch (e) { console.warn('  [ETF 경합심사] skip:', e.message); }
   } catch (e) { finalReport.etfStrategy = []; console.warn('  [ETF] 실패:', e.message); }
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
+  // 결정론 event 분류(eventType) + 보유맥락(held) — whyMatters/nextCheck 산문은 LLM(prompt) 작성.
+  finalReport.companyChanges = enrichCompanyChangeEvents(
+    finalReport.companyChanges,
+    new Set((finalReport.portfolio ?? []).map(p => p.ticker)),
+  );
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
 

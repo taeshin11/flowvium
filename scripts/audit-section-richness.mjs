@@ -35,18 +35,28 @@ const pct = (x) => `${Math.round(x * 100)}%`;
 // ── companyChanges: event 분석 vs 단순 재무요약 ──────────────────────────────────
 const cc = Array.isArray(report.companyChanges) ? report.companyChanges : [];
 if (cc.length) {
+  // 슬롭 = 재무 recitation(매출%·마진) 인데 *분석 일체 없음*(whyMatters·nextCheck·분석문 부재).
+  //   2026-06-14: 종전 `noGuidance ||` 단락은 guidance=maintained 면 whyMatters 가 있어도 슬롭 판정 →
+  //   진짜 분석(보유맥락 whyMatters)을 인정하도록 `!hasAnalysis` 로 정밀화. 대신 whyMatters 가
+  //   템플릿(고유성↓)이면 아래서 별도 포착 — 약화가 아니라 슬롭 정의를 정확히.
   const financialOnly = cc.filter((x) => {
     const kc = String(x.keyChange ?? x.whatChanged ?? '');
     const isFinTemplate = /매출.*%.*(영업이익률|순이익률|마진)|revenue.*%/.test(kc);
-    const noGuidance = /unknown|maintained|유지|미상/i.test(String(x.guidance ?? ''));
-    const noAnalysis = !x.whyMatters && !x.analysis && !x.nextCheck;
-    return isFinTemplate && (noGuidance || noAnalysis);
+    const hasAnalysis = !!(x.whyMatters || x.analysis || x.nextCheck);
+    return isFinTemplate && !hasAnalysis;
   });
   const noEvtType = cc.filter((x) => !x.eventType).length;
   const r = ratio(financialOnly.length, cc.length);
   if (r > 0.6) issues.push({ sev: 'fail', section: 'companyChanges', msg: `단순 재무요약 템플릿 ${pct(r)} (${financialOnly.length}/${cc.length}) >60% — event 분석 아님(eventType/whyMatters/nextCheck 필요)` });
   else if (r > 0.4) issues.push({ sev: 'warn', section: 'companyChanges', msg: `재무요약 위주 ${pct(r)} — guidance/소송/M&A/계약/임원 등 event type 다양화 권장` });
   if (noEvtType === cc.length && cc.length) issues.push({ sev: 'warn', section: 'companyChanges', msg: `eventType 필드 전무(${cc.length}건) — 사건 분류 부재` });
+  // whyMatters 템플릿화 포착(분석을 채웠다 해도 고유하지 않으면 슬롭) — fail 회피용 boilerplate 차단.
+  const wms = cc.map((x) => String(x.whyMatters ?? '').trim()).filter(Boolean);
+  if (wms.length >= 3) {
+    const uniqW = new Set(wms.map((w) => w.replace(/[0-9.+\-%]/g, '').slice(0, 30)));  // 숫자 제외 골격 비교
+    const dupR = 1 - uniqW.size / wms.length;
+    if (dupR > 0.5) issues.push({ sev: 'warn', section: 'companyChanges', msg: `whyMatters 템플릿 중복 ${pct(dupR)} (고유 골격 ${uniqW.size}/${wms.length}) — 보유맥락 boilerplate 의심` });
+  }
 }
 
 // ── supplyChainChanges: 반복 prefix + 파급경로 부재 ──────────────────────────────

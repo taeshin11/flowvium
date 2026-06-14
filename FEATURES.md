@@ -801,6 +801,14 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - Wave 2 병렬 AI 호출 (`invest-crisis`, 600 tokens)
 - 데이터: `ctx.institutional` (내부자 sell 패턴) + `ctx.bbWarnings` + 어닝스 + 뉴스
 
+### 13-4c. 🏢 기업 변화 이벤트 분석 (companyChanges, 2026-06-14 event 격상)
+- 종전 "매출 X%·마진 Y%" 평면 재무요약 템플릿 → **event 분석**으로 격상 (audit-section-richness fail 해소).
+- **eventType 배지** (코드 결정론 분류, 환각/슬롭 불가): 가이던스↑↓·매출 급증/성장/감소·M&A·소송·신제품·규제·계약·임원 변동·긍정/부정. i18n 13종 × 16언어.
+- **보유 배지(held)**: 포트폴리오 보유 종목 표시 (코드 단정).
+- **💡 whyMatters**: 투자자 관점 영향 (≤70자, LLM 산문 — keyChange 재진술 아님).
+- **🔍 nextCheck**: 다음 확인 catalyst (≤40자, LLM, 실제 날짜 없으면 null — 환각 금지).
+- 원칙 "숫자는 코드가(eventType/held), LLM은 문장만(keyChange/whyMatters/nextCheck)". audit-section-richness 가 whyMatters 고유성까지 검사(boilerplate 차단).
+
 ### 13-5. 주요 리스크 이벤트
 - 날짜, 이벤트명, 위험도, 주목 포인트
 

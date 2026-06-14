@@ -216,6 +216,11 @@ export interface InvestmentStrategy {
     keyChange: string;        // AI 분석: 주요 변화 (≤80자)
     guidance?: string;        // raised/maintained/lowered/unknown
     sentiment: 'positive' | 'neutral' | 'negative';
+    // 2026-06-14: event 분석 격상 — eventType(코드 결정론 분류), whyMatters/nextCheck(LLM 산문), held(보유맥락)
+    eventType?: string;       // guidance_raise|revenue_surge|mna|litigation|product_launch|… (결정론)
+    whyMatters?: string;      // 투자자 관점 영향 (≤70자, LLM)
+    nextCheck?: string | null;// 다음 확인 catalyst (≤40자, LLM, 모르면 null)
+    held?: boolean;           // 포트폴리오 보유 여부 (코드)
   }>;
   // S9: 공급망 변화 모니터링
   supplyChainChanges?: Array<{

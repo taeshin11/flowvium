@@ -1328,12 +1328,16 @@ export default function ReportPage() {
                     : c.sentiment === 'negative' ? 'text-red-700 bg-red-50 border-red-200'
                     : 'text-gray-600 bg-gray-50 border-gray-200';
                   const guidanceIcon = c.guidance === 'raised' ? '▲' : c.guidance === 'lowered' ? '▼' : '→';
+                  const evt = c.eventType && c.eventType !== 'update' ? c.eventType : null;
+                  const evtLabel = evt ? t(`eventType_${evt}`) : null;
                   return (
                     <div key={i} className={`rounded-lg border px-3 py-2 ${sentColor}`}>
                       <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-xs">{displayName(c.ticker, c.name)}</span>
                           <span className="text-[10px] font-normal opacity-60 font-mono">{c.ticker}</span>
+                          {c.held && <span className="text-[9px] font-semibold px-1 rounded bg-blue-100 text-blue-700 border border-blue-200">{t('companyChangesHeld')}</span>}
+                          {evtLabel && <span className="text-[9px] font-bold px-1.5 rounded-full bg-white/70 border border-current/20">{evtLabel}</span>}
                           {c.latestQuarter && <span className="text-[10px] opacity-70">{c.latestQuarter}</span>}
                           {c.revenueYoY != null && c.revenueYoY !== 0 && (
                             <span className="text-[10px] font-semibold">
@@ -1346,6 +1350,12 @@ export default function ReportPage() {
                         )}
                       </div>
                       <p className="text-[11px] leading-relaxed">{c.keyChange}</p>
+                      {c.whyMatters && (
+                        <p className="text-[11px] leading-relaxed mt-1 font-medium opacity-90">💡 {c.whyMatters}</p>
+                      )}
+                      {c.nextCheck && (
+                        <p className="text-[10px] leading-relaxed mt-0.5 opacity-70">🔍 {t('companyChangesNextCheck')}: {c.nextCheck}</p>
+                      )}
                     </div>
                   );
                 })}

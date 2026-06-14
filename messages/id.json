@@ -1313,7 +1313,22 @@
     "manipWatchNote": "Penyaring KOSDAQ + konsentrasi resmi KRX pada sedikit akun. Untuk pengamatan risiko, bukan rekomendasi beli.",
     "manipWatchFewAccount": "Sdkt akun",
     "opportunityEmpty": "Tidak ada sinyal peluang saat ini — tidak ada short squeeze atau pembelian insider. Dipindai ulang tiap pembaruan.",
-    "manipWatchEmpty": "Tidak ada dugaan akumulasi pra-lonjakan saat ini — filter presisi tinggi (hanya sinyal kuat). Ditampilkan saat muncul pola kuat."
+    "manipWatchEmpty": "Tidak ada dugaan akumulasi pra-lonjakan saat ini — filter presisi tinggi (hanya sinyal kuat). Ditampilkan saat muncul pola kuat.",
+    "eventType_guidance_raise": "Panduan Naik",
+    "eventType_guidance_cut": "Panduan Turun",
+    "eventType_revenue_surge": "Lonjakan Pendapatan",
+    "eventType_revenue_growth": "Pertumb. Pendapatan",
+    "eventType_revenue_decline": "Penurunan Pendapatan",
+    "eventType_mna": "M&A",
+    "eventType_litigation": "Litigasi",
+    "eventType_product_launch": "Peluncuran Produk",
+    "eventType_regulatory": "Regulasi",
+    "eventType_contract": "Kontrak",
+    "eventType_executive_change": "Perubahan Eksekutif",
+    "eventType_positive_development": "Positif",
+    "eventType_negative_development": "Negatif",
+    "companyChangesHeld": "Dimiliki",
+    "companyChangesNextCheck": "Cek berikutnya"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

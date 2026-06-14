@@ -1313,7 +1313,22 @@
     "manipWatchNote": "KOSDAQ 스크리너 + 한국거래소 공식 소수계좌 거래집중 교차검증. 매수 추천이 아닌 위험 관찰용.",
     "manipWatchFewAccount": "소수계좌",
     "opportunityEmpty": "현재 포착된 기회 신호 없음 — 숏스퀴즈·내부자 매수 클러스터 미발생. 다음 갱신에서 재탐지.",
-    "manipWatchEmpty": "현재 매집 의심(오르기 전) 종목 없음 — 고정밀 필터(강한 선행조짐만 통과). 강한 셋업 포착 시 표시."
+    "manipWatchEmpty": "현재 매집 의심(오르기 전) 종목 없음 — 고정밀 필터(강한 선행조짐만 통과). 강한 셋업 포착 시 표시.",
+    "eventType_guidance_raise": "가이던스↑",
+    "eventType_guidance_cut": "가이던스↓",
+    "eventType_revenue_surge": "매출 급증",
+    "eventType_revenue_growth": "매출 성장",
+    "eventType_revenue_decline": "매출 감소",
+    "eventType_mna": "M&A",
+    "eventType_litigation": "소송",
+    "eventType_product_launch": "신제품",
+    "eventType_regulatory": "규제",
+    "eventType_contract": "계약",
+    "eventType_executive_change": "임원 변동",
+    "eventType_positive_development": "긍정 이슈",
+    "eventType_negative_development": "부정 이슈",
+    "companyChangesHeld": "보유",
+    "companyChangesNextCheck": "다음 확인"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

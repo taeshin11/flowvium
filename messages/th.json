@@ -1313,7 +1313,22 @@
     "manipWatchNote": "ตัวคัดกรอง KOSDAQ + การกระจุกตัวบัญชีน้อยรายอย่างเป็นทางการของ KRX เพื่อสังเกตความเสี่ยง ไม่ใช่คำแนะนำซื้อ",
     "manipWatchFewAccount": "บัญชีน้อย",
     "opportunityEmpty": "ขณะนี้ไม่มีสัญญาณโอกาส — ไม่มี short squeeze หรือการซื้อของวงในกระจุกตัว สแกนใหม่ทุกการอัปเดต",
-    "manipWatchEmpty": "ขณะนี้ไม่มีหุ้นต้องสงสัยสะสมก่อนพุ่ง — ตัวกรองความแม่นยำสูง (เฉพาะสัญญาณนำที่แรง) แสดงเมื่อพบรูปแบบที่ชัดเจน"
+    "manipWatchEmpty": "ขณะนี้ไม่มีหุ้นต้องสงสัยสะสมก่อนพุ่ง — ตัวกรองความแม่นยำสูง (เฉพาะสัญญาณนำที่แรง) แสดงเมื่อพบรูปแบบที่ชัดเจน",
+    "eventType_guidance_raise": "คาดการณ์↑",
+    "eventType_guidance_cut": "คาดการณ์↓",
+    "eventType_revenue_surge": "รายได้พุ่ง",
+    "eventType_revenue_growth": "รายได้โต",
+    "eventType_revenue_decline": "รายได้ลด",
+    "eventType_mna": "ควบรวม",
+    "eventType_litigation": "ฟ้องร้อง",
+    "eventType_product_launch": "เปิดตัวสินค้า",
+    "eventType_regulatory": "กำกับดูแล",
+    "eventType_contract": "สัญญา",
+    "eventType_executive_change": "เปลี่ยนผู้บริหาร",
+    "eventType_positive_development": "บวก",
+    "eventType_negative_development": "ลบ",
+    "companyChangesHeld": "ถือครอง",
+    "companyChangesNextCheck": "ตรวจถัดไป"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

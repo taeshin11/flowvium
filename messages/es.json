@@ -1313,7 +1313,22 @@
     "manipWatchNote": "Cribador KOSDAQ + concentración oficial KRX en pocas cuentas. Para observación de riesgo, no recomendación de compra.",
     "manipWatchFewAccount": "Pocas ctas",
     "opportunityEmpty": "Sin señales de oportunidad ahora — sin short squeeze ni compras de insiders. Se reescanea en cada actualización.",
-    "manipWatchEmpty": "Sin acumulación pre-subida sospechosa ahora — filtro de alta precisión (solo señales fuertes). Se muestra cuando aparece un patrón fuerte."
+    "manipWatchEmpty": "Sin acumulación pre-subida sospechosa ahora — filtro de alta precisión (solo señales fuertes). Se muestra cuando aparece un patrón fuerte.",
+    "eventType_guidance_raise": "Guía al alza",
+    "eventType_guidance_cut": "Guía a la baja",
+    "eventType_revenue_surge": "Ingresos en auge",
+    "eventType_revenue_growth": "Crec. ingresos",
+    "eventType_revenue_decline": "Caída ingresos",
+    "eventType_mna": "Fusión/Adq.",
+    "eventType_litigation": "Litigio",
+    "eventType_product_launch": "Lanzamiento",
+    "eventType_regulatory": "Regulación",
+    "eventType_contract": "Contrato",
+    "eventType_executive_change": "Cambio directivo",
+    "eventType_positive_development": "Positivo",
+    "eventType_negative_development": "Negativo",
+    "companyChangesHeld": "En cartera",
+    "companyChangesNextCheck": "Próx. revisión"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

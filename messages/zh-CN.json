@@ -1313,7 +1313,22 @@
     "manipWatchNote": "KOSDAQ筛选 + 韩国交易所官方少数账户交易集中交叉验证。仅供风险观察，非买入推荐。",
     "manipWatchFewAccount": "少数账户",
     "opportunityEmpty": "当前无机会信号 — 无轧空或内部人买入集中。每次更新重新扫描。",
-    "manipWatchEmpty": "当前无拉升前吸筹嫌疑个股 — 高精度筛选（仅强先行迹象通过）。出现强信号时显示。"
+    "manipWatchEmpty": "当前无拉升前吸筹嫌疑个股 — 高精度筛选（仅强先行迹象通过）。出现强信号时显示。",
+    "eventType_guidance_raise": "指引上调",
+    "eventType_guidance_cut": "指引下调",
+    "eventType_revenue_surge": "营收激增",
+    "eventType_revenue_growth": "营收增长",
+    "eventType_revenue_decline": "营收下滑",
+    "eventType_mna": "并购",
+    "eventType_litigation": "诉讼",
+    "eventType_product_launch": "新品发布",
+    "eventType_regulatory": "监管",
+    "eventType_contract": "合同",
+    "eventType_executive_change": "高管变动",
+    "eventType_positive_development": "利好",
+    "eventType_negative_development": "利空",
+    "companyChangesHeld": "持有",
+    "companyChangesNextCheck": "下次关注"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

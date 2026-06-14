@@ -1313,7 +1313,22 @@
     "manipWatchNote": "Bộ lọc KOSDAQ + tập trung ít tài khoản chính thức của KRX. Để quan sát rủi ro, không phải khuyến nghị mua.",
     "manipWatchFewAccount": "Ít TK",
     "opportunityEmpty": "Hiện không có tín hiệu cơ hội — không có short squeeze hay mua gom nội bộ. Quét lại mỗi lần cập nhật.",
-    "manipWatchEmpty": "Hiện không có cổ phiếu nghi gom hàng trước khi tăng — bộ lọc độ chính xác cao (chỉ tín hiệu dẫn mạnh). Hiển thị khi xuất hiện thiết lập mạnh."
+    "manipWatchEmpty": "Hiện không có cổ phiếu nghi gom hàng trước khi tăng — bộ lọc độ chính xác cao (chỉ tín hiệu dẫn mạnh). Hiển thị khi xuất hiện thiết lập mạnh.",
+    "eventType_guidance_raise": "Dự báo↑",
+    "eventType_guidance_cut": "Dự báo↓",
+    "eventType_revenue_surge": "Doanh thu tăng vọt",
+    "eventType_revenue_growth": "Tăng doanh thu",
+    "eventType_revenue_decline": "Giảm doanh thu",
+    "eventType_mna": "M&A",
+    "eventType_litigation": "Kiện tụng",
+    "eventType_product_launch": "Ra mắt SP",
+    "eventType_regulatory": "Pháp lý",
+    "eventType_contract": "Hợp đồng",
+    "eventType_executive_change": "Thay đổi lãnh đạo",
+    "eventType_positive_development": "Tích cực",
+    "eventType_negative_development": "Tiêu cực",
+    "companyChangesHeld": "Đang nắm giữ",
+    "companyChangesNextCheck": "Kiểm tra tiếp"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

@@ -1313,7 +1313,22 @@
     "manipWatchNote": "KOSDAQ स्क्रीनर + KRX आधिकारिक कुछ-खाता संकेंद्रण क्रॉस-चेक। जोखिम अवलोकन हेतु, खरीद सिफारिश नहीं।",
     "manipWatchFewAccount": "कुछ खाते",
     "opportunityEmpty": "अभी कोई अवसर संकेत नहीं — कोई शॉर्ट स्क्वीज़ या इनसाइडर खरीद समूह नहीं। हर अपडेट पर पुनः स्कैन।",
-    "manipWatchEmpty": "अभी उछाल से पहले संचयन संदेह नहीं — उच्च-परिशुद्धता फ़िल्टर (केवल मजबूत संकेत)। मजबूत सेटअप पर दिखाया जाता है।"
+    "manipWatchEmpty": "अभी उछाल से पहले संचयन संदेह नहीं — उच्च-परिशुद्धता फ़िल्टर (केवल मजबूत संकेत)। मजबूत सेटअप पर दिखाया जाता है।",
+    "eventType_guidance_raise": "गाइडेंस↑",
+    "eventType_guidance_cut": "गाइडेंस↓",
+    "eventType_revenue_surge": "राजस्व उछाल",
+    "eventType_revenue_growth": "राजस्व वृद्धि",
+    "eventType_revenue_decline": "राजस्व गिरावट",
+    "eventType_mna": "विलय/अधिग्रहण",
+    "eventType_litigation": "मुकदमा",
+    "eventType_product_launch": "उत्पाद लॉन्च",
+    "eventType_regulatory": "नियामक",
+    "eventType_contract": "अनुबंध",
+    "eventType_executive_change": "कार्यकारी बदलाव",
+    "eventType_positive_development": "सकारात्मक",
+    "eventType_negative_development": "नकारात्मक",
+    "companyChangesHeld": "धारित",
+    "companyChangesNextCheck": "अगली जाँच"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

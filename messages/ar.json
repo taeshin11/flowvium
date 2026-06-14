@@ -1313,7 +1313,22 @@
     "manipWatchNote": "فاحص KOSDAQ + تركّز رسمي من KRX في حسابات قليلة. لمراقبة المخاطر، وليست توصية شراء.",
     "manipWatchFewAccount": "حسابات قليلة",
     "opportunityEmpty": "لا توجد إشارات فرص الآن — لا ضغط شراء قسري ولا تجمّع شراء داخلي. يُعاد الفحص كل تحديث.",
-    "manipWatchEmpty": "لا اشتباه بتجميع قبل الارتفاع الآن — مرشّح عالي الدقة (إشارات قوية فقط). يظهر عند ظهور نمط قوي."
+    "manipWatchEmpty": "لا اشتباه بتجميع قبل الارتفاع الآن — مرشّح عالي الدقة (إشارات قوية فقط). يظهر عند ظهور نمط قوي.",
+    "eventType_guidance_raise": "رفع التوجيه",
+    "eventType_guidance_cut": "خفض التوجيه",
+    "eventType_revenue_surge": "قفزة إيرادات",
+    "eventType_revenue_growth": "نمو إيرادات",
+    "eventType_revenue_decline": "تراجع إيرادات",
+    "eventType_mna": "اندماج/استحواذ",
+    "eventType_litigation": "تقاضٍ",
+    "eventType_product_launch": "إطلاق منتج",
+    "eventType_regulatory": "تنظيمي",
+    "eventType_contract": "عقد",
+    "eventType_executive_change": "تغيير تنفيذي",
+    "eventType_positive_development": "إيجابي",
+    "eventType_negative_development": "سلبي",
+    "companyChangesHeld": "محتفظ به",
+    "companyChangesNextCheck": "الفحص التالي"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

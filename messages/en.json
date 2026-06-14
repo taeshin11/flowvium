@@ -1313,7 +1313,22 @@
     "manipWatchNote": "KOSDAQ screener + KRX official few-account concentration cross-check. For risk observation, not a buy recommendation.",
     "manipWatchFewAccount": "Few-Acct",
     "opportunityEmpty": "No opportunity signals right now — no short-squeeze or insider-buy clusters. Re-scanned each update.",
-    "manipWatchEmpty": "No suspected pre-spike accumulation right now — high-precision filter (only strong leading signs pass). Shown when a strong setup appears."
+    "manipWatchEmpty": "No suspected pre-spike accumulation right now — high-precision filter (only strong leading signs pass). Shown when a strong setup appears.",
+    "eventType_guidance_raise": "Guidance Up",
+    "eventType_guidance_cut": "Guidance Cut",
+    "eventType_revenue_surge": "Revenue Surge",
+    "eventType_revenue_growth": "Revenue Growth",
+    "eventType_revenue_decline": "Revenue Decline",
+    "eventType_mna": "M&A",
+    "eventType_litigation": "Litigation",
+    "eventType_product_launch": "Product Launch",
+    "eventType_regulatory": "Regulatory",
+    "eventType_contract": "Contract",
+    "eventType_executive_change": "Exec Change",
+    "eventType_positive_development": "Positive",
+    "eventType_negative_development": "Negative",
+    "companyChangesHeld": "Held",
+    "companyChangesNextCheck": "Next check"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

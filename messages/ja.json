@@ -1313,7 +1313,22 @@
     "manipWatchNote": "KOSDAQスクリーナー + 韓国取引所公式の少数口座取引集中クロスチェック。買い推奨ではなくリスク観察用。",
     "manipWatchFewAccount": "少数口座",
     "opportunityEmpty": "現在、機会シグナルはありません — ショートスクイーズ・インサイダー買い集中なし。更新ごとに再検出。",
-    "manipWatchEmpty": "現在、急騰前の仕込み疑い銘柄はありません — 高精度フィルタ（強い先行兆候のみ）。強いセットアップ検出時に表示。"
+    "manipWatchEmpty": "現在、急騰前の仕込み疑い銘柄はありません — 高精度フィルタ（強い先行兆候のみ）。強いセットアップ検出時に表示。",
+    "eventType_guidance_raise": "ガイダンス↑",
+    "eventType_guidance_cut": "ガイダンス↓",
+    "eventType_revenue_surge": "売上急増",
+    "eventType_revenue_growth": "売上成長",
+    "eventType_revenue_decline": "売上減少",
+    "eventType_mna": "M&A",
+    "eventType_litigation": "訴訟",
+    "eventType_product_launch": "新製品",
+    "eventType_regulatory": "規制",
+    "eventType_contract": "契約",
+    "eventType_executive_change": "役員異動",
+    "eventType_positive_development": "好材料",
+    "eventType_negative_development": "悪材料",
+    "companyChangesHeld": "保有",
+    "companyChangesNextCheck": "次の確認"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",
