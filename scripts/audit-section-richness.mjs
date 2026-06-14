@@ -107,7 +107,8 @@ if (sec.length) {
     const expect = p >= 25 ? 'overweight' : p >= 12 ? 'neutral' : 'underweight';
     return st && st !== expect;
   });
-  if (mismatch.length > sec.length * 0.3) issues.push({ sev: 'warn', section: 'sectorAllocation', msg: `stance↔pct 불일치 ${mismatch.length}/${sec.length} — 병합 pct 로 stance 재계산 권장` });
+  // 불변식: stance 는 표시 pct 에서 결정론 도출 — canonicalize + 합산정규화 모두 재계산하므로 불일치 0 이어야.
+  if (mismatch.length > 0) issues.push({ sev: 'warn', section: 'sectorAllocation', msg: `stance↔pct 불일치 ${mismatch.length}/${sec.length} — 합산정규화 후 stance 미재계산 의심(불변식 위반)` });
 }
 
 // ── 결과 ────────────────────────────────────────────────────────────────────────

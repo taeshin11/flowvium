@@ -629,6 +629,9 @@ function applyLocalHarness(r, livePrices) {
       r.sectorAllocation.forEach(x => { x.pct = Math.round((x.pct ?? 0) * scale); });
       const drift = 100 - r.sectorAllocation.reduce((a, x) => a + x.pct, 0);
       if (drift !== 0) r.sectorAllocation[0].pct += drift;
+      // 2026-06-14: pct 스케일 후 stance 재계산 — 종전엔 stance 가 스케일 前 pct 로 굳어져 'pct↔stance 불일치'
+      //   (불변식 probe 가 cron 산출물에서 1건 포착). 표시 pct 로 일관(canonicalize 와 동일 규칙).
+      r.sectorAllocation.forEach(x => { const p = x.pct ?? 0; x.stance = p >= 25 ? 'overweight' : p >= 12 ? 'neutral' : 'underweight'; });
       audit.fixes.sectorAllocSum = { from: sum, to: 100 };
     }
   }
