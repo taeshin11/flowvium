@@ -2671,7 +2671,8 @@ function canonicalizeSectorAllocation(rows) {
   }
   const merged = byKey.size;
   const out = [...byKey.values()]
-    .map(e => ({ sector: e.display, pct: Math.round(e.pct), stance: e.pct >= 25 ? 'overweight' : e.pct >= 12 ? 'neutral' : 'underweight', reason: e.reason ?? `portfolio ${Math.round(e.pct)}% 노출` }))
+    .map(e => { const pct = Math.round(e.pct);  // stance 는 *표시 pct* 로 계산 — display↔stance 내부정합(11.6→12→neutral 일관)
+      return { sector: e.display, pct, stance: pct >= 25 ? 'overweight' : pct >= 12 ? 'neutral' : 'underweight', reason: e.reason ?? `portfolio ${pct}% 노출` }; })
     .sort((a, b) => b.pct - a.pct);
   if ((rows?.length ?? 0) > merged) console.log(`  [후처리] sectorAllocation 정규화 dedup ${rows.length}→${merged} (대소문자/어휘 중복 병합)`);
   return out;
