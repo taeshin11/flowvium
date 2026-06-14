@@ -1336,7 +1336,9 @@
     "riskHigher": "高於預期",
     "riskLower": "低於預期",
     "manipWatchTierWatch": "弱訊號",
-    "manipWatchTierStrong": "強訊號"
+    "manipWatchTierStrong": "強訊號",
+    "breakingTitle": "快訊 — 報告發布之後",
+    "breakingNote": "本報告生成後發生的影響市場的新聞 — 將在下一份定期報告中正式納入。"
   },
   "insider": {
     "title": "即時資金流 · 內部人交易",

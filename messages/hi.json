@@ -1336,7 +1336,9 @@
     "riskHigher": "अधिक होने पर",
     "riskLower": "कम होने पर",
     "manipWatchTierWatch": "कमजोर",
-    "manipWatchTierStrong": "मजबूत"
+    "manipWatchTierStrong": "मजबूत",
+    "breakingTitle": "ताज़ा खबर — इस रिपोर्ट के बाद",
+    "breakingNote": "इस रिपोर्ट के बनने के बाद आई बाज़ार-प्रभावी खबरें — अगली निर्धारित रिपोर्ट में पूरी तरह शामिल की जाएंगी।"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

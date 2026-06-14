@@ -1336,7 +1336,9 @@
     "riskHigher": "If higher",
     "riskLower": "If lower",
     "manipWatchTierWatch": "Weak",
-    "manipWatchTierStrong": "Strong"
+    "manipWatchTierStrong": "Strong",
+    "breakingTitle": "Breaking — After This Report",
+    "breakingNote": "Market-moving news that broke after this report was generated; fully incorporated in the next scheduled report."
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

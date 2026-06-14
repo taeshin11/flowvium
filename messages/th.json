@@ -1336,7 +1336,9 @@
     "riskHigher": "หากสูงกว่า",
     "riskLower": "หากต่ำกว่า",
     "manipWatchTierWatch": "สัญญาณอ่อน",
-    "manipWatchTierStrong": "สัญญาณแรง"
+    "manipWatchTierStrong": "สัญญาณแรง",
+    "breakingTitle": "ข่าวด่วน — หลังรายงานนี้",
+    "breakingNote": "ข่าวที่มีผลต่อตลาดซึ่งเกิดหลังสร้างรายงานนี้ — จะรวมไว้ในรายงานตามกำหนดถัดไป"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

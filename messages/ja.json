@@ -1336,7 +1336,9 @@
     "riskHigher": "予想超なら",
     "riskLower": "予想割れなら",
     "manipWatchTierWatch": "弱シグナル",
-    "manipWatchTierStrong": "強シグナル"
+    "manipWatchTierStrong": "強シグナル",
+    "breakingTitle": "速報 — レポート発行後",
+    "breakingNote": "本レポート生成後に発生した市場影響ニュース — 次回の定期レポートに正式反映されます。"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

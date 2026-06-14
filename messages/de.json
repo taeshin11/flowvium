@@ -1336,7 +1336,9 @@
     "riskHigher": "Wenn höher",
     "riskLower": "Wenn niedriger",
     "manipWatchTierWatch": "Schwach",
-    "manipWatchTierStrong": "Stark"
+    "manipWatchTierStrong": "Stark",
+    "breakingTitle": "Eilmeldung — Nach diesem Bericht",
+    "breakingNote": "Marktbewegende Nachrichten nach Erstellung dieses Berichts – im nächsten planmäßigen Bericht vollständig berücksichtigt."
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

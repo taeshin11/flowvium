@@ -1336,7 +1336,9 @@
     "riskHigher": "Nếu cao hơn",
     "riskLower": "Nếu thấp hơn",
     "manipWatchTierWatch": "Yếu",
-    "manipWatchTierStrong": "Mạnh"
+    "manipWatchTierStrong": "Mạnh",
+    "breakingTitle": "Tin nóng — Sau báo cáo này",
+    "breakingNote": "Tin tức tác động thị trường xuất hiện sau khi tạo báo cáo này; sẽ được đưa đầy đủ vào báo cáo định kỳ tiếp theo."
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

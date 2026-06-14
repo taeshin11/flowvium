@@ -1336,7 +1336,9 @@
     "riskHigher": "Jika lebih tinggi",
     "riskLower": "Jika lebih rendah",
     "manipWatchTierWatch": "Lemah",
-    "manipWatchTierStrong": "Kuat"
+    "manipWatchTierStrong": "Kuat",
+    "breakingTitle": "Terkini — Setelah Laporan Ini",
+    "breakingNote": "Berita penggerak pasar yang muncul setelah laporan ini dibuat; akan dimasukkan penuh pada laporan terjadwal berikutnya."
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

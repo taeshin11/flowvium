@@ -815,6 +815,41 @@ export default function ReportPage() {
               <p className="text-[10px] text-gray-500 mt-2">{t('ewNote')}</p>
             </div>
           )}
+          {/* ── ⚡ 속보 — 보고서 발간 *후* 발생한 시장급변 뉴스 (2026-06-15, 사용자 "이란 딜 같은 중요 이슈가
+               메인에 왜 없냐"). 정기 보고서는 시점 스냅샷이라 cycle 사이 속보를 놓침 — high importance +
+               broad-market cascade + pubDate>generatedAt 인 뉴스를 메인 최상단에 노출. 보고서 재생성 불필요. ── */}
+          {!selectedHistoryId && (() => {
+            const MARKET_RE = /S&P|SPX|SPY|DOW|DJI|Nasdaq|NDX|QQQ|Russell|Oil|Crude|Brent|WTI|Gold|Silver|VIX|Bond|Treasur|Yield|Dollar|DXY|FANG|Defense|\bDEF\b|KOSPI|Nikkei|Hang ?Seng|반도체|금리|유가|환율|증시|국채|Fed|FOMC|Crude/i;
+            const genMs = data.generatedAt ? new Date(data.generatedAt).getTime() : 0;
+            const breaking = news
+              .filter(n => n.importance === 'high' && n.pubDate)
+              .filter(n => { const t = new Date(n.pubDate!).getTime(); return t > genMs && (nowTick - t) < 12 * 3600 * 1000; })
+              .filter(n => (n.cascades ?? []).some(c => MARKET_RE.test(c.asset)))
+              .sort((a, b) => new Date(b.pubDate!).getTime() - new Date(a.pubDate!).getTime())
+              .slice(0, 2);
+            if (!breaking.length) return null;
+            return (
+              <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 mb-5">
+                <p className="text-sm font-bold text-rose-800 mb-2">⚡ {t('breakingTitle')}</p>
+                <div className="space-y-2.5">
+                  {breaking.map((n, i) => (
+                    <div key={i}>
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">{n.title}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {(n.cascades ?? []).slice(0, 6).map((c, j) => (
+                          <span key={j} className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${c.direction === 'positive' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : c.direction === 'negative' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                            {c.asset} {c.direction === 'positive' ? '↑' : c.direction === 'negative' ? '↓' : '→'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-rose-500 mt-2">{t('breakingNote')}</p>
+              </div>
+            );
+          })()}
+
           {/* ── Investment Stance Hero ─────────────────────────────────────── */}
           <div className={`rounded-2xl border p-5 mb-5 ${stanceCfg!.bg}`}>
             <div className="flex items-center gap-3 mb-2 flex-wrap">

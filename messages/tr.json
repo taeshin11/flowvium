@@ -1336,7 +1336,9 @@
     "riskHigher": "Yüksekse",
     "riskLower": "Düşükse",
     "manipWatchTierWatch": "Zayıf",
-    "manipWatchTierStrong": "Güçlü"
+    "manipWatchTierStrong": "Güçlü",
+    "breakingTitle": "Son dakika — Bu rapordan sonra",
+    "breakingNote": "Bu rapor oluşturulduktan sonra çıkan piyasayı hareketlendiren haberler; bir sonraki planlı rapora tam olarak yansıtılacak."
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

@@ -1336,7 +1336,9 @@
     "riskHigher": "Se maior",
     "riskLower": "Se menor",
     "manipWatchTierWatch": "Fraco",
-    "manipWatchTierStrong": "Forte"
+    "manipWatchTierStrong": "Forte",
+    "breakingTitle": "Última hora — Após este relatório",
+    "breakingNote": "Notícias que movem o mercado surgidas após a geração deste relatório; serão incorporadas no próximo relatório programado."
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

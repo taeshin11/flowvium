@@ -723,6 +723,13 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 리스크 레벨 (low/medium/high)
 - AI 한 줄 투자 전략 (thesis)
 
+### 13-1b. ⚡ 속보 배너 (2026-06-15 신설 — 사용자 "이란 딜 같은 중요 이슈가 메인에 왜 없냐")
+- 정기 보고서는 시점 스냅샷이라 cron cycle 사이(최대 ~5h) 발생한 시장급변 속보를 놓침.
+- 히어로 *위*에 표출: news-cascade 중 `importance=high` + `pubDate > 보고서 generatedAt`(발간 후) +
+  cascade 에 broad-market 자산(S&P/DOW/Oil/Gold/VIX/금리/유가/방산 등) 포함 뉴스 top 2 + cascade 칩.
+- 최신 보고서에서만(selectedHistoryId 없음), 12h 이내 뉴스만. 보고서 재생성 불필요 — 클라이언트 필터.
+- i18n `report.breakingTitle`/`breakingNote` ×16.
+
 ### 13-0. 🔓 장중 보고서 회원 게이트 (2026-06-13 신설)
 - noon/afternoon/evening/midnight 세션 보고서는 비회원에게 stance·종합판단까지만 + 이메일 가입 카드 (morning 은 전체 무료 맛보기)
 - `/api/member` POST {email} → Redis `flowvium:members:emails` SADD + HMAC 쿠키(fv_member, 1년). 비밀번호/결제 없음
