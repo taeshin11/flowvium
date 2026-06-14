@@ -1,4 +1,4 @@
-# update-migration.ps1 — 이전(migration) 패키지 1-커맨드 갱신
+﻿# update-migration.ps1 — 이전(migration) 패키지 1-커맨드 갱신
 #   G:\내 드라이브\0.flowvium_move 의 코드번들·DB·secrets·config·메모리를 현 상태로 refresh.
 #   사용: powershell -File scripts\update-migration.ps1   (또는 -Dst "다른경로")
 #   변경 사항(코드 commit/push, DB 학습 누적, 키 갱신) 있을 때마다 실행.
