@@ -1335,7 +1335,8 @@
     "riskPrev": "Vorw.",
     "riskHigher": "Wenn höher",
     "riskLower": "Wenn niedriger",
-    "manipWatchTierWatch": "Beobachten"
+    "manipWatchTierWatch": "Schwach",
+    "manipWatchTierStrong": "Stark"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

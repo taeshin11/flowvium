@@ -1335,7 +1335,8 @@
     "riskPrev": "пред.",
     "riskHigher": "Если выше",
     "riskLower": "Если ниже",
-    "manipWatchTierWatch": "Наблюдение"
+    "manipWatchTierWatch": "Слабый",
+    "manipWatchTierStrong": "Сильный"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

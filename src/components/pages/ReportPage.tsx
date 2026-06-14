@@ -1161,8 +1161,10 @@ export default function ReportPage() {
                       <Link key={`${it.ticker}-${i}`} href={`/${locale}/company/${it.ticker}`} className="block rounded-lg bg-white border border-rose-200 p-2.5 hover:border-rose-400 transition-colors">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <span className="font-bold text-sm text-gray-800 truncate">
-                            {/* 2026-06-14: 2-tier — 관찰(watch)은 amber, 강한 매집(strong)은 rose */}
-                            {it.tier === 'watch' && <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-bold mr-1">{t('manipWatchTierWatch')}</span>}
+                            {/* 2026-06-14: 2-tier 배지 — 강신호(strong) rose / 약신호(watch) amber */}
+                            {it.tier === 'watch'
+                              ? <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-bold mr-1">{t('manipWatchTierWatch')}</span>
+                              : <span className="text-[9px] px-1 py-0.5 rounded bg-rose-200 text-rose-800 font-bold mr-1">{t('manipWatchTierStrong')}</span>}
                             {it.name} <span className="font-mono text-[10px] text-gray-400">{it.ticker}</span>
                           </span>
                           {it.official?.fewAccount

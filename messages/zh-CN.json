@@ -1335,7 +1335,8 @@
     "riskPrev": "前值",
     "riskHigher": "高于预期",
     "riskLower": "低于预期",
-    "manipWatchTierWatch": "观察"
+    "manipWatchTierWatch": "弱信号",
+    "manipWatchTierStrong": "强信号"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

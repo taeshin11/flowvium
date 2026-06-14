@@ -1335,7 +1335,8 @@
     "riskPrev": "önceki",
     "riskHigher": "Yüksekse",
     "riskLower": "Düşükse",
-    "manipWatchTierWatch": "İzle"
+    "manipWatchTierWatch": "Zayıf",
+    "manipWatchTierStrong": "Güçlü"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

@@ -1335,7 +1335,8 @@
     "riskPrev": "trước",
     "riskHigher": "Nếu cao hơn",
     "riskLower": "Nếu thấp hơn",
-    "manipWatchTierWatch": "Theo dõi"
+    "manipWatchTierWatch": "Yếu",
+    "manipWatchTierStrong": "Mạnh"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

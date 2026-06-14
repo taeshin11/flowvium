@@ -1335,7 +1335,8 @@
     "riskPrev": "ก่อนหน้า",
     "riskHigher": "หากสูงกว่า",
     "riskLower": "หากต่ำกว่า",
-    "manipWatchTierWatch": "เฝ้าดู"
+    "manipWatchTierWatch": "สัญญาณอ่อน",
+    "manipWatchTierStrong": "สัญญาณแรง"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",
