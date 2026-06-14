@@ -92,6 +92,24 @@ if (etf.length) {
   if (noInvalidation === etf.length) issues.push({ sev: 'warn', section: 'etfStrategy', msg: `무효화조건/사이징 전무 — 'ETF 추천'을 exposure map 으로 격상 권장` });
 }
 
+// ── sectorAllocation 불변식 (2026-06-14): "semiconductors 중복·모순 stance" 사건 — 사용자가 잡고
+//   어떤 audit 도 못 잡던 사각지대. 불변식: 섹터는 1회(대소문자/어휘 무관)·stance 는 pct 와 정합.
+const sec = Array.isArray(report.sectorAllocation) ? report.sectorAllocation : [];
+if (sec.length) {
+  const norm = (s) => String(s ?? '').toLowerCase().replace(/[\s_/-]+/g, ' ').trim();
+  const seen = new Map();
+  for (const x of sec) { const k = norm(x.sector); if (!k) continue; seen.set(k, (seen.get(k) ?? 0) + 1); }
+  const dups = [...seen.entries()].filter(([, c]) => c > 1).map(([k]) => k);
+  if (dups.length) issues.push({ sev: 'fail', section: 'sectorAllocation', msg: `섹터 중복(대소문자/어휘) ${dups.join(', ')} — 동일 섹터가 모순 stance 로 분리(canonicalizeSectorAllocation 누락)` });
+  // stance ↔ pct 정합 (병합 pct 임계: ≥25 overweight, ≥12 neutral, else underweight)
+  const mismatch = sec.filter((x) => {
+    const p = Number(x.pct ?? x.weight ?? 0) || 0; const st = String(x.stance ?? '');
+    const expect = p >= 25 ? 'overweight' : p >= 12 ? 'neutral' : 'underweight';
+    return st && st !== expect;
+  });
+  if (mismatch.length > sec.length * 0.3) issues.push({ sev: 'warn', section: 'sectorAllocation', msg: `stance↔pct 불일치 ${mismatch.length}/${sec.length} — 병합 pct 로 stance 재계산 권장` });
+}
+
 // ── 결과 ────────────────────────────────────────────────────────────────────────
 const fails = issues.filter((i) => i.sev === 'fail');
 const warns = issues.filter((i) => i.sev === 'warn');
