@@ -39,6 +39,19 @@ async function dailyChart(ticker: string) {
 
 function median(arr: number[]) { const s = [...arr].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; }
 
+// 2026-06-14 (사용자 "4 시그니처가 최선? 더 나은 방법?"): KR 투자자 수급(Naver, keyless) — 개인/기관/외인
+//   순매수. 펌프&덤프 = 세력(기관+외인) 분산매도를 개인 FOMO 가 흡수하는 패턴. 권위 거래소 수급데이터.
+async function fetchKrInvestorFlow(code: string): Promise<{ indiv: number; foreign: number; organ: number } | null> {
+  try {
+    const r = await fetch(`https://m.stock.naver.com/api/stock/${code}/integration`, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return null;
+    const d = (await r.json())?.dealTrendInfos?.[0];
+    if (!d) return null;
+    const num = (v: unknown) => { const x = parseFloat(String(v ?? '').replace(/[^\d.\-]/g, '')); return Number.isFinite(x) ? x : 0; };
+    return { indiv: num(d.individualPureBuyQuant), foreign: num(d.foreignerPureBuyQuant), organ: num(d.organPureBuyQuant) };
+  } catch { return null; }
+}
+
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = await params;
   const t = (ticker || '').toUpperCase();
@@ -99,6 +112,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
     score = Math.max(score, sVol + sLiq >= 30 ? 45 : 32);
   }
 
+  // ── 투자자 수급 분산 신호 (KR, 5번째 시그니처) — 사용자 "더 나은 방법" ────────────────────
+  //   펌프&덤프 분산 단계: markup 에서 개인 순매수(FOMO) + 세력(기관+외인) 순매도 = 덤프 임박 흡수.
+  //   accumulation 단계: 세력 순매수 + 개인 비관심 = 매집 확인(사전 신호 강화). 권위 거래소 수급.
+  let investorFlow: { indiv: number; foreign: number; organ: number } | null = null;
+  if (isKR) {
+    investorFlow = await fetchKrInvestorFlow(t.replace(/\.(KS|KQ)$/, ''));
+    if (investorFlow) {
+      const smart = investorFlow.foreign + investorFlow.organ;  // 기관+외인 = 세력 프록시
+      if (isMarkup && investorFlow.indiv > 0 && smart < 0) {
+        score = Math.min(100, score + 18);
+        flags.push('수급 분산: 개인 순매수 흡수 / 기관·외인 순매도 — 펌프&덤프 분산(덤프 임박) 정황');
+      } else if (phase === 'accumulation' && smart > 0 && investorFlow.indiv <= 0) {
+        score = Math.min(100, score + 10);
+        flags.push('매집 확인: 기관·외인 순매수 / 개인 비관심 — 세력 매집 정황(사전)');
+      }
+    }
+  }
+
   const tier = score >= 75 ? 'severe' : score >= 55 ? 'high' : score >= 30 ? 'elevated' : 'low';
 
   return NextResponse.json({
@@ -111,9 +142,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
       runup5dPct: +runup5d.toFixed(1), runup20dPct: +runup20d.toFixed(1),
       volSpikeX: +volSpike.toFixed(1), medDollarVolUsd: Math.round(medDollarVol),
       revYoYPct: f?.revYoYPct ?? null,
+      investorFlow,  // {indiv, foreign, organ} 순매수량 (KR) | null
     },
     flags,
-    note: isKR ? 'KR: KRX 시장경보(투자주의/경고/위험) 권위 대조는 anti-bot 차단으로 미적용 — 결정론 스코어' : null,
-    source: 'deterministic-yahoo-daily+financials',
+    note: isKR ? 'KR: 결정론 4시그니처 + 투자자 수급 분산(개인 vs 기관·외인). KRX 공식 시장경보(투자주의/경고/위험) OTP 연동은 추가 작업 예정.' : null,
+    source: isKR ? 'deterministic-yahoo-daily+financials+naver-flow' : 'deterministic-yahoo-daily+financials',
   }, { headers: CDN });
 }
