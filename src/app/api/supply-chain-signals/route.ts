@@ -50,6 +50,11 @@ try {
       KR_CODE_TO_TICKER.set(m[1], t);
       const name = ct.meta?.[t]?.name;
       if (name && typeof name === 'string') KR_NAME_TO_TICKER.push([name.toLowerCase().trim(), t]);
+    } else if (/^[A-Z][A-Z.\-]{0,5}$/.test(String(t))) {
+      // 2026-06-14 (사용자 "공급망에 US 기업 왜 없냐"): US watchlist 를 37개 하드코딩 → candidate 풀(US ~873)
+      //   data-driven 확장(KR 이미 data-driven). FTS display_names 에서 ticker 직접추출하므로 풀 전체 매칭 →
+      //   포트폴리오/후보 US 기업의 8-K Material Agreement 가 표출됨.
+      WATCHLIST_TICKERS.add(String(t));
     }
   }
   KR_NAME_TO_TICKER.sort((a, b) => b[0].length - a[0].length); // 긴 이름 우선(부분문자열 오매칭 방지)
@@ -134,30 +139,37 @@ function classifyDartFiling(reportNm: string): { summary: string; conviction: nu
 async function fetchEdgar8K(): Promise<SupplyChainSignal[]> {
   const signals: SupplyChainSignal[] = [];
   try {
-    // EDGAR full-text search for 8-K contract-related filings (last 3 days)
+    // EDGAR full-text search for 8-K contract-related filings (last 3 days).
+    // 2026-06-14 fix (사용자 "공급망에 US 기업 왜 없냐"): 기존 URL 이 dateRange=custom & hits.hits._source
+    //   파라미터로 efts API 500("Internal server error") → US 8-K 0건, DART(KR)만 표출됐음. 또 응답 필드는
+    //   entity_name 이 아니라 display_names(["COMPANY (TICKER) (CIK …)"]) — 둘 다 수정.
     const today = new Date();
     const startDt = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const url = `https://efts.sec.gov/LATEST/search-index?q=%22Material+Definitive+Agreement%22&dateRange=custom&startdt=${startDt}&forms=8-K&hits.hits._source=file_date,entity_name,file_num,period_of_report`;
+    const endDt = today.toISOString().slice(0, 10);
+    const url = `https://efts.sec.gov/LATEST/search-index?q=%22Material+Definitive+Agreement%22&forms=8-K&startdt=${startDt}&enddt=${endDt}`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'FlowviumBot contact@flowvium.net' },
-      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'FlowVium research@flowvium.net' },
+      signal: AbortSignal.timeout(10000),
       cache: 'no-store',
     });
     if (!res.ok) { logger.warn('supply-chain-signals', 'edgar_http_error', { status: res.status }); return []; }
-    const data = await res.json() as { hits?: { hits?: Array<{ _source?: { entity_name?: string; file_date?: string; period_of_report?: string }; _id?: string }> } };
+    const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string }; _id?: string }> } };
     const hits = data.hits?.hits ?? [];
 
-    for (const hit of hits.slice(0, 20)) {
-      const entityName = hit._source?.entity_name?.toLowerCase() ?? '';
-      const fileDate = hit._source?.file_date ?? today.toISOString().slice(0, 10);
+    for (const hit of hits.slice(0, 100)) {
+      const dn = (hit._source?.display_names ?? [])[0] ?? '';  // "COMPANY NAME  (TICKER)  (CIK 000…)"
+      const secTicker = dn.match(/\(([A-Z][A-Z.\-]{0,5})\)/)?.[1] ?? null;
+      const companyName = dn.replace(/\s*\(.*$/, '').trim();
+      const fileDate = hit._source?.file_date ?? endDt;
       const filingId = hit._id ?? '';
 
-      // 감시 티커와 매칭
-      const ticker = Object.entries(NAME_TO_TICKER).find(([name]) => entityName.includes(name))?.[1];
+      // 감시 티커 매칭 — display_names 의 ticker 직접 우선, 없으면 회사명 NAME_TO_TICKER.
+      const ticker = (secTicker && WATCHLIST_TICKERS.has(secTicker)) ? secTicker
+        : Object.entries(NAME_TO_TICKER).find(([name]) => companyName.toLowerCase().includes(name))?.[1];
       if (!ticker || !WATCHLIST_TICKERS.has(ticker)) continue;
 
       // 공시 제목에서 신호 분류
-      const headlineRaw = hit._source?.entity_name ?? entityName;
+      const headlineRaw = companyName || ticker;
       const signal = CONTRACT_SIGNALS.find(s => s.re.test('Material Definitive Agreement'));
       if (!signal) continue;
 
