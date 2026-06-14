@@ -65,6 +65,8 @@ export const TRACKED_ENDPOINTS = [
   '/api/company-business/AAPL',
   // 2026-06-14: KRX 시장경보(투자주의/경고/위험·소수계좌 거래집중) 라이브 — DB 시계열 적재.
   '/api/market-alerts',
+  // 2026-06-14: 작전주 매집 워치리스트(오르기 前) — DB 시계열 적재.
+  '/api/accumulation-watch',
 ];
 
 async function fetchOne(baseUrl, path, timeoutMs = 12000) {
