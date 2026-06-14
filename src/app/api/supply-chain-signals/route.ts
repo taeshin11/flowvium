@@ -209,68 +209,105 @@ async function fetchEdgar8K(): Promise<SupplyChainSignal[]> {
   return signals;
 }
 
-// ── EDGAR EFTS 검색 (per-ticker, 최근 7일 8-K) ──────────────────────────────
-// 기존 Atom generic-40건 방식은 tracked ticker 매칭률 ~0% — per-ticker EFTS 검색으로 교체.
-const EFTS_TICKERS = ['NVDA','TSM','ASML','AMD','MU','MSFT','TSLA','LMT','RTX','LLY'];
+// ── EDGAR 회사별 8-K Item 1.01(Material Definitive Agreement) ────────────────────
+// 2026-06-14 (사용자 "us종목은 왜 수주계약 하나도 안나오냐"): 종전 EFTS 전문검색 q="nvda" 는
+//   'nvda' 를 *본문에 언급한* 무관 제출자(Canadian Derivatives Clearing 등)를 반환 → ticker 는 NVDA 인데
+//   headline 은 엉뚱한 회사인 garbage. 게다가 conviction top-30 컷에서 cascade/dart 에 밀려 0건 표출.
+//   → SEC submissions API(회사 CIK 별 제출 목록)로 교체: 추적 US 대형주의 *실제* 8-K Item 1.01 만 추출.
+//   주의: US 엔 KR DART '단일판매·공급계약' 같은 매출형 수주 전용 공시가 없다. 8-K Item 1.01 은
+//   대부분 차입/신용약정(동반 2.03)이라 라벨/conviction 을 정직하게 분리한다.
+const MONITOR_US_TICKERS = [
+  'NVDA','TSM','AMAT','LRCX','KLAC','MU','AMD','INTC','AVGO','QCOM','ARM',
+  'MSFT','GOOGL','AMZN','META','ORCL','ANET','SMCI',
+  'TSLA','LMT','RTX','NOC','LHX','LLY','PFE','MRNA','REGN',
+  'FSLR','ALB','FCX','NEE','BA','CAT','GE',
+];
+let CIK_MAP_CACHE: Record<string, string> | null = null;   // ticker → 10자리 CIK (모듈 수명 캐시)
+async function getCikMap(): Promise<Record<string, string>> {
+  if (CIK_MAP_CACHE) return CIK_MAP_CACHE;
+  try {
+    const res = await fetch('https://www.sec.gov/files/company_tickers.json', {
+      headers: { 'User-Agent': 'FlowVium research@flowvium.net', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(10000),
+      next: { revalidate: 86400 },   // ticker→CIK 맵은 하루 캐시(거의 불변)
+    });
+    if (!res.ok) return {};
+    const data = await res.json() as Record<string, { ticker: string; cik_str: number }>;
+    const want = new Set(MONITOR_US_TICKERS);
+    const map: Record<string, string> = {};
+    for (const k in data) {
+      const e = data[k];
+      if (want.has(e.ticker)) map[e.ticker] = String(e.cik_str).padStart(10, '0');
+    }
+    CIK_MAP_CACHE = map;
+    return map;
+  } catch { return {}; }
+}
 
 async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
   const signals: SupplyChainSignal[] = [];
   const t0 = Date.now();
-  const weekAgo = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10); // 7→14d
-  const today = new Date().toISOString().slice(0, 10);
-  let totalHits = 0, httpFails = 0;
+  const WINDOW_DAYS = 45;
+  const cutoff = new Date(Date.now() - WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
+  let scanned = 0, httpFails = 0;
   try {
-    // 병렬 fetch (sequential 시 Vercel 60s 한도에 걸림 + 누적 throttle)
-    const results = await Promise.all(EFTS_TICKERS.map(async ticker => {
-      const nameEntry = Object.entries(NAME_TO_TICKER).find(([, t]) => t === ticker);
-      const q = nameEntry ? nameEntry[0] : ticker.toLowerCase();
-      const url = `https://efts.sec.gov/LATEST/search-index?q=%22${encodeURIComponent(q)}%22&forms=8-K&dateRange=custom&startdt=${weekAgo}&enddt=${today}`;
-      try {
-        const res = await fetch(url, {
-          headers: { 'User-Agent': 'FlowviumBot contact@flowvium.net', 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(8000),
-          cache: 'no-store',
-        });
-        if (!res.ok) { httpFails++; return { ticker, hits: [] }; }
-        const data = await res.json() as { hits?: { hits?: Array<{ _source?: { display_names?: string[]; file_date?: string; items?: string[] }; _id?: string }> } };
-        return { ticker, hits: data?.hits?.hits ?? [] };
-      } catch { httpFails++; return { ticker, hits: [] }; }
-    }));
-
-    for (const { ticker, hits } of results) {
-      totalHits += hits.length;
-      for (const hit of hits.slice(0, 3)) {
-        const src = hit._source;
-        const displayName = src?.display_names?.[0] ?? ticker;
-        const fileDate = src?.file_date ?? today;
-        const items = (src?.items ?? []).join(', ');
-        const signal = CONTRACT_SIGNALS.find(s => s.re.test(items) || s.re.test(displayName));
-        // 매우 광범위: 8-K filing 자체를 supply-chain signal로 인정 (EFTS hits 살아남음)
-        // Item 1.01/7.01/8.01/2.02 (earnings)/5.02 (officer change) 등 거의 모든 supply-chain 관련
-        // 모든 8-K filing이 watchlist ticker라면 supply-chain signal로 간주
-        const downstream = inferDownstream(ticker, signal?.type ?? 'contract_win');
-        signals.push({
-          ticker,
-          companyName: displayName.split('(')[0].trim(),
-          signalType: (signal?.type ?? 'contract_win') as SupplyChainSignal['signalType'],
-          conviction: signal?.score ?? 60,
-          direction: ['contract_loss', 'supply_risk'].includes(signal?.type ?? '') ? 'negative' : 'positive',
-          headline: `${displayName} — ${items || '8-K filing'}`,
-          source: 'sec-8k',
-          date: fileDate,
-          downstreamBeneficiaries: downstream.beneficiaries,
-          upstreamRisks: downstream.risks,
-          whyMatters: downstream.beneficiaries.length ? `downstream 수혜: ${downstream.beneficiaries.slice(0, 3).join(', ')}`
-            : downstream.risks.length ? `upstream 리스크: ${downstream.risks.slice(0, 3).join(', ')}` : undefined,
-          evidenceUrl: hit._id ? `https://www.sec.gov/Archives/edgar/data/${hit._id.split(':')[0]}` : undefined,
-        });
-        if (signals.length >= 10) break;
+    const cikMap = await getCikMap();
+    const entries = Object.entries(cikMap);
+    if (!entries.length) { logger.warn('supply-chain-signals', 'edgar_cikmap_empty', {}); return []; }
+    // SEC rate-limit(≤10 req/s) 준수 — 8개씩 배치.
+    const BATCH = 8;
+    for (let b = 0; b < entries.length; b += BATCH) {
+      const batch = entries.slice(b, b + BATCH);
+      const batchRes = await Promise.all(batch.map(async ([ticker, cik]) => {
+        const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
+        try {
+          const res = await fetch(url, {
+            headers: { 'User-Agent': 'FlowVium research@flowvium.net', 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(8000),
+            cache: 'no-store',
+          });
+          if (!res.ok) { httpFails++; return null; }
+          const j = await res.json() as { name?: string; filings?: { recent?: { form: string[]; items: string[]; filingDate: string[]; accessionNumber: string[]; primaryDocument: string[] } } };
+          return { ticker, cik, name: j.name ?? ticker, recent: j.filings?.recent };
+        } catch { httpFails++; return null; }
+      }));
+      for (const r of batchRes) {
+        if (!r?.recent) continue;
+        scanned++;
+        const { form, items, filingDate, accessionNumber } = r.recent;
+        for (let i = 0; i < form.length && filingDate[i] >= cutoff; i++) {
+          if (form[i] !== '8-K') continue;
+          const itm = items[i] || '';
+          if (!itm.includes('1.01')) continue;   // Material Definitive Agreement 만
+          // 1.01+2.03(직접 재무의무 발생) = 차입/신용약정 → 공급망 신호 아님(financing). 정직하게 제외.
+          //   순수 사업계약(인수·공급·파트너십·라이선스)만 surface. US 엔 KR DART 수주공시 등가물이 없어
+          //   본질적으로 희소 — 없으면 빈 게 정직(garbage 로 채우지 않음).
+          if (itm.includes('2.03')) continue;
+          const cikNum = String(parseInt(r.cik, 10));
+          const accNo = (accessionNumber[i] || '').replace(/-/g, '');
+          signals.push({
+            ticker: r.ticker,
+            companyName: r.name,
+            signalType: 'contract_win',
+            conviction: 66,
+            direction: 'neutral',
+            headline: `8-K: ${r.name} — 주요 계약 체결(Material Definitive Agreement, Item 1.01)`,
+            source: 'sec-8k',
+            date: filingDate[i],
+            downstreamBeneficiaries: [],
+            upstreamRisks: [],
+            whyMatters: '주요 계약 공시 — 인수·공급·파트너십 등 사업 변화 가능(8-K 본문 확인 권장)',
+            evidenceUrl: accNo
+              ? `https://www.sec.gov/Archives/edgar/data/${cikNum}/${accNo}/`
+              : `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${r.cik}&type=8-K`,
+          });
+          break;   // 회사당 최신 1건만(중복·도배 방지)
+        }
       }
-      if (signals.length >= 10) break;
     }
-    logger.info('supply-chain-signals', 'edgar_efts_done', { tickers: EFTS_TICKERS.length, totalHits, httpFails, signals: signals.length, ms: Date.now() - t0 });
+    logger.info('supply-chain-signals', 'edgar_submissions_done', { monitored: entries.length, scanned, httpFails, signals: signals.length, ms: Date.now() - t0 });
   } catch (e) {
-    logger.warn('supply-chain-signals', 'edgar_efts_failed', { error: String(e), ms: Date.now() - t0 });
+    logger.warn('supply-chain-signals', 'edgar_submissions_failed', { error: String(e), ms: Date.now() - t0 });
   }
   return signals;
 }
@@ -546,12 +583,18 @@ export async function GET(request: Request) {
     .concat(dartSignals)
     .concat(staticSignals);
   const seen = new Set<string>();
-  const deduped = all.filter(s => {
+  const dedupedAll = all.filter(s => {
     const key = `${s.ticker}:${s.headline.slice(0, 40)}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).sort((a, b) => b.conviction - a.conviction).slice(0, 30);
+  }).sort((a, b) => b.conviction - a.conviction);
+  // 2026-06-14: US sec-8k 는 conviction(66) 이 dart(82-92)·cascade(70) 보다 낮아 top-30 컷에서 전멸하던
+  //   문제(사용자 "us 수주계약 왜 없냐") — 뉴스 region 쿼터처럼 sec-8k 에 최대 4슬롯 보장 후 나머지 conviction 순.
+  const SEC8K_QUOTA = 4;
+  const sec8k = dedupedAll.filter(s => s.source === 'sec-8k').slice(0, SEC8K_QUOTA);
+  const rest = dedupedAll.filter(s => s.source !== 'sec-8k').slice(0, 30 - sec8k.length);
+  const deduped = [...sec8k, ...rest].sort((a, b) => b.conviction - a.conviction);
 
   logger.info('supply-chain-signals', 'collected', {
     edgar: edgarAtomSignals.length,

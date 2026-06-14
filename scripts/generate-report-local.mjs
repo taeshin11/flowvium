@@ -7292,9 +7292,14 @@ async function generateViaOllama() {
     // S9: 공급망 변화 모니터링 (supply-chain-signals 데이터 직접 주입 — LLM 없이)
     // 2026-05-29: date 필드 추가 (사용자가 "언제 알게 됐는지" 인지 가능).
     // signalType 도 노출 — supply_risk / supply_expansion / demand_shift 등 분류.
-    supplyChainChanges: (ctxRaw.supplyChainSignals ?? [])
-      .filter(s => s.conviction >= 45)
-      .slice(0, 10)
+    supplyChainChanges: (() => {
+      // 2026-06-14: US sec-8k(주요계약)는 conviction 이 dart(82-92)·cascade(70)보다 낮아(66) top-10 컷에서
+      //   사라짐 — 사용자 "us 수주계약 왜 없냐". sec-8k 최대 3슬롯 보장 후 나머지 conviction 순으로 채움.
+      const pool = (ctxRaw.supplyChainSignals ?? []).filter(s => s.conviction >= 45);
+      const us = pool.filter(s => s.source === 'sec-8k').slice(0, 3);
+      const other = pool.filter(s => s.source !== 'sec-8k').slice(0, 10 - us.length);
+      return [...us, ...other];
+    })()
       .map(s => ({
         ticker: s.ticker,
         direction: s.direction ?? 'neutral',
