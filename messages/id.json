@@ -41,7 +41,7 @@
   "hero": {
     "title": "Temukan Risiko Rantai Pasok Tersembunyi",
     "subtitle": "Sebelum Menjadi Berita Utama",
-    "description": "AI menganalisis 1.300+ saham (rantai pasok, berita, aliran dana, sinyal makro) dan otomatis memberikan rekomendasi beli/jual, peringatan dini risiko, dan 5 laporan pasar per hari.",
+    "description": "AI menganalisis 1.300+ saham di rantai pasok, berita, arus dana dan makro — plus peringatan resmi bursa KR/US (konsentrasi sedikit akun, penghentian perdagangan SEC) — untuk mendeteksi akumulasi sebelum lonjakan dan membuat rekomendasi, peringatan dini risiko, dan 5 laporan harian.",
     "cta": "Mulai Jelajahi",
     "ctaSecondary": "Lihat Demo",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Kepemilikan institusional (EDGAR 13F) — Cron harian 02:00 UTC · Liputan media (Alpha Vantage) — 25 ticker/hari · Data dasar: penelitian 2026-Q1"
   },
   "home": {
-    "heroHeadline": "<accent>AI</accent> melacak aliran smart money dan menulis laporan investasi harian Anda",
+    "heroHeadline": "<accent>AI</accent> menangkap aliran smart money dan akumulasi sebelum lonjakan, dan menulis laporan harian Anda",
     "exploreSupplyChains": "Jelajahi Rantai Pasok",
     "viewSignals": "Lacak Akumulasi Institusional",
     "livePreview": "Pratinjau Langsung",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Pantauan Akumulasi",
     "manipWatchSubtitle": "Dugaan akumulasi pra-lonjakan (hanya pengamatan, bukan rekomendasi)",
     "manipWatchNote": "Penyaring KOSDAQ + konsentrasi resmi KRX pada sedikit akun. Untuk pengamatan risiko, bukan rekomendasi beli.",
-    "manipWatchFewAccount": "Sdkt akun"
+    "manipWatchFewAccount": "Sdkt akun",
+    "opportunityEmpty": "Tidak ada sinyal peluang saat ini — tidak ada short squeeze atau pembelian insider. Dipindai ulang tiap pembaruan.",
+    "manipWatchEmpty": "Tidak ada dugaan akumulasi pra-lonjakan saat ini — filter presisi tinggi (hanya sinyal kuat). Ditampilkan saat muncul pola kuat."
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

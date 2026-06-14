@@ -41,7 +41,7 @@
   "hero": {
     "title": "Descubra Riscos Ocultos na Cadeia de Suprimentos",
     "subtitle": "Antes Que Virem Manchete",
-    "description": "A IA analisa mais de 1.300 ações (cadeias de suprimento, notícias, fluxos e sinais macro) e entrega automaticamente recomendações, alertas antecipados de risco e 5 relatórios de mercado por dia.",
+    "description": "A IA analisa mais de 1.300 ações — cadeias de suprimentos, notícias, fluxos e macro — além de alertas oficiais das bolsas KR/US (concentração em poucas contas, suspensões da SEC) para detectar acumulação antes da alta e gerar recomendações, alertas de risco e 5 relatórios diários.",
     "cta": "Começar a Explorar",
     "ctaSecondary": "Ver Demonstração",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Posições institucionais (EDGAR 13F) — Cron diário 02:00 UTC · Cobertura de mídia (Alpha Vantage) — 25 tickers/dia · Dados base: pesquisa 2026-Q1"
   },
   "home": {
-    "heroHeadline": "A <accent>IA</accent> rastreia os fluxos de smart money e escreve seu relatório diário de investimentos",
+    "heroHeadline": "<accent>A IA</accent> capta os fluxos de smart money e a acumulação antes da alta e escreve seu relatório diário",
     "exploreSupplyChains": "Explorar cadeias de suprimentos",
     "viewSignals": "Rastrear Acumulação Institucional",
     "livePreview": "Preview ao vivo",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Vigilância de acumulação",
     "manipWatchSubtitle": "Suspeita de acumulação pré-alta (apenas observação, não recomendação)",
     "manipWatchNote": "Screener KOSDAQ + concentração oficial KRX em poucas contas. Para observação de risco, não recomendação de compra.",
-    "manipWatchFewAccount": "Poucas ctas"
+    "manipWatchFewAccount": "Poucas ctas",
+    "opportunityEmpty": "Sem sinais de oportunidade agora — sem short squeeze ou compras de insiders. Reescaneado a cada atualização.",
+    "manipWatchEmpty": "Sem acumulação pré-alta suspeita agora — filtro de alta precisão (só sinais fortes). Exibido quando surge um padrão forte."
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

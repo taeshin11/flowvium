@@ -41,7 +41,7 @@
   "hero": {
     "title": "Gizli Tedarik Zinciri Risklerini Keşfedin",
     "subtitle": "Manşetlere Çıkmadan Önce",
-    "description": "Yapay zeka 1.300+ hisseyi tedarik zinciri, haber, akış ve makro sinyallerle analiz eder; alım/satım önerileri, erken risk uyarıları ve günde 5 piyasa raporunu otomatik sunar.",
+    "description": "Yapay zeka 1.300+ hisseyi tedarik zincirleri, haberler, akışlar ve makro genelinde — ayrıca resmi KR/US borsa uyarıları (az hesap yoğunlaşması, SEC işlem durdurmaları) — analiz ederek yükseliş öncesi toplamayı tespit eder ve öneriler, erken risk uyarıları ve günde 5 rapor üretir.",
     "cta": "Keşfetmeye Başla",
     "ctaSecondary": "Demoyu İzle",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Kurumsal pozisyonlar (EDGAR 13F) — Günlük 02:00 UTC cron · Medya kapsamı (Alpha Vantage) — 25 ticker/gün · Temel veriler: 2026-Q1 araştırma"
   },
   "home": {
-    "heroHeadline": "<accent>Yapay zeka</accent> akıllı para akışlarını izler ve günlük yatırım raporunuzu yazar",
+    "heroHeadline": "<accent>Yapay zeka</accent> akıllı para akışlarını ve toplamayı yükseliş öncesi yakalar ve günlük raporunuzu yazar",
     "exploreSupplyChains": "Tedarik Zincirlerini Keşfedin",
     "viewSignals": "Kurumsal Birikimi Takip Et",
     "livePreview": "Canlı Önizleme",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Toplama İzleme",
     "manipWatchSubtitle": "Yükseliş öncesi toplama şüphesi (yalnızca gözlem, tavsiye değil)",
     "manipWatchNote": "KOSDAQ tarayıcı + KRX resmi az-hesap yoğunlaşması çapraz kontrolü. Risk gözlemi için, alım tavsiyesi değil.",
-    "manipWatchFewAccount": "Az hesap"
+    "manipWatchFewAccount": "Az hesap",
+    "opportunityEmpty": "Şu anda fırsat sinyali yok — short squeeze veya içeriden alım yoğunluğu yok. Her güncellemede yeniden taranır.",
+    "manipWatchEmpty": "Şu anda yükseliş öncesi toplama şüphesi yok — yüksek hassasiyetli filtre (yalnızca güçlü öncü sinyaller). Güçlü kurulumda gösterilir."
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

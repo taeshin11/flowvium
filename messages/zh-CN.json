@@ -41,7 +41,7 @@
   "hero": {
     "title": "发现隐藏的供应链风险",
     "subtitle": "在成为新闻之前",
-    "description": "AI综合分析1,300+只股票的供应链、新闻、资金流与宏观信号，自动提供买卖建议、风险预警和每日5次市场报告。",
+    "description": "AI综合分析1,300+只股票的供应链、新闻、资金流向与宏观，并加入韩美交易所官方市场警报（少数账户交易集中、SEC暂停交易），在拉升前检测吸筹，自动生成买卖建议、风险预警和每日5份报告。",
     "cta": "开始探索",
     "ctaSecondary": "观看演示",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "机构持仓（EDGAR 13F）— 每日02:00 UTC定时 · 媒体报道（Alpha Vantage）— 每日25个标的 · 静态基准：2026-Q1研究"
   },
   "home": {
-    "heroHeadline": "<accent>AI</accent>追踪聪明钱的流向，并为您撰写每日投资报告",
+    "heroHeadline": "<accent>AI</accent>在拉升前捕捉聪明钱流向与吸筹，并为您撰写每日投资报告",
     "exploreSupplyChains": "探索供应链",
     "viewSignals": "追踪机构建仓",
     "livePreview": "实时供应链预览",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "吸筹监视",
     "manipWatchSubtitle": "拉升前吸筹嫌疑（仅供观察，非推荐）",
     "manipWatchNote": "KOSDAQ筛选 + 韩国交易所官方少数账户交易集中交叉验证。仅供风险观察，非买入推荐。",
-    "manipWatchFewAccount": "少数账户"
+    "manipWatchFewAccount": "少数账户",
+    "opportunityEmpty": "当前无机会信号 — 无轧空或内部人买入集中。每次更新重新扫描。",
+    "manipWatchEmpty": "当前无拉升前吸筹嫌疑个股 — 高精度筛选（仅强先行迹象通过）。出现强信号时显示。"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

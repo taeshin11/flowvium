@@ -41,7 +41,7 @@
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",
     "subtitle": "Trước khi chúng trở thành tin nóng",
-    "description": "AI phân tích hơn 1.300 cổ phiếu qua chuỗi cung ứng, tin tức, dòng tiền và tín hiệu vĩ mô — tự động đưa ra khuyến nghị mua/bán, cảnh báo rủi ro sớm và 5 báo cáo thị trường mỗi ngày.",
+    "description": "AI phân tích hơn 1.300 cổ phiếu trên chuỗi cung ứng, tin tức, dòng tiền và vĩ mô — cùng cảnh báo chính thức của sàn KR/US (tập trung ít tài khoản, ngừng giao dịch của SEC) — để phát hiện gom hàng trước khi tăng và tự tạo khuyến nghị, cảnh báo rủi ro sớm và 5 báo cáo mỗi ngày.",
     "cta": "Bắt đầu khám phá",
     "ctaSecondary": "Xem demo",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Nắm giữ thể chế (EDGAR 13F) — Cron hàng ngày 02:00 UTC · Phủ sóng truyền thông (Alpha Vantage) — 25 ticker/ngày · Dữ liệu cơ sở: nghiên cứu 2026-Q1"
   },
   "home": {
-    "heroHeadline": "<accent>AI</accent> theo dõi dòng tiền thông minh và viết báo cáo đầu tư hằng ngày cho bạn",
+    "heroHeadline": "<accent>AI</accent> bắt dòng tiền thông minh và gom hàng trước khi tăng, và viết báo cáo hằng ngày cho bạn",
     "exploreSupplyChains": "Khám phá chuỗi cung ứng",
     "viewSignals": "Theo dõi tích lũy tổ chức",
     "livePreview": "Xem trước trực tiếp",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Theo dõi gom hàng",
     "manipWatchSubtitle": "Nghi ngờ gom hàng trước khi tăng (chỉ để quan sát, không phải khuyến nghị)",
     "manipWatchNote": "Bộ lọc KOSDAQ + tập trung ít tài khoản chính thức của KRX. Để quan sát rủi ro, không phải khuyến nghị mua.",
-    "manipWatchFewAccount": "Ít TK"
+    "manipWatchFewAccount": "Ít TK",
+    "opportunityEmpty": "Hiện không có tín hiệu cơ hội — không có short squeeze hay mua gom nội bộ. Quét lại mỗi lần cập nhật.",
+    "manipWatchEmpty": "Hiện không có cổ phiếu nghi gom hàng trước khi tăng — bộ lọc độ chính xác cao (chỉ tín hiệu dẫn mạnh). Hiển thị khi xuất hiện thiết lập mạnh."
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

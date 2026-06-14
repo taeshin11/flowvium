@@ -41,7 +41,7 @@
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
     "subtitle": "Before They Become Headlines",
-    "description": "AI analyzes 1,300+ stocks across supply chains, news, flows and macro signals — and automatically delivers buy/sell picks, early risk warnings, and 5 market reports a day.",
+    "description": "AI analyzes 1,300+ stocks across supply chains, news, fund flows and macro — plus official KR/US exchange alerts (few-account concentration, SEC trading suspensions) — to detect accumulation before the run-up and auto-generate buy/sell picks, early risk warnings and 5 daily reports.",
     "cta": "Start Exploring",
     "ctaSecondary": "Watch Demo",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Institutional holdings (EDGAR 13F) — Daily 02:00 UTC cron · Media coverage (Alpha Vantage) — 25 tickers/day · Static baseline: 2026-Q1 research"
   },
   "home": {
-    "heroHeadline": "<accent>AI</accent> tracks smart money flows and writes your daily investment report",
+    "heroHeadline": "<accent>AI</accent> catches smart-money flows and accumulation before the run-up, and writes your daily report",
     "exploreSupplyChains": "Explore Supply Chains",
     "viewSignals": "Track Institutional Accumulation",
     "livePreview": "Live Supply Chain Preview",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Accumulation Watch",
     "manipWatchSubtitle": "Suspected pre-spike accumulation (watch only, not a recommendation)",
     "manipWatchNote": "KOSDAQ screener + KRX official few-account concentration cross-check. For risk observation, not a buy recommendation.",
-    "manipWatchFewAccount": "Few-Acct"
+    "manipWatchFewAccount": "Few-Acct",
+    "opportunityEmpty": "No opportunity signals right now — no short-squeeze or insider-buy clusters. Re-scanned each update.",
+    "manipWatchEmpty": "No suspected pre-spike accumulation right now — high-precision filter (only strong leading signs pass). Shown when a strong setup appears."
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

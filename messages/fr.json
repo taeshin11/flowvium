@@ -41,7 +41,7 @@
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",
     "subtitle": "Avant qu'ils ne fassent la une",
-    "description": "L'IA analyse plus de 1 300 actions (chaînes d'approvisionnement, actualités, flux, signaux macro) et fournit automatiquement des recommandations, des alertes précoces et 5 rapports de marché par jour.",
+    "description": "L'IA analyse plus de 1 300 actions — chaînes d'approvisionnement, actualités, flux et macro — plus les alertes officielles des bourses KR/US (concentration sur peu de comptes, suspensions SEC) pour détecter l'accumulation avant la hausse et générer recommandations, alertes de risque et 5 rapports quotidiens.",
     "cta": "Commencer l'exploration",
     "ctaSecondary": "Voir la démo",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Positions institutionnelles (EDGAR 13F) — Cron quotidien 02:00 UTC · Couverture médias (Alpha Vantage) — 25 tickers/jour · Données base: recherche 2026-Q1"
   },
   "home": {
-    "heroHeadline": "L'<accent>IA</accent> suit les flux de smart money et rédige votre rapport d'investissement quotidien",
+    "heroHeadline": "<accent>L'IA</accent> repère les flux de smart money et l'accumulation avant la hausse, et rédige votre rapport quotidien",
     "exploreSupplyChains": "Explorer les chaînes d'approvisionnement",
     "viewSignals": "Suivre l'accumulation institutionnelle",
     "livePreview": "Aperçu en direct de la chaîne d'approvisionnement",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Surveillance d'accumulation",
     "manipWatchSubtitle": "Soupçon d’accumulation avant flambée (observation seule, pas une recommandation)",
     "manipWatchNote": "Screener KOSDAQ + concentration officielle KRX sur peu de comptes. Pour observation du risque, pas une recommandation d’achat.",
-    "manipWatchFewAccount": "Peu cptes"
+    "manipWatchFewAccount": "Peu cptes",
+    "opportunityEmpty": "Aucun signal d'opportunité pour l'instant — pas de short squeeze ni d'achats d'initiés. Réanalysé à chaque mise à jour.",
+    "manipWatchEmpty": "Aucune accumulation pré-hausse suspecte pour l'instant — filtre haute précision (seuls signaux forts). Affiché quand un setup fort apparaît."
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

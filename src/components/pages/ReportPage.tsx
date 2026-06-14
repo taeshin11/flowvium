@@ -1109,10 +1109,19 @@ export default function ReportPage() {
             </div>
           ) : null}
 
+          {/* 기회 신호 빈 상태 — 섹션 숨김 대신 "현재 포착 없음" 표시(사용자 "섹션은 살리는게") */}
+          {!((data.shortSqueeze?.length ?? 0) > 0 || (data.insiderSignals?.length ?? 0) > 0) && (
+            <div className="mb-5 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
+              <p className="text-sm font-bold text-orange-800 mb-1.5">⚡ {t('opportunitySignalsTitle')}</p>
+              <p className="text-xs text-orange-700/70">{t('opportunityEmpty')}</p>
+            </div>
+          )}
+
           {/* ── 작전주 매집 감시 (2026-06-14): 기회포착 다음 배치(사용자 지정). 오르기 前 매집 + KRX 소수계좌 ── */}
           {(() => {
             const mw = (data as unknown as { manipulationWatch?: { items?: Array<{ ticker: string; name: string; score: number; signals?: string[]; official?: { fewAccount?: boolean; reason?: string | null } | null; runup20dPct?: number | null }>; officialFewAccount?: number; stale?: boolean } }).manipulationWatch;
-            if (!mw?.items?.length) return null;
+            if (!mw) return null;                         // 필드 자체 없는 구버전 보고서만 숨김
+            const items = mw.items ?? [];
             return (
               <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 mb-5">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -1121,19 +1130,23 @@ export default function ReportPage() {
                   <span className="text-[11px] font-medium text-rose-600">{t('manipWatchSubtitle')}</span>
                   {mw.stale && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">stale</span>}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {mw.items.slice(0, 8).map((it, i) => (
-                    <Link key={`${it.ticker}-${i}`} href={`/${locale}/company/${it.ticker}`} className="block rounded-lg bg-white border border-rose-200 p-2.5 hover:border-rose-400 transition-colors">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="font-bold text-sm text-gray-800 truncate">{it.name} <span className="font-mono text-[10px] text-gray-400">{it.ticker}</span></span>
-                        {it.official?.fewAccount
-                          ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500 text-white font-bold shrink-0">{t('manipWatchFewAccount')}</span>
-                          : <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-700 font-bold shrink-0 tabular-nums">{it.score}</span>}
-                      </div>
-                      <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{(it.signals ?? []).slice(0, 3).join(' · ')}</p>
-                    </Link>
-                  ))}
-                </div>
+                {items.length ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {items.slice(0, 8).map((it, i) => (
+                      <Link key={`${it.ticker}-${i}`} href={`/${locale}/company/${it.ticker}`} className="block rounded-lg bg-white border border-rose-200 p-2.5 hover:border-rose-400 transition-colors">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="font-bold text-sm text-gray-800 truncate">{it.name} <span className="font-mono text-[10px] text-gray-400">{it.ticker}</span></span>
+                          {it.official?.fewAccount
+                            ? <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500 text-white font-bold shrink-0">{t('manipWatchFewAccount')}</span>
+                            : <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-700 font-bold shrink-0 tabular-nums">{it.score}</span>}
+                        </div>
+                        <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{(it.signals ?? []).slice(0, 3).join(' · ')}</p>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-rose-700/70">{t('manipWatchEmpty')}</p>
+                )}
                 <p className="text-[10px] text-rose-600/70 mt-2">{t('manipWatchNote')}</p>
               </div>
             );

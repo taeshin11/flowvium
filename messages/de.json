@@ -41,7 +41,7 @@
   "hero": {
     "title": "Verborgene Lieferkettenrisiken aufdecken",
     "subtitle": "Bevor sie Schlagzeilen machen",
-    "description": "Die KI analysiert über 1.300 Aktien (Lieferketten, Nachrichten, Kapitalflüsse, Makrosignale) und liefert automatisch Kauf-/Verkaufsempfehlungen, Frühwarnungen und 5 Marktberichte pro Tag.",
+    "description": "Die KI analysiert über 1.300 Aktien — Lieferketten, News, Flüsse und Makro — plus offizielle Börsenwarnungen aus KR/US (Konzentration auf wenige Konten, SEC-Handelsaussetzungen), um Akkumulation vor dem Anstieg zu erkennen und Empfehlungen, Frühwarnungen und 5 Tagesreports zu erstellen.",
     "cta": "Jetzt erkunden",
     "ctaSecondary": "Demo ansehen",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Institutionelle Positionen (EDGAR 13F) — Täglich 02:00 UTC Cron · Medienberichterstattung (Alpha Vantage) — 25 Ticker/Tag · Basisdaten: 2026-Q1 Forschung"
   },
   "home": {
-    "heroHeadline": "Die <accent>KI</accent> verfolgt Smart-Money-Ströme und schreibt Ihren täglichen Anlagebericht",
+    "heroHeadline": "<accent>KI</accent> erkennt Smart-Money-Flüsse und Akkumulation vor dem Anstieg und schreibt Ihren täglichen Report",
     "exploreSupplyChains": "Lieferketten erkunden",
     "viewSignals": "Institutionelle Akkumulation verfolgen",
     "livePreview": "Live-Vorschau der Lieferkette",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Akkumulations-Überwachung",
     "manipWatchSubtitle": "Verdacht auf Akkumulation vor Anstieg (nur Beobachtung, keine Empfehlung)",
     "manipWatchNote": "KOSDAQ-Screener + offizielle KRX-Konzentration auf wenige Konten. Zur Risikobeobachtung, keine Kaufempfehlung.",
-    "manipWatchFewAccount": "Wen. Konten"
+    "manipWatchFewAccount": "Wen. Konten",
+    "opportunityEmpty": "Derzeit keine Chancensignale — kein Short Squeeze oder Insider-Käufe. Bei jeder Aktualisierung neu gescannt.",
+    "manipWatchEmpty": "Derzeit keine verdächtige Akkumulation vor Anstieg — Hochpräzisionsfilter (nur starke Frühsignale). Angezeigt bei starkem Setup."
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

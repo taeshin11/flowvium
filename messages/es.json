@@ -41,7 +41,7 @@
   "hero": {
     "title": "Descubre Riesgos Ocultos en la Cadena de Suministro",
     "subtitle": "Antes de que sean noticia",
-    "description": "La IA analiza más de 1.300 acciones (cadenas de suministro, noticias, flujos y señales macro) y entrega automáticamente recomendaciones, alertas tempranas de riesgo y 5 informes de mercado al día.",
+    "description": "La IA analiza más de 1.300 acciones —cadenas de suministro, noticias, flujos y macro— más las alertas oficiales de las bolsas de Corea/EE. UU. (concentración en pocas cuentas, suspensiones de la SEC) para detectar acumulación antes de la subida y generar recomendaciones, alertas de riesgo y 5 informes diarios.",
     "cta": "Comenzar a Explorar",
     "ctaSecondary": "Ver Demo",
     "features": {
@@ -494,7 +494,7 @@
     "dataScheduleDetail": "Posiciones institucionales (EDGAR 13F) — Cron diario 02:00 UTC · Cobertura de medios (Alpha Vantage) — 25 tickers/día · Datos base: investigación 2026-Q1"
   },
   "home": {
-    "heroHeadline": "La <accent>IA</accent> rastrea los flujos de dinero inteligente y redacta tu informe de inversión diario",
+    "heroHeadline": "<accent>La IA</accent> detecta los flujos de dinero inteligente y la acumulación antes de la subida, y escribe tu informe diario",
     "exploreSupplyChains": "Explorar Cadenas de Suministro",
     "viewSignals": "Rastrear Acumulación Institucional",
     "livePreview": "Vista Previa en Vivo de la Cadena de Suministro",
@@ -1311,7 +1311,9 @@
     "manipWatchTitle": "Vigilancia de acumulación",
     "manipWatchSubtitle": "Sospecha de acumulación pre-subida (solo observación, no recomendación)",
     "manipWatchNote": "Cribador KOSDAQ + concentración oficial KRX en pocas cuentas. Para observación de riesgo, no recomendación de compra.",
-    "manipWatchFewAccount": "Pocas ctas"
+    "manipWatchFewAccount": "Pocas ctas",
+    "opportunityEmpty": "Sin señales de oportunidad ahora — sin short squeeze ni compras de insiders. Se reescanea en cada actualización.",
+    "manipWatchEmpty": "Sin acumulación pre-subida sospechosa ahora — filtro de alta precisión (solo señales fuertes). Se muestra cuando aparece un patrón fuerte."
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",
