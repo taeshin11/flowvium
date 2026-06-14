@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "Em carteira",
     "companyChangesNextCheck": "Próx. verificação",
     "riskExposure": "Expostos",
-    "etfInvalidation": "Invalidação"
+    "etfInvalidation": "Invalidação",
+    "riskEstimate": "Est.",
+    "riskPrev": "ant.",
+    "riskHigher": "Se maior",
+    "riskLower": "Se menor"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

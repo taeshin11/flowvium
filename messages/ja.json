@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "保有",
     "companyChangesNextCheck": "次の確認",
     "riskExposure": "影響銘柄",
-    "etfInvalidation": "無効化"
+    "etfInvalidation": "無効化",
+    "riskEstimate": "予想",
+    "riskPrev": "前回",
+    "riskHigher": "予想超なら",
+    "riskLower": "予想割れなら"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "持有",
     "companyChangesNextCheck": "下次关注",
     "riskExposure": "受影响标的",
-    "etfInvalidation": "失效条件"
+    "etfInvalidation": "失效条件",
+    "riskEstimate": "预期",
+    "riskPrev": "前值",
+    "riskHigher": "高于预期",
+    "riskLower": "低于预期"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

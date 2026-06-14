@@ -460,6 +460,19 @@ function RiskEventRow({ event }: { event: RiskEvent }) {
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{event.watchFor}</p>
+        {/* 2026-06-14: 예상치(consensus) + 예상 대비 서프라이즈 영향 */}
+        {event.estimate ? (
+          <p className="text-[11px] text-gray-700 mt-1 leading-relaxed">
+            📊 {t('riskEstimate')}: <span className="font-semibold">{event.estimate}</span>
+            {event.previous ? <span className="opacity-60"> ({t('riskPrev')} {event.previous})</span> : null}
+          </p>
+        ) : null}
+        {event.surpriseHigh ? (
+          <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">▲ {t('riskHigher')}: {event.surpriseHigh}</p>
+        ) : null}
+        {event.surpriseLow ? (
+          <p className="text-[10px] text-gray-500 leading-relaxed">▼ {t('riskLower')}: {event.surpriseLow}</p>
+        ) : null}
         {/* 2026-06-14: 포트폴리오 민감도 (노출 종목·영향채널·액션) */}
         {event.affectedPortfolio?.length ? (
           <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">

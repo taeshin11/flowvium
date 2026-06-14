@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "محتفظ به",
     "companyChangesNextCheck": "الفحص التالي",
     "riskExposure": "المعرّضة",
-    "etfInvalidation": "الإبطال"
+    "etfInvalidation": "الإبطال",
+    "riskEstimate": "متوقع",
+    "riskPrev": "سابق",
+    "riskHigher": "إذا أعلى",
+    "riskLower": "إذا أقل"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "Đang nắm giữ",
     "companyChangesNextCheck": "Kiểm tra tiếp",
     "riskExposure": "Bị ảnh hưởng",
-    "etfInvalidation": "Vô hiệu hóa"
+    "etfInvalidation": "Vô hiệu hóa",
+    "riskEstimate": "Dự báo",
+    "riskPrev": "trước",
+    "riskHigher": "Nếu cao hơn",
+    "riskLower": "Nếu thấp hơn"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

@@ -2573,16 +2573,25 @@ function enrichCompanyChangeEvents(companyChanges, heldSet) {
  * (노출종목/임계/액션 부재)" 으로 ⚠️ 하던 섹션. 거시 이벤트 → 영향채널(노출 섹터) → 보유 종목 매핑.
  *   "숫자/매핑은 코드가": 이벤트 키워드 → 민감 섹터 → 보유 portfolio.sector 교차 → affectedPortfolio.
  */
+//   2026-06-14 (사용자 "예상이 얼마고 예상보다 낮/높을시 영향"): 이벤트 유형별 예상 대비 서프라이즈 영향(방향성).
 const RISK_EVENT_EXPOSURE = [
-  { re: /금리|FOMC|fed|기준금리|\brate\b|연준|금통위|국채|수익률|treasury|yield/i, sectors: ['semiconductors', 'technology', 'software', 'growth', 'real estate', 'reits', 'utilities'], label: '금리민감(성장·장기듀레이션)' },
-  { re: /CPI|인플레|물가|PCE|소비자물가|inflation/i, sectors: ['consumer', 'retail', 'energy', 'materials', 'consumer discretionary', 'consumer staples'], label: '인플레민감(소비·에너지)' },
-  { re: /소비|소매|retail|consumer|판매|sales/i, sectors: ['consumer', 'retail', 'consumer discretionary', 'consumer staples'], label: '소비섹터' },
-  { re: /GDP|성장률|제조업|PMI|생산|industrial|manufactur/i, sectors: ['industrials', 'materials', 'semiconductors', 'energy'], label: '경기민감(시클리컬)' },
-  { re: /BOJ|ECB|중앙은행|환율|달러|\bFX\b|위안|\byen\b|currency/i, sectors: ['technology', 'semiconductors', 'automotive', 'auto manufacturers'], label: '환율·수출' },
-  { re: /고용|실업|payroll|NFP|jobs|일자리|employment/i, sectors: [], label: '광범위 위험선호' },
+  { re: /금리|FOMC|fed|기준금리|\brate\b|연준|금통위|국채|수익률|treasury|yield/i, sectors: ['semiconductors', 'technology', 'software', 'growth', 'real estate', 'reits', 'utilities'], label: '금리민감(성장·장기듀레이션)',
+    high: '예상보다 매파(금리↑/동결 장기화) → 성장·반도체·리츠 압박', low: '예상보다 비둘기(인하 시사) → 성장·반도체 수혜' },
+  { re: /CPI|인플레|물가|PCE|소비자물가|inflation/i, sectors: ['consumer', 'retail', 'energy', 'materials', 'consumer discretionary', 'consumer staples'], label: '인플레민감(소비·에너지)',
+    high: '예상 상회(인플레 지속) → 금리인하 지연, 성장주 압박', low: '예상 하회(둔화) → 인하 기대, 성장주 수혜' },
+  { re: /소비|소매|retail|consumer|판매|sales/i, sectors: ['consumer', 'retail', 'consumer discretionary', 'consumer staples'], label: '소비섹터',
+    high: '예상 상회(소비 견조) → 경기소비재 수혜', low: '예상 하회(소비 둔화) → 침체 우려, 소비재 압박' },
+  { re: /GDP|성장률|제조업|PMI|생산|industrial|manufactur/i, sectors: ['industrials', 'materials', 'semiconductors', 'energy'], label: '경기민감(시클리컬)',
+    high: '예상 상회(경기 견조) → 시클리컬·반도체 수혜', low: '예상 하회(둔화) → 침체 우려, 시클리컬 압박' },
+  { re: /BOJ|ECB|중앙은행|환율|달러|\bFX\b|위안|\byen\b|currency/i, sectors: ['technology', 'semiconductors', 'automotive', 'auto manufacturers'], label: '환율·수출',
+    high: '달러 강세 → 수출주(반도체·자동차) 환차익 vs 신흥국 부담', low: '달러 약세 → 수출 경쟁력 약화, 원자재 강세' },
+  { re: /고용|실업|payroll|NFP|jobs|일자리|employment/i, sectors: [], label: '광범위 위험선호',
+    high: '예상 상회(고용 견조) → 견조하나 금리인하 지연 우려', low: '예상 하회(고용 둔화) → 침체 vs 인하 기대 상충' },
 ];
-function enrichRiskEvents(riskEvents, portfolio) {
+function fmtEst(v, unit) { return v == null ? null : `${v}${unit === '%' ? '%' : unit ? ' ' + unit : ''}`; }
+function enrichRiskEvents(riskEvents, portfolio, econCalEvents = []) {
   const holds = (portfolio ?? []).filter(p => p?.ticker);
+  const cal = Array.isArray(econCalEvents) ? econCalEvents : [];
   let n = 0;
   for (const e of (riskEvents ?? [])) {
     if (!e || typeof e !== 'object' || e.affectedPortfolio || e.action) continue;
@@ -2596,9 +2605,16 @@ function enrichRiskEvents(riskEvents, portfolio) {
     e.exposureChannel = prof?.label ?? '광범위';
     e.affectedPortfolio = affected.slice(0, 5);
     e.action = e.impact === 'high' ? '노출 종목 비중·헤지 점검(발표 전)' : e.impact === 'medium' ? '관망 — 발표 후 노출 종목 재평가' : '영향 제한적 — 모니터';
+    // 예상치(consensus) — econCal(estimate/prev) 매칭. 날짜+*유형 일치*까지 요구(같은 날 FOMC 3.75%가 소매판매에
+    //   잘못 붙는 cross-contamination 방지). 유형 = 동일 RISK_EVENT_EXPOSURE 프로파일. 숫자는 데이터 소스, 없으면 null.
+    const match = cal.find(c => c.date === e.date && c.estimate != null
+      && RISK_EVENT_EXPOSURE.find(p => p.re.test(String(c.event ?? ''))) === prof);
+    if (match) { e.estimate = fmtEst(match.estimate, match.unit); e.previous = fmtEst(match.prev, match.unit); }
+    // 예상 대비 서프라이즈 영향(방향성) — 이벤트 유형 결정론.
+    if (prof?.high) { e.surpriseHigh = prof.high; e.surpriseLow = prof.low; }
     n++;
   }
-  if (n > 0) console.log(`  [후처리] riskEvents 포트폴리오 민감도 ${n}개 주입`);
+  if (n > 0) console.log(`  [후처리] riskEvents 포트폴리오 민감도 + 예상치/서프라이즈 ${n}개 주입`);
   return riskEvents;
 }
 
@@ -2624,6 +2640,41 @@ function enrichEtfStrategy(etfStrategy) {
   }
   if (n > 0) console.log(`  [후처리] etfStrategy 사이징/무효화조건 ${n}개 주입`);
   return etfStrategy;
+}
+
+// 2026-06-14: sectorAllocation 정규화 dedup — 사용자 "semiconductors 하나는 중립·하나는 비중축소" 사건.
+//   portfolio.sector 가 두 어휘(Yahoo 'Semiconductors' + 내부 kebab 'semiconductors'/'it-software') 혼재 →
+//   case-sensitive Map 이 동일 섹터 중복 생성·모순 stance. 불변식: 섹터는 1회·1 stance. 병합 pct 로 stance 재계산.
+const SECTOR_DISPLAY = {
+  'semiconductors': 'Semiconductors', 'it software': 'IT/Software', 'ai cloud': 'AI/Cloud',
+  'pharma biotech': 'Pharma/Biotech', 'financials': 'Financials', 'industrials': 'Industrials',
+  'consumer defensive': 'Consumer Defensive', 'consumer cyclical': 'Consumer Cyclical',
+  'electrical equipment': 'Electrical Equipment', 'technology': 'Technology', 'energy': 'Energy',
+  'healthcare': 'Healthcare', 'materials': 'Materials', 'utilities': 'Utilities', 'real estate': 'Real Estate',
+  'communication services': 'Communication Services', 'other': 'Other', 'unknown': 'Other',
+};
+function sectorKey(s) { return String(s ?? '').toLowerCase().replace(/[\s_/-]+/g, ' ').trim(); }
+function sectorDisplay(s) {
+  const k = sectorKey(s);
+  return SECTOR_DISPLAY[k] ?? String(s ?? '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+}
+function canonicalizeSectorAllocation(rows) {
+  const byKey = new Map();
+  for (const r of (rows ?? [])) {
+    const k = sectorKey(r.sector);
+    if (!k) continue;
+    const pct = Number(r.pct ?? r.weight ?? 0) || 0;
+    const e = byKey.get(k) ?? { display: sectorDisplay(r.sector), pct: 0, reason: r.reason };
+    e.pct += pct;
+    if (!e.reason && r.reason) e.reason = r.reason;
+    byKey.set(k, e);
+  }
+  const merged = byKey.size;
+  const out = [...byKey.values()]
+    .map(e => ({ sector: e.display, pct: Math.round(e.pct), stance: e.pct >= 25 ? 'overweight' : e.pct >= 12 ? 'neutral' : 'underweight', reason: e.reason ?? `portfolio ${Math.round(e.pct)}% 노출` }))
+    .sort((a, b) => b.pct - a.pct);
+  if ((rows?.length ?? 0) > merged) console.log(`  [후처리] sectorAllocation 정규화 dedup ${rows.length}→${merged} (대소문자/어휘 중복 병합)`);
+  return out;
 }
 
 /**
@@ -7141,9 +7192,9 @@ async function generateViaOllama() {
   const now = new Date().toISOString();
   // 2026-05-30: sectorAllocation fallback — qwen3:8b 가 portfolio 후 sectorAllocation 잊고 종료 빈번.
   // portfolio 의 sector + allocation 합산으로 자동 생성 (LLM 응답에 sectorAllocation 있으면 우선).
-  const sectorAllocationFallback = (() => {
+  const sectorAllocationFallback = canonicalizeSectorAllocation((() => {
     if (Array.isArray(portfolioData.sectorAllocation) && portfolioData.sectorAllocation.length > 0) {
-      return portfolioData.sectorAllocation;
+      return portfolioData.sectorAllocation;  // LLM 제공 — canonicalize 가 dedup/정규화(아래 chokepoint)
     }
     const byCat = new Map();
     for (const p of dedupedPortfolio) {
@@ -7151,11 +7202,11 @@ async function generateViaOllama() {
       byCat.set(key, (byCat.get(key) ?? 0) + (p.allocation ?? 0));
     }
     const rows = [...byCat.entries()]
-      .map(([sector, pct]) => ({ sector, pct: Math.round(pct), stance: pct >= 25 ? 'overweight' : pct >= 12 ? 'neutral' : 'underweight', reason: `portfolio ${pct.toFixed(0)}% 노출` }))
+      .map(([sector, pct]) => ({ sector, pct: Math.round(pct), reason: `portfolio ${pct.toFixed(0)}% 노출` }))  // stance 는 canonicalize 가 병합 pct 로 결정
       .sort((a, b) => b.pct - a.pct);
     console.log(`  [sectorAllocation/fallback] LLM 누락 → portfolio.sector 합산 ${rows.length}건 자동 생성`);
     return rows;
-  })();
+  })());
   // 2026-06-12: stance 결정론 게이트 — 6/5~6/10 급락(NASDAQ -7%/KOSPI -12%) 동안 LLM stance 가
   //   bullish 관성 유지("왜 예측 못했어" 사건). 경보가 높으면 LLM 의견과 무관하게 cap:
   //   elevated → bullish 금지(neutral) · high → neutral cap + risk high · severe → bearish + high.
@@ -7689,8 +7740,8 @@ async function generateViaOllama() {
     finalReport.companyChanges,
     new Set((finalReport.portfolio ?? []).map(p => p.ticker)),
   );
-  // riskEvents 포트폴리오 민감도(노출종목/액션) 결정론 주입 — 단순 경제일정 나열 탈피.
-  finalReport.riskEvents = enrichRiskEvents(finalReport.riskEvents, finalReport.portfolio);
+  // riskEvents 포트폴리오 민감도(노출종목/액션) + 예상치/서프라이즈 결정론 주입 — 단순 경제일정 나열 탈피.
+  finalReport.riskEvents = enrichRiskEvents(finalReport.riskEvents, finalReport.portfolio, ctxRaw?.econCal?.events ?? []);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
 

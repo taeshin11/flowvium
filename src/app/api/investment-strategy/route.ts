@@ -171,6 +171,11 @@ export interface RiskEvent {
   affectedPortfolio?: string[];
   exposureChannel?: string;
   action?: string;
+  // 예상치(econCal estimate/prev) + 예상 대비 서프라이즈 영향(이벤트 유형 결정론)
+  estimate?: string | null;
+  previous?: string | null;
+  surpriseHigh?: string;
+  surpriseLow?: string;
 }
 
 export interface RegionStance {

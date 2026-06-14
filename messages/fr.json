@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "Détenu",
     "companyChangesNextCheck": "Prochain point",
     "riskExposure": "Exposés",
-    "etfInvalidation": "Invalidation"
+    "etfInvalidation": "Invalidation",
+    "riskEstimate": "Prév.",
+    "riskPrev": "préc.",
+    "riskHigher": "Si supérieur",
+    "riskLower": "Si inférieur"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

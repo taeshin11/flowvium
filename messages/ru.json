@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "В портфеле",
     "companyChangesNextCheck": "След. проверка",
     "riskExposure": "Затронуто",
-    "etfInvalidation": "Отмена"
+    "etfInvalidation": "Отмена",
+    "riskEstimate": "Прогноз",
+    "riskPrev": "пред.",
+    "riskHigher": "Если выше",
+    "riskLower": "Если ниже"
   },
   "insider": {
     "title": "Потоки в Реальном Времени · Инсайдерская Активность",

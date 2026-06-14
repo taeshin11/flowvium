@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "धारित",
     "companyChangesNextCheck": "अगली जाँच",
     "riskExposure": "प्रभावित",
-    "etfInvalidation": "अमान्यकरण"
+    "etfInvalidation": "अमान्यकरण",
+    "riskEstimate": "अनुमान",
+    "riskPrev": "पिछला",
+    "riskHigher": "अधिक होने पर",
+    "riskLower": "कम होने पर"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

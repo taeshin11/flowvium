@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "ถือครอง",
     "companyChangesNextCheck": "ตรวจถัดไป",
     "riskExposure": "ที่ได้รับผลกระทบ",
-    "etfInvalidation": "เงื่อนไขยกเลิก"
+    "etfInvalidation": "เงื่อนไขยกเลิก",
+    "riskEstimate": "คาดการณ์",
+    "riskPrev": "ก่อนหน้า",
+    "riskHigher": "หากสูงกว่า",
+    "riskLower": "หากต่ำกว่า"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

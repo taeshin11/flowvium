@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "Dimiliki",
     "companyChangesNextCheck": "Cek berikutnya",
     "riskExposure": "Terdampak",
-    "etfInvalidation": "Invalidasi"
+    "etfInvalidation": "Invalidasi",
+    "riskEstimate": "Perkiraan",
+    "riskPrev": "sblm",
+    "riskHigher": "Jika lebih tinggi",
+    "riskLower": "Jika lebih rendah"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

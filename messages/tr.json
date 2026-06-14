@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "Portföyde",
     "companyChangesNextCheck": "Sonraki kontrol",
     "riskExposure": "Etkilenen",
-    "etfInvalidation": "Geçersizleşme"
+    "etfInvalidation": "Geçersizleşme",
+    "riskEstimate": "Tahmin",
+    "riskPrev": "önceki",
+    "riskHigher": "Yüksekse",
+    "riskLower": "Düşükse"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

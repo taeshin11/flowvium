@@ -787,6 +787,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 ### 13-4. 섹터 배분 전략
 - 섹터별 비중 바 차트
 - 비중확대/중립/비중축소 스탠스
+- **2026-06-14 정규화 dedup(불변식)**: portfolio.sector 가 두 어휘(Yahoo 'Semiconductors' + 내부 kebab 'semiconductors'/'it-software') 혼재 → case-sensitive 중복·모순 stance("반도체 중립+비중축소") 발생. `canonicalizeSectorAllocation` 가 case-insensitive 병합 + 병합 pct 로 stance 재계산 → **섹터 1회·1 stance** 보장. display 정규화(Semiconductors/IT·Software/AI·Cloud 등).
 
 ### 13-4a. ETF 전략 (2026-06-04 신설)
 - 보고서 stance/sectorAllocation/regionStances 에 grounded 한 ETF 추천 (환각 없음)
@@ -809,8 +810,10 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - **🔍 nextCheck**: 다음 확인 catalyst (≤40자, LLM, 실제 날짜 없으면 null — 환각 금지).
 - 원칙 "숫자는 코드가(eventType/held), LLM은 문장만(keyChange/whyMatters/nextCheck)". audit-section-richness 가 whyMatters 고유성까지 검사(boilerplate 차단).
 
-### 13-5. 주요 리스크 이벤트 (2026-06-14 포트폴리오 민감도 격상)
+### 13-5. 주요 리스크 이벤트 (2026-06-14 포트폴리오 민감도 + 예상치/서프라이즈 격상)
 - 날짜, 이벤트명, 위험도, 주목 포인트
+- **📊 예상치(estimate)/전월(prev)**: economic-calendar(FRED) estimate/prev 를 **날짜+이벤트 유형 일치**로 매칭(같은 날 FOMC 3.75%가 소매판매에 붙는 cross-contamination 방지). 소스 미제공 시 null(환각 금지).
+- **▲예상 상회/▼하회 영향(surprise)**: 이벤트 유형별 방향성 결정론(FOMC 매파→성장·반도체 압박, CPI 상회→인하 지연, 소매 상회→소비재 수혜 등). 사용자 "예상보다 높/낮을시 영향 알려줘야".
 - **🎯 포트폴리오 노출(affectedPortfolio)**: 거시 이벤트 키워드 → 민감 섹터 → 보유 종목 결정론 매핑(FOMC→반도체/성장, CPI→소비/에너지 등). exposureChannel 라벨.
 - **▶ 액션**: impact 별 결정론(high=노출종목 비중·헤지 점검 / medium=관망·재평가 / low=모니터). "단순 경제일정 나열" 탈피 — audit-section-richness ⚠️ 해소.
 

@@ -685,6 +685,8 @@
 | 12-A3 | ETF 사이징(sizingHint)/무효화조건(invalidation) — exposure map 격상 | ✅ live | enrichEtfStrategy 결정론(tag→사이징, action→무효화) ← 2026-06-14 |
 | 12-R1 | 주요 리스크 이벤트 목록 | 💾 cached | AI 생성 |
 | 12-R2 | 리스크 이벤트 포트폴리오 노출(affectedPortfolio·exposureChannel·action) | ✅ live | enrichRiskEvents 결정론(이벤트 키워드→민감섹터→보유 portfolio.sector 매핑) ← 2026-06-14 |
+| 12-R3 | 리스크 이벤트 예상치(estimate/prev) + 서프라이즈 영향(▲상회/▼하회) | ✅ live | economic-calendar(FRED) estimate/prev 날짜+유형 매칭(cross-contamination 방지, 없으면 null) + 유형별 방향성 결정론 ← 2026-06-14 |
+| 12-A4 | 섹터 배분 정규화 dedup (불변식: 섹터 1회·1 stance) | ✅ live | canonicalizeSectorAllocation case-insensitive 병합·stance 재계산(semiconductors 중복 모순 해소) ← 2026-06-14 |
 | 12-SC1 | 공급망 변화 whyMatters (매출가시성·반복성·고객집중 리스크) | ✅ live | `/api/supply-chain-signals` contractWhyMatters 결정론(contractRevenuePct materiality) + summary materiality-led(반복 prefix 제거) ← 2026-06-14 |
 | 12-CC1 | 기업 변화 eventType (가이던스/매출/M&A/소송/규제/계약/임원…) | ✅ live | **코드 결정론 분류**(guidance/revenueYoY/sentiment) enrichCompanyChangeEvents, 환각/슬롭 불가 ← 2026-06-14 |
 | 12-CC2 | 기업 변화 whyMatters (투자자 영향 ≤70자) | 💾 cached | LLM 산문 (Wave2 companyChanges prompt) — boilerplate 고유성 audit ← 2026-06-14 |

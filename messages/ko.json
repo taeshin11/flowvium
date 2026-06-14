@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "보유",
     "companyChangesNextCheck": "다음 확인",
     "riskExposure": "노출 종목",
-    "etfInvalidation": "무효화"
+    "etfInvalidation": "무효화",
+    "riskEstimate": "예상",
+    "riskPrev": "전월",
+    "riskHigher": "예상 상회 시",
+    "riskLower": "예상 하회 시"
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",

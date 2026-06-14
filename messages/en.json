@@ -1330,7 +1330,11 @@
     "companyChangesHeld": "Held",
     "companyChangesNextCheck": "Next check",
     "riskExposure": "Exposed",
-    "etfInvalidation": "Invalidation"
+    "etfInvalidation": "Invalidation",
+    "riskEstimate": "Est.",
+    "riskPrev": "prev",
+    "riskHigher": "If higher",
+    "riskLower": "If lower"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",
