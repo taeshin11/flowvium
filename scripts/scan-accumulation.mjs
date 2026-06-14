@@ -12,6 +12,7 @@
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { fetchMarketAlerts, resolveTickerByName } from './lib/krx-market-alert.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const ALL = process.argv.includes('--all');
@@ -69,6 +70,21 @@ const cand = JSON.parse(readFileSync(resolve(ROOT, 'data/candidate-tickers.json'
 const tickers = (cand.tickers ?? []).filter(t => ALL ? /\.(KS|KQ)$/.test(t) : /\.KQ$/.test(t));
 console.log(`작전주 매집 스캔: ${tickers.length}종 (${ALL ? 'KR 전체' : 'KOSDAQ'}) — 오르기 前 선행조짐`);
 
+// 거래소 공식 시장경보 — '소수계좌 거래집중'(투자주의) = 작전주 선행 surveillance flag. 매집 탐지와
+//   교차검증: 스크리너가 잡은 종목 ∩ 공식 소수계좌 flag = 최고 신뢰(오르기 前). name/ticker 양쪽 매칭.
+const alertByName = new Map(), alertByTicker = new Map();
+try {
+  const alerts = await fetchMarketAlerts(10);
+  const fa = alerts.filter(a => a.fewAccount);
+  console.log(`거래소 시장경보: 총 ${alerts.length}건, 소수계좌 거래집중 ${fa.length}건 (교차검증용)`);
+  for (const a of alerts) alertByName.set(a.name, a);
+  // 소수계좌 flag 종목만 ticker 해소(가벼움)
+  for (const a of fa) { const tk = await resolveTickerByName(a.name); if (tk) alertByTicker.set(tk, a); }
+} catch (e) { console.warn('시장경보 수집 실패(스크리너만 진행):', e?.message ?? e); }
+function surveillanceFor(ticker, name) {
+  return alertByTicker.get(ticker) ?? (name ? alertByName.get(name) : null) ?? null;
+}
+
 const watch = [];
 const CONC = 5;
 for (let i = 0; i < tickers.length; i += CONC) {
@@ -76,17 +92,27 @@ for (let i = 0; i < tickers.length; i += CONC) {
   const res = await Promise.all(batch.map(async (t) => {
     const rows = await dailyChart(t); if (!rows) return null;
     const a = detectAccumulation(rows); if (!a.isAccum) return null;
+    const nm = cand.meta?.[t]?.name ?? t;
     const flow = await naverFlow(t.replace(/\.(KS|KQ)$/, ''));
     let smartAccum = false;
     if (flow) { const smart = flow.foreign + flow.organ; smartAccum = smart > 0 && flow.indiv <= 0; if (smartAccum) a.lead.push('세력 매집(기관·외인 순매수)'); }
-    return { ticker: t, name: cand.meta?.[t]?.name ?? t, score: a.score + (smartAccum ? 10 : 0), coFire: a.coFire, lead: a.lead, runup20dPct: a.runup20d, medDollarVolUsd: a.medDollarVol, smartAccum };
+    // 거래소 공식 시장경보 교차검증 — 매집 ∩ 소수계좌 = 최고신뢰(오르기 前)
+    const alert = surveillanceFor(t, nm);
+    let officialBoost = 0, official = null;
+    if (alert) {
+      official = { category: alert.category, reason: alert.reason, fewAccount: alert.fewAccount, designatedDate: alert.designatedDate };
+      if (alert.fewAccount) { officialBoost = 25; a.lead.push(`🚨 거래소 소수계좌 거래집중(공식 ${alert.designatedDate ?? ''})`); }
+      else if (alert.category === 'caution') { officialBoost = 12; a.lead.push(`⚠️ 거래소 투자주의: ${alert.reason ?? ''}`); }
+    }
+    return { ticker: t, name: nm, score: a.score + (smartAccum ? 10 : 0) + officialBoost, coFire: a.coFire, lead: a.lead, runup20dPct: a.runup20d, medDollarVolUsd: a.medDollarVol, smartAccum, official };
   }));
   for (const r of res) if (r) watch.push(r);
   if (i % 50 === 0) console.log(`  ... ${i + batch.length}/${tickers.length} (포착 ${watch.length})`);
   await new Promise(s => setTimeout(s, 200));
 }
 watch.sort((a, b) => b.score - a.score);
-const out = { generatedAt: new Date().toISOString(), universe: ALL ? 'KR' : 'KOSDAQ', scanned: tickers.length, count: watch.length, watchlist: watch.slice(0, 40) };
+const officialCount = watch.filter(w => w.official?.fewAccount).length;
+const out = { generatedAt: new Date().toISOString(), universe: ALL ? 'KR' : 'KOSDAQ', scanned: tickers.length, count: watch.length, officialFewAccount: officialCount, watchlist: watch.slice(0, 40) };
 writeFileSync(resolve(ROOT, 'data/accumulation-watchlist.json'), JSON.stringify(out, null, 2) + '\n');
 console.log(`\n✅ 매집 의심(오르기 前) ${watch.length}종 → data/accumulation-watchlist.json`);
 for (const w of watch.slice(0, 12)) console.log(`  ${w.ticker.padEnd(11)} ${String(w.name).slice(0, 10).padEnd(11)} score=${w.score} (20d ${w.runup20dPct >= 0 ? '+' : ''}${w.runup20dPct}%, $${(w.medDollarVolUsd / 1e6).toFixed(1)}M): ${w.lead.join('·')}`);

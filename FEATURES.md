@@ -742,7 +742,13 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 ### 13-1d. 🚨 작전주(펌프&덤프) 의심 — manipulation-risk (2026-06-13 신설)
 - `/api/manipulation-risk/[ticker]` 결정론 스코어 0-100: 단기급등(20일)+거래량폭발(5d vs 평소)+저유동성(일거래대금 USD환산)+펀더갭(급등하나 매출역성장/부재) 동시발화 가중. 2개+ 동시발화 미달이면 25 캡(단일신호≠작전주). tier low/elevated/high/severe.
 - **사전 포착(phase 'accumulation')**: 급등은 후행 → 거래량 선반영+가격평탄+저유동성 = 매집 의심(급등 前). 'markup'=급등중.
-- 전부 동적(Yahoo 일봉+financials.json). CompanyPage 에 ⚠️ 경고 배너(tier elevated+, phase별 제목). KRX 시장경보 권위대조는 anti-bot LOGOUT 으로 미적용(결정론 1차). i18n `company.manip*` 16언어.
+- **거래소 공식 시장경보 매칭(KR, 2026-06-14 신설)**: `surveillance` 필드 — KRX 투자주의/경고/위험(KIND 라이브, `src/lib/market-alerts`). **'소수지점/계좌·단일계좌·매매관여과다'=소수계좌 거래집중 → score≥60 + phase accumulation + 작전주 *선행*(오르기 前) 공식 flag**. 투자경고 score≥70, 투자위험 score≥85(후행 위험). data.krx getJsonData LOGOUT 차단을 KIND investattentwarnrisky.do 로 우회 성공.
+- 전부 동적(Yahoo 일봉+financials.json+Naver 수급+KRX 시장경보). CompanyPage 에 ⚠️ 경고 배너(tier elevated+, phase별 제목). i18n `company.manip*` 16언어.
+
+### 13-1e. 📋 KRX 시장경보 피드 — market-alerts (2026-06-14 신설, 사용자 "소수계좌 거래집중 뚫어봐")
+- `/api/market-alerts` — 거래소 공식 투자주의/경고/위험 라이브 목록. KIND investattentwarnrisky.do 크랙(세션쿠키 GET + method=investattentwarnriskySub + forward=invstcautnisu_sub + startDate=endDate). 회사명→6자리 ticker Naver autocomplete 해소.
+- 응답 `{alerts[], counts{caution/warning/risk/fewAccount}, source('live'|'cache'|'empty'), asOf}`. 쿼리 `?fewAccount=1`(소수계좌만)·`?category=`·`?ticker=`. Redis 캐시 3h, miss 폴백 `[]`(정적 금지 — 시계열 surveillance). `source` 필드로 라이브/캐시 구분.
+- 작전주 매집 스크리너(`scripts/scan-accumulation.mjs`)가 교차검증: 매집 탐지 ∩ 공식 소수계좌 flag = 최고신뢰(score +25, `officialFewAccount` 카운트).
 
 ### 13-2. 3단 분석 카드
 - 거시경제 분석 (파란색)
@@ -1036,7 +1042,8 @@ ownership-alerts 적용).
 | `/api/stock-supply` | (ticker별 on-demand) Yahoo v8 + EDGAR Form 4 + Redis 13F live overlay; `source: live\|price-only\|ownership-only\|static` | 1h Redis (3h→1h: 가격/거래량 신선도) |
 | `/api/company-financials/[ticker]` | SEC XBRL | 캐시 |
 | `/api/company-signals/[ticker]` | 종목별 시그널 통합 (UOA Redis `flowvium:iv:v1` unusual[] · 거래량 버스트 Yahoo 5분봉 라이브 · 공급계약 Redis `supply-chain-signals:v1` ticker 필터 금액·매출대비% · 수주잔고 `data/backlog.json` SEC RPO; KR 은 표준 수주잔고 부재→계약 flow 대체) — 전 1338 company page 노출 (2026-06-13) | 10min CDN |
-| `/api/manipulation-risk/[ticker]` | 작전주(펌프&덤프) 의심 결정론 스코어 0-100 — 급등+거래량폭발+저유동성+펀더갭 동시발화 + 사전 매집(accumulation) 단계. Yahoo 일봉+financials.json (2026-06-13) | 10min CDN |
+| `/api/manipulation-risk/[ticker]` | 작전주(펌프&덤프) 의심 결정론 스코어 0-100 — 급등+거래량폭발+저유동성+펀더갭 동시발화 + 사전 매집(accumulation) + 투자자 수급분산(Naver) + **거래소 공식 시장경보 매칭(KR, surveillance 필드 — 소수계좌 거래집중=선행 flag)**. Yahoo 일봉+financials.json+KIND 시장경보 (2026-06-14) | 10min CDN |
+| `/api/market-alerts` | KRX 공식 시장경보(투자주의/경고/위험) 라이브 — KIND investattentwarnrisky.do 크랙. `?fewAccount=1`(소수계좌 거래집중)·`?category=`·`?ticker=`. source 필드(live/cache/empty), miss 폴백 [] (2026-06-14) | 3h Redis |
 | `/api/company-kr/[ticker]` | DART OpenAPI (fnlttSinglAcntAll 연결재무제표 + company.json 기업메타: 영문명/대표/설립일/본사/홈페이지/업종 — 2026-06-03) | 24h Redis (corp-code 30d) |
 | `/api/company-kr/list` | DART CORPCODE.xml + company.json (companies-kr.ts 기반) | 7일 Redis |
 | `/api/company-desc/[ticker]` | 사업개요 동적 생성 — DART grounded → 로컬 Ollama(qwen3:8b), 환각방지 프롬프트. **정적 하드코딩 금지**(2026-06-03) | 45일 Redis |

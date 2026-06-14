@@ -4,12 +4,15 @@
  *
  * 작전주 시그니처 = 동시 발화: ① 단기 급등 ② 거래량 폭발 ③ 저유동성(작전 표적) ④ 펀더멘털 괴리
  *   (급등하는데 실적 근거 없음). 한 신호만으론 약함 — 동시 충족이 핵심.
- * 소스: Yahoo v8 일봉(가격·거래량 라이브) + data/financials.json(매출/마진). 권위 KR 시장경보(KRX)는
- *   anti-bot LOGOUT 으로 직접 fetch 불가 → 추후 별도 우회(현재 미적용, 결정론 스코어가 1차).
+ * 소스: Yahoo v8 일봉(가격·거래량 라이브) + data/financials.json(매출/마진) + 거래소 공식 시장경보
+ *   (KIND 라이브, src/lib/market-alerts — '소수지점/계좌'=소수계좌 거래집중 선행 flag). data.krx getJsonData
+ *   는 anti-bot LOGOUT 이나 KIND investattentwarnrisky.do 로 우회 성공(2026-06-14).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { createRedis } from '@/lib/redis';
+import { peekMarketAlerts, fetchMarketAlertsRaw, type MarketAlert } from '@/lib/market-alerts';
 
 export const dynamic = 'force-dynamic';
 const CDN = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=120' };
@@ -42,14 +45,32 @@ function median(arr: number[]) { const s = [...arr].sort((a, b) => a - b); retur
 
 // 2026-06-14 (사용자 "4 시그니처가 최선? 더 나은 방법?"): KR 투자자 수급(Naver, keyless) — 개인/기관/외인
 //   순매수. 펌프&덤프 = 세력(기관+외인) 분산매도를 개인 FOMO 가 흡수하는 패턴. 권위 거래소 수급데이터.
-async function fetchKrInvestorFlow(code: string): Promise<{ indiv: number; foreign: number; organ: number } | null> {
+async function fetchKrInvestorFlow(code: string): Promise<{ indiv: number; foreign: number; organ: number; name: string | null } | null> {
   try {
     const r = await fetch(`https://m.stock.naver.com/api/stock/${code}/integration`, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(7000) });
     if (!r.ok) return null;
-    const d = (await r.json())?.dealTrendInfos?.[0];
-    if (!d) return null;
+    const j = await r.json();
+    const name = (j?.stockName ?? j?.stockNameEng ?? null) as string | null;
+    const d = j?.dealTrendInfos?.[0];
     const num = (v: unknown) => { const x = parseFloat(String(v ?? '').replace(/[^\d.\-]/g, '')); return Number.isFinite(x) ? x : 0; };
-    return { indiv: num(d.individualPureBuyQuant), foreign: num(d.foreignerPureBuyQuant), organ: num(d.organPureBuyQuant) };
+    if (!d) return name ? { indiv: 0, foreign: 0, organ: 0, name } : null;
+    return { indiv: num(d.individualPureBuyQuant), foreign: num(d.foreignerPureBuyQuant), organ: num(d.organPureBuyQuant), name };
+  } catch { return null; }
+}
+
+// 2026-06-14 (사용자 "KRX 소수계좌 거래집중 뚫어봐"): 거래소 공식 시장경보(투자주의/경고/위험) 매칭.
+//   '소수지점/계좌' 투자주의 = 오르기 前 작전주 선행 surveillance flag. 캐시 우선(핫패스 cold 회피),
+//   miss 시 이름 매칭용 경량 raw fetch. 권위 거래소 데이터로 결정론 스코어를 ground-truth 보강.
+async function matchSurveillance(ticker: string, name: string | null): Promise<MarketAlert | null> {
+  try {
+    const redis = createRedis();
+    const peek = await peekMarketAlerts(redis);
+    if (peek?.alerts?.length) {
+      return peek.alerts.find((a) => a.ticker === ticker) ?? (name ? peek.alerts.find((a) => a.name === name) ?? null : null);
+    }
+    if (!name) return null;
+    const raw = await fetchMarketAlertsRaw(10);   // 캐시 miss: 경량 raw(ticker 미해소) → 이름 매칭
+    return raw.find((a) => a.name === name) ?? null;
   } catch { return null; }
 }
 
@@ -134,10 +155,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
   // ── 투자자 수급 분산 신호 (KR, 5번째 시그니처) — 사용자 "더 나은 방법" ────────────────────
   //   펌프&덤프 분산 단계: markup 에서 개인 순매수(FOMO) + 세력(기관+외인) 순매도 = 덤프 임박 흡수.
   //   accumulation 단계: 세력 순매수 + 개인 비관심 = 매집 확인(사전 신호 강화). 권위 거래소 수급.
-  let investorFlow: { indiv: number; foreign: number; organ: number } | null = null;
+  let investorFlow: { indiv: number; foreign: number; organ: number; name: string | null } | null = null;
+  let krName: string | null = null;
   if (isKR) {
     investorFlow = await fetchKrInvestorFlow(t.replace(/\.(KS|KQ)$/, ''));
     if (investorFlow) {
+      krName = investorFlow.name;
       const smart = investorFlow.foreign + investorFlow.organ;  // 기관+외인 = 세력 프록시
       if (isMarkup && investorFlow.indiv > 0 && smart < 0) {
         score = Math.min(100, score + 18);
@@ -145,6 +168,30 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
       } else if (phase === 'accumulation' && smart > 0 && investorFlow.indiv <= 0) {
         score = Math.min(100, score + 10);
         flags.push('매집 확인: 기관·외인 순매수 / 개인 비관심 — 세력 매집 정황(사전)');
+      }
+    }
+  }
+
+  // ── 거래소 공식 시장경보 매칭 (KR, 권위 surveillance) — 사용자 "KRX 소수계좌 거래집중 뚫어봐" ──────
+  //   '소수지점/계좌' 투자주의 = 거래소가 직접 집계한 소수계좌 거래집중 → 작전주 *선행*(오르기 前) flag.
+  //   투자경고/위험 = 이미 급등 진행(후행) 위험 flag. 결정론 스코어를 공식 데이터로 ground-truth 보강.
+  let surveillance: { category: string; reason: string | null; fewAccount: boolean; designatedDate: string | null } | null = null;
+  if (isKR) {
+    const alert = await matchSurveillance(t, krName);
+    if (alert) {
+      surveillance = { category: alert.category, reason: alert.reason, fewAccount: alert.fewAccount, designatedDate: alert.designatedDate };
+      if (alert.fewAccount) {                              // 소수계좌 거래집중 = 최강 선행 flag
+        score = Math.max(score, 60); if (phase === 'none') phase = 'accumulation';
+        flags.push(`🚨 거래소 시장경보: 소수계좌(소수지점) 거래집중 — 작전주 선행(오르기 前) 공식 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+      } else if (alert.category === 'caution') {
+        score = Math.min(100, score + 15);
+        flags.push(`⚠️ 거래소 투자주의 지정: ${alert.reason || '사유 미상'}${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+      } else if (alert.category === 'warning') {
+        score = Math.max(score, 70);
+        flags.push(`🔴 거래소 투자경고 지정 — 이미 급등 진행(과열) 공식 위험 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
+      } else if (alert.category === 'risk') {
+        score = Math.max(score, 85);
+        flags.push(`🔴 거래소 투자위험 지정 — 매매정지 가능 최고위험 공식 flag${alert.designatedDate ? ` [${alert.designatedDate}]` : ''}`);
       }
     }
   }
@@ -161,10 +208,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tic
       runup5dPct: +runup5d.toFixed(1), runup20dPct: +runup20d.toFixed(1),
       volSpikeX: +volSpike.toFixed(1), medDollarVolUsd: Math.round(medDollarVol),
       revYoYPct: f?.revYoYPct ?? null,
-      investorFlow,  // {indiv, foreign, organ} 순매수량 (KR) | null
+      investorFlow: investorFlow ? { indiv: investorFlow.indiv, foreign: investorFlow.foreign, organ: investorFlow.organ } : null,
     },
+    surveillance,   // 거래소 공식 시장경보 {category, reason, fewAccount, designatedDate} (KR) | null
     flags,
-    note: isKR ? 'KR: 결정론 4시그니처 + 투자자 수급 분산(개인 vs 기관·외인). KRX 공식 시장경보(투자주의/경고/위험) OTP 연동은 추가 작업 예정.' : null,
-    source: isKR ? 'deterministic-yahoo-daily+financials+naver-flow' : 'deterministic-yahoo-daily+financials',
+    note: isKR ? 'KR: 결정론 4시그니처 + 투자자 수급 분산(개인 vs 기관·외인) + 거래소 공식 시장경보(투자주의/경고/위험·소수계좌 거래집중, KIND 라이브).' : null,
+    source: isKR ? 'deterministic-yahoo-daily+financials+naver-flow+krx-market-alert' : 'deterministic-yahoo-daily+financials',
   }, { headers: CDN });
 }
