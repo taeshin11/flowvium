@@ -1,8 +1,9 @@
 {
-  "generatedAt": "2026-06-14T01:26:10.353Z",
+  "generatedAt": "2026-06-14T02:06:29.286Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 2,
+  "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "030520.KQ",
@@ -16,7 +17,8 @@
       ],
       "runup20dPct": 0.6,
       "medDollarVolUsd": 2042495,
-      "smartAccum": true
+      "smartAccum": true,
+      "official": null
     },
     {
       "ticker": "357780.KQ",
@@ -30,7 +32,8 @@
       ],
       "runup20dPct": -7.2,
       "medDollarVolUsd": 14766348,
-      "smartAccum": true
+      "smartAccum": true,
+      "official": null
     }
   ]
 }

@@ -5101,6 +5101,40 @@ async function crossCheckPortfolioPrices(portfolio, livePrices) {
   console.log(`  [price-quorum] confirmed ${confirmed} / conflicted ${conflicted} / single ${single} (Yahoo + Nasdaq/Naver keyless 교차검증)`);
 }
 
+// 2026-06-14 (ChatGPT 리뷰 D0-4): 작전주 매집 워치리스트를 보고서에 surfacing. data/accumulation-
+//   watchlist.json (scan-accumulation 스크리너 산출, KRX 공식 소수계좌 거래집중 교차검증 포함) 을 읽어
+//   "관찰 우선(추천 아님)" 형태로 변환. 결정론·읽기전용 — 신선도 가드(36h). 미존재/stale 시 빈 구조.
+function buildManipulationWatch() {
+  try {
+    const raw = JSON.parse(readFileSync(resolve(ROOT, 'data/accumulation-watchlist.json'), 'utf8'));
+    const genMs = Date.parse(raw.generatedAt ?? '');
+    const ageH = Number.isFinite(genMs) ? (Date.now() - genMs) / 3.6e6 : Infinity;
+    const stale = ageH > 36;
+    const items = (raw.watchlist ?? []).slice(0, 12).map((w) => ({
+      ticker: w.ticker, name: w.name,
+      phase: 'pre_pump_accumulation',          // 오르기 前 매집 의심 (급등 후행 아님)
+      score: w.score,
+      signals: w.lead ?? [],
+      official: w.official ?? null,            // KRX 공식 시장경보 매칭 {category,reason,fewAccount,designatedDate} | null
+      runup20dPct: w.runup20dPct ?? null,
+      action: 'watch_only',                    // 신규 매수 추천 아님 — 관찰만
+      reason: w.official?.fewAccount ? '거래소 소수계좌 거래집중 + 매집 선행조짐 — 관찰 우선(추천 아님)'
+        : '가격 급등 前 매집 의심 선행조짐 — 관찰 우선(추천 아님)',
+    }));
+    return {
+      asOf: raw.generatedAt ?? null,
+      universe: raw.universe ?? 'KOSDAQ',
+      scanned: raw.scanned ?? null,
+      officialFewAccount: raw.officialFewAccount ?? 0,  // 매집∩거래소 소수계좌 교차검증 건수
+      stale,                                            // 36h 초과 = 스크리너 재실행 필요
+      source: stale ? 'stale' : 'live',
+      items,
+    };
+  } catch {
+    return { asOf: null, universe: 'KOSDAQ', scanned: null, officialFewAccount: 0, stale: true, source: 'empty', items: [] };
+  }
+}
+
 // 2026-06-14 (ChatGPT P1, Task24): 매도룰 평가 ctx 단일 빌더 — buildSellCandidates·buy→sell 게이트·
 //   refill·final-overlap 4경로가 동일 ctx 사용해야 같은 종목이 경로마다 다른 판정 받는 것을 방지.
 //   종전 refill/final-overlap 은 tech/fund 만 넣어 micro(insider매도·13F이탈·계약해지·풋편중·부정뉴스)
@@ -7110,6 +7144,10 @@ async function generateViaOllama() {
     hedgingSuggestion: riskData?.hedgingSuggestion ?? '',
     portfolioRiskNote: riskData?.portfolioRiskNote ?? '',
     marketNarrative: narrativeData ?? {},
+    // 2026-06-14 (ChatGPT 리뷰 D0-4): 작전주 매집 워치리스트 보고서 surfacing — 그동안 JSON 산출물
+    //   (accumulation-watchlist.json)만 있고 보고서/UI 노출 없어 사용자 가치 0 이었음. 스크리너가
+    //   거래소 공식 소수계좌 거래집중(KRX) 교차검증한 결과를 그대로 표출. "추천"이 아니라 "관찰 우선".
+    manipulationWatch: buildManipulationWatch(),
     companyChanges: companyChangesData?.companyChanges ?? [],
     // S9: 공급망 변화 모니터링 (supply-chain-signals 데이터 직접 주입 — LLM 없이)
     // 2026-05-29: date 필드 추가 (사용자가 "언제 알게 됐는지" 인지 가능).
