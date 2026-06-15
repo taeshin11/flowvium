@@ -40,8 +40,17 @@ foreach ($t in "FlowVium-Morning","FlowVium-Noon","FlowVium-Afternoon","FlowVium
 }
 
 Write-Output "[5/5] Claude 메모리 ..."
-$mem = "C:\Users\$env:USERNAME\.claude\projects\C--NoAddsMakingApps-FlowVium\memory"
-if (Test-Path -LiteralPath $mem) { Copy-Item "$mem\*" (Join-Path $Dst "claude-memory") -Recurse -Force }
+# 2026-06-15 fix: $env:USERNAME 은 실행 계정(admin) 이라 실제 메모리 경로(gangd)와 다름 → 신규 메모리
+#   파일을 stale 경로에서 복사해 누락하던 버그. 후보 경로 중 MEMORY.md 존재 + 최다 .md 보유한 dir 선택.
+$memCandidates = @(
+  "C:\Users\gangd\.claude\projects\C--NoAddsMakingApps-FlowVium\memory",
+  "C:\Users\$env:USERNAME\.claude\projects\C--NoAddsMakingApps-FlowVium\memory"
+) | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'MEMORY.md') }
+$mem = $memCandidates | Sort-Object { (Get-ChildItem $_ -Filter *.md -ErrorAction SilentlyContinue | Measure-Object).Count } -Descending | Select-Object -First 1
+if ($mem) {
+  Copy-Item "$mem\*" (Join-Path $Dst "claude-memory") -Recurse -Force
+  Write-Output "   메모리 소스: $mem ($((Get-ChildItem $mem -Filter *.md | Measure-Object).Count) .md)"
+} else { Write-Warning "메모리 경로 못 찾음 — 수동 확인 필요" }
 
 # 검증 요약
 $head = git log -1 --format="%h %s"
