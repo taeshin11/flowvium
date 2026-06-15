@@ -1,5 +1,6 @@
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { createRedis } from '@/lib/redis';
+import { localChat } from '@/lib/llm-local';
 import { NextResponse } from 'next/server';
 import { cascadePatterns } from '@/data/cascades';
 import { companySupplyChainUpdates } from '@/data/company-supply-chain-updates';
@@ -295,8 +296,11 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
     // 2026-06-15 (사용자 "us 는 자세한 내용 없고 본문확인하라고만"): 실제 8-K 본문을 fetch 해 계약 유형·
     //   상대방·금액 추출 + 정직 분류(자본조달/사업계약). 종전엔 메타데이터만 써 generic "본문 확인 권장" 이었음.
     //   회사당 1건, 소수라 순차 fetch(SEC rate-limit 안전).
-    for (const c of candidates.slice(0, 8)) {
-      const detail = await fetchEightKDetail(c.cikNum, c.accNo, c.doc);
+    //   2026-06-15: 한국어 요약은 accession 별 30d 캐시(공시 불변) + 호출당 신규요약 ≤4 로 바운드(maxDuration 30s).
+    const sumRedis = createRedis();
+    const sumBudget = { n: 4 };
+    for (const c of candidates.slice(0, 6)) {
+      const detail = await fetchEightKDetail(c.cikNum, c.accNo, c.doc, sumRedis, sumBudget);
       const kindLabel = detail.kind === 'financing' ? '자본조달'
         : detail.kind === 'ma' ? 'M&A'
         : detail.kind === 'business' ? '사업계약' : '주요계약';
@@ -336,11 +340,12 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
  * 8-K Item 1.01 본문에서 계약 유형·상대방·금액 추출 + 분류 (financing/business/ma).
  * SEC 8-K 는 DART 처럼 구조화 필드가 없어 narrative 에서 휴리스틱 추출. 실패해도 비차단(빈 detail).
  */
-async function fetchEightKDetail(cikNum: string, accNo: string, doc: string): Promise<{
+async function fetchEightKDetail(cikNum: string, accNo: string, doc: string, redis?: ReturnType<typeof createRedis>, budget?: { n: number }): Promise<{
   agreementType?: string; counterparty?: string; amount?: string; summary?: string;
   kind: 'financing' | 'business' | 'ma' | 'unknown';
 }> {
   if (!cikNum || !accNo || !doc) return { kind: 'unknown' };
+  const sumKey = `flowvium:8k-summary:v1:${accNo}`;
   try {
     const url = `https://www.sec.gov/Archives/edgar/data/${cikNum}/${accNo}/${doc}`;
     const res = await fetch(url, { headers: { 'User-Agent': 'FlowVium research@flowvium.net' }, signal: AbortSignal.timeout(8000), cache: 'no-store' });
@@ -370,7 +375,25 @@ async function fetchEightKDetail(cikNum: string, accNo: string, doc: string): Pr
     if (/\b(merger|acquisition|acquire|business combination|tender offer)\b/.test(blob)) kind = 'ma';
     else if (/\b(equity distribution|at.the.market|atm program|preferred stock|depositary shares|senior notes|indenture|credit agreement|term loan|revolving credit|underwriting|securities purchase|note purchase|debenture|warrant)\b/.test(blob)) kind = 'financing';
     else if (/\b(supply|offtake|manufacturing|license|collaboration|partnership|joint venture|master services|reseller|development agreement)\b/.test(blob)) kind = 'business';
-    return { agreementType, counterparty, amount, kind };
+    // 2026-06-15 (사용자 "내용을 더 자세하게"): 실제 Item 1.01 본문을 qwen3 로 한국어 맞춤 요약 — KR DART
+    //   처럼 풍부한 설명. 자유텍스트라 구조화 필드 없어 LLM 요약이 정답. accession 별 30d 캐시(공시 불변) +
+    //   호출당 신규요약 budget cap(maxDuration 30s 보호). GPU 포화/예산소진 시 generic fallback.
+    let summary;
+    if (redis) { try { const c = await redis.get<string>(sumKey); if (c && typeof c === 'string') summary = c; } catch { /* miss */ } }
+    if (!summary && budget && budget.n > 0) {
+      budget.n--;
+      try {
+        const s = await localChat(
+          `다음은 미국 상장사의 8-K Item 1.01(주요 계약 체결) 공시 본문이다. 한국어로 1~2문장으로 요약하라: 어떤 계약인지·상대방·핵심 조건(금액/지분/만기 등)·투자자 관점의 의미. 설명 없이 요약문만:\n\n${region.slice(0, 1100)}`,
+          { temperature: 0.2, maxTokens: 220, timeoutMs: 12000 },
+        );
+        if (s && s.trim() && /[가-힣]/.test(s)) {
+          summary = s.trim().replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 220);
+          if (redis) { try { await loggedRedisSet(redis, 'supply-chain-signals.8k-summary', sumKey, summary, { ex: 30 * 24 * 60 * 60 }); } catch { /* non-fatal */ } }
+        }
+      } catch { /* GPU 포화/실패 → generic */ }
+    }
+    return { agreementType, counterparty, amount, kind, summary };
   } catch { return { kind: 'unknown' }; }
 }
 
