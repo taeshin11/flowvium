@@ -1,4 +1,4 @@
-# update-migration.ps1 — 이전(migration) 패키지 1-커맨드 갱신
+﻿# update-migration.ps1 — 이전(migration) 패키지 1-커맨드 갱신
 #   G:\내 드라이브\0.flowvium_move 의 코드번들·DB·secrets·config·메모리를 현 상태로 refresh.
 #   사용: powershell -File scripts\update-migration.ps1   (또는 -Dst "다른경로")
 #   변경 사항(코드 commit/push, DB 학습 누적, 키 갱신) 있을 때마다 실행.
@@ -43,8 +43,8 @@ Write-Output "[5/5] Claude 메모리 ..."
 # 2026-06-15 fix: $env:USERNAME 은 실행 계정(admin) 이라 실제 메모리 경로(gangd)와 다름 → 신규 메모리
 #   파일을 stale 경로에서 복사해 누락하던 버그. 후보 경로 중 MEMORY.md 존재 + 최다 .md 보유한 dir 선택.
 $memCandidates = @(
-  "C:\Users\gangd\.claude\projects\C--NoAddsMakingApps-FlowVium\memory",
-  "C:\Users\$env:USERNAME\.claude\projects\C--NoAddsMakingApps-FlowVium\memory"
+  "C:\Users\gangd\.claude\projects\C--Flowvium\memory",
+  "C:\Users\$env:USERNAME\.claude\projects\C--Flowvium\memory"
 ) | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'MEMORY.md') }
 $mem = $memCandidates | Sort-Object { (Get-ChildItem $_ -Filter *.md -ErrorAction SilentlyContinue | Measure-Object).Count } -Descending | Select-Object -First 1
 if ($mem) {

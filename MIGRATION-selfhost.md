@@ -1,78 +1,78 @@
-# FlowVium ?먭??몄뒪???댁쟾 ?곕턿 (Vercel ??RTX 癒몄떊 + Cloudflare Tunnel)
+# FlowVium 자가호스팅 이전 런북 (Vercel → RTX 머신 + Cloudflare Tunnel)
 
-2026-06-02: Vercel Hobby fair-use 李⑤떒(?⑥닔?몄텧 3.6M/?꾩넚 42GB/CPU 18h40m 珥덇낵) ??
-?붿껌??怨쇨툑 ?녿뒗 ?곸떆 node ?쒕쾭濡??댁쟾. report-gen(Ollama)???대? ??癒몄떊???덉뼱 co-locate.
+2026-06-02: Vercel Hobby fair-use 차단(함수호출 3.6M/전송 42GB/CPU 18h40m 초과) →
+요청당 과금 없는 상시 node 서버로 이전. report-gen(Ollama)이 이미 이 머신에 있어 co-locate.
 
-**援ъ“**: `next start`(localhost:3000) ??Cloudflare Tunnel ??Cloudflare CDN(臾대즺 罹먯떆) ??flowvium.net
-**?щ줎**: vercel.json 26媛???`scripts/cron-runner.mjs`(node-cron, ?숈씪 ?ㅼ?以? UTC).
+**구조**: `next start`(localhost:3000) ← Cloudflare Tunnel ← Cloudflare CDN(무료 캐시) ← flowvium.net
+**크론**: vercel.json 26개 → `scripts/cron-runner.mjs`(node-cron, 동일 스케줄, UTC).
 
 ---
 
-## ???ъ쟾 ?뺤씤 (?대? 異⑹”)
-- cloudflared ?ㅼ튂?? `C:\Program Files (x86)\cloudflared\cloudflared.exe`
-- `.env.local` ?고?????蹂댁쑀 (Redis/Upstash/Finnhub/Gemini/Groq/DART/FRED)
-- node 24, next 14.2.35, node-cron ?ㅼ튂??
+## ✅ 사전 확인 (이미 충족)
+- cloudflared 설치됨: `C:\Program Files (x86)\cloudflared\cloudflared.exe`
+- `.env.local` 런타임 키 보유 (Redis/Upstash/Finnhub/Gemini/Groq/DART/FRED)
+- node 24, next 14.2.35, node-cron 설치됨
 
-## 1. 鍮뚮뱶 + 濡쒖뺄 湲곕룞 (?닿? 以鍮????ㅺ? ?ㅽ뻾)
+## 1. 빌드 + 로컬 기동 (내가 준비 — 네가 실행)
 ```powershell
 cd C:\Flowvium
-npm run build              # prod 鍮뚮뱶 (~?섎텇)
-# ???쒕쾭 (李?, ?곸떆)
-$env:NODE_ENV="production"; npm run start          # ??http://localhost:3000
-# ?щ줎 ?щ꼫 (李?, ?곸떆) ??Vercel UTC ?ㅼ?以?洹몃?濡?
+npm run build              # prod 빌드 (~수분)
+# 웹 서버 (창1, 상시)
+$env:NODE_ENV="production"; npm run start          # → http://localhost:3000
+# 크론 러너 (창2, 상시) — Vercel UTC 스케줄 그대로
 $env:CRON_TZ="Etc/UTC"; node scripts/cron-runner.mjs
 ```
-???먮뒗 `run-selfhost.bat` (???꾨줈?몄뒪 ??踰덉뿉). ?곸떆 ?댁쁺? **pm2** 沅뚯옣:
+→ 또는 `run-selfhost.bat` (두 프로세스 한 번에). 상시 운영은 **pm2** 권장:
 ```powershell
 npm i -g pm2
 pm2 start "npm run start" --name flowvium-web
 pm2 start scripts/cron-runner.mjs --name flowvium-cron --interpreter node -- 
-pm2 save ; pm2 startup   # 遺?????먮룞 湲곕룞
+pm2 save ; pm2 startup   # 부팅 시 자동 기동
 ```
 
-## 2. Cloudflare Tunnel (?낅꽕媛 ?몄쬆 ??釉뚮씪?곗? ?꾩슂)
+## 2. Cloudflare Tunnel (★네가 인증 — 브라우저 필요)
 ```powershell
 cd "C:\Program Files (x86)\cloudflared"
-cloudflared tunnel login                       # 釉뚮씪?곗? ??CF 怨꾩젙 ?몄쬆 (flowvium.net ?좏깮)
-cloudflared tunnel create flowvium             # ?곕꼸 ?앹꽦 ???먭꺽利앸챸 json 寃쎈줈 異쒕젰??
-cloudflared tunnel route dns flowvium flowvium.net   # DNS CNAME ?먮룞 ?앹꽦
+cloudflared tunnel login                       # 브라우저 → CF 계정 인증 (flowvium.net 선택)
+cloudflared tunnel create flowvium             # 터널 생성 → 자격증명 json 경로 출력됨
+cloudflared tunnel route dns flowvium flowvium.net   # DNS CNAME 자동 생성
 ```
-洹???`%USERPROFILE%\.cloudflared\config.yml` ?앹꽦 (?꾨옒 `cloudflared-config.yml` 李멸퀬):
+그 후 `%USERPROFILE%\.cloudflared\config.yml` 생성 (아래 `cloudflared-config.yml` 참고):
 ```yaml
 tunnel: flowvium
-credentials-file: C:\Users\gangd\.cloudflared\<?곕꼸ID>.json
+credentials-file: C:\Users\gangd\.cloudflared\<터널ID>.json
 ingress:
   - hostname: flowvium.net
     service: http://localhost:3000
   - service: http_status:404
 ```
-?ㅽ뻾 / ?쒕퉬???깅줉:
+실행 / 서비스 등록:
 ```powershell
-cloudflared tunnel run flowvium                # ?뚯뒪???ㅽ뻾
-cloudflared service install                    # 遺?????먮룞 (?쒕퉬??
+cloudflared tunnel run flowvium                # 테스트 실행
+cloudflared service install                    # 부팅 시 자동 (서비스)
 ```
 
-## 3. Cloudflare ??쒕낫????CDN 罹먯떆 (?낅꽕媛 ?ㅼ젙, 臾대즺)
-fair-use ??쬆???듭떖(遊눫룹쟾????CDN???≪닔?섎룄濡?**Cache Rules**:
-- **Cache**: `/_next/static/*`, `/`, `/{locale}/*`, `/{locale}/company/*` ??Edge TTL 1h~ (Cache Everything)
+## 3. Cloudflare 대시보드 — CDN 캐시 (★네가 설정, 무료)
+fair-use 폭증의 핵심(봇·전송)을 CDN이 흡수하도록 **Cache Rules**:
+- **Cache**: `/_next/static/*`, `/`, `/{locale}/*`, `/{locale}/company/*` → Edge TTL 1h~ (Cache Everything)
 - **Bypass**: `/api/cron/*`, `/admin/*`
-- **Bot Fight Mode** 耳쒓린 (臾대즺, 遊?李⑤떒) + robots.txt(?대? AI ?ㅽ겕?섑띁 李⑤떒 而ㅻ컠??
-???대윭硫?諛섎났/遊??붿껌??origin(node) ??嫄곗튂怨?CF edge?먯꽌 泥섎━ = 癒몄떊 遺??理쒖냼.
+- **Bot Fight Mode** 켜기 (무료, 봇 차단) + robots.txt(이미 AI 스크래퍼 차단 커밋됨)
+→ 이러면 반복/봇 요청이 origin(node) 안 거치고 CF edge에서 처리 = 머신 부하 최소.
 
-## 4. ?꾪솚 + 寃利?
-- DNS??step2??`route dns`媛 flowvium.net ???곕꼸濡??먮룞 蹂寃?(Vercel DNS ??뼱?).
-- 寃利? `curl https://flowvium.net/api/stock-price/AAPL` ??200 (?댁젣 ?먭??몄뒪??origin).
-- 蹂닿퀬???щ줎: cron-runner 濡쒓렇 ?뺤씤 + `npm run verify` (濡쒖뺄).
+## 4. 전환 + 검증
+- DNS는 step2의 `route dns`가 flowvium.net → 터널로 자동 변경 (Vercel DNS 덮어씀).
+- 검증: `curl https://flowvium.net/api/stock-price/AAPL` → 200 (이제 자가호스팅 origin).
+- 보고서/크론: cron-runner 로그 확인 + `npm run verify` (로컬).
 
-## 5. Vercel ?뺣━ (?좏깮)
-- 李⑤떒 臾닿??댁쭚. Vercel ?꾨줈?앺듃??**??젣 or 諛⑹튂**. (DNS??CF濡??섏뼱媛?
-- `vercel.json` crons ??cron-runner 媛 ?쎈뒗 ?뚯뒪濡?怨꾩냽 ?ъ슜 (??젣 湲덉?).
+## 5. Vercel 정리 (선택)
+- 차단 무관해짐. Vercel 프로젝트는 **삭제 or 방치**. (DNS는 CF로 넘어감)
+- `vercel.json` crons 는 cron-runner 가 읽는 소스로 계속 사용 (삭제 금지).
 
-## ?몃젅?대뱶?ㅽ봽 / 二쇱쓽
-- 吏??꾩썝쨌?ㅽ듃?뚰겕 ?딄린硫??ㅼ슫 ??CF CDN 罹먯떆媛 ?뺤쟻/罹먯떆 ?섏씠吏??怨꾩냽 ?쒕튃(?꾩땐). 以묒슂?섎㈃ ?뚰삎 VPS ?대갚.
-- 癒몄떊? report-gen cron ?쇰줈 ?댁감???곸떆 耳쒖쭚 ???꾩떎??
-- 紐⑤땲?? `check-stall.mjs`(濡쒖뺄) + 李⑤떒 ?댁젣 ??`check-data-quality.mjs`(?댁젣 ?먭? origin ?묒씠??怨쇨툑 ?놁쓬 ???ш컻 媛??.
+## 트레이드오프 / 주의
+- 집 전원·네트워크 끊기면 다운 → CF CDN 캐시가 정적/캐시 페이지는 계속 서빙(완충). 중요하면 소형 VPS 폴백.
+- 머신은 report-gen cron 으로 어차피 상시 켜짐 → 현실적.
+- 모니터: `check-stall.mjs`(로컬) + 차단 해제 후 `check-data-quality.mjs`(이제 자가 origin 핑이라 과금 없음 — 재개 가능).
 
-## 誘퇼ush 而ㅻ컠 (?댁쟾 臾닿??섍쾶 git 蹂닿?)
-- 245cb96 cron ?덇컧 / 1c9dff7 robots / + ?대쾲 cron-runner쨌?곕턿.
-  ?먭??몄뒪?낆뿏 Vercel 諛고룷 遺덊븘????git push??GitHub 諛깆뾽 ?⑸룄濡쒕쭔.
+## 미push 커밋 (이전 무관하게 git 보관)
+- 245cb96 cron 절감 / 1c9dff7 robots / + 이번 cron-runner·런북.
+  자가호스팅엔 Vercel 배포 불필요 — git push는 GitHub 백업 용도로만.

@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
- * scripts/check-data-quality.mjs ??production ?곗씠???덉쭏 紐⑤땲??
+ * scripts/check-data-quality.mjs — production 데이터 품질 모니터.
  *
- * ?ъ슜??吏??2026-06-02): "蹂닿퀬??寃?좏븷 ???붾뱶?ъ씤??寃????媛숈씠 ?섍퀬 ?덈굹? contango/
- * ?댁뒪 踰덉뿭 媛숈? 寃??쒕?濡?寃?????섎뒗 寃?媛숇떎." ??verify-report(?섍컖)쨌check-stall(?좎꽑??媛
- * 紐?蹂대뒗 *?곗씠???덉쭏* ?ш컖吏?瑜?production ?ㅽ샇異쒕줈 ?먭?.
+ * 사용자 지적(2026-06-02): "보고서 검토할 때 엔드포인트 검토 다 같이 되고 있나? contango/
+ * 뉴스 번역 같은 게 제대로 검토 안 되는 것 같다." → verify-report(환각)·check-stall(신선도)가
+ * 못 보는 *데이터 품질* 사각지대를 production 실호출로 점검.
  *
- * ?먭? ??ぉ:
- *   [A] ?붾뱶?ъ씤???ъ뒪 ???듭떖 endpoint ?ㅽ샇異? non-200 ?먮뒗 body {error} 媛먯?.
- *   [B] ?댁뒪 踰덉뿭 ??news-cascade?locale=ko ?쒕ぉ???ㅼ젣 ?쒓??몄? (?곸뼱硫?踰덉뿭 誘몄셿).
- *   [C] contango ??commodity-curve 媛 synthetic(carry-model) ?몃뜲 洹??ъ떎???몄텧?섎뒗吏.
+ * 점검 항목:
+ *   [A] 엔드포인트 헬스 — 핵심 endpoint 실호출, non-200 또는 body {error} 감지.
+ *   [B] 뉴스 번역 — news-cascade?locale=ko 제목이 실제 한글인지 (영어면 번역 미완).
+ *   [C] contango — commodity-curve 가 synthetic(carry-model) 인데 그 사실이 노출되는지.
  *
- * ?ъ슜: node scripts/check-data-quality.mjs   (exit 1 = 寃고븿)
+ * 사용: node scripts/check-data-quality.mjs   (exit 1 = 결함)
  */
 const BASE = 'https://flowvium.net';
 const issues = [];
@@ -26,9 +26,9 @@ async function getJson(path, ms = 12000, retryOnConnFail = true) {
     let body = null; try { body = JSON.parse(text); } catch { /* non-json */ }
     return { status: res.status, body, text };
   } catch (e) {
-    // 2026-06-05: HTTP 0 = ?곌껐?덈꺼 ?ㅽ뙣(??꾩븘??由ъ뀑) ???쒓컙 遺????endpoint 留덈떎 false ?슚 churn
-    //   ?좊컻(yield-curve/economic-calendar 踰덇컝??. 吏꾩쭨 二쎌? ?쇱슦?몃뒗 4xx/5xx 諛섑솚?섏? retry ???ㅽ뙣.
-    //   ???곌껐?ㅽ뙣 1???쒖젙 ?ъ떆??湲???꾩븘??. ?ㅼ젣 ?μ븷???ъ쟾???≪쓬.
+    // 2026-06-05: HTTP 0 = 연결레벨 실패(타임아웃/리셋) — 순간 부하 시 endpoint 마다 false 🚨 churn
+    //   유발(yield-curve/economic-calendar 번갈아). 진짜 죽은 라우트는 4xx/5xx 반환하지 retry 도 실패.
+    //   → 연결실패 1회 한정 재시도(긴 타임아웃). 실제 장애는 여전히 잡음.
     if (retryOnConnFail) {
       clearTimeout(t);
       await new Promise(r => setTimeout(r, 1500));
@@ -39,7 +39,7 @@ async function getJson(path, ms = 12000, retryOnConnFail = true) {
   finally { clearTimeout(t); }
 }
 
-// [A] ?붾뱶?ъ씤???ъ뒪 ???듭떖 endpoint ?쒕낯
+// [A] 엔드포인트 헬스 — 핵심 endpoint 표본
 const ENDPOINTS = [
   '/api/stock-price/AAPL', '/api/stock-price/005930.KS', '/api/price-history?ticker=005930.KS&days=30',
   '/api/company-financials/AAPL', '/api/company-financials/TSM', '/api/company-kr/005930',
@@ -53,64 +53,64 @@ async function main() {
   for (const ep of ENDPOINTS) {
     const r = await getJson(ep);
     const errField = r.body && typeof r.body === 'object' && (r.body.error || (Array.isArray(r.body) && r.body.length === 0));
-    if (r.status !== 200) issues.push(`[A] ${ep} ??HTTP ${r.status}`);
-    else if (errField) issues.push(`[A] ${ep} ??200 but body {error:"${r.body.error ?? 'empty'}"}`);
+    if (r.status !== 200) issues.push(`[A] ${ep} → HTTP ${r.status}`);
+    else if (errField) issues.push(`[A] ${ep} → 200 but body {error:"${r.body.error ?? 'empty'}"}`);
     else ok++;
   }
-  info.push(`[A] ?붾뱶?ъ씤??${ok}/${ENDPOINTS.length} ?뺤긽`);
+  info.push(`[A] 엔드포인트 ${ok}/${ENDPOINTS.length} 정상`);
 
-  // [B] ?댁뒪 踰덉뿭 ??2026-06-04: ko 留?蹂대뜕 ?ш컖吏?(ja/zh ?곸뼱 leak 誘멸컧吏) ???ㅺ뎅??寃利?
-  //   ko(?쒓?) + ja(媛???쒖옄) + zh-CN(?쒖옄). cron 401 濡??ㅺ뎅??warm ?ㅽ뙣?섎뜕 寃껋쓣 紐⑤땲?곌? ?〓룄濡?
+  // [B] 뉴스 번역 — 2026-06-04: ko 만 보던 사각지대(ja/zh 영어 leak 미감지) → 다국어 검증.
+  //   ko(한글) + ja(가나/한자) + zh-CN(한자). cron 401 로 다국어 warm 실패하던 것을 모니터가 잡도록.
   {
-    const LOC = [{ l: 'ko', re: /[媛-??/ }, { l: 'ja', re: /[?-?요?-涌?/ }, { l: 'zh-CN', re: /[訝-涌?/ }];
+    const LOC = [{ l: 'ko', re: /[가-힣]/ }, { l: 'ja', re: /[぀-ヿ一-鿿]/ }, { l: 'zh-CN', re: /[一-鿿]/ }];
     for (const { l, re } of LOC) {
       const r = await getJson(`/api/news-cascade?locale=${l}`);
       const arts = (r.body?.articles || r.body?.events || r.body?.items || []);
-      if (arts.length === 0) { info.push(`[B] news-cascade ${l} 湲곗궗 0`); continue; }
+      if (arts.length === 0) { info.push(`[B] news-cascade ${l} 기사 0`); continue; }
       const titles = arts.map(a => a.title || a.headline || '').filter(Boolean);
       const ok = titles.filter(t => re.test(t)).length;
       const pct = titles.length ? Math.round(ok / titles.length * 100) : 0;
-      // 2026-06-05: JP/CN ?ㅼ씠?곕툕 ?쇰뱶 ?좎?(?ъ슜??寃곗젙) + 濡쒖뺄 8B 媛 CJK cross-translate쨌諛곗튂 踰덉뿭??
-      //   100% 紐??섎뒗 ?쒓퀎 ?몄?. <50%=肄쒕뱶罹먯떆/?뚯씠?꾨씪??寃고븿(?슚, warm ?꾩슂) / 50-80%=8B 遺遺꾨쾲??
-      //   (?몄??????곸뼱 base 蹂대떎 ?섏쓬) / ??0%=?뺤긽.
-      if (pct < 50) issues.push(`[B] ?댁뒪 踰덉뿭 ${l} ${ok}/${titles.length} (${pct}%) ??肄쒕뱶罹먯떆/?뚯씠?꾨씪??warm ?꾩슂). ?? "${(titles.find(t => !re.test(t)) || '').slice(0, 35)}"`);
-      else if (pct < 80) info.push(`[B] ?댁뒪 踰덉뿭 ${l} ${ok}/${titles.length} (${pct}%) ??8B 遺遺꾨쾲??CJK ?쒓퀎 ?몄???`);
-      else info.push(`[B] ?댁뒪 踰덉뿭 ${l} ${ok}/${titles.length} (${pct}%)`);
-      // [B5] 以묎뎅??bleeding ?섎꽕??(2026-06-07): qwen(以묎뎅怨???ko 異쒕젰???쒖옄 ?꾩텧. ko ?쒕ぉ??
-      //   ?쒖옄 2媛? ?덉쑝硫?bleed. (ja ???쒖옄 ?뺤긽?대씪 ?쒖쇅. zh ??以묎뎅???뺤긽.)
+      // 2026-06-05: JP/CN 네이티브 피드 유지(사용자 결정) + 로컬 8B 가 CJK cross-translate·배치 번역을
+      //   100% 못 하는 한계 인지. <50%=콜드캐시/파이프라인 결함(🚨, warm 필요) / 50-80%=8B 부분번역
+      //   (인지됨 — 영어 base 보다 나음) / ≥80%=정상.
+      if (pct < 50) issues.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 콜드캐시/파이프라인(warm 필요). 예: "${(titles.find(t => !re.test(t)) || '').slice(0, 35)}"`);
+      else if (pct < 80) info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 8B 부분번역(CJK 한계 인지됨)`);
+      else info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%)`);
+      // [B5] 중국어 bleeding 하네스 (2026-06-07): qwen(중국계)이 ko 출력에 한자 누출. ko 제목에
+      //   한자 2개+ 있으면 bleed. (ja 는 한자 정상이라 제외. zh 는 중국어 정상.)
       if (l === 'ko') {
-        // 2026-06-13: bleed = *?쒓?怨??쒖옄/媛?섍? ?쇱옱*?섎뒗 諛섏そ 踰덉뿭留?(qwen ?꾩텧???ㅽ삎??.
-        //   ?쒖닔 ?멸뎅???먮Ц(踰덉뿭 ?ㅽ뙣 ???뺤쭅???먮Ц ?좎?)? bleed 媛 ?꾨땲??[B] 而ㅻ쾭由ъ? ?뚭? ??
-        //   ?섍퀬??湲곗궗(?쒖닔 ?쇱뼱)媛 "qwen ?꾩텧"濡??ㅻ텇瑜섎릺??寃?援먯젙.
-        const bleeds = titles.filter(t => /[媛-??/.test(t) && ((t.match(/[訝-涌?/g) || []).length >= 2 || /[????/.test(t)));
-        if (bleeds.length) issues.push(`[B5] ?쇱쥌 踰덉뿭(bleed) ko ${bleeds.length}嫄????쒓?+?쒖옄/媛???쇱옱. ?? "${bleeds[0].slice(0, 30)}"`);
-        else info.push('[B5] ?쇱쥌 踰덉뿭 ?놁쓬 (ko bleed 0)');
+        // 2026-06-13: bleed = *한글과 한자/가나가 혼재*하는 반쪽 번역만 (qwen 누출의 실형태).
+        //   순수 외국어 원문(번역 실패 시 정직한 원문 유지)은 bleed 가 아니라 [B] 커버리지 소관 —
+        //   나고야 기사(순수 일어)가 "qwen 누출"로 오분류되던 것 교정.
+        const bleeds = titles.filter(t => /[가-힣]/.test(t) && ((t.match(/[一-鿿]/g) || []).length >= 2 || /[ぁ-ヿ]/.test(t)));
+        if (bleeds.length) issues.push(`[B5] 혼종 번역(bleed) ko ${bleeds.length}건 — 한글+한자/가나 혼재. 예: "${bleeds[0].slice(0, 30)}"`);
+        else info.push('[B5] 혼종 번역 없음 (ko bleed 0)');
       }
     }
   }
 
-  // [B2] ?댁뒪 援?? 而ㅻ쾭由ъ? (2026-06-05 ?좎꽕) ???ъ슜??"媛?援?? ?댁뒪媛 ???ㅼ뼱媛??".
-  //   news-cascade 媛 US ?곸뼱 ?쇰뱶留뚯씠???ш컖吏? ??KR/JP/CN ?ㅼ씠?곕툕 ?쇰뱶 異붽? + region 荑쇳꽣.
-  //   article.source 濡?region ?먯젙: KR ?뚯뒪 0嫄댁씠硫?KR ?쇰뱶 ?딄?/荑쇳꽣 誘몄옉????寃고븿.
+  // [B2] 뉴스 국가 커버리지 (2026-06-05 신설) — 사용자 "각 국가 뉴스가 다 들어가나?".
+  //   news-cascade 가 US 영어 피드만이던 사각지대 → KR/JP/CN 네이티브 피드 추가 + region 쿼터.
+  //   article.source 로 region 판정: KR 소스 0건이면 KR 피드 끊김/쿼터 미작동 → 결함.
   {
     const r = await getJson('/api/news-cascade?locale=ko');
     const arts = (r.body?.articles || []);
     const srcs = arts.map(a => a.source || '');
-    const krN = srcs.filter(s => /?고빀|?쒓뎅寃쎌젣|留ㅼ씪寃쎌젣|留ㅺ꼍|癒몃땲?щ뜲??.test(s)).length;
-    const jpN = srcs.filter(s => /Japan|??Nikkei/i.test(s)).length;
-    const cnN = srcs.filter(s => /SCMP|China|訝?i.test(s)).length;
+    const krN = srcs.filter(s => /연합|한국경제|매일경제|매경|머니투데이/.test(s)).length;
+    const jpN = srcs.filter(s => /Japan|日|Nikkei/i.test(s)).length;
+    const cnN = srcs.filter(s => /SCMP|China|中/i.test(s)).length;
     if (arts.length === 0) {
-      info.push('[B2] news-cascade 湲곗궗 0 ??而ㅻ쾭由ъ? ?먭? 遺덇?');
+      info.push('[B2] news-cascade 기사 0 — 커버리지 점검 불가');
     } else if (krN === 0) {
-      issues.push(`[B2] ?댁뒪 KR 而ㅻ쾭由ъ? 0 ???고빀/?쒓꼍/留ㅺ꼍 ?쇰뱶 ?딄? ?먮뒗 region 荑쇳꽣 誘몄옉??(珥?${arts.length}嫄? jp=${jpN} cn=${cnN})`);
+      issues.push(`[B2] 뉴스 KR 커버리지 0 — 연합/한경/매경 피드 끊김 또는 region 쿼터 미작동 (총 ${arts.length}건, jp=${jpN} cn=${cnN})`);
     } else {
-      info.push(`[B2] ?댁뒪 援?? 而ㅻ쾭由ъ? KR=${krN} JP=${jpN} CN=${cnN} (珥?${arts.length})`);
+      info.push(`[B2] 뉴스 국가 커버리지 KR=${krN} JP=${jpN} CN=${cnN} (총 ${arts.length})`);
     }
   }
 
-  // [B3] ?댁뒪 ?좎꽑??(2026-06-06 ?좎꽕) ???ъ슜??"二쇱슂?댁뒪媛 ??18h ?꾧볼?? ?섎꽕?ㅼ뿉 ?덉옟??".
-  //   理쒖떊 湲곗궗 age ?먭?. 二쇰쭚(?쒖옣 ?댁옣)???댁뒪 sparse ???꾧퀎 ?꾪솕(?됱씪 18h / 二쇰쭚 48h). genuinely
-  //   ?딄릿 ?쇰뱶(?됱씪 18h+)???〓릺 二쇰쭚 ?뺤긽? ?듦낵. age 瑜?info 濡???긽 ?몄텧.
+  // [B3] 뉴스 신선도 (2026-06-06 신설) — 사용자 "주요뉴스가 왜 18h 전꺼야? 하네스에 안잡혀?".
+  //   최신 기사 age 점검. 주말(시장 휴장)엔 뉴스 sparse → 임계 완화(평일 18h / 주말 48h). genuinely
+  //   끊긴 피드(평일 18h+)는 잡되 주말 정상은 통과. age 를 info 로 항상 노출.
   {
     const r = await getJson('/api/news-cascade?locale=ko');
     const arts = (r.body?.articles || []);
@@ -119,14 +119,14 @@ async function main() {
       const ageH = (Date.now() - Math.max(...times)) / 3600000;
       const weekend = [0, 6].includes(new Date().getUTCDay());
       const limit = weekend ? 48 : 18;
-      if (ageH > limit) issues.push(`[B3] ?댁뒪 理쒖떊 ${ageH.toFixed(0)}h ??(>${limit}h, ${weekend ? '二쇰쭚' : '?됱씪'}) ???쇰뱶 媛깆떊 ?뺤? ?섏떖`);
-      else info.push(`[B3] ?댁뒪 ?좎꽑??OK (理쒖떊 ${ageH.toFixed(0)}h ?? ${weekend ? '二쇰쭚' : '?됱씪'} ?꾧퀎 ${limit}h)`);
-    } else info.push('[B3] ?댁뒪 timestamp ?뚯떛 遺덇? ???좎꽑???먭? skip');
+      if (ageH > limit) issues.push(`[B3] 뉴스 최신 ${ageH.toFixed(0)}h 전 (>${limit}h, ${weekend ? '주말' : '평일'}) — 피드 갱신 정지 의심`);
+      else info.push(`[B3] 뉴스 신선도 OK (최신 ${ageH.toFixed(0)}h 전, ${weekend ? '주말' : '평일'} 임계 ${limit}h)`);
+    } else info.push('[B3] 뉴스 timestamp 파싱 불가 — 신선도 점검 skip');
   }
 
-  // [B4] RSS ?쇰뱶 *?뚯뒪* 嫄닿컯??(2026-06-06 ?좎꽕) ??"???ш컖吏??" 洹쇰낯: 醫낆쟾 寃利앹? "endpoint 200"
-  //   留?遊ㅼ? ?몃? RSS ?뚯뒪媛 *?댁븘?덈뒗吏/?좎꽑?쒖?* ??遊ㅼ쓬. WSJ RSS 媛 200+?좏슚XML ?댁?留?Jan 2025
-  //   frozen, Reuters fetch fail ?몃뜲 紐??≪븯???뚯뒪 decay ?ш컖吏?). ??媛??쇰뱶 理쒖떊湲곗궗 age 吏곸젒 ?먭?.
+  // [B4] RSS 피드 *소스* 건강도 (2026-06-06 신설) — "왜 사각지대?" 근본: 종전 검증은 "endpoint 200"
+  //   만 봤지 외부 RSS 소스가 *살아있는지/신선한지* 안 봤음. WSJ RSS 가 200+유효XML 이지만 Jan 2025
+  //   frozen, Reuters fetch fail 인데 못 잡았음(소스 decay 사각지대). → 각 피드 최신기사 age 직접 점검.
   try {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync('src/app/api/news-cascade/route.ts', 'utf8');
@@ -134,9 +134,9 @@ async function main() {
     const feeds = [...(m?.[1] || '').matchAll(/url:\s*['"]([^'"]+)['"][^}]*source:\s*['"]([^'"]+)/g)].map(x => ({ url: x[1], src: x[2] }));
     let dead = 0;
     const deadList = [];
-    // 2026-06-15: "200 + ?좎쭨X" ??dead 媛 ?꾨땲??rate-limit transient ???뚭? 留롮쓬 ??Yahoo ?쇰뱶 4媛쒕?
-    //   蹂묐젹 fetch ?섎㈃ ?숈씪 IP per-IP rate-limit ?쇰줈 洹몄쨷 ?섎굹媛 鍮??묐떟??以??④굔? ?뺤긽). dead 濡?
-    //   ?⑥젙?섏? 留먭퀬 ?좎쭨0 ?대㈃ sequential 1???ъ떆??stagger). 吏꾩쭨 dead ???ъ떆?꾨룄 0 ??洹몃븣留?flag.
+    // 2026-06-15: "200 + 날짜X" 는 dead 가 아니라 rate-limit transient 일 때가 많음 — Yahoo 피드 4개를
+    //   병렬 fetch 하면 동일 IP per-IP rate-limit 으로 그중 하나가 빈 응답을 줌(단건은 정상). dead 로
+    //   단정하지 말고 날짜0 이면 sequential 1회 재시도(stagger). 진짜 dead 는 재시도도 0 → 그때만 flag.
     const datesOf = async (url) => {
       const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, signal: AbortSignal.timeout(10000) });
       if (!r.ok) return { http: r.status, ds: [] };
@@ -148,36 +148,36 @@ async function main() {
       try {
         let { http, ds } = await datesOf(f.url);
         if (http !== 200) { dead++; deadList.push(`${f.src}(HTTP${http})`); return; }
-        if (!ds.length) {   // ?좎쭨0 = rate-limit ?섏떖 ??sequential ?ъ떆??鍮??묐떟 transient ?뺤씤)
+        if (!ds.length) {   // 날짜0 = rate-limit 의심 → sequential 재시도(빈 응답 transient 확인)
           await new Promise(r => setTimeout(r, 1500));
           ({ ds } = await datesOf(f.url));
         }
         const ageH = ds.length ? (Date.now() - ds[0]) / 3600000 : null;
-        if (ageH == null || ageH > 168) { dead++; deadList.push(`${f.src}(${ageH == null ? '?좎쭨X' : Math.round(ageH) + 'h'})`); }
-      } catch { dead++; deadList.push(`${f.src}(fetch?ㅽ뙣)`); }
+        if (ageH == null || ageH > 168) { dead++; deadList.push(`${f.src}(${ageH == null ? '날짜X' : Math.round(ageH) + 'h'})`); }
+      } catch { dead++; deadList.push(`${f.src}(fetch실패)`); }
     }));
-    if (dead > 0) issues.push(`[B4] RSS 二쎌?/stale ?쇰뱶 ${dead}/${feeds.length}: ${deadList.join(', ')} ???뚯뒪 援먯껜 ?꾩슂`);
-    else info.push(`[B4] RSS ?쇰뱶 ${feeds.length}媛??꾨? ?좎꽑(??d)`);
-  } catch (e) { info.push(`[B4] RSS ?쇰뱶 ?먭? skip: ${String(e.message).slice(0, 40)}`); }
+    if (dead > 0) issues.push(`[B4] RSS 죽은/stale 피드 ${dead}/${feeds.length}: ${deadList.join(', ')} — 소스 교체 필요`);
+    else info.push(`[B4] RSS 피드 ${feeds.length}개 전부 신선(≤7d)`);
+  } catch (e) { info.push(`[B4] RSS 피드 점검 skip: ${String(e.message).slice(0, 40)}`); }
 
-  // [C] contango / commodity 異붿젙 ?쒖떆
+  // [C] contango / commodity 추정 표시
   {
     const r = await getJson('/api/commodity-curve');
     const curves = r.body?.curves || [];
-    if (curves.length === 0) issues.push('[C] commodity-curve 鍮??묐떟');
+    if (curves.length === 0) issues.push('[C] commodity-curve 빈 응답');
     else {
       for (const c of curves) {
-        // synthetic curve ?몃뜲 ticker 媛 ?ㅼ젣 ?곗씠??FRED/Yahoo) 泥섎읆 蹂댁씠硫??ㅼ씤 ?뚯? ???쒖떆 ?먭?
+        // synthetic curve 인데 ticker 가 실제 데이터(FRED/Yahoo) 처럼 보이면 오인 소지 — 표시 점검
         const firstTicker = c.curve?.[0]?.ticker ?? '';
         const looksReal = /^(FRED|YAHOO|CME):/i.test(firstTicker);
-        if (c.synthetic && looksReal) info.push(`[C] ${c.id} ${c.structure}(synthetic=true, label="${firstTicker}" ??異붿젙?몃뜲 ?ㅻ뜲?댄꽣 ?쇰꺼, UI ?쒖떆 ?먭?)`);
+        if (c.synthetic && looksReal) info.push(`[C] ${c.id} ${c.structure}(synthetic=true, label="${firstTicker}" — 추정인데 실데이터 라벨, UI 표시 점검)`);
         else info.push(`[C] ${c.id} ${c.structure}${c.synthetic ? '(synthetic)' : '(real)'}`);
       }
     }
   }
 
-  // [E] 踰덉뿭 ?붾뱶?ъ씤????/api/translate 媛 ?ㅼ젣 ??곸뼵??異쒕젰???대뒗吏 (cloud quota ?뚯쭊 ??
-  //     ?먮Ц ?곸뼱 洹몃?濡?諛섑솚?섎뜕 ?ш컖吏?. 2026-06-03 ?뚯궗?섏씠吏 誘몃쾲???ш굔 ???좎꽕).
+  // [E] 번역 엔드포인트 — /api/translate 가 실제 대상언어 출력을 내는지 (cloud quota 소진 시
+  //     원문 영어 그대로 반환하던 사각지대. 2026-06-03 회사페이지 미번역 사건 후 신설).
   {
     try {
       const res = await fetch(`${BASE}/api/translate`, {
@@ -187,42 +187,42 @@ async function main() {
       });
       const j = await res.json().catch(() => ({}));
       const out = j.translated || '';
-      const hasKo = /[媛-??/.test(out);
-      if (!hasKo) issues.push(`[E] /api/translate ko 誘몃쾲????異쒕젰???쒓? ?놁쓬 (cloud quota ?뚯쭊/Ollama ?ㅼ슫 ?섏떖). ?? "${String(out).slice(0, 50)}"`);
+      const hasKo = /[가-힣]/.test(out);
+      if (!hasKo) issues.push(`[E] /api/translate ko 미번역 — 출력에 한글 없음 (cloud quota 소진/Ollama 다운 의심). 예: "${String(out).slice(0, 50)}"`);
       else info.push(`[E] /api/translate ko OK (source=${j.source ?? '?'}${j.cached ? ',cached' : ''})`);
-    } catch (e) { issues.push(`[E] /api/translate ?몄텧 ?ㅽ뙣: ${String(e.message || e).slice(0, 50)}`); }
+    } catch (e) { issues.push(`[E] /api/translate 호출 실패: ${String(e.message || e).slice(0, 50)}`); }
   }
 
-  // [F] ?숈쟻??freshness ??媛믪씠 ?ㅼ젣濡?媛깆떊?섎뒗吏(frozen/stale 罹먯떆쨌怨좎젙?곸닔 媛먯?). 2026-06-04 ?좎꽕.
-  //     "異쒕젰??留욌굹"(A~E)? 蹂꾧컻濡?"怨꾩냽 ?숈쟻?쇰줈 ?낅뜲?댄듃?섎굹"瑜?updatedAt/source 濡?寃利?
+  // [F] 동적성/freshness — 값이 실제로 갱신되는지(frozen/stale 캐시·고정상수 감지). 2026-06-04 신설.
+  //     "출력이 맞나"(A~E)와 별개로 "계속 동적으로 업데이트되나"를 updatedAt/source 로 검증.
   {
     const now = Date.now();
     const ageH = (ts) => ts ? (now - new Date(ts).getTime()) / 3600000 : Infinity;
-    // 1) ?ㅼ떆媛??쒖꽭 ??updatedAt ?좎꽑(?쇱씠釉?媛깆떊). ?μ쨷 罹먯떆 怨좊젮 48h ?꾧퀎.
+    // 1) 실시간 시세 — updatedAt 신선(라이브 갱신). 장중 캐시 고려 48h 임계.
     const sp = await getJson('/api/stock-price/AAPL');
     const spAge = ageH(sp.body?.updatedAt);
-    if (spAge > 48) issues.push(`[F] stock-price updatedAt ${spAge.toFixed(0)}h 寃쎄낵 ???쒖꽭 媛깆떊 ?뺤? ?섏떖(frozen)`);
-    else info.push(`[F] stock-price ?좎꽑 (${spAge.toFixed(1)}h)`);
-    // 2) F&G source=live (?뺤쟻 ?대갚 ?꾨떂)
+    if (spAge > 48) issues.push(`[F] stock-price updatedAt ${spAge.toFixed(0)}h 경과 — 시세 갱신 정지 의심(frozen)`);
+    else info.push(`[F] stock-price 신선 (${spAge.toFixed(1)}h)`);
+    // 2) F&G source=live (정적 폴백 아님)
     const fg = await getJson('/api/fear-greed');
     const fgSrc = fg.body?.source;
-    if (fgSrc && fgSrc !== 'live') issues.push(`[F] fear-greed source=${fgSrc} (?뺤쟻 ?대갚 ???щ줎 誘멸갚???섏떖)`);
+    if (fgSrc && fgSrc !== 'live') issues.push(`[F] fear-greed source=${fgSrc} (정적 폴백 — 크론 미갱신 의심)`);
     else info.push(`[F] fear-greed source=${fgSrc ?? '?'}`);
-    // 3) ADR FX 蹂???쇱씠釉????멸뎅?듯솕 ADR ?щТ媛 ?섏궛?섎뒗吏 + ?쇱씠釉?FX
+    // 3) ADR FX 변환 라이브 — 외국통화 ADR 재무가 환산되는지 + 라이브 FX
     const adr = await getJson('/api/company-financials/ASML', 25000);
     const adrSrc = adr.body?.source ?? '';
-    if (adr.body?.latestAnnual?.revenueUSD == null) issues.push('[F] ASML(EUR ADR) ?щТ ?꾨씫 ???ㅽ넻??FX 寃쎈줈 ?뺤? ?섏떖');
-    else info.push(`[F] ADR FX 蹂??OK (ASML rev=$${(adr.body.latestAnnual.revenueUSD/1e9).toFixed(1)}B, ${adrSrc.replace('SEC EDGAR XBRL ','')})`);
+    if (adr.body?.latestAnnual?.revenueUSD == null) issues.push('[F] ASML(EUR ADR) 재무 누락 — 다통화/FX 경로 정지 의심');
+    else info.push(`[F] ADR FX 변환 OK (ASML rev=$${(adr.body.latestAnnual.revenueUSD/1e9).toFixed(1)}B, ${adrSrc.replace('SEC EDGAR XBRL ','')})`);
   }
 
-  // [D] 而ㅻ쾭由ъ?-李⑥썝 ??"移댄뀒怨좊━ 0嫄?= 鍮④컙遺? ?먯튃. 理쒖떊 蹂닿퀬?쒖뿉 KR portfolio 媛 ?덈뒗??
-  //     companyChanges/supplyChain ??KR ??0 ?대㈃ 移⑤У???꾨땲??寃고븿?쇰줈 surface.
-  //     (US-?곗꽑 ?뚯씠?꾨씪?몄씠 KR ??議곗슜???꾨씫?섎뜕 ?ш컖吏? ?먮룞 媛먯?.)
+  // [D] 커버리지-차원 — "카테고리 0건 = 빨간불" 원칙. 최신 보고서에 KR portfolio 가 있는데
+  //     companyChanges/supplyChain 에 KR 이 0 이면 침묵이 아니라 결함으로 surface.
+  //     (US-우선 파이프라인이 KR 을 조용히 누락하던 사각지대 자동 감지.)
   try {
     const { readdirSync, readFileSync, statSync } = await import('fs');
     const dir = 'C:/Flowvium/reports';
-    // 2026-06-12: "理쒖떊" ???대쫫 sort 濡?戮묐뜕 踰꾧렇 ???뚰뙆踰녹긽 noon ????긽 留덉?留됱씠??evening/afternoon
-    //   諛쒓컙 ?꾩뿉??noon ??寃??([D] supplyChain KR ??fix ?꾩뿉??stale ?섍쾶 ?щ컻?섎뜕 ?먯씤). mtime 湲곗?.
+    // 2026-06-12: "최신" 을 이름 sort 로 뽑던 버그 — 알파벳상 noon 이 항상 마지막이라 evening/afternoon
+    //   발간 후에도 noon 을 검사 ([D] supplyChain KR 이 fix 후에도 stale 하게 재발하던 원인). mtime 기준.
     const files = readdirSync(dir).filter(f => /^report-\d{4}-\d{2}-\d{2}-(midnight|morning|noon|afternoon|evening)-[a-z-]+\.json$/.test(f));
     const latest = files.map(f => ({ f, m: statSync(`${dir}/${f}`).mtimeMs })).sort((a, b) => b.m - a.m)[0]?.f;
     if (latest) {
@@ -232,38 +232,38 @@ async function main() {
       if (krPortfolio > 0) {
         const ccKr = (d.companyChanges || []).filter(x => isKR(x.ticker)).length;
         const scArr = d.supplyChainChanges || d.supplyChainSignals || [];
-        const scKr = scArr.filter(x => isKR(x.ticker) || /?쇱꽦|?섏씠?됱뒪|?꾨?|?ㅼ씠踰?移댁뭅???ъ뒪肄???몃━??.test(JSON.stringify(x))).length;
-        if (ccKr === 0) issues.push(`[D] companyChanges KR 0嫄?(portfolio KR ${krPortfolio}媛?蹂댁쑀) ??KR 湲곗뾽蹂???꾨씫 ?섏떖 (${latest})`);
-        else info.push(`[D] companyChanges KR ${ccKr}嫄?);
-        if (scKr === 0) issues.push(`[D] supplyChain KR 0嫄?(portfolio KR ${krPortfolio}媛? ??KR 怨듦툒留??꾨씫 ?섏떖`);
-        else info.push(`[D] supplyChain KR ${scKr}嫄?);
-      } else info.push('[D] 理쒖떊 蹂닿퀬??KR portfolio ?놁쓬 (coverage ?먭? skip)');
+        const scKr = scArr.filter(x => isKR(x.ticker) || /삼성|하이닉스|현대|네이버|카카오|포스코|셀트리온/.test(JSON.stringify(x))).length;
+        if (ccKr === 0) issues.push(`[D] companyChanges KR 0건 (portfolio KR ${krPortfolio}개 보유) — KR 기업변화 누락 의심 (${latest})`);
+        else info.push(`[D] companyChanges KR ${ccKr}건`);
+        if (scKr === 0) issues.push(`[D] supplyChain KR 0건 (portfolio KR ${krPortfolio}개) — KR 공급망 누락 의심`);
+        else info.push(`[D] supplyChain KR ${scKr}건`);
+      } else info.push('[D] 최신 보고서 KR portfolio 없음 (coverage 점검 skip)');
     }
-  } catch (e) { info.push(`[D] coverage ?먭? 遺덇?: ${String(e.message || e).slice(0, 50)}`); }
+  } catch (e) { info.push(`[D] coverage 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
-  // [G0b] 13F 湲곌? 吏遺꾩쑉 臾닿껐??(2026-06-13 ?좎꽕 ??"AAPL Berkshire 13??吏遺?0%" ?ш굔). root cause:
-  //   pctOfShares 媛 placeholder 0 ?쇰줈 *?곸옱 ???쒖떆?⑥뿉??梨꾩썙吏吏 ?딅뜕* ?덊떚?⑦꽩 + CUSIP 誘명빀??
-  //   以묐났??+ v7 crumb ?꾨씫. 寃異? 媛숈? 湲곌? 以묐났??/ pctOfShares ?꾨? 0 / ??鍮꾪쁽??>100%).
+  // [G0b] 13F 기관 지분율 무결성 (2026-06-13 신설 — "AAPL Berkshire 13행/지분 0%" 사건). root cause:
+  //   pctOfShares 가 placeholder 0 으로 *적재 후 표시단에서 채워지지 않던* 안티패턴 + CUSIP 미합산
+  //   중복행 + v7 crumb 누락. 검출: 같은 기관 중복행 / pctOfShares 전부 0 / 합 비현실(>100%).
   try {
     const r = await getJson('/api/stock-supply?ticker=AAPL', 30000);
     const o = r.body?.ownership13F ?? [];
     if (o.length === 0) {
-      info.push('[G0b] 13F 吏遺꾩쑉: AAPL ?곗씠???놁쓬 (?쇱씠釉?誘몄쟻????cron ?먭?)');
+      info.push('[G0b] 13F 지분율: AAPL 데이터 없음 (라이브 미적재 — cron 점검)');
     } else {
       const insts = o.map(x => x.institution);
       const dup = insts.length - new Set(insts).size;
       const pctSum = o.reduce((s, x) => s + (x.pctOfShares ?? 0), 0);
       const allZero = o.every(x => !x.pctOfShares);
-      if (dup > 0) issues.push(`[G0b] 13F 媛숈? 湲곌? 以묐났??${dup}嫄?(CUSIP/湲곌? 誘명빀???뚭?)`);
-      else if (allZero) issues.push('[G0b] 13F pctOfShares ?꾨? 0 (sharesOutstanding ?꾨씫/placeholder ?뚭?)');
-      else if (pctSum > 100) issues.push(`[G0b] 13F 吏遺꾩쑉 ??${pctSum.toFixed(0)}% (鍮꾪쁽????諛쒗뻾二쇱떇???ㅻ쪟)`);
-      else info.push(`[G0b] 13F 吏遺꾩쑉 臾닿껐 OK (AAPL ${o.length}湲곌?, ??${pctSum.toFixed(1)}%)`);
+      if (dup > 0) issues.push(`[G0b] 13F 같은 기관 중복행 ${dup}건 (CUSIP/기관 미합산 회귀)`);
+      else if (allZero) issues.push('[G0b] 13F pctOfShares 전부 0 (sharesOutstanding 누락/placeholder 회귀)');
+      else if (pctSum > 100) issues.push(`[G0b] 13F 지분율 합 ${pctSum.toFixed(0)}% (비현실 — 발행주식수 오류)`);
+      else info.push(`[G0b] 13F 지분율 무결 OK (AAPL ${o.length}기관, 합 ${pctSum.toFixed(1)}%)`);
     }
-  } catch (e) { info.push(`[G0b] 13F 吏遺꾩쑉 ?먭? 遺덇?: ${String(e.message || e).slice(0, 40)}`); }
+  } catch (e) { info.push(`[G0b] 13F 지분율 점검 불가: ${String(e.message || e).slice(0, 40)}`); }
 
-  // [G0] ?덊듃留??쒖킑 吏꾩쐞 (2026-06-13 ?좎꽕 ??"媛吏??쒖킑" ?ш굔): Wikipedia ?대갚???뚰뙆踰?proxy ?쒖킑??
-  //     遺?ы빐 鍮낇뀒???덈씫 + ???洹좎씪. 寃異? ??NVDA/AAPL/MSFT 以?2+ 遺?????곸쐞-?섏쐞 ?쒖킑 寃⑹감 <15%
-  //     (?ㅼ젣 S&P500 ? NVDA ~5T vs 200??~50B = 100諛?. ????"200 OK + ?곗씠???덉쓬" ?몃뜲 媛吏쒖씤 ?뺥깭.
+  // [G0] 히트맵 시총 진위 (2026-06-13 신설 — "가짜 시총" 사건): Wikipedia 폴백이 알파벳 proxy 시총을
+  //     부여해 빅테크 탈락 + 타일 균일. 검출: ① NVDA/AAPL/MSFT 중 2+ 부재 ② 상위-하위 시총 격차 <15%
+  //     (실제 S&P500 은 NVDA ~5T vs 200위 ~50B = 100배). 둘 다 "200 OK + 데이터 있음" 인데 가짜인 형태.
   {
     const hm = await getJson('/api/market-heatmap?country=US', 60000);
     const stocks = (hm.body?.sectors ?? []).flatMap(s => s.stocks ?? []);
@@ -271,74 +271,74 @@ async function main() {
       const mega = ['NVDA', 'AAPL', 'MSFT'].filter(t => stocks.some(s => s.ticker === t)).length;
       const caps = stocks.map(s => s.marketCap).filter(Number.isFinite).sort((a, b) => b - a);
       const spread = caps.length > 10 ? (caps[0] - caps[caps.length - 1]) / caps[0] : 1;
-      if (mega < 2) issues.push(`[G0] ?덊듃留?US 硫붽?罹?遺??(NVDA/AAPL/MSFT 以?${mega}媛? ??援ъ꽦醫낅ぉ ?대갚 ?뚰뙆踰??섎┝ ?섏떖`);
-      else if (spread < 0.15) issues.push(`[G0] ?덊듃留?US ?쒖킑 洹좎씪(?곹븯??寃⑹감 ${(spread * 100).toFixed(0)}%) ??proxy 媛吏??쒖킑 ?섏떖`);
-      else info.push(`[G0] ?덊듃留?US ?쒖킑 吏꾩쐞 OK (硫붽?罹?${mega}/3, 寃⑹감 ${(spread * 100).toFixed(0)}%)`);
+      if (mega < 2) issues.push(`[G0] 히트맵 US 메가캡 부재 (NVDA/AAPL/MSFT 중 ${mega}개) — 구성종목 폴백 알파벳 잘림 의심`);
+      else if (spread < 0.15) issues.push(`[G0] 히트맵 US 시총 균일(상하위 격차 ${(spread * 100).toFixed(0)}%) — proxy 가짜 시총 의심`);
+      else info.push(`[G0] 히트맵 US 시총 진위 OK (메가캡 ${mega}/3, 격차 ${(spread * 100).toFixed(0)}%)`);
     }
   }
 
-  // [G] ?섏씠吏 ?꾨뱶 ?꾩쟾????"endpoint 200 ???꾨뱶 梨꾩썙吏? ?ш컖吏?. 2026-06-04 ?좎꽕.
-  //     ?ъ슜?먭? 吏곸젒 諛쒓껄?섎뜕 鍮덉뭏(/earnings estimate, /insider ?쒓뎅 湲곌?)??紐⑤땲?곌? ?ъ쟾 ?ъ갑.
-  //     ?먯튃: ?섏씠吏媛 *?쒖떆?섎뒗* ?됱쓽 ?듭떖 ?꾨뱶 梨꾩?瑜좎씠 ?꾧퀎 誘몃쭔?대㈃ 寃고븿.
+  // [G] 페이지 필드 완전성 — "endpoint 200 ≠ 필드 채워짐" 사각지대. 2026-06-04 신설.
+  //     사용자가 직접 발견하던 빈칸(/earnings estimate, /insider 한국 기관)을 모니터가 사전 포착.
+  //     원칙: 페이지가 *표시하는* 행의 핵심 필드 채움률이 임계 미만이면 결함.
   {
-    // 1) /api/earnings ???쒖떆 醫낅ぉ??estimate 梨꾩?瑜?(CEF/留덉씠?щ줈罹??꾪꽣 ????0% 湲곕?).
+    // 1) /api/earnings — 표시 종목의 estimate 채움률 (CEF/마이크로캡 필터 후 ≥70% 기대).
     const ern = await getJson('/api/earnings', 25000);
     const cov = ern.body?.coverage;
     const arr = ern.body?.earnings ?? [];
     if (arr.length === 0) {
-      issues.push('[G] /earnings 0嫄???罹섎┛???곸옱 ?뺤? ?섏떖');
+      issues.push('[G] /earnings 0건 — 캘린더 적재 정지 의심');
     } else {
       const est = cov?.estCoverage ?? Math.round(arr.filter(e => e.epsEstimate != null || e.revenueEstimate != null).length / arr.length * 100);
-      if (est < 70) issues.push(`[G] /earnings estimate 梨꾩?瑜?${est}% (<70%) ??鍮덉뭏 怨쇰떎, ?꾪꽣/?뚯뒪 ?먭?`);
-      else info.push(`[G] /earnings estimate 梨꾩?瑜?${est}% (${arr.length}嫄?{cov?.droppedNoise != null ? `, ?몄씠利?${cov.droppedNoise} ?쒓굅` : ''})`);
+      if (est < 70) issues.push(`[G] /earnings estimate 채움률 ${est}% (<70%) — 빈칸 과다, 필터/소스 점검`);
+      else info.push(`[G] /earnings estimate 채움률 ${est}% (${arr.length}건${cov?.droppedNoise != null ? `, 노이즈 ${cov.droppedNoise} 제거` : ''})`);
     }
-    // 2) /api/korea-flow ??湲곌? ?쒕ℓ??留ㅻ룄 鍮꾧났諛?(KRX LOGOUT/?뚯꽌踰꾧렇濡?0嫄??섎뜕 ?ш컖吏?).
+    // 2) /api/korea-flow — 기관 순매수/매도 비공백 (KRX LOGOUT/파서버그로 0건 되던 사각지대).
     const kf = await getJson('/api/korea-flow?period=1d', 25000);
     const instBuy = kf.body?.topInstBuy?.length ?? 0;
     const instSell = kf.body?.topInstSell?.length ?? 0;
     if (instBuy === 0 && instSell === 0) {
-      issues.push(`[G] /insider ?쒓뎅 湲곌? ?쒕ℓ??留ㅻ룄 0嫄?(source=${kf.body?.source ?? '?'}) ??KRX/Naver 湲곌? ?뚯떛 ?뺤? ?섏떖`);
+      issues.push(`[G] /insider 한국 기관 순매수/매도 0건 (source=${kf.body?.source ?? '?'}) — KRX/Naver 기관 파싱 정지 의심`);
     } else {
-      info.push(`[G] /insider ?쒓뎅 湲곌? 留ㅼ닔 ${instBuy}쨌留ㅻ룄 ${instSell}嫄?(source=${kf.body?.source ?? '?'})`);
+      info.push(`[G] /insider 한국 기관 매수 ${instBuy}·매도 ${instSell}건 (source=${kf.body?.source ?? '?'})`);
     }
-    // 2b) 湲곌컙 李⑤퀎????1d vs 4w 媛 ?숈씪媛믪씠硫?period ?뚮씪誘명꽣 臾댄슚(?ъ슜??"1d=1w=4w=13w ?묎컳?? 踰꾧렇).
+    // 2b) 기간 차별화 — 1d vs 4w 가 동일값이면 period 파라미터 무효(사용자 "1d=1w=4w=13w 똑같다" 버그).
     const kf4w = await getJson('/api/korea-flow?period=4w', 25000);
     const n1 = kf.body?.institutionNet, n4 = kf4w.body?.institutionNet;
     if (n1 != null && n4 != null && n1 === n4) {
-      issues.push(`[G] /insider 湲곌컙 1d=4w ?숈씪媛?${n1}) ??period ?꾩쟻 誘몄옉??Naver multi-day ?뺤? ?섏떖)`);
+      issues.push(`[G] /insider 기간 1d=4w 동일값(${n1}) — period 누적 미작동(Naver multi-day 정지 의심)`);
     } else if (n1 != null && n4 != null) {
-      info.push(`[G] /insider 湲곌컙 李⑤퀎??OK (1d=${(n1/1e8|0)}????4w=${(n4/1e8|0)}?? 4w effDays=${kf4w.body?.effectiveTradingDays})`);
+      info.push(`[G] /insider 기간 차별화 OK (1d=${(n1/1e8|0)}억 ≠ 4w=${(n4/1e8|0)}억, 4w effDays=${kf4w.body?.effectiveTradingDays})`);
     }
   }
 
-  // [H] OSINT ?숈쟻????social(?몄쐵/?댁뒪)쨌crypto(嫄곕옒?댁뿭)쨌sanctions(OFAC) ?ㅻ뜲?댄꽣 ?먮Ⅴ?붿?.
-  //     2026-06-04 ?좎꽕: ?ъ슜?먭? /osint "蹂?섎뒗 寃??녿떎" 吏????紐⑤땲?곌? OSINT 瑜??꾪? ??蹂대뜕 ?ш컖吏?.
+  // [H] OSINT 동적성 — social(트윗/뉴스)·crypto(거래내역)·sanctions(OFAC) 실데이터 흐르는지.
+  //     2026-06-04 신설: 사용자가 /osint "변하는 게 없다" 지적 — 모니터가 OSINT 를 전혀 안 보던 사각지대.
   {
-    // 1) social ???쇰뱶 ?댁븘?덈굹 + ?몄쐵(Nitter) degraded ?щ? surface.
+    // 1) social — 피드 살아있나 + 트윗(Nitter) degraded 여부 surface.
     const soc = await getJson('/api/osint/social', 25000);
     const newsCount = soc.body?.newsCount ?? 0;
     const tweetCount = soc.body?.tweetCount ?? 0;
     const socSrc = soc.body?.source ?? '?';
-    if ((soc.body?.entries?.length ?? 0) === 0) issues.push('[H] /osint social 0嫄????쇰뱶 ?뺤?');
-    else if (socSrc === 'news-only' || tweetCount === 0) info.push(`[H] /osint social ?댁뒪 ${newsCount}嫄??좑툘 ?몄쐵 0 (Nitter degraded ??source=${socSrc})`);
-    else info.push(`[H] /osint social ?몄쐵 ${tweetCount}쨌?댁뒪 ${newsCount}嫄?);
-    // 2) crypto ???쒖꽦 吏媛?Vitalik) 嫄곕옒?댁뿭???댁븘?덈뒗吏 (txCount=0 = ETH tx ?뚯떛 ?뺤?).
+    if ((soc.body?.entries?.length ?? 0) === 0) issues.push('[H] /osint social 0건 — 피드 정지');
+    else if (socSrc === 'news-only' || tweetCount === 0) info.push(`[H] /osint social 뉴스 ${newsCount}건 ⚠️ 트윗 0 (Nitter degraded — source=${socSrc})`);
+    else info.push(`[H] /osint social 트윗 ${tweetCount}·뉴스 ${newsCount}건`);
+    // 2) crypto — 활성 지갑(Vitalik) 거래내역이 살아있는지 (txCount=0 = ETH tx 파싱 정지).
     const cr = await getJson('/api/osint/crypto?address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045&chain=eth', 25000);
     const bal = cr.body?.balance ?? null;
     const txc = cr.body?.txCount ?? 0;
-    if (bal == null) issues.push('[H] /osint crypto ?붿븸 null ??ETH 議고쉶 ?뺤?');
-    else if (txc === 0) issues.push(`[H] /osint crypto Vitalik txCount=0 (?붿븸 ${Number(bal).toFixed(1)}ETH??OK) ??ETH 嫄곕옒?댁뿭 ?뚯떛 ?뺤?`);
+    if (bal == null) issues.push('[H] /osint crypto 잔액 null — ETH 조회 정지');
+    else if (txc === 0) issues.push(`[H] /osint crypto Vitalik txCount=0 (잔액 ${Number(bal).toFixed(1)}ETH는 OK) — ETH 거래내역 파싱 정지`);
     else info.push(`[H] /osint crypto OK (Vitalik ${Number(bal).toFixed(1)}ETH, tx ${txc})`);
-    // 3) sanctions ??OFAC SDN ?곸옱.
+    // 3) sanctions — OFAC SDN 적재.
     const sanc = await getJson('/api/osint/sanctions', 25000);
     const sGroups = sanc.body?.groups ? Object.keys(sanc.body.groups).length : 0;
-    if (sGroups === 0) issues.push('[H] /osint sanctions 0 洹몃９ ??OFAC SDN ?곸옱 ?뺤?');
-    else info.push(`[H] /osint sanctions ${sGroups} 洹몃９`);
+    if (sGroups === 0) issues.push('[H] /osint sanctions 0 그룹 — OFAC SDN 적재 정지');
+    else info.push(`[H] /osint sanctions ${sGroups} 그룹`);
   }
 
-  // [K] ?뚮씪誘명꽣 李⑤퀎???꾩쟾????period/country/tf ???뚮씪誘명꽣 ?붾뱶?ъ씤?멸? *媛믩쭏?? 鍮꾩뼱?덉? ?딄퀬
-  //   ?쒕줈 ?ㅻⅨ吏 寃?? 2026-06-04 ?좎꽕: "湲곕낯 param 留?蹂대뜕" ?ш컖吏?(heatmap country=US 留?OK,
-  //   KR/JP 鍮덇컪 / korea-flow 1d=4w ?숈씪媛?瑜??ъ슜?먭? 癒쇱? 諛쒓껄 ??紐⑤뱺 param 媛??꾩닔 寃利?
+  // [K] 파라미터 차별화/완전성 — period/country/tf 등 파라미터 엔드포인트가 *값마다* 비어있지 않고
+  //   서로 다른지 검사. 2026-06-04 신설: "기본 param 만 보던" 사각지대(heatmap country=US 만 OK,
+  //   KR/JP 빈값 / korea-flow 1d=4w 동일값)를 사용자가 먼저 발견 → 모든 param 값 전수 검증.
   {
     const paramSets = [
       { name: 'market-heatmap', vals: ['US', 'KR', 'JP', 'CN', 'EU'], url: v => `/api/market-heatmap?country=${v}`, arr: b => b?.sectors, sig: b => (b?.sectors?.length ?? 0) },
@@ -347,29 +347,29 @@ async function main() {
     ];
     for (const ps of paramSets) {
       const results = await Promise.all(ps.vals.map(async v => ({ v, body: (await getJson(ps.url(v), 30000)).body })));
-      // unavailable:true = ?뚯뒪 李⑤떒 known(?뺤쭅 ?쒖떆) ??silent-empty 寃고븿怨?援щ텇.
+      // unavailable:true = 소스 차단 known(정직 표시) → silent-empty 결함과 구분.
       const known = results.filter(r => r.body?.unavailable === true).map(r => r.v);
       const empties = results.filter(r => !(ps.arr(r.body)?.length) && r.body?.unavailable !== true).map(r => r.v);
       const live = results.filter(r => ps.arr(r.body)?.length);
       const sigs = live.map(r => String(ps.sig(r.body)));
       const allSame = sigs.length > 1 && new Set(sigs).size === 1;
-      if (empties.length) issues.push(`[K] ${ps.name} 鍮?param(silent): ${empties.join('/')} ??媛믩쭏???곗씠???덉뼱??);
-      else if (allSame) issues.push(`[K] ${ps.name} ??param ?숈씪媛????뚮씪誘명꽣 臾댄슚(?꾩쟻/?꾪꽣 誘몄옉??`);
-      else info.push(`[K] ${ps.name} param 李⑤퀎??OK (live ${live.length}${known.length ? `, known-unavailable ${known.length}: ${known.join('/')}` : ''})`);
+      if (empties.length) issues.push(`[K] ${ps.name} 빈 param(silent): ${empties.join('/')} — 값마다 데이터 있어야`);
+      else if (allSame) issues.push(`[K] ${ps.name} 전 param 동일값 — 파라미터 무효(누적/필터 미작동)`);
+      else info.push(`[K] ${ps.name} param 차별화 OK (live ${live.length}${known.length ? `, known-unavailable ${known.length}: ${known.join('/')}` : ''})`);
     }
   }
 
-  // [I] 紐⑤땲???먭?-而ㅻ쾭由ъ? ??"???ш컖吏?媛 諛섎났?먮굹"??洹쇰낯 李⑤떒 (2026-06-04 ?좎꽕).
-  //     洹쇰낯?먯씤: 寃利??꾨줈釉뚭? ?붾뱶?ъ씤?몃퀎 ?섎룞 異붽? ???꾨줈釉??녿뒗 ?섏씠吏???먮룞?쇰줈 ?ш컖吏??怨?
-  //     "臾댁뾿??紐⑤땲?고빐???섎굹 vs ?ㅼ젣 紐⑤땲?고븯??瑜??議고븯??硫붿빱?덉쬁???놁뿀??news-gap쨌osint ?ш굔).
-  //     ?닿껐: ?섏씠吏媛 fetch ?섎뒗 user-facing ?붾뱶?ъ씤??????紐⑤땲?곌? 寃?ы븯???붾뱶?ъ씤??= ?ш컖吏?.
-  //     ???섏씠吏 異붽? ???먮룞?쇰줈 ?ш린 ?≫? ?꾨줈釉?異붽?瑜?媛뺤젣 ???ш컖吏? ?щ컻 遺덇?.
+  // [I] 모니터 자가-커버리지 — "왜 사각지대가 반복됐나"의 근본 차단 (2026-06-04 신설).
+  //     근본원인: 검증 프로브가 엔드포인트별 수동 추가 → 프로브 없는 페이지는 자동으로 사각지대였고,
+  //     "무엇을 모니터해야 하나 vs 실제 모니터하나"를 대조하는 메커니즘이 없었음(news-gap·osint 사건).
+  //     해결: 페이지가 fetch 하는 user-facing 엔드포인트 ∖ 이 모니터가 검사하는 엔드포인트 = 사각지대.
+  //     새 페이지 추가 시 자동으로 여기 잡혀 프로브 추가를 강제 → 사각지대 재발 불가.
   try {
     const { readdirSync, readFileSync } = await import('fs');
     const PAGES_DIR = 'C:/Flowvium/src/components/pages';
     const SELF = 'C:/Flowvium/scripts/check-data-quality.mjs';
-    // ?숈쟻???꾩쟾???꾨줈釉뚭? 遺덊븘?뷀븳 ?명봽???좏떥 (議댁옱留뚯쑝濡?異⑸텇?섍굅???ъ슜??鍮꾨끂異?.
-    const EXCLUDE = new Set(['admin', 'cron', 'ai', 'batch-prices', 'translate', 'osint', 'member']); // osint ??[H] 媛 ?섏쐞寃쎈줈濡?而ㅻ쾭; member ???몄쬆(?곗씠???뚯뒪 ?꾨떂)
+    // 동적성/완전성 프로브가 불필요한 인프라/유틸 (존재만으로 충분하거나 사용자 비노출).
+    const EXCLUDE = new Set(['admin', 'cron', 'ai', 'batch-prices', 'translate', 'osint', 'member']); // osint 는 [H] 가 하위경로로 커버; member 는 인증(데이터 소스 아님)
     const epRe = /\/api\/([a-z0-9][a-z0-9-]*)/g;
     const pageEndpoints = new Set();
     for (const f of readdirSync(PAGES_DIR).filter(x => x.endsWith('.tsx'))) {
@@ -380,52 +380,52 @@ async function main() {
     const monitored = new Set();
     let mm; const epRe2 = /\/api\/([a-z0-9][a-z0-9-]*)/g;
     while ((mm = epRe2.exec(selfSrc))) monitored.add(mm[1]);
-    // [A] ?ъ뒪泥댄겕媛 而ㅻ쾭?섎뒗 ?붾뱶?ъ씤?몃룄 "理쒖냼 alive 寃利앸맖"?쇰줈 ?몄젙
+    // [A] 헬스체크가 커버하는 엔드포인트도 "최소 alive 검증됨"으로 인정
     const uncovered = [...pageEndpoints].filter(e => !EXCLUDE.has(e) && !monitored.has(e)).sort();
     const total = [...pageEndpoints].filter(e => !EXCLUDE.has(e)).length;
-    // 臾닿?利??붾뱶?ъ씤?몃? ?쒕꽕由?auto-probe ??bespoke ?꾨줈釉뚭? ?놁뼱??理쒖냼 liveness+non-empty+freshness
-    //   瑜?媛뺤젣. param ?붾뱶?ъ씤?몃뒗 ?섑뵆 URL. ?대윭硫?"?꾨줈釉???吏??섏씠吏"???먮룞 寃利앸뤌 ?ш컖吏? 0.
+    // 무검증 엔드포인트를 제네릭 auto-probe — bespoke 프로브가 없어도 최소 liveness+non-empty+freshness
+    //   를 강제. param 엔드포인트는 샘플 URL. 이러면 "프로브 안 짠 페이지"도 자동 검증돼 사각지대 0.
     const SAMPLE = {
       'analyst-target': '/api/analyst-target/AAPL', 'company-news': '/api/company-news?ticker=AAPL',
-      'company-recs': '/api/company-recs/AAPL', 'company-desc': null, // Ollama ?먮┝ ??skip
-      'investment-strategy': null, // 蹂닿퀬???????verify-report 媛 蹂꾨룄 寃利?
+      'company-recs': '/api/company-recs/AAPL', 'company-desc': null, // Ollama 느림 — skip
+      'investment-strategy': null, // 보고서 대형 — verify-report 가 별도 검증
       'nport-holdings': '/api/nport-holdings?ticker=069500',
       'iv': '/api/iv/AAPL',
-      'company-business': '/api/company-business/AAPL',  // 2026-06-07: [ticker] ?숈쟻 ?쇱슦??sample
-      'company-signals': '/api/company-signals/NVDA',    // 2026-06-13: [ticker] ?숈쟻 ??base path ??404
-      'manipulation-risk': '/api/manipulation-risk/NVDA', // 2026-06-13: [ticker] ?숈쟻 ?묒쟾二??ㅼ퐫??
+      'company-business': '/api/company-business/AAPL',  // 2026-06-07: [ticker] 동적 라우트 sample
+      'company-signals': '/api/company-signals/NVDA',    // 2026-06-13: [ticker] 동적 — base path 는 404
+      'manipulation-risk': '/api/manipulation-risk/NVDA', // 2026-06-13: [ticker] 동적 작전주 스코어
     };
     const SKIP = new Set(['company-desc', 'investment-strategy']);
     const probeOne = async (ep) => {
       if (SKIP.has(ep)) return { ep, skip: true };
       const path = SAMPLE[ep] ?? `/api/${ep}`;
       let r = await getJson(path, 12000);
-      // ??꾩븘??status 0) ???먮┛ ?붾뱶?ъ씤?몄씪 ???덉쓬. 湲???꾩븘??1???ъ떆?꾪빐 slow vs dead 援щ텇.
+      // 타임아웃(status 0) → 느린 엔드포인트일 수 있음. 긴 타임아웃 1회 재시도해 slow vs dead 구분.
       if (r.status === 0) {
         const r2 = await getJson(path, 30000);
         if (r2.status === 0 || r2.status >= 400) return { ep, dead: `HTTP ${r2.status}` };
-        return { ep, slow: '?묐떟 12s 珥덇낵(30s ??OK) ??罹먯떆/?깅뒫 ?먭? 沅뚯옣', skipBody: true };
+        return { ep, slow: '응답 12s 초과(30s 내 OK) — 캐시/성능 점검 권장', skipBody: true };
       }
       if (r.status >= 400) return { ep, dead: `HTTP ${r.status}` };
       const b = r.body;
-      // 2026-06-13: 鍮?諛곗뿴 []??dead ?꾨떂 ??由ъ뒪???붾뱶?ъ씤??cascade-events ?????뺤긽 '?곗씠???놁쓬'
-      //   ?곹깭. Object.keys([]).length===0 ??[] 瑜?'empty body' 濡??ㅽ깘?섎뜕 寃?李⑤떒(?꾨옒 weak 寃?ш?
-      //   !Array.isArray 濡??대? 諛곗뿴 硫댁젣). {} (鍮?媛앹껜)留?dead.
+      // 2026-06-13: 빈 배열 []는 dead 아님 — 리스트 엔드포인트(cascade-events 등)의 정상 '데이터 없음'
+      //   상태. Object.keys([]).length===0 이 [] 를 'empty body' 로 오탐하던 것 차단(아래 weak 검사가
+      //   !Array.isArray 로 이미 배열 면제). {} (빈 객체)만 dead.
       if (b == null || (typeof b === 'object' && !Array.isArray(b) && Object.keys(b).length === 0)) return { ep, dead: 'empty body' };
       if (b.error && !b.entries && !b.data) return { ep, dead: `error: ${String(b.error).slice(0, 30)}` };
-      // configured===false = ?좊즺 API ?湲?誘몄꽕??(?섎룄???좉툑, 寃고븿 ?꾨떂 ??locked 濡?遺꾨쪟).
+      // configured===false = 유료 API 대기/미설정 (의도된 잠금, 결함 아님 — locked 로 분류).
       if (b.configured === false) return { ep, locked: true };
-      // non-empty ?곗씠???붿쟻: 諛곗뿴 湲몄씠 OR ?ㅼ뭡??OR 援ъ“ 媛앹껜(market/outlook ?? 議댁옱.
+      // non-empty 데이터 흔적: 배열 길이 OR 스칼라 OR 구조 객체(market/outlook 등) 존재.
       const arrLen = ['entries', 'data', 'results', 'signals', 'movers', 'items', 'companies', 'holdings', 'alerts', 'events', 'trades', 'rows', 'curve', 'sectors']
         .reduce((n, k) => n + (Array.isArray(b[k]) ? b[k].length : 0), 0);
       const objKeys = ['market', 'outlook', 'capital', 'company', 'summary', 'consensus', 'byCountry', 'byAsset'];
       const hasObj = objKeys.some(k => b[k] != null && (typeof b[k] !== 'object' || Object.keys(b[k]).length > 0));
       const hasScalar = b.score != null || b.value != null || b.probability != null || b.balance != null || b.total > 0 || typeof b.updatedAt === 'string' || typeof b.generatedAt === 'string';
-      // company-signals: ticker蹂??쒓렇????議곗슜??醫낅ぉ? uoa/burst/contract ?꾨? 鍮꾩뼱??*?뺤긽*(?섎せ ?꾨떂).
-      //   200 + ?뺤긽 shape(ticker echo + uoa 諛곗뿴 ??議댁옱)硫?alive 濡??몄젙 (empty?쟡ead).
+      // company-signals: ticker별 시그널 — 조용한 종목은 uoa/burst/contract 전부 비어도 *정상*(잘못 아님).
+      //   200 + 정상 shape(ticker echo + uoa 배열 키 존재)면 alive 로 인정 (empty≠dead).
       const hasSignalShape = typeof b.ticker === 'string' && 'uoa' in b && Array.isArray(b.uoa);
       if (hasSignalShape) return { ep, ok: true };
-      if (arrLen === 0 && !hasScalar && !hasObj && !Array.isArray(b)) return { ep, weak: '鍮?諛곗뿴/?ㅼ뭡??援ъ“ ?놁쓬 ???뺤쟻/?뺤? ?섏떖' };
+      if (arrLen === 0 && !hasScalar && !hasObj && !Array.isArray(b)) return { ep, weak: '빈 배열/스칼라/구조 없음 — 정적/정지 의심' };
       return { ep, ok: true };
     };
     const probed = await Promise.all(uncovered.map(probeOne));
@@ -435,15 +435,15 @@ async function main() {
     const okN = probed.filter(p => p.ok).length;
     const skipN = probed.filter(p => p.skip).length;
     const lockedN = probed.filter(p => p.locked).length;
-    if (dead.length) issues.push(`[I] 臾닿?利??붾뱶?ъ씤??以?DEAD ${dead.length}: ${dead.map(d => `${d.ep}(${d.dead})`).join(', ')}`);
-    if (weak.length) issues.push(`[I] 臾닿?利??붾뱶?ъ씤??以?鍮덈뜲?댄꽣 ${weak.length}: ${weak.map(w => w.ep).join(', ')}`);
-    if (slow.length) info.push(`[I] ?좑툘 ?먮┛ ?붾뱶?ъ씤??${slow.length}: ${slow.map(s => s.ep).join(', ')} (live, 12s 珥덇낵 ??罹먯떆 ?먭?)`);
-    info.push(`[I] ?먭?-而ㅻ쾭由ъ?: bespoke ${monitored.size}媛?+ auto-probe ${okN + slow.length}/${uncovered.length} live (locked ${lockedN}, skip ${skipN}, slow ${slow.length}, dead ${dead.length}, weak ${weak.length}) ??page ?붾뱶?ъ씤??${total}媛??꾩닔 寃利?);
-  } catch (e) { info.push(`[I] ?먭?-而ㅻ쾭由ъ? ?먭? 遺덇?: ${String(e.message || e).slice(0, 50)}`); }
+    if (dead.length) issues.push(`[I] 무검증 엔드포인트 중 DEAD ${dead.length}: ${dead.map(d => `${d.ep}(${d.dead})`).join(', ')}`);
+    if (weak.length) issues.push(`[I] 무검증 엔드포인트 중 빈데이터 ${weak.length}: ${weak.map(w => w.ep).join(', ')}`);
+    if (slow.length) info.push(`[I] ⚠️ 느린 엔드포인트 ${slow.length}: ${slow.map(s => s.ep).join(', ')} (live, 12s 초과 — 캐시 점검)`);
+    info.push(`[I] 자가-커버리지: bespoke ${monitored.size}개 + auto-probe ${okN + slow.length}/${uncovered.length} live (locked ${lockedN}, skip ${skipN}, slow ${slow.length}, dead ${dead.length}, weak ${weak.length}) — page 엔드포인트 ${total}개 전수 검증`);
+  } catch (e) { info.push(`[I] 자가-커버리지 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
-  // [J] ?몄뀡 enum drift 媛????"???꾩쭅???섎뱶肄붾뵫" ??寃利?(2026-06-04 ?좎꽕).
-  //   蹂닿퀬???몄뀡???щ윭 ?뚯씪???섎뱶肄붾뵫???щ’ 異붽? ????怨노쭔 鍮좊쑉由щ㈃ 蹂닿퀬?쒓? silent 誘몄꽌鍮숇맖.
-  //   data/report-sessions.json(?⑥씪 ?뚯뒪)???몄뀡??critical ?뚯씪?ㅼ씠 紐⑤몢 李몄“?섎뒗吏 寃?????꾨씫 ???슚.
+  // [J] 세션 enum drift 가드 — "왜 아직도 하드코딩" 의 검증 (2026-06-04 신설).
+  //   보고서 세션이 여러 파일에 하드코딩돼 슬롯 추가 시 한 곳만 빠뜨리면 보고서가 silent 미서빙됨.
+  //   data/report-sessions.json(단일 소스)의 세션을 critical 파일들이 모두 참조하는지 검사 → 누락 시 🚨.
   try {
     const { readFileSync } = await import('fs');
     const ROOT = 'C:/Flowvium';
@@ -452,18 +452,18 @@ async function main() {
     const drift = [];
     for (const rel of cfg.criticalFiles) {
       let src = '';
-      try { src = readFileSync(`${ROOT}/${rel}`, 'utf8'); } catch { drift.push(`${rel}(?쎄린?ㅽ뙣)`); continue; }
+      try { src = readFileSync(`${ROOT}/${rel}`, 'utf8'); } catch { drift.push(`${rel}(읽기실패)`); continue; }
       const missing = sessionIds.filter(id => !new RegExp(`['"\`]${id}['"\`]|\\b${id}\\b`).test(src));
-      if (missing.length) drift.push(`${rel.split('/').pop()}(?꾨씫: ${missing.join(',')})`);
+      if (missing.length) drift.push(`${rel.split('/').pop()}(누락: ${missing.join(',')})`);
     }
-    if (drift.length) issues.push(`[J] ?몄뀡 enum drift ??${sessionIds.length}?щ’ 誘몃컲???뚯씪: ${drift.join(' 쨌 ')}`);
-    else info.push(`[J] ?몄뀡 enum ?뺥빀 ??${sessionIds.length}?щ’(${sessionIds.join('/')}) critical ${cfg.criticalFiles.length}?뚯씪 紐⑤몢 諛섏쁺`);
-  } catch (e) { info.push(`[J] ?몄뀡 drift ?먭? 遺덇?: ${String(e.message || e).slice(0, 50)}`); }
+    if (drift.length) issues.push(`[J] 세션 enum drift — ${sessionIds.length}슬롯 미반영 파일: ${drift.join(' · ')}`);
+    else info.push(`[J] 세션 enum 정합 — ${sessionIds.length}슬롯(${sessionIds.join('/')}) critical ${cfg.criticalFiles.length}파일 모두 반영`);
+  } catch (e) { info.push(`[J] 세션 drift 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
 
-  // [L] live/static 鍮꾩쑉 ??mixed-source ?붾뱶?ъ씤?멸? mostly-static 濡?degrade 媛먯? (2026-06-04 ?좎꽕).
-  //   ?ъ슜?먭? macro ??"?뺤쟻" 諛쒓껄 ??macro-indicators 11/13 static(staticAsOf ?쒕떖??. endpoint 媛
-  //   200쨌source ?덉뼱??*?遺遺?stale static* ?대㈃ ?ъ슜?먯뿉寃??뺤쟻. liveCount/staticCount 蹂닿퀬?섎뒗
-  //   ?붾뱶?ъ씤?몄쓽 static ?곗쐞瑜?flag. (FRED/?몃??뚯뒪 李⑤떒 ??議곗슜??static fallback ?섎뜕 ?ш컖吏?.)
+  // [L] live/static 비율 — mixed-source 엔드포인트가 mostly-static 로 degrade 감지 (2026-06-04 신설).
+  //   사용자가 macro 탭 "정적" 발견 — macro-indicators 11/13 static(staticAsOf 한달전). endpoint 가
+  //   200·source 있어도 *대부분 stale static* 이면 사용자에겐 정적. liveCount/staticCount 보고하는
+  //   엔드포인트의 static 우위를 flag. (FRED/외부소스 차단 시 조용히 static fallback 되던 사각지대.)
   {
     const checks = [
       { name: 'macro-indicators', path: '/api/macro-indicators', live: 'liveCount', stat: 'staticCount', asOf: 'staticAsOf' },
@@ -474,22 +474,22 @@ async function main() {
       if (typeof live === 'number' && typeof stat === 'number') {
         const total = live + stat;
         const pct = total ? Math.round((live / total) * 100) : 0;
-        if (stat > live) issues.push(`[L] ${c.name} live ${live}/${total} (${pct}%) ???遺遺??뺤쟻(${r.body?.[c.asOf] ?? '?'}), ?몃??뚯뒪 李⑤떒 ?섏떖`);
+        if (stat > live) issues.push(`[L] ${c.name} live ${live}/${total} (${pct}%) — 대부분 정적(${r.body?.[c.asOf] ?? '?'}), 외부소스 차단 의심`);
         else info.push(`[L] ${c.name} live ${live}/${total} (${pct}%)`);
       }
     }
   }
 
-  // [L2] credit-balance 援??蹂?recoverable vs structural 遺꾨쪟 (2026-06-05 ?좎꽕).
-  //   "??理쒖꽑??諛⑸쾿(?쇱씠釉??뚯뒪)???쒗뻾 ???덈굹" 瑜??먮룞 ?ъ갑 ???⑥닚 ratio 媛 ?꾨땲??
-  //   *fetcher 媛 ?덈뒗??silent ?섍쾶 static 諛섑솚*(recoverable=利됱떆 fix ??? 怨?
-  //   *臾대즺 吏묎퀎?뚯뒪 遺??(structural=援ъ“??遺덇?, ?몄??? 瑜?援щ텇. ?꾩옄留??슚, ?꾩옄???뱄툘.
-  //   EXPECTED_LIVE = ?묐룞 ?섎룄??fetcher 蹂댁쑀. ??以?"(static est.)" 硫??뚭?/?뚯뒪?щ㈇ ??寃고븿.
+  // [L2] credit-balance 국가별 recoverable vs structural 분류 (2026-06-05 신설).
+  //   "왜 최선의 방법(라이브 소스)을 시행 안 했나" 를 자동 포착 — 단순 ratio 가 아니라,
+  //   *fetcher 가 있는데 silent 하게 static 반환*(recoverable=즉시 fix 대상) 과
+  //   *무료 집계소스 부재*(structural=구조적 불가, 인지됨) 를 구분. 전자만 🚨, 후자는 ℹ️.
+  //   EXPECTED_LIVE = 작동 의도된 fetcher 보유. 이 중 "(static est.)" 면 회귀/소스사멸 → 결함.
   {
     const EXPECTED_LIVE = { us: 'FRED', tw: 'TWSE', cn: 'Eastmoney' };
-    // kr: KRX data.krx.co.kr 媛 server-side ?붿껌??anti-scrape 濡?李⑤떒(荑좏궎 ?숇컲?대룄 400 LOGOUT, 2026-06-05
-    //   ?뚯뒪???뺤씤) + BOK ECOS ??利앷텒 ?좎슜嫄곕옒?듭옄 series 誘몃낫????live 援ъ“??李⑤떒. static-estimated ?좎?.
-    const STRUCTURAL = { jp: 'JPX .xls 誘명뙆??, in: 'NSE 李⑤떒', eu: 'ESMA ?⑥씪吏묎퀎 誘몃컻??, kr: 'KRX anti-scrape(LOGOUT)+BOK 誘몃낫?? };
+    // kr: KRX data.krx.co.kr 가 server-side 요청을 anti-scrape 로 차단(쿠키 동반해도 400 LOGOUT, 2026-06-05
+    //   테스트 확인) + BOK ECOS 는 증권 신용거래융자 series 미보유 → live 구조적 차단. static-estimated 유지.
+    const STRUCTURAL = { jp: 'JPX .xls 미파싱', in: 'NSE 차단', eu: 'ESMA 단일집계 미발행', kr: 'KRX anti-scrape(LOGOUT)+BOK 미보유' };
     const r = await getJson('/api/credit-balance', 20000);
     const countries = r.body?.countries;
     if (Array.isArray(countries)) {
@@ -498,33 +498,33 @@ async function main() {
       const structuralStatic = countries.filter(c => STRUCTURAL[c.id] && isStatic(c)).map(c => c.id);
       const liveOk = countries.filter(c => EXPECTED_LIVE[c.id] && !isStatic(c)).map(c => c.id);
       if (recoverableBroken.length) {
-        issues.push(`[L2] credit-balance recoverable-but-static: ${recoverableBroken.map(id => `${id}(${EXPECTED_LIVE[id]})`).join(', ')} ??fetcher ?덈뒗???쇱씠釉??ㅽ뙣, 利됱떆 fix ???);
+        issues.push(`[L2] credit-balance recoverable-but-static: ${recoverableBroken.map(id => `${id}(${EXPECTED_LIVE[id]})`).join(', ')} — fetcher 있는데 라이브 실패, 즉시 fix 대상`);
       }
-      info.push(`[L2] credit-balance live ${liveOk.join('/')||'?놁쓬'}; structural-static(?몄??? ${structuralStatic.map(id => `${id}(${STRUCTURAL[id]})`).join(', ') || '?놁쓬'}`);
+      info.push(`[L2] credit-balance live ${liveOk.join('/')||'없음'}; structural-static(인지됨) ${structuralStatic.map(id => `${id}(${STRUCTURAL[id]})`).join(', ') || '없음'}`);
     }
   }
 
-  // [M] narratives intensity ?쇱씠釉?寃利?(2026-06-05 ?좎꽕).
-  //   narratives ??? 8媛?援ъ“???뚮쭏 ?뺤쓽(?뺤쟻 ?뺣떦) + ?쇱씠釉?intensity overlay(愿??醫낅ぉ 紐⑤찘?
-  //   + ?뱁꽣 ?먭툑?먮쫫). ?ㅻ뜑媛 ?쎌냽??"AI-generated analysis" ?숈쟻 ?덉씠?닿? 誘멸뎄?꾩씠???ш컖吏?瑜?
-  //   intensity 濡?援ы쁽 ??source=live + liveCount(8媛?以??좏샇 ?섏떊) 寃利? static ?대㈃ ?쒖꽭?뚯뒪 ?딄?.
+  // [M] narratives intensity 라이브 검증 (2026-06-05 신설).
+  //   narratives 탭은 8개 구조적 테마 정의(정적 정당) + 라이브 intensity overlay(관련 종목 모멘텀
+  //   + 섹터 자금흐름). 헤더가 약속한 "AI-generated analysis" 동적 레이어가 미구현이던 사각지대를
+  //   intensity 로 구현 → source=live + liveCount(8개 중 신호 수신) 검증. static 이면 시세소스 끊김.
   {
     const r = await getJson('/api/narratives', 20000);
     const src = r.body?.source, liveCount = r.body?.liveCount, total = (r.body?.intensities ?? []).length;
     if (src === 'live' && typeof liveCount === 'number') {
-      if (liveCount < total) issues.push(`[M] narratives intensity ${liveCount}/${total} ???쇰? ?뚮쭏 ?쒖꽭/?뱁꽣 ?좏샇 誘몄닔??);
-      else info.push(`[M] narratives intensity live ${liveCount}/${total} ?뚮쭏`);
+      if (liveCount < total) issues.push(`[M] narratives intensity ${liveCount}/${total} — 일부 테마 시세/섹터 신호 미수신`);
+      else info.push(`[M] narratives intensity live ${liveCount}/${total} 테마`);
     } else if (src === 'static') {
-      issues.push(`[M] narratives source=static ???쒖꽭(stooq)쨌?뱁꽣?먮쫫 ?꾨? ?ㅽ뙣, intensity 誘몄궛異?(?뺤쓽留??뚮뜑)`);
+      issues.push(`[M] narratives source=static — 시세(stooq)·섹터흐름 전부 실패, intensity 미산출 (정의만 렌더)`);
     } else {
-      info.push(`[M] narratives ?먭? 遺덇? (?묐떟 ${r.status})`);
+      info.push(`[M] narratives 점검 불가 (응답 ${r.status})`);
     }
   }
 
-  // [N] ?붾뱶?ъ씤??DB 而ㅻ쾭由ъ? (2026-06-05) ???ъ슜??"紐⑤뱺 ?섏씠吏/???붾뱶?ъ씤?멸? ?낅뜲?댄듃留덈떎 DB ??λ뤌??.
-  //   route.ts 瑜??꾩닔 ?닿굅 ??TRACKED_ENDPOINTS(endpoint_snapshots ?곸옱 紐⑸줉)? ?議? ?곗씠???쇱슦?몄씤??
-  //   誘몄텛?곸씠硫???DB ?쒓퀎???꾨씫 ?ш컖吏?). 誘몃옒 ?좉퇋 ?붾뱶?ъ씤?몃룄 ?먮룞 ?ъ갑 = "??寃?????먮굹" 諛⑹?.
-  //   ?쒖쇅: admin/cron(?곌린쨌??쒕낫??쨌?좏떥(ai/translate ??쨌per-ticker([)쨌param ?꾩닔(ALLOW).
+  // [N] 엔드포인트 DB 커버리지 (2026-06-05) — 사용자 "모든 페이지/탭/엔드포인트가 업데이트마다 DB 저장돼야".
+  //   route.ts 를 전수 열거 → TRACKED_ENDPOINTS(endpoint_snapshots 적재 목록)와 대조. 데이터 라우트인데
+  //   미추적이면 ❌(DB 시계열 누락 사각지대). 미래 신규 엔드포인트도 자동 포착 = "왜 검토 안 됐나" 방지.
+  //   제외: admin/cron(쓰기·대시보드)·유틸(ai/translate 등)·per-ticker([)·param 필수(ALLOW).
   {
     try {
       const { readdirSync } = await import('fs');
@@ -540,21 +540,21 @@ async function main() {
       };
       walk(apiDir, '');
       const trackedSet = new Set(TRACKED_ENDPOINTS.map(e => e.replace(/^\/api/, '').split('?')[0]));
-      // admin/cron(?곌린), ?좏떥, per-ticker([) ?쒖쇅
+      // admin/cron(쓰기), 유틸, per-ticker([) 제외
       const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices|member)$|\[/;
-      // param ?꾩닔(per-ticker ?깃꺽) ?먮뒗 ?쒓퀎??遺덊븘??list/history) ???섎룄??誘몄텛??
+      // param 필수(per-ticker 성격) 또는 시계열 불필요(list/history) — 의도적 미추적.
       const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading']);
       const untracked = routes.filter(r => !EXCLUDE.test(r) && !trackedSet.has(r) && !ALLOW_UNTRACKED.has(r));
       if (untracked.length) {
-        issues.push(`[N] DB 誘몄텛???곗씠???붾뱶?ъ씤??${untracked.length}媛? ${untracked.join(', ')} ??TRACKED_ENDPOINTS 異붽? ?꾩슂`);
+        issues.push(`[N] DB 미추적 데이터 엔드포인트 ${untracked.length}개: ${untracked.join(', ')} — TRACKED_ENDPOINTS 추가 필요`);
       } else {
-        info.push(`[N] ?붾뱶?ъ씤??DB 而ㅻ쾭由ъ? OK ???곗씠???쇱슦???꾨? TRACKED (${trackedSet.size} tracked / route ${routes.length}媛? util쨌per-ticker ?쒖쇅)`);
+        info.push(`[N] 엔드포인트 DB 커버리지 OK — 데이터 라우트 전부 TRACKED (${trackedSet.size} tracked / route ${routes.length}개, util·per-ticker 제외)`);
       }
-    } catch (e) { info.push(`[N] 而ㅻ쾭由ъ? ?먭? 遺덇?: ${String(e.message || e).slice(0, 60)}`); }
+    } catch (e) { info.push(`[N] 커버리지 점검 불가: ${String(e.message || e).slice(0, 60)}`); }
   }
 
-  // [O] 臾몄꽌-肄붾뱶 ?숆린??(2026-06-05) ??紐⑤땲?곌? ?고????곗씠?곕쭔 蹂닿퀬 *臾몄꽌媛 肄붾뱶? ?쇱튂?섎뒗吏* ??
-  //   ??蹂대뜕 硫뷀?-?ш컖吏?(FEATURES "ETF 193"/?ㅼ젣 30, "1,210 醫낅ぉ"/?ㅼ젣 1338). check-doc-sync ?ㅽ룿.
+  // [O] 문서-코드 동기화 (2026-06-05) — 모니터가 런타임 데이터만 보고 *문서가 코드와 일치하는지* 는
+  //   안 보던 메타-사각지대(FEATURES "ETF 193"/실제 30, "1,210 종목"/실제 1338). check-doc-sync 스폰.
   {
     try {
       const { execSync } = await import('child_process');
@@ -562,34 +562,34 @@ async function main() {
       const script = fileURLToPath(new URL('./check-doc-sync.mjs', import.meta.url));
       try {
         execSync(`node "${script}"`, { stdio: 'pipe' });
-        info.push('[O] 臾몄꽌-肄붾뱶 ?숆린??OK (UNIVERSE_COUNT/ETF/?몄뼱 ?쇱튂)');
+        info.push('[O] 문서-코드 동기화 OK (UNIVERSE_COUNT/ETF/언어 일치)');
       } catch (e) {
         const out = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
-        const bad = out.split('\n').filter(l => l.includes('?슚')).map(l => l.replace(/.*?슚\s*/, '').trim());
-        issues.push(`[O] 臾몄꽌-肄붾뱶 遺덉씪移? ${bad.join(' | ') || '?곸꽭??check-doc-sync ?ㅽ뻾'}`);
+        const bad = out.split('\n').filter(l => l.includes('🚨')).map(l => l.replace(/.*🚨\s*/, '').trim());
+        issues.push(`[O] 문서-코드 불일치: ${bad.join(' | ') || '상세는 check-doc-sync 실행'}`);
       }
-    } catch (e) { info.push(`[O] doc-sync ?먭? 遺덇?: ${String(e.message || e).slice(0, 50)}`); }
+    } catch (e) { info.push(`[O] doc-sync 점검 불가: ${String(e.message || e).slice(0, 50)}`); }
   }
 
-  // [P] FX ?숈쟻 ?뚯뒪 (2026-06-05) ??USD/KRW 媛 KR 異붿쿇 risk ?듭떖?몃뜲 macro ???녿뜕 媛??ㅻ뒛 KR 湲됰씫
-  //   誘멸컧吏 ??Kia/POSCO ?먯떎). Yahoo KRW=X 吏곸젒(?몃? 沅뚯쐞쨌?섎뱶肄붾뵫 ?꾨떂) ???뚯뒪 alive 寃利?+
-  //   ?먰솕 짹1.5% 湲됰? ??KR-risk surface(蹂닿퀬??FX 諛섏쁺 ?뺤씤??.
+  // [P] FX 동적 소스 (2026-06-05) — USD/KRW 가 KR 추천 risk 핵심인데 macro 에 없던 갭(오늘 KR 급락
+  //   미감지 → Kia/POSCO 손실). Yahoo KRW=X 직접(외부 권위·하드코딩 아님) — 소스 alive 검증 +
+  //   원화 ±1.5% 급변 시 KR-risk surface(보고서 FX 반영 확인용).
   {
     try {
       const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=1d&range=5d', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
       const m = (await r.json())?.chart?.result?.[0]?.meta;
       const px = m?.regularMarketPrice, prev = m?.chartPreviousClose;
-      if (px == null) issues.push('[P] FX USD/KRW ?뚯뒪 二쎌쓬 (Yahoo KRW=X null) ??KR risk 誘몃컲??);
+      if (px == null) issues.push('[P] FX USD/KRW 소스 죽음 (Yahoo KRW=X null) — KR risk 미반영');
       else {
         const chg = prev ? (px - prev) / prev * 100 : 0;
-        if (Math.abs(chg) >= 1.5) info.push(`[P] ?좑툘 USD/KRW=${Math.round(px)} ${chg > 0 ? '+' : ''}${chg.toFixed(1)}% 湲됰? ??KR 二쇱떇 ${chg > 0 ? '?쎌꽭?뺣젰(?먰솕湲됰씫)' : '?고샇(?먰솕媛뺤꽭)'}. 蹂닿퀬??FX 諛섏쁺 ?뺤씤`);
+        if (Math.abs(chg) >= 1.5) info.push(`[P] ⚠️ USD/KRW=${Math.round(px)} ${chg > 0 ? '+' : ''}${chg.toFixed(1)}% 급변 — KR 주식 ${chg > 0 ? '약세압력(원화급락)' : '우호(원화강세)'}. 보고서 FX 반영 확인`);
         else info.push(`[P] FX live USD/KRW=${Math.round(px)} (${chg > 0 ? '+' : ''}${chg.toFixed(1)}%)`);
       }
-    } catch (e) { issues.push(`[P] FX ?뚯뒪 ?먭? ?ㅽ뙣: ${String(e.message || e).slice(0, 40)}`); }
+    } catch (e) { issues.push(`[P] FX 소스 점검 실패: ${String(e.message || e).slice(0, 40)}`); }
   }
 
-  // [R] ?숈쟻 ?멸렇癒쇳듃 而ㅻ쾭由ъ? ????醫낅ぉ(US 873) ?숈쟻 ?곗씠??寃??(2026-06-07 "1300+ ???숈쟻寃??).
-  //   cron(2h/6) ??DB company_segments 瑜??먯쭊 ?뺤옣. 紐⑤땲?곌? 留??ъ씠??而ㅻ쾭由ъ?/?좎꽑??surface.
+  // [R] 동적 세그먼트 커버리지 — 전 종목(US 873) 동적 데이터 검토 (2026-06-07 "1300+ 다 동적검토").
+  //   cron(2h/6) 이 DB company_segments 를 점진 확장. 모니터가 매 사이클 커버리지/신선도 surface.
   try {
     const { getSegmentCoverageStats } = await import('./lib/db.mjs');
     const { readFileSync: rfs } = await import('fs');
@@ -597,15 +597,15 @@ async function main() {
     const usN = cand.filter(t => !/\.(KS|KQ)$/.test(t)).length || 873;
     const st = getSegmentCoverageStats();
     const pct = Math.round(st.covered / usN * 100);
-    if (st.covered === 0) issues.push('[R] ?숈쟻 ?멸렇癒쇳듃 0 ??異붿텧 ?뚯씠?꾨씪???뺤? ?섏떖(cron segments-refresh ?뺤씤)');
-    else info.push(`[R] ?숈쟻 ?멸렇癒쇳듃 而ㅻ쾭由ъ? ${st.covered}/${usN} (${pct}%) 쨌 stale>35d ${st.stale} 쨌 ${JSON.stringify(st.bySource)} 쨌 cron 留ㅼ떆6 ?뺤옣以?);
-  } catch (e) { info.push(`[R] ?멸렇癒쇳듃 而ㅻ쾭由ъ? ?먭? skip: ${String(e.message || e).slice(0, 40)}`); }
+    if (st.covered === 0) issues.push('[R] 동적 세그먼트 0 — 추출 파이프라인 정지 의심(cron segments-refresh 확인)');
+    else info.push(`[R] 동적 세그먼트 커버리지 ${st.covered}/${usN} (${pct}%) · stale>35d ${st.stale} · ${JSON.stringify(st.bySource)} · cron 매시6 확장중`);
+  } catch (e) { info.push(`[R] 세그먼트 커버리지 점검 skip: ${String(e.message || e).slice(0, 40)}`); }
 
   const ts = new Date().toISOString().slice(0, 19);
   console.log(`\n[data-quality ${ts}]`);
-  for (const i of info) console.log('  ??, i);
-  for (const i of issues) console.log('  ?슚', i);
-  console.log(issues.length === 0 ? '  ??醫낇빀: OK (?곗씠???덉쭏 ?뺤긽)' : `  ??醫낇빀: ${issues.length} ?곗씠???덉쭏 寃고븿`);
+  for (const i of info) console.log('  ✅', i);
+  for (const i of issues) console.log('  🚨', i);
+  console.log(issues.length === 0 ? '  → 종합: OK (데이터 품질 정상)' : `  → 종합: ${issues.length} 데이터 품질 결함`);
   process.exit(issues.length > 0 ? 1 : 0);
 }
 main();

@@ -1,8 +1,8 @@
-' run-report-hidden.vbs ??Task Scheduler ???④? ?ㅽ뻾 ?섑띁 (2026-06-11 ?좎꽕).
-' run-report.bat 瑜?吏곸젒 action ?쇰줈 嫄몃㈃ ?ㅽ뻾 ?대궡 cmd 李쎌씠 ?붾㈃???좎꽌
-' (蹂닿퀬???앹꽦 ??遺? ?ъ슜?먭? "?댁긽??李쎌씠 怨꾩냽 ?щ떎"怨??몄??섎뒗 臾몄젣.
-' WshShell.Run ??windowStyle=0 (?④?) ?쇰줈 ?숈씪 batch 瑜?李??놁씠 ?ㅽ뻾.
-' 二쇱쓽: bWaitOnReturn=True ??batch exit code 媛 wscript exit code 濡??꾨떖??
+' run-report-hidden.vbs — Task Scheduler 용 숨김 실행 래퍼 (2026-06-11 신설).
+' run-report.bat 를 직접 action 으로 걸면 실행 내내 cmd 창이 화면에 떠서
+' (보고서 생성 수 분) 사용자가 "이상한 창이 계속 뜬다"고 인지하는 문제.
+' WshShell.Run 의 windowStyle=0 (숨김) 으로 동일 batch 를 창 없이 실행.
+' 주의: bWaitOnReturn=True 라 batch exit code 가 wscript exit code 로 전달됨.
 Dim sh, rc
 Set sh = CreateObject("WScript.Shell")
 rc = sh.Run("""C:\Flowvium\scripts\run-report.bat""", 0, True)
