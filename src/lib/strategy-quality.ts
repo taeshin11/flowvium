@@ -12,7 +12,8 @@ export const ALLOWED_AI_SOURCES = [
   'claude-haiku',    // callClaude → 'claude-haiku-4-5'
   'claude-sonnet',   // callClaude (미래 sonnet 경로)
   'gemini-2.0-flash',// callGemini
-  'EXAONE-3.5',      // callVLLM
+  'vllm-local',      // callVLLM (2026-06-15 Ollama/EXAONE→vLLM Qwen3.6-27B)
+  'EXAONE-3.5',      // callVLLM (legacy — 기존 저장 데이터 호환 유지)
   'qwen-2.5-72b',    // callQwen (OpenRouter 성공 시 고정 레이블 — 실제 모델과 무관)
   'deepseek',        // OpenRouter DeepSeek 계열
   'openrouter',      // OpenRouter generic

@@ -1142,12 +1142,12 @@ async function callGemini(prompt, timeoutMs = 60000, label = '') {
 // ── vLLM / TabbyAPI 호출 (OpenAI-호환 endpoint) ───────────────────────────────
 // VLLM_URL 환경변수 (예: http://localhost:5000/v1) 가 설정되면 Ollama 보다 우선.
 // VLLM_MODEL 로 모델명 명시 가능 (TabbyAPI 의 경우 모델 디렉터리명).
-async function callVLLM(prompt, timeoutMs = 360000, label = '') {
-  const url = process.env.VLLM_URL?.replace(/\s+/g, '');
+async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048, schema = null) {
+  const url = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
   if (!url) return null;
   const tag = label ? `[vLLM:${label}]` : '[vLLM]';
   const t0 = Date.now();
-  const model = process.env.VLLM_MODEL || 'default';
+  const model = process.env.VLLM_MODEL || process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
   try {
     const res = await fetch(`${url}/chat/completions`, {
       method: 'POST',
@@ -1159,8 +1159,10 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '') {
         model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.4,
-        max_tokens: 2048,
-        response_format: { type: 'json_object' },
+        max_tokens: maxTokens,
+        // 2026-06-15 Ollama→vLLM: schema 주면 json_schema 강제(구조화 출력), 없으면 json_object.
+        response_format: schema ? { type: 'json_schema', json_schema: { name: 'out', schema } } : { type: 'json_object' },
+        chat_template_kwargs: { enable_thinking: false }, // Qwen3.6 thinking off — max_tokens 보존.
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -1184,19 +1186,20 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '') {
 // 우선순위: vLLM/TabbyAPI (VLLM_URL) → Ollama → GROQ 70B → Gemini 2.0 Flash
 // 로컬 우선 + 실패/timeout 자동 cloud 폴백 = 항상 결과 반환 보장.
 async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = '', schema = null) {
-  // 1. vLLM/TabbyAPI 우선 (VLLM_URL 설정된 경우만)
-  const vllmText = await callVLLM(prompt, timeoutMs, label);
-  if (vllmText) return vllmText;
-
-  // 2. Ollama 로컬 (default)
-  const t0 = Date.now();
-  const tag = label ? `[LLM:${label}]` : '[LLM]';
-  const isQwen3 = model.startsWith('qwen3');
-  // 2026-05-29: label 별 num_predict 차등. portfolio 12 종목 한글 rationale 포함 시 5K+ token 필요.
-  // 기본 2048 → portfolio 8192, stockDetail/macro/regional 4096.
+  // 2026-05-29: label 별 토큰 차등. portfolio 12 종목 한글 rationale 포함 시 5K+ token 필요.
+  // 기본 2048 → portfolio 8192, stockDetail/macro/regional 4096. (vLLM·Ollama 공용)
   const numPredict = /portfolio/i.test(label) ? 8192
     : /(stockDetail|macro|narrative|regional|sellRationale)/i.test(label) ? 4096
     : 2048;
+
+  // 1. vLLM 우선 (VLLM_URL 설정된 경우만) — numPredict·schema 전달(2048 절단/스키마 유실 방지).
+  const vllmText = await callVLLM(prompt, timeoutMs, label, numPredict, schema);
+  if (vllmText) return vllmText;
+
+  // 2. Ollama 로컬 (레거시 폴백 — vLLM 이전 후엔 VLLM_URL 설정 시 미사용)
+  const t0 = Date.now();
+  const tag = label ? `[LLM:${label}]` : '[LLM]';
+  const isQwen3 = model.startsWith('qwen3');
   const body = {
     model,
     messages: [{ role: 'user', content: prompt }],

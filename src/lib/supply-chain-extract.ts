@@ -13,8 +13,10 @@
 import { logger } from '@/lib/logger';
 
 const SEC_HEADERS = { 'User-Agent': 'Flowvium (taeshinkim11@gmail.com)' };
-const OLLAMA_URL = 'http://localhost:11434/v1/chat/completions';
-const OLLAMA_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b';
+// 2026-06-15 Ollama→vLLM: 로컬 vLLM OpenAI-compat 엔드포인트(기본 localhost:8000/v1).
+const VLLM_BASE = (process.env.VLLM_URL || 'http://localhost:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+const OLLAMA_URL = `${VLLM_BASE}/chat/completions`;
+const OLLAMA_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 
 export type ScRelType = 'supplier' | 'customer' | 'competitor' | 'partner';
 export interface ScRelationship {
@@ -151,7 +153,7 @@ ${excerpt}`;
   try {
     const res = await fetch(OLLAMA_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: OLLAMA_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 2500 }),
+      body: JSON.stringify({ model: OLLAMA_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 2500, chat_template_kwargs: { enable_thinking: false } }),
       signal: AbortSignal.timeout(90000),
     });
     if (!res.ok) return [];

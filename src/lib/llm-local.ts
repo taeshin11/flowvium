@@ -1,14 +1,19 @@
 /**
- * src/lib/llm-local.ts — 로컬 Ollama 단일 진입점 (2026-06-07 모델 통일).
+ * src/lib/llm-local.ts — 로컬 vLLM 단일 진입점 (2026-06-15 Ollama→WSL/vLLM 이전).
  *
- * 배경(사용자): "모델이 다 같아야 — 보고서에 쓰는 모델로". 종전 번역/추출은 /v1 OpenAI-compat +
- *   exaone3.5 였고 보고서는 /api/chat 네이티브 + qwen3:8b(think:false). 모델 2개 = GPU 모델스왑
- *   경합. 단일 qwen3:8b 로 통일 — 보고서와 동일 네이티브 호출(think:false 라야 thinking 안 샘).
+ * 배경(사용자): "모델이 다 같아야 — 보고서에 쓰는 모델로". 종전엔 Ollama 네이티브 /api/chat +
+ *   qwen3:8b(think:false). 2026-06-15 로컬추론을 WSL2+vLLM(Qwen3.6-27B-AWQ-INT4) 로 이전 —
+ *   OpenAI-compat /v1/chat/completions 로 전환. thinking off 는 chat_template_kwargs.enable_thinking
+ *   =false (Qwen3 계열). 모델은 served-model-name 별칭(flowvium-local)로 고정 → 모델 교체는
+ *   vLLM 런치 설정만 수정(앱 무변경).
  *
- * + 중국어 bleeding 하네스: qwen(중국계)이 타언어 출력에 한자 누출 → hasChineseBleed 로 감지.
+ * + 외국문자 bleeding 하네스: qwen(중국계)이 타언어 출력에 한자 누출 → hasChineseBleed 로 감지.
+ *   (vLLM logit_bias 로 디코딩단 차단도 가능하나 토크나이저별 토큰ID 열거 필요 — locale-aware
+ *    재생성 하네스를 그대로 유지. 추후 최적화 여지.)
  */
-const OLLAMA_CHAT = 'http://localhost:11434/api/chat';
-export const LOCAL_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b';
+const VLLM_BASE = (process.env.VLLM_URL || 'http://localhost:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+const VLLM_CHAT = `${VLLM_BASE}/chat/completions`;
+export const LOCAL_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 
 // ── 2026-06-12 GPU 과부하 보호 (사용자 "컴퓨터 꺼지지 않게 조치 철저히") ─────────────────
 //   웹 경유 Ollama 호출은 트래픽 비례 무한 큐 적체 가능(6/12 16:00~16:28 /api/chat 516건,
@@ -46,21 +51,23 @@ export async function localChat(
 ): Promise<string | null> {
   if (!(await ollamaAcquire())) return null; // GPU 포화 — cloud/원문 fallback 에 위임
   try {
-    const res = await fetch(OLLAMA_CHAT, {
+    const res = await fetch(VLLM_CHAT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: LOCAL_MODEL,
         messages: [{ role: 'user', content: prompt }],
         stream: false,
-        think: false, // qwen3 thinking 비활성 — 네이티브 API 만 지원(/v1 미지원이라 종전 실패).
-        options: { temperature: opts.temperature ?? 0.1, num_predict: opts.maxTokens ?? 2048 },
+        max_tokens: opts.maxTokens ?? 2048,
+        temperature: opts.temperature ?? 0.1,
+        // Qwen3 thinking 비활성 — vLLM OpenAI 서버는 chat_template_kwargs 로 전달.
+        chat_template_kwargs: { enable_thinking: false },
       }),
       signal: AbortSignal.timeout(opts.timeoutMs ?? 60000),
     });
     if (!res.ok) return null;
-    const d = (await res.json()) as { message?: { content?: string } };
-    const t = (d.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    const d = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const t = (d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
     return t || null;
   } catch {
     return null;

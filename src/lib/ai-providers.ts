@@ -87,19 +87,20 @@ async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAtte
   try {
     const messages: Array<{ role: string; content: string }> = [];
     if (opts.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
-    // EXAONE 2.4B: max_model_len=1024 → 프롬프트도 잘라야 함
-    messages.push({ role: 'user', content: prompt.slice(0, 2800) });
+    // 2026-06-15 Ollama/EXAONE→vLLM Qwen3.6-27B: 큰 컨텍스트라 EXAONE 시절 2800자 절단 제거.
+    messages.push({ role: 'user', content: prompt });
 
     const res = await fetch(`${vllmUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct',
+        model: process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local',
         messages,
-        max_tokens: Math.min(opts.maxTokens ?? 500, 500),
+        max_tokens: opts.maxTokens ?? 1600,
         temperature: opts.temperature ?? 0.65,
+        chat_template_kwargs: { enable_thinking: false },
       }),
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 8000),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
     });
     if (!res.ok) {
       logger.warn(tag, 'vllm_http_error', { status: res.status, durationMs: Date.now() - t0 });
@@ -449,7 +450,7 @@ export async function callAI(prompt: string, opts: AICallOptions = {}): Promise<
   // 1. vLLM (로컬, 가장 저비용)
   if (!skipVllm) {
     const t = await callVLLM(prompt, opts, attempts);
-    if (t) return { text: t, source: 'EXAONE-3.5', durationMs: Date.now() - start };
+    if (t) return { text: t, source: 'vllm-local', durationMs: Date.now() - start };
   }
 
   if (localOnly) {

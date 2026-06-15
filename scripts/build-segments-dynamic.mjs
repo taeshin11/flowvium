@@ -170,16 +170,17 @@ async function xbrlExtract(filing) {
 //   원리: 소형모델은 구조화JSON 불안정하나 단순 grounded 추출은 안정). filing 실수치만 reformat → 환각無.
 async function exaoneExtract(region) {
   try {
-    // 2026-06-07: 모델 통일 — 보고서와 동일 qwen3:8b 네이티브(/api/chat, think:false). 종전 /v1+exaone.
+    // 2026-06-15 Ollama→vLLM: 로컬 vLLM OpenAI-compat /v1/chat/completions (think off via template kwargs).
     const prompt = `From the financial text below, extract each business segment/product and its MOST RECENT year revenue (in millions, the first number after each name). Output ONLY lines formatted exactly as: NAME | NUMBER. Exclude any "Total" row. No commentary, no other text.\n\n${region}`;
-    const r = await fetch('http://localhost:11434/api/chat', {
+    const base = (process.env.VLLM_URL || 'http://localhost:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+    const r = await fetch(`${base}/chat/completions`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b', messages: [{ role: 'user', content: prompt }], stream: false, think: false, options: { temperature: 0.1, num_predict: 400 } }),
+      body: JSON.stringify({ model: process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local', messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 400, chat_template_kwargs: { enable_thinking: false } }),
       signal: AbortSignal.timeout(90000),
     });
     if (!r.ok) return [];
     const d = await r.json();
-    const txt = (d.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '');
+    const txt = (d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '');
     const rows = [];
     for (const line of txt.split('\n')) {
       const m = line.match(/^\s*[-*•]?\s*([A-Za-z][A-Za-z0-9,&'’.\/ ()-]{1,45}?)\s*[|:]\s*\$?\s*([\d][\d,]{2,})/);
