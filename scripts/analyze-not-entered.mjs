@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 
-const db = new Database('C:/NoAddsMakingApps/FlowVium/data/flowvium.db', { readonly: true });
+const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
 
-// price_at_gen 이 NULL 이므로 price_at_eval 를 surrogate 로 사용
+// price_at_gen ??NULL ?대?濡?price_at_eval 瑜?surrogate 濡??ъ슜
 const rows = db.prepare(`
   SELECT r.ticker, r.entry_low, r.entry_high, r.stop_loss,
          o.price_at_eval AS pe, o.high_seen AS hi, o.low_seen AS lo
@@ -24,13 +24,13 @@ for (const r of rows) {
 }
 
 const pct = n => (n / rows.length * 100).toFixed(0) + '%';
-console.log('not_entered ' + rows.length + '건 분해 (price_at_eval surrogate):');
-console.log('  🚨 환각(낮게 깜, entry_high < eval×0.85): ' + hallucLow + ' (' + pct(hallucLow) + ')');
-console.log('  도달불가(높게 깜, entry_low > eval×1.05): ' + unreachableHigh + ' (' + pct(unreachableHigh) + ')');
-console.log('  시장 변동 부족(zone 아래로 안 내려옴): ' + marketGap + ' (' + pct(marketGap) + ')');
-console.log('  애매: ' + ambiguous + ' (' + pct(ambiguous) + ')');
+console.log('not_entered ' + rows.length + '嫄?遺꾪빐 (price_at_eval surrogate):');
+console.log('  ?슚 ?섍컖(??쾶 源? entry_high < eval횞0.85): ' + hallucLow + ' (' + pct(hallucLow) + ')');
+console.log('  ?꾨떖遺덇?(?믨쾶 源? entry_low > eval횞1.05): ' + unreachableHigh + ' (' + pct(unreachableHigh) + ')');
+console.log('  ?쒖옣 蹂??遺議?zone ?꾨옒濡????대젮??: ' + marketGap + ' (' + pct(marketGap) + ')');
+console.log('  ?좊ℓ: ' + ambiguous + ' (' + pct(ambiguous) + ')');
 
-console.log('\n=== 환각 TOP 12 (ratio = entry_high / price_at_eval) ===');
+console.log('\n=== ?섍컖 TOP 12 (ratio = entry_high / price_at_eval) ===');
 halluc.sort((a, b) => a.ratio - b.ratio).slice(0, 12).forEach(r => {
   console.log('  ' + r.ticker.padEnd(11)
     + ' entry=' + r.entry_low + '-' + r.entry_high
@@ -38,7 +38,7 @@ halluc.sort((a, b) => a.ratio - b.ratio).slice(0, 12).forEach(r => {
     + ' ratio=' + (r.ratio * 100).toFixed(0) + '%');
 });
 
-console.log('\n=== 도달불가 TOP 12 ===');
+console.log('\n=== ?꾨떖遺덇? TOP 12 ===');
 unr.slice(0, 12).forEach(r => {
   console.log('  ' + r.ticker.padEnd(11)
     + ' entry=' + r.entry_low + '-' + r.entry_high
@@ -46,7 +46,7 @@ unr.slice(0, 12).forEach(r => {
     + ' lo=' + r.lo.toFixed(2));
 });
 
-console.log('\n=== 시장 변동 부족 (정상 미진입) TOP 12 ===');
+console.log('\n=== ?쒖옣 蹂??遺議?(?뺤긽 誘몄쭊?? TOP 12 ===');
 md.slice(0, 12).forEach(r => {
   console.log('  ' + r.ticker.padEnd(11)
     + ' entry=' + r.entry_low + '-' + r.entry_high
@@ -54,7 +54,7 @@ md.slice(0, 12).forEach(r => {
     + ' lo=' + r.lo.toFixed(2));
 });
 
-console.log('\n=== ticker 별 not_entered 빈도 TOP 12 ===');
+console.log('\n=== ticker 蹂?not_entered 鍮덈룄 TOP 12 ===');
 const tk = {};
 rows.forEach(r => tk[r.ticker] = (tk[r.ticker] || 0) + 1);
 Object.entries(tk).sort((a, b) => b[1] - a[1]).slice(0, 12).forEach(([t, c]) => {

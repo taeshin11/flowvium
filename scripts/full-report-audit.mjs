@@ -2,12 +2,12 @@ import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import Database from 'better-sqlite3';
 
-const REPORTS_DIR = 'C:/NoAddsMakingApps/FlowVium/reports';
-const DB_PATH = 'C:/NoAddsMakingApps/FlowVium/data/flowvium.db';
+const REPORTS_DIR = 'C:/Flowvium/reports';
+const DB_PATH = 'C:/Flowvium/data/flowvium.db';
 
-// ── 1. 전체 보고서 메타 + harness 추세 ──
+// ?? 1. ?꾩껜 蹂닿퀬??硫뷀? + harness 異붿꽭 ??
 const files = readdirSync(REPORTS_DIR).filter(f => f.endsWith('-ko.json')).sort();
-console.log(`=== 전체 보고서 ${files.length}건 메타분석 ===\n`);
+console.log(`=== ?꾩껜 蹂닿퀬??${files.length}嫄?硫뷀?遺꾩꽍 ===\n`);
 
 const reportStats = [];
 for (const f of files) {
@@ -40,14 +40,14 @@ for (const s of reportStats) {
   );
 }
 
-// ── 2. Harness fix 추세 ──
-console.log('\n=== Harness fix 추세 ===');
+// ?? 2. Harness fix 異붿꽭 ??
+console.log('\n=== Harness fix 異붿꽭 ===');
 const fixTotals = reportStats.map(s => s.fixes);
 console.log('  min=' + Math.min(...fixTotals) + ' max=' + Math.max(...fixTotals) + ' avg=' + (fixTotals.reduce((a,b)=>a+b,0)/fixTotals.length).toFixed(1));
-console.log('  최근 5건:', fixTotals.slice(-5).join(', '));
+console.log('  理쒓렐 5嫄?', fixTotals.slice(-5).join(', '));
 
-// ── 3. 반복 ticker 분석 ──
-console.log('\n=== Ticker 출현 빈도 (전체 보고서) ===');
+// ?? 3. 諛섎났 ticker 遺꾩꽍 ??
+console.log('\n=== Ticker 異쒗쁽 鍮덈룄 (?꾩껜 蹂닿퀬?? ===');
 const tickerCount = {};
 for (const s of reportStats) {
   for (const t of s.tickers.split(',')) {
@@ -58,18 +58,18 @@ Object.entries(tickerCount).sort((a,b) => b[1] - a[1]).slice(0, 15).forEach(([t,
   console.log('  ' + t.padEnd(12) + ' x' + c + '/' + reportStats.length + ' (' + (c/reportStats.length*100).toFixed(0) + '%)');
 });
 
-// ── 4. DB outcome 상세 분석 ──
-console.log('\n=== DB Outcome 분석 ===');
+// ?? 4. DB outcome ?곸꽭 遺꾩꽍 ??
+console.log('\n=== DB Outcome 遺꾩꽍 ===');
 const db = new Database(DB_PATH, { readonly: true });
 
-// 전체 outcome 분포
+// ?꾩껜 outcome 遺꾪룷
 const outcomes = db.prepare(`SELECT outcome, COUNT(*) AS c FROM recommendation_outcomes GROUP BY outcome ORDER BY c DESC`).all();
 const total = outcomes.reduce((s,o) => s + o.c, 0);
-console.log('\n전체 outcome 분포 (' + total + '건):');
+console.log('\n?꾩껜 outcome 遺꾪룷 (' + total + '嫄?:');
 outcomes.forEach(o => console.log('  ' + (o.outcome||'?').padEnd(16) + String(o.c).padStart(4) + ' (' + (o.c/total*100).toFixed(1) + '%)'));
 
-// ticker별 적중률
-console.log('\n=== Ticker별 적중률 (진입한 것만) ===');
+// ticker蹂??곸쨷瑜?
+console.log('\n=== Ticker蹂??곸쨷瑜?(吏꾩엯??寃껊쭔) ===');
 const tickerPerf = db.prepare(`
   SELECT r.ticker,
     SUM(CASE WHEN o.outcome='hit_target' THEN 1 ELSE 0 END) AS hits,
@@ -98,8 +98,8 @@ for (const t of tickerPerf) {
   );
 }
 
-// action 별 성과
-console.log('\n=== Action별 성과 ===');
+// action 蹂??깃낵
+console.log('\n=== Action蹂??깃낵 ===');
 const actionPerf = db.prepare(`
   SELECT r.action,
     SUM(CASE WHEN o.outcome='hit_target' THEN 1 ELSE 0 END) AS hits,
@@ -118,8 +118,8 @@ for (const a of actionPerf) {
     + (a.avg_pnl != null ? ' avg_pnl=' + a.avg_pnl.toFixed(1) + '%' : ''));
 }
 
-// confidence별 성과
-console.log('\n=== Confidence별 적중률 ===');
+// confidence蹂??깃낵
+console.log('\n=== Confidence蹂??곸쨷瑜?===');
 const confPerf = db.prepare(`
   SELECT r.confidence,
     SUM(CASE WHEN o.outcome='hit_target' THEN 1 ELSE 0 END) AS hits,
@@ -136,8 +136,8 @@ for (const c of confPerf) {
   console.log('  ' + (c.confidence||'?').padEnd(8) + ' hit=' + c.hits + '/' + entered + '=' + hitPct + '% stop=' + c.stops + ' ne=' + c.ne + '/' + c.tot);
 }
 
-// 날짜별 추세
-console.log('\n=== 날짜별 outcome 추세 ===');
+// ?좎쭨蹂?異붿꽭
+console.log('\n=== ?좎쭨蹂?outcome 異붿꽭 ===');
 const daily = db.prepare(`
   SELECT substr(o.evaluated_at, 1, 10) AS d,
     SUM(CASE WHEN o.outcome='hit_target' THEN 1 ELSE 0 END) AS hits,
@@ -155,8 +155,8 @@ for (const d of daily) {
   console.log('  ' + d.d + ' hit=' + d.hits + '/' + entered + '(' + hitPct + '%) stop=' + d.stops + ' ne=' + d.ne + ' hold=' + d.hold + ' tot=' + d.tot);
 }
 
-// not_entered 세부: entry_high vs price_at_eval
-console.log('\n=== not_entered 환각 분해 ===');
+// not_entered ?몃?: entry_high vs price_at_eval
+console.log('\n=== not_entered ?섍컖 遺꾪빐 ===');
 const ne = db.prepare(`
   SELECT r.ticker, r.entry_low, r.entry_high, o.price_at_eval, o.low_seen, o.high_seen
   FROM recommendation_outcomes o
@@ -171,8 +171,8 @@ for (const r of ne) {
   else if (r.low_seen && r.low_seen > r.entry_high && (r.low_seen - r.entry_high) / r.price_at_eval < 0.03) narrowMiss++;
   else wideMiss++;
 }
-console.log('  환각 (entry < eval×0.85): ' + halluc);
-console.log('  근접 미달 (low가 entry 3% 이내): ' + narrowMiss);
-console.log('  넓은 미달: ' + wideMiss);
+console.log('  ?섍컖 (entry < eval횞0.85): ' + halluc);
+console.log('  洹쇱젒 誘몃떖 (low媛 entry 3% ?대궡): ' + narrowMiss);
+console.log('  ?볦? 誘몃떖: ' + wideMiss);
 
 db.close();

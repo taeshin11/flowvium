@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 /**
- * scripts/check-prospective-gaps.mjs — 전향적 연구 blind spot 분석
+ * scripts/check-prospective-gaps.mjs ???꾪뼢???곌뎄 blind spot 遺꾩꽍
  *
- * 우리가 측정/평가했지만 활용 안 한 지표 + 측정조차 안 한 지표 + 잘못 해석한 지표.
+ * ?곕━媛 痢≪젙/?됯??덉?留??쒖슜 ????吏??+ 痢≪젙議곗감 ????吏??+ ?섎せ ?댁꽍??吏??
  */
 import Database from 'better-sqlite3';
-const db = new Database('C:/NoAddsMakingApps/FlowVium/data/flowvium.db', { readonly: true });
+const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
 
-console.log('═══════════════════════════════════════════════════════════');
-console.log('  전향적 연구 blind spot 분석 — ' + new Date().toISOString().slice(0,19));
-console.log('═══════════════════════════════════════════════════════════\n');
+console.log('?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??);
+console.log('  ?꾪뼢???곌뎄 blind spot 遺꾩꽍 ??' + new Date().toISOString().slice(0,19));
+console.log('?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??n');
 
-// ── BLIND SPOT 1: Confidence calibration 신뢰성 ────────────────────────────
-console.log('## 1) Confidence calibration — high/medium/low 가 정말 hit 차이?\n');
+// ?? BLIND SPOT 1: Confidence calibration ?좊ː??????????????????????????????
+console.log('## 1) Confidence calibration ??high/medium/low 媛 ?뺣쭚 hit 李⑥씠?\n');
 const confCal = db.prepare(`
   SELECT r.confidence, COUNT(*) n,
     SUM(CASE WHEN o.outcome='hit_target' THEN 1 ELSE 0 END) hits,
@@ -24,15 +24,15 @@ const confCal = db.prepare(`
   WHERE r.action='buy' AND r.confidence IS NOT NULL
   GROUP BY r.confidence
 `).all();
-console.log('   conf      n     hit   stop  NE    hit%   avg_pnl%  real_pnl%(NE제외)');
+console.log('   conf      n     hit   stop  NE    hit%   avg_pnl%  real_pnl%(NE?쒖쇅)');
 for (const r of confCal) {
   const hitPct = ((r.hits / r.n) * 100).toFixed(0) + '%';
   console.log(`   ${String(r.confidence).padEnd(9)} ${String(r.n).padEnd(5)} ${String(r.hits).padEnd(5)} ${String(r.stops).padEnd(5)} ${String(r.ne).padEnd(5)} ${hitPct.padEnd(6)} ${String(r.avg_pnl ?? '').padEnd(9)} ${r.real_pnl ?? ''}`);
 }
-console.log('   → high vs medium 차이가 의미있는지? 신뢰도 calibration 정합성 점검.');
+console.log('   ??high vs medium 李⑥씠媛 ?섎??덈뒗吏? ?좊ː??calibration ?뺥빀???먭?.');
 
-// ── BLIND SPOT 2: Alpha vs SPY (선택 알파 vs 시장 추종) ────────────────────
-console.log('\n## 2) Alpha — SPY 대비 알파 (ticker selection 자체 가치)\n');
+// ?? BLIND SPOT 2: Alpha vs SPY (?좏깮 ?뚰뙆 vs ?쒖옣 異붿쥌) ????????????????????
+console.log('\n## 2) Alpha ??SPY ?鍮??뚰뙆 (ticker selection ?먯껜 媛移?\n');
 const alpha = db.prepare(`
   SELECT
     COUNT(*) n,
@@ -45,11 +45,11 @@ const alpha = db.prepare(`
   WHERE r.action='buy' AND o.outcome IN ('hit_target','stop_loss','still_holding') AND o.spy_return IS NOT NULL
 `).get();
 console.log(`   n=${alpha.n}, ticker avg=${alpha.ticker_avg}%, SPY avg=${alpha.spy_avg}%, ALPHA=${alpha.alpha}%`);
-console.log(`   beat SPY: ${alpha.beat_spy} / lose: ${alpha.lose_spy} → win rate ${((alpha.beat_spy/(alpha.beat_spy+alpha.lose_spy))*100).toFixed(0)}%`);
-console.log('   → ticker selection 이 단순 SPY 추종 보다 우월? 우월하면 진짜 alpha.');
+console.log(`   beat SPY: ${alpha.beat_spy} / lose: ${alpha.lose_spy} ??win rate ${((alpha.beat_spy/(alpha.beat_spy+alpha.lose_spy))*100).toFixed(0)}%`);
+console.log('   ??ticker selection ???⑥닚 SPY 異붿쥌 蹂대떎 ?곗썡? ?곗썡?섎㈃ 吏꾩쭨 alpha.');
 
-// ── BLIND SPOT 3: Time-to-hit (빠른 hit vs 느린 hit) ──────────────────────
-console.log('\n## 3) Time-to-hit — 평균 며칠 만에 hit/stop?\n');
+// ?? BLIND SPOT 3: Time-to-hit (鍮좊Ⅸ hit vs ?먮┛ hit) ??????????????????????
+console.log('\n## 3) Time-to-hit ???됯퇏 硫곗튌 留뚯뿉 hit/stop?\n');
 const timeToHit = db.prepare(`
   SELECT
     o.outcome,
@@ -61,12 +61,12 @@ const timeToHit = db.prepare(`
   GROUP BY o.outcome
 `).all();
 for (const r of timeToHit) {
-  console.log(`   ${r.outcome.padEnd(14)} n=${String(r.n).padEnd(4)} avg=${r.avg_days}일 (range ${r.min_d}~${r.max_d})`);
+  console.log(`   ${r.outcome.padEnd(14)} n=${String(r.n).padEnd(4)} avg=${r.avg_days}??(range ${r.min_d}~${r.max_d})`);
 }
-console.log('   → hit_target 이 너무 빠르면 (e.g., <3일) target 이 너무 작게 설정된 거.');
+console.log('   ??hit_target ???덈Т 鍮좊Ⅴ硫?(e.g., <3?? target ???덈Т ?묎쾶 ?ㅼ젙??嫄?');
 
-// ── BLIND SPOT 4: 종목 다양성 감소 패턴 ───────────────────────────────────
-console.log('\n## 4) 종목 다양성 — 매주 unique ticker 추세\n');
+// ?? BLIND SPOT 4: 醫낅ぉ ?ㅼ뼇??媛먯냼 ?⑦꽩 ???????????????????????????????????
+console.log('\n## 4) 醫낅ぉ ?ㅼ뼇????留ㅼ＜ unique ticker 異붿꽭\n');
 const divers = db.prepare(`
   SELECT
     strftime('%Y-W%W', generated_at) wk,
@@ -83,8 +83,8 @@ for (const r of divers) {
   console.log(`   ${r.wk.padEnd(11)} ${String(r.n_recs).padEnd(7)} ${String(r.uniq).padEnd(7)} ${r.diversity_pct}%`);
 }
 
-// ── BLIND SPOT 5: hit_target 의 평균 pnl — target 이 작게 설정됐나? ──────
-console.log('\n## 5) hit_target pnl 분포 — target 이 너무 보수적?\n');
+// ?? BLIND SPOT 5: hit_target ???됯퇏 pnl ??target ???묎쾶 ?ㅼ젙?먮굹? ??????
+console.log('\n## 5) hit_target pnl 遺꾪룷 ??target ???덈Т 蹂댁닔??\n');
 const targetDist = db.prepare(`
   SELECT
     ROUND(MIN(o.pnl_pct),1) min_pnl,
@@ -95,14 +95,14 @@ const targetDist = db.prepare(`
   WHERE o.outcome='hit_target'
 `).get();
 console.log(`   hit_target n=${targetDist.n}, pnl: min ${targetDist.min_pnl}% / avg ${targetDist.avg_pnl}% / max ${targetDist.max_pnl}%`);
-// hit_target +10% 미만 비율 (작은 target)
+// hit_target +10% 誘몃쭔 鍮꾩쑉 (?묒? target)
 const smallTarget = db.prepare(`SELECT COUNT(*) c FROM recommendation_outcomes WHERE outcome='hit_target' AND pnl_pct < 10`).get().c;
 const totalHit = db.prepare(`SELECT COUNT(*) c FROM recommendation_outcomes WHERE outcome='hit_target'`).get().c;
-console.log(`   hit_target 중 pnl < +10% 비율: ${smallTarget}/${totalHit} = ${((smallTarget/totalHit)*100).toFixed(0)}%`);
-console.log('   → 다수가 +10% 미만이면 target 이 너무 작게 설정됨 (= "쉬운 hit").');
+console.log(`   hit_target 以?pnl < +10% 鍮꾩쑉: ${smallTarget}/${totalHit} = ${((smallTarget/totalHit)*100).toFixed(0)}%`);
+console.log('   ???ㅼ닔媛 +10% 誘몃쭔?대㈃ target ???덈Т ?묎쾶 ?ㅼ젙??(= "?ъ슫 hit").');
 
-// ── BLIND SPOT 6: Sector 별 hit rate — 어떤 sector 가 진짜 강했나? ────────
-console.log('\n## 6) Sector hit rate — 어디서 진짜 잘 맞나?\n');
+// ?? BLIND SPOT 6: Sector 蹂?hit rate ???대뼡 sector 媛 吏꾩쭨 媛뺥뻽?? ????????
+console.log('\n## 6) Sector hit rate ???대뵒??吏꾩쭨 ??留욌굹?\n');
 const sec = db.prepare(`
   SELECT
     COALESCE(r.sector, '(null)') sec,
@@ -123,8 +123,8 @@ for (const r of sec) {
   console.log(`   ${r.sec.padEnd(25)} ${String(r.n).padEnd(5)} ${String(r.hits).padEnd(5)} ${String(r.ne).padEnd(4)} ${hitPct.padEnd(6)} ${String(r.avg_pnl).padEnd(10)} ${r.alpha}`);
 }
 
-// ── BLIND SPOT 7: NE 의 entry vs market gap 측정 안 됨 ────────────────────
-console.log('\n## 7) NE 케이스의 entry gap 분포 — 얼마나 멀어서 진입 못함?\n');
+// ?? BLIND SPOT 7: NE ??entry vs market gap 痢≪젙 ????????????????????????
+console.log('\n## 7) NE 耳?댁뒪??entry gap 遺꾪룷 ???쇰쭏??硫?댁꽌 吏꾩엯 紐삵븿?\n');
 const neGap = db.prepare(`
   SELECT
     r.ticker,
@@ -138,10 +138,10 @@ const neGap = db.prepare(`
 `).all();
 console.log('   ticker        n_NE   avg_gap%');
 for (const r of neGap) console.log(`   ${r.ticker.padEnd(13)} ${String(r.n_ne).padEnd(6)} ${r.median_gap}%`);
-console.log('   → 양수 gap% = 시장가가 entry 보다 위. 음수면 시장가가 더 낮아 진입 가능했어야 했음 (왜 NE?)');
+console.log('   ???묒닔 gap% = ?쒖옣媛媛 entry 蹂대떎 ?? ?뚯닔硫??쒖옣媛媛 ????븘 吏꾩엯 媛?ν뻽?댁빞 ?덉쓬 (??NE?)');
 
-// ── BLIND SPOT 8: still_holding 이 평가 기간 만료 후에도 처리됐나? ───────
-console.log('\n## 8) still_holding — 평가 기간 만료 후 outcome 갱신 패턴\n');
+// ?? BLIND SPOT 8: still_holding ???됯? 湲곌컙 留뚮즺 ?꾩뿉??泥섎━?먮굹? ???????
+console.log('\n## 8) still_holding ???됯? 湲곌컙 留뚮즺 ??outcome 媛깆떊 ?⑦꽩\n');
 const sh = db.prepare(`
   SELECT
     ROUND(AVG(o.pnl_pct),1) avg_pnl,
@@ -151,11 +151,11 @@ const sh = db.prepare(`
   FROM recommendation_outcomes o
   WHERE o.outcome='still_holding'
 `).get();
-console.log(`   n=${sh.n}, avg_pnl=${sh.avg_pnl}%, avg_days=${sh.avg_days}일, profitable=${sh.profitable}/${sh.n} (${((sh.profitable/sh.n)*100).toFixed(0)}%)`);
-console.log('   → "still_holding" 이 30% 차지. 평가 기간 끝나도 종결 outcome (close_at_period) 으로 안 옮겨감 = 측정 lag.');
+console.log(`   n=${sh.n}, avg_pnl=${sh.avg_pnl}%, avg_days=${sh.avg_days}?? profitable=${sh.profitable}/${sh.n} (${((sh.profitable/sh.n)*100).toFixed(0)}%)`);
+console.log('   ??"still_holding" ??30% 李⑥?. ?됯? 湲곌컙 ?앸굹??醫낃껐 outcome (close_at_period) ?쇰줈 ????꺼媛?= 痢≪젙 lag.');
 
-// ── BLIND SPOT 9: Quality score 활용 안 됨 ───────────────────────────────
-console.log('\n## 9) Quality score (DB 에 저장 — 활용?)\n');
+// ?? BLIND SPOT 9: Quality score ?쒖슜 ???????????????????????????????????
+console.log('\n## 9) Quality score (DB ????????쒖슜?)\n');
 const qs = db.prepare(`
   SELECT
     ROUND(AVG(o.quality_score),1) avg_qs,
@@ -171,10 +171,10 @@ const qsByOutcome = db.prepare(`
   GROUP BY o.outcome
 `).all();
 for (const r of qsByOutcome) console.log(`   ${r.outcome.padEnd(14)} avg_qs=${r.avg_qs} n=${r.n}`);
-console.log('   → quality_score 가 outcome 과 상관 있나? 측정만 하고 보고서 prompt 에 반영 안 됨.');
+console.log('   ??quality_score 媛 outcome 怨??곴? ?덈굹? 痢≪젙留??섍퀬 蹂닿퀬??prompt ??諛섏쁺 ????');
 
-// ── BLIND SPOT 10: 평가 burst 패턴 — cron 부정기 ──────────────────────────
-console.log('\n## 10) 평가 cron 부정기 실행 — 평일 평가 0건?\n');
+// ?? BLIND SPOT 10: ?됯? burst ?⑦꽩 ??cron 遺?뺢린 ??????????????????????????
+console.log('\n## 10) ?됯? cron 遺?뺢린 ?ㅽ뻾 ???됱씪 ?됯? 0嫄?\n');
 const evalBurst = db.prepare(`
   SELECT substr(evaluated_at,1,10) d, COUNT(*) c
   FROM recommendation_outcomes
@@ -188,6 +188,6 @@ for (let i = 0; i < 30; i++) {
   totalDays++;
   if (!evalDays.has(d)) zeroDays++;
 }
-console.log(`   최근 30일 중 평가 0건 일자: ${zeroDays}/${totalDays}`);
-console.log(`   evaluate-signals cron 이 일요일 03:00 UTC 만 실행 → 주중 평가 누적 → 일요일 burst.`);
-console.log(`   → eval_after 이미 지난 추천이 5-6일 동안 미평가 상태로 노출 (사용자에게는 stale).`);
+console.log(`   理쒓렐 30??以??됯? 0嫄??쇱옄: ${zeroDays}/${totalDays}`);
+console.log(`   evaluate-signals cron ???쇱슂??03:00 UTC 留??ㅽ뻾 ??二쇱쨷 ?됯? ?꾩쟻 ???쇱슂??burst.`);
+console.log(`   ??eval_after ?대? 吏??異붿쿇??5-6???숈븞 誘명룊媛 ?곹깭濡??몄텧 (?ъ슜?먯뿉寃뚮뒗 stale).`);

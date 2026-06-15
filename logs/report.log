@@ -1,695 +1,695 @@
 [05/03/2026 Sun 16:05:03.40] Generating... 
-Ollama(ollama/qwen3:8b) 로컬 생성 중...
-컨텍스트 데이터 수집...
-Ollama 응답 수신 (chars: 4757 )
-Redis 저장 중...
-session key (flowvium:investment-strategy:v8:2026-05-03:afternoon): ✅
-stale key: ✅
+Ollama(ollama/qwen3:8b) 濡쒖뺄 ?앹꽦 以?..
+而⑦뀓?ㅽ듃 ?곗씠???섏쭛...
+Ollama ?묐떟 ?섏떊 (chars: 4757 )
+Redis ???以?..
+session key (flowvium:investment-strategy:v8:2026-05-03:afternoon): ??
+stale key: ??
 source: local-ollama/qwen3:8b
 Portfolio: NVDA, TSLA, AMZN, BABA, ETH-USD, BTC-USD, 005930.KS, 005490.KS
 Has 7-section: true
-가상계좌 거래 실행 중...
-가상계좌: 매수= 매도=QQQ 스킵=BTC-USD,005930.KS,005490.KS
-총자산: $99,395.764
+媛?곴퀎醫?嫄곕옒 ?ㅽ뻾 以?..
+媛?곴퀎醫? 留ㅼ닔= 留ㅻ룄=QQQ ?ㅽ궢=BTC-USD,005930.KS,005490.KS
+珥앹옄?? $99,395.764
 
-✅ 완료! flowvium.net/ko/report 에서 확인하세요.
+???꾨즺! flowvium.net/ko/report ?먯꽌 ?뺤씤?섏꽭??
 [05/03/2026 Sun 16:06:13.19] Done. 
 [05/03/2026 Sun 21:35:02.96] Generating... 
-Ollama(ollama/qwen3:8b) 로컬 생성 중...
-컨텍스트 데이터 수집...
-Ollama 응답 수신 (chars: 4209 )
-Redis 저장 중...
-session key (flowvium:investment-strategy:v8:2026-05-03:afternoon): ✅
-stale key: ✅
+Ollama(ollama/qwen3:8b) 濡쒖뺄 ?앹꽦 以?..
+而⑦뀓?ㅽ듃 ?곗씠???섏쭛...
+Ollama ?묐떟 ?섏떊 (chars: 4209 )
+Redis ???以?..
+session key (flowvium:investment-strategy:v8:2026-05-03:afternoon): ??
+stale key: ??
 source: local-ollama/qwen3:8b
 Portfolio: NVDA, TSLA, AMZN, MSFT, BTC-USD, ETH-USD, TSM
 Has 7-section: true
-가상계좌 거래 실행 중...
-가상계좌: 매수=NVDA,TSLA,AMZN,MSFT,TSM 매도=BABA 스킵=BTC-USD
-총자산: $99,433.83
+媛?곴퀎醫?嫄곕옒 ?ㅽ뻾 以?..
+媛?곴퀎醫? 留ㅼ닔=NVDA,TSLA,AMZN,MSFT,TSM 留ㅻ룄=BABA ?ㅽ궢=BTC-USD
+珥앹옄?? $99,433.83
 
-✅ 완료! flowvium.net/ko/report 에서 확인하세요.
+???꾨즺! flowvium.net/ko/report ?먯꽌 ?뺤씤?섏꽭??
 [05/03/2026 Sun 21:36:01.85] Done. 
 [05/04/2026 Mon  8:05:04.24] Generating... 
-Ollama(ollama/qwen3:8b) 로컬 생성 중...
-컨텍스트 데이터 수집...
-Ollama 응답 수신 (chars: 4454 )
-Redis 저장 중...
-session key (flowvium:investment-strategy:v8:2026-05-04:morning): ✅
-stale key: ✅
+Ollama(ollama/qwen3:8b) 濡쒖뺄 ?앹꽦 以?..
+而⑦뀓?ㅽ듃 ?곗씠???섏쭛...
+Ollama ?묐떟 ?섏떊 (chars: 4454 )
+Redis ???以?..
+session key (flowvium:investment-strategy:v8:2026-05-04:morning): ??
+stale key: ??
 source: local-ollama/qwen3:8b
 Portfolio: NVDA, TSM, AMZN, BABA, TSMC, BTC-USD, ETH-USD
 Has 7-section: true
-가상계좌 거래 실행 중...
-가상계좌: 매수=TSM,BABA 매도=TSLA,MSFT 스킵=TSMC,BTC-USD
-총자산: $99,491.818
+媛?곴퀎醫?嫄곕옒 ?ㅽ뻾 以?..
+媛?곴퀎醫? 留ㅼ닔=TSM,BABA 留ㅻ룄=TSLA,MSFT ?ㅽ궢=TSMC,BTC-USD
+珥앹옄?? $99,491.818
 
-✅ 완료! flowvium.net/ko/report 에서 확인하세요.
+???꾨즺! flowvium.net/ko/report ?먯꽌 ?뺤씤?섏꽭??
 [05/04/2026 Mon  8:06:07.88] Done. 
 [05/04/2026 Mon 16:05:04.34] Generating... 
-Ollama(ollama/qwen3:8b) 로컬 생성 중...
-컨텍스트 데이터 수집...
-Ollama 응답 수신 (chars: 4168 )
-Redis 저장 중...
-session key (flowvium:investment-strategy:v8:2026-05-04:afternoon): ✅
-stale key: ✅
+Ollama(ollama/qwen3:8b) 濡쒖뺄 ?앹꽦 以?..
+而⑦뀓?ㅽ듃 ?곗씠???섏쭛...
+Ollama ?묐떟 ?섏떊 (chars: 4168 )
+Redis ???以?..
+session key (flowvium:investment-strategy:v8:2026-05-04:afternoon): ??
+stale key: ??
 source: local-ollama/qwen3:8b
 Portfolio: NVDA, TSM, AMZN, BABA, TSLA, KO, BTC-USD
 Has 7-section: true
-가상계좌 거래 실행 중...
-가상계좌: 매수=NVDA,TSM,AMZN,BABA,TSLA,KO 매도=ETH-USD 스킵=BTC-USD
-총자산: $99,576.283
+媛?곴퀎醫?嫄곕옒 ?ㅽ뻾 以?..
+媛?곴퀎醫? 留ㅼ닔=NVDA,TSM,AMZN,BABA,TSLA,KO 留ㅻ룄=ETH-USD ?ㅽ궢=BTC-USD
+珥앹옄?? $99,576.283
 
-✅ 완료! flowvium.net/ko/report 에서 확인하세요.
+???꾨즺! flowvium.net/ko/report ?먯꽌 ?뺤씤?섏꽭??
 [05/04/2026 Mon 16:06:03.17] Done. 
 [05/04/2026 Mon 21:35:02.96] Generating... 
-Ollama(ollama/qwen3:8b) 로컬 생성 중...
-컨텍스트 데이터 수집...
-Ollama 응답 수신 (chars: 4745 )
-Redis 저장 중...
-session key (flowvium:investment-strategy:v8:2026-05-04:afternoon): ✅
-stale key: ✅
+Ollama(ollama/qwen3:8b) 濡쒖뺄 ?앹꽦 以?..
+而⑦뀓?ㅽ듃 ?곗씠???섏쭛...
+Ollama ?묐떟 ?섏떊 (chars: 4745 )
+Redis ???以?..
+session key (flowvium:investment-strategy:v8:2026-05-04:afternoon): ??
+stale key: ??
 source: local-ollama/qwen3:8b
 Portfolio: NVDA, TSLA, AMZN, BABA, QQQ, BTC-USD, ETH-USD
 Has 7-section: true
-가상계좌 거래 실행 중...
-가상계좌: 매수=TSLA,QQQ,ETH-USD 매도=TSM,KO 스킵=AMZN,BTC-USD
-총자산: $99,522.157
+媛?곴퀎醫?嫄곕옒 ?ㅽ뻾 以?..
+媛?곴퀎醫? 留ㅼ닔=TSLA,QQQ,ETH-USD 留ㅻ룄=TSM,KO ?ㅽ궢=AMZN,BTC-USD
+珥앹옄?? $99,522.157
 
-✅ 완료! flowvium.net/ko/report 에서 확인하세요.
+???꾨즺! flowvium.net/ko/report ?먯꽌 ?뺤씤?섏꽭??
 [05/04/2026 Mon 21:36:09.02] Done. 
 [05/05/2026 Tue  8:05:04.21] Generating... 
-Ollama(ollama/qwen3:8b) 로컬 생성 중...
-컨텍스트 데이터 수집...
-Ollama 응답 수신 (chars: 4009 )
-Redis 저장 중...
-session key (flowvium:investment-strategy:v8:2026-05-05:morning): ✅
-stale key: ✅
+Ollama(ollama/qwen3:8b) 濡쒖뺄 ?앹꽦 以?..
+而⑦뀓?ㅽ듃 ?곗씠???섏쭛...
+Ollama ?묐떟 ?섏떊 (chars: 4009 )
+Redis ???以?..
+session key (flowvium:investment-strategy:v8:2026-05-05:morning): ??
+stale key: ??
 source: local-ollama/qwen3:8b
 Portfolio: NVDA, TSM, AMZN, BABA, TSLA, XOM, KOSPI200
 Has 7-section: true
-가상계좌 거래 실행 중...
-가상계좌: 매수=NVDA,TSM,BABA,XOM 매도=QQQ,ETH-USD 스킵=AMZN,KOSPI200
-총자산: $99,920.624
+媛?곴퀎醫?嫄곕옒 ?ㅽ뻾 以?..
+媛?곴퀎醫? 留ㅼ닔=NVDA,TSM,BABA,XOM 留ㅻ룄=QQQ,ETH-USD ?ㅽ궢=AMZN,KOSPI200
+珥앹옄?? $99,920.624
 
-✅ 완료! flowvium.net/ko/report 에서 확인하세요.
+???꾨즺! flowvium.net/ko/report ?먯꽌 ?뺤씤?섏꽭??
 [05/05/2026 Tue  8:06:04.51] Done. 
 [05/05/2026 Tue 16:05:04.25] Generating... 
-Ollama(ollama/qwen3:8b) 로컬 생성 중...
-컨텍스트 데이터 수집...
-Ollama 응답 수신 (chars: 4334 )
-Redis 저장 중...
-session key (flowvium:investment-strategy:v8:2026-05-05:afternoon): ✅
-stale key: ✅
+Ollama(ollama/qwen3:8b) 濡쒖뺄 ?앹꽦 以?..
+而⑦뀓?ㅽ듃 ?곗씠???섏쭛...
+Ollama ?묐떟 ?섏떊 (chars: 4334 )
+Redis ???以?..
+session key (flowvium:investment-strategy:v8:2026-05-05:afternoon): ??
+stale key: ??
 source: local-ollama/qwen3:8b
 Portfolio: NVDA, BTC-USD, TSLA, ETH-USD, SPY, QQQ, VIX
 Has 7-section: true
-가상계좌 거래 실행 중...
-가상계좌: 매수=TSLA,ETH-USD,SPY,QQQ 매도=AMZN,BABA,TSM,XOM 스킵=NVDA,BTC-USD,VIX
-총자산: $99,826.688
+媛?곴퀎醫?嫄곕옒 ?ㅽ뻾 以?..
+媛?곴퀎醫? 留ㅼ닔=TSLA,ETH-USD,SPY,QQQ 留ㅻ룄=AMZN,BABA,TSM,XOM ?ㅽ궢=NVDA,BTC-USD,VIX
+珥앹옄?? $99,826.688
 
-✅ 완료! flowvium.net/ko/report 에서 확인하세요.
+???꾨즺! flowvium.net/ko/report ?먯꽌 ?뺤씤?섏꽭??
 [05/05/2026 Tue 16:06:07.71] Done. 
 [05/05/2026 Tue 21:35:02.95] Generating... 
 
-=== 로컬 Ollama 보고서 생성 (ollama/qwen3:8b) ===
+=== 濡쒖뺄 Ollama 蹂닿퀬???앹꽦 (ollama/qwen3:8b) ===
 locale: ko (Korean), session: afternoon, auto-upload: false
 
-[0/7] 데이터 최신화 (update-all)...
-  update-all 호출 중...
-  ✅ update-all 완료 (24/24 API 갱신)
+[0/7] ?곗씠??理쒖떊??(update-all)...
+  update-all ?몄텧 以?..
+  ??update-all ?꾨즺 (24/24 API 媛깆떊)
 
-[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...
+[1/7] 而⑦뀓?ㅽ듃 ?곗씠???섏쭛 (16媛?API 蹂묐젹)...
   macro=66c, sentiment=41c, flows=285c
   news=507c, institutional=67c, shorts=52c
   prices=46 tickers, sectorPe=290c, earnings=83c
 
-[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...
+[2/7] Wave1 ??5媛?蹂묐젹 Ollama ?몄텧 (macro/portfolio/regional/opportunity/narrative)...
 Error: Ollama HTTP 404: {"error":"model 'ollama/qwen3:8b' not found"}
-    at callOllama (file:///C:/NoAddsMakingApps/FlowVium/scripts/generate-report-local.mjs:252:22)
+    at callOllama (file:///C:/Flowvium/scripts/generate-report-local.mjs:252:22)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async Promise.all (index 0)
-    at async generateViaOllama (file:///C:/NoAddsMakingApps/FlowVium/scripts/generate-report-local.mjs:1110:79)
+    at async generateViaOllama (file:///C:/Flowvium/scripts/generate-report-local.mjs:1110:79)
 [05/05/2026 Tue 21:35:10.75] Done. 
 [05/06/2026 Wed 16:05:03.91] Generating... 
 
-=== 로컬 Ollama 보고서 생성 (qwen3:8b) ===
+=== 濡쒖뺄 Ollama 蹂닿퀬???앹꽦 (qwen3:8b) ===
 locale: ko (Korean), session: afternoon, auto-upload: false
 
-[0/7] 데이터 최신화 (update-all)...
-  update-all 호출 중...
-  ✅ update-all 완료 (24/24 API 갱신)
+[0/7] ?곗씠??理쒖떊??(update-all)...
+  update-all ?몄텧 以?..
+  ??update-all ?꾨즺 (24/24 API 媛깆떊)
 
-[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...
+[1/7] 而⑦뀓?ㅽ듃 ?곗씠???섏쭛 (16媛?API 蹂묐젹)...
   macro=65c, sentiment=41c, flows=389c
   news=333c, institutional=94c, shorts=52c
   prices=46 tickers, sectorPe=291c, earnings=82c
 
-[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...
-  parse failed [regional] — retrying...
-  macro=true, portfolio=true(8개), regional=false
+[2/7] Wave1 ??5媛?蹂묐젹 Ollama ?몄텧 (macro/portfolio/regional/opportunity/narrative)...
+  parse failed [regional] ??retrying...
+  macro=true, portfolio=true(8媛?, regional=false
   opportunity=true, narrative=true
 
-[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...
-  ⚠️  005380.KS entryZone="₩100,000-110,000" vs actual ₩550,000 → 보정
-  ⚠️  005380.KS stopLoss="₩95,000" vs actual ₩550,000 → 보정
-  ⚠️  005380.KS target="₩115,000" vs actual ₩550,000 → 보정
-  기술지표 계산 완료: KLAC(50MA 위, RSI 49, 거래량+28%), SMCI(50MA 위, RSI 52, 거래량+80%), TSLA(50MA 위, RSI 48, 거래량-28%), NVDA(50MA 위, RSI 48, 거래량-25%), 005930.KS(200MA 위, RSI 81, 거래량+124%), 000660.KS(200MA 위, RSI 92, 거래량+78%), 035420.KS(200MA 아래, RSI 57, 거래량+28%), 005380.KS(200MA 위, RSI 65, 거래량+76%)
-  risk=true, companyChanges=8개, stockDetail=8개
+[3/7] Wave2 ??由ъ뒪??湲곗뾽蹂??醫낅ぉ?곸꽭 蹂묐젹 ?몄텧...
+  ?좑툘  005380.KS entryZone="??00,000-110,000" vs actual ??50,000 ??蹂댁젙
+  ?좑툘  005380.KS stopLoss="??5,000" vs actual ??50,000 ??蹂댁젙
+  ?좑툘  005380.KS target="??15,000" vs actual ??50,000 ??蹂댁젙
+  湲곗닠吏??怨꾩궛 ?꾨즺: KLAC(50MA ?? RSI 49, 嫄곕옒??28%), SMCI(50MA ?? RSI 52, 嫄곕옒??80%), TSLA(50MA ?? RSI 48, 嫄곕옒??28%), NVDA(50MA ?? RSI 48, 嫄곕옒??25%), 005930.KS(200MA ?? RSI 81, 嫄곕옒??124%), 000660.KS(200MA ?? RSI 92, 嫄곕옒??78%), 035420.KS(200MA ?꾨옒, RSI 57, 嫄곕옒??28%), 005380.KS(200MA ?? RSI 65, 嫄곕옒??76%)
+  risk=true, companyChanges=8媛? stockDetail=8媛?
 
-[4/7] Critique — 포트폴리오 자기비판...
-    WARN NVDA: 타겟 너무 높음, $200으로 조정
-    WARN KLAC: 타겟 너무 높음, $1900으로 조정
-    WARN SMCI: 타겟 너무 높음, $140으로 조정
-    WARN TSLA: 타겟 너무 높음, $400으로 조정
-    WARN 005930.KS: 타겟 너무 높음, ₩280,000으로 조정
-    WARN 000660.KS: 타겟 너무 높음, ₩1,700,000으로 조정
-    WARN 035420.KS: 타겟 너무 높음, ₩220,000으로 조정
-    WARN 005380.KS: 타겟 너무 높음, ₩632,500으로 조정
-    REVISE 005930.KS: 재정적 문제, 매수→관찰
-    REVISE 000660.KS: 재정적 문제, 매수→관찰
-    REVISE 035420.KS: 재정적 문제, 매수→관찰
-    REVISE 005380.KS: 재정적 문제, 매수→관찰
-    REVISE NVDA: 재정적 문제, 매수→관찰
-    REVISE KLAC: 재정적 문제, 매수→관찰
-    REVISE SMCI: 재정적 문제, 매수→관찰
-    REVISE TSLA: 재정적 문제, 매수→관찰
-  critique 적용: action변경 0개, WARN/flag 8개
+[4/7] Critique ???ы듃?대━???먭린鍮꾪뙋...
+    WARN NVDA: ?寃??덈Т ?믪쓬, $200?쇰줈 議곗젙
+    WARN KLAC: ?寃??덈Т ?믪쓬, $1900?쇰줈 議곗젙
+    WARN SMCI: ?寃??덈Т ?믪쓬, $140?쇰줈 議곗젙
+    WARN TSLA: ?寃??덈Т ?믪쓬, $400?쇰줈 議곗젙
+    WARN 005930.KS: ?寃??덈Т ?믪쓬, ??80,000?쇰줈 議곗젙
+    WARN 000660.KS: ?寃??덈Т ?믪쓬, ??,700,000?쇰줈 議곗젙
+    WARN 035420.KS: ?寃??덈Т ?믪쓬, ??20,000?쇰줈 議곗젙
+    WARN 005380.KS: ?寃??덈Т ?믪쓬, ??32,500?쇰줈 議곗젙
+    REVISE 005930.KS: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+    REVISE 000660.KS: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+    REVISE 035420.KS: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+    REVISE 005380.KS: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+    REVISE NVDA: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+    REVISE KLAC: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+    REVISE SMCI: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+    REVISE TSLA: ?ъ젙??臾몄젣, 留ㅼ닔?믨?李?
+  critique ?곸슜: action蹂寃?0媛? WARN/flag 8媛?
 
-[5/7] 섹션 병합...
+[5/7] ?뱀뀡 蹂묓빀...
 
-[5.5/7] 후처리 품질 향상...
-  [후처리] thesis 확장: 27자 → 73자
-  [후처리] macroAnalysis 보강: 69자 → 148자
-  [후처리] regionStances 10개 지역 자동 보완
-  [후처리] rationale 보강: 8개
-  [후처리] stopLossRationale 구체화: 1개
+[5.5/7] ?꾩쿂由??덉쭏 ?μ긽...
+  [?꾩쿂由? thesis ?뺤옣: 27????73??
+  [?꾩쿂由? macroAnalysis 蹂닿컯: 69????148??
+  [?꾩쿂由? regionStances 10媛?吏???먮룞 蹂댁셿
+  [?꾩쿂由? rationale 蹂닿컯: 8媛?
+  [?꾩쿂由? stopLossRationale 援ъ껜?? 1媛?
 
-[6/7] 품질 게이트 검사...
-  품질 점수: 100/100
-  ✅ 품질 검사 통과
+[6/7] ?덉쭏 寃뚯씠??寃??..
+  ?덉쭏 ?먯닔: 100/100
+  ???덉쭏 寃???듦낵
 
-=== 저장 완료 ===
-파일: reports/report-2026-05-06-afternoon-ko.json
+=== ????꾨즺 ===
+?뚯씪: reports/report-2026-05-06-afternoon-ko.json
 stance: bullish
-thesis: NFP 데이터로 금리 인하 전망, 시장 하락 위험 — CPI 3.29%, GDP 2%, HY스프레드 2.78%, 리스크 medium
-macro: 경기 성장 2%에 CPI 3.29%로 금리 51bp 정상. IG_OAS 0.8%, HY_OAS 2.78%로 신용 위험 낮음. | 주요지표: 공포
+thesis: NFP ?곗씠?곕줈 湲덈━ ?명븯 ?꾨쭩, ?쒖옣 ?섎씫 ?꾪뿕 ??CPI 3.29%, GDP 2%, HY?ㅽ봽?덈뱶 2.78%, 由ъ뒪??medium
+macro: 寃쎄린 ?깆옣 2%??CPI 3.29%濡?湲덈━ 51bp ?뺤긽. IG_OAS 0.8%, HY_OAS 2.78%濡??좎슜 ?꾪뿕 ??쓬. | 二쇱슂吏?? 怨듯룷
 portfolio: KLAC(16%) SMCI(12%) TSLA(12%) NVDA(12%) 005930.KS(12%) 000660.KS(12%) 035420.KS(12%) 005380.KS(12%)
 sections: portfolio=8, regionStances=10, shortSqueeze=1, companyChanges=8
 
-✅ 생성 완료. 내용 확인 후 업로드:
+???앹꽦 ?꾨즺. ?댁슜 ?뺤씤 ???낅줈??
    node scripts/generate-report-local.mjs --upload=reports/report-2026-05-06-afternoon-ko.json
-   또는 최신 파일: node scripts/generate-report-local.mjs --upload=latest
+   ?먮뒗 理쒖떊 ?뚯씪: node scripts/generate-report-local.mjs --upload=latest
 [05/06/2026 Wed 16:07:58.29] Done. 
 [05/06/2026 Wed 21:35:03.03] [INFO] Starting report pipeline... 
 
-=== 로컬 Ollama 보고서 생성 (qwen3:8b) ===
+=== 濡쒖뺄 Ollama 蹂닿퀬???앹꽦 (qwen3:8b) ===
 locale: ko (Korean), session: afternoon, auto-upload: true
 
-[0/7] 데이터 최신화 (update-all)...
-  update-all 호출 중...
-  ✅ update-all 완료 (24/24 API 갱신)
+[0/7] ?곗씠??理쒖떊??(update-all)...
+  update-all ?몄텧 以?..
+  ??update-all ?꾨즺 (24/24 API 媛깆떊)
 
-[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...
+[1/7] 而⑦뀓?ㅽ듃 ?곗씠???섏쭛 (16媛?API 蹂묐젹)...
   macro=65c, sentiment=41c, flows=389c
   news=333c, institutional=148c, shorts=52c
   prices=46 tickers, sectorPe=291c, earnings=82c
 
-[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...
-  parse failed [macro] — retrying...
-  macro=true, portfolio=true(7개), regional=true
+[2/7] Wave1 ??5媛?蹂묐젹 Ollama ?몄텧 (macro/portfolio/regional/opportunity/narrative)...
+  parse failed [macro] ??retrying...
+  macro=true, portfolio=true(7媛?, regional=true
   opportunity=true, narrative=true
 
-[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...
-  기술지표 계산 완료: KLAC(50MA 위, RSI 49, 거래량+28%), SMCI(50MA 위, RSI 52, 거래량+80%), TSLA(50MA 위, RSI 48, 거래량-28%), NVDA(50MA 위, RSI 48, 거래량-25%), 005930.KS(200MA 위, RSI 81, 거래량+137%), 000660.KS(200MA 위, RSI 92, 거래량+84%), 035420.KS(200MA 아래, RSI 57, 거래량+14%)
-  [후처리] rationale 중복 3개 → 고유 신호 교체
-  risk=true, companyChanges=7개, stockDetail=7개
+[3/7] Wave2 ??由ъ뒪??湲곗뾽蹂??醫낅ぉ?곸꽭 蹂묐젹 ?몄텧...
+  湲곗닠吏??怨꾩궛 ?꾨즺: KLAC(50MA ?? RSI 49, 嫄곕옒??28%), SMCI(50MA ?? RSI 52, 嫄곕옒??80%), TSLA(50MA ?? RSI 48, 嫄곕옒??28%), NVDA(50MA ?? RSI 48, 嫄곕옒??25%), 005930.KS(200MA ?? RSI 81, 嫄곕옒??137%), 000660.KS(200MA ?? RSI 92, 嫄곕옒??84%), 035420.KS(200MA ?꾨옒, RSI 57, 嫄곕옒??14%)
+  [?꾩쿂由? rationale 以묐났 3媛???怨좎쑀 ?좏샇 援먯껜
+  risk=true, companyChanges=7媛? stockDetail=7媛?
 
-[4/7] Critique — 포트폴리오 자기비판...
-    REVISE KLAC: 기본적 문제, 매수→관찰/보유로 전환
-    WARN SMCI: 타겟 너무 낙관적, 추천 $155
-    WARN TSLA: 타겟 너무 낙관적, 추천 $390
-    WARN NVDA: 타겟 너무 낙관적, 추천 $210
-    WARN 005930.KS: 타겟 너무 낙관적, 추천 ₩280,000
-    WARN 000660.KS: 타겟 너무 낙관적, 추천 ₩1,700,000
-  critique 적용: action변경 1개, WARN/flag 6개
+[4/7] Critique ???ы듃?대━???먭린鍮꾪뙋...
+    REVISE KLAC: 湲곕낯??臾몄젣, 留ㅼ닔?믨?李?蹂댁쑀濡??꾪솚
+    WARN SMCI: ?寃??덈Т ?숆??? 異붿쿇 $155
+    WARN TSLA: ?寃??덈Т ?숆??? 異붿쿇 $390
+    WARN NVDA: ?寃??덈Т ?숆??? 異붿쿇 $210
+    WARN 005930.KS: ?寃??덈Т ?숆??? 異붿쿇 ??80,000
+    WARN 000660.KS: ?寃??덈Т ?숆??? 異붿쿇 ??,700,000
+  critique ?곸슜: action蹂寃?1媛? WARN/flag 6媛?
 
-[5/7] 섹션 병합...
+[5/7] ?뱀뀡 蹂묓빀...
 
-[5.5/7] 후처리 품질 향상...
-  [후처리] thesis 확장: 19자 → 65자
-  [후처리] macroAnalysis 보강: 65자 → 144자
-  [후처리] regionStances 9개 짧은 thesis 데이터 보강
-  [후처리] rationale 보강: 7개
-  [후처리] stopLossRationale 구체화: 1개
-  [후처리] 덤핑 징후 탐지: 000660.KS(score:4), 005930.KS(score:4)
+[5.5/7] ?꾩쿂由??덉쭏 ?μ긽...
+  [?꾩쿂由? thesis ?뺤옣: 19????65??
+  [?꾩쿂由? macroAnalysis 蹂닿컯: 65????144??
+  [?꾩쿂由? regionStances 9媛?吏㏃? thesis ?곗씠??蹂닿컯
+  [?꾩쿂由? rationale 蹂닿컯: 7媛?
+  [?꾩쿂由? stopLossRationale 援ъ껜?? 1媛?
+  [?꾩쿂由? ?ㅽ븨 吏뺥썑 ?먯?: 000660.KS(score:4), 005930.KS(score:4)
 
-[6/7] 품질 게이트 검사...
-  품질 점수: 100/100
-  ✅ 품질 검사 통과
+[6/7] ?덉쭏 寃뚯씠??寃??..
+  ?덉쭏 ?먯닔: 100/100
+  ???덉쭏 寃???듦낵
 
-=== 저장 완료 ===
-파일: reports/report-2026-05-06-afternoon-ko.json
+=== ????꾨즺 ===
+?뚯씪: reports/report-2026-05-06-afternoon-ko.json
 stance: bullish
-thesis: NFP 상승 기대, 경기 회복 주도 — CPI 3.29%, GDP 2%, HY스프레드 2.78%, 리스크 medium
-macro: YieldCurve 정상(51bp), CPI 3.29%, GDP 2%, IG_OAS 0.8%, HY_OAS 2.78% | 주요지표: 공포탐욕 6
+thesis: NFP ?곸듅 湲곕?, 寃쎄린 ?뚮났 二쇰룄 ??CPI 3.29%, GDP 2%, HY?ㅽ봽?덈뱶 2.78%, 由ъ뒪??medium
+macro: YieldCurve ?뺤긽(51bp), CPI 3.29%, GDP 2%, IG_OAS 0.8%, HY_OAS 2.78% | 二쇱슂吏?? 怨듯룷?먯슃 6
 portfolio: KLAC(22%) SMCI(13%) TSLA(13%) NVDA(13%) 005930.KS(13%) 000660.KS(13%) 035420.KS(13%)
 sections: portfolio=7, regionStances=10, shortSqueeze=1, companyChanges=7
 
---auto-upload 설정됨, 품질 통과 → 업로드 진행...
+--auto-upload ?ㅼ젙?? ?덉쭏 ?듦낵 ???낅줈??吏꾪뻾...
 
-=== 품질 게이트 검사 ===
-품질 점수: 100/100
-✅ 품질 검사 통과
+=== ?덉쭏 寃뚯씠??寃??===
+?덉쭏 ?먯닔: 100/100
+???덉쭏 寃???듦낵
 
-=== Redis 업로드 ===
+=== Redis ?낅줈??===
 session key: flowvium:investment-strategy:v8:2026-05-06:afternoon:ko
 stale   key: flowvium:investment-strategy:stale:v8:ko
-히스토리 업데이트 완료
+?덉뒪?좊━ ?낅뜲?댄듃 ?꾨즺
 
-session key: ✅
-stale   key: ✅
+session key: ??
+stale   key: ??
 source: local-qwen3:8b
 quality score: 100/100
-[UPLOAD VERIFY] ✓ Redis key confirmed, source=local-qwen3:8b
+[UPLOAD VERIFY] ??Redis key confirmed, source=local-qwen3:8b
 
-✅ 업로드 완료! https://flowvium.net/ko/report 에서 확인
+???낅줈???꾨즺! https://flowvium.net/ko/report ?먯꽌 ?뺤씤
 [05/06/2026 Wed 21:37:36.90] [SUCCESS] Report pipeline completed successfully 
 [05/07/2026 Thu  7:05:04.45] [INFO] Starting report pipeline... 
 
-=== 로컬 Ollama 보고서 생성 (qwen3:8b) ===
+=== 濡쒖뺄 Ollama 蹂닿퀬???앹꽦 (qwen3:8b) ===
 locale: ko (Korean), session: morning, auto-upload: true
 
-[0/7] 데이터 최신화 (update-all)...
-  update-all 호출 중...
-  ✅ update-all 완료 (24/24 API 갱신)
+[0/7] ?곗씠??理쒖떊??(update-all)...
+  update-all ?몄텧 以?..
+  ??update-all ?꾨즺 (24/24 API 媛깆떊)
 
-[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...
+[1/7] 而⑦뀓?ㅽ듃 ?곗씠???섏쭛 (16媛?API 蹂묐젹)...
   macro=66c, sentiment=41c, flows=389c
   news=592c, institutional=153c, shorts=52c
   prices=46 tickers, sectorPe=291c, earnings=84c
 
-[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...
-  parse failed [regional] — retrying...
-  macro=true, portfolio=true(7개), regional=true
+[2/7] Wave1 ??5媛?蹂묐젹 Ollama ?몄텧 (macro/portfolio/regional/opportunity/narrative)...
+  parse failed [regional] ??retrying...
+  macro=true, portfolio=true(7媛?, regional=true
   opportunity=true, narrative=true
 
-[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...
-  ⚠️  005490.KS entryZone="₩170,000-180,000" vs actual ₩506,000 → 보정
-  ⚠️  005490.KS stopLoss="₩160,000" vs actual ₩506,000 → 보정
-  ⚠️  005490.KS target="₩190,000" vs actual ₩506,000 → 보정
-  기술지표 계산 완료: KLAC(50MA 위, RSI 57, 거래량+36%), SMCI(50MA 위, RSI 67, 거래량+296%), 005930.KS(200MA 위, RSI 81, 거래량+123%), 000660.KS(200MA 위, RSI 92, 거래량+70%), 005490.KS(200MA 위, RSI 90, 거래량+13%)
-  risk=true, companyChanges=10개, stockDetail=5개
+[3/7] Wave2 ??由ъ뒪??湲곗뾽蹂??醫낅ぉ?곸꽭 蹂묐젹 ?몄텧...
+  ?좑툘  005490.KS entryZone="??70,000-180,000" vs actual ??06,000 ??蹂댁젙
+  ?좑툘  005490.KS stopLoss="??60,000" vs actual ??06,000 ??蹂댁젙
+  ?좑툘  005490.KS target="??90,000" vs actual ??06,000 ??蹂댁젙
+  湲곗닠吏??怨꾩궛 ?꾨즺: KLAC(50MA ?? RSI 57, 嫄곕옒??36%), SMCI(50MA ?? RSI 67, 嫄곕옒??296%), 005930.KS(200MA ?? RSI 81, 嫄곕옒??123%), 000660.KS(200MA ?? RSI 92, 嫄곕옒??70%), 005490.KS(200MA ?? RSI 90, 嫄곕옒??13%)
+  risk=true, companyChanges=10媛? stockDetail=5媛?
 
-[4/7] Critique — 포트폴리오 자기비판...
-    WARN KLAC: 타겟 $1950 너무 높음, $1850으로 조정
-    WARN SMCI: 타겟 $49 너무 높음, $47으로 조정
-    REVISE 000660.KS: 과도한 할당 13% → 10%로 조정
-    REVISE 005490.KS: 과도한 할당 13% → 10%로 조정
-  critique 적용: action변경 0개, WARN/flag 4개
+[4/7] Critique ???ы듃?대━???먭린鍮꾪뙋...
+    WARN KLAC: ?寃?$1950 ?덈Т ?믪쓬, $1850?쇰줈 議곗젙
+    WARN SMCI: ?寃?$49 ?덈Т ?믪쓬, $47?쇰줈 議곗젙
+    REVISE 000660.KS: 怨쇰룄???좊떦 13% ??10%濡?議곗젙
+    REVISE 005490.KS: 怨쇰룄???좊떦 13% ??10%濡?議곗젙
+  critique ?곸슜: action蹂寃?0媛? WARN/flag 4媛?
 
-[5/7] 섹션 병합...
+[5/7] ?뱀뀡 蹂묓빀...
 
-[5.5/7] 후처리 품질 향상...
-  [후처리] thesis 확장: 16자 → 62자
-  [후처리] macroAnalysis 보강: 57자 → 136자
-  [후처리] regionStances 9개 짧은 thesis 데이터 보강
-  [후처리] rationale 보강: 6개
-  [후처리] stopLossRationale 구체화: 1개
-[SEIBRO] SEIBRO_API_KEY 환경변수 없음
-[SEIBRO] SEIBRO_API_KEY 환경변수 없음
+[5.5/7] ?꾩쿂由??덉쭏 ?μ긽...
+  [?꾩쿂由? thesis ?뺤옣: 16????62??
+  [?꾩쿂由? macroAnalysis 蹂닿컯: 57????136??
+  [?꾩쿂由? regionStances 9媛?吏㏃? thesis ?곗씠??蹂닿컯
+  [?꾩쿂由? rationale 蹂닿컯: 6媛?
+  [?꾩쿂由? stopLossRationale 援ъ껜?? 1媛?
+[SEIBRO] SEIBRO_API_KEY ?섍꼍蹂???놁쓬
+[SEIBRO] SEIBRO_API_KEY ?섍꼍蹂???놁쓬
 [KRX] HTTP 400 for 005490
 [KRX] HTTP 400 for 005930
-[SEIBRO] SEIBRO_API_KEY 환경변수 없음
+[SEIBRO] SEIBRO_API_KEY ?섍꼍蹂???놁쓬
 [YahooOptions] HTTP 401 for KLAC
 [KRX] HTTP 400 for 000660
-  [후처리] 덤핑 징후 탐지: 005490.KS(score:3), 005930.KS(score:4), 000660.KS(score:4)
-  [후처리] SMCI 단일일 25% 급등락 감지 → post-earnings 판단
-  [후처리] SMCI 실적 후 +24.5% → timing 업데이트
+  [?꾩쿂由? ?ㅽ븨 吏뺥썑 ?먯?: 005490.KS(score:3), 005930.KS(score:4), 000660.KS(score:4)
+  [?꾩쿂由? SMCI ?⑥씪??25% 湲됰벑??媛먯? ??post-earnings ?먮떒
+  [?꾩쿂由? SMCI ?ㅼ쟻 ??+24.5% ??timing ?낅뜲?댄듃
 
-[6/7] 품질 게이트 검사...
-  품질 점수: 100/100
-  ✅ 품질 검사 통과
+[6/7] ?덉쭏 寃뚯씠??寃??..
+  ?덉쭏 ?먯닔: 100/100
+  ???덉쭏 寃???듦낵
 
-=== 저장 완료 ===
-파일: reports/report-2026-05-07-morning-ko.json
+=== ????꾨즺 ===
+?뚯씪: reports/report-2026-05-07-morning-ko.json
 stance: bullish
-thesis: NFP 데이터 발표 시장 반응 — CPI 3.29%, GDP 2%, HY스프레드 2.77%, 리스크 medium
-macro: 수익률 커브 정상화, CPI 3.29%, GDP 2%, IG_OAS 0.79%, HY_OAS 2.77% | 주요지표: 공포탐욕 68(United
+thesis: NFP ?곗씠??諛쒗몴 ?쒖옣 諛섏쓳 ??CPI 3.29%, GDP 2%, HY?ㅽ봽?덈뱶 2.77%, 由ъ뒪??medium
+macro: ?섏씡瑜?而ㅻ툕 ?뺤긽?? CPI 3.29%, GDP 2%, IG_OAS 0.79%, HY_OAS 2.77% | 二쇱슂吏?? 怨듯룷?먯슃 68(United
 portfolio: KLAC(19%) SMCI(13%) TSLA(16%) XLE(13%) 005930.KS(13%) 000660.KS(13%) 005490.KS(13%)
 sections: portfolio=7, regionStances=10, shortSqueeze=3, companyChanges=10
 
---auto-upload 설정됨, 품질 통과 → 업로드 진행...
+--auto-upload ?ㅼ젙?? ?덉쭏 ?듦낵 ???낅줈??吏꾪뻾...
 
-=== 품질 게이트 검사 ===
-품질 점수: 100/100
-✅ 품질 검사 통과
+=== ?덉쭏 寃뚯씠??寃??===
+?덉쭏 ?먯닔: 100/100
+???덉쭏 寃???듦낵
 
-=== Redis 업로드 ===
+=== Redis ?낅줈??===
 session key : flowvium:investment-strategy:v8:2026-05-07:morning:ko
 hist key    : flowvium:investment-strategy:hist:report:2026-05-06T22:08:00.628Z
 stale   key : flowvium:investment-strategy:stale:v8:ko
-히스토리 업데이트 완료
+?덉뒪?좊━ ?낅뜲?댄듃 ?꾨즺
 
-session key : ✅
-hist key    : ✅
-stale   key : ✅
+session key : ??
+hist key    : ??
+stale   key : ??
 source: local-qwen3:8b
 quality score: 100/100
-[UPLOAD VERIFY] ✓ Redis key confirmed, source=local-qwen3:8b
+[UPLOAD VERIFY] ??Redis key confirmed, source=local-qwen3:8b
 
-✅ 업로드 완료! https://flowvium.net/ko/report 에서 확인
+???낅줈???꾨즺! https://flowvium.net/ko/report ?먯꽌 ?뺤씤
 [05/07/2026 Thu  7:08:03.81] [SUCCESS] Report pipeline completed successfully 
 [05/07/2026 Thu 16:05:02.44] [INFO] Starting report pipeline... 
 
-=== 로컬 Ollama 보고서 생성 (qwen3:8b) ===
+=== 濡쒖뺄 Ollama 蹂닿퀬???앹꽦 (qwen3:8b) ===
 locale: ko (Korean), session: afternoon, auto-upload: true
 
-[0/7] 데이터 최신화 (update-all)...
-  update-all 호출 중...
-  ✅ update-all 완료 (24/24 API 갱신)
+[0/7] ?곗씠??理쒖떊??(update-all)...
+  update-all ?몄텧 以?..
+  ??update-all ?꾨즺 (24/24 API 媛깆떊)
 
-[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...
+[1/7] 而⑦뀓?ㅽ듃 ?곗씠???섏쭛 (16媛?API 蹂묐젹)...
   macro=66c, sentiment=41c, flows=491c
   news=596c, institutional=255c, shorts=51c
   prices=46 tickers, sectorPe=291c, earnings=84c
 
-[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...
-  macro=true, portfolio=true(6개), regional=true
+[2/7] Wave1 ??5媛?蹂묐젹 Ollama ?몄텧 (macro/portfolio/regional/opportunity/narrative)...
+  macro=true, portfolio=true(6媛?, regional=true
   opportunity=true, narrative=true
 
-[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...
-  ⚠️  KLAC entryZone="$175-185" vs actual $1816.29 → 보정 (범위 이탈)
-  ⚠️  KLAC stopLoss="$160" vs actual $1816.29 → 보정
-  ⚠️  KLAC target="$220" vs actual $1816.29 → 보정
-  ⚠️  005380.KS entryZone="₩230,000-240,000" vs actual ₩572,000 → 보정 (범위 이탈)
-  ⚠️  005380.KS stopLoss="₩210,000" vs actual ₩572,000 → 보정
-  ⚠️  000660.KS entryZone="₩120,000-130,000" vs actual ₩1,654,000 → 보정 (범위 이탈)
-  ⚠️  000660.KS stopLoss="₩110,000" vs actual ₩1,654,000 → 보정
-  ⚠️  000660.KS target="₩150,000" vs actual ₩1,654,000 → 보정
-  기술지표 계산 완료: NVDA(50MA 위($187.73), RSI 58, 거래량+27%, 52주:$165.17-$216.61, 진입지지선:$187.73), KLAC(50MA 위($1605.98), RSI 57, 거래량+39%, 52주:$1097.12-$1935.00, 진입지지선:$1605.98), TSLA(50MA 위($382.91), RSI 56, 거래량-17%, 52주:$343.25-$489.88, 진입지지선:$382.91), 005930.KS(200MA 위(₩127,963), 50MA 위(₩202,839), RSI 82, 거래량+71%, 52주:₩53,900-₩271,500, 진입지지선:₩127,963), 005380.KS(200MA 위(₩348,490), 50MA 위(₩521,100), RSI 66, 거래량+104%, 52주:₩179,900-₩674,000, 진입지지선:₩348,490), 000660.KS(200MA 위(₩643,033), 50MA 위(₩1,056,860), RSI 93, 거래량+53%, 52주:₩190,100-₩1,654,000, 진입지지선:₩643,033)
-  [후처리] rationale 중복 6개 → 고유 신호 교체
-  risk=true, companyChanges=10개, stockDetail=6개
+[3/7] Wave2 ??由ъ뒪??湲곗뾽蹂??醫낅ぉ?곸꽭 蹂묐젹 ?몄텧...
+  ?좑툘  KLAC entryZone="$175-185" vs actual $1816.29 ??蹂댁젙 (踰붿쐞 ?댄깉)
+  ?좑툘  KLAC stopLoss="$160" vs actual $1816.29 ??蹂댁젙
+  ?좑툘  KLAC target="$220" vs actual $1816.29 ??蹂댁젙
+  ?좑툘  005380.KS entryZone="??30,000-240,000" vs actual ??72,000 ??蹂댁젙 (踰붿쐞 ?댄깉)
+  ?좑툘  005380.KS stopLoss="??10,000" vs actual ??72,000 ??蹂댁젙
+  ?좑툘  000660.KS entryZone="??20,000-130,000" vs actual ??,654,000 ??蹂댁젙 (踰붿쐞 ?댄깉)
+  ?좑툘  000660.KS stopLoss="??10,000" vs actual ??,654,000 ??蹂댁젙
+  ?좑툘  000660.KS target="??50,000" vs actual ??,654,000 ??蹂댁젙
+  湲곗닠吏??怨꾩궛 ?꾨즺: NVDA(50MA ??$187.73), RSI 58, 嫄곕옒??27%, 52二?$165.17-$216.61, 吏꾩엯吏吏??$187.73), KLAC(50MA ??$1605.98), RSI 57, 嫄곕옒??39%, 52二?$1097.12-$1935.00, 吏꾩엯吏吏??$1605.98), TSLA(50MA ??$382.91), RSI 56, 嫄곕옒??17%, 52二?$343.25-$489.88, 吏꾩엯吏吏??$382.91), 005930.KS(200MA ????27,963), 50MA ????02,839), RSI 82, 嫄곕옒??71%, 52二???3,900-??71,500, 吏꾩엯吏吏????27,963), 005380.KS(200MA ????48,490), 50MA ????21,100), RSI 66, 嫄곕옒??104%, 52二???79,900-??74,000, 吏꾩엯吏吏????48,490), 000660.KS(200MA ????43,033), 50MA ????,056,860), RSI 93, 嫄곕옒??53%, 52二???90,100-??,654,000, 吏꾩엯吏吏????43,033)
+  [?꾩쿂由? rationale 以묐났 6媛???怨좎쑀 ?좏샇 援먯껜
+  risk=true, companyChanges=10媛? stockDetail=6媛?
 
-[4/7] Critique — 포트폴리오 자기비판...
-    WARN NVDA: 타겟 $250 너무 과도, $220으로 조정
-    WARN KLAC: 타겟 $2088.73 너무 과도, $1800으로 조정
-    REVISE TSLA: 기본적으로 약세, 매수에서 관찰로 전환
-    WARN 005930.KS: 타겟 ₩320,000 너무 과도, ₩280,000으로 조정
-    REVISE 005380.KS: 기본적으로 약세, 매수에서 관찰로 전환
-    WARN 000660.KS: 타겟 ₩1,902,100 너무 과도, ₩1,700,000으로 조정
-  critique 적용: action변경 2개, WARN/flag 6개
+[4/7] Critique ???ы듃?대━???먭린鍮꾪뙋...
+    WARN NVDA: ?寃?$250 ?덈Т 怨쇰룄, $220?쇰줈 議곗젙
+    WARN KLAC: ?寃?$2088.73 ?덈Т 怨쇰룄, $1800?쇰줈 議곗젙
+    REVISE TSLA: 湲곕낯?곸쑝濡??쎌꽭, 留ㅼ닔?먯꽌 愿李곕줈 ?꾪솚
+    WARN 005930.KS: ?寃???20,000 ?덈Т 怨쇰룄, ??80,000?쇰줈 議곗젙
+    REVISE 005380.KS: 湲곕낯?곸쑝濡??쎌꽭, 留ㅼ닔?먯꽌 愿李곕줈 ?꾪솚
+    WARN 000660.KS: ?寃???,902,100 ?덈Т 怨쇰룄, ??,700,000?쇰줈 議곗젙
+  critique ?곸슜: action蹂寃?2媛? WARN/flag 6媛?
 
-[5/7] 섹션 병합...
+[5/7] ?뱀뀡 蹂묓빀...
 
-[5.5/7] 후처리 품질 향상...
-  [후처리] thesis 확장: 15자 → 61자
-  [후처리] macroAnalysis 보강: 62자 → 141자
-  [후처리] regionStances 9개 짧은 thesis 데이터 보강
-  [후처리] stopLossRationale 구체화: 6개
-[SEIBRO] SEIBRO_API_KEY 환경변수 없음
-[SEIBRO] SEIBRO_API_KEY 환경변수 없음
+[5.5/7] ?꾩쿂由??덉쭏 ?μ긽...
+  [?꾩쿂由? thesis ?뺤옣: 15????61??
+  [?꾩쿂由? macroAnalysis 蹂닿컯: 62????141??
+  [?꾩쿂由? regionStances 9媛?吏㏃? thesis ?곗씠??蹂닿컯
+  [?꾩쿂由? stopLossRationale 援ъ껜?? 6媛?
+[SEIBRO] SEIBRO_API_KEY ?섍꼍蹂???놁쓬
+[SEIBRO] SEIBRO_API_KEY ?섍꼍蹂???놁쓬
 [KRX] HTTP 400 for 000660
 [YahooOptions] HTTP 401 for NVDA
 [YahooOptions] HTTP 401 for KLAC
 [KRX] HTTP 400 for 005930
-  [후처리] 덤핑 징후 탐지: 000660.KS(score:4), 005930.KS(score:4)
-  [후처리] 005930.KS RSI 82 과매수 → buy→watch 전환
-  [후처리] 000660.KS RSI 93 과매수 → buy→watch 전환
-  [후처리] DELL 단일일 10% 급등락 감지 → post-earnings 판단
-  [후처리] DELL 실적 후 +10.4% → timing 업데이트
-  [후처리] ARM 단일일 14% 급등락 감지 → post-earnings 판단
-  [후처리] ARM 실적 후 +13.6% → timing 업데이트
+  [?꾩쿂由? ?ㅽ븨 吏뺥썑 ?먯?: 000660.KS(score:4), 005930.KS(score:4)
+  [?꾩쿂由? 005930.KS RSI 82 怨쇰ℓ????buy?뭮atch ?꾪솚
+  [?꾩쿂由? 000660.KS RSI 93 怨쇰ℓ????buy?뭮atch ?꾪솚
+  [?꾩쿂由? DELL ?⑥씪??10% 湲됰벑??媛먯? ??post-earnings ?먮떒
+  [?꾩쿂由? DELL ?ㅼ쟻 ??+10.4% ??timing ?낅뜲?댄듃
+  [?꾩쿂由? ARM ?⑥씪??14% 湲됰벑??媛먯? ??post-earnings ?먮떒
+  [?꾩쿂由? ARM ?ㅼ쟻 ??+13.6% ??timing ?낅뜲?댄듃
 
-[6/7] 품질 게이트 검사...
-  품질 점수: 100/100
-  ✅ 품질 검사 통과
+[6/7] ?덉쭏 寃뚯씠??寃??..
+  ?덉쭏 ?먯닔: 100/100
+  ???덉쭏 寃???듦낵
 
-=== 저장 완료 ===
-파일: reports/report-2026-05-07-afternoon-ko.json
+=== ????꾨즺 ===
+?뚯씪: reports/report-2026-05-07-afternoon-ko.json
 stance: bullish
-thesis: NFP 및 실업률 발표 기대 — CPI 3.29%, GDP 2%, HY스프레드 2.77%, 리스크 medium
-macro: 수익률 곡선 정상(50bp), CPI 3.29%, GDP 2%, IG_OAS 0.79%, HY_OAS 2.77% | 주요지표: 공포탐욕 68(U
+thesis: NFP 諛??ㅼ뾽瑜?諛쒗몴 湲곕? ??CPI 3.29%, GDP 2%, HY?ㅽ봽?덈뱶 2.77%, 由ъ뒪??medium
+macro: ?섏씡瑜?怨≪꽑 ?뺤긽(50bp), CPI 3.29%, GDP 2%, IG_OAS 0.79%, HY_OAS 2.77% | 二쇱슂吏?? 怨듯룷?먯슃 68(U
 portfolio: NVDA(22%) KLAC(14%) TSLA(17%) 005930.KS(17%) 005380.KS(14%) 000660.KS(16%)
 sections: portfolio=6, regionStances=10, shortSqueeze=3, companyChanges=10
 
---auto-upload 설정됨, 품질 통과 → 업로드 진행...
+--auto-upload ?ㅼ젙?? ?덉쭏 ?듦낵 ???낅줈??吏꾪뻾...
 
-=== 품질 게이트 검사 ===
-품질 점수: 100/100
-✅ 품질 검사 통과
+=== ?덉쭏 寃뚯씠??寃??===
+?덉쭏 ?먯닔: 100/100
+???덉쭏 寃???듦낵
 
-=== Redis 업로드 ===
+=== Redis ?낅줈??===
 session key : flowvium:investment-strategy:v8:2026-05-07:afternoon:ko
 hist key    : flowvium:investment-strategy:hist:report:2026-05-07T07:07:40.407Z
 stale   key : flowvium:investment-strategy:stale:v8:ko
-히스토리 업데이트 완료
+?덉뒪?좊━ ?낅뜲?댄듃 ?꾨즺
 
-session key : ✅
-hist key    : ✅
-stale   key : ✅
+session key : ??
+hist key    : ??
+stale   key : ??
 source: local-qwen3:8b
 quality score: 100/100
-[UPLOAD VERIFY] ✓ Redis key confirmed, source=local-qwen3:8b
+[UPLOAD VERIFY] ??Redis key confirmed, source=local-qwen3:8b
 
-✅ 업로드 완료! https://flowvium.net/ko/report 에서 확인
+???낅줈???꾨즺! https://flowvium.net/ko/report ?먯꽌 ?뺤씤
 [05/07/2026 Thu 16:07:43.24] [SUCCESS] Report pipeline completed successfully 
 [05/07/2026 Thu 21:35:03.92] [INFO] Starting report pipeline... 
 
-=== 로컬 Ollama 보고서 생성 (qwen3:8b) ===
+=== 濡쒖뺄 Ollama 蹂닿퀬???앹꽦 (qwen3:8b) ===
 locale: ko (Korean), session: afternoon, auto-upload: true
 
-[0/7] 데이터 최신화 (update-all)...
-  update-all 호출 중...
-  ✅ update-all 완료 (24/24 API 갱신)
+[0/7] ?곗씠??理쒖떊??(update-all)...
+  update-all ?몄텧 以?..
+  ??update-all ?꾨즺 (24/24 API 媛깆떊)
 
-[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...
-  ⚠️  API null (1개): ownership
-  cascade 기사: 7개, insider: 34건
+[1/7] 而⑦뀓?ㅽ듃 ?곗씠???섏쭛 (16媛?API 蹂묐젹)...
+  ?좑툘  API null (1媛?: ownership
+  cascade 湲곗궗: 7媛? insider: 34嫄?
   macro=66c, sentiment=41c, flows=491c
-  news=775c (preview: ↓BlackSky Technology's disappointing earnings and updated FY26 outlook (Defense↓,Satellite Imaging↓))
+  news=775c (preview: ?밄lackSky Technology's disappointing earnings and updated FY26 outlook (Defense??Satellite Imaging??)
   institutional=252c, shorts=51c
   prices=46 tickers, sectorPe=291c, earnings=84c
 
-[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...
-  [LLM:opportunity] 12.5s → 664c | prompt 1143c
-  [LLM:regional] 22.3s → 771c | prompt 1709c
-  [LLM:macro] 31.1s → 573c | prompt 2378c
-  [LLM:narrative] 36.7s → 248c | prompt 3327c
-  [LLM:portfolio] 78.6s → 3311c | prompt 7331c
-  Wave1 총 소요: 78.6s
-  [narrative] why="비트코인 4주+13.8% 유입, 암호화폐 상승" hotThemes=[암호화폐, 에너지, 핀테크, 바이오텍]
-  macro=true(riskLevel:high), portfolio=true(6개), regional=true(10지역)
+[2/7] Wave1 ??5媛?蹂묐젹 Ollama ?몄텧 (macro/portfolio/regional/opportunity/narrative)...
+  [LLM:opportunity] 12.5s ??664c | prompt 1143c
+  [LLM:regional] 22.3s ??771c | prompt 1709c
+  [LLM:macro] 31.1s ??573c | prompt 2378c
+  [LLM:narrative] 36.7s ??248c | prompt 3327c
+  [LLM:portfolio] 78.6s ??3311c | prompt 7331c
+  Wave1 珥??뚯슂: 78.6s
+  [narrative] why="鍮꾪듃肄붿씤 4二?13.8% ?좎엯, ?뷀샇?뷀룓 ?곸듅" hotThemes=[?뷀샇?뷀룓, ?먮꼫吏, ??뚰겕, 諛붿씠?ㅽ뀓]
+  macro=true(riskLevel:high), portfolio=true(6媛?, regional=true(10吏??
   opportunity=true(squeeze:3), narrative=true
 
-[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...
-  ⚠️  KLAC entryZone clamped: was $175-185, actual=$1816.29 (high=$185.00 < 80% of actual)
-  ⚠️  KLAC stopLoss="$160" vs actual $1816.29 → 보정
-  ⚠️  KLAC target="$220" vs actual $1816.29 → 보정 (현재가 이하)
-  buy=4개: NVDA, KLAC, TSLA, NVIDIA
-  기술지표 계산 완료: NVDA(50MA 위($187.73), RSI 58, 거래량+27%, 52주:$165.17-$216.61, 진입지지선:$187.73), KLAC(50MA 위($1605.98), RSI 57, 거래량+39%, 52주:$1097.12-$1935.00, 진입지지선:$1605.98), TSLA(50MA 위($382.91), RSI 56, 거래량-17%, 52주:$343.25-$489.88, 진입지지선:$382.91)
-  [후처리] rationale 중복 1개 → 고유 신호 교체
-  [LLM:risk] 3.3s → 194c | prompt 665c
-  [LLM:stockDetail] 20.9s → 1108c | prompt 4942c
-  [LLM:companyChanges] 48.5s → 2219c | prompt 2394c
-  Wave2 총 소요: 48.5s
-  stockDetail 파싱: 3개 종목 (NVDA, KLAC, TSLA)
-  risk=true, companyChanges=9개, stockDetail=3개
+[3/7] Wave2 ??由ъ뒪??湲곗뾽蹂??醫낅ぉ?곸꽭 蹂묐젹 ?몄텧...
+  ?좑툘  KLAC entryZone clamped: was $175-185, actual=$1816.29 (high=$185.00 < 80% of actual)
+  ?좑툘  KLAC stopLoss="$160" vs actual $1816.29 ??蹂댁젙
+  ?좑툘  KLAC target="$220" vs actual $1816.29 ??蹂댁젙 (?꾩옱媛 ?댄븯)
+  buy=4媛? NVDA, KLAC, TSLA, NVIDIA
+  湲곗닠吏??怨꾩궛 ?꾨즺: NVDA(50MA ??$187.73), RSI 58, 嫄곕옒??27%, 52二?$165.17-$216.61, 吏꾩엯吏吏??$187.73), KLAC(50MA ??$1605.98), RSI 57, 嫄곕옒??39%, 52二?$1097.12-$1935.00, 吏꾩엯吏吏??$1605.98), TSLA(50MA ??$382.91), RSI 56, 嫄곕옒??17%, 52二?$343.25-$489.88, 吏꾩엯吏吏??$382.91)
+  [?꾩쿂由? rationale 以묐났 1媛???怨좎쑀 ?좏샇 援먯껜
+  [LLM:risk] 3.3s ??194c | prompt 665c
+  [LLM:stockDetail] 20.9s ??1108c | prompt 4942c
+  [LLM:companyChanges] 48.5s ??2219c | prompt 2394c
+  Wave2 珥??뚯슂: 48.5s
+  stockDetail ?뚯떛: 3媛?醫낅ぉ (NVDA, KLAC, TSLA)
+  risk=true, companyChanges=9媛? stockDetail=3媛?
 
-[4/7] Critique — 포트폴리오 자기비판...
-  [LLM:critique] 4.5s → 301c | prompt 1508c
-    WARN NVDA: 타겟 $250 너무 높아, $220으로 조정
-    REVISE KLAC: 과매수 신호, 포지션 매도
-    REVISE TSLA: 과매수 신호, 포지션 매도
-    WARN NVIDIA: 타겟 $250 너무 높아, $230으로 조정
-  [critique] NVDA =buy NOTE:"타겟 $250 너무 높아, $220으로 조정"
-  [critique] KLAC ⚡buy→watch NOTE:"과매수 신호, 포지션 매도"
-  [critique] TSLA ⚡buy→watch NOTE:"과매수 신호, 포지션 매도"
-  [critique] NVIDIA =buy NOTE:"타겟 $250 너무 높아, $230으로 조정"
-  critique 요약: action변경 2개, WARN/flag 4개
+[4/7] Critique ???ы듃?대━???먭린鍮꾪뙋...
+  [LLM:critique] 4.5s ??301c | prompt 1508c
+    WARN NVDA: ?寃?$250 ?덈Т ?믪븘, $220?쇰줈 議곗젙
+    REVISE KLAC: 怨쇰ℓ???좏샇, ?ъ???留ㅻ룄
+    REVISE TSLA: 怨쇰ℓ???좏샇, ?ъ???留ㅻ룄
+    WARN NVIDIA: ?寃?$250 ?덈Т ?믪븘, $230?쇰줈 議곗젙
+  [critique] NVDA =buy NOTE:"?寃?$250 ?덈Т ?믪븘, $220?쇰줈 議곗젙"
+  [critique] KLAC ?죃uy?뭮atch NOTE:"怨쇰ℓ???좏샇, ?ъ???留ㅻ룄"
+  [critique] TSLA ?죃uy?뭮atch NOTE:"怨쇰ℓ???좏샇, ?ъ???留ㅻ룄"
+  [critique] NVIDIA =buy NOTE:"?寃?$250 ?덈Т ?믪븘, $230?쇰줈 議곗젙"
+  critique ?붿빟: action蹂寃?2媛? WARN/flag 4媛?
 
-[5/7] 섹션 병합...
+[5/7] ?뱀뀡 蹂묓빀...
 
-[5.5/7] 후처리 품질 향상...
-  [후처리] thesis 확장: 23자 → 67자
-  [후처리] macroAnalysis 보강: 32자 → 109자
-  [후처리] regionStances 9개 짧은 thesis 데이터 보강
-  [후처리] rationale 보강: 2개
-  [후처리] stopLossRationale 구체화: 1개
+[5.5/7] ?꾩쿂由??덉쭏 ?μ긽...
+  [?꾩쿂由? thesis ?뺤옣: 23????67??
+  [?꾩쿂由? macroAnalysis 蹂닿컯: 32????109??
+  [?꾩쿂由? regionStances 9媛?吏㏃? thesis ?곗씠??蹂닿컯
+  [?꾩쿂由? rationale 蹂닿컯: 2媛?
+  [?꾩쿂由? stopLossRationale 援ъ껜?? 1媛?
 [YahooOptions] HTTP 401 for NVDA
-  [후처리] DELL 단일일 10% 급등락 감지 → post-earnings 판단
-  [후처리] DELL 실적 후 +10.4% → timing 업데이트
-  [후처리] ARM 단일일 14% 급등락 감지 → post-earnings 판단
-  [후처리] ARM 실적 후 +13.6% → timing 업데이트
+  [?꾩쿂由? DELL ?⑥씪??10% 湲됰벑??媛먯? ??post-earnings ?먮떒
+  [?꾩쿂由? DELL ?ㅼ쟻 ??+10.4% ??timing ?낅뜲?댄듃
+  [?꾩쿂由? ARM ?⑥씪??14% 湲됰벑??媛먯? ??post-earnings ?먮떒
+  [?꾩쿂由? ARM ?ㅼ쟻 ??+13.6% ??timing ?낅뜲?댄듃
 
-[포트폴리오 최종]
+[?ы듃?대━??理쒖쥌]
   BUY  (2): NVDA(29%), NVIDIA(29%)
   WATCH(2):
-    - KLAC(19%) → 과매수 신호, 포지션 매도
-    - TSLA(23%) → 과매수 신호, 포지션 매도
+    - KLAC(19%) ??怨쇰ℓ???좏샇, ?ъ???留ㅻ룄
+    - TSLA(23%) ??怨쇰ℓ???좏샇, ?ъ???留ㅻ룄
 
-[6/7] 품질 게이트 검사...
-  ✅ thesis
-  ✅ macroAnalysis
-  ✅ technicalAnalysis
-  ❌ portfolio(≥5)
-  ✅ regionStances
-  ✅ shortSqueeze
-  ✅ insiderSignals
-  ✅ marketNarrative
-  ✅ hotThemes
-  ✅ companyChanges
-  ✅ stopLossRationale
-  품질 점수: 100/100 ✅ 통과
+[6/7] ?덉쭏 寃뚯씠??寃??..
+  ??thesis
+  ??macroAnalysis
+  ??technicalAnalysis
+  ??portfolio(??)
+  ??regionStances
+  ??shortSqueeze
+  ??insiderSignals
+  ??marketNarrative
+  ??hotThemes
+  ??companyChanges
+  ??stopLossRationale
+  ?덉쭏 ?먯닔: 100/100 ???듦낵
 
-=== 저장 완료 ===
-파일: reports/report-2026-05-07-afternoon-ko.json
+=== ????꾨즺 ===
+?뚯씪: reports/report-2026-05-07-afternoon-ko.json
 stance: bullish
-thesis: NFP 데이터 발표 전, 고위험 시장 상황 — CPI 3.29%, GDP 2%, HY스프레드 2.77%, 리스크 high
-macro: 실물 경기 약세, 물가 안정, 금리 정체, 신용 풀림 기회 | 주요지표: 공포탐욕 69(United States), CPI 3.29%, 연준금리
+thesis: NFP ?곗씠??諛쒗몴 ?? 怨좎쐞???쒖옣 ?곹솴 ??CPI 3.29%, GDP 2%, HY?ㅽ봽?덈뱶 2.77%, 由ъ뒪??high
+macro: ?ㅻЪ 寃쎄린 ?쎌꽭, 臾쇨? ?덉젙, 湲덈━ ?뺤껜, ?좎슜 ?由?湲고쉶 | 二쇱슂吏?? 怨듯룷?먯슃 69(United States), CPI 3.29%, ?곗?湲덈━
 portfolio: NVDA(29%) KLAC(19%) TSLA(23%) NVIDIA(29%)
 sections: portfolio=4, regionStances=10, shortSqueeze=3, companyChanges=9
 
---auto-upload 설정됨, 품질 통과 → 업로드 진행...
+--auto-upload ?ㅼ젙?? ?덉쭏 ?듦낵 ???낅줈??吏꾪뻾...
 
-=== 품질 게이트 검사 ===
-품질 점수: 100/100
-✅ 품질 검사 통과
+=== ?덉쭏 寃뚯씠??寃??===
+?덉쭏 ?먯닔: 100/100
+???덉쭏 寃???듦낵
 
-=== Redis 업로드 ===
+=== Redis ?낅줈??===
 session key : flowvium:investment-strategy:v8:2026-05-07:afternoon:ko
 hist key    : flowvium:investment-strategy:hist:report:2026-05-07T12:37:21.645Z
 stale   key : flowvium:investment-strategy:stale:v8:ko
-히스토리 업데이트 완료
+?덉뒪?좊━ ?낅뜲?댄듃 ?꾨즺
 
-session key : ✅
-hist key    : ✅
-stale   key : ✅
+session key : ??
+hist key    : ??
+stale   key : ??
 source: local-qwen3:8b
 quality score: 100/100
-[UPLOAD VERIFY] ✓ Redis key confirmed, source=local-qwen3:8b
+[UPLOAD VERIFY] ??Redis key confirmed, source=local-qwen3:8b
 
-✅ 업로드 완료! https://flowvium.net/ko/report 에서 확인
+???낅줈???꾨즺! https://flowvium.net/ko/report ?먯꽌 ?뺤씤
 [05/07/2026 Thu 21:37:24.98] [SUCCESS] Report pipeline completed successfully 
 [05/08/2026 Fri  7:05:04.37] [INFO] Starting report pipeline... 
 
-=== 로컬 Ollama 보고서 생성 (qwen3:8b) ===
+=== 濡쒖뺄 Ollama 蹂닿퀬???앹꽦 (qwen3:8b) ===
 locale: ko (Korean), session: morning, auto-upload: true
 
-[0/7] 데이터 최신화 (update-all)...
-  update-all 호출 중...
-  ✅ update-all 완료 (24/24 API 갱신)
+[0/7] ?곗씠??理쒖떊??(update-all)...
+  update-all ?몄텧 以?..
+  ??update-all ?꾨즺 (24/24 API 媛깆떊)
 
-[1/7] 컨텍스트 데이터 수집 (16개 API 병렬)...
-  ✅ 모든 API 응답 수신
-  cascade 기사: 7개, insider: 70건
+[1/7] 而⑦뀓?ㅽ듃 ?곗씠???섏쭛 (16媛?API 蹂묐젹)...
+  ??紐⑤뱺 API ?묐떟 ?섏떊
+  cascade 湲곗궗: 7媛? insider: 70嫄?
   macro=66c, sentiment=41c, flows=490c
-  news=775c (preview: ↓BlackSky Technology's disappointing earnings and updated FY26 outlook (Defense↓,Satellite Imaging↓))
+  news=775c (preview: ?밄lackSky Technology's disappointing earnings and updated FY26 outlook (Defense??Satellite Imaging??)
   institutional=192c, shorts=51c
   prices=46 tickers, sectorPe=291c, earnings=84c
 
-[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...
-  [LLM:opportunity] 10.6s → 280c | prompt 1077c
-  [LLM:macro] 19.9s → 605c | prompt 2376c
-  [LLM:narrative] 24.3s → 194c | prompt 3265c
-  [LLM:regional] 36.8s → 926c | prompt 1702c
-  [LLM:portfolio] 84.4s → 3507c | prompt 7312c
-  Wave1 총 소요: 84.4s
-  [parse:regional] FAIL — Bad control character in string literal in JSON at position 543 (line 8 column 72). raw[0:120]: { "regionStances":{ "us":{"stance":"bullish","thesis":"테크 주가 상승 기대","keyData":"SPY 1w, F&G score"}, "korea":{"stance":"n
-  [narrative] why="비트코인 4주 +13.8% 주도" hotThemes=[암호화폐, 테크, 핀테크, 에너지]
-  parse failed [regional] — retrying...
-  [LLM:regional-retry] 14.6s → 931c | prompt 1702c
-  macro=true(riskLevel:medium), portfolio=true(6개), regional=true(10지역)
+[2/7] Wave1 ??5媛?蹂묐젹 Ollama ?몄텧 (macro/portfolio/regional/opportunity/narrative)...
+  [LLM:opportunity] 10.6s ??280c | prompt 1077c
+  [LLM:macro] 19.9s ??605c | prompt 2376c
+  [LLM:narrative] 24.3s ??194c | prompt 3265c
+  [LLM:regional] 36.8s ??926c | prompt 1702c
+  [LLM:portfolio] 84.4s ??3507c | prompt 7312c
+  Wave1 珥??뚯슂: 84.4s
+  [parse:regional] FAIL ??Bad control character in string literal in JSON at position 543 (line 8 column 72). raw[0:120]: { "regionStances":{ "us":{"stance":"bullish","thesis":"?뚰겕 二쇨? ?곸듅 湲곕?","keyData":"SPY 1w, F&G score"}, "korea":{"stance":"n
+  [narrative] why="鍮꾪듃肄붿씤 4二?+13.8% 二쇰룄" hotThemes=[?뷀샇?뷀룓, ?뚰겕, ??뚰겕, ?먮꼫吏]
+  parse failed [regional] ??retrying...
+  [LLM:regional-retry] 14.6s ??931c | prompt 1702c
+  macro=true(riskLevel:medium), portfolio=true(6媛?, regional=true(10吏??
   opportunity=true(squeeze:1), narrative=true
 
-[3/7] Wave2 — 리스크/기업변화/종목상세 병렬 호출...
-  ⚠️  005930.KS entryZone clamped: was 140,000-150,000, actual=₩271,500 (high=₩150,000 < 80% of actual)
-  ⚠️  005930.KS stopLoss="125,000" vs actual ₩271,500 → 보정
-  ⚠️  005930.KS target="160,000" vs actual ₩271,500 → 보정 (현재가 이하)
-  buy=5개: NVDA, KLAC, TSLA, 005930.KS, SUN
-  기술지표 계산 완료: NVDA(50MA 위($188.04), RSI 58, 거래량+12%, 52주:$165.17-$216.61, 진입지지선:$188.04), KLAC(50MA 위($1610.31), RSI 48, 거래량+25%, 52주:$1097.12-$1935.00, 진입지지선:$1610.31), TSLA(50MA 위($382.79), RSI 57, 거래량-2%, 52주:$343.25-$489.88, 진입지지선:$382.79), 005930.KS(200MA 위(₩127,963), 50MA 위(₩202,839), RSI 82, 거래량+63%, 52주:₩53,900-₩271,500, 진입지지선:₩127,963), SUN(50MA 위($65.36), RSI 68, 거래량+60%, 52주:$50.16-$69.71, 진입지지선:$65.36)
-  [LLM:companyChanges] 17.4s → 1410c | prompt 2442c
-  [LLM:risk] 24.9s → 493c | prompt 714c
-  [LLM:stockDetail] 51.7s → 2258c | prompt 5221c
-  Wave2 총 소요: 51.7s
-  stockDetail 파싱: 5개 종목 (NVDA, KLAC, TSLA, 005930.KS, SUN)
-  risk=true, companyChanges=6개, stockDetail=5개
+[3/7] Wave2 ??由ъ뒪??湲곗뾽蹂??醫낅ぉ?곸꽭 蹂묐젹 ?몄텧...
+  ?좑툘  005930.KS entryZone clamped: was 140,000-150,000, actual=??71,500 (high=??50,000 < 80% of actual)
+  ?좑툘  005930.KS stopLoss="125,000" vs actual ??71,500 ??蹂댁젙
+  ?좑툘  005930.KS target="160,000" vs actual ??71,500 ??蹂댁젙 (?꾩옱媛 ?댄븯)
+  buy=5媛? NVDA, KLAC, TSLA, 005930.KS, SUN
+  湲곗닠吏??怨꾩궛 ?꾨즺: NVDA(50MA ??$188.04), RSI 58, 嫄곕옒??12%, 52二?$165.17-$216.61, 吏꾩엯吏吏??$188.04), KLAC(50MA ??$1610.31), RSI 48, 嫄곕옒??25%, 52二?$1097.12-$1935.00, 吏꾩엯吏吏??$1610.31), TSLA(50MA ??$382.79), RSI 57, 嫄곕옒??2%, 52二?$343.25-$489.88, 吏꾩엯吏吏??$382.79), 005930.KS(200MA ????27,963), 50MA ????02,839), RSI 82, 嫄곕옒??63%, 52二???3,900-??71,500, 吏꾩엯吏吏????27,963), SUN(50MA ??$65.36), RSI 68, 嫄곕옒??60%, 52二?$50.16-$69.71, 吏꾩엯吏吏??$65.36)
+  [LLM:companyChanges] 17.4s ??1410c | prompt 2442c
+  [LLM:risk] 24.9s ??493c | prompt 714c
+  [LLM:stockDetail] 51.7s ??2258c | prompt 5221c
+  Wave2 珥??뚯슂: 51.7s
+  stockDetail ?뚯떛: 5媛?醫낅ぉ (NVDA, KLAC, TSLA, 005930.KS, SUN)
+  risk=true, companyChanges=6媛? stockDetail=5媛?
 
-[4/7] Critique — 포트폴리오 자기비판...
-  [LLM:critique] 5.8s → 372c | prompt 1574c
-    WARN NVDA: 타겟 $250 너무 높음, $220으로 조정
-    WARN TSLA: 타겟 $450 너무 높음, $400으로 조정
-    WARN 005930.KS: 타겟 ₩312,225 너무 높음, ₩270,000으로 조정
-  [critique] NVDA =buy NOTE:"타겟 $250 너무 높음, $220으로 조정"
+[4/7] Critique ???ы듃?대━???먭린鍮꾪뙋...
+  [LLM:critique] 5.8s ??372c | prompt 1574c
+    WARN NVDA: ?寃?$250 ?덈Т ?믪쓬, $220?쇰줈 議곗젙
+    WARN TSLA: ?寃?$450 ?덈Т ?믪쓬, $400?쇰줈 議곗젙
+    WARN 005930.KS: ?寃???12,225 ?덈Т ?믪쓬, ??70,000?쇰줈 議곗젙
+  [critique] NVDA =buy NOTE:"?寃?$250 ?덈Т ?믪쓬, $220?쇰줈 議곗젙"
   [critique] KLAC =buy
-  [critique] TSLA =buy NOTE:"타겟 $450 너무 높음, $400으로 조정"
-  [critique] 005930.KS =buy NOTE:"타겟 ₩312,225 너무 높음, ₩270,000으로 조정"
+  [critique] TSLA =buy NOTE:"?寃?$450 ?덈Т ?믪쓬, $400?쇰줈 議곗젙"
+  [critique] 005930.KS =buy NOTE:"?寃???12,225 ?덈Т ?믪쓬, ??70,000?쇰줈 議곗젙"
   [critique] SUN =buy
-  critique 요약: action변경 0개, WARN/flag 3개
+  critique ?붿빟: action蹂寃?0媛? WARN/flag 3媛?
 
-[5/7] 섹션 병합...
+[5/7] ?뱀뀡 蹂묓빀...
 
-[5.5/7] 후처리 품질 향상...
-  [후처리] thesis 확장: 16자 → 62자
-  [후처리] macroAnalysis 보강: 64자 → 143자
-  [후처리] regionStances 9개 짧은 thesis 데이터 보강
-  [후처리] rationale 보강: 5개
-  [후처리] stopLossRationale 구체화: 5개
-[SEIBRO] SEIBRO_API_KEY 환경변수 없음
+[5.5/7] ?꾩쿂由??덉쭏 ?μ긽...
+  [?꾩쿂由? thesis ?뺤옣: 16????62??
+  [?꾩쿂由? macroAnalysis 蹂닿컯: 64????143??
+  [?꾩쿂由? regionStances 9媛?吏㏃? thesis ?곗씠??蹂닿컯
+  [?꾩쿂由? rationale 蹂닿컯: 5媛?
+  [?꾩쿂由? stopLossRationale 援ъ껜?? 5媛?
+[SEIBRO] SEIBRO_API_KEY ?섍꼍蹂???놁쓬
 [YahooOptions] HTTP 401 for NVDA
 [YahooOptions] HTTP 401 for KLAC
 [KRX] HTTP 400 for 005930
 [YahooOptions] HTTP 401 for TSLA
-  [후처리] 덤핑 징후 탐지: 005930.KS(score:4)
-  [후처리] 005930.KS RSI 82 과매수 → buy→watch 전환
-  [후처리] DELL 단일일 10% 급등락 감지 → post-earnings 판단
-  [후처리] DELL 실적 후 +6.4% → timing 업데이트
+  [?꾩쿂由? ?ㅽ븨 吏뺥썑 ?먯?: 005930.KS(score:4)
+  [?꾩쿂由? 005930.KS RSI 82 怨쇰ℓ????buy?뭮atch ?꾪솚
+  [?꾩쿂由? DELL ?⑥씪??10% 湲됰벑??媛먯? ??post-earnings ?먮떒
+  [?꾩쿂由? DELL ?ㅼ쟻 ??+6.4% ??timing ?낅뜲?댄듃
 
-[포트폴리오 최종]
+[?ы듃?대━??理쒖쥌]
   BUY  (4): NVDA(27%), KLAC(22%), TSLA(18%), SUN(15%)
   WATCH(1):
-    - 005930.KS(18%) → 타겟 ₩312,225 너무 높음, ₩270,000으로 조정 | RSI 82 과매수 — 진입 대기
+    - 005930.KS(18%) ???寃???12,225 ?덈Т ?믪쓬, ??70,000?쇰줈 議곗젙 | RSI 82 怨쇰ℓ????吏꾩엯 ?湲?
 
-[6/7] 품질 게이트 검사...
-  ✅ thesis
-  ✅ macroAnalysis
-  ✅ technicalAnalysis
-  ✅ portfolio(≥5)
-  ✅ regionStances
-  ✅ shortSqueeze
-  ✅ insiderSignals
-  ✅ marketNarrative
-  ✅ hotThemes
-  ✅ companyChanges
-  ✅ stopLossRationale
-  품질 점수: 100/100 ✅ 통과
+[6/7] ?덉쭏 寃뚯씠??寃??..
+  ??thesis
+  ??macroAnalysis
+  ??technicalAnalysis
+  ??portfolio(??)
+  ??regionStances
+  ??shortSqueeze
+  ??insiderSignals
+  ??marketNarrative
+  ??hotThemes
+  ??companyChanges
+  ??stopLossRationale
+  ?덉쭏 ?먯닔: 100/100 ???듦낵
 
-=== 저장 완료 ===
-파일: reports/report-2026-05-08-morning-ko.json
+=== ????꾨즺 ===
+?뚯씪: reports/report-2026-05-08-morning-ko.json
 stance: bullish
-thesis: NFP 발표로 금리 전망 변화 — CPI 3.29%, GDP 2%, HY스프레드 2.75%, 리스크 medium
-macro: 금리 50bp, CPI 3.29%, GDP 2%로 정상 곡선 유지, IG_OAS 0.78%, HY_OAS 2.75% | 주요지표: 공포탐욕 68
+thesis: NFP 諛쒗몴濡?湲덈━ ?꾨쭩 蹂????CPI 3.29%, GDP 2%, HY?ㅽ봽?덈뱶 2.75%, 由ъ뒪??medium
+macro: 湲덈━ 50bp, CPI 3.29%, GDP 2%濡??뺤긽 怨≪꽑 ?좎?, IG_OAS 0.78%, HY_OAS 2.75% | 二쇱슂吏?? 怨듯룷?먯슃 68
 portfolio: NVDA(27%) KLAC(22%) TSLA(18%) 005930.KS(18%) SUN(15%)
 sections: portfolio=5, regionStances=10, shortSqueeze=1, companyChanges=6
 
---auto-upload 설정됨, 품질 통과 → 업로드 진행...
+--auto-upload ?ㅼ젙?? ?덉쭏 ?듦낵 ???낅줈??吏꾪뻾...
 
-=== 품질 게이트 검사 ===
-품질 점수: 100/100
-✅ 품질 검사 통과
+=== ?덉쭏 寃뚯씠??寃??===
+?덉쭏 ?먯닔: 100/100
+???덉쭏 寃???듦낵
 
-=== Redis 업로드 ===
+=== Redis ?낅줈??===
 session key : flowvium:investment-strategy:v8:2026-05-08:morning:ko
 hist key    : flowvium:investment-strategy:hist:report:2026-05-07T22:07:53.770Z
 stale   key : flowvium:investment-strategy:stale:v8:ko
-히스토리 업데이트 완료
+?덉뒪?좊━ ?낅뜲?댄듃 ?꾨즺
 
-session key : ✅
-hist key    : ✅
-stale   key : ✅
+session key : ??
+hist key    : ??
+stale   key : ??
 source: local-qwen3:8b
 quality score: 100/100
-[UPLOAD VERIFY] ✓ Redis key confirmed, source=local-qwen3:8b
+[UPLOAD VERIFY] ??Redis key confirmed, source=local-qwen3:8b
 
-✅ 업로드 완료! https://flowvium.net/ko/report 에서 확인
+???낅줈???꾨즺! https://flowvium.net/ko/report ?먯꽌 ?뺤씤
 [05/08/2026 Fri  7:07:56.76] [SUCCESS] Report pipeline completed successfully 
