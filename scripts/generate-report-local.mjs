@@ -45,6 +45,11 @@ function loadEnv() {
 const env = loadEnv();
 const args = process.argv.slice(2);
 const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'qwen3:8b';
+// 2026-06-15: source 라벨용 — 실제 생성에 쓰인 모델(별칭 아님)을 런타임에 기록.
+//   vLLM 이 30B 를 qwen3:8b/flowvium-local 별칭으로도 서빙해서, modelArg(기본 qwen3:8b)로 라벨하면
+//   "8b 로 만든 것처럼" 오표기됨. callVLLM 이 /v1/models root 를 해석해 진짜 모델명으로 채움.
+let runtimeModel = null;    // 예: 'Qwen3-30B-A3B-Instruct-2507-AWQ'
+let runtimeBackend = null;  // 'vllm' | 'ollama'
 const uploadArg = args.find(a => a.startsWith('--upload='))?.split('=')[1];
 const autoUpload = args.includes('--auto-upload');
 const localeArg = args.find(a => a.startsWith('--locale='))?.split('=')[1] ?? 'ko';
@@ -1175,6 +1180,17 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048
       return null;
     }
     const d = await res.json();
+    // 실제 서빙 모델명 1회 해석 — 별칭(qwen3:8b/flowvium-local) → /v1/models root 의 basename.
+    if (runtimeBackend !== 'vllm') {
+      runtimeBackend = 'vllm';
+      try {
+        const mr = await fetch(`${url}/models`, { signal: AbortSignal.timeout(5000) });
+        const mj = await mr.json();
+        const served = (mj.data || []).find(m => m.id === (d.model || model)) || (mj.data || [])[0];
+        const root = served?.root || d.model || model;
+        runtimeModel = String(root).split(/[\\/]/).pop();
+      } catch { runtimeModel = d.model || model; }
+    }
     const text = d.choices?.[0]?.message?.content ?? '';
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`  ${tag} ${elapsed}s → ${text.length}c | prompt ${prompt.length}c`);
@@ -7370,7 +7386,8 @@ async function generateViaOllama() {
     },
     generatedAt: now,
     dataAsOf: now,
-    source: `local-${modelArg}`,
+    // 실제 생성 모델 라벨 (별칭/기본인자 아님). vLLM 사용 시 해석된 진짜 모델명, 아니면 modelArg.
+    source: `local-${runtimeModel ?? modelArg}`,
     locale: localeArg,
     session,
     schemaVersion: 8,
