@@ -36,6 +36,9 @@ function loadEnv() {
       if (m) env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '');
     }
   } catch { console.error('.env.local not found'); process.exit(1); }
+  // 2026-06-15: process.env 에도 주입 — callVLLM 등이 process.env.VLLM_URL/VLLM_MODEL 를
+  //   직접 읽음(종전 미주입이라 vLLM 미사용→Ollama 404 폴백). 기존 실제 env 는 보존.
+  for (const k in env) if (process.env[k] === undefined) process.env[k] = env[k];
   return env;
 }
 
