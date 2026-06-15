@@ -134,12 +134,24 @@ async function main() {
     const feeds = [...(m?.[1] || '').matchAll(/url:\s*['"]([^'"]+)['"][^}]*source:\s*['"]([^'"]+)/g)].map(x => ({ url: x[1], src: x[2] }));
     let dead = 0;
     const deadList = [];
+    // 2026-06-15: "200 + 날짜X" 는 dead 가 아니라 rate-limit transient 일 때가 많음 — Yahoo 피드 4개를
+    //   병렬 fetch 하면 동일 IP per-IP rate-limit 으로 그중 하나가 빈 응답을 줌(단건은 정상). dead 로
+    //   단정하지 말고 날짜0 이면 sequential 1회 재시도(stagger). 진짜 dead 는 재시도도 0 → 그때만 flag.
+    const datesOf = async (url) => {
+      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return { http: r.status, ds: [] };
+      const t = await r.text();
+      const ds = [...t.matchAll(/<pubDate>([^<]+)<\/pubDate>/g), ...t.matchAll(/<published>([^<]+)<\/published>/g)].map(x => Date.parse(x[1])).filter(Number.isFinite).sort((a, b) => b - a);
+      return { http: 200, ds };
+    };
     await Promise.all(feeds.map(async f => {
       try {
-        const r = await fetch(f.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(10000) });
-        if (!r.ok) { dead++; deadList.push(`${f.src}(HTTP${r.status})`); return; }
-        const t = await r.text();
-        const ds = [...t.matchAll(/<pubDate>([^<]+)<\/pubDate>/g), ...t.matchAll(/<published>([^<]+)<\/published>/g)].map(x => Date.parse(x[1])).filter(Number.isFinite).sort((a, b) => b - a);
+        let { http, ds } = await datesOf(f.url);
+        if (http !== 200) { dead++; deadList.push(`${f.src}(HTTP${http})`); return; }
+        if (!ds.length) {   // 날짜0 = rate-limit 의심 → sequential 재시도(빈 응답 transient 확인)
+          await new Promise(r => setTimeout(r, 1500));
+          ({ ds } = await datesOf(f.url));
+        }
         const ageH = ds.length ? (Date.now() - ds[0]) / 3600000 : null;
         if (ageH == null || ageH > 168) { dead++; deadList.push(`${f.src}(${ageH == null ? '날짜X' : Math.round(ageH) + 'h'})`); }
       } catch { dead++; deadList.push(`${f.src}(fetch실패)`); }
