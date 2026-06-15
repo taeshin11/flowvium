@@ -67,6 +67,16 @@ try {
   }
 } catch {}
 
+// [6] 라이브 보고서 fallback 감지 (Redis publish 누락/cron hang — file-mtime 으론 안잡히는 사각지대; 2026-06-15 morning-cron hang 사건 후 신설)
+try {
+  const r = await fetch('https://flowvium.net/api/investment-strategy', { signal: AbortSignal.timeout(9000) });
+  if (r.ok) {
+    const src = String((await r.json()).source ?? '');
+    if (/^fallback/i.test(src)) alerts.push(`라이브 보고서 fallback (source=${src}) — Redis publish 누락/cron hang`);
+    else info.push('live OK');
+  }
+} catch { /* 네트워크 블립은 무시(오탐 방지) */ }
+
 const line = alerts.length
   ? `ALERT: ${alerts.join(' | ')}  [ok: ${info.join(', ')}]`
   : `OK  ${info.join(' / ')}`;
