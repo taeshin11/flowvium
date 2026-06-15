@@ -94,11 +94,14 @@ const REQUIRED_SCHEMA_FIELDS: (keyof InvestmentStrategy)[] = ['marketNarrative',
 function isSchemaCompatible(report: unknown): report is Record<string, unknown> {
   if (report == null || typeof report !== 'object' || Array.isArray(report)) return false;
   const r = report as Record<string, unknown>;
-  // schemaVersion exact match is the primary guard; field presence is the fallback
+  // schemaVersion exact match is the primary guard; field presence is the fallback.
   if (r.schemaVersion != null && r.schemaVersion !== SCHEMA_VERSION) return false;
+  if (r.schemaVersion === SCHEMA_VERSION) return true; // 2026-06-15: 정확한 버전 = 호환. 빈 배열도
+  //   유효 데이터(예: shortSqueeze 는 외부소스 down/후보 0 시 [] — 그것 때문에 보고서 전체 fallback 금지).
+  // schemaVersion 없는 (구) 보고서만 field-presence 로 판별: 필드 *존재* 면 통과(빈 배열 허용).
   return REQUIRED_SCHEMA_FIELDS.every(f => {
     const v = r[f];
-    if (Array.isArray(v)) return v.length > 0;
+    if (Array.isArray(v)) return true;
     if (v != null && typeof v === 'object') return Object.keys(v).length > 0;
     return v != null;
   });
