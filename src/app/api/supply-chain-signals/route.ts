@@ -295,12 +295,16 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
     }
     // 2026-06-15 (사용자 "us 는 자세한 내용 없고 본문확인하라고만"): 실제 8-K 본문을 fetch 해 계약 유형·
     //   상대방·금액 추출 + 정직 분류(자본조달/사업계약). 종전엔 메타데이터만 써 generic "본문 확인 권장" 이었음.
-    //   회사당 1건, 소수라 순차 fetch(SEC rate-limit 안전).
-    //   2026-06-15: 한국어 요약은 accession 별 30d 캐시(공시 불변) + 호출당 신규요약 ≤4 로 바운드(maxDuration 30s).
+    //   2026-06-15: 후보 본문 fetch *병렬*(순차는 6×~2s=12s 로 generator 의 10s fetch 타임아웃→supplyChain
+    //   빈배열 사건). qwen3 한국어 요약은 *요청 경로 밖*(캐시 읽기만 + 누락분은 백그라운드 생성) — gen 중
+    //   GPU 포화 시 동기 qwen3 가 라우트를 10s 초과시키던 회귀 차단. 요약은 accession 별 30d 캐시(공시 불변).
     const sumRedis = createRedis();
-    const sumBudget = { n: 4 };
-    for (const c of candidates.slice(0, 6)) {
-      const detail = await fetchEightKDetail(c.cikNum, c.accNo, c.doc, sumRedis, sumBudget);
+    const picked = candidates.slice(0, 6);
+    const details = await Promise.all(picked.map(c => fetchEightKDetail(c.cikNum, c.accNo, c.doc, sumRedis)));
+    const needSummary: Array<{ accNo: string; region: string }> = [];
+    picked.forEach((c, i) => {
+      const detail = details[i];
+      if (!detail) return;
       const kindLabel = detail.kind === 'financing' ? '자본조달'
         : detail.kind === 'ma' ? 'M&A'
         : detail.kind === 'business' ? '사업계약' : '주요계약';
@@ -309,11 +313,11 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
       if (detail.counterparty) parts.push(`상대: ${detail.counterparty}`);
       if (detail.amount) parts.push(detail.amount);
       const detailStr = parts.join(' · ');
+      if (!detail.summary && detail.region) needSummary.push({ accNo: c.accNo, region: detail.region });
       signals.push({
         ticker: c.ticker,
         companyName: c.name,
         signalType: detail.kind === 'financing' ? 'supply_risk' : 'contract_win',
-        // 자본조달은 공급망 직결 아님 → 낮은 conviction. 사업계약/M&A 는 66.
         conviction: detail.kind === 'financing' ? 52 : 66,
         direction: 'neutral',
         headline: `8-K [${kindLabel}]: ${c.name}${detailStr ? ' — ' + detailStr : ' — 주요 계약(Item 1.01)'}`,
@@ -328,7 +332,9 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
           ? `https://www.sec.gov/Archives/edgar/data/${c.cikNum}/${c.accNo}/${c.doc || ''}`
           : `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${c.cikNum}&type=8-K`,
       });
-    }
+    });
+    // 누락 요약은 백그라운드 생성+캐시(요청 차단 X) — 다음 조회부터 rich. 응답은 즉시.
+    if (needSummary.length && sumRedis) void warmEightKSummaries(needSummary, sumRedis);
     logger.info('supply-chain-signals', 'edgar_submissions_done', { monitored: entries.length, scanned, httpFails, candidates: candidates.length, signals: signals.length, ms: Date.now() - t0 });
   } catch (e) {
     logger.warn('supply-chain-signals', 'edgar_submissions_failed', { error: String(e), ms: Date.now() - t0 });
@@ -340,8 +346,8 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
  * 8-K Item 1.01 본문에서 계약 유형·상대방·금액 추출 + 분류 (financing/business/ma).
  * SEC 8-K 는 DART 처럼 구조화 필드가 없어 narrative 에서 휴리스틱 추출. 실패해도 비차단(빈 detail).
  */
-async function fetchEightKDetail(cikNum: string, accNo: string, doc: string, redis?: ReturnType<typeof createRedis>, budget?: { n: number }): Promise<{
-  agreementType?: string; counterparty?: string; amount?: string; summary?: string;
+async function fetchEightKDetail(cikNum: string, accNo: string, doc: string, redis?: ReturnType<typeof createRedis>): Promise<{
+  agreementType?: string; counterparty?: string; amount?: string; summary?: string; region?: string;
   kind: 'financing' | 'business' | 'ma' | 'unknown';
 }> {
   if (!cikNum || !accNo || !doc) return { kind: 'unknown' };
@@ -375,26 +381,29 @@ async function fetchEightKDetail(cikNum: string, accNo: string, doc: string, red
     if (/\b(merger|acquisition|acquire|business combination|tender offer)\b/.test(blob)) kind = 'ma';
     else if (/\b(equity distribution|at.the.market|atm program|preferred stock|depositary shares|senior notes|indenture|credit agreement|term loan|revolving credit|underwriting|securities purchase|note purchase|debenture|warrant)\b/.test(blob)) kind = 'financing';
     else if (/\b(supply|offtake|manufacturing|license|collaboration|partnership|joint venture|master services|reseller|development agreement)\b/.test(blob)) kind = 'business';
-    // 2026-06-15 (사용자 "내용을 더 자세하게"): 실제 Item 1.01 본문을 qwen3 로 한국어 맞춤 요약 — KR DART
-    //   처럼 풍부한 설명. 자유텍스트라 구조화 필드 없어 LLM 요약이 정답. accession 별 30d 캐시(공시 불변) +
-    //   호출당 신규요약 budget cap(maxDuration 30s 보호). GPU 포화/예산소진 시 generic fallback.
+    // 2026-06-15: 한국어 요약은 *캐시 읽기만*(요청 경로에서 qwen3 동기호출 금지 — gen 중 GPU 포화 시
+    //   라우트가 10s 초과해 supplyChain 빈배열 나던 회귀). 누락분은 호출부가 백그라운드(warmEightKSummaries)
+    //   로 생성+캐시 → 다음 조회부터 rich. region 을 반환해 백그라운드가 재fetch 없이 요약.
     let summary;
     if (redis) { try { const c = await redis.get<string>(sumKey); if (c && typeof c === 'string') summary = c; } catch { /* miss */ } }
-    if (!summary && budget && budget.n > 0) {
-      budget.n--;
-      try {
-        const s = await localChat(
-          `다음은 미국 상장사의 8-K Item 1.01(주요 계약 체결) 공시 본문이다. 한국어로 1~2문장으로 요약하라: 어떤 계약인지·상대방·핵심 조건(금액/지분/만기 등)·투자자 관점의 의미. 설명 없이 요약문만:\n\n${region.slice(0, 1100)}`,
-          { temperature: 0.2, maxTokens: 220, timeoutMs: 12000 },
-        );
-        if (s && s.trim() && /[가-힣]/.test(s)) {
-          summary = s.trim().replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 220);
-          if (redis) { try { await loggedRedisSet(redis, 'supply-chain-signals.8k-summary', sumKey, summary, { ex: 30 * 24 * 60 * 60 }); } catch { /* non-fatal */ } }
-        }
-      } catch { /* GPU 포화/실패 → generic */ }
-    }
-    return { agreementType, counterparty, amount, kind, summary };
+    return { agreementType, counterparty, amount, kind, summary, region };
   } catch { return { kind: 'unknown' }; }
+}
+
+// 8-K 한국어 요약 백그라운드 생성(요청 차단 X) — accession 별 30d 캐시. GPU 세마포어로 포화 시 skip.
+async function warmEightKSummaries(items: Array<{ accNo: string; region: string }>, redis: ReturnType<typeof createRedis>): Promise<void> {
+  for (const it of items.slice(0, 6)) {
+    try {
+      const s = await localChat(
+        `다음은 미국 상장사의 8-K Item 1.01(주요 계약 체결) 공시 본문이다. 한국어로 1~2문장으로 요약하라: 어떤 계약인지·상대방·핵심 조건(금액/지분/만기 등)·투자자 관점의 의미. 설명 없이 요약문만:\n\n${it.region.slice(0, 1100)}`,
+        { temperature: 0.2, maxTokens: 220, timeoutMs: 12000 },
+      );
+      if (s && s.trim() && /[가-힣]/.test(s)) {
+        const summary = s.trim().replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 220);
+        if (redis) { try { await loggedRedisSet(redis, 'supply-chain-signals.8k-summary', `flowvium:8k-summary:v1:${it.accNo}`, summary, { ex: 30 * 24 * 60 * 60 }); } catch { /* non-fatal */ } }
+      }
+    } catch { /* GPU 포화/실패 — 다음 사이클 재시도 */ }
+  }
 }
 
 // ── 2026-06-13: DART 공시 본문에서 계약 상세 추출 (사용자 "무슨 계약인지 알려줘야지") ──────
