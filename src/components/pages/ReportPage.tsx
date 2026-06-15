@@ -1412,11 +1412,17 @@ export default function ReportPage() {
                           {c.held && <span className="text-[9px] font-semibold px-1 rounded bg-blue-100 text-blue-700 border border-blue-200">{t('companyChangesHeld')}</span>}
                           {evtLabel && <span className="text-[9px] font-bold px-1.5 rounded-full bg-white/70 border border-current/20">{evtLabel}</span>}
                           {c.latestQuarter && <span className="text-[10px] opacity-70">{c.latestQuarter}</span>}
-                          {c.revenueYoY != null && c.revenueYoY !== 0 && (
-                            <span className="text-[10px] font-semibold">
-                              {c.revenueYoY >= 0 ? '+' : ''}{c.revenueYoY.toFixed(1)}% {t('companyChangesYoY')}
-                            </span>
-                          )}
+                          {(() => {
+                            // LLM 이 revenueYoY 를 number 또는 "46.8%" 문자열로 출력 — 둘 다 허용 (2026-06-15 .toFixed 크래시 fix)
+                            const raw = c.revenueYoY as number | string | null | undefined;
+                            const yoy = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
+                            if (!Number.isFinite(yoy) || yoy === 0) return null;
+                            return (
+                              <span className="text-[10px] font-semibold">
+                                {yoy >= 0 ? '+' : ''}{yoy.toFixed(1)}% {t('companyChangesYoY')}
+                              </span>
+                            );
+                          })()}
                         </div>
                         {c.guidance && c.guidance !== 'unknown' && (
                           <span className="text-[10px] font-semibold">{guidanceIcon} {t('guidanceLabel')} {c.guidance}</span>
