@@ -912,6 +912,9 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
         if (rev == null && finRev != null) rev = Math.round((finRev / 1e9) * 100) / 100;
       }
       let yoy = c.revenueYoY ?? null;
+      // 2026-06-15: LLM 이 revenueYoY 를 "46.8%"/"-4.9%" 문자열로 출력 → REAL 컬럼에 문자열 적재 방지(coerce).
+      //   audit-coverage [4a] range check 우회 + ReportPage .toFixed 크래시의 데이터단 근본원인.
+      if (typeof yoy === 'string') { const p = parseFloat(yoy.replace(/[^0-9.+-]/g, '')); yoy = Number.isFinite(p) ? p : null; }
       if (yoy == null) {
         const ym = k.match(/[+\-]?(\d+\.?\d*)\s*%\s*(?:YoY|증가|성장|상승)/i)
               ?? k.match(/전년\s*대비\s*[+\-]?(\d+\.?\d*)\s*%/);
