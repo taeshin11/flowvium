@@ -1171,7 +1171,7 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048
     });
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
-      console.warn(`  ${tag} HTTP ${res.status}: ${errBody.slice(0, 120)} — Ollama 폴백`);
+      console.warn(`  ${tag} HTTP ${res.status}: ${errBody.slice(0, 500)} — Ollama 폴백 [promptChars=${prompt.length}]`);
       return null;
     }
     const d = await res.json();
@@ -1190,8 +1190,9 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048
 // 로컬 우선 + 실패/timeout 자동 cloud 폴백 = 항상 결과 반환 보장.
 async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = '', schema = null) {
   // 2026-05-29: label 별 토큰 차등. portfolio 12 종목 한글 rationale 포함 시 5K+ token 필요.
-  // 기본 2048 → portfolio 8192, stockDetail/macro/regional 4096. (vLLM·Ollama 공용)
-  const numPredict = /portfolio/i.test(label) ? 8192
+  // 2026-06-15: portfolio 8192→6144 — prompt(priceData 유니버스)가 ~41-43k tok 로 커서 vLLM
+  //   max_model_len(51200, KV 천장 52480) 내에 prompt+output 가 들어가야 함. 6144 면 충분(실측 출력 ~3-4k).
+  const numPredict = /portfolio/i.test(label) ? 6144
     : /(stockDetail|macro|narrative|regional|sellRationale)/i.test(label) ? 4096
     : 2048;
 
@@ -5661,8 +5662,22 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
   } else {
     console.log('  [F19/SkillOpt] ⚠️  qualityFeedback 빈 문자열 — DB 비어있거나 import 실패');
   }
+  // 2026-06-15: priceData(전체 ~600종목 유니버스, ~83k char/41-46k tok)는 vLLM 컨텍스트
+  //   천장(52480)을 넘겨 portfolio 호출이 HTTP400 → 무한 폴백. 모델은 [Live Prices] 안에서만
+  //   선택하므로, 후보+최근+KR대형주+ETF+분산 US 로 축소(매칭 부족 시 전체로 안전 폴백).
+  const _keepTickers = new Set([
+    ...buyCandidates.map(c => c.ticker), ...recentTickers,
+    'SPY','QQQ','VTI','XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLB','XLRE',
+    'NVDA','AAPL','MSFT','GOOGL','AMZN','META','AVGO','TSM','ASML','AMD','LLY','UNH','NVO','REGN','PFE',
+    'JPM','V','MA','GS','BLK','LMT','RTX','NOC','KTOS','XOM','CVX','SLB','ALB','CAT','HON','UNP','DE','GE','ETN','COST','HD','SBUX','MCD','NKE',
+    '005930.KS','000660.KS','005380.KS','005490.KS','035420.KS','051910.KS','035720.KS','068270.KS','207940.KS','105560.KS','055550.KS','012330.KS','000270.KS','096770.KS','066570.KS','017670.KS','015760.KS','034730.KS','009150.KS','028260.KS','000810.KS','032830.KS','086790.KS','138040.KS','024110.KS','323410.KS','377300.KS','259960.KS','035900.KQ','247540.KQ','086520.KQ','091990.KQ','196170.KQ','328130.KQ','277810.KQ',
+  ]);
+  const _pdAll = (priceData || '').split('\n');
+  const _pdKept = _pdAll.filter(l => _keepTickers.has(l.split(/[ :]/)[0]));
+  const pd = _pdKept.length >= 20 ? _pdKept.join('\n') : (priceData || '');
+  console.log(`  [portfolio prompt] priceData ${_pdAll.length}→${_pdKept.length} 종목 (vLLM ctx 보호)`);
   return [
-    buildGroundingFacts(priceData),
+    buildGroundingFacts(pd),
     '',
     antiPatternBlock,  // 2026-05-30 F26: Karpathy closed loop — 최근 환각 anti-pattern inject
     qualityFeedback,  // 2026-05-27 SkillOpt: 자체 quality 추세 + 약점 인지
@@ -5753,7 +5768,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     '',
     '═══════════════════════════════════════════════════════════════',
     '⚠️ LIVE PRICES (as of TODAY — use THESE numbers, NOT your training data):',
-    priceData || 'No data',
+    pd || 'No data',
     '═══════════════════════════════════════════════════════════════',
     getEntryFeedbackBlock(),
     getSellLearningBlock(),
