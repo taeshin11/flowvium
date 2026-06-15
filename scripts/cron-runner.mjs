@@ -203,7 +203,9 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
         if (st.trim()) {
           await execFileAsync('git', ['add', ...commitPaths], { timeout: 15000, windowsHide: true });
           await execFileAsync('git', ['commit', '-m', `chore(${label}): cron 산출 데이터 자동 커밋`], { timeout: 15000, windowsHide: true });
-          await execFileAsync('git', ['push', 'origin', 'master'], { timeout: 60000, windowsHide: true });
+          // 2026-06-15: --no-verify — 자동생성 *데이터* 커밋이라 pre-push hook(npm run verify, 수분+코드용 게이트)
+          //   을 돌리면 안 됨(60s 타임아웃 초과/무관한 fail 로 cron 푸시 차단). 코드 게이트는 사람 push 에만.
+          await execFileAsync('git', ['push', '--no-verify', 'origin', 'master'], { timeout: 60000, windowsHide: true });
           log(`[${label}] 산출물 자동 커밋+푸시 (${commitPaths.join(',')})`);
         }
       } catch (e) { log(`[${label}] 자동 커밋 실패(수동 필요): ${String(e?.message).slice(0, 60)}`); }
