@@ -6262,6 +6262,44 @@ async function refreshAllData() {
   }
 }
 
+// ── Best-of-N 포트폴리오 (2026-06-15) — N개 draft 생성 후 안전/근거 점수로 최선 선택(환각 감소) ──
+//   목적: published 환각 감소. priced ticker(실가 있음=NE 아님) + entryZone 실가 ±15% 근접 + rationale 비중복 가산.
+//   winner 에 기존 검증 가드(postProcessPortfolio/validateEntryZones/ENTRY_CALIBRATION) 그대로 적용 — 안전 불변.
+//   env PORTFOLIO_BEST_OF_N (기본 2, 1=기존 단일 draft 동작). 전부 실패해도 기존 total<4 retry / total<1 exit 가드가 처리.
+function parseEntryMid(entryZone) {
+  if (entryZone == null) return null;
+  const nums = String(entryZone).replace(/,/g, '').match(/\d+(?:\.\d+)?/g);
+  if (!nums) return null;
+  const vals = nums.map(Number).filter((n) => Number.isFinite(n) && n > 0);
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+function scorePortfolioDraft(data, livePrices) {
+  const pf = data?.portfolio;
+  if (!Array.isArray(pf) || pf.length === 0) return -1e9;
+  let score = 0;
+  const rats = [];
+  for (const p of pf) {
+    const t = p?.ticker;
+    if (!t) { score -= 3; continue; }
+    const price = livePrices?.get?.(t)?.price;
+    if (price && price > 0) {
+      score += 2;                              // 실가 있는 유효 종목(NE 위험 낮음)
+      const mid = parseEntryMid(p.entryZone);
+      if (mid) score += Math.abs(mid / price - 1) <= 0.15 ? 1 : -1; // entryZone 실가 근접/환각
+    } else {
+      score -= 2;                              // 실가 없음 → 환각/NE 의심
+    }
+    if (typeof p.rationale === 'string' && p.rationale.trim().length >= 15) {
+      score += 0.5;
+      rats.push(p.rationale.trim().slice(0, 50));
+    }
+  }
+  if (rats.length) score += 2 * (new Set(rats).size / rats.length); // 비중복 rationale 가산(복붙 패널티)
+  score += Math.min(pf.length, 12) * 0.2;      // 유효 후보 多 약가산(강제 아님)
+  return score;
+}
+
 async function generateViaOllama() {
   const session = getSession();
   console.log(`\n=== 로컬 Ollama 보고서 생성 (${modelArg}) ===`);
@@ -6435,17 +6473,36 @@ async function generateViaOllama() {
   // ── [2/7] Wave 1: 5섹션 병렬 ─────────────────────────────────────────────────
   console.log('\n[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
   const wave1Start = Date.now();
-  const [macroRaw, portfolioRaw, regionalRaw, opportunityRaw, narrativeRaw] = await Promise.all([
+  // 2026-06-15: 포트폴리오 Best-of-N — N개 draft 생성→안전/근거 점수로 최선 선택(환각 감소). N=1=기존 동작.
+  const PF_N = Math.max(1, Math.min(4, parseInt(process.env.PORTFOLIO_BEST_OF_N ?? '2', 10) || 1));
+  const pfPrompt = buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates);
+  const wave1 = await Promise.all([
     callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 360000, 'macro'),
-    callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 360000, 'portfolio'),
+    ...Array.from({ length: PF_N }, (_, i) => callOllama(pfPrompt, modelArg, 360000, PF_N > 1 ? `portfolio-${i + 1}/${PF_N}` : 'portfolio')),
     callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 360000, 'regional'),
     callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 360000, 'opportunity'),
     callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 360000, 'narrative'),
   ]);
+  const macroRaw = wave1[0];
+  const portfolioDrafts = wave1.slice(1, 1 + PF_N);
+  const regionalRaw = wave1[1 + PF_N];
+  const opportunityRaw = wave1[2 + PF_N];
+  const narrativeRaw = wave1[3 + PF_N];
   console.log(`  Wave1 총 소요: ${((Date.now() - wave1Start) / 1000).toFixed(1)}s`);
 
   let macroData        = parseJson(macroRaw, 'macro');
-  let portfolioData  = parseJson(portfolioRaw, 'portfolio');
+  // Best-of-N 선택: 각 draft 파싱+점수 → 최고점. 점수계산 throw 시 첫 유효 draft 폴백(불변: 항상 진행).
+  let portfolioData;
+  try {
+    const scored = portfolioDrafts
+      .map((raw, i) => { const d = parseJson(raw, `portfolio${PF_N > 1 ? '-' + (i + 1) : ''}`); return { d, s: d ? scorePortfolioDraft(d, livePrices) : -1e9, i }; })
+      .sort((a, b) => b.s - a.s);
+    portfolioData = scored[0]?.d ?? null;
+    if (PF_N > 1) console.log(`  [portfolio best-of-${PF_N}] picked #${(scored[0]?.i ?? 0) + 1} score=${(scored[0]?.s ?? 0).toFixed(1)} (all: ${scored.map((x) => x.s.toFixed(0)).join(', ')})`);
+  } catch (e) {
+    console.warn(`  [portfolio best-of-N] 점수계산 실패(${e.message}) — 첫 draft 폴백`);
+    portfolioData = parseJson(portfolioDrafts[0], 'portfolio');
+  }
   let regionalData     = parseJson(regionalRaw, 'regional');
   const opportunityData = parseJson(opportunityRaw, 'opportunity');
   const narrativeData  = parseJson(narrativeRaw, 'narrative');
