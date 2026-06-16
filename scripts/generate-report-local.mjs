@@ -8573,25 +8573,21 @@ async function generateViaOllama() {
     const realSlopePp = finalReport.marketVerdict?.analog?.fingerprint?.curveSlopePp
       ?? finalReport.marketVerdict?.analog?.macroContext?.curveSlopePp;
     const realBp = realSlopePp != null ? Math.round(realSlopePp * 100) : null;
-    // KR 4주 수익률(상승률) — "18.2% 유입" 둔갑 교정용 anchor
-    const krRet = String(finalReport.regionStances?.korea?.thesis ?? '')
-      .match(/(\d{1,2}(?:\.\d)?)\s*%\s*(?:상승|수익률|올라|return)/i)?.[1]
-      ?? String(finalReport.regionStances?.korea?.thesis ?? '').match(/4주[^%]{0,8}(\d{1,2}(?:\.\d)?)\s*%/)?.[1];
     const fixField = (s) => {
       if (typeof s !== 'string' || !s) return s;
       let t = s;
-      // (a) 금리곡선 bp 교정: 커브 키워드 근처 (Nbp) → 실 bp (없으면 괄호 제거)
-      if (realBp != null) t = t.replace(/(금리\s*(?:곡선|커브)[^()]{0,16}\(\s*)\d{1,3}(\s*bp\s*\))/g, `$1${realBp}$2`);
-      else t = t.replace(/(금리\s*(?:곡선|커브)[^()]{0,16})\(\s*\d{1,3}\s*bp\s*\)/g, '$1');
+      // (a) 금리곡선 bp 교정: 커브 키워드 근처의 bp 숫자 → 실 bp (괄호 유무 무관: "정상적(40bp)"·"정상적 40bp" 모두).
+      //     실값 없으면 그대로(허위 strip 은 위험 — 유지). 커브 키워드 12자 이내 첫 Nbp 만 교정.
+      if (realBp != null) t = t.replace(/(금리\s*(?:곡선|커브)[^.]{0,12}?)([+-]?\d{1,3})(\s*bp)/g, `$1${realBp}$3`);
       // (b) 오타/표기 교정
       t = t.replace(/나스다크/g, '나스닥').replace(/콘텡고|콘텐고|콘탕고|컨텐고|컨티아고|컨텐코/g, '콘탱고');
       // (c) 라틴 bleed (한글 토큰 안에 낀 소문자 라틴) — 알려진 매핑만 안전 치환
       t = t.replace(/스que이즈/g, '스퀴즈').replace(/스퀴이즈/g, '스퀴즈');
-      // (d) 수익률→유입 둔갑: KR 4주 상승률 V% 가 "유입" 으로 쓰이면 "상승" 으로 (사실 교정)
-      if (krRet) {
-        const v = krRet.replace('.', '\\.');
-        t = t.replace(new RegExp(`(${v}\\s*%)\\s*유입(된)?`, 'g'), '$1 상승$2');
-      }
+      // (d) 자금흐름을 % 로 표기한 환각 제거 — 외국인/해외 자금흐름은 이 시스템에서 *원 금액*(9715억)으로만
+      //     근거화됨. "N% 유입"·"유입 N%로 확대" 류 퍼센트는 수익률 둔갑/순수환각(예: 입력에 없는 "18.2% 유입").
+      //     숫자만 제거하고 흐름 단어(유입/순매수)는 보존 — 산문 재작성 없이 허위수치만 삭제.
+      t = t.replace(/\d{1,2}(?:\.\d)?\s*%\s*(유입|순매수)/g, '$1');                       // "18.2% 유입" → "유입"
+      t = t.replace(/(유입|순매수)[^.,]{0,12}?\d{1,2}(?:\.\d)?\s*%(?:로|까지|으로)?\s*(확대|증가|상승)/g, '$1 $2'); // "유입이 4주 기준 18.2%로 확대" → "유입 확대"
       return t;
     };
     let nFix = 0;
