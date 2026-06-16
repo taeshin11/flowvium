@@ -213,6 +213,10 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
   } catch (e) { log(`[${label}] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 80)}`); }
 }
 cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetch-dart-corp-codes.mjs', 300000, ['data/dart-corp-codes.json']), { timezone: TZ });   // 02:05 KST
+// 2026-06-17 (사용자 "추가해"): 작전주 매집워치(scan-accumulation) 2회/일 갱신 — 기존엔 크론 없어 36h 신선도
+//   가드 초과 stale 방치(한글과컴퓨터 06-14 신호 고착). KR 마감 후 + 개장 전 (max gap ~16h < 36h). 산출 자동 커밋.
+cron.schedule('0 7 * * *',  () => runMaintenance('scan-accumulation', 'scripts/scan-accumulation.mjs', 600000, ['data/accumulation-watchlist.json']), { timezone: TZ }); // 16:00 KST (KR 마감 후)
+cron.schedule('0 22 * * *', () => runMaintenance('scan-accumulation', 'scripts/scan-accumulation.mjs', 600000, ['data/accumulation-watchlist.json']), { timezone: TZ }); // 07:00 KST (KR 개장 전)
 cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
 cron.schedule('35 18 * * *', () => runMaintenance('sell-outcomes', 'scripts/evaluate-sell-outcomes.mjs', 600000), { timezone: TZ });  // 03:35 KST — 매도 성과평가 (2026-06-12 신설, 튜닝 ground truth)
 cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs --apply', 600000, ['data/sell-rules-tuned.json']), { timezone: TZ }); // 일 04:05 KST — 주간 매도룰 pnl 백튜닝 자동적용+커밋(±20% cap, .bak)
