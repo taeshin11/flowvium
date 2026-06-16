@@ -2104,11 +2104,9 @@ async function enforceRotation(portfolio, livePrices, macroCtx = {}) {
       const sigR = await fetchSellSignals(boostList.map((b) => b.ticker));
       boostList = boostList.filter((b) => {
         const sig = sigR.get(b.ticker) ?? {};
-        const exCtx = buildSellEvalCtx(b.ticker, { price: livePrices.get(b.ticker)?.price ?? null, sector: b.sector }, macroCtx, sig);
-        const hits = vetoRulesR.map((r) => ({ r, reason: evaluateSellRule(r, exCtx) })).filter((x) => x.reason);
-        const total = hits.reduce((s, x) => s + (x.r.score ?? 0), 0);
+        const { hits, total } = evaluateTickerSellSignals(b.ticker, { price: livePrices.get(b.ticker)?.price ?? null, sector: b.sector, sig, macroCtx, vetoRules: vetoRulesR });
         if (total >= 7) {
-          console.warn(`  [rotation-veto] ${b.ticker} 투입 거부 (매도 score ${total}≥7: ${hits.map((x) => x.r.id).join(',')})`);
+          console.warn(`  [rotation-veto] ${b.ticker} 투입 거부 (매도 score ${total}≥7: ${hits.map((h) => h.id).join(',')})`);
           return false;
         }
         return true;
@@ -5380,6 +5378,28 @@ function buildSellEvalCtx(ticker, pos, mc, sig) {
   };
 }
 
+// 2026-06-16 (DRY #6): 4 reconcile 경로(rotation-veto·refill·final-overlap·boost veto)가 동일하게
+//   재구현하던 "ticker 의 매도신호 평가" 서브로직을 단일 helper 로 추출. 순수 relocation —
+//   결정 로직(veto/downgrade/whipsaw/LLM 판정)은 각 호출부에 그대로 남고, 신호평가 계산만 이동.
+//   각 site 는 종전과 동일한 hits/total 을 돌려받아 downstream 판정이 byte-identical 유지된다.
+//   참고: main 심판 게이트(~7150)는 weightedScore + hard/soft net + buyDiscount 로 분기돼 여기서 제외
+//   (의도적 — whipsaw hysteresis / LLM adjudication 경로는 건드리지 않는다).
+//   VETO_CATS: rotation-veto/final-overlap 의 ['fundamental','technical','guru','micro'] 와
+//   refill 의 VETO_CATS Set 이 동일 — 기본값으로 내장하되, refill 처럼 이미 필터된 rules 를 재사용하려면
+//   vetoRules 인자로 주입 가능(같은 rules 면 결과 동일).
+const SELL_VETO_CATEGORIES = ['fundamental', 'technical', 'guru', 'micro'];
+function evaluateTickerSellSignals(ticker, { price, sector, sig, macroCtx, vetoRules } = {}) {
+  const rules = vetoRules ?? (loadSellRules()?.rules ?? []).filter((r) => SELL_VETO_CATEGORIES.includes(r.category));
+  const exCtx = buildSellEvalCtx(ticker, { price: price ?? null, sector: sector ?? null }, macroCtx, sig ?? {});
+  const hits = [];
+  for (const rule of rules) {
+    const reason = evaluateSellRule(rule, exCtx);
+    if (reason) hits.push({ id: rule.id, category: rule.category, score: rule.score ?? 0, reason, rule });
+  }
+  const total = hits.reduce((s, h) => s + (h.score ?? 0), 0);
+  return { hits, total, exCtx };
+}
+
 async function buildSellCandidates(livePrices, excludeTickers = new Set(), macroCtx = {}) {
   const ruleSpec = loadSellRules();
   if (!ruleSpec?.rules?.length) return { us: [], kr: [], total: 0 };
@@ -7295,10 +7315,8 @@ async function generateViaOllama() {
         if (inMkt + added >= MIN_PER_MARKET) break;
         const sig = refillSig.get(cand.ticker) ?? {};
         // 2026-06-14 (Task24): 공용 ctx — refill 도 insider/13f/contract/news micro 평가(종전 우회 봉합).
-        const exCtx = buildSellEvalCtx(cand.ticker, { price: livePrices.get(cand.ticker)?.price ?? null, sector: cand.sector }, macroCtx, sig);
-        const hits = [];
-        for (const rule of vetoRules) { const reason = evaluateSellRule(rule, exCtx); if (reason) hits.push({ id: rule.id, category: rule.category, score: rule.score ?? 0, reason }); }
-        const total = hits.reduce((s, h) => s + h.score, 0);
+        const { hits: rawHits, total } = evaluateTickerSellSignals(cand.ticker, { price: livePrices.get(cand.ticker)?.price ?? null, sector: cand.sector, sig, macroCtx, vetoRules });
+        const hits = rawHits.map((h) => ({ id: h.id, category: h.category, score: h.score, reason: h.reason }));
         adjudication.candidates.push({ ticker: cand.ticker, sector: cand.sector ?? null, sellScore: total, verdict: total >= VETO_SCORE ? 'refill-veto' : 'refill-pass', hits, refill: true });
         if (total >= VETO_SCORE) { console.log(`  [경합심사/재충원] ${cand.ticker} 재심 탈락 (score ${total})`); continue; }
         const actual = livePrices.get(cand.ticker).price;
@@ -8415,13 +8433,11 @@ async function generateViaOllama() {
       for (const t of overlap) {
         const sig = sigF.get(t) ?? {};
         const pSec = finalReport.portfolio.find((p) => p.ticker === t)?.sector;
-        const exCtx = buildSellEvalCtx(t, { price: livePrices.get(t)?.price ?? null, sector: pSec }, macroCtx, sig);
-        const hits = vetoRulesF.map((r) => ({ r, reason: evaluateSellRule(r, exCtx) })).filter((x) => x.reason);
-        const total = hits.reduce((s, x) => s + (x.r.score ?? 0), 0);
+        const { hits, total } = evaluateTickerSellSignals(t, { price: livePrices.get(t)?.price ?? null, sector: pSec, sig, macroCtx, vetoRules: vetoRulesF });
         if (total >= 7) {
           finalReport.portfolio = finalReport.portfolio.filter((p) => p.ticker !== t);
-          decisions.push({ ticker: t, verdict: 'buy-removed', sellScore: total, hits: hits.map((x) => x.r.id) });
-          console.warn(`  [reconcile/final] ${t} 양쪽 발간 모순 → 매수 제거 (매도 score ${total}≥7: ${hits.map((x) => x.r.id).join(',')})`);
+          decisions.push({ ticker: t, verdict: 'buy-removed', sellScore: total, hits: hits.map((h) => h.id) });
+          console.warn(`  [reconcile/final] ${t} 양쪽 발간 모순 → 매수 제거 (매도 score ${total}≥7: ${hits.map((h) => h.id).join(',')})`);
         } else {
           for (const side of ['us', 'kr']) {
             if (finalReport.sellRecommendations?.[side]) finalReport.sellRecommendations[side] = finalReport.sellRecommendations[side].filter((s) => s.ticker !== t);
