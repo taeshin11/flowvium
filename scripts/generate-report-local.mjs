@@ -5640,6 +5640,47 @@ function parsePrice(s) {
   return m ? parseFloat(m[0]) : null;
 }
 
+// ── Best-of-N 매도 rationale (2026-06-16) — 포트폴리오 best-of-N 과 대칭. N개 draft 생성 후 GROUNDING
+//   점수로 최선 선택. grounding = rationale 이 입력의 실제 사실(종목의 pnl 숫자·룰 reason 키워드·heldDays)을
+//   인용하는가. 일반론(generic) 패널티. 점수계산 throw / 전부 실패 시 첫 파싱 draft 폴백(기존 단일샷 동작).
+//   env SELL_BEST_OF_N (기본 2, 1=기존 단일 draft).
+function scoreSellRationaleDraft(data, sellCands) {
+  const recs = data?.sellRecommendations;
+  if (!Array.isArray(recs) || recs.length === 0) return -1e9;
+  const byTicker = new Map();
+  for (const c of [...sellCands.us, ...sellCands.kr]) byTicker.set(String(c.ticker).toUpperCase(), c);
+  let score = 0;
+  const seenRats = [];
+  for (const r of recs) {
+    const t = r?.ticker ? String(r.ticker).toUpperCase() : null;
+    if (!t) { score -= 2; continue; }
+    const cand = byTicker.get(t);
+    if (!cand) { score -= 2; continue; }  // 존재하지 않는 종목 환각
+    const rat = typeof r.rationale === 'string' ? r.rationale.trim() : '';
+    if (!rat || rat.length < 10) { score -= 1; continue; }
+    score += 0.5;  // 유효 종목 + 비어있지 않은 rationale
+    // +grounding: 실제 pnl 숫자 인용
+    if (cand.pnlPct != null) {
+      const mag = Math.abs(Math.round(cand.pnlPct));
+      const re = new RegExp(`\\b${mag}(?:\\.\\d+)?\\s*%`);
+      if (re.test(rat)) score += 2;
+    }
+    // +grounding: held-days 인용
+    if (cand.heldDays != null && new RegExp(`\\b${cand.heldDays}\\b`).test(rat)) score += 1;
+    // +grounding: 룰 reason 키워드 인용 (reason 의 핵심 단어 ≥4자 중 하나라도 등장)
+    const reasonWords = String(cand.reason ?? '').match(/[A-Za-z가-힣]{4,}/g) ?? [];
+    if (reasonWords.some(w => rat.includes(w))) score += 1.5;
+    // -generic: 근거 없는 일반론 패널티 (입력 사실 미인용 + 상투구)
+    if (/(consider|recommend|portfolio|investor|market condition|일반적|전반적|상황을 고려|시장 상황)/i.test(rat)
+        && !(cand.pnlPct != null && new RegExp(`\\b${Math.abs(Math.round(cand.pnlPct))}`).test(rat))) {
+      score -= 1;
+    }
+    seenRats.push(rat.slice(0, 50));
+  }
+  if (seenRats.length) score += 2 * (new Set(seenRats).size / seenRats.length);  // 비중복 가산(복붙 패널티)
+  return score;
+}
+
 /** 매도 후보 → LLM rationale prompt (짧은 한 줄 reason + 회전 제안). */
 function buildSellRationalePrompt(sellCands) {
   const items = [...sellCands.us, ...sellCands.kr].map(c =>
@@ -5658,6 +5699,30 @@ function buildSellRationalePrompt(sellCands) {
     '{"sellRecommendations":[{"ticker":"NVDA","sellType":"target_near","rationale":"[≤80 chars]","urgency":"high|medium|low"}]}',
     'urgency: high=stop breach/imminent, medium=target proximity or rotation profit, low=time-based rotation.',
     'Pure JSON only. NO markdown.',
+  ].join('\n');
+}
+
+// ── 경합심사 LLM 판정 (2026-06-16) — BORDERLINE(netSoft∈[MID,HIGH)) 후보 전용. 순수 수치 게이트가
+//   "감점보류(downgrade)" 로 분류한 경계 후보에 한해, 매수 thesis 와 매도신호를 LLM 에 제시해 구조화 판정.
+//   HARD CAP: hard-veto / netSoft≥HIGH 는 LLM 도달 前 결정론적으로 처리됨 — LLM 은 경계대만 본다.
+//   verdict {action:'keep'|'downgrade'|'veto', reason}. parse/call 실패 시 호출부가 numeric downgrade 폴백.
+function buildAdjudicationPrompt(cand) {
+  const hitLines = (cand.hits ?? []).map(h => `  - ${h.id} (${h.category}, score ${h.score}): ${h.reason}`).join('\n') || '  (none)';
+  return [
+    'You are a risk adjudicator resolving a BORDERLINE buy↔sell conflict for ONE stock.',
+    'A buy thesis recommended this ticker, but soft sell-signals are also firing (borderline band — not a hard veto).',
+    `Ticker: ${cand.ticker}${cand.sector ? ` (${cand.sector})` : ''}`,
+    `Buy conviction (stage1Score): ${cand.buyConviction}`,
+    `Net soft sell-score: ${cand.netSoft} (borderline band [${cand.MID}, ${cand.HIGH}); buyDiscount already applied: ${cand.buyDiscount})`,
+    'Sell-rule hits:',
+    hitLines,
+    '',
+    'Decide whether the buy thesis is strong enough to overcome these soft sell-signals:',
+    "  - 'keep'      → buy thesis clearly outweighs soft signals; admit at full weight.",
+    "  - 'downgrade' → genuinely mixed; admit but reduce weight & confidence (default if unsure).",
+    "  - 'veto'      → soft signals + weak buy thesis; drop this pick.",
+    'Respond pure JSON only, no markdown:',
+    '{"action":"keep|downgrade|veto","reason":"[≤80 chars, cite the specific signal/conviction]"}',
   ].join('\n');
 }
 
@@ -6703,9 +6768,34 @@ async function generateViaOllama() {
   } else {
     wave2Calls.push(Promise.resolve(null));
   }
-  // 매도 후보가 있을 때만 LLM rationale 생성
+  // 매도 후보가 있을 때만 LLM rationale 생성. 2026-06-16: Best-of-N (포트폴리오와 대칭).
+  //   N개 draft → GROUNDING 점수로 최선 선택. 점수계산 throw / 전부 실패 시 첫 파싱 draft 폴백(기존 동작).
+  const SELL_N = Math.max(1, Math.min(4, parseInt(process.env.SELL_BEST_OF_N ?? '2', 10) || 1));
   if (sellCands.total > 0) {
-    wave2Calls.push(callOllama(buildSellRationalePrompt(sellCands), modelArg, 240000, 'sellRationale'));
+    const sellPrompt = buildSellRationalePrompt(sellCands);
+    const sellBestOfN = (async () => {
+      const drafts = await Promise.all(
+        Array.from({ length: SELL_N }, (_, i) =>
+          callOllama(sellPrompt, modelArg, 240000, SELL_N > 1 ? `sellRationale-${i + 1}/${SELL_N}` : 'sellRationale')),
+      );
+      if (SELL_N === 1) return drafts[0];
+      try {
+        const scored = drafts
+          .map((raw, i) => { const d = parseJson(raw, `sellRationale-${i + 1}`); return { raw, d, s: d ? scoreSellRationaleDraft(d, sellCands) : -1e9, i }; })
+          .sort((a, b) => b.s - a.s);
+        const best = scored[0];
+        if (best && best.s > -1e9 && best.raw) {
+          console.log(`  [sellRationale best-of-${SELL_N}] picked #${best.i + 1} score=${best.s.toFixed(1)} (all: ${scored.map(x => x.s.toFixed(0)).join(', ')})`);
+          return best.raw;
+        }
+      } catch (e) {
+        console.warn(`  [sellRationale best-of-N] 점수계산 실패(${e.message}) — 첫 draft 폴백`);
+      }
+      // 폴백: 첫 번째 파싱 가능한 draft (없으면 첫 raw)
+      const firstParsable = drafts.find(r => parseJson(r, 'sellRationale-fallback'));
+      return firstParsable ?? drafts[0] ?? null;
+    })();
+    wave2Calls.push(sellBestOfN);
   } else {
     wave2Calls.push(Promise.resolve(null));
   }
@@ -7038,8 +7128,25 @@ async function generateViaOllama() {
       catch (e) { console.warn('  ⚠️ whipsaw 메모리 로드 실패:', e.message); return new Map(); }
     })();
     const before = dedupedPortfolio.length;
+    // 2026-06-16: LLM 경합심사 (BORDERLINE 전용). 순수 수치 게이트가 downgrade 로 분류한 경계 후보(netSoft∈
+    //   [MID,HIGH))에 한해 LLM 판정. HARD CAP: hard-veto / netSoft≥HIGH 는 LLM 도달 前 결정론 veto(아래 sync
+    //   filter 에서 처리). 호출/파싱 실패 시 기존 numeric downgrade 폴백. env LLM_ADJUDICATION=0 → 순수 수치.
+    const LLM_ADJUDICATION = (process.env.LLM_ADJUDICATION ?? '1') !== '0';
+    const LLM_ADJ_CAP = 4;                  // latency 바운드 — 보고서당 borderline 0~3건 가정, 최대 4건만 LLM
+    const borderlineQueue = [];             // sync filter 가 모은 downgrade-tier 후보 (LLM 판정 대기)
     // 합의 과정 trail (reports/reconciliation/) — veto/감점/통과 + net 점수 보존(연구용).
-    const adjudication = { ts: new Date().toISOString(), session, thresholds: { HIGH, MID, macroTighten }, candidates: [], downgraded: [], whipsaw: [] };
+    const adjudication = { ts: new Date().toISOString(), session, thresholds: { HIGH, MID, macroTighten }, candidates: [], downgraded: [], whipsaw: [], adjudication: [] };
+    // borderline downgrade 적용(numeric) — LLM 폴백 시에도 동일 경로 재사용.
+    const applyDowngrade = (p, netSoft, hits) => {
+      const downConf = p.confidence === 'high' ? 'medium' : 'low';
+      const tags = hits.map(h => h.id.replace(/^[a-z]+_/, '')).join('·');
+      const caution = `⚠️ 경합심사 감점(매도신호 ${tags}, netSoft ${netSoft}) — 비중 축소·확신 강등`;
+      p.confidence = downConf;
+      p.allocation = Math.max(3, Math.round((p.allocation ?? 8) * 0.6));
+      p.riskNote = p.riskNote ? `${caution}. ${p.riskNote}` : caution;
+      p.adjudicationTier = 'downgrade';
+      adjudication.downgraded.push({ ticker: p.ticker, netSoft, hits: hits.map(h => h.id) });
+    };
     dedupedPortfolio = dedupedPortfolio.filter(p => {
       const sig = sellSig.get(p.ticker) ?? {};
       if (sig.rsi != null) p._realRsi = sig.rsi;  // technicalBasis RSI 라벨 grounding 용 (발간직전 삭제)
@@ -7114,20 +7221,55 @@ async function generateViaOllama() {
         }
       }
       if (tier === 'downgrade') {
-        const downConf = p.confidence === 'high' ? 'medium' : 'low';
-        const tags = hits.map(h => h.id.replace(/^[a-z]+_/, '')).join('·');
-        const caution = `⚠️ 경합심사 감점(매도신호 ${tags}, netSoft ${netSoft}) — 비중 축소·확신 강등`;
-        p.confidence = downConf;
-        p.allocation = Math.max(3, Math.round((p.allocation ?? 8) * 0.6));
-        p.riskNote = p.riskNote ? `${caution}. ${p.riskNote}` : caution;
-        p.adjudicationTier = 'downgrade';
-        adjudication.downgraded.push({ ticker: p.ticker, netSoft, hits: hits.map(h => h.id) });
-        console.log(`  [심판] ${p.ticker} 감점보류 (netSoft ${netSoft}∈[${MID},${HIGH}) 매수확신${buyConviction} → 비중↓·확신→${downConf}): ${hits.map(h => h.id).join(',')}`);
+        // BORDERLINE: LLM 판정 활성 + cap 여유 시 큐에 보류(아래 async 단계에서 keep/downgrade/veto 결정).
+        //   hard-veto / netSoft≥HIGH 는 위에서 이미 return false 됐으므로 여기 도달 불가 → LLM 권한 경계대 한정.
+        if (LLM_ADJUDICATION && borderlineQueue.length < LLM_ADJ_CAP) {
+          borderlineQueue.push({ p, netSoft, hits, buyConviction, buyDiscount });
+          return true;   // 일단 보존 — async 판정 후 veto 시 제거. mutation 은 판정 후 적용.
+        }
+        // LLM 비활성/캡초과 → 기존 numeric downgrade 즉시 적용.
+        applyDowngrade(p, netSoft, hits);
+        console.log(`  [심판] ${p.ticker} 감점보류 (netSoft ${netSoft}∈[${MID},${HIGH}) 매수확신${buyConviction} → 비중↓·확신→${p.confidence}): ${hits.map(h => h.id).join(',')}`);
         return true;
       }
       if (hits.length) console.log(`  [심판] ${p.ticker} 통과 (netSoft ${netSoft}<${MID} 매수확신${buyConviction} 우위): ${hits.map(h => h.id).join(',')}`);
       return true;
     });
+    // 2026-06-16: BORDERLINE LLM 판정 단계 (sync filter 이후). 큐의 경계 후보를 LLM 으로 판정해
+    //   keep(감점 면제·full 유지) / downgrade(기존 numeric) / veto(드롭). HARD CAP: 이 큐엔 hard-veto·
+    //   netSoft≥HIGH 가 들어올 수 없음(위 filter 가 이미 결정론 veto). 호출/파싱 실패 시 numeric downgrade 폴백.
+    if (borderlineQueue.length > 0) {
+      const vetoTickers = new Set();
+      const verdicts = await Promise.all(borderlineQueue.map(async (q) => {
+        try {
+          const raw = await callOllama(buildAdjudicationPrompt({ ...q.p, ...q, ticker: q.p.ticker, sector: q.p.sector, MID, HIGH }), modelArg, 120000, `adjudicate:${q.p.ticker}`);
+          const parsed = parseJson(raw, `adjudicate-${q.p.ticker}`);
+          const act = String(parsed?.action ?? '').toLowerCase();
+          if (!['keep', 'downgrade', 'veto'].includes(act)) return { q, action: null, reason: 'parse/unbounded — numeric 폴백' };
+          return { q, action: act, reason: String(parsed?.reason ?? '').slice(0, 120) };
+        } catch (e) {
+          return { q, action: null, reason: `call 실패(${String(e.message).slice(0, 60)}) — numeric 폴백` };
+        }
+      }));
+      for (const v of verdicts) {
+        const { p, netSoft, hits } = v.q;
+        if (v.action === 'keep') {
+          p.adjudicationTier = 'llm-keep';
+          adjudication.adjudication.push({ ticker: p.ticker, llmAction: 'keep', reason: v.reason });
+          console.log(`  [심판/LLM] ${p.ticker} KEEP (매수 thesis 우위, netSoft ${netSoft}): ${v.reason}`);
+        } else if (v.action === 'veto') {
+          vetoTickers.add(p.ticker);
+          adjudication.adjudication.push({ ticker: p.ticker, llmAction: 'veto', reason: v.reason });
+          console.warn(`  [심판/LLM] ${p.ticker} VETO (drop, netSoft ${netSoft}): ${v.reason}`);
+        } else {
+          // 'downgrade' OR 폴백(action=null) → 기존 numeric downgrade.
+          applyDowngrade(p, netSoft, hits);
+          adjudication.adjudication.push({ ticker: p.ticker, llmAction: v.action ?? 'downgrade-fallback', reason: v.reason });
+          console.log(`  [심판/LLM] ${p.ticker} DOWNGRADE (netSoft ${netSoft} → 비중↓·확신→${p.confidence}): ${v.reason}`);
+        }
+      }
+      if (vetoTickers.size) dedupedPortfolio = dedupedPortfolio.filter(p => !vetoTickers.has(p.ticker));
+    }
     adjudication.sellSide = sellSideReview;  // 양방향: 매도 후보의 매수신호 상충 기록
     adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length, downgraded: adjudication.downgraded.length, sellConflicts: sellSideReview.length, whipsaw: adjudication.whipsaw.length, whipsawDowngraded: adjudication.whipsaw.filter(w => w.action === 'downgraded').length };
     if (before !== dedupedPortfolio.length || adjudication.downgraded.length) console.log(`  [심판] 매수 ${before}→${dedupedPortfolio.length} (탈락 ${before - dedupedPortfolio.length}, 감점보류 ${adjudication.downgraded.length})`);
