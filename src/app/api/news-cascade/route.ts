@@ -179,7 +179,12 @@ async function translateArticles(
   articles: NewsWithCascade[],
   locale: string,
 ): Promise<NewsWithCascade[]> {
-  if (locale === 'en' || !LOCALE_NAMES[locale]) return articles;
+  // 2026-06-16 페이지 전수감사: en/default 경로가 번역·필터 없이 반환 → 일본어 원문 제목("【ヤフコメで
+  //   話題】" 등)이 홈/뉴스에 누출. 타겟이 ja 가 아니면 일본어 가나 제목 기사는 drop(번역 못 한 외국어
+  //   원문을 보여주느니 빼는 게 정직 — ko 경로의 residualForeign 필터와 동일 원칙).
+  if (locale === 'en' || !LOCALE_NAMES[locale]) {
+    return locale === 'ja' ? articles : articles.filter((a) => !/[぀-ゟ゠-ヿ]/.test(a.title ?? ''));
+  }
   if (!articles.length) return articles;
   const CHUNK = 4;
   const out: NewsWithCascade[] = [];
