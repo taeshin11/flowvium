@@ -8809,6 +8809,16 @@ async function generateViaOllama() {
       const sc = spawnSync(process.execPath, [resolve(ROOT, 'scripts/screenshot-report.mjs'), localeArg, shot], { timeout: 70000, stdio: 'ignore' });
       console.log(existsSync(shot) && !sc.error ? `  [시각 캡쳐] 발간본 → ${shot} (Claude 검증용)` : '  [시각 캡쳐] skip(캡쳐 실패 — 발간엔 영향 없음)');
     } catch (e) { console.warn('  [시각 캡쳐] skip:', e?.message); }
+    // 2026-06-16: 발행→라이브 반영되면 *즉시* 로그인 슬라이스 재검 (사용자 절차화 요청). 비차단 백그라운드 —
+    //   라이브 폴링+슬라이스+verify probe → logs/recheck-status.json (session-spotcheck 가 surface).
+    //   MEMBER_EMAIL(.env.local) 있으면 로그인 게이트 해제 캡처. 실패해도 발간 영향 없음.
+    try {
+      const { spawn } = await import('child_process');
+      const child = spawn(process.execPath, [resolve(ROOT, 'scripts/visual/post-publish-recheck.mjs'), filepath],
+        { detached: true, stdio: 'ignore', windowsHide: true, env: process.env });
+      child.unref();
+      console.log('  [post-publish-recheck] 백그라운드 재검 시작 → logs/recheck-status.json');
+    } catch (e) { console.warn('  [post-publish-recheck] skip:', e?.message); }
   } else {
     console.log('\n✅ 생성 완료. 내용 확인 후 업로드:');
     console.log(`   node scripts/generate-report-local.mjs --upload=reports/${filename}`);

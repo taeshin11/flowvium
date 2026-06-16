@@ -77,6 +77,18 @@ try {
   }
 } catch { /* 네트워크 블립은 무시(오탐 방지) */ }
 
+// [7] 발행후 라이브 재검 결과 (post-publish-recheck.mjs 가 매 발행 후 기록 — 로그인 슬라이스+verify probe)
+try {
+  const s = JSON.parse(readFileSync(`${ROOT}/logs/recheck-status.json`, 'utf8'));
+  const ageH = (now - new Date(s.ts).getTime()) / 3600000;
+  if (ageH < 12) {  // 직전 발행분 재검만 반영 (오래된 건 무시)
+    if (s.verdict === 'alert' || (s.highDefects?.length)) {
+      const d = s.highDefects?.length ? ` high결함 ${s.highDefects.map((x) => x.type).join(',')}` : '';
+      alerts.push(`발행후재검 ALERT(${ageH.toFixed(1)}h${s.liveConfirmed ? '' : ', 라이브미반영'})${d}`);
+    } else info.push(`재검OK(${s.nSlices}장)`);
+  }
+} catch { /* 재검기록 없음(아직 발행 전이거나 구버전) — 무시 */ }
+
 const line = alerts.length
   ? `ALERT: ${alerts.join(' | ')}  [ok: ${info.join(', ')}]`
   : `OK  ${info.join(' / ')}`;

@@ -1,0 +1,105 @@
+#!/usr/bin/env node
+// scripts/visual/post-publish-recheck.mjs
+// 발행 → 라이브 반영되면 *즉시* 로그인(회원) 상태의 읽을 수 있는 보고서 슬라이스를 캡처하고 재검하는 절차.
+//   (2026-06-16 사용자 "보고서 올린후 올라오면 바로 라이브 읽을수있는 슬라이스 재검 절차 만들어놔".)
+//
+// 단계: (1) 라이브 API 가 발행본(generatedAt) 반영할 때까지 폴링(최대 90s)
+//       (2) MEMBER_EMAIL 로 로그인 → /ko/report 끝까지 스크롤 → 읽을 수 있는 슬라이스 PNG
+//       (3) verify-report 내러티브/전체 probe 로 발행 JSON 재검(결함→hallucination_history 는 생성기 담당)
+//       (4) 몽타주 합성 + logs/recheck-status.json 기록 (session-spotcheck 가 surface)
+// 출력 1줄: "RECHECK OK ..." / "RECHECK ALERT: ...". exit 0/1.
+// 사용: MEMBER_EMAIL=.. node scripts/visual/post-publish-recheck.mjs [reportFile] [--base=https://flowvium.net]
+import { chromium } from 'playwright';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { verifyReport, pickLatestReport } from '../verify-report.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dirname, '..', '..');
+const arg = (k, d) => { const a = process.argv.find((x) => x.startsWith(`--${k}=`)); return a ? a.split('=').slice(1).join('=') : d; };
+const BASE = arg('base', 'https://flowvium.net').replace(/\/$/, '');
+const EMAIL = process.env.MEMBER_EMAIL || '';
+const reportFile = process.argv.slice(2).find((a) => a.endsWith('.json')) || pickLatestReport(resolve(ROOT, 'reports'));
+
+const out = (line, code) => { console.log(line); process.exitCode = code; setTimeout(() => process.exit(code), 1500).unref(); };
+if (!reportFile) { out('RECHECK ALERT: 보고서 파일 없음', 1); }
+
+const report = JSON.parse(readFileSync(resolve(ROOT, reportFile), 'utf8'));
+const wantGen = report.generatedAt;
+const alerts = [];
+const info = [];
+
+// (1) 라이브 반영 폴링 — source/generatedAt 가 발행본과 일치할 때까지(최대 90s)
+let liveConfirmed = false;
+for (let i = 0; i < 18; i++) {
+  try {
+    const r = await fetch(`${BASE}/api/investment-strategy`, { signal: AbortSignal.timeout(9000), headers: { connection: 'close' } });
+    if (r.ok) { const j = await r.json(); if (j.generatedAt === wantGen || (j.session === report.session && j.source === report.source)) { liveConfirmed = true; break; } }
+  } catch { /* 폴링 블립 무시 */ }
+  await new Promise((res) => setTimeout(res, 5000));
+}
+if (liveConfirmed) info.push('live반영✓'); else alerts.push('라이브 미반영(90s 내 generatedAt 불일치 — publish 지연/실패)');
+
+// (2) 로그인 슬라이스 캡처
+const tsDir = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+const shotDir = `${ROOT}/logs/screenshots/recheck-${tsDir}`;
+mkdirSync(shotDir, { recursive: true });
+let nSlices = 0, authState = 'anon';
+const SLICE_H = 1000, WIDTH = 1280;
+try {
+  const browser = await chromium.launch({ headless: true });
+  const ctx = await browser.newContext({ viewport: { width: WIDTH, height: SLICE_H }, locale: 'ko-KR' });
+  if (EMAIL) {
+    try { const pr = await ctx.request.post(`${BASE}/api/member`, { data: { email: EMAIL }, timeout: 12000 }); authState = (pr.ok()) ? 'member' : `auth실패${pr.status()}`; } catch { authState = 'auth오류'; }
+  }
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/ko/report`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  try { await page.waitForLoadState('networkidle', { timeout: 8000 }); } catch {}
+  await page.evaluate(async () => { await new Promise((res) => { let y = 0; const t = setInterval(() => { window.scrollTo(0, y); y += 600; if (y >= document.body.scrollHeight) { clearInterval(t); window.scrollTo(0, 0); res(); } }, 100); }); });
+  await page.waitForTimeout(900);
+  const total = await page.evaluate(() => document.body.scrollHeight);
+  const bodyLen = (await page.evaluate(() => document.body?.innerText || '')).trim().length;
+  if (authState === 'member' && bodyLen < 5000) alerts.push(`로그인 보고서 본문 ${bodyLen}자 (게이트 미해제/렌더 실패 의심)`);
+  const n = Math.ceil(total / SLICE_H);
+  for (let i = 0; i < n; i++) { await page.evaluate((y) => window.scrollTo(0, y), i * SLICE_H); await page.waitForTimeout(200); await page.screenshot({ path: `${shotDir}/slice_${String(i).padStart(2, '0')}.png` }); }
+  nSlices = n;
+  await browser.close();
+  info.push(`슬라이스 ${nSlices}장(${authState},${bodyLen}자)`);
+} catch (e) { alerts.push(`슬라이스 캡처 실패: ${String(e?.message || e).slice(0, 60)}`); }
+
+// (3) 발행 JSON 재검 (verify-report 전체 probe — 내러티브 probe 포함)
+let defects = [];
+try { ({ defects } = await verifyReport(resolve(ROOT, reportFile), { silent: true })); } catch (e) { alerts.push(`verify 실패: ${String(e?.message).slice(0, 50)}`); }
+const high = defects.filter((d) => d.severity === 'high');
+if (high.length) alerts.push(`발행본 high 결함 ${high.length}건: ${high.map((d) => d.defect_type).join(',')}`);
+else if (defects.length) info.push(`결함 ${defects.length}건(high 0)`);
+else info.push('결함 0');
+
+// (4) 몽타주 합성 (빠른 육안용)
+let montage = null;
+try {
+  const files = readdirSync(shotDir).filter((f) => /^slice_\d+\.png$/.test(f)).sort();
+  if (files.length) {
+    const cells = files.map((f, i) => `<div class=c><div class=l>slice ${i}</div><img src="data:image/png;base64,${readFileSync(`${shotDir}/${f}`).toString('base64')}"></div>`).join('');
+    const html = `<html><head><meta charset=utf8><style>body{margin:0;background:#0d1117}.g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px}.c{background:#161b22;border:1px solid #30363d}.l{color:#8b949e;font:12px sans-serif;padding:4px 8px;background:#21262d}.c img{width:100%;display:block}</style></head><body><div class=g>${cells}</div></body></html>`;
+    const b = await chromium.launch({ headless: true });
+    const pg = await b.newPage({ viewport: { width: 1500, height: 1000 } });
+    await pg.setContent(html, { waitUntil: 'load' }); await pg.waitForTimeout(300);
+    montage = `${shotDir}/montage.png`;
+    await pg.screenshot({ path: montage, fullPage: true });
+    await b.close();
+  }
+} catch { /* 몽타주 실패는 비치명 */ }
+
+// (5) 상태 기록 — session-spotcheck 가 읽어 surface
+const status = {
+  ts: new Date().toISOString(), reportFile, generatedAt: wantGen, session: report.session,
+  liveConfirmed, authState, nSlices, shotDir, montage,
+  defectCount: defects.length, highDefects: high.map((d) => ({ type: d.defect_type, value: String(d.llm_value).slice(0, 60) })),
+  verdict: alerts.length ? 'alert' : 'ok',
+};
+try { writeFileSync(`${ROOT}/logs/recheck-status.json`, JSON.stringify(status, null, 2)); } catch {}
+
+out(alerts.length ? `RECHECK ALERT: ${alerts.join(' | ')}  [ok: ${info.join(', ')}]  shots=${shotDir}`
+  : `RECHECK OK  ${info.join(' / ')}  shots=${shotDir}`, alerts.length ? 1 : 0);
