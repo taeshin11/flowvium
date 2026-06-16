@@ -216,7 +216,7 @@ cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetc
 cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
 cron.schedule('35 18 * * *', () => runMaintenance('sell-outcomes', 'scripts/evaluate-sell-outcomes.mjs', 600000), { timezone: TZ });  // 03:35 KST — 매도 성과평가 (2026-06-12 신설, 튜닝 ground truth)
 cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs --apply', 600000, ['data/sell-rules-tuned.json']), { timezone: TZ }); // 일 04:05 KST — 주간 매도룰 pnl 백튜닝 자동적용+커밋(±20% cap, .bak)
-cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs', 600000), { timezone: TZ });         // 일 04:20 KST
+cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs --apply', 600000, ['data/buy-rules-tuned.json']), { timezone: TZ }); // 일 04:20 KST — 주간 매수룰 outcome 백튜닝 자동적용+커밋(write-then-revert 해소)
 // 2026-06-13: 수주잔고(SEC RPO) 주간 갱신 — 10-K/Q 분기 보고라 주 1회면 충분. 산출물 자동 커밋.
 cron.schedule('5 20 * * 6', () => runMaintenance('build-backlog', 'scripts/build-backlog.mjs', 1200000, ['data/backlog.json']), { timezone: TZ }); // 일 05:05 KST
 // 2026-06-13: 전 종목 재무 사전수집 (사용자 "미리미리 수집") — 매일 04:35 KST (분기보고라 일 1회).

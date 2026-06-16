@@ -90,7 +90,14 @@ spec.outcomeStats = {
   bestTickers, worstTickers,
 };
 
-writeFileSync(RULES_PATH, JSON.stringify(spec, null, 2) + '\n', 'utf8');
-console.log(`\n✅ buy-rules-tuned.json 업데이트 — outcomeStats 갱신 (n=${total})`);
+// 2026-06-16: dry-run 기본 + --apply 게이트 (tune-sell-rules 와 대칭). cron 은 --apply+commitPaths 로
+//   호출 → 갱신분이 커밋+푸시돼 report cron checkout 에 revert 안 됨(기존엔 write-then-revert 로 무효).
+if (process.argv.includes('--apply')) {
+  try { writeFileSync(RULES_PATH + '.bak', readFileSync(RULES_PATH)); } catch {}
+  writeFileSync(RULES_PATH, JSON.stringify(spec, null, 2) + '\n', 'utf8');
+  console.log(`\n✅ buy-rules-tuned.json 적용 — outcomeStats 갱신 (n=${total}, hitRate ${spec.outcomeStats.hitRate}% avgPnl ${spec.outcomeStats.avgPnl}%)`);
+} else {
+  console.log(`\n[dry-run] buy-rules-tuned.json 미적용 (--apply 로 적용). outcomeStats: n=${total}, hitRate ${spec.outcomeStats.hitRate}%, avgPnl ${spec.outcomeStats.avgPnl}%, avgAlpha ${spec.outcomeStats.avgAlpha}%`);
+}
 
 db.close();
