@@ -8736,8 +8736,15 @@ const onFatal = (e) => {
   console.error('[FATAL]', e?.stack ?? e?.message ?? String(e));
   process.exit(1);
 };
-if (uploadArg) {
-  uploadFromFile(uploadArg).catch(onFatal);
-} else {
-  generateViaOllama().catch(onFatal);
+// 2026-06-16: main 진입 가드 — 직접 실행(cron)일 때만 main 돌고, import(단위테스트) 시엔 안 돈다.
+//   순수 helper(scorePortfolioDraft/scoreSellRationaleDraft/parseEntryMid/buildAdjudicationPrompt)를
+//   export 해 검증체계(test-judge.mjs)에서 #3/#5/best-of-N 로직을 단위검증 가능케 함.
+const IS_MAIN_MODULE = (() => { try { return resolve(fileURLToPath(import.meta.url)) === resolve(process.argv[1] ?? ''); } catch { return false; } })();
+if (IS_MAIN_MODULE) {
+  if (uploadArg) {
+    uploadFromFile(uploadArg).catch(onFatal);
+  } else {
+    generateViaOllama().catch(onFatal);
+  }
 }
+export { scorePortfolioDraft, scoreSellRationaleDraft, parseEntryMid, buildAdjudicationPrompt };
