@@ -809,6 +809,14 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 }
 
 // ── GET handler ───────────────────────────────────────────────────────────────
+// 2026-06-16 페이지 전수감사: 비-ja 타겟에 일본어 가나 제목 기사 drop. 기본 en/미번역 경로가 raw 캐시
+//   기사를 필터 없이 반환(line ~845)해 홈에 "【ヤフコメで話題】" 누출 → source(cached/memory)에서 차단.
+function dropForeignTitles(articles: NewsWithCascade[] | null, locale: string): NewsWithCascade[] {
+  if (!Array.isArray(articles)) return articles ?? [];
+  if (locale === 'ja') return articles;
+  return articles.filter((a) => !/[぀-ゟ゠-ヿ]/.test((a as { title?: string })?.title ?? ''));
+}
+
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   const probe = searchParams.get('probe') === '1';
@@ -832,14 +840,14 @@ export async function GET(request: Request) {
   // 1a. Module-level memory cache hit (no-Redis path) — avoids 5 GROQ calls per request
   if (!redis && NEWS_MEMORY_CACHE && Date.now() < NEWS_MEMORY_CACHE.expiresAt) {
     logger.info('api.news-cascade', 'memory_cache_hit', { articles: NEWS_MEMORY_CACHE.articles.length });
-    const out = wantsTranslation ? await translateArticles(NEWS_MEMORY_CACHE.articles, locale) : NEWS_MEMORY_CACHE.articles;
+    const out = wantsTranslation ? await translateArticles(NEWS_MEMORY_CACHE.articles, locale) : dropForeignTitles(NEWS_MEMORY_CACHE.articles, locale);
     return NextResponse.json({ articles: out, cached: true, locale, source: 'cached' }, { headers: CDN_HEADERS });
   }
 
   // 1b. Try to load today's cached list from Redis
   if (redis) {
     try {
-      const cached = await redis.get<NewsWithCascade[]>(listKey());
+      const cached = dropForeignTitles(await redis.get<NewsWithCascade[]>(listKey()), locale); // 일본어 제목 source 차단(전 fallback 경로)
       if (cached && cached.length > 0) {
         if (!wantsTranslation) {
           return NextResponse.json({ articles: cached, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
@@ -899,7 +907,7 @@ export async function GET(request: Request) {
           try {
             const fresh = await redis.get<NewsWithCascade[]>(listKey());
             if (fresh && fresh.length > 0) {
-              return NextResponse.json({ articles: fresh, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
+              return NextResponse.json({ articles: dropForeignTitles(fresh, locale), cached: true, source: 'cached' }, { headers: CDN_HEADERS });
             }
             const stillLocked = await redis.get(LOCK_KEY);
             if (!stillLocked) break; // holder finished or crashed — do final check
@@ -908,7 +916,7 @@ export async function GET(request: Request) {
         try {
           const fresh = await redis.get<NewsWithCascade[]>(listKey());
           if (fresh && fresh.length > 0) {
-            return NextResponse.json({ articles: fresh, cached: true, source: 'cached' }, { headers: CDN_HEADERS });
+            return NextResponse.json({ articles: dropForeignTitles(fresh, locale), cached: true, source: 'cached' }, { headers: CDN_HEADERS });
           }
         } catch { /* ignore */ }
         // Timed out waiting for lock — return empty rather than risk exceeding maxDuration
@@ -1075,8 +1083,8 @@ export async function GET(request: Request) {
         }
       } catch (e) { logger.warn('api.news-cascade', 'bg_translation_failed', { locale, error: String(e).slice(0, 100) }); }
     });
-    return NextResponse.json({ articles: sorted, cached: false, locale, translated: false, translating: true, source: 'live-en' }, { headers: CDN_HEADERS });
+    return NextResponse.json({ articles: dropForeignTitles(sorted, locale), cached: false, locale, translated: false, translating: true, source: 'live-en' }, { headers: CDN_HEADERS });
   }
 
-  return NextResponse.json({ articles: sorted, cached: false, source: 'live' }, { headers: CDN_HEADERS });
+  return NextResponse.json({ articles: dropForeignTitles(sorted, locale), cached: false, source: 'live' }, { headers: CDN_HEADERS });
 }
