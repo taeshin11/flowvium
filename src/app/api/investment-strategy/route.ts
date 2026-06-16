@@ -2166,8 +2166,13 @@ export async function GET(request: Request) {
       // 전용 히스토리 리포트 키 (session 키와 별도, 90일 TTL)
       const histReportKey = `flowvium:investment-strategy:hist:report:${strategy.generatedAt}`;
       // Always write to in-process memory cache first — survives Upstash daily command limit exhaustion
-      memSetReport(histReportKey, cacheable);
-      await loggedRedisSet(redis, 'api.investment-strategy', histReportKey, cacheable, { ex: HIST_REPORT_TTL });
+      // 2026-06-17 (사용자 "fallback 보고서 사전검열해서 배포 전 삭제"): fallback 은 hist:report 키 자체를
+      //   쓰지 않는다. 기존엔 isFallback 무관 무조건 기록돼 morning 06:40 미발행 후 07:20 fallback 5키가
+      //   적재 → 히스토리에 노출됐다. 원천 차단(키 미기록 + 아래 배열 push 도 skip).
+      if (!isFallback) {
+        memSetReport(histReportKey, cacheable);
+        await loggedRedisSet(redis, 'api.investment-strategy', histReportKey, cacheable, { ex: HIST_REPORT_TTL });
+      }
       // 히스토리 배열에는 전용 키를 저장 (session TTL 만료와 무관)
       const meta = { key: histReportKey, generatedAt: strategy.generatedAt, session, kstDate: kstDateHist, stance: strategy.stance, thesis: (strategy.thesis ?? '').slice(0, 80), riskLevel: strategy.riskLevel, source: strategy.source, locale };
       const raw = await redis.get(HIST_KEY);
@@ -2184,7 +2189,10 @@ export async function GET(request: Request) {
         e.session === session && e.locale === locale;
       const isFallbackSrc = (src: unknown) => typeof src === 'string' && (src === 'fallback' || src === 'data' || src.startsWith('fallback'));
       const existingSame = cleaned.find(e => sameSession(e as Record<string, unknown>)) as Record<string, unknown> | undefined;
-      const skipPush = isFallbackSrc(strategy.source) && existingSame && !isFallbackSrc(existingSame.source);
+      // 2026-06-17: fallback 이면 항상 배열 push skip. 기존 조건('같은세션 non-fallback 존재 시에만 skip')은
+      //   morning 06:40 미발행 시 existingSame=undefined → fallback 이 배열에 적재되던 근본 구멍이었다.
+      //   isFallback(광의: source=fallback/데이터모델/schema불일치/garbage/unknown) 이면 무조건 미반영.
+      const skipPush = isFallback || (isFallbackSrc(strategy.source) && existingSame && !isFallbackSrc(existingSame.source));
       let updated;
       if (skipPush) {
         logger.info('api.investment-strategy', 'history_skip_fallback', { locale, session, existingSource: existingSame!.source });

@@ -133,8 +133,22 @@ async function runMonitor() {
       }
     }
   } catch { /* nvidia-smi 부재/실패 — skip */ }
+
+  // 2026-06-17 (사용자 "fallback 보고서 사전검열·배포 전 삭제 + 모니터가 왜 못잡냐"): 매 사이클(20분)
+  //   fallback purge — route.ts 원천차단(hist 키·배열 미기록)의 2차 안전망. Redis 세션/stale/hist 키 SCAN
+  //   → fallback source 면 즉시 삭제. 기존엔 deep 모니터(6h throttle)에서만 돌아 morning 06:40 실패 후
+  //   07:20 fallback 이 ~30분+ 노출됐다(사용자 발견). 이제 20분마다 청소 + 발견 시 결함 표면화.
+  try {
+    let out = '';
+    try { const r = await execFileAsync('node', ['scripts/purge-fallback-report.mjs'], { timeout: 60000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 }); out = r.stdout || ''; }
+    catch (e) { out = (e.stdout?.toString() || '') + (e.stderr?.toString() || ''); }
+    const pline = out.trim().split('\n').pop() || '';
+    result.checks.fallbackPurge = /PURGE-FALLBACK ALERT/.test(pline) ? 'PURGED' : 'clean';
+    if (/PURGE-FALLBACK ALERT/.test(pline)) result.defects.push(`[fallback] 배포된 fallback 삭제: ${pline.replace(/^.*ALERT:\s*/, '').slice(0, 90)}`);
+  } catch { result.checks.fallbackPurge = 'err'; }
+
   try { writeFileSync(resolve(process.cwd(), 'logs/monitor-status.json'), JSON.stringify(result, null, 2)); } catch { /* */ }
-  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
+  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'} fbPurge=${result.checks.fallbackPurge ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
 
   // 2026-06-06 cold-cache self-heal: 자가호스팅이라 cloud 번역 warm-cron(401) 부재 → 뉴스 새로고침
   //   후 비-ko locale 이 cold 로 남아 모니터마다 [B] 결함 재발(수동 warm 반복). 감지 시 자동 warm

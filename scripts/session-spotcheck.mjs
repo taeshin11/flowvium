@@ -12,12 +12,17 @@ const now = Date.now();
 const alerts = [];
 const info = [];
 
-// [1] flowvium-cron 이 20분마다 갱신하는 monitor-status.json 신선도 (<25m)
+// [1] flowvium-cron 이 20분마다 갱신하는 monitor-status.json 신선도 (<25m) + 결함 surface
+//   2026-06-17 (사용자 "모니터가 왜 못잡냐"): 기존엔 신선도(mtime)만 보고 result.defects 배열은 무시 →
+//   runMonitor 가 잡은 결함(fallback purge, GPU 과열 등)이 스팟체크로 안 올라왔다. 이제 defects 도 ALERT 화.
 try {
   const s = JSON.parse(readFileSync(`${ROOT}/logs/monitor-status.json`, 'utf8'));
   const ageMin = (now - new Date(s.ts).getTime()) / 60000;
   if (ageMin > 25) alerts.push(`monitor-status ${ageMin.toFixed(0)}m stale (flowvium-cron 중단 의심)`);
   else info.push(`monitor ${ageMin.toFixed(0)}m`);
+  if (ageMin <= 25 && Array.isArray(s.defects) && s.defects.length) {
+    alerts.push(`모니터 결함 ${s.defects.length}: ${s.defects.slice(0, 3).join(' | ').slice(0, 140)}`);
+  }
 } catch { alerts.push('monitor-status.json 읽기 실패'); }
 
 // [2] GPU 온도 < 85C
@@ -88,6 +93,24 @@ try {
     } else info.push(`재검OK(${s.nSlices}장)`);
   }
 } catch { /* 재검기록 없음(아직 발행 전이거나 구버전) — 무시 */ }
+
+// [8] 현재 세션 발행 누락 감지 (2026-06-17 사용자 "morning 누락+fallback 을 모니터가 왜 못잡냐").
+//   [3] file-mtime/9h 임계는 단일 세션 누락을 못 잡는다(세션 간격 <9h). 스케줄 발행시각 + 40분 grace 가
+//   지났는데 해당 세션의 오늘자 보고서 파일이 없으면 ALERT — 06:40 morning git-hang 같은 silent 미발행 포착.
+try {
+  const kst = new Date(now + 9 * 3600000);
+  const kh = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+  const today = kst.toISOString().slice(0, 10);
+  const SESS = [[6 * 60 + 40, 'morning'], [11 * 60 + 40, 'noon'], [15 * 60 + 40, 'afternoon'], [21 * 60 + 10, 'evening'], [23 * 60 + 40, 'midnight']];
+  const GRACE = 40; // 생성 소요(분) — 발행시각 + 40분까지는 생성중일 수 있어 유예
+  const due = SESS.filter(([m]) => kh >= m + GRACE).pop(); // 오늘 발행기한 지난 세션 중 가장 최근
+  if (due) {
+    const label = due[1];
+    if (!existsSync(`${ROOT}/reports/report-${today}-${label}-ko.json`)) {
+      alerts.push(`현재 세션(${label}) 미발행 — ${today} ${label} 보고서 파일 없음 (cron hang/실패 의심)`);
+    } else info.push(`세션 ${label}✓`);
+  }
+} catch {}
 
 // [8] git wipe-risk (CLAUDE.md 의무 — "check-stall git wipe-risk 를 주기 모니터에 통합". 미커밋 tracked
 //   변경 + 미푸시 ahead 커밋 = 다음 cron checkout 이 silent wipe. 2026-06-16 누락 발견 후 spotcheck 통합.)
