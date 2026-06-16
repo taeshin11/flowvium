@@ -8658,14 +8658,12 @@ async function generateViaOllama() {
         supplyChainChanges: finalReport.supplyChainChanges ?? [],
         companyChanges: finalReport.companyChanges ?? [],
       });
-      saveMacroSnapshot({
-        reportId,
-        capturedAt: finalReport.generatedAt,
-        ctxRaw,
-        macroData,
-      });
+      // 2026-06-17: saveMacroSnapshot 는 엔드포인트 스냅샷 저장 *후* 로 이동(line ~8713 이후). 이유: 이 함수의
+      //   endpoint_snapshots 폴백(/api/volatility .vix·/api/yield-curve·/api/capital-flows SPY)이 이 보고서의
+      //   스냅샷이 아직 안 써진 시점(snapshotAllEndpoints 는 뒤에 실행)에 돌아 항상 빈손 → ctxRaw 가 null 이면
+      //   vix/yield/spy 가 null 저장됨(2026-06-17 midnight 사건: 정확도probe 가 our=0 검출). 순서 반대로 하면 폴백 작동.
     } catch (e) {
-      console.warn(`[db] ⚠️ news/macro 적재 실패: ${String(e).slice(0, 100)}`);
+      console.warn(`[db] ⚠️ news 적재 실패: ${String(e).slice(0, 100)}`);
     }
     // 2026-06-03: 각 archive 를 독립 try/catch 로 격리 — 이전엔 news/macro/domain/fg 가 한 try 라
     //   앞 단계 하나만 throw 해도 saveFearGreedArchive 가 skip 돼 fg_archive 가 5-28 이후 중단됐음.
@@ -8711,6 +8709,13 @@ async function generateViaOllama() {
     const snapResults = await snapshotAllEndpoints(reportId, { portfolioTickers });
     const okCount = snapResults.filter(r => r.ok).length;
     console.log(`[db] ✅ 스냅샷 완료: ${okCount}/${snapResults.length} ok, ${Date.now() - snapStart}ms`);
+    // 2026-06-17: macro_snapshot 은 *엔드포인트 스냅샷 저장 후* 적재 — saveMacroSnapshot 의 폴백이 방금 써진
+    //   /api/volatility(.vix)·/api/yield-curve·/api/capital-flows(SPY) 를 읽어 ctxRaw 결측 시에도 vix/yield/spy 복구.
+    try {
+      saveMacroSnapshot({ reportId, capturedAt: finalReport.generatedAt, ctxRaw, macroData });
+    } catch (e) {
+      console.warn(`[db] ⚠️ macro snapshot 적재 실패: ${String(e).slice(0, 100)}`);
+    }
     const failed = snapResults.filter(r => !r.ok).map(r => r.endpoint);
     if (failed.length) console.log(`[db] ⚠️  실패: ${failed.join(', ')}`);
 

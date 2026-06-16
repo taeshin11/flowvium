@@ -52,11 +52,13 @@ try {
 
 // ── B: 정확도 probe — 우리 발행값 vs 공식 소스(독립 fetch). delta 누적이 핵심(전향적). ──────────────
 const probes = [];
-const num = (v) => (Number.isFinite(+v) ? +v : null);
+const num = (v) => (v == null || v === '' ? null : (Number.isFinite(+v) ? +v : null)); // null→null (기존 +null=0 버그 fix)
 const BROWSER = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36', Accept: 'application/json' };
 async function jget(url, headers) { const r = await fetch(url, { headers, signal: AbortSignal.timeout(12000) }); if (!r.ok) throw new Error('http' + r.status); return r.json(); }
 function pushProbe(metric, our, source, sourceName, tol) {
-  if (our == null || source == null) { probes.push({ metric, our, source, sourceName, delta: null, tolerance: tol, verdict: 'na', detail: '값없음' }); return; }
+  // source 결측 = 외부 불가(na). our 결측인데 source 있음 = 우리 데이터 누락(error — 발행본 결함, 알림 대상).
+  if (source == null) { probes.push({ metric, our, source, sourceName, delta: null, tolerance: tol, verdict: 'na', detail: 'source 결측' }); return; }
+  if (our == null) { probes.push({ metric, our, source, sourceName, delta: null, tolerance: tol, verdict: 'error', detail: `our 결측 (src=${source})` }); return; }
   const delta = our - source;
   const verdict = Math.abs(delta) <= tol ? 'ok' : (Math.abs(delta) <= tol * 2 ? 'degraded' : 'error');
   probes.push({ metric, our, source, sourceName, delta, tolerance: tol, verdict, detail: `our=${our} src=${source} d=${delta.toFixed(2)}` });
