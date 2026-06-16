@@ -69,7 +69,7 @@ try {
 
 // [6] 라이브 보고서 fallback 감지 (Redis publish 누락/cron hang — file-mtime 으론 안잡히는 사각지대; 2026-06-15 morning-cron hang 사건 후 신설)
 try {
-  const r = await fetch('https://flowvium.net/api/investment-strategy', { signal: AbortSignal.timeout(9000) });
+  const r = await fetch('https://flowvium.net/api/investment-strategy', { signal: AbortSignal.timeout(9000), headers: { connection: 'close' } });
   if (r.ok) {
     const src = String((await r.json()).source ?? '');
     if (/^fallback/i.test(src)) alerts.push(`라이브 보고서 fallback (source=${src}) — Redis publish 누락/cron hang`);
@@ -81,4 +81,7 @@ const line = alerts.length
   ? `ALERT: ${alerts.join(' | ')}  [ok: ${info.join(', ')}]`
   : `OK  ${info.join(' / ')}`;
 console.log(line);
-process.exit(alerts.length ? 1 : 0);
+// 2026-06-16: Windows libuv assert(!UV_HANDLE_CLOSING) 회피 — fetch 잔류 핸들 닫히기 전 process.exit() 즉시 호출 시 크래시.
+//   Connection:close 로 keep-alive 소켓 잔류 제거 + 자연 종료(exitCode). 미종료 시 3s unref 타이머가 force-exit(자체로 loop 유지 안 함).
+process.exitCode = alerts.length ? 1 : 0;
+setTimeout(() => process.exit(process.exitCode), 3000).unref();
