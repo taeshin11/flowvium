@@ -58,3 +58,8 @@ data/company-segments-dynamic.json
 # 2026-06-12: fullpage hook 이 발간마다 갱신하는 런타임 산출물 (wipe-risk churn 차단 — Drive 백업으로 보존)
 data/company-profiles.json
 reports/preview/
+
+# 2026-06-16: 시각결함 probe 산출물 (로컬 전용) + 격리 Playwright deps
+scripts/visual/node_modules/
+logs/screenshots/
+logs/visual-probe.json

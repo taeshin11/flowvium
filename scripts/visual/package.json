@@ -1,0 +1,14 @@
+{
+  "name": "flowvium-visual-probe",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "격리된 시각 결함 probe (Playwright). 루트 package.json/Vercel 빌드와 분리 — 로컬 4090 PC 모니터링 전용.",
+  "scripts": {
+    "probe": "node screenshot-probe.mjs",
+    "setup": "npm install && npx playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
