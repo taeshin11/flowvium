@@ -111,6 +111,18 @@ try {
   else info.push(`Karpathy ${latest.n}행`);
 } catch { /* DB 잠김/없음 — 무시 */ }
 
+// [11] 좀비 보고서 래퍼 감지 (2026-06-17: wscript→run-report.bat 가 발간 후에도 안 죽고 10h+ 잔류 →
+//   report.log 핸들 점유 → 다음 스케줄 런 cascade stall → 보고서 silent 미발행. 이 실패를 어떤 모니터도
+//   못 잡던 사각지대. Task ExecutionTimeLimit=PT30M 가 30분에 죽여야 하므로 35분+ 생존 wscript = 안전망 실패.)
+try {
+  const out = execSync(
+    'powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name=\'wscript.exe\'\\" | Where-Object { $_.CommandLine -match \'run-report\' } | ForEach-Object { [int]((Get-Date)-$_.CreationDate).TotalMinutes } | Measure-Object -Maximum | Select-Object -ExpandProperty Maximum"',
+    { encoding: 'utf8', timeout: 12000 }).trim();
+  const maxAge = parseInt(out, 10);
+  if (Number.isFinite(maxAge) && maxAge > 35) alerts.push(`좀비 보고서 래퍼 ${maxAge}m 잔류 (Task 타임아웃 실패 — cascade stall 위험, kill 필요)`);
+  else if (Number.isFinite(maxAge)) info.push(`wrapper ${maxAge}m`);
+} catch { /* 프로세스 없음/조회 실패 — 무시(오탐 방지) */ }
+
 // [10] deep-monitor (A=렌더 전수감사 + B=정확도probe, DB 누적) — surface 최신결과 + 6h throttle 로 detached 재실행.
 //   (2026-06-16: 기존 모니터는 liveness 만 봤고 correctness/전체페이지는 발행시 1회뿐이었음. deep 가 주기적
 //    correctness 검산 + 전향적 DB 적재. 무거워서 spotcheck 가 직접 안 돌리고 6h 마다 백그라운드 spawn.)
