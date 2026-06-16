@@ -4358,9 +4358,11 @@ function getGuruContext() {
 }
 
 function buildMacroPrompt(ctx, vix, session) {
-  const sc = session === 'morning' ? 'Post US-close' : session === 'afternoon' ? 'Post Asia-close' : 'Pre US-open';
+  const sc = session === 'morning' ? 'Post US-close' : session === 'afternoon' ? 'Post Asia-close' : session === 'noon' ? 'Asia mid-session (KR 점심)' : session === 'midnight' ? 'Asia pre-open / US after-close' : 'Pre US-open';
+  const focus = getSessionFocus(session);
   return [
     `You are a macro strategist. Session: ${sc} ${TODAY}.${li}`,
+    `⚠️ 이 세션 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). macroAnalysis·thesis 를 *주력시장 중심으로 리드*하라 — 주력이 kr/asia 면 한국·아시아 거시(KOSPI 외국인/기관 수급·원달러·아시아 금리/지표)와 한국 종목을 앞세우고 US(연준/CPI/NVDA)는 *부차 맥락*으로. 주력이 KR 인데 미국 종목만 앞세우지 말 것.`,
     '',
     `[Macro Indicators] ${ctx.macro || 'No data'}`,
     `[Sentiment + FedWatch] ${ctx.sentiment || 'No data'}`,
@@ -4384,7 +4386,7 @@ function buildMacroPrompt(ctx, vix, session) {
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 550-1000자 — 4-6 문장을 흐름으로 연결한 분석. 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되, 각 수치의 함의·상호작용·상충 신호·변곡 포인트를 분석가 코멘터리처럼 서술. 단문/항목 나열 금지, 문장으로 연결]",`,
     `"technicalAnalysis":"[${TARGET_LANG} *서술형*, 400-700자, 3-5 문장 — VIX·금리곡선·주요지수 모멘텀 수치와 그 단기 추세/리스크를 흐르는 문장으로 서술]",`,
     `"fundamentalAnalysis":"[${TARGET_LANG} *서술형*, 450-800자, 3-5 문장 — earnings surprise·valuation·기관 신호 수치와 그 방향성·함의를 흐르는 문장으로 서술]",`,
-    `"thesis":"[${TARGET_LANG} *서술형 2-3 문장*, 130-260자 — 오늘의 가장 두드러진 동인(구체 수치/촉매)과 그에 대한 긴장/리스크/변곡을 연결해 서술. '강세 지속' 류 합의서사 금지. 예: 'NVDA의 HBM4 수요 확인이 반도체 강세를 이끌지만, CPI 4.2%의 인하 지연이 금리 기대를 끌어올리며 밸류에이션 부담으로 작용한다. 결국 모멘텀과 금리 리스크가 줄다리기하는 국면으로, 조정 시 분할 진입이 유효하다.']",`,
+    `"thesis":"[${TARGET_LANG} *서술형 2-3 문장*, 130-260자 — 오늘의 가장 두드러진 동인(구체 수치/촉매)과 그에 대한 긴장/리스크/변곡을 연결해 서술. '강세 지속' 류 합의서사 금지. ★주력시장(${String(focus.primary).toUpperCase()})을 *먼저* 다뤄라. 예: '${['kr', 'asia', 'korea'].includes(String(focus.primary).toLowerCase()) ? '외국인 5일째 순매수와 HBM 수요로 SK하이닉스·삼성전자가 KOSPI 반도체를 끌지만, 원/달러 1510 약세와 미 CPI 4.2% 인하 지연이 외국인 자금에 부담으로 작용한다. 수급·환율과 미 금리가 줄다리기하는 국면으로, KOSPI 지지 확인 시 분할 접근이 유효하다.' : 'NVDA의 HBM4 수요 확인이 반도체 강세를 이끌지만, CPI 4.2%의 인하 지연이 금리 기대를 끌어올리며 밸류에이션 부담으로 작용한다. 결국 모멘텀과 금리 리스크가 줄다리기하는 국면으로, 조정 시 분할 진입이 유효하다.'}']",`,
     '"riskLevel":"low|medium|high",',
     `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
     `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,
@@ -5981,9 +5983,11 @@ function buildOpportunityPrompt(ctx) {
 }
 
 function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
-  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : '미국장 개장 전';
+  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : session === 'noon' ? '한국장 장중(점심)·아시아 거래중' : session === 'midnight' ? '아시아 개장 전·미국장 마감' : '미국장 개장 전';
+  const focus = getSessionFocus(session);
   return [
     `You are a market narrative writer. Session: ${sc} ${TODAY}. Write in ${TARGET_LANG}.`,
+    `⚠️ 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). story·why·watch 를 *주력시장 중심으로 리드* — 주력이 kr/asia 면 KOSPI/KOSDAQ 등락·외국인/기관 수급·한국 기업/공시·아시아 흐름을 *먼저* 쓰고 US 는 부차. 주력이 KR 인데 NVDA 로 story 를 시작하지 말 것.`,
     '',
     `[Capital Flow Story] ${ctx.flows || 'No data'}`,
     `[News Events] ${ctx.news || 'No data'}`,
