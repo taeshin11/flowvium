@@ -184,8 +184,10 @@ async function runSegmentRefresh() {
   } catch (e) { log(`[segments-refresh] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 60)}`); }
   finally { segmentRefreshRunning = false; }
 }
-cron.schedule('30 * * * *', runSegmentRefresh, { timezone: TZ });
-log('동적 세그먼트 refresh 등록: 매시 6 ticker rotating (DB company_segments, 10-K 추출 — 873 US 약 6일 1순회)');
+// 2026-06-17 (사용자 "전부 20분마다로 통일"): 매시→*/20분. 6 ticker rotating 빈도 3배 → 순회 약 2일.
+//   isReportPipelineRunning/segmentRefreshRunning 가드로 GPU 경합·중복 방지.
+cron.schedule('*/20 * * * *', runSegmentRefresh, { timezone: TZ });
+log('동적 세그먼트 refresh 등록: */20분 6 ticker rotating (DB company_segments, 10-K 추출 — 873 US 약 2일 1순회)');
 
 // 2026-06-12: 사라진 유지보수 작업 복원 — 이전 Windows Task Scheduler 의 DART-CorpCodes(02:00)/
 //   DART-Prefetch(03:00)/Tune-Rules(일 04:00) 가 머신 재구성 중 소멸돼 silent 미시행 상태였음
@@ -248,8 +250,9 @@ async function runShockCheck() {
       .catch((e) => log(`[shock] 비정기 보고서 실패: ${String(e.message).slice(0, 60)}`));
   } catch (e) { log(`[shock] 점검 실패: ${String(e.message).slice(0, 60)}`); }
 }
-cron.schedule('*/10 * * * *', runShockCheck, { timezone: TZ });
-log('시장 쇼크 모니터 등록: */10분 (속보 키워드 + VIX 인트라데이 + KOSPI/원화 → 임계시 비정기 발간, 2h 쿨다운)');
+// 2026-06-17 (사용자 "전부 20분마다로 통일"): */10→*/20분.
+cron.schedule('*/20 * * * *', runShockCheck, { timezone: TZ });
+log('시장 쇼크 모니터 등록: */20분 (속보 키워드 + VIX 인트라데이 + KOSPI/원화 → 임계시 비정기 발간, 2h 쿨다운)');
 
 // keep alive
 process.stdin.resume();
