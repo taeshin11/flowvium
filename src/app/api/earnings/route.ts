@@ -267,6 +267,19 @@ async function resolveCompanyNames(
 ): Promise<Record<string, string>> {
   const names: Record<string, string> = {};
 
+  // 2026-06-16: companyName mojibake 가드 (페이지 전수감사 — earnings 에 "SNOA J�虣�" 등 깨진
+  //   바이너리가 Redis co-name 캐시/Yahoo 응답에서 유입돼 렌더됨). 제어문자/replacement char/비정상
+  //   문자 30%+ 이면 깨진 이름으로 보고 거부 → 다음 소스 또는 티커 폴백. 캐시 garbage 도 read 시 차단.
+  const cleanName = (s: unknown): string | null => {
+    if (typeof s !== 'string') return null;
+    const t = s.trim();
+    if (!t) return null;
+    if (/[\u0000-\u001F\u007F\uFFFD]/.test(t)) return null; // 제어문자/replacement char
+    const bad = (t.match(/[^\u0020-\u007E\uAC00-\uD7A3\u00C0-\u024F\s]/g) || []).length;
+    if (bad / t.length > 0.3) return null;                          // 비정상 문자 30%+ = 모지바케
+    return t;
+  };
+
   // 1. Hardcoded map (free, instant)
   for (const sym of symbols) {
     if (COMPANY_NAMES[sym]) names[sym] = COMPANY_NAMES[sym];
@@ -277,8 +290,8 @@ async function resolveCompanyNames(
   if (redis && unknown.length > 0) {
     await Promise.all(unknown.map(async sym => {
       try {
-        const cached = await redis.get(`flowvium:co-name:v1:${sym}`);
-        if (cached) names[sym] = cached as string;
+        const cached = cleanName(await redis.get(`flowvium:co-name:v1:${sym}`));
+        if (cached) names[sym] = cached;
       } catch { /* non-fatal */ }
     }));
   }
@@ -300,7 +313,7 @@ async function resolveCompanyNames(
         const d = await r.json() as { quoteResponse?: { result?: Array<{ symbol?: string; shortName?: string; longName?: string }> } };
         for (const q of d?.quoteResponse?.result ?? []) {
           if (!q.symbol) continue;
-          const name = q.shortName ?? q.longName ?? null;
+          const name = cleanName(q.shortName ?? q.longName ?? null);
           // Skip if Yahoo returned the ticker itself as the name (meaningless)
           if (name && name.toUpperCase() !== q.symbol.toUpperCase()) {
             names[q.symbol] = name;
@@ -325,10 +338,11 @@ async function resolveCompanyNames(
         );
         if (!r.ok) return;
         const d = await r.json() as { name?: string };
-        if (d.name && d.name.toUpperCase() !== sym.toUpperCase()) {
-          names[sym] = d.name;
+        const fname = cleanName(d.name);
+        if (fname && fname.toUpperCase() !== sym.toUpperCase()) {
+          names[sym] = fname;
           if (redis)
-            loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${sym}`, d.name, { ex: 7 * 24 * 3600 }).catch(() => {});
+            loggedRedisSet(redis, 'api.earnings', `flowvium:co-name:v1:${sym}`, fname, { ex: 7 * 24 * 3600 }).catch(() => {});
         }
       } catch { /* non-fatal */ }
     }));
