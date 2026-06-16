@@ -6051,7 +6051,9 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
   const focus = getSessionFocus(session);
   return [
     `You are a market narrative writer. Session: ${sc} ${TODAY}. Write in ${TARGET_LANG}.`,
-    `⚠️ 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). story·why·watch 를 *주력시장 중심으로 리드* — 주력이 kr/asia 면 KOSPI/KOSDAQ 등락·외국인/기관 수급·한국 기업/공시·아시아 흐름을 *먼저* 쓰고 US 는 부차. 주력이 KR 인데 NVDA 로 story 를 시작하지 말 것.`,
+    // 2026-06-17 (사용자 "미국장 장중인데 KOSPI 로 시작"): US-primary 규칙을 KR 과 대칭으로 명시 추가.
+    //   기존엔 KR-primary 만 명시돼 midnight(US 장중)인데 데이터가 KR-heavy 면 LLM 이 KOSPI 로 리드.
+    `⚠️ 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). story·why·watch 를 *주력시장 중심으로 리드*. 주력이 kr/asia 면 KOSPI/KOSDAQ 등락·외국인/기관 수급·한국 기업/공시·아시아 흐름을 *먼저* 쓰고 US 는 부차(주력 KR 인데 NVDA 로 story 시작 금지). 주력이 us 면 S&P500/Nasdaq 등락·미국 빅테크/섹터·연준·매크로를 *먼저* 쓰고 KR/아시아는 부차(주력 US 인데 KOSPI/KOSDAQ 로 story 시작 절대 금지).`,
     '',
     `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Capital Flow Story] ${ctx.flows || 'No data'}`,
