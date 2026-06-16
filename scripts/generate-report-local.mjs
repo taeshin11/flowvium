@@ -3068,6 +3068,47 @@ function computeReboundWatch(ctxRaw) {
   return { level: drivers.length >= 2 ? 'watch' : 'none', drivers, asOf: new Date().toISOString() };
 }
 
+// ── 2026-06-16: 실시간 지수 레벨 블록 (서술형 환각 fix — KOSPI 2,780 등 기억기반 레벨 창작 차단) ─
+//   프롬프트가 실제 지수 *레벨*(KOSPI/KOSDAQ/S&P/Nasdaq/VIX)을 가진 적이 없어 3B 모델이 train-memory
+//   값(예 KOSPI 2,780)을 인용. 현재 봉(level)+전일대비 %를 라이브 Yahoo 로 fetch → [Index Levels]
+//   블록 1줄. 결측 지수는 *그 줄에서 생략*(plumbing 창작 금지). 매크로·내러티브 양 프롬프트에 주입.
+async function buildIndexLevelsBlock() {
+  const fetchLast2 = async (sym) => {
+    try {
+      // range=5d 로 최근 봉 2개만 — 일봉(1d). 전일/금일 close 로 % 산출(라이브 우선).
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=5d`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(12000) });
+      if (!res.ok) return null;
+      const r = (await res.json())?.chart?.result?.[0];
+      const closes = (r?.indicators?.quote?.[0]?.close ?? []).filter(c => c != null && c > 0);
+      // 라이브 가격(regularMarketPrice)을 마지막 close 보다 우선(장중 반영)
+      const live = r?.meta?.regularMarketPrice;
+      if (live != null && live > 0) closes.push(live);
+      if (closes.length < 1) return null;
+      const cur = closes[closes.length - 1];
+      const prev = closes.length >= 2 ? closes[closes.length - 2] : null;
+      const chgPct = prev ? (cur / prev - 1) * 100 : null;
+      return { cur, chgPct };
+    } catch { return null; }
+  };
+  // 라벨·심볼·소수자리(레벨 표기). 결측은 omit.
+  const specs = [
+    ['KOSPI', '^KS11', 0], ['KOSDAQ', '^KQ11', 1], ['S&P500', '^GSPC', 0],
+    ['Nasdaq', '^IXIC', 0], ['VIX', '^VIX', 1],
+  ];
+  const results = await Promise.all(specs.map(([, sym]) => fetchLast2(sym)));
+  const parts = [];
+  for (let i = 0; i < specs.length; i++) {
+    const r = results[i];
+    if (!r) continue;  // 결측 지수는 생략 — 절대 창작 금지
+    const [label, , dec] = specs[i];
+    const lvl = r.cur.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    const chg = r.chgPct != null ? ` (${r.chgPct >= 0 ? '+' : ''}${r.chgPct.toFixed(1)}%)` : '';
+    parts.push(`${label} ${lvl}${chg}`);
+  }
+  return parts.length ? parts.join(', ') : '';
+}
+
 // ── 2026-06-12: 종합 판정 엔진 (사용자 "하락 전조·상승 전조·공포 매수·구루 방식·과거 유사상황
 //    다 고려해서 관망/매수/중립 결정") — 전부 결정론(LLM 무관). ─────────────────────────────
 //
@@ -4364,6 +4405,7 @@ function buildMacroPrompt(ctx, vix, session) {
     `You are a macro strategist. Session: ${sc} ${TODAY}.${li}`,
     `⚠️ 이 세션 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). macroAnalysis·thesis 를 *주력시장 중심으로 리드*하라 — 주력이 kr/asia 면 한국·아시아 거시(KOSPI 외국인/기관 수급·원달러·아시아 금리/지표)와 한국 종목을 앞세우고 US(연준/CPI/NVDA)는 *부차 맥락*으로. 주력이 KR 인데 미국 종목만 앞세우지 말 것.`,
     '',
+    `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Macro Indicators] ${ctx.macro || 'No data'}`,
     `[Sentiment + FedWatch] ${ctx.sentiment || 'No data'}`,
     `[VIX] ${vix || 'No data'}`,
@@ -4380,6 +4422,9 @@ function buildMacroPrompt(ctx, vix, session) {
     '- 특정 인물 임명/잔류/사임 (예: Powell, Bessent) 같은 정치 인물 발언 금지 — 입력에 없으면 추측 X.',
     '- "파월 잔류", "트럼프 정책" 같은 정치 이벤트는 [News] 에 명시된 경우만 인용.',
     '- 추측/일반화 (예: "AI 인프라 확장") 보다 구체 수치 (예: "CPI 3.78%, NVDA Q1 +73%") 우선.',
+    '- ⚠️ 지수 레벨(KOSPI/KOSDAQ/S&P500/Nasdaq)·VIX 는 [Index Levels] 에 *명시된 값만* 인용. 데이터에 없으면 절대 레벨을 지어내지 말 것(예: 기억 기반 "KOSPI 2,780선" 같은 창작 금지).',
+    '- ⚠️ 재무지표 %(매출 YoY·이익률 등)와 주가 등락률(%)을 *혼동 금지* — 예: 매출 +46.8% YoY 를 "주가 46.8% 상승"으로 쓰지 말 것. 종목 % 등락은 입력 데이터에 명시된 값만.',
+    '- ⚠️ COT 포지션·수급 수치는 [COT Positioning] 등 입력에 명시된 값만 — 없는 포지션/수급 수치 창작 금지.',
     '- ⚠️ thesis 의 "X 주도/강세" 주장은 [Sector Leadership] 와 일치해야 함 — 1w 부진(약세) 섹터를 "주도/강세"로 쓰지 말 것. ⚠️추세반전 표시 섹터는 "주도"가 아니라 "조정/반전"으로 기술.',
     '',
     `Write ALL text values in ${TARGET_LANG}. Respond ONLY in pure JSON, no markdown, no explanation:`,
@@ -5989,6 +6034,7 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     `You are a market narrative writer. Session: ${sc} ${TODAY}. Write in ${TARGET_LANG}.`,
     `⚠️ 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). story·why·watch 를 *주력시장 중심으로 리드* — 주력이 kr/asia 면 KOSPI/KOSDAQ 등락·외국인/기관 수급·한국 기업/공시·아시아 흐름을 *먼저* 쓰고 US 는 부차. 주력이 KR 인데 NVDA 로 story 를 시작하지 말 것.`,
     '',
+    `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Capital Flow Story] ${ctx.flows || 'No data'}`,
     `[News Events] ${ctx.news || 'No data'}`,
     `[Supply Chain Signals] ${ctx.supplyChain || 'No data'}`,
@@ -6002,6 +6048,11 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     'Examples of good themes (name actual sector/tech/industry): "AI 반도체", "광통신", "전력 인프라", "바이오텍", "방산", "에너지", "핀테크", "클라우드".',
     'Do NOT write generic phrases like "테크", "성장주", "위험자산". Must be specific sub-sector or technology.',
     'Derive themes from the actual news/flows/institutional data provided, not from training data.',
+    '',
+    '## ⚠️ 수치 그라운딩 (MANDATORY — 위반 시 보고서 환각)',
+    '- 지수 레벨(KOSPI/KOSDAQ/S&P500/Nasdaq 등)·VIX 는 [Index Levels] 에 *명시된 값만* 인용. 데이터에 없으면 절대 레벨을 지어내지 말 것(예: 기억 기반 "KOSPI 2,780선 돌파" 같은 레벨 창작 금지).',
+    '- 개별 종목 등락률(%)·포지션/수급 수치는 [입력 데이터]에 명시된 값만 인용 — 없으면 수치 없이 서술하거나 생략. COT/수급/% 등락 창작 금지.',
+    '- ⚠️ 재무지표 %(매출 YoY·이익률 등)를 *주가 등락률(%)로 혼동 금지* — 예: 매출 +46.8% YoY 를 "주가 46.8% 상승"으로 쓰지 말 것. 둘은 전혀 다른 수치.',
     '',
     'Respond in pure JSON:',
     `{"why":"[180-320자, 2-3 문장 서술형 in ${TARGET_LANG}]","watch":"[≤80 chars in ${TARGET_LANG}]","story":"[400-700자, 3-5 문장 서술형 in ${TARGET_LANG}]","hotThemes":["specific theme 1","specific theme 2","specific theme 3"],"sessionNote":"[≤60 chars in ${TARGET_LANG}]"}`,
@@ -6097,6 +6148,7 @@ function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sect
     '- catalysts: 2-3 SPECIFIC near-term catalysts with numbers — MUST be company events or fundamental data (earnings beat/guidance raise, product launch, institutional 13F buying count, analyst upgrade, M&A announcement, margin expansion). PROHIBITED: RSI, MA levels, volume %, 52-week range, technical chart patterns — these are NOT catalysts.',
     `- fundamentalBasis: 180-280자 서술형 — 재무 수치를 *해석*해 성장·마진·밸류에이션이 thesis 를 어떻게 뒷받침/위협하는지 흐르는 문장으로. use [Recent Company Financials] data ONLY; revenue growth%, operating margin, ROE, PE (제공된 경우만).`,
     `  ⚠️ PE/PEG/ROE 는 [Recent Company Financials] 에 명시된 값만 인용. 없으면 절대 지어내지 말고(메모리 PE 금지) ROE·마진·매출성장으로 근거. KR 은 보통 PE 미제공 → ROE/netMargin 사용.`,
+    `  ⚠️ 재무지표 %(매출/이익 YoY·마진)와 주가 등락률(%)을 *혼동 금지* — 예: 매출 +46.8% YoY 를 "주가 46.8% 상승"으로 쓰지 말 것. 주가 % 등락은 입력에 명시된 값만, 없으면 인용하지 말 것.`,
     `- technicalBasis: 130-200자 서술형 — MA/RSI/거래량 값과 그 *단기 추세·리스크*를 흐르는 문장으로 서술. MUST use [COMPUTED_TECH] values verbatim if provided; otherwise estimate MA/RSI/volume`,
     '- riskNote: ≤60 chars — single biggest downside risk',
     '',
@@ -6451,10 +6503,14 @@ async function generateViaOllama() {
     ? `\n[CASCADE PATTERNS — must-consider for portfolio selection]\n` +
       `(L=leader, → 표시는 일반적 전파 순서. 🔥ACTIVE 는 1d ≥3% 임펄스 감지)\n${cascadeStr}`
     : '';
+  // 2026-06-16: 실시간 지수 레벨 — 프롬프트가 실제 KOSPI/S&P 레벨을 갖게 해 train-memory 환각 차단.
+  const indexLevels = await buildIndexLevelsBlock();
+  if (indexLevels) console.log(`  [index-levels] ${indexLevels}`);
   const ctxWithCascade = {
     ...ctx,
     flows: ctx.flows + cascadeBlock,
     news: ctx.news + cascadeBlock,
+    indexLevels,  // [Index Levels] 블록 — macro·narrative 프롬프트가 인용
   };
 
   // ── 데이터 수집 요약 ─────────────────────────────────────────────────────────
