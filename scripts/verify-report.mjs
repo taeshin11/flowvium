@@ -572,6 +572,73 @@ export async function verifyReport(file, { silent = false } = {}) {
     } else log('  ✅ 겹침 없음 (portfolio + portfolioByMarket 전수)');
   }
 
+  // 11. 내러티브 그라운딩 (2026-06-16 라이브 noon 전수감사 — 검증이 포트폴리오 숫자만 보고 내러티브 텍스트는
+  //     0% 검증하던 사각지대. 저장된 보고서 내부 대조만으로 4종 결함 detect: CJK누출·커브bp창작·수급방향역전·수익률→유입둔갑.)
+  log('\n## 내러티브 그라운딩 (CJK누출/커브bp/수급방향/수익률-유입)');
+  {
+    const koFields = {
+      thesis: r.thesis, macroAnalysis: r.macroAnalysis, technicalAnalysis: r.technicalAnalysis,
+      fundamentalAnalysis: r.fundamentalAnalysis, topOpportunity: r.topOpportunity,
+      hedgingSuggestion: r.hedgingSuggestion, portfolioRiskNote: r.portfolioRiskNote,
+      'narrative.why': r.marketNarrative?.why, 'narrative.story': r.marketNarrative?.story,
+    };
+    const narrText = [r.thesis, r.marketNarrative?.why, r.marketNarrative?.story].filter(s => typeof s === 'string').join(' ');
+    const krThesis = String(r.regionStances?.korea?.thesis ?? '');
+    let nFound = 0;
+
+    // (a) CJK 한자 누출 — 한글 텍스트에 중국어/일본어 한자(국가 약어 美中日韓 등 소수만 허용)
+    const HAN = /[㐀-䶿一-鿿]/g;
+    const HAN_ALLOW = new Set([...'美中日韓北南東西獨佛英']);
+    const bleed = [];
+    for (const [k, v] of Object.entries(koFields)) {
+      if (typeof v !== 'string') continue;
+      const hits = [...new Set((v.match(HAN) || []).filter(c => !HAN_ALLOW.has(c)))];
+      if (hits.length) bleed.push(`${k}:${hits.join('')}`);
+    }
+    if (bleed.length) {
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'cjk_bleed',
+        llm_value: bleed.slice(0, 4).join(' | '), correct_value: '한국어 텍스트에 중국어/일본어 한자 누출 — 한글로', severity: 'medium' });
+      log(`  ❌ CJK누출: ${bleed.join(' | ')}`); nFound++;
+    }
+
+    // (b) 금리커브 bp 창작 — deterministic fingerprint(curveSlopePp)과 텍스트 bp 비교 (>25bp 괴리)
+    const realSlopePp = r.marketVerdict?.analog?.fingerprint?.curveSlopePp ?? r.marketVerdict?.analog?.macroContext?.curveSlopePp;
+    if (realSlopePp != null) {
+      const realBp = Math.round(realSlopePp * 100);
+      for (const [k, v] of Object.entries({ macroAnalysis: r.macroAnalysis, technicalAnalysis: r.technicalAnalysis, thesis: r.thesis })) {
+        if (typeof v !== 'string') continue;
+        const m = v.match(/(?:금리\s*(?:곡선|커브)|수익률\s*곡선|커브)[^0-9%]{0,14}(\d{1,3})\s*bp/);
+        if (m && Math.abs(parseInt(m[1], 10) - realBp) > 25) {
+          defects.push({ ticker: 'MACRO', defect_type: 'curve_slope_halluc',
+            llm_value: `${k}: 금리곡선 ${m[1]}bp`, correct_value: `실제 ${realBp}bp (curveSlopePp ${realSlopePp})`, severity: 'medium' });
+          log(`  ❌ 커브bp창작: ${k} ${m[1]}bp vs 실제 ${realBp}bp`); nFound++;
+        }
+      }
+    }
+
+    // (c) 수급 방향 역전 — regionStances.korea 가 "둔화/순매도"인데 내러티브가 "순매수 지속/연속"
+    if (/(둔화|순매도|감소|이탈|약화|유출)/.test(krThesis) &&
+        /외국인[^.]{0,24}(순매수[^.]{0,8}(지속|연속|이어|확대)|연속\s*순매수|순매수\s*기조|순매수\s*흐름)/.test(narrText)) {
+      const inDir = krThesis.match(/(둔화|순매도|감소|이탈|약화|유출)/)?.[0];
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_direction_inversion',
+        llm_value: `내러티브 "외국인 순매수 지속/연속" vs 입력 "외국인 ${inDir}"`, correct_value: 'regionStances.korea 수급 방향과 일치', severity: 'high' });
+      log(`  ❌ 수급방향역전: 입력 "${inDir}" → 내러티브 "순매수 지속"`); nFound++;
+    }
+
+    // (d) 수익률→자금유입 둔갑 — KR 수익률 N% 가 내러티브에서 "유입/순매수 N%" 로 재사용
+    const retPct = /수익률/.test(krThesis) ? krThesis.match(/(\d{1,2}(?:\.\d)?)\s*%/)?.[1] : null;
+    if (retPct) {
+      const re = new RegExp(`${retPct.replace('.', '\\.')}\\s*%[^.]{0,14}(유입|순매수)`);
+      if (re.test(narrText)) {
+        defects.push({ ticker: 'NARRATIVE', defect_type: 'return_as_flow',
+          llm_value: `내러티브가 수익률 ${retPct}% 를 "유입/순매수 ${retPct}%" 로 둔갑`, correct_value: '수익률(return)≠자금유입(flow)', severity: 'high' });
+        log(`  ❌ 수익률→유입둔갑: ${retPct}% (수익률) → "유입/순매수 ${retPct}%"`); nFound++;
+      }
+    }
+
+    if (!nFound) log('  ✅ 내러티브 그라운딩 이상 없음');
+  }
+
   log(`\n## 종합 — 결함 ${defects.length}건`);
   return { defects, total: (r.portfolio||[]).length };
 }
