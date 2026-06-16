@@ -193,7 +193,7 @@ log('동적 세그먼트 refresh 등록: 매시 6 ticker rotating (DB company_se
 async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
   if (await isReportPipelineRunning()) { log(`[${label}] skip — 보고서 파이프라인 실행 중`); return; }
   try {
-    await execFileAsync('node', [script], { timeout: timeoutMs, windowsHide: true, maxBuffer: 20 * 1024 * 1024 });
+    await execFileAsync('node', script.split(' '), { timeout: timeoutMs, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }); // script 문자열에 인자(예: '--apply') 허용
     log(`[${label}] 완료`);
     // 2026-06-13: 산출물이 tracked 파일이면 자동 커밋+푸시 — 매일 02:05 갱신분이 미커밋으로 남아
     //   wipe-risk 경보 + run-report checkout revert 위험이 반복되던 것 (수동 커밋 toil 제거).
@@ -215,7 +215,7 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
 cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetch-dart-corp-codes.mjs', 300000, ['data/dart-corp-codes.json']), { timezone: TZ });   // 02:05 KST
 cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
 cron.schedule('35 18 * * *', () => runMaintenance('sell-outcomes', 'scripts/evaluate-sell-outcomes.mjs', 600000), { timezone: TZ });  // 03:35 KST — 매도 성과평가 (2026-06-12 신설, 튜닝 ground truth)
-cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs', 600000), { timezone: TZ });        // 일 04:05 KST
+cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs --apply', 600000, ['data/sell-rules-tuned.json']), { timezone: TZ }); // 일 04:05 KST — 주간 매도룰 pnl 백튜닝 자동적용+커밋(±20% cap, .bak)
 cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs', 600000), { timezone: TZ });         // 일 04:20 KST
 // 2026-06-13: 수주잔고(SEC RPO) 주간 갱신 — 10-K/Q 분기 보고라 주 1회면 충분. 산출물 자동 커밋.
 cron.schedule('5 20 * * 6', () => runMaintenance('build-backlog', 'scripts/build-backlog.mjs', 1200000, ['data/backlog.json']), { timezone: TZ }); // 일 05:05 KST
