@@ -2472,7 +2472,9 @@ function deduplicateRationales(portfolioItems, signalDigest) {
  * Targets ≥80 chars without LLM. Locale-aware labels (EN vs KO).
  */
 function expandThesis(thesis, macroData, ctx, locale = 'ko') {
-  if (!thesis || thesis.length >= 80) return thesis;
+  // 2026-06-16: thesis 가 이제 완결 문장(45-110자)이라 매크로 숫자 꼬리는 카드를 덤프처럼 보이게 함.
+  //   숫자는 rich macroAnalysis 에 있으므로, 40자 이상 정상 thesis 면 append 생략(<40 fragment 만 데이터 보강).
+  if (!thesis || thesis.length >= 40) return thesis;
   const isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(locale);
   const parts = [];
   const ind = ctx.macro?.indicators ?? [];
@@ -4379,10 +4381,10 @@ function buildMacroPrompt(ctx, vix, session) {
     '- ⚠️ thesis 의 "X 주도/강세" 주장은 [Sector Leadership] 와 일치해야 함 — 1w 부진(약세) 섹터를 "주도/강세"로 쓰지 말 것. ⚠️추세반전 표시 섹터는 "주도"가 아니라 "조정/반전"으로 기술.',
     '',
     `Write ALL text values in ${TARGET_LANG}. Respond ONLY in pure JSON, no markdown, no explanation:`,
-    `{"macroAnalysis":"[${TARGET_LANG} text, ≤150 chars, include actual CPI/rate/spread numbers]",`,
-    `"technicalAnalysis":"[${TARGET_LANG} text, ≤120 chars, VIX + yield curve only, no futures jargon]",`,
-    `"fundamentalAnalysis":"[${TARGET_LANG} text, ≤150 chars, earnings surprise + valuation + institutional signal]",`,
-    `"thesis":"[${TARGET_LANG} text, 15-50 chars, specific market theme with key catalyst or data point — no generic phrases]",`,
+    `{"macroAnalysis":"[${TARGET_LANG} text, 180-350 chars — 숫자 나열 금지. CPI/금리/스프레드/VIX 등 근거 수치를 *인용하되* 그것이 위험선호·포지셔닝·섹터로테이션에 무엇을 의미하는지 1-2문장으로 *해석*. 예: 'CPI 4.2%로 디스인플레 정체 → 연준 인하 지연, 듀레이션 부담; 단 HY스프레드 2.7%의 신용 안정이 위험자산 지지']",`,
+    `"technicalAnalysis":"[${TARGET_LANG} text, ≤220 chars, VIX·금리곡선 수치 인용 + 그것이 시사하는 단기 리스크/모멘텀]",`,
+    `"fundamentalAnalysis":"[${TARGET_LANG} text, ≤300 chars, earnings surprise·valuation·기관 신호 수치 + 그 방향성 해석]",`,
+    `"thesis":"[${TARGET_LANG} text, 45-110 chars, 한 문장 — 핵심 테마 + *왜*(촉매/데이터 근거). 단순 숫자 나열·일반구문 금지]",`,
     '"riskLevel":"low|medium|high",',
     `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
     `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,
