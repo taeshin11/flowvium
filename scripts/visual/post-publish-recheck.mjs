@@ -76,6 +76,18 @@ if (high.length) alerts.push(`발행본 high 결함 ${high.length}건: ${high.ma
 else if (defects.length) info.push(`결함 ${defects.length}건(high 0)`);
 else info.push('결함 0');
 
+// (3.5) 렌더 계층 전수감사 — audit-pages 로 /ko/report 의 렌더 텍스트 garble(이중부호·라벨오류·복사·콘탱고 등)
+//   검출 (2026-06-16: 데이터 probe 가 못 보는 렌더 사각지대). 생성기 sanitizer 가 발간 전 고쳤으면 0 이어야.
+let pageAudit = null;
+try {
+  const { spawnSync } = await import('node:child_process');
+  const r = spawnSync(process.execPath, [`${__dirname}/audit-pages.mjs`, '--pages=/ko/report'], { encoding: 'utf8', timeout: 60000, env: process.env });
+  const out = (r.stdout || '').trim().split('\n').pop() || '';
+  pageAudit = out;
+  if (/PAGE-AUDIT ALERT/.test(out)) alerts.push(`렌더감사 ALERT: ${out.replace(/^.*ALERT:\s*/, '').slice(0, 80)}`);
+  else if (out) info.push('렌더감사✓');
+} catch (e) { info.push(`렌더감사 skip:${String(e?.message).slice(0, 30)}`); }
+
 // (4) 몽타주 합성 (빠른 육안용)
 let montage = null;
 try {
@@ -95,7 +107,7 @@ try {
 // (5) 상태 기록 — session-spotcheck 가 읽어 surface
 const status = {
   ts: new Date().toISOString(), reportFile, generatedAt: wantGen, session: report.session,
-  liveConfirmed, authState, nSlices, shotDir, montage,
+  liveConfirmed, authState, nSlices, shotDir, montage, pageAudit,
   defectCount: defects.length, highDefects: high.map((d) => ({ type: d.defect_type, value: String(d.llm_value).slice(0, 60) })),
   verdict: alerts.length ? 'alert' : 'ok',
 };

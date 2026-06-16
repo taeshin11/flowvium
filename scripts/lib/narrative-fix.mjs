@@ -76,6 +76,56 @@ function fixField(s, { realBp = null, indexMap = {}, stockChgMap = {} } = {}) {
   return t;
 }
 
+// ── 전역 문자열 sanitizer (2026-06-16 페이지 전수감사) — 렌더 텍스트 garble 은 빌드지점마다 흩어져
+//   있어 필드별 교정이 누락됨(이중마이너스 "매출 --4.9%"·orphan "원 +46% YoY"·콘탱고변종·한자 누출).
+//   *모든* 문자열 필드를 deep-walk 하며 산문 의미 안 바꾸는 기계적 garble 만 안전 치환.
+const CONTANGO_VARIANTS = /컨티구오|컨티아고|컨텐고|컨텐코|콘텡고|콘텐고|콘탕고/g;
+export function sanitizeText(s) {
+  if (typeof s !== 'string' || !s) return s;
+  let t = s;
+  t = t.replace(/-{2,}(\d)/g, '-$1');                                  // "매출 --4.9%" → "-4.9%" (이중부호)
+  t = t.replace(/\+{2,}(\d)/g, '+$1');                                 // "++3.1%" → "+3.1%"
+  t = t.replace(/(^|[,;·|]\s*)(원|달러)\s+(?=[+\-]?\d+\.?\d*\s*%\s*YoY)/g, '$1매출 '); // orphan 통화단위 → 매출(YoY 문맥)
+  t = t.replace(CONTANGO_VARIANTS, '콘탱고');                          // 콘탱고 변종 정규화
+  t = t.replace(/스que이즈|스퀴이즈/g, '스퀴즈');                       // 라틴 bleed (알려진)
+  t = t.replace(/元/g, '원').replace(/兑|兌/g, '/');                    // 한자 bleed (元→원, 兑→/)
+  t = t.replace(/(\d{1,2}\.?\d*\s*%)\s*유입(된|되)?/g, '$1 상승');       // "16.5% 유입"(수익률) → "16.5% 상승"(ETF 지역카드 등)
+  return t;
+}
+// 보고서 모든 문자열 필드 deep-walk sanitize. {nFix} 반환 (in-place).
+export function sanitizeReport(report) {
+  let nFix = 0;
+  const walk = (obj) => {
+    if (Array.isArray(obj)) { for (let i = 0; i < obj.length; i++) { const v = obj[i]; if (typeof v === 'string') { const f = sanitizeText(v); if (f !== v) { obj[i] = f; nFix++; } } else if (v && typeof v === 'object') walk(v); } }
+    else if (obj && typeof obj === 'object') { for (const k of Object.keys(obj)) { const v = obj[k]; if (typeof v === 'string') { const f = sanitizeText(v); if (f !== v) { obj[k] = f; nFix++; } } else if (v && typeof v === 'object') walk(v); } }
+  };
+  walk(report);
+  return { nFix };
+}
+
+// riskEvents 중복 중앙은행 이벤트 교정 (2026-06-16: BOJ 이벤트가 FOMC 를 통째 복사 — 예상 3.75%(연준)
+//   + 미국반도체 노출. 비-Fed 이벤트가 Fed 의 rate/exposure 를 그대로 쓰면 그 수치/노출을 제거).
+export function fixDuplicateCentralBankEvents(report) {
+  const evs = report.riskEvents;
+  if (!Array.isArray(evs) || evs.length < 2) return { nFix: 0 };
+  let nFix = 0;
+  const sig = (e) => JSON.stringify([e.estimate, e.exposureChannel, e.affectedPortfolio, e.surpriseHigh, e.surpriseLow]);
+  const fed = evs.find((e) => /FOMC|연준|\bFed\b|federal/i.test(`${e.event} ${e.watchFor}`));
+  const fedSig = fed ? sig(fed) : null;
+  for (const e of evs) {
+    if (e === fed) continue;
+    const isOtherCB = /BOJ|일본은행|은행보증금|ECB|영란|\bBOE\b|인민은행|PBOC/i.test(`${e.event}`);
+    if (!isOtherCB) continue;
+    // 다른 중앙은행인데 Fed 와 동일한 estimate/노출/시나리오 → 복사 환각 → US 특정 필드 비움(이벤트명/날짜/watchFor 보존)
+    if (fedSig && sig(e) === fedSig) {
+      e.estimate = null; e.previous = null; e.exposureChannel = null;
+      e.affectedPortfolio = []; e.surpriseHigh = null; e.surpriseLow = null;
+      nFix++;
+    }
+  }
+  return { nFix };
+}
+
 // 보고서 전체 내러티브 필드 교정. {report, nFix, log} 반환.
 export function correctNarrative(report, opts = {}) {
   const realBp = opts.realBp ?? (() => {

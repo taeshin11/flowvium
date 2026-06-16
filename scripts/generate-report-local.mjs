@@ -15,7 +15,7 @@ import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
-import { correctNarrative } from './lib/narrative-fix.mjs';
+import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents } from './lib/narrative-fix.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims } from './lib/db.mjs';
@@ -8580,6 +8580,10 @@ async function generateViaOllama() {
     }
     const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap });
     if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);
+    // 2026-06-16 페이지 전수감사: 모든 문자열 필드 garble sanitize(이중부호·orphan원·콘탱고·한자) + BOJ=FOMC 복사 교정
+    const { nFix: nSan } = sanitizeReport(finalReport);
+    const { nFix: nCB } = fixDuplicateCentralBankEvents(finalReport);
+    if (nSan || nCB) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행이벤트 ${nCB}건 교정`);
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
 
   // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").

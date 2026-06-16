@@ -89,6 +89,28 @@ try {
   }
 } catch { /* 재검기록 없음(아직 발행 전이거나 구버전) — 무시 */ }
 
+// [8] git wipe-risk (CLAUDE.md 의무 — "check-stall git wipe-risk 를 주기 모니터에 통합". 미커밋 tracked
+//   변경 + 미푸시 ahead 커밋 = 다음 cron checkout 이 silent wipe. 2026-06-16 누락 발견 후 spotcheck 통합.)
+try {
+  execSync('node scripts/check-uncommitted-risk.mjs', { cwd: ROOT, encoding: 'utf8', timeout: 15000, stdio: 'pipe' });
+  info.push('wipe-risk✓');
+} catch (e) {
+  const out = `${e.stdout ?? ''}${e.stderr ?? ''}`;
+  const m = out.match(/🚨[^\n]{0,80}/) || out.match(/(미커밋|미푸시|ahead)[^\n]{0,60}/);
+  alerts.push(`git wipe-risk: ${m ? m[0].trim() : '미커밋/미푸시 코드 — cron 이 revert 위험'}`);
+}
+
+// [9] Karpathy closed loop 건강 — 보고서는 갱신되는데 hallucination_history(verify-loop 산물)가 정체면 루프 단절.
+try {
+  const D = (await import('node:module')).createRequire(import.meta.url)('better-sqlite3');
+  const db = new D(`${ROOT}/data/flowvium.db`, { readonly: true });
+  const latest = db.prepare('SELECT MAX(detected_at) m, COUNT(*) n FROM hallucination_history').get();
+  db.close();
+  const ageH = latest.m ? (now - new Date(latest.m).getTime()) / 3600000 : 999;
+  if (ageH > 14) alerts.push(`Karpathy 정체 ${ageH.toFixed(0)}h (verify-loop 단절 의심, n=${latest.n})`);
+  else info.push(`Karpathy ${latest.n}행`);
+} catch { /* DB 잠김/없음 — 무시 */ }
+
 const line = alerts.length
   ? `ALERT: ${alerts.join(' | ')}  [ok: ${info.join(', ')}]`
   : `OK  ${info.join(' / ')}`;

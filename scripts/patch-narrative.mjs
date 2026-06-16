@@ -5,7 +5,7 @@
 //   지수 등락% 환각 대조를 위해 실시간 일간등락을 직접 fetch.
 // 사용: node scripts/patch-narrative.mjs <report.json> [--no-index]
 import { readFileSync, writeFileSync } from 'node:fs';
-import { correctNarrative, fetchIndexChangeMap } from './lib/narrative-fix.mjs';
+import { correctNarrative, fetchIndexChangeMap, sanitizeReport, fixDuplicateCentralBankEvents } from './lib/narrative-fix.mjs';
 
 const file = process.argv.find((a) => a.endsWith('.json'));
 if (!file) { console.error('need <report.json>'); process.exit(1); }
@@ -18,7 +18,9 @@ if (!process.argv.includes('--no-index')) {
 }
 
 const { nFix, log, realBp } = correctNarrative(r, { indexMap });
-if (nFix) {
+const { nFix: nSan } = sanitizeReport(r);
+const { nFix: nCB } = fixDuplicateCentralBankEvents(r);
+if (nFix || nSan || nCB) {
   writeFileSync(file, JSON.stringify(r, null, 2), 'utf8');
-  console.log(`✅ ${nFix}필드 교정 (커브bp→${realBp}): ${log.join(', ')}`);
+  console.log(`✅ 교정 — narrative ${nFix}필드(${log.join(',')||'-'}; 커브bp→${realBp}) + 전역 garble ${nSan}건 + 중복중앙은행 ${nCB}건`);
 } else console.log('변경 없음');
