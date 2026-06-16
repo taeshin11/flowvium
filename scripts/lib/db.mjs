@@ -991,6 +991,8 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
       if (opMargin == null && finData?.latestAnnual?.operatingMarginPct != null) {
         opMargin = finData.latestAnnual.operatingMarginPct;
       }
+      // 2026-06-17: op_margin sanity clamp [-100,100] (지주사 등 비현실값 → null). 두 적재경로 동일 가드.
+      if (opMargin != null && (opMargin < -100 || opMargin > 100)) opMargin = null;
       // 2026-06-03 fix: 필드명 오류 — company-financials 는 netIncomeUSD(원시 USD) 제공.
       //   archive 는 USD billions 저장 → /1e9. (이전 finData.latestAnnual.netIncome=undefined → 100% NULL)
       const netUSD = finData?.latestAnnual?.netIncomeUSD;
@@ -1022,7 +1024,10 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
         }
       }
       if (yoy != null && Math.abs(yoy) > 500) yoy = null;   // 2026-06-05: 극단값(prior 미미) reject
-      const opMargin = la.operatingMarginPct ?? null;
+      // 2026-06-17: op_margin sanity clamp [-100,100] (build-financials-cache 와 동일 가드). 지주사(SK스퀘어
+      //   402340.KS op_margin=623%)는 매출 대비 지분법이익 과대로 비현실값 → null. archive 적재층 방어.
+      let opMargin = la.operatingMarginPct ?? null;
+      if (opMargin != null && (opMargin < -100 || opMargin > 100)) opMargin = null;
       const netIncome = la.netIncomeUSD != null ? Math.round((la.netIncomeUSD / 1e9) * 100) / 100 : null;
       const price = priceByTicker[tkUp];
       const eps = la.epsDiluted;

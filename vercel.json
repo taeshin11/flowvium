@@ -130,7 +130,7 @@
     },
     {
       "path": "/api/cron/signal-retrospective",
-      "schedule": "30 3 * * 0"
+      "schedule": "30 3 * * *"
     },
     {
       "path": "/api/cron/log-cascade-events",
