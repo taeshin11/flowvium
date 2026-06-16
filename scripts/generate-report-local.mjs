@@ -1208,8 +1208,10 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = 
   // 2026-05-29: label 별 토큰 차등. portfolio 12 종목 한글 rationale 포함 시 5K+ token 필요.
   // 2026-06-15: portfolio 8192→6144 — prompt(priceData 유니버스)가 ~41-43k tok 로 커서 vLLM
   //   max_model_len(51200, KV 천장 52480) 내에 prompt+output 가 들어가야 함. 6144 면 충분(실측 출력 ~3-4k).
+  // 2026-06-16: 서술형 캡 상향 후 stockDetail(종목별 fund/tech 서술 ×N)은 4096 초과 잘림 위험 → 8192.
   const numPredict = /portfolio/i.test(label) ? 6144
-    : /(stockDetail|macro|narrative|regional|sellRationale)/i.test(label) ? 4096
+    : /stockDetail/i.test(label) ? 8192
+    : /(macro|narrative|regional|sellRationale)/i.test(label) ? 4096
     : 2048;
 
   // 1. vLLM 우선 (VLLM_URL 설정된 경우만) — numPredict·schema 전달(2048 절단/스키마 유실 방지).
@@ -5834,7 +5836,7 @@ function buildRegionalPrompt(ctx) {
     'Provide bullish/neutral/bearish for each country based on flows and F&G.',
     'Respond in pure JSON (no markdown):',
     '{"regionStances":{',
-    `"us":{"stance":"bullish","thesis":"[≤40 chars in ${TARGET_LANG}]","keyData":"SPY 1w, F&G score"},`,
+    `"us":{"stance":"bullish","thesis":"[80-140자 서술형 in ${TARGET_LANG} — flows·F&G 수치를 *해석*해 스탠스 근거 서술]","keyData":"SPY 1w, F&G score"},`,
     `"korea":{"stance":"neutral","thesis":"...","keyData":"EWY 1w, F&G"},`,
     '"japan":{"stance":"...","thesis":"...","keyData":"..."},',
     '"china":{"stance":"...","thesis":"...","keyData":"..."},',
@@ -5845,6 +5847,7 @@ function buildRegionalPrompt(ctx) {
     '"australia":{"stance":"...","thesis":"...","keyData":"..."},',
     '"global":{"stance":"...","thesis":"...","keyData":"..."}',
     '}}',
+    '## thesis field rule: 각 thesis 는 80-140자 서술형 — flows·F&G 수치를 *해석*해 스탠스 근거를 흐르는 문장으로 서술.',
     'All 10 regions required. Pure JSON only.',
   ].join('\n');
 }
@@ -5861,7 +5864,9 @@ function buildOpportunityPrompt(ctx) {
     `Respond in pure JSON. ALL text values in ${TARGET_LANG}:`,
     `{"shortSqueeze":[{"ticker":"[TICKER]","score":0,"timing":"[≤40 chars in ${TARGET_LANG}]","risk":"[≤40 chars in ${TARGET_LANG}]"}],`,
     `"insiderSignals":[{"ticker":"[TICKER]","filings":[EXACT_COUNT_FROM_DATA],"dateRange":"[YYYY-MM-DD~YYYY-MM-DD from data]","significance":"[≤40 chars in ${TARGET_LANG}]","pattern":"[≤30 chars in ${TARGET_LANG}]"}],`,
-    `"topOpportunity":"[≤100 chars in ${TARGET_LANG}]"}`,
+    `"topOpportunity":"[200-350자 서술형 in ${TARGET_LANG}]"}`,
+    '## topOpportunity field rules',
+    `- topOpportunity: 200-350자 서술형. 최우선 기회를 *왜 지금* 인지 촉매·리스크와 함께 흐르는 문장으로 서술.`,
     'Pure JSON only.',
   ].join('\n');
 }
@@ -5886,9 +5891,12 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     'Derive themes from the actual news/flows/institutional data provided, not from training data.',
     '',
     'Respond in pure JSON:',
-    `{"why":"[≤100 chars in ${TARGET_LANG}]","watch":"[≤80 chars in ${TARGET_LANG}]","story":"[≤200 chars in ${TARGET_LANG}]","hotThemes":["specific theme 1","specific theme 2","specific theme 3"],"sessionNote":"[≤60 chars in ${TARGET_LANG}]"}`,
+    `{"why":"[180-320자, 2-3 문장 서술형 in ${TARGET_LANG}]","watch":"[≤80 chars in ${TARGET_LANG}]","story":"[400-700자, 3-5 문장 서술형 in ${TARGET_LANG}]","hotThemes":["specific theme 1","specific theme 2","specific theme 3"],"sessionNote":"[≤60 chars in ${TARGET_LANG}]"}`,
+    '## story field rules',
+    '- story: 400-700자, 3-5 문장 서술형. 흐름·촉매·긴장을 연결한 시장 내러티브를 흐르는 문장으로 서술. 단문 나열 금지.',
     // [Fix P3] Force 'why' to cite at least one concrete data point (not vague generic text)
     '## why field rules (MANDATORY)',
+    '- why: 180-320자, 2-3 문장 서술형. 수치를 인용하되 *왜* 그것이 오늘 시장을 움직이는지 흐르는 문장으로 해석.',
     '- why MUST cite at least one specific data point: a named metric, percentage, index level, interest rate, or named market event.',
     '- GOOD why: "S&P500 PER 22x 고평가 → 섹터로테이션, 10Y 국채 4.3% 하락 기대로 성장주 매수"',
     '- BAD why: "전환기의 투자 유입 증가" (too vague — no numbers, no named metrics, no events)',
@@ -5913,7 +5921,10 @@ function buildRiskMgmtPrompt(portfolio, riskLevel, bbWarnings, vix) {
     `[VIX] ${vix || 'No data'}`,
     '',
     'Respond in pure JSON:',
-    `{"stopLossRationale":[{"ticker":"NVDA","rationale":"[≤60 chars in ${TARGET_LANG}]"}],"hedgingSuggestion":"[≤80 chars in ${TARGET_LANG}]","portfolioRiskNote":"[≤100 chars in ${TARGET_LANG}]"}`,
+    `{"stopLossRationale":[{"ticker":"NVDA","rationale":"[≤60 chars in ${TARGET_LANG}]"}],"hedgingSuggestion":"[130-220자 서술형 in ${TARGET_LANG}]","portfolioRiskNote":"[180-300자 서술형 in ${TARGET_LANG}]"}`,
+    '## narrative field rules',
+    '- portfolioRiskNote: 180-300자 서술형. 포트폴리오 전체의 집중·상관·거시 리스크를 연결해 흐르는 문장으로 서술.',
+    '- hedgingSuggestion: 130-220자 서술형. 헤지 수단과 *발동 조건·근거* 를 흐르는 문장으로 서술.',
     'Pure JSON only.',
   ].join('\n');
 }
@@ -5942,7 +5953,7 @@ function buildCompanyChangesPrompt(portfolioItems, earnings, institutional, news
     '- revenueYoY: use actual number from [Recent Financials]. Use null if missing (NEVER invent).',
     '- keyChange: describe the EVENT, not just a financial recitation. ≤60 chars, include actual numbers. (avoid bare "매출 +X%, 영업이익률 Y%" with no event framing.)',
     '- eventType: classify the change — one of: guidance_raise, guidance_cut, revenue_surge, revenue_growth, revenue_decline, mna, litigation, product_launch, regulatory, contract, executive_change, positive_development, negative_development, update.',
-    `- whyMatters: ${TARGET_LANG}, ≤70 chars — WHY this matters for an investor holding/watching it (thesis impact, what it confirms/threatens). NOT a restatement of keyChange.`,
+    `- whyMatters: ${TARGET_LANG}, 120-200자 — WHY this matters for an investor holding/watching it (thesis impact, what it confirms/threatens). 흐르는 문장으로 서술. NOT a restatement of keyChange.`,
     `- nextCheck: ${TARGET_LANG}, ≤40 chars — the specific NEXT thing to watch (next earnings, guidance update, catalyst). null if genuinely unknown — do NOT invent dates.`,
     '',
     'Respond in pure JSON:',
@@ -5971,9 +5982,9 @@ function buildStockDetailPrompt(buyStocks, institutional, shorts, earnings, sect
     '',
     'For EACH stock, provide:',
     '- catalysts: 2-3 SPECIFIC near-term catalysts with numbers — MUST be company events or fundamental data (earnings beat/guidance raise, product launch, institutional 13F buying count, analyst upgrade, M&A announcement, margin expansion). PROHIBITED: RSI, MA levels, volume %, 52-week range, technical chart patterns — these are NOT catalysts.',
-    `- fundamentalBasis: ≤120 chars — use [Recent Company Financials] data ONLY; revenue growth%, operating margin, ROE, PE (제공된 경우만).`,
+    `- fundamentalBasis: 180-280자 서술형 — 재무 수치를 *해석*해 성장·마진·밸류에이션이 thesis 를 어떻게 뒷받침/위협하는지 흐르는 문장으로. use [Recent Company Financials] data ONLY; revenue growth%, operating margin, ROE, PE (제공된 경우만).`,
     `  ⚠️ PE/PEG/ROE 는 [Recent Company Financials] 에 명시된 값만 인용. 없으면 절대 지어내지 말고(메모리 PE 금지) ROE·마진·매출성장으로 근거. KR 은 보통 PE 미제공 → ROE/netMargin 사용.`,
-    `- technicalBasis: ≤80 chars — MUST use [COMPUTED_TECH] values verbatim if provided; otherwise estimate MA/RSI/volume`,
+    `- technicalBasis: 130-200자 서술형 — MA/RSI/거래량 값과 그 *단기 추세·리스크*를 흐르는 문장으로 서술. MUST use [COMPUTED_TECH] values verbatim if provided; otherwise estimate MA/RSI/volume`,
     '- riskNote: ≤60 chars — single biggest downside risk',
     '',
     '⚠️ ANTI-COPY RULES (violations will corrupt the report):',
