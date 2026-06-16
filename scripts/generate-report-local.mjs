@@ -15,6 +15,7 @@ import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
+import { correctNarrative } from './lib/narrative-fix.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims } from './lib/db.mjs';
@@ -3098,6 +3099,7 @@ async function buildIndexLevelsBlock() {
   ];
   const results = await Promise.all(specs.map(([, sym]) => fetchLast2(sym)));
   const parts = [];
+  const map = {};  // 2026-06-16: 구조화 등락% — narrative-fix 가 내러티브 지수등락 환각 대조에 사용
   for (let i = 0; i < specs.length; i++) {
     const r = results[i];
     if (!r) continue;  // 결측 지수는 생략 — 절대 창작 금지
@@ -3105,8 +3107,9 @@ async function buildIndexLevelsBlock() {
     const lvl = r.cur.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
     const chg = r.chgPct != null ? ` (${r.chgPct >= 0 ? '+' : ''}${r.chgPct.toFixed(1)}%)` : '';
     parts.push(`${label} ${lvl}${chg}`);
+    if (r.chgPct != null) map[label] = r.chgPct;
   }
-  return parts.length ? parts.join(', ') : '';
+  return { text: parts.length ? parts.join(', ') : '', map };
 }
 
 // ── 2026-06-12: 종합 판정 엔진 (사용자 "하락 전조·상승 전조·공포 매수·구루 방식·과거 유사상황
@@ -6513,13 +6516,14 @@ async function generateViaOllama() {
       `(L=leader, → 표시는 일반적 전파 순서. 🔥ACTIVE 는 1d ≥3% 임펄스 감지)\n${cascadeStr}`
     : '';
   // 2026-06-16: 실시간 지수 레벨 — 프롬프트가 실제 KOSPI/S&P 레벨을 갖게 해 train-memory 환각 차단.
-  const indexLevels = await buildIndexLevelsBlock();
+  const { text: indexLevels, map: indexLevelsMap } = await buildIndexLevelsBlock();
   if (indexLevels) console.log(`  [index-levels] ${indexLevels}`);
   const ctxWithCascade = {
     ...ctx,
     flows: ctx.flows + cascadeBlock,
     news: ctx.news + cascadeBlock,
     indexLevels,  // [Index Levels] 블록 — macro·narrative 프롬프트가 인용
+    indexLevelsMap,  // 구조화 등락% — narrative-fix 환각 대조
   };
 
   // ── 데이터 수집 요약 ─────────────────────────────────────────────────────────
@@ -8565,44 +8569,18 @@ async function generateViaOllama() {
     }
   }
 
-  // 2026-06-16: 내러티브 결정적 corrector — 프롬프트 룰로 안 막히는 *sticky 기계환각*을 실값으로 교정.
-  //   라이브 afternoon 전수감사: "금리곡선 정상적(40bp)"(실 87bp)·"나스다크"·"컨텐고"·"스que이즈"(라틴 bleed)·
-  //   "18.2% 유입"(실은 상승률)이 룰 추가 後에도 재발 → 산문 재작성 위험 없는 기계적 치환만 자동 적용.
-  //   (의미적 환각: 허위 일간%·BOJ 등은 verify-report probe 가 검출→hallucination_history 학습 담당.)
-  {
-    const realSlopePp = finalReport.marketVerdict?.analog?.fingerprint?.curveSlopePp
-      ?? finalReport.marketVerdict?.analog?.macroContext?.curveSlopePp;
-    const realBp = realSlopePp != null ? Math.round(realSlopePp * 100) : null;
-    const fixField = (s) => {
-      if (typeof s !== 'string' || !s) return s;
-      let t = s;
-      // (a) 금리곡선 bp 교정: 커브 키워드 근처의 bp 숫자 → 실 bp (괄호 유무 무관: "정상적(40bp)"·"정상적 40bp" 모두).
-      //     실값 없으면 그대로(허위 strip 은 위험 — 유지). 커브 키워드 12자 이내 첫 Nbp 만 교정.
-      if (realBp != null) t = t.replace(/(금리\s*(?:곡선|커브)[^.]{0,12}?)([+-]?\d{1,3})(\s*bp)/g, `$1${realBp}$3`);
-      // (b) 오타/표기 교정
-      t = t.replace(/나스다크/g, '나스닥').replace(/콘텡고|콘텐고|콘탕고|컨텐고|컨티아고|컨텐코/g, '콘탱고');
-      // (c) 라틴 bleed (한글 토큰 안에 낀 소문자 라틴) — 알려진 매핑만 안전 치환
-      t = t.replace(/스que이즈/g, '스퀴즈').replace(/스퀴이즈/g, '스퀴즈');
-      // (d) 자금흐름을 % 로 표기한 환각 제거 — 외국인/해외 자금흐름은 이 시스템에서 *원 금액*(9715억)으로만
-      //     근거화됨. "N% 유입"·"유입 N%로 확대" 류 퍼센트는 수익률 둔갑/순수환각(예: 입력에 없는 "18.2% 유입").
-      //     숫자만 제거하고 흐름 단어(유입/순매수)는 보존 — 산문 재작성 없이 허위수치만 삭제.
-      t = t.replace(/\d{1,2}(?:\.\d)?\s*%\s*(유입|순매수)/g, '$1');                       // "18.2% 유입" → "유입"
-      t = t.replace(/(유입|순매수)[^.,]{0,12}?\d{1,2}(?:\.\d)?\s*%(?:로|까지|으로)?\s*(확대|증가|상승)/g, '$1 $2'); // "유입이 4주 기준 18.2%로 확대" → "유입 확대"
-      return t;
-    };
-    let nFix = 0;
-    for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis', 'topOpportunity', 'hedgingSuggestion']) {
-      const before = finalReport[k]; const after = fixField(before);
-      if (after !== before) { finalReport[k] = after; nFix++; }
+  // 2026-06-16: 내러티브 결정적 corrector (scripts/lib/narrative-fix.mjs — patch-narrative 와 단일 source).
+  //   프롬프트 룰로 안 막히는 sticky 기계환각을 실값으로 교정: 커브 bp·오타·라틴·% 자금흐름 +
+  //   지수/종목 등락% 실값 대조(환각만 제거, 진짜 등락 보존). 산문 LLM 재작성 없음.
+  try {
+    const stockChgMap = {};  // 한글명/티커 → 일간등락% (livePrices 기반, 개별종목 등락 환각 대조)
+    for (const p of finalReport.portfolio ?? []) {
+      const chg = livePrices.get(p.ticker)?.changePct;
+      if (chg != null) { stockChgMap[p.ticker] = chg; if (p.koreanName) stockChgMap[p.koreanName] = chg; if (p.name) stockChgMap[p.name] = chg; }
     }
-    if (finalReport.marketNarrative) {
-      for (const k of ['why', 'story', 'watch']) {
-        const before = finalReport.marketNarrative[k]; const after = fixField(before);
-        if (after !== before) { finalReport.marketNarrative[k] = after; nFix++; }
-      }
-    }
-    if (nFix) console.log(`  [narrative-corrector] sticky 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·수익률→상승)`);
-  }
+    const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap });
+    if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);
+  } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
 
   // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").
   //   경합심사/rotation-veto/모순 재심 trail 은 콘솔 로그 + buySellReconciliation 필드로 유지.
