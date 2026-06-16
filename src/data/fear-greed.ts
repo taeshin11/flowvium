@@ -48,7 +48,7 @@ export const fearGreedByCountry: FearGreedEntry[] = [
   },
   {
     id: 'korea',
-    label: '한국 (Korea)',
+    label: 'Korea',
     flag: '🇰🇷',
     score: 48,
     prevScore: 21,
@@ -57,7 +57,7 @@ export const fearGreedByCountry: FearGreedEntry[] = [
   },
   {
     id: 'japan',
-    label: '日本 (Japan)',
+    label: 'Japan',
     flag: '🇯🇵',
     score: 52,
     prevScore: 37,
@@ -66,7 +66,7 @@ export const fearGreedByCountry: FearGreedEntry[] = [
   },
   {
     id: 'china',
-    label: '中国 (China)',
+    label: 'China',
     flag: '🇨🇳',
     score: 56,
     prevScore: 54,
@@ -93,7 +93,7 @@ export const fearGreedByCountry: FearGreedEntry[] = [
   },
   {
     id: 'india',
-    label: 'भारत (India)',
+    label: 'India',
     flag: '🇮🇳',
     score: 68,
     prevScore: 63,
@@ -111,7 +111,7 @@ export const fearGreedByCountry: FearGreedEntry[] = [
   },
   {
     id: 'taiwan',
-    label: '台灣 (Taiwan)',
+    label: 'Taiwan',
     flag: '🇹🇼',
     score: 58,
     prevScore: 44,

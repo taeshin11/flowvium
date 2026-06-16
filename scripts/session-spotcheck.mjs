@@ -4,8 +4,8 @@
 // 5점검: (1) monitor-status fresh<25m (2) GPU<85C (3) 보고서 stale (4) lock>90m (5) report.log 신규 FATAL.
 // 출력 1줄: "OK ..." 또는 "ALERT: ...". exit code 0=OK / 1=ALERT (cron 은 stdout 으로 판정해도 됨).
 // 2026-06-15 신설 (vLLM 이전 후 세션 모니터링 이어가기).
-import { readFileSync, statSync, readdirSync, existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from 'node:fs';
+import { execSync, spawn } from 'node:child_process';
 
 const ROOT = 'C:/Flowvium';
 const now = Date.now();
@@ -110,6 +110,34 @@ try {
   if (ageH > 14) alerts.push(`Karpathy 정체 ${ageH.toFixed(0)}h (verify-loop 단절 의심, n=${latest.n})`);
   else info.push(`Karpathy ${latest.n}행`);
 } catch { /* DB 잠김/없음 — 무시 */ }
+
+// [10] deep-monitor (A=렌더 전수감사 + B=정확도probe, DB 누적) — surface 최신결과 + 6h throttle 로 detached 재실행.
+//   (2026-06-16: 기존 모니터는 liveness 만 봤고 correctness/전체페이지는 발행시 1회뿐이었음. deep 가 주기적
+//    correctness 검산 + 전향적 DB 적재. 무거워서 spotcheck 가 직접 안 돌리고 6h 마다 백그라운드 spawn.)
+try {
+  const dpath = `${ROOT}/logs/monitor-deep-status.json`;
+  let ageH = 999, s = null;
+  if (existsSync(dpath)) { s = JSON.parse(readFileSync(dpath, 'utf8')); ageH = (now - new Date(s.ts).getTime()) / 3600000; }
+  if (s && ageH < 12) { // 최근 결과만 surface
+    if (s.verdict === 'alert' || s.highFlags || s.probesError) {
+      const bits = [];
+      if (s.highFlags) bits.push(`렌더high ${s.highFlags}(${(s.highDetectors || []).join(',')})`);
+      if (s.probesError) bits.push(`정확도err ${s.probesError}`);
+      alerts.push(`deep감사 ALERT(${ageH.toFixed(1)}h): ${bits.join(', ')}`);
+    } else info.push(`deep✓(${ageH.toFixed(0)}h,${s.pagesAudited}p,probe${s.probes?.length ?? 0})`);
+  }
+  // throttle 재실행: 결과 >6h 또는 없음 + lock 비신선(<15m) 시 백그라운드 detached spawn (비블로킹)
+  const lock = `${ROOT}/logs/monitor-deep.lock`;
+  const lockFresh = existsSync(lock) && (now - statSync(lock).mtimeMs) / 60000 < 15;
+  if ((!s || ageH > 6) && !lockFresh) {
+    try {
+      writeFileSync(lock, new Date(now).toISOString());
+      const ch = spawn(process.execPath, [`${ROOT}/scripts/monitor-deep.mjs`], { cwd: ROOT, detached: true, stdio: 'ignore' });
+      ch.unref();
+      info.push('deep재실행spawn');
+    } catch { /* spawn 실패 비치명 */ }
+  }
+} catch { /* deep surface 실패 무시 */ }
 
 const line = alerts.length
   ? `ALERT: ${alerts.join(' | ')}  [ok: ${info.join(', ')}]`

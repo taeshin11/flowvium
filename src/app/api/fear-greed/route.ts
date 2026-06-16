@@ -271,14 +271,14 @@ function getLevel(score: number): string {
 interface CountryETF { id: string; ticker: string; nativeTicker: string | null; flag: string; label: string; useCNN?: boolean; }
 const COUNTRY_ETFS: CountryETF[] = [
   { id: 'us',        ticker: 'SPY',  nativeTicker: null,       flag: '🇺🇸', label: 'United States', useCNN: true },
-  { id: 'korea',     ticker: 'EWY',  nativeTicker: '^KS11',    flag: '🇰🇷', label: '한국 (Korea)' },        // KOSPI
-  { id: 'japan',     ticker: 'EWJ',  nativeTicker: '^N225',    flag: '🇯🇵', label: '日本 (Japan)' },        // Nikkei 225
-  { id: 'china',     ticker: 'FXI',  nativeTicker: '000300.SS', flag: '🇨🇳', label: '中国 (China)' },        // CSI 300
+  { id: 'korea',     ticker: 'EWY',  nativeTicker: '^KS11',    flag: '🇰🇷', label: 'Korea' },        // KOSPI
+  { id: 'japan',     ticker: 'EWJ',  nativeTicker: '^N225',    flag: '🇯🇵', label: 'Japan' },        // Nikkei 225
+  { id: 'china',     ticker: 'FXI',  nativeTicker: '000300.SS', flag: '🇨🇳', label: 'China' },        // CSI 300
   { id: 'europe',    ticker: 'VGK',  nativeTicker: '^STOXX50E', flag: '🇪🇺', label: 'Europe (EU)' },         // Euro Stoxx 50
   { id: 'uk',        ticker: 'EWU',  nativeTicker: '^FTSE',    flag: '🇬🇧', label: 'United Kingdom' },      // FTSE 100
-  { id: 'india',     ticker: 'INDA', nativeTicker: '^BSESN',   flag: '🇮🇳', label: 'भारत (India)' },         // BSE Sensex
+  { id: 'india',     ticker: 'INDA', nativeTicker: '^BSESN',   flag: '🇮🇳', label: 'India' },         // BSE Sensex
   { id: 'brazil',    ticker: 'EWZ',  nativeTicker: '^BVSP',    flag: '🇧🇷', label: 'Brasil' },               // Bovespa
-  { id: 'taiwan',    ticker: 'EWT',  nativeTicker: '^TWII',    flag: '🇹🇼', label: '台灣 (Taiwan)' },        // TWSE Weighted
+  { id: 'taiwan',    ticker: 'EWT',  nativeTicker: '^TWII',    flag: '🇹🇼', label: 'Taiwan' },        // TWSE Weighted
   { id: 'australia', ticker: 'EWA',  nativeTicker: '^AXJO',    flag: '🇦🇺', label: 'Australia' },            // ASX 200
 ];
 

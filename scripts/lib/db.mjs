@@ -414,6 +414,52 @@ CREATE TABLE IF NOT EXISTS insider_transactions (
   UNIQUE(ticker, source_accession, transaction_date, transaction_code, shares)
 );
 CREATE INDEX IF NOT EXISTS idx_insider_tx_ticker ON insider_transactions(ticker, transaction_date);
+
+-- ── 모니터 관측 누적 (2026-06-16: A=렌더감사 + B=정확도probe 를 append-only 적재 → 전향적 연구) ──────
+--   기존 모니터는 logs/*.json 덮어쓰기라 이력 휘발 → 시간축 결함률/정확도 drift 연구 불가. 이 3테이블이
+--   매 deep-monitor 사이클의 관측을 타임스탬프와 함께 누적해 코호트 연구(전향적) 가능하게 한다.
+CREATE TABLE IF NOT EXISTS monitor_runs (
+  run_id        TEXT PRIMARY KEY,          -- ISO ts (실행 식별자)
+  observed_at   TEXT NOT NULL,
+  base          TEXT,                       -- 감사 대상 (flowvium.net)
+  auth_state    TEXT,                       -- member/anon/auth오류
+  pages_audited INTEGER NOT NULL DEFAULT 0,
+  total_flags   INTEGER NOT NULL DEFAULT 0,
+  high_flags    INTEGER NOT NULL DEFAULT 0,
+  probes_run    INTEGER NOT NULL DEFAULT 0,
+  probes_error  INTEGER NOT NULL DEFAULT 0, -- tolerance 초과 metric 수
+  duration_ms   INTEGER,
+  ok            INTEGER NOT NULL DEFAULT 1  -- 0=실행 자체 오류
+);
+CREATE TABLE IF NOT EXISTS render_audit_log (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id      TEXT NOT NULL,
+  observed_at TEXT NOT NULL,
+  page        TEXT NOT NULL,               -- '/ko/report' 등 (탭은 ?tab= 포함)
+  tab         TEXT,                         -- 클릭탭명 (있으면)
+  detector    TEXT NOT NULL,               -- double_sign / won_label / garbled_contango / ...
+  severity    TEXT NOT NULL,               -- low/medium/high
+  count       INTEGER NOT NULL DEFAULT 1,
+  sample      TEXT,                         -- 대표 스니펫(맥락 24자)
+  FOREIGN KEY (run_id) REFERENCES monitor_runs(run_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_render_audit_page ON render_audit_log(page, observed_at);
+CREATE INDEX IF NOT EXISTS idx_render_audit_det ON render_audit_log(detector, observed_at);
+CREATE TABLE IF NOT EXISTS accuracy_probe_log (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id       TEXT NOT NULL,
+  observed_at  TEXT NOT NULL,
+  metric       TEXT NOT NULL,              -- fg.us / yield.10y / vix / price.<TICKER>
+  our_value    REAL,
+  source_value REAL,
+  source_name  TEXT,                       -- CNN / FRED:DGS10 / Yahoo:^VIX
+  delta        REAL,                       -- our - source
+  tolerance    REAL,
+  verdict      TEXT NOT NULL,              -- ok/degraded/error/na
+  detail       TEXT,
+  FOREIGN KEY (run_id) REFERENCES monitor_runs(run_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_accuracy_metric ON accuracy_probe_log(metric, observed_at);
 `;
 
 let _dbInstance = null;
@@ -1487,4 +1533,35 @@ export function getSummary() {
   const byOutcome   = db.prepare("SELECT outcome, COUNT(*) as n FROM recommendation_outcomes GROUP BY outcome").all();
   const byEndpoint  = db.prepare("SELECT endpoint, COUNT(*) as n FROM endpoint_snapshots GROUP BY endpoint ORDER BY n DESC").all();
   return { reports, snapshots, recs, outcomes, pending, overdue, byOutcome, byEndpoint };
+}
+
+// ── 모니터 관측 적재 (2026-06-16: monitor-deep.mjs 가 호출). 한 run = run_id 1개 + 플래그/probe N행. ──
+//   전향적 연구용 append-only. summary 와 detail 을 1 트랜잭션으로 적재.
+export function saveMonitorObservation({ runId, observedAt, base, authState, renderFlags = [], probes = [], durationMs = null, ok = true }) {
+  const db = openDb();
+  const ts = observedAt ?? new Date().toISOString();
+  const highFlags = renderFlags.filter((f) => f.severity === 'high').length;
+  const totalFlags = renderFlags.reduce((a, f) => a + (f.severity === 'low' ? 0 : 1), 0);
+  const probesError = probes.filter((p) => p.verdict === 'error').length;
+  const tx = db.transaction(() => {
+    db.prepare(`INSERT OR REPLACE INTO monitor_runs
+      (run_id, observed_at, base, auth_state, pages_audited, total_flags, high_flags, probes_run, probes_error, duration_ms, ok)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(runId, ts, base ?? null, authState ?? null,
+        new Set(renderFlags.map((f) => f.page)).size, totalFlags, highFlags, probes.length, probesError, durationMs, ok ? 1 : 0);
+    const ins = db.prepare(`INSERT INTO render_audit_log (run_id, observed_at, page, tab, detector, severity, count, sample)
+      VALUES (?,?,?,?,?,?,?,?)`);
+    for (const f of renderFlags) ins.run(runId, ts, f.page, f.tab ?? null, f.detector, f.severity, f.count ?? 1, (f.sample ?? '').slice(0, 200));
+    const insP = db.prepare(`INSERT INTO accuracy_probe_log (run_id, observed_at, metric, our_value, source_value, source_name, delta, tolerance, verdict, detail)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`);
+    for (const p of probes) insP.run(runId, ts, p.metric, p.our ?? null, p.source ?? null, p.sourceName ?? null, p.delta ?? null, p.tolerance ?? null, p.verdict, (p.detail ?? '').slice(0, 200));
+  });
+  tx();
+  return { runId, totalFlags, highFlags, probesError };
+}
+
+// 최신 deep-monitor run 요약 (session-spotcheck 가 surface). 없으면 null.
+export function getLatestMonitorRun() {
+  const db = openDb();
+  return db.prepare('SELECT * FROM monitor_runs ORDER BY observed_at DESC LIMIT 1').get() ?? null;
 }
