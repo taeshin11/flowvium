@@ -8841,10 +8841,11 @@ const onFatal = (e) => {
 //   export 해 검증체계(test-judge.mjs)에서 #3/#5/best-of-N 로직을 단위검증 가능케 함.
 const IS_MAIN_MODULE = (() => { try { return resolve(fileURLToPath(import.meta.url)) === resolve(process.argv[1] ?? ''); } catch { return false; } })();
 if (IS_MAIN_MODULE) {
-  if (uploadArg) {
-    uploadFromFile(uploadArg).catch(onFatal);
-  } else {
-    generateViaOllama().catch(onFatal);
-  }
+  // 2026-06-17: 발간 후 process.exit(0) 강제 (좀비 hang fix). 기존엔 generateViaOllama() resolve 후
+  //   명시적 종료가 없어, undici(fetch) keep-alive 소켓(vLLM/Yahoo/Upstash 풀)이 event loop 를 살려둬
+  //   node 가 종료 안 됨 → wscript→cmd 래퍼가 무한 대기 → 좀비 누적(최대 10h+) + report.log 핸들 점유 →
+  //   다음 스케줄 런까지 cascade stall. post-publish-recheck 는 detached+unref 라 독립 생존(영향 없음).
+  const done = uploadArg ? uploadFromFile(uploadArg) : generateViaOllama();
+  done.then(() => { process.exit(0); }).catch(onFatal);
 }
 export { scorePortfolioDraft, scoreSellRationaleDraft, parseEntryMid, buildAdjudicationPrompt };

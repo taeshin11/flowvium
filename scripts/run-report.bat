@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 cd /d "C:\Flowvium"
 set "LOG_FILE=C:\Flowvium\logs\report.log"
 set "LOCK_DIR=C:\Flowvium\logs\report-pipeline.lock"
@@ -24,13 +25,19 @@ if errorlevel 1 (
   echo [%DATE% %TIME%] [WARN] git checkout failed - proceeding with current code >> "%LOG_FILE%"
 )
 
-:: 1. vLLM server health check (2026-06-15 Ollama->vLLM migration; replaces 'ollama list' gate).
-for /f %%S in ('curl -s -o nul -w "%%{http_code}" http://localhost:8000/v1/models 2^>nul') do set "VLLM_CODE=%%S"
-if not "%VLLM_CODE%"=="200" (
-  echo [%DATE% %TIME%] [ERROR] vLLM server (:8000) not responding ^(http=%VLLM_CODE%^) >> "%LOG_FILE%"
-  rmdir "%LOCK_DIR%" 2>nul
-  exit /b 1
+:: 1. vLLM server health check — wait-retry loop (2026-06-17 신설; 기존 즉시-abort 는 morning 06:40 트리거가
+::    vLLM 기동(부팅 의존) 전이면 보고서 누락 → 최대 ~12분 대기(36회 x 20s)하며 200 대기. 그래도 안 뜨면 abort.
+set "VLLM_CODE="
+for /l %%i in (1,1,36) do (
+  for /f %%S in ('curl -s -o nul -w "%%{http_code}" http://localhost:8000/v1/models 2^>nul') do set "VLLM_CODE=%%S"
+  if "!VLLM_CODE!"=="200" goto :vllm_ok
+  echo [%DATE% %TIME%] [INFO] vLLM(:8000) 대기 %%i/36 ^(http=!VLLM_CODE!^) >> "%LOG_FILE%"
+  timeout /t 20 /nobreak >nul 2>&1
 )
+echo [%DATE% %TIME%] [ERROR] vLLM server (:8000) not responding after ~12min ^(http=!VLLM_CODE!^) >> "%LOG_FILE%"
+rmdir "%LOCK_DIR%" 2>nul
+exit /b 1
+:vllm_ok
 
 :: 2. Pre-flight data source health check (silent-failure guard).
 echo [%DATE% %TIME%] [INFO] Pre-flight: data source health check... >> "%LOG_FILE%"
