@@ -247,6 +247,19 @@ function hourToSession(h: FinnhubEarning['hour']): EarningRow['session'] {
   return null;
 }
 
+// 2026-06-16: companyName mojibake 가드 (페이지 전수감사 — "SNOA J�虣�" 등 깨진 바이너리가
+//   1차 Finnhub 데이터/Redis 캐시에서 companyName 으로 유입돼 렌더됨). 제어문자/replacement char/
+//   비정상문자 30%+ 이면 거부 → null(프런트는 티커 폴백). enrichRow 최종 + resolver 양쪽에서 차단.
+function cleanName(s: unknown): string | null {
+  if (typeof s !== 'string') return null;
+  const t = s.trim();
+  if (!t) return null;
+  if (/[\u0000-\u001F\u007F\uFFFD]/.test(t)) return null;
+  const bad = (t.match(/[^\u0020-\u007E\uAC00-\uD7A3\u00C0-\u024F\s]/g) || []).length;
+  if (bad / t.length > 0.3) return null;
+  return t;
+}
+
 function enrichRow(e: FinnhubEarning, companyName: string | null = null): EarningRow {
   // Guard: |estimate| < 0.01 produces misleading extreme % (e.g. INTC +3052% when estimate=$0.009)
   const epsSurprise =
@@ -257,7 +270,7 @@ function enrichRow(e: FinnhubEarning, companyName: string | null = null): Earnin
     e.revenueActual != null && e.revenueEstimate != null && e.revenueEstimate !== 0
       ? Math.max(-999, Math.min(999, Math.round(((e.revenueActual - e.revenueEstimate) / Math.abs(e.revenueEstimate)) * 1000) / 10))
       : null;
-  return { ...e, epsSurprise, revenueSurprise, session: hourToSession(e.hour), companyName };
+  return { ...e, epsSurprise, revenueSurprise, session: hourToSession(e.hour), companyName: cleanName(companyName) ?? e.symbol ?? null };
 }
 
 async function resolveCompanyNames(
