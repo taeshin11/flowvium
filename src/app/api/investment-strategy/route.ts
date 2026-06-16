@@ -2143,8 +2143,13 @@ export async function GET(request: Request) {
           note: 'session key NOT written — users will receive stale report',
         });
       } else if (isFallback) {
-        // data-based fallback: 2h TTL (크론이 곧 재생성)
-        await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: 2 * 60 * 60 });
+        // 2026-06-17 (사용자 "fallback 보고서 절대 못올라가게"): fallback 을 세션 키에 캐싱하지 않는다.
+        //   기존엔 세션 키에 2h 저장 → Redis 에 fallback 이 '올라가' 2h 서빙되던 사각지대. 이제 세션 키 미기록
+        //   → 사용자는 last-good(직전 정상 보고서) 수신, fallback 은 forensics 용 별도 키에만 1h 보존.
+        const fbKey = `flowvium:investment-strategy:fallback-quarantine:${key.split(':').slice(-2).join(':')}`;
+        await loggedRedisSet(redis, 'api.investment-strategy', fbKey, cacheable, { ex: 60 * 60 });
+        logger.warn('api.investment-strategy', 'fallback_not_cached', { locale, source: strategy.source,
+          note: 'session key NOT written — fallback 영구 미반영, last-good 서빙' });
       } else {
         // 정상 AI 보고서: 24h TTL
         await loggedRedisSet(redis, 'api.investment-strategy', key, cacheable, { ex: CACHE_TTL });

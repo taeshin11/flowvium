@@ -986,6 +986,15 @@ async function uploadFromFile(filePath) {
     process.exit(1);
   }
 
+  // 2026-06-17 (사용자 "fallback 보고서 절대 못올라가게"): source fail-closed 게이트. 정상 발행본은
+  //   local-<model>(또는 알려진 cloud provider)만. fallback/missing/deterministic/static/빈값은 업로드 거부 →
+  //   Redis 에 fallback 이 '올라가는' 것을 원천 차단(발행 경로). 라우트측 캐싱 차단은 route.ts isFallback 분기.
+  const srcStr = String(report.source ?? '');
+  if (!/^(local-|gemini|groq|claude|openrouter|qwen|vllm)/i.test(srcStr)) {
+    console.error(`\n❌ fallback/비정상 source 보고서 — 발행 차단 (source=${srcStr || '없음'}). Redis 미반영.`);
+    process.exit(1);
+  }
+
   const locale = report.locale ?? localeArg;
   const session = report.session ?? getSession();
   const kstNow = new Date(Date.now() + 9 * 3600000);
@@ -6036,7 +6045,9 @@ function buildOpportunityPrompt(ctx) {
 }
 
 function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
-  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : session === 'noon' ? '한국장 장중(점심)·아시아 거래중' : session === 'midnight' ? '아시아 개장 전·미국장 마감' : '미국장 개장 전';
+  // 2026-06-17 (사용자 "왜 미국장 시작했는데 한국장 얘기"): midnight=00:00 KST=11:00 EST → 미국장 *장중*
+  //   (마감 아님). 기존 '미국장 마감' 오라벨이 LLM 을 KR 중심 내러티브로 유도 + getSessionFocus('US 장중') 와 모순.
+  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : session === 'noon' ? '한국장 장중(점심)·아시아 거래중' : session === 'midnight' ? '미국장 장중·아시아 개장 전' : '미국장 개장 전';
   const focus = getSessionFocus(session);
   return [
     `You are a market narrative writer. Session: ${sc} ${TODAY}. Write in ${TARGET_LANG}.`,

@@ -77,6 +77,17 @@ try { const j = await jget('https://query1.finance.yahoo.com/v8/finance/chart/%5
 // 4) SPY vs Yahoo SPY (장중 이동분 있어 tol 넓게 — delta 추세 누적이 목적)
 try { const j = await jget('https://query1.finance.yahoo.com/v8/finance/chart/SPY', BROWSER); const our = num(macro.spy_close); pushProbe('spy', our, num(j.chart.result[0].meta.regularMarketPrice), 'Yahoo:SPY', our ? our * 0.02 : 10); } catch { pushProbe('spy', num(macro.spy_close), null, 'Yahoo:SPY', 10); }
 
+// ── C: fallback 보고서 자동 감지+삭제 (2026-06-17 사용자 "감지하고 지워야"). purge-fallback-report.mjs 가
+//   Redis 세션/stale/hist 키를 SCAN → fallback source 면 삭제 + 히스토리 배열 정리. deep 사이클(6h)마다 청소. ──
+let purgeLine = '';
+try {
+  const { spawnSync } = await import('node:child_process');
+  const pr = spawnSync(process.execPath, [`${__dirname}/purge-fallback-report.mjs`], { encoding: 'utf8', timeout: 30000, env: process.env });
+  purgeLine = (pr.stdout || '').trim().split('\n').pop() || '';
+  if (/PURGE-FALLBACK ALERT/.test(purgeLine)) alerts.push(`fallback 삭제: ${purgeLine.replace(/^.*ALERT:\s*/, '').slice(0, 80)}`);
+  else if (purgeLine) info.push('fallback청소✓');
+} catch (e) { info.push(`purge skip:${String(e?.message).slice(0, 30)}`); }
+
 const probesError = probes.filter((p) => p.verdict === 'error').length;
 info.push(`B정확도 ${probes.length}probe(err ${probesError}): ${probes.map((p) => `${p.metric}${p.verdict === 'ok' ? '✓' : p.verdict === 'na' ? '∅' : '⚠' + (p.delta != null ? p.delta.toFixed(1) : '')}`).join(' ')}`);
 if (probesError) alerts.push(`정확도 error ${probesError}: ${probes.filter((p) => p.verdict === 'error').map((p) => `${p.metric}(d=${p.delta?.toFixed(1)})`).join(',')}`);
