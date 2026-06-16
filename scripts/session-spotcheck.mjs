@@ -103,12 +103,18 @@ try {
   const today = kst.toISOString().slice(0, 10);
   const SESS = [[6 * 60 + 40, 'morning'], [11 * 60 + 40, 'noon'], [15 * 60 + 40, 'afternoon'], [21 * 60 + 10, 'evening'], [23 * 60 + 40, 'midnight']];
   const GRACE = 40; // 생성 소요(분) — 발행시각 + 40분까지는 생성중일 수 있어 유예
-  const due = SESS.filter(([m]) => kh >= m + GRACE).pop(); // 오늘 발행기한 지난 세션 중 가장 최근
-  if (due) {
-    const label = due[1];
-    if (!existsSync(`${ROOT}/reports/report-${today}-${label}-ko.json`)) {
-      alerts.push(`현재 세션(${label}) 미발행 — ${today} ${label} 보고서 파일 없음 (cron hang/실패 의심)`);
-    } else info.push(`세션 ${label}✓`);
+  const REAL = /^(local-|gemini|groq|claude|openrouter|qwen|vllm)/i; // purge-fallback 과 동일 REAL-source 기준
+  // 2026-06-17 전수조사: 기존 .pop()(가장 최근 1개)+existsSync(존재만) → 두 약점. (1) 연속 누락 시 직전
+  //   세션을 놓침 → 오늘 발행기한 지난 '모든' 세션 검사. (2) fallback 파일도 존재만으로 통과 → source 가
+  //   REAL 아니면 ALERT (발행됐으나 fallback = 사용자가 본 사건의 후반부).
+  for (const [m, label] of SESS.filter(([mm]) => kh >= mm + GRACE)) {
+    const f = `${ROOT}/reports/report-${today}-${label}-ko.json`;
+    if (!existsSync(f)) { alerts.push(`세션(${label}) 미발행 — ${today} ${label} 보고서 파일 없음 (cron hang/실패 의심)`); continue; }
+    try {
+      const src = String(JSON.parse(readFileSync(f, 'utf8')).source ?? '');
+      if (!REAL.test(src)) alerts.push(`세션(${label}) fallback 파일 발행됨 (source=${src || '없음'})`);
+      else info.push(`세션 ${label}✓`);
+    } catch { alerts.push(`세션(${label}) 파일 파싱불가`); }
   }
 } catch {}
 
