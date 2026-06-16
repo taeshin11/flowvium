@@ -62,8 +62,20 @@ for (const path of PAGES) {
     try { await page.waitForLoadState('networkidle', { timeout: 8000 }); } catch { /* polling 페이지는 idle 안 옴 — 무시 */ }
     await page.waitForTimeout(SETTLE_MS);
 
+    // 2026-06-16: 전체 스크롤 캡처(fullPage) — 첫 화면만이 아니라 페이지 끝까지. lazy-load 콘텐츠 위해
+    //   끝까지 천천히 스크롤 후 원위치(차트/표가 viewport 진입해야 렌더되는 컴포넌트 대응).
+    await page.evaluate(async () => {
+      await new Promise((res) => {
+        let y = 0; const step = 600;
+        const t = setInterval(() => {
+          window.scrollTo(0, y); y += step;
+          if (y >= document.body.scrollHeight) { clearInterval(t); window.scrollTo(0, 0); res(); }
+        }, 120);
+      });
+    });
+    await page.waitForTimeout(800);
     const shotPath = `${shotDir}/${slug(path)}.png`;
-    await page.screenshot({ path: shotPath, fullPage: false });
+    await page.screenshot({ path: shotPath, fullPage: true });
     rec.screenshot = shotPath;
 
     const bodyText = (await page.evaluate(() => document.body?.innerText || '')).trim();
