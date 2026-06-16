@@ -5549,6 +5549,30 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
   }
 }
 
+// 2026-06-16: cross-session whipsaw 메모리 — 직전 세션들에서 매도 추천된 종목 집합을 persist 된
+//   sell_recommendations 에서 읽어온다. 같은 보고서 내 매수↔매도 reconcile 만으론 세션 간 BUY→SELL→BUY
+//   flip(예: TSLA 57건/30d, minGap=0d)을 못 막아 — 심판 게이트가 "최근 매도한 종목인가?"를 확인하도록.
+//   현재 생성 중인 보고서의 sell 은 아직 적재 전(saveSellRecommendations 는 발간 후)이라 순수 과거만 반영.
+//   반환: Map ticker → { lastSoldAt, sessionsAgo }. sessionsAgo = 그 매도 시점 이후 distinct report_id 수.
+function getRecentlySoldTickers(db, lookbackHours = 36) {
+  try {
+    const rows = db.prepare(`
+      SELECT ticker, MAX(generated_at) AS lastSoldAt,
+             (SELECT COUNT(DISTINCT report_id) FROM sell_recommendations s2
+               WHERE s2.generated_at >= s.generated_at) AS sessionsAgo
+      FROM sell_recommendations s
+      WHERE generated_at >= datetime('now', ?)
+      GROUP BY ticker
+    `).all(`-${lookbackHours} hours`);
+    const map = new Map();
+    for (const r of rows) map.set(r.ticker, { lastSoldAt: r.lastSoldAt, sessionsAgo: r.sessionsAgo });
+    return map;
+  } catch (e) {
+    console.warn('  ⚠️ getRecentlySoldTickers 실패:', e.message);
+    return new Map();
+  }
+}
+
 /**
  * Exit Ladder — 룰 type 별 부분 매도 패턴 자동 생성. Klarman ladder exit + Druckenmiller trailing.
  *   stop_breach / 200ma_breach / dead_cross    → 즉시 전량 (100%)
@@ -7002,9 +7026,20 @@ async function generateViaOllama() {
     //   Wave1 macroData.riskLevel 사용(가용). high → 임계 −1.
     const macroTighten = macroData?.riskLevel === 'high' ? 1 : 0;
     const HIGH = 7 - macroTighten, MID = 4 - macroTighten, VETO_SCORE = HIGH;  // VETO_SCORE: refill 호환 alias
+    // 2026-06-16: cross-session whipsaw hysteresis 설정 — 최근 매도한 종목을 재매수하려면 평상시보다 높은
+    //   매수확신(stage1Score)을 요구. 못 넘으면 downgrade(비중↓·확신↓·경고노트), 넘으면 진짜 고확신 반전으로
+    //   허용하되 whipsawRisk 태그. 이건 hysteresis 이지 hard-block 이 아님 — 정상 반전은 통과시킨다.
+    const WHIPSAW_LOOKBACK_HOURS = 36;        // 이 시간 내 매도된 종목만 hysteresis 대상
+    const WHIPSAW_CONVICTION_MARGIN = 10;     // raised bar=base+margin=35. stage1Score 실측범위 24~41 기준 — 35+ 강매수만 full 유지(진짜 반전 통로 확보), 그 미만은 downgrade. (2026-06-16 40→35)
+    const WHIPSAW_BASE_CONVICTION = 25;       // 평상시 "적정 매수확신" 기준선 (buyDiscount 기준선과 정합)
+    const recentlySold = (() => {
+      try { const wdb = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+            const m = getRecentlySoldTickers(wdb, WHIPSAW_LOOKBACK_HOURS); wdb.close(); return m; }
+      catch (e) { console.warn('  ⚠️ whipsaw 메모리 로드 실패:', e.message); return new Map(); }
+    })();
     const before = dedupedPortfolio.length;
     // 합의 과정 trail (reports/reconciliation/) — veto/감점/통과 + net 점수 보존(연구용).
-    const adjudication = { ts: new Date().toISOString(), session, thresholds: { HIGH, MID, macroTighten }, candidates: [], downgraded: [] };
+    const adjudication = { ts: new Date().toISOString(), session, thresholds: { HIGH, MID, macroTighten }, candidates: [], downgraded: [], whipsaw: [] };
     dedupedPortfolio = dedupedPortfolio.filter(p => {
       const sig = sellSig.get(p.ticker) ?? {};
       if (sig.rsi != null) p._realRsi = sig.rsi;  // technicalBasis RSI 라벨 grounding 용 (발간직전 삭제)
@@ -7053,6 +7088,31 @@ async function generateViaOllama() {
         console.warn(`  [심판] ${p.ticker} 탈락 (${hardHit ? `hard:${hardHit.id}` : `netSoft ${netSoft}≥${HIGH} 매수확신${buyConviction}`}): ${hits.map(h => h.id).join(',')}`);
         return false;
       }
+      // 2026-06-16: cross-session whipsaw hysteresis — hard/HIGH veto 를 통과한 매수 생존자에 한해,
+      //   "최근(WHIPSAW_LOOKBACK_HOURS) 매도한 종목"이면 평상시보다 높은 매수확신을 요구. 못 넘으면 downgrade
+      //   (비중↓·확신↓·경고노트), 넘으면 진짜 고확신 반전으로 유지하되 whipsawRisk 태그. hard-veto 는 위에서
+      //   이미 처리됐으므로 손대지 않음(hard sell 우선). 정상 반전 차단이 아닌 hysteresis.
+      const sold = recentlySold.get(p.ticker);
+      if (sold) {
+        const raisedBar = WHIPSAW_BASE_CONVICTION + WHIPSAW_CONVICTION_MARGIN;
+        if (buyConviction < raisedBar) {
+          const downConf = p.confidence === 'high' ? 'medium' : 'low';
+          const caution = `최근 매도 종목(${sold.sessionsAgo}세션 전) — whipsaw 경계, 확신 부족 시 관망 (매수확신${buyConviction}<${raisedBar})`;
+          p.confidence = downConf;
+          p.allocation = Math.max(3, Math.round((p.allocation ?? 8) * 0.6));
+          p.riskNote = p.riskNote ? `⚠️ ${caution}. ${p.riskNote}` : `⚠️ ${caution}`;
+          p.adjudicationTier = p.adjudicationTier ?? 'whipsaw-downgrade';
+          p.whipsawRisk = true;
+          adjudication.whipsaw.push({ ticker: p.ticker, sessionsAgo: sold.sessionsAgo, buyConviction, raisedBar, action: 'downgraded' });
+          console.warn(`  [심판/whipsaw] ${p.ticker} 최근매도(${sold.sessionsAgo}세션전) 재매수 감점 (확신${buyConviction}<${raisedBar} → 비중↓·확신→${downConf})`);
+        } else {
+          p.whipsawRisk = true;
+          const note = `최근 매도 종목(${sold.sessionsAgo}세션 전) 고확신 반전 — whipsaw 경계 (매수확신${buyConviction}≥${raisedBar})`;
+          p.riskNote = p.riskNote ? `⚠️ ${note}. ${p.riskNote}` : `⚠️ ${note}`;
+          adjudication.whipsaw.push({ ticker: p.ticker, sessionsAgo: sold.sessionsAgo, buyConviction, raisedBar, action: 'kept-high-conviction' });
+          console.log(`  [심판/whipsaw] ${p.ticker} 최근매도(${sold.sessionsAgo}세션전)지만 고확신(${buyConviction}≥${raisedBar}) 반전 유지 (whipsawRisk 태그)`);
+        }
+      }
       if (tier === 'downgrade') {
         const downConf = p.confidence === 'high' ? 'medium' : 'low';
         const tags = hits.map(h => h.id.replace(/^[a-z]+_/, '')).join('·');
@@ -7069,7 +7129,7 @@ async function generateViaOllama() {
       return true;
     });
     adjudication.sellSide = sellSideReview;  // 양방향: 매도 후보의 매수신호 상충 기록
-    adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length, downgraded: adjudication.downgraded.length, sellConflicts: sellSideReview.length };
+    adjudication.summary = { evaluated: before, passed: dedupedPortfolio.length, vetoed: before - dedupedPortfolio.length, downgraded: adjudication.downgraded.length, sellConflicts: sellSideReview.length, whipsaw: adjudication.whipsaw.length, whipsawDowngraded: adjudication.whipsaw.filter(w => w.action === 'downgraded').length };
     if (before !== dedupedPortfolio.length || adjudication.downgraded.length) console.log(`  [심판] 매수 ${before}→${dedupedPortfolio.length} (탈락 ${before - dedupedPortfolio.length}, 감점보류 ${adjudication.downgraded.length})`);
 
     // 2026-06-12: 탈락 시장 재충원 (사용자 "kr종목이 없네 의도적인가?" — 17:33 발간 실측: 탈락 6종
