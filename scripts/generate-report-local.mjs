@@ -8565,6 +8565,49 @@ async function generateViaOllama() {
     }
   }
 
+  // 2026-06-16: 내러티브 결정적 corrector — 프롬프트 룰로 안 막히는 *sticky 기계환각*을 실값으로 교정.
+  //   라이브 afternoon 전수감사: "금리곡선 정상적(40bp)"(실 87bp)·"나스다크"·"컨텐고"·"스que이즈"(라틴 bleed)·
+  //   "18.2% 유입"(실은 상승률)이 룰 추가 後에도 재발 → 산문 재작성 위험 없는 기계적 치환만 자동 적용.
+  //   (의미적 환각: 허위 일간%·BOJ 등은 verify-report probe 가 검출→hallucination_history 학습 담당.)
+  {
+    const realSlopePp = finalReport.marketVerdict?.analog?.fingerprint?.curveSlopePp
+      ?? finalReport.marketVerdict?.analog?.macroContext?.curveSlopePp;
+    const realBp = realSlopePp != null ? Math.round(realSlopePp * 100) : null;
+    // KR 4주 수익률(상승률) — "18.2% 유입" 둔갑 교정용 anchor
+    const krRet = String(finalReport.regionStances?.korea?.thesis ?? '')
+      .match(/(\d{1,2}(?:\.\d)?)\s*%\s*(?:상승|수익률|올라|return)/i)?.[1]
+      ?? String(finalReport.regionStances?.korea?.thesis ?? '').match(/4주[^%]{0,8}(\d{1,2}(?:\.\d)?)\s*%/)?.[1];
+    const fixField = (s) => {
+      if (typeof s !== 'string' || !s) return s;
+      let t = s;
+      // (a) 금리곡선 bp 교정: 커브 키워드 근처 (Nbp) → 실 bp (없으면 괄호 제거)
+      if (realBp != null) t = t.replace(/(금리\s*(?:곡선|커브)[^()]{0,16}\(\s*)\d{1,3}(\s*bp\s*\))/g, `$1${realBp}$2`);
+      else t = t.replace(/(금리\s*(?:곡선|커브)[^()]{0,16})\(\s*\d{1,3}\s*bp\s*\)/g, '$1');
+      // (b) 오타/표기 교정
+      t = t.replace(/나스다크/g, '나스닥').replace(/콘텡고|콘텐고|콘탕고|컨텐고|컨티아고|컨텐코/g, '콘탱고');
+      // (c) 라틴 bleed (한글 토큰 안에 낀 소문자 라틴) — 알려진 매핑만 안전 치환
+      t = t.replace(/스que이즈/g, '스퀴즈').replace(/스퀴이즈/g, '스퀴즈');
+      // (d) 수익률→유입 둔갑: KR 4주 상승률 V% 가 "유입" 으로 쓰이면 "상승" 으로 (사실 교정)
+      if (krRet) {
+        const v = krRet.replace('.', '\\.');
+        t = t.replace(new RegExp(`(${v}\\s*%)\\s*유입(된)?`, 'g'), '$1 상승$2');
+      }
+      return t;
+    };
+    let nFix = 0;
+    for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis', 'topOpportunity', 'hedgingSuggestion']) {
+      const before = finalReport[k]; const after = fixField(before);
+      if (after !== before) { finalReport[k] = after; nFix++; }
+    }
+    if (finalReport.marketNarrative) {
+      for (const k of ['why', 'story', 'watch']) {
+        const before = finalReport.marketNarrative[k]; const after = fixField(before);
+        if (after !== before) { finalReport.marketNarrative[k] = after; nFix++; }
+      }
+    }
+    if (nFix) console.log(`  [narrative-corrector] sticky 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·수익률→상승)`);
+  }
+
   // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").
   //   경합심사/rotation-veto/모순 재심 trail 은 콘솔 로그 + buySellReconciliation 필드로 유지.
 

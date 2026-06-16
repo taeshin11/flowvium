@@ -625,8 +625,22 @@ export async function verifyReport(file, { silent = false } = {}) {
       log(`  ❌ 수급방향역전: 입력 "${inDir}" → 내러티브 "순매수 지속"`); nFound++;
     }
 
-    // (d) 수익률→자금유입 둔갑 — KR 수익률 N% 가 내러티브에서 "유입/순매수 N%" 로 재사용
-    const retPct = /수익률/.test(krThesis) ? krThesis.match(/(\d{1,2}(?:\.\d)?)\s*%/)?.[1] : null;
+    // (e) 라틴 bleed — 한글 토큰 안에 낀 소문자 라틴 (예: "스que이즈"=스퀴즈). 대문자(AI/NVDA)·약어 제외.
+    const latinBleed = [];
+    for (const [k, v] of Object.entries(koFields)) {
+      if (typeof v !== 'string') continue;
+      const hits = [...new Set((v.match(/[가-힣][a-z]{2,6}[가-힣]/g) || []))];
+      if (hits.length) latinBleed.push(`${k}:${hits.join(',')}`);
+    }
+    if (latinBleed.length) {
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'latin_bleed',
+        llm_value: latinBleed.slice(0, 4).join(' | '), correct_value: '한글 토큰에 라틴 문자 누출 — 한글로', severity: 'medium' });
+      log(`  ❌ 라틴bleed: ${latinBleed.join(' | ')}`); nFound++;
+    }
+
+    // (d) 수익률→자금유입 둔갑 — KR 수익률/상승률 N% 가 내러티브에서 "유입/순매수 N%" 로 재사용
+    const retPct = (krThesis.match(/(\d{1,2}(?:\.\d)?)\s*%\s*(?:상승|수익률|올라|return)/i)
+      ?? krThesis.match(/4주[^%]{0,8}(\d{1,2}(?:\.\d)?)\s*%/))?.[1];
     if (retPct) {
       const re = new RegExp(`${retPct.replace('.', '\\.')}\\s*%[^.]{0,14}(유입|순매수)`);
       if (re.test(narrText)) {
