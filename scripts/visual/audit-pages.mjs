@@ -18,9 +18,15 @@ const arg = (k, d) => { const a = process.argv.find((x) => x.startsWith(`--${k}=
 const BASE = arg('base', 'https://flowvium.net').replace(/\/$/, '');
 const EMAIL = process.env.MEMBER_EMAIL || '';
 const WANT_SLICES = process.argv.includes('--slices');
+const WANT_TABS = process.argv.includes('--tabs');
 const DEFAULT_PAGES = ['/ko/report', '/ko/signals', '/ko/short', '/ko/heatmap', '/ko/screener', '/ko/explore',
   '/ko/cascade', '/ko/intelligence', '/ko/news-gap', '/ko/earnings', '/ko/volatility', '/ko/insider', '/ko/osint', '/ko'];
-const PAGES = arg('pages', DEFAULT_PAGES.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
+// URL 주소지정 탭(searchParams 'tab') — 클릭 없이 각 탭 직접 감사
+const URL_TABS = { '/ko/intelligence': ['capital', 'macro', 'flows', 'fear-greed', 'credit', 'narratives', 'news', 'cot'] };
+let PAGES = arg('pages', DEFAULT_PAGES.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
+if (WANT_TABS) { // URL 탭 페이지를 ?tab= 변형으로 확장
+  PAGES = PAGES.flatMap((p) => URL_TABS[p] ? URL_TABS[p].map((t) => `${p}?tab=${t}`) : [p]);
+}
 
 // ── Detectors: (name, severity, regex|fn) — 렌더 innerText 대상. precise 하게(오탐 최소) ──────────
 const DETECTORS = [
@@ -68,6 +74,35 @@ async function runDetectors(text) {
   return flags;
 }
 
+// 클릭 기반 탭(OSINT/Insider 등 URL 비주소지정) — 탭바 버튼 그룹 발견 → 각 탭 클릭 후 감사.
+async function auditClickTabs(page) {
+  const tabFlags = [];
+  let labels = [];
+  try {
+    labels = await page.evaluate(() => {
+      const cands = [...document.querySelectorAll('button, [role="tab"]')].filter((b) => {
+        const t = (b.innerText || '').trim(); const r = b.getBoundingClientRect();
+        return t && t.length <= 16 && r.width > 0 && r.height > 0 && r.top < window.innerHeight * 0.6 && !/^\$|\d{2,}|매수|매도/.test(t);
+      });
+      const byParent = new Map();
+      for (const b of cands) { const p = b.parentElement; if (!p) continue; if (!byParent.has(p)) byParent.set(p, []); byParent.get(p).push((b.innerText || '').trim()); }
+      let best = []; for (const arr of byParent.values()) if (arr.length > best.length) best = arr;
+      return best.length >= 3 ? [...new Set(best)] : [];
+    });
+  } catch { /* no tabs */ }
+  for (const label of labels.slice(0, 8)) {
+    try {
+      const before = page.url();
+      await page.getByText(label, { exact: true }).first().click({ timeout: 4000 });
+      await page.waitForTimeout(700);
+      if (page.url() !== before) { await page.goBack({ timeout: 8000 }).catch(() => {}); await page.waitForTimeout(400); continue; }
+      const text = (await page.evaluate(() => document.body?.innerText || '')).trim();
+      for (const f of await runDetectors(text)) tabFlags.push({ tab: label, ...f });
+    } catch { /* 클릭 실패 — skip */ }
+  }
+  return { labels, tabFlags };
+}
+
 const results = [];
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 1100 }, locale: 'ko-KR' });
@@ -88,6 +123,13 @@ for (const path of PAGES) {
     const text = (await page.evaluate(() => document.body?.innerText || '')).trim();
     rec.bodyLen = text.length;
     rec.flags = await runDetectors(text);
+    // 클릭 탭 순회 (URL 주소지정 안 되는 탭 — OSINT/Insider 등). ?tab= 변형은 이미 별도 항목.
+    if (WANT_TABS && !path.includes('?tab=')) {
+      const { labels, tabFlags } = await auditClickTabs(page);
+      rec.tabs = labels;
+      // 탭별 flag 를 detector 단위로 병합(탭명 표기)
+      for (const tf of tabFlags) { const ex = rec.flags.find((f) => f.detector === tf.detector); if (ex) { ex.count += tf.count; (ex.tabs ??= []).push(tf.tab); } else rec.flags.push({ ...tf, tabs: [tf.tab] }); }
+    }
     if (WANT_SLICES) {
       const total = await page.evaluate(() => document.body.scrollHeight);
       const n = Math.min(12, Math.ceil(total / 1100));
