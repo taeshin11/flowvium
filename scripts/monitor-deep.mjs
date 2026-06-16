@@ -22,6 +22,16 @@ const t0 = Date.now();
 const alerts = [];
 const info = [];
 
+// 2026-06-17 (사용자 cleanup): logs/screenshots 무한증식 방지 — recheck/slices/page-audit 세트가 매 발행·감사마다
+//   쌓여(11세트 31M) 용량 잠식. 최근 10세트만 보존(mtime 기준), 나머지 삭제. 비치명.
+try {
+  const { readdirSync, statSync, rmSync } = await import('node:fs');
+  const shotRoot = `${ROOT}/logs/screenshots`;
+  const sets = readdirSync(shotRoot).map((d) => ({ d, t: statSync(`${shotRoot}/${d}`).mtimeMs })).sort((a, b) => b.t - a.t);
+  for (const s of sets.slice(10)) { try { rmSync(`${shotRoot}/${s.d}`, { recursive: true, force: true }); } catch {} }
+  if (sets.length > 10) info.push(`스샷정리 ${sets.length - 10}set`);
+} catch { /* screenshots 없음/정리실패 무시 */ }
+
 // .env.local 로드 (pm2/plain node 는 자동 로드 안 함 — MEMBER_EMAIL 게이트 해제용)
 try {
   const envPath = resolve(ROOT, '.env.local');

@@ -70,7 +70,10 @@ async function runDetectors(text) {
   // 중복 리스크이벤트(BOJ=FOMC 복사): "예상: X%" + "노출 종목: ..." 동일 조합 2회+
   const exposures = [...text.matchAll(/노출\s*종목[:：]\s*([^\n]{6,80})/g)].map((m) => m[1].trim());
   const dupExp = exposures.filter((e, i) => exposures.indexOf(e) !== i);
-  if (dupExp.length) flags.push({ detector: 'dup_riskevent_exposure', sev: 'high', count: dupExp.length, samples: [{ snip: `중복 노출종목: ${[...new Set(dupExp)][0]}` }] });
+  // 2026-06-17 sev high→medium (사용자 "확실해?" 재검증): 동일 노출종목이 다른 카테고리 이벤트에 반복되는 건
+  //   LLM laziness 인 *콘텐츠 품질* 이슈(거짓 아님) — NaN/이중부호 같은 렌더파손이 아님. medium 으로 검출·기록은
+  //   유지하되(추세추적) 매 사이클 proactive ALERT(high) 은 끔. 진짜 완전복제(BOJ=FOMC)는 데이터probe 가 별도 검출.
+  if (dupExp.length) flags.push({ detector: 'dup_riskevent_exposure', sev: 'medium', count: dupExp.length, samples: [{ snip: `중복 노출종목: ${[...new Set(dupExp)][0]}` }] });
   return flags;
 }
 
