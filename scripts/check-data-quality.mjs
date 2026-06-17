@@ -80,6 +80,11 @@ async function main() {
       if (pct < 50) issues.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 콜드캐시/파이프라인(warm 필요). 예: "${(titles.find(t => !re.test(t)) || '').slice(0, 35)}"`);
       else if (pct < 80) info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%) — 8B 부분번역(CJK 한계 인지됨)`);
       else info.push(`[B] 뉴스 번역 ${l} ${ok}/${titles.length} (${pct}%)`);
+      // [B6] 2026-06-18: U+FFFD(�) 깨짐 검사 — vLLM AWQ 모델이 한국어 음절을 byte-fallback 으로 �로
+      //   출력하던 사건(/report '주요 뉴스' 에 "스�페이스X" / "TD 유��" 라이브 노출, ko 만 ja/en 정상).
+      //   번역 출력(title/summary)에 � 있으면 깨진 텍스트가 사용자에게 보이는 것 → 🚨. (재발방지 가드.)
+      const fffd = arts.filter(a => /�/.test(a.title || a.headline || '') || /�/.test(a.summary || ''));
+      if (fffd.length) issues.push(`[B6] 번역 깨짐(U+FFFD �) ${l} ${fffd.length}건 — byte-fallback 깨짐 라이브 노출. 예: "${(fffd[0].title || fffd[0].headline || fffd[0].summary || '').slice(0, 35)}"`);
       // [B5] 중국어 bleeding 하네스 (2026-06-07): qwen(중국계)이 ko 출력에 한자 누출. ko 제목에
       //   한자 2개+ 있으면 bleed. (ja 는 한자 정상이라 제외. zh 는 중국어 정상.)
       if (l === 'ko') {
