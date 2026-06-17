@@ -420,7 +420,10 @@ async function main() {
         .reduce((n, k) => n + (Array.isArray(b[k]) ? b[k].length : 0), 0);
       const objKeys = ['market', 'outlook', 'capital', 'company', 'summary', 'consensus', 'byCountry', 'byAsset'];
       const hasObj = objKeys.some(k => b[k] != null && (typeof b[k] !== 'object' || Object.keys(b[k]).length > 0));
-      const hasScalar = b.score != null || b.value != null || b.probability != null || b.balance != null || b.total > 0 || typeof b.updatedAt === 'string' || typeof b.generatedAt === 'string';
+      // 2026-06-17: 스캐너/리스트 엔드포인트(accumulation-watch 등)는 신호 0건이 *정상*(작전주 무신호).
+      //   source:'live' + asOf/scanned 메타가 있으면 '살아있는 스캔이 0건 반환' → alive (company-signals
+      //   조용한 종목 케이스와 동일 원리). asOf(타임스탬프)·scanned(스캔수)를 liveness 마커로 인정.
+      const hasScalar = b.score != null || b.value != null || b.probability != null || b.balance != null || b.total > 0 || typeof b.updatedAt === 'string' || typeof b.generatedAt === 'string' || typeof b.asOf === 'string' || typeof b.scanned === 'number';
       // company-signals: ticker별 시그널 — 조용한 종목은 uoa/burst/contract 전부 비어도 *정상*(잘못 아님).
       //   200 + 정상 shape(ticker echo + uoa 배열 키 존재)면 alive 로 인정 (empty≠dead).
       const hasSignalShape = typeof b.ticker === 'string' && 'uoa' in b && Array.isArray(b.uoa);
