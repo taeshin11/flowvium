@@ -412,9 +412,21 @@ LLM 의 portfolio JSON 을 받은 뒤 `saveRecommendations` 직전까지 다음 
 
 ---
 
-## 🧠 로컬 LLM 본격 운용 가이드 (RTX 4050 6GB VRAM 환경)
+## 🧠 로컬 LLM 본격 운용 가이드
 
-목적: 로컬 우선, cloud LLM 폴백. 6GB VRAM 한계에서 최대 quality.
+> **⚠️ 2026-06-17 정정 — 실제 하드웨어는 RTX 4090 24GB.** 아래 "RTX 4050 6GB" 가이드는 stale.
+> 현재 운용: **WSL Ubuntu 24.04 + vLLM(:8000)** 가 `Qwen3-30B-A3B-Instruct-2507-AWQ`(MoE, ~16.7GB, GPU_UTIL=0.93,
+> MAX_MODEL_LEN=52480) 를 GPU 전용 구동. 설정: WSL `/opt/vllm/model.conf` + `/opt/vllm/serve.sh`,
+> Windows 스케줄러 `FlowVium-vLLM` 가 로그온 시 기동. `SERVED_NAMES="flowvium-local qwen3:8b"` 로
+> 구코드의 `qwen3:8b` 참조도 vLLM 으로 흡수. **`VLLM_URL` 환경변수는 미설정** — generate-report 가
+> 기본 `localhost:8000` 으로 직결. 모델 교체는 model.conf 의 MODEL/MAX_MODEL_LEN/EXTRA_ARGS 수정 후
+> `schtasks /run /tn FlowVium-vLLM`. 24GB 헤드룸이 크므로 6GB 시절의 q3/offload 고민은 불필요.
+> 재부팅·런처 종료 시 vLLM 동반 사망 가능 → `session-spotcheck` + `pm2-watchdog` 와 별개로
+> `:8000` 헬스를 복구 스크립트가 확인. (구 Ollama 경로는 fallback 으로만 잔존.)
+
+목적: 로컬 우선, cloud LLM 폴백.
+
+<details><summary>이하 RTX 4050 6GB 시절 가이드 (역사적 참고 — 현재 미적용)</summary>
 
 ### Stage 1 — Ollama 환경변수 (적용 완료)
 
@@ -454,8 +466,17 @@ generate-report-local.mjs: vLLM (VLLM_URL) → Ollama → fail
 
 ### 결함 추적
 
-`harnessAudit` 메타필드 + `harness_fixes_applied` 로그로 모델별 결함률 비교 가능.
-14B 도입 후 `krNameMismatch`, `rationaleDedup` 등 카운트가 줄면 모델 효과 검증된 것.
+`harnessAudit` 메타필드(→ `reports.audit_json`) + `harness_*` 결함의 `hallucination_history` 적재로
+환각 카운트의 **시간적** 추세는 추적된다 (`check-stall` [4] median 트렌드).
+
+> **⚠️ 2026-06-17 정정 — 모델별(per-model) 결함률 비교는 미구현.** `reports` 테이블에 `model` 컬럼이
+> 없어 결함을 모델(qwen3:8b vs 30B 등)에 귀속시킬 수 없다. 위 "14B 도입 후 카운트 비교" 는 측정 불가.
+> **정당한 미루기 판정:** 현재 프로덕션은 단일 모델(vLLM 30B-A3B)만 구동 → 비교 대상 자체가 없어
+> 지금 컬럼을 추가해도 신호가 0이고, 보고서 INSERT 경로(critical path)를 건드리는 리스크만 발생.
+> **트리거:** 두 번째 모델 도입(model.conf MODEL 교체) 시 같은 작업에서 `reports.model` 컬럼 추가 +
+> insert 채움 + join 집계를 구현한다. 그때가 리스크 대비 효용이 처음으로 양(+)이 되는 시점.
+
+</details>
 
 ---
 

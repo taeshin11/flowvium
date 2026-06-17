@@ -63,3 +63,7 @@ reports/preview/
 scripts/visual/node_modules/
 logs/screenshots/
 logs/visual-probe.json
+
+# 2026-06-17: portable cloudflared 바이너리 (52MB, 로컬 전용 — repo 커밋 금지)
+cloudflared.exe
+*.exe

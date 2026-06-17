@@ -1263,6 +1263,9 @@ export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) 
     SELECT id, ticker, defect_type, llm_value, correct_value, severity, COUNT(*) repeat_count
     FROM hallucination_history
     WHERE detected_at >= datetime('now', '-' || ? || ' days')
+      -- 2026-06-17: harness_* 는 하네스가 결정론적으로 자동수정하므로 모델에 재학습시킬 필요 없음.
+      --   inject 예산(15슬롯)을 실제 escape 한 환각에 집중시키기 위해 제외 (check-stall 트렌드도 동일 제외).
+      AND defect_type NOT LIKE 'harness_%'
     GROUP BY ticker, defect_type, llm_value
     ORDER BY MAX(detected_at) DESC, repeat_count DESC
     LIMIT ?

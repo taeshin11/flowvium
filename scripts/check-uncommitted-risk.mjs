@@ -16,7 +16,8 @@
 import { execSync } from 'node:child_process';
 
 const ROOT = 'D:/Flowvium';
-const sh = (cmd) => { try { return execSync(cmd, { cwd: ROOT, encoding: 'utf8' }).trim(); } catch (e) { return (e.stdout || '') + (e.stderr || ''); } };
+// 2026-06-17: timeout 추가 — git fetch 가 네트워크 stall 시 무한 hang 하던 위험 차단.
+const sh = (cmd, timeout = 0) => { try { return execSync(cmd, { cwd: ROOT, encoding: 'utf8', ...(timeout ? { timeout } : {}) }).trim(); } catch (e) { return (e.stdout || '') + (e.stderr || ''); } };
 
 // run-report.bat 가 checkout 하는 경로 (= wipe 대상)
 const WIPE_GLOBS = /^(scripts\/|src\/|public\/|messages\/|package\.json|data\/[^/]+\.json)/;
@@ -43,7 +44,7 @@ if (untrackedInPath.length) {
 }
 
 // [2] 커밋했지만 미푸시 (origin/master 보다 ahead)
-sh('git fetch --quiet origin master');
+sh('git fetch --quiet origin master', 20000);
 const ahead = sh('git rev-list --count origin/master..HEAD');
 if (/^\d+$/.test(ahead) && Number(ahead) > 0) {
   const commits = sh('git log --oneline origin/master..HEAD').split('\n').filter(Boolean);
