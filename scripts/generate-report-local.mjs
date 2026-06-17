@@ -7967,6 +7967,18 @@ async function generateViaOllama() {
   for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis']) {
     if (finalReport[k]) finalReport[k] = fixFomcTense(fixCpiLabel(finalReport[k]));
   }
+  // 2026-06-18: 전역 U+FFFD(�) 스크럽 — vLLM AWQ 모델이 한국어 음절을 byte-fallback 으로 �로 출력(뉴스뿐
+  //   아니라 sell/buy rationale 등 보고서 곳곳). 소실된 음절은 복구 불가 → *표시되는 깨짐 제거*가 최선
+  //   (�보다 음절 1개 누락이 정직). finalReport 전 문자열 재귀 스크럽. verify placeholder_leak 이 잔존 감지.
+  let _fffdN = 0;
+  const scrubFffd = (o) => {
+    if (typeof o === 'string') { if (o.includes('�')) { _fffdN++; return o.replace(/�/g, ''); } return o; }
+    if (Array.isArray(o)) { for (let i = 0; i < o.length; i++) o[i] = scrubFffd(o[i]); return o; }
+    if (o && typeof o === 'object') { for (const k of Object.keys(o)) o[k] = scrubFffd(o[k]); return o; }
+    return o;
+  };
+  scrubFffd(finalReport);
+  if (_fffdN) console.warn(`[scrub] U+FFFD(�) ${_fffdN}개 필드 정리 (vLLM AWQ byte-fallback 깨짐)`);
 
   // 미래 분기 + 매출 절대값 hallucination sweep (2026-05-24 사건)
   // LLM 이 "Q1 FY2027 revenue $81.6B +85.2% YoY" 같이 미공시 미래 분기 매출을 추측 →

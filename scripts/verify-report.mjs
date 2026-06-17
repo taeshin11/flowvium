@@ -245,6 +245,15 @@ export async function verifyReport(file, { silent = false } = {}) {
     }
   }
   if (!junkN) log('  ✅ placeholder 누출 없음');
+  // (a2) 2026-06-18: 전 필드 재귀 U+FFFD(�) 스캔 — sellRecommendations 등 (a)가 안 보는 필드의 byte-fallback 깨짐 포착.
+  let fffdN = 0;
+  const scanFffd = (o, path) => {
+    if (typeof o === 'string') { if (o.includes('�')) { fffdN++; if (fffdN <= 3) log(`  ❌ ${path} U+FFFD: "${o.slice(0, 40)}"`); defects.push({ ticker: path.slice(0, 24), defect_type: 'placeholder_leak', llm_value: `${path}: U+FFFD(byte-fallback)`, correct_value: 'no � in any field', severity: 'medium' }); } return; }
+    if (Array.isArray(o)) return o.forEach((v, i) => scanFffd(v, `${path}[${i}]`));
+    if (o && typeof o === 'object') for (const k of Object.keys(o)) scanFffd(o[k], `${path}.${k}`);
+  };
+  scanFffd(r, 'report');
+  if (!fffdN) log('  ✅ 전필드 U+FFFD 없음');
   // (b) stale 이벤트 — riskEvents 에 보고서 날짜보다 *과거*인 이벤트(이미 발생을 미래 risk 로 표기)
   const repDate = r.generatedAt ? new Date(new Date(r.generatedAt).getTime() + 9 * 3600000).toISOString().slice(0, 10) : null;
   let staleN = 0;
