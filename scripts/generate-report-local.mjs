@@ -4436,8 +4436,16 @@ function buildGroundingFacts(livePriceData) {
   return lines.join('\n');
 }
 
+let _doctrineCache; // judgment-doctrine.json 1회 로드 캐시
+function loadJudgmentDoctrine() {
+  if (_doctrineCache !== undefined) return _doctrineCache;
+  try { _doctrineCache = JSON.parse(readFileSync(resolve(ROOT, 'data/judgment-doctrine.json'), 'utf8')); }
+  catch { _doctrineCache = null; }
+  return _doctrineCache;
+}
+
 function getGuruContext() {
-  return [
+  const lines = [
     '[GURU INVESTMENT FRAMEWORKS]',
     'Buffett: ROE>15%+FCF yield>2×bonds+moat → margin of safety entry',
     'Lynch: PEG<1 (P/E÷growth) → undervalued vs growth',
@@ -4447,7 +4455,19 @@ function getGuruContext() {
     'RULE: entryRationale MUST include ≥1 non-technical signal when data available.',
     'BAD: "50일선 지지" GOOD: "100일선+ROE18%FCF수익률8%→안전마진" or "린치PEG0.8→성장대비저평가"',
     '[END GURU FRAMEWORKS]',
-  ].join('\n');
+  ];
+  // 2026-06-17: 사용자 제공 7대 구루 + 철학 doctrine 주입 (정성 판단 보강 — 추격금지/안전마진/손절/추세/휩쏘방지).
+  const doc = loadJudgmentDoctrine();
+  if (doc?.principles?.length) {
+    lines.push('', '[JUDGMENT DOCTRINE — 7대 구루 정성 원칙, entryRationale·종목선택에 반영]');
+    for (const p of doc.principles) {
+      if (p.theme === 'engine_guard') continue; // 코드 가드는 엔진이 강제 — 프롬프트 생략
+      lines.push(`• ${p.id} [${(p.sources || []).slice(0, 3).join('/')}]: ${p.rule}`);
+    }
+    lines.push('CORE: 자본보존 우선 · 안전마진 있는 가격만(급등 추격 금지) · 손실 작게(손절 엄수, 물타기 금지) · 추세 존중(200MA) · moat/1위 · 방금 매도한 종목 즉시 재매수 금지.');
+    lines.push('[END JUDGMENT DOCTRINE]');
+  }
+  return lines.join('\n');
 }
 
 function buildMacroPrompt(ctx, vix, session) {
@@ -7280,7 +7300,7 @@ async function generateViaOllama() {
     // 2026-06-16: cross-session whipsaw hysteresis 설정 — 최근 매도한 종목을 재매수하려면 평상시보다 높은
     //   매수확신(stage1Score)을 요구. 못 넘으면 downgrade(비중↓·확신↓·경고노트), 넘으면 진짜 고확신 반전으로
     //   허용하되 whipsawRisk 태그. 이건 hysteresis 이지 hard-block 이 아님 — 정상 반전은 통과시킨다.
-    const WHIPSAW_LOOKBACK_HOURS = 36;        // 이 시간 내 매도된 종목만 hysteresis 대상
+    const WHIPSAW_LOOKBACK_HOURS = 72;        // 2026-06-17 36→72 (TER 휩쏘: 06-15 익절→06-16 재매수→06-17 손절. 36h 는 cross-day 반쪽만 커버 → 72h 로 확장, doctrine whipsaw_cooldown 정렬). 이 시간 내 매도된 종목만 hysteresis 대상
     const WHIPSAW_CONVICTION_MARGIN = 10;     // raised bar=base+margin=35. stage1Score 실측범위 24~41 기준 — 35+ 강매수만 full 유지(진짜 반전 통로 확보), 그 미만은 downgrade. (2026-06-16 40→35)
     const WHIPSAW_BASE_CONVICTION = 25;       // 평상시 "적정 매수확신" 기준선 (buyDiscount 기준선과 정합)
     const recentlySold = (() => {

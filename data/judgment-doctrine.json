@@ -1,0 +1,106 @@
+{
+  "version": "2026-06-17",
+  "source": "사용자 제공 19장 — 7대 구루 카드(Paul Tudor Jones, Bruce Kovner, Warren Buffett, Michael Marcus, Seth Klarman, Julian Robertson, Stanley Druckenmiller) + 철학 텍스트(Trump 최악수 질문법, Charles Ellis 나쁜행동10, William O'Neil식 매수종목 6속성, Annie Duke식 리스크테이커 13습관, Oliver Velez 인식-반응 매매·7신념, 투자태도 6습관)",
+  "purpose": "매수/매도 심판엔진의 정성(qualitative) 판단 doctrine. getGuruContext() 가 LLM 포트폴리오 프롬프트에 주입한다. 정량 룰(buy/sell-rules-tuned.json)이 못 잡는 '판단의 질'을 보강 — 추격금지/안전마진/손절규율/추세존중/휩쏘방지/최악수 생존성.",
+  "case_study": {
+    "ticker": "TER (Teradyne)",
+    "date": "2026-06-14 ~ 06-17",
+    "what_happened": "06-14 매수(395-407)→06-15 익절(목표 97%)→06-16 noon 재매수(380-390)→06-16 afternoon 재매수(425-435, 같은날 +12% 점프)→06-17 손절(stop 415 하향돌파). 익절한 종목을 +12% 높은 가격에 추격 재매수 후 익일 손절 = 전형적 whipsaw.",
+    "lesson": "매도 규율은 정상이었음(손절 = Velez '하락의 작은 손실은 성공'). 결함은 매수: ①급등 추격(no perfect setup) ②매도 직후 쿨다운 없이 재매수 ③매수/매도 엔진 상태 비공유. doctrine 의 no_chase + whipsaw_cooldown 가 이를 막는다."
+  },
+  "principles": [
+    {
+      "id": "defend_capital_first",
+      "theme": "risk",
+      "sources": ["PaulTudorJones", "Kovner", "Buffett", "Klarman", "Marcus", "Druckenmiller", "Trump"],
+      "rule": "자본 보존이 1순위 — 수익보다 생존. 진입 전 반드시 최악 시나리오를 먼저 판단(Trump: '가격 하락 가능성? 최악의 사태? 내가 감당할 수 있는가?'). 최악에도 살아남을 수 있을 때만 진입.",
+      "apply": "entryRationale 는 '최악 시 손실폭(stop까지 %)이 감당 가능한가'를 내포해야 한다. risk/reward ≥ 3:1(PTJ 권장 5:1) 아니면 진입 근거 약함."
+    },
+    {
+      "id": "margin_of_safety_no_chase",
+      "theme": "entry",
+      "sources": ["Buffett", "Klarman", "Graham", "Marcus"],
+      "rule": "안전마진 있는 가격에만 진입. 급등 직후 52주 신고가를 쫓지 말 것(no chase). Marcus 'perfect setup'(눌림목/지지 재확인)을 기다린다.",
+      "apply": "진입가가 직전 세션 대비 크게(>8%) 점프했거나 단기 급등 직후면 '추격'으로 보고 진입 보류 또는 눌림목 대기. 안전마진 = 내재가치/지지선 대비 할인."
+    },
+    {
+      "id": "cut_losses_small",
+      "theme": "exit",
+      "sources": ["PaulTudorJones", "Kovner", "Marcus", "Druckenmiller", "Velez"],
+      "rule": "손실은 작게, 사전 손절선 엄수, 손실 종목에 물타기 절대 금지(never add to losers). 손절은 실패가 아니라 규율(Velez: '20% 하락 종목의 5% 손실은 성공. 물러나면 다음날 다시 들어갈 수 있다').",
+      "apply": "stop 하향 돌파 = 즉시 매도(urgency high). 손절 후 같은 종목은 cooldown(아래) 동안 재매수 금지."
+    },
+    {
+      "id": "run_winners_pyramid",
+      "theme": "position",
+      "sources": ["PaulTudorJones", "Marcus", "Kovner"],
+      "rule": "이긴 포지션은 키우고(add to winners / pyramiding) 진 포지션은 키우지 않는다. scale in/out 으로 평균단가 관리.",
+      "apply": "보유 종목이 추세대로 가면 익절 서두르지 말 것. 단 목표가 도달 시 분할 익절은 정상."
+    },
+    {
+      "id": "respect_trend_200ma",
+      "theme": "timing",
+      "sources": ["PaulTudorJones", "Kovner", "Marcus"],
+      "rule": "추세를 존중. PTJ: 200일선 아래에서는 매수 플레이 금지(never play below 200-day MA). 시장은 항상 옳다 — 역행하지 말 것.",
+      "apply": "200일선 하회 종목 매수는 강한 반대신호. 200일선 회복/상회 + 우상향 모멘텀일 때 매수 우선."
+    },
+    {
+      "id": "moat_relative_number_one",
+      "theme": "selection",
+      "sources": ["Buffett", "ONeil", "Robertson"],
+      "rule": "해당 분야 압도적 1위 + 지속적 경쟁우위(해자: 독보적 기술/브랜드). 강력한 주가흐름(시장 수익률 상회 우상향) + 훌륭한 경영진 + 강력한 브랜드. '너무 비싸다' 비판 받을 만큼 성장성 큰 종목 허용.",
+      "apply": "moat 신호(ROE>15%+영업이익률>20%, 브랜드, 점유율 1위)를 entryRationale 에 명시. circle of competence — 모르는 사업은 추천 금지."
+    },
+    {
+      "id": "high_conviction_concentration",
+      "theme": "position",
+      "sources": ["Druckenmiller", "Robertson", "Lynch"],
+      "rule": "엣지가 강할 때만 집중 베팅(high conviction). 어중간하면 진입 안 함(Duke: 'raise or fold', 콜 거부). +EV 기회엔 과감히 방아쇠.",
+      "apply": "score 높고 다중 카테고리(moat+momentum+macro) 동시 충족 종목에 확신 부여. 약한 신호 1개짜리는 제외."
+    },
+    {
+      "id": "perception_vs_truth",
+      "theme": "micro",
+      "sources": ["Velez", "Druckenmiller"],
+      "rule": "단기엔 '진실'보다 '대중의 반응'이 가격을 만든다. 최고 트레이더는 '어떤 뉴스인가?'가 아니라 '사람들이 이 뉴스에 어떻게 반응할까?'를 묻는다.",
+      "apply": "뉴스/이벤트 평가 시 사실 자체보다 시장 반응(가격·거래량·심리)을 본다. 이미 엔진의 news/sentiment/UOA 신호가 이 역할 — 가중치 유지."
+    },
+    {
+      "id": "process_over_outcome",
+      "theme": "mindset",
+      "sources": ["Duke", "Klarman", "Buffett"],
+      "rule": "결과(운)보다 의사결정 과정의 논리적 정합을 본다(resulting 경계). 세상을 흑백 아닌 확률로 본다(good at estimations).",
+      "apply": "추천 근거는 확률적·과정 중심으로. 한 번의 적중/실패로 룰을 과적합하지 말 것(tune-rules 의 표본수 존중)."
+    },
+    {
+      "id": "independent_contrarian",
+      "theme": "mindset",
+      "sources": ["Klarman", "Buffett", "Druckenmiller", "Kovner", "Duke"],
+      "rule": "대중 광기/비관에 휩쓸리지 않는 독립적 판단. 단 단순 반골이 아니라 '대중이 틀렸다는 근거가 있을 때' 전략적 역베팅(conscientiously contrarian). 노이즈 무시(ignore noise).",
+      "apply": "FG 극단·VIX 스파이크에서 군중 반대 기회 탐색하되 펀더멘털/추세 근거 동반 필수."
+    },
+    {
+      "id": "whipsaw_cooldown",
+      "theme": "engine_guard",
+      "sources": ["Marcus", "Velez", "PaulTudorJones"],
+      "rule": "방금 매도(익절/손절 불문)한 종목을 즉시 재매수하지 않는다. '항상 다시 들어갈 수 있다'(Velez)지만 perfect setup 을 기다려야 한다. 같은 보고서가 한 종목을 매수+매도 동시 추천하면 안 된다.",
+      "apply": "심판 게이트(generate-report-local.mjs ~7307)의 cross-session whipsaw hysteresis 가 강제: 최근 WHIPSAW_LOOKBACK_HOURS(72h) 내 매도된 종목은 매수확신 바를 25→35로 상향. 못 넘으면 비중↓·확신↓(downgrade), 넘으면 '고확신 반전'으로 허용하되 whipsawRisk 태그. hard-block 아닌 hysteresis(정상 반전 통로 유지). TER 은 score 37≥35 로 통과했음 → 추격(no-chase) 미검출이 잔여 사각지대.",
+      "engine_ref": "WHIPSAW_LOOKBACK_HOURS=72, raisedBar=WHIPSAW_BASE_CONVICTION(25)+WHIPSAW_CONVICTION_MARGIN(10)=35",
+      "open_gap": "intra-day 진입가 추격(TER noon 380→afternoon 425, +12%)은 별도 메커니즘 필요 — 현 엔진은 같은날 재추천 간 진입가 drift 를 비교 안 함. 다음 단계 후보."
+    },
+    {
+      "id": "ten_bad_behaviors",
+      "theme": "anti_pattern",
+      "sources": ["CharlesEllis"],
+      "rule": "나쁜 행동이 나쁜 투자를 만든다: ①계획 실패 ②자기 욕구 오해 ③액티브/패시브 혼동 ④부적절한 자산배분 ⑤과도한 집중(분산부족) ⑥과도한 수수료 ⑦리스크 인식 실패 ⑧잘못된 사람 신뢰 ⑨세금관리 실패 ⑩오만·겸손부족.",
+      "apply": "포트폴리오 구성 시 과도한 단일 섹터 집중 경계(⑤), 계획·리스크 명시(①⑦), 겸손한 추정(⑩)."
+    },
+    {
+      "id": "patience_long_term_humility",
+      "theme": "habit",
+      "sources": ["Buffett", "Klarman", "Marcus", "ALL"],
+      "rule": "인내·장기관점(최소 5년 비즈니스 성장)·겸손(실수 인정+시장에서 학습)·복리·낙관(세상은 발전한다). keep it simple, continuous learning.",
+      "apply": "단기 휩쏘 대신 추세 추종 + 장기 보유 우선. 모델은 결함을 인정하고 Karpathy 루프로 학습(이미 구현)."
+    }
+  ]
+}

@@ -801,6 +801,8 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - **유형 배지 (2026-06-12, POSCO 익절 혼란 사건)**: ruleId 결정론 분류 — 🟢 익절 분할(target_near·rotation_profit) / 🔴 손절·방어(stop*·rotation_loss) / 🟠 종목 악화(tech/fund/guru/내부자/13F) / 🔵 시장 환경(macro/sector/region). i18n 4키 × 16언어
 - `sell_recommendations` + `sell_outcomes` DB 적재 → `tune-sell-rules.mjs` weekly grid search 학습
 - Wave 2 LLM rationale (240s timeout) — 구루 framework + tech/fund/macro 신호 inject
+- **Judgment Doctrine (2026-06-17, 사용자 19장 학습)**: `data/judgment-doctrine.json` — 7대 구루(PTJ/Kovner/Buffett/Marcus/Klarman/Robertson/Druckenmiller) + 철학(Ellis 10/O'Neil 6속성/Duke 13습관/Velez 인식-반응/Trump 최악수질문) 13원칙 구조화. `getGuruContext()` 가 LLM 포트폴리오 프롬프트에 `[JUDGMENT DOCTRINE]` 블록으로 주입(자본보존/안전마진·추격금지/손절·물타기금지/추세존중200MA/moat·1위/휩쏘방지)
+- **Cross-session whipsaw hysteresis (~7307)**: 최근 매도 종목 재매수 시 매수확신 바 25→35 상향, 못 넘으면 비중↓·확신↓. lookback **36h→72h (2026-06-17 TER 휩쏘 사건)** — cross-day BUY→SELL→BUY flip 차단 강화. 잔여 사각: intra-day 진입가 추격(noon→afternoon drift) 미검출
 
 ### 13-4. 섹터 배분 전략
 - 섹터별 비중 바 차트
