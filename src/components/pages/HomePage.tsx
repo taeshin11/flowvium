@@ -958,9 +958,11 @@ export default function HomePage() {
           />
         </div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-32">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-cf-text-primary leading-tight mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7">
+              {/* 2026-06-18: 한글 단어중간 줄바꿈+좁은 컬럼으로 헤드라인이 깨져보이던 문제 — break-keep(단어단위)
+                  + text-balance(줄길이 균형) + 컬럼 폭 확대(7/12) + 폰트 5xl 로 넓게 정돈. */}
+              <h1 className="text-4xl md:text-5xl lg:text-5xl font-heading font-bold text-cf-text-primary leading-tight mb-6 [word-break:keep-all] [text-wrap:balance]">
                 {tHome.rich('heroHeadline', { accent: (chunks) => <span className="text-transparent bg-clip-text bg-gradient-to-r from-cf-primary to-cf-secondary">{chunks}</span> })}
               </h1>
               <p className="text-lg md:text-xl text-cf-text-secondary mb-6 max-w-lg">
@@ -1031,7 +1033,7 @@ export default function HomePage() {
               </div>
               <HeroSearch />
             </div>
-            <div className="cf-card p-6">
+            <div className="lg:col-span-5 cf-card p-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs text-cf-text-secondary font-medium uppercase tracking-wider">
                   {tHome('latestUpdates')}
