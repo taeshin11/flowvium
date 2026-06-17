@@ -67,3 +67,12 @@ logs/visual-probe.json
 # 2026-06-17: portable cloudflared 바이너리 (52MB, 로컬 전용 — repo 커밋 금지)
 cloudflared.exe
 *.exe
+
+# 2026-06-17: 런타임 status/lock/cursor 산출물 (모니터·cron 이 매 사이클 재생성 — git 추적 불필요, status 노이즈 차단)
+logs/*-status.json
+logs/*.lock
+logs/*-cursor.json
+logs/maintenance-heartbeat.json
+logs/page-audit.json
+logs/cloudflared.log
+logs/pm2-watchdog.log
