@@ -14,6 +14,17 @@
 | a3e8355 | session-spotcheck [1] 라이브 재검 (wipe-risk→[8] 위임, HTTP 5xx 라이브 재확인해 회복분 drop) |
 | d34c503 | **run-report.bat WMI hang 근본수정** — 락-스틸 Get-CimInstance 무한대기 → afternoon 좀비 54m. age<5m 빠른skip + -OperationTimeoutSec 10 + catch→steal |
 
+## 1b. 추가 작업 (KOSPI 환각 + 사각지대 — 종료 직전 배치)
+
+| 커밋 | 내용 |
+|---|---|
+| cb99e3b | **KOSPI 8,864 절대값 환각** 3중 방어 — verify-report probe(h) index_value_fabrication + PUBLISH_BLOCKING + **stripFabricatedIndexLevels()**(발간前 결정론 제거, krTickerToName 패턴). 모델이 앵커링으로 같은 8,864 반복 → 결정론 strip 만 보장. buildIndexLevelsBlock 결측지수 명시금지(가드에서 "8,864"예시 제거=자가강화 차단). **harness→학습루프(health audit 사각지대#5)**: harness silent 교정(이름/가격/레벨/통화/강등)을 hallucination_history(harness_*) 적재→anti-pattern 주입→모델학습. check-stall/audit-coverage 회귀추세는 harness_* 제외 |
+| c24e8d8 | audit-coverage: render_audit_log.tab(탭별 결함전용 선택 NULL) STRUCTURAL_NULLS ack — verify-all 복구 |
+
+- **라이브 afternoon 정리**: 라이브(07:37, 8,864×2)를 Redis 에서 pull→지수 strip→재발간. 재스캔 0 결함(8864/티커/garble/valence 전부 클린). (strip 잔여 "KOSPI를 기록" 약간 어색하나 거짓 아님.)
+- **health audit 결과**: Karpathy loop·harness(24cat)·stall·모니터(전부 timeout 가드) 전부 WORKING. 잔여 사각지대(다음 세션): #1 S&P/Nasdaq 등 비-KR 지수 절대값 probe(현재 KOSPI/KOSDAQ만), #2 내러티브↔구조데이터 교차일치, #3 날짜/최신성 그라운딩, #4 섹터로테이션 방향. (KOSPI+harness 가 최고가치라 우선 처리.)
+- **정리**: C: 795GB free(85%, 공간압박 없음 — 대형 모델캐시는 이미 정리됨). May 보고서 26개·verify 트레일 trim(12 유지) 경량 hygiene.
+
 ## 2. 인시던트 처리 (afternoon 미발행)
 - 15:40 afternoon Task 의 wscript 래퍼가 54m 좀비(로그 0). 근본원인 = run-report.bat 의 WMI Get-CimInstance 무한대기(스테일 락 시). kill + 수동 재생성 발행(100/100) + 근본수정(d34c503).
 - **Qwen3-30B-A3B 는 MoE(3B active)라 생성 ~2분 — 느린 적 없음, hang 이 늘 원인.** PT30M→PT2H 는 증상만 가렸던 것.
