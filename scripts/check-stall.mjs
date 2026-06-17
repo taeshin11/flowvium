@@ -48,10 +48,16 @@ function checkOnce() {
     FROM reports ORDER BY generated_at DESC LIMIT 6
   `).all().map(r => r.h);
   if (recent.length >= 6) {
-    const cur = (recent[0] + recent[1] + recent[2]) / 3;
-    const prev = (recent[3] + recent[4] + recent[5]) / 3;
-    const line = `Karpathy 환각 최근3 평균 ${cur.toFixed(1)} vs 직전3 ${prev.toFixed(1)}`;
-    if (cur > prev + 3) issues.push(`회귀 의심: ${line} (+${(cur - prev).toFixed(1)})`);
+    // 2026-06-17 (사용자 "alert 언제 고쳐"): 평균 → 중앙값(outlier-robust). 단일 보고서가 환각 15건으로
+    //   튀면(예: midnight 52w/ma_halluc 14건) 3개 평균이 5.7 로 왜곡돼 '회귀'를 3사이클 오발. '회귀'는
+    //   지속적 악화여야 함 — 중앙값은 2개+ 보고서가 상승해야 움직이므로 단일 outlier 를 무시. (0,15,2)→2,
+    //   (6,1,0)→1 ⇒ 무경보. 진짜 회귀(여러 건 상승)는 여전히 포착.
+    const med3 = (a) => [...a].sort((x, y) => x - y)[1];
+    const cur = med3(recent.slice(0, 3));
+    const prev = med3(recent.slice(3, 6));
+    const curMean = ((recent[0] + recent[1] + recent[2]) / 3).toFixed(1);
+    const line = `Karpathy 환각 최근3 중앙값 ${cur} vs 직전3 ${prev} (평균 ${curMean})`;
+    if (cur > prev + 3) issues.push(`회귀 의심: ${line} (중앙값 +${cur - prev})`);
     else info.push(line);
   }
   db.close();
