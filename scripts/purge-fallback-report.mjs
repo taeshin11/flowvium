@@ -35,8 +35,12 @@ async function rpost(body) {
   const r = await fetch(URL, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
   return (await r.json()).result;
 }
-// real source = 정상 발행본(local-<model> 또는 알려진 cloud). 그 외 = fallback/garbage → 삭제 대상.
-const REAL = /^(local-|gemini|groq|claude|openrouter|qwen|vllm)/i;
+// 2026-06-17 전수조사 C2: 삭제 판정을 'REAL 화이트리스트 밖이면 삭제'(위험 — 신규 provider 실보고서
+//   exaone/deepseek/gpt 등을 fallback 으로 오인해 *실제 보고서 삭제* = 데이터손실)에서 → 'fallback 마커에
+//   명시적으로 해당할 때만 삭제'로 반전. 빈 source 는 의심스럽지만 삭제 안 함(route 발행게이트가 이미 차단).
+const REAL = /^(local-|gemini|groq|claude|openrouter|qwen|vllm|gpt|openai|anthropic|deepseek|mistral|exaone|llama|cohere)/i;
+const FALLBACK = /^(fallback|data$|데이터\s*기반)/i; // 'fallback','fallback-no-prices','data','데이터 기반 모델'
+const isFallbackSrc = (s) => FALLBACK.test(String(s ?? ''));
 
 async function scan(pattern) {
   const keys = [];
@@ -67,7 +71,7 @@ try {
     try { const raw = await rpost(['GET', k]); j = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { continue; }
     const src = String(j?.source ?? '');
     checked.push({ k, src });
-    if (src && !REAL.test(src)) {
+    if (isFallbackSrc(src)) { // 명시적 fallback 마커만 삭제 (REAL 화이트리스트 역방향 아님 — 데이터손실 방지)
       if (!DRY) await rpost(['DEL', k]);
       if (j?.generatedAt) deletedGenAt.add(j.generatedAt);
       deleted.push({ k: k.replace('flowvium:investment-strategy:', ''), src });
@@ -79,7 +83,8 @@ try {
     const raw = await rpost(['GET', HIST_KEY]);
     const arr = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (Array.isArray(arr)) {
-      const cleaned = arr.filter((e) => REAL.test(String(e?.source ?? '')) && !deletedGenAt.has(e?.generatedAt));
+      // 비-fallback 은 보존(신규 provider 포함), 명시적 fallback + 위에서 삭제된 generatedAt 만 제거.
+      const cleaned = arr.filter((e) => !isFallbackSrc(e?.source) && !deletedGenAt.has(e?.generatedAt));
       if (cleaned.length !== arr.length) {
         if (!DRY) await rpost(['SET', HIST_KEY, JSON.stringify(cleaned)]);
         deleted.push({ k: `history:arr (${arr.length - cleaned.length}개 엔트리)`, src: 'history-meta' });

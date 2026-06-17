@@ -103,7 +103,7 @@ try {
   const today = kst.toISOString().slice(0, 10);
   const SESS = [[6 * 60 + 40, 'morning'], [11 * 60 + 40, 'noon'], [15 * 60 + 40, 'afternoon'], [21 * 60 + 10, 'evening'], [23 * 60 + 40, 'midnight']];
   const GRACE = 40; // 생성 소요(분) — 발행시각 + 40분까지는 생성중일 수 있어 유예
-  const REAL = /^(local-|gemini|groq|claude|openrouter|qwen|vllm)/i; // purge-fallback 과 동일 REAL-source 기준
+  const REAL = /^(local-|gemini|groq|claude|openrouter|qwen|vllm|gpt|openai|anthropic|deepseek|mistral|exaone|llama|cohere)/i; // 2026-06-17 전수조사 C2: 신규 provider 오경보 방지로 broaden (purge-fallback 과 동일 기준)
   // 2026-06-17 전수조사: 기존 .pop()(가장 최근 1개)+existsSync(존재만) → 두 약점. (1) 연속 누락 시 직전
   //   세션을 놓침 → 오늘 발행기한 지난 '모든' 세션 검사. (2) fallback 파일도 존재만으로 통과 → source 가
   //   REAL 아니면 ALERT (발행됐으나 fallback = 사용자가 본 사건의 후반부).

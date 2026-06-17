@@ -1303,6 +1303,7 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
   const sourceProbes: Array<{
     path: string; key: string; label: string;
     okSources: string[]; degradedSources: string[];
+    substr?: boolean; // 2026-06-17 전수조사 C3: true 면 정확매칭 대신 부분문자열 — 긴 prose source(fedwatch) 취약성 회피
   }> = [
     {
       path: '/api/macro-indicators', key: 'accuracy.macro.source',
@@ -1360,8 +1361,9 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       //   없어 full-static 폴백을 못 잡던 사각지대. live='…실시간', static fallback='…기반 시장 컨센서스'.
       path: '/api/fedwatch', key: 'accuracy.fedwatch.source',
       label: 'FedWatch source (Yahoo ZQ 실시간)',
-      okSources: ['Yahoo Finance ZQ Futures 실시간'],
-      degradedSources: ['Yahoo Finance ZQ Futures 기반 시장 컨센서스'],
+      substr: true, // 긴 한글 prose 라 부분문자열 매칭 — route 문구 일부 바뀌어도 안 깨짐
+      okSources: ['실시간'],
+      degradedSources: ['컨센서스'],
     },
     {
       // 2026-06-17 전수조사 #7: sector-pe 정적폴백 준수 — route 에 source 신설(live/mixed/static).
@@ -1378,10 +1380,11 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       if (!r.ok) throw new Error(`HTTP ${r.status ?? 'fetch failed'}`);
       const data = r.data as { source?: string };
       const source = data.source ?? 'missing';
+      const matchSrc = (arr: string[]) => probe.substr ? arr.some((s) => source.includes(s)) : arr.includes(source);
       items.push({
         key: probe.key, label: probe.label, group: 'accuracy',
-        status: probe.okSources.includes(source) ? 'ok'
-          : probe.degradedSources.includes(source) ? 'degraded'
+        status: matchSrc(probe.okSources) ? 'ok'
+          : matchSrc(probe.degradedSources) ? 'degraded'
           : 'error',
         value: `source=${source}`,
         details: { source, path: probe.path },
@@ -1770,6 +1773,23 @@ export async function GET(req: Request) {
   ]);
 
   const items: MetricItem[] = [...fg, ...cf, ...macro, ...credit, ...ai, ...insider, ...shorts, ...heatmap, ...caps, ...sectorpe, ...yc, ...fwDetail, ...cotDetail, ...krDetail, ...additional, ...earnings, ...caches, ...accuracy, ...vol, ...iv, ...comm, ...strategy, ...missing, ...osint, ...narratives];
+
+  // 2026-06-17 전수조사 B1: 메타검증 — '기대 probe 가 실제로 다 돌았나' 자가대조. 기존엔 summary.total 을
+  //   아무것과도 대조 안 해, 검증자 truncation(예: verifyAccuracyStack 의 VIX early-return 으로 accuracy
+  //   27→8) 이 정상처럼 보였다(없는 것을 안 세니까). 결정론적 고정 probe 키 + 그룹 floor 를 기대치로 두고
+  //   누락 시 meta.* error 를 주입 → overallStatus 가 error 로 뒤집혀 다음 사이클에 자동 포착.
+  const seenKeys = new Set(items.map((i) => i.key));
+  const EXPECTED_KEYS = ['accuracy.fg.us', 'accuracy.vix', 'accuracy.signals.source', 'accuracy.macro.source', 'accuracy.fedwatch.source', 'accuracy.sector-pe.source', 'accuracy.capital-flows.source'];
+  const GROUP_FLOOR: Record<string, number> = { accuracy: 18, macro: 6, fedwatch: 2, 'sector-pe': 1, cache: 1, ai: 1 };
+  const groupCount: Record<string, number> = {};
+  for (const it of items) groupCount[it.group] = (groupCount[it.group] ?? 0) + 1;
+  for (const k of EXPECTED_KEYS) {
+    if (!seenKeys.has(k)) items.push({ key: `meta.missing.${k}`, label: `기대 probe 미실행: ${k}`, group: 'meta', status: 'error', lastError: '검증자 truncation 의심 — 이 probe 가 결과를 내지 않음(early-return/throw)' });
+  }
+  for (const [g, floor] of Object.entries(GROUP_FLOOR)) {
+    const c = groupCount[g] ?? 0;
+    if (c < floor) items.push({ key: `meta.floor.${g}`, label: `그룹 ${g} probe 부족`, group: 'meta', status: 'error', value: `${c}<${floor}`, lastError: `검증자 truncation 의심 — ${g} 그룹 기대 ${floor} 미만 ${c}개만 실행` });
+  }
 
   const summary = {
     ok: items.filter((i) => i.status === 'ok').length,

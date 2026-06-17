@@ -47,26 +47,31 @@ const tables = db.prepare(`
 const skippedSmall = [];
 const ackStructural = [];
 for (const t of tables) {
-  const total = db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c;
-  if (total < 10) { skippedSmall.push(`${t}(${total})`); continue; } // 적은 데이터 skip — 사각지대 가시화
-  const cols = db.prepare(`PRAGMA table_info(${t})`).all();
-  const lowCovCols = [];
-  for (const c of cols) {
-    if (['id', 'created_at'].includes(c.name)) continue;
-    if (c.notnull) continue; // NOT NULL constraint
-    const nullCnt = db.prepare(`SELECT COUNT(*) c FROM ${t} WHERE ${c.name} IS NULL`).get().c;
-    const nullPct = (nullCnt / total) * 100;
-    if (nullPct >= 80) {
-      const key = `${t}.${c.name}`;
-      if (STRUCTURAL_NULLS[key]) ackStructural.push(`${key}(${nullPct.toFixed(0)}%) — ${STRUCTURAL_NULLS[key]}`);
-      else lowCovCols.push(`${c.name}(${nullPct.toFixed(0)}%null)`);
+  // 2026-06-17 전수조사 A1: per-table try/catch — bare db.prepare 가 스키마 drift(테이블/컬럼 변경)에
+  //   throw 하면 *전체 audit 중단 + 이후 probe 전멸*이던 것을, 한 테이블만 warn 으로 격리(probe 5~12 는
+  //   이미 이 패턴인데 초기 probe 만 bare 였음 — 불일치 해소).
+  try {
+    const total = db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c;
+    if (total < 10) { skippedSmall.push(`${t}(${total})`); continue; } // 적은 데이터 skip — 사각지대 가시화
+    const cols = db.prepare(`PRAGMA table_info(${t})`).all();
+    const lowCovCols = [];
+    for (const c of cols) {
+      if (['id', 'created_at'].includes(c.name)) continue;
+      if (c.notnull) continue; // NOT NULL constraint
+      const nullCnt = db.prepare(`SELECT COUNT(*) c FROM ${t} WHERE ${c.name} IS NULL`).get().c;
+      const nullPct = (nullCnt / total) * 100;
+      if (nullPct >= 80) {
+        const key = `${t}.${c.name}`;
+        if (STRUCTURAL_NULLS[key]) ackStructural.push(`${key}(${nullPct.toFixed(0)}%) — ${STRUCTURAL_NULLS[key]}`);
+        else lowCovCols.push(`${c.name}(${nullPct.toFixed(0)}%null)`);
+      }
     }
-  }
-  if (lowCovCols.length > 0) {
-    err(`${t}: ${lowCovCols.length} col NULL ≥80% (미인지) — ${lowCovCols.slice(0, 5).join(', ')}`);
-  } else {
-    ok(`${t}: ${total} rows / 모든 column coverage 정상`);
-  }
+    if (lowCovCols.length > 0) {
+      err(`${t}: ${lowCovCols.length} col NULL ≥80% (미인지) — ${lowCovCols.slice(0, 5).join(', ')}`);
+    } else {
+      ok(`${t}: ${total} rows / 모든 column coverage 정상`);
+    }
+  } catch (e) { warn(`${t}: NULL audit 실패(스키마 drift 의심) — ${String(e?.message).slice(0, 50)}`); }
 }
 
 if (skippedSmall.length) console.log(`  ℹ️  NULL audit skip (행<10, 사각지대 가시화): ${skippedSmall.join(', ')}`);
@@ -129,6 +134,7 @@ const archiveTables = [
 ];
 
 for (const at of archiveTables) {
+ try { // 2026-06-17 전수조사 A1: per-table 격리 — 하드코딩 archive 테이블명 drift 시 전체 audit 중단 방지
   // 테이블별 timestamp column 자동 선택
   const cols = db.prepare(`PRAGMA table_info(${at.name})`).all().map(c => c.name);
   const ts = cols.includes('captured_at') ? 'captured_at'
@@ -152,6 +158,7 @@ for (const at of archiveTables) {
   } else {
     err(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — 적재 거의 안 됨`);
   }
+ } catch (e) { warn(`${at.name}: archive 적재 점검 실패(스키마 drift 의심) — ${String(e?.message).slice(0, 50)}`); }
 }
 
 // ═══════ Probe 3b: S&P 500 / KOSPI 커버 ═══════

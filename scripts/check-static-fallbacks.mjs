@@ -216,12 +216,10 @@ if (clean.length) {
   console.log('');
 }
 
-if (issues.length === 0) {
-  console.log('🎉 문제 없음 — 모든 정적 데이터 폴백이 올바르게 처리됨\n');
-  process.exit(0);
-}
-
-console.log(`⚠️  수정 필요: ${issues.length}개 파일\n`);
+// 2026-06-17 전수조사 A3: 조기 exit(0) 제거 — Pattern A 가 깨끗해도 아래 Pattern C 가 돌아야 함(기존엔
+//   여기서 exit 해 Pattern A 무결 시 Pattern C 가 아예 미실행). 최종 exit 에서 A+B+C 합산해 결정.
+if (issues.length === 0) console.log('🎉 Pattern A(import 측 폴백) 정상\n');
+else console.log(`⚠️  수정 필요: ${issues.length}개 파일\n`);
 for (const issue of issues) {
   console.log(`  📄 ${issue.file}`);
   for (const imp of issue.imports) console.log(`     import: ${imp}`);
@@ -272,5 +270,8 @@ if (pageStaticIssues.length > 0) {
   console.log('✅ [Pattern C] 페이지 정적 시계열 import 없음\n');
 }
 
-// 경고만 출력 (빌드 실패 아님)
-process.exit(0);
+// 2026-06-17 전수조사 A3: exit code 가 결함 반영 — 기존 무조건 exit(0) 이라 Pattern B(파생값 하드코딩)/
+//   C(페이지 정적 시계열) 의 🚨 가 caller(verify-all)의 exit-code 게이트에 안 잡혔다. verify 전용(Vercel
+//   빌드 경로 아님)이라 exit 1 안전. A(import 누락)+B+C 중 하나라도 있으면 실패.
+const totalViolations = issues.length + derivedErrors.length + pageStaticIssues.length;
+process.exit(totalViolations > 0 ? 1 : 0);

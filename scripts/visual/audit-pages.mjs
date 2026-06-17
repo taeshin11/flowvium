@@ -41,7 +41,12 @@ const DETECTORS = [
   // 한글 토큰 내 라틴 누출("스que이즈")
   { name: 'latin_bleed', sev: 'medium', re: /[가-힣][a-z]{2,6}[가-힣]/g },
   // 중국어/일본어 한자 누출 (국가약어 제외)
-  { name: 'cjk_bleed', sev: 'medium', re: /[㐀-䶿一-鿿]/g, allow: new Set([...'美中日韓北南東西獨佛英']) },
+  // 2026-06-17 전수조사 detector-tuning: 단일 한자 11자 화이트리스트는 정상 한국어 금융문(半導體·證券·美中 등)을
+  //   cjk_bleed 로 오탐. 진짜 신호는 *고립된 흔한 한자*가 아니라 *비허용 한자의 런(run)* — 즉 미번역 중/일 문장.
+  //   ① 허용 한자를 흔한 금융/국가 한자로 확장(오탐 제거), ② 단일 한자 → 4자 이상 CJK 클러스터(공백 무관)로
+  //   바꿔 비허용 한자가 >=4 누적된 경우만 매칭(런 휴리스틱). 정상 한국어의 산발적 한자는 통과, 미번역 문장은 검출.
+  { name: 'cjk_bleed', sev: 'medium', re: /[㐀-䶿一-鿿]{1,}(?:\s*[㐀-䶿一-鿿]){3,}/g, minBad: 4,
+    allow: new Set([...'美中日韓北南東西獨佛英露濠伊獨佛美中國本日韓朝臺香港上下高低大小新舊年月日時分秒兆億萬千百株債金利率銀行證券半導體市場經濟貿易輸出入油金利價格指數平均長短期前後內外總純粹發行收益損失資本産業企業財政通貨換率金融投資配當株式債券油價原油銅銀鐵銅鋼鐵綜合電子車自動車製造販賣物價賃金雇用失業政策財務報告']) },
   // 렌더 사고: NaN/undefined/null/[object Object]
   { name: 'nan_undef', sev: 'high', re: /\b(NaN|undefined)\b|\[object Object\]|\bnull\b(?!\s*=)/g },
   // 미치환 placeholder ([주력시장 핵심], [TARGET_LANG] 등)
@@ -58,7 +63,9 @@ async function runDetectors(text) {
     const hits = [];
     for (const m of text.matchAll(d.re)) {
       const v = m[0];
-      if (d.allow && [...v].every((c) => d.allow.has(c))) continue;
+      // 2026-06-17 전수조사 detector-tuning: allow 가 있으면 *비허용 문자 수*를 센다. d.minBad(기본 1) 미만이면 skip.
+      //   cjk_bleed 는 minBad=4 → 흔한 한자가 산발(<4)이면 통과, 비허용 한자가 4자+ 누적된 미번역 런만 flag.
+      if (d.allow) { const bad = [...v].filter((c) => !d.allow.has(c)).length; if (bad < (d.minBad ?? 1)) continue; }
       // 문맥 스니펫(앞뒤 24자)
       const i = m.index ?? text.indexOf(v);
       const snip = text.slice(Math.max(0, i - 24), i + v.length + 24).replace(/\s+/g, ' ').trim();

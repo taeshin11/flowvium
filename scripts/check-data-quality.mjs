@@ -52,9 +52,11 @@ async function main() {
   let ok = 0;
   for (const ep of ENDPOINTS) {
     const r = await getJson(ep);
-    const errField = r.body && typeof r.body === 'object' && (r.body.error || (Array.isArray(r.body) && r.body.length === 0));
+    // 2026-06-17 전수조사 C1: 빈 배열 [] 을 결함으로 보던 절 제거 — economic-calendar(한가한 날)·news 등
+    //   정상 무데이터 상태를 상시 오탐(accumulation-watch/[I] 와 동일 클래스). 비-200/top-level error 는 유지.
+    const errField = r.body && typeof r.body === 'object' && !Array.isArray(r.body) && r.body.error;
     if (r.status !== 200) issues.push(`[A] ${ep} → HTTP ${r.status}`);
-    else if (errField) issues.push(`[A] ${ep} → 200 but body {error:"${r.body.error ?? 'empty'}"}`);
+    else if (errField) issues.push(`[A] ${ep} → 200 but body {error:"${r.body.error}"}`);
     else ok++;
   }
   info.push(`[A] 엔드포인트 ${ok}/${ENDPOINTS.length} 정상`);
@@ -611,4 +613,6 @@ async function main() {
   console.log(issues.length === 0 ? '  → 종합: OK (데이터 품질 정상)' : `  → 종합: ${issues.length} 데이터 품질 결함`);
   process.exit(issues.length > 0 ? 1 : 0);
 }
-main();
+// 2026-06-17 전수조사 A2: main() 에 .catch 부재 — 중간 probe 가 throw 하면 process.exit(1) 우회 + 그때까지
+//   🚨 없으면 cron-runner 가 'clean pass' 로 오기록(CLAUDE.md "main entry 는 반드시 process.exit(1)"). onFatal 추가.
+main().catch((e) => { console.error('[data-quality FATAL]', e?.stack ?? e?.message ?? e); process.exit(1); });

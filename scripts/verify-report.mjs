@@ -22,18 +22,26 @@ export function pickLatestReport(dir = 'reports') {
 }
 
 // CANDIDATE_TICKERS meta lookup (LLM sector 환각 cross-reference 용)
+// 2026-06-17 전수조사 detector-tuning: 파일 missing/corrupt/empty 여부를 추적해 probe 가 silent
+//   green("✅ 0건 검증") 대신 "검증 불가" 결함을 push 하도록 _LOADED 플래그를 노출 (CPRT 류 누락 방지).
 let CANDIDATE_META = {};
+let CANDIDATE_META_LOADED = false;
 try {
   const data = JSON.parse(fs.readFileSync('data/candidate-tickers.json', 'utf8'));
   CANDIDATE_META = data.meta ?? {};
-} catch { /* skip */ }
+  CANDIDATE_META_LOADED = Object.keys(CANDIDATE_META).length > 0;
+} catch { /* skip — CANDIDATE_META_LOADED=false 로 probe 가 결함 보고 */ }
 
 // 2026-06-03 CPRT→"Cypress Semiconductor" 사건: ticker↔회사명 검증이 전혀 없었음(검증 사각지대).
 //   company-names.json(companies-batch*.ts 추출 ~499 실제명) 을 권위 소스로 name 환각 cross-check.
+// 2026-06-17 전수조사 detector-tuning: 파일 missing/corrupt 시 빈 {} 로 green pass 되던 사각지대 —
+//   COMPANY_NAMES_LOADED 로 권위 소스 부재를 명시적 결함으로 surface.
 let COMPANY_NAMES = {};
+let COMPANY_NAMES_LOADED = false;
 try {
   COMPANY_NAMES = JSON.parse(fs.readFileSync('data/company-names.json', 'utf8'));
-} catch { /* build-company-names.mjs 미실행 — name probe skip */ }
+  COMPANY_NAMES_LOADED = Object.keys(COMPANY_NAMES).length > 0;
+} catch { /* build-company-names.mjs 미실행 — COMPANY_NAMES_LOADED=false 로 probe 가 결함 보고 */ }
 
 const NAME_SUFFIX = /\b(inc|incorporated|corp|corporation|co|company|companies|ltd|limited|plc|llc|lp|holdings?|group|the|technologies|technology|sa|nv|ag|se)\b/g;
 function normName(s) {
@@ -200,6 +208,16 @@ export async function verifyReport(file, { silent = false } = {}) {
   // 1. sector ↔ meta consistency (LLM 환각 vs candidate-tickers meta)
   log('\n## sector ↔ meta 일치 (LLM 환각 detect)');
   let secFix = 0;
+  // 2026-06-17 전수조사 detector-tuning: 권위 소스(candidate-tickers.json meta) 부재 시 silent
+  //   "✅ consistent" 대신 "검증 불가" 결함 push — 빈 lookup 으로 sector 환각이 통과하던 사각지대 차단.
+  if (!CANDIDATE_META_LOADED) {
+    log('  ❌ candidate-tickers.json meta 부재/손상 — sector 검증 불가 (build:universe 필요)');
+    defects.push({
+      ticker: 'VERIFY', defect_type: 'authority_source_missing',
+      llm_value: 'candidate-tickers.json meta empty/missing',
+      correct_value: 'sector 환각 검증 불가 — data/candidate-tickers.json 재생성', severity: 'medium',
+    });
+  }
   for (const p of (r.portfolio||[])) {
     const meta = CANDIDATE_META[p.ticker];
     if (!meta?.sector || meta.sector === 'Unknown') continue;
@@ -217,6 +235,16 @@ export async function verifyReport(file, { silent = false } = {}) {
   // 1b. ticker ↔ 회사명 일치 (CPRT="Cypress Semiconductor" 류 name 환각 detect, 2026-06-03)
   log('\n## ticker ↔ 회사명 일치 (name 환각 detect)');
   let nameFix = 0, nameChecked = 0;
+  // 2026-06-17 전수조사 detector-tuning: company-names.json 부재 시 "✅ 0건 검증" green pass 가
+  //   CPRT='Cypress Semiconductor' 류를 통과시키던 사각지대 — 권위 소스 부재를 명시적 결함으로.
+  if (!COMPANY_NAMES_LOADED) {
+    log('  ❌ company-names.json 부재/손상 — ticker↔회사명 검증 불가 (build:names 필요)');
+    defects.push({
+      ticker: 'VERIFY', defect_type: 'authority_source_missing',
+      llm_value: 'company-names.json empty/missing',
+      correct_value: 'name 환각 검증 불가 — npm run build:names 로 data/company-names.json 재생성', severity: 'medium',
+    });
+  }
   const nameTargets = [
     ...(r.portfolio || []).map(p => ['portfolio', p]),
     ...(Array.isArray(r.companyChanges) ? r.companyChanges.map(c => ['companyChanges', c]) : []),
@@ -266,7 +294,10 @@ export async function verifyReport(file, { silent = false } = {}) {
   log('\n## 52주 범위 환각 (현재가 bracket 불변식 + >20x absurd)');
   let weekBad = 0;
   for (const p of (r.portfolio||[])) {
-    const m = (p.rationale||'').match(/52주\s*:\s*[₩$]?([\d,.]+)\s*-\s*[₩$]?([\d,.]+)/);
+    // 2026-06-17 전수조사 detector-tuning: 통화기호 없는 US 종목("52주: 410-250")도 검사.
+    //   `[₩$]?` 는 이미 옵션이지만 "52주" 와 숫자 사이에 "범위"/"레인지" 등 단어가 끼면 놓쳐
+    //   `\s*:?\s*[^\d₩$]{0,6}` 로 라벨↔숫자 근접 허용 (무관 숫자 매칭은 52주 키워드 anchor 로 차단).
+    const m = (p.rationale||'').match(/52주\s*:?\s*[^\d₩$]{0,6}[₩$]?([\d,.]+)\s*[-~]\s*[₩$]?([\d,.]+)/);
     if (!m) continue;
     const lo = parseFloat(m[1].replace(/,/g, ''));
     const hi = parseFloat(m[2].replace(/,/g, ''));
@@ -302,11 +333,19 @@ export async function verifyReport(file, { silent = false } = {}) {
   //   → 불가능한 MA 발산(>2.5x)이나 현재가 대비 극단 이탈(>3x)만 flag. genuine 우상향 gap 은 통과.
   log('\n## 50MA-200MA (불가능 발산 >2.5x + 현재가 3x 이탈)');
   let maBad = 0;
+  // 2026-06-17 전수조사 detector-tuning: 통화기호 없는 US MA("50MA 410 / 200MA 250")가
+  //   종전 `[₩$]` 필수 정규식을 silent 통과하던 사각지대. 통화기호版 OR 무통화版 둘 다 매칭하되,
+  //   무통화版은 (a) MA 라벨 바로 뒤 근접(≤4자), (b) 음수/퍼센트 제외(2026-06-06 "-4.9%" 오인 방지),
+  //   (c) 3자리+ 가격성 숫자만 허용해 무관 작은 숫자 차단.
+  const matchMA = (txt, label) => {
+    const cur = txt.match(new RegExp(`${label}[^₩$]{0,10}[₩$]([\\d,.]+)`));
+    if (cur) return cur;
+    // 무통화: 라벨 직후 근접, 앞에 '-' 없고 뒤에 '%' 없는 3자리+ 숫자(콤마 포함). "위/돌파/=" 등 라벨어 허용.
+    return txt.match(new RegExp(`${label}\\s*(?:선|값|위|아래|돌파|=|:)?\\s*([\\d][\\d,]{2,}(?:\\.\\d+)?)(?!\\s*%)`));
+  };
   for (const p of (r.portfolio||[])) {
-    // 2026-06-06: ₩/$ 필수 + 근접(≤10자) — 종전 `[₩$]?`(통화 옵션)이 "50MA 돌파...매출 -4.9%"의
-    //   -4.9 를 50MA 로 오인(005490 false ❌). 실 MA 는 "50MA 위(₩410,710)"처럼 통화기호 동반.
-    const m50 = (p.rationale||'').match(/50MA[^₩$]{0,10}[₩$]([\d,.]+)/);
-    const m200 = (p.rationale||'').match(/200MA[^₩$]{0,10}[₩$]([\d,.]+)/);
+    const m50 = matchMA(p.rationale || '', '50MA');
+    const m200 = matchMA(p.rationale || '', '200MA');
     if (!m50 || !m200) continue;
     const v50 = parseFloat(m50[1].replace(/,/g, ''));
     const v200 = parseFloat(m200[1].replace(/,/g, ''));
@@ -390,22 +429,41 @@ export async function verifyReport(file, { silent = false } = {}) {
   //   PE 외 모든 % (인사이더/매출/마진 등)가 서로 다른 2+종목에 동일하면 환각. 소수%만(정수%는 우연중복 흔함).
   log('\n## 종목간 동일 %수치 (copy-paste 환각 — 2026-06-06)');
   let dupPctBad = 0;
-  const pctByValue = new Map();
+  // 2026-06-17 전수조사 detector-tuning: 종전 "2+종목 동일 소수%" = 즉시 환각 판정은 우연 일치
+  //   (서로 다른 기업이 우연히 같은 28.7% 매출성장) false positive 가 잦았음. 진짜 copy-paste 만
+  //   잡도록 조건 강화: (A) 3+ 종목이 같은 % → 우연 가능성 낮음, 또는 (B) 정확히 2종목이라도
+  //   그 % 주변 텍스트(숫자 제외 정규화)가 near-identical 이면 copy-paste. 둘 다 아니면 통과.
+  const pctOccur = new Map(); // value → [{ ticker, ctx }]
+  // 숫자/공백 제거 후 비교용 정규화 — 같은 문구 틀에 숫자만 다른 것을 동일 취급.
+  const normCtx = (s) => String(s || '').toLowerCase().replace(/[\d.,%]+/g, '#').replace(/\s+/g, '').trim();
   for (const p of (r.portfolio || [])) {
     const text = (p.fundamentalBasis || '') + ' ' + (Array.isArray(p.catalysts) ? p.catalysts.join(' ') : '');
-    const vals = new Set([...text.matchAll(/(\d+\.\d+)%/g)].map(m => m[1]));
-    for (const v of vals) {
+    const seen = new Set();
+    for (const m of text.matchAll(/(\d+\.\d+)%/g)) {
+      const v = m[1];
       if (parseFloat(v) < 1) continue; // 0.x% 잡음 제외
-      const arr = pctByValue.get(v) ?? []; arr.push(p.ticker); pctByValue.set(v, arr);
+      if (seen.has(v)) continue; seen.add(v); // 종목 내 중복 1회만
+      const idx = m.index ?? 0;
+      const ctx = normCtx(text.slice(Math.max(0, idx - 14), idx + m[0].length + 14)); // % 주변 ±14자 정규화
+      const arr = pctOccur.get(v) ?? []; arr.push({ ticker: p.ticker, ctx }); pctOccur.set(v, arr);
     }
   }
-  for (const [v, tks] of pctByValue) {
-    const uniq = [...new Set(tks)];
-    if (uniq.length >= 2) {
-      log(`  ⚠️ 동일 ${v}% → ${uniq.length}종목(${uniq.join(', ')}) — 서로 다른 기업 동일수치 = copy-paste 환각`);
+  for (const [v, occ] of pctOccur) {
+    const uniqTks = [...new Set(occ.map(o => o.ticker))];
+    if (uniqTks.length < 2) continue;
+    // (B) 정확히 2종목이면 주변 텍스트 near-identical 일 때만; 3+ 종목이면 그 자체로 의심.
+    let copyPaste = uniqTks.length >= 3;
+    if (!copyPaste && uniqTks.length === 2) {
+      // 두 종목의 동일 % 주변 문구가 같으면 copy-paste (정규화 후 일치).
+      const ctxs = [...new Set(occ.map(o => o.ctx).filter(Boolean))];
+      copyPaste = ctxs.length === 1 && ctxs[0].length >= 6;
+    }
+    if (copyPaste) {
+      const reason = uniqTks.length >= 3 ? `${uniqTks.length}종목 동일수치` : '주변 문구까지 동일(copy-paste)';
+      log(`  ⚠️ 동일 ${v}% → ${uniqTks.length}종목(${uniqTks.join(', ')}) — ${reason}`);
       defects.push({
-        ticker: uniq.join('/'), defect_type: 'dup_pct_halluc',
-        llm_value: `${v}% ×${uniq.length}`, correct_value: '종목별 실수치(인사이더/매출 grounded)', severity: 'medium',
+        ticker: uniqTks.join('/'), defect_type: 'dup_pct_halluc',
+        llm_value: `${v}% ×${uniqTks.length} (${reason})`, correct_value: '종목별 실수치(인사이더/매출 grounded)', severity: 'medium',
       });
       dupPctBad++;
     }
@@ -444,18 +502,33 @@ export async function verifyReport(file, { silent = false } = {}) {
   log('\n## 기술 일관성 (RSI/지지선 환각 — 2026-06-05)');
   let techBad = 0;
   const parseWon = (s) => { const m = (s || '').replace(/[,₩\s]/g, '').match(/(\d{4,})/); return m ? +m[1] : null; };
+  // 2026-06-17 전수조사 detector-tuning: 종전 parseWon(entryRationale) 은 본문 첫 4+자리 숫자를
+  //   무조건 "지지"로 읽어, 목표가/거래량/시총 같은 무관 큰 수를 지지선으로 오인했음. 지지/support
+  //   키워드 근접(앞 14자 내 또는 숫자 직후 8자 내)에 있는 가격만 추출하도록 anchor.
+  const parseSupport = (s) => {
+    const str = String(s || '');
+    // "지지" 키워드 ±근접 구간에서만 4+자리(콤마 포함) 가격 추출 — "120,000 지지" / "지지선 120,000".
+    const m = str.match(/(?:지지[선가]?\s*[:\-~]?\s*[₩$]?([\d,]{4,})|([₩$]?[\d,]{4,})\s*(?:원)?\s*(?:지지|support)|support[^0-9]{0,8}([\d,]{4,}))/i);
+    const raw = m ? (m[1] ?? m[2] ?? m[3]) : null;
+    if (!raw) return null;
+    const n = +raw.replace(/[,₩$\s]/g, '');
+    return Number.isFinite(n) && n >= 1000 ? n : null;
+  };
   for (const p of (r.portfolio || [])) {
     const txt = `${p.technicalBasis || ''} ${p.entryRationale || ''} ${p.rationale || ''}`;
     const rsiM = txt.match(/RSI\s*([0-9]{1,3})/i);
     const rsi = rsiM ? +rsiM[1] : null;
     const oversold = /과매도|oversold/i.test(txt), overbought = /과매수|overbought/i.test(txt);
-    if (rsi != null && oversold && rsi >= 35) {
-      log(`  ⚠️ ${p.ticker} "RSI ${rsi}" + "과매도" 모순 (과매도는 RSI<35)`);
-      defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: `RSI ${rsi}+과매도`, correct_value: 'RSI<35 만 과매도', severity: 'medium' });
+    // 2026-06-17 전수조사 detector-tuning: 비표준 cutoff(과매도 rsi≥35 / 과매수 rsi≤65)가
+    //   30-34·66-70 의 정당한 경계 케이스를 false positive 로 잡았음. 표준 TA(과매도<30/과매수>70)
+    //   기준으로, 명백한 모순만(과매도 단언인데 rsi≥45, 과매수 단언인데 rsi≤55) flag.
+    if (rsi != null && oversold && rsi >= 45) {
+      log(`  ⚠️ ${p.ticker} "RSI ${rsi}" + "과매도" 모순 (표준 과매도는 RSI<30, rsi≥45 = 명백 모순)`);
+      defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: `RSI ${rsi}+과매도`, correct_value: '과매도는 RSI<30 (rsi≥45 모순)', severity: 'medium' });
       techBad++;
-    } else if (rsi != null && overbought && rsi <= 65) {
-      log(`  ⚠️ ${p.ticker} "RSI ${rsi}" + "과매수" 모순 (과매수는 RSI>65)`);
-      defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: `RSI ${rsi}+과매수`, correct_value: 'RSI>65 만 과매수', severity: 'medium' });
+    } else if (rsi != null && overbought && rsi <= 55) {
+      log(`  ⚠️ ${p.ticker} "RSI ${rsi}" + "과매수" 모순 (표준 과매수는 RSI>70, rsi≤55 = 명백 모순)`);
+      defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: `RSI ${rsi}+과매수`, correct_value: '과매수는 RSI>70 (rsi≤55 모순)', severity: 'medium' });
       techBad++;
     } else if (oversold && rsi == null && /지지|과매도/.test(p.entryRationale || '')) {
       // RSI 값 없이 "과매도" 단언 — 근거 없는 환각
@@ -463,9 +536,11 @@ export async function verifyReport(file, { silent = false } = {}) {
       defects.push({ ticker: p.ticker, defect_type: 'rsi_halluc', llm_value: 'RSI값없이 과매도', correct_value: 'RSI 값 명시 또는 제거', severity: 'low' });
       techBad++;
     }
-    // 지지선 vs entryZone 이탈 — entryRationale 의 가격이 entryZone 과 >25% 차이면 지지선 환각
+    // 지지선 vs entryZone 이탈 — entryRationale 의 "지지" 가격이 entryZone 과 >25% 차이면 지지선 환각
+    // 2026-06-17 전수조사 detector-tuning: supW 추출을 지지 키워드 anchor(parseSupport)로 교체 —
+    //   무관 큰 수(목표가/거래량) 오인 차단. 키워드 없으면 supW=null 로 probe skip(false positive 방지).
     const ezLow = parseWon((p.entryZone || '').split(/[-~]/)[0]);
-    const supW = parseWon(p.entryRationale);
+    const supW = parseSupport(p.entryRationale);
     if (ezLow && supW && Math.abs(supW / ezLow - 1) > 0.25) {
       log(`  ⚠️ ${p.ticker} 지지 "${supW}" vs entryZone(${ezLow}) ${Math.round((supW/ezLow-1)*100)}% 이탈 — 지지선 환각`);
       defects.push({ ticker: p.ticker, defect_type: 'support_halluc', llm_value: `지지 ${supW} vs entry ${ezLow}`, correct_value: 'entryZone 기준 지지', severity: 'medium' });
