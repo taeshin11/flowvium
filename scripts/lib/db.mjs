@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS reports (
   quality_score INTEGER,
   full_json     TEXT NOT NULL,            -- 보고서 전체 JSON
   audit_json    TEXT,                     -- harnessAudit JSON
+  model         TEXT,                     -- 2026-06-17: 실제 생성 모델(runtimeModel, 예 Qwen3-30B-A3B). per-model 결함률 추적(source 는 'local-' prefix·stale 별칭 섞여 부정확).
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_reports_generated_at ON reports(generated_at);
@@ -471,6 +472,15 @@ export function openDb() {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+  // 2026-06-17: 기존 DB(reports 테이블 선존재)에 model 컬럼 추가 — CREATE TABLE IF NOT EXISTS 는 컬럼 추가 못 함.
+  //   idempotent: 없을 때만 ALTER. source('local-<model>')에서 baseline 백필 → 과거 행도 모델 귀속(전환 시 비교 기준).
+  try {
+    const cols = db.prepare('PRAGMA table_info(reports)').all().map((c) => c.name);
+    if (!cols.includes('model')) {
+      db.exec('ALTER TABLE reports ADD COLUMN model TEXT');
+      db.exec("UPDATE reports SET model = REPLACE(source, 'local-', '') WHERE model IS NULL AND source LIKE 'local-%'");
+    }
+  } catch (e) { console.warn('[db] reports.model 마이그레이션 skip:', e.message); }
   _dbInstance = db;
   return db;
 }
@@ -584,8 +594,8 @@ export function saveReport(report) {
   const locale = report.locale ?? id.split(':')[2];
 
   db.prepare(`
-    INSERT INTO reports (id, generated_at, kst_date, session, locale, source, stance, risk_level, thesis, quality_score, full_json, audit_json)
-    VALUES (@id, @generated_at, @kst_date, @session, @locale, @source, @stance, @risk_level, @thesis, @quality_score, @full_json, @audit_json)
+    INSERT INTO reports (id, generated_at, kst_date, session, locale, source, stance, risk_level, thesis, quality_score, full_json, audit_json, model)
+    VALUES (@id, @generated_at, @kst_date, @session, @locale, @source, @stance, @risk_level, @thesis, @quality_score, @full_json, @audit_json, @model)
     ON CONFLICT(id) DO UPDATE SET
       generated_at = excluded.generated_at,
       source       = excluded.source,
@@ -594,7 +604,8 @@ export function saveReport(report) {
       thesis       = excluded.thesis,
       quality_score= excluded.quality_score,
       full_json    = excluded.full_json,
-      audit_json   = excluded.audit_json
+      audit_json   = excluded.audit_json,
+      model        = excluded.model
   `).run({
     id,
     generated_at: gen,
@@ -608,6 +619,8 @@ export function saveReport(report) {
     quality_score: typeof report.qualityScore === 'number' ? report.qualityScore : null,
     full_json: JSON.stringify(report),
     audit_json: report.harnessAudit ? JSON.stringify(report.harnessAudit) : null,
+    // 2026-06-17: 실제 모델 — report.model(runtimeModel) 우선, 없으면 source 에서 'local-' 떼서 폴백.
+    model: report.model ?? (report.source ? String(report.source).replace(/^local-/, '') : null),
   });
   return id;
 }
@@ -1280,6 +1293,32 @@ export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) 
     `).run(r.ticker, r.defect_type, r.llm_value, days);
   }
   return rows;
+}
+
+/**
+ * 2026-06-17: per-model 결함률 — hallucination_history ⋈ reports.model. "모델 효과" 측정용(CLAUDE.md 약속 이행).
+ *   harness_* 제외(결정론 자동수정이라 모델 품질과 무관). days 내 모델별 보고서수·escape결함수·결함/보고서.
+ *   단일 모델 프로덕션이어도 지금부터 baseline 누적 → 2번째 모델 도입 시 즉시 A/B 비교 가능.
+ */
+export function getModelDefectRates(days = 30) {
+  const db = openDb();
+  try {
+    const reports = db.prepare(`
+      SELECT COALESCE(model, 'unknown') model, COUNT(*) reports
+      FROM reports WHERE generated_at >= datetime('now', '-' || ? || ' days') GROUP BY model
+    `).all(days);
+    const defects = db.prepare(`
+      SELECT COALESCE(r.model, 'unknown') model, COUNT(*) defects
+      FROM hallucination_history h JOIN reports r ON h.report_id = r.id
+      WHERE h.detected_at >= datetime('now', '-' || ? || ' days') AND h.defect_type NOT LIKE 'harness_%'
+      GROUP BY r.model
+    `).all(days);
+    const dMap = new Map(defects.map((d) => [d.model, d.defects]));
+    return reports
+      .map((r) => ({ model: r.model, reports: r.reports, defects: dMap.get(r.model) ?? 0,
+        defectsPerReport: +((dMap.get(r.model) ?? 0) / Math.max(r.reports, 1)).toFixed(2) }))
+      .sort((a, b) => b.reports - a.reports);
+  } catch (e) { console.warn('getModelDefectRates 실패:', e.message); return []; }
 }
 
 /**

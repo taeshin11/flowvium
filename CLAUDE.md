@@ -469,12 +469,13 @@ generate-report-local.mjs: vLLM (VLLM_URL) → Ollama → fail
 `harnessAudit` 메타필드(→ `reports.audit_json`) + `harness_*` 결함의 `hallucination_history` 적재로
 환각 카운트의 **시간적** 추세는 추적된다 (`check-stall` [4] median 트렌드).
 
-> **⚠️ 2026-06-17 정정 — 모델별(per-model) 결함률 비교는 미구현.** `reports` 테이블에 `model` 컬럼이
-> 없어 결함을 모델(qwen3:8b vs 30B 등)에 귀속시킬 수 없다. 위 "14B 도입 후 카운트 비교" 는 측정 불가.
-> **정당한 미루기 판정:** 현재 프로덕션은 단일 모델(vLLM 30B-A3B)만 구동 → 비교 대상 자체가 없어
-> 지금 컬럼을 추가해도 신호가 0이고, 보고서 INSERT 경로(critical path)를 건드리는 리스크만 발생.
-> **트리거:** 두 번째 모델 도입(model.conf MODEL 교체) 시 같은 작업에서 `reports.model` 컬럼 추가 +
-> insert 채움 + join 집계를 구현한다. 그때가 리스크 대비 효용이 처음으로 양(+)이 되는 시점.
+> **✅ 2026-06-17 구현 — 모델별(per-model) 결함률 추적.** `reports.model` 컬럼(runtimeModel = 실제
+> 모델명, 예 Qwen3-30B-A3B) + `getModelDefectRates(days)` (hallucination_history ⋈ reports.model,
+> harness_* 제외). 기존 DB 는 openDb 마이그레이션이 ALTER + source 백필(과거 행도 귀속). 단일 모델
+> 프로덕션이어도 **지금부터 baseline 누적** → 2번째 모델 도입 시 즉시 A/B 비교.
+> *(이전에 "단일 모델이라 정당한 미루기"로 미뤘으나, 저비용 작업을 회피한 게으른 미루기였음 — 사용자
+> 지적으로 정정. baseline 은 지금 시작해야 전환 시점에 비교 데이터가 존재하므로 오히려 지금이 적기.)*
+> 측정: `node -e "import('./scripts/lib/db.mjs').then(m=>console.table(m.getModelDefectRates(30)))"`
 
 </details>
 

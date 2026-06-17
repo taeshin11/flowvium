@@ -7884,6 +7884,7 @@ async function generateViaOllama() {
     dataAsOf: now,
     // 실제 생성 모델 라벨 (별칭/기본인자 아님). vLLM 사용 시 해석된 진짜 모델명, 아니면 modelArg.
     source: `local-${runtimeModel ?? modelArg}`,
+    model: runtimeModel ?? modelArg,   // 2026-06-17: per-model 결함률 추적용 정밀 모델 컬럼(prefix 없는 순수 모델명)
     locale: localeArg,
     session,
     schemaVersion: 8,
