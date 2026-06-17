@@ -6070,6 +6070,15 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     'Do NOT write generic phrases like "테크", "성장주", "위험자산". Must be specific sub-sector or technology.',
     'Derive themes from the actual news/flows/institutional data provided, not from training data.',
     '',
+    // 2026-06-17 (사용자 투자인용: "개인 비합리성이 아니라 군중이 같은 시기·같은 방식으로 쏠리는 집단 행동
+    //   역학을 이해하는 것이 시장 상회의 열쇠"). 기존 prompt 는 개별 신호만 나열·momentum 추종 유도 →
+    //   consensus 쏠림을 명시적 *역발상* 렌즈로 추가. 데이터 그라운딩 유지(쏠림 수치 창작 금지).
+    '## 쏠림·역발상 렌즈 (집단 행동 역학 — MANDATORY 고려)',
+    '- 핵심 원칙: "군중이 같은 시기에 같은 방향으로 쏠렸는가"가 변곡의 열쇠. 단순 momentum 추종이 아니라 쏠림의 극단을 본다.',
+    '- 위 입력에서 컨센서스 과밀 판별: F&G 극단(≥75 탐욕 쏠림 / ≤25 공포 쏠림), 공매도 쏠림(스퀴즈 후보 多 = 숏 과밀), 자본흐름 일방향, 기관·뉴스가 한 내러티브로 수렴.',
+    '- 쏠림이 극단이면 *역발상* 으로 해석: 전원 탐욕·롱 과밀 → 반전/되돌림 위험을 story·watch 에 명시 / 전원 공포·숏 과밀 → 스퀴즈·반등 기회를 명시.',
+    '- ⚠️ 데이터에 쏠림 근거가 명시될 때만 언급 — F&G 점수·숏 비중 등 *입력값 기반*. 쏠림 수치·방향 창작 금지, 근거 없으면 생략.',
+    '',
     '## ⚠️ 수치 그라운딩 (MANDATORY — 위반 시 보고서 환각)',
     '- 지수 레벨(KOSPI/KOSDAQ/S&P500/Nasdaq 등)·VIX 는 [Index Levels] 에 *명시된 값만* 인용. 데이터에 없으면 절대 레벨을 지어내지 말 것(예: 기억 기반 "KOSPI 2,780선 돌파" 같은 레벨 창작 금지).',
     '- 개별 종목 등락률(%)·포지션/수급 수치는 [입력 데이터]에 명시된 값만 인용 — 없으면 수치 없이 서술하거나 생략. COT/수급/% 등락 창작 금지.',
@@ -6112,7 +6121,9 @@ function buildRiskMgmtPrompt(portfolio, riskLevel, bbWarnings, vix) {
     'Respond in pure JSON:',
     `{"stopLossRationale":[{"ticker":"NVDA","rationale":"[≤60 chars in ${TARGET_LANG}]"}],"hedgingSuggestion":"[80-140자 서술형 in ${TARGET_LANG}]","portfolioRiskNote":"[100-170자 서술형 in ${TARGET_LANG}]"}`,
     '## narrative field rules',
-    '- portfolioRiskNote: 100-170자 서술형, 핵심만. 포트폴리오 전체의 집중·상관·거시 리스크를 연결해 흐르는 문장으로 서술, 군더더기 없이.',
+    // 2026-06-17 (사용자 투자인용 — 집단 쏠림 역학): 포트폴리오가 시장 컨센서스와 같은 방향으로 과밀(전원
+    //   인기 테마/쏠린 포지션)이면 그 동기화 자체가 리스크 — risk note 에 반영하도록 명시.
+    '- portfolioRiskNote: 100-170자 서술형, 핵심만. 포트폴리오의 집중·상관·거시 리스크 + *컨센서스 쏠림*(보유 종목이 시장 군중과 같은 인기 방향으로 과밀하면 되돌림 시 동반 하락 위험)을 연결해 흐르는 문장으로 서술, 군더더기 없이.',
     '- hedgingSuggestion: 80-140자 서술형, 핵심만. 헤지 수단과 *발동 조건·근거* 를 흐르는 문장으로 서술, 군더더기 없이.',
     'Pure JSON only.',
   ].join('\n');
