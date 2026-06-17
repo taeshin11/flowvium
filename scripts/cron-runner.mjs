@@ -13,7 +13,7 @@
  *   → CRON_TZ 환경변수로 'Etc/UTC' 지정 시 기존 Vercel UTC 스케줄 그대로 유지.
  */
 import cron from 'node-cron';
-import { readFileSync, existsSync, writeFileSync, statSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, statSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -346,6 +346,36 @@ async function runShockCheck() {
 // 2026-06-17 (사용자 "전부 20분마다로 통일"): */10→*/20분.
 cron.schedule('*/20 * * * *', runShockCheck, { timezone: TZ });
 log('시장 쇼크 모니터 등록: */20분 (속보 키워드 + VIX 인트라데이 + KOSPI/원화 → 임계시 비정기 발간, 2h 쿨다운)');
+
+// 2026-06-18: 누락 보고서 자동 캐치업 — 예약 세션(Task Scheduler)이 hang/강제종료(267014)로 미발행되면
+//   최신 보고서가 stale 해짐(과거: 야간 evening/midnight 실패 시 무알림·무복구 → 사람이 아침에 발견하던 사각지대).
+//   20분마다 최신 ko 보고서 mtime 점검 → STALE_H 초과면 run-report.bat 으로 backfill. shock 와 동일하게
+//   2h 쿨다운 + lock guard 로 과발간/중복 방지. (헤드리스 — 세션 없어도 자동 복구.)
+let lastCatchupTrigger = 0;
+const CATCHUP_STALE_MS = 5 * 60 * 60 * 1000;   // 5h+ = 정규 세션(최대 5.5h 간격) 1회 누락으로 간주
+async function runCatchupCheck() {
+  try {
+    let newest = 0;
+    try {
+      for (const f of readdirSync('reports')) {
+        if (!/^report-.*-ko\.json$/.test(f)) continue;
+        const m = statSync(`reports/${f}`).mtimeMs;
+        if (m > newest) newest = m;
+      }
+    } catch { /* reports dir 접근 실패 */ }
+    const ageMs = newest ? Date.now() - newest : Infinity;
+    if (ageMs < CATCHUP_STALE_MS) return;
+    if (Date.now() - lastCatchupTrigger < SHOCK_COOLDOWN_MS) { log('[catchup] 쿨다운 중 — skip'); return; }
+    if (await isReportPipelineRunning()) { log('[catchup] 보고서 이미 실행 중 — skip'); return; }
+    lastCatchupTrigger = Date.now();
+    log(`[catchup] 🚨 최신 보고서 ${(ageMs / 3600000).toFixed(1)}h stale — 누락 backfill 트리거 → run-report.bat`);
+    execFileAsync('cmd', ['/c', 'scripts\\run-report.bat'], { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 })
+      .then(() => log('[catchup] backfill 완료'))
+      .catch((e) => log(`[catchup] backfill 실패: ${String(e.message).slice(0, 60)}`));
+  } catch (e) { log(`[catchup] 점검 실패: ${String(e.message).slice(0, 60)}`); }
+}
+cron.schedule('*/20 * * * *', runCatchupCheck, { timezone: TZ });
+log('누락 보고서 캐치업 모니터 등록: */20분 (최신 ko 보고서 5h+ stale 시 backfill, 2h 쿨다운+lock)');
 
 // keep alive
 process.stdin.resume();
