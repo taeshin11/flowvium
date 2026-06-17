@@ -4,11 +4,13 @@ cd /d "D:\Flowvium"
 set "LOG_FILE=D:\Flowvium\logs\report.log"
 set "LOCK_DIR=D:\Flowvium\logs\report-pipeline.lock"
 
+:: 2026-06-18: ASCII-only (no Korean) - cmd.exe on Korean Windows parses .bat in CP949; the C->D migration
+::   left this file UTF-8 which mis-decoded Korean comments/echo -> for-loop parse break -> bat died mid-run
+::   leaving only lock/no-report (evening/midnight 2026-06-17 missing reports). Keep this file ASCII + CRLF.
+
 :: 0-pre. Concurrency mutex (atomic mkdir lock). Steal if stale >5min and no live gen proc.
-:: 2026-06-17 (afternoon 15:40 좀비 래퍼 54m 사건): 스테일 락 존재 시 Get-CimInstance(WMI)가 *타임아웃 없이*
-::   무한대기 → run-report.bat 가 첫 로그 전에 hang → wscript 좀비(로그 0). 근본수정: ① age<5m 는 WMI 전에
-::   빠르게 판정(skip) ② alive 체크는 -OperationTimeoutSec 10 으로 바운드 ③ WMI 오류/타임아웃 시 catch→steal
-::   (hang 대신 진행=fail-safe). 락이 절대 파이프라인을 silent hang 시키지 못하게.
+::   Stale-lock + WMI infinite-wait once hung the wrapper before its first log line. Guard: age<5m fast skip;
+::   alive-check bounded by -OperationTimeoutSec 10; WMI error/timeout -> catch -> steal (fail-safe, never hang).
 mkdir "%LOCK_DIR%" 2>nul
 if errorlevel 1 (
   powershell -NoProfile -Command "$d = Get-Item '%LOCK_DIR%' -ErrorAction SilentlyContinue; $age = if ($d) { ((Get-Date) - $d.CreationTime).TotalMinutes } else { 999 }; if ($age -lt 5) { exit 1 }; try { $alive = Get-CimInstance Win32_Process -OperationTimeoutSec 10 -ErrorAction Stop | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -match 'generate-report-local' }; if ($alive) { exit 1 } else { exit 0 } } catch { exit 0 }" >nul 2>&1
@@ -22,9 +24,7 @@ if errorlevel 1 (
 )
 
 :: 0. git fetch + selective checkout of code files (keep local runtime data: db, logs, reports).
-:: 2026-06-17: hang 가드 (morning 06:40 누락 사건 — git fetch 가 자격증명 프롬프트/정체 전송에서 ~26분 무한대기
-::   → Task Scheduler 시간제한 종료(267014) → 보고서 미발행). GIT_TERMINAL_PROMPT=0 = 프롬프트에 멈추지 않고
-::   즉시 실패→로컬코드로 진행. LOW_SPEED = 전송 30s 정체 시 abort. 아래 errorlevel 가드가 실패를 흡수.
+::   GIT_TERMINAL_PROMPT=0 = never block on credential prompt; LOW_SPEED = abort after 30s stalled transfer.
 set "GIT_TERMINAL_PROMPT=0"
 set "GIT_HTTP_LOW_SPEED_LIMIT=1000"
 set "GIT_HTTP_LOW_SPEED_TIME=30"
@@ -35,13 +35,12 @@ if errorlevel 1 (
   echo [%DATE% %TIME%] [WARN] git checkout failed - proceeding with current code >> "%LOG_FILE%"
 )
 
-:: 1. vLLM server health check — wait-retry loop (2026-06-17 신설; 기존 즉시-abort 는 morning 06:40 트리거가
-::    vLLM 기동(부팅 의존) 전이면 보고서 누락 → 최대 ~12분 대기(36회 x 20s)하며 200 대기. 그래도 안 뜨면 abort.
+:: 1. vLLM server health check -- wait-retry loop (up to ~12min = 36 x 20s) for boot-dependent startup.
 set "VLLM_CODE="
 for /l %%i in (1,1,36) do (
   for /f %%S in ('curl -s -o nul -w "%%{http_code}" http://localhost:8000/v1/models 2^>nul') do set "VLLM_CODE=%%S"
   if "!VLLM_CODE!"=="200" goto :vllm_ok
-  echo [%DATE% %TIME%] [INFO] vLLM(:8000) 대기 %%i/36 ^(http=!VLLM_CODE!^) >> "%LOG_FILE%"
+  echo [%DATE% %TIME%] [INFO] waiting for vLLM 8000 %%i/36 ^(http=!VLLM_CODE!^) >> "%LOG_FILE%"
   timeout /t 20 /nobreak >nul 2>&1
 )
 echo [%DATE% %TIME%] [ERROR] vLLM server (:8000) not responding after ~12min ^(http=!VLLM_CODE!^) >> "%LOG_FILE%"
@@ -49,7 +48,7 @@ rmdir "%LOCK_DIR%" 2>nul
 exit /b 1
 :vllm_ok
 
-:: 2. Pre-flight data source health check (silent-failure guard).
+:: 2. Pre-flight data source health check (silent-failure guard). exit>=2 = critical, abort.
 echo [%DATE% %TIME%] [INFO] Pre-flight: data source health check... >> "%LOG_FILE%"
 "C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\audit-data-sources.mjs" >> "%LOG_FILE%" 2>&1
 if errorlevel 2 (
