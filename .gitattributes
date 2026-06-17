@@ -1,19 +1,6 @@
-# 2026-06-17: autocrlf=true + LF 작성 도구(node writeFileSync) 충돌로 messages/*.json 등이
-# 영구 "modified"(CRLF vs LF) → wipe-risk 모니터 상시 오발. JSON/코드/셸을 LF 로 고정해
-# working-tree 와 git blob(이미 LF)을 일치시켜 churn 제거. (git blob 은 이미 LF 라 콘텐츠 변경 0)
-*.json   text eol=lf
-*.mjs    text eol=lf
-*.js     text eol=lf
-*.ts     text eol=lf
-*.tsx    text eol=lf
-*.md     text eol=lf
-*.sh     text eol=lf
-# Windows 배치/스크립트는 CRLF 유지 (cmd/wscript 호환)
-*.bat    text eol=crlf
-*.vbs    text eol=crlf
-# 바이너리 — 변환 금지
-*.db     binary
-*.exe    binary
-*.png    binary
-*.jpg    binary
-*.ico    binary
+# 2026-06-17: LF 작성 도구(node writeFileSync)로 생성/갱신되는 JSON 만 LF 로 고정.
+#   messages/*.json(i18n 일괄 갱신) + data/*.json(크론 산출)이 autocrlf=true 와 충돌해 영구
+#   "modified"(CRLF↔LF) → wipe-risk 모니터 오발하던 것 차단. 나머지 저장소는 기존 autocrlf=true 동작 유지
+#   (광범위 eol 강제는 396파일 renormalization 유발 → 좁게 한정).
+messages/*.json text eol=lf
+data/*.json     text eol=lf
