@@ -5,5 +5,5 @@
 ' 주의: bWaitOnReturn=True 라 batch exit code 가 wscript exit code 로 전달됨.
 Dim sh, rc
 Set sh = CreateObject("WScript.Shell")
-rc = sh.Run("""C:\Flowvium\scripts\run-report.bat""", 0, True)
+rc = sh.Run("""D:\Flowvium\scripts\run-report.bat""", 0, True)
 WScript.Quit rc

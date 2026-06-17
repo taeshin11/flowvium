@@ -15,7 +15,7 @@
  */
 import { execSync } from 'node:child_process';
 
-const ROOT = 'C:/Flowvium';
+const ROOT = 'D:/Flowvium';
 const sh = (cmd) => { try { return execSync(cmd, { cwd: ROOT, encoding: 'utf8' }).trim(); } catch (e) { return (e.stdout || '') + (e.stderr || ''); } };
 
 // run-report.bat 가 checkout 하는 경로 (= wipe 대상)

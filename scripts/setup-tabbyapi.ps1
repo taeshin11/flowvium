@@ -5,7 +5,7 @@
 #
 # 사용:
 #   PowerShell 관리자 권한 또는 사용자 권한
-#   cd C:\Flowvium
+#   cd D:\Flowvium
 #   .\scripts\setup-tabbyapi.ps1
 #
 # 사전 요구: Python 3.10/3.11/3.12, NVIDIA driver 525+, ~10GB 디스크

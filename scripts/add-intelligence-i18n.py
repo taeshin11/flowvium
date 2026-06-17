@@ -1,7 +1,7 @@
 import json
 import os
 
-messages_dir = "C:/Flowvium/messages"
+messages_dir = "D:/Flowvium/messages"
 
 nav_keys = {
     "en.json": "Intelligence",
@@ -334,7 +334,7 @@ company_additions = {
 
 import os
 
-messages_dir = "C:/Flowvium/messages"
+messages_dir = "D:/Flowvium/messages"
 
 for filename in os.listdir(messages_dir):
     if not filename.endswith('.json'):

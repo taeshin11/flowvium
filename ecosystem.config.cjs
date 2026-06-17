@@ -1,7 +1,7 @@
 // pm2 프로세스 정의 — 자가호스팅 24/7 (web + cron-runner + cloudflared tunnel).
 // 사용: pm2 start ecosystem.config.cjs ; pm2 save
 // 부팅 지속: (Windows) pm2 save 후 Task Scheduler 에 "pm2 resurrect" 등록 또는 pm2-installer.
-const ROOT = 'C:/Flowvium';
+const ROOT = 'D:/Flowvium';
 module.exports = {
   apps: [
     {
@@ -22,6 +22,13 @@ module.exports = {
       script: 'scripts/cron-runner.mjs',
       cwd: ROOT,
       env: { PORT: '3000', CRON_TZ: 'Etc/UTC' },
+      autorestart: true,
+    },
+    {
+      // 2026-06-17: D 이전 시 ecosystem 에 명시 추가 (이전엔 dump.pm2 에만 존재해 재현 불가였음).
+      name: 'flowvium-redis-shim',
+      script: 'scripts/redis-rest-shim.mjs',
+      cwd: ROOT,
       autorestart: true,
     },
     {

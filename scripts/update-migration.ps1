@@ -3,7 +3,7 @@
 #   사용: powershell -File scripts\update-migration.ps1   (또는 -Dst "다른경로")
 #   변경 사항(코드 commit/push, DB 학습 누적, 키 갱신) 있을 때마다 실행.
 param(
-  [string]$Src = "C:\Flowvium",
+  [string]$Src = "D:\Flowvium",
   [string]$Dst = "G:\내 드라이브\0.flowvium_move"
 )
 $ErrorActionPreference = "Stop"

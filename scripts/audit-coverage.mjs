@@ -9,7 +9,7 @@
  */
 import Database from 'better-sqlite3';
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
-const ROOT = 'C:/Flowvium';
+const ROOT = 'D:/Flowvium';
 const db = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
 
 let errCount = 0;
@@ -165,8 +165,8 @@ for (const at of archiveTables) {
 // ═══════ Probe 3b: S&P 500 / KOSPI 커버 ═══════
 console.log('\n## [3a] S&P 500 / KOSPI / KOSDAQ candidate 커버 ===\n');
 try {
-  const sp500 = JSON.parse(readFileSync('C:/Flowvium/data/sp500-tickers.json', 'utf8'));
-  const cand = JSON.parse(readFileSync('C:/Flowvium/data/candidate-tickers.json', 'utf8'));
+  const sp500 = JSON.parse(readFileSync('D:/Flowvium/data/sp500-tickers.json', 'utf8'));
+  const cand = JSON.parse(readFileSync('D:/Flowvium/data/candidate-tickers.json', 'utf8'));
   const candSet = new Set(cand.tickers);
   const missing = sp500.tickers.filter(t => !candSet.has(t) && !candSet.has(t.replace('-', '.')));
   const coverage = ((sp500.tickers.length - missing.length) / sp500.tickers.length * 100).toFixed(1);
@@ -181,7 +181,7 @@ try {
   ok(`KR 종목 (KOSPI + KOSDAQ): ${krCount} 종목`);
   // KOSPI 200 + KOSDAQ 150 커버 비교
   try {
-    const krIdx = JSON.parse(readFileSync('C:/Flowvium/data/kr-major-indexes.json', 'utf8'));
+    const krIdx = JSON.parse(readFileSync('D:/Flowvium/data/kr-major-indexes.json', 'utf8'));
     const expectedKr = [...(krIdx.kospi?.tickers ?? []), ...(krIdx.kosdaq?.tickers ?? [])];
     const missingKr = expectedKr.filter(t => !candSet.has(t));
     const krCov = ((expectedKr.length - missingKr.length) / expectedKr.length * 100).toFixed(1);

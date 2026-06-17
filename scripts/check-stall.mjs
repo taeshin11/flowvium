@@ -20,7 +20,7 @@ import Database from 'better-sqlite3';
 import { readdirSync, statSync } from 'fs';
 import { execSync } from 'child_process';
 
-const ROOT = 'C:/Flowvium';
+const ROOT = 'D:/Flowvium';
 const STALE_H = 11;   // 보고서 최대 허용 age (8h cadence + grace)
 const VERIFY_STALE_H = 13;
 const HUNG_MIN = 20;  // report-gen 최대 실행 시간
@@ -96,7 +96,7 @@ function checkOnce() {
   // [5] git wipe-risk — 미커밋/미푸시 코드가 cron checkout origin/master 에 wipe 될 위험.
   //     (2026-06-03 데이터손실 사건: fix 후 커밋+푸시 안 하면 다음 cron 이 silent revert.)
   try {
-    const sh = (c) => { try { return execSync(c, { cwd: 'C:/Flowvium', encoding: 'utf8', stdio: ['pipe','pipe','ignore'] }).trim(); } catch { return ''; } };
+    const sh = (c) => { try { return execSync(c, { cwd: 'D:/Flowvium', encoding: 'utf8', stdio: ['pipe','pipe','ignore'] }).trim(); } catch { return ''; } };
     const WIPE = /^(scripts\/|src\/|public\/|messages\/|package\.json|data\/[^/]+\.json)/;
     const tracked = sh('git status --porcelain').split('\n').filter(Boolean)
       .filter(l => !l.startsWith('??') && WIPE.test(l.slice(3).replace(/^"|"$/g, '')));

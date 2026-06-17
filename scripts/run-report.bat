@@ -1,8 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
-cd /d "C:\Flowvium"
-set "LOG_FILE=C:\Flowvium\logs\report.log"
-set "LOCK_DIR=C:\Flowvium\logs\report-pipeline.lock"
+cd /d "D:\Flowvium"
+set "LOG_FILE=D:\Flowvium\logs\report.log"
+set "LOCK_DIR=D:\Flowvium\logs\report-pipeline.lock"
 
 :: 0-pre. Concurrency mutex (atomic mkdir lock). Steal if stale >5min and no live gen proc.
 :: 2026-06-17 (afternoon 15:40 좀비 래퍼 54m 사건): 스테일 락 존재 시 Get-CimInstance(WMI)가 *타임아웃 없이*
@@ -51,7 +51,7 @@ exit /b 1
 
 :: 2. Pre-flight data source health check (silent-failure guard).
 echo [%DATE% %TIME%] [INFO] Pre-flight: data source health check... >> "%LOG_FILE%"
-"C:\Program Files\nodejs\node.exe" "C:\Flowvium\scripts\audit-data-sources.mjs" >> "%LOG_FILE%" 2>&1
+"C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\audit-data-sources.mjs" >> "%LOG_FILE%" 2>&1
 if errorlevel 2 (
   echo [%DATE% %TIME%] [FATAL] Critical data source failed - aborting report generation >> "%LOG_FILE%"
   rmdir "%LOCK_DIR%" 2>nul
@@ -60,7 +60,7 @@ if errorlevel 2 (
 
 :: 3. Generate report + upload (generate-report-local uses vLLM via VLLM_URL in .env.local).
 echo [%DATE% %TIME%] [INFO] Starting report pipeline... >> "%LOG_FILE%"
-"C:\Program Files\nodejs\node.exe" "C:\Flowvium\scripts\generate-report-local.mjs" --model=qwen3:8b --auto-upload >> "%LOG_FILE%" 2>&1
+"C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\generate-report-local.mjs" --model=qwen3:8b --auto-upload >> "%LOG_FILE%" 2>&1
 set "PIPE_EXIT=%ERRORLEVEL%"
 
 if "%PIPE_EXIT%"=="0" (

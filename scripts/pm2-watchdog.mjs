@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 
 const PM2 = `${process.env.APPDATA}\\npm\\pm2.cmd`;
-const LOG = 'C:\\Flowvium\\logs\\pm2-watchdog.log';
+const LOG = 'D:\\Flowvium\\logs\\pm2-watchdog.log';
 const NEED = ['flowvium-cron', 'flowvium-web', 'flowvium-tunnel', 'flowvium-redis-shim'];
 const ts = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 const logline = (m) => { try { appendFileSync(LOG, `${ts()} ${m}\n`); } catch { /* */ } };

@@ -55,13 +55,13 @@ powershell -NoProfile -Command "(Get-Service Memurai).Status"   # Running 이어
 # 4) 사이트
 curl -s -o /dev/null -w "site=%{http_code}\n" https://flowvium.net
 # 5) 종합 헬스
-node C:/Flowvium/scripts/session-spotcheck.mjs   # OK 떠야 정상
+node D:/Flowvium/scripts/session-spotcheck.mjs   # OK 떠야 정상
 ```
 
 ## 4. ★ 모니터(폰 알림) 재가동 — 새 Claude 세션 필요 ★
 - **session-spotcheck 의 폰 PushNotification 은 이 Claude 세션이 살아있을 때만 동작** (CronCreate 가 session-only, 마이그레이션 메모리 기록).
 - **파일 기반 모니터(pm2 flowvium-cron 이 20분마다 logs/monitor-status.json 갱신 + auto-warm/fbPurge self-heal)는 pm2 부활하면 자동 재가동** — 폰 알림 없이도 돌아감.
-- **폰 알림을 다시 받으려면**: 재부팅+로그인 후 **새 Claude(remote-control) 세션을 열고**, 거기서 주기적으로 `node C:/Flowvium/scripts/session-spotcheck.mjs` 를 돌리는 스팟체크 프롬프트를 재개하면 됨. (이 세션의 반복 프롬프트와 동일)
+- **폰 알림을 다시 받으려면**: 재부팅+로그인 후 **새 Claude(remote-control) 세션을 열고**, 거기서 주기적으로 `node D:/Flowvium/scripts/session-spotcheck.mjs` 를 돌리는 스팟체크 프롬프트를 재개하면 됨. (이 세션의 반복 프롬프트와 동일)
 
 ## 5. 미해결/추적 (다음 세션)
 - verify-metrics 잔여 3 결함(기존, ④⑤ 무관): caps.live 10/30(market-caps 라이브 커버리지 설계), strategy.quality(thesis 길이), osint.sanctions(소스 구조). verify-metrics 가 계속 surface, [cron] 오발은 안 함.

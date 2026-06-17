@@ -4,7 +4,7 @@
  */
 import Database from 'better-sqlite3';
 
-const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
+const db = new Database('D:/Flowvium/data/flowvium.db', { readonly: true });
 const PAD = (s, n) => String(s ?? '').padEnd(n);
 
 console.log('╔═══════════════════════════════════════════════════════════╗');
