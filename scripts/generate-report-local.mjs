@@ -3686,7 +3686,7 @@ async function gatherContext() {
     fedWatch: fedwatch,
     macro,
     credit: creditBalance,
-    insider: insider?.items ?? [],
+    insider: (insider?.items ?? []).filter(it => it && /^[A-Z0-9][A-Z0-9.\-]{0,11}$/i.test(String(it.ticker || ''))),  // 2026-06-18: N/A/null/malformed 티커 제외 (내부자 섹션 'N/A 3건' + topOpportunity 'WOK·N/A·HNRG' 결함 근본수정)
     ownership: ownershipAlerts?.items ?? ownershipAlerts ?? [],
     koreaFlow,
     nport,
@@ -7766,7 +7766,7 @@ async function generateViaOllama() {
     if (!arr.length) return [];
     const byT = new Map();
     for (const it of arr) {
-      const t = (it.ticker || '').toUpperCase(); if (!t) continue;
+      const t = (it.ticker || '').toUpperCase(); if (!t || !/^[A-Z0-9][A-Z0-9.\-]{0,11}$/.test(t)) continue;  // 2026-06-18: N/A/malformed 티커 방어
       const e = byT.get(t) ?? { ticker: t, buys: 0, sells: 0, buyUsd: 0, sellUsd: 0, dates: [] };
       if (it.direction === 'buy') { e.buys++; e.buyUsd += it.transactionValueUsd || 0; }
       else if (it.direction === 'sell') { e.sells++; e.sellUsd += it.transactionValueUsd || 0; }

@@ -205,6 +205,23 @@ export async function verifyReport(file, { silent = false } = {}) {
   log(' macroAnalysis:', (r.macroAnalysis||'').length, 'c');
   log(' sectorAllocation:', (r.sectorAllocation||[]).length);
 
+  // 2026-06-18: 티커 유효성 (N/A·null·malformed) — 내부자 섹션에 ticker:'N/A' 가 렌더된 사건.
+  //   기존 verify 는 portfolio sector/name 만 봐서 insiderSignals 의 'N/A' 티커를 못 잡던 사각지대.
+  log('\n## 티커 유효성 (N/A/malformed detect)');
+  const TICKER_RE = /^[A-Z0-9][A-Z0-9.\-]{0,11}$/i;
+  let invalidTk = 0;
+  for (const [field, arr] of [['portfolio', r.portfolio], ['insiderSignals', r.insiderSignals], ['shortSqueeze', r.shortSqueeze]]) {
+    for (const it of (arr || [])) {
+      const t = it?.ticker;
+      if (t != null && !TICKER_RE.test(String(t))) {
+        invalidTk++;
+        log(`  ❌ ${field} 무효 티커 "${t}"`);
+        defects.push({ ticker: String(t), defect_type: 'invalid_ticker', llm_value: `${field}.ticker="${t}"`, correct_value: 'valid ticker or omit entry', severity: 'medium' });
+      }
+    }
+  }
+  if (!invalidTk) log('  ✅ 무효 티커 없음');
+
   // 1. sector ↔ meta consistency (LLM 환각 vs candidate-tickers meta)
   log('\n## sector ↔ meta 일치 (LLM 환각 detect)');
   let secFix = 0;
