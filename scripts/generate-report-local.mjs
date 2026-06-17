@@ -4454,6 +4454,13 @@ function loadJudgmentDoctrine() {
   catch { _doctrineCache = null; }
   return _doctrineCache;
 }
+let _wisdomCache; // investor-wisdom.json (Buffett 서한/Lynch/Soros/Kostolany distill) 1회 로드
+function loadInvestorWisdom() {
+  if (_wisdomCache !== undefined) return _wisdomCache;
+  try { _wisdomCache = JSON.parse(readFileSync(resolve(ROOT, 'data/investor-wisdom.json'), 'utf8')); }
+  catch { _wisdomCache = null; }
+  return _wisdomCache;
+}
 
 function getGuruContext() {
   const lines = [
@@ -4477,6 +4484,16 @@ function getGuruContext() {
     }
     lines.push('CORE: 자본보존 우선 · 안전마진 있는 가격만(급등 추격 금지) · 손실 작게(손절 엄수, 물타기 금지) · 추세 존중(200MA) · moat/1위 · 방금 매도한 종목 즉시 재매수 금지.');
     lines.push('[END JUDGMENT DOCTRINE]');
+  }
+  // 2026-06-18: 투자 거장 서한/책 distill 주입 (Buffett 서한+Lynch/Soros/Kostolany). 토큰 절약 위해 rule 축약.
+  const wis = loadInvestorWisdom();
+  if (wis?.principles?.length) {
+    lines.push('', '[GIANTS WISDOM — Buffett서한/Lynch/Soros/Kostolany 핵심, 판단 보강]');
+    for (const p of wis.principles) {
+      const rule = String(p.rule || '').replace(/\s+/g, ' ').slice(0, 64);
+      lines.push(`• [${(p.sources || []).slice(0, 2).join('/')}] ${rule}`);
+    }
+    lines.push('[END GIANTS WISDOM]');
   }
   return lines.join('\n');
 }
@@ -8911,14 +8928,17 @@ async function generateViaOllama() {
       const segSet = new Set(segDb.prepare('SELECT ticker FROM company_segments').all().map((r) => r.ticker));
       segDb.close();
       const needSeg = usTickers.filter((t) => !segSet.has(t));
+      // 2026-06-18: fullpage 는 saveReport *이후* 실행돼 산출물이 *다음* 보고서용인데, 과거 timeout(profiles
+      //   120s + segments 최대 5분)이 *현재 보고서 발행을 블록*해 "발행 안 됨" 체감 + Playwright hang 위험.
+      //   → timeout 대폭 단축 + killSignal SIGKILL(Windows 에서 SIGTERM 무시하는 자식 강제종료, 좀비 방지).
+      //   bound 초과 시 enrichment 만 포기(non-fatal) — 발행은 지연 없이 진행.
       if (needProfile.length) {
-        await efAsync('node', ['scripts/build-company-profiles.mjs', `--tickers=${needProfile.join(',')}`], { timeout: 120000, windowsHide: true });
+        await efAsync('node', ['scripts/build-company-profiles.mjs', `--tickers=${needProfile.join(',')}`], { timeout: 45000, killSignal: 'SIGKILL', windowsHide: true }).catch((e) => console.warn(`[fullpage] profiles bound 초과/실패(non-fatal): ${String(e?.message).slice(0, 60)}`));
         console.log(`[fullpage] 신규 종목 프로필 수집: ${needProfile.join(', ')}`);
       }
       if (needSeg.length) {
-        // timeout 종목 수 비례 (LLM 폴백 최대 90s/종목 — 6/12 고정 300s 가 3종목에 SIGTERM 났던 사건)
-        const { stdout: segOut } = await efAsync('node', ['scripts/build-segments-dynamic.mjs', ...needSeg], { timeout: Math.max(300000, needSeg.length * 150000), windowsHide: true, maxBuffer: 5 * 1024 * 1024 });
-        const segOk = (segOut.match(/✓/g) || []).length;
+        const segR = await efAsync('node', ['scripts/build-segments-dynamic.mjs', ...needSeg], { timeout: Math.min(120000, Math.max(45000, needSeg.length * 30000)), killSignal: 'SIGKILL', windowsHide: true, maxBuffer: 5 * 1024 * 1024 }).catch((e) => { console.warn(`[fullpage] segments bound 초과/실패(non-fatal): ${String(e?.message).slice(0, 60)}`); return { stdout: '' }; });
+        const segOk = ((segR.stdout || '').match(/✓/g) || []).length;
         console.log(`[fullpage] 신규 종목 세그먼트 추출 시도 ${needSeg.length} → 성공 ${segOk} (검증 미통과는 큐레이션/미표시 유지)`);
       }
       if (!needProfile.length && !needSeg.length) console.log('[fullpage] portfolio 전 종목 풀페이지 데이터 보유 ✅');
