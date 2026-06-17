@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-06-17T13:00:24.988Z",
+  "generatedAt": "2026-06-17T21:30:25.002Z",
   "universe": "US",
   "scanned": 309,
-  "count": 4,
+  "count": 5,
   "strongCount": 0,
-  "watchCount": 4,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,28 +14,28 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.8× 상승(지속 매집)",
-        "거래량 7.8× 급증(가격 평탄)"
+        "거래량 추세 4.3× 상승(지속 매집)",
+        "거래량 8.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -11.9,
-      "runup5dPct": -5.5,
-      "medDollarVolUsd": 2378936,
+      "runup20dPct": -8.4,
+      "runup5dPct": -4.4,
+      "medDollarVolUsd": 2414860,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "WBX",
-      "name": "Wallbox N.V.",
+      "ticker": "DGICB",
+      "name": "Donegal Group, Inc.",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 59.7× 상승(지속 매집)",
-        "거래량 98.1× 급증(가격 평탄)"
+        "거래량 추세 5.7× 상승(지속 매집)",
+        "거래량 5.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": 4,
-      "runup5dPct": -1,
-      "medDollarVolUsd": 33880,
+      "runup20dPct": -1.7,
+      "runup5dPct": -1.8,
+      "medDollarVolUsd": 9565,
       "smartAccum": false,
       "official": null
     },
@@ -46,28 +46,44 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
+        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": 3.1,
-      "medDollarVolUsd": 1626570,
+      "runup20dPct": 7,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 1734161,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CCO",
-      "name": "Clear Channel Outdoor Holdings,",
+      "ticker": "BAND",
+      "name": "Bandwidth Inc.",
       "tier": "watch",
-      "score": 22,
+      "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 추세 1.5× 상승",
+        "거래량 2.8× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -5.6,
+      "runup5dPct": -14.3,
+      "medDollarVolUsd": 43669660,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "FVR",
+      "name": "FrontView REIT, Inc.",
+      "tier": "watch",
+      "score": 15,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
         "종가 일중 상단 60%"
       ],
-      "runup20dPct": 0.8,
-      "runup5dPct": 0.4,
-      "medDollarVolUsd": 12496667,
+      "runup20dPct": 8.7,
+      "runup5dPct": -2.4,
+      "medDollarVolUsd": 1854000,
       "smartAccum": false,
       "official": null
     }
