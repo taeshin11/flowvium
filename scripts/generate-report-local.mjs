@@ -181,6 +181,23 @@ function krDisplay(t) {
   if (!t || !/\.(KS|KQ)$/.test(t)) return t;
   return KR_NAMES[t] || CANDIDATE_META[t]?.name || t;
 }
+
+// 2026-06-17 (사용자 "000660.KS 가 왜 회사이름으로 안 나옴"): 내러티브 자유서술의 KR 티커코드 → 회사명 치환.
+//   krDisplay 는 riskEvents/supplyChain 에만 적용됐고 thesis/story/why/분석 등 자유서술은 raw 티커가 노출됐다.
+//   (US 티커는 관행상 심볼 유지 — krDisplay 와 동일 정책.) 보고서 전역 string 필드를 훑어 치환.
+function krTickerToName(report) {
+  let n = 0;
+  const fix = (s) => (typeof s === 'string'
+    ? s.replace(/\d{6}\.(KS|KQ)\b/g, (m) => { const nm = krDisplay(m); if (nm !== m) n++; return nm; })
+    : s);
+  for (const f of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis', 'topOpportunity', 'hedgingSuggestion', 'portfolioRiskNote']) {
+    if (report[f]) report[f] = fix(report[f]);
+  }
+  if (report.marketNarrative && typeof report.marketNarrative === 'object') {
+    for (const f of ['why', 'story', 'watch', 'sessionNote']) if (report.marketNarrative[f]) report.marketNarrative[f] = fix(report.marketNarrative[f]);
+  }
+  return n;
+}
 // 2026-06-14: 자유 텍스트 안의 KR ticker(\d{6}.KS/.KQ)도 회사명으로 — 사용자 "ks종목 이름으로 안나오지?"
 //   (whyMatters/summary 등 산문에 ticker 가 박혀 나오던 사각지대. krDisplay 는 단일 토큰 전용이라 누락됐음.)
 function krText(str) {
@@ -4441,6 +4458,10 @@ function buildMacroPrompt(ctx, vix, session) {
     // 2026-06-16 라이브 noon 전수감사 결함 차단: 수익률→자금유입 둔갑, 수급 방향 역전, 금리커브 bp 창작.
     '- ⚠️ 수익률(return)과 자금유입/순매수규모(flow)는 전혀 다른 수치 — "4주 수익률 18%"를 "외국인 18% 유입/순매수"로 바꿔 쓰지 말 것. 수익률은 "수익률/상승률"로만 인용.',
     '- ⚠️ 외국인/기관 수급 *방향*(순매수·순매도·둔화·이탈)은 [Capital Flow]·[Regional] 입력에 명시된 방향만 — 입력이 "순매수 둔화/순매도"인데 "순매수 지속/5일 연속 순매수"로 쓰지 말 것(방향 역전 금지).',
+    // 2026-06-17 (사용자: "순매도 둔화가 리스크" 모순 지적). 수급 valence(가치) 고정.
+    '- ⚠️ 수급 valence: 순매도 둔화·순매수 전환/유입 = *긍정*(매도압력 완화 / 매수세 유입 → 지지·안정 요인). 절대 "리스크/위험/제약"으로 쓰지 말 것. 리스크가 되는 것은 *순매수 둔화* 또는 *순매도 확대*. (예: "순매도 둔화가 리스크로 작용" = 모순·금지.)',
+    // 2026-06-17 (사용자: "000660.KS 가 왜 회사이름으로 안 나옴"). 후처리도 치환하지만 prompt 에서도 명시.
+    '- ⚠️ 한국 종목은 *회사명*으로 표기 — 6자리 티커코드(예: 000660.KS, 005930.KS)를 본문에 그대로 쓰지 말 것. "SK하이닉스", "삼성전자" 처럼 이름으로.',
     '- ⚠️ 금리커브 기울기는 [Macro] 의 "금리커브 N.NNp" 값만 인용 — bp 로 임의 변환하거나 없는 "정상적(40bp)" 같은 값을 창작하지 말 것.',
     '- ⚠️ 한국어 텍스트에 중국어/일본어 한자(예: 兑/兌) 누출 금지 — "달러/원", "대(對)" 등 한글로만.',
     '',
@@ -8607,7 +8628,8 @@ async function generateViaOllama() {
     // 2026-06-16 페이지 전수감사: 모든 문자열 필드 garble sanitize(이중부호·orphan원·콘탱고·한자) + BOJ=FOMC 복사 교정
     const { nFix: nSan } = sanitizeReport(finalReport);
     const { nFix: nCB } = fixDuplicateCentralBankEvents(finalReport);
-    if (nSan || nCB) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행이벤트 ${nCB}건 교정`);
+    const nKrName = krTickerToName(finalReport); // 2026-06-17: 내러티브 KR 티커코드 → 회사명 (000660.KS→SK하이닉스)
+    if (nSan || nCB || nKrName) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 교정`);
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
 
   // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").

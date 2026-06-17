@@ -725,6 +725,19 @@ export async function verifyReport(file, { silent = false } = {}) {
       }
     }
 
+    // (f) 수급 valence 모순 — 순매도 둔화/순매수 전환(매도압력 완화·매수 유입 = 긍정)을 '리스크/위험/제약'으로
+    //     표기 (2026-06-17 사용자: noon thesis "외국인 순매도 둔화가 리스크로 작용" — 순매도 둔화는 긍정인데
+    //     리스크로 뒤집힘. 리스크는 순매수 *둔화*·순매도 *확대* 여야 함). 전 내러티브 필드 스캔.
+    const fullNarr = Object.values(koFields).filter(s => typeof s === 'string').join(' ');
+    const valM = fullNarr.match(/(순매도|매도세)\s*둔화\s*[가이와과][^.]{0,24}(리스크|위험|제약)/)
+      || fullNarr.match(/순매수\s*(전환|확대|유입)\s*[가이와과][^.]{0,20}(리스크|위험|제약)/);
+    if (valM) {
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_valence_contradiction',
+        llm_value: `"${valM[0].slice(0, 44)}" — 긍정 수급(매도 둔화/매수 전환)을 리스크로 표기`,
+        correct_value: '순매도 둔화=매도압력 완화(긍정). 리스크는 순매수 둔화·순매도 확대.', severity: 'high' });
+      log(`  ❌ 수급valence모순: "${valM[0].slice(0, 44)}"`); nFound++;
+    }
+
     if (!nFound) log('  ✅ 내러티브 그라운딩 이상 없음');
   }
 
