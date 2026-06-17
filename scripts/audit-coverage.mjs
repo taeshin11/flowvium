@@ -314,6 +314,12 @@ const recentReports = db.prepare(`
 `).all();
 
 let totalExpected = 0, totalSnapshotted = 0, problemReports = 0;
+// 2026-06-17: 스냅샷은 보고서 *생성 시점* 캡처라 사후 backfill 불가(오늘 데이터를 과거 보고서에 붙이면
+//   허위). 따라서 *신선*(<36h, 현재 파이프라인) 누락만 actionable err, *historical*(≥36h, 불변·7d 윈도우
+//   에서 자연 소멸) 누락은 warn 으로 분리. 게이트가 불변 과거에 영구 블록되지 않게 — 현재 회귀는 여전히 err.
+let freshProblems = 0, staleProblems = 0;
+const FRESH_H = 36;
+const ageH = (iso) => (Date.now() - new Date(iso).getTime()) / 3.6e6;
 for (const r of recentReports) {
   let portfolioTickers = [];
   try {
@@ -337,17 +343,20 @@ for (const r of recentReports) {
   totalSnapshotted += got;
   if (got < expected) {
     problemReports++;
-    if (problemReports <= 3) {
+    const isFresh = ageH(r.generated_at) < FRESH_H;
+    if (isFresh) freshProblems++; else staleProblems++;
+    if (problemReports <= 4) {
       const missing = portfolioTickers.filter(t => !snappedTickers.has(t.replace(/\.(KS|KQ)$/, '').toUpperCase()) && !snappedTickers.has(t.toUpperCase()));
-      console.log(`  report ${r.id}: portfolio ${expected} → snapshot ${got}, 누락 ${missing.length}: ${missing.slice(0,4).join(', ')}`);
+      console.log(`  report ${r.id} (${isFresh ? '신선' : 'historical'}): portfolio ${expected} → snapshot ${got}, 누락 ${missing.length}: ${missing.slice(0,4).join(', ')}`);
     }
   }
 }
-if (problemReports >= 2) {
-  err(`portfolio↔snapshot mismatch: ${problemReports}/${recentReports.length} 보고서, 합산 ${totalSnapshotted}/${totalExpected} ticker (snapshot-endpoints.mjs 의 portfolioTickers 옵션 전달 점검)`);
-} else if (problemReports === 1) {
-  // 2026-06-17 전수조사 #10: 단일 보고서 누락이 기존엔 ≥2 게이트라 silent ok 로 묻혔다 → warn 으로 표면화.
-  warn(`portfolio↔snapshot mismatch: 1/${recentReports.length} 보고서 누락, 합산 ${totalSnapshotted}/${totalExpected} ticker (단일 — 추세 추적)`);
+if (freshProblems >= 1) {
+  // 신선 보고서 누락 = 현재 파이프라인 활성 버그(snapshot-endpoints.mjs portfolioTickers 옵션 미전달) → err.
+  err(`portfolio↔snapshot mismatch(신선): ${freshProblems} 보고서(<${FRESH_H}h) 누락 + historical ${staleProblems}, 합산 ${totalSnapshotted}/${totalExpected} ticker — snapshot-endpoints.mjs portfolioTickers 점검`);
+} else if (staleProblems >= 1) {
+  // historical(불변·backfill 불가) 누락만 — 7d 윈도우에서 자연 소멸. 현재 파이프라인은 정상.
+  warn(`portfolio↔snapshot mismatch: historical ${staleProblems} 보고서(≥${FRESH_H}h, backfill 불가·윈도우 소멸 대기), 신선 0 — 현재 파이프라인 정상`);
 } else if (totalExpected > 0) {
   ok(`portfolio↔snapshot 정합성: ${totalSnapshotted}/${totalExpected} ticker (${recentReports.length} 보고서)`);
 }
