@@ -267,6 +267,23 @@ export async function verifyReport(file, { silent = false } = {}) {
     }
   }
   if (!cpiMis) log('  ✅ CPI 라벨 정상');
+  // (d) FOMC 시제 — 이미 끝난(보고서 월 이하) FOMC 를 "기대/전망/예상"(미래형)으로 서술하면 결함.
+  //   2026-06-18 사건: 6월 FOMC 완료(데이터도 next=7/29 인지)인데 "6월 FOMC 동결 기대(100%)" 라이브 노출.
+  let fomcTense = 0;
+  const repMonth = repDate ? Number(repDate.slice(5, 7)) : 0;
+  const FOMC_TENSE = /([0-9]{1,2})월\s*FOMC[^.]{0,30}?(?:동결|인상|인하)(?:을|를)?\s*(기대|전망|예상|예정)/g;
+  for (const [field, text] of [['thesis', r.thesis], ['macroAnalysis', r.macroAnalysis]]) {
+    if (!text) continue;
+    let mm; const re = new RegExp(FOMC_TENSE);
+    while ((mm = re.exec(String(text)))) {
+      if (repMonth && Number(mm[1]) <= repMonth) {
+        fomcTense++;
+        log(`  ❌ ${field} FOMC 시제 오류 "${mm[0].slice(0, 30)}" (${mm[1]}월 FOMC 는 발생함 — 결과로 서술)`);
+        defects.push({ ticker: field, defect_type: 'fomc_stale_tense', llm_value: mm[0].slice(0, 40), correct_value: '발생한 FOMC 는 동결/인상/인하 *결과*로 서술 (기대/전망 금지)', severity: 'medium' });
+      }
+    }
+  }
+  if (!fomcTense) log('  ✅ FOMC 시제 정상');
 
   // 1. sector ↔ meta consistency (LLM 환각 vs candidate-tickers meta)
   log('\n## sector ↔ meta 일치 (LLM 환각 detect)');

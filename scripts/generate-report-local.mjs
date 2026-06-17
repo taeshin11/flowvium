@@ -7940,8 +7940,15 @@ async function generateViaOllama() {
       .replace(/(?:핵심|근원)\s*(CPI|소비자물가)/g, '$1')
       .replace(/\bcore\s+CPI/gi, 'CPI');
   };
+  // 2026-06-18: FOMC 시제 결정론 정정 — 매크로 데이터는 직전 FOMC 완료/다음 FOMC 일자를 정확히 주는데도
+  //   LLM 이 *이미 끝난* 회의를 "N월 FOMC 동결 기대/전망/예상"(미래형)으로 오기(프롬프트로 안 잡힘, 실측).
+  //   현재(KST) 월 이하의 FOMC 는 발생한 것 → 기대/전망/예상/예정 수식어 strip. 미래 월(예: 7월)은 유지.
+  const nowMonthKST = new Date(Date.now() + 9 * 3600000).getUTCMonth() + 1;
+  const fixFomcTense = (text) => (text || '').replace(
+    /([0-9]{1,2})월\s*FOMC([^.]{0,30}?)(동결|인상|인하)\s*(기대|전망|예상|예정)/g,
+    (m, mon, mid, dir) => Number(mon) <= nowMonthKST ? `${mon}월 FOMC${mid}${dir}` : m);
   for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis']) {
-    if (finalReport[k]) finalReport[k] = fixCpiLabel(finalReport[k]);
+    if (finalReport[k]) finalReport[k] = fixFomcTense(fixCpiLabel(finalReport[k]));
   }
 
   // 미래 분기 + 매출 절대값 hallucination sweep (2026-05-24 사건)
