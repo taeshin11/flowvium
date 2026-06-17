@@ -4015,12 +4015,23 @@ function buildCtxSummary(ctx) {
   } catch { /* ignore */ }
 
   // Econ calendar
+  // 2026-06-18: datetime 기준 과거(완료)/예정 분리 — 종전엔 date 만 보고 이미 발표된 FOMC(06-17 18:00 UTC)를
+  //   "예정"으로 나열 → LLM 이 끝난 이벤트를 "금리 동결 전망"(미래형)으로 서술하던 시점 결함. 과거 이벤트는
+  //   "발표완료(+실제값)"로 줘서 결과로 서술하게 한다.
   let econCal = '';
   try {
     const events = ctx.econCal?.events ?? [];
-    const high = events.filter(e => e.impact === 'high' || e.impact === 3).slice(0, 4)
+    const nowMs = Date.now();
+    const dtMs = (e) => new Date(`${e.date}T${e.time || '23:59:00'}Z`).getTime();
+    const high = events.filter(e => e.impact === 'high' || e.impact === 3);
+    const past = high.filter(e => dtMs(e) <= nowMs).slice(-3)
+      .map(e => `${e.date}:${e.event}=발표완료${e.actual != null ? `(실제 ${e.actual})` : ''}`);
+    const upcoming = high.filter(e => dtMs(e) > nowMs).slice(0, 4)
       .map(e => `${e.date}:${e.event}`);
-    if (high.length) econCal = `고임팩트이벤트: ${high.join(', ')}`;
+    const segs = [];
+    if (past.length) segs.push(`최근발표(이미 발생 — '전망/예정' 아닌 *결과*로 서술): ${past.join(', ')}`);
+    if (upcoming.length) segs.push(`예정 고임팩트: ${upcoming.join(', ')}`);
+    econCal = segs.join(' | ');
   } catch { /* ignore */ }
 
   // VIX context
@@ -4495,6 +4506,7 @@ function buildMacroPrompt(ctx, vix, session) {
     '- "파월 잔류", "트럼프 정책" 같은 정치 이벤트는 [News] 에 명시된 경우만 인용.',
     '- 추측/일반화 (예: "AI 인프라 확장") 보다 구체 수치 (예: "CPI 3.78%, NVDA Q1 +73%") 우선.',
     '- ⚠️ 제공된 CPI 수치는 *헤드라인(전체) CPI* 다 — "핵심/근원(core) CPI"라고 칭하지 말 것 (core 는 통상 더 낮은 별도 수치라 헤드라인 값을 core 로 라벨하면 오류). 그냥 "CPI" 또는 "헤드라인 CPI"로.',
+    '- ⚠️ [Macro Indicators] 에 "발표완료" 로 표시된 이벤트(FOMC/CPI/NFP 등)는 *이미 발생한 결과*다 — "전망/예상/예정/할 것" 같은 미래형 금지, 발생한 사실로 서술 (예: "연준이 6월 FOMC 에서 3.75% 동결했다"). "예정 고임팩트" 만 미래 이벤트.',
     '- ⚠️ 지수 레벨(KOSPI/KOSDAQ/S&P500/Nasdaq)·VIX 는 [Index Levels] 에 *명시된 값만* 인용. 데이터에 없으면 절대 레벨을 지어내지 말 것(예: 기억 기반 "KOSPI 2,780선" 같은 창작 금지).',
     '- ⚠️ 재무지표 %(매출 YoY·이익률 등)와 주가 등락률(%)을 *혼동 금지* — 예: 매출 +46.8% YoY 를 "주가 46.8% 상승"으로 쓰지 말 것. 종목 % 등락은 입력 데이터에 명시된 값만.',
     '- ⚠️ COT 포지션·수급 수치는 [COT Positioning] 등 입력에 명시된 값만 — 없는 포지션/수급 수치 창작 금지.',
