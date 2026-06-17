@@ -5721,6 +5721,32 @@ function getRecentlySoldTickers(db, lookbackHours = 36) {
   }
 }
 
+// 2026-06-17: 추격(chase) 하드 가드용 — 최근 lookbackHours 내 매수 추천된 종목의 *가장 최근* 진입가 mid.
+//   같은 종목을 현저히 높은 진입가에 재추천하면 veto(TER noon 380→afternoon 425 같은날 +12% 추격 사건).
+//   반환: Map ticker → { entryLow, entryHigh, mid, generatedAt }.
+function getRecentBuyEntries(db, lookbackHours = 48) {
+  try {
+    const rows = db.prepare(`
+      SELECT ticker, entry_low, entry_high, generated_at
+      FROM recommendations
+      WHERE generated_at >= datetime('now', ?)
+        AND (action IS NULL OR action = 'buy')
+        AND entry_low IS NOT NULL AND entry_high IS NOT NULL
+      ORDER BY generated_at DESC
+    `).all(`-${lookbackHours} hours`);
+    const map = new Map();
+    for (const r of rows) {
+      if (map.has(r.ticker)) continue;  // 가장 최근 1건만 보존
+      const mid = (Number(r.entry_low) + Number(r.entry_high)) / 2;
+      if (mid > 0) map.set(r.ticker, { entryLow: r.entry_low, entryHigh: r.entry_high, mid, generatedAt: r.generated_at });
+    }
+    return map;
+  } catch (e) {
+    console.warn('  ⚠️ getRecentBuyEntries 실패:', e.message);
+    return new Map();
+  }
+}
+
 /**
  * Exit Ladder — 룰 type 별 부분 매도 패턴 자동 생성. Klarman ladder exit + Druckenmiller trailing.
  *   stop_breach / 200ma_breach / dead_cross    → 즉시 전량 (100%)
@@ -7303,11 +7329,16 @@ async function generateViaOllama() {
     const WHIPSAW_LOOKBACK_HOURS = 72;        // 2026-06-17 36→72 (TER 휩쏘: 06-15 익절→06-16 재매수→06-17 손절. 36h 는 cross-day 반쪽만 커버 → 72h 로 확장, doctrine whipsaw_cooldown 정렬). 이 시간 내 매도된 종목만 hysteresis 대상
     const WHIPSAW_CONVICTION_MARGIN = 10;     // raised bar=base+margin=35. stage1Score 실측범위 24~41 기준 — 35+ 강매수만 full 유지(진짜 반전 통로 확보), 그 미만은 downgrade. (2026-06-16 40→35)
     const WHIPSAW_BASE_CONVICTION = 25;       // 평상시 "적정 매수확신" 기준선 (buyDiscount 기준선과 정합)
-    const recentlySold = (() => {
-      try { const wdb = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
-            const m = getRecentlySoldTickers(wdb, WHIPSAW_LOOKBACK_HOURS); wdb.close(); return m; }
-      catch (e) { console.warn('  ⚠️ whipsaw 메모리 로드 실패:', e.message); return new Map(); }
-    })();
+    // 2026-06-17: 추격(chase) 하드 가드 설정 — 최근 매수 추천 종목을 현저히 높은 진입가에 재추천하면 veto.
+    const CHASE_LOOKBACK_HOURS = 48;   // 이 시간 내 매수 추천 종목 대상
+    const CHASE_THRESHOLD = 0.08;      // 직전 진입가 mid 대비 +8% 초과 = 추격 (doctrine margin_of_safety_no_chase)
+    let recentlySold = new Map(), recentBuys = new Map();
+    try {
+      const wdb = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+      recentlySold = getRecentlySoldTickers(wdb, WHIPSAW_LOOKBACK_HOURS);
+      recentBuys = getRecentBuyEntries(wdb, CHASE_LOOKBACK_HOURS);
+      wdb.close();
+    } catch (e) { console.warn('  ⚠️ whipsaw/chase 메모리 로드 실패:', e.message); }
     const before = dedupedPortfolio.length;
     // 2026-06-16: LLM 경합심사 (BORDERLINE 전용). 순수 수치 게이트가 downgrade 로 분류한 경계 후보(netSoft∈
     //   [MID,HIGH))에 한해 LLM 판정. HARD CAP: hard-veto / netSoft≥HIGH 는 LLM 도달 前 결정론 veto(아래 sync
@@ -7329,6 +7360,20 @@ async function generateViaOllama() {
       adjudication.downgraded.push({ ticker: p.ticker, netSoft, hits: hits.map(h => h.id) });
     };
     dedupedPortfolio = dedupedPortfolio.filter(p => {
+      // 2026-06-17: 추격(chase) 하드 veto — 최근(CHASE_LOOKBACK_HOURS) 매수 추천한 종목을 직전 진입가 mid
+      //   대비 +CHASE_THRESHOLD 초과 높은 가격에 재추천하면 즉시 드롭. TER(noon 380-390 → 같은날 afternoon
+      //   425-435 = +12% 추격 → 익일 손절) 직접 수정. doctrine no-chase. 눌림목(같거나 낮은 진입)은 통과.
+      const prevBuy = recentBuys.get(p.ticker);
+      if (prevBuy) {
+        const nums = (String(p.entryZone || '').match(/[\d.]+/g) || []).map(Number).filter(n => n > 0);
+        const curMid = nums.length >= 2 ? (nums[0] + nums[1]) / 2 : (nums[0] ?? null);
+        if (curMid && curMid > prevBuy.mid * (1 + CHASE_THRESHOLD)) {
+          const jumpPct = +((curMid / prevBuy.mid - 1) * 100).toFixed(1);
+          console.warn(`  [심판/chase] ${p.ticker} veto — 최근 매수 ${prevBuy.entryLow}-${prevBuy.entryHigh}(mid ${prevBuy.mid.toFixed(2)}) 대비 진입가 +${jumpPct}% 추격 (no-chase doctrine, ${CHASE_LOOKBACK_HOURS}h)`);
+          adjudication.whipsaw.push({ ticker: p.ticker, action: 'veto-chase', jumpPct, prevMid: +prevBuy.mid.toFixed(2), curMid: +curMid.toFixed(2) });
+          return false;
+        }
+      }
       const sig = sellSig.get(p.ticker) ?? {};
       if (sig.rsi != null) p._realRsi = sig.rsi;  // technicalBasis RSI 라벨 grounding 용 (발간직전 삭제)
       // 2026-06-14 (ChatGPT D0-7/D1 차용): 게이트 exCtx 를 sell 후보와 동일한 rich macroCtx 로 정합.
