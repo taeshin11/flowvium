@@ -5,9 +5,13 @@ set "LOG_FILE=C:\Flowvium\logs\report.log"
 set "LOCK_DIR=C:\Flowvium\logs\report-pipeline.lock"
 
 :: 0-pre. Concurrency mutex (atomic mkdir lock). Steal if stale >5min and no live gen proc.
+:: 2026-06-17 (afternoon 15:40 좀비 래퍼 54m 사건): 스테일 락 존재 시 Get-CimInstance(WMI)가 *타임아웃 없이*
+::   무한대기 → run-report.bat 가 첫 로그 전에 hang → wscript 좀비(로그 0). 근본수정: ① age<5m 는 WMI 전에
+::   빠르게 판정(skip) ② alive 체크는 -OperationTimeoutSec 10 으로 바운드 ③ WMI 오류/타임아웃 시 catch→steal
+::   (hang 대신 진행=fail-safe). 락이 절대 파이프라인을 silent hang 시키지 못하게.
 mkdir "%LOCK_DIR%" 2>nul
 if errorlevel 1 (
-  powershell -NoProfile -Command "$d = Get-Item '%LOCK_DIR%' -ErrorAction SilentlyContinue; $age = if ($d) { ((Get-Date) - $d.CreationTime).TotalMinutes } else { 999 }; $alive = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -match 'generate-report-local' }; if ($age -lt 5 -or $alive) { exit 1 } else { exit 0 }" >nul 2>&1
+  powershell -NoProfile -Command "$d = Get-Item '%LOCK_DIR%' -ErrorAction SilentlyContinue; $age = if ($d) { ((Get-Date) - $d.CreationTime).TotalMinutes } else { 999 }; if ($age -lt 5) { exit 1 }; try { $alive = Get-CimInstance Win32_Process -OperationTimeoutSec 10 -ErrorAction Stop | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -match 'generate-report-local' }; if ($alive) { exit 1 } else { exit 0 } } catch { exit 0 }" >nul 2>&1
   if errorlevel 1 (
     echo [%DATE% %TIME%] [SKIP] another report pipeline running or just started - skip this session >> "%LOG_FILE%"
     exit /b 0
