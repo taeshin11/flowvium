@@ -8556,7 +8556,8 @@ async function generateViaOllama() {
       // clause 단위 strip — ' | ' 앞 thesis 만 손대고 기술데이터 suffix 는 보존.
       const stripClauses = (str) => {
         const [thesis, ...rest] = str.split(' | ');
-        const kept = thesis.split(/,\s*/).filter(c => !hasKw(c));
+        // 2026-06-18: /,\s+/ — 천단위 콤마("495,515") 보존, clause 구분자(", ")만 분할.
+        const kept = thesis.split(/,\s+/).filter(c => !hasKw(c));
         let newThesis = kept.join(', ').trim();
         if (!newThesis) newThesis = '기술적 신호 기반 진입';  // thesis 전부 제거되면 fallback
         return [newThesis, ...rest].join(' | ');
@@ -8811,9 +8812,11 @@ async function generateViaOllama() {
     const sanitizeField = (str, sec) => {
       const forbid = SECTOR_FORBID[sec];
       const hasKw = (s) => typeof s === 'string' && ((forbid && forbid.some(kw => s.includes(kw))) || mismatchedIndustryTerm(s, sec) != null);
-      // 모든 ' | ' 세그먼트의 모든 clause(콤마 분할) 를 검사 — 첫 clause 만 보던 구멍 봉합.
+      // 모든 ' | ' 세그먼트의 모든 clause 를 검사 — 첫 clause 만 보던 구멍 봉합.
+      // 2026-06-18: clause 구분자는 ", "(콤마+공백), 천단위 구분자는 ","(공백없음 "495,515").
+      //   /,\s*/ 로 split 하면 천단위 콤마까지 쪼개 "₩495, 515" 로 숫자 손상 → /,\s+/ (콤마+공백 1+).
       const cleanedSegs = str.split(' | ').map(seg => {
-        const kept = seg.split(/,\s*/).filter(c => !hasKw(c));
+        const kept = seg.split(/,\s+/).filter(c => !hasKw(c));
         return kept.join(', ').trim();
       }).filter(seg => seg.length > 0);
       let out = cleanedSegs.join(' | ').trim();
@@ -8893,6 +8896,15 @@ async function generateViaOllama() {
       console.log(`[db] 📤 매도 추천 적재: ${sellCount}건`);
     } catch (e) {
       console.warn(`[db] ⚠️ 매도 추천 적재 실패: ${String(e).slice(0, 100)}`);
+    }
+    // 2026-06-18: spy_return 자가치유 — closeOutcome('sold') 가 spy_return 미계산 → NULL 누적
+    //   (매도 outcome 661행 80% NULL 사건). 발간마다 NULL 행만 idempotent 백필(알파 학습루프 무결성).
+    try {
+      const { backfillSpyReturn } = await import('./backfill-spy-return.mjs');
+      const bf = await backfillSpyReturn({ log: (m) => console.log(`  ${m}`) });
+      if (bf.updated > 0) console.log(`[db] 📊 spy_return 백필 ${bf.updated}행 (매도 outcome 벤치마크 자가치유)`);
+    } catch (e) {
+      console.warn(`[db] ⚠️ spy_return 백필 skip: ${String(e?.message ?? e).slice(0, 80)}`);
     }
     // 2026-05-29: 매수 후보 전량 적재 (LLM 선택 12 외 score top N 까지) — Karpathy source 누락 방지
     let buyCandCount = 0;

@@ -434,7 +434,11 @@ export async function verifyReport(file, { silent = false } = {}) {
   //   종전 `[₩$]` 필수 정규식을 silent 통과하던 사각지대. 통화기호版 OR 무통화版 둘 다 매칭하되,
   //   무통화版은 (a) MA 라벨 바로 뒤 근접(≤4자), (b) 음수/퍼센트 제외(2026-06-06 "-4.9%" 오인 방지),
   //   (c) 3자리+ 가격성 숫자만 허용해 무관 작은 숫자 차단.
-  const matchMA = (txt, label) => {
+  const matchMA = (rawTxt, label) => {
+    // 2026-06-18 (사용자 "왜 이런 사각지대가 아직도"): 천단위 콤마 뒤 공백("886, 308")이 끼면
+    //   파서가 공백에서 끊겨 "886" 으로 오독 → divergence/이탈 전부 오탐. 콤마+공백+숫자만 정규화
+    //   (", 308"→",308"); 절 구분자 ", RSI"(뒤 비숫자)는 보존. defense-in-depth(소스 fix 와 별개).
+    const txt = String(rawTxt).replace(/,\s+(?=\d)/g, ',');
     const cur = txt.match(new RegExp(`${label}[^₩$]{0,10}[₩$]([\\d,.]+)`));
     if (cur) return cur;
     // 무통화: 라벨 직후 근접, 앞에 '-' 없고 뒤에 '%' 없는 3자리+ 숫자(콤마 포함). "위/돌파/=" 등 라벨어 허용.
