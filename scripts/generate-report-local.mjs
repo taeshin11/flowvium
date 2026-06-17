@@ -3563,7 +3563,7 @@ function enrichMacroAnalysis(macroAnalysis, ctxRaw, macroData, locale = 'ko') {
     if (riskLevel) parts.push(`risk=${riskLevel}`);
   } else {
     if (fgScore != null) parts.push(`공포탐욕 ${fgScore}${fgLabel ? `(${fgLabel})` : ''}`);
-    if (cpi != null) parts.push(`CPI ${cpi}%`);
+    if (cpi != null) parts.push(`헤드라인 CPI ${cpi}%`);
     if (fed != null) parts.push(`연준금리 ${fed}%`);
     if (hySpread != null) parts.push(`HY ${hySpread}bps`);
     if (vix != null) parts.push(`VIX ${typeof vix === 'number' ? vix.toFixed(1) : vix}`);
@@ -4494,6 +4494,7 @@ function buildMacroPrompt(ctx, vix, session) {
     '- 특정 인물 임명/잔류/사임 (예: Powell, Bessent) 같은 정치 인물 발언 금지 — 입력에 없으면 추측 X.',
     '- "파월 잔류", "트럼프 정책" 같은 정치 이벤트는 [News] 에 명시된 경우만 인용.',
     '- 추측/일반화 (예: "AI 인프라 확장") 보다 구체 수치 (예: "CPI 3.78%, NVDA Q1 +73%") 우선.',
+    '- ⚠️ 제공된 CPI 수치는 *헤드라인(전체) CPI* 다 — "핵심/근원(core) CPI"라고 칭하지 말 것 (core 는 통상 더 낮은 별도 수치라 헤드라인 값을 core 로 라벨하면 오류). 그냥 "CPI" 또는 "헤드라인 CPI"로.',
     '- ⚠️ 지수 레벨(KOSPI/KOSDAQ/S&P500/Nasdaq)·VIX 는 [Index Levels] 에 *명시된 값만* 인용. 데이터에 없으면 절대 레벨을 지어내지 말 것(예: 기억 기반 "KOSPI 2,780선" 같은 창작 금지).',
     '- ⚠️ 재무지표 %(매출 YoY·이익률 등)와 주가 등락률(%)을 *혼동 금지* — 예: 매출 +46.8% YoY 를 "주가 46.8% 상승"으로 쓰지 말 것. 종목 % 등락은 입력 데이터에 명시된 값만.',
     '- ⚠️ COT 포지션·수급 수치는 [COT Positioning] 등 입력에 명시된 값만 — 없는 포지션/수급 수치 창작 금지.',
