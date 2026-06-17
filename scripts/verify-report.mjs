@@ -256,6 +256,17 @@ export async function verifyReport(file, { silent = false } = {}) {
     }
   }
   if (!staleN) log('  ✅ stale 이벤트 없음');
+  // (c) CPI 라벨 — 우리 CPI 값은 헤드라인(CPIAUCSL)이라 "핵심/근원/core CPI" 표기는 사실오류 (core 는 별도 더 낮은 수치).
+  let cpiMis = 0;
+  const CPI_MIS = /(핵심|근원)\s*(?:인플레이션\s*\()?\s*CPI|(핵심|근원)\s*소비자물가|\bcore\s+CPI/i;
+  for (const [field, text] of [['thesis', r.thesis], ['macroAnalysis', r.macroAnalysis], ['technicalAnalysis', r.technicalAnalysis], ['fundamentalAnalysis', r.fundamentalAnalysis]]) {
+    if (text && CPI_MIS.test(String(text))) {
+      cpiMis++;
+      log(`  ❌ ${field} CPI 라벨 오류 "${String(text).match(CPI_MIS)[0]}" (헤드라인을 core 로 오기)`);
+      defects.push({ ticker: field, defect_type: 'cpi_mislabel', llm_value: String(text).match(CPI_MIS)[0], correct_value: '헤드라인 CPI (core 아님)', severity: 'medium' });
+    }
+  }
+  if (!cpiMis) log('  ✅ CPI 라벨 정상');
 
   // 1. sector ↔ meta consistency (LLM 환각 vs candidate-tickers meta)
   log('\n## sector ↔ meta 일치 (LLM 환각 detect)');

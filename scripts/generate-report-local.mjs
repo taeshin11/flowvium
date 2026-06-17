@@ -7928,6 +7928,22 @@ async function generateViaOllama() {
   if (finalReport.thesis) finalReport.thesis = removeHalluc(finalReport.thesis);
   if (finalReport.macroAnalysis) finalReport.macroAnalysis = removeHalluc(finalReport.macroAnalysis);
 
+  // 2026-06-18: CPI 라벨 결정론 정정 — 우리 데이터의 CPI 값은 *헤드라인*(CPIAUCSL)인데 LLM 이 '핵심/근원(core)'
+  //   으로 오기(프롬프트 규칙으로 안 잡힘 — 실측 재발). core 는 별도 더 낮은 수치라 헤드라인을 core 로 칭하면
+  //   사실오류 → 결정론 strip. (값은 유지, 라벨만 정정.)
+  const fixCpiLabel = (text) => {
+    if (!text) return text;
+    return text
+      .replace(/핵심\s*소비자물가지수/g, '소비자물가지수')
+      .replace(/핵심\s*소비자물가/g, '소비자물가')
+      .replace(/(?:핵심|근원)\s*인플레이션\s*\(\s*CPI/g, '인플레이션(CPI')
+      .replace(/(?:핵심|근원)\s*(CPI|소비자물가)/g, '$1')
+      .replace(/\bcore\s+CPI/gi, 'CPI');
+  };
+  for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis']) {
+    if (finalReport[k]) finalReport[k] = fixCpiLabel(finalReport[k]);
+  }
+
   // 미래 분기 + 매출 절대값 hallucination sweep (2026-05-24 사건)
   // LLM 이 "Q1 FY2027 revenue $81.6B +85.2% YoY" 같이 미공시 미래 분기 매출을 추측 →
   // 분기 식별자 (FY2027+) 와 절대 매출 ($X.XB 또는 X억 달러) 함께 있으면 catalyst entry 제거.
