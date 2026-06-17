@@ -1,0 +1,19 @@
+# 2026-06-17: autocrlf=true + LF 작성 도구(node writeFileSync) 충돌로 messages/*.json 등이
+# 영구 "modified"(CRLF vs LF) → wipe-risk 모니터 상시 오발. JSON/코드/셸을 LF 로 고정해
+# working-tree 와 git blob(이미 LF)을 일치시켜 churn 제거. (git blob 은 이미 LF 라 콘텐츠 변경 0)
+*.json   text eol=lf
+*.mjs    text eol=lf
+*.js     text eol=lf
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.md     text eol=lf
+*.sh     text eol=lf
+# Windows 배치/스크립트는 CRLF 유지 (cmd/wscript 호환)
+*.bat    text eol=crlf
+*.vbs    text eol=crlf
+# 바이너리 — 변환 금지
+*.db     binary
+*.exe    binary
+*.png    binary
+*.jpg    binary
+*.ico    binary
