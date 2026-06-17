@@ -1088,6 +1088,10 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
     // Yahoo rate-limited — fall back to CBOE CSV as comparison source.
     // Our VIX data now comes from CBOE when Yahoo is blocked, so CBOE is the valid ground truth.
     if (!yahooRes.ok) {
+      // 2026-06-17 전수조사: 이 분기의 `return items` 가 verifyAccuracyStack 을 통째로 조기 종료시켜
+      //   (Yahoo VIX 가 막히면 — 자가호스팅서 흔함) 뒤의 signals/credit-balance/sourceProbes(macro/
+      //   fedwatch/sector-pe 등 12개) 가 전부 silent skip 되던 버그. return → handled 플래그 + else 로 교체.
+      let handled = false;
       try {
         const cboeVixRes = await fetch('https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv', {
           headers: {
@@ -1113,15 +1117,16 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
               source: 'cboe-direct',
               details: { cboeVix, ourVix, delta, durationMs: Date.now() - t0, tolerance: 1.0, yahooBlocked: true },
             });
-            return items;
+            handled = true;
           }
         }
       } catch { /* CBOE also failed — fall through to degraded */ }
-      items.push({ key: 'accuracy.vix', label: 'VIX 대조 불가', group: 'accuracy', status: 'degraded',
-        lastError: `yahoo=${yahooRes.status} cboe_also_failed` });
-      return items;
-    }
-    const yahooData = await yahooRes.json();
+      if (!handled) {
+        items.push({ key: 'accuracy.vix', label: 'VIX 대조 불가', group: 'accuracy', status: 'degraded',
+          lastError: `yahoo=${yahooRes.status} cboe_also_failed` });
+      }
+    } else {
+      const yahooData = await yahooRes.json();
     const ourData = await ourRes.json();
     const yahooVix: number | null = yahooData?.chart?.result?.[0]?.meta?.regularMarketPrice ?? null;
     const ourVix: number | null = (ourData as { vix?: number | null })?.vix ?? null;
@@ -1138,6 +1143,7 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
         source: 'yahoo-direct',
         details: { yahooVix, ourVix, delta, durationMs: Date.now() - t0, tolerance: 1.0 },
       });
+    }
     }
   } catch (err) {
     items.push({ key: 'accuracy.vix', label: 'Yahoo VIX 대조', group: 'accuracy', status: 'error',
