@@ -738,6 +738,24 @@ export async function verifyReport(file, { silent = false } = {}) {
       log(`  ❌ 수급valence모순: "${valM[0].slice(0, 44)}"`); nFound++;
     }
 
+    // (g) 깨진 라틴 garble — 한글에 붙은 소문자 라틴 조각(예: "티gio","컨ti(","레지gio") — latin_bleed(양쪽
+    //     한글) 이 못 잡는 끝/구두점 인접 케이스 (2026-06-17 사용자: macro "컨ti(gio 레지gio" 지적). 단위 제외.
+    const UNIT_OK = /^(bp|ma|pe|ev|roe|roa|eps|yoy|qoq|etf|it|ai|us|kr|gpu|cpu|hbm|cpi|ppi|gdp|fx|oas|ig|hy)$/i;
+    const garble = [];
+    for (const [k, v] of Object.entries(koFields)) {
+      if (typeof v !== 'string') continue;
+      const frags = [...new Set([
+        ...(v.match(/[가-힣][a-z]{2,6}(?![가-힣])/g) || []),     // 한글+라틴(뒤에 한글 아님 — latin_bleed 미포함분)
+        ...(v.match(/(?<![가-힣])[a-z]{2,6}[가-힣]/g) || []),     // 라틴+한글(앞에 한글 아님)
+      ].map(x => x.replace(/[가-힣]/g, '')).filter(lat => !UNIT_OK.test(lat)))];
+      if (frags.length) garble.push(`${k}:${frags.slice(0, 4).join(',')}`);
+    }
+    if (garble.length) {
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'latin_garble',
+        llm_value: garble.slice(0, 4).join(' | '), correct_value: '한글에 붙은 라틴 조각(번역/생성 깨짐) — 한글로 교정', severity: 'medium' });
+      log(`  ❌ 라틴garble: ${garble.join(' | ')}`); nFound++;
+    }
+
     if (!nFound) log('  ✅ 내러티브 그라운딩 이상 없음');
   }
 
