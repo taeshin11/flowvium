@@ -21,7 +21,21 @@ try {
   if (ageMin > 25) alerts.push(`monitor-status ${ageMin.toFixed(0)}m stale (flowvium-cron 중단 의심)`);
   else info.push(`monitor ${ageMin.toFixed(0)}m`);
   if (ageMin <= 25 && Array.isArray(s.defects) && s.defects.length) {
-    alerts.push(`모니터 결함 ${s.defects.length}: ${s.defects.slice(0, 3).join(' | ').slice(0, 140)}`);
+    // 2026-06-17 (사용자 반복 "stale 경보" 불만): monitor-status 는 최대 25m stale → 이미 해소/회복된
+    //   결함을 [1] 이 그대로 surface 해 false ALERT. 라이브로 재검 가능한 클래스는 재확인 후 회복분 drop.
+    let cand = s.defects;
+    //   (a) wipe-risk → [8] 이 매번 라이브 권위 재검 → [1] 중복/모순 제거(전적으로 [8] 위임).
+    cand = cand.filter((d) => !/wipe-risk/i.test(d));
+    //   (b) [A] 엔드포인트 HTTP 5xx 는 외부소스 일시장애가 잦음 → 라이브 재확인해 2xx 회복분 drop.
+    cand = cand.filter((d) => {
+      const m = d.match(/(\/api\/[^\s)]+?)\s*(?:→|->)?\s*HTTP\s*5\d\d/);
+      if (!m) return true;
+      try {
+        const code = execSync(`node --input-type=module -e "try{const r=await fetch('http://localhost:3000${m[1]}',{signal:AbortSignal.timeout(6000)});process.stdout.write(String(r.status))}catch{process.stdout.write('0')}"`, { encoding: 'utf8', timeout: 9000 }).trim();
+        return !/^2\d\d$/.test(code); // 2xx 회복 → drop(stale), 아니면 유지(실재)
+      } catch { return true; }        // 재검 실패 시 보수적 유지
+    });
+    if (cand.length) alerts.push(`모니터 결함 ${cand.length}: ${cand.slice(0, 3).join(' | ').slice(0, 140)}`);
   }
 } catch { alerts.push('monitor-status.json 읽기 실패'); }
 
