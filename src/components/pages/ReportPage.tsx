@@ -1084,7 +1084,7 @@ export default function ReportPage() {
 
           {/* ── S4: 기회 신호 (숏스퀴즈 + 내부자) ──────────────────────────── */}
           {((data.shortSqueeze?.length ?? 0) > 0 || (data.insiderSignals?.length ?? 0) > 0) && (
-            <div className="mb-5 rounded-xl border border-orange-100 bg-orange-50 p-4">
+            <div className="mb-5 rounded-xl border-2 border-orange-300 bg-orange-50 p-4 shadow-sm">
               <p className="text-sm font-bold text-orange-800 mb-3">⚡ {t('opportunitySignalsTitle')}</p>
               {data.topOpportunity && (
                 <p className="text-xs text-orange-700 bg-orange-100 rounded-lg px-3 py-2 mb-3 font-medium">{data.topOpportunity}</p>
@@ -1179,7 +1179,7 @@ export default function ReportPage() {
 
           {/* 기회 신호 빈 상태 — 섹션 숨김 대신 "현재 포착 없음" 표시(사용자 "섹션은 살리는게") */}
           {!((data.shortSqueeze?.length ?? 0) > 0 || (data.insiderSignals?.length ?? 0) > 0) && (
-            <div className="mb-5 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
+            <div className="mb-5 rounded-xl border-2 border-orange-300 bg-orange-50/60 p-4 shadow-sm">
               <p className="text-sm font-bold text-orange-800 mb-1.5">⚡ {t('opportunitySignalsTitle')}</p>
               <p className="text-xs text-orange-700/70">{t('opportunityEmpty')}</p>
             </div>

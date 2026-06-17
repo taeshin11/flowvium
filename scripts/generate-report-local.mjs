@@ -8800,6 +8800,48 @@ async function generateViaOllama() {
     if (nSan || nCB || nKrName || nIdx) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 + 지수절대값환각 ${nIdx}건 교정`);
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
 
+  // 2026-06-18 (사용자 "왜 이런 사각지대가 아직도 있는지"): sector-keyword strip 을 *절대 마지막*
+  //   chokepoint 로 재실행. 기존 strip(8546)은 파이프라인 중간에서 돌지만, 그 後 completeness-gate
+  //   (riskNote 빈칸 채움)·leveraged-label·byMarket 재빌드 등이 텍스트를 재주입 → 부적합 키워드가
+  //   다시 섞임(000810 삼성화재 riskNote "전력 수요 감소 리스크" 가 strip 우회·발간차단 사건).
+  //   추가로 기존 stripClauses 는 ' | ' 첫 clause 만 손대 기술suffix 의 잔여 키워드를 놓쳤음 → 여기선
+  //   *모든* ' | ' 세그먼트를 clause 단위로 검사. name-gate/final 과 동일한 "writeFileSync 직전" 패턴.
+  {
+    let fixed = 0;
+    const sanitizeField = (str, sec) => {
+      const forbid = SECTOR_FORBID[sec];
+      const hasKw = (s) => typeof s === 'string' && ((forbid && forbid.some(kw => s.includes(kw))) || mismatchedIndustryTerm(s, sec) != null);
+      // 모든 ' | ' 세그먼트의 모든 clause(콤마 분할) 를 검사 — 첫 clause 만 보던 구멍 봉합.
+      const cleanedSegs = str.split(' | ').map(seg => {
+        const kept = seg.split(/,\s*/).filter(c => !hasKw(c));
+        return kept.join(', ').trim();
+      }).filter(seg => seg.length > 0);
+      let out = cleanedSegs.join(' | ').trim();
+      if (!out) out = '기술적 신호 기반 진입';  // 전부 제거되면 fallback (빈칸 → completeness-gate 재오염 방지)
+      return out;
+    };
+    const sanitizeItem = (p) => {
+      const sec = (p?.sector || '').toLowerCase();
+      if (!sec) return;
+      for (const f of ['rationale', 'entryRationale', 'targetRationale', 'fundamentalBasis', 'riskNote', 'technicalBasis', 'critiqueNote']) {
+        if (typeof p[f] !== 'string') continue;
+        const next = sanitizeField(p[f], sec);
+        if (next !== p[f]) { p[f] = next; fixed++; }
+      }
+      if (Array.isArray(p.catalysts)) {
+        const forbid = SECTOR_FORBID[sec];
+        const hasKw = (s) => typeof s === 'string' && ((forbid && forbid.some(kw => s.includes(kw))) || mismatchedIndustryTerm(s, sec) != null);
+        const before = p.catalysts.length;
+        p.catalysts = p.catalysts.filter(c => !hasKw(c));
+        if (p.catalysts.length !== before) fixed += before - p.catalysts.length;
+      }
+    };
+    for (const p of finalReport.portfolio ?? []) sanitizeItem(p);
+    for (const p of finalReport.portfolioByMarket?.us ?? []) sanitizeItem(p);
+    for (const p of finalReport.portfolioByMarket?.kr ?? []) sanitizeItem(p);
+    if (fixed > 0) console.log(`  [sector-kw-strip/final] 발간직전 부적합 섹터키워드 ${fixed}건 제거 (strip 우회 재오염 봉합)`);
+  }
+
   // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").
   //   경합심사/rotation-veto/모순 재심 trail 은 콘솔 로그 + buySellReconciliation 필드로 유지.
 

@@ -454,9 +454,21 @@ export async function verifyReport(file, { silent = false } = {}) {
       const em = String(p.entryZone).match(/([\d,.]+)/g);
       if (em?.length) price = em.map(x => parseFloat(x.replace(/,/g, ''))).reduce((a, b) => a + b, 0) / em.length;
     }
+    // 2026-06-18 (사용자 "왜 이런 사각지대가 아직도"): 52주 레인지 파싱 — 포물선 급등주(009150 삼성전기
+    //   52주 ₩130,300→현재 ₩200만, 15배)는 200MA 가 현재가의 1/4 인 게 *정상*. "현재가 3x 이탈" 휴리스틱이
+    //   이를 환각으로 오탐 → Karpathy 학습루프에 가짜 결함 적재. MA 는 물리적으로 52주 레인지 안에 있어야
+    //   하므로, 레인지 파악 가능하면 "MA ∉ [52wLow, 52wHigh]" 만 진짜 글리치로 판정(범위 마진 ±15%).
+    const w52 = (p.rationale || '').match(/52주\s*[:：]?\s*[₩$]?([\d,.]+)\s*[-~]\s*[₩$]?([\d,.]+)/);
+    let lo52 = null, hi52 = null;
+    if (w52) { lo52 = parseFloat(w52[1].replace(/,/g, '')); hi52 = parseFloat(w52[2].replace(/,/g, '')); if (lo52 > hi52) [lo52, hi52] = [hi52, lo52]; }
+    const rangeKnown = isFinite(lo52) && isFinite(hi52) && lo52 > 0 && hi52 > 0;
+    // 진짜 멀티배거(레인지 4x+)면 발산 임계 완화 — 50MA 가 200MA 의 2.5x 넘는 것도 정상일 수 있음.
+    const divThreshold = rangeKnown && hi52 / lo52 >= 4 ? 4.0 : 2.5;
     let reason = null;
-    if (divergence > 2.5) reason = `50MA↔200MA ${divergence.toFixed(1)}x 발산 (물리적 불가)`;
-    else if (price != null && (v50 < price / 3 || v50 > price * 3 || v200 < price / 3 || v200 > price * 3))
+    if (divergence > divThreshold) reason = `50MA↔200MA ${divergence.toFixed(1)}x 발산 (물리적 불가)`;
+    else if (rangeKnown && (v50 < lo52 * 0.85 || v50 > hi52 * 1.15 || v200 < lo52 * 0.85 || v200 > hi52 * 1.15))
+      reason = `MA가 52주 레인지[${lo52}-${hi52}] 밖 (50MA=${v50}, 200MA=${v200}) — 물리적 불가`;
+    else if (!rangeKnown && price != null && (v50 < price / 3 || v50 > price * 3 || v200 < price / 3 || v200 > price * 3))
       reason = `MA가 현재가 ${price} 대비 3x 이탈 (50MA=${v50}, 200MA=${v200})`;
     if (reason) {
       log(`  ❌ ${p.ticker} 50MA=${v50} vs 200MA=${v200} — ${reason}`);

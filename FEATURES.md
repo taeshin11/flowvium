@@ -817,6 +817,10 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 티커 클릭 → `/company/[ticker]`, 라이브 가격·등락% (livePrices/batch-prices)
 - `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). **ETF 풀 67종**(2026-06-05 30→62 테마/스타일/배당, 06-12 국가 ETF 4종, 06-13 크립토 IBIT/ETHA 신설). stance/sectorAllocation/regionStances grounded 선택, 보고서당 ~18개 노출(8 카테고리)
 
+### 13-4a-2. ⚡ 기회 신호 (S4: Opportunity Signals)
+- 숏스퀴즈 후보 + 내부자 매수 클러스터 + topOpportunity 한 줄 요약. 없으면 "현재 포착 없음" 빈 상태 유지(섹션 숨김 안 함).
+- **테두리 강조 (2026-06-18, 사용자 "기회신호 칸도 잘보이게 테두리 쳐줘")**: `border-2 border-orange-300 shadow-sm` — 위기포착(빨강) 대비 잘 보이는 주황 테두리. 채워진/빈 상태 양쪽 동일.
+
 ### 13-4b. 위기 포착 (S4b: Crisis Alerts)
 - 🚨 패널: 내부자 매도 집중 / BB 4d4σ 극단 과매수 / 어닝스 미스 / 기관 이탈 / 가이던스 하향 / 매크로 리스크
 - 심각도 배지 (긴급/경고/주의)
