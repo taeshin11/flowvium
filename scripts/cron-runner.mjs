@@ -46,6 +46,15 @@ const crons = vercelJson.crons || [];
 
 function log(...a) { console.log(`[cron-runner ${new Date().toISOString().slice(0, 19)}]`, ...a); }
 
+// 2026-06-17 (전수조사 #5): HTTP 크론 실패 표면화. 기존 runJob 은 non-200/error/200-error-body 를 log 만
+//   → send-alerts/verify-metrics/daily-brief 등이 silent 실패해도 무알림이던 사각지대. 실패를 모듈 배열에
+//   기록하고 runMonitor 가 최근(<25m) 실패를 monitor-status.defects 로 surface → 스팟체크에 노출.
+const cronFailures = []; // { ts, path, detail }
+function recordCronFailure(path, detail) {
+  cronFailures.push({ ts: Date.now(), path, detail });
+  while (cronFailures.length > 50) cronFailures.shift();
+}
+
 async function runJob(path) {
   const t0 = Date.now();
   try {
@@ -53,9 +62,18 @@ async function runJob(path) {
       headers: SECRET ? { Authorization: `Bearer ${SECRET}` } : {},
       signal: AbortSignal.timeout(120000),
     });
-    log(`${path} → HTTP ${res.status} (${Date.now() - t0}ms)`);
+    let fail = '';
+    if (res.status >= 400) fail = `HTTP ${res.status}`;
+    else {
+      // HTTP 200 이어도 body 가 {"error":...} 면 silent 실패 (CLAUDE.md DART 404 사건 클래스)
+      try { const txt = (await res.text()).slice(0, 1000); if (/"error"\s*:/.test(txt)) fail = `200 error-body: ${txt.replace(/\s+/g, ' ').slice(0, 80)}`; } catch {}
+    }
+    log(`${path} → HTTP ${res.status} (${Date.now() - t0}ms)${fail ? ' ⚠️ ' + fail : ''}`);
+    if (fail) recordCronFailure(path, fail);
   } catch (e) {
-    log(`${path} → ERROR ${String(e?.message || e)} (${Date.now() - t0}ms)`);
+    const detail = String(e?.message || e);
+    log(`${path} → ERROR ${detail} (${Date.now() - t0}ms)`);
+    recordCronFailure(path, detail);
   }
 }
 
@@ -147,8 +165,36 @@ async function runMonitor() {
     if (/PURGE-FALLBACK ALERT/.test(pline)) result.defects.push(`[fallback] 배포된 fallback 삭제: ${pline.replace(/^.*ALERT:\s*/, '').slice(0, 90)}`);
   } catch { result.checks.fallbackPurge = 'err'; }
 
+  // 2026-06-17 (전수조사 #5): 최근 25분 내 HTTP 크론 실패 surface (runJob 이 기록).
+  try {
+    const recent = cronFailures.filter((f) => Date.now() - f.ts < 25 * 60 * 1000);
+    result.checks.cronFails = recent.length;
+    if (recent.length) {
+      const uniq = [...new Set(recent.map((f) => `${f.path}(${f.detail.slice(0, 40)})`))];
+      result.defects.push(`[cron] HTTP 크론 실패 ${recent.length}건: ${uniq.slice(0, 3).join(' | ').slice(0, 140)}`);
+    }
+  } catch { /* */ }
+
+  // 2026-06-17 (전수조사 #6): 유지보수 잡 freshness — 잡이 silent 미실행되면 어떤 모니터도 안 봤다
+  //   (financials=보고서 펀더멘털, accumulation=한컴 06-14 고착 전력 등). git committer-date 는
+  //   runMaintenance 가 '데이터 변경 시에만' 커밋해 잘 안 바뀌는 산출물은 오탐 → 잡 실행 자체를 기록하는
+  //   heartbeat(logs/maintenance-heartbeat.json, runMaintenance 가 매 실행 갱신)로 검사. 기대주기 초과 시 결함.
+  try {
+    const HB_MAX = { 'build-financials': 30, 'scan-accumulation': 20, 'dart-corpcodes': 30, 'dart-prefetch': 30, 'sell-outcomes': 30, 'build-backlog': 9 * 24 };
+    let hb = {};
+    try { hb = JSON.parse(readFileSync(resolve(process.cwd(), 'logs/maintenance-heartbeat.json'), 'utf8')); } catch { /* 아직 없음 */ }
+    const stale = [];
+    for (const [label, maxH] of Object.entries(HB_MAX)) {
+      const ts = hb[label] ? new Date(hb[label]).getTime() : 0;
+      const ageH = ts ? (Date.now() - ts) / 3600000 : Infinity;
+      if (ageH > maxH) stale.push(`${label} ${ts ? ageH.toFixed(0) + 'h' : '무기록'}>${maxH}h`);
+    }
+    result.checks.artifactFresh = stale.length ? `stale ${stale.length}` : 'ok';
+    if (stale.length) result.defects.push(`[maint] 잡 미실행 의심: ${stale.join(', ').slice(0, 140)}`);
+  } catch { /* */ }
+
   try { writeFileSync(resolve(process.cwd(), 'logs/monitor-status.json'), JSON.stringify(result, null, 2)); } catch { /* */ }
-  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'} fbPurge=${result.checks.fallbackPurge ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
+  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'} fbPurge=${result.checks.fallbackPurge ?? 'n/a'} cronFails=${result.checks.cronFails ?? 0} artifact=${result.checks.artifactFresh ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
 
   // 2026-06-06 cold-cache self-heal: 자가호스팅이라 cloud 번역 warm-cron(401) 부재 → 뉴스 새로고침
   //   후 비-ko locale 이 cold 로 남아 모니터마다 [B] 결함 재발(수동 warm 반복). 감지 시 자동 warm
@@ -211,6 +257,14 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
   try {
     await execFileAsync('node', script.split(' '), { timeout: timeoutMs, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }); // script 문자열에 인자(예: '--apply') 허용
     log(`[${label}] 완료`);
+    // 2026-06-17 (전수조사 #6): 잡 실행 heartbeat — 데이터 변경 여부와 무관하게 '돌았다'를 기록.
+    //   runMonitor 의 freshness 검사가 이 타임스탬프로 silent 미실행을 감지.
+    try {
+      const hbP = resolve(process.cwd(), 'logs/maintenance-heartbeat.json');
+      let hb = {}; try { hb = JSON.parse(readFileSync(hbP, 'utf8')); } catch { /* 최초 */ }
+      hb[label] = new Date().toISOString();
+      writeFileSync(hbP, JSON.stringify(hb, null, 2));
+    } catch { /* heartbeat 실패 비치명 */ }
     // 2026-06-13: 산출물이 tracked 파일이면 자동 커밋+푸시 — 매일 02:05 갱신분이 미커밋으로 남아
     //   wipe-risk 경보 + run-report checkout revert 위험이 반복되던 것 (수동 커밋 toil 제거).
     if (commitPaths.length) {
