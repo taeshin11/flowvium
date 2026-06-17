@@ -23,6 +23,34 @@ function onlineNames() {
   } catch (e) { logline(`[WATCHDOG] jlist 실패: ${String(e?.message).slice(0, 80)}`); return null; }
 }
 
+// vLLM(:8000) liveness + 자동 재기동 — vLLM 은 pm2 가 아니라 WSL 스케줄 태스크(FlowVium-vLLM)라
+//   pm2 watchdog 의 사각지대였음. 2026-06-17 vLLM 이 18:40 silent death → 어떤 모니터도 못 잡고
+//   다음 cron 보고서 실패 직전까지 방치된 사건의 근본수정. pm2 처럼 self-healing 하게 직접 watch.
+async function checkVllm() {
+  const alive = async () => {
+    try {
+      const c = new AbortController();
+      const t = setTimeout(() => c.abort(), 6000);
+      const r = await fetch('http://localhost:8000/v1/models', { signal: c.signal });
+      clearTimeout(t);
+      return r.ok;
+    } catch { return false; }
+  };
+  if (await alive()) return; // 정상 — 무로그
+  // 모델 로딩 중(~1-2min)이면 vllm 프로세스가 이미 떠 있음 → 재기동 시 중복 spawn/포트경합 → 보류.
+  let loading = false;
+  try {
+    const ps = execFileSync('wsl.exe', ['-d', 'Ubuntu-24.04', '-u', 'root', 'bash', '-c', 'pgrep -f "vllm serve" | head -1'],
+      { encoding: 'utf8', timeout: 15000, windowsHide: true }).trim();
+    loading = ps.length > 0;
+  } catch { /* wsl 미가용 */ }
+  if (loading) { logline('[VLLM] :8000 미응답이나 vllm 프로세스 존재(로딩중 추정) — 재기동 보류'); return; }
+  logline('[VLLM] :8000 다운 + vllm 프로세스 없음 — FlowVium-vLLM 태스크 재기동');
+  try { execFileSync('schtasks', ['/run', '/tn', 'FlowVium-vLLM'], { timeout: 20000, windowsHide: true }); }
+  catch (e) { logline(`[VLLM] 재기동 실패: ${String(e?.message).slice(0, 80)}`); }
+}
+await checkVllm();
+
 const on = onlineNames();
 if (!on) process.exit(1);
 const missing = NEED.filter((n) => !on.has(n));
