@@ -194,7 +194,9 @@ async function translateArticles(
   // 2026-06-14: 번역 실패(제목에 외국어 잔존) 기사는 피드에서 제거 — 로컬 모델이 JA→KO 를 못 하고
   //   클라우드 키도 없어 미번역 일본어가 그대로 표시되던 사건(사용자 "이런건 왜 번역 안 해"). 번역 못 한
   //   기사를 보여주느니 빼는 게 정직. (ko 잔존 가나는 tOne 이 이미 음차 시도 후라, 여기 남으면 진짜 실패)
-  const kept = out.filter((a) => !residualForeign(a.title, locale));
+  // 2026-06-18: 재번역 후에도 U+FFFD(�) 깨짐 잔존 기사는 드롭 — 깨진 텍스트 노출보다 제외가 정직.
+  const stillFffd = (a: NewsWithCascade) => /�/.test(a.title || '') || /�/.test(a.summary || '') || (a.cascades || []).some((c) => /�/.test(c.reason || ''));
+  const kept = out.filter((a) => !residualForeign(a.title, locale) && !stillFffd(a));
   if (kept.length < out.length) {
     logger.warn('news-cascade.translate', 'dropped_untranslatable', { locale, dropped: out.length - kept.length, kept: kept.length });
   }
@@ -289,7 +291,10 @@ Output (JSON array only):`;
     // 2026-06-14: 배치 후 *잔존 외국어* sweep — 배치 검증(anyTr)은 일부만 바뀌어도 통과하므로, LLM 이
     //   특정 제목을 안 바꾼 채(예: 일본어 新NISA) 슬립. 해당 기사만 per-field 재번역(tOne 이 이미-타겟 필드 skip).
     const needFix: number[] = [];
-    merged.forEach((m, i) => { if (residualForeign(m.title, locale) || residualForeign(m.summary, locale)) needFix.push(i); });
+    // 2026-06-18: U+FFFD(�) 깨짐 감지 — vLLM AWQ 모델이 한국어 음절을 byte-fallback 으로 깨뜨려 �
+    //   출력하던 사건(스�페이스X / TD 유�� — ko 만, ja/en 정상). title/summary/cascade reason 어디든 �면 재번역.
+    const hasFffd = (m: NewsWithCascade) => /�/.test(m.title || '') || /�/.test(m.summary || '') || (m.cascades || []).some((c) => /�/.test(c.reason || ''));
+    merged.forEach((m, i) => { if (residualForeign(m.title, locale) || residualForeign(m.summary, locale) || hasFffd(m)) needFix.push(i); });
     if (needFix.length) {
       logger.warn('news-cascade.translate', 'residual_foreign_sweep', { locale, count: needFix.length });
       const fixed = await translatePerField(needFix.map(i => merged[i]), locale);
