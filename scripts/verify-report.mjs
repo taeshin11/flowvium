@@ -222,6 +222,41 @@ export async function verifyReport(file, { silent = false } = {}) {
   }
   if (!invalidTk) log('  ✅ 무효 티커 없음');
 
+  // 2026-06-18: 콘텐츠 의미 검증 — 숫자/티커/렌더링 검사가 못 잡는 "프로세스 의미" 결함 계열 구조화 포착.
+  //   (N/A 내러티브 누출, 과거 이벤트를 미래 risk 로 표기 등 — verify 가 portfolio 값만 보던 사각지대.)
+  log('\n## 콘텐츠 의미 검증 (placeholder 누출 / stale 이벤트)');
+  // (a) placeholder/junk 누출 — 전 서술 필드 스캔 (N/A·undefined·null·NaN·U+FFFD·[object Object] 등)
+  const JUNK = /\bN\/A\b|\bundefined\b|\bnull\b|\bNaN\b|\[object Object\]|�|\{\{|\bTODO\b|\bFIXME\b/;
+  const textFields = [
+    ['thesis', r.thesis], ['macroAnalysis', r.macroAnalysis], ['technicalAnalysis', r.technicalAnalysis],
+    ['fundamentalAnalysis', r.fundamentalAnalysis], ['topOpportunity', r.topOpportunity],
+    ['hedgingSuggestion', r.hedgingSuggestion], ['portfolioRiskNote', r.portfolioRiskNote],
+  ];
+  for (const p of (r.portfolio || [])) textFields.push([`portfolio[${p.ticker}]`, p.entryRationale || p.rationale]);
+  for (const i of (r.insiderSignals || [])) textFields.push([`insider[${i.ticker}]`, i.significance]);
+  for (const e of (r.riskEvents || [])) textFields.push(['riskEvent', `${e.event} ${e.watchFor || ''}`]);
+  let junkN = 0;
+  for (const [field, text] of textFields) {
+    if (text && JUNK.test(String(text))) {
+      const m = String(text).match(JUNK)[0];
+      junkN++;
+      log(`  ❌ ${field} placeholder 누출 "${m}": "${String(text).slice(0, 60)}"`);
+      defects.push({ ticker: field.slice(0, 20), defect_type: 'placeholder_leak', llm_value: `${field}: "${m}"`, correct_value: 'no placeholder/junk in prose', severity: 'medium' });
+    }
+  }
+  if (!junkN) log('  ✅ placeholder 누출 없음');
+  // (b) stale 이벤트 — riskEvents 에 보고서 날짜보다 *과거*인 이벤트(이미 발생을 미래 risk 로 표기)
+  const repDate = r.generatedAt ? new Date(new Date(r.generatedAt).getTime() + 9 * 3600000).toISOString().slice(0, 10) : null;
+  let staleN = 0;
+  if (repDate) for (const e of (r.riskEvents || [])) {
+    if (e.date && e.date < repDate) {
+      staleN++;
+      log(`  ❌ stale 이벤트 "${e.event}" date=${e.date} < 보고서 ${repDate}`);
+      defects.push({ ticker: 'EVENT', defect_type: 'stale_event', llm_value: `${e.event} @${e.date}`, correct_value: `보고서일(${repDate}) 이후만 미래 이벤트 — 과거는 결과로 서술`, severity: 'medium' });
+    }
+  }
+  if (!staleN) log('  ✅ stale 이벤트 없음');
+
   // 1. sector ↔ meta consistency (LLM 환각 vs candidate-tickers meta)
   log('\n## sector ↔ meta 일치 (LLM 환각 detect)');
   let secFix = 0;
