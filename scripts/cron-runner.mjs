@@ -66,7 +66,21 @@ async function runJob(path) {
     if (res.status >= 400) fail = `HTTP ${res.status}`;
     else {
       // HTTP 200 이어도 body 가 {"error":...} 면 silent 실패 (CLAUDE.md DART 404 사건 클래스)
-      try { const txt = (await res.text()).slice(0, 1000); if (/"error"\s*:/.test(txt)) fail = `200 error-body: ${txt.replace(/\s+/g, ' ').slice(0, 80)}`; } catch {}
+      // 2026-06-17: verify-metrics 는 *헬스 리포터* — payload 가 정상적으로 nested "error" status 를 담는다
+      //   (overallStatus=error = "지표 결함 발견", cron 실행 실패 아님). nested "error" 를 cron 실패로 오분류해
+      //   매 사이클 false [cron] 경보. → meta-monitor 엔드포인트는 *top-level* error 필드만 실패로 판정.
+      //   지표 결함 자체는 verify-metrics 가 overallStatus 로 이미 surface(대시보드/B1 메타검증).
+      try {
+        const txt = (await res.text()).slice(0, 2000);
+        const isMetaMonitor = /\/verify-metrics/.test(path);
+        let parsed = null; try { parsed = JSON.parse(txt); } catch {}
+        const topLevelError = parsed && typeof parsed === 'object' && typeof parsed.error === 'string';
+        if (isMetaMonitor) {
+          if (topLevelError) fail = `endpoint error: ${String(parsed.error).slice(0, 60)}`; // 실제 실패(401 등)만
+        } else if (/"error"\s*:/.test(txt)) {
+          fail = `200 error-body: ${txt.replace(/\s+/g, ' ').slice(0, 80)}`;
+        }
+      } catch {}
     }
     log(`${path} → HTTP ${res.status} (${Date.now() - t0}ms)${fail ? ' ⚠️ ' + fail : ''}`);
     if (fail) recordCronFailure(path, fail);

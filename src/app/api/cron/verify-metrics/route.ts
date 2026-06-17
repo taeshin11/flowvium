@@ -1465,8 +1465,8 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:block-trades:v1', label: 'block-trades' },
     { key: 'flowvium:cot-positions:v2', label: 'cot-positions' },
     { key: 'flowvium:korea-flow:v4:1d', label: 'korea-flow' },
-    { key: 'flowvium:short-interest:v5', label: 'short-interest' },
-    { key: 'flowvium:market-caps:v2', label: 'market-caps' },
+    { key: 'flowvium:short-interest:v6', label: 'short-interest' },  // 2026-06-17: v5→v6 (route 가 v6 write — stale probe 오탐 수정)
+    { key: 'flowvium:market-caps:v3', label: 'market-caps' },        // 2026-06-17: v2→v3 (route 가 v3 write — stale probe 오탐 수정)
     { key: 'flowvium:13f-signals:v1', label: '13f-signals' },
     { key: 'flowvium:13f-ownership:v1', label: '13f-ownership' },
     { key: 'flowvium:news-gap:v2', label: 'news-gap-scores' },
@@ -1477,12 +1477,18 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:market-movers:v1', label: 'market-movers' },
     { key: 'flowvium:sector-pe:v3', label: 'sector-pe' },
   ];
+  // 2026-06-17: 유료 API 대기(locked) 기능의 캐시 null 은 *정상*(CLAUDE.md "유료 API 대기") — error 아님.
+  //   options-flow(Unusual Whales)·block-trades(Polygon)는 키 미설정 시 영구 null → 'skipped'(locked)로 분류해
+  //   overallStatus 오염 방지. 키 활성 시엔 정상 ok 판정.
+  const LOCKED_LABELS = new Set(['options-flow', 'block-trades']);
   const items: MetricItem[] = await Promise.all(keys.map(async ({ key, label }) => {
     try {
       const v = await redis.get(key);
+      const status: MetricItem['status'] = v != null ? 'ok' : (LOCKED_LABELS.has(label) ? 'skipped' : 'error');
       return {
         key: `cache.${label}`, label: `Cache ${label}`, group: 'cache',
-        status: (v != null ? 'ok' : 'error') as MetricItem['status'],
+        status,
+        ...(v == null && LOCKED_LABELS.has(label) ? { value: 'locked (유료 API 대기)' } : {}),
       };
     } catch (err) {
       return {
