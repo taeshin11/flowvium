@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4أ",
     "korPeriod13w": "13أ",
     "korPeriodDesc": "صافي شراء أجنبي/مؤسسي متراكم خلال {days} يوم تداول",
-    "koreaFallback": "بيانات تغير السعر فقط (صافي الشراء الأجنبي/المؤسسي غير متاح)"
+    "koreaFallback": "بيانات تغير السعر فقط (صافي الشراء الأجنبي/المؤسسي غير متاح)",
+    "krInsiderTitle": "إفصاحات المدراء وكبار المساهمين (DART)",
+    "krInsiderNote": "آخر 60 يوماً · تغيرات أوراق المدراء/كبار المساهمين + حيازات 5%",
+    "krFiledAt": "التاريخ",
+    "krKind": "النوع",
+    "krReporter": "المُبلّغ",
+    "krDirection": "الجهة",
+    "krDelta": "التغير",
+    "krRatio": "الحصة%",
+    "krKindMajor": "كبير",
+    "krKindInsider": "مدير",
+    "krBuy": "شراء",
+    "krSell": "بيع",
+    "krFlat": "ثابت"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "حسابات قليلة",
     "alertCat_caution": "تنبيه",
     "alertCat_warning": "تحذير",
-    "alertCat_risk": "خطر"
+    "alertCat_risk": "خطر",
+    "topAccumUsSubtitle": "علامات تجميع مبنية على الحجم قبل الارتفاع (الولايات المتحدة، للمراقبة فقط)",
+    "accumUsNote": "ماسح أمريكي — حجم غير طبيعي / انكماش التقلب / قوة الإغلاق (بدون تحقق متقاطع من KRX) · للمراقبة"
   },
   "short": {
     "title": "البيع على المكشوف · ضغط الشورت",

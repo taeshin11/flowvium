@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4W",
     "korPeriod13w": "13W",
     "korPeriodDesc": "Kumulierter Nettokauf Ausland/Inst. über {days} Handelstage",
-    "koreaFallback": "Nur Kursveränderungsdaten (Ausland/Inst.-Nettokauf nicht verfügbar)"
+    "koreaFallback": "Nur Kursveränderungsdaten (Ausland/Inst.-Nettokauf nicht verfügbar)",
+    "krInsiderTitle": "Meldungen von Führungskräften & Großaktionären (DART)",
+    "krInsiderNote": "Letzte 60 Tage · Wertpapieränderungen von Führungskräften/Großaktionären + 5%-Beteiligungen",
+    "krFiledAt": "Gemeldet",
+    "krKind": "Art",
+    "krReporter": "Melder",
+    "krDirection": "Seite",
+    "krDelta": "Änderung",
+    "krRatio": "%",
+    "krKindMajor": "Groß",
+    "krKindInsider": "Insider",
+    "krBuy": "Kauf",
+    "krSell": "Verkauf",
+    "krFlat": "Unverändert"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "Wen. Konten",
     "alertCat_caution": "Vorsicht",
     "alertCat_warning": "Warnung",
-    "alertCat_risk": "Gefahr"
+    "alertCat_risk": "Gefahr",
+    "topAccumUsSubtitle": "Volumenbasierte Akkumulationssignale vor einem Anstieg (USA, nur Beobachtung)",
+    "accumUsNote": "US-Screener — anormales Volumen / Volatilitätskontraktion / Schlussstärke (keine KRX-Gegenprüfung) · zur Beobachtung"
   },
   "short": {
     "title": "Leerverkäufe · Short Squeeze",

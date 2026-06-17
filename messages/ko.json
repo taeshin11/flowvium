@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4주",
     "korPeriod13w": "13주",
     "korPeriodDesc": "{days}거래일 외인·기관 순매수 누적",
-    "koreaFallback": "가격 변동 데이터 (외인·기관 순매수 미제공)"
+    "koreaFallback": "가격 변동 데이터 (외인·기관 순매수 미제공)",
+    "krInsiderTitle": "임원·주요주주 지분공시 (DART)",
+    "krInsiderNote": "최근 60일 · 임원/주요주주 특정증권 소유변동 + 대량보유(5%룰)",
+    "krFiledAt": "공시일",
+    "krKind": "구분",
+    "krReporter": "보고자",
+    "krDirection": "방향",
+    "krDelta": "증감",
+    "krRatio": "지분%",
+    "krKindMajor": "대량보유",
+    "krKindInsider": "임원",
+    "krBuy": "매수",
+    "krSell": "매도",
+    "krFlat": "변동"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "소수계좌",
     "alertCat_caution": "투자주의",
     "alertCat_warning": "투자경고",
-    "alertCat_risk": "투자위험"
+    "alertCat_risk": "투자위험",
+    "topAccumUsSubtitle": "급등 전 거래량 기반 매집 선행조짐 (US·관찰 우선·추천 아님)",
+    "accumUsNote": "US 스크리너 — 거래량 급증·변동성 수축·종가강도 기반 (KRX 소수계좌 교차검증 없음) · 관찰용"
   },
   "short": {
     "title": "공매도 · 숏 스퀴즈",

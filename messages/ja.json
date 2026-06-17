@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4週",
     "korPeriod13w": "13週",
     "korPeriodDesc": "{days}営業日の外国人・機関投資家純買い累計",
-    "koreaFallback": "株価変動データのみ（外国人・機関純買い未提供）"
+    "koreaFallback": "株価変動データのみ（外国人・機関純買い未提供）",
+    "krInsiderTitle": "役員・主要株主の持分開示（DART）",
+    "krInsiderNote": "直近60日 · 役員/主要株主の特定証券保有変動 + 大量保有（5%ルール）",
+    "krFiledAt": "開示日",
+    "krKind": "区分",
+    "krReporter": "報告者",
+    "krDirection": "方向",
+    "krDelta": "増減",
+    "krRatio": "持分%",
+    "krKindMajor": "大量保有",
+    "krKindInsider": "役員",
+    "krBuy": "買い",
+    "krSell": "売り",
+    "krFlat": "変動"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "少数口座",
     "alertCat_caution": "投資注意",
     "alertCat_warning": "投資警告",
-    "alertCat_risk": "投資危険"
+    "alertCat_risk": "投資危険",
+    "topAccumUsSubtitle": "急騰前の出来高ベース仕込み先行サイン（米国・観察優先・推奨ではない）",
+    "accumUsNote": "米国スクリーナー — 出来高急増・ボラティリティ収縮・終値の強さ（KRX少数口座クロスチェックなし）・観察用"
   },
   "short": {
     "title": "空売り · ショートスクイーズ",

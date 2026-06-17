@@ -144,6 +144,7 @@ export default function ScreenerPage() {
   // 2026-06-14: KRX 시장경보(소수계좌 거래집중) + 작전주 매집 워치리스트 (오르기 前). KR 이상거래 감시.
   const [marketAlerts, setMarketAlerts] = useState<MarketAlertRow[]>([]);
   const [accumWatch, setAccumWatch] = useState<AccumRow[]>([]);
+  const [accumWatchUs, setAccumWatchUs] = useState<AccumRow[]>([]);  // 2026-06-17: US 매집 워치
 
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
@@ -235,6 +236,10 @@ export default function ScreenerPage() {
     fetch('/api/accumulation-watch', { signal: ctrl.signal })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d && !ctrl.signal.aborted) setAccumWatch((d.items ?? []) as AccumRow[]); })
+      .catch(() => {});
+    fetch('/api/accumulation-watch?market=us', { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !ctrl.signal.aborted) setAccumWatchUs((d.items ?? []) as AccumRow[]); })
       .catch(() => {});
     return () => ctrl.abort();
   }, []);
@@ -548,7 +553,7 @@ export default function ScreenerPage() {
               {accumWatch.length > 0 && (
                 <div className="cf-card p-4 bg-gradient-to-r from-rose-500/5 to-red-500/5 border border-rose-500/15">
                   <p className="text-[10px] font-bold text-rose-400 mb-3 flex items-center gap-1.5">
-                    {t('topAccumTitle')}
+                    🇰🇷 {t('topAccumTitle')}
                     <span className="font-normal text-cf-text-secondary">{t('topAccumSubtitle')}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -560,6 +565,23 @@ export default function ScreenerPage() {
                     ))}
                   </div>
                   <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('accumNote')}</p>
+                </div>
+              )}
+              {/* 2026-06-17 (사용자 "us종목 파악안됨?"): US 작전주 매집(거래량 기반) */}
+              {accumWatchUs.length > 0 && (
+                <div className="cf-card p-4 bg-gradient-to-r from-rose-500/5 to-red-500/5 border border-rose-500/15">
+                  <p className="text-[10px] font-bold text-rose-400 mb-3 flex items-center gap-1.5">
+                    🇺🇸 {t('topAccumTitle')}
+                    <span className="font-normal text-cf-text-secondary">{t('topAccumUsSubtitle')}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {accumWatchUs.slice(0, 10).map(row => (
+                      <SurvChip key={row.ticker} ticker={row.ticker} name={String(row.name)}
+                        badge={String(row.score)} badgeCls="bg-rose-500/20 text-rose-300"
+                        sub={(row.signals ?? []).slice(0, 2).join(' · ')} />
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('accumUsNote')}</p>
                 </div>
               )}
               {/* 2026-06-14: 거래소 공식 시장경보 (투자주의/경고/위험 + 소수계좌 거래집중) */}

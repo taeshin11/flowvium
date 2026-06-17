@@ -43,6 +43,25 @@ interface KoreaRow {
   closePrice: number | null;
   changePct: number | null;
 }
+// 2026-06-17: KR 임원·주요주주 지분공시(DART elestock/majorstock) 피드 아이템 — /api/insider-kr 응답.
+interface KrInsiderFeedItem {
+  ticker: string;
+  name: string;
+  rceptNo: string;
+  filedAt: string;
+  kind: 'insider' | 'major';
+  reporter: string;
+  role: string;
+  title: string | null;
+  relation: string | null;
+  sharesAfter: number | null;
+  sharesDelta: number | null;
+  ratioAfter: number | null;
+  ratioDelta: number | null;
+  direction: 'buy' | 'sell' | 'flat';
+  reason: string | null;
+  filingUrl: string;
+}
 
 function fmtUsd(v: number | null): string {
   if (v == null) return '-';
@@ -112,6 +131,8 @@ export default function InsiderPage() {
   const [korea, setKorea] = useState<KoreaFlowPayload | null>(null);
   const [koreaPeriod, setKoreaPeriod] = useState<'1d' | '1w' | '4w' | '13w'>('1d');
   const [koreaLoading, setKoreaLoading] = useState(false);
+  // 2026-06-17: KR 임원·주요주주 지분공시(DART) — US Form 4 의 KR 대응. korea 탭에 표출.
+  const [krInsider, setKrInsider] = useState<KrInsiderFeedItem[]>([]);
   const [nportFunds, setNportFunds] = useState<NPortFundSnapshot[]>([]);
   const [nportByTicker, setNportByTicker] = useState<NPortTickerAggregate[]>([]);
   const [blocks, setBlocks] = useState<BlockTrade[]>([]);
@@ -131,15 +152,17 @@ export default function InsiderPage() {
     if (force) setRefreshing(true); else setLoading(true);
     const q = force ? '?refresh=1' : '';
     try {
-      const [iRes, oRes, xRes, kRes, nRes, bRes] = await Promise.allSettled([
+      const [iRes, oRes, xRes, kRes, nRes, bRes, krRes] = await Promise.allSettled([
         fetch(`/api/insider-trades${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
         fetch(`/api/ownership-alerts${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
         fetch(`/api/options-flow${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
         fetch(`/api/korea-flow${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
         fetch(`/api/nport-holdings${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
         fetch(`/api/block-trades${q}`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetch(`/api/insider-kr`, { signal }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
       ]);
       if (signal.aborted) return;
+      if (krRes.status === 'fulfilled') setKrInsider(krRes.value.items ?? []);
       if (iRes.status === 'fulfilled') setInsider(iRes.value.items ?? []);
       if (oRes.status === 'fulfilled') setOwnership(oRes.value.items ?? []);
       if (xRes.status === 'fulfilled') {
@@ -514,8 +537,65 @@ export default function InsiderPage() {
           </div>
         </div>
       )}
-      {tab === 'korea' && !korea && (
+      {tab === 'korea' && !korea && krInsider.length === 0 && (
         <div className="cf-card p-8 text-center text-sm text-cf-text-secondary">{t('empty')}</div>
+      )}
+
+      {/* 2026-06-17: KR 임원·주요주주 지분공시 (DART elestock/majorstock) — US Form 4 의 KR 대응 */}
+      {tab === 'korea' && krInsider.length > 0 && (
+        <div className="mt-4 cf-card overflow-x-auto">
+          <p className="px-3 pt-3 text-xs font-bold text-cf-text-primary flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-cf-accent" /> {t('krInsiderTitle')}
+            <span className="font-normal text-[10px] text-cf-text-secondary">{t('krInsiderNote')}</span>
+          </p>
+          <table className="w-full text-sm mt-2">
+            <thead className="border-b border-white/5">
+              <tr className="text-[10px] text-cf-text-secondary">
+                <th className="px-3 py-2 text-left">{t('krFiledAt')}</th>
+                <th className="px-3 py-2 text-left">{t('th.ticker')}</th>
+                <th className="px-3 py-2 text-left">{t('krKind')}</th>
+                <th className="px-3 py-2 text-left">{t('krReporter')}</th>
+                <th className="px-3 py-2 text-center">{t('krDirection')}</th>
+                <th className="px-3 py-2 text-right">{t('krDelta')}</th>
+                <th className="px-3 py-2 text-right">{t('krRatio')}</th>
+                <th className="px-3 py-2 text-center">DART</th>
+              </tr>
+            </thead>
+            <tbody>
+              {krInsider.slice(0, 40).map(f => (
+                <tr key={f.rceptNo} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <td className="px-3 py-2.5 font-mono text-[11px] text-cf-text-secondary whitespace-nowrap">{f.filedAt}</td>
+                  <td className="px-3 py-2.5">
+                    <Link href={`/company/${f.ticker}` as Parameters<typeof Link>[0]['href']} className="font-bold text-cf-accent hover:underline">
+                      {KR_NAME_BY_CODE[f.ticker] ?? f.name}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${f.kind === 'major' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                      {f.kind === 'major' ? t('krKindMajor') : t('krKindInsider')}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-[11px]">
+                    <span className="text-cf-text-primary">{f.reporter || '-'}</span>
+                    {(f.title || f.role) && <span className="text-cf-text-secondary"> · {f.title || f.role}</span>}
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${f.direction === 'buy' ? 'bg-emerald-500/10 text-emerald-400' : f.direction === 'sell' ? 'bg-red-500/10 text-red-400' : 'bg-white/5 text-cf-text-secondary'}`}>
+                      {f.direction === 'buy' ? t('krBuy') : f.direction === 'sell' ? t('krSell') : t('krFlat')}
+                    </span>
+                  </td>
+                  <td className={`px-3 py-2.5 font-mono text-xs text-right ${(f.sharesDelta ?? 0) > 0 ? 'text-emerald-400' : (f.sharesDelta ?? 0) < 0 ? 'text-red-400' : 'text-cf-text-secondary'}`}>
+                    {f.sharesDelta != null ? `${f.sharesDelta > 0 ? '+' : ''}${f.sharesDelta.toLocaleString()}` : '-'}
+                  </td>
+                  <td className="px-3 py-2.5 font-mono text-[11px] text-right text-cf-text-secondary">{f.ratioAfter != null ? `${f.ratioAfter}%` : '-'}</td>
+                  <td className="px-3 py-2.5 text-center">
+                    <a href={f.filingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex text-cf-text-secondary hover:text-cf-accent"><ExternalLink className="w-3.5 h-3.5" /></a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* Options flow — Yahoo 체인 vol/OI 파생 (무료, ~15-20분 지연) */}

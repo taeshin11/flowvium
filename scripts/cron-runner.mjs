@@ -180,7 +180,7 @@ async function runMonitor() {
   //   runMaintenance 가 '데이터 변경 시에만' 커밋해 잘 안 바뀌는 산출물은 오탐 → 잡 실행 자체를 기록하는
   //   heartbeat(logs/maintenance-heartbeat.json, runMaintenance 가 매 실행 갱신)로 검사. 기대주기 초과 시 결함.
   try {
-    const HB_MAX = { 'build-financials': 30, 'scan-accumulation': 20, 'dart-corpcodes': 30, 'dart-prefetch': 30, 'sell-outcomes': 30, 'build-backlog': 9 * 24 };
+    const HB_MAX = { 'build-financials': 30, 'scan-accumulation': 20, 'scan-accumulation-us': 20, 'scan-insider-kr': 20, 'build-us-smallcap': 8 * 24, 'dart-corpcodes': 30, 'dart-prefetch': 30, 'sell-outcomes': 30, 'build-backlog': 9 * 24 };
     let hb = {};
     try { hb = JSON.parse(readFileSync(resolve(process.cwd(), 'logs/maintenance-heartbeat.json'), 'utf8')); } catch { /* 아직 없음 */ }
     const stale = [];
@@ -287,6 +287,17 @@ cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetc
 //   가드 초과 stale 방치(한글과컴퓨터 06-14 신호 고착). KR 마감 후 + 개장 전 (max gap ~16h < 36h). 산출 자동 커밋.
 cron.schedule('0 7 * * *',  () => runMaintenance('scan-accumulation', 'scripts/scan-accumulation.mjs', 600000, ['data/accumulation-watchlist.json']), { timezone: TZ }); // 16:00 KST (KR 마감 후)
 cron.schedule('0 22 * * *', () => runMaintenance('scan-accumulation', 'scripts/scan-accumulation.mjs', 600000, ['data/accumulation-watchlist.json']), { timezone: TZ }); // 07:00 KST (KR 개장 전)
+// 2026-06-17: US 소형주 매집 유니버스(Yahoo screener aggressive_small_caps) 주 1회 갱신 — 작전주/비정상거래량
+//   매집은 소형주 현상이라 대형주 candidate 풀로는 신호 0. 풀은 천천히 변함 → 주간.
+cron.schedule('0 19 * * 1', () => runMaintenance('build-us-smallcap', 'scripts/build-us-smallcap-universe.mjs', 600000, ['data/us-smallcap-universe.json']), { timezone: TZ }); // 월 04:00 KST
+// 2026-06-17 (사용자 "us종목 파악안됨?"): US 작전주 매집(거래량 기반) 2회/일. US 마감 후(16:00 ET≈21:00 UTC) + KST 낮.
+//   별도 label 'scan-accumulation-us' = heartbeat 충돌 방지. US 풀이 커 timeout 900s.
+cron.schedule('30 21 * * *', () => runMaintenance('scan-accumulation-us', 'scripts/scan-accumulation.mjs --us', 900000, ['data/accumulation-watchlist-us.json']), { timezone: TZ }); // 06:30 KST (US 마감 후)
+cron.schedule('0 13 * * *',  () => runMaintenance('scan-accumulation-us', 'scripts/scan-accumulation.mjs --us', 900000, ['data/accumulation-watchlist-us.json']), { timezone: TZ }); // 22:00 KST (US 개장 직후)
+// 2026-06-17 (사용자 "내부자 거래 KS종목 파악안됨?"): KR 임원·주요주주 지분공시 피드(DART) 2회/일. KR 마감 후 + 개장 전.
+//   로컬 /api/insider-kr/[ticker] 순회(lib 단일소스, 12h 캐시) → data/insider-kr-feed.json. 산출 자동 커밋.
+cron.schedule('30 7 * * *',  () => runMaintenance('scan-insider-kr', 'scripts/scan-insider-kr.mjs', 900000, ['data/insider-kr-feed.json']), { timezone: TZ }); // 16:30 KST (KR 마감 후)
+cron.schedule('30 22 * * *', () => runMaintenance('scan-insider-kr', 'scripts/scan-insider-kr.mjs', 900000, ['data/insider-kr-feed.json']), { timezone: TZ }); // 07:30 KST (KR 개장 전)
 cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
 cron.schedule('35 18 * * *', () => runMaintenance('sell-outcomes', 'scripts/evaluate-sell-outcomes.mjs', 600000), { timezone: TZ });  // 03:35 KST — 매도 성과평가 (2026-06-12 신설, 튜닝 ground truth)
 cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs --apply', 600000, ['data/sell-rules-tuned.json']), { timezone: TZ }); // 일 04:05 KST — 주간 매도룰 pnl 백튜닝 자동적용+커밋(±20% cap, .bak)

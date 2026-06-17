@@ -147,7 +147,12 @@ function dartKey(): string {
   return key;
 }
 
-async function dartFetch(path: string, params: Record<string, string>): Promise<unknown> {
+/** 종목코드(005930 또는 005930.KS) → corp_code. 정적 authoritative 매핑(월 1회 갱신). 없으면 null. */
+export function corpCodeFor(stockCode: string): { corpCode: string; corpName: string } | null {
+  return CORP_CODE_LOOKUP[stockCode.replace(/\.(KS|KQ)$/i, '').trim()] ?? null;
+}
+
+export async function dartFetch(path: string, params: Record<string, string>): Promise<unknown> {
   const query = new URLSearchParams({ crtfc_key: dartKey(), ...params }).toString();
   const url = `${DART_BASE}/${path}?${query}`;
   const start = Date.now();

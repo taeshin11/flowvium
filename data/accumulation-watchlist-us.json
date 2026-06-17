@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-06-17T04:41:08.238Z",
+  "universe": "US",
+  "scanned": 309,
+  "count": 4,
+  "strongCount": 0,
+  "watchCount": 4,
+  "officialFewAccount": 0,
+  "watchlist": [
+    {
+      "ticker": "NMRA",
+      "name": "Neumora Therapeutics, Inc.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.8× 상승(지속 매집)",
+        "거래량 7.8× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -11.9,
+      "runup5dPct": -5.5,
+      "medDollarVolUsd": 2378936,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "WBX",
+      "name": "Wallbox N.V.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 59.7× 상승(지속 매집)",
+        "거래량 98.1× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 4,
+      "runup5dPct": -1,
+      "medDollarVolUsd": 33880,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "RBB",
+      "name": "RBB Bancorp",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 9,
+      "runup5dPct": 3.1,
+      "medDollarVolUsd": 1626570,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CCO",
+      "name": "Clear Channel Outdoor Holdings,",
+      "tier": "watch",
+      "score": 22,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 0.8,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 12496667,
+      "smartAccum": false,
+      "official": null
+    }
+  ]
+}

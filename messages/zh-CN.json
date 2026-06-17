@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4周",
     "korPeriod13w": "13周",
     "korPeriodDesc": "{days}个交易日外资·机构净买入累计",
-    "koreaFallback": "仅价格变动数据（外资·机构净买入不可用）"
+    "koreaFallback": "仅价格变动数据（外资·机构净买入不可用）",
+    "krInsiderTitle": "高管·主要股东持股披露（DART）",
+    "krInsiderNote": "近60天 · 高管/主要股东特定证券持股变动 + 大量持股（5%规则）",
+    "krFiledAt": "披露日",
+    "krKind": "类别",
+    "krReporter": "申报人",
+    "krDirection": "方向",
+    "krDelta": "增减",
+    "krRatio": "持股%",
+    "krKindMajor": "大量持股",
+    "krKindInsider": "高管",
+    "krBuy": "买入",
+    "krSell": "卖出",
+    "krFlat": "变动"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "少数账户",
     "alertCat_caution": "投资注意",
     "alertCat_warning": "投资警告",
-    "alertCat_risk": "投资危险"
+    "alertCat_risk": "投资危险",
+    "topAccumUsSubtitle": "暴涨前基于成交量的吸筹先行信号（美股·仅观察·非推荐）",
+    "accumUsNote": "美股筛选器 — 成交量激增·波动率收缩·收盘强度（无KRX少数账户交叉验证）·仅供观察"
   },
   "short": {
     "title": "做空 · 空头逼仓",

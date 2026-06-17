@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4W",
     "korPeriod13w": "13W",
     "korPeriodDesc": "Cumulative foreign/inst net buy over {days} trading days",
-    "koreaFallback": "Price change data only (foreign/inst net buy unavailable)"
+    "koreaFallback": "Price change data only (foreign/inst net buy unavailable)",
+    "krInsiderTitle": "Insider & Major-Holder Filings (DART)",
+    "krInsiderNote": "Last 60 days · executive/major-holder specific-security changes + 5% major holdings",
+    "krFiledAt": "Filed",
+    "krKind": "Type",
+    "krReporter": "Filer",
+    "krDirection": "Side",
+    "krDelta": "Change",
+    "krRatio": "Stake%",
+    "krKindMajor": "Major",
+    "krKindInsider": "Insider",
+    "krBuy": "Buy",
+    "krSell": "Sell",
+    "krFlat": "Flat"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "Few-Acct",
     "alertCat_caution": "Caution",
     "alertCat_warning": "Warning",
-    "alertCat_risk": "Danger"
+    "alertCat_risk": "Danger",
+    "topAccumUsSubtitle": "Volume-based accumulation signs before a run-up (US, watch only)",
+    "accumUsNote": "US screener — abnormal volume / volatility contraction / close strength (no KRX few-account cross-check) · for observation"
   },
   "short": {
     "title": "Short Interest · Squeeze Radar",

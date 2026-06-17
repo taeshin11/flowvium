@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4H",
     "korPeriod13w": "13H",
     "korPeriodDesc": "{days} işlem günü boyunca yabancı/kur. birikimli net alım",
-    "koreaFallback": "Yalnızca fiyat değişim verisi (yabancı/kur. net alım mevcut değil)"
+    "koreaFallback": "Yalnızca fiyat değişim verisi (yabancı/kur. net alım mevcut değil)",
+    "krInsiderTitle": "Yönetici ve Büyük Ortak Bildirimleri (DART)",
+    "krInsiderNote": "Son 60 gün · yönetici/büyük ortak menkul kıymet değişimleri + %5 sahiplik",
+    "krFiledAt": "Tarih",
+    "krKind": "Tür",
+    "krReporter": "Bildiren",
+    "krDirection": "Yön",
+    "krDelta": "Değişim",
+    "krRatio": "Pay%",
+    "krKindMajor": "Büyük",
+    "krKindInsider": "Yönetici",
+    "krBuy": "Alış",
+    "krSell": "Satış",
+    "krFlat": "Sabit"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "Az hesap",
     "alertCat_caution": "Dikkat",
     "alertCat_warning": "Uyarı",
-    "alertCat_risk": "Tehlike"
+    "alertCat_risk": "Tehlike",
+    "topAccumUsSubtitle": "Yükseliş öncesi hacme dayalı toplama sinyalleri (ABD, yalnızca gözlem)",
+    "accumUsNote": "ABD tarayıcısı — anormal hacim / volatilite daralması / kapanış gücü (KRX çapraz kontrolü yok) · gözlem için"
   },
   "short": {
     "title": "Açığa Satış · Short Squeeze",

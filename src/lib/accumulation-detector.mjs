@@ -13,11 +13,15 @@ function atrNorm(sl) { return sl.length ? sl.reduce((s, r) => s + (r.h - r.l) / 
 
 /**
  * @param {{c:number,v:number,h:number,l:number}[]} rows
- * @param {{krwPerUsd?:number, isKR?:boolean}} [opts]
+ * @param {{krwPerUsd?:number, isKR?:boolean, liquidityStrictUsd?:number, liquidityLooseUsd?:number}} [opts]
+ *   liquidity*: 유동성 게이트 상한(USD ADV). 기본 KR 작전주(저유동성 표적) 기준 $5M/$15M.
+ *   US 대형주 풀은 ADV 가 훨씬 커 기본값이면 전부 탈락 → US 스캔은 상한을 높여 mid-cap 매집을 포착.
  */
 export function computeAccumulationSignals(rows, opts = {}) {
   const krwPerUsd = opts.krwPerUsd ?? 1380;
   const isKR = opts.isKR ?? false;
+  const strictCapUsd = opts.liquidityStrictUsd ?? 5e6;
+  const looseCapUsd = opts.liquidityLooseUsd ?? 1.5e7;
   const n = rows.length;
   const last = rows[n - 1].c;
   const runup5d = n >= 6 ? (last / rows[n - 6].c - 1) * 100 : 0;
@@ -40,8 +44,8 @@ export function computeAccumulationSignals(rows, opts = {}) {
   const volContraction = atrPrior > 0 && atrRecent < atrPrior * 0.7;  // 변동성 수축(coiling)
   const closeStrength = rows.slice(-10).filter((r) => (r.h - r.l) > 0 && (r.c - r.l) / (r.h - r.l) > 0.6).length / 10; // 종가 상단
   const priceFlat = runup20d < 12 && runup20d > -15;           // 아직 안 오름
-  // 유동성 tiering: $5M 기본·$5~15M 은 거래량추세 있을 때만(저~중유동성 작전 표적)
-  const liquidityOk = medDollarVol < 5e6 || (medDollarVol < 1.5e7 && volTrendUp);
+  // 유동성 tiering: strictCap 기본·strict~looseCap 은 거래량추세 있을 때만(저~중유동성 작전 표적)
+  const liquidityOk = medDollarVol < strictCapUsd || (medDollarVol < looseCapUsd && volTrendUp);
 
   // 점수(ChatGPT §2-3 가중): 단일 1.5× 추세 과탐 방지 — 강한 신호에 더 큰 가중.
   let accumScore = 0; const lead = [];
@@ -82,7 +86,7 @@ export function isAccumulation(sig, ctx = {}) {
  * 'watch'=관찰(세력매집/공식 corroboration 있는 약신호), null=제외.
  *   5일 급등 가드: runup5d≥15% 면 이미 markup 진입('오르기 前' 아님 — 솔브레인 +21.6% 케이스) → null.
  * @param {ReturnType<typeof computeAccumulationSignals>} sig
- * @param {{strongSmart?:boolean, officialFewAccount?:boolean, isMarkup?:boolean}} [ctx]
+ * @param {{strongSmart?:boolean, officialFewAccount?:boolean, isMarkup?:boolean, volumeOnlyWatch?:boolean}} [ctx]
  * @returns {'strong'|'watch'|null}
  */
 export function accumulationTier(sig, ctx = {}) {
@@ -92,5 +96,8 @@ export function accumulationTier(sig, ctx = {}) {
   // 관찰: 세력매집(기관·외인 순매수) 또는 공식 소수계좌 corroboration + 최소 동시발화/점수
   const strong = ctx.strongSmart || ctx.officialFewAccount;
   if (strong && sig.accumCoFire >= 2 && sig.accumScore >= 14) return 'watch';
+  // 2026-06-17: US 등 투자자수급(Naver)·거래소경보(KRX) corroboration 소스가 없는 시장 — 거래량추세/변동성수축/
+  //   종가강도 기술패턴(coFire>=2 & score>=14)만으로 'watch'(관찰 전용). 강한 1.5× 단일 과탐은 score 게이트가 차단.
+  if (ctx.volumeOnlyWatch && sig.accumCoFire >= 2 && sig.accumScore >= 14) return 'watch';
   return null;
 }

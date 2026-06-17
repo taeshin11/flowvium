@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4M",
     "korPeriod13w": "13M",
     "korPeriodDesc": "Akumulasi pembelian bersih asing/inst. selama {days} hari perdagangan",
-    "koreaFallback": "Hanya data perubahan harga (pembelian bersih asing/inst. tidak tersedia)"
+    "koreaFallback": "Hanya data perubahan harga (pembelian bersih asing/inst. tidak tersedia)",
+    "krInsiderTitle": "Pelaporan Eksekutif & Pemegang Saham Utama (DART)",
+    "krInsiderNote": "60 hari terakhir · perubahan efek eksekutif/pemegang saham utama + kepemilikan 5%",
+    "krFiledAt": "Tanggal",
+    "krKind": "Jenis",
+    "krReporter": "Pelapor",
+    "krDirection": "Sisi",
+    "krDelta": "Perubahan",
+    "krRatio": "%",
+    "krKindMajor": "Besar",
+    "krKindInsider": "Eksekutif",
+    "krBuy": "Beli",
+    "krSell": "Jual",
+    "krFlat": "Tetap"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "Sdkt akun",
     "alertCat_caution": "Perhatian",
     "alertCat_warning": "Peringatan",
-    "alertCat_risk": "Bahaya"
+    "alertCat_risk": "Bahaya",
+    "topAccumUsSubtitle": "Tanda akumulasi berbasis volume sebelum lonjakan (AS, hanya pengamatan)",
+    "accumUsNote": "Screener AS — volume abnormal / kontraksi volatilitas / kekuatan penutupan (tanpa verifikasi silang KRX) · untuk pengamatan"
   },
   "short": {
     "title": "Short Selling · Short Squeeze",

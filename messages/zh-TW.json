@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4週",
     "korPeriod13w": "13週",
     "korPeriodDesc": "{days}個交易日外資·法人淨買入累計",
-    "koreaFallback": "僅提供價格變動數據（外資·法人淨買入不可用）"
+    "koreaFallback": "僅提供價格變動數據（外資·法人淨買入不可用）",
+    "krInsiderTitle": "高管·主要股東持股揭露（DART）",
+    "krInsiderNote": "近60天 · 高管/主要股東特定證券持股變動 + 大量持股（5%規則）",
+    "krFiledAt": "揭露日",
+    "krKind": "類別",
+    "krReporter": "申報人",
+    "krDirection": "方向",
+    "krDelta": "增減",
+    "krRatio": "持股%",
+    "krKindMajor": "大量持股",
+    "krKindInsider": "高管",
+    "krBuy": "買進",
+    "krSell": "賣出",
+    "krFlat": "變動"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "少數帳戶",
     "alertCat_caution": "投資注意",
     "alertCat_warning": "投資警告",
-    "alertCat_risk": "投資危險"
+    "alertCat_risk": "投資危險",
+    "topAccumUsSubtitle": "暴漲前基於成交量的吸籌先行訊號（美股·僅觀察·非推薦）",
+    "accumUsNote": "美股篩選器 — 成交量激增·波動率收縮·收盤強度（無KRX少數帳戶交叉驗證）·僅供觀察"
   },
   "short": {
     "title": "放空 · 軋空",

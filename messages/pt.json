@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4S",
     "korPeriod13w": "13S",
     "korPeriodDesc": "Compra líquida acumulada estrang./inst. em {days} dias úteis",
-    "koreaFallback": "Apenas variação de preço (compra líquida estrang./inst. indisponível)"
+    "koreaFallback": "Apenas variação de preço (compra líquida estrang./inst. indisponível)",
+    "krInsiderTitle": "Declarações de executivos e grandes acionistas (DART)",
+    "krInsiderNote": "Últimos 60 dias · mudanças de valores de executivos/grandes acionistas + participações de 5%",
+    "krFiledAt": "Data",
+    "krKind": "Tipo",
+    "krReporter": "Declarante",
+    "krDirection": "Lado",
+    "krDelta": "Variação",
+    "krRatio": "%",
+    "krKindMajor": "Maior",
+    "krKindInsider": "Executivo",
+    "krBuy": "Compra",
+    "krSell": "Venda",
+    "krFlat": "Estável"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "Poucas ctas",
     "alertCat_caution": "Cautela",
     "alertCat_warning": "Aviso",
-    "alertCat_risk": "Perigo"
+    "alertCat_risk": "Perigo",
+    "topAccumUsSubtitle": "Sinais de acumulação por volume antes de uma alta (EUA, apenas observação)",
+    "accumUsNote": "Screener dos EUA — volume anômalo / contração de volatilidade / força de fechamento (sem verificação cruzada KRX) · para observação"
   },
   "short": {
     "title": "Venda a descoberto · Squeeze",

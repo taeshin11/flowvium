@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4T",
     "korPeriod13w": "13T",
     "korPeriodDesc": "Mua ròng tích lũy nước ngoài/tổ chức trong {days} ngày giao dịch",
-    "koreaFallback": "Chỉ dữ liệu biến động giá (mua ròng nước ngoài/tổ chức không có sẵn)"
+    "koreaFallback": "Chỉ dữ liệu biến động giá (mua ròng nước ngoài/tổ chức không có sẵn)",
+    "krInsiderTitle": "Công bố lãnh đạo & cổ đông lớn (DART)",
+    "krInsiderNote": "60 ngày gần nhất · thay đổi chứng khoán lãnh đạo/cổ đông lớn + sở hữu 5%",
+    "krFiledAt": "Ngày",
+    "krKind": "Loại",
+    "krReporter": "Người báo cáo",
+    "krDirection": "Phía",
+    "krDelta": "Thay đổi",
+    "krRatio": "Tỷ lệ%",
+    "krKindMajor": "Lớn",
+    "krKindInsider": "Lãnh đạo",
+    "krBuy": "Mua",
+    "krSell": "Bán",
+    "krFlat": "Đứng"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "Ít TK",
     "alertCat_caution": "Lưu ý",
     "alertCat_warning": "Cảnh báo",
-    "alertCat_risk": "Nguy hiểm"
+    "alertCat_risk": "Nguy hiểm",
+    "topAccumUsSubtitle": "Dấu hiệu gom hàng dựa trên khối lượng trước khi tăng (Mỹ, chỉ theo dõi)",
+    "accumUsNote": "Bộ lọc Mỹ — khối lượng bất thường / co cụm biến động / sức mạnh giá đóng cửa (không đối chiếu KRX) · để theo dõi"
   },
   "short": {
     "title": "Bán khống · Short Squeeze",

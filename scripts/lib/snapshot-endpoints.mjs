@@ -67,6 +67,9 @@ export const TRACKED_ENDPOINTS = [
   '/api/market-alerts',
   // 2026-06-14: 작전주 매집 워치리스트(오르기 前) — DB 시계열 적재.
   '/api/accumulation-watch',
+  // 2026-06-17: US 작전주 매집(거래량 기반) + KR 임원·주요주주 지분공시 피드 — DB 시계열 적재.
+  '/api/accumulation-watch?market=us',
+  '/api/insider-kr',
 ];
 
 async function fetchOne(baseUrl, path, timeoutMs = 12000) {

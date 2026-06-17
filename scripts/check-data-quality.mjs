@@ -45,6 +45,8 @@ const ENDPOINTS = [
   '/api/company-financials/AAPL', '/api/company-financials/TSM', '/api/company-kr/005930',
   '/api/fear-greed', '/api/sector-pe', '/api/commodity-curve', '/api/news-cascade?locale=ko',
   '/api/yield-curve', '/api/economic-calendar',
+  // 2026-06-17: KR 내부자 지분공시(DART) + US 작전주 매집(거래량) 신규 엔드포인트
+  '/api/insider-kr/005930', '/api/insider-kr', '/api/accumulation-watch?market=us',
 ];
 
 async function main() {

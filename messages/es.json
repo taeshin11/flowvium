@@ -1411,7 +1411,20 @@
     "korPeriod4w": "4S",
     "korPeriod13w": "13S",
     "korPeriodDesc": "Compra neta acumulada extranjera/inst. en {days} días hábiles",
-    "koreaFallback": "Solo variación de precio (compra neta extranjera/inst. no disponible)"
+    "koreaFallback": "Solo variación de precio (compra neta extranjera/inst. no disponible)",
+    "krInsiderTitle": "Reportes de directivos y grandes accionistas (DART)",
+    "krInsiderNote": "Últimos 60 días · cambios de valores de directivos/grandes accionistas + tenencias del 5%",
+    "krFiledAt": "Fecha",
+    "krKind": "Tipo",
+    "krReporter": "Declarante",
+    "krDirection": "Lado",
+    "krDelta": "Cambio",
+    "krRatio": "%",
+    "krKindMajor": "Mayor",
+    "krKindInsider": "Directivo",
+    "krBuy": "Compra",
+    "krSell": "Venta",
+    "krFlat": "Sin cambio"
   },
   "supply": {
     "tab": {
@@ -1764,7 +1777,9 @@
     "fewAccountBadge": "Pocas ctas",
     "alertCat_caution": "Precaución",
     "alertCat_warning": "Advertencia",
-    "alertCat_risk": "Peligro"
+    "alertCat_risk": "Peligro",
+    "topAccumUsSubtitle": "Señales de acumulación por volumen antes de una subida (EE. UU., solo observación)",
+    "accumUsNote": "Screener de EE. UU. — volumen anómalo / contracción de volatilidad / fuerza de cierre (sin verificación cruzada KRX) · para observación"
   },
   "short": {
     "title": "Ventas en corto · Squeeze",
