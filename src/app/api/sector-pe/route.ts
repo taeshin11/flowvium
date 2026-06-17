@@ -41,11 +41,13 @@ export interface SectorPEEntry {
   changePct: number | null;
   high52: number | null;
   low52: number | null;
+  peSource?: 'live' | 'static' | 'none'; // 2026-06-17 전수조사 #7: trailingPE 출처 (live fetch vs 하드코딩)
 }
 
 export interface SectorPEPayload {
   sectors: SectorPEEntry[];
   updatedAt: string;
+  source?: 'live' | 'mixed' | 'static'; // 2026-06-17 전수조사 #7: 전체 fundamentals 출처 (CLAUDE.md 정적폴백 규칙)
   cached?: boolean;
 }
 
@@ -172,6 +174,8 @@ async function fetchSectorEntry(
     ytdReturn: null, totalAssets: staticFundamentals?.totalAssets ?? null,
     beta3Year: staticFundamentals?.beta3Year ?? null,
     price: null, changePct: null, high52: null, low52: null,
+    // 전수조사 #7: 기본은 static(하드코딩 fundamentals 사용) — live fetch 성공 시 아래에서 'live' 로 승격.
+    peSource: staticFundamentals?.trailingPE != null ? 'static' : 'none',
   };
 
   try {
@@ -218,7 +222,7 @@ async function fetchSectorEntry(
     // Apply dynamic fundamentals (override static fallback if fetch succeeded)
     if (fundRes.status === 'fulfilled') {
       const f = fundRes.value;
-      if (f.trailingPE != null) base.trailingPE = parseFloat(f.trailingPE.toFixed(2));
+      if (f.trailingPE != null) { base.trailingPE = parseFloat(f.trailingPE.toFixed(2)); base.peSource = 'live'; } // 전수조사 #7: live fetch 성공 → 승격
       if (f.dividendYield != null) base.dividendYield = f.dividendYield;
       if (f.totalAssets != null) base.totalAssets = f.totalAssets;
       if (f.beta3Year != null) base.beta3Year = f.beta3Year;
@@ -259,7 +263,12 @@ export async function GET(req: Request) {
     .map(r => r.status === 'fulfilled' ? r.value : null)
     .filter((v): v is SectorPEEntry => v != null);
 
-  const payload: SectorPEPayload = { sectors, updatedAt: new Date().toISOString() };
+  // 전수조사 #7: fundamentals 출처 집계 — 하나라도 static(하드코딩 PE) 서빙 중이면 mixed/static 로 표기.
+  const liveCount = sectors.filter(s => s.peSource === 'live').length;
+  const source: 'live' | 'mixed' | 'static' = sectors.every(s => s.peSource !== 'static')
+    ? (liveCount > 0 ? 'live' : 'static') // static 항목 0개: live 있으면 live, 전무하면(전부 none) static 취급
+    : (liveCount > 0 ? 'mixed' : 'static');
+  const payload: SectorPEPayload = { sectors, updatedAt: new Date().toISOString(), source };
 
   if (sectors.length > 0) {
     await loggedRedisSet(redis, 'api.sector-pe', CACHE_KEY, payload, { ex: CACHE_TTL });

@@ -246,14 +246,23 @@ for (const r of latestStatus) {
   const bodyOk = !_isTopLevelErr(r.response_json);
   latestOk.set(r.endpoint, { httpOk, bodyOk });
 }
+// 2026-06-17 전수조사 #10: 최근 24h 실패 횟수 — '최근 1 스냅샷만 ok' 회복판정이 '매 세션 실패하다 마지막만
+//   ok' 인 flapping 라우트를 warn 으로 가리던 escape 차단. 24h 내 2회+ 실패면 회복 아님(err 유지).
+const recentFail24 = new Map();
+for (const r of db.prepare(`SELECT endpoint, COUNT(*) c FROM endpoint_snapshots WHERE captured_at >= datetime('now','-1 day') AND (http_status < 200 OR http_status >= 300) GROUP BY endpoint`).all()) {
+  recentFail24.set(r.endpoint, r.c);
+}
 for (const [ep, s] of epStatus) {
   if (s.total < 3) continue; // 표본 부족
   const errPct = ((s.err4 + s.err5) / s.total) * 100;
-  const recovered = latestOk.get(ep)?.httpOk === true; // 최근 스냅샷 ok = 회복
+  const latestHttpOk = latestOk.get(ep)?.httpOk === true;
+  const fail24 = recentFail24.get(ep) ?? 0;
+  const recovered = latestHttpOk && fail24 < 2; // 회복 = 최근 ok + 24h 내 반복실패 없음 (flapping 제외)
   if (errPct >= 50 && !recovered) {
-    err(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — 라우트 죽음 의심`);
+    const reason = latestHttpOk ? `최근 24h ${fail24}회 실패 (flapping — 마지막만 ok)` : '라우트 죽음 의심';
+    err(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — ${reason}`);
   } else if (errPct >= 50 && recovered) {
-    warn(`${(ep ?? '?').padEnd(40)} 7일 ${errPct.toFixed(0)}% 실패였으나 최근 스냅샷 ok — 회복(과거 실패 aging out)`);
+    warn(`${(ep ?? '?').padEnd(40)} 7일 ${errPct.toFixed(0)}% 실패였으나 최근 스냅샷 ok + 24h 안정 — 회복(과거 실패 aging out)`);
   } else if (errPct >= 20) {
     warn(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패)`);
   }
@@ -329,6 +338,9 @@ for (const r of recentReports) {
 }
 if (problemReports >= 2) {
   err(`portfolio↔snapshot mismatch: ${problemReports}/${recentReports.length} 보고서, 합산 ${totalSnapshotted}/${totalExpected} ticker (snapshot-endpoints.mjs 의 portfolioTickers 옵션 전달 점검)`);
+} else if (problemReports === 1) {
+  // 2026-06-17 전수조사 #10: 단일 보고서 누락이 기존엔 ≥2 게이트라 silent ok 로 묻혔다 → warn 으로 표면화.
+  warn(`portfolio↔snapshot mismatch: 1/${recentReports.length} 보고서 누락, 합산 ${totalSnapshotted}/${totalExpected} ticker (단일 — 추세 추적)`);
 } else if (totalExpected > 0) {
   ok(`portfolio↔snapshot 정합성: ${totalSnapshotted}/${totalExpected} ticker (${recentReports.length} 보고서)`);
 }
@@ -505,8 +517,22 @@ try {
   const pool = JSON.parse(fs.readFileSync(path.resolve('data/candidate-tickers.json'), 'utf8'));
   const us = pool.tickers.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ'));
   const kr = pool.tickers.filter(t => t.endsWith('.KS') || t.endsWith('.KQ'));
-  const usSample = us.sort(() => Math.random() - 0.5).slice(0, 6);
-  const krSample = kr.sort(() => Math.random() - 0.5).slice(0, 6);
+  // 2026-06-17 전수조사 #9: 6+6 랜덤 셔플 → 결정론적 회전. 랜덤은 매 audit 다른 6+6만 봐서 나머지 ~1300
+  //   종목이 영구히 안 잡히던 사각지대. 커서 persist → 매 실행 다음 슬라이스 → 전 종목 순차 1순회.
+  const CURSOR_F = 'logs/coverage-probe10-cursor.json';
+  let cur = {};
+  try { if (fs.existsSync(CURSOR_F)) cur = JSON.parse(fs.readFileSync(CURSOR_F, 'utf8')); } catch { /* 최초 */ }
+  const rot = (arr, n, key) => {
+    if (n >= arr.length) return [...arr];
+    const start = (((cur[key] ?? 0) % arr.length) + arr.length) % arr.length;
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(arr[(start + i) % arr.length]);
+    cur[key] = (start + n) % arr.length;
+    return out;
+  };
+  const usSample = rot(us, 6, 'us');
+  const krSample = rot(kr, 6, 'kr');
+  try { fs.writeFileSync(CURSOR_F, JSON.stringify(cur)); } catch { /* */ }
   const base = 'https://flowvium.net';
 
   async function probe(url, validator) {

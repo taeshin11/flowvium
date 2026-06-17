@@ -1349,6 +1349,21 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
       // signal 별 source 가 섞여 있음 — top-level 'mixed' 또는 'live' 모두 OK
       okSources: ['live', 'mixed'], degradedSources: ['static'],
     },
+    {
+      // 2026-06-17 전수조사 #8: fedwatch 는 route 가 source 를 내보내는데(실시간 vs 정적컨센서스) probe 가
+      //   없어 full-static 폴백을 못 잡던 사각지대. live='…실시간', static fallback='…기반 시장 컨센서스'.
+      path: '/api/fedwatch', key: 'accuracy.fedwatch.source',
+      label: 'FedWatch source (Yahoo ZQ 실시간)',
+      okSources: ['Yahoo Finance ZQ Futures 실시간'],
+      degradedSources: ['Yahoo Finance ZQ Futures 기반 시장 컨센서스'],
+    },
+    {
+      // 2026-06-17 전수조사 #7: sector-pe 정적폴백 준수 — route 에 source 신설(live/mixed/static).
+      //   static=전 종목 하드코딩 P/E 를 라이브처럼 서빙 → error. mixed=일부 라이브 → degraded.
+      path: '/api/sector-pe', key: 'accuracy.sector-pe.source',
+      label: 'Sector P/E source (Yahoo fundamentals live)',
+      okSources: ['live'], degradedSources: ['mixed'],
+    },
   ];
 
   for (const probe of sourceProbes) {

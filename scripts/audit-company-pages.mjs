@@ -13,7 +13,7 @@
  *   - empty: 200 응답 but data 비어있음
  *   - error: HTTP 4XX/5XX 또는 body 에 error 필드
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const BASE = process.env.AUDIT_BASE ?? 'https://flowvium.net';
 const TIMEOUT = 30000;  // DART API 가 ~15-20s 소요 — 12s 부족
@@ -29,16 +29,28 @@ const arg = process.argv[2];
 const FULL = !arg || arg === 'full' || (parseInt(arg, 10) >= POOL);
 const SAMPLE_SIZE = FULL ? POOL : parseInt(arg, 10);
 
-function pick(arr, n) {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, n);
+// 2026-06-17 전수조사 #9: 표본을 '랜덤'→'결정론적 회전'으로. 랜덤 셔플(Math.random)은 매 실행 다른 N개만
+//   봐서 나머지 ~1300 종목이 영구히 안 잡히는 사각지대였다. 커서를 persist 해 매 실행이 '다음' 슬라이스를
+//   순차 검사 → ceil(POOL/N) 회 안에 전 종목 1순회(영구 사각 제거). FULL(전수)은 종전대로.
+const CURSOR_FILE = 'logs/company-pages-cursor.json';
+let cursor = {};
+try { if (existsSync(CURSOR_FILE)) cursor = JSON.parse(readFileSync(CURSOR_FILE, 'utf8')); } catch { /* 최초 */ }
+function rotate(arr, n, key) {
+  if (n >= arr.length) return [...arr];
+  const start = (((cursor[key] ?? 0) % arr.length) + arr.length) % arr.length;
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(arr[(start + i) % arr.length]);
+  cursor[key] = (start + n) % arr.length; // 다음 실행 시작점
+  return out;
 }
-const usSample = FULL ? us : pick(us, Math.ceil(SAMPLE_SIZE / 2));
-const krSample = FULL ? kr : pick(kr, Math.floor(SAMPLE_SIZE / 2));
+const usStart = cursor.us ?? 0, krStart = cursor.kr ?? 0;
+const usSample = FULL ? us : rotate(us, Math.ceil(SAMPLE_SIZE / 2), 'us');
+const krSample = FULL ? kr : rotate(kr, Math.floor(SAMPLE_SIZE / 2), 'kr');
+if (!FULL) { try { writeFileSync(CURSOR_FILE, JSON.stringify(cursor)); } catch { /* */ } }
 const auditedN = usSample.length + krSample.length;
 const SCOPE = FULL
   ? `전수 ${POOL} 종목 (US ${us.length} + KR ${kr.length})`
-  : `⚠️ 표본 ${auditedN} of ${POOL} (${Math.round(auditedN / POOL * 100)}% — 전수 아님, 전수는 인자 'full')`;
+  : `🔄 회전표본 ${auditedN}/${POOL} (US@${usStart} KR@${krStart} → 다음 us=${cursor.us},kr=${cursor.kr}; 약 ${Math.ceil(POOL / auditedN)}회 1순회)`;
 
 console.log(`\n═══════════════════════════════════════════════════════════`);
 console.log(`  Company pages audit — ${SCOPE}`);
