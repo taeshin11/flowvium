@@ -489,6 +489,13 @@
     "roePct": 30.6,
     "fy": "2025"
   },
+  "PAYX": {
+    "revUsd": 5410000000,
+    "revYoYPct": 5.4,
+    "opMarginPct": 40.8,
+    "roePct": null,
+    "fy": "2025"
+  },
   "VEEV": {
     "revUsd": 3195311000,
     "revYoYPct": 16.3,
