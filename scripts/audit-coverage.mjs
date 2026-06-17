@@ -621,10 +621,12 @@ try {
     }
     // 학습 효과: 같은 (ticker,type) 의 detect 가 inject 후 줄어드는지
     // 2026-05-31: severity escalate — 3회 ⚠️ / 5회 ❌ critical (data source 결함 의심, 코드 fix 필요)
+    // 2026-06-17: harness_* (harness 가 잡아 학습용 적재, 사각지대#5) 는 critical 게이트에서 제외 —
+    //   harness 가 처리 중인 패턴이라 "코드 fix 필수" 오발 방지. verify-escaped 재발만 critical.
     const repeat = db.prepare(`
       SELECT ticker, defect_type, COUNT(*) repeat_count
       FROM hallucination_history
-      WHERE detected_at >= datetime('now','-7 days') AND ticker IS NOT NULL
+      WHERE detected_at >= datetime('now','-7 days') AND ticker IS NOT NULL AND defect_type NOT LIKE 'harness_%'
       GROUP BY ticker, defect_type HAVING repeat_count >= 3 ORDER BY repeat_count DESC LIMIT 10
     `).all();
     const critical = repeat.filter(r => r.repeat_count >= 5);

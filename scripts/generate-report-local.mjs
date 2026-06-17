@@ -198,6 +198,24 @@ function krTickerToName(report) {
   }
   return n;
 }
+
+// 2026-06-17 (사용자가 글씨 정독해 catch한 "KOSPI 8,864" 환각, 재발): ^KS11 피드는 KOSPI/KOSDAQ *절대*
+//   지수레벨을 공급 안 함 → 내러티브의 "KOSPI 8,864"류 콤마형 절대값은 100% 환각(모델이 train-memory/앵커링
+//   으로 같은 8,864 반복 생성. 프롬프트 가드·anti-pattern 으론 stochastic — 결정론 strip 이 유일 보장).
+//   krTickerToName 패턴 동일: 발간 前 강제 제거 → 게이트가 매 보고서 차단(=발간 0)되는 것 방지.
+//   콤마형(N,NNN)만 strip(상대표현 "200일선"·연도 미매치). 지수명만 남겨 문장 유지("KOSPI 8,864 횡보"→"KOSPI 횡보").
+function stripFabricatedIndexLevels(report) {
+  let n = 0;
+  const RE = /(KOSPI|코스피|KOSDAQ|코스닥)\s*[0-9]{1,2},[0-9]{3}/g;
+  const fix = (s) => (typeof s === 'string' ? s.replace(RE, (_m, idx) => { n++; return idx; }) : s);
+  for (const f of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis', 'topOpportunity', 'hedgingSuggestion', 'portfolioRiskNote']) {
+    if (report[f]) report[f] = fix(report[f]);
+  }
+  if (report.marketNarrative && typeof report.marketNarrative === 'object') {
+    for (const f of ['why', 'story', 'watch', 'sessionNote']) if (report.marketNarrative[f]) report.marketNarrative[f] = fix(report.marketNarrative[f]);
+  }
+  return n;
+}
 // 2026-06-14: 자유 텍스트 안의 KR ticker(\d{6}.KS/.KQ)도 회사명으로 — 사용자 "ks종목 이름으로 안나오지?"
 //   (whyMatters/summary 등 산문에 ticker 가 박혀 나오던 사각지대. krDisplay 는 단일 토큰 전용이라 누락됐음.)
 function krText(str) {
@@ -3125,17 +3143,22 @@ async function buildIndexLevelsBlock() {
   ];
   const results = await Promise.all(specs.map(([, sym]) => fetchLast2(sym)));
   const parts = [];
+  const missing = [];   // 2026-06-17: 결측 지수 — silent omit 대신 *명시적 금지*로 환각 차단
   const map = {};  // 2026-06-16: 구조화 등락% — narrative-fix 가 내러티브 지수등락 환각 대조에 사용
   for (let i = 0; i < specs.length; i++) {
     const r = results[i];
-    if (!r) continue;  // 결측 지수는 생략 — 절대 창작 금지
     const [label, , dec] = specs[i];
+    if (!r) { missing.push(label); continue; }  // 결측 지수
     const lvl = r.cur.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
     const chg = r.chgPct != null ? ` (${r.chgPct >= 0 ? '+' : ''}${r.chgPct.toFixed(1)}%)` : '';
     parts.push(`${label} ${lvl}${chg}`);
     if (r.chgPct != null) map[label] = r.chgPct;
   }
-  return { text: parts.length ? parts.join(', ') : '', map };
+  let text = parts.length ? parts.join(', ') : '';
+  // 2026-06-17 (사용자가 글씨 정독해 catch한 "KOSPI 8,864" 환각): ^KS11 등 결측 지수를 그냥 생략하면 3B 가
+  //   기억기반 절대값을 창작(8,864). silent omit < 명시적 negative 지시. 결측 지수는 절대 레벨 금지를 못박는다.
+  if (missing.length) text += `${text ? ' | ' : ''}⚠️ ${missing.join('/')} 절대 지수레벨 미가용(데이터 없음) — 이 지수들의 *절대 포인트 숫자를 절대 적지 말 것*(콤마형 레벨 금지). 오직 상대지표(전일대비%·200일선 대비%·20일 변화%·고점대비%)로만 서술하라.`;
+  return { text, map };
 }
 
 // ── 2026-06-12: 종합 판정 엔진 (사용자 "하락 전조·상승 전조·공포 매수·구루 방식·과거 유사상황
@@ -8634,7 +8657,8 @@ async function generateViaOllama() {
     const { nFix: nSan } = sanitizeReport(finalReport);
     const { nFix: nCB } = fixDuplicateCentralBankEvents(finalReport);
     const nKrName = krTickerToName(finalReport); // 2026-06-17: 내러티브 KR 티커코드 → 회사명 (000660.KS→SK하이닉스)
-    if (nSan || nCB || nKrName) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 교정`);
+    const nIdx = stripFabricatedIndexLevels(finalReport); // 2026-06-17: "KOSPI 8,864"류 절대 지수레벨 환각 결정론 제거(피드 미공급)
+    if (nSan || nCB || nKrName || nIdx) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 + 지수절대값환각 ${nIdx}건 교정`);
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
 
   // 2026-06-12: 엔진 리뷰 섹션 제거 (사용자 "엔진 리뷰 그냥 넣지 말자 앞으로").
@@ -8818,6 +8842,7 @@ async function generateViaOllama() {
           'flow_valence_contradiction', 'flow_direction_inversion', 'return_as_flow',
           'name_mismatch', 'sector_mismatch', 'sector_keyword_mismatch',
           'latin_garble', 'latin_bleed', 'cjk_bleed',
+          'index_value_fabrication',  // 2026-06-17: KOSPI 8,864 환각(피드 미공급 절대 지수레벨) — 발간 차단
         ]);
         const blocking = defects.filter(d => PUBLISH_BLOCKING.has(d.defect_type));
         if (blocking.length > 0) {
@@ -8827,6 +8852,32 @@ async function generateViaOllama() {
       } else {
         console.log(`[verify-loop] ✅ 결함 0건 — 깨끗`);
       }
+      // 2026-06-17 (health audit 사각지대 #5): harness 가 *silent 교정*한 LLM 실질오류도 학습루프 적재.
+      //   기존: harness 교정→verify 깨끗→0결함→hallucination_history 미적재→다음 prompt anti-pattern 미주입
+      //   →모델이 같은 실수 반복(harness 가 평생 같은 걸 고침). harness 가 실제 잡은 *실질* 오류(이름/가격/레벨/
+      //   통화/강등 환각)를 defect 로 변환 적재 → 모델이 학습. 기계적 정규화(allocSum 반올림·dedup)는 제외.
+      //   defect_type 'harness_*' 접두 → check-stall Karpathy 회귀추세에선 제외(verify-escaped 만 추세 카운트).
+      try {
+        const hf = finalReport.harnessAudit?.fixes ?? {};
+        const TEACH = { krNameMismatch: 'high', usNameMismatch: 'high', companyChangeName: 'high',
+          unrealistic52WRange: 'high', targetBullUnrealistic: 'medium', targetBullInverted: 'high',
+          stopLossAboveEntry: 'high', currencyMismatch: 'high', bannedDowngrade: 'medium',
+          insiderFilingsType: 'medium', actionCritiqueMismatch: 'medium', stopRationaleMismatch: 'low' };
+        const harnessDefects = [];
+        for (const [cat, sev] of Object.entries(TEACH)) {
+          const arr = Array.isArray(hf[cat]) ? hf[cat] : [];
+          for (const item of arr.slice(0, 4)) {
+            const desc = typeof item === 'string' ? item : JSON.stringify(item).slice(0, 80);
+            const tk = (item && typeof item === 'object' && item.ticker) ? String(item.ticker) : 'HARNESS';
+            harnessDefects.push({ ticker: tk, defect_type: `harness_${cat}`, llm_value: desc,
+              correct_value: `harness 가 자동교정함 — 모델이 ${cat} 패턴 반복하지 말 것`, severity: sev });
+          }
+        }
+        if (harnessDefects.length) {
+          saveHallucinationHistory(reportId, harnessDefects);
+          console.log(`[verify-loop] 🔧 harness 실질교정 ${harnessDefects.length}건도 학습루프 적재(사각지대#5 — 모델 반복방지)`);
+        }
+      } catch (e) { console.warn(`[verify-loop] harness 학습적재 실패(비치명): ${String(e).slice(0, 80)}`); }
       // 2026-05-31: cron 후 verify-all 결과 reports/verify-{ts}.json 자동 저장.
       //   사용자: "지금 방법이 최선이니?" — 매 cron 후 종합 dashboard 흔적.
       //   다음 보고서 작성 전 audit-coverage Probe [9] 가 이걸 source 로 학습 추세 추적.

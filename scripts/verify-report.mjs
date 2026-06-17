@@ -756,6 +756,21 @@ export async function verifyReport(file, { silent = false } = {}) {
       log(`  ❌ 라틴garble: ${garble.join(' | ')}`); nFound++;
     }
 
+    // (h) 지수 절대값 환각 — KOSPI/KOSDAQ 절대 지수레벨 명시(2026-06-17 사용자가 글씨 정독해 catch한
+    //     "KOSPI 8,864" — KOSPI 실값 ~2,500-3,200). 우리 ^KS11 피드는 절대값을 공급 안 함(null/unavailable)
+    //     → 내러티브의 절대 지수레벨은 전부 ungrounded 환각(소스 없는 특정숫자=CLAUDE.md 환각). 상대지표(%·일선)는 정상.
+    //     연도(19xx/20xx)·% ·일선·p 인접은 제외(상대표현/연도라 정상).
+    const idxM = fullNarr.match(/(KOSPI|코스피|KOSDAQ|코스닥)\s*([0-9]{1,2},[0-9]{3}|[0-9]{4})(?!\s*(일|%|p\b|년|pt|선))/);
+    if (idxM) {
+      const num = parseInt(idxM[2].replace(/,/g, ''), 10);
+      if (num >= 1000 && !(num >= 1990 && num <= 2099)) {  // 지수레벨(연도 제외)
+        defects.push({ ticker: 'NARRATIVE', defect_type: 'index_value_fabrication',
+          llm_value: `"${idxM[0]}" — 지수 절대레벨(^KS11 피드 null=ungrounded 환각)`,
+          correct_value: '우리 데이터엔 KOSPI/KOSDAQ 절대값 없음 → 상대지표(200일선 대비%·20일변화%·고점대비%)만 사용. 절대 지수레벨 명시 금지.', severity: 'high' });
+        log(`  ❌ 지수값환각: "${idxM[0]}"`); nFound++;
+      }
+    }
+
     if (!nFound) log('  ✅ 내러티브 그라운딩 이상 없음');
   }
 

@@ -43,8 +43,10 @@ function checkOnce() {
   }
 
   // [4] Karpathy 추세 — 최근 3 vs 직전 3 환각 평균
+  // 2026-06-17: harness_* (harness 가 잡은 교정 — 학습용 적재, 사각지대#5) 는 회귀추세에서 제외.
+  //   추세는 *verify-escaped*(harness 도 못 잡은) 환각만 측정해야 — harness 가 잡는 건 파이프라인이 처리 중.
   const recent = db.prepare(`
-    SELECT (SELECT COUNT(*) FROM hallucination_history WHERE report_id=reports.id) h
+    SELECT (SELECT COUNT(*) FROM hallucination_history WHERE report_id=reports.id AND defect_type NOT LIKE 'harness_%') h
     FROM reports ORDER BY generated_at DESC LIMIT 6
   `).all().map(r => r.h);
   if (recent.length >= 6) {
