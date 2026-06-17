@@ -7961,9 +7961,17 @@ async function generateViaOllama() {
   //   LLM 이 *이미 끝난* 회의를 "N월 FOMC 동결 기대/전망/예상"(미래형)으로 오기(프롬프트로 안 잡힘, 실측).
   //   현재(KST) 월 이하의 FOMC 는 발생한 것 → 기대/전망/예상/예정 수식어 strip. 미래 월(예: 7월)은 유지.
   const nowMonthKST = new Date(Date.now() + 9 * 3600000).getUTCMonth() + 1;
-  const fixFomcTense = (text) => (text || '').replace(
-    /([0-9]{1,2})월\s*FOMC([^.]{0,30}?)(동결|인상|인하)\s*(기대|전망|예상|예정)/g,
-    (m, mon, mid, dir) => Number(mon) <= nowMonthKST ? `${mon}월 FOMC${mid}${dir}` : m);
+  const fixFomcTense = (text) => {
+    let s = text || '';
+    // (1) 월-인식: 지난 달(보고서 월 이하) FOMC 의 기대/전망/예상/예정 strip (미래 월은 유지).
+    s = s.replace(/([0-9]{1,2})월\s*FOMC([^.]{0,30}?)(동결|인상|인하)(?:을|를)?\s*(기대|전망|예상|예정)/g,
+      (m, mon, mid, dir) => Number(mon) <= nowMonthKST ? `${mon}월 FOMC${mid}${dir}` : m);
+    // (2) 2026-06-18 사용자 2회 지적: "연준의 금리 동결 기대" 처럼 월/FOMC 키워드 없는 표현 잔존.
+    //   직전 FOMC 완료(데이터=현재 기준금리 설정/next FOMC 미래)라 연준·금리 맥락의 동결/인상/인하 +
+    //   기대/전망/예상/예정 은 *결과*로 — 수식어 strip. (미래 회의도 base case '동결'로 읽혀 무방.)
+    s = s.replace(/((?:연준|Fed|기준금리|금리)[^.]{0,20}?(?:동결|인상|인하))(?:을|를)?\s*(?:기대|전망|예상|예정)/g, '$1');
+    return s;
+  };
   for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis']) {
     if (finalReport[k]) finalReport[k] = fixFomcTense(fixCpiLabel(finalReport[k]));
   }

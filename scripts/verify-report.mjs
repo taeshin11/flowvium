@@ -281,6 +281,8 @@ export async function verifyReport(file, { silent = false } = {}) {
   let fomcTense = 0;
   const repMonth = repDate ? Number(repDate.slice(5, 7)) : 0;
   const FOMC_TENSE = /([0-9]{1,2})월\s*FOMC[^.]{0,30}?(?:동결|인상|인하)(?:을|를)?\s*(기대|전망|예상|예정)/g;
+  // 연준/금리 맥락(월 미지정 포함)의 동결/인상/인하 + 기대/전망 — "연준의 금리 동결 기대" 류 잔존 탐지.
+  const FED_TENSE = /(?:연준|Fed|기준금리|금리)[^.]{0,20}?(?:동결|인상|인하)(?:을|를)?\s*(기대|전망|예상|예정)/g;
   for (const [field, text] of [['thesis', r.thesis], ['macroAnalysis', r.macroAnalysis]]) {
     if (!text) continue;
     let mm; const re = new RegExp(FOMC_TENSE);
@@ -290,6 +292,12 @@ export async function verifyReport(file, { silent = false } = {}) {
         log(`  ❌ ${field} FOMC 시제 오류 "${mm[0].slice(0, 30)}" (${mm[1]}월 FOMC 는 발생함 — 결과로 서술)`);
         defects.push({ ticker: field, defect_type: 'fomc_stale_tense', llm_value: mm[0].slice(0, 40), correct_value: '발생한 FOMC 는 동결/인상/인하 *결과*로 서술 (기대/전망 금지)', severity: 'medium' });
       }
+    }
+    let fm; const fre = new RegExp(FED_TENSE);
+    while ((fm = fre.exec(String(text)))) {
+      fomcTense++;
+      log(`  ❌ ${field} 연준 시제 오류 "${fm[0].slice(0, 30)}" (직전 FOMC 완료 — 결과로 서술)`);
+      defects.push({ ticker: field, defect_type: 'fomc_stale_tense', llm_value: fm[0].slice(0, 40), correct_value: '연준 금리정책은 발생한 결과로 서술 (동결 기대/전망 금지)', severity: 'medium' });
     }
   }
   if (!fomcTense) log('  ✅ FOMC 시제 정상');
