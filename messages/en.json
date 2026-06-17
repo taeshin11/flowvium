@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "Weak",
     "manipWatchTierStrong": "Strong",
     "breakingTitle": "Breaking — After This Report",
-    "breakingNote": "Market-moving news that broke after this report was generated; fully incorporated in the next scheduled report."
+    "breakingNote": "Market-moving news that broke after this report was generated; fully incorporated in the next scheduled report.",
+    "supplyChainDisclosed": "Disclosed"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

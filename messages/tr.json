@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "Zayıf",
     "manipWatchTierStrong": "Güçlü",
     "breakingTitle": "Son dakika — Bu rapordan sonra",
-    "breakingNote": "Bu rapor oluşturulduktan sonra çıkan piyasayı hareketlendiren haberler; bir sonraki planlı rapora tam olarak yansıtılacak."
+    "breakingNote": "Bu rapor oluşturulduktan sonra çıkan piyasayı hareketlendiren haberler; bir sonraki planlı rapora tam olarak yansıtılacak.",
+    "supplyChainDisclosed": "Açıklandı"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

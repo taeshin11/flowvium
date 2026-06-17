@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "Fraco",
     "manipWatchTierStrong": "Forte",
     "breakingTitle": "Última hora — Após este relatório",
-    "breakingNote": "Notícias que movem o mercado surgidas após a geração deste relatório; serão incorporadas no próximo relatório programado."
+    "breakingNote": "Notícias que movem o mercado surgidas após a geração deste relatório; serão incorporadas no próximo relatório programado.",
+    "supplyChainDisclosed": "Divulgado"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",

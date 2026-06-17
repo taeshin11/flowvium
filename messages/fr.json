@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "Faible",
     "manipWatchTierStrong": "Fort",
     "breakingTitle": "Dernière minute — Après ce rapport",
-    "breakingNote": "Actualités à fort impact survenues après la génération de ce rapport ; intégrées au prochain rapport programmé."
+    "breakingNote": "Actualités à fort impact survenues après la génération de ce rapport ; intégrées au prochain rapport programmé.",
+    "supplyChainDisclosed": "Publié"
   },
   "insider": {
     "title": "Flux en Temps Réel · Activité Interne",

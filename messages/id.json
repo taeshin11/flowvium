@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "Lemah",
     "manipWatchTierStrong": "Kuat",
     "breakingTitle": "Terkini — Setelah Laporan Ini",
-    "breakingNote": "Berita penggerak pasar yang muncul setelah laporan ini dibuat; akan dimasukkan penuh pada laporan terjadwal berikutnya."
+    "breakingNote": "Berita penggerak pasar yang muncul setelah laporan ini dibuat; akan dimasukkan penuh pada laporan terjadwal berikutnya.",
+    "supplyChainDisclosed": "Diumumkan"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

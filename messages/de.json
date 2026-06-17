@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "Schwach",
     "manipWatchTierStrong": "Stark",
     "breakingTitle": "Eilmeldung — Nach diesem Bericht",
-    "breakingNote": "Marktbewegende Nachrichten nach Erstellung dieses Berichts – im nächsten planmäßigen Bericht vollständig berücksichtigt."
+    "breakingNote": "Marktbewegende Nachrichten nach Erstellung dieses Berichts – im nächsten planmäßigen Bericht vollständig berücksichtigt.",
+    "supplyChainDisclosed": "Gemeldet"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

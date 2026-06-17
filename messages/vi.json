@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "Yếu",
     "manipWatchTierStrong": "Mạnh",
     "breakingTitle": "Tin nóng — Sau báo cáo này",
-    "breakingNote": "Tin tức tác động thị trường xuất hiện sau khi tạo báo cáo này; sẽ được đưa đầy đủ vào báo cáo định kỳ tiếp theo."
+    "breakingNote": "Tin tức tác động thị trường xuất hiện sau khi tạo báo cáo này; sẽ được đưa đầy đủ vào báo cáo định kỳ tiếp theo.",
+    "supplyChainDisclosed": "Công bố"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

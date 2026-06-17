@@ -8330,6 +8330,11 @@ async function generateViaOllama() {
 
   console.log('\n[6/7] 품질 게이트 검사...');
   const { ok, issues, score } = qualityCheck(finalReport);
+  // 2026-06-17 (사용자 "올리기 前에 미리 문제 해결 못했니"): 발간 前 critical 결함 게이트.
+  //   verify-report 가 발간 *직전* 돌지만 결함을 학습루프에만 적재하고 발간은 그대로 진행했음 →
+  //   사용자 가시 semantic 결함(valence/회사명·섹터 환각/flow 역전/garble)이 라이브로 나간 뒤 사후 catch.
+  //   아래 verify 블록에서 blocklist 결함 감지 시 publishBlockReason 설정 → auto-upload 차단(이전 클린본 유지).
+  let publishBlockReason = null;
   // 2026-05-27: SkillOpt 패턴 — quality_score DB persistence (Codex F#3).
   // 매 보고서 score 가 reports.quality_score 컬럼에 적재 → 다음 보고서 prompt 의
   // [Quality Feedback] 섹션에서 활용 (getRecentQualityScores → buildPortfolioPrompt).
@@ -8807,6 +8812,18 @@ async function generateViaOllama() {
         console.log(`[verify-loop] 🎯 결함 ${defects.length}건 detect → hallucination_history ${n}건 적재 (다음 보고서 prompt 에 inject 예정)`);
         const bySev = defects.reduce((m, d) => { m[d.severity] = (m[d.severity] ?? 0) + 1; return m; }, {});
         console.log(`[verify-loop] 분포: ${Object.entries(bySev).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+        // 2026-06-17 발간 前 게이트: 사용자 가시 *semantic* 결함만 차단(숫자 환각은 harness 가 교정·과차단 방지).
+        //   valence/flow 역전/return-as-flow/회사명·섹터 환각/라틴·CJK garble = "보고서가 틀린 말을 함" 클래스.
+        const PUBLISH_BLOCKING = new Set([
+          'flow_valence_contradiction', 'flow_direction_inversion', 'return_as_flow',
+          'name_mismatch', 'sector_mismatch', 'sector_keyword_mismatch',
+          'latin_garble', 'latin_bleed', 'cjk_bleed',
+        ]);
+        const blocking = defects.filter(d => PUBLISH_BLOCKING.has(d.defect_type));
+        if (blocking.length > 0) {
+          publishBlockReason = `${blocking.length}건 [${[...new Set(blocking.map(d => d.defect_type))].join(', ')}]`;
+          console.error(`[pre-publish gate] 🚫 발간 차단 결함 ${publishBlockReason} — 자동 발간 중단(이전 클린본 유지), 학습루프 적재됨`);
+        }
       } else {
         console.log(`[verify-loop] ✅ 결함 0건 — 깨끗`);
       }
@@ -8848,6 +8865,15 @@ async function generateViaOllama() {
   if (!ok) {
     console.log('\n❌ 품질 불합격 — 자동 업로드 건너뜀.');
     console.log(`   파일을 검토 후: node scripts/generate-report-local.mjs --upload=reports/${filename}`);
+    return;
+  }
+
+  // 2026-06-17 발간 前 critical 결함 게이트 — 사용자 가시 semantic 결함이면 자동 발간 차단(이전 클린본 유지).
+  //   fail-open: publishBlockReason 은 명시적으로 설정될 때만 차단(게이트 로직 throw 시 기본 null=발간 허용).
+  if (autoUpload && publishBlockReason) {
+    console.error(`\n🚫 발간 차단 (pre-publish gate) — critical 결함 ${publishBlockReason}.`);
+    console.error('   이전 세션 클린 보고서 유지. 결함은 hallucination_history 적재 → 다음 보고서 prompt 자동 교정.');
+    console.error(`   수동 검토/재발간: node scripts/generate-report-local.mjs --upload=reports/${filename}`);
     return;
   }
 

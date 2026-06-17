@@ -1338,7 +1338,8 @@
     "manipWatchTierWatch": "弱信号",
     "manipWatchTierStrong": "强信号",
     "breakingTitle": "突发 — 报告发布之后",
-    "breakingNote": "本报告生成后发生的影响市场的新闻 — 将在下一份定期报告中正式纳入。"
+    "breakingNote": "本报告生成后发生的影响市场的新闻 — 将在下一份定期报告中正式纳入。",
+    "supplyChainDisclosed": "披露"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

@@ -87,6 +87,14 @@ function fmtSignalDate(d?: string): string {
   return d;
 }
 
+// 전체 공시일 (연도 포함) — 툴팁/접근성용. 2026-06-17.
+function fmtFullDate(d?: string): string {
+  if (!d) return '';
+  if (/^\d{8}$/.test(d)) return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  if (d.includes('T')) return d.split('T')[0];
+  return d;
+}
+
 function parseEntryZone(zone: string): { lower: number | null; upper: number | null } {
   const rangeMatch = zone.match(/\$?([\d,]+(?:\.\d+)?)\s*[-–]\s*\$?([\d,]+(?:\.\d+)?)/);
   if (rangeMatch) {
@@ -1461,7 +1469,8 @@ export default function ReportPage() {
                         <span className="text-[10px] font-normal opacity-60 font-mono">{s.ticker}</span>
                         <span className="text-[10px] opacity-70">{dirIcon} {s.direction}</span>
                         <span className="text-[10px] opacity-60 bg-white/60 rounded px-1">{s.source}</span>
-                        {s.date && <span className="text-[10px] opacity-60 font-mono">{fmtSignalDate(s.date)}</span>}
+                        {/* 2026-06-17 (사용자 "언제 공시됐는지 날짜도"): DART 접수일자(rcept_dt)=실제 공시일. 라벨 명시(모바일=툴팁 불가). */}
+                        {s.date && <span className="text-[10px] opacity-70 font-mono" title={fmtFullDate(s.date)}>📅 {t('supplyChainDisclosed')} {fmtSignalDate(s.date)}</span>}
                         <span className="text-[10px] opacity-60">신뢰도 {s.conviction}</span>
                       </div>
                       {/* 2026-06-06: 평이 설명 우선, 원문 공시제목은 작게(증빙) */}
