@@ -52,7 +52,7 @@ async function rateLimited(redis: ReturnType<typeof createRedis>, ip: string): P
   } catch { return false; }
 }
 
-async function fetchReportContext(origin: string, locale: string, tickers: string[]): Promise<string> {
+async function fetchReportContext(origin: string, locale: string, tickers: string[], opts?: { includeList?: boolean }): Promise<string> {
   try {
     const r = await fetch(`${origin}/api/investment-strategy?locale=${encodeURIComponent(locale)}`, { signal: AbortSignal.timeout(6000), cache: 'no-store' });
     if (!r.ok) return '';
@@ -73,6 +73,13 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
       const inSell = sells.find(s => s.ticker === t);
       if (inSell) lines.push(`· ${t} = 오늘 매도추천: ${inSell.sellType ?? inSell.reason ?? ''} (urgency ${inSell.urgency ?? '?'})`);
     }
+    // 추천/top/뭐 살까 류 질문(특정 종목 미지정) → 오늘 리포트 매수 포트폴리오 전체 목록 노출.
+    if (opts?.includeList && port.length) {
+      lines.push(`\n# 오늘 리포트 매수 포트폴리오 (실제 발행 추천 — 이 목록으로 답하라):`);
+      for (const p of port.slice(0, 14)) {
+        lines.push(`· ${p.ticker}${p.name ? ` (${p.name})` : ''}: ${p.action ?? '매수'}, 비중 ${p.allocation ?? '?'}%, 진입 ${p.entryZone ?? '?'}, 손절 ${p.stopLoss ?? '?'}, 목표 ${p.target ?? '?'}`);
+      }
+    }
     return lines.join('\n');
   } catch { return ''; }
 }
@@ -81,6 +88,8 @@ const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.rol
 
 // 종목질문 패턴 — detectTickers 가 못 잡았을 때 LLM 해석 fallback 발동 조건(하우맷→HWM 사건).
 const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비중|진입|손절|목표가|전망|어때|괜찮|투자\s*해|들어가|담아/;
+// 추천목록 요청 패턴 — 특정 종목이 아니라 "오늘 뭐 살까/top/추천" → 리포트 portfolio 노출(특정종목 해석과 구분).
+const RECO_Q = /추천|top\s*\d|뭐\s*(사|살|매수)|살\s*만한|매수할\s*만한|포트폴리오|portfolio|픽\b|picks?\b|오늘\s*(뭐|종목)/i;
 // 한글 종목명 → 티커 LLM 해석 + Yahoo 검증(환각 티커 차단). 사전 alias 부재(하우맷·엔비디아 등) 보완.
 async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
   try {
@@ -218,18 +227,20 @@ export async function POST(request: NextRequest) {
     // 컨텍스트 수집(+심층 리서치). onProgress 로 단계별 진행상황 emit → 스트리밍 로딩 UI("무슨 자료 받고 뭘 분석중인지").
     type Progress = { stage: string; detail: string };
     const buildAll = async (onProgress?: (p: Progress) => void) => {
-      // 종목명 해석 실패 fallback(하우맷→HWM 사건): 사전 alias 로 못 잡고 종목질문처럼 보이면 LLM 해석 후 Yahoo 검증.
-      if (!tickers.length && STOCK_Q.test(lastUser)) {
+      // 추천/top/뭐 살까 류(특정 종목 미지정) — 오늘 리포트 portfolio 를 답으로. 특정종목 해석 fallback 과 구분.
+      const isRecoQ = RECO_Q.test(lastUser);
+      // 종목명 해석 실패 fallback(하우맷→HWM 사건): 사전 alias 로 못 잡고 *특정 종목* 질문처럼 보이면 LLM 해석 후 Yahoo 검증.
+      if (!tickers.length && STOCK_Q.test(lastUser) && !isRecoQ) {
         onProgress?.({ stage: 'resolve', detail: '🔎 종목 식별 중 (이름→티커 해석)' });
         tickers = await resolveTickersLLM(lastUser, opts.maxTickers);
       }
       const nameList = tickers.map(t => tickerName(t)).join(', ');
       onProgress?.({ stage: 'gather', detail: tickers.length
         ? `${nameList} 자료 수집 중 — ${opts.deep ? '📄 사업보고서 본문·' : ''}시세·재무·뉴스·거시${opts.useRag ? '·투자고전(RAG)' : ''}`
-        : '시세·거시·투자고전 자료 수집 중' });
+        : isRecoQ ? '📋 오늘 리포트 매수 포트폴리오 불러오는 중' : '시세·거시·투자고전 자료 수집 중' });
       const [tickerCtx, reportContext, ragHits, macroContext] = await Promise.all([
         Promise.all(tickers.map(t => gatherTickerContext(t, origin, { withFiling: opts.deep }).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
-        fetchReportContext(origin, locale, tickers),
+        fetchReportContext(origin, locale, tickers, { includeList: isRecoQ || !tickers.length }),
         opts.useRag ? ragRetrieve(lastUser, 4).catch((): RagHit[] => []) : Promise.resolve([] as RagHit[]),
         fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
       ]);
