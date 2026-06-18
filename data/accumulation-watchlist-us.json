@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T21:30:25.002Z",
+  "generatedAt": "2026-06-18T13:00:24.038Z",
   "universe": "US",
   "scanned": 309,
   "count": 5,
@@ -7,6 +7,22 @@
   "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "EXFY",
+      "name": "Expensify, Inc.",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)"
+      ],
+      "runup20dPct": 6.2,
+      "runup5dPct": -4,
+      "medDollarVolUsd": 592818,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "NMRA",
       "name": "Neumora Therapeutics, Inc.",
@@ -68,22 +84,6 @@
       "runup20dPct": -5.6,
       "runup5dPct": -14.3,
       "medDollarVolUsd": 43669660,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "FVR",
-      "name": "FrontView REIT, Inc.",
-      "tier": "watch",
-      "score": 15,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.5× 상승",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": 8.7,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 1854000,
       "smartAccum": false,
       "official": null
     }
