@@ -180,16 +180,21 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
   const uoa = Array.isArray(signals?.uoa) ? (signals!.uoa as unknown[]) : [];
 
   // 재무 보강: R&D 집약도(매출대비)·부채비율·순마진·FCF — DART/SEC 가 주는데 미추출이던 값.
-  const rev = num(pick(finCore, 'revenueUSD', 'revenueKRW'));
-  const rd = num(pick(finCore, 'rdExpenseUSD', 'rdExpenseKRW'));
+  // 🔑 통화 단위 일관성: DART(KR)=KRW만 보장, SEC(US)=USD. 필드마다 USD/KRW를 따로 고르면 비율(이익의 질 등)이
+  //   단위혼선으로 깨진다 — 2026-06-18 제주반도체: ocf=KRW(25.5B), netIncome=USD(27M) → 938배 환각.
+  //   같은 통화로 통일(KR→KRW 우선, US→USD 우선)해서 모든 파생비율을 같은 단위로 계산한다.
+  const U = isKr ? 'KRW' : 'USD';
+  const money = (base: string) => num(pick(finCore, `${base}${U}`, `${base}KRW`, `${base}USD`));
+  const rev = money('revenue');
+  const rd = money('rdExpense');
   const rdPct = rd != null && rev ? Math.round(rd / rev * 1000) / 10 : null;
   const debtRatio = num(pick(finCore, 'debtRatioPct'));
-  const netInc = num(pick(finCore, 'netIncomeUSD', 'netIncomeKRW'));
+  const netInc = money('netIncome');
   const netMargin = num(pick(finCore, 'netMarginPct')) ?? (netInc != null && rev ? Math.round(netInc / rev * 1000) / 10 : null);
-  const ocf = num(pick(finCore, 'operatingCFUSD', 'operatingCFKRW'));
-  const capex = num(pick(finCore, 'capexUSD', 'capexKRW'));
-  const fcf = num(pick(finCore, 'freeCashFlowKRW', 'freeCashFlowUSD')) ?? (ocf != null && capex != null ? ocf - capex : null);
-  const financingCF = num(pick(finCore, 'financingCFUSD', 'financingCFKRW'));
+  const ocf = money('operatingCF');
+  const capex = money('capex');
+  const fcf = num(pick(finCore, `freeCashFlow${U}`, 'freeCashFlowKRW', 'freeCashFlowUSD')) ?? (ocf != null && capex != null ? ocf - capex : null);
+  const financingCF = money('financingCF');
 
   // 뉴스: 엔드포인트가 티커 필터링이 약함(시장 전반 뉴스 혼입) → 회사명/별칭/티커가 제목에 *실제로*
   //   들어간 헤드라인만 채택(무관 뉴스 주입=환각 방지). 매칭 없으면 생략.
