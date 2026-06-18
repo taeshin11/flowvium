@@ -79,6 +79,36 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
 
 const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${m.content}`).join('\n');
 
+// vLLM OpenAI SSE 스트리밍 — 토큰 단위 delta 를 onDelta 로 흘리고 전체 텍스트 반환 (2026-06-18, 사용자 "스트리밍 부드럽게").
+async function streamVllm(system: string, user: string, opts: { maxTokens: number; temperature: number }, onDelta: (s: string) => void): Promise<string> {
+  const base = (process.env.VLLM_URL || 'http://localhost:8000').replace(/\/v1\/?$/, '');
+  const model = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
+  const r = await fetch(`${base}/v1/chat/completions`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: opts.maxTokens, temperature: opts.temperature, stream: true }),
+    signal: AbortSignal.timeout(55000),
+  });
+  if (!r.ok || !r.body) throw new Error(`vllm stream ${r.status}`);
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', full = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop() ?? '';
+    for (const ln of lines) {
+      const t = ln.trim();
+      if (!t.startsWith('data:')) continue;
+      const d = t.slice(5).trim();
+      if (d === '[DONE]') continue;
+      try { const j = JSON.parse(d); const delta = j?.choices?.[0]?.delta?.content; if (delta) { full += delta; onDelta(delta); } } catch { /* partial */ }
+    }
+  }
+  return full;
+}
+
 // ── GET: 대화 목록 / 단일 조회 ────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { uid, isMember, newAnon } = resolveUid(req);
@@ -116,7 +146,7 @@ export async function DELETE(req: NextRequest) {
 // ── POST: 메시지 전송(대화 생성/추가) ────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as { messages?: ChatMsg[]; mode?: JudgeMode; locale?: string; convId?: string };
+    const body = await request.json() as { messages?: ChatMsg[]; mode?: JudgeMode; locale?: string; convId?: string; stream?: boolean };
     const messages = Array.isArray(body.messages) ? body.messages.filter(m => m && typeof m.content === 'string' && m.content.trim()) : [];
     const mode: JudgeMode = (['aits', 'aits-rag'].includes(body.mode as string) ? body.mode : 'aits') as JudgeMode;
     const locale = body.locale ?? 'ko';
@@ -144,6 +174,59 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits });
     const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
+
+    const grounding = {
+      tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null })),
+      usedRules: true, usedReport: !!reportContext,
+      usedRag: ragHits.length > 0,
+      ragSources: ragHits.map(h => ({ source: h.source, year: h.year ?? null, score: Number(h.score.toFixed(2)) })),
+    };
+    const convId = body.convId || `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
+
+    // 대화 영속(완성된 답변 text 로) — 스트림/논스트림 공용
+    const persist = async (text: string, source: string) => {
+      if (!redis || !text) return;
+      const now = Date.now();
+      const fullMessages = [...messages, { role: 'assistant' as const, content: text }];
+      try {
+        const conv = { id: convId, uid, title: titleOf(fullMessages), createdAt: body.convId ? undefined : now, updatedAt: now, mode, source, messages: fullMessages };
+        await loggedRedisSet(redis, 'judge-chat', cKey(uid, convId), conv, { ex: CONV_TTL });
+        await redis.zadd(uKey(uid), { score: now, member: convId });
+        await redis.expire(uKey(uid), CONV_TTL);
+        await redis.lpush('flowvium:judge-chat:index', JSON.stringify({ ts: new Date(now).toISOString(), key: cKey(uid, convId), q: lastUser.slice(0, 120), tickers, source, uid }));
+        await redis.ltrim('flowvium:judge-chat:index', 0, 4999);
+      } catch { /* non-fatal */ }
+    };
+
+    // ── 스트리밍 경로 (SSE) — meta 먼저, 그 다음 토큰 delta, 마지막 done ──────────
+    if (body.stream) {
+      const encoder = new TextEncoder();
+      const sse = new ReadableStream({
+        async start(controller) {
+          const send = (o: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(o)}\n\n`));
+          send({ type: 'meta', convId, grounding, mode, title: titleOf([...messages]) });
+          let full = '', source = 'vllm-local';
+          try {
+            full = await streamVllm(systemPrompt, userPrompt, opts, (d) => send({ type: 'delta', text: d }));
+            if (!full.trim()) throw new Error('empty stream');
+          } catch (e) {
+            logger.warn('judge-chat', 'stream_fallback', { error: e instanceof Error ? e.message : 'x' });
+            const res = await callAI(userPrompt, { systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature, preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000 });
+            full = res.text || '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+            source = res.source || 'fallback';
+            send({ type: 'delta', text: full });
+          }
+          await persist(full, source);
+          logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: full.length, stream: true });
+          send({ type: 'done', source });
+          controller.close();
+        },
+      });
+      const res = new NextResponse(sse, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' } });
+      return withAnonCookie(res, newAnon);
+    }
+
+    // ── 논스트림 경로 (기존) ──────────────────────────────────────────────────────
     const { text, source, durationMs, attempts } = await callAI(userPrompt, {
       systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature,
       preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000,
@@ -154,30 +237,8 @@ export async function POST(request: NextRequest) {
       return withAnonCookie(NextResponse.json({ error: 'llm_unavailable', reply: '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.' }, { status: 503 }), newAnon);
     }
     logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: text.length });
-
-    const grounding = {
-      tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null })),
-      usedRules: true, usedReport: !!reportContext,
-      usedRag: ragHits.length > 0,
-      ragSources: ragHits.map(h => ({ source: h.source, year: h.year ?? null, score: Number(h.score.toFixed(2)) })),
-    };
-    const fullMessages = [...messages, { role: 'assistant' as const, content: text }];
-    const convId = body.convId || `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
-    const now = Date.now();
-
-    // per-user 영속 + 최근순 인덱스 + (학습/관리 검토용) 전역 인덱스
-    if (redis) {
-      try {
-        const conv = { id: convId, uid, title: titleOf(fullMessages), createdAt: body.convId ? undefined : now, updatedAt: now, mode, source, messages: fullMessages };
-        await loggedRedisSet(redis, 'judge-chat', cKey(uid, convId), conv, { ex: CONV_TTL });
-        await redis.zadd(uKey(uid), { score: now, member: convId });
-        await redis.expire(uKey(uid), CONV_TTL);
-        await redis.lpush('flowvium:judge-chat:index', JSON.stringify({ ts: new Date(now).toISOString(), key: cKey(uid, convId), q: lastUser.slice(0, 120), tickers, source, uid }));
-        await redis.ltrim('flowvium:judge-chat:index', 0, 4999);
-      } catch { /* non-fatal */ }
-    }
-
-    return withAnonCookie(NextResponse.json({ reply: text, source, mode, durationMs, grounding, convId, title: titleOf(fullMessages) }), newAnon);
+    await persist(text, source);
+    return withAnonCookie(NextResponse.json({ reply: text, source, mode, durationMs, grounding, convId, title: titleOf([...messages, { role: 'assistant', content: text }]) }), newAnon);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'unknown';
     logger.error('judge-chat', 'failed', { error: msg });

@@ -92,18 +92,45 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
     if (!content || loading) return;
     setInput(''); setToolsOpen(false);
     const next: Msg[] = [...messages, { role: 'user', content }];
-    setMessages(next);
+    const asstIndex = next.length;  // assistant 자리 (아래에서 빈 메시지 append)
+    setMessages([...next, { role: 'assistant', content: '' }]);
     setLoading(true);
+    const patch = (fn: (m: Msg) => Msg) => setMessages(prev => { const c = [...prev]; if (c[asstIndex]) c[asstIndex] = fn(c[asstIndex]); return c; });
     try {
       const res = await fetch('/api/judge-chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next.map(m => ({ role: m.role, content: m.content })), mode, locale, convId }),
+        body: JSON.stringify({ messages: next.map(m => ({ role: m.role, content: m.content })), mode, locale, convId, stream: true }),
       });
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply ?? t('errorGeneric'), source: data.source, grounding: data.grounding }]);
-      if (data.convId) { if (!convId) setConvId(data.convId); loadConvs(); }
+      if (!res.ok || !res.body) throw new Error('no stream');
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '', acc = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const parts = buf.split('\n\n');
+        buf = parts.pop() ?? '';
+        for (const p of parts) {
+          const line = p.split('\n').find(l => l.startsWith('data:'));
+          if (!line) continue;
+          let obj: { type?: string; text?: string; grounding?: Grounding; convId?: string; source?: string };
+          try { obj = JSON.parse(line.slice(5).trim()); } catch { continue; }
+          if (obj.type === 'meta') {
+            if (obj.grounding) patch(m => ({ ...m, grounding: obj.grounding }));
+            if (obj.convId && !convId) setConvId(obj.convId);
+          } else if (obj.type === 'delta') {
+            acc += obj.text ?? '';
+            patch(m => ({ ...m, content: acc }));
+          } else if (obj.type === 'done') {
+            patch(m => ({ ...m, source: obj.source }));
+            loadConvs();
+          }
+        }
+      }
+      if (!acc.trim()) patch(() => ({ role: 'assistant', content: t('errorGeneric') }));
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: t('errorGeneric') }]);
+      patch(() => ({ role: 'assistant', content: t('errorGeneric') }));
     } finally { setLoading(false); }
   }, [input, loading, messages, mode, locale, t, convId, loadConvs]);
 
@@ -221,7 +248,9 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
                   <div key={i} className="flex gap-3">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 via-rose-500 to-pink-600 flex items-center justify-center mt-0.5"><Scale className="w-4 h-4 text-white" /></div>
                     <div className="flex-1 min-w-0">
-                      <Markdownish text={m.content} />
+                      {m.content
+                        ? <Markdownish text={m.content} />
+                        : <div className="flex items-center gap-2 text-gray-400 text-sm py-1.5"><Loader2 className="w-4 h-4 animate-spin" />{t('thinking')}</div>}
                       {(m.grounding?.tickers?.length || m.grounding?.usedReport || m.grounding?.usedRag || m.source) && (
                         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                           {m.grounding?.tickers?.filter(tk => tk.price != null).map(tk => (
@@ -239,12 +268,6 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
                   </div>
                 )
               ))}
-              {loading && (
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 via-rose-500 to-pink-600 flex items-center justify-center"><Scale className="w-4 h-4 text-white" /></div>
-                  <div className="flex items-center gap-2 text-gray-400 text-sm pt-1.5"><Loader2 className="w-4 h-4 animate-spin" />{t('thinking')}</div>
-                </div>
-              )}
               <div ref={bottomRef} />
             </div>
           )}

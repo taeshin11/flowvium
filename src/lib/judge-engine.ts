@@ -215,8 +215,9 @@ function condenseDoctrine(): string {
 
 function condenseRules(): string {
   const { buyRules, sellRules } = getData();
-  const fmt = (r: Rule) => `- [${r.category ?? '?'}|+${r.score ?? '?'}] ${r.id}: ${r.description ?? ''}`;
-  return `# 매수 룰 (${buyRules.length}개 — 발화 시 매수 점수 가산)\n${buyRules.map(fmt).join('\n')}\n\n# 매도 룰 (${sellRules.length}개 — 발화 시 매도 신호)\n${sellRules.map(fmt).join('\n')}`;
+  // 내부 룰 ID(snake_case)·점수는 사용자 답변에 누출되면 난독 → 모델엔 카테고리+설명만 제공.
+  const fmt = (r: Rule) => `- (${r.category ?? '기타'}) ${r.description ?? ''}`;
+  return `# 매수 판단 기준 (참고 — 답변엔 ID·점수 쓰지 말고 자연어로 풀어 설명)\n${buyRules.map(fmt).join('\n')}\n\n# 매도 판단 기준 (참고)\n${sellRules.map(fmt).join('\n')}`;
 }
 
 // AITS = 심판엔진 본체(룰+doctrine+실시간 금융데이터+오늘 리포트). AITS+RAG = 그 위에
@@ -254,9 +255,16 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `Respond ENTIRELY in ${lang}. Be concise, structured, and decisive.`,
     ``,
     `## 역할`,
-    `- 사용자가 특정 종목의 매수/매도/관망을 상의하면: ① 명확한 판단(매수/분할매수/관망/비중축소/매도/회피 중 하나) ② 근거(아래 룰·원칙과 실시간 데이터를 *인용*) ③ 리스크 ④ (가능하면) 진입/손절 아이디어 순으로.`,
+    `- 사용자가 특정 종목의 매수/매도/관망을 상의하면: ① 한 줄 결론(매수/분할매수/관망/비중축소/매도/회피 중 하나) ② 왜 그렇게 봤는지(핵심 근거 2~4개) ③ 어떤 데이터를 봤는지 ④ 리스크 ⑤ (가능하면) 진입/손절 순으로.`,
     `- 데이터가 없거나 불확실하면 "데이터 없음"이라고 솔직히 말하라. 절대 수치를 지어내지 마라(환각 금지).`,
     `- 너는 심판엔진이지 보장이 아니다. 답변 끝에 한 줄 면책: 투자 판단·책임은 본인에게 있음.`,
+    ``,
+    `## 답변 형식 (반드시 지켜라 — 일반 투자자가 읽는다)`,
+    `- 평이한 한국어로, 친절한 애널리스트가 말하듯 자연스럽게 풀어 써라.`,
+    `- ⛔ 내부 룰 ID(영문 snake_case, 예: price_momentum_52w_high, guru_buffett_moat)·점수 표기(+4, +5)·별표 태그(*xxx*)를 절대 출력하지 마라. 그 의미를 *우리말로 풀어서* 설명하라 (예: "price_momentum_52w_high (+5)" ❌ → "주가가 52주 신고가 부근이라 추세가 강합니다" ✅).`,
+    `- 근거마다 실제 수치를 곁들여 구체적으로 (예: "ROE 18.5%로 업종 평균을 웃돌아 수익성이 탄탄"). 단, 위 실시간 데이터에 있는 값만 사용.`,
+    `- "고려한 데이터" 한 줄로 무엇을 봤는지 투명하게 (예: 현재가·RSI·52주 위치·ROE·시장 변동성(VIX) 등).`,
+    `- 굵은 글씨는 핵심 1~2개만. 표·코드블록·영문 식별자 나열 금지.`,
     ``,
     condenseDoctrine(),
     `\n${condenseRules()}`,
