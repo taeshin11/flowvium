@@ -186,7 +186,7 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[70] bg-white flex">
+    <div className="fixed inset-0 z-[70] bg-white flex overflow-x-hidden">
       {/* 데스크톱 사이드바 */}
       <aside className="hidden md:flex flex-shrink-0">{Sidebar}</aside>
       {/* 모바일 드로어 */}
@@ -198,7 +198,7 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
       )}
 
       {/* 메인 */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-1">
             <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 rounded-full hover:bg-gray-100 text-gray-500"><Menu className="w-5 h-5" /></button>
@@ -237,8 +237,8 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
               <p className="text-sm text-gray-400 text-center mb-8 max-w-md">{t('greetingSub')}</p>
               <div className="grid grid-cols-2 gap-2.5 w-full max-w-lg">
                 {QUICK.map((q, i) => (
-                  <button key={i} onClick={() => send(q.prompt)} className="flex items-center gap-2.5 text-left rounded-2xl border border-gray-200 px-4 py-3 hover:bg-gray-50 hover:border-gray-300 transition-colors">
-                    {q.icon}<span className="text-sm font-medium text-gray-700">{q.label}</span>
+                  <button key={i} onClick={() => send(q.prompt)} className="flex items-center gap-2.5 text-left rounded-2xl border border-gray-200 px-4 py-3 hover:bg-gray-50 hover:border-gray-300 transition-colors min-w-0">
+                    <span className="flex-shrink-0">{q.icon}</span><span className="text-sm font-medium text-gray-700 truncate">{q.label}</span>
                   </button>
                 ))}
               </div>
@@ -284,7 +284,7 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
             {toolsOpen && (
               <div className="mb-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {QUICK.map((q, i) => (
-                  <button key={i} onClick={() => send(q.prompt)} className="flex items-center gap-2 rounded-2xl bg-gray-50 border border-gray-200 px-3 py-2 hover:bg-gray-100 transition-colors">{q.icon}<span className="text-xs font-medium text-gray-700">{q.label}</span></button>
+                  <button key={i} onClick={() => send(q.prompt)} className="flex items-center gap-2 rounded-2xl bg-gray-50 border border-gray-200 px-3 py-2 hover:bg-gray-100 transition-colors min-w-0"><span className="flex-shrink-0">{q.icon}</span><span className="text-xs font-medium text-gray-700 truncate">{q.label}</span></button>
                 ))}
               </div>
             )}

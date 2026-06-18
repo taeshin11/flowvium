@@ -972,7 +972,7 @@ export default function HomePage() {
               <h1 className="text-4xl md:text-5xl lg:text-5xl font-heading font-bold text-cf-text-primary leading-tight mb-6 [word-break:keep-all] [text-wrap:balance]">
                 {tHome.rich('heroHeadline', { accent: (chunks) => <span className="text-transparent bg-clip-text bg-gradient-to-r from-cf-primary to-cf-secondary">{chunks}</span> })}
               </h1>
-              <p className="text-lg md:text-xl text-cf-text-secondary mb-6 max-w-lg">
+              <p className="text-lg md:text-xl text-cf-text-secondary mb-6 max-w-2xl [word-break:keep-all]">
                 {t('description')}
               </p>
               {/* 핵심 CTA — 추천 종목으로 직행 (2026-06-13 사용자 "추천종목 보도록 유도하는 메세지 없어") */}
