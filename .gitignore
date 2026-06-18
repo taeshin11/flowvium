@@ -76,3 +76,4 @@ logs/maintenance-heartbeat.json
 logs/page-audit.json
 logs/cloudflared.log
 logs/pm2-watchdog.log
+data/sft/
