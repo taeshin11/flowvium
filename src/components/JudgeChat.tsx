@@ -12,7 +12,7 @@ import { Scale, Plus, Send, Loader2, X, ChevronDown, SquarePen, TrendingUp, Tren
 type Mode = 'aits' | 'aits-rag';
 interface Msg { role: 'user' | 'assistant'; content: string; source?: string; grounding?: Grounding }
 interface RagSource { source: string; year: number | string | null; score: number }
-interface Grounding { tickers?: Array<{ ticker: string; name: string; price: number | null; rsi: number | null }>; usedRules?: boolean; usedReport?: boolean; usedRag?: boolean; ragSources?: RagSource[] }
+interface Grounding { tickers?: Array<{ ticker: string; name: string; price: number | null; rsi: number | null }>; usedRules?: boolean; usedReport?: boolean; usedRag?: boolean; usedMacro?: boolean; ragSources?: RagSource[] }
 interface ConvMeta { id: string; title: string; updatedAt: number }
 
 function renderInline(text: string, keyBase: string) {
@@ -251,11 +251,12 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
                       {m.content
                         ? <Markdownish text={m.content} />
                         : <div className="flex items-center gap-2 text-gray-400 text-sm py-1.5"><Loader2 className="w-4 h-4 animate-spin" />{t('thinking')}</div>}
-                      {(m.grounding?.tickers?.length || m.grounding?.usedReport || m.grounding?.usedRag || m.source) && (
+                      {(m.grounding?.tickers?.length || m.grounding?.usedReport || m.grounding?.usedRag || m.grounding?.usedMacro || m.source) && (
                         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                           {m.grounding?.tickers?.filter(tk => tk.price != null).map(tk => (
                             <span key={tk.ticker} className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">{tk.name} {tk.price}{tk.rsi != null ? ` · RSI ${tk.rsi}` : ''}</span>
                           ))}
+                          {m.grounding?.usedMacro && <span className="text-[11px] text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-2 py-0.5">🌐 F&G·VIX·FedWatch·FRED</span>}
                           {m.grounding?.usedReport && <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">📋 {t('groundReport')}</span>}
                           {m.grounding?.usedRules && <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">⚖️ {t('groundRules')}</span>}
                           {m.grounding?.ragSources?.map((rs, ri) => (

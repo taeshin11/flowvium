@@ -423,6 +423,878 @@
       ],
       "rule": "우량주를 사서 수면제를 먹고 몇 년 푹 자라. 잦은 매매가 아니라 인내가 부를 만든다.",
       "apply": "매수엔진/심판엔진: 우량주 장기 보유를 우대하고 과도한 회전·단타 추천을 감점."
+    },
+    {
+      "id": "ptj_p0",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "수비가 공격보다 우선이다 — 위대한 트레이딩의 핵심은 돈을 잘 버는 것이 아니라 돈을 잃지 않는 방어에 있다."
+    },
+    {
+      "id": "ptj_p1",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "모든 거래의 첫 질문은 '어떻게 하면 전부 잃지 않을까'이며, 자본 보존이 수익 추구보다 항상 앞선다."
+    },
+    {
+      "id": "ptj_p2",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "손실은 즉시 끊고 수익은 끌고 가며, 회복을 기다리며 손실 포지션을 붙들고 있지 않는다."
+    },
+    {
+      "id": "ptj_p3",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "'손실 포지션에 물타기 하는 자는 패배자다(losers average losers)' — 지고 있는 포지션에 절대 추가 매수하지 않는다."
+    },
+    {
+      "id": "ptj_p4",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "위험 대비 보상이 최소 5:1인 거래만 진입해, 80% 틀려도 살아남는 비대칭 구조를 만든다."
+    },
+    {
+      "id": "ptj_p5",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "거래당 손실을 자본의 1% 수준으로 제한해 단일 실수가 치명상이 되지 않게 한다."
+    },
+    {
+      "id": "ptj_p6",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "200일 이동평균선을 모든 자산의 추세 판단 기준으로 삼고, 그 아래로 떨어지면 빠져나온다('200일선 아래에선 좋은 일이 없다')."
+    },
+    {
+      "id": "ptj_p7",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "항상 시장의 지배적 추세 편에 서고, 추세에 맞서 싸우지 않는다."
+    },
+    {
+      "id": "ptj_p8",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "시장이 내가 틀렸다고 말하면 즉시 인정하고 청산하며, 자신의 판단보다 가격 움직임을 신뢰한다."
+    },
+    {
+      "id": "ptj_p9",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "손실 구간에서는 거래 규모를 줄이고 수익 구간에서 늘려, 시장 상황과 성과에 따라 노출을 조절한다."
+    },
+    {
+      "id": "ptj_p10",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "분산 투자로 위험을 나누고 가능한 한 오래 게임에 남아 있는 것을 최우선으로 한다."
+    },
+    {
+      "id": "ptj_p11",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "에고를 버리고 영웅이 되려 하지 않으며, 큰 손실은 항상 잘나간 직후 자만할 때 찾아온다는 것을 기억한다."
+    },
+    {
+      "id": "ptj_p12",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "끊임없이 자신과 자신의 능력을 의심하고, 스스로 뛰어나다고 느끼는 순간이 곧 끝장나는 순간임을 경계한다."
+    },
+    {
+      "id": "ptj_p13",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "시장은 늘 변하므로 적응하고 진화하며 경쟁하거나 죽는다는 자세로 전략을 계속 재점검한다."
+    },
+    {
+      "id": "ptj_p14",
+      "theme": "guru",
+      "sources": [
+        "Paul Tudor Jones"
+      ],
+      "rule": "대중의 시각이 틀린 지점을 찾는 역발상적 사고로 시장 사이클과 비효율을 읽어낸다."
+    },
+    {
+      "id": "kovner_p0",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "리스크 관리는 트레이딩에서 가장 중요한 원칙이며, 레버리지 거래에서는 '리스크 통제'가 부동산의 '입지'에 해당한다."
+    },
+    {
+      "id": "kovner_p1",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "'100년에 한 번' 올 법한 시장 폭풍은 사실 몇 년마다 찾아오므로, 리스크 통제의 규율을 결코 느슨하게 두어서는 안 된다."
+    },
+    {
+      "id": "kovner_p2",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "대부분의 트레이더는 포지션을 지나치게 크게 잡으므로, 적절하다고 생각하는 크기의 절반으로 줄여 '언더트레이드'하라."
+    },
+    {
+      "id": "kovner_p3",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "단일 트레이드에서 전체 자본의 1~2%를 넘는 리스크를 지지 말고, 연속 손실이 치명상이 되지 않게 하라."
+    },
+    {
+      "id": "kovner_p4",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "진입하기 전에 청산 지점(스톱)을 먼저 정하라 — 어디서 빠져나올지 모른 채 들어가서는 안 된다."
+    },
+    {
+      "id": "kovner_p5",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "스톱은 단순히 일정 금액을 잃는 지점이 아니라, 시장이 내 논리가 틀렸음을 증명하는 지점에 두라."
+    },
+    {
+      "id": "kovner_p6",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "스톱은 정상적인 시장 노이즈로는 도달하기 어려운 위치에 설정해, 의미 없는 변동에 청산되지 않게 하라."
+    },
+    {
+      "id": "kovner_p7",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "포지션 간 상관관계를 반드시 고려하라 — 상관관계를 잘못 보면 여러 포지션이 동시에 무너진다."
+    },
+    {
+      "id": "kovner_p8",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "포지션이 잠을 설치게 하거나 평정을 깨뜨린다면 그 포지션은 너무 큰 것이므로 줄여라."
+    },
+    {
+      "id": "kovner_p9",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "'바라건대', '제발'이라는 감정적 사고를 버리고 시장을 개인적 적으로 여기지 말라 — 시장은 철저히 비인격적이다."
+    },
+    {
+      "id": "kovner_p10",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "펀더멘털이 뒷받침되지 않으면 포지션을 유지하지 말되, 기술적 분석은 시장의 체온계처럼 보조 지표로 활용하라."
+    },
+    {
+      "id": "kovner_p11",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "시장에 생각을 강요하지 말고 가격 행동을 관찰하며 '시장의 소리를 들어라'."
+    },
+    {
+      "id": "kovner_p12",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "정책과 정치를 진지하게 다루라 — 정부·중앙은행의 정책 실수와 리더십 변화가 거시 기회를 만든다."
+    },
+    {
+      "id": "kovner_p13",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "어떤 전략도 영원히 초과수익을 내지 못하므로, 시장이 효율화되면 그 기법을 은퇴시키고 적응하라."
+    },
+    {
+      "id": "kovner_p14",
+      "theme": "guru",
+      "sources": [
+        "Bruce Kovner"
+      ],
+      "rule": "자본 배분은 정적이지 않으며, 거시 환경이 확신을 줄 때 더 많은 자본을 리스크에 투입하는 동적 배분을 하라."
+    },
+    {
+      "id": "marcus_p0",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "최고의 매매는 펀더멘털, 기술적 분석, 시장 분위기(market tone) 세 요소가 모두 같은 방향을 가리킬 때만 진입한다."
+    },
+    {
+      "id": "marcus_p1",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "한 번의 매매에 자기 자본의 5%를 넘게 걸지 않아 단일 거래로 치명상을 입지 않는다."
+    },
+    {
+      "id": "marcus_p2",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "손실 포지션은 빠르게 잘라내어 작은 손실이 큰 손실로 불어나지 않게 한다."
+    },
+    {
+      "id": "marcus_p3",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "수익 포지션은 추세가 살아 있는 한 끝까지 끌고 가야 승자가 패자의 손실을 메운다."
+    },
+    {
+      "id": "marcus_p4",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "승자를 키우고 패자를 자르는 두 원칙은 똑같이 중요하며 어느 하나만으로는 부족하다."
+    },
+    {
+      "id": "marcus_p5",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "핵심 차트 지점에서 평소보다 큰 포지션을 잡되, 즉시 작동하지 않으면 촘촘한 손절로 빠져나온다."
+    },
+    {
+      "id": "marcus_p6",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "포지션에 확신을 잃거나 어찌할 바 모르겠으면 일단 빠져나오라 — 언제든 다시 들어올 수 있다."
+    },
+    {
+      "id": "marcus_p7",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "의심스러울 때는 시장에서 나와 쉬고, 다음 날 명료해진 시야로 다시 판단한다."
+    },
+    {
+      "id": "marcus_p8",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "항상 시장에 들어가 있을 필요는 없으며, 관망도 정당한 전략이다."
+    },
+    {
+      "id": "marcus_p9",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "과도한 매매와 손실을 만회하려는 복수 매매는 자본과 멘탈을 함께 갉아먹으므로 경계한다."
+    },
+    {
+      "id": "marcus_p10",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "돈과 멘탈(정신적 자본)은 둘 중 하나만 잃어도 퇴출되므로 양쪽을 똑같이 보호한다."
+    },
+    {
+      "id": "marcus_p11",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "검증된 시스템과 자금관리 규칙을 일관되게 지키면 시간이 지나며 자신의 우위(edge)가 발현된다."
+    },
+    {
+      "id": "marcus_p12",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "감정과 싸우기보다 시장이 보내는 신호로 이해하고, 자존심을 버리고 '돈 버는 것이 더 중요하다'는 태도를 유지한다."
+    },
+    {
+      "id": "marcus_p13",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "남을 모방하지 말고 자기만의 스타일을 개발해 일관되게 따른다."
+    },
+    {
+      "id": "marcus_p14",
+      "theme": "guru",
+      "sources": [
+        "Michael Marcus"
+      ],
+      "rule": "'이 아이디어에 따라 행동할 사람이 아직 얼마나 남았는가'를 자문하여 이미 가격에 반영된 정보인지 점검한다."
+    },
+    {
+      "id": "druckenmiller_p0",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "확신이 드는 기회는 1년에 한두 번뿐이므로, 그때는 분산하지 말고 모든 달걀을 한 바구니에 담고 그 바구니를 면밀히 지켜보라."
+    },
+    {
+      "id": "druckenmiller_p1",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "추세를 맞히는 것이 아니라 '맞다고 확신할 때 크게 베팅하는 것'이 핵심이며, 타율보다 맞혔을 때 버는 크기가 장기 수익을 결정한다."
+    },
+    {
+      "id": "druckenmiller_p2",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "장기 초과수익은 자본 보존과 홈런으로 만들어지며, 이미 이익을 내고 있을 때 훨씬 더 공격적으로 베팅하라."
+    },
+    {
+      "id": "druckenmiller_p3",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "결코 현재에 투자하지 말고 18개월 후의 상황을 그려라 — 가격은 그 미래가 향하는 곳으로 움직인다."
+    },
+    {
+      "id": "druckenmiller_p4",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "시장 전체를 움직이는 것은 기업 이익이 아니라 연준(중앙은행)이므로 유동성의 흐름에 집중하라."
+    },
+    {
+      "id": "druckenmiller_p5",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "주식에 가장 좋은 환경은 연준이 살리려 애쓰는 둔한 경제이며, 연준이 유동성을 거둬들이면 주가에 악재가 된다."
+    },
+    {
+      "id": "druckenmiller_p6",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "남들이 예상하지 못해 아직 가격에 반영되지 않은 경제 추세의 변화를 미리 예측하는 것이 본질이다."
+    },
+    {
+      "id": "druckenmiller_p7",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "상황이 바뀌면 입장도 바꿔야 하며, 옳다는 데 집착하지 말고 유연하게 포지션을 뒤집을 각오를 하라."
+    },
+    {
+      "id": "druckenmiller_p8",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "틀렸다고 판단되면 즉시 빠져나와라 — 언제든 정리하고 백지에서 다시 시작할 수 있다."
+    },
+    {
+      "id": "druckenmiller_p9",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "돈 버는 것보다 돈 잃는 것을 늘 먼저 생각하라 — 가진 것을 지키는 데 집중하라."
+    },
+    {
+      "id": "druckenmiller_p10",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "톱다운 거시 분석과 보텀업 종목 분석을 결합해 거시 판단을 개별 종목 베팅으로 연결하라."
+    },
+    {
+      "id": "druckenmiller_p11",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "열린 마음으로 끊임없이 배우고 변화하는 여건에 적응하며 시장 추세보다 앞서 있어라."
+    },
+    {
+      "id": "druckenmiller_p12",
+      "theme": "guru",
+      "sources": [
+        "Stanley Druckenmiller"
+      ],
+      "rule": "통제 가능성(유동성 확보)을 전제로 리스크를 운용하면 두려워할 이유가 없다."
+    },
+    {
+      "id": "klarman_p0",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "내재가치 대비 충분히 낮은 가격에 매수하여 '안전마진(margin of safety)'을 확보하는 것이 손실 방지의 핵심이다."
+    },
+    {
+      "id": "klarman_p1",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "안전마진 없이 투자하는 것은 사실상 도박이며, 오류·불운·변동성을 흡수할 여유가 없어진다."
+    },
+    {
+      "id": "klarman_p2",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "최고의 투자자는 수익률을 목표로 삼지 않고 먼저 위험을 평가한 뒤 그 위험에 비해 보상이 충분한지를 판단한다."
+    },
+    {
+      "id": "klarman_p3",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "1순위 목표는 '돈을 잃지 않는 것'이며, 잃지 않고 신중하게 투자하면 충분한 수익은 자연스럽게 따라온다."
+    },
+    {
+      "id": "klarman_p4",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "시장이 군집적으로 수익률만 좇을 때 가격은 올라가고 기대수익은 떨어지므로, 군중과 반대로 움직일 준비를 한다."
+    },
+    {
+      "id": "klarman_p5",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "가치투자는 본질적으로 위험회피적 접근이며, 가장 큰 난관은 바겐(저평가)을 끈기 있게 기다리는 규율을 유지하는 것이다."
+    },
+    {
+      "id": "klarman_p6",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "주가는 투자심리·경기·시장 분위기로 내재가치에서 자주 이탈하므로, 단기 가격이 아닌 내재가치에 집중해 합리적으로 판단한다."
+    },
+    {
+      "id": "klarman_p7",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "시장의 일일 등락은 대부분 '노이즈'이며, 대다수 투자자가 이를 무시하기 어려워하지만 무시할 수 있어야 한다."
+    },
+    {
+      "id": "klarman_p8",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "레버리지 없이 보유한 자산이 하락하면 여유 현금으로 더 살 수 있으나, 레버리지는 이 건강한 규율을 파괴한다."
+    },
+    {
+      "id": "klarman_p9",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "위기와 시장 패닉은 인내심 있는 투자자에게 오히려 매수 기회를 창출한다."
+    },
+    {
+      "id": "klarman_p10",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "투자 판단에 필요한 정보의 80%는 초기 20%의 시간에 얻어지며, 마지막 20% 정보를 캐는 데 드는 시간은 한계효용이 급감한다."
+    },
+    {
+      "id": "klarman_p11",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "평가는 정밀과학이 아니고 미래는 예측 불가능하며 인간은 실수하므로, 그 모든 여백을 메우기 위해 안전마진이 필요하다."
+    },
+    {
+      "id": "klarman_p12",
+      "theme": "guru",
+      "sources": [
+        "Seth Klarman"
+      ],
+      "rule": "마지막 한 푼(가장 비싼 정점)까지 쥐려 하지 말고 충분한 수익에서 규율 있게 빠져나온다."
+    },
+    {
+      "id": "robertson_p0",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "수익의 핵심은 큰 손실을 피하는 것이며, 큰 손실을 막는 것이야말로 장기적으로 진짜 돈을 버는 길이다."
+    },
+    {
+      "id": "robertson_p1",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "투자 과정은 '좋은 아이디어 → 철저한 리서치 → 그 위에 큰 베팅'이라는 고확신 집중 방식을 따른다."
+    },
+    {
+      "id": "robertson_p2",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "최선의 자금운용은 좋은 기업을 매수(long)하고 나쁜 기업을 공매도(short)하는 롱숏 전략이다."
+    },
+    {
+      "id": "robertson_p3",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "내가 고른 최고의 종목들이 최악의 종목들을 능가하지 못한다면, 차라리 다른 업종에 종사해야 한다."
+    },
+    {
+      "id": "robertson_p4",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "강한 펀더멘털·경쟁우위·우수한 경영진·견고한 재무구조를 갖춘 기업에 집중 투자한다."
+    },
+    {
+      "id": "robertson_p5",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "리서치가 미개척된 영역으로 들어가 그곳을 철저히 파고드는 것이 이 사업에서 성공하는 좋은 방법이다."
+    },
+    {
+      "id": "robertson_p6",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "경쟁이 덜 치열한(투수 수준이 낮은) 영역일수록 좋은 타율을 만들기 쉽다."
+    },
+    {
+      "id": "robertson_p7",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "기업·경쟁사·경영진을 직접 폭넓게 탐문해 정보를 입체적으로 수집하는 깊은 리서치를 한다."
+    },
+    {
+      "id": "robertson_p8",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "'시장이 내게 말해줬다'는 식의 의인화된 시장 신호에 의존하지 않고 독립적 분석으로 판단한다."
+    },
+    {
+      "id": "robertson_p9",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "자신이 이해하지 못하는 시장에서는 투자자를 위험에 노출시키지 않는다 — 이해 못 할 땐 물러난다."
+    },
+    {
+      "id": "robertson_p10",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "탁월한 수익만큼이나, 다음 세대 운용자를 길러내는 멘토십(타이거 컵스)도 운용 철학의 일부다."
+    },
+    {
+      "id": "robertson_p11",
+      "theme": "guru",
+      "sources": [
+        "Julian Robertson"
+      ],
+      "rule": "고확신 아이디어에는 머뭇거리지 말고 공격적으로(크게) 베팅하는 결단력이 필요하다."
+    },
+    {
+      "id": "marks_p0",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "무엇을 사느냐가 아니라 '얼마에 사느냐'가 관건이다 — 좋은 자산도 비싸게 사면 위험해진다."
+    },
+    {
+      "id": "marks_p1",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "좋은 투자는 좋은 것을 사는 데서가 아니라 '잘 사는 것(buying things well)'에서 나온다."
+    },
+    {
+      "id": "marks_p2",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "아무리 훌륭한 자산도 과대평가되면 위험해질 수 있다 — 본질적으로 안전한 가격은 없다."
+    },
+    {
+      "id": "marks_p3",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "출발 시점의 밸류에이션이 높을수록 향후 기대수익은 낮아지고, 반대도 성립한다."
+    },
+    {
+      "id": "marks_p4",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "세상에서 가장 위험한 것은 '위험이 없다'는 믿음이다."
+    },
+    {
+      "id": "marks_p5",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "버블은 '버블적 사고'(비합리적 과열, FOMO, '너무 비싼 가격은 없다'는 확신)로 특징지어지는 심리 상태다."
+    },
+    {
+      "id": "marks_p6",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "강세장은 '소수만 개선을 믿는 단계 → 다수가 개선을 인정하는 단계 → 모두가 영원한 개선을 가정하는 단계'로 진행된다."
+    },
+    {
+      "id": "marks_p7",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "어디로 갈지는 몰라도 '지금 시장이 사이클의 어디에 있는지'는 알아야 하며, 그 인식이 대응을 결정한다."
+    },
+    {
+      "id": "marks_p8",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "패자(루저)를 피하면 승자는 알아서 따라온다 — 손실 회피가 가치투자의 출발점이다."
+    },
+    {
+      "id": "marks_p9",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "탁월하지만 들쭉날쭉한 성과보다, 형편없는 해가 없는 꾸준한 수익이 장기 성공으로 이어진다."
+    },
+    {
+      "id": "marks_p10",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "신기술은 열기를 식힐 과거 기준이 없어 버블을 키우기 쉽지만, 고기술 분야의 우위는 신규 경쟁자에게 추월당하기 쉽다."
+    },
+    {
+      "id": "marks_p11",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "기업의 영속성보다 변화가 더 일반적이다 — 2000년 S&P 상위 20개 중 6개만 2024년에 상위권에 남았다."
+    },
+    {
+      "id": "marks_p12",
+      "theme": "guru",
+      "sources": [
+        "Howard Marks"
+      ],
+      "rule": "극단적 사건은 사람들의 객관성을 잃게 만들며, 그때 버블과 폭락이 발생한다."
+    },
+    {
+      "id": "lynch_p0",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "자신이 잘 아는 분야에 투자하라 — 일상·직업에서 얻는 현장 지식이 전문 투자자보다 앞선 통찰을 준다."
+    },
+    {
+      "id": "lynch_p1",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "왜 그 주식을 보유하는지 10살 아이에게 2분 안에 설명할 수 없다면, 그 주식을 보유해선 안 된다."
+    },
+    {
+      "id": "lynch_p2",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "제품이 마음에 든다는 이유만으로 사지 말고, 재무·경쟁지위·성장성이 주가에 반영됐는지 숙제(리서치)를 하라."
+    },
+    {
+      "id": "lynch_p3",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "주식시장에서 가장 중요한 신체기관은 두뇌가 아니라 '위장'이다 — 변동성을 견디는 감정 규율이 성패를 가른다."
+    },
+    {
+      "id": "lynch_p4",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "경기·금리·시장 하락을 예측하려는 시도는 무의미하다 — 경제 예측에 시간을 쓰는 건 대부분 낭비다."
+    },
+    {
+      "id": "lynch_p5",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "조정을 대비하거나 예측하려다 잃은 돈이, 실제 조정에서 잃은 돈보다 훨씬 많다."
+    },
+    {
+      "id": "lynch_p6",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "주가가 싸다는 사실 자체는 아무 신호도 아니다 — 같은 금액이면 $3 주식과 $50 주식의 손실 위험은 동일하다."
+    },
+    {
+      "id": "lynch_p7",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "큰 승자(텐배거)는 보통 결실까지 3~10년이 걸리므로 인내심을 갖고 길게 보유하라."
+    },
+    {
+      "id": "lynch_p8",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "서두를 필요 없다 — 월마트는 IPO 10년 뒤에 사도 35배 수익이 났다."
+    },
+    {
+      "id": "lynch_p9",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "겁에 질려 주식에서 떨려 나가지 않는 것이 주식으로 돈을 버는 열쇠다."
+    },
+    {
+      "id": "lynch_p10",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "주식은 당신이 보유한 줄 모른다 — 펀더멘털을 계속 점검하고 악화되면 감정 없이 매도하라."
+    },
+    {
+      "id": "lynch_p11",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "리서치에서 '가장 많은 돌을 뒤집어 보는 사람'이 게임에서 이긴다 — 부지런한 발품이 좋은 기회를 찾아낸다."
+    },
+    {
+      "id": "lynch_p12",
+      "theme": "guru",
+      "sources": [
+        "Peter Lynch"
+      ],
+      "rule": "상황은 너무 늦기 전까지는 결코 명확해지지 않는다 — 완벽한 확신을 기다리면 기회는 지나간다."
     }
   ]
 }

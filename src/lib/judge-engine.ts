@@ -256,8 +256,9 @@ function fmtRagHits(hits: RagHit[]): string {
   return `# 관련 원전 인용 (버핏 서한·투자 고전 — 의미검색 RAG)\n아래는 질문과 의미적으로 가까운 실제 원문 구절이다. 판단의 *철학적 근거*로 인용하되, 수치/사실은 위 실시간 데이터를 우선하라.\n\n${body}`;
 }
 
-export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[] }): string {
+export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[]; macroContext?: string }): string {
   const lang = LANG[opts.locale] ?? 'Korean';
+  const macroBlock = opts.macroContext ? `# 거시 환경 (실시간: CNN F&G · VIX · CME FedWatch · FRED · 국채금리)\n${opts.macroContext}` : '';
   const liveBlock = opts.tickerCtx.length
     ? `# 실시간 종목 데이터 (지금 외부 금융 소스에서 수집)\n${opts.tickerCtx.map(fmtTickerCtx).join('\n')}`
     : '# 실시간 종목 데이터\n(질문에서 특정 종목 미감지 — 일반 전략/원칙 상담). ⚠️ 특정 종목명이 언급됐어도 위에 데이터가 없으면 그 종목의 가격·재무·기술 수치를 절대 지어내지 말고 "실시간 데이터를 조회하지 못했다"고 답하라.';
@@ -283,6 +284,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `\n${condenseRules()}`,
     ragBlock,
     ``,
+    macroBlock,
     liveBlock,
     opts.reportContext ? `\n# 오늘의 FlowVium 리포트 맥락\n${opts.reportContext}` : '',
   ].filter(Boolean).join('\n');

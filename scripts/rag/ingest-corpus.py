@@ -107,10 +107,14 @@ def load_curated():
         except Exception:
             continue
         items = d if isinstance(d, list) else d.get("principles", [])
+        is_wisdom = rel.endswith("investor-wisdom.json")
         for it in items:
             txt = " ".join(str(it.get(k, "")) for k in ("rule", "apply", "description", "theme") if it.get(k)).strip()
             if len(txt) >= 20:
-                rows.append({"id": f"{src}-{it.get('id','x')}", "source": src, "year": "", "text": txt})
+                # 투자 지혜는 구루별로 라벨링(sources[0]) → RAG 출처 칩에 구루명 노출. doctrine 은 고정.
+                srcs = it.get("sources") or []
+                label = (srcs[0] if srcs else "투자 지혜") if is_wisdom else src
+                rows.append({"id": f"{src}-{it.get('id','x')}", "source": label, "year": "", "text": txt})
     log(f"curated: {len(rows)} chunks")
     return rows
 
@@ -147,16 +151,34 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     # 버크셔 서한(공개) + 합법 보유 서적(books/) + 합법 공개 에세이·강연(sources/) + 큐레이션 원칙
     rows = load_letters() + load_dir("books", "book") + load_dir("sources", "src") + load_curated()
-    log(f"total chunks: {len(rows)} — embedding with bge-m3...")
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer("BAAI/bge-m3")
-    embs = model.encode([r["text"] for r in rows], normalize_embeddings=True,
-                         batch_size=16, show_progress_bar=True)
+
+    # 증분 임베딩: 기존 corpus.ndjson 의 text→embedding 재사용, 신규/변경 텍스트만 인코딩
+    #   (재인제스트 속도 최적화 — 서한 5430청크 재임베딩 낭비 제거).
+    existing = {}
+    if os.path.exists(OUT):
+        for ln in open(OUT, encoding="utf-8"):
+            try:
+                o = json.loads(ln)
+                if o.get("text") and o.get("embedding"):
+                    existing[o["text"]] = o["embedding"]
+            except Exception:
+                pass
+    todo = [r for r in rows if r["text"] not in existing]
+    log(f"total {len(rows)} · 재사용 {len(rows) - len(todo)} · 신규 임베딩 {len(todo)}")
+    if todo:
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer("BAAI/bge-m3")
+        embs = model.encode([r["text"] for r in todo], normalize_embeddings=True,
+                            batch_size=16, show_progress_bar=True)
+        for r, e in zip(todo, embs):
+            existing[r["text"]] = [round(float(x), 6) for x in e]
+
     with open(OUT, "w", encoding="utf-8") as fh:
-        for r, e in zip(rows, embs):
-            r["embedding"] = [round(float(x), 6) for x in e]
+        for r in rows:
+            r["embedding"] = existing[r["text"]]
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
-    log(f"wrote {OUT} ({len(rows)} chunks, dim={len(embs[0])})")
+    dim = len(next(iter(existing.values()))) if existing else 0
+    log(f"wrote {OUT} ({len(rows)} chunks, dim={dim})")
 
 if __name__ == "__main__":
     main()
