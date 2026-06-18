@@ -62,6 +62,10 @@ if errorlevel 2 (
 echo [%DATE% %TIME%] [INFO] Ingesting filings (DART/SEC full text)... >> "%LOG_FILE%"
 "C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\ingest-filings.mjs" --limit=40 >> "%LOG_FILE%" 2>&1
 
+:: 2.7 Analyze accumulated chat Q&A verification logs (defect rate/types -> logs/chat-verify-status.json).
+echo [%DATE% %TIME%] [INFO] Analyzing chat Q&A logs... >> "%LOG_FILE%"
+"C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\analyze-chat-logs.mjs" >> "%LOG_FILE%" 2>&1
+
 :: 3. Generate report + upload (generate-report-local uses vLLM via VLLM_URL in .env.local).
 echo [%DATE% %TIME%] [INFO] Starting report pipeline... >> "%LOG_FILE%"
 "C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\generate-report-local.mjs" --model=qwen3:8b --auto-upload >> "%LOG_FILE%" 2>&1

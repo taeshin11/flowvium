@@ -45,7 +45,6 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import nextDynamic from 'next/dynamic';
 import EmailCTA from '@/components/EmailCTA';
 // 2026-06-18: 매수·매도 심판엔진 채팅 — 클릭 시에만 로드(초기 번들 보호)
-const JudgeChat = nextDynamic(() => import('@/components/JudgeChat'), { ssr: false });
 import LiveFeed from '@/components/LiveFeed';
 import { useRouter } from '@/i18n/routing';
 import { companyNamesI18n } from '@/data/company-names-i18n';
@@ -933,7 +932,7 @@ export default function HomePage() {
   const latestSignals = useInView();
   const features = useInView();
   const howItWorks = useInView();
-  const [judgeOpen, setJudgeOpen] = useState(false);  // 2026-06-18: 심판엔진 채팅 모달
+  const router = useRouter();  // /judge 라우트 이동용(심판엔진 전용 페이지)
 
   // 2026-06-04: 정적 institutionalSignals → 라이브 /api/signals (시계열, 정적 금지).
   const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
@@ -951,7 +950,7 @@ export default function HomePage() {
   return (
     <div>
       {/* 2026-06-18: 매수·매도 심판엔진 채팅 모달 (히어로 버튼으로 오픈) */}
-      {judgeOpen && <JudgeChat onClose={() => setJudgeOpen(false)} />}
+      {/* 심판엔진은 전용 라우트 /judge 로 이동(2026-06-18 URL 부여). 모달 제거. */}
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-cf-primary/5 via-cf-secondary/5 to-cf-accent/5" />
@@ -994,7 +993,7 @@ export default function HomePage() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setJudgeOpen(true)}
+                  onClick={() => router.push('/judge')}
                   className="group flex flex-1 items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white text-cf-text-primary font-bold border-2 border-rose-300 shadow-md hover:shadow-lg hover:border-rose-400 hover:bg-rose-50/50 transition-all"
                 >
                   <Scale className="w-5 h-5 text-rose-500" />
