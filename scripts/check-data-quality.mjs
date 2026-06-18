@@ -555,7 +555,9 @@ async function main() {
       // admin/cron(쓰기), 유틸, per-ticker([) 제외
       const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices|member)$|\[/;
       // param 필수(per-ticker 성격) 또는 시계열 불필요(list/history) — 의도적 미추적.
-      const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading']);
+      //   /judge-chat·/judge-chat/share = 심판엔진 채팅 POST(per-user 대화·스냅샷) — 시계열 데이터 소스가 아니라
+      //   endpoint_snapshots 추적 대상 아님(2026-06-19). 자체 검증로그(judge-chat:verify)+폐루프로 별도 추적.
+      const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading', '/judge-chat', '/judge-chat/share']);
       const untracked = routes.filter(r => !EXCLUDE.test(r) && !trackedSet.has(r) && !ALLOW_UNTRACKED.has(r));
       if (untracked.length) {
         issues.push(`[N] DB 미추적 데이터 엔드포인트 ${untracked.length}개: ${untracked.join(', ')} — TRACKED_ENDPOINTS 추가 필요`);
