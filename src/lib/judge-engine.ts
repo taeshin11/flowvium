@@ -116,6 +116,12 @@ export interface TickerCtx {
   business?: string; industry?: string; products?: string;
   analystTarget?: number | null; rating?: string | null;
   newsSentiment?: string | null; newsHeadlines?: string[]; signalsRaw?: unknown;
+  filing?: FilingCtx | null; // 사업보고서 본문(DART/SEC) — 심층 모드에서만 적재
+}
+export interface FilingCtx {
+  form?: string | null; filedDate?: string | null; market?: string | null;
+  overview?: string | null; products?: string | null; salesMix?: string | null;
+  rnd?: string | null; risk?: string | null; mdna?: string | null; resaleRatio?: number | null;
 }
 
 // Yahoo 일봉 차트 직접 fetch — 가격·전일대비·52주·OHLC closes (US·KR 동일 권위 소스).
@@ -162,19 +168,22 @@ function rsi14(closes: number[]): number | null {
   return Math.round(100 - 100 / (1 + rs));
 }
 
-export async function gatherTickerContext(ticker: string, origin: string): Promise<TickerCtx> {
+export async function gatherTickerContext(ticker: string, origin: string, opts?: { withFiling?: boolean }): Promise<TickerCtx> {
   const { meta } = getData();
   const m = meta[ticker] ?? {};
   const isKr = /\.(KS|KQ)$/.test(ticker);
   const enc = encodeURIComponent(ticker);
-  // Yahoo(가격·52주·기술) + 재무(DART/SEC) + 옵션 UOA + 뉴스 + 사업개요(무슨 사업·업종·주력제품).
-  const [yh, signals, fin, newsRes, biz] = await Promise.all([
+  // Yahoo(가격·52주·기술) + 재무(DART/SEC) + 옵션 UOA + 뉴스 + 사업개요(무슨 사업·업종·주력제품)
+  //   + (심층) 사업보고서 본문 섹션(filings DB — 제품/상품 매출·연구개발·전망).
+  const [yh, signals, fin, newsRes, biz, filingRes] = await Promise.all([
     fetchYahooChart(ticker),
     safeJson(`${origin}/api/company-signals/${enc}`),
     isKr ? safeJson(`${origin}/api/company-kr/${enc}`) : safeJson(`${origin}/api/company-financials/${enc}`),
     safeJson(`${origin}/api/company-news?ticker=${enc}`),
     safeJson(`${origin}/api/company-business/${enc}`),
+    opts?.withFiling ? safeJson(`${origin}/api/company-filing/${enc}`) : Promise.resolve(null),
   ]);
+  const filing = (filingRes?.filing as FilingCtx | undefined) ?? null;
   const finCore = (fin?.latestAnnual as Record<string, unknown>) ?? fin ?? {};  // 재무는 latestAnnual 중첩
   const closes = yh?.closes ?? [];
   const uoa = Array.isArray(signals?.uoa) ? (signals!.uoa as unknown[]) : [];
@@ -225,7 +234,7 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
     roe: num(pick(finCore, 'roePct', 'roe')),
     opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
     netMargin, debtRatio, rdPct, fcf,
-    ocf, netIncome: netInc, financingCF,
+    ocf, netIncome: netInc, financingCF, filing,
     business: bizDesc, industry, products,
     newsHeadlines: newsHeadlines.length ? newsHeadlines : undefined,
     revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
@@ -289,6 +298,23 @@ function fmtTickerCtx(c: TickerCtx): string {
   return L.join(' · ');
 }
 
+// 사업보고서 본문(DART/SEC) 섹션 — 심층 모드에서 사업의 내용·제품vs상품매출·연구개발·전망 근거.
+function fmtFiling(c: TickerCtx): string {
+  const f = c.filing;
+  if (!f) return '';
+  const head = `[${c.name} (${c.ticker})] 사업보고서 본문 (${f.form ?? '정기보고서'}${f.filedDate ? `, ${f.filedDate}` : ''})`;
+  const parts: string[] = [];
+  if (f.overview) parts.push(`■ 사업의 내용/시장: ${f.overview}`);
+  if (f.products) parts.push(`■ 주요 제품/서비스: ${f.products}`);
+  if (f.salesMix) parts.push(`■ 매출 구성(제품=자체생산 vs 상품=되팔기): ${f.salesMix}`);
+  if (f.resaleRatio != null) parts.push(`■ 되팔기(상품매출) 비중 ≈ ${Math.round(f.resaleRatio * 100)}% ${f.resaleRatio >= 0.4 ? '(자체생산 비중 낮음 — 부가가치·해자 약점)' : '(대부분 자체생산)'}`);
+  if (f.rnd) parts.push(`■ 연구개발활동: ${f.rnd}`);
+  if (f.mdna) parts.push(`■ 경영진 분석(MD&A): ${f.mdna}`);
+  if (f.risk) parts.push(`■ 리스크 요인: ${f.risk}`);
+  if (!parts.length) return '';
+  return `${head}\n${parts.join('\n')}`;
+}
+
 // ── 결정론적 룰 발화 엔진 (매수엔진·매도엔진) — 챗에서 실제 룰을 데이터에 대고 발화·채점 ─────────
 //   리포트 파이프라인(generate-report-local.mjs)의 룰 평가를, 챗에서 가용한 TickerCtx+거시 데이터로
 //   평가 가능한 부분집합만 결정론 발화. (signals/holdings 의존 룰은 챗 데이터 부재로 미발화=보수적.)
@@ -321,6 +347,7 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
   S('negative_ocf', 5, '영업현금흐름 적자(순이익 흑자라도 현금 미유입)', ocf != null && ocf < 0);
   S('dilution_financing', 3, '재무활동 자금조달 과다(유상증자·전환사채 → 주식 희석 위험)', financingCF != null && financingCF > 0 && ocf != null && financingCF > Math.max(0, ocf));
   S('overextended_200ma', 3, '200일선 대비 +60%↑ 과대확장(평균회귀·되돌림 위험)', price != null && sma200 != null && sma200 > 0 && price > sma200 * 1.6);
+  S('high_resale_mix', 3, '되팔기(상품매출) 비중 과다 — 자체생산 비중 낮아 부가가치·해자 약함', c.filing?.resaleRatio != null && c.filing.resaleRatio >= 0.4);
   S('dead_cross', 5, '데드크로스(50MA<200MA)', sma50 != null && sma200 != null && sma50 < sma200);
   S('ma200_breach', 5, '200일선 하향이탈', price != null && sma200 != null && price < sma200);
   S('rsi_overbought', 4, 'RSI≥75 과매수', rsi != null && rsi >= 75);
@@ -370,9 +397,11 @@ export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: numb
 export function buildResearchPrompt(opts: { locale: string; tickerCtx: TickerCtx[]; macroContext?: string }): string {
   const lang = LANG[opts.locale] ?? 'Korean';
   const data = opts.tickerCtx.length ? opts.tickerCtx.map(fmtTickerCtx).join('\n') : '(특정 종목 미감지)';
+  const filings = opts.tickerCtx.map(fmtFiling).filter(Boolean).join('\n\n');
   return [
     `You are a sell-side equity research analyst. Write a concise research brief in ${lang}. FACTS ONLY — no buy/sell call yet.`,
-    `아래 데이터만 사용하라. 수치를 지어내지 마라(데이터에 없으면 "데이터 없음").`,
+    `아래 데이터와 *사업보고서 본문*만 사용하라. 수치를 지어내지 마라(데이터에 없으면 "데이터 없음").`,
+    filings ? `\n# 📄 사업보고서 본문 (DART 사업보고서 / SEC 10-K — 1차 사실 소스, 최우선 활용)\n${filings}` : '',
     ``,
     `# 작성 항목 (각 항목 2~4문장, 평이한 한국어 — 사실 위주로 충실하게)`,
     `1) 사업 모델: 이 회사가 무슨 사업으로 돈을 버는가, 주력 제품/서비스와 매출 구성 (위 '사업' 데이터 기반).`,
@@ -415,6 +444,8 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     ? `# 실시간 종목 데이터 (지금 외부 금융 소스에서 수집)\n${opts.tickerCtx.map(fmtTickerCtx).join('\n')}`
     : '# 실시간 종목 데이터\n(질문에서 특정 종목 미감지 — 일반 전략/원칙 상담). ⚠️ 특정 종목명이 언급됐어도 위에 데이터가 없으면 그 종목의 가격·재무·기술 수치를 절대 지어내지 말고 "실시간 데이터를 조회하지 못했다"고 답하라.';
   const ragBlock = opts.ragHits && opts.ragHits.length ? `\n${fmtRagHits(opts.ragHits)}` : '';
+  const filingLines = opts.tickerCtx.map(fmtFiling).filter(Boolean);
+  const filingBlock = filingLines.length ? `# 📄 사업보고서 본문 (DART 사업보고서 / SEC 10-K — 사업의 내용·제품vs상품 매출·연구개발·전망의 1차 사실 소스)\n${filingLines.join('\n\n')}` : '';
   // 심층(aits-deep): 1차 리서치 브리프를 받았으므로 최종 답변을 더 두껍게 — 강세/약세 양립 + 시나리오 + 구체 레벨.
   const deepBlock = opts.mode === 'aits-deep' ? [
     `## 🔬 심층 모드 답변 요건 (이 모드에서만 — 일반 모드보다 깊게)`,
@@ -463,6 +494,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     ``,
     researchBlock,
     engineBlock,
+    filingBlock,
     macroBlock,
     liveBlock,
     opts.reportContext ? `\n# 오늘의 FlowVium 리포트 맥락\n${opts.reportContext}` : '',

@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     const opts = MODE_OPTS[mode];
     const tickers = detectTickers(lastUser, opts.maxTickers);
     const [tickerCtx, reportContext, ragHits, macroContext] = await Promise.all([
-      Promise.all(tickers.map(t => gatherTickerContext(t, origin).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
+      Promise.all(tickers.map(t => gatherTickerContext(t, origin, { withFiling: opts.deep }).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
       fetchReportContext(origin, locale, tickers),
       opts.useRag ? ragRetrieve(lastUser, 4).catch((): RagHit[] => []) : Promise.resolve([] as RagHit[]),
       fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
