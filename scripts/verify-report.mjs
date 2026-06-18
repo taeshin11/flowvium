@@ -804,13 +804,19 @@ export async function verifyReport(file, { silent = false } = {}) {
       }
     }
 
-    // (c) 수급 방향 역전 — regionStances.korea 가 "둔화/순매도"인데 내러티브가 "순매수 지속/연속"
-    if (/(둔화|순매도|감소|이탈|약화|유출)/.test(krThesis) &&
-        /외국인[^.]{0,24}(순매수[^.]{0,8}(지속|연속|이어|확대)|연속\s*순매수|순매수\s*기조|순매수\s*흐름)/.test(narrText)) {
+    // (c) 수급 방향 역전 — regionStances.korea 가 "둔화/순매도/유출"인데 내러티브가 "순매수/유입" 주장.
+    //   2026-06-18 정정: 기존 정규식은 "순매수 둔화가 지속"(=둔화 지속, 의미상 정상)을 오탐하고,
+    //   "외국인 자금 유입 확대"(=진짜 역전)는 놓쳤음. → 매수/유입 주장을 잡되, 직후 둔화/감소 수식이
+    //   붙은 경우(순매수 둔화)는 정상으로 제외.
+    const krSell = /(둔화|순매도|감소|이탈|약화|유출)/.test(krThesis);
+    const buyClaim = /외국인[^.]{0,16}(순유입|자금\s*유입|유입\s*확대|유입세|순매수\s*(지속|연속|이어|확대|기조|흐름))/.test(narrText);
+    const slowdownQualified = /(순매수|유입)[^.]{0,6}(둔화|감소|축소|위축|약화)/.test(narrText);
+    if (krSell && buyClaim && !slowdownQualified) {
       const inDir = krThesis.match(/(둔화|순매도|감소|이탈|약화|유출)/)?.[0];
+      const claim = narrText.match(/외국인[^.]{0,16}(순유입|자금\s*유입|유입\s*확대|유입세|순매수\s*(?:지속|연속|이어|확대|기조|흐름))/)?.[0];
       defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_direction_inversion',
-        llm_value: `내러티브 "외국인 순매수 지속/연속" vs 입력 "외국인 ${inDir}"`, correct_value: 'regionStances.korea 수급 방향과 일치', severity: 'high' });
-      log(`  ❌ 수급방향역전: 입력 "${inDir}" → 내러티브 "순매수 지속"`); nFound++;
+        llm_value: `내러티브 "${claim}" vs 입력 "외국인 ${inDir}"`, correct_value: 'regionStances.korea 수급 방향과 일치', severity: 'high' });
+      log(`  ❌ 수급방향역전: 입력 "${inDir}" → 내러티브 "${claim}"`); nFound++;
     }
 
     // (e) 라틴 bleed — 한글 토큰 안에 낀 소문자 라틴 (예: "스que이즈"=스퀴즈). 대문자(AI/NVDA)·약어 제외.
