@@ -10,6 +10,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { callAI } from '@/lib/ai-providers';
 import { createRedis } from '@/lib/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
@@ -164,6 +166,27 @@ async function yahooSearch(q: string): Promise<Array<{ symbol: string; name: str
     return (d.quotes ?? []).filter(x => x.symbol && (x.quoteType === 'EQUITY' || !x.quoteType)).map(x => ({ symbol: x.symbol!, name: (x.shortname || x.longname || '') }));
   } catch { return []; }
 }
+// 우리 큐레이션 풀(candidate-tickers) 로드 — 신규발견 판별용.
+let _poolSet: Set<string> | null = null;
+function inPool(ticker: string): boolean {
+  if (!_poolSet) {
+    _poolSet = new Set();
+    try {
+      const j = JSON.parse(readFileSync(resolve(process.cwd(), 'data/candidate-tickers.json'), 'utf8')) as { meta?: Record<string, unknown> };
+      for (const k of Object.keys(j.meta ?? {})) _poolSet.add(k.toUpperCase());
+    } catch { /* */ }
+  }
+  return _poolSet.has(ticker.toUpperCase());
+}
+// 풀 밖 신규발견 티커 추적 — ZSET(질문 누적횟수) + 최근 질문/시각. 인기종목 유니버스 승격 검토용.
+async function recordDiscovered(redis: ReturnType<typeof createRedis>, ticker: string, q: string): Promise<void> {
+  try {
+    if (!redis || inPool(ticker)) return;
+    await redis.zincrby('flowvium:discovered-tickers', 1, ticker.toUpperCase());
+    await redis.hset('flowvium:discovered-meta', { [ticker.toUpperCase()]: JSON.stringify({ lastQ: q.slice(0, 60), at: new Date().toISOString() }) });
+  } catch { /* non-fatal */ }
+}
+
 // 티커 직접 검증 — Yahoo 에 그 심볼이 실제 존재+가격 있는지(우리 풀에 없어도 SPCX 등 해석).
 async function yahooHasTicker(sym: string): Promise<boolean> {
   try {
@@ -337,6 +360,9 @@ export async function POST(request: NextRequest) {
       if (!tickers.length && !isRecoQ && (STOCK_Q.test(lastUser) || lastUser.trim().length <= 24)) {
         onProgress?.({ stage: 'resolve', detail: '🔎 종목 식별 중 (이름→티커 해석)' });
         tickers = await resolveTickersLLM(lastUser, opts.maxTickers);
+        // 풀(1,210) 밖에서 새로 발견된 실재 티커 추적 — 어떤 종목을 사용자가 묻는데 우리가 미커버하는지 가시화.
+        //   company page 는 이미 동적이라 페이지는 존재. ZSET(질문횟수)로 인기 발견종목→유니버스 승격 검토.
+        for (const t of tickers) void recordDiscovered(redis, t, lastUser);
       }
       const nameList = tickers.map(t => tickerName(t)).join(', ');
       onProgress?.({ stage: 'gather', detail: tickers.length
