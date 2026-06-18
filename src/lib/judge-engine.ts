@@ -244,6 +244,11 @@ function fmtTickerCtx(c: TickerCtx): string {
   if (c.price != null) L.push(`현재가 ${f(c.price)}${c.changePct != null ? ` (${c.changePct >= 0 ? '+' : ''}${c.changePct}%)` : ''}`);
   if (c.rsi != null) L.push(`RSI ${c.rsi}`);
   if (c.sma50 != null || c.sma200 != null) L.push(`50MA ${f(c.sma50) ?? '?'} / 200MA ${f(c.sma200) ?? '?'}`);
+  // 200일선 대비 과대확장 — 추세는 강하나 평균회귀(되돌림) 위험. 추세강함으로만 해석하지 않게 명시.
+  if (c.price != null && c.sma200 != null && c.sma200 > 0) {
+    const ext = Math.round((c.price / c.sma200 - 1) * 100);
+    if (ext >= 60) L.push(`⚠️주가가 200일선보다 +${ext}% 위(과대확장 — 추세는 강하나 평균회귀/되돌림 위험, 무조건 강세로 해석 금지)`);
+  }
   if (c.high52w != null || c.low52w != null) L.push(`52주 ${f(c.low52w) ?? '?'}~${f(c.high52w) ?? '?'}`);
   if (c.roe != null) L.push(`ROE ${c.roe}%`);
   if (c.opMargin != null) L.push(`영업이익률 ${c.opMargin}%`);
@@ -253,11 +258,12 @@ function fmtTickerCtx(c: TickerCtx): string {
   if (c.debtRatio != null) L.push(`부채비율 ${c.debtRatio}%`);
   if (c.fcf != null) L.push(`FCF ${c.fcf >= 0 ? '흑자(+)' : '적자(−)'}`);
   // 이익의 질: 영업현금흐름 vs 순이익 — OCF가 순이익보다 크게 적으면 이익이 현금으로 안 들어옴(외상매출↑/이익의 질 의심).
-  if (c.ocf != null && c.netIncome != null && c.netIncome !== 0) {
-    const q = c.ocf / c.netIncome;
-    const tag = c.ocf < 0 ? '⚠️영업현금흐름 적자(순이익은 흑자라도 현금 미유입)'
-      : q < 0.6 ? `⚠️이익의 질 낮음(영업현금흐름이 순이익의 ${Math.round(q * 100)}%뿐 — 외상매출/일회성 의심)`
-      : q >= 1 ? '영업현금흐름이 순이익 이상(이익의 질 양호)' : `영업현금흐름/순이익 ${Math.round(q * 100)}%`;
+  if (c.ocf != null && c.netIncome != null && c.netIncome > 0) {
+    const q = c.ocf / c.netIncome; const pct = Math.round(q * 100);
+    const tag = c.ocf < 0 ? '⚠️영업현금흐름 적자(순이익은 흑자라도 현금 미유입 — 이익의 질 매우 낮음)'
+      : q < 0.6 ? `⚠️이익의 질 낮음(영업현금흐름이 순이익의 ${pct}%뿐 — 외상매출/일회성 의심)`
+      : q < 0.85 ? `⚠️이익의 질 다소 낮음(영업현금흐름이 순이익의 ${pct}% — 현금화 미흡)`
+      : q >= 1 ? `영업현금흐름이 순이익의 ${pct}%(이익의 질 양호)` : `영업현금흐름/순이익 ${pct}%(보통)`;
     L.push(tag);
   } else if (c.ocf != null && c.ocf < 0) {
     L.push('⚠️영업현금흐름 적자');
@@ -322,9 +328,10 @@ function fmtEngine(c: TickerCtx, v: EngineVerdict): string {
 // ── doctrine/wisdom/rules 압축 (시스템 프롬프트용) ───────────────────────────
 function condenseDoctrine(): string {
   const { doctrine, wisdom } = getData();
-  const d = doctrine.map(p => `- ${p.id}: ${p.rule ?? ''}${p.apply ? ` → ${p.apply}` : ''}`).join('\n');
-  const w = wisdom.map(p => `- ${p.id}: ${p.rule ?? ''}`).join('\n');
-  return `# 심판 원칙 (구루 doctrine — 매도/리스크/진입)\n${d}\n\n# 투자 지혜 (버핏·린치·소로스·코스톨라니)\n${w}`;
+  // 내부 원칙 ID(영문 snake_case)는 답변에 누출되면 난독 → 모델엔 자연어 규칙만 제공(condenseRules 와 동일 정책).
+  const d = doctrine.map(p => `- ${p.rule ?? ''}${p.apply ? ` → ${p.apply}` : ''}`).join('\n');
+  const w = wisdom.map(p => `- ${p.rule ?? ''}`).join('\n');
+  return `# 심판 원칙 (구루 doctrine — 매도/리스크/진입 · 답변엔 영문 ID 쓰지 말고 자연어로)\n${d}\n\n# 투자 지혜 (버핏·린치·소로스·코스톨라니)\n${w}`;
 }
 
 function condenseRules(): string {
