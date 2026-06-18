@@ -125,10 +125,12 @@ async function fetchYahooChart(ticker: string): Promise<{ price: number | null; 
     const meta = res.meta;
     const closes = (res.indicators?.quote?.[0]?.close ?? []).filter((v): v is number => typeof v === 'number' && v > 0);
     const price = num(meta.regularMarketPrice);
-    const prev = num(meta.chartPreviousClose, meta.previousClose);
+    // 일간 변동률: range=1y 의 meta.chartPreviousClose 는 range 시작 이전(최대 1년 전) 종가라
+    //   부정확(NVDA "+42% 급등" 가짜 변동률 사건 2026-06-18). closes 배열의 직전 거래일 종가로 계산.
+    const prevDay = closes.length >= 2 ? closes[closes.length - 2] : num(meta.chartPreviousClose);
     return {
       price,
-      changePct: price != null && prev ? parseFloat(((price - prev) / prev * 100).toFixed(2)) : null,
+      changePct: price != null && prevDay ? parseFloat(((price - prevDay) / prevDay * 100).toFixed(2)) : null,
       high52w: num(meta.fiftyTwoWeekHigh),
       low52w: num(meta.fiftyTwoWeekLow),
       closes,

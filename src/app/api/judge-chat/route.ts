@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { messages?: ChatMsg[]; mode?: JudgeMode; locale?: string; convId?: string; stream?: boolean };
     const messages = Array.isArray(body.messages) ? body.messages.filter(m => m && typeof m.content === 'string' && m.content.trim()) : [];
-    const mode: JudgeMode = (['aits', 'aits-rag'].includes(body.mode as string) ? body.mode : 'aits') as JudgeMode;
+    const mode: JudgeMode = (['aits', 'aits-rag'].includes(body.mode as string) ? body.mode : 'aits-rag') as JudgeMode;
     const locale = body.locale ?? 'ko';
     if (!messages.length) return NextResponse.json({ error: 'no messages' }, { status: 400 });
 

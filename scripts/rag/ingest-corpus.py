@@ -124,6 +124,9 @@ def load_dir(subdir, src_prefix):
     for f in sorted(glob.glob(os.path.join(base, "*"))):
         ext = f.rsplit(".", 1)[-1].lower()
         stem = os.path.splitext(os.path.basename(f))[0]
+        if stem.lower() in ("readme",) or stem.startswith("_"):
+            continue  # README/임시 파일 제외
+
         label = stem.replace("-", " ").replace("_", " ").strip().title()
         if ext == "pdf":
             txt = pdftotext(f)
