@@ -57,6 +57,11 @@ if errorlevel 2 (
   exit /b 2
 )
 
+:: 2.5 Ingest business-report full text (DART/SEC) into filings DB - rotating cursor, non-fatal.
+::   Feeds stock-selection (resale-mix forensic) + deep-chat business grounding. Bounded ~40 tickers/run.
+echo [%DATE% %TIME%] [INFO] Ingesting filings (DART/SEC full text)... >> "%LOG_FILE%"
+"C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\ingest-filings.mjs" --limit=40 >> "%LOG_FILE%" 2>&1
+
 :: 3. Generate report + upload (generate-report-local uses vLLM via VLLM_URL in .env.local).
 echo [%DATE% %TIME%] [INFO] Starting report pipeline... >> "%LOG_FILE%"
 "C:\Program Files\nodejs\node.exe" "D:\Flowvium\scripts\generate-report-local.mjs" --model=qwen3:8b --auto-upload >> "%LOG_FILE%" 2>&1

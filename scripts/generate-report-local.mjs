@@ -18,7 +18,7 @@ import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents } from './lib/narrative-fix.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling } from './lib/db.mjs';
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
@@ -5421,6 +5421,18 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       const r = evaluateBuyRule(rule, ctx);
       if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
+    // 2026-06-18: 사업보고서 본문(filings DB) forensic — 되팔기(상품매출) 비중 과다 시 감점(자체생산·해자 약함).
+    //   ingest-filings.mjs 가 적재한 본문. 본문은 buildPortfolioPrompt 에서 사업사실로도 노출(LLM 선정 근거).
+    try {
+      const fil = getLatestFiling(c.ticker);
+      if (fil) {
+        c.filing = fil;
+        if (fil.resale_ratio != null && fil.resale_ratio >= 0.4) {
+          c.stage1Score -= 3;
+          c.reasons.push({ ruleId: 'high_resale_mix', category: 'fundamental', score: -3, reason: `되팔기(상품매출) 비중 ${Math.round(fil.resale_ratio * 100)}% — 자체생산↓ 해자 약함` });
+        }
+      }
+    } catch { /* 본문 미적재 종목 skip */ }
   }
   stage3Cands.sort((a, b) => b.stage1Score - a.stage1Score);
   const finalCands = sliceWithKrQuota(stage3Cands, topN, Math.round(topN * 0.3)); // KR ~30% 슬롯 보장
@@ -6091,8 +6103,12 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
       '(score = cumulative sum of 23 rules: tech/fund/구루/macro/micro/selflearn)',
       '(괄호 뒤 → = 실제 사업/주력제품. rationale 은 이 사업 사실에만 근거할 것. 모르는 종목 추측 금지.)',
       ...buyCandidates.slice(0, 30).map((c, i) => {
-        const biz = businessOneLiner(c.ticker);
-        return `  ${(i + 1).toString().padStart(2)}. ${c.ticker.padEnd(11)} score=${c.stage1Score} (${c.market}/${c.sector})${biz ? ` → ${biz}` : ''} — ${c.reasons.slice(0, 3).map(r => r.ruleId).join(', ')}`;
+        // 사업보고서 본문 우선(자체개발 제품/사업) → 없으면 정적 한줄. + 되팔기 비중 forensic 플래그.
+        const fil = c.filing;
+        const filBiz = fil?.products ? String(fil.products).replace(/\s+/g, ' ').slice(0, 90) : (fil?.overview ? String(fil.overview).replace(/\s+/g, ' ').slice(0, 90) : '');
+        const biz = filBiz || businessOneLiner(c.ticker);
+        const resaleFlag = fil?.resale_ratio != null && fil.resale_ratio >= 0.4 ? ` [되팔기 ${Math.round(fil.resale_ratio * 100)}%·자체생산↓]` : '';
+        return `  ${(i + 1).toString().padStart(2)}. ${c.ticker.padEnd(11)} score=${c.stage1Score} (${c.market}/${c.sector})${biz ? ` → ${biz}` : ''}${resaleFlag} — ${c.reasons.slice(0, 3).map(r => r.ruleId).join(', ')}`;
       }),
       'GUIDANCE: 위 score 는 정량 룰 결과. LLM 은 이 candidate pool 안에서 *고확신* 종목만 선택 — score 높은 것 우선.',
       'US/KR 균형은 권장이나 강제 아님. 확신 있는 후보가 적으면 적게 내라(개수 채우기·억지 추가 금지).',
