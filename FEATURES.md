@@ -73,7 +73,8 @@
 - **종합 grounding**: LLM(vLLM 우선 `callAI` cascade) + RAG(`judgment-doctrine.json` 7원칙 + `investor-wisdom.json` 버핏/린치/소로스/코스톨라니 + `buy-rules-tuned.json` 37 + `sell-rules-tuned.json` 23) + 실시간 금융 API(질문 내 종목 자동감지 → company-signals/financials/company-kr/news/recs/batch-prices 병렬수집) + 최신 리포트(내부 `/api/investment-strategy` 스탠스·논지·해당종목 추천).
 - **티커 자동감지**: KR 6자리코드 / US 대문자티커(풀 검증) / 회사명(영문·한글·다국어 별칭 `companyNamesI18n`: 엔비디아·エヌビディア·英伟达 등). 감지 시 실데이터 칩으로 grounding 투명화.
 - **모드 선택(Gemini식 ▾)**: 빠른판단(small model, 700tok) / 표준(1500tok) / 심층(2600tok, 룰+리포트 종합). 빠른액션 칩(매수판단/매도판단/포트폴리오점검/리포트요약).
-- **안전장치**: 시스템프롬프트 "수치 환각 금지·데이터없으면 솔직히·면책 한줄". IP 시간당 40 레이트리밋(Redis). 대화로그 30일 적재. i18n `judge.*` 25키 ×16언어.
+- **안전장치**: 시스템프롬프트 "수치 환각 금지·데이터없으면 솔직히·면책 한줄". IP 시간당 40 레이트리밋(Redis). i18n `judge.*` 25키 ×16언어.
+- **전체 대화 저장 (2026-06-18, 사용자 "검토·학습용")**: 질문+답변+히스토리+종목+모드+소스+grounding 을 `flowvium:judge-chat:conv:*`(180일) + `index` 리스트(최근 5000 capped) 적재. 신원(IP) 미저장. 검토: `node scripts/judge-chat-log.mjs [N]`(전체) / `--brief`(한줄요약).
 
 ### 2-2. AI 데일리 브리프 위젯
 - 타임프레임 탭: `1w` / `4w` / `13w`

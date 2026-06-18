@@ -116,9 +116,19 @@ export async function POST(request: Request) {
       usedReport: !!reportContext,
     };
 
-    // 대화 로그 적재(분석/품질추적 — non-fatal)
+    // 전체 대화 저장 (사용자 "전체 대화 저장 — 검토·학습용", 2026-06-18). 질문+답변+전체히스토리+
+    //   감지종목+모드+소스+grounding 을 conv 키(180일)에 저장 + index 리스트(최근 5000 capped)로 열람.
+    //   검토: node scripts/judge-chat-log.mjs [N]. 신원(IP)은 미저장 — 대화내용 중심.
     if (redis) {
-      try { await loggedRedisSet(redis, 'judge-chat', `flowvium:judge-chat:log:${Date.now()}`, { q: lastUser.slice(0, 500), tickers, mode, source }, { ex: 30 * 86400 }); } catch { /* non-fatal */ }
+      try {
+        const ts = new Date().toISOString();
+        const convKey = `flowvium:judge-chat:conv:${Date.now()}`;
+        const fullConv = { ts, mode, source, durationMs, tickers, grounding,
+          messages: [...messages, { role: 'assistant', content: text }] };
+        await loggedRedisSet(redis, 'judge-chat', convKey, fullConv, { ex: 180 * 86400 });
+        await redis.lpush('flowvium:judge-chat:index', JSON.stringify({ ts, key: convKey, q: lastUser.slice(0, 120), tickers, source }));
+        await redis.ltrim('flowvium:judge-chat:index', 0, 4999);
+      } catch { /* non-fatal */ }
     }
 
     return NextResponse.json({ reply: text, source, mode, durationMs, grounding });
