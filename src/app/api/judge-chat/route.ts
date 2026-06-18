@@ -105,6 +105,21 @@ function checkChatDefects(question: string, answer: string, grounding: { tickers
   for (const m of Array.from(a.matchAll(/([\d.]+)\s*%\s*(급락|급등|폭락|폭등)/g))) if (Math.abs(Number(m[1])) < 3) d.push({ type: 'magnitude_overstate', detail: m[0] });
   // 4) 가짜 배수 (이익의 질 938배 류)
   for (const m of Array.from(a.matchAll(/순이익의\s*([\d,]+)\s*배/g))) if (Number(m[1].replace(/,/g, '')) >= 10) d.push({ type: 'fake_multiple', detail: m[0] });
+  // 5) stale 연도 환각 — 과거 연도(올해-2 이하)를 "기준/최신/현재"라 칭함 (2026인데 "2024년 기준" 사건)
+  const curYear = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }).slice(0, 4));
+  for (const m of Array.from(a.matchAll(/20(\d\d)\s*년[^.\n]{0,14}(기준|최신|현재)/g))) {
+    if (Number('20' + m[1]) <= curYear - 2) { d.push({ type: 'stale_year', detail: m[0].slice(0, 24) }); break; }
+  }
+  // 6) 진입가 현재가 괴리 — 단일 종목 답변에서 진입가가 현재가 ±15% 밖이면 환각 의심
+  const priced = (grounding?.tickers ?? []).filter(t => t.price != null);
+  if (priced.length === 1 && priced[0].price) {
+    const P = priced[0].price;
+    const em = a.match(/진입가?[^\d]{0,8}([\d,]+(?:\.\d+)?)\s*[~\-–]\s*([\d,]+(?:\.\d+)?)/);
+    if (em) {
+      const mid = (Number(em[1].replace(/,/g, '')) + Number(em[2].replace(/,/g, ''))) / 2;
+      if (mid > 0 && Math.abs(mid / P - 1) > 0.15) d.push({ type: 'entry_far_from_price', detail: `진입중앙 ${Math.round(mid)} vs 현재 ${Math.round(P)} (${Math.round((mid / P - 1) * 100)}%)` });
+    }
+  }
   return d;
 }
 // 결정론 sanitize — 검출된 결함을 *답변 반환 전* 자동 제거(2026-06-18 사용자 "검증해서 고칠게 있으면 고쳐라·시스템화").
@@ -140,23 +155,39 @@ const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비
 // 추천목록 요청 패턴 — 특정 종목이 아니라 "오늘 뭐 살까/top/추천" → 리포트 portfolio 노출(특정종목 해석과 구분).
 const RECO_Q = /추천|top\s*\d|뭐\s*(사|살|매수)|살\s*만한|매수할\s*만한|포트폴리오|portfolio|픽\b|picks?\b|오늘\s*(뭐|종목)/i;
 // 한글 종목명 → 티커 LLM 해석 + Yahoo 검증(환각 티커 차단). 사전 alias 부재(하우맷·엔비디아 등) 보완.
+// Yahoo 검색 — 회사명→티커(권위). LLM 의 6자리 KR 코드 추측이 틀리는 문제(하이닉스→233740 오류) 회피.
+async function yahooSearch(q: string): Promise<Array<{ symbol: string; name: string }>> {
+  try {
+    const r = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=6&newsCount=0`, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return [];
+    const d = await r.json() as { quotes?: Array<{ symbol?: string; shortname?: string; longname?: string; quoteType?: string }> };
+    return (d.quotes ?? []).filter(x => x.symbol && (x.quoteType === 'EQUITY' || !x.quoteType)).map(x => ({ symbol: x.symbol!, name: (x.shortname || x.longname || '') }));
+  } catch { return []; }
+}
 async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
   try {
-    const sys = '사용자 메시지에서 *명시적으로 언급된* 주식 종목의 정확한 티커만 추출하라. 미국주식=심볼(예: 하우맷→HWM, 엔비디아→NVDA, 퀄컴→QCOM, 애플→AAPL). 한국주식=6자리.KS 또는 .KQ(예: 삼성전자→005930.KS). 종목 언급이 없거나 불확실하면 빈 배열. JSON 만 출력: {"tickers":["HWM"]}';
+    // LLM 은 *영문 회사명*만 추출(코드 추측 금지) → Yahoo 검색이 권위있게 티커 해석.
+    const sys = '사용자 메시지에서 언급된 주식의 *영문 정식 회사명*을 추출하라. 예: 하이닉스→"SK Hynix", 하우맷→"Howmet Aerospace", 엔비디아→"NVIDIA", 삼성전자→"Samsung Electronics", 기아→"Kia". 종목 언급이 없으면 빈 배열. JSON 만 출력: {"names":["SK Hynix"]}';
     const r = await callAI(text, { systemPrompt: sys, maxTokens: 80, temperature: 0, tag: 'ticker-resolve', timeoutMs: 15000 });
     const mm = (r.text || '').match(/\{[\s\S]*\}/);
     if (!mm) return [];
-    const arr = (JSON.parse(mm[0]).tickers ?? []) as unknown[];
+    const names = (JSON.parse(mm[0]).names ?? []) as unknown[];
+    const isKrQuery = /[가-힣]/.test(text);
     const out: string[] = [];
-    for (const raw of arr.slice(0, max)) {
-      const tk = String(raw).toUpperCase().trim();
-      if (!/^[A-Z]{1,5}(\.[A-Z])?$|^\d{6}\.(KS|KQ)$/.test(tk)) continue;
-      // Yahoo 검증 — LLM 환각 티커가 실제 존재+가격 있는지 확인 후에만 채택.
-      const yt = /\.(KS|KQ)$/.test(tk) ? tk : tk.replace(/\./g, '-');
+    for (const raw of names.slice(0, max)) {
+      const name = String(raw).trim();
+      if (name.length < 2) continue;
+      const quotes = await yahooSearch(name);
+      if (!quotes.length) continue;
+      // 한국 종목 질문이면 .KS/.KQ 우선, 아니면 첫 EQUITY. 이름 관련성 확보(검색결과라 자동).
+      const kr = quotes.find(q => /\.(KS|KQ)$/.test(q.symbol));
+      const pick = (isKrQuery && kr) ? kr : quotes[0];
+      // 가격 존재 검증
       try {
+        const yt = /\.(KS|KQ)$/.test(pick.symbol) ? pick.symbol : pick.symbol.replace(/\./g, '-');
         const yr = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yt)}?range=5d&interval=1d`, { signal: AbortSignal.timeout(7000), headers: { 'user-agent': 'Mozilla/5.0' } });
-        if (yr.ok) { const d = await yr.json(); if ((d?.chart?.result?.[0]?.meta?.regularMarketPrice ?? 0) > 0) out.push(tk); }
-      } catch { /* 검증 실패 → 미채택 */ }
+        if (yr.ok) { const d = await yr.json(); if ((d?.chart?.result?.[0]?.meta?.regularMarketPrice ?? 0) > 0) out.push(pick.symbol); }
+      } catch { /* skip */ }
     }
     return out;
   } catch { return []; }
@@ -360,10 +391,11 @@ export async function POST(request: NextRequest) {
               source = res.source || 'fallback';
               send({ type: 'delta', text: full });
             }
-            // 결정론 sanitize — 결함 자동교정. 스트림 원문과 다르면 client 가 교정본으로 교체(replace).
-            const clean = sanitizeAnswer(full, grounding as { tickers?: Array<{ ticker: string; price: number | null }> });
-            const corrected = clean !== full;
-            if (corrected) send({ type: 'replace', text: clean });
+            // 결정론 sanitize — 결함 자동교정. corrected = *실제 결함이 줄었을 때만*(공백변경 제외).
+            const g = grounding as { tickers?: Array<{ ticker: string; price: number | null }> };
+            const clean = sanitizeAnswer(full, g);
+            const corrected = checkChatDefects(lastUser, full, g).length > checkChatDefects(lastUser, clean, g).length;
+            if (clean !== full) send({ type: 'replace', text: clean });
             await persist(clean, source);
             void verifyChatAndLog(redis, { uid, question: lastUser, answer: full, grounding, mode, source, corrected }); // 원문 기준 검증 로그(교정여부 기록)
             logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: clean.length, stream: true, corrected });
@@ -392,8 +424,9 @@ export async function POST(request: NextRequest) {
       logger.warn('judge-chat', 'all_providers_failed', { reason });
       return withAnonCookie(NextResponse.json({ error: 'llm_unavailable', reply: '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.' }, { status: 503 }), newAnon);
     }
-    const clean = sanitizeAnswer(text, grounding as { tickers?: Array<{ ticker: string; price: number | null }> });
-    const corrected = clean !== text;
+    const g2 = grounding as { tickers?: Array<{ ticker: string; price: number | null }> };
+    const clean = sanitizeAnswer(text, g2);
+    const corrected = checkChatDefects(lastUser, text, g2).length > checkChatDefects(lastUser, clean, g2).length;
     logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: clean.length, corrected });
     await persist(clean, source);
     void verifyChatAndLog(redis, { uid, question: lastUser, answer: text, grounding, mode, source: source ?? 'unknown', corrected });

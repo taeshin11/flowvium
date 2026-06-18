@@ -124,6 +124,7 @@ export interface TickerCtx {
   roe?: number | null; opMargin?: number | null; revenueGrowth?: number | null; peRatio?: number | null;
   netMargin?: number | null; debtRatio?: number | null; rdPct?: number | null; fcf?: number | null;
   ocf?: number | null; netIncome?: number | null; financingCF?: number | null; // 이익의 질·희석 forensic
+  fiscalYear?: string | null; // 재무 데이터 회계연도(연도 환각 방지 — "2024년" 추정 차단)
   business?: string; industry?: string; products?: string;
   analystTarget?: number | null; rating?: string | null;
   newsSentiment?: string | null; newsHeadlines?: string[]; signalsRaw?: unknown;
@@ -256,6 +257,7 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
     opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
     netMargin, debtRatio, rdPct, fcf,
     ocf, netIncome: netInc, financingCF, filing, accumulation,
+    fiscalYear: (finCore.fiscalYear ?? finCore.fy ?? fin?.fiscalYear) ? String(finCore.fiscalYear ?? finCore.fy ?? fin?.fiscalYear) : null,
     business: bizDesc, industry, products,
     newsHeadlines: newsHeadlines.length ? newsHeadlines : undefined,
     revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
@@ -285,6 +287,7 @@ function fmtTickerCtx(c: TickerCtx): string {
     if (ext >= 60) L.push(`⚠️주가가 200일선보다 +${ext}% 위(과대확장 — 추세는 강하나 평균회귀/되돌림 위험, 무조건 강세로 해석 금지)`);
   }
   if (c.high52w != null || c.low52w != null) L.push(`52주 ${f(c.low52w) ?? '?'}~${f(c.high52w) ?? '?'}`);
+  if (c.fiscalYear) L.push(`재무 회계연도 FY${c.fiscalYear}(이 연도로만 표기, 임의 연도 금지)`);
   if (c.roe != null) L.push(`ROE ${c.roe}%`);
   if (c.opMargin != null) L.push(`영업이익률 ${c.opMargin}%`);
   if (c.netMargin != null) L.push(`순이익률 ${c.netMargin}%`);
@@ -489,14 +492,20 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- **③ 재무 품질**: 성장(매출 YoY)·수익성(ROE/마진)·재무건전성(부채/FCF)·이익의 질(영업현금흐름 vs 순이익)·연구개발 강도를 데이터 라벨 그대로 해석.`,
     `- **④ 강세론 vs 약세론 양립**: 살 이유와 팔/피할 이유를 *둘 다* 정직하게 나열한 뒤 어느 쪽이 더 무거운지 저울질(한쪽만 쓰면 실패).`,
     `- **⑤ 시나리오**: 낙관/비관 두 갈래로 주가 경로와 핵심 변수(촉매·리스크).`,
-    `- **⑥ 결론 + 구체 레벨**: 최종 결론 + 진입/분할/손절/목표 가격대를 실데이터 기반으로.`,
+    `- **⑥ 결론 + 구체 레벨**: 최종 결론 + 진입/분할/손절/목표. ⚠️ 진입가는 반드시 위 *현재가* 기준으로 현실적으로(현재가 ±10% 이내). 현재가와 동떨어진 진입가(예: 현재가보다 한참 높은 신고가 위)는 금지 — 추격매수면 "현재가 부근 분할" 로. 손절은 현재가 아래, 목표는 현재가 위.`,
     `- **⑦ 구루 렌즈**: 위 "관련 원전 인용(RAG)" 구절이 제공됐으면, 종목 성격에 가장 맞는 구루 1~2명의 관점으로 결론을 보강/반박하라(원문 구절 인용 + 구루 이름). RAG 구절이 없으면 이 항목은 생략.`,
     `엔진 충실성·환각 금지 규칙은 위와 동일. 깊게 쓰되 수치는 주어진 데이터·본문에 있는 것만. 사업보고서 본문이 제공됐는데 그 내용(제품·매출구성·연구개발)을 한 번도 인용하지 않으면 심층 분석 실패다.`,
     ``,
   ].join('\n') : '';
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); // YYYY-MM-DD (KST)
+  const curYear = today.slice(0, 4);
   return [
     `You are "매수·매도 심판엔진" (the Buy/Sell Judgment Engine) of FlowVium — a disciplined, evidence-grounded investment judgment assistant.`,
     `Respond ENTIRELY in ${lang}. Be concise, structured, and decisive.`,
+    ``,
+    `## 📅 시점 기준 (반드시 준수)`,
+    `- **오늘은 ${today}(${curYear}년)이다.** 모든 판단은 오늘 기준. 위 실시간 데이터·재무는 *지금* 수집된 최신값이다.`,
+    `- ⛔ 데이터 연도를 네 학습시점(2023·2024 등)으로 추정하지 마라. 재무는 "최근 분기/연간" 으로 칭하고, 연도를 쓰려면 grounding 에 명시된 회계연도만 써라. "${curYear}년 현재" 가 기준이며 "2024년 기준" 같은 과거를 *최신*이라 하지 마라(환각).`,
     ``,
     `## 역할`,
     opts.mode === 'aits-deep'
