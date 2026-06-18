@@ -117,6 +117,7 @@ export interface TickerCtx {
   analystTarget?: number | null; rating?: string | null;
   newsSentiment?: string | null; newsHeadlines?: string[]; signalsRaw?: unknown;
   filing?: FilingCtx | null; // 사업보고서 본문(DART/SEC) — 심층 모드에서만 적재
+  accumulation?: { tier: string | null; phase: string | null; score: number | null; fewAccount: boolean; surveillance: string | null; flags: string[] } | null;
 }
 export interface FilingCtx {
   form?: string | null; filedDate?: string | null; market?: string | null;
@@ -175,15 +176,23 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
   const enc = encodeURIComponent(ticker);
   // Yahoo(가격·52주·기술) + 재무(DART/SEC) + 옵션 UOA + 뉴스 + 사업개요(무슨 사업·업종·주력제품)
   //   + (심층) 사업보고서 본문 섹션(filings DB — 제품/상품 매출·연구개발·전망).
-  const [yh, signals, fin, newsRes, biz, filingRes] = await Promise.all([
+  const [yh, signals, fin, newsRes, biz, filingRes, manipRes] = await Promise.all([
     fetchYahooChart(ticker),
     safeJson(`${origin}/api/company-signals/${enc}`),
     isKr ? safeJson(`${origin}/api/company-kr/${enc}`) : safeJson(`${origin}/api/company-financials/${enc}`),
     safeJson(`${origin}/api/company-news?ticker=${enc}`),
     safeJson(`${origin}/api/company-business/${enc}`),
     opts?.withFiling ? safeJson(`${origin}/api/company-filing/${enc}?ondemand=1`, 28000) : Promise.resolve(null),
+    safeJson(`${origin}/api/manipulation-risk/${enc}`),  // 소수계좌 거래집중·매집(accumulation) 공식 surveillance
   ]);
   const filing = (filingRes?.filing as FilingCtx | undefined) ?? null;
+  // 작전주/매집 신호: 소수계좌 거래집중(KRX surveillance)·매집 phase — "소수계좌 매집 있나" 류 질문 직답용.
+  const sv = manipRes?.surveillance as { fewAccount?: boolean; leadLag?: string; category?: string; reason?: string | null; designatedDate?: string | null } | undefined;
+  const accumulation = (manipRes && (manipRes.tier || sv)) ? {
+    tier: (manipRes.tier as string) ?? null, phase: (manipRes.phase as string) ?? null, score: (manipRes.score as number) ?? null,
+    fewAccount: !!sv?.fewAccount, surveillance: sv ? `${sv.category ?? ''}${sv.fewAccount ? '·소수계좌집중' : ''}${sv.leadLag ? `(${sv.leadLag === 'leading' ? '사전' : '사후'})` : ''}${sv.designatedDate ? ` [${sv.designatedDate}]` : ''}` : null,
+    flags: Array.isArray(manipRes.flags) ? (manipRes.flags as string[]).slice(0, 3) : [],
+  } : null;
   const finCore = (fin?.latestAnnual as Record<string, unknown>) ?? fin ?? {};  // 재무는 latestAnnual 중첩
   const closes = yh?.closes ?? [];
   const uoa = Array.isArray(signals?.uoa) ? (signals!.uoa as unknown[]) : [];
@@ -234,7 +243,7 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
     roe: num(pick(finCore, 'roePct', 'roe')),
     opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
     netMargin, debtRatio, rdPct, fcf,
-    ocf, netIncome: netInc, financingCF, filing,
+    ocf, netIncome: netInc, financingCF, filing, accumulation,
     business: bizDesc, industry, products,
     newsHeadlines: newsHeadlines.length ? newsHeadlines : undefined,
     revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
@@ -294,6 +303,15 @@ function fmtTickerCtx(c: TickerCtx): string {
   if (c.newsSentiment) L.push(`뉴스 ${c.newsSentiment}`);
   const sr = c.signalsRaw as { uoaCount?: number } | undefined;
   if (sr?.uoaCount) L.push(`이상옵션 ${sr.uoaCount}건(UOA)`);
+  // 소수계좌 거래집중·매집(작전주 선행 surveillance) — "소수계좌 매집 있나" 질문 직답 근거.
+  const ac = c.accumulation;
+  if (ac) {
+    if (ac.fewAccount || ac.surveillance) L.push(`🚨 거래소 소수계좌/시장경보: ${ac.surveillance ?? '소수계좌 거래집중'}`);
+    else L.push('소수계좌 거래집중 경보 없음(거래소 시장경보 미지정)');
+    if (ac.phase === 'accumulation') L.push(`매집(accumulation) 단계 의심 (매집점수 ${ac.score ?? '?'}, ${ac.tier ?? ''})`);
+    else if (ac.phase === 'markup') L.push('이미 상승(markup) 단계');
+    if (ac.flags?.length) L.push(`작전주 신호: ${ac.flags.join('; ')}`);
+  }
   if (c.newsHeadlines?.length) L.push(`관련 뉴스: ${c.newsHeadlines.map(h => `"${h}"`).join('; ')}`);
   return L.join(' · ');
 }
@@ -457,6 +475,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- **④ 강세론 vs 약세론 양립**: 살 이유와 팔/피할 이유를 *둘 다* 정직하게 나열한 뒤 어느 쪽이 더 무거운지 저울질(한쪽만 쓰면 실패).`,
     `- **⑤ 시나리오**: 낙관/비관 두 갈래로 주가 경로와 핵심 변수(촉매·리스크).`,
     `- **⑥ 결론 + 구체 레벨**: 최종 결론 + 진입/분할/손절/목표 가격대를 실데이터 기반으로.`,
+    `- **⑦ 구루 렌즈**: 위 "관련 원전 인용(RAG)" 구절이 제공됐으면, 종목 성격에 가장 맞는 구루 1~2명의 관점으로 결론을 보강/반박하라(원문 구절 인용 + 구루 이름). RAG 구절이 없으면 이 항목은 생략.`,
     `엔진 충실성·환각 금지 규칙은 위와 동일. 깊게 쓰되 수치는 주어진 데이터·본문에 있는 것만. 사업보고서 본문이 제공됐는데 그 내용(제품·매출구성·연구개발)을 한 번도 인용하지 않으면 심층 분석 실패다.`,
     ``,
   ].join('\n') : '';
@@ -466,7 +485,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     ``,
     `## 역할`,
     opts.mode === 'aits-deep'
-      ? `- 사용자가 특정 종목을 상의하면 **심층 분석**으로 답한다 — 한 줄 결론 먼저 제시한 뒤, 아래 "## 🔬 심층 모드 답변 요건"의 6개 소제목(①사업구조 ②업황·경쟁 ③재무품질 ④강세/약세 ⑤시나리오 ⑥결론+레벨)을 *각각 굵은 소제목+문단*으로 길게 풀어 써라. 절대 짧게 끝내지 마라.`
+      ? `- 🎯 **최우선: 사용자의 실제 질문에 정면으로 답하라.** 질문이 특정 사안(예: "소수계좌 매집 있나" · 배당 · 특정 지표 · 특정 뉴스/사건 · 비교)이면 *그 질문부터* 직접 답하라. 관련 데이터가 위 grounding 에 없으면 "그 데이터는 지금 조회하지 못했다"고 솔직히 말하라 — **절대 6단 템플릿으로 질문을 회피하지 마라(질문과 딴 소리 금지).** ▸ 질문이 일반적인 매수/매도/관망 상담일 때만 아래 "## 🔬 심층 모드 답변 요건"의 6개 소제목으로 깊게 분석한다.`
       : `- 사용자가 특정 종목의 매수/매도/관망을 상의하면: ① 한 줄 결론(매수/분할매수/관망/비중축소/매도/회피 중 하나) ② 이 회사가 무슨 사업을 하고 업황·전망이 어떤지 한 줄(위 '사업' 데이터 활용) ③ 왜 그렇게 봤는지(엔진 발화 룰+실데이터 중심, 핵심 근거 2~4개) ④ 어떤 데이터를 봤는지 ⑤ 리스크 ⑥ (가능하면) 진입/손절 순으로.`,
     `- 데이터가 없거나 불확실하면 "데이터 없음"이라고 솔직히 말하라. 절대 수치를 지어내지 마라(환각 금지).`,
     `- 너는 심판엔진이지 보장이 아니다. 답변 끝에 한 줄 면책: 투자 판단·책임은 본인에게 있음.`,
@@ -477,6 +496,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- ⚠️ 엔진 판정(룰 발화)과 실데이터를 *먼저* 제시하라. 답을 구루 어록으로 도배하지 마라.`,
     `- 🔒 엔진 충실성: "엔진 판정"의 점수와 발화 룰은 위에 *주어진 그대로* 인용하라. 주어지지 않은 룰을 네 멋대로 "발화했다"고 만들지 마라(예: 매도엔진 0점인데 "매도 신호 발동"이라 쓰면 틀림). 점수가 매수 우세인데 결론이 매도면 그 근거(펀더멘털·업황)를 명확히 대라.`,
     `- 🔒 데이터 충실성: 이익의 질·현금흐름·밸류 등은 위 실시간 데이터의 라벨을 *글자 그대로* 따르라. 🚫·⚠️ 로 시작하는 항목은 *약점/위험신호*다 — 절대 장점("뛰어남","양호")으로 뒤집어 쓰지 마라. ✅ 로 시작해야 강점이다. 데이터에 없는 배수·비율(예: "몇 배","몇 %")을 스스로 만들어내지 마라 — 라벨에 적힌 표현만 사용하라.`,
+    `- 🔒 구체 숫자 날조 금지: 위 데이터/사업보고서 본문에 *명시되지 않은* 구체 숫자(종속기업 수·세부 매출액·시장점유율 %·목표주가·성장률 등)를 지어내지 마라. 본문/데이터에 있는 숫자만 인용하고, 없으면 숫자 없이 정성적으로 서술하라("구체 수치는 공시 자료에 없음"). 색칠용으로라도 가짜 숫자 만들면 가장 심각한 오류다.`,
     ``,
     `## 🎓 구루는 보조 해석 (1~2명만, 핵심만)`,
     `- 엔진 판정을 *보강·반박*하는 용도로 **가장 관련 깊은 구루 1~2명만** 인용하라(전원 나열 금지). 종목 성격에 맞게: 가치주→버핏·클라만, 성장주→린치·드러켄밀러, 경기순환주→코스톨라니·막스, 추세/리스크→폴튜더존스·소로스.`,
