@@ -10,5 +10,5 @@ source "$VENV/bin/activate"
 pip install -q -U pip huggingface_hub 2>>"$LOG"
 echo "[prep] hf_hub installed, downloading base $BASE ..." | tee -a "$LOG"
 # safetensors + config 만 (학습용). 진행상황 로그.
-hf download "$BASE" --exclude "*.gguf" "*.pth" >>"$LOG" 2>&1
+hf download "$BASE" --exclude "*.gguf" --exclude "*.pth" >>"$LOG" 2>&1
 echo "[prep] $(date) base download DONE" | tee -a "$LOG"
