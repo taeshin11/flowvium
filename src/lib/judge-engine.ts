@@ -111,36 +111,77 @@ export interface TickerCtx {
   newsSentiment?: string | null; signalsRaw?: unknown;
 }
 
+// Yahoo 일봉 차트 직접 fetch — 가격·전일대비·52주·OHLC closes (US·KR 동일 권위 소스).
+//   batch-prices 가 KR 에 null 반환 + quote/price 엔드포인트 부재 사건(2026-06-18) → 리포트 엔진과
+//   동일하게 Yahoo v8 chart 직결로 일원화. closes 로 SMA50/200·RSI14 결정론 계산.
+async function fetchYahooChart(ticker: string): Promise<{ price: number | null; changePct: number | null; high52w: number | null; low52w: number | null; closes: number[] } | null> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1y&interval=1d`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0' }, cache: 'no-store' });
+    if (!r.ok) return null;
+    const d = await r.json() as { chart?: { result?: Array<{ meta?: Record<string, number>; indicators?: { quote?: Array<{ close?: Array<number | null> }> } }> } };
+    const res = d?.chart?.result?.[0];
+    if (!res?.meta) return null;
+    const meta = res.meta;
+    const closes = (res.indicators?.quote?.[0]?.close ?? []).filter((v): v is number => typeof v === 'number' && v > 0);
+    const price = num(meta.regularMarketPrice);
+    const prev = num(meta.chartPreviousClose, meta.previousClose);
+    return {
+      price,
+      changePct: price != null && prev ? parseFloat(((price - prev) / prev * 100).toFixed(2)) : null,
+      high52w: num(meta.fiftyTwoWeekHigh),
+      low52w: num(meta.fiftyTwoWeekLow),
+      closes,
+    };
+  } catch { return null; }
+}
+
+function sma(closes: number[], n: number): number | null {
+  if (closes.length < n) return null;
+  const slice = closes.slice(-n);
+  return Math.round(slice.reduce((a, b) => a + b, 0) / n * 100) / 100;
+}
+function rsi14(closes: number[]): number | null {
+  if (closes.length < 15) return null;
+  let gain = 0, loss = 0;
+  const s = closes.slice(-15);
+  for (let i = 1; i < s.length; i++) { const ch = s[i] - s[i - 1]; if (ch >= 0) gain += ch; else loss -= ch; }
+  if (gain + loss === 0) return 50;
+  const rs = (gain / 14) / ((loss / 14) || 1e-9);
+  return Math.round(100 - 100 / (1 + rs));
+}
+
 export async function gatherTickerContext(ticker: string, origin: string): Promise<TickerCtx> {
   const { meta } = getData();
   const m = meta[ticker] ?? {};
   const isKr = /\.(KS|KQ)$/.test(ticker);
   const enc = encodeURIComponent(ticker);
-  const [batch, signals, fin, news, recs] = await Promise.all([
-    safeJson(`${origin}/api/batch-prices?tickers=${enc}`),
+  // Yahoo(가격·52주·기술) + 재무(DART KR / SEC US) + 옵션 UOA(US). news/recs 는 경로·shape 불일치라 제외.
+  const [yh, signals, fin] = await Promise.all([
+    fetchYahooChart(ticker),
     safeJson(`${origin}/api/company-signals/${enc}`),
     isKr ? safeJson(`${origin}/api/company-kr/${enc}`) : safeJson(`${origin}/api/company-financials/${enc}`),
-    safeJson(`${origin}/api/company-news/${enc}`, 5000),
-    safeJson(`${origin}/api/company-recs/${enc}`, 5000),
   ]);
-  const bp = (batch?.prices as Record<string, { price?: number; changePct?: number }>)?.[ticker];
+  const finCore = (fin?.latestAnnual as Record<string, unknown>) ?? fin ?? {};  // 재무는 latestAnnual 중첩
+  const closes = yh?.closes ?? [];
+  const uoa = Array.isArray(signals?.uoa) ? (signals!.uoa as unknown[]) : [];
   return {
     ticker, name: m.name ?? ticker, sector: m.sector, market: m.market,
-    price: num(bp?.price, pick(signals, 'price'), pick(fin, 'price')),
-    changePct: num(bp?.changePct, pick(signals, 'changePct', 'change1d')),
-    rsi: num(pick(signals, 'rsi'), pick(fin, 'rsi')),
-    sma50: num(pick(signals, 'sma50', 'ma50')),
-    sma200: num(pick(signals, 'sma200', 'ma200')),
-    high52w: num(pick(signals, 'high52w', 'fiftyTwoWeekHigh'), pick(fin, 'high52w')),
-    low52w: num(pick(signals, 'low52w', 'fiftyTwoWeekLow'), pick(fin, 'low52w')),
-    roe: num(pick(fin, 'roe', 'roePct')),
-    opMargin: num(pick(fin, 'opMargin', 'operatingMarginPct', 'operatingMargin')),
-    revenueGrowth: num(pick(fin, 'revenueGrowth', 'revenueYoY')),
-    peRatio: num(pick(fin, 'peRatio', 'pe')),
-    analystTarget: num(pick(recs, 'targetMean', 'priceTarget', 'target')),
-    rating: (pick(recs, 'rating', 'consensus', 'recommendation') as string) ?? null,
-    newsSentiment: (pick(news, 'sentiment', 'overallSentiment') as string) ?? null,
-    signalsRaw: signals ? { uoa: signals.uoa, burst: signals.burst, contracts: signals.contracts, backlog: signals.backlogYoY } : undefined,
+    price: yh?.price ?? null,
+    changePct: yh?.changePct ?? null,
+    rsi: rsi14(closes),
+    sma50: sma(closes, 50),
+    sma200: sma(closes, 200),
+    high52w: yh?.high52w ?? null,
+    low52w: yh?.low52w ?? null,
+    roe: num(pick(finCore, 'roePct', 'roe')),
+    opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
+    revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
+    peRatio: num(pick(finCore, 'peRatio', 'pe')),
+    analystTarget: null,
+    rating: null,
+    newsSentiment: null,
+    signalsRaw: uoa.length ? { uoaCount: uoa.length, topUoa: uoa.slice(0, 3) } : undefined,
   };
 }
 
@@ -159,6 +200,8 @@ function fmtTickerCtx(c: TickerCtx): string {
   if (c.analystTarget != null) L.push(`애널 목표가 ${f(c.analystTarget)}`);
   if (c.rating) L.push(`컨센서스 ${c.rating}`);
   if (c.newsSentiment) L.push(`뉴스 ${c.newsSentiment}`);
+  const sr = c.signalsRaw as { uoaCount?: number } | undefined;
+  if (sr?.uoaCount) L.push(`이상옵션 ${sr.uoaCount}건(UOA)`);
   return L.join(' · ');
 }
 
