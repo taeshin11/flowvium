@@ -3,4 +3,4 @@
 # vLLM(:8000, GPU) 와 별개. 임베딩은 CPU :8100. node(rag.ts)가 EMBED_URL=http://127.0.0.1:8100/embed.
 source ~/rag-svc/bin/activate
 cd /mnt/d/Flowvium/scripts/rag
-exec uvicorn embed-server:app --host 0.0.0.0 --port 8100 --workers 1
+exec uvicorn embed_server:app --host 0.0.0.0 --port 8100 --workers 1
