@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "Commencer",
     "loginError": "Échec de l'inscription. Vérifiez votre e-mail.",
-    "loginFreeNote": "Gratuit · Sans spam · Désinscription à tout moment"
+    "loginFreeNote": "Gratuit · Sans spam · Désinscription à tout moment",
+    "backHome": "Accueil"
   }
 }

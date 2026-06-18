@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "เริ่มต้น",
     "loginError": "ลงทะเบียนไม่สำเร็จ โปรดตรวจสอบอีเมลของคุณ",
-    "loginFreeNote": "ฟรี · ไม่มีสแปม · ยกเลิกได้ทุกเมื่อ"
+    "loginFreeNote": "ฟรี · ไม่มีสแปม · ยกเลิกได้ทุกเมื่อ",
+    "backHome": "หน้าแรก"
   }
 }

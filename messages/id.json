@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "Mulai",
     "loginError": "Pendaftaran gagal. Periksa email Anda.",
-    "loginFreeNote": "Gratis · Tanpa spam · Berhenti kapan saja"
+    "loginFreeNote": "Gratis · Tanpa spam · Berhenti kapan saja",
+    "backHome": "Beranda"
   }
 }

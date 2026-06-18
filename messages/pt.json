@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "Começar",
     "loginError": "Falha no registro. Verifique seu e-mail.",
-    "loginFreeNote": "Grátis · Sem spam · Cancele quando quiser"
+    "loginFreeNote": "Grátis · Sem spam · Cancele quando quiser",
+    "backHome": "Início"
   }
 }

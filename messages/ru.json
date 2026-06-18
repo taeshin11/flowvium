@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "Начать",
     "loginError": "Ошибка регистрации. Проверьте e-mail.",
-    "loginFreeNote": "Бесплатно · Без спама · Отписка в любое время"
+    "loginFreeNote": "Бесплатно · Без спама · Отписка в любое время",
+    "backHome": "Главная"
   }
 }

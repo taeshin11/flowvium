@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "ابدأ",
     "loginError": "فشل التسجيل. يرجى التحقق من بريدك الإلكتروني.",
-    "loginFreeNote": "مجاني · بدون بريد مزعج · إلغاء الاشتراك في أي وقت"
+    "loginFreeNote": "مجاني · بدون بريد مزعج · إلغاء الاشتراك في أي وقت",
+    "backHome": "الرئيسية"
   }
 }

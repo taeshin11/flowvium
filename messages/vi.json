@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "Bắt đầu",
     "loginError": "Đăng ký thất bại. Vui lòng kiểm tra email.",
-    "loginFreeNote": "Miễn phí · Không spam · Hủy bất cứ lúc nào"
+    "loginFreeNote": "Miễn phí · Không spam · Hủy bất cứ lúc nào",
+    "backHome": "Trang chủ"
   }
 }

@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "はじめる",
     "loginError": "登録に失敗しました。メールをご確認ください。",
-    "loginFreeNote": "無料 · スパムなし · いつでも解約可能"
+    "loginFreeNote": "無料 · スパムなし · いつでも解約可能",
+    "backHome": "ホーム"
   }
 }

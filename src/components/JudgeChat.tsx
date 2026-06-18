@@ -7,7 +7,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Scale, Plus, Send, Loader2, X, ChevronDown, SquarePen, TrendingUp, TrendingDown, Briefcase, FileText, Menu, Trash2, MessageSquare } from 'lucide-react';
+import { Scale, Plus, Send, Loader2, X, ChevronDown, SquarePen, TrendingUp, TrendingDown, Briefcase, FileText, Menu, Trash2, MessageSquare, Home } from 'lucide-react';
 
 type Mode = 'aits' | 'aits-rag';
 interface Msg { role: 'user' | 'assistant'; content: string; source?: string; grounding?: Grounding }
@@ -199,6 +199,7 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-1">
             <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 rounded-full hover:bg-gray-100 text-gray-500"><Menu className="w-5 h-5" /></button>
+            <button onClick={onClose} title={t('backHome')} className="flex items-center gap-1 p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"><Home className="w-5 h-5" /><span className="hidden sm:inline text-xs font-medium">{t('backHome')}</span></button>
             <div className="relative">
               <button onClick={() => setModeOpen(o => !o)} className="flex items-center gap-1.5 text-base sm:text-lg font-semibold text-gray-900 hover:bg-gray-50 rounded-lg px-2 py-1 transition-colors">
                 <Scale className="w-5 h-5 text-rose-500" />
@@ -221,7 +222,7 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
           </div>
           <div className="flex items-center gap-1">
             {messages.length > 0 && <button onClick={newChat} title={t('newChat')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"><SquarePen className="w-5 h-5" /></button>}
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} title={t('backHome')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"><X className="w-5 h-5" /></button>
           </div>
         </div>
 

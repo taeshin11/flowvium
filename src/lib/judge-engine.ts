@@ -111,8 +111,9 @@ export interface TickerCtx {
   rsi?: number | null; sma50?: number | null; sma200?: number | null;
   high52w?: number | null; low52w?: number | null;
   roe?: number | null; opMargin?: number | null; revenueGrowth?: number | null; peRatio?: number | null;
+  netMargin?: number | null; debtRatio?: number | null; rdPct?: number | null; fcf?: number | null;
   analystTarget?: number | null; rating?: string | null;
-  newsSentiment?: string | null; signalsRaw?: unknown;
+  newsSentiment?: string | null; newsHeadlines?: string[]; signalsRaw?: unknown;
 }
 
 // Yahoo 일봉 차트 직접 fetch — 가격·전일대비·52주·OHLC closes (US·KR 동일 권위 소스).
@@ -164,15 +165,39 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
   const m = meta[ticker] ?? {};
   const isKr = /\.(KS|KQ)$/.test(ticker);
   const enc = encodeURIComponent(ticker);
-  // Yahoo(가격·52주·기술) + 재무(DART KR / SEC US) + 옵션 UOA(US). news/recs 는 경로·shape 불일치라 제외.
-  const [yh, signals, fin] = await Promise.all([
+  // Yahoo(가격·52주·기술) + 재무(DART KR / SEC US: R&D·부채·FCF·순마진 포함) + 옵션 UOA + 관련 뉴스.
+  const [yh, signals, fin, newsRes] = await Promise.all([
     fetchYahooChart(ticker),
     safeJson(`${origin}/api/company-signals/${enc}`),
     isKr ? safeJson(`${origin}/api/company-kr/${enc}`) : safeJson(`${origin}/api/company-financials/${enc}`),
+    safeJson(`${origin}/api/company-news?ticker=${enc}`),
   ]);
   const finCore = (fin?.latestAnnual as Record<string, unknown>) ?? fin ?? {};  // 재무는 latestAnnual 중첩
   const closes = yh?.closes ?? [];
   const uoa = Array.isArray(signals?.uoa) ? (signals!.uoa as unknown[]) : [];
+
+  // 재무 보강: R&D 집약도(매출대비)·부채비율·순마진·FCF — DART/SEC 가 주는데 미추출이던 값.
+  const rev = num(pick(finCore, 'revenueUSD', 'revenueKRW'));
+  const rd = num(pick(finCore, 'rdExpenseUSD', 'rdExpenseKRW'));
+  const rdPct = rd != null && rev ? Math.round(rd / rev * 1000) / 10 : null;
+  const debtRatio = num(pick(finCore, 'debtRatioPct'));
+  const netInc = num(pick(finCore, 'netIncomeUSD', 'netIncomeKRW'));
+  const netMargin = num(pick(finCore, 'netMarginPct')) ?? (netInc != null && rev ? Math.round(netInc / rev * 1000) / 10 : null);
+  const ocf = num(pick(finCore, 'operatingCFUSD', 'operatingCFKRW'));
+  const capex = num(pick(finCore, 'capexUSD', 'capexKRW'));
+  const fcf = num(pick(finCore, 'freeCashFlowKRW', 'freeCashFlowUSD')) ?? (ocf != null && capex != null ? ocf - capex : null);
+
+  // 뉴스: 엔드포인트가 티커 필터링이 약함(시장 전반 뉴스 혼입) → 회사명/별칭/티커가 제목에 *실제로*
+  //   들어간 헤드라인만 채택(무관 뉴스 주입=환각 방지). 매칭 없으면 생략.
+  const aliases = (companyNamesI18n[ticker] ?? []).map(a => a.toLowerCase());
+  const baseSym = ticker.replace(/\.(KS|KQ)$/, '').toLowerCase();
+  const nameToks = String(m.name ?? '').toLowerCase().split(/[\s/]+/).filter(x => x.length >= 3);
+  const matchset = Array.from(new Set([baseSym, ...aliases, ...nameToks])).filter(Boolean);
+  const newsArr = Array.isArray((newsRes as { news?: unknown[] } | null)?.news) ? (newsRes as { news: Array<{ title?: string }> }).news : [];
+  const newsHeadlines = newsArr
+    .filter(a => { const t = String(a?.title ?? '').toLowerCase(); return matchset.some(k => t.includes(k)); })
+    .slice(0, 3).map(a => String(a.title).slice(0, 90));
+
   return {
     ticker, name: m.name ?? ticker, sector: m.sector, market: m.market,
     price: yh?.price ?? null,
@@ -184,6 +209,8 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
     low52w: yh?.low52w ?? null,
     roe: num(pick(finCore, 'roePct', 'roe')),
     opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
+    netMargin, debtRatio, rdPct, fcf,
+    newsHeadlines: newsHeadlines.length ? newsHeadlines : undefined,
     revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
     peRatio: num(pick(finCore, 'peRatio', 'pe')),
     analystTarget: null,
@@ -207,13 +234,18 @@ function fmtTickerCtx(c: TickerCtx): string {
   if (c.high52w != null || c.low52w != null) L.push(`52주 ${f(c.low52w) ?? '?'}~${f(c.high52w) ?? '?'}`);
   if (c.roe != null) L.push(`ROE ${c.roe}%`);
   if (c.opMargin != null) L.push(`영업이익률 ${c.opMargin}%`);
+  if (c.netMargin != null) L.push(`순이익률 ${c.netMargin}%`);
   if (c.revenueGrowth != null) L.push(`매출성장 ${c.revenueGrowth}%`);
+  if (c.rdPct != null) L.push(`R&D/매출 ${c.rdPct}%`);
+  if (c.debtRatio != null) L.push(`부채비율 ${c.debtRatio}%`);
+  if (c.fcf != null) L.push(`FCF ${c.fcf >= 0 ? '+' : '−'}(잉여현금흐름 ${c.fcf >= 0 ? '흑자' : '적자'})`);
   if (c.peRatio != null) L.push(`PER ${c.peRatio}`);
   if (c.analystTarget != null) L.push(`애널 목표가 ${f(c.analystTarget)}`);
   if (c.rating) L.push(`컨센서스 ${c.rating}`);
   if (c.newsSentiment) L.push(`뉴스 ${c.newsSentiment}`);
   const sr = c.signalsRaw as { uoaCount?: number } | undefined;
   if (sr?.uoaCount) L.push(`이상옵션 ${sr.uoaCount}건(UOA)`);
+  if (c.newsHeadlines?.length) L.push(`관련 뉴스: ${c.newsHeadlines.map(h => `"${h}"`).join('; ')}`);
   return L.join(' · ');
 }
 

@@ -1981,6 +1981,7 @@
     "loginPlaceholder": "your@email.com",
     "loginSubmit": "Loslegen",
     "loginError": "Registrierung fehlgeschlagen. Bitte E-Mail prüfen.",
-    "loginFreeNote": "Kostenlos · Kein Spam · Jederzeit kündbar"
+    "loginFreeNote": "Kostenlos · Kein Spam · Jederzeit kündbar",
+    "backHome": "Startseite"
   }
 }
