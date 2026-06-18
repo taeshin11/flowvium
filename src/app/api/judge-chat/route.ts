@@ -19,6 +19,7 @@ import {
   MODE_OPTS, type JudgeMode, type TickerCtx,
 } from '@/lib/judge-engine';
 import { ragRetrieve, type RagHit } from '@/lib/rag';
+import { acquireLlm, waitMessage } from '@/lib/llm-gate';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -288,42 +289,51 @@ export async function POST(request: NextRequest) {
         async start(controller) {
           const send = (o: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(o)}\n\n`));
           send({ type: 'progress', stage: 'detect', detail: tickers.length ? `질문 종목 인식: ${tickers.map(t => tickerName(t)).join(', ')}` : '질문 분석 중…' });
-          let systemPrompt: string, userPrompt: string, grounding: Record<string, unknown>;
+          // vLLM 동시요청 전역 세마포어 — 가득 차면 대기 안내 후 큐. 1요청 = 1슬롯(해석·리서치·최종 전 구간 점유).
+          const release = await acquireLlm((ahead) => send({ type: 'progress', stage: 'queue', detail: `⏳ ${waitMessage(ahead)}` }));
           try {
-            ({ systemPrompt, userPrompt, grounding } = await buildAll((p) => send({ type: 'progress', stage: p.stage, detail: p.detail })));
-          } catch (e) {
-            logger.warn('judge-chat', 'build_fail', { error: e instanceof Error ? e.message : 'x' });
-            send({ type: 'delta', text: '자료를 수집하는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.' });
-            send({ type: 'done', source: 'error' }); controller.close(); return;
-          }
-          send({ type: 'meta', convId, grounding, mode, title: titleOf([...messages]) });
-          let full = '', source = 'vllm-local';
-          try {
-            full = await streamVllm(systemPrompt, userPrompt, opts, (d) => send({ type: 'delta', text: d }));
-            if (!full.trim()) throw new Error('empty stream');
-          } catch (e) {
-            logger.warn('judge-chat', 'stream_fallback', { error: e instanceof Error ? e.message : 'x' });
-            const res = await callAI(userPrompt, { systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature, preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000 });
-            full = res.text || '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.';
-            source = res.source || 'fallback';
-            send({ type: 'delta', text: full });
-          }
-          await persist(full, source);
-          logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: full.length, stream: true });
-          send({ type: 'done', source });
-          controller.close();
+            let systemPrompt: string, userPrompt: string, grounding: Record<string, unknown>;
+            try {
+              ({ systemPrompt, userPrompt, grounding } = await buildAll((p) => send({ type: 'progress', stage: p.stage, detail: p.detail })));
+            } catch (e) {
+              logger.warn('judge-chat', 'build_fail', { error: e instanceof Error ? e.message : 'x' });
+              send({ type: 'delta', text: '자료를 수집하는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.' });
+              send({ type: 'done', source: 'error' }); controller.close(); return;
+            }
+            send({ type: 'meta', convId, grounding, mode, title: titleOf([...messages]) });
+            let full = '', source = 'vllm-local';
+            try {
+              full = await streamVllm(systemPrompt, userPrompt, opts, (d) => send({ type: 'delta', text: d }));
+              if (!full.trim()) throw new Error('empty stream');
+            } catch (e) {
+              logger.warn('judge-chat', 'stream_fallback', { error: e instanceof Error ? e.message : 'x' });
+              const res = await callAI(userPrompt, { systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature, preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000 });
+              full = res.text || '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+              source = res.source || 'fallback';
+              send({ type: 'delta', text: full });
+            }
+            await persist(full, source);
+            logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: full.length, stream: true });
+            send({ type: 'done', source });
+            controller.close();
+          } finally { release(); }
         },
       });
       const res = new NextResponse(sse, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' } });
       return withAnonCookie(res, newAnon);
     }
 
-    // ── 논스트림 경로 (기존) ──────────────────────────────────────────────────────
-    const { systemPrompt, userPrompt, grounding } = await buildAll();
-    const { text, source, durationMs, attempts } = await callAI(userPrompt, {
-      systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature,
-      preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000,
-    });
+    // ── 논스트림 경로 (기존) — vLLM 세마포어로 1요청=1슬롯 점유(빌드+생성) ────────────
+    const release = await acquireLlm();
+    let systemPrompt: string, userPrompt: string, grounding: Record<string, unknown>;
+    let text: string | undefined, source: string | undefined, durationMs: number | undefined, attempts: Array<{ error?: string }> | undefined;
+    try {
+      ({ systemPrompt, userPrompt, grounding } = await buildAll());
+      ({ text, source, durationMs, attempts } = await callAI(userPrompt, {
+        systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature,
+        preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000,
+      }));
+    } finally { release(); }
     if (!text) {
       const reason = attempts?.find(a => a.error)?.error;
       logger.warn('judge-chat', 'all_providers_failed', { reason });
