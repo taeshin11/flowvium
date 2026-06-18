@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "Mesin inti (aturan · data langsung)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ pencarian semantik surat Buffett & klasik investasi"
+    "modeAitsRagDesc": "+ pencarian semantik surat Buffett & klasik investasi",
+    "loginTitle": "Mesin Penilaian khusus anggota",
+    "loginBody": "Cukup daftarkan email Anda untuk mulai mengobrol. Gratis, tanpa kata sandi atau pembayaran. Riwayat Anda disimpan aman per akun.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "Mulai",
+    "loginError": "Pendaftaran gagal. Periksa email Anda.",
+    "loginFreeNote": "Gratis · Tanpa spam · Berhenti kapan saja"
   }
 }

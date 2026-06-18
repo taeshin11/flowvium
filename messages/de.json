@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "Kern-Engine (Regeln · Live-Daten)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ semantische Suche in Buffett-Briefen & Klassikern"
+    "modeAitsRagDesc": "+ semantische Suche in Buffett-Briefen & Klassikern",
+    "loginTitle": "Die Urteils-Engine ist nur für Mitglieder",
+    "loginBody": "Registriere einfach deine E-Mail, um zu chatten. Kostenlos, ohne Passwort oder Zahlung. Dein Verlauf wird pro Konto sicher gespeichert.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "Loslegen",
+    "loginError": "Registrierung fehlgeschlagen. Bitte E-Mail prüfen.",
+    "loginFreeNote": "Kostenlos · Kein Spam · Jederzeit kündbar"
   }
 }

@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "Motor principal (regras · dados ao vivo)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ busca semântica das cartas de Buffett e clássicos"
+    "modeAitsRagDesc": "+ busca semântica das cartas de Buffett e clássicos",
+    "loginTitle": "O Motor de Julgamento é exclusivo para membros",
+    "loginBody": "Basta registrar seu e-mail para começar a conversar. Grátis, sem senha ou pagamento. Seu histórico é salvo com segurança por conta.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "Começar",
+    "loginError": "Falha no registro. Verifique seu e-mail.",
+    "loginFreeNote": "Grátis · Sem spam · Cancele quando quiser"
   }
 }

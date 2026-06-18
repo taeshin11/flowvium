@@ -85,11 +85,32 @@ for (const p of wisArr) if (p.rule) addInstr(`${(p.sources || []).join('·') || 
 const rulesFile = (f, kind) => { const j = loadJson(f); const arr = Array.isArray(j) ? j : j?.rules ?? []; for (const r of arr) if (r.description) addInstr(`${kind} 룰 "${r.id}"(${r.category}) 가 발화하면 무슨 의미야?`, `${r.description} → ${kind} 신호 (점수 ${r.score ?? '?'}).`, 0.6); };
 rulesFile('data/buy-rules-tuned.json', '매수'); rulesFile('data/sell-rules-tuned.json', '매도');
 
+// ── 4) 버핏 주주서한 학습예시 (gen-buffett-sft.mjs 가 생성한 한국어 Q&A) ───────────
+//   사용자 "버핏의 주주서한 모음은 우리 매수 매도 심판엔진에게도 학습시켜". RAG(런타임 검색)와 별개로
+//   모델 자체에 가치투자 추론을 내재화. data/sft/buffett-wisdom.jsonl 이 있으면 머지(weight 그대로).
+let buffettKept = 0;
+const BUFFETT = resolve(OUT_DIR, 'buffett-wisdom.jsonl');
+if (existsSync(BUFFETT)) {
+  for (const ln of readFileSync(BUFFETT, 'utf8').split('\n').filter(Boolean)) {
+    try {
+      const o = JSON.parse(ln);
+      if (o?.messages?.length >= 2) {
+        // system 누락 시 표준 SYSTEM 주입(일관성)
+        if (o.messages[0]?.role !== 'system') o.messages.unshift({ role: 'system', content: SYSTEM });
+        rows.push({ ...o, weight: o.weight ?? 0.5, meta: { ...(o.meta || {}), src: 'buffett' } });
+        buffettKept++;
+      }
+    } catch { /* skip bad line */ }
+  }
+} else {
+  console.warn('buffett-wisdom.jsonl 없음 — scripts/sft/gen-buffett-sft.mjs 먼저 실행 (RAG 임베딩 완료 후)');
+}
+
 // ── 출력 ──────────────────────────────────────────────────────────────────────
 if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(OUT, rows.map(r => JSON.stringify(r)).join('\n') + '\n', 'utf8');
 const wsum = rows.reduce((s, r) => s + r.weight, 0);
 console.log(`=== AITS_FINANCE_T SFT 데이터셋 ===`);
-console.log(`매수판단 ${buyKept} (성과가중) · 매도판단 ${sellKept} · 원칙/룰 ${instrKept} = 총 ${rows.length} 예시`);
+console.log(`매수판단 ${buyKept} (성과가중) · 매도판단 ${sellKept} · 원칙/룰 ${instrKept} · 버핏서한 ${buffettKept} = 총 ${rows.length} 예시`);
 console.log(`가중합(effective) ${wsum.toFixed(0)} · 출력 ${OUT}`);
 console.log(`샘플:`, JSON.stringify(rows[0]).slice(0, 240));

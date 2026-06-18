@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "判定エンジン本体（ルール・リアルタイムデータ）",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "＋バフェットの手紙・投資古典の意味検索"
+    "modeAitsRagDesc": "＋バフェットの手紙・投資古典の意味検索",
+    "loginTitle": "判定エンジンは会員限定です",
+    "loginBody": "メールを登録するだけですぐに相談できます。パスワード・決済不要の無料。会話履歴はアカウントごとに安全に保存されます。",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "はじめる",
+    "loginError": "登録に失敗しました。メールをご確認ください。",
+    "loginFreeNote": "無料 · スパムなし · いつでも解約可能"
   }
 }

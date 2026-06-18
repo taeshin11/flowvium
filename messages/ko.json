@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "심판엔진 본체 (룰·실시간 데이터)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ 버핏 서한·투자 고전 의미검색"
+    "modeAitsRagDesc": "+ 버핏 서한·투자 고전 의미검색",
+    "loginTitle": "심판엔진은 회원 전용입니다",
+    "loginBody": "이메일만 등록하면 바로 대화할 수 있어요. 비밀번호·결제 없이 무료입니다. 대화 기록은 계정별로 안전하게 저장됩니다.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "시작하기",
+    "loginError": "등록에 실패했습니다. 이메일을 확인해 주세요.",
+    "loginFreeNote": "무료 · 스팸 없음 · 언제든 탈퇴 가능"
   }
 }

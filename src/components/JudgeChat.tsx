@@ -54,12 +54,15 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
   const [convId, setConvId] = useState<string | null>(null);
   const [convs, setConvs] = useState<ConvMeta[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // 2026-06-18: 채팅 진입에 로그인 필수 (사용자 "채팅창 들어가려면 로그인"). null=확인중.
+  const [member, setMember] = useState<boolean | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadConvs = useCallback(async () => {
     try { const r = await fetch('/api/judge-chat?action=list'); const d = await r.json(); if (Array.isArray(d.conversations)) setConvs(d.conversations); } catch { /* ignore */ }
   }, []);
-  useEffect(() => { loadConvs(); }, [loadConvs]);
+  useEffect(() => { fetch('/api/member').then(r => r.json()).then(d => setMember(!!d.member)).catch(() => setMember(false)); }, []);
+  useEffect(() => { if (member) loadConvs(); }, [member, loadConvs]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -139,6 +142,18 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+
+  // 로그인 확인 중 / 비로그인 → 게이트 (채팅 진입 차단)
+  if (member === null) {
+    return (
+      <div className="fixed inset-0 z-[70] bg-white flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
+      </div>
+    );
+  }
+  if (member === false) {
+    return <JudgeLoginGate onClose={onClose} onLogin={() => setMember(true)} t={t} />;
+  }
 
   return (
     <div className="fixed inset-0 z-[70] bg-white flex">
@@ -252,6 +267,46 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
             <p className="text-[11px] text-gray-400 text-center mt-2">{t('disclaimer')}</p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 로그인 게이트 (2026-06-18) — 채팅 진입에 회원 필수. 이메일 등록 = 즉시 해제(/api/member). ──
+function JudgeLoginGate({ onClose, onLogin, t }: { onClose: () => void; onLogin: () => void; t: ReturnType<typeof useTranslations> }) {
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(false);
+  const submit = async () => {
+    if (busy || !email.trim()) return;
+    setBusy(true); setErr(false);
+    try {
+      const r = await fetch('/api/member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      if (r.ok) onLogin(); else setErr(true);
+    } catch { setErr(true); }
+    setBusy(false);
+  };
+  return (
+    <div className="fixed inset-0 z-[70] bg-white flex items-center justify-center p-4">
+      <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500"><X className="w-5 h-5" /></button>
+      <div className="w-full max-w-md rounded-2xl border-2 border-rose-200 bg-gradient-to-b from-rose-50 to-white p-8 text-center shadow-sm">
+        <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 via-rose-500 to-pink-600 flex items-center justify-center"><Scale className="w-6 h-6 text-white" /></div>
+        <h2 className="text-lg font-bold text-gray-900 mb-1.5">{t('loginTitle')}</h2>
+        <p className="text-sm text-gray-600 mb-5 leading-relaxed">{t('loginBody')}</p>
+        <div className="flex gap-2">
+          <input
+            type="email" value={email} onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submit()}
+            placeholder={t('loginPlaceholder')}
+            className="flex-1 px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+          />
+          <button onClick={submit} disabled={busy}
+            className="px-4 py-2.5 rounded-lg bg-rose-600 text-white text-sm font-bold hover:bg-rose-700 disabled:opacity-50 whitespace-nowrap">
+            {busy ? '…' : t('loginSubmit')}
+          </button>
+        </div>
+        {err && <p className="text-xs text-red-500 mt-2">{t('loginError')}</p>}
+        <p className="text-[10px] text-gray-400 mt-4">{t('loginFreeNote')}</p>
       </div>
     </div>
   );

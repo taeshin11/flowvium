@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "Moteur principal (règles · données en direct)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ recherche sémantique des lettres de Buffett et classiques"
+    "modeAitsRagDesc": "+ recherche sémantique des lettres de Buffett et classiques",
+    "loginTitle": "Le Moteur de Jugement est réservé aux membres",
+    "loginBody": "Enregistrez simplement votre e-mail pour commencer à discuter. Gratuit, sans mot de passe ni paiement. Votre historique est enregistré en toute sécurité par compte.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "Commencer",
+    "loginError": "Échec de l'inscription. Vérifiez votre e-mail.",
+    "loginFreeNote": "Gratuit · Sans spam · Désinscription à tout moment"
   }
 }

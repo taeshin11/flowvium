@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "核心引擎（规则·实时数据）",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ 巴菲特信件·投资经典语义检索"
+    "modeAitsRagDesc": "+ 巴菲特信件·投资经典语义检索",
+    "loginTitle": "判定引擎仅限会员",
+    "loginBody": "只需注册邮箱即可开始对话。免费，无需密码或付款。对话记录按账户安全保存。",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "开始使用",
+    "loginError": "注册失败，请检查您的邮箱。",
+    "loginFreeNote": "免费 · 无垃圾邮件 · 随时退订"
   }
 }

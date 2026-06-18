@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "Core engine (rules · live data)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ semantic search of Buffett letters & classics"
+    "modeAitsRagDesc": "+ semantic search of Buffett letters & classics",
+    "loginTitle": "The Judgment Engine is members-only",
+    "loginBody": "Just register your email to start chatting. Free, no password or payment. Your chat history is saved securely per account.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "Get started",
+    "loginError": "Registration failed. Please check your email.",
+    "loginFreeNote": "Free · No spam · Unsubscribe anytime"
   }
 }

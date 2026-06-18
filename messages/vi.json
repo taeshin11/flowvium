@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "Engine lõi (quy tắc · dữ liệu trực tiếp)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ tìm kiếm ngữ nghĩa thư Buffett & sách kinh điển"
+    "modeAitsRagDesc": "+ tìm kiếm ngữ nghĩa thư Buffett & sách kinh điển",
+    "loginTitle": "Cỗ máy Phán định chỉ dành cho thành viên",
+    "loginBody": "Chỉ cần đăng ký email để bắt đầu trò chuyện. Miễn phí, không cần mật khẩu hay thanh toán. Lịch sử của bạn được lưu an toàn theo tài khoản.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "Bắt đầu",
+    "loginError": "Đăng ký thất bại. Vui lòng kiểm tra email.",
+    "loginFreeNote": "Miễn phí · Không spam · Hủy bất cứ lúc nào"
   }
 }

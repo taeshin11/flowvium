@@ -76,6 +76,7 @@
 - **AITS+RAG 인프라 (2026-06-18 신설)**: 코퍼스 `data/rag/corpus.ndjson`(4,247청크: 버크셔 서한 48편 + investor-wisdom/judgment-doctrine, gitignore — `scripts/rag/ingest-corpus.py` 재생성). 임베딩 `BAAI/bge-m3`(다국어 KR+EN, dim 1024) WSL CPU 서비스 `:8100`(`scripts/rag/embed-server.py`, FastAPI). OCR `PaddleOCR`(스캔 PDF fallback, 텍스트레이어는 `pdftotext` 우선). 검색 `src/lib/rag.ts`(모듈 메모리 + 코사인). 자동기동: Windows 스케줄러 `FlowVium-Embed`(vLLM `:8000` 와 별개).
 - **안전장치**: 시스템프롬프트 "수치 환각 금지·데이터없으면 솔직히·면책 한줄". IP 시간당 40 레이트리밋(Redis). i18n `judge.*` 25키 ×16언어.
 - **전체 대화 저장 (2026-06-18, 사용자 "검토·학습용")**: 관리/학습 검토용 전역 `index` 리스트(최근 5000). 검토: `node scripts/judge-chat-log.mjs [N]` / `--brief`.
+- **로그인 필수 (2026-06-18, 사용자 "채팅창 들어가려면 로그인")**: JudgeChat 진입 시 `/api/member` 확인 → 비회원이면 채팅 대신 로그인 게이트(`JudgeLoginGate`, 이메일 등록 = 즉시 해제, 보고서 MemberGate 와 동일 플로우). i18n `judge.login*` 6키 ×16언어. 회원만 대화·히스토리 접근.
 - **per-user 히스토리 (2026-06-18, 사용자 "접속 아이디별 + Gemini식 히스토리")**: 소유자 uid = 로그인 이메일(`fv_member` HMAC, `src/lib/member-auth.ts`) 또는 익명 쿠키(`fv_chat_uid`). Redis `flowvium:judge-chat:u:{uid}:c:{convId}`(180일) + 최근순 ZSET 인덱스. **GET ?action=list/get · POST(생성·convId 이어쓰기) · DELETE**. Gemini식 사이드바(새 채팅 / 대화 기록 목록 / 클릭 재개 / 삭제, 모바일 드로어). 사용자 간 **격리**(쿠키 없으면 타인 대화 0건). 로그인 시 기기 간 계정 동기화. i18n `judge.historyTitle/emptyHistory` 추가.
 
 ### 2-2. AI 데일리 브리프 위젯

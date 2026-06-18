@@ -1975,6 +1975,12 @@
     "modeAits": "AITS",
     "modeAitsDesc": "Çekirdek motor (kurallar · canlı veri)",
     "modeAitsRag": "AITS+RAG",
-    "modeAitsRagDesc": "+ Buffett mektupları ve klasiklerde anlamsal arama"
+    "modeAitsRagDesc": "+ Buffett mektupları ve klasiklerde anlamsal arama",
+    "loginTitle": "Yargı Motoru yalnızca üyelere özeldir",
+    "loginBody": "Sohbete başlamak için yalnızca e-postanızı kaydedin. Ücretsiz, şifre veya ödeme yok. Geçmişiniz hesap bazında güvenle saklanır.",
+    "loginPlaceholder": "your@email.com",
+    "loginSubmit": "Başla",
+    "loginError": "Kayıt başarısız. Lütfen e-postanızı kontrol edin.",
+    "loginFreeNote": "Ücretsiz · Spam yok · İstediğiniz zaman çıkın"
   }
 }
