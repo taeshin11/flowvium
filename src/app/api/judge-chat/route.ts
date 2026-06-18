@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
     if (opts.deep && tickerCtx.some(c => c.price != null)) {
       try {
         const rp = buildResearchPrompt({ locale, tickerCtx, macroContext: macroContext.text });
-        const rr = await callAI('위 데이터로 사업·업황·전망 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 900, temperature: 0.4, tag: 'judge-research', timeoutMs: 40000 });
+        const rr = await callAI('위 데이터로 사업·업황·경쟁포지션·강세/약세 시나리오 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 1400, temperature: 0.4, tag: 'judge-research', timeoutMs: 45000 });
         researchBrief = rr.text || '';
       } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
     }

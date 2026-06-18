@@ -112,6 +112,7 @@ export interface TickerCtx {
   high52w?: number | null; low52w?: number | null;
   roe?: number | null; opMargin?: number | null; revenueGrowth?: number | null; peRatio?: number | null;
   netMargin?: number | null; debtRatio?: number | null; rdPct?: number | null; fcf?: number | null;
+  ocf?: number | null; netIncome?: number | null; financingCF?: number | null; // 이익의 질·희석 forensic
   business?: string; industry?: string; products?: string;
   analystTarget?: number | null; rating?: string | null;
   newsSentiment?: string | null; newsHeadlines?: string[]; signalsRaw?: unknown;
@@ -188,6 +189,7 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
   const ocf = num(pick(finCore, 'operatingCFUSD', 'operatingCFKRW'));
   const capex = num(pick(finCore, 'capexUSD', 'capexKRW'));
   const fcf = num(pick(finCore, 'freeCashFlowKRW', 'freeCashFlowUSD')) ?? (ocf != null && capex != null ? ocf - capex : null);
+  const financingCF = num(pick(finCore, 'financingCFUSD', 'financingCFKRW'));
 
   // 뉴스: 엔드포인트가 티커 필터링이 약함(시장 전반 뉴스 혼입) → 회사명/별칭/티커가 제목에 *실제로*
   //   들어간 헤드라인만 채택(무관 뉴스 주입=환각 방지). 매칭 없으면 생략.
@@ -218,6 +220,7 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
     roe: num(pick(finCore, 'roePct', 'roe')),
     opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
     netMargin, debtRatio, rdPct, fcf,
+    ocf, netIncome: netInc, financingCF,
     business: bizDesc, industry, products,
     newsHeadlines: newsHeadlines.length ? newsHeadlines : undefined,
     revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
@@ -248,7 +251,21 @@ function fmtTickerCtx(c: TickerCtx): string {
   if (c.revenueGrowth != null) L.push(`매출성장 ${c.revenueGrowth}%`);
   if (c.rdPct != null) L.push(`R&D/매출 ${c.rdPct}%`);
   if (c.debtRatio != null) L.push(`부채비율 ${c.debtRatio}%`);
-  if (c.fcf != null) L.push(`FCF ${c.fcf >= 0 ? '+' : '−'}(잉여현금흐름 ${c.fcf >= 0 ? '흑자' : '적자'})`);
+  if (c.fcf != null) L.push(`FCF ${c.fcf >= 0 ? '흑자(+)' : '적자(−)'}`);
+  // 이익의 질: 영업현금흐름 vs 순이익 — OCF가 순이익보다 크게 적으면 이익이 현금으로 안 들어옴(외상매출↑/이익의 질 의심).
+  if (c.ocf != null && c.netIncome != null && c.netIncome !== 0) {
+    const q = c.ocf / c.netIncome;
+    const tag = c.ocf < 0 ? '⚠️영업현금흐름 적자(순이익은 흑자라도 현금 미유입)'
+      : q < 0.6 ? `⚠️이익의 질 낮음(영업현금흐름이 순이익의 ${Math.round(q * 100)}%뿐 — 외상매출/일회성 의심)`
+      : q >= 1 ? '영업현금흐름이 순이익 이상(이익의 질 양호)' : `영업현금흐름/순이익 ${Math.round(q * 100)}%`;
+    L.push(tag);
+  } else if (c.ocf != null && c.ocf < 0) {
+    L.push('⚠️영업현금흐름 적자');
+  }
+  // 재무활동 현금흐름: 큰 +면 자금조달(유상증자/전환사채 → 희석 위험), 큰 −면 상환/배당/자사주.
+  if (c.financingCF != null && c.financingCF > 0 && c.ocf != null && c.ocf < Math.abs(c.financingCF)) {
+    L.push('⚠️재무활동으로 자금조달 중(유상증자·전환사채 가능성 → 주식 희석 위험)');
+  }
   if (c.peRatio != null) L.push(`PER ${c.peRatio}`);
   if (c.analystTarget != null) L.push(`애널 목표가 ${f(c.analystTarget)}`);
   if (c.rating) L.push(`컨센서스 ${c.rating}`);
@@ -325,7 +342,7 @@ export type JudgeMode = 'aits' | 'aits-rag' | 'aits-deep';
 export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: number; preferSmallModel?: boolean; maxTickers: number; useRag: boolean; deep?: boolean }> = {
   'aits':      { maxTokens: 1800, temperature: 0.6, maxTickers: 3, useRag: false },
   'aits-rag':  { maxTokens: 2600, temperature: 0.6, maxTickers: 3, useRag: true },
-  'aits-deep': { maxTokens: 2800, temperature: 0.5, maxTickers: 2, useRag: true, deep: true },
+  'aits-deep': { maxTokens: 3800, temperature: 0.5, maxTickers: 2, useRag: true, deep: true },
 };
 
 // 1-pass(심층): 사업·업황·전망 리서치 브리프 프롬프트. 판단이 아니라 *사실 정리*만.
@@ -336,12 +353,15 @@ export function buildResearchPrompt(opts: { locale: string; tickerCtx: TickerCtx
     `You are a sell-side equity research analyst. Write a concise research brief in ${lang}. FACTS ONLY — no buy/sell call yet.`,
     `아래 데이터만 사용하라. 수치를 지어내지 마라(데이터에 없으면 "데이터 없음").`,
     ``,
-    `# 작성 항목 (각 1~3문장, 평이한 한국어)`,
-    `1) 사업 모델: 이 회사가 무슨 사업으로 돈을 버는가 (위 '사업' 데이터 기반).`,
-    `2) 업황: 속한 산업의 사이클·경쟁 구도·수요 환경 (업종 + 거시 데이터 연결).`,
-    `3) 전망: 성장 동력과 핵심 리스크 (매출성장·R&D·마진 추세 + 업황).`,
-    `4) 핵심 숫자: 밸류(PER)·수익성(ROE/마진)·재무건전성(부채/FCF)을 한 줄로.`,
-    `내부 룰 ID·점수·별표 출력 금지.`,
+    `# 작성 항목 (각 항목 2~4문장, 평이한 한국어 — 사실 위주로 충실하게)`,
+    `1) 사업 모델: 이 회사가 무슨 사업으로 돈을 버는가, 주력 제품/서비스와 매출 구성 (위 '사업' 데이터 기반).`,
+    `2) 업황·사이클: 속한 산업의 현재 사이클 위치(확장/둔화/침체)·경쟁 구도·수요 환경 (업종 + 거시 데이터 연결).`,
+    `3) 경쟁 포지션: 이 회사의 해자(브랜드/원가/네트워크/기술)와 경쟁사 대비 위치를 데이터로.`,
+    `4) 강세 시나리오: 주가를 끌어올릴 성장 동력·촉매 2~3개 (매출성장·R&D·마진 추세 + 업황 연결).`,
+    `5) 약세 시나리오: 핵심 리스크·악재 2~3개 (부채·마진 압박·업황 둔화·밸류 부담).`,
+    `6) 핵심 숫자: 밸류(PER)·수익성(ROE/마진)·재무건전성(부채/FCF)·성장(매출 YoY)을 한 줄로.`,
+    `7) 이익의 질·자금조달: 데이터에 "영업현금흐름/순이익" 또는 "⚠️" 표시가 있으면 반드시 언급하라 — 순이익이 흑자라도 영업현금흐름이 적자거나 순이익보다 크게 적으면 "이익이 현금으로 안 들어온다(외상매출·일회성 의심)"고 지적하고, 재무활동 자금조달(유상증자·전환사채) 신호가 있으면 주식 희석 리스크로 짚어라. (데이터에 없으면 생략.)`,
+    `내부 룰 ID·점수·별표 출력 금지. 매수/매도 결론은 아직 내리지 마라(다음 단계에서 판단).`,
     opts.macroContext ? `\n# 거시 환경\n${opts.macroContext}` : '',
     `\n# 종목 데이터\n${data}`,
   ].filter(Boolean).join('\n');
@@ -374,6 +394,17 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     ? `# 실시간 종목 데이터 (지금 외부 금융 소스에서 수집)\n${opts.tickerCtx.map(fmtTickerCtx).join('\n')}`
     : '# 실시간 종목 데이터\n(질문에서 특정 종목 미감지 — 일반 전략/원칙 상담). ⚠️ 특정 종목명이 언급됐어도 위에 데이터가 없으면 그 종목의 가격·재무·기술 수치를 절대 지어내지 말고 "실시간 데이터를 조회하지 못했다"고 답하라.';
   const ragBlock = opts.ragHits && opts.ragHits.length ? `\n${fmtRagHits(opts.ragHits)}` : '';
+  // 심층(aits-deep): 1차 리서치 브리프를 받았으므로 최종 답변을 더 두껍게 — 강세/약세 양립 + 시나리오 + 구체 레벨.
+  const deepBlock = opts.mode === 'aits-deep' ? [
+    `## 🔬 심층 모드 답변 요건 (이 모드에서만 — 일반 모드보다 깊게)`,
+    `위 '리서치 브리프'를 적극 활용해, 다음을 모두 담은 두툼한 분석을 써라(분량을 아끼지 마라):`,
+    `- **사업·업황·경쟁 포지션**: 회사가 뭘로 돈 벌고, 업황 사이클 어디에 있고, 경쟁 해자가 있는지 2~3문장.`,
+    `- **강세론 vs 약세론 양립 제시**: 살 이유와 팔/피할 이유를 *둘 다* 정직하게 나열한 뒤, 어느 쪽이 더 무거운지 저울질하라(한쪽만 쓰지 마라).`,
+    `- **시나리오**: 낙관/비관 두 갈래로 주가가 어떻게 갈지 핵심 변수와 함께 짧게.`,
+    `- **결론 + 구체 레벨**: 최종 한 줄 결론 + 가능하면 진입/분할/손절 가격대를 실데이터 기반으로 제시.`,
+    `엔진 충실성·환각 금지 규칙은 위와 동일하게 적용. 깊게 쓰되 수치는 주어진 데이터만.`,
+    ``,
+  ].join('\n') : '';
   return [
     `You are "매수·매도 심판엔진" (the Buy/Sell Judgment Engine) of FlowVium — a disciplined, evidence-grounded investment judgment assistant.`,
     `Respond ENTIRELY in ${lang}. Be concise, structured, and decisive.`,
@@ -403,6 +434,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- 굵은 글씨는 핵심 1~2개만. 표·코드블록·영문 식별자 나열 금지.`,
     `- 🚨 데이터 무결성: 위 실시간 데이터에 "⚠️ 수집 실패"로 표시된 종목은 가격·RSI·이동평균·52주·ROE·거래량·뉴스 등 어떤 수치도 절대 만들어내지 마라. 그 종목은 "실시간 데이터를 불러오지 못해 판단을 보류한다"고 솔직히 답하고, 일반 원칙 안내만 하라. 없는 데이터를 추정·창작하는 것은 가장 심각한 오류다.`,
     ``,
+    deepBlock,
     condenseDoctrine(),
     `\n${condenseRules()}`,
     ragBlock,
