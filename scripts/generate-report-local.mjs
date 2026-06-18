@@ -3741,9 +3741,13 @@ function buildCtxSummary(ctx) {
       let fxStr = `USD/KRW=${Math.round(fx.usdkrw)}${chg != null ? `(${chg > 0 ? '+' : ''}${chg.toFixed(1)}%)` : ''}`;
       if (fx.dxy != null) fxStr += ` DXY=${fx.dxy.toFixed(1)}`;
       if (chg != null && Math.abs(chg) >= 1.0) {
+        // 2026-06-18: 1.1% 를 "급락"이라 표기하던 오류 fix(사용자 "이거 급락 맞어?"). 변동폭 tier + 방향 명확화.
+        //   chg>0 = USD/KRW 상승 = 원화 약세(고환율). "환율 급락" 오해 없게 'USD/KRW +X%' 병기.
+        const mag = Math.abs(chg);
+        const word = mag >= 3 ? '급변' : mag >= 1.8 ? '뚜렷한' : '소폭';
         fxStr += chg > 0
-          ? ` ⚠️KR-RISK:원화 ${chg.toFixed(1)}% 급락→KR 주식 약세압력, 비중 주의/방어`
-          : ` KR-우호:원화 ${Math.abs(chg).toFixed(1)}% 강세→KR 주식 우호`;
+          ? ` ⚠️KR-RISK:원화 ${word} 약세(USD/KRW +${chg.toFixed(1)}%)→KR 주식 약세압력, 비중 주의/방어`
+          : ` KR-우호:원화 ${word} 강세(USD/KRW ${chg.toFixed(1)}%)→KR 주식 우호`;
       }
       macro = macro ? `${macro} ${fxStr}` : fxStr;
     }
