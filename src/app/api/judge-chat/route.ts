@@ -173,6 +173,9 @@ async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
     if (!mm) return [];
     const names = (JSON.parse(mm[0]).names ?? []) as unknown[];
     const isKrQuery = /[가-힣]/.test(text);
+    // 사용자가 *명시 티커*(영문 2-6자 단독)를 쳤으면 그 티커와 *정확히* 일치하는 결과만 허용 — 유사 치환 금지
+    //   (SPCX→SPCE, 하이닉스→233740 류 오해석 차단). 회사명 질문엔 적용 안 함.
+    const explicitTk = (text.trim().match(/^[A-Za-z]{2,6}$/) || [])[0]?.toUpperCase() ?? null;
     const out: string[] = [];
     for (const raw of names.slice(0, max)) {
       const name = String(raw).trim();
@@ -182,6 +185,8 @@ async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
       // 한국 종목 질문이면 .KS/.KQ 우선, 아니면 첫 EQUITY. 이름 관련성 확보(검색결과라 자동).
       const kr = quotes.find(q => /\.(KS|KQ)$/.test(q.symbol));
       const pick = (isKrQuery && kr) ? kr : quotes[0];
+      // 명시 티커인데 해석결과 base 가 다르면 = 유사 치환 → 거부(못 찾음으로 처리, 모순 칩 방지).
+      if (explicitTk && pick.symbol.replace(/\.(KS|KQ)$/, '').toUpperCase() !== explicitTk) continue;
       // 가격 존재 검증
       try {
         const yt = /\.(KS|KQ)$/.test(pick.symbol) ? pick.symbol : pick.symbol.replace(/\./g, '-');
