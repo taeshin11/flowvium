@@ -72,6 +72,17 @@ export function detectTickers(text: string, max = 3): string[] {
   for (const m of Array.from(text.matchAll(/\b([A-Z]{1,5})\b/g))) {
     if (meta[m[1]]) found.add(m[1]);
   }
+  // 2c) 소문자/단일토큰 티커 — "nke","ko","aapl" 처럼 소문자나 동사없이 티커만 친 경우(2026-06-18 NKE 사건).
+  //   문장 오탐 방지 위해: ① 메시지가 짧은 단일 토큰이면 통째로, ② 그 외엔 토큰별 대문자화해 meta 존재 시만.
+  const trimmedTok = text.trim().toUpperCase();
+  if (/^[A-Z]{1,5}$/.test(trimmedTok) && meta[trimmedTok]) found.add(trimmedTok);
+  if (found.size < max) {
+    for (const m of Array.from(text.matchAll(/\b([a-zA-Z]{2,5})\b/g))) {
+      const up = m[1].toUpperCase();
+      if (meta[up] && !/^(THE|AND|FOR|ARE|YOU|BUY|SELL|ETF|CEO|USD|KRW)$/.test(up)) found.add(up);
+      if (found.size >= max) break;
+    }
+  }
   // 3) 회사명(영문·한글) 부분일치 — 2자 이상 이름만, 긴 이름 우선
   const lower = text.toLowerCase().replace(/\s+/g, '');
   const names = Array.from(nameToTicker.keys()).filter(n => n.length >= 2).sort((a, b) => b.length - a.length);
@@ -492,7 +503,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
       ? `- 🎯 **최우선: 사용자의 실제 질문에 정면으로 답하라.** 질문이 특정 사안(예: "소수계좌 매집 있나" · 배당 · 특정 지표 · 특정 뉴스/사건 · 비교)이면 *그 질문부터* 직접 답하라. 관련 데이터가 위 grounding 에 없으면 "그 데이터는 지금 조회하지 못했다"고 솔직히 말하라 — **절대 6단 템플릿으로 질문을 회피하지 마라(질문과 딴 소리 금지).** ▸ 질문이 일반적인 매수/매도/관망 상담일 때만 아래 "## 🔬 심층 모드 답변 요건"의 6개 소제목으로 깊게 분석한다.`
       : `- 사용자가 특정 종목의 매수/매도/관망을 상의하면: ① 한 줄 결론(매수/분할매수/관망/비중축소/매도/회피 중 하나) ② 이 회사가 무슨 사업을 하고 업황·전망이 어떤지 한 줄(위 '사업' 데이터 활용) ③ 왜 그렇게 봤는지(엔진 발화 룰+실데이터 중심, 핵심 근거 2~4개) ④ 어떤 데이터를 봤는지 ⑤ 리스크 ⑥ (가능하면) 진입/손절 순으로.`,
     `- 데이터가 없거나 불확실하면 "데이터 없음"이라고 솔직히 말하라. 절대 수치를 지어내지 마라(환각 금지).`,
-    `- 📋 사용자가 "오늘 추천/top N/뭐 살까/매수할 만한 종목" 류(특정 종목 미지정)를 물으면, 아래 "오늘의 FlowVium 리포트 맥락"의 **매수 포트폴리오 목록**을 근거로 추천 종목들(티커·비중·진입/손절/목표)을 제시하라. 이 경우 "종목 특정 못함"이라 답하지 말고 그 목록으로 답하라. 목록이 없으면 "오늘 리포트를 불러오지 못했다"고 하라.`,
+    `- 📋 사용자가 "오늘 추천/top N/뭐 살까/매수할 만한 종목" 류(특정 종목 미지정)를 물으면, 아래 "오늘의 FlowVium 리포트 맥락"의 **매수 포트폴리오 목록**을 근거로 추천 종목들(티커·비중·진입/손절/목표·리포트에 적힌 근거)을 제시하라. 이 경우 "종목 특정 못함"이라 답하지 말고 그 목록으로 답하라. 목록이 없으면 "오늘 리포트를 불러오지 못했다"고 하라. ⛔ **이때 종목별 "매수엔진 N점/매도엔진 M점" 같은 엔진 점수를 절대 지어내지 마라** — 종목별 엔진 채점은 사용자가 그 종목을 *직접* 물을 때만 계산된다. 목록 답변에는 리포트의 비중·진입·손절·목표·근거만 쓰고 엔진 점수는 언급하지 마라.`,
     `- 너는 심판엔진이지 보장이 아니다. 답변 끝에 한 줄 면책: 투자 판단·책임은 본인에게 있음.`,
     ``,
     `## ⚙️ 3대 엔진이 1차 근거 (구루보다 우선)`,

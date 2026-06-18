@@ -107,11 +107,27 @@ function checkChatDefects(question: string, answer: string, grounding: { tickers
   for (const m of Array.from(a.matchAll(/순이익의\s*([\d,]+)\s*배/g))) if (Number(m[1].replace(/,/g, '')) >= 10) d.push({ type: 'fake_multiple', detail: m[0] });
   return d;
 }
-async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid: string; question: string; answer: string; grounding: Record<string, unknown>; mode: string; source: string }): Promise<void> {
+// 결정론 sanitize — 검출된 결함을 *답변 반환 전* 자동 제거(2026-06-18 사용자 "검증해서 고칠게 있으면 고쳐라·시스템화").
+//   base 모델이 프롬프트를 무시해도 사용자는 정상 답변만 보게. checkChatDefects 와 같은 결함류를 기계적으로 교정.
+function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: string; price: number | null }> } | undefined): string {
+  let a = text || '';
+  const hasData = (grounding?.tickers ?? []).some(t => t.price != null);
+  a = a.replace(/\s*\(\+\d+\)/g, '');                                   // (+5) 점수태그 제거
+  a = a.replace(/^\s*[-•]?\s*\[[^\]]*\([0-9A-Z.]{1,10}\)\]\s*매수엔진[^\n]*\n?/gm, ''); // 엔진 원문라인 제거
+  a = a.replace(/([\d.]+)\s*%\s*(급락|폭락)/g, (m, n) => Math.abs(Number(n)) < 3 ? `${n}% 하락` : m); // <3% 급락→하락
+  a = a.replace(/([\d.]+)\s*%\s*(급등|폭등)/g, (m, n) => Math.abs(Number(n)) < 3 ? `${n}% 상승` : m);
+  if (!hasData) {  // 종목별 엔진 미실행(추천목록·미특정)인데 엔진점수 날조 시 제거
+    a = a.replace(/[→·\-\s]*\*{0,2}매수엔진\s*(?:점수|총점)?\s*\d+\s*점\*{0,2}\s*[,·/]?\s*\*{0,2}매도엔진\s*(?:점수|총점)?\s*\d+\s*점\*{0,2}\s*[.→]?/g, '');
+    a = a.replace(/\*{0,2}(?:매수|매도)\s*엔진\s*(?:점수|총점)?\s*\d+\s*점\*{0,2}/g, '');
+  }
+  return a.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid: string; question: string; answer: string; grounding: Record<string, unknown>; mode: string; source: string; corrected?: boolean }): Promise<void> {
   try {
     const defects = checkChatDefects(p.question, p.answer, p.grounding as { tickers?: Array<{ ticker: string; price: number | null }>; usedFiling?: boolean });
     if (redis) {
-      await redis.lpush('flowvium:judge-chat:verify', JSON.stringify({ ts: new Date().toISOString(), uid: p.uid, q: p.question.slice(0, 120), mode: p.mode, source: p.source, len: p.answer.length, defectCount: defects.length, defects }));
+      await redis.lpush('flowvium:judge-chat:verify', JSON.stringify({ ts: new Date().toISOString(), uid: p.uid, q: p.question.slice(0, 120), mode: p.mode, source: p.source, len: p.answer.length, defectCount: defects.length, defects, corrected: !!p.corrected }));
       await redis.ltrim('flowvium:judge-chat:verify', 0, 4999);
     }
     if (defects.length) logger.warn('judge-chat', 'verify_defects', { mode: p.mode, count: defects.length, types: defects.map(x => x.type).join(',') });
@@ -262,8 +278,8 @@ export async function POST(request: NextRequest) {
     const buildAll = async (onProgress?: (p: Progress) => void) => {
       // 추천/top/뭐 살까 류(특정 종목 미지정) — 오늘 리포트 portfolio 를 답으로. 특정종목 해석 fallback 과 구분.
       const isRecoQ = RECO_Q.test(lastUser);
-      // 종목명 해석 실패 fallback(하우맷→HWM 사건): 사전 alias 로 못 잡고 *특정 종목* 질문처럼 보이면 LLM 해석 후 Yahoo 검증.
-      if (!tickers.length && STOCK_Q.test(lastUser) && !isRecoQ) {
+      // 종목명 해석 실패 fallback(하우맷→HWM·nke 사건): 종목질문이거나 *짧은 메시지*(티커/이름만 친 경우)면 LLM 해석+Yahoo 검증.
+      if (!tickers.length && !isRecoQ && (STOCK_Q.test(lastUser) || lastUser.trim().length <= 24)) {
         onProgress?.({ stage: 'resolve', detail: '🔎 종목 식별 중 (이름→티커 해석)' });
         tickers = await resolveTickersLLM(lastUser, opts.maxTickers);
       }
@@ -344,9 +360,13 @@ export async function POST(request: NextRequest) {
               source = res.source || 'fallback';
               send({ type: 'delta', text: full });
             }
-            await persist(full, source);
-            void verifyChatAndLog(redis, { uid, question: lastUser, answer: full, grounding, mode, source }); // 자동검증(비차단)
-            logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: full.length, stream: true });
+            // 결정론 sanitize — 결함 자동교정. 스트림 원문과 다르면 client 가 교정본으로 교체(replace).
+            const clean = sanitizeAnswer(full, grounding as { tickers?: Array<{ ticker: string; price: number | null }> });
+            const corrected = clean !== full;
+            if (corrected) send({ type: 'replace', text: clean });
+            await persist(clean, source);
+            void verifyChatAndLog(redis, { uid, question: lastUser, answer: full, grounding, mode, source, corrected }); // 원문 기준 검증 로그(교정여부 기록)
+            logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: clean.length, stream: true, corrected });
             send({ type: 'done', source });
             controller.close();
           } finally { release(); }
@@ -372,10 +392,12 @@ export async function POST(request: NextRequest) {
       logger.warn('judge-chat', 'all_providers_failed', { reason });
       return withAnonCookie(NextResponse.json({ error: 'llm_unavailable', reply: '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.' }, { status: 503 }), newAnon);
     }
-    logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: text.length });
-    await persist(text, source);
-    void verifyChatAndLog(redis, { uid, question: lastUser, answer: text, grounding, mode, source: source ?? 'unknown' }); // 자동검증(비차단)
-    return withAnonCookie(NextResponse.json({ reply: text, source, mode, durationMs, grounding, convId, title: titleOf([...messages, { role: 'assistant', content: text }]) }), newAnon);
+    const clean = sanitizeAnswer(text, grounding as { tickers?: Array<{ ticker: string; price: number | null }> });
+    const corrected = clean !== text;
+    logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: clean.length, corrected });
+    await persist(clean, source);
+    void verifyChatAndLog(redis, { uid, question: lastUser, answer: text, grounding, mode, source: source ?? 'unknown', corrected });
+    return withAnonCookie(NextResponse.json({ reply: clean, source, mode, durationMs, grounding, convId, title: titleOf([...messages, { role: 'assistant', content: clean }]) }), newAnon);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'unknown';
     logger.error('judge-chat', 'failed', { error: msg });

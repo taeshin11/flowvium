@@ -139,6 +139,10 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
           } else if (obj.type === 'delta') {
             acc += obj.text ?? '';
             patch(m => ({ ...m, content: acc, progress: undefined }));
+          } else if (obj.type === 'replace') {
+            // 서버 sanitize 교정본으로 교체(결함 자동수정)
+            acc = obj.text ?? acc;
+            patch(m => ({ ...m, content: acc }));
           } else if (obj.type === 'done') {
             patch(m => ({ ...m, source: obj.source }));
             loadConvs();
