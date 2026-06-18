@@ -1982,6 +1982,8 @@
     "loginSubmit": "Mulai",
     "loginError": "Pendaftaran gagal. Periksa email Anda.",
     "loginFreeNote": "Gratis · Tanpa spam · Berhenti kapan saja",
-    "backHome": "Beranda"
+    "backHome": "Beranda",
+    "modeDeep": "TAISN Mendalam",
+    "modeDeepDesc": "2-tahap — riset lalu penilaian (presisi, lebih lambat)"
   }
 }

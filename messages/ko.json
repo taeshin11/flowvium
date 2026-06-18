@@ -1982,6 +1982,8 @@
     "loginSubmit": "시작하기",
     "loginError": "등록에 실패했습니다. 이메일을 확인해 주세요.",
     "loginFreeNote": "무료 · 스팸 없음 · 언제든 탈퇴 가능",
-    "backHome": "홈으로"
+    "backHome": "홈으로",
+    "modeDeep": "TAISN 심층",
+    "modeDeepDesc": "2단계 — 사업·업황·전망 리서치 후 판단(정밀, 느림)"
   }
 }

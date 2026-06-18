@@ -1982,6 +1982,8 @@
     "loginSubmit": "Começar",
     "loginError": "Falha no registro. Verifique seu e-mail.",
     "loginFreeNote": "Grátis · Sem spam · Cancele quando quiser",
-    "backHome": "Início"
+    "backHome": "Início",
+    "modeDeep": "TAISN Profundo",
+    "modeDeepDesc": "2 passos — pesquisa e depois julgamento (preciso, mais lento)"
   }
 }

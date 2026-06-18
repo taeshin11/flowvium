@@ -15,7 +15,7 @@ import { createRedis } from '@/lib/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { getChatUid } from '@/lib/member-auth';
 import {
-  detectTickers, gatherTickerContext, buildSystemPrompt, tickerName,
+  detectTickers, gatherTickerContext, buildSystemPrompt, buildResearchPrompt, tickerName,
   MODE_OPTS, type JudgeMode, type TickerCtx,
 } from '@/lib/judge-engine';
 import { ragRetrieve, type RagHit } from '@/lib/rag';
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { messages?: ChatMsg[]; mode?: JudgeMode; locale?: string; convId?: string; stream?: boolean };
     const messages = Array.isArray(body.messages) ? body.messages.filter(m => m && typeof m.content === 'string' && m.content.trim()) : [];
-    const mode: JudgeMode = (['aits', 'aits-rag'].includes(body.mode as string) ? body.mode : 'aits-rag') as JudgeMode;
+    const mode: JudgeMode = (['aits', 'aits-rag', 'aits-deep'].includes(body.mode as string) ? body.mode : 'aits-rag') as JudgeMode;
     const locale = body.locale ?? 'ko';
     if (!messages.length) return NextResponse.json({ error: 'no messages' }, { status: 400 });
 
@@ -195,7 +195,17 @@ export async function POST(request: NextRequest) {
       fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
     ]);
 
-    const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg } });
+    // TAISN 심층(2-pass): ① 사업·업황·전망 리서치 브리프 생성(사실 정리) → ② 그 위에 판단.
+    let researchBrief = '';
+    if (opts.deep && tickerCtx.some(c => c.price != null)) {
+      try {
+        const rp = buildResearchPrompt({ locale, tickerCtx, macroContext: macroContext.text });
+        const rr = await callAI('위 데이터로 사업·업황·전망 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 900, temperature: 0.4, tag: 'judge-research', timeoutMs: 40000 });
+        researchBrief = rr.text || '';
+      } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
+    }
+
+    const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief });
     const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
 
     const grounding = {

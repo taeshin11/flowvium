@@ -1982,6 +1982,8 @@
     "loginSubmit": "Bắt đầu",
     "loginError": "Đăng ký thất bại. Vui lòng kiểm tra email.",
     "loginFreeNote": "Miễn phí · Không spam · Hủy bất cứ lúc nào",
-    "backHome": "Trang chủ"
+    "backHome": "Trang chủ",
+    "modeDeep": "TAISN Chuyên sâu",
+    "modeDeepDesc": "2 bước — nghiên cứu rồi phán định (chính xác, chậm hơn)"
   }
 }

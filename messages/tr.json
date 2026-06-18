@@ -1982,6 +1982,8 @@
     "loginSubmit": "Başla",
     "loginError": "Kayıt başarısız. Lütfen e-postanızı kontrol edin.",
     "loginFreeNote": "Ücretsiz · Spam yok · İstediğiniz zaman çıkın",
-    "backHome": "Ana sayfa"
+    "backHome": "Ana sayfa",
+    "modeDeep": "TAISN Derin",
+    "modeDeepDesc": "2 aşama — araştırma sonra karar (hassas, daha yavaş)"
   }
 }

@@ -1982,6 +1982,8 @@
     "loginSubmit": "開始使用",
     "loginError": "註冊失敗，請檢查您的電子郵件。",
     "loginFreeNote": "免費 · 無垃圾郵件 · 隨時退訂",
-    "backHome": "首頁"
+    "backHome": "首頁",
+    "modeDeep": "TAISN 深度",
+    "modeDeepDesc": "2步 — 業務·行情研究後判斷(精確·較慢)"
   }
 }

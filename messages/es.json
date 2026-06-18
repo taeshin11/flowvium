@@ -1982,6 +1982,8 @@
     "loginSubmit": "Empezar",
     "loginError": "Error al registrarse. Comprueba tu correo.",
     "loginFreeNote": "Gratis · Sin spam · Cancela cuando quieras",
-    "backHome": "Inicio"
+    "backHome": "Inicio",
+    "modeDeep": "TAISN Profundo",
+    "modeDeepDesc": "2 pasos — investigación y luego juicio (preciso, más lento)"
   }
 }

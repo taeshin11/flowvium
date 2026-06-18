@@ -1982,6 +1982,8 @@
     "loginSubmit": "Get started",
     "loginError": "Registration failed. Please check your email.",
     "loginFreeNote": "Free · No spam · Unsubscribe anytime",
-    "backHome": "Home"
+    "backHome": "Home",
+    "modeDeep": "TAISN Deep",
+    "modeDeepDesc": "2-pass — research then judgment (precise, slower)"
   }
 }

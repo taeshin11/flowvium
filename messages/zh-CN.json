@@ -1982,6 +1982,8 @@
     "loginSubmit": "开始使用",
     "loginError": "注册失败，请检查您的邮箱。",
     "loginFreeNote": "免费 · 无垃圾邮件 · 随时退订",
-    "backHome": "首页"
+    "backHome": "首页",
+    "modeDeep": "TAISN 深度",
+    "modeDeepDesc": "2步 — 业务·行情研究后判断(精确·较慢)"
   }
 }

@@ -319,11 +319,33 @@ function condenseRules(): string {
 
 // AITS = 심판엔진 본체(룰+doctrine+실시간 금융데이터+오늘 리포트). AITS+RAG = 그 위에
 // 버핏 서한/투자 고전 전문에서 의미검색한 구절을 추가 grounding (2026-06-18, 사용자 "AITS / AITS+RAG 로 구분").
-export type JudgeMode = 'aits' | 'aits-rag';
-export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: number; preferSmallModel?: boolean; maxTickers: number; useRag: boolean }> = {
-  'aits':     { maxTokens: 1800, temperature: 0.6, maxTickers: 3, useRag: false },
-  'aits-rag': { maxTokens: 2600, temperature: 0.6, maxTickers: 3, useRag: true },
+// aits-deep(TAISN 심층) = 2-pass: ①사업·업황·전망 리서치 브리프 → ②그 위에 엔진+데이터+구루로 최종판단.
+//   환각 줄이려 사실 리서치를 먼저 분리(사용자 '세분화해서 LLM 여러번'). 스트리밍 대신 정밀도↑.
+export type JudgeMode = 'aits' | 'aits-rag' | 'aits-deep';
+export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: number; preferSmallModel?: boolean; maxTickers: number; useRag: boolean; deep?: boolean }> = {
+  'aits':      { maxTokens: 1800, temperature: 0.6, maxTickers: 3, useRag: false },
+  'aits-rag':  { maxTokens: 2600, temperature: 0.6, maxTickers: 3, useRag: true },
+  'aits-deep': { maxTokens: 2800, temperature: 0.5, maxTickers: 2, useRag: true, deep: true },
 };
+
+// 1-pass(심층): 사업·업황·전망 리서치 브리프 프롬프트. 판단이 아니라 *사실 정리*만.
+export function buildResearchPrompt(opts: { locale: string; tickerCtx: TickerCtx[]; macroContext?: string }): string {
+  const lang = LANG[opts.locale] ?? 'Korean';
+  const data = opts.tickerCtx.length ? opts.tickerCtx.map(fmtTickerCtx).join('\n') : '(특정 종목 미감지)';
+  return [
+    `You are a sell-side equity research analyst. Write a concise research brief in ${lang}. FACTS ONLY — no buy/sell call yet.`,
+    `아래 데이터만 사용하라. 수치를 지어내지 마라(데이터에 없으면 "데이터 없음").`,
+    ``,
+    `# 작성 항목 (각 1~3문장, 평이한 한국어)`,
+    `1) 사업 모델: 이 회사가 무슨 사업으로 돈을 버는가 (위 '사업' 데이터 기반).`,
+    `2) 업황: 속한 산업의 사이클·경쟁 구도·수요 환경 (업종 + 거시 데이터 연결).`,
+    `3) 전망: 성장 동력과 핵심 리스크 (매출성장·R&D·마진 추세 + 업황).`,
+    `4) 핵심 숫자: 밸류(PER)·수익성(ROE/마진)·재무건전성(부채/FCF)을 한 줄로.`,
+    `내부 룰 ID·점수·별표 출력 금지.`,
+    opts.macroContext ? `\n# 거시 환경\n${opts.macroContext}` : '',
+    `\n# 종목 데이터\n${data}`,
+  ].filter(Boolean).join('\n');
+}
 
 const LANG: Record<string, string> = {
   ko: 'Korean', en: 'English', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
@@ -341,8 +363,9 @@ function fmtRagHits(hits: RagHit[]): string {
   return `# 관련 원전 인용 (버핏 서한·투자 고전 — 의미검색 RAG)\n아래는 질문과 의미적으로 가까운 실제 원문 구절이다. 판단의 *철학적 근거*로 인용하되, 수치/사실은 위 실시간 데이터를 우선하라.\n\n${body}`;
 }
 
-export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[]; macroContext?: string; macro?: { vix?: number | null; fg?: number | null } }): string {
+export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[]; macroContext?: string; macro?: { vix?: number | null; fg?: number | null }; researchBrief?: string }): string {
   const lang = LANG[opts.locale] ?? 'Korean';
+  const researchBlock = opts.researchBrief ? `# 📋 사업·업황·전망 리서치 브리프 (1차 분석 — 이 사실 위에서 판단하라)\n${opts.researchBrief}` : '';
   const macroBlock = opts.macroContext ? `# 거시 환경 (실시간: CNN F&G · VIX · CME FedWatch · FRED · 국채금리)\n${opts.macroContext}` : '';
   // 결정론적 룰 발화 엔진(매수엔진·매도엔진) — 종목별 실제 룰 채점. 이게 LLM 의 1차 판단 근거.
   const engineLines = opts.tickerCtx.filter(c => c.price != null).map(c => fmtEngine(c, fireRules(c, opts.macro ?? {}))).filter(Boolean);
@@ -383,6 +406,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `\n${condenseRules()}`,
     ragBlock,
     ``,
+    researchBlock,
     engineBlock,
     macroBlock,
     liveBlock,

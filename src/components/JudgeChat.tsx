@@ -9,7 +9,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Scale, Plus, Send, Loader2, X, ChevronDown, SquarePen, TrendingUp, TrendingDown, Briefcase, FileText, Menu, Trash2, MessageSquare, Home } from 'lucide-react';
 
-type Mode = 'aits' | 'aits-rag';
+type Mode = 'aits' | 'aits-rag' | 'aits-deep';
 interface Msg { role: 'user' | 'assistant'; content: string; source?: string; grounding?: Grounding }
 interface RagSource { source: string; year: number | string | null; score: number }
 interface Grounding { tickers?: Array<{ ticker: string; name: string; price: number | null; rsi: number | null }>; usedRules?: boolean; usedReport?: boolean; usedRag?: boolean; usedMacro?: boolean; ragSources?: RagSource[] }
@@ -139,6 +139,7 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
   const MODES: { id: Mode; label: string; desc: string }[] = [
     { id: 'aits', label: t('modeAits'), desc: t('modeAitsDesc') },
     { id: 'aits-rag', label: t('modeAitsRag'), desc: t('modeAitsRagDesc') },
+    { id: 'aits-deep', label: t('modeDeep'), desc: t('modeDeepDesc') },
   ];
   const QUICK: { icon: React.ReactNode; label: string; prompt: string }[] = [
     { icon: <TrendingUp className="w-5 h-5 text-emerald-600" />, label: t('quickBuy'), prompt: t('quickBuyPrompt') },
