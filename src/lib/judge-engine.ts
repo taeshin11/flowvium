@@ -112,6 +112,7 @@ export interface TickerCtx {
   high52w?: number | null; low52w?: number | null;
   roe?: number | null; opMargin?: number | null; revenueGrowth?: number | null; peRatio?: number | null;
   netMargin?: number | null; debtRatio?: number | null; rdPct?: number | null; fcf?: number | null;
+  business?: string; industry?: string; products?: string;
   analystTarget?: number | null; rating?: string | null;
   newsSentiment?: string | null; newsHeadlines?: string[]; signalsRaw?: unknown;
 }
@@ -165,12 +166,13 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
   const m = meta[ticker] ?? {};
   const isKr = /\.(KS|KQ)$/.test(ticker);
   const enc = encodeURIComponent(ticker);
-  // Yahoo(가격·52주·기술) + 재무(DART KR / SEC US: R&D·부채·FCF·순마진 포함) + 옵션 UOA + 관련 뉴스.
-  const [yh, signals, fin, newsRes] = await Promise.all([
+  // Yahoo(가격·52주·기술) + 재무(DART/SEC) + 옵션 UOA + 뉴스 + 사업개요(무슨 사업·업종·주력제품).
+  const [yh, signals, fin, newsRes, biz] = await Promise.all([
     fetchYahooChart(ticker),
     safeJson(`${origin}/api/company-signals/${enc}`),
     isKr ? safeJson(`${origin}/api/company-kr/${enc}`) : safeJson(`${origin}/api/company-financials/${enc}`),
     safeJson(`${origin}/api/company-news?ticker=${enc}`),
+    safeJson(`${origin}/api/company-business/${enc}`),
   ]);
   const finCore = (fin?.latestAnnual as Record<string, unknown>) ?? fin ?? {};  // 재무는 latestAnnual 중첩
   const closes = yh?.closes ?? [];
@@ -198,6 +200,12 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
     .filter(a => { const t = String(a?.title ?? '').toLowerCase(); return matchset.some(k => t.includes(k)); })
     .slice(0, 3).map(a => String(a.title).slice(0, 90));
 
+  // 사업 개요: 무슨 사업·업종·주력제품 (사용자 '회사가 뭐하는지/업황 조사가 없다').
+  const profile = (biz?.profile as Record<string, unknown>) ?? {};
+  const bizDesc = String((biz?.desc as string) || (profile.summary as string) || '').slice(0, 280) || undefined;
+  const industry = String((profile.industry as string) || (profile.sector as string) || m.sector || '') || undefined;
+  const products = String((biz?.products as string) || '') || undefined;
+
   return {
     ticker, name: m.name ?? ticker, sector: m.sector, market: m.market,
     price: yh?.price ?? null,
@@ -210,6 +218,7 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
     roe: num(pick(finCore, 'roePct', 'roe')),
     opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
     netMargin, debtRatio, rdPct, fcf,
+    business: bizDesc, industry, products,
     newsHeadlines: newsHeadlines.length ? newsHeadlines : undefined,
     revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
     peRatio: num(pick(finCore, 'peRatio', 'pe')),
@@ -227,6 +236,7 @@ function fmtTickerCtx(c: TickerCtx): string {
     return `⚠️ [${c.name} (${c.ticker})${c.sector ? ' · ' + c.sector : ''}] 실시간 데이터 수집 실패 — 이 종목의 가격·RSI·이동평균·52주·ROE 등 어떤 수치도 추정하거나 지어내지 마라. "실시간 데이터를 불러오지 못해 이 종목은 판단을 보류한다"고 답하라.`;
   }
   const L: string[] = [`[${c.name} (${c.ticker})${c.sector ? ' · ' + c.sector : ''}]`];
+  if (c.business || c.industry || c.products) L.push(`사업: ${c.business ?? ''}${c.industry ? ` (업종: ${c.industry})` : ''}${c.products ? ` · 주력: ${c.products}` : ''}`);
   const f = (v: number | null | undefined) => v == null ? null : (cur === '₩' ? `${cur}${Math.round(v).toLocaleString('en-US')}` : `${cur}${v.toFixed(2)}`);
   if (c.price != null) L.push(`현재가 ${f(c.price)}${c.changePct != null ? ` (${c.changePct >= 0 ? '+' : ''}${c.changePct}%)` : ''}`);
   if (c.rsi != null) L.push(`RSI ${c.rsi}`);
@@ -346,7 +356,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `Respond ENTIRELY in ${lang}. Be concise, structured, and decisive.`,
     ``,
     `## 역할`,
-    `- 사용자가 특정 종목의 매수/매도/관망을 상의하면: ① 한 줄 결론(매수/분할매수/관망/비중축소/매도/회피 중 하나) ② 왜 그렇게 봤는지(핵심 근거 2~4개) ③ 어떤 데이터를 봤는지 ④ 리스크 ⑤ (가능하면) 진입/손절 순으로.`,
+    `- 사용자가 특정 종목의 매수/매도/관망을 상의하면: ① 한 줄 결론(매수/분할매수/관망/비중축소/매도/회피 중 하나) ② 이 회사가 무슨 사업을 하고 업황·전망이 어떤지 한 줄(위 '사업' 데이터 활용) ③ 왜 그렇게 봤는지(엔진 발화 룰+실데이터 중심, 핵심 근거 2~4개) ④ 어떤 데이터를 봤는지 ⑤ 리스크 ⑥ (가능하면) 진입/손절 순으로.`,
     `- 데이터가 없거나 불확실하면 "데이터 없음"이라고 솔직히 말하라. 절대 수치를 지어내지 마라(환각 금지).`,
     `- 너는 심판엔진이지 보장이 아니다. 답변 끝에 한 줄 면책: 투자 판단·책임은 본인에게 있음.`,
     ``,
