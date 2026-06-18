@@ -1,25 +1,25 @@
 {
-  "generatedAt": "2026-06-18T13:00:24.038Z",
+  "generatedAt": "2026-06-18T21:30:24.669Z",
   "universe": "US",
   "scanned": 309,
-  "count": 5,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 5,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "EXFY",
-      "name": "Expensify, Inc.",
+      "ticker": "CTKB",
+      "name": "Cytek Biosciences, Inc.",
       "tier": "watch",
-      "score": 30,
+      "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)"
+        "거래량 추세 3.3× 상승(지속 매집)",
+        "거래량 5.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": 6.2,
-      "runup5dPct": -4,
-      "medDollarVolUsd": 592818,
+      "runup20dPct": 0,
+      "runup5dPct": -6.2,
+      "medDollarVolUsd": 3278040,
       "smartAccum": false,
       "official": null
     },
@@ -30,28 +30,12 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 4.3× 상승(지속 매집)",
-        "거래량 8.5× 급증(가격 평탄)"
+        "거래량 추세 4.5× 상승(지속 매집)",
+        "거래량 8.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8.4,
-      "runup5dPct": -4.4,
-      "medDollarVolUsd": 2414860,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "DGICB",
-      "name": "Donegal Group, Inc.",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 5.7× 상승(지속 매집)",
-        "거래량 5.9× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -1.7,
-      "runup5dPct": -1.8,
-      "medDollarVolUsd": 9565,
+      "runup20dPct": -12.2,
+      "runup5dPct": -15.2,
+      "medDollarVolUsd": 2457948,
       "smartAccum": false,
       "official": null
     },
@@ -62,12 +46,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)"
       ],
-      "runup20dPct": 7,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 1734161,
+      "runup20dPct": 7.9,
+      "runup5dPct": 4,
+      "medDollarVolUsd": 1766111,
       "smartAccum": false,
       "official": null
     },
@@ -79,11 +63,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.5× 상승",
-        "거래량 2.8× 급증(가격 평탄)"
+        "거래량 2.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.6,
-      "runup5dPct": -14.3,
-      "medDollarVolUsd": 43669660,
+      "runup20dPct": -11.3,
+      "runup5dPct": -20.1,
+      "medDollarVolUsd": 45342719,
       "smartAccum": false,
       "official": null
     }
