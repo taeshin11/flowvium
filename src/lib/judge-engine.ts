@@ -292,7 +292,7 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
   const buy: EngineVerdict['buy'] = [], sell: EngineVerdict['sell'] = [];
   const B = (id: string, score: number, desc: string, cond: boolean) => { if (cond) buy.push({ id, score, desc }); };
   const S = (id: string, score: number, desc: string, cond: boolean) => { if (cond) sell.push({ id, score, desc }); };
-  const { price, changePct, rsi, sma50, sma200, high52w, low52w, roe, opMargin, revenueGrowth, peRatio, debtRatio } = c;
+  const { price, changePct, rsi, sma50, sma200, high52w, low52w, roe, opMargin, revenueGrowth, peRatio, debtRatio, ocf, netIncome, financingCF } = c;
   const near = (a?: number | null, b?: number | null, pct = 2) => a != null && b != null && b !== 0 && Math.abs((a - b) / b * 100) <= pct;
   // 매수엔진
   B('price_oversold_gap', 3, '1일 -3%↑ 급락 평균회귀 후보', changePct != null && changePct <= -3);
@@ -308,7 +308,14 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
   B('lynch_peg', 4, 'PEG≤1 (성장대비 저평가)', peRatio != null && revenueGrowth != null && revenueGrowth > 0 && peRatio / revenueGrowth <= 1);
   B('vix_low', 2, 'VIX≤14 저변동', macro.vix != null && macro.vix <= 14);
   B('fg_recovery', 3, 'F&G 25~50 회복국면', macro.fg != null && macro.fg >= 25 && macro.fg <= 50);
+  B('strong_cash_conversion', 3, '이익의 질 양호(영업현금흐름≥순이익)', ocf != null && netIncome != null && netIncome > 0 && ocf >= netIncome);
   // 매도엔진
+  // forensic: 이익의 질·희석·과대확장 — base 모델이 데이터 라벨을 자꾸 긍정 반전하므로, 결정론 룰로 점수화해
+  //   '엔진 충실성' 메커니즘(모델이 엔진 점수는 글자대로 인용)에 태운다(2026-06-18 제주반도체 사건).
+  S('weak_earnings_quality', 3, '이익의 질 낮음(영업현금흐름이 순이익보다 적어 이익이 현금으로 다 들어오지 않음)', ocf != null && netIncome != null && netIncome > 0 && ocf >= 0 && ocf < netIncome * 0.85);
+  S('negative_ocf', 5, '영업현금흐름 적자(순이익 흑자라도 현금 미유입)', ocf != null && ocf < 0);
+  S('dilution_financing', 3, '재무활동 자금조달 과다(유상증자·전환사채 → 주식 희석 위험)', financingCF != null && financingCF > 0 && ocf != null && financingCF > Math.max(0, ocf));
+  S('overextended_200ma', 3, '200일선 대비 +60%↑ 과대확장(평균회귀·되돌림 위험)', price != null && sma200 != null && sma200 > 0 && price > sma200 * 1.6);
   S('dead_cross', 5, '데드크로스(50MA<200MA)', sma50 != null && sma200 != null && sma50 < sma200);
   S('ma200_breach', 5, '200일선 하향이탈', price != null && sma200 != null && price < sma200);
   S('rsi_overbought', 4, 'RSI≥75 과매수', rsi != null && rsi >= 75);
