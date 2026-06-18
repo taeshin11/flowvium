@@ -383,7 +383,7 @@ function fmtEngine(c: TickerCtx, v: EngineVerdict): string {
   // 발화 룰은 설명만(per-rule +점수 제거) — 모델이 통째 복사해 "(+5)(+6)" 노출하던 것 차단(2026-06-18 FTNT).
   const bf = v.buy.length ? v.buy.map(r => r.desc).join(', ') : '없음';
   const sf = v.sell.length ? v.sell.map(r => r.desc).join(', ') : '없음';
-  return `[${c.name} (${c.ticker})] 매수엔진 총점 ${v.buyScore}점 (발화: ${bf}) · 매도엔진 총점 ${v.sellScore}점 (발화: ${sf}) · 룰 종합: ${lean}`;
+  return `${c.name}(${c.ticker}) → 매수엔진=${v.buyScore} / 매도엔진=${v.sellScore} (${lean}). 매수발화룰: ${bf}. 매도발화룰: ${sf}.`;
 }
 
 // ── doctrine/wisdom/rules 압축 (시스템 프롬프트용) ───────────────────────────
@@ -459,7 +459,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
   const macroBlock = opts.macroContext ? `# 거시 환경 (실시간: CNN F&G · VIX · CME FedWatch · FRED · 국채금리)\n${opts.macroContext}` : '';
   // 결정론적 룰 발화 엔진(매수엔진·매도엔진) — 종목별 실제 룰 채점. 이게 LLM 의 1차 판단 근거.
   const engineLines = opts.tickerCtx.filter(c => c.price != null).map(c => fmtEngine(c, fireRules(c, opts.macro ?? {}))).filter(Boolean);
-  const engineBlock = engineLines.length ? `# ⚙️ 엔진 판정 (매수엔진·매도엔진 결정론적 룰 발화 — 1차 판단 근거)\n${engineLines.join('\n')}` : '';
+  const engineBlock = engineLines.length ? `# ⚙️ 엔진 판정 (내부 채점 — 1차 판단 근거)\n⛔ 아래 줄을 답변에 *그대로 복사하지 마라*(대괄호·"(발화:..)"·"룰 종합:" 포맷 금지). 점수 숫자(매수 N점·매도 M점)만 인용하고 발화한 룰은 우리말 문장으로 자연스럽게 풀어 써라.\n${engineLines.join('\n')}` : '';
   const hasData = opts.tickerCtx.some(c => c.price != null);
   const liveBlock = opts.tickerCtx.length
     ? `# 실시간 종목 데이터 (지금 외부 금융 소스에서 수집)\n${opts.tickerCtx.map(fmtTickerCtx).join('\n')}`

@@ -97,6 +97,8 @@ function checkChatDefects(question: string, answer: string, grounding: { tickers
   // 1) 룰 ID·점수태그 누출 (price_momentum_52w_high, (+5) 등)
   if (/\(\+\d+\)/.test(a)) d.push({ type: 'score_tag_leak', detail: (a.match(/\(\+\d+\)/) ?? [''])[0] });
   if (/\b[a-z]+_[a-z]+_[a-z0-9]+\b/.test(a)) d.push({ type: 'rule_id_leak', detail: (a.match(/\b[a-z]+_[a-z]+_[a-z0-9]+\b/) ?? [''])[0] });
+  // 1b) 엔진 블록 통째 복사 — "[이름 (티커)] 매수엔진 총점 N점 (발화:" 또는 "· 룰 종합:" 날것 포맷 노출
+  if (/\[[^\]]*\([0-9A-Z.]{1,10}\)\]\s*매수엔진/.test(a) || /\(발화\s*:/.test(a) || /·\s*룰\s*종합\s*:/.test(a)) d.push({ type: 'engine_line_verbatim', detail: '엔진 블록 원문 복사' });
   // 2) 종목 데이터 없는데 엔진 점수 날조 (하우맷 사건)
   if (!hasEngineData && /(매수|매도)\s*엔진\s*(총점|점수)?\s*\d+\s*점/.test(a)) d.push({ type: 'engine_score_no_data' });
   // 3) 변동폭 과장 — N%(<3) 급락/급등
