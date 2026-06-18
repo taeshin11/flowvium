@@ -249,6 +249,49 @@ function fmtTickerCtx(c: TickerCtx): string {
   return L.join(' · ');
 }
 
+// ── 결정론적 룰 발화 엔진 (매수엔진·매도엔진) — 챗에서 실제 룰을 데이터에 대고 발화·채점 ─────────
+//   리포트 파이프라인(generate-report-local.mjs)의 룰 평가를, 챗에서 가용한 TickerCtx+거시 데이터로
+//   평가 가능한 부분집합만 결정론 발화. (signals/holdings 의존 룰은 챗 데이터 부재로 미발화=보수적.)
+export interface EngineVerdict { buyScore: number; sellScore: number; buy: Array<{ id: string; score: number; desc: string }>; sell: Array<{ id: string; score: number; desc: string }>; }
+export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: number | null }): EngineVerdict {
+  const buy: EngineVerdict['buy'] = [], sell: EngineVerdict['sell'] = [];
+  const B = (id: string, score: number, desc: string, cond: boolean) => { if (cond) buy.push({ id, score, desc }); };
+  const S = (id: string, score: number, desc: string, cond: boolean) => { if (cond) sell.push({ id, score, desc }); };
+  const { price, changePct, rsi, sma50, sma200, high52w, low52w, roe, opMargin, revenueGrowth, peRatio, debtRatio } = c;
+  const near = (a?: number | null, b?: number | null, pct = 2) => a != null && b != null && b !== 0 && Math.abs((a - b) / b * 100) <= pct;
+  // 매수엔진
+  B('price_oversold_gap', 3, '1일 -3%↑ 급락 평균회귀 후보', changePct != null && changePct <= -3);
+  B('price_momentum_52w_high', 5, '52주 신고가 3% 이내 추세주도', price != null && high52w != null && (high52w - price) / high52w * 100 <= 3 && price <= high52w * 1.02);
+  B('price_support_bounce', 5, '52주 저점 5% 이내 지지반등(Marks 역발상)', price != null && low52w != null && (price - low52w) / low52w * 100 <= 5);
+  B('near_50ma', 3, '50일선 ±2% 눌림목', near(price, sma50, 2));
+  B('rsi_oversold', 4, 'RSI≤35 과매도', rsi != null && rsi <= 35);
+  B('golden_cross', 5, '골든크로스(50MA>200MA)', sma50 != null && sma200 != null && sma50 > sma200);
+  B('ma200_reclaim', 4, '200일선 상회(5% 이내)', price != null && sma200 != null && price >= sma200 && (price - sma200) / sma200 * 100 <= 5);
+  B('roe_above', 3, 'ROE≥15% 수익성', roe != null && roe >= 15);
+  B('buffett_moat', 6, '해자(ROE≥15% & 영업이익률≥20%)', roe != null && roe >= 15 && opMargin != null && opMargin >= 20);
+  B('revenue_yoy', 4, '매출성장≥15%', revenueGrowth != null && revenueGrowth >= 15);
+  B('lynch_peg', 4, 'PEG≤1 (성장대비 저평가)', peRatio != null && revenueGrowth != null && revenueGrowth > 0 && peRatio / revenueGrowth <= 1);
+  B('vix_low', 2, 'VIX≤14 저변동', macro.vix != null && macro.vix <= 14);
+  B('fg_recovery', 3, 'F&G 25~50 회복국면', macro.fg != null && macro.fg >= 25 && macro.fg <= 50);
+  // 매도엔진
+  S('dead_cross', 5, '데드크로스(50MA<200MA)', sma50 != null && sma200 != null && sma50 < sma200);
+  S('ma200_breach', 5, '200일선 하향이탈', price != null && sma200 != null && price < sma200);
+  S('rsi_overbought', 4, 'RSI≥75 과매수', rsi != null && rsi >= 75);
+  S('peg_high', 3, 'PEG≥2 고평가', peRatio != null && revenueGrowth != null && revenueGrowth > 0 && peRatio / revenueGrowth >= 2);
+  S('macro_vix_spike', 3, 'VIX≥25 거시 리스크', macro.vix != null && macro.vix >= 25);
+  S('fg_extreme_fear', 2, 'F&G≤20 극공포', macro.fg != null && macro.fg <= 20);
+  S('high_debt', 2, '부채비율>150% 재무위험', debtRatio != null && debtRatio > 150);
+  return { buyScore: buy.reduce((a, b) => a + b.score, 0), sellScore: sell.reduce((a, b) => a + b.score, 0), buy, sell };
+}
+
+function fmtEngine(c: TickerCtx, v: EngineVerdict): string {
+  if (c.price == null) return '';
+  const lean = v.buyScore > v.sellScore + 2 ? '매수 우세' : v.sellScore > v.buyScore + 2 ? '매도 우세' : '팽팽(관망권)';
+  const bf = v.buy.length ? v.buy.map(r => `${r.desc}(+${r.score})`).join(', ') : '없음';
+  const sf = v.sell.length ? v.sell.map(r => `${r.desc}(+${r.score})`).join(', ') : '없음';
+  return `[${c.name} (${c.ticker})] 매수엔진 ${v.buyScore}점 [발화: ${bf}] · 매도엔진 ${v.sellScore}점 [발화: ${sf}] → 룰 종합: ${lean}`;
+}
+
 // ── doctrine/wisdom/rules 압축 (시스템 프롬프트용) ───────────────────────────
 function condenseDoctrine(): string {
   const { doctrine, wisdom } = getData();
@@ -288,9 +331,12 @@ function fmtRagHits(hits: RagHit[]): string {
   return `# 관련 원전 인용 (버핏 서한·투자 고전 — 의미검색 RAG)\n아래는 질문과 의미적으로 가까운 실제 원문 구절이다. 판단의 *철학적 근거*로 인용하되, 수치/사실은 위 실시간 데이터를 우선하라.\n\n${body}`;
 }
 
-export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[]; macroContext?: string }): string {
+export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[]; macroContext?: string; macro?: { vix?: number | null; fg?: number | null } }): string {
   const lang = LANG[opts.locale] ?? 'Korean';
   const macroBlock = opts.macroContext ? `# 거시 환경 (실시간: CNN F&G · VIX · CME FedWatch · FRED · 국채금리)\n${opts.macroContext}` : '';
+  // 결정론적 룰 발화 엔진(매수엔진·매도엔진) — 종목별 실제 룰 채점. 이게 LLM 의 1차 판단 근거.
+  const engineLines = opts.tickerCtx.filter(c => c.price != null).map(c => fmtEngine(c, fireRules(c, opts.macro ?? {}))).filter(Boolean);
+  const engineBlock = engineLines.length ? `# ⚙️ 엔진 판정 (매수엔진·매도엔진 결정론적 룰 발화 — 1차 판단 근거)\n${engineLines.join('\n')}` : '';
   const liveBlock = opts.tickerCtx.length
     ? `# 실시간 종목 데이터 (지금 외부 금융 소스에서 수집)\n${opts.tickerCtx.map(fmtTickerCtx).join('\n')}`
     : '# 실시간 종목 데이터\n(질문에서 특정 종목 미감지 — 일반 전략/원칙 상담). ⚠️ 특정 종목명이 언급됐어도 위에 데이터가 없으면 그 종목의 가격·재무·기술 수치를 절대 지어내지 말고 "실시간 데이터를 조회하지 못했다"고 답하라.';
@@ -304,15 +350,16 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- 데이터가 없거나 불확실하면 "데이터 없음"이라고 솔직히 말하라. 절대 수치를 지어내지 마라(환각 금지).`,
     `- 너는 심판엔진이지 보장이 아니다. 답변 끝에 한 줄 면책: 투자 판단·책임은 본인에게 있음.`,
     ``,
-    `## 🎓 구루 전략 명시 적용 (필수 — 이게 심판엔진의 핵심 차별점)`,
-    `- '왜?' 근거에 **관련 구루를 이름과 함께 명시적으로 인용·적용**하라. 위 "심판 원칙 / 투자 지혜 / 원전 인용(RAG)"에 담긴 11인 구루의 프레임을 실제로 써라.`,
-    `- 질문 성격에 맞는 **구루 2~3명의 렌즈로 교차 검토**하라. 예시:`,
-    `  · 매수/가치 → 버핏(경제적 해자·내재가치·안전마진), 피터 린치(이익성장·PEG·아는 것에 투자), 세스 클라만(안전마진·절대수익), 하워드 막스(가격이 전부·2차적 사고)`,
-    `  · 매도/리스크 → 폴 튜더 존스(5:1 손익비·200일선 방어·물타기 금지), 조지 소로스(틀리면 즉시 손절·생존우선), 스탠리 드러켄밀러(논거 바뀌면 전환), 마크스(리스크=영구손실)`,
-    `  · 사이클/심리 → 코스톨라니(소신파 vs 부화뇌동·달걀이론), 하워드 막스(사이클 위치), 줄리안 로버트슨(최고는 롱·최악은 숏)`,
-    `- 단순 기술적/재무 나열에 그치지 말고, "버핏 관점에선 …, 반면 코스톨라니라면 …" 식으로 구루 사고를 답에 녹여라. 종목 성격(가치주/성장주/경기순환주)에 맞는 구루를 골라라.`,
-    `- ⚖️ **일관성**: 각 구루 렌즈의 소결론이 맨 위 한 줄 결론과 모순되면 안 된다. 렌즈가 "관망 부적절"이라 했는데 결론이 "관망"이면 틀린 답이다. 렌즈들이 엇갈리면 그 긴장을 명시하고 어느 쪽에 무게를 두는지 근거를 대라.`,
-    `- 🎯 **질문자 입장에서 직답**: "팔아?"는 *이미 보유한 사람*이 매도 여부를 묻는 것 → "지금 팔아라 / 비중 줄여라 / 버텨라(관망)" 중 하나로 직접 답하라. 매수 질문이 아니면 "매수 시 손절선…" 같은 매수 프레임으로 새지 마라(보유자에겐 손절가가 아니라 '지금 팔지/버틸지'가 핵심).`,
+    `## ⚙️ 3대 엔진이 1차 근거 (구루보다 우선)`,
+    `- 위 "엔진 판정"의 **매수엔진 점수 vs 매도엔진 점수**가 판단의 1차 축이다. 매수 우세→매수/분할매수 쪽, 매도 우세→비중축소/매도 쪽, 팽팽→관망. 발화한 룰(예: 골든크로스·ROE≥15·200일선 이탈)을 우리말로 풀어 근거로 제시하라.`,
+    `- **심판엔진 = 매수엔진·매도엔진 점수 + 실시간 데이터 + 거시 + 리포트를 종합**해 최종 한 줄 결론을 내린다. 엔진 점수와 결론이 어긋나면 그 이유를 대라.`,
+    `- ⚠️ 엔진 판정(룰 발화)과 실데이터를 *먼저* 제시하라. 답을 구루 어록으로 도배하지 마라.`,
+    ``,
+    `## 🎓 구루는 보조 해석 (1~2명만, 핵심만)`,
+    `- 엔진 판정을 *보강·반박*하는 용도로 **가장 관련 깊은 구루 1~2명만** 인용하라(전원 나열 금지). 종목 성격에 맞게: 가치주→버핏·클라만, 성장주→린치·드러켄밀러, 경기순환주→코스톨라니·막스, 추세/리스크→폴튜더존스·소로스.`,
+    `- 내부 원칙 인덱스(P6, P11 등)·영문 ID 출력 금지 — 구루 이름 + 평이한 한국어로.`,
+    `- ⚖️ **일관성**: 인용한 구루 렌즈가 최종 결론과 모순되면 안 된다(렌즈가 매도를 시사하면 결론도 매도 쪽).`,
+    `- 🎯 **질문자 입장 직답**: "팔아?"는 *보유자*의 매도 질문 → "지금 팔아라 / 비중 줄여라 / 버텨라" 직답. 매수 손절선 프레임으로 새지 마라.`,
     ``,
     `## 답변 형식 (반드시 지켜라 — 일반 투자자가 읽는다)`,
     `- 평이한 한국어로, 친절한 애널리스트가 말하듯 자연스럽게 풀어 써라.`,
@@ -326,6 +373,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `\n${condenseRules()}`,
     ragBlock,
     ``,
+    engineBlock,
     macroBlock,
     liveBlock,
     opts.reportContext ? `\n# 오늘의 FlowVium 리포트 맥락\n${opts.reportContext}` : '',

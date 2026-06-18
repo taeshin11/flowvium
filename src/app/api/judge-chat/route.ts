@@ -80,9 +80,9 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
 const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${m.content}`).join('\n');
 
 // 거시 grounding — CNN F&G · VIX · CME FedWatch · FRED(CPI) · 국채금리곡선. 10분 모듈캐시(거시는 완만).
-let _macroCache: { ts: number; text: string } | null = null;
-async function fetchMacroContext(origin: string): Promise<string> {
-  if (_macroCache && Date.now() - _macroCache.ts < 600_000) return _macroCache.text;
+let _macroCache: { ts: number; text: string; vix: number | null; fg: number | null } | null = null;
+async function fetchMacroContext(origin: string): Promise<{ text: string; vix: number | null; fg: number | null }> {
+  if (_macroCache && Date.now() - _macroCache.ts < 600_000) return _macroCache;
   const g = async (p: string) => { try { const r = await fetch(`${origin}${p}`, { signal: AbortSignal.timeout(5000), cache: 'no-store' }); return r.ok ? await r.json() as Record<string, unknown> : null; } catch { return null; } };
   const [fg, vol, fw, macro, yc] = await Promise.all([g('/api/fear-greed'), g('/api/volatility'), g('/api/fedwatch'), g('/api/macro-indicators'), g('/api/yield-curve')]);
   const L: string[] = [];
@@ -95,8 +95,10 @@ async function fetchMacroContext(origin: string): Promise<string> {
   const t = yc?.today as Array<Record<string, unknown>>;
   if (t) { const y2 = t.find(p => p.label === '2Y')?.value as number; const y10 = t.find(p => p.label === '10Y')?.value as number; if (y2 != null && y10 != null) L.push(`국채 2Y ${y2}% / 10Y ${y10}% (장단기차 ${(y10 - y2).toFixed(2)}%p)`); }
   const text = L.join(' · ');
-  _macroCache = { ts: Date.now(), text };
-  return text;
+  const vixVal = vol?.vix != null ? Number(vol.vix) : null;
+  const fgVal = us?.score != null ? Number(us.score) : null;
+  _macroCache = { ts: Date.now(), text, vix: vixVal, fg: fgVal };
+  return _macroCache;
 }
 
 // vLLM OpenAI SSE 스트리밍 — 토큰 단위 delta 를 onDelta 로 흘리고 전체 텍스트 반환 (2026-06-18, 사용자 "스트리밍 부드럽게").
@@ -190,10 +192,10 @@ export async function POST(request: NextRequest) {
       Promise.all(tickers.map(t => gatherTickerContext(t, origin).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
       fetchReportContext(origin, locale, tickers),
       opts.useRag ? ragRetrieve(lastUser, 4).catch((): RagHit[] => []) : Promise.resolve([] as RagHit[]),
-      fetchMacroContext(origin).catch(() => ''),
+      fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
     ]);
 
-    const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext });
+    const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg } });
     const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
 
     const grounding = {
