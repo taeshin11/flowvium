@@ -80,3 +80,9 @@ logs/page-audit.json
 logs/cloudflared.log
 logs/pm2-watchdog.log
 data/sft/
+
+# RAG 보유 서적/원전 — 저작권 보호 또는 대용량, 커밋 금지(개인 로컬 학습 전용). README 만 추적.
+data/rag/books/*
+!data/rag/books/README.md
+data/rag/sources/*
+!data/rag/sources/README.md

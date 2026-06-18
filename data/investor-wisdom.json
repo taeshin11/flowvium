@@ -7,149 +7,341 @@
     {
       "id": "economic_moat_durable_advantage",
       "theme": "moat",
-      "sources": ["Buffett", "BuffettEssays"],
+      "sources": [
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "경제적 해자(economic moat) — 경쟁자로부터 장기 초과이익을 지키는 지속적 경쟁우위(브랜드·전환비용·네트워크효과·원가우위·규모)를 가진 사업만 산다. 해자가 매년 넓어지는 기업을 선호.",
       "apply": "entryRationale 에 해자 유형을 명시(예: 브랜드/점유율1위/높은 전환비용). 정량 프록시: ROE>15%, 영업이익률 업종 상위, 안정적 매출총이익률 추세. 해자 근거 없는 종목은 high-conviction 부여 금지."
     },
     {
       "id": "owner_earnings_over_eps",
       "theme": "value",
-      "sources": ["Buffett", "BuffettEssays"],
+      "sources": [
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "회계 EPS 가 아니라 owner earnings(순이익+감가상각·무형상각 −유지보수 capex −운전자본 증가)로 사업의 진짜 현금창출력을 본다. 보고이익이 좋아도 유지 capex 가 갉아먹으면 가치 없음.",
       "apply": "fundamental score 에 FCF·잉여현금흐름 추세 가중. 이익은 늘지만 FCF 가 정체/악화하는 종목은 가치 신호 down-weight. report 의 valuation 코멘트에 'EPS vs FCF 괴리' 체크."
     },
     {
       "id": "intrinsic_value_vs_price",
       "theme": "value",
-      "sources": ["Buffett", "Graham", "BuffettEssays"],
+      "sources": [
+        "Buffett",
+        "Graham",
+        "BuffettEssays"
+      ],
       "rule": "가격(price)과 가치(intrinsic value)는 다르다 — 미래 현금흐름의 현재가치가 내재가치이며, 가격이 그보다 충분히 낮을 때만 진입한다. 좋은 사업을 적정가에 사는 것이 평범한 사업을 헐값에 사는 것보다 낫다(Buffett의 Graham→Munger 진화).",
       "apply": "entry 판단에 '현재가가 내재가치 추정 대비 할인인가'를 1차 게이트로. 멀티플만 비싼 게 아니라 성장·해자 감안한 가치 대비 평가. 단순 저PER 함정과 우량 프리미엄을 구분."
     },
     {
       "id": "margin_of_safety_graham",
       "theme": "entry",
-      "sources": ["Graham", "Buffett", "BuffettEssays"],
+      "sources": [
+        "Graham",
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "안전마진(margin of safety) — 내재가치와 매수가 사이에 완충을 둔다. 판단 오류·예상 못한 충격을 흡수하는 할인폭이 핵심. (Graham 개념, Buffett 계승)",
       "apply": "judgment-doctrine 의 margin_of_safety_no_chase 와 정합 — 급등 추격 금지, 지지선/눌림목 대비 할인 진입. 안전마진 = (내재가치−진입가)/내재가치, 클수록 conviction↑·비중↑."
     },
     {
       "id": "circle_of_competence",
       "theme": "selection",
-      "sources": ["Buffett", "BuffettEssays"],
+      "sources": [
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "능력범위(circle of competence) 안에서만 투자 — 사업이 어떻게 돈을 버는지, 무엇이 그것을 무너뜨릴 수 있는지 이해 못하면 추천하지 않는다. 범위의 크기보다 경계를 아는 것이 중요.",
       "apply": "사업모델을 2문장으로 설명 못하는 종목(불명확 수익원, 블랙박스 사업)은 추천 제외. judgment-doctrine 의 moat 항목과 결합 — '모르는 사업 추천 금지' 강제."
     },
     {
       "id": "mr_market_serves_not_guides",
       "theme": "psychology",
-      "sources": ["Graham", "Buffett", "BuffettEssays"],
+      "sources": [
+        "Graham",
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "Mr. Market 은 매일 변덕스러운 가격을 제시하는 조울증 파트너 — 그의 기분에 따르지 말고 그의 실수를 이용하라. 시장은 당신을 섬기러 온 것이지 안내하러 온 게 아니다.",
       "apply": "변동성·심리 극단(FG 극단, VIX 스파이크)을 '신호'가 아니라 '기회 또는 함정'으로 본다. 가격 급변 자체가 판단을 흔들면 안 됨 — 내재가치 앵커 유지. 패닉 매도장에서 우량주 디스카운트 탐색."
     },
     {
       "id": "be_greedy_when_fearful",
       "theme": "contrarian",
-      "sources": ["Buffett", "BuffettEssays", "Kostolany"],
+      "sources": [
+        "Buffett",
+        "BuffettEssays",
+        "Kostolany"
+      ],
       "rule": "남이 탐욕스러울 때 두려워하고, 남이 두려워할 때 탐욕스러워라(Buffett). '피가 흐를 때 사라'(Kostolany 류 역발상) — 단 펀더멘털 근거 동반. 군중 공포 = 우량 자산 할인 기회.",
       "apply": "judgment-doctrine 의 independent_contrarian 강화 — FG≤극단공포·시장 급락 시 우량 해자주 매수 후보 가중. 단 추세·펀더멘털 확인 없는 칼받기(catch falling knife) 금지."
     },
     {
       "id": "long_term_compounding_retained_earnings",
       "theme": "mindset",
-      "sources": ["Buffett", "BuffettEssays"],
+      "sources": [
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "복리는 시간이 만든다 — 사업이 유보이익(retained earnings)을 높은 수익률로 재투자해 내재가치를 키우면 주가는 장기적으로 따라온다. 잦은 매매는 복리의 적.",
       "apply": "추세 추종 + 장기 보유 우선, 단기 휩쏘 회피(whipsaw_cooldown 와 정합). 유보이익을 ROIC 높게 재투자하는 기업(고ROE·재투자율 높음)에 보유 인내 부여. 익절을 서두르지 않음."
     },
     {
       "id": "buyback_only_below_value",
       "theme": "value",
-      "sources": ["Buffett", "BuffettEssays"],
+      "sources": [
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "자사주 매입은 내재가치보다 쌀 때만 가치 창출 — 비싸게 사는 buyback 은 주주가치 파괴. 경영진의 자본배분(capital allocation) 규율이 곧 경영진 품질.",
       "apply": "기업 평가 시 buyback 이 저평가 구간에서 이뤄지는지(현금배분 규율) 정성 코멘트. 고평가에서 대규모 자사주매입·무분별 M&A 는 음(-) 신호로 down-weight."
     },
     {
       "id": "management_quality_capital_allocation",
       "theme": "selection",
-      "sources": ["Buffett", "BuffettEssays"],
+      "sources": [
+        "Buffett",
+        "BuffettEssays"
+      ],
       "rule": "유능하고 정직한 경영진 — 자본을 합리적으로 배분하고 주주처럼 사고하는가. 무분별한 다각화·제국건설(empire building)은 적신호.",
       "apply": "경영진 자본배분(재투자·배당·buyback·부채) 품질을 정성 점수에 반영. 핵심사업 외 무관 인수 잦은 기업(Lynch diworsification 과 연결)은 감점."
     },
     {
       "id": "invest_in_what_you_know",
       "theme": "selection",
-      "sources": ["Lynch"],
+      "sources": [
+        "Lynch"
+      ],
       "rule": "아는 것에 투자하라 — 일상·산업현장에서 관찰한 강한 기업을 먼저 포착하되, 친숙함만으론 부족하고 반드시 리서치로 확신을 보강한다. 관찰이 단서, 리서치가 확신.",
       "apply": "관찰 가능한 수요·제품 모멘텀(매출 성장·시장 점유 확대) 신호를 selection 에 반영. 단 '안다'는 느낌만으로 진입 금지 — 펀더멘털·밸류 게이트 통과 필수."
     },
     {
       "id": "lynch_six_categories",
       "theme": "selection",
-      "sources": ["Lynch"],
+      "sources": [
+        "Lynch"
+      ],
       "rule": "주식을 6 유형으로 분류해 각기 다른 기대·매도기준을 적용: ①저성장주(slow grower, 배당) ②대형우량주(stalwart, 방어) ③고성장주(fast grower, 20-25%↑, ten-bagger 후보) ④경기순환주(cyclical, 타이밍) ⑤회생주(turnaround, 부활 베팅) ⑥자산주(asset play, 숨은 자산).",
       "apply": "추천 종목마다 category 태그 부여. 카테고리별로 entry/exit·목표 차등: 고성장주는 성장 둔화 시 매도, 경기순환주는 사이클 정점 경계, 대형우량주는 30-50% 상승 후 차익. 동일 룰 일괄적용 금지."
     },
     {
       "id": "peg_growth_at_reasonable_price",
       "theme": "value",
-      "sources": ["Lynch"],
+      "sources": [
+        "Lynch"
+      ],
       "rule": "PEG = PER / 연이익성장률. PEG ≈ 1.0 이하이고 이익성장 15-25%인 종목이 합리적 가격의 성장주. 성장 없는 고PER, 성장 대비 싼 종목을 구분.",
       "apply": "valuation score 에 PEG 추가 — 고PER 라도 성장률이 받쳐 PEG≤1 이면 '비싸 보여도 정당' 으로 판정(judgment-doctrine moat 항목의 '너무 비싸다 비판' 허용과 정합). PEG≫1.5 는 성장 대비 고평가 감점."
     },
     {
       "id": "story_over_tips_two_minute_drill",
       "theme": "mindset",
-      "sources": ["Lynch"],
+      "sources": [
+        "Lynch"
+      ],
       "rule": "팁·소문이 아니라 '스토리'로 산다 — 왜 보유하는가, 무엇이 성공시키고 무엇이 망칠 수 있는가를 2분 안에 설명(two-minute drill) 못하면 이해 부족. 스토리가 깨지면 매도.",
       "apply": "entryRationale 은 2-3문장 thesis(성장동력+리스크+촉매)로 강제. 보유 중 thesis 의 핵심 가정(예: 성장률·점유율)이 깨지면 exit 신호로 격상. 근거 없는 모멘텀 추격 제외."
     },
     {
       "id": "avoid_diworsification",
       "theme": "selection",
-      "sources": ["Lynch"],
+      "sources": [
+        "Lynch"
+      ],
       "rule": "diworsification 경계 — 핵심 경쟁력 없는 사업으로 끝없이 인수·확장하는 기업은 가치 희석. 화려해 보이려는 무관 다각화는 적신호.",
       "apply": "무관 사업 인수 잦고 ROIC 하락하는 기업 감점(management_quality 와 연결). 반대로 핵심사업 집중·자본효율 개선 기업 가점."
     },
     {
       "id": "reflexivity_perception_shapes_price",
       "theme": "reflexivity",
-      "sources": ["Soros"],
+      "sources": [
+        "Soros"
+      ],
       "rule": "반사성(reflexivity) — 참가자의 인식이 펀더멘털을 다시 바꾸는 양방향 피드백 루프. 단기엔 진실보다 '인식이 만든 현실'이 가격을 움직인다(완전한 객관 가격은 없다, fallibility).",
       "apply": "judgment-doctrine 의 perception_vs_truth 와 정합 — 뉴스의 사실보다 '시장 반응(가격·거래량·심리)'을 본다. 추세가 인식을 강화하는 자기강화 국면(거래량 동반 상승)은 가중, 인식↔펀더 괴리가 극단이면 반전 경계."
     },
     {
       "id": "boom_bust_asymmetry",
       "theme": "macro",
-      "sources": ["Soros"],
+      "sources": [
+        "Soros"
+      ],
       "rule": "붐-버스트(boom-bust) 시퀀스 — 거품은 길고 완만히 부풀고 붕괴는 짧고 가파르다(비대칭). 자기강화 추세는 결국 전환점(climax)을 지나 역전된다.",
       "apply": "장기 급등·과열(거품 후기 징후: 가속 상승+밸류 극단+레버리지) 종목은 후반부 비대칭 하락 위험으로 신규 진입 보수화. 급락장에선 '짧고 가파른' 특성을 고려해 손절 urgency 유지하되 바닥 과매도 반등 기회도 병행 탐색."
     },
     {
       "id": "fallibility_test_with_positions",
       "theme": "mindset",
-      "sources": ["Soros"],
+      "sources": [
+        "Soros"
+      ],
       "rule": "오류가능성(fallibility) — 우리의 이해는 본질적으로 불완전하다. 그래서 작게 시작해 시장으로 가설을 '검증'하고, 맞으면 키우고 틀리면 빨리 인정한다. (Soros 류 가설검증·생존 우선; 정확한 verbatim 문구는 미검증으로 일반 귀속)",
       "apply": "신규 thesis 는 작은 비중으로 진입 후 추세 확인 시 피라미딩(run_winners_pyramid 와 정합). thesis 가 시장에 의해 반증되면(가격·펀더 역행) 자존심 없이 손절. 한 번 적중/실패로 룰 과적합 금지(process_over_outcome)."
     },
     {
       "id": "asymmetric_risk_reward",
       "theme": "risk",
-      "sources": ["Soros", "Buffett"],
+      "sources": [
+        "Soros",
+        "Buffett"
+      ],
       "rule": "비대칭 베팅 — 손실은 제한, 이익은 열린 구조에서만 크게 건다(downside small, upside large). 옳을 때 크게, 틀릴 때 작게.",
       "apply": "judgment-doctrine 의 defend_capital_first 와 정합 — risk/reward 비대칭(stop까지 하방 < target까지 상방)이 클수록 conviction·비중↑. 상방이 제한적이고 하방이 큰 구조는 진입 거부."
     },
     {
       "id": "kostolany_dog_and_man",
       "theme": "macro",
-      "sources": ["Kostolany"],
+      "sources": [
+        "Kostolany"
+      ],
       "rule": "사람-개 비유 — 경제(사람)는 천천히 일정 방향으로 걷고, 주가(개)는 앞서거니 뒤서거니 멀리 벗어나도 결국 주인에게 돌아온다. 단기 가격은 펀더멘털에서 크게 이탈하나 장기엔 회귀한다.",
       "apply": "주가가 경제/펀더멘털 대비 과도하게 앞섰으면(개가 멀리 앞섬) 신규 진입 경계, 크게 뒤처졌으면(개가 멀리 뒤짐) 우량주 저가매수 기회. 단기 괴리를 평균회귀 신호로 활용하되 추세·근거 동반."
     },
     {
       "id": "kostolany_strong_hands_psychology",
       "theme": "psychology",
-      "sources": ["Kostolany"],
+      "sources": [
+        "Kostolany"
+      ],
       "rule": "돈+인내=소신파(firm/strong hands) vs 부화뇌동파(weak/shaky hands). 단·중기 추세의 약 90%는 심리, 10%만 펀더멘털 — 시장 국면은 과민반응→조정(상·하 양방향)을 순환한다. (4단계 국면 개념은 통용되나 표준 명칭은 verbatim 미검증)",
       "apply": "공포 국면에서 부화뇌동 매도(약한손 투항)가 정점이면 소신파의 매수 기회로 본다 — 거래량·심리 극단을 국면 판단에 반영. 빚이나 조급함에 쫓긴 진입(약한손) 금지: 진입은 인내할 수 있는 비중·기간 내에서만(과도 레버리지 경계)."
+    },
+    {
+      "id": "ten_bagger_let_winners_run",
+      "theme": "position",
+      "sources": [
+        "Lynch"
+      ],
+      "rule": "소수의 10루타(10배) 종목이 포트폴리오 전체 수익을 견인한다. 이기는 종목은 논거가 유효한 한 끝까지 보유하고, 지는 종목을 손절하라 — \"꽃을 뽑고 잡초에 물 주는\" 짓을 하지 마라.",
+      "apply": "매수엔진: 승자 비중 유지/추가 정당화(논거 유효 시). 매도엔진: 단지 올랐다는 이유로 익절 강요 금지, 논거 훼손 시에만 매도."
+    },
+    {
+      "id": "lynch_ignore_macro_noise",
+      "theme": "macro",
+      "sources": [
+        "Lynch"
+      ],
+      "rule": "거시·금리 예측에 시간을 낭비하지 말고 개별 기업의 펀더멘털에 집중하라. \"거시를 13분 생각하면 10분은 낭비다.\"",
+      "apply": "심판엔진: 거시는 리스크 맥락으로만 쓰고 매수/매도 결론은 기업 펀더멘털(이익·성장·재무)로 내려라."
+    },
+    {
+      "id": "lynch_low_debt_survives",
+      "theme": "balance_sheet",
+      "sources": [
+        "Lynch"
+      ],
+      "rule": "부채가 적고 현금이 두둑한 기업이 불황을 견디고 살아남는다. 순현금 또는 낮은 부채비율은 생존력의 핵심.",
+      "apply": "매수엔진: 부채비율·순현금·이자보상배율 점검을 매수 논거에 포함. 고부채 회생주는 회피 또는 저비중."
+    },
+    {
+      "id": "lynch_two_minute_earnings",
+      "theme": "fundamental",
+      "sources": [
+        "Lynch"
+      ],
+      "rule": "결국 주가를 끌어올리는 것은 이익이다. 이익 성장의 원천(매장수 확대·마진 개선·신제품)을 2분 안에 설명할 수 없으면 사지 마라.",
+      "apply": "매수엔진: entryRationale 에 이익 성장 동인을 명시. 동인 불명확한 종목은 high-conviction 금지."
+    },
+    {
+      "id": "soros_survive_first",
+      "theme": "risk",
+      "sources": [
+        "Soros"
+      ],
+      "rule": "먼저 살아남고 그 다음 돈을 벌어라. 생존(자본 보존)이 최우선 — 한 번의 치명적 손실이 모든 복리를 지운다.",
+      "apply": "심판엔진/매도엔진: 포지션 사이징과 손절을 \"치명상 회피\" 기준으로. 회복 불가능한 손실 구조(레버리지·집중)는 veto."
+    },
+    {
+      "id": "soros_when_right_bet_big",
+      "theme": "position",
+      "sources": [
+        "Soros"
+      ],
+      "rule": "옳을 때 크게, 틀릴 때 작게. 확신이 검증되면 과감히 키우고, 빗나가면 빠르게 줄인다. 중요한 건 적중률이 아니라 옳을 때 얼마를 버느냐다.",
+      "apply": "매수엔진: 논거가 시장에서 확인(가격·실적 동행)되면 비중 확대 정당화. 비대칭 보상(작은 하방·큰 상방) 우선."
+    },
+    {
+      "id": "soros_cut_when_wrong",
+      "theme": "discipline",
+      "sources": [
+        "Soros"
+      ],
+      "rule": "틀렸다고 판단되면 자존심이 아니라 자본을 지켜 즉시 손절하라. 시장이 내 논거를 부정하면 시장이 옳다.",
+      "apply": "매도엔진: 가격 하락 그 자체가 아니라 \"매수 논거의 부정(펀더멘털·가설 붕괴)\"을 손절 트리거로."
+    },
+    {
+      "id": "soros_markets_always_biased",
+      "theme": "reflexivity",
+      "sources": [
+        "Soros"
+      ],
+      "rule": "시장은 늘 한쪽으로 편향돼 있고 균형 상태가 아니다. 컨센서스의 과잉(과도한 낙관/비관)이 자기강화되다 임계에서 역전된다.",
+      "apply": "심판엔진: 과열(F&G 고·급등)·과매도 국면에서 군중 편향의 방향과 임계 신호를 점검해 추격/투항을 경계."
+    },
+    {
+      "id": "kostolany_money_patience_nerves",
+      "theme": "temperament",
+      "sources": [
+        "Kostolany"
+      ],
+      "rule": "성공 투자는 여유돈 + 독자적 생각 + 인내 + 운이다. 절대 빚으로 투자하지 말고, 잃어도 생활이 흔들리지 않는 돈으로만 하라.",
+      "apply": "심판엔진: 레버리지·생활자금 투입 정황은 강한 경고. 인내(장기 보유) 전제가 깨지는 단기 추격은 veto."
+    },
+    {
+      "id": "kostolany_contrarian_extremes",
+      "theme": "contrarian",
+      "sources": [
+        "Kostolany"
+      ],
+      "rule": "모두가 팔 때 사고 모두가 살 때 팔아라. 거래소에 주식보다 바보가 많으면 팔 때고, 바보보다 주식이 많으면 살 때다.",
+      "apply": "매수엔진: 공포·투매 국면(약한 손 이탈)에서 우량주 분할매수 정당화. 매도엔진: 도취·과열에서 비중축소."
+    },
+    {
+      "id": "kostolany_four_g",
+      "theme": "temperament",
+      "sources": [
+        "Kostolany"
+      ],
+      "rule": "4G — Geld(여유돈)·Gedanken(독자적 생각)·Geduld(인내)·Glück(운). 이 중 인내가 가장 결정적이며, 대중과 반대로 생각할 용기가 필요하다.",
+      "apply": "심판엔진: 결론에 인내(보유 기간)·독자성(컨센서스 맹종 아님)을 반영. 조급한 매매 신호는 감점."
+    },
+    {
+      "id": "kostolany_avoid_leverage",
+      "theme": "risk",
+      "sources": [
+        "Kostolany"
+      ],
+      "rule": "빚투(레버리지)는 강제청산으로 당신을 \"약한 손\"으로 만든다. 소신을 지키려면 강제로 팔리지 않을 자금 구조가 먼저다.",
+      "apply": "매도엔진/심판엔진: 마진·신용 레버리지 정황은 리스크 상향. 변동성 구간에서 강제청산 위험을 우선 경고."
+    },
+    {
+      "id": "buffett_never_lose_money",
+      "theme": "risk",
+      "sources": [
+        "Buffett"
+      ],
+      "rule": "규칙 1: 절대 돈을 잃지 마라. 규칙 2: 규칙 1을 잊지 마라. 하방 보호가 상방 추구에 앞선다.",
+      "apply": "심판엔진: 모든 매수 결론에 \"하방 시나리오와 안전마진\"을 먼저 명시. 하방 불명확이면 비중·확신 하향."
+    },
+    {
+      "id": "buffett_twenty_punch_card",
+      "theme": "selectivity",
+      "sources": [
+        "Buffett"
+      ],
+      "rule": "평생 20번만 찍을 수 있는 펀치카드처럼 투자하라 — 결정 횟수를 제한하면 한 건 한 건을 신중히 하게 되고 성과가 좋아진다.",
+      "apply": "매수엔진: 확신 낮은 다수 종목 남발 금지. high-conviction 소수 집중을 우대(다악화 회피와 연결)."
+    },
+    {
+      "id": "buffett_time_is_friend_of_wonderful",
+      "theme": "quality",
+      "sources": [
+        "Buffett"
+      ],
+      "rule": "시간은 훌륭한 기업의 친구이자 평범한 기업의 적이다. 적당한 기업을 싸게 사는 것보다 훌륭한 기업을 적정가에 사는 게 낫다.",
+      "apply": "매수엔진: 저질 기업의 저가 매수(가치함정)보다 우량 기업의 합리적 가격을 우선. 질(質)을 가격에 앞세움."
     }
   ]
 }

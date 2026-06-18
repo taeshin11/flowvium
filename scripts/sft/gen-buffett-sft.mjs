@@ -19,7 +19,7 @@ import { resolve } from 'path';
 const ROOT = resolve(process.cwd());
 const CORPUS = resolve(ROOT, 'data/rag/corpus.ndjson');
 const OUT_DIR = resolve(ROOT, 'data/sft');
-const OUT = resolve(OUT_DIR, 'buffett-wisdom.jsonl');
+const OUT = resolve(OUT_DIR, 'wisdom-sft.jsonl');
 const VLLM = process.env.VLLM_URL?.replace(/\/v1\/?$/, '') || 'http://localhost:8000';
 const MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 const MAX = parseInt(process.argv[2] || '400', 10);
@@ -49,7 +49,7 @@ const ENGINES = [
   },
 ];
 
-const GEN_PROMPT = (eng, year, text) => `다음은 워런 버핏의 버크셔 해서웨이 주주서한(${year || '연도미상'}) 발췌다. 이 구절이 담은 "투자 원칙"을 "${eng.key} 엔진" 관점으로 가르치는 한국어 학습예시 1개를 만들어라.
+const GEN_PROMPT = (eng, source, year, text) => `다음은 투자 고전/원전 "${source}${year ? ` (${year})` : ''}" 발췌다(버핏 주주서한·피터 린치·소로스·코스톨라니 등). 이 구절이 담은 "투자 원칙"을 "${eng.key} 엔진" 관점으로 가르치는 한국어 학습예시 1개를 만들어라.
 
 규칙:
 - 출력은 JSON 한 개만: {"q": "...", "a": "..."}
@@ -89,10 +89,15 @@ function parseQA(txt) {
 
 async function main() {
   if (!existsSync(CORPUS)) { console.error('corpus.ndjson 없음 — ingest-corpus.py 먼저 실행'); process.exit(1); }
+  // 산문 원전(서한·서적·에세이) 전부 — 큐레이션 원칙('투자 지혜'/'심판 doctrine')은 짧고 이미 SFT
+  //   source 3 에 있으므로 제외.
+  const CURATED = new Set(['투자 지혜', '심판 doctrine']);
   const chunks = readFileSync(CORPUS, 'utf8').split('\n').filter(Boolean)
     .map(l => { try { return JSON.parse(l); } catch { return null; } })
-    .filter(c => c && c.source === '버크셔 주주서한' && c.text && c.text.length > 250);
-  console.log(`서한 청크 ${chunks.length}개 중 ${Math.min(MAX, chunks.length)}개 샘플링`);
+    .filter(c => c && c.text && c.text.length > 250 && !CURATED.has(c.source));
+  const srcDist = {};
+  for (const c of chunks) srcDist[c.source] = (srcDist[c.source] || 0) + 1;
+  console.log(`원전 청크 ${chunks.length}개 중 ${Math.min(MAX, chunks.length)}개 샘플링 · 소스:`, JSON.stringify(srcDist));
 
   // 균등 샘플링 (연도 편향 방지)
   const step = Math.max(1, Math.floor(chunks.length / MAX));
@@ -108,7 +113,7 @@ async function main() {
     const results = await Promise.all(batch.map(async (c, j) => {
       const eng = ENGINES[(i + j) % ENGINES.length];  // 라운드로빈 3역할 배분
       try {
-        const txt = await vllm([{ role: 'user', content: GEN_PROMPT(eng, c.year, c.text) }]);
+        const txt = await vllm([{ role: 'user', content: GEN_PROMPT(eng, c.source, c.year, c.text) }]);
         return { c, eng, qa: parseQA(txt) };
       } catch (e) { return { c, eng, qa: null, err: e.message }; }
     }));
@@ -118,7 +123,7 @@ async function main() {
       if (!qa) { skip++; continue; }
       const ex = {
         messages: [{ role: 'system', content: eng.system }, { role: 'user', content: qa.q }, { role: 'assistant', content: `${qa.a}\n투자 판단·책임은 본인에게 있음.` }],
-        weight: 0.5, meta: { src: 'buffett', engine: eng.key, year: c.year, chunk: c.id },
+        weight: 0.5, meta: { src: 'wisdom', engine: eng.key, source: c.source, year: c.year, chunk: c.id },
       };
       appendFileSync(OUT, JSON.stringify(ex) + '\n');
       ok++; perEngine[eng.key]++;

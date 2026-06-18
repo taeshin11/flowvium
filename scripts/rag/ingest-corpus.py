@@ -114,9 +114,36 @@ def load_curated():
     log(f"curated: {len(rows)} chunks")
     return rows
 
+def load_dir(subdir, src_prefix):
+    """data/rag/{subdir}/*.{pdf,txt,md} → 청크. books=합법 보유 사본(개인 로컬), sources=합법 공개 에세이/강연.
+       source 라벨 = 파일명 stem(예: one-up-on-wall-street → 'One Up On Wall Street')."""
+    rows = []
+    base = os.path.join(REPO, "data/rag", subdir)
+    if not os.path.isdir(base):
+        return rows
+    for f in sorted(glob.glob(os.path.join(base, "*"))):
+        ext = f.rsplit(".", 1)[-1].lower()
+        stem = os.path.splitext(os.path.basename(f))[0]
+        label = stem.replace("-", " ").replace("_", " ").strip().title()
+        if ext == "pdf":
+            txt = pdftotext(f)
+            if len(txt.strip()) < 400:
+                log(f"{stem}: thin → OCR"); txt = ocr_pdf(f) or txt
+        elif ext in ("txt", "md", "text"):
+            txt = open(f, encoding="utf-8", errors="ignore").read()
+        else:
+            continue
+        txt = clean(txt)
+        cs = [c for c in chunk_text(txt) if not is_garbage(c)]
+        log(f"[{subdir}] {stem}: {len(txt)} chars → {len(cs)} chunks")
+        for i, c in enumerate(cs):
+            rows.append({"id": f"{src_prefix}-{stem}-{i}", "source": label, "year": "", "text": c})
+    return rows
+
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    rows = load_letters() + load_curated()
+    # 버크셔 서한(공개) + 합법 보유 서적(books/) + 합법 공개 에세이·강연(sources/) + 큐레이션 원칙
+    rows = load_letters() + load_dir("books", "book") + load_dir("sources", "src") + load_curated()
     log(f"total chunks: {len(rows)} — embedding with bge-m3...")
     from sentence_transformers import SentenceTransformer
     model = SentenceTransformer("BAAI/bge-m3")
