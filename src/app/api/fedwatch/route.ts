@@ -274,17 +274,27 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-reva
 let FEDWATCH_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const FEDWATCH_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
 
+// 2026-06-19: nextMeeting 은 *오늘* 기준 차기 미래 FOMC — 캐시(4h~)된 객체에 박아두면 회의일 지나며 stale.
+//   응답 시점에 meetings 에서 항상 재계산(캐시히트·신규 모두). meetings[0] 이 과거여도 정확한 차기 회의 반환.
+function withNextMeeting<T extends { meetings?: FomcMeeting[] }>(data: T): T & { nextMeeting: FomcMeeting | null } {
+  // 회의 자정(UTC) > 현재 = 아직 안 열린 회의. 자정 비교라 회의 *당일* 0시부터 차기로 넘어감(끝난 회의 절대 미선택).
+  //   문자열 date>=today 는 UTC/KST 경계에서 어제 회의를 차기로 오선택(Jun 18 버그) → getTime() 비교로 통일.
+  const now = Date.now();
+  const ms = data.meetings ?? [];
+  return { ...data, nextMeeting: ms.find(m => new Date(m.date).getTime() > now) ?? ms[ms.length - 1] ?? null };
+}
+
 export async function GET() {
   const redis = createRedis();
 
   if (!redis && FEDWATCH_MEMORY_CACHE && Date.now() < FEDWATCH_MEMORY_CACHE.expiresAt) {
-    return NextResponse.json({ ...FEDWATCH_MEMORY_CACHE.data, cached: true }, { headers: CDN_HEADERS });
+    return NextResponse.json({ ...withNextMeeting(FEDWATCH_MEMORY_CACHE.data), cached: true }, { headers: CDN_HEADERS });
   }
 
   if (redis) {
     try {
       const cached = await redis.get(cacheKey());
-      if (cached) return NextResponse.json({ ...(cached as object), cached: true }, { headers: CDN_HEADERS });
+      if (cached) return NextResponse.json({ ...withNextMeeting(cached as { meetings?: FomcMeeting[] }), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
 
@@ -303,9 +313,16 @@ export async function GET() {
     });
   }
 
-  const result: FedWatchData & { cached: boolean; liveData: boolean } = {
+  // 2026-06-19: nextMeeting = 아직 안 열린 *차기* FOMC (meetings[0] 은 Apr 29 등 과거일 수 있음 — 소비처가
+  //   meetings[0] 을 "다음 회의"로 오인해 끝난 회의 동결확률을 표시하던 사각지대. 단일 진실원으로 노출).
+  //   회의는 해당일 발표로 종료 → date < today 는 과거. 문자열 YYYY-MM-DD lexicographic 비교(>= 오늘은 차기/당일).
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const nextMeeting = meetings.find(m => m.date >= todayStr) ?? meetings[meetings.length - 1] ?? null;
+
+  const result: FedWatchData & { cached: boolean; liveData: boolean; nextMeeting: typeof nextMeeting } = {
     ...STATIC_DATA,
     meetings,
+    nextMeeting,
     source,
     yearEndImpliedRate: meetings[meetings.length - 1]?.impliedRate ?? STATIC_DATA.yearEndImpliedRate,
     totalImpliedCuts: meetings[meetings.length - 1]?.cumulativeCuts ?? STATIC_DATA.totalImpliedCuts,

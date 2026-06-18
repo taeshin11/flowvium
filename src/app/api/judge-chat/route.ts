@@ -282,7 +282,15 @@ async function fetchMacroContext(origin: string): Promise<{ text: string; vix: n
   const us = (fg?.byCountry as Array<Record<string, unknown>>)?.find(c => c.id === 'us');
   if (us) L.push(`공포·탐욕(F&G) US ${us.score} (${us.level}${us.prevScore != null ? `, 전일 ${us.prevScore}` : ''})`);
   if (vol?.vix != null) L.push(`VIX ${vol.vix}${vol.regimeLabel ? ` (${vol.regimeLabel})` : ''}`);
-  if (fw?.currentTargetLow != null) { const m = (fw.meetings as Array<Record<string, unknown>>)?.[0]; L.push(`연준 기준금리 ${fw.currentTargetLow}~${fw.currentTargetHigh}%${m ? ` · 다음(${m.label}) 동결 ${m.probHold}%/인하 ${(m.probCut25 as number ?? 0) + (m.probCut50 as number ?? 0)}%` : ''}`); }
+  // 2026-06-19: meetings[0] 은 과거 회의(Apr 29 등)일 수 있어 "다음"이라 표시하면 끝난 회의 확률을 보여줌
+  //   (사용자 "금리동결 어제 됐는데 또 동결확률 98%?"). 라우트의 nextMeeting(차기 미래 회의) 우선, 없으면 직접 필터.
+  if (fw?.currentTargetLow != null) {
+    const nowMs = Date.now();
+    const m = (fw.nextMeeting as Record<string, unknown>)
+      ?? (fw.meetings as Array<Record<string, unknown>>)?.find(x => new Date(String(x.date)).getTime() > nowMs)
+      ?? null;
+    L.push(`연준 기준금리 ${fw.currentTargetLow}~${fw.currentTargetHigh}%${m ? ` · 차기 FOMC(${m.label}) 동결 ${m.probHold}%/인하 ${(m.probCut25 as number ?? 0) + (m.probCut50 as number ?? 0)}%` : ''}`);
+  }
   const cpi = (macro?.indicators as Array<Record<string, unknown>>)?.find(i => i.id === 'cpi');
   if (cpi) L.push(`CPI ${cpi.actual}% (예상 ${cpi.forecast}%, ${cpi.rateImpact})`);
   const t = yc?.today as Array<Record<string, unknown>>;

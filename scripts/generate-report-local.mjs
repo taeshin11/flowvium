@@ -8826,7 +8826,12 @@ async function generateViaOllama() {
       const chg = livePrices.get(p.ticker)?.changePct;
       if (chg != null) { stockChgMap[p.ticker] = chg; if (p.koreanName) stockChgMap[p.koreanName] = chg; if (p.name) stockChgMap[p.name] = chg; }
     }
-    const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap });
+    // 2026-06-19: FedWatch 동결확률 prose 가 "차기 FOMC(날짜)" 를 떨구고 "금리 동결(98%)" 로 압축돼 *어제 끝난
+    //   회의* 로 오독되던 사각지대(사용자 지적). 차기 미래 회의 label 을 narrative-fix 에 넘겨 결정론 주입.
+    const _fw = ctxWithCascade.fedWatch;
+    const _nowMs = Date.now();
+    const _nm = _fw?.nextMeeting ?? (_fw?.meetings ?? []).find(m => new Date(m.date).getTime() > _nowMs) ?? null;
+    const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap, fedNextLabel: _nm?.label ?? null });
     if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);
     // 2026-06-16 페이지 전수감사: 모든 문자열 필드 garble sanitize(이중부호·orphan원·콘탱고·한자) + BOJ=FOMC 복사 교정
     const { nFix: nSan } = sanitizeReport(finalReport);

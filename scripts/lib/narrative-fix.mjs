@@ -33,14 +33,25 @@ export async function fetchIndexChangeMap() {
   return map;
 }
 
-// 단일 문자열 필드 교정. indexMap={key:chgPct}, stockChgMap={ticker|name: chgPct}, realBp=실 금리커브 bp.
-function fixField(s, { realBp = null, indexMap = {}, stockChgMap = {} } = {}) {
+// 단일 문자열 필드 교정. indexMap={key:chgPct}, stockChgMap={ticker|name: chgPct}, realBp=실 금리커브 bp,
+//   fedNextLabel=차기 FOMC label(예 "Jul 30") — "금리 동결(N%)" 에 차기 회의 날짜 주입.
+function fixField(s, { realBp = null, indexMap = {}, stockChgMap = {}, fedNextLabel = null } = {}) {
   if (typeof s !== 'string' || !s) return s;
   let t = s;
 
   // (a) 금리곡선 bp → 실 bp (괄호 유무 무관). 검출(verify-report curve_slope_halluc)과 *동일 변형* 커버 —
   //   "금리곡선/금리커브" 뿐 아니라 "수익률 곡선"·"커브" 단독도(검출만 되고 교정 안 돼 6회 재발하던 버그, 2026-06-18).
   if (realBp != null) t = t.replace(/((?:금리\s*(?:곡선|커브)|수익률\s*곡선|커브)[^0-9%.]{0,14}?)([+-]?\d{1,3})(\s*bp)/g, `$1${realBp}$3`);
+
+  // (a2) FedWatch 동결확률에 차기 FOMC 날짜 주입(2026-06-19): "금리 동결(98%)" 가 끝난 회의로 오독되지 않게
+  //   "차기 FOMC(날짜) 동결 98%" 로. 이미 FOMC/차기/날짜 수식이 앞 25자에 있으면 건드리지 않음(중복 방지).
+  if (fedNextLabel) {
+    t = t.replace(/(연준의?\s*)?(?:금리\s*)?동결\s*\(?\s*(\d{1,3})\s*%\s*\)?/g, (full, lead, n, offset, str) => {
+      const before = str.slice(Math.max(0, offset - 25), offset);
+      if (/FOMC|차기|FOMC|\d{1,2}월|\bJul\b|\bAug\b|\bSep\b|\bOct\b|\bNov\b|\bDec\b|\bJan\b|\bFeb\b|\bMar\b|\bApr\b|\bMay\b|\bJun\b/.test(before)) return full;
+      return `${lead ?? ''}차기 FOMC(${fedNextLabel}) 동결 ${n}%`;
+    });
+  }
 
   // (b) 오타/표기
   t = t.replace(/나스다크/g, '나스닥').replace(/콘텡고|콘텐고|콘탕고|컨텐고|컨티아고|컨텐코/g, '콘탱고');
@@ -133,7 +144,7 @@ export function correctNarrative(report, opts = {}) {
     const sp = report.marketVerdict?.analog?.fingerprint?.curveSlopePp ?? report.marketVerdict?.analog?.macroContext?.curveSlopePp;
     return sp != null ? Math.round(sp * 100) : null;
   })();
-  const o = { realBp, indexMap: opts.indexMap ?? {}, stockChgMap: opts.stockChgMap ?? {} };
+  const o = { realBp, indexMap: opts.indexMap ?? {}, stockChgMap: opts.stockChgMap ?? {}, fedNextLabel: opts.fedNextLabel ?? null };
   let nFix = 0; const log = [];
   for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis', 'topOpportunity', 'hedgingSuggestion']) {
     const b = report[k], a = fixField(b, o);
