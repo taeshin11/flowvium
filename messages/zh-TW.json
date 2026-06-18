@@ -571,7 +571,9 @@
     "aiReportDesc": "買賣推薦個股",
     "fundTrackingDesc": "SEC申報資金追蹤",
     "ctaSeeRecs": "查看今日AI推薦個股",
-    "ctaSeeRecsDesc": "買賣標的 · 進場價 · 停損/目標"
+    "ctaSeeRecsDesc": "買賣標的 · 進場價 · 停損/目標",
+    "ctaAskEngine": "諮詢判斷引擎",
+    "ctaAskEngineDesc": "買賣AI諮詢"
   },
   "feedback": {
     "title": "傳送意見回饋",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "隱含波動率篩選器 — Flowvium",
     "seoDescription": "彭博式選擇權隱含波動率：透過買權賣權平價提取遠期+布倫特反演。30/90日ATM IV、25Δ偏度、期限斜率、IV排名。"
+  },
+  "judge": {
+    "title": "買賣判斷引擎",
+    "modeFast": "快速判斷",
+    "modeFastDesc": "最快回答",
+    "modeStandard": "標準",
+    "modeStandardDesc": "適合大多數問題",
+    "modeDeep": "深度",
+    "modeDeepDesc": "規則+報告綜合分析",
+    "greeting": "需要我判斷什麼?",
+    "greetingSub": "說出股票，我會結合即時數據、規則和大師原則一起判斷買賣。",
+    "placeholder": "向判斷引擎提問",
+    "thinking": "判斷中…",
+    "errorGeneric": "未收到回覆，請重試。",
+    "newChat": "新對話",
+    "tools": "快捷提問",
+    "disclaimer": "AI判斷，投資責任由本人承擔。",
+    "groundReport": "已參考今日報告",
+    "groundRules": "已套用買賣規則",
+    "quickBuy": "買入判斷",
+    "quickBuyPrompt": "現在適合買入的股票及理由?",
+    "quickSell": "賣出判斷",
+    "quickSellPrompt": "現在有值得考慮賣出的股票嗎?",
+    "quickPortfolio": "組合檢查",
+    "quickPortfolioPrompt": "檢查今日報告的推薦組合",
+    "quickReport": "今日報告摘要",
+    "quickReportPrompt": "總結今日市場立場和核心邏輯"
   }
 }

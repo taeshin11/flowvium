@@ -39,9 +39,13 @@ import {
   Activity,
   Brain,
   GitMerge,
+  Scale,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import nextDynamic from 'next/dynamic';
 import EmailCTA from '@/components/EmailCTA';
+// 2026-06-18: 매수·매도 심판엔진 채팅 — 클릭 시에만 로드(초기 번들 보호)
+const JudgeChat = nextDynamic(() => import('@/components/JudgeChat'), { ssr: false });
 import LiveFeed from '@/components/LiveFeed';
 import { useRouter } from '@/i18n/routing';
 import { companyNamesI18n } from '@/data/company-names-i18n';
@@ -929,6 +933,7 @@ export default function HomePage() {
   const latestSignals = useInView();
   const features = useInView();
   const howItWorks = useInView();
+  const [judgeOpen, setJudgeOpen] = useState(false);  // 2026-06-18: 심판엔진 채팅 모달
 
   // 2026-06-04: 정적 institutionalSignals → 라이브 /api/signals (시계열, 정적 금지).
   const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
@@ -945,6 +950,8 @@ export default function HomePage() {
 
   return (
     <div>
+      {/* 2026-06-18: 매수·매도 심판엔진 채팅 모달 (히어로 버튼으로 오픈) */}
+      {judgeOpen && <JudgeChat onClose={() => setJudgeOpen(false)} />}
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-cf-primary/5 via-cf-secondary/5 to-cf-accent/5" />
@@ -969,20 +976,34 @@ export default function HomePage() {
                 {t('description')}
               </p>
               {/* 핵심 CTA — 추천 종목으로 직행 (2026-06-13 사용자 "추천종목 보도록 유도하는 메세지 없어") */}
-              <Link
-                href="/report"
-                className="group inline-flex items-center gap-3 mb-8 px-6 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-bold ring-2 ring-rose-300/60 shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:from-orange-400 hover:via-rose-400 hover:to-pink-500 transition-all"
-              >
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
-                </span>
-                <span className="flex flex-col items-start leading-tight">
-                  <span className="text-base md:text-lg">{tHome('ctaSeeRecs')}</span>
-                  <span className="text-[11px] font-normal opacity-80">{tHome('ctaSeeRecsDesc')}</span>
-                </span>
-                <ArrowRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              {/* 2026-06-18: CTA 옆에 심판엔진 채팅 버튼 추가(사용자 지정 위치) — flex 래퍼로 나란히 */}
+              <div className="flex flex-wrap items-stretch gap-3 mb-8">
+                <Link
+                  href="/report"
+                  className="group inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-bold ring-2 ring-rose-300/60 shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:from-orange-400 hover:via-rose-400 hover:to-pink-500 transition-all"
+                >
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                  </span>
+                  <span className="flex flex-col items-start leading-tight">
+                    <span className="text-base md:text-lg">{tHome('ctaSeeRecs')}</span>
+                    <span className="text-[11px] font-normal opacity-80">{tHome('ctaSeeRecsDesc')}</span>
+                  </span>
+                  <ArrowRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setJudgeOpen(true)}
+                  className="group inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-white text-cf-text-primary font-bold border-2 border-rose-300 shadow-md hover:shadow-lg hover:border-rose-400 hover:bg-rose-50/50 transition-all"
+                >
+                  <Scale className="w-5 h-5 text-rose-500" />
+                  <span className="flex flex-col items-start leading-tight">
+                    <span className="text-base md:text-lg">{tHome('ctaAskEngine')}</span>
+                    <span className="text-[11px] font-normal text-cf-text-secondary">{tHome('ctaAskEngineDesc')}</span>
+                  </span>
+                </button>
+              </div>
               {/* 통합 3열 그리드 — 모든 버튼 동일 크기 */}
               <div className="grid grid-cols-3 gap-2">
                 {([

@@ -742,7 +742,9 @@
     "aiReportDesc": "売買推奨銘柄",
     "fundTrackingDesc": "SEC開示資金追跡",
     "ctaSeeRecs": "今日のAI推奨銘柄を見る",
-    "ctaSeeRecsDesc": "売買推奨 · エントリー · 損切り/目標"
+    "ctaSeeRecsDesc": "売買推奨 · エントリー · 損切り/目標",
+    "ctaAskEngine": "審判エンジンに質問",
+    "ctaAskEngineDesc": "売買AI相談"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "内在ボラティリティ・スクリーナー — Flowvium",
     "seoDescription": "ブルームバーグ方式の内在ボラティリティ。コール・プット・パリティでフォワード抽出+ブレント逆算。30d/90d ATM IV、25デルタスキュー、期間傾斜、IVランク。"
+  },
+  "judge": {
+    "title": "売買審判エンジン",
+    "modeFast": "高速判断",
+    "modeFastDesc": "最速の回答",
+    "modeStandard": "標準",
+    "modeStandardDesc": "ほとんどの質問に最適",
+    "modeDeep": "詳細",
+    "modeDeepDesc": "ルール・レポート総合分析",
+    "greeting": "何を審判しましょうか?",
+    "greetingSub": "銘柄を教えてくれれば、リアルタイムデータ・ルール・大家の原則で売買を一緒に判断します。",
+    "placeholder": "審判エンジンに質問",
+    "thinking": "判断中…",
+    "errorGeneric": "応答がありません。もう一度お試しください。",
+    "newChat": "新しいチャット",
+    "tools": "クイック質問",
+    "disclaimer": "AIの判断であり、投資の責任はご本人にあります。",
+    "groundReport": "本日のレポート反映",
+    "groundRules": "売買ルール適用",
+    "quickBuy": "買い判断",
+    "quickBuyPrompt": "今買うのに良い銘柄とその理由を教えて",
+    "quickSell": "売り判断",
+    "quickSellPrompt": "今売却を検討すべき銘柄はある?",
+    "quickPortfolio": "ポートフォリオ点検",
+    "quickPortfolioPrompt": "本日のレポートの推奨ポートフォリオを点検して",
+    "quickReport": "本日のレポート要約",
+    "quickReportPrompt": "本日の市場スタンスと核心ロジックを要約して"
   }
 }

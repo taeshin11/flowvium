@@ -571,7 +571,9 @@
     "aiReportDesc": "หุ้นแนะนำซื้อ/ขาย",
     "fundTrackingDesc": "ติดตามทุน SEC",
     "ctaSeeRecs": "ดูหุ้นแนะนำจาก AI วันนี้",
-    "ctaSeeRecsDesc": "ซื้อ/ขาย · จุดเข้า · จุดตัด/เป้า"
+    "ctaSeeRecsDesc": "ซื้อ/ขาย · จุดเข้า · จุดตัด/เป้า",
+    "ctaAskEngine": "ถามเครื่องวินิจฉัย",
+    "ctaAskEngineDesc": "ปรึกษา AI ซื้อ/ขาย"
   },
   "feedback": {
     "title": "ส่งความคิดเห็น",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "เครื่องคัดกรองความผันผวนโดยนัย — Flowvium",
     "seoDescription": "ความผันผวนโดยนัยสไตล์ Bloomberg: ดึงค่าฟอร์เวิร์ดจากสมการ call-put parity + การแยกค่า Brent. ATM IV 30/90 วัน, สกิว 25Δ, ความชันเทอม, อันดับ IV."
+  },
+  "judge": {
+    "title": "เครื่องวินิจฉัยซื้อ/ขาย",
+    "modeFast": "เร็ว",
+    "modeFastDesc": "ตอบเร็วที่สุด",
+    "modeStandard": "มาตรฐาน",
+    "modeStandardDesc": "เหมาะกับคำถามส่วนใหญ่",
+    "modeDeep": "เชิงลึก",
+    "modeDeepDesc": "วิเคราะห์กฎ + รายงานครบถ้วน",
+    "greeting": "ให้ผมวินิจฉัยอะไรดี?",
+    "greetingSub": "บอกชื่อหุ้นมา ผมจะชั่งน้ำหนักซื้อ/ขายด้วยข้อมูลสด กฎ และหลักการของกูรู",
+    "placeholder": "ถามเครื่องวินิจฉัย",
+    "thinking": "กำลังวินิจฉัย…",
+    "errorGeneric": "ไม่มีการตอบกลับ โปรดลองใหม่",
+    "newChat": "แชทใหม่",
+    "tools": "คำถามด่วน",
+    "disclaimer": "การวินิจฉัยของ AI — คุณรับผิดชอบการตัดสินใจลงทุนเอง",
+    "groundReport": "ใช้รายงานวันนี้",
+    "groundRules": "ใช้กฎซื้อ/ขาย",
+    "quickBuy": "วินิจฉัยซื้อ",
+    "quickBuyPrompt": "หุ้นตัวไหนน่าซื้อตอนนี้และเพราะอะไร?",
+    "quickSell": "วินิจฉัยขาย",
+    "quickSellPrompt": "มีหุ้นที่ควรพิจารณาขายตอนนี้ไหม?",
+    "quickPortfolio": "ตรวจพอร์ต",
+    "quickPortfolioPrompt": "ตรวจสอบพอร์ตที่แนะนำวันนี้",
+    "quickReport": "สรุปรายงาน",
+    "quickReportPrompt": "สรุปท่าทีตลาดและประเด็นหลักของวันนี้"
   }
 }

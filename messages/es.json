@@ -571,7 +571,9 @@
     "aiReportDesc": "Acciones recomendadas",
     "fundTrackingDesc": "Rastreador de capital SEC",
     "ctaSeeRecs": "Ver las acciones IA de hoy",
-    "ctaSeeRecsDesc": "Compra/venta · entrada · stop y objetivo"
+    "ctaSeeRecsDesc": "Compra/venta · entrada · stop y objetivo",
+    "ctaAskEngine": "Consultar al Motor de Juicio",
+    "ctaAskEngineDesc": "Asesoría IA compra/venta"
   },
   "feedback": {
     "title": "Enviar Comentarios",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Buscador de Volatilidad Implícita — Flowvium",
     "seoDescription": "Volatilidad implícita estilo Bloomberg: extracción de forward por paridad call-put + inversión Brent. IV ATM 30d/90d, skew 25Δ, pendiente, rank IV."
+  },
+  "judge": {
+    "title": "Motor de Juicio Compra/Venta",
+    "modeFast": "Rápido",
+    "modeFastDesc": "Respuesta más veloz",
+    "modeStandard": "Estándar",
+    "modeStandardDesc": "Ideal para la mayoría",
+    "modeDeep": "Profundo",
+    "modeDeepDesc": "Análisis completo de reglas + informe",
+    "greeting": "¿Qué quieres que juzgue?",
+    "greetingSub": "Dime una acción y evaluaré compra/venta con datos en vivo, reglas y principios de gurús.",
+    "placeholder": "Pregunta al Motor de Juicio",
+    "thinking": "Juzgando…",
+    "errorGeneric": "Sin respuesta. Inténtalo de nuevo.",
+    "newChat": "Nuevo chat",
+    "tools": "Sugerencias",
+    "disclaimer": "Juicio de IA: tú eres responsable de tus decisiones de inversión.",
+    "groundReport": "Informe de hoy usado",
+    "groundRules": "Reglas aplicadas",
+    "quickBuy": "Juicio de compra",
+    "quickBuyPrompt": "¿Qué acción es buena para comprar ahora y por qué?",
+    "quickSell": "Juicio de venta",
+    "quickSellPrompt": "¿Hay acciones que valga la pena considerar vender ahora?",
+    "quickPortfolio": "Revisar cartera",
+    "quickPortfolioPrompt": "Revisa la cartera recomendada de hoy",
+    "quickReport": "Resumen del informe",
+    "quickReportPrompt": "Resume la postura del mercado y la tesis clave de hoy"
   }
 }

@@ -571,7 +571,9 @@
     "aiReportDesc": "Titres recommandés",
     "fundTrackingDesc": "Tracker de capital SEC",
     "ctaSeeRecs": "Voir les titres IA du jour",
-    "ctaSeeRecsDesc": "Achat/vente · entrée · stop et cible"
+    "ctaSeeRecsDesc": "Achat/vente · entrée · stop et cible",
+    "ctaAskEngine": "Consulter le Moteur de Jugement",
+    "ctaAskEngineDesc": "Conseil IA achat/vente"
   },
   "feedback": {
     "title": "Envoyer des commentaires",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Outil de Volatilité Implicite — Flowvium",
     "seoDescription": "Volatilité implicite façon Bloomberg : extraction du forward par parité call-put + inversion Brent. IV ATM 30j/90j, skew 25Δ, pente de term, rang IV."
+  },
+  "judge": {
+    "title": "Moteur de Jugement Achat/Vente",
+    "modeFast": "Rapide",
+    "modeFastDesc": "Réponse la plus rapide",
+    "modeStandard": "Standard",
+    "modeStandardDesc": "Idéal pour la plupart",
+    "modeDeep": "Approfondi",
+    "modeDeepDesc": "Analyse complète règles + rapport",
+    "greeting": "Que dois-je juger ?",
+    "greetingSub": "Donnez une action et j'évaluerai l'achat/vente avec données en direct, règles et principes des gourous.",
+    "placeholder": "Demandez au Moteur de Jugement",
+    "thinking": "Jugement…",
+    "errorGeneric": "Pas de réponse. Réessayez.",
+    "newChat": "Nouveau chat",
+    "tools": "Suggestions",
+    "disclaimer": "Jugement IA — vous êtes responsable de vos décisions.",
+    "groundReport": "Rapport du jour utilisé",
+    "groundRules": "Règles appliquées",
+    "quickBuy": "Jugement achat",
+    "quickBuyPrompt": "Quelle action acheter maintenant et pourquoi ?",
+    "quickSell": "Jugement vente",
+    "quickSellPrompt": "Y a-t-il des actions à envisager de vendre maintenant ?",
+    "quickPortfolio": "Vérifier le portefeuille",
+    "quickPortfolioPrompt": "Vérifie le portefeuille recommandé du jour",
+    "quickReport": "Résumé du rapport",
+    "quickReportPrompt": "Résume la position du marché et la thèse clé du jour"
   }
 }

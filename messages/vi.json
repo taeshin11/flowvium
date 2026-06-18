@@ -571,7 +571,9 @@
     "aiReportDesc": "Cổ phiếu khuyến nghị",
     "fundTrackingDesc": "Bộ theo dõi vốn SEC",
     "ctaSeeRecs": "Xem cổ phiếu AI chọn hôm nay",
-    "ctaSeeRecsDesc": "Mua/bán · điểm vào · cắt lỗ & mục tiêu"
+    "ctaSeeRecsDesc": "Mua/bán · điểm vào · cắt lỗ & mục tiêu",
+    "ctaAskEngine": "Hỏi Bộ máy Phán xét",
+    "ctaAskEngineDesc": "Tư vấn AI mua/bán"
   },
   "feedback": {
     "title": "Gửi phản hồi",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Bộ lọc Biến động ngụ ý — Flowvium",
     "seoDescription": "Biến động ngụ ý kiểu Bloomberg: trích xuất forward từ tương đồng call-put + đảo ngược Brent. ATM IV 30d/90d, skew 25Δ, độ dốc kỳ hạn, IV rank."
+  },
+  "judge": {
+    "title": "Bộ máy Phán xét Mua/Bán",
+    "modeFast": "Nhanh",
+    "modeFastDesc": "Trả lời nhanh nhất",
+    "modeStandard": "Tiêu chuẩn",
+    "modeStandardDesc": "Phù hợp hầu hết câu hỏi",
+    "modeDeep": "Chuyên sâu",
+    "modeDeepDesc": "Phân tích đầy đủ quy tắc + báo cáo",
+    "greeting": "Bạn muốn tôi phán xét điều gì?",
+    "greetingSub": "Nêu tên cổ phiếu, tôi sẽ cân nhắc mua/bán bằng dữ liệu trực tiếp, quy tắc và nguyên tắc của các bậc thầy.",
+    "placeholder": "Hỏi Bộ máy Phán xét",
+    "thinking": "Đang phán xét…",
+    "errorGeneric": "Không có phản hồi. Vui lòng thử lại.",
+    "newChat": "Trò chuyện mới",
+    "tools": "Câu hỏi nhanh",
+    "disclaimer": "Phán xét của AI — bạn chịu trách nhiệm cho quyết định đầu tư của mình.",
+    "groundReport": "Đã dùng báo cáo hôm nay",
+    "groundRules": "Đã áp dụng quy tắc",
+    "quickBuy": "Phán xét mua",
+    "quickBuyPrompt": "Cổ phiếu nào tốt để mua bây giờ và tại sao?",
+    "quickSell": "Phán xét bán",
+    "quickSellPrompt": "Có cổ phiếu nào đáng cân nhắc bán bây giờ không?",
+    "quickPortfolio": "Kiểm tra danh mục",
+    "quickPortfolioPrompt": "Xem lại danh mục khuyến nghị hôm nay",
+    "quickReport": "Tóm tắt báo cáo",
+    "quickReportPrompt": "Tóm tắt lập trường thị trường và luận điểm chính hôm nay"
   }
 }

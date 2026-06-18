@@ -66,6 +66,14 @@
 - 회사 검색 인풋 (`HeroSearch`) — 전체 유니버스 **1,338 종목** (`UNIVERSE_SEARCH`), 라벨 "기업 직접 검색 — 1,338개 기업"
 - 자동완성 드롭다운 (회사명·티커·섹터·i18n명) → `/company/[ticker]`
 - 빠른 이동 버튼: AI 리포트 / 인텔리전스 / 히트맵 (위성 추적 제거 — 2026-06-06, 가상계좌 제거 — 2026-05-08)
+- **히어로 CTA 2버튼 (2026-06-18)**: ① "오늘의 AI 추천 종목 보기"(→/report) ② "심판엔진에게 물어보기"(매수·매도 심판엔진 채팅 모달 오픈, `Scale` 아이콘 흰버튼+rose 테두리). i18n `home.ctaAskEngine`/`ctaAskEngineDesc`.
+
+### 2-1b. 🧠 매수·매도 심판엔진 채팅 (2026-06-18 신설 — 사용자 "심판엔진과 상의")
+- **컴포넌트**: `src/components/JudgeChat.tsx` (Gemini 스타일 전체화면 모달, `nextDynamic` lazy-load). **API**: `/api/judge-chat`(POST), 헬퍼 `src/lib/judge-engine.ts`.
+- **종합 grounding**: LLM(vLLM 우선 `callAI` cascade) + RAG(`judgment-doctrine.json` 7원칙 + `investor-wisdom.json` 버핏/린치/소로스/코스톨라니 + `buy-rules-tuned.json` 37 + `sell-rules-tuned.json` 23) + 실시간 금융 API(질문 내 종목 자동감지 → company-signals/financials/company-kr/news/recs/batch-prices 병렬수집) + 최신 리포트(내부 `/api/investment-strategy` 스탠스·논지·해당종목 추천).
+- **티커 자동감지**: KR 6자리코드 / US 대문자티커(풀 검증) / 회사명(영문·한글·다국어 별칭 `companyNamesI18n`: 엔비디아·エヌビディア·英伟达 등). 감지 시 실데이터 칩으로 grounding 투명화.
+- **모드 선택(Gemini식 ▾)**: 빠른판단(small model, 700tok) / 표준(1500tok) / 심층(2600tok, 룰+리포트 종합). 빠른액션 칩(매수판단/매도판단/포트폴리오점검/리포트요약).
+- **안전장치**: 시스템프롬프트 "수치 환각 금지·데이터없으면 솔직히·면책 한줄". IP 시간당 40 레이트리밋(Redis). 대화로그 30일 적재. i18n `judge.*` 25키 ×16언어.
 
 ### 2-2. AI 데일리 브리프 위젯
 - 타임프레임 탭: `1w` / `4w` / `13w`
@@ -1111,6 +1119,7 @@ ownership-alerts 적용).
 | `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
 | `/api/economic-calendar` | Finnhub 경제 캘린더 (실제값·예상치·이전값 포함, 정적 fallback) | 4h |
 | `/api/market-movers` | Yahoo Finance v7 batch — S&P 500 상위 50개 당일 급등·급락 Top 5 각 | 15m |
+| `/api/judge-chat` (POST) | 매수·매도 심판엔진 채팅 — LLM(callAI vLLM우선) + RAG(doctrine/wisdom/buy·sell 룰) + 실시간 금융API(종목감지 후 병렬수집) + 최신리포트 종합. IP 시간당 40 레이트리밋. `src/lib/judge-engine.ts` | 무캐시(force-dynamic) |
 
 ---
 

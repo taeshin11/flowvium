@@ -571,7 +571,9 @@
     "aiReportDesc": "Buy/sell stock picks",
     "fundTrackingDesc": "SEC filing capital tracker",
     "ctaSeeRecs": "See today's AI stock picks",
-    "ctaSeeRecsDesc": "Buy/sell picks · entry · stop & target"
+    "ctaSeeRecsDesc": "Buy/sell picks · entry · stop & target",
+    "ctaAskEngine": "Ask the Judgment Engine",
+    "ctaAskEngineDesc": "AI buy/sell consult"
   },
   "feedback": {
     "title": "Send Feedback",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Implied Volatility Screener — Flowvium",
     "seoDescription": "Bloomberg-style options implied volatility: call-put parity forward extraction + Brent inversion. 30d/90d ATM IV, 25Δ skew, term slope, IV rank."
+  },
+  "judge": {
+    "title": "Buy/Sell Judgment Engine",
+    "modeFast": "Fast",
+    "modeFastDesc": "Quickest answer",
+    "modeStandard": "Standard",
+    "modeStandardDesc": "Best for most questions",
+    "modeDeep": "Deep",
+    "modeDeepDesc": "Full rules + report analysis",
+    "greeting": "What shall I judge for you?",
+    "greetingSub": "Name a stock and I'll weigh buy/sell using live data, rules, and guru principles.",
+    "placeholder": "Ask the Judgment Engine",
+    "thinking": "Judging…",
+    "errorGeneric": "No response. Please try again.",
+    "newChat": "New chat",
+    "tools": "Quick prompts",
+    "disclaimer": "AI judgment — you are responsible for your own investment decisions.",
+    "groundReport": "Today's report used",
+    "groundRules": "Buy/sell rules applied",
+    "quickBuy": "Buy call",
+    "quickBuyPrompt": "What's a good stock to buy now and why?",
+    "quickSell": "Sell call",
+    "quickSellPrompt": "Are there any stocks worth considering selling now?",
+    "quickPortfolio": "Portfolio check",
+    "quickPortfolioPrompt": "Review today's recommended portfolio",
+    "quickReport": "Report summary",
+    "quickReportPrompt": "Summarize today's market stance and key thesis"
   }
 }

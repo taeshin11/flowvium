@@ -742,7 +742,9 @@
     "aiReportDesc": "매수·매도 추천 종목",
     "fundTrackingDesc": "SEC 공시 자금 추적",
     "ctaSeeRecs": "오늘의 AI 추천 종목 보기",
-    "ctaSeeRecsDesc": "매수·매도 픽 · 진입가 · 손절·목표가"
+    "ctaSeeRecsDesc": "매수·매도 픽 · 진입가 · 손절·목표가",
+    "ctaAskEngine": "심판엔진에게 물어보기",
+    "ctaAskEngineDesc": "매수·매도 AI 상담"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",
@@ -1947,5 +1949,32 @@
     "generatedAt": "생성",
     "seoTitle": "내재변동성 스크리너 — Flowvium",
     "seoDescription": "Bloomberg 식 옵션 내재변동성: 콜-풋 패리티로 forward 추출 + Brent 역산. 30d/90d ATM IV · 25Δ skew · term slope · IV rank."
+  },
+  "judge": {
+    "title": "매수·매도 심판엔진",
+    "modeFast": "빠른 판단",
+    "modeFastDesc": "가장 빠른 답변",
+    "modeStandard": "표준",
+    "modeStandardDesc": "대부분의 질문에 적합",
+    "modeDeep": "심층",
+    "modeDeepDesc": "룰·리포트 종합 정밀 분석",
+    "greeting": "무엇을 심판해 드릴까요?",
+    "greetingSub": "종목을 말하면 실시간 데이터·룰·구루 원칙으로 매수/매도를 함께 판단합니다.",
+    "placeholder": "심판엔진에게 물어보세요",
+    "thinking": "판단 중…",
+    "errorGeneric": "응답을 받지 못했습니다. 다시 시도해 주세요.",
+    "newChat": "새 채팅",
+    "tools": "빠른 질문",
+    "disclaimer": "AI 판단이며 투자 책임은 본인에게 있습니다.",
+    "groundReport": "오늘 리포트 반영",
+    "groundRules": "매수·매도 룰 적용",
+    "quickBuy": "매수 판단",
+    "quickBuyPrompt": "지금 매수하기 좋은 종목과 그 이유를 알려줘",
+    "quickSell": "매도 판단",
+    "quickSellPrompt": "지금 매도를 고려할 만한 종목이 있을까?",
+    "quickPortfolio": "포트폴리오 점검",
+    "quickPortfolioPrompt": "오늘 리포트의 추천 포트폴리오를 점검해줘",
+    "quickReport": "오늘 리포트 요약",
+    "quickReportPrompt": "오늘 시장 스탠스와 핵심 논지를 요약해줘"
   }
 }

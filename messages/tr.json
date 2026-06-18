@@ -571,7 +571,9 @@
     "aiReportDesc": "Önerilen hisseler",
     "fundTrackingDesc": "SEC sermaye takipçisi",
     "ctaSeeRecs": "Bugünün AI hisse seçimleri",
-    "ctaSeeRecsDesc": "Al/sat · giriş · stop ve hedef"
+    "ctaSeeRecsDesc": "Al/sat · giriş · stop ve hedef",
+    "ctaAskEngine": "Yargı Motoruna Sor",
+    "ctaAskEngineDesc": "AI al/sat danışmanlığı"
   },
   "feedback": {
     "title": "Geri Bildirim Gönder",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Örtük Oynaklık Tarayıcısı — Flowvium",
     "seoDescription": "Bloomberg tarzı opsiyon örtük oynaklığı: call-put paritesinden vadeli fiyat çıkarımı + Brent ters çevirme. 30g/90g ATM IV, 25Δ çarpıklık, vade eğimi, IV sıralaması."
+  },
+  "judge": {
+    "title": "Al/Sat Yargı Motoru",
+    "modeFast": "Hızlı",
+    "modeFastDesc": "En hızlı yanıt",
+    "modeStandard": "Standart",
+    "modeStandardDesc": "Çoğu soru için ideal",
+    "modeDeep": "Derin",
+    "modeDeepDesc": "Tam kural + rapor analizi",
+    "greeting": "Neyi yargılamamı istersin?",
+    "greetingSub": "Bir hisse söyle, canlı veri, kurallar ve guru ilkeleriyle al/sat değerlendireyim.",
+    "placeholder": "Yargı Motoruna sor",
+    "thinking": "Değerlendiriliyor…",
+    "errorGeneric": "Yanıt yok. Tekrar deneyin.",
+    "newChat": "Yeni sohbet",
+    "tools": "Hızlı sorular",
+    "disclaimer": "AI yargısı — yatırım kararlarından siz sorumlusunuz.",
+    "groundReport": "Bugünkü rapor kullanıldı",
+    "groundRules": "Kurallar uygulandı",
+    "quickBuy": "Al yargısı",
+    "quickBuyPrompt": "Şimdi alınması iyi olan hisse hangisi ve neden?",
+    "quickSell": "Sat yargısı",
+    "quickSellPrompt": "Şimdi satmayı düşünmeye değer hisse var mı?",
+    "quickPortfolio": "Portföy kontrolü",
+    "quickPortfolioPrompt": "Bugünkü önerilen portföyü incele",
+    "quickReport": "Rapor özeti",
+    "quickReportPrompt": "Bugünün piyasa duruşunu ve ana tezini özetle"
   }
 }

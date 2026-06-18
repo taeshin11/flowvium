@@ -571,7 +571,9 @@
     "aiReportDesc": "Ações recomendadas",
     "fundTrackingDesc": "Rastreador de capital SEC",
     "ctaSeeRecs": "Ver ações de IA de hoje",
-    "ctaSeeRecsDesc": "Compra/venda · entrada · stop e alvo"
+    "ctaSeeRecsDesc": "Compra/venda · entrada · stop e alvo",
+    "ctaAskEngine": "Consultar o Motor de Julgamento",
+    "ctaAskEngineDesc": "Consultoria IA compra/venda"
   },
   "feedback": {
     "title": "Enviar Feedback",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Triagem de Volatilidade Implícita — Flowvium",
     "seoDescription": "Volatilidade implícita estilo Bloomberg: extração de forward por paridade call-put + inversão de Brent. IV ATM 30d/90d, skew 25Δ, inclinação, rank IV."
+  },
+  "judge": {
+    "title": "Motor de Julgamento Compra/Venda",
+    "modeFast": "Rápido",
+    "modeFastDesc": "Resposta mais rápida",
+    "modeStandard": "Padrão",
+    "modeStandardDesc": "Ideal para a maioria",
+    "modeDeep": "Profundo",
+    "modeDeepDesc": "Análise completa de regras + relatório",
+    "greeting": "O que devo julgar?",
+    "greetingSub": "Diga uma ação e avaliarei compra/venda com dados ao vivo, regras e princípios de gurus.",
+    "placeholder": "Pergunte ao Motor de Julgamento",
+    "thinking": "Julgando…",
+    "errorGeneric": "Sem resposta. Tente novamente.",
+    "newChat": "Nova conversa",
+    "tools": "Sugestões",
+    "disclaimer": "Julgamento de IA — você é responsável por suas decisões.",
+    "groundReport": "Relatório de hoje usado",
+    "groundRules": "Regras aplicadas",
+    "quickBuy": "Julgamento de compra",
+    "quickBuyPrompt": "Qual ação é boa para comprar agora e por quê?",
+    "quickSell": "Julgamento de venda",
+    "quickSellPrompt": "Há ações que valha a pena considerar vender agora?",
+    "quickPortfolio": "Verificar carteira",
+    "quickPortfolioPrompt": "Revise a carteira recomendada de hoje",
+    "quickReport": "Resumo do relatório",
+    "quickReportPrompt": "Resuma a postura do mercado e a tese-chave de hoje"
   }
 }

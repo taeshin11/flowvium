@@ -571,7 +571,9 @@
     "aiReportDesc": "Kauf/Verkauf-Aktientipps",
     "fundTrackingDesc": "SEC-Kapitalverfolger",
     "ctaSeeRecs": "KI-Aktientipps von heute",
-    "ctaSeeRecsDesc": "Kauf/Verkauf · Einstieg · Stop & Ziel"
+    "ctaSeeRecsDesc": "Kauf/Verkauf · Einstieg · Stop & Ziel",
+    "ctaAskEngine": "Urteils-Engine fragen",
+    "ctaAskEngineDesc": "KI Kauf/Verkauf-Beratung"
   },
   "feedback": {
     "title": "Feedback senden",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Implizite Volatilität Screener — Flowvium",
     "seoDescription": "Implizite Volatilität nach Bloomberg-Art: Forward-Extraktion via Call-Put-Parität + Brent-Inversion. 30T/90T ATM IV, 25Δ Skew, Term-Slope, IV-Rang."
+  },
+  "judge": {
+    "title": "Kauf/Verkauf-Urteils-Engine",
+    "modeFast": "Schnell",
+    "modeFastDesc": "Schnellste Antwort",
+    "modeStandard": "Standard",
+    "modeStandardDesc": "Für die meisten Fragen",
+    "modeDeep": "Tief",
+    "modeDeepDesc": "Vollständige Regel- + Berichtsanalyse",
+    "greeting": "Was soll ich beurteilen?",
+    "greetingSub": "Nennen Sie eine Aktie und ich bewerte Kauf/Verkauf mit Live-Daten, Regeln und Guru-Prinzipien.",
+    "placeholder": "Urteils-Engine fragen",
+    "thinking": "Beurteile…",
+    "errorGeneric": "Keine Antwort. Bitte erneut versuchen.",
+    "newChat": "Neuer Chat",
+    "tools": "Schnellfragen",
+    "disclaimer": "KI-Urteil — Sie sind für Ihre Anlageentscheidungen verantwortlich.",
+    "groundReport": "Heutiger Bericht genutzt",
+    "groundRules": "Regeln angewendet",
+    "quickBuy": "Kauf-Urteil",
+    "quickBuyPrompt": "Welche Aktie ist jetzt gut zu kaufen und warum?",
+    "quickSell": "Verkauf-Urteil",
+    "quickSellPrompt": "Gibt es Aktien, die man jetzt verkaufen sollte?",
+    "quickPortfolio": "Portfolio-Check",
+    "quickPortfolioPrompt": "Überprüfe das heute empfohlene Portfolio",
+    "quickReport": "Berichtszusammenfassung",
+    "quickReportPrompt": "Fasse die heutige Marktlage und Kernthese zusammen"
   }
 }

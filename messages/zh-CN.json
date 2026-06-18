@@ -571,7 +571,9 @@
     "aiReportDesc": "买卖推荐个股",
     "fundTrackingDesc": "SEC申报资金追踪",
     "ctaSeeRecs": "查看今日AI推荐个股",
-    "ctaSeeRecsDesc": "买卖标的 · 入场价 · 止损/目标"
+    "ctaSeeRecsDesc": "买卖标的 · 入场价 · 止损/目标",
+    "ctaAskEngine": "咨询判断引擎",
+    "ctaAskEngineDesc": "买卖AI咨询"
   },
   "feedback": {
     "title": "发送反馈",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "隐含波动率筛选器 — Flowvium",
     "seoDescription": "彭博式期权隐含波动率：通过看涨看跌平价提取远期+布伦特反演。30/90日ATM IV、25Δ偏度、期限斜率、IV排名。"
+  },
+  "judge": {
+    "title": "买卖判断引擎",
+    "modeFast": "快速判断",
+    "modeFastDesc": "最快回答",
+    "modeStandard": "标准",
+    "modeStandardDesc": "适合大多数问题",
+    "modeDeep": "深度",
+    "modeDeepDesc": "规则+报告综合分析",
+    "greeting": "需要我判断什么?",
+    "greetingSub": "说出股票，我会结合实时数据、规则和大师原则一起判断买卖。",
+    "placeholder": "向判断引擎提问",
+    "thinking": "判断中…",
+    "errorGeneric": "未收到回复，请重试。",
+    "newChat": "新对话",
+    "tools": "快捷提问",
+    "disclaimer": "AI判断，投资责任由本人承担。",
+    "groundReport": "已参考今日报告",
+    "groundRules": "已应用买卖规则",
+    "quickBuy": "买入判断",
+    "quickBuyPrompt": "现在适合买入的股票及理由?",
+    "quickSell": "卖出判断",
+    "quickSellPrompt": "现在有值得考虑卖出的股票吗?",
+    "quickPortfolio": "组合检查",
+    "quickPortfolioPrompt": "检查今日报告的推荐组合",
+    "quickReport": "今日报告摘要",
+    "quickReportPrompt": "总结今日市场立场和核心逻辑"
   }
 }

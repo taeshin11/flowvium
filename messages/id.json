@@ -571,7 +571,9 @@
     "aiReportDesc": "Saham rekomendasi",
     "fundTrackingDesc": "Pelacak modal SEC",
     "ctaSeeRecs": "Lihat saham pilihan AI hari ini",
-    "ctaSeeRecsDesc": "Beli/jual · entri · stop & target"
+    "ctaSeeRecsDesc": "Beli/jual · entri · stop & target",
+    "ctaAskEngine": "Tanya Mesin Penilai",
+    "ctaAskEngineDesc": "Konsultasi AI beli/jual"
   },
   "feedback": {
     "title": "Kirim Masukan",
@@ -1947,5 +1949,32 @@
     "generatedAt": "Generated",
     "seoTitle": "Pemindai Volatilitas Tersirat — Flowvium",
     "seoDescription": "Volatilitas tersirat ala Bloomberg: ekstraksi forward via paritas call-put + inversi Brent. ATM IV 30h/90h, skew 25Δ, kemiringan, IV rank."
+  },
+  "judge": {
+    "title": "Mesin Penilai Beli/Jual",
+    "modeFast": "Cepat",
+    "modeFastDesc": "Jawaban tercepat",
+    "modeStandard": "Standar",
+    "modeStandardDesc": "Cocok untuk kebanyakan",
+    "modeDeep": "Mendalam",
+    "modeDeepDesc": "Analisis lengkap aturan + laporan",
+    "greeting": "Apa yang harus saya nilai?",
+    "greetingSub": "Sebutkan saham dan saya akan menimbang beli/jual dengan data langsung, aturan, dan prinsip guru.",
+    "placeholder": "Tanya Mesin Penilai",
+    "thinking": "Menilai…",
+    "errorGeneric": "Tidak ada respons. Coba lagi.",
+    "newChat": "Obrolan baru",
+    "tools": "Pertanyaan cepat",
+    "disclaimer": "Penilaian AI — keputusan investasi tanggung jawab Anda.",
+    "groundReport": "Laporan hari ini digunakan",
+    "groundRules": "Aturan diterapkan",
+    "quickBuy": "Penilaian beli",
+    "quickBuyPrompt": "Saham apa yang bagus dibeli sekarang dan mengapa?",
+    "quickSell": "Penilaian jual",
+    "quickSellPrompt": "Adakah saham yang layak dipertimbangkan untuk dijual sekarang?",
+    "quickPortfolio": "Cek portofolio",
+    "quickPortfolioPrompt": "Tinjau portofolio rekomendasi hari ini",
+    "quickReport": "Ringkasan laporan",
+    "quickReportPrompt": "Ringkas sikap pasar dan tesis utama hari ini"
   }
 }
