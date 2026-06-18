@@ -5,6 +5,7 @@ export interface AccumulationSignals {
   runup5d: number; runup20d: number; recentVol: number; volSpike: number; medDollarVol: number;
   vol10: number; vol30: number; atrRecent: number; atrPrior: number;
   volTrendUp: boolean; volContraction: boolean; closeStrength: number; priceFlat: boolean; liquidityOk: boolean;
+  absorptionBars: number; lowerWickBars: number; absorption: boolean;
   accumScore: number; accumCoFire: number; lead: string[];
 }
 

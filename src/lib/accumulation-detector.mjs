@@ -43,6 +43,19 @@ export function computeAccumulationSignals(rows, opts = {}) {
   const volTrendUp = vol30 > 0 && vol10 > vol30 * 1.5;          // 거래량 추세 ↑(지속 매집)
   const volContraction = atrPrior > 0 && atrRecent < atrPrior * 0.7;  // 변동성 수축(coiling)
   const closeStrength = rows.slice(-10).filter((r) => (r.h - r.l) > 0 && (r.c - r.l) / (r.h - r.l) > 0.6).length / 10; // 종가 상단
+  // 매집봉(candle 패턴, 2026-06-18 사용자 "매집봉도 없고 부족"): ① 흡수봉=대량거래인데 일중 변동폭 작음(세력이
+  //   물량 흡수하며 가격 억제) ② 아래꼬리 매집=장중 저가 찍고 종가 상단 회복(저가 매수받침). open 없이 c/v/h/l 로 계산.
+  const recent10 = rows.slice(-10);
+  const avgRangePct = median(rows.slice(-40).map((r) => (r.h - r.l) / (r.c || 1)).filter((x) => x > 0));
+  const absorptionBars = recent10.filter((r) => {
+    const rngPct = (r.h - r.l) / (r.c || 1);
+    return vol30 > 0 && r.v > vol30 * 1.8 && avgRangePct > 0 && rngPct < avgRangePct * 0.7;
+  }).length;
+  const lowerWickBars = recent10.filter((r) => {
+    const range = r.h - r.l;
+    return range > 0 && (r.c - r.l) / range > 0.7 && (r.h - r.c) / range < 0.25;
+  }).length;
+  const absorption = absorptionBars >= 2;
   const priceFlat = runup20d < 12 && runup20d > -15;           // 아직 안 오름
   // 유동성 tiering: strictCap 기본·strict~looseCap 은 거래량추세 있을 때만(저~중유동성 작전 표적)
   const liquidityOk = medDollarVol < strictCapUsd || (medDollarVol < looseCapUsd && volTrendUp);
@@ -57,13 +70,17 @@ export function computeAccumulationSignals(rows, opts = {}) {
     if (volContraction) { accumScore += 10; lead.push('변동성 수축(coiling) — 돌파 압축'); }
     if (closeStrength >= 0.7) { accumScore += 10; lead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%(강한 매수 흡수)`); }
     else if (closeStrength >= 0.6) { accumScore += 6; lead.push(`종가 일중 상단 ${Math.round(closeStrength * 100)}%`); }
+    if (absorptionBars >= 3) { accumScore += 14; lead.push(`흡수 매집봉 ${absorptionBars}개(대량거래·가격억제 — 세력 물량흡수)`); }
+    else if (absorptionBars >= 2) { accumScore += 9; lead.push(`흡수 매집봉 ${absorptionBars}개(대량거래·변동폭 억제)`); }
+    if (lowerWickBars >= 3) { accumScore += 8; lead.push(`아래꼬리 매집 ${lowerWickBars}개(저가 매수받침)`); }
   }
-  const accumCoFire = [volTrendUp, volSpike >= 2.5, volContraction, closeStrength >= 0.6].filter(Boolean).length;
+  const accumCoFire = [volTrendUp, volSpike >= 2.5, volContraction, closeStrength >= 0.6, absorption].filter(Boolean).length;
 
   return {
     runup5d, runup20d, recentVol, volSpike, medDollarVol,
     vol10, vol30, atrRecent, atrPrior,
     volTrendUp, volContraction, closeStrength, priceFlat, liquidityOk,
+    absorptionBars, lowerWickBars, absorption,
     accumScore, accumCoFire, lead,
   };
 }
