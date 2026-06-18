@@ -79,6 +79,31 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
 
 const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${m.content}`).join('\n');
 
+// 종목질문 패턴 — detectTickers 가 못 잡았을 때 LLM 해석 fallback 발동 조건(하우맷→HWM 사건).
+const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비중|진입|손절|목표가|전망|어때|괜찮|투자\s*해|들어가|담아/;
+// 한글 종목명 → 티커 LLM 해석 + Yahoo 검증(환각 티커 차단). 사전 alias 부재(하우맷·엔비디아 등) 보완.
+async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
+  try {
+    const sys = '사용자 메시지에서 *명시적으로 언급된* 주식 종목의 정확한 티커만 추출하라. 미국주식=심볼(예: 하우맷→HWM, 엔비디아→NVDA, 퀄컴→QCOM, 애플→AAPL). 한국주식=6자리.KS 또는 .KQ(예: 삼성전자→005930.KS). 종목 언급이 없거나 불확실하면 빈 배열. JSON 만 출력: {"tickers":["HWM"]}';
+    const r = await callAI(text, { systemPrompt: sys, maxTokens: 80, temperature: 0, tag: 'ticker-resolve', timeoutMs: 15000 });
+    const mm = (r.text || '').match(/\{[\s\S]*\}/);
+    if (!mm) return [];
+    const arr = (JSON.parse(mm[0]).tickers ?? []) as unknown[];
+    const out: string[] = [];
+    for (const raw of arr.slice(0, max)) {
+      const tk = String(raw).toUpperCase().trim();
+      if (!/^[A-Z]{1,5}(\.[A-Z])?$|^\d{6}\.(KS|KQ)$/.test(tk)) continue;
+      // Yahoo 검증 — LLM 환각 티커가 실제 존재+가격 있는지 확인 후에만 채택.
+      const yt = /\.(KS|KQ)$/.test(tk) ? tk : tk.replace(/\./g, '-');
+      try {
+        const yr = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yt)}?range=5d&interval=1d`, { signal: AbortSignal.timeout(7000), headers: { 'user-agent': 'Mozilla/5.0' } });
+        if (yr.ok) { const d = await yr.json(); if ((d?.chart?.result?.[0]?.meta?.regularMarketPrice ?? 0) > 0) out.push(tk); }
+      } catch { /* 검증 실패 → 미채택 */ }
+    }
+    return out;
+  } catch { return []; }
+}
+
 // 거시 grounding — CNN F&G · VIX · CME FedWatch · FRED(CPI) · 국채금리곡선. 10분 모듈캐시(거시는 완만).
 let _macroCache: { ts: number; text: string; vix: number | null; fg: number | null } | null = null;
 async function fetchMacroContext(origin: string): Promise<{ text: string; vix: number | null; fg: number | null }> {
@@ -187,13 +212,18 @@ export async function POST(request: NextRequest) {
 
     const origin = `http://127.0.0.1:${process.env.PORT || 3000}`;
     const opts = MODE_OPTS[mode];
-    const tickers = detectTickers(lastUser, opts.maxTickers);
+    let tickers = detectTickers(lastUser, opts.maxTickers);
     const convId = body.convId || `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
-    const nameList = tickers.map(t => tickerName(t)).join(', ');
 
     // 컨텍스트 수집(+심층 리서치). onProgress 로 단계별 진행상황 emit → 스트리밍 로딩 UI("무슨 자료 받고 뭘 분석중인지").
     type Progress = { stage: string; detail: string };
     const buildAll = async (onProgress?: (p: Progress) => void) => {
+      // 종목명 해석 실패 fallback(하우맷→HWM 사건): 사전 alias 로 못 잡고 종목질문처럼 보이면 LLM 해석 후 Yahoo 검증.
+      if (!tickers.length && STOCK_Q.test(lastUser)) {
+        onProgress?.({ stage: 'resolve', detail: '🔎 종목 식별 중 (이름→티커 해석)' });
+        tickers = await resolveTickersLLM(lastUser, opts.maxTickers);
+      }
+      const nameList = tickers.map(t => tickerName(t)).join(', ');
       onProgress?.({ stage: 'gather', detail: tickers.length
         ? `${nameList} 자료 수집 중 — ${opts.deep ? '📄 사업보고서 본문·' : ''}시세·재무·뉴스·거시${opts.useRag ? '·투자고전(RAG)' : ''}`
         : '시세·거시·투자고전 자료 수집 중' });
@@ -246,7 +276,7 @@ export async function POST(request: NextRequest) {
       const sse = new ReadableStream({
         async start(controller) {
           const send = (o: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(o)}\n\n`));
-          send({ type: 'progress', stage: 'detect', detail: tickers.length ? `질문 종목 인식: ${nameList}` : '일반 투자 상담' });
+          send({ type: 'progress', stage: 'detect', detail: tickers.length ? `질문 종목 인식: ${tickers.map(t => tickerName(t)).join(', ')}` : '질문 분석 중…' });
           let systemPrompt: string, userPrompt: string, grounding: Record<string, unknown>;
           try {
             ({ systemPrompt, userPrompt, grounding } = await buildAll((p) => send({ type: 'progress', stage: p.stage, detail: p.detail })));
