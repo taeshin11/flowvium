@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url';
 import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents } from './lib/narrative-fix.mjs';
+import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling } from './lib/db.mjs';
@@ -8840,6 +8841,17 @@ async function generateViaOllama() {
     const nIdx = stripFabricatedIndexLevels(finalReport); // 2026-06-17: "KOSPI 8,864"류 절대 지수레벨 환각 결정론 제거(피드 미공급)
     if (nSan || nCB || nKrName || nIdx) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 + 지수절대값환각 ${nIdx}건 교정`);
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
+
+  // 2026-06-19: 한글 내 로마자 누출(포osi=포지션·인fra=인프라·스queeze=스퀴즈) 자가복구 — sanitizeText 가 못 잡는
+  //   *새* latin bleed/garble 을 로컬 vLLM 으로 누출 필드만 재작성. detector(pre-publish gate)만 있고 일반
+  //   corrector 가 없어 보고서가 통째 발간 차단되던 사각지대 해소(라이브 stale 방지). 숫자보존·길이·누출감소
+  //   검증 통과분만 채택(실패 시 gate 가 계속 차단 — 오염 발행 안 함).
+  try {
+    const { nFix: nLat, fixed: latFixed, unresolved: latUnres } = await repairLatinBleed(
+      finalReport, (p) => callOllama(p, modelArg, 60000, 'latin-repair'), { log: () => {} });
+    if (nLat) console.log(`  [latin-repair] 로마자 누출 ${nLat}필드 자가복구: ${latFixed.join(', ')}`);
+    if (latUnres.length) console.log(`  [latin-repair] ⚠️ 미해결 ${latUnres.length}필드(gate 가 차단): ${latUnres.join(', ')}`);
+  } catch (e) { console.warn(`  [latin-repair] skip: ${e.message}`); }
 
   // 2026-06-18 (사용자 "왜 이런 사각지대가 아직도 있는지"): sector-keyword strip 을 *절대 마지막*
   //   chokepoint 로 재실행. 기존 strip(8546)은 파이프라인 중간에서 돌지만, 그 後 completeness-gate
