@@ -48,9 +48,10 @@ export async function acquireLlm(onWait?: (ahead: number) => void): Promise<() =
   }
 }
 
-/** 대기 안내 문구. ahead = 앞에 처리 중인 대략 건수. */
+/** 대기 안내 문구. ahead = 내 앞 대기/처리 건수(=내 순번). 순번·예상시간 안내. */
 export function waitMessage(ahead: number): string {
-  return ahead > 0
-    ? `분석 요청이 몰려 대기 중입니다 — 앞에 약 ${ahead}건 처리 중이라 곧 시작합니다…`
-    : '다른 분석을 처리 중이라 순서를 기다리고 있습니다 — 곧 시작합니다…';
+  const pos = Math.max(1, ahead);
+  const eta = pos * 30; // 1건 ~20-40초 → 대략
+  const etaStr = eta >= 60 ? `약 ${Math.ceil(eta / 60)}분` : `약 ${eta}초`;
+  return `대기 ${pos}번째 — 앞 분석이 끝나는 대로 시작합니다 (예상 ${etaStr}). 동시 분석이 많아 잠시만요…`;
 }
