@@ -207,8 +207,21 @@ async function runMonitor() {
     if (stale.length) result.defects.push(`[maint] 잡 미실행 의심: ${stale.join(', ').slice(0, 140)}`);
   } catch { /* */ }
 
+  // [발행후재검] 2026-06-19: post-publish-recheck verdict 를 *주기* 모니터에 통합. 이전엔 session-spotcheck(수동)
+  //   에만 surface 돼, 그걸 안 돌리면 라이브 슬라이드 재검 alert 를 놓쳤다(사용자 "왜 이런 사각지대가 생겼지").
+  //   이제 매 20분 모니터가 recheck verdict 를 자동 노출 — "프로세스가 돈다"가 아니라 *결과*를 본다.
+  try {
+    const rc = JSON.parse(readFileSync(resolve(process.cwd(), 'logs/recheck-status.json'), 'utf8'));
+    const ageH = rc.ts ? (Date.now() - new Date(rc.ts).getTime()) / 3600000 : Infinity;
+    result.checks.publishRecheck = rc.verdict === 'alert' ? `ALERT(${ageH.toFixed(1)}h)` : `${rc.verdict ?? 'n/a'}(${ageH.toFixed(1)}h)`;
+    if (rc.verdict === 'alert' && ageH < 12) {
+      const det = (rc.pageAudit || '').replace(/^PAGE-AUDIT\s*/i, '').slice(0, 80);
+      result.defects.push(`[발행후재검] 라이브 슬라이드 ALERT${rc.liveConfirmed ? '' : '(라이브미반영)'}: ${det || `결함 ${rc.defectCount ?? '?'}`}`);
+    }
+  } catch { /* recheck 아직 없음 — 비치명 */ }
+
   try { writeFileSync(resolve(process.cwd(), 'logs/monitor-status.json'), JSON.stringify(result, null, 2)); } catch { /* */ }
-  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'} fbPurge=${result.checks.fallbackPurge ?? 'n/a'} cronFails=${result.checks.cronFails ?? 0} artifact=${result.checks.artifactFresh ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
+  log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'} fbPurge=${result.checks.fallbackPurge ?? 'n/a'} cronFails=${result.checks.cronFails ?? 0} artifact=${result.checks.artifactFresh ?? 'n/a'} recheck=${result.checks.publishRecheck ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
 
   // 2026-06-06 cold-cache self-heal: 자가호스팅이라 cloud 번역 warm-cron(401) 부재 → 뉴스 새로고침
   //   후 비-ko locale 이 cold 로 남아 모니터마다 [B] 결함 재발(수동 warm 반복). 감지 시 자동 warm
