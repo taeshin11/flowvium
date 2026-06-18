@@ -1975,6 +1975,8 @@
     "quickPortfolio": "Vérifier le portefeuille",
     "quickPortfolioPrompt": "Vérifie le portefeuille recommandé du jour",
     "quickReport": "Résumé du rapport",
-    "quickReportPrompt": "Résume la position du marché et la thèse clé du jour"
+    "quickReportPrompt": "Résume la position du marché et la thèse clé du jour",
+    "historyTitle": "Historique",
+    "emptyHistory": "Aucune conversation pour l'instant"
   }
 }

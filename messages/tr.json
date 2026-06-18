@@ -1975,6 +1975,8 @@
     "quickPortfolio": "Portföy kontrolü",
     "quickPortfolioPrompt": "Bugünkü önerilen portföyü incele",
     "quickReport": "Rapor özeti",
-    "quickReportPrompt": "Bugünün piyasa duruşunu ve ana tezini özetle"
+    "quickReportPrompt": "Bugünün piyasa duruşunu ve ana tezini özetle",
+    "historyTitle": "Geçmiş",
+    "emptyHistory": "Henüz sohbet yok"
   }
 }

@@ -1975,6 +1975,8 @@
     "quickPortfolio": "فحص المحفظة",
     "quickPortfolioPrompt": "راجع المحفظة الموصى بها اليوم",
     "quickReport": "ملخص التقرير",
-    "quickReportPrompt": "لخّص موقف السوق والأطروحة الرئيسية لليوم"
+    "quickReportPrompt": "لخّص موقف السوق والأطروحة الرئيسية لليوم",
+    "historyTitle": "السجل",
+    "emptyHistory": "لا توجد محادثات بعد"
   }
 }

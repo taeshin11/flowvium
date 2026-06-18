@@ -1975,6 +1975,8 @@
     "quickPortfolio": "組合檢查",
     "quickPortfolioPrompt": "檢查今日報告的推薦組合",
     "quickReport": "今日報告摘要",
-    "quickReportPrompt": "總結今日市場立場和核心邏輯"
+    "quickReportPrompt": "總結今日市場立場和核心邏輯",
+    "historyTitle": "歷史記錄",
+    "emptyHistory": "還沒有對話"
   }
 }

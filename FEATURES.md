@@ -74,7 +74,8 @@
 - **티커 자동감지**: KR 6자리코드 / US 대문자티커(풀 검증) / 회사명(영문·한글·다국어 별칭 `companyNamesI18n`: 엔비디아·エヌビディア·英伟达 등). 감지 시 실데이터 칩으로 grounding 투명화.
 - **모드 선택(Gemini식 ▾)**: 빠른판단(small model, 700tok) / 표준(1500tok) / 심층(2600tok, 룰+리포트 종합). 빠른액션 칩(매수판단/매도판단/포트폴리오점검/리포트요약).
 - **안전장치**: 시스템프롬프트 "수치 환각 금지·데이터없으면 솔직히·면책 한줄". IP 시간당 40 레이트리밋(Redis). i18n `judge.*` 25키 ×16언어.
-- **전체 대화 저장 (2026-06-18, 사용자 "검토·학습용")**: 질문+답변+히스토리+종목+모드+소스+grounding 을 `flowvium:judge-chat:conv:*`(180일) + `index` 리스트(최근 5000 capped) 적재. 신원(IP) 미저장. 검토: `node scripts/judge-chat-log.mjs [N]`(전체) / `--brief`(한줄요약).
+- **전체 대화 저장 (2026-06-18, 사용자 "검토·학습용")**: 관리/학습 검토용 전역 `index` 리스트(최근 5000). 검토: `node scripts/judge-chat-log.mjs [N]` / `--brief`.
+- **per-user 히스토리 (2026-06-18, 사용자 "접속 아이디별 + Gemini식 히스토리")**: 소유자 uid = 로그인 이메일(`fv_member` HMAC, `src/lib/member-auth.ts`) 또는 익명 쿠키(`fv_chat_uid`). Redis `flowvium:judge-chat:u:{uid}:c:{convId}`(180일) + 최근순 ZSET 인덱스. **GET ?action=list/get · POST(생성·convId 이어쓰기) · DELETE**. Gemini식 사이드바(새 채팅 / 대화 기록 목록 / 클릭 재개 / 삭제, 모바일 드로어). 사용자 간 **격리**(쿠키 없으면 타인 대화 0건). 로그인 시 기기 간 계정 동기화. i18n `judge.historyTitle/emptyHistory` 추가.
 
 ### 2-2. AI 데일리 브리프 위젯
 - 타임프레임 탭: `1w` / `4w` / `13w`

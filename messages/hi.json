@@ -1975,6 +1975,8 @@
     "quickPortfolio": "पोर्टफोलियो जाँच",
     "quickPortfolioPrompt": "आज की अनुशंसित पोर्टफोलियो की समीक्षा करें",
     "quickReport": "रिपोर्ट सारांश",
-    "quickReportPrompt": "आज के बाजार रुख और मुख्य थीसिस का सारांश दें"
+    "quickReportPrompt": "आज के बाजार रुख और मुख्य थीसिस का सारांश दें",
+    "historyTitle": "इतिहास",
+    "emptyHistory": "अभी तक कोई बातचीत नहीं"
   }
 }

@@ -1975,6 +1975,8 @@
     "quickPortfolio": "ポートフォリオ点検",
     "quickPortfolioPrompt": "本日のレポートの推奨ポートフォリオを点検して",
     "quickReport": "本日のレポート要約",
-    "quickReportPrompt": "本日の市場スタンスと核心ロジックを要約して"
+    "quickReportPrompt": "本日の市場スタンスと核心ロジックを要約して",
+    "historyTitle": "履歴",
+    "emptyHistory": "まだ会話がありません"
   }
 }

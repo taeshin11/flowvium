@@ -1975,6 +1975,8 @@
     "quickPortfolio": "포트폴리오 점검",
     "quickPortfolioPrompt": "오늘 리포트의 추천 포트폴리오를 점검해줘",
     "quickReport": "오늘 리포트 요약",
-    "quickReportPrompt": "오늘 시장 스탠스와 핵심 논지를 요약해줘"
+    "quickReportPrompt": "오늘 시장 스탠스와 핵심 논지를 요약해줘",
+    "historyTitle": "대화 기록",
+    "emptyHistory": "아직 대화가 없습니다"
   }
 }

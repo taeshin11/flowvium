@@ -1975,6 +1975,8 @@
     "quickPortfolio": "Portfolio check",
     "quickPortfolioPrompt": "Review today's recommended portfolio",
     "quickReport": "Report summary",
-    "quickReportPrompt": "Summarize today's market stance and key thesis"
+    "quickReportPrompt": "Summarize today's market stance and key thesis",
+    "historyTitle": "History",
+    "emptyHistory": "No conversations yet"
   }
 }

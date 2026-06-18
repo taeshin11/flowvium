@@ -1975,6 +1975,8 @@
     "quickPortfolio": "Verificar carteira",
     "quickPortfolioPrompt": "Revise a carteira recomendada de hoje",
     "quickReport": "Resumo do relatório",
-    "quickReportPrompt": "Resuma a postura do mercado e a tese-chave de hoje"
+    "quickReportPrompt": "Resuma a postura do mercado e a tese-chave de hoje",
+    "historyTitle": "Histórico",
+    "emptyHistory": "Ainda não há conversas"
   }
 }

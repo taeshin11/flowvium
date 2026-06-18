@@ -1975,6 +1975,8 @@
     "quickPortfolio": "Kiểm tra danh mục",
     "quickPortfolioPrompt": "Xem lại danh mục khuyến nghị hôm nay",
     "quickReport": "Tóm tắt báo cáo",
-    "quickReportPrompt": "Tóm tắt lập trường thị trường và luận điểm chính hôm nay"
+    "quickReportPrompt": "Tóm tắt lập trường thị trường và luận điểm chính hôm nay",
+    "historyTitle": "Lịch sử",
+    "emptyHistory": "Chưa có cuộc trò chuyện nào"
   }
 }

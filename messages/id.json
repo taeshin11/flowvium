@@ -1975,6 +1975,8 @@
     "quickPortfolio": "Cek portofolio",
     "quickPortfolioPrompt": "Tinjau portofolio rekomendasi hari ini",
     "quickReport": "Ringkasan laporan",
-    "quickReportPrompt": "Ringkas sikap pasar dan tesis utama hari ini"
+    "quickReportPrompt": "Ringkas sikap pasar dan tesis utama hari ini",
+    "historyTitle": "Riwayat",
+    "emptyHistory": "Belum ada percakapan"
   }
 }

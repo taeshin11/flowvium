@@ -1975,6 +1975,8 @@
     "quickPortfolio": "ตรวจพอร์ต",
     "quickPortfolioPrompt": "ตรวจสอบพอร์ตที่แนะนำวันนี้",
     "quickReport": "สรุปรายงาน",
-    "quickReportPrompt": "สรุปท่าทีตลาดและประเด็นหลักของวันนี้"
+    "quickReportPrompt": "สรุปท่าทีตลาดและประเด็นหลักของวันนี้",
+    "historyTitle": "ประวัติ",
+    "emptyHistory": "ยังไม่มีการสนทนา"
   }
 }
