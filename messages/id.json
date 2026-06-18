@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "Mesin Penilai Beli/Jual",
-    "modeFast": "Cepat",
-    "modeFastDesc": "Jawaban tercepat",
-    "modeStandard": "Standar",
-    "modeStandardDesc": "Cocok untuk kebanyakan",
-    "modeDeep": "Mendalam",
-    "modeDeepDesc": "Analisis lengkap aturan + laporan",
     "greeting": "Apa yang harus saya nilai?",
     "greetingSub": "Sebutkan saham dan saya akan menimbang beli/jual dengan data langsung, aturan, dan prinsip guru.",
     "placeholder": "Tanya Mesin Penilai",
@@ -1977,6 +1971,10 @@
     "quickReport": "Ringkasan laporan",
     "quickReportPrompt": "Ringkas sikap pasar dan tesis utama hari ini",
     "historyTitle": "Riwayat",
-    "emptyHistory": "Belum ada percakapan"
+    "emptyHistory": "Belum ada percakapan",
+    "modeAits": "AITS",
+    "modeAitsDesc": "Mesin inti (aturan · data langsung)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ pencarian semantik surat Buffett & klasik investasi"
   }
 }

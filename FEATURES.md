@@ -72,7 +72,8 @@
 - **컴포넌트**: `src/components/JudgeChat.tsx` (Gemini 스타일 전체화면 모달, `nextDynamic` lazy-load). **API**: `/api/judge-chat`(POST), 헬퍼 `src/lib/judge-engine.ts`.
 - **종합 grounding**: LLM(vLLM 우선 `callAI` cascade) + RAG(`judgment-doctrine.json` 7원칙 + `investor-wisdom.json` 버핏/린치/소로스/코스톨라니 + `buy-rules-tuned.json` 37 + `sell-rules-tuned.json` 23) + 실시간 금융 API(질문 내 종목 자동감지 → company-signals/financials/company-kr/news/recs/batch-prices 병렬수집) + 최신 리포트(내부 `/api/investment-strategy` 스탠스·논지·해당종목 추천).
 - **티커 자동감지**: KR 6자리코드 / US 대문자티커(풀 검증) / 회사명(영문·한글·다국어 별칭 `companyNamesI18n`: 엔비디아·エヌビディア·英伟达 등). 감지 시 실데이터 칩으로 grounding 투명화.
-- **모드 선택(Gemini식 ▾)**: 빠른판단(small model, 700tok) / 표준(1500tok) / 심층(2600tok, 룰+리포트 종합). 빠른액션 칩(매수판단/매도판단/포트폴리오점검/리포트요약).
+- **모드 선택(Gemini식 ▾) — AITS / AITS+RAG (2026-06-18 개편, 사용자 "AITS / AITS+RAG 로 구분")**: 빠른/표준/심층(깊이 차이 얕음) 폐기. **AITS**(1800tok) = 심판엔진 본체(룰 60 + doctrine/wisdom + 실시간 금융데이터 + 오늘 리포트). **AITS+RAG**(2600tok) = 그 위에 버핏 주주서한(1977–2024)·투자 고전 전문을 bge-m3 의미검색(top-4, cosine≥0.35)한 원문 구절을 추가 grounding. 응답에 📚 출처 칩(서한 연도) 노출. RAG 코퍼스/임베딩서비스 down 시 AITS 로 graceful degrade. 빠른액션 칩(매수판단/매도판단/포트폴리오점검/리포트요약).
+- **AITS+RAG 인프라 (2026-06-18 신설)**: 코퍼스 `data/rag/corpus.ndjson`(4,247청크: 버크셔 서한 48편 + investor-wisdom/judgment-doctrine, gitignore — `scripts/rag/ingest-corpus.py` 재생성). 임베딩 `BAAI/bge-m3`(다국어 KR+EN, dim 1024) WSL CPU 서비스 `:8100`(`scripts/rag/embed-server.py`, FastAPI). OCR `PaddleOCR`(스캔 PDF fallback, 텍스트레이어는 `pdftotext` 우선). 검색 `src/lib/rag.ts`(모듈 메모리 + 코사인). 자동기동: Windows 스케줄러 `FlowVium-Embed`(vLLM `:8000` 와 별개).
 - **안전장치**: 시스템프롬프트 "수치 환각 금지·데이터없으면 솔직히·면책 한줄". IP 시간당 40 레이트리밋(Redis). i18n `judge.*` 25키 ×16언어.
 - **전체 대화 저장 (2026-06-18, 사용자 "검토·학습용")**: 관리/학습 검토용 전역 `index` 리스트(최근 5000). 검토: `node scripts/judge-chat-log.mjs [N]` / `--brief`.
 - **per-user 히스토리 (2026-06-18, 사용자 "접속 아이디별 + Gemini식 히스토리")**: 소유자 uid = 로그인 이메일(`fv_member` HMAC, `src/lib/member-auth.ts`) 또는 익명 쿠키(`fv_chat_uid`). Redis `flowvium:judge-chat:u:{uid}:c:{convId}`(180일) + 최근순 ZSET 인덱스. **GET ?action=list/get · POST(생성·convId 이어쓰기) · DELETE**. Gemini식 사이드바(새 채팅 / 대화 기록 목록 / 클릭 재개 / 삭제, 모바일 드로어). 사용자 간 **격리**(쿠키 없으면 타인 대화 0건). 로그인 시 기기 간 계정 동기화. i18n `judge.historyTitle/emptyHistory` 추가.
@@ -1121,7 +1122,7 @@ ownership-alerts 적용).
 | `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
 | `/api/economic-calendar` | Finnhub 경제 캘린더 (실제값·예상치·이전값 포함, 정적 fallback) | 4h |
 | `/api/market-movers` | Yahoo Finance v7 batch — S&P 500 상위 50개 당일 급등·급락 Top 5 각 | 15m |
-| `/api/judge-chat` (POST) | 매수·매도 심판엔진 채팅 — LLM(callAI vLLM우선) + RAG(doctrine/wisdom/buy·sell 룰) + 실시간 금융API(종목감지 후 병렬수집) + 최신리포트 종합. IP 시간당 40 레이트리밋. `src/lib/judge-engine.ts` | 무캐시(force-dynamic) |
+| `/api/judge-chat` (GET/POST/DELETE) | 매수·매도 심판엔진 채팅 — LLM(callAI vLLM우선) + 룰/doctrine + 실시간 금융API(종목감지 후 병렬수집) + 최신리포트. AITS+RAG 모드 시 버핏서한 bge-m3 의미검색(`src/lib/rag.ts`, EMBED_URL `:8100`) 추가. per-user 히스토리 GET list/get·POST·DELETE. IP 시간당 60 레이트리밋. `src/lib/judge-engine.ts` | 무캐시(force-dynamic) |
 
 ---
 

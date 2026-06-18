@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "Buy/Sell Judgment Engine",
-    "modeFast": "Fast",
-    "modeFastDesc": "Quickest answer",
-    "modeStandard": "Standard",
-    "modeStandardDesc": "Best for most questions",
-    "modeDeep": "Deep",
-    "modeDeepDesc": "Full rules + report analysis",
     "greeting": "What shall I judge for you?",
     "greetingSub": "Name a stock and I'll weigh buy/sell using live data, rules, and guru principles.",
     "placeholder": "Ask the Judgment Engine",
@@ -1977,6 +1971,10 @@
     "quickReport": "Report summary",
     "quickReportPrompt": "Summarize today's market stance and key thesis",
     "historyTitle": "History",
-    "emptyHistory": "No conversations yet"
+    "emptyHistory": "No conversations yet",
+    "modeAits": "AITS",
+    "modeAitsDesc": "Core engine (rules · live data)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ semantic search of Buffett letters & classics"
   }
 }

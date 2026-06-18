@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "खरीद/बिक्री जजमेंट इंजन",
-    "modeFast": "तेज़",
-    "modeFastDesc": "सबसे तेज़ उत्तर",
-    "modeStandard": "मानक",
-    "modeStandardDesc": "अधिकांश सवालों के लिए",
-    "modeDeep": "गहन",
-    "modeDeepDesc": "पूर्ण नियम + रिपोर्ट विश्लेषण",
     "greeting": "मैं किसका फैसला करूँ?",
     "greetingSub": "कोई स्टॉक बताइए, मैं लाइव डेटा, नियमों और गुरु सिद्धांतों से खरीद/बिक्री का आकलन करूँगा।",
     "placeholder": "जजमेंट इंजन से पूछें",
@@ -1977,6 +1971,10 @@
     "quickReport": "रिपोर्ट सारांश",
     "quickReportPrompt": "आज के बाजार रुख और मुख्य थीसिस का सारांश दें",
     "historyTitle": "इतिहास",
-    "emptyHistory": "अभी तक कोई बातचीत नहीं"
+    "emptyHistory": "अभी तक कोई बातचीत नहीं",
+    "modeAits": "AITS",
+    "modeAitsDesc": "मुख्य इंजन (नियम · लाइव डेटा)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ बफेट पत्र और निवेश क्लासिक्स की सिमेंटिक खोज"
   }
 }

@@ -18,6 +18,7 @@ import {
   detectTickers, gatherTickerContext, buildSystemPrompt, tickerName,
   MODE_OPTS, type JudgeMode, type TickerCtx,
 } from '@/lib/judge-engine';
+import { ragRetrieve, type RagHit } from '@/lib/rag';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { messages?: ChatMsg[]; mode?: JudgeMode; locale?: string; convId?: string };
     const messages = Array.isArray(body.messages) ? body.messages.filter(m => m && typeof m.content === 'string' && m.content.trim()) : [];
-    const mode: JudgeMode = (['fast', 'standard', 'deep'].includes(body.mode as string) ? body.mode : 'standard') as JudgeMode;
+    const mode: JudgeMode = (['aits', 'aits-rag'].includes(body.mode as string) ? body.mode : 'aits') as JudgeMode;
     const locale = body.locale ?? 'ko';
     if (!messages.length) return NextResponse.json({ error: 'no messages' }, { status: 400 });
 
@@ -135,12 +136,13 @@ export async function POST(request: NextRequest) {
     const origin = `http://127.0.0.1:${process.env.PORT || 3000}`;
     const opts = MODE_OPTS[mode];
     const tickers = detectTickers(lastUser, opts.maxTickers);
-    const [tickerCtx, reportContext] = await Promise.all([
+    const [tickerCtx, reportContext, ragHits] = await Promise.all([
       Promise.all(tickers.map(t => gatherTickerContext(t, origin).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
       fetchReportContext(origin, locale, tickers),
+      opts.useRag ? ragRetrieve(lastUser, 4).catch((): RagHit[] => []) : Promise.resolve([] as RagHit[]),
     ]);
 
-    const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext });
+    const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits });
     const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
     const { text, source, durationMs, attempts } = await callAI(userPrompt, {
       systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature,
@@ -155,7 +157,9 @@ export async function POST(request: NextRequest) {
 
     const grounding = {
       tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null })),
-      usedRules: mode !== 'fast', usedReport: !!reportContext,
+      usedRules: true, usedReport: !!reportContext,
+      usedRag: ragHits.length > 0,
+      ragSources: ragHits.map(h => ({ source: h.source, year: h.year ?? null, score: Number(h.score.toFixed(2)) })),
     };
     const fullMessages = [...messages, { role: 'assistant' as const, content: text }];
     const convId = body.convId || `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;

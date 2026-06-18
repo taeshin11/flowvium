@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "Kauf/Verkauf-Urteils-Engine",
-    "modeFast": "Schnell",
-    "modeFastDesc": "Schnellste Antwort",
-    "modeStandard": "Standard",
-    "modeStandardDesc": "Für die meisten Fragen",
-    "modeDeep": "Tief",
-    "modeDeepDesc": "Vollständige Regel- + Berichtsanalyse",
     "greeting": "Was soll ich beurteilen?",
     "greetingSub": "Nennen Sie eine Aktie und ich bewerte Kauf/Verkauf mit Live-Daten, Regeln und Guru-Prinzipien.",
     "placeholder": "Urteils-Engine fragen",
@@ -1977,6 +1971,10 @@
     "quickReport": "Berichtszusammenfassung",
     "quickReportPrompt": "Fasse die heutige Marktlage und Kernthese zusammen",
     "historyTitle": "Verlauf",
-    "emptyHistory": "Noch keine Unterhaltungen"
+    "emptyHistory": "Noch keine Unterhaltungen",
+    "modeAits": "AITS",
+    "modeAitsDesc": "Kern-Engine (Regeln · Live-Daten)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ semantische Suche in Buffett-Briefen & Klassikern"
   }
 }

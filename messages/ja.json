@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "売買審判エンジン",
-    "modeFast": "高速判断",
-    "modeFastDesc": "最速の回答",
-    "modeStandard": "標準",
-    "modeStandardDesc": "ほとんどの質問に最適",
-    "modeDeep": "詳細",
-    "modeDeepDesc": "ルール・レポート総合分析",
     "greeting": "何を審判しましょうか?",
     "greetingSub": "銘柄を教えてくれれば、リアルタイムデータ・ルール・大家の原則で売買を一緒に判断します。",
     "placeholder": "審判エンジンに質問",
@@ -1977,6 +1971,10 @@
     "quickReport": "本日のレポート要約",
     "quickReportPrompt": "本日の市場スタンスと核心ロジックを要約して",
     "historyTitle": "履歴",
-    "emptyHistory": "まだ会話がありません"
+    "emptyHistory": "まだ会話がありません",
+    "modeAits": "AITS",
+    "modeAitsDesc": "判定エンジン本体（ルール・リアルタイムデータ）",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "＋バフェットの手紙・投資古典の意味検索"
   }
 }

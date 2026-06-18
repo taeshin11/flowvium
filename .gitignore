@@ -39,6 +39,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# RAG 벡터 코퍼스 — 생성물(~38MB, 임베딩). scripts/rag/ingest-corpus.py 로 재생성. 커밋 제외.
+/data/rag/corpus.ndjson
+
 .vercel
 
 # 로컬 LLM 인프라 (대용량, 로컬 전용)

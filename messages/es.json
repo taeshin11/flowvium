@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "Motor de Juicio Compra/Venta",
-    "modeFast": "Rápido",
-    "modeFastDesc": "Respuesta más veloz",
-    "modeStandard": "Estándar",
-    "modeStandardDesc": "Ideal para la mayoría",
-    "modeDeep": "Profundo",
-    "modeDeepDesc": "Análisis completo de reglas + informe",
     "greeting": "¿Qué quieres que juzgue?",
     "greetingSub": "Dime una acción y evaluaré compra/venta con datos en vivo, reglas y principios de gurús.",
     "placeholder": "Pregunta al Motor de Juicio",
@@ -1977,6 +1971,10 @@
     "quickReport": "Resumen del informe",
     "quickReportPrompt": "Resume la postura del mercado y la tesis clave de hoy",
     "historyTitle": "Historial",
-    "emptyHistory": "Aún no hay conversaciones"
+    "emptyHistory": "Aún no hay conversaciones",
+    "modeAits": "AITS",
+    "modeAitsDesc": "Motor principal (reglas · datos en vivo)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ búsqueda semántica de cartas de Buffett y clásicos"
   }
 }

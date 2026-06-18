@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "매수·매도 심판엔진",
-    "modeFast": "빠른 판단",
-    "modeFastDesc": "가장 빠른 답변",
-    "modeStandard": "표준",
-    "modeStandardDesc": "대부분의 질문에 적합",
-    "modeDeep": "심층",
-    "modeDeepDesc": "룰·리포트 종합 정밀 분석",
     "greeting": "무엇을 심판해 드릴까요?",
     "greetingSub": "종목을 말하면 실시간 데이터·룰·구루 원칙으로 매수/매도를 함께 판단합니다.",
     "placeholder": "심판엔진에게 물어보세요",
@@ -1977,6 +1971,10 @@
     "quickReport": "오늘 리포트 요약",
     "quickReportPrompt": "오늘 시장 스탠스와 핵심 논지를 요약해줘",
     "historyTitle": "대화 기록",
-    "emptyHistory": "아직 대화가 없습니다"
+    "emptyHistory": "아직 대화가 없습니다",
+    "modeAits": "AITS",
+    "modeAitsDesc": "심판엔진 본체 (룰·실시간 데이터)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ 버핏 서한·투자 고전 의미검색"
   }
 }

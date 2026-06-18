@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "محرك الحكم للشراء/البيع",
-    "modeFast": "سريع",
-    "modeFastDesc": "أسرع إجابة",
-    "modeStandard": "قياسي",
-    "modeStandardDesc": "الأنسب لمعظم الأسئلة",
-    "modeDeep": "عميق",
-    "modeDeepDesc": "تحليل كامل للقواعد والتقرير",
     "greeting": "ماذا تريد أن أحكم؟",
     "greetingSub": "اذكر سهماً وسأقيّم الشراء/البيع باستخدام البيانات الحية والقواعد ومبادئ الخبراء.",
     "placeholder": "اسأل محرك الحكم",
@@ -1977,6 +1971,10 @@
     "quickReport": "ملخص التقرير",
     "quickReportPrompt": "لخّص موقف السوق والأطروحة الرئيسية لليوم",
     "historyTitle": "السجل",
-    "emptyHistory": "لا توجد محادثات بعد"
+    "emptyHistory": "لا توجد محادثات بعد",
+    "modeAits": "AITS",
+    "modeAitsDesc": "المحرك الأساسي (القواعد · البيانات الحية)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ بحث دلالي في رسائل بافيت والكلاسيكيات"
   }
 }

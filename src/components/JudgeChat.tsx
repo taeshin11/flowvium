@@ -9,9 +9,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Scale, Plus, Send, Loader2, X, ChevronDown, SquarePen, TrendingUp, TrendingDown, Briefcase, FileText, Menu, Trash2, MessageSquare } from 'lucide-react';
 
-type Mode = 'fast' | 'standard' | 'deep';
+type Mode = 'aits' | 'aits-rag';
 interface Msg { role: 'user' | 'assistant'; content: string; source?: string; grounding?: Grounding }
-interface Grounding { tickers?: Array<{ ticker: string; name: string; price: number | null; rsi: number | null }>; usedRules?: boolean; usedReport?: boolean }
+interface RagSource { source: string; year: number | string | null; score: number }
+interface Grounding { tickers?: Array<{ ticker: string; name: string; price: number | null; rsi: number | null }>; usedRules?: boolean; usedReport?: boolean; usedRag?: boolean; ragSources?: RagSource[] }
 interface ConvMeta { id: string; title: string; updatedAt: number }
 
 function renderInline(text: string, keyBase: string) {
@@ -47,7 +48,7 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<Mode>('standard');
+  const [mode, setMode] = useState<Mode>('aits');
   const [modeOpen, setModeOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [convId, setConvId] = useState<string | null>(null);
@@ -106,9 +107,8 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 
   const MODES: { id: Mode; label: string; desc: string }[] = [
-    { id: 'fast', label: t('modeFast'), desc: t('modeFastDesc') },
-    { id: 'standard', label: t('modeStandard'), desc: t('modeStandardDesc') },
-    { id: 'deep', label: t('modeDeep'), desc: t('modeDeepDesc') },
+    { id: 'aits', label: t('modeAits'), desc: t('modeAitsDesc') },
+    { id: 'aits-rag', label: t('modeAitsRag'), desc: t('modeAitsRagDesc') },
   ];
   const QUICK: { icon: React.ReactNode; label: string; prompt: string }[] = [
     { icon: <TrendingUp className="w-5 h-5 text-emerald-600" />, label: t('quickBuy'), prompt: t('quickBuyPrompt') },
@@ -207,13 +207,16 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 via-rose-500 to-pink-600 flex items-center justify-center mt-0.5"><Scale className="w-4 h-4 text-white" /></div>
                     <div className="flex-1 min-w-0">
                       <Markdownish text={m.content} />
-                      {(m.grounding?.tickers?.length || m.grounding?.usedReport || m.source) && (
+                      {(m.grounding?.tickers?.length || m.grounding?.usedReport || m.grounding?.usedRag || m.source) && (
                         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                           {m.grounding?.tickers?.filter(tk => tk.price != null).map(tk => (
                             <span key={tk.ticker} className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">{tk.name} {tk.price}{tk.rsi != null ? ` · RSI ${tk.rsi}` : ''}</span>
                           ))}
                           {m.grounding?.usedReport && <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">📋 {t('groundReport')}</span>}
                           {m.grounding?.usedRules && <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">⚖️ {t('groundRules')}</span>}
+                          {m.grounding?.ragSources?.map((rs, ri) => (
+                            <span key={`rag-${ri}`} className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">📚 {rs.source}{rs.year ? ` ${rs.year}` : ''}</span>
+                          ))}
                           {m.source && <span className="text-[11px] text-gray-400">· {m.source}</span>}
                         </div>
                       )}

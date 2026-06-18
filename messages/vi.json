@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "Bộ máy Phán xét Mua/Bán",
-    "modeFast": "Nhanh",
-    "modeFastDesc": "Trả lời nhanh nhất",
-    "modeStandard": "Tiêu chuẩn",
-    "modeStandardDesc": "Phù hợp hầu hết câu hỏi",
-    "modeDeep": "Chuyên sâu",
-    "modeDeepDesc": "Phân tích đầy đủ quy tắc + báo cáo",
     "greeting": "Bạn muốn tôi phán xét điều gì?",
     "greetingSub": "Nêu tên cổ phiếu, tôi sẽ cân nhắc mua/bán bằng dữ liệu trực tiếp, quy tắc và nguyên tắc của các bậc thầy.",
     "placeholder": "Hỏi Bộ máy Phán xét",
@@ -1977,6 +1971,10 @@
     "quickReport": "Tóm tắt báo cáo",
     "quickReportPrompt": "Tóm tắt lập trường thị trường và luận điểm chính hôm nay",
     "historyTitle": "Lịch sử",
-    "emptyHistory": "Chưa có cuộc trò chuyện nào"
+    "emptyHistory": "Chưa có cuộc trò chuyện nào",
+    "modeAits": "AITS",
+    "modeAitsDesc": "Engine lõi (quy tắc · dữ liệu trực tiếp)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ tìm kiếm ngữ nghĩa thư Buffett & sách kinh điển"
   }
 }

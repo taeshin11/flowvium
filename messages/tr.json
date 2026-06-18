@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "Al/Sat Yargı Motoru",
-    "modeFast": "Hızlı",
-    "modeFastDesc": "En hızlı yanıt",
-    "modeStandard": "Standart",
-    "modeStandardDesc": "Çoğu soru için ideal",
-    "modeDeep": "Derin",
-    "modeDeepDesc": "Tam kural + rapor analizi",
     "greeting": "Neyi yargılamamı istersin?",
     "greetingSub": "Bir hisse söyle, canlı veri, kurallar ve guru ilkeleriyle al/sat değerlendireyim.",
     "placeholder": "Yargı Motoruna sor",
@@ -1977,6 +1971,10 @@
     "quickReport": "Rapor özeti",
     "quickReportPrompt": "Bugünün piyasa duruşunu ve ana tezini özetle",
     "historyTitle": "Geçmiş",
-    "emptyHistory": "Henüz sohbet yok"
+    "emptyHistory": "Henüz sohbet yok",
+    "modeAits": "AITS",
+    "modeAitsDesc": "Çekirdek motor (kurallar · canlı veri)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ Buffett mektupları ve klasiklerde anlamsal arama"
   }
 }

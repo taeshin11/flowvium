@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "Moteur de Jugement Achat/Vente",
-    "modeFast": "Rapide",
-    "modeFastDesc": "Réponse la plus rapide",
-    "modeStandard": "Standard",
-    "modeStandardDesc": "Idéal pour la plupart",
-    "modeDeep": "Approfondi",
-    "modeDeepDesc": "Analyse complète règles + rapport",
     "greeting": "Que dois-je juger ?",
     "greetingSub": "Donnez une action et j'évaluerai l'achat/vente avec données en direct, règles et principes des gourous.",
     "placeholder": "Demandez au Moteur de Jugement",
@@ -1977,6 +1971,10 @@
     "quickReport": "Résumé du rapport",
     "quickReportPrompt": "Résume la position du marché et la thèse clé du jour",
     "historyTitle": "Historique",
-    "emptyHistory": "Aucune conversation pour l'instant"
+    "emptyHistory": "Aucune conversation pour l'instant",
+    "modeAits": "AITS",
+    "modeAitsDesc": "Moteur principal (règles · données en direct)",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ recherche sémantique des lettres de Buffett et classiques"
   }
 }

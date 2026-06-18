@@ -219,11 +219,12 @@ function condenseRules(): string {
   return `# 매수 룰 (${buyRules.length}개 — 발화 시 매수 점수 가산)\n${buyRules.map(fmt).join('\n')}\n\n# 매도 룰 (${sellRules.length}개 — 발화 시 매도 신호)\n${sellRules.map(fmt).join('\n')}`;
 }
 
-export type JudgeMode = 'fast' | 'standard' | 'deep';
-export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: number; preferSmallModel?: boolean; maxTickers: number }> = {
-  fast: { maxTokens: 700, temperature: 0.5, preferSmallModel: true, maxTickers: 1 },
-  standard: { maxTokens: 1500, temperature: 0.6, maxTickers: 2 },
-  deep: { maxTokens: 2600, temperature: 0.65, maxTickers: 3 },
+// AITS = 심판엔진 본체(룰+doctrine+실시간 금융데이터+오늘 리포트). AITS+RAG = 그 위에
+// 버핏 서한/투자 고전 전문에서 의미검색한 구절을 추가 grounding (2026-06-18, 사용자 "AITS / AITS+RAG 로 구분").
+export type JudgeMode = 'aits' | 'aits-rag';
+export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: number; preferSmallModel?: boolean; maxTickers: number; useRag: boolean }> = {
+  'aits':     { maxTokens: 1800, temperature: 0.6, maxTickers: 3, useRag: false },
+  'aits-rag': { maxTokens: 2600, temperature: 0.6, maxTickers: 3, useRag: true },
 };
 
 const LANG: Record<string, string> = {
@@ -232,12 +233,22 @@ const LANG: Record<string, string> = {
   id: 'Indonesian', th: 'Thai', tr: 'Turkish', vi: 'Vietnamese',
 };
 
-export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string }): string {
+import type { RagHit } from '@/lib/rag';
+
+function fmtRagHits(hits: RagHit[]): string {
+  const body = hits.map((h, i) => {
+    const cite = [h.source, h.year].filter(Boolean).join(' ');
+    return `[${i + 1}] (${cite}, 유사도 ${h.score.toFixed(2)})\n"${h.text.trim().slice(0, 700)}"`;
+  }).join('\n\n');
+  return `# 관련 원전 인용 (버핏 서한·투자 고전 — 의미검색 RAG)\n아래는 질문과 의미적으로 가까운 실제 원문 구절이다. 판단의 *철학적 근거*로 인용하되, 수치/사실은 위 실시간 데이터를 우선하라.\n\n${body}`;
+}
+
+export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[] }): string {
   const lang = LANG[opts.locale] ?? 'Korean';
   const liveBlock = opts.tickerCtx.length
     ? `# 실시간 종목 데이터 (지금 외부 금융 소스에서 수집)\n${opts.tickerCtx.map(fmtTickerCtx).join('\n')}`
     : '# 실시간 종목 데이터\n(질문에서 특정 종목 미감지 — 일반 전략/원칙 상담)';
-  const includeRules = opts.mode !== 'fast';
+  const ragBlock = opts.ragHits && opts.ragHits.length ? `\n${fmtRagHits(opts.ragHits)}` : '';
   return [
     `You are "매수·매도 심판엔진" (the Buy/Sell Judgment Engine) of FlowVium — a disciplined, evidence-grounded investment judgment assistant.`,
     `Respond ENTIRELY in ${lang}. Be concise, structured, and decisive.`,
@@ -248,7 +259,8 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- 너는 심판엔진이지 보장이 아니다. 답변 끝에 한 줄 면책: 투자 판단·책임은 본인에게 있음.`,
     ``,
     condenseDoctrine(),
-    includeRules ? `\n${condenseRules()}` : '',
+    `\n${condenseRules()}`,
+    ragBlock,
     ``,
     liveBlock,
     opts.reportContext ? `\n# 오늘의 FlowVium 리포트 맥락\n${opts.reportContext}` : '',

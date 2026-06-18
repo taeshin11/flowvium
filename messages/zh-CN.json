@@ -1952,12 +1952,6 @@
   },
   "judge": {
     "title": "买卖判断引擎",
-    "modeFast": "快速判断",
-    "modeFastDesc": "最快回答",
-    "modeStandard": "标准",
-    "modeStandardDesc": "适合大多数问题",
-    "modeDeep": "深度",
-    "modeDeepDesc": "规则+报告综合分析",
     "greeting": "需要我判断什么?",
     "greetingSub": "说出股票，我会结合实时数据、规则和大师原则一起判断买卖。",
     "placeholder": "向判断引擎提问",
@@ -1977,6 +1971,10 @@
     "quickReport": "今日报告摘要",
     "quickReportPrompt": "总结今日市场立场和核心逻辑",
     "historyTitle": "历史记录",
-    "emptyHistory": "还没有对话"
+    "emptyHistory": "还没有对话",
+    "modeAits": "AITS",
+    "modeAitsDesc": "核心引擎（规则·实时数据）",
+    "modeAitsRag": "AITS+RAG",
+    "modeAitsRagDesc": "+ 巴菲特信件·投资经典语义检索"
   }
 }
