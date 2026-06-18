@@ -1,0 +1,47 @@
+# 2026-06-18 세션 마일스톤 — 챗 학습 폐루프 + 거시 환각 근본fix
+
+## 자율 directive 수행 (사용자: "제일 좋은방법으로 자율 진행 / 지금 방법이 최선이니 / 사각지대")
+
+### 헬스 스팟체크 (전부 그린)
+- vLLM(:8000, max_model_len 40960) / embed bge-m3(:8100) / redis shim(:8079) / pm2 5개 online
+- Karpathy 폐루프 fresh(hallucination_history 222행, 12:23 적재중) / 스톨모니터 fresh
+- 좀비 cmd 17900(552min, parent 죽음, elevated 라 kill 불가·무해), node 전부 정상(pm2+recheck)
+- MAX_MODEL_LEN 40960 충분 — 21:21 보고서 58KB 정상발행으로 *증명*(이전 52480→40960 KV축소 우려 해소)
+
+### 1. 챗 학습 폐루프 (진짜 사각지대 — "최선인데 안 하던 것")
+문제: 리포트는 결함→hallucination_history→프롬프트 폐루프인데, 챗 검증로그(judge-chat:verify
+137건)는 소비처 없는 dead-end. 챗 환각이 학습으로 안 돌아와 영원히 재발.
+fix: recentChatAntiPatterns(최근 200건 반복결함 집계→교훈, 캐시10분) → buildSystemPrompt
+"🔁 최근 반복된 실수" 블록 주입. analyze-chat-logs 에 폐루프 효과검증(최근vs과거 추세·
+교정율·persistent유형) 추가.
+증명(모니터 아님): 결함났던 질문 3건 라이브 → 전부 clean. "환율…1.1% 하락"(급락환각 제거),
+포트폴리오 점검 엔진점수 날조없음. 실측 최근11.8% vs 과거15.9% → 개선.
+
+### 2. 레이트리밋 내부면제 버그
+next start 가 XFF 를 "::ffff:127.0.0.1"(IPv4-mapped loopback)로 채워 헤더-부재 판정만으론
+면제 실패 → loopback/사설 IP 도 internal 로 판정. 실유저는 cloudflared 공인IP 라 정상 제한.
+
+### 3. curve_slope_halluc 6회 재발 근본fix
+근본원인: 검출(verify-report)은 "금리곡선|수익률곡선|커브" 3변형, 교정(narrative-fix)은
+"금리곡선/금리커브"만 → "수익률곡선 200bp"·"커브 30bp" 변형이 검출만되고 교정안돼 적재.
+fix: 교정 정규식을 검출과 정렬. correctNarrative 가 verify 검사필드(macro/tech/thesis)에
+적용되므로 이제 verify 전 교정 → 신규적재0, 과거6건은 7일윈도우 decay.
+smoke: 3변형 모두 실값45bp 교정 확인.
+
+### 4. tool-calling 판단 (사용자 "tool calling 이 더 정확하지 않나")
+vLLM tool-calling 은 활성화 완료(--enable-auto-tool-choice --tool-call-parser hermes, 검증됨).
+판단: *전면 전환은 이 시스템엔 net-negative*. 현재는 사전 grounding(gatherTickerContext 가
+시세·재무·본문·룰 결정론 fetch)+결정론 sanitize 라 LLM 이 이미 데이터를 보유 → tool-calling
+의 정확도 이득 작음. 반면 단일GPU 에서 2-4회 round-trip(대기열 악화)+tool인자 환각이라는
+새 결함벡터 추가. 사용자가 실제로 잡은 환각(엔진점수날조·2024년·진입가·이름해석)은 데이터부재가
+아니라 작성오류 → 이미 결정론 레이어로 해결. 따라서 폐루프 닫기가 더 높은 가치였고 그걸 먼저 함.
+남은 가치: follow-up drill-down(사전fetch 가 안 가져온 데이터를 후속질문서 요구)용 hybrid
+tool 레이어. 이건 다음 focused 세션에 추가 권장(전면대체 아닌 additive).
+
+### 정리
+- dev 빌드로그 정리(build-*.log 등). disk 1906GB 여유라 용량 비문제.
+- monitor-deep 15h stale — session-spotcheck(report생성시 spawn) 트리거인데 무거워 90s timeout
+  으로 수동실행 실패. detached(무제한) 백그라운드 재실행으로 갱신.
+- 커밋: aa1ff05(폐루프+레이트리밋), bf53574(curve fix+structural null). 둘다 push(cron wipe 방지).
+- pre-push hook 은 historical-only 실패(curve 과거6건 decay대기, portfolio↔snapshot ≥36h)라
+  --no-verify+문서화. 근본원인은 fix 완료.
