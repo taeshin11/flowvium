@@ -10,7 +10,9 @@ for y in $(seq 1977 2024); do
   for url in "https://www.berkshirehathaway.com/letters/${y}ltr.pdf" "https://www.berkshirehathaway.com/letters/${y}.html"; do
     ext="${url##*.}"
     out="$DIR/${y}.${ext}"
-    code=$(curl -s -A "$UA" --max-time 30 -o "$out" -w "%{http_code}" "$url" || echo "000")
+    # --compressed 필수: Sucuri/Cloudproxy 가 Brotli(content-encoding: br)로 응답 → 미지정 시
+    #   압축 원본(바이너리)이 저장돼 추출 깨짐(2026-06-18 옛 서한 119청크 garbage 사건).
+    code=$(curl -s --compressed -A "$UA" --max-time 30 -o "$out" -w "%{http_code}" "$url" || echo "000")
     if [ "$code" = "200" ] && [ -s "$out" ]; then
       sz=$(stat -c%s "$out")
       echo "[dl] ${y}.${ext} ${sz}B"

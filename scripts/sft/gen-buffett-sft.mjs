@@ -25,14 +25,36 @@ const MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 const MAX = parseInt(process.argv[2] || '400', 10);
 const CONC = parseInt(process.argv[3] || '4', 10);
 
-const SYSTEM = `너는 "매수·매도 심판엔진" — 규율 있고 근거 기반인 투자 판단 AI다. 종목의 매수/분할매수/관망/비중축소/매도/회피를 판단하고, 실시간 데이터·매수매도 룰·구루 원칙을 근거로 인용하며, 리스크와 진입/손절을 제시한다. 수치를 지어내지 않고, 데이터 없으면 솔직히 말한다.`;
+// 3개 엔진(심판·매수·매도) — 같은 Qwen3-30B-A3B 를 공유하므로 LoRA 한 번이 셋 다에 적용되나,
+// 각 엔진의 *역할(persona)* 로 버핏 원칙을 학습시켜야 매수엔진/매도엔진이 그 관점에서 추론한다
+// (사용자 "심판엔진 뿐아니라 매수엔진, 매도엔진 다 학습"). 청크를 라운드로빈으로 3역할에 배분.
+const ENGINES = [
+  {
+    key: 'judge',
+    system: `너는 "매수·매도 심판엔진" — 규율 있고 근거 기반인 투자 판단 AI다. 종목의 매수/분할매수/관망/비중축소/매도/회피를 판단하고, 실시간 데이터·매수매도 룰·구루 원칙을 근거로 인용하며, 리스크와 진입/손절을 제시한다. 수치를 지어내지 않고, 데이터 없으면 솔직히 말한다.`,
+    role: '투자자가 심판엔진에게 매수/매도/관망을 물을 법한 한국어 질문',
+    answer: '버핏의 원칙에 근거해 판단의 사고틀을 가르치는 간결한 한국어 답변',
+  },
+  {
+    key: 'buy',
+    system: `너는 "매수엔진" — 가치투자 관점에서 매수 후보를 발굴·정당화하는 AI다. 해자·내재가치·안전마진·경영진 질·장기복리를 근거로 매수 논거를 제시하고, 진입 규율과 리스크를 함께 본다. 수치를 지어내지 않는다.`,
+    role: '매수 후보 발굴/정당화에 대해 매수엔진에게 물을 법한 한국어 질문(어떤 기업을 왜 사야 하는가)',
+    answer: '버핏의 가치투자 원칙(해자·안전마진·장기보유)으로 매수 논거를 세우는 간결한 한국어 답변',
+  },
+  {
+    key: 'sell',
+    system: `너는 "매도엔진" — 매도/비중축소 규율을 판단하는 AI다. 가격 하락이 아니라 펀더멘털 훼손·내재가치 대비 고평가·더 나은 기회비용·매수 논거의 소멸을 근거로 매도를 판단하고, 함부로 팔지 않는 인내도 함께 본다. 수치를 지어내지 않는다.`,
+    role: '언제 팔고 언제 버텨야 하는지 매도엔진에게 물을 법한 한국어 질문',
+    answer: '버핏의 매도 규율(가격이 아닌 논거 소멸·고평가·기회비용, 그리고 인내)로 푸는 간결한 한국어 답변',
+  },
+];
 
-const GEN_PROMPT = (year, text) => `다음은 워런 버핏의 버크셔 해서웨이 주주서한(${year || '연도미상'}) 발췌다. 이 구절이 담은 "투자 판단 원칙"을 한국어로 가르치는 학습예시 1개를 만들어라.
+const GEN_PROMPT = (eng, year, text) => `다음은 워런 버핏의 버크셔 해서웨이 주주서한(${year || '연도미상'}) 발췌다. 이 구절이 담은 "투자 원칙"을 "${eng.key} 엔진" 관점으로 가르치는 한국어 학습예시 1개를 만들어라.
 
 규칙:
 - 출력은 JSON 한 개만: {"q": "...", "a": "..."}
-- q: 투자자가 심판엔진에게 물을 법한 한국어 질문 (이 구절의 원칙과 관련된 일반적 판단 질문).
-- a: 버핏의 원칙에 근거한 간결한 한국어 답변(2~4문장). 발췌의 핵심 교훈을 일반 원칙으로 풀되,
+- q: ${eng.role}.
+- a: ${eng.answer} (2~4문장). 발췌의 핵심 교훈을 일반 원칙으로 풀되,
   구체적 수치·연도·회사 실적 숫자는 인용하지 마라(환각 방지). 원칙만.
 - 발췌가 투자 원칙과 무관한 행정/형식 내용이면 {"skip": true} 만 출력.
 
@@ -80,28 +102,31 @@ async function main() {
   writeFileSync(OUT, '');  // 새로 시작
   let ok = 0, skip = 0, fail = 0, done = 0;
 
+  const perEngine = { judge: 0, buy: 0, sell: 0 };
   for (let i = 0; i < sample.length; i += CONC) {
     const batch = sample.slice(i, i + CONC);
-    const results = await Promise.all(batch.map(async (c) => {
+    const results = await Promise.all(batch.map(async (c, j) => {
+      const eng = ENGINES[(i + j) % ENGINES.length];  // 라운드로빈 3역할 배분
       try {
-        const txt = await vllm([{ role: 'user', content: GEN_PROMPT(c.year, c.text) }]);
-        return { c, qa: parseQA(txt) };
-      } catch (e) { return { c, qa: null, err: e.message }; }
+        const txt = await vllm([{ role: 'user', content: GEN_PROMPT(eng, c.year, c.text) }]);
+        return { c, eng, qa: parseQA(txt) };
+      } catch (e) { return { c, eng, qa: null, err: e.message }; }
     }));
-    for (const { c, qa, err } of results) {
+    for (const { c, eng, qa, err } of results) {
       done++;
       if (err) { fail++; continue; }
       if (!qa) { skip++; continue; }
       const ex = {
-        messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: qa.q }, { role: 'assistant', content: `${qa.a}\n투자 판단·책임은 본인에게 있음.` }],
-        weight: 0.5, meta: { src: 'buffett', year: c.year, chunk: c.id },
+        messages: [{ role: 'system', content: eng.system }, { role: 'user', content: qa.q }, { role: 'assistant', content: `${qa.a}\n투자 판단·책임은 본인에게 있음.` }],
+        weight: 0.5, meta: { src: 'buffett', engine: eng.key, year: c.year, chunk: c.id },
       };
       appendFileSync(OUT, JSON.stringify(ex) + '\n');
-      ok++;
+      ok++; perEngine[eng.key]++;
     }
-    if (done % 40 === 0 || done === sample.length) console.log(`[${done}/${sample.length}] ok=${ok} skip=${skip} fail=${fail}`);
+    if (done % 40 === 0 || done === sample.length) console.log(`[${done}/${sample.length}] ok=${ok} skip=${skip} fail=${fail} (judge=${perEngine.judge} buy=${perEngine.buy} sell=${perEngine.sell})`);
   }
   console.log(`완료: ok=${ok} skip=${skip} fail=${fail} → ${OUT}`);
+  console.log(`엔진별: 심판=${perEngine.judge} 매수=${perEngine.buy} 매도=${perEngine.sell}`);
 }
 
 main().catch(e => { console.error('[FATAL]', e?.stack ?? e); process.exit(1); });

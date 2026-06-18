@@ -53,6 +53,13 @@ def clean(t):
     t = re.sub(r"\n{3,}", "\n\n", t)
     return t.strip()
 
+def is_garbage(s):
+    """제어문자(추출 실패/바이너리) 비율 >3% → garbage. Brotli 미해제·스캔실패 잔여 청크 차단."""
+    if not s:
+        return True
+    ctrl = sum(1 for ch in s if ord(ch) < 9 or (13 < ord(ch) < 32))
+    return ctrl / max(1, len(s)) > 0.03
+
 def chunk_text(t):
     paras = [p.strip() for p in re.split(r"\n\s*\n", t) if p.strip()]
     chunks, buf = [], ""
@@ -86,7 +93,7 @@ def load_letters():
         else:
             continue
         txt = clean(txt)
-        cs = chunk_text(txt)
+        cs = [c for c in chunk_text(txt) if not is_garbage(c)]
         log(f"{year}.{ext}: {len(txt)} chars → {len(cs)} chunks")
         for i, c in enumerate(cs):
             rows.append({"id": f"buffett-{year}-{i}", "source": "버크셔 주주서한", "year": year, "text": c})
