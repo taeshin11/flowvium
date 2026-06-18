@@ -977,10 +977,10 @@ export default function HomePage() {
               </p>
               {/* 핵심 CTA — 추천 종목으로 직행 (2026-06-13 사용자 "추천종목 보도록 유도하는 메세지 없어") */}
               {/* 2026-06-18: CTA 옆에 심판엔진 채팅 버튼 추가(사용자 지정 위치) — flex 래퍼로 나란히 */}
-              <div className="flex flex-wrap items-stretch gap-3 mb-8">
+              <div className="flex flex-col sm:flex-row items-stretch gap-3 mb-8">
                 <Link
                   href="/report"
-                  className="group inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-bold ring-2 ring-rose-300/60 shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:from-orange-400 hover:via-rose-400 hover:to-pink-500 transition-all"
+                  className="group flex flex-1 items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-bold ring-2 ring-rose-300/60 shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:from-orange-400 hover:via-rose-400 hover:to-pink-500 transition-all"
                 >
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
@@ -995,7 +995,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => setJudgeOpen(true)}
-                  className="group inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-white text-cf-text-primary font-bold border-2 border-rose-300 shadow-md hover:shadow-lg hover:border-rose-400 hover:bg-rose-50/50 transition-all"
+                  className="group flex flex-1 items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white text-cf-text-primary font-bold border-2 border-rose-300 shadow-md hover:shadow-lg hover:border-rose-400 hover:bg-rose-50/50 transition-all"
                 >
                   <Scale className="w-5 h-5 text-rose-500" />
                   <span className="flex flex-col items-start leading-tight">
@@ -1032,7 +1032,7 @@ export default function HomePage() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex flex-col justify-center gap-0.5 w-full text-xs px-3 py-2.5 rounded-xl font-semibold
+                    className={`flex flex-col justify-center gap-0.5 w-full min-h-[3.4rem] text-xs px-3 py-2.5 rounded-xl font-semibold
                                border transition-all duration-200
                                ${item.primary
                                  ? 'bg-cf-primary text-white border-cf-primary/80 hover:bg-cf-primary/90 hover:shadow-md'
