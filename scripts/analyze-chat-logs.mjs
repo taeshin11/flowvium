@@ -41,12 +41,30 @@ try {
     for (const e of withDefect.slice(0, 8)) console.log(`  ${e.ts?.slice(0, 19)} | "${(e.q || '').slice(0, 30)}" | ${(e.defects || []).map((d) => d.type).join(', ')}`);
   }
 
+  // ── 폐루프 효과 검증(2026-06-18): 챗 결함→프롬프트 anti-pattern 주입 루프가 *실제로 결함을 줄이는지*.
+  //   entries 는 LIFO(0=최신). 최근 절반 vs 과거 절반 결함률 비교 → 추세. 양쪽 모두 잔존하는 유형 = 루프 비효과(persist).
+  //   교정율(corrected): sanitize 결정론 레이어가 결함을 답변 반환 전 제거한 비율. "검증→교정" 시스템화 증거.
+  const half = Math.floor(entries.length / 2);
+  const rateOf = (arr) => arr.length ? arr.filter((e) => (e.defectCount ?? 0) > 0).length / arr.length : 0;
+  const recentRate = rateOf(entries.slice(0, half));
+  const olderRate = rateOf(entries.slice(half));
+  const trend = half >= 10 ? (recentRate < olderRate - 0.02 ? '개선' : recentRate > olderRate + 0.02 ? '악화' : '횡보') : 'n/a(표본부족)';
+  const recentTypes = {}, olderTypes = {};
+  for (const e of entries.slice(0, half)) for (const d of (e.defects ?? [])) recentTypes[d.type] = 1;
+  for (const e of entries.slice(half)) for (const d of (e.defects ?? [])) olderTypes[d.type] = 1;
+  const persistent = Object.keys(recentTypes).filter((t) => olderTypes[t]); // 과거·최근 모두 — 루프가 못 잡는 유형
+  const correctedN = entries.filter((e) => e.corrected).length;
+  const closedLoop = { recentRate: +(recentRate * 100).toFixed(1), olderRate: +(olderRate * 100).toFixed(1), trend, persistent, correctedRate: +(correctedN / entries.length * 100).toFixed(1) };
+  console.log(`\n[폐루프 효과] 최근 ${closedLoop.recentRate}% vs 과거 ${closedLoop.olderRate}% → ${trend} | sanitize 교정율 ${closedLoop.correctedRate}%`);
+  if (persistent.length) console.log(`  ⚠️ 루프가 못 잡는 잔존 결함유형: ${persistent.join(', ')} — 프롬프트 교훈 강화 또는 결정론 sanitize 규칙 추가 필요`);
+
   // 상태파일 기록(모니터/대시보드 소비) + 결함률 경고. 매 cron 사이클 자동 갱신.
   const defectRate = withDefect.length / entries.length;
   const status = {
     updatedAt: new Date().toISOString(), analyzed: entries.length, total,
     defectAnswers: withDefect.length, defectRate: +(defectRate * 100).toFixed(1),
-    types, byMode, recent: withDefect.slice(0, 8).map((e) => ({ ts: e.ts, q: (e.q || '').slice(0, 40), types: (e.defects || []).map((d) => d.type) })),
+    types, byMode, closedLoop,
+    recent: withDefect.slice(0, 8).map((e) => ({ ts: e.ts, q: (e.q || '').slice(0, 40), types: (e.defects || []).map((d) => d.type) })),
   };
   try { writeFileSync(resolve(ROOT, 'logs/chat-verify-status.json'), JSON.stringify(status, null, 2)); } catch { /* */ }
   if (defectRate >= WARN_RATE) console.log(`\n🚨 [경고] 채팅 결함률 ${status.defectRate}% (임계 ${WARN_RATE * 100}%) — 프롬프트/검증 점검 필요`);

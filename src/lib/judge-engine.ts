@@ -467,7 +467,7 @@ function fmtRagHits(hits: RagHit[]): string {
   return `# 관련 원전 인용 (버핏 서한·투자 고전 — 의미검색 RAG)\n아래는 질문과 의미적으로 가까운 실제 원문 구절이다. 판단의 *철학적 근거*로 인용하되, 수치/사실은 위 실시간 데이터를 우선하라.\n\n${body}`;
 }
 
-export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[]; macroContext?: string; macro?: { vix?: number | null; fg?: number | null }; researchBrief?: string }): string {
+export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; tickerCtx: TickerCtx[]; reportContext: string; ragHits?: RagHit[]; macroContext?: string; macro?: { vix?: number | null; fg?: number | null }; researchBrief?: string; chatLessons?: string }): string {
   const lang = LANG[opts.locale] ?? 'Korean';
   const researchBlock = opts.researchBrief ? `# 📋 사업·업황·전망 리서치 브리프 (1차 분석 — 이 사실 위에서 판단하라)\n${opts.researchBrief}` : '';
   const macroBlock = opts.macroContext ? `# 거시 환경 (실시간: CNN F&G · VIX · CME FedWatch · FRED · 국채금리)\n${opts.macroContext}` : '';
@@ -507,6 +507,9 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- **오늘은 ${today}(${curYear}년)이다.** 모든 판단은 오늘 기준. 위 실시간 데이터·재무는 *지금* 수집된 최신값이다.`,
     `- ⛔ 데이터 연도를 네 학습시점(2023·2024 등)으로 추정하지 마라. 재무는 "최근 분기/연간" 으로 칭하고, 연도를 쓰려면 grounding 에 명시된 회계연도만 써라. "${curYear}년 현재" 가 기준이며 "2024년 기준" 같은 과거를 *최신*이라 하지 마라(환각).`,
     ``,
+    // 챗 학습 폐루프(2026-06-18): 최근 실제 챗 답변에서 검출된 반복 결함을 다음 프롬프트에 주입 — 같은 실수
+    //   재발 방지. 리포트의 hallucination_history→프롬프트 루프를 챗에 복제(검증로그가 dead-end 였던 사각지대 해소).
+    opts.chatLessons ? `## 🔁 최근 이 챗에서 반복된 실수 (절대 되풀이하지 마라)\n${opts.chatLessons}\n` : '',
     `## 역할`,
     opts.mode === 'aits-deep'
       ? `- 🎯 **최우선: 사용자의 실제 질문에 정면으로 답하라.** 질문이 특정 사안(예: "소수계좌 매집 있나" · 배당 · 특정 지표 · 특정 뉴스/사건 · 비교)이면 *그 질문부터* 직접 답하라. 관련 데이터가 위 grounding 에 없으면 "그 데이터는 지금 조회하지 못했다"고 솔직히 말하라 — **절대 6단 템플릿으로 질문을 회피하지 마라(질문과 딴 소리 금지).** ▸ 질문이 일반적인 매수/매도/관망 상담일 때만 아래 "## 🔬 심층 모드 답변 요건"의 6개 소제목으로 깊게 분석한다.`

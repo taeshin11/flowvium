@@ -80,6 +80,9 @@
 - **전체 대화 저장 (2026-06-18, 사용자 "검토·학습용")**: 관리/학습 검토용 전역 `index` 리스트(최근 5000). 검토: `node scripts/judge-chat-log.mjs [N]` / `--brief`.
 - **로그인 필수 (2026-06-18, 사용자 "채팅창 들어가려면 로그인")**: JudgeChat 진입 시 `/api/member` 확인 → 비회원이면 채팅 대신 로그인 게이트(`JudgeLoginGate`, 이메일 등록 = 즉시 해제, 보고서 MemberGate 와 동일 플로우). i18n `judge.login*` 6키 ×16언어. 회원만 대화·히스토리 접근.
 - **per-user 히스토리 (2026-06-18, 사용자 "접속 아이디별 + Gemini식 히스토리")**: 소유자 uid = 로그인 이메일(`fv_member` HMAC, `src/lib/member-auth.ts`) 또는 익명 쿠키(`fv_chat_uid`). Redis `flowvium:judge-chat:u:{uid}:c:{convId}`(180일) + 최근순 ZSET 인덱스. **GET ?action=list/get · POST(생성·convId 이어쓰기) · DELETE**. Gemini식 사이드바(새 채팅 / 대화 기록 목록 / 클릭 재개 / 삭제, 모바일 드로어). 사용자 간 **격리**(쿠키 없으면 타인 대화 0건). 로그인 시 기기 간 계정 동기화. i18n `judge.historyTitle/emptyHistory` 추가.
+- **전용 페이지 + 링크 공유 (2026-06-18, 사용자 "페이지 url 이 없어 / 링크공유")**: `/[locale]/judge` 전용 라우트(`page.tsx`, 홈 버튼 → `router.push('/judge')`). 공유: `POST /api/judge-chat/share` 가 대화 스냅샷 생성 → `/[locale]/share/[id]` 읽기전용 페이지(GET 으로 스냅샷 조회). JudgeChat 공유버튼 = 클립보드 복사.
+- **vLLM 전역 동시요청 세마포어 (2026-06-18, 사용자 "LLM 들어가는 모든 경로에 세마포어, 넘으면 대기설명+큐")**: `src/lib/llm-gate.ts` — Redis ZSET 기반 *전역* 세마포어(MAX 4, pm2 cluster·스크립트 다프로세스 공유). 1요청=1슬롯(해석·리서치·최종 전구간). 가득차면 SSE `queue` progress 로 "대기 N번째 — 예상 ~분" 안내 후 폴링(claim-once-then-rank 공정순서). TTL 120s self-heal, 모든 Redis 오류·과대기는 fail-open(게이트가 채팅을 막지 않음).
+- **🔁 챗 학습 폐루프 (2026-06-18, 사용자 "검증해서 고칠게 있으면 고쳐라·시스템화" + "왜 다 놓치냐")**: 검증로그(`flowvium:judge-chat:verify`)의 최근 200건 반복결함을 집계 → `recentChatAntiPatterns` 가 결함유형별 교훈으로 변환 → `buildSystemPrompt` 의 "🔁 최근 반복된 실수" 블록에 주입(모듈캐시 10분). *리포트의 hallucination_history→프롬프트 루프를 챗에 복제* — 검증로그가 소비처 없는 dead-end 였던 사각지대 해소. 효과 검증: `analyze-chat-logs.mjs` 가 최근 vs 과거 결함률 추세(개선/악화)·sanitize 교정율·루프가 못 잡는 잔존유형(persistent)을 `chat-verify-status.json` 에 기록. 결정론 sanitize(태그·ID·<3% 급락·미특정 엔진점수 자동제거)와 2층 방어.
 
 ### 2-2. AI 데일리 브리프 위젯
 - 타임프레임 탭: `1w` / `4w` / `13w`
@@ -1126,7 +1129,8 @@ ownership-alerts 적용).
 | `/api/earnings` | Finnhub 실적 캘린더 (KST 날짜 + 기업명 + 무료 티어 60 req/min) | 2h |
 | `/api/economic-calendar` | Finnhub 경제 캘린더 (실제값·예상치·이전값 포함, 정적 fallback) | 4h |
 | `/api/market-movers` | Yahoo Finance v7 batch — S&P 500 상위 50개 당일 급등·급락 Top 5 각 | 15m |
-| `/api/judge-chat` (GET/POST/DELETE) | 매수·매도 심판엔진 채팅 — LLM(callAI vLLM우선) + 룰/doctrine + 실시간 금융API(종목감지 후 병렬수집) + 최신리포트. AITS+RAG 모드 시 버핏서한 bge-m3 의미검색(`src/lib/rag.ts`, EMBED_URL `:8100`) 추가. per-user 히스토리 GET list/get·POST·DELETE. IP 시간당 60 레이트리밋. `src/lib/judge-engine.ts` | 무캐시(force-dynamic) |
+| `/api/judge-chat` (GET/POST/DELETE) | 매수·매도 심판엔진 채팅 — LLM(callAI vLLM우선) + 룰/doctrine + 실시간 금융API(종목감지 후 병렬수집) + 최신리포트. AITS+RAG 모드 시 버핏서한 bge-m3 의미검색(`src/lib/rag.ts`, EMBED_URL `:8100`) 추가. per-user 히스토리 GET list/get·POST·DELETE. SSE 스트리밍(progress: detect→queue→resolve→gather→research→judge). vLLM 전역 세마포어(`llm-gate.ts`). 챗 학습 폐루프(반복결함→프롬프트 주입). 결정론 sanitize+검증로그. IP 시간당 60 레이트리밋(loopback/사설 IP 면제). `src/lib/judge-engine.ts` | 무캐시(force-dynamic) |
+| `/api/judge-chat/share` (POST/GET) | 심판엔진 대화 링크 공유 — POST 가 대화 스냅샷 생성(Redis), GET 으로 `/share/[id]` 읽기전용 페이지가 조회 | 무캐시(force-dynamic) |
 
 ---
 

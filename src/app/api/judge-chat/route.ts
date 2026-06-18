@@ -152,6 +152,41 @@ async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid:
   } catch { /* 검증 실패는 비치명적 */ }
 }
 
+// ── 챗 학습 폐루프(2026-06-18): 검증로그(flowvium:judge-chat:verify) 의 최근 반복 결함 → 다음 프롬프트 anti-pattern.
+//   리포트의 hallucination_history→프롬프트 루프를 챗에 복제. *검증로그가 소비처 없는 dead-end* 였던 사각지대 해소.
+//   결함유형→교훈 매핑. 최근 N건 중 실제로 발생한 상위 유형만 surface(프롬프트 비대화 방지). 모듈캐시 10분.
+const DEFECT_LESSON: Record<string, string> = {
+  score_tag_leak: '룰 점수 태그 "(+5)" 류를 답변에 그대로 노출하지 마라 — 우리말 문장으로 풀어 써라.',
+  rule_id_leak: '영문 룰 ID(snake_case, 예: price_momentum_52w_high)를 출력하지 마라 — 의미를 우리말로 풀어라.',
+  engine_line_verbatim: '"엔진 판정" 블록의 대괄호·"(발화:..)"·"룰 종합:" 줄을 그대로 복사하지 마라.',
+  engine_score_no_data: '종목 데이터가 없을 때(추천목록·미특정) "매수엔진 N점/매도엔진 M점" 을 절대 지어내지 마라.',
+  magnitude_overstate: '3% 미만 변동에 "급락/급등/폭락/폭등" 을 쓰지 마라 — "소폭 하락/상승" 으로.',
+  fake_multiple: '"순이익의 N배" 같은 과장 배수를 만들지 마라 — 라벨에 있는 수치만 인용.',
+  stale_year: '"2024년 기준" 처럼 과거 연도를 최신이라 하지 마라 — 오늘 기준 "최근 분기/연간" 으로.',
+  entry_far_from_price: '진입가는 반드시 현재가 ±10% 이내로 — 현재가와 동떨어진 진입가 금지.',
+};
+let _lessonCache: { ts: number; text: string } | null = null;
+async function recentChatAntiPatterns(redis: ReturnType<typeof createRedis>): Promise<string> {
+  if (_lessonCache && Date.now() - _lessonCache.ts < 600_000) return _lessonCache.text;
+  let text = '';
+  try {
+    if (redis) {
+      const raw = (await redis.lrange('flowvium:judge-chat:verify', 0, 199)) as string[];
+      const counts: Record<string, number> = {};
+      for (const s of raw) {
+        try {
+          const e = JSON.parse(s) as { defects?: Array<{ type: string }> };
+          for (const d of e.defects ?? []) if (DEFECT_LESSON[d.type]) counts[d.type] = (counts[d.type] ?? 0) + 1;
+        } catch { /* skip */ }
+      }
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      text = top.map(([t, n]) => `- ${DEFECT_LESSON[t]} (최근 ${n}회 발생)`).join('\n');
+    }
+  } catch { /* non-fatal — 교훈 없이 진행 */ }
+  _lessonCache = { ts: Date.now(), text };
+  return text;
+}
+
 // 종목질문 패턴 — detectTickers 가 못 잡았을 때 LLM 해석 fallback 발동 조건(하우맷→HWM 사건).
 const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비중|진입|손절|목표가|전망|어때|괜찮|투자\s*해|들어가|담아/;
 // 추천목록 요청 패턴 — 특정 종목이 아니라 "오늘 뭐 살까/top/추천" → 리포트 portfolio 노출(특정종목 해석과 구분).
@@ -340,8 +375,11 @@ export async function POST(request: NextRequest) {
     const redis = createRedis();
     const xff = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
     const ip = xff || request.headers.get('x-real-ip') || '127.0.0.1';
-    // 외부 프록시 헤더(cloudflared XFF) 없음 = 내부/로컬 직호출(테스트·파이프라인) → 레이트리밋 면제.
-    const internal = !xff && !request.headers.get('x-real-ip');
+    // 레이트리밋 면제 = 내부/로컬 직호출(테스트·파이프라인·SSR fetch). 헤더 부재뿐 아니라 loopback·사설 IP 도 내부.
+    //   (next start 가 XFF 를 IPv4-mapped loopback "::ffff:127.0.0.1" 로 채워 헤더-부재 판정만으론 면제 실패하던 버그.)
+    //   실유저는 cloudflared 가 *공인* client IP 를 XFF 로 넣어 이 정규식에 안 걸려 정상 제한된다.
+    const internal = !xff && !request.headers.get('x-real-ip')
+      || /^(::1|::ffff:127\.|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip);
     if (!internal && await rateLimited(redis, ip)) {
       return withAnonCookie(NextResponse.json({ error: 'rate_limited', reply: '잠시 후 다시 시도해 주세요 (시간당 한도 도달).' }, { status: 429 }), newAnon);
     }
@@ -368,11 +406,12 @@ export async function POST(request: NextRequest) {
       onProgress?.({ stage: 'gather', detail: tickers.length
         ? `${nameList} 자료 수집 중 — ${opts.deep ? '📄 사업보고서 본문·' : ''}시세·재무·뉴스·거시${opts.useRag ? '·투자고전(RAG)' : ''}`
         : isRecoQ ? '📋 오늘 리포트 매수 포트폴리오 불러오는 중' : '시세·거시·투자고전 자료 수집 중' });
-      const [tickerCtx, reportContext, ragHits, macroContext] = await Promise.all([
+      const [tickerCtx, reportContext, ragHits, macroContext, chatLessons] = await Promise.all([
         Promise.all(tickers.map(t => gatherTickerContext(t, origin, { withFiling: opts.deep }).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
         fetchReportContext(origin, locale, tickers, { includeList: isRecoQ || !tickers.length }),
         opts.useRag ? ragRetrieve(lastUser, 4).catch((): RagHit[] => []) : Promise.resolve([] as RagHit[]),
         fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
+        recentChatAntiPatterns(redis),  // 챗 학습 폐루프 — 최근 반복결함 anti-pattern 주입
       ]);
       // TAISN 심층(2-pass): ① 사업·업황·전망 리서치 브리프 생성(사실 정리) → ② 그 위에 판단.
       let researchBrief = '';
@@ -385,7 +424,7 @@ export async function POST(request: NextRequest) {
         } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
       }
       onProgress?.({ stage: 'judge', detail: opts.deep ? '⚖️ 엔진 판정 + 최종 심층 분석 작성 중' : '⚖️ 엔진 판정 + 답변 작성 중' });
-      const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief });
+      const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief, chatLessons });
       const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
       const grounding = {
         tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null })),
