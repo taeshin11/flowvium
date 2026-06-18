@@ -164,8 +164,24 @@ async function yahooSearch(q: string): Promise<Array<{ symbol: string; name: str
     return (d.quotes ?? []).filter(x => x.symbol && (x.quoteType === 'EQUITY' || !x.quoteType)).map(x => ({ symbol: x.symbol!, name: (x.shortname || x.longname || '') }));
   } catch { return []; }
 }
+// 티커 직접 검증 — Yahoo 에 그 심볼이 실제 존재+가격 있는지(우리 풀에 없어도 SPCX 등 해석).
+async function yahooHasTicker(sym: string): Promise<boolean> {
+  try {
+    const yt = /\.(KS|KQ)$/.test(sym) ? sym : sym.replace(/\./g, '-');
+    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yt)}?range=5d&interval=1d`, { signal: AbortSignal.timeout(7000), headers: { 'user-agent': 'Mozilla/5.0' } });
+    if (!r.ok) return false;
+    const d = await r.json();
+    return (d?.chart?.result?.[0]?.meta?.regularMarketPrice ?? 0) > 0;
+  } catch { return false; }
+}
 async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
   try {
+    // 1) 사용자가 *명시 티커*(영문 1-6자, 6자리 KR)를 쳤으면 그 심볼을 Yahoo 에 직접 조회 — 우리 풀에 없어도
+    //    실재하면 그대로 사용(SPCX=SpaceX 등). 유사 종목 치환 없이 정확매칭(2026-06-18 SPCX 사건).
+    const bare = text.trim().toUpperCase();
+    if (/^[A-Z]{1,6}$/.test(bare) && await yahooHasTicker(bare)) return [bare];
+    const krCode = text.trim().match(/^(\d{6})(\.(KS|KQ))?$/);
+    if (krCode) { for (const sfx of ['.KS', '.KQ']) { if (await yahooHasTicker(krCode[1] + sfx)) return [krCode[1] + sfx]; } }
     // LLM 은 *영문 회사명*만 추출(코드 추측 금지) → Yahoo 검색이 권위있게 티커 해석.
     const sys = '사용자 메시지에서 언급된 주식의 *영문 정식 회사명*을 추출하라. 예: 하이닉스→"SK Hynix", 하우맷→"Howmet Aerospace", 엔비디아→"NVIDIA", 삼성전자→"Samsung Electronics", 기아→"Kia". 종목 언급이 없으면 빈 배열. JSON 만 출력: {"names":["SK Hynix"]}';
     const r = await callAI(text, { systemPrompt: sys, maxTokens: 80, temperature: 0, tag: 'ticker-resolve', timeoutMs: 15000 });
@@ -299,8 +315,11 @@ export async function POST(request: NextRequest) {
 
     const { uid, newAnon } = resolveUid(request);
     const redis = createRedis();
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'anon';
-    if (await rateLimited(redis, ip)) {
+    const xff = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    const ip = xff || request.headers.get('x-real-ip') || '127.0.0.1';
+    // 외부 프록시 헤더(cloudflared XFF) 없음 = 내부/로컬 직호출(테스트·파이프라인) → 레이트리밋 면제.
+    const internal = !xff && !request.headers.get('x-real-ip');
+    if (!internal && await rateLimited(redis, ip)) {
       return withAnonCookie(NextResponse.json({ error: 'rate_limited', reply: '잠시 후 다시 시도해 주세요 (시간당 한도 도달).' }, { status: 429 }), newAnon);
     }
 
