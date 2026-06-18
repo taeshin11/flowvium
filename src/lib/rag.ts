@@ -66,7 +66,19 @@ function cosine(a: number[], b: number[]): number {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-/** 질문과 의미적으로 가까운 코퍼스 구절 top-k. 코퍼스 없음/임베딩 실패 시 []. */
+// 소스 라벨 → 구루 그룹 (다양성 캡 용). 버크셔 서한 5430청크가 검색을 독점하지 않도록
+//   "버핏(서한+위키쿼트)"을 한 그룹으로 묶어 다른 구루(소로스·린치·코스톨라니·막스·투자지혜)에 자리 양보.
+function guruGroup(source: string): string {
+  const s = source.toLowerCase();
+  if (s.includes('버크셔') || s.includes('buffett')) return 'buffett';
+  if (s.includes('soros') || s.includes('소로스')) return 'soros';
+  if (s.includes('lynch') || s.includes('린치')) return 'lynch';
+  if (s.includes('kostolany') || s.includes('코스톨라니')) return 'kostolany';
+  if (s.includes('marks') || s.includes('막스')) return 'marks';
+  return source; // 투자 지혜 / 심판 doctrine 등은 개별 유지
+}
+
+/** 질문과 의미적으로 가까운 코퍼스 구절 top-k (구루 다양성 캡). 코퍼스 없음/임베딩 실패 시 []. */
 export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
   const corpus = loadCorpus();
   if (!corpus.length) return [];
@@ -74,8 +86,20 @@ export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
   if (!qv) { logger.warn('rag', 'embed_unavailable', {}); return []; }
   const scored = corpus.map(c => ({ source: c.source, year: c.year, text: c.text, score: cosine(qv, c.embedding) }));
   scored.sort((a, b) => b.score - a.score);
-  // 최소 유사도 cutoff — 무관한 구절 주입 방지
-  return scored.filter(h => h.score >= 0.35).slice(0, k);
+  const eligible = scored.filter(h => h.score >= 0.35);
+  // 구루 그룹당 최대 2개 → 버핏 독점 방지, 다른 구루 노출. 부족하면 cap 무시하고 채움.
+  const CAP = 2;
+  const counts: Record<string, number> = {};
+  const picked: RagHit[] = [];
+  for (const h of eligible) {
+    const g = guruGroup(h.source);
+    if ((counts[g] ?? 0) >= CAP) continue;
+    counts[g] = (counts[g] ?? 0) + 1;
+    picked.push(h);
+    if (picked.length >= k) break;
+  }
+  if (picked.length < k) for (const h of eligible) { if (!picked.includes(h)) { picked.push(h); if (picked.length >= k) break; } }
+  return picked;
 }
 
 export function ragCorpusSize(): number {
