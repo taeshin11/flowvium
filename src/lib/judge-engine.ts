@@ -64,7 +64,11 @@ export function detectTickers(text: string, max = 3): string[] {
     if (meta[`${code}.KS`]) found.add(`${code}.KS`);
     else if (meta[`${code}.KQ`]) found.add(`${code}.KQ`);
   }
-  // 2) 명시적 US 티커 (대문자 1~5, 풀에 존재하는 것만 — AI/CEO 등 오탐 방지)
+  // 2) 점 포함 US 클래스주 (BRK.B, BF.B 등) — \b 단어경계가 점을 못 잡아 미감지되던 것 보강
+  for (const m of Array.from(text.matchAll(/\b([A-Z]{1,4}\.[A-Z])\b/g))) {
+    if (meta[m[1]]) found.add(m[1]);
+  }
+  // 2b) 명시적 US 티커 (대문자 1~5, 풀에 존재하는 것만 — AI/CEO 등 오탐 방지)
   for (const m of Array.from(text.matchAll(/\b([A-Z]{1,5})\b/g))) {
     if (meta[m[1]]) found.add(m[1]);
   }
@@ -116,7 +120,9 @@ export interface TickerCtx {
 //   동일하게 Yahoo v8 chart 직결로 일원화. closes 로 SMA50/200·RSI14 결정론 계산.
 async function fetchYahooChart(ticker: string): Promise<{ price: number | null; changePct: number | null; high52w: number | null; low52w: number | null; closes: number[] } | null> {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1y&interval=1d`;
+    // US 클래스주 포맷 정규화: BRK.B→BRK-B (Yahoo 는 하이픈). KR(.KS/.KQ)은 그대로.
+    const yTicker = /\.(KS|KQ)$/.test(ticker) ? ticker : ticker.replace(/\./g, '-');
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yTicker)}?range=1y&interval=1d`;
     const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0' }, cache: 'no-store' });
     if (!r.ok) return null;
     const d = await r.json() as { chart?: { result?: Array<{ meta?: Record<string, number>; indicators?: { quote?: Array<{ close?: Array<number | null> }> } }> } };
@@ -189,6 +195,10 @@ export async function gatherTickerContext(ticker: string, origin: string): Promi
 
 function fmtTickerCtx(c: TickerCtx): string {
   const cur = c.market === 'kospi' || c.market === 'kosdaq' || /\.(KS|KQ)$/.test(c.ticker) ? '₩' : '$';
+  // 가격 수집 실패 → 환각 하드 차단. 수치를 채워 넣지 못하도록 명시적 경고 라인만 반환.
+  if (c.price == null) {
+    return `⚠️ [${c.name} (${c.ticker})${c.sector ? ' · ' + c.sector : ''}] 실시간 데이터 수집 실패 — 이 종목의 가격·RSI·이동평균·52주·ROE 등 어떤 수치도 추정하거나 지어내지 마라. "실시간 데이터를 불러오지 못해 이 종목은 판단을 보류한다"고 답하라.`;
+  }
   const L: string[] = [`[${c.name} (${c.ticker})${c.sector ? ' · ' + c.sector : ''}]`];
   const f = (v: number | null | undefined) => v == null ? null : (cur === '₩' ? `${cur}${Math.round(v).toLocaleString('en-US')}` : `${cur}${v.toFixed(2)}`);
   if (c.price != null) L.push(`현재가 ${f(c.price)}${c.changePct != null ? ` (${c.changePct >= 0 ? '+' : ''}${c.changePct}%)` : ''}`);
@@ -250,7 +260,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
   const lang = LANG[opts.locale] ?? 'Korean';
   const liveBlock = opts.tickerCtx.length
     ? `# 실시간 종목 데이터 (지금 외부 금융 소스에서 수집)\n${opts.tickerCtx.map(fmtTickerCtx).join('\n')}`
-    : '# 실시간 종목 데이터\n(질문에서 특정 종목 미감지 — 일반 전략/원칙 상담)';
+    : '# 실시간 종목 데이터\n(질문에서 특정 종목 미감지 — 일반 전략/원칙 상담). ⚠️ 특정 종목명이 언급됐어도 위에 데이터가 없으면 그 종목의 가격·재무·기술 수치를 절대 지어내지 말고 "실시간 데이터를 조회하지 못했다"고 답하라.';
   const ragBlock = opts.ragHits && opts.ragHits.length ? `\n${fmtRagHits(opts.ragHits)}` : '';
   return [
     `You are "매수·매도 심판엔진" (the Buy/Sell Judgment Engine) of FlowVium — a disciplined, evidence-grounded investment judgment assistant.`,
@@ -267,6 +277,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- 근거마다 실제 수치를 곁들여 구체적으로 (예: "ROE 18.5%로 업종 평균을 웃돌아 수익성이 탄탄"). 단, 위 실시간 데이터에 있는 값만 사용.`,
     `- "고려한 데이터" 한 줄로 무엇을 봤는지 투명하게 (예: 현재가·RSI·52주 위치·ROE·시장 변동성(VIX) 등).`,
     `- 굵은 글씨는 핵심 1~2개만. 표·코드블록·영문 식별자 나열 금지.`,
+    `- 🚨 데이터 무결성: 위 실시간 데이터에 "⚠️ 수집 실패"로 표시된 종목은 가격·RSI·이동평균·52주·ROE·거래량·뉴스 등 어떤 수치도 절대 만들어내지 마라. 그 종목은 "실시간 데이터를 불러오지 못해 판단을 보류한다"고 솔직히 답하고, 일반 원칙 안내만 하라. 없는 데이터를 추정·창작하는 것은 가장 심각한 오류다.`,
     ``,
     condenseDoctrine(),
     `\n${condenseRules()}`,
