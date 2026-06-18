@@ -7972,9 +7972,24 @@ async function generateViaOllama() {
     s = s.replace(/((?:연준|Fed|기준금리|금리)[^.]{0,20}?(?:동결|인상|인하))(?:을|를)?\s*(?:기대|전망|예상|예정)/g, '$1');
     return s;
   };
+  // 2026-06-18: 금리커브 bp 환각 결정론 교정 (verify curve_slope_halluc 6회 반복 — LLM 이 실제 82~87bp 인데
+  //   항상 "40bp" 고정 환각). verify-report:(b) 와 동일 정규식 단일 source. 실제 curveSlopePp 와 >25bp 괴리만 교정.
+  const _realSlopePp = finalReport.marketVerdict?.analog?.fingerprint?.curveSlopePp ?? finalReport.marketVerdict?.analog?.macroContext?.curveSlopePp;
+  const _realBp = _realSlopePp != null ? Math.round(_realSlopePp * 100) : null;
+  const fixCurveBp = (text) => {
+    if (_realBp == null || !text) return text || '';
+    return text.replace(/((?:금리\s*(?:곡선|커브)|수익률\s*곡선|커브)[^0-9%]{0,14})(\d{1,3})(\s*bp)/g,
+      (m, pre, num, suf) => Math.abs(parseInt(num, 10) - _realBp) > 25 ? `${pre}${_realBp}${suf}` : m);
+  };
+  let _curveFix = 0;
   for (const k of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis']) {
-    if (finalReport[k]) finalReport[k] = fixFomcTense(fixCpiLabel(finalReport[k]));
+    if (finalReport[k]) {
+      const before = finalReport[k];
+      finalReport[k] = fixCurveBp(fixFomcTense(fixCpiLabel(finalReport[k])));
+      if (/bp/.test(before) && finalReport[k] !== before && /곡선|커브/.test(before)) _curveFix++;
+    }
   }
+  if (_curveFix) console.warn(`  [curve-bp-fix] 금리커브 bp 환각 ${_curveFix}필드 → 실제 ${_realBp}bp 교정 (curve_slope_halluc 결정론 봉합)`);
   // 2026-06-18: 전역 U+FFFD(�) 스크럽 — vLLM AWQ 모델이 한국어 음절을 byte-fallback 으로 �로 출력(뉴스뿐
   //   아니라 sell/buy rationale 등 보고서 곳곳). 소실된 음절은 복구 불가 → *표시되는 깨짐 제거*가 최선
   //   (�보다 음절 1개 누락이 정직). finalReport 전 문자열 재귀 스크럽. verify placeholder_leak 이 잔존 감지.
