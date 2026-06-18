@@ -461,6 +461,31 @@ CREATE TABLE IF NOT EXISTS accuracy_probe_log (
   FOREIGN KEY (run_id) REFERENCES monitor_runs(run_id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_accuracy_metric ON accuracy_probe_log(metric, observed_at);
+
+-- 2026-06-18: 사업보고서 본문(DART 사업보고서 / SEC 10-K) 섹션 저장소. 보고서가 새로 뜰 때마다
+--   ingest-filings.mjs 가 본문을 받아 섹션 파싱해 적재(사용자 "사업보고서는 뜰때마다 db에 본문 받아 저장").
+--   목적: 재무 숫자만이 아니라 사업의 내용·제품매출 vs 상품매출(되팔기)·연구개발·전망까지 매수선정/심층챗 근거.
+--   filing_id = DART rcept_no 또는 SEC accessionNumber (UNIQUE 로 재수집 시 덮어쓰기/skip).
+CREATE TABLE IF NOT EXISTS filings (
+  ticker       TEXT NOT NULL,
+  market       TEXT NOT NULL,            -- kr / us
+  filing_id    TEXT NOT NULL,            -- DART rcept_no | SEC accessionNumber
+  form         TEXT,                     -- 사업보고서 | 분기보고서 | 10-K | 10-Q | 20-F
+  report_nm    TEXT,
+  filed_date   TEXT,                     -- YYYYMMDD(DART) | YYYY-MM-DD(SEC)
+  overview     TEXT,                     -- 사업의 개요 / Item 1 Business
+  products     TEXT,                     -- 주요 제품·서비스
+  sales_mix    TEXT,                     -- 매출 및 수주상황 (제품/상품 split)
+  rnd          TEXT,                     -- 연구개발활동
+  risk         TEXT,                     -- (SEC) Item 1A Risk Factors
+  mdna         TEXT,                     -- (SEC) Item 7 MD&A
+  resale_ratio REAL,                     -- 상품매출/(제품+상품) — 파싱 가능 시(되팔기 비중)
+  source       TEXT NOT NULL,            -- dart | sec
+  fetched_at   TEXT NOT NULL,
+  PRIMARY KEY (ticker, filing_id)
+);
+CREATE INDEX IF NOT EXISTS idx_filings_ticker  ON filings(ticker, filed_date DESC);
+CREATE INDEX IF NOT EXISTS idx_filings_fetched ON filings(fetched_at);
 `;
 
 let _dbInstance = null;
@@ -505,6 +530,29 @@ export function getSegments(ticker) {
   try { return { ticker: r.ticker, segments: JSON.parse(r.segments_json), total: r.total, asOf: r.as_of, source: r.source, fetchedAt: r.fetched_at }; }
   catch { return null; }
 }
+// ── filings (사업보고서 본문 섹션, 2026-06-18) ──────────────────────────────────
+export function saveFiling(f) {
+  const db = openDb();
+  db.prepare(`INSERT INTO filings (ticker, market, filing_id, form, report_nm, filed_date, overview, products, sales_mix, rnd, risk, mdna, resale_ratio, source, fetched_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(ticker, filing_id) DO UPDATE SET form=excluded.form, report_nm=excluded.report_nm, filed_date=excluded.filed_date,
+      overview=excluded.overview, products=excluded.products, sales_mix=excluded.sales_mix, rnd=excluded.rnd, risk=excluded.risk,
+      mdna=excluded.mdna, resale_ratio=excluded.resale_ratio, source=excluded.source, fetched_at=excluded.fetched_at`)
+    .run(String(f.ticker).toUpperCase(), f.market, f.filingId, f.form ?? null, f.reportNm ?? null, f.filedDate ?? null,
+      f.overview ?? null, f.products ?? null, f.salesMix ?? null, f.rnd ?? null, f.risk ?? null, f.mdna ?? null,
+      f.resaleRatio ?? null, f.source, f.fetchedAt ?? new Date().toISOString());
+}
+/** ticker 의 최신 보고서 1건(filed_date desc). */
+export function getLatestFiling(ticker) {
+  const db = openDb();
+  return db.prepare('SELECT * FROM filings WHERE ticker = ? ORDER BY filed_date DESC LIMIT 1').get(String(ticker).toUpperCase()) ?? null;
+}
+/** 이미 저장된 filing_id 인지(재수집 skip 판단). */
+export function hasFiling(ticker, filingId) {
+  const db = openDb();
+  return !!db.prepare('SELECT 1 FROM filings WHERE ticker = ? AND filing_id = ?').get(String(ticker).toUpperCase(), filingId);
+}
+
 // 2026-06-14 (Task28 D7): evidence_claims 적재/조회. UNIQUE(ticker,claim_id,period,source) upsert.
 export function saveEvidenceClaim({ ticker, claimId, valueNum = null, valueText = null, unit = null, period = null, asOf = null, source, sourceRef = null, confidence = null, evidenceHash = null, fetchedAt = null }) {
   const db = openDb();
