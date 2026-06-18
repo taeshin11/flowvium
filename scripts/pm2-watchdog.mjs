@@ -7,7 +7,9 @@
 //   node 작성 이유: pm2 jlist JSON 에 중복키(username/USERNAME) 있어 PowerShell ConvertFrom-Json 거부 →
 //   node JSON.parse 는 중복키 허용(마지막 값 채택).
 import { execFileSync } from 'node:child_process';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, existsSync } from 'node:fs';
+
+const LORA_LOCK = 'D:\\Flowvium\\logs\\lora-training.lock';
 
 const PM2 = `${process.env.APPDATA}\\npm\\pm2.cmd`;
 const LOG = 'D:\\Flowvium\\logs\\pm2-watchdog.log';
@@ -37,6 +39,9 @@ async function checkVllm() {
     } catch { return false; }
   };
   if (await alive()) return; // 정상 — 무로그
+  // LoRA 학습 윈도우: vLLM 을 의도적으로 정지(GPU 24GB 점유 해제)한 상태 → 재기동하면 학습 OOM.
+  //   logs/lora-training.lock 존재 시 재기동 보류(오케스트레이터가 학습 후 lock 제거+vLLM 재기동).
+  if (existsSync(LORA_LOCK)) { logline('[VLLM] :8000 다운이나 lora-training.lock 존재 — LoRA 학습중, 재기동 보류'); return; }
   // 모델 로딩 중(~1-2min)이면 vllm 프로세스가 이미 떠 있음 → 재기동 시 중복 spawn/포트경합 → 보류.
   let loading = false;
   try {
