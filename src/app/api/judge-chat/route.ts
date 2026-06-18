@@ -87,6 +87,36 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
 
 const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${m.content}`).join('\n');
 
+// 답변 자동검증 — 매 답변 후 질문+답변을 grounding 에 대조해 결함 탐지(2026-06-18 사용자 "질문로그·답변로그 함께 검증").
+//   결정론 체크(환각/누출/근거이탈). 결과는 Redis 로그(flowvium:judge-chat:verify)로 적재해 추세 추적.
+interface ChatDefect { type: string; detail?: string }
+function checkChatDefects(question: string, answer: string, grounding: { tickers?: Array<{ ticker: string; price: number | null }>; usedFiling?: boolean } | undefined): ChatDefect[] {
+  const d: ChatDefect[] = [];
+  const a = answer || '';
+  const hasEngineData = (grounding?.tickers ?? []).some(t => t.price != null);
+  // 1) 룰 ID·점수태그 누출 (price_momentum_52w_high, (+5) 등)
+  if (/\(\+\d+\)/.test(a)) d.push({ type: 'score_tag_leak', detail: (a.match(/\(\+\d+\)/) ?? [''])[0] });
+  if (/\b[a-z]+_[a-z]+_[a-z0-9]+\b/.test(a)) d.push({ type: 'rule_id_leak', detail: (a.match(/\b[a-z]+_[a-z]+_[a-z0-9]+\b/) ?? [''])[0] });
+  // 2) 종목 데이터 없는데 엔진 점수 날조 (하우맷 사건)
+  if (!hasEngineData && /(매수|매도)\s*엔진\s*(총점|점수)?\s*\d+\s*점/.test(a)) d.push({ type: 'engine_score_no_data' });
+  // 3) 변동폭 과장 — N%(<3) 급락/급등
+  for (const m of Array.from(a.matchAll(/([\d.]+)\s*%\s*(급락|급등|폭락|폭등)/g))) if (Math.abs(Number(m[1])) < 3) d.push({ type: 'magnitude_overstate', detail: m[0] });
+  // 4) 가짜 배수 (이익의 질 938배 류)
+  for (const m of Array.from(a.matchAll(/순이익의\s*([\d,]+)\s*배/g))) if (Number(m[1].replace(/,/g, '')) >= 10) d.push({ type: 'fake_multiple', detail: m[0] });
+  return d;
+}
+async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid: string; question: string; answer: string; grounding: Record<string, unknown>; mode: string; source: string }): Promise<void> {
+  try {
+    const defects = checkChatDefects(p.question, p.answer, p.grounding as { tickers?: Array<{ ticker: string; price: number | null }>; usedFiling?: boolean });
+    if (redis) {
+      await redis.lpush('flowvium:judge-chat:verify', JSON.stringify({ ts: new Date().toISOString(), uid: p.uid, q: p.question.slice(0, 120), mode: p.mode, source: p.source, len: p.answer.length, defectCount: defects.length, defects }));
+      await redis.ltrim('flowvium:judge-chat:verify', 0, 4999);
+    }
+    if (defects.length) logger.warn('judge-chat', 'verify_defects', { mode: p.mode, count: defects.length, types: defects.map(x => x.type).join(',') });
+    else logger.info('judge-chat', 'verify_clean', { mode: p.mode });
+  } catch { /* 검증 실패는 비치명적 */ }
+}
+
 // 종목질문 패턴 — detectTickers 가 못 잡았을 때 LLM 해석 fallback 발동 조건(하우맷→HWM 사건).
 const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비중|진입|손절|목표가|전망|어때|괜찮|투자\s*해|들어가|담아/;
 // 추천목록 요청 패턴 — 특정 종목이 아니라 "오늘 뭐 살까/top/추천" → 리포트 portfolio 노출(특정종목 해석과 구분).
@@ -313,6 +343,7 @@ export async function POST(request: NextRequest) {
               send({ type: 'delta', text: full });
             }
             await persist(full, source);
+            void verifyChatAndLog(redis, { uid, question: lastUser, answer: full, grounding, mode, source }); // 자동검증(비차단)
             logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: full.length, stream: true });
             send({ type: 'done', source });
             controller.close();
@@ -341,6 +372,7 @@ export async function POST(request: NextRequest) {
     }
     logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: text.length });
     await persist(text, source);
+    void verifyChatAndLog(redis, { uid, question: lastUser, answer: text, grounding, mode, source: source ?? 'unknown' }); // 자동검증(비차단)
     return withAnonCookie(NextResponse.json({ reply: text, source, mode, durationMs, grounding, convId, title: titleOf([...messages, { role: 'assistant', content: text }]) }), newAnon);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'unknown';
