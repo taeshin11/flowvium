@@ -38,8 +38,9 @@ function fixField(s, { realBp = null, indexMap = {}, stockChgMap = {} } = {}) {
   if (typeof s !== 'string' || !s) return s;
   let t = s;
 
-  // (a) 금리곡선 bp → 실 bp (괄호 유무 무관)
-  if (realBp != null) t = t.replace(/(금리\s*(?:곡선|커브)[^.]{0,12}?)([+-]?\d{1,3})(\s*bp)/g, `$1${realBp}$3`);
+  // (a) 금리곡선 bp → 실 bp (괄호 유무 무관). 검출(verify-report curve_slope_halluc)과 *동일 변형* 커버 —
+  //   "금리곡선/금리커브" 뿐 아니라 "수익률 곡선"·"커브" 단독도(검출만 되고 교정 안 돼 6회 재발하던 버그, 2026-06-18).
+  if (realBp != null) t = t.replace(/((?:금리\s*(?:곡선|커브)|수익률\s*곡선|커브)[^0-9%.]{0,14}?)([+-]?\d{1,3})(\s*bp)/g, `$1${realBp}$3`);
 
   // (b) 오타/표기
   t = t.replace(/나스다크/g, '나스닥').replace(/콘텡고|콘텐고|콘탕고|컨텐고|컨티아고|컨텐코/g, '콘탱고');

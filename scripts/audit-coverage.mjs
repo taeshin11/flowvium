@@ -35,6 +35,7 @@ const STRUCTURAL_NULLS = {
   'hallucination_history.details_json': 'defect_type 별 details 유무 상이(일부 defect 본문 없음)',
   'earnings_archive.pe_ratio': 'earnings 소스(estimate)가 PE 미제공 — PE 는 company page 에서 price/EPS 라이브 산출(21/579만 소스 동반). 아카이브 미저장이 정상',
   'render_audit_log.tab': '2026-06-17: tab 은 *탭별* 렌더결함 전용 — page-level 결함(현재 deep-monitor 가 기록하는 dup_riskevent 등)은 page 만 채우고 tab=NULL 이 정상(선택 컬럼). 탭별 결함 발생 시 채워짐',
+  'filings.resale_ratio': '2026-06-18: resale_ratio = 상품(되팔기)매출/총매출 — 대부분 기업은 자체생산이라 상품매출 0(되팔기 사업 없음)→NULL 이 정상. 유통/상사형(본문에 상품매출 항목 명시) 기업만 채워짐. 본문 파싱 자체는 정상(overview/products/rnd 채워짐)',
   // 2026-06-05 배선 완료(더 이상 구조적 아님 → STRUCTURAL 에서 제외):
   //   - recommendation_outcomes.quality_score: computeOutcomeQuality(alpha 기반) saveOutcome/closeOutcome 배선 + 역사 backfill(98%)
   //   - short_squeeze_archive.rationale: score+timing+risk 합성 배선 + 역사 backfill(100%)
