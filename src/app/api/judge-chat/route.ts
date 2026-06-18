@@ -188,33 +188,42 @@ export async function POST(request: NextRequest) {
     const origin = `http://127.0.0.1:${process.env.PORT || 3000}`;
     const opts = MODE_OPTS[mode];
     const tickers = detectTickers(lastUser, opts.maxTickers);
-    const [tickerCtx, reportContext, ragHits, macroContext] = await Promise.all([
-      Promise.all(tickers.map(t => gatherTickerContext(t, origin, { withFiling: opts.deep }).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
-      fetchReportContext(origin, locale, tickers),
-      opts.useRag ? ragRetrieve(lastUser, 4).catch((): RagHit[] => []) : Promise.resolve([] as RagHit[]),
-      fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
-    ]);
-
-    // TAISN 심층(2-pass): ① 사업·업황·전망 리서치 브리프 생성(사실 정리) → ② 그 위에 판단.
-    let researchBrief = '';
-    if (opts.deep && tickerCtx.some(c => c.price != null)) {
-      try {
-        const rp = buildResearchPrompt({ locale, tickerCtx, macroContext: macroContext.text });
-        const rr = await callAI('위 데이터로 사업·업황·경쟁포지션·강세/약세 시나리오 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 1400, temperature: 0.4, tag: 'judge-research', timeoutMs: 45000 });
-        researchBrief = rr.text || '';
-      } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
-    }
-
-    const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief });
-    const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
-
-    const grounding = {
-      tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null })),
-      usedRules: true, usedReport: !!reportContext, usedMacro: !!macroContext,
-      usedRag: ragHits.length > 0,
-      ragSources: ragHits.map(h => ({ source: h.source, year: h.year ?? null, score: Number(h.score.toFixed(2)) })),
-    };
     const convId = body.convId || `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
+    const nameList = tickers.map(t => tickerName(t)).join(', ');
+
+    // 컨텍스트 수집(+심층 리서치). onProgress 로 단계별 진행상황 emit → 스트리밍 로딩 UI("무슨 자료 받고 뭘 분석중인지").
+    type Progress = { stage: string; detail: string };
+    const buildAll = async (onProgress?: (p: Progress) => void) => {
+      onProgress?.({ stage: 'gather', detail: tickers.length
+        ? `${nameList} 자료 수집 중 — ${opts.deep ? '📄 사업보고서 본문·' : ''}시세·재무·뉴스·거시${opts.useRag ? '·투자고전(RAG)' : ''}`
+        : '시세·거시·투자고전 자료 수집 중' });
+      const [tickerCtx, reportContext, ragHits, macroContext] = await Promise.all([
+        Promise.all(tickers.map(t => gatherTickerContext(t, origin, { withFiling: opts.deep }).catch((): TickerCtx => ({ ticker: t, name: tickerName(t) })))),
+        fetchReportContext(origin, locale, tickers),
+        opts.useRag ? ragRetrieve(lastUser, 4).catch((): RagHit[] => []) : Promise.resolve([] as RagHit[]),
+        fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
+      ]);
+      // TAISN 심층(2-pass): ① 사업·업황·전망 리서치 브리프 생성(사실 정리) → ② 그 위에 판단.
+      let researchBrief = '';
+      if (opts.deep && tickerCtx.some(c => c.price != null)) {
+        onProgress?.({ stage: 'research', detail: '🔍 1차 리서치 브리프 작성 중 (사업구조·업황·경쟁·강세/약세 시나리오)' });
+        try {
+          const rp = buildResearchPrompt({ locale, tickerCtx, macroContext: macroContext.text });
+          const rr = await callAI('위 데이터로 사업·업황·경쟁포지션·강세/약세 시나리오 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 1400, temperature: 0.4, tag: 'judge-research', timeoutMs: 45000 });
+          researchBrief = rr.text || '';
+        } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
+      }
+      onProgress?.({ stage: 'judge', detail: opts.deep ? '⚖️ 엔진 판정 + 최종 심층 분석 작성 중' : '⚖️ 엔진 판정 + 답변 작성 중' });
+      const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief });
+      const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
+      const grounding = {
+        tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null })),
+        usedRules: true, usedReport: !!reportContext, usedMacro: !!macroContext,
+        usedRag: ragHits.length > 0, usedFiling: tickerCtx.some(c => c.filing),
+        ragSources: ragHits.map(h => ({ source: h.source, year: h.year ?? null, score: Number(h.score.toFixed(2)) })),
+      };
+      return { systemPrompt, userPrompt, grounding };
+    };
 
     // 대화 영속(완성된 답변 text 로) — 스트림/논스트림 공용
     const persist = async (text: string, source: string) => {
@@ -237,6 +246,15 @@ export async function POST(request: NextRequest) {
       const sse = new ReadableStream({
         async start(controller) {
           const send = (o: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(o)}\n\n`));
+          send({ type: 'progress', stage: 'detect', detail: tickers.length ? `질문 종목 인식: ${nameList}` : '일반 투자 상담' });
+          let systemPrompt: string, userPrompt: string, grounding: Record<string, unknown>;
+          try {
+            ({ systemPrompt, userPrompt, grounding } = await buildAll((p) => send({ type: 'progress', stage: p.stage, detail: p.detail })));
+          } catch (e) {
+            logger.warn('judge-chat', 'build_fail', { error: e instanceof Error ? e.message : 'x' });
+            send({ type: 'delta', text: '자료를 수집하는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.' });
+            send({ type: 'done', source: 'error' }); controller.close(); return;
+          }
           send({ type: 'meta', convId, grounding, mode, title: titleOf([...messages]) });
           let full = '', source = 'vllm-local';
           try {
@@ -260,6 +278,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 논스트림 경로 (기존) ──────────────────────────────────────────────────────
+    const { systemPrompt, userPrompt, grounding } = await buildAll();
     const { text, source, durationMs, attempts } = await callAI(userPrompt, {
       systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature,
       preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000,
