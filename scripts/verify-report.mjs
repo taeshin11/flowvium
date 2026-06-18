@@ -276,6 +276,19 @@ export async function verifyReport(file, { silent = false } = {}) {
     }
   }
   if (!cpiMis) log('  ✅ CPI 라벨 정상');
+  // (c2) 변동폭 과장 — "1.1% 급락/급등" 처럼 작은(<3%) 변동을 급락/급등/폭락/폭등으로 표기하면 사실오류.
+  //   2026-06-18 사건: "원달러 환율 1535(1.1% 급락)" 라이브 노출(1.1%는 소폭). 사용자 "이거 급락 맞어?".
+  let magMis = 0;
+  const MAG = /([\d.]+)\s*%\s*(급락|급등|폭락|폭등)/g;
+  const full = JSON.stringify(r);
+  for (const m of full.matchAll(MAG)) {
+    if (Math.abs(Number(m[1])) < 3) {
+      magMis++;
+      log(`  ❌ 변동폭 과장 "${m[0]}" (${m[1]}%는 급락/급등 아님 — 3%↑만)`);
+      defects.push({ ticker: 'MACRO', defect_type: 'magnitude_overstate', llm_value: m[0], correct_value: `${m[1]}%는 소폭/하락-상승 (급락·급등은 3%↑)`, severity: 'medium' });
+    }
+  }
+  if (!magMis) log('  ✅ 변동폭 표현 정상(급락/급등 과장 없음)');
   // (d) FOMC 시제 — 이미 끝난(보고서 월 이하) FOMC 를 "기대/전망/예상"(미래형)으로 서술하면 결함.
   //   2026-06-18 사건: 6월 FOMC 완료(데이터도 next=7/29 인지)인데 "6월 FOMC 동결 기대(100%)" 라이브 노출.
   let fomcTense = 0;
