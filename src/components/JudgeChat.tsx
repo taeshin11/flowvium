@@ -7,7 +7,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Scale, Plus, Send, Loader2, X, ChevronDown, SquarePen, TrendingUp, TrendingDown, Briefcase, FileText, Menu, Trash2, MessageSquare, Home } from 'lucide-react';
+import { Scale, Plus, Send, Loader2, X, ChevronDown, SquarePen, TrendingUp, TrendingDown, Briefcase, FileText, Menu, Trash2, MessageSquare, Home, Share2, Check } from 'lucide-react';
 
 type Mode = 'aits' | 'aits-rag' | 'aits-deep';
 interface Msg { role: 'user' | 'assistant'; content: string; source?: string; grounding?: Grounding; progress?: string }
@@ -72,6 +72,21 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const newChat = () => { setMessages([]); setConvId(null); setSidebarOpen(false); };
+
+  // 대화 공유 — 읽기전용 스냅샷 생성 후 링크 클립보드 복사(2026-06-18 사용자 "채팅 링크 공유").
+  const [shareState, setShareState] = useState<'idle' | 'working' | 'done'>('idle');
+  const doShare = useCallback(async () => {
+    if (!convId || shareState === 'working') return;
+    setShareState('working');
+    try {
+      const r = await fetch('/api/judge-chat/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ convId }) });
+      const d = await r.json();
+      if (!d.shareId) throw new Error('no id');
+      const url = `${window.location.origin}/${locale}/share/${d.shareId}`;
+      try { await navigator.clipboard.writeText(url); } catch { window.prompt('공유 링크', url); }
+      setShareState('done'); setTimeout(() => setShareState('idle'), 2000);
+    } catch { setShareState('idle'); alert('공유 링크 생성에 실패했습니다.'); }
+  }, [convId, shareState, locale]);
   const openConv = async (id: string) => {
     setSidebarOpen(false);
     try {
@@ -224,6 +239,11 @@ export default function JudgeChat({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {convId && messages.length > 0 && (
+              <button onClick={doShare} title="대화 링크 공유" disabled={shareState === 'working'} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors disabled:opacity-50">
+                {shareState === 'done' ? <Check className="w-5 h-5 text-emerald-500" /> : shareState === 'working' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
+              </button>
+            )}
             {messages.length > 0 && <button onClick={newChat} title={t('newChat')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"><SquarePen className="w-5 h-5" /></button>}
             <button onClick={onClose} title={t('backHome')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"><X className="w-5 h-5" /></button>
           </div>
