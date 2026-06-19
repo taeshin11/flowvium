@@ -18,24 +18,29 @@ for i in $(seq 1 30); do
 done
 python - <<'PY'
 import os, json, torch
+# 2026-06-20: CUDA OOM(30B 4bit 로딩이 24GB 빠듯, 96%서 OOM) fix — fragmentation 완화(에러 권장).
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from trl import SFTTrainer, SFTConfig
 BASE="Qwen/Qwen3-30B-A3B-Instruct-2507"
 tok=AutoTokenizer.from_pretrained(BASE)
-bnb=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=True)
-# device_map={"":0}: 전체를 GPU0 에 강제(자동 CPU offload 금지) — QLoRA 30B 4bit(~16GB) 는 24GB 에 적재 가능.
-#   "auto" 는 학습 헤드룸을 보수적으로 잡아 일부 expert 를 CPU 로 보내 bnb 4bit 가 거부하던 원인.
-model=AutoModelForCausalLM.from_pretrained(BASE, quantization_config=bnb, device_map={"": 0}, trust_remote_code=True)
+# 2026-06-20 메모리 최적: fp32 CPU offload 허용(빠듯할 때 소량만 CPU spill, bnb 4bit 수용) + double_quant.
+bnb=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=True, llm_int8_enable_fp32_cpu_offload=True)
+# device_map="auto" + max_memory: GPU 22GB 헤드룸(나머지 2GB 는 학습 활성화/optimizer용), 넘치면 CPU 소량 spill.
+#   {"":0} 전부GPU 는 로딩 peak 가 24GB 초과해 OOM → 헤드룸 두고 auto+offload 로 안전 적재(2026-06-20).
+model=AutoModelForCausalLM.from_pretrained(BASE, quantization_config=bnb, device_map="auto",
+    max_memory={0: "21GiB", "cpu": "100GiB"}, trust_remote_code=True)
 lora=LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"], task_type="CAUSAL_LM")
 ds=load_dataset("json", data_files="/mnt/d/Flowvium/data/sft/aits-finance-t.jsonl", split="train")
 def fmt(ex): return {"text": tok.apply_chat_template(ex["messages"], tokenize=False, add_generation_prompt=False)}
 ds=ds.map(fmt)
 OUT=os.path.expanduser("~/aits-finance-t-lora")   # quoted heredoc 라 bash $HOME 미확장 → python 에서 해석(기존 버그)
+# 2026-06-20 학습 메모리 절감: paged_adamw_8bit(optimizer state 8bit·페이징) + seq 2048→1024(활성화 메모리 반감).
 cfg=SFTConfig(output_dir=OUT, per_device_train_batch_size=1, gradient_accumulation_steps=8,
     num_train_epochs=3, learning_rate=1e-4, bf16=True, gradient_checkpointing=True, logging_steps=10,
-    save_strategy="epoch", max_seq_length=2048, packing=False)
+    optim="paged_adamw_8bit", save_strategy="epoch", max_seq_length=1024, packing=False)
 tr=SFTTrainer(model=get_peft_model(model,lora), train_dataset=ds, args=cfg)
 tr.train(); tr.save_model(OUT)
 print("LoRA saved ->", OUT)
