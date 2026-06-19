@@ -372,29 +372,43 @@ export function evaluateSellRule(rule, ctx) {
   return null;
 }
 
-import { readFileSync as _rf, existsSync as _ex } from 'node:fs';
+import { readFileSync as _rf, existsSync as _ex, statSync as _st } from 'node:fs';
 import { resolve as _rs, dirname as _dn } from 'node:path';
 import { fileURLToPath as _fu } from 'node:url';
-// data/ 해석: ① process.cwd()(보고서 root 실행·Next root 실행 — 정상) ② 모듈 위치 기준 fallback(cwd 비정상 시).
-//   cron-critical: cwd 가 root 아니면 0룰 → portfolio 붕괴. import.meta.url 은 Next 번들 시 .next/ 가리킬 수
-//   있어 1순위 아님, cwd 실패 때만 fallback(2026-06-19 견고화).
-function _readData(rel) {
+// data/ 해석: ① process.cwd()(보고서·Next root 실행 — 정상) ② 모듈 위치 fallback. cron-critical: cwd 가 root
+//   아니면 0룰 → portfolio 붕괴. import.meta.url 은 Next 번들 시 .next/ 가리킬 수 있어 1순위 아님(2026-06-19).
+function _resolveData(rel) {
   const cands = [_rs(process.cwd(), rel)];
   try { cands.push(_rs(_dn(_fu(import.meta.url)), '../..', rel)); } catch { /* */ }
-  for (const p of cands) { try { if (_ex(p)) return _rf(p, 'utf8'); } catch { /* */ } }
+  for (const p of cands) { try { if (_ex(p)) return p; } catch { /* */ } }
   return null;
 }
-let _buyRules = null, _sellRules = null;
-export function loadBuyRules() {
-  if (_buyRules) return _buyRules;
-  try { const t = _readData('data/buy-rules-tuned.json'); const j = t ? JSON.parse(t) : {}; _buyRules = j.rules || (Array.isArray(j) ? j : []); } catch { _buyRules = []; }
-  return _buyRules;
+// 2026-06-19(ChatGPT 지적): 룰 캐시 영구고정 → 주간 tuner 갱신 후 장기실행 Next worker 가 옛 룰 유지(drift 재발).
+//   mtime 기반 hot-reload(30s 체크) + min-rule 검증(부분/빈 JSON 캐시 방지, 실패 시 *직전 good* 유지). Object.freeze.
+const MIN_RULES = { buy: 30, sell: 18 };
+const _state = { buy: { checkedAt: 0, mtimeMs: -1, rules: null }, sell: { checkedAt: 0, mtimeMs: -1, rules: null } };
+function _loadRules(kind) {
+  const s = _state[kind], now = Date.now();
+  if (s.rules && now - s.checkedAt < 30_000) return s.rules;            // 30s 내 재확인 안 함
+  s.checkedAt = now;
+  try {
+    const path = _resolveData(`data/${kind}-rules-tuned.json`);
+    if (!path) throw new Error('path 없음');
+    const mt = _st(path).mtimeMs;
+    if (s.rules && mt === s.mtimeMs) return s.rules;                    // 파일 안 바뀜 → 캐시
+    const j = JSON.parse(_rf(path, 'utf8'));
+    const rules = j.rules || (Array.isArray(j) ? j : []);
+    if (!Array.isArray(rules) || rules.length < MIN_RULES[kind]) throw new Error(`룰 수 부족 ${rules?.length ?? 0}<${MIN_RULES[kind]}`);
+    for (const r of rules) if (!r.id || !r.condition?.type || !Number.isFinite(r.score)) throw new Error(`malformed: ${r?.id ?? '?'}`);
+    s.rules = Object.freeze(rules); s.mtimeMs = mt;                     // 검증 통과분만 캐시
+    return s.rules;
+  } catch (e) {
+    if (s.rules) return s.rules;                                        // 검증 실패 → 직전 good 유지(빈 []캐시 금지)
+    try { const p = _resolveData(`data/${kind}-rules-tuned.json`); const j = JSON.parse(_rf(p, 'utf8')); return s.rules = Object.freeze(j.rules || j); } catch { return []; }
+  }
 }
-export function loadSellRules() {
-  if (_sellRules) return _sellRules;
-  try { const t = _readData('data/sell-rules-tuned.json'); const j = t ? JSON.parse(t) : {}; _sellRules = j.rules || (Array.isArray(j) ? j : []); } catch { _sellRules = []; }
-  return _sellRules;
-}
+export function loadBuyRules() { return _loadRules('buy'); }
+export function loadSellRules() { return _loadRules('sell'); }
 export function scoreBuy(ctx, rules = loadBuyRules()) {
   const hits = [];
   for (const r of rules) { const reason = evaluateBuyRule(r, ctx); if (reason) hits.push({ id: r.id, score: r.score, desc: r.description || reason, category: r.category, reason }); }
@@ -409,7 +423,10 @@ export function scoreSell(ctx, rules = loadSellRules()) {
 // 최종 심판(2026-06-19 통합) — buyScore vs sellScore + hard veto → 결정론 verdict. 챗·보고서 공유.
 //   이전엔 챗이 최종 결론을 LLM 에 맡겨 점수와 어긋남("16 vs 3 인데 매도 우세"). 이제 코드가 단정, LLM 은 설명만.
 //   hardSell = 치명 매도신호(데드크로스·200MA이탈·영업현금흐름 적자 등) → 점수 무관 매도 우선.
-const HARD_SELL_IDS = new Set(['tech_dead_cross', 'tech_200ma_breach', 'price_stop_breach', 'forensic_negative_ocf', 'micro_supply_contract_loss']);
+// 2026-06-19(ChatGPT 지적): tech_200ma_breach 제외 — price<200MA 단순 이탈(0.01%도)을 hard veto 하면
+//   mean-reversion 매수룰(price_mean_reversion·Marks capitulation·52주저점 반등)과 정면충돌 + 정상변동 회피.
+//   200MA 이탈은 *점수형 매도신호*(ma200Breach score)로 남기고, hard veto 는 데드크로스·OCF적자·손절이탈·계약해지만.
+const HARD_SELL_IDS = new Set(['tech_dead_cross', 'price_stop_breach', 'forensic_negative_ocf', 'micro_supply_contract_loss']);
 export function adjudicate(buyScore, sellScore, opts = {}) {
   const hardSell = opts.hardSell ?? false;
   const net = (buyScore ?? 0) - (sellScore ?? 0);

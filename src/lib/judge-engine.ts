@@ -275,7 +275,8 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
     sma200: sma(closes, 200),
     high52w: yh?.high52w ?? null,
     low52w: yh?.low52w ?? null,
-    high20d: closes.length >= 20 ? Math.max(...closes.slice(-20)) : null,  // 20일 신고가(돌파 룰 above20dHigh)
+    // 20일 신고가: *직전* 20완료봉(당일 종가 제외) — 당일 포함 시 price>high20d 불가라 돌파룰 死(2026-06-19 ChatGPT 지적).
+    high20d: closes.length >= 21 ? Math.max(...closes.slice(-21, -1)) : null,
     ...volSignals(yh?.volumes ?? []),  // volRatio(최근5/직전30) · relVol(당일/20일) — 매수·매도엔진 거래량 발화
 
     roe: num(pick(finCore, 'roePct', 'roe')),

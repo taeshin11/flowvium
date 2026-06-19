@@ -116,6 +116,12 @@ for (const e of Object.values(ruleEdge)) {
 }
 const ruleProposals = [];
 for (const r of spec.rules) {
+  // 2026-06-19(ChatGPT 지적): ban/veto 등 음수·구조적 룰은 자동튜닝 금지 — SCORE_MIN clamp(=1)이 -100 을 +1 로
+  //   뒤집어 *금지 종목이 매수 가점*으로 변하는 치명버그. tunable:false 또는 score<=0 룰은 현 score 고정.
+  if (r.tunable === false || r.score <= 0) {
+    ruleProposals.push({ id: r.id, category: r.category, n: ruleEdge[r.id]?.n ?? 0, edge: null, current: r.score, proposed: r.score, changed: false, reason: '구조적 룰(튜닝 제외)' });
+    continue;
+  }
   const e = ruleEdge[r.id];
   if (!e || e.n < MIN_SAMPLE) {
     ruleProposals.push({ id: r.id, category: r.category, n: e?.n ?? 0, edge: e?.edge ?? null, current: r.score, proposed: r.score, changed: false, reason: `표본부족(n=${e?.n ?? 0}<${MIN_SAMPLE})` });

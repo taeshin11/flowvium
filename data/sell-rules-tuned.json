@@ -136,7 +136,7 @@
         "vol_pct_lte": -30,
         "price_drop_pct_lte": -3
       },
-      "description": "volume -30%+ & price -3%+ (distribution 패턴)"
+      "description": "volume -30%+ & price -3%+ (거래량 감소 속 하락 — 수요 고갈/매수세 약화)"
     },
     {
       "id": "macro_high_risk",
@@ -270,7 +270,8 @@
         "type": "banListSell"
       },
       "description": "ban-list 보유 종목(2+손절/0성공) 청산 — 매수 ban penalty 의 매도 대칭 (2026-06-19)",
-      "urgency": "medium"
+      "urgency": "medium",
+      "tunable": false
     },
     {
       "id": "guru_marks_euphoria",

@@ -343,7 +343,8 @@
       "condition": {
         "type": "banList"
       },
-      "description": "ban-list 멤버 → 제외 (2+ stops / 0 hits)"
+      "description": "ban-list 멤버 → 제외 (2+ stops / 0 hits)",
+      "tunable": false
     },
     {
       "id": "micro_options_call_flow",

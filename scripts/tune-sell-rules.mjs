@@ -165,6 +165,11 @@ for (const e of Object.values(ruleEdge)) {
 // 표본 부족(evaluated < MIN_SAMPLE) 룰은 변경하지 않는다.
 const proposals = []; // { id, fired, evaluated, edge, current, proposed, changed, reason }
 for (const r of spec.rules) {
+  // 2026-06-19(ChatGPT 지적): 구조적/음수 룰(ban·veto) 자동튜닝 금지 — clamp 가 부호·의미 뒤집음.
+  if (r.tunable === false || r.score <= 0) {
+    proposals.push({ id: r.id, fired: 0, evaluated: 0, edge: null, current: r.score, proposed: r.score, changed: false, reason: '구조적 룰(튜닝 제외)' });
+    continue;
+  }
   const e = ruleEdge[r.id];
   const current = r.score;
   if (!e || e.evaluated < MIN_SAMPLE) {
