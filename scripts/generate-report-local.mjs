@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
-import { evaluateBuyRule, evaluateSellRule } from '../src/lib/buy-sell-engine.mjs';
+import { evaluateBuyRule, evaluateSellRule, adjudicate } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling } from './lib/db.mjs';
@@ -6804,12 +6804,18 @@ async function generateViaOllama() {
     const hits = c.sellHits ?? [];
     const hasHard = hits.some(h => HARD_SELL.has(h.ruleId));
     const targetNearOnly = hits.some(h => TARGET_NEAR.has(h.ruleId)) && !hasHard;
+    // 2026-06-19(ChatGPT 지적): held-position action 도 *공유 adjudicate* 로 directional 판정 통일(챗·후보심판과
+    //   동일 net 임계 ±5/±12). held 맥락 매핑: hard/회피=전량, 목표근접=net 따라 trail/부분익절, reduce=축소.
+    const j = adjudicate(buyScore, sellScore, { hardSell: hasHard });
     let action, size, msg;
-    if (hasHard) { action = 'sell'; size = 1.0; msg = `hard-sell 우선 — 전량매도 (매수score ${buyScore} 무시, 리스크관리)`; }
-    else if (targetNearOnly && buyScore >= sellScore + 3) { action = 'trail'; size = 0.0; msg = `목표가 근접이나 매수신호 우세(buy ${buyScore}>sell ${sellScore}) — 전량매도 말고 trailing stop`; }
-    else if (targetNearOnly && buyScore >= sellScore - 2) { action = 'partial_take_profit'; size = 0.33; msg = `목표가 근접+추세 일부 유지(buy ${buyScore}~sell ${sellScore}) — 1/3 부분익절`; }
-    else if (sellScore >= buyScore + 3) { action = 'sell'; size = 0.5; msg = `매도 우세(sell ${sellScore}>buy ${buyScore}) — 절반 매도`; }
-    else { action = 'watch'; size = 0.0; msg = `신호 혼재(buy ${buyScore} vs sell ${sellScore}) — 관망`; }
+    if (hasHard || j.verdict === 'avoid') { action = 'sell'; size = 1.0; msg = `hard-sell/회피 — 전량매도 (심판 ${j.action}, net ${j.net})`; }
+    else if (targetNearOnly && j.net >= 5) { action = 'trail'; size = 0.0; msg = `목표가 근접+매수우세(net ${j.net}) — 전량매도 말고 trailing stop`; }
+    else if (targetNearOnly && j.net > -5) { action = 'partial_take_profit'; size = 0.33; msg = `목표가 근접+중립(net ${j.net}) — 1/3 부분익절`; }
+    else if (targetNearOnly) { action = 'partial_take_profit'; size = 0.5; msg = `목표가 근접+매도우세(net ${j.net}) — 1/2 부분익절`; }
+    else if (j.verdict === 'sell') { action = 'sell'; size = 0.5; msg = `매도 우세(net ${j.net}) — 절반 매도`; }
+    else if (j.verdict === 'reduce') { action = 'reduce'; size = 0.33; msg = `비중축소(net ${j.net}) — 1/3 축소`; }
+    else if (j.verdict === 'buy') { action = 'hold_or_add'; size = 0.0; msg = `매수 우세(net ${j.net}) — 보유/추가`; }
+    else { action = 'watch'; size = 0.0; msg = `관망(net ${j.net})`; }
     c.adjudicatedAction = action; c.adjudicatedSize = size; c.buyConflict = msg;
     if (buyHits.length || hasHard || targetNearOnly) {
       sellSideReview.push({ ticker: c.ticker, sellType: c.sellType ?? c.ruleId, sellScore, buyScore, buyHits: buyHits.map(h => h.id), action, size });
