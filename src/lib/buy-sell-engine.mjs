@@ -405,3 +405,25 @@ export function scoreSell(ctx, rules = loadSellRules()) {
   for (const r of rules) { const reason = evaluateSellRule(r, ctx); if (reason) hits.push({ id: r.id, score: r.score, desc: r.description || reason, category: r.category, urgency: r.urgency, reason }); }
   return { score: hits.reduce((a, h) => a + h.score, 0), hits };
 }
+
+// 최종 심판(2026-06-19 통합) — buyScore vs sellScore + hard veto → 결정론 verdict. 챗·보고서 공유.
+//   이전엔 챗이 최종 결론을 LLM 에 맡겨 점수와 어긋남("16 vs 3 인데 매도 우세"). 이제 코드가 단정, LLM 은 설명만.
+//   hardSell = 치명 매도신호(데드크로스·200MA이탈·영업현금흐름 적자 등) → 점수 무관 매도 우선.
+const HARD_SELL_IDS = new Set(['tech_dead_cross', 'tech_200ma_breach', 'price_stop_breach', 'forensic_negative_ocf', 'micro_supply_contract_loss']);
+export function adjudicate(buyScore, sellScore, opts = {}) {
+  const hardSell = opts.hardSell ?? false;
+  const net = (buyScore ?? 0) - (sellScore ?? 0);
+  if (hardSell) return { verdict: 'avoid', action: '매도/회피', lean: 'hard-sell', net, reason: '치명 매도신호(veto) — 점수 무관 청산 우선' };
+  let verdict, action;
+  if (net >= 12) { verdict = 'buy'; action = '매수'; }
+  else if (net >= 5) { verdict = 'accumulate'; action = '분할매수'; }
+  else if (net > -5) { verdict = 'hold'; action = '관망'; }
+  else if (net > -12) { verdict = 'reduce'; action = '비중축소'; }
+  else { verdict = 'sell'; action = '매도'; }
+  const lean = net > 2 ? '매수 우세' : net < -2 ? '매도 우세' : '팽팽(관망권)';
+  return { verdict, action, lean, net };
+}
+// sell hits 에 치명 룰 포함 여부 — adjudicate 의 hardSell 판정용.
+export function hasHardSell(sellHits) {
+  return Array.isArray(sellHits) && sellHits.some(h => HARD_SELL_IDS.has(h.id));
+}

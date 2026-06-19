@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { companyNamesI18n } from '@/data/company-names-i18n';
 // 2026-06-19 엔진 통합: 매수/매도 룰 평가기 단일 소스(보고서와 공유). 챗도 보고서의 자동튜닝 룰을 사용.
-import { scoreBuy, scoreSell, type EngineCtx } from '@/lib/buy-sell-engine';
+import { scoreBuy, scoreSell, adjudicate, hasHardSell, type EngineCtx } from '@/lib/buy-sell-engine';
 
 const ROOT = process.cwd();
 function loadJson<T>(rel: string): T | null {
@@ -408,11 +408,12 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
 
 function fmtEngine(c: TickerCtx, v: EngineVerdict): string {
   if (c.price == null) return '';
-  const lean = v.buyScore > v.sellScore + 2 ? '매수 우세' : v.sellScore > v.buyScore + 2 ? '매도 우세' : '팽팽(관망권)';
+  // 2026-06-19: 최종 심판은 보고서와 *동일* adjudicate(결정론). LLM 이 점수와 어긋나게 뒤집던 것 차단.
+  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell) });
   // 발화 룰은 설명만(per-rule +점수 제거) — 모델이 통째 복사해 "(+5)(+6)" 노출하던 것 차단(2026-06-18 FTNT).
   const bf = v.buy.length ? v.buy.map(r => r.desc).join(', ') : '없음';
   const sf = v.sell.length ? v.sell.map(r => r.desc).join(', ') : '없음';
-  return `${c.name}(${c.ticker}) → 매수엔진=${v.buyScore} / 매도엔진=${v.sellScore} (${lean}). 매수발화룰: ${bf}. 매도발화룰: ${sf}.`;
+  return `${c.name}(${c.ticker}) → 매수엔진=${v.buyScore} / 매도엔진=${v.sellScore} → 🔨심판=${j.action}(${j.lean}, net ${j.net}). 매수발화룰: ${bf}. 매도발화룰: ${sf}.`;
 }
 
 // ── doctrine/wisdom/rules 압축 (시스템 프롬프트용) ───────────────────────────
@@ -535,7 +536,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     ``,
     `## ⚙️ 3대 엔진이 1차 근거 (구루보다 우선)`,
     `- 위 "엔진 판정"의 **매수엔진 점수 vs 매도엔진 점수**가 판단의 1차 축이다. 매수 우세→매수/분할매수 쪽, 매도 우세→비중축소/매도 쪽, 팽팽→관망. 발화한 룰(예: 골든크로스·ROE≥15·200일선 이탈)을 우리말로 풀어 근거로 제시하라.`,
-    `- **심판엔진 = 매수엔진·매도엔진 점수 + 실시간 데이터 + 거시 + 리포트를 종합**해 최종 한 줄 결론을 내린다. 엔진 점수와 결론이 어긋나면 그 이유를 대라.`,
+    `- 🔨 **심판 결과는 결정론 계산값이다(보고서와 동일 adjudicate)**: 위 "엔진 판정" 줄의 "🔨심판=OOO" 가 그 종목의 최종 결론(매수/분할매수/관망/비중축소/매도/매도·회피)이다. **그 결론을 그대로 제시하고 근거만 설명하라 — 점수·심판과 *다른* 결론을 LLM 이 임의로 내지 마라.** (예: 심판=매수면 "매수" 라 답하고 왜 매수인지 룰·데이터로 설명. "16점 vs 3점인데 매도 우세" 같은 모순 금지.) 단 사용자가 *보유자*로서 "팔까?" 물으면 같은 심판을 보유 관점으로 표현(매수우세=홀드/추가, 매도우세=축소/청산).`,
     `- ⚠️ 엔진 판정(룰 발화)과 실데이터를 *먼저* 제시하라. 답을 구루 어록으로 도배하지 마라.`,
     `- 🔒 엔진 충실성: 매수엔진/매도엔진 *총점*(예: 매수 20점·매도 3점)은 주어진 값 그대로 쓰고, 발화한 룰은 *자연스러운 우리말 문장*으로 풀어 써라(예: "골든크로스가 떠 장기추세가 강하고 ROE도 15% 이상"). ⛔ 단, 대괄호 [발화:...] 형식이나 룰별 "(+5)(+6)" 점수 태그·영문 ID 를 *그대로 복사하지 마라*. 주어지지 않은 룰을 멋대로 "발화했다"고 만들지 마라(매도엔진 0점인데 "매도 신호 발동" ❌). 점수가 매수 우세인데 결론이 매도면 그 근거(펀더멘털·업황)를 대라. ⛔ **"엔진 판정" 블록이 아예 없으면(종목 미감지) 엔진 점수를 언급조차 하지 마라 — 지어내면 가장 심각한 오류.**`,
     `- 🔒 데이터 충실성: 이익의 질·현금흐름·밸류 등은 위 실시간 데이터의 라벨을 *글자 그대로* 따르라. 🚫·⚠️ 로 시작하는 항목은 *약점/위험신호*다 — 절대 장점("뛰어남","양호")으로 뒤집어 쓰지 마라. ✅ 로 시작해야 강점이다. 데이터에 없는 배수·비율(예: "몇 배","몇 %")을 스스로 만들어내지 마라 — 라벨에 적힌 표현만 사용하라.`,

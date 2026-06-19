@@ -29,3 +29,6 @@ export function loadBuyRules(): Rule[];
 export function loadSellRules(): Rule[];
 export function scoreBuy(ctx: EngineCtx, rules?: Rule[]): ScoreResult;
 export function scoreSell(ctx: EngineCtx, rules?: Rule[]): ScoreResult;
+export interface Verdict { verdict: string; action: string; lean: string; net: number; reason?: string }
+export function adjudicate(buyScore: number, sellScore: number, opts?: { hardSell?: boolean }): Verdict;
+export function hasHardSell(sellHits: Array<{ id: string }>): boolean;
