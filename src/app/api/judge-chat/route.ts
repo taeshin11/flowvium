@@ -18,7 +18,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { getChatUid } from '@/lib/member-auth';
 import {
   detectTickers, gatherTickerContext, buildSystemPrompt, buildResearchPrompt, tickerName,
-  MODE_OPTS, type JudgeMode, type TickerCtx,
+  primaryVerdict, MODE_OPTS, type JudgeMode, type TickerCtx,
 } from '@/lib/judge-engine';
 import { ragRetrieve, type RagHit } from '@/lib/rag';
 import { acquireLlm, waitMessage } from '@/lib/llm-gate';
@@ -40,7 +40,7 @@ function resolveUid(req: NextRequest): { uid: string; isMember: boolean; newAnon
   return { uid: `a:${anon}`, isMember: false, newAnon: anon };
 }
 function withAnonCookie(res: NextResponse, newAnon: string | null): NextResponse {
-  if (newAnon) res.cookies.set(ANON_COOKIE, newAnon, { httpOnly: true, sameSite: 'lax', maxAge: 365 * 86400, path: '/' });
+  if (newAnon) res.cookies.set(ANON_COOKIE, newAnon, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 365 * 86400, path: '/' }); // 2026-06-19 secure 추가(ChatGPT 지적)
   return res;
 }
 const titleOf = (messages: ChatMsg[]) => (messages.find(m => m.role === 'user')?.content ?? '새 대화').slice(0, 60);
@@ -92,10 +92,22 @@ const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.rol
 // 답변 자동검증 — 매 답변 후 질문+답변을 grounding 에 대조해 결함 탐지(2026-06-18 사용자 "질문로그·답변로그 함께 검증").
 //   결정론 체크(환각/누출/근거이탈). 결과는 Redis 로그(flowvium:judge-chat:verify)로 적재해 추세 추적.
 interface ChatDefect { type: string; detail?: string }
-function checkChatDefects(question: string, answer: string, grounding: { tickers?: Array<{ ticker: string; price: number | null }>; usedFiling?: boolean } | undefined): ChatDefect[] {
+function checkChatDefects(question: string, answer: string, grounding: { tickers?: Array<{ ticker: string; price: number | null }>; usedFiling?: boolean; expectedAction?: { action: string; verdict: string; net: number } | null } | undefined): ChatDefect[] {
   const d: ChatDefect[] = [];
   const a = answer || '';
   const hasEngineData = (grounding?.tickers ?? []).some(t => t.price != null);
+  // 0) verdict_mismatch (P0-2): LLM 결론이 결정론 심판과 *반대 방향*이면 검출(폐루프 학습·교정 트리거).
+  //   강세론/약세론 양립 서술은 허용 — 명확한 *결론* 지시문이 반대일 때만(보수적).
+  const ex = grounding?.expectedAction;
+  if (ex) {
+    const expDir = (ex.verdict === 'buy' || ex.verdict === 'accumulate') ? 1 : (ex.verdict === 'reduce' || ex.verdict === 'sell' || ex.verdict === 'avoid') ? -1 : 0;
+    const bearish = /매도\s*(?:권고|하라|하세요|추천)|팔아|전량\s*매도|비중\s*축소|회피\s*(?:권고|하|추천)|손절\s*권고/.test(a);
+    const bullish = /매수\s*(?:권고|하라|하세요|추천)|사세요|사라|분할\s*매수|보유\s*(?:권고|유지)|홀드|추가\s*매수/.test(a);
+    const ansDir = (bullish && !bearish) ? 1 : (bearish && !bullish) ? -1 : 0;
+    if (expDir !== 0 && ansDir !== 0 && expDir !== ansDir) {
+      d.push({ type: 'verdict_mismatch', detail: `심판=${ex.action}(net ${ex.net}) vs 답변결론=${ansDir > 0 ? '매수성' : '매도성'}` });
+    }
+  }
   // 1) 룰 ID·점수태그 누출 (price_momentum_52w_high, (+5) 등)
   if (/\(\+\d+\)/.test(a)) d.push({ type: 'score_tag_leak', detail: (a.match(/\(\+\d+\)/) ?? [''])[0] });
   if (/\b[a-z]+_[a-z]+_[a-z0-9]+\b/.test(a)) d.push({ type: 'rule_id_leak', detail: (a.match(/\b[a-z]+_[a-z]+_[a-z0-9]+\b/) ?? [''])[0] });
@@ -130,6 +142,9 @@ function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: str
   let a = text || '';
   const hasData = (grounding?.tickers ?? []).some(t => t.price != null);
   a = a.replace(/\s*\(\+\d+\)/g, '');                                   // (+5) 점수태그 제거
+  // rule_id_leak corrector(2026-06-19 ChatGPT: detector-without-corrector dead-end 해소) — 누출된 snake_case
+  //   룰ID(price_momentum_52w_high 등) 제거 + 잔여 괄호/공백 정리. 한글 금융문에 snake_case 영문은 사실상 룰ID뿐.
+  a = a.replace(/\(?\s*\b[a-z]+_[a-z]+_[a-z0-9]+\b\s*\)?/g, '');
   a = a.replace(/^\s*[-•]?\s*\[[^\]]*\([0-9A-Z.]{1,10}\)\]\s*매수엔진[^\n]*\n?/gm, ''); // 엔진 원문라인 제거
   a = a.replace(/([\d.]+)\s*%\s*(급락|폭락)/g, (m, n) => Math.abs(Number(n)) < 3 ? `${n}% 하락` : m); // <3% 급락→하락
   a = a.replace(/([\d.]+)\s*%\s*(급등|폭등)/g, (m, n) => Math.abs(Number(n)) < 3 ? `${n}% 상승` : m);
@@ -439,6 +454,8 @@ export async function POST(request: NextRequest) {
         usedRules: true, usedReport: !!reportContext, usedMacro: !!macroContext,
         usedRag: ragHits.length > 0, usedFiling: tickerCtx.some(c => c.filing),
         ragSources: ragHits.map(h => ({ source: h.source, year: h.year ?? null, score: Number(h.score.toFixed(2)) })),
+        // 결정론 심판(주 종목) — LLM 결론역전 검출(verdict_mismatch)용. P0-2.
+        expectedAction: primaryVerdict(tickerCtx, { vix: macroContext.vix, fg: macroContext.fg }),
       };
       return { systemPrompt, userPrompt, grounding };
     };
