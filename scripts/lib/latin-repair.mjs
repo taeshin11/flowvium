@@ -51,7 +51,7 @@ export async function repairLatinBleed(report, vllmCall, { extraPaths = [], log 
     if (typeof v !== 'string' || !v) continue;
     const frags = bleedFrags(v);
     if (!frags.length) continue;
-    const prompt = `다음 한국어 금융 문장에 로마자가 잘못 섞인 단어가 있다(예: "포osi가"→"포지션이", "인fra"→"인프라", "스queeze"→"스퀴즈"). 그 단어만 올바른 한국어로 고쳐라. 영어 고유명사(NextEra Energy 등 회사명)·티커(NVDA)·단위(bp, ROE)는 그대로 둬라. 그 외 문장의 내용·수치·구조는 100% 그대로 유지하고, 고친 문장 전체만 출력하라(설명·따옴표 금지):\n\n${v}`;
+    const prompt = `다음 한국어 금융 문장에 로마자가 잘못 섞인 단어가 있다(예: "포osi가"→"포지션이", "인fra"→"인프라", "스queeze"→"스퀴즈", "컨티gio"→"콘탱고"). 그 단어만 *문맥상 맞는* 올바른 한국어 금융용어로 고쳐라. 자주 깨지는 금융용어 후보: 콘탱고·백워데이션·포지션·스퀴즈·숏커버링·인프라·밸류에이션·모멘텀·컨센서스·가이던스·서프라이즈·디레버리징. 영어 고유명사(NextEra Energy 등 회사명)·티커(NVDA)·단위(bp, ROE)는 그대로 둬라. 그 외 문장의 내용·수치·구조는 100% 그대로 유지하고, 고친 문장 전체만 출력하라(설명·따옴표 금지):\n\n${v}`;
     let out = '';
     try { out = (await vllmCall(prompt) || '').toString().trim(); }
     catch (e) { log(`  [latin-repair] ${path} vLLM 실패: ${e?.message ?? e}`); unresolved.push(`${path}(${frags.join(',')})`); continue; }
