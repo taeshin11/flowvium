@@ -3,7 +3,7 @@
   "source": "initial-seed-with-guru-tech-fund-macro-micro",
   "tunedAt": "2026-06-13T19:20:00.135Z",
   "sampleSize": 153,
-  "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력).",
+  "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
   "rules": [
     {
       "id": "price_oversold_gap",
@@ -386,6 +386,38 @@
         "yoy_pct_gte": 10
       },
       "description": "수주잔고(SEC RPO) YoY 10%+ — 향후 매출 가시성 (방산/건설/제조/SaaS, 2026-06-13)"
+    },
+    {
+      "id": "guru_druckenmiller_trend",
+      "score": 5,
+      "category": "guru",
+      "condition": {
+        "type": "druckTrend",
+        "within_pct": 12
+      },
+      "description": "정배열(현재>50MA>200MA)+52주고가 근접 — Druckenmiller/Tudor 추세추종 (2026-06-19)"
+    },
+    {
+      "id": "guru_marks_capitulation",
+      "score": 5,
+      "category": "guru",
+      "condition": {
+        "type": "marksCapitulation",
+        "fg_lte": 25,
+        "above_low_pct_lte": 15
+      },
+      "description": "극공포+52주저점 근접+흑자 역발상 진입 — Marks/Klarman 안전마진 (2026-06-19)"
+    },
+    {
+      "id": "guru_oneil_canslim",
+      "score": 4,
+      "category": "guru",
+      "condition": {
+        "type": "oneilCanslim",
+        "within_pct": 5,
+        "growth_pct_gte": 25
+      },
+      "description": "신고가 돌파+매출성장≥25% 성장주도주 — O'Neil CANSLIM (2026-06-19)"
     }
   ],
   "outcomeStats": {

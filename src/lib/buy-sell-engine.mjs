@@ -210,6 +210,26 @@ export function evaluateBuyRule(rule, ctx) {
     case 'banList':
       if (ctx.banListMember === true) return `BAN: 2+ stops/0 hits`;
       break;
+    // 2026-06-19 guru 확장 — 가치 4룰(Buffett·Lynch·Greenblatt·Graham) 편중 보완. doctrine 로스터의 모멘텀·
+    //   역발상·성장주도 거장을 정량 룰화(복합조건 = 거장 프레임 전체 충족 시만 발화, 고확신).
+    case 'druckTrend':        // Druckenmiller/Tudor/Soros: 정배열 추세추종(유동성 모멘텀)
+      if (ctx.price != null && ctx.sma50 != null && ctx.sma200 != null && ctx.high52w != null &&
+          ctx.price > ctx.sma50 && ctx.sma50 > ctx.sma200 && ctx.price >= ctx.high52w * (1 - (c.within_pct ?? 12) / 100)) {
+        return `정배열(현재>50MA>200MA)+52주고가 ${(((ctx.high52w / ctx.price) - 1) * 100).toFixed(1)}% 이내 — Druckenmiller 추세추종`;
+      }
+      break;
+    case 'marksCapitulation':  // Marks/Klarman: 극공포+저점근접+흑자 역발상 진입(안전마진)
+      if (ctx.fgScore != null && ctx.low52w != null && ctx.price != null && ctx.roe != null &&
+          ctx.fgScore <= (c.fg_lte ?? 25) && (ctx.price - ctx.low52w) / ctx.low52w * 100 <= (c.above_low_pct_lte ?? 15) && ctx.roe > 0) {
+        return `극공포(F&G ${ctx.fgScore})+52주저점 ${(((ctx.price / ctx.low52w) - 1) * 100).toFixed(1)}% 위+흑자 — Marks/Klarman 역발상`;
+      }
+      break;
+    case 'oneilCanslim':       // O'Neil CANSLIM: 신고가 돌파 + 고성장(성장 주도주)
+      if (ctx.price != null && ctx.high52w != null && ctx.revenueGrowth != null &&
+          ctx.price >= ctx.high52w * (1 - (c.within_pct ?? 5) / 100) && ctx.revenueGrowth >= (c.growth_pct_gte ?? 25)) {
+        return `52주 신고가 ${(((ctx.high52w / ctx.price) - 1) * 100).toFixed(1)}% 이내 + 매출성장 ${ctx.revenueGrowth.toFixed(0)}% — O'Neil CANSLIM 성장주도`;
+      }
+      break;
   }
   return null;
 }
