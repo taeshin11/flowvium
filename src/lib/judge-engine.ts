@@ -213,7 +213,7 @@ function _corpCodeFor(ticker: string): string | null {
   if (!_corpCodes) _corpCodes = loadJson<Record<string, { corpCode?: string }>>('data/dart-corp-codes.json') ?? {};
   return _corpCodes[code6]?.corpCode ?? null;
 }
-const _MATERIAL_DISCLOSURE = /공급계약|수주|유상증자|무상증자|전환사채|신주인수권|영업[^)]{0,4}실적|손익구조|현금[·ㆍ]?\s*현물배당|자기주식|합병|분할|영업양수|최대주주|투자판단|특허|임상|품목허가|국책과제/;
+const _MATERIAL_DISCLOSURE = /공급계약|수주|유상증자|무상증자|전환사채|신주인수권|실적|손익구조|현금[·ㆍ]?\s*현물배당|자기주식|합병|분할|영업양수|최대주주|투자판단|특허|임상|품목허가|국책과제/;
 async function fetchDartDisclosures(ticker: string): Promise<string[] | null> {
   try {
     const corp = _corpCodeFor(ticker);
