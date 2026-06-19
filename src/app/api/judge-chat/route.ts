@@ -65,6 +65,14 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
     const lines: string[] = [];
     if (stance) lines.push(`현재 스탠스: ${stance}`);
     if (thesis) lines.push(`핵심 논지: ${String(thesis).slice(0, 220)}`);
+    // 2026-06-19(사용자 "하락장 판단·구루 대응이 엔진/thesis 에 녹아있나"): 시장 레짐 verdict 를 챗 grounding 에 노출.
+    //   computeMarketVerdict(고점대비 drawdown·VIX·20일·유사국면 analog·시장폭·earlyWarning/fearBuy) → 하락장 판단.
+    const mv = rep.marketVerdict as { verdict?: string; reasons?: string[]; fingerprint?: { vix?: number; drawdownPct?: number; ret20d?: number } } | undefined;
+    if (mv?.verdict) {
+      const fp = mv.fingerprint ?? {};
+      const fpStr = [fp.vix != null ? `VIX ${fp.vix}` : '', fp.drawdownPct != null ? `고점대비 ${fp.drawdownPct}%` : '', fp.ret20d != null ? `20일 ${fp.ret20d}%` : ''].filter(Boolean).join(', ');
+      lines.push(`📉 시장 레짐 심판: ${mv.verdict}${fpStr ? ` (${fpStr})` : ''} — ${(mv.reasons ?? [])[0] ?? ''}`);
+    }
     const port = (rep.portfolio as Array<Record<string, unknown>>) ?? [];
     const sells = [
       ...((rep.sellRecommendations as { us?: unknown[]; kr?: unknown[] })?.us ?? []),
