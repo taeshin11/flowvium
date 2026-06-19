@@ -131,6 +131,7 @@ export interface TickerCtx {
   business?: string; industry?: string; products?: string;
   analystTarget?: number | null; rating?: string | null;
   newsSentiment?: string | null; newsHeadlines?: string[]; signalsRaw?: unknown;
+  recentDisclosures?: string[] | null; // 최근 material DART 공시(수주·증자·실적 등) — deep 모드 KR (2026-06-19)
   filing?: FilingCtx | null; // 사업보고서 본문(DART/SEC) — 심층 모드에서만 적재
   accumulation?: { tier: string | null; phase: string | null; score: number | null; fewAccount: boolean; surveillance: string | null; flags: string[] } | null;
 }
@@ -203,6 +204,40 @@ function rsi14(closes: number[]): number | null {
   return Math.round(100 - 100 / (1 + rs));
 }
 
+// 최근 material DART 공시 — 수주/공급계약·증자·실적·배당·합병 등(routine 임원소유·정기보고서 제외). deep 모드 KR.
+//   2026-06-19(사용자 "deep 답변 generic — 더 자세히 긁어와"): 사업보고서 본문은 과거, 공시는 *최신 catalyst*.
+let _corpCodes: Record<string, { corpCode?: string }> | null = null;
+function _corpCodeFor(ticker: string): string | null {
+  const code6 = ticker.replace(/\.(KS|KQ)$/, '');
+  if (!/^\d{6}$/.test(code6)) return null;
+  if (!_corpCodes) _corpCodes = loadJson<Record<string, { corpCode?: string }>>('data/dart-corp-codes.json') ?? {};
+  return _corpCodes[code6]?.corpCode ?? null;
+}
+const _MATERIAL_DISCLOSURE = /공급계약|수주|유상증자|무상증자|전환사채|신주인수권|영업[^)]{0,4}실적|손익구조|현금[·ㆍ]?\s*현물배당|자기주식|합병|분할|영업양수|최대주주|투자판단|특허|임상|품목허가|국책과제/;
+async function fetchDartDisclosures(ticker: string): Promise<string[] | null> {
+  try {
+    const corp = _corpCodeFor(ticker);
+    const key = process.env.DART_API_KEY;
+    if (!corp || !key) return null;
+    const bgn = new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+    const r = await fetch(`https://opendart.fss.or.kr/api/list.json?crtfc_key=${key}&corp_code=${corp}&bgn_de=${bgn}&page_count=30`, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    if (!r.ok) return null;
+    const d = await r.json() as { status?: string; list?: Array<{ rcept_dt?: string; report_nm?: string }> };
+    if (d.status !== '000' || !Array.isArray(d.list)) return null;
+    const out: string[] = []; const seen = new Set<string>();
+    for (const x of d.list) {
+      const nm = (x.report_nm ?? '').replace(/ㆍ/g, '·').trim();
+      if (!_MATERIAL_DISCLOSURE.test(nm)) continue;
+      const k = nm.replace(/\s/g, '').slice(0, 18);
+      if (seen.has(k)) continue; seen.add(k);
+      const dt = (x.rcept_dt ?? '').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+      out.push(`${dt} ${nm}`);
+      if (out.length >= 5) break;
+    }
+    return out.length ? out : null;
+  } catch { return null; }
+}
+
 export async function gatherTickerContext(ticker: string, origin: string, opts?: { withFiling?: boolean }): Promise<TickerCtx> {
   const { meta } = getData();
   const m = meta[ticker] ?? {};
@@ -210,7 +245,7 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
   const enc = encodeURIComponent(ticker);
   // Yahoo(가격·52주·기술) + 재무(DART/SEC) + 옵션 UOA + 뉴스 + 사업개요(무슨 사업·업종·주력제품)
   //   + (심층) 사업보고서 본문 섹션(filings DB — 제품/상품 매출·연구개발·전망).
-  const [yh, signals, fin, newsRes, biz, filingRes, manipRes] = await Promise.all([
+  const [yh, signals, fin, newsRes, biz, filingRes, manipRes, disclosures] = await Promise.all([
     fetchYahooChart(ticker),
     safeJson(`${origin}/api/company-signals/${enc}`),
     isKr ? safeJson(`${origin}/api/company-kr/${enc}`) : safeJson(`${origin}/api/company-financials/${enc}`),
@@ -218,6 +253,7 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
     safeJson(`${origin}/api/company-business/${enc}`),
     opts?.withFiling ? safeJson(`${origin}/api/company-filing/${enc}?ondemand=1`, 28000) : Promise.resolve(null),
     safeJson(`${origin}/api/manipulation-risk/${enc}`),  // 소수계좌 거래집중·매집(accumulation) 공식 surveillance
+    (opts?.withFiling && isKr) ? fetchDartDisclosures(ticker) : Promise.resolve(null),  // deep KR: 최신 material 공시(수주 등)
   ]);
   const filing = (filingRes?.filing as FilingCtx | undefined) ?? null;
   // 작전주/매집 신호: 소수계좌 거래집중(KRX surveillance)·매집 phase — "소수계좌 매집 있나" 류 질문 직답용.
@@ -257,7 +293,7 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
   const newsArr = Array.isArray((newsRes as { news?: unknown[] } | null)?.news) ? (newsRes as { news: Array<{ title?: string }> }).news : [];
   const newsHeadlines = newsArr
     .filter(a => { const t = String(a?.title ?? '').toLowerCase(); return matchset.some(k => t.includes(k)); })
-    .slice(0, 3).map(a => String(a.title).slice(0, 90));
+    .slice(0, 8).map(a => String(a.title).slice(0, 100));  // 2026-06-19: 3→8 (deep 답변 catalyst 풍부화)
 
   // 사업 개요: 무슨 사업·업종·주력제품 (사용자 '회사가 뭐하는지/업황 조사가 없다').
   const profile = (biz?.profile as Record<string, unknown>) ?? {};
@@ -286,6 +322,7 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
     fiscalYear: (finCore.fiscalYear ?? finCore.fy ?? fin?.fiscalYear) ? String(finCore.fiscalYear ?? finCore.fy ?? fin?.fiscalYear) : null,
     business: bizDesc, industry, products,
     newsHeadlines: newsHeadlines.length ? newsHeadlines : undefined,
+    recentDisclosures: disclosures,  // deep KR 최신 material 공시(수주·증자·실적)
     revenueGrowth: num(pick(fin, 'revenueYoYPct', 'revenueYoY', 'revenueGrowth'), pick(finCore, 'revenueYoYPct', 'revenueYoY')),
     peRatio: num(pick(finCore, 'peRatio', 'pe')),
     analystTarget: null,
@@ -356,6 +393,7 @@ function fmtTickerCtx(c: TickerCtx): string {
     if (ac.flags?.length) L.push(`작전주 신호: ${ac.flags.join('; ')}`);
   }
   if (c.newsHeadlines?.length) L.push(`관련 뉴스: ${c.newsHeadlines.map(h => `"${h}"`).join('; ')}`);
+  if (c.recentDisclosures?.length) L.push(`📋 최근 공시(DART, 최신 catalyst): ${c.recentDisclosures.join(' / ')}`);
   return L.join(' · ');
 }
 
@@ -473,8 +511,8 @@ export function buildResearchPrompt(opts: { locale: string; tickerCtx: TickerCtx
     `1) 사업 모델: 이 회사가 무슨 사업으로 돈을 버는가, 주력 제품/서비스와 매출 구성 (위 '사업' 데이터 기반).`,
     `2) 업황·사이클: 속한 산업의 현재 사이클 위치(확장/둔화/침체)·경쟁 구도·수요 환경 (업종 + 거시 데이터 연결).`,
     `3) 경쟁 포지션: 이 회사의 해자(브랜드/원가/네트워크/기술)와 경쟁사 대비 위치를 데이터로.`,
-    `4) 강세 시나리오: 주가를 끌어올릴 성장 동력·촉매 2~3개 (매출성장·R&D·마진 추세 + 업황 연결).`,
-    `5) 약세 시나리오: 핵심 리스크·악재 2~3개 (부채·마진 압박·업황 둔화·밸류 부담).`,
+    `4) 강세 시나리오: 주가를 끌어올릴 성장 동력·촉매 2~3개. ⚠️ 위 '관련 뉴스'·'📋 최근 공시(DART)'·사업보고서 본문의 *구체적* 사건/계약/수치를 근거로 인용하라 — "해외 수주 지속·신제품 상용화" 같은 막연한 일반론 금지. 공시/뉴스에 실제 catalyst 가 없으면 "최근 공시상 새 촉매 없음"이라 솔직히 써라.`,
+    `5) 약세 시나리오: 핵심 리스크·악재 2~3개 (부채·마진 압박·업황 둔화·밸류 부담). 가능하면 공시/뉴스의 구체 악재(계약해지·실적부진·증자) 인용.`,
     `6) 핵심 숫자: 밸류(PER)·수익성(ROE/마진)·재무건전성(부채/FCF)·성장(매출 YoY)을 한 줄로.`,
     `7) 이익의 질·자금조달: 데이터에 "영업현금흐름/순이익" 또는 "⚠️" 표시가 있으면 반드시 언급하라 — 순이익이 흑자라도 영업현금흐름이 적자거나 순이익보다 크게 적으면 "이익이 현금으로 안 들어온다(외상매출·일회성 의심)"고 지적하고, 재무활동 자금조달(유상증자·전환사채) 신호가 있으면 주식 희석 리스크로 짚어라. (데이터에 없으면 생략.)`,
     `내부 룰 ID·점수·별표 출력 금지. 매수/매도 결론은 아직 내리지 마라(다음 단계에서 판단).`,
