@@ -121,6 +121,7 @@ export interface TickerCtx {
   price?: number | null; changePct?: number | null;
   rsi?: number | null; sma50?: number | null; sma200?: number | null;
   high52w?: number | null; low52w?: number | null;
+  volRatio?: number | null; relVol?: number | null; // 거래량: 최근5일/직전30일, 당일/20일평균 (매수·매도엔진 발화)
   roe?: number | null; opMargin?: number | null; revenueGrowth?: number | null; peRatio?: number | null;
   netMargin?: number | null; debtRatio?: number | null; rdPct?: number | null; fcf?: number | null;
   ocf?: number | null; netIncome?: number | null; financingCF?: number | null; // 이익의 질·희석 forensic
@@ -140,18 +141,21 @@ export interface FilingCtx {
 // Yahoo 일봉 차트 직접 fetch — 가격·전일대비·52주·OHLC closes (US·KR 동일 권위 소스).
 //   batch-prices 가 KR 에 null 반환 + quote/price 엔드포인트 부재 사건(2026-06-18) → 리포트 엔진과
 //   동일하게 Yahoo v8 chart 직결로 일원화. closes 로 SMA50/200·RSI14 결정론 계산.
-async function fetchYahooChart(ticker: string): Promise<{ price: number | null; changePct: number | null; high52w: number | null; low52w: number | null; closes: number[] } | null> {
+async function fetchYahooChart(ticker: string): Promise<{ price: number | null; changePct: number | null; high52w: number | null; low52w: number | null; closes: number[]; volumes: number[] } | null> {
   try {
     // US 클래스주 포맷 정규화: BRK.B→BRK-B (Yahoo 는 하이픈). KR(.KS/.KQ)은 그대로.
     const yTicker = /\.(KS|KQ)$/.test(ticker) ? ticker : ticker.replace(/\./g, '-');
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yTicker)}?range=1y&interval=1d`;
     const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0' }, cache: 'no-store' });
     if (!r.ok) return null;
-    const d = await r.json() as { chart?: { result?: Array<{ meta?: Record<string, number>; indicators?: { quote?: Array<{ close?: Array<number | null> }> } }> } };
+    const d = await r.json() as { chart?: { result?: Array<{ meta?: Record<string, number>; indicators?: { quote?: Array<{ close?: Array<number | null>; volume?: Array<number | null> }> } }> } };
     const res = d?.chart?.result?.[0];
     if (!res?.meta) return null;
     const meta = res.meta;
     const closes = (res.indicators?.quote?.[0]?.close ?? []).filter((v): v is number => typeof v === 'number' && v > 0);
+    // 거래량 배열(2026-06-19, 사용자 "매수/매도엔진에 거래량도 들어가지?"). null/0 은 휴장/결측 → 그대로 두되
+    //   ratio 계산 시 0 제외. closes 와 인덱스 정렬 위해 동일 길이 유지 후 signal 계산에서 필터.
+    const volumes = (res.indicators?.quote?.[0]?.volume ?? []).map(v => (typeof v === 'number' && v > 0 ? v : 0));
     const price = num(meta.regularMarketPrice);
     // 일간 변동률: range=1y 의 meta.chartPreviousClose 는 range 시작 이전(최대 1년 전) 종가라
     //   부정확(NVDA "+42% 급등" 가짜 변동률 사건 2026-06-18). closes 배열의 직전 거래일 종가로 계산.
@@ -162,8 +166,24 @@ async function fetchYahooChart(ticker: string): Promise<{ price: number | null; 
       high52w: num(meta.fiftyTwoWeekHigh),
       low52w: num(meta.fiftyTwoWeekLow),
       closes,
+      volumes,
     };
   } catch { return null; }
+}
+
+// 거래량 신호 — recent(최근 5일 평균) vs prior(직전 ~30일 평균) 비율 + 당일 상대거래량. 매수/매도엔진 발화용.
+function volSignals(volumes: number[]): { volRatio: number | null; relVol: number | null } {
+  const vs = (volumes ?? []).filter(v => v > 0);
+  if (vs.length < 15) return { volRatio: null, relVol: null };
+  const recent = vs.slice(-5);
+  const prior = vs.slice(-35, -5);
+  const avg = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  const recentAvg = avg(recent), priorAvg = avg(prior);
+  const base20 = avg(vs.slice(-21, -1)); // 당일 제외 직전 20일 평균
+  return {
+    volRatio: priorAvg > 0 ? parseFloat((recentAvg / priorAvg).toFixed(2)) : null,   // 최근 5일 vs 직전 30일
+    relVol: base20 > 0 ? parseFloat((vs[vs.length - 1] / base20).toFixed(2)) : null,  // 당일 vs 20일 평균
+  };
 }
 
 function sma(closes: number[], n: number): number | null {
@@ -253,6 +273,8 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
     sma200: sma(closes, 200),
     high52w: yh?.high52w ?? null,
     low52w: yh?.low52w ?? null,
+    ...volSignals(yh?.volumes ?? []),  // volRatio(최근5/직전30) · relVol(당일/20일) — 매수·매도엔진 거래량 발화
+
     roe: num(pick(finCore, 'roePct', 'roe')),
     opMargin: num(pick(finCore, 'operatingMarginPct', 'operatingMargin', 'opMargin')),
     netMargin, debtRatio, rdPct, fcf,
@@ -287,6 +309,8 @@ function fmtTickerCtx(c: TickerCtx): string {
     if (ext >= 60) L.push(`⚠️주가가 200일선보다 +${ext}% 위(과대확장 — 추세는 강하나 평균회귀/되돌림 위험, 무조건 강세로 해석 금지)`);
   }
   if (c.high52w != null || c.low52w != null) L.push(`52주 ${f(c.low52w) ?? '?'}~${f(c.high52w) ?? '?'}`);
+  // 거래량 수급(2026-06-19): 최근5/직전30 배율 + 당일/20일 상대거래량. 가격 신호의 신뢰도(수급 동반 여부) 근거.
+  if (c.volRatio != null) L.push(`거래량 추세 ${c.volRatio}배(최근5일/직전30일)${c.relVol != null ? ` · 당일 ${c.relVol}배(20일평균 대비)` : ''}${c.volRatio >= 1.5 ? ' — 수급 유입' : c.volRatio <= 0.5 ? ' — 거래량 고갈' : ''}`);
   if (c.fiscalYear) L.push(`재무 회계연도 FY${c.fiscalYear}(이 연도로만 표기, 임의 연도 금지)`);
   if (c.roe != null) L.push(`ROE ${c.roe}%`);
   if (c.opMargin != null) L.push(`영업이익률 ${c.opMargin}%`);
@@ -356,7 +380,7 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
   const buy: EngineVerdict['buy'] = [], sell: EngineVerdict['sell'] = [];
   const B = (id: string, score: number, desc: string, cond: boolean) => { if (cond) buy.push({ id, score, desc }); };
   const S = (id: string, score: number, desc: string, cond: boolean) => { if (cond) sell.push({ id, score, desc }); };
-  const { price, changePct, rsi, sma50, sma200, high52w, low52w, roe, opMargin, revenueGrowth, peRatio, debtRatio, ocf, netIncome, financingCF } = c;
+  const { price, changePct, rsi, sma50, sma200, high52w, low52w, roe, opMargin, revenueGrowth, peRatio, debtRatio, ocf, netIncome, financingCF, volRatio, relVol } = c;
   const near = (a?: number | null, b?: number | null, pct = 2) => a != null && b != null && b !== 0 && Math.abs((a - b) / b * 100) <= pct;
   // 매수엔진
   B('price_oversold_gap', 3, '1일 -3%↑ 급락 평균회귀 후보', changePct != null && changePct <= -3);
@@ -373,6 +397,9 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
   B('vix_low', 2, 'VIX≤14 저변동', macro.vix != null && macro.vix <= 14);
   B('fg_recovery', 3, 'F&G 25~50 회복국면', macro.fg != null && macro.fg >= 25 && macro.fg <= 50);
   B('strong_cash_conversion', 3, '이익의 질 양호(영업현금흐름≥순이익)', ocf != null && netIncome != null && netIncome > 0 && ocf >= netIncome);
+  // 거래량(수급 확인) — 가격 신호에 거래량이 동반되면 신뢰도↑ (2026-06-19 사용자 "매수/매도엔진에 거래량도").
+  B('volume_surge_up', 4, '거래량 동반 상승(최근 거래량 직전30일 1.5배↑ & 당일 상승 — 수급 유입 확인)', volRatio != null && volRatio >= 1.5 && changePct != null && changePct > 0);
+  B('volume_breakout_day', 3, '당일 거래량 폭증 돌파(20일평균 2배↑ & +1%↑)', relVol != null && relVol >= 2 && changePct != null && changePct >= 1);
   // 매도엔진
   // forensic: 이익의 질·희석·과대확장 — base 모델이 데이터 라벨을 자꾸 긍정 반전하므로, 결정론 룰로 점수화해
   //   '엔진 충실성' 메커니즘(모델이 엔진 점수는 글자대로 인용)에 태운다(2026-06-18 제주반도체 사건).
@@ -388,6 +415,9 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
   S('macro_vix_spike', 3, 'VIX≥25 거시 리스크', macro.vix != null && macro.vix >= 25);
   S('fg_extreme_fear', 2, 'F&G≤20 극공포', macro.fg != null && macro.fg <= 20);
   S('high_debt', 2, '부채비율>150% 재무위험', debtRatio != null && debtRatio > 150);
+  // 거래량(분산·동력고갈) — 하락에 거래량 폭증이면 분산(매물 출회), 거래량 고갈이면 추세 동력 상실.
+  S('volume_distribution', 3, '거래량 폭증 하락(20일평균 1.8배↑ & 당일 -2%↓ — 분산/투매 매물 출회)', relVol != null && relVol >= 1.8 && changePct != null && changePct <= -2);
+  S('volume_dryup', 2, '거래량 고갈(최근 거래량 직전30일 절반↓ — 추세 동력 상실·관심 이탈)', volRatio != null && volRatio <= 0.5);
   return { buyScore: buy.reduce((a, b) => a + b.score, 0), sellScore: sell.reduce((a, b) => a + b.score, 0), buy, sell };
 }
 
