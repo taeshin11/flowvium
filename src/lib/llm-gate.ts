@@ -11,9 +11,13 @@ import { createRedis } from '@/lib/redis';
 
 const MAX = Math.max(1, Number(process.env.LLM_MAX_CONCURRENT || 4));
 const KEY = 'flowvium:llm:active';
-const TTL_MS = 120_000;     // 슬롯 최대 점유(이후 stale 로 간주·회수)
+// 2026-06-19(ChatGPT #6): TTL 120s 는 deep 요청 최악경로(해석 15s + gather/filing 28s + research 45s +
+//   final 55s ≈ 143s)보다 짧아, 정상 실행 중인 슬롯이 stale 로 *조기 회수*돼 다른 대기자가 승격 → MAX 초과.
+//   TTL 을 200s 로 올려 worst-case 를 덮는다(크래시 self-heal 은 200s 로 약간 늘지만 허용). 완전한 heartbeat·
+//   active/queue 분리·fail-open 제거 redesign 은 별도(vLLM 자체 배칭 + fail-open 안전망이라 실영향 낮음).
+const TTL_MS = 200_000;     // 슬롯 최대 점유(deep worst-case 덮음, 이후 stale 회수)
 const POLL_MS = 600;
-const MAX_WAIT_MS = 90_000; // 과대기 방지 — 이후 fail-open
+const MAX_WAIT_MS = 90_000; // 과대기 방지 — 이후 fail-open(슬롯 유지된 채 진행, 챗 무한블록 방지)
 const redis = createRedis();
 
 /** 현재 활성 vLLM 슬롯 수(전역). Redis 없거나 오류 시 0. */
