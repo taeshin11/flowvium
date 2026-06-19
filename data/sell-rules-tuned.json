@@ -3,7 +3,7 @@
   "source": "initial-seed-with-guru-tech-fund",
   "tunedAt": "2026-06-13T19:52:28.302Z",
   "sampleSize": 40,
-  "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합. | 2026-06-06: micro_insider_selling 추가(매수·매도 대칭).",
+  "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합. | 2026-06-06: micro_insider_selling 추가(매수·매도 대칭). | 2026-06-19: selflearn/guru 매도 갭 보강 3룰 추가(banListSell·marksEuphoria·druckTrendBreak).",
   "rules": [
     {
       "id": "price_stop_breach",
@@ -260,6 +260,39 @@
         "conviction_gte": 70
       },
       "description": "공급·수주 계약 해지·취소 — 매출 감소 신호 (2026-06-13)",
+      "urgency": "medium"
+    },
+    {
+      "id": "selflearn_ban_list_sell",
+      "score": 4,
+      "category": "selflearn",
+      "condition": {
+        "type": "banListSell"
+      },
+      "description": "ban-list 보유 종목(2+손절/0성공) 청산 — 매수 ban penalty 의 매도 대칭 (2026-06-19)",
+      "urgency": "medium"
+    },
+    {
+      "id": "guru_marks_euphoria",
+      "score": 3,
+      "category": "guru",
+      "condition": {
+        "type": "marksEuphoria",
+        "fg_gte": 78,
+        "rsi_gte": 70
+      },
+      "description": "극탐욕(F&G≥78)+과매수(RSI≥70) 도취 국면 — Marks 역발상 차익실현 (2026-06-19)",
+      "urgency": "low"
+    },
+    {
+      "id": "guru_drucken_trend_break",
+      "score": 3,
+      "category": "guru",
+      "condition": {
+        "type": "druckTrendBreak",
+        "rsi_lt": 45
+      },
+      "description": "50MA 하향이탈+모멘텀 약화 추세붕괴 — Druckenmiller (2026-06-19)",
       "urgency": "medium"
     }
   ],

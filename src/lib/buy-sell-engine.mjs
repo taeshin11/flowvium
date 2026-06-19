@@ -334,6 +334,20 @@ export function evaluateSellRule(rule, ctx) {
         return `최근 7d news ${(ctx.newsNegRatio * 100).toFixed(0)}% 부정 (${ctx.newsArticleCount}건)`;
       }
       break;
+    // 2026-06-19 매도 대칭 보강(selflearn·guru 매도 갭): 매수쪽 ban penalty 의 매도 대칭 + 구루 매도 렌즈.
+    case 'banListSell':                                   // selflearn: ban-list 보유 종목 → 청산(매수 banList 대칭)
+      if (ctx.banListMember === true) return `BAN 보유(2+ stops/0 hits) — 청산 권고`;
+      break;
+    case 'marksEuphoria':                                 // guru(Marks): 극탐욕+과매수 도취 → 역발상 차익실현
+      if (ctx.fgScore != null && ctx.rsi != null && ctx.fgScore >= (c.fg_gte ?? 78) && ctx.rsi >= (c.rsi_gte ?? 70)) {
+        return `도취 국면(F&G ${ctx.fgScore} 극탐욕 + RSI ${ctx.rsi} 과매수) — Marks 역발상 차익실현`;
+      }
+      break;
+    case 'druckTrendBreak':                               // guru(Druckenmiller): 50MA 이탈+모멘텀 약화 추세붕괴
+      if (ctx.price != null && ctx.sma50 != null && ctx.price < ctx.sma50 && ctx.rsi != null && ctx.rsi < (c.rsi_lt ?? 45)) {
+        return `50MA(${ctx.sma50.toFixed(2)}) 하향이탈 + RSI ${ctx.rsi} 모멘텀 약화 — Druckenmiller 추세붕괴`;
+      }
+      break;
   }
   return null;
 }
