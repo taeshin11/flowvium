@@ -5,6 +5,11 @@
 //   보고서 자동튜닝 룰(data/buy|sell-rules-tuned.json) + 이 평가기를 양쪽이 공유(accumulation-detector.mjs 패턴).
 //   순수 함수(ctx+rule 만 참조). 데이터 없는 필드의 룰은 자동 skip(graceful) — 챗은 가진 데이터 룰만 발화.
 
+// 2026-06-19(ChatGPT #8): forensic 룰 sector-aware 가드 — 업종별로 정상인 지표를 오탐 않게.
+const _isFinancial = (s) => !!s && /financ|bank|insur|reit|estate|보험|은행|금융|증권|지주/i.test(s);
+const _isDistribution = (s) => !!s && /retail|distribut|trad|wholesale|consumer\s*staple|유통|소매|상사|도매/i.test(s);
+const _isFinUtil = (s) => _isFinancial(s) || (!!s && /utilit|reit|estate|유틸|전력|가스|부동산/i.test(s));
+
 export function evaluateBuyRule(rule, ctx) {
   const c = rule.condition;
   switch (c.type) {
@@ -230,6 +235,10 @@ export function evaluateBuyRule(rule, ctx) {
         return `52주 신고가 ${(((ctx.high52w / ctx.price) - 1) * 100).toFixed(1)}% 이내 + 매출성장 ${ctx.revenueGrowth.toFixed(0)}% — O'Neil CANSLIM 성장주도`;
       }
       break;
+    // forensic(이익의 질) — 2026-06-19 공유모듈로 이관(챗·보고서 공용, 데이터 없으면 skip).
+    case 'cashConversionGood':
+      if (ctx.ocf != null && ctx.netIncome != null && ctx.netIncome > 0 && ctx.ocf >= ctx.netIncome) return `이익의 질 양호(영업현금흐름≥순이익)`;
+      break;
   }
   return null;
 }
@@ -367,6 +376,25 @@ export function evaluateSellRule(rule, ctx) {
       if (ctx.price != null && ctx.sma50 != null && ctx.price < ctx.sma50 && ctx.rsi != null && ctx.rsi < (c.rsi_lt ?? 45)) {
         return `50MA(${ctx.sma50.toFixed(2)}) 하향이탈 + RSI ${ctx.rsi} 모멘텀 약화 — Druckenmiller 추세붕괴`;
       }
+      break;
+    // forensic(이익의질·희석·되팔기·부채) — 2026-06-19 공유모듈 이관 + sector-aware(ChatGPT #8). 데이터 없으면 skip.
+    case 'weakEarningsQuality':
+      if (ctx.ocf != null && ctx.netIncome != null && ctx.netIncome > 0 && ctx.ocf >= 0 && ctx.ocf < ctx.netIncome * (c.ratio_lt ?? 0.85)) return `이익의 질 낮음(영업현금흐름<순이익)`;
+      break;
+    case 'negativeOcf':                                   // 비금융만 — 금융업 음수 OCF 는 사업특성
+      if (ctx.ocf != null && ctx.ocf < 0 && !_isFinancial(ctx.sector)) return `영업현금흐름 적자(현금 미유입)`;
+      break;
+    case 'dilutionFinancing':                             // "외부자금 의존"(차입+증자 — 희석 단정 회피)
+      if (ctx.financingCF != null && ctx.financingCF > 0 && ctx.ocf != null && ctx.financingCF > Math.max(0, ctx.ocf)) return `재무활동 외부자금 의존 증가(영업현금흐름 초과)`;
+      break;
+    case 'highResaleMix':                                 // 유통/상사 제외 — 되팔기가 정상사업
+      if (ctx.resaleRatio != null && ctx.resaleRatio >= (c.ratio_gte ?? 0.4) && !_isDistribution(ctx.sector)) return `되팔기(상품매출) 비중 과다(제조사 기준)`;
+      break;
+    case 'overextended200ma':
+      if (ctx.price != null && ctx.sma200 != null && ctx.sma200 > 0 && ctx.price > ctx.sma200 * (c.mult_gt ?? 1.6)) return `200일선 +${Math.round((ctx.price / ctx.sma200 - 1) * 100)}% 과대확장(되돌림 위험)`;
+      break;
+    case 'highDebt':                                      // 금융/유틸/REIT 제외 — 고부채가 사업구조
+      if (ctx.debtRatio != null && ctx.debtRatio > (c.pct_gt ?? 150) && !_isFinUtil(ctx.sector)) return `부채비율 ${ctx.debtRatio}% 재무위험`;
       break;
   }
   return null;

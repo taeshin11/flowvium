@@ -391,19 +391,15 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
     roe: c.roe, opMargin: c.opMargin, peRatio: c.peRatio, revenueGrowth: c.revenueGrowth, revenueYoY: c.revenueGrowth,
     peg: (c.peRatio != null && c.revenueGrowth != null && c.revenueGrowth > 0) ? c.peRatio / c.revenueGrowth : null,
     vix: macro.vix, fgScore: macro.fg, sector: c.sector,
+    // forensic 데이터(2026-06-19 공유엔진 이관, ChatGPT #8) — 챗은 재무 fetch 하므로 forensic 룰 발화,
+    //   보고서 후보스캔은 ocf 등 미수집 → 자동 skip(데이터 유무로 자연 분기, drift 없음).
+    ocf: c.ocf, netIncome: c.netIncome, financingCF: c.financingCF, debtRatio: c.debtRatio,
+    resaleRatio: c.filing?.resaleRatio ?? null,
   };
+  // forensic 룰(이익의질·희석·되팔기·과대확장·부채)은 이제 공유 buy-sell-engine 의 condition type — scoreBuy/scoreSell 이
+  //   sector-aware 가드와 함께 발화(인라인 보강 제거, 단일 소스화).
   const buy: EngineVerdict['buy'] = scoreBuy(ctx).hits.map(h => ({ id: h.id, score: h.score, desc: h.reason || h.desc }));
   const sell: EngineVerdict['sell'] = scoreSell(ctx).hits.map(h => ({ id: h.id, score: h.score, desc: h.reason || h.desc }));
-  // 챗 forensic 보강 — tuned 룰셋에 없는 *이익의 질·희석·되팔기* 안전망(제주반도체 938배 사건). 같은 평가체계의
-  //   확장: 보고서 후보스캔은 ocf 미수집 → 자동 skip, 챗은 재무 fetch 하므로 발화(데이터 유무로 자연 분기).
-  const { ocf, netIncome, financingCF, price, sma200, debtRatio } = c;
-  if (ocf != null && netIncome != null && netIncome > 0 && ocf >= netIncome) buy.push({ id: 'forensic_cash_conversion', score: 3, desc: '이익의 질 양호(영업현금흐름≥순이익)' });
-  if (ocf != null && netIncome != null && netIncome > 0 && ocf >= 0 && ocf < netIncome * 0.85) sell.push({ id: 'forensic_weak_earnings_quality', score: 3, desc: '이익의 질 낮음(영업현금흐름<순이익)' });
-  if (ocf != null && ocf < 0) sell.push({ id: 'forensic_negative_ocf', score: 5, desc: '영업현금흐름 적자(현금 미유입)' });
-  if (financingCF != null && financingCF > 0 && ocf != null && financingCF > Math.max(0, ocf)) sell.push({ id: 'forensic_dilution', score: 3, desc: '재무활동 자금조달 과다(주식 희석 위험)' });
-  if (c.filing?.resaleRatio != null && c.filing.resaleRatio >= 0.4) sell.push({ id: 'forensic_high_resale', score: 3, desc: '되팔기(상품매출) 비중 과다' });
-  if (price != null && sma200 != null && sma200 > 0 && price > sma200 * 1.6) sell.push({ id: 'forensic_overextended_200ma', score: 3, desc: '200일선 +60%↑ 과대확장(되돌림 위험)' });
-  if (debtRatio != null && debtRatio > 150) sell.push({ id: 'forensic_high_debt', score: 2, desc: '부채비율>150% 재무위험' });
   return { buyScore: buy.reduce((a, b) => a + b.score, 0), sellScore: sell.reduce((a, b) => a + b.score, 0), buy, sell };
 }
 

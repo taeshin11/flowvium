@@ -419,6 +419,16 @@
         "growth_pct_gte": 25
       },
       "description": "신고가 돌파+매출성장≥25% 성장주도주 — O'Neil CANSLIM (2026-06-19)"
+    },
+    {
+      "id": "forensic_cash_conversion",
+      "score": 3,
+      "category": "fundamental",
+      "condition": {
+        "type": "cashConversionGood"
+      },
+      "description": "이익의 질 양호(영업현금흐름≥순이익) — forensic",
+      "tunable": false
     }
   ],
   "outcomeStats": {

@@ -10,6 +10,7 @@ export interface EngineCtx {
   roe?: number | null; opMargin?: number | null; opMarginExpand?: number | null; opMarginDecline?: number | null;
   peRatio?: number | null; pbRatio?: number | null; sectorPe?: number | null; revenueGrowth?: number | null; revenueYoY?: number | null;
   peg?: number | null; earningsYield?: number | null; roic?: number | null;
+  ocf?: number | null; netIncome?: number | null; financingCF?: number | null; debtRatio?: number | null; resaleRatio?: number | null; // forensic(2026-06-19)
   macroRiskLevel?: string | null; vix?: number | null; fgScore?: number | null;
   sectorStance?: string | null; regionStance?: string | null; sector?: string | null; consolidationWeeks?: number | null;
   newsPosRatio?: number | null; newsArticleCount?: number | null;

@@ -295,6 +295,76 @@
       },
       "description": "50MA 하향이탈+모멘텀 약화 추세붕괴 — Druckenmiller (2026-06-19)",
       "urgency": "medium"
+    },
+    {
+      "id": "forensic_weak_earnings_quality",
+      "score": 3,
+      "category": "fundamental",
+      "condition": {
+        "type": "weakEarningsQuality",
+        "ratio_lt": 0.85
+      },
+      "description": "이익의 질 낮음(OCF<순이익*0.85) — forensic",
+      "urgency": "low",
+      "tunable": false
+    },
+    {
+      "id": "forensic_negative_ocf",
+      "score": 5,
+      "category": "fundamental",
+      "condition": {
+        "type": "negativeOcf"
+      },
+      "description": "영업현금흐름 적자(비금융) — forensic",
+      "urgency": "high",
+      "tunable": false
+    },
+    {
+      "id": "forensic_dilution",
+      "score": 3,
+      "category": "fundamental",
+      "condition": {
+        "type": "dilutionFinancing"
+      },
+      "description": "외부자금 의존 증가(재무CF>OCF) — forensic",
+      "urgency": "low",
+      "tunable": false
+    },
+    {
+      "id": "forensic_high_resale",
+      "score": 3,
+      "category": "fundamental",
+      "condition": {
+        "type": "highResaleMix",
+        "ratio_gte": 0.4
+      },
+      "description": "되팔기 비중 과다(비유통 제조사) — forensic",
+      "urgency": "low",
+      "tunable": false
+    },
+    {
+      "id": "forensic_overextended_200ma",
+      "score": 3,
+      "category": "technical",
+      "condition": {
+        "type": "overextended200ma",
+        "mult_gt": 1.6
+      },
+      "description": "200MA +60%↑ 과대확장 — forensic",
+      "urgency": "low",
+      "tunable": false
+    },
+    {
+      "id": "forensic_high_debt",
+      "score": 2,
+      "category": "fundamental",
+      "condition": {
+        "type": "highDebt",
+        "pct_gt": 150
+      },
+      "description": "부채비율>150%(비금융·비유틸) — forensic",
+      "urgency": "low",
+      "tunable": false
     }
   ],
   "outcomeStats": {
