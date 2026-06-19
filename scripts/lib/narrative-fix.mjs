@@ -91,7 +91,9 @@ function fixField(s, { realBp = null, indexMap = {}, stockChgMap = {}, fedNextLa
 // ── 전역 문자열 sanitizer (2026-06-16 페이지 전수감사) — 렌더 텍스트 garble 은 빌드지점마다 흩어져
 //   있어 필드별 교정이 누락됨(이중마이너스 "매출 --4.9%"·orphan "원 +46% YoY"·콘탱고변종·한자 누출).
 //   *모든* 문자열 필드를 deep-walk 하며 산문 의미 안 바꾸는 기계적 garble 만 안전 치환.
-const CONTANGO_VARIANTS = /컨티구오|컨티아고|컨텐고|컨텐코|콘텡고|콘텐고|콘탕고/g;
+// 콘탱고 변종 — 한글 변형 + 2026-06-19: latin 혼입형(컨티gio·컨텐go 등, evening 보고서 발간차단 사건). 콘탱고 어근
+//   (컨티/컨텐/콘텡/콘텐/콘탕)에 한글/라틴 꼬리가 붙은 깨짐을 통합 정규화 → latin_garble 게이트 차단 방지.
+const CONTANGO_VARIANTS = /컨티구오|컨티아고|컨텐고|컨텐코|콘텡고|콘텐고|콘탕고|(?:컨티|컨텐|콘텡|콘텐|콘탕)[a-zA-Z]{1,4}/g;
 export function sanitizeText(s) {
   if (typeof s !== 'string' || !s) return s;
   let t = s;
