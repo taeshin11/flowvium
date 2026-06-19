@@ -92,7 +92,7 @@ const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.rol
 // 답변 자동검증 — 매 답변 후 질문+답변을 grounding 에 대조해 결함 탐지(2026-06-18 사용자 "질문로그·답변로그 함께 검증").
 //   결정론 체크(환각/누출/근거이탈). 결과는 Redis 로그(flowvium:judge-chat:verify)로 적재해 추세 추적.
 interface ChatDefect { type: string; detail?: string }
-function checkChatDefects(question: string, answer: string, grounding: { tickers?: Array<{ ticker: string; price: number | null }>; usedFiling?: boolean; expectedAction?: { action: string; verdict: string; net: number } | null } | undefined): ChatDefect[] {
+function checkChatDefects(question: string, answer: string, grounding: { tickers?: Array<{ ticker: string; price: number | null; fiscalYear?: string | null }>; usedFiling?: boolean; expectedAction?: { action: string; verdict: string; net: number } | null } | undefined): ChatDefect[] {
   const d: ChatDefect[] = [];
   const a = answer || '';
   const hasEngineData = (grounding?.tickers ?? []).some(t => t.price != null);
@@ -120,9 +120,12 @@ function checkChatDefects(question: string, answer: string, grounding: { tickers
   // 4) 가짜 배수 (이익의 질 938배 류)
   for (const m of Array.from(a.matchAll(/순이익의\s*([\d,]+)\s*배/g))) if (Number(m[1].replace(/,/g, '')) >= 10) d.push({ type: 'fake_multiple', detail: m[0] });
   // 5) stale 연도 환각 — 과거 연도(올해-2 이하)를 "기준/최신/현재"라 칭함 (2026인데 "2024년 기준" 사건)
+  //   단, grounding 의 실제 회계연도(fiscalYear)와 일치하면 정당(FY2024 가 최신 연차공시일 수 있음 — ChatGPT #14).
   const curYear = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }).slice(0, 4));
+  const allowedYears = new Set((grounding?.tickers ?? []).map(t => (t.fiscalYear ?? '').replace(/\D/g, '').slice(0, 4)).filter(Boolean));
   for (const m of Array.from(a.matchAll(/20(\d\d)\s*년[^.\n]{0,14}(기준|최신|현재)/g))) {
-    if (Number('20' + m[1]) <= curYear - 2) { d.push({ type: 'stale_year', detail: m[0].slice(0, 24) }); break; }
+    const yr = '20' + m[1];
+    if (Number(yr) <= curYear - 2 && !allowedYears.has(yr)) { d.push({ type: 'stale_year', detail: m[0].slice(0, 24) }); break; }
   }
   // 6) 진입가 현재가 괴리 — 단일 종목 답변에서 진입가가 현재가 ±15% 밖이면 환각 의심
   const priced = (grounding?.tickers ?? []).filter(t => t.price != null);
@@ -138,9 +141,21 @@ function checkChatDefects(question: string, answer: string, grounding: { tickers
 }
 // 결정론 sanitize — 검출된 결함을 *답변 반환 전* 자동 제거(2026-06-18 사용자 "검증해서 고칠게 있으면 고쳐라·시스템화").
 //   base 모델이 프롬프트를 무시해도 사용자는 정상 답변만 보게. checkChatDefects 와 같은 결함류를 기계적으로 교정.
-function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: string; price: number | null }> } | undefined): string {
+function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: string; price: number | null; fiscalYear?: string | null }> } | undefined): string {
   let a = text || '';
   const hasData = (grounding?.tickers ?? []).some(t => t.price != null);
+  // stale_year corrector(2026-06-19 ChatGPT #14, dead-end 해소): 과거 연도를 "기준/최신/현재"로 표기하되 그게
+  //   실제 회계연도(fiscalYear)도 아니고 역사적 맥락 단어(당시/과거/전년 등)도 없으면 → "최근 공개자료 기준"으로.
+  {
+    const curY = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }).slice(0, 4));
+    const allowed = new Set((grounding?.tickers ?? []).map(t => (t.fiscalYear ?? '').replace(/\D/g, '').slice(0, 4)).filter(Boolean));
+    a = a.replace(/20(\d\d)\s*년\s*(기준|최신|현재)/g, (m, yy, kw, off, str) => {
+      const yr = '20' + yy;
+      if (Number(yr) > curY - 2 || allowed.has(yr)) return m;            // 최근연도/실 회계연도면 정상
+      if (/당시|과거|전년|대비|이후|이전|비교|말|초/.test(str.slice(Math.max(0, off - 12), off))) return m; // 역사적 맥락이면 정상
+      return '최근 공개자료 기준';
+    });
+  }
   a = a.replace(/\s*\(\+\d+\)/g, '');                                   // (+5) 점수태그 제거
   // rule_id_leak corrector(2026-06-19 ChatGPT: detector-without-corrector dead-end 해소) — 누출된 snake_case
   //   룰ID(price_momentum_52w_high 등) 제거 + 잔여 괄호/공백 정리. 한글 금융문에 snake_case 영문은 사실상 룰ID뿐.
@@ -450,7 +465,7 @@ export async function POST(request: NextRequest) {
       const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief, chatLessons });
       const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
       const grounding = {
-        tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null })),
+        tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null, fiscalYear: c.fiscalYear ?? null })),
         usedRules: true, usedReport: !!reportContext, usedMacro: !!macroContext,
         usedRag: ragHits.length > 0, usedFiling: tickerCtx.some(c => c.filing),
         ragSources: ragHits.map(h => ({ source: h.source, year: h.year ?? null, score: Number(h.score.toFixed(2)) })),
