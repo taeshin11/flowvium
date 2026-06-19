@@ -7,18 +7,23 @@ import { createHmac } from 'crypto';
 
 const COOKIE = 'fv_member';
 function secret(): string {
-  return process.env.MEMBER_SECRET ?? process.env.CRON_SECRET ?? 'flowvium-member-v1';
+  // 2026-06-19 보안: 공개 하드코딩 폴백 제거 — env 비밀키 없으면 throw(위조 방지). /api/member 와 동일 정책.
+  const s = process.env.MEMBER_SECRET ?? process.env.CRON_SECRET;
+  if (!s) throw new Error('MEMBER_SECRET/CRON_SECRET unset');
+  return s;
 }
 
-/** fv_member 쿠키 → 로그인 이메일(소문자). 비로그인/위조 시 null. */
+/** fv_member 쿠키 → 로그인 이메일(소문자). 비로그인/위조/비밀키미설정 시 null(fail-closed). */
 export function getMemberEmail(req: NextRequest): string | null {
   const token = req.cookies.get(COOKIE)?.value;
   if (!token) return null;
-  const [b64, mac] = token.split('.');
-  if (!b64 || !mac) return null;
-  const expect = createHmac('sha256', secret()).update(b64).digest('base64url').slice(0, 24);
-  if (mac !== expect) return null;
-  try { return Buffer.from(b64, 'base64url').toString('utf8'); } catch { return null; }
+  try {
+    const [b64, mac] = token.split('.');
+    if (!b64 || !mac) return null;
+    const expect = createHmac('sha256', secret()).update(b64).digest('base64url').slice(0, 24);
+    if (mac !== expect) return null;
+    return Buffer.from(b64, 'base64url').toString('utf8');
+  } catch { return null; }
 }
 
 /** 채팅 히스토리 소유자 ID — 로그인 시 email, 아니면 익명 쿠키 ID(없으면 null → 호출측이 발급). */
