@@ -194,6 +194,22 @@ try {
   }
 } catch { /* deep surface 실패 무시 */ }
 
+// [8] LoRA/SFT 학습 결과 surface (2026-06-19) — batch 가 training 실패해도 exit 0 으로 오보고하던 함정 방지.
+//   lora-train.log 의 마지막 "training exit code N" + "LoRA saved" 로 실제 성공/실패 판정. 24h 내만.
+try {
+  const lpath = `${ROOT}/logs/lora-train.log`;
+  if (existsSync(lpath)) {
+    const ageH = (now - statSync(lpath).mtimeMs) / 3600000;
+    if (ageH < 24) {
+      const txt = readFileSync(lpath, 'utf8');
+      const rc = [...txt.matchAll(/training exit code (\d+)/g)].pop()?.[1];
+      const saved = /LoRA saved/.test(txt);
+      if (rc != null && (rc !== '0' || !saved)) alerts.push(`LoRA학습 실패(${ageH.toFixed(1)}h, exit ${rc}${saved ? '' : ', adapter 미저장'}) — train-lora.sh 점검`);
+      else if (saved) info.push(`LoRA✓(${ageH.toFixed(0)}h)`);
+    }
+  }
+} catch { /* */ }
+
 const line = alerts.length
   ? `ALERT: ${alerts.join(' | ')}  [ok: ${info.join(', ')}]`
   : `OK  ${info.join(' / ')}`;
