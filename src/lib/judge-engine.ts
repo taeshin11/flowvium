@@ -10,6 +10,8 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { companyNamesI18n } from '@/data/company-names-i18n';
+// 2026-06-19 엔진 통합: 매수/매도 룰 평가기 단일 소스(보고서와 공유). 챗도 보고서의 자동튜닝 룰을 사용.
+import { scoreBuy, scoreSell, type EngineCtx } from '@/lib/buy-sell-engine';
 
 const ROOT = process.cwd();
 function loadJson<T>(rel: string): T | null {
@@ -120,7 +122,7 @@ export interface TickerCtx {
   ticker: string; name: string; sector?: string; market?: string;
   price?: number | null; changePct?: number | null;
   rsi?: number | null; sma50?: number | null; sma200?: number | null;
-  high52w?: number | null; low52w?: number | null;
+  high52w?: number | null; low52w?: number | null; high20d?: number | null; // high20d: 20일 신고가(돌파 룰)
   volRatio?: number | null; relVol?: number | null; // 거래량: 최근5일/직전30일, 당일/20일평균 (매수·매도엔진 발화)
   roe?: number | null; opMargin?: number | null; revenueGrowth?: number | null; peRatio?: number | null;
   netMargin?: number | null; debtRatio?: number | null; rdPct?: number | null; fcf?: number | null;
@@ -273,6 +275,7 @@ export async function gatherTickerContext(ticker: string, origin: string, opts?:
     sma200: sma(closes, 200),
     high52w: yh?.high52w ?? null,
     low52w: yh?.low52w ?? null,
+    high20d: closes.length >= 20 ? Math.max(...closes.slice(-20)) : null,  // 20일 신고가(돌파 룰 above20dHigh)
     ...volSignals(yh?.volumes ?? []),  // volRatio(최근5/직전30) · relVol(당일/20일) — 매수·매도엔진 거래량 발화
 
     roe: num(pick(finCore, 'roePct', 'roe')),
@@ -377,47 +380,29 @@ function fmtFiling(c: TickerCtx): string {
 //   평가 가능한 부분집합만 결정론 발화. (signals/holdings 의존 룰은 챗 데이터 부재로 미발화=보수적.)
 export interface EngineVerdict { buyScore: number; sellScore: number; buy: Array<{ id: string; score: number; desc: string }>; sell: Array<{ id: string; score: number; desc: string }>; }
 export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: number | null }): EngineVerdict {
-  const buy: EngineVerdict['buy'] = [], sell: EngineVerdict['sell'] = [];
-  const B = (id: string, score: number, desc: string, cond: boolean) => { if (cond) buy.push({ id, score, desc }); };
-  const S = (id: string, score: number, desc: string, cond: boolean) => { if (cond) sell.push({ id, score, desc }); };
-  const { price, changePct, rsi, sma50, sma200, high52w, low52w, roe, opMargin, revenueGrowth, peRatio, debtRatio, ocf, netIncome, financingCF, volRatio, relVol } = c;
-  const near = (a?: number | null, b?: number | null, pct = 2) => a != null && b != null && b !== 0 && Math.abs((a - b) / b * 100) <= pct;
-  // 매수엔진
-  B('price_oversold_gap', 3, '1일 -3%↑ 급락 평균회귀 후보', changePct != null && changePct <= -3);
-  B('price_momentum_52w_high', 5, '52주 신고가 3% 이내 추세주도', price != null && high52w != null && (high52w - price) / high52w * 100 <= 3 && price <= high52w * 1.02);
-  B('price_support_bounce', 5, '52주 저점 5% 이내 지지반등(Marks 역발상)', price != null && low52w != null && (price - low52w) / low52w * 100 <= 5);
-  B('near_50ma', 3, '50일선 ±2% 눌림목', near(price, sma50, 2));
-  B('rsi_oversold', 4, 'RSI≤35 과매도', rsi != null && rsi <= 35);
-  B('golden_cross', 5, '골든크로스(50MA>200MA)', sma50 != null && sma200 != null && sma50 > sma200);
-  B('ma200_reclaim', 4, '200일선 상회(5% 이내)', price != null && sma200 != null && price >= sma200 && (price - sma200) / sma200 * 100 <= 5);
-  B('roe_above', 3, 'ROE≥15% 수익성', roe != null && roe >= 15);
-  B('buffett_moat', 6, '해자(ROE≥15% & 영업이익률≥20%)', roe != null && roe >= 15 && opMargin != null && opMargin >= 20);
-  B('revenue_yoy', 4, '매출성장≥15%', revenueGrowth != null && revenueGrowth >= 15);
-  B('lynch_peg', 4, 'PEG≤1 (성장대비 저평가)', peRatio != null && revenueGrowth != null && revenueGrowth > 0 && peRatio / revenueGrowth <= 1);
-  B('vix_low', 2, 'VIX≤14 저변동', macro.vix != null && macro.vix <= 14);
-  B('fg_recovery', 3, 'F&G 25~50 회복국면', macro.fg != null && macro.fg >= 25 && macro.fg <= 50);
-  B('strong_cash_conversion', 3, '이익의 질 양호(영업현금흐름≥순이익)', ocf != null && netIncome != null && netIncome > 0 && ocf >= netIncome);
-  // 거래량(수급 확인) — 가격 신호에 거래량이 동반되면 신뢰도↑ (2026-06-19 사용자 "매수/매도엔진에 거래량도").
-  B('volume_surge_up', 4, '거래량 동반 상승(최근 거래량 직전30일 1.5배↑ & 당일 상승 — 수급 유입 확인)', volRatio != null && volRatio >= 1.5 && changePct != null && changePct > 0);
-  B('volume_breakout_day', 3, '당일 거래량 폭증 돌파(20일평균 2배↑ & +1%↑)', relVol != null && relVol >= 2 && changePct != null && changePct >= 1);
-  // 매도엔진
-  // forensic: 이익의 질·희석·과대확장 — base 모델이 데이터 라벨을 자꾸 긍정 반전하므로, 결정론 룰로 점수화해
-  //   '엔진 충실성' 메커니즘(모델이 엔진 점수는 글자대로 인용)에 태운다(2026-06-18 제주반도체 사건).
-  S('weak_earnings_quality', 3, '이익의 질 낮음(영업현금흐름이 순이익보다 적어 이익이 현금으로 다 들어오지 않음)', ocf != null && netIncome != null && netIncome > 0 && ocf >= 0 && ocf < netIncome * 0.85);
-  S('negative_ocf', 5, '영업현금흐름 적자(순이익 흑자라도 현금 미유입)', ocf != null && ocf < 0);
-  S('dilution_financing', 3, '재무활동 자금조달 과다(유상증자·전환사채 → 주식 희석 위험)', financingCF != null && financingCF > 0 && ocf != null && financingCF > Math.max(0, ocf));
-  S('overextended_200ma', 3, '200일선 대비 +60%↑ 과대확장(평균회귀·되돌림 위험)', price != null && sma200 != null && sma200 > 0 && price > sma200 * 1.6);
-  S('high_resale_mix', 3, '되팔기(상품매출) 비중 과다 — 자체생산 비중 낮아 부가가치·해자 약함', c.filing?.resaleRatio != null && c.filing.resaleRatio >= 0.4);
-  S('dead_cross', 5, '데드크로스(50MA<200MA)', sma50 != null && sma200 != null && sma50 < sma200);
-  S('ma200_breach', 5, '200일선 하향이탈', price != null && sma200 != null && price < sma200);
-  S('rsi_overbought', 4, 'RSI≥75 과매수', rsi != null && rsi >= 75);
-  S('peg_high', 3, 'PEG≥2 고평가', peRatio != null && revenueGrowth != null && revenueGrowth > 0 && peRatio / revenueGrowth >= 2);
-  S('macro_vix_spike', 3, 'VIX≥25 거시 리스크', macro.vix != null && macro.vix >= 25);
-  S('fg_extreme_fear', 2, 'F&G≤20 극공포', macro.fg != null && macro.fg <= 20);
-  S('high_debt', 2, '부채비율>150% 재무위험', debtRatio != null && debtRatio > 150);
-  // 거래량(분산·동력고갈) — 하락에 거래량 폭증이면 분산(매물 출회), 거래량 고갈이면 추세 동력 상실.
-  S('volume_distribution', 3, '거래량 폭증 하락(20일평균 1.8배↑ & 당일 -2%↓ — 분산/투매 매물 출회)', relVol != null && relVol >= 1.8 && changePct != null && changePct <= -2);
-  S('volume_dryup', 2, '거래량 고갈(최근 거래량 직전30일 절반↓ — 추세 동력 상실·관심 이탈)', volRatio != null && volRatio <= 0.5);
+  // 2026-06-19 엔진 통합(사용자 "보고서 엔진이 더 정확하니 그쪽으로 통합"): 챗도 보고서와 *동일* 자동튜닝 룰
+  //   (data/buy|sell-rules-tuned.json) + 공유 평가기(buy-sell-engine.mjs)로 채점. 거래량(tech_volume_surge/dry)
+  //   포함. TickerCtx → EngineCtx 매핑. 챗에 없는 데이터(섹터PE·옵션·내부자·보유맥락) 룰은 자동 skip.
+  const ctx: EngineCtx = {
+    price: c.price, change1d: c.changePct, sma50: c.sma50, sma200: c.sma200,
+    high20d: c.high20d, high52w: c.high52w, low52w: c.low52w, rsi: c.rsi,
+    volPct: c.relVol != null ? Math.round((c.relVol - 1) * 100) : null,  // 당일 거래량 평균대비 %(volumeSurge/volumeDrop)
+    roe: c.roe, opMargin: c.opMargin, peRatio: c.peRatio, revenueGrowth: c.revenueGrowth, revenueYoY: c.revenueGrowth,
+    peg: (c.peRatio != null && c.revenueGrowth != null && c.revenueGrowth > 0) ? c.peRatio / c.revenueGrowth : null,
+    vix: macro.vix, fgScore: macro.fg, sector: c.sector,
+  };
+  const buy: EngineVerdict['buy'] = scoreBuy(ctx).hits.map(h => ({ id: h.id, score: h.score, desc: h.reason || h.desc }));
+  const sell: EngineVerdict['sell'] = scoreSell(ctx).hits.map(h => ({ id: h.id, score: h.score, desc: h.reason || h.desc }));
+  // 챗 forensic 보강 — tuned 룰셋에 없는 *이익의 질·희석·되팔기* 안전망(제주반도체 938배 사건). 같은 평가체계의
+  //   확장: 보고서 후보스캔은 ocf 미수집 → 자동 skip, 챗은 재무 fetch 하므로 발화(데이터 유무로 자연 분기).
+  const { ocf, netIncome, financingCF, price, sma200, debtRatio } = c;
+  if (ocf != null && netIncome != null && netIncome > 0 && ocf >= netIncome) buy.push({ id: 'forensic_cash_conversion', score: 3, desc: '이익의 질 양호(영업현금흐름≥순이익)' });
+  if (ocf != null && netIncome != null && netIncome > 0 && ocf >= 0 && ocf < netIncome * 0.85) sell.push({ id: 'forensic_weak_earnings_quality', score: 3, desc: '이익의 질 낮음(영업현금흐름<순이익)' });
+  if (ocf != null && ocf < 0) sell.push({ id: 'forensic_negative_ocf', score: 5, desc: '영업현금흐름 적자(현금 미유입)' });
+  if (financingCF != null && financingCF > 0 && ocf != null && financingCF > Math.max(0, ocf)) sell.push({ id: 'forensic_dilution', score: 3, desc: '재무활동 자금조달 과다(주식 희석 위험)' });
+  if (c.filing?.resaleRatio != null && c.filing.resaleRatio >= 0.4) sell.push({ id: 'forensic_high_resale', score: 3, desc: '되팔기(상품매출) 비중 과다' });
+  if (price != null && sma200 != null && sma200 > 0 && price > sma200 * 1.6) sell.push({ id: 'forensic_overextended_200ma', score: 3, desc: '200일선 +60%↑ 과대확장(되돌림 위험)' });
+  if (debtRatio != null && debtRatio > 150) sell.push({ id: 'forensic_high_debt', score: 2, desc: '부채비율>150% 재무위험' });
   return { buyScore: buy.reduce((a, b) => a + b.score, 0), sellScore: sell.reduce((a, b) => a + b.score, 0), buy, sell };
 }
 
