@@ -407,20 +407,29 @@ export function fireRules(c: TickerCtx, macro: { vix?: number | null; fg?: numbe
   return { buyScore: buy.reduce((a, b) => a + b.score, 0), sellScore: sell.reduce((a, b) => a + b.score, 0), buy, sell };
 }
 
+// 종목별 데이터 풍부도(price/technical/fundamental 카테고리 수) — adjudicate coverage gate 입력(2026-06-19 ChatGPT #6).
+function ctxCoverage(c: TickerCtx): number {
+  return [
+    c.price != null,
+    c.rsi != null || c.sma50 != null || c.sma200 != null,
+    c.roe != null || c.peRatio != null || c.revenueGrowth != null,
+  ].filter(Boolean).length;
+}
+
 // 주 종목(가격 있는 첫 종목)의 결정론 심판 — grounding.expectedAction 노출 + verdict_mismatch 검출용(2026-06-19).
 export function primaryVerdict(tickerCtx: TickerCtx[], macro: { vix?: number | null; fg?: number | null }):
   { ticker: string; action: string; verdict: string; net: number } | null {
   const c = tickerCtx.find(t => t.price != null);
   if (!c) return null;
   const v = fireRules(c, macro);
-  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell) });
+  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), coverage: ctxCoverage(c) });
   return { ticker: c.ticker, action: j.action, verdict: j.verdict, net: j.net };
 }
 
 function fmtEngine(c: TickerCtx, v: EngineVerdict): string {
   if (c.price == null) return '';
   // 2026-06-19: 최종 심판은 보고서와 *동일* adjudicate(결정론). LLM 이 점수와 어긋나게 뒤집던 것 차단.
-  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell) });
+  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), coverage: ctxCoverage(c) });
   // 발화 룰은 설명만(per-rule +점수 제거) — 모델이 통째 복사해 "(+5)(+6)" 노출하던 것 차단(2026-06-18 FTNT).
   const bf = v.buy.length ? v.buy.map(r => r.desc).join(', ') : '없음';
   const sf = v.sell.length ? v.sell.map(r => r.desc).join(', ') : '없음';

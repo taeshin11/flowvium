@@ -429,16 +429,24 @@ export function scoreSell(ctx, rules = loadSellRules()) {
 const HARD_SELL_IDS = new Set(['tech_dead_cross', 'price_stop_breach', 'forensic_negative_ocf', 'micro_supply_contract_loss']);
 export function adjudicate(buyScore, sellScore, opts = {}) {
   const hardSell = opts.hardSell ?? false;
+  const coverage = opts.coverage;  // 종목별 데이터 카테고리 수(price/technical/fundamental 등). 부족 시 강verdict 제한.
   const net = (buyScore ?? 0) - (sellScore ?? 0);
-  if (hardSell) return { verdict: 'avoid', action: '매도/회피', lean: 'hard-sell', net, reason: '치명 매도신호(veto) — 점수 무관 청산 우선' };
+  if (hardSell) return { verdict: 'avoid', action: '매도/회피', lean: 'hard-sell', net, coverage, reason: '치명 매도신호(veto) — 점수 무관 청산 우선' };
   let verdict, action;
   if (net >= 12) { verdict = 'buy'; action = '매수'; }
   else if (net >= 5) { verdict = 'accumulate'; action = '분할매수'; }
   else if (net > -5) { verdict = 'hold'; action = '관망'; }
   else if (net > -12) { verdict = 'reduce'; action = '비중축소'; }
   else { verdict = 'sell'; action = '매도'; }
+  // 2026-06-19(ChatGPT #6): coverage gate — 종목별 데이터 <2 카테고리면 강한 매수/매도 금지(thin data 과확신 차단).
+  //   동일 net 도 데이터 풍부도에 따라 confidence 다르므로 강verdict 를 분할/축소로 다운그레이드.
+  let capped = false;
+  if (coverage != null && coverage < 2) {
+    if (verdict === 'buy') { verdict = 'accumulate'; action = '분할매수'; capped = true; }
+    else if (verdict === 'sell') { verdict = 'reduce'; action = '비중축소'; capped = true; }
+  }
   const lean = net > 2 ? '매수 우세' : net < -2 ? '매도 우세' : '팽팽(관망권)';
-  return { verdict, action, lean, net };
+  return { verdict, action, lean, net, coverage, ...(capped ? { coverageCapped: true } : {}) };
 }
 // sell hits 에 치명 룰 포함 여부 — adjudicate 의 hardSell 판정용.
 export function hasHardSell(sellHits) {
