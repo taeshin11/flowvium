@@ -338,20 +338,27 @@ export function evaluateSellRule(rule, ctx) {
   return null;
 }
 
-import { readFileSync as _rf } from 'node:fs';
-import { resolve as _rs } from 'node:path';
-// process.cwd() = 프로젝트 루트(보고서 Node·Next.js 양쪽 동일). import.meta.url 은 Next 번들 시 .next/ 를 가리켜
-//   data/ 를 못 찾을 수 있어 회피(2026-06-19).
-const _ROOT = process.cwd();
+import { readFileSync as _rf, existsSync as _ex } from 'node:fs';
+import { resolve as _rs, dirname as _dn } from 'node:path';
+import { fileURLToPath as _fu } from 'node:url';
+// data/ 해석: ① process.cwd()(보고서 root 실행·Next root 실행 — 정상) ② 모듈 위치 기준 fallback(cwd 비정상 시).
+//   cron-critical: cwd 가 root 아니면 0룰 → portfolio 붕괴. import.meta.url 은 Next 번들 시 .next/ 가리킬 수
+//   있어 1순위 아님, cwd 실패 때만 fallback(2026-06-19 견고화).
+function _readData(rel) {
+  const cands = [_rs(process.cwd(), rel)];
+  try { cands.push(_rs(_dn(_fu(import.meta.url)), '../..', rel)); } catch { /* */ }
+  for (const p of cands) { try { if (_ex(p)) return _rf(p, 'utf8'); } catch { /* */ } }
+  return null;
+}
 let _buyRules = null, _sellRules = null;
 export function loadBuyRules() {
   if (_buyRules) return _buyRules;
-  try { const j = JSON.parse(_rf(_rs(_ROOT, 'data/buy-rules-tuned.json'), 'utf8')); _buyRules = j.rules || j; } catch { _buyRules = []; }
+  try { const t = _readData('data/buy-rules-tuned.json'); const j = t ? JSON.parse(t) : {}; _buyRules = j.rules || (Array.isArray(j) ? j : []); } catch { _buyRules = []; }
   return _buyRules;
 }
 export function loadSellRules() {
   if (_sellRules) return _sellRules;
-  try { const j = JSON.parse(_rf(_rs(_ROOT, 'data/sell-rules-tuned.json'), 'utf8')); _sellRules = j.rules || j; } catch { _sellRules = []; }
+  try { const t = _readData('data/sell-rules-tuned.json'); const j = t ? JSON.parse(t) : {}; _sellRules = j.rules || (Array.isArray(j) ? j : []); } catch { _sellRules = []; }
   return _sellRules;
 }
 export function scoreBuy(ctx, rules = loadBuyRules()) {
