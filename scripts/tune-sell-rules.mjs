@@ -24,7 +24,7 @@
  * 주의: --apply 없이는 파일을 절대 수정하지 않는다 (사람 리뷰 후 적용).
  */
 import Database from 'better-sqlite3';
-import { readFileSync, writeFileSync, copyFileSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, renameSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -318,10 +318,18 @@ for (const r of spec.rules) {
   }
 }
 
+// 2026-06-19(ChatGPT #11): sell outcome 라벨이 비변별(거의 전부 neutral)이면 score 자동튜닝 동결 — 라벨 임계/평가
+//   시점 연결을 먼저 고쳐야 함. 임계 grid(buy outcome 기반, 별개·신뢰도↑)는 유지. SELL_TUNE_FORCE=1 로 강제 가능.
+const _totEval = Object.values(ruleStats).reduce((s, r) => s + r.evaluated, 0);
+const _totNonNeutral = Object.values(ruleStats).reduce((s, r) => s + r.goodCall + r.missedUpside, 0);
+const _discrim = _totEval > 0 ? _totNonNeutral / _totEval : 1;
+const FREEZE_SCORE = _totEval >= 5 && _discrim < 0.15 && process.env.SELL_TUNE_FORCE !== '1';
+if (FREEZE_SCORE) console.warn(`  ⚠️ [동결] sell outcome 비변별(non-neutral ${(_discrim * 100).toFixed(0)}% < 15%, eval ${_totEval}) — score 자동튜닝 SKIP(임계 grid 유지). 라벨링 수정 후 SELL_TUNE_FORCE=1.`);
+
 if (APPLY) {
-  // score 적용.
+  // score 적용 (동결 시 SKIP).
   const proposalById = new Map(proposals.map((p) => [p.id, p]));
-  for (const r of spec.rules) {
+  if (!FREEZE_SCORE) for (const r of spec.rules) {
     const p = proposalById.get(r.id);
     if (p && p.changed) r.score = p.proposed;
   }
@@ -346,8 +354,11 @@ if (APPLY) {
   // .bak 백업 후 쓰기 — 원본 구조/포맷(2-space) 보존.
   const bakPath = RULES_PATH + '.bak';
   copyFileSync(RULES_PATH, bakPath);
-  writeFileSync(RULES_PATH, JSON.stringify(spec, null, 2) + '\n', 'utf8');
-  console.log(`\n✅ APPLY 완료 — score 변경 ${changedScores.length}, 임계 변경 ${thresholdUpdates}.`);
+  // 2026-06-19(ChatGPT #1): 원자적 교체 — tmp 쓰고 rename. 직접 덮어쓰기 중 부분 JSON 을 Next loader 가 읽는 race 방지.
+  const tmpPath = RULES_PATH + '.tmp';
+  writeFileSync(tmpPath, JSON.stringify(spec, null, 2) + '\n', 'utf8');
+  renameSync(tmpPath, RULES_PATH);
+  console.log(`\n✅ APPLY 완료 — score 변경 ${FREEZE_SCORE ? 0 : changedScores.length}${FREEZE_SCORE ? '(동결)' : ''}, 임계 변경 ${thresholdUpdates}.`);
   console.log(`   백업: ${bakPath}`);
   console.log(`   갱신: ${RULES_PATH}  (sample n=${spec.sampleSize})`);
 } else {

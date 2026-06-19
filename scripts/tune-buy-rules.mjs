@@ -10,7 +10,7 @@
  *   node scripts/tune-buy-rules.mjs
  */
 import Database from 'better-sqlite3';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, renameSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -157,7 +157,9 @@ if (process.argv.includes('--apply')) {
   // [3.5] 룰별 outcome 백튜닝 score 적용 (표본충족 룰만 — 위에서 changed 판정)
   for (const p of changes) { const rule = spec.rules.find((x) => x.id === p.id); if (rule) rule.score = p.proposed; }
   try { writeFileSync(RULES_PATH + '.bak', readFileSync(RULES_PATH)); } catch {}
-  writeFileSync(RULES_PATH, JSON.stringify(spec, null, 2) + '\n', 'utf8');
+  // 2026-06-19(ChatGPT #1): 원자적 교체 — 부분 JSON race 방지(loader hot-reload).
+  writeFileSync(RULES_PATH + '.tmp', JSON.stringify(spec, null, 2) + '\n', 'utf8');
+  renameSync(RULES_PATH + '.tmp', RULES_PATH);
   console.log(`\n✅ buy-rules-tuned.json 적용 — outcomeStats 갱신 (n=${total}, hitRate ${spec.outcomeStats.hitRate}%) + 룰 score 백튜닝 ${changes.length}건`);
 } else {
   console.log(`\n[dry-run] buy-rules-tuned.json 미적용 (--apply 로 적용). outcomeStats n=${total}, hitRate ${spec.outcomeStats.hitRate}%, avgAlpha ${spec.outcomeStats.avgAlpha}% | 룰 백튜닝 제안 ${changes.length}건 (표본충족 ${tunable.length})`);
