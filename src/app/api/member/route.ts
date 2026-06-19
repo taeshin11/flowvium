@@ -20,32 +20,52 @@ const COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 // 2026-06-19 보안: 공개 하드코딩 폴백 제거 — env 비밀키 없으면 throw(fail-closed). 이전엔 env 분실 시
 //   소스에 박힌 'flowvium-member-v1' 로 서명해 *누구나 임의 이메일 쿠키 위조 가능* 했음. 미설정은 위조보다
 //   가입 불가가 안전. (운영 .env.local 엔 CRON_SECRET 존재 → 평시 영향 없음, 오설정 방어.)
+// 서명 키(현재) — MEMBER_SECRET 우선, 없으면 CRON_SECRET. 미설정이면 throw(fail-closed, 공개폴백 금지).
 function secret(): string {
   const s = process.env.MEMBER_SECRET ?? process.env.CRON_SECRET;
   if (!s) throw new Error('MEMBER_SECRET/CRON_SECRET unset — refuse public-fallback signing');
   return s;
+}
+// 2026-06-19(ChatGPT #16): dual-key rotation — 검증은 [CURRENT, PREVIOUS, CRON] 모두 시도해 무중단 키교체.
+//   MEMBER_SECRET 을 새 값으로 바꾸고 기존을 MEMBER_SECRET_PREVIOUS 로 두면 기존 쿠키 무효화 없이 회전.
+function verifySecrets(): string[] {
+  return [process.env.MEMBER_SECRET, process.env.MEMBER_SECRET_PREVIOUS, process.env.CRON_SECRET].filter((x): x is string => !!x);
 }
 function sign(email: string): string {
   const b64 = Buffer.from(email.toLowerCase()).toString('base64url');
   const mac = createHmac('sha256', secret()).update(b64).digest('base64url').slice(0, 24);
   return `${b64}.${mac}`;
 }
-function verify(token: string | undefined): string | null {
+// 반환: 이메일 + 현재키로 검증됐는지(아니면 GET 이 current 키로 재발급 → 점진 회전).
+function verifyEx(token: string | undefined): { email: string; viaCurrent: boolean } | null {
   if (!token) return null;
-  try {  // secret() throw·디코드 실패 등 모든 오류 → 비회원(fail-closed)
+  try {
     const [b64, mac] = token.split('.');
     if (!b64 || !mac) return null;
-    const expect = createHmac('sha256', secret()).update(b64).digest('base64url').slice(0, 24);
-    if (mac !== expect) return null;
-    return Buffer.from(b64, 'base64url').toString('utf8');
+    const secs = verifySecrets();
+    for (let i = 0; i < secs.length; i++) {
+      if (mac === createHmac('sha256', secs[i]).update(b64).digest('base64url').slice(0, 24)) {
+        return { email: Buffer.from(b64, 'base64url').toString('utf8'), viaCurrent: i === 0 };
+      }
+    }
+    return null;
   } catch { return null; }
+}
+function verify(token: string | undefined): string | null {
+  return verifyEx(token)?.email ?? null;
 }
 
 export async function GET(req: NextRequest) {
-  const email = verify(req.cookies.get(COOKIE)?.value);
+  const v = verifyEx(req.cookies.get(COOKIE)?.value);
+  const email = v?.email ?? null;
   // 이메일 일부 마스킹해 프로필 표시용 반환 (a***@domain)
   const masked = email ? email.replace(/^(.).*(@.*)$/, (_, a, d) => `${a}***${d}`) : null;
-  return NextResponse.json({ member: !!email, email: masked });
+  const res = NextResponse.json({ member: !!email, email: masked });
+  // dual-key 점진 회전: 이전/CRON 키로 검증됐으면 현재 키로 쿠키 재발급(PREVIOUS 제거 후에도 무중단).
+  if (v && !v.viaCurrent) {
+    try { res.cookies.set(COOKIE, sign(email!), { httpOnly: true, secure: true, sameSite: 'lax', maxAge: COOKIE_MAX_AGE, path: '/' }); } catch { /* 서명불가 시 스킵 */ }
+  }
+  return res;
 }
 
 export async function POST(req: NextRequest) {
