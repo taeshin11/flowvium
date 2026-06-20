@@ -1,28 +1,34 @@
 {
-  "generatedAt": "2026-06-18T22:00:24.107Z",
+  "generatedAt": "2026-06-20T07:00:23.393Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 1,
-  "strongCount": 0,
-  "watchCount": 1,
-  "officialFewAccount": 0,
+  "strongCount": 1,
+  "watchCount": 0,
+  "officialFewAccount": 1,
   "watchlist": [
     {
-      "ticker": "352480.KQ",
-      "name": "씨앤씨인터내셔널",
-      "tier": "watch",
-      "score": 26,
+      "ticker": "039290.KQ",
+      "name": "인포뱅크",
+      "tier": "strong",
+      "score": 55,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.5× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "🚨 거래소 소수계좌 거래집중(공식 2026-06-17)"
       ],
-      "runup20dPct": -5,
-      "runup5dPct": 4,
-      "medDollarVolUsd": 461458,
-      "smartAccum": true,
-      "official": null
+      "runup20dPct": -14.5,
+      "runup5dPct": 12.3,
+      "medDollarVolUsd": 57354,
+      "smartAccum": false,
+      "official": {
+        "category": "caution",
+        "reason": "매매관여과다종목",
+        "fewAccount": true,
+        "designatedDate": "2026-06-17"
+      }
     }
   ]
 }
