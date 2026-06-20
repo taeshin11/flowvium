@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Remove leftover cu12 nvidia packages from aits-train2 (torch cu124 잔재) so only cu13 remains,
-# matching the working aits-train venv → bnb finds libnvJitLink.so.13.
-source /root/aits-train2/bin/activate
+# Remove leftover cu12 nvidia packages from aisvi-train2 (torch cu124 잔재) so only cu13 remains,
+# matching the working aisvi-train venv → bnb finds libnvJitLink.so.13.
+source /root/aisvi-train2/bin/activate
 mapfile -t CU12 < <(pip list 2>/dev/null | grep -iE 'cu12' | awk '{print $1}')
 echo "제거 대상(${#CU12[@]}): ${CU12[*]}"
 if [ "${#CU12[@]}" -gt 0 ]; then

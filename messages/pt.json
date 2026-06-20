@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "Resuma a postura do mercado e a tese-chave de hoje",
     "historyTitle": "Histórico",
     "emptyHistory": "Ainda não há conversas",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "Motor principal (regras · dados ao vivo)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ busca semântica das cartas de Buffett e clássicos",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "Motor principal (regras · dados ao vivo)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ busca semântica das cartas de Buffett e clássicos",
     "loginTitle": "O Motor de Julgamento é exclusivo para membros",
     "loginBody": "Basta registrar seu e-mail para começar a conversar. Grátis, sem senha ou pagamento. Seu histórico é salvo com segurança por conta.",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "Falha no registro. Verifique seu e-mail.",
     "loginFreeNote": "Grátis · Sem spam · Cancele quando quiser",
     "backHome": "Início",
-    "modeDeep": "TAISN Profundo",
+    "modeDeep": "AISVI Profundo",
     "modeDeepDesc": "2 passos — pesquisa e depois julgamento (preciso, mais lento)"
   }
 }

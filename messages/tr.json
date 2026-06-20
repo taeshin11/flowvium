@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "Bugünün piyasa duruşunu ve ana tezini özetle",
     "historyTitle": "Geçmiş",
     "emptyHistory": "Henüz sohbet yok",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "Çekirdek motor (kurallar · canlı veri)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ Buffett mektupları ve klasiklerde anlamsal arama",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "Çekirdek motor (kurallar · canlı veri)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ Buffett mektupları ve klasiklerde anlamsal arama",
     "loginTitle": "Yargı Motoru yalnızca üyelere özeldir",
     "loginBody": "Sohbete başlamak için yalnızca e-postanızı kaydedin. Ücretsiz, şifre veya ödeme yok. Geçmişiniz hesap bazında güvenle saklanır.",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "Kayıt başarısız. Lütfen e-postanızı kontrol edin.",
     "loginFreeNote": "Ücretsiz · Spam yok · İstediğiniz zaman çıkın",
     "backHome": "Ana sayfa",
-    "modeDeep": "TAISN Derin",
+    "modeDeep": "AISVI Derin",
     "modeDeepDesc": "2 aşama — araştırma sonra karar (hassas, daha yavaş)"
   }
 }

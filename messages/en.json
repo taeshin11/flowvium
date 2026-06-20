@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "Summarize today's market stance and key thesis",
     "historyTitle": "History",
     "emptyHistory": "No conversations yet",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "Core engine (rules · live data)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ semantic search of Buffett letters & classics",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "Core engine (rules · live data)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ semantic search of Buffett letters & classics",
     "loginTitle": "The Judgment Engine is members-only",
     "loginBody": "Just register your email to start chatting. Free, no password or payment. Your chat history is saved securely per account.",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "Registration failed. Please check your email.",
     "loginFreeNote": "Free · No spam · Unsubscribe anytime",
     "backHome": "Home",
-    "modeDeep": "TAISN Deep",
+    "modeDeep": "AISVI Deep",
     "modeDeepDesc": "2-pass — research then judgment (precise, slower)"
   }
 }

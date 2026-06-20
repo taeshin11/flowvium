@@ -2,14 +2,14 @@
 // stress-test-chat.mjs — 심판엔진 챗 대량 랜덤질문 스트레스 테스트 (2026-06-18 사용자 "질문 랜덤 300개 테스트").
 //   다양한 카테고리 질문을 쏟아 결함을 *선제적*으로 발견. 응답을 production checkChatDefects 류로 검사 + 종목해석/
 //   연도/진입가 점검 → 결함유형 집계 + 예시. 결과 logs/stress-test-{ts}.json.
-//   사용: node scripts/stress-test-chat.mjs [--n=300] [--conc=4] [--mode=aits-deep]
+//   사용: node scripts/stress-test-chat.mjs [--n=300] [--conc=4] [--mode=aisvi-deep]
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith(`--${k}=`)); return a ? a.split('=')[1] : d; };
-const N = Number(arg('n', 300)), CONC = Number(arg('conc', 4)), MODE = arg('mode', 'aits-deep');
+const N = Number(arg('n', 300)), CONC = Number(arg('conc', 4)), MODE = arg('mode', 'aisvi-deep');
 const BASE = 'http://127.0.0.1:3000';
 
 // 실제 종목 풀(이름/티커) 로드

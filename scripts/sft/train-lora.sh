@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# AITS_FINANCE_T — Qwen3-30B-A3B 에 QLoRA 학습 (vLLM 정지 윈도우에서 실행).
-# 선행: aits-train venv(torch2.12+cu130 / transformers4.57 / bnb0.49 / peft0.19 / trl1.6),
-#   data/sft/aits-finance-t.jsonl(build-sft-dataset.mjs).
+# AISVI_FINANCE_T — Qwen3-30B-A3B 에 QLoRA 학습 (vLLM 정지 윈도우에서 실행).
+# 선행: aisvi-train venv(torch2.12+cu130 / transformers4.57 / bnb0.49 / peft0.19 / trl1.6),
+#   data/sft/aisvi-finance-t.jsonl(build-sft-dataset.mjs).
 # 주의: vLLM 가 GPU 24GB 점유 → 실행 전 vLLM 정지 필수(run-lora-window.bat 가 처리). 학습 후 재기동.
 #
 # 2026-06-20 환경(중대 — 장시간 디버깅 결론):
@@ -12,11 +12,11 @@
 #   - expandable_segments 금지: 이 bnb0.49+cu130 조합서 "!handles_.at(i) INTERNAL ASSERT(CUDA IPC)" 유발.
 #     기본 allocator 사용(4.57 순차 로딩이 단편화 없이 적재).
 set -e
-VENV="$HOME/aits-train"
+VENV="$HOME/aisvi-train"
 if [ ! -f "$VENV/bin/activate" ]; then echo "[train] FATAL: $VENV 없음"; exit 1; fi
 source "$VENV/bin/activate"
-DATA="/mnt/d/Flowvium/data/sft/aits-finance-t.jsonl"
-OUT="$HOME/aits-finance-t-lora"
+DATA="/mnt/d/Flowvium/data/sft/aisvi-finance-t.jsonl"
+OUT="$HOME/aisvi-finance-t-lora"
 
 echo "[train] GPU 해제 대기 (vLLM 종료 후)..."
 for i in $(seq 1 30); do
@@ -53,4 +53,4 @@ tr=SFTTrainer(model=get_peft_model(model,lora), train_dataset=ds, args=cfg)
 tr.train(); tr.save_model(OUT)
 print("LoRA saved ->", OUT, flush=True)
 PY
-echo "[train] done → merge & vLLM serve as AITS_FINANCE_T (다음 단계)"
+echo "[train] done → merge & vLLM serve as AISVI_FINANCE_T (다음 단계)"

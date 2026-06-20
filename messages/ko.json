@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "오늘 시장 스탠스와 핵심 논지를 요약해줘",
     "historyTitle": "대화 기록",
     "emptyHistory": "아직 대화가 없습니다",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "심판엔진 본체 (룰·실시간 데이터)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ 버핏 서한·투자 고전 의미검색",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "심판엔진 본체 (룰·실시간 데이터)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ 버핏 서한·투자 고전 의미검색",
     "loginTitle": "심판엔진은 회원 전용입니다",
     "loginBody": "이메일만 등록하면 바로 대화할 수 있어요. 비밀번호·결제 없이 무료입니다. 대화 기록은 계정별로 안전하게 저장됩니다.",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "등록에 실패했습니다. 이메일을 확인해 주세요.",
     "loginFreeNote": "무료 · 스팸 없음 · 언제든 탈퇴 가능",
     "backHome": "홈으로",
-    "modeDeep": "TAISN 심층",
+    "modeDeep": "AISVI 심층",
     "modeDeepDesc": "2단계 — 사업·업황·전망 리서치 후 판단(정밀, 느림)"
   }
 }

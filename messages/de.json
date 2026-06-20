@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "Fasse die heutige Marktlage und Kernthese zusammen",
     "historyTitle": "Verlauf",
     "emptyHistory": "Noch keine Unterhaltungen",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "Kern-Engine (Regeln · Live-Daten)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ semantische Suche in Buffett-Briefen & Klassikern",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "Kern-Engine (Regeln · Live-Daten)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ semantische Suche in Buffett-Briefen & Klassikern",
     "loginTitle": "Die Urteils-Engine ist nur für Mitglieder",
     "loginBody": "Registriere einfach deine E-Mail, um zu chatten. Kostenlos, ohne Passwort oder Zahlung. Dein Verlauf wird pro Konto sicher gespeichert.",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "Registrierung fehlgeschlagen. Bitte E-Mail prüfen.",
     "loginFreeNote": "Kostenlos · Kein Spam · Jederzeit kündbar",
     "backHome": "Startseite",
-    "modeDeep": "TAISN Tief",
+    "modeDeep": "AISVI Tief",
     "modeDeepDesc": "2-stufig — Recherche, dann Urteil (präzise, langsamer)"
   }
 }

@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "Tóm tắt lập trường thị trường và luận điểm chính hôm nay",
     "historyTitle": "Lịch sử",
     "emptyHistory": "Chưa có cuộc trò chuyện nào",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "Engine lõi (quy tắc · dữ liệu trực tiếp)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ tìm kiếm ngữ nghĩa thư Buffett & sách kinh điển",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "Engine lõi (quy tắc · dữ liệu trực tiếp)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ tìm kiếm ngữ nghĩa thư Buffett & sách kinh điển",
     "loginTitle": "Cỗ máy Phán định chỉ dành cho thành viên",
     "loginBody": "Chỉ cần đăng ký email để bắt đầu trò chuyện. Miễn phí, không cần mật khẩu hay thanh toán. Lịch sử của bạn được lưu an toàn theo tài khoản.",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "Đăng ký thất bại. Vui lòng kiểm tra email.",
     "loginFreeNote": "Miễn phí · Không spam · Hủy bất cứ lúc nào",
     "backHome": "Trang chủ",
-    "modeDeep": "TAISN Chuyên sâu",
+    "modeDeep": "AISVI Chuyên sâu",
     "modeDeepDesc": "2 bước — nghiên cứu rồi phán định (chính xác, chậm hơn)"
   }
 }

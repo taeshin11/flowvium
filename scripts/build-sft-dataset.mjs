@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-sft-dataset.mjs — AITS_FINANCE_T SFT 학습 데이터셋 빌더 (2026-06-18 신설)
+ * build-sft-dataset.mjs — AISVI_FINANCE_T SFT 학습 데이터셋 빌더 (2026-06-18 신설)
  *
  * 목적: Qwen3-30B-A3B 에 LoRA 로 "매수·매도 심판엔진" 을 정렬. 핵심 차별점 = recommendation_outcomes
  * 의 *실제 성과 레이블*(hit_target/stop_loss/sold + alpha)로 가중 → 수익 낸 추론 패턴만 학습
@@ -11,7 +11,7 @@
  *   2) 매도 판단 (sell_recommendations)
  *   3) 원칙/룰 instruction (judgment-doctrine + investor-wisdom + buy/sell rules)
  *
- * 출력: data/sft/aits-finance-t.jsonl  (OpenAI chat 포맷: {messages:[{role,content}], weight, meta})
+ * 출력: data/sft/aisvi-finance-t.jsonl  (OpenAI chat 포맷: {messages:[{role,content}], weight, meta})
  *   axolotl/llama-factory/unsloth 모두 호환. weight 는 reward-weighted 학습용(성과 비례).
  *
  * 사용:  node scripts/build-sft-dataset.mjs
@@ -22,7 +22,7 @@ import { resolve } from 'path';
 
 const ROOT = resolve(process.cwd());
 const OUT_DIR = resolve(ROOT, 'data/sft');
-const OUT = resolve(OUT_DIR, 'aits-finance-t.jsonl');
+const OUT = resolve(OUT_DIR, 'aisvi-finance-t.jsonl');
 const loadJson = (p) => { try { return JSON.parse(readFileSync(resolve(ROOT, p), 'utf8')); } catch { return null; } };
 
 const SYSTEM = `너는 "매수·매도 심판엔진" — 규율 있고 근거 기반인 투자 판단 AI다. 종목의 매수/분할매수/관망/비중축소/매도/회피를 판단하고, 실시간 데이터·매수매도 룰·구루 원칙을 근거로 인용하며, 리스크와 진입/손절을 제시한다. 수치를 지어내지 않고, 데이터 없으면 솔직히 말한다.`;
@@ -110,7 +110,7 @@ if (existsSync(BUFFETT)) {
 if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(OUT, rows.map(r => JSON.stringify(r)).join('\n') + '\n', 'utf8');
 const wsum = rows.reduce((s, r) => s + r.weight, 0);
-console.log(`=== AITS_FINANCE_T SFT 데이터셋 ===`);
+console.log(`=== AISVI_FINANCE_T SFT 데이터셋 ===`);
 console.log(`매수판단 ${buyKept} (성과가중) · 매도판단 ${sellKept} · 원칙/룰 ${instrKept} · 투자원전 ${buffettKept} = 총 ${rows.length} 예시`);
 console.log(`가중합(effective) ${wsum.toFixed(0)} · 출력 ${OUT}`);
 console.log(`샘플:`, JSON.stringify(rows[0]).slice(0, 240));

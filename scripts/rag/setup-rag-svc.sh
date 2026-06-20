@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup-rag-svc.sh — 심판엔진 AITS+RAG 로컬 인프라 (2026-06-18)
+# setup-rag-svc.sh — 심판엔진 AISVI+RAG 로컬 인프라 (2026-06-18)
 #   ① 임베딩 서비스 venv (sentence-transformers + bge-m3, CPU) + FastAPI
 #   ② PaddleOCR (사용자 선호) + poppler-utils(pdftotext, 텍스트레이어 PDF 우선)
 # GPU 는 vLLM(30B) 점유 → 임베딩/OCR 은 CPU. 단발 질문이라 수용가능.

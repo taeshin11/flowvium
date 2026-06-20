@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "आज के बाजार रुख और मुख्य थीसिस का सारांश दें",
     "historyTitle": "इतिहास",
     "emptyHistory": "अभी तक कोई बातचीत नहीं",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "मुख्य इंजन (नियम · लाइव डेटा)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ बफेट पत्र और निवेश क्लासिक्स की सिमेंटिक खोज",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "मुख्य इंजन (नियम · लाइव डेटा)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ बफेट पत्र और निवेश क्लासिक्स की सिमेंटिक खोज",
     "loginTitle": "जजमेंट इंजन केवल सदस्यों के लिए है",
     "loginBody": "चैट शुरू करने के लिए बस अपना ईमेल पंजीकृत करें। मुफ़्त, बिना पासवर्ड या भुगतान के। आपका इतिहास प्रति खाता सुरक्षित रूप से सहेजा जाता है।",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "पंजीकरण विफल। कृपया अपना ईमेल जांचें।",
     "loginFreeNote": "मुफ़्त · कोई स्पैम नहीं · कभी भी सदस्यता समाप्त करें",
     "backHome": "होम",
-    "modeDeep": "TAISN गहन",
+    "modeDeep": "AISVI गहन",
     "modeDeepDesc": "2-चरण — रिसर्च फिर निर्णय (सटीक, धीमा)"
   }
 }

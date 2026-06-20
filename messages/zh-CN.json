@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "总结今日市场立场和核心逻辑",
     "historyTitle": "历史记录",
     "emptyHistory": "还没有对话",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "核心引擎（规则·实时数据）",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ 巴菲特信件·投资经典语义检索",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "核心引擎（规则·实时数据）",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ 巴菲特信件·投资经典语义检索",
     "loginTitle": "判定引擎仅限会员",
     "loginBody": "只需注册邮箱即可开始对话。免费，无需密码或付款。对话记录按账户安全保存。",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "注册失败，请检查您的邮箱。",
     "loginFreeNote": "免费 · 无垃圾邮件 · 随时退订",
     "backHome": "首页",
-    "modeDeep": "TAISN 深度",
+    "modeDeep": "AISVI 深度",
     "modeDeepDesc": "2步 — 业务·行情研究后判断(精确·较慢)"
   }
 }

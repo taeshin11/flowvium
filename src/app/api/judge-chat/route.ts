@@ -409,7 +409,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { messages?: ChatMsg[]; mode?: JudgeMode; locale?: string; convId?: string; stream?: boolean };
     const messages = Array.isArray(body.messages) ? body.messages.filter(m => m && typeof m.content === 'string' && m.content.trim()) : [];
-    const mode: JudgeMode = (['aits', 'aits-rag', 'aits-deep'].includes(body.mode as string) ? body.mode : 'aits-deep') as JudgeMode;
+    const mode: JudgeMode = (['aisvi', 'aisvi-rag', 'aisvi-deep'].includes(body.mode as string) ? body.mode : 'aisvi-deep') as JudgeMode;
     const locale = body.locale ?? 'ko';
     if (!messages.length) return NextResponse.json({ error: 'no messages' }, { status: 400 });
 
@@ -459,7 +459,7 @@ export async function POST(request: NextRequest) {
         fetchMacroContext(origin).catch(() => ({ text: '', vix: null, fg: null })),
         recentChatAntiPatterns(redis),  // 챗 학습 폐루프 — 최근 반복결함 anti-pattern 주입
       ]);
-      // TAISN 심층(2-pass): ① 사업·업황·전망 리서치 브리프 생성(사실 정리) → ② 그 위에 판단.
+      // AISVI 심층(2-pass): ① 사업·업황·전망 리서치 브리프 생성(사실 정리) → ② 그 위에 판단.
       let researchBrief = '';
       if (opts.deep && tickerCtx.some(c => c.price != null)) {
         onProgress?.({ stage: 'research', detail: '🔍 1차 리서치 브리프 작성 중 (사업구조·업황·경쟁·강세/약세 시나리오)' });

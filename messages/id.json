@@ -1972,10 +1972,10 @@
     "quickReportPrompt": "Ringkas sikap pasar dan tesis utama hari ini",
     "historyTitle": "Riwayat",
     "emptyHistory": "Belum ada percakapan",
-    "modeAits": "TAISN",
-    "modeAitsDesc": "Mesin inti (aturan · data langsung)",
-    "modeAitsRag": "TAISN+RAG",
-    "modeAitsRagDesc": "+ pencarian semantik surat Buffett & klasik investasi",
+    "modeAisvi": "AISVI",
+    "modeAisviDesc": "Mesin inti (aturan · data langsung)",
+    "modeAisviRag": "AISVI+RAG",
+    "modeAisviRagDesc": "+ pencarian semantik surat Buffett & klasik investasi",
     "loginTitle": "Mesin Penilaian khusus anggota",
     "loginBody": "Cukup daftarkan email Anda untuk mulai mengobrol. Gratis, tanpa kata sandi atau pembayaran. Riwayat Anda disimpan aman per akun.",
     "loginPlaceholder": "your@email.com",
@@ -1983,7 +1983,7 @@
     "loginError": "Pendaftaran gagal. Periksa email Anda.",
     "loginFreeNote": "Gratis · Tanpa spam · Berhenti kapan saja",
     "backHome": "Beranda",
-    "modeDeep": "TAISN Mendalam",
+    "modeDeep": "AISVI Mendalam",
     "modeDeepDesc": "2-tahap — riset lalu penilaian (presisi, lebih lambat)"
   }
 }

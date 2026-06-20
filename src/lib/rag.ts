@@ -1,5 +1,5 @@
 /**
- * rag.ts — 심판엔진 AITS+RAG 의 semantic 검색 (2026-06-18 신설)
+ * rag.ts — 심판엔진 AISVI+RAG 의 semantic 검색 (2026-06-18 신설)
  *
  * 버핏 서한/투자 고전 전문을 청크→임베딩한 로컬 벡터 코퍼스(data/rag/corpus.ndjson)에서
  * 질문과 의미적으로 가까운 구절을 top-k 로 꺼내 LLM 프롬프트에 grounding 한다.
@@ -7,7 +7,7 @@
  * - 임베딩: WSL 로컬 임베딩 서비스(EMBED_URL, 기본 127.0.0.1:8100) — bge-m3(다국어, KR+EN).
  *   GPU 는 vLLM(30B) 가 점유 → 임베딩은 CPU. 질문 1건이라 수백 ms 로 수용가능.
  * - 벡터스토어: 코퍼스가 수천 청크 규모 → 별도 벡터DB 없이 모듈 메모리 + 코사인.
- * - graceful degrade: 코퍼스 없음/임베딩 서비스 down 이면 [] 반환 → AITS+RAG 가 AITS 로 강등(로그).
+ * - graceful degrade: 코퍼스 없음/임베딩 서비스 down 이면 [] 반환 → AISVI+RAG 가 AISVI 로 강등(로그).
  */
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';

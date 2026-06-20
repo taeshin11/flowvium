@@ -486,15 +486,15 @@ function condenseRules(): string {
   return `# 매수 판단 기준 (참고 — 답변엔 ID·점수 쓰지 말고 자연어로 풀어 설명)\n${buyRules.map(fmt).join('\n')}\n\n# 매도 판단 기준 (참고)\n${sellRules.map(fmt).join('\n')}`;
 }
 
-// AITS = 심판엔진 본체(룰+doctrine+실시간 금융데이터+오늘 리포트). AITS+RAG = 그 위에
-// 버핏 서한/투자 고전 전문에서 의미검색한 구절을 추가 grounding (2026-06-18, 사용자 "AITS / AITS+RAG 로 구분").
-// aits-deep(TAISN 심층) = 2-pass: ①사업·업황·전망 리서치 브리프 → ②그 위에 엔진+데이터+구루로 최종판단.
+// AISVI = 심판엔진 본체(룰+doctrine+실시간 금융데이터+오늘 리포트). AISVI+RAG = 그 위에
+// 버핏 서한/투자 고전 전문에서 의미검색한 구절을 추가 grounding (2026-06-18, 사용자 "AISVI / AISVI+RAG 로 구분").
+// aisvi-deep(AISVI 심층) = 2-pass: ①사업·업황·전망 리서치 브리프 → ②그 위에 엔진+데이터+구루로 최종판단.
 //   환각 줄이려 사실 리서치를 먼저 분리(사용자 '세분화해서 LLM 여러번'). 스트리밍 대신 정밀도↑.
-export type JudgeMode = 'aits' | 'aits-rag' | 'aits-deep';
+export type JudgeMode = 'aisvi' | 'aisvi-rag' | 'aisvi-deep';
 export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: number; preferSmallModel?: boolean; maxTickers: number; useRag: boolean; deep?: boolean }> = {
-  'aits':      { maxTokens: 1800, temperature: 0.6, maxTickers: 3, useRag: false },
-  'aits-rag':  { maxTokens: 2600, temperature: 0.6, maxTickers: 3, useRag: true },
-  'aits-deep': { maxTokens: 3800, temperature: 0.5, maxTickers: 2, useRag: true, deep: true },
+  'aisvi':      { maxTokens: 1800, temperature: 0.6, maxTickers: 3, useRag: false },
+  'aisvi-rag':  { maxTokens: 2600, temperature: 0.6, maxTickers: 3, useRag: true },
+  'aisvi-deep': { maxTokens: 3800, temperature: 0.5, maxTickers: 2, useRag: true, deep: true },
 };
 
 // 1-pass(심층): 사업·업황·전망 리서치 브리프 프롬프트. 판단이 아니라 *사실 정리*만.
@@ -551,9 +551,9 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
   const ragBlock = opts.ragHits && opts.ragHits.length ? `\n${fmtRagHits(opts.ragHits)}` : '';
   const filingLines = opts.tickerCtx.map(fmtFiling).filter(Boolean);
   const filingBlock = filingLines.length ? `# 📄 사업보고서 본문 (DART 사업보고서 / SEC 10-K — 사업의 내용·제품vs상품 매출·연구개발·전망의 1차 사실 소스)\n${filingLines.join('\n\n')}` : '';
-  // 심층(aits-deep): 1차 리서치 브리프를 받았으므로 최종 답변을 더 두껍게 — 강세/약세 양립 + 시나리오 + 구체 레벨.
+  // 심층(aisvi-deep): 1차 리서치 브리프를 받았으므로 최종 답변을 더 두껍게 — 강세/약세 양립 + 시나리오 + 구체 레벨.
   //   단, 종목 데이터가 없으면(=미특정) 6단 구조 강제 금지 — 엉뚱한 내용 날조 방지(2026-06-18 하우맷 사건).
-  const deepBlock = (opts.mode === 'aits-deep' && hasData) ? [
+  const deepBlock = (opts.mode === 'aisvi-deep' && hasData) ? [
     `## 🔬 심층 모드 답변 요건 (이 모드에서만 — 일반 모드보다 훨씬 깊고 길게, 최소 6개 소제목)`,
     `⛔ 위 "## 답변 형식"의 간결(짧게) 지침은 *심층 모드에선 무시*하라. 대신 아래 ①~⑥을 각각 **굵은 소제목 + 2~4문장 문단**으로 길게 풀어 써라. 전체 답변이 짧으면(소제목 6개 미만이면) 심층 분석 실패다.`,
     `위 '리서치 브리프'와 '📄 사업보고서 본문'을 적극 활용해, 다음을 *모두* 담은 두툼한 분석을 써라(분량을 아끼지 마라 — 짧으면 실패):`,
@@ -581,7 +581,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     //   재발 방지. 리포트의 hallucination_history→프롬프트 루프를 챗에 복제(검증로그가 dead-end 였던 사각지대 해소).
     opts.chatLessons ? `## 🔁 최근 이 챗에서 반복된 실수 (절대 되풀이하지 마라)\n${opts.chatLessons}\n` : '',
     `## 역할`,
-    opts.mode === 'aits-deep'
+    opts.mode === 'aisvi-deep'
       ? `- 🎯 **최우선: 사용자의 실제 질문에 정면으로 답하라.** 질문이 특정 사안(예: "소수계좌 매집 있나" · 배당 · 특정 지표 · 특정 뉴스/사건 · 비교)이면 *그 질문부터* 직접 답하라. 관련 데이터가 위 grounding 에 없으면 "그 데이터는 지금 조회하지 못했다"고 솔직히 말하라 — **절대 6단 템플릿으로 질문을 회피하지 마라(질문과 딴 소리 금지).** ▸ 질문이 일반적인 매수/매도/관망 상담일 때만 아래 "## 🔬 심층 모드 답변 요건"의 6개 소제목으로 깊게 분석한다.`
       : `- 사용자가 특정 종목의 매수/매도/관망을 상의하면: ① 한 줄 결론(매수/분할매수/관망/비중축소/매도/회피 중 하나) ② 이 회사가 무슨 사업을 하고 업황·전망이 어떤지 한 줄(위 '사업' 데이터 활용) ③ 왜 그렇게 봤는지(엔진 발화 룰+실데이터 중심, 핵심 근거 2~4개) ④ 어떤 데이터를 봤는지 ⑤ 리스크 ⑥ (가능하면) 진입/손절 순으로.`,
     `- 데이터가 없거나 불확실하면 "데이터 없음"이라고 솔직히 말하라. 절대 수치를 지어내지 마라(환각 금지).`,
