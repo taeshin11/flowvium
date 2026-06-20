@@ -13,7 +13,7 @@ if [ ! -f "$LOCK" ]; then
   exit 0
 fi
 
-STEP=$(tr '\r' '\n' < "$LOG" 2>/dev/null | grep -oE '[0-9]+/543' | tail -1 | cut -d/ -f1)
+STEP=$(tr '\r' '\n' < "$LOG" 2>/dev/null | grep -oE '[0-9]+/[0-9]+ \[[0-9:]+<' | tail -1 | cut -d/ -f1)
 STEP=${STEP:-0}
 UTIL=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')
 ALIVE=$(ps aux | grep -cE '[t]rain-unsloth|[p]ython -')
