@@ -106,6 +106,25 @@ if (existsSync(BUFFETT)) {
   console.warn('wisdom-sft.jsonl 없음 — scripts/sft/gen-buffett-sft.mjs 먼저 실행 (RAG 임베딩 완료 후)');
 }
 
+// ── 품질필터(검증체계, 2026-06-20) ────────────────────────────────────────────
+// garbage-in 차단: 가격누락("현재가 ?"=price_at_gen null → 가격없이 진입가 환각 학습) ·
+//   교정노트 누출([수정]/환각 = verify 산출물이 학습타겟에 새어듦) · 빈약 · 완전중복 제거.
+//   (clean-sft.mjs 와 동일 규칙 — regen 마다 자동 적용.)
+{
+  const seen = new Set(); const before = rows.length;
+  const uOf = r => r.messages.find(m => m.role === 'user')?.content || '';
+  const aOf = r => r.messages.find(m => m.role === 'assistant')?.content || '';
+  const cleaned = rows.filter(r => {
+    const u = uOf(r), a = aOf(r);
+    if (/현재가\s*\?/.test(u)) return false;
+    if (/\[수정\]|수정 필요|환각|defect|verify/i.test(a)) return false;
+    if (a.trim().length < 40) return false;
+    const k = u + '' + a; if (seen.has(k)) return false; seen.add(k); return true;
+  });
+  if (cleaned.length < before) console.log(`[품질필터] ${before} → ${cleaned.length} (제거 ${before - cleaned.length}: 가격누락/교정누출/빈약/중복)`);
+  rows.length = 0; rows.push(...cleaned);
+}
+
 // ── 출력 ──────────────────────────────────────────────────────────────────────
 if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(OUT, rows.map(r => JSON.stringify(r)).join('\n') + '\n', 'utf8');
