@@ -19,20 +19,22 @@ for i in $(seq 1 30); do
   echo "[unsloth] GPU ${USED:-?}MiB 점유 중 — 대기 ${i}/30"; sleep 4
 done
 
-OUT="$OUT" DATA="$DATA" python - <<'PY'
+PYTHONUNBUFFERED=1 OUT="$OUT" DATA="$DATA" python - <<'PY'
 import os
 from unsloth import FastLanguageModel   # 반드시 최초 import (transformers/trl 패치)
 import torch
 from datasets import load_dataset
 from trl import SFTTrainer, SFTConfig
 OUT=os.environ["OUT"]; DATA=os.environ["DATA"]
-MAXLEN=384   # 데이터 max=293 토큰(100%≤512) → 1024 는 낭비. 384 로 compute/메모리 절감.
+MAXLEN=320   # 데이터 max=293 토큰 → 320 이면 무손실 + NEFTune/fused-CE 헤드룸 확보(384보다 활성화 메모리↓).
 # 로컬 캐시된 bf16 base 사용(unsloth 4bit repo ~16GB 다운로드 회피 — Qwen/ 는 aisvi-train 런에서 캐시됨).
 #   Unsloth 가 on-the-fly 4bit 양자화(메모리 최적 경로). 다운로드 후 unsloth/ prequant 로 전환 가능.
 model, tok = FastLanguageModel.from_pretrained(
     model_name="Qwen/Qwen3-30B-A3B-Instruct-2507",
     max_seq_length=MAXLEN, load_in_4bit=True, dtype=None,
 )
+# 2026-06-20: r=16(642M trainable). r=32 는 24GB 초과(Unsloth fused CE "no GPU memory"). dropout 0=Unsloth 최적.
+#   품질강화는 메모리 거의 안 드는 cosine/warmup/NEFTune/weight_decay 로(아래 SFTConfig).
 model = FastLanguageModel.get_peft_model(
     model, r=16, lora_alpha=32, lora_dropout=0,
     target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"],
@@ -41,8 +43,10 @@ model = FastLanguageModel.get_peft_model(
 ds=load_dataset("json", data_files=DATA, split="train")
 def fmt(ex): return {"text": tok.apply_chat_template(ex["messages"], tokenize=False, add_generation_prompt=False)}
 ds=ds.map(fmt)
+# 품질: cosine 스케줄 + warmup(수렴) + NEFTune(neftune_noise_alpha=5, instruction tuning 정확도↑) + weight_decay.
 cfg=SFTConfig(output_dir=OUT, per_device_train_batch_size=1, gradient_accumulation_steps=8,
     num_train_epochs=3, learning_rate=1e-4, bf16=True, logging_steps=1,
+    lr_scheduler_type="cosine", warmup_ratio=0.05, weight_decay=0.01, neftune_noise_alpha=5,
     optim="adamw_8bit", save_strategy="epoch", max_length=MAXLEN, packing=False)
 tr=SFTTrainer(model=model, train_dataset=ds, args=cfg)
 tr.train(); tr.save_model(OUT)
