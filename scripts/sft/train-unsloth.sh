@@ -11,6 +11,11 @@ source "$VENV/bin/activate"
 export HF_HUB_ENABLE_HF_TRANSFER=1
 DATA="/mnt/d/Flowvium/data/sft/aisvi-finance-t.jsonl"
 OUT="$HOME/aisvi-finance-t-lora"
+# 2026-06-20: Unsloth 는 "Qwen/..." 를 자체 repo(unsloth/qwen3-30b)로 remap→재다운로드(60G) 한다.
+#   로컬 Qwen/ 캐시 스냅샷을 *경로로 직접* 지정해 remap·재다운로드 회피(이미 받은 57G bf16 재사용).
+BASE=$(ls -d "$HOME"/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-Instruct-2507/snapshots/*/ 2>/dev/null | head -1)
+[ -z "$BASE" ] && BASE="Qwen/Qwen3-30B-A3B-Instruct-2507"   # 캐시 없으면 hub fallback
+echo "[unsloth] BASE=$BASE"
 
 echo "[unsloth] GPU 해제 대기 (vLLM 종료 후)..."
 for i in $(seq 1 30); do
@@ -19,18 +24,18 @@ for i in $(seq 1 30); do
   echo "[unsloth] GPU ${USED:-?}MiB 점유 중 — 대기 ${i}/30"; sleep 4
 done
 
-PYTHONUNBUFFERED=1 OUT="$OUT" DATA="$DATA" python - <<'PY'
+PYTHONUNBUFFERED=1 BASE="$BASE" OUT="$OUT" DATA="$DATA" python - <<'PY'
 import os
 from unsloth import FastLanguageModel   # 반드시 최초 import (transformers/trl 패치)
 import torch
 from datasets import load_dataset
 from trl import SFTTrainer, SFTConfig
-OUT=os.environ["OUT"]; DATA=os.environ["DATA"]
+OUT=os.environ["OUT"]; DATA=os.environ["DATA"]; BASE=os.environ["BASE"]
 MAXLEN=320   # 데이터 max=293 토큰 → 320 이면 무손실 + NEFTune/fused-CE 헤드룸 확보(384보다 활성화 메모리↓).
 # 로컬 캐시된 bf16 base 사용(unsloth 4bit repo ~16GB 다운로드 회피 — Qwen/ 는 aisvi-train 런에서 캐시됨).
 #   Unsloth 가 on-the-fly 4bit 양자화(메모리 최적 경로). 다운로드 후 unsloth/ prequant 로 전환 가능.
 model, tok = FastLanguageModel.from_pretrained(
-    model_name="Qwen/Qwen3-30B-A3B-Instruct-2507",
+    model_name=BASE,   # 로컬 Qwen/ 스냅샷 경로(remap·재다운로드 회피) 또는 hub fallback
     max_seq_length=MAXLEN, load_in_4bit=True, dtype=None,
 )
 # 2026-06-20: r=16(642M trainable). r=32 는 24GB 초과(Unsloth fused CE "no GPU memory"). dropout 0=Unsloth 최적.
