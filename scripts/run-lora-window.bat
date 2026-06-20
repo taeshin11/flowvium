@@ -11,7 +11,7 @@ wsl -d Ubuntu-24.04 -u root pkill -f "vllm serve" >> "%LOG%" 2>&1
 wsl -d Ubuntu-24.04 -u root sleep 12 >> "%LOG%" 2>&1
 
 echo [%DATE% %TIME%] starting train-lora.sh (QLoRA 30B, ~2-4h) >> "%LOG%"
-wsl -d Ubuntu-24.04 -u root bash /mnt/d/Flowvium/scripts/sft/train-lora.sh >> "%LOG%" 2>&1
+wsl -d Ubuntu-24.04 -u root bash /mnt/d/Flowvium/scripts/sft/train-unsloth.sh >> "%LOG%" 2>&1
 echo [%DATE% %TIME%] training exit code %ERRORLEVEL% >> "%LOG%"
 
 echo [%DATE% %TIME%] removing lock, restarting vLLM >> "%LOG%"
