@@ -1,0 +1,54 @@
+═══════════ SERA / FlowVium 인계장 (2026-06-20, by SPINAI6 = node0 오케스트레이터) ═══════════
+
+[병렬 진행 2개]
+A. FlowVium SFT  (SPINAI6 = 192.168.0.188, 이 머신 GPU 점유 중)
+B. SERA 5노드 4090 분산 클러스터  (네트워크 검증 단계)
+
+───────────────── A. SFT (AISVI_FINANCE_T) ─────────────────
+실행: FlowVium-LoRA 작업 → scripts/run-lora-window.bat → scripts/sft/train-unsloth.sh
+모델: Qwen3-30B-A3B QLoRA (Unsloth), venv ~/aisvi-unsloth (torch2.10+cu128)
+config: r16/alpha64, cosine+warmup0.05+NEFTune5+wd0.01, seq320, 3epoch, clean 1184샘플
+진행: step ~33/444, util98%(메모리바운드 110W/450W=4bit MoE dequant), ETA ~19h → 내일 오후 완료
+산출: ~/aisvi-finance-t-lora (에폭별 체크포인트, save_strategy=epoch)
+완료 후 할 일:
+  1) bat이 vLLM 자동 재기동(:8000)
+  2) 어댑터 merge → vLLM serve as AISVI_FINANCE_T
+  3) 품질 실측(judge-chat) — eval split 없어 수동
+  4) FlowVium-SFTMonitor 제거: schtasks /delete /tn FlowVium-SFTMonitor /f
+환경 핵심(재현 필수):
+  - torch는 드라이버 cu130 매칭(aisvi-train) / Unsloth venv는 torch2.10+cu128(aisvi-unsloth)
+  - transformers 4.57(non-unsloth 경로) / .wslconfig memory=48GB / mirrored 금지(localhost 깨짐)
+  - Unsloth model_name = 로컬 Qwen 스냅샷 경로(remap 재다운로드 60G 회피)
+  - 데이터 품질필터: scripts/sft/clean-sft.mjs + build-sft-dataset.mjs 내장(가격누락/교정누출/중복 제거)
+모니터: FlowVium-SFTMonitor(15min) → logs/sft-monitor-status.json, 스톨시 logs/sft-monitor.log 🚨
+
+───────────────── B. SERA 클러스터 ─────────────────
+목표: 24GB VRAM 한계 극복(>24GB 모델/긴 context 학습 — DeepSeek 증류 등)
+노드맵:
+  rank0 coordinator = SPINAI6(.188, 나) — tailscale 미설치/비-admin/SFT중 → compute 미참여, 설계만 담당
+  compute 후보(LAN 1GbE):
+    spinai1(.45) GPU 23GB busy/AITS_Papers, py3.10, U24.04
+    spinai2(.35) GPU 21.5GB busy/vLLM:8001, py3.10, U22.04
+    spinai3(.9)  GPU 7GB busy, py3.12, U24.04  ← rank0 rendezvous 추천(가장 여유)
+  제외: sakgamnono0(WAN=NCCL killer), spinai4-1(오프라인 265d)
+연결: Tailscale-in-WSL (mirrored는 localhost 깨져 2노드서 확인→폐기). 각 WSL에 tailscaled join → 100.x로 NCCL.
+  auth key 사용중 → 셋업 후 admin console에서 revoke 요.
+★핵심 딜레마(미해결 GO/NO-GO)★: 1GbE에선 둘 중 하나만 —
+  ZeRO-3 = VRAM풀링 O, ~100h/run (목표 부합하나 매우 느림)
+  ZeRO-2 = 빠름, VRAM풀링 X (각 GPU 전체모델 → 24GB 못 넘음)
+  → "VRAM 극복"이면 ZeRO-3뿐이고 수일/run. 이 트레이드 수용 여부가 진행 결정.
+진행 상태:
+  [x] 5노드 인벤토리 완료
+  [진행] 3 LAN 노드 Tailscale-in-WSL join → WSL 100.x IP 수집 중
+  [다음] iperf3 실측 대역폭 → ZeRO-3 step time 추정 → GO/NO-GO
+  [GO시] 3대 GPU 비우기 → NCCL 2노드 POC → DeepSpeed ZeRO-3 config + torchrun multi-node
+주의/미해결:
+  · 5대 전부 production GPU 점유 → 실제 run 시 전부 중단(큰 운영비용)
+  · 환경 이질(U22/24, py3.10/3.12) → 표준 torch/NCCL/deepspeed venv 필요
+  · master(나) compute 합류 = admin으로 Tailscale 설치 + SFT 완료 후
+
+[대안(권장, 미채택)]: DeepSeek 증류는 VRAM 무관 — R1 API로 reasoning trace 생성 → 단일 24GB SFT.
+  클러스터 없이 가능. 사용자가 C(클러스터) 선택해 진행.
+
+[Git] origin/master: AISVI 리네임 + SFT 인프라 + 클린데이터 필터 전부 커밋·푸시됨.
+═══════════════════════════════════════════════════════════════════════════════════
