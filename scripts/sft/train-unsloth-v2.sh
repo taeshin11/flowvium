@@ -8,6 +8,9 @@ VENV="$HOME/aisvi-unsloth"
 [ ! -f "$VENV/bin/activate" ] && { echo "[v2] FATAL: $VENV 없음"; exit 1; }
 source "$VENV/bin/activate"
 export HF_HUB_ENABLE_HF_TRANSFER=1
+# ★torch.compile 비활성 — v2 데이터 길이 가변(2~496)이라 매 step 재컴파일로 9분/step(40x 느림).
+#   끄면 ~69s/step. (v1은 길이 변동 적어 안 걸렸음.) MAXLEN 449 무손실 + 빠름 양립.
+export TORCHDYNAMO_DISABLE=1
 DATA="${DATA:-/mnt/d/llama/aisvi-finance-t-v2.jsonl}"
 OUT="${OUT:-$HOME/aisvi-finance-t-v2-lora}"
 [ ! -f "$DATA" ] && { echo "[v2] FATAL: DATA 없음 $DATA — distill-gen 먼저"; exit 1; }
