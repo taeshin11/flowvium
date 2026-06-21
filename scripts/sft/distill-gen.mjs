@@ -37,20 +37,26 @@ function loadSeeds(path) {
   return seeds;
 }
 
+const REQ_TIMEOUT = parseInt(process.env.REQ_TIMEOUT || '120000', 10);  // hang 방지: 요청당 타임아웃
 async function callTeacher(system, user) {
-  const res = await fetch(`${TEACHER_URL}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: TEACHER_MODEL,
-      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-      temperature: TEMP, max_tokens: MAXTOK,
-      chat_template_kwargs: { enable_thinking: false },   // Qwen3.5 thinking 비활성(간결+빠름)
-    }),
-  });
-  if (!res.ok) { const b = await res.text(); throw new Error(`HTTP ${res.status}: ${b.slice(0, 180)}`); }
-  const j = await res.json();
-  return (j.choices?.[0]?.message?.content || '').trim();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQ_TIMEOUT);
+  try {
+    const res = await fetch(`${TEACHER_URL}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: TEACHER_MODEL,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        temperature: TEMP, max_tokens: MAXTOK,
+        chat_template_kwargs: { enable_thinking: false },   // Qwen3.5 thinking 비활성(간결+빠름)
+      }),
+      signal: ctrl.signal,   // 타임아웃 시 abort → worker hang 방지
+    });
+    if (!res.ok) { const b = await res.text(); throw new Error(`HTTP ${res.status}: ${b.slice(0, 180)}`); }
+    const j = await res.json();
+    return (j.choices?.[0]?.message?.content || '').trim();
+  } finally { clearTimeout(timer); }
 }
 
 function qualityOk(a, lang) {
