@@ -11,7 +11,7 @@ const SEEDS         = process.env.SEEDS         || '/root/aisvi-finance-t.jsonl'
 const OUT           = process.env.OUT           || '/root/aisvi-finance-t-v2.jsonl';
 const MAX           = parseInt(process.env.MAX  || '0', 10);
 const CONC          = parseInt(process.env.CONC || '8', 10);
-const TEMP          = parseFloat(process.env.TEMP || '0.6');
+const TEMP          = parseFloat(process.env.GEN_TEMP || '0.6') || 0.6;  // ★TEMP는 Windows 예약변수(임시폴더)라 충돌 → GEN_TEMP
 const MAXTOK        = parseInt(process.env.MAXTOK || '2048', 10);
 
 // 품질 필터 (clean-sft.mjs 와 동일 기준 — 환각/누락가/원문영어 차단)
@@ -45,9 +45,10 @@ async function callTeacher(system, user) {
       model: TEACHER_MODEL,
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
       temperature: TEMP, max_tokens: MAXTOK,
+      chat_template_kwargs: { enable_thinking: false },   // Qwen3.5 thinking 비활성(간결+빠름)
     }),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) { const b = await res.text(); throw new Error(`HTTP ${res.status}: ${b.slice(0, 180)}`); }
   const j = await res.json();
   return (j.choices?.[0]?.message?.content || '').trim();
 }
@@ -97,7 +98,7 @@ async function main() {
           ] }) + '\n');
           ok++;
         } else fail++;
-      } catch { fail++; }
+      } catch (e) { fail++; if (fail <= 3) console.error('  [err]', e?.message || e); }
       const n = ok + fail;
       if (n % 20 === 0) {
         const rate = n / ((Date.now() - t0) / 1000);
