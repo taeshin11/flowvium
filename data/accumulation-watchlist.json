@@ -1,34 +1,10 @@
 {
-  "generatedAt": "2026-06-21T22:00:24.717Z",
+  "generatedAt": "2026-06-22T07:02:52.061Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
-  "strongCount": 1,
+  "count": 0,
+  "strongCount": 0,
   "watchCount": 0,
-  "officialFewAccount": 1,
-  "watchlist": [
-    {
-      "ticker": "039290.KQ",
-      "name": "인포뱅크",
-      "tier": "strong",
-      "score": 55,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "🚨 거래소 소수계좌 거래집중(공식 2026-06-17)"
-      ],
-      "runup20dPct": -14.5,
-      "runup5dPct": 12.3,
-      "medDollarVolUsd": 57354,
-      "smartAccum": false,
-      "official": {
-        "category": "caution",
-        "reason": "매매관여과다종목",
-        "fewAccount": true,
-        "designatedDate": "2026-06-17"
-      }
-    }
-  ]
+  "officialFewAccount": 0,
+  "watchlist": []
 }
