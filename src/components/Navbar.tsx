@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
-import { Menu, X, Link as LinkIcon, MessageCircle, Search } from 'lucide-react';
+import { Menu, X, Link as LinkIcon, Search } from 'lucide-react';
 import { companyNamesI18n } from '@/data/company-names-i18n';
 import { UNIVERSE_COUNT } from '@/data/universe-count';
 import { UNIVERSE_SEARCH } from '@/data/universe-search';
@@ -220,15 +220,7 @@ export default function Navbar() {
                   {t(link.key)}
                 </Link>
               ))}
-              <a
-                href="mailto:taeshinkim11@gmail.com"
-                className="px-3 py-2 rounded-lg text-xs font-medium text-cf-text-secondary/70
-                           hover:text-cf-primary hover:bg-cf-primary/5
-                           transition-all duration-200 flex items-center gap-1"
-              >
-                <MessageCircle className="w-3 h-3" />
-                {t('feedback')}
-              </a>
+              {/* 2026-06-22: 피드백 nav 링크 제거 (cramped 시 세로 줄바꿈 + 불필요) */}
               {/* 2026-06-13: 회원 프로필 배지 (로그인 상태 = 쿠키 1년 자동 유지) */}
               {memberEmail && (
                 <span className="ml-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200 flex items-center gap-1.5" title={t('memberLoggedIn')}>

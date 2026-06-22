@@ -743,6 +743,8 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 **파일**: `src/components/pages/ReportPage.tsx`  
 **데이터**: `/api/investment-strategy` (모든 탭 컨텍스트 종합 → GROQ/Claude Haiku/Gemini AI 포트폴리오 생성)
 
+> **2026-06-22 (사용자 "fallback 보고서 절대 배포하지마")**: `source==='fallback'` 또는 `noData` 응답은 **프론트에서 절대 렌더 안 함** — 실보고서(stale 포함) 없으면 "준비 중" 빈상태 표시(가짜 fallback 리포트 본문·배지 차단). 발행 경로 가드(generate-report-local.mjs source 게이트)와 2중 방어. 같은 날 Navbar 피드백 mailto 링크 제거(cramped 시 세로 줄바꿈 + 불필요).
+
 ### 13-1. 투자 스탠스 히어로
 - 매수우위(bullish) / 중립(neutral) / 관망·방어(bearish) 뱃지
 - 리스크 레벨 (low/medium/high)

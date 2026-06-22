@@ -678,7 +678,9 @@ export default function ReportPage() {
   }, [locale]);
 
   const ageMs = data ? nowTick - new Date(data.generatedAt).getTime() : 0;
-  const sb = data ? sourceBadge(data.source) : null;
+  // 2026-06-22: fallback 보고서는 절대 표시 안 함 — 실보고서 없으면 "준비 중" 빈상태(가짜 fallback 렌더·배지 차단)
+  const isFallbackReport = !!data && (data.source === 'fallback' || (data as { noData?: boolean }).noData === true);
+  const sb = (data && !isFallbackReport) ? sourceBadge(data.source) : null;
 
   // ── Loading: data 없을 때만 최소 스피너 (보통은 stale/fallback이 즉시 옴) ──
   if (loading && !data) {
@@ -762,7 +764,7 @@ export default function ReportPage() {
           {sb && (
             <span className={`text-[10px] px-2 py-1 rounded border font-medium ${sb.cls}`}>{sb.label}</span>
           )}
-          {data && (
+          {data && !isFallbackReport && (
             <span className="flex items-center gap-1 text-[10px] text-gray-400">
               <span className={`w-1.5 h-1.5 rounded-full ${freshnessDot(ageMs)}`} />
               {new Date(data.generatedAt).toLocaleString()}
@@ -793,15 +795,15 @@ export default function ReportPage() {
           body={fomc.value ? `${fomc.value.label} ${fomc.value.probCut}%` : '-'} tooltip={t('tipFomc')} />
       </div>
 
-      {/* ── No data fallback ──────────────────────────────────────────────── */}
-      {!data && (
+      {/* ── No data / fallback 차단 → 준비 중 빈상태 (가짜 fallback 절대 표시 안 함) ── */}
+      {(!data || isFallbackReport) && (
         <div className="text-center py-12 text-gray-400">
           <AlertTriangle className="w-8 h-8 mx-auto mb-3 text-amber-400" />
           <p>{t('error')}</p>
         </div>
       )}
 
-      {data && (
+      {data && !isFallbackReport && (
         <>
           {/* ── 2026-06-06: 급락 위험 조기경보 — 리스크 높을 때 시각적으로 강하게(사용자 요청) ── */}
           {data.earlyWarning && ['high', 'severe'].includes(data.earlyWarning.level) && (
