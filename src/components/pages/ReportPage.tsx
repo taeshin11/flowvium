@@ -679,7 +679,7 @@ export default function ReportPage() {
 
   const ageMs = data ? nowTick - new Date(data.generatedAt).getTime() : 0;
   // 2026-06-22: fallback 보고서는 절대 표시 안 함 — 실보고서 없으면 "준비 중" 빈상태(가짜 fallback 렌더·배지 차단)
-  const isFallbackReport = !!data && (data.source === 'fallback' || (data as { noData?: boolean }).noData === true);
+  const isFallbackReport = !!data && ((typeof data.source === 'string' && data.source.startsWith('fallback')) || (data as { noData?: boolean }).noData === true);
   const sb = (data && !isFallbackReport) ? sourceBadge(data.source) : null;
 
   // ── Loading: data 없을 때만 최소 스피너 (보통은 stale/fallback이 즉시 옴) ──

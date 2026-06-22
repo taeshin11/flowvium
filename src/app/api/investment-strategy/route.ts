@@ -990,6 +990,17 @@ function nextEventDate(dates: string[]): string {
   return dates.find(d => d > today) ?? dates[dates.length - 1];
 }
 
+// 2026-06-22 (사용자 "fallback 보고서 생성조차 하지마"): 실보고서 없을 때 가짜 ETF 포트폴리오/섹터/분석을
+//   *생성하지 않는다*. 빈 구조만 반환 → 프론트가 noData/빈 portfolio → "준비 중" 빈상태(가짜 리포트 0).
+//   기존 fallbackStrategy(가짜 SPY/QQQ/GLD 배분 생성)는 발행/서빙 경로에서 호출 안 함.
+function noDataStrategy(): InvestmentStrategy {
+  return {
+    stance: 'neutral', thesis: '', portfolio: [], sectorAllocation: [], riskEvents: [],
+    macroAnalysis: '', technicalAnalysis: '', fundamentalAnalysis: '', riskLevel: 'medium',
+    generatedAt: new Date().toISOString(), dataAsOf: new Date().toISOString(), source: 'fallback',
+  };
+}
+
 // ── Fallback strategy when AI fails ──────────────────────────────────────────
 function fallbackStrategy(locale = 'en'): InvestmentStrategy {
   const isKo = locale === 'ko';
@@ -1505,9 +1516,9 @@ export async function GET(request: Request) {
         const lgMiss = lastGood(locale);
         if (lgMiss && !probe) { logger.info('api.investment-strategy', 'served_last_good_on_miss', { locale }); return NextResponse.json({ ...lgMiss, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
         if (probe) {
-          return NextResponse.json(fallbackStrategy(locale), { headers: { 'Cache-Control': 'no-store' } });
+          return NextResponse.json(noDataStrategy(), { headers: { 'Cache-Control': 'no-store' } });
         }
-        return NextResponse.json({ ...fallbackStrategy(locale), stale: true, noData: true }, { headers: { 'Cache-Control': 'public, s-maxage=60' } });
+        return NextResponse.json({ ...noDataStrategy(), stale: true, noData: true }, { headers: { 'Cache-Control': 'public, s-maxage=60' } });
       }
     } catch (e) {
       logger.warn('api.investment-strategy', 'cache_read_error', { error: e });
@@ -1525,12 +1536,12 @@ export async function GET(request: Request) {
   }
 
   if (probe) {
-    return NextResponse.json(fallbackStrategy(locale), { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(noDataStrategy(), { headers: { 'Cache-Control': 'no-store' } });
   }
 
   // HARD GATE: if not cron-authenticated force request → NEVER generate, always return fallback
   if (!force) {
-    return NextResponse.json({ ...fallbackStrategy(locale), stale: true, noData: true }, { headers: { 'Cache-Control': 'public, s-maxage=60' } });
+    return NextResponse.json({ ...noDataStrategy(), stale: true, noData: true }, { headers: { 'Cache-Control': 'public, s-maxage=60' } });
   }
 
   // Only continues if force=1 AND cronAuthed (cron calls only)
@@ -1837,7 +1848,7 @@ export async function GET(request: Request) {
       locale, livePricesSize: livePrices.size, source: strategy.source,
     });
     await appendErrorLog(redis, 'no_live_prices_fallback', { livePricesSize: livePrices.size, originalSource: strategy.source }, locale, session);
-    strategy = { ...dataFallbackStrategy(ctx, locale, livePrices), source: 'fallback-no-prices', dataAsOf };
+    strategy = { ...noDataStrategy(), source: 'fallback-no-prices', dataAsOf };
   }
 
   // ── Harness: pre-validate fix (자동 교정 + schema 검증 + audit 기록) ─────────
@@ -2008,7 +2019,7 @@ export async function GET(request: Request) {
       } catch { /* ignore */ }
     }
 
-    strategy = dataFallbackStrategy(ctx, locale, livePrices);
+    strategy = noDataStrategy();
   }
 
   if (strategy && !strategy.dataAsOf) strategy = { ...strategy, dataAsOf };
