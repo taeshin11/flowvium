@@ -794,8 +794,9 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 기술적 분석 (보라색)
 - 기본적 분석 (초록색)
 
-### 13-3. AI 추천 포트폴리오 (고확신 종목만, 최대 US 6 + KR 6, 룰+LLM ensemble)
-- **2026-06-14 개수 강제 폐지**(사용자 "12 꽉 채우지 마, 없을수도 많을수도 — 품질만"): 종전 US6+KR6 강제 retry + candidate pool 합성 padding('Auto-pad 추가검증 권장' 가짜 종목 주입) 제거. 이제 *고확신 종목만* 선별(적으면 적게). retry 는 생성부실(total<4)일 때만, 품질패널티 12→4 floor.
+### 13-3. AI 추천 포트폴리오 (고확신 종목만, 최대 12 *지역무관*, 룰+LLM ensemble)
+- **2026-06-23 지역무관 전환**(사용자 "포트폴리오는 지역무관으로 / KR비중 꼭 50%일 필요 없어"): 종전 US 6 + KR 6 별도 cap → *지역 무관* 총 12 cap(확신순 slice). US/KR 비율 자유(한쪽 0 가능), 지역 균형 맞추려 약한 종목 padding 안 함. buildPortfolio 프롬프트·qualityCheck US/KR floor 경고·UI 배지(primary 표기) 모두 지역무관화. 그날 시그널 강한 시장으로 macro/thesis/narrative 리드(세션 시간대 고정 폐지)하되 KR·US 양 시장 장 phase(전/중/후)는 둘 다 필수 서술.
+- **2026-06-14 개수 강제 폐지**(사용자 "12 꽉 채우지 마, 없을수도 많을수도 — 품질만"): 종전 12 강제 retry + candidate pool 합성 padding('Auto-pad 추가검증 권장' 가짜 종목 주입) 제거. 이제 *고확신 종목만* 선별(적으면 적게). retry 는 생성부실(total<4)일 때만, 품질패널티 12→4 floor.
 - 31개 룰 multi-factor scoring (`data/buy-rules-tuned.json`) — 8 카테고리 전부 커버
 - 4-stage scoring: light (모든 ticker) → OHLCV top 100 → financials top 50 → LLM top 30 중 고확신 선택
 - 룰 카테고리: 가격(5) / 기술(4) / 기본(4) / 구루(4) / 거시(3) / 미시(6) / 회전(3) / selflearn(2)

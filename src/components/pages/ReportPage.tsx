@@ -1244,7 +1244,7 @@ export default function ReportPage() {
                   {t('portfolioTitle')}
                   {focus?.label && (
                     <span className="ml-2 text-[10px] font-normal text-violet-600 bg-violet-50 rounded px-2 py-0.5">
-                      📍 {focus.label} (primary: {focus.primary?.toUpperCase()})
+                      📍 {focus.label}
                     </span>
                   )}
                 </h2>

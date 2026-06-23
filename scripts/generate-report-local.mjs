@@ -788,12 +788,7 @@ function qualityCheck(report) {
   // Portfolio count warnings (not gate-failures, but score penalties)
   const portLen = report.portfolio?.length ?? 0;
   if (portLen > 0 && portLen < 4) warnings.push(`portfolio COUNT LOW: ${portLen} (생성부실 의심 — 고확신만이면 정상, 12 강제 폐지 2026-06-14)`);
-  if (portLen >= 6) {
-    const krLen = report.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ')).length;
-    const usLen = portLen - krLen;
-    if (usLen < 6) warnings.push(`portfolio US COUNT LOW: ${usLen}/6`);
-    if (krLen < 6) warnings.push(`portfolio KR COUNT LOW: ${krLen}/6`);
-  }
+  // 2026-06-23 (사용자: "포트폴리오는 지역무관으로"): US/KR 별 floor 경고 폐지 — 지역 균형 강제 안 함(한쪽 0 정상).
 
   // Cross-ticker catalyst duplication check
   if (Array.isArray(report.portfolio)) {
@@ -892,6 +887,7 @@ function getSessionFocus(session) {
         secondary: ['global'],
         label: 'US 장 마감 직후 (전일 close)',
         marketWeight: { us: 60, kr: 20, global: 20 },
+        marketPhases: { kr: '개장 전 (전일 종가 기준)', us: '마감 직후 (전일 close 확정)' },
         dataPriority: US_PRIORITY,
       };
     case 'afternoon':
@@ -900,6 +896,7 @@ function getSessionFocus(session) {
         secondary: ['japan', 'china'],
         label: 'KR 장 마감 직후 + 아시아',
         marketWeight: { kr: 50, us: 25, asia: 25 },
+        marketPhases: { kr: '마감 직후 (당일 종가 확정)', us: '개장 전 (전일 마감·프리마켓 전)' },
         dataPriority: KR_PRIORITY,
       };
     case 'evening':
@@ -908,6 +905,7 @@ function getSessionFocus(session) {
         secondary: ['premarket', 'global'],
         label: 'US 장 시작 직후 (premarket → open)',
         marketWeight: { us: 70, global: 20, kr: 10 },
+        marketPhases: { kr: '마감 (당일 종료)', us: '장 시작 직후 (개장)' },
         dataPriority: US_PRIORITY,
       };
     case 'noon':
@@ -917,6 +915,7 @@ function getSessionFocus(session) {
         secondary: ['china', 'japan'],
         label: 'KR 장중 + 아시아 (점심)',
         marketWeight: { kr: 50, asia: 30, us: 20 },
+        marketPhases: { kr: '장중 (오전→점심)', us: '마감 (전일 close)' },
         dataPriority: KR_PRIORITY,
       };
     case 'midnight':
@@ -926,10 +925,11 @@ function getSessionFocus(session) {
         secondary: ['global'],
         label: 'US 장중 (자정)',
         marketWeight: { us: 65, global: 20, kr: 15 },
+        marketPhases: { kr: '마감 (당일 종료)', us: '장중 (전반)' },
         dataPriority: US_PRIORITY,
       };
     default:
-      return { primary: 'global', secondary: [], label: '글로벌', marketWeight: {}, dataPriority: [...US_PRIORITY, ...KR_PRIORITY] };
+      return { primary: 'global', secondary: [], label: '글로벌', marketWeight: {}, marketPhases: { kr: '—', us: '—' }, dataPriority: [...US_PRIORITY, ...KR_PRIORITY] };
   }
 }
 
@@ -4511,7 +4511,7 @@ function buildMacroPrompt(ctx, vix, session) {
   const focus = getSessionFocus(session);
   return [
     `You are a macro strategist. Session: ${sc} ${TODAY}.${li}`,
-    `⚠️ 이 세션 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). macroAnalysis·thesis 를 *주력시장 중심으로 리드*하라 — 주력이 kr/asia 면 한국·아시아 거시(KOSPI 외국인/기관 수급·원달러·아시아 금리/지표)와 한국 종목을 앞세우고 US(연준/CPI/NVDA)는 *부차 맥락*으로. 주력이 KR 인데 미국 종목만 앞세우지 말 것.`,
+    `⚠️ 주력시장을 세션 시간대로 *고정하지 말 것* — 입력 데이터에서 *그날 시그널(지수 변동폭·모멘텀·리스크 이벤트·수급)이 가장 강한 시장*을 네가 판단해 macroAnalysis·thesis 를 그 시장 중심으로 *먼저* 리드하라 (KR 이 강하면 KOSPI 외국인/기관 수급·원달러·아시아, US 가 강하면 S&P500/Nasdaq·연준/CPI/빅테크). 단, KR·US *양 시장 모두* 각자의 현재 장 phase(KR: ${focus.marketPhases?.kr ?? '—'} / US: ${focus.marketPhases?.us ?? '—'}) 맥락을 반드시 포함 — 어느 쪽도 생략 금지. 한쪽이 주력이어도 다른 쪽 장 상황(개장 전/장중/마감)은 짧게라도 다뤄라.`,
     '',
     `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Macro Indicators] ${ctx.macro || 'No data'}`,
@@ -4550,7 +4550,7 @@ function buildMacroPrompt(ctx, vix, session) {
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 핵심만 2-3 문장, 180-320자 — 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되 국면 해석 + 변곡 포인트 1개만, 군더더기 없이. 단문/항목 나열 금지, 문장으로 연결]",`,
     `"technicalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 1-2 문장, 110-200자 — VIX·금리곡선·주요지수 모멘텀 수치와 그 단기 추세/리스크를 흐르는 문장으로 서술]",`,
     `"fundamentalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 2 문장, 150-260자 — earnings surprise·valuation·기관 신호 수치와 그 방향성·함의를 흐르는 문장으로 서술]",`,
-    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 핵심만 1-2 문장, 80-150자 — 오늘의 가장 두드러진 동인(구체 수치/촉매) 1개와 그에 대한 긴장/리스크 1개를 연결해 서술, 군더더기 없이. '강세 지속' 류 합의서사 금지. ★주력시장(${String(focus.primary).toUpperCase()})을 *먼저* 다뤄라. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실(수급 방향·환율·CPI·종목)은 반드시 [입력 데이터]에서 가져오고, 예시의 구체값('5일째 순매수'·'1510'·'4.2%' 등)을 그대로 베끼지 말 것. 형식 예: '${['kr', 'asia', 'korea'].includes(String(focus.primary).toLowerCase()) ? '[주력시장 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 진입/관망 판단].' : '[미국 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 판단].'}']",`,
+    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 핵심만 1-2 문장, 80-150자 — 오늘의 가장 두드러진 동인(구체 수치/촉매) 1개와 그에 대한 긴장/리스크 1개를 연결해 서술, 군더더기 없이. '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실(수급 방향·환율·CPI·종목)은 반드시 [입력 데이터]에서 가져오고, 예시의 구체값('5일째 순매수'·'1510'·'4.2%' 등)을 그대로 베끼지 말 것. 형식 예: '[시그널 강한 시장의 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 판단].']",`,
     '"riskLevel":"low|medium|high",',
     `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
     `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,
@@ -5653,9 +5653,8 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
   const focus = getSessionFocus(session);
   const priorityLines = (focus.dataPriority ?? []).map((d, i) => `   ${i + 1}. ${d}`).join('\n');
   const focusBlock = `[Session Focus] ${session.toUpperCase()} (${focus.label})\n` +
-    `Primary 시장: ${focus.primary} | 보조: ${focus.secondary.join('/')}\n` +
-    `목표 비중: ${Object.entries(focus.marketWeight).map(([k,v])=>`${k.toUpperCase()} ${v}%`).join(' / ')}\n` +
-    `→ 이 세션은 위 primary 시장 종목을 우선 추천 (해당 시장 ≥${focus.marketWeight[focus.primary] ?? 50}%).\n` +
+    `장 phase — KR: ${focus.marketPhases?.kr ?? '—'} | US: ${focus.marketPhases?.us ?? '—'}\n` +
+    `→ 포트폴리오는 *지역 무관* — 시그널(score) 강한 종목을 지역 비율 신경쓰지 말고 확신순으로 선별. US/KR 비율 자유(한쪽 0 가능), 지역 균형 맞추려 약한 종목 padding 금지.\n` +
     // 2026-06-05 (b) 세션 가중: 8B attention 을 세션 핵심 신호에 집중시킴.
     `[Session Data Priority — 아래 신호를 attention 최우선 순으로 가중. 종목 선정·entry·rationale 시 이 순서로 근거 채택, 그 외 블록은 보조 참고]\n` +
     priorityLines;
@@ -5724,8 +5723,8 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     ' **',
     '',
     'RULES:',
-    '1. HIGH-CONVICTION ONLY — 고확신 종목만 선별. 개수 채우기 금지: 최대 US 6 + KR 6(≤12) 이되 *확신 있는 만큼만*,',
-    '   부족하면 적게(예: US 4 + KR 5) 내라. 억지로 12 채우지 마라. KR ticker 는 .KS/.KQ. ONLY [Live Prices] 의 종목.',
+    '1. HIGH-CONVICTION ONLY — 고확신 종목만 선별. 개수 채우기 금지: 최대 12 (*지역 무관* — US/KR 비율 자유) 이되 *확신 있는 만큼만*,',
+    '   부족하면 적게 내라(예: 총 6, 지역 균형 불필요 — 시그널 강한 쪽이 다수여도 됨). 억지로 12 채우지 마라. KR ticker 는 .KS/.KQ. ONLY [Live Prices] 의 종목.',
     '   Sector ETF 는 US 측에 포함 가능 (.KS/.KQ 제외). 신호 약한 종목으로 padding 금지.',
     '   Rank by signal: (1) insider 집중매수/13D, (2) squeeze score, (3) 13F accumulation, (4) options flow, (5) capital-flow momentum',
     '2. "market" field = us/korea/japan/china/europe/india/taiwan/global',
@@ -5790,7 +5789,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
         return `  ${(i + 1).toString().padStart(2)}. ${c.ticker.padEnd(11)} score=${c.stage1Score} (${c.market}/${c.sector})${biz ? ` → ${biz}` : ''}${resaleFlag} — ${c.reasons.slice(0, 3).map(r => r.ruleId).join(', ')}`;
       }),
       'GUIDANCE: 위 score 는 정량 룰 결과. LLM 은 이 candidate pool 안에서 *고확신* 종목만 선택 — score 높은 것 우선.',
-      'US/KR 균형은 권장이나 강제 아님. 확신 있는 후보가 적으면 적게 내라(개수 채우기·억지 추가 금지).',
+      '⚠️ 포트폴리오는 *지역 무관* — US/KR 균형 맞출 필요 없음. score 강한 종목이면 한 시장에 쏠려도(예: US 9 + KR 1, 또는 KR 다수) 무방. 확신 있는 후보가 적으면 적게 내라(개수 채우기·억지 추가 금지).',
       '',
     ].join('\n') : '',
     'Your entryZone/stopLoss/target MUST be anchored to the LIVE PRICES above.',
@@ -5806,7 +5805,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
     `"stopLoss":"$Z","target":"$A","targetBull":"$B","targetRationale":"[≤80 chars in ${TARGET_LANG}, fundamentals-first]",`,
     '"confidence":"high","action":"buy"}],',
     `"sectorAllocation":[{"sector":"Technology","pct":25,"stance":"overweight","reason":"[≤40 chars in ${TARGET_LANG}]"}]}`,
-    '고확신 portfolio items (최대 US 6 + KR 6, 부족하면 적게 — 12 강제 금지), 5 sectorAllocation items. Pure JSON only.',
+    '고확신 portfolio items (최대 12, *지역 무관* — US/KR 비율 자유, 부족하면 적게 — 12 강제 금지), 5 sectorAllocation items. Pure JSON only.',
     '⚠️ entryZone MUST be based on [Live Prices] + analysis. entryPlan is a BACKUP — system uses it only if entryZone is hallucinated.',
     '🚫 rationale/entryRationale/targetRationale 는 해당 종목의 실제 sector 사업에만 근거. 무관한 산업의 "수요/시장/성장" thesis 금지 (예: 자동차주에 "바이오 수요", 반도체주에 "건설 수요"). 모르면 기술적/재무 신호만 인용.',
   ].join('\n');
@@ -5868,7 +5867,7 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     `You are a market narrative writer. Session: ${sc} ${TODAY}. Write in ${TARGET_LANG}.`,
     // 2026-06-17 (사용자 "미국장 장중인데 KOSPI 로 시작"): US-primary 규칙을 KR 과 대칭으로 명시 추가.
     //   기존엔 KR-primary 만 명시돼 midnight(US 장중)인데 데이터가 KR-heavy 면 LLM 이 KOSPI 로 리드.
-    `⚠️ 주력시장 = ${String(focus.primary).toUpperCase()} (비중 ${JSON.stringify(focus.marketWeight)}). story·why·watch 를 *주력시장 중심으로 리드*. 주력이 kr/asia 면 KOSPI/KOSDAQ 등락·외국인/기관 수급·한국 기업/공시·아시아 흐름을 *먼저* 쓰고 US 는 부차(주력 KR 인데 NVDA 로 story 시작 금지). 주력이 us 면 S&P500/Nasdaq 등락·미국 빅테크/섹터·연준·매크로를 *먼저* 쓰고 KR/아시아는 부차(주력 US 인데 KOSPI/KOSDAQ 로 story 시작 절대 금지).`,
+    `⚠️ 주력시장을 세션으로 고정하지 말 것 — story·why·watch 를 *그날 시그널(지수 변동폭·수급·리스크)이 가장 강한 시장* 중심으로 리드하라. KR 이 강하면 KOSPI/KOSDAQ 등락·외국인/기관 수급·한국 기업/공시·아시아를 *먼저*, US 가 강하면 S&P500/Nasdaq·미국 빅테크/섹터·연준·매크로를 *먼저*. 단 KR·US 양 시장 모두 각자 장 phase(KR: ${focus.marketPhases?.kr ?? '—'} / US: ${focus.marketPhases?.us ?? '—'}) 맥락을 반드시 포함 — 어느 쪽도 완전 생략 금지(주력 아닌 시장도 한 줄은 다뤄라).`,
     '',
     `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Capital Flow Story] ${ctx.flows || 'No data'}`,
@@ -7297,17 +7296,15 @@ async function generateViaOllama() {
     reconciliationLog = adjudication;
   } catch (e) { console.warn(`  [경합심사] skip: ${e.message}`); }
 
-  // 2026-05-29: KR cap 6 강제 — buildPortfolio LLM 이 KR 11+ 출력하는 경우 차단.
-  //   US 6 + KR 6 = 12 portfolio 가 목표. KR 종목수 cap 안 하면 비중 분산 + UI 표시 무너짐.
+  // 2026-06-23 (사용자: "포트폴리오는 지역무관으로"): 종전 US6+KR6 별도 cap → *지역 무관* 총 12 cap.
+  //   확신순(stage1Score 정렬 유지) slice — 지역 비율 강제 없음(US 0~12, KR 0~12 자유). 약한 종목 padding 안 함.
   {
-    const us = dedupedPortfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ'));
-    const kr = dedupedPortfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ'));
-    const krCap = kr.slice(0, 6);
-    const usCap = us.slice(0, 6);
-    if (kr.length > 6 || us.length > 6) {
-      console.log(`  [market-cap] US ${us.length}→${usCap.length}, KR ${kr.length}→${krCap.length} (cap 6 적용)`);
+    const before = dedupedPortfolio.length;
+    if (before > 12) {
+      dedupedPortfolio = dedupedPortfolio.slice(0, 12);
+      const us = dedupedPortfolio.filter(p => !/\.(KS|KQ)$/.test(p.ticker || '')).length;
+      console.log(`  [total-cap] portfolio ${before}→12 (지역무관 확신순 cap, 결과 US ${us} + KR ${12 - us})`);
     }
-    dedupedPortfolio = [...usCap, ...krCap];
   }
   // 2026-06-05: 최종 권위 name 게이트 (모든 진입 경로 커버) — applyLocalHarness 6f 는 LLM r.portfolio 에만
   //   적용돼, 룰 기반 buy-candidate 펀넬로 들어온 종목(name=ticker)이 우회했음(DOC="DOC" 사건, 정답
@@ -8293,15 +8290,14 @@ async function generateViaOllama() {
       }
     }
   }
-  // 2026-05-30: 후처리 (harness/validateEntryZones/enforceRotation/buildLadders) 가 portfolio 늘리는 케이스 차단.
-  //   DB-JSON mismatch (DB=15, JSON=12) 사건 fix. saveRecommendations 호출 직전 cap 한 번 더 강제.
+  // 2026-05-30 + 2026-06-23: 후처리(harness/validateEntryZones/enforceRotation/buildLadders) 가 portfolio
+  //   늘리는 케이스 차단(DB-JSON mismatch fix). 지역무관 총 12 재캡 — saveRecommendations 직전.
   {
-    const us = finalReport.portfolio.filter(p => !p.ticker?.endsWith('.KS') && !p.ticker?.endsWith('.KQ'));
-    const kr = finalReport.portfolio.filter(p => p.ticker?.endsWith('.KS') || p.ticker?.endsWith('.KQ'));
-    if (us.length > 6 || kr.length > 6) {
-      console.log(`  [final-cap] 후처리 후 US ${us.length}→${Math.min(us.length,6)}, KR ${kr.length}→${Math.min(kr.length,6)} (cap 6 재적용)`);
+    const before = finalReport.portfolio.length;
+    if (before > 12) {
+      finalReport.portfolio = finalReport.portfolio.slice(0, 12);
+      console.log(`  [final-cap] 후처리 후 portfolio ${before}→12 (지역무관 재캡)`);
     }
-    finalReport.portfolio = [...us.slice(0, 6), ...kr.slice(0, 6)];
   }
   // portfolioByMarket 도 cap 후 portfolio 기준으로 재계산
   finalReport.portfolioByMarket = {
