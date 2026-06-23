@@ -243,7 +243,9 @@ function isGarbage(text, minLen = 15) {
   if (!text || text.trim().length === 0) return false;
   const t = text.trim();
   if (t.length < minLen) return true;
-  if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t)) return true;
+  // 2026-06-23: +체인도 →/| 체인과 동일하게 — 실수치(%·소수·$)를 담은 산문은 substance 이므로
+  //   garbage 아님 (v2 가 "원화 약세(+1.8%)…AI 강세(+4.0%)" 식으로 실수치를 산문에 쓰자 오탐 발간차단되던 건).
+  if (/^[^\n+]+(\+[^\n+]+){2,}$/.test(t) && t.length < 80 && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true;
   if (t.length < 80 && /^[^\n+]{3,}\+[^\n+]{3,}$/.test(t) && !/\d+%|\d+\.\d+|\$\d/.test(t)) return true;
   // 2026-06-14 (ChatGPT D1 차용): →/|/ 체인이라도 실수치(%·소수·$)를 담으면 substance 있는 thesis →
   //   garbage 아님 (예 "AI 인프라 MSFT→NVDA→AMAT→LRCX — CPI 4.17%…" 오탐으로 발간 차단되던 건).
