@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "purpose": "AISVI_FINANCE 차기 SFT 라운드용 KR↔EN 금융 용어 glossary. 로컬모델이 영어 금융용어를 한국어로 *직역*해 비문을 만드는 사례(예: short squeeze→'짧은 매수') 근본 교정용. seed 빌더(build-bilingual-seeds.mjs)가 term-pair 학습쌍으로 주입하고, sanitizeText(narrative-fix.mjs)가 backstop 결정론 교정에 참조.",
+    "created": "2026-06-23",
+    "origin": "사용자 스크린샷 제보(REGN '45점 짧은 매수 스퀴즈' 비문) → SFT 근본치료 논의",
+    "schema": "term_en=영어원어, term_ko=한국 금융권 표준표기, avoid=피해야 할 오역/직역(배열), risk=오역위험(high=직역시 비문, med=어색, low=대체로무난), note=설명",
+    "usage_next_round": [
+      "1. build-bilingual-seeds.mjs 에서 risk>=high 항목을 양방향 학습쌍(en→ko, ko 용어 사용 문장)으로 N개씩 증강.",
+      "2. sanitizeText 에 avoid→term_ko 결정론 치환 자동 생성(현재 short squeeze 수기 룰을 이 표 기반으로 일반화).",
+      "3. sanitize/verify 가 잡은 신규 오역은 이 표에 append → hallucination_history 적재 → 다음 라운드 재학습(closed loop)."
+    ]
+  },
+  "terms": [
+    { "term_en": "short squeeze", "term_ko": "공매도 스퀴즈 (숏 스퀴즈)", "avoid": ["짧은 매수 스퀴즈", "짧은 매수", "짧은 압박"], "risk": "high", "note": "short=공매도(매도포지션), squeeze=청산압박. '짧은(길이)'·'매수'로 직역 절대 금지. 실제 발생 비문." },
+    { "term_en": "short covering", "term_ko": "숏커버링 (공매도 환매)", "avoid": ["짧은 보장", "짧은 커버", "짧은 매수 커버링"], "risk": "high", "note": "공매도 포지션 되사서 청산. squeeze 와 세트로 자주 오역." },
+    { "term_en": "short interest", "term_ko": "공매도 잔고 (공매도 비중)", "avoid": ["짧은 관심", "단기 이자", "짧은 이자"], "risk": "high", "note": "interest=이해관계/잔고지 '이자'/'관심' 아님." },
+    { "term_en": "short position", "term_ko": "공매도 포지션 (매도 포지션)", "avoid": ["짧은 포지션", "단기 포지션"], "risk": "high", "note": "short=공매도. '짧은/단기' 직역 금지." },
+    { "term_en": "days to cover", "term_ko": "공매도 청산 소요일 (커버 일수)", "avoid": ["덮을 날", "커버할 날짜"], "risk": "high", "note": "공매도 잔고 ÷ 일평균거래량." },
+    { "term_en": "gamma squeeze", "term_ko": "감마 스퀴즈", "avoid": ["감마 압축", "감마 매수"], "risk": "high", "note": "옵션 델타헤지가 유발하는 상승 압박. 음차 유지." },
+    { "term_en": "naked short", "term_ko": "무차입 공매도", "avoid": ["벌거벗은 매도", "맨 매도"], "risk": "high", "note": "차입 없이 하는 공매도. 'naked' 직역 금지." },
+    { "term_en": "going long", "term_ko": "매수 진입 (롱 포지션)", "avoid": ["길게 가기", "오래 가기"], "risk": "high", "note": "long=매수포지션. '길게/오래' 직역 금지." },
+    { "term_en": "long/short", "term_ko": "롱/숏 (매수/공매도)", "avoid": ["긴/짧은", "장/단"], "risk": "high", "note": "포지션 방향. 길이로 직역 금지." },
+
+    { "term_en": "golden cross", "term_ko": "골든크로스", "avoid": ["황금 십자", "금 교차"], "risk": "med", "note": "단기MA가 장기MA 상향돌파. 음차 표준." },
+    { "term_en": "dead cross", "term_ko": "데드크로스", "avoid": ["죽은 십자", "사망 교차"], "risk": "med", "note": "단기MA가 장기MA 하향돌파." },
+    { "term_en": "moving average", "term_ko": "이동평균선 (MA)", "avoid": ["움직이는 평균", "이동 평균값"], "risk": "low", "note": "50일선/200일선 등." },
+    { "term_en": "breakout", "term_ko": "(저항선) 돌파", "avoid": ["부서짐", "탈출"], "risk": "med", "note": "저항/박스권 상향돌파." },
+    { "term_en": "breakdown", "term_ko": "(지지선) 이탈", "avoid": ["고장", "붕괴"], "risk": "med", "note": "지지선 하향이탈." },
+    { "term_en": "support / resistance", "term_ko": "지지선 / 저항선", "avoid": ["지원 / 저항감"], "risk": "med", "note": "support=지지(지원 아님)." },
+    { "term_en": "overbought / oversold", "term_ko": "과매수 / 과매도", "avoid": ["과구매 / 과판매", "초과매수"], "risk": "med", "note": "RSI 70↑/30↓." },
+    { "term_en": "whipsaw", "term_ko": "휩쏘 (속임수 변동)", "avoid": ["채찍톱", "휘두름"], "risk": "high", "note": "추세 오신호 후 급반전. 음차 통용." },
+    { "term_en": "trailing stop", "term_ko": "추격 손절 (트레일링 스탑)", "avoid": ["끄는 정지", "뒤따르는 멈춤"], "risk": "med", "note": "가격따라 손절선 상향조정." },
+
+    { "term_en": "net buying / net selling", "term_ko": "순매수 / 순매도", "avoid": ["넷 매수", "순수 매수", "그물 매수"], "risk": "med", "note": "net=순(매수-매도). 외국인/기관 수급 핵심어." },
+    { "term_en": "block trade", "term_ko": "블록딜 (대량매매)", "avoid": ["덩어리 거래", "막힌 거래"], "risk": "med", "note": "장외 대량거래." },
+    { "term_en": "program trading", "term_ko": "프로그램 매매", "avoid": ["프로그램 거래소"], "risk": "low", "note": "차익/비차익 프로그램." },
+    { "term_en": "capital flow / fund flow", "term_ko": "자금 흐름 (수급)", "avoid": ["자본 비행", "펀드 비행"], "risk": "low", "note": "flow=흐름. 수익률(%)과 혼동 금지(코드 별도 가드)." },
+
+    { "term_en": "covered call", "term_ko": "커버드콜", "avoid": ["덮인 전화", "보장 콜"], "risk": "high", "note": "보유주식+콜매도. call=콜옵션(전화 아님)." },
+    { "term_en": "put / call", "term_ko": "풋 / 콜 (옵션)", "avoid": ["놓기 / 전화", "넣기 / 부르기"], "risk": "high", "note": "옵션 종류. 직역 절대 금지." },
+    { "term_en": "strike price", "term_ko": "행사가 (스트라이크)", "avoid": ["때리는 가격", "타격가"], "risk": "high", "note": "옵션 행사가격." },
+    { "term_en": "in the money / out of the money", "term_ko": "내가격 / 외가격 (ITM/OTM)", "avoid": ["돈 안에 / 돈 밖에"], "risk": "high", "note": "옵션 내재가치 유무." },
+    { "term_en": "implied volatility", "term_ko": "내재변동성 (IV)", "avoid": ["암시된 휘발성", "내포 변동"], "risk": "med", "note": "volatility=변동성(휘발성 아님)." },
+    { "term_en": "expiry / expiration", "term_ko": "만기", "avoid": ["만료일자만"], "risk": "low", "note": "옵션/선물 만기." },
+
+    { "term_en": "yield curve", "term_ko": "금리곡선 (수익률곡선)", "avoid": ["수확 곡선", "산출 곡선"], "risk": "med", "note": "yield=금리/수익률. 'bp 창작' 별도 코드 가드." },
+    { "term_en": "(curve) inversion", "term_ko": "(금리곡선) 역전", "avoid": ["반전", "거꾸로"], "risk": "med", "note": "장단기 금리 역전." },
+    { "term_en": "basis points (bp)", "term_ko": "베이시스포인트 (bp)", "avoid": ["기초 점수", "기본 포인트"], "risk": "med", "note": "0.01%p. 음차/약어 유지." },
+    { "term_en": "contango / backwardation", "term_ko": "콘탱고 / 백워데이션", "avoid": ["콘텡고", "컨텐고", "역행"], "risk": "high", "note": "선물 기간구조. 음차 표준(변종 다발 → sanitize 가드 존재)." },
+    { "term_en": "hawkish / dovish", "term_ko": "매파적 / 비둘기파적", "avoid": ["매 같은 / 비둘기 같은", "공격적/온순"], "risk": "med", "note": "통화정책 기조." },
+    { "term_en": "tapering", "term_ko": "테이퍼링 (자산매입 축소)", "avoid": ["가늘게 하기", "끝맺음"], "risk": "med", "note": "QE 축소." },
+    { "term_en": "quantitative tightening / easing", "term_ko": "양적긴축(QT) / 양적완화(QE)", "avoid": ["정량적 조임/완화"], "risk": "low", "note": "표준 약어." },
+    { "term_en": "soft landing / hard landing", "term_ko": "연착륙 / 경착륙", "avoid": ["부드러운 착륙", "딱딱한 착륙"], "risk": "med", "note": "경기 둔화 경로." },
+
+    { "term_en": "earnings beat / miss", "term_ko": "실적 서프라이즈(상회) / 쇼크(하회)", "avoid": ["수익 때리기 / 놓침", "이익 빗나감"], "risk": "high", "note": "컨센서스 상회/하회. beat='때리다' 직역 금지." },
+    { "term_en": "guidance", "term_ko": "(실적) 가이던스 (전망)", "avoid": ["안내", "지도"], "risk": "med", "note": "기업 자체 실적 전망." },
+    { "term_en": "guidance cut / raise", "term_ko": "가이던스 하향 / 상향", "avoid": ["안내 자르기"], "risk": "med", "note": "전망 조정." },
+    { "term_en": "buyback / share repurchase", "term_ko": "자사주 매입", "avoid": ["되사기만", "주식 재구매"], "risk": "low", "note": "자기주식 취득." },
+    { "term_en": "spinoff", "term_ko": "분사 (스핀오프)", "avoid": ["회전 분리", "튕겨나감"], "risk": "med", "note": "사업부 분리상장." },
+    { "term_en": "margin (operating)", "term_ko": "(영업)이익률", "avoid": ["여백", "증거금"], "risk": "med", "note": "수익성 margin vs 증거금 margin 문맥 구분." },
+    { "term_en": "margin (trading)", "term_ko": "증거금 (신용)", "avoid": ["이익률", "여백"], "risk": "med", "note": "신용거래 증거금. 위 이익률과 동음 주의." },
+
+    { "term_en": "drawdown", "term_ko": "최대낙폭 (드로다운)", "avoid": ["끌어내림", "인출"], "risk": "high", "note": "고점대비 하락폭. '인출' 직역 금지." },
+    { "term_en": "hedge", "term_ko": "헤지 (위험회피)", "avoid": ["울타리", "산울타리"], "risk": "med", "note": "위험 상쇄." },
+    { "term_en": "stop loss", "term_ko": "손절 (스탑로스)", "avoid": ["손실 정지", "멈춤 손해"], "risk": "low", "note": "손실 제한 매도." },
+    { "term_en": "take profit", "term_ko": "익절 (차익실현)", "avoid": ["이익 가져가기"], "risk": "low", "note": "수익 확정 매도." },
+    { "term_en": "dollar-cost averaging", "term_ko": "분할매수 (정액적립식)", "avoid": ["달러 비용 평균"], "risk": "med", "note": "적립식 평단 분산." },
+    { "term_en": "rebalancing", "term_ko": "리밸런싱 (비중조정)", "avoid": ["재균형 잡기"], "risk": "low", "note": "포트폴리오 비중 재조정." },
+    { "term_en": "rotation", "term_ko": "(섹터) 순환매 / 로테이션", "avoid": ["회전", "돌리기"], "risk": "med", "note": "자금의 섹터간 이동." },
+
+    { "term_en": "forward P/E", "term_ko": "선행 PER", "avoid": ["앞쪽 PE", "전진 PE"], "risk": "med", "note": "예상실적 기준 밸류." },
+    { "term_en": "trailing P/E", "term_ko": "후행 PER", "avoid": ["끌리는 PE", "뒤따르는 PE"], "risk": "med", "note": "과거실적 기준." },
+    { "term_en": "dividend yield", "term_ko": "배당수익률", "avoid": ["배당 수확"], "risk": "low", "note": "yield=수익률." },
+    { "term_en": "book value", "term_ko": "장부가치 (BPS)", "avoid": ["책 값"], "risk": "med", "note": "순자산 기준." },
+    { "term_en": "free cash flow", "term_ko": "잉여현금흐름 (FCF)", "avoid": ["자유 현금 비행"], "risk": "low", "note": "영업CF-CAPEX." }
+  ]
+}
