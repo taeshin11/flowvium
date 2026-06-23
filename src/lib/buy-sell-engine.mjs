@@ -457,6 +457,7 @@ export function scoreSell(ctx, rules = loadSellRules()) {
 const HARD_SELL_IDS = new Set(['tech_dead_cross', 'price_stop_breach', 'forensic_negative_ocf', 'micro_supply_contract_loss']);
 export function adjudicate(buyScore, sellScore, opts = {}) {
   const hardSell = opts.hardSell ?? false;
+  const buyVeto = opts.buyVeto ?? null;  // 2026-06-23: hasHardBuyVeto() 사유(string) — 신규매수 차단(칼받기/과열).
   const coverage = opts.coverage;  // 종목별 데이터 카테고리 수(price/technical/fundamental 등). 부족 시 강verdict 제한.
   const net = (buyScore ?? 0) - (sellScore ?? 0);
   if (hardSell) return { verdict: 'avoid', action: '매도/회피', lean: 'hard-sell', net, coverage, reason: '치명 매도신호(veto) — 점수 무관 청산 우선' };
@@ -473,10 +474,49 @@ export function adjudicate(buyScore, sellScore, opts = {}) {
     if (verdict === 'buy') { verdict = 'accumulate'; action = '분할매수'; capped = true; }
     else if (verdict === 'sell') { verdict = 'reduce'; action = '비중축소'; capped = true; }
   }
+  // 2026-06-23: 매수 veto — buyScore 가 아무리 높아도 칼받기/과열 종목은 신규매수 차단(buy/accumulate → 관망).
+  //   이미 보유분 청산까지 강제하진 않음(그건 sell-side hardSell 영역). 신규 진입만 막음.
+  let buyVetoed = false;
+  if (buyVeto && (verdict === 'buy' || verdict === 'accumulate')) {
+    verdict = 'hold'; action = '관망(신규매수 veto)'; buyVetoed = true;
+  }
   const lean = net > 2 ? '매수 우세' : net < -2 ? '매도 우세' : '팽팽(관망권)';
-  return { verdict, action, lean, net, coverage, ...(capped ? { coverageCapped: true } : {}) };
+  return { verdict, action, lean, net, coverage,
+    ...(capped ? { coverageCapped: true } : {}),
+    ...(buyVetoed ? { buyVetoed: true, buyVetoReason: buyVeto } : {}) };
 }
 // sell hits 에 치명 룰 포함 여부 — adjudicate 의 hardSell 판정용.
 export function hasHardSell(sellHits) {
   return Array.isArray(sellHits) && sellHits.some(h => HARD_SELL_IDS.has(h.id));
+}
+
+// 매수쪽 hard veto (2026-06-23, 사용자: POSCO -27%/현대로템 -28% 를 하락 내내 매수한 사건) —
+//   구루 규율(드러켄밀러 "추세 나쁘면 안 산다")을 *score→veto* 로 격상. 종전 buy-rules 는 가점만 하고
+//   하락추세를 *벌점/차단* 안 해, mean-reversion 룰이 칼받기를 보상했음(blind-spot 감사 C1/H3).
+//   ★중요(사용자 Q1 "떨어지는 중에도 분할매수 구간 있잖아?"): 지지/과매도/극공포 *앵커가 있는* 규율적
+//   분할매수는 보존(veto 면제) — veto 는 *앵커 전무한 칼받기/무너진 주도주/과열 추격* 만.
+//   chat(judge-engine)·보고서·보유 공유(adjudicate 경유). null=veto 없음, string=veto 사유.
+export function hasHardBuyVeto(ctx) {
+  if (!ctx || ctx.price == null) return null;
+  const { price, sma50, sma200, rsi, low52w, high52w, fgScore } = ctx;
+  const revYoY = ctx.revenueYoY ?? ctx.revenueGrowth ?? null;
+
+  // 규율적 분할매수 앵커 — 하나라도 있으면 칼받기 아님 → veto 면제(accumulate/분할로 처리되게 둠).
+  const oversold = rsi != null && rsi <= 35;                                        // 과매도 반등 zone
+  const nearLow = low52w != null && (price - low52w) / low52w * 100 <= 15;          // 52주 저점 15% 내(지지)
+  const capitulation = fgScore != null && fgScore <= 25 && (revYoY == null || revYoY >= 0); // 극공포+흑자 역발상
+  if (oversold || nearLow || capitulation) return null;
+
+  // (1) 칼받기 / 무너진 주도주: 50MA 아래 + 52주고점 대비 -18% 이상 하락 (앵커 없음 이미 확인).
+  //   POSCO(356k, 50MA 417k, 고점442k=-19%)·현대로템(208k, 50MA 212k, 고점269k=-23%) 둘 다 포착.
+  if (sma50 != null && price < sma50 && high52w != null && price <= high52w * 0.82) {
+    const dd = ((1 - price / high52w) * 100).toFixed(0);
+    const fin = revYoY != null && revYoY < 0 ? ` +매출 ${revYoY.toFixed(1)}% 역성장` : '';
+    return `하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -${dd}%${fin}, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수)`;
+  }
+  // (2) 과열 추격: 200MA 대비 +50% 이상 parabolic → 신규 추격매수 금지(sell overextended200ma 의 매수쪽 대칭, H3).
+  if (sma200 != null && price > sma200 * 1.5) {
+    return `과열 추격 veto: 200MA 대비 +${((price / sma200 - 1) * 100).toFixed(0)}% 과확장(parabolic) — 신규 추격매수 금지`;
+  }
+  return null;
 }

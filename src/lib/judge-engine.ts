@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { companyNamesI18n } from '@/data/company-names-i18n';
 // 2026-06-19 엔진 통합: 매수/매도 룰 평가기 단일 소스(보고서와 공유). 챗도 보고서의 자동튜닝 룰을 사용.
-import { scoreBuy, scoreSell, adjudicate, hasHardSell, type EngineCtx } from '@/lib/buy-sell-engine';
+import { scoreBuy, scoreSell, adjudicate, hasHardSell, hasHardBuyVeto, type EngineCtx } from '@/lib/buy-sell-engine';
 
 const ROOT = process.cwd();
 function loadJson<T>(rel: string): T | null {
@@ -450,20 +450,28 @@ function ctxCoverage(c: TickerCtx): number {
   ].filter(Boolean).length;
 }
 
+// 2026-06-23: 매수 veto(칼받기/과열) — 챗도 보고서와 동일 공유엔진 hasHardBuyVeto. fg 없으면 capitulation 체크만 skip.
+function buyVetoFor(c: TickerCtx, fg?: number | null): string | null {
+  return hasHardBuyVeto({
+    price: c.price, sma50: c.sma50, sma200: c.sma200, rsi: c.rsi,
+    low52w: c.low52w, high52w: c.high52w, revenueYoY: c.revenueGrowth, fgScore: fg ?? null,
+  });
+}
+
 // 주 종목(가격 있는 첫 종목)의 결정론 심판 — grounding.expectedAction 노출 + verdict_mismatch 검출용(2026-06-19).
 export function primaryVerdict(tickerCtx: TickerCtx[], macro: { vix?: number | null; fg?: number | null }):
   { ticker: string; action: string; verdict: string; net: number } | null {
   const c = tickerCtx.find(t => t.price != null);
   if (!c) return null;
   const v = fireRules(c, macro);
-  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), coverage: ctxCoverage(c) });
+  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), buyVeto: buyVetoFor(c, macro.fg), coverage: ctxCoverage(c) });
   return { ticker: c.ticker, action: j.action, verdict: j.verdict, net: j.net };
 }
 
 function fmtEngine(c: TickerCtx, v: EngineVerdict): string {
   if (c.price == null) return '';
   // 2026-06-19: 최종 심판은 보고서와 *동일* adjudicate(결정론). LLM 이 점수와 어긋나게 뒤집던 것 차단.
-  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), coverage: ctxCoverage(c) });
+  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), buyVeto: buyVetoFor(c), coverage: ctxCoverage(c) });
   // 발화 룰은 설명만(per-rule +점수 제거) — 모델이 통째 복사해 "(+5)(+6)" 노출하던 것 차단(2026-06-18 FTNT).
   const bf = v.buy.length ? v.buy.map(r => r.desc).join(', ') : '없음';
   const sf = v.sell.length ? v.sell.map(r => r.desc).join(', ') : '없음';
