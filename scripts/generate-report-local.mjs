@@ -6816,7 +6816,7 @@ async function generateViaOllama() {
     const targetNearOnly = hits.some(h => TARGET_NEAR.has(h.ruleId)) && !hasHard;
     // 2026-06-19(ChatGPT 지적): held-position action 도 *공유 adjudicate* 로 directional 판정 통일(챗·후보심판과
     //   동일 net 임계 ±5/±12). held 맥락 매핑: hard/회피=전량, 목표근접=net 따라 trail/부분익절, reduce=축소.
-    const j = adjudicate(buyScore, sellScore, { hardSell: hasHard, buyVeto: hasHardBuyVeto(buyCtx) });
+    const j = adjudicate(buyScore, sellScore, { hardSell: hasHard, buyVeto: hasHardBuyVeto(buyCtx, { riskOff: macroData?.riskLevel === 'high' || (macroCtx?.vix ?? 0) >= 25 }) });
     let action, size, msg;
     if (hasHard || j.verdict === 'avoid') { action = 'sell'; size = 1.0; msg = `hard-sell/회피 — 전량매도 (심판 ${j.action}, net ${j.net})`; }
     else if (targetNearOnly && j.net >= 5) { action = 'trail'; size = 0.0; msg = `목표가 근접+매수우세(net ${j.net}) — 전량매도 말고 trailing stop`; }
@@ -7147,7 +7147,9 @@ async function generateViaOllama() {
       }
       // 2026-06-23: 매수 hard veto(칼받기/과열) — LLM 이 funnel 밖에서 독립 픽한 종목까지 최종 차단(C2 완결).
       //   앵커(과매도/52주저점/극공포) 있는 분할매수는 면제. 셀룰 점수와 무관한 매수쪽 규율.
-      const pBuyVeto = hasHardBuyVeto(exCtx);
+      // 2026-06-23 (시황 원칙 적용): regime risk-off 면 매수 veto 강화(임계↑) — top-down→bottom-up.
+      const _regimeRiskOff = macroData?.riskLevel === 'high' || (macroCtx?.vix ?? 0) >= 25;
+      const pBuyVeto = hasHardBuyVeto(exCtx, { riskOff: _regimeRiskOff });
       if (pBuyVeto) { console.warn(`  [심판/매수veto] ${p.ticker} 탈락: ${pBuyVeto.slice(0, 60)}`); return false; }
       const buyConviction = buyScoreOf.get(p.ticker) ?? 20;
       const buyDiscount = Math.max(0, Math.min(4, (buyConviction - 25) / 5));        // 강한 매수일수록 soft 매도 상쇄
@@ -8508,6 +8510,16 @@ async function generateViaOllama() {
     }
   }
 
+  // 2026-06-23 (사용자: "매수·매도 원칙이 시황 보는 눈에도 적용돼야"): regime 게이트 — 시황 risk-off 면
+  //   stance 를 neutral 로 캡(LLM 이 약세장에 'bullish' 못 박게). 개별주 매수 veto 의 매크로 짝 —
+  //   시황 read 가 narrative 가 아니라 *deterministic 게이트* 로 작동(과낙관 차단).
+  {
+    const regimeRiskOff = macroData?.riskLevel === 'high' || (ctxWithCascade?.vix ?? macroCtx?.vix ?? 0) >= 25;
+    if (regimeRiskOff && finalReport.stance === 'bullish') {
+      finalReport.stance = 'neutral';
+      console.log(`  [regime-cap] 시황 risk-off(riskLevel=${macroData?.riskLevel}/VIX=${ctxWithCascade?.vix ?? macroCtx?.vix}) → stance bullish→neutral 캡(약세장 과낙관 차단)`);
+    }
+  }
   // 2026-06-23 (사각지대 감사 H1, closed loop): sanitize/correctNarrative 가 *조용히* 고치는 LLM 환각
   //   (short squeeze 오역·garble·커브bp·% 자금흐름 등)을 hallucination_history 에 적재하려 교정 전 snapshot.
   //   기존엔 nFix 카운트만 찍고 학습루프 미적재 → 모델이 같은 garble 평생 반복(sanitizer 가 평생 가림).

@@ -34,4 +34,4 @@ export interface Verdict { verdict: string; action: string; lean: string; net: n
 export function adjudicate(buyScore: number, sellScore: number, opts?: { hardSell?: boolean; coverage?: number; buyVeto?: string | null }): Verdict;
 export function hasHardSell(sellHits: Array<{ id: string }>): boolean;
 // 2026-06-23: 매수 hard veto(칼받기/과열) — 칼받기/과열 종목 신규매수 차단. null=veto 없음, string=사유.
-export function hasHardBuyVeto(ctx: Partial<EngineCtx>): string | null;
+export function hasHardBuyVeto(ctx: Partial<EngineCtx>, opts?: { riskOff?: boolean }): string | null;

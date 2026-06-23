@@ -496,27 +496,33 @@ export function hasHardSell(sellHits) {
 //   ★중요(사용자 Q1 "떨어지는 중에도 분할매수 구간 있잖아?"): 지지/과매도/극공포 *앵커가 있는* 규율적
 //   분할매수는 보존(veto 면제) — veto 는 *앵커 전무한 칼받기/무너진 주도주/과열 추격* 만.
 //   chat(judge-engine)·보고서·보유 공유(adjudicate 경유). null=veto 없음, string=veto 사유.
-export function hasHardBuyVeto(ctx) {
+export function hasHardBuyVeto(ctx, opts = {}) {
   if (!ctx || ctx.price == null) return null;
   const { price, sma50, sma200, rsi, low52w, high52w, fgScore } = ctx;
   const revYoY = ctx.revenueYoY ?? ctx.revenueGrowth ?? null;
+  // 2026-06-23 (사용자: "매수·매도 원칙이 시황 보는 눈에도 적용돼야"): regime 게이트 — 시황 risk-off 면
+  //   개별 매수 규율을 *강화*(top-down→bottom-up). 기아처럼 개별주는 건강해도 시장 regime 꺾이면
+  //   신규매수 bar 를 높임. riskOff: 칼받기 임계 -18%→-10%, 과열 +50%→+35%(둘 다 더 잘 걸림).
+  const riskOff = !!opts.riskOff;
+  const ddCut = riskOff ? 0.90 : 0.82;       // 52주고점 대비 하락 임계
+  const extMul = riskOff ? 1.35 : 1.5;       // 200MA 대비 과확장 임계
 
   // 규율적 분할매수 앵커 — 하나라도 있으면 칼받기 아님 → veto 면제(accumulate/분할로 처리되게 둠).
+  //   단 risk-off 에선 '52주저점 근접'만으론 면제 안 함(약세장 저점매수는 칼받기 위험 ↑) — 과매도/극공포만 면제.
   const oversold = rsi != null && rsi <= 35;                                        // 과매도 반등 zone
   const nearLow = low52w != null && (price - low52w) / low52w * 100 <= 15;          // 52주 저점 15% 내(지지)
   const capitulation = fgScore != null && fgScore <= 25 && (revYoY == null || revYoY >= 0); // 극공포+흑자 역발상
-  if (oversold || nearLow || capitulation) return null;
+  if (oversold || capitulation || (nearLow && !riskOff)) return null;
 
-  // (1) 칼받기 / 무너진 주도주: 50MA 아래 + 52주고점 대비 -18% 이상 하락 (앵커 없음 이미 확인).
-  //   POSCO(356k, 50MA 417k, 고점442k=-19%)·현대로템(208k, 50MA 212k, 고점269k=-23%) 둘 다 포착.
-  if (sma50 != null && price < sma50 && high52w != null && price <= high52w * 0.82) {
+  // (1) 칼받기 / 무너진 주도주: 50MA 아래 + 52주고점 대비 하락(평시 -18%, risk-off -10%). 앵커 없음 이미 확인.
+  if (sma50 != null && price < sma50 && high52w != null && price <= high52w * ddCut) {
     const dd = ((1 - price / high52w) * 100).toFixed(0);
     const fin = revYoY != null && revYoY < 0 ? ` +매출 ${revYoY.toFixed(1)}% 역성장` : '';
-    return `하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -${dd}%${fin}, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수)`;
+    return `하락추세 신규매수 veto${riskOff ? '(시황 risk-off 강화)' : ''}: 50MA 아래 + 52주고점 대비 -${dd}%${fin}, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수)`;
   }
-  // (2) 과열 추격: 200MA 대비 +50% 이상 parabolic → 신규 추격매수 금지(sell overextended200ma 의 매수쪽 대칭, H3).
-  if (sma200 != null && price > sma200 * 1.5) {
-    return `과열 추격 veto: 200MA 대비 +${((price / sma200 - 1) * 100).toFixed(0)}% 과확장(parabolic) — 신규 추격매수 금지`;
+  // (2) 과열 추격: 200MA 대비 과확장(평시 +50%, risk-off +35%) → 신규 추격매수 금지(sell overextended200ma 의 매수쪽 대칭).
+  if (sma200 != null && price > sma200 * extMul) {
+    return `과열 추격 veto${riskOff ? '(시황 risk-off 강화)' : ''}: 200MA 대비 +${((price / sma200 - 1) * 100).toFixed(0)}% 과확장(parabolic) — 신규 추격매수 금지`;
   }
   return null;
 }

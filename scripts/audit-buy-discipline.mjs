@@ -39,6 +39,10 @@ ok('[4] narrative-fix → hallucination_history (H1)',
   /narrativeDefectsForLearning/.test(gen) && /narrative_garble_sanitized/.test(gen),
   'sanitizer 가림이 학습루프로 환류');
 
+// ── [4b] 시황 원칙 적용: regime risk-off 가 매수 veto 를 강화(top-down→bottom-up) + stance 캡 ──
+ok('[4b] regime-aware 매수 veto (엔진)', /opts\.riskOff|riskOff\b/.test(engine), 'hasHardBuyVeto opts.riskOff 임계강화');
+ok('[4c] regime → stance 캡', /regime-cap|regimeRiskOff/.test(gen), '시황 risk-off → stance bullish→neutral 게이트');
+
 // ── [5] (메타) 매수룰 veto-vs-score 분포 surface — 비대칭 가시화 ──
 let buyVetoFalse = 0, buyTotal = 0;
 try {
