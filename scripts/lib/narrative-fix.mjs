@@ -102,6 +102,11 @@ export function sanitizeText(s) {
   t = t.replace(/(^|[,;·|]\s*)(원|달러)\s+(?=[+\-]?\d+\.?\d*\s*%\s*YoY)/g, '$1매출 '); // orphan 통화단위 → 매출(YoY 문맥)
   t = t.replace(CONTANGO_VARIANTS, '콘탱고');                          // 콘탱고 변종 정규화
   t = t.replace(/스que이즈|스퀴이즈/g, '스퀴즈');                       // 라틴 bleed (알려진)
+  // 2026-06-23: "short squeeze" 오역 교정 (로컬모델이 short→'짧은', squeeze→'매수' 로 직역해
+  //   "45점 짧은 매수 스퀴즈"·"즉시 짧은 매수 기회" 류 비문 생성 — 사용자 스크린샷 제보).
+  t = t.replace(/짧은\s*매수\s*스퀴즈/g, '공매도 스퀴즈');             // "short squeeze" → 공매도 스퀴즈
+  t = t.replace(/짧은\s*매수\s*(신호|점수|커버링)/g, '공매도 스퀴즈 $1');
+  t = t.replace(/짧은\s*매수\s*기회/g, '숏 스퀴즈 기회');             // "short opportunity" → 숏 스퀴즈 기회
   t = t.replace(/元/g, '원').replace(/兑|兌/g, '/');                    // 한자 bleed (元→원, 兑→/)
   t = t.replace(/(\d{1,2}\.?\d*\s*%)\s*유입(된|되)?/g, '$1 상승');       // "16.5% 유입"(수익률) → "16.5% 상승"(ETF 지역카드 등)
   return t;

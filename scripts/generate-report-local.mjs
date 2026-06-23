@@ -5848,6 +5848,7 @@ function buildOpportunityPrompt(ctx) {
     `[Asset F&G] ${ctx.assetFg || 'No data'}`,
     '',
     `⚠️ filings count MUST match exactly what appears in [집중매매감지] — NEVER copy example numbers.`,
+    `⚠️ 용어: "short squeeze" 는 *반드시* "공매도 스퀴즈" 또는 "숏 스퀴즈" 로 — 영어 "short" 를 "짧은" 으로, "squeeze" 를 "매수" 로 직역 금지. "짧은 매수 스퀴즈"·"짧은 매수 기회" 같은 표현 절대 금지.`,
     `Respond in pure JSON. ALL text values in ${TARGET_LANG}:`,
     `{"shortSqueeze":[{"ticker":"[TICKER]","score":0,"timing":"[≤40 chars in ${TARGET_LANG}]","risk":"[≤40 chars in ${TARGET_LANG}]"}],`,
     `"insiderSignals":[{"ticker":"[TICKER]","filings":[EXACT_COUNT_FROM_DATA],"dateRange":"[YYYY-MM-DD~YYYY-MM-DD from data]","significance":"[≤40 chars in ${TARGET_LANG}]","pattern":"[≤30 chars in ${TARGET_LANG}]"}],`,
