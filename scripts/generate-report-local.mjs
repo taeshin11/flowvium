@@ -7127,6 +7127,7 @@ async function generateViaOllama() {
       const exCtx = {
         price: livePrices.get(p.ticker)?.price ?? null, market: isKRt ? 'kr' : 'us', sector: p.sector ?? null,
         rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, volPct: sig.volPct,
+        high52w: livePrices.get(p.ticker)?.high52w ?? null, low52w: livePrices.get(p.ticker)?.low52w ?? null,
         opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY,
         sectorPe: macroCtx.sectorPeMap?.get(sectorKey) ?? sectorPeMap.get(sectorKey) ?? null,
         macroRiskLevel: macroData?.riskLevel ?? null, vix: macroCtx.vix, fgScore: macroCtx.fgScore,
@@ -7144,6 +7145,10 @@ async function generateViaOllama() {
         const reason = evaluateSellRule(rule, exCtx);
         if (reason) hits.push({ id: rule.id, category: rule.category, score: +weightedScore(rule, exCtx).toFixed(1), hard: HARD_IDS.has(rule.id), reason });
       }
+      // 2026-06-23: 매수 hard veto(칼받기/과열) — LLM 이 funnel 밖에서 독립 픽한 종목까지 최종 차단(C2 완결).
+      //   앵커(과매도/52주저점/극공포) 있는 분할매수는 면제. 셀룰 점수와 무관한 매수쪽 규율.
+      const pBuyVeto = hasHardBuyVeto(exCtx);
+      if (pBuyVeto) { console.warn(`  [심판/매수veto] ${p.ticker} 탈락: ${pBuyVeto.slice(0, 60)}`); return false; }
       const buyConviction = buyScoreOf.get(p.ticker) ?? 20;
       const buyDiscount = Math.max(0, Math.min(4, (buyConviction - 25) / 5));        // 강한 매수일수록 soft 매도 상쇄
       const hardHit = hits.find(h => h.hard);
