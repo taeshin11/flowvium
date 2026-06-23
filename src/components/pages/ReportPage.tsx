@@ -767,7 +767,7 @@ export default function ReportPage() {
           {data && !isFallbackReport && (
             <span className="flex items-center gap-1 text-[10px] text-gray-400">
               <span className={`w-1.5 h-1.5 rounded-full ${freshnessDot(ageMs)}`} />
-              {new Date(data.generatedAt).toLocaleString()}
+              {new Date(data.generatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' })} KST
             </span>
           )}
           <button
@@ -874,7 +874,7 @@ export default function ReportPage() {
             </div>
             {data.dataAsOf && (
               <p className="text-[10px] text-gray-400 mt-0.5 mb-1.5">
-                {t('dataAsOf')} {new Date(data.dataAsOf).toLocaleString()}
+                {t('dataAsOf')} {new Date(data.dataAsOf).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' })} KST
               </p>
             )}
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
@@ -1053,7 +1053,7 @@ export default function ReportPage() {
               ))}
               {data.dataAsOf && (
                 <span className="ml-auto text-[10px] text-emerald-600 opacity-70 shrink-0">
-                  {t('dataAsOf')} {new Date(data.dataAsOf).toLocaleString()}
+                  {t('dataAsOf')} {new Date(data.dataAsOf).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' })} KST
                 </span>
               )}
             </div>
