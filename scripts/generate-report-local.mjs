@@ -8508,6 +8508,18 @@ async function generateViaOllama() {
     }
   }
 
+  // 2026-06-23 (사각지대 감사 H1, closed loop): sanitize/correctNarrative 가 *조용히* 고치는 LLM 환각
+  //   (short squeeze 오역·garble·커브bp·% 자금흐름 등)을 hallucination_history 에 적재하려 교정 전 snapshot.
+  //   기존엔 nFix 카운트만 찍고 학습루프 미적재 → 모델이 같은 garble 평생 반복(sanitizer 가 평생 가림).
+  const _narrSnap = {
+    thesis: finalReport.thesis, macroAnalysis: finalReport.macroAnalysis,
+    technicalAnalysis: finalReport.technicalAnalysis, fundamentalAnalysis: finalReport.fundamentalAnalysis,
+    topOpportunity: finalReport.topOpportunity,
+    'marketNarrative.why': finalReport.marketNarrative?.why,
+    'marketNarrative.story': finalReport.marketNarrative?.story,
+    'marketNarrative.watch': finalReport.marketNarrative?.watch,
+  };
+  let narrativeDefectsForLearning = [];
   // 2026-06-16: 내러티브 결정적 corrector (scripts/lib/narrative-fix.mjs — patch-narrative 와 단일 source).
   //   프롬프트 룰로 안 막히는 sticky 기계환각을 실값으로 교정: 커브 bp·오타·라틴·% 자금흐름 +
   //   지수/종목 등락% 실값 대조(환각만 제거, 진짜 등락 보존). 산문 LLM 재작성 없음.
@@ -8530,6 +8542,20 @@ async function generateViaOllama() {
     const nKrName = krTickerToName(finalReport); // 2026-06-17: 내러티브 KR 티커코드 → 회사명 (000660.KS→SK하이닉스)
     const nIdx = stripFabricatedIndexLevels(finalReport); // 2026-06-17: "KOSPI 8,864"류 절대 지수레벨 환각 결정론 제거(피드 미공급)
     if (nSan || nCB || nKrName || nIdx) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 + 지수절대값환각 ${nIdx}건 교정`);
+    // 2026-06-23 (H1 closed loop): snapshot 대비 *실제 바뀐* 필드를 defect 로 변환 — 다음 보고서 prompt
+    //   [⚠️ AVOID THESE HALLUCINATIONS] 에 before→after inject → 모델이 garble 자체를 학습(sanitizer 가림 종식).
+    const getField = (k) => k.startsWith('marketNarrative.') ? finalReport.marketNarrative?.[k.split('.')[1]] : finalReport[k];
+    for (const [k, before] of Object.entries(_narrSnap)) {
+      const after = getField(k);
+      if (typeof before === 'string' && before && before !== after) {
+        narrativeDefectsForLearning.push({
+          ticker: 'NARRATIVE', defect_type: 'narrative_garble_sanitized',
+          llm_value: `${k}: "${before.slice(0, 80)}"`,
+          correct_value: `교정형 "${String(after ?? '').slice(0, 80)}" — 이 garble/오역(예 short squeeze→'짧은 매수') 반복 금지`,
+          severity: 'low',
+        });
+      }
+    }
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
 
   // 2026-06-19: 한글 내 로마자 누출(포osi=포지션·인fra=인프라·스queeze=스퀴즈) 자가복구 — sanitizeText 가 못 잡는
@@ -8814,6 +8840,11 @@ async function generateViaOllama() {
         if (harnessDefects.length) {
           saveHallucinationHistory(reportId, harnessDefects);
           console.log(`[verify-loop] 🔧 harness 실질교정 ${harnessDefects.length}건도 학습루프 적재(사각지대#5 — 모델 반복방지)`);
+        }
+        // 2026-06-23 (H1 closed loop): sanitize/correctNarrative 가 조용히 고친 garble/오역도 학습루프 적재.
+        if (Array.isArray(narrativeDefectsForLearning) && narrativeDefectsForLearning.length) {
+          saveHallucinationHistory(reportId, narrativeDefectsForLearning.slice(0, 8));
+          console.log(`[verify-loop] 🧹 narrative-fix 조용교정 ${narrativeDefectsForLearning.length}건 학습루프 적재(H1 — sanitizer 평생가림 종식)`);
         }
       } catch (e) { console.warn(`[verify-loop] harness 학습적재 실패(비치명): ${String(e).slice(0, 80)}`); }
       // 2026-05-31: cron 후 verify-all 결과 reports/verify-{ts}.json 자동 저장.
