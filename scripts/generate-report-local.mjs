@@ -17,7 +17,7 @@ import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
-import { evaluateBuyRule, evaluateSellRule, adjudicate } from '../src/lib/buy-sell-engine.mjs';
+import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling } from './lib/db.mjs';
@@ -5076,9 +5076,16 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       const r = evaluateBuyRule(rule, ctx);
       if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
+    // 2026-06-23: 매수 hard veto(칼받기/과열) — 공유엔진. score 무관 후보 탈락(구루규율 score→veto 격상).
+    //   앵커(과매도/52주저점/극공포) 있는 분할매수는 면제(hasHardBuyVeto 내부 처리). fg 는 macro 에서.
+    const bVeto = hasHardBuyVeto({ ...ctx, fgScore: ctx.fgScore ?? macroCtx?.fg ?? macroCtx?.fgScore ?? null });
+    if (bVeto) c._buyVeto = bVeto;
   }
-  stage2Cands.sort((a, b) => b.stage1Score - a.stage1Score);
-  const stage3Cands = sliceWithKrQuota(stage2Cands, 50, 15); // KR 15 슬롯 보장
+  const stage2Vetoed = stage2Cands.filter(c => c._buyVeto);
+  if (stage2Vetoed.length) console.log(`  [buy-veto] ${stage2Vetoed.length}건 신규매수 차단(칼받기/과열): ${stage2Vetoed.slice(0, 8).map(c => `${c.ticker}(${c._buyVeto.slice(0, 18)})`).join(', ')}`);
+  const stage2Kept = stage2Cands.filter(c => !c._buyVeto);
+  stage2Kept.sort((a, b) => b.stage1Score - a.stage1Score);
+  const stage3Cands = sliceWithKrQuota(stage2Kept, 50, 15); // KR 15 슬롯 보장
 
   // ── Stage 3 (financials): top 50 의 기본/구루 + 회전 sector_in (P/E discount 필요) ──
   console.log(`  [buy-cand Stage 3] top ${stage3Cands.length} company-financials fetch...`);
@@ -6789,6 +6796,7 @@ async function generateViaOllama() {
     const buyCtx = {
       price: livePrices.get(c.ticker)?.price ?? null,
       rsi: s.rsi, sma50: s.sma50, sma200: s.sma200,
+      high52w: livePrices.get(c.ticker)?.high52w ?? null, low52w: livePrices.get(c.ticker)?.low52w ?? null, fgScore: macroCtx?.fg ?? null,
       revenueGrowth: s.revenueYoY ?? null, peg: s.peg ?? null, peRatio: s.peRatio ?? null,
       sectorPe: macroCtx.sectorPeMap?.get(sectorKey) ?? null,
       sectorStance: macroCtx.sectorStanceMap?.get(sectorKey) ?? null,
@@ -6808,7 +6816,7 @@ async function generateViaOllama() {
     const targetNearOnly = hits.some(h => TARGET_NEAR.has(h.ruleId)) && !hasHard;
     // 2026-06-19(ChatGPT 지적): held-position action 도 *공유 adjudicate* 로 directional 판정 통일(챗·후보심판과
     //   동일 net 임계 ±5/±12). held 맥락 매핑: hard/회피=전량, 목표근접=net 따라 trail/부분익절, reduce=축소.
-    const j = adjudicate(buyScore, sellScore, { hardSell: hasHard });
+    const j = adjudicate(buyScore, sellScore, { hardSell: hasHard, buyVeto: hasHardBuyVeto(buyCtx) });
     let action, size, msg;
     if (hasHard || j.verdict === 'avoid') { action = 'sell'; size = 1.0; msg = `hard-sell/회피 — 전량매도 (심판 ${j.action}, net ${j.net})`; }
     else if (targetNearOnly && j.net >= 5) { action = 'trail'; size = 0.0; msg = `목표가 근접+매수우세(net ${j.net}) — 전량매도 말고 trailing stop`; }
