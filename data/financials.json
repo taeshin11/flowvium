@@ -2282,11 +2282,11 @@
     "fy": "2025"
   },
   "ORCL": {
-    "revUsd": 57399000000,
-    "revYoYPct": 8.4,
-    "opMarginPct": 30.8,
-    "roePct": 60.8,
-    "fy": "2025"
+    "revUsd": 67357000000,
+    "revYoYPct": 17.3,
+    "opMarginPct": 30.6,
+    "roePct": 40.2,
+    "fy": "2026"
   },
   "TSLA": {
     "revUsd": 94827000000,
@@ -2625,11 +2625,11 @@
     "fy": "2025"
   },
   "CASY": {
-    "revUsd": 15940899000,
-    "revYoYPct": 7.3,
+    "revUsd": 17561101000,
+    "revYoYPct": 10.2,
     "opMarginPct": null,
-    "roePct": 15.6,
-    "fy": "2025"
+    "roePct": 18.1,
+    "fy": "2026"
   },
   "CBRE": {
     "revUsd": 39900000000,
