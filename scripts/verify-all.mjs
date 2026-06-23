@@ -106,6 +106,15 @@ const checks = [
     dimensions: ['Vercel cron 비용'],
   },
   {
+    // 2026-06-23: 매수 규율(veto) 배선 회귀 가드 — 칼받기/과열 매수 veto + H1 학습루프가 되돌려지지 않았는지.
+    //   POSCO/현대로템 하락추세 매수 사건 후 신설. "규율이 veto 인가 score 인가"를 audit 이 처음으로 확인.
+    name: 'audit-buy-discipline',
+    script: 'scripts/audit-buy-discipline.mjs',
+    desc: '매수 veto 배선 회귀 (칼받기/과열 차단 유지)',
+    critical: true,
+    dimensions: ['매수 hard veto 4경로 + H1 closed loop 배선 유지'],
+  },
+  {
     name: 'verify-latest-report',
     script: 'scripts/verify-report.mjs',
     args: () => {

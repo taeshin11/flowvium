@@ -30,6 +30,8 @@ export function loadBuyRules(): Rule[];
 export function loadSellRules(): Rule[];
 export function scoreBuy(ctx: EngineCtx, rules?: Rule[]): ScoreResult;
 export function scoreSell(ctx: EngineCtx, rules?: Rule[]): ScoreResult;
-export interface Verdict { verdict: string; action: string; lean: string; net: number; coverage?: number; coverageCapped?: boolean; reason?: string }
-export function adjudicate(buyScore: number, sellScore: number, opts?: { hardSell?: boolean; coverage?: number }): Verdict;
+export interface Verdict { verdict: string; action: string; lean: string; net: number; coverage?: number; coverageCapped?: boolean; reason?: string; buyVetoed?: boolean; buyVetoReason?: string }
+export function adjudicate(buyScore: number, sellScore: number, opts?: { hardSell?: boolean; coverage?: number; buyVeto?: string | null }): Verdict;
 export function hasHardSell(sellHits: Array<{ id: string }>): boolean;
+// 2026-06-23: 매수 hard veto(칼받기/과열) — 칼받기/과열 종목 신규매수 차단. null=veto 없음, string=사유.
+export function hasHardBuyVeto(ctx: Partial<EngineCtx>): string | null;
