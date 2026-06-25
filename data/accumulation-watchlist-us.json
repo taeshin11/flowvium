@@ -1,60 +1,44 @@
 {
-  "generatedAt": "2026-06-24T13:00:26.124Z",
+  "generatedAt": "2026-06-25T21:30:24.325Z",
   "universe": "US",
   "scanned": 309,
   "count": 10,
-  "strongCount": 0,
-  "watchCount": 10,
+  "strongCount": 1,
+  "watchCount": 9,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "CTKB",
-      "name": "Cytek Biosciences, Inc.",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.5× 상승(지속 매집)",
-        "거래량 5.9× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 1.5,
-      "runup5dPct": 3.6,
-      "medDollarVolUsd": 3245970,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "IIIN",
       "name": "Insteel Industries, Inc.",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
+      "tier": "strong",
+      "score": 37,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "거래량 4.3× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 3.8× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 8.4,
-      "runup5dPct": -1.3,
-      "medDollarVolUsd": 5341568,
+      "runup20dPct": 11.9,
+      "runup5dPct": 8.2,
+      "medDollarVolUsd": 5567658,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PKE",
-      "name": "Park Aerospace Corp.",
+      "ticker": "COTY",
+      "name": "Coty Inc.",
       "tier": "watch",
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -6.2,
-      "runup5dPct": -4.5,
-      "medDollarVolUsd": 7598011,
+      "runup20dPct": -12.6,
+      "runup5dPct": -1.1,
+      "medDollarVolUsd": 17113038,
       "smartAccum": false,
       "official": null
     },
@@ -65,13 +49,13 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
       "runup20dPct": -0.3,
-      "runup5dPct": -0.7,
-      "medDollarVolUsd": 6147108,
+      "runup5dPct": 0.1,
+      "medDollarVolUsd": 6328848,
       "smartAccum": false,
       "official": null
     },
@@ -83,60 +67,45 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 5.5× 급증(가격 평탄)"
+        "거래량 4.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -13.5,
-      "runup5dPct": 0.6,
-      "medDollarVolUsd": 2391900,
+      "runup20dPct": -11.4,
+      "runup5dPct": 3,
+      "medDollarVolUsd": 2520060,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "DGICB",
-      "name": "Donegal Group, Inc.",
+      "ticker": "PRA",
+      "name": "ProAssurance Corporation",
       "tier": "watch",
-      "score": 28,
+      "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 12.4× 상승(지속 매집)",
-        "거래량 16.6× 급증(가격 평탄)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 5.6,
-      "runup5dPct": 9.9,
-      "medDollarVolUsd": 9570,
+      "runup20dPct": 2.1,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 20092968,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "COTY",
-      "name": "Coty Inc.",
+      "ticker": "PKE",
+      "name": "Park Aerospace Corp.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승",
-        "거래량 3.0× 급증(가격 평탄)",
+        "거래량 추세 1.9× 상승",
+        "거래량 2.6× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -3.4,
-      "runup5dPct": -4.4,
-      "medDollarVolUsd": 16921338,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RBB",
-      "name": "RBB Bancorp",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 8.8,
-      "runup5dPct": 3.4,
-      "medDollarVolUsd": 1766111,
+      "runup20dPct": -10.1,
+      "runup5dPct": 0.2,
+      "medDollarVolUsd": 7686000,
       "smartAccum": false,
       "official": null
     },
@@ -147,29 +116,60 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.9× 급증(가격 평탄)"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -13.7,
-      "runup5dPct": -9.1,
+      "runup20dPct": -14.4,
+      "runup5dPct": -4.7,
       "medDollarVolUsd": 585732,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "GUT",
-      "name": "Gabelli Utility Trust (The)",
+      "ticker": "STRF",
+      "name": "Strategy Inc - 10.00% Series A ",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": 3.8,
-      "runup5dPct": 2.9,
-      "medDollarVolUsd": 1069590,
+      "runup20dPct": -12.8,
+      "runup5dPct": -5,
+      "medDollarVolUsd": 8927820,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "RBB",
+      "name": "RBB Bancorp",
+      "tier": "watch",
+      "score": 22,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 11.3,
+      "runup5dPct": 6.4,
+      "medDollarVolUsd": 1876896,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "IMCR",
+      "name": "Immunocore Holdings plc",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": 7.1,
+      "runup5dPct": 7,
+      "medDollarVolUsd": 11403719,
       "smartAccum": false,
       "official": null
     }
