@@ -500,29 +500,40 @@ export function hasHardBuyVeto(ctx, opts = {}) {
   if (!ctx || ctx.price == null) return null;
   const { price, sma50, sma200, rsi, low52w, high52w, fgScore } = ctx;
   const revYoY = ctx.revenueYoY ?? ctx.revenueGrowth ?? null;
-  // 2026-06-23 (사용자: "매수·매도 원칙이 시황 보는 눈에도 적용돼야"): regime 게이트 — 시황 risk-off 면
-  //   개별 매수 규율을 *강화*(top-down→bottom-up). 기아처럼 개별주는 건강해도 시장 regime 꺾이면
-  //   신규매수 bar 를 높임. riskOff: 칼받기 임계 -18%→-10%, 과열 +50%→+35%(둘 다 더 잘 걸림).
-  const riskOff = !!opts.riskOff;
-  const ddCut = riskOff ? 0.90 : 0.82;       // 52주고점 대비 하락 임계
-  const extMul = riskOff ? 1.35 : 1.5;       // 200MA 대비 과확장 임계
+  // 2026-06-23 regime 게이트 + 2026-06-25 (ChatGPT 리뷰): binary riskOff → *graded posture level*.
+  //   elevated/high/severe 를 같은 임계로 취급하면 정상 조정도 과차단 → level 별 임계 차등.
+  //   postureLevel 명시되면 그걸, 아니면 riskOff boolean 을 high/low 로 매핑(하위호환).
+  const level = opts.postureLevel ?? (opts.riskOff ? 'high' : 'low');
+  const riskOff = level !== 'low';
+  const DDCUT = { low: 0.82, elevated: 0.86, high: 0.90, severe: 0.92, unknown: 0.86 };  // 52주고점 대비 하락(-18/-14/-10/-8%)
+  const EXTMUL = { low: 1.50, elevated: 1.42, high: 1.35, severe: 1.30, unknown: 1.42 }; // 200MA 대비 과확장
+  const ddCut = DDCUT[level] ?? 0.82;
+  const extMul = EXTMUL[level] ?? 1.50;
 
-  // 규율적 분할매수 앵커 — 하나라도 있으면 칼받기 아님 → veto 면제(accumulate/분할로 처리되게 둠).
-  //   단 risk-off 에선 '52주저점 근접'만으론 면제 안 함(약세장 저점매수는 칼받기 위험 ↑) — 과매도/극공포만 면제.
+  // 규율적 분할매수 앵커 — 하나라도 있으면 칼받기 아님 → veto 면제. risk-off 에선 '52주저점 근접' 단독 면제 해제.
   const oversold = rsi != null && rsi <= 35;                                        // 과매도 반등 zone
-  const nearLow = low52w != null && (price - low52w) / low52w * 100 <= 15;          // 52주 저점 15% 내(지지)
-  const capitulation = fgScore != null && fgScore <= 25 && (revYoY == null || revYoY >= 0); // 극공포+흑자 역발상
+  const nearLow = low52w != null && (price - low52w) / low52w * 100 <= 15;          // 52주 저점 15% 내
+  // 2026-06-25 (ChatGPT 리뷰 — 내가 친 버그): capitulation '흑자' 를 *실제 수익성* 으로 판정.
+  //   종전 revYoY>=0(매출증가)은 적자/OCF음수 종목도 극공포에서 면제하는 버그였음. 수익성 데이터 없으면
+  //   면제 안 함(missing→false) — 칼받기를 F&G 낮다는 이유로 사들이지 않게.
+  const profitable = (ctx.netIncomeTTM != null && ctx.netIncomeTTM > 0)
+    || (ctx.netIncome != null && ctx.netIncome > 0)      // forensic(기존 ctx 필드)
+    || (ctx.ocfTTM != null && ctx.ocfTTM > 0)
+    || (ctx.ocf != null && ctx.ocf > 0)                  // forensic
+    || (ctx.roe != null && ctx.roe > 0);
+  const capitulation = fgScore != null && fgScore <= 25 && profitable;
   if (oversold || capitulation || (nearLow && !riskOff)) return null;
+  const lvTag = riskOff ? `(시황 ${level})` : '';
 
-  // (1) 칼받기 / 무너진 주도주: 50MA 아래 + 52주고점 대비 하락(평시 -18%, risk-off -10%). 앵커 없음 이미 확인.
+  // (1) 칼받기 / 무너진 주도주: 50MA 아래 + 52주고점 대비 하락(level 별 -18~-8%). 앵커 없음 이미 확인.
   if (sma50 != null && price < sma50 && high52w != null && price <= high52w * ddCut) {
     const dd = ((1 - price / high52w) * 100).toFixed(0);
     const fin = revYoY != null && revYoY < 0 ? ` +매출 ${revYoY.toFixed(1)}% 역성장` : '';
-    return `하락추세 신규매수 veto${riskOff ? '(시황 risk-off 강화)' : ''}: 50MA 아래 + 52주고점 대비 -${dd}%${fin}, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수)`;
+    return `하락추세 신규매수 veto${lvTag}: 50MA 아래 + 52주고점 대비 -${dd}%${fin}, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수)`;
   }
-  // (2) 과열 추격: 200MA 대비 과확장(평시 +50%, risk-off +35%) → 신규 추격매수 금지(sell overextended200ma 의 매수쪽 대칭).
+  // (2) 과열 추격: 200MA 대비 과확장(level 별 +50~+30%) → 신규 추격매수 금지(sell overextended200ma 의 매수쪽 대칭).
   if (sma200 != null && price > sma200 * extMul) {
-    return `과열 추격 veto${riskOff ? '(시황 risk-off 강화)' : ''}: 200MA 대비 +${((price / sma200 - 1) * 100).toFixed(0)}% 과확장(parabolic) — 신규 추격매수 금지`;
+    return `과열 추격 veto${lvTag}: 200MA 대비 +${((price / sma200 - 1) * 100).toFixed(0)}% 과확장(parabolic) — 신규 추격매수 금지`;
   }
   return null;
 }

@@ -10,6 +10,7 @@
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => { try { return readFileSync(resolve(ROOT, p), 'utf8'); } catch { return ''; } };
@@ -40,8 +41,31 @@ ok('[4] narrative-fix → hallucination_history (H1)',
   'sanitizer 가림이 학습루프로 환류');
 
 // ── [4b] 시황 원칙 적용: regime risk-off 가 매수 veto 를 강화(top-down→bottom-up) + stance 캡 ──
-ok('[4b] regime-aware 매수 veto (엔진)', /opts\.riskOff|riskOff\b/.test(engine), 'hasHardBuyVeto opts.riskOff 임계강화');
+ok('[4b] regime-aware 매수 veto (엔진)', /postureLevel|opts\.riskOff/.test(engine), 'hasHardBuyVeto graded posture 임계');
 ok('[4c] regime → stance 캡', /regime-cap|regimeRiskOff/.test(gen), '시황 risk-off → stance bullish→neutral 게이트');
+
+// ── [6] 동적 fixture 회귀테스트 (2026-06-25 ChatGPT 리뷰 — 호출수만 세는 false-green 종식) ──
+//   실제 ctx 로 veto 동작을 검증. 회귀 시(임계/앵커/수익성 로직 깨지면) 여기서 ❌.
+const FIXTURES = [
+  ['POSCO형(하락추세·앵커없음)', { price: 60, sma50: 75, high52w: 100, rsi: 45 }, true],
+  ['현대로템형(무너진 주도주)', { price: 67, sma50: 78, high52w: 100, rsi: 47 }, true],
+  ['과매도 분할매수(RSI≤35 앵커)', { price: 55, sma50: 70, high52w: 100, rsi: 32 }, false],
+  ['극공포+실제흑자(면제)', { price: 55, sma50: 70, high52w: 100, fgScore: 20, netIncomeTTM: 100 }, false],
+  ['극공포지만 적자(★수익성 버그수정)', { price: 55, sma50: 70, high52w: 100, fgScore: 20, netIncomeTTM: -100, ocfTTM: -50 }, true],
+  ['기아형 50MA 위(무차별차단 금지)', { price: 105, sma50: 100, high52w: 130 }, false],
+];
+let fxPass = 0;
+for (const [nm, ctx, want] of FIXTURES) {
+  const got = !!hasHardBuyVeto(ctx);
+  if (got === want) fxPass++;
+  else checks.push({ name: `[6] fixture: ${nm}`, pass: false, detail: `veto=${got} 기대=${want}` });
+}
+ok('[6] 동적 fixture 6/6 (POSCO·현대로템 차단 / 과매도·극공포흑자·기아 허용 / 극공포적자 차단)', fxPass === FIXTURES.length, `${fxPass}/${FIXTURES.length}`);
+// graded posture: 약세종목(-16%)이 low 허용 → elevated/severe 차단(정상조정 과차단 방지)
+const _weak = { price: 84, sma50: 90, high52w: 100 };
+ok('[6b] graded posture (약세 -16%: low 허용→severe 차단)',
+  !hasHardBuyVeto(_weak, { postureLevel: 'low' }) && !!hasHardBuyVeto(_weak, { postureLevel: 'severe' }),
+  'elevated/severe 임계 차등');
 
 // ── [5] (메타) 매수룰 veto-vs-score 분포 surface — 비대칭 가시화 ──
 let buyVetoFalse = 0, buyTotal = 0;
