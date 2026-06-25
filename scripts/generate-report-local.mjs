@@ -4869,7 +4869,9 @@ async function fetchBuyTechSignals(tickers) {
         // 52w + 20d high / low
         sig.high52w = Math.max(...closes);
         sig.low52w = Math.min(...closes);
-        sig.high20d = closes.length >= 20 ? Math.max(...closes.slice(-20)) : null;
+        // 2026-06-25 (ChatGPT 리뷰): 현재봉 제외(-21,-1) — 종전 slice(-20)은 당일 close 포함이라
+        //   price_breakout_high(price>high20d)가 영구 불발. 직전 20봉 고가로 = 신고가 돌파 정상 발화.
+        sig.high20d = closes.length >= 21 ? Math.max(...closes.slice(-21, -1)) : null;
         // consolidation weeks: 직전 N주 동안 ±5% 박스권
         const last100 = closes.slice(-100);
         if (last100.length >= 20) {
@@ -5078,7 +5080,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     }
     // 2026-06-23: 매수 hard veto(칼받기/과열) — 공유엔진. score 무관 후보 탈락(구루규율 score→veto 격상).
     //   앵커(과매도/52주저점/극공포) 있는 분할매수는 면제(hasHardBuyVeto 내부 처리). fg 는 macro 에서.
-    const bVeto = hasHardBuyVeto({ ...ctx, fgScore: ctx.fgScore ?? macroCtx?.fg ?? macroCtx?.fgScore ?? null });
+    // 2026-06-25 (ChatGPT 리뷰): Stage2 도 riskOff 전달(종전 누락 → funnel 만 평시 임계). 다른 게이트와 일관.
+    const _stage2RiskOff = macroCtx?.riskLevel === 'high' || (macroCtx?.vix ?? 0) >= 25;
+    const bVeto = hasHardBuyVeto({ ...ctx, fgScore: ctx.fgScore ?? macroCtx?.fg ?? macroCtx?.fgScore ?? null }, { riskOff: _stage2RiskOff });
     if (bVeto) c._buyVeto = bVeto;
   }
   const stage2Vetoed = stage2Cands.filter(c => c._buyVeto);
