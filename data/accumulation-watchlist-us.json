@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-25T21:30:24.325Z",
+  "generatedAt": "2026-06-26T13:00:26.001Z",
   "universe": "US",
   "scanned": 309,
   "count": 10,
@@ -76,23 +76,6 @@
       "official": null
     },
     {
-      "ticker": "PRA",
-      "name": "ProAssurance Corporation",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 2.1,
-      "runup5dPct": 1.7,
-      "medDollarVolUsd": 20092968,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "PKE",
       "name": "Park Aerospace Corp.",
       "tier": "watch",
@@ -100,12 +83,12 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)",
+        "거래량 2.7× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
       "runup20dPct": -10.1,
       "runup5dPct": 0.2,
-      "medDollarVolUsd": 7686000,
+      "medDollarVolUsd": 7715216,
       "smartAccum": false,
       "official": null
     },
@@ -132,8 +115,8 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 4.0× 급증(가격 평탄)"
       ],
       "runup20dPct": -12.8,
       "runup5dPct": -5,
@@ -154,6 +137,22 @@
       "runup20dPct": 11.3,
       "runup5dPct": 6.4,
       "medDollarVolUsd": 1876896,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PRA",
+      "name": "ProAssurance Corporation",
+      "tier": "watch",
+      "score": 19,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": 2.1,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 20092968,
       "smartAccum": false,
       "official": null
     },
