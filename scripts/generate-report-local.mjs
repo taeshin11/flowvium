@@ -1199,7 +1199,7 @@ async function callGemini(prompt, timeoutMs = 60000, label = '') {
 // ── vLLM / TabbyAPI 호출 (OpenAI-호환 endpoint) ───────────────────────────────
 // VLLM_URL 환경변수 (예: http://localhost:5000/v1) 가 설정되면 Ollama 보다 우선.
 // VLLM_MODEL 로 모델명 명시 가능 (TabbyAPI 의 경우 모델 디렉터리명).
-async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048, schema = null) {
+async function callVLLM(prompt, timeoutMs = 600000, label = '', maxTokens = 2048, schema = null) {
   const url = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
   if (!url) return null;
   const tag = label ? `[vLLM:${label}]` : '[vLLM]';
@@ -1220,6 +1220,11 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048
         // 2026-06-15 Ollama→vLLM: schema 주면 json_schema 강제(구조화 출력), 없으면 json_object.
         response_format: schema ? { type: 'json_schema', json_schema: { name: 'out', schema } } : { type: 'json_object' },
         chat_template_kwargs: { enable_thinking: false }, // Qwen3.6 thinking off — max_tokens 보존.
+        // 2026-06-28 ★스트리밍 필수: 비스트리밍은 vLLM 이 "전체 생성 완료까지" 응답헤더를 안 보내서,
+        //   undici 내부 headersTimeout(기본 300s)이 AbortSignal(timeoutMs)보다 먼저 터져 긴 출력
+        //   (portfolio 6144tok ≈ bnb 4bit 28tok/s 220s + 동시부하 큐)이 "fetch failed" 로 죽었음.
+        //   stream:true 면 첫 토큰에 헤더 도착 + 토큰간 간격만 bodyTimeout 대상 → 생성속도 무관 근절.
+        stream: true,
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -1228,19 +1233,42 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048
       console.warn(`  ${tag} HTTP ${res.status}: ${errBody.slice(0, 500)} — Ollama 폴백 [promptChars=${prompt.length}]`);
       return null;
     }
-    const d = await res.json();
+    // SSE 파싱 — choices[0].delta.content 누적. getReader() 로 청크 경계 안전 처리(부분 라인 버퍼링).
+    let text = '';
+    let servedModel = '';
+    let buf = '';
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (payload === '[DONE]') continue;
+        try {
+          const j = JSON.parse(payload);
+          if (!servedModel && j.model) servedModel = j.model;
+          const delta = j.choices?.[0]?.delta?.content;
+          if (delta) text += delta;
+        } catch { /* 청크 경계로 잘린 부분 라인 — 다음 청크에서 완성 */ }
+      }
+    }
     // 실제 서빙 모델명 1회 해석 — 별칭(qwen3:8b/flowvium-local) → /v1/models root 의 basename.
     if (runtimeBackend !== 'vllm') {
       runtimeBackend = 'vllm';
       try {
         const mr = await fetch(`${url}/models`, { signal: AbortSignal.timeout(5000) });
         const mj = await mr.json();
-        const served = (mj.data || []).find(m => m.id === (d.model || model)) || (mj.data || [])[0];
-        const root = served?.root || d.model || model;
+        const served = (mj.data || []).find(m => m.id === (servedModel || model)) || (mj.data || [])[0];
+        const root = served?.root || servedModel || model;
         runtimeModel = String(root).split(/[\\/]/).pop();
-      } catch { runtimeModel = d.model || model; }
+      } catch { runtimeModel = servedModel || model; }
     }
-    const text = d.choices?.[0]?.message?.content ?? '';
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`  ${tag} ${elapsed}s → ${text.length}c | prompt ${prompt.length}c`);
     return text;
@@ -1253,7 +1281,7 @@ async function callVLLM(prompt, timeoutMs = 360000, label = '', maxTokens = 2048
 // ── Ollama 호출 with cloud fallback ────────────────────────────────────────────
 // 우선순위: vLLM/TabbyAPI (VLLM_URL) → Ollama → GROQ 70B → Gemini 2.0 Flash
 // 로컬 우선 + 실패/timeout 자동 cloud 폴백 = 항상 결과 반환 보장.
-async function callOllama(prompt, model = modelArg, timeoutMs = 360000, label = '', schema = null) {
+async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = '', schema = null) {
   // 2026-05-29: label 별 토큰 차등. portfolio 12 종목 한글 rationale 포함 시 5K+ token 필요.
   // 2026-06-15: portfolio 8192→6144 — prompt(priceData 유니버스)가 ~41-43k tok 로 커서 vLLM
   //   max_model_len(51200, KV 천장 52480) 내에 prompt+output 가 들어가야 함. 6144 면 충분(실측 출력 ~3-4k).
