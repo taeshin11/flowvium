@@ -1,10 +1,28 @@
 {
-  "generatedAt": "2026-06-28T07:00:23.642Z",
+  "generatedAt": "2026-06-29T22:00:25.016Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 0,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "204270.KQ",
+      "name": "제이앤티씨",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -13.5,
+      "runup5dPct": -19.9,
+      "medDollarVolUsd": 3212087,
+      "smartAccum": true,
+      "official": null
+    }
+  ]
 }
