@@ -8,7 +8,7 @@ const SLICE_H = parseInt(process.argv[3] || '1100', 10);
 const WIDTH = parseInt(process.argv[4] || '1440', 10);
 const BASE = (process.env.BASE || 'https://flowvium.net').replace(/\/$/, '');
 const EMAIL = process.env.MEMBER_EMAIL || '';
-const outDir = `D:/Flowvium/logs/screenshots/slices-${PATH.replace(/[^a-z0-9]/gi, '_')}`;
+const outDir = `C:/Flowvium/logs/screenshots/slices-${PATH.replace(/[^a-z0-9]/gi, '_')}`;
 mkdirSync(outDir, { recursive: true });
 
 const b = await chromium.launch({ headless: true });

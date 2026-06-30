@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import Database from 'better-sqlite3';
-const db = new Database('D:/Flowvium/data/flowvium.db', { readonly: true });
+const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
 
 console.log('═══ endpoint_snapshots 적재 점검 ═══\n');
 

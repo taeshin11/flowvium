@@ -9,10 +9,10 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
 
-const LORA_LOCK = 'D:\\Flowvium\\logs\\lora-training.lock';
+const LORA_LOCK = 'C:\\Flowvium\\logs\\lora-training.lock';
 
 const PM2 = `${process.env.APPDATA}\\npm\\pm2.cmd`;
-const LOG = 'D:\\Flowvium\\logs\\pm2-watchdog.log';
+const LOG = 'C:\\Flowvium\\logs\\pm2-watchdog.log';
 const NEED = ['flowvium-cron', 'flowvium-web', 'flowvium-tunnel', 'flowvium-redis-shim'];
 const ts = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 const logline = (m) => { try { appendFileSync(LOG, `${ts()} ${m}\n`); } catch { /* */ } };

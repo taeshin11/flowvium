@@ -20,7 +20,7 @@ import Database from 'better-sqlite3';
 import { readdirSync, statSync } from 'fs';
 import { execSync } from 'child_process';
 
-const ROOT = 'D:/Flowvium';
+const ROOT = 'C:/Flowvium';
 const STALE_H = 11;   // 보고서 최대 허용 age (8h cadence + grace)
 const VERIFY_STALE_H = 13;
 const HUNG_MIN = 20;  // report-gen 최대 실행 시간
@@ -97,7 +97,7 @@ function checkOnce() {
   //     (2026-06-03 데이터손실 사건: fix 후 커밋+푸시 안 하면 다음 cron 이 silent revert.)
   try {
     // 2026-06-17: timeout 추가 — git fetch 네트워크 stall 시 probe 무한 hang 차단.
-    const sh = (c, timeout = 0) => { try { return execSync(c, { cwd: 'D:/Flowvium', encoding: 'utf8', stdio: ['pipe','pipe','ignore'], ...(timeout ? { timeout } : {}) }).trim(); } catch { return ''; } };
+    const sh = (c, timeout = 0) => { try { return execSync(c, { cwd: 'C:/Flowvium', encoding: 'utf8', stdio: ['pipe','pipe','ignore'], ...(timeout ? { timeout } : {}) }).trim(); } catch { return ''; } };
     const WIPE = /^(scripts\/|src\/|public\/|messages\/|package\.json|data\/[^/]+\.json)/;
     const tracked = sh('git status --porcelain').split('\n').filter(Boolean)
       .filter(l => !l.startsWith('??') && WIPE.test(l.slice(3).replace(/^"|"$/g, '')));

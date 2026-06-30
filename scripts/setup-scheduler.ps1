@@ -3,7 +3,7 @@
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 #   .\scripts\setup-scheduler.ps1
 
-$ProjectDir = "D:\Flowvium"
+$ProjectDir = "C:\Flowvium"
 $NodePath = (Get-Command node).Source
 $Script = "$ProjectDir\scripts\generate-report-local.mjs"
 $Model = "ollama/qwen3:8b"

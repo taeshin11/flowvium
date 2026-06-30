@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from 'node:fs';
 import { execSync, spawn } from 'node:child_process';
 
-const ROOT = 'D:/Flowvium';
+const ROOT = 'C:/Flowvium';
 const now = Date.now();
 const alerts = [];
 const info = [];

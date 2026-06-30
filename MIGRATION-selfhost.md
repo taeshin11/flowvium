@@ -15,7 +15,7 @@
 
 ## 1. 빌드 + 로컬 기동 (내가 준비 — 네가 실행)
 ```powershell
-cd D:\Flowvium
+cd C:\Flowvium
 npm run build              # prod 빌드 (~수분)
 # 웹 서버 (창1, 상시)
 $env:NODE_ENV="production"; npm run start          # → http://localhost:3000

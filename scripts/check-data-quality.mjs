@@ -229,7 +229,7 @@ async function main() {
   //     (US-우선 파이프라인이 KR 을 조용히 누락하던 사각지대 자동 감지.)
   try {
     const { readdirSync, readFileSync, statSync } = await import('fs');
-    const dir = 'D:/Flowvium/reports';
+    const dir = 'C:/Flowvium/reports';
     // 2026-06-12: "최신" 을 이름 sort 로 뽑던 버그 — 알파벳상 noon 이 항상 마지막이라 evening/afternoon
     //   발간 후에도 noon 을 검사 ([D] supplyChain KR 이 fix 후에도 stale 하게 재발하던 원인). mtime 기준.
     const files = readdirSync(dir).filter(f => /^report-\d{4}-\d{2}-\d{2}-(midnight|morning|noon|afternoon|evening)-[a-z-]+\.json$/.test(f));
@@ -375,8 +375,8 @@ async function main() {
   //     새 페이지 추가 시 자동으로 여기 잡혀 프로브 추가를 강제 → 사각지대 재발 불가.
   try {
     const { readdirSync, readFileSync } = await import('fs');
-    const PAGES_DIR = 'D:/Flowvium/src/components/pages';
-    const SELF = 'D:/Flowvium/scripts/check-data-quality.mjs';
+    const PAGES_DIR = 'C:/Flowvium/src/components/pages';
+    const SELF = 'C:/Flowvium/scripts/check-data-quality.mjs';
     // 동적성/완전성 프로브가 불필요한 인프라/유틸 (존재만으로 충분하거나 사용자 비노출).
     const EXCLUDE = new Set(['admin', 'cron', 'ai', 'batch-prices', 'translate', 'osint', 'member']); // osint 는 [H] 가 하위경로로 커버; member 는 인증(데이터 소스 아님)
     const epRe = /\/api\/([a-z0-9][a-z0-9-]*)/g;
@@ -458,7 +458,7 @@ async function main() {
   //   data/report-sessions.json(단일 소스)의 세션을 critical 파일들이 모두 참조하는지 검사 → 누락 시 🚨.
   try {
     const { readFileSync } = await import('fs');
-    const ROOT = 'D:/Flowvium';
+    const ROOT = 'C:/Flowvium';
     const cfg = JSON.parse(readFileSync(`${ROOT}/data/report-sessions.json`, 'utf8'));
     const sessionIds = cfg.sessions.map(s => s.id);
     const drift = [];

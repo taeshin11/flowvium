@@ -15,7 +15,7 @@
  */
 import { execSync } from 'node:child_process';
 
-const ROOT = 'D:/Flowvium';
+const ROOT = 'C:/Flowvium';
 // 2026-06-17: timeout 추가 — git fetch 가 네트워크 stall 시 무한 hang 하던 위험 차단.
 const sh = (cmd, timeout = 0) => { try { return execSync(cmd, { cwd: ROOT, encoding: 'utf8', ...(timeout ? { timeout } : {}) }).trim(); } catch (e) { return (e.stdout || '') + (e.stderr || ''); } };
 

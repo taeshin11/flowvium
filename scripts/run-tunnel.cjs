@@ -4,11 +4,11 @@ const { spawn } = require('child_process');
 const { readFileSync, existsSync, openSync } = require('fs');
 const { resolve } = require('path');
 
-// 2026-06-15: cloudflared 위치 후보 — MSI 설치 경로 → portable(D:\Flowvium) → env override.
+// 2026-06-15: cloudflared 위치 후보 — MSI 설치 경로 → portable(C:\Flowvium) → env override.
 const CLOUDFLARED = [
   process.env.CLOUDFLARED_PATH,
   'C:\\Program Files (x86)\\cloudflared\\cloudflared.exe',
-  'D:\\Flowvium\\cloudflared.exe',
+  'C:\\Flowvium\\cloudflared.exe',
 ].find((p) => p && existsSync(p)) || 'cloudflared';
 const token = readFileSync(resolve(__dirname, '..', '.cf-tunnel-token'), 'utf8').trim();
 if (!token) { console.error('[run-tunnel] .cf-tunnel-token 비어있음'); process.exit(1); }

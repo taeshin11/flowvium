@@ -16,8 +16,8 @@
 ```powershell
 # 0. 요구사항: Windows + Node 20+ + git + Ollama 설치, Google Drive 로그인
 # 1. 코드
-git clone https://github.com/taeshin11/flowvium D:\Flowvium
-cd D:\Flowvium; npm install
+git clone https://github.com/taeshin11/flowvium C:\Flowvium
+cd C:\Flowvium; npm install
 # 2. 로컬 상태 복원 (Google Drive 백업에서)
 copy "G:\내 드라이브\FlowVium-backup\secrets\.env.local" .
 copy "G:\내 드라이브\FlowVium-backup\secrets\.cf-tunnel-token" .
@@ -38,7 +38,7 @@ pm2 start scripts/run-tunnel.cjs --name flowvium-tunnel   # .cf-tunnel-token 사
 pm2 save
 # 5. Task Scheduler 등록 (보고서 5회/일 + 백업) — 시각: 06:40/11:40/15:40/21:10/23:40 KST
 #    run-report.bat 호출 + StartWhenAvailable=True (HANDOFF 하단 11절 참조, 또는 아래 한 줄씩)
-#    schtasks /create /tn FlowVium-Morning /tr D:\Flowvium\scripts\run-report.bat /sc daily /st 06:40
+#    schtasks /create /tn FlowVium-Morning /tr C:\Flowvium\scripts\run-report.bat /sc daily /st 06:40
 #    (Noon 11:40 / Afternoon 15:40 / Evening 21:10 / Midnight 23:40 동일 패턴 + StartWhenAvailable 활성화)
 # 6. 검증
 npm run verify
@@ -546,7 +546,7 @@ cover: 2/16 pass (13%)
 
 ```bash
 # Step 1: 현재 상태 (140초)
-cd D:/Flowvium
+cd C:/Flowvium
 npm run verify
 
 # Step 2: 최신 cron verify trail
