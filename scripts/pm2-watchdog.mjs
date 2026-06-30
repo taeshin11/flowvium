@@ -33,7 +33,7 @@ async function checkVllm() {
     try {
       const c = new AbortController();
       const t = setTimeout(() => c.abort(), 6000);
-      const r = await fetch('http://localhost:8000/v1/models', { signal: c.signal });
+      const r = await fetch('http://127.0.0.1:8000/v1/models', { signal: c.signal });
       clearTimeout(t);
       return r.ok;
     } catch { return false; }

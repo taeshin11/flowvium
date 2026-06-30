@@ -11,7 +11,7 @@
  *   (vLLM logit_bias 로 디코딩단 차단도 가능하나 토크나이저별 토큰ID 열거 필요 — locale-aware
  *    재생성 하네스를 그대로 유지. 추후 최적화 여지.)
  */
-const VLLM_BASE = (process.env.VLLM_URL || 'http://localhost:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+const VLLM_BASE = (process.env.VLLM_URL || 'http://127.0.0.1:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
 const VLLM_CHAT = `${VLLM_BASE}/chat/completions`;
 export const LOCAL_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 

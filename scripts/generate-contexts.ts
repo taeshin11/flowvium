@@ -10,7 +10,7 @@
  *   npx tsx scripts/generate-contexts.ts
  *
  *   # vLLM on custom port:
- *   VLLM_URL=http://localhost:8000 npx tsx scripts/generate-contexts.ts
+ *   VLLM_URL=http://127.0.0.1:8000 npx tsx scripts/generate-contexts.ts
  *
  *   # Gemini only (no local vLLM):
  *   FORCE_GEMINI=1 GEMINI_API_KEY=xxx npx tsx scripts/generate-contexts.ts
@@ -37,7 +37,7 @@ import { allCompanies } from '../src/data/companies';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const VLLM_URL = process.env.VLLM_URL ?? 'http://localhost:8000';
+const VLLM_URL = process.env.VLLM_URL ?? 'http://127.0.0.1:8000';
 const VLLM_MODEL = process.env.VLLM_MODEL ?? 'Qwen/Qwen2.5-7B-Instruct';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? '';
 const FORCE_GEMINI = process.env.FORCE_GEMINI === '1';

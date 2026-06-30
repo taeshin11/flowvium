@@ -163,7 +163,7 @@ function localizeTimeframe(tf: string, locale: string): string {
  * title + summary + cascade.reason 까지 번역. timeframe 은 정적 i18n.
  * asset 은 ticker/심볼이라 그대로. 실패 시 원문(영어) 반환 — UI 깨짐 방지.
  */
-// 2026-06-03: 자가호스팅 로컬 Ollama 번역 (격리 — core callAI 안 건드림). localhost:11434/v1.
+// 2026-06-03: 자가호스팅 로컬 Ollama 번역 (격리 — core callAI 안 건드림). 127.0.0.1:11434/v1.
 //   클라우드 rate-limit 무관, 무료. 모델은 OLLAMA_TRANSLATE_MODEL(기본 qwen3:8b — 한국어 양호).
 // 2026-06-07: 모델 통일 — 보고서와 동일 qwen3:8b 네이티브(think:false) localChat. 종전 /v1+exaone
 //   이중모델 GPU 스왑 제거. 청크(4기사)라 240s 충분.
@@ -234,7 +234,7 @@ ${JSON.stringify(payload)}
 Output (JSON array only):`;
 
   try {
-    // 2026-06-03: 자가호스팅 — 로컬 Ollama(localhost:11434) 우선 번역. 클라우드 callAI 가
+    // 2026-06-03: 자가호스팅 — 로컬 Ollama(127.0.0.1:11434) 우선 번역. 클라우드 callAI 가
     //   rate-limit/간헐 실패로 ko 번역이 지속 영어로 나오던 문제(self-host 라 localhost 안정).
     //   실패 시 기존 클라우드 callAI(skipVllm) fallback. 둘 다 {text,source} 형태로 downstream 동일.
     let r = { text: await translateViaOllama(prompt), source: 'ollama' };

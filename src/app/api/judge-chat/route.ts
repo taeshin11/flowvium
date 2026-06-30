@@ -342,7 +342,7 @@ async function fetchMacroContext(origin: string): Promise<{ text: string; vix: n
 
 // vLLM OpenAI SSE 스트리밍 — 토큰 단위 delta 를 onDelta 로 흘리고 전체 텍스트 반환 (2026-06-18, 사용자 "스트리밍 부드럽게").
 async function streamVllm(system: string, user: string, opts: { maxTokens: number; temperature: number }, onDelta: (s: string) => void): Promise<string> {
-  const base = (process.env.VLLM_URL || 'http://localhost:8000').replace(/\/v1\/?$/, '');
+  const base = (process.env.VLLM_URL || 'http://127.0.0.1:8000').replace(/\/v1\/?$/, '');
   const model = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
   const r = await fetch(`${base}/v1/chat/completions`, {
     method: 'POST', headers: { 'content-type': 'application/json' },

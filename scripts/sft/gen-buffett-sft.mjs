@@ -5,7 +5,7 @@
  * 사용자 "버핏의 주주서한 모음은 우리 매수 매도 심판엔진에게도 학습시켜". RAG(런타임 의미검색)와 별개로
  * 모델 가중치 자체에 버핏의 가치투자 추론을 내재화하기 위한 SFT 예시를 만든다.
  *
- * 방식: data/rag/corpus.ndjson 의 서한 청크(영문)를 vLLM(localhost:8000, flowvium-local)에 주고
+ * 방식: data/rag/corpus.ndjson 의 서한 청크(영문)를 vLLM(127.0.0.1:8000, flowvium-local)에 주고
  *   "이 구절이 담은 투자 원칙을 가르치는 한국어 Q&A 1개"를 JSON 으로 생성(self-distillation).
  *   수치 환각 방지 위해 "구체 수치/연도 인용 금지, 원칙만" 지시. weight=0.5(합성, 원칙급).
  *
@@ -20,7 +20,7 @@ const ROOT = resolve(process.cwd());
 const CORPUS = resolve(ROOT, 'data/rag/corpus.ndjson');
 const OUT_DIR = resolve(ROOT, 'data/sft');
 const OUT = resolve(OUT_DIR, 'wisdom-sft.jsonl');
-const VLLM = process.env.VLLM_URL?.replace(/\/v1\/?$/, '') || 'http://localhost:8000';
+const VLLM = process.env.VLLM_URL?.replace(/\/v1\/?$/, '') || 'http://127.0.0.1:8000';
 const MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 const MAX = parseInt(process.argv[2] || '400', 10);
 const CONC = parseInt(process.argv[3] || '4', 10);

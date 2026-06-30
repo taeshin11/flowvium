@@ -747,7 +747,7 @@ try {
     const results = [];
     for (const ep of trulyUncovered) {
       try {
-        const res = await fetch(`http://localhost:${process.env.PORT || 3000}${ep}`, { signal: AbortSignal.timeout(10000) });
+        const res = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}${ep}`, { signal: AbortSignal.timeout(10000) });
         const body = await res.text();
         const emptyish = body.length < 30 || /"error"\s*:/.test(body.slice(0, 200));
         const needsArgs = [400, 404, 405].includes(res.status);

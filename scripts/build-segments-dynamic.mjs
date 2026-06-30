@@ -172,7 +172,7 @@ async function exaoneExtract(region) {
   try {
     // 2026-06-15 Ollama→vLLM: 로컬 vLLM OpenAI-compat /v1/chat/completions (think off via template kwargs).
     const prompt = `From the financial text below, extract each business segment/product and its MOST RECENT year revenue (in millions, the first number after each name). Output ONLY lines formatted exactly as: NAME | NUMBER. Exclude any "Total" row. No commentary, no other text.\n\n${region}`;
-    const base = (process.env.VLLM_URL || 'http://localhost:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+    const base = (process.env.VLLM_URL || 'http://127.0.0.1:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
     const r = await fetch(`${base}/chat/completions`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local', messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 400, chat_template_kwargs: { enable_thinking: false } }),

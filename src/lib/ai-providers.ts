@@ -12,7 +12,7 @@
  *   4. **Gemini 2.0 Flash** (최종 폴백): GEMINI_API_KEY 없으면 스킵.
  *
  * 환경변수:
- *   VLLM_URL            — 선택. e.g. http://localhost:8000/v1 또는 https://tunnel.../v1
+ *   VLLM_URL            — 선택. e.g. http://127.0.0.1:8000/v1 또는 https://tunnel.../v1
  *   GROQ_API_KEY        — 설정 시 vLLM 실패 후 호출. 없으면 스킵.
  *   OPENROUTER_API_KEY  — 선택. GROQ 소진 시 Qwen 2.5 72B 호출.
  *   GEMINI_API_KEY      — 선택. 앞 전부 실패 시 최종 폴백.

@@ -31,7 +31,7 @@ try {
       const m = d.match(/(\/api\/[^\s)]+?)\s*(?:→|->)?\s*HTTP\s*5\d\d/);
       if (!m) return true;
       try {
-        const code = execSync(`node --input-type=module -e "try{const r=await fetch('http://localhost:3000${m[1]}',{signal:AbortSignal.timeout(6000)});process.stdout.write(String(r.status))}catch{process.stdout.write('0')}"`, { encoding: 'utf8', timeout: 9000 }).trim();
+        const code = execSync(`node --input-type=module -e "try{const r=await fetch('http://127.0.0.1:3000${m[1]}',{signal:AbortSignal.timeout(6000)});process.stdout.write(String(r.status))}catch{process.stdout.write('0')}"`, { encoding: 'utf8', timeout: 9000 }).trim();
         return !/^2\d\d$/.test(code); // 2xx 회복 → drop(stale), 아니면 유지(실재)
       } catch { return true; }        // 재검 실패 시 보수적 유지
     });

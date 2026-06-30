@@ -13,8 +13,8 @@
 import { logger } from '@/lib/logger';
 
 const SEC_HEADERS = { 'User-Agent': 'Flowvium (taeshinkim11@gmail.com)' };
-// 2026-06-15 Ollama→vLLM: 로컬 vLLM OpenAI-compat 엔드포인트(기본 localhost:8000/v1).
-const VLLM_BASE = (process.env.VLLM_URL || 'http://localhost:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+// 2026-06-15 Ollama→vLLM: 로컬 vLLM OpenAI-compat 엔드포인트(기본 127.0.0.1:8000/v1).
+const VLLM_BASE = (process.env.VLLM_URL || 'http://127.0.0.1:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
 const OLLAMA_URL = `${VLLM_BASE}/chat/completions`;
 const OLLAMA_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 
