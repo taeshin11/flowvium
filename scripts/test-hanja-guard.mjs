@@ -23,12 +23,28 @@ for (const [desc, got, want] of cases) {
   if (!ok) fail++;
   console.log(`[${ok ? 'PASS' : 'FAIL'}] ${desc}${ok ? '' : `\n    기대: "${want}"\n    실제: "${got}"`}`);
 }
-// ko 출력에 한자 잔존 0 (제로톨러런스 종단 assert)
-const HAN = /[㐀-䶿一-鿿]/;
-const koLeak = sanitizeText('삼성 美 中 日 반도체 一二三', 'ko');
-if (HAN.test(koLeak)) { fail++; console.log(`[FAIL] ko 한자잔존: "${koLeak}"`); }
-else console.log(`[PASS] ko 한자잔존 0: "${koLeak}"`);
+// ★codepoint 경계 assert (spinai1/6 defense-b) — 인라인 정규식 복제 금지, 프로덕션 sanitizeText 재사용.
+//   각 한자범위 대표/경계 codepoint 제거 + 한글경계·비-CJK(9FFF<x<AC00) 보존 확인. 정규식 끝점이
+//   변질돼 한글 삼키거나 한자범위 축소 시 즉시 FAIL.
+const wrap = (n) => sanitizeText('가' + String.fromCodePoint(n) + '나', 'ko');
+const stripped = (n) => !wrap(n).includes(String.fromCodePoint(n));
+const kept = (n) => wrap(n).includes(String.fromCodePoint(n));
+const cpAsserts = [
+  ['한자 Ext-A 시작 U+3400 제거', stripped(0x3400)],
+  ['한자 Ext-A 끝 U+4DBF 제거', stripped(0x4DBF)],
+  ['한자 Unified 시작 U+4E00 제거', stripped(0x4E00)],
+  ['한자 Unified 끝 U+9FFF 제거', stripped(0x9FFF)],
+  ['한자 Compat 시작 U+F900 제거', stripped(0xF900)],
+  ['한자 Compat 끝 U+FAFF 제거', stripped(0xFAFF)],
+  ['한글 시작 U+AC00 보존(삼킴 없음)', kept(0xAC00)],
+  ['한글 끝 U+D7A3 보존(삼킴 없음)', kept(0xD7A3)],
+  ['비-CJK U+A000(9FFF<x<AC00) 보존(범위 과확장 없음)', kept(0xA000)],
+];
+for (const [desc, ok] of cpAsserts) {
+  if (!ok) fail++;
+  console.log(`[${ok ? 'PASS' : 'FAIL'}] ${desc}`);
+}
 
-console.log(`\n한자가드: ${cases.length + 1 - fail}/${cases.length + 1} PASS`);
+console.log(`\n한자가드: ${cases.length + cpAsserts.length - fail}/${cases.length + cpAsserts.length} PASS`);
 if (fail) { console.error(`❌ 한자가드 ${fail}건 FAIL — 한글삼킴/한자누출 회귀`); process.exit(1); }
 console.log('✅ 한자 zero-tolerance 가드 OK');
