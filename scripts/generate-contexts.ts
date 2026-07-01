@@ -2,8 +2,7 @@
  * Flowvium — Company Context Generator
  * =====================================
  * Generates macroImpact + rdPipeline for all companies using:
- *   - vLLM (local, primary) — zero API cost
- *   - Gemini API (fallback if vLLM not running)
+ *   - vLLM (local, self-hosted) — zero API cost. Requires vLLM running.
  *
  * Usage:
  *   # With local vLLM (WSL2 + GPU):
@@ -11,9 +10,6 @@
  *
  *   # vLLM on custom port:
  *   VLLM_URL=http://127.0.0.1:8000 npx tsx scripts/generate-contexts.ts
- *
- *   # Gemini only (no local vLLM):
- *   FORCE_GEMINI=1 GEMINI_API_KEY=xxx npx tsx scripts/generate-contexts.ts
  *
  *   # Single ticker test:
  *   TICKER=NVDA npx tsx scripts/generate-contexts.ts
@@ -39,8 +35,6 @@ import { allCompanies } from '../src/data/companies';
 
 const VLLM_URL = process.env.VLLM_URL ?? 'http://127.0.0.1:8000';
 const VLLM_MODEL = process.env.VLLM_MODEL ?? 'Qwen/Qwen2.5-7B-Instruct';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? '';
-const FORCE_GEMINI = process.env.FORCE_GEMINI === '1';
 const SKIP_EXISTING = process.env.SKIP_EXISTING === '1';
 const ONLY_TICKER = process.env.TICKER ?? '';
 const CONCURRENCY = parseInt(process.env.CONCURRENCY ?? '3', 10); // parallel requests
@@ -141,25 +135,6 @@ async function callVllm(prompt: string): Promise<string> {
   return data.choices[0].message.content.trim();
 }
 
-async function callGemini(prompt: string): Promise<string> {
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 1200 },
-      }),
-      signal: AbortSignal.timeout(30_000),
-    }
-  );
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
-  const data = await res.json() as { candidates: { content: { parts: { text: string }[] } }[] };
-  return data.candidates[0].content.parts[0].text.trim();
-}
-
 async function isVllmRunning(): Promise<boolean> {
   try {
     const res = await fetch(`${VLLM_URL}/health`, { signal: AbortSignal.timeout(3_000) });
@@ -213,7 +188,6 @@ function extractJson(raw: string): GeneratedContext['macroImpact'] & { rdPipelin
 
 async function generateForCompany(
   company: (typeof allCompanies)[number],
-  useVllm: boolean,
   modelName: string
 ): Promise<GeneratedContext | null> {
   const prompt = buildPrompt(company);
@@ -221,7 +195,7 @@ async function generateForCompany(
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      raw = useVllm ? await callVllm(prompt) : await callGemini(prompt);
+      raw = await callVllm(prompt);
       const parsed = extractJson(raw);
       if (parsed) {
         return {
@@ -251,7 +225,6 @@ async function generateForCompany(
 async function runBatch(
   companies: (typeof allCompanies),
   existing: ContextMap,
-  useVllm: boolean,
   modelName: string
 ): Promise<ContextMap> {
   const results: ContextMap = { ...existing };
@@ -273,7 +246,7 @@ async function runBatch(
   for (let i = 0; i < toProcess.length; i += CONCURRENCY) {
     const chunk = toProcess.slice(i, i + CONCURRENCY);
     const chunkResults = await Promise.all(
-      chunk.map(c => generateForCompany(c, useVllm, modelName))
+      chunk.map(c => generateForCompany(c, modelName))
     );
 
     for (let j = 0; j < chunk.length; j++) {
@@ -294,9 +267,9 @@ async function runBatch(
     // Save progress after each chunk (resume-safe)
     writeFileSync(OUTPUT_PATH, JSON.stringify(results, null, 2), 'utf8');
 
-    // Small delay between chunks to avoid rate limits
+    // Small delay between chunks
     if (i + CONCURRENCY < toProcess.length) {
-      await new Promise(r => setTimeout(r, useVllm ? 500 : 1500));
+      await new Promise(r => setTimeout(r, 500));
     }
   }
 
@@ -329,33 +302,18 @@ async function main() {
     console.log(`Single ticker mode: ${ONLY_TICKER}`);
   }
 
-  // Decide which LLM to use
-  let useVllm = false;
-  let modelName = 'gemini-2.0-flash';
-
-  if (!FORCE_GEMINI) {
-    console.log(`\nChecking vLLM at ${VLLM_URL}...`);
-    useVllm = await isVllmRunning();
-    if (useVllm) {
-      modelName = VLLM_MODEL;
-      console.log(`vLLM ✓ — using local model: ${VLLM_MODEL}`);
-    } else {
-      console.log(`vLLM not running — falling back to Gemini API`);
-      if (!GEMINI_API_KEY) {
-        console.error('Neither vLLM nor GEMINI_API_KEY available. Aborting.');
-        process.exit(1);
-      }
-    }
-  } else {
-    console.log('FORCE_GEMINI=1 — using Gemini API');
-    if (!GEMINI_API_KEY) {
-      console.error('GEMINI_API_KEY not set. Aborting.');
-      process.exit(1);
-    }
+  // Local vLLM only — cloud (Gemini) fallback removed.
+  console.log(`\nChecking vLLM at ${VLLM_URL}...`);
+  const useVllm = await isVllmRunning();
+  if (!useVllm) {
+    console.error(`vLLM not running at ${VLLM_URL}. Start the local vLLM server and retry. Aborting.`);
+    process.exit(1);
   }
+  const modelName = VLLM_MODEL;
+  console.log(`vLLM ✓ — using local model: ${VLLM_MODEL}`);
 
   // Run
-  const results = await runBatch(companies, existing, useVllm, modelName);
+  const results = await runBatch(companies, existing, modelName);
 
   // Final save
   writeFileSync(OUTPUT_PATH, JSON.stringify(results, null, 2), 'utf8');

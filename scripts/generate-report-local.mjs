@@ -1116,85 +1116,7 @@ async function verifyUploadSource(locale) {
   }
 }
 
-// ── GROQ 폴백 (로컬 LLM 실패 시 cloud 70B) ─────────────────────────────────
-// 무료 tier: llama-3.3-70b-versatile (TPD 한계 있음).
-// JSON mode 강제 + 실패 시 null 반환.
-async function callGroq(prompt, timeoutMs = 60000, label = '') {
-  const key = env.GROQ_API_KEY?.trim();
-  if (!key) return null;
-  const tag = label ? `[GROQ:${label}]` : '[GROQ]';
-  const t0 = Date.now();
-  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-  for (const model of models) {
-    try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.4,
-          max_tokens: 2048,
-          response_format: { type: 'json_object' },
-        }),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-      if (!res.ok) {
-        const errBody = await res.text().catch(() => '');
-        if (res.status === 429) {
-          console.warn(`  ${tag}[${model}] HTTP 429 rate limit — 다음 모델 시도`);
-          continue;
-        }
-        console.warn(`  ${tag}[${model}] HTTP ${res.status}: ${errBody.slice(0, 100)}`);
-        continue;
-      }
-      const d = await res.json();
-      const text = d.choices?.[0]?.message?.content ?? '';
-      if (!text) { console.warn(`  ${tag}[${model}] empty response`); continue; }
-      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-      console.log(`  ${tag}[${model}] ${elapsed}s → ${text.length}c`);
-      return text;
-    } catch (e) {
-      console.warn(`  ${tag}[${model}] ${e.message?.slice(0, 80)}`);
-    }
-  }
-  return null;
-}
-
-// ── Gemini 폴백 (GROQ 도 실패 시) ──────────────────────────────────────────────
-async function callGemini(prompt, timeoutMs = 60000, label = '') {
-  const key = env.GEMINI_API_KEY?.trim();
-  if (!key) return null;
-  const tag = label ? `[Gemini:${label}]` : '[Gemini]';
-  const t0 = Date.now();
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 2048, responseMimeType: 'application/json' },
-        }),
-        signal: AbortSignal.timeout(timeoutMs),
-      },
-    );
-    if (!res.ok) { console.warn(`  ${tag} HTTP ${res.status}`); return null; }
-    const d = await res.json();
-    const text = d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    if (!text) return null;
-    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    console.log(`  ${tag} ${elapsed}s → ${text.length}c`);
-    return text;
-  } catch (e) {
-    console.warn(`  ${tag} ${e.message?.slice(0, 80)}`);
-    return null;
-  }
-}
+// ── 클라우드 LLM 폴백 (GROQ / Gemini) 은 자가호스팅 전환 + 키 revoke 로 제거됨 (로컬 vLLM/Ollama 전용).
 
 // ── vLLM / TabbyAPI 호출 (OpenAI-호환 endpoint) ───────────────────────────────
 // VLLM_URL 환경변수 (예: http://localhost:5000/v1) 가 설정되면 Ollama 보다 우선.
@@ -1343,23 +1265,9 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = 
     console.warn(`  ${tag} ${elapsed}s ${e.name}: ${e.message?.slice(0, 80)} — cloud 폴백`);
   }
 
-  // 2026-06-13: Ollama-only 모드 (사용자 선택) — 클라우드 키 revoked 상태에서 GROQ(60s)+Gemini(60s)
-  //   폴백 = 120s 순낭비 + 로그 spam. 플래그 ON 시 즉시 빈 문자열(parser fallback). 키 복구 시 해제.
-  if (env.LLM_LOCAL_ONLY?.trim() === '1') {
-    console.error(`  ${tag} 로컬 실패 + LLM_LOCAL_ONLY — 클라우드 폴백 skip, 빈 문자열 반환`);
-    return '';
-  }
-
-  // 3. GROQ 70B 폴백 (로컬 실패/timeout 시)
-  const groqText = await callGroq(prompt, 60000, label);
-  if (groqText) return groqText;
-
-  // 4. Gemini 폴백 (GROQ 도 실패 시)
-  const geminiText = await callGemini(prompt, 60000, label);
-  if (geminiText) return geminiText;
-
-  // 모든 provider 실패
-  console.error(`  ${tag} ALL PROVIDERS FAILED — 빈 문자열 반환 (parser 가 fallback 할 것)`);
+  // 자가호스팅 로컬 전용 — 클라우드(GROQ/Gemini) 폴백 제거됨. 로컬(vLLM/Ollama) 실패 시 빈 문자열
+  //   반환 → parser 가 fallback 처리.
+  console.error(`  ${tag} 로컬(vLLM/Ollama) 실패 — 빈 문자열 반환 (parser 가 fallback 할 것)`);
   return '';
 }
 
