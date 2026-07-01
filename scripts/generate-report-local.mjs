@@ -492,9 +492,15 @@ function applyLocalHarness(r, livePrices) {
     }
   }
 
-  // 6c. companyChanges.name KR_NAMES 매핑
+  // 6c. companyChanges.name KR_NAMES 매핑 + 문자열-null coerce
   if (Array.isArray(r.companyChanges)) {
     for (const c of r.companyChanges) {
+      // 2026-07-01: LLM 이 nullable 산문(nextCheck 등)을 JS null 대신 문자열 "null"/"undefined"/"none" 으로
+      //   출력 → ReportPage 의 `c.nextCheck &&` 가드를 통과해 화면에 "다음 확인: null" 렌더(render-audit nan_undef).
+      //   문자열-null → 실제 null 로 정규화(가드가 잡아 미표시). 렌더결함은 데이터 verify(0)가 못 잡아 렌더감사가 포착.
+      for (const f of ['nextCheck', 'whyMatters', 'keyChange']) {
+        if (typeof c[f] === 'string' && /^\s*(null|undefined|none|nan|n\/a|없음)\s*$/i.test(c[f])) c[f] = null;
+      }
       const expected = KR_NAMES_HARNESS[c.ticker?.toUpperCase()];
       if (expected && c.name !== expected) {
         audit.fixes.companyChangeName.push(`${c.ticker}:"${c.name}"→"${expected}"`);
