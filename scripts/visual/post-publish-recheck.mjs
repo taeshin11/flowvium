@@ -30,16 +30,18 @@ const wantGen = report.generatedAt;
 const alerts = [];
 const info = [];
 
-// (1) 라이브 반영 폴링 — source/generatedAt 가 발행본과 일치할 때까지(최대 90s)
+// (1) 라이브 반영 폴링 — source/generatedAt 가 발행본과 일치할 때까지(최대 240s)
+//   2026-07-01: 90s→240s. investment-strategy 는 memory 23h/Redis 24h 캐시라 발간이 캐시를 bust 하지 않으면
+//   라이브 전파가 수분~수십분(자연 refresh) — 90s 는 자주 미반영 → 아래 렌더감사가 stale 페이지를 이 발간본으로 오귀속.
 let liveConfirmed = false;
-for (let i = 0; i < 18; i++) {
+for (let i = 0; i < 48; i++) {
   try {
     const r = await fetch(`${BASE}/api/investment-strategy`, { signal: AbortSignal.timeout(9000), headers: { connection: 'close' } });
     if (r.ok) { const j = await r.json(); if (j.generatedAt === wantGen || (j.session === report.session && j.source === report.source)) { liveConfirmed = true; break; } }
   } catch { /* 폴링 블립 무시 */ }
   await new Promise((res) => setTimeout(res, 5000));
 }
-if (liveConfirmed) info.push('live반영✓'); else alerts.push('라이브 미반영(90s 내 generatedAt 불일치 — publish 지연/실패)');
+if (liveConfirmed) info.push('live반영✓'); else alerts.push('라이브 미반영(240s 내 generatedAt 불일치 — 캐시 미bust/publish 지연). ▶렌더감사는 stale 페이지라 skip(오귀속 방지)');
 
 // (2) 로그인 슬라이스 캡처
 const tsDir = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -79,14 +81,21 @@ else info.push('결함 0');
 // (3.5) 렌더 계층 전수감사 — audit-pages 로 /ko/report 의 렌더 텍스트 garble(이중부호·라벨오류·복사·콘탱고 등)
 //   검출 (2026-06-16: 데이터 probe 가 못 보는 렌더 사각지대). 생성기 sanitizer 가 발간 전 고쳤으면 0 이어야.
 let pageAudit = null;
-try {
-  const { spawnSync } = await import('node:child_process');
-  const r = spawnSync(process.execPath, [`${__dirname}/audit-pages.mjs`, '--pages=/ko/report'], { encoding: 'utf8', timeout: 60000, env: process.env });
-  const out = (r.stdout || '').trim().split('\n').pop() || '';
-  pageAudit = out;
-  if (/PAGE-AUDIT ALERT/.test(out)) alerts.push(`렌더감사 ALERT: ${out.replace(/^.*ALERT:\s*/, '').slice(0, 80)}`);
-  else if (out) info.push('렌더감사✓');
-} catch (e) { info.push(`렌더감사 skip:${String(e?.message).slice(0, 30)}`); }
+if (!liveConfirmed) {
+  // ★라이브가 발간본을 아직 안 보여주면(stale) 렌더감사를 이 발간본에 귀속하면 안 됨 — 옛 리포트 결함을
+  //   신규 nan_undef 로 오보고하던 false-negative 근원(2026-07-01 evening 사건). skip + 명시.
+  pageAudit = 'skip: 라이브 미반영(stale 페이지 — 이 발간본 아님, 오귀속 방지)';
+  info.push('렌더감사 skip(stale)');
+} else {
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const r = spawnSync(process.execPath, [`${__dirname}/audit-pages.mjs`, '--pages=/ko/report'], { encoding: 'utf8', timeout: 60000, env: process.env });
+    const out = (r.stdout || '').trim().split('\n').pop() || '';
+    pageAudit = out;
+    if (/PAGE-AUDIT ALERT/.test(out)) alerts.push(`렌더감사 ALERT: ${out.replace(/^.*ALERT:\s*/, '').slice(0, 80)}`);
+    else if (out) info.push('렌더감사✓');
+  } catch (e) { info.push(`렌더감사 skip:${String(e?.message).slice(0, 30)}`); }
+}
 
 // (4) 몽타주 합성 (빠른 육안용)
 let montage = null;
