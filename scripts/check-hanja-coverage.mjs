@@ -45,16 +45,15 @@ const EXEMPT = {
   'src/lib/strategy-quality.ts': '전략 품질 스코어링(수치) — 산문 아님',
   'src/app/api/cron/daily-brief/route.ts': 'lib/daily-brief(가드됨) 위임',
   'src/app/api/daily-brief/route.ts': 'lib/daily-brief(가드됨) 위임',
+  'src/app/api/flow-analysis/route.ts': '영어 프롬프트/영어 JSON 출력(Analyze… Respond in JSON only)',
 };
 // TRACKED — KO 산문 표면이나 가드 미경유(알려진 갭, WARN). 향후 localChatNoBleed 경유 or 소스억제로 fix.
 const TRACKED = {
   'src/lib/blog-translate.ts': 'KO 블로그 번역 → localChatNoBleed 경유 필요',
   'src/lib/translate-headlines.ts': 'KO 헤드라인 번역 → localChatNoBleed 경유 필요',
   'src/app/api/company-news/route.ts': 'KO 뉴스 번역 → localChatNoBleed 경유 필요',
-  'src/app/api/flow-analysis/route.ts': 'KO JSON(respond in locale) → 소스억제/sanitize 필요',
   'src/app/api/cron/log-cascade-events/route.ts': 'KO cascade 로그 → 검토 필요',
-  'src/app/api/company-desc/[ticker]/route.ts': 'KO 기업설명 → 검토/가드 필요',
-  'src/app/api/supply-chain-signals/route.ts': 'KO 평이 요약(qwen3) → 소스억제/sanitize 필요',
+  'src/app/api/supply-chain-signals/route.ts': 'KO 8-K 백그라운드 요약(qwen3) → 소스억제/sanitize 필요',
 };
 
 const files = [...walk(`${ROOT}/scripts`), ...walk(`${ROOT}/src`)]

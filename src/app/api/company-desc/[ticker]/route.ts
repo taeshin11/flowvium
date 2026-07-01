@@ -82,7 +82,8 @@ export async function GET(_req: NextRequest, { params }: { params: { ticker: str
     ].filter(Boolean).join('\n');
   }
 
-  const prompt = `다음은 상장기업의 공시 기본정보입니다. 이 기업이 무엇을 하는 회사인지 ${langName}로 2~3문장으로 객관적으로 요약하세요.
+  const noHanja = /^(ja|zh)/i.test(locale) ? '' : ' 한자(漢字) 쓰지 말고 한글/영어로만(zero-Hanja).';
+  const prompt = `다음은 상장기업의 공시 기본정보입니다. 이 기업이 무엇을 하는 회사인지 ${langName}로 2~3문장으로 객관적으로 요약하세요.${noHanja}
 규칙: 널리 알려진 사실(주력 사업영역/제품군)만 기술. 구체적 매출 비중·고객사·점유율 등 확인 불가한 수치는 절대 날조하지 말 것. 불확실하면 일반적 사업영역만 간결히. 머리말/따옴표 없이 본문만.
 
 ${grounding}
