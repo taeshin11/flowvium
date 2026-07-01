@@ -368,16 +368,23 @@ let lastCatchupTrigger = 0;
 const CATCHUP_STALE_MS = 5 * 60 * 60 * 1000;   // 5h+ = 정규 세션(최대 5.5h 간격) 1회 누락으로 간주
 async function runCatchupCheck() {
   try {
-    let newest = 0;
+    let newest = 0, newestSession = null;
     try {
       for (const f of readdirSync('reports')) {
-        if (!/^report-.*-ko\.json$/.test(f)) continue;
+        const mm = f.match(/^report-\d{4}-\d{2}-\d{2}-(\w+)-ko\.json$/);
+        if (!mm) continue;
         const m = statSync(`reports/${f}`).mtimeMs;
-        if (m > newest) newest = m;
+        if (m > newest) { newest = m; newestSession = mm[1]; }
       }
     } catch { /* reports dir 접근 실패 */ }
     const ageMs = newest ? Date.now() - newest : Infinity;
     if (ageMs < CATCHUP_STALE_MS) return;
+    // 2026-07-02: session-aware 가드 — 최신 리포트의 세션이 *현재 세션*이면 이미 발간된 것(누락 아님) → skip.
+    //   미드나잇(23~06시)은 아침(06:40)까지 7h 단일블록이라 자연히 5h+ 경과하나, 그건 미발간이 아니라 정상 경과.
+    //   이 가드 없이는 매 새벽 05시경 catchup 이 미드나잇을 '누락'으로 오판해 중복 재발간(2026-07-02 사건).
+    const kstH = new Date(Date.now() + 9 * 3600000).getUTCHours();
+    const curSession = kstH < 6 ? 'midnight' : kstH < 11 ? 'morning' : kstH < 15 ? 'noon' : kstH < 20 ? 'afternoon' : kstH < 23 ? 'evening' : 'midnight';
+    if (newestSession === curSession) { log(`[catchup] 현재 세션(${curSession}) 이미 발간됨 — 정상 경과 ${(ageMs / 3600000).toFixed(1)}h, skip(중복 방지)`); return; }
     if (Date.now() - lastCatchupTrigger < SHOCK_COOLDOWN_MS) { log('[catchup] 쿨다운 중 — skip'); return; }
     if (await isReportPipelineRunning()) { log('[catchup] 보고서 이미 실행 중 — skip'); return; }
     lastCatchupTrigger = Date.now();
