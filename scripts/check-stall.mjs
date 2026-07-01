@@ -17,7 +17,7 @@
  * cron/모니터 등록 권장: 30분 주기. exit code 1 = 즉시 알림 대상.
  */
 import Database from 'better-sqlite3';
-import { readdirSync, statSync } from 'fs';
+import { readdirSync, statSync, readFileSync } from 'fs';
 import { execSync } from 'child_process';
 
 const ROOT = 'C:/Flowvium';
@@ -63,6 +63,24 @@ function checkOnce() {
     else info.push(line);
   }
   db.close();
+
+  // [6] model-id-match — 코드 요청 모델명 == vLLM served-model-name 실측 (2026-07-01, spinai6/spinai2 규율 차용).
+  //   base+LoRA/커스텀 served-name 에서 코드 model명이 served 목록에 없으면 vLLM '관대수용'으로 우연히 동작하나
+  //   strict validation/멀티모델 시 전 요청 404 = 시한폭탄. 매 사이클 실측. 조회실패=SKIP(vLLM down 은 [1]/헬스 별 probe).
+  try {
+    const envTxt = readFileSync(`${ROOT}/.env.local`, 'utf8');
+    const codeModels = new Set();
+    const vm = envTxt.match(/^\s*VLLM_MODEL\s*=\s*(.+)\s*$/m);
+    if (vm) codeModels.add(vm[1].trim().replace(/^["']|["']$/g, ''));
+    try { const bm = readFileSync(`${ROOT}/scripts/run-report.bat`, 'utf8').match(/--model=([A-Za-z0-9:._-]+)/); if (bm) codeModels.add(bm[1]); } catch {}
+    const raw = execSync('curl -s -m 6 http://127.0.0.1:8000/v1/models', { timeout: 8000, encoding: 'utf8' });
+    const served = new Set((JSON.parse(raw).data || []).map((m) => m.id));
+    if (served.size && codeModels.size) {
+      const missing = [...codeModels].filter((m) => !served.has(m));
+      if (missing.length) issues.push(`MODEL-ID MISMATCH: 코드 [${missing.join(', ')}] ∉ vLLM served [${[...served].join(', ')}] — 관대수용 의존(strict/멀티모델 404 위험) → model.conf SERVED_NAMES 또는 VLLM_MODEL 정렬`);
+      else info.push(`model-id-match ✓ (${[...codeModels].join('/')} ∈ served)`);
+    }
+  } catch { /* vLLM 조회 실패 = SKIP (down 은 별도 probe) */ }
 
   // [2] cron verify-loop 결과 age
   try {
