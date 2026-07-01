@@ -22,6 +22,9 @@ import {
 } from '@/lib/judge-engine';
 import { ragRetrieve, type RagHit } from '@/lib/rag';
 import { acquireLlm, waitMessage } from '@/lib/llm-gate';
+// 2026-07-02: 리포트와 동일 문자열 corrector 재사용(단일 소스) — 챗 인라인 한자스크럽이 garble 매핑
+//   (금융크로스→골든크로스·콘탱고변종·짧은매수스퀴즈)을 못 갖던 것 통합. TSM "금융크로스" 실증 후 배선.
+import { sanitizeText } from '../../../../scripts/lib/narrative-fix.mjs';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -149,10 +152,11 @@ function checkChatDefects(question: string, answer: string, grounding: { tickers
 }
 // 결정론 sanitize — 검출된 결함을 *답변 반환 전* 자동 제거(2026-06-18 사용자 "검증해서 고칠게 있으면 고쳐라·시스템화").
 //   base 모델이 프롬프트를 무시해도 사용자는 정상 답변만 보게. checkChatDefects 와 같은 결함류를 기계적으로 교정.
-function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: string; price: number | null; fiscalYear?: string | null }> } | undefined): string {
+function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: string; price: number | null; fiscalYear?: string | null }> } | undefined, locale = 'ko'): string {
   let a = text || '';
-  // 한자(漢字) 최종 스크럽(2026-07-01) — 스트림 소스억제(시스템프롬프트) 우회분 안전망(저장/최종렌더). BMP 5블록(부수~Compat, ES5 타겟 astral 제외).
-  a = a.replace(/[\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g, '');  // BMP 5블록(ES5 타겟이라 /u astral 불가 — 채팅 Ext-B bleed 사실상 0, 소스억제가 1차)
+  // 문자열 corrector(2026-07-02 리포트와 단일 소스화): 한자 매핑+스트립(ja/zh 는 한자=정당 콘텐츠라 내부 skip —
+  //   종전 인라인 무조건 스트립은 ja/zh 답변의 한자를 파괴) + garble 매핑(금융크로스→골든크로스·콘탱고변종 등).
+  a = sanitizeText(a, locale);
   const hasData = (grounding?.tickers ?? []).some(t => t.price != null);
   // stale_year corrector(2026-06-19 ChatGPT #14, dead-end 해소): 과거 연도를 "기준/최신/현재"로 표기하되 그게
   //   실제 회계연도(fiscalYear)도 아니고 역사적 맥락 단어(당시/과거/전년 등)도 없으면 → "최근 공개자료 기준"으로.
@@ -196,6 +200,8 @@ async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid:
 //   리포트의 hallucination_history→프롬프트 루프를 챗에 복제. *검증로그가 소비처 없는 dead-end* 였던 사각지대 해소.
 //   결함유형→교훈 매핑. 최근 N건 중 실제로 발생한 상위 유형만 surface(프롬프트 비대화 방지). 모듈캐시 10분.
 const DEFECT_LESSON: Record<string, string> = {
+  // 2026-07-02: verdict_mismatch 는 검출만 되고 교훈 매핑이 없어 폐루프에 안 실리던 갭(detector-without-corrector).
+  verdict_mismatch: '결론을 "🔨심판=" 결정론 값과 반대로 내지 마라 — 심판 결과(매수/분할매수/관망/비중축소/매도)를 그대로 제시하고 근거만 설명하라.',
   score_tag_leak: '룰 점수 태그 "(+5)" 류를 답변에 그대로 노출하지 마라 — 우리말 문장으로 풀어 써라.',
   rule_id_leak: '영문 룰 ID(snake_case, 예: price_momentum_52w_high)를 출력하지 마라 — 의미를 우리말로 풀어라.',
   engine_line_verbatim: '"엔진 판정" 블록의 대괄호·"(발화:..)"·"룰 종합:" 줄을 그대로 복사하지 마라.',
@@ -342,6 +348,9 @@ async function fetchMacroContext(origin: string): Promise<{ text: string; vix: n
   return _macroCache;
 }
 
+// LLM 타임아웃 — 출력토큰 상한에 비례(2026-07-02): finance 모델 실측 ~10 tok/s 라 55s 고정은 심층답변(3800tok)
+//   을 중간 절단 → fallback 도 같은 이유로 timeout → "응답할 수 없습니다" 였음. 100ms/tok + 프리필 30s, 상한 300s.
+const llmTimeoutMs = (maxTokens: number) => Math.min(300_000, 30_000 + maxTokens * 100);
 // vLLM OpenAI SSE 스트리밍 — 토큰 단위 delta 를 onDelta 로 흘리고 전체 텍스트 반환 (2026-06-18, 사용자 "스트리밍 부드럽게").
 async function streamVllm(system: string, user: string, opts: { maxTokens: number; temperature: number }, onDelta: (s: string) => void): Promise<string> {
   const base = (process.env.VLLM_URL || 'http://127.0.0.1:8000').replace(/\/v1\/?$/, '');
@@ -349,7 +358,7 @@ async function streamVllm(system: string, user: string, opts: { maxTokens: numbe
   const r = await fetch(`${base}/v1/chat/completions`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: opts.maxTokens, temperature: opts.temperature, stream: true }),
-    signal: AbortSignal.timeout(55000),
+    signal: AbortSignal.timeout(llmTimeoutMs(opts.maxTokens)),
   });
   if (!r.ok || !r.body) throw new Error(`vllm stream ${r.status}`);
   const reader = r.body.getReader();
@@ -467,7 +476,7 @@ export async function POST(request: NextRequest) {
         onProgress?.({ stage: 'research', detail: '🔍 1차 리서치 브리프 작성 중 (사업구조·업황·경쟁·강세/약세 시나리오)' });
         try {
           const rp = buildResearchPrompt({ locale, tickerCtx, macroContext: macroContext.text });
-          const rr = await callAI('위 데이터로 사업·업황·경쟁포지션·강세/약세 시나리오 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 1400, temperature: 0.4, tag: 'judge-research', timeoutMs: 45000 });
+          const rr = await callAI('위 데이터로 사업·업황·경쟁포지션·강세/약세 시나리오 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 1400, temperature: 0.4, tag: 'judge-research', timeoutMs: llmTimeoutMs(1400) });
           researchBrief = rr.text || '';
         } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
       }
@@ -525,14 +534,14 @@ export async function POST(request: NextRequest) {
               if (!full.trim()) throw new Error('empty stream');
             } catch (e) {
               logger.warn('judge-chat', 'stream_fallback', { error: e instanceof Error ? e.message : 'x' });
-              const res = await callAI(userPrompt, { systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature, preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000 });
+              const res = await callAI(userPrompt, { systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature, preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: llmTimeoutMs(opts.maxTokens) });
               full = res.text || '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.';
               source = res.source || 'fallback';
               send({ type: 'delta', text: full });
             }
             // 결정론 sanitize — 결함 자동교정. corrected = *실제 결함이 줄었을 때만*(공백변경 제외).
             const g = grounding as { tickers?: Array<{ ticker: string; price: number | null }> };
-            const clean = sanitizeAnswer(full, g);
+            const clean = sanitizeAnswer(full, g, locale);
             const corrected = checkChatDefects(lastUser, full, g).length > checkChatDefects(lastUser, clean, g).length;
             if (clean !== full) send({ type: 'replace', text: clean });
             await persist(clean, source);
@@ -555,7 +564,7 @@ export async function POST(request: NextRequest) {
       ({ systemPrompt, userPrompt, grounding } = await buildAll());
       ({ text, source, durationMs, attempts } = await callAI(userPrompt, {
         systemPrompt, maxTokens: opts.maxTokens, temperature: opts.temperature,
-        preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: 45000,
+        preferSmallModel: opts.preferSmallModel, tag: 'judge-chat', timeoutMs: llmTimeoutMs(opts.maxTokens),
       }));
     } finally { release(); }
     if (!text) {
@@ -564,7 +573,7 @@ export async function POST(request: NextRequest) {
       return withAnonCookie(NextResponse.json({ error: 'llm_unavailable', reply: '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.' }, { status: 503 }), newAnon);
     }
     const g2 = grounding as { tickers?: Array<{ ticker: string; price: number | null }> };
-    const clean = sanitizeAnswer(text, g2);
+    const clean = sanitizeAnswer(text, g2, locale);
     const corrected = checkChatDefects(lastUser, text, g2).length > checkChatDefects(lastUser, clean, g2).length;
     logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: clean.length, corrected });
     await persist(clean, source);

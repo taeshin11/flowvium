@@ -468,10 +468,12 @@ export function primaryVerdict(tickerCtx: TickerCtx[], macro: { vix?: number | n
   return { ticker: c.ticker, action: j.action, verdict: j.verdict, net: j.net };
 }
 
-function fmtEngine(c: TickerCtx, v: EngineVerdict): string {
+function fmtEngine(c: TickerCtx, v: EngineVerdict, fg?: number | null): string {
   if (c.price == null) return '';
   // 2026-06-19: 최종 심판은 보고서와 *동일* adjudicate(결정론). LLM 이 점수와 어긋나게 뒤집던 것 차단.
-  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), buyVeto: buyVetoFor(c), coverage: ctxCoverage(c) });
+  // 2026-07-02: fg 전달 — 종전 buyVetoFor(c)만 호출해 극공포(capitulation) 앵커 면제가 여기서만 빠져,
+  //   LLM 에 보여주는 심판과 verdict_mismatch 기준(primaryVerdict, fg 포함)이 극공포 국면에 서로 달랐음.
+  const j = adjudicate(v.buyScore, v.sellScore, { hardSell: hasHardSell(v.sell), buyVeto: buyVetoFor(c, fg), coverage: ctxCoverage(c) });
   // 발화 룰은 설명만(per-rule +점수 제거) — 모델이 통째 복사해 "(+5)(+6)" 노출하던 것 차단(2026-06-18 FTNT).
   const bf = v.buy.length ? v.buy.map(r => r.desc).join(', ') : '없음';
   const sf = v.sell.length ? v.sell.map(r => r.desc).join(', ') : '없음';
@@ -550,7 +552,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
   const researchBlock = opts.researchBrief ? `# 📋 사업·업황·전망 리서치 브리프 (1차 분석 — 이 사실 위에서 판단하라)\n${opts.researchBrief}` : '';
   const macroBlock = opts.macroContext ? `# 거시 환경 (실시간: CNN F&G · VIX · CME FedWatch · FRED · 국채금리)\n${opts.macroContext}` : '';
   // 결정론적 룰 발화 엔진(매수엔진·매도엔진) — 종목별 실제 룰 채점. 이게 LLM 의 1차 판단 근거.
-  const engineLines = opts.tickerCtx.filter(c => c.price != null).map(c => fmtEngine(c, fireRules(c, opts.macro ?? {}))).filter(Boolean);
+  const engineLines = opts.tickerCtx.filter(c => c.price != null).map(c => fmtEngine(c, fireRules(c, opts.macro ?? {}), opts.macro?.fg)).filter(Boolean);
   const engineBlock = engineLines.length ? `# ⚙️ 엔진 판정 (내부 채점 — 1차 판단 근거)\n⛔ 아래 줄을 답변에 *그대로 복사하지 마라*(대괄호·"(발화:..)"·"룰 종합:" 포맷 금지). 점수 숫자(매수 N점·매도 M점)만 인용하고 발화한 룰은 우리말 문장으로 자연스럽게 풀어 써라.\n${engineLines.join('\n')}` : '';
   const hasData = opts.tickerCtx.some(c => c.price != null);
   const liveBlock = opts.tickerCtx.length
