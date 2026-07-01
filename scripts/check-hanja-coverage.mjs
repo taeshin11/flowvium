@@ -72,7 +72,8 @@ for (const f of files) {
   else if (TRACKED[f]) { tracked++; console.log(`  ⚠️  TRACKED   ${f}  — ${TRACKED[f]}`); }
   else { unclassified.push(f); console.log(`  ❌ UNCLASSIFIED ${f}  — 신규 LLM 표면? 가드 경유 or EXEMPT/TRACKED 분류 필요`); }
 }
-console.log(`\n종합: GUARDED ${guarded} / EXEMPT ${exempt} / TRACKED(갭) ${tracked} / ❌UNCLASSIFIED ${unclassified.length}`);
+// 요약 라벨은 ❌/FAIL 토큰 미포함(verify-all errCount 오탐 방지) — ❌ 는 실제 미분류 발생 라인·에러블록에서만.
+console.log(`\n종합: GUARDED ${guarded} / EXEMPT ${exempt} / TRACKED(갭) ${tracked} / 미분류(신규) ${unclassified.length}`);
 if (tracked) console.log(`⚠️  TRACKED ${tracked}건 = KO 산문 미가드 갭(가시화, 비차단) — 향후 localChatNoBleed/소스억제로 fix`);
 if (unclassified.length) {
   console.error(`\n❌ FAIL: 미분류 LLM 표면 ${unclassified.length}건 — 새 표면이 가드 없이 추가됨(회귀). 가드 경유시키거나 EXEMPT/TRACKED 에 사유와 함께 등록하라:`);
