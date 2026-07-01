@@ -115,9 +115,11 @@ export function sanitizeText(s, locale) {
   t = t.replace(/짧은\s*매수\s*(신호|점수|커버링)/g, '공매도 스퀴즈 $1');
   t = t.replace(/짧은\s*매수\s*기회/g, '숏 스퀴즈 기회');             // "short opportunity" → 숏 스퀴즈 기회
   // 한자 bleed 제거 — ja/zh(한자=정당)는 스킵, 그 외(ko/en/…)는 매핑 후 잔여 스트립(제로톨러런스).
+  //   6블록(spinai6 봉합): 부수2E80-2FDF·ExtA 3400-4DBF·Unified 4E00-9FFF·Compat F900-FAFF·ExtB astral 20000-2FA1F.
+  //   /u 플래그 필수(astral 보충면). literal 편집=한글삼킴 변질 위험이라 fixer 스크립트로만 수정.
   if (!(locale && /^(ja|zh)/i.test(locale))) {
     const _b0 = t;
-    t = t.replace(/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g, (ch) => HAN_TO_KR[ch] ?? '');
+    t = t.replace(/[\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{2FA1F}]/gu, (ch) => HAN_TO_KR[ch] ?? '');
     // 병기 괄호서 한자만 스트립된 잔여 정리(spinai1 _dehanja 콤마청소 차용): '(, foramen)'->'(foramen)', '()'->''
     if (t !== _b0) t = t.replace(/\(\s*,\s*/g, '(').replace(/,\s*\)/g, ')').replace(/\(\s*\)/g, '');
     t = t.replace(/ {2,}/g, ' ').replace(/ +([,.)])/g, '$1');
