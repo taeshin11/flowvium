@@ -1,0 +1,2486 @@
+{
+  "stance": "neutral",
+  "thesis": "US 시장은 7월 FOMC 동결 99%라는 확정된 연준 신호 아래 안정을 유지하고 있으나, 4.17%의 높은 헤드라인 CPI는 추가 긴축 가능성에 대한 지속적 주의를 요구한다. KR 시장은 1550의 원화 약세와 2.0%의 KOSPI 하락으로 변동성 확대를 감지한다.",
+  "portfolio": [
+    {
+      "ticker": "LIN",
+      "name": "Linde plc",
+      "sector": "materials",
+      "market": "us",
+      "rationale": "매출 +8.2% YoY(Q1 FY2026), 영업이익률 26.3%, 50MA 위($508.85), RSI 66, 거래량+6%, 52주:$429.11-$533.55, 진입지지선:$508.85",
+      "allocation": 25,
+      "entryZone": "$518.00-$533.55",
+      "entryRationale": "52주 고가 돌파 및 ROE 22% 유지로 상승 추세 지속",
+      "entryPlan": {
+        "anchorReason": "52w_high",
+        "discountPct": 0
+      },
+      "stopLoss": "$480.00",
+      "target": "$620.00",
+      "targetBull": "$680.00",
+      "targetRationale": "재료 섹터 내에서의 지배적 시장 점유율 확대",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "영업이익률 26%"
+      ],
+      "fundamentalBasis": "Q1 FY2026: 매출 8.2% YoY · 영업이익률 26.3% · ROE 18.0% · PE 36.5x",
+      "technicalBasis": "50MA($508.85) 위에서 RSI 66으로 상승 추세 유지, 거래량 +6%로 매수세 확대",
+      "riskNote": "매출 성장률 둔화 시 영업이익률 26.3% 유지 어려움",
+      "businessSummary": "Atmospheric Gases 35% · Process Gases 30% · Healthcare Gases 20% · Engineering 15%",
+      "businessDesc": "Linde plc operates as an industrial gas company worldwide. It offers atmospheric gases, including oxygen, nitrogen, argon, and rare gases; and process gases, such as hydrogen, helium, carbon dioxide, carbon monoxide, electronic gases, speci",
+      "impliedVol": 25.1,
+      "ivSkew": 0.6,
+      "priceSources": [
+        "yahoo",
+        "nasdaq"
+      ],
+      "priceDevPct": 0,
+      "priceConfidence": "confirmed",
+      "entryLadder": [
+        {
+          "price": "$530.88",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "$517.54",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "$496.20",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "$558.75",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "$591.73",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "$620.00",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    },
+    {
+      "ticker": "TSM",
+      "name": "TSMC",
+      "sector": "semiconductors",
+      "market": "us",
+      "rationale": "과거 추천 성과 우수로 재선정 — 최근 22회 추천 중 1회 목표 도달·1회 손절",
+      "allocation": 15,
+      "entryZone": "$435.69-$449.03",
+      "entryRationale": "boost-list — 과거 22건 평가, 평균 +73.17%",
+      "stopLoss": "$413.46",
+      "target": "$489.04",
+      "targetBull": "$533.50",
+      "targetRationale": "과거 성과 기반 보수적 target",
+      "confidence": "medium",
+      "action": "buy",
+      "catalysts": [
+        "과거 추천 트랙레코드: 22회 중 1회 목표 도달(승률 5%)",
+        "손절 1회"
+      ],
+      "fundamentalBasis": "재추천 종목 — 펀더멘털 상세는 종목 페이지 참조 (과거 추천 트랙레코드 기반 선정)",
+      "technicalBasis": "진입 $444.58 · 손절 -7% · 1차 목표 +10%",
+      "riskNote": "과거 성과 의존 — 펀더멘털 변화 시 재평가 필요(미래 수익 보장 아님)",
+      "entryLadder": [
+        {
+          "price": "$442.36",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "$431.24",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "$413.46",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "$458.70",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "$475.04",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "$489.04",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ],
+      "impliedVol": 53.9,
+      "ivSkew": 0.9,
+      "businessSummary": "5nm Process (N5/N4P) 35% · 3nm Process (N3E/N3P) 28% · 7nm and Above 22% · Advanced Packaging (CoWoS) 10%",
+      "businessDesc": ""
+    },
+    {
+      "ticker": "NSC",
+      "name": "Norfolk Southern Corporation",
+      "sector": "industrials",
+      "market": "us",
+      "rationale": "매출 +0.2% YoY, 영업이익률 35.8%, 50MA 위($311.88), RSI 61, 거래량-42%, 52주:$278.19-$325.68, 진입지지선:$311.88",
+      "allocation": 15,
+      "entryZone": "$305.00-$319.12",
+      "entryRationale": "52주 고가 돌파 및 ROE 18% 유지로 상승 추세 지속",
+      "entryPlan": {
+        "anchorReason": "52w_high",
+        "discountPct": 0
+      },
+      "stopLoss": "$290.00",
+      "target": "$360.00",
+      "targetBull": "$400.00",
+      "targetRationale": "물류 수요 회복과 효율성 개선으로 매출 성장",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "영업이익률 36%",
+        "PE 25.0으로 밸류에이션 안정적"
+      ],
+      "fundamentalBasis": "Q1 FY2026: 매출 0.2% YoY · 영업이익률 35.8% · ROE 18.5% · PE 25.0x",
+      "technicalBasis": "50MA($311.88) 위에서 RSI 61로 상승 추세 유지, 거래량 -42%로 조정 가능성",
+      "riskNote": "거래량 -42%로 매수세 약화 시 52주 고가($325.68) 돌파 실패",
+      "businessSummary": "Merchandise 50% · Intermodal 25% · Coal 15% · Other 10%",
+      "businessDesc": "Norfolk Southern operates a major freight railroad in the eastern United States, connecting key manufacturing and consumer markets. It serves every major container port in the eastern US.",
+      "impliedVol": null,
+      "ivSkew": null,
+      "priceSources": [
+        "yahoo",
+        "nasdaq"
+      ],
+      "priceDevPct": 0.04,
+      "priceConfidence": "confirmed",
+      "entryLadder": [
+        {
+          "price": "$317.52",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "$309.55",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "$296.78",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "$328.84",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "$345.62",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "$360.00",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    },
+    {
+      "ticker": "INCY",
+      "name": "Incyte Corporation",
+      "sector": "pharma-biotech",
+      "market": "us",
+      "rationale": "매출 +20.9% YoY(Q1 FY2026), 영업이익률 29.5%, 50MA 위($100.29), RSI 63, 거래량-33%, 52주:$90.30-$114.66, 진입지지선:$100.29",
+      "allocation": 15,
+      "entryZone": "$108.00-$113.81",
+      "entryRationale": "52주 고가 돌파 및 ROE 26% 유지로 상승 추세 지속",
+      "entryPlan": {
+        "anchorReason": "52w_high",
+        "discountPct": 0
+      },
+      "stopLoss": "$100.00",
+      "target": "$130.00",
+      "targetBull": "$150.00",
+      "targetRationale": "신약 개발 성공으로 매출 성장",
+      "confidence": "high",
+      "action": "buy",
+      "critiqueNote": "거래량 -33%로 상승 동력 약화, RSI 63으로 목표 $130.00은 entry $108.00 대비 20.4% 상향, 조정 필요",
+      "catalysts": [
+        "매출 +21.2% YoY 성장",
+        "영업이익률 30%"
+      ],
+      "fundamentalBasis": "Q1 FY2026: 매출 20.9% YoY · 영업이익률 29.5% · ROE 24.9% · PE 17.8x",
+      "technicalBasis": "50MA($100.29) 위에서 RSI 63로 상승 추세 유지, 거래량 -33%로 조정 가능성",
+      "riskNote": "거래량 -33%로 매수세 약화 시 52주 고가($114.66) 돌파 실패",
+      "businessSummary": "Jakafi (ruxolitinib) 55% · Royalties & Pipeline 19% · Opzelura (ruxolitinib cream) 18% · Monjuvi (tafasitamab) 8%",
+      "businessDesc": "Incyte is a specialty biopharmaceutical company focused on oncology and inflammation, anchored by the blockbuster JAK inhibitor Jakafi and expanding into dermatology with Opzelura.",
+      "impliedVol": null,
+      "ivSkew": null,
+      "priceSources": [
+        "yahoo",
+        "nasdaq"
+      ],
+      "priceDevPct": 0,
+      "priceConfidence": "confirmed",
+      "entryLadder": [
+        {
+          "price": "$113.24",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "$110.40",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "$105.84",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "$117.59",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "$124.27",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "$130.00",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    },
+    {
+      "ticker": "278470.KS",
+      "name": "에이피알",
+      "sector": "Consumer Defensive",
+      "market": "kr",
+      "rationale": "매출 +111.3% YoY(FY2025), 영업이익률 23.9%, 200MA 위(₩301,375), 50MA 위(₩405,730), RSI 49, 거래량+5%, 52주:₩137,800-₩459,000, 진입지지선:₩301,375",
+      "allocation": 15,
+      "entryZone": "₩380,000-₩408,000",
+      "entryRationale": "52주 고가 돌파 및 ROE 20% 유지로 상승 추세 지속",
+      "entryPlan": {
+        "anchorReason": "52w_high",
+        "discountPct": 0
+      },
+      "stopLoss": "₩350,000",
+      "target": "₩480,000",
+      "targetBull": "₩550,000",
+      "targetRationale": "기술적 신호 기반 진입",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "매출 +111.3% YoY 성장",
+        "영업이익률 24%"
+      ],
+      "fundamentalBasis": "FY2025: 매출 111.3% YoY · 영업이익률 23.9% · ROE 65.0%",
+      "technicalBasis": "200MA 위(₩301,375) 및 50MA 위(₩405,730)에서 RSI 49로 상승 추세 유지, 거래량 +5%로 매수세 확대",
+      "riskNote": "거래량 +5%로 매수세 확대 시 52주 고가($459,000) 돌파 실패",
+      "businessDesc": "APR Co., Ltd. manufactures and sells cosmetic products for men and women.",
+      "businessSummary": "Household & Personal Products",
+      "impliedVol": null,
+      "priceSources": [
+        "yahoo",
+        "naver"
+      ],
+      "priceDevPct": 0,
+      "priceConfidence": "confirmed",
+      "entryLadder": [
+        {
+          "price": "₩405,960",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "₩395,760",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "₩379,440",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "₩424,100",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "₩454,200",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "₩480,000",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    },
+    {
+      "ticker": "483650.KS",
+      "name": "달바글로벌",
+      "sector": "Consumer Defensive",
+      "market": "kr",
+      "rationale": "매출 +68.2% YoY(FY2025), 영업이익률 19.5%, 200MA 위(₩168,483), 50MA 위(₩215,984), RSI 63, 거래량-29%, 52주:₩121,200-₩260,000, 진입지지선:₩168,483",
+      "allocation": 15,
+      "entryZone": "₩230,000-₩241,500",
+      "entryRationale": "52주 고가 돌파 및 ROE 26% 유지로 상승 추세 지속",
+      "entryPlan": {
+        "anchorReason": "52w_high",
+        "discountPct": 0
+      },
+      "stopLoss": "₩210,000",
+      "target": "₩280,000",
+      "targetBull": "₩320,000",
+      "targetRationale": "기술적 신호 기반 진입",
+      "confidence": "high",
+      "action": "buy",
+      "catalysts": [
+        "매출 +68.2% YoY 성장",
+        "영업이익률 20%"
+      ],
+      "fundamentalBasis": "FY2025: 매출 68.2% YoY · 영업이익률 19.5% · ROE 39.8%",
+      "technicalBasis": "200MA 위(₩168,483) 및 50MA 위(₩215,984)에서 RSI 63로 상승 추세 유지, 거래량 -29%로 조정 가능성",
+      "riskNote": "거래량 -29%로 매수세 약화 시 52주 고가($260,000) 돌파 실패",
+      "businessDesc": "d'Alba Global Co., Ltd. engages in the manufacturing and sale of perfumes and cosmetic products in South Korea and internationally.",
+      "businessSummary": "Household & Personal Products",
+      "impliedVol": null,
+      "priceSources": [
+        "yahoo",
+        "naver"
+      ],
+      "priceDevPct": 0,
+      "priceConfidence": "confirmed",
+      "entryLadder": [
+        {
+          "price": "₩240,293",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "₩234,255",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "₩224,595",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "₩251,237",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "₩266,725",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "₩280,000",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    }
+  ],
+  "buySellReconciliation": {
+    "ts": "2026-07-01T20:13:47.404Z",
+    "session": "midnight",
+    "thresholds": {
+      "HIGH": 7,
+      "MID": 4,
+      "macroTighten": 0
+    },
+    "candidates": [
+      {
+        "ticker": "LIN",
+        "sector": "materials",
+        "buyConviction": 43,
+        "buyDiscount": 3.6,
+        "softScore": 0,
+        "netSoft": -3.6,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 66,
+          "sma50": 508.85040100097655,
+          "sma200": 469.2365505981445,
+          "opMarginDecline": -0.10000000000000142,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 8.2,
+          "price": 533.55,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "ABNB",
+        "sector": "consumer-discretionary",
+        "buyConviction": 41,
+        "buyDiscount": 3.2,
+        "softScore": 0,
+        "netSoft": -3.2,
+        "hardHit": "fund_margin_decline",
+        "tier": "veto",
+        "signals": {
+          "rsi": 73,
+          "sma50": 137.76460021972656,
+          "sma200": 129.9356749343872,
+          "opMarginDecline": 2.1999999999999993,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 17.9,
+          "price": 147.31,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "fund_margin_decline",
+            "category": "fundamental",
+            "score": 7.1,
+            "hard": true,
+            "reason": "op margin YoY -2.2%p 악화"
+          }
+        ]
+      },
+      {
+        "ticker": "FFIV",
+        "sector": "Information Technology",
+        "buyConviction": 38,
+        "buyDiscount": 2.6,
+        "softScore": 0,
+        "netSoft": -2.6,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 74,
+          "sma50": 370.53559936523436,
+          "sma200": 302.4886001586914,
+          "opMarginDecline": -1.4000000000000021,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 11,
+          "price": 424.18,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "NSC",
+        "sector": "industrials",
+        "buyConviction": 38,
+        "buyDiscount": 2.6,
+        "softScore": 0,
+        "netSoft": -2.6,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 61,
+          "sma50": 311.8751995849609,
+          "sma200": 297.7177496337891,
+          "opMarginDecline": -2.1999999999999957,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 0.2,
+          "price": 319.12,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "V",
+        "sector": "financials",
+        "buyConviction": 36,
+        "buyDiscount": 2.2,
+        "softScore": 7.4,
+        "netSoft": 5.2,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 77,
+          "sma50": 324.92679992675784,
+          "sma200": 328.77979858398436,
+          "opMarginDecline": 5.700000000000003,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 17.1,
+          "price": 351.34,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(324.93) < 200MA(328.78) dead cross (-1.2%)"
+          },
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 7.4,
+            "hard": false,
+            "reason": "RSI 77 과매수"
+          },
+          {
+            "id": "fund_margin_decline",
+            "category": "fundamental",
+            "score": 8.9,
+            "hard": true,
+            "reason": "op margin YoY -5.7%p 악화"
+          }
+        ]
+      },
+      {
+        "ticker": "INCY",
+        "sector": "pharma-biotech",
+        "buyConviction": 36,
+        "buyDiscount": 2.2,
+        "softScore": 0,
+        "netSoft": -2.2,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 63,
+          "sma50": 100.29119979858399,
+          "sma200": 97.76310009002685,
+          "opMarginDecline": -28.1,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 20.9,
+          "price": 113.81,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "214450.KQ",
+        "sector": "Healthcare",
+        "buyConviction": 30,
+        "buyDiscount": 1,
+        "softScore": 7.6,
+        "netSoft": 6.6,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 78,
+          "sma50": 310060,
+          "sma200": 406065,
+          "opMarginDecline": -4,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 53.2,
+          "price": 366500,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(310060.00) < 200MA(406065.00) dead cross (-23.6%)"
+          },
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 366500.00 < 200MA 406065.00"
+          },
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 7.6,
+            "hard": false,
+            "reason": "RSI 78 과매수"
+          }
+        ]
+      },
+      {
+        "ticker": "058470.KQ",
+        "sector": "Technology",
+        "buyConviction": 30,
+        "buyDiscount": 1,
+        "softScore": 3,
+        "netSoft": 2,
+        "hardHit": "tech_200ma_breach",
+        "tier": "veto",
+        "signals": {
+          "rsi": 26,
+          "sma50": 102462,
+          "sma200": 82141.25,
+          "opMarginDecline": -2.8999999999999986,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 33.9,
+          "price": 81700,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 81700.00 < 200MA 82141.25"
+          },
+          {
+            "id": "guru_drucken_trend_break",
+            "category": "guru",
+            "score": 3,
+            "hard": false,
+            "reason": "50MA(102462.00) 하향이탈 + RSI 26 모멘텀 약화 — Druckenmiller 추세붕괴"
+          }
+        ]
+      },
+      {
+        "ticker": "278470.KS",
+        "sector": "Consumer Defensive",
+        "buyConviction": 30,
+        "buyDiscount": 1,
+        "softScore": 0,
+        "netSoft": -1,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 49,
+          "sma50": 405730,
+          "sma200": 301375,
+          "opMarginDecline": -6.899999999999999,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 111.3,
+          "price": 408000,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "196170.KQ",
+        "sector": "Professional Services",
+        "buyConviction": 29,
+        "buyDiscount": 0.8,
+        "softScore": 0,
+        "netSoft": -0.8,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 53,
+          "sma50": 357500,
+          "sma200": 420035,
+          "opMarginDecline": -24.8,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 109.9,
+          "price": 358000,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(357500.00) < 200MA(420035.00) dead cross (-14.9%)"
+          },
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 358000.00 < 200MA 420035.00"
+          }
+        ]
+      },
+      {
+        "ticker": "483650.KS",
+        "sector": "Consumer Defensive",
+        "buyConviction": 26,
+        "buyDiscount": 0.2,
+        "softScore": 0,
+        "netSoft": -0.2,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 63,
+          "sma50": 215984,
+          "sma200": 168483,
+          "opMarginDecline": -0.10000000000000142,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 68.2,
+          "price": 241500,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      }
+    ],
+    "downgraded": [],
+    "whipsaw": [],
+    "adjudication": [],
+    "sellSide": [],
+    "summary": {
+      "evaluated": 12,
+      "passed": 6,
+      "vetoed": 6,
+      "downgraded": 0,
+      "sellConflicts": 0,
+      "whipsaw": 0,
+      "whipsawDowngraded": 0
+    }
+  },
+  "earlyWarning": {
+    "score": 0,
+    "level": "low",
+    "drivers": [],
+    "asOf": "2026-07-01T20:13:48.328Z"
+  },
+  "reboundWatch": {
+    "level": "none",
+    "drivers": [],
+    "asOf": "2026-07-01T20:13:48.328Z"
+  },
+  "marketVerdict": {
+    "verdict": "neutral",
+    "reasons": [
+      "하락·상승 전조 모두 뚜렷하지 않음 — 기존 포지션 유지",
+      "시장 폭 양호: 동일가중이 +3.3%p 우위 — 광범위 참여",
+      "S&P500 계절성(7월, 1990~ 153표본): 1개월 forward 중앙값 +0.6%",
+      "과거 유사국면 104회 — 현재 지문(VIX 16.2·고점대비 -1.7%·20일 -1.7%·10Y 4.47%·금리커브 0.77p)을 1990년 이후 전 영업일과 6요인 가중거리로 비교해 가장 가까운 국면들: 3개월 후 중앙값 +3.1% · 상승확률 67%"
+    ],
+    "reasonRegions": [
+      "global",
+      "us",
+      "us",
+      "us"
+    ],
+    "krVerdict": {
+      "verdict": "neutral",
+      "reasons": [
+        "KR 뚜렷한 전조 없음 — 기존 포지션 유지",
+        "KOSPI 추세: 200일선 위(+58.9%) · 고점대비 -7% · 20일 -3.5%",
+        "KR 시장 폭 취약: KOSDAQ이 KOSPI 대비 20일 -9.2%p 열위 — 대형주 편중",
+        "KR 과거 유사국면 142회 — 현재 지문(KOSPI 고점대비 -7%·20일 -3.5%)을 KOSPI 전 역사와 거리매칭한 가장 가까운 국면들: 3개월 후 중앙값 +2.3% · 상승확률 60%",
+        "KOSPI 계절성(7월, 129표본): 1개월 forward 중앙값 +0.6%"
+      ]
+    },
+    "fearBuy": {
+      "score": 0,
+      "active": false
+    },
+    "analog": {
+      "matches": 104,
+      "med1m": 1.3,
+      "med3m": 3.1,
+      "med6m": 4.4,
+      "posRate3m": 67,
+      "recent": [
+        {
+          "date": "2003-11-11",
+          "dist": 0.19,
+          "fwd1m": 2.4,
+          "fwd3m": 10.1,
+          "fwd6m": 4.8
+        },
+        {
+          "date": "2025-12-09",
+          "dist": 0.21,
+          "fwd1m": 1.8,
+          "fwd3m": -2.5,
+          "fwd6m": 8.1
+        },
+        {
+          "date": "1991-10-14",
+          "dist": 0.22,
+          "fwd1m": 2.7,
+          "fwd3m": 8.8,
+          "fwd6m": 5.1
+        },
+        {
+          "date": "1993-11-11",
+          "dist": 0.22,
+          "fwd1m": 0.7,
+          "fwd3m": 1.4,
+          "fwd6m": -4
+        },
+        {
+          "date": "2005-08-08",
+          "dist": 0.28,
+          "fwd1m": 1.1,
+          "fwd3m": -0.2,
+          "fwd6m": 2.6
+        }
+      ],
+      "fingerprint": {
+        "vix": 16.2,
+        "drawdownPct": -1.7,
+        "ret20d": -1.7,
+        "ty10": 4.47,
+        "curveSlopePp": 0.77,
+        "rate3moChgPp": 0.16
+      },
+      "factorsUsed": [
+        "vix",
+        "dd",
+        "r20",
+        "ty",
+        "slope",
+        "tyChg3m"
+      ],
+      "matchTightness": 0.6,
+      "macroContext": {
+        "ty10": 4.47,
+        "curveSlopePp": 0.77,
+        "rate3moChgPp": 0.16,
+        "fearGreed": 32,
+        "creditSpread": null
+      },
+      "trend": {
+        "above200": true,
+        "distPct": 7.8
+      },
+      "seasonality": {
+        "month": 7,
+        "med1m": 0.6,
+        "n": 153
+      },
+      "breadth": {
+        "divergencePp": 3.3
+      },
+      "kr": {
+        "dd": -7,
+        "r20": -3.5,
+        "above200": true,
+        "distPct": 58.9,
+        "seasonality": {
+          "month": 7,
+          "med1m": 0.6,
+          "n": 129
+        },
+        "analog": {
+          "matches": 142,
+          "med3m": 2.3,
+          "posRate3m": 60
+        },
+        "breadth": {
+          "divergencePp": -9.2
+        }
+      },
+      "source": "yahoo-^GSPC/^VIX/^TNX/^IRX/RSP/^KS11/^KQ11-1990~ (다요인 가중매칭)"
+    },
+    "asOf": "2026-07-01T20:13:49.389Z",
+    "source": "deterministic"
+  },
+  "sectorAllocation": [
+    {
+      "sector": "Materials",
+      "pct": 24,
+      "stance": "neutral",
+      "reason": "52주 고가 돌파 및 ROE 22% 유지"
+    },
+    {
+      "sector": "Consumer Discretionary",
+      "pct": 19,
+      "stance": "neutral",
+      "reason": "52주 고가 돌파 및 ROE 25% 유지"
+    },
+    {
+      "sector": "Information Technology",
+      "pct": 19,
+      "stance": "neutral",
+      "reason": "52주 고가 돌파 및 ROE 20% 유지"
+    },
+    {
+      "sector": "Industrials",
+      "pct": 19,
+      "stance": "neutral",
+      "reason": "52주 고가 돌파 및 ROE 18% 유지"
+    },
+    {
+      "sector": "Financials",
+      "pct": 19,
+      "stance": "neutral",
+      "reason": "52주 고가 돌파 및 ROE 24% 유지"
+    }
+  ],
+  "riskEvents": [
+    {
+      "date": "2026-07-02",
+      "event": "Employment Situation (Nonfarm Payrolls)",
+      "impact": "high",
+      "watchFor": "발표 예정 — 예상 대비 서프라이즈 방향 주시",
+      "exposureChannel": "광범위 위험선호",
+      "affectedPortfolio": [
+        "LIN",
+        "TSM",
+        "NSC"
+      ],
+      "action": "노출 종목 비중·헤지 점검(발표 전)",
+      "previous": "172 K",
+      "surpriseHigh": "예상 상회(고용 견조) → 견조하나 금리인하 지연 우려",
+      "surpriseLow": "예상 하회(고용 둔화) → 침체 vs 인하 기대 상충"
+    },
+    {
+      "date": "2026-07-14",
+      "event": "CPI (Consumer Price Index)",
+      "impact": "high",
+      "watchFor": "발표 예정 — 예상 대비 서프라이즈 방향 주시",
+      "exposureChannel": "인플레민감(소비·에너지)",
+      "affectedPortfolio": [
+        "LIN",
+        "에이피알",
+        "달바글로벌"
+      ],
+      "action": "노출 종목 비중·헤지 점검(발표 전)",
+      "previous": "4.2 % YoY",
+      "surpriseHigh": "예상 상회(인플레 지속) → 금리인하 지연, 성장주 압박",
+      "surpriseLow": "예상 하회(둔화) → 인하 기대, 성장주 수혜"
+    },
+    {
+      "date": "2026-07-15",
+      "event": "PPI (Producer Price Index)",
+      "impact": "high",
+      "watchFor": "발표 예정 — 예상 대비 서프라이즈 방향 주시",
+      "exposureChannel": "광범위",
+      "affectedPortfolio": [
+        "LIN",
+        "TSM",
+        "NSC"
+      ],
+      "action": "노출 종목 비중·헤지 점검(발표 전)",
+      "previous": "13.1 % YoY"
+    }
+  ],
+  "macroAnalysis": "헤드라인 CPI 4.17%와 28bp 금리곡선 정상화는 인플레 지속과 성장 동반을 시사하나, VIX 16.3과 USD/KRW 1550(+0.5%)는 변동성 확대와 원화 약세 리스크를 동시에 감지한다. 금융시장은 7월 FOMC 동결 99%라는 확정된 연준 신호 아래 안정을 유지하나, 4.17%의 고 CPI 수치는 추가 긴축 가능성에 대한 지속적 주의를 요구한다.",
+  "technicalAnalysis": "VIX 16.3의 콘탱고 레지임과 S&P500 7,483의 마이너스 0.0% 모멘텀은 단기 변동성 확대와 방향성 부재를 나타낸다. 금리곡선 77bp의 정상화는 유동성 안정을 시사하나, 16.3의 VIX 수치는 시장 리스크에 대한 지속적 감시 필요성을 강조한다.",
+  "fundamentalAnalysis": "CPI 4.17%의 높은 수치는 인플레 지속성을 시사하나, 2.1%의 GDP 성장률과 0.76%의 IG 스프레드는 경제 성장과 신용 안정성의 균형을 유지하고 있다. 4.17%의 CPI와 0.76%의 IG 스프레드는 금융시장의 균형 상태를 반영한다.",
+  "riskLevel": "medium",
+  "regionStances": {
+    "us": {
+      "stance": "bullish",
+      "thesis": "USD 및 US LT Bonds 유입 지속, F&G 45점 중립에서 1w-0.1% 부담 완화, AI·Semiconductors 리드 전환 중",
+      "keyData": "SPY 1w, F&G score"
+    },
+    "korea": {
+      "stance": "neutral",
+      "thesis": "EWY 1w 5.0% 상승세지만 4w -6.8% 하락과 외국인 9164억원 매도로 방향성 불명확",
+      "keyData": "EWY 1w, F&G"
+    },
+    "japan": {
+      "stance": "bullish",
+      "thesis": "4w +0.4% 상승과 F&G 45점 중립 유지, 기술·에너지 전환 모멘텀 지속",
+      "keyData": "JPY 1w, F&G"
+    },
+    "china": {
+      "stance": "bearish",
+      "thesis": "4w +0.0% 상승 정체 및 F&G 39점 불안정, 상승 모멘텀 부재",
+      "keyData": "CHF 1w, F&G"
+    },
+    "europe": {
+      "stance": "bearish",
+      "thesis": "4w +0.0% 상승 정체, F&G 41점 중립에서 하락 압력 지속",
+      "keyData": "EUR 1w, F&G"
+    },
+    "india": {
+      "stance": "bullish",
+      "thesis": "4w +2.9% 상승과 F&G 69점 과열, AI·Semiconductors 전환 수혜",
+      "keyData": "IND 1w, F&G"
+    },
+    "taiwan": {
+      "stance": "bullish",
+      "thesis": "4w +2.1% 상승과 F&G 57점 중립, Semiconductors 리드 전환 지속",
+      "keyData": "TWN 1w, F&G"
+    },
+    "brazil": {
+      "stance": "neutral",
+      "thesis": "4w +0.0% 상승 정체 및 F&G 51점 중립, 방향성 불명확",
+      "keyData": "BRL 1w, F&G"
+    },
+    "australia": {
+      "stance": "neutral",
+      "thesis": "4w +0.0% 상승 정체 및 F&G 45점 중립, 모멘텀 부재",
+      "keyData": "AUD 1w, F&G"
+    },
+    "global": {
+      "stance": "bullish",
+      "thesis": "USD 1w-0.1% 부담 완화와 F&G 45점 중립에서 AI·Semiconductors 리드 전환 지속",
+      "keyData": "GLD 1w, F&G"
+    }
+  },
+  "shortSqueeze": [
+    {
+      "ticker": "COIN",
+      "score": 45,
+      "timing": "실적 후 +8.9% 급등, squeeze 지속",
+      "risk": "공매도 스퀴즈 가능성 중등"
+    }
+  ],
+  "insiderSignals": [],
+  "topOpportunity": "COIN 공매도 스퀴즈 점수 45로 중등 리스크, 현재가 하락 시 추가 매수 기회, 단기 변동성 확대 주의",
+  "stopLossRationale": [
+    {
+      "ticker": "LIN",
+      "rationale": "매수 진입 구간 하단 보호, 손절가 6% 이상 하락 시 손실 제한 | 현재 $533.55 → 손절선 ~$496.20 (-7%) / 50MA 위($508.85), RSI 66, 거래량+6%, 52주:$429.11-$533.55, 진입지지선:$508.85"
+    }
+  ],
+  "hedgingSuggestion": "VIX 16.23 이상 유지 시 SQQQ 3배 레버리지 헤지 발동, 방향성 위험 확대 시 즉시 포지션 축소",
+  "portfolioRiskNote": "포트폴리오 집중도 중간 수준, 12개 종목 중 8개가 8% 이상 비중으로 인기 테마 과밀화, VIX 16.23 contango 구조는 단기 변동성 확대 신호로 군중 심판 리스크 존재",
+  "marketNarrative": {
+    "why": "S&P500 7,483 유지와 함께 MSFT 1d +3.0% 상승세로 AI/Cloud 섹터 리더십 재확인, 4주 수익률 1.1% 상승 기반 자금 유입 지속",
+    "watch": "ASML 1d -7.4% 하락 시 Semiconductors 전반 리스크 확대",
+    "story": "MSFT 1d +3.0% 상승과 함께 AI/Cloud 섹터 리더십 재확인, 4주 수익률 1.1% 상승 기반 자금 유입 지속. 반면 ASML 1d -7.4% 하락으로 Semiconductors 전반 리스크 확대 우려 제기.",
+    "hotThemes": [
+      "AI 클라우드",
+      "반도체",
+      "에너지 전환"
+    ],
+    "sessionNote": "US 장중 전반, KR 마감 전"
+  },
+  "manipulationWatch": {
+    "asOf": "2026-07-01T07:00:26.968Z",
+    "universe": "KOSDAQ",
+    "scanned": 224,
+    "officialFewAccount": 0,
+    "strongCount": 0,
+    "watchCount": 0,
+    "stale": false,
+    "source": "live",
+    "items": []
+  },
+  "companyChanges": [
+    {
+      "ticker": "214450.KQ",
+      "name": "파마리서치",
+      "revenueYoY": 53.2,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 53.2% YoY 급증, 영업이익률 40.0%",
+      "eventType": "revenue_surge",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "한국 헬스케어 포트폴리오의 성장 동력 확인, 수익성 확보",
+      "nextCheck": "2026년 2분기 실적 발표",
+      "held": false
+    },
+    {
+      "ticker": "058470.KQ",
+      "name": "리노공업",
+      "revenueYoY": 33.9,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 33.9% YoY 증가, 영업이익률 47.5%",
+      "eventType": "revenue_growth",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "제조업 수익성 확대, 국내 중소형 기업 성장 모델",
+      "nextCheck": "2026년 2분기 실적 발표",
+      "held": false
+    },
+    {
+      "ticker": "278470.KS",
+      "name": "에이피알",
+      "revenueYoY": 111.3,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 111.3% 급증, ROE 65.0%",
+      "eventType": "revenue_surge",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "반도체 소재 수요 급증으로 성장 가속화",
+      "nextCheck": "2026년 2분기 실적 발표",
+      "held": true
+    },
+    {
+      "ticker": "196170.KQ",
+      "name": "알테오젠",
+      "revenueYoY": 109.9,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 109.9% 급증, 영업이익률 49.5%",
+      "eventType": "revenue_surge",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "바이오 신약 수익성 확보로 포트폴리오 가치 상승",
+      "nextCheck": "2026년 2분기 실적 발표",
+      "held": false
+    },
+    {
+      "ticker": "483650.KS",
+      "name": "달바글로벌",
+      "revenueYoY": 68.2,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 68.2% YoY 급증, ROE 39.8%",
+      "eventType": "revenue_growth",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "글로벌 화장품 수출 확대, 수익성 견조",
+      "nextCheck": "2026년 2분기 실적 발표",
+      "held": true
+    },
+    {
+      "ticker": "003230.KS",
+      "name": "삼양식품",
+      "revenueYoY": 36.1,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 36.1% YoY 증가, ROE 30.6%",
+      "eventType": "revenue_growth",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "식품 안정성과 수익성 확보로 포트폴리오 안전판",
+      "nextCheck": "2026년 2분기 실적 발표",
+      "held": false
+    }
+  ],
+  "supplyChainChanges": [
+    {
+      "ticker": "NEE",
+      "direction": "neutral",
+      "headline": "8-K [M&A]: NEXTERA ENERGY INC — Merger Agreement · 상대: Dominion Energy as the surviving corporation",
+      "source": "sec-8k",
+      "date": "2026-05-18",
+      "signalType": "contract_win",
+      "conviction": 66,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "NextEra Energy는 Dominion Energy와의 합병 계약을 체결하여, Merger Sub Corp와 LLC Sub를 통해 두 단계 합병(First Merger 및 Second Merger)을 통해 Dominion Energy를 전액 자회사로 인수할 예정이다. 투자자 관점에서 이는 NextEra Energy의 규모 확대 및 전력 시장 내 지배력 강화를 의미한다.",
+      "evidenceUrl": "https://www.sec.gov/Archives/edgar/data/753308/000110465926063001/tm2614888d1_8k.htm",
+      "summary": null,
+      "contractAmountWon": null,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    },
+    {
+      "ticker": "GOOGL",
+      "direction": "neutral",
+      "headline": "8-K [자본조달]: Alphabet Inc. — Underwriting Agreement · 상대: Goldman Sachs & Co",
+      "source": "sec-8k",
+      "date": "2026-06-05",
+      "signalType": "supply_risk",
+      "conviction": 52,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "자본조달 공시(지분/채권) — 재무구조 변화, 매출 직결 아님",
+      "evidenceUrl": "https://www.sec.gov/Archives/edgar/data/1652044/000119312526259830/d36818d8k.htm",
+      "summary": null,
+      "contractAmountWon": null,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    },
+    {
+      "ticker": "AMZN",
+      "direction": "neutral",
+      "headline": "8-K [자본조달]: AMAZON COM INC — DDTL Credit Agreement · $17.5billion",
+      "source": "sec-8k",
+      "date": "2026-06-10",
+      "signalType": "supply_risk",
+      "conviction": 52,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "자본조달 공시(지분/채권) — 재무구조 변화, 매출 직결 아님",
+      "evidenceUrl": "https://www.sec.gov/Archives/edgar/data/1018724/000110465926072140/tm2613616d4_8k.htm",
+      "summary": null,
+      "contractAmountWon": null,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    },
+    {
+      "ticker": "950160.KQ",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결(자회사의 주요경영사항) ",
+      "source": "dart",
+      "date": "20260701",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 7.1%) — 점진 기여 · 상대 인텐션개발",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260701800793",
+      "summary": "연매출 7.1% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 2,791억원 · 연매출 대비 7.1% · 계약상대 인텐션개발)",
+      "contractAmountWon": 279054000000,
+      "contractCounterparty": "인텐션개발",
+      "contractRevenuePct": 7.1
+    },
+    {
+      "ticker": "336260.KS",
+      "direction": "positive",
+      "headline": "단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260701",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 5.32%) — 점진 기여 · 상대 위드인천에너지(주)",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260701800234",
+      "summary": "연매출 5.32% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 242억원 · 연매출 대비 5.32% · 계약상대 위드인천에너지(주))",
+      "contractAmountWon": 24200000000,
+      "contractCounterparty": "위드인천에너지(주)",
+      "contractRevenuePct": 5.32
+    },
+    {
+      "ticker": "178320.KQ",
+      "direction": "positive",
+      "headline": "단일판매ㆍ공급계약체결(자율공시) ",
+      "source": "dart",
+      "date": "20260701",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 6.83%) — 점진 기여",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260701900240",
+      "summary": "연매출 6.83% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 728억원 · 연매출 대비 6.83%)",
+      "contractAmountWon": 72785003956,
+      "contractCounterparty": null,
+      "contractRevenuePct": 6.83
+    },
+    {
+      "ticker": "028050.KS",
+      "direction": "positive",
+      "headline": "단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260701",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "계약 금액 미공개 — 실적 영향도 미상",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260701800136",
+      "summary": "9.03조원 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 9.03조원)",
+      "contractAmountWon": 9028769083650,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    },
+    {
+      "ticker": "028300.KQ",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260630",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 6%) — 점진 기여 · 상대 비공개(영업비밀)",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260630901334",
+      "summary": "연매출 6% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 65억원 · 연매출 대비 6% · 계약상대 비공개(영업비밀))",
+      "contractAmountWon": 6491249864,
+      "contractCounterparty": "비공개(영업비밀)",
+      "contractRevenuePct": 6
+    },
+    {
+      "ticker": "056080.KQ",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260630",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": null,
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260630901258",
+      "summary": "신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜)",
+      "contractAmountWon": null,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    },
+    {
+      "ticker": "012450.KS",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260630",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": null,
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260630801338",
+      "summary": "신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜)",
+      "contractAmountWon": null,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    }
+  ],
+  "portfolioOutcomes": {
+    "total": 30,
+    "hit_target": 0,
+    "stop_loss": 1,
+    "not_entered": 0,
+    "still_holding": 0,
+    "sold": 29,
+    "unknown": 0,
+    "hitRate": 0,
+    "neRate": 0,
+    "winRate": 53,
+    "closed": 30,
+    "soldAvg": 0.8,
+    "avgPnl": 0.8,
+    "spyAlpha": 0.1,
+    "beatSpy": 267,
+    "beatSpyTotal": 636,
+    "top3": [
+      {
+        "ticker": "000660.KS",
+        "avg": 29.1,
+        "n": 1
+      },
+      {
+        "ticker": "ESS",
+        "avg": 7.6,
+        "n": 1
+      },
+      {
+        "ticker": "EIX",
+        "avg": 6.7,
+        "n": 1
+      }
+    ],
+    "bottom3": [
+      {
+        "ticker": "005490.KS",
+        "avg": -9.7,
+        "n": 1
+      },
+      {
+        "ticker": "KEYS",
+        "avg": -9.6,
+        "n": 1
+      },
+      {
+        "ticker": "064350.KS",
+        "avg": -7.6,
+        "n": 1
+      }
+    ],
+    "chronicNE": [
+      {
+        "ticker": "NVDA",
+        "neCount": 11
+      },
+      {
+        "ticker": "MSFT",
+        "neCount": 11
+      },
+      {
+        "ticker": "KLAC",
+        "neCount": 8
+      },
+      {
+        "ticker": "005930.KS",
+        "neCount": 7
+      },
+      {
+        "ticker": "000660.KS",
+        "neCount": 6
+      }
+    ]
+  },
+  "sessionFocus": {
+    "primary": "us",
+    "secondary": [
+      "global"
+    ],
+    "label": "US 장중 (자정)",
+    "marketWeight": {
+      "us": 65,
+      "global": 20,
+      "kr": 15
+    },
+    "marketPhases": {
+      "kr": "마감 (당일 종료)",
+      "us": "장중 (전반)"
+    },
+    "dataPriority": [
+      "Institutional + Insider Signals (US 13F 누적 + Form4 집중매수)",
+      "13D/G 대량보유 변동 (액티비스트/대주주)",
+      "Unusual Options Flow (스마트머니 방향성)",
+      "Short Squeeze Candidates (숏 커버 촉매)",
+      "N-PORT 뮤추얼펀드 보유 변화"
+    ]
+  },
+  "portfolioByMarket": {
+    "us": [
+      {
+        "ticker": "LIN",
+        "name": "Linde plc",
+        "sector": "materials",
+        "market": "us",
+        "rationale": "매출 +8.2% YoY(Q1 FY2026), 영업이익률 26.3%, 50MA 위($508.85), RSI 66, 거래량+6%, 52주:$429.11-$533.55, 진입지지선:$508.85",
+        "allocation": 25,
+        "entryZone": "$518.00-$533.55",
+        "entryRationale": "52주 고가 돌파 및 ROE 22% 유지로 상승 추세 지속",
+        "entryPlan": {
+          "anchorReason": "52w_high",
+          "discountPct": 0
+        },
+        "stopLoss": "$480.00",
+        "target": "$620.00",
+        "targetBull": "$680.00",
+        "targetRationale": "재료 섹터 내에서의 지배적 시장 점유율 확대",
+        "confidence": "high",
+        "action": "buy",
+        "catalysts": [
+          "영업이익률 26%"
+        ],
+        "fundamentalBasis": "Q1 FY2026: 매출 8.2% YoY · 영업이익률 26.3% · ROE 18.0% · PE 36.5x",
+        "technicalBasis": "50MA($508.85) 위에서 RSI 66으로 상승 추세 유지, 거래량 +6%로 매수세 확대",
+        "riskNote": "매출 성장률 둔화 시 영업이익률 26.3% 유지 어려움",
+        "businessSummary": "Atmospheric Gases 35% · Process Gases 30% · Healthcare Gases 20% · Engineering 15%",
+        "businessDesc": "Linde plc operates as an industrial gas company worldwide. It offers atmospheric gases, including oxygen, nitrogen, argon, and rare gases; and process gases, such as hydrogen, helium, carbon dioxide, carbon monoxide, electronic gases, speci",
+        "impliedVol": 25.1,
+        "ivSkew": 0.6,
+        "priceSources": [
+          "yahoo",
+          "nasdaq"
+        ],
+        "priceDevPct": 0,
+        "priceConfidence": "confirmed",
+        "entryLadder": [
+          {
+            "price": "$530.88",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "$517.54",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "$496.20",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "$558.75",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "$591.73",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "$620.00",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      },
+      {
+        "ticker": "TSM",
+        "name": "TSMC",
+        "sector": "semiconductors",
+        "market": "us",
+        "rationale": "과거 추천 성과 우수로 재선정 — 최근 22회 추천 중 1회 목표 도달·1회 손절",
+        "allocation": 15,
+        "entryZone": "$435.69-$449.03",
+        "entryRationale": "boost-list — 과거 22건 평가, 평균 +73.17%",
+        "stopLoss": "$413.46",
+        "target": "$489.04",
+        "targetBull": "$533.50",
+        "targetRationale": "과거 성과 기반 보수적 target",
+        "confidence": "medium",
+        "action": "buy",
+        "catalysts": [
+          "과거 추천 트랙레코드: 22회 중 1회 목표 도달(승률 5%)",
+          "손절 1회"
+        ],
+        "fundamentalBasis": "재추천 종목 — 펀더멘털 상세는 종목 페이지 참조 (과거 추천 트랙레코드 기반 선정)",
+        "technicalBasis": "진입 $444.58 · 손절 -7% · 1차 목표 +10%",
+        "riskNote": "과거 성과 의존 — 펀더멘털 변화 시 재평가 필요(미래 수익 보장 아님)",
+        "entryLadder": [
+          {
+            "price": "$442.36",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "$431.24",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "$413.46",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "$458.70",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "$475.04",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "$489.04",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ],
+        "impliedVol": 53.9,
+        "ivSkew": 0.9,
+        "businessSummary": "5nm Process (N5/N4P) 35% · 3nm Process (N3E/N3P) 28% · 7nm and Above 22% · Advanced Packaging (CoWoS) 10%",
+        "businessDesc": ""
+      },
+      {
+        "ticker": "NSC",
+        "name": "Norfolk Southern Corporation",
+        "sector": "industrials",
+        "market": "us",
+        "rationale": "매출 +0.2% YoY, 영업이익률 35.8%, 50MA 위($311.88), RSI 61, 거래량-42%, 52주:$278.19-$325.68, 진입지지선:$311.88",
+        "allocation": 15,
+        "entryZone": "$305.00-$319.12",
+        "entryRationale": "52주 고가 돌파 및 ROE 18% 유지로 상승 추세 지속",
+        "entryPlan": {
+          "anchorReason": "52w_high",
+          "discountPct": 0
+        },
+        "stopLoss": "$290.00",
+        "target": "$360.00",
+        "targetBull": "$400.00",
+        "targetRationale": "물류 수요 회복과 효율성 개선으로 매출 성장",
+        "confidence": "high",
+        "action": "buy",
+        "catalysts": [
+          "영업이익률 36%",
+          "PE 25.0으로 밸류에이션 안정적"
+        ],
+        "fundamentalBasis": "Q1 FY2026: 매출 0.2% YoY · 영업이익률 35.8% · ROE 18.5% · PE 25.0x",
+        "technicalBasis": "50MA($311.88) 위에서 RSI 61로 상승 추세 유지, 거래량 -42%로 조정 가능성",
+        "riskNote": "거래량 -42%로 매수세 약화 시 52주 고가($325.68) 돌파 실패",
+        "businessSummary": "Merchandise 50% · Intermodal 25% · Coal 15% · Other 10%",
+        "businessDesc": "Norfolk Southern operates a major freight railroad in the eastern United States, connecting key manufacturing and consumer markets. It serves every major container port in the eastern US.",
+        "impliedVol": null,
+        "ivSkew": null,
+        "priceSources": [
+          "yahoo",
+          "nasdaq"
+        ],
+        "priceDevPct": 0.04,
+        "priceConfidence": "confirmed",
+        "entryLadder": [
+          {
+            "price": "$317.52",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "$309.55",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "$296.78",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "$328.84",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "$345.62",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "$360.00",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      },
+      {
+        "ticker": "INCY",
+        "name": "Incyte Corporation",
+        "sector": "pharma-biotech",
+        "market": "us",
+        "rationale": "매출 +20.9% YoY(Q1 FY2026), 영업이익률 29.5%, 50MA 위($100.29), RSI 63, 거래량-33%, 52주:$90.30-$114.66, 진입지지선:$100.29",
+        "allocation": 15,
+        "entryZone": "$108.00-$113.81",
+        "entryRationale": "52주 고가 돌파 및 ROE 26% 유지로 상승 추세 지속",
+        "entryPlan": {
+          "anchorReason": "52w_high",
+          "discountPct": 0
+        },
+        "stopLoss": "$100.00",
+        "target": "$130.00",
+        "targetBull": "$150.00",
+        "targetRationale": "신약 개발 성공으로 매출 성장",
+        "confidence": "high",
+        "action": "buy",
+        "critiqueNote": "거래량 -33%로 상승 동력 약화, RSI 63으로 목표 $130.00은 entry $108.00 대비 20.4% 상향, 조정 필요",
+        "catalysts": [
+          "매출 +21.2% YoY 성장",
+          "영업이익률 30%"
+        ],
+        "fundamentalBasis": "Q1 FY2026: 매출 20.9% YoY · 영업이익률 29.5% · ROE 24.9% · PE 17.8x",
+        "technicalBasis": "50MA($100.29) 위에서 RSI 63로 상승 추세 유지, 거래량 -33%로 조정 가능성",
+        "riskNote": "거래량 -33%로 매수세 약화 시 52주 고가($114.66) 돌파 실패",
+        "businessSummary": "Jakafi (ruxolitinib) 55% · Royalties & Pipeline 19% · Opzelura (ruxolitinib cream) 18% · Monjuvi (tafasitamab) 8%",
+        "businessDesc": "Incyte is a specialty biopharmaceutical company focused on oncology and inflammation, anchored by the blockbuster JAK inhibitor Jakafi and expanding into dermatology with Opzelura.",
+        "impliedVol": null,
+        "ivSkew": null,
+        "priceSources": [
+          "yahoo",
+          "nasdaq"
+        ],
+        "priceDevPct": 0,
+        "priceConfidence": "confirmed",
+        "entryLadder": [
+          {
+            "price": "$113.24",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "$110.40",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "$105.84",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "$117.59",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "$124.27",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "$130.00",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      }
+    ],
+    "kr": [
+      {
+        "ticker": "278470.KS",
+        "name": "에이피알",
+        "sector": "Consumer Defensive",
+        "market": "kr",
+        "rationale": "매출 +111.3% YoY(FY2025), 영업이익률 23.9%, 200MA 위(₩301,375), 50MA 위(₩405,730), RSI 49, 거래량+5%, 52주:₩137,800-₩459,000, 진입지지선:₩301,375",
+        "allocation": 15,
+        "entryZone": "₩380,000-₩408,000",
+        "entryRationale": "52주 고가 돌파 및 ROE 20% 유지로 상승 추세 지속",
+        "entryPlan": {
+          "anchorReason": "52w_high",
+          "discountPct": 0
+        },
+        "stopLoss": "₩350,000",
+        "target": "₩480,000",
+        "targetBull": "₩550,000",
+        "targetRationale": "기술적 신호 기반 진입",
+        "confidence": "high",
+        "action": "buy",
+        "catalysts": [
+          "매출 +111.3% YoY 성장",
+          "영업이익률 24%"
+        ],
+        "fundamentalBasis": "FY2025: 매출 111.3% YoY · 영업이익률 23.9% · ROE 65.0%",
+        "technicalBasis": "200MA 위(₩301,375) 및 50MA 위(₩405,730)에서 RSI 49로 상승 추세 유지, 거래량 +5%로 매수세 확대",
+        "riskNote": "거래량 +5%로 매수세 확대 시 52주 고가($459,000) 돌파 실패",
+        "businessDesc": "APR Co., Ltd. manufactures and sells cosmetic products for men and women.",
+        "businessSummary": "Household & Personal Products",
+        "impliedVol": null,
+        "priceSources": [
+          "yahoo",
+          "naver"
+        ],
+        "priceDevPct": 0,
+        "priceConfidence": "confirmed",
+        "entryLadder": [
+          {
+            "price": "₩405,960",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "₩395,760",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "₩379,440",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "₩424,100",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "₩454,200",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "₩480,000",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      },
+      {
+        "ticker": "483650.KS",
+        "name": "달바글로벌",
+        "sector": "Consumer Defensive",
+        "market": "kr",
+        "rationale": "매출 +68.2% YoY(FY2025), 영업이익률 19.5%, 200MA 위(₩168,483), 50MA 위(₩215,984), RSI 63, 거래량-29%, 52주:₩121,200-₩260,000, 진입지지선:₩168,483",
+        "allocation": 15,
+        "entryZone": "₩230,000-₩241,500",
+        "entryRationale": "52주 고가 돌파 및 ROE 26% 유지로 상승 추세 지속",
+        "entryPlan": {
+          "anchorReason": "52w_high",
+          "discountPct": 0
+        },
+        "stopLoss": "₩210,000",
+        "target": "₩280,000",
+        "targetBull": "₩320,000",
+        "targetRationale": "기술적 신호 기반 진입",
+        "confidence": "high",
+        "action": "buy",
+        "catalysts": [
+          "매출 +68.2% YoY 성장",
+          "영업이익률 20%"
+        ],
+        "fundamentalBasis": "FY2025: 매출 68.2% YoY · 영업이익률 19.5% · ROE 39.8%",
+        "technicalBasis": "200MA 위(₩168,483) 및 50MA 위(₩215,984)에서 RSI 63로 상승 추세 유지, 거래량 -29%로 조정 가능성",
+        "riskNote": "거래량 -29%로 매수세 약화 시 52주 고가($260,000) 돌파 실패",
+        "businessDesc": "d'Alba Global Co., Ltd. engages in the manufacturing and sale of perfumes and cosmetic products in South Korea and internationally.",
+        "businessSummary": "Household & Personal Products",
+        "impliedVol": null,
+        "priceSources": [
+          "yahoo",
+          "naver"
+        ],
+        "priceDevPct": 0,
+        "priceConfidence": "confirmed",
+        "entryLadder": [
+          {
+            "price": "₩240,293",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "₩234,255",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "₩224,595",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "₩251,237",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "₩266,725",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "₩280,000",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      }
+    ]
+  },
+  "sellRecommendations": {
+    "us": [],
+    "kr": [],
+    "total": 0
+  },
+  "buyCandidateScoring": {
+    "method": "4-stage (light → OHLCV → financials → LLM)",
+    "ruleCount": 23,
+    "top30": [
+      {
+        "ticker": "LIN",
+        "sector": "materials",
+        "market": "us",
+        "score": 43,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "ABNB",
+        "sector": "consumer-discretionary",
+        "market": "us",
+        "score": 41,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "FFIV",
+        "sector": "Information Technology",
+        "market": "us",
+        "score": 38,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "NSC",
+        "sector": "industrials",
+        "market": "us",
+        "score": 38,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "price_momentum_52w_high"
+        ]
+      },
+      {
+        "ticker": "V",
+        "sector": "financials",
+        "market": "us",
+        "score": 36,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "INCY",
+        "sector": "pharma-biotech",
+        "market": "us",
+        "score": 36,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery"
+        ]
+      },
+      {
+        "ticker": "GE",
+        "sector": "industrials",
+        "market": "us",
+        "score": 35,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery"
+        ]
+      },
+      {
+        "ticker": "WST",
+        "sector": "healthcare",
+        "market": "us",
+        "score": 35,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "ORCL",
+        "sector": "technology",
+        "market": "us",
+        "score": 34,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "UNP",
+        "sector": "industrials",
+        "market": "us",
+        "score": 34,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "price_momentum_52w_high"
+        ]
+      },
+      {
+        "ticker": "CSX",
+        "sector": "industrials",
+        "market": "us",
+        "score": 34,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "price_momentum_52w_high"
+        ]
+      },
+      {
+        "ticker": "TROW",
+        "sector": "financials",
+        "market": "us",
+        "score": 34,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "price_momentum_52w_high"
+        ]
+      },
+      {
+        "ticker": "SNA",
+        "sector": "industrials",
+        "market": "us",
+        "score": 34,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "price_momentum_52w_high"
+        ]
+      },
+      {
+        "ticker": "EXPD",
+        "sector": "industrials",
+        "market": "us",
+        "score": 33,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "price_momentum_52w_high"
+        ]
+      },
+      {
+        "ticker": "META",
+        "sector": "semiconductors",
+        "market": "us",
+        "score": 33,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "micro_options_call_flow"
+        ]
+      },
+      {
+        "ticker": "PTC",
+        "sector": "technology",
+        "market": "us",
+        "score": 33,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "TRGP",
+        "sector": "energy",
+        "market": "us",
+        "score": 31,
+        "reasons": [
+          "price_oversold_gap",
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery"
+        ]
+      },
+      {
+        "ticker": "WELL",
+        "sector": "real-estate",
+        "market": "us",
+        "score": 30,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "sector": "semiconductors",
+        "market": "us",
+        "score": 30,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "ISRG",
+        "sector": "healthcare",
+        "market": "us",
+        "score": 30,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "214450.KQ",
+        "sector": "Healthcare",
+        "market": "kr",
+        "score": 30,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "058470.KQ",
+        "sector": "Technology",
+        "market": "kr",
+        "score": 30,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "tech_rsi_oversold"
+        ]
+      },
+      {
+        "ticker": "278470.KS",
+        "sector": "Consumer Defensive",
+        "market": "kr",
+        "score": 30,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "price_pullback_50ma"
+        ]
+      },
+      {
+        "ticker": "196170.KQ",
+        "sector": "Professional Services",
+        "market": "kr",
+        "score": 29,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "price_pullback_50ma"
+        ]
+      },
+      {
+        "ticker": "LYV",
+        "sector": "communication-services",
+        "market": "us",
+        "score": 28,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "macro_fg_recovery",
+          "price_momentum_52w_high"
+        ]
+      },
+      {
+        "ticker": "483650.KS",
+        "sector": "Consumer Defensive",
+        "market": "kr",
+        "score": 26,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "micro_supply_contract"
+        ]
+      },
+      {
+        "ticker": "003230.KS",
+        "sector": "Consumer Staples",
+        "market": "kr",
+        "score": 25,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "326030.KS",
+        "sector": "Professional Services",
+        "market": "kr",
+        "score": 25,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "010280.KQ",
+        "sector": "Other",
+        "market": "kr",
+        "score": 24,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "064350.KS",
+        "sector": "Other",
+        "market": "kr",
+        "score": 24,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "macro_fg_recovery",
+          "price_mean_reversion"
+        ]
+      }
+    ]
+  },
+  "generatedAt": "2026-07-01T20:13:48.328Z",
+  "dataAsOf": "2026-07-01T20:13:48.328Z",
+  "source": "local-AISVI_FINANCE_T_2.0.0-merged",
+  "model": "AISVI_FINANCE_T_2.0.0-merged",
+  "locale": "ko",
+  "session": "midnight",
+  "schemaVersion": 8,
+  "buildId": "local",
+  "etfStrategy": [
+    {
+      "ticker": "SPY",
+      "name": "S&P 500",
+      "category": "broad",
+      "tag": "core",
+      "action": "buy",
+      "rationale": "시장 전체 분산 코어",
+      "price": 746.1,
+      "changePct": null,
+      "sizingHint": "코어 5–10% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "XLB",
+      "name": "소재 섹터",
+      "category": "sector",
+      "tag": "sector",
+      "action": "watch",
+      "rationale": "Materials 중립 — 섹터 분산 노출",
+      "price": 51.03,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "LIT",
+      "name": "리튬·배터리",
+      "category": "thematic",
+      "tag": "thematic",
+      "action": "watch",
+      "rationale": "Materials 테마 — 리튬·배터리",
+      "price": 77.97,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "VUG",
+      "name": "대형 성장주",
+      "category": "style",
+      "tag": "style",
+      "action": "buy",
+      "rationale": "성장 팩터 — 강세 스타일",
+      "price": 86.23,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "MTUM",
+      "name": "모멘텀 팩터",
+      "category": "style",
+      "tag": "style",
+      "action": "watch",
+      "rationale": "모멘텀 팩터 — 추세 추종",
+      "price": 327.9,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "QUAL",
+      "name": "퀄리티 팩터",
+      "category": "style",
+      "tag": "style",
+      "action": "watch",
+      "rationale": "퀄리티 팩터 — 우량주 분산",
+      "price": 218.94,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "SCHD",
+      "name": "배당성장(슈와브)",
+      "category": "dividend",
+      "tag": "dividend",
+      "action": "watch",
+      "rationale": "배당성장 — income 분산",
+      "price": 31.85,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "EWJ",
+      "name": "일본",
+      "category": "region",
+      "tag": "region",
+      "action": "buy",
+      "rationale": "일본 강세 — 4w +0.4% 상승과 F&G 45점 중립 ",
+      "price": 93.07,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "INDA",
+      "name": "인도",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "인도 강세 — 4w +2.9% 상승과 F&G 69점 과열, ⚖️ 기술적 매도신호(50MA(48.72) < 200MA(51.41) dead cross (-5.2%)) — 매수→관망 강등",
+      "price": 49.16,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "INDL",
+      "name": "인도 2x (단기)",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "인도 강세 레버리지 — ⚠️ 단기 트레이딩 전용(장기보유 가치소멸)",
+      "price": 44.75,
+      "changePct": -0.87,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "EWT",
+      "name": "대만",
+      "category": "region",
+      "tag": "region",
+      "action": "buy",
+      "rationale": "대만 강세 — 4w +2.1% 상승과 F&G 57점 중립,",
+      "price": 105.75,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "EWY",
+      "name": "한국",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "한국 중립 — 관망 EWY 1w 5.0% 상승세지만 ",
+      "price": 185.84,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "EWZ",
+      "name": "브라질",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "브라질 중립 — 관망 4w +0.0% 상승 정체 및 F",
+      "price": 34.17,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "GLD",
+      "name": "금",
+      "category": "commodity",
+      "tag": "diversifier",
+      "action": "watch",
+      "rationale": "포트폴리오 분산 — 금(주식 무상관)",
+      "price": 370.62,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "SLV",
+      "name": "은",
+      "category": "commodity",
+      "tag": "diversifier",
+      "action": "watch",
+      "rationale": "분산 — 은(산업+귀금속 혼합)",
+      "price": 53.59,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "SHY",
+      "name": "미국 단기국채(1-3년)",
+      "category": "bond",
+      "tag": "bond",
+      "action": "watch",
+      "rationale": "단기국채 — 현금성 분산",
+      "price": 81.84,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "IBIT",
+      "name": "비트코인 현물(블랙록)",
+      "category": "crypto",
+      "tag": "crypto",
+      "action": "avoid",
+      "rationale": "비트코인 4주 -18.07% — ⚠️ 고변동 자산, 소액 분산 전용",
+      "price": 34,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    }
+  ],
+  "qualityScore": 97,
+  "harnessAudit": {
+    "fixes": {
+      "krNameMismatch": [],
+      "rationaleDedup": [],
+      "insiderFilingsType": [],
+      "sectorAllocSum": {
+        "from": 52,
+        "to": 100
+      },
+      "portfolioAllocSum": {
+        "from": 52,
+        "to": 100
+      },
+      "buyLowConfidence": [],
+      "stopLossDeep": [],
+      "targetBullInverted": [],
+      "stopLossAboveEntry": [],
+      "entryFar50MA": [],
+      "companyChangeName": [],
+      "unrealistic52WRange": [],
+      "stopRationaleMismatch": [],
+      "usNameMismatch": [],
+      "targetBullUnrealistic": [],
+      "actionCritiqueMismatch": [
+        "FFIV:buy→watch (note 매칭)"
+      ],
+      "stopRationaleAligned": [],
+      "currencyMismatch": [],
+      "bannedDowngrade": []
+    },
+    "schemaErrors": [],
+    "appliedAt": "2026-07-01T20:13:51.936Z",
+    "totalFixes": 3
+  }
+}

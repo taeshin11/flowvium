@@ -2619,6 +2619,43 @@ const RISK_EVENT_EXPOSURE = [
     high: '예상 상회(고용 견조) → 견조하나 금리인하 지연 우려', low: '예상 하회(고용 둔화) → 침체 vs 인하 기대 상충' },
 ];
 function fmtEst(v, unit) { return v == null ? null : `${v}${unit === '%' ? '%' : unit ? ' ' + unit : ''}`; }
+/**
+ * 2026-07-02: stale riskEvents corrector — 미드나잇 리포트(익일 라벨)가 전날 이미 발생한 이벤트를
+ * 미래 risk 로 표기하던 결함(verify-report stale_event, Karpathy ≥5회 escalation). detector 만 있고
+ * corrector 가 없던 패턴을 sanitizeReport/correctNarrative 급 결정론 후처리로 격상.
+ *   drop: date < 보고서일(KST, generatedAt 기준 — verify-report (b) 와 동일 앵커) 인 이벤트.
+ *     과거 사실의 "미래 위험" 표기는 재작성보다 제거가 안전(재작성은 LLM 재호출 = 새 환각 표면).
+ *   backfill: 잔여 < 3 이면 econCal 미래 이벤트로 결정론 보충 — 이후 enrichRiskEvents 가
+ *     노출종목/예상치/서프라이즈를 주입하므로 골격(date/event/impact/watchFor)만 만들면 됨.
+ */
+function correctStaleRiskEvents(riskEvents, econCalEvents = [], generatedAtIso = new Date().toISOString(), outDropped = null) {
+  const repDate = new Date(new Date(generatedAtIso).getTime() + 9 * 3600000).toISOString().slice(0, 10);
+  const evs = Array.isArray(riskEvents) ? riskEvents : [];
+  const isStale = (e) => e?.date && typeof e.date === 'string' && e.date < repDate;
+  const kept = evs.filter(e => !isStale(e));
+  const dropped = evs.length - kept.length;
+  if (dropped) {
+    if (outDropped) outDropped.push(...evs.filter(isStale));  // H1 폐루프 적재용 (호출측이 _sanitized 로 학습루프에)
+    console.log(`  [후처리] riskEvents stale ${dropped}개 drop (date < ${repDate} — 과거 이벤트의 미래 risk 표기 차단)`);
+  }
+  if (kept.length < 3) {
+    const have = new Set(kept.map(e => `${e?.date}|${String(e?.event ?? '').slice(0, 24)}`));
+    const cal = (Array.isArray(econCalEvents) ? econCalEvents : [])
+      .filter(c => c?.date && typeof c.date === 'string' && c.date >= repDate && c.event)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    let filled = 0;
+    for (const c of cal) {
+      if (kept.length >= 3) break;
+      const key = `${c.date}|${String(c.event).slice(0, 24)}`;
+      if (have.has(key)) continue;
+      have.add(key);
+      kept.push({ date: c.date, event: String(c.event), impact: c.impact ?? 'medium', watchFor: '발표 예정 — 예상 대비 서프라이즈 방향 주시' });
+      filled++;
+    }
+    if (filled) console.log(`  [후처리] riskEvents econCal 미래 이벤트 ${filled}개 backfill (stale drop 후 잔여 부족 보충)`);
+  }
+  return kept;
+}
 function enrichRiskEvents(riskEvents, portfolio, econCalEvents = []) {
   const holds = (portfolio ?? []).filter(p => p?.ticker);
   const cal = Array.isArray(econCalEvents) ? econCalEvents : [];
@@ -8028,6 +8065,11 @@ async function generateViaOllama() {
     new Set((finalReport.portfolio ?? []).map(p => p.ticker)),
   );
   // riskEvents 포트폴리오 민감도(노출종목/액션) + 예상치/서프라이즈 결정론 주입 — 단순 경제일정 나열 탈피.
+  // 2026-07-02: stale corrector 를 enrich *앞*에 — 과거 이벤트 drop 후 잔여/backfill 분에만 노출·예상치 주입.
+  //   generatedAt 을 여기서 확정(아래 DB 적재 블록의 ?? 와 동일 값 유지) → corrector·verify-report 가 같은 날짜 앵커.
+  finalReport.generatedAt = finalReport.generatedAt ?? new Date().toISOString();
+  const _staleDroppedEvents = [];  // corrector 가 drop 한 과거 이벤트 — 아래 H1 폐루프에서 _sanitized 학습 적재
+  finalReport.riskEvents = correctStaleRiskEvents(finalReport.riskEvents, ctxRaw?.econCal?.events ?? [], finalReport.generatedAt, _staleDroppedEvents);
   finalReport.riskEvents = enrichRiskEvents(finalReport.riskEvents, finalReport.portfolio, ctxRaw?.econCal?.events ?? []);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
@@ -8518,6 +8560,16 @@ async function generateViaOllama() {
       }
     }
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
+  // 2026-07-02: stale riskEvents corrector 의 drop 도 H1 폐루프 적재 — _sanitized(발간 전 자동교정) 관례라
+  //   escalation 게이트는 통과하되 byType 추세로 가시화 + 다음 prompt 에 anti-pattern inject(원천 감소 유도).
+  for (const e of _staleDroppedEvents) {
+    narrativeDefectsForLearning.push({
+      ticker: 'EVENT', defect_type: 'stale_event_sanitized',
+      llm_value: `${e.event} @${e.date}`,
+      correct_value: '보고서일 이후 미래 이벤트만 riskEvents 에 — 이미 발생한 과거 이벤트 금지(corrector 가 drop)',
+      severity: 'low',
+    });
+  }
 
   // 2026-06-19: 한글 내 로마자 누출(포osi=포지션·인fra=인프라·스queeze=스퀴즈) 자가복구 — sanitizeText 가 못 잡는
   //   *새* latin bleed/garble 을 로컬 vLLM 으로 누출 필드만 재작성. detector(pre-publish gate)만 있고 일반
