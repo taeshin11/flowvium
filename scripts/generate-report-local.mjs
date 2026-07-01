@@ -3097,6 +3097,9 @@ async function buildIndexLevelsBlock() {
   let text = parts.length ? parts.join(', ') : '';
   // 2026-06-17 (사용자가 글씨 정독해 catch한 "KOSPI 8,864" 환각): ^KS11 등 결측 지수를 그냥 생략하면 3B 가
   //   기억기반 절대값을 창작(8,864). silent omit < 명시적 negative 지시. 결측 지수는 절대 레벨 금지를 못박는다.
+  // 2026-07-01 (finance 모델 전환 후 "KOSPI 8,421" 류 재발 — train-anchoring 이 기존 결측-only 지시를 우회):
+  //   지수가 available 이어도 모델이 콤마형 절대값을 창작 → sanitizer 가 매번 strip. 전역 리마인더로 상향.
+  if (text) text += ` | ※지수 절대레벨은 위 [Index Levels] 수치만 그대로 인용하라. 그 외 콤마형 절대값(N,NNN)을 절대 창작·추정 금지(train-memory 앵커링 환각).`;
   if (missing.length) text += `${text ? ' | ' : ''}⚠️ ${missing.join('/')} 절대 지수레벨 미가용(데이터 없음) — 이 지수들의 *절대 포인트 숫자를 절대 적지 말 것*(콤마형 레벨 금지). 오직 상대지표(전일대비%·200일선 대비%·20일 변화%·고점대비%)로만 서술하라.`;
   return { text, map };
 }
@@ -6458,11 +6461,11 @@ async function generateViaOllama() {
   const PF_N = Math.max(1, Math.min(4, parseInt(process.env.PORTFOLIO_BEST_OF_N ?? '2', 10) || 1));
   const pfPrompt = buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates);
   const wave1 = await Promise.all([
-    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 360000, 'macro'),
-    ...Array.from({ length: PF_N }, (_, i) => callOllama(pfPrompt, modelArg, 360000, PF_N > 1 ? `portfolio-${i + 1}/${PF_N}` : 'portfolio')),
-    callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 360000, 'regional'),
-    callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 360000, 'opportunity'),
-    callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 360000, 'narrative'),
+    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 900000, 'macro'),
+    ...Array.from({ length: PF_N }, (_, i) => callOllama(pfPrompt, modelArg, 900000, PF_N > 1 ? `portfolio-${i + 1}/${PF_N}` : 'portfolio')),
+    callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 900000, 'regional'),
+    callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 900000, 'opportunity'),
+    callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 900000, 'narrative'),
   ]);
   const macroRaw = wave1[0];
   const portfolioDrafts = wave1.slice(1, 1 + PF_N);
@@ -6501,8 +6504,8 @@ async function generateViaOllama() {
   if (retryNeeded.length > 0) {
     console.log(`  parse failed [${retryNeeded.join(', ')}] — retrying...`);
     const retries = await Promise.all([
-      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 360000, 'macro-retry')    : Promise.resolve(null),
-      !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 360000, 'regional-retry')                   : Promise.resolve(null),
+      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 900000, 'macro-retry')    : Promise.resolve(null),
+      !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 900000, 'regional-retry')                   : Promise.resolve(null),
     ]);
     if (!macroData    && retries[0]) macroData    = parseJson(retries[0], 'macro-retry');
     if (!regionalData && retries[1]) regionalData = parseJson(retries[1], 'regional-retry');
@@ -6527,7 +6530,7 @@ async function generateViaOllama() {
   // 생성부실(total < 4)일 때만 1회 retry — 6+6 채우기용 아님(품질 후보가 적은 건 정상).
   if (portfolioCounts.total < 4) {
     console.log(`  portfolio total ${portfolioCounts.total} (<4) — 생성부실 의심, 1회 retry (개수강제 아님)...`);
-    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 360000, 'portfolio-retry-1');
+    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 900000, 'portfolio-retry-1');
     const portfolioRetryData = parseJson(portfolioRetry, 'portfolio-retry-1');
     portfolioData = pickBetter(portfolioData, portfolioRetryData);
     portfolioCounts = countByMarket(portfolioData?.portfolio);
@@ -6639,11 +6642,11 @@ async function generateViaOllama() {
 
   const wave2Start = Date.now();
   const wave2Calls = [
-    callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx), modelArg, 360000, 'risk'),
-    callOllama(buildCompanyChangesPrompt(portfolioItemsDeduped, earnings, ctx.institutional, ctx.news, companyFinancials), modelArg, 360000, 'companyChanges'),
+    callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx), modelArg, 900000, 'risk'),
+    callOllama(buildCompanyChangesPrompt(portfolioItemsDeduped, earnings, ctx.institutional, ctx.news, companyFinancials), modelArg, 900000, 'companyChanges'),
   ];
   if (buyStocksDeduped.length > 0) {
-    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials), modelArg, 360000, 'stockDetail'));
+    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials), modelArg, 900000, 'stockDetail'));
   } else {
     wave2Calls.push(Promise.resolve(null));
   }
@@ -6805,7 +6808,7 @@ async function generateViaOllama() {
       macroData?.macroAnalysis ?? '',
       ctx.bbWarnings,
       ctx.assetFg,
-    ), modelArg, 360000, 'critique');
+    ), modelArg, 900000, 'critique');
     refinedPortfolio = applyCritique(portfolioItemsDeduped, critiqueRaw);
     // 종목별 critique 결과 상세 로그
     for (const p of refinedPortfolio) {

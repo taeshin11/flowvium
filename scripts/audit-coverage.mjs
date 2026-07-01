@@ -625,10 +625,15 @@ try {
     // 2026-05-31: severity escalate — 3회 ⚠️ / 5회 ❌ critical (data source 결함 의심, 코드 fix 필요)
     // 2026-06-17: harness_* (harness 가 잡아 학습용 적재, 사각지대#5) 는 critical 게이트에서 제외 —
     //   harness 가 처리 중인 패턴이라 "코드 fix 필수" 오발 방지. verify-escaped 재발만 critical.
+    // 2026-07-01: *_sanitized (narrative-corrector/sanitizer 가 발간 전 자동교정 → 보고서 클린) 도 동일 원칙으로
+    //   critical 제외. 위 "verify-escaped 재발만 critical" 을 sanitizer-caught 에도 일관 적용(구현 정합).
+    //   자동교정 defect 는 byType 목록에 여전히 노출(추세 가시성 유지) — 차단만 안 함. (finance 모델 전환 후
+    //   지수 절대값/오타 garble 이 매 보고서 sanitize 되며 카운트 누적, sanitize 됐는데 push 영구차단은 오발.)
     const repeat = db.prepare(`
       SELECT ticker, defect_type, COUNT(*) repeat_count
       FROM hallucination_history
-      WHERE detected_at >= datetime('now','-7 days') AND ticker IS NOT NULL AND defect_type NOT LIKE 'harness_%'
+      WHERE detected_at >= datetime('now','-7 days') AND ticker IS NOT NULL
+        AND defect_type NOT LIKE 'harness_%' AND defect_type NOT LIKE '%_sanitized'
       GROUP BY ticker, defect_type HAVING repeat_count >= 3 ORDER BY repeat_count DESC LIMIT 10
     `).all();
     const critical = repeat.filter(r => r.repeat_count >= 5);
