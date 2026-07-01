@@ -66,7 +66,7 @@ async function main() {
   // [B] 뉴스 번역 — 2026-06-04: ko 만 보던 사각지대(ja/zh 영어 leak 미감지) → 다국어 검증.
   //   ko(한글) + ja(가나/한자) + zh-CN(한자). cron 401 로 다국어 warm 실패하던 것을 모니터가 잡도록.
   {
-    const LOC = [{ l: 'ko', re: /[가-힣]/ }, { l: 'ja', re: /[぀-ヿ一-鿿]/ }, { l: 'zh-CN', re: /[一-鿿]/ }];
+    const LOC = [{ l: 'ko', re: /[가-힣]/ }, { l: 'ja', re: /[\u3040-\u30FF\u4E00-\u9FFF]/ }, { l: 'zh-CN', re: /[\u4E00-\u9FFF]/ }];
     for (const { l, re } of LOC) {
       const r = await getJson(`/api/news-cascade?locale=${l}`);
       const arts = (r.body?.articles || r.body?.events || r.body?.items || []);
@@ -91,7 +91,7 @@ async function main() {
         // 2026-06-13: bleed = *한글과 한자/가나가 혼재*하는 반쪽 번역만 (qwen 누출의 실형태).
         //   순수 외국어 원문(번역 실패 시 정직한 원문 유지)은 bleed 가 아니라 [B] 커버리지 소관 —
         //   나고야 기사(순수 일어)가 "qwen 누출"로 오분류되던 것 교정.
-        const bleeds = titles.filter(t => /[가-힣]/.test(t) && ((t.match(/[一-鿿]/g) || []).length >= 2 || /[ぁ-ヿ]/.test(t)));
+        const bleeds = titles.filter(t => /[가-힣]/.test(t) && ((t.match(/[\u4E00-\u9FFF]/g) || []).length >= 2 || /[ぁ-ヿ]/.test(t)));
         if (bleeds.length) issues.push(`[B5] 혼종 번역(bleed) ko ${bleeds.length}건 — 한글+한자/가나 혼재. 예: "${bleeds[0].slice(0, 30)}"`);
         else info.push('[B5] 혼종 번역 없음 (ko bleed 0)');
       }

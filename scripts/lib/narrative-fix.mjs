@@ -116,7 +116,7 @@ export function sanitizeText(s, locale) {
   t = t.replace(/짧은\s*매수\s*기회/g, '숏 스퀴즈 기회');             // "short opportunity" → 숏 스퀴즈 기회
   // 한자 bleed 제거 — ja/zh(한자=정당)는 스킵, 그 외(ko/en/…)는 매핑 후 잔여 스트립(제로톨러런스).
   if (!(locale && /^(ja|zh)/i.test(locale))) {
-    t = t.replace(/[㐀-䶿一-鿿]/g, (ch) => HAN_TO_KR[ch] ?? '').replace(/ {2,}/g, ' ').replace(/ +([,.)])/g, '$1');
+    t = t.replace(/[\u3400-\u4DBF\u4E00-\u9FFF]/g, (ch) => HAN_TO_KR[ch] ?? '').replace(/ {2,}/g, ' ').replace(/ +([,.)])/g, '$1');
   }
   t = t.replace(/(\d{1,2}\.?\d*\s*%)\s*유입(된|되)?/g, '$1 상승');       // "16.5% 유입"(수익률) → "16.5% 상승"(ETF 지역카드 등)
   return t;
