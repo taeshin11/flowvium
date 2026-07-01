@@ -86,3 +86,6 @@ data/rag/books/*
 !data/rag/books/README.md
 data/rag/sources/*
 !data/rag/sources/README.md
+
+__pycache__/
+*.pyc
