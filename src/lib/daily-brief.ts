@@ -651,7 +651,9 @@ export function buildPrompt(tf: Timeframe, ctx?: TabContext, locale = 'en'): str
     .map(([k, v]) => `[${k}] ${v}`)
     .join('\n');
   const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-  const langInstr = lang ? `Write ALL text values (title, content, bullets, outlook) in ${lang}. Keep tickers/numbers/JSON keys unchanged.` : 'Return English JSON only.';
+  // 2026-07-01 zero-Hanja 소스억제(ko 등 비-CJK 로케일): 한자 출력 금지. ja/zh 는 한자 정당이라 제외.
+  const noHanja = locale && !/^(ja|zh)/i.test(locale) ? ' Never output Chinese/Japanese Han characters — use only the target-language script or English (한자 금지, 영어가 한자보다 낫다).' : '';
+  const langInstr = lang ? `Write ALL text values (title, content, bullets, outlook) in ${lang}. Keep tickers/numbers/JSON keys unchanged.${noHanja}` : 'Return English JSON only.';
   return `Flowvium ${tfLabel} report ${today} — live tab data below. Synthesize all tabs. ${langInstr}
 
 ${body}

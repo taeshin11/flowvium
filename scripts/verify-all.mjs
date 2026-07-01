@@ -125,6 +125,15 @@ const checks = [
     dimensions: ['한자 차단 + 한글 보존 (sanitizeText 회귀)'],
   },
   {
+    // 2026-07-01 (노드 spinai1/2/6 G12 차용): 한자 커버리지 게이트 — LLM 출력표면 정적열거로
+    //   새 스트림/완성 표면이 한자가드 없이 추가되면 즉시 FAIL(회귀봉쇄). point-wise scrub 맹점 체계 봉쇄.
+    name: 'check-hanja-coverage',
+    script: 'scripts/check-hanja-coverage.mjs',
+    desc: '한자 커버리지 게이트(LLM 표면 열거·신규 무가드=FAIL)',
+    critical: true,
+    dimensions: ['LLM 출력표면 한자가드 커버리지(신규 미분류 표면 회귀봉쇄)'],
+  },
+  {
     name: 'verify-latest-report',
     script: 'scripts/verify-report.mjs',
     args: () => {

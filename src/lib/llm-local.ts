@@ -81,7 +81,7 @@ export async function localChat(
 //   미지원 → 생성 후 *결정론적 검사*로 동등 효과(감지 시 재생성/거부). 그쪽의 포괄적 스크립트 범위를
 //   locale-aware 로 차용: 각 locale 의 "기대 스크립트" 외 외국문자 출현 = bleed.
 const SCRIPTS = {
-  han: /[㐀-鿿]/g,          // CJK 한자(중국어·일어한자·한국한자 공통)
+  han: /[\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g,  // CJK 한자 6블록 BMP(부수2E80-2FDF·ExtA·Unified·Compat F900-FAFF). ES5 타겟이라 /u astral 제외
   hangul: /[가-힣]/,        // 한글
   kana: /[぀-ヿ]/,          // 히라가나·가타카나
   cyrillic: /[Ѐ-ӿ]/,      // 키릴(러시아)
@@ -103,7 +103,7 @@ export function hasChineseBleed(text: string, locale: string): boolean {
     case 'ja':  // 한자·가나 정상, 한글/기타 = bleed
       return SCRIPTS.hangul.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
     case 'ko':  // 한글 정상, 한자 2개+/기타 스크립트 = bleed
-      return hanCount >= 2 || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
+      return hanCount >= 1 || SCRIPTS.kana.test(text) || SCRIPTS.cyrillic.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text); // 2026-07-01 zero-Hanja: ko 는 한자 1개도 bleed(owner 정책)
     case 'ru':  // 키릴 정상
       return hanCount >= 2 || SCRIPTS.hangul.test(text) || SCRIPTS.kana.test(text) || SCRIPTS.thai.test(text) || SCRIPTS.arabic.test(text) || SCRIPTS.devanagari.test(text);
     case 'ar':
