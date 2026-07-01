@@ -787,9 +787,10 @@ export async function verifyReport(file, { silent = false } = {}) {
     const krThesis = String(r.regionStances?.korea?.thesis ?? '');
     let nFound = 0;
 
-    // (a) CJK 한자 누출 — 한글 텍스트에 중국어/일본어 한자(국가 약어 美中日韓 등 소수만 허용)
+    // (a) CJK 한자 누출 — 2026-07-01 제로톨러런스(사용자 "한자 나오면 안되 — 차라리 영어"): 국가약어(美中日韓)마저
+    //   불허. sanitizeText 가 한글변환/스트립하므로 발간분은 클린이어야 — 살아남은 한자 1자라도 = 결함(닫힌루프).
     const HAN = /[㐀-䶿一-鿿]/g;
-    const HAN_ALLOW = new Set([...'美中日韓北南東西獨佛英']);
+    const HAN_ALLOW = new Set();
     const bleed = [];
     for (const [k, v] of Object.entries(koFields)) {
       if (typeof v !== 'string') continue;

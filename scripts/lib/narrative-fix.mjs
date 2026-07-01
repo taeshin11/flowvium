@@ -94,7 +94,14 @@ function fixField(s, { realBp = null, indexMap = {}, stockChgMap = {}, fedNextLa
 // 콘탱고 변종 — 한글 변형 + 2026-06-19: latin 혼입형(컨티gio·컨텐go 등, evening 보고서 발간차단 사건). 콘탱고 어근
 //   (컨티/컨텐/콘텡/콘텐/콘탕)에 한글/라틴 꼬리가 붙은 깨짐을 통합 정규화 → latin_garble 게이트 차단 방지.
 const CONTANGO_VARIANTS = /컨티구오|컨티아고|컨텐고|컨텐코|콘텡고|콘텐고|콘탕고|(?:컨티|컨텐|콘텡|콘텐|콘탕)[a-zA-Z]{1,4}/g;
-export function sanitizeText(s) {
+// 2026-07-01 (사용자 "한자 나오면 안되 — 차라리 영어"): ko/비-CJK 로케일 리포트의 한자(漢字) bleed 제로톨러런스.
+//   국가·통화 등 고빈도는 한글 매핑, 나머지 한자는 스트립. ja/zh 로케일은 한자=정당 콘텐츠라 스킵.
+//   (노드 antibleed 는 한자병기 *보존*(의료문서) — FlowVium 은 정반대 정책: 한자 전면 차단.)
+const HAN_TO_KR = {
+  '美': '미국', '中': '중국', '日': '일본', '韓': '한국', '北': '북한', '獨': '독일', '佛': '프랑스', '英': '영국',
+  '露': '러시아', '歐': '유럽', '亞': '아시아', '臺': '대만', '台': '대만', '對': '대', '元': '원', '圓': '엔', '兌': '/', '兑': '/',
+};
+export function sanitizeText(s, locale) {
   if (typeof s !== 'string' || !s) return s;
   let t = s;
   t = t.replace(/-{2,}(\d)/g, '-$1');                                  // "매출 --4.9%" → "-4.9%" (이중부호)
@@ -107,16 +114,19 @@ export function sanitizeText(s) {
   t = t.replace(/짧은\s*매수\s*스퀴즈/g, '공매도 스퀴즈');             // "short squeeze" → 공매도 스퀴즈
   t = t.replace(/짧은\s*매수\s*(신호|점수|커버링)/g, '공매도 스퀴즈 $1');
   t = t.replace(/짧은\s*매수\s*기회/g, '숏 스퀴즈 기회');             // "short opportunity" → 숏 스퀴즈 기회
-  t = t.replace(/元/g, '원').replace(/兑|兌/g, '/');                    // 한자 bleed (元→원, 兑→/)
+  // 한자 bleed 제거 — ja/zh(한자=정당)는 스킵, 그 외(ko/en/…)는 매핑 후 잔여 스트립(제로톨러런스).
+  if (!(locale && /^(ja|zh)/i.test(locale))) {
+    t = t.replace(/[㐀-䶿一-鿿]/g, (ch) => HAN_TO_KR[ch] ?? '').replace(/ {2,}/g, ' ').replace(/ +([,.)])/g, '$1');
+  }
   t = t.replace(/(\d{1,2}\.?\d*\s*%)\s*유입(된|되)?/g, '$1 상승');       // "16.5% 유입"(수익률) → "16.5% 상승"(ETF 지역카드 등)
   return t;
 }
 // 보고서 모든 문자열 필드 deep-walk sanitize. {nFix} 반환 (in-place).
-export function sanitizeReport(report) {
+export function sanitizeReport(report, locale) {
   let nFix = 0;
   const walk = (obj) => {
-    if (Array.isArray(obj)) { for (let i = 0; i < obj.length; i++) { const v = obj[i]; if (typeof v === 'string') { const f = sanitizeText(v); if (f !== v) { obj[i] = f; nFix++; } } else if (v && typeof v === 'object') walk(v); } }
-    else if (obj && typeof obj === 'object') { for (const k of Object.keys(obj)) { const v = obj[k]; if (typeof v === 'string') { const f = sanitizeText(v); if (f !== v) { obj[k] = f; nFix++; } } else if (v && typeof v === 'object') walk(v); } }
+    if (Array.isArray(obj)) { for (let i = 0; i < obj.length; i++) { const v = obj[i]; if (typeof v === 'string') { const f = sanitizeText(v, locale); if (f !== v) { obj[i] = f; nFix++; } } else if (v && typeof v === 'object') walk(v); } }
+    else if (obj && typeof obj === 'object') { for (const k of Object.keys(obj)) { const v = obj[k]; if (typeof v === 'string') { const f = sanitizeText(v, locale); if (f !== v) { obj[k] = f; nFix++; } } else if (v && typeof v === 'object') walk(v); } }
   };
   walk(report);
   return { nFix };

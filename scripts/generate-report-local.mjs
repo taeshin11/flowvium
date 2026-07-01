@@ -4489,7 +4489,7 @@ function buildMacroPrompt(ctx, vix, session) {
     // 2026-06-17 (사용자: "000660.KS 가 왜 회사이름으로 안 나옴"). 후처리도 치환하지만 prompt 에서도 명시.
     '- ⚠️ 한국 종목은 *회사명*으로 표기 — 6자리 티커코드(예: 000660.KS, 005930.KS)를 본문에 그대로 쓰지 말 것. "SK하이닉스", "삼성전자" 처럼 이름으로.',
     '- ⚠️ 금리커브 기울기는 [Macro] 의 "금리커브 N.NNp" 값만 인용 — bp 로 임의 변환하거나 없는 "정상적(40bp)" 같은 값을 창작하지 말 것.',
-    '- ⚠️ 한국어 텍스트에 중국어/일본어 한자(예: 兑/兌) 누출 금지 — "달러/원", "대(對)" 등 한글로만.',
+    '- ⚠️ 한자(漢字) 절대 금지 — 국가·통화 포함 전부 한글(미국/중국/일본/달러/원). 부득이 비한글이면 영어(US, USD)가 한자보다 낫다. "對中"❌→"대중국"✅, "兌"❌.',
     '',
     `Write ALL text values in ${TARGET_LANG}. Respond ONLY in pure JSON, no markdown, no explanation:`,
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 핵심만 2-3 문장, 180-320자 — 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되 국면 해석 + 변곡 포인트 1개만, 군더더기 없이. 단문/항목 나열 금지, 문장으로 연결]",`,
@@ -5857,7 +5857,7 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     // 2026-06-16 라이브 noon 전수감사 결함 차단(verify-report.mjs narrative probe 와 짝).
     '- ⚠️ 수익률(return)을 자금유입/순매수규모(flow)로 둔갑 금지 — "4주 수익률 18%"를 "외국인 18% 유입/순매수"로 쓰지 말 것.',
     '- ⚠️ 외국인/기관 수급 *방향*은 입력에 명시된 방향만 — 입력이 "순매수 둔화/순매도"인데 "순매수 지속/연속 순매수"로 역전 금지.',
-    '- ⚠️ 한국어에 중국어/일본어 한자(예: 兑/兌) 누출 금지 — "달러/원" 처럼 한글로만.',
+    '- ⚠️ 한자(漢字) 절대 금지 — 국가·통화도 한글(미국/중국/달러/원). 비한글 불가피시 영어(US)가 한자보다 낫다.',
     '',
     'Respond in pure JSON:',
     `{"why":"[90-160자, 핵심만 1-2 문장 서술형 in ${TARGET_LANG}]","watch":"[≤80 chars in ${TARGET_LANG}]","story":"[180-320자, 핵심만 2-3 문장 서술형 in ${TARGET_LANG}]","hotThemes":["specific theme 1","specific theme 2","specific theme 3"],"sessionNote":"[≤60 chars in ${TARGET_LANG}]"}`,
@@ -8498,7 +8498,7 @@ async function generateViaOllama() {
     const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap, fedNextLabel: _nm?.label ?? null });
     if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);
     // 2026-06-16 페이지 전수감사: 모든 문자열 필드 garble sanitize(이중부호·orphan원·콘탱고·한자) + BOJ=FOMC 복사 교정
-    const { nFix: nSan } = sanitizeReport(finalReport);
+    const { nFix: nSan } = sanitizeReport(finalReport, localeArg);  // localeArg: ja/zh 는 한자 보존, 그 외 한자 차단
     const { nFix: nCB } = fixDuplicateCentralBankEvents(finalReport);
     const nKrName = krTickerToName(finalReport); // 2026-06-17: 내러티브 KR 티커코드 → 회사명 (000660.KS→SK하이닉스)
     const nIdx = stripFabricatedIndexLevels(finalReport); // 2026-06-17: "KOSPI 8,864"류 절대 지수레벨 환각 결정론 제거(피드 미공급)
