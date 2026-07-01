@@ -73,7 +73,10 @@ function checkOnce() {
     const vm = envTxt.match(/^\s*VLLM_MODEL\s*=\s*(.+)\s*$/m);
     if (vm) codeModels.add(vm[1].trim().replace(/^["']|["']$/g, ''));
     try { const bm = readFileSync(`${ROOT}/scripts/run-report.bat`, 'utf8').match(/--model=([A-Za-z0-9:._-]+)/); if (bm) codeModels.add(bm[1]); } catch {}
-    const raw = execSync('curl -s -m 6 http://127.0.0.1:8000/v1/models', { timeout: 8000, encoding: 'utf8' });
+    // 2026-07-01: curl 절대경로 필수 — pm2 spawn 환경은 대화형 셸과 PATH 가 달라 'curl' bare 는 못찾아
+    //   catch→조용히 SKIP(프로덕션 no-op = "모니터가 본다≠fix" 함정). SystemRoot 는 항상 env 에 존재.
+    const curlExe = `${process.env.SystemRoot || 'C:\\Windows'}\\System32\\curl.exe`;
+    const raw = execSync(`"${curlExe}" -s -m 6 http://127.0.0.1:8000/v1/models`, { timeout: 8000, encoding: 'utf8' });
     const served = new Set((JSON.parse(raw).data || []).map((m) => m.id));
     if (served.size && codeModels.size) {
       const missing = [...codeModels].filter((m) => !served.has(m));
