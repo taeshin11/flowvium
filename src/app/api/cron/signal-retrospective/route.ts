@@ -117,7 +117,10 @@ export async function GET(req: NextRequest) {
       tag: 'cron.signal-retrospective',
       maxTokens: 400,
       temperature: 0.6,
-      skipVllm: true, // EXAONE is too small for analytical English writing
+      // 2026-07-02: skipVllm 제거 — 클라우드 키 전부 revoked 상태라 skipVllm 은 유일한 LLM(vLLM Qwen3-30B)
+      //   을 건너뛰어 매주 aiSource=fallback 이었음. "EXAONE too small" 은 stale 가정.
+      //   timeout: finance 모델 실측 ~10 tok/s — 400 tok 이면 기본 30s 로도 아슬, cron 이라 여유 확보.
+      timeoutMs: 90000,
     });
 
     const retrospective: SignalRetrospective = {

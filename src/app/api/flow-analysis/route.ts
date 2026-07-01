@@ -212,9 +212,10 @@ export async function GET(request: Request) {
     systemPrompt: FLOW_SYSTEM_PROMPT,
     maxTokens: 1400,
     temperature: 0.55,
-    // EXAONE-2.4B는 JSON 구조 분석에 취약 — GROQ 70b 부터 시작
-    skipVllm: true,
-    timeoutMs: 25000,
+    // 2026-07-02: skipVllm 제거 — 클라우드 키 전부 revoked(.env.local 2026-06-15) 상태에서 skipVllm 은
+    //   유일한 LLM(vLLM Qwen3-30B)을 건너뛰어 영구 static-fallback 이었음. "EXAONE-2.4B 취약" 은 stale 가정.
+    //   timeout: finance 모델 실측 ~10 tok/s (AWQ 재양자화 전) — 1400 tok 상한이면 25s 는 항상 timeout.
+    timeoutMs: 150000,
     tag: 'flow-analysis',
   });
   const raw = aiResult.text;
@@ -280,7 +281,7 @@ export async function GET(request: Request) {
     const tfLabel = tf === '1w' ? '1W' : tf === '4w' ? '4W' : '13W';
     analysis = {
       summary: `${tfLabel} capital flows mechanical summary (AI analysis pending). Leaders: ${sorted.slice(0, 3).map(c => `${c.country} ${fmtRet(c.ret)}`).join(', ')}.`,
-      mainTheme: `Data summary (AI quota exhausted — resets 09:00 KST)`,
+      mainTheme: `Data summary (AI analysis temporarily unavailable)`,
       countries: sorted.map(c => ({
         country: c.country,
         ret: fmtRet(c.ret),
@@ -309,11 +310,11 @@ export async function GET(request: Request) {
   // Returns degraded (source=static-fallback) instead of error so UI can show a status.
   if (!analysis) {
     analysis = {
-      summary: 'AI capital flow analysis pending (GROQ quota exhausted — resets 09:00 KST). Price data unavailable.',
+      summary: 'AI capital flow analysis pending (local LLM unavailable). Price data unavailable.',
       mainTheme: 'Data unavailable — AI analysis pending',
       countries: [],
       rotations: [],
-      keyWatchpoints: ['AI quota: exhausted (daily reset 09:00 KST)'],
+      keyWatchpoints: ['AI analysis unavailable — local LLM offline'],
       _staticFallback: true,
     };
     result.analysis = analysis;
