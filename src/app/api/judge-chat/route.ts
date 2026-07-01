@@ -151,6 +151,8 @@ function checkChatDefects(question: string, answer: string, grounding: { tickers
 //   base 모델이 프롬프트를 무시해도 사용자는 정상 답변만 보게. checkChatDefects 와 같은 결함류를 기계적으로 교정.
 function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: string; price: number | null; fiscalYear?: string | null }> } | undefined): string {
   let a = text || '';
+  // 한자(漢字) 최종 스크럽(2026-07-01) — 스트림 소스억제(시스템프롬프트) 우회분 안전망(저장/최종렌더). BMP 5블록(부수~Compat, ES5 타겟 astral 제외).
+  a = a.replace(/[\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g, '');  // BMP 5블록(ES5 타겟이라 /u astral 불가 — 채팅 Ext-B bleed 사실상 0, 소스억제가 1차)
   const hasData = (grounding?.tickers ?? []).some(t => t.price != null);
   // stale_year corrector(2026-06-19 ChatGPT #14, dead-end 해소): 과거 연도를 "기준/최신/현재"로 표기하되 그게
   //   실제 회계연도(fiscalYear)도 아니고 역사적 맥락 단어(당시/과거/전년 등)도 없으면 → "최근 공개자료 기준"으로.
