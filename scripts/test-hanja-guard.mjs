@@ -14,6 +14,8 @@ const cases = [
   ['locale 미지정=ko 기본(스트립)', sanitizeText('美 반도체', undefined), '미국 반도체'],
   ['ja 로케일 한자 보존', sanitizeText('日本経済 中国貿易', 'ja'), '日本経済 中国貿易'],
   ['zh-CN 로케일 한자 보존', sanitizeText('中国 半导体 增长', 'zh-CN'), '中国 半导体 增长'],
+  ['CJK 호환이데오그래프(U+F900) 스트립', sanitizeText('삼성 豈 반도체', 'ko'), '삼성 반도체'],
+  ['병기괄호 한자 스트립 잔여정리', sanitizeText('부위 (椒間孔, foramen) 확인', 'ko'), '부위 (foramen) 확인'],
 ];
 let fail = 0;
 for (const [desc, got, want] of cases) {
