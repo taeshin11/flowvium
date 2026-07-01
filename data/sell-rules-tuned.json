@@ -1,8 +1,8 @@
 {
   "version": 2,
   "source": "initial-seed-with-guru-tech-fund",
-  "tunedAt": "2026-06-27T19:05:00.084Z",
-  "sampleSize": 40,
+  "tunedAt": "2026-07-01T23:47:16.799Z",
+  "sampleSize": 87,
   "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합. | 2026-06-06: micro_insider_selling 추가(매수·매도 대칭). | 2026-06-19: selflearn/guru 매도 갭 보강 3룰 추가(banListSell·marksEuphoria·druckTrendBreak).",
   "rules": [
     {
@@ -116,7 +116,7 @@
     },
     {
       "id": "rotation_loss",
-      "score": 6,
+      "score": 7,
       "urgency": "low",
       "category": "rotation",
       "condition": {
@@ -439,14 +439,14 @@
       "precisionPct": 100
     },
     "price_target_near": {
-      "n": 7,
-      "evaluated": 6,
-      "goodCall": 3,
-      "missedUpside": 2,
+      "n": 10,
+      "evaluated": 9,
+      "goodCall": 5,
+      "missedUpside": 3,
       "neutral": 1,
-      "avgDelta": 2.9,
-      "deltaSum": 17.5,
-      "precisionPct": 50
+      "avgDelta": -0.3,
+      "deltaSum": -2.299999999999997,
+      "precisionPct": 56
     },
     "rotation_profit": {
       "n": 2,
@@ -459,13 +459,73 @@
       "precisionPct": 0
     },
     "tech_200ma_breach": {
+      "n": 3,
+      "evaluated": 3,
+      "goodCall": 2,
+      "missedUpside": 0,
+      "neutral": 1,
+      "avgDelta": -3.1,
+      "deltaSum": -9.3,
+      "precisionPct": 67
+    },
+    "tech_dead_cross": {
+      "n": 3,
+      "evaluated": 3,
+      "goodCall": 1,
+      "missedUpside": 0,
+      "neutral": 2,
+      "avgDelta": -2.1,
+      "deltaSum": -6.199999999999999,
+      "precisionPct": 33
+    },
+    "fund_margin_decline": {
       "n": 1,
       "evaluated": 1,
       "goodCall": 1,
       "missedUpside": 0,
       "neutral": 0,
-      "avgDelta": -3.4,
-      "deltaSum": -3.4,
+      "avgDelta": -7.1,
+      "deltaSum": -7.1,
+      "precisionPct": 100
+    },
+    "macro_high_risk": {
+      "n": 40,
+      "evaluated": 39,
+      "goodCall": 9,
+      "missedUpside": 0,
+      "neutral": 30,
+      "avgDelta": -2.5,
+      "deltaSum": -96.80000000000001,
+      "precisionPct": 23
+    },
+    "tech_volume_dry": {
+      "n": 1,
+      "evaluated": 1,
+      "goodCall": 1,
+      "missedUpside": 0,
+      "neutral": 0,
+      "avgDelta": -3.5,
+      "deltaSum": -3.5,
+      "precisionPct": 100
+    },
+    "price_stop_breach": {
+      "n": 1,
+      "evaluated": 1,
+      "goodCall": 1,
+      "missedUpside": 0,
+      "neutral": 0,
+      "avgDelta": -6.1,
+      "deltaSum": -6.1,
+      "precisionPct": 100
+    },
+    "micro_options_put_flow": {
+      "n": 1,
+      "evaluated": 1,
+      "goodCall": 1,
+      "missedUpside": 0,
+      "neutral": 0,
+      "avgDelta": -6.3,
+      "deltaSum": -6.3,
       "precisionPct": 100
     }
   },
@@ -473,87 +533,87 @@
     "target_near": [
       {
         "threshold": 0.85,
-        "truePos": 3,
-        "falsePos": 4,
-        "missed": 8,
-        "total": 15,
-        "precision": 0.42857142857142855,
-        "recall": 0.2727272727272727
+        "truePos": 13,
+        "falsePos": 15,
+        "missed": 19,
+        "total": 47,
+        "precision": 0.4642857142857143,
+        "recall": 0.40625
       },
       {
         "threshold": 0.88,
-        "truePos": 3,
-        "falsePos": 4,
-        "missed": 8,
-        "total": 15,
-        "precision": 0.42857142857142855,
-        "recall": 0.2727272727272727
+        "truePos": 13,
+        "falsePos": 14,
+        "missed": 19,
+        "total": 46,
+        "precision": 0.48148148148148145,
+        "recall": 0.40625
       },
       {
         "threshold": 0.9,
-        "truePos": 3,
-        "falsePos": 4,
-        "missed": 8,
-        "total": 15,
-        "precision": 0.42857142857142855,
-        "recall": 0.2727272727272727
+        "truePos": 13,
+        "falsePos": 13,
+        "missed": 19,
+        "total": 45,
+        "precision": 0.5,
+        "recall": 0.40625
       },
       {
         "threshold": 0.92,
-        "truePos": 3,
-        "falsePos": 4,
-        "missed": 8,
-        "total": 15,
-        "precision": 0.42857142857142855,
-        "recall": 0.2727272727272727
+        "truePos": 13,
+        "falsePos": 10,
+        "missed": 19,
+        "total": 42,
+        "precision": 0.5652173913043478,
+        "recall": 0.40625
       },
       {
         "threshold": 0.95,
-        "truePos": 3,
-        "falsePos": 3,
-        "missed": 8,
-        "total": 14,
-        "precision": 0.5,
-        "recall": 0.2727272727272727
+        "truePos": 13,
+        "falsePos": 5,
+        "missed": 19,
+        "total": 37,
+        "precision": 0.7222222222222222,
+        "recall": 0.40625
       }
     ],
     "stop_near": [
       {
         "threshold": 1.02,
-        "truePos": 2,
+        "truePos": 12,
         "falsePos": 0,
-        "missed": 2,
+        "missed": 16,
         "precision": 1,
-        "recall": 0.5
+        "recall": 0.42857142857142855
       },
       {
         "threshold": 1.05,
-        "truePos": 2,
-        "falsePos": 3,
-        "missed": 2,
-        "precision": 0.4,
-        "recall": 0.5
+        "truePos": 12,
+        "falsePos": 11,
+        "missed": 16,
+        "precision": 0.5217391304347826,
+        "recall": 0.42857142857142855
       },
       {
         "threshold": 1.08,
-        "truePos": 2,
-        "falsePos": 6,
-        "missed": 2,
-        "precision": 0.25,
-        "recall": 0.5
+        "truePos": 12,
+        "falsePos": 25,
+        "missed": 16,
+        "precision": 0.32432432432432434,
+        "recall": 0.42857142857142855
       },
       {
         "threshold": 1.1,
-        "truePos": 2,
-        "falsePos": 7,
-        "missed": 2,
-        "precision": 0.2222222222222222,
-        "recall": 0.5
+        "truePos": 12,
+        "falsePos": 26,
+        "missed": 16,
+        "precision": 0.3157894736842105,
+        "recall": 0.42857142857142855
       }
     ],
     "best": {
-      "target_near": null,
-      "stop_near": null
+      "target_near": 0.95,
+      "stop_near": 1.02
     }
   },
   "scoreTuning": {
@@ -563,27 +623,27 @@
     "proposals": [
       {
         "id": "price_stop_breach",
-        "fired": 151,
-        "evaluated": 151,
-        "edge": 0.29,
+        "fired": 152,
+        "evaluated": 152,
+        "edge": 0.3,
         "current": 10,
         "applied": 10,
         "changed": false
       },
       {
         "id": "tech_dead_cross",
-        "fired": 5,
-        "evaluated": 5,
-        "edge": 0.23,
+        "fired": 8,
+        "evaluated": 8,
+        "edge": 0.14,
         "current": 9,
         "applied": 9,
         "changed": false
       },
       {
         "id": "tech_200ma_breach",
-        "fired": 1,
-        "evaluated": 1,
-        "edge": 0.6,
+        "fired": 3,
+        "evaluated": 3,
+        "edge": 0.32,
         "current": 9,
         "applied": 9,
         "changed": false
@@ -608,18 +668,18 @@
       },
       {
         "id": "price_target_near",
-        "fired": 82,
-        "evaluated": 76,
-        "edge": -0.02,
+        "fired": 85,
+        "evaluated": 79,
+        "edge": 0,
         "current": 7,
         "applied": 7,
         "changed": false
       },
       {
         "id": "fund_margin_decline",
-        "fired": 0,
-        "evaluated": 0,
-        "edge": null,
+        "fired": 1,
+        "evaluated": 1,
+        "edge": 0.83,
         "current": 7,
         "applied": 7,
         "changed": false
@@ -656,24 +716,24 @@
         "fired": 15,
         "evaluated": 15,
         "edge": 0.68,
-        "current": 5,
-        "applied": 6,
+        "current": 6,
+        "applied": 7,
         "changed": true
       },
       {
         "id": "tech_volume_dry",
-        "fired": 0,
-        "evaluated": 0,
-        "edge": null,
+        "fired": 1,
+        "evaluated": 1,
+        "edge": 0.61,
         "current": 4,
         "applied": 4,
         "changed": false
       },
       {
         "id": "macro_high_risk",
-        "fired": 0,
-        "evaluated": 0,
-        "edge": null,
+        "fired": 40,
+        "evaluated": 39,
+        "edge": -0.07,
         "current": 8,
         "applied": 8,
         "changed": false
@@ -752,9 +812,9 @@
       },
       {
         "id": "micro_options_put_flow",
-        "fired": 0,
-        "evaluated": 0,
-        "edge": null,
+        "fired": 1,
+        "evaluated": 1,
+        "edge": 0.78,
         "current": 4,
         "applied": 4,
         "changed": false
