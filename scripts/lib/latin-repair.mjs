@@ -19,7 +19,9 @@ export function bleedFrags(v) {
   return [...new Set([
     ...(v.match(/[가-힣][a-z]{2,6}[가-힣]/g) || []),
     ...(v.match(/[가-힣][a-z]{2,6}(?![가-힣])/g) || []),
-    ...(v.match(/(?<![가-힣])[a-z]{2,6}[가-힣]/g) || []),
+    // 2026-07-03: 룩비하인드에 라틴문자 추가 — CamelCase 브랜드+조사("SoftBank의"→"ank의")를 garble 로
+    //   오탐하던 것 fix. 진짜 torn garble(한글/공백 뒤 소문자+한글)은 계속 검출.
+    ...(v.match(/(?<![가-힣A-Za-z])[a-z]{2,6}[가-힣]/g) || []),
   ].map(x => x.replace(/[가-힣]/g, '')).filter(l => !UNIT_OK.test(l)))];
 }
 

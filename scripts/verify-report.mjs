@@ -879,7 +879,7 @@ export async function verifyReport(file, { silent = false } = {}) {
       if (typeof v !== 'string') continue;
       const frags = [...new Set([
         ...(v.match(/[가-힣][a-z]{2,6}(?![가-힣])/g) || []),     // 한글+라틴(뒤에 한글 아님 — latin_bleed 미포함분)
-        ...(v.match(/(?<![가-힣])[a-z]{2,6}[가-힣]/g) || []),     // 라틴+한글(앞에 한글 아님)
+        ...(v.match(/(?<![가-힣A-Za-z])[a-z]{2,6}[가-힣]/g) || []),  // 라틴+한글 — 2026-07-03: 앞 라틴 제외(CamelCase "SoftBank의"→"ank" 오탐 fix)
       ].map(x => x.replace(/[가-힣]/g, '')).filter(lat => !UNIT_OK.test(lat)))];
       if (frags.length) garble.push(`${k}:${frags.slice(0, 4).join(',')}`);
     }
