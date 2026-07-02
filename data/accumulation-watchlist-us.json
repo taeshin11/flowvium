@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-02T13:00:32.532Z",
+  "generatedAt": "2026-07-02T21:30:29.099Z",
   "universe": "US",
   "scanned": 367,
-  "count": 32,
-  "strongCount": 5,
-  "watchCount": 27,
+  "count": 28,
+  "strongCount": 3,
+  "watchCount": 25,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -15,67 +15,31 @@
       "coFire": 3,
       "lead": [
         "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 5.4× 급증(가격 평탄)",
+        "거래량 4.8× 급증(가격 평탄)",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -3.1,
-      "runup5dPct": 3.6,
+      "runup20dPct": -1.7,
+      "runup5dPct": 3.3,
       "medDollarVolUsd": 891760,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CIA",
-      "name": "Citizens, Inc.",
-      "tier": "strong",
-      "score": 41,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.4,
-      "runup5dPct": 1.5,
-      "medDollarVolUsd": 445666,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "BARK",
-      "name": "BARK, Inc.",
+      "ticker": "BHC",
+      "name": "Bausch Health Companies Inc.",
       "tier": "strong",
       "score": 37,
       "coFire": 3,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)",
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 7.8,
-      "runup5dPct": 12.7,
-      "medDollarVolUsd": 589620,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "REX",
-      "name": "REX American Resources Corporat",
-      "tier": "strong",
-      "score": 33,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -5.9,
-      "runup5dPct": 5.1,
-      "medDollarVolUsd": 7964705,
+      "runup20dPct": -1,
+      "runup5dPct": -7.2,
+      "medDollarVolUsd": 9378710,
       "smartAccum": false,
       "official": null
     },
@@ -90,8 +54,8 @@
         "거래량 2.8× 급증(가격 평탄)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": 1.2,
-      "runup5dPct": 2.3,
+      "runup20dPct": 2,
+      "runup5dPct": 2.5,
       "medDollarVolUsd": 354773,
       "smartAccum": false,
       "official": null
@@ -103,30 +67,13 @@
       "score": 36,
       "coFire": 2,
       "lead": [
-        "거래량 추세 21.2× 상승(지속 매집)",
-        "거래량 55.7× 급증(가격 평탄)",
+        "거래량 추세 21.5× 상승(지속 매집)",
+        "거래량 56.6× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -6.6,
-      "runup5dPct": 11.2,
-      "medDollarVolUsd": 187480,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "STRF",
-      "name": "Strategy Inc - 10.00% Series A ",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.5× 상승(지속 매집)",
-        "거래량 4.1× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -2.1,
-      "runup5dPct": 6.9,
-      "medDollarVolUsd": 9014656,
+      "runup20dPct": 11.2,
+      "runup5dPct": 11.9,
+      "medDollarVolUsd": 188032,
       "smartAccum": false,
       "official": null
     },
@@ -138,46 +85,29 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 4.7× 급증(가격 평탄)",
+        "거래량 4.5× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -5.1,
-      "runup5dPct": 3.6,
+      "runup20dPct": -8,
+      "runup5dPct": -1.8,
       "medDollarVolUsd": 1238974,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PGC",
-      "name": "Peapack-Gladstone Financial Cor",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 6개(저가 매수받침)"
-      ],
-      "runup20dPct": 11.1,
-      "runup5dPct": 4.4,
-      "medDollarVolUsd": 5300736,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "BHC",
-      "name": "Bausch Health Companies Inc.",
+      "ticker": "STRF",
+      "name": "Strategy Inc - 10.00% Series A ",
       "tier": "watch",
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 추세 3.4× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -4.8,
-      "runup5dPct": -4.4,
-      "medDollarVolUsd": 9344775,
+      "runup20dPct": -0.2,
+      "runup5dPct": 8.2,
+      "medDollarVolUsd": 9014656,
       "smartAccum": false,
       "official": null
     },
@@ -192,9 +122,9 @@
         "거래량 2.9× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 9.8,
-      "runup5dPct": 3.3,
-      "medDollarVolUsd": 5749627,
+      "runup20dPct": 11.5,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 5827616,
       "smartAccum": false,
       "official": null
     },
@@ -205,30 +135,13 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 추세 3.0× 상승(지속 매집)",
         "거래량 2.9× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -14.3,
-      "runup5dPct": 0.7,
-      "medDollarVolUsd": 35087698,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RGP",
-      "name": "Resources Connection, Inc.",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -3.2,
-      "runup5dPct": 8.5,
-      "medDollarVolUsd": 1457081,
+      "runup20dPct": -14.7,
+      "runup5dPct": 4.8,
+      "medDollarVolUsd": 36117920,
       "smartAccum": false,
       "official": null
     },
@@ -240,11 +153,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 2.7× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -8.7,
-      "runup5dPct": 5.8,
+      "runup20dPct": -8.6,
+      "runup5dPct": 11.2,
       "medDollarVolUsd": 502320,
       "smartAccum": false,
       "official": null
@@ -260,9 +173,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 7.7,
-      "runup5dPct": 7.4,
-      "medDollarVolUsd": 11551470,
+      "runup20dPct": 7.9,
+      "runup5dPct": 2.9,
+      "medDollarVolUsd": 12034386,
       "smartAccum": false,
       "official": null
     },
@@ -276,8 +189,8 @@
         "거래량 추세 2.6× 상승(지속 매집)",
         "거래량 4.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.4,
-      "runup5dPct": 2.2,
+      "runup20dPct": -8.3,
+      "runup5dPct": 2.4,
       "medDollarVolUsd": 1237770,
       "smartAccum": false,
       "official": null
@@ -289,12 +202,29 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 추세 2.5× 상승(지속 매집)",
         "거래량 4.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": 0.6,
-      "runup5dPct": 10.2,
-      "medDollarVolUsd": 669240,
+      "runup20dPct": 2.6,
+      "runup5dPct": 2.8,
+      "medDollarVolUsd": 716544,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CBL",
+      "name": "CBL & Associates Properties, In",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 10.8,
+      "runup5dPct": -0.4,
+      "medDollarVolUsd": 11115526,
       "smartAccum": false,
       "official": null
     },
@@ -305,12 +235,12 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.5× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 10.9,
-      "runup5dPct": 3.8,
+      "runup20dPct": 10,
+      "runup5dPct": 0.9,
       "medDollarVolUsd": 10613715,
       "smartAccum": false,
       "official": null
@@ -322,30 +252,13 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 10.2,
-      "runup5dPct": 4.3,
+      "runup20dPct": 11.3,
+      "runup5dPct": 1.4,
       "medDollarVolUsd": 6756322,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "HAFC",
-      "name": "Hanmi Financial Corporation",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.5× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.8,
-      "runup5dPct": 3.3,
-      "medDollarVolUsd": 6440151,
       "smartAccum": false,
       "official": null
     },
@@ -356,13 +269,13 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
+        "거래량 추세 1.6× 상승",
         "흡수 매집봉 2개(대량거래·변동폭 억제)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -14.3,
-      "runup5dPct": -18.2,
-      "medDollarVolUsd": 321900,
+      "runup20dPct": -11.1,
+      "runup5dPct": 10.4,
+      "medDollarVolUsd": 361500,
       "smartAccum": false,
       "official": null
     },
@@ -377,25 +290,9 @@
         "흡수 매집봉 2개(대량거래·변동폭 억제)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 0.1,
-      "runup5dPct": 1,
+      "runup20dPct": 0.9,
+      "runup5dPct": 0.9,
       "medDollarVolUsd": 1730460,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "IMCR",
-      "name": "Immunocore Holdings plc",
-      "tier": "watch",
-      "score": 25,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": 7.1,
-      "runup5dPct": 5.5,
-      "medDollarVolUsd": 12622218,
       "smartAccum": false,
       "official": null
     },
@@ -407,11 +304,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.6× 상승",
-        "거래량 2.8× 급증(가격 평탄)",
+        "거래량 2.9× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
       "runup20dPct": 0,
-      "runup5dPct": 0.8,
+      "runup5dPct": 0.4,
       "medDollarVolUsd": 12496667,
       "smartAccum": false,
       "official": null
@@ -424,12 +321,29 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.9× 상승",
-        "거래량 2.7× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 2.8× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -1.4,
-      "runup5dPct": 5.6,
+      "runup20dPct": 5.4,
+      "runup5dPct": 13.8,
       "medDollarVolUsd": 28442985,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "REX",
+      "name": "REX American Resources Corporat",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -2.8,
+      "runup5dPct": 3.6,
+      "medDollarVolUsd": 7893220,
       "smartAccum": false,
       "official": null
     },
@@ -440,79 +354,45 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 8,
-      "runup5dPct": 13.6,
+      "runup20dPct": 5.9,
+      "runup5dPct": 12.5,
       "medDollarVolUsd": 4806620,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "STRD",
-      "name": "Strategy Inc - 10.00% Series A ",
+      "ticker": "APOG",
+      "name": "Apogee Enterprises, Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -13.8,
-      "runup5dPct": 8.7,
-      "medDollarVolUsd": 7029072,
+      "runup20dPct": 8.7,
+      "runup5dPct": -4.5,
+      "medDollarVolUsd": 7427232,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PSTL",
-      "name": "Postal Realty Trust, Inc.",
+      "ticker": "MH",
+      "name": "McGraw Hill, Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": 9.8,
-      "runup5dPct": 4.7,
-      "medDollarVolUsd": 6767484,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MED",
-      "name": "MEDIFAST INC",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -10.8,
-      "runup5dPct": 6.5,
-      "medDollarVolUsd": 1918000,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CAC",
-      "name": "Camden National Corporation",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 6개(저가 매수받침)"
-      ],
-      "runup20dPct": 10.8,
-      "runup5dPct": 4.9,
-      "medDollarVolUsd": 4961437,
+      "runup20dPct": -8.2,
+      "runup5dPct": 14.8,
+      "medDollarVolUsd": 5249787,
       "smartAccum": false,
       "official": null
     },
@@ -523,12 +403,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)"
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.5,
-      "runup5dPct": -6.5,
-      "medDollarVolUsd": 3131746,
+      "runup20dPct": -8,
+      "runup5dPct": -2.2,
+      "medDollarVolUsd": 3138588,
       "smartAccum": false,
       "official": null
     },
@@ -539,12 +419,60 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 3.9× 급증(가격 평탄)"
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.9,
-      "runup5dPct": 1,
+      "runup20dPct": -8.8,
+      "runup5dPct": 1.5,
       "medDollarVolUsd": 1599600,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NVGS",
+      "name": "Navigator Holdings Ltd.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -12.6,
+      "runup5dPct": -7.1,
+      "medDollarVolUsd": 8752349,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MG",
+      "name": "Mistras Group Inc",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -5.2,
+      "runup5dPct": -11.1,
+      "medDollarVolUsd": 3182129,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AGMB",
+      "name": "AgomAb Therapeutics NV",
+      "tier": "watch",
+      "score": 15,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 5.4,
+      "runup5dPct": -5.8,
+      "medDollarVolUsd": 1235520,
       "smartAccum": false,
       "official": null
     }
