@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-01T21:30:29.021Z",
+  "generatedAt": "2026-07-02T13:00:32.532Z",
   "universe": "US",
-  "scanned": 365,
-  "count": 30,
-  "strongCount": 3,
+  "scanned": 367,
+  "count": 32,
+  "strongCount": 5,
   "watchCount": 27,
   "officialFewAccount": 0,
   "watchlist": [
@@ -22,6 +22,24 @@
       "runup20dPct": -3.1,
       "runup5dPct": 3.6,
       "medDollarVolUsd": 891760,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CIA",
+      "name": "Citizens, Inc.",
+      "tier": "strong",
+      "score": 41,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 8.4,
+      "runup5dPct": 1.5,
+      "medDollarVolUsd": 445666,
       "smartAccum": false,
       "official": null
     },
@@ -62,6 +80,40 @@
       "official": null
     },
     {
+      "ticker": "MHF",
+      "name": "Western Asset Municipal High In",
+      "tier": "strong",
+      "score": 32,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": 1.2,
+      "runup5dPct": 2.3,
+      "medDollarVolUsd": 354773,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PETS",
+      "name": "PetMed Express, Inc.",
+      "tier": "watch",
+      "score": 36,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 21.2× 상승(지속 매집)",
+        "거래량 55.7× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -6.6,
+      "runup5dPct": 11.2,
+      "medDollarVolUsd": 187480,
+      "smartAccum": false,
+      "official": null
+    },
+    {
       "ticker": "STRF",
       "name": "Strategy Inc - 10.00% Series A ",
       "tier": "watch",
@@ -91,24 +143,7 @@
       ],
       "runup20dPct": -5.1,
       "runup5dPct": 3.6,
-      "medDollarVolUsd": 1236027,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ABOS",
-      "name": "Acumen Pharmaceuticals, Inc.",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.3× 상승(지속 매집)",
-        "거래량 4.2× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.3,
-      "runup5dPct": 12.1,
-      "medDollarVolUsd": 840126,
+      "medDollarVolUsd": 1238974,
       "smartAccum": false,
       "official": null
     },
@@ -136,13 +171,13 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)",
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
       "runup20dPct": -4.8,
       "runup5dPct": -4.4,
-      "medDollarVolUsd": 8969714,
+      "medDollarVolUsd": 9344775,
       "smartAccum": false,
       "official": null
     },
@@ -160,6 +195,23 @@
       "runup20dPct": 9.8,
       "runup5dPct": 3.3,
       "medDollarVolUsd": 5749627,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CNXC",
+      "name": "Concentrix Corporation",
+      "tier": "watch",
+      "score": 31,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -14.3,
+      "runup5dPct": 0.7,
+      "medDollarVolUsd": 35087698,
       "smartAccum": false,
       "official": null
     },
@@ -198,23 +250,6 @@
       "official": null
     },
     {
-      "ticker": "AVD",
-      "name": "American Vanguard Corporation",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 11.2,
-      "runup5dPct": 9.9,
-      "medDollarVolUsd": 750270,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "PMT",
       "name": "PennyMac Mortgage Investment Tr",
       "tier": "watch",
@@ -248,18 +283,18 @@
       "official": null
     },
     {
-      "ticker": "LYEL",
-      "name": "Lyell Immunopharma, Inc.",
+      "ticker": "OM",
+      "name": "Outset Medical, Inc.",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.5× 상승(지속 매집)",
-        "거래량 4.9× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 4.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -12.9,
-      "runup5dPct": -0.2,
-      "medDollarVolUsd": 1662570,
+      "runup20dPct": 0.6,
+      "runup5dPct": 10.2,
+      "medDollarVolUsd": 669240,
       "smartAccum": false,
       "official": null
     },
@@ -276,7 +311,7 @@
       ],
       "runup20dPct": 10.9,
       "runup5dPct": 3.8,
-      "medDollarVolUsd": 10057258,
+      "medDollarVolUsd": 10613715,
       "smartAccum": false,
       "official": null
     },
@@ -332,6 +367,23 @@
       "official": null
     },
     {
+      "ticker": "BTT",
+      "name": "BlackRock Municipal 2030 Target",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 0.1,
+      "runup5dPct": 1,
+      "medDollarVolUsd": 1730460,
+      "smartAccum": false,
+      "official": null
+    },
+    {
       "ticker": "IMCR",
       "name": "Immunocore Holdings plc",
       "tier": "watch",
@@ -344,22 +396,6 @@
       "runup20dPct": 7.1,
       "runup5dPct": 5.5,
       "medDollarVolUsd": 12622218,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "COOK",
-      "name": "Traeger, Inc.",
-      "tier": "watch",
-      "score": 25,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": 8.8,
-      "runup5dPct": -5,
-      "medDollarVolUsd": 990288,
       "smartAccum": false,
       "official": null
     },
@@ -387,8 +423,8 @@
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.6× 급증(가격 평탄)",
+        "거래량 추세 1.9× 상승",
+        "거래량 2.7× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
       "runup20dPct": -1.4,
@@ -431,22 +467,6 @@
       "official": null
     },
     {
-      "ticker": "MED",
-      "name": "MEDIFAST INC",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -10.8,
-      "runup5dPct": 6.5,
-      "medDollarVolUsd": 1918000,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "PSTL",
       "name": "Postal Realty Trust, Inc.",
       "tier": "watch",
@@ -464,50 +484,67 @@
       "official": null
     },
     {
-      "ticker": "SMHI",
-      "name": "SEACOR Marine Holdings Inc.",
+      "ticker": "MED",
+      "name": "MEDIFAST INC",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -10.8,
+      "runup5dPct": 6.5,
+      "medDollarVolUsd": 1918000,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CAC",
+      "name": "Camden National Corporation",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 6개(저가 매수받침)"
+      ],
+      "runup20dPct": 10.8,
+      "runup5dPct": 4.9,
+      "medDollarVolUsd": 4961437,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SITC",
+      "name": "SITE Centers Corp.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -9.5,
+      "runup5dPct": -6.5,
+      "medDollarVolUsd": 3131746,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BOOM",
+      "name": "DMC Global Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 3.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": 1.7,
-      "runup5dPct": 6.4,
-      "medDollarVolUsd": 532644,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PRA",
-      "name": "ProAssurance Corporation",
-      "tier": "watch",
-      "score": 19,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": 4.9,
-      "runup5dPct": 1.4,
-      "medDollarVolUsd": 20843416,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ALEC",
-      "name": "Alector, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 3.1,
-      "runup5dPct": 12.3,
-      "medDollarVolUsd": 1096480,
+      "runup20dPct": -7.9,
+      "runup5dPct": 1,
+      "medDollarVolUsd": 1599600,
       "smartAccum": false,
       "official": null
     }
