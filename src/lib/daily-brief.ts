@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis';
 import { logger } from './logger';
-import { callAI as callAIProvider } from './ai-providers';
+import { callAI as callAIProvider, llmTimeoutMs } from './ai-providers';
 import { localChat } from './llm-local';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
@@ -279,7 +279,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string, tf
 //   만 나오던 문제(홈 daily-brief 가 한국어 미생성) 해결. 실패 시 cloud fallback.
 // 2026-06-07: 모델 통일 — qwen3:8b 네이티브(think:false) localChat. 종전 /v1+exaone 제거.
 async function callOllamaBrief(prompt: string): Promise<string | null> {
-  return localChat(prompt, { temperature: 0.6, maxTokens: 2500, timeoutMs: 120000 });
+  return localChat(prompt, { temperature: 0.6, maxTokens: 2500, timeoutMs: llmTimeoutMs(2500) }); // 2026-07-02: 120s→280s (10 tok/s 실측)
 }
 
 export async function callAI(prompt: string): Promise<{ text: string; source: string; attempts?: unknown }> {

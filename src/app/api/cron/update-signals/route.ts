@@ -47,14 +47,23 @@ export async function GET(req: NextRequest) {
   const log: string[] = [];
   log.push(`redis: ${redis ? 'connected' : 'null (check UPSTASH env vars)'}`);
 
-  // ── 1단계: EDGAR 13F 파싱 (fire & forget — 결과 나오는 것만 저장) ──────────
-  // 15개 기관을 병렬 처리. 실패해도 나머지는 계속.
+  // ── 1단계: EDGAR 13F 파싱 (결과 나오는 것만 저장) ──────────
+  // 2026-07-02: 완전 병렬(15기관 동시) → SEC rate-limit(≤10 req/s)에 전기관 429 전멸
+  //   ("no signals parsed" → /api/signals 빈배열, 신규머신 실증). 순차 + 500ms 간격 + 429 시 1회
+  //   재시도(3s 백오프). 시간은 늘지만 cron 이라 무해(응답 후에도 서버측 계속 진행).
   const institutionEntries = Object.entries(INSTITUTIONS);
-  const holdingsResults = await Promise.allSettled(
-    institutionEntries.map(([name, { cik }]) =>
-      fetchInstitutionHoldings(name, cik).catch(() => null)
-    )
-  );
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+  const holdingsResults: Array<PromiseSettledResult<Awaited<ReturnType<typeof fetchInstitutionHoldings>> | null>> = [];
+  for (const [name, { cik }] of institutionEntries) {
+    let v: Awaited<ReturnType<typeof fetchInstitutionHoldings>> | null = null;
+    try { v = await fetchInstitutionHoldings(name, cik); } catch { v = null; }
+    if (!v || !v.current?.positions?.length) {
+      await sleep(3000);  // 429 백오프 후 1회 재시도
+      try { v = await fetchInstitutionHoldings(name, cik); } catch { v = null; }
+    }
+    holdingsResults.push({ status: 'fulfilled', value: v });
+    await sleep(500);
+  }
 
   const signals: InstitutionalSignal[] = [];
   // ticker → {institution, shares, value, quarter, pct(null for now)}

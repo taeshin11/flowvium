@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server';
 function backgroundTask(fn: () => Promise<unknown>): void {
   void fn().catch(() => { /* swallow — logged inside */ });
 }
-import { callAI } from '@/lib/ai-providers';
+import { callAI, llmTimeoutMs } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
 import { localChat, localChatNoBleed, hasChineseBleed } from '@/lib/llm-local';
@@ -168,7 +168,7 @@ function localizeTimeframe(tf: string, locale: string): string {
 // 2026-06-07: 모델 통일 — 보고서와 동일 qwen3:8b 네이티브(think:false) localChat. 종전 /v1+exaone
 //   이중모델 GPU 스왑 제거. 청크(4기사)라 240s 충분.
 async function translateViaOllama(prompt: string): Promise<string | null> {
-  return localChat(prompt, { temperature: 0.3, maxTokens: 12000, timeoutMs: 240000 });
+  return localChat(prompt, { temperature: 0.3, maxTokens: 12000, timeoutMs: llmTimeoutMs(12000) }); // 2026-07-02: 240s→300s(정책 상한, 10 tok/s 실측)
 }
 
 // 2026-06-06: 12-기사 strict-JSON 배치가 가용 모델(exaone 7.8B cold-load null·GROQ 70b 429·
@@ -346,7 +346,7 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     //   클라우드만 시도(키 없으면 원문 유지 → 피드 필터가 미번역 외국어 기사를 drop).
     const skipLocal = locale === 'ko' && residualForeign(text, locale);
     // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud 폴백.
-    const out = skipLocal ? null : await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: 60000 });
+    const out = skipLocal ? null : await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: llmTimeoutMs(800) });
     // 2026-06-14: ko 는 출력의 잔존 가나를 결정론 음차로 정리. 그래도 잔존-외국어면 캐시 거부 → 폴백.
     let outT = out?.trim();
     if (outT && locale === 'ko') outT = kanaToHangul(outT);
@@ -644,7 +644,7 @@ async function callCascadeAI(prompt: string): Promise<string> {
   //   keyword fallback 만 남고 대부분 빈 배열이던 회귀; 사용자 "케스케이드 종목 안 나오네").
   //   qwen3 가 cascade JSON 양호 생성(실측). GPU 포화/실패 시 cloud(callAI) fallback.
   try {
-    const local = await localChat(`${CASCADE_SYSTEM_PROMPT}\n\n${prompt}`, { temperature: 0.4, maxTokens: 700, timeoutMs: 30000 });
+    const local = await localChat(`${CASCADE_SYSTEM_PROMPT}\n\n${prompt}`, { temperature: 0.4, maxTokens: 700, timeoutMs: llmTimeoutMs(700) });
     if (local && local.trim()) return local;
   } catch { /* 로컬 실패 → cloud fallback */ }
   try {

@@ -11,6 +11,11 @@
  */
 import { logger } from './logger';
 
+// 2026-07-02: LLM 타임아웃 단일소스 — finance 모델 실측 ~10 tok/s 라 고정 타임아웃은 장문에서 항상
+//   timeout → silent fallback (flow-analysis/judge-chat/invest-critic 사건). 프리필 30s + 100ms/tok, 상한 300s.
+//   회귀가드: scripts/check-llm-routing.mjs [2].
+export const llmTimeoutMs = (maxTokens: number) => Math.min(300_000, 30_000 + maxTokens * 100);
+
 export interface AICallResult {
   text: string;
   source: string;  // 'vllm-local' | 'fallback'

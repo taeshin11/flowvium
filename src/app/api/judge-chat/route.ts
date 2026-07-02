@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { callAI } from '@/lib/ai-providers';
+import { callAI, llmTimeoutMs } from '@/lib/ai-providers';
 import { createRedis } from '@/lib/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { getChatUid } from '@/lib/member-auth';
@@ -288,7 +288,7 @@ async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
     if (krCode) { for (const sfx of ['.KS', '.KQ']) { if (await yahooHasTicker(krCode[1] + sfx)) return [krCode[1] + sfx]; } }
     // LLM 은 *영문 회사명*만 추출(코드 추측 금지) → Yahoo 검색이 권위있게 티커 해석.
     const sys = '사용자 메시지에서 언급된 주식의 *영문 정식 회사명*을 추출하라. 예: 하이닉스→"SK Hynix", 하우맷→"Howmet Aerospace", 엔비디아→"NVIDIA", 삼성전자→"Samsung Electronics", 기아→"Kia". 종목 언급이 없으면 빈 배열. JSON 만 출력: {"names":["SK Hynix"]}';
-    const r = await callAI(text, { systemPrompt: sys, maxTokens: 80, temperature: 0, tag: 'ticker-resolve', timeoutMs: 15000 });
+    const r = await callAI(text, { systemPrompt: sys, maxTokens: 80, temperature: 0, tag: 'ticker-resolve', timeoutMs: llmTimeoutMs(80) });
     const mm = (r.text || '').match(/\{[\s\S]*\}/);
     if (!mm) return [];
     const names = (JSON.parse(mm[0]).names ?? []) as unknown[];
@@ -348,9 +348,7 @@ async function fetchMacroContext(origin: string): Promise<{ text: string; vix: n
   return _macroCache;
 }
 
-// LLM 타임아웃 — 출력토큰 상한에 비례(2026-07-02): finance 모델 실측 ~10 tok/s 라 55s 고정은 심층답변(3800tok)
-//   을 중간 절단 → fallback 도 같은 이유로 timeout → "응답할 수 없습니다" 였음. 100ms/tok + 프리필 30s, 상한 300s.
-const llmTimeoutMs = (maxTokens: number) => Math.min(300_000, 30_000 + maxTokens * 100);
+// LLM 타임아웃: ai-providers.llmTimeoutMs 단일소스 (finance 모델 ~10 tok/s — 55s 고정은 심층답변 절단이었음).
 // vLLM OpenAI SSE 스트리밍 — 토큰 단위 delta 를 onDelta 로 흘리고 전체 텍스트 반환 (2026-06-18, 사용자 "스트리밍 부드럽게").
 async function streamVllm(system: string, user: string, opts: { maxTokens: number; temperature: number }, onDelta: (s: string) => void): Promise<string> {
   const base = (process.env.VLLM_URL || 'http://127.0.0.1:8000').replace(/\/v1\/?$/, '');

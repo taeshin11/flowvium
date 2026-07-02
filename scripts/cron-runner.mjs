@@ -55,6 +55,17 @@ function recordCronFailure(path, detail) {
   while (cronFailures.length > 50) cronFailures.shift();
 }
 
+// 2026-07-02: HTTP 크론 마지막 성공 기록 — 시작시 catchup(놓친 슬롯 자기치유)의 판정 근거.
+//   컷오버/재부팅으로 슬롯을 놓치면 Redis 캐시가 TTL 만료로 조용히 죽던 클래스(signal-retrospective
+//   콜드캐시 + /api/signals 빈배열, 2026-07-02 같은 날 2건)의 영구 봉쇄.
+const lastRunPath = resolve(process.cwd(), 'logs/cron-last-run.json');
+let _lastRun = {};
+try { _lastRun = JSON.parse(readFileSync(lastRunPath, 'utf8')); } catch { /* 최초 */ }
+function recordRun(path) {
+  _lastRun[path] = Date.now();
+  try { writeFileSync(lastRunPath, JSON.stringify(_lastRun, null, 1)); } catch { /* 비치명 */ }
+}
+
 async function runJob(path) {
   const t0 = Date.now();
   try {
@@ -83,7 +94,7 @@ async function runJob(path) {
       } catch {}
     }
     log(`${path} → HTTP ${res.status} (${Date.now() - t0}ms)${fail ? ' ⚠️ ' + fail : ''}`);
-    if (fail) recordCronFailure(path, fail);
+    if (fail) recordCronFailure(path, fail); else recordRun(path);
   } catch (e) {
     const detail = String(e?.message || e);
     log(`${path} → ERROR ${detail} (${Date.now() - t0}ms)`);
@@ -194,7 +205,8 @@ async function runMonitor() {
   //   runMaintenance 가 '데이터 변경 시에만' 커밋해 잘 안 바뀌는 산출물은 오탐 → 잡 실행 자체를 기록하는
   //   heartbeat(logs/maintenance-heartbeat.json, runMaintenance 가 매 실행 갱신)로 검사. 기대주기 초과 시 결함.
   try {
-    const HB_MAX = { 'build-financials': 30, 'scan-accumulation': 20, 'scan-accumulation-us': 20, 'scan-insider-kr': 20, 'build-us-smallcap': 8 * 24, 'dart-corpcodes': 30, 'dart-prefetch': 30, 'sell-outcomes': 30, 'build-backlog': 9 * 24 };
+    // 2026-07-02: MAINT_JOBS 단일소스에서 파생 — 등록/모니터/catchup 이 같은 기대주기 공유(drift 방지).
+    const HB_MAX = Object.fromEntries(MAINT_JOBS.map((j) => [j.label, j.maxAgeH]));
     let hb = {};
     try { hb = JSON.parse(readFileSync(resolve(process.cwd(), 'logs/maintenance-heartbeat.json'), 'utf8')); } catch { /* 아직 없음 */ }
     const stale = [];
@@ -309,31 +321,65 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
     }
   } catch (e) { log(`[${label}] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 80)}`); }
 }
-cron.schedule('5 17 * * *', () => runMaintenance('dart-corpcodes', 'scripts/fetch-dart-corp-codes.mjs', 300000, ['data/dart-corp-codes.json']), { timezone: TZ });   // 02:05 KST
-// 2026-06-17 (사용자 "추가해"): 작전주 매집워치(scan-accumulation) 2회/일 갱신 — 기존엔 크론 없어 36h 신선도
-//   가드 초과 stale 방치(한글과컴퓨터 06-14 신호 고착). KR 마감 후 + 개장 전 (max gap ~16h < 36h). 산출 자동 커밋.
-cron.schedule('0 7 * * *',  () => runMaintenance('scan-accumulation', 'scripts/scan-accumulation.mjs', 600000, ['data/accumulation-watchlist.json']), { timezone: TZ }); // 16:00 KST (KR 마감 후)
-cron.schedule('0 22 * * *', () => runMaintenance('scan-accumulation', 'scripts/scan-accumulation.mjs', 600000, ['data/accumulation-watchlist.json']), { timezone: TZ }); // 07:00 KST (KR 개장 전)
-// 2026-06-17: US 소형주 매집 유니버스(Yahoo screener aggressive_small_caps) 주 1회 갱신 — 작전주/비정상거래량
-//   매집은 소형주 현상이라 대형주 candidate 풀로는 신호 0. 풀은 천천히 변함 → 주간.
-cron.schedule('0 19 * * 1', () => runMaintenance('build-us-smallcap', 'scripts/build-us-smallcap-universe.mjs', 600000, ['data/us-smallcap-universe.json']), { timezone: TZ }); // 월 04:00 KST
-// 2026-06-17 (사용자 "us종목 파악안됨?"): US 작전주 매집(거래량 기반) 2회/일. US 마감 후(16:00 ET≈21:00 UTC) + KST 낮.
-//   별도 label 'scan-accumulation-us' = heartbeat 충돌 방지. US 풀이 커 timeout 900s.
-cron.schedule('30 21 * * *', () => runMaintenance('scan-accumulation-us', 'scripts/scan-accumulation.mjs --us', 900000, ['data/accumulation-watchlist-us.json']), { timezone: TZ }); // 06:30 KST (US 마감 후)
-cron.schedule('0 13 * * *',  () => runMaintenance('scan-accumulation-us', 'scripts/scan-accumulation.mjs --us', 900000, ['data/accumulation-watchlist-us.json']), { timezone: TZ }); // 22:00 KST (US 개장 직후)
-// 2026-06-17 (사용자 "내부자 거래 KS종목 파악안됨?"): KR 임원·주요주주 지분공시 피드(DART) 2회/일. KR 마감 후 + 개장 전.
-//   로컬 /api/insider-kr/[ticker] 순회(lib 단일소스, 12h 캐시) → data/insider-kr-feed.json. 산출 자동 커밋.
-cron.schedule('30 7 * * *',  () => runMaintenance('scan-insider-kr', 'scripts/scan-insider-kr.mjs', 900000, ['data/insider-kr-feed.json']), { timezone: TZ }); // 16:30 KST (KR 마감 후)
-cron.schedule('30 22 * * *', () => runMaintenance('scan-insider-kr', 'scripts/scan-insider-kr.mjs', 900000, ['data/insider-kr-feed.json']), { timezone: TZ }); // 07:30 KST (KR 개장 전)
-cron.schedule('5 18 * * *', () => runMaintenance('dart-prefetch', 'scripts/prefetch-dart-financials.mjs', 900000), { timezone: TZ }); // 03:05 KST
-cron.schedule('35 18 * * *', () => runMaintenance('sell-outcomes', 'scripts/evaluate-sell-outcomes.mjs', 600000), { timezone: TZ });  // 03:35 KST — 매도 성과평가 (2026-06-12 신설, 튜닝 ground truth)
-cron.schedule('5 19 * * 6', () => runMaintenance('tune-sell-rules', 'scripts/tune-sell-rules.mjs --apply', 600000, ['data/sell-rules-tuned.json']), { timezone: TZ }); // 일 04:05 KST — 주간 매도룰 pnl 백튜닝 자동적용+커밋(±20% cap, .bak)
-cron.schedule('20 19 * * 6', () => runMaintenance('tune-buy-rules', 'scripts/tune-buy-rules.mjs --apply', 600000, ['data/buy-rules-tuned.json']), { timezone: TZ }); // 일 04:20 KST — 주간 매수룰 outcome 백튜닝 자동적용+커밋(write-then-revert 해소)
-// 2026-06-13: 수주잔고(SEC RPO) 주간 갱신 — 10-K/Q 분기 보고라 주 1회면 충분. 산출물 자동 커밋.
-cron.schedule('5 20 * * 6', () => runMaintenance('build-backlog', 'scripts/build-backlog.mjs', 1200000, ['data/backlog.json']), { timezone: TZ }); // 일 05:05 KST
-// 2026-06-13: 전 종목 재무 사전수집 (사용자 "미리미리 수집") — 매일 04:35 KST (분기보고라 일 1회).
-cron.schedule('35 19 * * *', () => runMaintenance('build-financials', 'scripts/build-financials-cache.mjs', 1500000, ['data/financials.json']), { timezone: TZ });
-log('유지보수 cron 복원: DART corp-codes(02:05)/prefetch(03:05) 매일 + buy/sell rules 튜닝(일 04:05/04:20) + backlog(일 05:05 KST)');
+// 2026-07-02: 유지보수 잡 테이블화 — 스케줄 등록·모니터 freshness(HB_MAX)·시작시 catchup 3소비처가
+//   같은 정의를 공유(중복 나열 drift 방지). maxAgeH = runMonitor 기대주기(초과=미실행 의심/catchup 대상).
+//   각 항목 이력·사유는 git blame 참조(2026-06-12~17 신설분).
+const MAINT_JOBS = [
+  { label: 'dart-corpcodes',       script: 'scripts/fetch-dart-corp-codes.mjs',      timeoutMs: 300000,  commitPaths: ['data/dart-corp-codes.json'],          schedules: ['5 17 * * *'],                 maxAgeH: 30 },
+  { label: 'scan-accumulation',    script: 'scripts/scan-accumulation.mjs',          timeoutMs: 600000,  commitPaths: ['data/accumulation-watchlist.json'],   schedules: ['0 7 * * *', '0 22 * * *'],    maxAgeH: 20 },
+  { label: 'build-us-smallcap',    script: 'scripts/build-us-smallcap-universe.mjs', timeoutMs: 600000,  commitPaths: ['data/us-smallcap-universe.json'],     schedules: ['0 19 * * 1'],                 maxAgeH: 8 * 24 },
+  { label: 'scan-accumulation-us', script: 'scripts/scan-accumulation.mjs --us',     timeoutMs: 900000,  commitPaths: ['data/accumulation-watchlist-us.json'], schedules: ['30 21 * * *', '0 13 * * *'],  maxAgeH: 20 },
+  { label: 'scan-insider-kr',      script: 'scripts/scan-insider-kr.mjs',            timeoutMs: 900000,  commitPaths: ['data/insider-kr-feed.json'],          schedules: ['30 7 * * *', '30 22 * * *'],  maxAgeH: 20 },
+  { label: 'dart-prefetch',        script: 'scripts/prefetch-dart-financials.mjs',   timeoutMs: 900000,  commitPaths: [],                                     schedules: ['5 18 * * *'],                 maxAgeH: 30 },
+  { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
+  { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
+  { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },
+  { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
+  { label: 'build-financials',     script: 'scripts/build-financials-cache.mjs',     timeoutMs: 1500000, commitPaths: ['data/financials.json'],               schedules: ['35 19 * * *'],                maxAgeH: 30 },
+];
+for (const j of MAINT_JOBS) for (const s of j.schedules) {
+  cron.schedule(s, () => runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths), { timezone: TZ });
+}
+log(`유지보수 cron 등록: ${MAINT_JOBS.length} 잡 (DART/매집/내부자/튜닝/backlog/재무 — MAINT_JOBS 단일소스)`);
+
+// ── 2026-07-02 시작시 catchup (놓친 슬롯 자기치유) ────────────────────────────────
+//   컷오버·재부팅·러너 다운 동안 지나간 슬롯은 종전 *영구 미실행*: HTTP 크론은 Redis TTL 만료로 콜드캐시
+//   (signal-retrospective 14일 키 사망 + /api/signals 빈배열 — 2026-07-02 같은 날 2건 실증), 유지보수 잡은
+//   모니터가 flag 만 하고 다음 슬롯(주간이면 최대 1주)까지 방치. 시작 3분 후(웹 기동 대기) 1회 소급 실행.
+//   설계: HTTP=cron-last-run.json 의 마지막 성공이 주기(일간 36h/주간 8일) 초과 시. 유지보수=heartbeat 나이
+//   > maxAgeH. 전부 순차(await) — LLM/GPU 크론(investment-strategy 등) 동시 폭주 방지. 보고서 파이프라인
+//   실행 중이면 중단(다음 재시작이 재시도). 발신성 크론(send-alerts=메일)은 소급 금지(과거 알림 소급발송 방지).
+const CATCHUP_EXCLUDE = /send-alerts/;
+async function startupCatchup() {
+  // HTTP 크론: path 별 최단 주기(같은 path 다중 슬롯=일간) — dow 필드가 '*' 아니면 주간으로 간주.
+  const periods = new Map();
+  for (const c of crons) {
+    if (!c.path || !c.schedule || CATCHUP_EXCLUDE.test(c.path)) continue;
+    const dow = String(c.schedule).trim().split(/\s+/)[4];
+    const periodMs = (dow && dow !== '*') ? 8 * 86400000 : 36 * 3600000;
+    if (!periods.has(c.path) || periodMs < periods.get(c.path)) periods.set(c.path, periodMs);
+  }
+  let ran = 0;
+  for (const [path, periodMs] of periods) {
+    if (Date.now() - (_lastRun[path] ?? 0) < periodMs) continue;
+    if (await isReportPipelineRunning()) { log('[catchup-cron] 보고서 파이프라인 실행 중 — 잔여 소급 중단(다음 재시작 재시도)'); return; }
+    const ago = _lastRun[path] ? `${Math.round((Date.now() - _lastRun[path]) / 3600000)}h 전` : '기록 없음';
+    log(`[catchup-cron] ${path} — 마지막 성공 ${ago} > 주기, 소급 실행`);
+    await runJob(path); ran++;
+  }
+  // 유지보수 잡: heartbeat 나이 기준 (runMaintenance 가 성공 시 갱신).
+  let hb = {};
+  try { hb = JSON.parse(readFileSync(resolve(process.cwd(), 'logs/maintenance-heartbeat.json'), 'utf8')); } catch { /* 최초 */ }
+  for (const j of MAINT_JOBS) {
+    const ts = hb[j.label] ? new Date(hb[j.label]).getTime() : 0;
+    if (ts && (Date.now() - ts) / 3600000 <= j.maxAgeH) continue;
+    if (await isReportPipelineRunning()) { log('[catchup-maint] 보고서 파이프라인 실행 중 — 잔여 소급 중단'); return; }
+    log(`[catchup-maint] ${j.label} — heartbeat ${ts ? Math.round((Date.now() - ts) / 3600000) + 'h 전' : '무기록'} > ${j.maxAgeH}h, 소급 실행`);
+    await runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths); ran++;
+  }
+  log(`[catchup] 시작시 소급 완료 — ${ran}개 실행`);
+}
+setTimeout(() => { startupCatchup().catch((e) => log(`[catchup] 실패: ${String(e?.message).slice(0, 80)}`)); }, 180000);
 
 // 2026-06-12: 시장 쇼크 즉시 감지 (사용자 "트럼프 트윗/기사 영향 즉각 고려") — 10분마다
 //   check-market-shock(속보 키워드/VIX 인트라데이/KOSPI·원화 — 전부 결정론). 임계 초과 시

@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { loggedRedisSet, logger } from '@/lib/logger';
 import { localChat } from '@/lib/llm-local';
+import { llmTimeoutMs } from '@/lib/ai-providers';
 import { fetchDartFinancials } from '@/lib/dart-financials';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,7 @@ const LOCALE_NAMES: Record<string, string> = {
 
 // 2026-06-07: 모델 통일 — qwen3:8b 네이티브(think:false) localChat. 종전 /v1+exaone 제거.
 async function generateViaOllama(prompt: string): Promise<string | null> {
-  let txt = await localChat(prompt, { temperature: 0.2, maxTokens: 1024, timeoutMs: 60000 });
+  let txt = await localChat(prompt, { temperature: 0.2, maxTokens: 1024, timeoutMs: llmTimeoutMs(1024) }); // 2026-07-02: 60s→132s (10 tok/s 실측, 45일 캐시라 1회 지연 무해)
   if (!txt) return null;
   // 따옴표/머리말 제거
   txt = txt.replace(/^["'「『]|["'」』]$/g, '').replace(/^(요약|사업\s*개요)\s*[:：]\s*/i, '').trim();

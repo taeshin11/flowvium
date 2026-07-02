@@ -1,5 +1,5 @@
 import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
-import { callAI } from '@/lib/ai-providers';
+import { callAI, llmTimeoutMs } from '@/lib/ai-providers';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
@@ -53,7 +53,7 @@ Analysis type: ${type || 'general'}`;
       maxTokens: 1600,
       temperature: 0.7,
       tag: 'api.ai',
-      timeoutMs: 30000,
+      timeoutMs: llmTimeoutMs(1600), // 2026-07-02: 30s→190s (10 tok/s 실측 — 7일 캐시라 1회 지연 무해)
     });
 
     if (!text) {

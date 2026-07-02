@@ -5,7 +5,7 @@ import { preValidateFix, validateStrategy } from '@/lib/strategy-schema';
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
-import { callAI as callAIProvider } from '@/lib/ai-providers';
+import { callAI as callAIProvider, llmTimeoutMs } from '@/lib/ai-providers';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 import {
   buildMacroPrompt, buildPortfolioPrompt, buildRegionalPrompt,
@@ -1632,8 +1632,9 @@ export async function GET(request: Request) {
     econCal: ctxSummary.econCal,
   };
 
-  // maxDuration 300s (vercel.json) — 타임아웃 여유 확보
-  const aiOpts = { tag: 'investment-strategy', skipVllm: !process.env.VLLM_URL, skipGroq: false, temperature: 0.7, timeoutMs: 40000 };
+  // 2026-07-02: 고정 40s → llmTimeoutMs(최대 maxTokens 1400) — finance 모델 실측 ~10 tok/s 라 40s 는
+  //   장문 섹션에서 silent timeout→fallback 이던 결함(check-llm-routing [2]). 섹션들은 병렬이라 wall-clock 흡수.
+  const aiOpts = { tag: 'investment-strategy', skipVllm: !process.env.VLLM_URL, skipGroq: false, temperature: 0.7, timeoutMs: llmTimeoutMs(1400) };
   const parseSec = (raw: string) => { try { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; } catch { return null; } };
 
   // 과거 예측 회고 교훈 (S2: 전술적, S7: 전략적)
@@ -1975,7 +1976,9 @@ export async function GET(request: Request) {
       };
       const critiqueResult = await callAIProvider(
         buildCritiquePrompt(critiqueInput, locale),
-        { tag: 'invest-critic', skipVllm: !process.env.VLLM_URL, maxTokens: 600, temperature: 0.4, timeoutMs: 25000 },
+        // 2026-07-02: 25s → llmTimeoutMs(600)=90s — 실측 10 tok/s 에서 critic 이 매 실행 silent timeout
+        //   → refinement(경합심사) 가 조용히 skip 되던 결함.
+        { tag: 'invest-critic', skipVllm: !process.env.VLLM_URL, maxTokens: 600, temperature: 0.4, timeoutMs: llmTimeoutMs(600) },
       );
       if (critiqueResult.text && critiqueResult.source !== 'fallback') {
         const refinedPortfolio = applyCritique(critiqueInput.portfolio, critiqueResult.text);

@@ -1,6 +1,7 @@
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { createRedis } from '@/lib/redis';
 import { localChat } from '@/lib/llm-local';
+import { llmTimeoutMs } from '@/lib/ai-providers';
 import { NextResponse } from 'next/server';
 import { cascadePatterns } from '@/data/cascades';
 import { companySupplyChainUpdates } from '@/data/company-supply-chain-updates';
@@ -396,7 +397,7 @@ async function warmEightKSummaries(items: Array<{ accNo: string; region: string 
     try {
       const s = await localChat(
         `다음은 미국 상장사의 8-K Item 1.01(주요 계약 체결) 공시 본문이다. 한국어로 1~2문장으로 요약하라: 어떤 계약인지·상대방·핵심 조건(금액/지분/만기 등)·투자자 관점의 의미. 설명 없이 요약문만:\n\n${it.region.slice(0, 1100)}`,
-        { temperature: 0.2, maxTokens: 220, timeoutMs: 12000 },
+        { temperature: 0.2, maxTokens: 220, timeoutMs: llmTimeoutMs(220) }, // 2026-07-02: 12s→52s (10 tok/s 실측, 백그라운드 warmer 라 지연 무해)
       );
       if (s && s.trim() && /[가-힣]/.test(s)) {
         const summary = s.trim().replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 220);

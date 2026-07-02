@@ -134,6 +134,16 @@ const checks = [
     dimensions: ['LLM 출력표면 한자가드 커버리지(신규 미분류 표면 회귀봉쇄)'],
   },
   {
+    // 2026-07-02: LLM 라우팅 stale-가정 회귀가드 — 클라우드 키 revoke 환경에서 vLLM-skip(=LLM 전무)
+    //   미분류 표면 + 고정 타임아웃 < 토큰요구량(실측 ~10 tok/s) 검출. flow-analysis 영구 fallback +
+    //   invest-critic silent timeout 사건 재발방지 ("환경 변화 후 과거 가정 재감사 부재" 클래스).
+    name: 'check-llm-routing',
+    script: 'scripts/check-llm-routing.mjs',
+    desc: 'LLM 라우팅(skipVllm allowlist + 타임아웃-토큰 정합)',
+    critical: true,
+    dimensions: ['LLM 라우팅 stale 가정(skipVllm/고정 타임아웃) 회귀봉쇄'],
+  },
+  {
     name: 'verify-latest-report',
     script: 'scripts/verify-report.mjs',
     args: () => {
