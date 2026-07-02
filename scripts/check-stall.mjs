@@ -42,6 +42,22 @@ function checkOnce() {
     else info.push(line);
   }
 
+  // [7] 라이브 반영 정합 (2026-07-03 신설): "생성됐지만 발간 차단/업로드 실패" 사각지대 봉쇄 —
+  //   07-02 afternoon/evening 이 latin_garble *오탐*으로 pre-publish gate 에 차단됐는데, [1]은 로컬 생성
+  //   기준이라 침묵하고 catchup 도 파일 기준이라 미동작, 사이트는 noon 리포트가 밤까지 유지된 사건.
+  //   로컬 최신 generated_at 이 라이브 generatedAt 보다 75분+ 새로우면(정시발간 대기 여유 포함) 경보.
+  try {
+    if (latest) {
+      const raw = execSync('curl.exe -s -m 10 "https://flowvium.net/api/investment-strategy?locale=ko"', { timeout: 15000 }).toString();
+      const live = JSON.parse(raw.replace(/^﻿/, ''));
+      const liveAt = live?.generatedAt ? new Date(live.generatedAt).getTime() : 0;
+      const lagMin = (new Date(latest.generated_at).getTime() - liveAt) / 60000;
+      if (!liveAt) issues.push('라이브 미반영: 라이브 리포트 generatedAt 없음 (응답 이상)');
+      else if (lagMin > 75) issues.push(`라이브 미반영: 로컬 최신(${latest.session})이 라이브보다 ${Math.round(lagMin)}분 새로움 — 발간 차단(pre-publish gate)/업로드 실패 의심 → logs/report.log "발간 차단" 확인`);
+      else info.push(`라이브 반영 정합 ✓ (lag ${Math.round(Math.max(0, lagMin))}분)`);
+    }
+  } catch (e) { info.push(`라이브 반영 probe skip: ${String(e?.message).slice(0, 40)}`); }
+
   // [4] Karpathy 추세 — 최근 3 vs 직전 3 환각 평균
   // 2026-06-17: harness_* (harness 가 잡은 교정 — 학습용 적재, 사각지대#5) 는 회귀추세에서 제외.
   //   추세는 *verify-escaped*(harness 도 못 잡은) 환각만 측정해야 — harness 가 잡는 건 파이프라인이 처리 중.
