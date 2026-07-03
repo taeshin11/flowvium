@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-02T21:30:29.099Z",
+  "generatedAt": "2026-07-03T13:00:30.163Z",
   "universe": "US",
   "scanned": 367,
   "count": 28,
-  "strongCount": 3,
-  "watchCount": 25,
+  "strongCount": 4,
+  "watchCount": 24,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -33,13 +33,31 @@
       "coFire": 3,
       "lead": [
         "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)",
+        "거래량 2.9× 급증(가격 평탄)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
       "runup20dPct": -1,
       "runup5dPct": -7.2,
       "medDollarVolUsd": 9378710,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "REX",
+      "name": "REX American Resources Corporat",
+      "tier": "strong",
+      "score": 33,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -2.8,
+      "runup5dPct": 3.6,
+      "medDollarVolUsd": 7893220,
       "smartAccum": false,
       "official": null
     },
@@ -85,12 +103,12 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 4.5× 급증(가격 평탄)",
+        "거래량 4.6× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
       "runup20dPct": -8,
       "runup5dPct": -1.8,
-      "medDollarVolUsd": 1238974,
+      "medDollarVolUsd": 1241842,
       "smartAccum": false,
       "official": null
     },
@@ -331,23 +349,6 @@
       "official": null
     },
     {
-      "ticker": "REX",
-      "name": "REX American Resources Corporat",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -2.8,
-      "runup5dPct": 3.6,
-      "medDollarVolUsd": 7893220,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "VTEX",
       "name": "VTEX",
       "tier": "watch",
@@ -388,7 +389,7 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)"
+        "거래량 3.6× 급증(가격 평탄)"
       ],
       "runup20dPct": -8.2,
       "runup5dPct": 14.8,
@@ -404,7 +405,7 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)"
+        "거래량 3.4× 급증(가격 평탄)"
       ],
       "runup20dPct": -8,
       "runup5dPct": -2.2,
@@ -435,8 +436,8 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
       "runup20dPct": -12.6,
       "runup5dPct": -7.1,
@@ -451,7 +452,7 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 2.0× 상승",
         "거래량 2.6× 급증(가격 평탄)"
       ],
       "runup20dPct": -5.2,
