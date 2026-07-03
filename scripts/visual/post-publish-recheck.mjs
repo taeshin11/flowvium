@@ -48,6 +48,8 @@ const tsDir = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const shotDir = `${ROOT}/logs/screenshots/recheck-${tsDir}`;
 mkdirSync(shotDir, { recursive: true });
 let nSlices = 0, authState = 'anon';
+let bodyText = '';           // (2.5) 렌더↔발간본 대조용 — 캡처 페이지의 실제 innerText
+const sliceSizes = [];       // (2.5) 빈(단색) 슬라이스 감지용 PNG byte size
 const SLICE_H = 1000, WIDTH = 1280;
 try {
   const browser = await chromium.launch({ headless: true });
@@ -61,14 +63,48 @@ try {
   await page.evaluate(async () => { await new Promise((res) => { let y = 0; const t = setInterval(() => { window.scrollTo(0, y); y += 600; if (y >= document.body.scrollHeight) { clearInterval(t); window.scrollTo(0, 0); res(); } }, 100); }); });
   await page.waitForTimeout(900);
   const total = await page.evaluate(() => document.body.scrollHeight);
-  const bodyLen = (await page.evaluate(() => document.body?.innerText || '')).trim().length;
+  bodyText = (await page.evaluate(() => document.body?.innerText || '')).trim();
+  const bodyLen = bodyText.length;
   if (authState === 'member' && bodyLen < 5000) alerts.push(`로그인 보고서 본문 ${bodyLen}자 (게이트 미해제/렌더 실패 의심)`);
   const n = Math.ceil(total / SLICE_H);
-  for (let i = 0; i < n; i++) { await page.evaluate((y) => window.scrollTo(0, y), i * SLICE_H); await page.waitForTimeout(200); await page.screenshot({ path: `${shotDir}/slice_${String(i).padStart(2, '0')}.png` }); }
+  for (let i = 0; i < n; i++) {
+    await page.evaluate((y) => window.scrollTo(0, y), i * SLICE_H); await page.waitForTimeout(200);
+    const p = `${shotDir}/slice_${String(i).padStart(2, '0')}.png`;
+    await page.screenshot({ path: p });
+    try { sliceSizes.push(statSync(p).size); } catch { sliceSizes.push(0); }
+  }
   nSlices = n;
   await browser.close();
   info.push(`슬라이스 ${nSlices}장(${authState},${bodyLen}자)`);
 } catch (e) { alerts.push(`슬라이스 캡처 실패: ${String(e?.message || e).slice(0, 60)}`); }
+
+// (2.5) 캡처물 *검증* (2026-07-03, 사용자 "캡쳐만 하면 안되고 검증하라") — "찍혔다" ≠ "발간본이 렌더됐다".
+//   (a) 렌더↔발간본 대조: 페이지 innerText 에 발간본 핵심 사실이 실제로 존재하는지 — portfolio 종목
+//       커버리지(US=티커, KR=회사명 표기 기준) ≥70% + thesis 앞부분 문자열. stale/부분 렌더를 잡는다.
+//   (b) 빈 슬라이스: 단색 PNG 는 초소형으로 압축됨 — 8KB 미만 슬라이스 = 렌더 실패 의심.
+if (authState === 'member' && liveConfirmed && bodyText) {
+  const norm = (s) => String(s ?? '').replace(/\s+/g, '');
+  const bodyNorm = norm(bodyText);
+  const port = (report.portfolio ?? []).filter((p) => p?.ticker);
+  if (port.length) {
+    const shown = port.filter((p) => {
+      const isKR = /\.(KS|KQ)$/.test(p.ticker);
+      const keys = isKR ? [p.koreanName, p.name, p.ticker.replace(/\.(KS|KQ)$/, '')] : [p.ticker, p.name];
+      return keys.filter(Boolean).some((k) => bodyNorm.includes(norm(k)));
+    });
+    const pct = Math.round((shown.length / port.length) * 100);
+    if (pct < 70) alerts.push(`렌더↔발간본 불일치: portfolio ${port.length}종목 중 ${shown.length}개만 렌더(${pct}%) — stale/부분 렌더 의심`);
+    else info.push(`렌더대조 portfolio ${pct}%✓`);
+  }
+  const thesisKey = norm(report.thesis).slice(0, 24);
+  if (thesisKey.length >= 12 && !bodyNorm.includes(thesisKey)) alerts.push('렌더↔발간본 불일치: thesis 앞부분이 페이지에 없음 (stale 콘텐츠 의심)');
+  else if (thesisKey.length >= 12) info.push('렌더대조 thesis✓');
+}
+{
+  const blank = sliceSizes.map((s, i) => [i, s]).filter(([, s]) => s > 0 && s < 8000);
+  if (blank.length) alerts.push(`빈 슬라이스 의심 ${blank.length}장 (${blank.map(([i]) => i).join(',')} — PNG<8KB, 단색/렌더실패)`);
+  else if (sliceSizes.length) info.push('빈슬라이스 0');
+}
 
 // (3) 발행 JSON 재검 (verify-report 전체 probe — 내러티브 probe 포함)
 let defects = [];
