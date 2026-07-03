@@ -153,6 +153,8 @@ try {
 const status = {
   ts: new Date().toISOString(), reportFile, generatedAt: wantGen, session: report.session,
   liveConfirmed, authState, nSlices, shotDir, montage, pageAudit,
+  checks: info,  // 2026-07-03: 통과 항목(렌더대조 portfolio%/thesis/빈슬라이스 등)도 기록 — verdict 만으론 "뭘 검증했나" 증거 부재
+
   defectCount: defects.length, highDefects: high.map((d) => ({ type: d.defect_type, value: String(d.llm_value).slice(0, 60) })),
   verdict: alerts.length ? 'alert' : 'ok',
 };
