@@ -59,6 +59,18 @@
       "description": "RSI ≥ 75 (과매수 익절 zone — Druckenmiller momentum exhaust)"
     },
     {
+      "id": "tech_volume_divergence",
+      "score": 4,
+      "urgency": "medium",
+      "category": "technical",
+      "condition": {
+        "type": "volumeDivergence",
+        "near_high_pct": 3,
+        "vol_pct_lte": -10
+      },
+      "description": "52주 신고가권(3% 이내) 상승 + 거래량 20일평균 대비 감소 — 수급 미동반 다이버전스(TER 2026-06 휩쏘 회고). 초기 score 4, 주간 튜너가 outcome 으로 보정"
+    },
+    {
       "id": "price_target_near",
       "score": 7,
       "urgency": "medium",

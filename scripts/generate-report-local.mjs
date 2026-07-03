@@ -1853,14 +1853,57 @@ async function buildTechnicalData(tickers, livePrices) {
         parts.push(`진입지지선:${fmtP(primarySupport)}`);
       }
 
-      return [ticker, parts.length ? parts.join(', ') : null];
+      // 2026-07-03 (TER 회고): 일간수익률 표준편차 14d(%) — ATR 대용(OHLC 없이 closes 만으로) 변동성.
+      //   스톱 플로어 산정용(applyVolatilityStopFloor). 문자열 요약과 별도 숫자 메타로 반환.
+      let ccVol14 = null;
+      if (closes.length >= 15) {
+        const rets = [];
+        for (let i = closes.length - 14; i < closes.length; i++) rets.push(closes[i] / closes[i - 1] - 1);
+        const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+        ccVol14 = Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / rets.length) * 100;
+      }
+      return [ticker, parts.length ? parts.join(', ') : null, ccVol14];
     })
   );
   const map = new Map();
+  map.volMeta = new Map();  // ticker → 일간변동성 %(cc-stdev14) — 기존 소비처(문자열 Map)는 무영향
   for (const r of results) {
-    if (r.status === 'fulfilled' && r.value?.[1]) map.set(r.value[0], r.value[1]);
+    if (r.status !== 'fulfilled' || !r.value) continue;
+    const [tk, text, vol] = r.value;
+    if (text) map.set(tk, text);
+    if (vol != null) map.volMeta.set(tk, vol);
   }
   return map;
+}
+
+// 2026-07-03 (TER 회고): 스톱 거리 변동성 플로어 — LLM 스톱이 일간변동성 대비 과도하게 타이트하면
+//   (TER: 스톱 -3.9% vs 일중 8~13% 변동 → 이틀만에 노이즈 스톱아웃 후 +18% 상승·이후 붕괴 = 휩쏘)
+//   결정론 보정. floor = clamp(1.5×ccVol14, 4%, 12%); 스톱거리 < floor×0.75 일 때만 확장(의도적
+//   지지선 스톱은 존중). validateEntryZones 는 technicalData 이전에 돌아 여기(최종 후처리)서 적용.
+function applyVolatilityStopFloor(portfolio, livePrices, volMeta) {
+  if (!volMeta?.size) return 0;
+  let n = 0;
+  for (const p of (portfolio ?? [])) {
+    if (!p?.ticker || !/매수|buy|분할/i.test(String(p.action ?? 'buy'))) continue;
+    const price = livePrices.get(p.ticker)?.price;
+    const vol = volMeta.get(p.ticker);
+    if (!price || vol == null) continue;
+    const isKR = /\.(KS|KQ)$/.test(p.ticker);
+    const stopNums = String(p.stopLoss ?? '').replace(/[₩$,\s]/g, '').match(/[\d.]+/g)?.map(Number).filter(x => x > 0) ?? [];
+    if (!stopNums.length) continue;
+    const stop = stopNums[0];
+    if (stop >= price) continue;                        // 비정상(validateEntryZones 영역) — 건드리지 않음
+    const distPct = (price - stop) / price * 100;
+    const floorPct = Math.min(12, Math.max(4, 1.5 * vol));
+    if (distPct >= floorPct * 0.75) continue;           // 플로어 근처면 존중
+    const newStop = price * (1 - floorPct / 100);
+    const fmt = (x) => isKR ? `₩${Math.round(x).toLocaleString('en-US')}` : `$${x.toFixed(2)}`;
+    console.log(`  [vol-stop] ${p.ticker} 스톱 ${fmt(stop)}(-${distPct.toFixed(1)}%) → ${fmt(newStop)}(-${floorPct.toFixed(1)}%) — 일간변동성 ${vol.toFixed(1)}% 대비 휩쏘 위험`);
+    p.stopLoss = fmt(newStop);
+    n++;
+  }
+  if (n) console.log(`  [후처리] 변동성 스톱 플로어 ${n}개 확장 (휩쏘 스톱아웃 방지 — TER 회고)`);
+  return n;
 }
 
 
@@ -8072,6 +8115,7 @@ async function generateViaOllama() {
   finalReport.riskEvents = correctStaleRiskEvents(finalReport.riskEvents, ctxRaw?.econCal?.events ?? [], finalReport.generatedAt, _staleDroppedEvents);
   finalReport.riskEvents = enrichRiskEvents(finalReport.riskEvents, finalReport.portfolio, ctxRaw?.econCal?.events ?? []);
   finalReport.portfolio = enrichRationales(finalReport.portfolio, signalDigest, localeArg);
+  applyVolatilityStopFloor(finalReport.portfolio, livePrices, technicalData.volMeta);  // TER 회고: 휩쏘 스톱 확장
   finalReport.stopLossRationale = enrichStopLoss(finalReport.stopLossRationale, livePrices, technicalData, localeArg);
 
   // 2026-06-05: KR(.KS/.KQ) 은 DART 가 EPS 미제공 → PE grounded 불가. 8B 가 프롬프트 지시("KR PE 인용

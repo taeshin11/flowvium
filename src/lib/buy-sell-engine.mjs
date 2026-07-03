@@ -308,6 +308,14 @@ export function evaluateSellRule(rule, ctx) {
         return `volume ${ctx.volPct}% & 1d ${ctx.change1d}% distribution`;
       }
       break;
+    case 'volumeDivergence':
+      // 2026-07-03 TER 회고(432$ 신고가권 + 거래량 -10% → 휩쏘 -5.3% 후 -24% 붕괴): 신고가권 랠리에
+      //   거래량 감소 = 수급 미동반 약한 랠리. 데이터(volPct)는 rationale 에 찍히면서도 소비 룰이 없던 갭.
+      if (ctx.price != null && ctx.high52w != null && ctx.volPct != null &&
+          ctx.price >= ctx.high52w * (1 - (c.near_high_pct ?? 3) / 100) && ctx.volPct <= (c.vol_pct_lte ?? -10)) {
+        return `신고가권 상승에 거래량 ${ctx.volPct}%(20일평균 대비) — 수급 미동반 다이버전스(휩쏘 위험)`;
+      }
+      break;
     // ── 기본적 ────────────────────────────────────────────────────────────────
     case 'opMarginDecline':
       if (ctx.opMarginDecline != null && ctx.opMarginDecline >= (c.decline_pp_gte ?? 2)) {
