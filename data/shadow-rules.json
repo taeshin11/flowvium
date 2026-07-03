@@ -6,30 +6,46 @@
     {
       "id": "shadow_buy_trend_pullback",
       "side": "buy",
-      "condition": { "type": "trendPullback", "change1d_lte": -2, "rsi_gte": 40, "rsi_lte": 60 },
+      "condition": {
+        "type": "trendPullback",
+        "change1d_lte": -2,
+        "rsi_gte": 40,
+        "rsi_lte": 60
+      },
       "description": "정배열(price>50MA>200MA) 추세 중 -2%+ 단기 눌림(RSI 40-60)",
       "hypothesis": "추세 유지 중의 눌림은 반등 우위 — 눌림목 매수 (린치/오닐 계열)"
     },
     {
       "id": "shadow_buy_breakout_volume",
       "side": "buy",
-      "condition": { "type": "breakoutVolume", "vol_pct_gte": 80 },
+      "condition": {
+        "type": "breakoutVolume",
+        "vol_pct_gte": 80
+      },
       "description": "20일 신고가 돌파 + 거래량 20일평균 대비 +80% 이상",
       "hypothesis": "수급 동반 돌파는 무수급 돌파보다 지속 우위 (above20dHigh 강화판 — 기존 룰과 A/B)"
     },
     {
       "id": "shadow_buy_oversold_uptrend",
       "side": "buy",
-      "condition": { "type": "oversoldInUptrend", "rsi_lte": 35 },
+      "condition": {
+        "type": "oversoldInUptrend",
+        "rsi_lte": 35
+      },
       "description": "200MA 위(장기추세 유지) + RSI ≤35 과매도",
       "hypothesis": "추세 필터를 단 과매도 반등이 무필터 rsiOversold 보다 승률 우위 (기존 룰과 A/B)"
     },
     {
       "id": "shadow_sell_parabolic_fade",
       "side": "sell",
-      "condition": { "type": "parabolicFade", "mult_gt": 1.35, "rsi_gte": 70, "vol_pct_lte": 0 },
+      "condition": {
+        "type": "parabolicFade",
+        "mult_gt": 1.35,
+        "rsi_gte": 70,
+        "vol_pct_lte": 0
+      },
       "description": "200MA +35% 과확장 + RSI ≥70 + 거래량 감소 3중 고점징후",
-      "hypothesis": "과확장·과매수에 수급이탈이 겹치면 단기 하락 우위 — TER 484 붕괴 직전 패턴의 일반화"
+      "hypothesis": "과확장·과매수에 수급이탈이 겹치면 단기 하락 우위 — TER 484 붕괴 직전 패턴의 일반화 [백테스트 2026-07-03: 기각 방향 — 69종목 2y, 발화 후 평균 +2.9%/5d 상승(모멘텀 지속>평균회귀), 승률 46%. 매도신호 아닌 변동성확대 신호로 재해석. 약세장 표본 확보 위해 전향 수집은 계속]"
     }
   ]
 }
