@@ -706,8 +706,20 @@ function applyLocalHarness(r, livePrices) {
   }
 
   // 8. portfolio.allocation 합산 정규화
+  // 2026-07-03 (afternoon 삼성화재 100% 사건): veto 로 종목이 대량 탈락해 1~2개만 남으면 100 정규화가
+  //   몰빵을 만든다(프롬프트 정책 "single ≤25%" 위반 + '현금도 포지션' doctrine 무시). 종목 수가 적으면
+  //   개별 25% 캡 → 합계 <100 허용(잔여=현금), portfolioRiskNote 에 명시.
   const pSum = r.portfolio.reduce((a, x) => a + (x.allocation ?? 0), 0);
-  if (pSum > 0 && Math.abs(pSum - 100) > 2) {
+  if (r.portfolio.length > 0 && r.portfolio.length < 4) {
+    let capped = false;
+    r.portfolio.forEach(x => { if ((x.allocation ?? 0) > 25) { x.allocation = 25; capped = true; } });
+    if (capped) {
+      const invested = r.portfolio.reduce((a, x) => a + (x.allocation ?? 0), 0);
+      const cashNote = `규율상 신규매수 후보 부족(과열/칼받기 veto 대량 탈락) — 투자비중 ${invested}%만 권고, 잔여 ${100 - invested}%는 현금 보유(현금도 포지션).`;
+      r.portfolioRiskNote = r.portfolioRiskNote ? `${cashNote} ${r.portfolioRiskNote}` : cashNote;
+      audit.fixes.portfolioAllocSum = { from: pSum, to: invested, cashReserve: 100 - invested };
+    }
+  } else if (pSum > 0 && Math.abs(pSum - 100) > 2) {
     const scale = 100 / pSum;
     r.portfolio.forEach(x => { x.allocation = Math.round((x.allocation ?? 0) * scale); });
     const drift = 100 - r.portfolio.reduce((a, x) => a + x.allocation, 0);
@@ -7304,8 +7316,13 @@ async function generateViaOllama() {
     for (const mkt of ['kr', 'us']) {
       const want = mkt === 'kr';
       const inMkt = dedupedPortfolio.filter(p => isKRt(p.ticker) === want).length;
-      const hadCands = adjudication.candidates.some(c => isKRt(c.ticker) === want);
-      if (inMkt >= MIN_PER_MARKET || !hadCands) continue;
+      // 2026-07-03 (afternoon US 0 사건): 종전 hadCands 는 *심판에 올라온 후보* 기준 — LLM 이 US 를 통째로
+      //   누락하면(top30 에 US 21개 있어도) 심판 후보에 US 가 없어 재충원이 조용히 skip(공석 노트도 없이).
+      //   시장 공백 판단은 buyCandidates *풀* 기준으로 — 시장 전체 누락이야말로 재충원이 필요한 케이스.
+      const hadCands = adjudication.candidates.some(c => isKRt(c.ticker) === want)
+        || (buyCandidates ?? []).some(c => isKRt(c.ticker) === want);
+      if (inMkt >= MIN_PER_MARKET) continue;
+      if (!hadCands) { console.log(`  [경합심사/재충원] ${mkt} 후보 풀 자체 공백 — skip`); continue; }
       const have = new Set(dedupedPortfolio.map(p => p.ticker));
       const tried = new Set(adjudication.candidates.map(c => c.ticker));
       const pool = (buyCandidates ?? []).filter(c => isKRt(c.ticker) === want && !have.has(c.ticker) && !tried.has(c.ticker) && livePrices.get(c.ticker)?.price).slice(0, 8);

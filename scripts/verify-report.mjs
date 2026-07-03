@@ -265,6 +265,23 @@ export async function verifyReport(file, { silent = false } = {}) {
     }
   }
   if (!staleN) log('  ✅ stale 이벤트 없음');
+  // (b2) 포트폴리오 구성 — 2026-07-03 afternoon '삼성화재 1종목 100%' 가 전 게이트 통과한 사각지대.
+  //   veto 대량 탈락 자체는 규율이나, thin/몰빵 출력은 검출·적재(발간 차단은 안 함 — 진짜 공석 장세 존재).
+  const nPort = (r.portfolio ?? []).length;
+  const cashDisclosed = /현금\s*보유|현금도\s*포지션/.test(String(r.portfolioRiskNote ?? ''));
+  if (nPort > 0 && nPort < 3 && !cashDisclosed) {
+    // thin 자체는 극단장세의 정당한 규율 결과일 수 있음 — 결함은 "현금 보유 미명시"(출력 표현).
+    log(`  ❌ 포트폴리오 thin ${nPort}종목 + 현금 보유 미명시 (몰빵/공석 표현 결함)`);
+    defects.push({ ticker: 'PORTFOLIO', defect_type: 'portfolio_thin', llm_value: `${nPort}종목, 현금노트 없음`, correct_value: '3종목 미만이면 portfolioRiskNote 에 현금 보유 명시(applyLocalHarness 캡)', severity: 'medium' });
+  } else if (nPort > 0 && nPort < 3) {
+    log(`  ✅ 포트폴리오 thin ${nPort}종목 — 현금 보유 명시됨(규율상 공석 처리 정상)`);
+  }
+  const overAlloc = (r.portfolio ?? []).filter(p => (p.allocation ?? 0) > 40);
+  for (const p of overAlloc) {
+    log(`  ❌ allocation 몰빵: ${p.ticker} ${p.allocation}% (프롬프트 정책 단일 ≤25%)`);
+    defects.push({ ticker: p.ticker, defect_type: 'allocation_concentration', llm_value: `${p.allocation}%`, correct_value: '단일 종목 ≤25%(정책) — 정규화 몰빵 방지 캡 확인', severity: 'high' });
+  }
+  if (nPort >= 3 && !overAlloc.length) log('  ✅ 포트폴리오 구성 정상 (thin/몰빵 없음)');
   // (c) CPI 라벨 — 우리 CPI 값은 헤드라인(CPIAUCSL)이라 "핵심/근원/core CPI" 표기는 사실오류 (core 는 별도 더 낮은 수치).
   let cpiMis = 0;
   const CPI_MIS = /(핵심|근원)\s*(?:인플레이션\s*\()?\s*CPI|(핵심|근원)\s*소비자물가|\bcore\s+CPI/i;
@@ -680,14 +697,17 @@ export async function verifyReport(file, { silent = false } = {}) {
   log('\n## portfolio 정합성 (allocation 합/개수 — 2026-06-05)');
   const port = r.portfolio || [];
   const allocSum = Math.round(port.reduce((s, p) => s + (Number(p.allocation) || 0), 0));
-  if (port.length > 0 && (allocSum < 95 || allocSum > 105)) {
+  // 2026-07-03: 현금 유보 정책과 정합 — thin 장세에서 캡(단일 ≤25%) 후 합 <100 은 portfolioRiskNote 에
+  //   현금 보유가 명시돼 있으면 정상(투자비중+현금=100). 명시 없는 합 이탈만 결함.
+  const cashOk = allocSum < 100 && /현금\s*보유|현금도\s*포지션/.test(String(r.portfolioRiskNote ?? ''));
+  if (port.length > 0 && (allocSum < 95 || allocSum > 105) && !cashOk) {
     log(`  ⚠️ allocation 합 ${allocSum} (목표 100) — ${port.length}종목`);
     defects.push({
       ticker: 'PORTFOLIO', defect_type: 'allocation_sum',
-      llm_value: `합 ${allocSum}% (${port.length}종목)`, correct_value: 'allocation 합 = 100', severity: 'medium',
+      llm_value: `합 ${allocSum}% (${port.length}종목)`, correct_value: 'allocation 합 = 100 (또는 현금 보유 명시 시 <100 허용)', severity: 'medium',
     });
   } else if (port.length > 0) {
-    log(`  ✅ allocation 합 ${allocSum} (${port.length}종목) 정상`);
+    log(`  ✅ allocation 합 ${allocSum} (${port.length}종목)${cashOk ? ` + 현금 ${100 - allocSum}% 명시 — 정상` : ' 정상'}`);
   }
 
   // 9. earlyWarning 침묵 probe (2026-06-12 신설 — 외부 실값 대조 의무).
