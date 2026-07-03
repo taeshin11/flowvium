@@ -98,6 +98,22 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_outcome_rec_eval ON recommendation_outcomes(recommendation_id, evaluated_at);
 CREATE INDEX IF NOT EXISTS idx_outcome_evaluated ON recommendation_outcomes(evaluated_at);
 
+-- 2026-07-03: 전향 연구(shadow) 룰 발화 로그 — live 채점 미참여 후보 룰(data/shadow-rules.json)이
+--   리포트 stage-2 시점에 어떤 종목에서 발화했는지 기록. eval-shadow-rules.mjs 가 전향 5/10일
+--   수익률을 누적해 승격 판단(사후 부검 의존 → 가설 선행 검증 전환, TER 회고).
+CREATE TABLE IF NOT EXISTS shadow_hits (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id     TEXT NOT NULL,
+  generated_at  TEXT NOT NULL,
+  ticker        TEXT NOT NULL,
+  rule_id       TEXT NOT NULL,
+  side          TEXT NOT NULL,             -- buy / sell (가설 방향)
+  price_at_hit  REAL,
+  reason        TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_shadow_hit ON shadow_hits(report_id, ticker, rule_id);
+CREATE INDEX IF NOT EXISTS idx_shadow_generated ON shadow_hits(generated_at);
+
 -- 2026-05-29: 뉴스 장기 아카이브 (30년 누적 — point-in-time 검색 가능)
 -- 매 보고서 cycle 마다 news-cascade + supplyChainChanges + companyChanges 헤드라인 저장.
 -- report_id 로 endpoint_snapshots / recommendations / outcomes 와 join → 그 시점의
@@ -1341,6 +1357,30 @@ export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) 
     `).run(r.ticker, r.defect_type, r.llm_value, days);
   }
   return rows;
+}
+
+/**
+ * 2026-07-03: shadow 룰 발화 저장 — 전향 연구 파이프라인 (eval-shadow-rules 가 소비).
+ *   hits: [{ticker, ruleId, side, price, reason}]
+ */
+export function saveShadowHits(reportId, hits) {
+  if (!Array.isArray(hits) || !hits.length) return 0;
+  const db = openDb();
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO shadow_hits (report_id, generated_at, ticker, rule_id, side, price_at_hit, reason)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  const now = new Date().toISOString();
+  let n = 0;
+  const txn = db.transaction(() => {
+    for (const h of hits) {
+      if (!h?.ticker || !h?.ruleId) continue;
+      stmt.run(reportId, now, h.ticker, h.ruleId, h.side ?? 'buy', h.price ?? null, (h.reason ?? '').slice(0, 200));
+      n++;
+    }
+  });
+  txn();
+  return n;
 }
 
 /**

@@ -239,6 +239,27 @@ export function evaluateBuyRule(rule, ctx) {
     case 'cashConversionGood':
       if (ctx.ocf != null && ctx.netIncome != null && ctx.netIncome > 0 && ctx.ocf >= ctx.netIncome) return `이익의 질 양호(영업현금흐름≥순이익)`;
       break;
+    // ── 2026-07-03 전향 연구(shadow) 후보 조건 — data/shadow-rules.json 전용, live 룰셋 미사용.
+    //    백테스트/전향 성적(eval-shadow-rules)으로 검증 후에만 live 승격.
+    case 'trendPullback':  // 정배열 추세 중 단기 눌림(과매도 아님) — "눌림목" 가설
+      if (ctx.price != null && ctx.sma50 != null && ctx.sma200 != null && ctx.change1d != null && ctx.rsi != null &&
+          ctx.price > ctx.sma50 && ctx.sma50 > ctx.sma200 && ctx.change1d <= (c.change1d_lte ?? -2) &&
+          ctx.rsi >= (c.rsi_gte ?? 40) && ctx.rsi <= (c.rsi_lte ?? 60)) {
+        return `정배열 눌림목 (1d ${ctx.change1d}%, RSI ${ctx.rsi})`;
+      }
+      break;
+    case 'breakoutVolume':  // 20일 신고가 돌파 + 강한 수급 동반 — above20dHigh 의 수급확인 강화판
+      if (ctx.price != null && ctx.high20d != null && ctx.volPct != null &&
+          ctx.price > ctx.high20d && ctx.volPct >= (c.vol_pct_gte ?? 80)) {
+        return `20일 신고가 돌파 + 거래량 +${ctx.volPct}% (수급 동반 돌파)`;
+      }
+      break;
+    case 'oversoldInUptrend':  // 장기추세 위 과매도 — 단순 rsiOversold 의 추세필터판
+      if (ctx.price != null && ctx.sma200 != null && ctx.rsi != null &&
+          ctx.price > ctx.sma200 && ctx.rsi <= (c.rsi_lte ?? 35)) {
+        return `200MA 위 과매도 (RSI ${ctx.rsi})`;
+      }
+      break;
   }
   return null;
 }
@@ -403,6 +424,13 @@ export function evaluateSellRule(rule, ctx) {
       break;
     case 'highDebt':                                      // 금융/유틸/REIT 제외 — 고부채가 사업구조
       if (ctx.debtRatio != null && ctx.debtRatio > (c.pct_gt ?? 150) && !_isFinUtil(ctx.sector)) return `부채비율 ${ctx.debtRatio}% 재무위험`;
+      break;
+    // ── 2026-07-03 전향 연구(shadow) 후보 — data/shadow-rules.json 전용.
+    case 'parabolicFade':  // 과확장 + 과매수 + 수급 이탈 3중 — 고점징후 가설(TER 484 붕괴 사후 관측 패턴)
+      if (ctx.price != null && ctx.sma200 != null && ctx.rsi != null && ctx.volPct != null &&
+          ctx.price > ctx.sma200 * (c.mult_gt ?? 1.35) && ctx.rsi >= (c.rsi_gte ?? 70) && ctx.volPct <= (c.vol_pct_lte ?? 0)) {
+        return `200MA +${Math.round((ctx.price / ctx.sma200 - 1) * 100)}% 과확장 + RSI ${ctx.rsi} + 거래량 ${ctx.volPct}% (parabolic fade 징후)`;
+      }
       break;
   }
   return null;

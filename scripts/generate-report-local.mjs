@@ -20,7 +20,11 @@ import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits } from './lib/db.mjs';
+
+// 2026-07-03 전향연구: stage-2(buildBuyCandidates)에서 발화한 shadow 룰 히트 — reportId 확정 후
+//   DB 적재 블록에서 saveShadowHits 로 저장(모듈 상태, 프로세스당 1회 실행이라 안전).
+const _shadowHitsPending = [];
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
@@ -5091,6 +5095,22 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   // ── Stage 2 (OHLCV): top 100 의 기술 + 가격 (52w/MA/20d high) ──
   console.log(`  [buy-cand Stage 2] top ${stage2Cands.length} OHLCV fetch...`);
   const techSignals = await fetchBuyTechSignals(stage2Cands.map(c => c.ticker));
+
+  // 2026-07-03 전향연구(shadow): 후보 룰(data/shadow-rules.json, live 채점 절대 미참여)을 stage-2 풀ctx 로
+  //   평가해 발화만 기록 → eval-shadow-rules 가 전향 5/10일 수익률 누적 → edge 검증 후 승격.
+  //   후보 발굴이 사후 부검(TER)에만 의존하던 갭의 전향 파이프라인. 실패해도 리포트 무영향(try 격리).
+  try {
+    _shadowHitsPending.length = 0;
+    const shadowSpec = JSON.parse(readFileSync(resolve(ROOT, 'data/shadow-rules.json'), 'utf8'));
+    for (const c of stage2Cands) {
+      const sctx = { ...c, ...(techSignals.get(c.ticker) ?? {}), vix: macroCtx.vix, fgScore: macroCtx.fgScore };
+      for (const r of (shadowSpec.rules ?? [])) {
+        const reason = r.side === 'sell' ? evaluateSellRule(r, sctx) : evaluateBuyRule(r, sctx);
+        if (reason) _shadowHitsPending.push({ ticker: c.ticker, ruleId: r.id, side: r.side ?? 'buy', price: c.price, reason });
+      }
+    }
+    if (_shadowHitsPending.length) console.log(`  [shadow] 전향연구 룰 발화 ${_shadowHitsPending.length}건 기록 대기 (live 채점 미참여)`);
+  } catch (e) { console.warn('  [shadow] skip(비치명):', e?.message); }
   for (const c of stage2Cands) {
     const sig = techSignals.get(c.ticker) ?? {};
     const ctx = { ...c, ...sig };
@@ -8713,6 +8733,8 @@ async function generateViaOllama() {
     }
     const reportId = saveReport(finalReport);
     const recCount = saveRecommendations(finalReport, reportId);
+    // 전향연구 shadow 발화 적재 (live 미참여 — eval-shadow-rules 전향평가용)
+    try { const nSh = saveShadowHits(reportId, _shadowHitsPending); if (nSh) console.log(`  [shadow] ${nSh}건 적재 (shadow_hits)`); } catch (e) { console.warn('  [shadow] 적재 skip:', e?.message); }
     // 2026-05-29: 매도 추천 적재 — Karpathy pathway 의 source. tune-sell-rules 가 outcome 평가.
     let sellCount = 0;
     try {

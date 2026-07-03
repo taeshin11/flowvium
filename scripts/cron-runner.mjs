@@ -336,6 +336,8 @@ const MAINT_JOBS = [
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'build-financials',     script: 'scripts/build-financials-cache.mjs',     timeoutMs: 1500000, commitPaths: ['data/financials.json'],               schedules: ['35 19 * * *'],                maxAgeH: 30 },
+  // 2026-07-03: 전향연구 평가 — shadow 룰(live 미참여 후보)의 전향 5/10일 성적 주간 집계(TER 회고 후속).
+  { label: 'eval-shadow-rules',    script: 'scripts/eval-shadow-rules.mjs',          timeoutMs: 600000,  commitPaths: [],                                     schedules: ['50 19 * * 6'],                maxAgeH: 9 * 24 },
 ];
 for (const j of MAINT_JOBS) for (const s of j.schedules) {
   cron.schedule(s, () => runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths), { timezone: TZ });

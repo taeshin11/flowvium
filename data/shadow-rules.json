@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "createdAt": "2026-07-03",
+  "note": "전향 연구(shadow) 룰 — live 채점에 절대 미참여(별도 파일 격리). 리포트 stage-2 후 전용 패스가 발화만 기록(shadow_hits) → scripts/eval-shadow-rules.mjs 가 전향 5/10일 수익률 누적 → n≥30 + edge 확인 후에만 live 룰셋(buy/sell-rules-tuned.json) 승격. 후보 발굴이 사후 부검에만 의존하던 갭(TER 회고)의 전향 파이프라인.",
+  "rules": [
+    {
+      "id": "shadow_buy_trend_pullback",
+      "side": "buy",
+      "condition": { "type": "trendPullback", "change1d_lte": -2, "rsi_gte": 40, "rsi_lte": 60 },
+      "description": "정배열(price>50MA>200MA) 추세 중 -2%+ 단기 눌림(RSI 40-60)",
+      "hypothesis": "추세 유지 중의 눌림은 반등 우위 — 눌림목 매수 (린치/오닐 계열)"
+    },
+    {
+      "id": "shadow_buy_breakout_volume",
+      "side": "buy",
+      "condition": { "type": "breakoutVolume", "vol_pct_gte": 80 },
+      "description": "20일 신고가 돌파 + 거래량 20일평균 대비 +80% 이상",
+      "hypothesis": "수급 동반 돌파는 무수급 돌파보다 지속 우위 (above20dHigh 강화판 — 기존 룰과 A/B)"
+    },
+    {
+      "id": "shadow_buy_oversold_uptrend",
+      "side": "buy",
+      "condition": { "type": "oversoldInUptrend", "rsi_lte": 35 },
+      "description": "200MA 위(장기추세 유지) + RSI ≤35 과매도",
+      "hypothesis": "추세 필터를 단 과매도 반등이 무필터 rsiOversold 보다 승률 우위 (기존 룰과 A/B)"
+    },
+    {
+      "id": "shadow_sell_parabolic_fade",
+      "side": "sell",
+      "condition": { "type": "parabolicFade", "mult_gt": 1.35, "rsi_gte": 70, "vol_pct_lte": 0 },
+      "description": "200MA +35% 과확장 + RSI ≥70 + 거래량 감소 3중 고점징후",
+      "hypothesis": "과확장·과매수에 수급이탈이 겹치면 단기 하락 우위 — TER 484 붕괴 직전 패턴의 일반화"
+    }
+  ]
+}
