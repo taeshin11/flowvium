@@ -8399,7 +8399,18 @@ async function generateViaOllama() {
   {
     const port = finalReport.portfolio ?? [];
     const sum = port.reduce((s, p) => s + (Number(p.allocation) || 0), 0);
-    if (port.length > 0 && sum > 0 && Math.abs(sum - 100) > 1) {
+    if (port.length > 0 && port.length < 4) {
+      // 2026-07-03 (evening 42/42/16 실측 — applyLocalHarness 캡을 이 최종 정규화가 되돌림): thin(종목<4)
+      //   포트폴리오는 100 강제 스케일 = 몰빵 생성. 단일 25% 캡만 적용, 잔여는 현금 보유 명시(현금도 포지션).
+      let capped = false;
+      port.forEach((p) => { if ((Number(p.allocation) || 0) > 25) { p.allocation = 25; capped = true; } });
+      const invested = port.reduce((s, p) => s + (Number(p.allocation) || 0), 0);
+      if (invested < 100 && !/현금\s*보유|현금도\s*포지션/.test(String(finalReport.portfolioRiskNote ?? ''))) {
+        const cashNote = `규율상 신규매수 후보 부족(과열/칼받기 veto 대량 탈락) — 투자비중 ${invested}%만 권고, 잔여 ${100 - invested}%는 현금 보유(현금도 포지션).`;
+        finalReport.portfolioRiskNote = finalReport.portfolioRiskNote ? `${cashNote} ${finalReport.portfolioRiskNote}` : cashNote;
+      }
+      console.log(`  [후처리] thin 포트폴리오(${port.length}종목) — 100 스케일 금지${capped ? ', 단일 25% 캡' : ''}, 투자 ${invested}% + 현금 ${100 - invested}% 명시`);
+    } else if (port.length > 0 && sum > 0 && Math.abs(sum - 100) > 1) {
       const f = 100 / sum;
       let acc = 0;
       port.forEach((p, i) => {
