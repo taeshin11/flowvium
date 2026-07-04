@@ -883,7 +883,7 @@ export default function ReportPage() {
             {data.flowNarrativeEvidence?.allClaims?.length ? (
               <div className="mt-3 pt-3 border-t border-black/10 space-y-1.5">
                 <p className="text-[10px] font-bold text-gray-500 tracking-wide">💸 {t('assetFlowTitle')}</p>
-                {data.flowNarrativeEvidence.allClaims.slice(0, 3).map((c, i) => (
+                {data.flowNarrativeEvidence.allClaims.slice(0, 4).map((c, i) => (
                   <div key={i} className="flex items-start gap-1.5 text-xs text-gray-700">
                     <span className={`shrink-0 mt-[1px] text-[9px] px-1.5 py-0.5 rounded font-bold ${c.kind === 'true_flow' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>
                       {c.kind === 'true_flow' ? t('assetFlowMeasured') : t('assetFlowProxy')}

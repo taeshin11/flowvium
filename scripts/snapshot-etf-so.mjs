@@ -10,8 +10,11 @@
  */
 import { saveEtfSoSnapshots } from './lib/db.mjs';
 
-// 자산군 대표 14종 — 미국주식(SPY/QQQ/IWM), 채권(TLT/HYG/LQD), 금(GLD), EM/중국/한국/일본(EEM/FXI/EWY/EWJ), 섹터(XLK/XLF/XLE)
-const BASKET = ['SPY', 'QQQ', 'IWM', 'TLT', 'HYG', 'LQD', 'GLD', 'EEM', 'FXI', 'EWY', 'EWJ', 'XLK', 'XLF', 'XLE'];
+// 자산군 대표 + GICS 섹터 전체 22종 (2026-07-04 사용자 "섹터간에도" — 섹터 실측 창설/상환 커버):
+//   미국주식(SPY/QQQ/IWM), 채권(TLT/HYG/LQD), 금(GLD), EM/중국/한국/일본(EEM/FXI/EWY/EWJ),
+//   GICS 11섹터(XLK기술/XLF금융/XLE에너지/XLV헬스케어/XLI산업재/XLY경기소비/XLP필수소비/XLU유틸/XLB소재/XLRE리츠/XLC커뮤니케이션)
+const BASKET = ['SPY', 'QQQ', 'IWM', 'TLT', 'HYG', 'LQD', 'GLD', 'EEM', 'FXI', 'EWY', 'EWJ',
+  'XLK', 'XLF', 'XLE', 'XLV', 'XLI', 'XLY', 'XLP', 'XLU', 'XLB', 'XLRE', 'XLC'];
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
 async function main() {

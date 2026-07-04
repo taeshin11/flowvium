@@ -4649,6 +4649,21 @@ function buildFlowNarrativeEvidence(ctxRaw) {
         forbiddenVerbs: ['순매수', '순유입', '자금 유입액'], confidence: 'medium',
       });
     }
+    // 1.7) 섹터간 로테이션 (2026-07-04 사용자 "섹터나 자산간에도 다 들어가있지?"): 11 GICS 섹터 ETF
+    //   1w 스프레드 ≥ 5%p 일 때 — 가격 proxy 명시. 섹터 *실측*은 ETF-SO 바스켓의 GICS 11종이 담당(1.3).
+    const sectors = (ctxRaw?.capital?.sectorPerformance ?? []).filter((s) => typeof s.ret1w === 'number');
+    if (sectors.length >= 4) {
+      const sSorted = [...sectors].sort((a, b) => b.ret1w - a.ret1w);
+      const sTop = sSorted[0], sBot = sSorted[sSorted.length - 1];
+      if (sTop.ret1w - sBot.ret1w >= 5) {
+        claims.push({
+          id: 'sector_rotation_proxy_1w', kind: 'return_proxy',
+          text: `섹터 로테이션(가격 기준): ${sBot.label}(${sBot.ticker} ${sBot.ret1w >= 0 ? '+' : ''}${sBot.ret1w.toFixed(1)}%)→${sTop.label}(${sTop.ticker} ${sTop.ret1w >= 0 ? '+' : ''}${sTop.ret1w.toFixed(1)}%) 1주 스프레드 ${(sTop.ret1w - sBot.ret1w).toFixed(1)}%p`,
+          allowedVerbs: ['섹터 로테이션', '수익률 우위', '상대강도'],
+          forbiddenVerbs: ['순매수', '순유입', '자금 유입액'], confidence: 'medium',
+        });
+      }
+    }
     // 2) 가격수익률 proxy — 자산군 1w 스프레드 ≥ 3%p 일 때만(뚜렷).
     const assets = (ctxRaw?.capital?.assets ?? []).filter((a) => typeof a.ret1w === 'number');
     if (assets.length >= 2) {
@@ -4665,7 +4680,8 @@ function buildFlowNarrativeEvidence(ctxRaw) {
     }
   } catch { /* 비치명 — evidence 없이 진행 */ }
   const primary = claims.find((c) => c.kind === 'true_flow') ?? claims[0] ?? null;
-  return { shouldMention: !!primary, primaryClaim: primary, allClaims: claims.slice(0, 3) };
+  // 2026-07-04: 3→4 — 섹터 로테이션 claim 추가로 상한 확장 (KR·ICI·ΔSO·섹터/국가 로테이션 공존 가능).
+  return { shouldMention: !!primary, primaryClaim: primary, allClaims: claims.slice(0, 4) };
 }
 
 // flow contract 위반 백스톱(결정론) — thesis 는 건드리지 않고 macroAnalysis 에만 개입(히어로 문구 보호).
