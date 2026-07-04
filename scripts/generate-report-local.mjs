@@ -3688,7 +3688,7 @@ async function gatherContext() {
 
   const [
     capital, fearGreed, fedwatch, macro,
-    creditBalance, insider, ownershipAlerts, koreaFlow,
+    creditBalance, insider, ownershipAlerts, koreaFlow, fundFlows,
     nport, shortInterest, newsCascade, econCal,
     volatility, cot, commodity, supplyChainSignals, narratives,
     newsGap, optionsFlow, blockTrades,
@@ -3701,6 +3701,7 @@ async function gatherContext() {
     namedFetch('insider',           `${base}/api/insider-trades`, 15000),
     namedFetch('ownershipAlerts',   `${base}/api/ownership-alerts`, 15000),
     namedFetch('koreaFlow',         `${base}/api/korea-flow`, 10000),
+    namedFetch('fundFlows',         `${base}/api/fund-flows`, 12000),  // 2026-07-04: ICI 주간 실측 net issuance
     namedFetch('nport',             `${base}/api/nport-holdings`, 15000),
     namedFetch('shortInterest',     `${base}/api/short-interest`, 12000),
     namedFetch('newsCascade',       `${base}/api/news-cascade`, 15000),
@@ -3734,6 +3735,7 @@ async function gatherContext() {
     insider: (insider?.items ?? []).filter(it => it && /^[A-Z0-9][A-Z0-9.\-]{0,11}$/i.test(String(it.ticker || ''))),  // 2026-06-18: N/A/null/malformed 티커 제외 (내부자 섹션 'N/A 3건' + topOpportunity 'WOK·N/A·HNRG' 결함 근본수정)
     ownership: ownershipAlerts?.items ?? ownershipAlerts ?? [],
     koreaFlow,
+    fundFlows,   // ICI 주간 실측 net issuance — flowEvidence·macro prompt 소비
     nport,
     short: shortInterest,
     cascade: newsCascade?.articles ?? [],
@@ -3992,6 +3994,17 @@ function buildCtxSummary(ctx) {
     }
   } catch { /* ignore */ }
 
+  // US 실측 fund flow — ICI 주간 ETF net issuance (2026-07-04)
+  let fundFlows = '';
+  try {
+    const f = ctx.fundFlows;
+    if (f?.categories && !f.error) {
+      const c = f.categories;
+      const fmt = (v) => v == null ? '?' : `${v >= 0 ? '+' : ''}${(v / 1000).toFixed(1)}B`;
+      fundFlows = `주말 ${f.asOfWeekEnded}: total ${fmt(c.total)} | 미국주식 ${fmt(c.domesticEquity)} | 해외주식 ${fmt(c.worldEquity)} | 채권 ${fmt(c.bond)} | 원자재 ${fmt(c.commodity)} ($B, 창설/상환 기반 실측 추정)`;
+    }
+  } catch { /* ignore */ }
+
   // Asset-class F&G
   let assetFg = '';
   try {
@@ -4122,7 +4135,7 @@ function buildCtxSummary(ctx) {
     if (lines.length) supplyChain = lines.join('\n');
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, sectorLeadership, cot, narratives, commodity, institutional, shorts, news, koreaFlow, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
+  return { macro, sentiment, flows, sectorLeadership, cot, narratives, commodity, institutional, shorts, news, koreaFlow, fundFlows, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
 }
 
 // ── Cascade signals ────────────────────────────────────────────────────────────
@@ -4574,6 +4587,20 @@ function buildFlowNarrativeEvidence(ctxRaw) {
         });
       }
     }
+    // 1.2) 미국 실측 — ICI 주간 ETF net issuance (창설/상환 기반, 주간 지연). 뚜렷할 때만:
+    //   |미국주식| ≥ $3B 또는 채권-미국주식 스프레드 ≥ $8B. '어디서→어디로'를 실측으로 서술 가능.
+    const ff = ctxRaw?.fundFlows?.categories;
+    if (ff && Number.isFinite(ff.domesticEquity) && Number.isFinite(ff.bond)) {
+      const de = ff.domesticEquity, bd = ff.bond, we = Number.isFinite(ff.worldEquity) ? ff.worldEquity : null;
+      if (Math.abs(de) >= 3000 || bd - de >= 8000) {
+        const fmtB = (v) => `${v >= 0 ? '+' : ''}${(v / 1000).toFixed(1)}B달러`;
+        claims.push({
+          id: 'ici_etf_issuance', kind: 'true_flow', market: 'US',
+          text: `ICI 주간 실측(1주 지연, ~${ctxRaw.fundFlows.asOfWeekEnded}): 미국주식 ETF ${fmtB(de)}${we != null ? ` vs 해외주식 ${fmtB(we)}` : ''} · 채권 ${fmtB(bd)} 순창설`,
+          allowedVerbs: ['순창설', '순상환', '자금 유입', '자금 이탈', 'net issuance'], confidence: 'medium',
+        });
+      }
+    }
     // 1.5) 로테이션 서사(어디서→어디로) — capital-flows rotations1w (가격 proxy 지만 '이동' 형식의 핵심).
     const rots = ctxRaw?.capital?.flow?.rotations1w ?? [];
     if (rots.length) {
@@ -4665,7 +4692,8 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     // 2026-07-04 (사용자 "자산이동도 같이 분석해야"): 자산이동 블록 — narrative 에만 가고 thesis(홈 히어로
     //   문구) 입력엔 빠져 있던 갭. fact-check 4581/4582 규칙(수익률≠유입액, 수급 방향 고정)이 그대로 적용됨.
     `[Capital Flow — 자산이동, *최근 1w 우선 정렬* (4w 는 맥락·accel↑/reversal↕=최근성 시그널) — ⚠️가격수익률 proxy, 실측 자금유입 아님] ${ctx.flows || 'No data'}`,
-    `[KR Flow — 외국인 수급 실측(일별, 유일한 실측 flow)] ${ctx.koreaFlow || 'No data'}`,
+    `[KR Flow — 외국인 수급 실측(일별)] ${ctx.koreaFlow || 'No data'}`,
+    `[US Fund Flows — ICI 주간 ETF net issuance 실측(주간 지연, $M)] ${ctx.fundFlows || 'No data'}`,
     flowContract,
     '- ⚠️ 자산이동 서술은 *가장 최근*(1w·reversal/accel 시그널·외인 당일/최근 순매수) 우선 — 4w 는 배경 맥락으로만. 최근과 4w 방향이 다르면 최근을 따르되 반전임을 명시.',
     `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,

@@ -65,6 +65,8 @@ export const TRACKED_ENDPOINTS = [
   '/api/company-business/AAPL',
   // 2026-06-14: KRX 시장경보(투자주의/경고/위험·소수계좌 거래집중) 라이브 — DB 시계열 적재.
   '/api/market-alerts',
+  // 2026-07-04: ICI 주간 ETF net issuance 실측 — DB 시계열 적재(자산이동 실측 소스).
+  '/api/fund-flows',
   // 2026-06-14: 작전주 매집 워치리스트(오르기 前) — DB 시계열 적재.
   '/api/accumulation-watch',
   // 2026-06-17: US 작전주 매집(거래량 기반) + KR 임원·주요주주 지분공시 피드 — DB 시계열 적재.
