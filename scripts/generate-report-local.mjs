@@ -4567,10 +4567,23 @@ function buildFlowNarrativeEvidence(ctxRaw) {
       if (Math.abs(net) >= 3e11) {
         claims.push({
           id: 'kr_smart_flow', kind: 'true_flow', market: 'KR',
-          text: `KR 외국인${Number.isFinite(iNet) ? '+기관' : ''} ${net > 0 ? '순매수' : '순매도'} ${(Math.abs(net) / 1e8).toFixed(0)}억원(${kf.period ?? '기간'})`,
+          // 2026-07-04: 범위 명시 — korea-flow 합계는 시장 전체가 아니라 순매수·도 랭킹 상위 수집분 합계.
+          //   무범위 서술("외국인 1.9조 순매수")은 시장 전체 수급으로 과대해석됨(사용자 스크린샷 회고).
+          text: `KR 외국인${Number.isFinite(iNet) ? '+기관' : ''} 주요 종목 ${net > 0 ? '순매수' : '순매도'} ${(Math.abs(net) / 1e8).toFixed(0)}억원(${kf.period ?? '기간'}, 수급 상위 종목 합계)`,
           allowedVerbs: ['순매수', '순매도', '유입', '이탈'], confidence: 'high',
         });
       }
+    }
+    // 1.5) 로테이션 서사(어디서→어디로) — capital-flows rotations1w (가격 proxy 지만 '이동' 형식의 핵심).
+    const rots = ctxRaw?.capital?.flow?.rotations1w ?? [];
+    if (rots.length) {
+      const r0 = rots[0];
+      claims.push({
+        id: 'rotation_proxy_1w', kind: 'return_proxy',
+        text: `${r0.from}→${r0.to} 로테이션(1주 수익률 스프레드 ${(r0.magnitude ?? 0).toFixed(1)}%p — 가격 기준 proxy)`,
+        allowedVerbs: ['로테이션', '수익률 우위', '상대강도', '이동 조짐(가격 기준)'],
+        forbiddenVerbs: ['순매수', '순유입', '자금 유입액'], confidence: 'medium',
+      });
     }
     // 2) 가격수익률 proxy — 자산군 1w 스프레드 ≥ 3%p 일 때만(뚜렷).
     const assets = (ctxRaw?.capital?.assets ?? []).filter((a) => typeof a.ret1w === 'number');
@@ -4627,7 +4640,14 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
       `허용 표현: ${(fe.primaryClaim.allowedVerbs ?? []).join(', ')}`,
       ...(fe.primaryClaim.forbiddenVerbs?.length ? [`금지 표현: ${fe.primaryClaim.forbiddenVerbs.join(', ')} (가격수익률 proxy 를 자금유입으로 부르지 마라)`] : []),
     ] : []),
-    'shouldMention=false 면 자산이동을 언급하지 마라(억지 금지). true 면 primaryClaim 을 thesis 또는 macroAnalysis 에 자연스럽게 1회 녹여라.',
+    // 2026-07-04 (사용자 "자금 흐름 내용없는데"): 수급 한 줄로 끝내지 말고 '어디서→어디로' 이동 서사까지 —
+    //   secondary claim(로테이션)이 있으면 함께 녹이도록 계약에 노출.
+    ...(fe.allClaims?.length > 1 ? [
+      `secondaryClaim(${fe.allClaims[1].kind}): ${fe.allClaims[1].text}`,
+      `secondary 허용 표현: ${(fe.allClaims[1].allowedVerbs ?? []).join(', ')}`,
+    ] : []),
+    'shouldMention=false 면 자산이동을 언급하지 마라(억지 금지). true 면 primaryClaim 을 thesis 또는 macroAnalysis 에 자연스럽게 녹이고, secondaryClaim(로테이션: 어디서→어디로)이 있으면 그 이동 방향도 함께 서술하라.',
+    '- ⚠️ 등락률(%) 인용 시 반드시 그 *대상*(KOSPI/코스닥/EWY/S&P500/종목명)을 명시 — "1주 -12.1%의 약세"처럼 주어 없는 등락 서술 금지.',
   ].join('\n') : '';
   const sc = session === 'morning' ? 'Post US-close' : session === 'afternoon' ? 'Post Asia-close' : session === 'noon' ? 'Asia mid-session (KR 점심)' : session === 'midnight' ? 'Asia pre-open / US after-close' : 'Pre US-open';
   const focus = getSessionFocus(session);
