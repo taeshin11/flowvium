@@ -18,6 +18,7 @@
     "scrape:gap": "tsx scripts/scrapers/news-gap-calc.ts",
     "check:hardcoded": "node scripts/check-hardcoded.mjs",
     "check:fallbacks": "node scripts/check-static-fallbacks.mjs",
+    "triage": "node scripts/triage.mjs",
     "verify": "node scripts/verify-all.mjs",
     "verify:report": "node scripts/verify-report.mjs",
     "verify:coverage": "node scripts/audit-coverage.mjs",
