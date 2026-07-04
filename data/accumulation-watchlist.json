@@ -1,10 +1,46 @@
 {
-  "generatedAt": "2026-07-02T07:00:33.284Z",
+  "generatedAt": "2026-07-04T03:08:36.315Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 0,
-  "strongCount": 0,
-  "watchCount": 0,
+  "count": 2,
+  "strongCount": 1,
+  "watchCount": 1,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "052790.KQ",
+      "name": "액토즈소프트",
+      "tier": "strong",
+      "score": 46,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.8× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 4.9,
+      "runup5dPct": 11.5,
+      "medDollarVolUsd": 94053,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "093380.KQ",
+      "name": "풍강",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 15.7× 상승(지속 매집)",
+        "거래량 31.8× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -0.8,
+      "runup5dPct": 9.8,
+      "medDollarVolUsd": 26459,
+      "smartAccum": true,
+      "official": null
+    }
+  ]
 }
