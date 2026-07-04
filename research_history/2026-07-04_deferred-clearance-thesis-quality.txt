@@ -1,0 +1,26 @@
+2026-07-04 이연 전량 이행 + thesis 서술 품질 (사용자: "이연은 왜 해? 일 미루지 말고 다 해. thesis 서술 품질 개선해")
+
+■ thesis 품질 (f4876b5d) — noon 실증 결함 3종 근절:
+  ①무주어 등락%("1주 -12.1%" 실체=EWY ret1w -12.13, KOSPI 급락 오독) → attributePctSubjects:
+    capital-flows 실값(자산/국가/섹터/팩터 ETF) 유일매치+|v|>=3%+티커부재 시 "(EWY·달러 기준)" 주입.
+  ②thesis↔macroAnalysis 문장 복붙 → dedupeThesisMacro(bigram Dice>=0.82, macro 쪽 제거, 80자 가드).
+  ③"19922억원" → sanitizeText 조 표기("1조 9,922억원").
+  + 프롬프트 서술품질 4항, verify (b4) 게이트 2종(무주어/복붙 잔존), patch-narrative 통합(DB 스냅샷 pool).
+  검증 사이클 완주: 신규 프로브가 noon 발간본에서 발화 → patch+재발행(라이브 확인) → 0 defects.
+  16:00 afternoon 이 신규 코드로 자연 발간 — thesis 전 주어 명시·조 표기, verify 0건, recheck 그린.
+
+■ 이연 4건 이행 (사유가 오판이었음이 3건에서 판명):
+  D1 ETF-SO (200e2bef): "발행사 페이지 포맷 검증 필요" → Yahoo v7+crumb 로 14종 즉시 전건 수신.
+    snapshot-etf-so MAINT(평일 05:15 KST) + etf_so_snapshots DB + getEtfSoFlows(ΔSO×가격) +
+    flow claim etf_so_delta(true_flow US). 델타 산식 실검증(가짜 전일행 → 기대값 일치 → 복구).
+  D2 TIC (f62b0d84): /api/tic-flows — SLT Table5 txt 파싱(2026-04 최신). Japan +18.3B/1m,
+    China -92.5B/12m 실측. 월간 지연이라 claim 미발화, macro prompt [TIC] 배경 전용.
+  D3 KR 수급강도 (7e2ea70b): "거래대금 파이프 필요" → frgn.naver 한 페이지에 전부 있었음(오판).
+    kr-flow-intensity.mjs(streak+5d순매수/거래대금%) + 매수 micro_kr_smart_flow / 매도
+    micro_kr_flow_exodus(대칭). 실검증: 005930 -11.59% → sell 발화.
+  D4 condWatch (bd8c70a6): "UI 렌더 필요" → 포함 이행. stage2Vetoed top6 → conditionalEntryWatch
+    (조건 결정론 파생) + ReportPage 앰버 카드 + i18n ×16.
+
+■ 사고: 15:40 checkout 이 미푸시 편집 3파일 wipe(구 사건 재발) → 재적용 후 파일단위 즉시 커밋으로 전환.
+■ 남긴 것: snapshot-etf-so 첫 하트비트는 16:20 self-heal 사이클(16:00 시도는 파이프라인 lock 으로 skip,
+  설계대로 자연 재시도)이 기록 — 백그라운드 워처로 실행 증거 확인 후 보고.
