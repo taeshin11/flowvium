@@ -1,0 +1,17 @@
+2026-07-04 로깅 완결성 감사 + 프런트 에러 파이프 + triage (사용자: "프런트, 백엔드 로그 구축 잘되있어? 어디서 업데이트 안됐고 에러났는지 빨리 파악 가능하게?")
+
+감사 결론:
+- 백엔드/파이프라인 로깅은 강함 — 구조화 JSON logger 65/90 route, loggedRedisSet/loggedFetch,
+  endpoint_snapshots DB, 모니터 스택(runMonitor 20min·recheck 발간별·page-audit 6h·company-render 주간·
+  heartbeat/cron-last-run+catchup+self-heal), report.log, error-log admin API.
+- 사각 2개 발견:
+  1) 실사용자 브라우저 에러 수집 전무(audit-pages 는 우리 Playwright 만 봄) → /api/client-log(POST rate-limit
+     10/min/IP·Redis ring 500/7d, GET CRON_SECRET ?sinceMin=) + ClientErrorReporter(layout 전역, sendBeacon,
+     세션10건·60s 디바운스) + runMonitor 25분창 소비(3건+ 결함). 프로덕션 E2E 왕복 실측. 커밋 da074814.
+  2) 단일 triage 진입점 부재(장애 시 6곳+ 수동 확인) → npm run triage = scripts/triage.mjs 읽기전용 9층
+     요약(<10s, exit 1=주의): pm2/모니터/발간recheck/페이지감사/HTTP크론(vercel.json 스케줄 파싱 — 주간잡
+     evaluate-signals·log-cascade-events 오탐을 1차 실행에서 발견·수정)/MAINT HB/보고서+report.log FATAL/
+     스냅샷 24h 4XX/브라우저에러. 최종 TRIAGE CLEAN 실측. 커밋 a8e901c0.
+
+역할 분리: triage(상태파일 읽기만) vs check-stall(능동 프로브) vs verify-all(코드 결함 게이트).
+둘 다 15:40 afternoon checkout 전 push 완료 — wipe 리스크 없음.
