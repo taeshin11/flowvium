@@ -1,571 +1,583 @@
 {
-  "version": 1,
-  "source": "initial-seed-with-guru-tech-fund-macro-micro",
-  "tunedAt": "2026-07-01T23:47:18.921Z",
-  "sampleSize": 208,
-  "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
-  "rules": [
-    {
-      "id": "price_oversold_gap",
-      "score": 3,
-      "category": "price",
-      "condition": {
-        "type": "priceGapDown",
-        "change1d_lte": -3
-      },
-      "description": "1d -3%+ drop — dead cat bounce 후보 (mean reversion 진입)"
-    },
-    {
-      "id": "price_momentum_52w_high",
-      "score": 5,
-      "category": "price",
-      "condition": {
-        "type": "near52wHigh",
-        "within_pct": 3
-      },
-      "description": "52주 신고가 3% 이내 — 추세 주도주 모멘텀 (시장중립, KR 모멘텀 미포착 fix 2026-06-12)"
-    },
-    {
-      "id": "price_support_bounce",
-      "score": 5,
-      "category": "price",
-      "condition": {
-        "type": "near52wLow",
-        "above_pct_lte": 5
-      },
-      "description": "52주 저점 5% 이내 — 지지 반등 매수 zone (Marks contrarian)"
-    },
-    {
-      "id": "price_pullback_50ma",
-      "score": 4,
-      "category": "price",
-      "condition": {
-        "type": "near50MA",
-        "deviation_pct_lte": 2
-      },
-      "description": "50MA ±2% — 지지선 pullback 매수 (Druckenmiller MA confirmation)"
-    },
-    {
-      "id": "price_mean_reversion",
-      "score": 4,
-      "category": "price",
-      "condition": {
-        "type": "below200MA",
-        "below_pct_gte": 5
-      },
-      "description": "200MA -5% 이하 — 평균 회귀 매수 (over-sold contrarian)"
-    },
-    {
-      "id": "price_breakout_high",
-      "score": 5,
-      "category": "price",
-      "condition": {
-        "type": "above20dHigh"
-      },
-      "description": "20일 고가 돌파 — momentum breakout (Druckenmiller liquidity)"
-    },
-    {
-      "id": "rotation_sector_in",
-      "score": 4,
-      "category": "rotation",
-      "condition": {
-        "type": "sectorRotateIn",
-        "stance": "overweight",
-        "pe_discount_pct_gte": 10
-      },
-      "description": "sector stance=overweight AND P/E 섹터 대비 -10%+ — sector rotation 진입"
-    },
-    {
-      "id": "rotation_defensive",
-      "score": 4,
-      "category": "rotation",
-      "condition": {
-        "type": "defensiveRotation",
-        "risk_level": "high",
-        "sectors": [
-          "Utilities",
-          "Consumer Staples",
-          "Health Care",
-          "유틸리티",
-          "필수소비재",
-          "헬스케어"
-        ]
-      },
-      "description": "macro riskLevel=high AND defensive sector (XLU/XLP/XLV) — defensive 회전"
-    },
-    {
-      "id": "rotation_new_high_after_consolidation",
-      "score": 5,
-      "category": "rotation",
-      "condition": {
-        "type": "newHighAfterFlat",
-        "consolidation_weeks_gte": 4
-      },
-      "description": "4주+ 횡보 후 신고가 — Stage 2 advance (Stan Weinstein 트렌드 stage 진입)"
-    },
-    {
-      "id": "tech_rsi_oversold",
-      "score": 4,
-      "category": "technical",
-      "condition": {
-        "type": "rsiOversold",
-        "rsi_lte": 35
-      },
-      "description": "RSI ≤ 35 — 과매도 (Marks contrarian entry)"
-    },
-    {
-      "id": "tech_ma_golden_cross",
-      "score": 5,
-      "category": "technical",
-      "condition": {
-        "type": "goldenCross"
-      },
-      "description": "50MA > 200MA — 장기 상승 추세"
-    },
-    {
-      "id": "tech_200ma_reclaim",
-      "score": 4,
-      "category": "technical",
-      "condition": {
-        "type": "ma200Reclaim",
-        "above_pct_lte": 5
-      },
-      "description": "price > 200MA AND 200MA 도 5% 이내 — 추세 복원"
-    },
-    {
-      "id": "tech_volume_surge",
-      "score": 3,
-      "category": "technical",
-      "condition": {
-        "type": "volumeSurge",
-        "vol_pct_gte": 50,
-        "price_up_gte": 2
-      },
-      "description": "volume +50%+ & price +2%+ — accumulation 패턴"
-    },
-    {
-      "id": "fund_high_roe",
-      "score": 5,
-      "category": "fundamental",
-      "condition": {
-        "type": "roeAbove",
-        "roe_pct_gte": 15
-      },
-      "description": "ROE ≥ 15% (Buffett 우량 기업)"
-    },
-    {
-      "id": "fund_op_margin_expansion",
-      "score": 4,
-      "category": "fundamental",
-      "condition": {
-        "type": "opMarginExpand",
-        "expand_pp_gte": 2
-      },
-      "description": "op margin YoY +2%p+ — 수익성 확대"
-    },
-    {
-      "id": "fund_pe_below_sector",
-      "score": 4,
-      "category": "fundamental",
-      "condition": {
-        "type": "peBelowSector",
-        "discount_pct_gte": 20
-      },
-      "description": "P/E sector 평균 대비 -20%+ — 상대 저평가"
-    },
-    {
-      "id": "fund_revenue_growth",
-      "score": 3,
-      "category": "fundamental",
-      "condition": {
-        "type": "revenueYoY",
-        "growth_pct_gte": 15
-      },
-      "description": "revenue YoY ≥ 15% — 성장세"
-    },
-    {
-      "id": "guru_lynch_peg_low",
-      "score": 5,
-      "category": "guru",
-      "condition": {
-        "type": "lynchPeg",
-        "peg_lte": 1
-      },
-      "description": "Lynch PEG ≤ 1 — 성장 대비 저평가"
-    },
-    {
-      "id": "guru_buffett_moat",
-      "score": 6,
-      "category": "guru",
-      "condition": {
-        "type": "buffettMoat",
-        "roe_pct_gte": 15,
-        "op_margin_pct_gte": 20
-      },
-      "description": "ROE ≥ 15% AND op margin ≥ 20% — Buffett moat 신호"
-    },
-    {
-      "id": "guru_greenblatt_magic",
-      "score": 6,
-      "category": "guru",
-      "condition": {
-        "type": "greenblattMagic",
-        "earnings_yield_gte": 10,
-        "roic_pct_gte": 25
-      },
-      "description": "EBIT/EV ≥ 10% AND ROIC ≥ 25% — Magic Formula"
-    },
-    {
-      "id": "guru_graham_value",
-      "score": 4,
-      "category": "guru",
-      "condition": {
-        "type": "grahamValue",
-        "pe_lte": 15,
-        "pb_lte": 1.5
-      },
-      "description": "P/E ≤ 15 AND P/B ≤ 1.5 — Graham deep value"
-    },
-    {
-      "id": "macro_low_risk",
-      "score": 3,
-      "category": "macro",
-      "condition": {
-        "type": "macroRisk",
-        "risk_level": "low"
-      },
-      "description": "macro riskLevel=low (cyclical 종목 가중)"
-    },
-    {
-      "id": "macro_vix_low",
-      "score": 2,
-      "category": "macro",
-      "condition": {
-        "type": "vixLow",
-        "vix_lte": 14
-      },
-      "description": "VIX ≤ 14 — risk-on 환경"
-    },
-    {
-      "id": "macro_fg_recovery",
-      "score": 3,
-      "category": "macro",
-      "condition": {
-        "type": "fgRecovery",
-        "fg_gte": 25,
-        "fg_lte": 50
-      },
-      "description": "F&G 25~50 (extreme fear → 회복기 진입)"
-    },
-    {
-      "id": "micro_sector_overweight",
-      "score": 4,
-      "category": "micro",
-      "condition": {
-        "type": "sectorStance",
-        "stance": "overweight"
-      },
-      "description": "해당 sectorAllocation stance=overweight"
-    },
-    {
-      "id": "micro_region_bullish",
-      "score": 4,
-      "category": "micro",
-      "condition": {
-        "type": "regionStance",
-        "stance": "bullish"
-      },
-      "description": "해당 region stance=bullish"
-    },
-    {
-      "id": "micro_news_positive",
-      "score": 5,
-      "category": "micro",
-      "condition": {
-        "type": "newsPositive",
-        "pos_ratio_gte": 0.6,
-        "min_articles": 3
-      },
-      "description": "최근 7d 해당 ticker news 긍정 sentiment ≥ 60% (3+ articles)"
-    },
-    {
-      "id": "micro_news_gap",
-      "score": 6,
-      "category": "micro",
-      "condition": {
-        "type": "newsGap",
-        "gap_score_gte": 60
-      },
-      "description": "news-gap: 기관(IB) 활동 高 + 미디어 저커버리지 (gapScore>=60) — 정보 비대칭 선행 매수 시그널 (2026-06-12)"
-    },
-    {
-      "id": "micro_insider_buying",
-      "score": 6,
-      "category": "micro",
-      "condition": {
-        "type": "insiderBuy",
-        "filings_gte": 3
-      },
-      "description": "최근 30d insider 매수 filing ≥ 3건 (13D/Form 4)"
-    },
-    {
-      "id": "micro_squeeze_score",
-      "score": 4,
-      "category": "micro",
-      "condition": {
-        "type": "squeezeScore",
-        "score_gte": 50
-      },
-      "description": "short squeeze score ≥ 50 (high SI + low DTC)"
-    },
-    {
-      "id": "micro_cascade_upstream",
-      "score": 5,
-      "category": "micro",
-      "condition": {
-        "type": "cascadeUpstream"
-      },
-      "description": "최근 cascade signal 의 upstream beneficiary (supply chain)"
-    },
-    {
-      "id": "selflearn_boost_list",
-      "score": 5,
-      "category": "selflearn",
-      "condition": {
-        "type": "boostList"
-      },
-      "description": "boost-list 멤버 (과거 avg_pnl ≥ 5%)"
-    },
-    {
-      "id": "selflearn_ban_list_penalty",
-      "score": -100,
-      "category": "selflearn",
-      "condition": {
-        "type": "banList"
-      },
-      "description": "ban-list 멤버 → 제외 (2+ stops / 0 hits)",
-      "tunable": false
-    },
-    {
-      "id": "micro_options_call_flow",
-      "score": 4,
-      "category": "micro",
-      "condition": {
-        "type": "optionsCallFlow",
-        "total_prem_gte": 2000000,
-        "call_share_gte": 0.7
-      },
-      "description": "옵션 unusual activity 콜 편중 — vol/OI 파생, 총 프리미엄 $2M+ & 콜 70%+ (2026-06-13)"
-    },
-    {
-      "id": "micro_volume_burst",
-      "score": 3,
-      "category": "micro",
-      "condition": {
-        "type": "volumeBurst",
-        "notional_gte": 50000000
-      },
-      "description": "5분봉 거래량 버스트 상방 $50M+ — 기관성 매집 proxy (2026-06-13)"
-    },
-    {
-      "id": "micro_supply_contract",
-      "score": 5,
-      "category": "micro",
-      "condition": {
-        "type": "supplyContractWin",
-        "revenue_pct_gte": 5,
-        "conviction_gte": 82
-      },
-      "description": "신규 공급계약 — 연매출 대비 5%+ 영향 (DART KR/SEC US). 매출대비%가 핵심, 거대기업 소액계약 노이즈 차단 (2026-06-13)"
-    },
-    {
-      "id": "fund_backlog_growth",
-      "score": 4,
-      "category": "fundamental",
-      "condition": {
-        "type": "backlogGrowth",
-        "yoy_pct_gte": 10
-      },
-      "description": "수주잔고(SEC RPO) YoY 10%+ — 향후 매출 가시성 (방산/건설/제조/SaaS, 2026-06-13)"
-    },
-    {
-      "id": "guru_druckenmiller_trend",
-      "score": 5,
-      "category": "guru",
-      "condition": {
-        "type": "druckTrend",
-        "within_pct": 12
-      },
-      "description": "정배열(현재>50MA>200MA)+52주고가 근접 — Druckenmiller/Tudor 추세추종 (2026-06-19)"
-    },
-    {
-      "id": "guru_marks_capitulation",
-      "score": 5,
-      "category": "guru",
-      "condition": {
-        "type": "marksCapitulation",
-        "fg_lte": 25,
-        "above_low_pct_lte": 15
-      },
-      "description": "극공포+52주저점 근접+흑자 역발상 진입 — Marks/Klarman 안전마진 (2026-06-19)"
-    },
-    {
-      "id": "guru_oneil_canslim",
-      "score": 4,
-      "category": "guru",
-      "condition": {
-        "type": "oneilCanslim",
-        "within_pct": 5,
-        "growth_pct_gte": 25
-      },
-      "description": "신고가 돌파+매출성장≥25% 성장주도주 — O'Neil CANSLIM (2026-06-19)"
-    },
-    {
-      "id": "forensic_cash_conversion",
-      "score": 3,
-      "category": "fundamental",
-      "condition": {
-        "type": "cashConversionGood"
-      },
-      "description": "이익의 질 양호(영업현금흐름≥순이익) — forensic",
-      "tunable": false
-    }
-  ],
-  "outcomeStats": {
-    "total": 208,
-    "hits": 52,
-    "stops": 35,
-    "ne": 62,
-    "holding": 59,
-    "hitRate": 59.8,
-    "avgPnl": 20.5,
-    "avgAlpha": 18.9,
-    "bySector": [
-      {
-        "sector": "Semiconductors",
-        "hit": 3,
-        "stop": 1,
-        "total": 7,
-        "hitRate": 75
-      },
-      {
-        "sector": "Materials",
-        "hit": 4,
-        "stop": 2,
-        "total": 8,
-        "hitRate": 66.66666666666666
-      },
-      {
-        "sector": "Technology",
-        "hit": 33,
-        "stop": 27,
-        "total": 166,
-        "hitRate": 55.00000000000001
-      }
-    ],
-    "bestTickers": [
-      {
-        "ticker": "TSM",
-        "avg": 126.49181818181819,
-        "n": 11
-      },
-      {
-        "ticker": "005490.KS",
-        "avg": 51.98333333333334,
-        "n": 6
-      },
-      {
-        "ticker": "000660.KS",
-        "avg": 21.64461538461538,
-        "n": 13
-      },
-      {
-        "ticker": "TSLA",
-        "avg": 16.608333333333334,
-        "n": 6
-      },
-      {
-        "ticker": "005380.KS",
-        "avg": 10.692,
-        "n": 5
-      }
-    ],
-    "worstTickers": [
-      {
-        "ticker": "SMCI",
-        "avg": -37.61,
-        "n": 2
-      },
-      {
-        "ticker": "000810.KS",
-        "avg": -3.3400000000000003,
-        "n": 2
-      },
-      {
-        "ticker": "051910.KS",
-        "avg": 1.7974999999999999,
-        "n": 4
-      },
-      {
-        "ticker": "META",
-        "avg": 3.25,
-        "n": 2
-      },
-      {
-        "ticker": "XLE",
-        "avg": 3.95,
-        "n": 2
-      }
-    ]
+ "version": 1,
+ "source": "initial-seed-with-guru-tech-fund-macro-micro",
+ "tunedAt": "2026-07-01T23:47:18.921Z",
+ "sampleSize": 208,
+ "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
+ "rules": [
+  {
+   "id": "price_oversold_gap",
+   "score": 3,
+   "category": "price",
+   "condition": {
+    "type": "priceGapDown",
+    "change1d_lte": -3
+   },
+   "description": "1d -3%+ drop — dead cat bounce 후보 (mean reversion 진입)"
   },
-  "ruleEdge": {
-    "macro_fg_recovery": {
-      "n": 4,
-      "hitRate": 75,
-      "avgAlpha": 7.8,
-      "edge": 0.61
-    },
-    "tech_ma_golden_cross": {
-      "n": 4,
-      "hitRate": 75,
-      "avgAlpha": 7.8,
-      "edge": 0.61
-    },
-    "fund_op_margin_expansion": {
-      "n": 4,
-      "hitRate": 75,
-      "avgAlpha": 7.8,
-      "edge": 0.61
-    },
-    "fund_high_roe": {
-      "n": 3,
-      "hitRate": 67,
-      "avgAlpha": 10.7,
-      "edge": 0.6
-    },
-    "fund_revenue_growth": {
-      "n": 3,
-      "hitRate": 67,
-      "avgAlpha": 10.7,
-      "edge": 0.6
-    },
-    "price_momentum_52w_high": {
-      "n": 3,
-      "hitRate": 67,
-      "avgAlpha": 10.7,
-      "edge": 0.6
-    },
-    "price_breakout_high": {
-      "n": 1,
-      "hitRate": 100,
-      "avgAlpha": 12.6,
-      "edge": 1
-    },
-    "guru_buffett_moat": {
-      "n": 3,
-      "hitRate": 67,
-      "avgAlpha": 10.7,
-      "edge": 0.6
-    }
+  {
+   "id": "price_momentum_52w_high",
+   "score": 5,
+   "category": "price",
+   "condition": {
+    "type": "near52wHigh",
+    "within_pct": 3
+   },
+   "description": "52주 신고가 3% 이내 — 추세 주도주 모멘텀 (시장중립, KR 모멘텀 미포착 fix 2026-06-12)"
+  },
+  {
+   "id": "price_support_bounce",
+   "score": 5,
+   "category": "price",
+   "condition": {
+    "type": "near52wLow",
+    "above_pct_lte": 5
+   },
+   "description": "52주 저점 5% 이내 — 지지 반등 매수 zone (Marks contrarian)"
+  },
+  {
+   "id": "price_pullback_50ma",
+   "score": 4,
+   "category": "price",
+   "condition": {
+    "type": "near50MA",
+    "deviation_pct_lte": 2
+   },
+   "description": "50MA ±2% — 지지선 pullback 매수 (Druckenmiller MA confirmation)"
+  },
+  {
+   "id": "price_mean_reversion",
+   "score": 4,
+   "category": "price",
+   "condition": {
+    "type": "below200MA",
+    "below_pct_gte": 5
+   },
+   "description": "200MA -5% 이하 — 평균 회귀 매수 (over-sold contrarian)"
+  },
+  {
+   "id": "price_breakout_high",
+   "score": 5,
+   "category": "price",
+   "condition": {
+    "type": "above20dHigh"
+   },
+   "description": "20일 고가 돌파 — momentum breakout (Druckenmiller liquidity)"
+  },
+  {
+   "id": "rotation_sector_in",
+   "score": 4,
+   "category": "rotation",
+   "condition": {
+    "type": "sectorRotateIn",
+    "stance": "overweight",
+    "pe_discount_pct_gte": 10
+   },
+   "description": "sector stance=overweight AND P/E 섹터 대비 -10%+ — sector rotation 진입"
+  },
+  {
+   "id": "rotation_defensive",
+   "score": 4,
+   "category": "rotation",
+   "condition": {
+    "type": "defensiveRotation",
+    "risk_level": "high",
+    "sectors": [
+     "Utilities",
+     "Consumer Staples",
+     "Health Care",
+     "유틸리티",
+     "필수소비재",
+     "헬스케어"
+    ]
+   },
+   "description": "macro riskLevel=high AND defensive sector (XLU/XLP/XLV) — defensive 회전"
+  },
+  {
+   "id": "rotation_new_high_after_consolidation",
+   "score": 5,
+   "category": "rotation",
+   "condition": {
+    "type": "newHighAfterFlat",
+    "consolidation_weeks_gte": 4
+   },
+   "description": "4주+ 횡보 후 신고가 — Stage 2 advance (Stan Weinstein 트렌드 stage 진입)"
+  },
+  {
+   "id": "tech_rsi_oversold",
+   "score": 4,
+   "category": "technical",
+   "condition": {
+    "type": "rsiOversold",
+    "rsi_lte": 35
+   },
+   "description": "RSI ≤ 35 — 과매도 (Marks contrarian entry)"
+  },
+  {
+   "id": "tech_ma_golden_cross",
+   "score": 5,
+   "category": "technical",
+   "condition": {
+    "type": "goldenCross"
+   },
+   "description": "50MA > 200MA — 장기 상승 추세"
+  },
+  {
+   "id": "tech_200ma_reclaim",
+   "score": 4,
+   "category": "technical",
+   "condition": {
+    "type": "ma200Reclaim",
+    "above_pct_lte": 5
+   },
+   "description": "price > 200MA AND 200MA 도 5% 이내 — 추세 복원"
+  },
+  {
+   "id": "tech_volume_surge",
+   "score": 3,
+   "category": "technical",
+   "condition": {
+    "type": "volumeSurge",
+    "vol_pct_gte": 50,
+    "price_up_gte": 2
+   },
+   "description": "volume +50%+ & price +2%+ — accumulation 패턴"
+  },
+  {
+   "id": "fund_high_roe",
+   "score": 5,
+   "category": "fundamental",
+   "condition": {
+    "type": "roeAbove",
+    "roe_pct_gte": 15
+   },
+   "description": "ROE ≥ 15% (Buffett 우량 기업)"
+  },
+  {
+   "id": "fund_op_margin_expansion",
+   "score": 4,
+   "category": "fundamental",
+   "condition": {
+    "type": "opMarginExpand",
+    "expand_pp_gte": 2
+   },
+   "description": "op margin YoY +2%p+ — 수익성 확대"
+  },
+  {
+   "id": "fund_pe_below_sector",
+   "score": 4,
+   "category": "fundamental",
+   "condition": {
+    "type": "peBelowSector",
+    "discount_pct_gte": 20
+   },
+   "description": "P/E sector 평균 대비 -20%+ — 상대 저평가"
+  },
+  {
+   "id": "fund_revenue_growth",
+   "score": 3,
+   "category": "fundamental",
+   "condition": {
+    "type": "revenueYoY",
+    "growth_pct_gte": 15
+   },
+   "description": "revenue YoY ≥ 15% — 성장세"
+  },
+  {
+   "id": "guru_lynch_peg_low",
+   "score": 5,
+   "category": "guru",
+   "condition": {
+    "type": "lynchPeg",
+    "peg_lte": 1
+   },
+   "description": "Lynch PEG ≤ 1 — 성장 대비 저평가"
+  },
+  {
+   "id": "guru_buffett_moat",
+   "score": 6,
+   "category": "guru",
+   "condition": {
+    "type": "buffettMoat",
+    "roe_pct_gte": 15,
+    "op_margin_pct_gte": 20
+   },
+   "description": "ROE ≥ 15% AND op margin ≥ 20% — Buffett moat 신호"
+  },
+  {
+   "id": "guru_greenblatt_magic",
+   "score": 6,
+   "category": "guru",
+   "condition": {
+    "type": "greenblattMagic",
+    "earnings_yield_gte": 10,
+    "roic_pct_gte": 25
+   },
+   "description": "EBIT/EV ≥ 10% AND ROIC ≥ 25% — Magic Formula"
+  },
+  {
+   "id": "guru_graham_value",
+   "score": 4,
+   "category": "guru",
+   "condition": {
+    "type": "grahamValue",
+    "pe_lte": 15,
+    "pb_lte": 1.5
+   },
+   "description": "P/E ≤ 15 AND P/B ≤ 1.5 — Graham deep value"
+  },
+  {
+   "id": "macro_low_risk",
+   "score": 3,
+   "category": "macro",
+   "condition": {
+    "type": "macroRisk",
+    "risk_level": "low"
+   },
+   "description": "macro riskLevel=low (cyclical 종목 가중)"
+  },
+  {
+   "id": "macro_vix_low",
+   "score": 2,
+   "category": "macro",
+   "condition": {
+    "type": "vixLow",
+    "vix_lte": 14
+   },
+   "description": "VIX ≤ 14 — risk-on 환경"
+  },
+  {
+   "id": "macro_fg_recovery",
+   "score": 3,
+   "category": "macro",
+   "condition": {
+    "type": "fgRecovery",
+    "fg_gte": 25,
+    "fg_lte": 50
+   },
+   "description": "F&G 25~50 (extreme fear → 회복기 진입)"
+  },
+  {
+   "id": "micro_sector_overweight",
+   "score": 4,
+   "category": "micro",
+   "condition": {
+    "type": "sectorStance",
+    "stance": "overweight"
+   },
+   "description": "해당 sectorAllocation stance=overweight"
+  },
+  {
+   "id": "micro_region_bullish",
+   "score": 4,
+   "category": "micro",
+   "condition": {
+    "type": "regionStance",
+    "stance": "bullish"
+   },
+   "description": "해당 region stance=bullish"
+  },
+  {
+   "id": "micro_news_positive",
+   "score": 5,
+   "category": "micro",
+   "condition": {
+    "type": "newsPositive",
+    "pos_ratio_gte": 0.6,
+    "min_articles": 3
+   },
+   "description": "최근 7d 해당 ticker news 긍정 sentiment ≥ 60% (3+ articles)"
+  },
+  {
+   "id": "micro_news_gap",
+   "score": 6,
+   "category": "micro",
+   "condition": {
+    "type": "newsGap",
+    "gap_score_gte": 60
+   },
+   "description": "news-gap: 기관(IB) 활동 高 + 미디어 저커버리지 (gapScore>=60) — 정보 비대칭 선행 매수 시그널 (2026-06-12)"
+  },
+  {
+   "id": "micro_insider_buying",
+   "score": 6,
+   "category": "micro",
+   "condition": {
+    "type": "insiderBuy",
+    "filings_gte": 3
+   },
+   "description": "최근 30d insider 매수 filing ≥ 3건 (13D/Form 4)"
+  },
+  {
+   "id": "micro_squeeze_score",
+   "score": 4,
+   "category": "micro",
+   "condition": {
+    "type": "squeezeScore",
+    "score_gte": 50
+   },
+   "description": "short squeeze score ≥ 50 (high SI + low DTC)"
+  },
+  {
+   "id": "micro_cascade_upstream",
+   "score": 5,
+   "category": "micro",
+   "condition": {
+    "type": "cascadeUpstream"
+   },
+   "description": "최근 cascade signal 의 upstream beneficiary (supply chain)"
+  },
+  {
+   "id": "selflearn_boost_list",
+   "score": 5,
+   "category": "selflearn",
+   "condition": {
+    "type": "boostList"
+   },
+   "description": "boost-list 멤버 (과거 avg_pnl ≥ 5%)"
+  },
+  {
+   "id": "selflearn_ban_list_penalty",
+   "score": -100,
+   "category": "selflearn",
+   "condition": {
+    "type": "banList"
+   },
+   "description": "ban-list 멤버 → 제외 (2+ stops / 0 hits)",
+   "tunable": false
+  },
+  {
+   "id": "micro_options_call_flow",
+   "score": 4,
+   "category": "micro",
+   "condition": {
+    "type": "optionsCallFlow",
+    "total_prem_gte": 2000000,
+    "call_share_gte": 0.7
+   },
+   "description": "옵션 unusual activity 콜 편중 — vol/OI 파생, 총 프리미엄 $2M+ & 콜 70%+ (2026-06-13)"
+  },
+  {
+   "id": "micro_volume_burst",
+   "score": 3,
+   "category": "micro",
+   "condition": {
+    "type": "volumeBurst",
+    "notional_gte": 50000000
+   },
+   "description": "5분봉 거래량 버스트 상방 $50M+ — 기관성 매집 proxy (2026-06-13)"
+  },
+  {
+   "id": "micro_supply_contract",
+   "score": 5,
+   "category": "micro",
+   "condition": {
+    "type": "supplyContractWin",
+    "revenue_pct_gte": 5,
+    "conviction_gte": 82
+   },
+   "description": "신규 공급계약 — 연매출 대비 5%+ 영향 (DART KR/SEC US). 매출대비%가 핵심, 거대기업 소액계약 노이즈 차단 (2026-06-13)"
+  },
+  {
+   "id": "fund_backlog_growth",
+   "score": 4,
+   "category": "fundamental",
+   "condition": {
+    "type": "backlogGrowth",
+    "yoy_pct_gte": 10
+   },
+   "description": "수주잔고(SEC RPO) YoY 10%+ — 향후 매출 가시성 (방산/건설/제조/SaaS, 2026-06-13)"
+  },
+  {
+   "id": "guru_druckenmiller_trend",
+   "score": 5,
+   "category": "guru",
+   "condition": {
+    "type": "druckTrend",
+    "within_pct": 12
+   },
+   "description": "정배열(현재>50MA>200MA)+52주고가 근접 — Druckenmiller/Tudor 추세추종 (2026-06-19)"
+  },
+  {
+   "id": "guru_marks_capitulation",
+   "score": 5,
+   "category": "guru",
+   "condition": {
+    "type": "marksCapitulation",
+    "fg_lte": 25,
+    "above_low_pct_lte": 15
+   },
+   "description": "극공포+52주저점 근접+흑자 역발상 진입 — Marks/Klarman 안전마진 (2026-06-19)"
+  },
+  {
+   "id": "guru_oneil_canslim",
+   "score": 4,
+   "category": "guru",
+   "condition": {
+    "type": "oneilCanslim",
+    "within_pct": 5,
+    "growth_pct_gte": 25
+   },
+   "description": "신고가 돌파+매출성장≥25% 성장주도주 — O'Neil CANSLIM (2026-06-19)"
+  },
+  {
+   "id": "forensic_cash_conversion",
+   "score": 3,
+   "category": "fundamental",
+   "condition": {
+    "type": "cashConversionGood"
+   },
+   "description": "이익의 질 양호(영업현금흐름≥순이익) — forensic",
+   "tunable": false
+  },
+  {
+   "id": "micro_kr_smart_flow",
+   "score": 4,
+   "category": "micro",
+   "condition": {
+    "type": "krFlowIntensity",
+    "foreign_streak_gte": 3,
+    "intensity_pct_gte": 1,
+    "strong_intensity_pct_gte": 3
+   },
+   "description": "KR 수급강도(frgn.naver 실측): 외인 3일+ 연속 순매수 & 강도>=1%, 또는 5d 강도>=3% (2026-07-04 이연 이행 — 거래대금 파이프는 같은 페이지에서 해결)"
   }
+ ],
+ "outcomeStats": {
+  "total": 208,
+  "hits": 52,
+  "stops": 35,
+  "ne": 62,
+  "holding": 59,
+  "hitRate": 59.8,
+  "avgPnl": 20.5,
+  "avgAlpha": 18.9,
+  "bySector": [
+   {
+    "sector": "Semiconductors",
+    "hit": 3,
+    "stop": 1,
+    "total": 7,
+    "hitRate": 75
+   },
+   {
+    "sector": "Materials",
+    "hit": 4,
+    "stop": 2,
+    "total": 8,
+    "hitRate": 66.66666666666666
+   },
+   {
+    "sector": "Technology",
+    "hit": 33,
+    "stop": 27,
+    "total": 166,
+    "hitRate": 55.00000000000001
+   }
+  ],
+  "bestTickers": [
+   {
+    "ticker": "TSM",
+    "avg": 126.49181818181819,
+    "n": 11
+   },
+   {
+    "ticker": "005490.KS",
+    "avg": 51.98333333333334,
+    "n": 6
+   },
+   {
+    "ticker": "000660.KS",
+    "avg": 21.64461538461538,
+    "n": 13
+   },
+   {
+    "ticker": "TSLA",
+    "avg": 16.608333333333334,
+    "n": 6
+   },
+   {
+    "ticker": "005380.KS",
+    "avg": 10.692,
+    "n": 5
+   }
+  ],
+  "worstTickers": [
+   {
+    "ticker": "SMCI",
+    "avg": -37.61,
+    "n": 2
+   },
+   {
+    "ticker": "000810.KS",
+    "avg": -3.3400000000000003,
+    "n": 2
+   },
+   {
+    "ticker": "051910.KS",
+    "avg": 1.7974999999999999,
+    "n": 4
+   },
+   {
+    "ticker": "META",
+    "avg": 3.25,
+    "n": 2
+   },
+   {
+    "ticker": "XLE",
+    "avg": 3.95,
+    "n": 2
+   }
+  ]
+ },
+ "ruleEdge": {
+  "macro_fg_recovery": {
+   "n": 4,
+   "hitRate": 75,
+   "avgAlpha": 7.8,
+   "edge": 0.61
+  },
+  "tech_ma_golden_cross": {
+   "n": 4,
+   "hitRate": 75,
+   "avgAlpha": 7.8,
+   "edge": 0.61
+  },
+  "fund_op_margin_expansion": {
+   "n": 4,
+   "hitRate": 75,
+   "avgAlpha": 7.8,
+   "edge": 0.61
+  },
+  "fund_high_roe": {
+   "n": 3,
+   "hitRate": 67,
+   "avgAlpha": 10.7,
+   "edge": 0.6
+  },
+  "fund_revenue_growth": {
+   "n": 3,
+   "hitRate": 67,
+   "avgAlpha": 10.7,
+   "edge": 0.6
+  },
+  "price_momentum_52w_high": {
+   "n": 3,
+   "hitRate": 67,
+   "avgAlpha": 10.7,
+   "edge": 0.6
+  },
+  "price_breakout_high": {
+   "n": 1,
+   "hitRate": 100,
+   "avgAlpha": 12.6,
+   "edge": 1
+  },
+  "guru_buffett_moat": {
+   "n": 3,
+   "hitRate": 67,
+   "avgAlpha": 10.7,
+   "edge": 0.6
+  }
+ }
 }

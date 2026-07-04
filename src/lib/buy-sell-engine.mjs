@@ -209,6 +209,18 @@ export function evaluateBuyRule(rule, ctx) {
     case 'cascadeUpstream':
       if (ctx.cascadeUpstream === true) return `cascade upstream beneficiary`;
       break;
+    // 2026-07-04 (이연 이행): KR 종목별 수급강도 — frgn.naver 실측(외인/기관 순매매·거래대금 동일 페이지).
+    //   intensityPct = (외인+기관 5d 순매수) / 5d 거래대금 × 100. 연속 순매수 streak + 강도, 또는 강한 단독 강도.
+    case 'krFlowIntensity': {
+      const ip = ctx.krFlowIntensityPct;
+      if (ip == null) break;
+      const streakOk = (ctx.krForeignStreak ?? 0) >= (c.foreign_streak_gte ?? 3) && ip >= (c.intensity_pct_gte ?? 1);
+      const strongOk = ip >= (c.strong_intensity_pct_gte ?? 3);
+      if (streakOk || strongOk) {
+        return `KR 스마트머니 수급강도 ${ip}% (외인 ${ctx.krForeignStreak ?? 0}일 연속 순매수, 5d 실측)`;
+      }
+      break;
+    }
     case 'boostList':
       if (ctx.boostListMember === true) return `boost-list (과거 avg_pnl ≥ 5%)`;
       break;
@@ -392,6 +404,14 @@ export function evaluateSellRule(rule, ctx) {
         return `최근 7d news ${(ctx.newsNegRatio * 100).toFixed(0)}% 부정 (${ctx.newsArticleCount}건)`;
       }
       break;
+    // 2026-07-04 (이연 이행): KR 수급 투매 — 외인+기관 5d 순매도가 거래대금 대비 임계 초과(스마트머니 이탈).
+    case 'krFlowExodus': {
+      const ip = ctx.krFlowIntensityPct;
+      if (ip != null && ip <= (c.intensity_pct_lte ?? -8)) {
+        return `외인+기관 5d 집중 순매도 (수급강도 ${ip}%, frgn.naver 실측)`;
+      }
+      break;
+    }
     // 2026-06-19 매도 대칭 보강(selflearn·guru 매도 갭): 매수쪽 ban penalty 의 매도 대칭 + 구루 매도 렌즈.
     case 'banListSell':                                   // selflearn: ban-list 보유 종목 → 청산(매수 banList 대칭)
       if (ctx.banListMember === true) return `BAN 보유(2+ stops/0 hits) — 청산 권고`;

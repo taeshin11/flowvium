@@ -5318,19 +5318,35 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   // ── Stage 3 (financials): top 50 의 기본/구루 + 회전 sector_in (P/E discount 필요) ──
   console.log(`  [buy-cand Stage 3] top ${stage3Cands.length} company-financials fetch...`);
   const fundSignals = await fetchBuyFundSignals(stage3Cands.map(c => c.ticker));
+  // 2026-07-04 (이연 이행): KR 후보 종목별 수급강도 (frgn.naver 실측 — 외인/기관 순매매·거래대금 동일 페이지
+  //   라 별도 거래대금 파이프 불필요였음). stage-3 KR ≤15종 → 요청 부담 미미. micro_kr_smart_flow 룰 입력.
+  let krFlowMap = new Map();
+  try {
+    const krTickers = stage3Cands.filter(c => c.market === 'kr').map(c => c.ticker);
+    if (krTickers.length) {
+      const { fetchKrFlowIntensity } = await import('./lib/kr-flow-intensity.mjs');
+      krFlowMap = await fetchKrFlowIntensity(krTickers);
+      console.log(`  [kr-flow] 수급강도 ${krFlowMap.size}/${krTickers.length}종 (예: ${[...krFlowMap.entries()].slice(0, 2).map(([t, v]) => `${t} ${v.intensityPct}%`).join(', ')})`);
+    }
+  } catch (e) { console.warn(`  [kr-flow] skip(비치명): ${e.message}`); }
   const sectorPeMap = macroCtx.sectorPeMap ?? new Map();
   for (const c of stage3Cands) {
     const sig = fundSignals.get(c.ticker) ?? {};
+    const kf = krFlowMap.get(c.ticker) ?? {};
     const sectorKey = String(c.sector ?? '').toLowerCase();
     const ctx = {
       ...c, ...sig,
       sectorPe: sectorPeMap.get(sectorKey) ?? null,
       sectorStance: macroCtx.sectorStanceMap?.get(sectorKey) ?? null,
+      krFlowIntensityPct: kf.intensityPct ?? null,
+      krForeignStreak: kf.foreignStreak ?? null,
+      krInstStreak: kf.instStreak ?? null,
     };
+    if (kf.intensityPct != null) c.krFlow = kf;  // 후속 소비(프롬프트/감사)용 부착
     // 2026-06-13: stage-1 에서 이미 사전수집 재무로 평가된 fundamental 룰은 재평가 금지(이중 가산 방지).
     const alreadyScored = new Set((c.reasons ?? []).map(r => r.ruleId));
     for (const rule of ruleSpec.rules) {
-      if (!['fundamental', 'guru'].includes(rule.category) && rule.id !== 'rotation_sector_in') continue;
+      if (!['fundamental', 'guru'].includes(rule.category) && rule.id !== 'rotation_sector_in' && rule.id !== 'micro_kr_smart_flow') continue;
       if (alreadyScored.has(rule.id)) continue;
       const r = evaluateBuyRule(rule, ctx);
       if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
@@ -5517,6 +5533,15 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
     // 후보 ticker 의 multi-factor 시그널 fetch (RSI/MA/op margin/PE)
     const candTickers = [...byTicker.keys()].filter(t => livePrices.has(t) && !excludeTickers.has(t));
     macroCtx.signals = await fetchSellSignals(candTickers);
+    // 2026-07-04 (이연 이행): KR 보유 종목별 수급강도 — micro_kr_flow_exodus(외인+기관 투매) 매도신호 입력.
+    let krSellFlowMap = new Map();
+    try {
+      const krHeld = candTickers.filter(t => /\.(KS|KQ)$/.test(t));
+      if (krHeld.length) {
+        const { fetchKrFlowIntensity } = await import('./lib/kr-flow-intensity.mjs');
+        krSellFlowMap = await fetchKrFlowIntensity(krHeld);
+      }
+    } catch { /* 비치명 */ }
 
     const candidates = [];
     const now = Date.now();
@@ -5568,6 +5593,9 @@ async function buildSellCandidates(livePrices, excludeTickers = new Set(), macro
         optionsCallPrem: macroCtx.uoaMap?.get(ticker)?.callPrem ?? 0,
         optionsPutPrem: macroCtx.uoaMap?.get(ticker)?.putPrem ?? 0,
         contractLoss: macroCtx.contractMap?.get(ticker)?.type === 'contract_loss' ? macroCtx.contractMap.get(ticker) : null,  // 공급계약 해지
+        // 2026-07-04 (이연 이행): KR 수급강도 — micro_kr_flow_exodus 입력 (US 종목은 null → 룰 자동 미발화)
+        krFlowIntensityPct: krSellFlowMap.get(ticker)?.intensityPct ?? null,
+        krForeignStreak: krSellFlowMap.get(ticker)?.foreignStreak ?? null,
       };
       // 2026-06-06: 누적 점수화 (ChatGPT D3) — 첫 매칭 1개가 아니라 매칭 룰 *전부* 합산.
       //   target_near 단독(7)과 target_near+RSI과매수+내부자매도(20)를 같은 7로 취급하던 비대칭 해소.
