@@ -20,7 +20,11 @@ const EMAIL = process.env.MEMBER_EMAIL || '';
 const WANT_SLICES = process.argv.includes('--slices');
 const WANT_TABS = process.argv.includes('--tabs');
 const DEFAULT_PAGES = ['/ko/report', '/ko/signals', '/ko/short', '/ko/heatmap', '/ko/screener', '/ko/explore',
-  '/ko/cascade', '/ko/intelligence', '/ko/news-gap', '/ko/earnings', '/ko/volatility', '/ko/insider', '/ko/osint', '/ko'];
+  '/ko/cascade', '/ko/intelligence', '/ko/news-gap', '/ko/earnings', '/ko/volatility', '/ko/insider', '/ko/osint', '/ko',
+  // 2026-07-04 (사용자 "탭·페이지 전부 캡처 — 사각지대 없는지"): 종전 미감사 페이지 확장 —
+  //   judge/paper-trading/watchlist/blog + 파라미터 라우트 대표(company US/KR·compare·fear-greed 시장).
+  '/ko/judge', '/ko/paper-trading', '/ko/watchlist', '/ko/blog',
+  '/ko/company/AAPL', '/ko/company/005930.KS', '/ko/compare/aapl-vs-msft', '/ko/fear-greed/us', '/ko/fear-greed/kr'];
 // URL 주소지정 탭(searchParams 'tab') — 클릭 없이 각 탭 직접 감사
 const URL_TABS = { '/ko/intelligence': ['capital', 'macro', 'flows', 'fear-greed', 'credit', 'narratives', 'news', 'cot'] };
 let PAGES = arg('pages', DEFAULT_PAGES.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
@@ -90,17 +94,21 @@ async function runDetectors(text) {
 }
 
 // 클릭 기반 탭(OSINT/Insider 등 URL 비주소지정) — 탭바 버튼 그룹 발견 → 각 탭 클릭 후 감사.
-async function auditClickTabs(page) {
+// 2026-07-04: shotDir 지정 시 탭별 fullPage 스크린샷 저장(사용자 "탭·페이지 전부 캡처").
+async function auditClickTabs(page, shotDir = null) {
   const tabFlags = [];
   let labels = [];
   try {
     labels = await page.evaluate(() => {
+      // 2026-07-04 (insider 탭 6개 미발견 실증): 탭 버튼에 카운트 배지가 줄바꿈으로 붙어("내부자 매매 (Form 4)\n42")
+      //   16자 제한에 걸렸음 — 첫 줄만 라벨로 취하고 길이 26자로 완화.
+      const labelOf = (b) => ((b.innerText || '').trim().split('\n')[0] || '').trim();
       const cands = [...document.querySelectorAll('button, [role="tab"]')].filter((b) => {
-        const t = (b.innerText || '').trim(); const r = b.getBoundingClientRect();
-        return t && t.length <= 16 && r.width > 0 && r.height > 0 && r.top < window.innerHeight * 0.6 && !/^\$|\d{2,}|매수|매도/.test(t);
+        const t = labelOf(b); const r = b.getBoundingClientRect();
+        return t && t.length <= 26 && r.width > 0 && r.height > 0 && r.top < window.innerHeight * 0.6 && !/^\$|^\d{2,}|매수$|매도$/.test(t);
       });
       const byParent = new Map();
-      for (const b of cands) { const p = b.parentElement; if (!p) continue; if (!byParent.has(p)) byParent.set(p, []); byParent.get(p).push((b.innerText || '').trim()); }
+      for (const b of cands) { const p = b.parentElement; if (!p) continue; if (!byParent.has(p)) byParent.set(p, []); byParent.get(p).push(labelOf(b)); }
       let best = []; for (const arr of byParent.values()) if (arr.length > best.length) best = arr;
       return best.length >= 3 ? [...new Set(best)] : [];
     });
@@ -108,11 +116,12 @@ async function auditClickTabs(page) {
   for (const label of labels.slice(0, 8)) {
     try {
       const before = page.url();
-      await page.getByText(label, { exact: true }).first().click({ timeout: 4000 });
+      await page.locator('button, [role="tab"]').filter({ hasText: label }).first().click({ timeout: 4000 });  // 배지 붙은 탭도 매칭
       await page.waitForTimeout(700);
       if (page.url() !== before) { await page.goBack({ timeout: 8000 }).catch(() => {}); await page.waitForTimeout(400); continue; }
       const text = (await page.evaluate(() => document.body?.innerText || '')).trim();
       for (const f of await runDetectors(text)) tabFlags.push({ tab: label, ...f });
+      if (shotDir) { try { await page.screenshot({ path: `${shotDir}/tab_${label.replace(/[^a-z0-9가-힣]/gi, '_').slice(0, 20)}.png`, fullPage: true }); } catch { /* 캡처 실패 비치명 */ } }
     } catch { /* 클릭 실패 — skip */ }
   }
   return { labels, tabFlags };
@@ -138,9 +147,12 @@ for (const path of PAGES) {
     const text = (await page.evaluate(() => document.body?.innerText || '')).trim();
     rec.bodyLen = text.length;
     rec.flags = await runDetectors(text);
+    // 페이지 fullPage 캡처 (탭 캡처와 동일 디렉토리 — 사각지대 육안 검증용)
+    const pageShotDir = WANT_SLICES ? `${shotRoot}/${slug(path)}` : null;
+    if (pageShotDir) { mkdirSync(pageShotDir, { recursive: true }); try { await page.screenshot({ path: `${pageShotDir}/full.png`, fullPage: true }); } catch { /* */ } }
     // 클릭 탭 순회 (URL 주소지정 안 되는 탭 — OSINT/Insider 등). ?tab= 변형은 이미 별도 항목.
     if (WANT_TABS && !path.includes('?tab=')) {
-      const { labels, tabFlags } = await auditClickTabs(page);
+      const { labels, tabFlags } = await auditClickTabs(page, pageShotDir);
       rec.tabs = labels;
       // 탭별 flag 를 detector 단위로 병합(탭명 표기)
       for (const tf of tabFlags) { const ex = rec.flags.find((f) => f.detector === tf.detector); if (ex) { ex.count += tf.count; (ex.tabs ??= []).push(tf.tab); } else rec.flags.push({ ...tf, tabs: [tf.tab] }); }

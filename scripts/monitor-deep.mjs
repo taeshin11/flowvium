@@ -47,7 +47,7 @@ let authState = 'anon';
 let pagesAudited = 0;
 try {
   const r = spawnSync(process.execPath, [`${__dirname}/visual/audit-pages.mjs`, '--tabs', `--base=${BASE}`],
-    { encoding: 'utf8', timeout: 300000, env: process.env });
+    { encoding: 'utf8', timeout: 900000, env: process.env });  // 2026-07-04: 300s→900s — 페이지 23+클릭탭 확장, 실측 7-13분
   if (r.error) throw r.error;
   const pa = JSON.parse(readFileSync(`${ROOT}/logs/page-audit.json`, 'utf8'));
   authState = pa.authState || 'anon';
