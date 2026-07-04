@@ -4610,10 +4610,15 @@ function buildFlowNarrativeEvidence(ctxRaw) {
     if (ff && Number.isFinite(ff.domesticEquity) && Number.isFinite(ff.bond)) {
       const de = ff.domesticEquity, bd = ff.bond, we = Number.isFinite(ff.worldEquity) ? ff.worldEquity : null;
       if (Math.abs(de) >= 3000 || bd - de >= 8000) {
-        const fmtB = (v) => `${v >= 0 ? '+' : ''}${(v / 1000).toFixed(1)}B달러`;
+        // 2026-07-04 (사용자 "일반인도 이해하게"): B달러 → 억달러 (4,807M$ = 48억달러 — 감이 오는 단위).
+        const fmtB = (v) => `${v >= 0 ? '+' : ''}${Math.round(v / 100)}억달러`;
         claims.push({
           id: 'ici_etf_issuance', kind: 'true_flow', market: 'US',
-          text: `ICI 주간 실측(1주 지연, ~${ctxRaw.fundFlows.asOfWeekEnded}): 미국주식 ETF ${fmtB(de)}${we != null ? ` vs 해외주식 ${fmtB(we)}` : ''} · 채권 ${fmtB(bd)} 순창설`,
+          text: `ICI 주간 실측(1주 지연, ~${ctxRaw.fundFlows.asOfWeekEnded}): 미국주식 ETF ${fmtB(de)}${we != null ? ` vs 해외주식 ${fmtB(we)}` : ''} · 채권 ${fmtB(bd)} 순창설(새로 설정된 ETF 물량 = 자금 유입)`,
+          // thesis 결정론 삽입용 서사형 짧은 문장 — LLM 미이행 시 백스톱이 사용. 평이한국어 + '그래서 무슨 뜻인지'.
+          shortText: de < 0 && (bd > 0 || (we ?? 0) > 0)
+            ? `실제 돈의 흐름(주간 집계)을 보면 미국주식 ETF에서 약 ${Math.abs(Math.round(de / 100))}억달러가 빠져나와 ${[bd > 0 ? `채권(${fmtB(bd)})` : null, (we ?? 0) > 0 ? `미국 외 주식(${fmtB(we)})` : null].filter(Boolean).join('과 ')}으로 옮겨갔다 — 투자자들이 미국 주식의 위험을 줄이고 있다는 실측 신호다`
+            : `실제 돈의 흐름(주간 집계)은 미국주식 ETF ${fmtB(de)}·채권 ${fmtB(bd)} — 새로 들어온 자금 기준의 실측치로, 시장에 돈이 ${de > 0 ? '들어오고' : '나가고'} 있다는 뜻이다`,
           allowedVerbs: ['순창설', '순상환', '자금 유입', '자금 이탈', 'net issuance'], confidence: 'medium',
         });
       }
@@ -4624,10 +4629,11 @@ function buildFlowNarrativeEvidence(ctxRaw) {
     if (soFlows.length) {
       const top = soFlows.filter((e) => Math.abs(e.flowUsd) >= 2e9 || (Math.abs(e.dSharesPct) >= 3 && Math.abs(e.flowUsd) >= 5e8)).slice(0, 3);
       if (top.length) {
-        const fmtSo = (e) => `${e.ticker} ${e.flowUsd >= 0 ? '+' : ''}${(e.flowUsd / 1e9).toFixed(1)}B달러 ${e.flowUsd >= 0 ? '창설' : '상환'}(${e.days}일)`;
+        const fmtSo = (e) => `${e.ticker} ${e.flowUsd >= 0 ? '+' : ''}${Math.round(e.flowUsd / 1e8)}억달러 ${e.flowUsd >= 0 ? '유입(신규 설정)' : '이탈(환매)'}(${e.days}일)`;
         claims.push({
           id: 'etf_so_delta', kind: 'true_flow', market: 'US',
-          text: `ETF 창설/상환 실측(ΔSO, ~${top[0].asOf}): ${top.map(fmtSo).join(' · ')}`,
+          text: `ETF별 실측 자금(발행 물량 변화 기준, ~${top[0].asOf}): ${top.map(fmtSo).join(' · ')}`,
+          shortText: `ETF 발행 물량 변화로 본 실제 자금은 ${top.slice(0, 2).map(fmtSo).join(', ')} 흐름이다`,
           allowedVerbs: ['창설', '상환', '자금 유입', '자금 이탈'], confidence: 'medium',
         });
       }
@@ -4688,11 +4694,21 @@ function enforceFlowNarrativeContract(report, flowEvidence) {
       const moveClaim = (flowEvidence.allClaims ?? []).find((c) => /→| vs /.test(c.text));
       if (moveClaim) {
         const joined2 = `${report.thesis ?? ''} ${report.macroAnalysis ?? ''}`;
-        const hasMove = /→|로테이션/.test(joined2) ||
-          (/(상환|이탈|순매도|유출)/.test(joined2) && /(창설|유입|순매수)/.test(joined2) && /(채권|해외|미국주식|ETF)/.test(joined2));
+        const hasMove = /→|로테이션|빠져나와[^.]{0,40}(옮겨|이동|들어)/.test(joined2) ||
+          (/(상환|이탈|순매도|유출|빠져나)/.test(joined2) && /(창설|유입|순매수|옮겨가|들어오|들어가)/.test(joined2) && /(채권|해외|미국주식|미국 외 주식|ETF)/.test(joined2));
         if (!hasMove) {
-          report.macroAnalysis = `${(report.macroAnalysis ?? '').trim()} 돈의 이동: ${moveClaim.text}.`.trim();
-          console.log(`  [flow-contract] 이동 서사 미충족 → macroAnalysis 결정론 append (${moveClaim.id})`);
+          // 2026-07-04 재생성 실증: 프롬프트 강제(★)로도 30B 가 이동 문장을 계속 누락 → *thesis* 에 결정론
+          //   합성문장(shortText — 실측 수치 그대로, 환각 불가) append. 사용자 "좀 길게 써도 되" 승인.
+          //   길이 가드: 초과 시 macroAnalysis 꼬리 앞 삽입으로 폴백.
+          const sent = moveClaim.shortText ?? `돈의 이동: ${moveClaim.text}`;
+          if (typeof report.thesis === 'string' && (report.thesis.length + sent.length) <= 340) {
+            report.thesis = `${report.thesis.trim().replace(/\.?$/, '.')} ${sent}.`;
+            console.log(`  [flow-contract] 이동 서사 미충족 → thesis 결정론 append (${moveClaim.id})`);
+          } else {
+            const [body2, ...tail2] = String(report.macroAnalysis ?? '').split(' | ');
+            report.macroAnalysis = [`${body2.trim()} ${sent}.`, ...tail2].join(' | ');
+            console.log(`  [flow-contract] 이동 서사 미충족 → macroAnalysis 결정론 append (thesis 길이 초과, ${moveClaim.id})`);
+          }
         }
       }
     }
@@ -4774,9 +4790,9 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 핵심만 2-3 문장, 180-320자 — 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되 국면 해석 + 변곡 포인트 1개만, 군더더기 없이. 단문/항목 나열 금지, 문장으로 연결]",`,
     `"technicalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 1-2 문장, 110-200자 — VIX·금리곡선·주요지수 모멘텀 수치와 그 단기 추세/리스크를 흐르는 문장으로 서술]",`,
     `"fundamentalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 2 문장, 150-260자 — earnings surprise·valuation·기관 신호 수치와 그 방향성·함의를 흐르는 문장으로 서술]",`,
-    // 2026-07-04 (사용자 "여전히 자산흐름이 안 느껴진다 → 좀 길게 써도 되"): 80-150자 예산이 이동 서사를
-    //   매번 밀어내던 근원 — 150-280자·2-3문장으로 확장 + '돈의 이동' 전용 문장을 구조로 강제.
-    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 2-3 문장, 150-280자 — 3요소 구조: ①오늘의 가장 두드러진 동인(구체 수치/촉매) ②*돈의 이동* — [Flow Claim Contract] 의 이동형 claim(A→B, X vs Y)이 있으면 '어디서 나와 어디로 들어가는지'를 실측 수치와 함께 *전용 문장 1개*로 서술(수급 금액 한 줄 나열은 이동 서술이 아님; 이동형 claim 이 없으면 이 문장 생략) ③그에 대한 긴장/리스크 1개. shouldMention=false 면 자산이동 언급 금지(억지 금지). '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실은 반드시 [입력 데이터]에서 가져오고 예시의 구체값을 베끼지 말 것. 형식 예: '[핵심 동인+입력수치]가 [방향]을 이끈다. 돈은 [빠지는 자산]에서 [들어가는 자산]으로 — [실측 수치] 이동이 확인된다. 다만 [상충 요인+입력수치]가 [리스크]로 남아 [입력 기반 판단].']",`,
+    // 2026-07-04 (사용자 "여전히 자산흐름이 안 느껴진다 → 더 길어도 되, 일반인도 이해하게"): 80-150자 예산이
+    //   이동 서사를 매번 밀어내던 근원 — 200-400자·3-4문장 + '돈의 이동' 전용 문장 + 평이한국어 강제.
+    `"thesis":"[${TARGET_LANG} *설명형 서술*, 4-5 문장, 250-450자. 대상 독자 = 금융 배경지식 없는 일반인 — 뉴스 앵커가 시청자에게 오늘 시장을 설명하듯 쓰라. ★핵심 규칙(설명 방식): 모든 수치 뒤에는 반드시 '그래서 이것이 무슨 뜻인지'를 일상어로 붙여라 — 수치 나열·압축 금지. 나쁜 예(금지): '순매수 1조 9,922억원이 지지력을 시사하나 1주 -12.1%의 약세는 조정 국면을 시사한다' — 압축·전문용어·시사한다체. 좋은 예(문체만 참고, 수치는 입력에서): '오늘 한국 시장에서는 외국인과 기관이 1조 9,922억원어치를 사들이며 주가를 떠받쳤다. 다만 달러로 바꿔 보면 한국 주식은 한 주 새 12% 넘게 빠져 있어, 사는 힘보다 빠지는 힘이 아직 크다. 미국 쪽 돈의 흐름을 보면 주식에서 돈이 빠져나와 채권으로 옮겨가는 중인데, 이는 투자자들이 위험을 줄이고 있다는 뜻이다. 요컨대 반등 신호는 있지만 아직은 조심스럽게 접근할 때다.' ★구조 3요소: ①오늘의 핵심 동인(수치+그 의미) ②*돈의 이동* — [Flow Claim Contract] 이동형 claim(A→B)이 있으면 '돈이 어디서 나와 어디로 가는지 + 그것이 투자자 심리로 무슨 뜻인지'를 전용 문장으로(이동형 claim 없으면 생략, shouldMention=false 면 자산이동 언급 금지) ③마지막 문장은 반드시 '요컨대/정리하면'으로 시작하는 일반인용 한 줄 결론. ★용어: 티커·전문용어는 괄호로 짧게 풀기('EWY(미국에 상장된 한국주식 ETF)'), 시사한다/반영한다 반복 금지, 금액은 '1조 9,922억원'·'48억달러' 형식(B달러 금지). ★주력시장은 그날 시그널이 가장 강한 시장(KR/US)을 먼저, 다른 쪽도 한 문장 이상 — 어느 쪽도 생략 금지. 수치·사실은 전부 [입력 데이터]에서만.]",`,
     '"riskLevel":"low|medium|high",',
     `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
     `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,

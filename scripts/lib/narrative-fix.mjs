@@ -143,6 +143,8 @@ export function sanitizeText(s, locale) {
 //     본문 % 값을 capital-flows 실값(자산/국가/섹터/팩터 ETF ret1w/4w)과 대조, 유일 매치 + 절대값 큰
 //     이동(±3%+) + 주변에 해당 ticker 미언급이면 "(EWY·달러 기준)" 주석을 주입해 주어를 복원.
 const IDX_EQUIV = { SPY: /S&P\s?500|에스앤피/i, QQQ: /나스닥|Nasdaq/i, DIA: /다우/i }; // 지수명이 이미 주어면 스킵
+// 2026-07-04 (사용자 "일반인도 이해하게"): 주석에 한글 설명 — "(EWY·달러 기준)" 은 일반 독자에게 불투명.
+const LABEL_KO = { Korea: '한국주식 ETF', US: '미국주식 ETF', Japan: '일본주식 ETF', China: '중국주식 ETF', Germany: '독일주식 ETF', India: '인도주식 ETF', Brazil: '브라질주식 ETF', Taiwan: '대만주식 ETF', Tech: '기술주 ETF', Momentum: '모멘텀 ETF', 'US Equities': '미국주식 ETF', 'Emerging Markets': '신흥국 ETF' };
 export function attributePctSubjects(report, pool) {
   if (!Array.isArray(pool) || !pool.length) return { nFix: 0, log: [] };
   let nFix = 0; const log = [];
@@ -166,7 +168,8 @@ export function attributePctSubjects(report, pool) {
       if (/CPI|금리|확률|동결|YoY|매출|이익|마진|점유율/.test(win)) return m; // 재무/거시 % 문맥 오탐 방지
       if (str.slice(offset + m.length, offset + m.length + 20).includes('기준)')) return m; // 이미 주석됨
       injected++; nFix++; annotated.add(tk);
-      const anno = `(${tk}·달러 기준)`;
+      const koLabel = LABEL_KO[hits.find((h) => h.ticker === tk)?.label] ?? null;
+      const anno = koLabel ? `(미국 상장 ${koLabel} ${tk}·달러 기준)` : `(${tk}·달러 기준)`;
       log.push(`${num}% → ${anno}`);
       return `${m}${anno}`;
     });

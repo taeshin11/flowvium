@@ -303,14 +303,21 @@ export async function verifyReport(file, { silent = false } = {}) {
     {
       const moveClaim = (fe?.allClaims ?? []).find((c) => /→| vs /.test(String(c.text ?? '')));
       if (moveClaim) {
-        const hasMove = /→|로테이션/.test(narrText) ||
-          (/(상환|이탈|순매도|유출)/.test(narrText) && /(창설|유입|순매수)/.test(narrText) && /(채권|해외|미국주식|ETF)/.test(narrText));
+        const hasMove = /→|로테이션|빠져나와[^.]{0,40}(옮겨|이동|들어)/.test(narrText) ||
+          (/(상환|이탈|순매도|유출|빠져나)/.test(narrText) && /(창설|유입|순매수|옮겨가|들어오|들어가)/.test(narrText) && /(채권|해외|미국주식|미국 외 주식|ETF)/.test(narrText));
         if (!hasMove) {
           log('  ❌ 자산이동 서사 부재 (이동형 claim 있는데 어디서→어디로 없음)');
           defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_movement_missing', llm_value: '이동 표현 없음', correct_value: `이동형 claim 포함 필요: ${String(moveClaim.text).slice(0, 90)}`, severity: 'medium' });
         } else {
           log('  ✅ 자산이동 서사 (어디서→어디로 포함)');
         }
+      }
+      // (b3++) 2026-07-04 afternoon 재생성 실증: KR claim 이 '순매수'인데 서사가 "외국인 매도세 지속" —
+      //   EWY *가격* 하락을 수급 매도로 둔갑(수익률→flow 의 방향 변형). 결정론 모순 게이트.
+      const krClaim = (fe?.allClaims ?? []).find((c) => c.id === 'kr_smart_flow');
+      if (krClaim && /순매수/.test(String(krClaim.text)) && /(외국인|기관)[^.]{0,14}(매도세|순매도)[^.]{0,8}(지속|확대|이어)/.test(narrText)) {
+        log('  ❌ KR 수급 방향 모순 (실측 순매수인데 "매도세 지속" 서술)');
+        defects.push({ ticker: 'NARRATIVE', defect_type: 'kr_flow_direction_contradiction', llm_value: (narrText.match(/(외국인|기관)[^.]{0,25}/) ?? [''])[0], correct_value: `실측: ${String(krClaim.text).slice(0, 60)} — 가격 하락(EWY 등)을 수급 매도로 바꿔 쓰지 말 것`, severity: 'high' });
       }
     }
   }
