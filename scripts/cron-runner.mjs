@@ -190,6 +190,20 @@ async function runMonitor() {
     if (/PURGE-FALLBACK ALERT/.test(pline)) result.defects.push(`[fallback] 배포된 fallback 삭제: ${pline.replace(/^.*ALERT:\s*/, '').slice(0, 90)}`);
   } catch { result.checks.fallbackPurge = 'err'; }
 
+  // 2026-07-04: 프런트(브라우저) 에러 수집 소비 — ClientErrorReporter→/api/client-log 링버퍼의 최근 25분
+  //   건수. 실사용자 렌더 예외/unhandledrejection 이 서버 로그 사각이던 갭. 3건+ 이면 결함 surface.
+  try {
+    const r = await fetch(`${BASE}/api/client-log?sinceMin=25`, { headers: SECRET ? { Authorization: `Bearer ${SECRET}` } : {}, signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const j = await r.json();
+      result.checks.clientErrors = j.count ?? 0;
+      if ((j.count ?? 0) >= 3) {
+        const s = (j.samples ?? [])[0];
+        result.defects.push(`[프런트] 브라우저 에러 ${j.count}건/25분${s ? `: ${String(s.message).slice(0, 60)} @${s.url}` : ''}`);
+      }
+    }
+  } catch { /* 비치명 */ }
+
   // 2026-06-17 (전수조사 #5): 최근 25분 내 HTTP 크론 실패 surface (runJob 이 기록).
   try {
     const recent = cronFailures.filter((f) => Date.now() - f.ts < 25 * 60 * 1000);
