@@ -67,6 +67,8 @@ export const TRACKED_ENDPOINTS = [
   '/api/market-alerts',
   // 2026-07-04: ICI 주간 ETF net issuance 실측 — DB 시계열 적재(자산이동 실측 소스).
   '/api/fund-flows',
+  // 2026-07-04 (이연 이행): TIC 월간 외국인 미국채 보유 실측 — DB 시계열 적재.
+  '/api/tic-flows',
   // 2026-06-14: 작전주 매집 워치리스트(오르기 前) — DB 시계열 적재.
   '/api/accumulation-watch',
   // 2026-06-17: US 작전주 매집(거래량 기반) + KR 임원·주요주주 지분공시 피드 — DB 시계열 적재.

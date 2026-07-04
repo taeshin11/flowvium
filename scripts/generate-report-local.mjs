@@ -3688,7 +3688,7 @@ async function gatherContext() {
 
   const [
     capital, fearGreed, fedwatch, macro,
-    creditBalance, insider, ownershipAlerts, koreaFlow, fundFlows,
+    creditBalance, insider, ownershipAlerts, koreaFlow, fundFlows, ticFlows,
     nport, shortInterest, newsCascade, econCal,
     volatility, cot, commodity, supplyChainSignals, narratives,
     newsGap, optionsFlow, blockTrades,
@@ -3702,6 +3702,7 @@ async function gatherContext() {
     namedFetch('ownershipAlerts',   `${base}/api/ownership-alerts`, 15000),
     namedFetch('koreaFlow',         `${base}/api/korea-flow`, 10000),
     namedFetch('fundFlows',         `${base}/api/fund-flows`, 12000),  // 2026-07-04: ICI 주간 실측 net issuance
+    namedFetch('ticFlows',          `${base}/api/tic-flows`, 15000),   // 2026-07-04: TIC 월간 외국인 미국채 보유 실측 (이연 이행)
     namedFetch('nport',             `${base}/api/nport-holdings`, 15000),
     namedFetch('shortInterest',     `${base}/api/short-interest`, 12000),
     namedFetch('newsCascade',       `${base}/api/news-cascade`, 15000),
@@ -3736,6 +3737,7 @@ async function gatherContext() {
     ownership: ownershipAlerts?.items ?? ownershipAlerts ?? [],
     koreaFlow,
     fundFlows,   // ICI 주간 실측 net issuance — flowEvidence·macro prompt 소비
+    ticFlows,    // TIC 월간 외국인 미국채 보유 실측 — macro prompt 배경 블록 전용(지연 커서 claim 미발화)
     nport,
     short: shortInterest,
     cascade: newsCascade?.articles ?? [],
@@ -4005,6 +4007,19 @@ function buildCtxSummary(ctx) {
     }
   } catch { /* ignore */ }
 
+  // TIC 월간 — 외국인 미국채 보유 실측 (2026-07-04 이연 이행). 지연 커서 배경 맥락 전용(claim 미발화).
+  let ticFlows = '';
+  try {
+    const t = ctx.ticFlows;
+    if (t?.holders?.length && !t.error) {
+      const KO = { 'China, Mainland': '중국', 'Korea, South': '한국', Japan: '일본', 'United Kingdom': '영국', Taiwan: '대만', 'Grand Total': '전체' };
+      const fmtD = (v) => v == null ? '?' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}B`;
+      ticFlows = `${t.asOfMonth} 기준(월간, ~6주 지연): ` + t.holders
+        .map((h) => `${KO[h.country] ?? h.country} $${h.latest}B(1m ${fmtD(h.delta1m)}, 3m ${fmtD(h.delta3m)})`)
+        .join(' | ');
+    }
+  } catch { /* ignore */ }
+
   // Asset-class F&G
   let assetFg = '';
   try {
@@ -4135,7 +4150,7 @@ function buildCtxSummary(ctx) {
     if (lines.length) supplyChain = lines.join('\n');
   } catch { /* ignore */ }
 
-  return { macro, sentiment, flows, sectorLeadership, cot, narratives, commodity, institutional, shorts, news, koreaFlow, fundFlows, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
+  return { macro, sentiment, flows, sectorLeadership, cot, narratives, commodity, institutional, shorts, news, koreaFlow, fundFlows, ticFlows, assetFg, bbWarnings, credit, nport, optionsFlow, ownership, econCal, vixCtx, supplyChain };
 }
 
 // ── Cascade signals ────────────────────────────────────────────────────────────
@@ -4708,6 +4723,7 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     `[Capital Flow — 자산이동, *최근 1w 우선 정렬* (4w 는 맥락·accel↑/reversal↕=최근성 시그널) — ⚠️가격수익률 proxy, 실측 자금유입 아님] ${ctx.flows || 'No data'}`,
     `[KR Flow — 외국인 수급 실측(일별)] ${ctx.koreaFlow || 'No data'}`,
     `[US Fund Flows — ICI 주간 net issuance 실측(주간 지연) + ETF별 ΔSO 창설/상환 실측(일별)] ${ctx.fundFlows || 'No data'}`,
+    `[TIC — 외국인 미국채 보유 실측(월간, ~6주 지연 — 배경 맥락 전용, 최근 이동과 혼동 금지)] ${ctx.ticFlows || 'No data'}`,
     flowContract,
     '- ⚠️ 자산이동 서술은 *가장 최근*(1w·reversal/accel 시그널·외인 당일/최근 순매수) 우선 — 4w 는 배경 맥락으로만. 최근과 4w 방향이 다르면 최근을 따르되 반전임을 명시.',
     `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,
