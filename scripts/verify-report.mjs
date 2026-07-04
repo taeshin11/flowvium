@@ -282,6 +282,23 @@ export async function verifyReport(file, { silent = false } = {}) {
     defects.push({ ticker: p.ticker, defect_type: 'allocation_concentration', llm_value: `${p.allocation}%`, correct_value: '단일 종목 ≤25%(정책) — 정규화 몰빵 방지 캡 확인', severity: 'high' });
   }
   if (nPort >= 3 && !overAlloc.length) log('  ✅ 포트폴리오 구성 정상 (thin/몰빵 없음)');
+  // (b3) 2026-07-04 (ChatGPT 리뷰 차용): flow claim 정합 — 보고서 내장 flowNarrativeEvidence(결정론 근거) 기준.
+  //   proxy-only 인데 유입성 동사 사용 = high(수익률→자금유입 의미 환각) / 근거 전무한데 유입액 주장 = medium.
+  {
+    const fe = r.flowNarrativeEvidence;
+    const narrText = [r.thesis, r.macroAnalysis, r.marketNarrative?.why, r.marketNarrative?.story].filter(Boolean).join(' ');
+    const hasTrue = !!fe?.allClaims?.some?.((c) => c.kind === 'true_flow');
+    const flowWordRe = /(자금|돈)이?\s*(순)?\s*유입|유입액|순유입/;
+    if (fe && !hasTrue && fe.primaryClaim?.kind === 'return_proxy' && flowWordRe.test(narrText)) {
+      log('  ❌ return_proxy 를 자금유입으로 표현 (flow contract 위반)');
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'return_proxy_as_flow', llm_value: (narrText.match(flowWordRe) ?? [''])[0], correct_value: '가격수익률 proxy 는 수익률 우위/상대강도로만 표현', severity: 'high' });
+    } else if (fe && !fe.allClaims?.length && flowWordRe.test(narrText)) {
+      log('  ❌ 근거 없는 자금유입 주장 (flow evidence 전무)');
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'unsupported_flow_claim', llm_value: (narrText.match(flowWordRe) ?? [''])[0], correct_value: 'flowNarrativeEvidence 에 claim 이 있을 때만 유입/유출 서술', severity: 'medium' });
+    } else if (fe) {
+      log('  ✅ flow claim 정합 (contract 준수)');
+    }
+  }
   // (c) CPI 라벨 — 우리 CPI 값은 헤드라인(CPIAUCSL)이라 "핵심/근원/core CPI" 표기는 사실오류 (core 는 별도 더 낮은 수치).
   let cpiMis = 0;
   const CPI_MIS = /(핵심|근원)\s*(?:인플레이션\s*\()?\s*CPI|(핵심|근원)\s*소비자물가|\bcore\s+CPI/i;

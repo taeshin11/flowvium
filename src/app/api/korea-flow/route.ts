@@ -116,9 +116,10 @@ async function fetchKrxFlowAccumulated(
     ticker,
     name: EN_NAMES[ticker] ?? nameMap.get(ticker) ?? ticker,
     market,
-    foreignerNetBuy:   sums.fb   || null,
-    institutionNetBuy: sums.ib   || null,
-    individualNetBuy:  sums.indi || null,
+    // 2026-07-04 (ChatGPT 리뷰): `|| null` 은 순매수 *0원*(관망)을 결측으로 둔갑 — Number.isFinite 로 교정.
+    foreignerNetBuy:   Number.isFinite(sums.fb)   ? sums.fb   : null,
+    institutionNetBuy: Number.isFinite(sums.ib)   ? sums.ib   : null,
+    individualNetBuy:  Number.isFinite(sums.indi) ? sums.indi : null,
     closePrice:  priceMap.get(ticker)?.closePrice ?? null,
     changePct:   priceMap.get(ticker)?.changePct  ?? null,
   })).filter(e => e.name !== e.ticker);
@@ -383,13 +384,17 @@ function buildPayload(all: KoreaFlowEntry[], trdDd: string, extra?: object) {
   const topInstBuy     = [...all].filter(e => (e.institutionNetBuy ?? 0) > 0).sort((a,b) => (b.institutionNetBuy ?? 0) - (a.institutionNetBuy ?? 0)).slice(0, 15);
   const topInstSell    = [...all].filter(e => (e.institutionNetBuy ?? 0) < 0).sort((a,b) => (a.institutionNetBuy ?? 0) - (b.institutionNetBuy ?? 0)).slice(0, 15);
   // Aggregate totals for verify-metrics probes (kr.foreign / kr.institution / kr.retail)
-  const hasFlow = all.some(e => e.foreignerNetBuy != null);
-  const foreignNet  = hasFlow ? all.reduce((s, e) => s + (e.foreignerNetBuy   ?? 0), 0) : null;
-  const institutionNet = hasFlow ? all.reduce((s, e) => s + (e.institutionNetBuy ?? 0), 0) : null;
-  const retailNet   = hasFlow ? all.reduce((s, e) => s + (e.individualNetBuy  ?? 0), 0) : null;
+  // 2026-07-04 (ChatGPT 리뷰): 주체별 관측 여부를 각각 판정 — 종전엔 외국인만 있으면 기관/개인 미관측이 0 으로 둔갑.
+  const hasForeign = all.some(e => e.foreignerNetBuy != null);
+  const hasInst    = all.some(e => e.institutionNetBuy != null);
+  const hasRetail  = all.some(e => e.individualNetBuy != null);
+  const foreignNet     = hasForeign ? all.reduce((s, e) => s + (e.foreignerNetBuy   ?? 0), 0) : null;
+  const institutionNet = hasInst    ? all.reduce((s, e) => s + (e.institutionNetBuy ?? 0), 0) : null;
+  const retailNet      = hasRetail  ? all.reduce((s, e) => s + (e.individualNetBuy  ?? 0), 0) : null;
   return { updatedAt: new Date().toISOString(), tradingDay: tradingDayFmt,
     topForeignBuy, topForeignSell, topInstBuy, topInstSell, totalTickers: all.length,
     foreignNet, institutionNet, retailNet,
+    measurement: 'measured_investor_net_buy',  // 2026-07-04: 진짜 실측 flow 임을 타입으로 명시(가격 proxy 와 구분)
     ...extra };
 }
 
@@ -403,12 +408,13 @@ export async function GET(req: Request) {
   const cfg = PERIOD_CONFIGS[period];
   const cdnHeaders = { 'Cache-Control': `public, s-maxage=${cfg.sMaxAge}, stale-while-revalidate=60` };
 
+  const fullReq = url.searchParams.get('full') === '1';  // 2026-07-04: full 은 캐시 우회(요약 캐시엔 entries 없음)
   const memEntry = KOREA_MEMORY_CACHE.get(period);
-  if (!redis && !force && memEntry && Date.now() < memEntry.expiresAt) {
+  if (!redis && !force && !fullReq && memEntry && Date.now() < memEntry.expiresAt) {
     return NextResponse.json({ ...memEntry.data, cached: true }, { headers: cdnHeaders });
   }
 
-  if (redis && !force) {
+  if (redis && !force && !fullReq) {
     try {
       const cached = await redis.get(cfg.key);
       if (cached) {
@@ -499,16 +505,21 @@ export async function GET(req: Request) {
   //   Naver 가 목표보다 적게 합산했으면(테이블 행 부족) fallback:true 로 라벨 모순 표시.
   const effDays = dataSource === 'naver-fallback' ? naverEffectiveDays : cfg.tradingDays;
   const naverShort = dataSource === 'naver-fallback' && cfg.tradingDays > 1 && naverEffectiveDays < cfg.tradingDays;
+  // 2026-07-04 (ChatGPT 리뷰): full=1 — 상위 15 요약이 아닌 전체 entries 노출(엔진 per-ticker 수급 feature 용).
+  const full = fullReq;
   const payload = buildPayload(all, trdDd, {
     period,
     source: dataSource,
     effectiveTradingDays: effDays,
+    ...(full ? { entries: all } : {}),
     ...(naverShort
       ? { fallback: true, fallbackReason: `KRX ${cfg.tradingDays}거래일 불가 — Naver ${effDays}거래일 누적` }
       : {}),
   });
-  await loggedRedisSet(redis, 'api.korea-flow', cfg.key, payload, { ex: cfg.ttl });
-  if (!redis) KOREA_MEMORY_CACHE.set(period, { data: payload, expiresAt: Date.now() + (KOREA_MEMORY_TTLS[period] ?? 15 * 60 * 1000) });
+  if (!full) {  // full=1(전체 entries) 은 캐시 미기록 — 요약 캐시(cfg.key) 페이로드 오염 방지(내부 엔진 전용 호출)
+    await loggedRedisSet(redis, 'api.korea-flow', cfg.key, payload, { ex: cfg.ttl });
+    if (!redis) KOREA_MEMORY_CACHE.set(period, { data: payload, expiresAt: Date.now() + (KOREA_MEMORY_TTLS[period] ?? 15 * 60 * 1000) });
+  }
   logger.info('api.korea-flow', 'served', { period, totalTickers: all.length, durationMs: Date.now() - reqStart });
   return NextResponse.json({ ...payload, cached: false }, { headers: cdnHeaders });
 }

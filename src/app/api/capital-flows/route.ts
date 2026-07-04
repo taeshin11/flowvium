@@ -434,9 +434,17 @@ function buildRotations(
 import { TIMEFRAME } from '@/lib/timeframes';
 
 function detectRotation(results: AssetResult[], priceMap: Record<string, number[]>, thresholds = { '1w': 0.5, '4w': 1.5, '13w': 3.0 }) {
+  // 2026-07-04 (ChatGPT 리뷰 차용): 이 값들은 *가격수익률* 정렬이지 실측 자금유입이 아님 — "inflow" 명칭이
+  //   LLM/사용자에게 순유입으로 오독되는 순환논리의 근원. 정직한 명칭(topReturnLeaders/Laggards)을 1차로,
+  //   topInflows/topOutflows 는 하위호환 별칭(deprecated)으로만 유지. 1w 정렬도 추가(최근성).
   const sorted4w = [...results].sort((a, b) => (b.ret4w ?? -999) - (a.ret4w ?? -999));
-  const topInflows = sorted4w.slice(0, 5);
-  const topOutflows = sorted4w.slice(-5).reverse();
+  const sorted1w = [...results].sort((a, b) => (b.ret1w ?? -999) - (a.ret1w ?? -999));
+  const topReturnLeaders4w = sorted4w.slice(0, 5);
+  const topReturnLaggards4w = sorted4w.slice(-5).reverse();
+  const topReturnLeaders1w = sorted1w.slice(0, 5);
+  const topReturnLaggards1w = sorted1w.slice(-5).reverse();
+  const topInflows = topReturnLeaders4w;   // deprecated alias (UI 하위호환)
+  const topOutflows = topReturnLaggards4w; // deprecated alias
 
   const groupPerf: Record<string, number[]> = {};
   for (const r of results) {
@@ -450,8 +458,11 @@ function detectRotation(results: AssetResult[], priceMap: Record<string, number[
   })).sort((a, b) => b.avg4w - a.avg4w);
 
   return {
-    topInflows,
-    topOutflows,
+    topReturnLeaders1w, topReturnLaggards1w, topReturnLeaders4w, topReturnLaggards4w,
+    measurement: 'price_return_proxy',
+    warning: 'Returns are rotation proxies, not measured fund flows',
+    topInflows,   // deprecated: = topReturnLeaders4w
+    topOutflows,  // deprecated: = topReturnLaggards4w
     groupAvg,
     // maxWeeks 는 TIMEFRAME 단일 소스에서 파생. 1주 탭에서 "3주 전 시작" 같은 모순 라벨이
     // 다시 발생하지 않도록 retKey/maxWeeks 를 한 객체에서만 읽음.

@@ -3843,7 +3843,7 @@ function buildCtxSummary(ctx) {
     //   4w 는 맥락으로 병기, accel/reversal 시그널이 최근성(1w vs 4w) 해석을 담당.
     const topInflows = [...withDir].sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0)).slice(0, 4)
       .map(a => `${a.label ?? a.ticker}:1w${(a.ret1w ?? 0) >= 0 ? '+' : ''}${(a.ret1w ?? 0).toFixed(1)}%/4w${(a.ret4w ?? 0) >= 0 ? '+' : ''}${(a.ret4w ?? 0).toFixed(1)}%(${a.signal})`);
-    if (topInflows.length) flows = `Top inflows(최근 1w 순): ${topInflows.join(', ')}`;
+    if (topInflows.length) flows = `Return leaders(가격수익률 proxy — 실측 자금유입 아님, 최근 1w 순): ${topInflows.join(', ')}`;
 
     const divergent = assets.filter(a =>
       typeof a.ret1w === 'number' && typeof a.ret13w === 'number' &&
@@ -4553,7 +4553,82 @@ function getGuruContext() {
   return lines.join('\n');
 }
 
-function buildMacroPrompt(ctx, vix, session) {
+// ── 2026-07-04 (ChatGPT 리뷰 차용): flow claim contract — LLM 에게 "flow 가 뚜렷한가/어떤 동사로 부를까"
+//   판단을 맡기지 않고, 결정론으로 만든 claim(진짜 flow=KRX 실측 vs 가격 proxy)만 계약으로 전달.
+//   억지 언급(뚜렷하지 않은 날)과 "수익률→순유입" 의미 환각을 구조적으로 차단.
+function buildFlowNarrativeEvidence(ctxRaw) {
+  const claims = [];
+  try {
+    // 1) KR 진짜 flow — KRX 외국인+기관 순매수 실측. 임계 |합| ≥ 3,000억(잡음 컷).
+    const kf = ctxRaw?.koreaFlow;
+    const fNet = kf?.foreignNet, iNet = kf?.institutionNet;
+    if (Number.isFinite(fNet)) {
+      const net = fNet + (Number.isFinite(iNet) ? iNet : 0);
+      if (Math.abs(net) >= 3e11) {
+        claims.push({
+          id: 'kr_smart_flow', kind: 'true_flow', market: 'KR',
+          text: `KR 외국인${Number.isFinite(iNet) ? '+기관' : ''} ${net > 0 ? '순매수' : '순매도'} ${(Math.abs(net) / 1e8).toFixed(0)}억원(${kf.period ?? '기간'})`,
+          allowedVerbs: ['순매수', '순매도', '유입', '이탈'], confidence: 'high',
+        });
+      }
+    }
+    // 2) 가격수익률 proxy — 자산군 1w 스프레드 ≥ 3%p 일 때만(뚜렷).
+    const assets = (ctxRaw?.capital?.assets ?? []).filter((a) => typeof a.ret1w === 'number');
+    if (assets.length >= 2) {
+      const sorted = [...assets].sort((a, b) => b.ret1w - a.ret1w);
+      const lead = sorted[0], lag = sorted[sorted.length - 1];
+      if (lead.ret1w - lag.ret1w >= 3) {
+        claims.push({
+          id: 'asset_return_rotation_proxy', kind: 'return_proxy',
+          text: `${lead.label ?? lead.ticker} 1주 ${lead.ret1w >= 0 ? '+' : ''}${lead.ret1w.toFixed(1)}% vs ${lag.label ?? lag.ticker} ${lag.ret1w >= 0 ? '+' : ''}${lag.ret1w.toFixed(1)}% — 가격수익률 기준 rotation proxy`,
+          allowedVerbs: ['수익률 우위', '상대강도', '상대적 강세/부진'],
+          forbiddenVerbs: ['순매수', '순유입', '자금 유입', '유입액'], confidence: 'medium',
+        });
+      }
+    }
+  } catch { /* 비치명 — evidence 없이 진행 */ }
+  const primary = claims.find((c) => c.kind === 'true_flow') ?? claims[0] ?? null;
+  return { shouldMention: !!primary, primaryClaim: primary, allClaims: claims.slice(0, 3) };
+}
+
+// flow contract 위반 백스톱(결정론) — thesis 는 건드리지 않고 macroAnalysis 에만 개입(히어로 문구 보호).
+//   ① claim 이 return_proxy 뿐인데 유입액성 동사가 나오면 수익률 표현으로 교정(좁은 패턴만)
+//   ② shouldMention 인데 미언급이면 macroAnalysis 끝에 결정론 문장 append
+function enforceFlowNarrativeContract(report, flowEvidence) {
+  try {
+    const primary = flowEvidence?.primaryClaim;
+    const hasTrueFlow = flowEvidence?.allClaims?.some((c) => c.kind === 'true_flow');
+    const fixVerbs = (s) => typeof s === 'string'
+      ? s.replace(/(자금|돈)이?\s*(대규모\s*)?(순)?\s*유입/g, '수익률 우위 흐름').replace(/유입액/g, '상대수익률')
+      : s;
+    if (!hasTrueFlow) {  // 진짜 flow 근거가 없을 때만 유입성 동사 교정 (KR 실측 있으면 정당한 표현이라 보존)
+      for (const k of ['thesis', 'macroAnalysis']) { const before = report[k]; report[k] = fixVerbs(report[k]); if (before !== report[k]) console.log(`  [flow-contract] ${k}: 유입성 동사 → 수익률 표현 교정(proxy-only)`); }
+    }
+    if (primary && flowEvidence.shouldMention) {
+      const joined = `${report.thesis ?? ''} ${report.macroAnalysis ?? ''}`;
+      const keyToken = primary.kind === 'true_flow' ? /(순매수|순매도)/ : /(수익률\s*우위|상대강도|rotation)/;
+      if (!keyToken.test(joined)) {
+        report.macroAnalysis = `${(report.macroAnalysis ?? '').trim()} 자산이동 관점에서는 ${primary.text}.`.trim();
+        console.log(`  [flow-contract] 미언급 → macroAnalysis 결정론 append (${primary.id})`);
+      }
+    }
+  } catch (e) { console.warn('  [flow-contract] skip:', e?.message); }
+  return report;
+}
+
+function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
+  // flow claim contract 블록 — LLM 은 아래 계약된 claim/동사만 사용(판단·명명 재량 제거).
+  const fe = flowEvidence;
+  const flowContract = fe ? [
+    '[Flow Claim Contract — 결정론 계약: 자산이동 서술은 이 계약만 따르라]',
+    `shouldMention: ${fe.shouldMention}`,
+    ...(fe.primaryClaim ? [
+      `primaryClaim(${fe.primaryClaim.kind}): ${fe.primaryClaim.text}`,
+      `허용 표현: ${(fe.primaryClaim.allowedVerbs ?? []).join(', ')}`,
+      ...(fe.primaryClaim.forbiddenVerbs?.length ? [`금지 표현: ${fe.primaryClaim.forbiddenVerbs.join(', ')} (가격수익률 proxy 를 자금유입으로 부르지 마라)`] : []),
+    ] : []),
+    'shouldMention=false 면 자산이동을 언급하지 마라(억지 금지). true 면 primaryClaim 을 thesis 또는 macroAnalysis 에 자연스럽게 1회 녹여라.',
+  ].join('\n') : '';
   const sc = session === 'morning' ? 'Post US-close' : session === 'afternoon' ? 'Post Asia-close' : session === 'noon' ? 'Asia mid-session (KR 점심)' : session === 'midnight' ? 'Asia pre-open / US after-close' : 'Pre US-open';
   const focus = getSessionFocus(session);
   return [
@@ -4569,8 +4644,9 @@ function buildMacroPrompt(ctx, vix, session) {
     `[COT Positioning] ${ctx.cot || 'No data'}`,
     // 2026-07-04 (사용자 "자산이동도 같이 분석해야"): 자산이동 블록 — narrative 에만 가고 thesis(홈 히어로
     //   문구) 입력엔 빠져 있던 갭. fact-check 4581/4582 규칙(수익률≠유입액, 수급 방향 고정)이 그대로 적용됨.
-    `[Capital Flow — 자산이동, *최근 1w 우선 정렬* (4w 는 맥락·accel↑/reversal↕=최근성 시그널)] ${ctx.flows || 'No data'}`,
+    `[Capital Flow — 자산이동, *최근 1w 우선 정렬* (4w 는 맥락·accel↑/reversal↕=최근성 시그널) — ⚠️가격수익률 proxy, 실측 자금유입 아님] ${ctx.flows || 'No data'}`,
     `[KR Flow — 외국인 수급 실측(일별, 유일한 실측 flow)] ${ctx.koreaFlow || 'No data'}`,
+    flowContract,
     '- ⚠️ 자산이동 서술은 *가장 최근*(1w·reversal/accel 시그널·외인 당일/최근 순매수) 우선 — 4w 는 배경 맥락으로만. 최근과 4w 방향이 다르면 최근을 따르되 반전임을 명시.',
     `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,
     `[Sector Leadership — 실 섹터 성과 1w/4w] ${ctx.sectorLeadership || 'No data'}`,
@@ -4602,7 +4678,7 @@ function buildMacroPrompt(ctx, vix, session) {
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 핵심만 2-3 문장, 180-320자 — 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되 국면 해석 + 변곡 포인트 1개만, 군더더기 없이. 단문/항목 나열 금지, 문장으로 연결]",`,
     `"technicalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 1-2 문장, 110-200자 — VIX·금리곡선·주요지수 모멘텀 수치와 그 단기 추세/리스크를 흐르는 문장으로 서술]",`,
     `"fundamentalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 2 문장, 150-260자 — earnings surprise·valuation·기관 신호 수치와 그 방향성·함의를 흐르는 문장으로 서술]",`,
-    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 핵심만 1-2 문장, 80-150자 — 오늘의 가장 두드러진 동인(구체 수치/촉매) 1개와 그에 대한 긴장/리스크 1개를 연결해 서술, 군더더기 없이. ★자산이동 반영: [Capital Flow]·[KR Flow] 에 뚜렷한 이동(자산군/국가 로테이션·추세반전·외인 순매수/도)이 있으면 '돈이 어디서 어디로'를 thesis 또는 macroAnalysis 에 최소 1개 수치와 함께 녹여라(뚜렷한 이동이 없으면 생략 가능 — 억지 언급 금지). '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실(수급 방향·환율·CPI·종목)은 반드시 [입력 데이터]에서 가져오고, 예시의 구체값('5일째 순매수'·'1510'·'4.2%' 등)을 그대로 베끼지 말 것. 형식 예: '[시그널 강한 시장의 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 판단].']",`,
+    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 핵심만 1-2 문장, 80-150자 — 오늘의 가장 두드러진 동인(구체 수치/촉매) 1개와 그에 대한 긴장/리스크 1개를 연결해 서술, 군더더기 없이. ★자산이동: [Flow Claim Contract] 를 따르라 — shouldMention=true 일 때만 primaryClaim 을 허용 표현으로 녹이고, false 면 언급하지 마라. '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실(수급 방향·환율·CPI·종목)은 반드시 [입력 데이터]에서 가져오고, 예시의 구체값('5일째 순매수'·'1510'·'4.2%' 등)을 그대로 베끼지 말 것. 형식 예: '[시그널 강한 시장의 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 판단].']",`,
     '"riskLevel":"low|medium|high",',
     `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
     `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,
@@ -6586,11 +6662,15 @@ async function generateViaOllama() {
   // ── [2/7] Wave 1: 5섹션 병렬 ─────────────────────────────────────────────────
   console.log('\n[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
   const wave1Start = Date.now();
+  // 2026-07-04: flow claim contract — 결정론 근거(진짜 flow vs 가격 proxy)를 계산해 프롬프트 계약+최종 백스톱에 사용.
+  const flowEvidence = buildFlowNarrativeEvidence(ctxRaw);
+  if (flowEvidence.primaryClaim) console.log(`  [flow-evidence] ${flowEvidence.primaryClaim.kind}: ${flowEvidence.primaryClaim.text}`);
+  else console.log('  [flow-evidence] 뚜렷한 자산이동 근거 없음 — thesis 언급 비강제');
   // 2026-06-15: 포트폴리오 Best-of-N — N개 draft 생성→안전/근거 점수로 최선 선택(환각 감소). N=1=기존 동작.
   const PF_N = Math.max(1, Math.min(4, parseInt(process.env.PORTFOLIO_BEST_OF_N ?? '2', 10) || 1));
   const pfPrompt = buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates);
   const wave1 = await Promise.all([
-    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 900000, 'macro'),
+    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence), modelArg, 900000, 'macro'),
     ...Array.from({ length: PF_N }, (_, i) => callOllama(pfPrompt, modelArg, 900000, PF_N > 1 ? `portfolio-${i + 1}/${PF_N}` : 'portfolio')),
     callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 900000, 'regional'),
     callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 900000, 'opportunity'),
@@ -6633,7 +6713,7 @@ async function generateViaOllama() {
   if (retryNeeded.length > 0) {
     console.log(`  parse failed [${retryNeeded.join(', ')}] — retrying...`);
     const retries = await Promise.all([
-      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session), modelArg, 900000, 'macro-retry')    : Promise.resolve(null),
+      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence), modelArg, 900000, 'macro-retry')    : Promise.resolve(null),
       !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 900000, 'regional-retry')                   : Promise.resolve(null),
     ]);
     if (!macroData    && retries[0]) macroData    = parseJson(retries[0], 'macro-retry');
@@ -8408,19 +8488,36 @@ async function generateViaOllama() {
   //   저장 직전* 에 실행해야 cap 이 종목 제거해도 합=100 보장(이전엔 cap 전 실행 → 재깨짐 버그).
   //   LLM 이 합 74 처럼 출력(RULES "sum=100" 위반, verify-report [8] 발견) → 결정론적 스케일.
   {
+    // 2026-07-04 (ChatGPT 리뷰 차용): 현금은 "사후 잔여"가 아니라 *정책값* — posture(earlyWarning level)와
+    //   적격 종목 수로 target invested 를 먼저 정하고 그 안에서 스케일. thin 은 부실이 아니라 방어 모드로 표현.
     const port = finalReport.portfolio ?? [];
     const sum = port.reduce((s, p) => s + (Number(p.allocation) || 0), 0);
-    if (port.length > 0 && port.length < 4) {
-      // 2026-07-03 (evening 42/42/16 실측 — applyLocalHarness 캡을 이 최종 정규화가 되돌림): thin(종목<4)
-      //   포트폴리오는 100 강제 스케일 = 몰빵 생성. 단일 25% 캡만 적용, 잔여는 현금 보유 명시(현금도 포지션).
-      let capped = false;
-      port.forEach((p) => { if ((Number(p.allocation) || 0) > 25) { p.allocation = 25; capped = true; } });
+    const n = port.length;
+    const posture = finalReport.earlyWarning?.level ?? 'unknown';
+    const vetoed = reconciliationLog?.summary?.vetoed ?? 0, evaluated = reconciliationLog?.summary?.evaluated ?? 0;
+    const mode = n === 0 ? 'cash_only' : n < 4 ? 'thin_defensive' : n < 7 ? 'selective' : 'normal';
+    const postureCap = { low: 100, elevated: 75, high: 55, severe: 35, unknown: 80 }[posture] ?? 80;
+    const countCap = n <= 0 ? 0 : n === 1 ? 25 : n === 2 ? 45 : n === 3 ? 60 : n <= 6 ? 80 : 100;
+    const target = Math.min(postureCap, countCap);
+    finalReport.portfolioConstruction = {
+      mode, eligibleCount: n, candidatePoolCount: buyCandidates?.length ?? null,
+      vetoRate: evaluated ? +(vetoed / evaluated).toFixed(2) : null,
+      postureLevel: posture, targetInvestedPct: target, cashReservePct: 100 - target,
+      reason: mode === 'thin_defensive' || mode === 'cash_only' ? '과열/칼받기 veto 후 고확신 후보 부족 — 방어 모드' : null,
+    };
+    if (n > 0 && mode !== 'normal') {
+      // target 으로 비례 스케일 + 단일 캡(방어 모드 20%, selective 25%)
+      const maxSingle = mode === 'selective' ? 25 : 20;
+      const f = sum > 0 ? target / sum : 0;
+      port.forEach((p) => { p.allocation = Math.min(maxSingle, Math.round((Number(p.allocation) || 0) * f)); });
       const invested = port.reduce((s, p) => s + (Number(p.allocation) || 0), 0);
-      if (invested < 100 && !/현금\s*보유|현금도\s*포지션/.test(String(finalReport.portfolioRiskNote ?? ''))) {
-        const cashNote = `규율상 신규매수 후보 부족(과열/칼받기 veto 대량 탈락) — 투자비중 ${invested}%만 권고, 잔여 ${100 - invested}%는 현금 보유(현금도 포지션).`;
+      finalReport.portfolioConstruction.investedPct = invested;
+      finalReport.portfolioConstruction.cashReservePct = 100 - invested;
+      if (!/현금\s*보유|현금도\s*포지션/.test(String(finalReport.portfolioRiskNote ?? ''))) {
+        const cashNote = `방어 모드(${mode}, posture ${posture}): 투자비중 ${invested}%만 권고, 잔여 ${100 - invested}%는 현금 보유(현금도 포지션).`;
         finalReport.portfolioRiskNote = finalReport.portfolioRiskNote ? `${cashNote} ${finalReport.portfolioRiskNote}` : cashNote;
       }
-      console.log(`  [후처리] thin 포트폴리오(${port.length}종목) — 100 스케일 금지${capped ? ', 단일 25% 캡' : ''}, 투자 ${invested}% + 현금 ${100 - invested}% 명시`);
+      console.log(`  [후처리] portfolioConstruction=${mode} (posture ${posture}, veto율 ${finalReport.portfolioConstruction.vetoRate ?? '?'}) — 투자 ${invested}% / 현금 ${100 - invested}%, 단일≤${maxSingle}%`);
     } else if (port.length > 0 && sum > 0 && Math.abs(sum - 100) > 1) {
       const f = 100 / sum;
       let acc = 0;
@@ -8640,6 +8737,10 @@ async function generateViaOllama() {
     const _fw = ctxWithCascade.fedWatch;
     const _nowMs = Date.now();
     const _nm = _fw?.nextMeeting ?? (_fw?.meetings ?? []).find(m => new Date(m.date).getTime() > _nowMs) ?? null;
+    // 2026-07-04: flow contract 백스톱 — proxy-only 인데 유입성 동사 사용 시 교정 + shouldMention 미이행 시
+    //   macroAnalysis 결정론 append (thesis 는 불개입 — 히어로 간결성 보호). evidence 는 verify probe 근거로 저장.
+    finalReport.flowNarrativeEvidence = flowEvidence;
+    enforceFlowNarrativeContract(finalReport, flowEvidence);
     const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap, fedNextLabel: _nm?.label ?? null });
     if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);
     // 2026-06-16 페이지 전수감사: 모든 문자열 필드 garble sanitize(이중부호·orphan원·콘탱고·한자) + BOJ=FOMC 복사 교정

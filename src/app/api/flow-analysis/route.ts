@@ -78,15 +78,18 @@ ${aList}
 === Gold / Dollar ===
 Gold: ${gvd.goldRet != null ? fmt(gvd.goldRet) : 'N/A'}, Dollar: ${gvd.dollarRet != null ? fmt(gvd.dollarRet) : 'N/A'}, Signal: ${gvd.signal}
 
-Analyze the drivers of capital flows for each country/asset. Respond in the following JSON format only:
+IMPORTANT: The data above is PRICE RETURNS of country ETFs — a rotation proxy, NOT measured fund flows.
+Never claim "money flowed in/out" or cite inflow amounts. Use relative-performance language
+(outperforming/lagging) in summary and causes.
+Analyze the drivers of the return rotation for each country/asset. Respond in the following JSON format only:
 {
-  "summary": "Key summary of overall capital flows (2-3 sentences)",
+  "summary": "Key summary of the return rotation (2-3 sentences, relative-performance language)",
   "mainTheme": "Single dominant market theme (max 10 words)",
   "countries": [
     {
       "country": "country name",
       "ret": "+X.X%",
-      "direction": "inflow or outflow",
+      "returnSignal": "outperforming or lagging",
       "causes": ["cause1 (specific)", "cause2"],
       "risk": "single short-term risk"
     }
@@ -228,6 +231,18 @@ export async function GET(request: Request) {
     } catch (e) { logger.warn('flow-analysis', 'ai_parse_failed', { tf, rawLength: raw.length, error: e }); }
   }
 
+  // 2026-07-04: returnSignal(신 스키마) → direction 별칭 파생 — UI(화살표/색상)는 direction 소비, 데이터
+  //   의미는 returnSignal(수익률 우위/부진)이 정본. measurement 로 proxy 임을 명시.
+  if (analysis && Array.isArray((analysis as Record<string, unknown>).countries)) {
+    for (const c of (analysis as { countries: Array<Record<string, unknown>> }).countries) {
+      if (c && typeof c === 'object') {
+        if (c.returnSignal && !c.direction) c.direction = c.returnSignal === 'outperforming' ? 'inflow' : 'outflow';
+        if (c.direction && !c.returnSignal) c.returnSignal = c.direction === 'inflow' ? 'outperforming' : 'lagging';
+        c.measurement = 'price_return_proxy';
+      }
+    }
+  }
+
   // Garbage check: summary가 반복/짧은 텍스트면 parse 실패와 동일 처리 → stale 서빙
   if (analysis) {
     const summaryText = (analysis as Record<string, unknown>).summary;
@@ -285,7 +300,9 @@ export async function GET(request: Request) {
       countries: sorted.map(c => ({
         country: c.country,
         ret: fmtRet(c.ret),
-        direction: c.ret >= 0 ? 'inflow' : 'outflow',
+        returnSignal: c.ret >= 0 ? 'outperforming' : 'lagging',   // 2026-07-04: 가격수익률 proxy 정직화
+        direction: c.ret >= 0 ? 'inflow' : 'outflow',             // deprecated alias — UI 화살표/색상 전용
+        measurement: 'price_return_proxy',
         causes: ['Return data only — AI analysis unavailable'],
         risk: '',
       })),
