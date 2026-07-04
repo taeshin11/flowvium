@@ -351,6 +351,9 @@ const MAINT_JOBS = [
   { label: 'build-financials',     script: 'scripts/build-financials-cache.mjs',     timeoutMs: 1500000, commitPaths: ['data/financials.json'],               schedules: ['35 19 * * *'],                maxAgeH: 30 },
   // 2026-07-03: 전향연구 평가 — shadow 룰(live 미참여 후보)의 전향 5/10일 성적 주간 집계(TER 회고 후속).
   { label: 'eval-shadow-rules',    script: 'scripts/eval-shadow-rules.mjs',          timeoutMs: 600000,  commitPaths: [],                                     schedules: ['50 19 * * 6'],                maxAgeH: 9 * 24 },
+  // 2026-07-04: 전 종목(1,338) 회사페이지 *렌더* 전수검증 주간 — API 전수(audit-company-*)와 별개로
+  //   실제 화면 렌더(NaN/에러/스켈레톤/가격 미렌더)를 detector 로 회귀 감시(사용자 "모든 회사 페이지 캡쳐검증").
+  { label: 'audit-company-render', script: 'scripts/visual/audit-company-render.mjs', timeoutMs: 1800000, commitPaths: [],                                    schedules: ['40 20 * * 6'],                maxAgeH: 9 * 24 },
 ];
 for (const j of MAINT_JOBS) for (const s of j.schedules) {
   cron.schedule(s, () => runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths), { timezone: TZ });

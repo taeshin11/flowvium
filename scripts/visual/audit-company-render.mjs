@@ -67,8 +67,10 @@ async function auditOne(page, ticker) {
         rec.flags.push({ detector: d.name, sev: d.sev, snip: text.slice(Math.max(0, i - 30), i + 40).replace(/\s+/g, ' ') });
       }
     }
-    // 구조 probe: 스켈레톤/빈 렌더 (정상 회사페이지는 회원 기준 4,000자+; 소형주도 2,500+)
-    if (text.length < 2500) rec.flags.push({ detector: 'thin_render', sev: 'high', snip: `bodyLen=${text.length}` });
+    // 구조 probe: 스켈레톤/빈 렌더 — 2026-07-04 전수 실측 재보정: 페이지가 2계층(큐레이션 리치형 4,000자+
+    //   / 다이나믹 경량형 1,700~2,500 / ETF 830~1,100)이라 2,500 임계는 오탐 757건. 정상 최소 실측 828자
+    //   (PPLT ETF, 가격+차트+관련종목 육안 정상) → 진짜 빈/스켈레톤 수준(<650)만 high.
+    if (text.length < 650) rec.flags.push({ detector: 'thin_render', sev: 'high', snip: `bodyLen=${text.length}` });
     // 헤더 가격 렌더: 상단 1,200자 내 숫자 가격 패턴(₩/$/소수점/천단위) 부재 = 가격 미렌더
     const head = text.slice(0, 1200);
     if (!/[\d,]+\.\d{2}|₩[\d,]+|\$[\d,]+/.test(head)) rec.flags.push({ detector: 'no_price_header', sev: 'medium', snip: head.slice(0, 60) });
