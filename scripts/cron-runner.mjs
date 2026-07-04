@@ -210,13 +210,24 @@ async function runMonitor() {
     let hb = {};
     try { hb = JSON.parse(readFileSync(resolve(process.cwd(), 'logs/maintenance-heartbeat.json'), 'utf8')); } catch { /* 아직 없음 */ }
     const stale = [];
+    const staleLabels = [];
     for (const [label, maxH] of Object.entries(HB_MAX)) {
       const ts = hb[label] ? new Date(hb[label]).getTime() : 0;
       const ageH = ts ? (Date.now() - ts) / 3600000 : Infinity;
-      if (ageH > maxH) stale.push(`${label} ${ts ? ageH.toFixed(0) + 'h' : '무기록'}>${maxH}h`);
+      if (ageH > maxH) { stale.push(`${label} ${ts ? ageH.toFixed(0) + 'h' : '무기록'}>${maxH}h`); staleLabels.push(label); }
     }
     result.checks.artifactFresh = stale.length ? `stale ${stale.length}` : 'ok';
     if (stale.length) result.defects.push(`[maint] 잡 미실행 의심: ${stale.join(', ').slice(0, 140)}`);
+    // 2026-07-04 self-heal: "모니터가 본다 ≠ fix" — stale 잡을 즉석 소급(사이클당 1개, 폭주 방지).
+    //   runMaintenance 가 report lock 시 자연 skip → 다음 사이클(20분) 재시도 = 재시도 루프 자동 확보.
+    //   (scan-accumulation 슬롯이 리포트 종료창과 겹쳐 4연속 skip·44h stale 인데 감지만 하던 사각지대.)
+    if (staleLabels.length) {
+      const j = MAINT_JOBS.find((x) => x.label === staleLabels[0]);
+      if (j) {
+        log(`[auto-monitor/self-heal] stale 잡 즉석 소급: ${j.label}`);
+        void runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths);
+      }
+    }
   } catch { /* */ }
 
   // [발행후재검] 2026-06-19: post-publish-recheck verdict 를 *주기* 모니터에 통합. 이전엔 session-spotcheck(수동)
@@ -326,7 +337,9 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
 //   각 항목 이력·사유는 git blame 참조(2026-06-12~17 신설분).
 const MAINT_JOBS = [
   { label: 'dart-corpcodes',       script: 'scripts/fetch-dart-corp-codes.mjs',      timeoutMs: 300000,  commitPaths: ['data/dart-corp-codes.json'],          schedules: ['5 17 * * *'],                 maxAgeH: 30 },
-  { label: 'scan-accumulation',    script: 'scripts/scan-accumulation.mjs',          timeoutMs: 600000,  commitPaths: ['data/accumulation-watchlist.json'],   schedules: ['0 7 * * *', '0 22 * * *'],    maxAgeH: 20 },
+  // 2026-07-04: 슬롯 0분→20분 — 07:00/16:00 KST 정각이 morning/afternoon 리포트 종료창(~xx:00:06)과 겹쳐
+  //   lock skip 4연속(44h stale, 모니터는 감지만 하던 사각지대). 리포트 종료 후 여유 확보.
+  { label: 'scan-accumulation',    script: 'scripts/scan-accumulation.mjs',          timeoutMs: 600000,  commitPaths: ['data/accumulation-watchlist.json'],   schedules: ['20 7 * * *', '20 22 * * *'],  maxAgeH: 20 },
   { label: 'build-us-smallcap',    script: 'scripts/build-us-smallcap-universe.mjs', timeoutMs: 600000,  commitPaths: ['data/us-smallcap-universe.json'],     schedules: ['0 19 * * 1'],                 maxAgeH: 8 * 24 },
   { label: 'scan-accumulation-us', script: 'scripts/scan-accumulation.mjs --us',     timeoutMs: 900000,  commitPaths: ['data/accumulation-watchlist-us.json'], schedules: ['30 21 * * *', '0 13 * * *'],  maxAgeH: 20 },
   { label: 'scan-insider-kr',      script: 'scripts/scan-insider-kr.mjs',            timeoutMs: 900000,  commitPaths: ['data/insider-kr-feed.json'],          schedules: ['30 7 * * *', '30 22 * * *'],  maxAgeH: 20 },
