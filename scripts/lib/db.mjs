@@ -114,6 +114,16 @@ CREATE TABLE IF NOT EXISTS shadow_hits (
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_shadow_hit ON shadow_hits(report_id, ticker, rule_id);
 CREATE INDEX IF NOT EXISTS idx_shadow_generated ON shadow_hits(generated_at);
 
+-- 2026-07-04 (이연 이행): ETF shares-outstanding 일일 스냅샷 — ΔSO×가격 = 창설/상환 실측 추정(달러).
+-- ICI(주간·시장 전체)와 달리 *ETF별·일별* 자금이동. snapshot-etf-so.mjs 가 US 마감 후 적재.
+CREATE TABLE IF NOT EXISTS etf_so_snapshots (
+  ticker        TEXT NOT NULL,
+  date          TEXT NOT NULL,             -- KST YYYY-MM-DD (US 마감 직후)
+  shares_out    INTEGER NOT NULL,
+  price         REAL,
+  PRIMARY KEY (ticker, date)
+);
+
 -- 2026-05-29: 뉴스 장기 아카이브 (30년 누적 — point-in-time 검색 가능)
 -- 매 보고서 cycle 마다 news-cascade + supplyChainChanges + companyChanges 헤드라인 저장.
 -- report_id 로 endpoint_snapshots / recommendations / outcomes 와 join → 그 시점의
@@ -1363,6 +1373,47 @@ export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) 
  * 2026-07-03: shadow 룰 발화 저장 — 전향 연구 파이프라인 (eval-shadow-rules 가 소비).
  *   hits: [{ticker, ruleId, side, price, reason}]
  */
+// ── ETF SO 스냅샷 (2026-07-04) ─────────────────────────────────────────────────
+export function saveEtfSoSnapshots(rows) {
+  if (!Array.isArray(rows) || !rows.length) return 0;
+  const db = openDb();
+  const stmt = db.prepare(`INSERT OR REPLACE INTO etf_so_snapshots (ticker, date, shares_out, price) VALUES (?, ?, ?, ?)`);
+  let n = 0;
+  db.transaction(() => {
+    for (const r of rows) {
+      if (!r?.ticker || !r?.date || !Number.isFinite(r.sharesOut)) continue;
+      stmt.run(r.ticker, r.date, Math.round(r.sharesOut), Number.isFinite(r.price) ? r.price : null);
+      n++;
+    }
+  })();
+  return n;
+}
+
+// ETF별 창설/상환 추정: 최신 스냅샷 대비 lookback 내 가장 오래된 스냅샷과의 ΔSO × 현재가.
+// 반환 [{ticker, days, dSharesPct, flowUsd, price, asOf}] — 스냅샷 2개 미만 ETF 는 제외.
+export function getEtfSoFlows(lookbackDays = 7) {
+  const db = openDb();
+  const tickers = db.prepare(`SELECT DISTINCT ticker FROM etf_so_snapshots`).all().map((r) => r.ticker);
+  const out = [];
+  for (const tk of tickers) {
+    const latest = db.prepare(`SELECT date, shares_out, price FROM etf_so_snapshots WHERE ticker=? ORDER BY date DESC LIMIT 1`).get(tk);
+    if (!latest) continue;
+    const base = db.prepare(`SELECT date, shares_out FROM etf_so_snapshots WHERE ticker=? AND date < ? AND date >= date(?, '-' || ? || ' days') ORDER BY date ASC LIMIT 1`)
+      .get(tk, latest.date, latest.date, lookbackDays);
+    if (!base || !base.shares_out) continue;
+    const dShares = latest.shares_out - base.shares_out;
+    out.push({
+      ticker: tk,
+      days: Math.round((new Date(latest.date) - new Date(base.date)) / 86400000),
+      dSharesPct: +(dShares / base.shares_out * 100).toFixed(2),
+      flowUsd: latest.price != null ? Math.round(dShares * latest.price) : null,
+      price: latest.price,
+      asOf: latest.date,
+    });
+  }
+  return out.sort((a, b) => Math.abs(b.flowUsd ?? 0) - Math.abs(a.flowUsd ?? 0));
+}
+
 export function saveShadowHits(reportId, hits) {
   if (!Array.isArray(hits) || !hits.length) return 0;
   const db = openDb();

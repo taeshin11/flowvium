@@ -4601,6 +4601,20 @@ function buildFlowNarrativeEvidence(ctxRaw) {
         });
       }
     }
+    // 1.3) 미국 실측 — ETF별 ΔSO (2026-07-04 이연 이행): 일별 해상도 창설/상환. |flow| ≥ $2B 또는
+    //   SO 변화 ≥ 3%(+$0.5B) 일 때만 claim. ICI 와 방향 상충 시 둘 다 노출(모델이 최근성 우선 판단).
+    const soFlows = (ctxRaw?.etfSoFlows ?? []).filter((e) => e.flowUsd != null);
+    if (soFlows.length) {
+      const top = soFlows.filter((e) => Math.abs(e.flowUsd) >= 2e9 || (Math.abs(e.dSharesPct) >= 3 && Math.abs(e.flowUsd) >= 5e8)).slice(0, 3);
+      if (top.length) {
+        const fmtSo = (e) => `${e.ticker} ${e.flowUsd >= 0 ? '+' : ''}${(e.flowUsd / 1e9).toFixed(1)}B달러 ${e.flowUsd >= 0 ? '창설' : '상환'}(${e.days}일)`;
+        claims.push({
+          id: 'etf_so_delta', kind: 'true_flow', market: 'US',
+          text: `ETF 창설/상환 실측(ΔSO, ~${top[0].asOf}): ${top.map(fmtSo).join(' · ')}`,
+          allowedVerbs: ['창설', '상환', '자금 유입', '자금 이탈'], confidence: 'medium',
+        });
+      }
+    }
     // 1.5) 로테이션 서사(어디서→어디로) — capital-flows rotations1w (가격 proxy 지만 '이동' 형식의 핵심).
     const rots = ctxRaw?.capital?.flow?.rotations1w ?? [];
     if (rots.length) {
@@ -4693,7 +4707,7 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     //   문구) 입력엔 빠져 있던 갭. fact-check 4581/4582 규칙(수익률≠유입액, 수급 방향 고정)이 그대로 적용됨.
     `[Capital Flow — 자산이동, *최근 1w 우선 정렬* (4w 는 맥락·accel↑/reversal↕=최근성 시그널) — ⚠️가격수익률 proxy, 실측 자금유입 아님] ${ctx.flows || 'No data'}`,
     `[KR Flow — 외국인 수급 실측(일별)] ${ctx.koreaFlow || 'No data'}`,
-    `[US Fund Flows — ICI 주간 ETF net issuance 실측(주간 지연, $M)] ${ctx.fundFlows || 'No data'}`,
+    `[US Fund Flows — ICI 주간 net issuance 실측(주간 지연) + ETF별 ΔSO 창설/상환 실측(일별)] ${ctx.fundFlows || 'No data'}`,
     flowContract,
     '- ⚠️ 자산이동 서술은 *가장 최근*(1w·reversal/accel 시그널·외인 당일/최근 순매수) 우선 — 4w 는 배경 맥락으로만. 최근과 4w 방향이 다르면 최근을 따르되 반전임을 명시.',
     `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,
@@ -6713,6 +6727,18 @@ async function generateViaOllama() {
   console.log('\n[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
   const wave1Start = Date.now();
   // 2026-07-04: flow claim contract — 결정론 근거(진짜 flow vs 가격 proxy)를 계산해 프롬프트 계약+최종 백스톱에 사용.
+  // ETF ΔSO 실측(일별 창설/상환) 주입 — snapshot-etf-so MAINT 적재분. 스냅샷 <2개면 [] (claim 자동 미발화).
+  try {
+    const { getEtfSoFlows } = await import('./lib/db.mjs');
+    ctxRaw.etfSoFlows = getEtfSoFlows(7);
+    // ctx 요약(buildCtxSummary)은 이 시점 이전에 빌드됨 — fundFlows 프롬프트 문자열에 직접 합류.
+    const _soLine = ctxRaw.etfSoFlows
+      .filter((e) => e.flowUsd != null && Math.abs(e.flowUsd) >= 3e8).slice(0, 5)
+      .map((e) => `${e.ticker} ${e.flowUsd >= 0 ? '+' : ''}${(e.flowUsd / 1e9).toFixed(1)}B(${e.dSharesPct >= 0 ? '+' : ''}${e.dSharesPct}% SO/${e.days}d)`)
+      .join(' | ');
+    if (_soLine) ctxWithCascade.fundFlows = `${ctxWithCascade.fundFlows ?? ''}${ctxWithCascade.fundFlows ? '\n' : ''}ETF별 ΔSO 실측(창설+/상환-): ${_soLine}`;
+    if (ctxRaw.etfSoFlows.length) console.log(`  [etf-so] ΔSO 실측 ${ctxRaw.etfSoFlows.length}종 (top: ${ctxRaw.etfSoFlows[0].ticker} ${(ctxRaw.etfSoFlows[0].flowUsd / 1e9).toFixed(1)}B)`);
+  } catch (e) { console.warn(`  [etf-so] skip: ${e.message}`); }
   const flowEvidence = buildFlowNarrativeEvidence(ctxRaw);
   if (flowEvidence.primaryClaim) console.log(`  [flow-evidence] ${flowEvidence.primaryClaim.kind}: ${flowEvidence.primaryClaim.text}`);
   else console.log('  [flow-evidence] 뚜렷한 자산이동 근거 없음 — thesis 언급 비강제');

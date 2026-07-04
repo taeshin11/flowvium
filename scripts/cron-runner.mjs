@@ -368,6 +368,8 @@ const MAINT_JOBS = [
   // 2026-07-04: 전 종목(1,338) 회사페이지 *렌더* 전수검증 주간 — API 전수(audit-company-*)와 별개로
   //   실제 화면 렌더(NaN/에러/스켈레톤/가격 미렌더)를 detector 로 회귀 감시(사용자 "모든 회사 페이지 캡쳐검증").
   { label: 'audit-company-render', script: 'scripts/visual/audit-company-render.mjs', timeoutMs: 1800000, commitPaths: [],                                    schedules: ['40 20 * * 6'],                maxAgeH: 9 * 24 },
+  // 2026-07-04 (이연 이행): ETF SO 일일 스냅샷 — US 마감(20:00 UTC) 직후. ΔSO×가격=창설/상환 실측(ETF별·일별).
+  { label: 'snapshot-etf-so',      script: 'scripts/snapshot-etf-so.mjs',            timeoutMs: 120000,  commitPaths: [],                                     schedules: ['15 20 * * 1-5'],              maxAgeH: 4 * 24 },
 ];
 for (const j of MAINT_JOBS) for (const s of j.schedules) {
   cron.schedule(s, () => runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths), { timezone: TZ });
