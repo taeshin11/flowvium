@@ -324,6 +324,17 @@ export async function verifyReport(file, { silent = false } = {}) {
   // (b4) 2026-07-04 (사용자 "thesis 서술 품질"): 생성기 결정론 교정기(attributePctSubjects/dedupeThesisMacro)
   //   회귀 게이트 — 교정기가 무력화(pool 공급 실패 등)돼도 발간 전에 잡는다.
   {
+    // ⓪ 프롬프트 예문 복사 감지 (2026-07-04 regen3 실증: 30B 가 '좋은 예'를 통째 베낌 — 예문을 [—]
+    //   플레이스홀더로 바꿨으므로, 미치환 플레이스홀더가 남으면 = 베끼기).
+    {
+      const copyRe = /\[(금액|N|—|시장|주체|의미|수치)\]|\[사들이며\/팔며\]/;
+      for (const [f, text] of [['thesis', r.thesis], ['macroAnalysis', r.macroAnalysis]]) {
+        if (text && copyRe.test(String(text))) {
+          log(`  ❌ ${f} 프롬프트 예문 플레이스홀더 잔존 (예문 복사)`);
+          defects.push({ ticker: f, defect_type: 'prompt_example_copied', llm_value: String(text).match(copyRe)[0], correct_value: '예문은 문체 템플릿 — 수치·대상은 입력 데이터로 치환', severity: 'high' });
+        }
+      }
+    }
     // ①무주어 등락%: noon 실증 패턴 "N주 기준 -12.1%" — 같은 절 60자 창에 대상(티커/지수/기준 주석) 부재.
     const SUBJ = /[A-Z]{2,5}|KOSPI|코스피|코스닥|나스닥|S&P|다우|VIX|기준\)/;
     let nNoSubj = 0;
