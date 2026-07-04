@@ -4561,6 +4561,10 @@ function buildMacroPrompt(ctx, vix, session) {
     `[Credit Balance] ${ctx.credit || 'No data'}`,
     `[Upcoming High-Impact Events] ${ctx.econCal || 'No data'}`,
     `[COT Positioning] ${ctx.cot || 'No data'}`,
+    // 2026-07-04 (사용자 "자산이동도 같이 분석해야"): 자산이동 블록 — narrative 에만 가고 thesis(홈 히어로
+    //   문구) 입력엔 빠져 있던 갭. fact-check 4581/4582 규칙(수익률≠유입액, 수급 방향 고정)이 그대로 적용됨.
+    `[Capital Flow — 자산이동: 자산군 유입/추세반전/로테이션/국가 4w] ${ctx.flows || 'No data'}`,
+    `[KR Flow — 외국인 수급 실측] ${ctx.koreaFlow || 'No data'}`,
     `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,
     `[Sector Leadership — 실 섹터 성과 1w/4w] ${ctx.sectorLeadership || 'No data'}`,
     `[Commodity Curves] ${ctx.commodity || 'No data'}`,
@@ -4591,7 +4595,7 @@ function buildMacroPrompt(ctx, vix, session) {
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 핵심만 2-3 문장, 180-320자 — 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되 국면 해석 + 변곡 포인트 1개만, 군더더기 없이. 단문/항목 나열 금지, 문장으로 연결]",`,
     `"technicalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 1-2 문장, 110-200자 — VIX·금리곡선·주요지수 모멘텀 수치와 그 단기 추세/리스크를 흐르는 문장으로 서술]",`,
     `"fundamentalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 2 문장, 150-260자 — earnings surprise·valuation·기관 신호 수치와 그 방향성·함의를 흐르는 문장으로 서술]",`,
-    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 핵심만 1-2 문장, 80-150자 — 오늘의 가장 두드러진 동인(구체 수치/촉매) 1개와 그에 대한 긴장/리스크 1개를 연결해 서술, 군더더기 없이. '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실(수급 방향·환율·CPI·종목)은 반드시 [입력 데이터]에서 가져오고, 예시의 구체값('5일째 순매수'·'1510'·'4.2%' 등)을 그대로 베끼지 말 것. 형식 예: '[시그널 강한 시장의 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 판단].']",`,
+    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 핵심만 1-2 문장, 80-150자 — 오늘의 가장 두드러진 동인(구체 수치/촉매) 1개와 그에 대한 긴장/리스크 1개를 연결해 서술, 군더더기 없이. ★자산이동 반영: [Capital Flow]·[KR Flow] 에 뚜렷한 이동(자산군/국가 로테이션·추세반전·외인 순매수/도)이 있으면 '돈이 어디서 어디로'를 thesis 또는 macroAnalysis 에 최소 1개 수치와 함께 녹여라(뚜렷한 이동이 없으면 생략 가능 — 억지 언급 금지). '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실(수급 방향·환율·CPI·종목)은 반드시 [입력 데이터]에서 가져오고, 예시의 구체값('5일째 순매수'·'1510'·'4.2%' 등)을 그대로 베끼지 말 것. 형식 예: '[시그널 강한 시장의 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 판단].']",`,
     '"riskLevel":"low|medium|high",',
     `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
     `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,
