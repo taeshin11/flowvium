@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "Kuat",
     "breakingTitle": "Terkini — Setelah Laporan Ini",
     "breakingNote": "Berita penggerak pasar yang muncul setelah laporan ini dibuat; akan dimasukkan penuh pada laporan terjadwal berikutnya.",
-    "supplyChainDisclosed": "Diumumkan"
+    "supplyChainDisclosed": "Diumumkan",
+    "conditionalWatchTitle": "Pantauan Entri Bersyarat",
+    "conditionalWatchDesc": "Kandidat skor tinggi yang diblokir disiplin beli — dievaluasi ulang saat kondisi terpenuhi"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

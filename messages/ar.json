@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "قوي",
     "breakingTitle": "عاجل — بعد هذا التقرير",
     "breakingNote": "أخبار مؤثرة في السوق وردت بعد إنشاء هذا التقرير — ستُدرج بالكامل في التقرير المجدول التالي.",
-    "supplyChainDisclosed": "أُفصح"
+    "supplyChainDisclosed": "أُفصح",
+    "conditionalWatchTitle": "مراقبة الدخول المشروط",
+    "conditionalWatchDesc": "مرشحون بدرجات عالية حظرتهم قواعد الشراء — يعاد تقييمهم عند تحقق الشرط"
   },
   "insider": {
     "title": "التدفق الفوري · نشاط المطلعين",

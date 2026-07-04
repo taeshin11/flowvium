@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "Güçlü",
     "breakingTitle": "Son dakika — Bu rapordan sonra",
     "breakingNote": "Bu rapor oluşturulduktan sonra çıkan piyasayı hareketlendiren haberler; bir sonraki planlı rapora tam olarak yansıtılacak.",
-    "supplyChainDisclosed": "Açıklandı"
+    "supplyChainDisclosed": "Açıklandı",
+    "conditionalWatchTitle": "Koşullu Giriş İzleme",
+    "conditionalWatchDesc": "Alım disipliniyle engellenen yüksek puanlı adaylar — koşul sağlanınca yeniden değerlendirilir"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

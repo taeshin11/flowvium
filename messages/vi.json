@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "Mạnh",
     "breakingTitle": "Tin nóng — Sau báo cáo này",
     "breakingNote": "Tin tức tác động thị trường xuất hiện sau khi tạo báo cáo này; sẽ được đưa đầy đủ vào báo cáo định kỳ tiếp theo.",
-    "supplyChainDisclosed": "Công bố"
+    "supplyChainDisclosed": "Công bố",
+    "conditionalWatchTitle": "Theo dõi vào lệnh có điều kiện",
+    "conditionalWatchDesc": "Ứng viên điểm cao bị chặn bởi kỷ luật mua — đánh giá lại khi điều kiện được đáp ứng"
   },
   "insider": {
     "title": "Dòng Tiền Thời Gian Thực · Hoạt Động Nội Bộ",

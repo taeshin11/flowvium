@@ -25,6 +25,8 @@ import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandid
 // 2026-07-03 전향연구: stage-2(buildBuyCandidates)에서 발화한 shadow 룰 히트 — reportId 확정 후
 //   DB 적재 블록에서 saveShadowHits 로 저장(모듈 상태, 프로세스당 1회 실행이라 안전).
 const _shadowHitsPending = [];
+// 2026-07-04 (이연 이행): 조건부 진입 감시 — 매수 hard veto 로 무언 탈락하던 고득점 후보를 조건과 함께 노출.
+const _conditionalWatchPending = [];
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
@@ -5311,6 +5313,20 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   }
   const stage2Vetoed = stage2Cands.filter(c => c._buyVeto);
   if (stage2Vetoed.length) console.log(`  [buy-veto] ${stage2Vetoed.length}건 신규매수 차단(칼받기/과열): ${stage2Vetoed.slice(0, 8).map(c => `${c.ticker}(${c._buyVeto.slice(0, 18)})`).join(', ')}`);
+  // 2026-07-04 (이연 이행): veto 탈락 고득점 후보 → conditionalEntryWatch (조건 결정론 파생).
+  _conditionalWatchPending.length = 0;
+  for (const c of [...stage2Vetoed].sort((a, b) => b.stage1Score - a.stage1Score).slice(0, 6)) {
+    const v = String(c._buyVeto ?? '');
+    const px = c.price ?? null;
+    const fmtPx = (mult) => px == null ? null : (c.market === 'kr' ? `₩${Math.round(px * mult).toLocaleString()}` : `$${(px * mult).toFixed(2)}`);
+    // veto 사유별 재평가 조건 — 추격/과열=눌림 재검토, 칼받기(추락)=낙폭 안정 확인.
+    const condition = /과열|추격|급등|chase/i.test(v)
+      ? `단기 과열 해소 대기 — ${fmtPx(0.95) ?? '-3~-5%'}~${fmtPx(0.97) ?? ''} 눌림 시 분할 진입 재검토`
+      : /칼받기|추락|낙폭|falling/i.test(v)
+        ? '낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지'
+        : '차단 사유 해소 시 재평가';
+    _conditionalWatchPending.push({ ticker: c.ticker, name: tickerMeta.meta?.[c.ticker]?.name ?? null, market: c.market, score: c.stage1Score, vetoReason: v.slice(0, 80), condition, refPrice: px });
+  }
   const stage2Kept = stage2Cands.filter(c => !c._buyVeto);
   stage2Kept.sort((a, b) => b.stage1Score - a.stage1Score);
   const stage3Cands = sliceWithKrQuota(stage2Kept, 50, 15); // KR 15 슬롯 보장
@@ -8860,6 +8876,11 @@ async function generateViaOllama() {
     // 2026-07-04: flow contract 백스톱 — proxy-only 인데 유입성 동사 사용 시 교정 + shouldMention 미이행 시
     //   macroAnalysis 결정론 append (thesis 는 불개입 — 히어로 간결성 보호). evidence 는 verify probe 근거로 저장.
     finalReport.flowNarrativeEvidence = flowEvidence;
+    // 2026-07-04 (이연 이행): 조건부 진입 감시 — 매수 veto 탈락 후보를 조건과 함께 발간(무언 탈락 사각 제거).
+    if (_conditionalWatchPending.length) {
+      finalReport.conditionalEntryWatch = [..._conditionalWatchPending];
+      console.log(`  [cond-watch] 조건부 진입 감시 ${_conditionalWatchPending.length}종: ${_conditionalWatchPending.map(w => w.ticker).join(', ')}`);
+    }
     enforceFlowNarrativeContract(finalReport, flowEvidence);
     const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap, fedNextLabel: _nm?.label ?? null });
     if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);

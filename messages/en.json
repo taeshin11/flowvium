@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "Strong",
     "breakingTitle": "Breaking — After This Report",
     "breakingNote": "Market-moving news that broke after this report was generated; fully incorporated in the next scheduled report.",
-    "supplyChainDisclosed": "Disclosed"
+    "supplyChainDisclosed": "Disclosed",
+    "conditionalWatchTitle": "Conditional Entry Watch",
+    "conditionalWatchDesc": "High-score candidates blocked by buy discipline (chasing/overheat/falling) — re-evaluated when the condition clears"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

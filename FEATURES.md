@@ -856,6 +856,11 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - **🔍 nextCheck**: 다음 확인 catalyst (≤40자, LLM, 실제 날짜 없으면 null — 환각 금지).
 - 원칙 "숫자는 코드가(eventType/held), LLM은 문장만(keyChange/whyMatters/nextCheck)". audit-section-richness 가 whyMatters 고유성까지 검사(boilerplate 차단).
 
+### 13-4d. ⏳ 조건부 진입 감시 (conditionalEntryWatch, 2026-07-04 이연 이행)
+- 매수 hard veto(칼받기/과열/추격)로 이번 발간에서 *무언 탈락*하던 고득점 후보(stage-2 vetoed top 6)를 조건과 함께 노출.
+- 조건 결정론 파생(LLM 아님): 과열/추격 → "현재가 -3~-5% 눌림 시 분할 진입 재검토"(가격 명시), 칼받기 → "낙폭 안정(1d 반등+거래량 정상화) 후 재평가".
+- 필드 `conditionalEntryWatch[{ticker,name,market,score,vetoReason,condition,refPrice}]`. 리스크 관리(S5) 아래 앰버 카드. i18n `report.conditionalWatchTitle/Desc` ×16.
+
 ### 13-5. 주요 리스크 이벤트 (2026-06-14 포트폴리오 민감도 + 예상치/서프라이즈 격상)
 - 날짜, 이벤트명, 위험도, 주목 포인트
 - **📊 예상치(estimate)/직전값(prev)**: economic-calendar estimate/prev 를 **날짜+이벤트 유형 일치**로 매칭(FOMC 3.75%가 소매판매에 붙는 cross-contamination 방지). forward 컨센서스는 FOMC 등 일부만(Finnhub econ-cal=premium 불가), **직전 실제값은 FRED series units 변환으로 정확단위 제공**(2026-06-14): CPI=%YoY, GDP=%연율, 소매=%MoM, NFP=K. 예상 없으면 직전값을 비교 앵커로 표시. 환각 금지(소스값만).

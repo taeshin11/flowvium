@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "मजबूत",
     "breakingTitle": "ताज़ा खबर — इस रिपोर्ट के बाद",
     "breakingNote": "इस रिपोर्ट के बनने के बाद आई बाज़ार-प्रभावी खबरें — अगली निर्धारित रिपोर्ट में पूरी तरह शामिल की जाएंगी।",
-    "supplyChainDisclosed": "प्रकटित"
+    "supplyChainDisclosed": "प्रकटित",
+    "conditionalWatchTitle": "सशर्त प्रवेश निगरानी",
+    "conditionalWatchDesc": "खरीद अनुशासन द्वारा अवरुद्ध उच्च-स्कोर उम्मीदवार — शर्त पूरी होने पर पुनर्मूल्यांकन"
   },
   "insider": {
     "title": "रियल-टाइम फ्लो · इनसाइडर गतिविधि",

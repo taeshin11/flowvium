@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "Stark",
     "breakingTitle": "Eilmeldung — Nach diesem Bericht",
     "breakingNote": "Marktbewegende Nachrichten nach Erstellung dieses Berichts – im nächsten planmäßigen Bericht vollständig berücksichtigt.",
-    "supplyChainDisclosed": "Gemeldet"
+    "supplyChainDisclosed": "Gemeldet",
+    "conditionalWatchTitle": "Bedingte Einstiegsbeobachtung",
+    "conditionalWatchDesc": "Hoch bewertete Kandidaten, durch Kaufdisziplin blockiert — Neubewertung bei erfüllter Bedingung"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

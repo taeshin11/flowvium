@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "สัญญาณแรง",
     "breakingTitle": "ข่าวด่วน — หลังรายงานนี้",
     "breakingNote": "ข่าวที่มีผลต่อตลาดซึ่งเกิดหลังสร้างรายงานนี้ — จะรวมไว้ในรายงานตามกำหนดถัดไป",
-    "supplyChainDisclosed": "เปิดเผย"
+    "supplyChainDisclosed": "เปิดเผย",
+    "conditionalWatchTitle": "เฝ้าดูการเข้าซื้อแบบมีเงื่อนไข",
+    "conditionalWatchDesc": "ผู้สมัครคะแนนสูงที่ถูกบล็อกโดยวินัยการซื้อ — ประเมินใหม่เมื่อเงื่อนไขคลี่คลาย"
   },
   "insider": {
     "title": "Flow เรียลไทม์ · กิจกรรมของ Insider",

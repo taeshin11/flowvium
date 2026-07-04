@@ -1341,7 +1341,9 @@
     "manipWatchTierStrong": "Forte",
     "breakingTitle": "Última hora — Após este relatório",
     "breakingNote": "Notícias que movem o mercado surgidas após a geração deste relatório; serão incorporadas no próximo relatório programado.",
-    "supplyChainDisclosed": "Divulgado"
+    "supplyChainDisclosed": "Divulgado",
+    "conditionalWatchTitle": "Vigilância de entrada condicional",
+    "conditionalWatchDesc": "Candidatos de alta pontuação bloqueados pela disciplina de compra — reavaliados quando a condição se resolver"
   },
   "insider": {
     "title": "Fluxo em Tempo Real · Atividade Interna",
