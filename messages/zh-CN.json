@@ -1343,7 +1343,10 @@
     "breakingNote": "本报告生成后发生的影响市场的新闻 — 将在下一份定期报告中正式纳入。",
     "supplyChainDisclosed": "披露",
     "conditionalWatchTitle": "条件性买入观察",
-    "conditionalWatchDesc": "因买入纪律（追高/过热/下跌中）被拦截的高分候选 — 条件解除后重新评估"
+    "conditionalWatchDesc": "因买入纪律（追高/过热/下跌中）被拦截的高分候选 — 条件解除后重新评估",
+    "assetFlowTitle": "资金流向",
+    "assetFlowMeasured": "实测",
+    "assetFlowProxy": "价格代理"
   },
   "insider": {
     "title": "实时资金流 · 内部人交易",

@@ -1343,7 +1343,10 @@
     "breakingNote": "Marktbewegende Nachrichten nach Erstellung dieses Berichts – im nächsten planmäßigen Bericht vollständig berücksichtigt.",
     "supplyChainDisclosed": "Gemeldet",
     "conditionalWatchTitle": "Bedingte Einstiegsbeobachtung",
-    "conditionalWatchDesc": "Hoch bewertete Kandidaten, durch Kaufdisziplin blockiert — Neubewertung bei erfüllter Bedingung"
+    "conditionalWatchDesc": "Hoch bewertete Kandidaten, durch Kaufdisziplin blockiert — Neubewertung bei erfüllter Bedingung",
+    "assetFlowTitle": "Kapitalflüsse",
+    "assetFlowMeasured": "Gemessen",
+    "assetFlowProxy": "Preis-Proxy"
   },
   "insider": {
     "title": "Echtzeit-Flow · Insider-Aktivität",

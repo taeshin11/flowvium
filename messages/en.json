@@ -1343,7 +1343,10 @@
     "breakingNote": "Market-moving news that broke after this report was generated; fully incorporated in the next scheduled report.",
     "supplyChainDisclosed": "Disclosed",
     "conditionalWatchTitle": "Conditional Entry Watch",
-    "conditionalWatchDesc": "High-score candidates blocked by buy discipline (chasing/overheat/falling) — re-evaluated when the condition clears"
+    "conditionalWatchDesc": "High-score candidates blocked by buy discipline (chasing/overheat/falling) — re-evaluated when the condition clears",
+    "assetFlowTitle": "Asset Flows",
+    "assetFlowMeasured": "Measured",
+    "assetFlowProxy": "Price proxy"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",

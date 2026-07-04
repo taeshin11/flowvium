@@ -4682,6 +4682,19 @@ function enforceFlowNarrativeContract(report, flowEvidence) {
         report.macroAnalysis = `${(report.macroAnalysis ?? '').trim()} 자산이동 관점에서는 ${primary.text}.`.trim();
         console.log(`  [flow-contract] 미언급 → macroAnalysis 결정론 append (${primary.id})`);
       }
+      // 2026-07-04 (사용자 "여전히 자산흐름이 안 느껴진다"): '어디서→어디로' *이동* 충족 별도 판정 —
+      //   afternoon 실증: KR 수급 잔액 한 줄로 keyToken 은 충족됐지만 이동 서사(ICI 미국주식→채권/해외,
+      //   로테이션)는 전부 탈락. 이동형 claim 이 있는데 서사에 이동 표현이 없으면 결정론 append.
+      const moveClaim = (flowEvidence.allClaims ?? []).find((c) => /→| vs /.test(c.text));
+      if (moveClaim) {
+        const joined2 = `${report.thesis ?? ''} ${report.macroAnalysis ?? ''}`;
+        const hasMove = /→|로테이션/.test(joined2) ||
+          (/(상환|이탈|순매도|유출)/.test(joined2) && /(창설|유입|순매수)/.test(joined2) && /(채권|해외|미국주식|ETF)/.test(joined2));
+        if (!hasMove) {
+          report.macroAnalysis = `${(report.macroAnalysis ?? '').trim()} 돈의 이동: ${moveClaim.text}.`.trim();
+          console.log(`  [flow-contract] 이동 서사 미충족 → macroAnalysis 결정론 append (${moveClaim.id})`);
+        }
+      }
     }
   } catch (e) { console.warn('  [flow-contract] skip:', e?.message); }
   return report;
@@ -4700,11 +4713,12 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     ] : []),
     // 2026-07-04 (사용자 "자금 흐름 내용없는데"): 수급 한 줄로 끝내지 말고 '어디서→어디로' 이동 서사까지 —
     //   secondary claim(로테이션)이 있으면 함께 녹이도록 계약에 노출.
-    ...(fe.allClaims?.length > 1 ? [
-      `secondaryClaim(${fe.allClaims[1].kind}): ${fe.allClaims[1].text}`,
-      `secondary 허용 표현: ${(fe.allClaims[1].allowedVerbs ?? []).join(', ')}`,
+    ...(fe.allClaims ?? []).slice(1, 3).map((c, i) => `claim${i + 2}(${c.kind}): ${c.text} | 허용 표현: ${(c.allowedVerbs ?? []).join(', ')}`),
+    'shouldMention=false 면 자산이동을 언급하지 마라(억지 금지). true 면 primaryClaim 을 thesis 또는 macroAnalysis 에 자연스럽게 녹여라.',
+    // 2026-07-04 (사용자 "여전히 자산흐름이 안 느껴진다"): 수급 잔액 나열 ≠ 자산이동. 이동형 claim 강제.
+    ...((fe.allClaims ?? []).some((c) => /→| vs /.test(c.text)) ? [
+      '★ 위 claim 중 *이동형*(A→B, "X vs Y" 대비 구조)이 있다 — thesis 는 반드시 그 *이동 방향*(어디서 나와 어디로 들어가는지, 예: "미국주식 ETF에서 순상환된 자금이 채권·해외주식으로")을 1개 이상 포함하라. 수급 금액 한 줄(예: "외국인 1.9조 순매수")만으로는 자산이동 서술로 인정되지 않는다.',
     ] : []),
-    'shouldMention=false 면 자산이동을 언급하지 마라(억지 금지). true 면 primaryClaim 을 thesis 또는 macroAnalysis 에 자연스럽게 녹이고, secondaryClaim(로테이션: 어디서→어디로)이 있으면 그 이동 방향도 함께 서술하라.',
     '- ⚠️ 등락률(%) 인용 시 반드시 그 *대상*(KOSPI/코스닥/EWY/S&P500/종목명)을 명시 — "1주 -12.1%의 약세"처럼 주어 없는 등락 서술 금지.',
   ].join('\n') : '';
   const sc = session === 'morning' ? 'Post US-close' : session === 'afternoon' ? 'Post Asia-close' : session === 'noon' ? 'Asia mid-session (KR 점심)' : session === 'midnight' ? 'Asia pre-open / US after-close' : 'Pre US-open';
@@ -4760,7 +4774,9 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 핵심만 2-3 문장, 180-320자 — 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되 국면 해석 + 변곡 포인트 1개만, 군더더기 없이. 단문/항목 나열 금지, 문장으로 연결]",`,
     `"technicalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 1-2 문장, 110-200자 — VIX·금리곡선·주요지수 모멘텀 수치와 그 단기 추세/리스크를 흐르는 문장으로 서술]",`,
     `"fundamentalAnalysis":"[${TARGET_LANG} *서술형*, 핵심만 2 문장, 150-260자 — earnings surprise·valuation·기관 신호 수치와 그 방향성·함의를 흐르는 문장으로 서술]",`,
-    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 핵심만 1-2 문장, 80-150자 — 오늘의 가장 두드러진 동인(구체 수치/촉매) 1개와 그에 대한 긴장/리스크 1개를 연결해 서술, 군더더기 없이. ★자산이동: [Flow Claim Contract] 를 따르라 — shouldMention=true 일 때만 primaryClaim 을 허용 표현으로 녹이고, false 면 언급하지 마라. '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실(수급 방향·환율·CPI·종목)은 반드시 [입력 데이터]에서 가져오고, 예시의 구체값('5일째 순매수'·'1510'·'4.2%' 등)을 그대로 베끼지 말 것. 형식 예: '[시그널 강한 시장의 핵심 동인+입력수치]가 [방향]을 이끌지만, [상충 요인+입력수치]가 [리스크]로 작용한다. [두 힘]의 줄다리기 국면으로, [입력 기반 판단].']",`,
+    // 2026-07-04 (사용자 "여전히 자산흐름이 안 느껴진다 → 좀 길게 써도 되"): 80-150자 예산이 이동 서사를
+    //   매번 밀어내던 근원 — 150-280자·2-3문장으로 확장 + '돈의 이동' 전용 문장을 구조로 강제.
+    `"thesis":"[${TARGET_LANG} *서술형 헤드라인*, 2-3 문장, 150-280자 — 3요소 구조: ①오늘의 가장 두드러진 동인(구체 수치/촉매) ②*돈의 이동* — [Flow Claim Contract] 의 이동형 claim(A→B, X vs Y)이 있으면 '어디서 나와 어디로 들어가는지'를 실측 수치와 함께 *전용 문장 1개*로 서술(수급 금액 한 줄 나열은 이동 서술이 아님; 이동형 claim 이 없으면 이 문장 생략) ③그에 대한 긴장/리스크 1개. shouldMention=false 면 자산이동 언급 금지(억지 금지). '강세 지속' 류 합의서사 금지. ★주력시장은 세션이 아니라 *그날 시그널이 가장 강한 시장*(KR/US 중)으로 네가 골라 *먼저* 다루고, 다른 시장은 짧게 맥락으로 — KR·US 어느 쪽도 완전 생략 금지. ⚠️아래는 *문장 형식* 예시일 뿐 — 수치·사실은 반드시 [입력 데이터]에서 가져오고 예시의 구체값을 베끼지 말 것. 형식 예: '[핵심 동인+입력수치]가 [방향]을 이끈다. 돈은 [빠지는 자산]에서 [들어가는 자산]으로 — [실측 수치] 이동이 확인된다. 다만 [상충 요인+입력수치]가 [리스크]로 남아 [입력 기반 판단].']",`,
     '"riskLevel":"low|medium|high",',
     `"riskEvents":[{"date":"YYYY-MM-DD","event":"[${TARGET_LANG}]","impact":"high|medium|low","watchFor":"[${TARGET_LANG} ≤60 chars]"}]}`,
     `Include 3-5 riskEvents (BOJ/ECB/Fed/NFP/CPI). Output JSON only, starting with {`,

@@ -1343,7 +1343,10 @@
     "breakingNote": "Noticias que mueven el mercado surgidas tras generar este informe; se incorporarán en el próximo informe programado.",
     "supplyChainDisclosed": "Divulgado",
     "conditionalWatchTitle": "Vigilancia de entrada condicional",
-    "conditionalWatchDesc": "Candidatos de alta puntuación bloqueados por disciplina de compra — se reevalúan cuando se cumple la condición"
+    "conditionalWatchDesc": "Candidatos de alta puntuación bloqueados por disciplina de compra — se reevalúan cuando se cumple la condición",
+    "assetFlowTitle": "Flujos de activos",
+    "assetFlowMeasured": "Medido",
+    "assetFlowProxy": "Proxy de precio"
   },
   "insider": {
     "title": "Flujo en Tiempo Real · Actividad Interna",

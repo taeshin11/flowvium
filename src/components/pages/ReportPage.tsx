@@ -878,6 +878,21 @@ export default function ReportPage() {
               </p>
             )}
             <p className="text-sm font-medium text-gray-800 leading-relaxed">{data.thesis}</p>
+            {/* 2026-07-04 (사용자 "자산흐름이 안 느껴진다"): 실측 자산이동 라인 — LLM thesis 채택 여부와
+                무관하게 flowNarrativeEvidence(결정론 합성 문장)를 히어로에 항상 렌더. 실측/가격 proxy 구분 배지. */}
+            {data.flowNarrativeEvidence?.allClaims?.length ? (
+              <div className="mt-3 pt-3 border-t border-black/10 space-y-1.5">
+                <p className="text-[10px] font-bold text-gray-500 tracking-wide">💸 {t('assetFlowTitle')}</p>
+                {data.flowNarrativeEvidence.allClaims.slice(0, 3).map((c, i) => (
+                  <div key={i} className="flex items-start gap-1.5 text-xs text-gray-700">
+                    <span className={`shrink-0 mt-[1px] text-[9px] px-1.5 py-0.5 rounded font-bold ${c.kind === 'true_flow' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>
+                      {c.kind === 'true_flow' ? t('assetFlowMeasured') : t('assetFlowProxy')}
+                    </span>
+                    <span className="leading-snug">{c.text}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {/* ── 종합 판단 (2026-06-13): US·거시 / KR 별도 박스, 각자 독립 stance ── */}

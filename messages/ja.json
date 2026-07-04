@@ -1343,7 +1343,10 @@
     "breakingNote": "本レポート生成後に発生した市場影響ニュース — 次回の定期レポートに正式反映されます。",
     "supplyChainDisclosed": "開示",
     "conditionalWatchTitle": "条件付きエントリー監視",
-    "conditionalWatchDesc": "買い規律（追撃・過熱・下落中）でブロックされた高スコア候補 — 条件解消時に再評価"
+    "conditionalWatchDesc": "買い規律（追撃・過熱・下落中）でブロックされた高スコア候補 — 条件解消時に再評価",
+    "assetFlowTitle": "資金移動",
+    "assetFlowMeasured": "実測",
+    "assetFlowProxy": "価格プロキシ"
   },
   "insider": {
     "title": "リアルタイム資金フロー · 内部者取引",

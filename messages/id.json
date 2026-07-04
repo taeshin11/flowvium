@@ -1343,7 +1343,10 @@
     "breakingNote": "Berita penggerak pasar yang muncul setelah laporan ini dibuat; akan dimasukkan penuh pada laporan terjadwal berikutnya.",
     "supplyChainDisclosed": "Diumumkan",
     "conditionalWatchTitle": "Pantauan Entri Bersyarat",
-    "conditionalWatchDesc": "Kandidat skor tinggi yang diblokir disiplin beli — dievaluasi ulang saat kondisi terpenuhi"
+    "conditionalWatchDesc": "Kandidat skor tinggi yang diblokir disiplin beli — dievaluasi ulang saat kondisi terpenuhi",
+    "assetFlowTitle": "Arus Aset",
+    "assetFlowMeasured": "Terukur",
+    "assetFlowProxy": "Proksi harga"
   },
   "insider": {
     "title": "Aliran Real-time · Aktivitas Insider",

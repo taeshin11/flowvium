@@ -1343,7 +1343,10 @@
     "breakingNote": "Bu rapor oluşturulduktan sonra çıkan piyasayı hareketlendiren haberler; bir sonraki planlı rapora tam olarak yansıtılacak.",
     "supplyChainDisclosed": "Açıklandı",
     "conditionalWatchTitle": "Koşullu Giriş İzleme",
-    "conditionalWatchDesc": "Alım disipliniyle engellenen yüksek puanlı adaylar — koşul sağlanınca yeniden değerlendirilir"
+    "conditionalWatchDesc": "Alım disipliniyle engellenen yüksek puanlı adaylar — koşul sağlanınca yeniden değerlendirilir",
+    "assetFlowTitle": "Varlık Akışları",
+    "assetFlowMeasured": "Ölçülen",
+    "assetFlowProxy": "Fiyat vekili"
   },
   "insider": {
     "title": "Canlı Akış · İçeriden Aktivite",

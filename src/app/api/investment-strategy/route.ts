@@ -222,6 +222,9 @@ export interface InvestmentStrategy {
   // 2026-07-04 (이연 이행): 조건부 진입 감시 — 매수 hard veto(칼받기/과열/추격)로 이번 발간에서 탈락한
   //   고득점 후보를 조건과 함께 노출(무언 탈락 사각 제거). 생성기 stage-2 veto 목록에서 결정론 파생.
   conditionalEntryWatch?: Array<{ ticker: string; name?: string; market?: string; score?: number; vetoReason: string; condition: string; refPrice?: number | null }>;
+  // 2026-07-04 (사용자 "자산흐름이 안 느껴진다"): 생성기 결정론 flow 근거 — 히어로에 실측 자산이동 라인 렌더.
+  //   LLM thesis 가 이동 서사를 누락해도 사용자에겐 항상 보이는 결정론 표면(claim text = 생성기 합성 실측 문장).
+  flowNarrativeEvidence?: { shouldMention?: boolean; allClaims?: Array<{ id?: string; kind: string; market?: string; text: string }> };
   // S6: 시장 내러티브
   marketNarrative?: { why: string; watch: string; story: string; hotThemes?: string[]; sessionNote: string };
   // S8: 기업 변화 모니터링

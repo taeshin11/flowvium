@@ -298,6 +298,21 @@ export async function verifyReport(file, { silent = false } = {}) {
     } else if (fe) {
       log('  ✅ flow claim 정합 (contract 준수)');
     }
+    // (b3+) 2026-07-04 (사용자 "여전히 자산흐름이 안 느껴진다"): 이동형 claim(A→B / X vs Y) 이 있는데
+    //   서사에 '어디서→어디로'가 전혀 없으면 결함 — 생성기 이동 백스톱 무력화 회귀 게이트.
+    {
+      const moveClaim = (fe?.allClaims ?? []).find((c) => /→| vs /.test(String(c.text ?? '')));
+      if (moveClaim) {
+        const hasMove = /→|로테이션/.test(narrText) ||
+          (/(상환|이탈|순매도|유출)/.test(narrText) && /(창설|유입|순매수)/.test(narrText) && /(채권|해외|미국주식|ETF)/.test(narrText));
+        if (!hasMove) {
+          log('  ❌ 자산이동 서사 부재 (이동형 claim 있는데 어디서→어디로 없음)');
+          defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_movement_missing', llm_value: '이동 표현 없음', correct_value: `이동형 claim 포함 필요: ${String(moveClaim.text).slice(0, 90)}`, severity: 'medium' });
+        } else {
+          log('  ✅ 자산이동 서사 (어디서→어디로 포함)');
+        }
+      }
+    }
   }
   // (b4) 2026-07-04 (사용자 "thesis 서술 품질"): 생성기 결정론 교정기(attributePctSubjects/dedupeThesisMacro)
   //   회귀 게이트 — 교정기가 무력화(pool 공급 실패 등)돼도 발간 전에 잡는다.
