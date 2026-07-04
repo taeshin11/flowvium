@@ -15,7 +15,7 @@ import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
-import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents } from './lib/narrative-fix.mjs';
+import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
@@ -4721,6 +4721,8 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     '- ⚠️ 한국 종목은 *회사명*으로 표기 — 6자리 티커코드(예: 000660.KS, 005930.KS)를 본문에 그대로 쓰지 말 것. "SK하이닉스", "삼성전자" 처럼 이름으로.',
     '- ⚠️ 금리커브 기울기는 [Macro] 의 "금리커브 N.NNp" 값만 인용 — bp 로 임의 변환하거나 없는 "정상적(40bp)" 같은 값을 창작하지 말 것.',
     '- ⚠️ 한자(漢字) 절대 금지 — 국가·통화 포함 전부 한글(미국/중국/일본/달러/원). 부득이 비한글이면 영어(US, USD)가 한자보다 낫다. "對中"❌→"대중국"✅, "兌"❌.',
+    // 2026-07-04 (사용자 "thesis 서술 품질 개선") — noon 실증 결함 3종의 근원 억제.
+    '- ⚠️ 서술 품질: ①모든 등락%는 *대상을 같은 절에* 명시 — ETF 수익률(EWY 등 달러표시)은 "EWY(달러 기준) 1주 -12.1%"처럼 지수(KOSPI)와 혼동되지 않게. ②thesis 와 macroAnalysis 에 *같은 문장 재사용 금지* — thesis 는 동인↔긴장의 압축 헤드라인, macroAnalysis 는 국면 해석·수치 전개로 층위를 다르게. ③"시사한다/반영한다" 같은 술어를 한 응답에 2회 이상 반복하지 말고 인과로 연결(…가 …를 누르며, …로 이어져). ④금액은 "1조 9,922억원"처럼 조·억 단위(5자리 억원 나열 금지).',
     '',
     `Write ALL text values in ${TARGET_LANG}. Respond ONLY in pure JSON, no markdown, no explanation:`,
     `{"macroAnalysis":"[${TARGET_LANG} *서술형 단락*, 핵심만 2-3 문장, 180-320자 — 인플레·성장·유동성·신용 국면을 핵심 수치(CPI/금리/곡선/스프레드/VIX/DXY)와 함께 해석하되 국면 해석 + 변곡 포인트 1개만, 군더더기 없이. 단문/항목 나열 금지, 문장으로 연결]",`,
@@ -8791,6 +8793,35 @@ async function generateViaOllama() {
     enforceFlowNarrativeContract(finalReport, flowEvidence);
     const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap, fedNextLabel: _nm?.label ?? null });
     if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);
+    // 2026-07-04 (사용자 "thesis 서술 품질 개선"): ①등락% 주어 귀속 — noon 실증 "1주 -12.1%"(실체 EWY)가
+    //   무주어로 KOSPI 급락처럼 읽힘 → capital-flows 실값 유일매치 시 "(EWY·달러 기준)" 주입.
+    //   ②thesis↔macroAnalysis 문장 복붙 제거(히어로≠본문 복사) — thesis 보존, macro 쪽 제거.
+    try {
+      const cap = ctxRaw?.capital ?? {};
+      const pctPool = [
+        ...(cap.assets ?? []), ...(cap.countryFlow?.countries ?? []),
+        ...(cap.sectorPerformance ?? []), ...(cap.factorPerformance ?? []),
+      ].filter((e) => e?.ticker && (Number.isFinite(e.ret1w) || Number.isFinite(e.ret4w)))
+        .map((e) => ({ ticker: e.ticker, label: e.label, values: [e.ret1w, e.ret4w] }));
+      const { nFix: nAttr, log: attrLog } = attributePctSubjects(finalReport, pctPool);
+      const { nFix: nDup } = dedupeThesisMacro(finalReport);
+      if (nAttr) console.log(`  [thesis-quality] 등락% 주어 귀속 ${nAttr}건: ${attrLog.join(', ')}`);
+      if (nDup) console.log(`  [thesis-quality] macroAnalysis 의 thesis 복붙 문장 ${nDup}개 제거`);
+      if (nAttr) narrativeDefectsForLearning.push({
+        ticker: 'NARRATIVE', defect_type: 'pct_subject_missing',
+        llm_value: `주어 없는 등락%: ${attrLog.join(', ')}`,
+        correct_value: '등락% 인용 시 대상(ETF 티커/지수명/종목명)을 같은 절에 명시 — EWY 등 달러표시 ETF 수익률을 시장 지수처럼 무주어 서술 금지',
+        severity: 'medium',
+      });
+      if (nDup) narrativeDefectsForLearning.push({
+        ticker: 'NARRATIVE', defect_type: 'thesis_macro_duplication',
+        llm_value: `macroAnalysis 문장 ${nDup}개가 thesis 와 사실상 동일(복붙)`,
+        correct_value: 'thesis(히어로)와 macroAnalysis 는 같은 사실도 다른 층위로 — thesis 는 동인·긴장 압축, macroAnalysis 는 국면 해석·수치 전개. 문장 재사용 금지',
+        severity: 'low',
+      });
+      // 전용 defect 로 이미 학습 적재 — 아래 garble before→after 루프의 중복 적재 방지(스냅샷 갱신)
+      if (nAttr || nDup) { _narrSnap.thesis = finalReport.thesis; _narrSnap.macroAnalysis = finalReport.macroAnalysis; }
+    } catch (e) { console.warn(`  [thesis-quality] skip: ${e.message}`); }
     // 2026-06-16 페이지 전수감사: 모든 문자열 필드 garble sanitize(이중부호·orphan원·콘탱고·한자) + BOJ=FOMC 복사 교정
     const { nFix: nSan } = sanitizeReport(finalReport, localeArg);  // localeArg: ja/zh 는 한자 보존, 그 외 한자 차단
     const { nFix: nCB } = fixDuplicateCentralBankEvents(finalReport);

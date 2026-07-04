@@ -126,7 +126,79 @@ export function sanitizeText(s, locale) {
     t = t.replace(/ {2,}/g, ' ').replace(/ +([,.)])/g, '$1');
   }
   t = t.replace(/(\d{1,2}\.?\d*\s*%)\s*유입(된|되)?/g, '$1 상승');       // "16.5% 유입"(수익률) → "16.5% 상승"(ETF 지역카드 등)
+  // 2026-07-04 (thesis 품질): 만 단위 이상 억원은 조 표기 — "19922억원" → "1조 9,922억원" (가독성).
+  t = t.replace(/([\d,]{5,})\s*억\s*원/g, (m, d) => {
+    const n = parseInt(d.replace(/,/g, ''), 10);
+    if (!Number.isFinite(n) || n < 10000) return m;
+    const jo = Math.floor(n / 10000), eok = n % 10000;
+    return eok ? `${jo}조 ${eok.toLocaleString()}억원` : `${jo}조원`;
+  });
   return t;
+}
+
+// ── thesis 서술 품질 교정기 2종 (2026-07-04 사용자 "thesis 서술 품질 개선") ─────────────────
+//
+// (A) 등락% 주어 귀속 — noon 실증: EWY(달러표시 한국 ETF) 1w -12.13% 를 LLM 이 "KR 1주 기준 -12.1%"
+//     로 무주어 서술 → KOSPI 지수 급락으로 오독. 프롬프트 룰("대상 명시")로 안 막힘 → 결정론 귀속:
+//     본문 % 값을 capital-flows 실값(자산/국가/섹터/팩터 ETF ret1w/4w)과 대조, 유일 매치 + 절대값 큰
+//     이동(±3%+) + 주변에 해당 ticker 미언급이면 "(EWY·달러 기준)" 주석을 주입해 주어를 복원.
+const IDX_EQUIV = { SPY: /S&P\s?500|에스앤피/i, QQQ: /나스닥|Nasdaq/i, DIA: /다우/i }; // 지수명이 이미 주어면 스킵
+export function attributePctSubjects(report, pool) {
+  if (!Array.isArray(pool) || !pool.length) return { nFix: 0, log: [] };
+  let nFix = 0; const log = [];
+  const fixOne = (text) => {
+    if (typeof text !== 'string' || !text) return text;
+    let injected = 0; const annotated = new Set();  // 같은 필드에 같은 티커 주석 1회만 (문맥 승계)
+    return text.replace(/([+-]?\d{1,3}\.\d{1,2})\s*%/g, (m, num, offset, str) => {
+      if (injected >= 2) return m;
+      const v = parseFloat(num);
+      if (!Number.isFinite(v) || Math.abs(v) < 3) return m;               // 큰 이동만 (오귀속 리스크 지점)
+      const hits = pool.filter((p) => p.values.some((x) => Number.isFinite(x) && Math.abs(x - v) <= 0.06));
+      const tickers = [...new Set(hits.map((h) => h.ticker))];
+      if (tickers.length !== 1) return m;                                 // 유일 매치만 (모호하면 불개입)
+      const tk = tickers[0];
+      if (annotated.has(tk)) return m;
+      // 같은 문장(마침표 경계) 안 60자 창 — 이미 주어가 있으면 불개입
+      const from = Math.max(0, offset - 60, str.lastIndexOf('.', offset) + 1);
+      const win = str.slice(from, offset + m.length + 12);
+      if (win.includes(tk)) return m;
+      if (IDX_EQUIV[tk]?.test(win)) return m;                             // "S&P500 1.4%" 에 (SPY) 주석 불필요
+      if (/CPI|금리|확률|동결|YoY|매출|이익|마진|점유율/.test(win)) return m; // 재무/거시 % 문맥 오탐 방지
+      if (str.slice(offset + m.length, offset + m.length + 20).includes('기준)')) return m; // 이미 주석됨
+      injected++; nFix++; annotated.add(tk);
+      const anno = `(${tk}·달러 기준)`;
+      log.push(`${num}% → ${anno}`);
+      return `${m}${anno}`;
+    });
+  };
+  for (const k of ['thesis', 'macroAnalysis']) {
+    const b = report[k], a = fixOne(b);
+    if (a !== b) report[k] = a;
+  }
+  return { nFix, log };
+}
+
+// (B) thesis↔macroAnalysis 문장 복붙 제거 — noon 실증: thesis 1문장이 macroAnalysis 첫 문장과 사실상
+//     동일(히어로 문구가 본문 복사로 보임). thesis(히어로)는 보존, macroAnalysis 쪽 중복 문장을 제거.
+//     bigram Dice 유사도 ≥ 0.82 = 복붙 판정. 제거 후 본문이 80자 미만이 되면 불개입(내용 보존 우선).
+const _bigrams = (s) => { const n = s.replace(/[^0-9A-Za-z가-힣]/g, ''); const set = new Set(); for (let i = 0; i < n.length - 1; i++) set.add(n.slice(i, i + 2)); return set; };
+const _dice = (a, b) => { if (!a.size || !b.size) return 0; let inter = 0; for (const x of a) if (b.has(x)) inter++; return (2 * inter) / (a.size + b.size); };
+export function dedupeThesisMacro(report) {
+  const thesis = report.thesis, macro = report.macroAnalysis;
+  if (typeof thesis !== 'string' || typeof macro !== 'string' || thesis.length < 40) return { nFix: 0 };
+  const [body, ...tailParts] = macro.split(' | ');                        // "| 주요지표: ..." 꼬리 보존
+  const thesisSents = thesis.split(/(?<=[.!?])\s+/).map(_bigrams).filter((s) => s.size >= 15);
+  const sents = body.split(/(?<=[.!?])\s+/);
+  const kept = sents.filter((s) => {
+    const bg = _bigrams(s);
+    if (bg.size < 15) return true;
+    return !thesisSents.some((t) => _dice(bg, t) >= 0.82);
+  });
+  if (kept.length === sents.length) return { nFix: 0 };
+  const newBody = kept.join(' ').trim();
+  if (newBody.length < 80) return { nFix: 0 };                            // 본문 공동화 방지
+  report.macroAnalysis = [newBody, ...tailParts].join(' | ');
+  return { nFix: sents.length - kept.length };
 }
 // 보고서 모든 문자열 필드 deep-walk sanitize. {nFix} 반환 (in-place).
 export function sanitizeReport(report, locale) {

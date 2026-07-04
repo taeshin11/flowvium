@@ -299,6 +299,35 @@ export async function verifyReport(file, { silent = false } = {}) {
       log('  ✅ flow claim 정합 (contract 준수)');
     }
   }
+  // (b4) 2026-07-04 (사용자 "thesis 서술 품질"): 생성기 결정론 교정기(attributePctSubjects/dedupeThesisMacro)
+  //   회귀 게이트 — 교정기가 무력화(pool 공급 실패 등)돼도 발간 전에 잡는다.
+  {
+    // ①무주어 등락%: noon 실증 패턴 "N주 기준 -12.1%" — 같은 절 60자 창에 대상(티커/지수/기준 주석) 부재.
+    const SUBJ = /[A-Z]{2,5}|KOSPI|코스피|코스닥|나스닥|S&P|다우|VIX|기준\)/;
+    let nNoSubj = 0;
+    for (const text of [r.thesis, r.macroAnalysis].filter(Boolean)) {
+      const s = String(text);
+      for (const m of s.matchAll(/[1-4]주(?:일)?\s*기준\s*[+-]?\d+\.?\d*\s*%/g)) {
+        const from = Math.max(0, m.index - 60, s.lastIndexOf('.', m.index) + 1);
+        if (!SUBJ.test(s.slice(from, m.index + m[0].length + 14))) nNoSubj++;
+      }
+    }
+    if (nNoSubj) {
+      log(`  ❌ 무주어 등락% ${nNoSubj}건 ("N주 기준 X%" 절에 대상 없음 — EWY 오독형)`);
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'pct_subject_missing', llm_value: `${nNoSubj}건`, correct_value: '등락% 절에 대상(티커/지수명) 명시 — 생성기 attributePctSubjects 무력화 여부 확인', severity: 'medium' });
+    }
+    // ②thesis↔macro 복붙: 교정기와 동일 판정을 클론에 적용해 잔존 중복 검출.
+    try {
+      const { dedupeThesisMacro } = await import('./lib/narrative-fix.mjs');
+      const clone = { thesis: r.thesis, macroAnalysis: r.macroAnalysis };
+      const { nFix } = dedupeThesisMacro(clone);
+      if (nFix) {
+        log(`  ❌ thesis↔macroAnalysis 복붙 문장 ${nFix}개 잔존 (생성기 dedupe 미작동)`);
+        defects.push({ ticker: 'NARRATIVE', defect_type: 'thesis_macro_duplication', llm_value: `${nFix}문장`, correct_value: 'thesis(압축 헤드라인)≠macroAnalysis(국면 전개) — 생성기 dedupeThesisMacro 확인', severity: 'medium' });
+      }
+    } catch { /* narrative-fix 로드 실패 시 프로브 skip */ }
+    if (!nNoSubj) log('  ✅ thesis 서술 품질 (무주어 등락% 0)');
+  }
   // (c) CPI 라벨 — 우리 CPI 값은 헤드라인(CPIAUCSL)이라 "핵심/근원/core CPI" 표기는 사실오류 (core 는 별도 더 낮은 수치).
   let cpiMis = 0;
   const CPI_MIS = /(핵심|근원)\s*(?:인플레이션\s*\()?\s*CPI|(핵심|근원)\s*소비자물가|\bcore\s+CPI/i;
