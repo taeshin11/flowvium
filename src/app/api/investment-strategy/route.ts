@@ -116,11 +116,14 @@ function toCacheable(strategy: InvestmentStrategy): InvestmentStrategy & { schem
 // 발간 시각(KST): midnight 00:00 / morning 07:00 / noon 12:00 / afternoon 16:00 / evening 21:30.
 //   현재 시각 기준 "가장 최근 발간된" 세션을 반환 (2026-06-04 noon/midnight 추가).
 function getKstSession(): 'midnight' | 'morning' | 'noon' | 'afternoon' | 'evening' {
-  const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
-  if (kstHour < 7) return 'midnight';
-  if (kstHour < 12) return 'morning';
-  if (kstHour < 16) return 'noon';
-  if (kstHour < 22) return 'afternoon';
+  // 2026-07-04: 시(hour) 단위 판정이라 evening(21:30 발간)이 22:00까지 stale afternoon 을 서빙하던
+  //   매일 30분 사각(recheck liveConfirmed:false 로 실증) → 분 단위 경계로 수정.
+  const kst = new Date(Date.now() + 9 * 3600000);
+  const hm = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+  if (hm < 7 * 60) return 'midnight';
+  if (hm < 12 * 60) return 'morning';
+  if (hm < 16 * 60) return 'noon';
+  if (hm < 21 * 60 + 30) return 'afternoon';
   return 'evening';
 }
 
