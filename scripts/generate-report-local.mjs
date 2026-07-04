@@ -3839,9 +3839,11 @@ function buildCtxSummary(ctx) {
         : ((a.ret1w ?? 0) > 0 ? 'reversal↕' : 'hold→');
       return { ...a, signal };
     });
-    const topInflows = [...withDir].sort((a, b) => (b.ret4w ?? 0) - (a.ret4w ?? 0)).slice(0, 4)
+    // 2026-07-04 (사용자 "가장 최근상황 위주"): 정렬 기준 4w → *1w* — thesis 가 최근 이동을 우선 보게.
+    //   4w 는 맥락으로 병기, accel/reversal 시그널이 최근성(1w vs 4w) 해석을 담당.
+    const topInflows = [...withDir].sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0)).slice(0, 4)
       .map(a => `${a.label ?? a.ticker}:1w${(a.ret1w ?? 0) >= 0 ? '+' : ''}${(a.ret1w ?? 0).toFixed(1)}%/4w${(a.ret4w ?? 0) >= 0 ? '+' : ''}${(a.ret4w ?? 0).toFixed(1)}%(${a.signal})`);
-    if (topInflows.length) flows = `Top inflows: ${topInflows.join(', ')}`;
+    if (topInflows.length) flows = `Top inflows(최근 1w 순): ${topInflows.join(', ')}`;
 
     const divergent = assets.filter(a =>
       typeof a.ret1w === 'number' && typeof a.ret13w === 'number' &&
@@ -3857,12 +3859,16 @@ function buildCtxSummary(ctx) {
       flows += ` | Rotation: ${rots.slice(0, 3).map(r => `${r.from}→${r.to}(${(r.magnitude ?? 0).toFixed(1)}%,${r.momentum})`).join(', ')}`;
     }
 
-    const countries = cap?.countryFlow?.countries ?? [];
-    const topCtry = countries.filter(c => typeof c.ret4w === 'number').sort((a, b) => (b.ret4w ?? 0) - (a.ret4w ?? 0)).slice(0, 4).map(c => {
-      const rev = typeof c.ret1w === 'number' && typeof c.ret13w === 'number' && Math.sign(c.ret1w) !== Math.sign(c.ret13w) ? '↕' : '';
-      return `${c.label}:4w${(c.ret4w ?? 0) >= 0 ? '+' : ''}${(c.ret4w ?? 0).toFixed(1)}%${rev}`;
-    });
-    if (topCtry.length) flows += ` | Countries: ${topCtry.join(', ')}`;
+    // 2026-07-04: 국가도 1w 우선 정렬 + 1w/4w 병기 (상위3 + 하위2 — 유입뿐 아니라 이탈 방향도 보이게).
+    const countries = (cap?.countryFlow?.countries ?? []).filter(c => typeof c.ret1w === 'number');
+    if (countries.length >= 4) {
+      const sorted = [...countries].sort((a, b) => (b.ret1w ?? 0) - (a.ret1w ?? 0));
+      const fmtC = (c) => {
+        const rev = typeof c.ret13w === 'number' && Math.sign(c.ret1w) !== Math.sign(c.ret13w) ? '↕' : '';
+        return `${c.label}:1w${(c.ret1w ?? 0) >= 0 ? '+' : ''}${(c.ret1w ?? 0).toFixed(1)}%/4w${(c.ret4w ?? 0) >= 0 ? '+' : ''}${(c.ret4w ?? 0).toFixed(1)}%${rev}`;
+      };
+      flows += ` | Countries(최근 1w 순): 강세 ${sorted.slice(0, 3).map(fmtC).join(', ')} / 약세 ${sorted.slice(-2).map(fmtC).join(', ')}`;
+    }
   } catch { /* ignore */ }
 
   // Institutional: 13F + insider
@@ -4563,8 +4569,9 @@ function buildMacroPrompt(ctx, vix, session) {
     `[COT Positioning] ${ctx.cot || 'No data'}`,
     // 2026-07-04 (사용자 "자산이동도 같이 분석해야"): 자산이동 블록 — narrative 에만 가고 thesis(홈 히어로
     //   문구) 입력엔 빠져 있던 갭. fact-check 4581/4582 규칙(수익률≠유입액, 수급 방향 고정)이 그대로 적용됨.
-    `[Capital Flow — 자산이동: 자산군 유입/추세반전/로테이션/국가 4w] ${ctx.flows || 'No data'}`,
-    `[KR Flow — 외국인 수급 실측] ${ctx.koreaFlow || 'No data'}`,
+    `[Capital Flow — 자산이동, *최근 1w 우선 정렬* (4w 는 맥락·accel↑/reversal↕=최근성 시그널)] ${ctx.flows || 'No data'}`,
+    `[KR Flow — 외국인 수급 실측(일별, 유일한 실측 flow)] ${ctx.koreaFlow || 'No data'}`,
+    '- ⚠️ 자산이동 서술은 *가장 최근*(1w·reversal/accel 시그널·외인 당일/최근 순매수) 우선 — 4w 는 배경 맥락으로만. 최근과 4w 방향이 다르면 최근을 따르되 반전임을 명시.',
     `[Macro Narratives — 구조적 힘 강도(↑heating/↓cooling, 관련종목·섹터 모멘텀 파생)] ${ctx.narratives || 'No data'}`,
     `[Sector Leadership — 실 섹터 성과 1w/4w] ${ctx.sectorLeadership || 'No data'}`,
     `[Commodity Curves] ${ctx.commodity || 'No data'}`,
