@@ -69,9 +69,10 @@ export function checkChatDefects(question, answer, grounding, locale = 'ko') {
     }
   }
   // 8) price_mismatch — 답변의 "현재가 X"가 grounding 실가와 3%+ 괴리(가격 환각). 단일 종목일 때만(보수적).
+  //   (?!\s*주|%) 가드: "현재가가 52주 고점 대비 18%" 의 52(주)를 현재가로 오파싱하던 오검(07-05 E2E 실증) 차단.
   if (priced.length === 1 && priced[0].price) {
     const P = priced[0].price;
-    for (const m of Array.from(a.matchAll(/현재\s*(?:주?가|가격)[^\d\n%]{0,10}([\d,]+(?:\.\d+)?)/g))) {
+    for (const m of Array.from(a.matchAll(/현재\s*(?:주?가|가격)[^\d\n%]{0,10}([\d,]+(?:\.\d+)?)(?![\d.,]|\s*(?:주|%|배))/g))) {
       const v = Number(m[1].replace(/,/g, ''));
       if (v > 0 && Math.abs(v / P - 1) > 0.03) { d.push({ type: 'price_mismatch', detail: `답변 ${v} vs 실가 ${P}` }); break; }
     }

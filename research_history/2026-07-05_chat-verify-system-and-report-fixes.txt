@@ -1,0 +1,25 @@
+2026-07-05 — 챗 나쁜답변 검증체계 + 리포트 생성기 결함 2건 fix + AISVI 노드 교훈 차용
+
+[1] 챗 검증체계 (사용자 "채팅에서 답변에 나쁜 답변 없는지 검증체계 만들어")
+- scripts/lib/chat-verify.mjs 단일소스 신설(route.ts 에서 추출) — 결함 15종 검출 + sanitize 교정 + DEFECT_LESSON 폐루프.
+  신규 6종: hanja_leak / price_mismatch / english_answer / truncated_answer / repetition_loop(+자동교정) / non_answer.
+- scripts/verify-chat-answers.mjs: [A] 15픽스처 self-test(회귀가드, verify-all critical) + [B] 저장대화 소급 재검증
+  (logs/chat-answer-audit.json, 잔존율 20%+=exit1). run-report.bat 2.8 단계 배선. npm run verify:chat.
+- self-test 가 실전 버그 2개 즉시 실증: rule_id_leak 정규식 3세그먼트 고정(4세그 미검출) fix,
+  오프라인 스캔 engine_score_no_data 오검(placeholder price=NaN 로 해소).
+
+[2] 리포트 생성기 결함 2건 (push 차단하던 verify-all fail)
+- kr_flow_direction_contradiction: detector-without-corrector 였음 → narrative-fix.fixKrFlowContradiction 신설
+  (모순문장 제거→flow-contract 백스톱이 실측 claim 복원, 공동화시 절치환 폴백). enforceFlowNarrativeContract +
+  patch-narrative 배선. 07-05 afternoon 발간본 소급교정(3필드) 후 재발행 → verify-report PASS 0 defects.
+- pct_subject_missing ≥5회 escalation: 신호 버그 — 생성기 자동교정분이 bare 타입으로 적재돼 verify 유출분과 혼동.
+  2026-07-01 *_sanitized 관례 적용(defect_type 접미사 + DB 6행 백필). 유출분은 bare 유지라 진짜 회귀는 여전히 escalate.
+
+[3] AISVI 노드 "few-shot echo" 메모 차용 (해당분만)
+- 멀티턴 맥락해소: resolveTickersLLM 에 history — "그럼 팔까?" 후속질문이 이전 턴 NVDA 로 해소(E2E 실증).
+- json_schema 구조강제: vLLM 실측 지원 확인 → ai-providers responseFormat opt + ticker-resolve 적용.
+  maxTokens 80→200 (truncation→조용한 빈 폴백 차단), 파싱실패 warn.
+- E2E 하네스: scripts/e2e-chat-multiturn.mjs (라이브 2턴, 맥락유지+결함0, verdict_mismatch 는 WARN).
+- 미차용: NLI faithfulness guard(챗은 RAG 근거 구조가 달라 별도 판단), disclose 구분(기존 검출기가 이미 날조시에만 flag).
+- E2E 가 실전 결함도 잡음: 턴2 verdict_mismatch(심판=매수 vs 답변=비중축소, 진성—폐루프 학습) +
+  price_mismatch 오검("현재가가 52주 고점"의 52 오파싱) → 정규식 lookahead 로 fix + 픽스처 추가.

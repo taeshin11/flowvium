@@ -255,3 +255,43 @@ export function correctNarrative(report, opts = {}) {
   }
   return { report, nFix, log, realBp };
 }
+
+// ── KR 수급 방향 모순 corrector (2026-07-05) ────────────────────────────────────
+// 07-05 noon 실증 발간: 실측 kr_smart_flow 가 "순매수"인데 서사가 "외국인 매도세 지속" — EWY 가격 하락을
+// 수급 매도로 둔갑(수익률→flow 방향 변형). verify-report (b3++) 는 검출만 하던 detector-without-corrector.
+// 실측 claim(krClaimText)이 근거라 환각 불가: 모순 *문장* 을 제거(잔여 논리꼬리 오염 방지 — 절 치환은
+// "순매수로 하방 압력" 류 비문 생성). 제거로 필드가 공동화(<40자)되면 절 치환(실측 방향어)으로 폴백.
+// 소비처: generate-report-local(enforceFlowNarrativeContract) + patch-narrative(발간본 소급).
+export function fixKrFlowContradiction(report, krClaimText) {
+  const claim = String(krClaimText ?? '');
+  if (!claim) return { nFix: 0, log: [] };
+  const measuredBuy = /순매수/.test(claim);
+  const measuredSell = !measuredBuy && /순매도/.test(claim);
+  if (!measuredBuy && !measuredSell) return { nFix: 0, log: [] };
+  // verify-report (b3++) 와 동일 모순 패턴 — 실측 반대방향 + 지속성 서술일 때만(정당한 과거서술 보존)
+  const contraRe = measuredBuy
+    ? /(외국인|기관)[^.]{0,14}(매도세|순매도)[^.]{0,8}(지속|확대|이어)/
+    : /(외국인|기관)[^.]{0,14}(매수세|순매수)[^.]{0,8}(지속|확대|이어)/;
+  const toDir = measuredBuy ? '순매수' : '순매도';
+  let nFix = 0; const log = [];
+  const fixField = (text) => {
+    if (typeof text !== 'string' || !contraRe.test(text)) return text;
+    // ① 모순 문장 제거 (마침표 경계). " | 꼬리" 구조(macroAnalysis) 보존.
+    const [body, ...tail] = text.split(' | ');
+    const sents = body.split(/(?<=[.!?])\s+/);
+    const kept = sents.filter((s) => !contraRe.test(s));
+    const removedOk = kept.length < sents.length && kept.join(' ').trim().length >= 40;
+    if (removedOk) return [kept.join(' ').trim(), ...tail].join(' | ');
+    // ② 폴백: 절 치환 — 반대방향+지속 표현을 실측 방향어로 (필드 공동화 방지)
+    return text.replace(new RegExp(contraRe.source, 'g'), (m, subj) => `${subj} ${toDir}`);
+  };
+  for (const k of ['thesis', 'macroAnalysis']) {
+    const b = report[k], a = fixField(b);
+    if (a !== b) { report[k] = a; nFix++; log.push(k); }
+  }
+  if (report.marketNarrative) for (const k of ['why', 'story', 'watch']) {
+    const b = report.marketNarrative[k], a = fixField(b);
+    if (a !== b) { report.marketNarrative[k] = a; nFix++; log.push(`narrative.${k}`); }
+  }
+  return { nFix, log };
+}

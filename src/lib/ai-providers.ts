@@ -38,6 +38,9 @@ export interface AICallOptions {
   timeoutMs?: number;
   /** 요청 식별자. 로그 추적용. */
   tag?: string;
+  /** 2026-07-05 (AISVI 노드 차용): 구조화 추출은 자유텍스트 파싱 대신 json_schema 강제 — vLLM 이 스키마를
+   *  정확히 따름(실측). OpenAI 형식 {type:'json_schema', json_schema:{name, schema}}. vLLM 경로에만 전달. */
+  responseFormat?: { type: 'json_schema'; json_schema: { name: string; schema: Record<string, unknown> } };
 }
 
 type ProviderAttempt = { provider: 'vllm' | 'groq' | 'qwen' | 'gemini' | 'claude'; ok: boolean; status?: number; error?: string; durationMs?: number };
@@ -67,6 +70,7 @@ async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAtte
         max_tokens: opts.maxTokens ?? 1600,
         temperature: opts.temperature ?? 0.65,
         chat_template_kwargs: { enable_thinking: false },
+        ...(opts.responseFormat ? { response_format: opts.responseFormat } : {}),
       }),
       signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
     });

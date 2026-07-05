@@ -186,7 +186,7 @@ async function yahooHasTicker(sym: string): Promise<boolean> {
     return (d?.chart?.result?.[0]?.meta?.regularMarketPrice ?? 0) > 0;
   } catch { return false; }
 }
-async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
+async function resolveTickersLLM(text: string, max: number, history: ChatMsg[] = []): Promise<string[]> {
   try {
     // 1) 사용자가 *명시 티커*(영문 1-6자, 6자리 KR)를 쳤으면 그 심볼을 Yahoo 에 직접 조회 — 우리 풀에 없어도
     //    실재하면 그대로 사용(SPCX=SpaceX 등). 유사 종목 치환 없이 정확매칭(2026-06-18 SPCX 사건).
@@ -195,10 +195,20 @@ async function resolveTickersLLM(text: string, max: number): Promise<string[]> {
     const krCode = text.trim().match(/^(\d{6})(\.(KS|KQ))?$/);
     if (krCode) { for (const sfx of ['.KS', '.KQ']) { if (await yahooHasTicker(krCode[1] + sfx)) return [krCode[1] + sfx]; } }
     // LLM 은 *영문 회사명*만 추출(코드 추측 금지) → Yahoo 검색이 권위있게 티커 해석.
-    const sys = '사용자 메시지에서 언급된 주식의 *영문 정식 회사명*을 추출하라. 예: 하이닉스→"SK Hynix", 하우맷→"Howmet Aerospace", 엔비디아→"NVIDIA", 삼성전자→"Samsung Electronics", 기아→"Kia". 종목 언급이 없으면 빈 배열. JSON 만 출력: {"names":["SK Hynix"]}';
-    const r = await callAI(text, { systemPrompt: sys, maxTokens: 80, temperature: 0, tag: 'ticker-resolve', timeoutMs: llmTimeoutMs(80) });
+    // 2026-07-05 (AISVI 노드 "few-shot echo" 메모 차용 3종):
+    //  ① 멀티턴 맥락해소 — 종전엔 마지막 메시지만 봐서 "그럼 팔까?" 류 후속질문이 이전 턴 종목을 잃음
+    //    (AISVI 증상B 동형). 최근 사용자 발화를 맥락으로 주고 현재 질문을 그 주제로 해소.
+    //  ② json_schema 구조강제 — 자유텍스트 JSON 파싱은 echo/잡담에 깨짐. vLLM json_schema 실측 준수 확인.
+    //  ③ maxTokens 80→200 — truncation 시 JSON 이 깨져 *조용히* 빈 결과 폴백(회귀가 안 보임).
+    const ctx = history.filter(m => m.role === 'user').slice(-3).map(m => `- ${String(m.content).slice(0, 160)}`).join('\n');
+    const sys = '사용자 메시지에서 언급된 주식의 *영문 정식 회사명*을 추출해 JSON 으로 답하라. 예: 하이닉스→"SK Hynix", 엔비디아→"NVIDIA", 삼성전자→"Samsung Electronics". 이전 대화 맥락이 있으면 현재 질문을 그 주제로 해소하라(예: 이전 "NVDA 어때?" + 현재 "그럼 팔까?" → "NVIDIA"). 시장 전반 질문 등 특정 종목이 없으면 names=[].';
+    const userP = (ctx ? `[이전 대화 맥락]\n${ctx}\n` : '') + `[현재 질문] ${text.slice(0, 500)}`;
+    const r = await callAI(userP, {
+      systemPrompt: sys, maxTokens: 200, temperature: 0, tag: 'ticker-resolve', timeoutMs: llmTimeoutMs(200),
+      responseFormat: { type: 'json_schema', json_schema: { name: 'names', schema: { type: 'object', properties: { names: { type: 'array', items: { type: 'string' }, maxItems: 4 } }, required: ['names'], additionalProperties: false } } },
+    });
     const mm = (r.text || '').match(/\{[\s\S]*\}/);
-    if (!mm) return [];
+    if (!mm) { if (r.text) logger.warn('judge-chat', 'ticker_resolve_parse_fail', { head: r.text.slice(0, 60) }); return []; }
     const names = (JSON.parse(mm[0]).names ?? []) as unknown[];
     const isKrQuery = /[가-힣]/.test(text);
     // 사용자가 *명시 티커*(영문 2-6자 단독)를 쳤으면 그 티커와 *정확히* 일치하는 결과만 허용 — 유사 치환 금지
@@ -360,7 +370,8 @@ export async function POST(request: NextRequest) {
       // 종목명 해석 실패 fallback(하우맷→HWM·nke 사건): 종목질문이거나 *짧은 메시지*(티커/이름만 친 경우)면 LLM 해석+Yahoo 검증.
       if (!tickers.length && !isRecoQ && (STOCK_Q.test(lastUser) || lastUser.trim().length <= 24)) {
         onProgress?.({ stage: 'resolve', detail: '🔎 종목 식별 중 (이름→티커 해석)' });
-        tickers = await resolveTickersLLM(lastUser, opts.maxTickers);
+        // 2026-07-05 (AISVI 차용): 후속질문 맥락해소 — 직전 대화를 넘겨 "그럼 팔까?" 가 이전 턴 종목으로 해소되게.
+        tickers = await resolveTickersLLM(lastUser, opts.maxTickers, messages.slice(0, -1));
         // 풀(1,210) 밖에서 새로 발견된 실재 티커 추적 — 어떤 종목을 사용자가 묻는데 우리가 미커버하는지 가시화.
         //   company page 는 이미 동적이라 페이지는 존재. ZSET(질문횟수)로 인기 발견종목→유니버스 승격 검토.
         for (const t of tickers) void recordDiscovered(redis, t, lastUser);

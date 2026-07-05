@@ -5,7 +5,7 @@
 //   지수 등락% 환각 대조를 위해 실시간 일간등락을 직접 fetch.
 // 사용: node scripts/patch-narrative.mjs <report.json> [--no-index]
 import { readFileSync, writeFileSync } from 'node:fs';
-import { correctNarrative, fetchIndexChangeMap, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro } from './lib/narrative-fix.mjs';
+import { correctNarrative, fetchIndexChangeMap, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 
 const file = process.argv.find((a) => a.endsWith('.json'));
 if (!file) { console.error('need <report.json>'); process.exit(1); }
@@ -34,9 +34,12 @@ try {
 const { nFix, log, realBp } = correctNarrative(r, { indexMap });
 const { nFix: nAttr, log: attrLog } = attributePctSubjects(r, pctPool);
 const { nFix: nDup } = dedupeThesisMacro(r);
+// 2026-07-05: KR 수급 방향모순 소급 교정 — 발간본은 flowNarrativeEvidence 를 내장하므로 실측 claim 재사용.
+const _krClaim = (r.flowNarrativeEvidence?.allClaims ?? []).find((c) => c.id === 'kr_smart_flow');
+const { nFix: nKrDir, log: krDirLog } = _krClaim ? fixKrFlowContradiction(r, _krClaim.text) : { nFix: 0, log: [] };
 const { nFix: nSan } = sanitizeReport(r);
 const { nFix: nCB } = fixDuplicateCentralBankEvents(r);
-if (nFix || nSan || nCB || nAttr || nDup) {
+if (nFix || nSan || nCB || nAttr || nDup || nKrDir) {
   writeFileSync(file, JSON.stringify(r, null, 2), 'utf8');
-  console.log(`✅ 교정 — narrative ${nFix}필드(${log.join(',')||'-'}; 커브bp→${realBp}) + 주어귀속 ${nAttr}건(${attrLog.join(', ') || '-'}) + thesis복붙 ${nDup}문장 + 전역 garble ${nSan}건 + 중복중앙은행 ${nCB}건`);
+  console.log(`✅ 교정 — narrative ${nFix}필드(${log.join(',')||'-'}; 커브bp→${realBp}) + 주어귀속 ${nAttr}건(${attrLog.join(', ') || '-'}) + thesis복붙 ${nDup}문장 + KR수급방향 ${nKrDir}필드(${krDirLog.join(',') || '-'}) + 전역 garble ${nSan}건 + 중복중앙은행 ${nCB}건`);
 } else console.log('변경 없음');

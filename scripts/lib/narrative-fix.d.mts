@@ -5,3 +5,4 @@ export function sanitizeReport(report: unknown, locale?: string): { nFix: number
 export function fixDuplicateCentralBankEvents(report: unknown): { nFix: number };
 export function correctNarrative(report: unknown, opts?: Record<string, unknown>): { nFix: number; realBp: number | null };
 export function fetchIndexChangeMap(): Promise<Record<string, number>>;
+export function fixKrFlowContradiction(report: unknown, krClaimText: string | null | undefined): { nFix: number; log: string[] };

@@ -15,7 +15,7 @@ import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import vm from 'vm';
 import { fetchSeibroShort } from './lib/seibro.mjs';
-import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro } from './lib/narrative-fix.mjs';
+import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
@@ -4691,6 +4691,17 @@ function enforceFlowNarrativeContract(report, flowEvidence) {
   try {
     const primary = flowEvidence?.primaryClaim;
     const hasTrueFlow = flowEvidence?.allClaims?.some((c) => c.kind === 'true_flow');
+    // 2026-07-05: KR 수급 *방향 모순* corrector — 07-05 noon 실증(실측 순매수인데 "외국인 매도세 지속" 발간).
+    //   verify (b3++) 검출만 있던 detector-without-corrector 해소. 모순 문장 제거 후 아래 keyToken 미언급
+    //   백스톱이 실측 claim 을 결정론 append → 제거+복원이 한 계약 안에서 완결. 학습 적재는 호출부(_sanitized).
+    const _krClaim = (flowEvidence?.allClaims ?? []).find((c) => c.id === 'kr_smart_flow');
+    if (_krClaim) {
+      const { nFix: nKrDir, log: krDirLog } = fixKrFlowContradiction(report, _krClaim.text);
+      if (nKrDir) {
+        console.log(`  [flow-contract] KR 수급 방향모순 교정 ${nKrDir}필드 (${krDirLog.join(',')}) — 실측: ${String(_krClaim.text).slice(0, 50)}`);
+        report._krFlowDirFix = { nFix: nKrDir, log: krDirLog, claim: String(_krClaim.text).slice(0, 80) };
+      }
+    }
     const fixVerbs = (s) => typeof s === 'string'
       ? s.replace(/(자금|돈)이?\s*(대규모\s*)?(순)?\s*유입/g, '수익률 우위 흐름').replace(/유입액/g, '상대수익률')
       : s;
@@ -8932,6 +8943,17 @@ async function generateViaOllama() {
       console.log(`  [cond-watch] 조건부 진입 감시 ${_conditionalWatchPending.length}종: ${_conditionalWatchPending.map(w => w.ticker).join(', ')}`);
     }
     enforceFlowNarrativeContract(finalReport, flowEvidence);
+    // 2026-07-05: KR 수급 방향모순 교정분을 H1 폐루프 적재 — *_sanitized(발간 전 자동교정 관례)라 escalation
+    //   게이트는 통과, 다음 prompt anti-pattern inject 로 원천 감소 유도. 임시 마커는 발간 전 제거.
+    if (finalReport._krFlowDirFix) {
+      narrativeDefectsForLearning.push({
+        ticker: 'NARRATIVE', defect_type: 'kr_flow_direction_contradiction_sanitized',
+        llm_value: `실측 반대방향 수급 서술 ${finalReport._krFlowDirFix.nFix}필드(${finalReport._krFlowDirFix.log.join(',')})`,
+        correct_value: `실측: ${finalReport._krFlowDirFix.claim} — 가격 하락(EWY 등)을 수급 매도로 바꿔 쓰지 말 것`,
+        severity: 'high',
+      });
+      delete finalReport._krFlowDirFix;
+    }
     const { nFix, realBp } = correctNarrative(finalReport, { indexMap: ctxWithCascade.indexLevelsMap ?? {}, stockChgMap, fedNextLabel: _nm?.label ?? null });
     if (nFix) console.log(`  [narrative-corrector] 기계환각 교정 ${nFix}필드 (커브bp→${realBp}·오타·라틴·자금흐름%·지수등락 실값대조)`);
     // 2026-07-04 (사용자 "thesis 서술 품질 개선"): ①등락% 주어 귀속 — noon 실증 "1주 -12.1%"(실체 EWY)가
@@ -8948,14 +8970,18 @@ async function generateViaOllama() {
       const { nFix: nDup } = dedupeThesisMacro(finalReport);
       if (nAttr) console.log(`  [thesis-quality] 등락% 주어 귀속 ${nAttr}건: ${attrLog.join(', ')}`);
       if (nDup) console.log(`  [thesis-quality] macroAnalysis 의 thesis 복붙 문장 ${nDup}개 제거`);
+      // 2026-07-05: defect_type 에 _sanitized 접미사 — 발간 전 자동교정(attributePctSubjects/dedupe)인데 bare
+      //   타입을 써서 verify-report 의 *발간 유출* 검출과 이름이 겹침 → audit "반복환각 ≥5회" escalation 오발
+      //   (pct_subject_missing=6 전부 교정분). 2026-07-01 *_sanitized 관례(escalation 제외·추세 가시성 유지) 적용.
+      //   유출분(verify-report)은 bare 타입 유지라 진짜 회귀는 여전히 escalate.
       if (nAttr) narrativeDefectsForLearning.push({
-        ticker: 'NARRATIVE', defect_type: 'pct_subject_missing',
+        ticker: 'NARRATIVE', defect_type: 'pct_subject_missing_sanitized',
         llm_value: `주어 없는 등락%: ${attrLog.join(', ')}`,
         correct_value: '등락% 인용 시 대상(ETF 티커/지수명/종목명)을 같은 절에 명시 — EWY 등 달러표시 ETF 수익률을 시장 지수처럼 무주어 서술 금지',
         severity: 'medium',
       });
       if (nDup) narrativeDefectsForLearning.push({
-        ticker: 'NARRATIVE', defect_type: 'thesis_macro_duplication',
+        ticker: 'NARRATIVE', defect_type: 'thesis_macro_duplication_sanitized',
         llm_value: `macroAnalysis 문장 ${nDup}개가 thesis 와 사실상 동일(복붙)`,
         correct_value: 'thesis(히어로)와 macroAnalysis 는 같은 사실도 다른 층위로 — thesis 는 동인·긴장 압축, macroAnalysis 는 국면 해석·수치 전개. 문장 재사용 금지',
         severity: 'low',
