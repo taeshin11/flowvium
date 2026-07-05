@@ -141,7 +141,7 @@ const checks = [
     script: 'scripts/verify-chat-answers.mjs',
     desc: '챗 답변 결함(누출/환각/한자/절단/반복) self-test + 저장대화 재검증',
     critical: true,
-    dimensions: ['챗 답변 결함 검출·교정 회귀(self-test 14 픽스처)', '저장대화 잔존 결함률(신규룰 소급 스캔)'],
+    dimensions: ['챗 답변 결함 검출·교정 회귀(self-test 15 픽스처)', '저장대화 잔존 결함률(신규룰 소급 스캔)'],
   },
   {
     // 2026-07-02: LLM 라우팅 stale-가정 회귀가드 — 클라우드 키 revoke 환경에서 vLLM-skip(=LLM 전무)
