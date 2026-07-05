@@ -54,3 +54,12 @@
   uploadFromFile 내부로 이동 — 수동 재발간도 업로드=재검 불가분.
 - 복구: afternoon 서사를 DB 원본에서 복원→v2 재교정→verify PASS→재업로드(히스토리 키 정정).
   evening 라이브 재검: RECHECK OK (렌더대조 narrative✓·서사 비문 0 포함).
+
+[7] 챗 compact (사용자 "클로드코드 compact 처럼 축약하나?" — 답: 없었음, 최근 8메시지 절단뿐) — 구현
+- transcript 창(8) 밖 턴을 백그라운드 증분요약(chat-compact, 400tok, 세마포어 준수)해 conv.summary 에
+  저장(창밖 4메시지+ 쌓일 때만 재요약) → 다음 턴 프롬프트 선두 "[이전 대화 요약]" 주입. 사용자 대기 0.
+  보존 지시: 종목·매매결정(수량·매입가)·심판결론·성향. persist 가 summary/summaryUpto 승계.
+- STOCK_Q 에 수익률/평단/손익/물렸/익절 추가 — compact E2E 가 잡은 갭("아까 산 단가 기준 수익률?" 이
+  종목질문 미분류 → 승계 불발 → 시세 grounding 없이 generic 답변).
+- e2e-chat-compact.mjs: 12메시지(핵심사실=첫턴에만) → 요약 생성+180달러/20주 보존 확인 → 창밖 질문
+  "아까 산 단가 기준 수익률?" → "현재가 $194.83 기준, 180달러 매수 기준 수익률 약 8.2%" (계산 정확) PASS.

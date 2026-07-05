@@ -100,7 +100,36 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
   } catch { return ''; }
 }
 
-const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${m.content}`).join('\n');
+// 2026-07-05 (사용자 "클로드코드 compact 처럼 축약하나?"): 종전엔 최근 8메시지 슬라이딩 윈도우 — 9턴째부터
+//   초반 맥락(보유단가·수량·성향·결정) 통째 소실. compact: 창 밖 턴을 요약으로 압축해 프롬프트 선두에 유지.
+const COMPACT_KEEP = 8;      // 원문 유지 최근 메시지 수 (종전 창 크기와 동일)
+const COMPACT_MIN_OLD = 4;   // 요약 미커버 구간이 이만큼 쌓이면 백그라운드 재요약(매 턴 요약 LLM 콜 방지)
+const transcript = (messages: ChatMsg[], summary?: string | null) => {
+  const head = summary && messages.length > COMPACT_KEEP ? `[이전 대화 요약 — 오래된 턴 자동 압축]\n${summary}\n\n` : '';
+  return head + messages.slice(-COMPACT_KEEP).map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${m.content}`).join('\n');
+};
+// 창 밖(오래된) 턴 증분 요약 — 답변 반환 *후* 백그라운드(사용자 대기 0). 보존 대상: 종목·사용자의 매매
+//   결정(수량·가격)·심판 결론·성향/제약. 실패는 비치명(다음 턴 재시도). 요약도 vLLM 세마포어 준수.
+async function updateConvSummary(redis: ReturnType<typeof createRedis>, uid: string, convId: string, messages: ChatMsg[], prev: { summary?: string; summaryUpto?: number }): Promise<void> {
+  try {
+    if (!redis) return;
+    const upto = messages.length - COMPACT_KEEP;
+    if (upto - (prev.summaryUpto ?? 0) < COMPACT_MIN_OLD) return;
+    const older = messages.slice(prev.summaryUpto ?? 0, upto);
+    if (!older.length) return;
+    const txt = older.map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${String(m.content).slice(0, 400)}`).join('\n');
+    const sys = '다음 투자상담 대화(와 기존 요약)를 6줄 이내 한국어로 압축 요약하라. 반드시 보존: 논의된 종목(티커), 사용자의 보유/매수/매도 결정과 수량·매입가, 심판엔진의 결론, 사용자가 밝힌 투자 성향·제약. 새 정보 창작 금지, 사족 금지.';
+    const prompt = `${prev.summary ? `[기존 요약]\n${prev.summary}\n\n` : ''}[추가 대화]\n${txt}`;
+    const release = await acquireLlm();
+    let text = '';
+    try { ({ text } = await callAI(prompt, { systemPrompt: sys, maxTokens: 400, temperature: 0.2, tag: 'chat-compact', timeoutMs: llmTimeoutMs(400) })); } finally { release(); }
+    if (!text?.trim()) return;
+    const cur = await redis.get(cKey(uid, convId)) as Record<string, unknown> | null;
+    if (!cur) return;
+    await loggedRedisSet(redis, 'judge-chat', cKey(uid, convId), { ...cur, summary: text.trim().slice(0, 1200), summaryUpto: upto }, { ex: CONV_TTL });
+    logger.info('judge-chat', 'compact_updated', { convId, upto, len: text.length });
+  } catch { /* compact 실패는 비치명 */ }
+}
 
 // 답변 자동검증(checkChatDefects)·결정론 sanitize(sanitizeAnswer)·폐루프 교훈(DEFECT_LESSON)은
 //   scripts/lib/chat-verify.mjs 단일 소스 — 2026-07-05 오프라인 재검증체계(verify-chat-answers.mjs)와 공유.
@@ -142,7 +171,9 @@ async function recentChatAntiPatterns(redis: ReturnType<typeof createRedis>): Pr
 }
 
 // 종목질문 패턴 — detectTickers 가 못 잡았을 때 LLM 해석 fallback 발동 조건(하우맷→HWM 사건).
-const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비중|진입|손절|목표가|전망|어때|괜찮|투자\s*해|들어가|담아/;
+// 2026-07-05 compact E2E 실증: "아까 산 단가 기준 수익률?" 이 STOCK_Q 미매칭 → 종목 승계 불발 → 시세
+//   grounding 없이 generic 답변. 보유성과 질문(수익률/평단/손익)도 종목 질문이다.
+const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비중|진입|손절|목표가|전망|어때|괜찮|투자\s*해|들어가|담아|수익률|평단|평가\s*손익|손익|물렸|익절/;
 // 후속질문 지시어 — 이전 대화 종목을 가리키는 표현. 있으면 이전 사용자 발화에서 결정론 승계(LLM 해석 콜 절약 + 확실성).
 const ANAPHORA_Q = /그럼|그거|그것|이거|이것|그\s*종목|이\s*종목|얘|쟤|방금|아까|같은\s*종목|위\s*종목/;
 // 리서치 브리프 캐시(2026-07-05 "정확도 최대+최고 속도+GPU 무리 금지") — 같은 종목 연속 심층질문마다
@@ -369,6 +400,14 @@ export async function POST(request: NextRequest) {
     const opts = MODE_OPTS[mode];
     let tickers = detectTickers(lastUser, opts.maxTickers);
     const convId = body.convId || `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
+    // compact: 기존 대화의 요약 메타 로드 — 창(COMPACT_KEEP) 밖 오래된 맥락을 프롬프트에 유지 + persist 시 보존.
+    let convMeta: { summary?: string; summaryUpto?: number } = {};
+    if (body.convId && redis) {
+      try {
+        const prev = await redis.get(cKey(uid, body.convId)) as { summary?: string; summaryUpto?: number } | null;
+        if (prev?.summary) convMeta = { summary: prev.summary, summaryUpto: prev.summaryUpto ?? 0 };
+      } catch { /* 요약 없이 진행 */ }
+    }
 
     // 컨텍스트 수집(+심층 리서치). onProgress 로 단계별 진행상황 emit → 스트리밍 로딩 UI("무슨 자료 받고 뭘 분석중인지").
     type Progress = { stage: string; detail: string };
@@ -427,7 +466,7 @@ export async function POST(request: NextRequest) {
       }
       onProgress?.({ stage: 'judge', detail: opts.deep ? '⚖️ 엔진 판정 + 최종 심층 분석 작성 중' : '⚖️ 엔진 판정 + 답변 작성 중' });
       const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief, chatLessons });
-      const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages)}\n\n심판엔진:`;
+      const userPrompt = `다음은 사용자와의 대화다. 마지막 사용자 질문에 심판엔진으로서 답하라.\n\n${transcript(messages, convMeta.summary)}\n\n심판엔진:`;
       const grounding = {
         tickers: tickerCtx.map(c => ({ ticker: c.ticker, name: c.name, price: c.price ?? null, rsi: c.rsi ?? null, fiscalYear: c.fiscalYear ?? null })),
         usedRules: true, usedReport: !!reportContext, usedMacro: !!macroContext,
@@ -445,12 +484,13 @@ export async function POST(request: NextRequest) {
       const now = Date.now();
       const fullMessages = [...messages, { role: 'assistant' as const, content: text }];
       try {
-        const conv = { id: convId, uid, title: titleOf(fullMessages), createdAt: body.convId ? undefined : now, updatedAt: now, mode, source, messages: fullMessages };
+        const conv = { id: convId, uid, title: titleOf(fullMessages), createdAt: body.convId ? undefined : now, updatedAt: now, mode, source, messages: fullMessages, ...(convMeta.summary ? { summary: convMeta.summary, summaryUpto: convMeta.summaryUpto ?? 0 } : {}) };
         await loggedRedisSet(redis, 'judge-chat', cKey(uid, convId), conv, { ex: CONV_TTL });
         await redis.zadd(uKey(uid), { score: now, member: convId });
         await redis.expire(uKey(uid), CONV_TTL);
         await redis.lpush('flowvium:judge-chat:index', JSON.stringify({ ts: new Date(now).toISOString(), key: cKey(uid, convId), q: lastUser.slice(0, 120), tickers, source, uid }));
         await redis.ltrim('flowvium:judge-chat:index', 0, 4999);
+        void updateConvSummary(redis, uid, convId, fullMessages, convMeta); // compact — 창 밖 턴 백그라운드 증분요약
       } catch { /* non-fatal */ }
     };
 
