@@ -143,6 +143,12 @@ async function recentChatAntiPatterns(redis: ReturnType<typeof createRedis>): Pr
 
 // 종목질문 패턴 — detectTickers 가 못 잡았을 때 LLM 해석 fallback 발동 조건(하우맷→HWM 사건).
 const STOCK_Q = /사요|살까|사도\s*[돼되]|팔까|팔아|매수|매도|비중|진입|손절|목표가|전망|어때|괜찮|투자\s*해|들어가|담아/;
+// 후속질문 지시어 — 이전 대화 종목을 가리키는 표현. 있으면 이전 사용자 발화에서 결정론 승계(LLM 해석 콜 절약 + 확실성).
+const ANAPHORA_Q = /그럼|그거|그것|이거|이것|그\s*종목|이\s*종목|얘|쟤|방금|아까|같은\s*종목|위\s*종목/;
+// 리서치 브리프 캐시(2026-07-05 "정확도 최대+최고 속도+GPU 무리 금지") — 같은 종목 연속 심층질문마다
+//   1,400토큰 브리프를 재생성하던 것을 30분 재사용. 브리프는 사업구조·업황 *사실 정리*라 당일 내 불변 —
+//   정확도 무손실로 후속질문당 LLM 1콜(수십초 + GPU prefill/decode) 절약. 40키 캡.
+const _briefCache = new Map<string, { ts: number; text: string }>();
 // 추천목록 요청 패턴 — 특정 종목이 아니라 "오늘 뭐 살까/top/추천" → 리포트 portfolio 노출(특정종목 해석과 구분).
 const RECO_Q = /추천|top\s*\d|뭐\s*(사|살|매수)|살\s*만한|매수할\s*만한|포트폴리오|portfolio|픽\b|picks?\b|오늘\s*(뭐|종목)/i;
 // 한글 종목명 → 티커 LLM 해석 + Yahoo 검증(환각 티커 차단). 사전 alias 부재(하우맷·엔비디아 등) 보완.
@@ -200,9 +206,11 @@ async function resolveTickersLLM(text: string, max: number, history: ChatMsg[] =
     //    (AISVI 증상B 동형). 최근 사용자 발화를 맥락으로 주고 현재 질문을 그 주제로 해소.
     //  ② json_schema 구조강제 — 자유텍스트 JSON 파싱은 echo/잡담에 깨짐. vLLM json_schema 실측 준수 확인.
     //  ③ maxTokens 80→200 — truncation 시 JSON 이 깨져 *조용히* 빈 결과 폴백(회귀가 안 보임).
-    const ctx = history.filter(m => m.role === 'user').slice(-3).map(m => `- ${String(m.content).slice(0, 160)}`).join('\n');
+    // 장문질문 대응(2026-07-05): 맥락 160→240자/발화, 현재 질문 500→1200자 — 종목 언급이 장문 뒤쪽이면
+    //   절단으로 인식 실패하던 것 완화(해석 콜은 저토큰이라 비용 미미).
+    const ctx = history.filter(m => m.role === 'user').slice(-3).map(m => `- ${String(m.content).slice(0, 240)}`).join('\n');
     const sys = '사용자 메시지에서 언급된 주식의 *영문 정식 회사명*을 추출해 JSON 으로 답하라. 예: 하이닉스→"SK Hynix", 엔비디아→"NVIDIA", 삼성전자→"Samsung Electronics". 이전 대화 맥락이 있으면 현재 질문을 그 주제로 해소하라(예: 이전 "NVDA 어때?" + 현재 "그럼 팔까?" → "NVIDIA"). 시장 전반 질문 등 특정 종목이 없으면 names=[].';
-    const userP = (ctx ? `[이전 대화 맥락]\n${ctx}\n` : '') + `[현재 질문] ${text.slice(0, 500)}`;
+    const userP = (ctx ? `[이전 대화 맥락]\n${ctx}\n` : '') + `[현재 질문] ${text.slice(0, 1200)}`;
     const r = await callAI(userP, {
       systemPrompt: sys, maxTokens: 200, temperature: 0, tag: 'ticker-resolve', timeoutMs: llmTimeoutMs(200),
       responseFormat: { type: 'json_schema', json_schema: { name: 'names', schema: { type: 'object', properties: { names: { type: 'array', items: { type: 'string' }, maxItems: 4 } }, required: ['names'], additionalProperties: false } } },
@@ -368,6 +376,15 @@ export async function POST(request: NextRequest) {
       // 추천/top/뭐 살까 류(특정 종목 미지정) — 오늘 리포트 portfolio 를 답으로. 특정종목 해석 fallback 과 구분.
       const isRecoQ = RECO_Q.test(lastUser);
       // 종목명 해석 실패 fallback(하우맷→HWM·nke 사건): 종목질문이거나 *짧은 메시지*(티커/이름만 친 경우)면 LLM 해석+Yahoo 검증.
+      // 2026-07-05 (속도·확실성): 지시어 후속질문("그럼 팔까?")은 이전 사용자 발화에서 *결정론* 승계 —
+      //   LLM 해석 콜(수초 + GPU) 없이 즉시. 새 종목을 명시한 질문은 위 detectTickers 가 먼저 잡아 승계 미발동.
+      if (!tickers.length && !isRecoQ && ANAPHORA_Q.test(lastUser) && STOCK_Q.test(lastUser)) {
+        for (const m of [...messages.slice(0, -1)].reverse()) {
+          if (m.role !== 'user') continue;
+          const prev = detectTickers(m.content, opts.maxTickers);
+          if (prev.length) { tickers = prev; onProgress?.({ stage: 'resolve', detail: `🔗 이전 대화 종목 승계: ${prev.join(', ')}` }); break; }
+        }
+      }
       if (!tickers.length && !isRecoQ && (STOCK_Q.test(lastUser) || lastUser.trim().length <= 24)) {
         onProgress?.({ stage: 'resolve', detail: '🔎 종목 식별 중 (이름→티커 해석)' });
         // 2026-07-05 (AISVI 차용): 후속질문 맥락해소 — 직전 대화를 넘겨 "그럼 팔까?" 가 이전 턴 종목으로 해소되게.
@@ -390,12 +407,23 @@ export async function POST(request: NextRequest) {
       // AISVI 심층(2-pass): ① 사업·업황·전망 리서치 브리프 생성(사실 정리) → ② 그 위에 판단.
       let researchBrief = '';
       if (opts.deep && tickerCtx.some(c => c.price != null)) {
-        onProgress?.({ stage: 'research', detail: '🔍 1차 리서치 브리프 작성 중 (사업구조·업황·경쟁·강세/약세 시나리오)' });
-        try {
-          const rp = buildResearchPrompt({ locale, tickerCtx, macroContext: macroContext.text });
-          const rr = await callAI('위 데이터로 사업·업황·경쟁포지션·강세/약세 시나리오 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 1400, temperature: 0.4, tag: 'judge-research', timeoutMs: llmTimeoutMs(1400) });
-          researchBrief = rr.text || '';
-        } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
+        const bKey = `${locale}|${[...tickers].sort().join(',')}`;
+        const bHit = _briefCache.get(bKey);
+        if (bHit && Date.now() - bHit.ts < 1_800_000) {
+          researchBrief = bHit.text;
+          onProgress?.({ stage: 'research', detail: '🔍 리서치 브리프 재사용 (30분 내 동일 종목 — 즉시)' });
+        } else {
+          onProgress?.({ stage: 'research', detail: '🔍 1차 리서치 브리프 작성 중 (사업구조·업황·경쟁·강세/약세 시나리오)' });
+          try {
+            const rp = buildResearchPrompt({ locale, tickerCtx, macroContext: macroContext.text });
+            const rr = await callAI('위 데이터로 사업·업황·경쟁포지션·강세/약세 시나리오 리서치 브리프를 작성하라.', { systemPrompt: rp, maxTokens: 1400, temperature: 0.4, tag: 'judge-research', timeoutMs: llmTimeoutMs(1400) });
+            researchBrief = rr.text || '';
+            if (researchBrief) {
+              _briefCache.set(bKey, { ts: Date.now(), text: researchBrief });
+              if (_briefCache.size > 40) _briefCache.delete(_briefCache.keys().next().value as string);
+            }
+          } catch { /* 리서치 실패 시 브리프 없이 진행 */ }
+        }
       }
       onProgress?.({ stage: 'judge', detail: opts.deep ? '⚖️ 엔진 판정 + 최종 심층 분석 작성 중' : '⚖️ 엔진 판정 + 답변 작성 중' });
       const systemPrompt = buildSystemPrompt({ locale, mode, tickerCtx, reportContext, ragHits, macroContext: macroContext.text, macro: { vix: macroContext.vix, fg: macroContext.fg }, researchBrief, chatLessons });

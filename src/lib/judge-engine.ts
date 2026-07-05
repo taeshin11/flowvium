@@ -238,7 +238,23 @@ async function fetchDartDisclosures(ticker: string): Promise<string[] | null> {
   } catch { return null; }
 }
 
+// 2026-07-05 (사용자 "정확도 최대 + 최고 속도 + GPU 무리 금지"): 종목 컨텍스트 120초 모듈캐시.
+//   ① 연속 후속질문의 외부 API 재수집(2~6초/턴) 제거 ② 턴 간 시스템프롬프트가 바이트 동일해져
+//   vLLM prefix cache hit ↑ (prefill 절약 = GPU 부하 감소). 2분 내 시세 staleness 는 판단에 무영향이고
+//   grounding·답변·검증이 같은 값을 봐서 일관성은 오히려 향상. LRU-ish 60개 캡.
+const _ctxCache = new Map<string, { ts: number; ctx: TickerCtx }>();
 export async function gatherTickerContext(ticker: string, origin: string, opts?: { withFiling?: boolean }): Promise<TickerCtx> {
+  const key = `${ticker}|${opts?.withFiling ? 1 : 0}`;
+  const hit = _ctxCache.get(key);
+  if (hit && Date.now() - hit.ts < 120_000) return hit.ctx;
+  const ctx = await gatherTickerContextRaw(ticker, origin, opts);
+  if (ctx.price != null) {  // 수집 실패본은 캐시하지 않음 — 다음 턴 재시도 보장
+    _ctxCache.set(key, { ts: Date.now(), ctx });
+    if (_ctxCache.size > 60) _ctxCache.delete(_ctxCache.keys().next().value as string);
+  }
+  return ctx;
+}
+async function gatherTickerContextRaw(ticker: string, origin: string, opts?: { withFiling?: boolean }): Promise<TickerCtx> {
   const { meta } = getData();
   const m = meta[ticker] ?? {};
   const isKr = /\.(KS|KQ)$/.test(ticker);
@@ -573,7 +589,7 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     `- **④ 강세론 vs 약세론 양립**: 살 이유와 팔/피할 이유를 *둘 다* 정직하게 나열한 뒤 어느 쪽이 더 무거운지 저울질(한쪽만 쓰면 실패).`,
     `- **⑤ 시나리오**: 낙관/비관 두 갈래로 주가 경로와 핵심 변수(촉매·리스크).`,
     `- **⑥ 결론 + 구체 레벨**: 최종 결론 + 진입/분할/손절/목표. ⚠️ 진입가는 반드시 위 *현재가* 기준으로 현실적으로(현재가 ±10% 이내). 현재가와 동떨어진 진입가(예: 현재가보다 한참 높은 신고가 위)는 금지 — 추격매수면 "현재가 부근 분할" 로. 손절은 현재가 아래, 목표는 현재가 위.`,
-    `- **⑦ 구루 렌즈**: 위 "관련 원전 인용(RAG)" 구절이 제공됐으면, 종목 성격에 가장 맞는 구루 1~2명의 관점으로 결론을 보강/반박하라(원문 구절 인용 + 구루 이름). RAG 구절이 없으면 이 항목은 생략.`,
+    `- **⑦ 구루 렌즈**: 아래 "관련 원전 인용(RAG)" 구절이 제공됐으면, 종목 성격에 가장 맞는 구루 1~2명의 관점으로 결론을 보강/반박하라(원문 구절 인용 + 구루 이름). RAG 구절이 없으면 이 항목은 생략.`,
     `엔진 충실성·환각 금지 규칙은 위와 동일. 깊게 쓰되 수치는 주어진 데이터·본문에 있는 것만. 사업보고서 본문이 제공됐는데 그 내용(제품·매출구성·연구개발)을 한 번도 인용하지 않으면 심층 분석 실패다.`,
     ``,
   ].join('\n') : '';
@@ -625,7 +641,6 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     deepBlock,
     condenseDoctrine(),
     `\n${condenseRules()}`,
-    ragBlock,
     ``,
     researchBlock,
     engineBlock,
@@ -633,5 +648,9 @@ export function buildSystemPrompt(opts: { locale: string; mode: JudgeMode; ticke
     macroBlock,
     liveBlock,
     opts.reportContext ? `\n# 오늘의 FlowVium 리포트 맥락\n${opts.reportContext}` : '',
+    // 2026-07-05 (속도): ragBlock 을 맨 뒤로 — RAG 는 *질문마다* 바뀌는 유일 블록이라 앞에 있으면 그 뒤
+    //   전체(엔진/사업보고서/시세)가 vLLM prefix cache 를 못 탄다. 뒤로 보내면 연속 질문에서 시스템프롬프트
+    //   대부분이 캐시 hit → prefill 절약(속도 ↑·GPU 부하 ↓). 내용 불변이라 정확도 무영향.
+    ragBlock,
   ].filter(Boolean).join('\n');
 }

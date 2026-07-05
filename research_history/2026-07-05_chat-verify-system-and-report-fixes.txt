@@ -23,3 +23,11 @@
 - 미차용: NLI faithfulness guard(챗은 RAG 근거 구조가 달라 별도 판단), disclose 구분(기존 검출기가 이미 날조시에만 flag).
 - E2E 가 실전 결함도 잡음: 턴2 verdict_mismatch(심판=매수 vs 답변=비중축소, 진성—폐루프 학습) +
   price_mismatch 오검("현재가가 52주 고점"의 52 오파싱) → 정규식 lookahead 로 fix + 픽스처 추가.
+
+[4] 챗 속도 최적화 4종 (사용자 "정확도 최대 + 최고 속도 + GPU 무리 금지") — 2026-07-05 저녁
+- 리서치 브리프 30분 캐시(종목·locale 키) / tickerCtx 120s 캐시(실패본 미캐시) /
+  지시어(그럼·그거·이 종목) 후속질문 결정론 티커 승계 / ragBlock 프롬프트 최후미 이동.
+- vLLM 은 무변경(재시작 없음, prefix caching 이미 기본활성) — hit rate 27.8%→42.4%(누적).
+- 장문 대응: resolveTickersLLM 절단 500→1200자, 히스토리 맥락 160→240자.
+- 검증: e2e-chat-longform.mjs 신설(장문 3연속 deep, 종목 문장중간 묻힘+지시어 후속 2회) —
+  3턴 전부 맥락유지+결함0+절단없음. latency 단문 후속 3.4s→0.58s, 장문 deep 19.9s→11.8s.
