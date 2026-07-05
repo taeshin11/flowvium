@@ -38,7 +38,8 @@
     "db:query": "node scripts/query-db.mjs",
     "review:logs": "node scripts/review-logs.mjs",
     "review:redis": "node scripts/review-logs.mjs --redis",
-    "verify:docsync": "node scripts/check-doc-sync.mjs"
+    "verify:docsync": "node scripts/check-doc-sync.mjs",
+    "verify:chat": "node scripts/verify-chat-answers.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.1",

@@ -134,6 +134,16 @@ const checks = [
     dimensions: ['LLM 출력표면 한자가드 커버리지(신규 미분류 표면 회귀봉쇄)'],
   },
   {
+    // 2026-07-05 (사용자 "채팅 답변에 나쁜 답변 없는지 검증체계"): 챗 답변 결함 검증체계 게이트.
+    //   [A] 픽스처 self-test(결정론 — 검출·교정·폐루프 교훈매핑 회귀시 FAIL) + [B] 저장대화 소급 재검증
+    //   (잔존 결함률 20%+ = 체계 뚫림 → exit 1). Redis 없는 CI 는 [B] 자동 skip.
+    name: 'verify-chat-answers',
+    script: 'scripts/verify-chat-answers.mjs',
+    desc: '챗 답변 결함(누출/환각/한자/절단/반복) self-test + 저장대화 재검증',
+    critical: true,
+    dimensions: ['챗 답변 결함 검출·교정 회귀(self-test 14 픽스처)', '저장대화 잔존 결함률(신규룰 소급 스캔)'],
+  },
+  {
     // 2026-07-02: LLM 라우팅 stale-가정 회귀가드 — 클라우드 키 revoke 환경에서 vLLM-skip(=LLM 전무)
     //   미분류 표면 + 고정 타임아웃 < 토큰요구량(실측 ~10 tok/s) 검출. flow-analysis 영구 fallback +
     //   invest-critic silent timeout 사건 재발방지 ("환경 변화 후 과거 가정 재감사 부재" 클래스).

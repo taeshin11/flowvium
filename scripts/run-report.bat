@@ -66,6 +66,11 @@ echo [%DATE% %TIME%] [INFO] Ingesting filings (DART/SEC full text)... >> "%LOG_F
 echo [%DATE% %TIME%] [INFO] Analyzing chat QnA logs... >> "%LOG_FILE%"
 "C:\Program Files\nodejs\node.exe" "C:\Flowvium\scripts\analyze-chat-logs.mjs" >> "%LOG_FILE%" 2>&1
 
+:: 2.8 Re-verify stored chat answers with current defect rules (bad-answer audit -> logs/chat-answer-audit.json).
+::   Non-fatal for the report pipeline; verify-all gates pushes on the same script.
+echo [%DATE% %TIME%] [INFO] Re-verifying stored chat answers... >> "%LOG_FILE%"
+"C:\Program Files\nodejs\node.exe" "C:\Flowvium\scripts\verify-chat-answers.mjs" >> "%LOG_FILE%" 2>&1
+
 :: 3. Generate report + upload (generate-report-local uses vLLM via VLLM_URL in .env.local).
 echo [%DATE% %TIME%] [INFO] Starting report pipeline... >> "%LOG_FILE%"
 "C:\Program Files\nodejs\node.exe" "C:\Flowvium\scripts\generate-report-local.mjs" --model=qwen3:8b --auto-upload >> "%LOG_FILE%" 2>&1

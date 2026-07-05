@@ -22,9 +22,11 @@ import {
 } from '@/lib/judge-engine';
 import { ragRetrieve, type RagHit } from '@/lib/rag';
 import { acquireLlm, waitMessage } from '@/lib/llm-gate';
-// 2026-07-02: 리포트와 동일 문자열 corrector 재사용(단일 소스) — 챗 인라인 한자스크럽이 garble 매핑
-//   (금융크로스→골든크로스·콘탱고변종·짧은매수스퀴즈)을 못 갖던 것 통합. TSM "금융크로스" 실증 후 배선.
-import { sanitizeText } from '../../../../scripts/lib/narrative-fix.mjs';
+// 2026-07-05: 챗 답변 검증·교정을 scripts/lib/chat-verify.mjs 로 단일 소스화 — 오프라인 재검증
+//   (verify-chat-answers.mjs self-test + 저장대화 소급 스캔)과 라우트가 같은 검출·교정 규칙 공유.
+//   (sanitizeText 는 chat-verify 가 내부 사용 — 2026-07-02 리포트와 corrector 단일 소스 유지.)
+import { checkChatDefects, sanitizeAnswer, DEFECT_LESSON } from '../../../../scripts/lib/chat-verify.mjs';
+import type { ChatGrounding } from '../../../../scripts/lib/chat-verify.mjs';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -100,93 +102,11 @@ async function fetchReportContext(origin: string, locale: string, tickers: strin
 
 const transcript = (messages: ChatMsg[]) => messages.slice(-8).map(m => `${m.role === 'user' ? '사용자' : '심판엔진'}: ${m.content}`).join('\n');
 
-// 답변 자동검증 — 매 답변 후 질문+답변을 grounding 에 대조해 결함 탐지(2026-06-18 사용자 "질문로그·답변로그 함께 검증").
-//   결정론 체크(환각/누출/근거이탈). 결과는 Redis 로그(flowvium:judge-chat:verify)로 적재해 추세 추적.
-interface ChatDefect { type: string; detail?: string }
-function checkChatDefects(question: string, answer: string, grounding: { tickers?: Array<{ ticker: string; price: number | null; fiscalYear?: string | null }>; usedFiling?: boolean; expectedAction?: { action: string; verdict: string; net: number } | null } | undefined): ChatDefect[] {
-  const d: ChatDefect[] = [];
-  const a = answer || '';
-  const hasEngineData = (grounding?.tickers ?? []).some(t => t.price != null);
-  // 0) verdict_mismatch (P0-2): LLM 결론이 결정론 심판과 *반대 방향*이면 검출(폐루프 학습·교정 트리거).
-  //   강세론/약세론 양립 서술은 허용 — 명확한 *결론* 지시문이 반대일 때만(보수적).
-  const ex = grounding?.expectedAction;
-  if (ex) {
-    const expDir = (ex.verdict === 'buy' || ex.verdict === 'accumulate') ? 1 : (ex.verdict === 'reduce' || ex.verdict === 'sell' || ex.verdict === 'avoid') ? -1 : 0;
-    const bearish = /매도\s*(?:권고|하라|하세요|추천)|팔아|전량\s*매도|비중\s*축소|회피\s*(?:권고|하|추천)|손절\s*권고/.test(a);
-    const bullish = /매수\s*(?:권고|하라|하세요|추천)|사세요|사라|분할\s*매수|보유\s*(?:권고|유지)|홀드|추가\s*매수/.test(a);
-    const ansDir = (bullish && !bearish) ? 1 : (bearish && !bullish) ? -1 : 0;
-    if (expDir !== 0 && ansDir !== 0 && expDir !== ansDir) {
-      d.push({ type: 'verdict_mismatch', detail: `심판=${ex.action}(net ${ex.net}) vs 답변결론=${ansDir > 0 ? '매수성' : '매도성'}` });
-    }
-  }
-  // 1) 룰 ID·점수태그 누출 (price_momentum_52w_high, (+5) 등)
-  if (/\(\+\d+\)/.test(a)) d.push({ type: 'score_tag_leak', detail: (a.match(/\(\+\d+\)/) ?? [''])[0] });
-  if (/\b[a-z]+_[a-z]+_[a-z0-9]+\b/.test(a)) d.push({ type: 'rule_id_leak', detail: (a.match(/\b[a-z]+_[a-z]+_[a-z0-9]+\b/) ?? [''])[0] });
-  // 1b) 엔진 블록 통째 복사 — "[이름 (티커)] 매수엔진 총점 N점 (발화:" 또는 "· 룰 종합:" 날것 포맷 노출
-  if (/\[[^\]]*\([0-9A-Z.]{1,10}\)\]\s*매수엔진/.test(a) || /\(발화\s*:/.test(a) || /·\s*룰\s*종합\s*:/.test(a)) d.push({ type: 'engine_line_verbatim', detail: '엔진 블록 원문 복사' });
-  // 2) 종목 데이터 없는데 엔진 점수 날조 (하우맷 사건)
-  if (!hasEngineData && /(매수|매도)\s*엔진\s*(총점|점수)?\s*\d+\s*점/.test(a)) d.push({ type: 'engine_score_no_data' });
-  // 3) 변동폭 과장 — N%(<3) 급락/급등
-  for (const m of Array.from(a.matchAll(/([\d.]+)\s*%\s*(급락|급등|폭락|폭등)/g))) if (Math.abs(Number(m[1])) < 3) d.push({ type: 'magnitude_overstate', detail: m[0] });
-  // 4) 가짜 배수 (이익의 질 938배 류)
-  for (const m of Array.from(a.matchAll(/순이익의\s*([\d,]+)\s*배/g))) if (Number(m[1].replace(/,/g, '')) >= 10) d.push({ type: 'fake_multiple', detail: m[0] });
-  // 5) stale 연도 환각 — 과거 연도(올해-2 이하)를 "기준/최신/현재"라 칭함 (2026인데 "2024년 기준" 사건)
-  //   단, grounding 의 실제 회계연도(fiscalYear)와 일치하면 정당(FY2024 가 최신 연차공시일 수 있음 — ChatGPT #14).
-  const curYear = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }).slice(0, 4));
-  const allowedYears = new Set((grounding?.tickers ?? []).map(t => (t.fiscalYear ?? '').replace(/\D/g, '').slice(0, 4)).filter(Boolean));
-  for (const m of Array.from(a.matchAll(/20(\d\d)\s*년[^.\n]{0,14}(기준|최신|현재)/g))) {
-    const yr = '20' + m[1];
-    if (Number(yr) <= curYear - 2 && !allowedYears.has(yr)) { d.push({ type: 'stale_year', detail: m[0].slice(0, 24) }); break; }
-  }
-  // 6) 진입가 현재가 괴리 — 단일 종목 답변에서 진입가가 현재가 ±15% 밖이면 환각 의심
-  const priced = (grounding?.tickers ?? []).filter(t => t.price != null);
-  if (priced.length === 1 && priced[0].price) {
-    const P = priced[0].price;
-    const em = a.match(/진입가?[^\d]{0,8}([\d,]+(?:\.\d+)?)\s*[~\-–]\s*([\d,]+(?:\.\d+)?)/);
-    if (em) {
-      const mid = (Number(em[1].replace(/,/g, '')) + Number(em[2].replace(/,/g, ''))) / 2;
-      if (mid > 0 && Math.abs(mid / P - 1) > 0.15) d.push({ type: 'entry_far_from_price', detail: `진입중앙 ${Math.round(mid)} vs 현재 ${Math.round(P)} (${Math.round((mid / P - 1) * 100)}%)` });
-    }
-  }
-  return d;
-}
-// 결정론 sanitize — 검출된 결함을 *답변 반환 전* 자동 제거(2026-06-18 사용자 "검증해서 고칠게 있으면 고쳐라·시스템화").
-//   base 모델이 프롬프트를 무시해도 사용자는 정상 답변만 보게. checkChatDefects 와 같은 결함류를 기계적으로 교정.
-function sanitizeAnswer(text: string, grounding: { tickers?: Array<{ ticker: string; price: number | null; fiscalYear?: string | null }> } | undefined, locale = 'ko'): string {
-  let a = text || '';
-  // 문자열 corrector(2026-07-02 리포트와 단일 소스화): 한자 매핑+스트립(ja/zh 는 한자=정당 콘텐츠라 내부 skip —
-  //   종전 인라인 무조건 스트립은 ja/zh 답변의 한자를 파괴) + garble 매핑(금융크로스→골든크로스·콘탱고변종 등).
-  a = sanitizeText(a, locale);
-  const hasData = (grounding?.tickers ?? []).some(t => t.price != null);
-  // stale_year corrector(2026-06-19 ChatGPT #14, dead-end 해소): 과거 연도를 "기준/최신/현재"로 표기하되 그게
-  //   실제 회계연도(fiscalYear)도 아니고 역사적 맥락 단어(당시/과거/전년 등)도 없으면 → "최근 공개자료 기준"으로.
-  {
-    const curY = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }).slice(0, 4));
-    const allowed = new Set((grounding?.tickers ?? []).map(t => (t.fiscalYear ?? '').replace(/\D/g, '').slice(0, 4)).filter(Boolean));
-    a = a.replace(/20(\d\d)\s*년\s*(기준|최신|현재)/g, (m, yy, kw, off, str) => {
-      const yr = '20' + yy;
-      if (Number(yr) > curY - 2 || allowed.has(yr)) return m;            // 최근연도/실 회계연도면 정상
-      if (/당시|과거|전년|대비|이후|이전|비교|말|초/.test(str.slice(Math.max(0, off - 12), off))) return m; // 역사적 맥락이면 정상
-      return '최근 공개자료 기준';
-    });
-  }
-  a = a.replace(/\s*\(\+\d+\)/g, '');                                   // (+5) 점수태그 제거
-  // rule_id_leak corrector(2026-06-19 ChatGPT: detector-without-corrector dead-end 해소) — 누출된 snake_case
-  //   룰ID(price_momentum_52w_high 등) 제거 + 잔여 괄호/공백 정리. 한글 금융문에 snake_case 영문은 사실상 룰ID뿐.
-  a = a.replace(/\(?\s*\b[a-z]+_[a-z]+_[a-z0-9]+\b\s*\)?/g, '');
-  a = a.replace(/^\s*[-•]?\s*\[[^\]]*\([0-9A-Z.]{1,10}\)\]\s*매수엔진[^\n]*\n?/gm, ''); // 엔진 원문라인 제거
-  a = a.replace(/([\d.]+)\s*%\s*(급락|폭락)/g, (m, n) => Math.abs(Number(n)) < 3 ? `${n}% 하락` : m); // <3% 급락→하락
-  a = a.replace(/([\d.]+)\s*%\s*(급등|폭등)/g, (m, n) => Math.abs(Number(n)) < 3 ? `${n}% 상승` : m);
-  if (!hasData) {  // 종목별 엔진 미실행(추천목록·미특정)인데 엔진점수 날조 시 제거
-    a = a.replace(/[→·\-\s]*\*{0,2}매수엔진\s*(?:점수|총점)?\s*\d+\s*점\*{0,2}\s*[,·/]?\s*\*{0,2}매도엔진\s*(?:점수|총점)?\s*\d+\s*점\*{0,2}\s*[.→]?/g, '');
-    a = a.replace(/\*{0,2}(?:매수|매도)\s*엔진\s*(?:점수|총점)?\s*\d+\s*점\*{0,2}/g, '');
-  }
-  return a.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid: string; question: string; answer: string; grounding: Record<string, unknown>; mode: string; source: string; corrected?: boolean }): Promise<void> {
+// 답변 자동검증(checkChatDefects)·결정론 sanitize(sanitizeAnswer)·폐루프 교훈(DEFECT_LESSON)은
+//   scripts/lib/chat-verify.mjs 단일 소스 — 2026-07-05 오프라인 재검증체계(verify-chat-answers.mjs)와 공유.
+async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid: string; question: string; answer: string; grounding: Record<string, unknown>; mode: string; source: string; corrected?: boolean; locale?: string }): Promise<void> {
   try {
-    const defects = checkChatDefects(p.question, p.answer, p.grounding as { tickers?: Array<{ ticker: string; price: number | null }>; usedFiling?: boolean });
+    const defects = checkChatDefects(p.question, p.answer, p.grounding as ChatGrounding, p.locale ?? 'ko');
     if (redis) {
       await redis.lpush('flowvium:judge-chat:verify', JSON.stringify({ ts: new Date().toISOString(), uid: p.uid, q: p.question.slice(0, 120), mode: p.mode, source: p.source, len: p.answer.length, defectCount: defects.length, defects, corrected: !!p.corrected }));
       await redis.ltrim('flowvium:judge-chat:verify', 0, 4999);
@@ -198,19 +118,7 @@ async function verifyChatAndLog(redis: ReturnType<typeof createRedis>, p: { uid:
 
 // ── 챗 학습 폐루프(2026-06-18): 검증로그(flowvium:judge-chat:verify) 의 최근 반복 결함 → 다음 프롬프트 anti-pattern.
 //   리포트의 hallucination_history→프롬프트 루프를 챗에 복제. *검증로그가 소비처 없는 dead-end* 였던 사각지대 해소.
-//   결함유형→교훈 매핑. 최근 N건 중 실제로 발생한 상위 유형만 surface(프롬프트 비대화 방지). 모듈캐시 10분.
-const DEFECT_LESSON: Record<string, string> = {
-  // 2026-07-02: verdict_mismatch 는 검출만 되고 교훈 매핑이 없어 폐루프에 안 실리던 갭(detector-without-corrector).
-  verdict_mismatch: '결론을 "🔨심판=" 결정론 값과 반대로 내지 마라 — 심판 결과(매수/분할매수/관망/비중축소/매도)를 그대로 제시하고 근거만 설명하라.',
-  score_tag_leak: '룰 점수 태그 "(+5)" 류를 답변에 그대로 노출하지 마라 — 우리말 문장으로 풀어 써라.',
-  rule_id_leak: '영문 룰 ID(snake_case, 예: price_momentum_52w_high)를 출력하지 마라 — 의미를 우리말로 풀어라.',
-  engine_line_verbatim: '"엔진 판정" 블록의 대괄호·"(발화:..)"·"룰 종합:" 줄을 그대로 복사하지 마라.',
-  engine_score_no_data: '종목 데이터가 없을 때(추천목록·미특정) "매수엔진 N점/매도엔진 M점" 을 절대 지어내지 마라.',
-  magnitude_overstate: '3% 미만 변동에 "급락/급등/폭락/폭등" 을 쓰지 마라 — "소폭 하락/상승" 으로.',
-  fake_multiple: '"순이익의 N배" 같은 과장 배수를 만들지 마라 — 라벨에 있는 수치만 인용.',
-  stale_year: '"2024년 기준" 처럼 과거 연도를 최신이라 하지 마라 — 오늘 기준 "최근 분기/연간" 으로.',
-  entry_far_from_price: '진입가는 반드시 현재가 ±10% 이내로 — 현재가와 동떨어진 진입가 금지.',
-};
+//   결함유형→교훈(DEFECT_LESSON)은 chat-verify.mjs 단일 소스. 상위 유형만 surface(프롬프트 비대화 방지). 모듈캐시 10분.
 let _lessonCache: { ts: number; text: string } | null = null;
 async function recentChatAntiPatterns(redis: ReturnType<typeof createRedis>): Promise<string> {
   if (_lessonCache && Date.now() - _lessonCache.ts < 600_000) return _lessonCache.text;
@@ -538,12 +446,12 @@ export async function POST(request: NextRequest) {
               send({ type: 'delta', text: full });
             }
             // 결정론 sanitize — 결함 자동교정. corrected = *실제 결함이 줄었을 때만*(공백변경 제외).
-            const g = grounding as { tickers?: Array<{ ticker: string; price: number | null }> };
+            const g = grounding as ChatGrounding;
             const clean = sanitizeAnswer(full, g, locale);
-            const corrected = checkChatDefects(lastUser, full, g).length > checkChatDefects(lastUser, clean, g).length;
+            const corrected = checkChatDefects(lastUser, full, g, locale).length > checkChatDefects(lastUser, clean, g, locale).length;
             if (clean !== full) send({ type: 'replace', text: clean });
             await persist(clean, source);
-            void verifyChatAndLog(redis, { uid, question: lastUser, answer: full, grounding, mode, source, corrected }); // 원문 기준 검증 로그(교정여부 기록)
+            void verifyChatAndLog(redis, { uid, question: lastUser, answer: full, grounding, mode, source, corrected, locale }); // 원문 기준 검증 로그(교정여부 기록)
             logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: clean.length, stream: true, corrected });
             send({ type: 'done', source });
             controller.close();
@@ -570,12 +478,12 @@ export async function POST(request: NextRequest) {
       logger.warn('judge-chat', 'all_providers_failed', { reason });
       return withAnonCookie(NextResponse.json({ error: 'llm_unavailable', reply: '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.' }, { status: 503 }), newAnon);
     }
-    const g2 = grounding as { tickers?: Array<{ ticker: string; price: number | null }> };
+    const g2 = grounding as ChatGrounding;
     const clean = sanitizeAnswer(text, g2, locale);
-    const corrected = checkChatDefects(lastUser, text, g2).length > checkChatDefects(lastUser, clean, g2).length;
+    const corrected = checkChatDefects(lastUser, text, g2, locale).length > checkChatDefects(lastUser, clean, g2, locale).length;
     logger.info('judge-chat', 'ok', { source, mode, tickers: tickers.join(','), len: clean.length, corrected });
     await persist(clean, source);
-    void verifyChatAndLog(redis, { uid, question: lastUser, answer: text, grounding, mode, source: source ?? 'unknown', corrected });
+    void verifyChatAndLog(redis, { uid, question: lastUser, answer: text, grounding, mode, source: source ?? 'unknown', corrected, locale });
     return withAnonCookie(NextResponse.json({ reply: clean, source, mode, durationMs, grounding, convId, title: titleOf([...messages, { role: 'assistant', content: clean }]) }), newAnon);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'unknown';
