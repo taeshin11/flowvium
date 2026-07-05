@@ -31,3 +31,14 @@
 - 장문 대응: resolveTickersLLM 절단 500→1200자, 히스토리 맥락 160→240자.
 - 검증: e2e-chat-longform.mjs 신설(장문 3연속 deep, 종목 문장중간 묻힘+지시어 후속 2회) —
   3턴 전부 맥락유지+결함0+절단없음. latency 단문 후속 3.4s→0.58s, 장문 deep 19.9s→11.8s.
+
+[5] vLLM 서버측 튜닝 실측 (사용자 "다 해") — 부정적 결과 포함
+- 사전실측: KV cache 5.98GiB(65,360tok)로 타이트, GPU 23.9/24.5GB — gpu_util·배치토큰 상향은
+  KV 를 깎아 역효과라 배제. prefix caching/chunked prefill 은 이미 기본 활성.
+- ngram speculative decoding 시도(num_spec_tokens=3, prompt_lookup 2~3):
+  ★역효과 — 동일 프롬프트 temp0 벤치 194 → 95 tok/s (수락률 33~38%, 수락길이 2.0).
+  원인: A3B MoE 는 활성 3B라 기본 디코드가 이미 빨라(≈194tok/s) 초안 검증 오버헤드 > 이득.
+  → 즉시 롤백(model.conf.bak-20260705), 재기동 후 192.9 tok/s 회복 + E2E 통과 확인.
+  ※ 이 모델(AISVI_FINANCE 30B-A3B AWQ)에는 ngram spec decode 재시도 금지.
+- 운영 gotcha: pkill 직후 schtasks /run 은 구 인스턴스 종료 전이라 IgnoreNew 로 무시됨 —
+  pkill → 수초 대기 → /run 순서 필수 (안 지키면 vLLM 무기동 상태로 방치).
