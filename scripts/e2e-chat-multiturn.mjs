@@ -12,13 +12,15 @@ import { checkChatDefects } from './lib/chat-verify.mjs';
 
 const BASE = (process.argv.find(a => a.startsWith('--base=')) || '--base=http://127.0.0.1:3000').split('=')[1];
 const TICKER = (process.argv.find(a => a.startsWith('--ticker=')) || '--ticker=NVDA').split('=')[1].toUpperCase();
-let fail = 0;
+let fail = 0, cookie = '';
 const ask = async (messages) => {
   const r = await fetch(`${BASE}/api/judge-chat`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
+    method: 'POST', headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
     body: JSON.stringify({ messages, mode: 'aisvi', locale: 'ko' }),
     signal: AbortSignal.timeout(180000),
   });
+  const setC = r.headers.get('set-cookie');
+  if (setC && !cookie) cookie = setC.split(';')[0];
   if (!r.ok) throw new Error(`http ${r.status}`);
   return r.json();
 };
@@ -55,6 +57,44 @@ const d2 = checkChatDefects(q2, String(a2.reply ?? ''), a2.grounding, 'ko');
 const hard2 = d2.filter(x => x.type !== 'verdict_mismatch');
 for (const w of d2.filter(x => x.type === 'verdict_mismatch')) console.log(`⚠️ 턴2 verdict_mismatch (폐루프 학습 대상): ${w.detail ?? ''}`);
 if (hard2.length) { fail++; console.log(`❌ 턴2 답변 결함: ${hard2.map(x => x.type).join(',')}`); } else console.log('✅ 턴2 결정론 결함 0');
+
+// 턴3(스트림) — ■2 (2026-07-06 AISVI "비버퍼 스트림 후처리 미반영" 차용): 라이브 SSE 최종본(delta 누적 +
+//   replace 적용) == 저장 conv 본문인지 대조. sanitize 교정이 저장본만 바꾸고 유저 화면에 미반영되는
+//   회귀(서버 replace 미송출/클라 미처리)를 게이트화. "함수는 고쳤는데 화면엔 안 보임" 클래스.
+try {
+  const q3 = '마지막으로 이 종목 핵심 리스크만 두 줄로 정리해줘.';
+  const r3 = await fetch(`${BASE}/api/judge-chat`, {
+    method: 'POST', headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+    body: JSON.stringify({ messages: [{ role: 'user', content: q1 }, { role: 'assistant', content: String(a1.reply ?? '').slice(0, 500) }, { role: 'user', content: q3 }], mode: 'aisvi', locale: 'ko', stream: true }),
+    signal: AbortSignal.timeout(180000),
+  });
+  if (!r3.ok || !r3.body) throw new Error(`stream http ${r3.status}`);
+  const reader = r3.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', acc = '', convId3 = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop() ?? '';
+    for (const ln of lines) {
+      if (!ln.startsWith('data:')) continue;
+      try {
+        const o = JSON.parse(ln.slice(5).trim());
+        if (o.type === 'delta') acc += o.text ?? '';
+        else if (o.type === 'replace') acc = o.text ?? acc;   // 서버 sanitize 교정본 — 클라와 동일 규약
+        else if (o.type === 'meta') convId3 = o.convId ?? '';
+      } catch { /* partial */ }
+    }
+  }
+  const g = await fetch(`${BASE}/api/judge-chat?action=get&id=${encodeURIComponent(convId3)}`, { headers: { cookie }, signal: AbortSignal.timeout(15000) });
+  const conv = (await g.json()).conversation;
+  const saved = String([...(conv?.messages ?? [])].reverse().find(m => m.role === 'assistant')?.content ?? '');
+  const same = saved.trim() === acc.trim();
+  console.log(`[턴3 stream] 라이브 최종 ${acc.trim().length}자 vs 저장본 ${saved.trim().length}자`);
+  if (!same) { fail++; console.log(`❌ 스트림≠저장본 — 후처리 교정이 유저 화면에 미반영 (replace 회귀 의심)\n  live: "${acc.trim().slice(0, 80)}"\n  saved: "${saved.trim().slice(0, 80)}"`); }
+  else console.log('✅ 스트림 최종본 == 저장본 (sanitize 교정 라이브 반영)');
+} catch (e) { fail++; console.log(`❌ 턴3 stream 검증 실패: ${e.message}`); }
 
 console.log(fail ? `\n❌ E2E FAIL ${fail}건` : '\n✅ E2E 멀티턴 전부 통과');
 process.exitCode = fail ? 1 : 0; // process.exit() 은 fetch keep-alive 핸들과 경합해 win32 libuv assert 유발 — graceful 종료

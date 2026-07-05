@@ -63,3 +63,17 @@
   종목질문 미분류 → 승계 불발 → 시세 grounding 없이 generic 답변).
 - e2e-chat-compact.mjs: 12메시지(핵심사실=첫턴에만) → 요약 생성+180달러/20주 보존 확인 → 창밖 질문
   "아까 산 단가 기준 수익률?" → "현재가 $194.83 기준, 180달러 매수 기준 수익률 약 8.2%" (계산 정확) PASS.
+
+[8] 2026-07-06 AISVI 노드 "재사용 패턴 12종" 차용 (해당분 6건)
+- ■1 문장신호: chat-verify rule_id 검출·교정에 isMetaMentionCtx(앞45자/뒤25자 예시·부정·인용밀집 신호)
+  가드 — "…같은 룰 ID는 쓰지 않습니다" 메타 언급 오검/과교정 차단. self-test 16픽스처로 확장.
+- ■2 스트림==저장본 게이트: e2e-chat-multiturn 턴3(stream) — SSE join(delta+replace) vs 저장 conv 대조.
+  sanitize 교정의 라이브 미반영 회귀(replace 미송출/클라 미처리) 게이트화. 라이브 PASS.
+- ■4 anti-orphan: check-gate-registration.mjs 신설(verify-all critical) — scripts/(verify|audit|check|test|e2e)-*
+  전수가 verify-all 등록 또는 사유 화이트리스트 강제. 34개 대조, 고아 0. 신설 게이트 미배선 래칫.
+- ■5 死藏 해소: flowvium:discovered-tickers ZSET(프로듀서만, 컨슈머 0) → analyze-chat-logs 가 매 사이클
+  상위 발견종목 surface + chat-verify-status.json 포함(유니버스 승격 검토 입력).
+- ■12: run-report.bat vLLM 헬스체크 curl 에 --max-time 8 (hang 방지).
+- 미차용: ■3/■8(A/B 플래그 문화 없음 — check-llm-routing 이 유사역할), ■6(vLLM 이 GPU 전점유,
+  임베더는 별도 서버·CPU), ■7(콜드스파이크 미관측), ■9(챗 티커해석에 이미 적용, 리포트 파이프라인은
+  4중 후처리 가드 존재라 파일럿 후 별도 판단), ■11(챗 검증은 이미 결정론 우선).

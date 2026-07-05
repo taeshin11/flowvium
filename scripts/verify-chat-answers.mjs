@@ -44,6 +44,8 @@ const FIXTURES = [
   { name: 'truncated_answer', a: '이 종목의 최근 실적은 양호합니다. 매출과 영업이익이 모두 성장했고 가이던스도 상향 조정됐습니다. 다만 밸류에이션 측면에서 보면 지금 주가는 동종업계 대비 상당한 프리미엄이 붙어 있는 상태라서 진입 시점을 신중하게 고민해야 하는 구간인데, 특히 주의해야 할 부분은 바로', g: PRICE1, expect: ['truncated_answer'], corrected: [] },
   { name: 'repetition_loop', a: '분할 매수로 접근하는 것이 안전합니다.\n분할 매수로 접근하는 것이 안전합니다.\n분할 매수로 접근하는 것이 안전합니다.', g: PRICE1, expect: ['repetition_loop'], corrected: ['repetition_loop'] },
   { name: 'non_answer(fallback문구)', a: '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.', g: PRICE1, expect: ['non_answer'], corrected: [] },
+  // ■1 메타언급 가드(2026-07-06 AISVI 차용): 예시/부정 문맥의 룰 ID 는 실누출 아님 — 검출 0 + 교정기 보존.
+  { name: 'rule_id 메타언급 가드', a: '내부 룰 ID(price_momentum_52w_high 같은)는 답변에 쓰지 않습니다. 대신 의미를 우리말로 풀어 설명합니다.', g: PRICE1, expect: [], corrected: [] },
   // clean — 결함 0 이어야 함(과검출 회귀가드). 현재가는 grounding 실가와 일치, 문장 완결, 한자/누출 없음.
   { name: 'clean', a: '테스트 종목은 현재가 200달러 부근에서 거래 중입니다. 최근 실적이 양호하고 수급도 안정적이라 분할 매수 접근이 유효합니다. 손절선은 186달러로 잡으세요.', g: PRICE1, expect: [], corrected: [] },
 ];

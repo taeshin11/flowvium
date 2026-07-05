@@ -58,12 +58,21 @@ try {
   console.log(`\n[폐루프 효과] 최근 ${closedLoop.recentRate}% vs 과거 ${closedLoop.olderRate}% → ${trend} | sanitize 교정율 ${closedLoop.correctedRate}%`);
   if (persistent.length) console.log(`  ⚠️ 루프가 못 잡는 잔존 결함유형: ${persistent.join(', ')} — 프롬프트 교훈 강화 또는 결정론 sanitize 규칙 추가 필요`);
 
+  // ■5 死藏 해소(2026-07-06 AISVI "loop 3단 점검" 차용): flowvium:discovered-tickers ZSET 은 judge-chat 이
+  //   기록만 하고 소비처 0 이던 프로듀서-only loop — 매 사이클 상위 발견종목을 surface(유니버스 승격 검토 입력).
+  let discoveredTop = [];
+  try {
+    const raw = await r.zrevrange('flowvium:discovered-tickers', 0, 9, 'WITHSCORES');
+    for (let i = 0; i < raw.length; i += 2) discoveredTop.push({ ticker: raw[i], asks: Number(raw[i + 1]) });
+    if (discoveredTop.length) console.log(`\n[풀 밖 발견종목 Top — 유니버스 승격 검토]\n  ${discoveredTop.map((d) => `${d.ticker}(${d.asks}회)`).join(', ')}`);
+  } catch { /* 비치명 */ }
+
   // 상태파일 기록(모니터/대시보드 소비) + 결함률 경고. 매 cron 사이클 자동 갱신.
   const defectRate = withDefect.length / entries.length;
   const status = {
     updatedAt: new Date().toISOString(), analyzed: entries.length, total,
     defectAnswers: withDefect.length, defectRate: +(defectRate * 100).toFixed(1),
-    types, byMode, closedLoop,
+    types, byMode, closedLoop, discoveredTop,
     recent: withDefect.slice(0, 8).map((e) => ({ ts: e.ts, q: (e.q || '').slice(0, 40), types: (e.defects || []).map((d) => d.type) })),
   };
   try { writeFileSync(resolve(ROOT, 'logs/chat-verify-status.json'), JSON.stringify(status, null, 2)); } catch { /* */ }
