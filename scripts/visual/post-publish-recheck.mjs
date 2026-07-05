@@ -99,6 +99,24 @@ if (authState === 'member' && liveConfirmed && bodyText) {
   const thesisKey = norm(report.thesis).slice(0, 24);
   if (thesisKey.length >= 12 && !bodyNorm.includes(thesisKey)) alerts.push('렌더↔발간본 불일치: thesis 앞부분이 페이지에 없음 (stale 콘텐츠 의심)');
   else if (thesisKey.length >= 12) info.push('렌더대조 thesis✓');
+  // (c) marketNarrative(라이브 슬라이드/서사 카드 소스) 렌더 대조 + 비문 스캔 (2026-07-05 사용자
+  //     "보고서 만들고 라이브 슬라이드 검증 안해?" — 소급교정 비문 why/story 가 3시간 라이브 노출.
+  //     portfolio/thesis 만 대조하던 사각지대: 서사 필드는 훼손돼도 여기서 안 잡혔음).
+  {
+    const mn = report.marketNarrative ?? {};
+    const missing = [];
+    for (const [k, v] of [['why', mn.why], ['watch', mn.watch], ['story', mn.story]]) {
+      if (typeof v !== 'string' || v.trim().length < 10) continue;
+      if (!bodyNorm.includes(norm(v).slice(0, 20))) missing.push(k);
+    }
+    if (missing.length) alerts.push(`렌더↔발간본 불일치: marketNarrative.${missing.join('/')} 가 페이지에 없음`);
+    else info.push('렌더대조 narrative✓');
+    const mangled = bodyText.match(/(순매수|순매도)되(며|어|고)/);
+    if (mangled) alerts.push(`렌더 비문 의심: "${mangled[0]}" (수급 피동형 뒤틀림 — 교정기/LLM 훼손)`);
+    const orphan = [mn.why, mn.story, mn.watch].some((v) => typeof v === 'string' && /^(반면|하지만|그러나|한편|다만|또한)[,\s]/.test(v.trim()));
+    if (orphan) alerts.push('서사 필드가 고아 접속사로 시작 (선행문 소실 — 교정기 문장제거 흔적)');
+    if (!mangled && !orphan) info.push('서사 비문 0');
+  }
 }
 {
   const blank = sliceSizes.map((s, i) => [i, s]).filter(([, s]) => s > 0 && s < 8000);

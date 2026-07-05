@@ -349,6 +349,24 @@ export async function verifyReport(file, { silent = false } = {}) {
       log(`  ❌ 무주어 등락% ${nNoSubj}건 ("N주 기준 X%" 절에 대상 없음 — EWY 오독형)`);
       defects.push({ ticker: 'NARRATIVE', defect_type: 'pct_subject_missing', llm_value: `${nNoSubj}건`, correct_value: '등락% 절에 대상(티커/지수명) 명시 — 생성기 attributePctSubjects 무력화 여부 확인', severity: 'medium' });
     }
+    // ①b 비문/훼손 서사 게이트 (2026-07-05 사용자 "라이브 슬라이드 검증 안해?" — 소급교정 절치환이 만든
+    //   비문 "외국인 순매수되며 …하락세가 공포 심화" + 선행문 제거 흔적 "반면, ..." 시작이 3시간 라이브 노출).
+    //   교정기든 LLM 이든 어느 쪽이 만들었든 발간 전에 차단. marketNarrative(라이브 슬라이드 소스) 포함.
+    {
+      const NARR_FIELDS = [['thesis', r.thesis], ['macroAnalysis', r.macroAnalysis], ['narrative.why', r.marketNarrative?.why], ['narrative.story', r.marketNarrative?.story], ['narrative.watch', r.marketNarrative?.watch]];
+      for (const [f, text] of NARR_FIELDS) {
+        if (typeof text !== 'string' || !text.trim()) continue;
+        const mangled = text.match(/(순매수|순매도)되(며|어|고)/);
+        if (mangled) {
+          log(`  ❌ 비문 서술 (${f}): "${mangled[0]}" — 수급 주체가 피동형으로 뒤틀림`);
+          defects.push({ ticker: f, defect_type: 'narrative_mangled', llm_value: mangled[0], correct_value: '"외국인·기관이 …을 순매수/순매도" 능동 서술 — 교정기 절치환/LLM 비문 발간 차단', severity: 'high' });
+        }
+        if (/^(반면|하지만|그러나|한편|다만|또한)[,\s]/.test(text.trim())) {
+          log(`  ❌ 문두 고아 접속사 (${f}): 선행 문장 소실 흔적`);
+          defects.push({ ticker: f, defect_type: 'narrative_orphan_connective', llm_value: text.trim().slice(0, 30), correct_value: '필드가 접속사로 시작하면 안 됨 — 교정기 문장제거 후 문두 정리 확인', severity: 'medium' });
+        }
+      }
+    }
     // ②thesis↔macro 복붙: 교정기와 동일 판정을 클론에 적용해 잔존 중복 검출.
     try {
       const { dedupeThesisMacro } = await import('./lib/narrative-fix.mjs');

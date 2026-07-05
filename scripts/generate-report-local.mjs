@@ -1114,6 +1114,16 @@ async function uploadFromFile(filePath) {
   console.log(`quality score: ${score}/100`);
   await verifyUploadSource(locale);
   console.log(`\n✅ 업로드 완료! ${SITE}/${locale}/report 에서 확인`);
+  // 2026-07-05 (사용자 "보고서 만들고 라이브 슬라이드 검증 안해?"): 발간후 라이브 재검을 *업로드 함수 안*으로 —
+  //   종전엔 autoUpload 경로만 spawn 해서, 수동 재발간(--upload=파일, patch-narrative 소급교정본 등)은
+  //   재검 없이 라이브에 나감(07-05 afternoon 비문 marketNarrative 3시간 노출 사건). 업로드=재검 불가분.
+  try {
+    const { spawn } = await import('child_process');
+    const child = spawn(process.execPath, [resolve(ROOT, 'scripts/visual/post-publish-recheck.mjs'), resolved],
+      { detached: true, stdio: 'ignore', windowsHide: true, env: process.env });
+    child.unref();
+    console.log('  [post-publish-recheck] 백그라운드 라이브 재검 시작 → logs/recheck-status.json');
+  } catch (e) { console.warn('  [post-publish-recheck] skip:', e?.message); }
 }
 
 // ── 업로드 검증 ────────────────────────────────────────────────────────────────
@@ -9375,16 +9385,8 @@ async function generateViaOllama() {
       const sc = spawnSync(process.execPath, [resolve(ROOT, 'scripts/screenshot-report.mjs'), localeArg, shot], { timeout: 70000, stdio: 'ignore' });
       console.log(existsSync(shot) && !sc.error ? `  [시각 캡쳐] 발간본 → ${shot} (Claude 검증용)` : '  [시각 캡쳐] skip(캡쳐 실패 — 발간엔 영향 없음)');
     } catch (e) { console.warn('  [시각 캡쳐] skip:', e?.message); }
-    // 2026-06-16: 발행→라이브 반영되면 *즉시* 로그인 슬라이스 재검 (사용자 절차화 요청). 비차단 백그라운드 —
-    //   라이브 폴링+슬라이스+verify probe → logs/recheck-status.json (session-spotcheck 가 surface).
-    //   MEMBER_EMAIL(.env.local) 있으면 로그인 게이트 해제 캡처. 실패해도 발간 영향 없음.
-    try {
-      const { spawn } = await import('child_process');
-      const child = spawn(process.execPath, [resolve(ROOT, 'scripts/visual/post-publish-recheck.mjs'), filepath],
-        { detached: true, stdio: 'ignore', windowsHide: true, env: process.env });
-      child.unref();
-      console.log('  [post-publish-recheck] 백그라운드 재검 시작 → logs/recheck-status.json');
-    } catch (e) { console.warn('  [post-publish-recheck] skip:', e?.message); }
+    // 2026-06-16 발행후 라이브 재검(post-publish-recheck)은 2026-07-05 부터 uploadFromFile 내부에서 spawn —
+    //   수동 재발간(--upload=)도 빠짐없이 재검되도록 업로드와 불가분으로 이동(여기 중복 spawn 제거).
   } else {
     console.log('\n✅ 생성 완료. 내용 확인 후 업로드:');
     console.log(`   node scripts/generate-report-local.mjs --upload=reports/${filename}`);

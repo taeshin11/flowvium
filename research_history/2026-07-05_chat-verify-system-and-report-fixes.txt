@@ -42,3 +42,15 @@
   ※ 이 모델(AISVI_FINANCE 30B-A3B AWQ)에는 ngram spec decode 재시도 금지.
 - 운영 gotcha: pkill 직후 schtasks /run 은 구 인스턴스 종료 전이라 IgnoreNew 로 무시됨 —
   pkill → 수초 대기 → /run 순서 필수 (안 지키면 vLLM 무기동 상태로 방치).
+
+[6] 라이브 슬라이드 검증 갭 (사용자 "보고서 만들고 라이브 슬라이드 검증 안해?") — 실사고 후 봉쇄
+- 사고: fixKrFlowContradiction v1 의 짧은필드 절치환 폴백이 비문 생성("외국인 순매수되며 …공포 심화",
+  story "반면," 고아 접속사 시작) → 소급교정 재발행(18:24)~evening 발간(21:11) 3시간 라이브 노출.
+  verify-report 는 모순패턴 소멸만 보고 PASS, 수동 --upload 경로는 post-publish-recheck 미스폰이라 무검증.
+- fix 4종: ① 교정기 v2 — 초단문 필드 통째 교체 + 폴백을 실측 합성문장("외국인·기관은 주요 종목을
+  1조9,922억원 순매수함.")으로 + 문장제거 후 문두 고아접속사 정리. ② verify-report 비문 게이트
+  (narrative_mangled high / narrative_orphan_connective) — marketNarrative 포함 5필드. ③ post-publish-recheck
+  에 marketNarrative 렌더대조 + 렌더 비문 스캔 추가(종전 portfolio/thesis 만). ④ recheck 스폰을
+  uploadFromFile 내부로 이동 — 수동 재발간도 업로드=재검 불가분.
+- 복구: afternoon 서사를 DB 원본에서 복원→v2 재교정→verify PASS→재업로드(히스토리 키 정정).
+  evening 라이브 재검: RECHECK OK (렌더대조 narrative✓·서사 비문 0 포함).

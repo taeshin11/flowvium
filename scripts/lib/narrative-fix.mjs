@@ -273,17 +273,26 @@ export function fixKrFlowContradiction(report, krClaimText) {
     ? /(외국인|기관)[^.]{0,14}(매도세|순매도)[^.]{0,8}(지속|확대|이어)/
     : /(외국인|기관)[^.]{0,14}(매수세|순매수)[^.]{0,8}(지속|확대|이어)/;
   const toDir = measuredBuy ? '순매수' : '순매도';
+  // 실측 금액 추출(가능하면) — 폴백 문장을 실측 그대로 합성(환각 불가). 예: "1조 9,922억원".
+  const amtM = claim.match(/(?:순매수|순매도)\s*([\d,]+\s*조\s*[\d,]*\s*억?\s*원|[\d,]+\s*억\s*원|[\d,]+\s*조\s*원)/);
+  const groundedSent = `외국인·기관은 주요 종목을 ${amtM ? `${amtM[1].trim()} ` : ''}${toDir}함.`;
+  // 문장 제거 후 문두 고아 접속사 정리 — 07-05 실증: 선행문 제거로 "반면, ..." 시작 비문.
+  const stripLead = (s) => s.replace(/^(반면|하지만|그러나|한편|다만|또한|이에 따라)[,\s]+/, '');
   let nFix = 0; const log = [];
   const fixField = (text) => {
     if (typeof text !== 'string' || !contraRe.test(text)) return text;
+    // ⓪ 초단문 필드(watch 류, ≤40자) — 통째로 실측 방향의 관찰 문구로 교체(절 치환은 비문 생성).
+    if (text.trim().length <= 40) return `외국인·기관 ${toDir} 지속 여부`;
     // ① 모순 문장 제거 (마침표 경계). " | 꼬리" 구조(macroAnalysis) 보존.
     const [body, ...tail] = text.split(' | ');
     const sents = body.split(/(?<=[.!?])\s+/);
     const kept = sents.filter((s) => !contraRe.test(s));
-    const removedOk = kept.length < sents.length && kept.join(' ').trim().length >= 40;
-    if (removedOk) return [kept.join(' ').trim(), ...tail].join(' | ');
-    // ② 폴백: 절 치환 — 반대방향+지속 표현을 실측 방향어로 (필드 공동화 방지)
-    return text.replace(new RegExp(contraRe.source, 'g'), (m, subj) => `${subj} ${toDir}`);
+    const removedOk = kept.length < sents.length && stripLead(kept.join(' ').trim()).length >= 40;
+    if (removedOk) return [stripLead(kept.join(' ').trim()), ...tail].join(' | ');
+    // ② 폴백: 모순 *문장*을 실측 합성문장으로 교체 — 07-05 실증: 절 치환("외국인 순매수되며 …하락세가
+    //   공포 심화")은 잔여 논리꼬리가 오염된 비문을 만들어 라이브 슬라이드에 3시간 노출됐음.
+    const replaced = sents.map((s) => contraRe.test(s) ? groundedSent : s);
+    return [stripLead(replaced.join(' ').trim()), ...tail].join(' | ');
   };
   for (const k of ['thesis', 'macroAnalysis']) {
     const b = report[k], a = fixField(b);
