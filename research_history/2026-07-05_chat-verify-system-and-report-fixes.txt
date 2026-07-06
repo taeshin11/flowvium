@@ -108,3 +108,13 @@
 - 연료 정리: FINANCE_T v1 연료(data/sft) → Drive fuel/legacy 백업. v2 distill 연료는 구 머신
   D:\llama\aisvi-finance-t-v2.jsonl 에만 존재(이 머신 D: 없음, Drive 에도 없음) — 회수 필요.
   0.SFT(의료)와 0.SFT_Flovium(금융) 경계 README 명시.
+
+[12] 2026-07-06 챗 사용자 격리 적대적 검증 (사용자 "검증 테스트가 왤케 부실해?")
+- 종전 목록/GET 만 보던 부실 테스트 → scripts/sft/test-chat-isolation.mjs 7벡터 16 assert:
+  V1 목록격리 V2 GET수평권한 V3 DELETE수평권한 V4 convId이어쓰기오염 V5 쿠키위조(옛 하드코딩키
+  'flowvium-member-v1' + 무작위MAC) V6 익명간격리 V7 share권한. 전부 통과.
+- 구조: uid = m:{email}(HMAC fv_member) 또는 a:{익명쿠키}. Redis 키 u:{uid}:c:{convId} 라
+  남의 대화 키에 원천 불가시. cKey 가 요청자 uid 로 조합돼 GET/DELETE/share/convMeta 전부 격리.
+- V7 이 첫 실행에서 false-positive(200) — V4 가 B 키에 같은 convId 로 대화를 만들어 B 가 *자기* 대화를
+  공유한 것(A 유출 아님, 재현 diag 로 확인: 미접촉 convId share=404). 전용 convId + 내용유출 검사로 교정.
+- check-gate-registration 을 scripts/sft/ 까지 스캔하도록 확장(37개 대조, 고아 0).

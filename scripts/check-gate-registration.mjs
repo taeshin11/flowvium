@@ -34,9 +34,14 @@ const WHITELIST = {
   'e2e-chat-multiturn.mjs': '라이브 2턴+스트림 E2E(LLM 비용 — 챗 경로 변경 시 수동)',
   'e2e-chat-longform.mjs': '장문 3연속 deep E2E(LLM 비용 — 수동)',
   'e2e-chat-compact.mjs': 'compact E2E(LLM 비용 — 수동)',
+  'test-chat-isolation.mjs': 'scripts/sft — 챗 사용자 격리 적대적 검증(7벡터, 라이브 — 챗 권한경계 변경 시 수동)',
+  'eval-chat-multiturn.mjs': 'scripts/sft — 엄격 멀티턴 API eval(SFT 연료 — LLM 비용)',
+  'eval-chat-ui-multiturn.mjs': 'scripts/sft — Playwright UI 멀티턴 eval(SFT 연료 — 브라우저)',
 };
 
-const names = readdirSync(resolve(ROOT, 'scripts')).filter((f) => /^(verify|audit|check|test|e2e)-.*\.mjs$/.test(f) || f === 'verify-all.mjs');
+// scripts/ 루트 + scripts/sft/ 둘 다 스캔(sft 하위 게이트도 고아 대조).
+const names = [...readdirSync(resolve(ROOT, 'scripts')).filter((f) => /^(verify|audit|check|test|e2e)-.*\.mjs$/.test(f) || f === 'verify-all.mjs'),
+  ...readdirSync(resolve(ROOT, 'scripts/sft')).filter((f) => /^(verify|audit|check|test|e2e|eval)-.*\.mjs$/.test(f))];
 const verifyAllSrc = readFileSync(resolve(ROOT, 'scripts/verify-all.mjs'), 'utf8');
 const registered = new Set([...verifyAllSrc.matchAll(/script:\s*'scripts\/([^']+)'/g)].map((m) => m[1]));
 
