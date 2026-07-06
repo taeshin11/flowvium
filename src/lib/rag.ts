@@ -16,11 +16,13 @@ import { logger } from '@/lib/logger';
 const CORPUS_PATH = resolve(process.cwd(), 'data/rag/corpus.ndjson');
 const EMBED_URL = process.env.EMBED_URL ?? 'http://127.0.0.1:8100/embed';
 
-export interface RagChunk { id: string; source: string; year?: number | string; text: string; embedding: number[]; }
+export interface RagChunk { id: string; source: string; year?: number | string; text: string; embedding: number[]; _norm?: number; _boost?: number; }
 export interface RagHit { source: string; year?: number | string; text: string; score: number; }
 
 let _corpus: RagChunk[] | null = null;
 let _loadTried = false;
+// 2026-07-06 (Claude 직접검증 → re-rank): 큐레이션 원칙 청크 boost 판정용. 로드 시 1회 precompute.
+const CURATION_TAG = /\b(guru|discipline|fundamental|technical|macro)\b|매수엔진|매도엔진/;
 
 function loadCorpus(): RagChunk[] {
   if (_corpus) return _corpus;
@@ -33,7 +35,15 @@ function loadCorpus(): RagChunk[] {
     for (const ln of lines) {
       try {
         const o = JSON.parse(ln) as RagChunk;
-        if (o && Array.isArray(o.embedding) && o.embedding.length && typeof o.text === 'string') out.push(o);
+        if (o && Array.isArray(o.embedding) && o.embedding.length && typeof o.text === 'string') {
+          // 2026-07-06 최적화: 질의-불변 값(L2 norm·re-rank boost)을 로드 시 1회 precompute →
+          //   매 질의 5,731청크 재계산 제거(norm sqrt + boost 정규식). embedding 은 Float32Array 로(메모리·dot 속도).
+          o.embedding = Float32Array.from(o.embedding) as unknown as number[];
+          let nn = 0; for (let i = 0; i < o.embedding.length; i++) nn += o.embedding[i] * o.embedding[i];
+          o._norm = Math.sqrt(nn) || 1;
+          o._boost = (/[가-힣]/.test(o.text) ? 0.06 : 0) + (CURATION_TAG.test(o.text) ? 0.04 : 0);
+          out.push(o);
+        }
       } catch { /* skip bad line */ }
     }
     _corpus = out;
@@ -58,13 +68,6 @@ async function embedQuery(text: string): Promise<number[] | null> {
   } catch { return null; }
 }
 
-function cosine(a: number[], b: number[]): number {
-  let dot = 0, na = 0, nb = 0;
-  const n = Math.min(a.length, b.length);
-  for (let i = 0; i < n; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
-  if (na === 0 || nb === 0) return 0;
-  return dot / (Math.sqrt(na) * Math.sqrt(nb));
-}
 
 // 소스 라벨 → 구루 그룹 (다양성 캡 용). 버크셔 서한 5430청크가 검색을 독점하지 않도록
 //   "버핏(서한+위키쿼트)"을 한 그룹으로 묶어 다른 구루(소로스·린치·코스톨라니·막스·투자지혜)에 자리 양보.
@@ -85,12 +88,17 @@ export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
   const qv = await embedQuery(query);
   if (!qv) { logger.warn('rag', 'embed_unavailable', {}); return []; }
   // 2026-07-06 (Claude 직접 검증): raw 버크셔 주주서한이 *영어 문장조각*으로 청킹돼 bge-m3 교차언어 유사도로
-  //   한국어 질의에도 top 랭크를 차지하나 실사용 가치 0(중간 조각). 큐레이션된 한국어 원칙 라인(guru/discipline/
-  //   매수엔진 태그)이 진짜 gold 인데 밀림. effectiveScore 로 re-rank: 한글 포함(번역/큐레이션) +0.06,
-  //   큐레이션 태그(guru/discipline/매수엔진/매도엔진/fundamental) +0.04 → gold 를 노이즈 위로.
-  const CURATION_TAG = /\b(guru|discipline|fundamental|technical|macro)\b|매수엔진|매도엔진/;
-  const boost = (text: string) => (/[가-힣]/.test(text) ? 0.06 : 0) + (CURATION_TAG.test(text) ? 0.04 : 0);
-  const scored = corpus.map(c => { const base = cosine(qv, c.embedding); return { source: c.source, year: c.year, text: c.text, score: base, effScore: base + boost(c.text) }; });
+  //   한국어 질의에도 top 랭크를 차지하나 실사용 가치 0(중간 조각). 큐레이션 원칙 라인이 gold 인데 밀림 →
+  //   effScore re-rank(한글 +0.06, 큐레이션 태그 +0.04, 로드 시 _boost precompute). gold 를 노이즈 위로.
+  // 최적화: 질의벡터 norm 1회 계산 + 청크 _norm/_boost precompute 사용(매 질의 5,731 재계산 제거).
+  let qn = 0; for (let i = 0; i < qv.length; i++) qn += qv[i] * qv[i];
+  const qnorm = Math.sqrt(qn) || 1;
+  const scored = corpus.map(c => {
+    const emb = c.embedding; const n = Math.min(qv.length, emb.length);
+    let dot = 0; for (let i = 0; i < n; i++) dot += qv[i] * emb[i];
+    const base = dot / (qnorm * (c._norm ?? 1));
+    return { source: c.source, year: c.year, text: c.text, score: base, effScore: base + (c._boost ?? 0) };
+  });
   scored.sort((a, b) => b.effScore - a.effScore);
   const eligible = scored.filter(h => h.effScore >= 0.35);
   // 구루 그룹당 최대 2개 → 버핏 독점 방지, 다른 구루 노출. 부족하면 cap 무시하고 채움.
