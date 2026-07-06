@@ -134,6 +134,17 @@ const checks = [
     dimensions: ['LLM 출력표면 한자가드 커버리지(신규 미분류 표면 회귀봉쇄)'],
   },
   {
+    // 2026-07-06 (사용자 "RAG 점수가 잘 매겨졌는지 검증 어떻게 / 없다고 하면 진짜 없는지 확인"): RAG 점수·관련성
+    //   검증. 임베더 다운 시 ragRetrieve 가 조용히 [] 반환(거짓 부재)하던 사각지대 봉쇄. 임베더 미기동이면
+    //   웹 미의존이라 self-skip(exit0 아님 — 임베더 죽음 자체가 결함이므로 warn 노출). advisory(코드 push 비차단).
+    name: 'verify-rag-scores',
+    script: 'scripts/rag/verify-rag-scores.mjs',
+    args: ['--skip-live'],  // verify-all 은 코퍼스+임베더 직검(웹 라이브 프로브는 수동/모니터가 담당)
+    desc: 'RAG 점수·관련성 (임베더 생존·관련성·점수밴드·판별력)',
+    critical: false,
+    dimensions: ['RAG 임베더 생존 + 스코어 관련성/판별력 (거짓 부재 봉쇄)'],
+  },
+  {
     // 2026-07-06 (사용자 "왜 최선을 안 하고 있었는지 검증체계"): 게으른 미루기 감시. deferral-ledger 의 미룬
     //   "더 나은 방법"이 재평가 기한 경과/반증 시 surface. advisory(warn) — 판단 항목이라 push 차단 아님.
     name: 'check-deferrals',

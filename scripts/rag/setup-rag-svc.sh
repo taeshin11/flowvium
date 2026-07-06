@@ -17,7 +17,9 @@ apt-get install -y -q poppler-utils >/dev/null 2>&1 || LOG "apt poppler failed (
 
 LOG "torch CPU + sentence-transformers (bge-m3 임베딩)"
 pip install -q torch --index-url https://download.pytorch.org/whl/cpu
-pip install -q sentence-transformers fastapi "uvicorn[standard]" pdf2image
+# 2026-07-06: sentencepiece+protobuf 필수 — 누락 시 bge-m3 tokenizer 로드 실패("Unrecognized processing
+#   class")로 임베더 기동 불가(C: 이관 재설치 때 실증). transformers 5.x 는 이 둘을 자동 안 깔아줌.
+pip install -q sentence-transformers fastapi "uvicorn[standard]" pdf2image sentencepiece protobuf
 
 LOG "PaddleOCR (이미지/스캔 PDF fallback)"
 pip install -q paddlepaddle || LOG "paddlepaddle install failed (OCR fallback disabled, pdftotext still works)"
