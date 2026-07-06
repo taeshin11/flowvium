@@ -40,6 +40,10 @@ const FIXTURES = [
   { name: 'price_mismatch', a: '현재가 300달러 수준에서 거래되고 있어 밸류에이션 부담이 있습니다.', g: PRICE1, expect: ['price_mismatch'], corrected: [] },
   // 07-05 E2E 실증 오검 회귀가드: "현재가가 52주 고점 대비"의 52(주)를 현재가로 오파싱하지 않아야 함.
   { name: 'price_mismatch 오검가드(52주)', a: '현재가가 52주 고점 대비 18% 하락한 상태라 변동성 확대에 유의해야 합니다. 다만 장기 추세는 유효합니다.', g: PRICE1, expect: [], corrected: [] },
+  // 07-06 SFT eval S6 오검 회귀가드: "현재가가 200일 이동평균선"의 200(일)을 현재가로 오파싱 금지.
+  { name: 'price_mismatch 오검가드(200일선)', a: '현재가가 200일 이동평균선 위에서 지지되고 있어 장기 추세는 유효합니다. 분할 접근을 권합니다.', g: PRICE1, expect: [], corrected: [] },
+  // 07-06 SFT eval S5 오검 회귀가드: 레벨 나열("손절 $108.68, 목표 $128.55")로 끝나는 답변은 절단 아님.
+  { name: 'truncated 오검가드(레벨 꼬리)', a: '오늘 리포트 포트폴리오 기준으로 반도체 비중 확대가 유효합니다. 추천 종목의 상세 레벨은 다음과 같으며 리스크 관리를 위해 분할 접근을 권합니다. AVGO 진입 현재가 부근, 손절 $108.68, 목표 $128.55', g: PRICE1, expect: [], corrected: [] },
   { name: 'english_answer', a: 'This stock shows strong momentum with solid fundamentals. The revenue growth accelerated last quarter and margins expanded significantly across segments.', g: PRICE1, expect: ['english_answer'], corrected: [] },
   { name: 'truncated_answer', a: '이 종목의 최근 실적은 양호합니다. 매출과 영업이익이 모두 성장했고 가이던스도 상향 조정됐습니다. 다만 밸류에이션 측면에서 보면 지금 주가는 동종업계 대비 상당한 프리미엄이 붙어 있는 상태라서 진입 시점을 신중하게 고민해야 하는 구간인데, 특히 주의해야 할 부분은 바로', g: PRICE1, expect: ['truncated_answer'], corrected: [] },
   { name: 'repetition_loop', a: '분할 매수로 접근하는 것이 안전합니다.\n분할 매수로 접근하는 것이 안전합니다.\n분할 매수로 접근하는 것이 안전합니다.', g: PRICE1, expect: ['repetition_loop'], corrected: ['repetition_loop'] },

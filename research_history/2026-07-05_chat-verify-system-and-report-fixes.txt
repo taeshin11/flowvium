@@ -77,3 +77,13 @@
 - 미차용: ■3/■8(A/B 플래그 문화 없음 — check-llm-routing 이 유사역할), ■6(vLLM 이 GPU 전점유,
   임베더는 별도 서버·CPU), ■7(콜드스파이크 미관측), ■9(챗 티커해석에 이미 적용, 리포트 파이프라인은
   4중 후처리 가드 존재라 파일럿 후 별도 판단), ■11(챗 검증은 이미 결정론 우선).
+
+[9] 2026-07-06 SFT 연료 체계 (사용자 "드라이브에 0.SFT_Flovium — 엄격 멀티턴 테스트-eval + SFT 연료")
+- G:\내 드라이브\0.SFT_Flovium\{README, eval/, fuel/} 신설.
+- scripts/sft/eval-chat-multiturn.mjs: 엄격 멀티턴 eval 7시나리오(승계+verdict 일관·compact 수익률
+  정확도 ±0.6%p·장문 deep·미존재티커 정직성·추천목록·KR 한자0·시장질문 오승계 방지) —
+  verdict_mismatch 포함 15종 전부 FAIL 처리. pass=positive / fail=rejected(DPO용) 연료 적재.
+- scripts/sft/build-chat-fuel.mjs: 저장대화(180일) 전수 재판정 → 전 턴 클린 대화만 멱등 스냅샷.
+  첫 채굴: 31대화 → 27 클린(87%), 41 Q/A 턴(멀티턴 9).
+- 첫 eval 4/8 → 진짜버그 2(QZZX→QQQX 유사치환: 문장속 명시티커 정확매칭 가드 신설 / verdict 역전:
+  폐루프 대상) + 오검 2(200일선 현재가 오파싱·레벨꼬리 절단 오판: 검출기 정련+픽스처 18개) → 재실행 8/8.

@@ -231,6 +231,16 @@ async function resolveTickersLLM(text: string, max: number, history: ChatMsg[] =
     if (/^[A-Z]{1,6}$/.test(bare) && await yahooHasTicker(bare)) return [bare];
     const krCode = text.trim().match(/^(\d{6})(\.(KS|KQ))?$/);
     if (krCode) { for (const sfx of ['.KS', '.KQ']) { if (await yahooHasTicker(krCode[1] + sfx)) return [krCode[1] + sfx]; } }
+    // 1b) 문장 *속* 명시 티커 토큰(2026-07-06 SFT eval S4 실증: "QZZX 어때?" → LLM 해석이 QQQX 로
+    //    유사치환 + 가격 grounding). 종전 정확매칭 가드는 메시지 전체가 티커일 때만 작동. 임베디드 토큰이
+    //    실재하면 직행(빠름), 실재하지 않으면 그 토큰과 다른 base 해석을 거부(유사치환 차단 → 정직한 데이터없음).
+    const TICKER_STOPWORDS = new Set(['ETF', 'IPO', 'CEO', 'GDP', 'CPI', 'ROE', 'RSI', 'VIX', 'PER', 'PBR', 'EPS', 'FOMC', 'USD', 'KRW', 'YOY', 'QOQ', 'API', 'ESG', 'CAGR', 'FCF', 'OPEC', 'KOSPI', 'NASDAQ']);
+    const embedded = Array.from(new Set((text.match(/\b[A-Z]{3,6}\b/g) ?? []).filter(t => !TICKER_STOPWORDS.has(t))));
+    let failedExplicit: string | null = null;
+    if (embedded.length === 1) {
+      if (await yahooHasTicker(embedded[0])) return [embedded[0]];
+      failedExplicit = embedded[0];
+    }
     // LLM 은 *영문 회사명*만 추출(코드 추측 금지) → Yahoo 검색이 권위있게 티커 해석.
     // 2026-07-05 (AISVI 노드 "few-shot echo" 메모 차용 3종):
     //  ① 멀티턴 맥락해소 — 종전엔 마지막 메시지만 봐서 "그럼 팔까?" 류 후속질문이 이전 턴 종목을 잃음
@@ -252,7 +262,7 @@ async function resolveTickersLLM(text: string, max: number, history: ChatMsg[] =
     const isKrQuery = /[가-힣]/.test(text);
     // 사용자가 *명시 티커*(영문 2-6자 단독)를 쳤으면 그 티커와 *정확히* 일치하는 결과만 허용 — 유사 치환 금지
     //   (SPCX→SPCE, 하이닉스→233740 류 오해석 차단). 회사명 질문엔 적용 안 함.
-    const explicitTk = (text.trim().match(/^[A-Za-z]{2,6}$/) || [])[0]?.toUpperCase() ?? null;
+    const explicitTk = ((text.trim().match(/^[A-Za-z]{2,6}$/) || [])[0]?.toUpperCase() ?? null) || failedExplicit;
     const out: string[] = [];
     for (const raw of names.slice(0, max)) {
       const name = String(raw).trim();
