@@ -41,9 +41,11 @@ const WHITELIST = {
 
 // scripts/ 루트 + scripts/sft/ 둘 다 스캔(sft 하위 게이트도 고아 대조).
 const names = [...readdirSync(resolve(ROOT, 'scripts')).filter((f) => /^(verify|audit|check|test|e2e)-.*\.mjs$/.test(f) || f === 'verify-all.mjs'),
-  ...readdirSync(resolve(ROOT, 'scripts/sft')).filter((f) => /^(verify|audit|check|test|e2e|eval)-.*\.mjs$/.test(f))];
+  ...readdirSync(resolve(ROOT, 'scripts/sft')).filter((f) => /^(verify|audit|check|test|e2e|eval)-.*\.mjs$/.test(f)),
+  ...readdirSync(resolve(ROOT, 'scripts/rag')).filter((f) => /^(verify|audit|check|test|e2e)-.*\.mjs$/.test(f))];
 const verifyAllSrc = readFileSync(resolve(ROOT, 'scripts/verify-all.mjs'), 'utf8');
-const registered = new Set([...verifyAllSrc.matchAll(/script:\s*'scripts\/([^']+)'/g)].map((m) => m[1]));
+// basename 정규화 — verify-all 은 하위경로(scripts/rag/foo.mjs)로 등록하지만 names 는 basename 이라 통일.
+const registered = new Set([...verifyAllSrc.matchAll(/script:\s*'scripts\/([^']+)'/g)].map((m) => m[1].split('/').pop()));
 
 let nFail = 0, nWarn = 0, nOk = 0;
 for (const f of names.sort()) {

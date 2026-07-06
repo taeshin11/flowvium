@@ -55,6 +55,10 @@ const FIXTURES = [
   { name: 'truncated_answer', a: '이 종목의 최근 실적은 양호합니다. 매출과 영업이익이 모두 성장했고 가이던스도 상향 조정됐습니다. 다만 밸류에이션 측면에서 보면 지금 주가는 동종업계 대비 상당한 프리미엄이 붙어 있는 상태라서 진입 시점을 신중하게 고민해야 하는 구간인데, 특히 주의해야 할 부분은 바로', g: PRICE1, expect: ['truncated_answer'], corrected: [] },
   { name: 'repetition_loop', a: '분할 매수로 접근하는 것이 안전합니다.\n분할 매수로 접근하는 것이 안전합니다.\n분할 매수로 접근하는 것이 안전합니다.', g: PRICE1, expect: ['repetition_loop'], corrected: ['repetition_loop'] },
   { name: 'non_answer(fallback문구)', a: '지금 심판엔진이 응답할 수 없습니다. 잠시 후 다시 시도해 주세요.', g: PRICE1, expect: ['non_answer'], corrected: [] },
+  // 07-06 (사용자 "없다=정답 아님"): grounding 에 가격 있는데 "시세 못 불러왔다"=거짓 부재. 검출 필수.
+  { name: 'false_disclaimer(가격 있는데 없다함)', a: '현재 시세를 불러오지 못해 정확한 판단이 어렵습니다. 일반적인 원칙만 말씀드리면 분할 접근이 안전합니다.', g: PRICE1, expect: ['false_disclaimer'], corrected: [] },
+  // 가드: grounding 이 진짜 비었으면(NOPRICE) "데이터 없음"은 정당 — false_disclaimer 오검 금지.
+  { name: 'false_disclaimer 가드(진짜 없음)', a: '해당 종목의 실시간 데이터를 불러오지 못해 판단을 보류합니다. 일반 원칙만 안내드립니다.', g: NOPRICE, expect: [], corrected: [] },
   // ■1 메타언급 가드(2026-07-06 AISVI 차용): 예시/부정 문맥의 룰 ID 는 실누출 아님 — 검출 0 + 교정기 보존.
   { name: 'rule_id 메타언급 가드', a: '내부 룰 ID(price_momentum_52w_high 같은)는 답변에 쓰지 않습니다. 대신 의미를 우리말로 풀어 설명합니다.', g: PRICE1, expect: [], corrected: [] },
   // clean — 결함 0 이어야 함(과검출 회귀가드). 현재가는 grounding 실가와 일치, 문장 완결, 한자/누출 없음.
