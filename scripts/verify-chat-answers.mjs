@@ -42,6 +42,10 @@ const FIXTURES = [
   { name: 'price_mismatch 오검가드(52주)', a: '현재가가 52주 고점 대비 18% 하락한 상태라 변동성 확대에 유의해야 합니다. 다만 장기 추세는 유효합니다.', g: PRICE1, expect: [], corrected: [] },
   // 07-06 SFT eval S6 오검 회귀가드: "현재가가 200일 이동평균선"의 200(일)을 현재가로 오파싱 금지.
   { name: 'price_mismatch 오검가드(200일선)', a: '현재가가 200일 이동평균선 위에서 지지되고 있어 장기 추세는 유효합니다. 분할 접근을 권합니다.', g: PRICE1, expect: [], corrected: [] },
+  // 07-06 UI eval 오검 회귀가드: "현재가가 50MA($209.80)"의 50 을 현재가로 오파싱 금지.
+  { name: 'price_mismatch 오검가드(50MA)', a: '현재가가 50MA 아래에 있지만 200MA 위라서 장기 추세는 유효합니다. 분할 매수 관점이 좋습니다.', g: PRICE1, expect: [], corrected: [] },
+  // 07-06 UI eval 실증: 줄바꿈 없이 이어지는 문장 반복(degenerate 65회) — 검출 + 전역 문장 dedupe 교정.
+  { name: 'repetition 비연속(문장 나열)', a: '매도 신호가 발동되면 즉시 대응해야 합니다. 매도 신호가 발동되면 즉시 대응해야 합니다. 매도 신호가 발동되면 즉시 대응해야 합니다. 결론적으로 분할 접근이 안전합니다.', g: PRICE1, expect: ['repetition_loop'], corrected: ['repetition_loop'] },
   // 07-06 SFT eval S5 오검 회귀가드: 레벨 나열("손절 $108.68, 목표 $128.55")로 끝나는 답변은 절단 아님.
   { name: 'truncated 오검가드(레벨 꼬리)', a: '오늘 리포트 포트폴리오 기준으로 반도체 비중 확대가 유효합니다. 추천 종목의 상세 레벨은 다음과 같으며 리스크 관리를 위해 분할 접근을 권합니다. AVGO 진입 현재가 부근, 손절 $108.68, 목표 $128.55', g: PRICE1, expect: [], corrected: [] },
   { name: 'english_answer', a: 'This stock shows strong momentum with solid fundamentals. The revenue growth accelerated last quarter and margins expanded significantly across segments.', g: PRICE1, expect: ['english_answer'], corrected: [] },

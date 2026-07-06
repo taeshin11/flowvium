@@ -87,3 +87,14 @@
   첫 채굴: 31대화 → 27 클린(87%), 41 Q/A 턴(멀티턴 9).
 - 첫 eval 4/8 → 진짜버그 2(QZZX→QQQX 유사치환: 문장속 명시티커 정확매칭 가드 신설 / verdict 역전:
   폐루프 대상) + 오검 2(200일선 현재가 오파싱·레벨꼬리 절단 오판: 검출기 정련+픽스처 18개) → 재실행 8/8.
+
+[10] 2026-07-06 Playwright UI 멀티턴 eval (사용자 "플레이라이트 띄워서 유저가 하듯이, 멀티턴으로")
+- scripts/sft/eval-chat-ui-multiturn.mjs: 실브라우저(기본 headed) → /ko/judge 로그인 → textarea 타이핑
+  → 스트리밍 답변을 *렌더된 그대로* 판정. 7턴 실사용 스토리(매입정보→화제전환4→지시어 승계→compact
+  수익률 ±0.6%p) + 새채팅 QZZX 정직성 + 렌더==저장본 게이트. 턴별 스크린샷 → Drive eval/ui-<ts>/.
+- 1차 7/9 가 잡은 진짜 결함: deep 답변 degenerate loop(같은 문장 65회, 4,943자를 유저가 그대로 봄)
+  → ① vLLM 챗 경로(callVLLM/streamVllm) repetition_penalty 1.05 ② sanitize 전역 문장 dedupe
+  (3회+ 반복 첫 1회만 보존 — 종전 연속줄 전용이라 무력했음). 오검 fix: "현재가가 50MA"의 50 오파싱
+  (lookahead A-Za-z), 저장본 대조 로직 버그(빈 list→false-fail). 픽스처 20개.
+- 재실행 UI 9/9 (t1 4,943자 65반복 → 202자 정상). API-eval 교차 7/8(잔여 1=확률적 verdict 역전 —
+  폐루프·DPO 연료로 추적) — repetition_penalty 의 deep 분량 회귀 없음(2,264자).

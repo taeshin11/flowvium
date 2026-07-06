@@ -69,6 +69,8 @@ async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAtte
         messages,
         max_tokens: opts.maxTokens ?? 1600,
         temperature: opts.temperature ?? 0.65,
+        // 2026-07-06 UI eval 실증: deep 장문에서 같은 문장 65회 degenerate loop — Qwen 계열 표준 완화값.
+        repetition_penalty: 1.05,
         chat_template_kwargs: { enable_thinking: false },
         ...(opts.responseFormat ? { response_format: opts.responseFormat } : {}),
       }),

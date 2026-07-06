@@ -322,7 +322,7 @@ async function streamVllm(system: string, user: string, opts: { maxTokens: numbe
   const model = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
   const r = await fetch(`${base}/v1/chat/completions`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: opts.maxTokens, temperature: opts.temperature, stream: true }),
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: opts.maxTokens, temperature: opts.temperature, repetition_penalty: 1.05, stream: true }),
     signal: AbortSignal.timeout(llmTimeoutMs(opts.maxTokens)),
   });
   if (!r.ok || !r.body) throw new Error(`vllm stream ${r.status}`);
