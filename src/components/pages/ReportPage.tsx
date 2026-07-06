@@ -1362,8 +1362,10 @@ export default function ReportPage() {
                       <Link href={`/${locale}/company/${w.ticker}`} className="font-bold text-amber-900 hover:underline">{w.name ?? displayName(w.ticker)}</Link>
                       <span className="ml-1 text-[9px] font-normal text-gray-400 font-mono">{w.ticker}</span>
                     </span>
-                    <span className="text-gray-700 flex-1">{w.condition}</span>
-                    <span className="text-[10px] text-gray-400 shrink-0">{w.vetoReason}</span>
+                    {/* 2026-07-07: min-w-0 로 flex 자식이 content min-width 이하로 줄 수 있게(CJK 글자당 줄바꿈 방지).
+                        vetoReason 의 shrink-0 제거 — 긴 문구가 폭을 독점해 condition 을 1글자 컬럼으로 찌부러뜨리던 버그. */}
+                    <span className="text-gray-700 flex-1 min-w-0 break-words">{w.condition}</span>
+                    <span className="text-[10px] text-gray-400 flex-1 min-w-0 break-words sm:text-right">{w.vetoReason}</span>
                   </div>
                 ))}
               </div>

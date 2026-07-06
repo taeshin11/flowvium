@@ -66,6 +66,25 @@ try {
   bodyText = (await page.evaluate(() => document.body?.innerText || '')).trim();
   const bodyLen = bodyText.length;
   if (authState === 'member' && bodyLen < 5000) alerts.push(`로그인 보고서 본문 ${bodyLen}자 (게이트 미해제/렌더 실패 의심)`);
+  // (2.4) 레이아웃 깨짐 — 글자당 세로 줄바꿈(찌부러진 flex 셀) 검출 (2026-07-07 현대로템 conditionalEntryWatch
+  //   버그: shrink-0 긴셀이 flex-1 셀을 폭 0 으로 눌러 CJK 1글자/줄 세로 스택). 텍스트 존재검사는 통과하나
+  //   시각 깨짐 — clientWidth 대비 scrollHeight 가 비정상적으로 큰(세로로 긴) 텍스트 원소를 flag.
+  try {
+    const crushed = await page.evaluate(() => {
+      const bad = [];
+      for (const el of document.querySelectorAll('span,p,div,td')) {
+        if (el.children.length) continue;                       // leaf 텍스트만
+        const txt = (el.textContent || '').trim();
+        if (txt.length < 8) continue;
+        const r = el.getBoundingClientRect();
+        // 폭이 1~2글자(<28px)인데 높이가 글자수에 비례해 큼 = 글자당 줄바꿈(세로 스택)
+        if (r.width > 0 && r.width < 28 && r.height > txt.length * 8) bad.push(txt.slice(0, 30));
+      }
+      return bad.slice(0, 5);
+    });
+    if (crushed.length) alerts.push(`레이아웃 깨짐(글자당 세로 줄바꿈) ${crushed.length}건: ${crushed.map(t => `"${t}"`).join(', ')} — flex 셀 폭 찌부러짐`);
+    else info.push('레이아웃(찌부러짐) 0');
+  } catch { /* 비치명 */ }
   const n = Math.ceil(total / SLICE_H);
   for (let i = 0; i < n; i++) {
     await page.evaluate((y) => window.scrollTo(0, y), i * SLICE_H); await page.waitForTimeout(200);
