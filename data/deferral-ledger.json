@@ -1,5 +1,6 @@
 {
   "_doc": "미룬 '더 나은 방법' 원장 (2026-07-06 사용자 '왜 최선을 안 하고 있었는지 검증체계 마련해'). 각 항목은 게으른 미루기 방지용 — check-deferrals.mjs 가 reEvalBy 경과 or whyStillValid 반증 시 surface. '정당한 미루기'는 여기 등록돼 추적될 때만 정당하다(무등록 방치 = 게으른 미루기).",
+  "_resolved": ["fp8-arm-ab (2026-07-06 실행완료 — 9B FP8 78tok/s<AWQ 90, KV 274k, 멀티턴 93.7%. 결론: 드롭인 교체 불가, 3.0 SFT 서빙 후보. AB 문서 참조)"],
   "deferrals": [
     {
       "id": "chat-outcome-tracking",
@@ -9,15 +10,6 @@
       "reEvalBy": "2026-08-01",
       "severity": "high",
       "isBestMethodBlockedBy": "느린 신호·빌드 규모 — 결정론 계층을 먼저 견고화한 것은 정당(빠른 회귀가드 우선). 단 이게 최종 천장이므로 등록 추적."
-    },
-    {
-      "id": "fp8-arm-ab",
-      "better": "Qwen3.5-9B FP8 서빙 A/B(near-lossless, KV 3배) 측정 — AWQ 90tok/s vs BF16 55 사이 예상",
-      "whyDeferred": "vLLM 재시작=프로덕션 중단 필요 + FP8 은 차기 3.0 모델 결정용(현행 아님). BF16 원본 19GB 이미 수령",
-      "whyStillValid": "vLLM 단일 인스턴스라 스왑=라이브 챗 중단. off-peak(발간 사이) 창 필요",
-      "reEvalBy": "2026-07-08",
-      "severity": "medium",
-      "isBestMethodBlockedBy": "프로덕션 무중단 제약. 심야 창(midnight 발간 후~morning 전)에 실행 예정 — 무등록 방치 아님."
     },
     {
       "id": "chat-e2e-in-harness",
