@@ -85,11 +85,14 @@ async function runSession(ctx, sIdx) {
       }
     };
 
-    const chipPrice = (chips) => { for (const c of chips) { const m = c.match(/([\d,]+(?:\.\d+)?)(?:\s*·|$)/); if (m && Number(m[1].replace(/,/g, '')) > 0) return { price: Number(m[1].replace(/,/g, '')) }; } return null; };
+    // 2026-07-06 fix: *모든* 종목 칩 가격을 grounding 에 담는다. 종전엔 첫 칩만 써서 멀티종목 세션
+    //   ("A 242 · B 43" 칩에 답변은 B 43 인용)에 price_mismatch 오탐. production 은 priced.length>1 이면
+    //   price_mismatch 를 skip 하므로, 전 칩을 담아야 하네스가 production 과 동일 판정을 한다.
+    const chipPrices = (chips) => chips.map(c => { const m = c.match(/([\d,]+(?:\.\d+)?)(?:\s*·|$)/); return m ? Number(m[1].replace(/,/g, '')) : null; }).filter(v => v && v > 0);
     for (let ti = 0; ti < turns.length; ti++) {
       const q = turns[ti];
       const s = await sendTurn(q);
-      const grounding = { tickers: chipPrice(s.chips) ? [{ ticker: 'x', price: chipPrice(s.chips).price }] : [] };
+      const grounding = { tickers: chipPrices(s.chips).map((p, i) => ({ ticker: `t${i}`, price: p })) };
       const defects = s.timeout ? [{ type: 'timeout' }] : checkChatDefects(q, s.text, grounding, 'ko').filter(d => d.type !== 'verdict_mismatch');
       const pass = defects.length === 0 && !s.timeout && s.text.length > 0;
       stat.total++; if (pass) stat.pass++;

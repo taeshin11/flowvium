@@ -46,6 +46,9 @@ const FIXTURES = [
   { name: 'price_mismatch 오검가드(50MA)', a: '현재가가 50MA 아래에 있지만 200MA 위라서 장기 추세는 유효합니다. 분할 매수 관점이 좋습니다.', g: PRICE1, expect: [], corrected: [] },
   // 07-06 UI eval 실증: 줄바꿈 없이 이어지는 문장 반복(degenerate 65회) — 검출 + 전역 문장 dedupe 교정.
   { name: 'repetition 비연속(문장 나열)', a: '매도 신호가 발동되면 즉시 대응해야 합니다. 매도 신호가 발동되면 즉시 대응해야 합니다. 매도 신호가 발동되면 즉시 대응해야 합니다. 결론적으로 분할 접근이 안전합니다.', g: PRICE1, expect: ['repetition_loop'], corrected: ['repetition_loop'] },
+  // 07-06 스트레스 실증 오검 회귀가드: "현재가 기준으로 $236.54[목표가]"의 목표가를 현재가로 오파싱 금지.
+  //   (grounding 현재가 200 과 236 은 18% 차이라 종전 검출기는 오탐. '기준으로' 역할어 개입 = 현재가 아님.)
+  { name: 'price_mismatch 오검가드(현재가 기준으로 목표가)', a: '현재가 $200.00 기준으로, 목표가는 52주 고가 $236.54를 목표로 삼되 돌파 시 추가 상승 여력이 있습니다.', g: PRICE1, expect: [], corrected: [] },
   // 07-06 SFT eval S5 오검 회귀가드: 레벨 나열("손절 $108.68, 목표 $128.55")로 끝나는 답변은 절단 아님.
   { name: 'truncated 오검가드(레벨 꼬리)', a: '오늘 리포트 포트폴리오 기준으로 반도체 비중 확대가 유효합니다. 추천 종목의 상세 레벨은 다음과 같으며 리스크 관리를 위해 분할 접근을 권합니다. AVGO 진입 현재가 부근, 손절 $108.68, 목표 $128.55', g: PRICE1, expect: [], corrected: [] },
   { name: 'english_answer', a: 'This stock shows strong momentum with solid fundamentals. The revenue growth accelerated last quarter and margins expanded significantly across segments.', g: PRICE1, expect: ['english_answer'], corrected: [] },
