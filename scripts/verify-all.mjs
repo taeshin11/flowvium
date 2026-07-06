@@ -134,6 +134,15 @@ const checks = [
     dimensions: ['LLM 출력표면 한자가드 커버리지(신규 미분류 표면 회귀봉쇄)'],
   },
   {
+    // 2026-07-06 (사용자 "왜 최선을 안 하고 있었는지 검증체계"): 게으른 미루기 감시. deferral-ledger 의 미룬
+    //   "더 나은 방법"이 재평가 기한 경과/반증 시 surface. advisory(warn) — 판단 항목이라 push 차단 아님.
+    name: 'check-deferrals',
+    script: 'scripts/check-deferrals.mjs',
+    desc: '게으른 미루기 감시 (미룬 더 나은 방법 추적)',
+    critical: false,
+    dimensions: ['미룬 최선책 재평가 기한/근거 추적 (게으른 미루기 방지)'],
+  },
+  {
     // 2026-07-06 (AISVI 노드 ■4 메타검증 차용): 게이트 고아(anti-orphan) 정적 대조 — 검증 스크립트 신설 후
     //   verify-all 미배선이면 死藏(post-publish-recheck 수동경로 미배선 사건 클래스). 등록 또는 사유 강제.
     name: 'check-gate-registration',

@@ -1,0 +1,32 @@
+{
+  "_doc": "미룬 '더 나은 방법' 원장 (2026-07-06 사용자 '왜 최선을 안 하고 있었는지 검증체계 마련해'). 각 항목은 게으른 미루기 방지용 — check-deferrals.mjs 가 reEvalBy 경과 or whyStillValid 반증 시 surface. '정당한 미루기'는 여기 등록돼 추적될 때만 정당하다(무등록 방치 = 게으른 미루기).",
+  "deferrals": [
+    {
+      "id": "chat-outcome-tracking",
+      "better": "챗의 매수/매도 판단을 리포트 portfolioOutcomes 처럼 forward-return 으로 채점(정답 대비 품질 평가)",
+      "whyDeferred": "현재 chat-verify 는 결정론 계층(포맷/누출/환각-vs-grounding)만 검증 — '유창하고 grounding 됐지만 재무적으로 나쁜 판단'은 verdict_mismatch(엔진 방향 대조) 외엔 못 잡음. outcome 추적은 큰 빌드 + 신호가 느림(수일~수주)",
+      "whyStillValid": "chat 답변에 outcome 추적 파이프 없음(reports 는 evaluate-recommendations 존재)",
+      "reEvalBy": "2026-08-01",
+      "severity": "high",
+      "isBestMethodBlockedBy": "느린 신호·빌드 규모 — 결정론 계층을 먼저 견고화한 것은 정당(빠른 회귀가드 우선). 단 이게 최종 천장이므로 등록 추적."
+    },
+    {
+      "id": "fp8-arm-ab",
+      "better": "Qwen3.5-9B FP8 서빙 A/B(near-lossless, KV 3배) 측정 — AWQ 90tok/s vs BF16 55 사이 예상",
+      "whyDeferred": "vLLM 재시작=프로덕션 중단 필요 + FP8 은 차기 3.0 모델 결정용(현행 아님). BF16 원본 19GB 이미 수령",
+      "whyStillValid": "vLLM 단일 인스턴스라 스왑=라이브 챗 중단. off-peak(발간 사이) 창 필요",
+      "reEvalBy": "2026-07-08",
+      "severity": "medium",
+      "isBestMethodBlockedBy": "프로덕션 무중단 제약. 심야 창(midnight 발간 후~morning 전)에 실행 예정 — 무등록 방치 아님."
+    },
+    {
+      "id": "chat-e2e-in-harness",
+      "better": "라이브 챗 E2E(multiturn/longform/compact/isolation)를 verify-all critical 게이트에 포함",
+      "whyDeferred": "각 E2E 가 LLM 다수콜(수십초~분) — 매 push 게이트에 넣으면 push 가 5~10분+. self-test(결정론)+저장대화 스캔은 이미 verify-all 에 있음",
+      "whyStillValid": "verify-all 은 chat 결정론 검출기 회귀는 잡지만 *라이브 스트림/렌더 행동* 회귀는 self-test 만으론 불완전(스트림 미반영 클래스)",
+      "reEvalBy": "2026-07-20",
+      "severity": "medium",
+      "isBestMethodBlockedBy": "게이트 지연 비용. 대안 실행: build+reload 후 e2e-chat-multiturn 수동 실행을 챗 경로 변경 시 습관화(연료 eval 이 대리). 배포후 챗 스모크 자동화는 검토 중."
+    }
+  ]
+}
