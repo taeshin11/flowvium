@@ -518,9 +518,10 @@ function condenseRules(): string {
 //   환각 줄이려 사실 리서치를 먼저 분리(사용자 '세분화해서 LLM 여러번'). 스트리밍 대신 정밀도↑.
 export type JudgeMode = 'aisvi' | 'aisvi-rag' | 'aisvi-deep';
 export const MODE_OPTS: Record<JudgeMode, { maxTokens: number; temperature: number; preferSmallModel?: boolean; maxTickers: number; useRag: boolean; deep?: boolean }> = {
-  'aisvi':      { maxTokens: 1800, temperature: 0.6, maxTickers: 3, useRag: false },
-  'aisvi-rag':  { maxTokens: 2600, temperature: 0.6, maxTickers: 3, useRag: true },
-  'aisvi-deep': { maxTokens: 3800, temperature: 0.5, maxTickers: 2, useRag: true, deep: true },
+  // 2026-07-06: maxTokens 상향(truncated_answer 실패 대응 — 추천목록/심층이 레벨 나열 중 잘림). 여유 확보.
+  'aisvi':      { maxTokens: 2200, temperature: 0.6, maxTickers: 3, useRag: false },
+  'aisvi-rag':  { maxTokens: 3000, temperature: 0.6, maxTickers: 3, useRag: true },
+  'aisvi-deep': { maxTokens: 4200, temperature: 0.5, maxTickers: 2, useRag: true, deep: true },
 };
 
 // 1-pass(심층): 사업·업황·전망 리서치 브리프 프롬프트. 판단이 아니라 *사실 정리*만.

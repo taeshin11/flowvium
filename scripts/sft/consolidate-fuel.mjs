@@ -17,8 +17,16 @@ const key = (q, a) => `${(q || '').slice(0, 60)}|${(a || '').slice(0, 80)}`.repl
 const train = [], rejected = [];
 
 // eval/stress/history 연료 → 학습 예시
-for (const f of ['chat-sft-eval.jsonl', 'chat-sft-stress.jsonl', 'chat-sft-history.jsonl']) {
+// chat-sft-corrections.jsonl: 실패 프롬프트의 FINANCE 재답변(올바른 답) — weight↑ 로 교정 강조.
+for (const f of ['chat-sft-corrections.jsonl', 'chat-sft-eval.jsonl', 'chat-sft-stress.jsonl', 'chat-sft-history.jsonl']) {
   for (const r of readJsonl(resolve(OUT, 'fuel', f))) {
+    // corrections 는 이미 messages 완성형(weight 포함)
+    if (f === 'chat-sft-corrections.jsonl' && r.messages) {
+      const q = r.messages.find(m => m.role === 'user')?.content ?? '';
+      const a = r.messages.find(m => m.role === 'assistant')?.content ?? '';
+      const k = key(q, a); if (seen.has(k)) continue; seen.add(k);
+      train.push(r); continue;
+    }
     // 답변 본문 추출: eval 은 messages[assistant], stress 는 text
     let q = r.q ?? (r.messages?.find(m => m.role === 'user')?.content) ?? '';
     let a = r.text ?? (r.messages?.find(m => m.role === 'assistant')?.content) ?? '';
