@@ -6927,6 +6927,23 @@ async function generateViaOllama() {
     if (!regionalData && retries[1]) regionalData = parseJson(retries[1], 'regional-retry');
   }
 
+  // 2026-07-06 (사용자 "기본적 분석 왜 비어있지?"): macro 파싱은 성공했는데 개별 카드 필드만 누락한 경우
+  //   (morning 발간본 fundamentalAnalysis="" → 빈 카드) 그 필드만 표적 재요청. 전체 재생성보다 싸고,
+  //   verify 의 narrative_card_empty 게이트에 걸려 발간 차단되기 전에 선제 백필. 실패 시 게이트가 최종 방어.
+  if (macroData) {
+    const CARD_MIN = { macroAnalysis: 30, technicalAnalysis: 15, fundamentalAnalysis: 15 };
+    for (const [f, min] of Object.entries(CARD_MIN)) {
+      if ((String(macroData[f] ?? '').trim().length) >= min) continue;
+      console.log(`  [card-backfill] ${f} 누락/부실 → 표적 재요청`);
+      try {
+        const sys = `너는 금융 애널리스트다. 아래 거시/시장 데이터로 "${f}" 한 필드만 ${TARGET_LANG} 서술형 2문장(${min}~260자)으로 작성하라. 수치를 지어내지 말고 주어진 데이터만 인용. JSON 만 출력: {"${f}":"..."}`;
+        const raw = await callOllama(`${sys}\n\n[데이터]\n${buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence).slice(0, 3500)}`, modelArg, 180000, `card-${f}`);
+        const got = parseJson(raw, `card-${f}`)?.[f];
+        if (got && String(got).trim().length >= min) { macroData[f] = String(got).trim(); console.log(`  [card-backfill] ${f} ✓ (${macroData[f].length}자)`); }
+      } catch (e) { console.warn(`  [card-backfill] ${f} skip: ${e?.message}`); }
+    }
+  }
+
   console.log(`  macro=${!!macroData}(riskLevel:${macroData?.riskLevel ?? 'N/A'}), portfolio=${!!portfolioData}(${portfolioData?.portfolio?.length ?? 0}개), regional=${!!regionalData}(${Object.keys(regionalData?.regionStances ?? {}).length}지역)`);
   console.log(`  opportunity=${!!opportunityData}(squeeze:${opportunityData?.shortSqueeze?.length ?? 0}), narrative=${!!narrativeData}`);
 

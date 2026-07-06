@@ -118,3 +118,13 @@
 - V7 이 첫 실행에서 false-positive(200) — V4 가 B 키에 같은 convId 로 대화를 만들어 B 가 *자기* 대화를
   공유한 것(A 유출 아님, 재현 diag 로 확인: 미접촉 convId share=404). 전용 convId + 내용유출 검사로 교정.
 - check-gate-registration 을 scripts/sft/ 까지 스캔하도록 확장(37개 대조, 고아 0).
+
+[13] 2026-07-06 스크린샷 2건 조사 (사용자 "기본적 분석 왜 비어있지? / KR 하나도 없는데 맞나?")
+- 기본적 분석 빈 카드 = 진짜 버그: morning 발간본 fundamentalAnalysis="" (LLM 이 macro 프롬프트에서
+  그 필드만 누락 → 생성기 '' 기본값 → 빈 카드 발간). 품질게이트는 "있으면 +10점"만 하고 빈값 미차단.
+  fix: ① verify-report narrative_card_empty 게이트(macro30/tech15/fund15자, high) ② 생성기 card-backfill
+  (macro 파싱 성공했는데 카드필드만 부실이면 그 필드만 표적 재요청). 라이브 morning 백필+재발행(128자) 복구.
+- KR 매수 0 = 정상 판단(버그 아님): 후보 30종 중 KR 9종 최고 34점 vs US AAPL/INCY 41점 → 스코어 미달.
+  000810.KS(삼성화재)는 관망(watch,9%)으로 포트폴리오 포함. 헤더 "매수추천"은 action=buy 만 → US 2종.
+  V(42점)가 AAPL/INCY(41)보다 높은데 미선정 = 매수규율 hard veto(칼받기/과열) 작동 — 설계대로.
+- 스트레스 러너 신설: scripts/sft/stress-ui-multiturn.mjs (Playwright 멀티턴 대량 — 세션×3~6턴).

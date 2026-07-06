@@ -349,6 +349,20 @@ export async function verifyReport(file, { silent = false } = {}) {
       log(`  ❌ 무주어 등락% ${nNoSubj}건 ("N주 기준 X%" 절에 대상 없음 — EWY 오독형)`);
       defects.push({ ticker: 'NARRATIVE', defect_type: 'pct_subject_missing', llm_value: `${nNoSubj}건`, correct_value: '등락% 절에 대상(티커/지수명) 명시 — 생성기 attributePctSubjects 무력화 여부 확인', severity: 'medium' });
     }
+    // ①a 빈 서사 카드 게이트 (2026-07-06 사용자 "기본적 분석 왜 비어있지?" — morning 발간본 fundamentalAnalysis=""
+    //   가 라이브에 빈 카드로 노출). LLM 이 macro 프롬프트에서 필드를 누락하면 생성기가 '' 기본값 → 발간되던 사각지대.
+    //   품질 게이트는 "있으면 +점"만 하고 빈 값을 안 막았음. 홈/리포트가 카드로 렌더하는 3필드는 최소 길이 강제.
+    {
+      const CARD_MIN = { macroAnalysis: 30, technicalAnalysis: 15, fundamentalAnalysis: 15 };
+      for (const [f, min] of Object.entries(CARD_MIN)) {
+        const v = r[f];
+        const len = typeof v === 'string' ? v.trim().length : 0;
+        if (len < min) {
+          log(`  ❌ 빈/부실 서사 카드 (${f}): ${len}자 (최소 ${min}) — LLM 필드 누락이 빈 카드로 발간`);
+          defects.push({ ticker: f, defect_type: 'narrative_card_empty', llm_value: `${len}자`, correct_value: `${f} 는 홈/리포트 카드로 렌더 — 최소 ${min}자. LLM 누락 시 생성기 백필/재시도 확인`, severity: 'high' });
+        }
+      }
+    }
     // ①b 비문/훼손 서사 게이트 (2026-07-05 사용자 "라이브 슬라이드 검증 안해?" — 소급교정 절치환이 만든
     //   비문 "외국인 순매수되며 …하락세가 공포 심화" + 선행문 제거 흔적 "반면, ..." 시작이 3시간 라이브 노출).
     //   교정기든 LLM 이든 어느 쪽이 만들었든 발간 전에 차단. marketNarrative(라이브 슬라이드 소스) 포함.
