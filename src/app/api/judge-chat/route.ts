@@ -322,7 +322,9 @@ async function streamVllm(system: string, user: string, opts: { maxTokens: numbe
   const model = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
   const r = await fetch(`${base}/v1/chat/completions`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: opts.maxTokens, temperature: opts.temperature, repetition_penalty: 1.05, stream: true }),
+    // enable_thinking:false (2026-07-06 A/B 준비 중 발견된 누락): callVLLM 은 껐는데 스트리밍 경로만 안 꺼서
+    //   hybrid-thinking 모델(vanilla Qwen3/3.5)로 바꾸면 CoT 가 답변에 그대로 섞임 — 요청측 명시가 정답(AISVI 실측).
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: opts.maxTokens, temperature: opts.temperature, repetition_penalty: 1.05, chat_template_kwargs: { enable_thinking: false }, stream: true }),
     signal: AbortSignal.timeout(llmTimeoutMs(opts.maxTokens)),
   });
   if (!r.ok || !r.body) throw new Error(`vllm stream ${r.status}`);

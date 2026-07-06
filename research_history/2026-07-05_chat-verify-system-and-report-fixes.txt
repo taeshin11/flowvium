@@ -98,3 +98,13 @@
   (lookahead A-Za-z), 저장본 대조 로직 버그(빈 list→false-fail). 픽스처 20개.
 - 재실행 UI 9/9 (t1 4,943자 65반복 → 202자 정상). API-eval 교차 7/8(잔여 1=확률적 verdict 역전 —
   폐루프·DPO 연료로 추적) — repetition_penalty 의 deep 분량 회귀 없음(2,264자).
+
+[11] 2026-07-06 A/B: FINANCE_T 30B-A3B vs vanilla Qwen3.5-9B-AWQ (사용자 "a/b테스트해봐")
+- 오전 라이브 스왑(10:44~11:15, 정오 cron 전 원복+E2E 검증). 상세: Drive 0.SFT_Flovium/eval/AB-*.md
+- 9B: 디코드 90 vs 192 tok/s(절반), KV 270k vs 65k(4.1배), 정확성 게이트 실질 전부 통과(수익률·정직성·
+  compact), 문체 장황(규율 미학습). 실패 2건은 Yahoo 일시장애/하네스 마크다운 artifact 로 판명.
+- 결론: 즉시 교체 부적합, 차기 FINANCE_T 3.0 SFT 베이스로 유력. FP8 팔은 BF16 수령 후 별도 측정.
+- 부수 fix: streamVllm 에 enable_thinking:false 누락 보완(hybrid-thinking 모델 CoT 혼입 방지).
+- 연료 정리: FINANCE_T v1 연료(data/sft) → Drive fuel/legacy 백업. v2 distill 연료는 구 머신
+  D:\llama\aisvi-finance-t-v2.jsonl 에만 존재(이 머신 D: 없음, Drive 에도 없음) — 회수 필요.
+  0.SFT(의료)와 0.SFT_Flovium(금융) 경계 README 명시.
