@@ -60,6 +60,7 @@ export async function localChat(
         stream: false,
         max_tokens: opts.maxTokens ?? 2048,
         temperature: opts.temperature ?? 0.1,
+        repetition_penalty: 1.05, // 2026-07-06: degenerate 반복 방지(챗/리포트와 일관 — 번역/요약/cascade 공유 경로)
         // Qwen3 thinking 비활성 — vLLM OpenAI 서버는 chat_template_kwargs 로 전달.
         chat_template_kwargs: { enable_thinking: false },
       }),

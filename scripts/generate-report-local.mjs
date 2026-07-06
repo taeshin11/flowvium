@@ -1173,6 +1173,9 @@ async function callVLLM(prompt, timeoutMs = 600000, label = '', maxTokens = 2048
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.4,
         max_tokens: maxTokens,
+        // 2026-07-06: rep penalty — 챗과 동일(1.05). 이번 세션 KR narrative 필드 degenerate 반복 실증 →
+        //   JSON 문자열 필드 내 반복 방지(리포트는 JSON 이라 덜 드러나지만 narrative/thesis 문자열은 장문).
+        repetition_penalty: 1.05,
         // 2026-06-15 Ollama→vLLM: schema 주면 json_schema 강제(구조화 출력), 없으면 json_object.
         response_format: schema ? { type: 'json_schema', json_schema: { name: 'out', schema } } : { type: 'json_object' },
         chat_template_kwargs: { enable_thinking: false }, // Qwen3.6 thinking off — max_tokens 보존.
