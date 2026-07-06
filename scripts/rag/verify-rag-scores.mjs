@@ -31,6 +31,10 @@ function guruGroup(s) {
   return 'other';
 }
 const cosine = (a, b) => { let d = 0, na = 0, nb = 0, n = Math.min(a.length, b.length); for (let i = 0; i < n; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return na && nb ? d / (Math.sqrt(na) * Math.sqrt(nb)) : 0; };
+// 2026-07-06: production rag.ts 의 effScore boost 재현(한글 +0.06, 큐레이션 태그 +0.04) — raw 영어 letter
+//   조각이 한국어 질의 top 을 오염하던 것을 큐레이션 원칙 위로 re-rank. Claude 직접판독으로 발견한 개선.
+const CURATION_TAG = /\b(guru|discipline|fundamental|technical|macro)\b|매수엔진|매도엔진/;
+const effBoost = (t) => (/[가-힣]/.test(t) ? 0.06 : 0) + (CURATION_TAG.test(t) ? 0.04 : 0);
 const embed = async (t) => { try { const r = await fetch(EMBED_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texts: [t] }), signal: AbortSignal.timeout(15000) }); if (!r.ok) return null; return (await r.json())?.embeddings?.[0] ?? null; } catch { return null; } };
 
 // [1] 임베더 생존
@@ -60,9 +64,9 @@ console.log(`[3] 오프토픽 baseline top score: ${offtopic.top.toFixed(3)}`);
 for (const g of GOLDEN) {
   if (!groupsPresent.has(g.expect)) { console.log(`⏭️ [2] ${g.expect} 코퍼스에 없음 — 골든 skip`); continue; }
   const qv = await embed(g.q);
-  const scored = corpus.map(c => ({ g: guruGroup(c.source), s: cosine(qv, c.embedding) })).sort((a, b) => b.s - a.s);
+  const scored = corpus.map(c => { const s = cosine(qv, c.embedding); return { g: guruGroup(c.source), s, eff: s + effBoost(c.text) }; }).sort((a, b) => b.eff - a.eff);
   const top = scored[0];
-  const hits = scored.filter(x => x.s >= 0.35).length;
+  const hits = scored.filter(x => x.eff >= 0.35).length;
   ok(hits >= 1, `[2] "${g.q.slice(0, 24)}…" ≥1 hit (${hits}건, top=${top.s.toFixed(3)}) — 온토픽 무회수=거짓부재/임계과high`);
   ok(top.s >= 0.45, `[3] top score ${top.s.toFixed(3)} ≥ 0.45 (임계 0.35 겨우넘는 저품질 아님)`);
   ok(top.s > offtopic.top + 0.05, `[3] 판별력: 온토픽 ${top.s.toFixed(3)} > 오프토픽 ${offtopic.top.toFixed(3)} — 스코어가 관련성 반영`);

@@ -84,9 +84,15 @@ export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
   if (!corpus.length) return [];
   const qv = await embedQuery(query);
   if (!qv) { logger.warn('rag', 'embed_unavailable', {}); return []; }
-  const scored = corpus.map(c => ({ source: c.source, year: c.year, text: c.text, score: cosine(qv, c.embedding) }));
-  scored.sort((a, b) => b.score - a.score);
-  const eligible = scored.filter(h => h.score >= 0.35);
+  // 2026-07-06 (Claude 직접 검증): raw 버크셔 주주서한이 *영어 문장조각*으로 청킹돼 bge-m3 교차언어 유사도로
+  //   한국어 질의에도 top 랭크를 차지하나 실사용 가치 0(중간 조각). 큐레이션된 한국어 원칙 라인(guru/discipline/
+  //   매수엔진 태그)이 진짜 gold 인데 밀림. effectiveScore 로 re-rank: 한글 포함(번역/큐레이션) +0.06,
+  //   큐레이션 태그(guru/discipline/매수엔진/매도엔진/fundamental) +0.04 → gold 를 노이즈 위로.
+  const CURATION_TAG = /\b(guru|discipline|fundamental|technical|macro)\b|매수엔진|매도엔진/;
+  const boost = (text: string) => (/[가-힣]/.test(text) ? 0.06 : 0) + (CURATION_TAG.test(text) ? 0.04 : 0);
+  const scored = corpus.map(c => { const base = cosine(qv, c.embedding); return { source: c.source, year: c.year, text: c.text, score: base, effScore: base + boost(c.text) }; });
+  scored.sort((a, b) => b.effScore - a.effScore);
+  const eligible = scored.filter(h => h.effScore >= 0.35);
   // 구루 그룹당 최대 2개 → 버핏 독점 방지, 다른 구루 노출. 부족하면 cap 무시하고 채움.
   const CAP = 2;
   const counts: Record<string, number> = {};
