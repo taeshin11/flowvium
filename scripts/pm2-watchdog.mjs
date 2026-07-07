@@ -6,15 +6,17 @@
 //   (그래도 안 뜨면) 개별 restart. 정상이면 무로그(노이즈 방지). logs/pm2-watchdog.log 에 복구이력.
 //   node 작성 이유: pm2 jlist JSON 에 중복키(username/USERNAME) 있어 PowerShell ConvertFrom-Json 거부 →
 //   node JSON.parse 는 중복키 허용(마지막 값 채택).
-import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { appendFileSync, existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 
 const LORA_LOCK = 'C:\\Flowvium\\logs\\lora-training.lock';
+const HOLD_STATE = 'C:\\Flowvium\\logs\\vllm-hold-count.json';
 
 const PM2 = `${process.env.APPDATA}\\npm\\pm2.cmd`;
 const LOG = 'C:\\Flowvium\\logs\\pm2-watchdog.log';
 const NEED = ['flowvium-cron', 'flowvium-web', 'flowvium-tunnel', 'flowvium-redis-shim'];
-const ts = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
+// KST 로컬시각 — toISOString(UTC)이던 시절 07-07 장애분석에서 "로그가 9시간 전에 끊김"으로 오독됨.
+const ts = () => new Date().toLocaleString('sv-SE');
 const logline = (m) => { try { appendFileSync(LOG, `${ts()} ${m}\n`); } catch { /* */ } };
 
 function onlineNames() {
@@ -38,23 +40,55 @@ async function checkVllm() {
       return r.ok;
     } catch { return false; }
   };
-  if (await alive()) return; // 정상 — 무로그
+  if (await alive()) { try { unlinkSync(HOLD_STATE); } catch { /* */ } return; } // 정상 — 무로그
   // LoRA 학습 윈도우: vLLM 을 의도적으로 정지(GPU 24GB 점유 해제)한 상태 → 재기동하면 학습 OOM.
   //   logs/lora-training.lock 존재 시 재기동 보류(오케스트레이터가 학습 후 lock 제거+vLLM 재기동).
   if (existsSync(LORA_LOCK)) { logline('[VLLM] :8000 다운이나 lora-training.lock 존재 — LoRA 학습중, 재기동 보류'); return; }
   // 모델 로딩 중(~1-2min)이면 vllm 프로세스가 이미 떠 있음 → 재기동 시 중복 spawn/포트경합 → 보류.
+  //   ★[v]llm 브래킷 필수 — "vllm serve" 그대로 쓰면 bash -c 래퍼 자신의 cmdline 이 매칭돼 loading 이
+  //   항상 true → WSL 사망 후에도 영구 보류 (2026-07-07 noon~evening 11시간 무복구 사건의 근본원인).
   let loading = false;
   try {
-    const ps = execFileSync('wsl.exe', ['-d', 'Ubuntu-24.04', '-u', 'root', 'bash', '-c', 'pgrep -f "vllm serve" | head -1'],
+    const ps = execFileSync('wsl.exe', ['-d', 'Ubuntu-24.04', '-u', 'root', 'bash', '-c', 'pgrep -f "[v]llm serve" | head -1'],
       { encoding: 'utf8', timeout: 15000, windowsHide: true }).trim();
     loading = ps.length > 0;
   } catch { /* wsl 미가용 */ }
-  if (loading) { logline('[VLLM] :8000 미응답이나 vllm 프로세스 존재(로딩중 추정) — 재기동 보류'); return; }
-  logline('[VLLM] :8000 다운 + vllm 프로세스 없음 — FlowVium-vLLM 태스크 재기동');
+  if (loading) {
+    // 보류 무한루프 방지: 연속 4회(~1h) 로딩중이면 정상 로딩(~2-4min)일 수 없음 — 좀비로 판정, 강제 재기동.
+    let holds = 0;
+    try { holds = JSON.parse(readFileSync(HOLD_STATE, 'utf8')).holds | 0; } catch { /* */ }
+    holds += 1;
+    try { writeFileSync(HOLD_STATE, JSON.stringify({ holds, at: ts() })); } catch { /* */ }
+    if (holds < 4) { logline(`[VLLM] :8000 미응답이나 vllm 프로세스 존재(로딩중 추정) — 재기동 보류 (${holds}/4)`); return; }
+    logline(`[VLLM] :8000 미응답 + 로딩중 추정 ${holds}회 연속 — 좀비 판정, pkill 후 강제 재기동`);
+    try { execFileSync('wsl.exe', ['-d', 'Ubuntu-24.04', '-u', 'root', 'bash', '-c', 'pkill -f "[v]llm serve"; sleep 3'], { timeout: 30000, windowsHide: true }); } catch { /* */ }
+  } else {
+    logline('[VLLM] :8000 다운 + vllm 프로세스 없음 — FlowVium-vLLM 태스크 재기동');
+  }
+  try { unlinkSync(HOLD_STATE); } catch { /* */ }
   try { execFileSync('schtasks', ['/run', '/tn', 'FlowVium-vLLM'], { timeout: 20000, windowsHide: true }); }
   catch (e) { logline(`[VLLM] 재기동 실패: ${String(e?.message).slice(0, 80)}`); }
 }
 await checkVllm();
+
+// RAG 임베더(:8100, bge-m3 CPU) liveness — Startup .cmd 는 로그온 시에만 돌아 WSL 이 세션 중 죽으면
+//   아무도 재기동 안 하는 사각지대 (2026-07-07 WSL 동반사망으로 실증). 중복 spawn 은 :8100 바인딩
+//   실패로 즉시 종료돼 무해 (serve-embed.sh 는 uvicorn exec 단일 프로세스).
+async function checkEmbedder() {
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 6000);
+    const r = await fetch('http://127.0.0.1:8100/health', { signal: c.signal });
+    clearTimeout(t);
+    if (r.ok) return;
+  } catch { /* down */ }
+  logline('[EMBED] :8100 다운 — serve-embed.sh 재기동');
+  try {
+    spawn('wsl.exe', ['-d', 'Ubuntu-24.04', '-u', 'root', '--', 'bash', '/mnt/c/Flowvium/scripts/rag/serve-embed.sh'],
+      { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  } catch (e) { logline(`[EMBED] 재기동 실패: ${String(e?.message).slice(0, 80)}`); }
+}
+await checkEmbedder();
 
 const on = onlineNames();
 if (!on) process.exit(1);

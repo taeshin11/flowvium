@@ -36,10 +36,19 @@ if errorlevel 1 (
 )
 
 :: 1. vLLM server health check -- wait-retry loop (up to ~12min = 36 x 20s) for boot-dependent startup.
+::   2026-07-07: on first failed probe, kick FlowVium-vLLM task once (self-heal). Safe: task policy is
+::   IgnoreNew, so /run while the wrapper is already Running (e.g. model still loading) is a no-op.
+::   Before this, 7 report runs in a row waited 12min and died while nothing restarted vLLM.
 set "VLLM_CODE="
+set "VLLM_KICKED="
 for /l %%i in (1,1,36) do (
   for /f %%S in ('curl -s --max-time 8 -o nul -w "%%{http_code}" http://127.0.0.1:8000/v1/models 2^>nul') do set "VLLM_CODE=%%S"
   if "!VLLM_CODE!"=="200" goto :vllm_ok
+  if not defined VLLM_KICKED (
+    echo [%DATE% %TIME%] [WARN] vLLM 8000 down ^(http=!VLLM_CODE!^) - kicking FlowVium-vLLM task >> "%LOG_FILE%"
+    schtasks /run /tn FlowVium-vLLM >nul 2>&1
+    set "VLLM_KICKED=1"
+  )
   echo [%DATE% %TIME%] [INFO] waiting for vLLM 8000 %%i/36 ^(http=!VLLM_CODE!^) >> "%LOG_FILE%"
   timeout /t 20 /nobreak >nul 2>&1
 )
