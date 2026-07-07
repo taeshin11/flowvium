@@ -1,43 +1,43 @@
 {
-  "generatedAt": "2026-07-06T21:30:27.242Z",
+  "generatedAt": "2026-07-07T17:40:54.223Z",
   "universe": "US",
   "scanned": 340,
-  "count": 17,
+  "count": 14,
   "strongCount": 0,
-  "watchCount": 17,
+  "watchCount": 14,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "PETS",
-      "name": "PetMed Express, Inc.",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 21.3× 상승(지속 매집)",
-        "거래량 56.7× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.7,
-      "runup5dPct": 11.4,
-      "medDollarVolUsd": 188032,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "WSR",
-      "name": "Whitestone REIT",
+      "ticker": "BMRC",
+      "name": "Bank of Marin Bancorp",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "변동성 수축(coiling) — 돌파 압축",
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 6개(저가 매수받침)"
+      ],
+      "runup20dPct": 10,
+      "runup5dPct": 3.6,
+      "medDollarVolUsd": 2707950,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "STRF",
+      "name": "Strategy Inc - 10.00% Series A ",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -0.5,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 7456968,
+      "runup20dPct": 4.8,
+      "runup5dPct": 5.5,
+      "medDollarVolUsd": 9014656,
       "smartAccum": false,
       "official": null
     },
@@ -52,77 +52,43 @@
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 7.4,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 1099560,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ONL",
-      "name": "Orion Properties Inc.",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.1× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -2.7,
+      "runup20dPct": 7.1,
       "runup5dPct": -2.4,
-      "medDollarVolUsd": 888848,
+      "medDollarVolUsd": 1080060,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "BMRC",
-      "name": "Bank of Marin Bancorp",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 10.6,
-      "runup5dPct": 2.6,
-      "medDollarVolUsd": 2713763,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CBL",
-      "name": "CBL & Associates Properties, In",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 11.3,
-      "runup5dPct": -1,
-      "medDollarVolUsd": 11218650,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "HFWA",
-      "name": "Heritage Financial Corporation",
+      "ticker": "TWO",
+      "name": "Two Harbors Investment Corp",
       "tier": "watch",
       "score": 27,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.5× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -2.1,
+      "runup5dPct": -2.6,
+      "medDollarVolUsd": 18658989,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NRIM",
+      "name": "Northrim BanCorp Inc",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 7.9,
-      "runup5dPct": 1,
-      "medDollarVolUsd": 6756322,
+      "runup20dPct": 9.8,
+      "runup5dPct": -2.3,
+      "medDollarVolUsd": 2860198,
       "smartAccum": false,
       "official": null
     },
@@ -133,13 +99,13 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 1.8× 상승",
         "흡수 매집봉 2개(대량거래·변동폭 억제)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 0.7,
-      "runup5dPct": 1.1,
-      "medDollarVolUsd": 1730460,
+      "runup20dPct": 0.8,
+      "runup5dPct": 0.8,
+      "medDollarVolUsd": 1659512,
       "smartAccum": false,
       "official": null
     },
@@ -150,29 +116,29 @@
       "score": 25,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 추세 2.1× 상승(지속 매집)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": 2.3,
-      "runup5dPct": 2.3,
-      "medDollarVolUsd": 345114,
+      "runup20dPct": 2.5,
+      "runup5dPct": -1.4,
+      "medDollarVolUsd": 326180,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "TWO",
-      "name": "Two Harbors Investment Corp",
+      "ticker": "BHC",
+      "name": "Bausch Health Companies Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
+        "거래량 추세 1.9× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -2.2,
-      "runup5dPct": -2.7,
-      "medDollarVolUsd": 18946400,
+      "runup20dPct": -8,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 9378710,
       "smartAccum": false,
       "official": null
     },
@@ -187,43 +153,26 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 7,
-      "runup5dPct": 1.2,
+      "runup20dPct": 4.6,
+      "runup5dPct": -2.9,
       "medDollarVolUsd": 12034386,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CBZ",
-      "name": "CBIZ, Inc.",
+      "ticker": "CBL",
+      "name": "CBL & Associates Properties, In",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.6× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 6,
-      "runup5dPct": 12,
-      "medDollarVolUsd": 21255321,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NRIM",
-      "name": "Northrim BanCorp Inc",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 9.9,
-      "runup5dPct": -2.5,
-      "medDollarVolUsd": 2956160,
+      "runup20dPct": 10.7,
+      "runup5dPct": 0.6,
+      "medDollarVolUsd": 11115526,
       "smartAccum": false,
       "official": null
     },
@@ -238,9 +187,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": -0.3,
-      "medDollarVolUsd": 5337250,
+      "runup20dPct": 8.1,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 5325856,
       "smartAccum": false,
       "official": null
     },
@@ -251,30 +200,30 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 1.8× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": -0.8,
-      "medDollarVolUsd": 6021939,
+      "runup20dPct": 7.7,
+      "runup5dPct": -1.3,
+      "medDollarVolUsd": 5969376,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MCB",
-      "name": "Metropolitan Bank Holding Corp.",
+      "ticker": "LUNG",
+      "name": "Pulmonx Corporation",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.9× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 10.9,
-      "runup5dPct": 0.4,
-      "medDollarVolUsd": 10847432,
+      "runup20dPct": -1.8,
+      "runup5dPct": 13,
+      "medDollarVolUsd": 500834,
       "smartAccum": false,
       "official": null
     },
@@ -282,15 +231,15 @@
       "ticker": "OSUR",
       "name": "OraSure Technologies, Inc.",
       "tier": "watch",
-      "score": 16,
+      "score": 20,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
+        "종가 일중 상단 70%(강한 매수 흡수)"
       ],
-      "runup20dPct": 4.8,
-      "runup5dPct": -2,
-      "medDollarVolUsd": 2241392,
+      "runup20dPct": 7.3,
+      "runup5dPct": -3.7,
+      "medDollarVolUsd": 2175489,
       "smartAccum": false,
       "official": null
     }
