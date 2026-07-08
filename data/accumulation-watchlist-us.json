@@ -1,30 +1,12 @@
 {
-  "generatedAt": "2026-07-08T13:00:29.733Z",
+  "generatedAt": "2026-07-08T21:30:27.942Z",
   "universe": "US",
   "scanned": 340,
-  "count": 17,
-  "strongCount": 1,
-  "watchCount": 16,
+  "count": 13,
+  "strongCount": 0,
+  "watchCount": 13,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "BMRC",
-      "name": "Bank of Marin Bancorp",
-      "tier": "strong",
-      "score": 39,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.3,
-      "runup5dPct": 3,
-      "medDollarVolUsd": 2713763,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "STRF",
       "name": "Strategy Inc - 10.00% Series A ",
@@ -32,13 +14,30 @@
       "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 추세 2.5× 상승(지속 매집)",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 4.5,
-      "runup5dPct": 5.2,
+      "runup20dPct": 1.9,
+      "runup5dPct": 3.9,
       "medDollarVolUsd": 9048450,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BMRC",
+      "name": "Bank of Marin Bancorp",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 8.2,
+      "runup5dPct": 1.3,
+      "medDollarVolUsd": 2713763,
       "smartAccum": false,
       "official": null
     },
@@ -46,16 +45,33 @@
       "ticker": "WSBF",
       "name": "Waterstone Financial, Inc.",
       "tier": "watch",
-      "score": 34,
+      "score": 30,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 4.1,
+      "runup5dPct": -6.7,
+      "medDollarVolUsd": 1099560,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CDNL",
+      "name": "Cardinal Infrastructure Group I",
+      "tier": "watch",
+      "score": 30,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.3× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 6.7,
-      "runup5dPct": -2.7,
-      "medDollarVolUsd": 1099560,
+      "runup20dPct": 11.3,
+      "runup5dPct": -27.5,
+      "medDollarVolUsd": 30422790,
       "smartAccum": false,
       "official": null
     },
@@ -66,81 +82,30 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 80%(강한 매수 흡수)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": 14.4,
+      "runup20dPct": 9.9,
+      "runup5dPct": 15,
       "medDollarVolUsd": 21255321,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "HFWA",
-      "name": "Heritage Financial Corporation",
+      "ticker": "TWO",
+      "name": "Two Harbors Investment Corp",
       "tier": "watch",
-      "score": 27,
-      "coFire": 2,
+      "score": 25,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 1.5× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 1.6× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
       ],
-      "runup20dPct": 6,
-      "runup5dPct": 0.1,
-      "medDollarVolUsd": 6756322,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NRIM",
-      "name": "Northrim BanCorp Inc",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.3,
-      "runup5dPct": -2.8,
-      "medDollarVolUsd": 2980406,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RBB",
-      "name": "RBB Bancorp",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 6개(저가 매수받침)"
-      ],
-      "runup20dPct": 10.8,
+      "runup20dPct": -2.3,
       "runup5dPct": -2.7,
-      "medDollarVolUsd": 2700147,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "BTT",
-      "name": "BlackRock Municipal 2030 Target",
-      "tier": "watch",
-      "score": 26,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 1,
-      "runup5dPct": 1,
-      "medDollarVolUsd": 1730460,
+      "medDollarVolUsd": 17550304,
       "smartAccum": false,
       "official": null
     },
@@ -151,146 +116,112 @@
       "score": 25,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 추세 2.1× 상승(지속 매집)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": 3.1,
-      "runup5dPct": -0.8,
+      "runup20dPct": 2.8,
+      "runup5dPct": 0.7,
       "medDollarVolUsd": 345114,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PMT",
-      "name": "PennyMac Mortgage Investment Tr",
+      "ticker": "REX",
+      "name": "REX American Resources Corporat",
       "tier": "watch",
-      "score": 23,
+      "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 4.1,
-      "runup5dPct": -3.3,
-      "medDollarVolUsd": 12034386,
+      "runup20dPct": 6,
+      "runup5dPct": 5.2,
+      "medDollarVolUsd": 7600864,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CBL",
-      "name": "CBL & Associates Properties, In",
+      "ticker": "NRIM",
+      "name": "Northrim BanCorp Inc",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.7× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 10.5,
-      "runup5dPct": 0.5,
-      "medDollarVolUsd": 11296341,
+      "runup20dPct": 6.3,
+      "runup5dPct": -4.9,
+      "medDollarVolUsd": 2980406,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "FVR",
-      "name": "FrontView REIT, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 6개(저가 매수받침)"
-      ],
-      "runup20dPct": 10,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 2403597,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PGC",
-      "name": "Peapack-Gladstone Financial Cor",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 6.4,
-      "runup5dPct": -1.3,
-      "medDollarVolUsd": 5363095,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "THFF",
-      "name": "First Financial Corporation",
+      "ticker": "RBB",
+      "name": "RBB Bancorp",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.8× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 6.5,
-      "runup5dPct": -2.5,
-      "medDollarVolUsd": 6098424,
+      "runup20dPct": 8.1,
+      "runup5dPct": -4.4,
+      "medDollarVolUsd": 2700147,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MCB",
-      "name": "Metropolitan Bank Holding Corp.",
+      "ticker": "LUNG",
+      "name": "Pulmonx Corporation",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.9× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 6.8,
-      "runup5dPct": -2.3,
-      "medDollarVolUsd": 11153360,
+      "runup20dPct": -2.7,
+      "runup5dPct": 11.5,
+      "medDollarVolUsd": 502320,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "TWO",
-      "name": "Two Harbors Investment Corp",
+      "ticker": "SRI",
+      "name": "Stoneridge, Inc.",
       "tier": "watch",
-      "score": 19,
+      "score": 22,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)"
-      ],
-      "runup20dPct": -2.1,
-      "runup5dPct": -2.7,
-      "medDollarVolUsd": 18658989,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "OSUR",
-      "name": "OraSure Technologies, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
+        "거래량 추세 3.3× 상승(지속 매집)",
         "종가 일중 상단 60%"
       ],
-      "runup20dPct": 6.9,
-      "runup5dPct": -4,
-      "medDollarVolUsd": 2241392,
+      "runup20dPct": -3.7,
+      "runup5dPct": -4.9,
+      "medDollarVolUsd": 1275813,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BTT",
+      "name": "BlackRock Municipal 2030 Target",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": 0.9,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 1659512,
       "smartAccum": false,
       "official": null
     }
