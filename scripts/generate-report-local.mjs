@@ -3182,14 +3182,24 @@ async function buildIndexLevelsBlock() {
       const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(12000) });
       if (!res.ok) return null;
       const r = (await res.json())?.chart?.result?.[0];
-      const closes = (r?.indicators?.quote?.[0]?.close ?? []).filter(c => c != null && c > 0);
-      // 라이브 가격(regularMarketPrice)을 마지막 close 보다 우선(장중 반영)
+      // ★2026-07-08 (noon "등락 0.0% 정체" 사건): 5d 일봉의 마지막 봉은 *오늘 진행중 봉*이라, 그 뒤에
+      //   live 를 push 하면 prev=오늘봉 → 장이 열린 날은 전일대비가 항상 ~0.0%. KOSDAQ -3.9% 급락일에
+      //   "정체·bullish" 서사가 생성됨(게이트가 차단). prev 는 반드시 *다른 거래일* 봉에서 취한다.
+      const rawCloses = r?.indicators?.quote?.[0]?.close ?? [];
+      const rawTs = r?.timestamp ?? [];
+      const bars = [];
+      for (let i = 0; i < rawTs.length; i++) if (rawCloses[i] != null && rawCloses[i] > 0) bars.push({ t: rawTs[i], c: rawCloses[i] });
+      if (!bars.length) return null;
       const live = r?.meta?.regularMarketPrice;
-      if (live != null && live > 0) closes.push(live);
-      if (closes.length < 1) return null;
-      const cur = closes[closes.length - 1];
-      const prev = closes.length >= 2 ? closes[closes.length - 2] : null;
-      const chgPct = prev ? (cur / prev - 1) * 100 : null;
+      const cur = (live != null && live > 0) ? live : bars[bars.length - 1].c;
+      // 마지막 봉이 현 세션(라이브와 같은 거래일)이면 그 이전 봉이 전일 — 거래소 tz(gmtoffset)로 날짜 비교.
+      const off = (r?.meta?.gmtoffset ?? 0) * 1000;
+      const dayOf = (sec) => Math.floor((sec * 1000 + off) / 86400000);
+      const liveDay = r?.meta?.regularMarketTime ? dayOf(r.meta.regularMarketTime) : dayOf(bars[bars.length - 1].t);
+      const prevBar = liveDay > dayOf(bars[bars.length - 1].t)
+        ? bars[bars.length - 1]                                  // 오늘 봉 미생성(세션 직전) — 마지막 봉이 전일
+        : (bars.length >= 2 ? bars[bars.length - 2] : null);     // 마지막 봉=오늘 — 그 이전 봉이 전일
+      const chgPct = prevBar ? (cur / prevBar.c - 1) * 100 : null;
       return { cur, chgPct };
     } catch { return null; }
   };
