@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-08T21:30:27.942Z",
+  "generatedAt": "2026-07-09T13:00:30.160Z",
   "universe": "US",
   "scanned": 340,
-  "count": 13,
+  "count": 14,
   "strongCount": 0,
-  "watchCount": 13,
+  "watchCount": 14,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -138,7 +138,24 @@
       ],
       "runup20dPct": 6,
       "runup5dPct": 5.2,
-      "medDollarVolUsd": 7600864,
+      "medDollarVolUsd": 7697040,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "DCOM",
+      "name": "Dime Commercial Bancshares, Inc",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 1.6,
+      "runup5dPct": -4.7,
+      "medDollarVolUsd": 9690524,
       "smartAccum": false,
       "official": null
     },
