@@ -1,11 +1,29 @@
 {
-  "generatedAt": "2026-07-09T22:30:12.954Z",
+  "generatedAt": "2026-07-10T07:30:04.390Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
-  "totalRecent": 1357,
+  "totalRecent": 1325,
   "feed": [
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "rceptNo": "20260709000703",
+      "filedAt": "2026-07-10",
+      "kind": "insider",
+      "reporter": "김형수",
+      "role": "비등기임원",
+      "title": "상무",
+      "relation": null,
+      "sharesAfter": 575,
+      "sharesDelta": -110,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "sell",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260709000703"
+    },
     {
       "ticker": "065500.KQ",
       "name": "오리엔트정공",
@@ -1067,24 +1085,6 @@
       "direction": "buy",
       "reason": null,
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260708000363"
-    },
-    {
-      "ticker": "018260.KS",
-      "name": "삼성에스디에스",
-      "rceptNo": "20260708000003",
-      "filedAt": "2026-07-08",
-      "kind": "insider",
-      "reporter": "서진우",
-      "role": "비등기임원",
-      "title": "상무",
-      "relation": null,
-      "sharesAfter": 50,
-      "sharesDelta": 50,
-      "ratioAfter": 0,
-      "ratioDelta": 0,
-      "direction": "buy",
-      "reason": null,
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260708000003"
     }
   ]
 }
