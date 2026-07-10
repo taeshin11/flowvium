@@ -185,11 +185,13 @@ async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
     });
     if (!res.ok) return [];
     const html = await res.text();
-    // Wikipedia constituents table parsing (2026-05 구조).
-    // ticker link 은 nasdaq.com 또는 nyse.com — 둘 다 외부 link (class="external text")
+    // Wikipedia constituents table parsing.
     // 2026-06-13: 이름 셀의 "(Class A)" 등 링크 뒤 잔여 텍스트 허용 ([^<]* 추가) — 종전 regex 가
     //   듀얼클래스(GOOGL/GOOG "(Class A/C)")를 통째로 누락시키던 결함 (빅테크 부재 사건의 2차 원인).
-    const rowRe = /<a[^>]*class="external text"[^>]*href="https:\/\/www\.(?:nasdaq|nyse)\.com[^"]*">([A-Z][A-Z0-9.\-]{0,5})<\/a>[^<]*<\/td>\s*<td><a[^>]*>([^<]+)<\/a>[^<]*<\/td>\s*<td>([^<]+)<\/td>/g;
+    // 2026-07-10: Wikipedia 가 Parsoid 마크업으로 변경 — href 가 class 보다 앞, <td id="...">,
+    //   BRK.B/BF.B 는 </a> 뒤 HTML 주석 — 로 US 히트맵 0매치 전멸([K] 결함). 속성 순서 무관 +
+    //   td 속성 허용 + 주석 허용으로 재작성 (구/신 마크업 모두 매치, 라이브 502/503 검증).
+    const rowRe = /<a[^>]*href="https:\/\/www\.(?:nasdaq|nyse)\.com[^"]*"[^>]*>([A-Z][A-Z0-9.\-]{0,5})<\/a>(?:<!--[\s\S]*?-->|[^<])*<\/td>\s*<td[^>]*><a[^>]*>([^<]+)<\/a>[^<]*<\/td>\s*<td[^>]*>([^<]+)<\/td>/g;
     const holdings: IShareHolding[] = [];
     let m: RegExpExecArray | null;
     while ((m = rowRe.exec(html)) !== null) {
@@ -203,6 +205,11 @@ async function fetchSP500FromWikipedia(): Promise<IShareHolding[]> {
         weight: 0, price: 0, location: 'US', currency: 'USD',
       });
       if (holdings.length >= 500) break;
+    }
+    // 2026-07-10: 0매치 = 마크업 재변경 신호 — info 에 묻히지 않게 별도 warn (즉시 원인 식별용).
+    if (holdings.length === 0) {
+      logger.warn('ishares', 'wikipedia_parse_zero', { htmlLen: html.length, hint: 'Wikipedia 표 마크업 변경 의심 — rowRe 점검' });
+      return [];
     }
     // 실시총 결합 — 실패 종목은 1e8(소형 취급, tail 정렬). 전체 실패 시에도 최소한 전 종목 유지.
     const caps = await fetchYahooMarketCaps(holdings.map(h => h.ticker));

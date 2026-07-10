@@ -318,7 +318,10 @@ export async function GET(req: NextRequest) {
               : `iShares ${cfg?.etfTicker} (구성) + Stooq+Yahoo (시세)`,
   };
 
-  if (redis) {
+  // 2026-07-10: silent-empty(구성소스 실패, unavailable 아님)를 Redis 에 15분 고정하던 결함 수정 —
+  //   빈 결과는 명시적 unavailable 일 때만 캐시(업스트림 재시도 허용). 메모리 캐시와 동일 원칙.
+  const cacheable = stocks.length > 0 || unavailable === true;
+  if (redis && cacheable) {
     const t0 = Date.now();
     try {
       logger.info('market-heatmap', 'save_start', { key: cacheKey, ttl: CACHE_TTL });
@@ -327,7 +330,7 @@ export async function GET(req: NextRequest) {
     } catch (err) {
       logger.error('market-heatmap', 'save_failed', { key: cacheKey, error: err });
     }
-  } else if (stocks.length > 0) {
+  } else if (!redis && stocks.length > 0) {
     // Only cache non-empty to avoid pinning a failed upstream fetch
     MEMORY_CACHE.set(country, data);
   }

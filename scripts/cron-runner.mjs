@@ -55,6 +55,15 @@ function recordCronFailure(path, detail) {
   while (cronFailures.length > 50) cronFailures.shift();
 }
 
+// 2026-07-10 escalation: "모니터가 본다 ≠ fix" — [K] market-heatmap US 빈값이 20분 주기로
+//   하루종일(60+사이클) 감지만 되고 방치된 사건. 같은 결함이 ESCALATE_CYCLES 연속 지속되면
+//   🚨🚨 escalation 로그 + logs/escalations.json 적재(지속 중 REALERT_CYCLES 마다 재알림) —
+//   스팟체크가 "새 결함"과 "방치된 만성 결함"을 구분해 개입 우선순위를 얻는다.
+//   (프로세스 재시작 시 streak 리셋 — 재시작 후 2h 내 재에스컬레이션되므로 허용.)
+const ESCALATE_CYCLES = 6; // 20분 주기 × 6 = ~2h
+const REALERT_CYCLES = 18; // 지속 중 재알림 간격 ~6h
+const defectStreaks = new Map(); // defectKey → { n, firstTs }
+
 // 2026-07-02: HTTP 크론 마지막 성공 기록 — 시작시 catchup(놓친 슬롯 자기치유)의 판정 근거.
 //   컷오버/재부팅으로 슬롯을 놓치면 Redis 캐시가 TTL 만료로 조용히 죽던 클래스(signal-retrospective
 //   콜드캐시 + /api/signals 빈배열, 2026-07-02 같은 날 2건)의 영구 봉쇄.
@@ -256,6 +265,27 @@ async function runMonitor() {
       result.defects.push(`[발행후재검] 라이브 슬라이드 ALERT${rc.liveConfirmed ? '' : '(라이브미반영)'}: ${det || `결함 ${rc.defectCount ?? '?'}`}`);
     }
   } catch { /* recheck 아직 없음 — 비치명 */ }
+
+  // (escalation) 지속 결함 추적 — 감지 상태의 '나이'를 가시화 (상단 defectStreaks 주석 참조)
+  try {
+    const nowKeys = new Set(result.defects.map((d) => d.slice(0, 70)));
+    for (const k of [...defectStreaks.keys()]) if (!nowKeys.has(k)) defectStreaks.delete(k);
+    const escalations = [];
+    for (const k of nowKeys) {
+      const s = defectStreaks.get(k) ?? { n: 0, firstTs: Date.now() };
+      s.n += 1; defectStreaks.set(k, s);
+      if (s.n === ESCALATE_CYCLES || (s.n > ESCALATE_CYCLES && (s.n - ESCALATE_CYCLES) % REALERT_CYCLES === 0)) {
+        escalations.push({ ts: new Date().toISOString(), cycles: s.n, sinceH: +(((Date.now() - s.firstTs) / 3600000).toFixed(1)), defect: k });
+      }
+    }
+    if (defectStreaks.size) result.checks.persistentDefects = Math.max(...[...defectStreaks.values()].map((s) => s.n));
+    if (escalations.length) {
+      for (const e of escalations) log(`🚨🚨 [escalation] 결함 ${e.cycles}사이클(${e.sinceH}h) 지속 — 감지만으론 fix 아님, 개입 필요: ${e.defect}`);
+      const p = resolve(process.cwd(), 'logs/escalations.json');
+      let prev = []; try { prev = JSON.parse(readFileSync(p, 'utf8')); } catch { /* */ }
+      writeFileSync(p, JSON.stringify([...prev, ...escalations].slice(-50), null, 2));
+    }
+  } catch { /* 비치명 */ }
 
   try { writeFileSync(resolve(process.cwd(), 'logs/monitor-status.json'), JSON.stringify(result, null, 2)); } catch { /* */ }
   log(`[auto-monitor] stall=${result.checks.stall} dq=${result.checks.dataQuality} gpu=${result.checks.gpu ?? 'n/a'} fbPurge=${result.checks.fallbackPurge ?? 'n/a'} cronFails=${result.checks.cronFails ?? 0} artifact=${result.checks.artifactFresh ?? 'n/a'} recheck=${result.checks.publishRecheck ?? 'n/a'}${result.defects.length ? ' 🚨 ' + result.defects.slice(0, 4).join(' | ') : ' ✅'}`);
