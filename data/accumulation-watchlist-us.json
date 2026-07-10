@@ -1,60 +1,26 @@
 {
-  "generatedAt": "2026-07-10T13:00:27.626Z",
+  "generatedAt": "2026-07-10T21:30:27.671Z",
   "universe": "US",
   "scanned": 340,
-  "count": 11,
+  "count": 8,
   "strongCount": 0,
-  "watchCount": 11,
+  "watchCount": 8,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "STRF",
-      "name": "Strategy Inc - 10.00% Series A ",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 2.5,
-      "runup5dPct": 1.2,
-      "medDollarVolUsd": 9048450,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CVEO",
-      "name": "Civeo Corporation (Canada)",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.0× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -10,
-      "runup5dPct": -8.4,
-      "medDollarVolUsd": 2606272,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "BMRC",
       "name": "Bank of Marin Bancorp",
       "tier": "watch",
-      "score": 30,
+      "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 9.6,
-      "runup5dPct": -1.6,
-      "medDollarVolUsd": 2707950,
+      "runup20dPct": 8.8,
+      "runup5dPct": 0.1,
+      "medDollarVolUsd": 2713763,
       "smartAccum": false,
       "official": null
     },
@@ -67,11 +33,11 @@
       "lead": [
         "거래량 추세 2.2× 상승(지속 매집)",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 9.9,
-      "runup5dPct": -2.5,
-      "medDollarVolUsd": 6723960,
+      "runup20dPct": 9.3,
+      "runup5dPct": -1.9,
+      "medDollarVolUsd": 6927546,
       "smartAccum": false,
       "official": null
     },
@@ -82,30 +48,47 @@
       "score": 30,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 추세 2.2× 상승(지속 매집)",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 6개(저가 매수받침)"
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 3.1,
-      "runup5dPct": -6.4,
+      "runup20dPct": 2.1,
+      "runup5dPct": -4.1,
       "medDollarVolUsd": 1099560,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "DCOM",
-      "name": "Dime Commercial Bancshares, Inc",
+      "ticker": "RBB",
+      "name": "RBB Bancorp",
       "tier": "watch",
-      "score": 23,
+      "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.5× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 1.9,
-      "runup5dPct": -3.9,
-      "medDollarVolUsd": 9690524,
+      "runup20dPct": 9.6,
+      "runup5dPct": -1,
+      "medDollarVolUsd": 2729860,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "LUNG",
+      "name": "Pulmonx Corporation",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 7.7,
+      "runup5dPct": 10.8,
+      "medDollarVolUsd": 502320,
       "smartAccum": false,
       "official": null
     },
@@ -116,47 +99,13 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
+        "거래량 추세 1.6× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 7.6,
-      "runup5dPct": -2.1,
-      "medDollarVolUsd": 2980406,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RBB",
-      "name": "RBB Bancorp",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.9,
-      "runup5dPct": -4.4,
-      "medDollarVolUsd": 2700147,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "LUNG",
-      "name": "Pulmonx Corporation",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -3.9,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 502320,
+      "runup20dPct": 7.1,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 2998380,
       "smartAccum": false,
       "official": null
     },
@@ -167,11 +116,11 @@
       "score": 22,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.3× 상승(지속 매집)",
+        "거래량 추세 3.2× 상승(지속 매집)",
         "종가 일중 상단 60%"
       ],
-      "runup20dPct": 1.7,
-      "runup5dPct": -1,
+      "runup20dPct": 2.9,
+      "runup5dPct": 3.3,
       "medDollarVolUsd": 1275813,
       "smartAccum": false,
       "official": null
@@ -186,8 +135,8 @@
         "거래량 추세 1.8× 상승",
         "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": -2.6,
-      "runup5dPct": -2.3,
+      "runup20dPct": -2,
+      "runup5dPct": 0.1,
       "medDollarVolUsd": 17406207,
       "smartAccum": false,
       "official": null
