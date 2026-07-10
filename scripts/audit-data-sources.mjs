@@ -102,7 +102,18 @@ const SOURCES = [
     name: 'CNN Fear & Greed',
     critical: false,
     test: async () => {
-      const r = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+      // 2026-07-10: CNN 이 minimal UA 에 418 (~Q4 2025 부터) — 앱(fear-greed/route.ts)과 동일한
+      //   full browser 헤더 사용. 감사 fetch 레시피는 앱 실경로와 항상 동기화(어긋나면 false alarm).
+      const r = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://edition.cnn.com/markets/fear-and-greed',
+          'Origin': 'https://edition.cnn.com',
+        },
+        signal: AbortSignal.timeout(8000),
+      });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       const score = j?.fear_and_greed?.score;
@@ -117,7 +128,9 @@ const SOURCES = [
       const r = await fetch('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(10000) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const t = await r.text();
-      const matches = t.match(/<a[^>]*class="external text"[^>]*href="https:\/\/www\.(?:nasdaq|nyse)\.com/g)?.length ?? 0;
+      // 2026-07-10: Wikipedia Parsoid 마크업 전환(href 가 class 보다 앞) — ishares-holdings.ts 와
+      //   동일하게 속성 순서 무관 매칭 (구 regex 는 신마크업 0매치).
+      const matches = t.match(/<a[^>]*href="https:\/\/www\.(?:nasdaq|nyse)\.com[^"]*"[^>]*>/g)?.length ?? 0;
       if (matches < 400) throw new Error(`only ${matches} matches (regex broken?)`);
       return `${matches} tickers`;
     },
