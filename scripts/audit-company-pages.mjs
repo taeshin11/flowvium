@@ -19,7 +19,9 @@ const BASE = process.env.AUDIT_BASE ?? 'https://flowvium.net';
 const TIMEOUT = 30000;  // DART API 가 ~15-20s 소요 — 12s 부족
 
 const candidates = JSON.parse(readFileSync('data/candidate-tickers.json', 'utf8'));
-const us = candidates.tickers.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ'));
+// 2026-07-10: ETF(권위소스 meta.cap==='etf') 제외 — 기업 전용 endpoint(financials/recs)에 ETF 는
+//   404 가 정답이라 error 로 집계되면 false alarm (audit-coverage probe10 동일 결함에서 발견).
+const us = candidates.tickers.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ') && candidates.meta?.[t]?.cap !== 'etf');
 const kr = candidates.tickers.filter(t => t.endsWith('.KS') || t.endsWith('.KQ'));
 const POOL = us.length + kr.length;
 

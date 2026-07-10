@@ -533,7 +533,10 @@ try {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const pool = JSON.parse(fs.readFileSync(path.resolve('data/candidate-tickers.json'), 'utf8'));
-  const us = pool.tickers.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ'));
+  // 2026-07-10: ETF(권위소스 pool.meta[t].cap==='etf') 제외 — 회전 커서가 ETF 블록(VUG/VTV/IWF/…)에
+  //   진입하면 company-financials 등 기업 전용 endpoint 가 6/6 404 → false FAIL 로 push 차단되던 결함.
+  //   ETF 는 재무제표/analyst-target 이 없는 게 정상(404 가 정답) — 기업 깊이 프로브 대상이 아님.
+  const us = pool.tickers.filter(t => !t.endsWith('.KS') && !t.endsWith('.KQ') && pool.meta?.[t]?.cap !== 'etf');
   const kr = pool.tickers.filter(t => t.endsWith('.KS') || t.endsWith('.KQ'));
   // 2026-06-17 전수조사 #9: 6+6 랜덤 셔플 → 결정론적 회전. 랜덤은 매 audit 다른 6+6만 봐서 나머지 ~1300
   //   종목이 영구히 안 잡히던 사각지대. 커서 persist → 매 실행 다음 슬라이스 → 전 종목 순차 1순회.

@@ -42,16 +42,24 @@ try {
   }
 
   // ── 폐루프 효과 검증(2026-06-18): 챗 결함→프롬프트 anti-pattern 주입 루프가 *실제로 결함을 줄이는지*.
-  //   entries 는 LIFO(0=최신). 최근 절반 vs 과거 절반 결함률 비교 → 추세. 양쪽 모두 잔존하는 유형 = 루프 비효과(persist).
   //   교정율(corrected): sanitize 결정론 레이어가 결함을 답변 반환 전 제거한 비율. "검증→교정" 시스템화 증거.
-  const half = Math.floor(entries.length / 2);
+  // 2026-07-10: 건수 half-split → *시간창* 비교(최근 7일 vs 이전)로 교체 — 트래픽이 버스트형이라
+  //   half-split 은 "최근 절반"이 수주 전 사건일(07-06 vLLM 다운+hanja 버스트)을 포함해
+  //   "악화 30.6% vs 10.9%" 오판을 냈다(당일 실측: 최근 4일 결함 0). 추세는 달력 기준이어야 한다.
+  const RECENT_MS = 7 * 24 * 3600 * 1000;
+  const cutoff = Date.now() - RECENT_MS;
+  const tsOf = (e) => { const t = new Date(e.ts ?? 0).getTime(); return Number.isFinite(t) ? t : 0; };
+  const recentEntries = entries.filter((e) => tsOf(e) >= cutoff);
+  const olderEntries = entries.filter((e) => tsOf(e) < cutoff);
   const rateOf = (arr) => arr.length ? arr.filter((e) => (e.defectCount ?? 0) > 0).length / arr.length : 0;
-  const recentRate = rateOf(entries.slice(0, half));
-  const olderRate = rateOf(entries.slice(half));
-  const trend = half >= 10 ? (recentRate < olderRate - 0.02 ? '개선' : recentRate > olderRate + 0.02 ? '악화' : '횡보') : 'n/a(표본부족)';
+  const recentRate = rateOf(recentEntries);
+  const olderRate = rateOf(olderEntries);
+  const trend = (recentEntries.length >= 10 && olderEntries.length >= 10)
+    ? (recentRate < olderRate - 0.02 ? '개선' : recentRate > olderRate + 0.02 ? '악화' : '횡보')
+    : `n/a(표본부족 최근7일 ${recentEntries.length}건)`;
   const recentTypes = {}, olderTypes = {};
-  for (const e of entries.slice(0, half)) for (const d of (e.defects ?? [])) recentTypes[d.type] = 1;
-  for (const e of entries.slice(half)) for (const d of (e.defects ?? [])) olderTypes[d.type] = 1;
+  for (const e of recentEntries) for (const d of (e.defects ?? [])) recentTypes[d.type] = 1;
+  for (const e of olderEntries) for (const d of (e.defects ?? [])) olderTypes[d.type] = 1;
   const persistent = Object.keys(recentTypes).filter((t) => olderTypes[t]); // 과거·최근 모두 — 루프가 못 잡는 유형
   const correctedN = entries.filter((e) => e.corrected).length;
   const closedLoop = { recentRate: +(recentRate * 100).toFixed(1), olderRate: +(olderRate * 100).toFixed(1), trend, persistent, correctedRate: +(correctedN / entries.length * 100).toFixed(1) };
