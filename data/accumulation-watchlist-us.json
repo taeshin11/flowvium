@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-09T21:30:26.801Z",
+  "generatedAt": "2026-07-10T13:00:27.626Z",
   "universe": "US",
   "scanned": 340,
-  "count": 10,
+  "count": 11,
   "strongCount": 0,
-  "watchCount": 10,
+  "watchCount": 11,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -31,7 +31,7 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.9× 상승(지속 매집)",
+        "거래량 추세 4.0× 상승(지속 매집)",
         "거래량 2.7× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
@@ -93,6 +93,23 @@
       "official": null
     },
     {
+      "ticker": "DCOM",
+      "name": "Dime Commercial Bancshares, Inc",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 1.9,
+      "runup5dPct": -3.9,
+      "medDollarVolUsd": 9690524,
+      "smartAccum": false,
+      "official": null
+    },
+    {
       "ticker": "NRIM",
       "name": "Northrim BanCorp Inc",
       "tier": "watch",
@@ -150,12 +167,12 @@
       "score": 22,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 추세 3.3× 상승(지속 매집)",
         "종가 일중 상단 60%"
       ],
       "runup20dPct": 1.7,
       "runup5dPct": -1,
-      "medDollarVolUsd": 1241842,
+      "medDollarVolUsd": 1275813,
       "smartAccum": false,
       "official": null
     },
