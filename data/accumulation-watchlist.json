@@ -1,10 +1,29 @@
 {
-  "generatedAt": "2026-07-13T07:20:25.889Z",
+  "generatedAt": "2026-07-13T22:20:24.310Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 0,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "093380.KQ",
+      "name": "풍강",
+      "tier": "watch",
+      "score": 40,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 13.9× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 2.8,
+      "runup5dPct": 2.2,
+      "medDollarVolUsd": 34069,
+      "smartAccum": true,
+      "official": null
+    }
+  ]
 }
