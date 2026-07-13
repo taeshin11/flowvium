@@ -1,100 +1,31 @@
 {
-  "generatedAt": "2026-07-13T13:00:33.335Z",
+  "generatedAt": "2026-07-13T21:30:26.618Z",
   "universe": "US",
-  "scanned": 340,
-  "count": 8,
+  "scanned": 324,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 8,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "BMRC",
-      "name": "Bank of Marin Bancorp",
+      "ticker": "SAR",
+      "name": "Saratoga Investment Corp New",
       "tier": "watch",
-      "score": 34,
+      "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 3.4× 상승(지속 매집)",
+        "거래량 4.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": 8.8,
-      "runup5dPct": 0.1,
-      "medDollarVolUsd": 2713763,
+      "runup20dPct": -14.5,
+      "runup5dPct": -11.1,
+      "medDollarVolUsd": 1964690,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "ITIC",
-      "name": "Investors Title Company",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.3,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 6927546,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "WSBF",
-      "name": "Waterstone Financial, Inc.",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 2.1,
-      "runup5dPct": -4.1,
-      "medDollarVolUsd": 1099560,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RBB",
-      "name": "RBB Bancorp",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.6,
-      "runup5dPct": -1,
-      "medDollarVolUsd": 2729860,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "LUNG",
-      "name": "Pulmonx Corporation",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.7,
-      "runup5dPct": 10.8,
-      "medDollarVolUsd": 502320,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NRIM",
-      "name": "Northrim BanCorp Inc",
+      "ticker": "CNXC",
+      "name": "Concentrix Corporation",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
@@ -103,25 +34,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 7.1,
-      "runup5dPct": 0.4,
-      "medDollarVolUsd": 2998380,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SRI",
-      "name": "Stoneridge, Inc.",
-      "tier": "watch",
-      "score": 22,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": 2.9,
-      "runup5dPct": 3.3,
-      "medDollarVolUsd": 1275813,
+      "runup20dPct": -5.3,
+      "runup5dPct": 6.2,
+      "medDollarVolUsd": 36273023,
       "smartAccum": false,
       "official": null
     },
@@ -132,12 +47,28 @@
       "score": 19,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 1.6× 상승",
         "변동성 수축(coiling) — 돌파 압축"
       ],
       "runup20dPct": -2,
-      "runup5dPct": 0.1,
-      "medDollarVolUsd": 17406207,
+      "runup5dPct": -0.1,
+      "medDollarVolUsd": 17246160,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "LMNR",
+      "name": "Limoneira Co",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 7,
+      "runup5dPct": 4.4,
+      "medDollarVolUsd": 984186,
       "smartAccum": false,
       "official": null
     }
