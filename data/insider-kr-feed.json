@@ -1,11 +1,29 @@
 {
-  "generatedAt": "2026-07-12T22:30:15.464Z",
+  "generatedAt": "2026-07-13T07:30:02.420Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
-  "totalRecent": 1309,
+  "totalRecent": 1286,
   "feed": [
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "rceptNo": "20260710000718",
+      "filedAt": "2026-07-13",
+      "kind": "insider",
+      "reporter": "전중원",
+      "role": "비등기임원",
+      "title": "상무",
+      "relation": null,
+      "sharesAfter": 521,
+      "sharesDelta": 10,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "buy",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260710000718"
+    },
     {
       "ticker": "019570.KQ",
       "name": "플루토스",
@@ -1067,24 +1085,6 @@
       "direction": "buy",
       "reason": null,
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260709000436"
-    },
-    {
-      "ticker": "189300.KQ",
-      "name": "인텔리안테크",
-      "rceptNo": "20260709000407",
-      "filedAt": "2026-07-09",
-      "kind": "insider",
-      "reporter": "변도준",
-      "role": "비등기임원",
-      "title": "전무이사",
-      "relation": null,
-      "sharesAfter": 4000,
-      "sharesDelta": 2350,
-      "ratioAfter": 0.03,
-      "ratioDelta": 0.02,
-      "direction": "buy",
-      "reason": null,
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260709000407"
     }
   ]
 }
