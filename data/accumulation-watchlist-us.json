@@ -1,25 +1,43 @@
 {
-  "generatedAt": "2026-07-15T13:00:27.558Z",
+  "generatedAt": "2026-07-15T21:30:25.606Z",
   "universe": "US",
   "scanned": 324,
-  "count": 3,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "SAR",
-      "name": "Saratoga Investment Corp New",
+      "ticker": "AOD",
+      "name": "Aberdeen Total Dynamic Dividend",
       "tier": "watch",
-      "score": 28,
+      "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 4.7× 급증(가격 평탄)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -14.5,
-      "runup5dPct": -11.1,
-      "medDollarVolUsd": 1964690,
+      "runup20dPct": 0.9,
+      "runup5dPct": 3,
+      "medDollarVolUsd": 3970560,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NVRI",
+      "name": "Enviri Corporation",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 10,
+      "runup5dPct": -0.1,
+      "medDollarVolUsd": 14165730,
       "smartAccum": false,
       "official": null
     },
@@ -30,12 +48,12 @@
       "score": 19,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 2.0× 상승",
         "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": -2,
-      "runup5dPct": -0.1,
-      "medDollarVolUsd": 17246160,
+      "runup20dPct": -1.2,
+      "runup5dPct": 0.2,
+      "medDollarVolUsd": 17406207,
       "smartAccum": false,
       "official": null
     },
@@ -49,8 +67,8 @@
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%"
       ],
-      "runup20dPct": 7,
-      "runup5dPct": 4.4,
+      "runup20dPct": 4.3,
+      "runup5dPct": 2.9,
       "medDollarVolUsd": 967155,
       "smartAccum": false,
       "official": null
