@@ -153,13 +153,6 @@
     "roePct": 11.3,
     "fy": "2025"
   },
-  "NFLX": {
-    "revUsd": 45183036000,
-    "revYoYPct": 15.9,
-    "opMarginPct": 29.5,
-    "roePct": 41.3,
-    "fy": "2025"
-  },
   "CMCSA": {
     "revUsd": 123707000000,
     "revYoYPct": 0,
@@ -252,11 +245,11 @@
     "fy": "2025"
   },
   "NKE": {
-    "revUsd": 46309000000,
-    "revYoYPct": -9.8,
+    "revUsd": 46398000000,
+    "revYoYPct": 0.2,
     "opMarginPct": null,
-    "roePct": 24.4,
-    "fy": "2025"
+    "roePct": 20.9,
+    "fy": "2026"
   },
   "LOW": {
     "revUsd": 86286000000,
@@ -2225,13 +2218,6 @@
     "roePct": 22.5,
     "fy": "2025"
   },
-  "TDY": {
-    "revUsd": 6115400000,
-    "revYoYPct": 7.9,
-    "opMarginPct": 18.8,
-    "roePct": 8.5,
-    "fy": "2025"
-  },
   "GGG": {
     "revUsd": 2236604000,
     "revYoYPct": 5.8,
@@ -2674,11 +2660,11 @@
     "fy": "2025"
   },
   "CAG": {
-    "revUsd": 11612800000,
-    "revYoYPct": -3.6,
-    "opMarginPct": 11.8,
-    "roePct": 12.9,
-    "fy": "2025"
+    "revUsd": 11281600000,
+    "revYoYPct": -2.9,
+    "opMarginPct": -14.4,
+    "roePct": -30.1,
+    "fy": "2026"
   },
   "CEG": {
     "revUsd": 22663000000,
