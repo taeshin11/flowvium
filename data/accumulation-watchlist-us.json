@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-16T13:00:27.069Z",
+  "generatedAt": "2026-07-16T21:30:26.023Z",
   "universe": "US",
   "scanned": 324,
   "count": 4,
@@ -11,33 +11,33 @@
       "ticker": "AOD",
       "name": "Aberdeen Total Dynamic Dividend",
       "tier": "watch",
-      "score": 24,
+      "score": 28,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 0.9,
-      "runup5dPct": 3,
-      "medDollarVolUsd": 3970560,
+      "runup20dPct": 1.1,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 3967600,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NVRI",
-      "name": "Enviri Corporation",
+      "ticker": "CMPS",
+      "name": "COMPASS Pathways Plc - American",
       "tier": "watch",
-      "score": 24,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
+        "거래량 추세 1.5× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 10,
-      "runup5dPct": -0.1,
-      "medDollarVolUsd": 14165730,
+      "runup20dPct": 8.2,
+      "runup5dPct": -8.6,
+      "medDollarVolUsd": 42909838,
       "smartAccum": false,
       "official": null
     },
@@ -48,12 +48,12 @@
       "score": 19,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승",
+        "거래량 추세 1.9× 상승",
         "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": -1.2,
+      "runup20dPct": -1.3,
       "runup5dPct": 0.2,
-      "medDollarVolUsd": 17406207,
+      "medDollarVolUsd": 17246160,
       "smartAccum": false,
       "official": null
     },
@@ -67,9 +67,9 @@
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%"
       ],
-      "runup20dPct": 4.3,
-      "runup5dPct": 2.9,
-      "medDollarVolUsd": 967155,
+      "runup20dPct": 7.7,
+      "runup5dPct": 5.9,
+      "medDollarVolUsd": 963742,
       "smartAccum": false,
       "official": null
     }
