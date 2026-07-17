@@ -153,6 +153,13 @@
     "roePct": 11.3,
     "fy": "2025"
   },
+  "NFLX": {
+    "revUsd": 45183036000,
+    "revYoYPct": 15.9,
+    "opMarginPct": 29.5,
+    "roePct": 41.3,
+    "fy": "2025"
+  },
   "CMCSA": {
     "revUsd": 123707000000,
     "revYoYPct": 0,
@@ -2216,6 +2223,13 @@
     "revYoYPct": 0.2,
     "opMarginPct": 6.4,
     "roePct": 22.5,
+    "fy": "2025"
+  },
+  "TDY": {
+    "revUsd": 6115400000,
+    "revYoYPct": 7.9,
+    "opMarginPct": 18.8,
+    "roePct": 8.5,
     "fy": "2025"
   },
   "GGG": {
