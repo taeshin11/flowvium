@@ -490,11 +490,11 @@
     "fy": "2025"
   },
   "PAYX": {
-    "revUsd": 5410000000,
-    "revYoYPct": 5.4,
-    "opMarginPct": 40.8,
-    "roePct": null,
-    "fy": "2025"
+    "revUsd": 6301100000,
+    "revYoYPct": 16.5,
+    "opMarginPct": 39.8,
+    "roePct": 47.1,
+    "fy": "2026"
   },
   "VEEV": {
     "revUsd": 3195311000,
