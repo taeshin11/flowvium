@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-17T21:30:25.464Z",
+  "generatedAt": "2026-07-18T13:00:25.978Z",
   "universe": "US",
   "scanned": 324,
-  "count": 2,
+  "count": 3,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -20,7 +20,23 @@
       ],
       "runup20dPct": 1.4,
       "runup5dPct": 0.3,
-      "medDollarVolUsd": 3946964,
+      "medDollarVolUsd": 3967600,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "HQH",
+      "name": "Tekla Healthcare Investors",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 4.9,
+      "runup5dPct": -3.3,
+      "medDollarVolUsd": 3128523,
       "smartAccum": false,
       "official": null
     },
