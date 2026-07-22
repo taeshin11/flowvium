@@ -1,26 +1,75 @@
 {
-  "generatedAt": "2026-07-22T13:00:24.946Z",
+  "generatedAt": "2026-07-22T21:30:24.702Z",
   "universe": "US",
   "scanned": 302,
-  "count": 1,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "AGD",
-      "name": "\"abrdn Global Dynamic Dividend ",
+      "ticker": "AOD",
+      "name": "Aberdeen Total Dynamic Dividend",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -2.7,
-      "runup5dPct": -0.1,
-      "medDollarVolUsd": 1272267,
+      "runup20dPct": 4.9,
+      "runup5dPct": 0.3,
+      "medDollarVolUsd": 3946964,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AGD",
+      "name": "\"abrdn Global Dynamic Dividend ",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -0.4,
+      "runup5dPct": 0.2,
+      "medDollarVolUsd": 1260935,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "DLNG",
+      "name": "Dynagas LNG Partners LP",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.8× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 4.8,
+      "runup5dPct": 1.1,
+      "medDollarVolUsd": 120204,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "TFIN",
+      "name": "Triumph Financial, Inc.",
+      "tier": "watch",
+      "score": 15,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 9.6,
+      "runup5dPct": 3.4,
+      "medDollarVolUsd": 17648002,
       "smartAccum": false,
       "official": null
     }
