@@ -1,11 +1,29 @@
 {
-  "generatedAt": "2026-07-21T22:30:15.739Z",
+  "generatedAt": "2026-07-22T07:30:04.882Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
   "totalRecent": 1230,
   "feed": [
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "rceptNo": "20260722000161",
+      "filedAt": "2026-07-22",
+      "kind": "insider",
+      "reporter": "Lee Sungki",
+      "role": "비등기임원",
+      "title": "상무",
+      "relation": null,
+      "sharesAfter": 0,
+      "sharesDelta": -937,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "sell",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260722000161"
+    },
     {
       "ticker": "000500.KS",
       "name": "가온전선",
@@ -707,24 +725,6 @@
       "direction": "buy",
       "reason": null,
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260721001312"
-    },
-    {
-      "ticker": "005930.KS",
-      "name": "삼성전자",
-      "rceptNo": "20260721001306",
-      "filedAt": "2026-07-21",
-      "kind": "insider",
-      "reporter": "서재홍",
-      "role": "비등기임원",
-      "title": "상무",
-      "relation": null,
-      "sharesAfter": 602,
-      "sharesDelta": 122,
-      "ratioAfter": 0,
-      "ratioDelta": 0,
-      "direction": "buy",
-      "reason": null,
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260721001306"
     },
     {
       "ticker": "005930.KS",
