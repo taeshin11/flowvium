@@ -1,12 +1,29 @@
 {
-  "generatedAt": "2026-07-21T22:20:23.125Z",
+  "generatedAt": "2026-07-22T07:20:24.030Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "025870.KQ",
+      "name": "신라에스지",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 9.1× 상승(지속 매집)",
+        "거래량 9.8× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -10.4,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 35156,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "026040.KQ",
       "name": "제이에스티나",
@@ -14,12 +31,12 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
+        "거래량 추세 1.9× 상승",
         "거래량 2.6× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -11.2,
-      "runup5dPct": 5.3,
+      "runup20dPct": -5.7,
+      "runup5dPct": -4.5,
       "medDollarVolUsd": 133699,
       "smartAccum": true,
       "official": null
