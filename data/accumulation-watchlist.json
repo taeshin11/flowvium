@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-22T07:20:24.030Z",
+  "generatedAt": "2026-07-22T22:20:23.063Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 2,
@@ -8,19 +8,19 @@
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "025870.KQ",
-      "name": "신라에스지",
+      "ticker": "054780.KQ",
+      "name": "키이스트",
       "tier": "watch",
-      "score": 38,
+      "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 9.1× 상승(지속 매집)",
-        "거래량 9.8× 급증(가격 평탄)",
+        "거래량 추세 1.7× 상승",
+        "거래량 2.8× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -10.4,
-      "runup5dPct": 2.4,
-      "medDollarVolUsd": 35156,
+      "runup20dPct": -9.2,
+      "runup5dPct": -5.9,
+      "medDollarVolUsd": 63584,
       "smartAccum": true,
       "official": null
     },
