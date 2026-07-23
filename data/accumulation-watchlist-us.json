@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T13:00:24.809Z",
+  "generatedAt": "2026-07-23T21:30:24.729Z",
   "universe": "US",
   "scanned": 302,
   "count": 4,
@@ -7,6 +7,39 @@
   "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "DGICB",
+      "name": "Donegal Group, Inc.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 6.8× 상승(지속 매집)",
+        "거래량 15.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -0.2,
+      "runup5dPct": -11.8,
+      "medDollarVolUsd": 11178,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "HFWA",
+      "name": "Heritage Financial Corporation",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 4.5,
+      "runup5dPct": -3.1,
+      "medDollarVolUsd": 7318500,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "AOD",
       "name": "Aberdeen Total Dynamic Dividend",
@@ -16,60 +49,28 @@
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 4.9,
-      "runup5dPct": 0.3,
+      "runup20dPct": 3.8,
+      "runup5dPct": -1,
       "medDollarVolUsd": 3946964,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "AGD",
-      "name": "\"abrdn Global Dynamic Dividend ",
+      "ticker": "FSBC",
+      "name": "Five Star Bancorp",
       "tier": "watch",
-      "score": 23,
+      "score": 24,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 3.2× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -0.4,
-      "runup5dPct": 0.2,
-      "medDollarVolUsd": 1260935,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "DLNG",
-      "name": "Dynagas LNG Partners LP",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.8× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 4.8,
-      "runup5dPct": 1.1,
-      "medDollarVolUsd": 120204,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "TFIN",
-      "name": "Triumph Financial, Inc.",
-      "tier": "watch",
-      "score": 15,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": 9.6,
-      "runup5dPct": 3.4,
-      "medDollarVolUsd": 17648002,
+      "runup20dPct": 0.2,
+      "runup5dPct": -4.7,
+      "medDollarVolUsd": 5061546,
       "smartAccum": false,
       "official": null
     }
