@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-22T22:20:23.063Z",
+  "generatedAt": "2026-07-23T07:20:24.616Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,30 +14,13 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 2.8× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -9.2,
-      "runup5dPct": -5.9,
-      "medDollarVolUsd": 63584,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "026040.KQ",
-      "name": "제이에스티나",
-      "tier": "watch",
-      "score": 26,
-      "coFire": 2,
-      "lead": [
         "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)",
+        "거래량 2.9× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -5.7,
-      "runup5dPct": -4.5,
-      "medDollarVolUsd": 133699,
+      "runup20dPct": -7.3,
+      "runup5dPct": -2.2,
+      "medDollarVolUsd": 63584,
       "smartAccum": true,
       "official": null
     }
