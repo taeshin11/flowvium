@@ -1,11 +1,29 @@
 {
-  "generatedAt": "2026-07-22T22:30:13.654Z",
+  "generatedAt": "2026-07-23T07:30:03.662Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
   "totalRecent": 1241,
   "feed": [
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "rceptNo": "20260723000114",
+      "filedAt": "2026-07-23",
+      "kind": "insider",
+      "reporter": "부민혁",
+      "role": "비등기임원",
+      "title": "부사장",
+      "relation": null,
+      "sharesAfter": 3229,
+      "sharesDelta": -1080,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "sell",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260723000114"
+    },
     {
       "ticker": "014620.KQ",
       "name": "성광벤드",
@@ -491,24 +509,6 @@
       "direction": "buy",
       "reason": null,
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260721001360"
-    },
-    {
-      "ticker": "005930.KS",
-      "name": "삼성전자",
-      "rceptNo": "20260721001308",
-      "filedAt": "2026-07-21",
-      "kind": "insider",
-      "reporter": "이상현",
-      "role": "비등기임원",
-      "title": "부사장",
-      "relation": null,
-      "sharesAfter": 6232,
-      "sharesDelta": 2296,
-      "ratioAfter": 0,
-      "ratioDelta": 0,
-      "direction": "buy",
-      "reason": null,
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260721001308"
     },
     {
       "ticker": "000500.KS",
