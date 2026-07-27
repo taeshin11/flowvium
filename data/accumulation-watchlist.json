@@ -1,29 +1,10 @@
 {
-  "generatedAt": "2026-07-27T07:20:23.498Z",
+  "generatedAt": "2026-07-27T22:20:23.273Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 0,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 0,
   "officialFewAccount": 0,
-  "watchlist": [
-    {
-      "ticker": "054780.KQ",
-      "name": "키이스트",
-      "tier": "watch",
-      "score": 32,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.9× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -0.1,
-      "runup5dPct": 3.3,
-      "medDollarVolUsd": 56452,
-      "smartAccum": true,
-      "official": null
-    }
-  ]
+  "watchlist": []
 }
