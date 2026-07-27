@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-27T13:00:24.734Z",
+  "generatedAt": "2026-07-27T21:30:30.424Z",
   "universe": "US",
-  "scanned": 302,
-  "count": 4,
+  "scanned": 391,
+  "count": 6,
   "strongCount": 0,
-  "watchCount": 4,
+  "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,28 +14,12 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.5× 상승(지속 매집)",
-        "거래량 4.7× 급증(가격 평탄)"
+        "거래량 추세 3.7× 상승(지속 매집)",
+        "거래량 5.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": 6.5,
-      "runup5dPct": 7.1,
-      "medDollarVolUsd": 120428,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "DGICB",
-      "name": "Donegal Group, Inc.",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 6.6× 상승(지속 매집)",
-        "거래량 16.1× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -13.1,
-      "runup5dPct": -5.8,
-      "medDollarVolUsd": 11178,
+      "runup20dPct": 10.1,
+      "runup5dPct": 9.5,
+      "medDollarVolUsd": 125290,
       "smartAccum": false,
       "official": null
     },
@@ -46,30 +30,78 @@
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 3.5× 급증(가격 평탄)",
+        "거래량 추세 1.9× 상승",
+        "거래량 3.7× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -1.8,
-      "runup5dPct": -4.1,
-      "medDollarVolUsd": 5256824,
+      "runup20dPct": -2.5,
+      "runup5dPct": -3.7,
+      "medDollarVolUsd": 5322394,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "HFWA",
-      "name": "Heritage Financial Corporation",
+      "ticker": "BNED",
+      "name": "Barnes & Noble Education, Inc",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -6.6,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 3362190,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "JAKK",
+      "name": "JAKKS Pacific, Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": 3,
-      "runup5dPct": -1.2,
-      "medDollarVolUsd": 7318500,
+      "runup20dPct": 8.5,
+      "runup5dPct": 7.6,
+      "medDollarVolUsd": 1157981,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NYC",
+      "name": "American Strategic Investment C",
+      "tier": "watch",
+      "score": 19,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "변동성 수축(coiling) — 돌파 압축"
+      ],
+      "runup20dPct": -1.8,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 83400,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "KRNT",
+      "name": "Kornit Digital Ltd.",
+      "tier": "watch",
+      "score": 15,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": -4.2,
+      "runup5dPct": 2.2,
+      "medDollarVolUsd": 2818565,
       "smartAccum": false,
       "official": null
     }
