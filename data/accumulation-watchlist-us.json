@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-07-28T13:00:31.794Z",
+  "generatedAt": "2026-07-28T21:30:30.859Z",
   "universe": "US",
   "scanned": 391,
-  "count": 6,
+  "count": 5,
   "strongCount": 0,
-  "watchCount": 6,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "FSBC",
+      "name": "Five Star Bancorp",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.0× 상승",
+        "거래량 3.8× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -0.7,
+      "runup5dPct": -3,
+      "medDollarVolUsd": 5402929,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "DLNG",
       "name": "Dynagas LNG Partners LP",
@@ -14,29 +32,12 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.7× 상승(지속 매집)",
-        "거래량 5.0× 급증(가격 평탄)"
+        "거래량 추세 3.9× 상승(지속 매집)",
+        "거래량 5.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": 10.1,
-      "runup5dPct": 9.5,
+      "runup20dPct": 6.2,
+      "runup5dPct": 7.1,
       "medDollarVolUsd": 125290,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "FSBC",
-      "name": "Five Star Bancorp",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 3.7× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -2.5,
-      "runup5dPct": -3.7,
-      "medDollarVolUsd": 5322394,
       "smartAccum": false,
       "official": null
     },
@@ -44,32 +45,16 @@
       "ticker": "BNED",
       "name": "Barnes & Noble Education, Inc",
       "tier": "watch",
-      "score": 24,
+      "score": 28,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -6.6,
-      "runup5dPct": 1.9,
+      "runup20dPct": -3.9,
+      "runup5dPct": 5.5,
       "medDollarVolUsd": 3362190,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "JAKK",
-      "name": "JAKKS Pacific, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 8.5,
-      "runup5dPct": 7.6,
-      "medDollarVolUsd": 1157981,
       "smartAccum": false,
       "official": null
     },
@@ -83,9 +68,9 @@
         "거래량 추세 1.9× 상승",
         "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": -1.8,
-      "runup5dPct": 2.4,
-      "medDollarVolUsd": 83400,
+      "runup20dPct": -5.9,
+      "runup5dPct": 6.8,
+      "medDollarVolUsd": 99750,
       "smartAccum": false,
       "official": null
     },
@@ -96,12 +81,12 @@
       "score": 15,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.5× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 60%"
       ],
-      "runup20dPct": -4.2,
-      "runup5dPct": 2.2,
-      "medDollarVolUsd": 2818565,
+      "runup20dPct": -5.2,
+      "runup5dPct": -0.1,
+      "medDollarVolUsd": 2884086,
       "smartAccum": false,
       "official": null
     }
