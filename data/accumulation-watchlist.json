@@ -1,10 +1,29 @@
 {
-  "generatedAt": "2026-07-28T22:20:23.319Z",
+  "generatedAt": "2026-07-29T07:20:24.529Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 0,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "089600.KQ",
+      "name": "KT나스미디어",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 2.7,
+      "runup5dPct": 0.6,
+      "medDollarVolUsd": 115599,
+      "smartAccum": true,
+      "official": null
+    }
+  ]
 }
