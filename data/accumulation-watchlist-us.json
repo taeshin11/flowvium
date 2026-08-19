@@ -1,92 +1,91 @@
 {
-  "generatedAt": "2026-07-28T21:30:30.859Z",
+  "generatedAt": "2026-08-19T22:19:09.108Z",
   "universe": "US",
-  "scanned": 391,
+  "scanned": 374,
   "count": 5,
   "strongCount": 0,
   "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "FSBC",
-      "name": "Five Star Bancorp",
+      "ticker": "CWH",
+      "name": "Camping World Holdings, Inc.",
       "tier": "watch",
-      "score": 30,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.0× 상승",
-        "거래량 3.8× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -0.7,
-      "runup5dPct": -3,
-      "medDollarVolUsd": 5402929,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "DLNG",
-      "name": "Dynagas LNG Partners LP",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.9× 상승(지속 매집)",
-        "거래량 5.1× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 6.2,
-      "runup5dPct": 7.1,
-      "medDollarVolUsd": 125290,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "BNED",
-      "name": "Barnes & Noble Education, Inc",
-      "tier": "watch",
-      "score": 28,
+      "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -3.9,
-      "runup5dPct": 5.5,
-      "medDollarVolUsd": 3362190,
+      "runup20dPct": 8.5,
+      "runup5dPct": 6.6,
+      "medDollarVolUsd": 14577255,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NYC",
-      "name": "American Strategic Investment C",
+      "ticker": "EMD",
+      "name": "Western Asset Emerging Markets ",
       "tier": "watch",
-      "score": 19,
+      "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "변동성 수축(coiling) — 돌파 압축"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -5.9,
-      "runup5dPct": 6.8,
-      "medDollarVolUsd": 99750,
+      "runup20dPct": -0.2,
+      "runup5dPct": 1.4,
+      "medDollarVolUsd": 1789648,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "KRNT",
-      "name": "Kornit Digital Ltd.",
+      "ticker": "FTK",
+      "name": "Flotek Industries, Inc.",
       "tier": "watch",
-      "score": 15,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%"
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.2,
-      "runup5dPct": -0.1,
-      "medDollarVolUsd": 2884086,
+      "runup20dPct": -7.6,
+      "runup5dPct": -32.3,
+      "medDollarVolUsd": 8076572,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PSFE",
+      "name": "Paysafe Limited",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -14.6,
+      "runup5dPct": -1.9,
+      "medDollarVolUsd": 2116212,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CCM",
+      "name": "Concord Medical Services Holdin",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 11.4,
+      "runup5dPct": 0.2,
+      "medDollarVolUsd": 211792,
       "smartAccum": false,
       "official": null
     }
