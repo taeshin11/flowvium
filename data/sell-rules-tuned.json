@@ -1,8 +1,8 @@
 {
   "version": 2,
   "source": "initial-seed-with-guru-tech-fund",
-  "tunedAt": "2026-07-25T19:05:00.078Z",
-  "sampleSize": 87,
+  "tunedAt": "2026-08-19T22:21:20.883Z",
+  "sampleSize": 172,
   "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합. | 2026-06-06: micro_insider_selling 추가(매수·매도 대칭). | 2026-06-19: selflearn/guru 매도 갭 보강 3룰 추가(banListSell·marksEuphoria·druckTrendBreak).",
   "rules": [
     {
@@ -196,7 +196,7 @@
     },
     {
       "id": "micro_region_bearish",
-      "score": 6,
+      "score": 7,
       "urgency": "low",
       "category": "micro",
       "condition": {
@@ -562,14 +562,14 @@
       "precisionPct": 0
     },
     "guru_drucken_trend_break": {
-      "n": 9,
-      "evaluated": 9,
-      "goodCall": 3,
+      "n": 12,
+      "evaluated": 12,
+      "goodCall": 5,
       "missedUpside": 1,
-      "neutral": 5,
-      "avgDelta": -1,
-      "deltaSum": -8.8,
-      "precisionPct": 33
+      "neutral": 6,
+      "avgDelta": -2.5,
+      "deltaSum": -30.200000000000003,
+      "precisionPct": 42
     },
     "forensic_overextended_200ma": {
       "n": 7,
@@ -606,82 +606,82 @@
     "target_near": [
       {
         "threshold": 0.85,
-        "truePos": 13,
-        "falsePos": 15,
-        "missed": 19,
-        "total": 47,
-        "precision": 0.4642857142857143,
-        "recall": 0.40625
+        "truePos": 53,
+        "falsePos": 55,
+        "missed": 20,
+        "total": 128,
+        "precision": 0.49074074074074076,
+        "recall": 0.726027397260274
       },
       {
         "threshold": 0.88,
-        "truePos": 13,
-        "falsePos": 14,
-        "missed": 19,
-        "total": 46,
-        "precision": 0.48148148148148145,
-        "recall": 0.40625
+        "truePos": 53,
+        "falsePos": 50,
+        "missed": 20,
+        "total": 123,
+        "precision": 0.5145631067961165,
+        "recall": 0.726027397260274
       },
       {
         "threshold": 0.9,
-        "truePos": 13,
-        "falsePos": 13,
-        "missed": 19,
-        "total": 45,
-        "precision": 0.5,
-        "recall": 0.40625
+        "truePos": 53,
+        "falsePos": 46,
+        "missed": 20,
+        "total": 119,
+        "precision": 0.5353535353535354,
+        "recall": 0.726027397260274
       },
       {
         "threshold": 0.92,
-        "truePos": 13,
-        "falsePos": 10,
-        "missed": 19,
-        "total": 42,
-        "precision": 0.5652173913043478,
-        "recall": 0.40625
+        "truePos": 53,
+        "falsePos": 31,
+        "missed": 20,
+        "total": 104,
+        "precision": 0.6309523809523809,
+        "recall": 0.726027397260274
       },
       {
         "threshold": 0.95,
-        "truePos": 13,
-        "falsePos": 5,
-        "missed": 19,
-        "total": 37,
-        "precision": 0.7222222222222222,
-        "recall": 0.40625
+        "truePos": 53,
+        "falsePos": 10,
+        "missed": 20,
+        "total": 83,
+        "precision": 0.8412698412698413,
+        "recall": 0.726027397260274
       }
     ],
     "stop_near": [
       {
         "threshold": 1.02,
-        "truePos": 12,
+        "truePos": 41,
         "falsePos": 0,
-        "missed": 16,
+        "missed": 28,
         "precision": 1,
-        "recall": 0.42857142857142855
+        "recall": 0.5942028985507246
       },
       {
         "threshold": 1.05,
-        "truePos": 12,
-        "falsePos": 11,
-        "missed": 16,
-        "precision": 0.5217391304347826,
-        "recall": 0.42857142857142855
+        "truePos": 41,
+        "falsePos": 16,
+        "missed": 28,
+        "precision": 0.7192982456140351,
+        "recall": 0.5942028985507246
       },
       {
         "threshold": 1.08,
-        "truePos": 12,
-        "falsePos": 25,
-        "missed": 16,
-        "precision": 0.32432432432432434,
-        "recall": 0.42857142857142855
+        "truePos": 41,
+        "falsePos": 66,
+        "missed": 28,
+        "precision": 0.38317757009345793,
+        "recall": 0.5942028985507246
       },
       {
         "threshold": 1.1,
-        "truePos": 12,
-        "falsePos": 26,
-        "missed": 16,
-        "precision": 0.3157894736842105,
-        "recall": 0.42857142857142855
+        "truePos": 41,
+        "falsePos": 67,
+        "missed": 28,
+        "precision": 0.37962962962962965,
+        "recall": 0.5942028985507246
       }
     ],
     "best": {
@@ -735,9 +735,9 @@
         "fired": 7,
         "evaluated": 7,
         "edge": -0.41,
-        "current": 7,
+        "current": 6,
         "applied": 6,
-        "changed": true
+        "changed": false
       },
       {
         "id": "tech_volume_divergence",
@@ -852,8 +852,8 @@
         "fired": 5,
         "evaluated": 5,
         "edge": 0.57,
-        "current": 5,
-        "applied": 6,
+        "current": 6,
+        "applied": 7,
         "changed": true
       },
       {
@@ -930,9 +930,9 @@
       },
       {
         "id": "guru_drucken_trend_break",
-        "fired": 9,
-        "evaluated": 9,
-        "edge": -0.07,
+        "fired": 12,
+        "evaluated": 12,
+        "edge": 0.08,
         "current": 3,
         "applied": 3,
         "changed": false
