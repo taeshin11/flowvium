@@ -1,11 +1,56 @@
 {
   "_comment": "보고서 세션 단일 소스 (2026-06-04). 세션 enum 이 generate-report-local / 웹 investment-strategy / verify-report / check-data-quality 등 여러 곳에 하드코딩돼 있어, 슬롯 추가 시 한 곳만 빠뜨려도 보고서가 silent 미서빙되던 fragility 해소. check-data-quality [J] 가 이 목록과 코드 참조의 drift 를 감지.",
   "sessions": [
-    { "id": "midnight",  "triggerKst": "23:40", "publishKst": "00:00", "rankOrder": 0, "focus": "us", "note": "US 장중(자정), 발간일=익일" },
-    { "id": "morning",   "triggerKst": "06:40", "publishKst": "07:00", "rankOrder": 1, "focus": "us", "note": "US 장 마감 직후" },
-    { "id": "noon",      "triggerKst": "11:40", "publishKst": "12:00", "rankOrder": 2, "focus": "kr", "note": "KR 장중+아시아" },
-    { "id": "afternoon", "triggerKst": "15:40", "publishKst": "16:00", "rankOrder": 3, "focus": "kr", "note": "KR 장 마감 직후" },
-    { "id": "evening",   "triggerKst": "21:10", "publishKst": "21:30", "rankOrder": 4, "focus": "us", "note": "US 장 시작 직후" }
+    {
+      "id": "midnight",
+      "triggerKst": "23:40",
+      "publishKst": "00:00",
+      "rankOrder": 0,
+      "focus": "us",
+      "note": "US 장중(자정), 발간일=익일",
+      "windowFromKstHour": 23,
+      "leadMinutes": 90
+    },
+    {
+      "id": "morning",
+      "triggerKst": "06:40",
+      "publishKst": "07:00",
+      "rankOrder": 1,
+      "focus": "us",
+      "note": "US 장 마감 직후",
+      "windowFromKstHour": 6,
+      "leadMinutes": 90
+    },
+    {
+      "id": "noon",
+      "triggerKst": "11:40",
+      "publishKst": "12:00",
+      "rankOrder": 2,
+      "focus": "kr",
+      "note": "KR 장중+아시아",
+      "windowFromKstHour": 11,
+      "leadMinutes": 90
+    },
+    {
+      "id": "afternoon",
+      "triggerKst": "15:40",
+      "publishKst": "16:00",
+      "rankOrder": 3,
+      "focus": "kr",
+      "note": "KR 장 마감 직후",
+      "windowFromKstHour": 15,
+      "leadMinutes": 90
+    },
+    {
+      "id": "evening",
+      "triggerKst": "21:10",
+      "publishKst": "21:30",
+      "rankOrder": 4,
+      "focus": "us",
+      "note": "US 장 시작 직후",
+      "windowFromKstHour": 20,
+      "leadMinutes": 90
+    }
   ],
   "criticalFiles": [
     "scripts/generate-report-local.mjs",
@@ -13,5 +58,10 @@
     "src/app/api/cron/investment-strategy/route.ts",
     "scripts/verify-report.mjs",
     "scripts/check-data-quality.mjs"
-  ]
+  ],
+  "defaultLeadMinutes": 90,
+  "_leadNote": "leadMinutes = 발간시각 이전 몇 분에 생성을 시작할지. 트리거시각 = publishKst - leadMinutes.\n2026-08-20 실측(맥 M4 Pro / MLX Qwen3.8-27B 8bit / 온도상한 90C 실동률 31~36%): 종단 48분 (02:27:15 시작 → 03:16 발간, 품질 85/100). 90분은 실측 대비 약 1.9배 여유다.\n150분으로 잡았다가 내렸다: 150분이면 evening 창(19:00~21:30)과 midnight 창(21:30~)이 맞닿아 evening 이 1분만 늦어도 run-report.sh 의 동시실행 락이 midnight 을 통째로 건너뛴다. 90분이면 evening 종료 21:30, midnight 시작 22:30 으로 1시간 여유가 생긴다.\n생성이 일찍 끝나면 sleepUntilPublishTarget 이 publishKst 까지 대기하므로 발간 시각은 정확하다. 실측이 더 쌓이면 이 값만 고치고 install-report-schedule.mjs 를 다시 돌리면 된다 — 코드는 손대지 않는다.",
+  "_windowNote": "windowFromKstHour = --session 미지정 시 벽시계 역산의 구간 시작(KST 시). 이관 전 generate-report-local.mjs getSession() 리터럴을 그대로 옮긴 값이라 동작 동일. 스케줄러는 --session 을 명시하므로 이 역산은 수동 실행 하위호환용이다.",
+  "manualMaxWaitMinutes": 25,
+  "_manualWaitNote": "수동 실행(--session 미지정) 시 정시 발간을 기다릴 상한(분). 종전 코드의 하드코딩 25분을 그대로 옮긴 값이라 수동 실행 동작에 회귀가 없다. 예약 실행은 이 값이 아니라 해당 세션의 leadMinutes 를 쓴다."
 }

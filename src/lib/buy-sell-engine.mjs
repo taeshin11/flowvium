@@ -10,6 +10,19 @@ const _isFinancial = (s) => !!s && /financ|bank|insur|reit|estate|보험|은행|
 const _isDistribution = (s) => !!s && /retail|distribut|trad|wholesale|consumer\s*staple|유통|소매|상사|도매/i.test(s);
 const _isFinUtil = (s) => _isFinancial(s) || (!!s && /utilit|reit|estate|유틸|전력|가스|부동산/i.test(s));
 
+// 2026-08-20: 미지원 condition.type 관측기.
+//   두 switch 에 default 절이 없어 존재하지 않는 type 이 null 로 조용히 통과했다("조건 미충족"과 구분 불가).
+//   전향 연구에서는 스펙 오타 하나로 가설이 영구 미검증인데 통계표에는 '발화 0'으로만 보인다.
+//   throw 하지 않는다 — live 룰 하나가 잘못돼도 리포트 전체를 죽이면 안 된다. 대신 반드시 남긴다.
+const _unknownConditionTypes = new Set();
+function _noteUnknownConditionType(t) { if (t != null) _unknownConditionTypes.add(String(t)); }
+/** 관측된 미지원 type 을 반환하고 비운다(소진형). */
+export function takeUnknownConditionTypes() {
+  const out = [..._unknownConditionTypes];
+  _unknownConditionTypes.clear();
+  return out;
+}
+
 export function evaluateBuyRule(rule, ctx) {
   const c = rule.condition;
   switch (c.type) {
@@ -272,6 +285,9 @@ export function evaluateBuyRule(rule, ctx) {
         return `200MA 위 과매도 (RSI ${ctx.rsi})`;
       }
       break;
+    default:
+      _noteUnknownConditionType(c.type);
+      break;
   }
   return null;
 }
@@ -451,6 +467,9 @@ export function evaluateSellRule(rule, ctx) {
           ctx.price > ctx.sma200 * (c.mult_gt ?? 1.35) && ctx.rsi >= (c.rsi_gte ?? 70) && ctx.volPct <= (c.vol_pct_lte ?? 0)) {
         return `200MA +${Math.round((ctx.price / ctx.sma200 - 1) * 100)}% 과확장 + RSI ${ctx.rsi} + 거래량 ${ctx.volPct}% (parabolic fade 징후)`;
       }
+      break;
+    default:
+      _noteUnknownConditionType(c.type);
       break;
   }
   return null;

@@ -4,9 +4,10 @@
 추출: PDF=pdftotext -layout (텍스트레이어), 부족하면 PaddleOCR fallback. HTML=태그 제거.
 청크: ~900자, 150자 overlap. 임베딩: BAAI/bge-m3 (normalize). 출력: data/rag/corpus.ndjson.
 """
-import os, re, sys, json, glob, html, subprocess
+import os
+import pathlib, re, sys, json, glob, html, subprocess
 
-REPO = "/mnt/d/Flowvium"
+REPO = os.environ.get("FLOWVIUM_ROOT") or str(pathlib.Path(__file__).resolve().parents[2])
 LETTERS = os.path.expanduser("~/rag-data/letters")
 OUT = os.path.join(REPO, "data/rag/corpus.ndjson")
 CHUNK, OVERLAP, MIN_CHUNK = 900, 150, 120

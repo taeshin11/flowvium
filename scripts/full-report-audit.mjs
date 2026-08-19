@@ -1,9 +1,10 @@
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import Database from 'better-sqlite3';
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 
-const REPORTS_DIR = 'C:/Flowvium/reports';
-const DB_PATH = 'C:/Flowvium/data/flowvium.db';
+const REPORTS_DIR = `${_PROJECT_ROOT}/reports`;
+const DB_PATH = `${_PROJECT_ROOT}/data/flowvium.db`;
 
 // ── 1. 전체 보고서 메타 + harness 추세 ──
 const files = readdirSync(REPORTS_DIR).filter(f => f.endsWith('-ko.json')).sort();

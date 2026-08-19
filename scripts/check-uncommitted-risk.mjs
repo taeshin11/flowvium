@@ -14,8 +14,9 @@
  * 사용: node scripts/check-uncommitted-risk.mjs   (exit 1 = wipe 위험 있음)
  */
 import { execSync } from 'node:child_process';
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 
-const ROOT = 'C:/Flowvium';
+const ROOT = _PROJECT_ROOT;
 // 2026-06-17: timeout 추가 — git fetch 가 네트워크 stall 시 무한 hang 하던 위험 차단.
 const sh = (cmd, timeout = 0) => { try { return execSync(cmd, { cwd: ROOT, encoding: 'utf8', ...(timeout ? { timeout } : {}) }).trim(); } catch (e) { return (e.stdout || '') + (e.stderr || ''); } };
 

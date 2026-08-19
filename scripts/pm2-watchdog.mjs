@@ -8,12 +8,13 @@
 //   node JSON.parse 는 중복키 허용(마지막 값 채택).
 import { execFileSync, spawn } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 
-const LORA_LOCK = 'C:\\Flowvium\\logs\\lora-training.lock';
-const HOLD_STATE = 'C:\\Flowvium\\logs\\vllm-hold-count.json';
+const LORA_LOCK = `${_PROJECT_ROOT}/logs/lora-training.lock`;
+const HOLD_STATE = `${_PROJECT_ROOT}/logs/vllm-hold-count.json`;
 
-const PM2 = `${process.env.APPDATA}\\npm\\pm2.cmd`;
-const LOG = 'C:\\Flowvium\\logs\\pm2-watchdog.log';
+const PM2 = process.platform === 'win32' ? `${process.env.APPDATA}\\npm\\pm2.cmd` : 'pm2';
+const LOG = `${_PROJECT_ROOT}/logs/pm2-watchdog.log`;
 const NEED = ['flowvium-cron', 'flowvium-web', 'flowvium-tunnel', 'flowvium-redis-shim'];
 // KST 로컬시각 — toISOString(UTC)이던 시절 07-07 장애분석에서 "로그가 9시간 전에 끊김"으로 오독됨.
 const ts = () => new Date().toLocaleString('sv-SE');
@@ -84,7 +85,7 @@ async function checkEmbedder() {
   } catch { /* down */ }
   logline('[EMBED] :8100 다운 — serve-embed.sh 재기동');
   try {
-    spawn('wsl.exe', ['-d', 'Ubuntu-24.04', '-u', 'root', '--', 'bash', '/mnt/c/Flowvium/scripts/rag/serve-embed.sh'],
+    spawn('wsl.exe', ['-d', 'Ubuntu-24.04', '-u', 'root', '--', 'bash', `${_PROJECT_ROOT}/scripts/rag/serve-embed.sh`],
       { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   } catch (e) { logline(`[EMBED] 재기동 실패: ${String(e?.message).slice(0, 80)}`); }
 }

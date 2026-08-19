@@ -89,3 +89,7 @@ data/rag/sources/*
 
 __pycache__/
 *.pyc
+
+# 2026-08-20: env 백업은 절대 커밋 금지 (API 키 포함)
+.env.local.bak*
+.env.*.bak*

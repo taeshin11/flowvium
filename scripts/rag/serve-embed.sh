@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
-# serve-embed.sh — bge-m3 임베딩 서비스 기동 (WSL). Windows 스케줄러 FlowVium-Embed 가 로그온 시 호출.
-# vLLM(:8000, GPU) 와 별개. 임베딩은 CPU :8100. node(rag.ts)가 EMBED_URL=http://127.0.0.1:8100/embed.
-source ~/rag-svc/bin/activate
-# 2026-07-06: C: 이관 후 경로 정정 (/mnt/d → /mnt/c). 구머신 D:\Flowvium 참조가 신규머신에서 기동 실패 근원.
-cd /mnt/c/Flowvium/scripts/rag
-exec uvicorn embed_server:app --host 0.0.0.0 --port 8100 --workers 1
+# serve-embed.sh — bge-m3 임베딩 서비스 기동.
+#
+# 경로를 박지 않는다. 스크립트 위치에서 자기 디렉터리를 유도하고, 나머지는 환경변수로 덮는다.
+#   EMBED_VENV  기본 $HOME/rag-venv     (python 이 있는 venv)
+#   EMBED_HOST  기본 127.0.0.1          (로컬 전용. 외부 노출하려면 0.0.0.0)
+#   EMBED_PORT  기본 8100               (src/lib/rag.ts 의 EMBED_URL 기본값과 일치)
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV="${EMBED_VENV:-$HOME/rag-venv}"
+HOST="${EMBED_HOST:-127.0.0.1}"
+PORT="${EMBED_PORT:-8100}"
+
+if [ ! -x "$VENV/bin/uvicorn" ]; then
+  echo "serve-embed: uvicorn 없음 — $VENV. setup-rag-svc.sh 를 먼저 실행하라." >&2
+  exit 1
+fi
+
+cd "$HERE"
+exec "$VENV/bin/uvicorn" embed_server:app --host "$HOST" --port "$PORT" --workers 1

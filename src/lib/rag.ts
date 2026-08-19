@@ -15,6 +15,8 @@ import { logger } from '@/lib/logger';
 
 const CORPUS_PATH = resolve(process.cwd(), 'data/rag/corpus.ndjson');
 const EMBED_URL = process.env.EMBED_URL ?? 'http://127.0.0.1:8100/embed';
+// 채택 임계값. 환경변수로 덮을 수 있게 두되 기본값은 기존 동작(0.35)과 동일 — 회귀 없음.
+const MIN_EFF_SCORE = Number(process.env.RAG_MIN_SCORE ?? '0.35');
 
 export interface RagChunk { id: string; source: string; year?: number | string; text: string; embedding: number[]; _norm?: number; _boost?: number; }
 export interface RagHit { source: string; year?: number | string; text: string; score: number; }
@@ -100,7 +102,7 @@ export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
     return { source: c.source, year: c.year, text: c.text, score: base, effScore: base + (c._boost ?? 0) };
   });
   scored.sort((a, b) => b.effScore - a.effScore);
-  const eligible = scored.filter(h => h.effScore >= 0.35);
+  const eligible = scored.filter(h => h.effScore >= MIN_EFF_SCORE);
   // 구루 그룹당 최대 2개 → 버핏 독점 방지, 다른 구루 노출. 부족하면 cap 무시하고 채움.
   const CAP = 2;
   const counts: Record<string, number> = {};
@@ -113,6 +115,19 @@ export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
     if (picked.length >= k) break;
   }
   if (picked.length < k) for (const h of eligible) { if (!picked.includes(h)) { picked.push(h); if (picked.length >= k) break; } }
+  // 2026-08-20: 여기까지 와서 0건이면 '코퍼스도 있고 임베딩도 살아있는데 아무것도 못 찾은' 경우다.
+  //   기존에는 무음이었다 — 소비자(judge-engine.ts:578)가 ragBlock 을 빈 문자열로 지우므로
+  //   AISVI+RAG 가 AISVI 로 강등된 사실이 사용자·로그 어디에도 안 남았다. 임계값(0.35) 미달인지
+  //   질의가 코퍼스 밖 주제인지 구분하려면 최고점이 필요하다 → 최고점과 함께 남긴다.
+  //   (동작은 그대로. 관측만 추가한다.)
+  if (!picked.length) {
+    logger.warn('rag', 'retrieve_empty', {
+      corpusChunks: corpus.length,
+      topEffScore: scored.length ? Number(scored[0].effScore.toFixed(4)) : null,
+      threshold: MIN_EFF_SCORE,
+      queryLen: query.length,
+    });
+  }
   return picked;
 }
 

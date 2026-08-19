@@ -15,8 +15,9 @@
  *  - Herfindahl (집중도)
  */
 import Database from 'better-sqlite3';
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 
-const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
+const db = new Database(`${_PROJECT_ROOT}/data/flowvium.db`, { readonly: true });
 const PAD = (s, n) => String(s ?? '').padEnd(n);
 
 console.log('╔═══════════════════════════════════════════════════════════╗');

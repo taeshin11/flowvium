@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 
-const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
+const db = new Database(`${_PROJECT_ROOT}/data/flowvium.db`, { readonly: true });
 
 // price_at_gen 이 NULL 이므로 price_at_eval 를 surrogate 로 사용
 const rows = db.prepare(`

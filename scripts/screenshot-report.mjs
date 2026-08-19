@@ -10,7 +10,7 @@
  *   기본 locale=ko, out=reports/preview/report-<locale>-<ts>.png
  */
 import puppeteer from 'puppeteer-core';
-import { existsSync, mkdirSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync , readdirSync} from 'fs';
 import { resolve } from 'path';
 import { createHmac } from 'crypto';
 
@@ -20,12 +20,43 @@ const dir = resolve(ROOT, 'reports/preview');
 if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 const out = process.argv[3] || resolve(dir, `report-${locale}-${Date.now()}.png`);
 
-const CHROME = [
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-].find(existsSync);
-if (!CHROME) { console.error('❌ Chrome/Edge 못 찾음'); process.exit(1); }
+// 2026-08-20: 브라우저 경로를 플랫폼별로 탐색한다. 종전에는 Windows 경로 3개만 박혀 있어
+//   맥에서 항상 "Chrome/Edge 못 찾음" 으로 죽었고, 발간 후 시각 검수가 7/12 이후 멈춰 있었다.
+//   PUPPETEER_EXECUTABLE_PATH 로 덮을 수 있고, 없으면 playwright 가 받아둔 chromium 을 쓴다.
+const BROWSER_CANDIDATES = process.platform === 'darwin'
+  ? ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+     '/Applications/Chromium.app/Contents/MacOS/Chromium',
+     '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge']
+  : process.platform === 'win32'
+  ? ['C:/Program Files/Google/Chrome/Application/chrome.exe',
+     'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+     'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe']
+  : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
+
+function findPlaywrightChromium() {
+  try {
+    const base = resolve(process.env.HOME ?? '', 'Library/Caches/ms-playwright');
+    for (const d of readdirSync(base)) {
+      if (!d.startsWith('chromium')) continue;
+      for (const rel of ['chrome-mac/Chromium.app/Contents/MacOS/Chromium',
+                         'chrome-headless-shell-mac/chrome-headless-shell',
+                         'chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium',
+                         'chrome-headless-shell-mac-arm64/chrome-headless-shell']) {
+        const c = resolve(base, d, rel);
+        if (existsSync(c)) return c;
+      }
+    }
+  } catch { /* 없으면 아래에서 처리 */ }
+  return null;
+}
+
+const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH
+  || BROWSER_CANDIDATES.find(existsSync)
+  || findPlaywrightChromium();
+if (!CHROME) {
+  console.error(`❌ 브라우저 못 찾음 (platform=${process.platform}). PUPPETEER_EXECUTABLE_PATH 로 지정하거나 npx playwright install chromium 실행.`);
+  process.exit(1);
+}
 
 // 회원게이트 우회 — fv_member 쿠키 생성(member/route.ts sign() 재현). 검수용 로컬 전용.
 function memberCookie(email = 'qa@flowvium.local') {

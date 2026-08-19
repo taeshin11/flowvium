@@ -19,7 +19,10 @@ import { cpSync, mkdirSync, existsSync, readdirSync, unlinkSync, copyFileSync, s
 import { resolve, join } from 'path';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const DEST = process.env.FLOWVIUM_BACKUP_DIR || 'G:\\내 드라이브\\FlowVium-backup';
+// 2026-08-20: 기본값이 Windows 드라이브 문자였다. 환경변수 없으면 그냥 실패시킨다 —
+//   조용히 엉뚱한 곳에 백업하는 것보다 안 하는 게 낫다.
+const DEST = process.env.FLOWVIUM_BACKUP_DIR;
+if (!DEST) { console.error('❌ FLOWVIUM_BACKUP_DIR 미설정 — 백업 대상 경로를 지정하라'); process.exit(1); }
 
 function log(...a) { console.log(`[backup ${new Date().toISOString().slice(0, 19)}]`, ...a); }
 

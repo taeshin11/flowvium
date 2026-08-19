@@ -14,6 +14,20 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 
 import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import vm from 'vm';
+
+// 2026-08-20 (맥 이관): undici 기본 headersTimeout/bodyTimeout=300s 가 AbortSignal 보다 먼저 터진다.
+//   MLX(Apple Silicon)는 프리필이 느리고(23k tok ≈ 250s) --prompt-concurrency 1 로 요청이 큐에 서므로,
+//   대기 중인 요청은 헤더도 첫 바이트도 못 받은 채 300s 에 'terminated' 로 잘렸다(Wave1 303.9s 실측).
+//   stream:true 만으로는 큐 대기분을 못 막는다 → 전역 디스패처에서 두 타임아웃을 해제한다.
+//   (요청별 상한은 기존 AbortSignal(timeoutMs) 이 계속 담당 — 무한 대기가 되지 않는다.)
+import { Agent, setGlobalDispatcher } from 'undici';
+import * as SESSIONS from './lib/report-sessions.mjs';
+setGlobalDispatcher(new Agent({
+  headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
+  bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
+  keepAliveTimeout: 60_000,
+  keepAliveMaxTimeout: 600_000,
+}));
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
@@ -867,16 +881,12 @@ async function redisSet(key, value, exSeconds) {
   return redisPost(cmd);
 }
 
+// 2026-08-20: 세션 판정을 data/report-sessions.json 단일소스로 이관(scripts/lib/report-sessions.mjs).
+//   종전에는 구간(6/11/15/20/23)이 이 함수에 리터럴로 박혀 있어, JSON 을 고쳐도 파이프라인이 안 따라왔고
+//   트리거 시각을 앞당기면 세션 라벨이 뒤집혔다(04:40 실행 → 'midnight' 오라벨 → 파일명/Redis 키 오염).
+//   스케줄러는 --session=<id> 를 명시한다. 미지정 시 벽시계 역산은 이관 전과 100% 동일(회귀테스트로 고정).
 function getSession() {
-  // Windows Task Scheduler triggers (KST): 06:40 morning / 11:40 noon / 15:40 afternoon /
-  //   21:10 evening / 23:40 midnight. 트리거는 target 발간시각보다 ~20분 일찍 → 생성 후 정시 sleep.
-  // 2026-06-04: 낮 12시(noon) + 새벽 12시(midnight) 슬롯 추가 (사용자 요청). data/report-sessions.json 참조.
-  const kstHour = new Date(Date.now() + 9 * 3600000).getUTCHours();
-  if (kstHour >= 6 && kstHour < 11) return 'morning';
-  if (kstHour >= 11 && kstHour < 15) return 'noon';
-  if (kstHour >= 15 && kstHour < 20) return 'afternoon';
-  if (kstHour >= 20 && kstHour < 23) return 'evening';
-  return 'midnight'; // 23 ~ 익일 06 (23:40 트리거)
+  return SESSIONS.resolveSession(args, Date.now());
 }
 
 /**
@@ -964,47 +974,32 @@ function getSessionFocus(session) {
  *   evening  → 21:30 KST
  */
 function getPublishTarget(session) {
-  // 발간 target (KST): morning 07:00 / noon 12:00 / afternoon 16:00 / evening 21:30 / midnight 00:00.
-  const kstNow = new Date(Date.now() + 9 * 3600000);
-  const target = new Date(kstNow);
-  if (session === 'morning')        { target.setUTCHours(7, 0, 0, 0); }
-  else if (session === 'noon')      { target.setUTCHours(12, 0, 0, 0); }
-  else if (session === 'afternoon') { target.setUTCHours(16, 0, 0, 0); }
-  else if (session === 'evening')   { target.setUTCHours(21, 30, 0, 0); }
-  else if (session === 'midnight')  {
-    // 00:00 KST 발간. 2026-06-06 off-by-one fix: 기존 `target<=now → +1` 은 호출 시점 의존 —
-    //   23:40 트리거(전날 저녁)에 계산하면 +1=발간일(정답)이지만, gen 이 자정 넘겨 끝나
-    //   (00:xx~02:xx) getReportKstDate 가 재호출되면 또 +1 → 발간일+1 (06-07 오라벨).
-    //   → KST 시각으로 분기: 22~23시(발간 전날 저녁) 만 +1, 0~6시(이미 발간일 당일)는 그대로.
-    //   두 호출 시점(트리거 전·gen 후) 모두 동일 발간일 산출 → 결정론적.
-    target.setUTCHours(0, 0, 0, 0);
-    if (kstNow.getUTCHours() >= 22) target.setUTCDate(target.getUTCDate() + 1);
-  }
-  else                              { target.setUTCHours(21, 30, 0, 0); }
-  // target 이 이미 지났으면 (보고서가 늦게 끝나서) wait 안 함
-  const waitMs = target.getTime() - kstNow.getTime();
-  return { target, waitMs };
+  // 발간시각(publishKst)·익일 처리 규칙은 scripts/lib/report-sessions.mjs 가 JSON 에서 읽어 계산한다.
+  return SESSIONS.getPublishTarget(session, Date.now());
 }
+
 
 // 보고서 KST 날짜 = 발간 target 날짜. midnight(23:40 생성→익일 00:00 발간)은 익일 날짜를 써야
 //   파일명/Redis 키가 웹 읽기(00:00~ midnight 조회)와 일치하고 SESSION_RANK 시간순 정렬도 맞다.
 function getReportKstDate(session) {
-  return getPublishTarget(session).target.toISOString().slice(0, 10);
+  return SESSIONS.getReportKstDate(session, Date.now());
 }
 
 async function sleepUntilPublishTarget(session) {
   const { target, waitMs } = getPublishTarget(session);
-  if (waitMs <= 0) {
-    console.log(`  [정시 발간] target ${target.toISOString().slice(11,16)} KST 이미 지남 — 즉시 발간`);
+  const hhmm = target.toISOString().slice(11, 16);
+  // 2026-08-20: 판정을 scripts/lib/report-sessions.mjs 로 옮겼다. 종전에는 "waitMs > 25분이면 수동 실행"
+  //   이라는 시간 임계값이 여기 박혀 있었는데, 25분은 리드타임 20분 시절의 상수라 리드타임을 90분으로
+  //   올리자 예약 실행이 43분 일찍 끝나면 '수동'으로 오판해 즉시 발간했다(06:17 발간, target 07:00).
+  //   시간으로 의도를 추측하지 않고 --session 명시 여부로 가른다.
+  const d = SESSIONS.publishWaitDecision({
+    session, waitMs, explicit: SESSIONS.isExplicitSession(args),
+  });
+  if (!d.wait) {
+    console.log(`  [정시 발간] target ${hhmm} KST — ${d.reason}`);
     return;
   }
-  // 2026-05-29: trigger 시간 20분 전 → 최대 20분 sleep 허용 (이전 15분 cutoff 확장)
-  if (waitMs > 25 * 60 * 1000) {
-    console.log(`  [정시 발간] target ${target.toISOString().slice(11,16)} KST 까지 25분+ — sleep 생략 (수동 실행 등)`);
-    return;
-  }
-  const sec = Math.round(waitMs / 1000);
-  console.log(`  [정시 발간] target ${target.toISOString().slice(11,16)} KST 까지 ${sec}s wait...`);
+  console.log(`  [정시 발간] target ${hhmm} KST 까지 ${Math.round(waitMs / 1000)}s wait... (${d.reason})`);
   await new Promise(r => setTimeout(r, waitMs));
 }
 
@@ -5352,7 +5347,11 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       if (r) { cumScore += rule.score; reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
     if (cumScore <= -50) continue; // ban
-    if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price });
+    // 2026-08-20: change1d 를 후보에 실어 Stage 2 로 넘긴다. 종전에는 price 만 넘겨서 Stage 2 ctx 에
+    //   change1d 가 영구 결측이었고, 이를 요구하는 룰이 DB 4,092행 전체에서 0건 발화했다
+    //   (tech_volume_surge=live 룰 사망, shadow_buy_trend_pullback=전향연구 가설 미검증).
+    //   Stage 1 은 같은 값을 ctx 에 넣어 이미 쓰고 있었다 — 투영에서만 빠진 데이터 흐름 결함이다.
+    if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price, change1d: pd.change1d ?? null });
   }
   stage1Scored.sort((a, b) => b.stage1Score - a.stage1Score);
   const stage2Cands = sliceWithKrQuota(stage1Scored, 100, 30); // top 100 → Stage 2 (KR 30 슬롯 보장)
@@ -5385,6 +5384,12 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
         (rule.category === 'price' && rule.id !== 'price_oversold_gap') ||
         rule.id === 'rotation_new_high_after_consolidation';
       if (!needsOHLCV) continue;
+      // 2026-08-20: 한 룰은 후보당 한 번만 점수에 기여한다. Stage1 허용목록(:5344)과 Stage2 제외목록이
+      //   각각 하드코딩돼 어긋나면서 price_momentum_52w_high 가 양쪽에서 채점돼 score 5 가 두 번
+      //   더해지고 있었다(DB 4,092행 중 1,267행=31%). 52주 신고가에 안 걸리는 종목이 상대적으로
+      //   5점 불리해져 순위가 뒤집혔다. 목록 두 개를 손으로 맞추는 대신 불변식으로 막는다 —
+      //   앞으로 단계 구분이 어떻게 바뀌어도 중복 가산이 재발하지 않는다.
+      if (c.reasons.some(x => x.ruleId === rule.id)) continue;
       const r = evaluateBuyRule(rule, ctx);
       if (r) { c.stage1Score += rule.score; c.reasons.push({ ruleId: rule.id, category: rule.category, score: rule.score, reason: r }); }
     }
@@ -6890,11 +6895,11 @@ async function generateViaOllama() {
   const PF_N = Math.max(1, Math.min(4, parseInt(process.env.PORTFOLIO_BEST_OF_N ?? '2', 10) || 1));
   const pfPrompt = buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates);
   const wave1 = await Promise.all([
-    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence), modelArg, 900000, 'macro'),
-    ...Array.from({ length: PF_N }, (_, i) => callOllama(pfPrompt, modelArg, 900000, PF_N > 1 ? `portfolio-${i + 1}/${PF_N}` : 'portfolio')),
-    callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 900000, 'regional'),
-    callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 900000, 'opportunity'),
-    callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 900000, 'narrative'),
+    callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence), modelArg, 3600000, 'macro'),
+    ...Array.from({ length: PF_N }, (_, i) => callOllama(pfPrompt, modelArg, 3600000, PF_N > 1 ? `portfolio-${i + 1}/${PF_N}` : 'portfolio')),
+    callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 3600000, 'regional'),
+    callOllama(buildOpportunityPrompt(ctxWithCascade), modelArg, 3600000, 'opportunity'),
+    callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 3600000, 'narrative'),
   ]);
   const macroRaw = wave1[0];
   const portfolioDrafts = wave1.slice(1, 1 + PF_N);
@@ -6933,8 +6938,8 @@ async function generateViaOllama() {
   if (retryNeeded.length > 0) {
     console.log(`  parse failed [${retryNeeded.join(', ')}] — retrying...`);
     const retries = await Promise.all([
-      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence), modelArg, 900000, 'macro-retry')    : Promise.resolve(null),
-      !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 900000, 'regional-retry')                   : Promise.resolve(null),
+      !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence), modelArg, 3600000, 'macro-retry')    : Promise.resolve(null),
+      !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 3600000, 'regional-retry')                   : Promise.resolve(null),
     ]);
     if (!macroData    && retries[0]) macroData    = parseJson(retries[0], 'macro-retry');
     if (!regionalData && retries[1]) regionalData = parseJson(retries[1], 'regional-retry');
@@ -6950,7 +6955,7 @@ async function generateViaOllama() {
       console.log(`  [card-backfill] ${f} 누락/부실 → 표적 재요청`);
       try {
         const sys = `너는 금융 애널리스트다. 아래 거시/시장 데이터로 "${f}" 한 필드만 ${TARGET_LANG} 서술형 2문장(${min}~260자)으로 작성하라. 수치를 지어내지 말고 주어진 데이터만 인용. JSON 만 출력: {"${f}":"..."}`;
-        const raw = await callOllama(`${sys}\n\n[데이터]\n${buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence).slice(0, 3500)}`, modelArg, 180000, `card-${f}`);
+        const raw = await callOllama(`${sys}\n\n[데이터]\n${buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence).slice(0, 3500)}`, modelArg, 720000, `card-${f}`);
         const got = parseJson(raw, `card-${f}`)?.[f];
         if (got && String(got).trim().length >= min) { macroData[f] = String(got).trim(); console.log(`  [card-backfill] ${f} ✓ (${macroData[f].length}자)`); }
       } catch (e) { console.warn(`  [card-backfill] ${f} skip: ${e?.message}`); }
@@ -6976,7 +6981,7 @@ async function generateViaOllama() {
   // 생성부실(total < 4)일 때만 1회 retry — 6+6 채우기용 아님(품질 후보가 적은 건 정상).
   if (portfolioCounts.total < 4) {
     console.log(`  portfolio total ${portfolioCounts.total} (<4) — 생성부실 의심, 1회 retry (개수강제 아님)...`);
-    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 900000, 'portfolio-retry-1');
+    const portfolioRetry = await callOllama(buildPortfolioPrompt(ctxWithCascade, sectorPe, earnings, priceData, buyCandidates), modelArg, 3600000, 'portfolio-retry-1');
     const portfolioRetryData = parseJson(portfolioRetry, 'portfolio-retry-1');
     portfolioData = pickBetter(portfolioData, portfolioRetryData);
     portfolioCounts = countByMarket(portfolioData?.portfolio);
@@ -7088,11 +7093,11 @@ async function generateViaOllama() {
 
   const wave2Start = Date.now();
   const wave2Calls = [
-    callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx), modelArg, 900000, 'risk'),
-    callOllama(buildCompanyChangesPrompt(portfolioItemsDeduped, earnings, ctx.institutional, ctx.news, companyFinancials), modelArg, 900000, 'companyChanges'),
+    callOllama(buildRiskMgmtPrompt(portfolioItemsDeduped, macroData?.riskLevel ?? 'medium', ctx.bbWarnings, ctx.vixCtx), modelArg, 3600000, 'risk'),
+    callOllama(buildCompanyChangesPrompt(portfolioItemsDeduped, earnings, ctx.institutional, ctx.news, companyFinancials), modelArg, 3600000, 'companyChanges'),
   ];
   if (buyStocksDeduped.length > 0) {
-    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials), modelArg, 900000, 'stockDetail'));
+    wave2Calls.push(callOllama(buildStockDetailPrompt(buyStocksDeduped, ctx.institutional, ctx.shorts, earnings, sectorPe, ctx.news, technicalData, companyFinancials), modelArg, 3600000, 'stockDetail'));
   } else {
     wave2Calls.push(Promise.resolve(null));
   }
@@ -7104,7 +7109,7 @@ async function generateViaOllama() {
     const sellBestOfN = (async () => {
       const drafts = await Promise.all(
         Array.from({ length: SELL_N }, (_, i) =>
-          callOllama(sellPrompt, modelArg, 240000, SELL_N > 1 ? `sellRationale-${i + 1}/${SELL_N}` : 'sellRationale')),
+          callOllama(sellPrompt, modelArg, 960000, SELL_N > 1 ? `sellRationale-${i + 1}/${SELL_N}` : 'sellRationale')),
       );
       if (SELL_N === 1) return drafts[0];
       try {
@@ -7254,7 +7259,7 @@ async function generateViaOllama() {
       macroData?.macroAnalysis ?? '',
       ctx.bbWarnings,
       ctx.assetFg,
-    ), modelArg, 900000, 'critique');
+    ), modelArg, 3600000, 'critique');
     refinedPortfolio = applyCritique(portfolioItemsDeduped, critiqueRaw);
     // 종목별 critique 결과 상세 로그
     for (const p of refinedPortfolio) {
@@ -7316,7 +7321,7 @@ async function generateViaOllama() {
         '{"catalysts":["item1","item2"],"fundamentalBasis":"text"}',
       ].filter(Boolean).join('\n');
       try {
-        const resp = await callOllama(factPrompt, modelArg, 60000, `fact-check:${p.ticker}`);
+        const resp = await callOllama(factPrompt, modelArg, 240000, `fact-check:${p.ticker}`);
         const m = resp?.match(/\{[\s\S]*\}/);
         if (!m) return null;
         const parsed = JSON.parse(m[0]);
@@ -7603,7 +7608,7 @@ async function generateViaOllama() {
       const vetoTickers = new Set();
       const verdicts = await Promise.all(borderlineQueue.map(async (q) => {
         try {
-          const raw = await callOllama(buildAdjudicationPrompt({ ...q.p, ...q, ticker: q.p.ticker, sector: q.p.sector, MID, HIGH }), modelArg, 120000, `adjudicate:${q.p.ticker}`);
+          const raw = await callOllama(buildAdjudicationPrompt({ ...q.p, ...q, ticker: q.p.ticker, sector: q.p.sector, MID, HIGH }), modelArg, 480000, `adjudicate:${q.p.ticker}`);
           const parsed = parseJson(raw, `adjudicate-${q.p.ticker}`);
           const act = String(parsed?.action ?? '').toLowerCase();
           if (!['keep', 'downgrade', 'veto'].includes(act)) return { q, action: null, reason: 'parse/unbounded — numeric 폴백' };
@@ -9067,7 +9072,7 @@ async function generateViaOllama() {
   //   검증 통과분만 채택(실패 시 gate 가 계속 차단 — 오염 발행 안 함).
   try {
     const { nFix: nLat, fixed: latFixed, unresolved: latUnres } = await repairLatinBleed(
-      finalReport, (p) => callOllama(p, modelArg, 60000, 'latin-repair'), { log: () => {} });
+      finalReport, (p) => callOllama(p, modelArg, 240000, 'latin-repair'), { log: () => {} });
     if (nLat) console.log(`  [latin-repair] 로마자 누출 ${nLat}필드 자가복구: ${latFixed.join(', ')}`);
     if (latUnres.length) console.log(`  [latin-repair] ⚠️ 미해결 ${latUnres.length}필드(gate 가 차단): ${latUnres.join(', ')}`);
   } catch (e) { console.warn(`  [latin-repair] skip: ${e.message}`); }

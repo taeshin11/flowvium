@@ -1,0 +1,30 @@
+{
+  "_note": "포트폴리오 구성 정책 단일소스 (2026-08-20). 종전에는 generate-report-local.mjs 에 흩어져 있었다: KR 30% 하한(sliceWithKrQuota, topN*0.3), 고정 손절폭, 후보 30개. 값을 여기서만 바꾼다.",
+  "maxPositions": 6,
+  "_maxPositionsNote": "38일 out-of-sample 실측: 진입 85건이 사실상 US 14 + KR 5 = 19개 고유종목의 4.2~4.6회 반복이었다. 반복 추천은 같은 오판을 복리로 키운다. 고확신 소수 집중(Robertson: '좋은 아이디어→철저한 리서치→그 위에 큰 베팅')으로 전환. 값을 늘리려면 근거(전향 성적)를 먼저 쌓을 것.",
+  "candidatePoolSize": 30,
+  "marketQuota": {
+    "us": {
+      "cap": 1.0,
+      "floor": 0
+    },
+    "kr": {
+      "cap": 0.3,
+      "floor": 0
+    }
+  },
+  "_quotaNote": "cap=상한, floor=하한. 종전 sliceWithKrQuota 는 KR 슬롯을 '보장'(=하한)했다. KOSPI 33% 폭락·외국인 6개월 연속 순매도 구간에도 30%를 KR 로 채웠고 KR 20건 중 19건이 손절했다. 하한을 0 으로 두어 '좋은 후보가 있을 때만' 담는다. cap 은 남겨 특정 시장 쏠림을 막는다.",
+  "krFlowVeto": {
+    "foreignNetStreakLte": -3,
+    "netPctLte": -1.0,
+    "_note": "외국인 순매도가 3일 이상 연속이고 순매도 강도가 -1% 이하면 KR 신규 롱 차단. krFlowIntensity(buy-sell-engine.mjs:227)가 순매수에만 가점을 주고 대칭 veto 가 없던 공백을 메운다. 하나만 충족해도 차단하지 않는다 — 연속성과 강도를 함께 본다."
+  },
+  "stop": {
+    "atrMultiple": 2.5,
+    "minPct": 4.0,
+    "maxPct": 15.0,
+    "_note": "손절폭 = ATR% × atrMultiple, [minPct,maxPct] 로 클램프. 종전 고정 -6.5% 는 KR 노이즈 안이었다(저점 -3.3~-7.4% 구간에서 19/20 손절). Kovner: '스톱은 정상적 시장 노이즈로 도달하기 어려운 위치에 설정하라'. ATR 이 없으면 null 을 돌려 호출측이 판단하게 한다 — 임의 고정값으로 때우지 않는다.",
+    "ccToTrueRangeRatio": 1.5,
+    "_ccRatioNote": "ATR 을 못 구할 때 종가-종가 변동성을 장중 범위 축으로 옮기는 보정계수. 2026-08-20 실측 ATR/ccVol: 000810.KS 2.0 · ANET 1.7 · 082920.KQ 1.5 · 005380.KS 1.4 · AAPL 1.2 → 중앙값 약 1.5. ATR 을 직접 쓸 수 있으면 이 경로를 타지 않는 것이 옳다."
+  }
+}

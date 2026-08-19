@@ -19,8 +19,9 @@
 import Database from 'better-sqlite3';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { execSync } from 'child_process';
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 
-const ROOT = 'C:/Flowvium';
+const ROOT = _PROJECT_ROOT;
 const STALE_H = 11;   // 보고서 최대 허용 age (8h cadence + grace)
 const VERIFY_STALE_H = 13;
 const HUNG_MIN = 20;  // report-gen 최대 실행 시간
@@ -91,7 +92,7 @@ function checkOnce() {
     try { const bm = readFileSync(`${ROOT}/scripts/run-report.bat`, 'utf8').match(/--model=([A-Za-z0-9:._-]+)/); if (bm) codeModels.add(bm[1]); } catch {}
     // 2026-07-01: curl 절대경로 필수 — pm2 spawn 환경은 대화형 셸과 PATH 가 달라 'curl' bare 는 못찾아
     //   catch→조용히 SKIP(프로덕션 no-op = "모니터가 본다≠fix" 함정). SystemRoot 는 항상 env 에 존재.
-    const curlExe = `${process.env.SystemRoot || 'C:\\Windows'}\\System32\\curl.exe`;
+    const curlExe = process.platform === 'win32' ? `${process.env.SystemRoot || 'C:\\Windows'}\\System32\\curl.exe` : 'curl';
     const raw = execSync(`"${curlExe}" -s -m 6 http://127.0.0.1:8000/v1/models`, { timeout: 8000, encoding: 'utf8' });
     const served = new Set((JSON.parse(raw).data || []).map((m) => m.id));
     if (served.size && codeModels.size) {
@@ -134,7 +135,7 @@ function checkOnce() {
   //     (2026-06-03 데이터손실 사건: fix 후 커밋+푸시 안 하면 다음 cron 이 silent revert.)
   try {
     // 2026-06-17: timeout 추가 — git fetch 네트워크 stall 시 probe 무한 hang 차단.
-    const sh = (c, timeout = 0) => { try { return execSync(c, { cwd: 'C:/Flowvium', encoding: 'utf8', stdio: ['pipe','pipe','ignore'], ...(timeout ? { timeout } : {}) }).trim(); } catch { return ''; } };
+    const sh = (c, timeout = 0) => { try { return execSync(c, { cwd: _PROJECT_ROOT, encoding: 'utf8', stdio: ['pipe','pipe','ignore'], ...(timeout ? { timeout } : {}) }).trim(); } catch { return ''; } };
     const WIPE = /^(scripts\/|src\/|public\/|messages\/|package\.json|data\/[^/]+\.json)/;
     const tracked = sh('git status --porcelain', 10000).split('\n').filter(Boolean)
       .filter(l => !l.startsWith('??') && WIPE.test(l.slice(3).replace(/^"|"$/g, '')));

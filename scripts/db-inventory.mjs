@@ -3,7 +3,8 @@
  * scripts/db-inventory.mjs — DB 적재 항목 전체 인벤토리.
  */
 import Database from 'better-sqlite3';
-const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+const db = new Database(`${_PROJECT_ROOT}/data/flowvium.db`, { readonly: true });
 
 const tables = db.prepare(`
   SELECT name, type FROM sqlite_master
@@ -90,5 +91,5 @@ console.log(`  endpoint_snapshots:  ${recent7d.endpoint_snaps}`);
 
 // DB 크기
 import { statSync } from 'fs';
-const size = statSync('C:/Flowvium/data/flowvium.db').size;
+const size = statSync(`${_PROJECT_ROOT}/data/flowvium.db`).size;
 console.log(`\nDB 파일 크기: ${(size / 1024 / 1024).toFixed(1)} MB`);

@@ -6,8 +6,9 @@
 // 2026-06-15 신설 (vLLM 이전 후 세션 모니터링 이어가기).
 import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from 'node:fs';
 import { execSync, spawn } from 'node:child_process';
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 
-const ROOT = 'C:/Flowvium';
+const ROOT = _PROJECT_ROOT;
 const now = Date.now();
 const alerts = [];
 const info = [];

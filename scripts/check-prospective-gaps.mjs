@@ -5,7 +5,8 @@
  * 우리가 측정/평가했지만 활용 안 한 지표 + 측정조차 안 한 지표 + 잘못 해석한 지표.
  */
 import Database from 'better-sqlite3';
-const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+const db = new Database(`${_PROJECT_ROOT}/data/flowvium.db`, { readonly: true });
 
 console.log('═══════════════════════════════════════════════════════════');
 console.log('  전향적 연구 blind spot 분석 — ' + new Date().toISOString().slice(0,19));

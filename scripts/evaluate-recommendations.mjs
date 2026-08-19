@@ -13,6 +13,7 @@
  *   node scripts/evaluate-recommendations.mjs --dry-run    # DB 쓰기 없이 보기만
  *   node scripts/evaluate-recommendations.mjs --limit=10   # 상위 10건만
  */
+import { realizedPnlPct, markToMarketPnlPct } from './lib/realized-pnl.mjs';
 import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary } from './lib/db.mjs';
 
 const args = process.argv.slice(2);
@@ -154,11 +155,13 @@ async function main() {
     if (judge.neClass && neClasses[judge.neClass] != null) neClasses[judge.neClass]++;
 
     const entry = rec.entry_low ?? rec.price_at_gen;
-    const pnl = entry && judge.lastClose
-      ? parseFloat(((judge.lastClose - entry) / entry * 100).toFixed(2))
-      : null;
+    // 2026-08-20: 라벨과 일치하는 실현손익으로 바꾼다. 종전에는 라벨과 무관하게 마지막 종가로만 재서
+    //   손절 발동 후 회복한 건이 수익으로 기록됐다(38일 표본 stop_loss 41건 중 17건).
+    //   mtm(현재가 기준)은 details 에 함께 남겨 과거 데이터와 대조할 수 있게 한다.
+    const pnl = realizedPnlPct({ outcome: judge.outcome, entry, stop: rec.stop_loss, target: rec.target, lastClose: judge.lastClose });
+    const mtm = markToMarketPnlPct({ entry, lastClose: judge.lastClose });
 
-    console.log(`${rec.ticker.padEnd(12)} ${rec.generated_at.slice(0,10)}  ${judge.outcome.padEnd(15)} ${pnl !== null ? `${pnl>0?'+':''}${pnl}%` : '-'}  ${judge.detail}`);
+    console.log(`${rec.ticker.padEnd(12)} ${rec.generated_at.slice(0,10)}  ${judge.outcome.padEnd(15)} ${pnl !== null ? `${pnl>0?'+':''}${pnl}%` : '  -  '} (mtm ${mtm !== null ? `${mtm>0?'+':''}${mtm}%` : '-'})  ${judge.detail}`);
 
     if (!DRY) {
       saveOutcome({
@@ -171,7 +174,7 @@ async function main() {
         high_seen: judge.highSeen ?? null,
         low_seen: judge.lowSeen ?? null,
         spy_return: spyRet,
-        details: judge,
+        details: { ...judge, pnlBasis: 'realized', mtmPnlPct: mtm },
       });
     }
   }

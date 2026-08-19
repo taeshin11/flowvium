@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import Database from 'better-sqlite3';
-const db = new Database('C:/Flowvium/data/flowvium.db', { readonly: true });
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+const db = new Database(`${_PROJECT_ROOT}/data/flowvium.db`, { readonly: true });
 
 console.log('=== 전향적 평가 메커니즘 quality ===\n');
 
