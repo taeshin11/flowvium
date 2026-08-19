@@ -1,27 +1,115 @@
 {
-  "generatedAt": "2026-07-29T07:20:24.529Z",
+  "generatedAt": "2026-08-19T22:18:35.602Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
-  "strongCount": 0,
-  "watchCount": 1,
+  "count": 6,
+  "strongCount": 1,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "089600.KQ",
-      "name": "KT나스미디어",
+      "ticker": "056730.KQ",
+      "name": "CNT85",
+      "tier": "strong",
+      "score": 51,
+      "coFire": 4,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)",
+        "아래꼬리 매집 7개(저가 매수받침)"
+      ],
+      "runup20dPct": -6.2,
+      "runup5dPct": -3.6,
+      "medDollarVolUsd": 8308,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "078130.KQ",
+      "name": "국일제지",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -14.2,
+      "runup5dPct": -4.5,
+      "medDollarVolUsd": 473153,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "054780.KQ",
+      "name": "키이스트",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 2.7,
-      "runup5dPct": 0.6,
-      "medDollarVolUsd": 115599,
+      "runup20dPct": 1.1,
+      "runup5dPct": -5.3,
+      "medDollarVolUsd": 36431,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "263750.KQ",
+      "name": "펄어비스",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -7.9,
+      "runup5dPct": -16.8,
+      "medDollarVolUsd": 9265804,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "069510.KQ",
+      "name": "에스텍",
+      "tier": "watch",
+      "score": 29,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 4.2,
+      "runup5dPct": 2.2,
+      "medDollarVolUsd": 80596,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "035900.KQ",
+      "name": "JYP Ent.",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "거래량 3.1× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -9.9,
+      "runup5dPct": -14.2,
+      "medDollarVolUsd": 7548509,
       "smartAccum": true,
       "official": null
     }
