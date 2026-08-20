@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T22:19:09.108Z",
+  "generatedAt": "2026-08-20T13:00:32.168Z",
   "universe": "US",
   "scanned": 374,
   "count": 5,
@@ -20,7 +20,7 @@
       ],
       "runup20dPct": 8.5,
       "runup5dPct": 6.6,
-      "medDollarVolUsd": 14577255,
+      "medDollarVolUsd": 14735386,
       "smartAccum": false,
       "official": null
     },
@@ -69,7 +69,7 @@
       ],
       "runup20dPct": -14.6,
       "runup5dPct": -1.9,
-      "medDollarVolUsd": 2116212,
+      "medDollarVolUsd": 2177955,
       "smartAccum": false,
       "official": null
     },
