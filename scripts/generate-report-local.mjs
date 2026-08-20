@@ -44,7 +44,7 @@ const _conditionalWatchPending = [];
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 import { normalizeAllocations } from './lib/allocation-normalize.mjs';
-import { buildKoreaFlowLine } from './lib/region-flow.mjs';
+import { buildKoreaFlowLine, koreaFlowInputs } from './lib/region-flow.mjs';
 import { partition as partitionSignalScope, shouldVeto as scopedShouldVeto,
          exposureFactor as regimeExposureFactor } from './lib/signal-scope.mjs';
 // 2026-08-20: 매도 거부 임계값 단일 소스. 종전에는 7 이 세 군데에 흩어져 있었고
@@ -6739,7 +6739,18 @@ async function generateViaOllama() {
     getSectorPeRaw(),
     getUpcomingEarnings(),
   ]);
-  const ctx = buildCtxSummary(ctxRaw);
+  // 2026-08-20: 종전에는 buildCtxSummary 가 buildIndexLevelsBlock 보다 먼저 호출됐다.
+  //   그래서 ctx.indexLevelsMap 이 undefined 였고, region-flow 가 스탠스 판정 입력에 넣으려던
+  //   KOSPI 당일 등락이 프로덕션에서 한 번도 실행되지 않았다(코드는 있는데 효과 0).
+  //   지수 블록을 먼저 가져와서 넘긴다 — 네트워크 호출 1건이라 순서를 앞당겨도 비용 차이가 없다.
+  const { text: indexLevels, map: indexLevelsMap } = await buildIndexLevelsBlock();
+  if (indexLevels) console.log(`  [index-levels] ${indexLevels}`);
+  const ctx = buildCtxSummary({ ...ctxRaw, indexLevelsMap });
+  {
+    // 어떤 입력이 실제로 들어왔는지 남긴다 — 순서가 또 바뀌면 여기서 드러난다.
+    const io = koreaFlowInputs({ ...ctxRaw, indexLevelsMap });
+    console.log(`  [region-flow 입력] 지수 ${io.index ? '✓' : '✗'} · ETF ${io.etf ? '✓' : '✗'} · 외국인수급 ${io.foreign ? '✓' : '✗'}`);
+  }
   const priceData = pricesSection(livePrices);
   const cascadeStr = await getActiveCascadeSignals(livePrices);
   const cascadeBlock = cascadeStr
@@ -6747,8 +6758,7 @@ async function generateViaOllama() {
       `(L=leader, → 표시는 일반적 전파 순서. 🔥ACTIVE 는 1d ≥3% 임펄스 감지)\n${cascadeStr}`
     : '';
   // 2026-06-16: 실시간 지수 레벨 — 프롬프트가 실제 KOSPI/S&P 레벨을 갖게 해 train-memory 환각 차단.
-  const { text: indexLevels, map: indexLevelsMap } = await buildIndexLevelsBlock();
-  if (indexLevels) console.log(`  [index-levels] ${indexLevels}`);
+  //   (2026-08-20: buildCtxSummary 보다 먼저 가져오도록 위로 옮겼다 — 아래 참조는 그 결과를 쓴다.)
   const ctxWithCascade = {
     ...ctx,
     flows: ctx.flows + cascadeBlock,

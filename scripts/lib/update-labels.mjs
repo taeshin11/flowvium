@@ -33,7 +33,7 @@ const KO = {
 /** 번역하지 않는 고유명(기관·지수·데이터 제공처 이름). */
 const PROPER = new Set([
   'CNN Fear & Greed', 'CNN Official F&G Index', 'CME FedWatch', 'Alpha Vantage',
-  'Nasdaq', 'FlowVium composite', 'Reuters/CNBC',
+  'Nasdaq', 'FlowVium composite', 'Reuters/CNBC', 'Fear & Greed',
 ]);
 
 const langOf = (locale) => String(locale ?? 'en').split('-')[0];
@@ -44,7 +44,12 @@ export function localizeLabel(label, locale = 'en') {
   if (!s) return '';
   if (langOf(locale) !== 'ko') return s;
   if (PROPER.has(s)) return s;
-  return KO[s] ?? s;
+  // 대소문자가 흔들려도 같은 라벨이다 — 실측: API 가 'accumulating'(소문자)로 내보내
+  // 'Accumulating' 만 있던 매핑을 비껴갔다.
+  if (KO[s]) return KO[s];
+  const lower = s.toLowerCase();
+  for (const k of Object.keys(KO)) if (k.toLowerCase() === lower) return KO[k];
+  return s;
 }
 
 /**

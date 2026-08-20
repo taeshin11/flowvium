@@ -575,7 +575,8 @@
     "ctaSeeRecs": "Lihat saham pilihan AI hari ini",
     "ctaSeeRecsDesc": "Beli/jual · entri · stop & target",
     "ctaAskEngine": "Tanya Mesin Penilai",
-    "ctaAskEngineDesc": "Konsultasi AI beli/jual"
+    "ctaAskEngineDesc": "Konsultasi AI beli/jual",
+    "breadth": "Breadth"
   },
   "feedback": {
     "title": "Kirim Masukan",

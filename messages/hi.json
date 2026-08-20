@@ -575,7 +575,8 @@
     "ctaSeeRecs": "आज के AI स्टॉक चुनाव देखें",
     "ctaSeeRecsDesc": "खरीद/बिक्री · एंट्री · स्टॉप व लक्ष्य",
     "ctaAskEngine": "जजमेंट इंजन से पूछें",
-    "ctaAskEngineDesc": "AI खरीद/बिक्री सलाह"
+    "ctaAskEngineDesc": "AI खरीद/बिक्री सलाह",
+    "breadth": "ब्रेड्थ"
   },
   "feedback": {
     "title": "फ़ीडबैक भेजें",

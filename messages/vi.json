@@ -575,7 +575,8 @@
     "ctaSeeRecs": "Xem cổ phiếu AI chọn hôm nay",
     "ctaSeeRecsDesc": "Mua/bán · điểm vào · cắt lỗ & mục tiêu",
     "ctaAskEngine": "Hỏi Bộ máy Phán xét",
-    "ctaAskEngineDesc": "Tư vấn AI mua/bán"
+    "ctaAskEngineDesc": "Tư vấn AI mua/bán",
+    "breadth": "Phạm vi thị trường"
   },
   "feedback": {
     "title": "Gửi phản hồi",

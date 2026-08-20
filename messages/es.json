@@ -575,7 +575,8 @@
     "ctaSeeRecs": "Ver las acciones IA de hoy",
     "ctaSeeRecsDesc": "Compra/venta · entrada · stop y objetivo",
     "ctaAskEngine": "Consultar al Motor de Juicio",
-    "ctaAskEngineDesc": "Asesoría IA compra/venta"
+    "ctaAskEngineDesc": "Asesoría IA compra/venta",
+    "breadth": "Amplitud"
   },
   "feedback": {
     "title": "Enviar Comentarios",

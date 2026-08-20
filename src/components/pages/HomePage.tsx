@@ -1,6 +1,7 @@
 'use client';
 
 import { TranslatedText } from '@/components/TranslatedText';
+import { localizeLabel } from '@/lib/update-labels';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { sectors } from '@/data/sectors';
@@ -255,7 +256,8 @@ function MarketSnapshot() {
           )}
           {breadth && (
             <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">
-              <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">BREADTH</span>
+              {/* 2026-08-20: 하드코딩 'BREADTH' → 메시지 키. 16개 로케일 전부 추가(add-i18n-key.mjs). */}
+              <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">{t('breadth')}</span>
               <span className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${
                 breadth.adv > breadth.dec ? 'text-green-700 bg-green-50' :
                 breadth.dec > breadth.adv ? 'text-red-700 bg-red-50' :
@@ -922,6 +924,7 @@ function TopMoversWidget() {
 }
 
 export default function HomePage() {
+  const locale = useLocale();   // 2026-08-20: signal.action enum 라벨 로케일화에 필요
   const t = useTranslations('hero');
   const tHome = useTranslations('home');
   const tCommon = useTranslations('common');
@@ -1197,7 +1200,9 @@ export default function HomePage() {
                     className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${actionColors[signal.action]}`}
                   >
                     {actionIcons[signal.action]}
-                    {signal.action.replace('_', ' ')}
+                    {/* 2026-08-20: enum 원값을 그대로 렌더해 한국어 화면에 "accumulating"이 나왔다.
+                        닫힌 집합이라 LLM 번역이 아니라 매핑으로 처리한다. */}
+                    {localizeLabel(signal.action.replace('_', ' '), locale)}
                   </span>
                 </div>
                 <p className="text-sm text-cf-text-primary font-medium mb-1 truncate">

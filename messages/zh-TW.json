@@ -575,7 +575,8 @@
     "ctaSeeRecs": "查看今日AI推薦個股",
     "ctaSeeRecsDesc": "買賣標的 · 進場價 · 停損/目標",
     "ctaAskEngine": "諮詢判斷引擎",
-    "ctaAskEngineDesc": "買賣AI諮詢"
+    "ctaAskEngineDesc": "買賣AI諮詢",
+    "breadth": "廣度"
   },
   "feedback": {
     "title": "傳送意見回饋",

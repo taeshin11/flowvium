@@ -39,6 +39,17 @@ for (const p of ['CNN Fear & Greed', 'CME FedWatch', 'Alpha Vantage', 'Nasdaq', 
   L.localizeLabel(p, 'ko') === p ? ok(`고유명 유지: ${p}`) : bad(`고유명을 번역함: ${p} → ${L.localizeLabel(p, 'ko')}`);
 }
 
+// [2b] 대소문자가 흔들려도 같은 라벨이다 — 실측: API 가 'accumulating'(소문자)로 내보내
+//      'Accumulating' 만 있던 매핑을 비껴갔다.
+L.localizeLabel('accumulating', 'ko') === '매집' ? ok('소문자 변형도 매핑') : bad(`소문자 미매핑: ${L.localizeLabel('accumulating','ko')}`);
+L.localizeLabel('BULLISH', 'ko') === '강세' ? ok('대문자 변형도 매핑') : bad('대문자 미매핑');
+// enum 원값이 그대로 렌더되는 경로도 있다 — HomePage:1200 `signal.action.replace('_',' ')`
+L.localizeLabel('new position', 'ko') === '신규 편입' ? ok('언더스코어 enum 변형 매핑') : bad(`enum 변형 미매핑: ${L.localizeLabel('new position','ko')}`);
+L.localizeLabel('full exit', 'ko') === '전량 청산' ? ok('full exit 매핑') : bad('full exit 미매핑');
+
+// 지수 고유명 (바깥 표기 그대로 쓰는 이름)
+L.localizeLabel('Fear & Greed', 'ko') === 'Fear & Greed' ? ok('Fear & Greed 고유명 유지') : bad('지수명을 번역함');
+
 // [3] 영어 로케일은 원문 그대로 (회귀 금지)
 L.localizeLabel('Bullish', 'en') === 'Bullish' ? ok('en 은 원문 유지') : bad('en 이 바뀜');
 // [4] 모르는 라벨은 창작하지 않고 원값 — 조용히 틀린 한국어를 만들지 않는다

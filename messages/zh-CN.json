@@ -575,7 +575,8 @@
     "ctaSeeRecs": "查看今日AI推荐个股",
     "ctaSeeRecsDesc": "买卖标的 · 入场价 · 止损/目标",
     "ctaAskEngine": "咨询判断引擎",
-    "ctaAskEngineDesc": "买卖AI咨询"
+    "ctaAskEngineDesc": "买卖AI咨询",
+    "breadth": "市场宽度"
   },
   "feedback": {
     "title": "发送反馈",

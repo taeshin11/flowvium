@@ -575,7 +575,8 @@
     "ctaSeeRecs": "See today's AI stock picks",
     "ctaSeeRecsDesc": "Buy/sell picks · entry · stop & target",
     "ctaAskEngine": "Ask the Judgment Engine",
-    "ctaAskEngineDesc": "AI buy/sell consult"
+    "ctaAskEngineDesc": "AI buy/sell consult",
+    "breadth": "Breadth"
   },
   "feedback": {
     "title": "Send Feedback",

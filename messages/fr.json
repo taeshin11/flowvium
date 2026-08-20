@@ -575,7 +575,8 @@
     "ctaSeeRecs": "Voir les titres IA du jour",
     "ctaSeeRecsDesc": "Achat/vente · entrée · stop et cible",
     "ctaAskEngine": "Consulter le Moteur de Jugement",
-    "ctaAskEngineDesc": "Conseil IA achat/vente"
+    "ctaAskEngineDesc": "Conseil IA achat/vente",
+    "breadth": "Largeur du marché"
   },
   "feedback": {
     "title": "Envoyer des commentaires",

@@ -575,7 +575,8 @@
     "ctaSeeRecs": "KI-Aktientipps von heute",
     "ctaSeeRecsDesc": "Kauf/Verkauf · Einstieg · Stop & Ziel",
     "ctaAskEngine": "Urteils-Engine fragen",
-    "ctaAskEngineDesc": "KI Kauf/Verkauf-Beratung"
+    "ctaAskEngineDesc": "KI Kauf/Verkauf-Beratung",
+    "breadth": "Breite"
   },
   "feedback": {
     "title": "Feedback senden",

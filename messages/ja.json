@@ -746,7 +746,8 @@
     "ctaSeeRecs": "今日のAI推奨銘柄を見る",
     "ctaSeeRecsDesc": "売買推奨 · エントリー · 損切り/目標",
     "ctaAskEngine": "審判エンジンに質問",
-    "ctaAskEngineDesc": "売買AI相談"
+    "ctaAskEngineDesc": "売買AI相談",
+    "breadth": "市場の広がり"
   },
   "emailCta": {
     "title": "週間サプライチェーンインサイトを受け取る",

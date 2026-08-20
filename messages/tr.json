@@ -575,7 +575,8 @@
     "ctaSeeRecs": "Bugünün AI hisse seçimleri",
     "ctaSeeRecsDesc": "Al/sat · giriş · stop ve hedef",
     "ctaAskEngine": "Yargı Motoruna Sor",
-    "ctaAskEngineDesc": "AI al/sat danışmanlığı"
+    "ctaAskEngineDesc": "AI al/sat danışmanlığı",
+    "breadth": "Genişlik"
   },
   "feedback": {
     "title": "Geri Bildirim Gönder",

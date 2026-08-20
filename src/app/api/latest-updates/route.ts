@@ -430,9 +430,11 @@ function getSignalItems(signals: InstitutionalSignal[], locale = 'en'): UpdateIt
     .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
     .slice(0, 10)
     .map(s => {
-      const actionLabel = s.action === 'accumulating' ? 'Accumulating'
+      // 2026-08-20: enum → 표시라벨 매핑만 하고 로케일을 안 태워 한국어 화면에 영문이 나갔다.
+      const actionLabel = localizeLabel(
+        s.action === 'accumulating' ? 'Accumulating'
         : s.action === 'new_position' ? 'New Position'
-        : s.action === 'reducing' ? 'Reducing' : 'Full Exit';
+        : s.action === 'reducing' ? 'Reducing' : 'Full Exit', locale);
       const isUp = s.action === 'accumulating' || s.action === 'new_position';
       return {
         id: `signal-${s.id}`,
@@ -497,7 +499,8 @@ function getEconCalendarItems(locale = 'en'): UpdateItem[] {
       headline: `${urgency} — ${e.title}`,
       sub: e.note ?? e.category,
       source: localizeLabel('Economic Calendar', locale),
-      time: e.time ?? e.date,
+      // 2026-08-20: econ-calendar 의 time 은 'All day' 같은 영문 리터럴을 담는다(src/data/econ-calendar.ts).
+      time: localizeLabel(e.time ?? e.date, locale),
       sortTime: e.date + 'T00:00:00.000Z',
       badge: e.impact === 'high' ? '🔴 High Impact' : '🟡 Medium',
       badgeColor,

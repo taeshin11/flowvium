@@ -746,7 +746,8 @@
     "ctaSeeRecs": "오늘의 AI 추천 종목 보기",
     "ctaSeeRecsDesc": "매수·매도 픽 · 진입가 · 손절·목표가",
     "ctaAskEngine": "심판엔진에게 물어보기",
-    "ctaAskEngineDesc": "매수·매도 AI 상담"
+    "ctaAskEngineDesc": "매수·매도 AI 상담",
+    "breadth": "시장 폭"
   },
   "emailCta": {
     "title": "주간 공급망 인사이트 받기",
