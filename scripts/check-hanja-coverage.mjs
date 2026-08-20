@@ -38,6 +38,9 @@ const EXEMPT = {
   'scripts/check-stall.mjs': 'model-id health probe(/v1/models) — 산문 생성 아님',
   'scripts/pm2-watchdog.mjs': 'health probe — 산문 생성 아님',
   'scripts/run-report.bat': '런처(가드된 generate-report 호출)',
+  // 2026-08-20: LLM 호출이 0건인 설정 해석기. LLM_RE 의 ':8000/v1'(기본 URL 문자열)에 매칭됐을 뿐
+  //   출력 표면이 아니다 — URL/모델명만 돌려준다.
+  'scripts/lib/llm-config.mjs': '설정 해석기(LLM 호출 0건, 기본 URL 문자열만 보유 — 출력 표면 아님)',
   'scripts/run-report.sh': '런처(가드된 generate-report 호출) — 맥 launchd 가 실제로 부르는 진입점. .bat 은 윈도우 유물.',
   'scripts/sft/check-lora-vllm.sh': 'SFT/학습 dev 도구 — 비사용자대면',
   'scripts/build-segments-dynamic.mjs': '내부 세그먼트 데이터 빌드(JSON) — 사용자 산문 아님',

@@ -18,6 +18,7 @@ import { ROOT } from './lib/project-root.mjs';
 import { listLocales, setKey, missingLocales, getKey } from './lib/i18n-keys.mjs';
 import { buildTranslatePrompt } from './lib/translate-prompt.mjs';
 import { hasScriptSplice } from './lib/script-splice.mjs';
+import { sanitizeText } from './lib/narrative-fix.mjs';
 import { openMemory } from './lib/translation-memory.mjs';
 import { readFileSync } from 'fs';
 
@@ -51,7 +52,9 @@ async function translate(text, locale) {
   const d = await r.json();
   const c = d.choices?.[0]?.message?.content;
   if (typeof c !== 'string' || !c.trim()) throw new Error(`content 없음 (finish=${d.choices?.[0]?.finish_reason})`);
-  return c.trim().replace(/^["']|["']$/g, '');
+  // 이 출력은 그대로 UI 라벨이 되므로 한자 가드를 태운다.
+  // sanitizeText 는 로케일 인지형이라 ja/zh 의 한자는 보존하고 ko 에서만 제거한다(실측 확인).
+  return sanitizeText(c.trim().replace(/^["']|["']$/g, ''), locale);
 }
 
 const locales = listLocales(MESSAGES);
