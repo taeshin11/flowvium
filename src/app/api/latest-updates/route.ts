@@ -240,7 +240,8 @@ async function getMacroItems(redis: Redis | null, base: string, locale: string =
 }
 
 // ── 4. FedWatch ───────────────────────────────────────────────────────────────
-interface FedData { currentRateMid?: number | string; meetings?: Array<{ date: string; label: string; probHold: number; probCut25: number; probHike25: number }>; updatedAt?: string; }
+type FomcMeeting = { date: string; label: string; probHold: number; probCut25: number; probHike25?: number };
+interface FedData { currentRateMid?: number | string; meetings?: FomcMeeting[]; nextMeeting?: FomcMeeting | null; updatedAt?: string; }
 
 async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en'): Promise<UpdateItem | null> {
   let data: FedData | null = null;
@@ -255,7 +256,15 @@ async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en')
   }
   if (!data?.meetings?.length) return null;
 
-  const next = data.meetings[0];
+  // 2026-08-20: 종전 `data.meetings[0]` 은 연초부터의 전체 일정 중 첫 원소 — 8월에 Apr 29(넉 달 전)를
+  //   '다음 FOMC'로 띄웠다. fedwatch API 는 이미 nextMeeting 을 계산해 내려주고,
+  //   그 파일 316행 주석이 "meetings[0] 은 Apr 29 등 과거일 수 있음"이라고 이 실수를 경고까지 하고 있었다.
+  //   구버전 캐시에 nextMeeting 이 없을 수 있으므로 날짜로도 거른다 — 폴백이 다시 [0] 이면 의미가 없다.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const next = data.nextMeeting
+    ?? data.meetings.find(m => m.date >= todayStr)
+    ?? data.meetings[data.meetings.length - 1];
+  if (!next) return null;
   const cutProb = Math.round(next.probCut25 ?? 0);
   const holdProb = Math.round(next.probHold ?? 0);
   const updatedAt = data.updatedAt ?? new Date().toISOString();

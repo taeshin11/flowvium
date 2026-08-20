@@ -77,6 +77,7 @@ const TICKER_CONFIG: Record<string, { label: string; decimals: number; prefix: s
 
 function MarketSnapshot() {
   const t = useTranslations('home');
+  const snapLocale = useLocale();   // 2026-08-20: 경제캘린더 category 라벨 로케일화에 필요
   const [pills, setPills] = useState<Map<string, SnapPill>>(new Map());
   const [fgScore, setFgScore] = useState<number | null>(null);
   const [fgHistory, setFgHistory] = useState<number[] | null>(null);
@@ -279,7 +280,7 @@ function MarketSnapshot() {
               <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-cf-border/40 pl-6">
                 <span className="text-xs font-semibold text-cf-text-secondary uppercase tracking-wide">NEXT</span>
                 <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${urgentCls}`}>
-                  {next.category} D-{days}
+                  {localizeLabel(next.category, snapLocale)} D-{days}
                 </span>
               </div>
             );
