@@ -17,6 +17,7 @@ import { cascadePatterns, type CascadePattern } from '@/data/cascades';
 import { localChat, localChatNoBleed, hasChineseBleed } from '@/lib/llm-local';
 import { kanaToHangul } from '@/lib/kana-to-hangul';
 import { decodeEntities, dedupeSummary } from '@/lib/news-sanitize';
+import { listKey, translatedKey, staleTranslatedKey, LOCK_KEY } from '@/lib/news-cache-keys';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -61,19 +62,9 @@ export interface NewsWithCascade extends RawNewsItem {
 }
 
 // Cache key: per-article (by URL hash) + list key
-const LOCK_KEY = 'flowvium:news-cascade:v1:generating';
+// 2026-08-20: 키 문자열을 여기 적어두면 읽는 쪽(latest-updates)과 조용히 어긋난다 —
+//   실제로 v1→v2 를 여기만 올려서 한국어 홈에 영문 뉴스가 나갔다. 단일 소스로 옮긴다.
 const LOCK_TTL = 90; // seconds — covers worst-case RSS + 5 AI calls
-function listKey(): string {
-  const today = new Date().toISOString().slice(0, 10);
-  return `flowvium:news-cascade:v1:list:${today}`;
-}
-
-// 번역 캐시 키 — locale 별 분리. 영어(en) 는 listKey() 그대로 사용.
-// v2 (2026-05-12): cascade.reason + timeframe 도 번역 포함 — v1 캐시 무효화.
-function translatedKey(locale: string): string {
-  const today = new Date().toISOString().slice(0, 10);
-  return `flowvium:news-cascade:v2:translated:${locale}:${today}`;
-}
 
 // 2026-08-20: stale 번역 폴백. 이 저장소의 다른 라우트(investment-strategy·company-news·
 //   flow-analysis·tic-flows·fund-flows)는 모두 stale 키를 갖는데 news-cascade 만 없었다.
@@ -81,9 +72,6 @@ function translatedKey(locale: string): string {
 //   한국어 독자에게는 '조금 지난 한국어'가 '방금 만든 영어'보다 낫다.
 //   날짜를 넣지 않는다 — 자정에 끊기면 폴백이 성립하지 않는다.
 const STALE_TRANSLATED_TTL_S = 7 * 24 * 60 * 60;
-function staleTranslatedKey(locale: string): string {
-  return `flowvium:news-cascade:v2:translated:stale:${locale}`;
-}
 
 // 영문을 내보내기 직전에 stale 번역본을 먼저 본다. 없으면 영문(종전 동작).
 async function preferStaleTranslated(

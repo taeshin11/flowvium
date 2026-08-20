@@ -28,6 +28,7 @@ import type { Redis } from '@upstash/redis';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
+import { listKey as newsListKey, translatedKey as newsTranslatedKey } from '@/lib/news-cache-keys';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -285,8 +286,10 @@ async function getNewsCascadeItems(redis: Redis | null, base: string, locale: st
       const today = new Date().toISOString().slice(0, 10);
       // 1) locale 번역 캐시 우선 (한국어/일본어/중국어 등)
       if (wantsTranslation) {
-        const translatedKey = `flowvium:news-cascade:v1:translated:${locale}:${today}`;
-        const tCached = await redis.get<ArticleData[]>(translatedKey);
+        // 2026-08-20: 여기서 키를 직접 적은 탓에 news-cascade 가 v2 로 올린 걸(fd893795, 5월)
+        //   못 따라가 항상 캐시 미스 → 영어 폴백 → 한국어 홈에 영문 뉴스가 나갔다.
+        //   캐시 미스는 조용해서 아무 신호가 없었다. 단일 소스에서 가져온다.
+        const tCached = await redis.get<ArticleData[]>(newsTranslatedKey(locale, today));
         if (Array.isArray(tCached) && tCached.length > 0) {
           return tCached
             .filter(a => a.pubDate && withinDays(a.pubDate, 3))
@@ -295,7 +298,7 @@ async function getNewsCascadeItems(redis: Redis | null, base: string, locale: st
         }
       }
       // 2) 영어 캐시 fallback
-      const cached = await redis.get<ArticleData[]>(`flowvium:news-cascade:v1:list:${today}`);
+      const cached = await redis.get<ArticleData[]>(newsListKey(today));
       if (Array.isArray(cached) && cached.length > 0) {
         return cached
           .filter(a => a.pubDate && withinDays(a.pubDate, 3))
