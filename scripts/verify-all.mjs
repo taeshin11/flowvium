@@ -155,6 +155,17 @@ const checks = [
     dimensions: ['LLM 출력표면 한자가드 커버리지(신규 미분류 표면 회귀봉쇄)'],
   },
   {
+    // 2026-08-20: RAG 종단 테스트(test-rag-e2e.mts)가 게이트 밖이었다. 확인해 보니 임포트가
+    //   확장자 없이 적혀 있어 plain node 로는 한 번도 실행된 적이 없었고(ERR_MODULE_NOT_FOUND),
+    //   헤더가 약속한 "④ 빈 결과 경로 확인"은 아예 구현돼 있지 않았다.
+    //   빈 결과 경로(src/lib/rag.ts:123-130)가 retrieve_empty 로그를 남기는지까지 여기서 고정한다.
+    name: 'rag-e2e',
+    script: 'scripts/rag/run-rag-e2e.mjs',
+    desc: 'RAG 종단 (차원 일치·검색 히트·빈 결과 경로 관측)',
+    critical: false,
+    dimensions: ['RAG 차원 정합 + 실검색 히트 + 빈 결과 시 retrieve_empty 관측'],
+  },
+  {
     // 2026-07-06 (사용자 "RAG 점수가 잘 매겨졌는지 검증 어떻게 / 없다고 하면 진짜 없는지 확인"): RAG 점수·관련성
     //   검증. 임베더 다운 시 ragRetrieve 가 조용히 [] 반환(거짓 부재)하던 사각지대 봉쇄. 임베더 미기동이면
     //   웹 미의존이라 self-skip(exit0 아님 — 임베더 죽음 자체가 결함이므로 warn 노출). advisory(코드 push 비차단).

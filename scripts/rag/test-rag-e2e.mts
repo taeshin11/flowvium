@@ -51,5 +51,35 @@ if (svcDim && corpDim && svcDim === corpDim) {
                 : bad(`검색 "${q}" → 0건`);
   }
 }
+// ④ 빈 결과 경로 — 헤더가 약속만 하고 구현이 없던 항목(2026-08-20 추가).
+//   "검색 결과가 비었을 때 처리 경로"가 실제로 무엇을 하는지 코드로 고정한다.
+//   임계값을 넘기 어렵게 만들어(RAG_MIN_SCORE) 코퍼스·임베딩이 정상인데도 0건이 나오는 상황을
+//   결정론적으로 재현한다. 코퍼스 밖 질의를 찾는 방식은 임베딩 모델이 바뀌면 흔들려서 쓰지 않는다.
+//   자식 프로세스로 도는 이유: MIN_EFF_SCORE 가 모듈 로드 시 1회 읽히므로 같은 프로세스에선 못 바꾼다.
+if (svcDim && corpDim && svcDim === corpDim) {
+  const { spawnSync } = await import('child_process');
+  // 프로브는 프로젝트 안의 고정 파일이다. 임시 디렉토리에 만들면 프로젝트 tsconfig 가 적용되지 않아
+  //   경로 별칭(@/lib/logger)이 해석되지 않는다(실측: SyntaxError).
+  const r = spawnSync('npx', ['tsx', resolve(ROOT, 'scripts/rag/rag-empty-probe.mts')], {
+    cwd: ROOT, encoding: 'utf8', timeout: 180_000,
+    env: { ...process.env, RAG_MIN_SCORE: '0.99' },   // 사실상 도달 불가한 임계값
+  });
+  const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+  const m = out.match(/__HITS__(\d+)/);
+  if (!m) {
+    bad(`빈 결과 경로 재현 실패 — 프로브가 안 돌았다: ${out.slice(0, 200)}`);
+  } else {
+    Number(m[1]) === 0 ? ok('임계값 미달 시 0건 반환 (예외 아님)')
+                       : bad(`임계값 0.99 인데 ${m[1]}건 반환 — 임계값이 안 먹는다`);
+    // 0건을 조용히 넘기면 AISVI+RAG 가 AISVI 로 강등된 사실이 아무 데도 안 남는다.
+    /"event":"retrieve_empty"/.test(out)
+      ? ok('빈 결과가 retrieve_empty 로그를 남김 (관측 가능)')
+      : bad('0건인데 로그가 없다 — 무음 강등(관측 불가)');
+    /"topEffScore"/.test(out)
+      ? ok('로그에 최고점 포함 (임계값 미달 vs 코퍼스 밖 구분 가능)')
+      : bad('최고점이 없어 원인 구분 불가');
+  }
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);
