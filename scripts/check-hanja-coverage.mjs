@@ -20,7 +20,9 @@ const GUARD_RE = /sanitizeText|sanitizeReport|sanitizeAnswer|hasChineseBleed|loc
 function walk(dir, out = []) {
   let entries; try { entries = readdirSync(dir); } catch { return out; }
   for (const e of entries) {
-    if (e === 'node_modules' || e === '.next' || e === '.git' || e === 'dist') continue;
+    // 2026-08-20: 점으로 시작하는 디렉토리를 통째로 건너뛴다. 재작성 전 백업(scripts/.bak-*/)이
+    //   스캔에 잡혀 "미분류 LLM 표면" 오탐을 냈다. 이름을 하나씩 박으면 다음 백업에서 또 샌다.
+    if (e.startsWith('.') || e === 'node_modules' || e === 'dist') continue;
     const p = `${dir}/${e}`;
     let st; try { st = statSync(p); } catch { continue; }
     if (st.isDirectory()) walk(p, out);
@@ -36,6 +38,7 @@ const EXEMPT = {
   'scripts/check-stall.mjs': 'model-id health probe(/v1/models) — 산문 생성 아님',
   'scripts/pm2-watchdog.mjs': 'health probe — 산문 생성 아님',
   'scripts/run-report.bat': '런처(가드된 generate-report 호출)',
+  'scripts/run-report.sh': '런처(가드된 generate-report 호출) — 맥 launchd 가 실제로 부르는 진입점. .bat 은 윈도우 유물.',
   'scripts/sft/check-lora-vllm.sh': 'SFT/학습 dev 도구 — 비사용자대면',
   'scripts/build-segments-dynamic.mjs': '내부 세그먼트 데이터 빌드(JSON) — 사용자 산문 아님',
   'src/app/api/ai/route.ts': '영어 시스템프롬프트/영어 출력(You are Flowvium AI…)',

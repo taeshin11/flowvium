@@ -2,6 +2,9 @@ import { isUntranslated } from '@/lib/lang-detect';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
+import { lookupMemory } from '@/lib/translation-memory';
+import { hasScriptSplice } from '@/lib/script-splice';
+import { llmTimeoutMs } from '@/lib/ai-providers';
 import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
@@ -52,6 +55,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 0. 확정 번역 사전 (2026-08-20 신설)
+    //    웹 레인은 4B 라 금융 용어를 틀린다("Short squeeze candidate" → "단축 압력 후보").
+    //    반복 용어는 27B 품질로 미리 확정해 두고 여기서 먼저 조회한다 — GPU 를 아예 안 건드린다.
+    //    Redis 앞에 두는 이유: Redis 는 30일 TTL 이라 만료되면 다시 4B 로 가고, 그때 품질이 내려앉는다.
+    const memo = lookupMemory(text, targetLocale);
+    if (memo) return NextResponse.json({ translated: memo, source: 'memory' });
+
     // 1. Check Redis cache
     const redis = createRedis();
     const key = cacheKey(targetLocale, text);
@@ -71,7 +81,14 @@ export async function POST(request: NextRequest) {
     let translated = '';
     let source = 'ollama';
     // localChatNoBleed: qwen3 네이티브 + bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud fallback.
-    const ollamaTxt = await localChatNoBleed(prompt, targetLocale, { maxTokens: 2048, timeoutMs: 60000 });
+    // 2026-08-20: timeoutMs 60s 고정은 maxTokens 2048 에 구조적으로 부족했다(실측 ~10 tok/s → 필요 ~235s).
+    //   생성 도중 끊기면 상위에서 '번역 실패'로 보이지만 원인은 모델이 아니라 타임아웃이다.
+    //   저장소에 이미 있는 파생식을 쓴다(src/lib/ai-providers.ts llmTimeoutMs).
+    const TRANSLATE_MAX_TOKENS = 2048;
+    const ollamaTxt = await localChatNoBleed(prompt, targetLocale, {
+      maxTokens: TRANSLATE_MAX_TOKENS,
+      timeoutMs: llmTimeoutMs(TRANSLATE_MAX_TOKENS),
+    });
     // 2026-08-20: 성공 판정을 '바뀌었는가'(대리지표)에서 '대상 언어인가'(결과)로 바꾼다.
     //   종전 `ollamaTxt !== text` 는 모델이 짧은 명사 나열을 그대로 되돌려줄 때 '실패'로 보고
     //   cloud 로 넘겼는데, 자가호스팅이라 키가 revoked 여서 원문(영문)이 그대로 사용자에게 나갔다
@@ -133,6 +150,14 @@ export async function POST(request: NextRequest) {
     if (replacementCount > 0 || brokenSymbols >= 2) {
       logger.warn('api.translate', 'mojibake_detected', { targetLocale, replacementCount, brokenSymbols, sample: translated.slice(0, 80) });
       return NextResponse.json({ translated: text, source: 'mojibake-fallback' });
+    }
+
+    // 2026-08-20: 음차 중단("케urig 드피퍼", "산업 컨glomerate") 검출.
+    //   기존 mixed/mojibake 가드는 이 서명을 못 잡는다 — 목표 문자가 우세하고 '미번역'도 아니기 때문.
+    //   캐시에 들어가면 30일간 깨진 번역이 고착되므로 저장 전에 막고 원문으로 돌린다.
+    if (translated && hasScriptSplice(translated, targetLocale)) {
+      logger.warn('api.translate', 'script_splice_detected', { targetLocale, sample: translated.slice(0, 80) });
+      return NextResponse.json({ translated: text, source: 'splice-fallback' });
     }
 
     // 3. Store in Redis (loggedRedisSet 사용 — CLAUDE.md 규칙)

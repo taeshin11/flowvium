@@ -175,9 +175,20 @@ async function checkOnce() {
       const min = p.ageSec / 60;
       // 프로세스가 스스로 밝힌 세션의 예산을 쓴다. 못 읽으면 가장 너그러운 예산(미탐 > 오탐).
       const sm = p.command.match(/--session=([a-z]+)/);
-      const budget = (sm && sessionBudgetMin(sm[1])) || maxSessionBudgetMin();
-      const label = sm ? `${sm[1]} 예산 ${budget}분` : `예산 ${budget}분(세션 불명)`;
-      if (min > budget) issues.push(`HUNG: report-gen PID ${p.pid} ${min.toFixed(0)}분 실행 중 (> ${label}) — 발행 시각 초과, 멈춤 의심`);
+      // 프로세스는 제작이 끝나도 '정시 발간' 때문에 발행 시각까지 대기한다(logs/report.log
+      //   "[정시 발간] target 12:00 KST 까지 2556s wait"). 그래서 제작 예산(발동→발행)만으로 재면
+      //   정상 대기 구간이 통째로 HUNG 오탐이 된다 — 실측 83분/90분에서 곧 발화할 참이었다.
+      //   기준은 '언제까지 살아 있어야 정상인가' = 발행 예정 시각 + 업로드 여유다.
+      const startMs = Date.now() - p.ageSec * 1000;
+      let deadlineMin;
+      if (sm && sessionBudgetMin(sm[1])) {
+        const { waitMs } = getPublishTarget(sm[1], startMs);
+        deadlineMin = (waitMs / 60000) + PUBLISH_GRACE_MIN;   // 시작→발행 + 업로드 여유
+      } else {
+        deadlineMin = maxSessionBudgetMin() + PUBLISH_GRACE_MIN;
+      }
+      const label = sm ? `${sm[1]} 발행+여유 ${Math.round(deadlineMin)}분` : `상한 ${Math.round(deadlineMin)}분(세션 불명)`;
+      if (min > deadlineMin) issues.push(`HUNG: report-gen PID ${p.pid} ${min.toFixed(0)}분 실행 중 (> ${label}) — 발행 시각을 넘겨도 안 끝남, 멈춤 의심`);
       else info.push(`report-gen PID ${p.pid} 실행 중 (${min.toFixed(0)}분 / ${label})`);
     }
     if (procs.length === 0) info.push('report-gen 실행 프로세스 없음');
