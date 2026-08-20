@@ -123,3 +123,23 @@ export function publishWaitDecision({ session, waitMs, explicit }) {
   }
   return { wait: true, capMs, reason: explicit ? `예약 실행 · 리드타임 ${capMin}분 이내` : `수동 실행 · 상한 ${capMin}분 이내` };
 }
+
+/**
+ * 세션의 제작 예산(분) = 발동 → 발행. 2026-08-20 신설.
+ * check-stall 의 HUNG 판정이 쓰던 HUNG_MIN=20 은 이 값의 옛 사본이었고, 스케줄을 90분 앞당긴 뒤
+ * 갱신되지 않아 정상 런을 100% 오탐했다. 상수를 새로 박지 않고 스케줄과 같은 소스에서 유도한다.
+ */
+export function sessionBudgetMin(id) {
+  const c = getSessionConfig(id);
+  if (!c) return null;
+  const [th, tm] = c.triggerKst.split(':').map(Number);
+  const [ph, pm] = c.publishKst.split(':').map(Number);
+  let b = (ph * 60 + pm) - (th * 60 + tm);
+  if (b <= 0) b += 1440;
+  return b;
+}
+
+/** 어느 세션인지 모를 때 쓸 가장 너그러운 예산 — 오탐보다 미탐이 낫다(경보 소음이 진짜 경보를 가린다). */
+export function maxSessionBudgetMin() {
+  return Math.max(...sessionIds().map(sessionBudgetMin).filter(Number.isFinite));
+}

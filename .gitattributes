@@ -15,3 +15,7 @@ data/*.json     text eol=lf
 #   scripts/rag/*.sh, scripts/sft/*.sh, *.py 가 autocrlf=true 로 CRLF 화되면 WSL 실행 깨짐.
 *.sh text eol=lf
 *.py text eol=lf
+
+# 2026-08-20: pre-push 훅이 CRLF 로 커밋돼 있어 맥에서 'syntax error' 로 실행 자체가 안 됐다.
+#   = push 시점 verify 안전망이 통째로 죽은 상태였다(무증상). 훅과 셸 스크립트는 항상 LF.
+scripts/git-hooks/* text eol=lf

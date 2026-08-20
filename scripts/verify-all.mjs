@@ -83,6 +83,17 @@ const checks = [
     dimensions: ['전 종목 /company 핵심데이터 보유 (표본 아님, 전수)'],
   },
   {
+    // 2026-08-20: HomePage 의 title: 'Company Comparator' 가 16개 로케일 전부에 영문으로 노출됐는데
+    //   자동 검사가 하나도 못 잡아 사람이 UI 를 눈으로 보고 찾았다. eslint-plugin-i18next 는 잡지만
+    //   전면 도입 시 2,781건이라 소음에 묻힌다 → 레거시 린터 도입의 확립된 해법인 ratcheting 을 쓴다.
+    //   기존 위반은 baseline 으로 인정하고 '증가'만 막는다. (esplint / eslint-formatter-ratchet 와 같은 방식)
+    name: 'check-i18n-ratchet',
+    script: 'scripts/check-i18n-ratchet.mjs',
+    desc: '사용자 노출 문자열 하드코딩 증가 차단 (i18n 래칫)',
+    critical: false,
+    dimensions: ['하드코딩된 영문 UI 문자열이 새로 늘지 않는가'],
+  },
+  {
     name: 'check-static-fallbacks',
     script: 'scripts/check-static-fallbacks.mjs',
     desc: '정적 데이터 폴백 (실시간 위장)',

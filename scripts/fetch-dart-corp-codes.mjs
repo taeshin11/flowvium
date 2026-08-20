@@ -13,6 +13,8 @@ import { writeFileSync, mkdirSync, existsSync, rmSync, readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
+import { unzip } from './lib/platform-ops.mjs';
+import { parseCorpXml } from './lib/dart-parse.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -47,14 +49,13 @@ const buf = Buffer.from(await res.arrayBuffer());
 writeFileSync(ZIP_PATH, buf);
 console.log(`  ZIP 다운로드: ${(buf.length / 1024).toFixed(1)} KB`);
 
-// Windows PowerShell Expand-Archive 로 unzip
-console.log('▶ ZIP unzip via PowerShell...');
-const unzip = spawnSync('powershell', [
-  '-NoProfile', '-NonInteractive',
-  '-Command', `Expand-Archive -Path '${ZIP_PATH}' -DestinationPath '${WORK}' -Force`
-], { stdio: 'inherit' });
-if (unzip.status !== 0) {
-  console.error('❌ unzip 실패');
+// 2026-08-20: PowerShell Expand-Archive 고정이라 맥에서 매번 조용히 실패했다.
+//   그 결과 이 잡이 537시간 미실행 상태였고, 모니터는 "미실행"이라는 결과만 알렸을 뿐
+//   원인을 못 짚었다. OS 종속은 platform-ops 한 곳만 안다.
+console.log('▶ ZIP unzip...');
+const uz = unzip(ZIP_PATH, WORK);
+if (!uz.ok) {
+  console.error(`❌ unzip 실패: ${uz.error}`);
   process.exit(1);
 }
 if (!existsSync(XML_PATH)) {
@@ -67,21 +68,10 @@ console.log(`  XML 로드: ${(xml.length / 1024 / 1024).toFixed(1)} MB`);
 
 // XML 구조: <list><corp_code>00126380</corp_code><corp_name>삼성전자</corp_name>
 //          <stock_code>005930</stock_code><modify_date>20240315</modify_date></list>
-const listRe = /<list>([\s\S]*?)<\/list>/g;
-const map = {};
-let total = 0, listed = 0;
-let m;
-while ((m = listRe.exec(xml)) !== null) {
-  total++;
-  const body = m[1];
-  const corpCode = body.match(/<corp_code>(\d+)<\/corp_code>/)?.[1];
-  const corpName = body.match(/<corp_name>([^<]+)<\/corp_name>/)?.[1]?.trim();
-  const stockCode = body.match(/<stock_code>([^<\s]+)<\/stock_code>/)?.[1]?.trim();
-  if (!corpCode || !stockCode || stockCode.length !== 6) continue;
-  // 6자리 stock_code 만 = KOSPI/KOSDAQ/KONEX 상장사
-  map[stockCode] = { corpCode, corpName: corpName ?? stockCode };
-  listed++;
-}
+// 2026-08-20: 파싱을 lib/dart-parse 로 분리했다. 종전 인라인 파서는 XML 엔티티를 디코드하지 않아
+//   "S&amp;T중공업" 이 그대로 실렸고, 나는 그때 *산출물 JSON* 을 고쳐서 넘어갔다(증상 처치).
+//   생산 지점에서 풀고 dart-parse.test.mjs 로 고정한다.
+const { map, total, listed } = parseCorpXml(xml);
 
 console.log(`  파싱: ${total} 전체 entry, ${listed} 상장사 (stock_code 6자리)`);
 

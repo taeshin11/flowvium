@@ -20,15 +20,50 @@ import Database from 'better-sqlite3';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { execSync } from 'child_process';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+import { findProcesses } from './lib/platform-ops.mjs';
+import { sessionBudgetMin, maxSessionBudgetMin, getPublishTarget } from './lib/report-sessions.mjs';
+import { launcherWipesWorktree } from './lib/report-launcher.mjs';
+// 발행 예정 시각을 지난 뒤 업로드/전파에 실제로 걸리는 시간의 여유분. 예산(90분)이 아니라 '전파 지연' 몫이다.
+const PUBLISH_GRACE_MIN = 10;
+import { readLauncherModels } from './lib/report-launcher.mjs';
 
 const ROOT = _PROJECT_ROOT;
 const STALE_H = 11;   // 보고서 최대 허용 age (8h cadence + grace)
 const VERIFY_STALE_H = 13;
-const HUNG_MIN = 20;  // report-gen 최대 실행 시간
+// 2026-08-20: 종전 상수 20 은 세션 예산(발동→발행)의 옛 사본이었다. 스케줄을 90분 앞당긴 뒤
+//   갱신되지 않아, 실측 46분짜리 정상 런을 매번 HUNG 으로 오탐했다(진짜 경보를 가리는 소음).
+//   상수를 다시 박지 않고 스케줄과 같은 소스에서 세션별로 유도한다.
 
 function ageHours(iso) { return (Date.now() - new Date(iso).getTime()) / 3600000; }
 
-function checkOnce() {
+/** 외부 curl 대신 런타임 내장 fetch. 2026-08-20: curl.exe 하드코딩이 맥에서 매번 'command not found' 였고,
+ *  호출부의 catch 가 그걸 삼켜 라이브 probe 가 통째로 skip 되고 있었다(무증상). */
+async function fetchText(url, timeoutMs = 10000) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  return await r.text();
+}
+
+/**
+ * 모델 ID 가 실제로 통하는지 '결과'로 확인한다 — 식별자 목록 대조가 아니다.
+ * MLX 의 /v1/models 는 서빙 별칭이 아니라 HF 캐시 전체를 나열해(같은 맥의 OCR 팀 모델까지 섞인다)
+ * 목록 대조로는 정상 동작 중에도 MISMATCH 가 상시 발화했다.
+ * { ok } | { down } (서버 무응답 — down 은 별도 probe 소관) | { error } (서버는 살아있는데 그 ID 를 거부)
+ */
+async function probeCompletion(url, model, timeoutMs = 20000) {
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1, temperature: 0 }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (e) { return { down: true, error: String(e.message).slice(0, 80) }; }
+  if (res.ok) return { ok: true };
+  return { error: `HTTP ${res.status} ${(await res.text().catch(() => '')).slice(0, 120)}` };
+}
+
+// 2026-08-20: 외부 curl 을 내장 fetch 로 바꾸고 모델 검사를 결과 기반(실제 추론 1회)으로 돌리면서 async 가 됐다.
+async function checkOnce() {
   const issues = [];
   const info = [];
   const db = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
@@ -49,13 +84,26 @@ function checkOnce() {
   //   로컬 최신 generated_at 이 라이브 generatedAt 보다 75분+ 새로우면(정시발간 대기 여유 포함) 경보.
   try {
     if (latest) {
-      const raw = execSync('curl.exe -s -m 10 "https://flowvium.net/api/investment-strategy?locale=ko"', { timeout: 15000 }).toString();
+      // 2026-08-20: curl.exe 고정이라 맥에선 매번 'command not found' → 라이브 probe 가 통째로 skip 됐다.
+      //   외부 바이너리 의존을 없애고 런타임 내장 fetch 를 쓴다(플랫폼 무관).
+      const raw = await fetchText('https://flowvium.net/api/investment-strategy?locale=ko', 10000);
       const live = JSON.parse(raw.replace(/^﻿/, ''));
       const liveAt = live?.generatedAt ? new Date(live.generatedAt).getTime() : 0;
       const lagMin = (new Date(latest.generated_at).getTime() - liveAt) / 60000;
       if (!liveAt) issues.push('라이브 미반영: 라이브 리포트 generatedAt 없음 (응답 이상)');
-      else if (lagMin > 75) issues.push(`라이브 미반영: 로컬 최신(${latest.session})이 라이브보다 ${Math.round(lagMin)}분 새로움 — 발간 차단(pre-publish gate)/업로드 실패 의심 → logs/report.log "발간 차단" 확인`);
-      else info.push(`라이브 반영 정합 ✓ (lag ${Math.round(Math.max(0, lagMin))}분)`);
+      // 2026-08-20: 종전 임계 75분은 '정시발간 대기 여유'를 상수로 박은 값이었고, 리드타임을 20→90분으로
+      //   옮긴 뒤 틀린 값이 됐다. 실제로 정상 대기 중인 런(target 12:00 까지 2556s wait)을 '발간 차단'으로
+      //   오탐했다. 여유를 다시 추정하지 않고, 그 세션의 발행 예정 시각을 직접 본다.
+      //   발행 시각 전이면 라이브가 아직 옛 보고서인 게 정상이다 — 지나서도 안 올라갔을 때만 결함이다.
+      //   getPublishTarget 은 {target, waitMs} 를 준다. target 은 KST 로 9시간 시프트된 프레임이라
+      //   Date.now() 와 직접 빼면 안 된다 — 같은 프레임 안에서 계산된 waitMs 를 실제 epoch 에 더한다.
+      const genMs = new Date(latest.generated_at).getTime();
+      const { waitMs } = getPublishTarget(latest.session, genMs);
+      const overdueMin = (Date.now() - (genMs + waitMs)) / 60000;
+      if (overdueMin < 0) info.push(`라이브 반영 대기 중 — ${latest.session} 발행 예정까지 ${Math.round(-overdueMin)}분 (정상)`);
+      else if (lagMin > 0 && overdueMin > PUBLISH_GRACE_MIN) issues.push(`라이브 미반영: ${latest.session} 발행 예정 시각을 ${Math.round(overdueMin)}분 초과했는데 라이브가 ${Math.round(lagMin)}분 뒤처짐 — 발간 차단(pre-publish gate)/업로드 실패 의심 → logs/report.log "발간 차단" 확인`);
+      else if (!Number.isFinite(overdueMin)) issues.push(`라이브 probe 계산 불능: overdue=${overdueMin} (session=${latest.session}) — 판정 못 했으므로 통과로 처리하지 않는다`);
+      else info.push(`라이브 반영 정합 ✓ (lag ${Math.round(Math.max(0, lagMin))}분, 발행 ${Math.round(overdueMin)}분 경과)`);
     }
   } catch (e) { info.push(`라이브 반영 probe skip: ${String(e?.message).slice(0, 40)}`); }
 
@@ -89,16 +137,20 @@ function checkOnce() {
     const codeModels = new Set();
     const vm = envTxt.match(/^\s*VLLM_MODEL\s*=\s*(.+)\s*$/m);
     if (vm) codeModels.add(vm[1].trim().replace(/^["']|["']$/g, ''));
-    try { const bm = readFileSync(`${ROOT}/scripts/run-report.bat`, 'utf8').match(/--model=([A-Za-z0-9:._-]+)/); if (bm) codeModels.add(bm[1]); } catch {}
+    // 2026-08-20: run-report.bat 고정 파싱이라 맥에선 죽은 윈도우 유물의 옛 모델(qwen3:8b, C:\\Flowvium 경로)을
+    //   읽어 기대집합을 오염시켰다 → MODEL-ID MISMATCH 상시 오경보. 이 플랫폼의 런처만 본다.
+    for (const m of readLauncherModels()) codeModels.add(m);
     // 2026-07-01: curl 절대경로 필수 — pm2 spawn 환경은 대화형 셸과 PATH 가 달라 'curl' bare 는 못찾아
     //   catch→조용히 SKIP(프로덕션 no-op = "모니터가 본다≠fix" 함정). SystemRoot 는 항상 env 에 존재.
-    const curlExe = process.platform === 'win32' ? `${process.env.SystemRoot || 'C:\\Windows'}\\System32\\curl.exe` : 'curl';
-    const raw = execSync(`"${curlExe}" -s -m 6 http://127.0.0.1:8000/v1/models`, { timeout: 8000, encoding: 'utf8' });
-    const served = new Set((JSON.parse(raw).data || []).map((m) => m.id));
-    if (served.size && codeModels.size) {
-      const missing = [...codeModels].filter((m) => !served.has(m));
-      if (missing.length) issues.push(`MODEL-ID MISMATCH: 코드 [${missing.join(', ')}] ∉ vLLM served [${[...served].join(', ')}] — 관대수용 의존(strict/멀티모델 404 위험) → model.conf SERVED_NAMES 또는 VLLM_MODEL 정렬`);
-      else info.push(`model-id-match ✓ (${[...codeModels].join('/')} ∈ served)`);
+    // 2026-08-20: 종전에는 /v1/models 목록에 코드의 모델 ID 가 있는지 비교했다. MLX 서버에서 그 엔드포인트는
+    //   '서빙 중인 별칭'이 아니라 HuggingFace 캐시 디렉토리 전체를 나열한다 — 같은 맥에 OCR 팀이 받아둔
+    //   baidu/Unlimited-OCR 까지 목록에 섞여 나온다. 그래서 정상 동작 중에도 MISMATCH 가 상시 발화했다.
+    //   식별자 비교로는 '이 ID 로 실제 추론이 되는가'를 알 수 없다. 결과로 판정한다.
+    for (const m of codeModels) {
+      const r = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, 20000);
+      if (r.ok) info.push(`model-id ✓ ${m} 로 실제 추론 성공`);
+      else if (r.down) info.push(`model-id probe skip — LLM 응답 없음 (down 은 별도 probe): ${r.error}`);
+      else issues.push(`MODEL-ID 거부: '${m}' 로 추론 요청이 실패 — ${r.error} → .env.local 의 VLLM_MODEL/LOCAL_LLM_MODEL 을 서버가 받는 값으로 맞추세요`);
     }
   } catch { /* vLLM 조회 실패 = SKIP (down 은 별도 probe) */ }
 
@@ -115,21 +167,21 @@ function checkOnce() {
     }
   } catch { info.push('reports/verify/ 없음'); }
 
-  // [3] hung report-gen 프로세스 (Windows)
-  try {
-    const out = execSync('powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name=\'node.exe\'\\" | Where-Object { $_.CommandLine -like \'*generate-report-local*\' } | Select-Object ProcessId,CreationDate | ConvertTo-Json"', { encoding: 'utf8', timeout: 15000 });
-    const procs = out.trim() ? [].concat(JSON.parse(out)) : [];
+  // [3] hung report-gen 프로세스
+  //   2026-08-20: Get-CimInstance 고정이라 맥에선 catch 로 조용히 skip — hung 탐지가 통째로 없었다.
+  {
+    const procs = findProcesses('generate-report-local');
     for (const p of procs) {
-      // CreationDate: /Date(ms)/ 또는 WMI datetime
-      const m = String(p.CreationDate).match(/\/Date\((\d+)\)\//);
-      if (m) {
-        const min = (Date.now() - parseInt(m[1], 10)) / 60000;
-        if (min > HUNG_MIN) issues.push(`HUNG: report-gen PID ${p.ProcessId} ${min.toFixed(0)}분 실행 중 (> ${HUNG_MIN}분) — 멈춤 의심`);
-        else info.push(`report-gen PID ${p.ProcessId} 실행 중 (${min.toFixed(0)}분)`);
-      }
+      const min = p.ageSec / 60;
+      // 프로세스가 스스로 밝힌 세션의 예산을 쓴다. 못 읽으면 가장 너그러운 예산(미탐 > 오탐).
+      const sm = p.command.match(/--session=([a-z]+)/);
+      const budget = (sm && sessionBudgetMin(sm[1])) || maxSessionBudgetMin();
+      const label = sm ? `${sm[1]} 예산 ${budget}분` : `예산 ${budget}분(세션 불명)`;
+      if (min > budget) issues.push(`HUNG: report-gen PID ${p.pid} ${min.toFixed(0)}분 실행 중 (> ${label}) — 발행 시각 초과, 멈춤 의심`);
+      else info.push(`report-gen PID ${p.pid} 실행 중 (${min.toFixed(0)}분 / ${label})`);
     }
     if (procs.length === 0) info.push('report-gen 실행 프로세스 없음');
-  } catch { /* PowerShell 미가용 — skip */ }
+  }
 
   // [5] git wipe-risk — 미커밋/미푸시 코드가 cron checkout origin/master 에 wipe 될 위험.
   //     (2026-06-03 데이터손실 사건: fix 후 커밋+푸시 안 하면 다음 cron 이 silent revert.)
@@ -141,17 +193,23 @@ function checkOnce() {
       .filter(l => !l.startsWith('??') && WIPE.test(l.slice(3).replace(/^"|"$/g, '')));
     sh('git fetch --quiet origin master', 20000);
     const aheadTouch = sh('git diff --name-only origin/master..HEAD', 10000).split('\n').filter(Boolean).filter(p => WIPE.test(p));
-    if (tracked.length) issues.push(`git wipe-risk — 미커밋 tracked 변경 ${tracked.length}건 (다음 cron 이 wipe): ${tracked.map(l=>l.slice(3)).slice(0,5).join(', ')} → commit+push`);
-    else if (aheadTouch.length) issues.push(`git wipe-risk — 커밋했으나 미푸시(${aheadTouch.length}파일, cron 이 origin 으로 revert) → git push origin master`);
-    else info.push('git wipe-risk 없음 (코드 origin/master 동기화)');
+    // 2026-08-20: 종전에는 "다음 cron 이 wipe" 를 무조건 단정했다. 그 checkout 은 윈도우용
+    //   run-report.bat 에만 있고, 이 맥의 launchd 는 git 명령이 없는 run-report.sh 만 부른다.
+    //   틀린 메커니즘은 사람을 엉뚱한 조치로 보내므로, 런처를 읽어서 실제 위험만 wipe 라 부른다.
+    const wipes = launcherWipesWorktree();
+    const how = wipes ? '다음 cron 이 이 변경을 되돌린다' : '이 플랫폼 런처는 되돌리지 않는다 — 유실 위험은 미백업뿐';
+    const tag = wipes ? 'git wipe-risk' : 'git 미동기화';
+    if (tracked.length) issues.push(`${tag} — 미커밋 tracked 변경 ${tracked.length}건 (${how}): ${tracked.map(l=>l.slice(3)).slice(0,5).join(', ')} → commit`);
+    else if (aheadTouch.length) issues.push(`${tag} — 커밋했으나 미푸시 ${aheadTouch.length}파일 (${how}) → git push origin master`);
+    else info.push('git 동기화 ✓ (origin/master 와 일치)');
   } catch { /* git 미가용 — skip */ }
 
   return { issues, info };
 }
 
-function report() {
+async function report() {
   const ts = new Date().toISOString().slice(0, 19);
-  const { issues, info } = checkOnce();
+  const { issues, info } = await checkOnce();
   console.log(`\n[stall-check ${ts}]`);
   for (const i of info) console.log('  ✅', i);
   for (const i of issues) console.log('  🚨', i);
@@ -163,8 +221,8 @@ const watchArg = process.argv.find(a => a.startsWith('--watch='));
 if (watchArg) {
   const sec = Math.max(60, parseInt(watchArg.split('=')[1], 10) || 300);
   console.log(`스톨 모니터 시작 — ${sec}초 주기 (Ctrl+C 종료)`);
-  report();
+  await report();
   setInterval(report, sec * 1000);
 } else {
-  process.exit(report() > 0 ? 1 : 0);
+  process.exit((await report()) > 0 ? 1 : 0);
 }

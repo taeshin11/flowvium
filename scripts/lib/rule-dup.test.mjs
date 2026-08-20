@@ -8,14 +8,19 @@
  *   DB 실측 4,092행 중 1,267행(31%)에서 중복. 52주 신고가에 안 걸리는 종목이 상대적으로 5점 불리해져
  *   순위가 뒤집혔다(326030.KS·278470.KS 가 KO/VRTX/AMGN 아래로 밀림).
  *
- * --since=YYYY-MM-DD 로 검사 구간 지정. 기본은 수정 이후 생성분만.
+ * --since=YYYY-MM-DD 로 검사 구간 지정. 기본은 수정일(FIXED_ON) 이후 생성분만 —
+ *   기본이 전체 DB 였던 탓에 이미 고친 뒤에도 과거 행 때문에 계속 실패했다(문서와 코드 불일치).
  */
 import Database from 'better-sqlite3';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const since = (process.argv.find(a => a.startsWith('--since=')) ?? '').split('=')[1] ?? '';
+// 이 불변식이 코드에서 성립하게 된 날. 그 이전 행은 버그가 있던 시절의 기록이므로 다시 못 고친다 —
+// 전체를 훑으면 이 테스트는 영원히 빨간불이고, 앞으로의 회귀를 알려주는 신호를 잃는다.
+// (실측: 8/19 32행 중 17행 중복 → 8/20 39행 중 0행. 과거 감사는 --since=2026-07-01 처럼 명시.)
+const FIXED_ON = '2026-08-20';
+const since = (process.argv.find(a => a.startsWith('--since=')) ?? '').split('=')[1] ?? FIXED_ON;
 const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
 const rows = since
   ? db.prepare('SELECT ticker, generated_at, matched_rules FROM buy_candidates WHERE generated_at >= ?').all(since)

@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync, statSync, readdirSync, existsSync } from 'node:fs';
 import { execSync, spawn } from 'node:child_process';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+import { readTail, findProcesses } from './lib/platform-ops.mjs';
 
 const ROOT = _PROJECT_ROOT;
 const now = Date.now();
@@ -80,7 +81,7 @@ try {
   if (existsSync(log)) {
     const ageMin = (now - statSync(log).mtimeMs) / 60000;
     if (ageMin < 25) {
-      const tail = execSync(`powershell -NoProfile -Command "Get-Content -Tail 80 -LiteralPath '${log}'"`, { encoding: 'utf8', timeout: 10000 });
+      const tail = readTail(log, 80);   // 2026-08-20: powershell Get-Content 고정 → 맥에서 상시 무증상 실패
       const hits = tail.split('\n').filter((l) => /\[FATAL\]/.test(l));
       if (hits.length) alerts.push(`report.log 신규 FATAL ${hits.length}건: ${hits.slice(-1)[0].trim().slice(0, 80)}`);
     }
@@ -159,10 +160,10 @@ try {
 //   report.log 핸들 점유 → 다음 스케줄 런 cascade stall → 보고서 silent 미발행. 이 실패를 어떤 모니터도
 //   못 잡던 사각지대. Task ExecutionTimeLimit=PT30M 가 30분에 죽여야 하므로 35분+ 생존 wscript = 안전망 실패.)
 try {
-  const out = execSync(
-    'powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name=\'wscript.exe\'\\" | Where-Object { $_.CommandLine -match \'run-report\' } | ForEach-Object { [int]((Get-Date)-$_.CreationDate).TotalMinutes } | Measure-Object -Maximum | Select-Object -ExpandProperty Maximum"',
-    { encoding: 'utf8', timeout: 12000 }).trim();
-  const maxAge = parseInt(out, 10);
+  // 2026-08-20: wscript.exe 고정 조회라 맥에선 항상 무매칭이었다(= 좀비 래퍼를 영영 못 잡음).
+  //   맥의 래퍼는 run-report.sh 이므로 프로세스 조회를 플랫폼 중립으로 바꾼다.
+  const wrappers = findProcesses('run-report');
+  const maxAge = wrappers.length ? Math.max(...wrappers.map(p => Math.floor(p.ageSec / 60))) : NaN;
   if (Number.isFinite(maxAge) && maxAge > 35) alerts.push(`좀비 보고서 래퍼 ${maxAge}m 잔류 (Task 타임아웃 실패 — cascade stall 위험, kill 필요)`);
   else if (Number.isFinite(maxAge)) info.push(`wrapper ${maxAge}m`);
 } catch { /* 프로세스 없음/조회 실패 — 무시(오탐 방지) */ }

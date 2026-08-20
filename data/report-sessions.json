@@ -1,9 +1,9 @@
 {
-  "_comment": "보고서 세션 단일 소스 (2026-06-04). 세션 enum 이 generate-report-local / 웹 investment-strategy / verify-report / check-data-quality 등 여러 곳에 하드코딩돼 있어, 슬롯 추가 시 한 곳만 빠뜨려도 보고서가 silent 미서빙되던 fragility 해소. check-data-quality [J] 가 이 목록과 코드 참조의 drift 를 감지.",
+  "_comment": "보고서 세션 단일 소스 (2026-06-04). 세션 enum 이 generate-report-local / 웹 investment-strategy / verify-report / check-data-quality 등 여러 곳에 하드코딩돼 있어, 슬롯 추가 시 한 곳만 빠뜨려도 보고서가 silent 미서빙되던 fragility 해소. check-data-quality [J] 가 이 목록과 코드 참조의 drift 를 감지. | 2026-08-20: triggerKst 를 실제 launchd 발동 시각과 일치시켰다. 종전 값(발행 20분 전)은 윈도우 시절 소요시간 기준이었고, 이 맥에서는 실측 46분이 걸려 발행 시각을 구조적으로 못 맞췄다. 사용자 요청('제작 시작을 더 일찍')으로 launchd 를 90분 전으로 옮겼는데 이 파일이 안 따라와, install-report-schedule.mjs 재실행 시 20분 예산으로 되돌아가는 회귀 지뢰였다. scripts/lib/schedule-drift.test.mjs 가 이 드리프트를 막는다.",
   "sessions": [
     {
       "id": "midnight",
-      "triggerKst": "23:40",
+      "triggerKst": "22:30",
       "publishKst": "00:00",
       "rankOrder": 0,
       "focus": "us",
@@ -13,7 +13,7 @@
     },
     {
       "id": "morning",
-      "triggerKst": "06:40",
+      "triggerKst": "05:30",
       "publishKst": "07:00",
       "rankOrder": 1,
       "focus": "us",
@@ -23,7 +23,7 @@
     },
     {
       "id": "noon",
-      "triggerKst": "11:40",
+      "triggerKst": "10:30",
       "publishKst": "12:00",
       "rankOrder": 2,
       "focus": "kr",
@@ -33,7 +33,7 @@
     },
     {
       "id": "afternoon",
-      "triggerKst": "15:40",
+      "triggerKst": "14:30",
       "publishKst": "16:00",
       "rankOrder": 3,
       "focus": "kr",
@@ -43,7 +43,7 @@
     },
     {
       "id": "evening",
-      "triggerKst": "21:10",
+      "triggerKst": "20:00",
       "publishKst": "21:30",
       "rankOrder": 4,
       "focus": "us",

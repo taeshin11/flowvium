@@ -93,3 +93,10 @@ __pycache__/
 # 2026-08-20: env 백업은 절대 커밋 금지 (API 키 포함)
 .env.local.bak*
 .env.*.bak*
+
+# 2026-08-20: 재작성 전 백업물(사용자 지시 "기존꺼 백업 후 다시 짜")이 커밋에 섞이던 것을 막는다.
+*.bak
+*.bak-*
+*.bak.tar.gz
+scripts/.bak-*/
+scripts/rag.bak-*

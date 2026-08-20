@@ -17,6 +17,8 @@ import { readFileSync, existsSync, writeFileSync, statSync, readdirSync } from '
 import { resolve } from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { resolveLauncher } from './lib/report-launcher.mjs';   // 2026-08-20: cmd /c run-report.bat 고정 → 맥에서 ENOENT.
+//   쇼크 긴급보고서와 누락 backfill 두 안전망이 동시에 무증상 사망 상태였다.
 
 // 2026-06-11: execSync → 비동기 execFile. execSync 는 이벤트 루프를 최대 170~300초 블로킹해
 //   node-cron "missed execution" (보고서 cron 누락) 유발 + 자식이 hang 하면 러너 전체가 멈춤.
@@ -461,7 +463,7 @@ async function runShockCheck() {
     if (await isReportPipelineRunning()) { log('[shock] 보고서 이미 실행 중 — skip'); return; }
     lastShockTrigger = Date.now();
     log('[shock] 비정기 보고서 트리거 → run-report.bat');
-    execFileAsync('cmd', ['/c', 'scripts\\run-report.bat'], { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 })
+    (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(resolveLauncher())
       .then(() => log('[shock] 비정기 보고서 완료'))
       .catch((e) => log(`[shock] 비정기 보고서 실패: ${String(e.message).slice(0, 60)}`));
   } catch (e) { log(`[shock] 점검 실패: ${String(e.message).slice(0, 60)}`); }
@@ -498,8 +500,8 @@ async function runCatchupCheck() {
     if (Date.now() - lastCatchupTrigger < SHOCK_COOLDOWN_MS) { log('[catchup] 쿨다운 중 — skip'); return; }
     if (await isReportPipelineRunning()) { log('[catchup] 보고서 이미 실행 중 — skip'); return; }
     lastCatchupTrigger = Date.now();
-    log(`[catchup] 🚨 최신 보고서 ${(ageMs / 3600000).toFixed(1)}h stale — 누락 backfill 트리거 → run-report.bat`);
-    execFileAsync('cmd', ['/c', 'scripts\\run-report.bat'], { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 })
+    log(`[catchup] 🚨 최신 보고서 ${(ageMs / 3600000).toFixed(1)}h stale — 누락 backfill 트리거 → ${resolveLauncher().path.split('/').pop()}`);
+    (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(resolveLauncher())
       .then(() => log('[catchup] backfill 완료'))
       .catch((e) => log(`[catchup] backfill 실패: ${String(e.message).slice(0, 60)}`));
   } catch (e) { log(`[catchup] 점검 실패: ${String(e.message).slice(0, 60)}`); }
