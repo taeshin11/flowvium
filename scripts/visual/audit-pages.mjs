@@ -16,7 +16,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const arg = (k, d) => { const a = process.argv.find((x) => x.startsWith(`--${k}=`)); return a ? a.split('=').slice(1).join('=') : d; };
 const BASE = arg('base', 'https://flowvium.net').replace(/\/$/, '');
-const EMAIL = process.env.MEMBER_EMAIL || '';
+// 2026-08-21: 종전엔 MEMBER_EMAIL 을 환경변수로만 받았고, 안 주면 조용히 익명으로 돌았다.
+//   보고서 본문은 회원 전용이라 익명 감사는 티저(2,958자)만 보고 "영문 0건"이라고 통과시켰다.
+//   같은 페이지를 회원으로 돌리자 확정 누출 7건(Financials·Energy·Healthcare…)이 나왔다.
+//   가장 중요한 페이지의 본문을 한 번도 검사하지 않고 있었던 셈이다.
+//   .env.local 에 값이 있으면 기본으로 쓴다. 익명으로 보고 싶으면 --anon 을 준다.
+function envLocalEmail() {
+  if (process.argv.includes('--anon')) return '';
+  try {
+    const raw = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../.env.local'), 'utf8');
+    const m = raw.match(/^MEMBER_EMAIL\s*=\s*(.+)$/m);
+    return m ? m[1].trim().replace(/^["']|["']$/g, '') : '';
+  } catch { return ''; }
+}
+const EMAIL = process.env.MEMBER_EMAIL || envLocalEmail();
 const WANT_SLICES = process.argv.includes('--slices');
 const WANT_TABS = process.argv.includes('--tabs');
 const DEFAULT_PAGES = ['/ko/report', '/ko/signals', '/ko/short', '/ko/heatmap', '/ko/screener', '/ko/explore',

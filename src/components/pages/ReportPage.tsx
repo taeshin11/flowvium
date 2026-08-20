@@ -7,6 +7,7 @@ import { RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, Bar
 import Sparkline from '@/components/Sparkline';
 import { UNIVERSE_SEARCH } from '@/data/universe-search';
 import { useTranslatedText } from '@/hooks/useTranslatedText';
+import { useSectorLabel } from '@/hooks/useSectorLabel';
 
 // 2026-06-12: 주력사업 세그먼트명 번역 (사용자 "번역이 안 되는 경우") — XBRL 추출 세그먼트명은
 //   영문. 숫자(%·YoY)는 번역 LLM 에 노출하지 않고 이름부만 번역 — 숫자 환각/훼손 원천 차단.
@@ -246,6 +247,7 @@ function SellCard({ item }: { item: SellItem }) {
 function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
   const t = useTranslations('report');
   const locale = useLocale();
+  const sectorLabel = useSectorLabel();
   const confidenceLabel = item.confidence === 'high' ? t('confidenceHigh') : item.confidence === 'low' ? t('confidenceLow') : t('confidenceMedium');
   const badge = safetyBadge(item.currentPrice, item.entryZone, t as Tr);
   const isWatch = item.action === 'watch';
@@ -281,7 +283,7 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
                   {confidenceLabel}
                 </span>
               </div>
-              <p className="text-xs text-gray-500">{item.sector}</p>
+              <p className="text-xs text-gray-500">{sectorLabel(item.sector)}</p>
             </div>
           </div>
           <div className="text-right">
@@ -433,13 +435,14 @@ function PortfolioCard({ item, rank }: { item: PortfolioItem; rank: number }) {
 // ── Sector Bar ────────────────────────────────────────────────────────────────
 function SectorBar({ item }: { item: SectorWeight }) {
   const t = useTranslations('report');
+  const sectorLabel = useSectorLabel();
   const stanceColor = item.stance === 'overweight' ? 'bg-emerald-500' : item.stance === 'underweight' ? 'bg-red-400' : 'bg-gray-400';
   const stanceTxt = item.stance === 'overweight' ? 'text-emerald-600' : item.stance === 'underweight' ? 'text-red-500' : 'text-gray-500';
   const stanceLabel = item.stance === 'overweight' ? t('sectorOverweight') : item.stance === 'underweight' ? t('sectorUnderweight') : t('sectorNeutral');
   return (
     <div className="flex items-center gap-3">
       <div className="w-28 shrink-0">
-        <p className="text-xs font-medium text-gray-700 truncate">{item.sector}</p>
+        <p className="text-xs font-medium text-gray-700 truncate">{sectorLabel(item.sector)}</p>
         <p className={`text-[10px] ${stanceTxt}`}>{stanceLabel}</p>
       </div>
       <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">

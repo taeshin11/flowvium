@@ -13,6 +13,11 @@
  *   그래서 값이 맞고 표기만 틀린 경우는 통과해 버린다. 서식 교정이 값 교정에 종속돼 있었다.
  *   두 관심사를 분리한다 — 표기는 값과 무관하게 항상 맞춘다.
  */
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);
 const bad = m => { console.log(`  FAIL  ${m}`); fail++; };
@@ -58,6 +63,60 @@ C.normalizeCurrencyText('') === '' && C.normalizeCurrencyText(null) === '' ? ok(
 // [5] 발간 텍스트에 잘못된 원화 표기가 남아 있는지 검사기
 C.findBadCurrency('현재 ₩1397000').length > 0 ? ok('잘못된 표기 검출') : bad('검출 실패');
 C.findBadCurrency('현재 ₩1,397,000').length === 0 ? ok('올바른 표기는 통과') : bad('정상을 결함으로 봄');
+
+// ── 2026-08-21: 서식 패스가 값·기호 교정보다 *먼저* 돌아 무력화된 사건 ───────────────────
+// 발간본에 ₩1,299,210.00 · ₩36,130.50 (원화에 소수점) 6건이 다시 나왔다. 함수는 정상이었다.
+// generate-report-local.mjs 의 6j-2 (a) 가 KR 종목의 "$숫자" 를 "₩숫자" 로 *기호만* 바꾸는데,
+// 내 서식 패스는 그보다 앞(6i 직후)에 있었다. 그 시점엔 문자열이 아직 "$1,299,210.00" 이라
+// 달러 규칙상 소수 2자리가 정상이라 통과했고, 이후 기호가 ₩ 로 바뀌며 위법 표기가 됐다.
+// 이번 세션에서 세 번째로 겪은 "정규화가 대상보다 먼저 도는" 유형이다 — 순서를 테스트로 못 박는다.
+{
+  // 기호 교정을 흉내낸 뒤 서식을 적용하면 올바른 원화 표기가 나온다.
+  const afterSymbolSwap = '현재 ₩1,397,000 → 손절선 ~₩1,299,210.00 (-7%)';
+  const out = C.normalizeCurrencyText(afterSymbolSwap);
+  out.includes('₩1,299,210') && !out.includes('.00')
+    ? ok('기호 교정 후 서식 적용 → 원화 소수점 제거')
+    : bad(`기호 교정 후에도 소수점 잔존: ${out}`);
+
+  // 반대 순서(서식 먼저 → 기호 교정)면 소수점이 살아남는다 — 이게 실제로 벌어진 일이다.
+  const beforeSwap = '현재 $1,397,000 → 손절선 ~$1,299,210.00 (-7%)';
+  const swapped = C.normalizeCurrencyText(beforeSwap).replace(/\$(\d)/g, '₩$1');
+  swapped.includes('.00')
+    ? ok('순서를 뒤집으면 실제로 소수점이 남는다(사건 재현)')
+    : bad('사건 재현 실패 — 가정이 틀렸으므로 원인 분석을 다시 해야 한다');
+}
+
+// 생성 코드에서 서식 패스가 기호 교정보다 뒤에 오는지 — 소스 순서로 강제한다.
+{
+  const gen = readFileSync(resolve(ROOT, 'scripts/generate-report-local.mjs'), 'utf8');
+  const swapIdx = gen.indexOf("replace(/\\$(\\d)/g");          // 6j-2 (a) 기호 교정
+  const fmtIdx  = gen.lastIndexOf('normalizeCurrencyText(');    // 서식 패스
+  swapIdx === -1
+    ? bad('6j-2 기호 교정 지점을 못 찾음 — 테스트 앵커가 낡았다')
+    : (fmtIdx > swapIdx
+        ? ok('서식 패스가 기호 교정 뒤에 있다')
+        : bad(`서식 패스가 기호 교정보다 앞에 있다 (fmt@${fmtIdx} < swap@${swapIdx}) — 무력화된다`));
+}
+
+// ── 단위 접미사가 붙은 값은 건드리면 안 된다 (2026-08-21 라이브에서 발견한 잠재 지뢰) ──────
+// 발간본에 "💰 ₩1.60조 · 상대 Ras" 가 있다. 조 단위라 소수가 정상이다.
+// 이 패스를 stopLossRationale 밖으로 넓히는 순간 ₩1.60조 → ₩2조 가 되어 25% 값 오류가 난다.
+// 지금은 적용 범위가 좁아 사고가 안 났을 뿐이다 — 함수 자체를 안전하게 만든다.
+for (const [inp, want] of [
+  ['💰 ₩1.60조 · 상대 Ras · 매출대비 21.41%', '💰 ₩1.60조 · 상대 Ras · 매출대비 21.41%'],
+  ['거래대금 ₩3.5억 수준',                     '거래대금 ₩3.5억 수준'],
+  ['시총 ₩12.4만 단위',                        '시총 ₩12.4만 단위'],
+  ['$1.2B 규모',                                '$1.2B 규모'],
+  ['$3.4M 매출',                                '$3.4M 매출'],
+]) {
+  const got = C.normalizeCurrencyText(inp);
+  got === want ? ok(`단위 접미사 보존: ${inp.slice(0, 24)}`) : bad(`단위 값 훼손: ${inp} → ${got}`);
+}
+// 접미사가 없으면 종전대로 정규화한다 (회귀 방지)
+C.normalizeCurrencyText('손절선 ~₩1,299,210.00') === '손절선 ~₩1,299,210'
+  ? ok('접미사 없는 값은 그대로 정규화') : bad('접미사 규칙이 정상 경로를 막았다');
+C.findBadCurrency('💰 ₩1.60조').length === 0
+  ? ok('findBadCurrency 도 단위 값을 결함으로 보지 않는다') : bad('findBadCurrency 오탐');
 
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);

@@ -22,16 +22,26 @@ const USD = /\$\s?(\d(?:[\d,]*\d)?(?:\.\d+)?)/g;
 
 const toNum = (s) => parseFloat(String(s).replace(/,/g, ''));
 
+// 2026-08-21: 단위 접미사가 붙은 값은 표기를 건드리면 *값*이 바뀐다.
+//   발간본의 "💰 ₩1.60조" 를 반올림하면 ₩2조 — 25% 오류다. ₩3.5억 → ₩4억 도 마찬가지.
+//   지금은 이 패스가 stopLossRationale(접미사 없음)에만 걸려 사고가 안 났을 뿐이라,
+//   범위를 넓히는 순간 터질 자리였다. 함수 자체를 안전하게 만든다.
+//   USD 의 K/M/B/T 도 같은 이유로 제외한다.
+const UNIT_AFTER = /^\s*(?:조|억|만|천|[KMBT]\b)/;
+const hasUnitSuffix = (whole, offset, matchLen) => UNIT_AFTER.test(whole.slice(offset + matchLen, offset + matchLen + 4));
+
 /** 원화: 정수 + 천단위 구분자. 달러: 소수 2자리까지 + 천단위 구분자. */
 export function normalizeCurrencyText(text) {
   const s = String(text ?? '');
   if (!s) return '';
   return s
-    .replace(KRW, (m, num) => {
+    .replace(KRW, (m, num, offset, whole) => {
+      if (hasUnitSuffix(whole, offset, m.length)) return m;   // ₩1.60조 — 반올림하면 값이 바뀐다
       const n = toNum(num);
       return Number.isFinite(n) ? `₩${Math.round(n).toLocaleString('en-US')}` : m;
     })
-    .replace(USD, (m, num) => {
+    .replace(USD, (m, num, offset, whole) => {
+      if (hasUnitSuffix(whole, offset, m.length)) return m;   // $1.2B — 접미사가 자릿수를 결정한다
       const n = toNum(num);
       if (!Number.isFinite(n)) return m;
       // 소수 자리는 원문이 가진 만큼(최대 2)만 — 정수였던 값에 .00 을 붙이지 않는다.
@@ -49,6 +59,7 @@ export function findBadCurrency(text) {
   const out = [];
   for (const m of s.matchAll(KRW)) {
     const raw = m[0], num = m[1];
+    if (hasUnitSuffix(s, m.index ?? 0, raw.length)) continue;   // 단위 값은 결함이 아니다
     const n = toNum(num);
     if (!Number.isFinite(n)) continue;
     const want = `₩${Math.round(n).toLocaleString('en-US')}`;

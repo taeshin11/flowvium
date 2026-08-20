@@ -32,6 +32,7 @@ import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { resolveServedModelId, servedModelBasename } from './lib/served-model.mjs';
+import { localizeSectorKo } from './lib/sector-label.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -616,16 +617,6 @@ function applyLocalHarness(r, livePrices) {
       );
       audit.fixes.stopRationaleAligned.push(`${sr.ticker}:${rationaleStop}→${stopP}`);
     }
-    // 2026-08-20: 위 정렬은 '값이 5% 이상 어긋날 때만' 돈다. 값이 맞고 표기만 틀린 경우
-    //   (₩1397000·₩1299210.00 — 구분자 없음, 원화에 소수점)는 그대로 발간됐다.
-    //   실제로 저녁 발간본에서 같은 줄 안에 ₩1397000 과 ₩1,224,720 이 공존했다.
-    //   서식은 값과 무관하게 항상 맞춘다 — 두 관심사를 분리한다.
-    for (const sr of r.stopLossRationale) {
-      if (typeof sr.rationale !== 'string') continue;
-      const before = sr.rationale;
-      sr.rationale = normalizeCurrencyText(before);
-      if (sr.rationale !== before) audit.fixes.stopRationaleAligned.push(`${sr.ticker}:표기정규화`);
-    }
   }
 
   // 6j. 통화 일관성 — native 통화와 다른 기호 사용 OR 단위 누락 시 자동 교정
@@ -695,6 +686,22 @@ function applyLocalHarness(r, livePrices) {
       if (modified) {
         audit.fixes.currencyMismatch.push(`${sr.ticker} stopLossRationale: ${before.slice(0, 60)}... → 통화/현재가 교정`);
       }
+    }
+  }
+
+  // 6j-3. 통화 표기 정규화 — 값·기호 교정이 모두 끝난 *뒤에* 온다.
+  //   2026-08-20 에 이 패스를 6i 직후에 뒀다가 2026-08-21 발간본에 ₩1,299,210.00 · ₩36,130.50
+  //   (원화에 소수점) 6건이 다시 나왔다. 함수는 정상이었고 순서가 틀렸다:
+  //   6j-2 (a) 가 KR 종목의 "$숫자"를 "₩숫자"로 *기호만* 바꾸는데, 그보다 앞에서 돌면
+  //   그 시점 문자열은 아직 "$1,299,210.00" 이라 달러 규칙상 소수 2자리가 정상이라 통과하고,
+  //   이후 기호가 ₩ 로 바뀌며 위법 표기가 된다.
+  //   서식은 마지막에 — 값 교정의 결과물까지 포함해 맞춘다.
+  if (Array.isArray(r.stopLossRationale)) {
+    for (const sr of r.stopLossRationale) {
+      if (typeof sr.rationale !== 'string') continue;
+      const before = sr.rationale;
+      sr.rationale = normalizeCurrencyText(before);
+      if (sr.rationale !== before) audit.fixes.stopRationaleAligned.push(`${sr.ticker}:표기정규화`);
     }
   }
 
@@ -4504,7 +4511,10 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
     const etf = SECTOR_ETF[(s.sector || '').toLowerCase()];
     if (!etf || seenSector.has(etf) || s.stance === 'underweight') continue;
     seenSector.add(etf);
-    add(etf, `${s.sector} ${s.stance === 'overweight' ? '비중확대' : '중립'} — 섹터 분산 노출`, 'sector', s.stance === 'overweight' ? 'buy' : 'watch');
+    // 2026-08-21: s.sector 는 LLM 이 준 영문(Financials·Consumer Defensive·industrials 혼재)이라
+    //   발간본 ETF 전략에 "Financials 중립 — 섹터 분산 노출" 로 나갔다. 보고서는 ko 로 생성하는 게
+    //   단일 진실원이므로 여기서 한국어로 굽는다. 모르는 값은 원값을 남긴다.
+    add(etf, `${localizeSectorKo(s.sector)} ${s.stance === 'overweight' ? '비중확대' : '중립'} — 섹터 분산 노출`, 'sector', s.stance === 'overweight' ? 'buy' : 'watch');
   }
   // 섹터 신호가 없으면 코어 섹터(기술/헬스케어)라도 노출 — ETF 다양성 보장
   if (seenSector.size === 0) { add('XLK', '기술 섹터 코어 노출', 'sector', 'watch'); add('XLV', '헬스케어 방어 섹터', 'sector', 'watch'); }
@@ -4514,7 +4524,7 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
     if (themeN >= 3 || s.stance === 'underweight') continue;
     for (const t of (THEMATIC_ETF[(s.sector || '').toLowerCase()] ?? [])) {
       if (themeN >= 3) break;
-      if (add(t, `${s.sector} 테마 — ${ETF_META[t]?.name ?? t}`, 'thematic', s.stance === 'overweight' ? 'buy' : 'watch')) themeN++;
+      if (add(t, `${localizeSectorKo(s.sector)} 테마 — ${ETF_META[t]?.name ?? t}`, 'thematic', s.stance === 'overweight' ? 'buy' : 'watch')) themeN++;
     }
   }
   // 2c) 스타일·배당 — stance 기반 팩터 슬리브 (강세=성장/모멘텀, 방어=가치/퀄리티/최소변동) + 배당 income
