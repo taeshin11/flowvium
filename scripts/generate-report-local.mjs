@@ -31,6 +31,7 @@ setGlobalDispatcher(new Agent({
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
+import { resolveServedModelId, servedModelBasename } from './lib/served-model.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -1256,10 +1257,16 @@ async function callVLLM(prompt, timeoutMs = 600000, label = '', maxTokens = 2048
       try {
         const mr = await fetch(`${url}/models`, { signal: AbortSignal.timeout(5000) });
         const mj = await mr.json();
-        const served = (mj.data || []).find(m => m.id === (servedModel || model)) || (mj.data || [])[0];
-        const root = served?.root || servedModel || model;
-        runtimeModel = String(root).split(/[\\/]/).pop();
-      } catch { runtimeModel = servedModel || model; }
+        // 2026-08-20: 종전엔 응답 에코(servedModel)로 find → 실패하면 data[0] 을 집었다.
+        //   mlx_lm 은 에코를 요청값과 무관하게 항상 'default_model' 로 주고, /v1/models 에는
+        //   적재본이 아니라 HF 캐시 전체가 실린다 → data[0]='baidu/Unlimited-OCR' 을 집은 뒤
+        //   mlx 가 root 필드를 안 주니 'default_model' 이 그대로 남았다.
+        //   결과: 발간 페이지 /ko/report 에 'local-default_model' 노출 +
+        //         db.mjs:37 이 명시한 per-model 결함률 추적이 전 보고서 동일값으로 무력화.
+        //   적재본은 *절대경로로 실린 항목*으로만 식별한다(포트별로 다름을 실측 확인).
+        runtimeModel = servedModelBasename(
+          resolveServedModelId(mj, { servedModel, fallback: servedModel || model }));
+      } catch { runtimeModel = servedModelBasename(servedModel || model); }
     }
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`  ${tag} ${elapsed}s → ${text.length}c | prompt ${prompt.length}c`);

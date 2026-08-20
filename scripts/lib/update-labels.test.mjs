@@ -61,5 +61,40 @@ L.localizeLabel('', 'ko') === '' && L.localizeLabel(null, 'ko') === '' ? ok('빈
 const un = L.unmappedLabels();
 un.length === 0 ? ok('라우트 라벨 전수 분류 완료') : bad(`미분류 ${un.length}종: ${un.join(', ')}`);
 
+// [7] 2026-08-20 2차: 1차 수정은 badge/source 만 고치고 sub 를 놓쳤다.
+//     실측(라이브 /api/latest-updates?locale=ko): sub 40건 중 33건이 영문이었다.
+//       "$9.6B · technology" · "0.47% held ($680M) · Q1 2026" · "Current rate 3.625%"
+//     따옴표 라벨만 보던 가드가 템플릿 리터럴을 못 봐서 생긴 사각지대다 — 가드부터 넓힌다.
+const ut = L.unmappedTemplateText();
+ut.length === 0 ? ok('템플릿 리터럴 내 영문 전수 분류 완료') : bad(`템플릿 미분류 ${ut.length}종: ${ut.join(', ')}`);
+
+// [8] 기관 시그널의 섹터 값 (실측 도메인 7종 — API 응답에서 확인한 값만 넣는다)
+const SECTORS = { technology: '기술', finance: '금융', consumer: '소비재', telecom: '통신',
+                  pharma: '제약', software: '소프트웨어', semiconductors: '반도체' };
+for (const [en, ko] of Object.entries(SECTORS)) {
+  L.localizeLabel(en, 'ko') === ko ? ok(`섹터 ${en} → ${ko}`) : bad(`섹터 ${en} → ${JSON.stringify(L.localizeLabel(en,'ko'))} (기대 ${ko})`);
+}
+
+// [9] sub 조립에 쓰이는 낱말
+const SUBWORDS = { 'Current rate': '현재 금리', 'held': '보유', 'Top Gainer': '상승 상위',
+                   'Top Loser': '하락 상위', 'Cascade': '연쇄', 'Hold': '동결', 'Cut': '인하' };
+for (const [en, ko] of Object.entries(SUBWORDS)) {
+  L.localizeLabel(en, 'ko') === ko ? ok(`${en} → ${ko}`) : bad(`${en} → ${JSON.stringify(L.localizeLabel(en,'ko'))} (기대 ${ko})`);
+}
+
+// [10] 고유명은 여전히 원값 (위를 추가하며 지수·회의명을 번역해 버리지 않았는지)
+for (const p of ['FOMC', 'F&G']) {
+  L.localizeLabel(p, 'ko') === p ? ok(`고유명 유지: ${p}`) : bad(`고유명을 번역함: ${p}`);
+}
+
+// [11] 상대 일자는 어순이 달라 라벨 치환으로 안 된다 — 포맷터가 필요하다.
+//      실측: 홈에 "In 43d — September Jobs Report (NFP)" 가 그대로 떴다.
+const RD = [[0, '오늘'], [1, '내일'], [43, '43일 후']];
+for (const [d, ko] of RD) {
+  L.relativeDayLabel(d, 'ko') === ko ? ok(`D+${d} → ${ko}`) : bad(`D+${d} → ${JSON.stringify(L.relativeDayLabel(d,'ko'))} (기대 ${ko})`);
+}
+L.relativeDayLabel(43, 'en') === 'In 43d' ? ok('en 은 종전 표기 유지') : bad('en 표기가 바뀜');
+L.relativeDayLabel(0, 'ja') === 'Today' ? ok('미지원 로케일은 en 표기') : bad('미지원 로케일 처리 이상');
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);

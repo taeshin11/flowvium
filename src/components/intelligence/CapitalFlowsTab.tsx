@@ -803,7 +803,7 @@ export default function CapitalFlowsTab() {
               return (
                 <div key={c.id} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-cf-text-primary">{c.name}</span>
+                    <span className="text-xs font-bold text-cf-text-primary">{ITEM_LABEL_KEY[c.id] ? t(ITEM_LABEL_KEY[c.id]) : c.name}</span>
                     <div className="flex items-center gap-1">
                       {c.synthetic && <span className="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.5 rounded">{t('cfModelCurve')}</span>}
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${structColor}`}>

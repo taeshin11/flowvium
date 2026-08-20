@@ -10,7 +10,7 @@
       "should-validate-template": false,
       "words": { "exclude": ["^[^a-zA-Z]*$", "^[a-z-]+$", "^[A-Z_]+$"] },
       "jsx-attributes": { "exclude": ["className","href","src","id","key","type","role","aria-label","data-testid","viewBox","d","fill","stroke","xmlns","alt","target","rel","name","value","placeholder"] },
-      "callees": { "exclude": ["^(t|tHome|tEarnings|useTranslations|require|import|console\\.\\w+|logger\\.\\w+|Number|String|Boolean|parseInt|parseFloat|Date|JSON\\.\\w+|fetch|Object\\.\\w+|Array\\.\\w+|Math\\.\\w+|encodeURIComponent|classNames|clsx|cn)$"] },
+      "callees": { "exclude": ["^(t|tHome|tEarnings|localizeLabel|useTranslations|require|import|console\\.\\w+|logger\\.\\w+|Number|String|Boolean|parseInt|parseFloat|Date|JSON\\.\\w+|fetch|Object\\.\\w+|Array\\.\\w+|Math\\.\\w+|encodeURIComponent|classNames|clsx|cn)$"] },
       "object-properties": { "exclude": ["^(className|href|src|id|key|type|role|color|icon|market|sector|locale|method|mode|cache|next|headers|Content-Type)$"] }
     }]
   }

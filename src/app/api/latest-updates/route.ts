@@ -29,7 +29,7 @@ import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
 import { listKey as newsListKey, translatedKey as newsTranslatedKey } from '@/lib/news-cache-keys';
-import { localizeLabel } from '@/lib/update-labels';
+import { localizeLabel, relativeDayLabel } from '@/lib/update-labels';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -175,7 +175,7 @@ async function getCapitalFlowItems(redis: Redis | null, base: string, locale = '
         id: `flow-${a.ticker}-${i}`,
         type: 'flow' as const,
         headline: `${a.flag ?? ''} ${a.label} ${pct} (1W)`,
-        sub: `${a.ret4w != null ? `4W ${a.ret4w > 0 ? '+' : ''}${a.ret4w.toFixed(1)}%` : 'capital flow'}`,
+        sub: `${a.ret4w != null ? `4W ${a.ret4w > 0 ? '+' : ''}${a.ret4w.toFixed(1)}%` : localizeLabel('Capital Flow', locale)}`,
         source: localizeLabel('Capital Flows', locale),
         time: fmtTime(updatedAt),
         sortTime: updatedAt,
@@ -263,8 +263,8 @@ async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en')
   return {
     id: 'fedwatch',
     type: 'fed',
-    headline: `FOMC ${next.label} — Hold ${holdProb}% / Cut ${cutProb}%`,
-    sub: `Current rate ${data.currentRateMid ?? '-'}%`,
+    headline: `FOMC ${next.label} — ${localizeLabel('Hold', locale)} ${holdProb}% / ${localizeLabel('Cut', locale)} ${cutProb}%`,
+    sub: `${localizeLabel('Current rate', locale)} ${data.currentRateMid ?? '-'}%`,
     source: 'CME FedWatch',
     time: fmtTime(updatedAt),
     sortTime: updatedAt,
@@ -327,7 +327,7 @@ function newsItemFrom(article: { title: string; pubDate: string; source: string;
     id: `news-${id}`,
     type: 'news',
     headline: (article.title ?? '').slice(0, 65),
-    sub: cascadeStr ? `Cascade: ${cascadeStr}` : (article.source ?? ''),
+    sub: cascadeStr ? `${localizeLabel('Cascade', locale)}: ${cascadeStr}` : (article.source ?? ''),
     source: article.source || 'Reuters/CNBC',
     time: fmtTime(article.pubDate),
     sortTime: article.pubDate,
@@ -358,7 +358,7 @@ function getNewsGapItems(locale = 'en'): UpdateItem[] {
         id: `ownership-${entry.ticker}-${o.institution}`,
         type: 'newsgap',
         headline: `${o.institution} — ${entry.companyName}${changeStr}`,
-        sub: `${o.pctOfShares}% held ($${o.valueM}M) · ${o.quarter}`,
+        sub: `${o.pctOfShares}% ${localizeLabel('held', locale)} ($${o.valueM}M) · ${o.quarter}`,
         source: 'SEC EDGAR 13F',
         time: o.quarter,
         sortTime,
@@ -409,7 +409,7 @@ async function getMarketMoverItems(redis: Redis | null, base: string, locale = '
     id: `mover-${m.ticker}`,
     type: 'market' as const,
     headline: `${m.ticker} ${m.changePct > 0 ? '+' : ''}${m.changePct.toFixed(2)}% — $${m.price}`,
-    sub: `${side === 'gain' ? '📈 Top Gainer' : '📉 Top Loser'} · $${m.change > 0 ? '+' : ''}${m.change.toFixed(2)}`,
+    sub: `${side === 'gain' ? '📈' : '📉'} ${localizeLabel(side === 'gain' ? 'Top Gainer' : 'Top Loser', locale)} · $${m.change > 0 ? '+' : ''}${m.change.toFixed(2)}`,
     source: 'Nasdaq',
     time: fmtTime(updatedAt),
     sortTime: updatedAt,
@@ -440,7 +440,7 @@ function getSignalItems(signals: InstitutionalSignal[], locale = 'en'): UpdateIt
         id: `signal-${s.id}`,
         type: 'signal' as const,
         headline: `${s.institution} — ${s.companyName} ${actionLabel}`,
-        sub: `${s.estimatedValue} · ${s.sector}`,
+        sub: `${s.estimatedValue} · ${localizeLabel(s.sector, locale)}`,
         source: 'SEC EDGAR 13F',
         time: s.filingDate,
         sortTime: s.filingDate,
@@ -486,9 +486,10 @@ function getEconCalendarItems(locale = 'en'): UpdateItem[] {
     .filter(e => e.impact === 'high' || e.impact === 'medium')
     .slice(0, 4);
 
+  const isKo = String(locale).split('-')[0] === 'ko';
   return upcoming.map(e => {
     const days = daysUntil(e.date, today);
-    const urgency = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days}d`;
+    const urgency = relativeDayLabel(days, locale);
     const type = e.category === 'Fed' ? 'fed' as const : 'macro' as const;
     const badgeColor = e.impact === 'high'
       ? (days <= 1 ? '#ef4444' : '#f59e0b')
@@ -496,13 +497,15 @@ function getEconCalendarItems(locale = 'en'): UpdateItem[] {
     return {
       id: `econ-${e.date}-${e.title.slice(0, 20)}`,
       type,
-      headline: `${urgency} — ${e.title}`,
-      sub: e.note ?? e.category,
+      // 2026-08-20: src/data/econ-calendar.ts 는 titleKo/noteKo 를 이미 갖고 있는데
+      //   라우트가 영문 필드만 써서 ko 화면에 'September Jobs Report (NFP)' 가 그대로 떴다.
+      headline: `${urgency} — ${isKo ? (e.titleKo || e.title) : e.title}`,
+      sub: (isKo ? (e.noteKo ?? e.note) : e.note) ?? localizeLabel(e.category, locale),
       source: localizeLabel('Economic Calendar', locale),
       // 2026-08-20: econ-calendar 의 time 은 'All day' 같은 영문 리터럴을 담는다(src/data/econ-calendar.ts).
       time: localizeLabel(e.time ?? e.date, locale),
       sortTime: e.date + 'T00:00:00.000Z',
-      badge: e.impact === 'high' ? '🔴 High Impact' : '🟡 Medium',
+      badge: e.impact === 'high' ? `🔴 ${localizeLabel('High Impact', locale)}` : `🟡 ${localizeLabel('Medium Impact', locale)}`,
       badgeColor,
       link: '/intelligence',
       direction: 'neutral' as const,

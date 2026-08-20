@@ -8,7 +8,7 @@
 // 사용: MEMBER_EMAIL=.. node scripts/visual/audit-pages.mjs [--pages=/ko/report,...] [--slices] [--base=..]
 // 출력 1줄 "PAGE-AUDIT OK/ALERT ..." + logs/page-audit.json (페이지별 flag 상세). exit 0/1.
 import { chromium } from 'playwright';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,6 +30,59 @@ const URL_TABS = { '/ko/intelligence': ['capital', 'macro', 'flows', 'fear-greed
 let PAGES = arg('pages', DEFAULT_PAGES.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 if (WANT_TABS) { // URL 탭 페이지를 ?tab= 변형으로 확장
   PAGES = PAGES.flatMap((p) => URL_TABS[p] ? URL_TABS[p].map((t) => `${p}?tab=${t}`) : [p]);
+}
+
+// ── 영문 누출 검사 (2026-08-20 UI 눈검증) ─────────────────────────────────────
+//   /ko 화면에 번역 안 된 영문이 남는 결함군을 이 감사기가 전혀 보지 못했다.
+//   실제 사례: /ko/intelligence 의 "WTI Crude Oil"·"Gold (COMEX)" — API 가 표시라벨을
+//   영문 상수로 내려주고 CapitalFlowsTab 이 그대로 출력했다(messages/ 에는 16개 언어 번역이
+//   이미 있었다). 종전 검사기는 이 항목 자체가 없어 매 사이클 통과했다.
+//
+//   고유명사 화이트리스트를 손으로 적으면 목록이 곧 낡는다. 저장소가 이미 가진 자산에서 파생한다:
+//     · data/company-names.json (904종목)  → Alphabet·Coca-Cola·AbbVie 등
+//     · data/news-feeds.json    (피드 출처) → Yahoo Finance·Seeking Alpha·SCMP Business 등
+//   그리고 확정 신호는 따로 둔다: 화면 문자열이 messages/en.json 의 값과 정확히 일치하면
+//   같은 키의 한국어 번역이 존재한다는 뜻이므로 *번역 경로를 안 탄 것*이 확정된다(sev high).
+//   나머지 라틴 문자열은 판정할 근거가 없으므로 low 로만 기록한다 — 단정하지 않는다.
+const VIS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const readJson = (rel) => { try { return JSON.parse(readFileSync(resolve(VIS_ROOT, rel), 'utf8')); } catch { return null; } };
+const strValues = (o, out = []) => {
+  if (typeof o === 'string') out.push(o);
+  else if (o && typeof o === 'object') for (const v of Object.values(o)) strValues(v, out);
+  return out;
+};
+const norm = (s) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+const EN_UI = new Set(strValues(readJson('messages/en.json') ?? {}).filter((v) => v.length >= 6).map(norm));
+const KO_UI = new Set(strValues(readJson('messages/ko.json') ?? {}).filter((v) => v.length >= 6).map(norm));
+// en 과 ko 가 같은 값인 키(브랜드·기호 등 번역 대상이 아닌 것)는 확정 신호에서 제외한다.
+for (const v of KO_UI) EN_UI.delete(v);
+// 회사명은 자산이 정식명("Alphabet Inc.")이고 화면은 표시명("Alphabet")이라 정확일치가 안 된다.
+// 법인 접미사와 구두점을 떨어내고 비교한다 — 목록을 손으로 늘리는 대신 규칙으로 흡수한다.
+//   Coca Cola Co ↔ Coca-Cola · State Street Corp ↔ State Street · Abbvie Inc. ↔ AbbVie
+const CO_SUFFIX = /\b(inc|corp|corporation|co|company|ltd|limited|plc|llc|lp|holdings?|group|sa|nv|ag|se|kgaa|adr|class\s*[ab])\b/g;
+const normCo = (s) => s.toLowerCase().replace(CO_SUFFIX, ' ').replace(/[^a-z0-9]/g, '');
+const PROPER_NOUNS = new Set([
+  ...((readJson('data/news-feeds.json') ?? {}).feeds ?? []).map((f) => f.source),
+].filter(Boolean).map(norm));
+// 5자 미만으로 줄어든 회사명은 흔한 단어와 충돌할 수 있어 제외한다(예: "Co"→"").
+const PROPER_CO = new Set(strValues(readJson('data/company-names.json') ?? {})
+  .map(normCo).filter((v) => v.length >= 5));
+
+function englishLeak(text) {
+  const hits = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (line.length < 6 || line.length > 160) continue;
+    if (/[^\u0000-\u024F\u2018-\u201D\u00B7\s]/.test(line)) continue;   // 한글·CJK·이모지 포함 줄은 제외
+    if (!/[A-Za-z]{3}/.test(line)) continue;                                // 숫자·기호만인 줄 제외
+    const n = norm(line);
+    if (PROPER_NOUNS.has(n)) continue;                                       // 피드 출처명
+    if (PROPER_CO.has(normCo(line))) continue;                               // 회사명(접미사 정규화)
+    if (/^[A-Z0-9.^&=-]{1,8}$/.test(line)) continue;                        // 티커/약어
+    hits.push({ v: line, sev: EN_UI.has(n) ? 'high' : 'low' });
+    if (hits.length >= 40) break;
+  }
+  return hits;
 }
 
 // ── Detectors: (name, severity, regex|fn) — 렌더 innerText 대상. precise 하게(오탐 최소) ──────────
@@ -65,6 +118,13 @@ const slug = (p) => (p.replace(/^\//, '') || 'root').replace(/[^a-z0-9가-힣]/g
 
 async function runDetectors(text) {
   const flags = [];
+  // 영문 누출: 확정(en.json 값과 일치)과 후보를 나눠 보고한다.
+  const leaks = englishLeak(text);
+  for (const sev of ['high', 'low']) {
+    const g = leaks.filter((h) => h.sev === sev);
+    if (g.length) flags.push({ detector: sev === 'high' ? 'english_leak' : 'english_candidate', sev,
+      count: g.length, samples: g.slice(0, 12).map((h) => ({ v: h.v, snip: h.v })) });
+  }
   for (const d of DETECTORS) {
     const hits = [];
     for (const m of text.matchAll(d.re)) {

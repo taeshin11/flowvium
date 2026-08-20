@@ -27,12 +27,28 @@ const KO: Record<string, string> = {
   // 기타
   'Gainer': '상승', 'Loser': '하락', 'Economic Calendar': '경제 캘린더',
   'Today': '오늘', 'Tomorrow': '내일', 'All day': '종일', 'Fed': '연준',
+  // 2026-08-20 2차 — sub 조립에 쓰이는 낱말. 1차는 badge/source 만 고쳤고
+  //   sub 40건 중 33건이 영문으로 남아 있었다(라이브 /api/latest-updates?locale=ko 실측).
+  'Current rate': '현재 금리', 'held': '보유', 'Cascade': '연쇄',
+  'Top Gainer': '상승 상위', 'Top Loser': '하락 상위',
+  // FOMC 문맥의 결정 — 일반 동사가 아니라 정책 용어다.
+  'Hold': '동결', 'Cut': '인하', 'Hike': '인상',
+  // 경제 캘린더 영향도
+  'High Impact': '영향 큼', 'Medium Impact': '영향 보통', 'Low Impact': '영향 작음',
+  // 경제 캘린더 카테고리 (src/data/econ-calendar.ts 실측 도메인 8종).
+  //   CPI·PCE·GDP·PMI·PPI 는 지표 약어라 PROPER 로 둔다.
+  'Jobs': '고용', 'Retail': '소매판매',
+  // 기관 시그널의 섹터 — API 응답에서 실제로 관측된 7종만 넣는다. 없는 값을 미리 짐작하지 않는다.
+  'technology': '기술', 'finance': '금융', 'consumer': '소비재', 'telecom': '통신',
+  'pharma': '제약', 'software': '소프트웨어', 'semiconductors': '반도체',
 };
 
 /** 번역하지 않는 고유명(기관·지수·데이터 제공처 이름). */
 const PROPER = new Set([
   'CNN Fear & Greed', 'CNN Official F&G Index', 'CME FedWatch', 'Alpha Vantage',
   'Nasdaq', 'FlowVium composite', 'Reuters/CNBC', 'Fear & Greed',
+  // 2026-08-20: 회의체·지수 약어는 번역 대상이 아니다.
+  'FOMC', 'F&G', 'NFP', 'CPI', 'PCE', 'GDP', 'ETF', 'SEC EDGAR', 'S&P', 'PMI', 'PPI',
 ]);
 
 const langOf = (locale?: string) => String(locale ?? 'en').split('-')[0];
@@ -49,4 +65,15 @@ export function localizeLabel(label: string | null | undefined, locale = 'en'): 
   const lower = s.toLowerCase();
   for (const k of Object.keys(KO)) if (k.toLowerCase() === lower) return KO[k];
   return s;
+}
+
+/**
+ * 상대 일자 표기. 'In 3d' 는 한국어 어순으로 치환이 안 된다 — 라벨이 아니라 포맷이다.
+ * 실측(2026-08-20 홈): "In 43d — September Jobs Report (NFP)" 가 ko 화면에 그대로 떴다.
+ */
+export function relativeDayLabel(days: number, locale = 'en'): string {
+  const n = Number(days);
+  if (!Number.isFinite(n)) return '';
+  if (langOf(locale) !== 'ko') return n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : `In ${n}d`;
+  return n === 0 ? '오늘' : n === 1 ? '내일' : `${n}일 후`;
 }
