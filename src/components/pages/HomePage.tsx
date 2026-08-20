@@ -1,5 +1,6 @@
 'use client';
 
+import { TranslatedText } from '@/components/TranslatedText';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { sectors } from '@/data/sectors';
@@ -1139,7 +1140,10 @@ export default function HomePage() {
                 {sector.name}
               </h3>
               <p className="text-xs text-cf-text-secondary mb-3 line-clamp-2">
-                {sector.description.split('.')[0]}.
+                {/* 2026-08-20: src/data/sectors.ts 의 description 이 영문 하드코딩이라
+                    한국어 페이지에 영문 21건이 노출됐다(UI 검증 실측). 이 저장소의 관습대로
+                    런타임 번역(<TranslatedText>)을 태운다 — 회사·Cascade 페이지와 동일 방식. */}
+                <TranslatedText text={`${sector.description.split('.')[0]}.`} />
               </p>
               <div className="flex items-center justify-center gap-1 text-sm font-medium text-cf-primary opacity-0 group-hover:opacity-100 transition-opacity">
                 {tHome('explore')}
@@ -1262,8 +1266,10 @@ export default function HomePage() {
             },
             {
               icon: <GitCompare className="w-6 h-6" />,
-              title: 'Company Comparator',
-              desc: 'Compare any two companies side-by-side — revenue, supply chain role, institutional signals, and news gap score.',
+              // 2026-08-20: 영문 리터럴이 모든 로케일에 그대로 노출됐다(UI 검증 실측).
+              //   같은 목록의 다른 카드는 전부 i18n 키를 쓴다 — 16개 언어 messages 에 추가하고 맞춘다.
+              title: tHome('featureCards.companyComparator'),
+              desc: t('features.companyComparatorDesc'),
               color: 'text-purple-600 bg-purple-100',
               href: '/compare/nvda-vs-amd',
             },

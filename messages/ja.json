@@ -52,7 +52,8 @@
       "signals": "機関投資家シグナル",
       "signalsDesc": "SEC提出書類、決算説明会、インサイダー活動から早期警戒シグナルを検出します。",
       "newsGap": "ニュースギャップ検出",
-      "newsGapDesc": "市場がまだ織り込んでいない情報を見つけ出します。"
+      "newsGapDesc": "市場がまだ織り込んでいない情報を見つけ出します。",
+      "companyComparatorDesc": "2社を並べて比較します — 売上、サプライチェーン上の役割、機関投資家シグナル、ニュースギャップスコア。"
     }
   },
   "explore": {
@@ -688,7 +689,8 @@
       "supplyChainMaps": "サプライチェーンマップ",
       "institutionalFlowSignals": "機関資金フローシグナル",
       "leaderToMidcapCascade": "リーダーから中型株へのカスケード",
-      "newsGapAnalyzer": "ニュースギャップアナライザー"
+      "newsGapAnalyzer": "ニュースギャップアナライザー",
+      "companyComparator": "企業比較ツール"
     },
     "howItWorks": "使い方",
     "steps": {

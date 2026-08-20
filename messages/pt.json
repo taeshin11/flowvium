@@ -52,7 +52,8 @@
       "signals": "Sinais Institucionais",
       "signalsDesc": "Detecte sinais de alerta antecipado em registros SEC, teleconferências de resultados e atividade de insiders.",
       "newsGap": "Detecção de Lacunas Informativas",
-      "newsGapDesc": "Encontre informações que o mercado ainda não precificou."
+      "newsGapDesc": "Encontre informações que o mercado ainda não precificou.",
+      "companyComparatorDesc": "Compare duas empresas lado a lado — receita, papel na cadeia de suprimentos, sinais institucionais e pontuação de lacuna de notícias."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Mapas de cadeia de suprimentos",
       "institutionalFlowSignals": "Sinais de fluxo institucional",
       "leaderToMidcapCascade": "Cascata líder para midcap",
-      "newsGapAnalyzer": "Analisador de lacuna de notícias"
+      "newsGapAnalyzer": "Analisador de lacuna de notícias",
+      "companyComparator": "Comparador de empresas"
     },
     "howItWorks": "Como funciona",
     "steps": {

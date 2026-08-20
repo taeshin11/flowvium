@@ -52,7 +52,8 @@
       "signals": "Tín hiệu tổ chức",
       "signalsDesc": "Phát hiện tín hiệu cảnh báo sớm từ hồ sơ SEC, cuộc gọi thu nhập và hoạt động nội gián.",
       "newsGap": "Phát hiện khoảng trống tin tức",
-      "newsGapDesc": "Tìm những thông tin mà thị trường chưa phản ánh vào giá."
+      "newsGapDesc": "Tìm những thông tin mà thị trường chưa phản ánh vào giá.",
+      "companyComparatorDesc": "So sánh hai công ty cạnh nhau — doanh thu, vai trò chuỗi cung ứng, tín hiệu tổ chức và điểm khoảng trống tin tức."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Bản đồ chuỗi cung ứng",
       "institutionalFlowSignals": "Tín hiệu dòng tiền tổ chức",
       "leaderToMidcapCascade": "Liên hoàn đầu tàu đến vừa",
-      "newsGapAnalyzer": "Phân tích khoảng cách tin tức"
+      "newsGapAnalyzer": "Phân tích khoảng cách tin tức",
+      "companyComparator": "Công cụ so sánh công ty"
     },
     "howItWorks": "Cách hoạt động",
     "steps": {

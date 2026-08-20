@@ -52,7 +52,8 @@
       "signals": "Sinyal Institusional",
       "signalsDesc": "Deteksi tanda peringatan dini dari pengajuan SEC, laporan pendapatan, dan aktivitas orang dalam.",
       "newsGap": "Deteksi Kesenjangan Berita",
-      "newsGapDesc": "Temukan informasi yang belum diperhitungkan pasar."
+      "newsGapDesc": "Temukan informasi yang belum diperhitungkan pasar.",
+      "companyComparatorDesc": "Bandingkan dua perusahaan berdampingan — pendapatan, peran rantai pasok, sinyal institusional, dan skor kesenjangan berita."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Peta Rantai Pasok",
       "institutionalFlowSignals": "Sinyal Arus Institusional",
       "leaderToMidcapCascade": "Kaskade Pemimpin ke Midcap",
-      "newsGapAnalyzer": "Penganalisis Kesenjangan Berita"
+      "newsGapAnalyzer": "Penganalisis Kesenjangan Berita",
+      "companyComparator": "Pembanding Perusahaan"
     },
     "howItWorks": "Cara Kerja",
     "steps": {

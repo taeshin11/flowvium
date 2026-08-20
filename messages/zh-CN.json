@@ -52,7 +52,8 @@
       "signals": "机构投资者信号",
       "signalsDesc": "从 SEC 文件、财报电话会议和内部人士交易中捕捉预警信号。",
       "newsGap": "新闻盲区检测",
-      "newsGapDesc": "发现市场尚未反映的信息。"
+      "newsGapDesc": "发现市场尚未反映的信息。",
+      "companyComparatorDesc": "并排比较任意两家公司 — 营收、供应链角色、机构资金信号与新闻缺口评分。"
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "供应链地图",
       "institutionalFlowSignals": "机构资金流信号",
       "leaderToMidcapCascade": "龙头到中盘股连锁",
-      "newsGapAnalyzer": "新闻盲区分析器"
+      "newsGapAnalyzer": "新闻盲区分析器",
+      "companyComparator": "公司对比器"
     },
     "howItWorks": "工作原理",
     "steps": {

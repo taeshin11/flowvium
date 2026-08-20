@@ -52,7 +52,8 @@
       "signals": "Señales Institucionales",
       "signalsDesc": "Detecta señales de alerta temprana en reportes SEC, conferencias de resultados y actividad de insiders.",
       "newsGap": "Detección de Brecha Informativa",
-      "newsGapDesc": "Encuentra las historias que el mercado aún no ha descontado."
+      "newsGapDesc": "Encuentra las historias que el mercado aún no ha descontado.",
+      "companyComparatorDesc": "Compara dos empresas lado a lado: ingresos, rol en la cadena de suministro, señales institucionales y puntuación de brecha de noticias."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Mapas de Cadena de Suministro",
       "institutionalFlowSignals": "Señales de Flujo Institucional",
       "leaderToMidcapCascade": "Cascada Líder a Mediana Cap.",
-      "newsGapAnalyzer": "Analizador de Brecha Informativa"
+      "newsGapAnalyzer": "Analizador de Brecha Informativa",
+      "companyComparator": "Comparador de empresas"
     },
     "howItWorks": "Cómo Funciona",
     "steps": {

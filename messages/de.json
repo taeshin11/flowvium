@@ -52,7 +52,8 @@
       "signals": "Institutionelle Signale",
       "signalsDesc": "Erkennen Sie Frühwarnsignale aus SEC-Berichten, Earnings Calls und Insideraktivitäten.",
       "newsGap": "Nachrichtenlücken-Erkennung",
-      "newsGapDesc": "Finden Sie die Geschichten, die der Markt noch nicht eingepreist hat."
+      "newsGapDesc": "Finden Sie die Geschichten, die der Markt noch nicht eingepreist hat.",
+      "companyComparatorDesc": "Vergleichen Sie zwei Unternehmen nebeneinander – Umsatz, Rolle in der Lieferkette, institutionelle Signale und News-Gap-Score."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Lieferketten-Karten",
       "institutionalFlowSignals": "Institutionelle Flusssignale",
       "leaderToMidcapCascade": "Leader-zu-Midcap-Kaskade",
-      "newsGapAnalyzer": "Nachrichtenlücken-Analysator"
+      "newsGapAnalyzer": "Nachrichtenlücken-Analysator",
+      "companyComparator": "Unternehmensvergleich"
     },
     "howItWorks": "So funktioniert es",
     "steps": {

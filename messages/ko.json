@@ -52,7 +52,8 @@
       "signals": "기관 투자자 시그널",
       "signalsDesc": "SEC 공시, 실적 발표, 내부자 거래에서 조기 경보 신호를 감지합니다.",
       "newsGap": "뉴스 갭 탐지",
-      "newsGapDesc": "시장이 아직 반영하지 못한 정보를 찾아냅니다."
+      "newsGapDesc": "시장이 아직 반영하지 못한 정보를 찾아냅니다.",
+      "companyComparatorDesc": "두 기업을 나란히 비교합니다 — 매출, 공급망 역할, 기관 수급 신호, 뉴스 갭 점수."
     }
   },
   "explore": {
@@ -688,7 +689,8 @@
       "supplyChainMaps": "공급망 지도",
       "institutionalFlowSignals": "기관 자금 흐름 시그널",
       "leaderToMidcapCascade": "리더-중형주 연쇄",
-      "newsGapAnalyzer": "뉴스 갭 분석기"
+      "newsGapAnalyzer": "뉴스 갭 분석기",
+      "companyComparator": "기업 비교기"
     },
     "howItWorks": "이용 방법",
     "steps": {

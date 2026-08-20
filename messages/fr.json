@@ -52,7 +52,8 @@
       "signals": "Signaux institutionnels",
       "signalsDesc": "Détectez les signaux d'alerte précoce dans les rapports SEC, les conférences de résultats et les activités d'initiés.",
       "newsGap": "Détection d'écart médiatique",
-      "newsGapDesc": "Trouvez les informations que le marché n'a pas encore intégrées."
+      "newsGapDesc": "Trouvez les informations que le marché n'a pas encore intégrées.",
+      "companyComparatorDesc": "Comparez deux entreprises côte à côte : chiffre d’affaires, rôle dans la chaîne d’approvisionnement, signaux institutionnels et score d’écart d’actualité."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Cartes de chaînes d'approvisionnement",
       "institutionalFlowSignals": "Signaux de flux institutionnels",
       "leaderToMidcapCascade": "Cascade Leader vers Midcap",
-      "newsGapAnalyzer": "Analyseur d'écart médiatique"
+      "newsGapAnalyzer": "Analyseur d'écart médiatique",
+      "companyComparator": "Comparateur d’entreprises"
     },
     "howItWorks": "Comment ça fonctionne",
     "steps": {

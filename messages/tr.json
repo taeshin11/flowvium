@@ -52,7 +52,8 @@
       "signals": "Kurumsal Sinyaller",
       "signalsDesc": "SEC dosyalamalarından, kazanç görüşmelerinden ve içeriden öğrenen işlemlerinden erken uyarı sinyalleri tespit edin.",
       "newsGap": "Haber Boşluğu Tespiti",
-      "newsGapDesc": "Piyasanın henüz fiyatlamadığı bilgileri bulun."
+      "newsGapDesc": "Piyasanın henüz fiyatlamadığı bilgileri bulun.",
+      "companyComparatorDesc": "İki şirketi yan yana karşılaştırın — gelir, tedarik zinciri rolü, kurumsal sinyaller ve haber boşluğu skoru."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Tedarik Zinciri Haritaları",
       "institutionalFlowSignals": "Kurumsal Akış Sinyalleri",
       "leaderToMidcapCascade": "Liderden Ortaölçeğe Kaskad",
-      "newsGapAnalyzer": "Haber Boşluğu Analizcısı"
+      "newsGapAnalyzer": "Haber Boşluğu Analizcısı",
+      "companyComparator": "Şirket Karşılaştırıcı"
     },
     "howItWorks": "Nasıl Çalışır",
     "steps": {

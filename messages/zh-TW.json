@@ -52,7 +52,8 @@
       "signals": "機構投資人訊號",
       "signalsDesc": "從 SEC 文件、法說會和內部人交易中捕捉預警訊號。",
       "newsGap": "新聞盲區偵測",
-      "newsGapDesc": "發現市場尚未反映的資訊。"
+      "newsGapDesc": "發現市場尚未反映的資訊。",
+      "companyComparatorDesc": "並排比較任意兩家公司 — 營收、供應鏈角色、機構資金訊號與新聞缺口評分。"
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "供應鏈地圖",
       "institutionalFlowSignals": "機構資金流訊號",
       "leaderToMidcapCascade": "龍頭到中型股連鎖",
-      "newsGapAnalyzer": "新聞盲區分析器"
+      "newsGapAnalyzer": "新聞盲區分析器",
+      "companyComparator": "公司比較器"
     },
     "howItWorks": "運作方式",
     "steps": {

@@ -52,7 +52,8 @@
       "signals": "Institutional Signals",
       "signalsDesc": "Detect early warning signs from SEC filings, earnings calls, and insider activity.",
       "newsGap": "News Gap Detection",
-      "newsGapDesc": "Find the stories the market hasn't priced in yet."
+      "newsGapDesc": "Find the stories the market hasn't priced in yet.",
+      "companyComparatorDesc": "Compare any two companies side-by-side — revenue, supply chain role, institutional signals, and news gap score."
     }
   },
   "explore": {
@@ -517,7 +518,8 @@
       "supplyChainMaps": "Supply Chain Maps",
       "institutionalFlowSignals": "Institutional Flow Signals",
       "leaderToMidcapCascade": "Leader-to-Midcap Cascade",
-      "newsGapAnalyzer": "News Gap Analyzer"
+      "newsGapAnalyzer": "News Gap Analyzer",
+      "companyComparator": "Company Comparator"
     },
     "howItWorks": "How It Works",
     "steps": {
