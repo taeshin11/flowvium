@@ -297,22 +297,22 @@ function classify(actual: number | null, forecast: number, higherIsBetter: boole
 }
 
 function rateImpact(id: string, surprise: string): { impact: 'hawkish' | 'dovish' | 'neutral'; ko: string } {
-  if (surprise === 'inline' || surprise === 'pending') return { impact: 'neutral', ko: 'neutral' };
+  if (surprise === 'inline' || surprise === 'pending') return { impact: 'neutral', ko: '중립' };
   // 'beat' = actual performed better than forecast (lower-is-better indicators: lower actual = beat)
   // Inflation misses (CPI/PPI/PCE higher than expected) = hawkish; activity beats = hawkish
   const hawkishOnBeat = ['nfp', 'retail', 'iclaims', 'umcsent', 'gdp', 'ism', 'unrate'];
   const hawkishOnMiss = ['cpi', 'pce', 'ppi'];
   if (hawkishOnBeat.includes(id)) {
     return surprise === 'beat'
-      ? { impact: 'hawkish', ko: 'hawkish (tightening pressure)' }
-      : { impact: 'dovish', ko: 'dovish (rate cut expectations↑)' };
+      ? { impact: 'hawkish', ko: '매파적 (긴축 압력)' }
+      : { impact: 'dovish', ko: '비둘기파적 (금리 인하 기대감↑)' };
   }
   if (hawkishOnMiss.includes(id)) {
     return surprise === 'miss'
-      ? { impact: 'hawkish', ko: 'hawkish (inflation above target → prolonged tightening)' }
-      : { impact: 'dovish', ko: 'dovish (inflation cooling → rate cut expectations↑)' };
+      ? { impact: 'hawkish', ko: '매파적 (목표치 상회하는 인플레이션 → 긴축 기조 장기화)' }
+      : { impact: 'dovish', ko: '비둘기파적 (인플레이션 둔화 → 금리 인하 기대감↑)' };
   }
-  return { impact: 'neutral', ko: 'neutral' };
+  return { impact: 'neutral', ko: '중립' };
 }
 
 // ── Cascade logic ─────────────────────────────────────────────────────────────
@@ -636,91 +636,91 @@ const STATIC: Record<string, Omit<MacroIndicator, 'cascade' | 'liveData'>> = {
     id: 'cpi', name: 'CPI (Consumer Price Index)', nameKo: '소비자 물가지수',
     category: 'inflation', actual: 3.3, forecast: 2.5, previous: 2.4, unit: '%YoY',
     releaseDate: '2026-04-10', nextRelease: '2026-05-13', surprise: 'miss',
-    rateImpact: 'hawkish', rateImpactKo: 'hawkish (inflation accelerating → prolonged tightening)',
+    rateImpact: 'hawkish', rateImpactKo: '매파적 (인플레이션 가속화 → 긴축 장기화)',
     summary: 'Mar CPI 3.3%YoY — above est. 2.5%. Tariff shock re-accelerating inflation.',
   },
   pce: {
     id: 'pce', name: 'PCE Price Index (Core)', nameKo: '근원 개인소비지출 물가',
     category: 'inflation', actual: 3.0, forecast: 2.6, previous: 3.1, unit: '%YoY',
     releaseDate: '2026-03-28', nextRelease: '2026-04-30', surprise: 'miss',
-    rateImpact: 'hawkish', rateImpactKo: 'hawkish (core inflation above forecast → prolonged tightening)',
+    rateImpact: 'hawkish', rateImpactKo: '매파적 (핵심 인플레이션이 전망치를 상회 → 긴축 장기화)',
     summary: 'Core PCE 3.0%YoY (est. 2.6%). Above Fed 2% target; tariff-driven re-acceleration.',
   },
   nfp: {
     id: 'nfp', name: 'Non-Farm Payrolls', nameKo: '비농업 고용지수',
     category: 'employment', actual: 228, forecast: 140, previous: 117, unit: 'K',
     releaseDate: '2026-04-04', nextRelease: '2026-05-02', surprise: 'beat',
-    rateImpact: 'hawkish', rateImpactKo: 'hawkish (labor strength → tightening room)',
+    rateImpact: 'hawkish', rateImpactKo: '매파적 (노동시장 강세 → 긴축 여지)',
     summary: 'Mar NFP 228K beat est. 140K. Strong labor market delays Jun rate cut.',
   },
   fomc: {
     id: 'fomc', name: 'FOMC Rate Decision', nameKo: 'FOMC 금리 결정',
     category: 'monetary', actual: 3.75, forecast: 3.625, previous: 3.875, unit: '%',
     releaseDate: '2026-03-19', nextRelease: '2026-04-29', surprise: 'inline',
-    rateImpact: 'neutral', rateImpactKo: 'neutral (data-dependent hold)',
+    rateImpact: 'neutral', rateImpactKo: '중립 (데이터 의존적 동결)',
     summary: 'Mar FOMC hold. Current rate 3.5-3.75% (mid 3.625%). Next meeting 2026-04-29.',
   },
   gdp: {
     id: 'gdp', name: 'GDP Growth Rate (Q1 Advance)', nameKo: 'GDP 성장률 (Q1)',
     category: 'growth', actual: null, forecast: 2.1, previous: 0.5, unit: '%QoQ SAAR',
     releaseDate: '2026-04-30', nextRelease: '2026-04-30', surprise: 'pending',
-    rateImpact: 'neutral', rateImpactKo: 'neutral (pending)',
+    rateImpact: 'neutral', rateImpactKo: '중립 (보류)',
     summary: 'Q1 2026 GDP Advance — releasing 2026-04-30. Wall Street consensus 2.1% QoQ SAAR; Atlanta Fed GDPNow 1.2% (tariff drag). Wide dispersion reflects uncertainty.',
   },
   ism: {
     id: 'ism', name: 'ISM Manufacturing PMI', nameKo: 'ISM 제조업 PMI',
     category: 'growth', actual: 49.0, forecast: 49.5, previous: 50.3, unit: 'index',
     releaseDate: '2026-04-01', nextRelease: '2026-05-01', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: 'dovish (manufacturing contraction → rate cut expectations)',
+    rateImpact: 'dovish', rateImpactKo: '비둘기파적 (제조업 수축 → 금리 인하 기대)',
     summary: 'Mar ISM Mfg 49.0, below 50 threshold. Tariff uncertainty weighing.',
   },
   retail: {
     id: 'retail', name: 'Retail Sales', nameKo: '소매 판매',
     category: 'growth', actual: 1.7, forecast: -1.3, previous: 0.7, unit: '%MoM',
     releaseDate: '2026-04-16', nextRelease: '2026-05-15', surprise: 'beat',
-    rateImpact: 'neutral', rateImpactKo: 'neutral (better than expected)',
+    rateImpact: 'neutral', rateImpactKo: '중립 (예상보다 좋음)',
     summary: 'Mar Retail Sales +1.7% (FRED RSAFS revised) vs advance est. -1.3%.',
   },
   ppi: {
     id: 'ppi', name: 'PPI (Producer Price Index)', nameKo: '생산자 물가지수 (최종수요)',
     category: 'inflation', actual: 4.1, forecast: 3.3, previous: 1.6, unit: '%YoY',
     releaseDate: '2026-04-11', nextRelease: '2026-05-14', surprise: 'miss',
-    rateImpact: 'hawkish', rateImpactKo: 'hawkish (cost pressure widening)',
+    rateImpact: 'hawkish', rateImpactKo: '매파적 (비용 압력 확대)',
     summary: 'Mar PPI (final demand) 4.1%YoY — above est. 3.3%. Tariff cost pass-through accelerating.',
   },
   unrate: {
     id: 'unrate', name: 'Unemployment Rate', nameKo: '실업률',
     category: 'employment', actual: 4.3, forecast: 4.1, previous: 4.1, unit: '%',
     releaseDate: '2026-04-04', nextRelease: '2026-05-02', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: 'dovish (labor market cooling)',
+    rateImpact: 'dovish', rateImpactKo: '비둘기파적 (노동시장 냉각)',
     summary: 'Unemployment 4.3% — labor market cooling, above est. 4.1%.',
   },
   iclaims: {
     id: 'iclaims', name: 'Initial Jobless Claims (Weekly)', nameKo: '신규 실업수당 청구 (주간)',
     category: 'employment', actual: 222, forecast: 224, previous: 224, unit: 'K/wk',
     releaseDate: '2026-04-24', nextRelease: '2026-05-01', surprise: 'beat',
-    rateImpact: 'hawkish', rateImpactKo: 'hawkish (labor resilience)',
+    rateImpact: 'hawkish', rateImpactKo: '매파적 (노동시장 견조)',
     summary: 'Initial claims 222K — below est. 224K. No layoff surge signal.',
   },
   umcsent: {
     id: 'umcsent', name: 'U of Michigan Consumer Sentiment', nameKo: '미시간대 소비자심리지수',
     category: 'growth', actual: 52.2, forecast: 54.0, previous: 57.9, unit: 'index',
     releaseDate: '2026-04-11', nextRelease: '2026-05-09', surprise: 'miss',
-    rateImpact: 'dovish', rateImpactKo: 'dovish (consumer sentiment deteriorating)',
+    rateImpact: 'dovish', rateImpactKo: '비둘기파적 (소비자 심리 악화)',
     summary: 'Apr consumer sentiment 52.2 — below 60. Tariff uncertainty + inflation fears surging. Lowest since 1978.',
   },
   ig_spread: {
     id: 'ig_spread', name: 'IG Credit OAS (ICE BofA)', nameKo: 'IG 신용 스프레드 (OAS)',
     category: 'credit', actual: 0.79, forecast: 0.75, previous: 0.89, unit: '%',
     releaseDate: '2026-04-25', nextRelease: '2026-04-28', surprise: 'miss',
-    rateImpact: 'neutral', rateImpactKo: 'neutral (credit risk slightly elevated)',
+    rateImpact: 'neutral', rateImpactKo: '중립 (신용 리스크 소폭 상승)',
     summary: 'IG OAS 0.79% — slightly above historical lows. Above 1.5% = credit stress alert.',
   },
   hy_spread: {
     id: 'hy_spread', name: 'HY Credit OAS (ICE BofA)', nameKo: 'HY 신용 스프레드 (OAS)',
     category: 'credit', actual: 2.84, forecast: 2.80, previous: 3.23, unit: '%',
     releaseDate: '2026-04-25', nextRelease: '2026-04-28', surprise: 'miss',
-    rateImpact: 'neutral', rateImpactKo: 'neutral (HY risk slightly elevated)',
+    rateImpact: 'neutral', rateImpactKo: '중립 (하이일드 리스크 소폭 상승)',
     summary: 'HY OAS 2.84% — above 5% = recession alert. Currently neutral.',
   },
 };

@@ -23,6 +23,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
+import { buildMacroLabels } from '@/lib/macro-label';
 import type { Redis } from '@upstash/redis';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
@@ -187,7 +188,7 @@ async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<U
 // ── 3. Macro Indicators ───────────────────────────────────────────────────────
 interface MacroInd { id: string; name: string; nameKo: string; actual: number | null; previous: number | null; forecast: number | null; unit: string; releaseDate: string; surprise: string; rateImpact: string; rateImpactKo: string; }
 
-async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+async function getMacroItems(redis: Redis | null, base: string, locale: string = 'en'): Promise<UpdateItem[]> {
   let indicators: MacroInd[] = [];
   if (redis) {
     try {
@@ -213,15 +214,18 @@ async function getMacroItems(redis: Redis | null, base: string): Promise<UpdateI
     })
     .slice(0, 4)
     .map(ind => {
-      const surpriseEmoji = ind.surprise === 'beat' ? ' ↑beat' : ind.surprise === 'miss' ? ' ↓miss' : '';
       const direction: UpdateItem['direction'] = ind.surprise === 'beat' ? 'up' : ind.surprise === 'miss' ? 'down' : 'neutral';
       const badgeColor = ind.surprise === 'beat' ? '#10b981' : ind.surprise === 'miss' ? '#ef4444' : '#6366f1';
-      const changeStr = ind.previous != null ? ` (prev ${ind.previous}${ind.unit})` : '';
+      // 2026-08-20: 종전 `${ind.name ?? ind.nameKo}` / `${ind.rateImpact ?? ind.rateImpactKo}` 는
+      //   ?? 가 앞이 null 일 때만 넘어가는데 영문 필드는 항상 값이 있어, API 가 이미 주는 한국어 필드가
+      //   영원히 안 쓰였다(홈에 "hawkish (prev 224K/wk)" 노출). "prev"·beat/miss 도 하드코딩이었다.
+      //   rateImpact 는 닫힌 enum 이라 LLM 런타임 번역 대상이 아니다(4B 가 "호각적"으로 오역한 사례).
+      const { headline: mHeadline, sub: mSub } = buildMacroLabels(ind, locale);
       return {
         id: `macro-${ind.id}`,
         type: 'macro' as const,
-        headline: `${ind.name ?? ind.nameKo} ${ind.actual}${ind.unit}${surpriseEmoji}`,
-        sub: `${ind.rateImpact ?? ind.rateImpactKo}${changeStr}`,
+        headline: mHeadline,
+        sub: mSub,
         source: 'FRED · US Bureau',
         time: fmtTime(ind.releaseDate),
         sortTime: ind.releaseDate,
@@ -523,7 +527,7 @@ export async function GET(req: Request) {
   const [fgItems, flowItems, macroItems, fedItem, newsItems, moverItems] = await Promise.all([
     getFearGreedItems(redis, base),
     getCapitalFlowItems(redis, base),
-    getMacroItems(redis, base),
+    getMacroItems(redis, base, locale),
     getFedWatchItem(redis, base),
     getNewsCascadeItems(redis, base, locale),
     getMarketMoverItems(redis, base),

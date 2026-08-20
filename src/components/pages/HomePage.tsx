@@ -1137,7 +1137,10 @@ export default function HomePage() {
                 {sectorIcons[sector.icon] || <Network className="w-6 h-6" />}
               </div>
               <h3 className="font-heading font-bold text-cf-text-primary text-base mb-2 group-hover:text-cf-primary transition-colors">
-                {sector.name}
+                {/* 2026-08-20: description 만 번역을 태우고 제목은 빼놨었다. 한국어 화면에 섹터 제목
+                    9개가 영문으로 남아 있었다(Industrials·Real Estate·Utilities·Technology…).
+                    내 UI 검사가 '3단어 이상 영문'만 세느라 2단어짜리를 놓쳐 오래 안 보였다. */}
+                <TranslatedText text={sector.name} />
               </h3>
               <p className="text-xs text-cf-text-secondary mb-3 line-clamp-2">
                 {/* 2026-08-20: src/data/sectors.ts 의 description 이 영문 하드코딩이라
