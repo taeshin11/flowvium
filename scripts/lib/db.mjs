@@ -1518,11 +1518,24 @@ export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
     for (const c of rows) {
       if (!c?.ticker) continue;
       // 보유 종료 마감 — 해당 ticker 의 모든 open 매수추천을 'sold' 로
+      // 2026-08-20: 종전에는 매도추천 객체의 pnlPct 하나를 이 종목의 열린 매수추천 전부에 복사했다.
+      //   진입가가 서로 다른데 같은 손익이 들어갔다(실측: NVDA -0.3% → 진입가 32종 77건, 그런 그룹 84개).
+      //   게다가 여기서는 OHLC 를 조회하지 않으므로 그 진입가에 실제로 체결됐는지도 알 수 없다
+      //   (sold 976건 전부 low_seen NULL). 그래서 손익 통계가 측정이 아니라 추정이었다.
+      //
+      //   마감 자체는 유지한다 — 안 닫으면 still_holding 으로 남아 매 보고서가 재-매도추천을 낸다.
+      //   다만 '검증 전에는 손익을 주장하지 않는다': pnl 은 NULL 로 두고 미검증으로 표시한다.
+      //   evaluate-recommendations 가 OHLC 로 체결을 확인한 뒤 건별 진입가로 채운다.
       try {
         for (const open of findAllOpenBuy.all(c.ticker)) {
-          const soldQs = computeOutcomeQuality({ pnl_pct: c.pnlPct ?? null, spy_return: c.spyReturn ?? null, outcome: 'sold' });
-          closeOutcome.run(open.id, generatedAt, parseAmount(c.currentPrice), c.pnlPct ?? null, soldQs,
-            JSON.stringify({ closedBy: 'sell-recommendation', reportId, sellType: c.sellType ?? c.ruleId ?? null }));
+          closeOutcome.run(open.id, generatedAt, parseAmount(c.currentPrice), null, null,
+            JSON.stringify({
+              closedBy: 'sell-recommendation', reportId,
+              sellType: c.sellType ?? c.ruleId ?? null,
+              verified: false,                                   // ← 평가기가 이걸 보고 집어간다
+              exitPrice: parseAmount(c.currentPrice) ?? null,    // 청산가(검증 시 손익 계산에 쓴다)
+              sellEnginePnlPct: c.pnlPct ?? null,                // 참고용 — 매도엔진의 값. 통계엔 안 쓴다
+            }));
         }
       } catch { /* non-fatal */ }
       insert.run({
@@ -1639,6 +1652,46 @@ export function getOverdueRecommendations(asOf = new Date().toISOString()) {
       AND o.id IS NULL
     ORDER BY r.evaluate_after ASC
   `).all(asOf);
+}
+
+/**
+ * 체결이 검증되지 않은 outcome + 그 추천. 2026-08-20 신설.
+ *
+ * saveSellRecommendations 는 매도추천이 나오면 매수추천을 'sold' 로 마감하는데
+ * OHLC 를 조회하지 않는다 — 그래서 진입가에 실제로 체결됐는지 알 수 없다(low_seen NULL).
+ * getOverdueRecommendations 는 `o.id IS NULL` 이라 이미 닫힌 행을 영원히 건너뛴다.
+ * 그 결과 전체의 73%(976건)가 검증 없이 손익을 갖고 있었다.
+ *
+ * 여기서는 '손익을 주장하는데 근거(low_seen)가 없는' 행을 골라 평가기에 넘긴다.
+ * 평가기가 OHLC 로 체결 여부를 판정하고 건별 진입가로 손익을 다시 쓴다.
+ */
+export function getUnverifiedOutcomes(limit = 0) {
+  const db = openDb();
+  const sql = `
+    SELECT r.*, o.evaluated_at AS o_evaluated_at, o.outcome AS o_outcome,
+           o.price_at_eval AS o_price_at_eval, o.details_json AS o_details_json
+    FROM recommendation_outcomes o
+    JOIN recommendations r ON r.id = o.recommendation_id
+    WHERE o.low_seen IS NULL
+      AND r.action = 'buy'
+      AND r.entry_high IS NOT NULL
+    ORDER BY o.evaluated_at ASC
+    ${limit > 0 ? 'LIMIT ' + Number(limit) : ''}`;
+  return db.prepare(sql).all();
+}
+
+/** 검증된 결과로 기존 outcome 을 갱신한다(재평가). */
+export function updateVerifiedOutcome({ recommendationId, evaluatedAt, outcome, pnlPct, lowSeen, highSeen, ohlcDays, details }) {
+  const db = openDb();
+  return db.prepare(`
+    UPDATE recommendation_outcomes
+       SET outcome = @outcome, pnl_pct = @pnl, low_seen = @low, high_seen = @high,
+           ohlc_days = @days, details_json = @details
+     WHERE recommendation_id = @id AND evaluated_at = @at`).run({
+    id: recommendationId, at: evaluatedAt, outcome, pnl: pnlPct ?? null,
+    low: lowSeen ?? null, high: highSeen ?? null, days: ohlcDays ?? null,
+    details: details ?? null,
+  }).changes;
 }
 
 /** 전체 추천 (14d 윈도우 무시) — 조기 baseline 측정용. */

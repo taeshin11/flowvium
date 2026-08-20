@@ -9,10 +9,16 @@
  *   stop_loss      → 손절가 체결로 본다 (보수적. 갭하락이면 실제는 더 나쁠 수 있다 — 낙관 편향은 없다)
  *   hit_target     → 목표가 체결로 본다
  *   still_holding  → 현재가 평가손익
+ *   sold           → 실제 청산가(exit)로 잰다. exit 이 없으면 null — 지어내지 않는다
  *   not_entered    → null. 손익이 없다. 0% 로 채우면 평균이 희석된다
  *   그 외/결측     → null. 조용히 0 을 만들지 않는다
+ *
+ * 2026-08-20: sold 케이스를 여기 넣는 이유 —
+ *   종전에는 db.mjs saveSellRecommendations 가 매도추천 객체의 pnlPct 하나를
+ *   그 종목의 열린 매수추천 전부에 복사했다(실측: NVDA -0.3% 를 진입가 32종 77건에).
+ *   진입가가 다르면 손익도 달라야 한다. 계산을 한 곳으로 모으고 진입가를 건별로 받는다.
  */
-export function realizedPnlPct({ outcome, entry, stop, target, lastClose }) {
+export function realizedPnlPct({ outcome, entry, stop, target, lastClose, exit }) {
   const e = Number(entry);
   if (!Number.isFinite(e) || e === 0) return null;
   const pct = (exit) => {
@@ -23,6 +29,7 @@ export function realizedPnlPct({ outcome, entry, stop, target, lastClose }) {
     case 'stop_loss':     return pct(stop);
     case 'hit_target':    return pct(target);
     case 'still_holding': return pct(lastClose);
+    case 'sold':          return pct(exit);
     case 'not_entered':   return null;
     default:              return null;
   }

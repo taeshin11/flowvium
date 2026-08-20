@@ -14,11 +14,16 @@
  *   node scripts/evaluate-recommendations.mjs --limit=10   # 상위 10건만
  */
 import { realizedPnlPct, markToMarketPnlPct } from './lib/realized-pnl.mjs';
-import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary } from './lib/db.mjs';
+import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary,
+         getUnverifiedOutcomes, updateVerifiedOutcome } from './lib/db.mjs';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry-run');
 const ALL = args.includes('--all'); // 14d 윈도우 무시 — 조기 baseline 평가용
+// 2026-08-20: 체결 미검증 outcome 재평가. saveSellRecommendations 가 OHLC 없이 'sold' 로 마감해
+//   low_seen 이 비어 있는 행들이 있다(실측 976건 = 전체의 73%). getOverdueRecommendations 는
+//   `o.id IS NULL` 이라 이미 닫힌 행을 못 본다 — 그래서 별도 경로로 집어온다.
+const VERIFY = args.includes('--verify');
 const limit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] ?? '0', 10);
 
 async function fetchYahooOHLC(ticker, fromIso, toIso) {
@@ -124,7 +129,51 @@ async function fetchSpyReturn(fromIso, toIso) {
   return parseFloat(((last - first) / first * 100).toFixed(2));
 }
 
+/**
+ * 체결 미검증 outcome 재평가.
+ *
+ * 왜 필요한가(2026-08-20 실측): 매도추천이 나오면 db.mjs 가 그 종목의 열린 매수추천을 'sold' 로
+ * 마감하는데 OHLC 를 안 본다. 그래서 진입가에 실제로 체결됐는지 모른 채 손익이 기록됐고,
+ * 게다가 매도엔진의 단일 pnlPct 가 진입가가 다른 여러 건에 그대로 복사됐다
+ * (NVDA -0.3% → 진입가 32종 77건. 그런 그룹 84개).
+ *
+ * 여기서는 같은 judgeOutcome 으로 체결을 판정하고 건별 진입가로 손익을 다시 쓴다.
+ * 체결이 없었으면 'not_entered' 로 재분류한다 — 안 산 걸 샀다고 기록하지 않는다.
+ */
+async function verifyUnverified(limit) {
+  const rows = getUnverifiedOutcomes(limit);
+  console.log(`체결 미검증 outcome ${rows.length}건 재평가\n`);
+  const stat = { verified: 0, reclassified: 0, no_ohlc: 0, skipped: 0 };
+  for (const rec of rows) {
+    if (rec.action === 'watch') { stat.skipped++; continue; }
+    const ohlc = await fetchYahooOHLC(rec.ticker, rec.generated_at, rec.o_evaluated_at);
+    if (!ohlc || !ohlc.days) { stat.no_ohlc++; continue; }
+    const judge = judgeOutcome(rec, ohlc);
+    const entry = rec.entry_low ?? rec.price_at_gen;
+    let det = {}; try { det = JSON.parse(rec.o_details_json ?? '{}'); } catch { /* 손상된 details 는 무시 */ }
+    // 체결됐다면 매도추천이 마감한 그대로 'sold' 로 두되, 손익은 이 건의 진입가 × 실제 청산가로.
+    // 체결이 없었으면 judge 의 판정(not_entered 등)을 따른다.
+    const filled = judge.outcome !== 'not_entered';
+    const outcome = filled ? (rec.o_outcome === 'sold' ? 'sold' : judge.outcome) : 'not_entered';
+    const exit = det.exitPrice ?? rec.o_price_at_eval ?? judge.lastClose;
+    const pnl = realizedPnlPct({ outcome, entry, stop: rec.stop_loss, target: rec.target, lastClose: judge.lastClose, exit });
+    updateVerifiedOutcome({
+      recommendationId: rec.id, evaluatedAt: rec.o_evaluated_at,
+      outcome, pnlPct: pnl,
+      lowSeen: judge.lowSeen ?? null, highSeen: judge.highSeen ?? null, ohlcDays: ohlc.days ?? 0,
+      details: JSON.stringify({ ...det, verified: true, verifiedOutcome: judge.outcome, pnlBasis: 'realized', entryUsed: entry, exitUsed: exit }),
+    });
+    if (outcome !== rec.o_outcome) stat.reclassified++;
+    stat.verified++;
+    if (stat.verified % 100 === 0) console.log(`  ...${stat.verified}건 검증`);
+  }
+  console.log(`\n=== 검증 결과 ===`);
+  console.log(`  검증 완료 ${stat.verified} · 재분류 ${stat.reclassified} · OHLC 없음 ${stat.no_ohlc} · watch skip ${stat.skipped}`);
+  return stat;
+}
+
 async function main() {
+  if (VERIFY) { await verifyUnverified(limit); return; }
   openDb();
   const before = getSummary();
   console.log(`\n=== evaluate-recommendations ${DRY ? '— DRY RUN' : ''} ===\n`);

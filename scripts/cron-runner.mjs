@@ -397,6 +397,12 @@ const MAINT_JOBS = [
   { label: 'scan-insider-kr',      script: 'scripts/scan-insider-kr.mjs',            timeoutMs: 900000,  commitPaths: ['data/insider-kr-feed.json'],          schedules: ['30 7 * * *', '30 22 * * *'],  maxAgeH: 20 },
   { label: 'dart-prefetch',        script: 'scripts/prefetch-dart-financials.mjs',   timeoutMs: 900000,  commitPaths: [],                                     schedules: ['5 18 * * *'],                 maxAgeH: 30 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
+  // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
+  //   실증: 평가시점이 지난 추천 220건 적체 · 월별로 보면 2026-06 은 'sold' 708건뿐이고
+  //   이 스크립트가 쓰는 종류(hit_target/stop_loss/not_entered/still_holding)가 0건이었다.
+  //   'sold' 는 보고서 파이프라인(saveSellRecommendations)이 따로 써서 겉보기엔 쌓이는 듯 보였다.
+  //   이 루프가 tune-buy-rules/tune-sell-rules 학습과 수익률 통계의 입력이라 멈추면 판단 근거가 썩는다.
+  { label: 'buy-outcomes',         script: 'scripts/evaluate-recommendations.mjs',   timeoutMs: 900000,  commitPaths: [],                                     schedules: ['50 18 * * *'],                maxAgeH: 30 },
   { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
