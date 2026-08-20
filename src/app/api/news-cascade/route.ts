@@ -1,5 +1,6 @@
 import { residualForeign, kanaDominant } from '@/lib/residual-foreign';
 import { translationSucceeded } from '@/lib/translation-gate';
+import { buildTranslatePrompt } from '@/lib/translate-prompt';
 import { logger, loggedRedisSet, loggedRedisSetNx, loggedRedisDel } from '@/lib/logger';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
@@ -308,18 +309,22 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
   //   매 사이클 0에서 재번역(all-or-nothing)이라 콜드캐시가 영영 안 채워짐 (ja/zh 1/12 고착 실측).
   //   성공 필드를 30d 캐시에 누적 → 사이클마다 수렴, 결국 게이트 통과.
   const pfRedis = createRedis();
-  const trCacheKey = (text: string) => `flowvium:tr:v1:${locale}:${text.substring(0, 100).replace(/\s+/g, ' ')}`;
-  const tOne = async (text: string): Promise<string> => {
+  // 문맥 있는 번역과 없는 번역은 결과가 다르므로 캐시 키를 분리한다(v2). 섞이면 오역이 굳는다.
+  const trCacheKey = (text: string, context?: string | null) =>
+    `flowvium:tr:v2:${locale}:${context ? 'c' : 'p'}:${text.substring(0, 100).replace(/\s+/g, ' ')}`;
+  // 2026-08-20: context(원제목)를 받아 고유명사 복원에 쓴다. 왕복 번역으로 코스피→'Korean Composite'
+  //   →'네이셔널컴포지트'가 되던 문제. 실험상 문맥 추가가 모델 확대보다 정확하고 빠르다.
+  const tOne = async (text: string, context?: string | null): Promise<string> => {
     if (!text || !text.trim()) return text;
     // 이미 target 언어(CJK) 이고 긴 영문 단어 없으면 번역 불필요 — 네이티브 기사 skip(비용 절감).
     // 2026-06-14: 단, 잔존 타-스크립트 외국어(ko 제목 속 카타카나 "ロンジン" 등)가 있으면 skip 금지 —
     //   종전엔 한글이 섞여만 있으면 미번역 고유명사를 그대로 통과시켜 sweep 이 무력화되던 버그.
     if (tgtRe && tgtRe.test(text) && !/[A-Za-z]{4,}/.test(text) && !residualForeign(text, locale)) return text;
     if (pfRedis) {
-      try { const c = await pfRedis.get<string>(trCacheKey(text)); if (c && typeof c === 'string' && c.trim()) return c; } catch { /* miss */ }
+      try { const c = await pfRedis.get<string>(trCacheKey(text, context)); if (c && typeof c === 'string' && c.trim()) return c; } catch { /* miss */ }
     }
     const keep = async (v: string) => {
-      if (pfRedis && v !== text) { try { await loggedRedisSet(pfRedis, 'news-cascade.per-field', trCacheKey(text), v, { ex: 30 * 24 * 60 * 60 }); } catch { /* non-fatal */ } }
+      if (pfRedis && v !== text) { try { await loggedRedisSet(pfRedis, 'news-cascade.per-field', trCacheKey(text, context), v, { ex: 30 * 24 * 60 * 60 }); } catch { /* non-fatal */ } }
       return v;
     };
     // 2026-06-14: ko 타겟에 가나가 잔존하나 *대부분 한국어* 면(브랜드/고유명사 1~2개) — 로컬 LLM
@@ -337,7 +342,7 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     //   일본어 위주인가'다. 같은 함수를 쓰면 영어 요약마다 로컬을 건너뛰어 원문이 남는다(실측 회귀).
     const skipLocal = locale === 'ko' && kanaDominant(text);
     // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud 폴백.
-    const out = skipLocal ? null : await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: llmTimeoutMs(800) });
+    const out = skipLocal ? null : await localChatNoBleed(buildTranslatePrompt({ text, langName, context }), locale, { temperature: 0.3, maxTokens: 800, timeoutMs: llmTimeoutMs(800) });
     // 2026-06-14: ko 는 출력의 잔존 가나를 결정론 음차로 정리. 그래도 잔존-외국어면 캐시 거부 → 폴백.
     let outT = out?.trim();
     if (outT && locale === 'ko') outT = kanaToHangul(outT);
@@ -358,9 +363,9 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
   const result: NewsWithCascade[] = [];
   for (const a of articles) {
     const title = await tOne(a.title);
-    const summary = await tOne(a.summary);
+    const summary = await tOne(a.summary, a.title);
     const cascades = [];
-    for (const c of a.cascades) cascades.push({ ...c, reason: await tOne(c.reason), timeframe: localizeTimeframe(c.timeframe, locale) });
+    for (const c of a.cascades) cascades.push({ ...c, reason: await tOne(c.reason, a.title), timeframe: localizeTimeframe(c.timeframe, locale) });
     result.push({ ...a, title, summary, cascades });
   }
   logger.info('news-cascade.translate', 'per_field_fallback_done', { locale, count: result.length });
