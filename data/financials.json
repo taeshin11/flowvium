@@ -357,11 +357,11 @@
     "fy": "2025"
   },
   "ADP": {
-    "revUsd": 20560900000,
-    "revYoYPct": 7.1,
+    "revUsd": 21947400000,
+    "revYoYPct": 6.7,
     "opMarginPct": null,
-    "roePct": 65.9,
-    "fy": "2025"
+    "roePct": 73.2,
+    "fy": "2026"
   },
   "PANW": {
     "revUsd": 9221500000,
@@ -546,11 +546,11 @@
     "fy": "2025"
   },
   "PG": {
-    "revUsd": 84284000000,
-    "revYoYPct": 0.3,
-    "opMarginPct": 24.3,
-    "roePct": 30.6,
-    "fy": "2025"
+    "revUsd": 87032000000,
+    "revYoYPct": 3.3,
+    "opMarginPct": 22.7,
+    "roePct": 29.5,
+    "fy": "2026"
   },
   "KO": {
     "revUsd": 47941000000,
@@ -714,11 +714,11 @@
     "fy": "2025"
   },
   "RMD": {
-    "revUsd": 5146327000,
-    "revYoYPct": 9.8,
-    "opMarginPct": 32.7,
-    "roePct": 23.5,
-    "fy": "2025"
+    "revUsd": 5653443000,
+    "revYoYPct": 9.9,
+    "opMarginPct": 33.4,
+    "roePct": 23.1,
+    "fy": "2026"
   },
   "COO": {
     "revUsd": 4092400000,
@@ -966,11 +966,11 @@
     "fy": "2026"
   },
   "COHR": {
-    "revUsd": 5810115000,
-    "revYoYPct": 23.4,
+    "revUsd": 7118181000,
+    "revYoYPct": 22.5,
     "opMarginPct": null,
-    "roePct": 0.9,
-    "fy": "2025"
+    "roePct": 7.4,
+    "fy": "2026"
   },
   "MKSI": {
     "revUsd": 3931000000,
@@ -994,11 +994,11 @@
     "fy": "2025"
   },
   "HRB": {
-    "revUsd": 3760995000,
-    "revYoYPct": 4.2,
+    "revUsd": 3945392000,
+    "revYoYPct": 4.9,
     "opMarginPct": null,
     "roePct": null,
-    "fy": "2025"
+    "fy": "2026"
   },
   "NSP": {
     "revUsd": 6812000000,
@@ -1013,13 +1013,6 @@
     "opMarginPct": 9.8,
     "roePct": 16.5,
     "fy": "2026"
-  },
-  "GTLS": {
-    "revUsd": 4264000000,
-    "revYoYPct": 2.5,
-    "opMarginPct": 8.4,
-    "roePct": 1.3,
-    "fy": "2025"
   },
   "DCI": {
     "revUsd": 3690900000,
@@ -1076,13 +1069,6 @@
     "opMarginPct": 23.6,
     "roePct": 31.1,
     "fy": "2025"
-  },
-  "EA": {
-    "revUsd": 7531000000,
-    "revYoYPct": 0.9,
-    "opMarginPct": 15.4,
-    "roePct": 13.1,
-    "fy": "2026"
   },
   "TTWO": {
     "revUsd": 6656400000,
@@ -1287,13 +1273,6 @@
     "roePct": 10.3,
     "fy": "2025"
   },
-  "AEP": {
-    "revUsd": 21702000000,
-    "revYoYPct": 8.7,
-    "opMarginPct": 24.5,
-    "roePct": null,
-    "fy": "2025"
-  },
   "SRE": {
     "revUsd": 12418000000,
     "revYoYPct": 5.1,
@@ -1435,11 +1414,11 @@
     "fy": "2026"
   },
   "DRI": {
-    "revUsd": 12076700000,
-    "revYoYPct": 6,
-    "opMarginPct": 11.3,
-    "roePct": 45.4,
-    "fy": "2025"
+    "revUsd": 13210900000,
+    "revYoYPct": 9.4,
+    "opMarginPct": 12,
+    "roePct": 54.7,
+    "fy": "2026"
   },
   "YUM": {
     "revUsd": 8214000000,
@@ -1722,11 +1701,11 @@
     "fy": "2026"
   },
   "EL": {
-    "revUsd": 14326000000,
-    "revYoYPct": -8.2,
-    "opMarginPct": -5.5,
+    "revUsd": 15049000000,
+    "revYoYPct": 5,
+    "opMarginPct": 5.2,
     "roePct": null,
-    "fy": "2025"
+    "fy": "2026"
   },
   "BIIB": {
     "revUsd": 9890600000,
@@ -1848,11 +1827,11 @@
     "fy": "2025"
   },
   "MSFT": {
-    "revUsd": 281724000000,
-    "revYoYPct": 14.9,
-    "opMarginPct": 45.6,
-    "roePct": 29.6,
-    "fy": "2025"
+    "revUsd": 331839000000,
+    "revYoYPct": 17.8,
+    "opMarginPct": 46.8,
+    "roePct": 30.2,
+    "fy": "2026"
   },
   "AMZN": {
     "revUsd": 716924000000,
@@ -1939,11 +1918,11 @@
     "fy": "2025"
   },
   "CAH": {
-    "revUsd": 222578000000,
-    "revYoYPct": -1.9,
+    "revUsd": 254248000000,
+    "revYoYPct": 14.2,
     "opMarginPct": 1,
     "roePct": null,
-    "fy": "2025"
+    "fy": "2026"
   },
   "MOH": {
     "revUsd": 45426000000,
@@ -2303,18 +2282,18 @@
     "fy": "2025"
   },
   "LRCX": {
-    "revUsd": 18435591000,
-    "revYoYPct": 23.7,
-    "opMarginPct": 32,
-    "roePct": 54.3,
-    "fy": "2025"
+    "revUsd": 23232690000,
+    "revYoYPct": 26,
+    "opMarginPct": 35.3,
+    "roePct": 58.3,
+    "fy": "2026"
   },
   "KLAC": {
-    "revUsd": 12156162000,
-    "revYoYPct": 23.9,
+    "revUsd": 13579476000,
+    "revYoYPct": 11.7,
     "opMarginPct": null,
-    "roePct": 86.6,
-    "fy": "2025"
+    "roePct": 76.1,
+    "fy": "2026"
   },
   "PFE": {
     "revUsd": 62579000000,
@@ -2471,11 +2450,11 @@
     "fy": "2025"
   },
   "AMCR": {
-    "revUsd": 15009000000,
-    "revYoYPct": 10,
-    "opMarginPct": 6.7,
-    "roePct": 4.4,
-    "fy": "2025"
+    "revUsd": 23506000000,
+    "revYoYPct": 56.6,
+    "opMarginPct": 8.1,
+    "roePct": 9.4,
+    "fy": "2026"
   },
   "AMP": {
     "revUsd": 18911000000,
@@ -2569,11 +2548,11 @@
     "fy": "2025"
   },
   "BR": {
-    "revUsd": 6889100000,
-    "revYoYPct": 5.9,
-    "opMarginPct": 17.3,
-    "roePct": 31.6,
-    "fy": "2025"
+    "revUsd": 7476800000,
+    "revYoYPct": 8.5,
+    "opMarginPct": 17.4,
+    "roePct": 39.6,
+    "fy": "2026"
   },
   "BRO": {
     "revUsd": 5902000000,
@@ -2982,11 +2961,11 @@
     "fy": "2025"
   },
   "LITE": {
-    "revUsd": 1645000000,
-    "revYoYPct": 21,
-    "opMarginPct": -10.9,
-    "roePct": 2.3,
-    "fy": "2025"
+    "revUsd": 3014000000,
+    "revYoYPct": 83.2,
+    "opMarginPct": 17.4,
+    "roePct": -149.3,
+    "fy": "2026"
   },
   "LYB": {
     "revUsd": 30153000000,
@@ -3052,18 +3031,18 @@
     "fy": "2026"
   },
   "NWSA": {
-    "revUsd": 8452000000,
-    "revYoYPct": -16.2,
+    "revUsd": 9028000000,
+    "revYoYPct": 6.8,
     "opMarginPct": null,
-    "roePct": 13.4,
-    "fy": "2025"
+    "roePct": 6.7,
+    "fy": "2026"
   },
   "NWS": {
-    "revUsd": 8452000000,
-    "revYoYPct": -16.2,
+    "revUsd": 9028000000,
+    "revYoYPct": 6.8,
     "opMarginPct": null,
-    "roePct": 13.4,
-    "fy": "2025"
+    "roePct": 6.7,
+    "fy": "2026"
   },
   "NTRS": {
     "revUsd": 5017800000,
@@ -3171,11 +3150,11 @@
     "fy": "2025"
   },
   "SNDK": {
-    "revUsd": 7355000000,
-    "revYoYPct": 10.4,
-    "opMarginPct": -18.7,
-    "roePct": -17.8,
-    "fy": "2025"
+    "revUsd": 20248000000,
+    "revYoYPct": 175.3,
+    "opMarginPct": 61.2,
+    "roePct": 72.7,
+    "fy": "2026"
   },
   "SBAC": {
     "revUsd": 244498000,
@@ -3220,11 +3199,11 @@
     "fy": "2025"
   },
   "TPR": {
-    "revUsd": 7010700000,
-    "revYoYPct": 5.1,
-    "opMarginPct": 5.9,
-    "roePct": 21.4,
-    "fy": "2025"
+    "revUsd": 8004200000,
+    "revYoYPct": 14.2,
+    "opMarginPct": 23.9,
+    "roePct": 220.7,
+    "fy": "2026"
   },
   "TEL": {
     "revUsd": 17262000000,
@@ -3619,18 +3598,18 @@
     "fy": "2025"
   },
   "FOX": {
-    "revUsd": 16300000000,
-    "revYoYPct": 16.6,
+    "revUsd": 17126000000,
+    "revYoYPct": 5.1,
     "opMarginPct": null,
     "roePct": null,
-    "fy": "2025"
+    "fy": "2026"
   },
   "FOXA": {
-    "revUsd": 16300000000,
-    "revYoYPct": 16.6,
+    "revUsd": 17126000000,
+    "revYoYPct": 5.1,
     "opMarginPct": null,
     "roePct": null,
-    "fy": "2025"
+    "fy": "2026"
   },
   "MTCH": {
     "revUsd": 3487197000,
@@ -3871,18 +3850,18 @@
     "fy": "2026"
   },
   "WDC": {
-    "revUsd": 9520000000,
-    "revYoYPct": -26.8,
-    "opMarginPct": 24.5,
-    "roePct": 35.6,
-    "fy": "2025"
+    "revUsd": 12919000000,
+    "revYoYPct": 35.7,
+    "opMarginPct": 34.5,
+    "roePct": 106.3,
+    "fy": "2026"
   },
   "STX": {
-    "revUsd": 9097000000,
-    "revYoYPct": 38.9,
-    "opMarginPct": 20.8,
-    "roePct": null,
-    "fy": "2025"
+    "revUsd": 12195000000,
+    "revYoYPct": 34.1,
+    "opMarginPct": 33.6,
+    "roePct": 146.9,
+    "fy": "2026"
   },
   "BEN": {
     "revUsd": 8770700000,
@@ -4340,11 +4319,11 @@
     "fy": "2026"
   },
   "CACI": {
-    "revUsd": 8627824000,
-    "revYoYPct": 12.6,
-    "opMarginPct": 8.9,
-    "roePct": 12.8,
-    "fy": "2025"
+    "revUsd": 9567779000,
+    "revYoYPct": 10.9,
+    "opMarginPct": 9.6,
+    "roePct": 12,
+    "fy": "2026"
   },
   "ALNY": {
     "revUsd": 3713937000,
@@ -4368,11 +4347,11 @@
     "fy": "2025"
   },
   "LW": {
-    "revUsd": 6451300000,
-    "revYoYPct": -0.3,
-    "opMarginPct": 10.3,
-    "roePct": 20.6,
-    "fy": "2025"
+    "revUsd": 6612300000,
+    "revYoYPct": 2.5,
+    "opMarginPct": 8.9,
+    "roePct": 15.9,
+    "fy": "2026"
   },
   "TW": {
     "revUsd": 2052429000,
@@ -4518,7 +4497,7 @@
     "revUsd": 11439897090,
     "revYoYPct": 37.6,
     "opMarginPct": 7.4,
-    "roePct": 6.9,
+    "roePct": 7,
     "fy": "2025"
   },
   "005490.KS": {
@@ -4928,11 +4907,11 @@
     "fy": "2025"
   },
   "214450.KQ": {
-    "revUsd": 241458668,
-    "revYoYPct": null,
-    "opMarginPct": 36,
-    "roePct": 15.6,
-    "fy": "2024"
+    "revUsd": 369854565,
+    "revYoYPct": 53.2,
+    "opMarginPct": 40,
+    "roePct": 23.2,
+    "fy": "2025"
   },
   "200130.KQ": {
     "revUsd": 396472340,
@@ -5750,7 +5729,7 @@
     "revUsd": 81698014,
     "revYoYPct": 0.4,
     "opMarginPct": 8.6,
-    "roePct": 3.4,
+    "roePct": 5.4,
     "fy": "2025"
   },
   "043370.KQ": {
@@ -6111,11 +6090,11 @@
     "fy": "2025"
   },
   "011790.KS": {
-    "revUsd": 1187285756,
-    "revYoYPct": null,
-    "opMarginPct": -16.1,
-    "roePct": -19.8,
-    "fy": "2024"
+    "revUsd": 1268990650,
+    "revYoYPct": 6.9,
+    "opMarginPct": -16.6,
+    "roePct": -35.5,
+    "fy": "2025"
   },
   "052690.KS": {
     "revUsd": 357770773,
@@ -6139,11 +6118,11 @@
     "fy": "2025"
   },
   "002380.KS": {
-    "revUsd": 4592249943,
-    "revYoYPct": null,
-    "opMarginPct": 7.1,
-    "roePct": 5.8,
-    "fy": "2024"
+    "revUsd": 4471599646,
+    "revYoYPct": -2.6,
+    "opMarginPct": 6.6,
+    "roePct": 19.7,
+    "fy": "2025"
   },
   "450080.KS": {
     "revUsd": 270693912,
@@ -6174,11 +6153,11 @@
     "fy": "2025"
   },
   "012510.KS": {
-    "revUsd": 277470615,
-    "revYoYPct": null,
-    "opMarginPct": 21.9,
-    "roePct": 14.1,
-    "fy": "2024"
+    "revUsd": 307792583,
+    "revYoYPct": 10.9,
+    "opMarginPct": 28.6,
+    "roePct": 14.6,
+    "fy": "2025"
   },
   "005850.KS": {
     "revUsd": 3613751272,
@@ -6426,11 +6405,11 @@
     "fy": "2025"
   },
   "222800.KQ": {
-    "revUsd": 849256125,
-    "revYoYPct": null,
-    "opMarginPct": -3.8,
-    "roePct": -6.9,
-    "fy": "2024"
+    "revUsd": 972799944,
+    "revYoYPct": 14.5,
+    "opMarginPct": 0.8,
+    "roePct": -28.6,
+    "fy": "2025"
   },
   "347850.KQ": {
     "revUsd": 2963865,
@@ -6482,11 +6461,11 @@
     "fy": "2025"
   },
   "005290.KQ": {
-    "revUsd": 971133914,
-    "revYoYPct": null,
-    "opMarginPct": 14.8,
-    "roePct": 14.1,
-    "fy": "2024"
+    "revUsd": 823547955,
+    "revYoYPct": -15.2,
+    "opMarginPct": 14.4,
+    "roePct": 8.5,
+    "fy": "2025"
   },
   "319660.KQ": {
     "revUsd": 315319415,
@@ -6517,11 +6496,11 @@
     "fy": "2025"
   },
   "032820.KQ": {
-    "revUsd": 49138059,
-    "revYoYPct": null,
-    "opMarginPct": 0.8,
-    "roePct": -3.9,
-    "fy": "2024"
+    "revUsd": 60093376,
+    "revYoYPct": 22.3,
+    "opMarginPct": -6.3,
+    "roePct": -3.3,
+    "fy": "2025"
   },
   "058610.KQ": {
     "revUsd": 235634594,
@@ -6545,25 +6524,25 @@
     "fy": "2025"
   },
   "218410.KQ": {
-    "revUsd": 79224802,
-    "revYoYPct": null,
-    "opMarginPct": 1.3,
-    "roePct": 5.5,
-    "fy": "2024"
+    "revUsd": 128140542,
+    "revYoYPct": 61.7,
+    "opMarginPct": 16.6,
+    "roePct": 9,
+    "fy": "2025"
   },
   "095610.KQ": {
-    "revUsd": 165570915,
-    "revYoYPct": null,
-    "opMarginPct": 16,
-    "roePct": 12.9,
-    "fy": "2024"
+    "revUsd": 242148781,
+    "revYoYPct": 46.3,
+    "opMarginPct": 16.5,
+    "roePct": 14.5,
+    "fy": "2025"
   },
   "257720.KQ": {
-    "revUsd": 476911979,
-    "revYoYPct": null,
-    "opMarginPct": 19.9,
-    "roePct": 46.2,
-    "fy": "2024"
+    "revUsd": 769853355,
+    "revYoYPct": 61.4,
+    "opMarginPct": 18.4,
+    "roePct": 36.9,
+    "fy": "2025"
   },
   "031980.KQ": {
     "revUsd": 143285547,
@@ -6692,11 +6671,11 @@
     "fy": "2025"
   },
   "031330.KQ": {
-    "revUsd": 1992740219,
-    "revYoYPct": null,
-    "opMarginPct": 2.3,
-    "roePct": 12.6,
-    "fy": "2024"
+    "revUsd": 2590754598,
+    "revYoYPct": 30,
+    "opMarginPct": 3,
+    "roePct": 15.6,
+    "fy": "2025"
   },
   "089970.KQ": {
     "revUsd": 99594336,
@@ -6706,11 +6685,11 @@
     "fy": "2025"
   },
   "417200.KQ": {
-    "revUsd": 97983176,
-    "revYoYPct": null,
-    "opMarginPct": 4.4,
-    "roePct": 2.7,
-    "fy": "2024"
+    "revUsd": 105918896,
+    "revYoYPct": 8.1,
+    "opMarginPct": -0.1,
+    "roePct": -0.5,
+    "fy": "2025"
   },
   "127120.KQ": {
     "revUsd": 13321702,
@@ -6944,11 +6923,11 @@
     "fy": "2025"
   },
   "056190.KQ": {
-    "revUsd": 1410594194,
-    "revYoYPct": null,
-    "opMarginPct": -2.4,
-    "roePct": -2.1,
-    "fy": "2024"
+    "revUsd": 1124793441,
+    "revYoYPct": -20.3,
+    "opMarginPct": 5.3,
+    "roePct": 3.4,
+    "fy": "2025"
   },
   "160190.KQ": {
     "revUsd": 50719980,
@@ -6958,18 +6937,18 @@
     "fy": "2025"
   },
   "033100.KQ": {
-    "revUsd": 181197277,
-    "revYoYPct": null,
-    "opMarginPct": 37.2,
-    "roePct": 40.6,
-    "fy": "2024"
+    "revUsd": 154494492,
+    "revYoYPct": -14.7,
+    "opMarginPct": 29.9,
+    "roePct": 24.5,
+    "fy": "2025"
   },
   "086450.KQ": {
-    "revUsd": 560114533,
-    "revYoYPct": null,
-    "opMarginPct": 9.9,
-    "roePct": 9.2,
-    "fy": "2024"
+    "revUsd": 639230139,
+    "revYoYPct": 14.1,
+    "opMarginPct": 10.4,
+    "roePct": 9.7,
+    "fy": "2025"
   },
   "033790.KQ": {
     "revUsd": 182593713,
@@ -7133,10 +7112,10 @@
     "fy": "2025"
   },
   "053610.KQ": {
-    "revUsd": 117441034,
-    "revYoYPct": null,
-    "opMarginPct": 7.9,
-    "roePct": 3.9,
-    "fy": "2024"
+    "revUsd": 158994969,
+    "revYoYPct": 35.4,
+    "opMarginPct": 20.1,
+    "roePct": 10,
+    "fy": "2025"
   }
 }
