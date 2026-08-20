@@ -1,4 +1,5 @@
 import { logger, loggedRedisSet, loggedRedisLpushTrim } from '@/lib/logger';
+import { pickNextMeeting } from '@/lib/fedwatch-next';
 import { memSetReport, memSetArray, memGetArray } from '@/lib/investment-strategy-memory';
 import { isGarbage as isGarbageText, isKnownSource, GARBAGE_MIN_LEN } from '@/lib/strategy-quality';
 import { preValidateFix, validateStrategy } from '@/lib/strategy-schema';
@@ -723,9 +724,10 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     if (fg?.score != null) sentiment = `F&G(US)=${Math.round(fg.score as number)}(${fg.level ?? fg.label ?? ''})`;
     const fed = ctx.fedWatch as Record<string, unknown> | null;
     const meetings = (fed?.meetings as Array<Record<string, unknown>>) ?? [];
-    if (meetings.length) {
-      const next = meetings[0];
-      sentiment += ` FOMC ${next.label} cut_prob=${next.probCut25}%`;
+    // 2026-08-21: meetings[0] 은 과거 회의일 수 있다 — 이 문자열은 LLM 프롬프트로 들어간다.
+    const nextFomc = meetings.length ? pickNextMeeting(fed) : null;
+    if (nextFomc) {
+      sentiment += ` FOMC ${nextFomc.label} cut_prob=${nextFomc.probCut25}%`;
     }
   } catch { /* ignore */ }
 

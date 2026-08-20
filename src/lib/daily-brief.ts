@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { pickNextMeeting } from '@/lib/fedwatch-next';
 import { logger } from './logger';
 import { callAI as callAIProvider, llmTimeoutMs } from './ai-providers';
 import { localChat } from './llm-local';
@@ -360,7 +361,9 @@ function summariseFed(data: unknown): string {
   const meetings = d.meetings as Array<Record<string, unknown>> | undefined;
   const cur = d.currentRateMid;
   if (!meetings?.length) return `FedRate=${cur}%`;
-  const next = meetings[0];
+  // 2026-08-21: meetings[0] 은 이미 끝난 회의다(실측 Apr 29). 이 문자열은 LLM 프롬프트로 들어간다.
+  const next = pickNextMeeting(d);
+  if (!next) return `FedRate=${cur}%`;
   return `FedRate=${cur}%,next ${next.label as string}:hold${Math.round((next.probHold as number) ?? 0)}%/cut${Math.round((next.probCut25 as number) ?? 0)}%`;
 }
 
@@ -754,9 +757,9 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     }
     const fed = ctx?.fedWatch as Record<string, unknown> | null | undefined;
     const meetings = fed?.meetings as Array<Record<string, unknown>> | undefined;
-    if (meetings?.length) {
-      const next = meetings[0];
-      marketBullets.push(`FOMC ${next.label as string}: cut ${Math.round((next.probCut25 as number) ?? 0)}%`);
+    const nextFomc = meetings?.length ? pickNextMeeting(fed) : null;
+    if (nextFomc) {
+      marketBullets.push(`FOMC ${nextFomc.label as string}: cut ${Math.round((nextFomc.probCut25 as number) ?? 0)}%`);
     }
   } catch { /* ignore */ }
   if (marketBullets.length === 0) marketBullets.push(`${tfLabel} market data loading`);
