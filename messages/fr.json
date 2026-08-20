@@ -94,7 +94,9 @@
       "materials": "Matériaux",
       "utilities": "Services Publics",
       "consumer-discretionary": "Consommation Discrétionnaire",
-      "it-software": "IT / Logiciel"
+      "it-software": "IT / Logiciel",
+      "technology": "Technologie",
+      "automotive": "Automobile"
     },
     "relationships": {
       "supplier": "Fournisseur",

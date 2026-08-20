@@ -94,7 +94,9 @@
       "materials": "Materials",
       "utilities": "Utilities",
       "consumer-discretionary": "Consumer Discretionary",
-      "it-software": "IT / Software"
+      "it-software": "IT / Software",
+      "technology": "Technology",
+      "automotive": "Automotive"
     },
     "relationships": {
       "supplier": "Supplier",
@@ -1790,7 +1792,8 @@
     "alertCat_warning": "Warning",
     "alertCat_risk": "Danger",
     "topAccumUsSubtitle": "Volume-based accumulation signs before a run-up (US, watch only)",
-    "accumUsNote": "US screener — abnormal volume / volatility contraction / close strength (no KRX few-account cross-check) · for observation"
+    "accumUsNote": "US screener — abnormal volume / volatility contraction / close strength (no KRX few-account cross-check) · for observation",
+    "sectorCrypto": "Crypto"
   },
   "short": {
     "title": "Short Interest · Squeeze Radar",

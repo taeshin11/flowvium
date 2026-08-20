@@ -94,7 +94,9 @@
       "materials": "Malzeme",
       "utilities": "Kamu Hizmetleri",
       "consumer-discretionary": "Tüketici İhtiyari",
-      "it-software": "IT / Yazılım"
+      "it-software": "IT / Yazılım",
+      "technology": "Teknoloji",
+      "automotive": "Otomotiv"
     },
     "relationships": {
       "supplier": "Tedarikçi",

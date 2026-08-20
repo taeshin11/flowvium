@@ -1,7 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, useMemo } from 'react';
+import { sectors as sectorCatalog } from '@/data/sectors';   // 지역 `sectors`(관측값)와 이름 충돌 회피
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link } from '@/i18n/routing';
 import { Loader2, ArrowUpDown, ExternalLink, Filter, X, TrendingUp, TrendingDown, Plus, LogOut } from 'lucide-react';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
@@ -126,6 +127,8 @@ interface AccumRow {
 
 export default function ScreenerPage() {
   const t = useTranslations('screener');
+  const tExplore = useTranslations('explore');
+  const tReport = useTranslations('report');
   const [tf, setTf] = useState<Timeframe>('13w');
 
   const [signals, setSignals] = useState<InstitutionalSignal[]>([]);
@@ -156,6 +159,10 @@ export default function ScreenerPage() {
   const tfLabels: Record<Timeframe, string> = {
     '1w': t('tf1w'), '4w': t('tf4w'), '13w': t('tf13w'),
   };
+  // 2026-08-20: 이 표는 7종만 덮고 나머지는 `sectorLabels[x] ?? x` 로 원값이 샜다 —
+  //   ko 화면에 crypto·technology·materials·energy·utilities·healthcare 가 영문으로 노출(확정 8건).
+  //   섹터 카탈로그는 explore.sectors 에 16개 로케일로 이미 있다(ExplorePage 가 쓰는 경로).
+  //   화면용 짧은 표기가 필요한 것만 screener 네임스페이스에 남기고, 나머지는 카탈로그를 본다.
   const sectorLabels: Record<string, string> = {
     semiconductors: t('sectorSemiconductors'),
     'ai-cloud': t('sectorAiCloud'),
@@ -163,8 +170,19 @@ export default function ScreenerPage() {
     defense: t('sectorDefense'),
     'pharma-biotech': t('sectorPharmaBiotech'),
     commodities: t('sectorCommodities'),
+    // 2026-08-20: 새 키를 만들지 않는다 — report.etfCat_crypto 가 같은 개념으로
+    //   16개 로케일에 이미 있다(ko '크립토'). 같은 말을 두 곳에 두면 한쪽만 고쳐져 어긋난다.
+    crypto: tReport('etfCat_crypto'),
     other: t('sectorOther'),
   };
+  // sectors.ts 의 id 는 explore.sectors 키와 1:1 이다. 없는 키로 t() 를 부르면 MISSING_MESSAGE 로 깨지므로
+  // 아는 것만 카탈로그에 묻고, 모르면 원값을 남긴다 — 조용히 틀린 라벨을 만들지 않는다.
+  const KNOWN_SECTORS = useMemo(() => new Set(sectorCatalog.map((x) => x.id)), []);
+  const sectorLabel = useCallback(
+    (id: string) => sectorLabels[id] ?? (KNOWN_SECTORS.has(id) ? tExplore(`sectors.${id}`) : id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [KNOWN_SECTORS, tExplore, t, tReport],
+  );
   const actionLabels: Record<string, string> = {
     accumulating: t('actionAccumulating'),
     new_position: t('actionNew'),
@@ -520,7 +538,7 @@ export default function ScreenerPage() {
                     <span className="font-normal text-cf-text-secondary">{t('topSqueezeSubtitle')}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {top5Squeeze.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={String(row.squeezeScore)} badgeCls="bg-amber-500/20 text-amber-300" sub={sectorLabels[row.sector] ?? row.sector} />)}
+                    {top5Squeeze.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={String(row.squeezeScore)} badgeCls="bg-amber-500/20 text-amber-300" sub={sectorLabel(row.sector)} />)}
                   </div>
                   <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('instPosition', { date: dataDate13F })}</p>
                 </div>
@@ -532,7 +550,7 @@ export default function ScreenerPage() {
                     <span className="font-normal text-cf-text-secondary">{t('topNewInstSubtitle')}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {top5NewPosition.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={row.estimatedValue} badgeCls="bg-blue-500/20 text-blue-300" sub={sectorLabels[row.sector] ?? row.sector} />)}
+                    {top5NewPosition.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={row.estimatedValue} badgeCls="bg-blue-500/20 text-blue-300" sub={sectorLabel(row.sector)} />)}
                   </div>
                   <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('instPosition', { date: dataDate13F })}</p>
                 </div>
@@ -544,7 +562,7 @@ export default function ScreenerPage() {
                     <span className="font-normal text-cf-text-secondary">{t('topUnderradarSubtitle')}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {top5Underradar.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={t('newsScore', { score: row.newsGapScore })} badgeCls="bg-purple-500/20 text-purple-300" sub={sectorLabels[row.sector] ?? row.sector} />)}
+                    {top5Underradar.map(row => <PriceCard key={row.ticker} ticker={row.ticker} badge={t('newsScore', { score: row.newsGapScore })} badgeCls="bg-purple-500/20 text-purple-300" sub={sectorLabel(row.sector)} />)}
                   </div>
                   <p className="text-[9px] text-cf-text-secondary/40 mt-2">{t('priceCache')} &nbsp;|&nbsp; {t('instPosition', { date: dataDate13F })}</p>
                 </div>
@@ -632,7 +650,7 @@ export default function ScreenerPage() {
                 <label className="text-[10px] text-cf-text-secondary block mb-1">{t('filterSector')}</label>
                 <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)} className="text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-cf-text-primary">
                   <option value="all">{t('filterAll')}</option>
-                  {sectors.filter(s => s !== 'all').map(s => <option key={s} value={s}>{sectorLabels[s] ?? s}</option>)}
+                  {sectors.filter(s => s !== 'all').map(s => <option key={s} value={s}>{sectorLabel(s)}</option>)}
                 </select>
               </div>
               <div>
@@ -696,7 +714,7 @@ export default function ScreenerPage() {
                         </Link>
                       </td>
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[130px] truncate">{row.companyName || row.ticker}</td>
-                      <td className="px-3 py-2.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">{sectorLabels[row.sector] ?? row.sector}</span></td>
+                      <td className="px-3 py-2.5"><span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">{sectorLabel(row.sector)}</span></td>
                       <td className="px-3 py-2.5 text-[11px] text-cf-text-secondary max-w-[140px] truncate">{row.institution}</td>
                       <td className="px-3 py-2.5">
                         {(row.bullishCount > 0 || row.bearishCount > 0) && (

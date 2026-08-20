@@ -94,7 +94,9 @@
       "materials": "सामग्री",
       "utilities": "उपयोगिताएं",
       "consumer-discretionary": "उपभोक्ता विवेकाधीन",
-      "it-software": "IT / सॉफ्टवेयर"
+      "it-software": "IT / सॉफ्टवेयर",
+      "technology": "तकनीक",
+      "automotive": "ऑटोमोटिव"
     },
     "relationships": {
       "supplier": "आपूर्तिकर्ता",

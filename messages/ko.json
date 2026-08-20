@@ -94,7 +94,9 @@
       "materials": "소재",
       "utilities": "유틸리티",
       "consumer-discretionary": "경기소비재",
-      "it-software": "IT / 소프트웨어"
+      "it-software": "IT / 소프트웨어",
+      "technology": "기술",
+      "automotive": "자동차"
     },
     "relationships": {
       "supplier": "공급업체",

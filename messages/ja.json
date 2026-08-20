@@ -94,7 +94,9 @@
       "materials": "素材",
       "utilities": "公益事業",
       "consumer-discretionary": "一般消費財・サービス",
-      "it-software": "IT / ソフトウェア"
+      "it-software": "IT / ソフトウェア",
+      "technology": "テクノロジー",
+      "automotive": "自動車"
     },
     "relationships": {
       "supplier": "サプライヤー",

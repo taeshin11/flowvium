@@ -94,7 +94,9 @@
       "materials": "المواد",
       "utilities": "المرافق",
       "consumer-discretionary": "السلع الاستهلاكية الاختيارية",
-      "it-software": "IT / البرمجيات"
+      "it-software": "IT / البرمجيات",
+      "technology": "التكنولوجيا",
+      "automotive": "السيارات"
     },
     "relationships": {
       "supplier": "مورّد",

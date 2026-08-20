@@ -24,15 +24,24 @@ const CONFIG = resolve(ROOT, '.eslintrc.i18n.json');
 const TARGETS = ['src/components', 'src/app'];
 const UPDATE = process.argv.includes('--update');
 
+// 2026-08-20: 종전엔 파일의 eslint 메시지를 *전부* 셌다. 이 독립 설정엔 react-hooks 플러그인이
+//   없어서 코드의 `// eslint-disable-next-line react-hooks/exhaustive-deps` 가
+//   "Definition for rule ... was not found" 오류를 만들고, 그게 하드코딩 1건으로 계수됐다.
+//   래칫이 재는 것은 i18next/no-literal-string 이다 — 그것만 센다.
+const RULE = 'i18next/no-literal-string';
+function tally(results) {
+  const files = {};
+  for (const f of results) {
+    const n = (f.messages ?? []).filter((m) => m.ruleId === RULE).length;
+    if (n) files[f.filePath.replace(ROOT + '/', '')] = n;
+  }
+  return files;
+}
+
 function run() {
   const out = execFileSync('npx', ['eslint', '--no-eslintrc', '-c', CONFIG, '--ext', '.tsx,.ts', ...TARGETS, '-f', 'json'],
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] });
-  const files = {};
-  for (const f of JSON.parse(out)) {
-    if (!f.messages?.length) continue;
-    files[f.filePath.replace(ROOT + '/', '')] = f.messages.length;
-  }
-  return files;
+  return tally(JSON.parse(out));
 }
 
 let current;
@@ -44,11 +53,7 @@ catch (e) {
     console.error('[i18n-ratchet] eslint 실행 실패:', (e.stderr?.toString() ?? e.message).slice(0, 300));
     process.exit(3);
   }
-  current = {};
-  for (const f of JSON.parse(so)) {
-    if (!f.messages?.length) continue;
-    current[f.filePath.replace(ROOT + '/', '')] = f.messages.length;
-  }
+  current = tally(JSON.parse(so));
 }
 
 const total = Object.values(current).reduce((a, c) => a + c, 0);

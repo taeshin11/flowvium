@@ -94,7 +94,9 @@
       "materials": "Werkstoffe",
       "utilities": "Versorgungsunternehmen",
       "consumer-discretionary": "Nicht-Basiskonsumgüter",
-      "it-software": "IT / Software"
+      "it-software": "IT / Software",
+      "technology": "Technologie",
+      "automotive": "Automobil"
     },
     "relationships": {
       "supplier": "Zulieferer",

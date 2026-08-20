@@ -94,7 +94,9 @@
       "materials": "วัสดุ",
       "utilities": "สาธารณูปโภค",
       "consumer-discretionary": "สินค้าอุปโภคบริโภคตามดุลยพินิจ",
-      "it-software": "IT / ซอฟต์แวร์"
+      "it-software": "IT / ซอฟต์แวร์",
+      "technology": "เทคโนโลยี",
+      "automotive": "ยานยนต์"
     },
     "relationships": {
       "supplier": "ผู้จัดหา",

@@ -94,7 +94,9 @@
       "materials": "Materiais",
       "utilities": "Utilidades",
       "consumer-discretionary": "Consumo Discricionário",
-      "it-software": "IT / Software"
+      "it-software": "IT / Software",
+      "technology": "Tecnologia",
+      "automotive": "Automotivo"
     },
     "relationships": {
       "supplier": "Fornecedor",

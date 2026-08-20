@@ -94,7 +94,9 @@
       "materials": "Vật liệu",
       "utilities": "Dịch vụ công cộng",
       "consumer-discretionary": "Tiêu dùng tùy ý",
-      "it-software": "IT / Phần mềm"
+      "it-software": "IT / Phần mềm",
+      "technology": "Công nghệ",
+      "automotive": "Ô tô"
     },
     "relationships": {
       "supplier": "Nhà cung cấp",

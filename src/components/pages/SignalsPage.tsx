@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
+import { localizeLabel } from '@/lib/update-labels';
 import { Link } from '@/i18n/routing';
 import { type InstitutionalSignal } from '@/data/institutional-signals';
 import { type NewsGapEntry } from '@/data/news-gap';
@@ -70,6 +71,23 @@ export default function SignalsPage({
   source,
 }: SignalsPageProps) {
   const t = useTranslations('signals');
+  // 2026-08-20: 섹터명이 sectors.ts 의 영문 name 으로 그대로 나갔다(ko 화면 확정 누출 21건).
+  //   explore.sectors.<id> 에 16개 로케일 번역이 이미 있고 ExplorePage 가 쓰는 경로다 — 같은 걸 쓴다.
+  const tExplore = useTranslations('explore');
+  const tReport = useTranslations('report');
+  const signalsLocale = useLocale();
+  // sectors.ts 의 id 는 explore.sectors 키와 1:1 이다. 그 밖의 값(데이터 유래)은 원값을 남긴다 —
+  // 없는 키로 t() 를 부르면 MISSING_MESSAGE 로 화면이 깨진다.
+  const KNOWN_SECTORS = useMemo(() => new Set(sectors.map((x) => x.id)), []);
+  // sectors.ts 카탈로그 밖의 값도 데이터에 섞여 온다(실측: 'crypto').
+  //   새 키를 만들지 않는다 — report.etfCat_crypto 가 같은 개념으로 16개 로케일에 이미 있다.
+  //   그래도 모르는 값은 원값을 남긴다. 없는 키로 t() 를 부르면 MISSING_MESSAGE 로 화면이 깨진다.
+  const EXTRA_SECTORS: Record<string, string> = { crypto: tReport('etfCat_crypto') };
+  const sectorLabel = useCallback(
+    (id: string) => EXTRA_SECTORS[id] ?? (KNOWN_SECTORS.has(id) ? tExplore(`sectors.${id}`) : id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [KNOWN_SECTORS, tExplore, tReport],
+  );
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [institutionFilter, setInstitutionFilter] = useState<string>('all');
@@ -146,7 +164,7 @@ export default function SignalsPage({
       }
     }
     return Object.entries(map).map(([sector, data]) => ({
-      sector: sector.replace('-', '/').slice(0, 12),
+      sector,          // 원본 id — 표시 라벨은 YAxis tickFormatter 가 로케일에 맞춰 만든다
       sectorId: sector,
       Accumulating: data.accumulating,
       Reducing: data.reducing,
@@ -212,7 +230,7 @@ export default function SignalsPage({
             <option value="all">{t('allSectors')}</option>
             {sectors.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
+                {sectorLabel(s.id)}
               </option>
             ))}
           </select>
@@ -268,10 +286,10 @@ export default function SignalsPage({
               <BarChart data={sectorBreakdown} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="sector" width={80} tick={{ fontSize: 10 }} />
+                <YAxis type="category" dataKey="sector" width={80} tick={{ fontSize: 10 }} tickFormatter={(v: string) => sectorLabel(v).slice(0, 12)} />
                 <Tooltip />
-                <Bar dataKey="Accumulating" fill="#5CB88A" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="Reducing" fill="#D97171" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Accumulating" name={localizeLabel('Accumulating', signalsLocale)} fill="#5CB88A" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Reducing" name={localizeLabel('Reducing', signalsLocale)} fill="#D97171" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

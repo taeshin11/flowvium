@@ -94,7 +94,9 @@
       "materials": "Материалы",
       "utilities": "Коммунальные услуги",
       "consumer-discretionary": "Потребительский сектор",
-      "it-software": "IT / ПО"
+      "it-software": "IT / ПО",
+      "technology": "Технологии",
+      "automotive": "Автомобильная промышленность"
     },
     "relationships": {
       "supplier": "Поставщик",

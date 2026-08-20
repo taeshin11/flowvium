@@ -94,7 +94,9 @@
       "materials": "材料",
       "utilities": "公用事業",
       "consumer-discretionary": "非必需消費品",
-      "it-software": "IT / 軟體"
+      "it-software": "IT / 軟體",
+      "technology": "科技",
+      "automotive": "汽車"
     },
     "relationships": {
       "supplier": "供應商",

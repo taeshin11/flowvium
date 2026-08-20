@@ -94,7 +94,9 @@
       "materials": "Material",
       "utilities": "Utilitas",
       "consumer-discretionary": "Konsumen Diskresioner",
-      "it-software": "IT / Perangkat Lunak"
+      "it-software": "IT / Perangkat Lunak",
+      "technology": "Teknologi",
+      "automotive": "Otomotif"
     },
     "relationships": {
       "supplier": "Pemasok",
