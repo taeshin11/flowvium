@@ -1,28 +1,27 @@
 {
-  "generatedAt": "2026-08-19T22:20:22.485Z",
+  "generatedAt": "2026-08-20T07:20:23.673Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 6,
+  "count": 5,
   "strongCount": 1,
-  "watchCount": 5,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "056730.KQ",
       "name": "CNT85",
       "tier": "strong",
-      "score": 51,
-      "coFire": 4,
+      "score": 42,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 1.6× 상승",
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 80%(강한 매수 흡수)",
         "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)",
-        "아래꼬리 매집 7개(저가 매수받침)"
+        "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": -6.2,
-      "runup5dPct": -3.6,
-      "medDollarVolUsd": 8308,
+      "runup20dPct": -6.5,
+      "runup5dPct": -0.8,
+      "medDollarVolUsd": 8080,
       "smartAccum": false,
       "official": null
     },
@@ -34,12 +33,12 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -14.2,
-      "runup5dPct": -4.5,
+      "runup20dPct": -14.8,
+      "runup5dPct": -5.7,
       "medDollarVolUsd": 473153,
       "smartAccum": true,
       "official": null
@@ -56,43 +55,9 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 1.1,
-      "runup5dPct": -5.3,
-      "medDollarVolUsd": 36431,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "263750.KQ",
-      "name": "펄어비스",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -7.9,
-      "runup5dPct": -16.8,
-      "medDollarVolUsd": 9265804,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "069510.KQ",
-      "name": "에스텍",
-      "tier": "watch",
-      "score": 29,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "변동성 수축(coiling) — 돌파 압축",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 4.2,
-      "runup5dPct": 2.2,
-      "medDollarVolUsd": 80596,
+      "runup20dPct": 7.3,
+      "runup5dPct": -4.3,
+      "medDollarVolUsd": 35485,
       "smartAccum": true,
       "official": null
     },
@@ -100,16 +65,33 @@
       "ticker": "035900.KQ",
       "name": "JYP Ent.",
       "tier": "watch",
-      "score": 26,
+      "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 2.0× 상승(지속 매집)",
         "거래량 3.1× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -9.9,
-      "runup5dPct": -14.2,
+      "runup20dPct": -8.3,
+      "runup5dPct": -12.8,
       "medDollarVolUsd": 7548509,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "263750.KQ",
+      "name": "펄어비스",
+      "tier": "watch",
+      "score": 32,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -3,
+      "runup5dPct": 1.6,
+      "medDollarVolUsd": 9265804,
       "smartAccum": true,
       "official": null
     }
