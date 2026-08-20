@@ -43,6 +43,13 @@ const _shadowHitsPending = [];
 const _conditionalWatchPending = [];
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
+import { normalizeAllocations } from './lib/allocation-normalize.mjs';
+import { buildKoreaFlowLine } from './lib/region-flow.mjs';
+import { partition as partitionSignalScope, shouldVeto as scopedShouldVeto,
+         exposureFactor as regimeExposureFactor } from './lib/signal-scope.mjs';
+// 2026-08-20: 매도 거부 임계값 단일 소스. 종전에는 7 이 세 군데에 흩어져 있었고
+//   (rotation-veto / reconcile-final / VETO_SCORE alias) 한 곳만 고치면 조용히 어긋났다.
+const SELL_VETO_THRESHOLD = 7;
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
 
 const __dir = dirname(fileURLToPath(import.meta.url));
@@ -725,23 +732,39 @@ function applyLocalHarness(r, livePrices) {
   // 2026-07-03 (afternoon 삼성화재 100% 사건): veto 로 종목이 대량 탈락해 1~2개만 남으면 100 정규화가
   //   몰빵을 만든다(프롬프트 정책 "single ≤25%" 위반 + '현금도 포지션' doctrine 무시). 종목 수가 적으면
   //   개별 25% 캡 → 합계 <100 허용(잔여=현금), portfolioRiskNote 에 명시.
+  // 2026-08-20: 심판이 기록한 레짐 배수(_regimeFactor)를 먼저 반영한다. 종전에는 여기서 무조건
+  //   100 으로 되돌려, 시장국면에 따른 노출 축소가 통째로 무효화됐다(넣어도 효과가 없던 상태).
+  //   축소분은 재분배하지 않고 '현금'으로 명시한다 — 저장소의 '현금도 포지션' 규율과 동일한 처리.
   const pSum = r.portfolio.reduce((a, x) => a + (x.allocation ?? 0), 0);
-  if (r.portfolio.length > 0 && r.portfolio.length < 4) {
-    let capped = false;
-    r.portfolio.forEach(x => { if ((x.allocation ?? 0) > 25) { x.allocation = 25; capped = true; } });
-    if (capped) {
-      const invested = r.portfolio.reduce((a, x) => a + (x.allocation ?? 0), 0);
-      const cashNote = `규율상 신규매수 후보 부족(과열/칼받기 veto 대량 탈락) — 투자비중 ${invested}%만 권고, 잔여 ${100 - invested}%는 현금 보유(현금도 포지션).`;
+  const hasRegime = r.portfolio.some(x => typeof x._regimeFactor === 'number' && x._regimeFactor < 1);
+  if (hasRegime && pSum > 0) {
+    for (const x of r.portfolio) x.allocation = Math.max(0, (x.allocation ?? 0) * (x._regimeFactor ?? 1));
+    const scaledSum = r.portfolio.reduce((a, x) => a + x.allocation, 0);
+    const investTarget = Math.round(100 * (scaledSum / pSum));   // 축소 비율만큼 투자비중을 낮춘다
+    const norm = normalizeAllocations(r.portfolio, {
+      regimeCashReserve: 100 - investTarget,
+      maxSingle: r.portfolio.length < 4 ? 25 : 0,
+    });
+    r.portfolio = norm.portfolio;
+    if (norm.note) {
+      const cashNote = `시장국면(레짐) 감안 노출 축소 — ${norm.note}`;
       r.portfolioRiskNote = r.portfolioRiskNote ? `${cashNote} ${r.portfolioRiskNote}` : cashNote;
-      audit.fixes.portfolioAllocSum = { from: pSum, to: invested, cashReserve: 100 - invested };
     }
+    audit.fixes.portfolioAllocSum = { from: pSum, to: norm.to, cashReserve: norm.cashReserve, regime: true };
+  } else if (r.portfolio.length > 0 && r.portfolio.length < 4) {
+    const norm = normalizeAllocations(r.portfolio, { regimeCashReserve: 0, maxSingle: 25 });
+    r.portfolio = norm.portfolio;
+    if (norm.cashReserve > 0) {
+      const cashNote = `규율상 신규매수 후보 부족(과열/칼받기 veto 대량 탈락) — ${norm.note}`;
+      r.portfolioRiskNote = r.portfolioRiskNote ? `${cashNote} ${r.portfolioRiskNote}` : cashNote;
+    }
+    audit.fixes.portfolioAllocSum = { from: pSum, to: norm.to, cashReserve: norm.cashReserve };
   } else if (pSum > 0 && Math.abs(pSum - 100) > 2) {
-    const scale = 100 / pSum;
-    r.portfolio.forEach(x => { x.allocation = Math.round((x.allocation ?? 0) * scale); });
-    const drift = 100 - r.portfolio.reduce((a, x) => a + x.allocation, 0);
-    if (drift !== 0) r.portfolio[0].allocation += drift;
-    audit.fixes.portfolioAllocSum = { from: pSum, to: 100 };
+    const norm = normalizeAllocations(r.portfolio, { regimeCashReserve: 0 });
+    r.portfolio = norm.portfolio;
+    audit.fixes.portfolioAllocSum = { from: pSum, to: norm.to };
   }
+  for (const x of r.portfolio) delete x._regimeFactor;   // 내부 필드는 발간물에 남기지 않는다
 
   audit.totalFixes =
     audit.fixes.krNameMismatch.length +
@@ -2164,9 +2187,10 @@ async function enforceRotation(portfolio, livePrices, macroCtx = {}) {
       const sigR = await fetchSellSignals(boostList.map((b) => b.ticker));
       boostList = boostList.filter((b) => {
         const sig = sigR.get(b.ticker) ?? {};
-        const { hits, total } = evaluateTickerSellSignals(b.ticker, { price: livePrices.get(b.ticker)?.price ?? null, sector: b.sector, sig, macroCtx, vetoRules: vetoRulesR });
-        if (total >= 7) {
-          console.warn(`  [rotation-veto] ${b.ticker} 투입 거부 (매도 score ${total}≥7: ${hits.map((h) => h.id).join(',')})`);
+        const { hits, total, securityScore, marketScore } = evaluateTickerSellSignals(b.ticker, { price: livePrices.get(b.ticker)?.price ?? null, sector: b.sector, sig, macroCtx, vetoRules: vetoRulesR });
+        // 2026-08-20: 거부는 종목 단위 점수로만. 시장 점수는 비중(노출)에 반영된다.
+        if (securityScore >= SELL_VETO_THRESHOLD) {
+          console.warn(`  [rotation-veto] ${b.ticker} 투입 거부 (종목 매도 score ${securityScore}≥${SELL_VETO_THRESHOLD}, 시장 ${marketScore} 별도: ${hits.map((h) => h.id).join(',')})`);
           return false;
         }
         return true;
@@ -4004,17 +4028,11 @@ function buildCtxSummary(ctx) {
   } catch { /* ignore */ }
 
   // Korea flows
-  let koreaFlow = '';
-  try {
-    const countries = ctx.capital?.countryFlow?.countries ?? [];
-    const korea = countries.find(c => c.id === 'korea');
-    if (korea) koreaFlow = `Korea(EWY): 1w=${korea.ret1w?.toFixed(1) ?? '?'}% 4w=${korea.ret4w?.toFixed(1) ?? '?'}%`;
-    if (ctx.koreaFlow) {
-      const kf = ctx.koreaFlow;
-      const net = kf.foreignNet ?? kf.netBuy;
-      if (net != null) koreaFlow += ` | Foreign net: ${net > 0 ? '+' : ''}${(net / 1e8).toFixed(1)}억`;
-    }
-  } catch { /* ignore */ }
+  // 2026-08-20: 종전에는 EWY(달러표시 ETF) 1주 수익률 + 외국인 순매수만 넣었다. 같은 보고서가 이미
+  //   갖고 있던 KOSPI 당일 등락은 스탠스 입력에 없었고, 그래서 KOSPI +4.9% 인 날 EWY 1w -0.8% 로
+  //   korea=bearish 판정이 나왔다. 그 스탠스가 KR 전 종목 매수 거부로 이어졌다(사용자 "한국 종목이
+  //   하나도 안떴는데"). 표시통화 라벨과 함께 lib/region-flow 가 구성한다.
+  const koreaFlow = buildKoreaFlowLine(ctx);
 
   // US 실측 fund flow — ICI 주간 ETF net issuance (2026-07-04)
   let fundFlows = '';
@@ -5602,7 +5620,13 @@ function evaluateTickerSellSignals(ticker, { price, sector, sig, macroCtx, vetoR
     if (reason) hits.push({ id: rule.id, category: rule.category, score: rule.score ?? 0, reason, rule });
   }
   const total = hits.reduce((s, h) => s + (h.score ?? 0), 0);
-  return { hits, total, exCtx };
+  // 2026-08-20: 시장 단위 신호(지역 스탠스·거시·VIX)와 종목 단위 신호를 분리해서 함께 돌려준다.
+  //   종전에는 평탄 합계 total 하나만 있어서, 호출부가 시장 신호까지 섞인 값을 거부 임계값과 비교했다.
+  //   그 결과 micro_region_bearish(7) 단독으로 VETO_SCORE(7)에 도달해 한 지역 전체가 매수 금지됐다
+  //   (실측: 140860.KQ 는 종목 매도신호가 0인데 지역 7점만으로 탈락).
+  //   total 은 기존 로깅/기록 호환을 위해 남긴다.
+  const scoped = partitionSignalScope(hits);
+  return { hits, total, securityScore: scoped.securityScore, marketScore: scoped.marketScore, scoped, exCtx };
 }
 
 async function buildSellCandidates(livePrices, excludeTickers = new Set(), macroCtx = {}) {
@@ -7548,12 +7572,28 @@ async function generateViaOllama() {
       const buyConviction = buyScoreOf.get(p.ticker) ?? 20;
       const buyDiscount = Math.max(0, Math.min(4, (buyConviction - 25) / 5));        // 강한 매수일수록 soft 매도 상쇄
       const hardHit = hits.find(h => h.hard);
-      const softScore = hits.filter(h => !h.hard).reduce((s, h) => s + h.score, 0);
-      const netSoft = +(softScore - buyDiscount).toFixed(1);
+      const softHits = hits.filter(h => !h.hard);
+      const softScore = softHits.reduce((s, h) => s + h.score, 0);
+      // 2026-08-20: 거부/감점 판정은 종목 단위 신호로만 한다. 시장 단위 신호(지역 스탠스·거시·VIX)는
+      //   종전에 같은 합계에 섞여 들어가 단독으로 임계값을 넘겼고, 그러면 한 지역/전 우주가 통째로
+      //   매수 금지된다(실측: KR 후보 9개 전원이 micro_region_bearish 7점만으로 탈락, VETO=7).
+      //   레짐 문헌의 원칙대로 시장 신호는 '고를지'가 아니라 '얼마나 실을지'로 옮긴다 → regimeFactor.
+      const scoped = partitionSignalScope(softHits);
+      const softSecurity = scoped.securityScore;
+      const netSoft = +(softSecurity - buyDiscount).toFixed(1);
+      const regimeFactor = regimeExposureFactor(scoped.marketScore);
       const tier = hardHit ? 'veto' : netSoft >= HIGH ? 'veto' : netSoft >= MID ? 'downgrade' : 'pass';
+      if (scoped.marketScore > 0) {
+        // 2026-08-20: 여기서 p.allocation 을 직접 줄이면 applyLocalHarness(8688행)의 100 재정규화가
+        //   그대로 되돌려 no-op 이 된다(실제로 그렇게 넣었다가 순서를 확인하고 고쳤다).
+        //   배수만 기록하고, 정규화 단계가 '레짐 현금'으로 반영한다.
+        p._regimeFactor = regimeFactor;
+        p.riskNote = `${p.riskNote ?? ''} · 시장국면 감안 비중 ${Math.round(regimeFactor * 100)}%로 축소(${scoped.market.map(h => h.id).join(',')})`.trim();
+      }
       adjudication.candidates.push({
         ticker: p.ticker, sector: p.sector ?? null, buyConviction, buyDiscount: +buyDiscount.toFixed(1),
-        softScore: +softScore.toFixed(1), netSoft, hardHit: hardHit?.id ?? null, tier,
+        softScore: +softScore.toFixed(1), softSecurity: +softSecurity.toFixed(1), marketScore: scoped.marketScore,
+        regimeFactor: +regimeFactor.toFixed(2), netSoft, hardHit: hardHit?.id ?? null, tier,
         signals: { rsi: sig.rsi, sma50: sig.sma50, sma200: sig.sma200, opMarginDecline: sig.opMarginDecline, peRatio: sig.peRatio, peg: sig.peg, revenueYoY: sig.revenueYoY, price: exCtx.price, putPrem: exCtx.optionsPutPrem, newsNegRatio: exCtx.newsNegRatio },
         hits,
       });
@@ -7666,10 +7706,13 @@ async function generateViaOllama() {
         if (inMkt + added >= MIN_PER_MARKET) break;
         const sig = refillSig.get(cand.ticker) ?? {};
         // 2026-06-14 (Task24): 공용 ctx — refill 도 insider/13f/contract/news micro 평가(종전 우회 봉합).
-        const { hits: rawHits, total } = evaluateTickerSellSignals(cand.ticker, { price: livePrices.get(cand.ticker)?.price ?? null, sector: cand.sector, sig, macroCtx, vetoRules });
+        const { hits: rawHits, total, securityScore, marketScore } = evaluateTickerSellSignals(cand.ticker, { price: livePrices.get(cand.ticker)?.price ?? null, sector: cand.sector, sig, macroCtx, vetoRules });
         const hits = rawHits.map((h) => ({ id: h.id, category: h.category, score: h.score, reason: h.reason }));
-        adjudication.candidates.push({ ticker: cand.ticker, sector: cand.sector ?? null, sellScore: total, verdict: total >= VETO_SCORE ? 'refill-veto' : 'refill-pass', hits, refill: true });
-        if (total >= VETO_SCORE) { console.log(`  [경합심사/재충원] ${cand.ticker} 재심 탈락 (score ${total})`); continue; }
+        // 2026-08-20: 재충원은 '시장 전체가 비는 것'을 막으려고 만든 장치인데, 시장 단위 신호를 종목 점수에
+        //   섞어 재던 탓에 정작 그 시장이 나쁠 때 구조적으로 실패했다(전원 탈락 → 공석). 종목 점수로만 판정한다.
+        const refillVeto = securityScore >= VETO_SCORE;
+        adjudication.candidates.push({ ticker: cand.ticker, sector: cand.sector ?? null, sellScore: total, securityScore, marketScore, verdict: refillVeto ? 'refill-veto' : 'refill-pass', hits, refill: true });
+        if (refillVeto) { console.log(`  [경합심사/재충원] ${cand.ticker} 재심 탈락 (종목 score ${securityScore}≥${VETO_SCORE}, 시장 ${marketScore} 별도)`); continue; }
         const actual = livePrices.get(cand.ticker).price;
         const fmt = (n) => want ? `₩${Math.round(n).toLocaleString()}` : `$${n.toFixed(2)}`;
         dedupedPortfolio.push({
@@ -8880,11 +8923,12 @@ async function generateViaOllama() {
       for (const t of overlap) {
         const sig = sigF.get(t) ?? {};
         const pSec = finalReport.portfolio.find((p) => p.ticker === t)?.sector;
-        const { hits, total } = evaluateTickerSellSignals(t, { price: livePrices.get(t)?.price ?? null, sector: pSec, sig, macroCtx, vetoRules: vetoRulesF });
-        if (total >= 7) {
+        const { hits, total, securityScore, marketScore } = evaluateTickerSellSignals(t, { price: livePrices.get(t)?.price ?? null, sector: pSec, sig, macroCtx, vetoRules: vetoRulesF });
+        // 2026-08-20: 거부는 종목 단위 점수로만 (시장 신호 단독 전면금지 방지). 임계값도 단일 상수 참조.
+        if (securityScore >= SELL_VETO_THRESHOLD) {
           finalReport.portfolio = finalReport.portfolio.filter((p) => p.ticker !== t);
-          decisions.push({ ticker: t, verdict: 'buy-removed', sellScore: total, hits: hits.map((h) => h.id) });
-          console.warn(`  [reconcile/final] ${t} 양쪽 발간 모순 → 매수 제거 (매도 score ${total}≥7: ${hits.map((h) => h.id).join(',')})`);
+          decisions.push({ ticker: t, verdict: 'buy-removed', sellScore: total, securityScore, marketScore, hits: hits.map((h) => h.id) });
+          console.warn(`  [reconcile/final] ${t} 양쪽 발간 모순 → 매수 제거 (종목 매도 score ${securityScore}≥${SELL_VETO_THRESHOLD}, 시장 ${marketScore} 별도: ${hits.map((h) => h.id).join(',')})`);
         } else {
           for (const side of ['us', 'kr']) {
             if (finalReport.sellRecommendations?.[side]) finalReport.sellRecommendations[side] = finalReport.sellRecommendations[side].filter((s) => s.ticker !== t);

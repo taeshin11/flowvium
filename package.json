@@ -39,7 +39,8 @@
     "review:logs": "node scripts/review-logs.mjs",
     "review:redis": "node scripts/review-logs.mjs --redis",
     "verify:docsync": "node scripts/check-doc-sync.mjs",
-    "verify:chat": "node scripts/verify-chat-answers.mjs"
+    "verify:chat": "node scripts/verify-chat-answers.mjs",
+    "test:lib": "node scripts/run-lib-tests.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.1",
@@ -74,6 +75,7 @@
     "better-sqlite3": "^12.9.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "eslint-plugin-i18next": "^6.1.5",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.21.0",

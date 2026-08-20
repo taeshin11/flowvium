@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { lookupMemory } from '@/lib/translation-memory';
 import { hasScriptSplice } from '@/lib/script-splice';
+import { recordRejection } from '@/lib/translation-backlog';
 import { llmTimeoutMs } from '@/lib/ai-providers';
 import type { Redis } from '@upstash/redis';
 import { callAI } from '@/lib/ai-providers';
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
     const minLen = Math.max(3, Math.min(8, text.length));
     if (isGarbage(translated, minLen)) {
       logger.warn('api.translate', 'garbage_detected', { targetLocale, sample: translated.slice(0, 80) });
+      recordRejection(text, targetLocale, 'garbage-fallback');
       return NextResponse.json({ translated: text, source: 'garbage-fallback' });
     }
 
@@ -130,6 +132,7 @@ export async function POST(request: NextRequest) {
     const ECHO_FRAGMENTS = /목표 언어|포함하지 마세요|外国|문자를 포함|Output ONLY|target language|foreign script|no explanations|번역만|Translate the following/i;
     if (ECHO_FRAGMENTS.test(translated) || translated.length > text.length * 4 + 40) {
       logger.warn('api.translate', 'instruction_echo_detected', { targetLocale, inLen: text.length, outLen: translated.length, sample: translated.slice(0, 80) });
+      recordRejection(text, targetLocale, 'echo-fallback');
       return NextResponse.json({ translated: text, source: 'echo-fallback' });
     }
 
@@ -137,6 +140,7 @@ export async function POST(request: NextRequest) {
     //   반쪽 번역(소형모델이 단어 중간에서 언어 전환). 오염 번역보다 원문이 낫다 — fallback + 캐시 금지.
     if (targetLocale === 'ko' && /[가-힣][a-z]/.test(translated)) {
       logger.warn('api.translate', 'mixed_word_detected', { targetLocale, sample: translated.slice(0, 80) });
+      recordRejection(text, targetLocale, 'mixed-fallback');
       return NextResponse.json({ translated: text, source: 'mixed-fallback' });
     }
 
@@ -149,6 +153,7 @@ export async function POST(request: NextRequest) {
     const brokenSymbols = (translated.match(/[¦¶─-➿]/g) ?? []).length;
     if (replacementCount > 0 || brokenSymbols >= 2) {
       logger.warn('api.translate', 'mojibake_detected', { targetLocale, replacementCount, brokenSymbols, sample: translated.slice(0, 80) });
+      recordRejection(text, targetLocale, 'mojibake-fallback');
       return NextResponse.json({ translated: text, source: 'mojibake-fallback' });
     }
 
@@ -157,6 +162,7 @@ export async function POST(request: NextRequest) {
     //   캐시에 들어가면 30일간 깨진 번역이 고착되므로 저장 전에 막고 원문으로 돌린다.
     if (translated && hasScriptSplice(translated, targetLocale)) {
       logger.warn('api.translate', 'script_splice_detected', { targetLocale, sample: translated.slice(0, 80) });
+      recordRejection(text, targetLocale, 'splice-fallback');
       return NextResponse.json({ translated: text, source: 'splice-fallback' });
     }
 

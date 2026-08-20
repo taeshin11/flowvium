@@ -83,6 +83,16 @@ const checks = [
     dimensions: ['전 종목 /company 핵심데이터 보유 (표본 아님, 전수)'],
   },
   {
+    // 2026-08-20: lib 테스트가 39개까지 늘었는데 verify-all 도 package.json 도 부르지 않았다 —
+    //   손으로 돌릴 때만 실행되니 회귀가 나도 아무도 모르는 상태였다. 테스트가 있어도 안 돌면 없는 것.
+    name: 'lib-tests',
+    script: 'scripts/run-lib-tests.mjs',
+    args: ['--quiet'],
+    desc: 'scripts/lib 단위 테스트 전수',
+    critical: true,
+    dimensions: ['lib 모듈 단위 불변식(스코프 분리·번역사전·세션 드리프트·엔티티 등)'],
+  },
+  {
     // 2026-08-20: HomePage 의 title: 'Company Comparator' 가 16개 로케일 전부에 영문으로 노출됐는데
     //   자동 검사가 하나도 못 잡아 사람이 UI 를 눈으로 보고 찾았다. eslint-plugin-i18next 는 잡지만
     //   전면 도입 시 2,781건이라 소음에 묻힌다 → 레거시 린터 도입의 확립된 해법인 ratcheting 을 쓴다.
