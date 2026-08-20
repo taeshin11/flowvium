@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * src/lib/llm-local.ts — 로컬 vLLM 단일 진입점 (2026-06-15 Ollama→WSL/vLLM 이전).
  *
@@ -11,27 +12,47 @@
  *   (vLLM logit_bias 로 디코딩단 차단도 가능하나 토크나이저별 토큰ID 열거 필요 — locale-aware
  *    재생성 하네스를 그대로 유지. 추후 최적화 여지.)
  */
-const VLLM_BASE = (process.env.VLLM_URL || 'http://127.0.0.1:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+// 2026-08-20: 웹 경유 LLM(번역·챗·요약)을 보고서 레인과 분리한다.
+//   원래 구조는 vLLM(:8000, 보고서) / Ollama(웹) 2레인이었는데 맥 이관에서 하나로 합쳤다.
+//   OOM 방지로 --prompt-concurrency 1 을 걸자 보고서의 20분짜리 프리필이 LLM 을 독점해,
+//   웹 요청이 timeoutMs(60s) 안에 절대 못 끝나고 원문이 그대로 노출됐다
+//   (실측: 한국어 페이지 뉴스 헤드라인이 영문. :8000 직접 호출은 300초 무응답).
+//   LOCAL_LLM_URL 이 있으면 그 레인을, 없으면 종전대로 VLLM_URL 을 쓴다 — 회귀 없음.
+const clean = (u: string) => u.replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+const LANE_BASE = clean(process.env.LOCAL_LLM_URL || process.env.VLLM_URL || 'http://127.0.0.1:8000/v1');
+const VLLM_BASE = LANE_BASE;
 const VLLM_CHAT = `${VLLM_BASE}/chat/completions`;
-export const LOCAL_MODEL = process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
+// 레인이 분리되면 모델 별칭도 그 레인 것을 쓴다.
+export const LOCAL_MODEL = process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
 
 // ── 2026-06-12 GPU 과부하 보호 (사용자 "컴퓨터 꺼지지 않게 조치 철저히") ─────────────────
 //   웹 경유 Ollama 호출은 트래픽 비례 무한 큐 적체 가능(6/12 16:00~16:28 /api/chat 516건,
 //   GPU 96%/82°C 28분 — 6/7 hard freeze 기여 의심 패턴). 동시 2 + 대기 8 + 대기 15s 상한.
 //   초과분은 즉시 null → 상위(callAI cloud / 원문 fallback)가 처리. GPU 는 보고서가 우선.
-const OLLAMA_MAX_CONCURRENT = 2;
-const OLLAMA_MAX_WAITING = 8;
-const OLLAMA_WAIT_MS = 15000;
+//   2026-08-20: 상수를 설정으로 뺀다. 위 값들은 보고서와 GPU 를 공유하던 시절 것이다.
+//   전용 웹 레인(:8001, 4B)으로 분리한 뒤에는 맞지 않았다 — 실측으로 확인:
+//     news-cascade 12건 중 정확히 2건만 성공(= MAX_CONCURRENT). 나머지는 rawLen 0.
+//     대기 상한 15초 < 실제 생성 22.4초(509토큰, 22.7 tok/s) → 대기자는 구조적으로 통과 불가.
+//   기본값은 레인 분리를 전제로 올린다. 여전히 상한은 둔다(무한 큐 적체 방지가 원래 목적).
+const num = (v: string | undefined, d: number) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : d; };
+const OLLAMA_MAX_CONCURRENT = num(process.env.LOCAL_LLM_MAX_CONCURRENT, 4);
+const OLLAMA_MAX_WAITING = num(process.env.LOCAL_LLM_MAX_WAITING, 16);
+const OLLAMA_WAIT_MS = num(process.env.LOCAL_LLM_WAIT_MS, 60_000);
 let ollamaActive = 0;
 const ollamaWaiters: Array<() => void> = [];
 async function ollamaAcquire(): Promise<boolean> {
   if (ollamaActive < OLLAMA_MAX_CONCURRENT) { ollamaActive++; return true; }
-  if (ollamaWaiters.length >= OLLAMA_MAX_WAITING) return false;
+  if (ollamaWaiters.length >= OLLAMA_MAX_WAITING) {
+    // 2026-08-20: 종전에는 조용히 false 를 돌려줘 상위에서 rawLen 0 만 보였다. 원인을 남긴다.
+    logger.warn('llm-local', 'gate_rejected_queue_full', { active: ollamaActive, waiting: ollamaWaiters.length, maxWaiting: OLLAMA_MAX_WAITING });
+    return false;
+  }
   const ok = await new Promise<boolean>((res) => {
     const waiter = () => { clearTimeout(timer); res(true); };
     const timer = setTimeout(() => {
       const i = ollamaWaiters.indexOf(waiter);
       if (i >= 0) ollamaWaiters.splice(i, 1);
+      logger.warn('llm-local', 'gate_rejected_wait_timeout', { waitMs: OLLAMA_WAIT_MS, active: ollamaActive, waiting: ollamaWaiters.length });
       res(false);
     }, OLLAMA_WAIT_MS);
     ollamaWaiters.push(waiter);

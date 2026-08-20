@@ -14,6 +14,7 @@
  * 이후: npm run build:universe (파생 동기화)
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { decodeDataEntities } from './lib/decode-data-entities.mjs';
 
 const NO_NET = process.argv.includes('--no-net');
 
@@ -158,7 +159,10 @@ if (!NO_NET && krResidual.length) {
   console.log(`  [naver] 보강 ${naverN}/${krResidual.length} (업종 ${naverIndustryCache.size}종 캐시)`);
 }
 
-writeFileSync('data/candidate-tickers.json', JSON.stringify(cand, null, 2) + '\n');
+// 2026-08-20: 저장 직전 HTML 엔티티를 디코딩한다. 외부 소스에서 온 이름에 &amp; 가 섞여
+//   "삼성E&amp;A", "M&amp;T Bank" 가 파일에 저장되고 화면까지 그대로 갔다(눈검증 실측).
+//   읽는 쪽에서 매번 고치지 않고 저장되는 값을 바로잡는다.
+writeFileSync('data/candidate-tickers.json', JSON.stringify(decodeDataEntities(cand), null, 2) + '\n');
 
 const remain = cand.tickers.filter(t => bad(cand.meta[t]?.sector));
 console.log(`\n✅ sector 보강 완료: seed ${seeded} + Yahoo ${fetched} + Naver ${naverN} = ${seeded + fetched + naverN}종 | 미상 잔여 ${remain.length}`);

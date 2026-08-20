@@ -5371,7 +5371,7 @@
       "market": "kospi"
     },
     "028050.KS": {
-      "name": "삼성E&amp;A",
+      "name": "삼성E&A",
       "sector": "Other",
       "cap": "kr",
       "market": "kospi"
@@ -5647,7 +5647,7 @@
       "market": "kosdaq"
     },
     "067830.KS": {
-      "name": "세이브존I&amp;C",
+      "name": "세이브존I&C",
       "sector": "Retail",
       "cap": "kr",
       "market": "kospi"
@@ -7838,7 +7838,7 @@
     },
     "AES": {
       "name": "AES Corporation",
-      "sector": "Independent Power Producers &amp; Energy Traders",
+      "sector": "Independent Power Producers & Energy Traders",
       "cap": "large",
       "sp500": true
     },
@@ -7850,7 +7850,7 @@
     },
     "AMCR": {
       "name": "Amcor",
-      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials",
+      "sector": "Paper & Plastic Packaging Products & Materials",
       "cap": "large",
       "sp500": true
     },
@@ -7897,7 +7897,7 @@
       "sp500": true
     },
     "AJG": {
-      "name": "Arthur J. Gallagher &amp; Co.",
+      "name": "Arthur J. Gallagher & Co.",
       "sector": "financials",
       "cap": "large",
       "sp500": true
@@ -7939,7 +7939,7 @@
       "sp500": true
     },
     "BRO": {
-      "name": "Brown &amp; Brown",
+      "name": "Brown & Brown",
       "sector": "financials",
       "cap": "large",
       "sp500": true
@@ -8251,7 +8251,7 @@
       "sp500": true
     },
     "JKHY": {
-      "name": "Jack Henry &amp; Associates",
+      "name": "Jack Henry & Associates",
       "sector": "technology",
       "cap": "mid",
       "sp500": true
@@ -8281,7 +8281,7 @@
       "sp500": true
     },
     "KKR": {
-      "name": "KKR &amp; Co.",
+      "name": "KKR & Co.",
       "sector": "financials",
       "cap": "large",
       "sp500": true
@@ -8311,7 +8311,7 @@
       "sp500": true
     },
     "MTB": {
-      "name": "M&amp;T Bank",
+      "name": "M&T Bank",
       "sector": "financials",
       "cap": "large",
       "sp500": true
@@ -8329,7 +8329,7 @@
       "sp500": true
     },
     "MKC": {
-      "name": "McCormick &amp; Company",
+      "name": "McCormick & Company",
       "sector": "consumer-staples",
       "cap": "large",
       "sp500": true
@@ -8378,7 +8378,7 @@
     },
     "NRG": {
       "name": "NRG Energy",
-      "sector": "Independent Power Producers &amp; Energy Traders",
+      "sector": "Independent Power Producers & Energy Traders",
       "cap": "large",
       "sp500": true
     },
@@ -8401,7 +8401,7 @@
       "sp500": true
     },
     "PCG": {
-      "name": "PG&amp;E Corporation",
+      "name": "PG&E Corporation",
       "sector": "Multi-Utilities",
       "cap": "large",
       "sp500": true
@@ -8480,7 +8480,7 @@
     },
     "SW": {
       "name": "Smurfit Westrock",
-      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials",
+      "sector": "Paper & Plastic Packaging Products & Materials",
       "cap": "large",
       "sp500": true
     },
@@ -8696,7 +8696,7 @@
     "003230.KS": "삼양식품",
     "185750.KS": "종근당",
     "000720.KS": "현대건설",
-    "028050.KS": "삼성E&amp;A",
+    "028050.KS": "삼성E&A",
     "047040.KS": "대우건설",
     "000210.KS": "DL",
     "064350.KS": "현대로템",
@@ -8744,7 +8744,7 @@
     "003670.KS": "포스코퓨처엠",
     "053000.KS": "우리금융지주",
     "082800.KQ": "비보존 제약",
-    "067830.KS": "세이브존I&amp;C",
+    "067830.KS": "세이브존I&C",
     "002310.KS": "아세아제지",
     "010620.KS": "에이치디현대미포",
     "007070.KS": "GS리테일",

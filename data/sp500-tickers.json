@@ -537,7 +537,7 @@
     },
     "AES": {
       "name": "AES Corporation",
-      "sector": "Independent Power Producers &amp; Energy Traders"
+      "sector": "Independent Power Producers & Energy Traders"
     },
     "AFL": {
       "name": "Aflac",
@@ -601,7 +601,7 @@
     },
     "AMCR": {
       "name": "Amcor",
-      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+      "sector": "Paper & Plastic Packaging Products & Materials"
     },
     "AEE": {
       "name": "Ameren",
@@ -692,7 +692,7 @@
       "sector": "Information Technology"
     },
     "AJG": {
-      "name": "Arthur J. Gallagher &amp; Co.",
+      "name": "Arthur J. Gallagher & Co.",
       "sector": "Unknown"
     },
     "AIZ": {
@@ -700,7 +700,7 @@
       "sector": "Unknown"
     },
     "T": {
-      "name": "AT&amp;T",
+      "name": "AT&T",
       "sector": "Integrated Telecommunication Services"
     },
     "ATO": {
@@ -725,7 +725,7 @@
     },
     "AVY": {
       "name": "Avery Dennison",
-      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+      "sector": "Paper & Plastic Packaging Products & Materials"
     },
     "AXON": {
       "name": "Axon Enterprise",
@@ -808,7 +808,7 @@
       "sector": "Unknown"
     },
     "BRO": {
-      "name": "Brown &amp; Brown",
+      "name": "Brown & Brown",
       "sector": "Unknown"
     },
     "BF-B": {
@@ -920,7 +920,7 @@
       "sector": "Unknown"
     },
     "CHD": {
-      "name": "Church &amp; Dwight",
+      "name": "Church & Dwight",
       "sector": "Unknown"
     },
     "CIEN": {
@@ -1084,7 +1084,7 @@
       "sector": "Unknown"
     },
     "DE": {
-      "name": "Deere &amp; Company",
+      "name": "Deere & Company",
       "sector": "Unknown"
     },
     "DELL": {
@@ -1456,7 +1456,7 @@
       "sector": "Unknown"
     },
     "HST": {
-      "name": "Host Hotels &amp; Resorts",
+      "name": "Host Hotels & Resorts",
       "sector": "Unknown"
     },
     "HWM": {
@@ -1524,12 +1524,12 @@
       "sector": "Unknown"
     },
     "IFF": {
-      "name": "International Flavors &amp; Fragrances",
+      "name": "International Flavors & Fragrances",
       "sector": "Unknown"
     },
     "IP": {
       "name": "International Paper",
-      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+      "sector": "Paper & Plastic Packaging Products & Materials"
     },
     "INTU": {
       "name": "Intuit",
@@ -1564,7 +1564,7 @@
       "sector": "Information Technology"
     },
     "JKHY": {
-      "name": "Jack Henry &amp; Associates",
+      "name": "Jack Henry & Associates",
       "sector": "Unknown"
     },
     "J": {
@@ -1572,7 +1572,7 @@
       "sector": "Unknown"
     },
     "JNJ": {
-      "name": "Johnson &amp; Johnson",
+      "name": "Johnson & Johnson",
       "sector": "Unknown"
     },
     "JCI": {
@@ -1612,7 +1612,7 @@
       "sector": "Unknown"
     },
     "KKR": {
-      "name": "KKR &amp; Co.",
+      "name": "KKR & Co.",
       "sector": "Unknown"
     },
     "KLAC": {
@@ -1692,7 +1692,7 @@
       "sector": "Unknown"
     },
     "MTB": {
-      "name": "M&amp;T Bank",
+      "name": "M&T Bank",
       "sector": "Unknown"
     },
     "MPC": {
@@ -1720,7 +1720,7 @@
       "sector": "Unknown"
     },
     "MKC": {
-      "name": "McCormick &amp; Company",
+      "name": "McCormick & Company",
       "sector": "Unknown"
     },
     "MCD": {
@@ -1736,7 +1736,7 @@
       "sector": "Unknown"
     },
     "MRK": {
-      "name": "Merck &amp; Co.",
+      "name": "Merck & Co.",
       "sector": "Unknown"
     },
     "META": {
@@ -1869,7 +1869,7 @@
     },
     "NRG": {
       "name": "NRG Energy",
-      "sector": "Independent Power Producers &amp; Energy Traders"
+      "sector": "Independent Power Producers & Energy Traders"
     },
     "NUE": {
       "name": "Nucor",
@@ -1925,7 +1925,7 @@
     },
     "PKG": {
       "name": "Packaging Corporation of America",
-      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+      "sector": "Paper & Plastic Packaging Products & Materials"
     },
     "PLTR": {
       "name": "Palantir Technologies",
@@ -1964,7 +1964,7 @@
       "sector": "Unknown"
     },
     "PCG": {
-      "name": "PG&amp;E Corporation",
+      "name": "PG&E Corporation",
       "sector": "Multi-Utilities"
     },
     "PM": {
@@ -2000,7 +2000,7 @@
       "sector": "Unknown"
     },
     "PG": {
-      "name": "Procter &amp; Gamble",
+      "name": "Procter & Gamble",
       "sector": "Unknown"
     },
     "PGR": {
@@ -2112,7 +2112,7 @@
       "sector": "Unknown"
     },
     "SPGI": {
-      "name": "S&amp;P Global",
+      "name": "S&P Global",
       "sector": "Unknown"
     },
     "CRM": {
@@ -2161,7 +2161,7 @@
     },
     "SW": {
       "name": "Smurfit Westrock",
-      "sector": "Paper &amp; Plastic Packaging Products &amp; Materials"
+      "sector": "Paper & Plastic Packaging Products & Materials"
     },
     "SNA": {
       "name": "Snap-on",
@@ -2180,7 +2180,7 @@
       "sector": "Unknown"
     },
     "SWK": {
-      "name": "Stanley Black &amp; Decker",
+      "name": "Stanley Black & Decker",
       "sector": "Unknown"
     },
     "SBUX": {

@@ -268,12 +268,12 @@ export default function StockSupplyModal({ ticker, onClose }: Props) {
                     <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3">
                       <div className="rounded-xl bg-gray-50 p-3">
                         <p className="text-[10px] text-gray-400 font-medium mb-1">{t('instHeld')}</p>
-                        <p className="text-base font-bold">{data.instHeld != null ? `${(data.instHeld * 100).toFixed(1)}%` : '—'}</p>
+                        <p className="text-base font-bold">{data.instHeld != null ? `${data.instHeld.toFixed(1)}%` : '—'}</p>
                       </div>
                       <div className="rounded-xl bg-gray-50 p-3">
                         <p className="text-[10px] text-gray-400 font-medium mb-1">{t('shortPct')}</p>
                         <p className={`text-base font-bold ${(data.shortPct ?? 0) > 0.1 ? 'text-red-500' : 'text-gray-800'}`}>
-                          {data.shortPct != null ? `${(data.shortPct * 100).toFixed(1)}%` : '—'}
+                          {data.shortPct != null ? `${data.shortPct.toFixed(1)}%` : '—'}
                         </p>
                       </div>
                       <div className="rounded-xl bg-gray-50 p-3">
@@ -292,7 +292,7 @@ export default function StockSupplyModal({ ticker, onClose }: Props) {
                       </div>
                       <div className="rounded-xl bg-gray-50 p-3">
                         <p className="text-[10px] text-gray-400 font-medium mb-1">{t('insiderHeld')}</p>
-                        <p className="text-base font-bold">{data.insiderHeld != null ? `${(data.insiderHeld * 100).toFixed(1)}%` : '—'}</p>
+                        <p className="text-base font-bold">{data.insiderHeld != null ? `${data.insiderHeld.toFixed(1)}%` : '—'}</p>
                       </div>
                     </div>
                   </div>

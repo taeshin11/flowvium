@@ -2,6 +2,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { newsGapData, type OwnershipRecord } from '@/data/news-gap';
 import { createRedis } from '@/lib/redis';
+import { toPercent } from '@/lib/holding-scale';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -189,9 +190,12 @@ async function fetchQuoteStats(ticker: string): Promise<QuoteStats> {
     const q = data?.quoteResponse?.result?.[0];
     if (!q) return empty;
     return {
-      instHeld: typeof q.heldPercentInstitutions === 'number' ? parseFloat((q.heldPercentInstitutions * 100).toFixed(1)) : null,
-      insiderHeld: typeof q.heldPercentInsiders === 'number' ? parseFloat((q.heldPercentInsiders * 100).toFixed(1)) : null,
-      shortPct: typeof q.shortPercentOfFloat === 'number' ? parseFloat((q.shortPercentOfFloat * 100).toFixed(1)) : null,
+      // 2026-08-20: 무조건 ×100 이 아니라 단위를 검사해 퍼센트(0~100)로 정규화한다.
+      //   Yahoo 가 분수(0.66)에서 퍼센트(66.49)로 바꿨는데 여기와 UI 가 각자 ×100 해서
+      //   화면에 664,920% 가 떴다. 계약: 이 API 는 항상 퍼센트를 돌려준다.
+      instHeld: toPercent(q.heldPercentInstitutions),
+      insiderHeld: toPercent(q.heldPercentInsiders),
+      shortPct: toPercent(q.shortPercentOfFloat),
       shortRatio: typeof q.shortRatio === 'number' ? parseFloat(q.shortRatio.toFixed(1)) : null,
       marketCap: typeof q.marketCap === 'number' ? q.marketCap : null,
       sharesOutstanding: typeof q.sharesOutstanding === 'number' ? q.sharesOutstanding : null,

@@ -1,3 +1,5 @@
+import { residualForeign, kanaDominant } from '@/lib/residual-foreign';
+import { translationSucceeded } from '@/lib/translation-gate';
 import { logger, loggedRedisSet, loggedRedisSetNx, loggedRedisDel } from '@/lib/logger';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
@@ -13,6 +15,7 @@ import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
 import { localChat, localChatNoBleed, hasChineseBleed } from '@/lib/llm-local';
 import { kanaToHangul } from '@/lib/kana-to-hangul';
+import { decodeEntities, dedupeSummary } from '@/lib/news-sanitize';
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 60;
@@ -53,7 +56,7 @@ export interface NewsWithCascade extends RawNewsItem {
   sentiment: 'bullish' | 'bearish' | 'neutral';
   importance: 'high' | 'medium' | 'low';
   analyzedAt: string;
-  analysisSource: 'ai' | 'keyword-rule' | 'cached';
+  analysisSource: 'ai' | 'keyword-rule' | 'cached' | 'ai-failed';
 }
 
 // Cache key: per-article (by URL hash) + list key
@@ -76,34 +79,15 @@ function translatedKey(locale: string): string {
 //   영어를 translated:true 로 24h 캐시 = ko 영어 오염 고착. 실제 언어로 검증해 오염 차단.
 // 2026-06-14: 배치 번역 후 *잔존 외국어* 감지 — 타겟과 다른 CJK 스크립트(가나/한글 불일치)가 남았으면
 //   미번역(예: ko 타겟인데 일본어 가나 잔존 — "3年目に突入した「新NISA」" 사건). han 한자는 공유라 제외(오탐방지).
-function residualForeign(text: string, locale: string): boolean {
-  if (!text) return false;
-  const hasKana = /[ぁ-んァ-ヶ]/.test(text);   // 일본어 전용
-  const hasHangul = /[가-힣]/.test(text);       // 한국어 전용
-  if (locale === 'ja') return hasHangul;
-  if (locale === 'ko') return hasKana;
-  if (locale === 'zh-CN' || locale === 'zh-TW') return hasKana || hasHangul;
-  return /[ぁ-んァ-ヶ가-힣一-龯]/.test(text);   // 비-CJK 타겟(en/es/…): 어떤 CJK 잔존도 미번역
-}
+// 2026-08-20: residualForeign 을 src/lib/residual-foreign.ts 로 분리했다.
+//   종전 구현은 대상별 '특정 스크립트'만 봐서 영문 잔존을 못 잡았다(한국어 페이지에 영어 요약 노출).
 const CJK_RE: Record<string, RegExp> = {
   ko: /[가-힣]/, ja: /[ぁ-んァ-ヶ一-龯]/, 'zh-CN': /[一-龥]/, 'zh-TW': /[一-龥]/,
 };
-function translationSucceeded(orig: NewsWithCascade[], trans: NewsWithCascade[], locale: string): boolean {
-  if (locale === 'en') return true;
-  const sample = trans.slice(0, 5);
-  // 제목이 원문과 하나라도 달라야 번역 시도 성공 (identity/실패 배제)
-  const changed = sample.some((t, i) => (t.title ?? '').trim() !== (orig[i]?.title ?? '').trim());
-  if (!changed) return false;
-  // 2026-06-04: sample.some() 는 첫 5개 중 1개만 번역돼도 통과 → partial(40-50%) 이 캐시됨(ja/zh leak).
-  //   전체 제목의 ≥70% 가 target script 여야 성공으로 인정 → partial 캐시 차단(재번역 유도).
-  const re = CJK_RE[locale];
-  if (re) {
-    const titles = trans.map(t => t.title ?? '').filter(Boolean);
-    if (!titles.length) return false;
-    return titles.filter(t => re.test(t)).length >= titles.length * 0.7;
-  }
-  return true;
-}
+// 2026-08-20: translationSucceeded 를 src/lib/translation-gate.ts 로 분리했다.
+//   종전 구현은 '제목이 바뀌었는가'를 성공 기준으로 삼아, 한국어 소스 기사(제목 불변)에서
+//   멀쩡한 번역본을 통째로 버리고 cached-en 을 서빙했다. 결과(대상 언어 비율)로 판정한다.
+
 
 // 16개 언어 라벨 — 번역 프롬프트에 명시적으로 사용
 const LOCALE_NAMES: Record<string, string> = {
@@ -260,6 +244,11 @@ Output (JSON array only):`;
     //   (multi-country 피드 추가 후 [B] 회귀). 이제 *원문이 target 언어가 아닌* 기사(번역 필요분)
     //   중 하나라도 실제로 바뀌었는지로 판정 — 네이티브 identity 에 속지 않음.
     const tgtRe = CJK_RE[locale];
+    // 2026-08-20: 배치 성공 판정은 '제목'으로만 한다(원복). 요약까지 판정에 넣었더니
+    //   한국어 소스 기사(제목 번역 불필요)에서 LLM 응답에 summary 가 없을 때 '변화 없음'과
+    //   구분되지 않아 멀쩡한 배치를 통째로 버리고 per-field 폴백으로 갔다 —
+    //   실측 역효과: 제목 12/12→8/11, 요약 9/12→0/11. 좋은 배치를 버리면 안 된다.
+    //   요약 미번역은 아래 '잔여 필드 보정'에서 해당 필드만 따로 처리한다.
     const needTr = articles.map((a, i) => ({ a, i })).filter(({ a }) => !tgtRe || !tgtRe.test(a.title));
     const anyTr = needTr.some(({ a, i }) => {
       const tt = byIdx.get(i)?.title?.trim();
@@ -336,15 +325,17 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     // 2026-06-14: ko 타겟에 가나가 잔존하나 *대부분 한국어* 면(브랜드/고유명사 1~2개) — 로컬 LLM
     //   (qwen3:8b)이 혼합스크립트에 환각(무관문장·중국어)을 내 신뢰 불가[실측]. 이미 번역된 한국어는
     //   보존하고 가나 런만 결정론적으로 한글 음차(ロンジン→론진). 의미손실 없는 표기 정규화.
-    if (locale === 'ko' && residualForeign(text, locale)) {
-      const kana = (text.match(/[ぁ-ゖァ-ヺ]/g) || []).length;
-      const hangul = (text.match(/[가-힣]/g) || []).length;
-      if (hangul > kana) return keep(kanaToHangul(text));   // 가나과다=진짜 미번역 → 아래 LLM 경로
+    // 가나가 섞였지만 대부분 한국어면 음차로 정리(의미손실 없음). 판정은 가나 기준으로 한다.
+    if (locale === 'ko' && !kanaDominant(text) && /[ぁ-ゖァ-ヺ]/.test(text)) {
+      return keep(kanaToHangul(text));
     }
     // 2026-06-14: 여기 도달 = ko 인데 가나≥한글(대부분 일본어). 로컬 qwen3 는 JA→KO 를 못 해 환각
     //   (무관 한국어 문장)을 내는데 script 검사를 통과해 garbage 가 캐시되던 위험 — 실측됨. 로컬 skip,
     //   클라우드만 시도(키 없으면 원문 유지 → 피드 필터가 미번역 외국어 기사를 drop).
-    const skipLocal = locale === 'ko' && residualForeign(text, locale);
+    // 2026-08-20: residualForeign 이 아니라 kanaDominant 로 판정한다.
+    //   residualForeign 은 '미번역인가'(영문 포함)이고, 여기서 필요한 건 '로컬 모델이 못 하는
+    //   일본어 위주인가'다. 같은 함수를 쓰면 영어 요약마다 로컬을 건너뛰어 원문이 남는다(실측 회귀).
+    const skipLocal = locale === 'ko' && kanaDominant(text);
     // localChatNoBleed: bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud 폴백.
     const out = skipLocal ? null : await localChatNoBleed(`Translate to ${langName}. Return ONLY the translation — no quotes, no notes, no original text.\n\n${text}`, locale, { temperature: 0.3, maxTokens: 800, timeoutMs: llmTimeoutMs(800) });
     // 2026-06-14: ko 는 출력의 잔존 가나를 결정론 음차로 정리. 그래도 잔존-외국어면 캐시 거부 → 폴백.
@@ -450,7 +441,10 @@ async function fetchRSS(feedUrl: string, source: string, requireFinancial = fals
     let match;
     while ((match = itemRegex.exec(xml)) !== null) {
       const itemXml = match[1];
-      const title = itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1]?.trim() ?? '';
+      // 2026-08-20: 엔티티를 '필터보다 먼저' 디코딩한다. 미관 문제가 아니라 기능 문제 —
+      //   "S&amp;P 500 hits record" 는 아래 FINANCIAL_SIGNAL 의 `s&p` 에 매칭되지 않아
+      //   금융 기사가 통째로 버려졌다(실측: 원문 false → 디코딩 후 true).
+      const title = decodeEntities(itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1] ?? '').trim();
       const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim()
         ?? itemXml.match(/<guid[^>]*>([\s\S]*?)<\/guid>/)?.[1]?.trim() ?? '';
       const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? new Date().toISOString();
@@ -614,7 +608,10 @@ function keywordFallbackCascade(title: string): Pick<NewsWithCascade, 'summary' 
   for (const rule of KEYWORD_RULES) {
     if (rule.pattern.test(t)) {
       return {
-        summary: title,
+        // 2026-08-20: 요약을 제목으로 채우지 않는다. 이 폴백은 cascade 룰만 제공하며 요약은 없다.
+        //   종전에는 summary: title 이라 화면에 같은 문장이 두 번 떴다(눈검증 실측 8/12건).
+        //   소비처(NewsCascadeTab.tsx:117)가 `{item.summary && …}` 로 빈 값을 건너뛴다.
+        summary: '',
         sentiment: rule.sentiment,
         importance: rule.importance,
         cascades: rule.cascades,
@@ -763,10 +760,12 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 
     // 품질 가드: summary 에 한자 혼입이면 title 로 대체 (원문 영어가 한자 혼입보다 나음).
     // cascades[].reason 도 동일 — 혼입된 reason 은 빈 문자열로 지워 UI에서 자동 비노출.
-    let summary: string = parsed.summary ?? item.title;
-    if (typeof summary === 'string' && hasChineseLeak(summary)) {
+    // 2026-08-20: 요약이 없거나 한자 혼입이면 제목으로 채우지 않는다 — 화면에 같은 문장이 두 번 뜬다.
+    //   소비처(NewsCascadeTab.tsx:117)가 빈 요약을 건너뛰므로 비워두는 것이 옳다.
+    let summary: string = typeof parsed.summary === 'string' ? parsed.summary : '';
+    if (summary && hasChineseLeak(summary)) {
       logger.warn('news-cascade', 'chinese_leak_summary', { link: item.link, sample: summary.slice(0, 80) });
-      summary = item.title;
+      summary = '';
     }
     // Garbage check: AI가 의미없는 반복/짧은 텍스트를 뱉었으면 keyword 룰로 교체
     if (isGarbage(summary, 25)) {
@@ -799,16 +798,27 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
       analyzedAt: new Date().toISOString(),
       analysisSource: 'ai' as const,
     };
-  } catch {
+  } catch (e) {
+    // 2026-08-20: 종전 `catch {}` 는 오류를 통째로 삼켜 무엇이 실패했는지 알 수 없었다.
+    //   실패율 50%(12건 중 6건)가 드러났는데도 원인을 못 봤다. 원인과 원문 앞부분을 남긴다.
+    logger.warn('news-cascade', 'parse_cascade_failed', {
+      link: item.link,
+      error: e instanceof Error ? e.message : String(e),
+      rawSample: String(raw ?? '').slice(0, 160),
+      rawLen: String(raw ?? '').length,
+    });
+    // 분석이 실패했는데 analysisSource: 'ai' 로 표기하면 '분석됨'과 구분이 안 된다.
+    //   요약도 제목으로 채우지 않는다 — 없는 것을 있는 것처럼 만들지 않는다.
+    //   'ai-failed' 로 남겨 사후에 실패율을 셀 수 있게 한다(종전에는 성공과 섞여 셀 수 없었다).
     return {
       ...item,
       id,
-      summary: item.title,
+      summary: '',
       sentiment: 'neutral',
       importance: 'medium',
       cascades: [],
       analyzedAt: new Date().toISOString(),
-      analysisSource: 'ai' as const,
+      analysisSource: 'ai-failed' as const,
     };
   }
 }
