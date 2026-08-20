@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-08-20T07:20:23.673Z",
+  "generatedAt": "2026-08-20T22:20:22.165Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 5,
+  "count": 4,
   "strongCount": 1,
-  "watchCount": 4,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -26,26 +26,8 @@
       "official": null
     },
     {
-      "ticker": "078130.KQ",
-      "name": "국일제지",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -14.8,
-      "runup5dPct": -5.7,
-      "medDollarVolUsd": 473153,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "054780.KQ",
-      "name": "키이스트",
+      "ticker": "190650.KQ",
+      "name": "코리아에셋투자증권",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
@@ -55,9 +37,9 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 7.3,
-      "runup5dPct": -4.3,
-      "medDollarVolUsd": 35485,
+      "runup20dPct": 3,
+      "runup5dPct": 0.7,
+      "medDollarVolUsd": 44778,
       "smartAccum": true,
       "official": null
     },
