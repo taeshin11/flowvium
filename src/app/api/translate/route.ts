@@ -1,3 +1,4 @@
+import { isUntranslated } from '@/lib/lang-detect';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
@@ -71,8 +72,16 @@ export async function POST(request: NextRequest) {
     let source = 'ollama';
     // localChatNoBleed: qwen3 네이티브 + bleed 감지 시 1회 재생성, 끝까지 누출이면 null → cloud fallback.
     const ollamaTxt = await localChatNoBleed(prompt, targetLocale, { maxTokens: 2048, timeoutMs: 60000 });
-    if (ollamaTxt && ollamaTxt.trim() !== text.trim()) {
-      translated = ollamaTxt.trim();
+    // 2026-08-20: 성공 판정을 '바뀌었는가'(대리지표)에서 '대상 언어인가'(결과)로 바꾼다.
+    //   종전 `ollamaTxt !== text` 는 모델이 짧은 명사 나열을 그대로 되돌려줄 때 '실패'로 보고
+    //   cloud 로 넘겼는데, 자가호스팅이라 키가 revoked 여서 원문(영문)이 그대로 사용자에게 나갔다
+    //   (실측: "Industrial conglomerates, machinery, aerospace, and transportation.").
+    //   반대로 원문이 이미 대상 언어면 '동일 출력'이 정답인데도 실패로 봤다.
+    //   lang-detect 는 판정 불가(티커·숫자)를 und 로 돌려주므로 오탐도 함께 줄어든다.
+    //   같은 원칙을 translation-gate.mjs 에도 적용했다 — 이 저장소에 반복되는 교훈이다.
+    const localOk = !!ollamaTxt && !isUntranslated(ollamaTxt.trim(), targetLocale);
+    if (localOk) {
+      translated = ollamaTxt!.trim();
     } else {
       const aiRes = await callAI(prompt, {
         maxTokens: 1024,

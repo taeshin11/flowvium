@@ -1,3 +1,4 @@
+import { isUntranslated } from './lang-detect';
 import { logger } from '@/lib/logger';
 /**
  * src/lib/llm-local.ts — 로컬 vLLM 단일 진입점 (2026-06-15 Ollama→WSL/vLLM 이전).
@@ -148,9 +149,13 @@ export async function localChatNoBleed(
   locale: string,
   opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {},
 ): Promise<string | null> {
+  // 2026-08-20 시행착오: 재생성 조건에 isUntranslated 를 넣었더니 오히려 나빠졌다(3/5 → 0/5).
+  //   원인: 이 모델은 번역은 하되 출력에 키릴·라틴 조각을 섞는다("산업 컨гло머리트", "산업 컨glomerates").
+  //   hasChineseBleed 가 그걸 잡아 재생성하고, 재생성도 또 오염돼 null → cloud(키 없음) → 원문 노출.
+  //   즉 병목은 '재생성 조건'이 아니라 '4B 의 외래어 음차 품질'이다. 조건 변경으로는 못 고친다.
+  //   원복하고 근본(음차 품질)은 미해결로 남긴다 — 조건만 조여서 더 자주 실패시키는 것은 개악이다.
   let out = await localChat(prompt, opts);
   if (out && !hasChineseBleed(out, locale)) return out;
-  // 재시도 — 외국문자 금지 명시 강화.
   const strict = `${prompt}\n\nIMPORTANT: Output ONLY in the target language. Do NOT include Chinese characters, Cyrillic, kana, or any other foreign script.`;
   out = await localChat(strict, { ...opts, temperature: 0 });
   return out && !hasChineseBleed(out, locale) ? out : null;

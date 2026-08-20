@@ -1,3 +1,4 @@
+import { isUntranslated } from './lang-detect';
 /**
  * residual-foreign.mjs — 번역 후 '아직 번역 안 된' 텍스트 판정.
  *
@@ -23,27 +24,13 @@ const ANY_CJK = /[ぁ-んァ-ヶ가-힣一-龯]/;
 const MIN_WORDY = Number(process.env.RESIDUAL_MIN_WORDY ?? 12);
 
 export function residualForeign(text: string | null | undefined, locale: string): boolean {
-  if (!text) return false;
-  const target = SCRIPT[locale];
-  if (!target) return ANY_CJK.test(text);          // 비-CJK 대상: 종전 규칙 유지
-
-  // ① 타 CJK 스크립트 누출은 길이와 무관하게 잔존 (종전 동작 보존)
-  for (const [loc, re] of Object.entries(SCRIPT)) {
-    if (loc === locale) continue;
-    if (loc.startsWith('zh') && locale.startsWith('zh')) continue;
-    // ko 대상에서 한자는 정상 혼용(한자어)이라 제외 — 가나/한글만 타언어 신호로 본다.
-    if (locale === 'ko' && loc.startsWith('zh')) continue;
-    if (locale === 'ja' && loc.startsWith('zh')) continue;
-    if (re.test(text)) return true;
-  }
-
-  // ② 대상 언어 문자가 하나도 없으면 미번역. 단 '말' 부분이 충분히 길 때만 판정한다.
-  if (target.test(text)) return false;
-  // \p{P}/\p{S} 는 tsconfig target 이 낮으면 컴파일 불가(TS1501). 동등한 문자군으로 대체한다 —
-  //   '말' 부분만 남기려는 목적이므로 문자·숫자 이외를 제거하는 것으로 충분하다.
-  const wordy = String(text).replace(/[^A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/g, '');
-  return wordy.length >= MIN_WORDY;
+  // 2026-08-20: 정규식 휴리스틱(대상 문자 부재 + 길이 임계)에서 언어 감지기로 교체.
+  //   종전에는 '동일 출력'과 '번역 불필요'를 구분하지 못했고, 티커·숫자 오탐을 임의 길이값으로 막았다.
+  //   franc 는 실제 언어를 판정하고 판정 불가는 'und' 를 돌려주므로 둘 다 해결된다.
+  //   부분 스크립트 혼입은 감지기가 못 잡으므로 lang-detect 안에서 함께 검사한다.
+  return isUntranslated(text, locale);
 }
+
 
 
 /**
