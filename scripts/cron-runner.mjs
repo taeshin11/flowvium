@@ -469,6 +469,25 @@ async function runShockCheck() {
   } catch (e) { log(`[shock] 점검 실패: ${String(e.message).slice(0, 60)}`); }
 }
 // 2026-06-17 (사용자 "전부 20분마다로 통일"): */10→*/20분.
+// ── 뉴스 상시 폴링 (2026-08-20) ───────────────────────────────────────────────
+//   실측: news_archive 1,364건 기준 발행→수집 지연 중앙값 125분 · p90 287분.
+//   수집 시각이 보고서 세션(05:30·10:30·14:30·20:00·22:30)에 정확히 몰려 있었고
+//   p90 이 세션 간격(≈4.8h)과 같았다 — 수집이 보고서 생성에만 붙어 있었기 때문이다.
+//   사용자 질문("속보까지 제일 빨리 볼 방법")의 답은 소스 추가 이전에 주기 분리다.
+//   폴러는 LLM 을 안 쓰므로(결정론적 적재만) 보고서와 GPU 를 다투지 않는다 → 5분 주기 안전.
+//   보고서 실행 중에도 돌린다: GPU 미사용이라 skip 할 이유가 없고, 오히려 그때가 뉴스가 필요한 때다.
+async function runNewsPoll() {
+  try {
+    const { stdout } = await execFileAsync('node', ['scripts/poll-news.mjs', '--quiet'],
+      { timeout: 180000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
+    const line = stdout.trim().split('\n').filter(Boolean).at(-1) ?? '';
+    const m = stdout.match(/신규 (\d+)건/);
+    if (m && Number(m[1]) > 0) log(`[news-poll] ${line}`);
+  } catch (e) { log(`[news-poll] 실패: ${String(e.message).slice(0, 100)}`); }
+}
+cron.schedule('*/5 * * * *', runNewsPoll, { timezone: TZ });
+log('뉴스 상시 폴러 등록: */5분 (LLM 미사용 — 보고서와 GPU 무경합)');
+
 cron.schedule('*/20 * * * *', runShockCheck, { timezone: TZ });
 log('시장 쇼크 모니터 등록: */20분 (속보 키워드 + VIX 인트라데이 + KOSPI/원화 → 임계시 비정기 발간, 2h 쿨다운)');
 

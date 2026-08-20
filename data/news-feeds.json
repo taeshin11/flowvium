@@ -1,0 +1,73 @@
+{
+  "_comment": "뉴스 피드 단일 소스 (2026-08-20). 종전에는 src/app/api/news-cascade/route.ts 안에만 있어서 보고서 생성 시에만 수집됐다 — 실측 결과 발행→수집 지연 중앙값 125분, p90 287분이었고, 수집 시각 분포가 보고서 세션(05:30·10:30·14:30·20:00·22:30)에 정확히 몰려 있었다. 병목은 소스가 아니라 주기였다. 독립 폴러(scripts/poll-news.mjs)가 같은 목록을 쓰도록 분리한다. 목록이 두 곳으로 갈라지면 한쪽만 고쳐 조용히 어긋난다 — 이번 세션에서 반복해 본 실패 유형이다.",
+  "financialSignal": "\\b(stock|market|rate|bond|yield|fed|fomc|earning|gdp|inflation|cpi|pce|dollar|usd|euro|yen|equity|index|s&p|nasdaq|dow|trade|tariff|oil|gold|crypto|bitcoin|bank|econom|invest|etf|fund|sector|tech|growth|recession|debt|deficit|treasur|fiscal|monetar|interest|employment|jobs|payroll|retail|sales|profit|revenue|quarter|analyst|forecast|outlook|powell|ecb|boe|boj|imf|world bank|china|europe|emerging|hedge|risk|volatilit|vix|ipo|merger|acquisition|dividend|buyback|short|long|bull|bear|rally|sell-off|correction|commodit|copper|aluminum|energy|supply|demand|manufactur|pmi|ism|claims|unemploy|consumer|sentiment|housing|mortgage|credit|spread|oas|liquidit|capital|portfolio)",
+  "feeds": [
+    {
+      "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+      "source": "MarketWatch",
+      "requireFinancial": true,
+      "region": "us"
+    },
+    {
+      "url": "https://www.investing.com/rss/news.rss",
+      "source": "Investing.com",
+      "requireFinancial": true,
+      "region": "us"
+    },
+    {
+      "url": "https://seekingalpha.com/market_currents.xml",
+      "source": "Seeking Alpha",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI&region=US&lang=en-US",
+      "source": "Yahoo Finance",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=SOXX,SMH,NVDA,AMAT,ANET&region=US&lang=en-US",
+      "source": "Yahoo Semis",
+      "requireFinancial": true,
+      "region": "us"
+    },
+    {
+      "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=XLE,XOM,LNG,CVX,NEE&region=US&lang=en-US",
+      "source": "Yahoo Energy",
+      "requireFinancial": true,
+      "region": "us"
+    },
+    {
+      "url": "https://www.yna.co.kr/rss/economy.xml",
+      "source": "연합뉴스 경제",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://www.hankyung.com/feed/economy",
+      "source": "한국경제",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://rss.mt.co.kr/mt_news.xml",
+      "source": "머니투데이",
+      "requireFinancial": false,
+      "region": "kr",
+      "titleFilter": "증시|주가|주식|코스피|코스닥|증권|상장|공모|실적|영업이익|금리|환율|반도체|수출|매출|배당|연준|관세|환제|유가|채권|펀드|ETF|IPO"
+    },
+    {
+      "url": "https://news.yahoo.co.jp/rss/categories/business.xml",
+      "source": "Yahoo Japan 경제",
+      "requireFinancial": false,
+      "region": "jp"
+    },
+    {
+      "url": "https://www.scmp.com/rss/92/feed",
+      "source": "SCMP Business",
+      "requireFinancial": false,
+      "region": "cn"
+    }
+  ]
+}
