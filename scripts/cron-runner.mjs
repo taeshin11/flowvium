@@ -18,6 +18,7 @@ import { resolve } from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { resolveLauncher } from './lib/report-launcher.mjs';   // 2026-08-20: cmd /c run-report.bat 고정 → 맥에서 ENOENT.
+import { resolveLlm } from './lib/llm-config.mjs';
 //   쇼크 긴급보고서와 누락 backfill 두 안전망이 동시에 무증상 사망 상태였다.
 
 // 2026-06-11: execSync → 비동기 execFile. execSync 는 이벤트 루프를 최대 170~300초 블로킹해
@@ -134,7 +135,8 @@ log(`스케줄 등록 ${scheduled}/${crons.length} (TZ=${TZ}, BASE=${BASE}). Ctr
 // 2026-06-05: 자동 모니터 (촘촘히) — 수동 의존 제거. */20분 check-stall + check-data-quality 실행,
 //   execSync timeout 으로 hang 방지, 결과를 logs/monitor-status.json 에 기록(가시) + 결함 시 로그 강조.
 let monitorRunning = false;
-const LOCAL_MODEL_NAME = process.env.OLLAMA_TRANSLATE_MODEL || 'qwen3:8b';  // gpu-watchdog 언로드 대상
+// 2026-08-20: 'qwen3:8b' 는 Ollama 시절 별칭이라 현재 mlx 서버가 404 로 거부한다. 단일 소스에서 가져온다.
+const LOCAL_MODEL_NAME = resolveLlm('report').model;  // gpu-watchdog 언로드 대상
 const warmLast = new Map();  // 2026-06-12: auto-warm per-locale 쿨다운 (중복 트리거 방지)
 const WARM_COOLDOWN_MS = 45 * 60 * 1000;  // 번역 1 locale 완주가 20분+ 걸릴 수 있어 모니터 주기(20분)보다 길게
 async function runMonitor() {
@@ -334,7 +336,7 @@ async function runSegmentRefresh() {
   if (await isReportPipelineRunning()) { log('[segments-refresh] skip — 보고서 파이프라인 실행 중 (GPU 경합 방지)'); return; }
   segmentRefreshRunning = true;
   try {
-    const { stdout } = await execFileAsync('node', ['scripts/build-segments-dynamic.mjs', '--refresh=6'], { timeout: 300000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
+    const { stdout } = await execFileAsync('node', ['scripts/build-segments-dynamic.mjs', '--refresh=4'], { timeout: 300000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
     const m = stdout.match(/✓ (\d+) \/ ✗ (\d+)/);
     log(`[segments-refresh] ${m ? `✓${m[1]} ✗${m[2]}` : 'done'} (DB company_segments)`);
   } catch (e) { log(`[segments-refresh] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 60)}`); }
@@ -342,8 +344,12 @@ async function runSegmentRefresh() {
 }
 // 2026-06-17 (사용자 "전부 20분마다로 통일"): 매시→*/20분. 6 ticker rotating 빈도 3배 → 순회 약 2일.
 //   isReportPipelineRunning/segmentRefreshRunning 가드로 GPU 경합·중복 방지.
-cron.schedule('*/20 * * * *', runSegmentRefresh, { timezone: TZ });
-log('동적 세그먼트 refresh 등록: */20분 6 ticker rotating (DB company_segments, 10-K 추출 — 873 US 약 2일 1순회)');
+// 2026-08-20: */20분은 백필 작업에 과했다. 실측 — 종목당 약 90초라 6종목이면 20분 중 9분을 계속 돈다.
+//   게다가 회전이 실패 종목에 갇혀 15회 연속 ✓0 ✗6 이었다(segment-rotation 으로 해결).
+//   남은 종목 대부분은 10-K 표 형식이 달라 결정론 파싱에서 실패한다(no-region 10 · no-total-row 11) —
+//   서두를 이유가 없는 점진 백필이므로 매시로 낮춘다. 백오프가 걸리면 대상 0으로 헛돌지 않는다.
+cron.schedule('7 * * * *', runSegmentRefresh, { timezone: TZ });
+log('동적 세그먼트 refresh 등록: 매시 7분 4 ticker rotating (실패 백오프 · 대상 없으면 skip)');
 
 // 2026-06-12: 사라진 유지보수 작업 복원 — 이전 Windows Task Scheduler 의 DART-CorpCodes(02:00)/
 //   DART-Prefetch(03:00)/Tune-Rules(일 04:00) 가 머신 재구성 중 소멸돼 silent 미시행 상태였음
@@ -485,6 +491,25 @@ async function runNewsPoll() {
     if (m && Number(m[1]) > 0) log(`[news-poll] ${line}`);
   } catch (e) { log(`[news-poll] 실패: ${String(e.message).slice(0, 100)}`); }
 }
+// ── 확정 번역 사전 채우기 (2026-08-20) ───────────────────────────────────────
+//   웹 레인(4B)이 금융 용어를 틀린다는 게 실측으로 확인됐다. 가드가 거부하면 원문(영문)이
+//   그대로 노출되는데, 종전에는 거기서 끝이라 같은 문자열이 영원히 영문으로 남았다
+//   (홈에서 "Pharma / Biotech", "Industrial conglomerates, machinery…" 가 그 상태였다).
+//   거부는 translation_backlog 에 쌓이고, 여기서 27B 가 채워 translation_memory 로 승격시킨다.
+//   보고서 실행 중엔 건너뛴다 — 27B 는 보고서가 우선이다. 실패분은 다음 회차에 재시도된다.
+async function runTranslationSeed() {
+  try {
+    if (await isReportPipelineRunning()) return;   // 보고서가 27B 를 쓰는 중 — 양보
+    const { stdout } = await execFileAsync('node',
+      ['scripts/seed-translation-memory.mjs', '--locales=ko', '--limit=12'],
+      { timeout: 20 * 60 * 1000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
+    const m = stdout.match(/등록 (\d+) · 건너뜀 (\d+) · 실패 (\d+)/);
+    if (m && Number(m[1]) > 0) log(`[translate-seed] 확정 ${m[1]}건 (건너뜀 ${m[2]} · 실패 ${m[3]})`);
+  } catch (e) { log(`[translate-seed] 실패: ${String(e.message).slice(0, 100)}`); }
+}
+cron.schedule('25 * * * *', runTranslationSeed, { timezone: TZ });
+log('번역 사전 채우기 등록: 매시 25분 (거부 대기열 → 27B → 사전, 보고서 중엔 양보)');
+
 cron.schedule('*/5 * * * *', runNewsPoll, { timezone: TZ });
 log('뉴스 상시 폴러 등록: */5분 (LLM 미사용 — 보고서와 GPU 무경합)');
 

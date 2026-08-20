@@ -615,6 +615,16 @@ export function getSegmentCoverageStats() {
 }
 
 // refresh 우선순위: 미보유 또는 가장 오래된 fetched_at (cron rotating refresh 용)
+/**
+ * 이미 세그먼트를 보유한 종목 집합. 2026-08-20: 회전 선택(segment-rotation)이
+ * '보유 제외'를 판단할 때 쓴다. 종전에는 getSegmentTickersToRefresh 를 여러 번 불러
+ * 역산했는데, 같은 질의를 반복하고 의도도 안 드러났다.
+ */
+export function getSegmentedTickers() {
+  const db = openDb();
+  return new Set(db.prepare('SELECT ticker FROM company_segments').all().map(r => String(r.ticker).toUpperCase()));
+}
+
 export function getSegmentTickersToRefresh(candidateTickers, n = 5, maxAgeDays = 30) {
   const db = openDb();
   const cutoff = new Date(Date.now() - maxAgeDays * 86400000).toISOString();

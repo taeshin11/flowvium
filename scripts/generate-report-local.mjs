@@ -51,6 +51,7 @@ import { partition as partitionSignalScope, shouldVeto as scopedShouldVeto,
 //   (rotation-veto / reconcile-final / VETO_SCORE alias) 한 곳만 고치면 조용히 어긋났다.
 const SELL_VETO_THRESHOLD = 7;
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
+import { resolveLlm } from './lib/llm-config.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -74,7 +75,8 @@ function loadEnv() {
 
 const env = loadEnv();
 const args = process.argv.slice(2);
-const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'qwen3:8b';
+// 2026-08-20: 기본 라벨도 옛 별칭이었다. 실제 서빙 모델명은 callVLLM 이 런타임에 채운다.
+const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? resolveLlm('report').model;
 // 2026-06-15: source 라벨용 — 실제 생성에 쓰인 모델(별칭 아님)을 런타임에 기록.
 //   vLLM 이 30B 를 qwen3:8b/flowvium-local 별칭으로도 서빙해서, modelArg(기본 qwen3:8b)로 라벨하면
 //   "8b 로 만든 것처럼" 오표기됨. callVLLM 이 /v1/models root 를 해석해 진짜 모델명으로 채움.
@@ -1178,7 +1180,8 @@ async function callVLLM(prompt, timeoutMs = 600000, label = '', maxTokens = 2048
   if (!url) return null;
   const tag = label ? `[vLLM:${label}]` : '[vLLM]';
   const t0 = Date.now();
-  const model = process.env.VLLM_MODEL || process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local';
+  // 2026-08-20: 'flowvium-local' 은 Ollama 시절 별칭 — 현재 서버는 404. 단일 소스에서.
+  const model = resolveLlm('report').model;
   try {
     const res = await fetch(`${url}/chat/completions`, {
       method: 'POST',

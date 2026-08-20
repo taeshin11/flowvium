@@ -1,0 +1,61 @@
+/**
+ * llm-config.mjs — LLM 접속 정보(URL·모델)의 단일 소스.
+ *
+ * 배경(2026-08-20 실측): cron 의 segments-refresh 가 15회 실행에 성공 0 / 실패 90 (0.0%)이었다.
+ *   20분마다 GPU 를 달구면서 아무것도 못 만들었다. 추적하니:
+ *     build-segments-dynamic.mjs:178  model: process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local'
+ *     · 이 스크립트는 .env.local 을 읽지 않는다 — 그 로딩은 generate-report-local.mjs 안에만 있었다
+ *     · cron-runner 의 launchd 환경에도 그 변수가 없다
+ *     → 옛 Ollama 별칭 'flowvium-local' 로 폴백 → mlx 가 HTTP 404 로 거부
+ *     → `if (!r.ok) return []` 이 조용히 삼켜 'exaone-no-rows' 로 보고
+ *   실측: default_model → 200 · flowvium-local → 404.
+ *
+ *   폴백 기본값이 '서버가 거부하는 값'이면 영원히 실패한다. 기본값을 두더라도
+ *   현재 서버가 받는 값이어야 하고, 무엇보다 한 곳에서만 정해야 한다.
+ */
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { ROOT } from './project-root.mjs';
+
+let _cache = null;
+
+/**
+ * .env.local 을 파싱해 돌려주고 process.env 에도 주입한다(기존 실제 env 는 보존).
+ * generate-report-local.mjs 안에만 있던 loadEnv 를 여기로 옮겨 다른 스크립트도 쓰게 한다.
+ */
+export function loadEnvLocal() {
+  if (_cache) return _cache;
+  const env = {};
+  try {
+    const raw = readFileSync(resolve(ROOT, '.env.local'), 'utf8');
+    for (const line of raw.split('\n')) {
+      const m = line.match(/^([^#=]+)=(.*)$/);
+      if (m) env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '');
+    }
+  } catch { /* 없으면 process.env 만으로 간다 — 호출부가 판단한다 */ }
+  for (const k in env) if (process.env[k] === undefined) process.env[k] = env[k];
+  _cache = env;
+  return env;
+}
+
+// 현재 서버(mlx_lm)가 실제로 받는 이름. 옛 Ollama 별칭(flowvium-local·qwen3:8b)은 404 다.
+const SERVED_DEFAULT = 'default_model';
+
+/**
+ * 레인별 접속 정보.
+ *   'report' — 보고서/무거운 추출용 (기본 :8000, 27B)
+ *   'web'    — 웹 대면 번역·챗 (기본 :8001, 소형). 미설정이면 report 레인으로 폴백.
+ * @returns {{url: string, model: string, lane: string}}
+ */
+export function resolveLlm(lane = 'report') {
+  loadEnvLocal();
+  const clean = (u) => String(u).replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+  if (lane === 'web') {
+    const url = clean(process.env.LOCAL_LLM_URL || process.env.VLLM_URL || 'http://127.0.0.1:8001/v1');
+    const model = process.env.LOCAL_LLM_MODEL || process.env.VLLM_MODEL || SERVED_DEFAULT;
+    return { url, model, lane };
+  }
+  const url = clean(process.env.VLLM_URL || 'http://127.0.0.1:8000/v1');
+  const model = process.env.VLLM_MODEL || process.env.OLLAMA_TRANSLATE_MODEL || SERVED_DEFAULT;
+  return { url, model, lane };
+}

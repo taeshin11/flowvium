@@ -14,7 +14,10 @@
  * 사용: node scripts/build-segments-dynamic.mjs AAPL MSFT NVDA   (인자 없으면 portfolio+주요)
  */
 import { readFileSync, statSync } from 'fs';
-import { saveSegments, getSegmentTickersToRefresh } from './lib/db.mjs';
+import { saveSegments, getSegmentedTickers } from './lib/db.mjs';
+import { resolveLlm } from './lib/llm-config.mjs';
+import { openRotation } from './lib/segment-rotation.mjs';
+const rotation = openRotation(new URL('../data/flowvium.db', import.meta.url).pathname);
 
 const UA = { 'User-Agent': 'flowvium research contact@flowvium.net' };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -172,13 +175,21 @@ async function exaoneExtract(region) {
   try {
     // 2026-06-15 Ollama→vLLM: 로컬 vLLM OpenAI-compat /v1/chat/completions (think off via template kwargs).
     const prompt = `From the financial text below, extract each business segment/product and its MOST RECENT year revenue (in millions, the first number after each name). Output ONLY lines formatted exactly as: NAME | NUMBER. Exclude any "Total" row. No commentary, no other text.\n\n${region}`;
-    const base = (process.env.VLLM_URL || 'http://127.0.0.1:8000/v1').replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
+    // 2026-08-20: 종전에는 model 기본값이 'flowvium-local'(옛 Ollama 별칭)이었고 이 스크립트는
+    //   .env.local 을 읽지 않았다. cron 환경에도 그 변수가 없어 매번 그 별칭으로 요청 → mlx 가 404.
+    //   그런데 `if (!r.ok) return []` 이 조용히 삼켜 'exaone-no-rows' 로 보고됐고,
+    //   결과적으로 20분마다 GPU 를 쓰면서 15회 연속 성공 0 / 실패 90 이었다.
+    const { url: base, model } = resolveLlm('report');
     const r = await fetch(`${base}/chat/completions`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local', messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 400, chat_template_kwargs: { enable_thinking: false } }),
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 400, chat_template_kwargs: { enable_thinking: false } }),
       signal: AbortSignal.timeout(90000),
     });
-    if (!r.ok) return [];
+    // HTTP 오류를 빈 배열로 뭉개지 않는다 — 그게 이번 사고를 90회 동안 안 보이게 만들었다.
+    if (!r.ok) {
+      console.warn(`  [segments/LLM] HTTP ${r.status} (model=${model}, url=${base}) — 추출 불가`);
+      return [];
+    }
     const d = await r.json();
     const txt = (d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '');
     const rows = [];
@@ -273,7 +284,11 @@ async function extractForTicker(ticker, cikMap) {
     if (!region) return { ticker, error: 'no-region' };
     const total = findTotal(region);
     const rows = await exaoneExtract(region);
-    if (!total || rows.length < 2) return { ticker, error: 'exaone-no-rows' };
+    // 2026-08-20: 종전에는 이 두 원인을 'exaone-no-rows' 하나로 보고했다. 그래서 실패 90건이
+    //   전부 LLM 탓처럼 보였고(실제로는 404·Total 미탐지·행부족이 섞여 있었다) 진단이 막혔다.
+    //   원인 후보가 여럿이면 이름을 나눠야 어디를 고칠지 알 수 있다.
+    if (!total) return { ticker, error: 'no-total-row' };
+    if (rows.length < 2) return { ticker, error: `llm-rows-${rows.length}` };
     // 2026-06-12 fabrication 가드 (PM "Software 50.8%" 사건): LLM 이 region 의 total 을 보고
     //   합이 맞는 분할을 지어낼 수 있음 — 추출된 모든 금액이 region 원문에 실제(콤마포맷) 존재해야 채택.
     const inText = rows.every(x => region.includes(x.amount.toLocaleString('en-US')) || region.includes(String(x.amount)));
@@ -293,8 +308,14 @@ if (refreshArg) {
   // cron 주기 refresh — 미보유/가장 오래된 US ticker N개 자동선택(rotating). 모니터링시 점진 갱신.
   const n = +refreshArg.split('=')[1];
   const cand = (() => { try { return JSON.parse(readFileSync('data/candidate-tickers.json', 'utf8')).tickers || []; } catch { return []; } })();
-  tickers = getSegmentTickersToRefresh(cand, n);
-  console.log(`[build-segments-dynamic] refresh 모드 — 갱신 대상 ${tickers.length}: ${tickers.join(', ') || '(없음, 전부 최신)'}`);
+  // 2026-08-20: 종전 getSegmentTickersToRefresh 는 실패 종목이 company_segments 에 행을 안 남기는
+  //   탓에 영원히 missing 맨 앞에 남아, 매 주기 같은 6개를 다시 골랐다(15회 연속 ✓0 ✗6).
+  //   시도 자체를 기록해 실패해도 전진하고, 반복 실패는 지수 백오프로 쉬게 한다.
+  const universe = cand.filter(t => !/\.(KS|KQ)$/.test(t)).map(t => t.toUpperCase());
+  tickers = rotation.pick(universe, getSegmentedTickers(), n);
+  const rs = rotation.stats();
+  console.log(`[build-segments-dynamic] refresh 모드 — 갱신 대상 ${tickers.length}: ${tickers.join(', ') || '(없음 — 전부 최신이거나 백오프 중)'}`);
+  if (rs.failing) console.log(`  [회전] 실패 이력 ${rs.failing}/${rs.total}종목 · 사유 ${JSON.stringify(rs.byError)}`);
 } else {
   tickers = rawArgs.map(s => s.toUpperCase());
 }
@@ -308,13 +329,15 @@ for (const t of tickers) {
   await waitIfReportRunning();
   try {
     const r = await extractForTicker(t, cikMap);
+    rotation.recordAttempt(t, r.error ?? null);   // 실패도 '시도'다 — 기록해야 회전이 전진한다
     if (r.error) { console.log(`  ✗ ${t}: ${r.error}`); fail++; }
     else {
       try { saveSegments(t, { segments: r.segments, total: r.total, asOf: r.asOf, source: r.source, fetchedAt: new Date().toISOString() }); } catch (e) { console.warn(`    [db] ${t} 적재 실패: ${e.message}`); }
       console.log(`  ✓ ${t} (asOf ${r.asOf}, ${r.source}): ${r.segments.slice(0, 4).map(s => `${s.name} ${s.pct}%`).join(' · ')}`);
       ok++;
     }
-  } catch (e) { console.log(`  ✗ ${t}: ${String(e.message).slice(0, 50)}`); fail++; }
+  } catch (e) { rotation.recordAttempt(t, `exception: ${String(e.message).slice(0, 40)}`); console.log(`  ✗ ${t}: ${String(e.message).slice(0, 50)}`); fail++; }
   await sleep(250); // SEC rate-limit 예의
 }
 console.log(`\n[build-segments-dynamic] ✓ ${ok} / ✗ ${fail} → DB company_segments (영속, wipe 안전)`);
+rotation.close();
