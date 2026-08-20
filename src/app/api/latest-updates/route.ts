@@ -29,6 +29,7 @@ import type { InstitutionalSignal } from '@/data/institutional-signals';
 import { newsGapData } from '@/data/news-gap';
 import { getUpcomingEvents, daysUntil } from '@/data/econ-calendar';
 import { listKey as newsListKey, translatedKey as newsTranslatedKey } from '@/lib/news-cache-keys';
+import { localizeLabel } from '@/lib/update-labels';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -92,13 +93,13 @@ async function safeJson<T = unknown>(url: string, timeoutMs = 8000): Promise<T |
 // ── 1. Fear & Greed ──────────────────────────────────────────────────────────
 interface FGEntry { id: string; label: string; score: number; prevScore?: number; level?: string; source?: string; }
 
-async function getFearGreedItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+async function getFearGreedItems(redis: Redis | null, base: string, locale = 'en'): Promise<UpdateItem[]> {
   // Redis shortcut: US 단일 키만 직접 읽기 (v6 현재 버전)
   if (redis) {
     try {
       const us = await redis.get<FGEntry>('flowvium:fg:v6:SPY');
       if (us?.score != null) {
-        return [fgItemFromEntry(us, '🇺🇸')];
+        return [fgItemFromEntry(us, '🇺🇸', locale)];
       }
     } catch { /* non-fatal */ }
   }
@@ -107,17 +108,17 @@ async function getFearGreedItems(redis: Redis | null, base: string): Promise<Upd
   if (!data?.byCountry?.length) return [];
   const items: UpdateItem[] = [];
   const us = data.byCountry.find(e => e.id === 'us');
-  if (us) items.push(fgItemFromEntry(us, '🇺🇸'));
+  if (us) items.push(fgItemFromEntry(us, '🇺🇸', locale));
   // 공포탐욕 변화폭 큰 국가 2개 추가 (미국 제외, 5pt 이상 변화)
   const topDelta = data.byCountry
     .filter(e => e.id !== 'us' && e.prevScore != null && Math.abs((e.score ?? 0) - (e.prevScore ?? 0)) >= 5)
     .sort((a, b) => Math.abs((b.score ?? 0) - (b.prevScore ?? 0)) - Math.abs((a.score ?? 0) - (a.prevScore ?? 0)))
     .slice(0, 2);
-  for (const e of topDelta) items.push(fgItemFromEntry(e, ''));
+  for (const e of topDelta) items.push(fgItemFromEntry(e, '', locale));
   return items;
 }
 
-function fgItemFromEntry(e: FGEntry, flag: string): UpdateItem {
+function fgItemFromEntry(e: FGEntry, flag: string, locale = 'en'): UpdateItem {
   const score = e.score;
   const prev = e.prevScore;
   const change = prev != null ? score - prev : 0;
@@ -134,7 +135,7 @@ function fgItemFromEntry(e: FGEntry, flag: string): UpdateItem {
     source: e.source === 'cnn' ? 'CNN Fear & Greed' : 'FlowVium composite',
     time: fmtTime(now),
     sortTime: now,
-    badge: 'Sentiment',
+    badge: localizeLabel('Sentiment', locale),
     badgeColor,
     link: '/intelligence',
     direction,
@@ -144,7 +145,7 @@ function fgItemFromEntry(e: FGEntry, flag: string): UpdateItem {
 // ── 2. Capital Flows ──────────────────────────────────────────────────────────
 interface CFAsset { ticker: string; label: string; flag?: string; ret1w?: number; ret4w?: number; ret13w?: number; }
 
-async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+async function getCapitalFlowItems(redis: Redis | null, base: string, locale = 'en'): Promise<UpdateItem[]> {
   let assets: CFAsset[] = [];
   let updatedAt = new Date().toISOString();
   if (redis) {
@@ -175,10 +176,10 @@ async function getCapitalFlowItems(redis: Redis | null, base: string): Promise<U
         type: 'flow' as const,
         headline: `${a.flag ?? ''} ${a.label} ${pct} (1W)`,
         sub: `${a.ret4w != null ? `4W ${a.ret4w > 0 ? '+' : ''}${a.ret4w.toFixed(1)}%` : 'capital flow'}`,
-        source: 'Capital Flows',
+        source: localizeLabel('Capital Flows', locale),
         time: fmtTime(updatedAt),
         sortTime: updatedAt,
-        badge: 'Capital Flow',
+        badge: localizeLabel('Capital Flow', locale),
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/intelligence',
         direction: isUp ? 'up' as const : 'down' as const,
@@ -230,7 +231,7 @@ async function getMacroItems(redis: Redis | null, base: string, locale: string =
         source: 'FRED · US Bureau',
         time: fmtTime(ind.releaseDate),
         sortTime: ind.releaseDate,
-        badge: 'Macro',
+        badge: localizeLabel('Macro', locale),
         badgeColor,
         link: '/intelligence',
         direction,
@@ -241,7 +242,7 @@ async function getMacroItems(redis: Redis | null, base: string, locale: string =
 // ── 4. FedWatch ───────────────────────────────────────────────────────────────
 interface FedData { currentRateMid?: number | string; meetings?: Array<{ date: string; label: string; probHold: number; probCut25: number; probHike25: number }>; updatedAt?: string; }
 
-async function getFedWatchItem(redis: Redis | null, base: string): Promise<UpdateItem | null> {
+async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en'): Promise<UpdateItem | null> {
   let data: FedData | null = null;
   if (redis) {
     try {
@@ -267,7 +268,7 @@ async function getFedWatchItem(redis: Redis | null, base: string): Promise<Updat
     source: 'CME FedWatch',
     time: fmtTime(updatedAt),
     sortTime: updatedAt,
-    badge: 'FedWatch',
+    badge: localizeLabel('FedWatch', locale),
     badgeColor: cutProb > 50 ? '#10b981' : '#6366f1',
     link: '/intelligence',
     direction,
@@ -294,7 +295,7 @@ async function getNewsCascadeItems(redis: Redis | null, base: string, locale: st
           return tCached
             .filter(a => a.pubDate && withinDays(a.pubDate, 3))
             .slice(0, 5)
-            .map(a => newsItemFrom(a, a.id ?? a.title));
+            .map(a => newsItemFrom(a, a.id ?? a.title, locale));
         }
       }
       // 2) 영어 캐시 fallback
@@ -303,7 +304,7 @@ async function getNewsCascadeItems(redis: Redis | null, base: string, locale: st
         return cached
           .filter(a => a.pubDate && withinDays(a.pubDate, 3))
           .slice(0, 5)
-          .map(a => newsItemFrom(a, a.id ?? a.title));
+          .map(a => newsItemFrom(a, a.id ?? a.title, locale));
       }
     } catch { /* non-fatal */ }
   }
@@ -314,10 +315,10 @@ async function getNewsCascadeItems(redis: Redis | null, base: string, locale: st
   return arts
     .filter(a => a.pubDate && withinDays(a.pubDate, 3))
     .slice(0, 5)
-    .map(a => newsItemFrom(a, a.id ?? a.title));
+    .map(a => newsItemFrom(a, a.id ?? a.title, locale));
 }
 
-function newsItemFrom(article: { title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }, id: string): UpdateItem {
+function newsItemFrom(article: { title: string; pubDate: string; source: string; sentiment: string; cascades?: Array<{ asset: string; direction: string }> }, id: string, locale = 'en'): UpdateItem {
   const cascades = article.cascades ?? [];
   const cascadeStr = cascades.slice(0, 3).map(c => `${c.asset}${c.direction === 'positive' ? '↑' : c.direction === 'negative' ? '↓' : ''}`).join(' ');
   // 클릭 시 IntelligencePage news 탭으로 이동 + 해당 기사 자동 expand 하도록 articleId 전달
@@ -330,7 +331,7 @@ function newsItemFrom(article: { title: string; pubDate: string; source: string;
     source: article.source || 'Reuters/CNBC',
     time: fmtTime(article.pubDate),
     sortTime: article.pubDate,
-    badge: article.sentiment === 'bullish' ? 'Bullish' : article.sentiment === 'bearish' ? 'Bearish' : 'News',
+    badge: article.sentiment === 'bullish' ? localizeLabel('Bullish', locale) : article.sentiment === 'bearish' ? localizeLabel('Bearish', locale) : 'News',
     badgeColor: article.sentiment === 'bullish' ? '#10b981' : article.sentiment === 'bearish' ? '#ef4444' : '#6366f1',
     link: linkHref,
     direction: article.sentiment === 'bullish' ? 'up' : article.sentiment === 'bearish' ? 'down' : 'neutral',
@@ -338,7 +339,7 @@ function newsItemFrom(article: { title: string; pubDate: string; source: string;
 }
 
 // ── 6. News Gap 정적 데이터 ───────────────────────────────────────────────────
-function getNewsGapItems(): UpdateItem[] {
+function getNewsGapItems(locale = 'en'): UpdateItem[] {
   const items: UpdateItem[] = [];
   for (const entry of newsGapData) {
     const ownership = entry.ownershipData ?? [];
@@ -361,7 +362,7 @@ function getNewsGapItems(): UpdateItem[] {
         source: 'SEC EDGAR 13F',
         time: o.quarter,
         sortTime,
-        badge: 'Holdings',
+        badge: localizeLabel('Holdings', locale),
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/news-gap',
         direction: isUp ? 'up' : 'down',
@@ -378,7 +379,7 @@ function getNewsGapItems(): UpdateItem[] {
         source: article.source ?? 'Alpha Vantage',
         time: fmtTime(article.date),
         sortTime: article.date,
-        badge: 'News Gap',
+        badge: localizeLabel('News Gap', locale),
         badgeColor: '#8b5cf6',
         link: '/news-gap',
         direction: 'neutral',
@@ -392,7 +393,7 @@ function getNewsGapItems(): UpdateItem[] {
 interface MoverEntry { ticker: string; price: number; changePct: number; change: number; }
 interface MoversCache { gainers: MoverEntry[]; losers: MoverEntry[]; updatedAt: string; }
 
-async function getMarketMoverItems(redis: Redis | null, base: string): Promise<UpdateItem[]> {
+async function getMarketMoverItems(redis: Redis | null, base: string, locale = 'en'): Promise<UpdateItem[]> {
   let data: MoversCache | null = null;
   if (redis) {
     try {
@@ -412,7 +413,7 @@ async function getMarketMoverItems(redis: Redis | null, base: string): Promise<U
     source: 'Nasdaq',
     time: fmtTime(updatedAt),
     sortTime: updatedAt,
-    badge: side === 'gain' ? 'Gainer' : 'Loser',
+    badge: side === 'gain' ? localizeLabel('Gainer', locale) : localizeLabel('Loser', locale),
     badgeColor: side === 'gain' ? '#10b981' : '#ef4444',
     link: '/intelligence',
     direction: side === 'gain' ? 'up' as const : 'down' as const,
@@ -424,7 +425,7 @@ async function getMarketMoverItems(redis: Redis | null, base: string): Promise<U
 }
 
 // ── 8. Institutional Signals (13F) ──────────────────────────────────────────
-function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
+function getSignalItems(signals: InstitutionalSignal[], locale = 'en'): UpdateItem[] {
   return signals
     .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
     .slice(0, 10)
@@ -441,7 +442,7 @@ function getSignalItems(signals: InstitutionalSignal[]): UpdateItem[] {
         source: 'SEC EDGAR 13F',
         time: s.filingDate,
         sortTime: s.filingDate,
-        badge: 'Institutional',
+        badge: localizeLabel('Institutional', locale),
         badgeColor: isUp ? '#10b981' : '#ef4444',
         link: '/signals',
         direction: isUp ? 'up' as const : 'down' as const,
@@ -477,7 +478,7 @@ function interleaveByTimeWithTypeCap(items: UpdateItem[], maxConsecutive = 2, li
 }
 
 // ── 9. Upcoming Economic Calendar Events ─────────────────────────────────────
-function getEconCalendarItems(): UpdateItem[] {
+function getEconCalendarItems(locale = 'en'): UpdateItem[] {
   const today = new Date();
   const upcoming = getUpcomingEvents(today, 10)
     .filter(e => e.impact === 'high' || e.impact === 'medium')
@@ -495,7 +496,7 @@ function getEconCalendarItems(): UpdateItem[] {
       type,
       headline: `${urgency} — ${e.title}`,
       sub: e.note ?? e.category,
-      source: 'Economic Calendar',
+      source: localizeLabel('Economic Calendar', locale),
       time: e.time ?? e.date,
       sortTime: e.date + 'T00:00:00.000Z',
       badge: e.impact === 'high' ? '🔴 High Impact' : '🟡 Medium',
@@ -528,18 +529,18 @@ export async function GET(req: Request) {
   }
 
   const [fgItems, flowItems, macroItems, fedItem, newsItems, moverItems] = await Promise.all([
-    getFearGreedItems(redis, base),
-    getCapitalFlowItems(redis, base),
+    getFearGreedItems(redis, base, locale),
+    getCapitalFlowItems(redis, base, locale),
     getMacroItems(redis, base, locale),
-    getFedWatchItem(redis, base),
+    getFedWatchItem(redis, base, locale),
     getNewsCascadeItems(redis, base, locale),
-    getMarketMoverItems(redis, base),
+    getMarketMoverItems(redis, base, locale),
   ]);
 
-  const newsGapItems = getNewsGapItems();
-  const econItems = getEconCalendarItems();
+  const newsGapItems = getNewsGapItems(locale);
+  const econItems = getEconCalendarItems(locale);
   const liveSignals = await getBaseSignals(redis);
-  const signalItems = getSignalItems(liveSignals);
+  const signalItems = getSignalItems(liveSignals, locale);
 
   // 모든 아이템 한 풀에 던지고 시간 desc + 타입 연속 최대 2로 혼합
   const all: UpdateItem[] = [

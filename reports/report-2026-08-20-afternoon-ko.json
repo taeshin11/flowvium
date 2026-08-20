@@ -1,0 +1,2748 @@
+{
+  "stance": "neutral",
+  "thesis": "오늘 가장 큰 변화는 한국 시장인데, KOSPI 지수가 5.3%(USMV·달러 기준) 급등하며 6,816선을 회복했다. 이는 삼성전자의 대규모 주주환원 계획이 발표되면서 외국인 투자자들이 한국 주식에 다시 관심을 보이기 시작했기 때문이다. 다만 수급을 자세히 보면 외국인들은 주요 종목에서 4조 3,382억원을 순매도하는 등 단기적으로는 차익 실현 매물이 출회되고 있어, 급등 후 숨 고르기 장세가 이어질 수 있다. 돈의 흐름을 보면 미국에서는 주식 ETF로 91억달러가 유입되는 동안 채권에도 145억달러가 들어와, 투자자들이 주식과 채권을 동시에 사들이며 포트폴리오를 다각화하는 중이다. 이는 금리 인하가 낮아진 상황에서 안전한 자산과 성장 자산을 함께 확보하려는 심리를 보여준다. 요컨대 한국은 기업가치 개선 모멘텀이 강하지만 단기 과열에 유의하고, 미국은 방어적 관점에서 주식과 채권을 균형 있게 보유하는 전략이 유효하다.",
+  "portfolio": [
+    {
+      "ticker": "021240.KS",
+      "name": "코웨이",
+      "sector": "Other",
+      "market": "korea",
+      "rationale": "렌탈 매출 안정성 및 ROE 15%+, 50일선 부근 밸류에이션 매력 | 매출 +15.2% YoY, 영업이익률 17.7%, 200MA 위(₩86,083), 50MA 위(₩92,318), RSI 55, 거래량-26%, 52주:₩70,900-₩108,800, 진입지지선:₩86,083",
+      "allocation": 18,
+      "entryZone": "₩88,200-97,400",
+      "entryRationale": "50일선 지지 확인 후 분할 매수, 배당 매력 부각",
+      "entryPlan": {
+        "anchorReason": "50MA",
+        "discountPct": 2
+      },
+      "stopLoss": "₩80,000",
+      "target": "₩115,000",
+      "targetBull": "₩125,000",
+      "targetRationale": "해외 렌탈 매출 비중 확대 및 신제품(에어컨 등) 기여도 증가",
+      "confidence": "medium",
+      "action": "buy",
+      "critiqueNote": "목표가 115,000원(20%+) 과대, 107,000원으로 하향 조정 필요",
+      "catalysts": [
+        "매출 +15.2% YoY 성장",
+        "영업이익률 18%"
+      ],
+      "fundamentalBasis": "FY2025: 매출 15.2% YoY · 영업이익률 17.7% · ROE 17.1%",
+      "technicalBasis": "200MA(₩86,083)와 50MA(₩92,318) 상회, RSI 55 중립 및 거래량 -26%로 횡보 후 방향성 탐색 구간 진입.",
+      "riskNote": "소비 위축 시 렌탈 해지율 증가 및 매출 성장 둔화 리스크",
+      "businessDesc": "COWAY Co., Ltd. engages in the production and sale of environmental home appliances in South Korea and internationally.",
+      "businessSummary": "Furnishings, Fixtures & Appliances",
+      "impliedVol": null,
+      "priceSources": [
+        "yahoo",
+        "naver"
+      ],
+      "priceDevPct": 0.75,
+      "priceConfidence": "confirmed",
+      "entryLadder": [
+        {
+          "price": "₩92,336",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "₩90,016",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "₩86,304",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "₩100,570",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "₩108,340",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "₩115,000",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    },
+    {
+      "ticker": "WAT",
+      "name": "Waters Corporation",
+      "sector": "healthcare",
+      "market": "us",
+      "rationale": "LC/MS 분석기기 독점적 지위, 매출 +113.3% YoY, 영업이익률 25.4%, 50MA 위($379.62), RSI 73, 거래량+22%, 52주:$283.32-$416.15, 진입지지선:$379.62",
+      "allocation": 22,
+      "entryZone": "$397.00-435.00",
+      "entryRationale": "50일선 지지 확인, 생명과학 연구 투자 사이클 수혜",
+      "entryPlan": {
+        "anchorReason": "50MA",
+        "discountPct": 2
+      },
+      "stopLoss": "$370.00",
+      "target": "$500.00",
+      "targetBull": "$550.00",
+      "targetRationale": "신약 개발 파이프라인 증가에 따른 분석기기 수요 지속",
+      "confidence": "high",
+      "action": "watch",
+      "critiqueNote": "목표가 $500(20%+) 과대, $480으로 하향 조정 필요",
+      "catalysts": [
+        "매출 +7.0% YoY 성장",
+        "영업이익률 25%"
+      ],
+      "fundamentalBasis": "Q2 FY2026: 매출 113.3% YoY · 영업이익률 25.4% · ROE 25.1% · PE 38.6x",
+      "technicalBasis": "50MA($379.62) 상회, RSI 73 과매수 경계선 및 거래량 +22% 증가로 강한 매수세와 모멘텀 동반 상승.",
+      "riskNote": "⚠️ 고점 주의 — 신규 매수 자제: RSI 73(과매수권) | 생물제약 산업 투자 둔화 시 분석기기 수요 감소 리스크",
+      "businessSummary": "LC Systems 40% · Mass Spectrometry 25% · Consumables & Chemistry 20% · Services & Informatics 15%",
+      "businessDesc": "Waters Corporation is a leader in liquid chromatography and mass spectrometry, serving pharmaceutical QA/QC labs, food safety testing, and environmental analysis markets worldwide.",
+      "impliedVol": null,
+      "ivSkew": null,
+      "priceSources": [
+        "yahoo",
+        "nasdaq"
+      ],
+      "priceDevPct": 0,
+      "priceConfidence": "confirmed",
+      "mtfNote": "➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조",
+      "entryLadder": [
+        {
+          "price": "$413.76",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "$403.36",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "$386.73",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "$445.40",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "$474.80",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "$500.00",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    },
+    {
+      "ticker": "ROST",
+      "name": "Ross Stores, Inc.",
+      "sector": "consumer-discretionary",
+      "market": "us",
+      "rationale": "할인 유통 1위, ROE 20%+ 및 50일선 부근 밸류에이션 매력 | 매출 +20.6% YoY, 영업이익률 11.9%, 50MA 위($234.34), RSI 23, 거래량+34%, 52주:$197.64-$255.23, 진입지지선:$234.34",
+      "allocation": 20,
+      "entryZone": "$223.00-246.00",
+      "entryRationale": "50일선 지지 확인, 경기 둔화 시 방어적 소비 패턴 수혜",
+      "entryPlan": {
+        "anchorReason": "50MA",
+        "discountPct": 2
+      },
+      "stopLoss": "$205.00",
+      "target": "$280.00",
+      "targetBull": "$300.00",
+      "targetRationale": "매장 효율화 및 상품 매입 마진 개선으로 이어지는 이익 성장",
+      "confidence": "medium",
+      "action": "buy",
+      "critiqueNote": "목표가 $280(20%+) 과대, $265으로 하향 조정 필요",
+      "catalysts": [
+        "매출 +7.7% YoY 성장"
+      ],
+      "fundamentalBasis": "Q1 FY2026: 매출 20.6% YoY · 영업이익률 11.9% · ROE 34.7% · PE 35.5x",
+      "technicalBasis": "50MA($234.34) 상회, RSI 23 과매도 구간 및 거래량 +34% 증가로 바닥 반등 및 매수세 유입 신호.",
+      "riskNote": "소비자 지출 감소 시 할인점 매출 둔화 및 마진 압박 리스크",
+      "businessSummary": "Ross Dress for Less 85% · dd 15%",
+      "businessDesc": "Ross Stores is the second-largest off-price retailer in the United States, operating approximately 2,100 Ross Dress for Less and dd",
+      "impliedVol": 38.1,
+      "ivSkew": 0.2,
+      "priceSources": [
+        "yahoo",
+        "nasdaq"
+      ],
+      "priceDevPct": 0,
+      "priceConfidence": "confirmed",
+      "entryLadder": [
+        {
+          "price": "$233.52",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "$227.65",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "$218.26",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "$250.43",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "$266.35",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "$280.00",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    },
+    {
+      "ticker": "278470.KS",
+      "name": "에이피알",
+      "sector": "Consumer Defensive",
+      "market": "korea",
+      "rationale": "룰 점수 상위 차순위 재충원 — 상위 후보들이 과열/매도신호로 탈락한 자리, 매도룰 재심 통과(score 6<7)",
+      "allocation": 20,
+      "entryZone": "₩369,950-₩381,275",
+      "entryRationale": "시장가 -2%~+1% 진입 (재충원 신규)",
+      "stopLoss": "₩351,075",
+      "target": "₩415,250",
+      "targetBull": "₩453,000",
+      "targetRationale": "시장가 +10% 보수적 target",
+      "confidence": "medium",
+      "action": "watch",
+      "catalysts": [
+        "룰 기반 점수 32점 차순위 후보",
+        "시장가 ₩377,500 신규 편입 (추가 검증 후 진입 권장)"
+      ],
+      "fundamentalBasis": "재충원 신규 — 펀더멘털 상세는 종목 페이지 참조",
+      "technicalBasis": "진입 ₩377,500 · 손절 -7% · 1차 목표 +10%",
+      "riskNote": "⚠️ 고점 주의 — 신규 매수 자제: RSI 79(과매수권) | 상위 후보 과열 탈락 후 차순위 편입 — 추가 검증 후 진입 권장",
+      "businessDesc": "APR Co., Ltd. manufactures and sells cosmetic products for men and women.",
+      "businessSummary": "Household & Personal Products",
+      "impliedVol": null,
+      "priceSources": [
+        "yahoo",
+        "naver"
+      ],
+      "priceDevPct": 1.59,
+      "priceConfidence": "conflicted",
+      "mtfNote": "➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조",
+      "entryLadder": [
+        {
+          "price": "₩375,613",
+          "weight": 30,
+          "label": "즉시 진입 (모멘텀 확인)"
+        },
+        {
+          "price": "₩366,175",
+          "weight": 40,
+          "label": "-3% 풀백 시 추가"
+        },
+        {
+          "price": "₩351,075",
+          "weight": 30,
+          "label": "-7% 깊은 풀백 시 마지막"
+        }
+      ],
+      "exitLadder": [
+        {
+          "price": "₩389,486",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+        },
+        {
+          "price": "₩403,359",
+          "weight": 33,
+          "action": "1/3 정리 → stop을 +3%로 이동"
+        },
+        {
+          "price": "₩415,250",
+          "weight": 34,
+          "action": "마지막 1/3 + trailing stop (-5%)"
+        }
+      ]
+    }
+  ],
+  "buySellReconciliation": {
+    "ts": "2026-08-20T06:29:59.585Z",
+    "session": "afternoon",
+    "thresholds": {
+      "HIGH": 7,
+      "MID": 4,
+      "macroTighten": 0
+    },
+    "candidates": [
+      {
+        "ticker": "083650.KQ",
+        "sector": "Energy",
+        "buyConviction": 21,
+        "buyDiscount": 0,
+        "softScore": 7,
+        "softSecurity": 7,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 7,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 80,
+          "sma50": 52564,
+          "sma200": 67846.5,
+          "opMarginDecline": -4.4,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 91.3,
+          "price": 59300,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(52564.00) < 200MA(67846.50) dead cross (-22.5%)"
+          },
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 59300.00 < 200MA 67846.50"
+          },
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 7,
+            "hard": false,
+            "reason": "RSI 80 과매수"
+          }
+        ]
+      },
+      {
+        "ticker": "326030.KS",
+        "sector": "Professional Services",
+        "buyConviction": 28,
+        "buyDiscount": 0.6,
+        "softScore": 0,
+        "softSecurity": 0,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": -0.6,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 71,
+          "sma50": 83780,
+          "sma200": 104862,
+          "opMarginDecline": -11.299999999999997,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 29.1,
+          "price": 86300,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(83780.00) < 200MA(104862.00) dead cross (-20.1%)"
+          },
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 86300.00 < 200MA 104862.00"
+          }
+        ]
+      },
+      {
+        "ticker": "003230.KS",
+        "sector": "Consumer Staples",
+        "buyConviction": 28,
+        "buyDiscount": 0.6,
+        "softScore": 0,
+        "softSecurity": 0,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": -0.6,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 62,
+          "sma50": 1166740,
+          "sma200": 1224715,
+          "opMarginDecline": -2.400000000000002,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 36.1,
+          "price": 1405000,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(1166740.00) < 200MA(1224715.00) dead cross (-4.7%)"
+          }
+        ]
+      },
+      {
+        "ticker": "103590.KS",
+        "sector": "Industrials",
+        "buyConviction": 24,
+        "buyDiscount": 0,
+        "softScore": 7,
+        "softSecurity": 7,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 7,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 80,
+          "sma50": 68486,
+          "sma200": 73963.5,
+          "opMarginDecline": -2.3000000000000007,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 29.6,
+          "price": 69800,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(68486.00) < 200MA(73963.50) dead cross (-7.4%)"
+          },
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 69800.00 < 200MA 73963.50"
+          },
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 7,
+            "hard": false,
+            "reason": "RSI 80 과매수"
+          }
+        ]
+      },
+      {
+        "ticker": "214150.KQ",
+        "sector": "Other",
+        "buyConviction": 21,
+        "buyDiscount": 0,
+        "softScore": 3,
+        "softSecurity": 3,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 3,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 41,
+          "sma50": 44311,
+          "sma200": 52962.25,
+          "opMarginDecline": -0.30000000000000426,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 38.6,
+          "price": 33600,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(44311.00) < 200MA(52962.25) dead cross (-16.3%)"
+          },
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 33600.00 < 200MA 52962.25"
+          },
+          {
+            "id": "guru_drucken_trend_break",
+            "category": "guru",
+            "score": 3,
+            "hard": false,
+            "reason": "50MA(44311.00) 하향이탈 + RSI 41 모멘텀 약화 — Druckenmiller 추세붕괴"
+          }
+        ]
+      },
+      {
+        "ticker": "021240.KS",
+        "sector": "Other",
+        "buyConviction": 17,
+        "buyDiscount": 0,
+        "softScore": 0,
+        "softSecurity": 0,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 0,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 54,
+          "sma50": 92326,
+          "sma200": 86084.5,
+          "opMarginDecline": 0.8000000000000007,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 15.2,
+          "price": 92800,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "ABNB",
+        "sector": "consumer-discretionary",
+        "buyConviction": 34,
+        "buyDiscount": 1.8,
+        "softScore": 6.6,
+        "softSecurity": 6.6,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 4.8,
+        "hardHit": "fund_margin_decline",
+        "tier": "veto",
+        "signals": {
+          "rsi": 78,
+          "sma50": 151.36070037841796,
+          "sma200": 135.57784996032714,
+          "opMarginDecline": 2.1999999999999993,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 16.5,
+          "price": 186.39,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 6.6,
+            "hard": false,
+            "reason": "RSI 78 과매수"
+          },
+          {
+            "id": "fund_margin_decline",
+            "category": "fundamental",
+            "score": 7.1,
+            "hard": true,
+            "reason": "op margin YoY -2.2%p 악화"
+          }
+        ]
+      },
+      {
+        "ticker": "WAT",
+        "sector": "healthcare",
+        "buyConviction": 29,
+        "buyDiscount": 0.8,
+        "softScore": 0,
+        "softSecurity": 0,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": -0.8,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 73,
+          "sma50": 379.616201171875,
+          "sma200": 358.3634504699707,
+          "opMarginDecline": 2.5,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 113.3,
+          "price": 415.84,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "ISRG",
+        "sector": "healthcare",
+        "buyConviction": 27,
+        "buyDiscount": 0.4,
+        "softScore": 6.4,
+        "softSecurity": 6.4,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 6,
+        "hardHit": "tech_dead_cross",
+        "tier": "veto",
+        "signals": {
+          "rsi": 77,
+          "sma50": 390.0043975830078,
+          "sma200": 474.7721000671387,
+          "opMarginDecline": -1.1999999999999993,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 18.5,
+          "price": 397.72,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_dead_cross",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "50MA(390.00) < 200MA(474.77) dead cross (-17.9%)"
+          },
+          {
+            "id": "tech_200ma_breach",
+            "category": "technical",
+            "score": 9,
+            "hard": true,
+            "reason": "현재 397.72 < 200MA 474.77"
+          },
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 6.4,
+            "hard": false,
+            "reason": "RSI 77 과매수"
+          }
+        ]
+      },
+      {
+        "ticker": "V",
+        "sector": "financials",
+        "buyConviction": 29,
+        "buyDiscount": 0.8,
+        "softScore": 4,
+        "softSecurity": 4,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 3.2,
+        "hardHit": "fund_margin_decline",
+        "tier": "veto",
+        "signals": {
+          "rsi": 49,
+          "sma50": 350.97480224609376,
+          "sma200": 331.58379943847655,
+          "opMarginDecline": 5.700000000000003,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 17.1,
+          "price": 365.54,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_volume_divergence",
+            "category": "technical",
+            "score": 4,
+            "hard": false,
+            "reason": "신고가권 상승에 거래량 -17%(20일평균 대비) — 수급 미동반 다이버전스(휩쏘 위험)"
+          },
+          {
+            "id": "fund_margin_decline",
+            "category": "fundamental",
+            "score": 8.9,
+            "hard": true,
+            "reason": "op margin YoY -5.7%p 악화"
+          }
+        ]
+      },
+      {
+        "ticker": "ROST",
+        "sector": "consumer-discretionary",
+        "buyConviction": 28,
+        "buyDiscount": 0.6,
+        "softScore": 0,
+        "softSecurity": 0,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": -0.6,
+        "hardHit": null,
+        "tier": "pass",
+        "signals": {
+          "rsi": 23,
+          "sma50": 234.3378012084961,
+          "sma200": 208.31150009155274,
+          "opMarginDecline": 0.29999999999999893,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": 20.6,
+          "price": 234.69,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": []
+      },
+      {
+        "ticker": "XLV",
+        "sector": "ETF",
+        "buyConviction": 20,
+        "buyDiscount": 0,
+        "softScore": 7.6,
+        "softSecurity": 7.6,
+        "marketScore": 0,
+        "regimeFactor": 1,
+        "netSoft": 7.6,
+        "hardHit": null,
+        "tier": "veto",
+        "signals": {
+          "rsi": 83,
+          "sma50": 160.91460021972657,
+          "sma200": 153.90210014343262,
+          "opMarginDecline": null,
+          "peRatio": null,
+          "peg": null,
+          "revenueYoY": null,
+          "price": 175.68,
+          "putPrem": 0,
+          "newsNegRatio": null
+        },
+        "hits": [
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 7.6,
+            "hard": false,
+            "reason": "RSI 83 과매수"
+          }
+        ]
+      },
+      {
+        "ticker": "278470.KS",
+        "sector": "Consumer Defensive",
+        "sellScore": 6,
+        "securityScore": 6,
+        "marketScore": 0,
+        "verdict": "refill-pass",
+        "hits": [
+          {
+            "id": "tech_rsi_overbought",
+            "category": "technical",
+            "score": 6,
+            "reason": "RSI 79 과매수"
+          }
+        ],
+        "refill": true
+      }
+    ],
+    "downgraded": [],
+    "whipsaw": [],
+    "adjudication": [],
+    "sellSide": [],
+    "summary": {
+      "evaluated": 12,
+      "passed": 3,
+      "vetoed": 9,
+      "downgraded": 0,
+      "sellConflicts": 0,
+      "whipsaw": 0,
+      "whipsawDowngraded": 0
+    }
+  },
+  "earlyWarning": {
+    "score": 0,
+    "level": "low",
+    "drivers": [],
+    "asOf": "2026-08-20T06:30:01.723Z"
+  },
+  "reboundWatch": {
+    "level": "none",
+    "drivers": [],
+    "asOf": "2026-08-20T06:30:01.723Z"
+  },
+  "marketVerdict": {
+    "verdict": "neutral",
+    "reasons": [
+      "하락·상승 전조 모두 뚜렷하지 않음 — 기존 포지션 유지",
+      "시장 폭 양호: 동일가중이 +1.6%p 우위 — 광범위 참여",
+      "안전자산 동시 유입(금 +2.2% · 장기채 +1.11% · 주식 -1.05%) — risk-off 진행 중",
+      "S&P500 계절성(8월, 1990~ 159표본): 1개월 forward 중앙값 +0.3%",
+      "과거 유사국면 117회 — 현재 지문(VIX 14.9·고점대비 -1.2%·20일 +2.8%·10Y 4.65%·금리커브 0.95p)을 1990년 이후 전 영업일과 6요인 가중거리로 비교해 가장 가까운 국면들: 3개월 후 중앙값 +2.8% · 상승확률 71%"
+    ],
+    "reasonRegions": [
+      "global",
+      "us",
+      "global",
+      "us",
+      "us"
+    ],
+    "krVerdict": {
+      "verdict": "accumulate",
+      "reasons": [
+        "KR 낙폭 과대(고점대비 -24.8%) + 경보 낮음 — 분할 매수 관찰",
+        "KOSPI 추세: 200일선 위(+15.8%) · 고점대비 -24.8% · 20일 +0.8%",
+        "KR 시장 폭 양호: KOSDAQ이 KOSPI 대비 20일 +11%p 우위 — 광범위 참여",
+        "KR 과거 유사국면 28회 — 현재 지문(KOSPI 고점대비 -24.8%·20일 +0.8%)을 KOSPI 전 역사와 거리매칭한 가장 가까운 국면들: 3개월 후 중앙값 -2.8% · 상승확률 43%",
+        "KOSPI 계절성(8월, 125표본): 1개월 forward 중앙값 +0.2%"
+      ]
+    },
+    "fearBuy": {
+      "score": 0,
+      "active": false
+    },
+    "analog": {
+      "matches": 117,
+      "med1m": 1.2,
+      "med3m": 2.8,
+      "med6m": 4.4,
+      "posRate3m": 71,
+      "recent": [
+        {
+          "date": "1992-11-11",
+          "dist": 0.1,
+          "fwd1m": 2.7,
+          "fwd3m": 6,
+          "fwd6m": 4
+        },
+        {
+          "date": "2016-11-11",
+          "dist": 0.15,
+          "fwd1m": 5,
+          "fwd3m": 8,
+          "fwd6m": 10.9
+        },
+        {
+          "date": "2005-11-03",
+          "dist": 0.18,
+          "fwd1m": 3.5,
+          "fwd3m": 3.7,
+          "fwd6m": 8.6
+        },
+        {
+          "date": "1996-11-11",
+          "dist": 0.19,
+          "fwd1m": 1.2,
+          "fwd3m": 7.9,
+          "fwd6m": 13.8
+        },
+        {
+          "date": "2005-08-05",
+          "dist": 0.23,
+          "fwd1m": 0.6,
+          "fwd3m": -0.5,
+          "fwd6m": 3.1
+        }
+      ],
+      "fingerprint": {
+        "vix": 14.9,
+        "drawdownPct": -1.2,
+        "ret20d": 2.8,
+        "ty10": 4.65,
+        "curveSlopePp": 0.95,
+        "rate3moChgPp": -0.01
+      },
+      "factorsUsed": [
+        "vix",
+        "dd",
+        "r20",
+        "ty",
+        "slope",
+        "tyChg3m"
+      ],
+      "matchTightness": 0.6,
+      "macroContext": {
+        "ty10": 4.65,
+        "curveSlopePp": 0.95,
+        "rate3moChgPp": -0.01,
+        "fearGreed": 56,
+        "creditSpread": null
+      },
+      "trend": {
+        "above200": true,
+        "distPct": 8.8
+      },
+      "seasonality": {
+        "month": 8,
+        "med1m": 0.3,
+        "n": 159
+      },
+      "breadth": {
+        "divergencePp": 1.6
+      },
+      "kr": {
+        "dd": -24.8,
+        "r20": 0.8,
+        "above200": true,
+        "distPct": 15.8,
+        "seasonality": {
+          "month": 8,
+          "med1m": 0.2,
+          "n": 125
+        },
+        "analog": {
+          "matches": 28,
+          "med3m": -2.8,
+          "posRate3m": 43
+        },
+        "breadth": {
+          "divergencePp": 11
+        }
+      },
+      "source": "yahoo-^GSPC/^VIX/^TNX/^IRX/RSP/^KS11/^KQ11-1990~ (다요인 가중매칭)"
+    },
+    "asOf": "2026-08-20T06:30:03.352Z",
+    "source": "deterministic"
+  },
+  "sectorAllocation": [
+    {
+      "sector": "Industrials",
+      "pct": 27,
+      "stance": "overweight",
+      "reason": "조선·전력 인프라 수주 모멘텀"
+    },
+    {
+      "sector": "Healthcare",
+      "pct": 27,
+      "stance": "overweight",
+      "reason": "고수익성 기업 집중 및 방어적 특성"
+    },
+    {
+      "sector": "Consumer Discretionary",
+      "pct": 20,
+      "stance": "neutral",
+      "reason": "여행·할인 소비 회복세"
+    },
+    {
+      "sector": "Consumer Staples",
+      "pct": 16,
+      "stance": "neutral",
+      "reason": "안정적 현금흐름 및 배당 매력"
+    },
+    {
+      "sector": "Financials",
+      "pct": 10,
+      "stance": "underweight",
+      "reason": "결제 네트워크 독점적 지위"
+    }
+  ],
+  "riskEvents": [
+    {
+      "date": "2026-08-26",
+      "event": "미국 GDP 발표",
+      "impact": "high",
+      "watchFor": "성장세 둔화 여부 확인",
+      "exposureChannel": "경기민감(시클리컬)",
+      "affectedPortfolio": [
+        "WAT",
+        "ROST",
+        "에이피알"
+      ],
+      "action": "노출 종목 비중·헤지 점검(발표 전)",
+      "previous": "1.5 % 연율",
+      "surpriseHigh": "예상 상회(경기 견조) → 시클리컬·반도체 수혜",
+      "surpriseLow": "예상 하회(둔화) → 침체 우려, 시클리컬 압박"
+    },
+    {
+      "date": "2026-09-04",
+      "event": "미국 고용지표(NFP) 발표",
+      "impact": "high",
+      "watchFor": "실업률 및 임금 상승률 추이",
+      "exposureChannel": "광범위 위험선호",
+      "affectedPortfolio": [
+        "WAT",
+        "ROST",
+        "에이피알"
+      ],
+      "action": "노출 종목 비중·헤지 점검(발표 전)",
+      "previous": "-23 K",
+      "surpriseHigh": "예상 상회(고용 견조) → 견조하나 금리인하 지연 우려",
+      "surpriseLow": "예상 하회(고용 둔화) → 침체 vs 인하 기대 상충"
+    },
+    {
+      "date": "2026-09-11",
+      "event": "미국 CPI 발표",
+      "impact": "high",
+      "watchFor": "헤드라인 물가 재상승 여부",
+      "exposureChannel": "인플레민감(소비·에너지)",
+      "affectedPortfolio": [
+        "ROST",
+        "에이피알"
+      ],
+      "action": "노출 종목 비중·헤지 점검(발표 전)",
+      "previous": "3.3 % YoY",
+      "surpriseHigh": "예상 상회(인플레 지속) → 금리인하 지연, 성장주 압박",
+      "surpriseLow": "예상 하회(둔화) → 인하 기대, 성장주 수혜"
+    }
+  ],
+  "macroAnalysis": "헤드라인 CPI 3.3%와 GDP 1.5%는 인플레 둔화 속에서도 성장세가 유지되는 '골디락스' 국면을 보여준다. 금리커브는 95bp로 정상화되었고, VIX 14.9는 시장 불확실성이 낮아 안정적인 장세임을 시사한다. 다만 차기 FOMC에서 연내 금리 인하가 0회로 내재되어 있어, 유동성 확대 기대보다는 현 수준에서의 안정적 거래가 이어질 전망이다. | 주요지표: 공포탐욕 56(United States), 헤드라인 CPI 3.3%, 연준금리 3.625%, HY 2.75bps, 리스크=medium",
+  "technicalAnalysis": "KOSPI(+5.3%)의 급등과 S&P500 7,708(+0.2%)의 완만한 상승은 아시아와 미국의 온도 차이를 보여준다. VIX 14.9(-6.0%)의 하락은 리스크 선호가 회복되었음을 의미하며, 금리커브 정상화는 장기채 매수세를 지지하는 기술적 요인으로 작용하고 있다.",
+  "fundamentalAnalysis": "삼성전자의 720억달러 규모 주주환원 계획은 기업가치 제고에 대한 확신을 보여주며, 이는 외국인 자금의 한국 시장 복귀를 견인하는 핵심 동인으로 작용한다. 반면 미국에서는 Applied Materials의 실적 호조에도 불구하고 반도체 장비 섹터가 약세를 보이며, 기술주 내 차별화가 심화되고 있다.",
+  "riskLevel": "medium",
+  "regionStances": {
+    "us": {
+      "stance": "bullish",
+      "thesis": "에너지·바이오 F&G 67·78로 탐욕 구간 진입, 자금 유입 가속으로 섹터 로테이션 모멘텀 강화",
+      "keyData": "SPY 1w +0.5%, F&G 67-78"
+    },
+    "korea": {
+      "stance": "neutral",
+      "thesis": "외국인 순매도 3.08조원 지속에도 EWY 4w +2.4%로 추세 유지, 반도체 리더십 기대감 상존",
+      "keyData": "EWY 1w -0.8%, F&G 57"
+    },
+    "japan": {
+      "stance": "bearish",
+      "thesis": "1w -3.1% 급락으로 약세 전환, 4w +2.8% 대비 단기 모멘텀 소실로 자금 이탈 가속",
+      "keyData": "JPN 1w -3.1%, F&G 55"
+    },
+    "china": {
+      "stance": "bullish",
+      "thesis": "1w +1.3% 강세 지속, 4w +3.6%로 중기 상승 추세 확인되며 자금 유입 안정적",
+      "keyData": "CHN 1w +1.3%, F&G 60"
+    },
+    "europe": {
+      "stance": "neutral",
+      "thesis": "영국 1w +0.4% 제한적 강세, 에너지 로테이션 수혜로 중립적 관망세 유지",
+      "keyData": "UK 1w +0.4%, F&G 55"
+    },
+    "india": {
+      "stance": "neutral",
+      "thesis": "데이터 부재로 글로벌 자금 흐름에 연동, 에너지·바이오 탐욕 심리로 중립적 대응",
+      "keyData": "IND 1w N/A, F&G 57"
+    },
+    "taiwan": {
+      "stance": "bullish",
+      "thesis": "반도체 리더 NVDA·TSMC 연동으로 AI 인프라 수요 확인, 기술주 F&G 57로 균형 유지",
+      "keyData": "TWN 1w +2.5%, F&G 57"
+    },
+    "brazil": {
+      "stance": "bearish",
+      "thesis": "4w -6.4% 장기 약세 지속, 1w +1.2% 반등은 일시적 반등으로 자금 이탈 우려 상존",
+      "keyData": "BRA 1w +1.2%, F&G 60"
+    },
+    "australia": {
+      "stance": "neutral",
+      "thesis": "원자재 F&G 60 탐욕 구간 진입, 에너지 전환 수혜로 중립적 강세 유지",
+      "keyData": "AUS 1w +0.5%, F&G 60"
+    },
+    "global": {
+      "stance": "bullish",
+      "thesis": "비트코인·은 추세 반전 신호, 에너지·대체자산으로 자금 로테이션 가속되며 위험 선호 회복",
+      "keyData": "BTC 1w +8.2%, F&G 67"
+    }
+  },
+  "shortSqueeze": [
+    {
+      "ticker": "MRNA",
+      "score": 43,
+      "timing": "바이오 섹터 극단적 탐욕 구간 진입 시점",
+      "risk": "섹터 과열로 인한 변동성 확대 주의 필요"
+    }
+  ],
+  "insiderSignals": [
+    {
+      "ticker": "LIEN",
+      "direction": "buy",
+      "filings": 1,
+      "dateRange": "2026-08-17",
+      "significance": "내부자 공개시장 매수 1건 ($566K) — 내부자 자신감 신호",
+      "pattern": "매수 1 / 매도 0 (순 +1)"
+    },
+    {
+      "ticker": "LBGJ",
+      "direction": "buy",
+      "filings": 1,
+      "dateRange": "2026-08-17",
+      "significance": "내부자 공개시장 매수 1건 ($51K) — 내부자 자신감 신호",
+      "pattern": "매수 1 / 매도 0 (순 +1)"
+    }
+  ],
+  "topOpportunity": "MRNA의 숏 스퀴즈 점수 43과 바이오 섹터의 극단적 탐욕(78)이 결합되어 단기 급등 촉매가 형성되고 있습니다. 다만 섹터 과열 리스크가 상존하므로, 기술적 지지선 확인 후 소규모 포지션으로 접근하는 것이 현명한 전략입니다.",
+  "stopLossRationale": [
+    {
+      "ticker": "083650.KQ",
+      "rationale": "하단 지지 이탈 시 손절, 변동성 확대 대비 | 현재 ₩59300 → 손절선 ~₩55149.00 (-7%)"
+    },
+    {
+      "ticker": "326030.KS",
+      "rationale": "기술적 지지선 붕괴 시 리스크 차단 | 현재 ₩86300 → 손절선 ~₩80259.00 (-7%)"
+    },
+    {
+      "ticker": "003230.KS",
+      "rationale": "고점 대비 낙폭 제한, 추세 전환 시 출구 | 현재 ₩1405000 → 손절선 ~₩1306650.00 (-7%) / 200MA 위(₩1,224,730), 50MA 위(₩1,166,800), RSI 63, 거래량+27%, 52주:₩1,022,000-₩1,630,000, 진입지지선:₩1,224,730"
+    },
+    {
+      "ticker": "103590.KS",
+      "rationale": "업황 둔화 신호 시 즉각적 손실 최소화 | 현재 ₩69800 → 손절선 ~₩64914.00 (-7%) / 200MA 아래(₩73,963), 50MA 위(₩68,482), RSI 80, 거래량-47%, 52주:₩33,900-₩144,100, 진입지지선:₩73,963"
+    },
+    {
+      "ticker": "214150.KQ",
+      "rationale": "단기 과매도 구간 이탈 시 포지션 정리 | 현재 ₩33600 → 손절선 ~₩31248.00 (-7%) / 200MA 아래(₩52,962), 50MA 아래(₩44,311), RSI 41, 거래량+37%, 52주:₩33,400-₩75,600, 진입지지선:₩52,962"
+    },
+    {
+      "ticker": "021240.KS",
+      "rationale": "실적 부진 우려 시 방어적 손절 실행 | 현재 ₩92800 → 손절선 ~₩80,000 (-7%) / 200MA 위(₩86,083), 50MA 위(₩92,318), RSI 53, 거래량-26%, 52주:₩70,900-₩108,800, 진입지지선:₩86,083"
+    },
+    {
+      "ticker": "ABNB",
+      "rationale": "매크로 악재 시 달러 자산 손실 제한 | 현재 $186.39 → 손절선 ~$173.34 (-7%) / 50MA 위($151.36), RSI 78, 거래량-7%, 52주:$122.87-$186.39, 진입지지선:$151.36"
+    },
+    {
+      "ticker": "WAT",
+      "rationale": "성장주 밸류에이션 부담 시 리스크 헤지 | 현재 $415.84 → 손절선 ~$386.73 (-7%) / 50MA 위($379.62), RSI 73, 거래량+22%, 52주:$283.32-$416.15, 진입지지선:$379.62"
+    },
+    {
+      "ticker": "ISRG",
+      "rationale": "의료기기 섹터 조정 시 손익분기점 방어 | 현재 $397.72 → 손절선 ~$369.88 (-7%) / 50MA 위($390.00), RSI 77, 거래량-35%, 52주:$332.02-$506.88, 진입지지선:$390.00"
+    },
+    {
+      "ticker": "V",
+      "rationale": "소비 위축 신호 시 필수재 방어력 확인 | 현재 $365.54 → 손절선 ~$339.95 (-7%) / 50MA 위($350.97), RSI 49, 거래량-17%, 52주:$295.52-$370.47, 진입지지선:$350.97"
+    },
+    {
+      "ticker": "ROST",
+      "rationale": "소매 업황 둔화 시 변동성 확대 대비 | 현재 $234.69 → 손절선 ~$205 (-7%) / 50MA 위($234.34), RSI 23, 거래량+34%, 52주:$197.64-$255.23, 진입지지선:$234.34"
+    },
+    {
+      "ticker": "XLV",
+      "rationale": "헬스케어 섹터 전반적 하락 시 포트 방어 | 현재 $175.68 → 손절선 ~$163.38 (-7%) / 50MA 위($160.91), RSI 83, 거래량+83%, 52주:$142.84-$175.68, 진입지지선:$160.91"
+    }
+  ],
+  "hedgingSuggestion": "VIX 14.89로 안정세이나 BITO 과열로 크립토 변동성 리스크 존재. VIX 16.50 돌파 시 S&P500 풋옵션 매수 및 크립토 관련 노출 축소로 헤지 발동.",
+  "portfolioRiskNote": "방어 모드(selective, posture low): 투자비중 80%만 권고, 잔여 20%는 현금 보유(현금도 포지션). 미국 기술주 및 헬스케어 비중 과다로 섹터 집중 리스크 존재. 컨센서스 쏠림으로 인한 동반 하락 위험 상존. VIX 콘탱고 상태이나 BITO 과열로 크립토 변동성 전이 가능성 주의 필요.",
+  "marketNarrative": {
+    "why": "KOSPI(+5.3%) 급등과 삼성 $72B 자사주 매입, 금융당국 긴급안정조치가 리스크오프를 주도.",
+    "watch": "미국 빅테크 실적, 반도체 장비주 수급, 원/달러 환율",
+    "story": "한국 금융당국의 긴급안정조치와 삼성전자의 대규모 주주환원 계획이 KOSPI선 돌파를 견인하며 아시아 시장 리스크오프 분위기를 주도했다. VIX 14.9로 하락한 안전자산 선호 완화와 원화 강세는 외국인 자금의 한국 시장 재진입을 촉진했다. 반면 미국은 S&P500 7,708(+0.2%)로 완만한 강세를 보이며 반도체 장비주 약세 속에서도 에너지·대체자산 로테이션이 지속되는 모습을 보였다.",
+    "hotThemes": [
+      "반도체",
+      "에너지",
+      "금융주",
+      "비트코인"
+    ],
+    "sessionNote": "KR 마감 직후, US 개장 전"
+  },
+  "manipulationWatch": {
+    "asOf": "2026-08-19T22:20:22.485Z",
+    "universe": "KOSDAQ",
+    "scanned": 224,
+    "officialFewAccount": 0,
+    "strongCount": 1,
+    "watchCount": 5,
+    "stale": false,
+    "source": "live",
+    "items": [
+      {
+        "ticker": "056730.KQ",
+        "name": "CNT85",
+        "tier": "strong",
+        "phase": "pre_pump_accumulation",
+        "score": 51,
+        "signals": [
+          "거래량 추세 1.6× 상승",
+          "변동성 수축(coiling) — 돌파 압축",
+          "종가 일중 상단 80%(강한 매수 흡수)",
+          "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)",
+          "아래꼬리 매집 7개(저가 매수받침)"
+        ],
+        "official": null,
+        "runup20dPct": -6.2,
+        "runup5dPct": -3.6,
+        "action": "watch_only",
+        "reason": "가격 급등 매집 의심 선행조짐 — 관찰 우선(추천 아님)"
+      },
+      {
+        "ticker": "078130.KQ",
+        "name": "국일제지",
+        "tier": "watch",
+        "phase": "pre_pump_accumulation",
+        "score": 38,
+        "signals": [
+          "변동성 수축(coiling) — 돌파 압축",
+          "종가 일중 상단 80%(강한 매수 흡수)",
+          "아래꼬리 매집 5개(저가 매수받침)",
+          "세력 매집(기관·외인 순매수)"
+        ],
+        "official": null,
+        "runup20dPct": -14.2,
+        "runup5dPct": -4.5,
+        "action": "watch_only",
+        "reason": "세력매집 동반 약한 선행조짐 — 관찰(낮은 확신)"
+      },
+      {
+        "ticker": "054780.KQ",
+        "name": "키이스트",
+        "tier": "watch",
+        "phase": "pre_pump_accumulation",
+        "score": 34,
+        "signals": [
+          "변동성 수축(coiling) — 돌파 압축",
+          "종가 일중 상단 60%",
+          "아래꼬리 매집 5개(저가 매수받침)",
+          "세력 매집(기관·외인 순매수)"
+        ],
+        "official": null,
+        "runup20dPct": 1.1,
+        "runup5dPct": -5.3,
+        "action": "watch_only",
+        "reason": "세력매집 동반 약한 선행조짐 — 관찰(낮은 확신)"
+      },
+      {
+        "ticker": "263750.KQ",
+        "name": "펄어비스",
+        "tier": "watch",
+        "phase": "pre_pump_accumulation",
+        "score": 33,
+        "signals": [
+          "거래량 추세 2.3× 상승(지속 매집)",
+          "거래량 2.9× 급증(가격 평탄)",
+          "세력 매집(기관·외인 순매수)"
+        ],
+        "official": null,
+        "runup20dPct": -7.9,
+        "runup5dPct": -16.8,
+        "action": "watch_only",
+        "reason": "세력매집 동반 약한 선행조짐 — 관찰(낮은 확신)"
+      },
+      {
+        "ticker": "069510.KQ",
+        "name": "에스텍",
+        "tier": "watch",
+        "phase": "pre_pump_accumulation",
+        "score": 29,
+        "signals": [
+          "거래량 추세 1.7× 상승",
+          "변동성 수축(coiling) — 돌파 압축",
+          "세력 매집(기관·외인 순매수)"
+        ],
+        "official": null,
+        "runup20dPct": 4.2,
+        "runup5dPct": 2.2,
+        "action": "watch_only",
+        "reason": "세력매집 동반 약한 선행조짐 — 관찰(낮은 확신)"
+      },
+      {
+        "ticker": "035900.KQ",
+        "name": "JYP Ent.",
+        "tier": "watch",
+        "phase": "pre_pump_accumulation",
+        "score": 26,
+        "signals": [
+          "거래량 추세 1.9× 상승",
+          "거래량 3.1× 급증(가격 평탄)",
+          "세력 매집(기관·외인 순매수)"
+        ],
+        "official": null,
+        "runup20dPct": -9.9,
+        "runup5dPct": -14.2,
+        "action": "watch_only",
+        "reason": "세력매집 동반 약한 선행조짐 — 관찰(낮은 확신)"
+      }
+    ]
+  },
+  "companyChanges": [
+    {
+      "ticker": "003230.KS",
+      "name": "삼양식품",
+      "revenueYoY": 36.1,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 16억 달러 +36.1%, 영업이익률 22.3%로 고성장 지속",
+      "eventType": "revenue_surge",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "라면 글로벌 수요 폭증으로 이익 체력 강화, 고수익성 지속 확인",
+      "nextCheck": "2026년 상반기 실적 발표",
+      "held": false
+    },
+    {
+      "ticker": "214150.KQ",
+      "name": "클래시스",
+      "revenueYoY": 38.6,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 2.32억 달러 +38.6%, 영업이익률 50.7%로 수익성 극대화",
+      "eventType": "revenue_surge",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "고마진 의료기기 수출 호조로 이익 성장 가속, 밸류에이션 재평가 기대",
+      "nextCheck": "신규 장비 출시 및 수출 실적",
+      "held": false
+    },
+    {
+      "ticker": "WAT",
+      "name": "Waters Corporation",
+      "revenueYoY": 113.3,
+      "latestQuarter": "Q2 FY2026",
+      "keyChange": "매출 16억 달러 +113.3% 폭증, 영업이익률 25.4%",
+      "eventType": "revenue_surge",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "예상치 못한 매출 급증으로 성장 모멘텀 재확인, PER 38.6배 정당화 논거",
+      "nextCheck": "Q3 가이던스 및 수요 지속성",
+      "held": true
+    },
+    {
+      "ticker": "AMAT",
+      "name": "Applied Materials Inc ",
+      "revenueYoY": null,
+      "latestQuarter": "Q2 FY2026",
+      "keyChange": "역대급 실적에도 주가 하락, 반도체 장비 섹터 동반 약세",
+      "eventType": "negative_development",
+      "guidance": "unknown",
+      "sentiment": "negative",
+      "whyMatters": "실적과 주가 괴리로 시장 심리 악화 우려, 섹터 전반의 밸류에이션 리스크",
+      "nextCheck": "반도체 장비 섹터 기술적 지지선",
+      "held": false
+    },
+    {
+      "ticker": "083650.KQ",
+      "name": "비에이치아이",
+      "revenueYoY": 91.3,
+      "latestQuarter": "FY2025",
+      "keyChange": "매출 5.34억 달러 +91.3% 급증, ROE 36.7%로 수익성 개선",
+      "eventType": "revenue_surge",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "반도체 장비 부품 수요 회복으로 이익 체력 급상승, 성장 스토리 강화",
+      "nextCheck": "주요 고객사 발주 현황",
+      "held": false
+    },
+    {
+      "ticker": "V",
+      "name": "Visa Inc.",
+      "revenueYoY": 17.1,
+      "latestQuarter": "Q2 FY2026",
+      "keyChange": "매출 112억 달러 +17.1%, 영업이익률 60%로 압도적 수익성",
+      "eventType": "revenue_growth",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "안정적인 성장과 초고수익성 유지로 포트폴리오 방어 자산 역할 강화",
+      "nextCheck": "결제 처리량 및 수수료율 동향",
+      "held": false
+    },
+    {
+      "ticker": "ROST",
+      "name": "Ross Stores, Inc.",
+      "revenueYoY": 20.6,
+      "latestQuarter": "Q1 FY2026",
+      "keyChange": "매출 60억 달러 +20.6% 성장, 영업이익률 11.9%로 견조",
+      "eventType": "revenue_growth",
+      "guidance": "unknown",
+      "sentiment": "positive",
+      "whyMatters": "경기 둔화 속에서도 오프라인 할인 수요 흡수, 방어적 성장 확인",
+      "nextCheck": "다음 분기 동일점포 매출(SSS)",
+      "held": true
+    }
+  ],
+  "supplyChainChanges": [
+    {
+      "ticker": "NVDA",
+      "direction": "neutral",
+      "headline": "8-K [사업계약]: NVIDIA CORP — An Agreement · 상대: SB Energy Corp · $105billion",
+      "source": "sec-8k",
+      "date": "2026-08-17",
+      "signalType": "contract_win",
+      "conviction": 66,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "NVIDIA는 SB Energy와 오하이오주 포트스머스 AI 데이터센터 캠퍼스에서 약 4.25GW 규모의 IT 부하에 대한 잔존가치 보증 계약을 체결하고, OpenAI를 임차인으로 하여 AI 인프라 구축을 위한 토지·전력·공간을 확보했습니다. 이는 NVIDIA가 대규모 AI 데이터센터 확장을 위한 핵심 인프라를 장기적으로 안정적으로 확보했다는 점에서 투자자에게 긍정적인 시그널로 해석됩니다.",
+      "evidenceUrl": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000069/nvda-20260817.htm",
+      "summary": null,
+      "contractAmountWon": null,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    },
+    {
+      "ticker": "AMD",
+      "direction": "neutral",
+      "headline": "8-K [자본조달]: ADVANCED MICRO DEVICES INC — Underwriting Agreement · $4.75billion",
+      "source": "sec-8k",
+      "date": "2026-08-17",
+      "signalType": "supply_risk",
+      "conviction": 52,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "AMD 가 2029 년부터 2036 년까지 만기하는 총 47 억 달러 규모의 senior notes 를 발행하여 자금을 조달했습니다. 이는 향후 채무 상환 부담을 늘리는 동시에, 현재 시점에서의 부채비율을 낮추고 재무 건전성을 강화하는 데 기여할 것입니다.",
+      "evidenceUrl": "https://www.sec.gov/Archives/edgar/data/2488/000119312526354029/d142696d8k.htm",
+      "summary": null,
+      "contractAmountWon": null,
+      "contractCounterparty": null,
+      "contractRevenuePct": null
+    },
+    {
+      "ticker": "083650.KQ",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260819",
+      "signalType": "contract_win",
+      "conviction": 87,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "유의미 수주(연매출 14%) — 매출 가시성 개선, 반복성 확인 필요",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260819900396",
+      "summary": "연매출 14% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 566억원 · 연매출 대비 14%)",
+      "contractAmountWon": 56576139200,
+      "contractCounterparty": null,
+      "contractRevenuePct": 14
+    },
+    {
+      "ticker": "028050.KS",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260819",
+      "signalType": "contract_win",
+      "conviction": 87,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "유의미 수주(연매출 21.41%) — 매출 가시성 개선, 반복성 확인 필요 · 상대 Ras",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260819800380",
+      "summary": "연매출 21.41% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 1.60조원 · 연매출 대비 21.41% · 계약상대 Ras)",
+      "contractAmountWon": 1602984616747,
+      "contractCounterparty": "Ras",
+      "contractRevenuePct": 21.41
+    },
+    {
+      "ticker": "420770.KQ",
+      "direction": "positive",
+      "headline": "단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260819",
+      "signalType": "contract_win",
+      "conviction": 87,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "유의미 수주(연매출 17.08%) — 매출 가시성 개선, 반복성 확인 필요 · 상대 일본",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260819900157",
+      "summary": "연매출 17.08% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 90억원 · 연매출 대비 17.08% · 계약상대 일본)",
+      "contractAmountWon": 8953905660,
+      "contractCounterparty": "일본",
+      "contractRevenuePct": 17.08
+    },
+    {
+      "ticker": "326030.KS",
+      "direction": "positive",
+      "headline": "단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260818",
+      "signalType": "contract_win",
+      "conviction": 87,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "유의미 수주(연매출 14.1%) — 매출 가시성 개선, 반복성 확인 필요 · 상대 SK",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260818800303",
+      "summary": "연매출 14.1% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 994억원 · 연매출 대비 14.1% · 계약상대 SK)",
+      "contractAmountWon": 99423162929,
+      "contractCounterparty": "SK",
+      "contractRevenuePct": 14.1
+    },
+    {
+      "ticker": "032820.KQ",
+      "direction": "positive",
+      "headline": "단일판매ㆍ공급계약체결(자율공시) ",
+      "source": "dart",
+      "date": "20260820",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 9.72%) — 점진 기여 · 상대 한국수력원자력(주)",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260820900057",
+      "summary": "연매출 9.72% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 85억원 · 연매출 대비 9.72% · 계약상대 한국수력원자력(주))",
+      "contractAmountWon": 8472600000,
+      "contractCounterparty": "한국수력원자력(주)",
+      "contractRevenuePct": 9.72
+    },
+    {
+      "ticker": "950160.KQ",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결(자회사의 주요경영사항) ",
+      "source": "dart",
+      "date": "20260819",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 4.65%) — 점진 기여",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260819800692",
+      "summary": "연매출 4.65% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 1,620억원 · 연매출 대비 4.65%)",
+      "contractAmountWon": 161992457000,
+      "contractCounterparty": null,
+      "contractRevenuePct": 4.65
+    },
+    {
+      "ticker": "028260.KS",
+      "direction": "positive",
+      "headline": "[기재정정]단일판매ㆍ공급계약체결 ",
+      "source": "dart",
+      "date": "20260819",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 3.66%) — 점진 기여 · 상대 QatarEnergy",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260819800608",
+      "summary": "연매출 3.66% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 1.54조원 · 연매출 대비 3.66% · 계약상대 QatarEnergy)",
+      "contractAmountWon": 1540071611480,
+      "contractCounterparty": "QatarEnergy",
+      "contractRevenuePct": 3.66
+    },
+    {
+      "ticker": "089470.KS",
+      "direction": "positive",
+      "headline": "단일판매ㆍ공급계약체결(자회사의 주요경영사항) ",
+      "source": "dart",
+      "date": "20260819",
+      "signalType": "contract_win",
+      "conviction": 82,
+      "downstreamBeneficiaries": [],
+      "upstreamRisks": [],
+      "whyMatters": "통상 규모 수주(연매출 5.9%) — 점진 기여 · 상대 주식회사",
+      "evidenceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260819800594",
+      "summary": "연매출 5.9% 규모 신규 공급·수주 계약 체결 — 매출 발생(공급망 수혜) (계약금액 2,450억원 · 연매출 대비 5.9% · 계약상대 주식회사)",
+      "contractAmountWon": 245045365000,
+      "contractCounterparty": "주식회사",
+      "contractRevenuePct": 5.9
+    }
+  ],
+  "portfolioOutcomes": {
+    "total": 3,
+    "hit_target": 0,
+    "stop_loss": 0,
+    "not_entered": 0,
+    "still_holding": 2,
+    "sold": 0,
+    "unknown": 1,
+    "hitRate": 0,
+    "neRate": 0,
+    "winRate": 0,
+    "closed": 0,
+    "soldAvg": null,
+    "avgPnl": 4.4,
+    "spyAlpha": 0.3,
+    "beatSpy": 1,
+    "beatSpyTotal": 3,
+    "top3": [
+      {
+        "ticker": "LLY",
+        "avg": 6.7,
+        "n": 1
+      },
+      {
+        "ticker": "KO",
+        "avg": 2,
+        "n": 1
+      }
+    ],
+    "bottom3": [
+      {
+        "ticker": "KO",
+        "avg": 2,
+        "n": 1
+      },
+      {
+        "ticker": "LLY",
+        "avg": 6.7,
+        "n": 1
+      }
+    ],
+    "chronicNE": [
+      {
+        "ticker": "NVDA",
+        "neCount": 11
+      },
+      {
+        "ticker": "MSFT",
+        "neCount": 11
+      },
+      {
+        "ticker": "KLAC",
+        "neCount": 8
+      },
+      {
+        "ticker": "005930.KS",
+        "neCount": 7
+      },
+      {
+        "ticker": "000660.KS",
+        "neCount": 6
+      }
+    ]
+  },
+  "sessionFocus": {
+    "primary": "kr",
+    "secondary": [
+      "japan",
+      "china"
+    ],
+    "label": "KR 장 마감 직후 + 아시아",
+    "marketWeight": {
+      "kr": 50,
+      "us": 25,
+      "asia": 25
+    },
+    "marketPhases": {
+      "kr": "마감 직후 (당일 종가 확정)",
+      "us": "개장 전 (전일 마감·프리마켓 전)"
+    },
+    "dataPriority": [
+      "Korea Flow — 기관·외국인 수급 (당일 순매수 방향)",
+      "KR 내부자/공시 신호 + 공급망 변화 (Supply Chain Signals)",
+      "Sector Valuations (KR 업종 밸류에이션)",
+      "Institutional 신호 (글로벌 13F — KR ADR/대형주 한정)"
+    ]
+  },
+  "portfolioByMarket": {
+    "us": [
+      {
+        "ticker": "WAT",
+        "name": "Waters Corporation",
+        "sector": "healthcare",
+        "market": "us",
+        "rationale": "LC/MS 분석기기 독점적 지위, 매출 +113.3% YoY, 영업이익률 25.4%, 50MA 위($379.62), RSI 73, 거래량+22%, 52주:$283.32-$416.15, 진입지지선:$379.62",
+        "allocation": 22,
+        "entryZone": "$397.00-435.00",
+        "entryRationale": "50일선 지지 확인, 생명과학 연구 투자 사이클 수혜",
+        "entryPlan": {
+          "anchorReason": "50MA",
+          "discountPct": 2
+        },
+        "stopLoss": "$370.00",
+        "target": "$500.00",
+        "targetBull": "$550.00",
+        "targetRationale": "신약 개발 파이프라인 증가에 따른 분석기기 수요 지속",
+        "confidence": "high",
+        "action": "watch",
+        "critiqueNote": "목표가 $500(20%+) 과대, $480으로 하향 조정 필요",
+        "catalysts": [
+          "매출 +7.0% YoY 성장",
+          "영업이익률 25%"
+        ],
+        "fundamentalBasis": "Q2 FY2026: 매출 113.3% YoY · 영업이익률 25.4% · ROE 25.1% · PE 38.6x",
+        "technicalBasis": "50MA($379.62) 상회, RSI 73 과매수 경계선 및 거래량 +22% 증가로 강한 매수세와 모멘텀 동반 상승.",
+        "riskNote": "⚠️ 고점 주의 — 신규 매수 자제: RSI 73(과매수권) | 생물제약 산업 투자 둔화 시 분석기기 수요 감소 리스크",
+        "businessSummary": "LC Systems 40% · Mass Spectrometry 25% · Consumables & Chemistry 20% · Services & Informatics 15%",
+        "businessDesc": "Waters Corporation is a leader in liquid chromatography and mass spectrometry, serving pharmaceutical QA/QC labs, food safety testing, and environmental analysis markets worldwide.",
+        "impliedVol": null,
+        "ivSkew": null,
+        "priceSources": [
+          "yahoo",
+          "nasdaq"
+        ],
+        "priceDevPct": 0,
+        "priceConfidence": "confirmed",
+        "mtfNote": "➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조",
+        "entryLadder": [
+          {
+            "price": "$413.76",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "$403.36",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "$386.73",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "$445.40",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "$474.80",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "$500.00",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      },
+      {
+        "ticker": "ROST",
+        "name": "Ross Stores, Inc.",
+        "sector": "consumer-discretionary",
+        "market": "us",
+        "rationale": "할인 유통 1위, ROE 20%+ 및 50일선 부근 밸류에이션 매력 | 매출 +20.6% YoY, 영업이익률 11.9%, 50MA 위($234.34), RSI 23, 거래량+34%, 52주:$197.64-$255.23, 진입지지선:$234.34",
+        "allocation": 20,
+        "entryZone": "$223.00-246.00",
+        "entryRationale": "50일선 지지 확인, 경기 둔화 시 방어적 소비 패턴 수혜",
+        "entryPlan": {
+          "anchorReason": "50MA",
+          "discountPct": 2
+        },
+        "stopLoss": "$205.00",
+        "target": "$280.00",
+        "targetBull": "$300.00",
+        "targetRationale": "매장 효율화 및 상품 매입 마진 개선으로 이어지는 이익 성장",
+        "confidence": "medium",
+        "action": "buy",
+        "critiqueNote": "목표가 $280(20%+) 과대, $265으로 하향 조정 필요",
+        "catalysts": [
+          "매출 +7.7% YoY 성장"
+        ],
+        "fundamentalBasis": "Q1 FY2026: 매출 20.6% YoY · 영업이익률 11.9% · ROE 34.7% · PE 35.5x",
+        "technicalBasis": "50MA($234.34) 상회, RSI 23 과매도 구간 및 거래량 +34% 증가로 바닥 반등 및 매수세 유입 신호.",
+        "riskNote": "소비자 지출 감소 시 할인점 매출 둔화 및 마진 압박 리스크",
+        "businessSummary": "Ross Dress for Less 85% · dd 15%",
+        "businessDesc": "Ross Stores is the second-largest off-price retailer in the United States, operating approximately 2,100 Ross Dress for Less and dd",
+        "impliedVol": 38.1,
+        "ivSkew": 0.2,
+        "priceSources": [
+          "yahoo",
+          "nasdaq"
+        ],
+        "priceDevPct": 0,
+        "priceConfidence": "confirmed",
+        "entryLadder": [
+          {
+            "price": "$233.52",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "$227.65",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "$218.26",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "$250.43",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "$266.35",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "$280.00",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      }
+    ],
+    "kr": [
+      {
+        "ticker": "021240.KS",
+        "name": "코웨이",
+        "sector": "Other",
+        "market": "korea",
+        "rationale": "렌탈 매출 안정성 및 ROE 15%+, 50일선 부근 밸류에이션 매력 | 매출 +15.2% YoY, 영업이익률 17.7%, 200MA 위(₩86,083), 50MA 위(₩92,318), RSI 55, 거래량-26%, 52주:₩70,900-₩108,800, 진입지지선:₩86,083",
+        "allocation": 18,
+        "entryZone": "₩88,200-97,400",
+        "entryRationale": "50일선 지지 확인 후 분할 매수, 배당 매력 부각",
+        "entryPlan": {
+          "anchorReason": "50MA",
+          "discountPct": 2
+        },
+        "stopLoss": "₩80,000",
+        "target": "₩115,000",
+        "targetBull": "₩125,000",
+        "targetRationale": "해외 렌탈 매출 비중 확대 및 신제품(에어컨 등) 기여도 증가",
+        "confidence": "medium",
+        "action": "buy",
+        "critiqueNote": "목표가 115,000원(20%+) 과대, 107,000원으로 하향 조정 필요",
+        "catalysts": [
+          "매출 +15.2% YoY 성장",
+          "영업이익률 18%"
+        ],
+        "fundamentalBasis": "FY2025: 매출 15.2% YoY · 영업이익률 17.7% · ROE 17.1%",
+        "technicalBasis": "200MA(₩86,083)와 50MA(₩92,318) 상회, RSI 55 중립 및 거래량 -26%로 횡보 후 방향성 탐색 구간 진입.",
+        "riskNote": "소비 위축 시 렌탈 해지율 증가 및 매출 성장 둔화 리스크",
+        "businessDesc": "COWAY Co., Ltd. engages in the production and sale of environmental home appliances in South Korea and internationally.",
+        "businessSummary": "Furnishings, Fixtures & Appliances",
+        "impliedVol": null,
+        "priceSources": [
+          "yahoo",
+          "naver"
+        ],
+        "priceDevPct": 0.75,
+        "priceConfidence": "confirmed",
+        "entryLadder": [
+          {
+            "price": "₩92,336",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "₩90,016",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "₩86,304",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "₩100,570",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "₩108,340",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "₩115,000",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      },
+      {
+        "ticker": "278470.KS",
+        "name": "에이피알",
+        "sector": "Consumer Defensive",
+        "market": "korea",
+        "rationale": "룰 점수 상위 차순위 재충원 — 상위 후보들이 과열/매도신호로 탈락한 자리, 매도룰 재심 통과(score 6<7)",
+        "allocation": 20,
+        "entryZone": "₩369,950-₩381,275",
+        "entryRationale": "시장가 -2%~+1% 진입 (재충원 신규)",
+        "stopLoss": "₩351,075",
+        "target": "₩415,250",
+        "targetBull": "₩453,000",
+        "targetRationale": "시장가 +10% 보수적 target",
+        "confidence": "medium",
+        "action": "watch",
+        "catalysts": [
+          "룰 기반 점수 32점 차순위 후보",
+          "시장가 ₩377,500 신규 편입 (추가 검증 후 진입 권장)"
+        ],
+        "fundamentalBasis": "재충원 신규 — 펀더멘털 상세는 종목 페이지 참조",
+        "technicalBasis": "진입 ₩377,500 · 손절 -7% · 1차 목표 +10%",
+        "riskNote": "⚠️ 고점 주의 — 신규 매수 자제: RSI 79(과매수권) | 상위 후보 과열 탈락 후 차순위 편입 — 추가 검증 후 진입 권장",
+        "businessDesc": "APR Co., Ltd. manufactures and sells cosmetic products for men and women.",
+        "businessSummary": "Household & Personal Products",
+        "impliedVol": null,
+        "priceSources": [
+          "yahoo",
+          "naver"
+        ],
+        "priceDevPct": 1.59,
+        "priceConfidence": "conflicted",
+        "mtfNote": "➡️ 1H↑ 4H→ 1D↑ 1W↑ | 혼조",
+        "entryLadder": [
+          {
+            "price": "₩375,613",
+            "weight": 30,
+            "label": "즉시 진입 (모멘텀 확인)"
+          },
+          {
+            "price": "₩366,175",
+            "weight": 40,
+            "label": "-3% 풀백 시 추가"
+          },
+          {
+            "price": "₩351,075",
+            "weight": 30,
+            "label": "-7% 깊은 풀백 시 마지막"
+          }
+        ],
+        "exitLadder": [
+          {
+            "price": "₩389,486",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 entry로 이동 (breakeven lock)"
+          },
+          {
+            "price": "₩403,359",
+            "weight": 33,
+            "action": "1/3 정리 → stop을 +3%로 이동"
+          },
+          {
+            "price": "₩415,250",
+            "weight": 34,
+            "action": "마지막 1/3 + trailing stop (-5%)"
+          }
+        ]
+      }
+    ]
+  },
+  "sellRecommendations": {
+    "us": [],
+    "kr": [],
+    "total": 0
+  },
+  "buyCandidateScoring": {
+    "method": "4-stage (light → OHLCV → financials → LLM)",
+    "ruleCount": 23,
+    "top30": [
+      {
+        "ticker": "KO",
+        "sector": "consumer-defensive",
+        "market": "us",
+        "score": 38,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "micro_news_gap",
+          "price_breakout_high"
+        ]
+      },
+      {
+        "ticker": "BA",
+        "sector": "industrials",
+        "market": "us",
+        "score": 36,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "micro_news_gap",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "ABNB",
+        "sector": "consumer-discretionary",
+        "market": "us",
+        "score": 34,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_backlog_growth",
+          "price_breakout_high"
+        ]
+      },
+      {
+        "ticker": "278470.KS",
+        "sector": "Consumer Defensive",
+        "market": "kr",
+        "score": 32,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "price_pullback_50ma",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "FTNT",
+        "sector": "it-software",
+        "market": "us",
+        "score": 31,
+        "reasons": [
+          "price_oversold_gap",
+          "fund_high_roe",
+          "fund_backlog_growth",
+          "price_pullback_50ma"
+        ]
+      },
+      {
+        "ticker": "ADBE",
+        "sector": "it-software",
+        "market": "us",
+        "score": 31,
+        "reasons": [
+          "fund_high_roe",
+          "micro_news_gap",
+          "fund_backlog_growth",
+          "tech_200ma_reclaim"
+        ]
+      },
+      {
+        "ticker": "AAPL",
+        "sector": "it-software",
+        "market": "us",
+        "score": 30,
+        "reasons": [
+          "fund_high_roe",
+          "micro_news_gap",
+          "micro_volume_burst",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "LLY",
+        "sector": "pharma-biotech",
+        "market": "us",
+        "score": 29,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "micro_volume_burst"
+        ]
+      },
+      {
+        "ticker": "V",
+        "sector": "financials",
+        "market": "us",
+        "score": 29,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_backlog_growth",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "WAT",
+        "sector": "healthcare",
+        "market": "us",
+        "score": 29,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_backlog_growth",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "ROST",
+        "sector": "consumer-discretionary",
+        "market": "us",
+        "score": 28,
+        "reasons": [
+          "fund_high_roe",
+          "micro_news_gap",
+          "price_pullback_50ma",
+          "tech_rsi_oversold"
+        ]
+      },
+      {
+        "ticker": "GOOGL",
+        "sector": "ai-cloud",
+        "market": "us",
+        "score": 28,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "fund_backlog_growth",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "GOOG",
+        "sector": "semiconductors",
+        "market": "us",
+        "score": 28,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "fund_backlog_growth",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "META",
+        "sector": "semiconductors",
+        "market": "us",
+        "score": 28,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "fund_backlog_growth",
+          "price_support_bounce"
+        ]
+      },
+      {
+        "ticker": "326030.KS",
+        "sector": "Professional Services",
+        "market": "kr",
+        "score": 28,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "micro_supply_contract",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "003230.KS",
+        "sector": "Consumer Staples",
+        "market": "kr",
+        "score": 28,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "price_breakout_high",
+          "fund_op_margin_expansion"
+        ]
+      },
+      {
+        "ticker": "JNJ",
+        "sector": "healthcare",
+        "market": "us",
+        "score": 27,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "micro_news_gap",
+          "price_breakout_high"
+        ]
+      },
+      {
+        "ticker": "ISRG",
+        "sector": "healthcare",
+        "market": "us",
+        "score": 27,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "fund_backlog_growth",
+          "price_pullback_50ma"
+        ]
+      },
+      {
+        "ticker": "TRGP",
+        "sector": "energy",
+        "market": "us",
+        "score": 26,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "SCHW",
+        "sector": "financials",
+        "market": "us",
+        "score": 25,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "micro_news_gap"
+        ]
+      },
+      {
+        "ticker": "ESTC",
+        "sector": "ai-cloud",
+        "market": "us",
+        "score": 25,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "fund_backlog_growth",
+          "price_breakout_high"
+        ]
+      },
+      {
+        "ticker": "JPM",
+        "sector": "financials",
+        "market": "us",
+        "score": 25,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "micro_news_gap",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "GE",
+        "sector": "industrials",
+        "market": "us",
+        "score": 24,
+        "reasons": [
+          "price_oversold_gap",
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "fund_backlog_growth"
+        ]
+      },
+      {
+        "ticker": "MS",
+        "sector": "financials",
+        "market": "us",
+        "score": 24,
+        "reasons": [
+          "fund_high_roe",
+          "micro_news_gap",
+          "price_pullback_50ma",
+          "tech_ma_golden_cross"
+        ]
+      },
+      {
+        "ticker": "103590.KS",
+        "sector": "Industrials",
+        "market": "kr",
+        "score": 24,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "price_pullback_50ma",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "083650.KQ",
+        "sector": "Energy",
+        "market": "kr",
+        "score": 21,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "micro_supply_contract",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "214150.KQ",
+        "sector": "Other",
+        "market": "kr",
+        "score": 21,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "price_support_bounce",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "041510.KQ",
+        "sector": "Other",
+        "market": "kr",
+        "score": 20,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "price_pullback_50ma",
+          "price_mean_reversion"
+        ]
+      },
+      {
+        "ticker": "192820.KS",
+        "sector": "Chemicals",
+        "market": "kr",
+        "score": 19,
+        "reasons": [
+          "price_momentum_52w_high",
+          "fund_high_roe",
+          "price_breakout_high",
+          "micro_kr_smart_flow"
+        ]
+      },
+      {
+        "ticker": "021240.KS",
+        "sector": "Other",
+        "market": "kr",
+        "score": 17,
+        "reasons": [
+          "fund_high_roe",
+          "fund_revenue_growth",
+          "price_pullback_50ma",
+          "tech_ma_golden_cross"
+        ]
+      }
+    ]
+  },
+  "generatedAt": "2026-08-20T06:30:01.721Z",
+  "dataAsOf": "2026-08-20T06:30:01.721Z",
+  "source": "local-default_model",
+  "model": "default_model",
+  "locale": "ko",
+  "session": "afternoon",
+  "schemaVersion": 8,
+  "buildId": "local",
+  "etfStrategy": [
+    {
+      "ticker": "SPY",
+      "name": "S&P 500",
+      "category": "broad",
+      "tag": "core",
+      "action": "buy",
+      "rationale": "시장 전체 분산 코어",
+      "price": 769.06,
+      "changePct": null,
+      "sizingHint": "코어 5–10% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "XLI",
+      "name": "산업재 섹터",
+      "category": "sector",
+      "tag": "sector",
+      "action": "buy",
+      "rationale": "Industrials 비중확대 — 섹터 분산 노출",
+      "price": 181.95,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "XLV",
+      "name": "헬스케어 섹터",
+      "category": "sector",
+      "tag": "sector",
+      "action": "watch",
+      "rationale": "Healthcare 비중확대 — 섹터 분산 노출 ⚖️ 기술적 매도신호(RSI 83 과매수) — 매수→관망 강등",
+      "price": 175.68,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "XLY",
+      "name": "경기소비재 섹터",
+      "category": "sector",
+      "tag": "sector",
+      "action": "watch",
+      "rationale": "Consumer Discretionary 중립 — 섹터 분산 노출",
+      "price": 118.59,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "XLP",
+      "name": "필수소비재 섹터",
+      "category": "sector",
+      "tag": "sector",
+      "action": "watch",
+      "rationale": "Consumer Staples 중립 — 섹터 분산 노출",
+      "price": 86.54,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "IBB",
+      "name": "바이오텍",
+      "category": "thematic",
+      "tag": "thematic",
+      "action": "watch",
+      "rationale": "Healthcare 테마 — 바이오텍 ⚖️ 기술적 매도신호(RSI 83 과매수) — 매수→관망 강등",
+      "price": 216.96,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "XBI",
+      "name": "바이오텍(균등)",
+      "category": "thematic",
+      "tag": "thematic",
+      "action": "watch",
+      "rationale": "Healthcare 테마 — 바이오텍(균등) ⚖️ 기술적 매도신호(RSI 78 과매수) — 매수→관망 강등",
+      "price": 169.55,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "VUG",
+      "name": "대형 성장주",
+      "category": "style",
+      "tag": "style",
+      "action": "buy",
+      "rationale": "성장 팩터 — 강세 스타일",
+      "price": 87.93,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "MTUM",
+      "name": "모멘텀 팩터",
+      "category": "style",
+      "tag": "style",
+      "action": "watch",
+      "rationale": "모멘텀 팩터 — 추세 추종",
+      "price": 305.88,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "QUAL",
+      "name": "퀄리티 팩터",
+      "category": "style",
+      "tag": "style",
+      "action": "watch",
+      "rationale": "퀄리티 팩터 — 우량주 분산",
+      "price": 224.35,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "SCHD",
+      "name": "배당성장(슈와브)",
+      "category": "dividend",
+      "tag": "dividend",
+      "action": "watch",
+      "rationale": "배당성장 — income 분산",
+      "price": 35.09,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "FXI",
+      "name": "중국 대형주",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "중국 강세 — 1w +1.3% 강세 지속, 4w +3.6% ⚖️ 기술적 매도신호(50MA(34.36) < 200MA(36.98) dead cross (-7.1%)) — 매수→관망 강등",
+      "price": 35.68,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "YINN",
+      "name": "중국 3x (단기)",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "중국 강세 레버리지 — ⚠️ 단기 트레이딩 전용(장기보유 가치소멸)",
+      "price": 30.02,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "EWT",
+      "name": "대만",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "대만 강세 — 반도체 리더 NVDA·TSMC 연동으로 AI ⚖️ 기술적 매도신호(RSI 75 과매수) — 매수→관망 강등",
+      "price": 104.7,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "EWY",
+      "name": "한국",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "한국 중립 — 관망 외국인 순매도 3.08조원 지속에",
+      "price": 174.43,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "VGK",
+      "name": "유럽",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "유럽 중립 — 관망 영국 1w +0.4% 제한적 강세",
+      "price": 92.23,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "INDA",
+      "name": "인도",
+      "category": "region",
+      "tag": "region",
+      "action": "watch",
+      "rationale": "인도 중립 — 관망 데이터 부재로 글로벌 자금 흐름에",
+      "price": 49.54,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "GLD",
+      "name": "금",
+      "category": "commodity",
+      "tag": "diversifier",
+      "action": "watch",
+      "rationale": "포트폴리오 분산 — 금(주식 무상관)",
+      "price": 413.84,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "SLV",
+      "name": "은",
+      "category": "commodity",
+      "tag": "diversifier",
+      "action": "watch",
+      "rationale": "분산 — 은(산업+귀금속 혼합)",
+      "price": 60.01,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "SHY",
+      "name": "미국 단기국채(1-3년)",
+      "category": "bond",
+      "tag": "bond",
+      "action": "watch",
+      "rationale": "단기국채 — 현금성 분산",
+      "price": 82.06,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    },
+    {
+      "ticker": "IBIT",
+      "name": "비트코인 현물(블랙록)",
+      "category": "crypto",
+      "tag": "crypto",
+      "action": "watch",
+      "rationale": "비트코인 4주 +3.35% — ⚠️ 고변동 자산, 소액 분산 전용",
+      "price": 38.78,
+      "changePct": null,
+      "sizingHint": "전술 1–3% 비중",
+      "invalidation": "주간 종가 50일선 하회 또는 스탠스 약세 전환 시 분할 축소"
+    }
+  ],
+  "qualityScore": 93,
+  "harnessAudit": {
+    "fixes": {
+      "krNameMismatch": [],
+      "rationaleDedup": [],
+      "insiderFilingsType": [],
+      "sectorAllocSum": {
+        "from": 92,
+        "to": 100
+      },
+      "portfolioAllocSum": {
+        "from": 32,
+        "to": 100
+      },
+      "buyLowConfidence": [],
+      "stopLossDeep": [],
+      "targetBullInverted": [],
+      "stopLossAboveEntry": [],
+      "entryFar50MA": [],
+      "companyChangeName": [],
+      "unrealistic52WRange": [],
+      "stopRationaleMismatch": [],
+      "usNameMismatch": [
+        "AMAT:companyChanges \"Applied Materials\"→\"Applied Materials Inc \"",
+        "ROST:companyChanges \"Ross Stores\"→\"Ross Stores, Inc.\""
+      ],
+      "targetBullUnrealistic": [],
+      "actionCritiqueMismatch": [
+        "WAT:buy→watch (note 매칭)",
+        "278470.KS:buy→watch (note 매칭)"
+      ],
+      "stopRationaleAligned": [
+        "021240.KS:86304→80000",
+        "ROST:218.26→205"
+      ],
+      "currencyMismatch": [
+        "083650.KQ stopLossRationale: 하단 지지 이탈 시 손절, 변동성 확대 대비 | 현재 $59300 → 손절선 ~$55149.00 (-7%)... → 통화/현재가 교정",
+        "326030.KS stopLossRationale: 기술적 지지선 붕괴 시 리스크 차단 | 현재 $86300 → 손절선 ~$80259.00 (-7%)... → 통화/현재가 교정",
+        "003230.KS stopLossRationale: 고점 대비 낙폭 제한, 추세 전환 시 출구 | 현재 $1405000 → 손절선 ~$1306650.00 (-7... → 통화/현재가 교정",
+        "103590.KS stopLossRationale: 업황 둔화 신호 시 즉각적 손실 최소화 | 현재 $69800 → 손절선 ~$64914.00 (-7%) / 2... → 통화/현재가 교정",
+        "214150.KQ stopLossRationale: 단기 과매도 구간 이탈 시 포지션 정리 | 현재 $33600 → 손절선 ~$31248.00 (-7%) / 2... → 통화/현재가 교정",
+        "021240.KS stopLossRationale: 실적 부진 우려 시 방어적 손절 실행 | 현재 $92800 → 손절선 ~₩80,000 (-7%) / 200M... → 통화/현재가 교정"
+      ],
+      "bannedDowngrade": []
+    },
+    "schemaErrors": [],
+    "appliedAt": "2026-08-20T06:30:05.030Z",
+    "totalFixes": 14
+  },
+  "portfolioConstruction": {
+    "mode": "selective",
+    "eligibleCount": 4,
+    "candidatePoolCount": 30,
+    "vetoRate": 0.75,
+    "postureLevel": "low",
+    "targetInvestedPct": 80,
+    "cashReservePct": 20,
+    "reason": null,
+    "investedPct": 80
+  },
+  "flowNarrativeEvidence": {
+    "shouldMention": true,
+    "primaryClaim": {
+      "id": "kr_smart_flow",
+      "kind": "true_flow",
+      "market": "KR",
+      "text": "KR 외국인+기관 주요 종목 순매도 4조 3,382억원(1d, 수급 상위 종목 합계)",
+      "allowedVerbs": [
+        "순매수",
+        "순매도",
+        "유입",
+        "이탈"
+      ],
+      "confidence": "high"
+    },
+    "allClaims": [
+      {
+        "id": "kr_smart_flow",
+        "kind": "true_flow",
+        "market": "KR",
+        "text": "KR 외국인+기관 주요 종목 순매도 4조 3,382억원(1d, 수급 상위 종목 합계)",
+        "allowedVerbs": [
+          "순매수",
+          "순매도",
+          "유입",
+          "이탈"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "ici_etf_issuance",
+        "kind": "true_flow",
+        "market": "US",
+        "text": "ICI 주간 실측(1주 지연, ~8/12/2026): 미국주식 ETF +91억달러 vs 해외주식 +74억달러 · 채권 +145억달러 순창설(새로 설정된 ETF 물량 = 자금 유입)",
+        "shortText": "실제 돈의 흐름(주간 집계)은 미국주식 ETF +91억달러·채권 +145억달러 — 새로 들어온 자금 기준의 실측치로, 시장에 돈이 들어오고 있다는 뜻이다",
+        "allowedVerbs": [
+          "순창설",
+          "순상환",
+          "자금 유입",
+          "자금 이탈",
+          "net issuance"
+        ],
+        "confidence": "medium"
+      },
+      {
+        "id": "rotation_proxy_1w",
+        "kind": "return_proxy",
+        "text": "equity→energy 로테이션(1주 수익률 스프레드 4.7%p — 가격 기준 proxy)",
+        "allowedVerbs": [
+          "로테이션",
+          "수익률 우위",
+          "상대강도",
+          "이동 조짐(가격 기준)"
+        ],
+        "forbiddenVerbs": [
+          "순매수",
+          "순유입",
+          "자금 유입액"
+        ],
+        "confidence": "medium"
+      },
+      {
+        "id": "sector_rotation_proxy_1w",
+        "kind": "return_proxy",
+        "text": "섹터 로테이션(가격 기준): Tech(XLK -2.8%)→Healthcare(XLV +4.3%) 1주 스프레드 7.1%p",
+        "allowedVerbs": [
+          "섹터 로테이션",
+          "수익률 우위",
+          "상대강도"
+        ],
+        "forbiddenVerbs": [
+          "순매수",
+          "순유입",
+          "자금 유입액"
+        ],
+        "confidence": "medium"
+      }
+    ]
+  },
+  "conditionalEntryWatch": [
+    {
+      "ticker": "LRCX",
+      "name": "Conductor Etch",
+      "market": "us",
+      "score": 23,
+      "vetoReason": "하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -29%, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수",
+      "condition": "낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지",
+      "refPrice": 307.17
+    },
+    {
+      "ticker": "VRT",
+      "name": "Vertiv",
+      "market": "us",
+      "score": 20,
+      "vetoReason": "하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -31%, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수",
+      "condition": "낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지",
+      "refPrice": 261
+    },
+    {
+      "ticker": "AMD",
+      "name": "EPYC Server CPUs",
+      "market": "us",
+      "score": 18,
+      "vetoReason": "하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -20%, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수",
+      "condition": "낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지",
+      "refPrice": 466.42
+    },
+    {
+      "ticker": "AVGO",
+      "name": "Networking ASICs",
+      "market": "us",
+      "score": 18,
+      "vetoReason": "하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -25%, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수",
+      "condition": "낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지",
+      "refPrice": 362.48
+    },
+    {
+      "ticker": "HOOD",
+      "name": "Options & Equities Trading",
+      "market": "us",
+      "score": 17,
+      "vetoReason": "하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -37%, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수",
+      "condition": "낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지",
+      "refPrice": 95.77
+    },
+    {
+      "ticker": "298040.KS",
+      "name": "효성중공업",
+      "market": "kr",
+      "score": 17,
+      "vetoReason": "하락추세 신규매수 veto: 50MA 아래 + 52주고점 대비 -38%, 지지/과매도/극공포 앵커 없음 (칼받기 차단 — 앵커 확인 후 분할매수",
+      "condition": "낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지",
+      "refPrice": 2841000
+    }
+  ]
+}

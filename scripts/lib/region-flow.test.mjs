@@ -35,6 +35,15 @@ console.log(`  생성된 줄: ${line}`);
 /USD|달러/.test(line) ? ok('EWY 표시통화 명시 (원화 지수와 혼동 방지)') : bad('통화 라벨 없음 — 모델이 원화지수와 동일시');
 /KRW|원화/.test(line) ? ok('지수 표시통화 명시') : bad('지수 통화 라벨 없음');
 
+// 어떤 입력이 실제로 들어왔는지 드러나야 한다.
+// 2026-08-20 실측: buildCtxSummary(6742행)가 buildIndexLevelsBlock(6750행)보다 먼저 호출돼
+//   ctx.indexLevelsMap 이 undefined 였고, 그래서 KOSPI 당일 등락 추가가 프로덕션에서 no-op 이었다.
+//   조용히 빠지면 알 수 없으므로 입력 존재 여부를 값으로 돌려준다.
+const io = R.koreaFlowInputs(ctx);
+io.index && io.etf && io.foreign ? ok(`입력 진단: ${JSON.stringify(io)}`) : bad(`입력 진단 이상: ${JSON.stringify(io)}`);
+const noIdx = R.koreaFlowInputs({ capital: ctx.capital, koreaFlow: ctx.koreaFlow });
+noIdx.index === false ? ok('지수 입력 누락을 드러냄 (순서 회귀 감지)') : bad('지수 누락이 안 드러남');
+
 // 데이터가 없을 때 창작하지 않는다 — 이 저장소의 '결측은 명시, 창작 금지' 규율
 const empty = R.buildKoreaFlowLine({});
 empty === '' || /미가용|no data|없음/i.test(empty)

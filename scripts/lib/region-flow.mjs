@@ -50,3 +50,20 @@ export function buildKoreaFlowLine(ctx = {}) {
   }
   return parts.join(' | ');
 }
+
+/**
+ * 어떤 입력이 실제로 들어왔는지. 파이프라인이 로그로 남겨 '조용히 빠진' 상태를 드러낸다.
+ *
+ * 2026-08-20 실측: buildCtxSummary(generate-report-local.mjs:6742)가
+ *   buildIndexLevelsBlock(:6750)보다 먼저 호출돼 ctx.indexLevelsMap 이 undefined 였다.
+ *   그 결과 KOSPI 당일 등락 추가가 프로덕션에서 한 번도 실행되지 않았다(코드는 있는데 효과 0).
+ *   호출 순서는 나중에 또 바뀔 수 있으니, 빠졌을 때 보이게 만든다.
+ */
+export function koreaFlowInputs(ctx = {}) {
+  const idx = ctx.indexLevelsMap ?? {};
+  return {
+    index: ['KOSPI', 'KOSDAQ'].some((k) => typeof idx[k] === 'number' && Number.isFinite(idx[k])),
+    etf: Boolean((ctx.capital?.countryFlow?.countries ?? []).find((c) => c.id === 'korea')),
+    foreign: (ctx.koreaFlow?.foreignNet ?? ctx.koreaFlow?.netBuy) != null,
+  };
+}

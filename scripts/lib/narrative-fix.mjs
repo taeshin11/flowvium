@@ -1,3 +1,4 @@
+import { contradictionRegex as flowContradictionRegex } from './flow-contradiction.mjs';
 // scripts/lib/narrative-fix.mjs
 // 내러티브 결정적 corrector (단일 source of truth — 생성기 + patch-narrative 공용).
 //   "제일 정확한 방법"(2026-06-16 사용자): 지수/종목 등락%를 *실제 일간등락과 대조*해 환각만 제거하고
@@ -269,9 +270,10 @@ export function fixKrFlowContradiction(report, krClaimText) {
   const measuredSell = !measuredBuy && /순매도/.test(claim);
   if (!measuredBuy && !measuredSell) return { nFix: 0, log: [] };
   // verify-report (b3++) 와 동일 모순 패턴 — 실측 반대방향 + 지속성 서술일 때만(정당한 과거서술 보존)
-  const contraRe = measuredBuy
-    ? /(외국인|기관)[^.]{0,14}(매도세|순매도)[^.]{0,8}(지속|확대|이어)/
-    : /(외국인|기관)[^.]{0,14}(매수세|순매수)[^.]{0,8}(지속|확대|이어)/;
+  // 2026-08-20: 종전 패턴은 (매수세|순매수)+(지속|확대|이어) 형태만 봐서 '유입' 계열을 놓쳤다.
+  //   검출기(verify-report)는 '자금 유입'을 잡는데 여기서 못 고쳐 발간이 막히기만 했다(오후 실행 실증).
+  //   검출과 교정이 같은 것을 보도록 단일 소스에서 가져온다.
+  const contraRe = flowContradictionRegex(measuredBuy ? 'buy' : 'sell');
   const toDir = measuredBuy ? '순매수' : '순매도';
   // 실측 금액 추출(가능하면) — 폴백 문장을 실측 그대로 합성(환각 불가). 예: "1조 9,922억원".
   const amtM = claim.match(/(?:순매수|순매도)\s*([\d,]+\s*조\s*[\d,]*\s*억?\s*원|[\d,]+\s*억\s*원|[\d,]+\s*조\s*원)/);

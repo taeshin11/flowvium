@@ -4,6 +4,7 @@
 // 2026-05-30 Karpathy closed loop: 결함을 defects 배열로 모아 caller 가 DB 적재 가능.
 // CLI 호환 유지 (console.log) + verifyReport(file, opts) 함수 export.
 import fs from 'node:fs';
+import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex } from './lib/flow-contradiction.mjs';
 
 // 2026-05-31: 최신 보고서 자동 선택. 이전엔 default 가 'report-2026-05-30-morning-ko.json'
 //   하드코딩 → verify-all / cron verify-loop 가 며칠째 stale 보고서만 검증 (silent 사각지대).
@@ -953,12 +954,14 @@ export async function verifyReport(file, { silent = false } = {}) {
     //   2026-06-18 정정: 기존 정규식은 "순매수 둔화가 지속"(=둔화 지속, 의미상 정상)을 오탐하고,
     //   "외국인 자금 유입 확대"(=진짜 역전)는 놓쳤음. → 매수/유입 주장을 잡되, 직후 둔화/감소 수식이
     //   붙은 경우(순매수 둔화)는 정상으로 제외.
-    const krSell = /(둔화|순매도|감소|이탈|약화|유출)/.test(krThesis);
-    const buyClaim = /외국인[^.]{0,16}(순유입|자금\s*유입|유입\s*확대|유입세|순매수\s*(지속|연속|이어|확대|기조|흐름))/.test(narrText);
-    const slowdownQualified = /(순매수|유입)[^.]{0,6}(둔화|감소|축소|위축|약화)/.test(narrText);
-    if (krSell && buyClaim && !slowdownQualified) {
+    // 2026-08-20: 패턴을 여기 적어두면 교정기(narrative-fix)와 조용히 갈라진다 — 실제로 갈라져서
+    //   "외국인 자금 유입을 가속"을 검출기는 잡고 교정기는 못 고쳐 발간만 막혔다. 단일 소스를 쓴다.
+    const measuredDir = /순매도|유출|이탈/.test(krThesis) ? 'sell' : (/순매수|유입/.test(krThesis) ? 'buy' : null);
+    const krSell = measuredDir === 'sell';
+    const buyClaim = krSell && isFlowContradiction(narrText, 'sell');
+    if (krSell && buyClaim) {
       const inDir = krThesis.match(/(둔화|순매도|감소|이탈|약화|유출)/)?.[0];
-      const claim = narrText.match(/외국인[^.]{0,16}(순유입|자금\s*유입|유입\s*확대|유입세|순매수\s*(?:지속|연속|이어|확대|기조|흐름))/)?.[0];
+      const claim = narrText.match(flowContradictionRegex('sell'))?.[0];
       defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_direction_inversion',
         llm_value: `내러티브 "${claim}" vs 입력 "외국인 ${inDir}"`, correct_value: 'regionStances.korea 수급 방향과 일치', severity: 'high' });
       log(`  ❌ 수급방향역전: 입력 "${inDir}" → 내러티브 "${claim}"`); nFound++;
