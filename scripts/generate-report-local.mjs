@@ -52,6 +52,8 @@ import { partition as partitionSignalScope, shouldVeto as scopedShouldVeto,
 const SELL_VETO_THRESHOLD = 7;
 import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  // 2026-05-31: sector-keyword strip 단일 source of truth
 import { resolveLlm } from './lib/llm-config.mjs';
+import { resolveCompanyName } from './lib/company-name.mjs';
+import { normalizeCurrencyText } from './lib/currency-format.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -612,6 +614,16 @@ function applyLocalHarness(r, livePrices) {
         `손절선 ~${formatted}`,
       );
       audit.fixes.stopRationaleAligned.push(`${sr.ticker}:${rationaleStop}→${stopP}`);
+    }
+    // 2026-08-20: 위 정렬은 '값이 5% 이상 어긋날 때만' 돈다. 값이 맞고 표기만 틀린 경우
+    //   (₩1397000·₩1299210.00 — 구분자 없음, 원화에 소수점)는 그대로 발간됐다.
+    //   실제로 저녁 발간본에서 같은 줄 안에 ₩1397000 과 ₩1,224,720 이 공존했다.
+    //   서식은 값과 무관하게 항상 맞춘다 — 두 관심사를 분리한다.
+    for (const sr of r.stopLossRationale) {
+      if (typeof sr.rationale !== 'string') continue;
+      const before = sr.rationale;
+      sr.rationale = normalizeCurrencyText(before);
+      if (sr.rationale !== before) audit.fixes.stopRationaleAligned.push(`${sr.ticker}:표기정규화`);
     }
   }
 
@@ -5435,7 +5447,10 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       : /칼받기|추락|낙폭|falling/i.test(v)
         ? '낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지'
         : '차단 사유 해소 시 재평가';
-    _conditionalWatchPending.push({ ticker: c.ticker, name: tickerMeta.meta?.[c.ticker]?.name ?? null, market: c.market, score: c.stage1Score, vetoReason: v.slice(0, 80), condition, refPrice: px });
+    // 2026-08-20: 종전 tickerMeta.meta[ticker].name 은 오염돼 있다 — 발간본 눈검증에서
+    //   회사명 자리에 제품명이 찍혔다(EPYC Server CPUs=AMD · Networking ASICs=AVGO · Conductor Etch=LRCX).
+    //   권위 소스(data/company-names.json)는 정확한 값을 갖고 있었는데 이 경로만 안 썼다.
+    _conditionalWatchPending.push({ ticker: c.ticker, name: resolveCompanyName(c.ticker, { meta: tickerMeta.meta }), market: c.market, score: c.stage1Score, vetoReason: v.slice(0, 80), condition, refPrice: px });
   }
   const stage2Kept = stage2Cands.filter(c => !c._buyVeto);
   stage2Kept.sort((a, b) => b.stage1Score - a.stage1Score);
