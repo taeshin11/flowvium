@@ -87,8 +87,12 @@ async function replaceFile(label, src, dest) {
  *
  *   결론: 상한은 취소가 아니다. 취소 가능한 유일한 경계는 프로세스 경계다.
  *   그래서 Drive 를 만지는 *데이터* 연산은 전부 remoteExec(자식+SIGKILL)로 옮겼다.
- *   메타데이터 동기 연산(existsSync/statSync/mkdirSync)은 실측 4ms 라 그대로 둔다 —
- *   동기 호출은 스레드풀이 아니라 호출 스레드에서 돌아 기아의 영향을 받지 않는다.
+ *   남은 동기 연산은 미러 단계의 스킵 판정(existsSync/statSync, 실측 4ms)뿐이다.
+ *   동기 호출은 스레드풀이 아니라 *호출 스레드* 에서 돌기 때문에 기아를 만들지도,
+ *   당하지도 않는다. 대신 막히면 메인 스레드가 선다 — 그래서 파일 476개를 도는
+ *   미러 단계에만 남겼고(파일마다 자식을 띄우면 그 비용이 더 크다), 그 단계는
+ *   회로차단기가 열리면 아예 걷지 않는다. 이 프로세스에서 가장 확실한 산출물인
+ *   로컬 2차 백업(1b)은 Drive 를 한 번이라도 만지기 *전에* 끝난다.
  */
 /**
  * Drive 를 만지는 연산을 죽일 수 있는 자식 프로세스로 돌린다.
@@ -159,8 +163,6 @@ const reaper = spawn('/bin/sh', ['-c',
   { detached: true, stdio: 'ignore' });
 reaper.unref();
 
-if (!existsSync(DEST)) mkdirSync(DEST, { recursive: true });
-
 // ── 1. SQLite 정합 백업 — 로컬로 뜨고 완성본만 복사 (원칙 ①)
 const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10); // KST 날짜
 const dbDest = join(DEST, `flowvium-${today}.db`);
@@ -172,17 +174,19 @@ const localDbKeep = localDb;
   await db.backup(localDb);
   db.close();
   log(`DB 로컬 정합본 ${(statSync(localDb).size / 1048576).toFixed(1)} MB (${((Date.now() - t) / 1000).toFixed(1)}s)`);
-  const t2 = Date.now();
-  if (await replaceFile(`DB 복사 → ${dbDest}`, localDb, dbDest)) {
-    log(`DB → ${dbDest} (복사 ${((Date.now() - t2) / 1000).toFixed(1)}s)`);
-  }
-  // 로컬 임시본은 6절(로컬 2차 백업)에서 재사용하므로 여기서 지우지 않는다.
+  // 로컬 임시본은 1b(로컬 2차 백업)에서 재사용하므로 여기서 지우지 않는다.
+  // Drive 로의 복사는 1b 뒤다 — 아래 주석 참조.
 }
 
-// ── 1b. 로컬 2차 백업 — *Drive 단계보다 먼저*. 로컬 FS 라 빠르고 상한이 필요 없다.
-//   2026-08-22: 처음엔 이걸 맨 뒤(미러 뒤)에 뒀다가 같은 실수를 반복했다 —
-//   느린 Drive 단계가 앞에 있으면 가장 확실한 산출물이 예산 초과로 못 나온다.
-//   확실한 것부터 만든다.
+// ── 1b. 로컬 2차 백업 — **Drive 를 한 번이라도 만지기 전에**. 로컬 FS 라 상한이 필요 없다.
+//   2026-08-22 1차: 처음엔 이걸 맨 뒤(미러 뒤)에 뒀다가 느린 Drive 단계에 밀려
+//     가장 확실한 산출물이 예산 초과로 못 나왔다. 그래서 앞으로 옮겼다.
+//   2026-08-22 2차: 그런데 여전히 *앞에* Drive 접근이 두 군데 남아 있었다 —
+//     `existsSync(DEST)/mkdirSync(DEST)` 와 1절의 DB 복사. 앞의 둘은 동기 호출이라
+//     막히면 메인 스레드가 그대로 서고, 그러면 로컬 백업조차 못 만든다.
+//     (실측으로는 Drive 메타데이터가 4ms 라 지금은 안 막힌다. 하지만 '오늘 빠르다' 는
+//      보장이 아니다 — 오늘 이 마운트의 다른 연산들이 무한정 멈추는 걸 이미 봤다.)
+//     이제 Drive 는 이 절이 끝난 뒤에야 처음 만진다. 확실한 것부터 만든다.
 try {
   if (!existsSync(LOCAL_DEST)) mkdirSync(LOCAL_DEST, { recursive: true });
   const localCopy = join(LOCAL_DEST, `flowvium-${today}.db`);
@@ -198,10 +202,20 @@ try {
   log(`로컬 2차 백업 → ${LOCAL_DEST} (DB + 시크릿, 최근 ${KEEP}개 유지)`);
 } catch (e) { log(`⚠️ 로컬 2차 백업 실패: ${String(e.message).slice(0, 70)}`); }
 
+// ── 1c. 여기서부터 Drive. 대상 디렉터리 생성도 자식 프로세스로 한다 —
+//   mkdirSync 는 이 프로세스의 메인 스레드를 걸 수 있고, 그러면 아무것도 못 구한다.
+{
+  const t = Date.now();
+  const made = await withTimeout('원격 대상 디렉터리 준비', sh('exec mkdir -p -- "$1"', DEST));
+  if (made && await replaceFile(`DB 복사 → ${dbDest}`, localDb, dbDest)) {
+    log(`DB → ${dbDest} (복사 ${((Date.now() - t) / 1000).toFixed(1)}s)`);
+  }
+}
+
 // ── 2. 시크릿 — 가장 대체 불가능한 자산이라 DB 다음이다 (원칙 ③)
 //    사용자 본인 Drive 이지만 시크릿이 들어간다는 점은 인지할 것.
 const secretsDir = join(DEST, 'secrets');
-if (!existsSync(secretsDir)) mkdirSync(secretsDir, { recursive: true });
+await withTimeout('원격 secrets 디렉터리 준비', sh('exec mkdir -p -- "$1"', secretsDir));
 for (const f of ['.env.local', '.cf-tunnel-token']) {
   if (overBudget()) { log('⏱ 예산 초과 — 시크릿 이후 단계 중단'); break; }
   const src = resolve(ROOT, f);
@@ -230,7 +244,7 @@ async function mirrorDir(rel) {
   let copied = 0, skipped = 0, failed = 0, aborted = false;
   const walk = async (s, d) => {
     if (aborted) return;
-    if (!existsSync(d)) mkdirSync(d, { recursive: true });
+    if (!existsSync(d)) await sh('exec mkdir -p -- "$1"', d);   // DEST 하위 — 자식으로
     for (const name of await fsp.readdir(s)) {
       if (overBudget()) { aborted = true; return; }
       const sp = join(s, name), dp = join(d, name);
