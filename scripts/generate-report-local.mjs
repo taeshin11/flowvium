@@ -851,7 +851,13 @@ function qualityCheck(report) {
   if (isGarbage(report.technicalAnalysis, garbageMinLen(GARBAGE_MIN_LEN.technicalAnalysis)))
     issues.push(`technicalAnalysis GARBAGE: "${report.technicalAnalysis?.slice(0, 60)}"`);
   if (!report.portfolio?.length) issues.push('portfolio EMPTY');
-  if (!report.marketNarrative) issues.push('marketNarrative MISSING');
+  // 2026-08-21: 종전 `!report.marketNarrative` 는 *존재*만 봤다. JS 에서 !{} 는 false 라
+  //   빈 객체가 통과한다. 실제로 오늘 afternoon 보고서가 marketNarrative:{} 로 통과했다
+  //   (로그: "❌ marketNarrative" 를 찍고도 "품질 점수: 90/100 ✅ 통과").
+  //   같은 파일의 체크리스트는 !!(marketNarrative?.why) 로, 점수 가산은 (?.why || ?.story) 로
+  //   이미 *내용*을 본다 — 차단 게이트만 어긋나 있었다. 표시가 ❌ 인데 통과시키면 게이트가 아니라 장식이다.
+  //   verify-report 의 narrative_card_empty 는 발간 경로에서 돌지 않으므로 최종 방어선도 없었다.
+  if (!report.marketNarrative?.why && !report.marketNarrative?.story) issues.push('marketNarrative MISSING');
   if (!report.regionStances || Object.keys(report.regionStances).length === 0) issues.push('regionStances MISSING');
   // 2026-06-13: shortSqueeze 는 외부 데이터(공매도/스퀴즈) 소스 의존 — 일시 down 시 빈 섹션이 *완벽한*
   //   리포트(포트폴리오·verdict·계약상세 정상, verify 0결함)를 hard-fail 시켜 더 나쁜 옛 리포트가

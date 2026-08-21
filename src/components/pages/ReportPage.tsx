@@ -967,7 +967,12 @@ export default function ReportPage() {
           ) : (
           <>
           {/* ── S6: 시장 내러티브 (Why + Watch + Story) ─────────────────────── */}
-          {data.marketNarrative && (
+          {/* 2026-08-21: 종전 `data.marketNarrative &&` 는 *존재*만 봤다. JS 에서 {} 는 truthy 라
+              빈 객체면 카드는 뜨고 라벨(왜/주목/스토리)만 빈 채로 렌더된다.
+              실제로 오늘 조절기 장애로 narrative 호출이 실패해 marketNarrative:{} 인 보고서가 만들어졌다.
+              생성 쪽 게이트도 같은 실수를 했었다(qualityCheck 의 !report.marketNarrative).
+              화면은 내용이 있을 때만 그린다 — 게이트와 같은 기준(why || story). */}
+          {(data.marketNarrative?.why || data.marketNarrative?.story) && (
             <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 p-4">
               <div className="flex items-center gap-1.5 mb-3">
                 <span className="text-sm font-bold text-amber-800">📖 {t('marketNarrativeTitle')}</span>
