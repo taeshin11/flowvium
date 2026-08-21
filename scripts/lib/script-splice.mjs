@@ -36,7 +36,14 @@ const CYRILLIC = 'Ѐ-ӿ';
  * @param {string} locale  목표 로케일
  */
 export function hasScriptSplice(text, locale) {
-  const s = String(text ?? '');
+  // 2026-08-21: ICU 자리표시자({count}·{market}·{n})는 번역 대상이 아니다.
+  //   검사 [3]이 구분자에 {} 를 포함해 {market} 을 'market' 이라는 소문자 낱말로 쪼갰고,
+  //   그래서 자리표시자가 든 문자열은 *올바른 번역이어도* 음차 중단으로 거부됐다.
+  //   실측: en 카탈로그의 자리표시자 포함 키 104개. 이미 번역된 것들이 전부 거부됐다
+  //   ("전체 {count}개 기업 검색 가능" · "공급업체 {count}곳").
+  //   add-i18n-key.mjs 가 이 검사로 번역을 버리므로 그 키들은 영영 못 채운다.
+  //   자리표시자를 지우고 나머지만 본다 — 실제 검출력은 그대로다(테스트가 고정).
+  const s = String(text ?? '').replace(/\{[^{}]*\}/g, ' ');
   if (!s) return false;
   const target = TARGET[String(locale ?? '').split('-')[0]];
   if (!target) return false;          // 라틴 계열 등 — 비적용

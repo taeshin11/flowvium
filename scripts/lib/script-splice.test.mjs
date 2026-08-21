@@ -48,5 +48,34 @@ S.hasScriptSplice('ショート・スクイーズcandidate', 'ja') ? ok('ja: 미
 // 라틴 계열 로케일에는 적용하지 않는다 — 원문도 라틴이라 서명이 성립하지 않는다
 !S.hasScriptSplice('conglomerado industrial', 'es') ? ok('es: 비적용 (라틴 로케일)') : bad('es 오탐');
 
+// ── 2026-08-21: ICU 자리표시자 오탐 ─────────────────────────────────────────────
+// 검사 [3]("공백 분리 소문자 라틴 낱말")이 구분자에 {} 를 포함해 {market} 을 'market' 으로 쪼갠다.
+// 그래서 자리표시자가 든 문자열은 *올바른 번역이어도* 음차 중단으로 거부된다.
+// 실측: en 카탈로그의 자리표시자 포함 키 104개. 이미 번역된 것들이 전부 거부됐다 —
+//   "전체 {count}개 기업 검색 가능" · "공급업체 {count}곳" · "상위 {n}건 표시 ({total} 종목 중)"
+// add-i18n-key.mjs 는 이 검사로 번역을 버리므로(`✗ 음차 중단`), 자리표시자 키는 영영 못 채운다.
+// 실제로 내가 fearGreedMarket.metaTitle 을 채우려다 이 가드에 막혔고, 그때 발견했다.
+{
+  const OK = [
+    '전체 {count}개 기업 검색 가능',
+    '공급업체 {count}곳',
+    '상위 {n}건 표시 ({total} 종목 중) — 필터로 좁히세요',
+    '{market} 공포·탐욕 지수 | Flowvium',
+    'Finnhub · {period}',
+  ];
+  for (const s of OK) {
+    S.hasScriptSplice(s, 'ko')
+      ? bad(`자리표시자 오탐: ${JSON.stringify(s)}`)
+      : ok(`자리표시자 통과: ${JSON.stringify(s).slice(0, 44)}`);
+  }
+  // 자리표시자를 빼도 진짜 음차 중단은 여전히 잡아야 한다 (가드를 무력화하면 안 된다)
+  S.hasScriptSplice('{count}개 쇼트 스퀴즈 candidate', 'ko')
+    ? ok('자리표시자가 있어도 진짜 잔여 영단어는 검출')
+    : bad('자리표시자 처리하며 실제 검출까지 죽였다');
+  S.hasScriptSplice('{n}개 케urig 드피퍼', 'ko')
+    ? ok('자리표시자가 있어도 음차 중단은 검출')
+    : bad('음차 중단 검출 실패');
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);
