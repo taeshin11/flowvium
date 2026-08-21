@@ -110,7 +110,8 @@
       "ai-infrastructure": "Cơ sở hạ tầng AI",
       "energy-transition": "Chuyển đổi năng lượng",
       "financials-fintech": "Tài chính / Fintech",
-      "materials-critical-minerals": "Vật liệu / Khoáng sản chiến lược"
+      "materials-critical-minerals": "Vật liệu / Khoáng sản chiến lược",
+      "crypto": "Tiền mã hóa"
     },
     "relationships": {
       "supplier": "Nhà cung cấp",
@@ -2022,5 +2023,8 @@
     "mid_cap": "Vốn hóa vừa",
     "first_follower": "Người theo dõi đầu tiên",
     "late_mover": "Chậm trễ"
+  },
+  "blog": {
+    "strategy": "Chiến lược"
   }
 }

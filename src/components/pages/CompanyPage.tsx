@@ -70,6 +70,7 @@ function T({ text }: { text: string }) {
 // 2026-06-12: 관련 종목 이름 표시 (사용자 "다 숫자코드로만 나와서 어딘지도 모르겠다" — KT&G 사건).
 //   UNIVERSE_SEARCH 권위 소스 (KR 한글명 포함, 1338종) — ReportPage displayName 과 동일 패턴.
 import { UNIVERSE_SEARCH } from '@/data/universe-search';
+import { useRoleLabel } from '@/hooks/useRoleLabel';
 const TICKER_NAME: Record<string, string> = Object.fromEntries(UNIVERSE_SEARCH.map((c) => [c.ticker, c.name]));
 
 // RSS 제목의 HTML 엔티티 디코드 (&quot; 등이 그대로 노출되던 결함)
@@ -227,17 +228,13 @@ function formatLiveValue(label: string, val: number): string {
 
 export default function CompanyPage({ ticker }: { ticker: string }) {
   const t = useTranslations('company');
-  const tRole = useTranslations('roles');
   const tNav = useTranslations('nav');
-  const roleMsgs = (useMessages() as { roles?: Record<string, unknown> } | undefined)?.roles ?? {};
   // 2026-08-22: 종전엔 데이터의 role/type 을 CSS `capitalize` 로 찍었다.
   //   'supplier' 가 화면에 'Supplier' 로 보였다 — capitalize 는 번역이 아니라 영어 표기 규칙이라
   //   그 자리는 16개 로케일 전부에서 영문이었다. 소스 grep 으로는 안 잡혀 눈검증에서만 드러났다.
-  //   키가 없는 값은 원본을 그대로 둔다 — t() 는 없는 키에 예외를 던진다.
-  const roleLabel = (v?: string | null): string => {
-    const k = String(v ?? '');
-    return Object.prototype.hasOwnProperty.call(roleMsgs, k) ? tRole(k) : k.replace(/_/g, ' ');
-  };
+  //   같은 날 오후: 이 배선을 여기 안에만 두는 바람에 ComparePage 가 그대로 영문이었다.
+  //   훅으로 빼서 단일 출처로 만든다(useSectorLabel 과 같은 이유).
+  const roleLabel = useRoleLabel();
   const locale = useLocale();
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);

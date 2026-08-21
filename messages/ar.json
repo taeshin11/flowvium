@@ -110,7 +110,8 @@
       "ai-infrastructure": "بنية تحتية للذكاء الاصطناعي",
       "energy-transition": "انتقال الطاقة",
       "financials-fintech": "الخدمات المالية / التكنولوجيا المالية",
-      "materials-critical-minerals": "المواد / المعادن الحيوية"
+      "materials-critical-minerals": "المواد / المعادن الحيوية",
+      "crypto": "العملات المشفرة"
     },
     "relationships": {
       "supplier": "مورّد",
@@ -2022,5 +2023,8 @@
     "mid_cap": "الأسهم متوسطة القيمة",
     "first_follower": "المتابع الأول",
     "late_mover": "متأخر الحركة"
+  },
+  "blog": {
+    "strategy": "استراتيجية"
   }
 }

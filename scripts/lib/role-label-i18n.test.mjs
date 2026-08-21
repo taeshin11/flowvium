@@ -42,9 +42,13 @@ hits.length ? bad(`capitalize 로 라벨을 만드는 자리 ${hits.length}곳: 
   ? bad('KR_REL_LABEL 이 한국어를 하드코딩 — 다른 로케일에서 그대로 노출된다')
   : ok('한국어 하드코딩 라벨 맵 없음');
 
-// roles 네임스페이스를 쓴다
-/useTranslations\(['"]roles['"]\)|tRole/.test(src)
-  ? ok('roles 번역 네임스페이스를 쓴다')
+// roles 번역을 쓴다. 2026-08-22: 배선이 useRoleLabel 훅으로 옮겨갔다 —
+//   이 페이지 안에만 두는 바람에 ComparePage 가 영문으로 남았기 때문이다(감사에서 17건).
+//   그러니 '이 파일 안에서 useTranslations 를 부르는가' 가 아니라
+//   '공유 훅을 통해서든 직접이든 roles 번역에 닿는가' 를 묻는 게 맞다.
+//   훅 자체의 단일 출처 여부는 enum-label-i18n.test.mjs 가 본다.
+/useRoleLabel|useTranslations\(['"]roles['"]\)|tRole/.test(src)
+  ? ok('roles 번역에 닿는다')
   : bad('roles 번역을 안 쓴다');
 
 // 데이터의 모든 role/type 값에 키가 있어야 한다

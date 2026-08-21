@@ -110,7 +110,8 @@
       "ai-infrastructure": "Infrastruktur AI",
       "energy-transition": "Transisi Energi",
       "financials-fintech": "Keuangan / Fintech",
-      "materials-critical-minerals": "Bahan / Mineral Kritis"
+      "materials-critical-minerals": "Bahan / Mineral Kritis",
+      "crypto": "Kripto"
     },
     "relationships": {
       "supplier": "Pemasok",
@@ -2022,5 +2023,8 @@
     "mid_cap": "Mid Cap",
     "first_follower": "Pengikut Pertama",
     "late_mover": "Pemain Akhir"
+  },
+  "blog": {
+    "strategy": "Strategi"
   }
 }

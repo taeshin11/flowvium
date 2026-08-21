@@ -110,7 +110,8 @@
       "ai-infrastructure": "โครงสร้างพื้นฐาน AI",
       "energy-transition": "การเปลี่ยนผ่านพลังงาน",
       "financials-fintech": "การเงิน / ฟินเทค",
-      "materials-critical-minerals": "วัสดุ / แร่ธาตุสำคัญ"
+      "materials-critical-minerals": "วัสดุ / แร่ธาตุสำคัญ",
+      "crypto": "คริปโท"
     },
     "relationships": {
       "supplier": "ผู้จัดหา",
@@ -2022,5 +2023,8 @@
     "mid_cap": "หุ้นขนาดกลาง",
     "first_follower": "ผู้ติดตามคนแรก",
     "late_mover": "หุ้นขยับช้า"
+  },
+  "blog": {
+    "strategy": "กลยุทธ์"
   }
 }

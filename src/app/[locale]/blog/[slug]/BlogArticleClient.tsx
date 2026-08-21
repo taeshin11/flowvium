@@ -6,6 +6,9 @@ import type { BlogPost } from '@/data/blog-posts';
 import ShareButtons from '@/components/ShareButtons';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import EmailCTA from '@/components/EmailCTA';
+import { useTranslations } from 'next-intl';
+// 2026-08-22: 섹터 슬러그를 그대로 찍어 /ko/blog 에 'semiconductors'·'defense' 가 노출됐다.
+import { useSectorLabel } from '@/hooks/useSectorLabel';
 
 const sectorColors: Record<string, string> = {
   semiconductors: 'bg-blue-100 text-blue-700',
@@ -70,6 +73,8 @@ export default function BlogArticleClient({
   translatedTitle?: string;
   translatedContent?: string;
 }) {
+  const sectorLabel = useSectorLabel();
+  const tBlog = useTranslations('blog');
   const displayTitle = translatedTitle || post.title;
   const displayContent = translatedContent || post.content;
   return (
@@ -91,7 +96,7 @@ export default function BlogArticleClient({
               sectorColors[post.sector] || sectorColors.all
             }`}
           >
-            {post.sector === 'all' ? 'Strategy' : post.sector}
+            {post.sector === 'all' ? tBlog('strategy') : sectorLabel(post.sector)}
           </span>
           <span className="text-sm text-cf-text-secondary flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />

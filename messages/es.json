@@ -110,7 +110,8 @@
       "ai-infrastructure": "Infraestructura de IA",
       "energy-transition": "Transición energética",
       "financials-fintech": "Finanzas / Fintech",
-      "materials-critical-minerals": "Materiales / Minerales críticos"
+      "materials-critical-minerals": "Materiales / Minerales críticos",
+      "crypto": "Cripto"
     },
     "relationships": {
       "supplier": "Proveedor",
@@ -2022,5 +2023,8 @@
     "mid_cap": "Capitalización media",
     "first_follower": "Primer seguidor",
     "late_mover": "Movimiento tardío"
+  },
+  "blog": {
+    "strategy": "Estrategia"
   }
 }

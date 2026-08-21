@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import type { BlogPost } from '@/data/blog-posts';
 import { Calendar, Clock, ArrowRight } from 'lucide-react';
+// 2026-08-22: 섹터 슬러그를 그대로 찍어 /ko/blog 에 'semiconductors'·'defense' 가 노출됐다.
+import { useSectorLabel } from '@/hooks/useSectorLabel';
 
 const sectorColors: Record<string, string> = {
   semiconductors: 'bg-blue-100 text-blue-700',
@@ -18,6 +20,8 @@ const sectorColors: Record<string, string> = {
 export default function BlogClient({ posts }: { posts: BlogPost[] }) {
   const t = useTranslations('nav');
 
+  const sectorLabel = useSectorLabel();
+  const tBlog = useTranslations('blog');
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
@@ -43,7 +47,7 @@ export default function BlogClient({ posts }: { posts: BlogPost[] }) {
                   sectorColors[post.sector] || sectorColors.all
                 }`}
               >
-                {post.sector === 'all' ? 'Strategy' : post.sector}
+                {post.sector === 'all' ? tBlog('strategy') : sectorLabel(post.sector)}
               </span>
               <span className="text-xs text-cf-text-secondary flex items-center gap-1">
                 <Clock className="w-3 h-3" />

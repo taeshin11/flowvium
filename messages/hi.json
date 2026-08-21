@@ -110,7 +110,8 @@
       "ai-infrastructure": "AI बुनियादी ढांचा",
       "energy-transition": "ऊर्जा संक्रमण",
       "financials-fintech": "वित्तीय / फिनटेक",
-      "materials-critical-minerals": "सामग्री / महत्वपूर्ण खनिज"
+      "materials-critical-minerals": "सामग्री / महत्वपूर्ण खनिज",
+      "crypto": "क्रिप्टो"
     },
     "relationships": {
       "supplier": "आपूर्तिकर्ता",
@@ -2022,5 +2023,8 @@
     "mid_cap": "मिड कैप",
     "first_follower": "पहला फॉलोअर",
     "late_mover": "देर से चलने वाला"
+  },
+  "blog": {
+    "strategy": "रणनीति"
   }
 }

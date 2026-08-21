@@ -34,6 +34,11 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
+// 2026-08-22: role/sector 라벨은 공유 훅으로. 이 페이지가 원시 enum 을 그대로 찍어
+//   /ko/compare 에 'leader'·'supplier'·'accumulating' 이 17건 영문으로 노출됐다.
+import { useRoleLabel } from '@/hooks/useRoleLabel';
+import { useSectorLabel } from '@/hooks/useSectorLabel';
+import { useActionLabel } from '@/hooks/useActionLabel';
 
 const marketCapOrder = { titan: 5, mega: 4, large: 3, mid: 2, small: 1 };
 const roleColors: Record<string, string> = {
@@ -68,6 +73,9 @@ function ScoreBar({ value, max = 100, color }: { value: number; max?: number; co
 
 function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'right' }) {
   const t = useTranslations('compare');
+  const roleLabel = useRoleLabel();
+  const sectorLabel = useSectorLabel();
+  const actionLabel = useActionLabel();
   const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   // 2026-06-04: 정적 institutionalSignals/newsGapData → 라이브 API (시계열, 정적 금지).
   const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
@@ -111,10 +119,10 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
           {company.ticker.slice(0, 3)}
         </div>
         <h2 className="text-xl font-heading font-bold text-cf-text-primary mb-1">{company.name}</h2>
-        <p className="text-sm text-cf-text-secondary mb-3">{company.ticker} · {company.sector}</p>
+        <p className="text-sm text-cf-text-secondary mb-3">{company.ticker} · {sectorLabel(company.sector)}</p>
         <div className="flex items-center justify-center gap-2">
           <span className={`text-xs font-medium px-2 py-1 rounded-full ${roleColors[company.role] || 'text-gray-600 bg-gray-100'}`}>
-            {company.role}
+            {roleLabel(company.role)}
           </span>
           <span className="text-xs font-medium px-2 py-1 rounded-full text-gray-600 bg-gray-100">
             {mcLabel[company.marketCap] || company.marketCap}
@@ -232,7 +240,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
                 <div className="flex items-center justify-between mb-1">
                   <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${actionColors[sig.action]}`}>
                     {actionIcons[sig.action]}
-                    {sig.action.replace('_', ' ')}
+                    {actionLabel(sig.action)}
                   </span>
                   <span className="text-xs font-bold text-cf-text-primary">{sig.estimatedValue}</span>
                 </div>
@@ -259,9 +267,9 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
                   href={`/cascade/${c.sector}`}
                   className="block text-xs border border-cf-border rounded-lg p-3 hover:border-cf-primary/40 hover:bg-cf-primary/5 transition-all"
                 >
-                  <p className="font-medium text-cf-text-primary truncate">{c.sectorName}</p>
+                  <p className="font-medium text-cf-text-primary truncate">{sectorLabel(c.sectorName)}</p>
                   <p className="text-cf-text-secondary mt-0.5">
-                    {t('roleLabel')}: <span className="font-medium">{step?.role.replace('_', ' ')}</span>
+                    {t('roleLabel')}: <span className="font-medium">{roleLabel(step?.role)}</span>
                     {step?.typicalDelay && <span className="ml-2">· {step.typicalDelay}</span>}
                   </p>
                 </Link>
@@ -288,7 +296,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
                   {related && <span className="text-cf-text-secondary ml-1">· {related.name}</span>}
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${roleColors[rel.type] || 'text-gray-600 bg-gray-100'}`}>
-                  {rel.type}
+                  {roleLabel(rel.type)}
                 </span>
               </div>
             );
@@ -356,6 +364,9 @@ function TickerSearch({
 
 export default function ComparePage({ slug }: { slug: string }) {
   const t = useTranslations('compare');
+  const roleLabel = useRoleLabel();
+  const sectorLabel = useSectorLabel();
+  const actionLabel = useActionLabel();
   const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   // Parse slug: "nvda-vs-amd" → ['NVDA', 'AMD']
   const parts = slug.toUpperCase().split('-VS-');
@@ -398,7 +409,7 @@ export default function ComparePage({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <Breadcrumbs overrides={{ compare: { label: 'Compare' }, [slug]: { label: `${ticker1} vs ${ticker2}` } }} />
+      <Breadcrumbs overrides={{ [slug]: { label: `${ticker1} vs ${ticker2}` } }} />
 
       {/* Page Header */}
       <div className="mb-8">
@@ -463,8 +474,8 @@ export default function ComparePage({ slug }: { slug: string }) {
               },
               {
                 label: t('chainRole'),
-                v1: company1.role,
-                v2: company2.role,
+                v1: roleLabel(company1.role),
+                v2: roleLabel(company2.role),
                 winner: null,
               },
               {

@@ -110,7 +110,8 @@
       "ai-infrastructure": "AI 인프라",
       "energy-transition": "에너지 전환",
       "financials-fintech": "금융 / 핀테크",
-      "materials-critical-minerals": "소재 / 핵심광물"
+      "materials-critical-minerals": "소재 / 핵심광물",
+      "crypto": "암호화폐"
     },
     "relationships": {
       "supplier": "공급업체",
@@ -2022,5 +2023,8 @@
     "mid_cap": "중형주",
     "first_follower": "첫 번째 팔로워",
     "late_mover": "늦게 움직이는 종목"
+  },
+  "blog": {
+    "strategy": "전략"
   }
 }

@@ -110,7 +110,8 @@
       "ai-infrastructure": "Инфраструктура ИИ",
       "energy-transition": "Энергетический переход",
       "financials-fintech": "Финансы / Финтех",
-      "materials-critical-minerals": "Материалы / Критические минералы"
+      "materials-critical-minerals": "Материалы / Критические минералы",
+      "crypto": "Криптовалюты"
     },
     "relationships": {
       "supplier": "Поставщик",
@@ -2022,5 +2023,8 @@
     "mid_cap": "Средний капитал",
     "first_follower": "Первый последователь",
     "late_mover": "Поздний ход"
+  },
+  "blog": {
+    "strategy": "Стратегия"
   }
 }

@@ -110,7 +110,8 @@
       "ai-infrastructure": "AI基础设施",
       "energy-transition": "能源转型",
       "financials-fintech": "金融 / 金融科技",
-      "materials-critical-minerals": "材料 / 关键矿产"
+      "materials-critical-minerals": "材料 / 关键矿产",
+      "crypto": "加密货币"
     },
     "relationships": {
       "supplier": "供应商",
@@ -2022,5 +2023,8 @@
     "mid_cap": "中盘股",
     "first_follower": "首位关注者",
     "late_mover": "尾盘异动"
+  },
+  "blog": {
+    "strategy": "策略"
   }
 }

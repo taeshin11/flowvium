@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, RefreshCw, Loader2, ArrowUpDown, ExternalLink } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import type { ShortEntry } from '@/app/api/short-interest/route';
+import { useSectorLabel } from '@/hooks/useSectorLabel';
 
 const ACTION_CONFIG: Record<string, { color: string; icon: React.ReactNode }> = {
   accumulating: { color: '#10b981', icon: <TrendingUp className="w-3 h-3" /> },
@@ -47,15 +48,10 @@ export default function ShortPage() {
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
 
-  const sectorLabels: Record<string, string> = {
-    semiconductors: t('sectorSemiconductors'),
-    'ai-cloud': t('sectorAiCloud'),
-    'ev-battery': t('sectorEvBattery'),
-    defense: t('sectorDefense'),
-    'pharma-biotech': t('sectorPharmaBiotech'),
-    commodities: t('sectorCommodities'),
-    other: t('sectorOther'),
-  };
+  // 2026-08-22: 손수 만든 7개짜리 맵을 공유 훅으로 교체. 맵에 없는 섹터(crypto·technology)가
+  //   그대로 영문으로 나갔다 — 목록을 손으로 유지하면 새 섹터가 생길 때마다 또 샌다.
+  //   useSectorLabel 은 messages 의 explore.sectors 를 근거로 삼아 목록을 따로 안 든다.
+  const sectorLabel = useSectorLabel();
 
   const actionLabels: Record<string, string> = {
     accumulating: t('actionAccumulating'),
@@ -182,7 +178,7 @@ export default function ShortPage() {
         >
           <option value="all">{t('filterAllSectors')}</option>
           {sectors.filter(s => s !== 'all').map(s => (
-            <option key={s} value={s}>{sectorLabels[s] ?? s}</option>
+            <option key={s} value={s}>{sectorLabel(s)}</option>
           ))}
         </select>
         <select
@@ -248,7 +244,7 @@ export default function ShortPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-cf-text-secondary">
-                      {sectorLabels[entry.sector] ?? entry.sector}
+                      {sectorLabel(entry.sector)}
                     </span>
                   </td>
                   <td className="px-3 py-2.5">

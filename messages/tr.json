@@ -110,7 +110,8 @@
       "ai-infrastructure": "Yapay Zeka Altyapısı",
       "energy-transition": "Enerji Dönüşümü",
       "financials-fintech": "Finans / Fintek",
-      "materials-critical-minerals": "Hammadeler / Kritik Mineraller"
+      "materials-critical-minerals": "Hammadeler / Kritik Mineraller",
+      "crypto": "Kripto"
     },
     "relationships": {
       "supplier": "Tedarikçi",
@@ -2022,5 +2023,8 @@
     "mid_cap": "Orta Piyasa Değerli",
     "first_follower": "İlk Takipçi",
     "late_mover": "Geç Hareket Eden"
+  },
+  "blog": {
+    "strategy": "Strateji"
   }
 }
