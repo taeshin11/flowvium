@@ -23,12 +23,21 @@ export const LOCK_MAX_AGE_MS = 90 * 60 * 1000;
 /** run-report.sh 와 같은 패턴을 쓴다 — 두 곳이 어긋나면 이 결함이 그대로 재발한다. */
 export const REPORT_PROC_PATTERN = 'generate-report-local';
 
-/** pgrep -f. 미매칭은 exit 1 이라 예외로 오지 않게 false 로 접는다. */
+/**
+ * pgrep -f. 미매칭은 exit 1 이라 예외로 오지 않게 false 로 접는다.
+ *
+ * 자기 자신(과 부모)은 제외한다. -f 는 명령줄 전체를 보므로, 이 패턴을 인자에 달고 도는
+ * 프로세스는 무엇이든 매칭된다 — 이번 세션에 내가 확인용으로 친 명령이 스스로에 걸려
+ * "생성기 3개 실행 중" 으로 잘못 읽혔다. 판정 함수가 같은 함정에 빠지면
+ * segments-refresh 가 영원히 GPU 를 양보하게 된다.
+ */
 export function isProcessAlive(pattern = REPORT_PROC_PATTERN) {
   return new Promise((res) => {
     execFile('pgrep', ['-f', pattern], (err, stdout) => {
       if (err) return res(false);              // exit 1 = 미매칭
-      res(String(stdout).trim().length > 0);
+      const self = new Set([String(process.pid), String(process.ppid)]);
+      const pids = String(stdout).trim().split('\n').map(s => s.trim()).filter(s => s && !self.has(s));
+      res(pids.length > 0);
     });
   });
 }

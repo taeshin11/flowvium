@@ -43,6 +43,13 @@ if (M) {
   // 3) pgrep 미매칭(exit 1)을 예외로 흘리지 않는다
   const none = await M.isProcessAlive('__없는패턴_zz9__');
   none === false ? ok('미매칭 패턴에 false (예외 아님)') : bad(`미매칭인데 ${none}`);
+
+  // 4) 자기 자신에 걸리지 않는다 — pgrep -f 는 명령줄 전체를 보므로 이 테스트 프로세스의
+  //    argv 에 있는 문자열로 물으면 자기가 잡힌다. 판정 함수가 그러면 영원히 true 다.
+  const selfPat = 'report-running.test';           // 이 프로세스의 argv 에 들어 있다
+  const selfHit = await M.isProcessAlive(selfPat);
+  selfHit === false ? ok('자기 자신은 살아있는 것으로 세지 않는다')
+                    : bad('자기 프로세스에 매칭된다 — 영구 true 가 되어 GPU 를 영원히 양보한다');
 }
 
 console.log('\n소비처가 공용 판단을 쓰는가');

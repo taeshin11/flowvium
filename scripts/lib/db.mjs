@@ -9,13 +9,13 @@
  *
  * 모든 mjs 스크립트가 이 라이브러리로 공통 인터페이스 사용.
  * Vercel build 에는 들어가지 않음 (devDependency + scripts/ 외부 import 없음).
-import { insiderDirection } from './insider-direction.mjs';
-import { isTicker } from './ticker.mjs';
  */
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { insiderDirection } from './insider-direction.mjs';
+import { isTicker } from './ticker.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
