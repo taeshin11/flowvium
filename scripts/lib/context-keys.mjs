@@ -69,7 +69,11 @@ export function analyzeContextKeys(source, opt) {
   const producer = opt?.producer;
   const raw = String(source ?? '');
   const code = stripCommentsPreservingLines(raw);
-  const declared = declaredKeys(raw, producer);
+  // 2026-08-21: 종전엔 raw 를 넘겨 선언 블록의 *주석*까지 훑었다.
+  //   실측: `blockTrades: ... ,   // 2026-06-13: 거래량 버스트 proxy` 의 'proxy' 가
+  //   블록 닫는 '}' 앞에 있어 키로 잡혔다(선언 26종으로 뻥튀기).
+  //   reads 는 주석을 지웠는데 declaredKeys 만 원본을 받고 있었다 — 같은 실수를 가드 안에서 반복했다.
+  const declared = declaredKeys(code, producer);
   const assigned = new Set(
     [...code.matchAll(new RegExp(`${objectName}\\.([A-Za-z_]\\w*)\\s*=(?!=)`, 'g'))].map((m) => m[1]),
   );

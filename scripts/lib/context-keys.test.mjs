@@ -58,6 +58,18 @@ const w = ctxRaw?.companyFinancials;                    // 폴백 없음 → 죽
   r.dead.length === 0 ? ok('합성: 사후 대입 키는 죽은 읽기 아님') : bad(`사후 대입을 오탐: ${JSON.stringify(r.dead)}`);
 }
 
+// 선언 블록의 *주석*도 코드가 아니다.
+//   실측 버그: gatherContext 마지막 줄이
+//     blockTrades: blockTrades?.items ?? [],   // 2026-06-13: 거래량 버스트 proxy
+//   인데, 주석의 'proxy' 뒤에 블록 닫는 '}' 가 와서 키로 잡혔다(선언 26종으로 뻥튀기).
+//   reads 쪽은 주석을 지웠는데 declaredKeys 는 원본을 받고 있었다 — 같은 실수를 가드 안에서 반복했다.
+{
+  const src = `function make(){\n  return {\n    a: 1,   // 거래량 버스트 ghostKey\n  };\n}\nconst v = ctxRaw?.a;`;
+  const r = analyzeContextKeys(src, { objectName: 'ctxRaw', producer: 'make' });
+  r.declared.has('ghostKey') ? bad(`선언 블록 주석의 낱말을 키로 수집: ${[...r.declared]}`) : ok('선언 블록 주석은 무시');
+  r.declared.has('a') && r.declared.size === 1 ? ok('실제 키만 수집') : bad(`선언 키 이상: ${[...r.declared]}`);
+}
+
 // 주석 안의 키 이름은 코드가 아니다 (앞선 커밋에서 내 주석을 코드로 오인한 적이 있다)
 {
   const src = `function make(){ return { a: 1 }; }\n// 종전 ctxRaw?.ghost 였다\nconst v = ctxRaw?.a;`;

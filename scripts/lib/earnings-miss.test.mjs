@@ -80,5 +80,50 @@ earningsMissSignal('', ROWS, { today: TODAY }) === null ? ok('빈 티커 안전'
     : bad('실측 접지 경로 미배선');
 }
 
+// ── 2026-08-21 2차: epsSurprise 는 못 믿을 파생값이다 ───────────────────────────
+// 실측(/api/earnings 431행): |surprise|>100 인 행이 16건. 원인은 컨센서스가 0 근처라 퍼센트가 발산하는 것이고,
+// 상류가 ±999 로 잘라낸다:
+//   LNZA 실적 -2.04 / 컨센 -0.0944 → surprise -999   (잘린 센티널)
+//   SIND 실적 -0.13 / 컨센 -0.0306 → surprise -324.8
+//   DCGO 실적 +0.16 / 컨센 -0.0632 → surprise +353.2 (실제로는 상회)
+// 이 값을 라벨에 그대로 실으면 "어닝미스 -999.0%" 가 발간된다.
+// 임계값을 새로 만들 게 아니라 원본으로 판정한다 — '하회'는 epsActual < epsEstimate 다.
+// 퍼센트는 발간하지 않는다. 파생값이 불안정하면 원본을 보여주는 게 맞다.
+{
+  const rows = [
+    { ticker: 'LNZA', date: '2026-08-18', epsActual: -2.04, epsEstimate: -0.0944, epsSurprise: -999 },
+    { ticker: 'DCGO', date: '2026-08-18', epsActual: 0.16,  epsEstimate: -0.0632, epsSurprise: 353.2 },
+    { ticker: 'EVEN', date: '2026-08-18', epsActual: 0.10,  epsEstimate: 0.10,    epsSurprise: 0 },
+    { ticker: 'ONLYS',date: '2026-08-18', epsActual: null,  epsEstimate: null,    epsSurprise: -4.2 },
+  ];
+  const today = new Date('2026-08-21T09:00:00Z');
+  const a = earningsMissSignal('LNZA', rows, { today });
+  a?.miss === true ? ok('원본 비교로 하회 판정(LNZA)') : bad(`LNZA 미검출: ${JSON.stringify(a)}`);
+  (a && a.epsActual === -2.04 && a.epsEstimate === -0.0944) ? ok('실적/컨센서스 원본 노출') : bad(`원본 미노출: ${JSON.stringify(a)}`);
+  a && a.surprisePct === undefined ? ok('발산하는 퍼센트는 싣지 않는다') : bad(`불안정한 퍼센트를 노출: ${JSON.stringify(a)}`);
+
+  // 컨센서스가 음수여도 실적이 더 높으면 상회다 — 퍼센트 부호에 기대지 않는다
+  earningsMissSignal('DCGO', rows, { today }) === null ? ok('음수 컨센 대비 상회는 신호 아님') : bad('상회를 하회로 봄');
+  // 동일하면 하회가 아니다
+  earningsMissSignal('EVEN', rows, { today }) === null ? ok('컨센서스와 동일 → 신호 아님') : bad('동일값을 하회로 봄');
+  // 원본이 없으면 surprise 로 폴백한다 (정보를 버리지 않는다)
+  const d = earningsMissSignal('ONLYS', rows, { today });
+  d?.miss === true && d.surprisePct === -4.2 ? ok('원본 없으면 surprise 폴백 + 퍼센트 노출') : bad(`폴백 실패: ${JSON.stringify(d)}`);
+}
+
+// 부동소수 잡음이 발간되면 안 된다 — 실측: RLX epsActual = 0.20227199999999998
+// 값을 바꾸는 게 아니라 표시 정밀도만 정한다(유효 4자리). 반올림으로 의미가 바뀌는 자리는 없다.
+{
+  const rows = [{ ticker: 'RLX', date: '2026-08-18', epsActual: 0.20227199999999998, epsEstimate: 0.6363, epsSurprise: -68 }];
+  const r = earningsMissSignal('RLX', rows, { today: new Date('2026-08-21T09:00:00Z') });
+  r?.epsActual === 0.2023 ? ok('부동소수 잡음 제거(0.2023)') : bad(`정밀도 미정리: ${r?.epsActual}`);
+  r?.epsEstimate === 0.6363 ? ok('원래 정밀도는 보존') : bad(`컨센 값 훼손: ${r?.epsEstimate}`);
+}
+{
+  const rows = [{ ticker: 'X', date: '2026-08-18', epsActual: -11.934, epsEstimate: -1.5, epsSurprise: -1 }];
+  const r = earningsMissSignal('X', rows, { today: new Date('2026-08-21T09:00:00Z') });
+  r?.epsActual === -11.934 ? ok('4자리 이내 값은 그대로') : bad(`불필요한 반올림: ${r?.epsActual}`);
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);

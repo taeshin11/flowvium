@@ -36,6 +36,7 @@ import { localizeSectorKo } from './lib/sector-label.mjs';
 import { reconcileSqueeze, correctScoreMentions } from './lib/squeeze-reconcile.mjs';
 import { earningsMissSignal } from './lib/earnings-miss.mjs';
 import { reconcileCompanyYoY, isMeasuredYoY } from './lib/yoy-reconcile.mjs';
+import { inspectContextSections, formatContextCoverage } from './lib/context-coverage.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -2095,7 +2096,14 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw, rawEarning
     // 가이던스는 결정론적 소스가 없다(companyChanges[].guidance 는 LLM 산출이라 리스크 입력으로 쓰지 않는다).
     //   실측으로 말할 수 있는 것만 말한다 — 컨센서스 하회. 크기를 라벨에 실어 독자가 판단하게 한다.
     const missSig = earningsMissSignal(item.ticker, rawEarnings);
-    if (missSig) signals.push({ label: `어닝미스 ${missSig.surprisePct.toFixed(1)}%(${missSig.date} 발표, 컨센서스 하회)`, weight: 2 });
+    if (missSig) {
+      // 원본이 있으면 원본을 보여준다. 퍼센트는 컨센서스가 0 근처일 때 발산해서(상류가 ±999로 자름)
+      //   "어닝미스 -999.0%" 같은 문장이 나간다 — 파생값이 불안정하면 원본이 낫다.
+      const detail = (missSig.epsActual != null && missSig.epsEstimate != null)
+        ? `실적 ${missSig.epsActual} vs 컨센 ${missSig.epsEstimate}`
+        : `${missSig.surprisePct.toFixed(1)}%`;
+      signals.push({ label: `어닝미스(${missSig.date} 발표, ${detail})`, weight: 2 });
+    }
     if (hySpread != null && hySpread > 400) signals.push({ label: `HY스프레드 ${Math.round(hySpread)}bps(신용 리스크 확대)`, weight: 2 });
 
     // ── SEIBRO 공매도 + KRX 투자자별 (한국 주식) ──────────────────────────────
@@ -4350,6 +4358,9 @@ async function getRawEarnings() {
       ticker: (e.symbol ?? e.ticker ?? '').toUpperCase(),
       date: e.date,
       epsActual: e.epsActual ?? null,
+      // 2026-08-21: epsSurprise 는 컨센서스가 0 근처면 발산해 상류가 ±999 로 자른다(실측 16/431행).
+      //   판정은 원본(actual vs estimate)으로 한다 — earnings-miss.mjs 참조.
+      epsEstimate: e.epsEstimate ?? null,
       epsSurprise: e.epsSurprise ?? null,
     }));
   } catch { return []; }
@@ -6802,25 +6813,17 @@ async function generateViaOllama() {
   };
 
   // ── 데이터 수집 요약 ─────────────────────────────────────────────────────────
-  const ctxNullCheck = {
-    capital: !ctxRaw.capital,
-    fearGreed: !ctxRaw.fearGreed,
-    fedWatch: !ctxRaw.fedWatch,
-    macro: !ctxRaw.macro,
-    insider: !(ctxRaw.insider?.length),
-    ownership: !(ctxRaw.ownership?.length),
-    koreaFlow: !ctxRaw.koreaFlow,
-    nport: !ctxRaw.nport,
-    shortInterest: !ctxRaw.short,
-    cascade: !(ctxRaw.cascade?.length),
-    econCal: !ctxRaw.econCal,
-    volatility: !ctxRaw.volatility,
-    cot: !ctxRaw.cot,
-    commodity: !ctxRaw.commodity,
-  };
-  const nullApis = Object.entries(ctxNullCheck).filter(([, v]) => v).map(([k]) => k);
-  if (nullApis.length) console.warn(`  ⚠️  API null (${nullApis.length}개): ${nullApis.join(', ')}`);
-  else console.log('  ✅ 모든 API 응답 수신');
+  // 2026-08-21: 종전엔 손으로 적은 ctxNullCheck 목록이었다. gatherContext 가 25종을 반환하는데
+  //   14종만 검사하고 있었다 — 나머지 11종(blockTrades·credit·fearGreedAssets·fearGreedByCountry·
+  //   fundFlows·fx·narratives·newsGap·optionsFlow·supplyChainSignals·ticFlows)은 비어도 로그가 없었다.
+  //   목록은 반드시 실제와 갈린다. 객체에서 파생시켜 새 섹션이 자동으로 검사 대상이 되게 한다.
+  //   null(수집 실패)과 빈 컬렉션(응답은 왔으나 내용 없음)을 구분한다 — 대응이 다르다.
+  const ctxCoverage = inspectContextSections(ctxRaw);
+  if (ctxCoverage.failed.length || ctxCoverage.empty.length) {
+    console.warn(`  ⚠️  컨텍스트 ${formatContextCoverage(ctxCoverage)}`);
+  } else {
+    console.log(`  ✅ 컨텍스트 ${ctxCoverage.total}종 전부 수신`);
+  }
   console.log(`  cascade 기사: ${ctxRaw.cascade?.length ?? 0}개, insider: ${ctxRaw.insider?.length ?? 0}건`);
   console.log(`  macro=${ctx.macro.length}c, sentiment=${ctx.sentiment.length}c, flows=${ctx.flows.length}c`);
   console.log(`  news=${ctx.news.length}c (preview: ${ctx.news.slice(0, 100).replace(/\n/g, ' ')})`);

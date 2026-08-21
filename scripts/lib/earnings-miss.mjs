@@ -17,10 +17,21 @@
 const DAY = 86400000;
 
 /**
+ * 숫자로 쓸 수 있으면 표시 정밀도(유효 4자리)까지 정리해 돌려준다.
+ * 값을 바꾸는 게 아니라 잡음을 지운다 — 실측: RLX epsActual = 0.20227199999999998 이 그대로 발간될 뻔했다.
+ * 4자리 이내 값은 그대로 남는다(-11.934 → -11.934).
+ */
+function num(v) {
+  if (typeof v !== 'number' || !isFinite(v)) return null;
+  return Number(v.toFixed(4));
+}
+
+/**
  * @param {string} ticker
- * @param {Array<{ticker:string,date:string,epsActual:number|null,epsSurprise:number|null}>} rows getRawEarnings() 산출
+ * @param {Array<{ticker:string,date:string,epsActual:number|null,epsEstimate:number|null,epsSurprise:number|null}>} rows getRawEarnings() 산출
  * @param {{today?: Date, windowDays?: number}} [opt] windowDays 기본 7 — getRawEarnings 의 과거 수집창과 같다.
- * @returns {{miss:true, surprisePct:number, date:string}|null} 하회가 아니거나 근거가 없으면 null
+ * @returns {{miss:true, date:string, epsActual?:number, epsEstimate?:number, surprisePct?:number}|null}
+ *   원본(epsActual/epsEstimate)이 있으면 그것을, 없으면 surprisePct 를 싣는다. 하회가 아니면 null.
  */
 export function earningsMissSignal(ticker, rows, opt = {}) {
   const t = String(ticker ?? '').trim().toUpperCase();
@@ -43,11 +54,27 @@ export function earningsMissSignal(ticker, rows, opt = {}) {
     // 아직 안 나온 실적은 실적이 아니다. epsSurprise 가 붙어 있어도 추정치다.
     if (d.getTime() > until) continue;   // 아직 안 나온 실적은 실적이 아니다
     if (d.getTime() < from) continue;
-    const s = r.epsSurprise;
-    if (typeof s !== 'number' || !isFinite(s)) continue;   // 모르는 것을 나쁘다고 하지 않는다
-    if (s >= 0) continue;
+    // 2026-08-21 2차: epsSurprise 는 못 믿을 파생값이다.
+    //   컨센서스가 0 근처면 퍼센트가 발산하고 상류가 ±999 로 잘라낸다
+    //   (실측: LNZA 실적 -2.04 / 컨센 -0.0944 → surprise -999. 431행 중 |surprise|>100 이 16건).
+    //   그 값을 라벨에 실으면 "어닝미스 -999.0%" 가 발간된다.
+    //   임계값을 새로 만들 게 아니라 원본으로 판정한다 — '하회'는 epsActual < epsEstimate 다.
+    //   원본이 있으면 퍼센트는 아예 싣지 않는다. 불안정한 파생값보다 원본이 낫다.
+    const act = num(r.epsActual);
+    const est = num(r.epsEstimate);
+    let hit = null;
+    if (act != null && est != null) {
+      if (act >= est) continue;                            // 상회·동일은 신호가 아니다
+      hit = { miss: true, epsActual: act, epsEstimate: est, date: r.date };
+    } else {
+      // 원본이 없을 때만 surprise 로 폴백한다 — 정보를 버리지 않되, 근거가 약함을 값으로 드러낸다.
+      const sp = r.epsSurprise;
+      if (typeof sp !== 'number' || !isFinite(sp)) continue;   // 모르는 것을 나쁘다고 하지 않는다
+      if (sp >= 0) continue;
+      hit = { miss: true, surprisePct: sp, date: r.date };
+    }
     // 같은 창에 여러 건이면 가장 최근 발표를 쓴다
-    if (!best || new Date(best.date).getTime() < d.getTime()) best = { miss: true, surprisePct: s, date: r.date };
+    if (!best || new Date(best.date).getTime() < d.getTime()) best = hit;
   }
   return best;
 }
