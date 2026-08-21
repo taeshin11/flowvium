@@ -41,6 +41,8 @@ if (M) {
         ? ok(`최신 백업 ${s.newest} · ${s.ageDays}일 전 (임계 ${s.maxAgeDays}일)`)
         : bad(`최신 백업이 ${s.ageDays}일 전 (임계 ${s.maxAgeDays}일) — 그 사이 로컬 상태는 무방비`);
     } else bad('DB 백업 파일이 하나도 없다');
+    s.localNewest ? ok(`로컬 2차 백업 ${s.localNewest} · ${s.localAgeDays}일 전 (원격이 막혀도 남는다)`)
+                  : bad('로컬 2차 백업 없음 — 원격이 막히면 아무것도 안 남는다');
     s.scheduled ? ok(`스케줄 등록됨: ${s.scheduledBy}`) : bad('어디에도 스케줄되어 있지 않다 — 한 번 돌고 끝나는 백업은 백업이 아니다');
     Array.isArray(s.issues) ? ok(`issues 배열 제공 (${s.issues.length}건)`) : bad('issues 미제공');
   }
@@ -58,7 +60,7 @@ console.log('\nSQLite 백업이 네트워크 파일시스템에 직접 쓰지 �
   if (!m) bad('db.backup() 호출을 못 찾음 — 테스트 앵커가 낡았다');
   else if (/dbDest/.test(m[1])) bad(`db.backup(${m[1].trim()}) — 대상(Drive)에 직접 쓴다. 멈춘다`);
   else ok(`db.backup(${m[1].trim()}) — 로컬 임시 경로로 뜬다`);
-  /copyFileSync\([^)]*tmp[^)]*dbDest\)|copyFileSync\(\s*localDb\s*,\s*dbDest\s*\)/.test(bk)
+  /replaceFile\([^)]*localDb\s*,\s*dbDest\)|fsp\.copyFile\(\s*localDb\s*,\s*dbDest\s*\)/.test(bk)
     ? ok('완성본을 대상으로 복사한다')
     : bad('로컬 백업본을 대상으로 복사하는 단계가 없다');
 }
@@ -81,6 +83,23 @@ console.log('\n느린 클라우드 FS 에서 중요한 단계가 부수 단계�
   /BUDGET_MS|deadline|budgetMs/.test(bk)
     ? ok('전체 시간 예산이 있다 (느린 FS 에서 무한정 매달리지 않는다)')
     : bad('시간 예산이 없다 — 클라우드가 느리면 다음 주기까지 매달린다');
+}
+
+console.log('\n모든 Drive 쓰기가 개별 상한을 갖는가');
+// 실측으로 좁힌 조건: 클라우드 FS 에서 *새 파일* 쓰기는 빠르지만(20MB 3ms),
+//   *기존 dehydrated 파일 덮어쓰기* 는 멈춘다 — copyFileSync(.env.local → Drive) 가
+//   9분 넘게 fd 를 연 채 반환하지 않았고 대상은 Jul 29 그대로였다.
+//   가설을 세 번 세워 두 번 기각했다(Drive 전반 느림 ✗ · unlink 자체 느림 ✗).
+//   개별 연산을 더 특정하는 대신 일반화한다 — 이 FS 에서는 어떤 연산도 돌아온다고 가정할 수 없다.
+//   상한을 넘기면 그 파일만 포기하고 진행한다. 백업은 증분이라 다음 주기가 이어받는다.
+{
+  const bk = readFileSync(resolve(ROOT, 'scripts/backup-takeover.mjs'), 'utf8');
+  /copyFileSync\s*\(/.test(bk)
+    ? bad('동기 copyFileSync 가 남아 있다 — 멈추면 그 뒤가 통째로 실행되지 않는다')
+    : ok('동기 copyFileSync 없음');
+  /withTimeout|OP_TIMEOUT_MS/.test(bk)
+    ? ok('연산별 상한이 있다')
+    : bad('연산별 상한이 없다');
 }
 
 console.log('\n모니터가 백업 신선도를 보는가');

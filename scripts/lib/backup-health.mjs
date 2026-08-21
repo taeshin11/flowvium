@@ -16,6 +16,8 @@ import { ROOT } from './project-root.mjs';
 import { loadEnvLocal } from './llm-config.mjs';
 
 const CFG_PATH = process.env.RESOURCE_THRESHOLDS_PATH ?? resolve(ROOT, 'data/resource-thresholds.json');
+// backup-takeover.mjs 와 같은 기본값을 쓴다 — 판정과 실행이 다른 데를 보면 안 된다.
+const LOCAL_DEST = () => process.env.FLOWVIUM_BACKUP_LOCAL_DIR || resolve(process.env.HOME ?? '.', 'flowvium_backups');
 const DB_RE = /^flowvium-\d{4}-\d{2}-\d{2}\.db$/;
 
 const run = (cmd, args) => new Promise((res) => {
@@ -60,5 +62,18 @@ export async function backupStatus() {
   const scheduledBy = await findSchedule();
   if (!scheduledBy) issues.push('백업이 어디에도 스케줄되어 있지 않다 — 한 번 돌고 끝나는 백업은 백업이 아니다');
 
-  return { dest, destExists, newest, ageDays, maxAgeDays, scheduled: !!scheduledBy, scheduledBy, issues };
+  // 로컬 2차 백업 — launchd 컨텍스트에서 Drive 가 막혀도 이건 반드시 남아야 한다.
+  //   원격이 오래됐어도 로컬이 신선하면 '기기 사망 외 위험' 은 막힌 상태다. 둘을 구분해 보고한다.
+  const localDir = LOCAL_DEST();
+  let localNewest = null, localAgeDays = null;
+  if (existsSync(localDir)) {
+    const lf = readdirSync(localDir).filter((f) => DB_RE.test(f)).sort();
+    localNewest = lf.length ? lf[lf.length - 1] : null;
+    if (localNewest) localAgeDays = Math.floor((Date.now() - statSync(join(localDir, localNewest)).mtimeMs) / 86400000);
+  }
+  if (!localNewest) issues.push(`로컬 2차 백업 없음(${localDir}) — 원격이 막히면 남는 게 없다`);
+  else if (localAgeDays > maxAgeDays) issues.push(`로컬 2차 백업이 ${localAgeDays}일 전(${localNewest}) — 임계 ${maxAgeDays}일`);
+
+  return { dest, destExists, newest, ageDays, maxAgeDays, scheduled: !!scheduledBy, scheduledBy,
+           localDir, localNewest, localAgeDays, issues };
 }
