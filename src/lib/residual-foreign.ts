@@ -34,6 +34,28 @@ export function residualForeign(text: string | null | undefined, locale: string)
 
 
 /**
+ * untranslatedLabel — *짧은 라벨*(테마·섹터명)이 아직 번역 안 됐는가.
+ *
+ * residualForeign 과 분리한다. 이 파일이 스스로 적어 둔 교훈 그대로다 —
+ * "판정 목적이 다르면 함수도 달라야 한다".
+ *   residualForeign 은 franc 언어감지 기반이라 '말' 부분이 12자 미만이면 판단을 보류한다.
+ *   문장에는 옳은 규칙이지만 라벨에는 치명적이다 — 'KOSPI Index'(11자)·'Growth ETFs'(11자)는
+ *   영원히 안 잡힌다. 2026-08-22 실측: /ko 뉴스 태그의 테마 라벨 19건 중 14건이 영문으로
+ *   남았는데 sweep 이 하나도 못 잡았다.
+ *
+ * 라벨은 문장이 아니므로 결정론적 규칙이 맞다 — 대상 스크립트 문자가 하나도 없고
+ * 라틴 문자가 있으면 미번역이다. 티커는 호출부가 이미 kind 로 걸러 두므로 여기 오지 않는다.
+ * 대상이 CJK 가 아닌 로케일(en/es/…)은 이 판정을 쓰지 않는다 — 라틴 문자가 정상이다.
+ */
+export function untranslatedLabel(text: string | null | undefined, locale: string): boolean {
+  const script = SCRIPT[locale];
+  if (!script) return false;
+  const t = String(text ?? '').trim();
+  if (!t) return false;
+  return !script.test(t) && /[A-Za-z]{2,}/.test(t);
+}
+
+/**
  * kanaDominant — '로컬 모델이 감당 못 하는 일본어 위주 텍스트'인가.
  *
  * residualForeign 과 분리한 이유: 종전에는 이름 하나가 두 가지 일을 했다.

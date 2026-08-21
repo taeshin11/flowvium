@@ -1,4 +1,4 @@
-import { residualForeign, kanaDominant } from '@/lib/residual-foreign';
+import { residualForeign, kanaDominant, untranslatedLabel } from '@/lib/residual-foreign';
 import { translationSucceeded } from '@/lib/translation-gate';
 import { buildTranslatePrompt } from '@/lib/translate-prompt';
 import { logger, loggedRedisSet, loggedRedisSetNx, loggedRedisDel } from '@/lib/logger';
@@ -14,6 +14,9 @@ function backgroundTask(fn: () => Promise<unknown>): void {
 import { callAI, llmTimeoutMs } from '@/lib/ai-providers';
 import { isGarbage } from '@/lib/strategy-quality';
 import { cascadePatterns, type CascadePattern } from '@/data/cascades';
+// 2026-08-22: cascade asset 정규화. judge-chat 이 chat-verify.mjs 를 그대로 쓰는 것과 같은 방식 —
+//   판정 로직을 scripts/lib 에 두어 오프라인 테스트(cascade-asset.test.mjs)와 단일 소스로 공유한다.
+import { normalizeCascadeAsset, loadAssetAuthority } from '../../../../scripts/lib/cascade-asset.mjs';
 import { localChat, localChatNoBleed, hasChineseBleed } from '@/lib/llm-local';
 import { kanaToHangul } from '@/lib/kana-to-hangul';
 import { decodeEntities, dedupeSummary } from '@/lib/news-sanitize';
@@ -45,6 +48,10 @@ interface RawNewsItem {
 
 export interface CascadeEffect {
   asset: string;
+  /** 'ticker' = 권위 소스로 확인된 심볼 · 'theme' = 서술 라벨(번역 대상). 2026-08-22 신설. */
+  assetKind?: 'ticker' | 'theme';
+  /** 권위 소스가 아는 정식 명칭(있을 때). 화면 라벨용. */
+  assetLabel?: string;
   direction: 'positive' | 'negative' | 'neutral';
   magnitude: 'high' | 'medium' | 'low';
   reason: string;
@@ -163,7 +170,10 @@ function localizeTimeframe(tf: string, locale: string): string {
 /**
  * 영어 기사 N개 → target locale 로 batch 번역. 단일 AI 호출로 비용 절감.
  * title + summary + cascade.reason 까지 번역. timeframe 은 정적 i18n.
- * asset 은 ticker/심볼이라 그대로. 실패 시 원문(영어) 반환 — UI 깨짐 방지.
+ * asset 은 kind 에 따라 갈린다 — 'ticker' 는 그대로, 'theme'(서술 라벨)은 번역한다.
+ *   2026-08-22 정정: 종전 주석은 "asset 은 ticker/심볼이라 그대로" 였는데, 정작 분석 프롬프트가
+ *   'ticker 또는 하위섹터' 를 허용한다. 가정과 계약이 어긋나 /ko 화면에 영문 라벨이 남았다.
+ * 실패 시 원문(영어) 반환 — UI 깨짐 방지.
  */
 // 2026-06-03: 자가호스팅 로컬 Ollama 번역 (격리 — core callAI 안 건드림). 127.0.0.1:11434/v1.
 //   클라우드 rate-limit 무관, 무료. 모델은 OLLAMA_TRANSLATE_MODEL(기본 qwen3:8b — 한국어 양호).
@@ -217,17 +227,27 @@ async function translateChunk(
     i,
     title: a.title.slice(0, 200),
     summary: a.summary.slice(0, 300),
-    reasons: a.cascades.map((c, j) => ({ j, r: c.reason.slice(0, 280) })),
+    // 2026-08-22: 테마 asset('EV Batteries')도 같이 번역한다. 종전엔 'asset 은 ticker 라
+    //   그대로' 라고 가정해 빠졌는데, 정작 프롬프트가 하위섹터 라벨을 허용해서
+    //   /ko 화면에 'US Coffee Retail Sector' 같은 영문이 그대로 남았다(눈검증에서 발견).
+    reasons: a.cascades.map((c, j) => ({
+      j, r: c.reason.slice(0, 280),
+      ...(c.assetKind === 'theme' ? { a: c.asset.slice(0, 60) } : {}),
+    })),
   }));
 
   const prompt = `Translate the following financial news fields to ${langName}.
 ⚠️ Source titles may already be in English, Japanese(日本語), Chinese(中文), or Korean(한국어) —
 translate EVERY field to ${langName} REGARDLESS of its source language. Do NOT leave any
 Japanese/Chinese/Korean text untranslated; the output MUST be 100% ${langName}.
-Keep ticker symbols (NVDA, AAPL, CRM, etc.), asset names (S&P500, Bonds), and numbers/percentages unchanged.
+Keep ticker symbols (NVDA, AAPL, 005930.KS, etc.) and numbers/percentages unchanged.
+Each reasons[] entry may carry an optional "a" field — a sub-sector/theme label written in English
+(e.g. "EV Batteries", "KOSPI Index", "Wire & Cable Sector"). It is NOT a ticker symbol.
+When "a" is present you MUST translate it into ${langName} and return it as "a" —
+returning it unchanged in English is an error. When absent, omit it.
 Tone: professional financial analyst.
 Return STRICT JSON array — same length, same order, same shape:
-[{ "i": <int>, "title": "<translated>", "summary": "<translated>", "reasons": [{ "j": <int>, "r": "<translated>" }, ...] }, ...]
+[{ "i": <int>, "title": "<translated>", "summary": "<translated>", "reasons": [{ "j": <int>, "r": "<translated>", "a": "<translated, only if input had it>" }, ...] }, ...]
 NO extra fields, NO commentary.
 
 Input:
@@ -253,7 +273,7 @@ Output (JSON array only):`;
       return await translatePerField(articles, locale);
     }
     const translated = JSON.parse(jsonMatch[0]) as Array<{
-      i: number; title: string; summary: string; reasons?: Array<{ j: number; r: string }>;
+      i: number; title: string; summary: string; reasons?: Array<{ j: number; r: string; a?: string }>;
     }>;
     const byIdx = new Map(translated.map(t => [t.i, t]));
     // 응답 검증 — AI 가 번역 안 하고 원문 그대로 답하는 케이스 detect.
@@ -284,6 +304,11 @@ Output (JSON array only):`;
         return {
           ...c,
           reason: tr?.r?.trim() || c.reason,
+          // 티커는 손대지 않는다. 테마 라벨만 번역본으로 갈아끼운다.
+          // 배치가 라벨 대신 문장을 돌려주는 경우도 있다 — 길이로 거른다(per-field 의 tLabel 과 같은 규칙).
+          asset: c.assetKind === 'theme'
+            ? ((tr?.a?.trim() && tr.a.trim().length <= Math.max(24, Math.ceil(c.asset.length * 2.5))) ? tr.a.trim() : c.asset)
+            : c.asset,
           timeframe: localizeTimeframe(c.timeframe, locale),
         };
       });
@@ -301,7 +326,13 @@ Output (JSON array only):`;
     // 2026-06-18: U+FFFD(�) 깨짐 감지 — vLLM AWQ 모델이 한국어 음절을 byte-fallback 으로 깨뜨려 �
     //   출력하던 사건(스�페이스X / TD 유�� — ko 만, ja/en 정상). title/summary/cascade reason 어디든 �면 재번역.
     const hasFffd = (m: NewsWithCascade) => /�/.test(m.title || '') || /�/.test(m.summary || '') || (m.cascades || []).some((c) => /�/.test(c.reason || ''));
-    merged.forEach((m, i) => { if (residualForeign(m.title, locale) || residualForeign(m.summary, locale) || hasFffd(m)) needFix.push(i); });
+    // 2026-08-22: 테마 asset 도 같은 sweep 대상이다. 실측 — 배치가 19건 중 5건만 번역하고
+    //   'KOSPI Index'·'Wire & Cable Sector'·'Consumer Discretionary Stocks' 등 14건을 영문으로
+    //   남겼다(프롬프트의 "Keep ticker symbols unchanged" 를 모델이 넓게 해석한 듯하다).
+    //   제목·요약에만 걸려 있던 안전망을 asset 까지 넓힌다 — 안 그러면 /ko 화면에 영문이 남는다.
+    const residualTheme = (m: NewsWithCascade) =>
+      (m.cascades || []).some((c) => c.assetKind === 'theme' && untranslatedLabel(c.asset, locale));
+    merged.forEach((m, i) => { if (residualForeign(m.title, locale) || residualForeign(m.summary, locale) || hasFffd(m) || residualTheme(m)) needFix.push(i); });
     if (needFix.length) {
       logger.warn('news-cascade.translate', 'residual_foreign_sweep', { locale, count: needFix.length });
       const fixed = await translatePerField(needFix.map(i => merged[i]), locale);
@@ -377,12 +408,30 @@ async function translatePerField(articles: NewsWithCascade[], locale: string): P
     } catch { /* 원문 유지 */ }
     return text;
   };
+  /**
+   * 라벨(테마·섹터명) 전용 번역. tOne 을 그대로 쓰면 안 된다 — 실측(2026-08-22):
+   *   로컬 모델이 짧은 라벨을 번역하는 대신 *문맥으로 준 원제목을 그대로* 돌려줘,
+   *   asset 이 "'애국 소비'로 뜬 동전주, 한 달 만에 상승분을 반납했습니다." 가 됐다.
+   *   라벨은 문장이 아니라 2~4단어다. 문맥을 주지 않고, 길이가 크게 늘면 번역으로 인정하지 않는다.
+   */
+  const tLabel = async (text: string): Promise<string> => {
+    if (!text || !text.trim()) return text;
+    const out = await tOne(text, null);
+    if (!out || out === text) return text;
+    if (out.length > Math.max(24, Math.ceil(text.length * 2.5))) return text;
+    return out;
+  };
   const result: NewsWithCascade[] = [];
   for (const a of articles) {
     const title = await tOne(a.title);
     const summary = await tOne(a.summary, a.title);
     const cascades = [];
-    for (const c of a.cascades) cascades.push({ ...c, reason: await tOne(c.reason, a.title), timeframe: localizeTimeframe(c.timeframe, locale) });
+    for (const c of a.cascades) cascades.push({
+      ...c,
+      reason: await tOne(c.reason, a.title),
+      asset: c.assetKind === 'theme' ? await tLabel(c.asset) : c.asset,
+      timeframe: localizeTimeframe(c.timeframe, locale),
+    });
     result.push({ ...a, title, summary, cascades });
   }
   logger.info('news-cascade.translate', 'per_field_fallback_done', { locale, count: result.length });
@@ -763,7 +812,7 @@ Respond in JSON only:
   "importance": "high|medium|low",
   "cascades": [
     {
-      "asset": "specific ticker or sub-sector — prefer tickers from supply chain relationships above when applicable. e.g.: 'NVDA', 'TSM', 'AI Semiconductors', 'Fiber Optics', 'Power Infrastructure', 'Data Centers', 'Defense', 'Biotech', 'EV Batteries'",
+      "asset": "EITHER a bare ticker symbol OR a sub-sector name — never both, never a company name. Korean stocks MUST use the bare 6-digit code with market suffix, e.g. '005930.KS', '247540.KQ' — do NOT write 'KRX:005930' and do NOT add the company name in parentheses. US stocks: bare symbol only, e.g. 'NVDA', 'TSM'. Sub-sector examples: 'AI Semiconductors', 'Fiber Optics', 'Power Infrastructure', 'Data Centers', 'Defense', 'Biotech', 'EV Batteries'",
       "direction": "positive|negative|neutral",
       "magnitude": "high|medium|low",
       "reason": "1 sentence citing the supply chain link or market mechanism",
@@ -772,6 +821,29 @@ Respond in JSON only:
   ]
 }
 Include 3-6 cascade items. Prefer specific tickers over generic sector names when supply chain data supports it.`;
+}
+
+// 회사명 권위 소스는 프로세스당 한 번만 읽는다(DART 3,984사 + SEC 추출 US 명).
+let ASSET_AUTH: ReturnType<typeof loadAssetAuthority> | null = null;
+function assetAuthority() {
+  if (!ASSET_AUTH) ASSET_AUTH = loadAssetAuthority(process.cwd());
+  return ASSET_AUTH;
+}
+
+/**
+ * asset 을 권위 소스로 검증하고 정규화한다. 신규 분석과 캐시본 양쪽에 건다.
+ *   버리는 항목은 그 reason 도 그 회사 얘기라 살릴 게 없다 — 통째로 뺀다.
+ *   defect 는 조용히 넘기지 않고 로그로 남긴다(환각 추세 추적 입력).
+ */
+function sanitizeAssets<T extends { asset?: unknown }>(cascades: T[], link: string): CascadeEffect[] {
+  const out: CascadeEffect[] = [];
+  for (const c of cascades ?? []) {
+    const n = normalizeCascadeAsset(String(c?.asset ?? ''), assetAuthority());
+    if (n.defect) logger.warn('news-cascade', 'asset_defect', { link, raw: String(c?.asset ?? '').slice(0, 60), defect: n.defect });
+    if (n.kind === 'invalid') continue;
+    out.push({ ...(c as unknown as CascadeEffect), asset: n.asset as string, assetKind: n.kind, ...(n.label ? { assetLabel: n.label } : {}) });
+  }
+  return out;
 }
 
 function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
@@ -797,6 +869,10 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
         return { ...item, id, ...kwFallback, analyzedAt: new Date().toISOString(), analysisSource: 'keyword-rule' as const };
       }
     }
+    // 2026-08-22: asset 검증 신설. 여기는 원래 reason 만 봤다(한자·garbage).
+    //   asset 은 UI 에 배지로 그려지는 LLM 출력인데 cross-check probe 가 하나도 없었고,
+    //   실측에서 'KRX:035720 (LG Energy Solution)'(실제 카카오) 같은 티커↔이름 환각이
+    //   그대로 발간됐다. CLAUDE.md 가 CPRT 사건 뒤 규칙까지 만들어 둔 부류다.
     const cascades = Array.isArray(parsed.cascades) ? parsed.cascades.map((c: Record<string, unknown>) => {
       const reason = typeof c?.reason === 'string' ? c.reason : '';
       if (reason && hasChineseLeak(reason)) {
@@ -809,6 +885,7 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
       }
       return c;
     }) : [];
+    const cascadesChecked = sanitizeAssets(cascades, item.link);
 
     return {
       ...item,
@@ -816,7 +893,7 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
       summary,
       sentiment: parsed.sentiment ?? 'neutral',
       importance: parsed.importance ?? 'medium',
-      cascades,
+      cascades: cascadesChecked,
       analyzedAt: new Date().toISOString(),
       analysisSource: 'ai' as const,
     };
@@ -870,7 +947,10 @@ function dropForeignTitles(articles: NewsWithCascade[] | null, locale: string): 
   });
   // 조용히 버리지 않는다 — 버린 게 많아지면 그건 번역 파이프라인 결함 신호다.
   if (dropped.length) logger.warn('api.news-cascade', 'dropped_bleeding_titles', { locale, count: dropped.length, sample: dropped.slice(0, 3) });
-  return kept;
+  // 2026-08-22: asset 검증도 같은 읽기 경계에서 한다. parseCascade 에만 걸면 이미 오염된
+  //   캐시(article 24h · list · translated 6h · stale)가 만료될 때까지 티커↔이름 환각이
+  //   계속 나간다 — 위 941행 주석이 지적하는 그 문제와 같은 구조다. 정규화는 멱등이다.
+  return kept.map((a) => ({ ...a, cascades: sanitizeAssets(a.cascades ?? [], a.link) }));
 }
 
 export async function GET(request: Request) {
@@ -1065,7 +1145,10 @@ export async function GET(request: Request) {
         try {
           const cached = await redis.get<NewsWithCascade>(articleKey(id));
           // Only use cached result if it has real AI analysis (cascades present)
-          if (cached && cached.cascades.length > 0) return { ...cached, analysisSource: 'cached' };
+          // 2026-08-22: 캐시본에도 asset 정규화를 적용한다. parseCascade 에만 넣으면
+          //   이미 오염된 캐시(24h~30d)가 만료될 때까지 환각이 계속 나간다 — 고쳤는데
+          //   화면은 그대로인 상태가 된다. 정규화는 멱등이라 두 번 걸어도 안전하다.
+          if (cached && cached.cascades.length > 0) return { ...cached, cascades: sanitizeAssets(cached.cascades, item.link), analysisSource: 'cached' };
         } catch { /* ignore */ }
       }
       const raw = await callCascadeAI(buildCascadePrompt(item.title));
