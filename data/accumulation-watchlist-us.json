@@ -1,43 +1,60 @@
 {
-  "generatedAt": "2026-08-20T13:00:32.168Z",
+  "generatedAt": "2026-08-21T09:01:47.507Z",
   "universe": "US",
   "scanned": 374,
-  "count": 5,
-  "strongCount": 0,
-  "watchCount": 5,
+  "count": 7,
+  "strongCount": 1,
+  "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "CWH",
-      "name": "Camping World Holdings, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
+      "ticker": "WDH",
+      "name": "Waterdrop Inc.",
+      "tier": "strong",
+      "score": 33,
+      "coFire": 3,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 8.5,
-      "runup5dPct": 6.6,
-      "medDollarVolUsd": 14735386,
+      "runup20dPct": -13,
+      "runup5dPct": 0,
+      "medDollarVolUsd": 177300,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "EMD",
-      "name": "Western Asset Emerging Markets ",
+      "ticker": "GUT",
+      "name": "Gabelli Utility Trust (The)",
       "tier": "watch",
-      "score": 24,
+      "score": 28,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -0.2,
-      "runup5dPct": 1.4,
-      "medDollarVolUsd": 1789648,
+      "runup20dPct": 1.6,
+      "runup5dPct": -0.2,
+      "medDollarVolUsd": 1235047,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CATO",
+      "name": "Cato Corporation (The)",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 4.7× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -7,
+      "runup5dPct": -9,
+      "medDollarVolUsd": 170568,
       "smartAccum": false,
       "official": null
     },
@@ -48,44 +65,62 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.6,
-      "runup5dPct": -32.3,
-      "medDollarVolUsd": 8076572,
+      "runup20dPct": -3.6,
+      "runup5dPct": -27.3,
+      "medDollarVolUsd": 8358584,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PSFE",
-      "name": "Paysafe Limited",
+      "ticker": "JMIA",
+      "name": "Jumia Technologies AG",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -14.6,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 2177955,
+      "runup20dPct": 12,
+      "runup5dPct": 7.1,
+      "medDollarVolUsd": 10930304,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CCM",
-      "name": "Concord Medical Services Holdin",
+      "ticker": "BKKT",
+      "name": "Bakkt, Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)"
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 11.4,
-      "runup5dPct": 0.2,
-      "medDollarVolUsd": 211792,
+      "runup20dPct": -2.3,
+      "runup5dPct": 1.4,
+      "medDollarVolUsd": 9551025,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "FLXS",
+      "name": "Flexsteel Industries, Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.7× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 6.4,
+      "runup5dPct": 7.6,
+      "medDollarVolUsd": 3311700,
       "smartAccum": false,
       "official": null
     }
