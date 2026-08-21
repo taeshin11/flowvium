@@ -1,82 +1,150 @@
-# 🆘 머신 사망 시 다른 컴퓨터 인수인계 runbook (2026-06-12 신설)
+# 🆘 머신 사망 시 인수인계 runbook
 
-> 배경: 2026-06-07 하드 freeze 로 4일 다운. 이 머신이 다시 죽으면 아래 절차로 다른 Windows 머신에서 재가동.
+> **최종 검증: 2026-08-22** — 이 기기(Mac mini M4 Pro, macOS 26.5.1)의 실제 구성과 대조해 다시 씀.
+>
+> 2026-06-12 신설 당시엔 Windows 기기였다. 2026-07 말 맥으로 이관했는데 이 문서는 2026-07-01 에서
+> 멈춰 있었다 — `C:\Flowvium` · `G:\내 드라이브` · `schtasks` · `pm2` · `ollama` · `run-report.bat`.
+> 이 맥에는 **하나도 없다**(`run-report.bat` 는 2026-08-21 에 삭제). 즉 가장 급한 순간에 쓰는 문서가
+> 거의 모든 줄에서 실패하는 상태였다. `scripts/lib/handoff-runbook.test.mjs` 가 이 회귀를 막는다.
 
-## 사전 준비돼 있는 것 (이 머신이 매일 자동 수행)
+## 0. 지금 이 기기가 자동으로 하는 것
 
-1. **코드/설정**: 전부 GitHub `taeshin11/flowvium` master (모든 fix 는 커밋+푸시 의무 — CLAUDE.md).
-2. **로컬 상태 백업**: `G:\내 드라이브\FlowVium-backup\` ← Task Scheduler `FlowVium-Backup` (매일 04:35, `scripts/backup-takeover.mjs`)
-   - `flowvium-{날짜}.db` — SQLite 정합 백업 (추천/outcome/hallucination 학습이력, 최근 7일치)
-   - `secrets/.env.local` + `secrets/.cf-tunnel-token` — API 키 + Cloudflare 터널 자격
-   - `reports/`, `research_history/` 미러
-3. **사이트 라이브 상태**: Upstash Redis(클라우드) — 머신 죽어도 마지막 발간 보고서는 서빙 유지 (stale 화만 진행).
+| 서비스 (launchd, `~/Library/LaunchAgents/com.spinai.*.plist`) | 역할 |
+|---|---|
+| `flowvium-web` | `next start` → :3000 (프로덕션 빌드 서빙) |
+| `flowvium-cron` | `scripts/cron-runner.mjs` — 22개 스케줄 + 20분 자동 모니터 |
+| `flowvium-redis` | `redis-server` :6379 (dir `~/flowvium_runtime`) |
+| `flowvium-shim` | `scripts/redis-rest-shim.mjs` :8079 — 앱이 쓰는 Upstash 호환 REST |
+| `flowvium-tunnel` | `cloudflared tunnel run` — flowvium.net 공개 (토큰이 plist 안에 평문) |
+| `flowvium-llm` | `mlx_lm server` :8000 · Qwen3.8-27B-8bit · `--prompt-concurrency 1` |
+| `flowvium-llm-web` | `mlx_lm server` :8001 · Qwen3.5-4B-4bit · `--prompt-concurrency 2` |
+| `flowvium-embed` | `scripts/rag/serve-embed.sh` :8100 · bge-m3 (RAG 임베딩) |
+| `thermal-governor` | `scripts/runtime/thermal-governor.py` — 90°C 상한, LLM SIGSTOP/SIGCONT |
+| `nosleep` | `caffeinate -dimsu` |
+| `flowvium-backup` | **매일 04:35** `scripts/backup-takeover.mjs` |
+| `flowvium-report-{morning,noon,afternoon,evening,midnight}` | **05:30 / 10:30 / 14:30 / 20:00 / 22:30** `scripts/run-report.sh` |
 
-## 새 머신 복구 절차 (~30분)
+- **코드**: GitHub `taeshin11/flowvium` master. 모든 fix 는 커밋+푸시 의무(CLAUDE.md).
+- **로컬 상태 백업** (git 에 없는 것):
+  - `~/flowvium_backups/` — DB + `.env.local` + `.cf-tunnel-token`, 최근 7일. **항상 생성된다.**
+  - `$FLOWVIUM_BACKUP_DIR` (Google Drive) — DB·시크릿·문서·`reports/`·`research_history/` 미러.
+    ⚠️ **2026-08-22 현재 launchd 에서는 안 된다.** 아래 4절 참조.
+- **라이브 상태**: 로컬 Redis. 기기가 죽으면 사이트도 죽는다(클라우드 Redis 아님 — Windows 시절과 다름).
 
-```powershell
-# 0. 요구사항: Windows + Node 20+ + git + Ollama 설치, Google Drive 로그인
-# 1. 코드
-git clone https://github.com/taeshin11/flowvium C:\Flowvium
-cd C:\Flowvium; npm install
-# 2. 로컬 상태 복원 (Google Drive 백업에서)
-copy "G:\내 드라이브\FlowVium-backup\secrets\.env.local" .
-copy "G:\내 드라이브\FlowVium-backup\secrets\.cf-tunnel-token" .
-copy "G:\내 드라이브\FlowVium-backup\flowvium-<최신날짜>.db" data\flowvium.db
-copy "G:\내 드라이브\FlowVium-backup\company-profiles.json" data\company-profiles.json
-robocopy "G:\내 드라이브\FlowVium-backup\reports" reports /E
-robocopy "G:\내 드라이브\FlowVium-backup\research_history" research_history /E
-# 3. LLM
-ollama pull qwen3:8b
-ollama pull exaone3.5:7.8b
-setx OLLAMA_KV_CACHE_TYPE q8_0
-setx OLLAMA_FLASH_ATTENTION 1
-# 4. 서비스 (pm2: web 3000 + cron-runner + cloudflare tunnel)
-npm install -g pm2; npm run build
-pm2 start npm --name flowvium-web -- start
-pm2 start scripts/cron-runner.mjs --name flowvium-cron
-pm2 start scripts/run-tunnel.cjs --name flowvium-tunnel   # .cf-tunnel-token 사용 — DNS 변경 불필요
-pm2 save
-# 5. Task Scheduler 등록 (보고서 5회/일 + 백업) — 시각: 06:40/11:40/15:40/21:10/23:40 KST
-#    run-report.bat 호출 + StartWhenAvailable=True (HANDOFF 하단 11절 참조, 또는 아래 한 줄씩)
-#    schtasks /create /tn FlowVium-Morning /tr C:\Flowvium\scripts\run-report.bat /sc daily /st 06:40
-#    (Noon 11:40 / Afternoon 15:40 / Evening 21:10 / Midnight 23:40 동일 패턴 + StartWhenAvailable 활성화)
-# 6. 검증
-npm run verify
-node scripts/check-uncommitted-risk.mjs
+## 1. 새 머신 복구 절차
+
+전제: macOS + git + Node 20+ (이 기기는 v24.19.0, `~/.local/node/bin/node`) + Python 3.12 + Google Drive 로그인.
+
+```bash
+# 1) 코드
+git clone https://github.com/taeshin11/flowvium.git ~/flowvium_restore/app
+cd ~/flowvium_restore/app && npm install
+
+# 2) 로컬 상태 복원 — 백업 위치 두 곳 중 살아 있는 쪽에서
+#    (a) 이 기기 디스크가 살아 있으면:  ~/flowvium_backups/
+#    (b) 아니면 Google Drive:          "$FLOWVIUM_BACKUP_DIR"
+BK=~/flowvium_backups                     # 또는 Drive 경로
+cp "$BK/.env.local" .
+cp "$BK/.cf-tunnel-token" . 2>/dev/null || true
+mkdir -p data && cp "$BK/$(ls -t "$BK" | grep '^flowvium-.*\.db$' | head -1)" data/flowvium.db
+
+# 3) LLM (MLX — Apple Silicon 전용. Ollama 아님)
+python3 -m venv ~/mlx-venv && ~/mlx-venv/bin/pip install mlx-lm
+~/mlx-venv/bin/huggingface-cli download mlx-community/Qwen3.8-27B-8bit
+~/mlx-venv/bin/huggingface-cli download mlx-community/Qwen3.5-4B-4bit
+#    RAG 임베딩: scripts/rag/setup-rag-svc.sh 가 ~/rag-venv 를 만든다
+
+# 4) 서비스 등록 — plist 는 저장소가 아니라 이 기기 ~/Library/LaunchAgents 에 있다.
+#    기기가 살아 있으면 그대로 복사, 아니면 위 0절 표를 보고 다시 작성.
+#    등록: launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.spinai.<이름>.plist
+#    즉시 실행: launchctl kickstart -k gui/$(id -u)/com.spinai.<이름>
+
+# 5) 빌드 + 기동
+npm run build
+launchctl kickstart -k gui/$(id -u)/com.spinai.flowvium-web
+
+# 6) 검증 (아래 3절)
 ```
 
-주의: 이전 머신이 살아있는 채로 새 머신을 띄우면 **터널/cron 이중 가동** — 반드시 한쪽만.
+⚠️ 구 기기가 살아 있는 채로 새 기기를 띄우면 **터널·cron 이중 가동**이다. 반드시 한쪽만.
+구 기기 정지: `launchctl bootout gui/$(id -u)/com.spinai.flowvium-{tunnel,cron}`
 
-## 새 머신의 Claude Code 에게 줄 인계 프롬프트 (복붙용)
+## 2. 복구 완료 기준 (happy-path 만으론 불완료)
 
-> 새 클로드는 이전 머신 클로드의 메모리/대화가 없다. 저장소 문서가 유일한 컨텍스트 — 아래를 그대로 붙여넣기:
+- [ ] `node scripts/run-lib-tests.mjs` — 전부 통과
+- [ ] `npm run verify` — fail 0
+- [ ] `node scripts/check-uncommitted-risk.mjs` — OK
+- [ ] `node scripts/check-stall.mjs` — 자원·백업 항목 포함 STALL 0
+- [ ] 보고서 1회 수동 발간 성공 + `flowvium.net/ko/report` 에 반영
+      `scripts/run-report.sh --session=noon --locale=ko --auto-upload`
+- [ ] launchd 12개 등록 확인: `launchctl list | grep spinai`
+- [ ] 복구 기록: `research_history/{날짜}_takeover-recovery.md` + 커밋·푸시
+
+## 3. 상태 점검 명령 (이 기기에서 동작 확인됨)
+
+```bash
+export PATH=~/.local/node/bin:$PATH
+node scripts/check-stall.mjs          # 보고서 age·모델·자원·백업·git 동기화
+node scripts/check-data-quality.mjs   # 외부 소스·번역·엔드포인트
+node scripts/run-lib-tests.mjs        # lib 단위 테스트
+curl -s localhost:8000/v1/models      # 27B 생존
+curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/ko/report
+```
+
+`timeout` 은 macOS 에 없다. 시간 제한이 필요하면 백그라운드로 띄우고 죽인다:
+```bash
+node scripts/generate-report-local.mjs --session=noon --locale=ko & P=$!; sleep 60; kill $P
+```
+
+## 4. ⚠️ 알려진 제약 — Google Drive 백업이 launchd 에서 안 된다
+
+2026-08-22 실측. 같은 스크립트가 **대화형 셸에서는 29.1초에 완주**하는데 launchd 에서는 멈춘다.
+연산별로 갈린다:
+
+| 연산 | 대화형 셸 | launchd |
+|---|---|---|
+| `stat` · 새 파일 write · 로컬캐시 unlink | OK | OK |
+| `readdir` | OK | 10s 초과 ✗ |
+| dehydrated 파일 unlink · 기존 파일 덮어쓰기 | OK | 20s 초과 ✗ |
+
+= Google 서버 왕복이 필요한 연산만 완료되지 않는다. macOS 권한 문제로 보이며 부여는 GUI 조작이다.
+
+**조치**: 시스템 설정 → 개인정보 보호 및 보안 → 전체 디스크 접근 권한에
+`/Users/spinai-mini/.local/node/bin/node` 추가.
+
+그전까지 `backup-takeover.mjs` 는 원격 3회 실패 시 회로차단하고 **로컬 백업만** 남긴다
+(`~/flowvium_backups`). 로컬 백업은 디스크 오염·실수 삭제는 막지만 **기기 사망은 못 막는다.**
+Drive 백업이 필요하면 사람이 셸에서 직접 한 번 돌린다:
+```bash
+cd ~/flowvium_restore/app && node scripts/backup-takeover.mjs
+```
+
+## 5. 새 머신의 Claude Code 에게 줄 인계 프롬프트 (복붙용)
 
 ```
-FlowVium 자가호스팅 서버 머신이 죽어서 이 컴퓨터로 인수한다. 너는 이전 머신의 클로드 메모리가 없으니
+FlowVium 자가호스팅 서버를 이 컴퓨터로 인수한다. 이전 기기 클로드의 메모리는 없으니
 저장소 문서로 컨텍스트를 복원해라. 순서:
 
-1. CLAUDE.md (프로젝트 규칙 — 특히 "커밋+푸시 의무", "verify 의무", "정적 폴백 금지") 숙지.
-2. HANDOFF.md 최상단 "인수인계 runbook" 그대로 실행해 서비스 복구
-   (백업: G:\내 드라이브\FlowVium-backup — 최신 flowvium-*.db, secrets/.env.local, .cf-tunnel-token).
-   ⚠️ 구 머신이 혹시 살아있으면 터널/cron 이중가동 금지 — 먼저 구 머신 pm2/Task Scheduler 정지 확인.
-3. research_history/ 를 날짜 역순으로 최근 5개 읽고 마지막 작업 상태 파악
-   (특히 2026-06-12_crash-detection-overhaul-and-takeover.txt = 마지막 세션 기록).
-4. 복구 완료 기준 (happy-path 만으론 불완료):
-   - npm run verify 에서 fail 0
-   - node scripts/check-uncommitted-risk.mjs OK
-   - 보고서 1회 수동 발간 성공 (scripts/run-report.bat) + flowvium.net/ko/report 에 fresh 반영
-   - Task Scheduler 5개(보고서) + FlowVium-Backup 등록 + StartWhenAvailable=True 확인
-5. 복구 후 research_history/{날짜}_takeover-recovery.txt 에 인수 기록 남기고 커밋+푸시.
-
-환경 요약: RTX GPU + Ollama qwen3:8b(보고서)/exaone3.5(번역), pm2(web 3000/cron-runner/tunnel),
-Task Scheduler 가 run-report.bat 를 하루 5회(06:40/11:40/15:40/21:10/23:40 KST) 실행.
-GPU 단일 자원 — 보고서 lock(logs/report-pipeline.lock) 중 무거운 LLM 작업 금지.
-cloud LLM 폴백은 GROQ 키 무효(401) 상태라 로컬 Ollama 가 유일한 LLM — Ollama 헬스 최우선.
+1. CLAUDE.md 숙지 — 특히 "커밋+푸시 의무", "verify 의무", "정적 폴백 금지",
+   "research_history/{날짜}_{주제} 에 마일스톤 기록".
+2. HANDOFF.md 1절 runbook 을 그대로 실행해 서비스 복구.
+   ⚠️ 구 기기가 살아 있으면 터널/cron 이중가동 금지 — 먼저 구 기기 launchd 정지 확인.
+3. research_history/ 를 날짜 역순으로 최근 5개 읽고 마지막 작업 상태 파악.
+4. HANDOFF.md 2절 "복구 완료 기준" 체크리스트를 전부 통과시킬 것. 하나라도 남으면 미완료다.
+5. 이 기기는 macOS + launchd + MLX 다. 문서나 코드에 Windows 작업 스케줄러·노드 프로세스
+   매니저·구 LLM 런처·배치/파워셸 스크립트가 보이면 그건 이관 전 잔재다 —
+   따르지 말고 실물(`launchctl list | grep spinai`)과 대조해라.
+6. 복구 후 research_history/{날짜}_takeover-recovery.md 기록 + 커밋·푸시.
 ```
 
 ---
 
 # 📋 FlowVium 인계장 — 2026-05-31 21:30 KST
+
+> ⚠️ **여기서부터는 2026-05-31 시점의 기록이다(Windows + Ollama + Vercel + pm2 시절).**
+> 설계 의도·Karpathy 학습 루프·검증 체계의 *사고방식* 은 지금도 유효하지만,
+> 경로·명령·모델명·스케줄은 전부 그때 것이다. **그대로 실행하지 말 것.**
+> 지금 실행할 것은 위 1~5절(2026-08-22 검증)에 있다.
 
 > **다음 세션이 처음 읽는다는 가정**으로 작성. 코드 위치 + 의도 + 시도한 것 + 막혔던 점 모두 기록.
 > 상세 commit-by-commit: `research_history/2026-05-31_session-handoff.txt`
@@ -592,10 +660,12 @@ console.log('evening:', Math.round((e-k)/60000), '분');
 ## 13. 트러블슈팅
 
 ### "verify-all fail / cron 보고서 안 만들어짐"
-1. Ollama 실행 중인지 확인 (`ollama list`)
+1. LLM 생존 확인 — `curl -s localhost:8000/v1/models` (27B) / `localhost:8001` (4B)
+   ※ 원문은 `ollama list` 였다. 이 기기는 Ollama 를 쓰지 않는다(MLX).
 2. `logs/report.log` tail 50 — error 패턴 grep
 3. 마지막 commit 이 broken syntax 일 가능성 — `node --check scripts/generate-report-local.mjs`
-4. Windows Task Scheduler 의 LastTaskResult 확인
+4. launchd 결과 확인 — `launchctl list com.spinai.flowvium-report-<세션> | grep LastExitStatus`
+   ※ 원문은 Windows Task Scheduler 였다.
 
 ### "감지된 결함이 사용자가 본 것과 다름"
 1. `verify-report` 의 validator key 가 응답 schema 와 일치하는지 직접 curl 응답 비교
@@ -633,7 +703,9 @@ node --check scripts/audit-coverage.mjs
 node --check scripts/verify-report.mjs
 
 # 2. smoke (60초)
-timeout 60 node scripts/generate-report-local.mjs --model=qwen3:8b 2>&1 | grep -E "TypeError|FATAL|\[1\.5"
+# macOS 에는 timeout 이 없다. 백그라운드로 띄우고 죽인다. 모델은 서버 적재본을 쓰므로 --model 불필요.
+node scripts/generate-report-local.mjs --session=noon --locale=ko > /tmp/smoke.log 2>&1 & P=$!
+sleep 60; kill $P 2>/dev/null; grep -E "TypeError|FATAL|ReferenceError|\[1\." /tmp/smoke.log
 
 # 3. 통합 (140초)
 npm run verify

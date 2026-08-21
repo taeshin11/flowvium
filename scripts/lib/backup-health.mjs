@@ -10,6 +10,7 @@
  *   판정과 실행이 다른 경로를 보면 '백업 정상' 이라 답하면서 다른 데를 보고 있게 된다.
  */
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
+import Database from 'better-sqlite3';
 import { resolve, join } from 'path';
 import { execFile } from 'child_process';
 import { ROOT } from './project-root.mjs';
@@ -74,6 +75,22 @@ export async function backupStatus() {
   if (!localNewest) issues.push(`로컬 2차 백업 없음(${localDir}) — 원격이 막히면 남는 게 없다`);
   else if (localAgeDays > maxAgeDays) issues.push(`로컬 2차 백업이 ${localAgeDays}일 전(${localNewest}) — 임계 ${maxAgeDays}일`);
 
+  // 존재 ≠ 복원 가능. 손상된 백업은 없는 백업보다 나쁘다 — 있다고 믿게 만들기 때문이다.
+  //   readonly 로 열어 핵심 테이블 행수를 센다. 0행이면 백업 절차가 깨진 것이다.
+  let restorable = null, reportRows = null;
+  if (localNewest) {
+    try {
+      const db = new Database(join(localDir, localNewest), { readonly: true });
+      reportRows = db.prepare('SELECT COUNT(*) c FROM reports').get().c;
+      db.close();
+      restorable = reportRows > 0;
+      if (!restorable) issues.push(`로컬 백업(${localNewest})이 열리지만 reports 0행 — 복원해도 빈 DB 다`);
+    } catch (e) {
+      restorable = false;
+      issues.push(`로컬 백업(${localNewest}) 열기 실패: ${String(e.message).slice(0, 50)} — 복원 불가`);
+    }
+  }
+
   return { dest, destExists, newest, ageDays, maxAgeDays, scheduled: !!scheduledBy, scheduledBy,
-           localDir, localNewest, localAgeDays, issues };
+           localDir, localNewest, localAgeDays, restorable, reportRows, issues };
 }

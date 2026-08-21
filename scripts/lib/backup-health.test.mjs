@@ -43,6 +43,8 @@ if (M) {
     } else bad('DB 백업 파일이 하나도 없다');
     s.localNewest ? ok(`로컬 2차 백업 ${s.localNewest} · ${s.localAgeDays}일 전 (원격이 막혀도 남는다)`)
                   : bad('로컬 2차 백업 없음 — 원격이 막히면 아무것도 안 남는다');
+    s.restorable ? ok(`로컬 백업이 실제로 열린다 (reports ${s.reportRows}행) — 존재 ≠ 복원 가능`)
+                 : bad(`로컬 백업이 복원 불가: restorable=${s.restorable}`);
     s.scheduled ? ok(`스케줄 등록됨: ${s.scheduledBy}`) : bad('어디에도 스케줄되어 있지 않다 — 한 번 돌고 끝나는 백업은 백업이 아니다');
     Array.isArray(s.issues) ? ok(`issues 배열 제공 (${s.issues.length}건)`) : bad('issues 미제공');
   }

@@ -245,7 +245,7 @@ async function checkOnce() {
   try {
     const b = await backupStatus();
     if (b.issues.length) for (const i of b.issues) issues.push(`백업 — ${i}`);
-    else info.push(`백업 ✓ (원격 ${b.newest} ${b.ageDays}일 전 · 로컬 ${b.localNewest} ${b.localAgeDays}일 전 · ${b.scheduledBy})`);
+    else info.push(`백업 ✓ (원격 ${b.newest} ${b.ageDays}일 전 · 로컬 ${b.localNewest} ${b.localAgeDays}일 전, 복원가능 reports ${b.reportRows}행 · ${b.scheduledBy})`);
   } catch (e) {
     issues.push(`백업 상태 판독 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
