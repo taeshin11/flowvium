@@ -36,7 +36,17 @@
     "cascadeDesc": "Pemimpin→midcap cascade",
     "volatility": "Volatilitas",
     "volatilityDesc": "Opsi IV · skew",
-    "memberLoggedIn": "Masuk"
+    "memberLoggedIn": "Masuk",
+    "company": "Perusahaan",
+    "compare": "Bandingkan",
+    "fearGreed": "Ketakutan & Keserakahan",
+    "glossary": "Glosarium",
+    "howToUse": "Cara Menggunakan",
+    "judge": "Hakim AI",
+    "paperTrading": "Paper Trading",
+    "privacy": "Kebijakan Privasi",
+    "share": "Bagikan",
+    "terms": "Ketentuan Layanan"
   },
   "hero": {
     "title": "Temukan Risiko Rantai Pasok Tersembunyi",
@@ -2001,5 +2011,16 @@
     "backHome": "Beranda",
     "modeDeep": "AISVI Mendalam",
     "modeDeepDesc": "2-tahap — riset lalu penilaian (presisi, lebih lambat)"
+  },
+  "roles": {
+    "leader": "Pemimpin",
+    "intermediary": "Perantara",
+    "supplier": "Pemasok",
+    "customer": "Pelanggan",
+    "partner": "Mitra",
+    "competitor": "Pesaing",
+    "mid_cap": "Mid Cap",
+    "first_follower": "Pengikut Pertama",
+    "late_mover": "Pemain Akhir"
   }
 }

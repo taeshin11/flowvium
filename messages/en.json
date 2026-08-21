@@ -36,7 +36,17 @@
     "cascadeDesc": "Leader→midcap cascade",
     "volatility": "Volatility",
     "volatilityDesc": "Options IV · skew · term",
-    "memberLoggedIn": "Logged in"
+    "memberLoggedIn": "Logged in",
+    "company": "Companies",
+    "compare": "Compare",
+    "fearGreed": "Fear & Greed",
+    "glossary": "Glossary",
+    "howToUse": "How to Use",
+    "judge": "AI Judge",
+    "paperTrading": "Paper Trading",
+    "privacy": "Privacy Policy",
+    "share": "Share",
+    "terms": "Terms of Service"
   },
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
@@ -2002,5 +2012,16 @@
     "backHome": "Home",
     "modeDeep": "AISVI Deep",
     "modeDeepDesc": "2-pass — research then judgment (precise, slower)"
+  },
+  "roles": {
+    "leader": "Leader",
+    "intermediary": "Intermediary",
+    "supplier": "Supplier",
+    "customer": "Customer",
+    "partner": "Partner",
+    "competitor": "Competitor",
+    "mid_cap": "Mid Cap",
+    "first_follower": "First Follower",
+    "late_mover": "Late Mover"
   }
 }

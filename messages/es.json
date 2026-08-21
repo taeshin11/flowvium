@@ -36,7 +36,17 @@
     "cascadeDesc": "Líder→mediana capitalización",
     "volatility": "Volatilidad",
     "volatilityDesc": "Opciones IV · skew",
-    "memberLoggedIn": "Conectado"
+    "memberLoggedIn": "Conectado",
+    "company": "Empresas",
+    "compare": "Comparar",
+    "fearGreed": "Miedo y codicia",
+    "glossary": "Glosario",
+    "howToUse": "Cómo usar",
+    "judge": "Juez de IA",
+    "paperTrading": "Operaciones simuladas",
+    "privacy": "Política de privacidad",
+    "share": "Compartir",
+    "terms": "Términos de servicio"
   },
   "hero": {
     "title": "Descubre Riesgos Ocultos en la Cadena de Suministro",
@@ -2001,5 +2011,16 @@
     "backHome": "Inicio",
     "modeDeep": "AISVI Profundo",
     "modeDeepDesc": "2 pasos — investigación y luego juicio (preciso, más lento)"
+  },
+  "roles": {
+    "leader": "Líder",
+    "intermediary": "Intermediario",
+    "supplier": "Proveedor",
+    "customer": "Cliente",
+    "partner": "Socio",
+    "competitor": "Competidor",
+    "mid_cap": "Capitalización media",
+    "first_follower": "Primer seguidor",
+    "late_mover": "Movimiento tardío"
   }
 }

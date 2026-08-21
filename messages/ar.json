@@ -36,7 +36,17 @@
     "cascadeDesc": "قائد→شركات متوسطة",
     "volatility": "التقلب",
     "volatilityDesc": "خيارات IV · انحراف",
-    "memberLoggedIn": "تم تسجيل الدخول"
+    "memberLoggedIn": "تم تسجيل الدخول",
+    "company": "الشركات",
+    "compare": "قارن",
+    "fearGreed": "الخوف والطمع",
+    "glossary": "المصطلحات",
+    "howToUse": "كيفية الاستخدام",
+    "judge": "قاضي الذكاء الاصطناعي",
+    "paperTrading": "التداول الورقي",
+    "privacy": "سياسة الخصوصية",
+    "share": "مشاركة",
+    "terms": "شروط الخدمة"
   },
   "hero": {
     "title": "اكتشف مخاطر سلسلة التوريد الخفية",
@@ -2001,5 +2011,16 @@
     "backHome": "الرئيسية",
     "modeDeep": "AISVI عميق",
     "modeDeepDesc": "خطوتان — بحث ثم حكم (أدق، أبطأ)"
+  },
+  "roles": {
+    "leader": "الزعيم",
+    "intermediary": "الوسيط",
+    "supplier": "المورد",
+    "customer": "العميل",
+    "partner": "شريك",
+    "competitor": "منافس",
+    "mid_cap": "الأسهم متوسطة القيمة",
+    "first_follower": "المتابع الأول",
+    "late_mover": "متأخر الحركة"
   }
 }

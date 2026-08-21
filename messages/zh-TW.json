@@ -36,7 +36,17 @@
     "cascadeDesc": "龍頭→中型股傳導",
     "volatility": "隱含波動率",
     "volatilityDesc": "選擇權IV·偏度·期限",
-    "memberLoggedIn": "已登入"
+    "memberLoggedIn": "已登入",
+    "company": "公司",
+    "compare": "比較",
+    "fearGreed": "恐懼與貪婪",
+    "glossary": "術語表",
+    "howToUse": "如何使用",
+    "judge": "AI 裁判",
+    "paperTrading": "模擬交易",
+    "privacy": "隱私權政策",
+    "share": "分享",
+    "terms": "服務條款"
   },
   "hero": {
     "title": "發掘隱藏的供應鏈風險",
@@ -2001,5 +2011,16 @@
     "backHome": "首頁",
     "modeDeep": "AISVI 深度",
     "modeDeepDesc": "2步 — 業務·行情研究後判斷(精確·較慢)"
+  },
+  "roles": {
+    "leader": "領導者",
+    "intermediary": "中介",
+    "supplier": "供應商",
+    "customer": "客戶",
+    "partner": "合作夥伴",
+    "competitor": "競爭對手",
+    "mid_cap": "中盤",
+    "first_follower": "首位跟隨者",
+    "late_mover": "後市異動"
   }
 }

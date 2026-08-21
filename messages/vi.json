@@ -36,7 +36,17 @@
     "cascadeDesc": "Dẫn đầu→vốn trung",
     "volatility": "Biến động ngụ ý",
     "volatilityDesc": "Quyền chọn IV · skew",
-    "memberLoggedIn": "Đã đăng nhập"
+    "memberLoggedIn": "Đã đăng nhập",
+    "company": "Các công ty",
+    "compare": "So sánh",
+    "fearGreed": "Sợ hãi và Tham lam",
+    "glossary": "Từ điển",
+    "howToUse": "Cách sử dụng",
+    "judge": "Thẩm phán AI",
+    "paperTrading": "Giao dịch giả lập",
+    "privacy": "Chính sách bảo mật",
+    "share": "Chia sẻ",
+    "terms": "Điều khoản dịch vụ"
   },
   "hero": {
     "title": "Phát hiện rủi ro chuỗi cung ứng tiềm ẩn",
@@ -2001,5 +2011,16 @@
     "backHome": "Trang chủ",
     "modeDeep": "AISVI Chuyên sâu",
     "modeDeepDesc": "2 bước — nghiên cứu rồi phán định (chính xác, chậm hơn)"
+  },
+  "roles": {
+    "leader": "Người dẫn đầu",
+    "intermediary": "Trung gian",
+    "supplier": "Nhà cung cấp",
+    "customer": "Khách hàng",
+    "partner": "Đối tác",
+    "competitor": "Đối thủ cạnh tranh",
+    "mid_cap": "Vốn hóa vừa",
+    "first_follower": "Người theo dõi đầu tiên",
+    "late_mover": "Chậm trễ"
   }
 }

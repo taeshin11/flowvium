@@ -36,7 +36,17 @@
     "cascadeDesc": "Leader→moyenne capitalisation",
     "volatility": "Volatilité",
     "volatilityDesc": "Options IV · skew",
-    "memberLoggedIn": "Connecté"
+    "memberLoggedIn": "Connecté",
+    "company": "Entreprises",
+    "compare": "Comparer",
+    "fearGreed": "Peur et avidité",
+    "glossary": "Glossaire",
+    "howToUse": "Comment utiliser",
+    "judge": "Juge IA",
+    "paperTrading": "Trading sur papier",
+    "privacy": "Politique de confidentialité",
+    "share": "Partager",
+    "terms": "Conditions d'utilisation"
   },
   "hero": {
     "title": "Révélez les risques cachés de la chaîne d'approvisionnement",
@@ -2001,5 +2011,16 @@
     "backHome": "Accueil",
     "modeDeep": "AISVI Approfondi",
     "modeDeepDesc": "2 passes — recherche puis jugement (précis, plus lent)"
+  },
+  "roles": {
+    "leader": "Leader",
+    "intermediary": "Intermédiaire",
+    "supplier": "Fournisseur",
+    "customer": "Client",
+    "partner": "Partenaire",
+    "competitor": "Concurrent",
+    "mid_cap": "Moyenne capitalisation",
+    "first_follower": "Premier Suiveur",
+    "late_mover": "Mouvement tardif"
   }
 }

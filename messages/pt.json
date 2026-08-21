@@ -36,7 +36,17 @@
     "cascadeDesc": "Líder→midcap cascata",
     "volatility": "Volatilidade",
     "volatilityDesc": "Opções IV · skew",
-    "memberLoggedIn": "Conectado"
+    "memberLoggedIn": "Conectado",
+    "company": "Empresas",
+    "compare": "Comparar",
+    "fearGreed": "Medo e Ganância",
+    "glossary": "Glossário",
+    "howToUse": "Como Usar",
+    "judge": "Juiz de IA",
+    "paperTrading": "Negociação Simulada",
+    "privacy": "Política de Privacidade",
+    "share": "Compartilhar",
+    "terms": "Termos de Serviço"
   },
   "hero": {
     "title": "Descubra Riscos Ocultos na Cadeia de Suprimentos",
@@ -2001,5 +2011,16 @@
     "backHome": "Início",
     "modeDeep": "AISVI Profundo",
     "modeDeepDesc": "2 passos — pesquisa e depois julgamento (preciso, mais lento)"
+  },
+  "roles": {
+    "leader": "Líder",
+    "intermediary": "Intermediário",
+    "supplier": "Fornecedor",
+    "customer": "Cliente",
+    "partner": "Parceiro",
+    "competitor": "Concorrente",
+    "mid_cap": "Média Capitalização",
+    "first_follower": "Primeiro Seguidor",
+    "late_mover": "Movimentação tardia"
   }
 }

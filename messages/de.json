@@ -36,7 +36,17 @@
     "cascadeDesc": "Leader→Midcap-Kaskade",
     "volatility": "Volatilität",
     "volatilityDesc": "Optionen IV · Skew",
-    "memberLoggedIn": "Angemeldet"
+    "memberLoggedIn": "Angemeldet",
+    "company": "Unternehmen",
+    "compare": "Vergleichen",
+    "fearGreed": "Angst & Gier",
+    "glossary": "Glossar",
+    "howToUse": "So verwenden",
+    "judge": "KI-Richter",
+    "paperTrading": "Paper Trading",
+    "privacy": "Datenschutzerklärung",
+    "share": "Teilen",
+    "terms": "Nutzungsbedingungen"
   },
   "hero": {
     "title": "Verborgene Lieferkettenrisiken aufdecken",
@@ -2001,5 +2011,16 @@
     "backHome": "Startseite",
     "modeDeep": "AISVI Tief",
     "modeDeepDesc": "2-stufig — Recherche, dann Urteil (präzise, langsamer)"
+  },
+  "roles": {
+    "leader": "Führer",
+    "intermediary": "Zwischenhändler",
+    "supplier": "Lieferant",
+    "customer": "Kunde",
+    "partner": "Partner",
+    "competitor": "Konkurrent",
+    "mid_cap": "Mittelstand",
+    "first_follower": "Erster Follower",
+    "late_mover": "Später Mover"
   }
 }

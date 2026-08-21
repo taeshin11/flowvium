@@ -36,7 +36,17 @@
     "cascadeDesc": "龙头→中型股传导",
     "volatility": "隐含波动率",
     "volatilityDesc": "期权IV·偏度·期限",
-    "memberLoggedIn": "已登录"
+    "memberLoggedIn": "已登录",
+    "company": "公司",
+    "compare": "比较",
+    "fearGreed": "恐惧与贪婪",
+    "glossary": "术语表",
+    "howToUse": "如何使用",
+    "judge": "AI 裁判",
+    "paperTrading": "模拟交易",
+    "privacy": "隐私政策",
+    "share": "分享",
+    "terms": "服务条款"
   },
   "hero": {
     "title": "发现隐藏的供应链风险",
@@ -2001,5 +2011,16 @@
     "backHome": "首页",
     "modeDeep": "AISVI 深度",
     "modeDeepDesc": "2步 — 业务·行情研究后判断(精确·较慢)"
+  },
+  "roles": {
+    "leader": "领导者",
+    "intermediary": "中介",
+    "supplier": "供应商",
+    "customer": "客户",
+    "partner": "合作伙伴",
+    "competitor": "竞争对手",
+    "mid_cap": "中盘股",
+    "first_follower": "首位关注者",
+    "late_mover": "尾盘异动"
   }
 }

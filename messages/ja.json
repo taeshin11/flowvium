@@ -36,7 +36,17 @@
     "cascadeDesc": "リーダー→中型株連鎖",
     "volatility": "内在ボラティリティ",
     "volatilityDesc": "オプションIV・スキュー",
-    "memberLoggedIn": "ログイン中"
+    "memberLoggedIn": "ログイン中",
+    "company": "企業",
+    "compare": "比較",
+    "fearGreed": "恐怖と強欲",
+    "glossary": "用語集",
+    "howToUse": "使い方",
+    "judge": "AIジャッジ",
+    "paperTrading": "ペーパートレーディング",
+    "privacy": "プライバシーポリシー",
+    "share": "共有",
+    "terms": "利用規約"
   },
   "hero": {
     "title": "隠れたサプライチェーンリスクを発見",
@@ -2001,5 +2011,16 @@
     "backHome": "ホーム",
     "modeDeep": "AISVI 詳細",
     "modeDeepDesc": "2段階 — 事業·業況リサーチ後に判断(精密·低速)"
+  },
+  "roles": {
+    "leader": "リーダー",
+    "intermediary": "仲介",
+    "supplier": "サプライヤー",
+    "customer": "顧客",
+    "partner": "パートナー",
+    "competitor": "競合",
+    "mid_cap": "中堅株",
+    "first_follower": "最初のフォロワー",
+    "late_mover": "遅れて動く銘柄"
   }
 }

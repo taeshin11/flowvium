@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations, useLocale, useMessages } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { allCompanies, type Company, type RevenueSegment } from '@/data/companies';
 import { getGeneratedMacroImpact, getGeneratedRdPipeline } from '@/data/company-contexts';
@@ -227,6 +227,17 @@ function formatLiveValue(label: string, val: number): string {
 
 export default function CompanyPage({ ticker }: { ticker: string }) {
   const t = useTranslations('company');
+  const tRole = useTranslations('roles');
+  const tNav = useTranslations('nav');
+  const roleMsgs = (useMessages() as { roles?: Record<string, unknown> } | undefined)?.roles ?? {};
+  // 2026-08-22: 종전엔 데이터의 role/type 을 CSS `capitalize` 로 찍었다.
+  //   'supplier' 가 화면에 'Supplier' 로 보였다 — capitalize 는 번역이 아니라 영어 표기 규칙이라
+  //   그 자리는 16개 로케일 전부에서 영문이었다. 소스 grep 으로는 안 잡혀 눈검증에서만 드러났다.
+  //   키가 없는 값은 원본을 그대로 둔다 — t() 는 없는 키에 예외를 던진다.
+  const roleLabel = (v?: string | null): string => {
+    const k = String(v ?? '');
+    return Object.prototype.hasOwnProperty.call(roleMsgs, k) ? tRole(k) : k.replace(/_/g, ' ');
+  };
   const locale = useLocale();
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -690,7 +701,12 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     const krAnnuals = krProfile?.annuals ?? [];
     // 2026-06-04: KR 공급망/세그먼트 (큐레이션 사실 데이터) — US 풀페이지 parity.
     const krSC = krSupplyChain[ticker.toUpperCase()];
-    const KR_REL_LABEL: Record<KrRelType, string> = { supplier: '공급사', customer: '고객사', partner: '파트너', competitor: '경쟁사' };
+    // 2026-08-22: 한국어 하드코딩이었다 — 다른 15개 로케일에서 그대로 노출됐다.
+    //   roles.* 하나로 모은다. 같은 목록이 두 곳이면 한쪽만 고쳐진다(오늘 반복해 만난 실패).
+    const KR_REL_LABEL: Record<KrRelType, string> = {
+      supplier: roleLabel('supplier'), customer: roleLabel('customer'),
+      partner: roleLabel('partner'), competitor: roleLabel('competitor'),
+    };
     const KR_REL_ORDER: KrRelType[] = ['supplier', 'customer', 'partner', 'competitor'];
     const KR_REL_STYLE: Record<KrRelType, string> = {
       supplier: 'text-blue-600 bg-blue-50', customer: 'text-emerald-600 bg-emerald-50',
@@ -1140,8 +1156,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
           <span className="font-mono text-sm font-bold bg-cf-primary/10 text-cf-primary px-3 py-1 rounded-lg">
             {company.ticker}
           </span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-cf-text-secondary capitalize">
-            {company.role}
+          <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-cf-text-secondary">
+            {roleLabel(company.role)}
           </span>
           {livePrice?.price != null && (
             <div className="ml-1">
@@ -1192,7 +1208,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             href={`/compare/${company.ticker.toLowerCase()}-vs-nvda`}
             className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded border border-cf-border hover:border-cf-primary hover:text-cf-primary transition-colors text-cf-text-secondary"
           >
-            <span>⇄</span> Compare
+            <span>⇄</span> {tNav('compare')}
           </Link>
           <button
             onClick={() => setTerminalView((v) => !v)}
@@ -2114,8 +2130,8 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               <div className="space-y-3">
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-cf-text-secondary mb-1">{t('roleInCascade')}</p>
-                  <p className="text-sm font-medium text-cf-text-primary capitalize">
-                    {cascadePosition.step.role.replace('_', ' ')}
+                  <p className="text-sm font-medium text-cf-text-primary">
+                    {roleLabel(cascadePosition.step.role)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">

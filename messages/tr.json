@@ -36,7 +36,17 @@
     "cascadeDesc": "Lider→orta ölçekli cascade",
     "volatility": "Oynaklık",
     "volatilityDesc": "Opsiyon IV · çarpıklık",
-    "memberLoggedIn": "Giriş yapıldı"
+    "memberLoggedIn": "Giriş yapıldı",
+    "company": "Şirketler",
+    "compare": "Karşılaştır",
+    "fearGreed": "Korku ve Açgözlülük",
+    "glossary": "Terimler Sözlüğü",
+    "howToUse": "Nasıl Kullanılır",
+    "judge": "Yapay Zekâ Hakem",
+    "paperTrading": "Kağıt Ticaret",
+    "privacy": "Gizlilik Politikası",
+    "share": "Paylaş",
+    "terms": "Kullanım Koşulları"
   },
   "hero": {
     "title": "Gizli Tedarik Zinciri Risklerini Keşfedin",
@@ -2001,5 +2011,16 @@
     "backHome": "Ana sayfa",
     "modeDeep": "AISVI Derin",
     "modeDeepDesc": "2 aşama — araştırma sonra karar (hassas, daha yavaş)"
+  },
+  "roles": {
+    "leader": "Lider",
+    "intermediary": "Aracı",
+    "supplier": "Tedarikçi",
+    "customer": "Müşteri",
+    "partner": "Ortak",
+    "competitor": "Rakip",
+    "mid_cap": "Orta Piyasa Değerli",
+    "first_follower": "İlk Takipçi",
+    "late_mover": "Geç Hareket Eden"
   }
 }

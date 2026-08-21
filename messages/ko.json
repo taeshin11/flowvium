@@ -36,7 +36,17 @@
     "cascadeDesc": "리더→중형주 연쇄",
     "volatility": "내재변동성",
     "volatilityDesc": "옵션 IV·skew·term",
-    "memberLoggedIn": "로그인됨"
+    "memberLoggedIn": "로그인됨",
+    "company": "기업",
+    "compare": "비교",
+    "fearGreed": "공포와 탐욕",
+    "glossary": "용어집",
+    "howToUse": "사용 방법",
+    "judge": "AI 판사",
+    "paperTrading": "페이퍼 트레이딩",
+    "privacy": "개인정보 처리방침",
+    "share": "공유",
+    "terms": "이용약관"
   },
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",
@@ -2001,5 +2011,16 @@
     "backHome": "홈으로",
     "modeDeep": "AISVI 심층",
     "modeDeepDesc": "2단계 — 사업·업황·전망 리서치 후 판단(정밀, 느림)"
+  },
+  "roles": {
+    "leader": "리더",
+    "intermediary": "중개자",
+    "supplier": "공급업체",
+    "customer": "고객",
+    "partner": "파트너",
+    "competitor": "경쟁사",
+    "mid_cap": "중형주",
+    "first_follower": "첫 번째 팔로워",
+    "late_mover": "늦게 움직이는 종목"
   }
 }
