@@ -81,5 +81,31 @@ if (svcDim && corpDim && svcDim === corpDim) {
   }
 }
 
+// ── 2026-08-21: 빈 결과의 *원인* 구분 ────────────────────────────────────────────
+// 종전엔 세 경로가 다르게 끝났다:
+//   :89  코퍼스 0청크        → return []            (무음. retrieve_empty 에 도달조차 못 함)
+//   :91  임베딩 불가         → embed_unavailable 로그
+//   :124 임계값 미달         → retrieve_empty 로그
+// 소비자 입장에서는 셋 다 "검색이 비었다" 인데 관측 지점이 갈라져 있었다.
+// 하나로 모으고 reason 을 붙인다 — 원인별 대응이 다르므로 구분은 필드로 한다.
+{
+  const { spawnSync } = await import('child_process');
+  const r = spawnSync('npx', ['tsx', resolve(ROOT, 'scripts/rag/rag-empty-probe.mts')], {
+    cwd: ROOT, encoding: 'utf8', timeout: 180_000,
+    // 코퍼스를 없는 경로로 돌려 '코퍼스 0청크' 경로를 결정론적으로 재현한다.
+    env: { ...process.env, RAG_CORPUS_PATH: 'data/rag/__does_not_exist__.ndjson' },
+  });
+  const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+  /__HITS__0/.test(out)
+    ? ok('코퍼스 없음 → 0건 반환 (예외 아님)')
+    : bad(`코퍼스 없음 경로 재현 실패: ${out.slice(0, 200)}`);
+  /"event":"retrieve_empty"/.test(out)
+    ? ok('코퍼스 없음도 retrieve_empty 로 관측된다')
+    : bad('코퍼스 없음이 무음 — 검색이 빈 사실이 한 곳에서 안 보인다');
+  /"reason":"corpus_empty"/.test(out)
+    ? ok('원인이 reason=corpus_empty 로 구분된다')
+    : bad('원인 구분 불가 — 임계값 미달과 코퍼스 부재가 같은 로그로 보인다');
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);

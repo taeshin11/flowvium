@@ -13,7 +13,9 @@ import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { logger } from '@/lib/logger';
 
-const CORPUS_PATH = resolve(process.cwd(), 'data/rag/corpus.ndjson');
+// 2026-08-21: 경로를 설정 가능하게. 종전엔 하드코딩이라 '코퍼스 부재' 경로를 테스트로 재현할 수 없었다
+//   (임계값 경로는 RAG_MIN_SCORE 로 재현하고 있었는데 이쪽만 못 했다). 미지정 시 기존과 동일하다.
+const CORPUS_PATH = resolve(process.cwd(), process.env.RAG_CORPUS_PATH ?? 'data/rag/corpus.ndjson');
 const EMBED_URL = process.env.EMBED_URL ?? 'http://127.0.0.1:8100/embed';
 // 채택 임계값. 환경변수로 덮을 수 있게 두되 기본값은 기존 동작(0.35)과 동일 — 회귀 없음.
 const MIN_EFF_SCORE = Number(process.env.RAG_MIN_SCORE ?? '0.35');
@@ -86,9 +88,23 @@ function guruGroup(source: string): string {
 /** 질문과 의미적으로 가까운 코퍼스 구절 top-k (구루 다양성 캡). 코퍼스 없음/임베딩 실패 시 []. */
 export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
   const corpus = loadCorpus();
-  if (!corpus.length) return [];
+  // 2026-08-21: 빈 결과의 관측 지점을 하나로 모은다. 종전엔 세 경로가 갈라져 있었다 —
+  //   코퍼스 0청크는 *무음*(아래 retrieve_empty 에 도달조차 못 함), 임베딩 불가는 embed_unavailable,
+  //   임계값 미달만 retrieve_empty. 소비자에겐 셋 다 "검색이 비었다"인데 원인별로 다른 데를 봐야 했다.
+  //   하나로 모으고 reason 으로 구분한다. 동작은 그대로 — 관측만 통일한다.
+  const emptyResult = (reason: string, extra: Record<string, unknown> = {}): RagHit[] => {
+    logger.warn('rag', 'retrieve_empty', {
+      reason,
+      corpusChunks: corpus.length,
+      threshold: MIN_EFF_SCORE,
+      queryLen: query.length,
+      ...extra,
+    });
+    return [];
+  };
+  if (!corpus.length) return emptyResult('corpus_empty');
   const qv = await embedQuery(query);
-  if (!qv) { logger.warn('rag', 'embed_unavailable', {}); return []; }
+  if (!qv) return emptyResult('embed_unavailable');
   // 2026-07-06 (Claude 직접 검증): raw 버크셔 주주서한이 *영어 문장조각*으로 청킹돼 bge-m3 교차언어 유사도로
   //   한국어 질의에도 top 랭크를 차지하나 실사용 가치 0(중간 조각). 큐레이션 원칙 라인이 gold 인데 밀림 →
   //   effScore re-rank(한글 +0.06, 큐레이션 태그 +0.04, 로드 시 _boost precompute). gold 를 노이즈 위로.
@@ -121,11 +137,8 @@ export async function ragRetrieve(query: string, k = 4): Promise<RagHit[]> {
   //   질의가 코퍼스 밖 주제인지 구분하려면 최고점이 필요하다 → 최고점과 함께 남긴다.
   //   (동작은 그대로. 관측만 추가한다.)
   if (!picked.length) {
-    logger.warn('rag', 'retrieve_empty', {
-      corpusChunks: corpus.length,
+    return emptyResult('below_threshold', {
       topEffScore: scored.length ? Number(scored[0].effScore.toFixed(4)) : null,
-      threshold: MIN_EFF_SCORE,
-      queryLen: query.length,
     });
   }
   return picked;
