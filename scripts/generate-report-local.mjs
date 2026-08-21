@@ -35,7 +35,7 @@ import { resolveServedModelId, servedModelBasename } from './lib/served-model.mj
 import { localizeSectorKo } from './lib/sector-label.mjs';
 import { reconcileSqueeze, correctScoreMentions } from './lib/squeeze-reconcile.mjs';
 import { earningsMissSignal } from './lib/earnings-miss.mjs';
-import { reconcileCompanyYoY } from './lib/yoy-reconcile.mjs';
+import { reconcileCompanyYoY, isMeasuredYoY } from './lib/yoy-reconcile.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -8240,6 +8240,31 @@ async function generateViaOllama() {
     if (m3) return parseFloat(m3[1]) / 10;
     return null;
   };
+  // 2026-08-21: companyChanges 는 포트폴리오 밖 종목도 담는다 — 프롬프트가 명시적으로 허용한다
+  //   ("Include ANY company mentioned in context (NOT limited to portfolio tickers)").
+  //   그런데 재무는 portfolioItems 티커만 수집해서(:7115) 그 종목들은 revenueYoY 가 빈 채로 발간됐다
+  //   (실측: NVDA·AMD 가 null 이었는데 API 에는 각각 +85.2% / +50.1% 가 있다).
+  //   같은 함수를 재사용해 보충한다 — YoY 산식을 여기서 다시 쓰지 않는다(두 곳에 두면 조용히 어긋난다).
+  //   위치: hallucination strip 보다 *앞*이어야 한다. strip 이 isMeasuredYoY 로 실측과 대조하는데,
+  //   보충이 뒤에 오면 포트폴리오 밖 종목은 그 시점에 실측이 없어 크기만 보고 버려진다.
+  {
+    const need = [...new Set((finalReport.companyChanges ?? [])
+      .map(c => c?.ticker).filter(t => t && !signalDigest.get(t)?.fin))];
+    if (need.length) {
+      try {
+        const extraText = await getCompanyFinancials(need, livePrices);
+        const extra = buildSignalDigest(ctxRaw, new Map(), extraText);
+        let added = 0;
+        for (const [t, v] of extra) {
+          if (v?.fin && !signalDigest.get(t)?.fin) { signalDigest.set(t, { ...(signalDigest.get(t) ?? {}), fin: v.fin }); added++; }
+        }
+        console.log(`  [후처리] companyChanges 재무 보충 — 조회 ${need.length}종 → 확보 ${added}종`);
+      } catch (e) {
+        // 보충 실패는 발간을 막지 않는다. 다만 침묵하지 않는다 — 빈 revenueYoY 의 이유가 남아야 한다.
+        console.warn(`  [후처리] companyChanges 재무 보충 실패(비차단): ${e?.message?.slice(0, 80)}`);
+      }
+    }
+  }
   const futureQuarterStripped = [];
   if (Array.isArray(finalReport.portfolio)) {
     for (const p of finalReport.portfolio) {
@@ -8325,13 +8350,21 @@ async function generateViaOllama() {
       }
       // (c) revenueYoY field swap 검출 — LLM이 매출 절대값을 revenueYoY 에 넣음
       // 메가캡 cap 정의된 ticker 만: revenueYoY 가 cap 보다 큰 숫자면 매출값 오기입 의심 → null
-      if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > cap * 0.5) {
+      // 2026-08-21: 아래 두 휴리스틱은 '크기'만 보고 버린다. 그런데 아래 주석이 스스로
+      //   "SK하이닉스 198% 같은 실제 가능성 있어"라고 인정한다 — 알면서 실제 값을 버려 왔다.
+      //   실측(039200.KQ FY2025 998억/FY2024 340억 = +193.6%, DART)이 그렇게 null 이 됐고,
+      //   뒤의 fillCompanyChangesYoY 가 되살려서 결과만 우연히 맞았다. 순서에 기대는 정합성이다.
+      //   이제 판정 근거가 있다: 계산된 YoY 와 일치하면 오기입이 아니다. 그때만 건너뛴다.
+      const measured = isMeasuredYoY(c.ticker, c.revenueYoY, signalDigest);
+      if (measured) {
+        // 크기와 무관하게 실측과 같은 값 — 버릴 이유가 없다.
+      } else if (cap && typeof c.revenueYoY === 'number' && c.revenueYoY > cap * 0.5) {
         // cap 의 50% 이상이면 매출값일 가능성 — 정상 YoY% 는 보통 -50~+50%
         futureQuarterStripped.push(`${c.ticker}: revenueYoY=${c.revenueYoY} (cap=${cap}B 의 ${(c.revenueYoY/cap*100).toFixed(0)}% — field swap 의심)→null`);
         c.revenueYoY = null;
       } else if (typeof c.revenueYoY === 'number' && c.revenueYoY > 100) {
-        // cap 미정의 ticker: 100% 컷오프 (SK하이닉스 198% 같은 실제 가능성 있어 컷오프 보수적)
-        futureQuarterStripped.push(`${c.ticker}: revenueYoY ${c.revenueYoY}%→null (> 100% 비현실)`);
+        // cap 미정의 ticker: 실측으로 확인되지 않은 100% 초과는 오기입으로 본다(모르면 보수적으로).
+        futureQuarterStripped.push(`${c.ticker}: revenueYoY ${c.revenueYoY}%→null (>100% 이고 실측 미확인)`);
         c.revenueYoY = null;
       }
     }
@@ -8568,29 +8601,6 @@ async function generateViaOllama() {
     } catch (e) { console.warn('  [ETF 경합심사] skip:', e.message); }
   } catch (e) { finalReport.etfStrategy = []; console.warn('  [ETF] 실패:', e.message); }
   finalReport.etfStrategy = enrichEtfStrategy(finalReport.etfStrategy);  // 사이징/무효화조건(exposure map 격상)
-  // 2026-08-21: companyChanges 는 포트폴리오 밖 종목도 담는다 — 프롬프트가 명시적으로 허용한다
-  //   ("Include ANY company mentioned in context (NOT limited to portfolio tickers)").
-  //   그런데 재무는 portfolioItems 티커만 수집해서(:7115) 그 종목들은 revenueYoY 가 빈 채로 발간됐다
-  //   (실측: NVDA·AMD 가 null 이었는데 API 에는 각각 +85.2% / +50.1% 가 있다).
-  //   같은 함수를 재사용해 보충한다 — YoY 산식을 여기서 다시 쓰지 않는다(두 곳에 두면 조용히 어긋난다).
-  {
-    const need = [...new Set((finalReport.companyChanges ?? [])
-      .map(c => c?.ticker).filter(t => t && !signalDigest.get(t)?.fin))];
-    if (need.length) {
-      try {
-        const extraText = await getCompanyFinancials(need, livePrices);
-        const extra = buildSignalDigest(ctxRaw, new Map(), extraText);
-        let added = 0;
-        for (const [t, v] of extra) {
-          if (v?.fin && !signalDigest.get(t)?.fin) { signalDigest.set(t, { ...(signalDigest.get(t) ?? {}), fin: v.fin }); added++; }
-        }
-        console.log(`  [후처리] companyChanges 재무 보충 — 조회 ${need.length}종 → 확보 ${added}종`);
-      } catch (e) {
-        // 보충 실패는 발간을 막지 않는다. 다만 침묵하지 않는다 — 빈 revenueYoY 의 이유가 남아야 한다.
-        console.warn(`  [후처리] companyChanges 재무 보충 실패(비차단): ${e?.message?.slice(0, 80)}`);
-      }
-    }
-  }
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   // 결정론 event 분류(eventType) + 보유맥락(held) — whyMatters/nextCheck 산문은 LLM(prompt) 작성.
   finalReport.companyChanges = enrichCompanyChangeEvents(

@@ -59,3 +59,22 @@ export function reconcileCompanyYoY(companyChanges, signalDigest) {
   }
   return { changes, filled, corrected, unverified };
 }
+
+/**
+ * 이 값이 '실측으로 계산된 YoY' 인가.
+ *
+ * generate-report-local:8332 이 revenueYoY > 100 을 "비현실"이라며 null 로 버린다.
+ * 그 주석은 스스로 "SK하이닉스 198% 같은 실제 가능성 있어"라고 인정하면서도 버린다 —
+ * 크기만으로는 'LLM 이 매출 절대값을 넣은 오기입'과 '진짜 고성장'을 구분할 수 없기 때문이다.
+ * 실측 대조가 생긴 지금은 근거가 있다: 계산된 YoY 와 같으면 오기입이 아니다.
+ * (실측 사례: 039200.KQ FY2025 99,838,669,222 / FY2024 34,007,602,680 → +193.6%)
+ *
+ * 근거가 없으면 false 를 돌려준다 — 모르면 보수적으로 간다. 크기가 크다고 맞다고 하지 않는다.
+ */
+export function isMeasuredYoY(ticker, value, signalDigest) {
+  if (typeof value !== 'number' || !isFinite(value)) return false;
+  if (!signalDigest || typeof signalDigest.get !== 'function') return false;
+  const real = parseYoY(signalDigest.get(String(ticker ?? ''))?.fin?.yoy);
+  if (real == null) return false;
+  return Math.abs(real - value) <= 0.05;
+}

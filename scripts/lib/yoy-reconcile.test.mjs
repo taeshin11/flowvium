@@ -13,7 +13,7 @@
  *
  *   분기 라벨과 함께 덮는다. 값만 바꾸면 "Q2 FY2026" 라벨에 다른 분기 수치가 붙는다.
  */
-import { reconcileCompanyYoY } from './yoy-reconcile.mjs';
+import { reconcileCompanyYoY, isMeasuredYoY } from './yoy-reconcile.mjs';
 
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);
@@ -74,6 +74,42 @@ reconcileCompanyYoY([{ ticker: 'EOG', revenueYoY: 1 }], null).changes[0].revenue
   const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
   const gen = readFileSync(resolve(ROOT, 'scripts/generate-report-local.mjs'), 'utf8');
   /reconcileCompanyYoY\(/.test(gen) ? ok('생성 코드가 reconcileCompanyYoY 를 쓴다') : bad('실측 대조 미배선');
+}
+
+// ⑧ 실측과 일치하는 값은 'field swap' 휴리스틱의 대상이 아니다.
+//    generate-report-local:8332 이 revenueYoY > 100 을 "비현실"이라며 null 로 버린다.
+//    그 주석은 스스로 "SK하이닉스 198% 같은 실제 가능성 있어"라고 인정한다 — 알면서 버린다.
+//    실측 대조가 생긴 지금은 판정 근거가 있다: 계산된 YoY 와 같으면 오기입이 아니다.
+//    (실측: 039200.KQ FY2025 99,838,669,222 / FY2024 34,007,602,680 → +193.6%. DART 확인)
+{
+  const d = new Map([['039200.KQ', { fin: { yoy: '+193.6% YoY', label: 'FY2025' } }]]);
+  isMeasuredYoY('039200.KQ', 193.6, d) ? ok('193.6% 이 실측과 일치 → 측정값으로 인정') : bad('실측 일치를 인정 못 함');
+  isMeasuredYoY('039200.KQ', 99838, d) === false ? ok('매출 절대값 오기입은 측정값 아님') : bad('오기입을 측정값으로 오인');
+  isMeasuredYoY('UNKNOWN', 193.6, d) === false ? ok('실측 없으면 측정값 아님(보수적)') : bad('근거 없이 측정값 인정');
+  isMeasuredYoY('039200.KQ', 193.64, d) ? ok('반올림 오차 허용') : bad('반올림 오차를 불일치로 봄');
+  isMeasuredYoY('039200.KQ', null, d) === false ? ok('null 안전') : bad('null 처리 이상');
+  isMeasuredYoY('039200.KQ', 193.6, null) === false ? ok('digest 없음 안전') : bad('digest null 처리 이상');
+}
+
+// ⑨ 생성 코드의 strip 이 이 판정을 거친다
+{
+  const { readFileSync } = await import('fs');
+  const { resolve, dirname } = await import('path');
+  const { fileURLToPath } = await import('url');
+  const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+  const gen = readFileSync(resolve(ROOT, 'scripts/generate-report-local.mjs'), 'utf8');
+  /isMeasuredYoY\(/.test(gen) ? ok('strip 이 실측 판정을 거친다') : bad('strip 이 여전히 크기만 보고 버린다');
+  // 순서: 재무 보충 → strip → 보완. 보충이 strip 뒤로 가면 포트폴리오 밖 종목은
+  //   strip 시점에 실측이 없어 크기만 보고 버려진다(= isMeasuredYoY 가 무력화된다).
+  //   이 저장소에서 '정규화가 대상보다 먼저 도는' 순서 사고를 이미 세 번 겪었다 — 고정한다.
+  const iSupp  = gen.indexOf('companyChanges 재무 보충');
+  const iStrip = gen.indexOf('const futureQuarterStripped = [];');
+  const iFill  = gen.indexOf('fillCompanyChangesYoY(finalReport.companyChanges');
+  (iSupp > 0 && iStrip > 0 && iFill > 0)
+    ? ((iSupp < iStrip && iStrip < iFill)
+        ? ok(`순서 보충(${iSupp}) < strip(${iStrip}) < 보완(${iFill})`)
+        : bad(`순서 어긋남: 보충 ${iSupp} · strip ${iStrip} · 보완 ${iFill}`))
+    : bad('순서 앵커를 못 찾음 — 테스트가 낡았다');
 }
 
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
