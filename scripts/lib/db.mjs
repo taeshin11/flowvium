@@ -9,6 +9,8 @@
  *
  * 모든 mjs 스크립트가 이 라이브러리로 공통 인터페이스 사용.
  * Vercel build 에는 들어가지 않음 (devDependency + scripts/ 외부 import 없음).
+import { insiderDirection } from './insider-direction.mjs';
+import { isTicker } from './ticker.mjs';
  */
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'fs';
@@ -1012,6 +1014,7 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
       }
     } catch { /* skip */ }
   }
+  const skippedTickers = [];
   const txn = db.transaction(() => {
     // 숏 스퀴즈 — short-interest snapshot join 으로 short_ratio/short_pct 채움
     const sqStmt = db.prepare(`
@@ -1020,6 +1023,9 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const s of shortSqueeze) {
+      // 2026-08-21: 무검증이라 '[TICKER]'(프롬프트 템플릿)가 2행 저장돼 있었다.
+      //   티커가 아니면 아카이브에 넣지 않는다 — 조용히 버리지 않고 남긴다.
+      if (!isTicker(s.ticker)) { skippedTickers.push(`squeeze:${s.ticker ?? '(빈값)'}`); continue; }
       const tkUp = (s.ticker ?? '').toUpperCase();
       const siEntry = shortByTicker[tkUp];
       // 2026-06-05: rationale 100% NULL fix — LLM squeeze 항목엔 rationale 필드가 없고 timing/risk
@@ -1141,13 +1147,20 @@ export function saveDomainArchives({ reportId, capturedAt, shortSqueeze = [], co
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const i of insiderSignals) {
+      // 2026-08-21: 'N/A' 가 1행 저장돼 있었다. 같은 가드를 적용한다.
+      if (!isTicker(i.ticker)) { skippedTickers.push(`insider:${i.ticker ?? '(빈값)'}`); continue; }
       inStmt.run(reportId, now, i.ticker ?? '', i.filings ?? null,
         i.dateRange ?? null, i.significance ?? null, i.pattern ?? null,
-        /매도|sell/i.test(i.pattern ?? '') ? 'sell' : 'buy',
+        // 2026-08-21: 종전 `/매도|sell/i.test(i.pattern)` 은 부분 문자열 매칭이라
+        //   "매수 5 / 매도 0" 처럼 *언제나* '매도' 를 포함하는 패턴을 전부 sell 로 만들었다.
+        //   실측 241행 중 193행이 뒤집혀 저장돼 있었다. 원본 direction 이 권위다.
+        insiderDirection(i),
         JSON.stringify(i));
     }
   });
   txn();
+  // 버린 행은 침묵하지 않는다 — 무엇이 왜 아카이브에 안 들어갔는지 남는다.
+  if (skippedTickers.length) console.warn(`  [archive] 티커 형식 아님 ${skippedTickers.length}건 스킵: ${skippedTickers.join(', ')}`);
 }
 
 /**
