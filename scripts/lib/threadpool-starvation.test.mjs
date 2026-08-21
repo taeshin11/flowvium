@@ -115,5 +115,10 @@ remoteFsp.length
   ? bad(`원격 경로에 fsp.${remoteFsp.join(',')} 직접 호출 ${remoteFsp.length}건`)
   : ok('원격 경로에 fs/promises 직접 호출 없음');
 
+// 감시자가 스스로 좀비를 남기면 안 된다 — reaper.kill() 은 sh 만 죽이고 sleep 은 고아가 된다.
+/process\.kill\(-reaper\.pid/.test(src)
+  ? ok('감시자를 프로세스 그룹째 해제한다 — 고아 sleep 을 남기지 않는다')
+  : bad('감시자를 sh 만 죽인다 — 자식 sleep 이 PPID 1 고아로 남아 매 주기 쌓인다');
+
 console.log(fail === 0 ? '\n✅ threadpool-starvation 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

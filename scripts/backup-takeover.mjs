@@ -285,5 +285,9 @@ log(fails ? `⚠️ 백업 완료 (건너뛴 파일 ${fails}건 — 다음 주�
 //   process.exit 에 영영 도달하지 못했다(5시간 좀비의 마지막 한 칸). 동기 호출은
 //   호출 스레드에서 돌아 기아의 영향을 받지 않는다.
 try { unlinkSync(localDb); } catch { /* 이미 없음 */ }
-reaper.kill();                               // 정상 종료 — 감시자 해제
+// 감시자 해제. **그룹째** 죽인다 — reaper.kill() 은 sh 만 죽이고 그 자식 `sleep` 은
+//   PPID 1 로 고아가 되어 23분간 남는다(실측으로 2개가 떠 있었다). 하루 한 번이라도
+//   쌓이는 건 쌓이는 것이고, 애초에 좀비를 없애려고 넣은 장치가 좀비를 남기면 안 된다.
+//   detached:true 라 reaper 가 그룹 리더이므로 음수 PID 로 그룹 전체에 보낸다.
+try { process.kill(-reaper.pid, 'SIGKILL'); } catch { /* 이미 종료 */ }
 process.exit(0);
