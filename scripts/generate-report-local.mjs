@@ -35,6 +35,7 @@ import { resolveServedModelId, servedModelBasename } from './lib/served-model.mj
 import { localizeSectorKo } from './lib/sector-label.mjs';
 import { reconcileSqueeze, correctScoreMentions } from './lib/squeeze-reconcile.mjs';
 import { earningsMissSignal } from './lib/earnings-miss.mjs';
+import { reconcileCompanyYoY } from './lib/yoy-reconcile.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -2668,21 +2669,18 @@ function fillMissingRegionStances(regionStances, ctx) {
  * Post-processing: fill null revenueYoY in companyChanges from financials data.
  */
 function fillCompanyChangesYoY(companyChanges, signalDigest) {
-  let filled = 0;
-  for (const c of (companyChanges ?? [])) {
-    if (c.revenueYoY != null) continue;
-    const sig = signalDigest.get(c.ticker);
-    if (sig?.fin?.yoy) {
-      const parsed = parseFloat(sig.fin.yoy);
-      if (!isNaN(parsed)) {
-        c.revenueYoY = parsed;
-        c.latestQuarter = sig.fin.label;
-        filled++;
-      }
-    }
+  // 2026-08-21: 종전엔 `if (c.revenueYoY != null) continue;` — null 일 때만 채우고
+  //   LLM 이 쓴 값은 실측과 달라도 그대로 발간했다. 같은 구조의 shortSqueeze.score 는 실제로
+  //   지어낸 값이었다(43 vs 실측 55). "이번엔 맞았다"는 검증이 아니다 — 대조 경로를 만든다.
+  const { changes, filled, corrected, unverified } = reconcileCompanyYoY(companyChanges, signalDigest);
+  if (filled.length) console.log(`  [후처리] companyChanges revenueYoY ${filled.length}개 자동 보완: ${filled.join(', ')}`);
+  if (corrected.length) {
+    console.log(`  [후처리] companyChanges revenueYoY 실측 불일치 ${corrected.length}건 교정`);
+    for (const c of corrected) console.log(`    · ${c}`);
   }
-  if (filled > 0) console.log(`  [후처리] companyChanges revenueYoY ${filled}개 자동 보완`);
-  return companyChanges;
+  // 근거가 없어 확인 못 한 값은 조용히 두지 않는다 — 다음에 틀려도 모르는 상태로 돌아간다.
+  if (unverified.length) console.warn(`  [후처리] revenueYoY 미검증 ${unverified.length}건: ${unverified.join(', ')}`);
+  return changes;
 }
 
 /**
@@ -8570,6 +8568,29 @@ async function generateViaOllama() {
     } catch (e) { console.warn('  [ETF 경합심사] skip:', e.message); }
   } catch (e) { finalReport.etfStrategy = []; console.warn('  [ETF] 실패:', e.message); }
   finalReport.etfStrategy = enrichEtfStrategy(finalReport.etfStrategy);  // 사이징/무효화조건(exposure map 격상)
+  // 2026-08-21: companyChanges 는 포트폴리오 밖 종목도 담는다 — 프롬프트가 명시적으로 허용한다
+  //   ("Include ANY company mentioned in context (NOT limited to portfolio tickers)").
+  //   그런데 재무는 portfolioItems 티커만 수집해서(:7115) 그 종목들은 revenueYoY 가 빈 채로 발간됐다
+  //   (실측: NVDA·AMD 가 null 이었는데 API 에는 각각 +85.2% / +50.1% 가 있다).
+  //   같은 함수를 재사용해 보충한다 — YoY 산식을 여기서 다시 쓰지 않는다(두 곳에 두면 조용히 어긋난다).
+  {
+    const need = [...new Set((finalReport.companyChanges ?? [])
+      .map(c => c?.ticker).filter(t => t && !signalDigest.get(t)?.fin))];
+    if (need.length) {
+      try {
+        const extraText = await getCompanyFinancials(need, livePrices);
+        const extra = buildSignalDigest(ctxRaw, new Map(), extraText);
+        let added = 0;
+        for (const [t, v] of extra) {
+          if (v?.fin && !signalDigest.get(t)?.fin) { signalDigest.set(t, { ...(signalDigest.get(t) ?? {}), fin: v.fin }); added++; }
+        }
+        console.log(`  [후처리] companyChanges 재무 보충 — 조회 ${need.length}종 → 확보 ${added}종`);
+      } catch (e) {
+        // 보충 실패는 발간을 막지 않는다. 다만 침묵하지 않는다 — 빈 revenueYoY 의 이유가 남아야 한다.
+        console.warn(`  [후처리] companyChanges 재무 보충 실패(비차단): ${e?.message?.slice(0, 80)}`);
+      }
+    }
+  }
   finalReport.companyChanges = fillCompanyChangesYoY(finalReport.companyChanges, signalDigest);
   // 결정론 event 분류(eventType) + 보유맥락(held) — whyMatters/nextCheck 산문은 LLM(prompt) 작성.
   finalReport.companyChanges = enrichCompanyChangeEvents(
