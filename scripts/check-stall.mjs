@@ -26,6 +26,7 @@ import { launcherWipesWorktree } from './lib/report-launcher.mjs';
 import { checkResourcePressure } from './lib/resource-pressure.mjs';
 import { findReportProcesses } from './lib/report-running.mjs';
 import { backupStatus } from './lib/backup-health.mjs';
+import { findStaleJobs, listProcesses, loadJobPolicy } from './lib/stale-jobs.mjs';
 // 발행 예정 시각을 지난 뒤 업로드/전파에 실제로 걸리는 시간의 여유분. 예산(90분)이 아니라 '전파 지연' 몫이다.
 const PUBLISH_GRACE_MIN = 10;
 import { readLauncherModels } from './lib/report-launcher.mjs';
@@ -258,6 +259,26 @@ async function checkOnce() {
     }
   } catch (e) {
     issues.push(`백업 상태 판독 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
+
+  // [10] 좀비 잡 (2026-08-22 신설).
+  //      예약 백업 잡이 00:57 에 `✅ 완료` 를 찍고 5시간 더 살아 있었다 — 스레드풀 4칸과
+  //      Drive 데몬을 붙든 채로, 같은 기기에서 보고서가 도는 동안. 위 검사 9종 중
+  //      프로세스를 보는 건 [3] 뿐인데 그건 report-gen 전용이라 아무도 못 봤다.
+  //      '주기 잡인데 주기보다 오래 산다' 는 원인과 무관하게 같은 신호다.
+  try {
+    const stale = findStaleJobs(listProcesses(), loadJobPolicy());
+    if (stale.length) {
+      for (const j of stale) {
+        issues.push(`좀비 잡 — ${j.script} PID ${j.pid} 가 ${j.minutes}분째 (상한 ${j.limit}분). `
+          + `할 일을 끝내고도 안 죽는 경우가 있다(취소 불가능한 fs 연산이 libuv 스레드풀을 점유). `
+          + `확인: sample ${j.pid} 3 | grep uv__fs_work · 조치: kill -9 ${j.pid}`);
+      }
+    } else {
+      info.push('좀비 잡 없음 ✓');
+    }
+  } catch (e) {
+    issues.push(`좀비 잡 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
 
   return { issues, info };

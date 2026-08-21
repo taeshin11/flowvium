@@ -21,5 +21,25 @@
     "_maxAgeDaysNote": "백업 주기가 매일(04:35)이므로 2일이면 '한 번 걸렀다' 까지 허용하고 그 이상은 이상이다. 실측 2026-08-21: 최신 백업이 07-29 로 23일 전이었다 — Windows 기기 해체일과 같은 날 멈췄고 맥에 대체가 없었다.",
     "dbGlob": "flowvium-YYYY-MM-DD.db",
     "_dbGlobNote": "backup-takeover.mjs 가 쓰는 파일명 규칙. 최근 7개만 유지한다."
+  },
+  "jobs": {
+    "defaultMaxMinutes": 100,
+    "_defaultMaxMinutesNote": "scripts/ 의 일회성 잡이 이 시간을 넘겨 살아 있으면 이상으로 본다. 2026-08-22 실측: 예약 백업 잡이 할 일을 60.4s 에 끝내고 5시간 좀비로 남았는데 검사 9종 어디에도 안 걸렸다. 기본값은 가장 긴 정상 잡(보고서 생성, 실측 최장 92분)보다 여유 있게 잡는다 — 보고서는 [3] 이 따로 본다.",
+    "maxMinutesByScript": {
+      "backup-takeover.mjs": 25,
+      "generate-report-local.mjs": 150
+    },
+    "_maxMinutesByScriptNote": "잡별 상한. backup-takeover 는 예산 20분 + 여유. generate-report-local 은 [3] 이 세션별 상한으로 이미 보므로 여기선 최후 방어선만.",
+    "residentAllowlist": [
+      "cron-runner.mjs",
+      "redis-rest-shim.mjs",
+      "thermal-governor",
+      "next-server",
+      "next start",
+      "mlx_lm",
+      "cloudflared",
+      "macmon"
+    ],
+    "_residentAllowlistNote": "상주 데몬. 오래 사는 게 정상이라 좀비 판정에서 제외한다. 여기 없는 상주 서비스를 새로 만들면 반드시 추가할 것 — 안 그러면 20분마다 오경보가 울리고, 오경보가 울리는 모니터는 곧 무시된다."
   }
 }

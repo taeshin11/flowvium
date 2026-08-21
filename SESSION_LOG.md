@@ -1,0 +1,77 @@
+# SESSION_LOG
+
+작업 세션의 running log. **매 세션 시작 시 이 파일부터 읽는다.**
+
+- 이 파일 = *세션 단위* 로그. "지금 무엇이 열려 있고, 무엇이 검증됐고, 무엇을 안 했는지".
+- `research_history/YYYY-MM-DD_*.md` = *주제 단위* 심층 기록 (CLAUDE.md 규약).
+- `HANDOFF.md` = 기기 사망 시 복구 runbook.
+
+기록 규칙: **측정한 것만 쓴다.** "개선됐다" 금지, 숫자와 파일:라인으로 쓴다.
+안 한 일과 그 이유도 같이 쓴다 — 다음 세션이 그걸 모르면 같은 판단을 다시 한다.
+
+> ⚠️ 2026-08-22 신설. 사용자가 여러 세션에 걸쳐 이 파일을 물었는데 저장소에 없었다.
+> 그전까지의 기록은 `research_history/` 와 커밋 메시지에 있다.
+
+---
+
+## 2026-08-21 ~ 08-22 (진행 중)
+
+### 이 세션에서 고친 것 — 근본 원인이 확인된 것만
+
+| 커밋 | 증상 | 근본 원인 | 증거 |
+|---|---|---|---|
+| `41036c5d` | Wave1 이 공유 3600s 상한에 함께 죽음 | 직렬 백엔드(`--prompt-concurrency 1`)에 동시 발사 → 큐 대기가 각 요청의 AbortSignal 예산을 먹음 | cron 실측 Wave1 5/5, 자정 4134.9s(옛 상한 초과인데 완주) |
+| `652ee910` | `saveDomainArchives` 무동작 | `db.mjs` 의 import 2줄이 **헤더 블록 주석 안**에 있었음(`node --check` 통과) | acorn AST 검사 신설, 오후·저녁 아카이브 소급 |
+| `fc94f7f4` | KR 종목 페이지가 16개 로케일 전부 영문 | `middleware.ts` matcher 가 **점이 든 모든 경로**를 제외 (`005930.KS`) | 16/16 로케일 렌더 확인 |
+| `a17ea6f6` | KR 뉴스 요약 30.1s 타임아웃·요약 없음 | `preferSmallModel` 이 선언만 되고 라우팅에 미사용 | 30.1s→2.7s, 요약 생성됨 |
+| `4ed0efcb` | 유휴 시 "가동률 0%" 오경보 | duty 를 이벤트 *사이* 로만 계산 | 실제 98.3% |
+| `fe2f755f` | `stall=TIMEOUT(hang)` ×17, **모니터 6시간 실명** | 내가 넣은 `[9] 백업` 검사가 Drive 에 `readdirSync` 를 상한 없이 | launchd 실측 10분+ 미완료 → 29초 정상 종료 |
+| `b3dd826d` | 예약 백업 잡이 **5시간 좀비** | 상한 넘겨 버린 Drive 연산이 libuv 스레드풀 4칸(전부) 영구 점유 → 종료 직전 *로컬* unlink 조차 스케줄 불가 | `sample` 로 libuv-worker ×4 커널 대기 확인 |
+
+### 이번에 배운 것 (다음 세션이 반드시 알아야 함)
+
+1. **타임아웃은 취소가 아니다.** `Promise.race` 는 기다리기를 그만둘 뿐, 밑의 fs 연산은
+   스레드풀에 그대로 남는다. 4칸이 다 막히면 *로컬* fs 도 멈춘다.
+2. **`process.exit(0)` 로도 못 빠져나온다.** FIFO 재현 실측 —
+   `process.exit(0)` 6초+ 미종료(외부 SIGKILL 필요) vs `process.kill(self,'SIGKILL')` 0.46초.
+   libuv 가 종료 시 워커를 join 하기 때문. → 취소 가능한 경계는 **프로세스 경계뿐**.
+   재현 테스트: `scripts/lib/threadpool-starvation.test.mjs`
+3. **동기 fs 는 호출 스레드에서 돈다** — 스레드풀 기아의 영향을 안 받는다.
+   단 느린 경로에 걸면 *메인 스레드* 가 멈춘다(1차 회귀가 이것).
+4. `node --check` 는 주석 안에 든 import 를 잡지 못한다 → `source-placement.test.mjs`(acorn).
+5. 한 곳만 고치고 나머지를 안 보는 게 이 저장소의 반복 패턴이다. 같은 규율을
+   **소비처 전수**에 적용했는지 grep 으로 확인하고 끝낸다.
+
+### 열려 있는 것 — 사용자 조치 필요
+
+- 🔴 **GitHub PAT 폐기**: 이전 세션에서 채팅에 붙여넣어진 토큰이 키체인에 있고 푸시에 쓰이는 중.
+  github.com/settings/tokens 에서 삭제 후 재발급, 새 값은 **나에게 알리지 말고**
+  `git credential-osxkeychain store` 로 저장.
+- 🔴 **Cloudflare 터널 토큰 회전**: `~/Library/LaunchAgents/com.spinai.flowvium-tunnel.plist`
+  ProgramArguments 에 **평문**으로 있고 접두부가 전사에 노출됨.
+- 🟡 **node 에 전체 디스크 접근 권한**: 시스템 설정 → 개인정보 보호 및 보안 →
+  전체 디스크 접근 권한 → `/Users/spinai-mini/.local/node/bin/node`.
+  그전까지 Drive 원격 백업은 항상 실패하고 **로컬 `~/flowvium_backups` 만이 안전망**이다
+  (복원가능성은 검증됨 — reports 204행). 기기 사망은 못 막는다.
+
+### 의도적으로 안 한 것 (감으로 고르지 않기 위해)
+
+- `squeeze-score.mjs` 배선 — 소비처 0. 배선하면 **투자 추천이 바뀐다**(MRNA → `49 · exhausted · 후보 아님`). 사용자 판단 영역.
+- 열 조절기 `MIN_PAUSE` 변경·SMC 팬 제어 도구 설치 — 하드웨어 리스크.
+- 차용어 모호 nav 값 강제 번역(de 8·id 6·fr 6·pt 5·vi 2·es 2·tr 1) — 단어별 판단 필요.
+- `data/flowvium.db`(159MB)가 git 에 추적 중이고 `.gitignore` 에 없음 — `db.mjs` 헤더 주석과 모순. **보고만 하고 안 건드림**(되돌리기 어려운 변경).
+
+### 미해결 (원인 미확인 또는 미검증)
+
+- `iv` `no_valid_expiries` 정확성 — Yahoo options API 가 내 반복 조회로 429. 미검증.
+- `segments-refresh ✓0 ✗4` 매시간 — 10-K 파싱 커버리지(`no-total-row` 41·`no-region` 31·`no-cik` 8·`sum-mismatch`).
+- 섹터 분류 이중 버킷 552/1338.
+- 어색한 신규 번역: `late_mover=늦게 움직이는 종목`, `first_follower=첫 번째 팔로워`, `judge=AI 판사`.
+- `/osint social 0건` 1회(20:03 UTC) — 128 사이클 중 1회, 현재 15건 정상. 일시적으로 판단, 미추적.
+
+### 내가 프로덕션에 끼친 영향 (기록해 둠)
+
+- 22:42–23:20 클라우드 FS 실험이 자정 보고서 `macro` 425s → 2869s(6.7×)와 겹침.
+  열 duty 는 75.9% vs 70.0% 로 설명 안 됨 → 내 실험이 원인일 가능성이 높다.
+  **보고서 생성 중에는 디스크·Drive 를 건드리는 실험을 하지 않는다.**
+- Yahoo options API 429 — 내 반복 조회 때문.
