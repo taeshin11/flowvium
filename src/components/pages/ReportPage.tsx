@@ -8,6 +8,7 @@ import Sparkline from '@/components/Sparkline';
 import { UNIVERSE_SEARCH } from '@/data/universe-search';
 import { useTranslatedText } from '@/hooks/useTranslatedText';
 import { useSectorLabel } from '@/hooks/useSectorLabel';
+import { pickNextMeeting } from '@/lib/fedwatch-next';
 
 // 2026-06-12: 주력사업 세그먼트명 번역 (사용자 "번역이 안 되는 경우") — XBRL 추출 세그먼트명은
 //   영문. 숫자(%·YoY)는 번역 LLM 에 노출하지 않고 이름부만 번역 — 숫자 환각/훼손 원천 차단.
@@ -619,8 +620,17 @@ export default function ReportPage() {
     }).catch(() => { if (!signal.aborted) setVix({ loading: false, error: true, value: null }); });
 
     void fetch('/api/fedwatch', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
-      const next = (j?.meetings ?? [])[0];
-      if (!signal.aborted) setFomc({ loading: false, error: !next, value: next ? { label: next.label, probCut: next.probCut25 ?? 0 } : null });
+      // 2026-08-21: 종전 `(j?.meetings ?? [])[0]` 은 *연초부터의 전체 일정* 중 첫 원소라
+      //   이미 끝난 회의였다. 발간본 스크린샷에 "FOMC Apr 29 3%" 가 찍혀 있었다(오늘 8/21,
+      //   차기는 9/17). /api/fedwatch 는 nextMeeting 을 이미 내려주고, 다른 소비처
+      //   (judge-chat · latest-updates · investment-strategy · daily-brief)는 모두
+      //   pickNextMeeting 으로 옮겨갔는데 화면에서 가장 잘 보이는 이 배지만 남아 있었다.
+      const picked = pickNextMeeting(j) as { label?: unknown; probCut25?: unknown } | null;
+      // label 이 없으면 값이 아니라 error 로 둔다 — 빈 라벨을 그리면 '데이터 있음' 으로 오인된다.
+      const next = typeof picked?.label === 'string' && picked.label
+        ? { label: picked.label, probCut: typeof picked.probCut25 === 'number' ? picked.probCut25 : 0 }
+        : null;
+      if (!signal.aborted) setFomc({ loading: false, error: !next, value: next });
     }).catch(() => { if (!signal.aborted) setFomc({ loading: false, error: true, value: null }); });
 
     void fetch('/api/price-history?ticker=SPY&days=30', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(j => {
