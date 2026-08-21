@@ -513,6 +513,9 @@ function sourceBadge(src: string): { label: string; cls: string } {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ReportPage() {
   const t = useTranslations('report');
+  // 2026-08-21: 스퀴즈 점수의 실측 근거 라벨 — 기존 키를 쓴다(16개 로케일 보유). 새 키를 만들지 않는다.
+  const tShort = useTranslations('short');
+  const tSupply = useTranslations('supply');
   const locale = useLocale();
 
   const [data, setData] = useState<InvestmentStrategy | null>(null);
@@ -1116,7 +1119,19 @@ export default function ReportPage() {
                     {data.shortSqueeze.map((s, i) => (
                       <div key={i} className="mb-2 text-xs">
                         <span className="font-bold text-orange-800">{displayName(s.ticker)}</span>
-                        <span className="text-orange-600 ml-1">score={s.score}</span>
+                        <span className="text-orange-600 ml-1">{tShort('colSqueezeScore')} {s.score}</span>
+                        {/* 2026-08-21: score 만 보여주면 독자가 검증할 수 없다. 점수를 만든 실측값을 함께 싣는다.
+                            (api/short-interest 의 calcSqueezeScore 입력 — 공매도 유통비율·FINRA 공매도 거래비중·상환일수)
+                            실측이 없는 항목은 아무것도 붙이지 않는다 — 없는 근거를 지어내지 않는다. */}
+                        {(s.shortFloatPct != null || s.shortRatio != null) && (
+                          <p className="text-[10px] text-orange-500/80 mt-0.5">
+                            {s.shortFloatPct != null && `${tShort('colShortFloat')} ${s.shortFloatPct}%`}
+                            {s.shortFloatPct != null && s.shortVolPct != null && ' · '}
+                            {s.shortVolPct != null && `${tShort('statAvgShortVolSub')} ${s.shortVolPct}%`}
+                            {(s.shortFloatPct != null || s.shortVolPct != null) && s.shortRatio != null && ' · '}
+                            {s.shortRatio != null && `${tSupply('shortRatio')} ${s.shortRatio}${tSupply('shortRatioDays')}`}
+                          </p>
+                        )}
                         <p className="text-gray-600 mt-0.5">{s.timing}</p>
                         <p className="text-red-500 text-[10px]">{t('riskLabel')}: {s.risk}</p>
                       </div>

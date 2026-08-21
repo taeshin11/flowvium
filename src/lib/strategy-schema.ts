@@ -231,6 +231,14 @@ export const InvestmentStrategySchema = z.object({
     score: z.number(),
     timing: z.string(),
     risk: z.string(),
+    // 2026-08-21: score 만 노출하면 독자가 검증할 수 없다. score 는 이 값들에서 나온다
+    //   (api/short-interest 의 calcSqueezeScore). 실측 대조(squeeze-reconcile)가 붙여 준다.
+    //   z.object 는 기본으로 미지 키를 버리므로 여기에 명시하지 않으면 조용히 사라진다.
+    shortFloatPct: z.number().nullable().optional(),
+    shortVolPct: z.number().nullable().optional(),
+    shortRatio: z.number().nullable().optional(),
+    shortChangeMonthly: z.number().nullable().optional(),
+    instAction: z.string().nullable().optional(),
   })).optional(),
   insiderSignals: z.array(InsiderSignalSchema).optional(),
   crisisSignals: z.array(CrisisSignalSchema).optional(),

@@ -33,6 +33,7 @@ import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attrib
 import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { resolveServedModelId, servedModelBasename } from './lib/served-model.mjs';
 import { localizeSectorKo } from './lib/sector-label.mjs';
+import { reconcileSqueeze, correctScoreMentions } from './lib/squeeze-reconcile.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -6880,7 +6881,17 @@ async function generateViaOllama() {
     })(),
     insiderMap: new Map((ctxRaw?.insider ?? []).map(i => [i.ticker, i.filings ?? i.count ?? 1])),
     newsGapMap: new Map((ctxRaw?.newsGap ?? []).filter(g => g.ticker && typeof g.gapScore === 'number').map(g => [g.ticker, g.gapScore])),  // 2026-06-12
-    squeezeMap: new Map((ctxRaw?.shorts ?? ctxRaw?.shortSqueeze ?? []).map(s => [s.ticker, s.score ?? s.squeezeScore])),
+    // 2026-08-21: 종전 `ctxRaw?.shorts`(복수)는 존재하지 않는 키였다 — 원본은 :3815 `short:`(단수)다.
+    //   그래서 이 맵이 영구히 비었고 :5379 squeezeScore 가 항상 null 이라 후보 점수 룰이 침묵 미발화했다.
+    //   ctx.short 는 배열이거나 {entries:[...]} 두 형태다(:2514 와 동일 처리).
+    squeezeMap: (() => {
+      const sd = ctxRaw?.short;
+      const arr = Array.isArray(sd) ? sd : (sd?.entries ?? []);
+      const m = new Map(arr.filter(s => s?.ticker && typeof s.squeezeScore === 'number').map(s => [s.ticker, s.squeezeScore]));
+      if (m.size) console.log(`  [squeeze-map] 실측 스퀴즈 점수 ${m.size}종 로드 (후보 점수 룰에 주입)`);
+      else console.warn('  [squeeze-map] 실측 스퀴즈 점수 0종 — 공매도 소스 확인 필요');
+      return m;
+    })(),
     cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
     // 2026-06-13: 전 종목 사전수집 재무 (사용자 "미리미리 수집") — build-financials-cache 산출.
     //   stage-1 에서 전 종목 펀더멘털(매출YoY/영업이익률/ROE) 평가 → top-50 깔때기 제약 제거.
@@ -8686,6 +8697,38 @@ async function generateViaOllama() {
   }
   const rawEarnings = await getRawEarnings();
   const squeezeBefore = finalReport.shortSqueeze.map(s => s.ticker);
+  // 2026-08-21: LLM 이 ticker 와 score 를 직접 쓴다(:6280 프롬프트). 실측과 대조하는 곳이 없었다.
+  //   실제 사고: morning 보고서가 MRNA score=43 으로 발간됐는데 /api/short-interest 실측은 55 다
+  //   (shortFloatPct 15.2 → +20, shortVolPct 57.6 → +15, accumulating → +20).
+  //   종목 선택은 맞았기 때문에 더 위험하다 — 맞는 종목에 틀린 숫자가 붙으면 아무도 안 본다.
+  //   실측이 있으면 실측으로 덮고, 실측에 없는 티커는 확인 불가라 뺀다. 점수는 여기서 다시 계산하지 않는다
+  //   (산식은 api/short-interest 의 calcSqueezeScore 하나뿐이어야 한다).
+  {
+    const { entries: reconciled, fixes: sqFixes } = reconcileSqueeze(finalReport.shortSqueeze, ctxRaw?.short);
+    if (sqFixes.length) {
+      console.log(`  [squeeze-실측대조] ${sqFixes.length}건`);
+      for (const f of sqFixes) console.log(`    · ${f}`);
+    }
+    // 산문(topOpportunity)이 인용한 옛 점수도 같이 고친다 — 항목만 고치면 화면에서 숫자가 충돌한다.
+    const corrections = [];
+    for (const before of finalReport.shortSqueeze) {
+      const after = reconciled.find(r => r.ticker === String(before.ticker ?? '').toUpperCase());
+      if (after && typeof before.score === 'number' && before.score !== after.score) {
+        corrections.push({ ticker: after.ticker, from: before.score, to: after.score });
+      }
+    }
+    finalReport.shortSqueeze = reconciled;
+    if (corrections.length && finalReport.topOpportunity) {
+      const { text, changed, unresolved } = correctScoreMentions(finalReport.topOpportunity, corrections);
+      finalReport.topOpportunity = text;
+      for (const c of changed) console.log(`    · ${c}`);
+      // 못 고친 인용은 조용히 두지 않는다 — 틀린 근거를 남기느니 문구를 비운다(제거 경로와 같은 관습).
+      if (unresolved.length) {
+        console.warn(`  [squeeze-실측대조] 산문 미해결 ${unresolved.length}건 → topOpportunity 비움: ${unresolved.join(', ')}`);
+        finalReport.topOpportunity = '';
+      }
+    }
+  }
   finalReport.shortSqueeze = await enrichSqueezePostEarnings(finalReport.shortSqueeze, rawEarnings, livePrices, localeArg);
   // topOpportunity가 제거된 ticker를 가리키면 비움
   const removedTickers = squeezeBefore.filter(t => !finalReport.shortSqueeze.find(s => s.ticker === t));

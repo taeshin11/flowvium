@@ -216,7 +216,13 @@ export interface InvestmentStrategy {
   // 2026-06-06: 거시 급락 조기경보 (결정론적 composite — 신용/VIX/금리커브/심리/FX/고용)
   earlyWarning?: { score: number; level: 'low' | 'elevated' | 'high' | 'severe'; drivers: string[]; asOf: string };
   // S4: 기회 신호
-  shortSqueeze?: Array<{ ticker: string; score: number; timing: string; risk: string }>;
+  // 2026-08-21: score 만 노출하면 독자가 검증할 수 없다. 점수를 만든 실측값을 함께 싣는다
+  //   (api/short-interest 의 calcSqueezeScore 입력). squeeze-reconcile 이 발간 직전에 붙인다.
+  shortSqueeze?: Array<{
+    ticker: string; score: number; timing: string; risk: string;
+    shortFloatPct?: number | null; shortVolPct?: number | null; shortRatio?: number | null;
+    shortChangeMonthly?: number | null; instAction?: string | null;
+  }>;
   insiderSignals?: Array<{ ticker: string; filings: number; dateRange?: string; significance: string; pattern: string }>;
   topOpportunity?: string;
   // S5: 리스크 관리
