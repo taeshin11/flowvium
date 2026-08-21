@@ -25,6 +25,7 @@ import { sessionBudgetMin, maxSessionBudgetMin, getPublishTarget } from './lib/r
 import { launcherWipesWorktree } from './lib/report-launcher.mjs';
 import { checkResourcePressure } from './lib/resource-pressure.mjs';
 import { findReportProcesses } from './lib/report-running.mjs';
+import { backupStatus } from './lib/backup-health.mjs';
 // 발행 예정 시각을 지난 뒤 업로드/전파에 실제로 걸리는 시간의 여유분. 예산(90분)이 아니라 '전파 지연' 몫이다.
 const PUBLISH_GRACE_MIN = 10;
 import { readLauncherModels } from './lib/report-launcher.mjs';
@@ -235,6 +236,18 @@ async function checkOnce() {
   } catch (e) {
     // 판독 실패를 '이상 없음' 으로 삼키지 않는다 — 오늘 하루 그 패턴에 여러 번 당했다.
     issues.push(`자원 압력 판독 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
+
+  // [9] 인수인계 백업 신선도 (2026-08-21 신설).
+  //     HANDOFF.md 의 복구 절차 전제가 Google Drive 일일 백업인데, 실측 최신 백업이 23일 전이었다
+  //     (Windows 기기 해체일에 멈춤 · 맥에 대체 스케줄 없음 · FLOWVIUM_BACKUP_DIR 미설정).
+  //     백업은 '있다고 믿는 것' 이 가장 위험하다.
+  try {
+    const b = await backupStatus();
+    if (b.issues.length) for (const i of b.issues) issues.push(`백업 — ${i}`);
+    else info.push(`백업 ✓ (${b.newest} · ${b.ageDays}일 전 · ${b.scheduledBy})`);
+  } catch (e) {
+    issues.push(`백업 상태 판독 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
 
   return { issues, info };
