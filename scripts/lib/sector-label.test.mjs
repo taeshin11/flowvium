@@ -54,5 +54,33 @@ const gen = readFileSync(resolve(ROOT, 'scripts/generate-report-local.mjs'), 'ut
   ? console.log('  PASS  생성 코드가 localizeSectorKo(s.sector) 를 쓴다')
   : (console.log('  FAIL  생성 코드가 여전히 s.sector 를 그대로 굽는다'), fail++);
 
+// ── 2026-08-21: 권위 소스(data/candidate-tickers.json meta.sector)의 실제 도메인 대조 ──────
+// 실측: 고유값 65종 / 1,338종목 중 카탈로그 커버 866, 미커버 472(35%).
+// 미커버가 화면에 영문으로 나간다 — 라이브 /ko/report 에서 "Chemicals" 확인.
+// 다만 65종은 GICS·SIC·비섹터 마커(ETF·KR·Other)·이미 한국어(전기제품·창업투자)가 뒤섞인
+// *데이터 모델* 문제다. 통째로 매핑하는 건 분류체계 결정이라 내가 정하지 않는다.
+// 여기서는 문서화된 표준 등가만 넣는다 — 짐작으로 고르지 않는다.
+//   Morningstar 'Consumer Cyclical'   == GICS 'Consumer Discretionary'
+//   Morningstar 'Basic Materials'     == GICS 'Materials'
+//   Morningstar 'Financial Services'  == GICS 'Financials'
+{
+  const KO = sectorCatalogKo();
+  for (const [raw, id] of [
+    ['Consumer Cyclical', 'consumer-discretionary'],
+    ['Basic Materials', 'materials'],
+    ['Financial Services', 'financials'],
+  ]) {
+    eq(localizeSectorKo(raw), KO[id], `표준 등가: ${raw} → ${KO[id]}`);
+  }
+  // 등가가 아닌 것은 건드리지 않는다 — 롤업(산업→섹터)은 정보를 잃는다
+  eq(localizeSectorKo('Chemicals'), 'Chemicals', 'Chemicals 은 산업이라 섹터로 롤업하지 않는다(원값)');
+  eq(localizeSectorKo('Professional Services'), 'Professional Services', '카탈로그 밖은 원값');
+  // 비섹터 마커는 섹터로 취급하지 않는다
+  eq(localizeSectorKo('ETF'), 'ETF', 'ETF 는 섹터가 아니다(원값 — 한국어에서도 ETF)');
+  eq(localizeSectorKo('KR'), 'KR', 'KR 은 시장 마커라 섹터 아님(원값)');
+  // 이미 한국어인 값은 그대로
+  eq(localizeSectorKo('전기제품'), '전기제품', '이미 한국어면 그대로');
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);

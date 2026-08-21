@@ -36,6 +36,14 @@ export function sectorSlug(raw: string): string {
 const ALIAS: Record<string, string> = {
   'consumer-staples': 'consumer-defensive',
   'health-care': 'healthcare',
+  // 2026-08-21: 권위 소스(data/candidate-tickers.json meta.sector)의 실제 도메인을 대조한 결과
+  //   고유값 65종 / 1,338종목 중 472종목(35%)이 카탈로그 밖이었다. 라이브 화면에서 "Chemicals" 확인.
+  //   65종은 GICS·SIC·비섹터 마커(ETF·KR·Other)·이미 한국어인 값이 뒤섞인 *데이터 모델* 문제라
+  //   통째로 매핑하는 건 분류체계 결정이다 — 내가 정하지 않는다.
+  //   문서화된 표준 등가만 넣는다. 산업→섹터 롤업(Chemicals→Materials)은 정보를 잃으므로 하지 않는다.
+  'consumer-cyclical': 'consumer-discretionary',   // Morningstar == GICS 'Consumer Discretionary'
+  'basic-materials': 'materials',                  // Morningstar == GICS 'Materials'
+  'financial-services': 'financials',              // Morningstar == GICS 'Financials'
 };
 
 /**
