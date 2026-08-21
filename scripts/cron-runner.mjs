@@ -19,6 +19,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { resolveLauncher } from './lib/report-launcher.mjs';   // 2026-08-20: cmd /c run-report.bat 고정 → 맥에서 ENOENT.
 import { resolveLlm } from './lib/llm-config.mjs';
+import { isReportPipelineRunning as isReportRunningShared } from './lib/report-running.mjs';
 //   쇼크 긴급보고서와 누락 backfill 두 안전망이 동시에 무증상 사망 상태였다.
 
 // 2026-06-11: execSync → 비동기 execFile. execSync 는 이벤트 루프를 최대 170~300초 블로킹해
@@ -116,11 +117,12 @@ async function runJob(path) {
 
 // 2026-06-11: 보고서 파이프라인 실행 감지 — run-report.bat 의 mutex lock 디렉토리 기준.
 //   age>=90min 은 stale(hang 잔존)로 간주해 false (영구 skip 방지). 비용 0 (fs stat).
+// 2026-08-21: 판단을 scripts/lib/report-running.mjs 로 모았다. 종전엔 락 파일만 봤는데,
+//   락은 래퍼(run-report.sh)만 만든다 — 수동으로 생성기를 직접 돌리면 락이 없어
+//   "안 돈다" 고 답했고, 그 상태로 segments-refresh 가 GPU 에 끼어들었다.
+//   래퍼는 이미 pgrep 으로 그걸 막고 있었다(run-report.sh:41). 같은 규칙을 여기서도 쓴다.
 async function isReportPipelineRunning() {
-  try {
-    const st = statSync(resolve(process.cwd(), 'logs/report-pipeline.lock'));
-    return (Date.now() - st.ctimeMs) < 90 * 60 * 1000;
-  } catch { return false; }
+  return isReportRunningShared(process.cwd());
 }
 
 let scheduled = 0;
@@ -339,6 +341,14 @@ async function runSegmentRefresh() {
     const { stdout } = await execFileAsync('node', ['scripts/build-segments-dynamic.mjs', '--refresh=4'], { timeout: 300000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
     const m = stdout.match(/✓ (\d+) \/ ✗ (\d+)/);
     log(`[segments-refresh] ${m ? `✓${m[1]} ✗${m[2]}` : 'done'} (DB company_segments)`);
+    // 2026-08-21: 종전엔 요약만 남겼다. 그래서 로그에 ✓0 ✗4 가 매시간 찍히는데 *왜* 인지
+    //   알 방법이 없었다(사유는 stdout 에 티커별로 이미 있는데 버려졌다).
+    //   실패가 있을 때만 사유를 같이 남긴다 — 다음 발생 때 수동 재현 없이 바로 읽힌다.
+    if (m && Number(m[2]) > 0) {
+      const reasons = stdout.split('\n').filter((l) => l.includes('✗ ')).slice(0, 4)
+        .map((l) => l.trim()).join(' | ');
+      if (reasons) log(`[segments-refresh] 실패사유: ${reasons}`);
+    }
   } catch (e) { log(`[segments-refresh] 실패: ${e.signal === 'SIGTERM' ? 'timeout' : String(e.message).slice(0, 60)}`); }
   finally { segmentRefreshRunning = false; }
 }

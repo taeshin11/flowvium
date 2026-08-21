@@ -15,6 +15,13 @@
  */
 import { execSync } from 'node:child_process';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+// 2026-08-21: 이 스크립트는 "다음 cron 이 wipe 한다" 를 *무조건* 단정했다. 그 checkout 은
+//   윈도우용 run-report.bat 에만 있고, 이 맥의 launchd 는 git 명령이 없는 run-report.sh 를 부른다
+//   (run-report.sh:60 이 "옮기지 않았다" 고 명시). 같은 판정을 하는 check-stall.mjs 는
+//   2026-08-20 에 launcherWipesWorktree() 로 고쳐졌는데 여기만 남아 있었다 — 한쪽만 고친 것이다.
+//   틀린 메커니즘은 (a) 사람을 엉뚱한 조치로 보내고 (b) 매번 헛경보라 진짜 경고까지 무디게 만든다.
+//   커밋 권고 자체는 유지한다. 이유를 사실대로 말할 뿐이다.
+import { launcherWipesWorktree, launcherPath } from './lib/report-launcher.mjs';
 
 const ROOT = _PROJECT_ROOT;
 // 2026-06-17: timeout 추가 — git fetch 가 네트워크 stall 시 무한 hang 하던 위험 차단.
@@ -25,6 +32,10 @@ const WIPE_GLOBS = /^(scripts\/|src\/|public\/|messages\/|package\.json|data\/[^
 
 const issues = [];
 const info = [];
+const WIPES = launcherWipesWorktree();
+const HOW   = WIPES ? '다음 cron 이 origin/master 로 revert(wipe)' : '이 플랫폼 런처는 되돌리지 않는다 — 유실 위험은 미백업뿐';
+const TAG   = WIPES ? 'wipe 위험' : '미동기화';
+info.push(`[0] 실행 런처 ${launcherPath() ?? '(미검출)'} · worktree 되돌림=${WIPES}`);
 
 // [1] 미커밋 *tracked* 변경 (cron 의 git checkout origin/master 는 tracked 파일만 revert).
 //     untracked(??) 는 checkout 이 건드리지 않아 생존 → wipe 위험 아님(별도 info).
@@ -34,7 +45,7 @@ const trackedAtRisk = porcelain.filter(l => !l.startsWith('??') && inWipePath(l)
 const untrackedInPath = porcelain.filter(l => l.startsWith('??') && inWipePath(l));
 
 if (trackedAtRisk.length) {
-  issues.push(`[1] cron-checkout 경로에 미커밋 tracked 변경 ${trackedAtRisk.length}건 — 다음 cron 이 origin/master 로 revert(wipe):`);
+  issues.push(`[1] 코드 경로에 미커밋 tracked 변경 ${trackedAtRisk.length}건 — ${HOW}:`);
   trackedAtRisk.slice(0, 20).forEach(l => issues.push(`     ${l}`));
   issues.push(`     → 조치: git add + commit + push origin master`);
 } else {
@@ -52,7 +63,7 @@ if (/^\d+$/.test(ahead) && Number(ahead) > 0) {
   // ahead 커밋이 wipe 경로를 건드렸는지 확인
   const touched = sh(`git diff --name-only origin/master..HEAD`).split('\n').filter(Boolean).filter(p => WIPE_GLOBS.test(p));
   if (touched.length) {
-    issues.push(`[2] 로컬이 origin/master 보다 ${ahead} 커밋 ahead 인데 cron-checkout 경로(${touched.length}파일) 포함 — push 안 하면 cron 이 revert:`);
+    issues.push(`[2] 로컬이 origin/master 보다 ${ahead} 커밋 ahead · 코드 경로 ${touched.length}파일 포함 — ${HOW}:`);
     commits.slice(0, 10).forEach(c => issues.push(`     ${c}`));
     issues.push(`     → 조치: git push origin master`);
   } else {
@@ -67,6 +78,6 @@ console.log(`\n[uncommitted-risk ${ts}]`);
 for (const i of info) console.log('  ✅', i);
 for (const i of issues) console.log('  🚨', i);
 console.log(issues.length === 0
-  ? '  → 종합: OK (cron wipe 위험 없음 — 모든 코드 변경 커밋+푸시됨)'
-  : `  → 종합: ⚠️ wipe 위험 — fix 를 origin/master 에 커밋+푸시 필요`);
+  ? '  → 종합: OK (모든 코드 변경 커밋+푸시됨)'
+  : `  → 종합: ⚠️ ${TAG} — fix 를 origin/master 에 커밋+푸시 필요`);
 process.exit(issues.length > 0 ? 1 : 0);

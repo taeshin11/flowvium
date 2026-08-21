@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * llm-gate.test.mjs — 웹 LLM 동시성 게이트가 설정 가능하고 거절을 관측하는지 검증.
+ * llm-local-gate.test.mjs — 웹 LLM 동시성 게이트가 설정 가능하고 거절을 관측하는지 검증.
+ *   (2026-08-21 개명: 이 파일은 src/lib/llm-local.ts 안의 *웹 레인* 게이트를 검사한다.
+ *    보고서 레인용 모듈 scripts/lib/llm-gate.mjs 가 새로 생겨 짝 이름이 겹쳤다.)
  *
  * 배경(2026-08-20 실측): news-cascade 12건 중 정확히 2건만 AI 분석 성공.
  *   ai: 2 · ai-failed: 8 · keyword-rule: 2

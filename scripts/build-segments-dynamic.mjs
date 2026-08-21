@@ -13,7 +13,8 @@
  * 출력: data/company-segments-dynamic.json { TICKER: { segments:[{name,amount,pct}], total, asOf, fy, source } }
  * 사용: node scripts/build-segments-dynamic.mjs AAPL MSFT NVDA   (인자 없으면 portfolio+주요)
  */
-import { readFileSync, statSync } from 'fs';
+import { readFileSync } from 'fs';
+import { isReportPipelineRunning } from './lib/report-running.mjs';
 import { saveSegments, getSegmentedTickers } from './lib/db.mjs';
 import { resolveLlm } from './lib/llm-config.mjs';
 import { openRotation } from './lib/segment-rotation.mjs';
@@ -25,17 +26,20 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // 2026-06-12: 보고서 파이프라인 lock 양보 — 벌크 sweep 이 보고서 cron(Wave1 GPU 독점 필요)과
 //   겹치면 6/11 Wave1 전멸 사건 재발. lock(90min 미만) 감지 시 대기 후 재개. cron-runner 의
 //   segments-refresh skip 가드와 동일 원리(단일 GPU 규칙) — 장시간 sweep 은 skip 아닌 wait.
+// 2026-08-21: 판단을 scripts/lib/report-running.mjs 로 모았다. 종전엔 락 파일만 봐서
+//   수동 실행 중인 생성기를 못 봤다(락은 run-report.sh 만 만든다). 살아 있는 프로세스도 본다.
+//   대기는 유한하게 둔다 — 좀비 프로세스 하나로 sweep 이 영원히 멈추면 그것도 결함이다.
+//   상한을 넘으면 양보를 포기하고 진행한다(그 사실을 로그로 남긴다).
+const YIELD_MAX_MS = Number(process.env.SEGMENTS_YIELD_MAX_MS) || 45 * 60 * 1000;
 async function waitIfReportRunning() {
-  for (;;) {
-    try {
-      const st = statSync('logs/report-pipeline.lock');
-      if (Date.now() - st.ctimeMs < 90 * 60 * 1000) {
-        console.log('  [lock] 보고서 파이프라인 실행 중 — 120s 대기 (GPU 양보)');
-        await sleep(120000);
-        continue;
-      }
-    } catch { /* lock 없음 */ }
-    return;
+  const t0 = Date.now();
+  while (await isReportPipelineRunning(process.cwd())) {
+    if (Date.now() - t0 >= YIELD_MAX_MS) {
+      console.warn(`  [lock] 보고서 양보 상한 ${Math.round(YIELD_MAX_MS / 60000)}분 초과 — 양보 포기하고 진행`);
+      return;
+    }
+    console.log('  [lock] 보고서 파이프라인 실행 중 — 120s 대기 (GPU 양보)');
+    await sleep(120000);
   }
 }
 

@@ -1,5 +1,5 @@
-import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 #!/usr/bin/env node
+import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 /**
  * scripts/check-data-quality.mjs — production 데이터 품질 모니터.
  *

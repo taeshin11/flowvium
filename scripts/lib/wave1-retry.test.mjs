@@ -2,10 +2,16 @@
 /**
  * wave1-retry.test.mjs — "품질 게이트가 차단하는 섹션은 재시도 대상이어야 한다".
  *
- * 배경(2026-08-21 라이브 장애): 온도 조절기가 LLM 을 무기한 정지시킨 동안 Wave1 5개 중
- *   narrative · opportunity · regional 3개가 즉시 실패했다(0.0s = 연결 거부).
+ * 배경(2026-08-21 라이브 장애): Wave1 5개 중 narrative · opportunity · regional 3개가 실패했다.
  *     opportunity=false(squeeze:0), narrative=false
  *   regional 은 재시도로 살아났다(regional-retry 158.7s → 1727c). 나머지 둘은 재시도가 없다.
+ *
+ *   ※ 정정(같은 날 실측): 처음엔 로그의 `0.0s` 를 보고 "연결 거부" 로 적었는데 틀렸다.
+ *     그 0.0s 는 vLLM 이 아니라 *그 다음* 폴백인 Ollama(:11434, 안 떠 있음) 의 실패시간이다.
+ *     vLLM 쪽 실패는 시간을 안 찍고 있었다. 진짜 원인은 서버가 --prompt-concurrency 1 인데
+ *     클라이언트가 5건을 동시에 던져 뒤 요청들이 서버 큐에서 굶은 것이다(llm-gate.mjs 참조).
+ *     원인은 llm-gate 가 고쳤다. 이 테스트가 지키는 건 그와 별개인 불변식 —
+ *     "일시 실패는 언제든 다시 날 수 있으니, 발간을 *차단* 하는 섹션은 재시도가 있어야 한다".
  *
  *   그런데 게이트는 이렇게 되어 있다:
  *     :854  if (!report.marketNarrative) issues.push('marketNarrative MISSING')   ← 차단

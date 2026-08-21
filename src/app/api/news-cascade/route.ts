@@ -848,10 +848,29 @@ function parseCascade(raw: string, item: RawNewsItem): NewsWithCascade {
 // ── GET handler ───────────────────────────────────────────────────────────────
 // 2026-06-16 페이지 전수감사: 비-ja 타겟에 일본어 가나 제목 기사 drop. 기본 en/미번역 경로가 raw 캐시
 //   기사를 필터 없이 반환(line ~845)해 홈에 "【ヤフコメで話題】" 누출 → source(cached/memory)에서 차단.
+// 2026-08-21: 종전엔 *가나만* 봤다(/[぀-ゟ゠-ヿ]/). 그래서 "금요일 경제行事일정" 처럼
+//   한글+한자가 섞인 반쪽 번역은 가나가 없어 그대로 통과해 /ko 에 노출됐다.
+//   locale 별 허용 스크립트 정책은 이미 hasChineseBleed 에 있으므로 그걸 재사용한다
+//   (ko=zero-Hanja, ja=한자 정상, zh=한글/가나 금지 …). 정책이 두 곳에 생기지 않게.
+//   쓰기측 가드는 정상 동작한다(같은 원문 재번역 3/3 클린) — 이건 캐시에 남은 과거 오염을
+//   사용자에게 내보내지 않기 위한 *serving 경계* 방어다. 생성 시점에만 검사하면
+//   한 번의 탈출이 TTL 내내 영구화된다.
 function dropForeignTitles(articles: NewsWithCascade[] | null, locale: string): NewsWithCascade[] {
   if (!Array.isArray(articles)) return articles ?? [];
   if (locale === 'ja') return articles;
-  return articles.filter((a) => !/[぀-ゟ゠-ヿ]/.test((a as { title?: string })?.title ?? ''));
+  // bleed 규칙은 *번역 대상* locale 에만 쓴다. en 은 번역을 안 하므로 외국어 제목이 정상이고,
+  //   여기에 bleed 를 걸면 한국 기사가 통째로 사라진다(실측: en 11건 중 5건 = 45% 유실).
+  //   en 은 종전 규칙(가나 제목 차단)만 유지한다.
+  const applyBleed = locale !== 'en';
+  const dropped: string[] = [];
+  const kept = articles.filter((a) => {
+    const title = (a as { title?: string })?.title ?? '';
+    if (/[぀-ゟ゠-ヿ]/.test(title) || (applyBleed && hasChineseBleed(title, locale))) { dropped.push(title.slice(0, 40)); return false; }
+    return true;
+  });
+  // 조용히 버리지 않는다 — 버린 게 많아지면 그건 번역 파이프라인 결함 신호다.
+  if (dropped.length) logger.warn('api.news-cascade', 'dropped_bleeding_titles', { locale, count: dropped.length, sample: dropped.slice(0, 3) });
+  return kept;
 }
 
 export async function GET(request: Request) {
@@ -867,7 +886,9 @@ export async function GET(request: Request) {
   // ── locale 번역 캐시 우선 — 영어가 아니고 번역 캐시 있으면 즉시 반환 ──
   if (redis && wantsTranslation) {
     try {
-      const translatedCache = await redis.get<NewsWithCascade[]>(translatedKey(locale));
+      // 2026-08-21: 종전엔 캐시를 검증 없이 그대로 반환했다 — 실제 유출 지점이 여기였다.
+      //   캐시가 한 번 오염되면 TTL(6h ~ stale) 동안 계속 나간다. 읽기 경계에서 거른다.
+      const translatedCache = dropForeignTitles(await redis.get<NewsWithCascade[]>(translatedKey(locale)), locale);
       if (translatedCache && translatedCache.length > 0) {
         return NextResponse.json({ articles: translatedCache, cached: true, locale, source: 'cached' }, { headers: CDN_HEADERS });
       }

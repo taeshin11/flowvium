@@ -16,18 +16,40 @@ import { fileURLToPath } from 'url';
 import vm from 'vm';
 
 // 2026-08-20 (맥 이관): undici 기본 headersTimeout/bodyTimeout=300s 가 AbortSignal 보다 먼저 터진다.
-//   MLX(Apple Silicon)는 프리필이 느리고(23k tok ≈ 250s) --prompt-concurrency 1 로 요청이 큐에 서므로,
-//   대기 중인 요청은 헤더도 첫 바이트도 못 받은 채 300s 에 'terminated' 로 잘렸다(Wave1 303.9s 실측).
-//   stream:true 만으로는 큐 대기분을 못 막는다 → 전역 디스패처에서 두 타임아웃을 해제한다.
-//   (요청별 상한은 기존 AbortSignal(timeoutMs) 이 계속 담당 — 무한 대기가 되지 않는다.)
-import { Agent, setGlobalDispatcher } from 'undici';
+//   MLX(Apple Silicon)는 프리필이 느리고 --prompt-concurrency 1 로 요청이 큐에 서므로, 대기 중인
+//   요청은 첫 바이트를 못 받은 채 300s 에 'terminated' 로 잘렸다(Wave1 303.9s 실측).
+//
+// 2026-08-21: 위 설정이 정말 먹는지 실측했다. 결론 — *먹는다*(문서대로).
+//   undici 는 setGlobalDispatcher 를 Symbol.for('undici.globalDispatcher.2') 에 쓰고,
+//   동시에 Dispatcher1Wrapper 로 Symbol.for('undici.globalDispatcher.1') 에도 반영해서
+//   Node 내장 fetch 가 쓰게 한다. A/B 실측(서버 지연 3000ms · bodyTimeout 300ms):
+//     내장 global fetch → UND_ERR_BODY_TIMEOUT   npm undici fetch → UND_ERR_BODY_TIMEOUT
+//   ※ 처음엔 "안 먹는다" 고 잘못 판단했다. 지연 900ms·타임아웃 300ms 로 쟀는데 통과하길래
+//     무효라고 봤다. 실제로는 undici 타이머 해상도가 ~1s 라 300ms 설정이 1009ms 에 발화한다.
+//     임계값 아래에서 재서 생긴 착각이었다. 300s 규모에선 해상도가 무의미하다.
+//
+//   그래도 LLM 호출에는 디스패처를 *명시* 로 넘긴다. 전역 설정은 이 파일 밖(다른 스크립트,
+//   라이브러리)에서 조용히 덮이거나 초기화 순서에 얽힐 수 있는데, LLM 호출은 그 사고가 나면
+//   바로 발간 결함이 된다. 명시는 그 의존을 없애고, 무엇보다 읽는 사람에게 의도가 보인다.
+import { Agent, fetch as undiciFetch, setGlobalDispatcher } from 'undici';
 import * as SESSIONS from './lib/report-sessions.mjs';
+import { limiterFor } from './lib/llm-gate.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
   keepAliveTimeout: 60_000,
   keepAliveMaxTimeout: 600_000,
 }));
+
+// LLM 전용 디스패처(위 전역과 같은 값). 토큰 간 공백이 길어질 수 있다 —
+//   온도 조절기가 최대 900s 까지 SIGSTOP 하고, 프리필만 수백 초 걸리는 프롬프트가 있다.
+//   요청별 상한은 AbortSignal(timeoutMs) 이 계속 담당하므로 무한 대기가 되지는 않는다.
+const LLM_DISPATCHER = new Agent({
+  headersTimeout: 0,
+  bodyTimeout: 0,
+  keepAliveTimeout: 60_000,
+  keepAliveMaxTimeout: 600_000,
+});
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
@@ -1207,6 +1229,24 @@ async function verifyUploadSource(locale) {
 // VLLM_URL 환경변수 (예: http://localhost:5000/v1) 가 설정되면 Ollama 보다 우선.
 // VLLM_MODEL 로 모델명 명시 가능 (TabbyAPI 의 경우 모델 디렉터리명).
 async function callVLLM(prompt, timeoutMs = 600000, label = '', maxTokens = 2048, schema = null) {
+  // 서버가 동시에 N건만 처리한다면 클라이언트도 N건만 보낸다.
+  //   초과분을 서버 큐에 밀어넣으면 (a) 헤더만 받은 채 본문을 못 받아 죽거나
+  //   (b) 큐 대기시간이 각 요청의 AbortSignal 예산에서 빠져나가 동시 전멸한다.
+  //   실측 2026-08-21: 오후 런은 (a)로 narrative/opportunity/regional 3건,
+  //   자정 런은 (b)로 4건이 죽었다(Wave1 총 소요 3598.1s / 천장 3600s).
+  //   여기서 기다리면 서버 큐에 안 들어가므로 둘 다 발생하지 않는다.
+  //   서버가 어차피 직렬이라 총 소요시간은 같다 — 잃는 건 없다.
+  if (!process.env.VLLM_URL) return null;
+  const { url: gateUrl, concurrency } = resolveLlm('report');
+  const slot = limiterFor(gateUrl, concurrency);
+  const st = slot.stats();
+  if (st.active >= st.width) {
+    console.log(`  [llm-gate] ${label || 'llm'} 대기 — 서버 동시처리 ${st.width}건 (진행 ${st.active}, 대기열 ${st.queued})`);
+  }
+  return slot(() => callVLLMOnce(prompt, timeoutMs, label, maxTokens, schema));
+}
+
+async function callVLLMOnce(prompt, timeoutMs = 600000, label = '', maxTokens = 2048, schema = null) {
   const url = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '').replace(/\/+$/, '');
   if (!url) return null;
   const tag = label ? `[vLLM:${label}]` : '[vLLM]';
@@ -1214,7 +1254,8 @@ async function callVLLM(prompt, timeoutMs = 600000, label = '', maxTokens = 2048
   // 2026-08-20: 'flowvium-local' 은 Ollama 시절 별칭 — 현재 서버는 404. 단일 소스에서.
   const model = resolveLlm('report').model;
   try {
-    const res = await fetch(`${url}/chat/completions`, {
+    const res = await undiciFetch(`${url}/chat/completions`, {
+      dispatcher: LLM_DISPATCHER,   // 전역에 기대지 않는다(상단 주석) — LLM 호출은 명시로 못박는다
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1290,9 +1331,20 @@ async function callVLLM(prompt, timeoutMs = 600000, label = '', maxTokens = 2048
     console.log(`  ${tag} ${elapsed}s → ${text.length}c | prompt ${prompt.length}c`);
     return text;
   } catch (e) {
-    console.warn(`  ${tag} ${e.message?.slice(0, 100)} — Ollama 폴백`);
+    // 'TypeError: fetch failed' 는 껍데기다. 진짜 코드는 cause 에 있다
+    //   (UND_ERR_BODY_TIMEOUT / UND_ERR_HEADERS_TIMEOUT / ECONNREFUSED ...).
+    //   종전엔 e.message 만 찍어서 원인이 몇 달간 안 보였다 — 이 한 줄이 진단을 막았다.
+    console.warn(`  ${tag} ${((Date.now() - t0) / 1000).toFixed(1)}s ${describeFetchError(e)} — Ollama 폴백`);
     return null;
   }
+}
+
+/** fetch 예외를 cause 체인까지 펼쳐 한 줄로. 원인 코드가 여기 들어 있다. */
+function describeFetchError(e) {
+  const out = [`${e?.name ?? 'Error'}: ${String(e?.message ?? '').slice(0, 80)}`];
+  let c = e?.cause, d = 0;
+  while (c && d < 3) { out.push(`← ${c.code ?? c.name ?? '?'}: ${String(c.message ?? '').slice(0, 60)}`); c = c.cause; d++; }
+  return out.join(' ');
 }
 
 // ── Ollama 호출 with cloud fallback ────────────────────────────────────────────

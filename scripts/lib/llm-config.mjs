@@ -41,11 +41,26 @@ export function loadEnvLocal() {
 // 현재 서버(mlx_lm)가 실제로 받는 이름. 옛 Ollama 별칭(flowvium-local·qwen3:8b)은 404 다.
 const SERVED_DEFAULT = 'default_model';
 
+// 백엔드가 한 번에 처리하는 요청 수. 서버 기동 플래그(--prompt-concurrency)와 짝이며
+// ~/Library/LaunchAgents/com.spinai.flowvium-llm{,-web}.plist 에 그 값이 있다.
+//   :8000 report → --prompt-concurrency 1   :8001 web → --prompt-concurrency 2
+// 이 값보다 많이 동시에 던지면 남는 요청이 서버 큐에서 굶는다 — 대기시간이 각 요청의
+// AbortSignal 예산을 먹어 함께 죽는다(실측 근거는 llm-gate.mjs 주석). 서버 동시성을
+// 바꾸면 .env.local 의 아래 키도 같이 바꿔야 한다 — 코드가 아니라 설정에서 정한다.
+const CONCURRENCY_DEFAULT = { report: 1, web: 2 };
+const readConcurrency = (lane, ...keys) => {
+  for (const k of keys) {
+    const v = parseInt(process.env[k] ?? '', 10);
+    if (Number.isFinite(v) && v >= 1) return v;
+  }
+  return CONCURRENCY_DEFAULT[lane];
+};
+
 /**
  * 레인별 접속 정보.
  *   'report' — 보고서/무거운 추출용 (기본 :8000, 27B)
  *   'web'    — 웹 대면 번역·챗 (기본 :8001, 소형). 미설정이면 report 레인으로 폴백.
- * @returns {{url: string, model: string, lane: string}}
+ * @returns {{url: string, model: string, lane: string, concurrency: number}}
  */
 export function resolveLlm(lane = 'report') {
   loadEnvLocal();
@@ -53,9 +68,9 @@ export function resolveLlm(lane = 'report') {
   if (lane === 'web') {
     const url = clean(process.env.LOCAL_LLM_URL || process.env.VLLM_URL || 'http://127.0.0.1:8001/v1');
     const model = process.env.LOCAL_LLM_MODEL || process.env.VLLM_MODEL || SERVED_DEFAULT;
-    return { url, model, lane };
+    return { url, model, lane, concurrency: readConcurrency('web', 'LOCAL_LLM_MAX_CONCURRENCY', 'LOCAL_LLM_MAX_CONCURRENT') };
   }
   const url = clean(process.env.VLLM_URL || 'http://127.0.0.1:8000/v1');
   const model = process.env.VLLM_MODEL || process.env.OLLAMA_TRANSLATE_MODEL || SERVED_DEFAULT;
-  return { url, model, lane };
+  return { url, model, lane, concurrency: readConcurrency('report', 'VLLM_MAX_CONCURRENCY') };
 }
