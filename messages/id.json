@@ -96,7 +96,11 @@
       "consumer-discretionary": "Konsumen Diskresioner",
       "it-software": "IT / Perangkat Lunak",
       "technology": "Teknologi",
-      "automotive": "Otomotif"
+      "automotive": "Otomotif",
+      "ai-infrastructure": "Infrastruktur AI",
+      "energy-transition": "Transisi Energi",
+      "financials-fintech": "Keuangan / Fintech",
+      "materials-critical-minerals": "Bahan / Mineral Kritis"
     },
     "relationships": {
       "supplier": "Pemasok",
@@ -494,7 +498,9 @@
     "staticDataPending": "Data referensi (2026-Q1) · Menunggu pembaruan otomatis",
     "staticDataTooltip": "Data Alpha Vantage dan EDGAR 13F belum dikumpulkan. Menampilkan data statis berbasis penelitian. Akan diperbarui pada cron berikutnya (02:00 UTC).",
     "dataScheduleLabel": "Jadwal pembaruan data:",
-    "dataScheduleDetail": "Kepemilikan institusional (EDGAR 13F) — Cron harian 02:00 UTC · Liputan media (Alpha Vantage) — 25 ticker/hari · Data dasar: penelitian 2026-Q1"
+    "dataScheduleDetail": "Kepemilikan institusional (EDGAR 13F) — Cron harian 02:00 UTC · Liputan media (Alpha Vantage) — 25 ticker/hari · Data dasar: penelitian 2026-Q1",
+    "axisMediaCoverage": "Skor Liputan Media",
+    "axisIbActivity": "Skor Aktivitas IB"
   },
   "home": {
     "heroHeadline": "<accent>AI</accent> menangkap aliran smart money dan akumulasi sebelum lonjakan, dan menulis laporan harian Anda",

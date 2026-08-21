@@ -96,7 +96,11 @@
       "consumer-discretionary": "Consumer Discretionary",
       "it-software": "IT / Software",
       "technology": "Technology",
-      "automotive": "Automotive"
+      "automotive": "Automotive",
+      "ai-infrastructure": "AI Infrastructure",
+      "energy-transition": "Energy Transition",
+      "financials-fintech": "Financials / Fintech",
+      "materials-critical-minerals": "Materials / Critical Minerals"
     },
     "relationships": {
       "supplier": "Supplier",
@@ -494,7 +498,9 @@
     "staticDataPending": "Research-based data (2026-Q1) · Auto-update pending",
     "staticDataTooltip": "Alpha Vantage news and EDGAR 13F data not yet collected. Displaying research-based static data. Updates on next cron run (02:00 UTC).",
     "dataScheduleLabel": "Data update schedule:",
-    "dataScheduleDetail": "Institutional holdings (EDGAR 13F) — Daily 02:00 UTC cron · Media coverage (Alpha Vantage) — 25 tickers/day · Static baseline: 2026-Q1 research"
+    "dataScheduleDetail": "Institutional holdings (EDGAR 13F) — Daily 02:00 UTC cron · Media coverage (Alpha Vantage) — 25 tickers/day · Static baseline: 2026-Q1 research",
+    "axisMediaCoverage": "Media Coverage Score",
+    "axisIbActivity": "IB Activity Score"
   },
   "home": {
     "heroHeadline": "<accent>AI</accent> catches smart-money flows and accumulation before the run-up, and writes your daily report",

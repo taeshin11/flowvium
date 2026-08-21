@@ -96,7 +96,11 @@
       "consumer-discretionary": "उपभोक्ता विवेकाधीन",
       "it-software": "IT / सॉफ्टवेयर",
       "technology": "तकनीक",
-      "automotive": "ऑटोमोटिव"
+      "automotive": "ऑटोमोटिव",
+      "ai-infrastructure": "AI बुनियादी ढांचा",
+      "energy-transition": "ऊर्जा संक्रमण",
+      "financials-fintech": "वित्तीय / फिनटेक",
+      "materials-critical-minerals": "सामग्री / महत्वपूर्ण खनिज"
     },
     "relationships": {
       "supplier": "आपूर्तिकर्ता",
@@ -494,7 +498,9 @@
     "staticDataPending": "अनुसंधान-आधारित डेटा (2026-Q1) · स्वतः अपडेट प्रतीक्षारत",
     "staticDataTooltip": "Alpha Vantage समाचार और EDGAR 13F डेटा अभी एकत्र नहीं हुआ। अनुसंधान-आधारित स्थिर डेटा दिखाया जा रहा है। अगले cron (02:00 UTC) पर अपडेट होगा।",
     "dataScheduleLabel": "डेटा अपडेट शेड्यूल:",
-    "dataScheduleDetail": "संस्थागत होल्डिंग (EDGAR 13F) — दैनिक 02:00 UTC क्रॉन · मीडिया कवरेज (Alpha Vantage) — 25 टिकर/दिन · आधार डेटा: 2026-Q1 अनुसंधान"
+    "dataScheduleDetail": "संस्थागत होल्डिंग (EDGAR 13F) — दैनिक 02:00 UTC क्रॉन · मीडिया कवरेज (Alpha Vantage) — 25 टिकर/दिन · आधार डेटा: 2026-Q1 अनुसंधान",
+    "axisMediaCoverage": "मीडिया कवरेज स्कोर",
+    "axisIbActivity": "IB गतिविधि स्कोर"
   },
   "home": {
     "heroHeadline": "<accent>AI</accent> उछाल से पहले स्मार्ट मनी प्रवाह और संचयन पकड़ता है और आपकी दैनिक रिपोर्ट लिखता है",

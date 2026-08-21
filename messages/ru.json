@@ -96,7 +96,11 @@
       "consumer-discretionary": "Потребительский сектор",
       "it-software": "IT / ПО",
       "technology": "Технологии",
-      "automotive": "Автомобильная промышленность"
+      "automotive": "Автомобильная промышленность",
+      "ai-infrastructure": "Инфраструктура ИИ",
+      "energy-transition": "Энергетический переход",
+      "financials-fintech": "Финансы / Финтех",
+      "materials-critical-minerals": "Материалы / Критические минералы"
     },
     "relationships": {
       "supplier": "Поставщик",
@@ -494,7 +498,9 @@
     "staticDataPending": "Данные на основе исследований (2026-Q1) · Ожидание автообновления",
     "staticDataTooltip": "Данные Alpha Vantage и EDGAR 13F ещё не собраны. Отображаются статические исследовательские данные. Обновление при следующем запуске cron (02:00 UTC).",
     "dataScheduleLabel": "Расписание обновления данных:",
-    "dataScheduleDetail": "Институциональные позиции (EDGAR 13F) — Ежедневный cron 02:00 UTC · СМИ (Alpha Vantage) — 25 тикеров/день · Базовые данные: исследование 2026-Q1"
+    "dataScheduleDetail": "Институциональные позиции (EDGAR 13F) — Ежедневный cron 02:00 UTC · СМИ (Alpha Vantage) — 25 тикеров/день · Базовые данные: исследование 2026-Q1",
+    "axisMediaCoverage": "Оценка медиапокрытия",
+    "axisIbActivity": "Индекс активности IB"
   },
   "home": {
     "heroHeadline": "<accent>ИИ</accent> ловит потоки умных денег и накопление до роста и пишет ваш ежедневный отчёт",

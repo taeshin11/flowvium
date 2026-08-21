@@ -1,8 +1,8 @@
 {
   "_note": "사용자 노출 문자열 하드코딩의 파일별 건수 기준선. 손으로 고치지 말 것 — 아래 명령으로 재생성한다. 증가하면 CI 가 막고, 줄면 이 파일을 갱신해 되돌아갈 수 없게 한다.",
   "command": "node scripts/check-i18n-ratchet.mjs --update",
-  "generatedAt": "2026-08-21T00:38:08.644Z",
-  "total": 2702,
+  "generatedAt": "2026-08-21T12:06:29.506Z",
+  "total": 2700,
   "files": {
     "src/app/[locale]/about/page.tsx": 50,
     "src/app/[locale]/admin/logs/page.tsx": 1,
@@ -155,7 +155,7 @@
     "src/components/pages/HomePage.tsx": 40,
     "src/components/pages/InsiderPage.tsx": 28,
     "src/components/pages/IntelligencePage.tsx": 32,
-    "src/components/pages/NewsGapPage.tsx": 39,
+    "src/components/pages/NewsGapPage.tsx": 37,
     "src/components/pages/OSINTPage.tsx": 30,
     "src/components/pages/ReportPage.tsx": 120,
     "src/components/pages/ScreenerPage.tsx": 32,

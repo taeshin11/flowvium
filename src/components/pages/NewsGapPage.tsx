@@ -2,6 +2,10 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+// 2026-08-21: 종전엔 entry.sector 슬러그를 replace('-', ' / ') 로 다듬어 그대로 찍었다.
+//   ko 화면에 'it / software' 'semiconductors' 같은 영문이 노출됐다(페이지 감사 english_leak).
+//   섹터 라벨 로케일화는 useSectorLabel 이 단일 출처다 — ReportPage·CascadePage 와 같은 경로.
+import { useSectorLabel } from '@/hooks/useSectorLabel';
 import { Link } from '@/i18n/routing';
 import { type NewsGapEntry, edgarTicker } from '@/data/news-gap';
 import { sectorContextMap } from '@/data/sector-context';
@@ -109,6 +113,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
   const [liveNews, setLiveNews] = useState<LiveNewsItem[] | null>(null);
   const [newsLoading, setNewsLoading] = useState(false);
   const t = useTranslations('newsGap');
+  const sectorLabel = useSectorLabel();
 
   useEffect(() => {
     if (!expanded || liveNews !== null) return;
@@ -139,7 +144,7 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
           </div>
           <p className="text-sm font-medium text-cf-text-primary">{entry.companyName || entry.ticker}</p>
           <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full border font-medium ${sectorClass}`}>
-            {entry.sector.replace('-', ' / ')}
+            {sectorLabel(entry.sector)}
           </span>
         </div>
 
@@ -753,9 +758,9 @@ export default function NewsGapPage({
             <ScatterChart margin={{ top: 20, right: 40, bottom: 30, left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis type="number" dataKey="x" name="Media Coverage" domain={[0, 100]} tick={{ fontSize: 11 }}
-                label={{ value: 'Media Coverage Score', position: 'insideBottom', offset: -10, style: { fontSize: 12, fill: '#6B7B8D' } }} />
+                label={{ value: t('axisMediaCoverage'), position: 'insideBottom', offset: -10, style: { fontSize: 12, fill: '#6B7B8D' } }} />
               <YAxis type="number" dataKey="y" name="IB Activity" domain={[0, 100]} tick={{ fontSize: 11 }}
-                label={{ value: 'IB Activity Score', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 12, fill: '#6B7B8D' } }} />
+                label={{ value: t('axisIbActivity'), angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 12, fill: '#6B7B8D' } }} />
               <ZAxis type="number" dataKey="z" range={[60, 300]} />
               <Tooltip content={<CustomTooltip />} />
               <Scatter data={scatterData} fill="#4F8FBF">

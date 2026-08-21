@@ -96,7 +96,11 @@
       "consumer-discretionary": "السلع الاستهلاكية الاختيارية",
       "it-software": "IT / البرمجيات",
       "technology": "التكنولوجيا",
-      "automotive": "السيارات"
+      "automotive": "السيارات",
+      "ai-infrastructure": "بنية تحتية للذكاء الاصطناعي",
+      "energy-transition": "انتقال الطاقة",
+      "financials-fintech": "الخدمات المالية / التكنولوجيا المالية",
+      "materials-critical-minerals": "المواد / المعادن الحيوية"
     },
     "relationships": {
       "supplier": "مورّد",
@@ -494,7 +498,9 @@
     "staticDataPending": "بيانات مرجعية (2026-Q1) · في انتظار التحديث التلقائي",
     "staticDataTooltip": "بيانات Alpha Vantage وEDGAR 13F لم تُجمع بعد. يتم عرض البيانات الثابتة البحثية. سيتم التحديث في تشغيل cron التالي (02:00 UTC).",
     "dataScheduleLabel": "جدول تحديث البيانات:",
-    "dataScheduleDetail": "المراكز المؤسسية (EDGAR 13F) — Cron يومي 02:00 UTC · تغطية الإعلام (Alpha Vantage) — 25 رمزًا/يوم · البيانات الأساسية: بحث 2026-Q1"
+    "dataScheduleDetail": "المراكز المؤسسية (EDGAR 13F) — Cron يومي 02:00 UTC · تغطية الإعلام (Alpha Vantage) — 25 رمزًا/يوم · البيانات الأساسية: بحث 2026-Q1",
+    "axisMediaCoverage": "درجة التغطية الإعلامية",
+    "axisIbActivity": "مؤشر نشاط IB"
   },
   "home": {
     "heroHeadline": "<accent>الذكاء الاصطناعي</accent> يرصد تدفقات المال الذكي والتجميع قبل الارتفاع ويكتب تقريرك اليومي",

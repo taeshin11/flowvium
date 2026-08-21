@@ -96,7 +96,11 @@
       "consumer-discretionary": "สินค้าอุปโภคบริโภคตามดุลยพินิจ",
       "it-software": "IT / ซอฟต์แวร์",
       "technology": "เทคโนโลยี",
-      "automotive": "ยานยนต์"
+      "automotive": "ยานยนต์",
+      "ai-infrastructure": "โครงสร้างพื้นฐาน AI",
+      "energy-transition": "การเปลี่ยนผ่านพลังงาน",
+      "financials-fintech": "การเงิน / ฟินเทค",
+      "materials-critical-minerals": "วัสดุ / แร่ธาตุสำคัญ"
     },
     "relationships": {
       "supplier": "ผู้จัดหา",
@@ -494,7 +498,9 @@
     "staticDataPending": "ข้อมูลอ้างอิงการวิจัย (2026-Q1) · รอการอัปเดตอัตโนมัติ",
     "staticDataTooltip": "ยังไม่ได้รวบรวมข้อมูล Alpha Vantage และ EDGAR 13F กำลังแสดงข้อมูลคงที่จากการวิจัย จะอัปเดตในรอบ cron ถัดไป (02:00 UTC)",
     "dataScheduleLabel": "ตารางการอัปเดตข้อมูล:",
-    "dataScheduleDetail": "การถือครองของสถาบัน (EDGAR 13F) — Cron รายวัน 02:00 UTC · การครอบคลุมสื่อ (Alpha Vantage) — 25 ticker/วัน · ข้อมูลพื้นฐาน: การวิจัย 2026-Q1"
+    "dataScheduleDetail": "การถือครองของสถาบัน (EDGAR 13F) — Cron รายวัน 02:00 UTC · การครอบคลุมสื่อ (Alpha Vantage) — 25 ticker/วัน · ข้อมูลพื้นฐาน: การวิจัย 2026-Q1",
+    "axisMediaCoverage": "คะแนนการรายงานข่าว",
+    "axisIbActivity": "คะแนนกิจกรรม IB"
   },
   "home": {
     "heroHeadline": "<accent>AI</accent> จับกระแสเงินอัจฉริยะและการสะสมก่อนราคาพุ่ง และเขียนรายงานรายวันให้คุณ",

@@ -96,7 +96,11 @@
       "consumer-discretionary": "一般消費財・サービス",
       "it-software": "IT / ソフトウェア",
       "technology": "テクノロジー",
-      "automotive": "自動車"
+      "automotive": "自動車",
+      "ai-infrastructure": "AIインフラ",
+      "energy-transition": "エネルギー転換",
+      "financials-fintech": "金融 / ファインテック",
+      "materials-critical-minerals": "素材／重要鉱物"
     },
     "relationships": {
       "supplier": "サプライヤー",
@@ -494,7 +498,9 @@
     "staticDataPending": "リサーチベースデータ（2026-Q1）· 自動更新待機中",
     "staticDataTooltip": "Alpha VantageニュースとEDGAR 13Fデータはまだ収集されていません。リサーチベースの静的データを表示中。次回cronで更新予定（02:00 UTC）。",
     "dataScheduleLabel": "データ更新スケジュール:",
-    "dataScheduleDetail": "機関保有（EDGAR 13F）— 毎日02:00 UTCクロン · メディア（Alpha Vantage）— 毎日25ティッカー · 静的データ: 2026-Q1リサーチ"
+    "dataScheduleDetail": "機関保有（EDGAR 13F）— 毎日02:00 UTCクロン · メディア（Alpha Vantage）— 毎日25ティッカー · 静的データ: 2026-Q1リサーチ",
+    "axisMediaCoverage": "メディア報道スコア",
+    "axisIbActivity": "IBアクティビティスコア"
   },
   "feedback": {
     "title": "フィードバックを送信",

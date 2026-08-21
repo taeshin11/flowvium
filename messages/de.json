@@ -96,7 +96,11 @@
       "consumer-discretionary": "Nicht-Basiskonsumgüter",
       "it-software": "IT / Software",
       "technology": "Technologie",
-      "automotive": "Automobil"
+      "automotive": "Automobil",
+      "ai-infrastructure": "KI-Infrastruktur",
+      "energy-transition": "Energiewende",
+      "financials-fintech": "Finanzen / Fintech",
+      "materials-critical-minerals": "Materialien / Kritische Mineralien"
     },
     "relationships": {
       "supplier": "Zulieferer",
@@ -494,7 +498,9 @@
     "staticDataPending": "Forschungsbasierte Daten (2026-Q1) · Auto-Update ausstehend",
     "staticDataTooltip": "Alpha Vantage-Nachrichten und EDGAR 13F-Daten noch nicht gesammelt. Statische Forschungsdaten werden angezeigt. Aktualisierung beim nächsten Cron (02:00 UTC).",
     "dataScheduleLabel": "Daten-Update-Zeitplan:",
-    "dataScheduleDetail": "Institutionelle Positionen (EDGAR 13F) — Täglich 02:00 UTC Cron · Medienberichterstattung (Alpha Vantage) — 25 Ticker/Tag · Basisdaten: 2026-Q1 Forschung"
+    "dataScheduleDetail": "Institutionelle Positionen (EDGAR 13F) — Täglich 02:00 UTC Cron · Medienberichterstattung (Alpha Vantage) — 25 Ticker/Tag · Basisdaten: 2026-Q1 Forschung",
+    "axisMediaCoverage": "Medienabdeckungswert",
+    "axisIbActivity": "IB-Aktivitätsscore"
   },
   "home": {
     "heroHeadline": "<accent>KI</accent> erkennt Smart-Money-Flüsse und Akkumulation vor dem Anstieg und schreibt Ihren täglichen Report",

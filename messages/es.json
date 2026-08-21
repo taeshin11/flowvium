@@ -96,7 +96,11 @@
       "consumer-discretionary": "Consumo Discrecional",
       "it-software": "IT / Software",
       "technology": "Tecnología",
-      "automotive": "Automotriz"
+      "automotive": "Automotriz",
+      "ai-infrastructure": "Infraestructura de IA",
+      "energy-transition": "Transición energética",
+      "financials-fintech": "Finanzas / Fintech",
+      "materials-critical-minerals": "Materiales / Minerales críticos"
     },
     "relationships": {
       "supplier": "Proveedor",
@@ -494,7 +498,9 @@
     "staticDataPending": "Datos de referencia (2026-Q1) · Actualización auto pendiente",
     "staticDataTooltip": "Datos de Alpha Vantage y EDGAR 13F aún no recopilados. Mostrando datos estáticos de investigación. Se actualizará en el próximo cron (02:00 UTC).",
     "dataScheduleLabel": "Calendario de actualización:",
-    "dataScheduleDetail": "Posiciones institucionales (EDGAR 13F) — Cron diario 02:00 UTC · Cobertura de medios (Alpha Vantage) — 25 tickers/día · Datos base: investigación 2026-Q1"
+    "dataScheduleDetail": "Posiciones institucionales (EDGAR 13F) — Cron diario 02:00 UTC · Cobertura de medios (Alpha Vantage) — 25 tickers/día · Datos base: investigación 2026-Q1",
+    "axisMediaCoverage": "Puntuación de cobertura mediática",
+    "axisIbActivity": "Puntuación de actividad de IB"
   },
   "home": {
     "heroHeadline": "<accent>La IA</accent> detecta los flujos de dinero inteligente y la acumulación antes de la subida, y escribe tu informe diario",

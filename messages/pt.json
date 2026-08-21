@@ -96,7 +96,11 @@
       "consumer-discretionary": "Consumo Discricionário",
       "it-software": "IT / Software",
       "technology": "Tecnologia",
-      "automotive": "Automotivo"
+      "automotive": "Automotivo",
+      "ai-infrastructure": "Infraestrutura de IA",
+      "energy-transition": "Transição Energética",
+      "financials-fintech": "Financeiro / Fintech",
+      "materials-critical-minerals": "Materiais / Minerais Críticos"
     },
     "relationships": {
       "supplier": "Fornecedor",
@@ -494,7 +498,9 @@
     "staticDataPending": "Dados de referência (2026-Q1) · Atualização auto pendente",
     "staticDataTooltip": "Dados do Alpha Vantage e EDGAR 13F ainda não coletados. Exibindo dados estáticos de pesquisa. Atualização no próximo cron (02:00 UTC).",
     "dataScheduleLabel": "Agenda de atualização de dados:",
-    "dataScheduleDetail": "Posições institucionais (EDGAR 13F) — Cron diário 02:00 UTC · Cobertura de mídia (Alpha Vantage) — 25 tickers/dia · Dados base: pesquisa 2026-Q1"
+    "dataScheduleDetail": "Posições institucionais (EDGAR 13F) — Cron diário 02:00 UTC · Cobertura de mídia (Alpha Vantage) — 25 tickers/dia · Dados base: pesquisa 2026-Q1",
+    "axisMediaCoverage": "Pontuação de Cobertura da Mídia",
+    "axisIbActivity": "Índice de Atividade do IB"
   },
   "home": {
     "heroHeadline": "<accent>A IA</accent> capta os fluxos de smart money e a acumulação antes da alta e escreve seu relatório diário",

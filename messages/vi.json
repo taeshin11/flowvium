@@ -96,7 +96,11 @@
       "consumer-discretionary": "Tiêu dùng tùy ý",
       "it-software": "IT / Phần mềm",
       "technology": "Công nghệ",
-      "automotive": "Ô tô"
+      "automotive": "Ô tô",
+      "ai-infrastructure": "Cơ sở hạ tầng AI",
+      "energy-transition": "Chuyển đổi năng lượng",
+      "financials-fintech": "Tài chính / Fintech",
+      "materials-critical-minerals": "Vật liệu / Khoáng sản chiến lược"
     },
     "relationships": {
       "supplier": "Nhà cung cấp",
@@ -494,7 +498,9 @@
     "staticDataPending": "Dữ liệu tham khảo (2026-Q1) · Đang chờ tự động cập nhật",
     "staticDataTooltip": "Dữ liệu Alpha Vantage và EDGAR 13F chưa được thu thập. Đang hiển thị dữ liệu tĩnh dựa trên nghiên cứu. Sẽ cập nhật ở lần chạy cron tiếp theo (02:00 UTC).",
     "dataScheduleLabel": "Lịch cập nhật dữ liệu:",
-    "dataScheduleDetail": "Nắm giữ thể chế (EDGAR 13F) — Cron hàng ngày 02:00 UTC · Phủ sóng truyền thông (Alpha Vantage) — 25 ticker/ngày · Dữ liệu cơ sở: nghiên cứu 2026-Q1"
+    "dataScheduleDetail": "Nắm giữ thể chế (EDGAR 13F) — Cron hàng ngày 02:00 UTC · Phủ sóng truyền thông (Alpha Vantage) — 25 ticker/ngày · Dữ liệu cơ sở: nghiên cứu 2026-Q1",
+    "axisMediaCoverage": "Điểm độ phủ truyền thông",
+    "axisIbActivity": "Chỉ số hoạt động IB"
   },
   "home": {
     "heroHeadline": "<accent>AI</accent> bắt dòng tiền thông minh và gom hàng trước khi tăng, và viết báo cáo hằng ngày cho bạn",

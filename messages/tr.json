@@ -96,7 +96,11 @@
       "consumer-discretionary": "Tüketici İhtiyari",
       "it-software": "IT / Yazılım",
       "technology": "Teknoloji",
-      "automotive": "Otomotiv"
+      "automotive": "Otomotiv",
+      "ai-infrastructure": "Yapay Zeka Altyapısı",
+      "energy-transition": "Enerji Dönüşümü",
+      "financials-fintech": "Finans / Fintek",
+      "materials-critical-minerals": "Hammadeler / Kritik Mineraller"
     },
     "relationships": {
       "supplier": "Tedarikçi",
@@ -494,7 +498,9 @@
     "staticDataPending": "Araştırma tabanlı veri (2026-Q1) · Otomatik güncelleme bekleniyor",
     "staticDataTooltip": "Alpha Vantage haberleri ve EDGAR 13F verileri henüz toplanmadı. Araştırma tabanlı statik veriler gösteriliyor. Bir sonraki cron çalışmasında güncellenecek (02:00 UTC).",
     "dataScheduleLabel": "Veri güncelleme takvimi:",
-    "dataScheduleDetail": "Kurumsal pozisyonlar (EDGAR 13F) — Günlük 02:00 UTC cron · Medya kapsamı (Alpha Vantage) — 25 ticker/gün · Temel veriler: 2026-Q1 araştırma"
+    "dataScheduleDetail": "Kurumsal pozisyonlar (EDGAR 13F) — Günlük 02:00 UTC cron · Medya kapsamı (Alpha Vantage) — 25 ticker/gün · Temel veriler: 2026-Q1 araştırma",
+    "axisMediaCoverage": "Medya Kapsam Puanı",
+    "axisIbActivity": "IB Aktivite Puanı"
   },
   "home": {
     "heroHeadline": "<accent>Yapay zeka</accent> akıllı para akışlarını ve toplamayı yükseliş öncesi yakalar ve günlük raporunuzu yazar",
