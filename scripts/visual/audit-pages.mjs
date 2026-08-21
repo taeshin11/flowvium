@@ -211,7 +211,20 @@ if (WANT_SLICES) mkdirSync(shotRoot, { recursive: true });
 
 for (const path of PAGES) {
   const page = await ctx.newPage();
-  const rec = { path, bodyLen: 0, flags: [], slices: 0, err: null };
+  const rec = { path, bodyLen: 0, flags: [], slices: 0, err: null, apiCalls: [] };
+  // 2026-08-21: 이 페이지가 실제로 호출한 /api/ 를 기록한다.
+  //   audit-coverage [12] 가 "코드 참조하나 어떤 검증도 미커버" 로 매 사이클 3건을 경고했는데,
+  //   실측하면 /ko/judge 가 /api/member 와 /api/judge-chat 을 호출한다 — 이미 덮여 있었다.
+  //   COVERED_BY_* 손 목록을 하나 더 만드는 대신 브라우저가 관측한 사실을 근거로 넘긴다.
+  {
+    const seen = new Set();
+    page.on('request', (r) => {
+      const u = r.url();
+      if (!u.includes('/api/')) return;
+      const k = `${r.method()} ${u}`;
+      if (!seen.has(k)) { seen.add(k); rec.apiCalls.push(k); }
+    });
+  }
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     try { await page.waitForLoadState('networkidle', { timeout: 8000 }); } catch {}

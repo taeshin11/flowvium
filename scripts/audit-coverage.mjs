@@ -8,6 +8,7 @@
  * 매주 또는 매 fix push 후 실행 권장.
  */
 import Database from 'better-sqlite3';
+import { endpointsFromPageAudit } from './lib/page-endpoint-coverage.mjs';
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 const ROOT = _PROJECT_ROOT;
@@ -741,6 +742,9 @@ try {
     '/api/ai': 'POST 전용 + LLM 토큰 비용',
     '/api/paper-trading': 'POST 상호작용(모의투자 주문)',
     '/api/institutional-refresh': '갱신 트리거(부수효과) — 주기 probe 부적합',
+    // 2026-08-21: 클라이언트 오류 로깅 싱크. GET 은 인증 필요(실측 401), POST 는 쓰기다.
+    //   오류가 났을 때만 호출되므로 주기 probe 로 확인할 상태가 없다.
+    '/api/client-log': '클라이언트 오류 로깅 싱크 — GET 401(인증), POST 쓰기. 주기 probe 대상 아님',
   };
   // 템플릿 문자열 아티팩트 제외: `/api/admin/${x}` 류는 단일세그먼트 regex 가 '/api/admin' 으로 캡처하나
   //   route.ts 없는 부모 디렉토리 = 실 endpoint 아님 (admin/* 은 x-admin-secret 필요 — 관리자 전용 미커버 의도)
@@ -748,8 +752,21 @@ try {
     const seg = e.replace('/api/', '');
     return existsSync(`${ROOT}/src/app/api/${seg}`) && !existsSync(`${ROOT}/src/app/api/${seg}/route.ts`);
   };
+  // 2026-08-21: 페이지 감사가 *실제로 관측한* 호출을 커버리지 근거로 넘긴다.
+  //   종전엔 /api/judge-chat·/api/member 가 매 사이클 "어떤 검증도 미커버"로 경고됐는데,
+  //   실측하면 /ko/judge 가 둘 다 호출한다 — 이미 덮여 있는데 그걸 모르고 있었을 뿐이다.
+  //   COVERED_BY_* 손 목록을 하나 더 만들면 또 실제와 갈린다(이 세션에서 네 번 봤다).
+  //   audit-pages 가 남긴 apiCalls 를 읽어 파생시킨다. 파일이 없으면 빈 집합 — 종전 동작 그대로다.
+  let coveredByPageAudit = new Set();
+  try {
+    const pa = JSON.parse(readFileSync(`${ROOT}/logs/page-audit.json`, 'utf8'));
+    coveredByPageAudit = endpointsFromPageAudit(pa);
+    if (coveredByPageAudit.size) console.log(`  페이지 감사 관측 커버리지: ${coveredByPageAudit.size} endpoint (logs/page-audit.json, ${pa.ts ?? '시각미상'})`);
+    else console.log('  페이지 감사 관측 커버리지: 0 — audit-pages 를 apiCalls 기록 판본으로 한 번 돌려야 한다');
+  } catch { console.log('  페이지 감사 관측 커버리지: logs/page-audit.json 없음(미실행)'); }
   const trulyUncovered = inCodeNotManifest.filter(e =>
-    !capCovers(e) && !COVERED_BY_COMPANY_PAGES.has(e) && !COVERED_BY_DQ.has(e) && !KNOWN_UNCOVERED[e] && !isParentPrefix(e));
+    !capCovers(e) && !COVERED_BY_COMPANY_PAGES.has(e) && !COVERED_BY_DQ.has(e)
+    && !coveredByPageAudit.has(e) && !KNOWN_UNCOVERED[e] && !isParentPrefix(e));
   if (trulyUncovered.length) {
     // 파라미터 없이 GET 가능한 것은 즉석 body 검사. 400/404/405 = 파라미터필요/POST전용(살아있음 — info),
     //   5xx 또는 200+빈body 만 결함 의심.
