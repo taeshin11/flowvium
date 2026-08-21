@@ -50,8 +50,44 @@ export async function readMemory() {
 }
 
 /**
+ * 순수 계산: 이벤트 목록 → 가동률. 부수효과 없음(그래서 검증할 수 있다).
+ *
+ * 2026-08-22 정정. 종전엔 *이벤트 사이 구간* 만 셌다. 그래서 62초 정지 1회뿐인 유휴 창에서
+ *   stop=62s / run=0 → 가동률 0% 라는 오탐이 났다(참값 98.3%).
+ *   창 시작~첫 이벤트, 마지막 이벤트~현재를 아무 쪽에도 안 넣은 것이다.
+ *   이벤트가 드물수록 결과가 틀렸다 — 평온할수록 경보가 울리는 계산이었다.
+ *
+ * 올바른 정의: 창 전체에서 *측정된 정지 구간* 을 뺀 나머지가 가동이다.
+ *   · 창 이전에 시작된 정지는 창 시작으로 잘라 센다.
+ *   · 재개가 없으면(지금도 정지 중) now 까지 센다.
+ * @param {Array<[number,'stop'|'run']>} events 시간 오름차순
+ */
+export function computeDuty(events, windowMs, now = Date.now()) {
+  const start = now - windowMs;
+  const evs = [...events].filter((e) => e[0] <= now).sort((a, b) => a[0] - b[0]);
+  let paused = 0, pauses = 0, openStop = null;
+  // 정지 '횟수' 는 창과 겹치는 구간만 센다. 창 밖(더 과거) 정지까지 세면 시간은 0인데
+  //   횟수만 수백으로 불어나 경보 문구가 거짓이 된다(실측으로 그렇게 나왔다).
+  const countIfOverlaps = (from, to) => { if (Math.min(to, now) > Math.max(from, start)) pauses++; };
+  for (const [t, kind] of evs) {
+    if (kind === 'stop') { if (openStop === null) openStop = t; continue; }
+    if (openStop !== null) {                       // run — 열린 정지를 닫는다
+      paused += Math.max(0, Math.min(t, now) - Math.max(openStop, start));
+      countIfOverlaps(openStop, t);
+      openStop = null;
+    }
+  }
+  if (openStop !== null) {                          // 아직 정지 중
+    paused += Math.max(0, now - Math.max(openStop, start));
+    countIfOverlaps(openStop, now);
+  }
+  const dutyPct = windowMs > 0 ? Math.max(0, Math.min(100, Math.round((windowMs - paused) / windowMs * 100))) : 100;
+  return { dutyPct, pauses, pausedMs: paused, samples: evs.length };
+}
+
+/**
  * 최근 창의 조절기 가동률. 로그가 없으면 null(모른다).
- * 정지→재개 = 정지구간, 재개→정지 = 실행구간. 유휴(간격이 너무 긴 구간)는 제외한다.
+ * 로그에서 정지/재개 이벤트만 뽑아 computeDuty 에 넘긴다 — 파싱과 계산을 분리한다.
  */
 export async function readThermalDuty(logPath = THERMAL_LOG, windowMinutes = null) {
   if (!existsSync(logPath)) return null;
@@ -63,21 +99,10 @@ export async function readThermalDuty(logPath = THERMAL_LOG, windowMinutes = nul
     const m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (일시정지|재개)/);
     if (!m) continue;
     const t = new Date(m[1].replace(' ', 'T')).getTime();
-    if (Number.isFinite(t) && t >= since) evs.push([t, m[2] === '재개' ? 'run' : 'stop']);
+    // 창 이전에 시작된 정지도 필요하다(computeDuty 가 창 시작으로 잘라 센다) → 창의 2배까지 본다.
+    if (Number.isFinite(t) && t >= since - win) evs.push([t, m[2] === '재개' ? 'run' : 'stop']);
   }
-  if (evs.length < 2) return { dutyPct: 100, pauses: 0, samples: evs.length };
-  let run_ = 0, stop = 0;
-  for (let i = 0; i < evs.length - 1; i++) {
-    const d = evs[i + 1][0] - evs[i][0];
-    if (d > 10 * 60 * 1000) continue;                 // 유휴 구간 — 조절과 무관
-    if (evs[i][1] === 'run') run_ += d; else stop += d;
-  }
-  const total = run_ + stop;
-  return {
-    dutyPct: total ? Math.round(run_ / total * 100) : 100,
-    pauses: evs.filter(e => e[1] === 'stop').length,
-    samples: evs.length,
-  };
+  return computeDuty(evs, win);
 }
 
 /** 스냅샷 → 사람이 읽을 issue 배열. 임계 미만이면 빈 배열. */
