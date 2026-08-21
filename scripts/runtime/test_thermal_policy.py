@@ -16,7 +16,10 @@
 import unittest
 from thermal_policy import decide, Decision, State
 
-CEIL, RESUME, MIN_PAUSE, MAX_PAUSE = 90.0, 82.0, 15.0, 180.0
+# MAX_PAUSE 는 데몬 기본값과 같은 900. 루틴 상한이 아니라 '예상 못 한 경로의 마지막 그물'이다.
+#   실측: 재개 1,241건 중 180s 이상 6건(0.5%) 최대 540s — 전부 정상 냉각 대기였다.
+#   180 으로 두면 그 6건에서 90°C 인 GPU 를 강제 재개시킨다.
+CEIL, RESUME, MIN_PAUSE, MAX_PAUSE = 90.0, 82.0, 15.0, 900.0
 
 
 def d(state, gpu, cpu, now):

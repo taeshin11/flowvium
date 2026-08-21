@@ -35,7 +35,15 @@ CEIL       = float(os.environ.get("TEMP_CEIL", "90"))
 RESUME     = float(os.environ.get("TEMP_RESUME", str(CEIL - 8)))
 MIN_PAUSE  = float(os.environ.get("TEMP_MIN_PAUSE", "15"))
 # 온도가 안 내려가도 이 시간을 넘기면 놓아준다. 조절이 서비스 중단이 되면 안 된다.
-MAX_PAUSE  = float(os.environ.get("TEMP_MAX_PAUSE", "180"))
+#
+# 2026-08-21 실측으로 재조정(처음엔 180 으로 잡았는데 근거가 없었다):
+#   과거 로그 재개 1,241건 — 중앙값 17s · 평균 19s · 180s 이상 6건(0.5%) · 최대 540s.
+#   그 6건을 열어 보니 전부 *정상 냉각 대기*였다(정지 시 GPU 90~97°C → 재개 시 75~82°C).
+#   180 이면 그 6건에서 90°C 인 GPU 를 강제 재개시킨다 — 조절기를 만든 이유를 스스로 깨는 값이다.
+#   무기한 정지의 실제 원인(센서 스트림 정지)은 SAMPLE_TIMEOUT 이 따로 막으므로
+#   이 값은 '루틴 상한'이 아니라 '예상 못 한 경로의 마지막 그물'이어야 한다.
+#   관측 최대(540s)보다 넉넉히 위로 둔다 — 정상 운전에서는 한 번도 발화하지 않는 값.
+MAX_PAUSE  = float(os.environ.get("TEMP_MAX_PAUSE", "900"))
 # macmon 간격(2s)의 여러 배 — 일시적 지연으로 재기동하지 않도록 넉넉히.
 SAMPLE_TIMEOUT = float(os.environ.get("TEMP_SAMPLE_TIMEOUT", "20"))
 HEARTBEAT  = float(os.environ.get("TEMP_HEARTBEAT", "900"))
