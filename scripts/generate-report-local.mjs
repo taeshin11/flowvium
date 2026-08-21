@@ -34,6 +34,7 @@ import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { resolveServedModelId, servedModelBasename } from './lib/served-model.mjs';
 import { localizeSectorKo } from './lib/sector-label.mjs';
 import { reconcileSqueeze, correctScoreMentions } from './lib/squeeze-reconcile.mjs';
+import { earningsMissSignal } from './lib/earnings-miss.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
@@ -1991,7 +1992,7 @@ function applyVolatilityStopFloor(portfolio, livePrices, volMeta) {
  * score >= 8 -> 🔴 HIGH / 4-7 -> 🟠 MED / 2-3 -> ⚠️ LOW
  * Returns: { risks: Map, macroGlobalWarning: string|null }
  */
-async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
+async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw, rawEarnings = []) {
   function parseTargetHigh(str) {
     if (!str) return NaN;
     const c = String(str).replace(/[₩$€,\s]/g, "");
@@ -2031,15 +2032,12 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
         newsNegMap.set(item.ticker, (newsNegMap.get(item.ticker) ?? 0) + 1);
     }
   }
-  const FUND_NEG_KW = /guidance lowered|guidance cut|miss|below estimate|loss widened|가이던스 하향|하향 조정|어닙 미스/i;
-  const financialsRaw = ctxRaw?.companyFinancials;
-  function getFinancialsText(tk) {
-    if (!financialsRaw) return "";
-    if (typeof financialsRaw === "string") return financialsRaw;
-    if (financialsRaw instanceof Map) return financialsRaw.get(tk) ?? "";
-    if (typeof financialsRaw === "object") return String(financialsRaw[tk] ?? "");
-    return "";
-  }
+  // 2026-08-21 제거: FUND_NEG_KW + getFinancialsText.
+  //   ctxRaw 에 companyFinancials 키가 없다(gatherContext 반환 26종에 미포함·사후 대입도 없음).
+  //   → 항상 "" 를 돌려줘 아래 '펀더멘탈 악화' 신호가 한 번도 발화하지 않았다.
+  //   배선만 고쳐도 안 된다 — getCompanyFinancials 는 "$81.6B +85.2% YoY opMgn=60.4% …" 같은
+  //   순수 수치 문자열이라 그 정규식이 매칭될 문장이 애초에 없다.
+  //   의도(어닝미스)를 실측 epsSurprise 로 접지한다 — lib/earnings-miss.mjs.
   const insiderArr = Array.isArray(ctxRaw?.insider) ? ctxRaw.insider : [];
   const risks = new Map();
   const buyItems = portfolioItems.filter(p => p.action === "buy");
@@ -2093,8 +2091,10 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw) {
     const negNewsCount = newsNegMap.get(item.ticker) ?? 0;
     if (negNewsCount >= 2) signals.push({ label: `부정뉴스 ${negNewsCount}건(하락 촉매 증가)`, weight: 2 });
     else if (negNewsCount === 1) signals.push({ label: "부정뉴스 1건(리스크 모니터)", weight: 1 });
-    const finText = getFinancialsText(item.ticker);
-    if (finText && FUND_NEG_KW.test(finText)) signals.push({ label: "가이던스 하향/어닝미스(펀더멘탈 악화)", weight: 2 });
+    // 가이던스는 결정론적 소스가 없다(companyChanges[].guidance 는 LLM 산출이라 리스크 입력으로 쓰지 않는다).
+    //   실측으로 말할 수 있는 것만 말한다 — 컨센서스 하회. 크기를 라벨에 실어 독자가 판단하게 한다.
+    const missSig = earningsMissSignal(item.ticker, rawEarnings);
+    if (missSig) signals.push({ label: `어닝미스 ${missSig.surprisePct.toFixed(1)}%(${missSig.date} 발표, 컨센서스 하회)`, weight: 2 });
     if (hySpread != null && hySpread > 400) signals.push({ label: `HY스프레드 ${Math.round(hySpread)}bps(신용 리스크 확대)`, weight: 2 });
 
     // ── SEIBRO 공매도 + KRX 투자자별 (한국 주식) ──────────────────────────────
@@ -8661,7 +8661,10 @@ async function generateViaOllama() {
   }
 
   // 고점 덤핑 징후 탐지 — riskNote에 경고 주입
-  const { risks: peakRisksMap, macroGlobalWarning } = await detectPeakDumpRisk(finalReport.portfolio, livePrices, ctxRaw);
+  // 2026-08-21: rawEarnings 를 여기서 먼저 가져온다 — 아래 enrichSqueezePostEarnings 가 쓰던 것을
+  //   앞당길 뿐이라 추가 호출이 아니다. detectPeakDumpRisk 의 어닝미스 신호가 이 실측을 쓴다.
+  const rawEarnings = await getRawEarnings();
+  const { risks: peakRisksMap, macroGlobalWarning } = await detectPeakDumpRisk(finalReport.portfolio, livePrices, ctxRaw, rawEarnings);
   if (peakRisksMap.size > 0 || macroGlobalWarning) {
     if (peakRisksMap.size > 0) {
       const summary = [...peakRisksMap.entries()].map(([t, r]) => `${t}(score:${r.totalWeight})`).join(', ');
@@ -8695,7 +8698,6 @@ async function generateViaOllama() {
       return updated;
     });
   }
-  const rawEarnings = await getRawEarnings();
   const squeezeBefore = finalReport.shortSqueeze.map(s => s.ticker);
   // 2026-08-21: LLM 이 ticker 와 score 를 직접 쓴다(:6280 프롬프트). 실측과 대조하는 곳이 없었다.
   //   실제 사고: morning 보고서가 MRNA score=43 으로 발간됐는데 /api/short-interest 실측은 55 다
