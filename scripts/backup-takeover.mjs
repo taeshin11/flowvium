@@ -28,8 +28,9 @@
  * 환경: FLOWVIUM_BACKUP_DIR(필수) · BACKUP_BUDGET_MS · BACKUP_OP_TIMEOUT_MS · BACKUP_KEEP
  */
 import Database from 'better-sqlite3';
+import { execFile, spawn } from 'child_process';
 import fsp from 'fs/promises';
-import { existsSync, mkdirSync, statSync } from 'fs';
+import { existsSync, mkdirSync, statSync, unlinkSync } from 'fs';
 import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 
@@ -68,15 +69,52 @@ const overBudget = () => Date.now() - T0 > BUDGET_MS;
  *   다음 주기가 다시 쓴다 — 백업본이 잠시 비는 것보다 영영 갱신 안 되는 게 나쁘다.
  */
 async function replaceFile(label, src, dest) {
-  await withTimeout(`${label} 기존본 제거`, fsp.unlink(dest), OP_TIMEOUT_MS).catch(() => {});
-  return withTimeout(label, fsp.copyFile(src, dest));
+  // rm+cp 를 자식 하나에서 한다 — 왕복도 절반이고, 막히면 통째로 SIGKILL 된다.
+  return withTimeout(label, sh('rm -f -- "$1"; exec cp -- "$2" "$1"', dest, src));
 }
 
 /**
  * 원격 연산 하나에 상한을 건다. 넘기면 false 를 돌려주고 진행한다.
- *   race 는 밑에서 도는 연산을 취소하지 못한다 — 스레드풀에 남는다.
- *   그래서 마지막에 process.exit 로 명시 종료한다(아래 참조).
+ *
+ * 2026-08-22 정정 — 예전 주석은 "race 가 취소를 못 하니 마지막에 process.exit 로 종료한다"
+ *   였는데, 그 완화책은 전제부터 틀렸다. 실측:
+ *     · 상한을 넘겨 버린 Drive 연산이 libuv 스레드풀 4칸(기본 전부)을 영구 점유한다
+ *       — `sample` 로 확인: libuv-worker ×4 전원 open()/unlink() 커널 대기.
+ *     · 그러면 *로컬* fs 조차 스케줄될 슬롯이 없다.
+ *     · 그리고 **process.exit(0) 도 못 빠져나온다** (FIFO 로 같은 상태 재현: exit 은 6초+
+ *       미종료로 외부 SIGKILL 필요, 자기 SIGKILL 만 0.46초). libuv 가 종료 시 워커를 join 한다.
+ *   그 결과 예약 백업 잡이 할 일을 60.4s 에 다 끝내고도 5시간 좀비로 남아 있었다.
+ *
+ *   결론: 상한은 취소가 아니다. 취소 가능한 유일한 경계는 프로세스 경계다.
+ *   그래서 Drive 를 만지는 *데이터* 연산은 전부 remoteExec(자식+SIGKILL)로 옮겼다.
+ *   메타데이터 동기 연산(existsSync/statSync/mkdirSync)은 실측 4ms 라 그대로 둔다 —
+ *   동기 호출은 스레드풀이 아니라 호출 스레드에서 돌아 기아의 영향을 받지 않는다.
  */
+/**
+ * Drive 를 만지는 연산을 죽일 수 있는 자식 프로세스로 돌린다.
+ * 상한을 넘기면 SIGKILL — 이 프로세스의 스레드풀은 깨끗하게 남는다.
+ */
+function remoteExec(argv, ms = OP_TIMEOUT_MS) {
+  return new Promise((res) => {
+    // 왜 실패했는지를 구분해 돌려준다. 전부 '상한 초과' 로 뭉뚱그리면 회로차단기가
+    //   디스크 부족·권한 거부까지 "Drive 접근 권한 문제" 로 오진하고, 로그가 거짓말을 한다.
+    const child = execFile(argv[0], argv.slice(1),
+      { timeout: ms, killSignal: 'SIGKILL', maxBuffer: 8 << 20 },
+      (err, stdout, stderr) => {
+        if (!err) return res({ ok: true, out: String(stdout) });
+        const killed = err.killed || err.signal === 'SIGKILL';
+        res({ ok: false, timedOut: killed, reason: killed ? `${ms}ms 상한 초과` : (String(stderr).trim().split('\n')[0] || `종료코드 ${err.code}`) });
+      });
+    // execFile 의 timeout 이 안 먹는 경우(자식이 커널 대기)에도 부모는 풀려나야 한다.
+    const hard = setTimeout(() => {
+      try { child.kill('SIGKILL'); } catch { /* 이미 종료 */ }
+      res({ ok: false, timedOut: true, reason: `${ms}ms 상한 초과(강제 종료)` });
+    }, ms + 2000);
+    child.on('close', () => clearTimeout(hard));
+    hard.unref();
+  });
+}
+const sh = (script, ...args) => remoteExec(['/bin/sh', '-c', script, 'sh', ...args]);
 // 회로차단기: 원격 연산이 연속으로 상한을 넘기면 이번 주기 Drive 는 포기한다.
 //   2026-08-22 실측 — launchd 컨텍스트에서는 서버 왕복이 필요한 연산이 *전부* 실패한다.
 //   그런데도 파일마다 20초씩 기다리면 매일 밤 20분을 헛되이 태운다(그동안 디스크·Drive 데몬을
@@ -90,10 +128,11 @@ async function withTimeout(label, promise, ms = OP_TIMEOUT_MS) {
   if (remoteGaveUp) return false;
   let timer;
   try {
-    await Promise.race([
+    const r = await Promise.race([
       promise,
       new Promise((_, rej) => { timer = setTimeout(() => rej(new Error(`${ms}ms 상한 초과`)), ms); }),
     ]);
+    if (r && r.ok === false) throw new Error(r.reason);
     consecutiveTimeouts = 0;
     return true;
   } catch (e) {
@@ -108,6 +147,17 @@ async function withTimeout(label, promise, ms = OP_TIMEOUT_MS) {
     return false;
   } finally { clearTimeout(timer); }
 }
+
+// ── 0. 자기 감시자(reaper). 예약 백업 잡이 할 일을 60.4s 에 다 끝내고도 5시간 좀비로 남았다.
+//   원인은 아래 withTimeout 주석 참조. 자식 프로세스로 옮겨 근본은 없앴지만,
+//   Drive 마운트가 *동기* 메타데이터 연산까지 멈추는 날이 오면 이 프로세스 안의
+//   어떤 JS 도 우리를 구할 수 없다 — process.exit 조차 못 빠져나온다(실측).
+//   그래서 감시자는 밖에 둔다. 예산 + 여유 뒤에도 살아 있으면 밖에서 죽인다.
+//   PID 재사용으로 엉뚱한 프로세스를 죽이지 않도록 명령줄을 확인하고 죽인다.
+const reaper = spawn('/bin/sh', ['-c',
+  `sleep ${Math.round(BUDGET_MS / 1000) + 180}; ps -p ${process.pid} -o command= 2>/dev/null | grep -q backup-takeover && kill -9 ${process.pid}`],
+  { detached: true, stdio: 'ignore' });
+reaper.unref();
 
 if (!existsSync(DEST)) mkdirSync(DEST, { recursive: true });
 
@@ -205,16 +255,21 @@ if (remoteGaveUp) {
 } else if (overBudget()) {
   log(`⏱ 시간예산 ${Math.round(BUDGET_MS / 60000)}분 초과 — 보존정책 삭제는 다음 주기로`);
 } else {
-  const files = (await fsp.readdir(DEST)).filter((f) => /^flowvium-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort();
+  const listed = await sh('cd "$1" 2>/dev/null && ls -1', DEST);
+  if (!listed.ok) log(`  ⚠️ 원격 목록 조회 실패: ${listed.reason}`);
+  const files = String(listed.out ?? '').split('\n').filter((f) => /^flowvium-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort();
   for (const old of files.slice(0, Math.max(0, files.length - KEEP))) {
     if (overBudget()) { log(`⏱ 예산 초과 — 남은 삭제(${old} 등)는 다음 주기로`); break; }
-    if (await withTimeout(`오래된 백업 삭제 ${old}`, fsp.unlink(join(DEST, old)))) log(`오래된 DB 백업 삭제: ${old}`);
+    if (await withTimeout(`오래된 백업 삭제 ${old}`, sh('exec rm -f -- "$1"', join(DEST, old)))) log(`오래된 DB 백업 삭제: ${old}`);
   }
 }
 
 log(`총 소요 ${((Date.now() - T0) / 1000).toFixed(1)}s`);
 log(fails ? `⚠️ 백업 완료 (건너뛴 파일 ${fails}건 — 다음 주기 재시도)` : '✅ 인수인계 백업 완료');
-// 상한을 넘긴 연산이 스레드풀에 남아 있으면 이벤트루프가 안 비어 프로세스가 안 죽는다.
-//   부분 실패는 다음 일일 주기가 자가 회복하므로 여기서 명시 종료한다(cron 을 fail 로 오기록하지 않게 0).
-await fsp.unlink(localDb).catch(() => {});   // 임시본 정리
+// 종료 직전 정리는 **동기**로 한다. 예전엔 `await fsp.unlink(localDb)` 였는데,
+//   스레드풀이 막힌 상태에서는 로컬 경로여도 스케줄될 슬롯이 없어 바로 다음 줄의
+//   process.exit 에 영영 도달하지 못했다(5시간 좀비의 마지막 한 칸). 동기 호출은
+//   호출 스레드에서 돌아 기아의 영향을 받지 않는다.
+try { unlinkSync(localDb); } catch { /* 이미 없음 */ }
+reaper.kill();                               // 정상 종료 — 감시자 해제
 process.exit(0);
