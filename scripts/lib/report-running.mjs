@@ -17,6 +17,7 @@
 import { statSync } from 'fs';
 import { resolve } from 'path';
 import { execFile } from 'child_process';
+import { findProcesses } from './platform-ops.mjs';
 
 export const LOCK_REL = 'logs/report-pipeline.lock';
 export const LOCK_MAX_AGE_MS = 90 * 60 * 1000;
@@ -42,7 +43,11 @@ export function isProcessAlive(pattern = REPORT_PROC_PATTERN) {
   });
 }
 
-export const isReportProcessAlive = () => isProcessAlive(REPORT_PROC_PATTERN);
+/**
+ * 생성기가 살아 있는가. pgrep 문자열 매칭이 아니라 findReportProcesses 를 쓴다 —
+ *   'node ... generate-report-local.mjs' 형태만 생성기로 센다(명령줄에 이름만 스친 것 제외).
+ */
+export const isReportProcessAlive = async () => findReportProcesses().length > 0;
 
 /** 래퍼가 남긴 락이 신선한가 (90분 미만). */
 export function isLockFresh(root = process.cwd()) {
@@ -56,4 +61,17 @@ export function isLockFresh(root = process.cwd()) {
 export async function isReportPipelineRunning(root = process.cwd()) {
   if (isLockFresh(root)) return true;
   return isReportProcessAlive();
+}
+
+
+/**
+ * 실제로 도는 보고서 생성기 목록. 명령줄에 이름이 스친 것(셸·모니터 명령)은 제외한다 —
+ *   'node ... generate-report-local.mjs' 형태만 생성기다.
+ *   실측 2026-08-21: 내 백그라운드 대기 셸의 argv 에 이름이 들어 있어 모니터가 '동시 2건'을 냈다.
+ *   hung 판정과 GPU 양보 판정이 둘 다 이 목록을 보므로, 오탐 하나가 두 판정을 동시에 망친다.
+ * @returns {Array<{pid:number, ageSec:number, command:string}>}
+ */
+export const REPORT_PROC_RE = /node(?:\.exe)?\s[^\n]*generate-report-local\.mjs/;
+export function findReportProcesses() {
+  return findProcesses(REPORT_PROC_RE);
 }

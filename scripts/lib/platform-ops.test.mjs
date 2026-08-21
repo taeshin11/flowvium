@@ -44,10 +44,20 @@ t.split('\n').filter(Boolean).length === 80 && t.includes('line200') && !t.inclu
 P.readTail(join(d,'nope.log'), 10) === '' ? ok('readTail: 없는 파일 → 빈 문자열(예외 아님)') : bad('없는 파일 처리 이상');
 
 // [3] findProcesses — 지금 도는 node 를 스스로 찾아야 한다
-const procs = P.findProcesses('platform-ops.test');
+//   2026-08-21: 기본값이 '자기 제외' 로 바뀌었다(모니터가 자기 명령줄에 걸려 유령 생성기를
+//   세던 사고). 함수 동작·ageSec 검증에는 '반드시 존재하는 프로세스' 가 필요하므로
+//   여기서만 includeSelf 로 켠다. 기본값이 제외인지는 바로 아래에서 따로 못 박는다.
+const procs = P.findProcesses('platform-ops.test', { includeSelf: true });
 procs.some(p => p.pid === process.pid)
   ? ok(`findProcesses: 자기 자신 탐지 (pid ${process.pid}, ${procs.length}건)`)
   : bad(`findProcesses 가 자기 자신도 못 찾음: ${JSON.stringify(procs).slice(0,120)}`);
+// 기본값(옵션 없음)은 자기 자신을 세지 않는다 — 유령 집계 회귀 봉쇄
+P.findProcesses('platform-ops.test').some(p => p.pid === process.pid)
+  ? bad('기본값인데 자기 자신이 결과에 들어온다 — 유령 프로세스 집계 재발')
+  : ok('findProcesses: 기본값은 자기 자신 제외');
+// 정규식 패턴도 받는다 (문자열이 스치기만 한 프로세스와 실행 파일을 구분하려면 필요)
+Array.isArray(P.findProcesses(/platform-ops\.test/, { includeSelf: true }))
+  ? ok('findProcesses: 정규식 패턴 지원') : bad('정규식 패턴 미지원');
 const none = P.findProcesses('zzz-definitely-no-such-process-zzz');
 Array.isArray(none) && none.length === 0 ? ok('findProcesses: 무매칭 → 빈 배열') : bad('무매칭 처리 이상');
 // 나이(초)를 줘야 hung 탐지가 가능하다

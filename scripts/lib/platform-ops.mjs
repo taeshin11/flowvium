@@ -49,7 +49,12 @@ export function readTail(path, n = 80, maxBytes = 4 * 1024 * 1024) {
  * 명령줄에 pattern 을 포함하는 프로세스들. [{ pid, ageSec, command }].
  * ageSec 은 hung 판정에 필요하다 — 존재 여부만으로는 멈춘 프로세스를 못 가린다.
  */
-export function findProcesses(pattern) {
+/**
+ * 명령줄이 pattern(문자열 부분매칭 또는 정규식)에 맞는 프로세스 목록.
+ * 기본으로 자기 자신과 부모는 제외한다 — 모니터가 자기 명령줄에 걸려 유령을 세는 사고가 실제로 났다.
+ * 함수 자체를 스모크 테스트할 때만 opts.includeSelf 로 켠다.
+ */
+export function findProcesses(pattern, opts = {}) {
   const out = [];
   if (WIN) {
     const r = spawnSync('powershell', ['-NoProfile', '-Command',
@@ -68,8 +73,13 @@ export function findProcesses(pattern) {
     const m = line.match(/^\s*(\d+)\s+(\S+)\s+(.*)$/);
     if (!m) continue;
     const [, pid, etime, command] = m;
-    if (!command.includes(pattern)) continue;
-    if (+pid === process.pid && !command.includes(pattern)) continue;
+    // 2026-08-21: pattern 은 문자열 또는 정규식. 문자열 부분매칭만 되던 탓에 명령줄에 이름이
+    //   *스치기만* 한 프로세스가 잡혔다(실측: 내 백그라운드 대기 셸이 'report-gen 2번째'로 집계됨).
+    if (pattern instanceof RegExp ? !pattern.test(command) : !command.includes(pattern)) continue;
+    // 자기 자신과 부모는 세지 않는다. 종전 코드
+    //     if (+pid === process.pid && !command.includes(pattern)) continue;
+    //   는 앞 줄이 이미 includes 를 요구하므로 절대 참이 될 수 없는 죽은 가드였다.
+    if (!opts.includeSelf && (+pid === process.pid || +pid === process.ppid)) continue;
     const dm = etime.match(/^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/);
     const ageSec = dm ? (+(dm[1] || 0) * 86400) + (+(dm[2] || 0) * 3600) + (+dm[3] * 60) + +dm[4] : 0;
     out.push({ pid: +pid, ageSec, command });

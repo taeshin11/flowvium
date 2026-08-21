@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { cascadePatterns } from '@/data/cascades';
+// 2026-08-21: 종전엔 sectorName(영문 원문)을 그대로 찍어 /ko 화면에 "Semiconductors" 같은
+//   영문이 노출됐다(페이지 감사 english_leak 5건). 같은 매핑을 하는 useSectorLabel 이
+//   이미 있고 ReportPage 는 쓰고 있었다 — 한 곳만 고치고 여기를 안 봤던 것이다.
+import { useSectorLabel } from '@/hooks/useSectorLabel';
 import { ArrowRight, Layers, TrendingUp, Clock, Hash } from 'lucide-react';
 
 const sectorColors: Record<string, string> = {
@@ -16,6 +20,7 @@ const sectorColors: Record<string, string> = {
 
 export default function CascadePage() {
   const t = useTranslations('cascade');
+  const sectorLabel = useSectorLabel();
 
   interface LeaderPrice { price: number | null; changePct: number | null; currency: string; }
   const [leaderPrices, setLeaderPrices] = useState<Map<string, LeaderPrice>>(new Map());
@@ -74,7 +79,7 @@ export default function CascadePage() {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: sectorColors[sector] || '#888' }}
               />
-              {patterns[0].sectorName}
+              {sectorLabel(patterns[0].sectorName)}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {patterns.map((pattern) => (

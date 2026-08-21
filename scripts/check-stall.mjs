@@ -23,6 +23,8 @@ import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 import { findProcesses } from './lib/platform-ops.mjs';
 import { sessionBudgetMin, maxSessionBudgetMin, getPublishTarget } from './lib/report-sessions.mjs';
 import { launcherWipesWorktree } from './lib/report-launcher.mjs';
+import { checkResourcePressure } from './lib/resource-pressure.mjs';
+import { findReportProcesses } from './lib/report-running.mjs';
 // 발행 예정 시각을 지난 뒤 업로드/전파에 실제로 걸리는 시간의 여유분. 예산(90분)이 아니라 '전파 지연' 몫이다.
 const PUBLISH_GRACE_MIN = 10;
 import { readLauncherModels } from './lib/report-launcher.mjs';
@@ -170,7 +172,11 @@ async function checkOnce() {
   // [3] hung report-gen 프로세스
   //   2026-08-20: Get-CimInstance 고정이라 맥에선 catch 로 조용히 skip — hung 탐지가 통째로 없었다.
   {
-    const procs = findProcesses('generate-report-local');
+    // 2026-08-21: 종전 findProcesses('generate-report-local') 는 문자열 부분매칭이라
+    //   명령줄에 이름이 스치기만 한 프로세스(셸·모니터 명령)까지 생성기로 셌다.
+    //   실측: 내 백그라운드 대기 셸이 'report-gen 2번째(세션 불명)' 로 집계됐다.
+    //   판정을 report-running.findReportProcesses 한 곳으로 모은다.
+    const procs = findReportProcesses();
     for (const p of procs) {
       const min = p.ageSec / 60;
       // 프로세스가 스스로 밝힌 세션의 예산을 쓴다. 못 읽으면 가장 너그러운 예산(미탐 > 오탐).
@@ -214,6 +220,22 @@ async function checkOnce() {
     else if (aheadTouch.length) issues.push(`${tag} — 커밋했으나 미푸시 ${aheadTouch.length}파일 (${how}) → git push origin master`);
     else info.push('git 동기화 ✓ (origin/master 와 일치)');
   } catch { /* git 미가용 — skip */ }
+
+  // [8] 자원 압력 — 메모리·스왑·열 (2026-08-21 신설).
+  //     종전 검사 7종에 자원 항목이 하나도 없었다. 이 기기는 27B(31.7GB)+4B(5.2GB)+embed 를
+  //     상주시키고(vmmap 실측) llm-local.ts 에 hard freeze 전력이 기록돼 있는데, 고갈을 보는
+  //     눈이 없었다. GPU 를 쓰지 않는 소스(vm_stat·sysctl·조절기 로그)만 읽는다 —
+  //     감시가 부하를 만들면 그건 감시가 아니다. 임계값은 data/resource-thresholds.json.
+  try {
+    const { mem, thermal, issues: resIssues } = await checkResourcePressure();
+    const memLine = `여유 ${mem.freePct}% · 스왑 ${mem.swapPct}%(${mem.swapUsedMB}/${mem.swapTotalMB}MB) · 압축 ${mem.compressedGB}GB`;
+    const thLine = thermal ? ` · 조절기 가동률 ${thermal.dutyPct}%(정지 ${thermal.pauses}회/최근창)` : '';
+    if (resIssues.length) for (const i of resIssues) issues.push(`자원 압력 — ${i}`);
+    else info.push(`자원 여유 ✓ (${memLine}${thLine})`);
+  } catch (e) {
+    // 판독 실패를 '이상 없음' 으로 삼키지 않는다 — 오늘 하루 그 패턴에 여러 번 당했다.
+    issues.push(`자원 압력 판독 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
 
   return { issues, info };
 }

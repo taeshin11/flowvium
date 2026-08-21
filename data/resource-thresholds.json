@@ -1,0 +1,19 @@
+{
+  "_note": "자원 압력 경보 임계값 (2026-08-21 신설). check-stall 의 검사 7종에 메모리·스왑·열이 하나도 없었다. 이 기기는 27B(31.7GB)+4B(5.2GB)+embed(0.69GB)=37.6GB 를 상주시키고(vmmap 실측), llm-local.ts 에 hard freeze 전력이 기록돼 있는데 자원 고갈을 보는 눈이 없었다.",
+  "_baseline": "2026-08-21 20:30 실측(저녁 보고서 생성 중, 즉 이 기기의 정상 최대부하): 여유 25% · 스왑 1886/3072MB(61%) · 압축기 9.9GB · 조절기 가동률 68%(정지 303회/일). 임계값은 이 정상부하보다 확실히 나쁠 때만 울리도록 잡았다 — 매번 울리는 경보는 무시된다.",
+  "memory": {
+    "minFreePct": 12,
+    "_minFreePctNote": "macOS memory_pressure 의 'System-wide memory free percentage'. 정상부하 25% 대비 절반 이하면 이상. 8% 아래는 페이지아웃 폭증 구간(경험칙 아님 — 아래 pageout 지표와 함께 봐야 함).",
+    "maxSwapPct": 85,
+    "_maxSwapPctNote": "swapusage used/total. macOS 는 스왑 파일을 동적으로 키우므로 이 비율은 '현재 할당분의 포화도'다. 85% 는 곧 확장이 필요하다는 신호.",
+    "maxCompressedGB": 16,
+    "_maxCompressedGBNote": "vm_stat 'Pages occupied by compressor'. 정상부하 9.9GB. 물리메모리의 1/3(16GB)을 압축이 차지하면 실효 메모리가 크게 줄어든 상태."
+  },
+  "thermal": {
+    "minDutyPct": 45,
+    "_minDutyPctNote": "조절기가 LLM 을 실제로 돌린 시간 비율. 오늘 실측 68%. 45% 미만이면 절반 이상을 정지로 보낸다는 뜻 — 처리량이 2배 이상 느려진 상태다.",
+    "windowMinutes": 60,
+    "_windowNote": "최근 이 시간 동안의 이벤트만 본다. 하루 전체 평균은 지금 상태를 못 보여준다."
+  },
+  "_policy": "이 파일은 경보 임계값이지 제어 정책이 아니다. 조절기의 상한(TEMP_CEIL)·최소정지(TEMP_MIN_PAUSE)는 별개이며 하드웨어 안전 정책이라 여기서 바꾸지 않는다."
+}
