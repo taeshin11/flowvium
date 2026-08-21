@@ -107,38 +107,53 @@ const DETECTORS = [
   //   원은 정상이므로 negative lookbehind 로 제외. 금액이 안 붙은 고아 "원 +X% YoY"만 high 로 검출.
   { name: 'won_label', sev: 'high', re: /(?<![\d억조만천백])원\s*[+\-]?\d+\.?\d*\s*%\s*YoY/g },
   // 콘탱고 한글 변종 (정상 표기 "콘탱고" 만 허용)
-  { name: 'garbled_contango', sev: 'medium', re: /(컨티구오|컨티아고|컨텐고|컨텐코|콘텡고|콘텐고|콘탕고)/g },
+  { name: 'garbled_contango', locales: ['ko'], sev: 'medium', re: /(컨티구오|컨티아고|컨텐고|컨텐코|콘텡고|콘텐고|콘탕고)/g },
   // 자금흐름을 %로 ("16.5% 유입") — flow 는 금액으로만 근거화됨
-  { name: 'return_as_flow', sev: 'medium', re: /\d{1,2}\.?\d*\s*%\s*유입/g },
+  { name: 'return_as_flow', locales: ['ko'], sev: 'medium', re: /\d{1,2}\.?\d*\s*%\s*유입/g },
   // 한글 토큰 내 라틴 누출("스que이즈")
-  { name: 'latin_bleed', sev: 'medium', re: /[가-힣][a-z]{2,6}[가-힣]/g },
+  { name: 'latin_bleed', locales: ['ko'], sev: 'medium', re: /[가-힣][a-z]{2,6}[가-힣]/g },
   // 중국어/일본어 한자 누출 (국가약어 제외)
   // 2026-06-17 전수조사 detector-tuning: 단일 한자 11자 화이트리스트는 정상 한국어 금융문(半導體·證券·美中 등)을
   //   cjk_bleed 로 오탐. 진짜 신호는 *고립된 흔한 한자*가 아니라 *비허용 한자의 런(run)* — 즉 미번역 중/일 문장.
   //   ① 허용 한자를 흔한 금융/국가 한자로 확장(오탐 제거), ② 단일 한자 → 4자 이상 CJK 클러스터(공백 무관)로
   //   바꿔 비허용 한자가 >=4 누적된 경우만 매칭(런 휴리스틱). 정상 한국어의 산발적 한자는 통과, 미번역 문장은 검출.
-  { name: 'cjk_bleed', sev: 'medium', re: /[㐀-䶿一-鿿]{1,}(?:\s*[㐀-䶿一-鿿]){3,}/g, minBad: 4,
+  { name: 'cjk_bleed', locales: ['ko'], sev: 'medium', re: /[㐀-䶿一-鿿]{1,}(?:\s*[㐀-䶿一-鿿]){3,}/g, minBad: 4,
     allow: new Set([...'美中日韓北南東西獨佛英露濠伊獨佛美中國本日韓朝臺香港上下高低大小新舊年月日時分秒兆億萬千百株債金利率銀行證券半導體市場經濟貿易輸出入油金利價格指數平均長短期前後內外總純粹發行收益損失資本産業企業財政通貨換率金融投資配當株式債券油價原油銅銀鐵銅鋼鐵綜合電子車自動車製造販賣物價賃金雇用失業政策財務報告']) },
   // 렌더 사고: NaN/undefined/null/[object Object]
   { name: 'nan_undef', sev: 'high', re: /\b(NaN|undefined)\b|\[object Object\]|\bnull\b(?!\s*=)/g },
   // 미치환 placeholder ([주력시장 핵심], [TARGET_LANG] 등)
   { name: 'placeholder_leak', sev: 'high', re: /\[(?:TARGET_LANG|주력시장[^\]]*|동인[^\]]*|입력[^\]]*|방향|리스크|두 힘)[^\]]*\]/g },
   // 반복 어절("단기적 단기", "상승 상승")
-  { name: 'word_dup', sev: 'low', re: /(\b[가-힣]{2,4})\s+\1\b/g },
+  { name: 'word_dup', locales: ['ko'], sev: 'low', re: /(\b[가-힣]{2,4})\s+\1\b/g },
 ];
 
 const slug = (p) => (p.replace(/^\//, '') || 'root').replace(/[^a-z0-9가-힣]/gi, '_');
 
-async function runDetectors(text) {
+// 2026-08-22: 이 도구는 한국어 페이지 전용으로 만들어졌다(DEFAULT_PAGES 가 전부 /ko/…).
+//   다국어 페이지로 넓히자 한국어 전제 탐지기가 정상 텍스트를 누출로 셌다 —
+//   /ja/… 의 "資金追跡"·/zh-CN/… 의 "搜索公司" 를 cjk_bleed 로 6건씩(실측).
+//   오탐을 내는 감시는 진짜 경보까지 무디게 만든다. 경로에서 로케일을 읽어 적용 범위를 지킨다.
+const LOCALES = new Set(['ko','en','ja','zh-CN','zh-TW','es','fr','de','pt','ru','ar','hi','id','th','tr','vi']);
+/** '/ja/company/X' → 'ja'. 접두어가 없으면 기본 로케일(en) 이다(next-intl localePrefix: as-needed). */
+function pageLocale(path) {
+  const seg = String(path || '').split('/').filter(Boolean)[0];
+  return LOCALES.has(seg) ? seg : 'en';
+}
+
+async function runDetectors(text, locale = 'ko') {
   const flags = [];
   // 영문 누출: 확정(en.json 값과 일치)과 후보를 나눠 보고한다.
-  const leaks = englishLeak(text);
+  //   기본 로케일(en) 페이지에서는 영문이 정답이므로 검사하지 않는다 —
+  //   안 그러면 /company/AAPL 같은 접두어 없는 경로가 통째로 결함이 된다.
+  const leaks = locale === 'en' ? [] : englishLeak(text);
   for (const sev of ['high', 'low']) {
     const g = leaks.filter((h) => h.sev === sev);
     if (g.length) flags.push({ detector: sev === 'high' ? 'english_leak' : 'english_candidate', sev,
       count: g.length, samples: g.slice(0, 12).map((h) => ({ v: h.v, snip: h.v })) });
   }
   for (const d of DETECTORS) {
+    // locales 가 선언된 탐지기는 그 로케일에서만 돈다(미선언 = 전 로케일 공통).
+    if (d.locales && !d.locales.includes(locale)) continue;
     const hits = [];
     for (const m of text.matchAll(d.re)) {
       const v = m[0];
@@ -168,7 +183,7 @@ async function runDetectors(text) {
 
 // 클릭 기반 탭(OSINT/Insider 등 URL 비주소지정) — 탭바 버튼 그룹 발견 → 각 탭 클릭 후 감사.
 // 2026-07-04: shotDir 지정 시 탭별 fullPage 스크린샷 저장(사용자 "탭·페이지 전부 캡처").
-async function auditClickTabs(page, shotDir = null) {
+async function auditClickTabs(page, shotDir = null, locale = 'ko') {
   const tabFlags = [];
   let labels = [];
   try {
@@ -193,7 +208,7 @@ async function auditClickTabs(page, shotDir = null) {
       await page.waitForTimeout(700);
       if (page.url() !== before) { await page.goBack({ timeout: 8000 }).catch(() => {}); await page.waitForTimeout(400); continue; }
       const text = (await page.evaluate(() => document.body?.innerText || '')).trim();
-      for (const f of await runDetectors(text)) tabFlags.push({ tab: label, ...f });
+      for (const f of await runDetectors(text, locale)) tabFlags.push({ tab: label, ...f });
       if (shotDir) { try { await page.screenshot({ path: `${shotDir}/tab_${label.replace(/[^a-z0-9가-힣]/gi, '_').slice(0, 20)}.png`, fullPage: true }); } catch { /* 캡처 실패 비치명 */ } }
     } catch { /* 클릭 실패 — skip */ }
   }
@@ -232,13 +247,13 @@ for (const path of PAGES) {
     await page.waitForTimeout(900);
     const text = (await page.evaluate(() => document.body?.innerText || '')).trim();
     rec.bodyLen = text.length;
-    rec.flags = await runDetectors(text);
+    rec.flags = await runDetectors(text, pageLocale(path));
     // 페이지 fullPage 캡처 (탭 캡처와 동일 디렉토리 — 사각지대 육안 검증용)
     const pageShotDir = WANT_SLICES ? `${shotRoot}/${slug(path)}` : null;
     if (pageShotDir) { mkdirSync(pageShotDir, { recursive: true }); try { await page.screenshot({ path: `${pageShotDir}/full.png`, fullPage: true }); } catch { /* */ } }
     // 클릭 탭 순회 (URL 주소지정 안 되는 탭 — OSINT/Insider 등). ?tab= 변형은 이미 별도 항목.
     if (WANT_TABS && !path.includes('?tab=')) {
-      const { labels, tabFlags } = await auditClickTabs(page, pageShotDir);
+      const { labels, tabFlags } = await auditClickTabs(page, pageShotDir, pageLocale(path));
       rec.tabs = labels;
       // 탭별 flag 를 detector 단위로 병합(탭명 표기)
       for (const tf of tabFlags) { const ex = rec.flags.find((f) => f.detector === tf.detector); if (ex) { ex.count += tf.count; (ex.tabs ??= []).push(tf.tab); } else rec.flags.push({ ...tf, tabs: [tf.tab] }); }
