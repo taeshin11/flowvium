@@ -21,8 +21,25 @@ const CFG_PATH = process.env.RESOURCE_THRESHOLDS_PATH ?? resolve(ROOT, 'data/res
 const LOCAL_DEST = () => process.env.FLOWVIUM_BACKUP_LOCAL_DIR || resolve(process.env.HOME ?? '.', 'flowvium_backups');
 const DB_RE = /^flowvium-\d{4}-\d{2}-\d{2}\.db$/;
 
-const run = (cmd, args) => new Promise((res) => {
-  execFile(cmd, args, { timeout: 8000, maxBuffer: 4 << 20 }, (err, stdout) => res(err ? '' : String(stdout)));
+// 2026-08-22: 원격(Drive) 판독은 *자식 프로세스* 로만 한다.
+//   1차 회귀: 상한 없는 readdirSync 하나가 check-stall 을 170s cron 상한까지 끌고 가
+//     `stall=TIMEOUT(hang)` 을 16회 — 모니터가 6시간 넘게 눈이 멀었다(내가 만든 회귀).
+//   2차: Promise.race 로 상한을 걸었더니 *함수는* 5초에 돌아오는데 **프로세스가 안 죽었다**.
+//     launchd 실측 — backupStatus() 는 값을 찍고도 3분 넘게 node 가 종료되지 않았다.
+//     node 의 fs 스레드풀 요청은 취소가 불가능하다. Drive readdir 이 미결로 남으면
+//     libuv 가 그 핸들을 붙잡아 이벤트 루프가 안 비고, 결국 똑같이 hang 이다.
+//     타임아웃은 '기다리기를 그만두는' 것이지 '작업을 취소하는' 게 아니다.
+//   그래서 취소 가능한 경계 = 프로세스 경계로 옮긴다. execFile 의 timeout 은 자식을 죽이고,
+//   부모의 루프는 깨끗하게 빈다. 느린 원격 FS 를 이 프로세스 안으로 들이지 않는다.
+const REMOTE_TIMEOUT_MS = Number(process.env.BACKUP_HEALTH_REMOTE_TIMEOUT_MS) || 8000;
+
+const run = (cmd, args, timeout = 8000) => new Promise((res) => {
+  const child = execFile(cmd, args, { timeout, killSignal: 'SIGKILL', maxBuffer: 4 << 20 },
+    (err, stdout) => res(err ? null : String(stdout)));
+  // execFile 의 timeout 이 안 먹는 경우(자식이 커널 대기)에도 부모는 풀려나야 한다.
+  const hard = setTimeout(() => { try { child.kill('SIGKILL'); } catch { /* 이미 종료 */ } res(null); }, timeout + 2000);
+  child.on('close', () => clearTimeout(hard));
+  hard.unref();
 });
 
 /** launchd 잡 또는 cron-runner 의 잡 목록에 백업이 등록돼 있는가. */
@@ -46,17 +63,25 @@ export async function backupStatus() {
   const issues = [];
 
   if (!dest) issues.push('FLOWVIUM_BACKUP_DIR 미설정 — backup-takeover.mjs 는 이 값이 없으면 exit(1) 한다');
-  const destExists = !!dest && existsSync(dest);
-  if (dest && !destExists) issues.push(`백업 대상 경로 없음: ${dest}`);
-
-  let newest = null, ageDays = null;
-  if (destExists) {
-    const files = readdirSync(dest).filter((f) => DB_RE.test(f)).sort();
-    newest = files.length ? files[files.length - 1] : null;
-    if (!newest) issues.push('DB 백업 파일이 하나도 없다');
-    else {
-      ageDays = Math.floor((Date.now() - statSync(join(dest, newest)).mtimeMs) / 86400000);
-      if (ageDays > maxAgeDays) issues.push(`최신 백업이 ${ageDays}일 전(${newest}) — 임계 ${maxAgeDays}일. 그 사이 로컬 상태(학습이력·추천·outcome)는 무방비다`);
+  let destExists = false, newest = null, ageDays = null, remoteUnknown = false;
+  if (dest) {
+    // 이름과 mtime(epoch)을 한 번에. run() 이 null 이면 '못 읽었다' — '없다' 와 구분한다.
+    const listed = await run('/bin/sh', ['-c',
+      `cd ${JSON.stringify(dest)} 2>/dev/null && /usr/bin/stat -f '%m %N' *.db 2>/dev/null`], REMOTE_TIMEOUT_MS);
+    if (listed === null) {
+      remoteUnknown = true;
+      issues.push('원격 백업 상태 확인 불가(응답 없음) — 로컬 백업만 보장된다. Drive 접근 권한 부여 전까지 정상');
+    } else {
+      destExists = true;
+      const rows = listed.split('\n').map((l) => l.match(/^(\d+)\s+(.+)$/)).filter(Boolean)
+        .map((m) => ({ mtime: Number(m[1]) * 1000, name: m[2] })).filter((r) => DB_RE.test(r.name))
+        .sort((a, b) => a.mtime - b.mtime);
+      newest = rows.length ? rows[rows.length - 1].name : null;
+      if (!newest) issues.push('DB 백업 파일이 하나도 없다');
+      else {
+        ageDays = Math.floor((Date.now() - rows[rows.length - 1].mtime) / 86400000);
+        if (ageDays > maxAgeDays) issues.push(`최신 백업이 ${ageDays}일 전(${newest}) — 임계 ${maxAgeDays}일. 그 사이 로컬 상태(학습이력·추천·outcome)는 무방비다`);
+      }
     }
   }
 
@@ -92,5 +117,5 @@ export async function backupStatus() {
   }
 
   return { dest, destExists, newest, ageDays, maxAgeDays, scheduled: !!scheduledBy, scheduledBy,
-           localDir, localNewest, localAgeDays, restorable, reportRows, issues };
+           remoteUnknown, localDir, localNewest, localAgeDays, restorable, reportRows, issues };
 }

@@ -244,8 +244,18 @@ async function checkOnce() {
   //     백업은 '있다고 믿는 것' 이 가장 위험하다.
   try {
     const b = await backupStatus();
-    if (b.issues.length) for (const i of b.issues) issues.push(`백업 — ${i}`);
-    else info.push(`백업 ✓ (원격 ${b.newest} ${b.ageDays}일 전 · 로컬 ${b.localNewest} ${b.localAgeDays}일 전, 복원가능 reports ${b.reportRows}행 · ${b.scheduledBy})`);
+    // 원격을 '못 읽은' 것(권한 미부여)은 로컬 백업이 신선하고 복원 가능하면 결함이 아니다.
+    // 20분마다 🚨 를 띄우면서 본문에 '정상' 이라고 쓰는 건 늑대소년이다 — 진짜 결함이 묻힌다.
+    // 유실 위험의 실체는 '복원할 게 있느냐' 이고, 그건 로컬이 답한다. 원격은 이중화일 뿐.
+    const localSafe = b.restorable && b.localAgeDays !== null && b.localAgeDays <= b.maxAgeDays;
+    const remoteOnly = b.remoteUnknown && b.issues.every((i) => /원격 백업 상태 확인 불가/.test(i));
+    if (b.issues.length && !(remoteOnly && localSafe)) {
+      for (const i of b.issues) issues.push(`백업 — ${i}`);
+    } else if (remoteOnly && localSafe) {
+      info.push(`백업 ✓ 로컬 ${b.localNewest} ${b.localAgeDays}일 전 (복원가능 reports ${b.reportRows}행 · ${b.scheduledBy}) · 원격 미확인 — Drive 권한 미부여, 이중화만 결여`);
+    } else {
+      info.push(`백업 ✓ (원격 ${b.newest} ${b.ageDays}일 전 · 로컬 ${b.localNewest} ${b.localAgeDays}일 전, 복원가능 reports ${b.reportRows}행 · ${b.scheduledBy})`);
+    }
   } catch (e) {
     issues.push(`백업 상태 판독 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
