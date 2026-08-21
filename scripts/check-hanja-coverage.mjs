@@ -38,6 +38,9 @@ const EXEMPT = {
   'scripts/check-stall.mjs': 'model-id health probe(/v1/models) — 산문 생성 아님',
   'scripts/pm2-watchdog.mjs': 'health probe — 산문 생성 아님',
   'scripts/run-report.bat': '런처(가드된 generate-report 호출)',
+  // 2026-08-21 신설. LLM 을 호출하지도 산문을 만들지도 않는다 — 요청 동시성만 제한한다.
+  //   주석에 서버 URL(:8000)과 mlx 플래그를 적어 둔 탓에 LLM_RE 에 매칭됐을 뿐이다.
+  'scripts/lib/llm-gate.mjs': '요청 동시성 세마포어 — LLM 호출 0건, 산문 생성 아님',
   // 2026-08-20: LLM 호출이 0건인 설정 해석기. LLM_RE 의 ':8000/v1'(기본 URL 문자열)에 매칭됐을 뿐
   //   출력 표면이 아니다 — URL/모델명만 돌려준다.
   'scripts/lib/llm-config.mjs': '설정 해석기(LLM 호출 0건, 기본 URL 문자열만 보유 — 출력 표면 아님)',
@@ -64,6 +67,10 @@ const TRACKED = {
 
 const files = [...walk(`${ROOT}/scripts`), ...walk(`${ROOT}/src`)]
   .filter((p) => !p.endsWith('check-hanja-coverage.mjs'))  // 게이트 자기 파일(LLM_RE 정의를 자기매칭) 제외
+  // 2026-08-21: 테스트 파일은 사용자에게 아무것도 내보내지 않는다 — 출력표면이 아니다.
+  //   LLM 을 흉내내거나 소스를 문자열로 검사하느라 LLM_RE 에 걸릴 뿐이다.
+  //   이름을 하나씩 EXEMPT 에 박으면 다음 테스트에서 또 샌다(위 24행이 같은 교훈).
+  .filter((p) => !/\.test\.mjs$/.test(p))
   .filter((p) => { try { return LLM_RE.test(readFileSync(p, 'utf8')); } catch { return false; } })
   .map((p) => p.replace(`${ROOT}/`, '')).sort();
 
