@@ -47,12 +47,23 @@ type ProviderAttempt = { provider: 'vllm' | 'groq' | 'qwen' | 'gemini' | 'claude
 
 /** vLLM (flowvium-local) 호출 */
 async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAttempt[]): Promise<string | null> {
-  const vllmUrl = process.env.VLLM_URL?.replace(/\s+/g, '').replace(/\\n/g, '');
+  // 2026-08-22: preferSmallModel 이 선언만 되어 있고 라우팅에 안 쓰였다.
+  //   그래서 "작은 모델로 충분하다" 고 명시한 호출까지 27B(:8000, 보고서 전용,
+  //   --prompt-concurrency 1)로 갔다. 실측: /api/company-news 가 KR 종목마다 정확히 30.1초
+  //   (callAI 기본 상한 30s 에 걸려 local_only_fallback). 같은 요약을 웹 레인(:8001, 4B)에
+  //   직접 시키면 2.5초다. 선언만 있고 동작하지 않는 옵션은 호출부를 속인다.
+  //   레인 선택은 llm-local.ts 와 같은 환경변수를 쓴다 — 두 곳이 다른 데를 보면 안 된다.
+  const clean = (u?: string) => u?.replace(/\s+/g, '').replace(/\\n/g, '');
+  const webLane = clean(process.env.LOCAL_LLM_URL);
+  const vllmUrl = (opts.preferSmallModel && webLane) || clean(process.env.VLLM_URL);
   if (!vllmUrl) {
     diag?.push({ provider: 'vllm', ok: false, error: 'VLLM_URL not configured', durationMs: 0 });
     return null;
   }
 
+  const laneModel = (opts.preferSmallModel && webLane)
+    ? (process.env.LOCAL_LLM_MODEL || process.env.VLLM_MODEL)
+    : process.env.VLLM_MODEL;
   const t0 = Date.now();
   const tag = opts.tag ?? 'ai';
   try {
@@ -65,7 +76,11 @@ async function callVLLM(prompt: string, opts: AICallOptions, diag?: ProviderAtte
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.OLLAMA_TRANSLATE_MODEL || 'flowvium-local',
+        // 2026-08-22: 레인에 맞는 모델명을 쓴다. 폴백은 mlx 가 실제로 받는 값이어야 한다 —
+        //   종전 폴백 'flowvium-local' 은 옛 Ollama 별칭이고 mlx 는 404 로 거부한다
+        //   (scripts/lib/llm-config.mjs 가 그 사고를 기록해 두었다). OLLAMA_TRANSLATE_MODEL 이
+        //   설정돼 있어 가려져 있었을 뿐, 그 변수가 비면 전 호출이 404 가 된다.
+        model: laneModel || process.env.OLLAMA_TRANSLATE_MODEL || 'default_model',
         messages,
         max_tokens: opts.maxTokens ?? 1600,
         temperature: opts.temperature ?? 0.65,
