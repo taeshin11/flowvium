@@ -7005,7 +7005,9 @@ async function generateViaOllama() {
   }
   let regionalData     = parseJson(regionalRaw, 'regional');
   const opportunityData = parseJson(opportunityRaw, 'opportunity');
-  const narrativeData  = parseJson(narrativeRaw, 'narrative');
+  // 2026-08-21: 재시도에서 재대입한다(아래 retryNeeded 블록). marketNarrative 는 게이트가 차단하는 값이라
+  //   일시 실패 한 번에 발간이 통째로 막힌다 — macro/regional 과 같은 등급인데 재시도만 없었다.
+  let narrativeData  = parseJson(narrativeRaw, 'narrative');
 
   // narrative 결과 로그
   if (narrativeData) {
@@ -7015,16 +7017,24 @@ async function generateViaOllama() {
 
   // Retry failed wave1 calls once
   const retryNeeded = [];
-  if (!macroData)    retryNeeded.push('macro');
-  if (!regionalData) retryNeeded.push('regional');
+  if (!macroData)     retryNeeded.push('macro');
+  if (!regionalData)  retryNeeded.push('regional');
+  // 2026-08-21: narrative 추가. 게이트가 :854 `if (!report.marketNarrative) issues.push(...)` 로
+  //   *차단* 하는데 재시도가 없었다. 실제로 조절기 장애 때 narrative 만 유실된 채 진행됐다
+  //   (로그: opportunity=false(squeeze:0), narrative=false).
+  //   opportunity 는 :860 이 warnings(비차단)이라 재시도를 붙이지 않는다 — 없어도 발간되는 섹션에
+  //   재시도를 다는 건 증상 덮기다. 게이트 등급이 기준이다(wave1-retry.test.mjs 가 이 불변식을 검사).
+  if (!narrativeData) retryNeeded.push('narrative');
   if (retryNeeded.length > 0) {
     console.log(`  parse failed [${retryNeeded.join(', ')}] — retrying...`);
     const retries = await Promise.all([
       !macroData    ? callOllama(buildMacroPrompt(ctxWithCascade, ctx.vixCtx, session, flowEvidence), modelArg, 3600000, 'macro-retry')    : Promise.resolve(null),
       !regionalData ? callOllama(buildRegionalPrompt(ctxWithCascade), modelArg, 3600000, 'regional-retry')                   : Promise.resolve(null),
+      !narrativeData ? callOllama(buildNarrativePrompt(ctxWithCascade, session, sectorPe, ctxWithCascade.institutional), modelArg, 3600000, 'narrative-retry') : Promise.resolve(null),
     ]);
     if (!macroData    && retries[0]) macroData    = parseJson(retries[0], 'macro-retry');
     if (!regionalData && retries[1]) regionalData = parseJson(retries[1], 'regional-retry');
+    if (!narrativeData && retries[2]) narrativeData = parseJson(retries[2], 'narrative-retry');
   }
 
   // 2026-07-06 (사용자 "기본적 분석 왜 비어있지?"): macro 파싱은 성공했는데 개별 카드 필드만 누락한 경우
