@@ -37,7 +37,6 @@ const EXEMPT = {
   'src/lib/llm-local.ts': '한자 bleed 가드 라이브러리 자체(hasChineseBleed 단일출처)',
   'scripts/check-stall.mjs': 'model-id health probe(/v1/models) — 산문 생성 아님',
   'scripts/pm2-watchdog.mjs': 'health probe — 산문 생성 아님',
-  'scripts/run-report.bat': '런처(가드된 generate-report 호출)',
   // 2026-08-21 신설. LLM 을 호출하지도 산문을 만들지도 않는다 — 요청 동시성만 제한한다.
   //   주석에 서버 URL(:8000)과 mlx 플래그를 적어 둔 탓에 LLM_RE 에 매칭됐을 뿐이다.
   'scripts/lib/llm-gate.mjs': '요청 동시성 세마포어 — LLM 호출 0건, 산문 생성 아님',

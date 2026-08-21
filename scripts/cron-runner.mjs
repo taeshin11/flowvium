@@ -20,6 +20,7 @@ import { promisify } from 'util';
 import { resolveLauncher } from './lib/report-launcher.mjs';   // 2026-08-20: cmd /c run-report.bat 고정 → 맥에서 ENOENT.
 import { resolveLlm } from './lib/llm-config.mjs';
 import { isReportPipelineRunning as isReportRunningShared } from './lib/report-running.mjs';
+import { listenerUptimeMs } from './lib/service-uptime.mjs';
 //   쇼크 긴급보고서와 누락 backfill 두 안전망이 동시에 무증상 사망 상태였다.
 
 // 2026-06-11: execSync → 비동기 execFile. execSync 는 이벤트 루프를 최대 170~300초 블로킹해
@@ -145,17 +146,17 @@ async function runMonitor() {
   if (monitorRunning) { log('[auto-monitor] 이전 사이클 진행 중 — skip (중복 실행 방지)'); return; }
   monitorRunning = true;
   try {
-  // 2026-06-12: 배포 재시작 직후 프로브 오탐 가드 — pm2 web uptime < 3분이면 endpoint 프로브만 skip.
+  // 2026-06-12: 배포 재시작 직후 프로브 오탐 가드 — 웹 uptime < 3분이면 endpoint 프로브만 skip.
   //   사건: verdict 빌드 배포 순간 모니터가 닿아 14 엔드포인트 DEAD(HTTP 500) 대량 오탐.
-  let deployWindow = false;
-  try {
-    // Node 20.12+ 의 .cmd spawn 보안 변경으로 shell 필수 (spawn EINVAL — 가드 silent 실패 사건).
-    const { stdout } = await execFileAsync('pm2', ['jlist'], { timeout: 15000, windowsHide: true, shell: true, maxBuffer: 10 * 1024 * 1024 });
-    const webs = JSON.parse(stdout).filter((p) => p.name === 'flowvium-web');
-    // cluster 다중 인스턴스 — 가장 최근 재시작 기준 (rolling reload 중이면 endpoint 프로브만 skip)
-    const newest = Math.max(...webs.map((w) => w?.pm2_env?.pm_uptime ?? 0));
-    deployWindow = !!(newest && Date.now() - newest < 180000);
-  } catch (e) { log(`[auto-monitor] pm2 uptime 조회 실패(가드 미적용): ${String(e?.message).slice(0, 40)}`); }
+  //
+  // 2026-08-21: 종전엔 uptime 을 `pm2 jlist` 로 얻었다. 이 기기의 웹은 launchd 가 띄우고
+  //   pm2 는 설치조차 안 되어 있다 — 20분마다 "pm2 uptime 조회 실패(가드 미적용)" 만 찍히고
+  //   가드는 한 번도 발동한 적이 없었다. 오탐 방지 장치가 조용히 꺼져 있었던 것이다.
+  //   프로세스 매니저 이름을 박으면 다음 이식에서 또 어긋나므로, 모니터가 실제로 찌르는
+  //   포트(PORT)의 리스닝 프로세스에서 읽는다 — 측정 대상과 측정 방법이 같아진다.
+  const webUptime = await listenerUptimeMs(PORT);
+  const deployWindow = webUptime != null && webUptime < 180000;
+  if (webUptime == null) log(`[auto-monitor] :${PORT} 리스너 없음 — 웹이 안 떠 있다(가드 미적용)`);
   const result = { ts: new Date().toISOString(), checks: {}, defects: [] };
   // 2026-06-13: 배포창에도 모니터 깜깜 금지 (사용자 스팟체크 stale 발견) — endpoint 프로브(웹 의존,
   //   재시작 중 오탐)만 skip 하고 GPU/lock/wipe(웹 독립) 체크는 항상 실행 + status 갱신.
