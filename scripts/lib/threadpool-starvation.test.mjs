@@ -120,5 +120,11 @@ remoteFsp.length
   ? ok('감시자를 프로세스 그룹째 해제한다 — 고아 sleep 을 남기지 않는다')
   : bad('감시자를 sh 만 죽인다 — 자식 sleep 이 PPID 1 고아로 남아 매 주기 쌓인다');
 
+// 백업의 첫 번째 규칙: 있는 백업을 없애지 않는다.
+//   rm 먼저 → cp 가 상한에 걸려 죽으면 원격에 아무것도 안 남는다. 그게 실제로 일어났다.
+/rm -f -- "\$3"; cp -- "\$2" "\$3" && mv -f/.test(src) && /REMOTE_TMP/.test(src)
+  ? ok('원격 교체가 임시 이름에 쓰고 mv 로 갈아끼운다 — 실패해도 옛 백업이 남는다')
+  : bad('원격 교체가 대상을 먼저 지운다 — 쓰기가 실패하면 백업이 사라진다');
+
 console.log(fail === 0 ? '\n✅ threadpool-starvation 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

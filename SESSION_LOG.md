@@ -51,8 +51,13 @@
   ProgramArguments 에 **평문**으로 있고 접두부가 전사에 노출됨.
 - 🟡 **node 에 전체 디스크 접근 권한**: 시스템 설정 → 개인정보 보호 및 보안 →
   전체 디스크 접근 권한 → `/Users/spinai-mini/.local/node/bin/node`.
-  그전까지 Drive 원격 백업은 항상 실패하고 **로컬 `~/flowvium_backups` 만이 안전망**이다
-  (복원가능성은 검증됨 — reports 204행). 기기 사망은 못 막는다.
+  **정정(08-22 06:30 실측)**: "원격 백업이 항상 실패한다" 는 내 앞선 기술은 틀렸다.
+  launchd 에서도 **DB 는 Drive 에 올라간다** — 원격 사본 실측 154,411,008바이트로
+  원본과 일치, `integrity_check=ok`, reports 205행·recommendations 1481행으로 복원 가능.
+  막히는 건 *이미 원격에만 있는(dehydrated) 작은 파일의 갱신* 이다:
+  `secrets/`·`HANDOFF.md`·`CLAUDE.md`·미러. 원격 HANDOFF.md 는 08-22 00:35 판으로 멈춰 있다.
+  → 즉 **기기가 죽어도 DB 는 산다.** 잃는 건 시크릿·runbook 의 최신판과 미러다.
+  권한을 주면 그것까지 자동으로 따라온다.
 
 ### 의도적으로 안 한 것 (감으로 고르지 않기 위해)
 
